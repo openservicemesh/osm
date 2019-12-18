@@ -39,7 +39,8 @@ type secretItem struct {
 	privateKey       []byte
 }
 
-type SDSServer struct {
+// Server is the SDS server struct
+type Server struct {
 	// TODO: we should track more than one nonce. One nonce limits us to have only one Envoy process per SDS server.
 	lastNonce string
 
@@ -58,7 +59,8 @@ type SDSServer struct {
 	closing chan bool
 }
 
-func NewSDSServer(keysDirectory *string) *SDSServer {
+// NewSDSServer creates a new SDS server
+func NewSDSServer(keysDirectory *string) *Server {
 	keysDir := keysDirTemp
 	if keysDirectory != nil {
 		keysDir = *keysDirectory
@@ -67,7 +69,7 @@ func NewSDSServer(keysDirectory *string) *SDSServer {
 	skipTokenVerification := false
 	recycleInterval := 5 * time.Second
 
-	return &SDSServer{
+	return &Server{
 		connectionNum: 0,
 		keysDirectory: keysDir,
 
@@ -81,11 +83,12 @@ func NewSDSServer(keysDirectory *string) *SDSServer {
 	}
 }
 
-func (s *SDSServer) DeltaSecrets(sdsapi.SecretDiscoveryService_DeltaSecretsServer) error {
+// DeltaSecrets is an SDS interface requirement
+func (s *Server) DeltaSecrets(sdsapi.SecretDiscoveryService_DeltaSecretsServer) error {
 	panic("NotImplemented")
 }
 
-func (s *SDSServer) sdsDiscoveryResponse(si *secretItem, proxyID string) (*xdsapi.DiscoveryResponse, error) {
+func (s *Server) sdsDiscoveryResponse(si *secretItem, proxyID string) (*xdsapi.DiscoveryResponse, error) {
 	glog.Info("[SDS] Composing SDS Discovery Response...")
 	s.lastNonce = time.Now().String()
 	resp := &xdsapi.DiscoveryResponse{
@@ -143,7 +146,7 @@ func getSecretItem(keyDirectory string) (*secretItem, error) {
 	return secret, nil
 }
 
-func (s *SDSServer) isConnectionAllowed() error {
+func (s *Server) isConnectionAllowed() error {
 	if s.connectionNum >= maxConnections {
 		return errTooManyConnections
 	}
@@ -151,7 +154,8 @@ func (s *SDSServer) isConnectionAllowed() error {
 	return nil
 }
 
-func (s *SDSServer) FetchSecrets(ctx context.Context, discReq *xdsapi.DiscoveryRequest) (*xdsapi.DiscoveryResponse, error) {
+// FetchSecrets fetches the certs
+func (s *Server) FetchSecrets(ctx context.Context, discReq *xdsapi.DiscoveryRequest) (*xdsapi.DiscoveryResponse, error) {
 	glog.Infof("Fetching Secrets...")
 	secret, err := getSecretItem(s.keysDirectory)
 	if err != nil {

@@ -11,7 +11,8 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func (s *SDSServer) StreamSecrets(stream v2.SecretDiscoveryService_StreamSecretsServer) error {
+// StreamSecrets handles streaming of the certs to the connected Envoy proxies
+func (s *Server) StreamSecrets(stream v2.SecretDiscoveryService_StreamSecretsServer) error {
 	glog.Info("[SDS] Starting SecretsStreamer...")
 	var recvErr error
 	var nodeID string
