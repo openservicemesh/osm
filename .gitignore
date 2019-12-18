@@ -32,6 +32,7 @@ jsconfig.json
 /bin/
 build/
 .dev/
+.env
 creds.json
 screenlog.*
 vendor/
