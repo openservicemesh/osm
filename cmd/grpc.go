@@ -38,7 +38,7 @@ func NewGrpc(serverType string, port int) (*grpc.Server, net.Listener) {
 	return grpc.NewServer(grpcOptions...), lis
 }
 
-// GrpcServe starts the gRPC server
+// GrpcServe starts the gRPC server passed.
 func GrpcServe(ctx context.Context, grpcServer *grpc.Server, lis net.Listener, cancel context.CancelFunc, serverType string) {
 	go func() {
 		err := grpcServer.Serve(lis)
