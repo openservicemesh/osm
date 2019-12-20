@@ -16,9 +16,7 @@ const (
 
 func newClusterLoadAssignment(targetServiceName mesh.ServiceName, weightedServices []mesh.WeightedService) v2.ClusterLoadAssignment {
 	cla := v2.ClusterLoadAssignment{
-		// NOTE: results.ServiceName is what we are curling - so azure.servicemesh.
-		// This is not the name of the cluster in the Envoy config, which is bookstore_via_eds;
-		// so I renamed bookstore_via_eds to bookstore.azuremesh -- something about service discovery here.....
+		// NOTE: results.ServiceName is the top level service that is cURLed.
 		ClusterName: string(targetServiceName),
 		Endpoints: []*endpoint.LocalityLbEndpoints{
 			{
