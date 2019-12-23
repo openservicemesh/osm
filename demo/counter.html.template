@@ -35,7 +35,7 @@
     </div>
     <div id="main">
       <ul>
-        <li>Packets sold: <strong>{{.Counter}}</strong>
+        <li>Books sold: <strong>{{.Counter}}</strong>
         <li>Backend: <strong>{{.Identity}}</strong>
       </ul>
     </div>
