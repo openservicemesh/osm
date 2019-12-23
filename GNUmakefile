@@ -42,3 +42,41 @@ go-fmt:
 go-test:
 	./scripts/go-test.sh
 
+
+### docker targets
+.PHONY: build-counter
+build-counter:
+	rm -rf $(shell pwd)/demo/bin
+	mkdir -p $(shell pwd)/demo/bin
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ./demo/bin/counter ./demo/counter.go
+
+.PHONY: docker-build-bookbuyer
+docker-build-bookbuyer:
+	docker build -t delqn.azurecr.io/diplomat/bookbuyer -f dockerfiles/Dockerfile.bookbuyer .
+
+.PHONY: docker-build-bookstore
+docker-build-bookstore: build-counter
+	docker build -t delqn.azurecr.io/diplomat/bookstore -f dockerfiles/Dockerfile.bookstore .
+
+.PHONY: docker-build-init
+docker-build-init:
+	docker build -t delqn.azurecr.io/diplomat/init -f dockerfiles/Dockerfile.init .
+
+.PHONY: docker-push-eds
+docker-push-eds: docker-build-eds
+	docker push delqn.azurecr.io/diplomat/eds
+
+.PHONY: docker-push-bookbuyer
+docker-push-bookbuyer: docker-build-bookbuyer
+	docker push delqn.azurecr.io/diplomat/bookbuyer
+
+.PHONY: docker-push-bookstore
+docker-push-bookstore: docker-build-bookstore
+	docker push delqn.azurecr.io/diplomat/bookstore
+
+.PHONY: docker-push-init
+docker-push-init: docker-build-init
+	docker push delqn.azurecr.io/diplomat/init
+
+.PHONY: docker-push
+docker-push: docker-push-eds docker-push-sds docker-push-client docker-push-init docker-push-bookbuyer docker-push-bookstore
