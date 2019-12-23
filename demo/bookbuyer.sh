@@ -4,7 +4,7 @@ set -aueo pipefail
 
 while true; do
 
-    for HOST in "bookstore.azuremesh"; do
+    for HOST in "bookstore.mesh"; do
         echo -e "---------------------------"
         URL="http://$HOST/"
         echo -e "\ncurl $URL"
