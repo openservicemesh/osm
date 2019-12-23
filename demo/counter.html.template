@@ -1,0 +1,43 @@
+<!doctype html>
+<html itemscope="" itemtype="http://schema.org/WebPage" lang="en">
+  <head>
+      <meta content="Bookstore" name="description">
+      <meta content="text/html; charset=UTF-8" http-equiv="Content-Type">
+      <title>Bookstore App</title>
+      <style>
+        #navbar {
+            width: 100%;
+            height: 50px;
+            display: table;
+            border-spacing: 0;
+            white-space: nowrap;
+            line-height: normal;
+            background-color: #0078D4;
+            background-position: left top;
+            background-repeat-x: repeat;
+            background-image: none;
+            color: white;
+            font: 2.2em "Fira Sans", sans-serif;
+        }
+        #main {
+            padding: 10pt 10pt 10pt 10pt;
+            font: 1.8em "Fira Sans", sans-serif;
+        }
+        li {
+            padding: 10pt 10pt 10pt 10pt;
+            font: 1.2em "Consolas", sans-serif;
+        }
+      </style>
+  </head>
+  <body bgcolor="#fff">
+    <div id="navbar">
+      &#127873; Bookstore
+    </div>
+    <div id="main">
+      <ul>
+        <li>Packets sold: <strong>{{.Counter}}</strong>
+        <li>Backend: <strong>{{.Identity}}</strong>
+      </ul>
+    </div>
+  </body>
+</html>
