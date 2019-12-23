@@ -1,0 +1,6 @@
+FROM alpine:3.10.1
+RUN apk add --no-cache iptables
+ADD init-ipchains.sh /
+WORKDIR /
+RUN chmod +x init-ipchains.sh
+CMD ["sh","init-ipchains.sh"]
