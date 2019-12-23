@@ -2,21 +2,21 @@
 
 set -aueo pipefail
 
-NAMESPACE="smc"
+source .env
 
-kubectl delete namespace "$NAMESPACE" || true
-kubectl create namespace "$NAMESPACE" || true
+kubectl delete namespace "$K8S_NAMESPACE" || true
+kubectl create namespace "$K8S_NAMESPACE" || true
 
-kubectl get all -n "$NAMESPACE"
+kubectl get all -n "$K8S_NAMESPACE"
 
-for x in $(kubectl get deployments -n "$NAMESPACE" --no-headers | awk '{print $1}');  do
-    kubectl delete deployment $x -n "$NAMESPACE"
+for x in $(kubectl get deployments -n "$K8S_NAMESPACE" --no-headers | awk '{print $1}');  do
+    kubectl delete deployment $x -n "$K8S_NAMESPACE"
 done
 
-for x in $(kubectl get services -n "$NAMESPACE" --no-headers | awk '{print $1}');  do
-    kubectl delete service $x -n "$NAMESPACE"
+for x in $(kubectl get services -n "$K8S_NAMESPACE" --no-headers | awk '{print $1}');  do
+    kubectl delete service $x -n "$K8S_NAMESPACE"
 done
 
-for x in $(kubectl get configmaps -n "$NAMESPACE" --no-headers | awk '{print $1}');  do
-    kubectl delete configmap $x -n "$NAMESPACE"
+for x in $(kubectl get configmaps -n "$K8S_NAMESPACE" --no-headers | awk '{print $1}');  do
+    kubectl delete configmap $x -n "$K8S_NAMESPACE"
 done
