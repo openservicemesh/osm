@@ -37,3 +37,4 @@ build/
 creds.json
 screenlog.*
 vendor/
+demo/bin/
