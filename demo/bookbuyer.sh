@@ -2,9 +2,11 @@
 
 set -aueo pipefail
 
+HOSTS=("bookstore.mesh" "bookstore-1" "bookstore-2")
+
 while true; do
 
-    for HOST in "bookstore.mesh"; do
+    for HOST in ${HOSTS[@]}; do
         echo -e "---------------------------"
         URL="http://$HOST/"
         echo -e "\ncurl $URL"
