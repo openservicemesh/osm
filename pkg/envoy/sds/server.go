@@ -120,7 +120,6 @@ func (s *Server) sdsDiscoveryResponse(si *secretItem, proxyID string) (*xdsapi.D
 		glog.Errorf("Failed to marshal secret for proxy %q: %v", proxyID, err)
 		return nil, err
 	}
-    glog.V(9).Infof("SDS Response: %+v")
 	resp.Resources = append(resp.Resources, ms)
 
 	return resp, nil
