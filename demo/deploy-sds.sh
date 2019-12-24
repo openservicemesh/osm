@@ -58,7 +58,7 @@ spec:
         - "--verbosity"
         - "9"
         - "--keys-directory"
-        - "/tmp/keys"
+        - "/tmp/keys/"
 
   imagePullSecrets:
     - name: $CTR_REGISTRY_CREDS_NAME
