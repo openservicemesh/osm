@@ -53,7 +53,7 @@ for DOMAIN in ${domains[@]}; do
             -new \
             -sha256 \
             -key $CERT_KEY \
-            -subj "/C=US/ST=CA/O=AzureMesh, Inc./CN=${DOMAIN}" \
+            -subj "/C=US/ST=CA/O=Mesh, Inc./CN=${DOMAIN}" \
             -out $CSR
 
 
