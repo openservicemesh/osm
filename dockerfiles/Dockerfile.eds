@@ -1,6 +1,5 @@
 FROM alpine:3.10.1
-ADD bin/eds /bin/eds
+ADD bin/eds /eds
 ADD ./run-eds.sh /run-eds.sh
-RUN chmod +x /bin/eds
+RUN chmod +x /eds
 RUN chmod +x /run-eds.sh
-CMD ["/run-eds.sh"]
