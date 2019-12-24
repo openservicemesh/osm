@@ -2,16 +2,12 @@
 
 set -aueo pipefail
 
-HOSTS=("bookstore.mesh" "bookstore-1" "bookstore-2")
+HOST="bookstore.mesh"
 
 while true; do
-
-    for HOST in ${HOSTS[@]}; do
-        echo -e "---------------------------"
-        URL="http://$HOST/"
-        echo -e "\ncurl $URL"
-        curl -I -s --connect-timeout 1 --max-time 1 $URL || true
-    done
-
+    echo -e "---------------------------"
+    URL="http://$HOST/"
+    echo -e "\ncurl $URL"
+    curl -I -s --connect-timeout 1 --max-time 1 $URL || true
     sleep 3
 done
