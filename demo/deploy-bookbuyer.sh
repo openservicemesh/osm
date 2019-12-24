@@ -45,11 +45,9 @@ spec:
       hostAliases:
       - ip: "127.0.0.1"
         hostnames:
-        - "${K8S_NAMESPACE}.uswest.azuremesh"
-        - "bookbuyer.azuremesh"
-        - "bookstore.azuremesh"
-        - "counter.azuremesh"
-        - "server.azuremesh"
+        - "${K8S_NAMESPACE}.uswest.mesh"
+        - "bookbuyer.mesh"
+        - "bookstore.mesh"
 
       containers:
         # Main container with APP

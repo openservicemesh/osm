@@ -19,8 +19,14 @@ spec:
   - port: 15000
     targetPort: admin-port
     name: eds-envoy-admin-port
+
+  - port: 15124
+    targetPort: 15124
+    name: eds-port
+
   selector:
     app: eds
+
   type: NodePort
 
 ---
@@ -32,6 +38,7 @@ metadata:
   namespace: $K8S_NAMESPACE
   labels:
     app: eds
+
 spec:
   containers:
     - image: "${CTR_REGISTRY}/eds:latest"
@@ -40,8 +47,23 @@ spec:
       ports:
         - containerPort: 15000
           name: admin-port
+        - containerPort: 15124
+          name: eds-port
+
       command: [ "/eds"]
-      args: ["--kubeconfig", "/kube/config", "--resource-group", "$AZURE_RESOURCE_GROUP", "--azureAuthFile", "/azure/azureAuth.json", "--subscriptionID", "$AZURE_SUBSCRIPTION"]
+      args:
+        - "--kubeconfig"
+        - "/kube/config"
+        - "--resource-group"
+        - "$AZURE_RESOURCE_GROUP"
+        - "--azureAuthFile"
+        - "/azure/azureAuth.json"
+        - "--subscriptionID"
+        - "$AZURE_SUBSCRIPTION"
+        - "--verbosity"
+        - "8"
+        - "--namespace"
+        - "smc"
 
       volumeMounts:
       - name: kubeconfig

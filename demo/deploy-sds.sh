@@ -19,12 +19,18 @@ metadata:
 spec:
   ports:
 
+  - port: 15000
+    targetPort: admin-port
+    name: sds-envoy-admin-port
+
   - port: 15123
     targetPort: 15123
     name: sds-port
 
   selector:
     app: sds
+
+  type: NodePort
 
 ---
 
@@ -35,6 +41,7 @@ metadata:
   namespace: $K8S_NAMESPACE
   labels:
     app: sds
+
 spec:
   containers:
     - image: "${CTR_REGISTRY}/sds:latest"
