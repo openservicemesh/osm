@@ -1,12 +1,4 @@
 FROM alpine:3.10.1
-
 ADD bin/sds /
-
-# For the v0.1 we add the botstrap key in the container
-# TODO(draychev): extern these
-ADD bin/cert.pem /tmp/keys/
-ADD bin/key.pem /tmp/keys/
-
 WORKDIR /
 RUN chmod +x /sds
-CMD ["/sds"]
