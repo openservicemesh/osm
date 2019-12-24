@@ -16,12 +16,13 @@ metadata:
   namespace: $K8S_NAMESPACE
   labels:
     app: sds
+
 spec:
   ports:
 
   - port: 15000
     targetPort: admin-port
-    name: sds-envoy-admin-port
+    name: admin-port
 
   - port: 15123
     targetPort: 15123
@@ -48,9 +49,16 @@ spec:
       imagePullPolicy: Always
       name: sds
       ports:
+        - containerPort: 15000
+          name: admin-port
         - containerPort: 15123
+          name: sds-port
       command: ["/sds"]
-      args: ["--verbosity", "9"]
+      args:
+        - "--verbosity"
+        - "9"
+        - "--keys-directory"
+        - "/tmp/keys"
 
   imagePullSecrets:
     - name: $CTR_REGISTRY_CREDS_NAME

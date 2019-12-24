@@ -21,11 +21,7 @@ spec:
   backends:
 
   - service: bookstore-1
-    weight: 80
+    weight: 100
 
-  - service: bookstore-2
-    weight: 15
 
-  - service: "/subscriptions/$AZURE_SUBSCRIPTION/resourceGroups/$AZURE_RESOURCE_GROUP/providers/Microsoft.Compute/virtualMachines/$VM_NAME"
-    weight: 5
 EOF

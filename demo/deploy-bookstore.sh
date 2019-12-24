@@ -21,11 +21,11 @@ spec:
   ports:
   - port: 89
     targetPort: 15000
-    name: $SVC-envoy-admin-port
+    name: admin-port
 
   - port: 83
     targetPort: 15003
-    name: $SVC-port
+    name: mtls-port
 
   selector:
     app: $SVC
@@ -67,10 +67,6 @@ spec:
           ports:
             - containerPort: 15000
               name: admin-port
-            - containerPort: 15001
-              name: no-enc-port
-            - containerPort: 15002
-              name: tls-port
             - containerPort: 15003
               name: mtls-port
           command: ["envoy"]
