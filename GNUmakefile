@@ -52,7 +52,7 @@ docker-build-eds: build-eds
 	docker build --build-arg $(HOME)/go/ -t $(CTR_REGISTRY)/eds -f dockerfiles/Dockerfile.eds .
 
 .PHONY: docker-build-sds
-docker-build-sds: build-sds root-tls
+docker-build-sds: build-sds sds-root-tls
 	@mkdir -p ./bin/
 	docker build --build-arg $(HOME)/go/ -t $(CTR_REGISTRY)/sds -f dockerfiles/Dockerfile.sds .
 
@@ -97,7 +97,7 @@ docker-push-init: docker-build-init
 .PHONY: docker-push
 docker-push: docker-push-eds docker-push-sds docker-push-init docker-push-bookbuyer docker-push-bookstore
 
-.PHONY: root-tls
-root-tls:
+.PHONY: sds-root-tls
+sds-root-tls:
 	@mkdir -p $(shell pwd)/bin
 	$(shell openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -subj '/CN=httpbin.example.com/O=Exmaple Company Name LTD./C=US' -keyout bin/key.pem -out bin/cert.pem)
