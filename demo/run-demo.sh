@@ -29,3 +29,5 @@ kubectl create configmap azureconfig --from-file="$HOME/.azure/azureAuth.json" -
 ./demo/deploy-eds.sh
 
 ./demo/deploy-traffic-split.sh
+
+watch -n0.5 "kubectl get pods -nsmc -o wide"
