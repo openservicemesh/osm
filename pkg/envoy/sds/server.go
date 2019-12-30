@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	maxConnections = 1
+	maxConnections = 10000
 
 	// Save the experimental keys here
 	keysDirTemp = "/tmp/keys/"
@@ -120,7 +120,6 @@ func (s *Server) sdsDiscoveryResponse(si *secretItem, proxyID string) (*xdsapi.D
 		glog.Errorf("Failed to marshal secret for proxy %q: %v", proxyID, err)
 		return nil, err
 	}
-
 	resp.Resources = append(resp.Resources, ms)
 
 	return resp, nil

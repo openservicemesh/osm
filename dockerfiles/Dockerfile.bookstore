@@ -2,6 +2,7 @@ FROM alpine:3.10.1
 RUN apk --update --no-cache add curl
 RUN apk add --no-cache iptables
 ADD ./demo/bin/counter /
+ADD ./demo/counter.html.template /
 WORKDIR /
 RUN chmod +x counter
 CMD ["sh","counter"]

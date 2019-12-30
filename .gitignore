@@ -38,3 +38,4 @@ creds.json
 screenlog.*
 vendor/
 demo/bin/
+certificates
