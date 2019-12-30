@@ -2,10 +2,10 @@
 
 ## Prerequisites
 Required steps and components for the successful execution of the demo scripts:
-1. install `go 1.13` on your workstation: `which go && go version` 
+1. install `go 1.13` on your workstation: `which go && go version`
 1. clone this repo on your workstation
 1. ensure OpenSSL is installed (LibreSSL 2.8.3 or later): `which openssl && openssl version`
-1. install `kubectl`: `which kubectl && kubectl version`
+1. install `kubectl` [version 1.16 or later](https://kubernetes.io/docs/tasks/tools/install-kubectl/): `which kubectl && kubectl version`
 1. provision access to a Kubernetes cluster - save the credentials in `~/.kube/config` or set the config path in `$KUBECONFIG` env variable:
    - The Azure Kubernetes Service is a fitting provider of a hosted Kubernetes service
    - [Install Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
