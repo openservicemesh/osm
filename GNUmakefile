@@ -101,3 +101,7 @@ docker-push: docker-push-eds docker-push-sds docker-push-init docker-push-bookbu
 sds-root-tls:
 	@mkdir -p $(shell pwd)/bin
 	$(shell openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -subj '/CN=httpbin.example.com/O=Exmaple Company Name LTD./C=US' -keyout bin/key.pem -out bin/cert.pem)
+
+.PHONY: generate-crds
+generate-crds:
+	@./crd/generate-AzureResource.sh
