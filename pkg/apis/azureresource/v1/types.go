@@ -32,7 +32,7 @@ type AzureResourceSpec struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// AzureResourceList is the list of prohibited targets
+// AzureResourceList is the list of Azure resources.
 type AzureResourceList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata"`
