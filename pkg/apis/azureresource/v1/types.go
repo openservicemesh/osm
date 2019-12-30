@@ -24,15 +24,14 @@ type AzureResourceSpec struct {
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// ResourceID is the URI uniquely identifying an unique Azure compute resource.
-    // example: /resource/subscriptions/e3f0/resourceGroups/mesh-rg/providers/Microsoft.Compute/virtualMachineScaleSets/baz
+	// ResourceID is the URI identifying an unique Azure compute resource.
+	// example: /resource/subscriptions/e3f0/resourceGroups/mesh-rg/providers/Microsoft.Compute/virtualMachineScaleSets/baz
 	ResourceID string `json:"resourceid"`
-
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// AzureResourceList is the list of prohibited targets
+// AzureResourceList is the list of Azure resources.
 type AzureResourceList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata"`
