@@ -36,13 +36,13 @@ func setupClients(announceChan *channels.RingChannel) (map[providers.Provider]me
 	// Run each provider -- starting the pub/sub system, which leverages the announceChan channel
 	for providerType, provider := range computeProviders {
 		if err := provider.Run(stopChan); err != nil {
-			glog.Errorf("Could not start %s provider: %s", providerType, err)
+			glog.Errorf("Could not start %d provider: %s", providerType, err)
 			continue
 		}
 		if friendlyName, err := providers.GetFriendlyName(providerType); err == nil {
-			glog.Infof("Started provider %s", friendlyName)
+			glog.Infof("Compute provider %s is running.", friendlyName)
 		} else {
-			glog.Info("Started provider %d (could not find a friendly name for it)", providerType)
+			glog.Infof("Compute provider %d is running . (Could not find a friendly name for it)", providerType)
 		}
 
 	}

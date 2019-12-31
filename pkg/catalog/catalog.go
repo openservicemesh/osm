@@ -2,8 +2,9 @@ package catalog
 
 import (
 	"fmt"
-	"github.com/deislabs/smc/pkg/mesh/providers"
 	"strings"
+
+	"github.com/deislabs/smc/pkg/mesh/providers"
 
 	"github.com/golang/glog"
 
@@ -99,7 +100,12 @@ func (sc *ServiceCatalog) refreshCache() {
 		// TODO(draychev): split the namespace from the service name -- non-K8s services won't have namespace
 		for _, namespacedServiceName := range sc.meshSpecProvider.ListServices() {
 			newIps := provider.GetIPs(namespacedServiceName)
-			glog.Infof("[catalog] Found ips=%+v for service=%s for provider=%s", ipsToString(newIps), namespacedServiceName, providerType)
+			if providerName, err := providers.GetFriendlyName(providerType); err != nil {
+				glog.Infof("[catalog] Found ips=%+v for service=%s for provider=%s", ipsToString(newIps), namespacedServiceName, providerName)
+			} else {
+				glog.Infof("[catalog] Found ips=%+v for service=%s for provider=%d", ipsToString(newIps), namespacedServiceName, providerType)
+			}
+
 			if existingIps, exists := servicesCache[namespacedServiceName]; exists {
 				servicesCache[namespacedServiceName] = append(existingIps, newIps...)
 			} else {
