@@ -6,12 +6,14 @@ import (
 	smiClient "github.com/deislabs/smi-sdk-go/pkg/gen/client/split/clientset/versioned"
 	"github.com/eapache/channels"
 	"github.com/golang/glog"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/deislabs/smc/pkg/catalog"
 	"github.com/deislabs/smc/pkg/mesh"
 	"github.com/deislabs/smc/pkg/providers/azure"
 	"github.com/deislabs/smc/pkg/providers/kube"
+	smcClient "github.com/deislabs/smc/pkg/smc_client/clientset/versioned"
 )
 
 // Categories of meshed service/compute providers
@@ -27,8 +29,10 @@ func setupClients(announceChan *channels.RingChannel) (map[string]mesh.ComputePr
 		glog.Fatalf("Error gathering Kubernetes config. Ensure correctness of CLI argument 'kubeconfig=%s': %s", *kubeConfigFile, err)
 	}
 
-	smiResources := smiClient.NewForConfigOrDie(kubeConfig)
-	kubernetesProvider := kube.NewProvider(kubeConfig, smiResources, getNamespaces(), 1*time.Second, announceChan)
+	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
+	smiResourcesClient := smiClient.NewForConfigOrDie(kubeConfig)
+	azureResourcesClient := smcClient.NewForConfigOrDie(kubeConfig)
+	kubernetesProvider := kube.NewProvider(kubeClient, smiResourcesClient, azureResourcesClient, getNamespaces(), 1*time.Second, announceChan)
 	azureProvider := azure.NewProvider(*subscriptionID, *resourceGroup, *namespace, *azureAuthFile, maxAuthRetryCount, retryPause, announceChan)
 	stopChan := make(chan struct{})
 

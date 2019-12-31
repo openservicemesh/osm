@@ -10,10 +10,11 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/deislabs/smc/pkg/mesh"
+	smcClient "github.com/deislabs/smc/pkg/smc_client/clientset/versioned"
+	"github.com/deislabs/smc/pkg/smc_client/informers/externalversions"
 )
 
 // GetIPs retrieves the list of IP addresses for the given service
@@ -42,28 +43,31 @@ func (kp KubernetesProvider) GetIPs(svc mesh.ServiceName) []mesh.IP {
 }
 
 // NewProvider creates a provider based on a Kubernetes client instance.
-func NewProvider(kubeConfig *rest.Config, smiClient *versioned.Clientset, namespaces []string, resyncPeriod time.Duration, announceChan *channels.RingChannel) *KubernetesProvider {
-	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
-
+func NewProvider(kubeClient *kubernetes.Clientset, smiClient *versioned.Clientset, azureResourceClient *smcClient.Clientset, namespaces []string, resyncPeriod time.Duration, announceChan *channels.RingChannel) *KubernetesProvider {
 	var options []informers.SharedInformerOption
 	for _, namespace := range namespaces {
 		options = append(options, informers.WithNamespace(namespace))
 	}
+	informerFactory := informers.NewSharedInformerFactoryWithOptions(kubeClient, resyncPeriod, options...)
 
 	var smiOptions []smiExternalVersions.SharedInformerOption
-	informerFactory := informers.NewSharedInformerFactoryWithOptions(kubeClient, resyncPeriod, options...)
 	smiInformerFactory := smiExternalVersions.NewSharedInformerFactoryWithOptions(smiClient, resyncPeriod, smiOptions...)
 
+	var azureResourceOptions []externalversions.SharedInformerOption
+	azureResourceFactory := externalversions.NewSharedInformerFactoryWithOptions(azureResourceClient, resyncPeriod, azureResourceOptions...)
+
 	informerCollection := InformerCollection{
-		Endpoints:    informerFactory.Core().V1().Endpoints().Informer(),
-		Services:     informerFactory.Core().V1().Services().Informer(),
-		TrafficSplit: smiInformerFactory.Split().V1alpha2().TrafficSplits().Informer(),
+		Endpoints:     informerFactory.Core().V1().Endpoints().Informer(),
+		Services:      informerFactory.Core().V1().Services().Informer(),
+		TrafficSplit:  smiInformerFactory.Split().V1alpha2().TrafficSplits().Informer(),
+		AzureResource: azureResourceFactory.Smc().V1().AzureResources().Informer(),
 	}
 
 	cacheCollection := CacheCollection{
-		Endpoints:    informerCollection.Endpoints.GetStore(),
-		Services:     informerCollection.Services.GetStore(),
-		TrafficSplit: informerCollection.TrafficSplit.GetStore(),
+		Endpoints:     informerCollection.Endpoints.GetStore(),
+		Services:      informerCollection.Services.GetStore(),
+		TrafficSplit:  informerCollection.TrafficSplit.GetStore(),
+		AzureResource: informerCollection.AzureResource.GetStore(),
 	}
 
 	context := &KubernetesProvider{
@@ -96,18 +100,22 @@ func (kp *KubernetesProvider) Run(stopCh <-chan struct{}) error {
 		return errInitInformers
 	}
 
-	sharedInformers := []cache.SharedInformer{
-		kp.informers.Endpoints,
-		kp.informers.Services,
-		kp.informers.TrafficSplit,
+	sharedInformers := map[friendlyName]cache.SharedInformer{
+		"Endpoints":     kp.informers.Endpoints,
+		"Services":      kp.informers.Services,
+		"TrafficSplit":  kp.informers.TrafficSplit,
+		"AzureResource": kp.informers.AzureResource,
 	}
 
-	for _, informer := range sharedInformers {
+	var names []friendlyName
+	for name, informer := range sharedInformers {
+		names = append(names, name)
+		glog.Infof("Starting informer: %s", name)
 		go informer.Run(stopCh)
 		hasSynced = append(hasSynced, informer.HasSynced)
 	}
 
-	glog.V(1).Infoln("Waiting for initial cache sync")
+	glog.V(1).Infof("Waiting informers cache sync: %+v", names)
 	if !cache.WaitForCacheSync(stopCh, hasSynced...) {
 		return errSyncingCaches
 	}
@@ -115,7 +123,6 @@ func (kp *KubernetesProvider) Run(stopCh <-chan struct{}) error {
 	// Closing the cacheSynced channel signals to the rest of the system that... caches have been synced.
 	close(kp.CacheSynced)
 
-	glog.V(1).Infoln("initial cache sync done")
-	glog.V(1).Infoln("k8s provider run finished")
+	glog.V(1).Infof("Cache sync finished for %+v", names)
 	return nil
 }
