@@ -2,6 +2,7 @@ package eds
 
 import (
 	"context"
+	"github.com/deislabs/smc/pkg/mesh/providers"
 	"time"
 
 	"github.com/eapache/channels"
@@ -16,7 +17,7 @@ import (
 type EDS struct {
 	ctx              context.Context // root context
 	catalog          mesh.ServiceCatalogI
-	computeProviders map[string]mesh.ComputeProviderI
+	computeProviders map[providers.Provider]mesh.ComputeProviderI
 	meshSpecProvider mesh.SpecI
 	announceChan     *channels.RingChannel
 }
@@ -32,7 +33,7 @@ func (e *EDS) DeltaEndpoints(xds.EndpointDiscoveryService_DeltaEndpointsServer) 
 }
 
 // NewEDSServer creates a new EDS server
-func NewEDSServer(ctx context.Context, computeProviders map[string]mesh.ComputeProviderI, catalog mesh.ServiceCatalogI, meshTopology mesh.SpecI, announceChan *channels.RingChannel) *EDS {
+func NewEDSServer(ctx context.Context, computeProviders map[providers.Provider]mesh.ComputeProviderI, catalog mesh.ServiceCatalogI, meshTopology mesh.SpecI, announceChan *channels.RingChannel) *EDS {
 	glog.Info("[EDS] Create NewEDSServer...")
 	return &EDS{
 		ctx:              ctx,

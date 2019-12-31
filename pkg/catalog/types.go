@@ -2,6 +2,7 @@ package catalog
 
 import (
 	"github.com/deislabs/smc/pkg/mesh"
+	"github.com/deislabs/smc/pkg/mesh/providers"
 	"github.com/deislabs/smc/pkg/providers/kube"
 )
 
@@ -16,6 +17,6 @@ type Service struct {
 // ServiceCatalog is the struct for the service catalog
 type ServiceCatalog struct {
 	servicesCache    map[mesh.ServiceName][]mesh.IP
-	computeProviders map[string]mesh.ComputeProviderI
+	computeProviders map[providers.Provider]mesh.ComputeProviderI
 	meshSpecProvider mesh.SpecI
 }

@@ -10,18 +10,12 @@ import (
 
 	"github.com/deislabs/smc/pkg/catalog"
 	"github.com/deislabs/smc/pkg/mesh"
+	"github.com/deislabs/smc/pkg/mesh/providers"
 	"github.com/deislabs/smc/pkg/providers/azure"
 	"github.com/deislabs/smc/pkg/providers/kube"
 )
 
-// Categories of meshed service/compute providers
-// TODO(draychev): further break down by k8s cluster, cloud subscription etc.
-var (
-	providerAzure      = "providerAzure"
-	providerKubernetes = "providerKubernetes"
-)
-
-func setupClients(announceChan *channels.RingChannel) (map[string]mesh.ComputeProviderI, mesh.SpecI, mesh.ServiceCatalogI) {
+func setupClients(announceChan *channels.RingChannel) (map[providers.Provider]mesh.ComputeProviderI, mesh.SpecI, mesh.ServiceCatalogI) {
 	kubeConfig, err := clientcmd.BuildConfigFromFlags("", *kubeConfigFile)
 	if err != nil {
 		glog.Fatalf("Error gathering Kubernetes config. Ensure correctness of CLI argument 'kubeconfig=%s': %s", *kubeConfigFile, err)
@@ -34,9 +28,9 @@ func setupClients(announceChan *channels.RingChannel) (map[string]mesh.ComputePr
 
 	// Setup all Compute Providers -- these are Kubernetes, cloud provider virtual machines, etc.
 	// TODO(draychev): How do we add multiple Kubernetes clusters? Multiple Azure subscriptions?
-	computeProviders := map[string]mesh.ComputeProviderI{
-		providerKubernetes: kubernetesProvider,
-		providerAzure:      azureProvider,
+	computeProviders := map[providers.Provider]mesh.ComputeProviderI{
+		providers.Kubernetes: kubernetesProvider,
+		providers.Azure:      azureProvider,
 	}
 
 	// Run each provider -- starting the pub/sub system, which leverages the announceChan channel
@@ -45,7 +39,12 @@ func setupClients(announceChan *channels.RingChannel) (map[string]mesh.ComputePr
 			glog.Errorf("Could not start %s provider: %s", providerType, err)
 			continue
 		}
-		glog.Infof("Started provider %s", providerType)
+		if friendlyName, err := providers.GetFriendlyName(providerType); err == nil {
+			glog.Infof("Started provider %s", friendlyName)
+		} else {
+			glog.Info("Started provider %d (could not find a friendly name for it)", providerType)
+		}
+
 	}
 
 	// Mesh Spec Provider is something, which we query for SMI spec. Gives us the declaration of the service mesh.

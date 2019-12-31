@@ -2,6 +2,7 @@ package catalog
 
 import (
 	"fmt"
+	"github.com/deislabs/smc/pkg/mesh/providers"
 	"strings"
 
 	"github.com/golang/glog"
@@ -10,7 +11,7 @@ import (
 )
 
 // NewServiceCatalog creates a new service catalog
-func NewServiceCatalog(computeProviders map[string]mesh.ComputeProviderI, meshSpecProvider mesh.SpecI) mesh.ServiceCatalogI {
+func NewServiceCatalog(computeProviders map[providers.Provider]mesh.ComputeProviderI, meshSpecProvider mesh.SpecI) mesh.ServiceCatalogI {
 	glog.Info("[catalog] Crete new Service Catalog...")
 	return ServiceCatalog{
 		servicesCache:    make(map[mesh.ServiceName][]mesh.IP),
