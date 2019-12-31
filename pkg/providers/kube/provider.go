@@ -14,7 +14,7 @@ import (
 
 	"github.com/deislabs/smc/pkg/mesh"
 	smcClient "github.com/deislabs/smc/pkg/smc_client/clientset/versioned"
-	"github.com/deislabs/smc/pkg/smc_client/informers/externalversions"
+	smcInformers "github.com/deislabs/smc/pkg/smc_client/informers/externalversions"
 )
 
 // GetIPs retrieves the list of IP addresses for the given service
@@ -23,12 +23,12 @@ func (kp KubernetesProvider) GetIPs(svc mesh.ServiceName) []mesh.IP {
 	var ips []mesh.IP
 	endpointsInterface, exist, err := kp.Caches.Endpoints.GetByKey(string(svc))
 	if err != nil {
-		glog.Error("Error fetching endpoints from store, error occurred ", err)
+		glog.Error("Error fetching Kubernetes Endpoints from cache: ", err)
 		return ips
 	}
 
 	if !exist {
-		glog.Error("Error fetching endpoints from store! ServiceName does not exist: ", svc)
+		glog.Errorf("Error fetching Kubernetes Endpoints from cache: ServiceName %s does not exist", svc)
 		return ips
 	}
 
@@ -53,8 +53,8 @@ func NewProvider(kubeClient *kubernetes.Clientset, smiClient *versioned.Clientse
 	var smiOptions []smiExternalVersions.SharedInformerOption
 	smiInformerFactory := smiExternalVersions.NewSharedInformerFactoryWithOptions(smiClient, resyncPeriod, smiOptions...)
 
-	var azureResourceOptions []externalversions.SharedInformerOption
-	azureResourceFactory := externalversions.NewSharedInformerFactoryWithOptions(azureResourceClient, resyncPeriod, azureResourceOptions...)
+	var azureResourceOptions []smcInformers.SharedInformerOption
+	azureResourceFactory := smcInformers.NewSharedInformerFactoryWithOptions(azureResourceClient, resyncPeriod, azureResourceOptions...)
 
 	informerCollection := InformerCollection{
 		Endpoints:     informerFactory.Core().V1().Endpoints().Informer(),
