@@ -18,12 +18,12 @@ build: build-sds build-eds
 .PHONY: build-sds
 build-sds: clean-sds
 	@mkdir -p $(shell pwd)/bin
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -v -o ./bin/sds ./cmd/sds
+	go build -v -o ./bin/sds ./cmd/sds
 
 .PHONY: build-eds
 build-eds: clean-eds
 	@mkdir -p $(shell pwd)/bin
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -v -o ./bin/eds ./cmd/eds
+	go build -v -o ./bin/eds ./cmd/eds
 
 .PHONY: docker-build
 docker-build: build docker-build-sds docker-build-eds docker-build-bookbuyer docker-build-bookstore
@@ -60,7 +60,7 @@ docker-build-sds: build-sds sds-root-tls
 build-counter:
 	@rm -rf $(shell pwd)/demo/bin
 	@mkdir -p $(shell pwd)/demo/bin
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ./demo/bin/counter ./demo/counter.go
+	go build -o ./demo/bin/counter ./demo/counter.go
 
 .PHONY: docker-build-bookbuyer
 docker-build-bookbuyer:
@@ -101,3 +101,7 @@ docker-push: docker-push-eds docker-push-sds docker-push-init docker-push-bookbu
 sds-root-tls:
 	@mkdir -p $(shell pwd)/bin
 	$(shell openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -subj '/CN=httpbin.example.com/O=Exmaple Company Name LTD./C=US' -keyout bin/key.pem -out bin/cert.pem)
+
+.PHONY: generate-crds
+generate-crds:
+	@./crd/generate-AzureResource.sh
