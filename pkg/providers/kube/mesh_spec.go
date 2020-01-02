@@ -3,13 +3,17 @@ package kube
 import (
 	"fmt"
 
+	v1 "k8s.io/api/core/v1"
+
+	"github.com/deislabs/smc/pkg/mesh/providers"
+
 	"github.com/deislabs/smc/pkg/mesh"
 	"github.com/deislabs/smi-sdk-go/pkg/apis/split/v1alpha2"
 	"github.com/golang/glog"
 )
 
 // GetTrafficSplitWeight retrieves the weight for the given service
-func (kp *KubernetesProvider) GetTrafficSplitWeight(target mesh.ServiceName, delegate mesh.ServiceName) (int, error) {
+func (kp *Client) GetTrafficSplitWeight(target mesh.ServiceName, delegate mesh.ServiceName) (int, error) {
 	fmt.Printf("Here is kp: %+v", kp)
 	fmt.Printf("Here is kp.Caches: %+v", kp.Caches)
 	fmt.Printf("Here is kp.Caches.TrafficSplit: %+v", kp.Caches.TrafficSplit)
@@ -33,7 +37,7 @@ func (kp *KubernetesProvider) GetTrafficSplitWeight(target mesh.ServiceName, del
 }
 
 // ListTrafficSplits returns the list of traffic splits.
-func (kp *KubernetesProvider) ListTrafficSplits() []*v1alpha2.TrafficSplit {
+func (kp *Client) ListTrafficSplits() []*v1alpha2.TrafficSplit {
 	var trafficSplits []*v1alpha2.TrafficSplit
 	for _, splitIface := range kp.Caches.TrafficSplit.List() {
 		split := splitIface.(*v1alpha2.TrafficSplit)
@@ -43,7 +47,7 @@ func (kp *KubernetesProvider) ListTrafficSplits() []*v1alpha2.TrafficSplit {
 }
 
 // ListServices lists the services observed from the given compute provider
-func (kp *KubernetesProvider) ListServices() []mesh.ServiceName {
+func (kp *Client) ListServices() []mesh.ServiceName {
 	// TODO(draychev): split the namespace and the service name -- for non-kubernetes services we won't have namespace
 	var services []mesh.ServiceName
 	for _, splitIface := range kp.Caches.TrafficSplit.List() {
@@ -56,4 +60,25 @@ func (kp *KubernetesProvider) ListServices() []mesh.ServiceName {
 		}
 	}
 	return services
+}
+
+func (kp *Client) GetComputeIDForService(svc mesh.ServiceName, provider providers.Provider) mesh.ComputeID {
+	serviceInterface, exist, err := kp.Caches.Services.GetByKey(string(svc))
+	if err != nil {
+		glog.Error("Error fetching Kubernetes Endpoints from cache: ", err)
+		return mesh.ComputeID{}
+	}
+
+	if !exist {
+		glog.Errorf("Error fetching Kubernetes Endpoints from cache: ServiceName %s does not exist", svc)
+		return mesh.ComputeID{}
+	}
+
+	if service := serviceInterface.(*v1.Service); service != nil {
+		// TODO
+	}
+
+	return mesh.ComputeID{
+		AzureID: "blah",
+	}
 }

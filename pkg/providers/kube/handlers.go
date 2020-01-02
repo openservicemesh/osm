@@ -9,7 +9,7 @@ import (
 )
 
 type handlers struct {
-	provider *KubernetesProvider
+	provider *Client
 }
 
 // general resource handlers

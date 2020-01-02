@@ -26,8 +26,8 @@ type CacheCollection struct {
 	AzureResource cache.Store
 }
 
-// KubernetesProvider is a struct of the Kubernetes config and components used in SMC
-type KubernetesProvider struct {
+// Client is a struct of the Kubernetes config and components used in SMC
+type Client struct {
 	kubeClient   kubernetes.Interface
 	informers    *InformerCollection
 	Caches       *CacheCollection
