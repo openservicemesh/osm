@@ -15,13 +15,6 @@ func NewProvider(subscriptionID string, resourceGroup string, namespace string, 
 	return newClient(subscriptionID, resourceGroup, namespace, azureAuthFile, maxAuthRetryCount, retryPause, announceChan)
 }
 
-// Run starts the Azure observer
-func (az Client) Run(stopCh <-chan struct{}) error {
-	glog.V(1).Infoln("Azure provider run started.")
-	// TODO(draychev): implement pub/sub
-	return nil
-}
-
 // GetIPs returns the IP addresses for the given ServiceName Name; This is required by the ComputeProviderI
 func (az Client) GetIPs(svc mesh.ServiceName) []mesh.IP {
 	glog.Infof("[azure] Getting IPs for service %s", svc)
@@ -46,4 +39,11 @@ func (az Client) GetIPs(svc mesh.ServiceName) []mesh.IP {
 	}
 
 	return ips
+}
+
+// Run starts the Azure observer
+func (az Client) Run(stopCh <-chan struct{}) error {
+	glog.V(1).Infoln("Azure provider run started.")
+	// TODO(draychev): implement pub/sub
+	return nil
 }

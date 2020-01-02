@@ -15,7 +15,8 @@ import (
 )
 
 func NewProvider(kubeClient *kubernetes.Clientset, smiClient *versioned.Clientset, azureResourceClient *smcClient.Clientset, namespaces []string, resyncPeriod time.Duration, announceChan *channels.RingChannel) mesh.ComputeProviderI {
-	return newKubernetesClient(kubeClient, smiClient, azureResourceClient, namespaces, resyncPeriod, announceChan)
+	k8sClient := NewClient(kubeClient, smiClient, azureResourceClient, namespaces, resyncPeriod, announceChan)
+	return k8sClient
 }
 
 // GetIPs retrieves the list of IP addresses for the given service

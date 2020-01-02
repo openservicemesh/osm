@@ -32,6 +32,7 @@ func setupClients(announceChan *channels.RingChannel) (map[string]mesh.ComputePr
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 	smiResourcesClient := smiClient.NewForConfigOrDie(kubeConfig)
 	azureResourcesClient := smcClient.NewForConfigOrDie(kubeConfig)
+	meshSpecClient := kube.NewMeshSpecClient(kubeClient, smiResourcesClient, azureResourcesClient, getNamespaces(), 1*time.Second, announceChan)
 	kubernetesProvider := kube.NewProvider(kubeClient, smiResourcesClient, azureResourcesClient, getNamespaces(), 1*time.Second, announceChan)
 	azureProvider := azure.NewProvider(*subscriptionID, *resourceGroup, *namespace, *azureAuthFile, maxAuthRetryCount, retryPause, announceChan)
 	stopChan := make(chan struct{})
@@ -52,11 +53,8 @@ func setupClients(announceChan *channels.RingChannel) (map[string]mesh.ComputePr
 		glog.Infof("Started provider %s", providerType)
 	}
 
-	// Mesh Spec Provider is something, which we query for SMI spec. Gives us the declaration of the service mesh.
-	meshSpecProvider := kubernetesProvider
-
 	// ServiceName Catalog is the facility, which we query to get the list of services, weights for traffic split etc.
-	serviceCatalog := catalog.NewServiceCatalog(computeProviders, meshSpecProvider)
+	serviceCatalog := catalog.NewServiceCatalog(computeProviders, meshSpecClient)
 
-	return computeProviders, meshSpecProvider, serviceCatalog
+	return computeProviders, meshSpecClient, serviceCatalog
 }

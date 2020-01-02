@@ -14,8 +14,8 @@ import (
 	smcInformers "github.com/deislabs/smc/pkg/smc_client/informers/externalversions"
 )
 
-// newKubernetesClient creates a provider based on a Kubernetes client instance.
-func newKubernetesClient(kubeClient *kubernetes.Clientset, smiClient *versioned.Clientset, azureResourceClient *smcClient.Clientset, namespaces []string, resyncPeriod time.Duration, announceChan *channels.RingChannel) *Client {
+// NewClient creates a provider based on a Kubernetes client instance.
+func NewClient(kubeClient *kubernetes.Clientset, smiClient *versioned.Clientset, azureResourceClient *smcClient.Clientset, namespaces []string, resyncPeriod time.Duration, announceChan *channels.RingChannel) *Client {
 	var options []informers.SharedInformerOption
 	for _, namespace := range namespaces {
 		options = append(options, informers.WithNamespace(namespace))

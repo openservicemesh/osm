@@ -2,15 +2,24 @@ package kube
 
 import (
 	"fmt"
+	"time"
 
+	"github.com/eapache/channels"
+	"github.com/golang/glog"
 	v1 "k8s.io/api/core/v1"
-
-	"github.com/deislabs/smc/pkg/mesh/providers"
+	"k8s.io/client-go/kubernetes"
 
 	"github.com/deislabs/smc/pkg/mesh"
+	"github.com/deislabs/smc/pkg/mesh/providers"
+	smcClient "github.com/deislabs/smc/pkg/smc_client/clientset/versioned"
 	"github.com/deislabs/smi-sdk-go/pkg/apis/split/v1alpha2"
-	"github.com/golang/glog"
+	"github.com/deislabs/smi-sdk-go/pkg/gen/client/split/clientset/versioned"
 )
+
+func NewMeshSpecClient(kubeClient *kubernetes.Clientset, smiClient *versioned.Clientset, azureResourceClient *smcClient.Clientset, namespaces []string, resyncPeriod time.Duration, announceChan *channels.RingChannel) mesh.SpecI {
+	k8sClient := NewClient(kubeClient, smiClient, azureResourceClient, namespaces, resyncPeriod, announceChan)
+	return k8sClient
+}
 
 // GetTrafficSplitWeight retrieves the weight for the given service
 func (kp *Client) GetTrafficSplitWeight(target mesh.ServiceName, delegate mesh.ServiceName) (int, error) {
