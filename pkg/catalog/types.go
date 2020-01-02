@@ -9,8 +9,8 @@ import (
 type Service struct {
 	name             mesh.ServiceName
 	ips              []mesh.IP
-	provider         mesh.ServiceProviderI
-	kubernetesClient *kube.KubernetesProvider
+	provider         mesh.ComputeProviderI
+	kubernetesClient *kube.Client
 }
 
 // ServiceCatalog is the struct for the service catalog

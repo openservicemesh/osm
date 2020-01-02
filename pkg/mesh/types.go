@@ -1,6 +1,9 @@
 package mesh
 
-import "github.com/deislabs/smi-sdk-go/pkg/apis/split/v1alpha2"
+import (
+	"github.com/deislabs/smc/pkg/mesh/providers"
+	"github.com/deislabs/smi-sdk-go/pkg/apis/split/v1alpha2"
+)
 
 // ServiceCatalogI is an interface w/ requirements to implement a service catalog
 type ServiceCatalogI interface {
@@ -11,11 +14,6 @@ type ServiceCatalogI interface {
 
 // ServiceName is a type for a service name
 type ServiceName string
-
-// ServiceProviderI is an interface declaring the required functions for any compute provider
-type ServiceProviderI interface {
-	GetIPs(svcName ServiceName) []IP
-}
 
 // WeightedService is a struct of a delegated service backing a target service
 type WeightedService struct {
@@ -37,4 +35,17 @@ type ComputeProviderI interface {
 type SpecI interface {
 	ListTrafficSplits() []*v1alpha2.TrafficSplit
 	ListServices() []ServiceName
+	GetComputeIDForService(ServiceName, providers.Provider) ComputeID
+}
+
+type AzureID string
+type KubernetesID struct {
+	ClusterID string
+	Namespace string
+	Service   string
+}
+
+type ComputeID struct {
+	AzureID
+	KubernetesID
 }

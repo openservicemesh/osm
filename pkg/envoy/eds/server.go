@@ -12,7 +12,7 @@ import (
 	"github.com/deislabs/smc/pkg/mesh"
 )
 
-// EDS implements the Envoy xDS Endpoint Discovery ServiceI
+// EDS implements the Envoy xDS Endpoint Discovery Service
 type EDS struct {
 	ctx              context.Context // root context
 	catalog          mesh.ServiceCatalogI
