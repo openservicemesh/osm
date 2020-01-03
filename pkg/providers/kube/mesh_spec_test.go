@@ -19,6 +19,7 @@ var _ = Describe("Azure Compute Provider", func() {
 					ObjectMeta: metav1.ObjectMeta{
 						Labels: map[string]string{
 							"k": "v",
+							"a": "b",
 						},
 					},
 				}
@@ -26,6 +27,8 @@ var _ = Describe("Azure Compute Provider", func() {
 					ObjectMeta: metav1.ObjectMeta{
 						Labels: map[string]string{
 							"k": "v",
+							"a": "b",
+							"x": "y",
 						},
 					},
 					Spec: v12.AzureResourceSpec{

@@ -9,32 +9,32 @@ import (
 )
 
 type handlers struct {
-	provider *Client
+	Client
 }
 
 // general resource handlers
 func (h handlers) addFunc(obj interface{}) {
-	glog.V(9).Infof("[kubernetes] Add event: %+v", obj)
-	h.provider.announceChan.In() <- events.Event{
+	glog.V(9).Infof("[%s] Add event: %+v", h.providerIdent, obj)
+	h.announceChan.In() <- events.Event{
 		Type:  events.Create,
 		Value: obj,
 	}
 }
 
 func (h handlers) updateFunc(oldObj, newObj interface{}) {
-	glog.V(9).Infof("[kubernetes] Update event %+v", oldObj)
+	glog.V(9).Infof("[%s] Update event %+v", h.providerIdent, oldObj)
 	if reflect.DeepEqual(oldObj, newObj) {
 		return
 	}
-	h.provider.announceChan.In() <- events.Event{
+	h.announceChan.In() <- events.Event{
 		Type:  events.Update,
 		Value: newObj,
 	}
 }
 
 func (h handlers) deleteFunc(obj interface{}) {
-	glog.V(9).Infof("[kubernetes] Delete event: %+v", obj)
-	h.provider.announceChan.In() <- events.Event{
+	glog.V(9).Infof("[%s] Delete event: %+v", h.providerIdent, obj)
+	h.announceChan.In() <- events.Event{
 		Type:  events.Delete,
 		Value: obj,
 	}

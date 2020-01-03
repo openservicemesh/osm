@@ -9,7 +9,7 @@ import (
 var _ = Describe("Azure Compute Provider", func() {
 	Describe("Testing Azure Compute Provider", func() {
 		Context("Testing parseAzureID", func() {
-			uri := mesh.AzureID("/resource/subscriptions/e3f0/resourceGroups/mesh-rg/providers/Microsoft.Compute/virtualMachineScaleSets/baz")
+			uri := mesh.AzureID("/subscriptions/e3f0/resourceGroups/mesh-rg/providers/Microsoft.Compute/virtualMachineScaleSets/baz")
 			It("returns default value in absence of an env var", func() {
 				rg, kind, name, err := parseAzureID(uri)
 				Expect(err).ShouldNot(HaveOccurred())

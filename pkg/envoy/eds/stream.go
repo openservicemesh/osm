@@ -39,20 +39,22 @@ func (e *edsStreamHandler) run(ctx context.Context, server envoy.EndpointDiscove
 			select {
 			case <-ctx.Done():
 				return nil
-			case _ = <-e.announceChan.Out():
+			case <-e.announceChan.Out():
 				glog.V(1).Infof("[EDS] Received a change announcement...")
 				if err := e.updateEnvoyProxies(server, request.TypeUrl); err != nil {
 					return errors.Wrap(err, "error sending")
 				}
 				break Run
-
 			}
 		}
 	}
 }
 
 func (e *edsStreamHandler) updateEnvoyProxies(server envoy.EndpointDiscoveryService_StreamEndpointsServer, url string) error {
-	glog.Info("[stream] Update all envoy proxies...")
+
+	// NOTE(draychev): This is currently focused only on fulfilling whatever is required to run a TrafficSplit demo.
+
+	glog.Info("[EDS][stream] Update all envoy proxies...")
 	allServices, err := e.catalog.GetWeightedServices()
 	if err != nil {
 		glog.Error("Could not refresh weighted services: ", err)

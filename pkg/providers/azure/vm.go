@@ -2,7 +2,6 @@ package azure
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/golang/glog"
@@ -11,36 +10,37 @@ import (
 	"github.com/deislabs/smc/pkg/utils"
 )
 
-func (az *Client) getVM() (map[mesh.ServiceName][]mesh.IP, error) {
-	res := make(map[mesh.ServiceName][]mesh.IP)
+func (az *Client) getVM(rg resourceGroup, vmID mesh.AzureID) ([]mesh.IP, error) {
+	glog.V(7).Infof("[azure] Fetching IPS of VM for %s in resource group: %s", vmID, rg)
+	var ips []mesh.IP
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	list, err := az.vmClient.List(ctx, az.resourceGroup)
-	glog.Infof("[EDS][ServiceName Discovery] List VMs for resource group: %s", az.resourceGroup)
+	list, err := az.vmClient.List(ctx, string(rg))
+	glog.Infof("[azure] Listing VMs for resource group: %s", rg)
 	if err != nil {
-		glog.Error("Could not retrieve all VMSS: ", err)
+		glog.Error("[azure] Could not retrieve all VMs: ", err)
 	}
 	for _, vm := range list.Values() {
-		netIf := (*vm.NetworkProfile.NetworkInterfaces)[0].ID
-		glog.Infof("[EDS][ServiceName Discovery] Found VM %s with NIC %s", *vm.Name, *netIf)
+		if *vm.ID != string(vmID) {
+			continue
+		}
+		networkInterfaceID := (*vm.NetworkProfile.NetworkInterfaces)[0].ID
+		glog.Infof("[azure] Found VM %s with NIC %s", *vm.Name, *networkInterfaceID)
 		ctxA, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		ifName := utils.GetLastChunkOfSlashed(*netIf)
-		nif, err := az.netClient.Get(ctxA, az.resourceGroup, ifName, "")
+		interfaceName := utils.GetLastChunkOfSlashed(*networkInterfaceID)
+		networkInterfaceName, err := az.netClient.Get(ctxA, string(rg), interfaceName, "")
 		if err != nil {
-			glog.Error("Could got get net interface ", ifName, " for resource group ", az.resourceGroup, err)
+			glog.Error("[azure] Could got get network interface ", interfaceName, " for resource group ", rg, err)
 			cancel()
 			continue
 		}
 
-		for _, ipConf := range *nif.IPConfigurations {
+		for _, ipConf := range *networkInterfaceName.IPConfigurations {
 			if ipConf.PrivateIPAddress != nil {
-				// TODO: gotta shoehorn the Kubernetes namespace here because we form the unique keys for the services
-				// from the Namespace and teh ServiceName from the TrafficSplit CRD
-				svcID := mesh.ServiceName(fmt.Sprintf("%s/%s", az.namespace, *vm.ID))
-				res[svcID] = append(res[svcID], mesh.IP(*ipConf.PrivateIPAddress))
+				ips = append(ips, mesh.IP(*ipConf.PrivateIPAddress))
 			}
 		}
 		cancel()
 	}
-	return res, nil
+	return ips, nil
 }

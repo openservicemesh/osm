@@ -4,35 +4,44 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/deislabs/smi-sdk-go/pkg/apis/split/v1alpha2"
+	smiClient "github.com/deislabs/smi-sdk-go/pkg/gen/client/split/clientset/versioned"
 	"github.com/eapache/channels"
 	"github.com/golang/glog"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 
+	smc "github.com/deislabs/smc/pkg/apis/azureresource/v1"
 	"github.com/deislabs/smc/pkg/mesh"
-	"github.com/deislabs/smc/pkg/mesh/providers"
 	smcClient "github.com/deislabs/smc/pkg/smc_client/clientset/versioned"
-	"github.com/deislabs/smi-sdk-go/pkg/apis/split/v1alpha2"
-	"github.com/deislabs/smi-sdk-go/pkg/gen/client/split/clientset/versioned"
 )
 
-func NewMeshSpecClient(kubeClient *kubernetes.Clientset, smiClient *versioned.Clientset, azureResourceClient *smcClient.Clientset, namespaces []string, resyncPeriod time.Duration, announceChan *channels.RingChannel) mesh.SpecI {
-	k8sClient := NewClient(kubeClient, smiClient, azureResourceClient, namespaces, resyncPeriod, announceChan)
+// We have a few different k8s clients. This identifies these in logs.
+const kubernetesClientName = "MeshSpec"
+
+// NewMeshSpecClient creates the Kubernetes client, which retrieves SMI specific CRDs.
+func NewMeshSpecClient(kubeConfig *rest.Config, namespaces []string, resyncPeriod time.Duration, announceChan *channels.RingChannel, stopChan chan struct{}) mesh.SpecI {
+	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
+	smiClientset := smiClient.NewForConfigOrDie(kubeConfig)
+	azureResourceClient := smcClient.NewForConfigOrDie(kubeConfig)
+	k8sClient := NewClient(kubeClient, smiClientset, azureResourceClient, namespaces, resyncPeriod, announceChan, kubernetesClientName)
+	err := k8sClient.Run(stopChan)
+	if err != nil {
+		glog.Fatalf("Could not start %s client: %s", kubernetesClientName, err)
+	}
 	return k8sClient
 }
 
 // GetTrafficSplitWeight retrieves the weight for the given service
-func (kp *Client) GetTrafficSplitWeight(target mesh.ServiceName, delegate mesh.ServiceName) (int, error) {
-	fmt.Printf("Here is kp: %+v", kp)
-	fmt.Printf("Here is kp.Caches: %+v", kp.Caches)
-	fmt.Printf("Here is kp.Caches.TrafficSplit: %+v", kp.Caches.TrafficSplit)
-	item, exists, err := kp.Caches.TrafficSplit.Get(target)
+func (c *Client) GetTrafficSplitWeight(target mesh.ServiceName, delegate mesh.ServiceName) (int, error) {
+	item, exists, err := c.caches.TrafficSplit.Get(target)
 	if err != nil {
-		glog.Errorf("[kubernetes] Error retrieving %v from TrafficSplit cache", target)
+		glog.Errorf("[%s] Error retrieving %v from TrafficSplit cache", kubernetesClientName, target)
 		return 0, errRetrievingFromCache
 	}
 	if !exists {
-		glog.Errorf("[kubernetes] %v does not exist in TrafficSplit cache", target)
+		glog.Errorf("[%s] %v does not exist in TrafficSplit cache", kubernetesClientName, target)
 		return 0, errNotInCache
 	}
 	ts := item.(v1alpha2.TrafficSplit)
@@ -41,14 +50,14 @@ func (kp *Client) GetTrafficSplitWeight(target mesh.ServiceName, delegate mesh.S
 			return be.Weight, nil
 		}
 	}
-	glog.Errorf("[kubernetes] Was looking for delegate %s for target service %s but did not find it", delegate, target)
+	glog.Errorf("[MeshSpec] Was looking for delegate %s for target service %s but did not find it", delegate, target)
 	return 0, errBackendNotFound
 }
 
 // ListTrafficSplits returns the list of traffic splits.
-func (kp *Client) ListTrafficSplits() []*v1alpha2.TrafficSplit {
+func (c *Client) ListTrafficSplits() []*v1alpha2.TrafficSplit {
 	var trafficSplits []*v1alpha2.TrafficSplit
-	for _, splitIface := range kp.Caches.TrafficSplit.List() {
+	for _, splitIface := range c.caches.TrafficSplit.List() {
 		split := splitIface.(*v1alpha2.TrafficSplit)
 		trafficSplits = append(trafficSplits, split)
 	}
@@ -56,10 +65,10 @@ func (kp *Client) ListTrafficSplits() []*v1alpha2.TrafficSplit {
 }
 
 // ListServices lists the services observed from the given compute provider
-func (kp *Client) ListServices() []mesh.ServiceName {
-	// TODO(draychev): split the namespace and the service name -- for non-kubernetes services we won't have namespace
+func (c *Client) ListServices() []mesh.ServiceName {
+	// TODO(draychev): split the namespace and the service kubernetesClientName -- for non-kubernetes services we won't have namespace
 	var services []mesh.ServiceName
-	for _, splitIface := range kp.Caches.TrafficSplit.List() {
+	for _, splitIface := range c.caches.TrafficSplit.List() {
 		split := splitIface.(*v1alpha2.TrafficSplit)
 		namespacedServiceName := fmt.Sprintf("%s/%s", split.Namespace, split.Spec.Service)
 		services = append(services, mesh.ServiceName(namespacedServiceName))
@@ -71,8 +80,10 @@ func (kp *Client) ListServices() []mesh.ServiceName {
 	return services
 }
 
-func (kp *Client) GetComputeIDForService(svc mesh.ServiceName, provider providers.Provider) mesh.ComputeID {
-	serviceInterface, exist, err := kp.Caches.Services.GetByKey(string(svc))
+// GetComputeIDForService returns the collection of compute platforms, which form this Mesh Service.
+// You pass this function a ServiceName
+func (kp *Client) GetComputeIDForService(svc mesh.ServiceName) mesh.ComputeID {
+	serviceInterface, exist, err := kp.caches.Services.GetByKey(string(svc))
 	if err != nil {
 		glog.Error("Error fetching Kubernetes Endpoints from cache: ", err)
 		return mesh.ComputeID{}
@@ -83,11 +94,34 @@ func (kp *Client) GetComputeIDForService(svc mesh.ServiceName, provider provider
 		return mesh.ComputeID{}
 	}
 
-	if service := serviceInterface.(*v1.Service); service != nil {
-		// TODO
+	if kp.caches.AzureResource == nil {
+		//TODO(draychev): Should this be a Fatal?
+		glog.Error("AzureResource Kubernetes Cache is incorrectly setup")
+		return mesh.ComputeID{}
 	}
 
-	return mesh.ComputeID{
-		AzureID: "blah",
+	var azureResourcesList []*smc.AzureResource
+	for _, azureResourceInterface := range kp.caches.AzureResource.List() {
+		azureResourcesList = append(azureResourcesList, azureResourceInterface.(*smc.AzureResource))
 	}
+
+	return matchServiceAzureResource(serviceInterface.(*v1.Service), azureResourcesList)
+}
+
+func matchServiceAzureResource(svc *v1.Service, azureResourcesList []*smc.AzureResource) mesh.ComputeID {
+	azureResources := make(map[kv]*smc.AzureResource)
+	for _, azRes := range azureResourcesList {
+		for k, v := range azRes.ObjectMeta.Labels {
+			azureResources[kv{k, v}] = azRes
+		}
+	}
+	computeID := mesh.ComputeID{}
+	if service := svc; service != nil {
+		for k, v := range service.ObjectMeta.Labels {
+			if azRes, ok := azureResources[kv{k, v}]; ok && azRes != nil {
+				computeID.AzureID = mesh.AzureID(azRes.Spec.ResourceID)
+			}
+		}
+	}
+	return computeID
 }

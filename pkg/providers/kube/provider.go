@@ -8,29 +8,33 @@ import (
 	"github.com/golang/glog"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/deislabs/smc/pkg/mesh"
 	smcClient "github.com/deislabs/smc/pkg/smc_client/clientset/versioned"
 )
 
-func NewProvider(kubeClient *kubernetes.Clientset, smiClient *versioned.Clientset, azureResourceClient *smcClient.Clientset, namespaces []string, resyncPeriod time.Duration, announceChan *channels.RingChannel) mesh.ComputeProviderI {
-	k8sClient := NewClient(kubeClient, smiClient, azureResourceClient, namespaces, resyncPeriod, announceChan)
-	return k8sClient
+func NewProvider(kubeConfig *rest.Config, namespaces []string, resyncPeriod time.Duration, announceChan *channels.RingChannel, providerIdent string) mesh.ComputeProviderI {
+	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
+	// smiClient and azureResourceClient are used for SMI spec observation only
+	var smiClient *versioned.Clientset
+	var azureResourceClient *smcClient.Clientset
+	return NewClient(kubeClient, smiClient, azureResourceClient, namespaces, resyncPeriod, announceChan, providerIdent)
 }
 
 // GetIPs retrieves the list of IP addresses for the given service
-func (kp Client) GetIPs(svc mesh.ServiceName) []mesh.IP {
-	glog.Infof("[kubernetes] Getting IPs for service %s", svc)
+func (c Client) GetIPs(svc mesh.ServiceName) []mesh.IP {
+	glog.Infof("[%s] Getting IPs for service %s on Kubernetes", c.providerIdent, svc)
 	var ips []mesh.IP
-	endpointsInterface, exist, err := kp.Caches.Endpoints.GetByKey(string(svc))
+	endpointsInterface, exist, err := c.caches.Endpoints.GetByKey(string(svc))
 	if err != nil {
-		glog.Error("Error fetching Kubernetes Endpoints from cache: ", err)
+		glog.Errorf("[%s] Error fetching Kubernetes Endpoints from cache: %s", c.providerIdent, err)
 		return ips
 	}
 
 	if !exist {
-		glog.Errorf("Error fetching Kubernetes Endpoints from cache: ServiceName %s does not exist", svc)
+		glog.Errorf("[%s] Error fetching Kubernetes Endpoints from cache: ServiceName %s does not exist", c.providerIdent, svc)
 		return ips
 	}
 
@@ -45,25 +49,28 @@ func (kp Client) GetIPs(svc mesh.ServiceName) []mesh.IP {
 }
 
 // Run executes informer collection.
-func (kp *Client) Run(stopCh <-chan struct{}) error {
-	glog.V(1).Infoln("k8s provider run started")
+func (c *Client) Run(stopCh <-chan struct{}) error {
+	glog.V(1).Infoln("Kubernetes Compute Provider started")
 	var hasSynced []cache.InformerSynced
 
-	if kp.informers == nil {
+	if c.informers == nil {
 		return errInitInformers
 	}
 
 	sharedInformers := map[friendlyName]cache.SharedInformer{
-		"Endpoints":     kp.informers.Endpoints,
-		"Services":      kp.informers.Services,
-		"TrafficSplit":  kp.informers.TrafficSplit,
-		"AzureResource": kp.informers.AzureResource,
+		"Endpoints":     c.informers.Endpoints,
+		"Services":      c.informers.Services,
+		"TrafficSplit":  c.informers.TrafficSplit,
+		"AzureResource": c.informers.AzureResource,
 	}
 
 	var names []friendlyName
 	for name, informer := range sharedInformers {
+		if informer == nil {
+			continue
+		}
 		names = append(names, name)
-		glog.Infof("Starting informer: %s", name)
+		glog.Info("Starting informer: ", name)
 		go informer.Run(stopCh)
 		hasSynced = append(hasSynced, informer.HasSynced)
 	}
@@ -74,8 +81,12 @@ func (kp *Client) Run(stopCh <-chan struct{}) error {
 	}
 
 	// Closing the cacheSynced channel signals to the rest of the system that... caches have been synced.
-	close(kp.CacheSynced)
+	close(c.cacheSynced)
 
 	glog.V(1).Infof("Cache sync finished for %+v", names)
 	return nil
+}
+
+func (c *Client) GetID() string {
+	return c.providerIdent
 }

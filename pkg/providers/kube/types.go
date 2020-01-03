@@ -26,11 +26,18 @@ type CacheCollection struct {
 	AzureResource cache.Store
 }
 
-// Client is a struct of the Kubernetes config and components used in SMC
+// Client is a struct for all components necessary to connect to and maintain state of a Kubernetes cluster.
+// Implements interfaces: ComputeProviderI
 type Client struct {
-	kubeClient   kubernetes.Interface
-	informers    *InformerCollection
-	Caches       *CacheCollection
-	announceChan *channels.RingChannel
-	CacheSynced  chan interface{}
+	caches        *CacheCollection
+	cacheSynced   chan interface{}
+	providerIdent string
+	kubeClient    kubernetes.Interface
+	informers     *InformerCollection
+	announceChan  *channels.RingChannel
+}
+
+type kv struct {
+	k string
+	v string
 }
