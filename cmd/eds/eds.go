@@ -8,20 +8,24 @@ import (
 	"strings"
 	"time"
 
+	"github.com/deislabs/smc/pkg/utils"
+
 	"github.com/eapache/channels"
 	envoyControlPlane "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
+	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/deislabs/smc/cmd"
+	"github.com/deislabs/smc/pkg/catalog"
 	edsServer "github.com/deislabs/smc/pkg/envoy/eds"
+	"github.com/deislabs/smc/pkg/mesh"
+	"github.com/deislabs/smc/pkg/providers/azure"
+	"github.com/deislabs/smc/pkg/providers/kube"
 )
 
 const (
 	serverType = "EDS"
-	port       = 15124
 
-	verbosityFlag    = "verbosity"
 	defaultNamespace = "default"
 
 	maxAuthRetryCount = 10
@@ -32,10 +36,10 @@ var (
 	flags          = pflag.NewFlagSet(`diplomat-edsServer`, pflag.ExitOnError)
 	kubeConfigFile = flags.String("kubeconfig", "", "Path to Kubernetes config file.")
 	azureAuthFile  = flags.String("azureAuthFile", "", "Path to Azure Auth File")
-	resourceGroup  = flags.String("resource-group", "", "Azure Resource Group")
 	subscriptionID = flags.String("subscriptionID", "", "Azure Subscription")
-	verbosity      = flags.Int(verbosityFlag, 1, "Set logging verbosity level")
+	verbosity      = flags.Int("verbosity", 1, "Set logging verbosity level")
 	namespace      = flags.String("namespace", "default", "Kubernetes namespace to watch.")
+	port           = flags.Int("port", 15124, "Endpoint Discovery Service port number. (Default: 15124)")
 )
 
 func main() {
@@ -50,11 +54,39 @@ func main() {
 	// which would trigger Envoy updates.
 	announceChan := channels.NewRingChannel(1024)
 
-	computeProviders, meshSpec, serviceCatalog := setupClients(announceChan)
-	grpcServer, lis := cmd.NewGrpc(serverType, port)
-	eds := edsServer.NewEDSServer(ctx, computeProviders, serviceCatalog, meshSpec, announceChan)
+	kubeConfig, err := clientcmd.BuildConfigFromFlags("", *kubeConfigFile)
+	if err != nil {
+		glog.Fatalf("Error gathering Kubernetes config. Ensure correctness of CLI argument 'kubeconfig=%s': %s", *kubeConfigFile, err)
+	}
+
+	stopChan := make(chan struct{})
+	meshSpec := kube.NewMeshSpecClient(kubeConfig, getNamespaces(), 1*time.Second, announceChan, stopChan)
+	kubernetesProvider := kube.NewProvider(kubeConfig, getNamespaces(), 1*time.Second, announceChan, "Kubernetes")
+	azureProvider := azure.NewProvider(*subscriptionID, *namespace, *azureAuthFile, maxAuthRetryCount, retryPause, announceChan, meshSpec, "Azure")
+
+	// Setup all Compute Providers -- these are Kubernetes, cloud provider virtual machines, etc.
+	// TODO(draychev): How do we add multiple Kubernetes clusters? Multiple Azure subscriptions?
+	computeProviders := []mesh.ComputeProviderI{
+		kubernetesProvider,
+		azureProvider,
+	}
+
+	// Run each provider -- starting the pub/sub system, which leverages the announceChan channel
+	for _, provider := range computeProviders {
+		if err := provider.Run(stopChan); err != nil {
+			glog.Errorf("Could not start %s provider: %s", provider.GetID(), err)
+			continue
+		}
+		glog.Infof("Started provider %s", provider.GetID())
+	}
+
+	// ServiceName Catalog is the facility, which we query to get the list of services, weights for traffic split etc.
+	serviceCatalog := catalog.NewServiceCatalog(computeProviders, meshSpec)
+
+	grpcServer, lis := utils.NewGrpc(serverType, *port)
+	eds := edsServer.NewEDSServer(ctx, serviceCatalog, meshSpec, announceChan)
 	envoyControlPlane.RegisterEndpointDiscoveryServiceServer(grpcServer, eds)
-	cmd.GrpcServe(ctx, grpcServer, lis, cancel, serverType)
+	utils.GrpcServe(ctx, grpcServer, lis, cancel, serverType)
 }
 
 func parseFlags() {
@@ -71,8 +103,9 @@ func getNamespaces() []string {
 	if namespace == nil {
 		defaultNS := defaultNamespace
 		namespaces = []string{defaultNS}
+	} else {
+		namespaces = []string{*namespace}
 	}
-	namespaces = []string{*namespace}
 	glog.Infof("Observing namespaces: %s", strings.Join(namespaces, ","))
 	return namespaces
 }
