@@ -5,6 +5,8 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/deislabs/smc/pkg/utils"
 
@@ -36,7 +38,13 @@ func main() {
 	grpcServer, lis := utils.NewGrpc(serverType, *port)
 	sds := sdsServer.NewSDSServer(keysDirectory)
 	envoyControlPlane.RegisterSecretDiscoveryServiceServer(grpcServer, sds)
-	utils.GrpcServe(ctx, grpcServer, lis, cancel, serverType)
+	go utils.GrpcServe(ctx, grpcServer, lis, cancel, serverType)
+
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	<-sigChan
+
+	glog.Info("Goodbye!")
 }
 
 func parseFlags() {

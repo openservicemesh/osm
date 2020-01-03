@@ -5,7 +5,9 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/deislabs/smc/pkg/utils"
@@ -18,7 +20,6 @@ import (
 
 	"github.com/deislabs/smc/pkg/catalog"
 	edsServer "github.com/deislabs/smc/pkg/envoy/eds"
-	"github.com/deislabs/smc/pkg/mesh"
 	"github.com/deislabs/smc/pkg/providers/azure"
 	"github.com/deislabs/smc/pkg/providers/kube"
 )
@@ -64,29 +65,20 @@ func main() {
 	kubernetesProvider := kube.NewProvider(kubeConfig, getNamespaces(), 1*time.Second, announceChan, "Kubernetes")
 	azureProvider := azure.NewProvider(*subscriptionID, *namespace, *azureAuthFile, maxAuthRetryCount, retryPause, announceChan, meshSpec, "Azure")
 
-	// Setup all Compute Providers -- these are Kubernetes, cloud provider virtual machines, etc.
-	// TODO(draychev): How do we add multiple Kubernetes clusters? Multiple Azure subscriptions?
-	computeProviders := []mesh.ComputeProviderI{
-		kubernetesProvider,
-		azureProvider,
-	}
-
-	// Run each provider -- starting the pub/sub system, which leverages the announceChan channel
-	for _, provider := range computeProviders {
-		if err := provider.Run(stopChan); err != nil {
-			glog.Errorf("Could not start %s provider: %s", provider.GetID(), err)
-			continue
-		}
-		glog.Infof("Started provider %s", provider.GetID())
-	}
-
 	// ServiceName Catalog is the facility, which we query to get the list of services, weights for traffic split etc.
-	serviceCatalog := catalog.NewServiceCatalog(computeProviders, meshSpec)
+	serviceCatalog := catalog.NewServiceCatalog(meshSpec, stopChan, kubernetesProvider, azureProvider)
 
 	grpcServer, lis := utils.NewGrpc(serverType, *port)
 	eds := edsServer.NewEDSServer(ctx, serviceCatalog, meshSpec, announceChan)
 	envoyControlPlane.RegisterEndpointDiscoveryServiceServer(grpcServer, eds)
-	utils.GrpcServe(ctx, grpcServer, lis, cancel, serverType)
+	go utils.GrpcServe(ctx, grpcServer, lis, cancel, serverType)
+
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	<-sigChan
+
+	close(stopChan)
+	glog.Info("Goodbye!")
 }
 
 func parseFlags() {
