@@ -1,30 +1,33 @@
 # How to run a Demo of SMC
 
+## System Requirements
+- Go version 1.13 or higher
+- OpenSSL/LibreSSL 2.8.3 or higher
+- Kubectl version 1.16 or higher
+- Docker CLI
+   - on a Debian based GNU/Linux system: `sudo apt-get install docker`
+   - on a macOS use `brew install docker` or alternatively visit [Docker for Mac](https://docs.docker.com/docker-for-mac/install/)
+   - on Windows visit [Docker for Windows](https://docs.docker.com/docker-for-windows/install/)
+- [Watch](http://www.linfo.org/watch.html)
+   - `brew install watch` on macOS
+
 ## Prerequisites
-Required steps and components for the successful execution of the demo scripts:
-1. install `go 1.13` on your workstation: `which go && go version`
-1. clone this repo on your workstation
-1. ensure OpenSSL is installed (LibreSSL 2.8.3 or later): `which openssl && openssl version`
-1. install `kubectl` [version 1.16 or later](https://kubernetes.io/docs/tasks/tools/install-kubectl/): `which kubectl && kubectl version`
-1. provision access to a Kubernetes cluster - save the credentials in `~/.kube/config` or set the config path in `$KUBECONFIG` env variable:
+1. Clone this repo on your workstation
+1. Provision access to a Kubernetes cluster - save the credentials in `~/.kube/config` or set the config path in `$KUBECONFIG` env variable:
    - The Azure Kubernetes Service is a fitting provider of a hosted Kubernetes service
    - [Install Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
    - Login to your Azure account: `az login`
    - Create an AKS cluster via [Azure Portal](https://portal.azure.com/)
    - Using the Azure CLI download AKS credentials into `~/.kube/config`: `az aks get-credentials --resource-group your_Resource_Group --name your_AKS_name`
-1. install [Docker CLI](https://docs.docker.com/v17.12/install/) on the workstation running the commands below.
-   - on a Debian based GNU/Linux system: `sudo apt-get install docker`
-   - on a macOS use `brew install docker` or alternatively visit [Docker for Mac](https://docs.docker.com/docker-for-mac/install/)
-   - on Windows visit [Docker for Windows](https://docs.docker.com/docker-for-windows/install/)
-1. authenticate with a container registry, which is accessible to both your workstation and your Kubernetes cluster. One such registry is the Azure Container Registry (ACR), which is used by the demo scripts in this repo:
+1. Authenticate with a container registry, which is accessible to both your workstation and your Kubernetes cluster. One such registry is the Azure Container Registry (ACR), which is used by the demo scripts in this repo:
    - [Install Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
    - Login to your Azure account: `az login`
    - Create an ACR via [Azure Portal](https://portal.azure.com/)
    - Create local Docker credentials for your ACR: `az acr login --name name_of_your_Azure_Container_Registry`. This command will create new credentials in `~/.docker/config.json`, which will be used by the demo scripts below.
 
-## Configure Environment
+## Configure Environment Variables
 In the root directory of the repo create a `.env` file. It is already listed in `.gitignore` so that anything you put in it would not accidentally leak into a public git repo. The `.env` file should contain the following Bash variables:
-   - `K8S_NAMESPACE` - Namespace within your Kubernetes cluster, where SMC will be installed.
+   - `K8S_NAMESPACE` - Namespace within your Kubernetes cluster, where SMC will be installed. This cannot be the `default` namespace because it has to be a namespace that can be deleted.
    - `AZURE_SUBSCRIPTION` - the Azure subscription where your Kubernete cluster resides. The demo will use this to configure the Endpoint Discovery Service's cloud observer.
    - `AZURE_RESOURCE_GROUP` - Resource group where your Azure Kubernetes cluster resides. The demo uses this to configure the Endpoint Discovery Service so that it watches a particular subset of Azure resources.
    - `CTR_REGISTRY` - URL of the container registry. For example: `draychev.azurecr.io/smc`
