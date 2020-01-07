@@ -26,7 +26,7 @@ Required steps and components for the successful execution of the demo scripts:
 ## Configure Environment
 In the root directory of the repo create a `.env` file. It is already listed in `.gitignore` so that anything you put in it would not accidentally leak into a public git repo. The `.env` file should contain the following Bash variables:
    - `K8S_NAMESPACE` - Namespace within your Kubernetes cluster, where SMC will be installed.
-   - `AZURE_SUBSCRIPTION` - the Azure subscription where your Kubernete cluster resides. The demo will use this to configure the Endpoint Discovery Service's cloud observer.
+   - `AZURE_SUBSCRIPTION` - the Azure Subscription ID where your Kubernete cluster resides. The demo will use this to configure the Endpoint Discovery Service's cloud observer.
    - `AZURE_RESOURCE_GROUP` - Resource group where your Azure Kubernetes cluster resides. The demo uses this to configure the Endpoint Discovery Service so that it watches a particular subset of Azure resources.
    - `CTR_REGISTRY` - URL of the container registry. For example: `draychev.azurecr.io/smc`
    - `CTR_REGISTRY_CREDS_NAME` - name to be used for the Kubernetes secrets resource to be created from the Docker container registry.
