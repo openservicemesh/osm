@@ -36,8 +36,3 @@ type Client struct {
 	informers     *InformerCollection
 	announceChan  *channels.RingChannel
 }
-
-type kv struct {
-	k string
-	v string
-}

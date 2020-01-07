@@ -43,7 +43,10 @@ type SpecI interface {
 	GetComputeIDForService(ServiceName) []ComputeID
 }
 
+// AzureID is a string type alias, which is the URI of a unique Azure cloud resource.
 type AzureID string
+
+// KubernetesID is a struct type, which points to a uniquely identifiable Kubernetes cluster.
 type KubernetesID struct {
 	ClusterID string
 	Namespace string

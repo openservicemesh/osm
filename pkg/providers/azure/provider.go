@@ -58,6 +58,8 @@ func (az Client) Run(stopCh <-chan struct{}) error {
 	return nil
 }
 
+// GetID returns the unique identifier for the compute provider.
+// This string will be used by logging tools to contextualize messages.
 func (az Client) GetID() string {
 	return az.providerIdent
 }
