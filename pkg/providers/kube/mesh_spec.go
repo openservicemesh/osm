@@ -80,24 +80,24 @@ func (c *Client) ListServices() []mesh.ServiceName {
 	return services
 }
 
-// GetComputeIDForService returns the collection of compute platforms, which form this Mesh Service.
-// You pass this function a ServiceName
-func (kp *Client) GetComputeIDForService(svc mesh.ServiceName) mesh.ComputeID {
+// GetComputeIDForService returns the collection of compute platforms / clusters, which form the given Mesh Service.
+func (kp *Client) GetComputeIDForService(svc mesh.ServiceName) []mesh.ComputeID {
+	var clusters []mesh.ComputeID
 	serviceInterface, exist, err := kp.caches.Services.GetByKey(string(svc))
 	if err != nil {
 		glog.Error("Error fetching Kubernetes Endpoints from cache: ", err)
-		return mesh.ComputeID{}
+		return clusters
 	}
 
 	if !exist {
 		glog.Errorf("Error fetching Kubernetes Endpoints from cache: ServiceName %s does not exist", svc)
-		return mesh.ComputeID{}
+		return clusters
 	}
 
 	if kp.caches.AzureResource == nil {
 		//TODO(draychev): Should this be a Fatal?
 		glog.Error("AzureResource Kubernetes Cache is incorrectly setup")
-		return mesh.ComputeID{}
+		return clusters
 	}
 
 	var azureResourcesList []*smc.AzureResource
@@ -105,7 +105,11 @@ func (kp *Client) GetComputeIDForService(svc mesh.ServiceName) mesh.ComputeID {
 		azureResourcesList = append(azureResourcesList, azureResourceInterface.(*smc.AzureResource))
 	}
 
-	return matchServiceAzureResource(serviceInterface.(*v1.Service), azureResourcesList)
+	clusters = append(clusters, matchServiceAzureResource(serviceInterface.(*v1.Service), azureResourcesList))
+
+	// TODO(draychev): populate list w/ !AzureResource
+
+	return clusters
 }
 
 func matchServiceAzureResource(svc *v1.Service, azureResourcesList []*smc.AzureResource) mesh.ComputeID {

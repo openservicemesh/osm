@@ -19,32 +19,36 @@ func NewProvider(subscriptionID string, namespace string, azureAuthFile string, 
 // GetIPs returns the IP addresses for the given ServiceName Name
 // This function is required by the ComputeProviderI
 func (az Client) GetIPs(svc mesh.ServiceName) []mesh.IP {
-	compute := az.mesh.GetComputeIDForService(svc)
-	glog.Infof("[azure] Getting IPs for service %s", svc)
-	if compute.AzureID == "" {
-		return []mesh.IP{}
-	}
-	resourceGroup, kind, _, err := parseAzureID(compute.AzureID)
-	if err != nil {
-		glog.Errorf("Unable to parse Azure URI %s: %s", compute.AzureID, err)
-		return []mesh.IP{}
-	}
-
-	var computeKindObserver = map[computeKind]computeObserver{
-		vm:   az.getVM,
-		vmss: az.getVMSS,
-	}
-
-	if observer, ok := computeKindObserver[kind]; ok {
-		var ips []mesh.IP
-		var err error
-		ips, err = observer(resourceGroup, compute.AzureID)
-		if err != nil {
-			glog.Error("Could not fetch VMSS services: ", err)
+	var azureIPs []mesh.IP
+	clusters := az.mesh.GetComputeIDForService(svc)
+	for _, cluster := range clusters {
+		if cluster.AzureID == "" {
+			continue
 		}
-		return ips
+
+		glog.Infof("[azure] Getting IPs for service %s", svc)
+		resourceGroup, kind, _, err := parseAzureID(cluster.AzureID)
+		if err != nil {
+			glog.Errorf("Unable to parse Azure URI %s: %s", cluster.AzureID, err)
+			continue
+		}
+
+		var computeKindObserver = map[computeKind]computeObserver{
+			vm:   az.getVM,
+			vmss: az.getVMSS,
+		}
+
+		if observer, ok := computeKindObserver[kind]; ok {
+			var ips []mesh.IP
+			var err error
+			ips, err = observer(resourceGroup, cluster.AzureID)
+			if err != nil {
+				glog.Error("Could not fetch VMSS services: ", err)
+			}
+			azureIPs = append(azureIPs, ips...)
+		}
 	}
-	return []mesh.IP{}
+	return azureIPs
 }
 
 // Run starts the Azure observer

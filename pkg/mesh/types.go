@@ -40,7 +40,7 @@ type ComputeProviderI interface {
 type SpecI interface {
 	ListTrafficSplits() []*v1alpha2.TrafficSplit
 	ListServices() []ServiceName
-	GetComputeIDForService(ServiceName) ComputeID
+	GetComputeIDForService(ServiceName) []ComputeID
 }
 
 type AzureID string
@@ -50,6 +50,7 @@ type KubernetesID struct {
 	Service   string
 }
 
+// ComputeID is a struct, which contains the unique IDs of hte compute clusters where certain service may have Endpoints in.
 type ComputeID struct {
 	AzureID
 	KubernetesID
