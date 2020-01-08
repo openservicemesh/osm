@@ -4,51 +4,70 @@ This document outlines the Interfaces needed for the development of the Service 
 The goal of the document is to design and reach consensus before the reMeshTopologytive code is written.
 
 ## Assumptions
-- 1:1 relationship between Envoy proxy and a Service (no two services behind the same Envoy)
-- 1:1 between an Endpoint (port and IP) and an Envoy proxy
+- One-to-one relationship between Envoy proxy and a Service (no two services behind the same Envoy)
+- One-to-one relationship between an Endpoint (port and IP) and an Envoy proxy
 
-## Service Mesh Types
+## Helpers Types for SMC
 The following types are referenced in the interfaces proposed in this document:
 
-```go
-// IP is the IP of an Envoy proxy, member of a service
-type IP string
+  -  IP
+      ```go
+      // IP is the IP of an Envoy proxy, member of a service
+      type IP string
+      ```
 
-// Port is a numerical port of an Envoy proxy
-type Port int
+  -  Port
+      ```go
+      // Port is a numerical port of an Envoy proxy
+      type Port int
+      ```
 
-// ServiceName is the name of a service defined via SMI
-type ServiceName string
+  -  ServiceName
+      ```go
+      // ServiceName is the name of a service defined via SMI
+      type ServiceName string
+      ```
 
-// Endpoint is a tuple of IP and Port, representing an Envoy proxy, fronting an instance of a service
-type Endpoint struct {
-	IP   `json:"ip"`
-	Port `json:"port"`
-}
+  -  Endpoint
+      ```go
+      // Endpoint is a tuple of IP and Port, representing an Envoy proxy, fronting an instance of a service
+      type Endpoint struct {
+          IP   `json:"ip"`
+          Port `json:"port"`
+      }
+      ```
 
-// WeightedService is a struct of a delegated service backing a target service
-type WeightedService struct {
-	ServiceName ServiceName `json:"service_name:omitempty"`
-	Weight      int         `json:"weight:omitempty"`
-	Endpoints   []Endpoint  `json:"endpoints:omitempty"`
-}
+  -  WeightedService
+      ```go
+      // WeightedService is a struct of a delegated service backing a target service
+      type WeightedService struct {
+          ServiceName ServiceName `json:"service_name:omitempty"`
+          Weight      int         `json:"weight:omitempty"`
+          Endpoints   []Endpoint  `json:"endpoints:omitempty"`
+      }
+      ```
 
-// AzureURI is a unique resource locator within Azure.
-// Example: /resource/subscriptions/e3f0/resourceGroups/mesh-rg/providers/Microsoft.Compute/virtualMachineScaleSets/baz
-type AzureURI string
+  -  AzureURI
+      ```go
+      // AzureURI is a unique resource locator within Azure.
+      // Example: /resource/subscriptions/e3f0/resourceGroups/mesh-rg/providers/Microsoft.Compute/virtualMachineScaleSets/baz
+      type AzureURI string
+      ```
 
-// KubernetesLocator is a struct providing sufficient information for SMC to discover a service anywhere in the world.
-type KubernetesLocator struct {
-	// ClusterID is the unique identifier of a Kubernetes cluster. For example cluster's FQDN.
-	ClusterID string
+  -  KubernetesLocator
+      ```go
+      // KubernetesLocator is a struct providing sufficient information for SMC to discover a service anywhere in the world.
+      type KubernetesLocator struct {
+          // ClusterID is the unique identifier of a Kubernetes cluster. For example cluster's FQDN.
+          ClusterID string
 
-	// Namespace is the namespace on the cluster, within which the service name resides.
-	Namespace string
+          // Namespace is the namespace on the cluster, within which the service name resides.
+          Namespace string
 
-	// ServiceName is the name of the service.
-	ServiceName
-}
-```
+          // ServiceName is the name of the service.
+          ServiceName
+      }
+      ```
 
 
 ## Endpoint Discovery Service
