@@ -48,6 +48,7 @@ func main() {
 }
 
 func parseFlags() {
+	// TODO(draychev): consolidate parseFlags - shared between sds.go and eds.go
 	if err := flags.Parse(os.Args); err != nil {
 		glog.Error(err)
 	}
