@@ -26,7 +26,7 @@ The building blocks for the proposed EDS server are:
   - [ServiceProvider Interface](#serviceprovider-interface) - this is an augmentation of the `ServiceName` type to provide extended functionality for consumers that need more than just a string name.
   - [Fundamental Types](#fundamental-types-for-smc) - supporting types like `IP`, `Port`, `ServiceName` etc.
 
-1. The interface **already** provided by the [Envoy Go control plane](https://github.com/envoyproxy/go-control-plane) (let's call this the root interface) as declared in `eds.pb.go`:
+1. The interface **already** provided by the [Envoy Go control plane](https://github.com/envoyproxy/go-control-plane) (let's call this the root interface) as declared in [eds.pb.go](https://github.com/envoyproxy/go-control-plane/blob/7e97c9c4b2547eebdca67d672b77957f1e089c74/envoy/service/endpoint/v3alpha/eds.pb.go#L200-L205):
 ```go
 // EndpointDiscoveryServiceServer is the server API for EndpointDiscoveryService service.
 type EndpointDiscoveryServiceServer interface {
