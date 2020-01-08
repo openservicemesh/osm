@@ -21,7 +21,7 @@ The building blocks for the proposed EDS server are:
   - [Service Catalog](#service-catalog) - the heart of the service mesh controller merges the outputs of the [Mesh Topology](#mesh-topology) and [Endpoint Providers](#endpoint-providers) components. This component:
       - Keeps track of all services defined in SMI and the Endpoints serving these services
       - Maintains cache of `DiscoveryResponse` sructs sent to known Envoy proxies
-  - [Mesh Topology](#mesh-topology)
+  - [Mesh Topology](#mesh-topology) - a wrapper around the SMI Spec informers, abstracting away the storage that implements SMI; provides the simplest possible List* functions.
   - [Endpoint Providers](#endpoint-providers)
   - [ServiceProvider Interface](#serviceprovider-interface) - this is an augmentation of the `ServiceName` type to provide extended functionality for consumers that need more than just a string name.
   - [Fundamental Types](#fundamental-types-for-smc) - supporting types like `IP`, `Port`, `ServiceName` etc.
@@ -57,7 +57,7 @@ func (e *EDS) StreamEndpoints(server eds.EndpointDiscoveryService_StreamEndpoint
 
 	// the EDS struct implements the proposed EndpointsDiscoverer interface
 	announcementsChan chan struct{}
-	announcementsChan = e.GetAnnouncementChannel()
+	announcementsChan = e.catalog.GetAnnouncementChannel()
 
 	e.RegisterNewEndpoint()
 
@@ -66,7 +66,7 @@ func (e *EDS) StreamEndpoints(server eds.EndpointDiscoveryService_StreamEndpoint
 		case <-announcementsChan
 			var discoveryResponse envoy.DiscoveryResponse
 			// clientIdentity is the identity of the Envoy proxy connected to this gRPC server.
-			discoveryResponse = e.ListEndpoints(clientIdentity)
+			discoveryResponse = e.catalog.ListEndpoints(clientIdentity)
 			eds.send(discoveryResponse)
 		}
 	}
@@ -91,13 +91,13 @@ type ServiceProvider interface {
 	// ListAllowedInboundServices returns the list of services allowed to connect to this service.
 	ListAllowedInboundServices() []ServiceProvider
 
-	// GetAzureURIs returns the list of Azure URIs forming the given service.
+	// ListAzureLocators returns the list of Azure URIs forming the given service.
 	// Example: ["/resource/subscriptions/e3f0/resourceGroups/mesh-rg/providers/Microsoft.Compute/virtualMachineScaleSets/baz",]
-	ListAzureLocator() ([]AzureURI, error)
+	ListAzureLocators() ([]AzureURI, error)
 
-	// GetKubernetesLocator returns a list of KubernetesLocators, which are pointers to a server, namespace, service.
+	// ListKubernetesLocators returns a list of KubernetesLocators, which are pointers to a server, namespace, service.
 	// Example: [{"aks-9a31e37f.hcp.westus2.azmk8s.io", "smc", "webservice"},]
-	ListKubernetesLocator() ([]KubernetesLocator, error)
+	ListKubernetesLocators() ([]KubernetesLocator, error)
 }
 ```
 
@@ -110,27 +110,28 @@ The `ListEndpoints` and `GetAnnouncementChannel` functions will be provided by t
 
 The Service Catalog will have access to the `MeshTopology`, `SecretsProvider`, and the list of `EndpointProvider`s.
 
-```go
-// ServiceCatalog is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
-type ServiceCatalog interface {
+#### Interface
+    ```go
+    // ServiceCatalog is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
+    type ServiceCatalog interface {
 
-	// ListEndpoints constructs a DescoveryResponse with all endpoints the given Envoy proxy should be aware of.
-	// The bool return value indicates whether there have been any changes since the last invocation of this function. 
-	ListEndpoints(ClientIdentity) (envoy.DiscoveryResponse, bool, error)
+        // ListEndpoints constructs a DescoveryResponse with all endpoints the given Envoy proxy should be aware of.
+        // The bool return value indicates whether there have been any changes since the last invocation of this function. 
+        ListEndpoints(ClientIdentity) (envoy.DiscoveryResponse, bool, error)
 
- 	// RegisterNewEndpoint adds a newly connected Envoy proxy to the list of self-announced endpoints for a service.
- 	RegisterNewEndpoint(ClientIdentity)
+        // RegisterNewEndpoint adds a newly connected Envoy proxy to the list of self-announced endpoints for a service.
+        RegisterNewEndpoint(ClientIdentity)
 
-	// ListEndpointProviders retrieves the full list of endpoint providers registered with Service Catalog so far.
-	ListEndpointProviders() []EndpointProvider
+        // ListEndpointProviders retrieves the full list of endpoint providers registered with Service Catalog so far.
+        ListEndpointProviders() []EndpointProvider
 
-	// RegisterEndpointProvider adds a new endpoint provider to the list within the Service Catalog.
-	RegisterEndpointProvider(EndpointProvider) error
+        // RegisterEndpointProvider adds a new endpoint provider to the list within the Service Catalog.
+        RegisterEndpointProvider(EndpointProvider) error
 
-	// GetAnnouncementChannel returns an instance of a channel, which notifies the system of an event requiring the execution of ListEndpoints.
-	GetAnnouncementChannel() chan struct{}
-}
-```
+        // GetAnnouncementChannel returns an instance of a channel, which notifies the system of an event requiring the execution of ListEndpoints.
+        GetAnnouncementChannel() chan struct{}
+    }
+    ```
 
 Additional types needed for this interface:
 ```go
@@ -152,7 +153,7 @@ A `ServiceCatalog` implementation may choose to implement:
 - caching of `DiscoveryResponse` per Envoy proxy
 - mapping of `ClientIdentity` and/or issued certificate to a mesh service, i.e. Envoy to service mapping
 
-#### Sample Implementations
+#### Sample Implementation
 ```go
 func (catalog *Catalog) ListEndpoints(client ClientIdentity) (envoy.DiscoveryResponse, error) {
 	endpointsPerService := make(map[ServiceName][]Endpoint)
@@ -166,38 +167,64 @@ func (catalog *Catalog) ListEndpoints(client ClientIdentity) (envoy.DiscoveryRes
 }
 ```
 
-### Endpoints Providers
-In the sample `ListEndpoints` implementation we loop over a list of `EndpointProvider`s:
+### Endpoints Provider
+This component provides abstractions around the Go SDKs of various Kubernetes clusters, or cloud
+vendor's virtual machines and other compute, which participate in the service mesh. Each endpoint
+provider is responsible for either a particular Kubernetes cluster, or a cloud vendor subscription.
+The Service Catalog will query each Endpoints Provider for a particular service (`ServiceProvider`
+interface).
+
+The Endpoints Provider implementation **has no awareness** of:
+  - what SMI Spec is
+  - what Envoy proxy is
+  - what the services participating in the mesh are
+
+The Endpoints Provider does however expect to be queried with a `ServiceProvider` object. This
+object implements a method specific to end expected by the Endpoints Provider. This method
+provides mapping from a given Service Mesh ServiceName to vendor's specific compute identifier.
+
+For instance, when `ListEndpointsForService` is invoked on an `EndpointProvider` specialied to
+Azure, the `ServiceProvider` passed as an argument to `ListEndpointsForService`, would be expected
+to have implemented `ListAzureLocators`. `ListAzureLocators` would return a list of Azure URIs. The
+URIs are unique identifiers of Azure VMs, VMSS, or other compute with Envoy reverse-proxies,
+participating in the service mesh.
+
+In the sample `ListEndpoints` implementation, the Service Catalog loops over a list of `EndpointProvider`s:
 ```go
 for _, provider in catalog.ListEndpointProviders() {
 ```
-To provide the ability of composing a service mesh from multiple non-homogeneous clusters, we propose the following interfaces:
 
-```go
-// EndpointProvider is an interface to be implemented by components abstracting Kubernetes, Azure, and other compute/cluster providers.
-type EndpointProvider interface {
-	ListEndpointsForService(ServiceProvider) []Endpoint
-	Run(stopCh <-chan struct{}) error
-}
-```
+For each `provider` registered in the 
+
+##### Interface:
+    ```go
+    // EndpointProvider is an interface to be implemented by components abstracting Kubernetes, Azure, and other compute/cluster providers.
+    type EndpointProvider interface {
+        ListEndpointsForService(ServiceProvider) []Endpoint
+        Run(stopCh <-chan struct{}) error
+    }
+    ```
 
 ### Mesh Topology
-This component is a wrapper around SMI and provides facilities to fetch the list of services, any traffic split policies, certificates, allowed inbound services etc.
+This component provides an abstraction around the [SMI Spec Go SDK](https://github.com/deislabs/smi-sdk-go). The abstraction hides the Kubernetes primitives. This allows us to implement SMI Spec providers that does not rely exclusively on Kubernetes API, etcd etc. Mesh Topology Interface provides a set of functions, listing all Services, TrafficSplits, and policy definitions for the entire service mesh.
 
-Another set of functions is required to:
-1. fetch the list of services declared via SMI
-2. get the unique locators of compute hosting certain services per cloud provider
+The Mesh Topology implementation **has no awareness** of:
+  - what Envoy or reverse-proxy is
+  - what IP address is
+  - what Azure, Azure Resource Manager etc. is or how it works
 
-```go
-// MeshTopology is an interface declaring functions, which provide the topology of a service mesh declared with SMI.
-type MeshTopology interface {
-	// ListTrafficSplits lists TrafficSplit SMI resources.
-	ListTrafficSplits() []*v1alpha2.TrafficSplit
 
-	// ListServices fetches all services declared with SMI Spec.
-	ListServices() []ServiceProvider
-}
-```
+##### Interface:
+    ```go
+    // MeshTopology is an interface declaring functions, which provide the topology of a service mesh declared with SMI.
+    type MeshTopology interface {
+        // ListTrafficSplits lists TrafficSplit SMI resources.
+        ListTrafficSplits() []*v1alpha2.TrafficSplit
+
+        // ListServices fetches all services declared with SMI Spec.
+        ListServices() []ServiceProvider
+    }
+    ```
 
 ## Appendix
 
