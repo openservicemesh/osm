@@ -32,6 +32,10 @@ const (
 	maxAuthRetryCount = 10
 	retryPause        = 10 * time.Second
 
+	// These strings identify the participating clusters / endpoint providers.
+	// Ideally these strings should be not only the kind of compute but also
+	// a unique identifier, like the FQDN of the cluster, or the subscription
+	// within the cloud vendor.
 	azureProvidername      = "Azure"
 	kubernetesProviderName = "Kubernetes"
 )
