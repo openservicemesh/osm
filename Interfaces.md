@@ -55,7 +55,7 @@ type KubernetesLocator struct {
 
 This section describes the interfaces necessary to provide fully functioning Endpoint Discovery Service for an Envoy-based service mesh.
 
-![](https://user-images.githubusercontent.com/49918230/71942639-c6a89500-31b5-11ea-8fc2-fb2745a6192d.png)
+![](https://user-images.githubusercontent.com/49918230/72005149-d02d0e00-3244-11ea-9d6a-f166695c201f.png)
 
 ([source](https://microsoft-my.sharepoint.com/:p:/p/derayche/EZRZ-xXd06dFqlWJG5nn2wkBQCm8MMlAtRcNk6Yuir9XhA?e=zPw4FZ))
 
