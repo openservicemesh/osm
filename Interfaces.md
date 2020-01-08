@@ -24,7 +24,6 @@ The components composing the EDS server are:
       - Maintains cache of `DiscoveryResponse` sructs sent to known Envoy proxies
   - [Mesh Topology](#mesh-topology) - a wrapper around the SMI Spec informers, abstracting away the storage that implements SMI; provides the simplest possible List* functions.
   - [Endpoint Providers](#endpoint-providers)
-  - [ServiceProvider Interface](#serviceprovider-interface) - this is an augmentation of the `ServiceName` type to provide extended functionality for consumers that need more than just a string name.
   - [Fundamental Types](#fundamental-types-for-smc) - supporting types like `IP`, `Port`, `ServiceName` etc.
 
 
@@ -82,33 +81,6 @@ func (e *EDS) StreamEndpoints(server eds.EndpointDiscoveryService_StreamEndpoint
 	}
 
 	return nil
-}
-```
-
-
-### ServiceProvider Interface
-Leveraging Go's type system we define `ServiceName` string, which allows us to refer to an SMI
-declared service by name. Some components of the Service Mesh Controller may however require more
-sophisticated structs than just a string service name. The Azure endpoints provider, for example,
-would need a way to translate between a service name (`webservice`) and the URI of an [Azure VM](https://azure.microsoft.com/en-us/services/virtual-machines/)
-hosting an instance of the service (`/resource/subscriptions/e3f0/resourceGroups/mesh-rg/providers/Microsoft.Compute/virtualMachineScaleSets/baz`).
-For this reason we propose the following ServiceProvider interface:
-
-```go
-type ServiceProvider interface {
-	// GetName returns the name of the service.
-	GetName() ServiceName
-
-	// ListAllowedInboundServices returns the list of services allowed to connect to this service.
-	ListAllowedInboundServices() []ServiceProvider
-
-	// ListAzureLocators returns the list of Azure URIs forming the given service.
-	// Example: ["/resource/subscriptions/e3f0/resourceGroups/mesh-rg/providers/Microsoft.Compute/virtualMachineScaleSets/baz",]
-	ListAzureLocators() ([]AzureURI, error)
-
-	// ListKubernetesLocators returns a list of KubernetesLocators, which are pointers to a server, namespace, service.
-	// Example: [{"aks-9a31e37f.hcp.westus2.azmk8s.io", "smc", "webservice"},]
-	ListKubernetesLocators() ([]KubernetesLocator, error)
 }
 ```
 
@@ -182,7 +154,7 @@ func (catalog *Catalog) ListEndpoints(client ClientIdentity) (envoy.DiscoveryRes
 This component provides abstractions around the Go SDKs of various Kubernetes clusters, or cloud
 vendor's virtual machines and other compute, which participate in the service mesh. Each endpoint
 provider is responsible for either a particular Kubernetes cluster, or a cloud vendor subscription.
-The Service Catalog will query each Endpoints Provider for a particular service (`ServiceProvider`
+The Service Catalog will query each Endpoints Provider for a particular service.
 interface).
 
 The Endpoints Provider implementation **has no awareness** of:
@@ -190,14 +162,12 @@ The Endpoints Provider implementation **has no awareness** of:
   - what Envoy proxy is
   - what the services participating in the mesh are
 
-The Endpoints Provider does however expect to be queried with a `ServiceProvider` object. This
-object implements a method specific to end expected by the Endpoints Provider. This method
-provides mapping from a given Service Mesh ServiceName to vendor's specific compute identifier.
-
-For instance, when `ListEndpointsForService` is invoked on an `EndpointProvider` specialied to
-Azure, the `ServiceProvider` passed as an argument to `ListEndpointsForService`, would be expected
-to have implemented `ListAzureLocators`. `ListAzureLocators` would return a list of Azure URIs. The
-URIs are unique identifiers of Azure VMs, VMSS, or other compute with Envoy reverse-proxies,
+As of this iteration of SMC the Endpoints Providers are responsible for implementing a method to
+resolve an SMI-declared service to the provider's specific resource definition. For example,
+when `ListEndpointsForService` is invoked on an Azure `EndpointProvider` it is passed a service
+name (`webservice` for instance). The Azure provider would use its own method to resolve the
+service to a list of Azure URIs (example: `/resource/subscriptions/e3f0/resourceGroups/mesh-rg/providers/Microsoft.Compute/virtualMachineScaleSets/baz`).
+These URIs are unique identifiers of Azure VMs, VMSS, or other compute with Envoy reverse-proxies,
 participating in the service mesh.
 
 In the sample `ListEndpoints` implementation, the Service Catalog loops over a list of `EndpointProvider`s:
@@ -205,19 +175,19 @@ In the sample `ListEndpoints` implementation, the Service Catalog loops over a l
 for _, provider in catalog.ListEndpointProviders() {
 ```
 
-For each `provider` registered in the Service Catalog, we would invoke `ListEndpointsForService`.
-The function will be provided a `ServiceProvider`, which implements functions required by the
-provider to resolve an SMI defined service into a vendor specific resource identifier. For example
-`ListEndpointsForService` invoked on the Azure EndpointsProvider, would evaluate
-`ListAzureLocators` for an SMI-defined service (`webservice`) and will retrieve the URI of an
+For each `provider` registered in the Service Catalog, we invoke `ListEndpointsForService`.
+The function will be provided a `ServiceName`, which is an SMI-declared service. The provider will
+resolve the service to its own resource ID. For example `ListEndpointsForService` invoked on the
+Azure EndpointsProvider with service `webservice`, will resolve `webservice` to the URI of an
 [Azure VM](https://azure.microsoft.com/en-us/services/virtual-machines/) hosting an instance of
-the service (`/resource/subscriptions/e3f0/resourceGroups/mesh-rg/providers/Microsoft.Compute/virtualMachineScaleSets/baz`).
+the service: `/resource/subscriptions/e3f0/resourceGroups/mesh-rg/providers/Microsoft.Compute/virtualMachineScaleSets/baz`.
+From the URI the provider will resolve the list of IP addresses of participating Envoy proxies.
 
 ##### Interface:
 ```go
 // EndpointProvider is an interface to be implemented by components abstracting Kubernetes, Azure, and other compute/cluster providers.
 type EndpointProvider interface {
-    ListEndpointsForService(ServiceProvider) []Endpoint
+    ListEndpointsForService(ServiceName) []Endpoint
     Run(stopCh <-chan struct{}) error
 }
 ```
@@ -239,7 +209,7 @@ type MeshTopology interface {
     ListTrafficSplits() []*v1alpha2.TrafficSplit
 
     // ListServices fetches all services declared with SMI Spec.
-    ListServices() []ServiceProvider
+    ListServices() []ServiceName
 }
 ```
 
