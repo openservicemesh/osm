@@ -7,7 +7,7 @@ The goal of the document is to design and reach consensus before the reMeshTopol
 - One-to-one relationship between Envoy proxy and a Service (no two services behind the same Envoy)
 - One-to-one relationship between an Endpoint (port and IP) and an Envoy proxy
 
-## Helpers Types for SMC
+## Fundamental Types for SMC
 The following types are referenced in the interfaces proposed in this document:
 
   -  IP
