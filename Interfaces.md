@@ -147,8 +147,6 @@ The Service Catalog will have access to the `MeshTopology`, `SecretsProvider`, a
 ```go
 // ServiceCatalog is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
 type ServiceCatalog interface {
-	// ListServices fetches all services declared with SMI Spec.
-	ListServices() []ServiceProvider
 
 	// GetEndpoints constructs a DescoveryResponse with all endpoints the given Envoy proxy should be aware of.
 	// The bool return value indicates whether there have been any changes since the last invocation of this function. 
@@ -195,7 +193,7 @@ func (catalog *Catalog) GetEndpoints(client ClientIdentity) (envoy.DiscoveryResp
 	// Iterate through all compute/cluster/cloud providers participating in the service mesh and fetch
 	// lists of IP addresses and port numbers (endpoints) per service, per provider.
 	for _, provider in catalog.GetEndpointProviders() {
-		for _, service in catalog.ListServices() {
+		for _, service in catalog.mesh.ListServices() {
 			endpointsFromProviderForService := provider.GetEndpointsForService(service)
 			// Merge endpointsFromProviderForService into endpointsPerService
 	}
@@ -230,7 +228,7 @@ type MeshTopology interface {
 	// ListTrafficSplits lists TrafficSplit SMI resources.
 	ListTrafficSplits() []*v1alpha2.TrafficSplit
 
-	// ListServices provides a list of services declared with SMI.
-	ListServices() map[ServiceName][ServiceProvider]
+	// ListServices fetches all services declared with SMI Spec.
+	ListServices() []ServiceProvider
 }
 ```
