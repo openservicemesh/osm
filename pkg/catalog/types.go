@@ -11,5 +11,5 @@ type ServiceCatalog struct {
 	sync.Mutex
 	servicesCache    map[mesh.ServiceName][]mesh.IP
 	computeProviders []mesh.ComputeProviderI
-	meshSpec         mesh.SpecI
+	meshTopology     mesh.MeshTopology
 }
