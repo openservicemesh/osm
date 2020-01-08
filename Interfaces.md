@@ -12,7 +12,7 @@ Assumptions made in this document:
 
 This section describes the interfaces necessary to provide fully functioning Endpoint Discovery Service for an Envoy-based service mesh.
 
-![Diagram](https://user-images.githubusercontent.com/49918230/72006983-a675e600-3248-11ea-838b-ea6366b091f3.png)
+![Diagram](https://user-images.githubusercontent.com/49918230/72010157-4171be80-324f-11ea-886b-e08647cc1a6a.png)
 
 ([source](https://microsoft-my.sharepoint.com/:p:/p/derayche/EZRZ-xXd06dFqlWJG5nn2wkBQCm8MMlAtRcNk6Yuir9XhA?e=zPw4FZ))
 
