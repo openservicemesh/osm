@@ -4,19 +4,21 @@ This document defines the [Go Interfaces](https://golang.org/doc/effective_go.ht
 the development of the Service Mesh Controller in [this repository](https://github.com/deislabs/smc).
 
 The document is written with the following assumptions in mind:
-  - One-to-one relationship between Envoy proxy and a Service (no two services behind the same Envoy)
+  - One-to-one relationship between an [Envoy proxy](https://www.envoyproxy.io/docs/envoy/latest/intro/what_is_envoy) and a Service (no two services behind the same Envoy)
   - One-to-one relationship between an Endpoint (port and IP) and an Envoy proxy
 
-## Endpoint Discovery Service
 
-This section describes the interfaces necessary to provide fully functioning Endpoint Discovery Service for an Envoy-based service mesh.
+
+## Endpoint Discovery Service
+This section focuses specifically on the interfaces required to implement a fully functioning Endpoint Discovery Service for an Envoy-based service mesh.
 
 ![Diagram](https://user-images.githubusercontent.com/49918230/72010157-4171be80-324f-11ea-886b-e08647cc1a6a.png)
 
 ([source](https://microsoft-my.sharepoint.com/:p:/p/derayche/EZRZ-xXd06dFqlWJG5nn2wkBQCm8MMlAtRcNk6Yuir9XhA?e=zPw4FZ))
 
 
-The building blocks for the proposed EDS server are:
+### EDS Building Blocks
+The components composing the EDS server are:
   - [Service Catalog](#service-catalog) - the heart of the service mesh controller merges the outputs of the [Mesh Topology](#mesh-topology) and [Endpoint Providers](#endpoint-providers) components. This component:
       - Keeps track of all services defined in SMI and the Endpoints serving these services
       - Maintains cache of `DiscoveryResponse` sructs sent to known Envoy proxies
@@ -25,7 +27,11 @@ The building blocks for the proposed EDS server are:
   - [ServiceProvider Interface](#serviceprovider-interface) - this is an augmentation of the `ServiceName` type to provide extended functionality for consumers that need more than just a string name.
   - [Fundamental Types](#fundamental-types-for-smc) - supporting types like `IP`, `Port`, `ServiceName` etc.
 
-1. The interface **already** provided by the [Envoy Go control plane](https://github.com/envoyproxy/go-control-plane) (let's call this the root interface) as declared in [eds.pb.go](https://github.com/envoyproxy/go-control-plane/blob/7e97c9c4b2547eebdca67d672b77957f1e089c74/envoy/service/endpoint/v3alpha/eds.pb.go#L200-L205):
+
+### EDS Entrypoint
+The `StreamEndpoints` function is the entrypoint into the EDS vertical of SMC. This function is
+declared in the `EndpointDiscoveryServiceServer` interface, which is provided by the
+[Envoy Go control plane](https://github.com/envoyproxy/go-control-plane). It is declared in [eds.pb.go](https://github.com/envoyproxy/go-control-plane/blob/7e97c9c4b2547eebdca67d672b77957f1e089c74/envoy/service/endpoint/v3alpha/eds.pb.go#L200-L205):
 ```go
 // EndpointDiscoveryServiceServer is the server API for EndpointDiscoveryService service.
 type EndpointDiscoveryServiceServer interface {
@@ -37,16 +43,21 @@ type EndpointDiscoveryServiceServer interface {
 }
 ```
 
-Functions `FetchEndpoints` and `DeltaEndpoints` are used by the EDS REST API. This project implements gRPC only. These two functions will not be implemented.
+Functions `FetchEndpoints` and `DeltaEndpoints` are used by the EDS REST API. This project
+implements gRPC only and these two functions will not be implemented.
 
-When the [Envoy Go control plane](https://github.com/envoyproxy/go-control-plane) evaluates the `StreamEndpoints` function it passes a `EndpointDiscoveryService_StreamEndpointsServer` *server*. The implementation of the `StreamEndpoints` function will then use `server.Send(response)` to send an `envoy.DiscoveryResponce` to all connected proxies.
+When the [Envoy Go control plane](https://github.com/envoyproxy/go-control-plane) evaluates
+`StreamEndpoints` it passes a `EndpointDiscoveryService_StreamEndpointsServer` *server*. The
+implementation of the `StreamEndpoints` function will then use `server.Send(response)` to send
+an `envoy.DiscoveryResponce` to all connected proxies.
 
 
-For this implementation of `StreamEndpoints` we need:
-1. function to initialize and populate the `DiscoveryResponse` struct. This function will provide connected Envoy proxies with a mapping from a service name to a list of routable IP addresses and ports.
-1. method notifying us when the function in 1 is to be executed
+An [MVP](https://en.wikipedia.org/wiki/Minimum_viable_product) implementation of `StreamEndpoints`
+would require:
+1. a function to initialize and populate a `DiscoveryResponse` struct. This function will provide connected Envoy proxies with a mapping from a service name to a list of routable IP addresses and ports.
+1. a method of notifying the system when the function described in #1 needs to be evaluated to refresh the connected Envoy proxies with the latest available endpoints
 
-An example of what `StreamEndpoints` implementation might look like:
+A simple implementation of `StreamEndpoints`:
 ```go
 // StreamEndpoints updates all connected proxies with the list of their peers (other proxies) and the services these belong to.
 func (e *EDS) StreamEndpoints(server eds.EndpointDiscoveryService_StreamEndpointsServer) error {
@@ -73,6 +84,7 @@ func (e *EDS) StreamEndpoints(server eds.EndpointDiscoveryService_StreamEndpoint
 	return nil
 }
 ```
+
 
 ### ServiceProvider Interface
 Leveraging Go's type system we define `ServiceName` string, which allows us to refer to an SMI
