@@ -4,7 +4,8 @@ This document outlines the Interfaces needed for the development of the Service 
 The goal of the document is to design and reach consensus before the reMeshTopologytive code is written.
 
 ## Assumptions
-- One Envoy proxy will serve only one Service, and will have only one Endpoint (port and IP).
+- 1:1 relationship between Envoy proxy and a Service (no two services behind the same Envoy)
+- 1:1 between an Endpoint (port and IP) and an Envoy proxy
 
 ## Service Mesh Types
 The following types are referenced in the interfaces proposed in this document:
@@ -47,23 +48,10 @@ type KubernetesLocator struct {
 	// ServiceName is the name of the service.
 	ServiceName
 }
-
-type ServiceProvider interface {
-	// GetName returns the name of the service.
-	GetName() ServiceName
-
-	// GetAzureURIs returns the list of Azure URIs forming the given service.
-	// Example: ["/resource/subscriptions/e3f0/resourceGroups/mesh-rg/providers/Microsoft.Compute/virtualMachineScaleSets/baz",]
-	ListAzureLocator() ([]AzureURI, error)
-
-	// GetKubernetesLocator returns a list of KubernetesLocators, which are pointers to a server, namespace, service.
-	// Example: [{"aks-9a31e37f.hcp.westus2.azmk8s.io", "smc", "webservice"},]
-	ListKubernetesLocator() ([]KubernetesLocator, error)
-}
 ```
 
 
-## Envoy Endpoint Discovery Service Interfaces
+## Endpoint Discovery Service
 
 This section describes the interfaces necessary to provide fully functioning Endpoint Discovery Service for an Envoy-based service mesh.
 
@@ -118,6 +106,32 @@ func (e *EDS) StreamEndpoints(server eds.EndpointDiscoveryService_StreamEndpoint
 	}
 
 	return nil
+}
+```
+
+### Service Interface
+To leverage Go's type system we already defined `ServiceName` string.
+On the other hand various components of SMC may require more sophisticated tools, than just an SMI declared service.
+For example the Azure provider would need a way to translate between a service name (example: `webservice`) and the URI
+of an Azure virtual machine hosting an instance of the service
+(example: `/resource/subscriptions/e3f0/resourceGroups/mesh-rg/providers/Microsoft.Compute/virtualMachineScaleSets/baz`).
+For this reason we propose the following ServiceProvider interface:
+
+```go
+type ServiceProvider interface {
+	// GetName returns the name of the service.
+	GetName() ServiceName
+
+	// ListAllowedInboundServices returns the list of services allowed to connect to this service.
+	ListAllowedInboundServices() []ServiceProvider
+
+	// GetAzureURIs returns the list of Azure URIs forming the given service.
+	// Example: ["/resource/subscriptions/e3f0/resourceGroups/mesh-rg/providers/Microsoft.Compute/virtualMachineScaleSets/baz",]
+	ListAzureLocator() ([]AzureURI, error)
+
+	// GetKubernetesLocator returns a list of KubernetesLocators, which are pointers to a server, namespace, service.
+	// Example: [{"aks-9a31e37f.hcp.westus2.azmk8s.io", "smc", "webservice"},]
+	ListKubernetesLocator() ([]KubernetesLocator, error)
 }
 ```
 
@@ -193,7 +207,7 @@ In the sample `GetEndpoints` implementation we loop over a list of `EndpointProv
 ```go
 for _, provider in catalog.GetEndpointProviders() {
 ```
-To provide the ability of composing a service mesh composed of multiple non-homogeneous clusters, we propose the implementation of the following interface:
+To provide the ability of composing a service mesh from multiple non-homogeneous clusters, we propose the following interfaces:
 
 ```go
 // EndpointProvider is an interface to be implemented by components abstracting Kubernetes, Azure, and other compute/cluster providers.
