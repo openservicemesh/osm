@@ -5,26 +5,27 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
+
+	"github.com/deislabs/smc/pkg/utils"
 
 	envoyControlPlane "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
 
-	"github.com/deislabs/smc/cmd"
 	sdsServer "github.com/deislabs/smc/pkg/envoy/sds"
 )
 
 const (
 	serverType = "SDS"
-	port       = 15123
-
-	verbosityFlag = "verbosity"
 )
 
 var (
 	flags         = pflag.NewFlagSet(`diplomat-sds`, pflag.ExitOnError)
 	keysDirectory = flags.String("keys-directory", "", "Directory where the keys are stored")
-	verbosity     = flags.Int(verbosityFlag, 1, "Set logging verbosity level")
+	verbosity     = flags.Int("verbosity", 1, "Set logging verbosity level")
+	port          = flags.Int("port", 15123, "Service Discovery Service port number. (Default: 15123)")
 )
 
 func main() {
@@ -34,13 +35,20 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	grpcServer, lis := cmd.NewGrpc(serverType, port)
+	grpcServer, lis := utils.NewGrpc(serverType, *port)
 	sds := sdsServer.NewSDSServer(keysDirectory)
 	envoyControlPlane.RegisterSecretDiscoveryServiceServer(grpcServer, sds)
-	cmd.GrpcServe(ctx, grpcServer, lis, cancel, serverType)
+	go utils.GrpcServe(ctx, grpcServer, lis, cancel, serverType)
+
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	<-sigChan
+
+	glog.Info("Goodbye!")
 }
 
 func parseFlags() {
+	// TODO(draychev): consolidate parseFlags - shared between sds.go and eds.go
 	if err := flags.Parse(os.Args); err != nil {
 		glog.Error(err)
 	}

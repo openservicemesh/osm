@@ -10,10 +10,13 @@ import (
 	"github.com/golang/glog"
 )
 
+/*
+// TODO(draychev)
 func waitForAzureAuth(azClient Client, maxAuthRetryCount int, retryPause time.Duration) error {
 	retryCount := 0
 	for {
-		_, err := azClient.getVMSS() // Use any GET to verify auth
+		// TODO(draychev): this will not work -- come up with a different way to get a 200 OK
+		_, err := azClient.getVMSS("someResourceGroup", "vmID") // Use any GET to verify auth
 		if err == nil {
 			return nil
 		}
@@ -27,6 +30,7 @@ func waitForAzureAuth(azClient Client, maxAuthRetryCount int, retryPause time.Du
 		time.Sleep(retryPause)
 	}
 }
+*/
 
 func getAuthorizerWithRetry(azureAuthFile string, maxAuthRetryCount int, retryPause time.Duration) (autorest.Authorizer, error) {
 	var err error
