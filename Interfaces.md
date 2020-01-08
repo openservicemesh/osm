@@ -1,6 +1,7 @@
 # Service Mesh Controller Interfaces
 
-This document outlines the Interfaces needed for the development of the Service Mesh Controller in this repo.
+This document outlines the [Go Interfaces](https://golang.org/doc/effective_go.html#interfaces) needed for
+the development of the Service Mesh Controller in this repo.
 The goal of the document is to design and reach consensus before the reMeshTopologytive code is written.
 
 Assumptions made in this document:
@@ -16,6 +17,12 @@ This section describes the interfaces necessary to provide fully functioning End
 ([source](https://microsoft-my.sharepoint.com/:p:/p/derayche/EZRZ-xXd06dFqlWJG5nn2wkBQCm8MMlAtRcNk6Yuir9XhA?e=zPw4FZ))
 
 
+The building blocks for the proposed EDS server are:
+  - [Service Catalog](#service catalog)
+  - [Mesh Topology](#mesh-topology)
+  - [Endpoint Providers](#endpoint-providers)
+  - [Fundamental Types](#fundamental-types-for-smc)
+
 1. The interface **already** provided by the [Envoy Go control plane](https://github.com/envoyproxy/go-control-plane) (let's call this the root interface) as declared in `eds.pb.go`:
 ```go
 // EndpointDiscoveryServiceServer is the server API for EndpointDiscoveryService service.
@@ -28,7 +35,7 @@ type EndpointDiscoveryServiceServer interface {
 }
 ```
 
-Functions `FetchEndpoints` and `DeltaEndpoints` are necessary for a REST API implementation of the EDS. Since this project is concerned with a gRPC implementation, these will be ignored.
+Functions `FetchEndpoints` and `DeltaEndpoints` are used by the EDS REST API. This project implements gRPC only. These two functions will not be implemented.
 
 When the [Envoy Go control plane](https://github.com/envoyproxy/go-control-plane) evaluates the `StreamEndpoints` function it passes a `EndpointDiscoveryService_StreamEndpointsServer` *server*. The implementation of the `StreamEndpoints` function will then use `server.Send(response)` to send an `envoy.DiscoveryResponce` to all connected proxies.
 
@@ -65,12 +72,12 @@ func (e *EDS) StreamEndpoints(server eds.EndpointDiscoveryService_StreamEndpoint
 }
 ```
 
-### Service Interface
-To leverage Go's type system we already defined `ServiceName` string.
-On the other hand various components of SMC may require more sophisticated tools, than just an SMI declared service.
-For example the Azure provider would need a way to translate between a service name (example: `webservice`) and the URI
-of an Azure virtual machine hosting an instance of the service
-(example: `/resource/subscriptions/e3f0/resourceGroups/mesh-rg/providers/Microsoft.Compute/virtualMachineScaleSets/baz`).
+### ServiceProvider Interface
+Leveraging Go's type system we define `ServiceName` string, which allows us to refer to an SMI
+declared service by name. Some components of the Service Mesh Controller may however require more
+sophisticated structs than just a string service name. The Azure endpoints provider, for example,
+would need a way to translate between a service name (`webservice`) and the URI of an [Azure VM](https://azure.microsoft.com/en-us/services/virtual-machines/)
+hosting an instance of the service (`/resource/subscriptions/e3f0/resourceGroups/mesh-rg/providers/Microsoft.Compute/virtualMachineScaleSets/baz`).
 For this reason we propose the following ServiceProvider interface:
 
 ```go
@@ -125,7 +132,7 @@ type ServiceCatalog interface {
 Additional types needed for this interface:
 ```go
 // ClientIdentity is the assigned identity of an Envoy proxy connected to the EDS server.
-// For example: "spiffe://some/test/example"
+// This could be certificate CN, or SPIFFE identity. (TBD)
 type ClientIdentity string
 ```
 
@@ -191,7 +198,7 @@ type MeshTopology interface {
 
 ## Appendix
 
-### Fundamental Types for SMC
+### Fundamental Types
 The following types are referenced in the interfaces proposed in this document:
 
   -  IP
