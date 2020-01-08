@@ -18,10 +18,13 @@ This section describes the interfaces necessary to provide fully functioning End
 
 
 The building blocks for the proposed EDS server are:
-  - [Service Catalog](#service catalog)
+  - [Service Catalog](#service-catalog) - the heart of the service mesh controller merges the outputs of the [Mesh Topology](#mesh-topology) and [Endpoint Providers](#endpoint-providers) components. This component:
+      - Keeps track of all services defined in SMI and the Endpoints serving these services
+      - Maintains cache of `DiscoveryResponse` sructs sent to known Envoy proxies
   - [Mesh Topology](#mesh-topology)
   - [Endpoint Providers](#endpoint-providers)
-  - [Fundamental Types](#fundamental-types-for-smc)
+  - [ServiceProvider Interface](#serviceprovider-interface) - this is an augmentation of the `ServiceName` type to provide extended functionality for consumers that need more than just a string name.
+  - [Fundamental Types](#fundamental-types-for-smc) - supporting types like `IP`, `Port`, `ServiceName` etc.
 
 1. The interface **already** provided by the [Envoy Go control plane](https://github.com/envoyproxy/go-control-plane) (let's call this the root interface) as declared in `eds.pb.go`:
 ```go
