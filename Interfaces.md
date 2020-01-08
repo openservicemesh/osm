@@ -4,8 +4,8 @@ This document defines the [Go Interfaces](https://golang.org/doc/effective_go.ht
 the development of the Service Mesh Controller in [this repository](https://github.com/deislabs/smc).
 
 The document is written with the following assumptions in mind:
-    - One-to-one relationship between Envoy proxy and a Service (no two services behind the same Envoy)
-    - One-to-one relationship between an Endpoint (port and IP) and an Envoy proxy
+  - One-to-one relationship between Envoy proxy and a Service (no two services behind the same Envoy)
+  - One-to-one relationship between an Endpoint (port and IP) and an Envoy proxy
 
 ## Endpoint Discovery Service
 
