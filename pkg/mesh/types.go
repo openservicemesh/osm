@@ -36,10 +36,15 @@ type ComputeProviderI interface {
 	Run(<-chan struct{}) error
 }
 
-// SpecI is an interface declaring what an SMI spec provider should implement.
-type SpecI interface {
+// MeshTopology is an interface declaring functions, which provide the topology of a service mesh declared with SMI.
+type MeshTopology interface {
+	// ListTrafficSplits lists TrafficSplit SMI resources.
 	ListTrafficSplits() []*v1alpha2.TrafficSplit
+
+	// ListServices fetches all services declared with SMI Spec.
 	ListServices() []ServiceName
+
+	// GetComputeIDForService is deprecated
 	GetComputeIDForService(ServiceName) []ComputeID
 }
 

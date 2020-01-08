@@ -11,7 +11,7 @@ import (
 )
 
 // NewServiceCatalog creates a new service catalog
-func NewServiceCatalog(meshSpecProvider mesh.SpecI, stopChan chan struct{}, computeProviders ...mesh.ComputeProviderI) mesh.ServiceCatalogI {
+func NewServiceCatalog(meshTopology mesh.MeshTopology, stopChan chan struct{}, computeProviders ...mesh.ComputeProviderI) mesh.ServiceCatalogI {
 	// Run each provider -- starting the pub/sub system, which leverages the announceChan channel
 	for _, provider := range computeProviders {
 		if err := provider.Run(stopChan); err != nil {
@@ -24,7 +24,7 @@ func NewServiceCatalog(meshSpecProvider mesh.SpecI, stopChan chan struct{}, comp
 	serviceCatalog := ServiceCatalog{
 		servicesCache:    make(map[mesh.ServiceName][]mesh.IP),
 		computeProviders: computeProviders,
-		meshSpec:         meshSpecProvider,
+		meshTopology:     meshTopology,
 	}
 
 	// NOTE(draychev): helpful while developing alpha MVP -- remove before releasing beta version.
@@ -43,7 +43,7 @@ func NewServiceCatalog(meshSpecProvider mesh.SpecI, stopChan chan struct{}, comp
 // GetWeightedService gets the backing delegated services for the given target service and their weights.
 func (sc *ServiceCatalog) GetWeightedService(svcName mesh.ServiceName) ([]mesh.WeightedService, error) {
 	var weightedServices []mesh.WeightedService
-	for _, split := range sc.meshSpec.ListTrafficSplits() {
+	for _, split := range sc.meshTopology.ListTrafficSplits() {
 		if mesh.ServiceName(split.Spec.Service) == svcName {
 			for _, backend := range split.Spec.Backends {
 				namespaced := fmt.Sprintf("%s/%s", split.Namespace, backend.Service)
@@ -69,7 +69,7 @@ func (sc *ServiceCatalog) GetWeightedServices() (map[mesh.ServiceName][]mesh.Wei
 	byTargetService := make(map[mesh.ServiceName][]mesh.WeightedService) // TODO  trafficSplit name must match Envoy's cluster name
 	backendWeight := make(map[string]int)
 
-	for _, trafficSplit := range sc.meshSpec.ListTrafficSplits() {
+	for _, trafficSplit := range sc.meshTopology.ListTrafficSplits() {
 		targetServiceName := mesh.ServiceName(trafficSplit.Spec.Service)
 		var services []mesh.WeightedService
 		glog.V(7).Infof("[EDS] Discovered TrafficSplit resource: %s/%s for service %s\n", trafficSplit.Namespace, trafficSplit.Name, targetServiceName)
@@ -120,7 +120,7 @@ func (sc *ServiceCatalog) refreshCache() {
 	glog.Info("[catalog] Refresh cache...")
 	servicesCache := make(map[mesh.ServiceName][]mesh.IP)
 	// TODO(draychev): split the namespace from the service name -- non-K8s services won't have namespace
-	for _, namespacedServiceName := range sc.meshSpec.ListServices() {
+	for _, namespacedServiceName := range sc.meshTopology.ListServices() {
 		for _, provider := range sc.computeProviders {
 			newIps := provider.GetIPs(namespacedServiceName)
 			glog.Infof("[catalog] Found ips=%+v for service=%s for provider=%s", ipsToString(newIps), namespacedServiceName, provider.GetID())
