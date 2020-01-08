@@ -1,21 +1,15 @@
 package catalog
 
 import (
-	"github.com/deislabs/smc/pkg/mesh"
-	"github.com/deislabs/smc/pkg/providers/kube"
-)
+	"sync"
 
-// Service is the struct for a service in the service catalog
-type Service struct {
-	name             mesh.ServiceName
-	ips              []mesh.IP
-	provider         mesh.ServiceProviderI
-	kubernetesClient *kube.KubernetesProvider
-}
+	"github.com/deislabs/smc/pkg/mesh"
+)
 
 // ServiceCatalog is the struct for the service catalog
 type ServiceCatalog struct {
+	sync.Mutex
 	servicesCache    map[mesh.ServiceName][]mesh.IP
-	computeProviders map[string]mesh.ComputeProviderI
-	meshSpecProvider mesh.SpecI
+	computeProviders []mesh.ComputeProviderI
+	meshSpec         mesh.SpecI
 }

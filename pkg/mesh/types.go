@@ -1,6 +1,8 @@
 package mesh
 
-import "github.com/deislabs/smi-sdk-go/pkg/apis/split/v1alpha2"
+import (
+	"github.com/deislabs/smi-sdk-go/pkg/apis/split/v1alpha2"
+)
 
 // ServiceCatalogI is an interface w/ requirements to implement a service catalog
 type ServiceCatalogI interface {
@@ -12,9 +14,8 @@ type ServiceCatalogI interface {
 // ServiceName is a type for a service name
 type ServiceName string
 
-// ServiceProviderI is an interface declaring the required functions for any compute provider
-type ServiceProviderI interface {
-	GetIPs(svcName ServiceName) []IP
+func (sn ServiceName) String() string {
+	return string(sn)
 }
 
 // WeightedService is a struct of a delegated service backing a target service
@@ -27,14 +28,33 @@ type WeightedService struct {
 // IP is an IP address
 type IP string
 
-// ComputeProviderI is an interface declaring what a compute provider should implement.
+// ComputeProviderI interface to be implemented by Kubernetes, Azure etc. providers.
 type ComputeProviderI interface {
-	GetIPs(svc ServiceName) []IP
-	Run(stopCh <-chan struct{}) error
+	// Retrieve the IP addresses comprising the ServiceName.
+	GetIPs(ServiceName) []IP
+	GetID() string
+	Run(<-chan struct{}) error
 }
 
 // SpecI is an interface declaring what an SMI spec provider should implement.
 type SpecI interface {
 	ListTrafficSplits() []*v1alpha2.TrafficSplit
 	ListServices() []ServiceName
+	GetComputeIDForService(ServiceName) []ComputeID
+}
+
+// AzureID is a string type alias, which is the URI of a unique Azure cloud resource.
+type AzureID string
+
+// KubernetesID is a struct type, which points to a uniquely identifiable Kubernetes cluster.
+type KubernetesID struct {
+	ClusterID string
+	Namespace string
+	Service   string
+}
+
+// ComputeID is a struct, which contains the unique IDs of hte compute clusters where certain service may have Endpoints in.
+type ComputeID struct {
+	AzureID
+	KubernetesID
 }

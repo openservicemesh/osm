@@ -8,17 +8,21 @@ import (
 	"github.com/golang/glog"
 )
 
-func (az *Client) getVMSS() (map[mesh.ServiceName][]mesh.IP, error) {
-	ips := make(map[mesh.ServiceName][]mesh.IP)
+func (az *Client) getVMSS(rg resourceGroup, vmID mesh.AzureID) ([]mesh.IP, error) {
+	glog.V(7).Infof("[azure] Fetching IPS of VMSS for %s in resource group: %s", vmID, rg)
+	var ips []mesh.IP
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	glog.Info("List all VMSS for resource group: ", az.resourceGroup)
-	list, err := az.vmssClient.List(ctx, az.resourceGroup)
+	glog.Info("[azure] List all VMSS for resource group: ", rg)
+	list, err := az.vmssClient.List(ctx, string(rg))
 	if err != nil {
-		glog.Error("Could not retrieve all VMSS: ", err)
+		glog.Error("[azure] Could not retrieve all VMSS: ", err)
 	}
 	for _, vmss := range list.Values() {
-		glog.Infof("Found VMSS %s", *vmss.Name)
+		if *vmss.ID != string(vmID) {
+			continue
+		}
+		glog.Infof("[azure] Found VMSS %s", *vmss.Name)
 		// TODO(draychev): get the IP address of each sub-instance and append to the list of IPs
 	}
 	return ips, nil

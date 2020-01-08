@@ -1,3 +1,7 @@
 FROM alpine:3.10.1
 ADD bin/eds /eds
+<<<<<<< HEAD
+=======
+ADD ./scripts/run-eds.sh /run-eds.sh
+>>>>>>> master
 RUN chmod +x /eds

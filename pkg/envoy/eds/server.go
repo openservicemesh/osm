@@ -12,13 +12,12 @@ import (
 	"github.com/deislabs/smc/pkg/mesh"
 )
 
-// EDS implements the Envoy xDS Endpoint Discovery ServiceI
+// EDS implements the Envoy xDS Endpoint Discovery Service
 type EDS struct {
-	ctx              context.Context // root context
-	catalog          mesh.ServiceCatalogI
-	computeProviders map[string]mesh.ComputeProviderI
-	meshSpecProvider mesh.SpecI
-	announceChan     *channels.RingChannel
+	ctx          context.Context // root context
+	catalog      mesh.ServiceCatalogI
+	meshSpec     mesh.SpecI
+	announceChan *channels.RingChannel
 }
 
 // FetchEndpoints is required by the EDS interface
@@ -32,14 +31,13 @@ func (e *EDS) DeltaEndpoints(xds.EndpointDiscoveryService_DeltaEndpointsServer) 
 }
 
 // NewEDSServer creates a new EDS server
-func NewEDSServer(ctx context.Context, computeProviders map[string]mesh.ComputeProviderI, catalog mesh.ServiceCatalogI, meshTopology mesh.SpecI, announceChan *channels.RingChannel) *EDS {
+func NewEDSServer(ctx context.Context, catalog mesh.ServiceCatalogI, meshSpec mesh.SpecI, announceChan *channels.RingChannel) *EDS {
 	glog.Info("[EDS] Create NewEDSServer...")
 	return &EDS{
-		ctx:              ctx,
-		catalog:          catalog,
-		computeProviders: computeProviders,
-		meshSpecProvider: meshTopology,
-		announceChan:     announceChan,
+		ctx:          ctx,
+		catalog:      catalog,
+		meshSpec:     meshSpec,
+		announceChan: announceChan,
 	}
 }
 
