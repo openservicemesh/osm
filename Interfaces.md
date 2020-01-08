@@ -100,7 +100,7 @@ func (e *EDS) StreamEndpoints(server eds.EndpointDiscoveryService_StreamEndpoint
 		case <-announcementsChan
 			var discoveryResponse envoy.DiscoveryResponse
 			// clientIdentity is the identity of the Envoy proxy connected to this gRPC server.
-			discoveryResponse = e.GetEndpoints(clientIdentity)
+			discoveryResponse = e.ListEndpoints(clientIdentity)
 			eds.send(discoveryResponse)
 		}
 	}
@@ -139,7 +139,7 @@ type ServiceProvider interface {
 
 In the previous section we proposed an implementation of the `StreamEndpoints` function. This function provides 
 connected Envoy proxies with a mapping from a service name to a list of routable IP addresses and ports.
-The `GetEndpoints` and `GetAnnouncementChannel` functions will be provided by the SMC component, which we refer to
+The `ListEndpoints` and `GetAnnouncementChannel` functions will be provided by the SMC component, which we refer to
  as the **Service Catalog** in this document.
 
 The Service Catalog will have access to the `MeshTopology`, `SecretsProvider`, and the list of `EndpointProvider`s.
@@ -148,20 +148,20 @@ The Service Catalog will have access to the `MeshTopology`, `SecretsProvider`, a
 // ServiceCatalog is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
 type ServiceCatalog interface {
 
-	// GetEndpoints constructs a DescoveryResponse with all endpoints the given Envoy proxy should be aware of.
+	// ListEndpoints constructs a DescoveryResponse with all endpoints the given Envoy proxy should be aware of.
 	// The bool return value indicates whether there have been any changes since the last invocation of this function. 
-	GetEndpoints(ClientIdentity) (envoy.DiscoveryResponse, bool, error)
+	ListEndpoints(ClientIdentity) (envoy.DiscoveryResponse, bool, error)
 
  	// RegisterNewEndpoint adds a newly connected Envoy proxy to the list of self-announced endpoints for a service.
  	RegisterNewEndpoint(ClientIdentity)
 
-	// GetEndpointProviders retrieves the full list of endpoint providers registered with Service Catalog so far.
-	GetEndpointProviders() []EndpointProvider
+	// ListEndpointProviders retrieves the full list of endpoint providers registered with Service Catalog so far.
+	ListEndpointProviders() []EndpointProvider
 
 	// RegisterEndpointProvider adds a new endpoint provider to the list within the Service Catalog.
 	RegisterEndpointProvider(EndpointProvider) error
 
-	// GetAnnouncementChannel returns an instance of a channel, which notifies the system of an event requiring the execution of GetEndpoints.
+	// GetAnnouncementChannel returns an instance of a channel, which notifies the system of an event requiring the execution of ListEndpoints.
 	GetAnnouncementChannel() chan struct{}
 }
 ```
@@ -174,11 +174,11 @@ type ClientIdentity string
 ```
 
 #### Member Functions
-  - `GetEndpoints(ClientIdentity) (envoy.DiscoveryResponse, bool, error)` - constructs a `DiscoveryResponse` with all endpoints the given Envoy proxy should be aware of. The function may implement caching. When no changes have been detected since the last invocation of this function, the `bool` parameter would return `true`.
+  - `ListEndpoints(ClientIdentity) (envoy.DiscoveryResponse, bool, error)` - constructs a `DiscoveryResponse` with all endpoints the given Envoy proxy should be aware of. The function may implement caching. When no changes have been detected since the last invocation of this function, the `bool` parameter would return `true`.
   - `RegisterNewEndpoint(ClientIdentity)` - adds a newly connected Envoy proxy (new gRPC server) to the list of self-announced endpoints for a service.
-  - `GetEndpointProviders() []EndpointProvider` - retrieves the full list of endpoint providers registered with Service Catalog so far.
+  - `ListEndpointProviders() []EndpointProvider` - retrieves the full list of endpoint providers registered with Service Catalog so far.
   - `RegisterEndpointProvider(EndpointProvider) error` - adds a new endpoint provider to the list within the Service Catalog.
-  - `GetAnnouncementChannel() chan struct{}` - returns an instance of a channel, which notifies the system of an event requiring the execution of GetEndpoints. An event on this channel may appear as a result of a change in the SMI Sper definitions, rotation of a certificate, etc.
+  - `GetAnnouncementChannel() chan struct{}` - returns an instance of a channel, which notifies the system of an event requiring the execution of ListEndpoints. An event on this channel may appear as a result of a change in the SMI Sper definitions, rotation of a certificate, etc.
 
 
 #### Implementation Details of the Service Catalog
@@ -188,29 +188,29 @@ A `ServiceCatalog` implementation may choose to implement:
 
 #### Sample Implementations
 ```go
-func (catalog *Catalog) GetEndpoints(client ClientIdentity) (envoy.DiscoveryResponse, error) {
+func (catalog *Catalog) ListEndpoints(client ClientIdentity) (envoy.DiscoveryResponse, error) {
 	endpointsPerService := make(map[ServiceName][]Endpoint)
 	// Iterate through all compute/cluster/cloud providers participating in the service mesh and fetch
 	// lists of IP addresses and port numbers (endpoints) per service, per provider.
-	for _, provider in catalog.GetEndpointProviders() {
+	for _, provider in catalog.ListEndpointProviders() {
 		for _, service in catalog.mesh.ListServices() {
-			endpointsFromProviderForService := provider.GetEndpointsForService(service)
+			endpointsFromProviderForService := catalog.providers.ListEndpointsForService(service)
 			// Merge endpointsFromProviderForService into endpointsPerService
 	}
 }
 ```
 
 ### Endpoints Providers
-In the sample `GetEndpoints` implementation we loop over a list of `EndpointProvider`s:
+In the sample `ListEndpoints` implementation we loop over a list of `EndpointProvider`s:
 ```go
-for _, provider in catalog.GetEndpointProviders() {
+for _, provider in catalog.ListEndpointProviders() {
 ```
 To provide the ability of composing a service mesh from multiple non-homogeneous clusters, we propose the following interfaces:
 
 ```go
 // EndpointProvider is an interface to be implemented by components abstracting Kubernetes, Azure, and other compute/cluster providers.
 type EndpointProvider interface {
-	GetEndpointsForService(ServiceProvider) []Endpoint
+	ListEndpointsForService(ServiceProvider) []Endpoint
 	Run(stopCh <-chan struct{}) error
 }
 ```
