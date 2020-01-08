@@ -1,0 +1,9 @@
+apiVersion: smc.osm.k8s.io/v1
+kind: AzureResource
+metadata:
+  name: bookstore
+  namespace: smc
+  labels:
+    app: bookstore-1
+spec:
+  resourceid: /subscriptions/abc/resourcegroups/xyz/providers/Microsoft.Compute/virtualMachines/myVM

@@ -54,8 +54,6 @@ spec:
       args:
         - "--kubeconfig"
         - "/kube/config"
-        - "--resource-group"
-        - "$AZURE_RESOURCE_GROUP"
         - "--azureAuthFile"
         - "/azure/azureAuth.json"
         - "--subscriptionID"
@@ -82,4 +80,3 @@ spec:
   imagePullSecrets:
     - name: "$CTR_REGISTRY_CREDS_NAME"
 EOF
-

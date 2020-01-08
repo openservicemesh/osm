@@ -1,14 +1,13 @@
-package cmd
+package utils
 
 import (
 	"context"
 	"fmt"
-	"net"
-	"time"
-
 	"github.com/golang/glog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
+	"net"
+	"time"
 )
 
 const (

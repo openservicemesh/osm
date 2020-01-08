@@ -15,7 +15,6 @@ source .env
 
 ./bin/eds \
     --kubeconfig="$HOME/.kube/config" \
-    --resource-group="$AZURE_RESOURCE_GROUP" \
     --azureAuthFile="$HOME/.azure/azureAuth.json" \
     --subscriptionID="$AZURE_SUBSCRIPTION" \
     --namespace="$K8S_NAMESPACE" \

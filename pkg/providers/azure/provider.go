@@ -1,54 +1,54 @@
 package azure
 
 import (
-	"context"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/eapache/channels"
-
-	r "github.com/Azure/azure-sdk-for-go/profiles/latest/resources/mgmt/resources"
-	c "github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2018-04-01/compute"
-	n "github.com/Azure/azure-sdk-for-go/services/network/mgmt/2019-06-01/network"
-	"github.com/Azure/go-autorest/autorest"
 	"github.com/golang/glog"
 
 	"github.com/deislabs/smc/pkg/mesh"
 )
 
 // NewProvider creates an Azure Client
-func NewProvider(subscriptionID string, resourceGroup string, namespace string, azureAuthFile string, maxAuthRetryCount int, retryPause time.Duration, announceChan *channels.RingChannel) Client {
-	var authorizer autorest.Authorizer
-	var err error
-	if authorizer, err = getAuthorizerWithRetry(azureAuthFile, maxAuthRetryCount, retryPause); err != nil {
-		glog.Fatal("Failed obtaining authentication token for Azure Resource Manager")
-	}
-	az := Client{
-		namespace:         namespace,
-		publicIPsClient:   n.NewPublicIPAddressesClient(subscriptionID),
-		groupsClient:      r.NewGroupsClient(subscriptionID),
-		deploymentsClient: r.NewDeploymentsClient(subscriptionID),
-		vmssClient:        c.NewVirtualMachineScaleSetsClient(subscriptionID),
-		vmClient:          c.NewVirtualMachinesClient(subscriptionID),
-		netClient:         n.NewInterfacesClient(subscriptionID),
-		subscriptionID:    subscriptionID,
-		resourceGroup:     resourceGroup,
-		ctx:               context.Background(),
-		authorizer:        authorizer,
-		announceChan:      announceChan,
-	}
+func NewProvider(subscriptionID string, namespace string, azureAuthFile string, maxAuthRetryCount int, retryPause time.Duration, announceChan *channels.RingChannel, meshSpec mesh.SpecI, providerIdent string) mesh.ComputeProviderI {
+	return newClient(subscriptionID, namespace, azureAuthFile, maxAuthRetryCount, retryPause, announceChan, meshSpec, providerIdent)
+}
 
-	az.publicIPsClient.Authorizer = az.authorizer
-	az.groupsClient.Authorizer = az.authorizer
-	az.deploymentsClient.Authorizer = az.authorizer
-	az.vmssClient.Authorizer = az.authorizer
-	az.vmClient.Authorizer = az.authorizer
-	az.netClient.Authorizer = az.authorizer
+// GetIPs returns the IP addresses for the given ServiceName Name
+// This function is required by the ComputeProviderI
+func (az Client) GetIPs(svc mesh.ServiceName) []mesh.IP {
+	var azureIPs []mesh.IP
+	clusters := az.mesh.GetComputeIDForService(svc)
+	for _, cluster := range clusters {
+		if cluster.AzureID == "" {
+			continue
+		}
 
-	if err = waitForAzureAuth(az, maxAuthRetryCount, retryPause); err != nil {
-		glog.Fatal("Failed authenticating with Azure Resource Manager: ", err)
+		glog.Infof("[azure] Getting IPs for service %s", svc)
+		resourceGroup, kind, _, err := parseAzureID(cluster.AzureID)
+		if err != nil {
+			glog.Errorf("Unable to parse Azure URI %s: %s", cluster.AzureID, err)
+			continue
+		}
+
+		var computeKindObserver = map[computeKind]computeObserver{
+			vm:   az.getVM,
+			vmss: az.getVMSS,
+		}
+
+		if observer, ok := computeKindObserver[kind]; ok {
+			var ips []mesh.IP
+			var err error
+			ips, err = observer(resourceGroup, cluster.AzureID)
+			if err != nil {
+				glog.Error("Could not fetch VMSS services: ", err)
+			}
+			azureIPs = append(azureIPs, ips...)
+		}
 	}
-
-	return az
+	return azureIPs
 }
 
 // Run starts the Azure observer
@@ -58,28 +58,20 @@ func (az Client) Run(stopCh <-chan struct{}) error {
 	return nil
 }
 
-// GetIPs returns the IP addresses for the given ServiceName Name; This is required by the ComputeProviderI
-func (az Client) GetIPs(svc mesh.ServiceName) []mesh.IP {
-	glog.Infof("[azure] Getting IPs for service %s", svc)
-	// TODO(draychev): from the ServiceName determine the AzureResource
+// GetID returns the unique identifier for the compute provider.
+// This string will be used by logging tools to contextualize messages.
+func (az Client) GetID() string {
+	return az.providerIdent
+}
 
-	var ips []mesh.IP
-
-	if vmssServices, err := az.getVMSS(); err != nil {
-		glog.Error("Could not fetch VMSS services: ", err)
-	} else {
-		if vmssIPs, exists := vmssServices[svc]; exists {
-			ips = append(ips, vmssIPs...)
-		}
+func parseAzureID(id mesh.AzureID) (resourceGroup, computeKind, computeName, error) {
+	// Sample URI: /resource/subscriptions/e3f0/resourceGroups/mesh-rg/providers/Microsoft.Compute/virtualMachineScaleSets/baz
+	chunks := strings.Split(string(id), "/")
+	if len(chunks) != 9 {
+		return "", "", "", errIncorrectAzureURI
 	}
-
-	if vmServices, err := az.getVM(); err != nil {
-		glog.Error("Could not fetch VM services: ", err)
-	} else {
-		if vmIPs, exists := vmServices[svc]; exists {
-			ips = append(ips, vmIPs...)
-		}
-	}
-
-	return ips
+	resGroup := resourceGroup(chunks[4])
+	kind := computeKind(fmt.Sprintf("%s/%s", chunks[6], chunks[7]))
+	name := computeName(chunks[8])
+	return resGroup, kind, name, nil
 }
