@@ -19,11 +19,11 @@ This section focuses specifically on the interfaces required to implement a full
 
 ### EDS Building Blocks
 The components composing the EDS server are:
-  - [Service Catalog](#service-catalog) - the heart of the service mesh controller merges the outputs of the [Mesh Topology](#mesh-topology) and [Endpoint Providers](#endpoint-providers) components. This component:
+  - [Service Catalog](#service-catalog) - the heart of the service mesh controller merges the outputs of the [Mesh Topology](#mesh-topology) and [Endpoints Providers](#endpoints-providers) components. This component:
       - Keeps track of all services defined in SMI and the Endpoints serving these services
       - Maintains cache of `DiscoveryResponse` sructs sent to known Envoy proxies
   - [Mesh Topology](#mesh-topology) - a wrapper around the SMI Spec informers, abstracting away the storage that implements SMI; provides the simplest possible List* functions.
-  - [Endpoint Providers](#endpoint-providers)
+  - [Endpoints Providers](#endpoints-providers)
   - [Fundamental Types](#fundamental-types-for-smc) - supporting types like `IP`, `Port`, `ServiceName` etc.
 
 
@@ -91,7 +91,7 @@ connected Envoy proxies with a mapping from a service name to a list of routable
 The `ListEndpoints` and `GetAnnouncementChannel` functions will be provided by the SMC component, which we refer to
  as the **Service Catalog** in this document.
 
-The Service Catalog will have access to the `MeshTopology`, `SecretsProvider`, and the list of `EndpointProvider`s.
+The Service Catalog will have access to the `MeshTopology`, `SecretsProvider`, and the list of `EndpointsProvider`s.
 
 #### Interface
 ```go
@@ -105,11 +105,11 @@ type ServiceCatalog interface {
     // RegisterNewEndpoint adds a newly connected Envoy proxy to the list of self-announced endpoints for a service.
     RegisterNewEndpoint(ClientIdentity)
 
-    // ListEndpointProviders retrieves the full list of endpoint providers registered with Service Catalog so far.
-    ListEndpointProviders() []EndpointProvider
+    // ListEndpointsProviders retrieves the full list of endpoints providers registered with Service Catalog so far.
+    ListEndpointsProviders() []EndpointsProvider
 
-    // RegisterEndpointProvider adds a new endpoint provider to the list within the Service Catalog.
-    RegisterEndpointProvider(EndpointProvider) error
+    // RegisterEndpointsProvider adds a new endpoints provider to the list within the Service Catalog.
+    RegisterEndpointsProvider(EndpointsProvider) error
 
     // GetAnnouncementChannel returns an instance of a channel, which notifies the system of an event requiring the execution of ListEndpoints.
     GetAnnouncementChannel() chan struct{}
@@ -126,8 +126,8 @@ type ClientIdentity string
 #### Member Functions
   - `ListEndpoints(ClientIdentity) (envoy.DiscoveryResponse, bool, error)` - constructs a `DiscoveryResponse` with all endpoints the given Envoy proxy should be aware of. The function may implement caching. When no changes have been detected since the last invocation of this function, the `bool` parameter would return `true`.
   - `RegisterNewEndpoint(ClientIdentity)` - adds a newly connected Envoy proxy (new gRPC server) to the list of self-announced endpoints for a service.
-  - `ListEndpointProviders() []EndpointProvider` - retrieves the full list of endpoint providers registered with Service Catalog so far.
-  - `RegisterEndpointProvider(EndpointProvider) error` - adds a new endpoint provider to the list within the Service Catalog.
+  - `ListEndpointsProviders() []EndpointsProvider` - retrieves the full list of endpoints providers registered with Service Catalog so far.
+  - `RegisterEndpointsProvider(EndpointsProvider) error` - adds a new endpoints provider to the list within the Service Catalog.
   - `GetAnnouncementChannel() chan struct{}` - returns an instance of a channel, which notifies the system of an event requiring the execution of ListEndpoints. An event on this channel may appear as a result of a change in the SMI Sper definitions, rotation of a certificate, etc.
 
 
@@ -142,7 +142,7 @@ func (catalog *Catalog) ListEndpoints(client ClientIdentity) (envoy.DiscoveryRes
 	endpointsPerService := make(map[ServiceName][]Endpoint)
 	// Iterate through all compute/cluster/cloud providers participating in the service mesh and fetch
 	// lists of IP addresses and port numbers (endpoints) per service, per provider.
-	for _, provider in catalog.ListEndpointProviders() {
+	for _, provider in catalog.ListEndpointsProviders() {
 		for _, service in catalog.mesh.ListServices() {
 			endpointsFromProviderForService := catalog.providers.ListEndpointsForService(service)
 			// Merge endpointsFromProviderForService into endpointsPerService
@@ -164,15 +164,15 @@ The Endpoints Provider implementation **has no awareness** of:
 
 As of this iteration of SMC the Endpoints Providers are responsible for implementing a method to
 resolve an SMI-declared service to the provider's specific resource definition. For example,
-when `ListEndpointsForService` is invoked on an Azure `EndpointProvider` it is passed a service
+when `ListEndpointsForService` is invoked on an Azure `EndpointsProvider` it is passed a service
 name (`webservice` for instance). The Azure provider would use its own method to resolve the
 service to a list of Azure URIs (example: `/resource/subscriptions/e3f0/resourceGroups/mesh-rg/providers/Microsoft.Compute/virtualMachineScaleSets/baz`).
 These URIs are unique identifiers of Azure VMs, VMSS, or other compute with Envoy reverse-proxies,
 participating in the service mesh.
 
-In the sample `ListEndpoints` implementation, the Service Catalog loops over a list of `EndpointProvider`s:
+In the sample `ListEndpoints` implementation, the Service Catalog loops over a list of `EndpointsProvider`s:
 ```go
-for _, provider in catalog.ListEndpointProviders() {
+for _, provider in catalog.ListEndpointsProviders() {
 ```
 
 For each `provider` registered in the Service Catalog, we invoke `ListEndpointsForService`.
@@ -185,8 +185,8 @@ From the URI the provider will resolve the list of IP addresses of participating
 
 ##### Interface:
 ```go
-// EndpointProvider is an interface to be implemented by components abstracting Kubernetes, Azure, and other compute/cluster providers.
-type EndpointProvider interface {
+// EndpointsProvider is an interface to be implemented by components abstracting Kubernetes, Azure, and other compute/cluster providers.
+type EndpointsProvider interface {
     ListEndpointsForService(ServiceName) []Endpoint
     Run(stopCh <-chan struct{}) error
 }
