@@ -31,6 +31,9 @@ const (
 
 	maxAuthRetryCount = 10
 	retryPause        = 10 * time.Second
+
+	azureProvidername      = "Azure"
+	kubernetesProviderName = "Kubernetes"
 )
 
 var (
@@ -62,8 +65,8 @@ func main() {
 
 	stopChan := make(chan struct{})
 	meshSpec := kube.NewMeshSpecClient(kubeConfig, getNamespaces(), 1*time.Second, announceChan, stopChan)
-	kubernetesProvider := kube.NewProvider(kubeConfig, getNamespaces(), 1*time.Second, announceChan, "Kubernetes")
-	azureProvider := azure.NewProvider(*subscriptionID, *namespace, *azureAuthFile, maxAuthRetryCount, retryPause, announceChan, meshSpec, "Azure")
+	kubernetesProvider := kube.NewProvider(kubeConfig, getNamespaces(), 1*time.Second, announceChan, kubernetesProviderName)
+	azureProvider := azure.NewProvider(*subscriptionID, *namespace, *azureAuthFile, maxAuthRetryCount, retryPause, announceChan, meshSpec, azureProvidername)
 
 	// ServiceName Catalog is the facility, which we query to get the list of services, weights for traffic split etc.
 	serviceCatalog := catalog.NewServiceCatalog(meshSpec, stopChan, kubernetesProvider, azureProvider)
