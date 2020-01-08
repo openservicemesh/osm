@@ -1,10 +1,9 @@
 # Service Mesh Controller Interfaces
 
-This document outlines the [Go Interfaces](https://golang.org/doc/effective_go.html#interfaces) needed for
-the development of the Service Mesh Controller in this repo.
-The goal of the document is to design and reach consensus before the reMeshTopologytive code is written.
+This document defines the [Go Interfaces](https://golang.org/doc/effective_go.html#interfaces) needed for
+the development of the Service Mesh Controller in [this repository](https://github.com/deislabs/smc).
 
-Assumptions made in this document:
+The document is written with the following assumptions in mind:
     - One-to-one relationship between Envoy proxy and a Service (no two services behind the same Envoy)
     - One-to-one relationship between an Endpoint (port and IP) and an Envoy proxy
 
@@ -111,27 +110,27 @@ The `ListEndpoints` and `GetAnnouncementChannel` functions will be provided by t
 The Service Catalog will have access to the `MeshTopology`, `SecretsProvider`, and the list of `EndpointProvider`s.
 
 #### Interface
-    ```go
-    // ServiceCatalog is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
-    type ServiceCatalog interface {
+```go
+// ServiceCatalog is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
+type ServiceCatalog interface {
 
-        // ListEndpoints constructs a DescoveryResponse with all endpoints the given Envoy proxy should be aware of.
-        // The bool return value indicates whether there have been any changes since the last invocation of this function. 
-        ListEndpoints(ClientIdentity) (envoy.DiscoveryResponse, bool, error)
+    // ListEndpoints constructs a DescoveryResponse with all endpoints the given Envoy proxy should be aware of.
+    // The bool return value indicates whether there have been any changes since the last invocation of this function. 
+    ListEndpoints(ClientIdentity) (envoy.DiscoveryResponse, bool, error)
 
-        // RegisterNewEndpoint adds a newly connected Envoy proxy to the list of self-announced endpoints for a service.
-        RegisterNewEndpoint(ClientIdentity)
+    // RegisterNewEndpoint adds a newly connected Envoy proxy to the list of self-announced endpoints for a service.
+    RegisterNewEndpoint(ClientIdentity)
 
-        // ListEndpointProviders retrieves the full list of endpoint providers registered with Service Catalog so far.
-        ListEndpointProviders() []EndpointProvider
+    // ListEndpointProviders retrieves the full list of endpoint providers registered with Service Catalog so far.
+    ListEndpointProviders() []EndpointProvider
 
-        // RegisterEndpointProvider adds a new endpoint provider to the list within the Service Catalog.
-        RegisterEndpointProvider(EndpointProvider) error
+    // RegisterEndpointProvider adds a new endpoint provider to the list within the Service Catalog.
+    RegisterEndpointProvider(EndpointProvider) error
 
-        // GetAnnouncementChannel returns an instance of a channel, which notifies the system of an event requiring the execution of ListEndpoints.
-        GetAnnouncementChannel() chan struct{}
-    }
-    ```
+    // GetAnnouncementChannel returns an instance of a channel, which notifies the system of an event requiring the execution of ListEndpoints.
+    GetAnnouncementChannel() chan struct{}
+}
+```
 
 Additional types needed for this interface:
 ```go
@@ -194,16 +193,22 @@ In the sample `ListEndpoints` implementation, the Service Catalog loops over a l
 for _, provider in catalog.ListEndpointProviders() {
 ```
 
-For each `provider` registered in the 
+For each `provider` registered in the Service Catalog, we would invoke `ListEndpointsForService`.
+The function will be provided a `ServiceProvider`, which implements functions required by the
+provider to resolve an SMI defined service into a vendor specific resource identifier. For example
+`ListEndpointsForService` invoked on the Azure EndpointsProvider, would evaluate
+`ListAzureLocators` for an SMI-defined service (`webservice`) and will retrieve the URI of an
+[Azure VM](https://azure.microsoft.com/en-us/services/virtual-machines/) hosting an instance of
+the service (`/resource/subscriptions/e3f0/resourceGroups/mesh-rg/providers/Microsoft.Compute/virtualMachineScaleSets/baz`).
 
 ##### Interface:
-    ```go
-    // EndpointProvider is an interface to be implemented by components abstracting Kubernetes, Azure, and other compute/cluster providers.
-    type EndpointProvider interface {
-        ListEndpointsForService(ServiceProvider) []Endpoint
-        Run(stopCh <-chan struct{}) error
-    }
-    ```
+```go
+// EndpointProvider is an interface to be implemented by components abstracting Kubernetes, Azure, and other compute/cluster providers.
+type EndpointProvider interface {
+    ListEndpointsForService(ServiceProvider) []Endpoint
+    Run(stopCh <-chan struct{}) error
+}
+```
 
 ### Mesh Topology
 This component provides an abstraction around the [SMI Spec Go SDK](https://github.com/deislabs/smi-sdk-go). The abstraction hides the Kubernetes primitives. This allows us to implement SMI Spec providers that does not rely exclusively on Kubernetes API, etcd etc. Mesh Topology Interface provides a set of functions, listing all Services, TrafficSplits, and policy definitions for the entire service mesh.
@@ -215,16 +220,16 @@ The Mesh Topology implementation **has no awareness** of:
 
 
 ##### Interface:
-    ```go
-    // MeshTopology is an interface declaring functions, which provide the topology of a service mesh declared with SMI.
-    type MeshTopology interface {
-        // ListTrafficSplits lists TrafficSplit SMI resources.
-        ListTrafficSplits() []*v1alpha2.TrafficSplit
+```go
+// MeshTopology is an interface declaring functions, which provide the topology of a service mesh declared with SMI.
+type MeshTopology interface {
+    // ListTrafficSplits lists TrafficSplit SMI resources.
+    ListTrafficSplits() []*v1alpha2.TrafficSplit
 
-        // ListServices fetches all services declared with SMI Spec.
-        ListServices() []ServiceProvider
-    }
-    ```
+    // ListServices fetches all services declared with SMI Spec.
+    ListServices() []ServiceProvider
+}
+```
 
 ## Appendix
 
