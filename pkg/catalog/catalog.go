@@ -5,13 +5,14 @@ import (
 	"strings"
 	"time"
 
+	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
 
 	"github.com/deislabs/smc/pkg/mesh"
 )
 
 // NewServiceCatalog creates a new service catalog
-func NewServiceCatalog(meshTopology mesh.MeshTopology, stopChan chan struct{}, endpointsProviders ...mesh.EndpointsProvider) mesh.ServiceCatalogI {
+func NewServiceCatalog(meshTopology mesh.MeshTopology, stopChan chan struct{}, endpointsProviders ...mesh.EndpointsProvider) mesh.ServiceCataloger {
 	// Run each provider -- starting the pub/sub system, which leverages the announceChan channel
 	for _, provider := range endpointsProviders {
 		if err := provider.Run(stopChan); err != nil {
@@ -143,4 +144,35 @@ func ipsToString(meshIPs []mesh.IP) []string {
 		ips = append(ips, string(ip))
 	}
 	return ips
+}
+
+// ListEndpoints constructs a DiscoveryResponse with all endpoints the given Envoy proxy should be aware of.
+// The bool return value indicates whether there have been any changes since the last invocation of this function.
+func (sc *ServiceCatalog) ListEndpoints(mesh.ClientIdentity) (envoy.DiscoveryResponse, bool, error) {
+	// TODO(draychev): implement
+	panic("NotImplemented")
+}
+
+// RegisterNewEndpoint adds a newly connected Envoy proxy to the list of self-announced endpoints for a service.
+func (sc *ServiceCatalog) RegisterNewEndpoint(mesh.ClientIdentity) {
+	// TODO(draychev): implement
+	panic("NotImplemented")
+}
+
+// ListEndpointsProviders retrieves the full list of endpoints providers registered with Service Catalog so far.
+func (sc *ServiceCatalog) ListEndpointsProviders() []mesh.EndpointsProvider {
+	// TODO(draychev): implement
+	panic("NotImplemented")
+}
+
+// RegisterEndpointsProvider adds a new endpoints provider to the list within the Service Catalog.
+func (sc *ServiceCatalog) RegisterEndpointsProvider(mesh.EndpointsProvider) error {
+	// TODO(draychev): implement
+	panic("NotImplemented")
+}
+
+// GetAnnouncementChannel returns an instance of a channel, which notifies the system of an event requiring the execution of ListEndpoints.
+func (sc *ServiceCatalog) GetAnnouncementChannel() chan struct{} {
+	// TODO(draychev): implement
+	panic("NotImplemented")
 }
