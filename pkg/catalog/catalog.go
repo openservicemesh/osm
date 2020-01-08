@@ -20,7 +20,7 @@ func NewServiceCatalog(meshSpecProvider mesh.SpecI, stopChan chan struct{}, comp
 		}
 		glog.Infof("Started provider %s", provider.GetID())
 	}
-	glog.Info("[catalog] Crete new Service Catalog...")
+	glog.Info("[catalog] Create a new Service Catalog.")
 	serviceCatalog := ServiceCatalog{
 		servicesCache:    make(map[mesh.ServiceName][]mesh.IP),
 		computeProviders: computeProviders,
