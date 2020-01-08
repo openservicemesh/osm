@@ -7,6 +7,7 @@ source .env
 make docker-push-eds
 make docker-push-sds
 
+make docker-push-init
 make docker-push-bookbuyer
 make docker-push-bookstore
 
