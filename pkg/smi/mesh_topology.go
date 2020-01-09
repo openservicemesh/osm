@@ -15,7 +15,7 @@ import (
 )
 
 // We have a few different k8s clients. This identifies these in logs.
-const kubernetesClientName = "MeshTopology"
+const kubernetesClientName = "Topology"
 
 // NewMeshTopologyClient creates the Kubernetes client, which retrieves SMI specific CRDs.
 func NewMeshTopologyClient(kubeConfig *rest.Config, namespaces []string, announceChan *channels.RingChannel, stopChan chan struct{}) mesh.Topology {
