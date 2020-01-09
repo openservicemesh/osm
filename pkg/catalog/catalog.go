@@ -11,9 +11,9 @@ import (
 )
 
 // NewServiceCatalog creates a new service catalog
-func NewServiceCatalog(meshTopology mesh.MeshTopology, stopChan chan struct{}, computeProviders ...mesh.ComputeProviderI) mesh.ServiceCatalogI {
+func NewServiceCatalog(meshTopology mesh.MeshTopology, stopChan chan struct{}, endpointsProviders ...mesh.EndpointsProvider) mesh.ServiceCatalogI {
 	// Run each provider -- starting the pub/sub system, which leverages the announceChan channel
-	for _, provider := range computeProviders {
+	for _, provider := range endpointsProviders {
 		if err := provider.Run(stopChan); err != nil {
 			glog.Errorf("Could not start %s provider: %s", provider.GetID(), err)
 			continue
@@ -22,9 +22,9 @@ func NewServiceCatalog(meshTopology mesh.MeshTopology, stopChan chan struct{}, c
 	}
 	glog.Info("[catalog] Create a new Service Catalog.")
 	serviceCatalog := ServiceCatalog{
-		servicesCache:    make(map[mesh.ServiceName][]mesh.IP),
-		computeProviders: computeProviders,
-		meshTopology:     meshTopology,
+		servicesCache:      make(map[mesh.ServiceName][]mesh.IP),
+		endpointsProviders: endpointsProviders,
+		meshTopology:       meshTopology,
 	}
 
 	// NOTE(draychev): helpful while developing alpha MVP -- remove before releasing beta version.
@@ -121,7 +121,7 @@ func (sc *ServiceCatalog) refreshCache() {
 	servicesCache := make(map[mesh.ServiceName][]mesh.IP)
 	// TODO(draychev): split the namespace from the service name -- non-K8s services won't have namespace
 	for _, namespacedServiceName := range sc.meshTopology.ListServices() {
-		for _, provider := range sc.computeProviders {
+		for _, provider := range sc.endpointsProviders {
 			newIps := provider.GetIPs(namespacedServiceName)
 			glog.Infof("[catalog] Found ips=%+v for service=%s for provider=%s", ipsToString(newIps), namespacedServiceName, provider.GetID())
 			if existingIps, exists := servicesCache[namespacedServiceName]; exists {

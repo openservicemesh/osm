@@ -12,12 +12,12 @@ import (
 )
 
 // NewProvider creates an Azure Client
-func NewProvider(subscriptionID string, namespace string, azureAuthFile string, maxAuthRetryCount int, retryPause time.Duration, announceChan *channels.RingChannel, meshTopology mesh.MeshTopology, providerIdent string) mesh.ComputeProviderI {
+func NewProvider(subscriptionID string, namespace string, azureAuthFile string, maxAuthRetryCount int, retryPause time.Duration, announceChan *channels.RingChannel, meshTopology mesh.MeshTopology, providerIdent string) mesh.EndpointsProvider {
 	return newClient(subscriptionID, namespace, azureAuthFile, maxAuthRetryCount, retryPause, announceChan, meshTopology, providerIdent)
 }
 
 // GetIPs returns the IP addresses for the given ServiceName Name
-// This function is required by the ComputeProviderI
+// This function is required by the EndpointsProvider
 func (az Client) GetIPs(svc mesh.ServiceName) []mesh.IP {
 	var azureIPs []mesh.IP
 	clusters := az.meshTopology.GetComputeIDForService(svc)

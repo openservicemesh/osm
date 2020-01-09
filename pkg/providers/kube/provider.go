@@ -16,10 +16,10 @@ import (
 )
 
 // NewProvider creates a new Kubernetes cluster/compute provider, which will inform SMC of Endpoints for a given service.
-func NewProvider(kubeConfig *rest.Config, namespaces []string, resyncPeriod time.Duration, announceChan *channels.RingChannel, providerIdent string) mesh.ComputeProviderI {
+func NewProvider(kubeConfig *rest.Config, namespaces []string, resyncPeriod time.Duration, announceChan *channels.RingChannel, providerIdent string) mesh.EndpointsProvider {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 	// smiClient and azureResourceClient are used for SMI spec observation only
-	// these are not needed for the ComputeProviderI use-case
+	// these are not needed for the EndpointsProvider use-case
 	var smiClient *versioned.Clientset
 	var azureResourceClient *smcClient.Clientset
 	return NewClient(kubeClient, smiClient, azureResourceClient, namespaces, resyncPeriod, announceChan, providerIdent)
@@ -91,7 +91,7 @@ func (c *Client) Run(stopCh <-chan struct{}) error {
 }
 
 // GetID returns a string descriptor / identifier of the compute provider.
-// Required by interface: ComputeProviderI
+// Required by interface: EndpointsProvider
 func (c *Client) GetID() string {
 	return c.providerIdent
 }

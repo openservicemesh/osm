@@ -28,8 +28,8 @@ type WeightedService struct {
 // IP is an IP address
 type IP string
 
-// ComputeProviderI interface to be implemented by Kubernetes, Azure etc. providers.
-type ComputeProviderI interface {
+// EndpointProvider is an interface to be implemented by components abstracting Kubernetes, Azure, and other compute/cluster providers
+type EndpointsProvider interface {
 	// Retrieve the IP addresses comprising the ServiceName.
 	GetIPs(ServiceName) []IP
 	GetID() string

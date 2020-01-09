@@ -9,7 +9,7 @@ import (
 // ServiceCatalog is the struct for the service catalog
 type ServiceCatalog struct {
 	sync.Mutex
-	servicesCache    map[mesh.ServiceName][]mesh.IP
-	computeProviders []mesh.ComputeProviderI
-	meshTopology     mesh.MeshTopology
+	servicesCache      map[mesh.ServiceName][]mesh.IP
+	endpointsProviders []mesh.EndpointsProvider
+	meshTopology       mesh.MeshTopology
 }
