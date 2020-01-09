@@ -99,17 +99,14 @@ The Service Catalog will have access to the `MeshTopology`, `SecretsProvider`, a
 type ServiceCatalog interface {
 
     // ListEndpoints constructs a DescoveryResponse with all endpoints the given Envoy proxy should be aware of.
-    // The bool return value indicates whether there have been any changes since the last invocation of this function. 
+    // The bool return value indicates whether there have been any changes since the last invocation of this function.
     ListEndpoints(ClientIdentity) (envoy.DiscoveryResponse, bool, error)
 
     // RegisterNewEndpoint adds a newly connected Envoy proxy to the list of self-announced endpoints for a service.
     RegisterNewEndpoint(ClientIdentity)
 
-    // ListEndpointsProviders retrieves the full list of endpoints providers registered with Service Catalog so far.
+    // ListEndpointsProviders retrieves the full list of endpoints providers registered with Service Catalog.
     ListEndpointsProviders() []EndpointsProvider
-
-    // RegisterEndpointsProvider adds a new endpoints provider to the list within the Service Catalog.
-    RegisterEndpointsProvider(EndpointsProvider) error
 
     // GetAnnouncementChannel returns an instance of a channel, which notifies the system of an event requiring the execution of ListEndpoints.
     GetAnnouncementChannel() chan struct{}
@@ -127,7 +124,6 @@ type ClientIdentity string
   - `ListEndpoints(ClientIdentity) (envoy.DiscoveryResponse, bool, error)` - constructs a `DiscoveryResponse` with all endpoints the given Envoy proxy should be aware of. The function may implement caching. When no changes have been detected since the last invocation of this function, the `bool` parameter would return `true`.
   - `RegisterNewEndpoint(ClientIdentity)` - adds a newly connected Envoy proxy (new gRPC server) to the list of self-announced endpoints for a service.
   - `ListEndpointsProviders() []EndpointsProvider` - retrieves the full list of endpoints providers registered with Service Catalog so far.
-  - `RegisterEndpointsProvider(EndpointsProvider) error` - adds a new endpoints provider to the list within the Service Catalog.
   - `GetAnnouncementChannel() chan struct{}` - returns an instance of a channel, which notifies the system of an event requiring the execution of ListEndpoints. An event on this channel may appear as a result of a change in the SMI Sper definitions, rotation of a certificate, etc.
 
 
@@ -137,6 +133,7 @@ A `ServiceCatalog` implementation may choose to implement:
 - mapping of `ClientIdentity` and/or issued certificate to a mesh service, i.e. Envoy to service mapping
 
 #### Sample Implementation
+
 ```go
 func (catalog *Catalog) ListEndpoints(client ClientIdentity) (envoy.DiscoveryResponse, error) {
 	endpointsPerService := make(map[ServiceName][]Endpoint)
@@ -157,15 +154,19 @@ provider is responsible for either a particular Kubernetes cluster, or a cloud v
 The Service Catalog will query each Endpoints Provider for a particular service.
 interface).
 
+The Endpoints Providers are aware of:
+  - Kubernetes Service and their own CRD (example: `AzureResource`)
+  - vendor-specific APIs and methods to retrieve IP addresses and Port numbers for Endpoints
+
 The Endpoints Provider implementation **has no awareness** of:
   - what SMI Spec is
   - what Envoy proxy is
-  - what the services participating in the mesh are
 
-As of this iteration of SMC the Endpoints Providers are responsible for implementing a method to
+> Note: As of this iteration of SMC we deliberately choos to leak the Mesh Topology implementation into the
+EndpointsProvider.  The Endpoints Providers are responsible for implementing a method to
 resolve an SMI-declared service to the provider's specific resource definition. For example,
-when `ListEndpointsForService` is invoked on an Azure `EndpointsProvider` it is passed a service
-name (`webservice` for instance). The Azure provider would use its own method to resolve the
+when Azure EndpointProvider's `ListEndpointsForService` is invoked with some a service name
+(`webservice` for instance), the provider would use its own method to resolve the
 service to a list of Azure URIs (example: `/resource/subscriptions/e3f0/resourceGroups/mesh-rg/providers/Microsoft.Compute/virtualMachineScaleSets/baz`).
 These URIs are unique identifiers of Azure VMs, VMSS, or other compute with Envoy reverse-proxies,
 participating in the service mesh.
@@ -187,17 +188,21 @@ From the URI the provider will resolve the list of IP addresses of participating
 ```go
 // EndpointsProvider is an interface to be implemented by components abstracting Kubernetes, Azure, and other compute/cluster providers.
 type EndpointsProvider interface {
+    // ListEndpointsForService fetches the IPs and Ports for the given service
     ListEndpointsForService(ServiceName) []Endpoint
-    Run(stopCh <-chan struct{}) error
 }
 ```
 
 ### Mesh Topology
-This component provides an abstraction around the [SMI Spec Go SDK](https://github.com/deislabs/smi-sdk-go). The abstraction hides the Kubernetes primitives. This allows us to implement SMI Spec providers that does not rely exclusively on Kubernetes API, etcd etc. Mesh Topology Interface provides a set of functions, listing all Services, TrafficSplits, and policy definitions for the entire service mesh.
+This component provides an abstraction around the [SMI Spec Go SDK](https://github.com/deislabs/smi-sdk-go).
+The abstraction hides the Kubernetes primitives. This allows us to implement SMI Spec providers
+that do not rely exclusively on Kubernetes for storage, cache etc. Mesh Topology Interface provides
+a set of functions, listing all Services, TrafficSplits, and policy definitions for the
+**entire service** mesh.
 
 The Mesh Topology implementation **has no awareness** of:
   - what Envoy or reverse-proxy is
-  - what IP address is
+  - what IP address, Port number, or Endpoint is
   - what Azure, Azure Resource Manager etc. is or how it works
 
 
@@ -210,6 +215,9 @@ type MeshTopology interface {
 
     // ListServices fetches all services declared with SMI Spec.
     ListServices() []ServiceName
+
+   // GetService fetches a specific Kubernetes Service referenced in an SMI Spec resource.
+   GetService(ServiceName) (service *.Service, exists bool, err error)
 }
 ```
 
@@ -253,11 +261,4 @@ The following types are referenced in the interfaces proposed in this document:
           Weight      int         `json:"weight:omitempty"`
           Endpoints   []Endpoint  `json:"endpoints:omitempty"`
       }
-      ```
-
-  -  AzureURI
-      ```go
-      // AzureURI is a unique resource locator within Azure.
-      // Example: /resource/subscriptions/e3f0/resourceGroups/mesh-rg/providers/Microsoft.Compute/virtualMachineScaleSets/baz
-      type AzureURI string
       ```
