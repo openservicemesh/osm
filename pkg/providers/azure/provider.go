@@ -12,7 +12,7 @@ import (
 )
 
 // NewProvider creates an Azure Client
-func NewProvider(subscriptionID string, namespace string, azureAuthFile string, maxAuthRetryCount int, retryPause time.Duration, announceChan *channels.RingChannel, meshTopology mesh.MeshTopology, providerIdent string) mesh.EndpointsProvider {
+func NewProvider(subscriptionID string, namespace string, azureAuthFile string, maxAuthRetryCount int, retryPause time.Duration, announceChan *channels.RingChannel, meshTopology mesh.Topology, providerIdent string) mesh.EndpointsProvider {
 	return newClient(subscriptionID, namespace, azureAuthFile, maxAuthRetryCount, retryPause, announceChan, meshTopology, providerIdent)
 }
 

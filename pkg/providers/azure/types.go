@@ -37,7 +37,7 @@ type Client struct {
 	subscriptionID    string
 	ctx               context.Context
 	announceChan      *channels.RingChannel
-	meshTopology      mesh.MeshTopology
+	meshTopology      mesh.Topology
 
 	// Free-form string identifying the compute provider: Azure, Kubernetes etc.
 	// This is used in logs
