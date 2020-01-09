@@ -18,12 +18,12 @@ build: build-sds build-eds
 .PHONY: build-sds
 build-sds: clean-sds
 	@mkdir -p $(shell pwd)/bin
-	go build -v -o ./bin/sds ./cmd/sds
+	CGO_ENABLED=0  go build -v -o ./bin/sds ./cmd/sds
 
 .PHONY: build-eds
 build-eds: clean-eds
 	@mkdir -p $(shell pwd)/bin
-	go build -v -o ./bin/eds ./cmd/eds
+	CGO_ENABLED=0 go build -v -o ./bin/eds ./cmd/eds
 
 .PHONY: docker-build
 docker-build: build docker-build-sds docker-build-eds docker-build-bookbuyer docker-build-bookstore
@@ -60,7 +60,7 @@ docker-build-sds: build-sds sds-root-tls
 build-counter:
 	@rm -rf $(shell pwd)/demo/bin
 	@mkdir -p $(shell pwd)/demo/bin
-	go build -o ./demo/bin/counter ./demo/counter.go
+	CGO_ENABLED=0 go build -o ./demo/bin/counter ./demo/counter.go
 
 .PHONY: docker-build-bookbuyer
 docker-build-bookbuyer:

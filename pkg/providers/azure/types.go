@@ -24,7 +24,7 @@ const (
 type computeObserver func(resourceGroup, mesh.AzureID) ([]mesh.IP, error)
 
 // Client is an Azure Client
-// Implements interfaces: ComputeProviderI
+// Implements interfaces: EndpointsProvider
 type Client struct {
 	namespace         string
 	publicIPsClient   network.PublicIPAddressesClient
@@ -37,7 +37,7 @@ type Client struct {
 	subscriptionID    string
 	ctx               context.Context
 	announceChan      *channels.RingChannel
-	mesh              mesh.SpecI
+	meshTopology      mesh.MeshTopology
 
 	// Free-form string identifying the compute provider: Azure, Kubernetes etc.
 	// This is used in logs

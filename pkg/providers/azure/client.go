@@ -15,7 +15,7 @@ import (
 )
 
 // newClient creates an Azure Client
-func newClient(subscriptionID string, namespace string, azureAuthFile string, maxAuthRetryCount int, retryPause time.Duration, announceChan *channels.RingChannel, meshSpec mesh.SpecI, providerIdent string) mesh.ComputeProviderI {
+func newClient(subscriptionID string, namespace string, azureAuthFile string, maxAuthRetryCount int, retryPause time.Duration, announceChan *channels.RingChannel, meshTopology mesh.MeshTopology, providerIdent string) mesh.EndpointsProvider {
 	var authorizer autorest.Authorizer
 	var err error
 	if authorizer, err = getAuthorizerWithRetry(azureAuthFile, maxAuthRetryCount, retryPause); err != nil {
@@ -35,7 +35,7 @@ func newClient(subscriptionID string, namespace string, azureAuthFile string, ma
 		ctx:               context.Background(),
 		authorizer:        authorizer,
 		announceChan:      announceChan,
-		mesh:              meshSpec,
+		meshTopology:      meshTopology,
 		providerIdent:     providerIdent,
 	}
 

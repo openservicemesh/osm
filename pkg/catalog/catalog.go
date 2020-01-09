@@ -5,15 +5,16 @@ import (
 	"strings"
 	"time"
 
+	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
 
 	"github.com/deislabs/smc/pkg/mesh"
 )
 
 // NewServiceCatalog creates a new service catalog
-func NewServiceCatalog(meshSpecProvider mesh.SpecI, stopChan chan struct{}, computeProviders ...mesh.ComputeProviderI) mesh.ServiceCatalogI {
+func NewServiceCatalog(meshTopology mesh.MeshTopology, stopChan chan struct{}, endpointsProviders ...mesh.EndpointsProvider) mesh.ServiceCataloger {
 	// Run each provider -- starting the pub/sub system, which leverages the announceChan channel
-	for _, provider := range computeProviders {
+	for _, provider := range endpointsProviders {
 		if err := provider.Run(stopChan); err != nil {
 			glog.Errorf("Could not start %s provider: %s", provider.GetID(), err)
 			continue
@@ -22,9 +23,9 @@ func NewServiceCatalog(meshSpecProvider mesh.SpecI, stopChan chan struct{}, comp
 	}
 	glog.Info("[catalog] Create a new Service Catalog.")
 	serviceCatalog := ServiceCatalog{
-		servicesCache:    make(map[mesh.ServiceName][]mesh.IP),
-		computeProviders: computeProviders,
-		meshSpec:         meshSpecProvider,
+		servicesCache:      make(map[mesh.ServiceName][]mesh.IP),
+		endpointsProviders: endpointsProviders,
+		meshTopology:       meshTopology,
 	}
 
 	// NOTE(draychev): helpful while developing alpha MVP -- remove before releasing beta version.
@@ -43,7 +44,7 @@ func NewServiceCatalog(meshSpecProvider mesh.SpecI, stopChan chan struct{}, comp
 // GetWeightedService gets the backing delegated services for the given target service and their weights.
 func (sc *ServiceCatalog) GetWeightedService(svcName mesh.ServiceName) ([]mesh.WeightedService, error) {
 	var weightedServices []mesh.WeightedService
-	for _, split := range sc.meshSpec.ListTrafficSplits() {
+	for _, split := range sc.meshTopology.ListTrafficSplits() {
 		if mesh.ServiceName(split.Spec.Service) == svcName {
 			for _, backend := range split.Spec.Backends {
 				namespaced := fmt.Sprintf("%s/%s", split.Namespace, backend.Service)
@@ -69,7 +70,7 @@ func (sc *ServiceCatalog) GetWeightedServices() (map[mesh.ServiceName][]mesh.Wei
 	byTargetService := make(map[mesh.ServiceName][]mesh.WeightedService) // TODO  trafficSplit name must match Envoy's cluster name
 	backendWeight := make(map[string]int)
 
-	for _, trafficSplit := range sc.meshSpec.ListTrafficSplits() {
+	for _, trafficSplit := range sc.meshTopology.ListTrafficSplits() {
 		targetServiceName := mesh.ServiceName(trafficSplit.Spec.Service)
 		var services []mesh.WeightedService
 		glog.V(7).Infof("[EDS] Discovered TrafficSplit resource: %s/%s for service %s\n", trafficSplit.Namespace, trafficSplit.Name, targetServiceName)
@@ -120,8 +121,8 @@ func (sc *ServiceCatalog) refreshCache() {
 	glog.Info("[catalog] Refresh cache...")
 	servicesCache := make(map[mesh.ServiceName][]mesh.IP)
 	// TODO(draychev): split the namespace from the service name -- non-K8s services won't have namespace
-	for _, namespacedServiceName := range sc.meshSpec.ListServices() {
-		for _, provider := range sc.computeProviders {
+	for _, namespacedServiceName := range sc.meshTopology.ListServices() {
+		for _, provider := range sc.endpointsProviders {
 			newIps := provider.GetIPs(namespacedServiceName)
 			glog.Infof("[catalog] Found ips=%+v for service=%s for provider=%s", ipsToString(newIps), namespacedServiceName, provider.GetID())
 			if existingIps, exists := servicesCache[namespacedServiceName]; exists {
@@ -143,4 +144,35 @@ func ipsToString(meshIPs []mesh.IP) []string {
 		ips = append(ips, string(ip))
 	}
 	return ips
+}
+
+// ListEndpoints constructs a DiscoveryResponse with all endpoints the given Envoy proxy should be aware of.
+// The bool return value indicates whether there have been any changes since the last invocation of this function.
+func (sc *ServiceCatalog) ListEndpoints(mesh.ClientIdentity) (envoy.DiscoveryResponse, bool, error) {
+	// TODO(draychev): implement
+	panic("NotImplemented")
+}
+
+// RegisterNewEndpoint adds a newly connected Envoy proxy to the list of self-announced endpoints for a service.
+func (sc *ServiceCatalog) RegisterNewEndpoint(mesh.ClientIdentity) {
+	// TODO(draychev): implement
+	panic("NotImplemented")
+}
+
+// ListEndpointsProviders retrieves the full list of endpoints providers registered with Service Catalog so far.
+func (sc *ServiceCatalog) ListEndpointsProviders() []mesh.EndpointsProvider {
+	// TODO(draychev): implement
+	panic("NotImplemented")
+}
+
+// RegisterEndpointsProvider adds a new endpoints provider to the list within the Service Catalog.
+func (sc *ServiceCatalog) RegisterEndpointsProvider(mesh.EndpointsProvider) error {
+	// TODO(draychev): implement
+	panic("NotImplemented")
+}
+
+// GetAnnouncementChannel returns an instance of a channel, which notifies the system of an event requiring the execution of ListEndpoints.
+func (sc *ServiceCatalog) GetAnnouncementChannel() chan struct{} {
+	// TODO(draychev): implement
+	panic("NotImplemented")
 }

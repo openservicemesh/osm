@@ -2,13 +2,33 @@ package mesh
 
 import (
 	"github.com/deislabs/smi-sdk-go/pkg/apis/split/v1alpha2"
+	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 )
 
-// ServiceCatalogI is an interface w/ requirements to implement a service catalog
-type ServiceCatalogI interface {
-	GetServiceIPs(svcName ServiceName) ([]IP, error)
-	GetWeightedService(svcName ServiceName) ([]WeightedService, error)
+type ClientIdentity string
+
+// ServiceCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
+type ServiceCataloger interface {
+
+	// GetWeightedServices is deprecated
+	// Deprecated: this needs to be removed
 	GetWeightedServices() (map[ServiceName][]WeightedService, error)
+
+	// ListEndpoints constructs a DescoveryResponse with all endpoints the given Envoy proxy should be aware of.
+	// The bool return value indicates whether there have been any changes since the last invocation of this function.
+	ListEndpoints(ClientIdentity) (envoy.DiscoveryResponse, bool, error)
+
+	// RegisterNewEndpoint adds a newly connected Envoy proxy to the list of self-announced endpoints for a service.
+	RegisterNewEndpoint(ClientIdentity)
+
+	// ListEndpointsProviders retrieves the full list of endpoints providers registered with Service Catalog so far.
+	ListEndpointsProviders() []EndpointsProvider
+
+	// RegisterEndpointsProvider adds a new endpoints provider to the list within the Service Catalog.
+	RegisterEndpointsProvider(EndpointsProvider) error
+
+	// GetAnnouncementChannel returns an instance of a channel, which notifies the system of an event requiring the execution of ListEndpoints.
+	GetAnnouncementChannel() chan struct{}
 }
 
 // ServiceName is a type for a service name
@@ -28,18 +48,24 @@ type WeightedService struct {
 // IP is an IP address
 type IP string
 
-// ComputeProviderI interface to be implemented by Kubernetes, Azure etc. providers.
-type ComputeProviderI interface {
+// EndpointProvider is an interface to be implemented by components abstracting Kubernetes, Azure, and other compute/cluster providers
+type EndpointsProvider interface {
 	// Retrieve the IP addresses comprising the ServiceName.
 	GetIPs(ServiceName) []IP
 	GetID() string
 	Run(<-chan struct{}) error
 }
 
-// SpecI is an interface declaring what an SMI spec provider should implement.
-type SpecI interface {
+// MeshTopology is an interface declaring functions, which provide the topology of a service mesh declared with SMI.
+type MeshTopology interface {
+	// ListTrafficSplits lists TrafficSplit SMI resources.
 	ListTrafficSplits() []*v1alpha2.TrafficSplit
+
+	// ListServices fetches all services declared with SMI Spec.
 	ListServices() []ServiceName
+
+	// GetComputeIDForService is deprecated
+	// Deprecated: this needs to be removed
 	GetComputeIDForService(ServiceName) []ComputeID
 }
 
