@@ -261,20 +261,3 @@ The following types are referenced in the interfaces proposed in this document:
       // Example: /resource/subscriptions/e3f0/resourceGroups/mesh-rg/providers/Microsoft.Compute/virtualMachineScaleSets/baz
       type AzureURI string
       ```
-
-  -  KubernetesLocator
-      ```go
-      // KubernetesLocator is a struct providing sufficient information for SMC to discover a service anywhere in the world.
-      type KubernetesLocator struct {
-          // ClusterID is the unique identifier of a Kubernetes cluster. For example cluster's FQDN.
-          ClusterID string
-
-          // Namespace is the namespace on the cluster, within which the service name resides.
-          Namespace string
-
-          // ServiceName is the name of the service.
-          ServiceName
-      }
-      ```
-
-
