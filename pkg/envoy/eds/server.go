@@ -16,7 +16,7 @@ import (
 type EDS struct {
 	ctx          context.Context // root context
 	catalog      mesh.ServiceCataloger
-	meshTopology mesh.MeshTopology
+	meshTopology mesh.Topology
 	announceChan *channels.RingChannel
 }
 
@@ -31,7 +31,7 @@ func (e *EDS) DeltaEndpoints(xds.EndpointDiscoveryService_DeltaEndpointsServer) 
 }
 
 // NewEDSServer creates a new EDS server
-func NewEDSServer(ctx context.Context, catalog mesh.ServiceCataloger, meshTopology mesh.MeshTopology, announceChan *channels.RingChannel) *EDS {
+func NewEDSServer(ctx context.Context, catalog mesh.ServiceCataloger, meshTopology mesh.Topology, announceChan *channels.RingChannel) *EDS {
 	glog.Info("[EDS] Create NewEDSServer...")
 	return &EDS{
 		ctx:          ctx,

@@ -21,7 +21,7 @@ import (
 const kubernetesClientName = "MeshSpec"
 
 // NewMeshSpecClient creates the Kubernetes client, which retrieves SMI specific CRDs.
-func NewMeshSpecClient(kubeConfig *rest.Config, namespaces []string, resyncPeriod time.Duration, announceChan *channels.RingChannel, stopChan chan struct{}) mesh.MeshTopology {
+func NewMeshSpecClient(kubeConfig *rest.Config, namespaces []string, resyncPeriod time.Duration, announceChan *channels.RingChannel, stopChan chan struct{}) mesh.Topology {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 	smiClientset := smiClient.NewForConfigOrDie(kubeConfig)
 	azureResourceClient := smcClient.NewForConfigOrDie(kubeConfig)
