@@ -12,7 +12,7 @@ import (
 )
 
 // NewServiceCatalog creates a new service catalog
-func NewServiceCatalog(meshTopology mesh.Topology, stopChan chan struct{}, endpointsProviders ...mesh.EndpointsProvider) mesh.ServiceCataloger {
+func NewServiceCatalog(meshTopology mesh.Topology, stopChan chan struct{}, endpointsProviders ...mesh.EndpointsProvider) ServiceCataloger {
 	// Run each provider -- starting the pub/sub system, which leverages the announceChan channel
 	for _, provider := range endpointsProviders {
 		if err := provider.Run(stopChan); err != nil {
