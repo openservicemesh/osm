@@ -68,15 +68,15 @@ func main() {
 	}
 
 	stopChan := make(chan struct{})
-	meshSpec := kube.NewMeshSpecClient(kubeConfig, getNamespaces(), 1*time.Second, announceChan, stopChan)
+	meshTopologyClient := kube.NewMeshSpecClient(kubeConfig, getNamespaces(), 1*time.Second, announceChan, stopChan)
 	kubernetesProvider := kube.NewProvider(kubeConfig, getNamespaces(), 1*time.Second, announceChan, kubernetesProviderName)
-	azureProvider := azure.NewProvider(*subscriptionID, *namespace, *azureAuthFile, maxAuthRetryCount, retryPause, announceChan, meshSpec, azureProvidername)
+	azureProvider := azure.NewProvider(*subscriptionID, *namespace, *azureAuthFile, maxAuthRetryCount, retryPause, announceChan, meshTopologyClient, azureProvidername)
 
 	// ServiceName Catalog is the facility, which we query to get the list of services, weights for traffic split etc.
-	serviceCatalog := catalog.NewServiceCatalog(meshSpec, stopChan, kubernetesProvider, azureProvider)
+	serviceCatalog := catalog.NewServiceCatalog(meshTopologyClient, stopChan, kubernetesProvider, azureProvider)
 
 	grpcServer, lis := utils.NewGrpc(serverType, *port)
-	eds := edsServer.NewEDSServer(ctx, serviceCatalog, meshSpec, announceChan)
+	eds := edsServer.NewEDSServer(ctx, serviceCatalog, meshTopologyClient, announceChan)
 	envoyControlPlane.RegisterEndpointDiscoveryServiceServer(grpcServer, eds)
 	go utils.GrpcServe(ctx, grpcServer, lis, cancel, serverType)
 
