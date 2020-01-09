@@ -8,7 +8,7 @@ import (
 	"github.com/golang/glog"
 )
 
-func (az *Client) getVMSS(rg resourceGroup, vmID mesh.AzureID) ([]mesh.IP, error) {
+func (az *Client) getVMSS(rg resourceGroup, vmID azureID) ([]mesh.IP, error) {
 	glog.V(7).Infof("[azure] Fetching IPS of VMSS for %s in resource group: %s", vmID, rg)
 	var ips []mesh.IP
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -23,7 +23,7 @@ func (az *Client) getVMSS(rg resourceGroup, vmID mesh.AzureID) ([]mesh.IP, error
 			continue
 		}
 		glog.Infof("[azure] Found VMSS %s", *vmss.Name)
-		// TODO(draychev): get the IP address of each sub-instance and append to the list of IPs
+		// TODO(draychev): get the IP address of each sub-instance and append to the list of Endpoints
 	}
 	return ips, nil
 }

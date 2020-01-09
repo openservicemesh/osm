@@ -25,7 +25,7 @@ var (
 	flags         = pflag.NewFlagSet(`diplomat-sds`, pflag.ExitOnError)
 	keysDirectory = flags.String("keys-directory", "", "Directory where the keys are stored")
 	verbosity     = flags.Int("verbosity", 1, "Set logging verbosity level")
-	port          = flags.Int("port", 15123, "Service Discovery Service port number. (Default: 15123)")
+	port          = flags.Int("port", 15123, "Services Discovery Services port number. (Default: 15123)")
 )
 
 func main() {

@@ -2,7 +2,6 @@ package smi
 
 import (
 	"github.com/eapache/channels"
-	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -25,7 +24,6 @@ type Client struct {
 	caches        *CacheCollection
 	cacheSynced   chan interface{}
 	providerIdent string
-	kubeClient    kubernetes.Interface
 	informers     *InformerCollection
 	announceChan  *channels.RingChannel
 }

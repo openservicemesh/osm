@@ -15,7 +15,7 @@ import (
 )
 
 // We have a few different k8s clients. This identifies these in logs.
-const kubernetesClientName = "Topology"
+const kubernetesClientName = "MeshTopology"
 
 // NewMeshTopologyClient creates the Kubernetes client, which retrieves SMI specific CRDs.
 func NewMeshTopologyClient(kubeConfig *rest.Config, namespaces []string, announceChan *channels.RingChannel, stopChan chan struct{}) mesh.Topology {
@@ -58,13 +58,8 @@ func (c *Client) ListServices() []mesh.ServiceName {
 // GetService retrieves the Kubernetes Services resource for the given ServiceName.
 func (c *Client) GetService(svc mesh.ServiceName) (service *v1.Service, exists bool, err error) {
 	svcIf, exists, err := c.caches.Services.GetByKey(string(svc))
-	if exists && err != nil {
+	if exists && err == nil {
 		return svcIf.(*v1.Service), exists, err
 	}
 	return nil, exists, err
-}
-
-// GetComputeIDForService is a temporary addition
-func (c *Client) GetComputeIDForService(mesh.ServiceName) []mesh.ComputeID {
-	return nil
 }

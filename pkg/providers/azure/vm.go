@@ -10,7 +10,7 @@ import (
 	"github.com/deislabs/smc/pkg/utils"
 )
 
-func (az *Client) getVM(rg resourceGroup, vmID mesh.AzureID) ([]mesh.IP, error) {
+func (az *Client) getVM(rg resourceGroup, vmID azureID) ([]mesh.IP, error) {
 	glog.V(7).Infof("[azure] Fetching IPS of VM for %s in resource group: %s", vmID, rg)
 	var ips []mesh.IP
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

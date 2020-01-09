@@ -3,53 +3,52 @@ package azure
 import (
 	"fmt"
 	"strings"
-	"time"
 
-	"github.com/eapache/channels"
 	"github.com/golang/glog"
+	v1 "k8s.io/api/core/v1"
 
-	"github.com/deislabs/smc/pkg/endpoint"
+	smc "github.com/deislabs/smc/pkg/apis/azureresource/v1"
 	"github.com/deislabs/smc/pkg/mesh"
 )
 
-// NewProvider creates an Azure Client
-func NewProvider(subscriptionID string, namespace string, azureAuthFile string, maxAuthRetryCount int, retryPause time.Duration, announceChan *channels.RingChannel, meshTopology mesh.Topology, providerIdent string) endpoint.Provider {
-	return newClient(subscriptionID, namespace, azureAuthFile, maxAuthRetryCount, retryPause, announceChan, meshTopology, providerIdent)
-}
+// ListEndpointsForService returns the IP addresses and Ports for the given ServiceName Name.
+// This function is required by the EndpointsProvider interface.
+func (az Client) ListEndpointsForService(svc mesh.ServiceName) []mesh.Endpoint {
+	var endpoints []mesh.Endpoint
 
-// GetIPs returns the IP addresses for the given ServiceName Name
-// This function is required by the EndpointsProvider
-func (az Client) GetIPs(svc mesh.ServiceName) []mesh.IP {
-	var azureIPs []mesh.IP
-	clusters := az.meshTopology.GetComputeIDForService(svc)
-	for _, cluster := range clusters {
-		if cluster.AzureID == "" {
-			continue
-		}
+	// TODO(draychev): resolve the actual port number of this service
+	port := mesh.Port(15003)
+	var computeKindObserver = map[computeKind]computeObserver{
+		vm:   az.getVM,
+		vmss: az.getVMSS,
+	}
 
-		glog.Infof("[azure] Getting IPs for service %s", svc)
-		resourceGroup, kind, _, err := parseAzureID(cluster.AzureID)
+	for _, azID := range az.resolveService(svc) {
+		glog.Infof("[azure] Getting Endpoints for service %s", svc)
+		resourceGroup, kind, _, err := parseAzureID(azID)
 		if err != nil {
-			glog.Errorf("Unable to parse Azure URI %s: %s", cluster.AzureID, err)
+			glog.Errorf("[azure] Unable to parse Azure URI %s: %s", azID, err)
 			continue
-		}
-
-		var computeKindObserver = map[computeKind]computeObserver{
-			vm:   az.getVM,
-			vmss: az.getVMSS,
 		}
 
 		if observer, ok := computeKindObserver[kind]; ok {
 			var ips []mesh.IP
 			var err error
-			ips, err = observer(resourceGroup, cluster.AzureID)
+			ips, err = observer(resourceGroup, azID)
 			if err != nil {
-				glog.Error("Could not fetch VMSS services: ", err)
+				glog.Error("[azure] Could not fetch VMSS services: ", err)
+				continue
 			}
-			azureIPs = append(azureIPs, ips...)
+			for _, ip := range ips {
+				endpoint := mesh.Endpoint{
+					IP:   ip,
+					Port: port,
+				}
+				endpoints = append(endpoints, endpoint)
+			}
 		}
 	}
-	return azureIPs
+	return endpoints
 }
 
 // Run starts the Azure observer
@@ -62,10 +61,10 @@ func (az Client) Run(stopCh <-chan struct{}) error {
 // GetID returns the unique identifier for the compute provider.
 // This string will be used by logging tools to contextualize messages.
 func (az Client) GetID() string {
-	return az.providerIdent
+	return az.providerID
 }
 
-func parseAzureID(id mesh.AzureID) (resourceGroup, computeKind, computeName, error) {
+func parseAzureID(id azureID) (resourceGroup, computeKind, computeName, error) {
 	// Sample URI: /resource/subscriptions/e3f0/resourceGroups/meshTopology-rg/providers/Microsoft.Compute/virtualMachineScaleSets/baz
 	chunks := strings.Split(string(id), "/")
 	if len(chunks) != 9 {
@@ -75,4 +74,50 @@ func parseAzureID(id mesh.AzureID) (resourceGroup, computeKind, computeName, err
 	kind := computeKind(fmt.Sprintf("%s/%s", chunks[6], chunks[7]))
 	name := computeName(chunks[8])
 	return resGroup, kind, name, nil
+}
+
+func (az *Client) resolveService(svc mesh.ServiceName) []azureID {
+	glog.V(7).Infof("[azure] Resolving service %s to an Azure URI", svc)
+	var azureIDs []azureID
+	service, exists, err := az.meshTopology.GetService(svc)
+	if err != nil {
+		glog.Error("[azure] Error fetching Kubernetes Endpoints from cache: ", err)
+		return azureIDs
+	}
+	if !exists {
+		glog.Errorf("[azure] Error fetching Kubernetes Endpoints from cache: service %s does not exist", svc)
+		return azureIDs
+	}
+	glog.Infof("[azure] Got the service: %+v", service)
+	return matchServiceAzureResource(service, az.azureResourceClient.ListAzureResources())
+}
+
+type kv struct {
+	k string
+	v string
+}
+
+func matchServiceAzureResource(svc *v1.Service, azureResourcesList []*smc.AzureResource) []azureID {
+	glog.V(7).Infof("[azure] Match service %s to an AzureID", svc)
+	azureResources := make(map[kv]*smc.AzureResource)
+	for _, azRes := range azureResourcesList {
+		for k, v := range azRes.ObjectMeta.Labels {
+			azureResources[kv{k, v}] = azRes
+		}
+	}
+	uriSet := make(map[azureID]interface{})
+	if service := svc; service != nil {
+		for k, v := range service.ObjectMeta.Labels {
+			if azRes, ok := azureResources[kv{k, v}]; ok && azRes != nil {
+				uriSet[azureID(azRes.Spec.ResourceID)] = nil
+			}
+		}
+	}
+	// Ensure uniqueness
+	var uris []azureID
+	for uri := range uriSet {
+		uris = append(uris, uri)
+	}
+	glog.V(7).Infof("[azure] Found matches for service %s: %+v", svc, uris)
+	return uris
 }
