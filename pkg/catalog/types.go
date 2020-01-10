@@ -6,13 +6,14 @@ import (
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 
 	"github.com/deislabs/smc/pkg/mesh"
+	"github.com/deislabs/smc/pkg/endpoint"
 )
 
 // ServiceCatalog is the struct for the service catalog
 type ServiceCatalog struct {
 	sync.Mutex
 	servicesCache      map[mesh.ServiceName][]mesh.IP
-	endpointsProviders []mesh.EndpointsProvider
+	endpointsProviders []endpoint.Provider
 	meshTopology       mesh.Topology
 }
 
@@ -31,10 +32,10 @@ type ServiceCataloger interface {
 	RegisterNewEndpoint(mesh.ClientIdentity)
 
 	// ListEndpointsProviders retrieves the full list of endpoints providers registered with Service Catalog so far.
-	ListEndpointsProviders() []mesh.EndpointsProvider
+	ListEndpointsProviders() []endpoint.Provider
 
 	// RegisterEndpointsProvider adds a new endpoints provider to the list within the Service Catalog.
-	RegisterEndpointsProvider(mesh.EndpointsProvider) error
+	RegisterEndpointsProvider(endpoint.Provider) error
 
 	// GetAnnouncementChannel returns an instance of a channel, which notifies the system of an event requiring the execution of ListEndpoints.
 	GetAnnouncementChannel() chan struct{}
