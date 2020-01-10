@@ -11,12 +11,13 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/deislabs/smc/pkg/endpoint"
 	"github.com/deislabs/smc/pkg/mesh"
 	smcClient "github.com/deislabs/smc/pkg/smc_client/clientset/versioned"
 )
 
 // NewProvider creates a new Kubernetes cluster/compute provider, which will inform SMC of Endpoints for a given service.
-func NewProvider(kubeConfig *rest.Config, namespaces []string, resyncPeriod time.Duration, announceChan *channels.RingChannel, providerIdent string) mesh.EndpointsProvider {
+func NewProvider(kubeConfig *rest.Config, namespaces []string, resyncPeriod time.Duration, announceChan *channels.RingChannel, providerIdent string) endpoint.Provider {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 	// smiClient and azureResourceClient are used for SMI spec observation only
 	// these are not needed for the EndpointsProvider use-case

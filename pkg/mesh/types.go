@@ -23,14 +23,6 @@ type WeightedService struct {
 // IP is an IP address
 type IP string
 
-// EndpointProvider is an interface to be implemented by components abstracting Kubernetes, Azure, and other compute/cluster providers
-type EndpointsProvider interface {
-	// Retrieve the IP addresses comprising the ServiceName.
-	GetIPs(ServiceName) []IP
-	GetID() string
-	Run(<-chan struct{}) error
-}
-
 // Topology is an interface declaring functions, which provide the topology of a service mesh declared with SMI.
 type Topology interface {
 	// ListTrafficSplits lists TrafficSplit SMI resources.

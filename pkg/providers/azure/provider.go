@@ -8,11 +8,12 @@ import (
 	"github.com/eapache/channels"
 	"github.com/golang/glog"
 
+	"github.com/deislabs/smc/pkg/endpoint"
 	"github.com/deislabs/smc/pkg/mesh"
 )
 
 // NewProvider creates an Azure Client
-func NewProvider(subscriptionID string, namespace string, azureAuthFile string, maxAuthRetryCount int, retryPause time.Duration, announceChan *channels.RingChannel, meshTopology mesh.Topology, providerIdent string) mesh.EndpointsProvider {
+func NewProvider(subscriptionID string, namespace string, azureAuthFile string, maxAuthRetryCount int, retryPause time.Duration, announceChan *channels.RingChannel, meshTopology mesh.Topology, providerIdent string) endpoint.Provider {
 	return newClient(subscriptionID, namespace, azureAuthFile, maxAuthRetryCount, retryPause, announceChan, meshTopology, providerIdent)
 }
 

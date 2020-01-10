@@ -12,10 +12,11 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/deislabs/smc/pkg/mesh"
+	"github.com/deislabs/smc/pkg/endpoint"
 )
 
 // newClient creates an Azure Client
-func newClient(subscriptionID string, namespace string, azureAuthFile string, maxAuthRetryCount int, retryPause time.Duration, announceChan *channels.RingChannel, meshTopology mesh.Topology, providerIdent string) mesh.EndpointsProvider {
+func newClient(subscriptionID string, namespace string, azureAuthFile string, maxAuthRetryCount int, retryPause time.Duration, announceChan *channels.RingChannel, meshTopology mesh.Topology, providerIdent string) endpoint.Provider {
 	var authorizer autorest.Authorizer
 	var err error
 	if authorizer, err = getAuthorizerWithRetry(azureAuthFile, maxAuthRetryCount, retryPause); err != nil {

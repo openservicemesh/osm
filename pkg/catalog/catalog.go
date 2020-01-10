@@ -8,11 +8,12 @@ import (
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
 
+	"github.com/deislabs/smc/pkg/endpoint"
 	"github.com/deislabs/smc/pkg/mesh"
 )
 
 // NewServiceCatalog creates a new service catalog
-func NewServiceCatalog(meshTopology mesh.Topology, stopChan chan struct{}, endpointsProviders ...mesh.EndpointsProvider) ServiceCataloger {
+func NewServiceCatalog(meshTopology mesh.Topology, stopChan chan struct{}, endpointsProviders ...endpoint.Provider) ServiceCataloger {
 	// Run each provider -- starting the pub/sub system, which leverages the announceChan channel
 	for _, provider := range endpointsProviders {
 		if err := provider.Run(stopChan); err != nil {
@@ -160,13 +161,13 @@ func (sc *ServiceCatalog) RegisterNewEndpoint(mesh.ClientIdentity) {
 }
 
 // ListEndpointsProviders retrieves the full list of endpoints providers registered with Service Catalog so far.
-func (sc *ServiceCatalog) ListEndpointsProviders() []mesh.EndpointsProvider {
+func (sc *ServiceCatalog) ListEndpointsProviders() []endpoint.Provider {
 	// TODO(draychev): implement
 	panic("NotImplemented")
 }
 
 // RegisterEndpointsProvider adds a new endpoints provider to the list within the Service Catalog.
-func (sc *ServiceCatalog) RegisterEndpointsProvider(mesh.EndpointsProvider) error {
+func (sc *ServiceCatalog) RegisterEndpointsProvider(endpoint.Provider) error {
 	// TODO(draychev): implement
 	panic("NotImplemented")
 }
