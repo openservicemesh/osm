@@ -18,7 +18,7 @@ import (
 func NewServiceCatalog(meshTopology mesh.Topology, endpointsProviders ...endpoint.Provider) ServiceCataloger {
 	glog.Info("[catalog] Create a new Service Catalog.")
 	serviceCatalog := ServiceCatalog{
-		servicesCache:      make(map[mesh.ServiceName][]mesh.Endpoint),
+		servicesCache:      make(map[endpoint.ServiceName][]endpoint.Endpoint),
 		endpointsProviders: endpointsProviders,
 		meshTopology:       meshTopology,
 	}
@@ -76,7 +76,7 @@ func (sc *ServiceCatalog) ListEndpoints(clientID mesh.ClientIdentity) (*envoy.Di
 
 func (sc *ServiceCatalog) refreshCache() {
 	glog.Info("[catalog] Refresh cache...")
-	servicesCache := make(map[mesh.ServiceName][]mesh.Endpoint)
+	servicesCache := make(map[endpoint.ServiceName][]endpoint.Endpoint)
 	// TODO(draychev): split the namespace from the service name -- non-K8s services won't have namespace
 	for _, namespacedServiceName := range sc.meshTopology.ListServices() {
 		for _, provider := range sc.endpointsProviders {
@@ -95,7 +95,7 @@ func (sc *ServiceCatalog) refreshCache() {
 	sc.Unlock()
 }
 
-func endpointsToString(endpoints []mesh.Endpoint) []string {
+func endpointsToString(endpoints []endpoint.Endpoint) []string {
 	var epts []string
 	for _, ept := range endpoints {
 		epts = append(epts, fmt.Sprintf("%s:%d", ept.IP, ept.Port))
@@ -103,13 +103,13 @@ func endpointsToString(endpoints []mesh.Endpoint) []string {
 	return epts
 }
 
-func (sc *ServiceCatalog) getWeightedEndpointsPerService() (map[mesh.ServiceName][]mesh.WeightedService, error) {
-	byTargetService := make(map[mesh.ServiceName][]mesh.WeightedService)
+func (sc *ServiceCatalog) getWeightedEndpointsPerService() (map[endpoint.ServiceName][]endpoint.WeightedService, error) {
+	byTargetService := make(map[endpoint.ServiceName][]endpoint.WeightedService)
 	backendWeight := make(map[string]int)
 
 	for _, trafficSplit := range sc.meshTopology.ListTrafficSplits() {
-		targetServiceName := mesh.ServiceName(trafficSplit.Spec.Service)
-		var services []mesh.WeightedService
+		targetServiceName := endpoint.ServiceName(trafficSplit.Spec.Service)
+		var services []endpoint.WeightedService
 		glog.V(7).Infof("[EDS][catalog] Discovered TrafficSplit resource: %s/%s for service %s\n", trafficSplit.Namespace, trafficSplit.Name, targetServiceName)
 		if trafficSplit.Spec.Backends == nil {
 			glog.Errorf("[EDS][catalog] TrafficSplit %s/%s has no Backends in Spec; Skipping...", trafficSplit.Namespace, trafficSplit.Name)
@@ -119,14 +119,14 @@ func (sc *ServiceCatalog) getWeightedEndpointsPerService() (map[mesh.ServiceName
 			// TODO(draychev): PULL THIS FROM SERVICE REGISTRY
 			// svcName := mesh.ServiceName(fmt.Sprintf("%s/%s", trafficSplit.Namespace, trafficSplitBackend.ServiceName))
 			backendWeight[trafficSplitBackend.Service] = trafficSplitBackend.Weight
-			weightedService := mesh.WeightedService{}
-			weightedService.ServiceName = mesh.ServiceName(trafficSplitBackend.Service)
+			weightedService := endpoint.WeightedService{}
+			weightedService.ServiceName = endpoint.ServiceName(trafficSplitBackend.Service)
 			weightedService.Weight = trafficSplitBackend.Weight
 			var err error
 			namespaced := fmt.Sprintf("%s/%s", trafficSplit.Namespace, trafficSplitBackend.Service)
-			if weightedService.Endpoints, err = sc.listEndpointsForService(mesh.ServiceName(namespaced)); err != nil {
+			if weightedService.Endpoints, err = sc.listEndpointsForService(endpoint.ServiceName(namespaced)); err != nil {
 				glog.Errorf("[catalog] Error getting Endpoints for service %s: %s", namespaced, err)
-				weightedService.Endpoints = []mesh.Endpoint{}
+				weightedService.Endpoints = []endpoint.Endpoint{}
 			}
 			services = append(services, weightedService)
 		}
@@ -136,7 +136,7 @@ func (sc *ServiceCatalog) getWeightedEndpointsPerService() (map[mesh.ServiceName
 	return byTargetService, nil
 }
 
-func (sc *ServiceCatalog) listEndpointsForService(namespacedServiceName mesh.ServiceName) ([]mesh.Endpoint, error) {
+func (sc *ServiceCatalog) listEndpointsForService(namespacedServiceName endpoint.ServiceName) ([]endpoint.Endpoint, error) {
 	sc.Lock()
 	defer sc.Unlock()
 	// TODO(draychev): split namespace from the service name -- for non-K8s services
@@ -144,7 +144,7 @@ func (sc *ServiceCatalog) listEndpointsForService(namespacedServiceName mesh.Ser
 	if _, found := sc.servicesCache[namespacedServiceName]; !found {
 		sc.refreshCache()
 	}
-	var endpoints []mesh.Endpoint
+	var endpoints []endpoint.Endpoint
 	var found bool
 	if endpoints, found = sc.servicesCache[namespacedServiceName]; !found {
 		glog.Errorf("[catalog] Did not find any Endpoints for service %s", namespacedServiceName)

@@ -1,7 +1,7 @@
 package cla
 
 import (
-	"github.com/deislabs/smc/pkg/mesh"
+	endpoint2 "github.com/deislabs/smc/pkg/endpoint"
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
@@ -17,7 +17,7 @@ const (
 )
 
 // NewClusterLoadAssignment constructs the Envoy struct necessary for TrafficSplit implementation.
-func NewClusterLoadAssignment(targetServiceName mesh.ServiceName, weightedServices []mesh.WeightedService) v2.ClusterLoadAssignment {
+func NewClusterLoadAssignment(targetServiceName endpoint2.ServiceName, weightedServices []endpoint2.WeightedService) v2.ClusterLoadAssignment {
 	cla := v2.ClusterLoadAssignment{
 		// NOTE: results.ServiceName is the top level service that is cURLed.
 		ClusterName: string(targetServiceName),

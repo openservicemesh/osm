@@ -4,15 +4,16 @@ import (
 	"context"
 	"time"
 
+	"github.com/deislabs/smc/pkg/endpoint"
+
 	"github.com/golang/glog"
 
-	"github.com/deislabs/smc/pkg/mesh"
 	"github.com/deislabs/smc/pkg/utils"
 )
 
-func (az *Client) getVM(rg resourceGroup, vmID azureID) ([]mesh.IP, error) {
+func (az *Client) getVM(rg resourceGroup, vmID azureID) ([]endpoint.IP, error) {
 	glog.V(7).Infof("[azure] Fetching IPS of VM for %s in resource group: %s", vmID, rg)
-	var ips []mesh.IP
+	var ips []endpoint.IP
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	list, err := az.vmClient.List(ctx, string(rg))
@@ -37,7 +38,7 @@ func (az *Client) getVM(rg resourceGroup, vmID azureID) ([]mesh.IP, error) {
 
 		for _, ipConf := range *networkInterfaceName.IPConfigurations {
 			if ipConf.PrivateIPAddress != nil {
-				ips = append(ips, mesh.IP(*ipConf.PrivateIPAddress))
+				ips = append(ips, endpoint.IP(*ipConf.PrivateIPAddress))
 			}
 		}
 		cancel()

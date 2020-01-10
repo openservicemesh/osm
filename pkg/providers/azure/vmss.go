@@ -4,13 +4,14 @@ import (
 	"context"
 	"time"
 
-	"github.com/deislabs/smc/pkg/mesh"
+	"github.com/deislabs/smc/pkg/endpoint"
+
 	"github.com/golang/glog"
 )
 
-func (az *Client) getVMSS(rg resourceGroup, vmID azureID) ([]mesh.IP, error) {
+func (az *Client) getVMSS(rg resourceGroup, vmID azureID) ([]endpoint.IP, error) {
 	glog.V(7).Infof("[azure] Fetching IPS of VMSS for %s in resource group: %s", vmID, rg)
-	var ips []mesh.IP
+	var ips []endpoint.IP
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	glog.Info("[azure] List all VMSS for resource group: ", rg)

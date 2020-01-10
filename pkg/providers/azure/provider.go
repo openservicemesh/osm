@@ -4,20 +4,21 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/deislabs/smc/pkg/endpoint"
+
 	"github.com/golang/glog"
 	v1 "k8s.io/api/core/v1"
 
 	smc "github.com/deislabs/smc/pkg/apis/azureresource/v1"
-	"github.com/deislabs/smc/pkg/mesh"
 )
 
 // ListEndpointsForService returns the IP addresses and Ports for the given ServiceName Name.
 // This function is required by the EndpointsProvider interface.
-func (az Client) ListEndpointsForService(svc mesh.ServiceName) []mesh.Endpoint {
-	var endpoints []mesh.Endpoint
+func (az Client) ListEndpointsForService(svc endpoint.ServiceName) []endpoint.Endpoint {
+	var endpoints []endpoint.Endpoint
 
 	// TODO(draychev): resolve the actual port number of this service
-	port := mesh.Port(15003)
+	port := endpoint.Port(15003)
 	var computeKindObserver = map[computeKind]computeObserver{
 		vm:   az.getVM,
 		vmss: az.getVMSS,
@@ -32,7 +33,7 @@ func (az Client) ListEndpointsForService(svc mesh.ServiceName) []mesh.Endpoint {
 		}
 
 		if observer, ok := computeKindObserver[kind]; ok {
-			var ips []mesh.IP
+			var ips []endpoint.IP
 			var err error
 			ips, err = observer(resourceGroup, azID)
 			if err != nil {
@@ -40,7 +41,7 @@ func (az Client) ListEndpointsForService(svc mesh.ServiceName) []mesh.Endpoint {
 				continue
 			}
 			for _, ip := range ips {
-				endpoint := mesh.Endpoint{
+				endpoint := endpoint.Endpoint{
 					IP:   ip,
 					Port: port,
 				}
@@ -76,7 +77,7 @@ func parseAzureID(id azureID) (resourceGroup, computeKind, computeName, error) {
 	return resGroup, kind, name, nil
 }
 
-func (az *Client) resolveService(svc mesh.ServiceName) []azureID {
+func (az *Client) resolveService(svc endpoint.ServiceName) []azureID {
 	glog.V(7).Infof("[azure] Resolving service %s to an Azure URI", svc)
 	var azureIDs []azureID
 	service, exists, err := az.meshTopology.GetService(svc)

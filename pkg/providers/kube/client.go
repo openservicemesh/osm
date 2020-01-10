@@ -12,7 +12,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/deislabs/smc/pkg/endpoint"
-	"github.com/deislabs/smc/pkg/mesh"
 )
 
 var resyncPeriod = 1 * time.Second
@@ -68,9 +67,9 @@ func (c *Client) GetID() string {
 }
 
 // ListEndpointsForService retrieves the list of IP addresses for the given service
-func (c Client) ListEndpointsForService(svc mesh.ServiceName) []mesh.Endpoint {
+func (c Client) ListEndpointsForService(svc endpoint.ServiceName) []endpoint.Endpoint {
 	glog.Infof("[%s] Getting Endpoints for service %s on Kubernetes", c.providerIdent, svc)
-	var endpoints []mesh.Endpoint
+	var endpoints []endpoint.Endpoint
 	endpointsInterface, exist, err := c.caches.Endpoints.GetByKey(string(svc))
 	if err != nil {
 		glog.Errorf("[%s] Error fetching Kubernetes Endpoints from cache: %s", c.providerIdent, err)
@@ -83,13 +82,13 @@ func (c Client) ListEndpointsForService(svc mesh.ServiceName) []mesh.Endpoint {
 	}
 
 	// TODO(draychev): get the port number from the service
-	port := mesh.Port(15003)
+	port := endpoint.Port(15003)
 
 	if kubernetesEndpoints := endpointsInterface.(*v1.Endpoints); kubernetesEndpoints != nil {
 		for _, kubernetesEndpoint := range kubernetesEndpoints.Subsets {
 			for _, address := range kubernetesEndpoint.Addresses {
-				ept := mesh.Endpoint{
-					IP:   mesh.IP(address.IP),
+				ept := endpoint.Endpoint{
+					IP:   endpoint.IP(address.IP),
 					Port: port,
 				}
 				endpoints = append(endpoints, ept)

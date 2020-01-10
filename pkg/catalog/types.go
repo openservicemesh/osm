@@ -13,7 +13,7 @@ import (
 type ServiceCatalog struct {
 	sync.Mutex
 
-	servicesCache      map[mesh.ServiceName][]mesh.Endpoint
+	servicesCache      map[endpoint.ServiceName][]endpoint.Endpoint
 	endpointsProviders []endpoint.Provider
 
 	meshTopology mesh.Topology
