@@ -60,7 +60,7 @@ func NewProvider(subscriptionID string, azureAuthFile string, announceChan *chan
 	*/
 
 	if err := az.Run(stopChan); err != nil {
-		glog.Fatal("Could not start Azure EndpointsProvider client", err)
+		glog.Fatal("[azure] Could not start Azure EndpointsProvider client", err)
 	}
 
 	return az
