@@ -63,3 +63,8 @@ func (c *Client) GetService(svc mesh.ServiceName) (service *v1.Service, exists b
 	}
 	return nil, exists, err
 }
+
+// GetComputeIDForService is a temporary addition
+func (c *Client) GetComputeIDForService(mesh.ServiceName) []mesh.ComputeID {
+	return nil
+}
