@@ -29,7 +29,7 @@ func (e *edsStreamHandler) run(ctx context.Context, server envoy.EndpointDiscove
 		}
 
 		if request.TypeUrl != cla.ClusterLoadAssignmentURI {
-			glog.Errorf("Unknown TypeUrl: %s", request.TypeUrl)
+			glog.Errorf("[EDS][stream] Unknown TypeUrl: %s", request.TypeUrl)
 			return errUnknownTypeURL
 		}
 
@@ -44,11 +44,11 @@ func (e *edsStreamHandler) run(ctx context.Context, server envoy.EndpointDiscove
 				// TODO(draychev): flesh out the ClientIdentity
 				resp, _, err := e.catalog.ListEndpoints("TBD")
 				if err != nil {
-					glog.Error("Failed composing a DiscoveryResponse: ", err)
+					glog.Error("[EDS][stream] Failed composing a DiscoveryResponse: ", err)
 					return err
 				}
 				if err := server.Send(resp); err != nil {
-					glog.Error("[stream] Error sending DiscoveryResponse: ", err)
+					glog.Error("[EDS][stream] Error sending DiscoveryResponse: ", err)
 				}
 				break Run
 			}
