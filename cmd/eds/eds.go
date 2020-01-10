@@ -61,7 +61,7 @@ func main() {
 
 	kubeConfig, err := clientcmd.BuildConfigFromFlags("", *kubeConfigFile)
 	if err != nil {
-		glog.Fatalf("Error fetching Kubernetes config. Ensure correctness of CLI argument 'kubeconfig=%s': %s", *kubeConfigFile, err)
+		glog.Fatalf("[EDS] Error fetching Kubernetes config. Ensure correctness of CLI argument 'kubeconfig=%s': %s", *kubeConfigFile, err)
 	}
 
 	observeNamespaces := getNamespaces()
@@ -87,7 +87,7 @@ func main() {
 	<-sigChan
 
 	close(stopChan)
-	glog.Info("Goodbye!")
+	glog.Info("[EDS] Goodbye!")
 }
 
 func parseFlags() {
@@ -108,6 +108,6 @@ func getNamespaces() []string {
 	} else {
 		namespaces = []string{*namespace}
 	}
-	glog.Infof("Observing namespaces: %s", strings.Join(namespaces, ","))
+	glog.Infof("[EDS] Observing namespaces: %s", strings.Join(namespaces, ","))
 	return namespaces
 }
