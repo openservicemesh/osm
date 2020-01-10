@@ -1,4 +1,4 @@
-package eds
+package cla
 
 import (
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -11,10 +11,11 @@ import (
 )
 
 const (
-	zone = "zone"
+	zone                     = "zone"
+	ClusterLoadAssignmentURI = "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment"
 )
 
-func newClusterLoadAssignment(targetServiceName mesh.ServiceName, weightedServices []mesh.WeightedService) v2.ClusterLoadAssignment {
+func NewClusterLoadAssignment(targetServiceName mesh.ServiceName, weightedServices []mesh.WeightedService) v2.ClusterLoadAssignment {
 	cla := v2.ClusterLoadAssignment{
 		// NOTE: results.ServiceName is the top level service that is cURLed.
 		ClusterName: string(targetServiceName),
