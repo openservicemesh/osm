@@ -39,10 +39,10 @@ func NewServiceCatalog(meshTopology mesh.Topology, endpointsProviders ...endpoin
 // ListEndpoints constructs a DiscoveryResponse with all endpoints the given Envoy proxy should be aware of.
 // The bool return value indicates whether there have been any changes since the last invocation of this function.
 func (sc *ServiceCatalog) ListEndpoints(clientID mesh.ClientIdentity) (*envoy.DiscoveryResponse, bool, error) {
-	glog.Info("Listing Endpoints for client: ", clientID)
+	glog.Info("[catalog] Listing Endpoints for client: ", clientID)
 	allServices, err := sc.getWeightedEndpointsPerService()
 	if err != nil {
-		glog.Error("Could not refresh weighted services: ", err)
+		glog.Error("[catalog] Could not refresh weighted services: ", err)
 		return nil, false, err
 	}
 	var protos []*protobufTypes.Any
@@ -51,7 +51,7 @@ func (sc *ServiceCatalog) ListEndpoints(clientID mesh.ClientIdentity) (*envoy.Di
 
 		proto, err := protobufTypes.MarshalAny(&loadAssignment)
 		if err != nil {
-			glog.Errorf("Error marshalling ClusterLoadAssignmentURI %+v: %s", loadAssignment, err)
+			glog.Errorf("[catalog] Error marshalling ClusterLoadAssignmentURI %+v: %s", loadAssignment, err)
 			continue
 		}
 		protos = append(protos, proto)
@@ -110,9 +110,9 @@ func (sc *ServiceCatalog) getWeightedEndpointsPerService() (map[mesh.ServiceName
 	for _, trafficSplit := range sc.meshTopology.ListTrafficSplits() {
 		targetServiceName := mesh.ServiceName(trafficSplit.Spec.Service)
 		var services []mesh.WeightedService
-		glog.V(7).Infof("[EDS] Discovered TrafficSplit resource: %s/%s for service %s\n", trafficSplit.Namespace, trafficSplit.Name, targetServiceName)
+		glog.V(7).Infof("[EDS][catalog] Discovered TrafficSplit resource: %s/%s for service %s\n", trafficSplit.Namespace, trafficSplit.Name, targetServiceName)
 		if trafficSplit.Spec.Backends == nil {
-			glog.Errorf("[EDS] TrafficSplit %s/%s has no Backends in Spec; Skipping...", trafficSplit.Namespace, trafficSplit.Name)
+			glog.Errorf("[EDS][catalog] TrafficSplit %s/%s has no Backends in Spec; Skipping...", trafficSplit.Namespace, trafficSplit.Name)
 			continue
 		}
 		for _, trafficSplitBackend := range trafficSplit.Spec.Backends {
