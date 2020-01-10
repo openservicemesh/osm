@@ -17,7 +17,7 @@ import (
 var resyncPeriod = 1 * time.Second
 
 // NewProvider implements mesh.EndpointsProvider, which creates a new Kubernetes cluster/compute provider.
-func NewProvider(kubeConfig *rest.Config, namespaces []string, announcements chan interface{}, stop chan struct{}, providerIdent string) endpoint.Provider {
+func NewProvider(kubeConfig *rest.Config, namespaces []string, announcements chan interface{}, stop chan struct{}, providerIdent string) *Client {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 
 	var options []informers.SharedInformerOption
@@ -39,8 +39,11 @@ func NewProvider(kubeConfig *rest.Config, namespaces []string, announcements cha
 		kubeClient:    kubeClient,
 		informers:     &informerCollection,
 		caches:        &cacheCollection,
-		announcements: announcements,
-		cacheSynced:   make(chan interface{}),
+
+		// TODO(draychev): bridge announcements and this announcements
+		announcements: channels.NewRingChannel(1024),
+
+		cacheSynced: make(chan interface{}),
 	}
 
 	h := handlers{client}
@@ -53,7 +56,7 @@ func NewProvider(kubeConfig *rest.Config, namespaces []string, announcements cha
 
 	informerCollection.Endpoints.AddEventHandler(resourceHandler)
 
-	if err := client.Run(stop); err != nil {
+	if err := client.run(stop); err != nil {
 		glog.Fatal("Could not start Kubernetes EndpointProvider client", err)
 	}
 
@@ -98,8 +101,14 @@ func (c Client) ListEndpointsForService(svc endpoint.ServiceName) []endpoint.End
 	return endpoints
 }
 
-// Run executes informer collection.
-func (c *Client) Run(stopCh <-chan struct{}) error {
+func (c Client) GetAnnouncementsChannel() <-chan interface{} {
+	// return c.announcements
+	// TODO(draychev): implement
+	return make(chan interface{})
+}
+
+// run executes informer collection.
+func (c *Client) run(stop <-chan struct{}) error {
 	glog.V(1).Infoln("Kubernetes Compute Provider started")
 	var hasSynced []cache.InformerSynced
 
@@ -119,12 +128,12 @@ func (c *Client) Run(stopCh <-chan struct{}) error {
 		}
 		names = append(names, name)
 		glog.Info("Starting informer: ", name)
-		go informer.Run(stopCh)
+		go informer.Run(stop)
 		hasSynced = append(hasSynced, informer.HasSynced)
 	}
 
 	glog.V(1).Infof("Waiting informers cache sync: %+v", names)
-	if !cache.WaitForCacheSync(stopCh, hasSynced...) {
+	if !cache.WaitForCacheSync(stop, hasSynced...) {
 		return errSyncingCaches
 	}
 

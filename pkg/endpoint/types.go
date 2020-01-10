@@ -11,6 +11,9 @@ type Provider interface {
 
 	// GetID returns the unique identifier of the EndpointsProvider.
 	GetID() string
+
+	// GetAnnouncementsChannel obtains the channel on which providers will announce changes to the infrastructure.
+	GetAnnouncementsChannel() <-chan interface{}
 }
 
 // Endpoint is a tuple of IP and Port, representing an Envoy proxy, fronting an instance of a service

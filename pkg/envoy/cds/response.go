@@ -4,18 +4,13 @@ import (
 	"fmt"
 	"time"
 
-	api "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	v2core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-
-	"github.com/deislabs/smc/pkg/envoy"
-	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/gogo/protobuf/types"
 	"github.com/golang/glog"
-)
 
-const (
-	sleepTime = 5
+	"github.com/deislabs/smc/pkg/envoy"
 )
 
 func (s *Server) newDiscoveryResponse(proxy envoy.Proxyer) (*xds.DiscoveryResponse, error) {
@@ -37,7 +32,7 @@ func (s *Server) newDiscoveryResponse(proxy envoy.Proxyer) (*xds.DiscoveryRespon
 		ClusterDiscoveryType: &xds.Cluster_Type{
 			Type: xds.Cluster_EDS,
 		},
-		EdsClusterConfig: &api.Cluster_EdsClusterConfig{
+		EdsClusterConfig: &xds.Cluster_EdsClusterConfig{
 			EdsConfig: &v2core.ConfigSource{
 				ConfigSourceSpecifier: &v2core.ConfigSource_ApiConfigSource{
 					ApiConfigSource: &v2core.ApiConfigSource{

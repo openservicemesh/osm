@@ -66,7 +66,7 @@ func (e *EDS) StreamEndpoints(server eds.EndpointDiscoveryService_StreamEndpoint
 	clientIdentity = getClientIdentity(server)
 
 	// the EDS struct implements the proposed EndpointsDiscoverer interface
-	announcementsChan chan struct{}
+	announcementsChan chan interface{}
 	announcementsChan = e.catalog.GetAnnouncementChannel()
 
 	e.RegisterNewEndpoint()
@@ -110,7 +110,7 @@ type ServiceCatalog interface {
     ListEndpointsProviders() []EndpointsProvider
 
     // GetAnnouncementChannel returns an instance of a channel, which notifies the system of an event requiring the execution of ListEndpoints.
-    GetAnnouncementChannel() chan struct{}
+    GetAnnouncementChannel() chan interface{}
 }
 ```
 
@@ -125,7 +125,7 @@ type ClientIdentity string
   - `ListEndpoints(ClientIdentity) (envoy.DiscoveryResponse, bool, error)` - constructs a `DiscoveryResponse` with all endpoints the given Envoy proxy should be aware of. This may implement caching. When no changes have been detected since the last invocation of this function, the `bool` parameter would return `true`.
   - `RegisterNewEndpoint(ClientIdentity)` - adds a newly connected Envoy proxy (new gRPC server) to the list of self-announced endpoints for a service.
   - `ListEndpointsProviders() []EndpointsProvider` - retrieves the full list of endpoints providers registered with Service Catalog so far.
-  - `GetAnnouncementChannel() chan struct{}` - returns an instance of a channel, which notifies the system of an event requiring the execution of ListEndpoints. An event on this channel may appear as a result of a change in the SMI Sper definitions, rotation of a certificate, etc.
+  - `GetAnnouncementChannel() chan interface{}` - returns an instance of a channel, which notifies the system of an event requiring the execution of ListEndpoints. An event on this channel may appear as a result of a change in the SMI Sper definitions, rotation of a certificate, etc.
 
 
 #### Implementation Details of the Service Catalog

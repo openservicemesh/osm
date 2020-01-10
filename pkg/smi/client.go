@@ -26,10 +26,11 @@ import (
 var resyncPeriod = 1 * time.Second
 
 // We have a few different k8s clients. This identifies these in logs.
-const kubernetesClientName = "Specification"
+const kubernetesClientName = "MeshSpec"
 
 // NewMeshSpecClient implements mesh.MeshSpec and creates the Kubernetes client, which retrieves SMI specific CRDs.
 func NewMeshSpecClient(kubeConfig *rest.Config, namespaces []string, announcements chan interface{}, stop chan struct{}) MeshSpec {
+	// func NewMeshSpecClient(kubeConfig *rest.Config, namespaces []string, announcement chan interface{}, stop chan struct{}) MeshSpec {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 	smiTrafficSplitClientSet := smiTrafficSplitClientVersion.NewForConfigOrDie(kubeConfig)
 	smiTrafficSpecClientSet := smiTrafficSpecClientVersion.NewForConfigOrDie(kubeConfig)

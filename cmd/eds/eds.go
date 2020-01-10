@@ -9,15 +9,16 @@ import (
 	"strings"
 	"syscall"
 
-	envoyControlPlane "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/deislabs/smc/pkg/catalog"
+	"github.com/deislabs/smc/pkg/certificate"
 	"github.com/deislabs/smc/pkg/constants"
 	"github.com/deislabs/smc/pkg/endpoint"
-	edsServer "github.com/deislabs/smc/pkg/envoy/eds"
+	"github.com/deislabs/smc/pkg/envoy/eds"
 	"github.com/deislabs/smc/pkg/providers/azure"
 	azureResource "github.com/deislabs/smc/pkg/providers/azure/kubernetes"
 	"github.com/deislabs/smc/pkg/providers/kube"
@@ -30,12 +31,12 @@ const (
 )
 
 var (
-	flags          = pflag.NewFlagSet(`diplomat-edsServer`, pflag.ExitOnError)
+	flags          = pflag.NewFlagSet(`diplomat-eds`, pflag.ExitOnError)
 	kubeConfigFile = flags.String("kubeconfig", "", "Path to Kubernetes config file.")
 	azureAuthFile  = flags.String("azureAuthFile", "", "Path to Azure Auth File")
 	subscriptionID = flags.String("subscriptionID", "", "Azure Subscription")
 	verbosity      = flags.Int("verbosity", 1, "Set logging verbosity level")
-	namespace      = flags.String("namespace", "default", "Kubernetes namespace to watch.")
+	namespace      = flags.String("namespace", "default", "Kubernetes namespace to watch for SMI Spec.")
 	port           = flags.Int("port", 15124, "Endpoint Discovery Services port number. (Default: 15124)")
 	certPem        = flags.String("certpem", "", fmt.Sprintf("Full path to the %s Certificate PEM file", serverType))
 	keyPem         = flags.String("keypem", "", fmt.Sprintf("Full path to the %s Key PEM file", serverType))
@@ -56,25 +57,32 @@ func main() {
 
 	kubeConfig, err := clientcmd.BuildConfigFromFlags("", *kubeConfigFile)
 	if err != nil {
-		glog.Fatalf("[EDS] Error fetching Kubernetes config. Ensure correctness of CLI argument 'kubeconfig=%s': %s", *kubeConfigFile, err)
+		glog.Fatalf("[Server] Error fetching Kubernetes config. Ensure correctness of CLI argument 'kubeconfig=%s': %s", *kubeConfigFile, err)
 	}
 
 	observeNamespaces := getNamespaces()
 
 	stop := make(chan struct{})
-	meshSpecClient := smi.NewMeshSpecClient(kubeConfig, observeNamespaces, announcements, stop)
+
+	meshSpec := smi.NewMeshSpecClient(kubeConfig, observeNamespaces, announcements, stop)
+	certManager := certificate.NewManager(stop)
 	azureResourceClient := azureResource.NewClient(kubeConfig, observeNamespaces, announcements, stop)
 
 	endpointsProviders := []endpoint.Provider{
 		azure.NewProvider(*subscriptionID, *azureAuthFile, announcements, stop, meshSpecClient, azureResourceClient, constants.AzureProviderName),
 		kube.NewProvider(kubeConfig, observeNamespaces, announcements, stop, constants.KubeProviderName),
+
+		// azure.NewProvider(*subscriptionID, *azureAuthFile, announcements, stop, meshSpec, azureResourceClient, azureProviderName),
+		// kube.NewProvider(kubeConfig, observeNamespaces, announcements, stop, kubernetesProviderName),
+
 	}
 
-	serviceCatalog := catalog.NewServiceCatalog(meshSpecClient, endpointsProviders...)
+	meshCatalog := catalog.NewMeshCatalog(meshSpec, certManager, stop, endpointsProviders...)
+	edsServer := eds.NewEDSServer(ctx, meshCatalog, meshSpec, announcements)
 
 	grpcServer, lis := utils.NewGrpc(serverType, *port, *certPem, *keyPem, *rootCertPem)
-	eds := edsServer.NewEDSServer(ctx, serviceCatalog, meshSpecClient, announcements)
-	envoyControlPlane.RegisterEndpointDiscoveryServiceServer(grpcServer, eds)
+	xds.RegisterEndpointDiscoveryServiceServer(grpcServer, edsServer)
+
 	go utils.GrpcServe(ctx, grpcServer, lis, cancel, serverType)
 
 	sigChan := make(chan os.Signal, 1)

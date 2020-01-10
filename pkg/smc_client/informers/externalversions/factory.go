@@ -108,20 +108,20 @@ func NewSharedInformerFactoryWithOptions(client versioned.Interface, defaultResy
 }
 
 // Start initializes all requested informers.
-func (f *sharedInformerFactory) Start(stopCh <-chan struct{}) {
+func (f *sharedInformerFactory) Start(stop <-chan struct{}) {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 
 	for informerType, informer := range f.informers {
 		if !f.startedInformers[informerType] {
-			go informer.Run(stopCh)
+			go informer.Run(stop)
 			f.startedInformers[informerType] = true
 		}
 	}
 }
 
 // WaitForCacheSync waits for all started informers' cache were synced.
-func (f *sharedInformerFactory) WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool {
+func (f *sharedInformerFactory) WaitForCacheSync(stop <-chan struct{}) map[reflect.Type]bool {
 	informers := func() map[reflect.Type]cache.SharedIndexInformer {
 		f.lock.Lock()
 		defer f.lock.Unlock()
@@ -137,7 +137,7 @@ func (f *sharedInformerFactory) WaitForCacheSync(stopCh <-chan struct{}) map[ref
 
 	res := map[reflect.Type]bool{}
 	for informType, informer := range informers {
-		res[informType] = cache.WaitForCacheSync(stopCh, informer.HasSynced)
+		res[informType] = cache.WaitForCacheSync(stop, informer.HasSynced)
 	}
 	return res
 }
@@ -170,7 +170,7 @@ func (f *sharedInformerFactory) InformerFor(obj runtime.Object, newFunc internal
 type SharedInformerFactory interface {
 	internalinterfaces.SharedInformerFactory
 	ForResource(resource schema.GroupVersionResource) (GenericInformer, error)
-	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
+	WaitForCacheSync(stop <-chan struct{}) map[reflect.Type]bool
 
 	Smc() azureresource.Interface
 }
