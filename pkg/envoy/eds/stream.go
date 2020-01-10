@@ -9,6 +9,8 @@ import (
 	protobufTypes "github.com/gogo/protobuf/types"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
+
+	"github.com/deislabs/smc/pkg/envoy/cla"
 )
 
 type edsStreamHandler struct {
@@ -29,7 +31,7 @@ func (e *edsStreamHandler) run(ctx context.Context, server envoy.EndpointDiscove
 			return errors.Wrap(err, "recv")
 		}
 
-		if request.TypeUrl != clusterLoadAssignment {
+		if request.TypeUrl != cla.ClusterLoadAssignmentURI {
 			glog.Errorf("unknown TypeUrl %s", request.TypeUrl)
 			return errUnknownTypeURL
 		}
@@ -62,10 +64,10 @@ func (e *edsStreamHandler) updateEnvoyProxies(server envoy.EndpointDiscoveryServ
 	}
 
 	for targetServiceName, weightedServices := range allServices {
-		cla := newClusterLoadAssignment(targetServiceName, weightedServices)
+		loadAssignment := cla.NewClusterLoadAssignment(targetServiceName, weightedServices)
 		var protos []*protobufTypes.Any
-		if proto, err := protobufTypes.MarshalAny(&cla); err != nil {
-			glog.Errorf("Error marshalling ClusterLoadAssignment %+v: %s", cla, err)
+		if proto, err := protobufTypes.MarshalAny(&loadAssignment); err != nil {
+			glog.Errorf("Error marshalling ClusterLoadAssignment %+v: %s", loadAssignment, err)
 		} else {
 			protos = append(protos, proto)
 		}
