@@ -10,6 +10,11 @@ import (
 	"github.com/golang/glog"
 )
 
+const (
+	maxAuthRetryCount = 10
+	retryPause        = 10 * time.Second
+)
+
 /*
 // TODO(draychev)
 func waitForAzureAuth(azClient Client, maxAuthRetryCount int, retryPause time.Duration) error {
@@ -32,7 +37,7 @@ func waitForAzureAuth(azClient Client, maxAuthRetryCount int, retryPause time.Du
 }
 */
 
-func getAuthorizerWithRetry(azureAuthFile string, maxAuthRetryCount int, retryPause time.Duration) (autorest.Authorizer, error) {
+func getAuthorizerWithRetry(azureAuthFile string) (autorest.Authorizer, error) {
 	var err error
 	retryCount := 0
 	for {

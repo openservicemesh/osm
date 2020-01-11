@@ -1,21 +1,23 @@
 package cla
 
 import (
+	endpoint2 "github.com/deislabs/smc/pkg/endpoint"
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	"github.com/gogo/protobuf/types"
 	"github.com/golang/glog"
-
-	"github.com/deislabs/smc/pkg/mesh"
 )
 
 const (
-	zone                     = "zone"
+	zone = "zone"
+
+	// ClusterLoadAssignmentURI is the string constant of the Cluster Load Assignment URI
 	ClusterLoadAssignmentURI = "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment"
 )
 
-func NewClusterLoadAssignment(targetServiceName mesh.ServiceName, weightedServices []mesh.WeightedService) v2.ClusterLoadAssignment {
+// NewClusterLoadAssignment constructs the Envoy struct necessary for TrafficSplit implementation.
+func NewClusterLoadAssignment(targetServiceName endpoint2.ServiceName, weightedServices []endpoint2.WeightedService) v2.ClusterLoadAssignment {
 	cla := v2.ClusterLoadAssignment{
 		// NOTE: results.ServiceName is the top level service that is cURLed.
 		ClusterName: string(targetServiceName),
@@ -31,13 +33,13 @@ func NewClusterLoadAssignment(targetServiceName mesh.ServiceName, weightedServic
 
 	for _, delegateService := range weightedServices {
 		glog.Infof("Adding delegate service %+v to target service %s", delegateService, targetServiceName)
-		lenIPs := len(delegateService.IPs)
+		lenIPs := len(delegateService.Endpoints)
 		if lenIPs == 0 {
 			lenIPs = 1
 		}
 		weight := uint32(delegateService.Weight / lenIPs)
-		for _, ip := range delegateService.IPs {
-			glog.Infof("[EDS][ClusterLoadAssignment] Adding Endpoint: Cluster=%s, Service=%s, IP=%s, Weight=%d\n", targetServiceName, delegateService.ServiceName, ip, weight)
+		for _, meshEndpoint := range delegateService.Endpoints {
+			glog.Infof("[EDS][ClusterLoadAssignment] Adding Endpoint: Cluster=%s, Services=%s, Endpoint=%+v, Weight=%d\n", targetServiceName, delegateService.ServiceName, meshEndpoint, weight)
 			lbEpt := endpoint.LbEndpoint{
 				HostIdentifier: &endpoint.LbEndpoint_Endpoint{
 					Endpoint: &endpoint.Endpoint{
@@ -45,10 +47,9 @@ func NewClusterLoadAssignment(targetServiceName mesh.ServiceName, weightedServic
 							Address: &core.Address_SocketAddress{
 								SocketAddress: &core.SocketAddress{
 									Protocol: core.TCP,
-									Address:  string(ip),
+									Address:  string(meshEndpoint.IP),
 									PortSpecifier: &core.SocketAddress_PortValue{
-										// TODO(draychev): discover the port dynamically - service catalog
-										PortValue: uint32(15003),
+										PortValue: uint32(meshEndpoint.Port),
 									},
 								},
 							},
