@@ -8,9 +8,6 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
-	"time"
-
-	"github.com/deislabs/smc/pkg/utils"
 
 	"github.com/eapache/channels"
 	envoyControlPlane "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -19,9 +16,13 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/deislabs/smc/pkg/catalog"
+	"github.com/deislabs/smc/pkg/endpoint"
 	edsServer "github.com/deislabs/smc/pkg/envoy/eds"
 	"github.com/deislabs/smc/pkg/providers/azure"
+	azureResource "github.com/deislabs/smc/pkg/providers/azure/kubernetes"
 	"github.com/deislabs/smc/pkg/providers/kube"
+	"github.com/deislabs/smc/pkg/smi"
+	"github.com/deislabs/smc/pkg/utils"
 )
 
 const (
@@ -29,14 +30,10 @@ const (
 
 	defaultNamespace = "default"
 
-	maxAuthRetryCount = 10
-	retryPause        = 10 * time.Second
-
 	// These strings identify the participating clusters / endpoint providers.
-	// Ideally these strings should be not only the kind of compute but also
-	// a unique identifier, like the FQDN of the cluster, or the subscription
-	// within the cloud vendor.
-	azureProvidername      = "Azure"
+	// Ideally these should be not only the type of compute but also a unique identifier, like the FQDN of the cluster,
+	// or the subscription within the cloud vendor.
+	azureProviderName      = "Azure"
 	kubernetesProviderName = "Kubernetes"
 )
 
@@ -47,7 +44,7 @@ var (
 	subscriptionID = flags.String("subscriptionID", "", "Azure Subscription")
 	verbosity      = flags.Int("verbosity", 1, "Set logging verbosity level")
 	namespace      = flags.String("namespace", "default", "Kubernetes namespace to watch.")
-	port           = flags.Int("port", 15124, "Endpoint Discovery Service port number. (Default: 15124)")
+	port           = flags.Int("port", 15124, "Endpoint Discovery Services port number. (Default: 15124)")
 )
 
 func main() {
@@ -57,23 +54,28 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// This channel will be read by ServiceName Mesh Controller, and written to by the compute and SMI observers.
-	// This is a signalling mechanism to notify SMC of a service mesh topology change,
-	// which would trigger Envoy updates.
+	// SMI Informers will write to this channel when they notice changes.
+	// This channel will be consumed by the ServiceName Mesh Controller.
+	// This is a signalling mechanism to notify SMC of a service mesh topology change which triggers Envoy updates.
 	announceChan := channels.NewRingChannel(1024)
 
 	kubeConfig, err := clientcmd.BuildConfigFromFlags("", *kubeConfigFile)
 	if err != nil {
-		glog.Fatalf("Error gathering Kubernetes config. Ensure correctness of CLI argument 'kubeconfig=%s': %s", *kubeConfigFile, err)
+		glog.Fatalf("[EDS] Error fetching Kubernetes config. Ensure correctness of CLI argument 'kubeconfig=%s': %s", *kubeConfigFile, err)
 	}
 
-	stopChan := make(chan struct{})
-	meshTopologyClient := kube.NewMeshSpecClient(kubeConfig, getNamespaces(), 1*time.Second, announceChan, stopChan)
-	kubernetesProvider := kube.NewProvider(kubeConfig, getNamespaces(), 1*time.Second, announceChan, kubernetesProviderName)
-	azureProvider := azure.NewProvider(*subscriptionID, *namespace, *azureAuthFile, maxAuthRetryCount, retryPause, announceChan, meshTopologyClient, azureProvidername)
+	observeNamespaces := getNamespaces()
 
-	// ServiceName Catalog is the facility, which we query to get the list of services, weights for traffic split etc.
-	serviceCatalog := catalog.NewServiceCatalog(meshTopologyClient, stopChan, kubernetesProvider, azureProvider)
+	stopChan := make(chan struct{})
+	meshTopologyClient := smi.NewMeshTopologyClient(kubeConfig, observeNamespaces, announceChan, stopChan)
+	azureResourceClient := azureResource.NewClient(kubeConfig, observeNamespaces, announceChan, stopChan)
+
+	endpointsProviders := []endpoint.Provider{
+		azure.NewProvider(*subscriptionID, *azureAuthFile, announceChan, stopChan, meshTopologyClient, azureResourceClient, azureProviderName),
+		kube.NewProvider(kubeConfig, observeNamespaces, announceChan, stopChan, kubernetesProviderName),
+	}
+
+	serviceCatalog := catalog.NewServiceCatalog(meshTopologyClient, endpointsProviders...)
 
 	grpcServer, lis := utils.NewGrpc(serverType, *port)
 	eds := edsServer.NewEDSServer(ctx, serviceCatalog, meshTopologyClient, announceChan)
@@ -85,7 +87,7 @@ func main() {
 	<-sigChan
 
 	close(stopChan)
-	glog.Info("Goodbye!")
+	glog.Info("[EDS] Goodbye!")
 }
 
 func parseFlags() {
@@ -106,6 +108,6 @@ func getNamespaces() []string {
 	} else {
 		namespaces = []string{*namespace}
 	}
-	glog.Infof("Observing namespaces: %s", strings.Join(namespaces, ","))
+	glog.Infof("[EDS] Observing namespaces: %s", strings.Join(namespaces, ","))
 	return namespaces
 }

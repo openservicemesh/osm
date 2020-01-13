@@ -1,9 +1,6 @@
 package azure
 
 import (
-	"context"
-	"time"
-
 	r "github.com/Azure/azure-sdk-for-go/profiles/latest/resources/mgmt/resources"
 	c "github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2018-04-01/compute"
 	n "github.com/Azure/azure-sdk-for-go/services/network/mgmt/2019-06-01/network"
@@ -11,32 +8,41 @@ import (
 	"github.com/eapache/channels"
 	"github.com/golang/glog"
 
+	"github.com/deislabs/smc/pkg/endpoint"
 	"github.com/deislabs/smc/pkg/mesh"
 )
 
-// newClient creates an Azure Client
-func newClient(subscriptionID string, namespace string, azureAuthFile string, maxAuthRetryCount int, retryPause time.Duration, announceChan *channels.RingChannel, meshTopology mesh.MeshTopology, providerIdent string) mesh.EndpointsProvider {
+// NewProvider creates an Azure Client
+func NewProvider(subscriptionID string, azureAuthFile string, announceChan *channels.RingChannel, stopChan chan struct{}, meshTopology mesh.Topology, azureResourceClient ResourceClient, providerIdent string) endpoint.Provider {
 	var authorizer autorest.Authorizer
 	var err error
-	if authorizer, err = getAuthorizerWithRetry(azureAuthFile, maxAuthRetryCount, retryPause); err != nil {
+	if authorizer, err = getAuthorizerWithRetry(azureAuthFile); err != nil {
 		glog.Fatal("Failed obtaining authentication token for Azure Resource Manager")
 	}
 
 	// TODO(draychev): The subscriptionID should be observed from the AzureResource (SMI)
 	az := Client{
-		namespace:         namespace,
-		publicIPsClient:   n.NewPublicIPAddressesClient(subscriptionID),
-		groupsClient:      r.NewGroupsClient(subscriptionID),
-		deploymentsClient: r.NewDeploymentsClient(subscriptionID),
-		vmssClient:        c.NewVirtualMachineScaleSetsClient(subscriptionID),
-		vmClient:          c.NewVirtualMachinesClient(subscriptionID),
-		netClient:         n.NewInterfacesClient(subscriptionID),
-		subscriptionID:    subscriptionID,
-		ctx:               context.Background(),
-		authorizer:        authorizer,
-		announceChan:      announceChan,
-		meshTopology:      meshTopology,
-		providerIdent:     providerIdent,
+		azureClients: azureClients{
+			publicIPsClient: n.NewPublicIPAddressesClient(subscriptionID),
+			netClient:       n.NewInterfacesClient(subscriptionID),
+
+			groupsClient:      r.NewGroupsClient(subscriptionID),
+			deploymentsClient: r.NewDeploymentsClient(subscriptionID),
+
+			vmssClient: c.NewVirtualMachineScaleSetsClient(subscriptionID),
+			vmClient:   c.NewVirtualMachinesClient(subscriptionID),
+
+			authorizer: authorizer,
+		},
+
+		subscriptionID: subscriptionID,
+		announceChan:   announceChan,
+		meshTopology:   meshTopology,
+		providerID:     providerIdent,
+
+		// AzureResource Client is needed here so the Azure EndpointsProvider can resolve a Kubernetes ServiceName
+		// into an Azure URI. (Example: resolve "webService" to an IP of a VM.)
+		azureResourceClient: azureResourceClient,
 	}
 
 	az.publicIPsClient.Authorizer = az.authorizer
@@ -52,6 +58,10 @@ func newClient(subscriptionID string, namespace string, azureAuthFile string, ma
 				glog.Fatal("Failed authenticating with Azure Resource Manager: ", err)
 			}
 	*/
+
+	if err := az.Run(stopChan); err != nil {
+		glog.Fatal("[azure] Could not start Azure EndpointsProvider client", err)
+	}
 
 	return az
 }

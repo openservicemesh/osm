@@ -5,18 +5,18 @@ import (
 	"time"
 
 	"github.com/eapache/channels"
-
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
 
+	"github.com/deislabs/smc/pkg/catalog"
 	"github.com/deislabs/smc/pkg/mesh"
 )
 
-// EDS implements the Envoy xDS Endpoint Discovery Service
+// EDS implements the Envoy xDS Endpoint Discovery Services
 type EDS struct {
 	ctx          context.Context // root context
-	catalog      mesh.ServiceCataloger
-	meshTopology mesh.MeshTopology
+	catalog      catalog.ServiceCataloger
+	meshTopology mesh.Topology
 	announceChan *channels.RingChannel
 }
 
@@ -31,7 +31,7 @@ func (e *EDS) DeltaEndpoints(xds.EndpointDiscoveryService_DeltaEndpointsServer) 
 }
 
 // NewEDSServer creates a new EDS server
-func NewEDSServer(ctx context.Context, catalog mesh.ServiceCataloger, meshTopology mesh.MeshTopology, announceChan *channels.RingChannel) *EDS {
+func NewEDSServer(ctx context.Context, catalog catalog.ServiceCataloger, meshTopology mesh.Topology, announceChan *channels.RingChannel) *EDS {
 	glog.Info("[EDS] Create NewEDSServer...")
 	return &EDS{
 		ctx:          ctx,
