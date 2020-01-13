@@ -217,7 +217,7 @@ type MeshTopology interface {
     ListServices() []ServiceName
 
    // GetService fetches a specific Kubernetes Service referenced in an SMI Spec resource.
-   GetService(ServiceName) (service *.Service, exists bool, err error)
+   GetService(ServiceName) (service *Service, exists bool, err error)
 }
 ```
 
