@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestClusterLOadAssignment(t *testing.T) {
+func TestClusterLoadAssignment(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Environment Suite")
 }
