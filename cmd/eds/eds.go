@@ -45,6 +45,9 @@ var (
 	verbosity      = flags.Int("verbosity", 1, "Set logging verbosity level")
 	namespace      = flags.String("namespace", "default", "Kubernetes namespace to watch.")
 	port           = flags.Int("port", 15124, "Endpoint Discovery Services port number. (Default: 15124)")
+	certPem        = flags.String("certpem", "", fmt.Sprintf("Full path to the %s Certificate PEM file", serverType))
+	keyPem         = flags.String("keypem", "", fmt.Sprintf("Full path to the %s Key PEM file", serverType))
+	rootCertPem    = flags.String("rootcertpem", "", "Full path to the Root Certificate PEM file")
 )
 
 func main() {
@@ -77,7 +80,7 @@ func main() {
 
 	serviceCatalog := catalog.NewServiceCatalog(meshTopologyClient, endpointsProviders...)
 
-	grpcServer, lis := utils.NewGrpc(serverType, *port)
+	grpcServer, lis := utils.NewGrpc(serverType, *port, *certPem, *keyPem, *rootCertPem)
 	eds := edsServer.NewEDSServer(ctx, serviceCatalog, meshTopologyClient, announceChan)
 	envoyControlPlane.RegisterEndpointDiscoveryServiceServer(grpcServer, eds)
 	go utils.GrpcServe(ctx, grpcServer, lis, cancel, serverType)

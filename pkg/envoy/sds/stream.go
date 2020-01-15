@@ -3,17 +3,34 @@ package sds
 import (
 	"io"
 
+	"github.com/deislabs/smc/pkg/utils"
 	envoyv2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	v2 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	"github.com/fsnotify/fsnotify"
 	"github.com/golang/glog"
+	"github.com/pkg/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+)
+
+const (
+	serverName = "SDS"
 )
 
 // StreamSecrets handles streaming of the certs to the connected Envoy proxies
 func (s *Server) StreamSecrets(stream v2.SecretDiscoveryService_StreamSecretsServer) error {
 	glog.Info("[SDS] Starting SecretsStreamer...")
+
+	// When a new Envoy proxy connects, ValidateClient would ensure that it has a valid certificate,
+	// and the Subject CN is in the allowedCommonNames set.
+	cn, err := utils.ValidateClient(stream.Context(), nil, serverName)
+	if err != nil {
+		return errors.Wrap(err, "[SDS] Could not start stream")
+	}
+
+	// TODO(draychev): Use the Subject Common Name to identify the Envoy proxy and determine what service it belongs to.
+	glog.Infof("[SDS][stream] Client connected: Subject CN=%+v", cn)
+
 	var recvErr error
 	var nodeID string
 

@@ -26,6 +26,9 @@ var (
 	keysDirectory = flags.String("keys-directory", "", "Directory where the keys are stored")
 	verbosity     = flags.Int("verbosity", 1, "Set logging verbosity level")
 	port          = flags.Int("port", 15123, "Secrets Discovery Service port number. (Default: 15123)")
+	certPem       = flags.String("certpem", "", fmt.Sprintf("Full path to the %s Certificate PEM file", serverType))
+	keyPem        = flags.String("keypem", "", fmt.Sprintf("Full path to the %s Key PEM file", serverType))
+	rootCertPem   = flags.String("rootcertpem", "", "Full path to the Root Certificate PEM file")
 )
 
 func main() {
@@ -35,7 +38,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	grpcServer, lis := utils.NewGrpc(serverType, *port)
+	grpcServer, lis := utils.NewGrpc(serverType, *port, *certPem, *keyPem, *rootCertPem)
 	sds := sdsServer.NewSDSServer(keysDirectory)
 	envoyControlPlane.RegisterSecretDiscoveryServiceServer(grpcServer, sds)
 	go utils.GrpcServe(ctx, grpcServer, lis, cancel, serverType)
