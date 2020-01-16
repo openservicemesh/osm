@@ -227,12 +227,6 @@ type MeshTopology interface {
 ### Fundamental Types
 The following types are referenced in the interfaces proposed in this document:
 
-  -  IP
-      ```go
-      // IP is the IP of an Envoy proxy, member of a service
-      type IP string
-      ```
-
   -  Port
       ```go
       // Port is a numerical port of an Envoy proxy
