@@ -1,11 +1,12 @@
 package azure
 
 import (
+	"net"
+
 	"github.com/Azure/azure-sdk-for-go/profiles/latest/resources/mgmt/resources"
 	"github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2018-04-01/compute"
 	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2019-06-01/network"
 	"github.com/Azure/go-autorest/autorest"
-	"github.com/deislabs/smc/pkg/endpoint"
 	"github.com/eapache/channels"
 
 	smc "github.com/deislabs/smc/pkg/apis/azureresource/v1"
@@ -26,7 +27,7 @@ type azureID string
 
 // computeObserver is a function which is specialized to a specific Azure compute and knows how to monitor this
 // for IP address changes. For instance: VM, VMSS.
-type computeObserver func(resourceGroup, azureID) ([]endpoint.IP, error)
+type computeObserver func(resourceGroup, azureID) ([]net.IP, error)
 
 type azureClients struct {
 	publicIPsClient network.PublicIPAddressesClient
