@@ -20,7 +20,8 @@ This section focuses specifically on the interfaces required to implement a full
 ### EDS Building Blocks
 The components composing the EDS server are:
   - [Service Catalog](#service-catalog) - the heart of the service mesh controller merges the outputs of the [Mesh Topology](#mesh-topology) and [Endpoints Providers](#endpoints-providers) components. This component:
-      - Keeps track of all services defined in SMI and the Endpoints serving these services
+      - Keeps track of all services declared via SMI Spec (services referenced in `TrafficSplit` and `TrafficTarget`)
+      - Tracks all Endpoints connected to xDS and backing the services in the privous point
       - Maintains cache of `DiscoveryResponse` sructs sent to known Envoy proxies
   - [Mesh Topology](#mesh-topology) - a wrapper around the SMI Spec informers, abstracting away the storage that implements SMI; provides the simplest possible List* functions.
   - [Endpoints Providers](#endpoints-providers)
