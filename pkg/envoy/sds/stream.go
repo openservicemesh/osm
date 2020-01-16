@@ -38,6 +38,15 @@ func (s *Server) StreamSecrets(stream v2.SecretDiscoveryService_StreamSecretsSer
 		return err
 	}
 
+	/*
+		// TODO(draychev): enable this once we have ServiceCatalog in s.
+			// Register the newly connected Envoy proxy.
+			connectedProxyIPAddress := net.IP("TBD")
+			connectedProxyCertCommonName := certificate.CommonName("TBD")
+			proxy := envoy.NewProxy(connectedProxyCertCommonName, connectedProxyIPAddress)
+			s.catalog.RegisterProxy(proxy)
+	*/
+
 	reqChannel := make(chan *envoyv2.DiscoveryRequest, 1)
 
 	go func() {

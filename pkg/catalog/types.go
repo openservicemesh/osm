@@ -6,6 +6,7 @@ import (
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 
 	"github.com/deislabs/smc/pkg/endpoint"
+	smcEnvoy "github.com/deislabs/smc/pkg/envoy"
 	"github.com/deislabs/smc/pkg/mesh"
 )
 
@@ -33,4 +34,7 @@ type ServiceCataloger interface {
 
 	// GetAnnouncementChannel returns an instance of a channel, which notifies the system of an event requiring the execution of ListEndpoints.
 	GetAnnouncementChannel() chan struct{}
+
+	// RegisterProxy registers a newly connected proxy with the service mesh catalog.
+	RegisterProxy(smcEnvoy.Proxyer)
 }

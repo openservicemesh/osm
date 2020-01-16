@@ -10,6 +10,7 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/deislabs/smc/pkg/endpoint"
+	smcEnvoy "github.com/deislabs/smc/pkg/envoy"
 	"github.com/deislabs/smc/pkg/envoy/cla"
 	"github.com/deislabs/smc/pkg/mesh"
 )
@@ -168,6 +169,12 @@ func (sc *ServiceCatalog) ListEndpointsProviders() []endpoint.Provider {
 
 // GetAnnouncementChannel returns an instance of a channel, which notifies the system of an event requiring the execution of ListEndpoints.
 func (sc *ServiceCatalog) GetAnnouncementChannel() chan struct{} {
+	// TODO(draychev): implement
+	panic("NotImplemented")
+}
+
+// RegisterProxy implements ServiceCatalog and registers a newly connected proxy.
+func (sc *ServiceCatalog) RegisterProxy(proxy smcEnvoy.Proxyer) {
 	// TODO(draychev): implement
 	panic("NotImplemented")
 }
