@@ -1,6 +1,20 @@
 #!make
 
-SHELL:=bash
+TARGETS    := linux/amd64
+LDFLAGS    :=
+SHELL      := bash
+
+GOPATH = $(shell go env GOPATH)
+GOBIN  = $(GOPATH)/bin
+GOX    = $(GOPATH)/bin/gox
+
+HAS_GOX := $(shell command -v gox)
+
+.PHONY: gox
+gox:
+ifndef HAS_GOX
+	 GOBIN=$(GOBIN) go get -u github.com/mitchellh/gox
+endif
 
 include .env
 
@@ -25,8 +39,20 @@ build-eds: clean-eds
 	@mkdir -p $(shell pwd)/bin
 	CGO_ENABLED=0 go build -v -o ./bin/eds ./cmd/eds
 
+.PHONY: build-cross
+build-cross: LDFLAGS += -extldflags "-static"
+build-cross: build-cross-eds build-cross-sds
+
+.PHONY: build-cross-eds
+build-cross-eds: gox
+	GO111MODULE=on CGO_ENABLED=0 $(GOX) -output="./bin/{{.OS}}-{{.Arch}}/eds" -osarch='$(TARGETS)' -ldflags '$(LDFLAGS)' ./cmd/eds
+
+.PHONY: build-cross-sds
+build-cross-sds: gox
+	GO111MODULE=on CGO_ENABLED=0 $(GOX) -output="./bin/{{.OS}}-{{.Arch}}/sds" -osarch='$(TARGETS)' -ldflags '$(LDFLAGS)' ./cmd/sds
+
 .PHONY: docker-build
-docker-build: build docker-build-sds docker-build-eds docker-build-bookbuyer docker-build-bookstore
+docker-build: build-cross docker-build-sds docker-build-eds docker-build-bookbuyer docker-build-bookstore
 
 .PHONY: go-vet
 go-vet:
@@ -47,12 +73,11 @@ go-test:
 
 ### docker targets
 .PHONY: docker-build-eds
-docker-build-eds: build-eds
-	@mkdir -p ./bin/
+docker-build-eds: build-cross-eds
 	docker build --build-arg $(HOME)/go/ -t $(CTR_REGISTRY)/eds -f dockerfiles/Dockerfile.eds .
 
 .PHONY: docker-build-sds
-docker-build-sds: build-sds sds-root-tls
+docker-build-sds: build-cross-sds sds-root-tls
 	@mkdir -p ./bin/
 	docker build --build-arg $(HOME)/go/ -t $(CTR_REGISTRY)/sds -f dockerfiles/Dockerfile.sds .
 
@@ -60,7 +85,7 @@ docker-build-sds: build-sds sds-root-tls
 build-counter:
 	@rm -rf $(shell pwd)/demo/bin
 	@mkdir -p $(shell pwd)/demo/bin
-	CGO_ENABLED=0 go build -o ./demo/bin/counter ./demo/counter.go
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ./demo/bin/counter ./demo/counter.go
 
 .PHONY: docker-build-bookbuyer
 docker-build-bookbuyer:
