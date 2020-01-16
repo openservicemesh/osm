@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/deislabs/smc/pkg/certificate"
+	smcEnvoy "github.com/deislabs/smc/pkg/envoy"
 	"github.com/deislabs/smc/pkg/envoy/cla"
 )
 
@@ -30,7 +31,7 @@ func (e *EDS) StreamEndpoints(server envoy.EndpointDiscoveryService_StreamEndpoi
 	// Register the newly connected Envoy proxy.
 	connectedProxyIPAddress := net.IP("TBD")
 	connectedProxyCertCommonName := certificate.CommonName("TBD")
-	proxy := envoy.NewProxy(connectedProxyCertCommonName, connectedProxyIPAddress)
+	proxy := smcEnvoy.NewProxy(connectedProxyCertCommonName, connectedProxyIPAddress)
 	e.catalog.RegisterProxy(proxy)
 
 	ctx, cancel := context.WithCancel(context.Background())
