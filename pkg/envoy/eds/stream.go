@@ -2,6 +2,7 @@ package eds
 
 import (
 	"context"
+	"time"
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
@@ -18,6 +19,34 @@ type edsStreamHandler struct {
 	cancel context.CancelFunc
 
 	*EDS
+}
+
+// StreamEndpoints implements envoy.EndpointDiscoveryServiceServer and handles streaming of Endpoint changes to the Envoy proxies connected
+func (e *EDS) StreamEndpoints(server envoy.EndpointDiscoveryService_StreamEndpointsServer) error {
+	glog.Info("[EDS] Starting StreamEndpoints...")
+	ctx, cancel := context.WithCancel(context.Background())
+	handler := &edsStreamHandler{
+		ctx:    ctx,
+		cancel: cancel,
+		EDS:    e,
+	}
+
+	// Periodic Updates -- useful for debugging
+	go func() {
+		counter := 0
+		for {
+			glog.V(7).Infof("------------------------- Periodic Update %d -------------------------", counter)
+			counter++
+			e.announceChan.In() <- nil
+			time.Sleep(5 * time.Second)
+		}
+	}()
+
+	if err := handler.run(e.ctx, server); err != nil {
+		glog.Infof("error in handler %s", err)
+		return err
+	}
+	return nil
 }
 
 func (e *edsStreamHandler) run(ctx context.Context, server envoy.EndpointDiscoveryService_StreamEndpointsServer) error {
