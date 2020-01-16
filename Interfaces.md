@@ -23,13 +23,13 @@ The components composing the EDS server are:
       - Keeps track of all services declared via SMI Spec (services referenced in `TrafficSplit` and `TrafficTarget`)
       - Tracks all Endpoints connected to xDS and backing the services in the privous point
       - Maintains cache of `DiscoveryResponse` structs sent to known Envoy proxies
-  - [Mesh Topology](#mesh-topology) - a wrapper around the SMI Spec informers, abstracting away the storage that implements SMI; provides the simplest possible List* functions.
+  - [Mesh Topology](#mesh-topology) - a wrapper around the SMI Spec informers, abstracting away the storage that implements SMI; provides the simplest possible List* methods.
   - [Endpoints Providers](#endpoints-providers)
   - [Fundamental Types](#fundamental-types-for-smc) - supporting types like `IP`, `Port`, `ServiceName` etc.
 
 
 ### EDS Entrypoint
-The `StreamEndpoints` function is the entrypoint into the EDS vertical of SMC. This function is
+The `StreamEndpoints` method is the entrypoint into the EDS vertical of SMC. This is
 declared in the `EndpointDiscoveryServiceServer` interface, which is provided by the
 [Envoy Go control plane](https://github.com/envoyproxy/go-control-plane). It is declared in [eds.pb.go](https://github.com/envoyproxy/go-control-plane/blob/7e97c9c4b2547eebdca67d672b77957f1e089c74/envoy/service/endpoint/v3alpha/eds.pb.go#L200-L205):
 ```go
@@ -43,19 +43,19 @@ type EndpointDiscoveryServiceServer interface {
 }
 ```
 
-Functions `FetchEndpoints` and `DeltaEndpoints` are used by the EDS REST API. This project
-implements gRPC only and these two functions will not be implemented.
+Methods `FetchEndpoints` and `DeltaEndpoints` are used by the EDS REST API. This project
+implements gRPC only and these two methods will not be implemented.
 
 When the [Envoy Go control plane](https://github.com/envoyproxy/go-control-plane) evaluates
 `StreamEndpoints` it passes a `EndpointDiscoveryService_StreamEndpointsServer` *server*. The
-implementation of the `StreamEndpoints` function will then use `server.Send(response)` to send
+implementation of the `StreamEndpoints` method will then use `server.Send(response)` to send
 an `envoy.DiscoveryResponce` to all connected proxies.
 
 
 An [MVP](https://en.wikipedia.org/wiki/Minimum_viable_product) implementation of `StreamEndpoints`
 would require:
-1. a function to initialize and populate a `DiscoveryResponse` struct. This function will provide connected Envoy proxies with a mapping from a service name to a list of routable IP addresses and ports.
-1. a method of notifying the system when the function described in #1 needs to be evaluated to refresh the connected Envoy proxies with the latest available endpoints
+1. a method to initialize and populate a `DiscoveryResponse` struct. This will provide connected Envoy proxies with a mapping from a service name to a list of routable IP addresses and ports.
+1. a method of notifying the system when the method described in #1 needs to be evaluated to refresh the connected Envoy proxies with the latest available endpoints
 
 A simple implementation of `StreamEndpoints`:
 ```go
@@ -87,9 +87,9 @@ func (e *EDS) StreamEndpoints(server eds.EndpointDiscoveryService_StreamEndpoint
 
 ### Service Catalog
 
-In the previous section we proposed an implementation of the `StreamEndpoints` function. This function provides 
+In the previous section we proposed an implementation of the `StreamEndpoints` method. This provides
 connected Envoy proxies with a mapping from a service name to a list of routable IP addresses and ports.
-The `ListEndpoints` and `GetAnnouncementChannel` functions will be provided by the SMC component, which we refer to
+The `ListEndpoints` and `GetAnnouncementChannel` methods will be provided by the SMC component, which we refer to
  as the **Service Catalog** in this document.
 
 The Service Catalog will have access to the `MeshTopology`, `SecretsProvider`, and the list of `EndpointsProvider`s.
@@ -121,8 +121,8 @@ Additional types needed for this interface:
 type ClientIdentity string
 ```
 
-#### Member Functions
-  - `ListEndpoints(ClientIdentity) (envoy.DiscoveryResponse, bool, error)` - constructs a `DiscoveryResponse` with all endpoints the given Envoy proxy should be aware of. The function may implement caching. When no changes have been detected since the last invocation of this function, the `bool` parameter would return `true`.
+#### Methods
+  - `ListEndpoints(ClientIdentity) (envoy.DiscoveryResponse, bool, error)` - constructs a `DiscoveryResponse` with all endpoints the given Envoy proxy should be aware of. This may implement caching. When no changes have been detected since the last invocation of this function, the `bool` parameter would return `true`.
   - `RegisterNewEndpoint(ClientIdentity)` - adds a newly connected Envoy proxy (new gRPC server) to the list of self-announced endpoints for a service.
   - `ListEndpointsProviders() []EndpointsProvider` - retrieves the full list of endpoints providers registered with Service Catalog so far.
   - `GetAnnouncementChannel() chan struct{}` - returns an instance of a channel, which notifies the system of an event requiring the execution of ListEndpoints. An event on this channel may appear as a result of a change in the SMI Sper definitions, rotation of a certificate, etc.
@@ -198,7 +198,7 @@ type EndpointsProvider interface {
 This component provides an abstraction around the [SMI Spec Go SDK](https://github.com/deislabs/smi-sdk-go).
 The abstraction hides the Kubernetes primitives. This allows us to implement SMI Spec providers
 that do not rely exclusively on Kubernetes for storage, cache etc. Mesh Topology Interface provides
-a set of functions, listing all Services, TrafficSplits, and policy definitions for the
+a set of methods, listing all Services, TrafficSplits, and policy definitions for the
 **entire service** mesh.
 
 The Mesh Topology implementation **has no awareness** of:
@@ -209,7 +209,7 @@ The Mesh Topology implementation **has no awareness** of:
 
 ##### Interface:
 ```go
-// MeshTopology is an interface declaring functions, which provide the topology of a service mesh declared with SMI.
+// MeshTopology is an interface, which provides the topology of a service mesh declared with SMI.
 type MeshTopology interface {
     // ListTrafficSplits lists TrafficSplit SMI resources.
     ListTrafficSplits() []*v1alpha2.TrafficSplit
