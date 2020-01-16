@@ -22,7 +22,7 @@ The components composing the EDS server are:
   - [Service Catalog](#service-catalog) - the heart of the service mesh controller merges the outputs of the [Mesh Topology](#mesh-topology) and [Endpoints Providers](#endpoints-providers) components. This component:
       - Keeps track of all services declared via SMI Spec (services referenced in `TrafficSplit` and `TrafficTarget`)
       - Tracks all Endpoints connected to xDS and backing the services in the privous point
-      - Maintains cache of `DiscoveryResponse` sructs sent to known Envoy proxies
+      - Maintains cache of `DiscoveryResponse` structs sent to known Envoy proxies
   - [Mesh Topology](#mesh-topology) - a wrapper around the SMI Spec informers, abstracting away the storage that implements SMI; provides the simplest possible List* functions.
   - [Endpoints Providers](#endpoints-providers)
   - [Fundamental Types](#fundamental-types-for-smc) - supporting types like `IP`, `Port`, `ServiceName` etc.
@@ -99,7 +99,7 @@ The Service Catalog will have access to the `MeshTopology`, `SecretsProvider`, a
 // ServiceCatalog is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
 type ServiceCatalog interface {
 
-    // ListEndpoints constructs a DescoveryResponse with all endpoints the given Envoy proxy should be aware of.
+    // ListEndpoints constructs a DiscoveryResponse with all endpoints the given Envoy proxy should be aware of.
     // The bool return value indicates whether there have been any changes since the last invocation of this function.
     ListEndpoints(ClientIdentity) (envoy.DiscoveryResponse, bool, error)
 
