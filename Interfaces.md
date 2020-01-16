@@ -254,12 +254,3 @@ The following types are referenced in the interfaces proposed in this document:
       }
       ```
 
-  -  WeightedService
-      ```go
-      // WeightedService is a struct of a delegated service backing a target service
-      type WeightedService struct {
-          ServiceName ServiceName `json:"service_name:omitempty"`
-          Weight      int         `json:"weight:omitempty"`
-          Endpoints   []Endpoint  `json:"endpoints:omitempty"`
-      }
-      ```
