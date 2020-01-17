@@ -11,6 +11,10 @@ import (
 	"github.com/deislabs/smc/pkg/mesh"
 )
 
+const (
+	serverName = "EDS"
+)
+
 // EDS implements the Envoy xDS Endpoint Discovery Services
 type EDS struct {
 	ctx          context.Context // root context
@@ -31,7 +35,7 @@ func (e *EDS) DeltaEndpoints(xds.EndpointDiscoveryService_DeltaEndpointsServer) 
 
 // NewEDSServer creates a new EDS server
 func NewEDSServer(ctx context.Context, catalog catalog.ServiceCataloger, meshTopology mesh.Topology, announceChan *channels.RingChannel) *EDS {
-	glog.Info("[EDS] Create NewEDSServer...")
+	glog.Info("[EDS] Create NewEDSServer")
 	return &EDS{
 		ctx:          ctx,
 		catalog:      catalog,
