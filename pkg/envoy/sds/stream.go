@@ -19,17 +19,17 @@ const (
 
 // StreamSecrets handles streaming of the certs to the connected Envoy proxies
 func (s *Server) StreamSecrets(stream v2.SecretDiscoveryService_StreamSecretsServer) error {
-	glog.Info("[SDS] Starting SecretsStreamer...")
+	glog.Infof("[%s] Starting SecretsStreamer", serverName)
 
 	// When a new Envoy proxy connects, ValidateClient would ensure that it has a valid certificate,
 	// and the Subject CN is in the allowedCommonNames set.
 	cn, err := utils.ValidateClient(stream.Context(), nil, serverName)
 	if err != nil {
-		return errors.Wrap(err, "[SDS] Could not start stream")
+		return errors.Wrap(err, "[%s] Could not start stream")
 	}
 
 	// TODO(draychev): Use the Subject Common Name to identify the Envoy proxy and determine what service it belongs to.
-	glog.Infof("[SDS][stream] Client connected: Subject CN=%+v", cn)
+	glog.Infof("[%s][stream] Client connected: Subject CN=%+v", serverName, cn)
 
 	var recvErr error
 	var nodeID string
@@ -48,27 +48,27 @@ func (s *Server) StreamSecrets(stream v2.SecretDiscoveryService_StreamSecretsSer
 			req, recvErr = stream.Recv()
 			if recvErr != nil {
 				if status.Code(recvErr) == codes.Canceled || recvErr == io.EOF {
-					glog.Infof("SDS: connection terminated %+v\n", recvErr)
+					glog.Infof("[%s] connection terminated %+v", serverName, recvErr)
 					return
 				}
-				glog.Infof("SDS: connection terminated with errors %+v\n", recvErr)
+				glog.Infof("[%s] connection terminated with errors %+v", serverName, recvErr)
 				return
 			}
-			glog.Info("[SDS] Done!")
+			glog.Infof("[%s] Done!", serverName)
 			reqChannel <- req
 		}
 	}()
 
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		glog.Info("Failed to create watcher:", err)
+		glog.Infof("[%s] Failed to create watcher: %+v", serverName, err)
 		return err
 	}
-	glog.Info("Created file system watcher...")
+	glog.Infof("[%s] Created file system watcher", serverName)
 	defer watcher.Close()
 
 	if err = watcher.Add(s.keysDirectory + certFileName); err != nil {
-		glog.Errorf("Failed to add %s/%s to watcher: %+v\n", s.keysDirectory, certFileName, err)
+		glog.Errorf("[%s] Failed to add %s/%s to watcher: %+v", serverName, s.keysDirectory, certFileName, err)
 		return err
 	}
 
@@ -85,12 +85,12 @@ func (s *Server) StreamSecrets(stream v2.SecretDiscoveryService_StreamSecretsSer
 				continue
 			}
 			if discReq.Node == nil {
-				glog.Info("Invalid discovery request with no node")
+				glog.Infof("[%s] Invalid discovery request with no node", serverName)
 				return errInvalidDiscoveryRequest
 			}
 
 			nodeID = discReq.Node.Id
-			glog.Info("[SDS] Discovery Request from Envoy ID: ", nodeID)
+			glog.Infof("[%s] Discovery Request from Envoy ID: %s", serverName, nodeID)
 
 			secret, err := getSecretItem(s.keysDirectory)
 			if err != nil {
@@ -102,13 +102,13 @@ func (s *Server) StreamSecrets(stream v2.SecretDiscoveryService_StreamSecretsSer
 				return err
 			}
 			if err := stream.Send(response); err != nil {
-				glog.Info("Failed to send:", err)
+				glog.Infof("[%s] Failed to send: %+v", serverName, err)
 				return err
 			}
 		case ev := <-watcher.Events:
-			glog.Infof("Got a file system watcher event...")
+			glog.Infof("[%s] Got a file system watcher event...", serverName)
 			if ev.Op == fsnotify.Remove || ev.Op == fsnotify.Rename {
-				glog.Info("Key file is missing")
+				glog.Infof("[%s] Key file is missing", serverName)
 				return errKeyFileMissing
 			}
 			secret, err := getSecretItem(s.keysDirectory)
@@ -121,11 +121,11 @@ func (s *Server) StreamSecrets(stream v2.SecretDiscoveryService_StreamSecretsSer
 				return err
 			}
 			if err := stream.Send(response); err != nil {
-				glog.Info("Failed to send:", err)
+				glog.Infof("[%s] Failed to send: %+v", serverName, err)
 				return err
 			}
 		case err := <-watcher.Errors:
-			glog.Info("Watcher got error:", err)
+			glog.Infof("[%s] Watcher got error: %+v", serverName, err)
 			return err
 		}
 	}

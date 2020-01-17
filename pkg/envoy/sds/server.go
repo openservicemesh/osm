@@ -49,12 +49,6 @@ type Server struct {
 
 	// secretsManager secrets.SecretsManager
 
-	// skipToken indicates whether token is required.
-	skipToken bool
-
-	ticker         *time.Ticker
-	tickerInterval time.Duration
-
 	// close channel.
 	closing chan bool
 }
@@ -66,8 +60,6 @@ func NewSDSServer(keysDirectory *string) *Server {
 		keysDir = *keysDirectory
 	}
 	// secretsManager := secrets.SecretsManager()
-	skipTokenVerification := false
-	recycleInterval := 5 * time.Second
 
 	return &Server{
 		connectionNum: 0,
@@ -75,11 +67,7 @@ func NewSDSServer(keysDirectory *string) *Server {
 
 		// 	secretsManager: secretsManager,
 
-		// TODO(draychev): implement
-		skipToken: skipTokenVerification,
-
-		tickerInterval: recycleInterval,
-		closing:        make(chan bool),
+		closing: make(chan bool),
 	}
 }
 
@@ -155,11 +143,11 @@ func (s *Server) isConnectionAllowed() error {
 
 // FetchSecrets fetches the certs
 func (s *Server) FetchSecrets(ctx context.Context, discReq *xdsapi.DiscoveryRequest) (*xdsapi.DiscoveryResponse, error) {
-	glog.Infof("Fetching Secrets...")
+	glog.Infof("[%s] Fetching Secrets...", serverName)
 	secret, err := getSecretItem(s.keysDirectory)
 	if err != nil {
 		return nil, err
 	}
-	glog.Infof("Responding with Secrets...")
+	glog.Infof("[%s] Responding with Secrets...", serverName)
 	return s.sdsDiscoveryResponse(secret, discReq.Node.Id)
 }

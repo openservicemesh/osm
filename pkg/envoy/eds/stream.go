@@ -23,7 +23,7 @@ type edsStreamHandler struct {
 
 // StreamEndpoints implements envoy.EndpointDiscoveryServiceServer and handles streaming of Endpoint changes to the Envoy proxies connected
 func (e *EDS) StreamEndpoints(server envoy.EndpointDiscoveryService_StreamEndpointsServer) error {
-	glog.Info("[EDS] Starting StreamEndpoints...")
+	glog.Infof("[%s] Starting StreamEndpoints", serverName)
 	ctx, cancel := context.WithCancel(context.Background())
 	handler := &edsStreamHandler{
 		ctx:    ctx,
@@ -43,7 +43,7 @@ func (e *EDS) StreamEndpoints(server envoy.EndpointDiscoveryService_StreamEndpoi
 	}()
 
 	if err := handler.run(e.ctx, server); err != nil {
-		glog.Infof("error in handler %s", err)
+		glog.Infof("[%s] Error in handler %+v", serverName, err)
 		return err
 	}
 	return nil
@@ -58,7 +58,7 @@ func (e *edsStreamHandler) run(ctx context.Context, server envoy.EndpointDiscove
 		}
 
 		if request.TypeUrl != cla.ClusterLoadAssignmentURI {
-			glog.Errorf("[EDS][stream] Unknown TypeUrl: %s", request.TypeUrl)
+			glog.Errorf("[%s][stream] Unknown TypeUrl: %s", serverName, request.TypeUrl)
 			return errUnknownTypeURL
 		}
 
@@ -69,15 +69,15 @@ func (e *edsStreamHandler) run(ctx context.Context, server envoy.EndpointDiscove
 				return nil
 			case <-e.announceChan.Out():
 				// NOTE(draychev): This is deliberately only focused on providing MVP tools to run a TrafficSplit demo.
-				glog.V(1).Infof("[EDS][stream] Received a change announcement! Updating all Envoy proxies.")
+				glog.V(1).Infof("[%s][stream] Received a change announcement! Updating all Envoy proxies.", serverName)
 				// TODO(draychev): flesh out the ClientIdentity
 				resp, _, err := e.catalog.ListEndpoints("TBD")
 				if err != nil {
-					glog.Error("[EDS][stream] Failed composing a DiscoveryResponse: ", err)
+					glog.Errorf("[%s][stream] Failed composing a DiscoveryResponse: %+v", serverName, err)
 					return err
 				}
 				if err := server.Send(resp); err != nil {
-					glog.Error("[EDS][stream] Error sending DiscoveryResponse: ", err)
+					glog.Errorf("[%s][stream] Error sending DiscoveryResponse: %+v", serverName, err)
 				}
 				break Run
 			}
