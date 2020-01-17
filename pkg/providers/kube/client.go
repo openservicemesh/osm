@@ -1,6 +1,7 @@
 package kube
 
 import (
+	"net"
 	"time"
 
 	"github.com/eapache/channels"
@@ -88,7 +89,7 @@ func (c Client) ListEndpointsForService(svc endpoint.ServiceName) []endpoint.End
 		for _, kubernetesEndpoint := range kubernetesEndpoints.Subsets {
 			for _, address := range kubernetesEndpoint.Addresses {
 				ept := endpoint.Endpoint{
-					IP:   endpoint.IP(address.IP),
+					IP:   net.IP(address.IP),
 					Port: port,
 				}
 				endpoints = append(endpoints, ept)

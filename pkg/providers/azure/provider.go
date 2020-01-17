@@ -2,14 +2,14 @@ package azure
 
 import (
 	"fmt"
+	"net"
 	"strings"
-
-	"github.com/deislabs/smc/pkg/endpoint"
 
 	"github.com/golang/glog"
 	v1 "k8s.io/api/core/v1"
 
 	smc "github.com/deislabs/smc/pkg/apis/azureresource/v1"
+	"github.com/deislabs/smc/pkg/endpoint"
 )
 
 // ListEndpointsForService returns the IP addresses and Ports for the given ServiceName Name.
@@ -33,7 +33,7 @@ func (az Client) ListEndpointsForService(svc endpoint.ServiceName) []endpoint.En
 		}
 
 		if observer, ok := computeKindObserver[kind]; ok {
-			var ips []endpoint.IP
+			var ips []net.IP
 			var err error
 			ips, err = observer(resourceGroup, azID)
 			if err != nil {

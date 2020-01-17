@@ -1,5 +1,9 @@
 package endpoint
 
+import (
+	"net"
+)
+
 // Provider is an interface to be implemented by components abstracting Kubernetes, Azure, and other compute/cluster providers
 type Provider interface {
 	// Retrieve the IP addresses comprising the given service.
@@ -11,12 +15,9 @@ type Provider interface {
 
 // Endpoint is a tuple of IP and Port, representing an Envoy proxy, fronting an instance of a service
 type Endpoint struct {
-	IP   `json:"ip"`
-	Port `json:"port"`
+	net.IP `json:"ip"`
+	Port   `json:"port"`
 }
-
-// IP is an IP address
-type IP string
 
 // Port is a numerical port of an Envoy proxy
 type Port uint32
