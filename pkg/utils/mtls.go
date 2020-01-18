@@ -7,6 +7,8 @@ import (
 	"io/ioutil"
 	"log"
 
+	"github.com/deislabs/smc/pkg/certificate"
+
 	"github.com/golang/glog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -43,7 +45,7 @@ func setupMutualTLS(insecure bool, serverName string, certPem string, keyPem str
 }
 
 // ValidateClient ensures that the connected client is authorized to connect to the gRPC server.
-func ValidateClient(ctx context.Context, allowedCommonNames map[string]interface{}, serverName string) (string, error) {
+func ValidateClient(ctx context.Context, allowedCommonNames map[string]interface{}, serverName string) (certificate.CommonName, error) {
 	mtlsPeer, ok := peer.FromContext(ctx)
 	if !ok {
 		glog.Errorf("[grpc][mTLS][%s] No peer found", serverName)
@@ -67,5 +69,5 @@ func ValidateClient(ctx context.Context, allowedCommonNames map[string]interface
 		glog.Errorf("[grpc][mTLS][%s] Subject common name %+v not allowed", serverName, cn)
 		return "", status.Error(codes.Unauthenticated, "disallowed subject common name")
 	}
-	return cn, nil
+	return certificate.CommonName(cn), nil
 }
