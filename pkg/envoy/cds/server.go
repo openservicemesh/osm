@@ -14,8 +14,8 @@ import (
 const (
 	maxConnections = 10000
 
-	discoveryResponseTypeUrl = "type.googleapis.com/envoy.api.v2.Cluster"
-	serverName               = "CDS"
+	typeUrl    = "type.googleapis.com/envoy.api.v2.Cluster"
+	serverName = "CDS"
 )
 
 // NewCDSServer creates a new CDS server

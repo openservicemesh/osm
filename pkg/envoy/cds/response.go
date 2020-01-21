@@ -25,7 +25,7 @@ const (
 func (s *Server) newDiscoveryResponse(proxy envoy.Proxyer) (*xds.DiscoveryResponse, error) {
 	glog.Infof("[%s] Composing SDS Discovery Response for proxy: %s", serverName, proxy.GetCommonName())
 	resp := &xds.DiscoveryResponse{
-		TypeUrl: discoveryResponseTypeUrl,
+		TypeUrl: typeUrl,
 	}
 
 	// The name must match the domain being cURLed in the demo
