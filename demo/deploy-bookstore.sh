@@ -8,6 +8,11 @@ SVC=${1:-bookstore}
 
 kubectl delete deployment "$SVC" -n "$K8S_NAMESPACE"  || true
 
+echo -e "Add secrets"
+kubectl -n smc delete configmap ca-certpemstore ca-keypemstore || true
+kubectl -n smc create configmap ca-certpemstore --from-file=./bin/cert.pem
+kubectl -n smc create configmap ca-keypemstore --from-file=./bin/key.pem
+
 echo -e "Deploy $SVC demo service"
 cat <<EOF | kubectl apply -f -
 apiVersion: v1
@@ -76,6 +81,15 @@ spec:
              mountPath: /etc/config
            - name: certs-volume
              mountPath: /etc/certs
+           # Bootstrap certificates
+           - name: ca-certpemstore
+             mountPath: /etc/ssl/certs/cert.pem
+             subPath: cert.pem
+             readOnly: false
+           - name: ca-keypemstore
+             mountPath: /etc/ssl/certs/key.pem
+             subPath: key.pem
+             readOnly: false
 
       volumes:
         - name: config-volume
@@ -84,6 +98,13 @@ spec:
         - name: certs-volume
           configMap:
             name: certificates-config
+        # Bootstrap certificates
+        - name: ca-certpemstore
+          configMap:
+            name: ca-certpemstore
+        - name: ca-keypemstore
+          configMap:
+            name: ca-keypemstore
 
       imagePullSecrets:
         - name: $CTR_REGISTRY_CREDS_NAME

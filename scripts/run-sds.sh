@@ -17,7 +17,8 @@ export GRPC_GO_LOG_VERBOSITY_LEVEL=99
 export GRPC_GO_LOG_SEVERITY_LEVEL=info
 
 ./bin/sds \
-    --keys-directory="./bin/" \
+    --kubeconfig="$HOME/.kube/config" \
     --certpem="./certificates/cert.pem" \
     --keypem="./certificates/key.pem" \
-    --rootcertpem="./certificates/cert.pem"
+    --rootcertpem="./certificates/cert.pem" \
+    --verbosity=7
