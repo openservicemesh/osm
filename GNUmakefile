@@ -146,7 +146,7 @@ docker-push: docker-push-eds docker-push-sds docker-push-init docker-push-bookbu
 .PHONY: sds-root-tls
 sds-root-tls:
 	@mkdir -p $(shell pwd)/bin
-	$(shell openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -subj '/CN=httpbin.example.com/O=Exmaple Company Name LTD./C=US' -keyout bin/key.pem -out bin/cert.pem)
+	@./scripts/gen-proxy-certificate.sh
 
 .PHONY: generate-crds
 generate-crds:
