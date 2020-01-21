@@ -55,7 +55,7 @@ func main() {
 
 	kubeConfig, err := clientcmd.BuildConfigFromFlags("", *kubeConfigFile)
 	if err != nil {
-		glog.Fatalf("[Server] Error fetching Kubernetes config. Ensure correctness of CLI argument 'kubeconfig=%s': %s", *kubeConfigFile, err)
+		glog.Fatalf("[%s] Error fetching Kubernetes config. Ensure correctness of CLI argument 'kubeconfig=%s': %s", serverType, *kubeConfigFile, err)
 	}
 
 	grpcServer, lis := utils.NewGrpc(serverType, *port, *certPem, *keyPem, *rootCertPem)
@@ -77,7 +77,7 @@ func main() {
 	<-sigChan
 
 	close(stop)
-	glog.Info("[CDS] Goodbye!")
+	glog.Infof("[%s] Goodbye!", serverType)
 }
 
 func parseFlags() {
@@ -98,6 +98,6 @@ func getNamespaces() []string {
 	} else {
 		namespaces = []string{*namespace}
 	}
-	glog.Infof("[CDS] Observing namespaces: %s", strings.Join(namespaces, ","))
+	glog.Infof("[%s] Observing namespaces: %s", serverType, strings.Join(namespaces, ","))
 	return namespaces
 }
