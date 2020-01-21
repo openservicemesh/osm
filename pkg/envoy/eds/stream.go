@@ -2,12 +2,15 @@ package eds
 
 import (
 	"context"
+	"net"
 	"time"
 
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 
+	"github.com/deislabs/smc/pkg/certificate"
+	smcEnvoy "github.com/deislabs/smc/pkg/envoy"
 	"github.com/deislabs/smc/pkg/envoy/cla"
 )
 
@@ -24,6 +27,13 @@ type edsStreamHandler struct {
 // StreamEndpoints implements envoy.EndpointDiscoveryServiceServer and handles streaming of Endpoint changes to the Envoy proxies connected
 func (e *EDS) StreamEndpoints(server envoy.EndpointDiscoveryService_StreamEndpointsServer) error {
 	glog.Infof("[%s] Starting StreamEndpoints", serverName)
+
+	// Register the newly connected Envoy proxy.
+	connectedProxyIPAddress := net.IP("TBD")
+	connectedProxyCertCommonName := certificate.CommonName("TBD")
+	proxy := smcEnvoy.NewProxy(connectedProxyCertCommonName, connectedProxyIPAddress)
+	e.catalog.RegisterProxy(proxy)
+
 	ctx, cancel := context.WithCancel(context.Background())
 	handler := &edsStreamHandler{
 		ctx:    ctx,
