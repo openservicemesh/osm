@@ -2,20 +2,16 @@ package cds
 
 import (
 	"fmt"
-
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-
-	v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-
-	api "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-
 	"time"
 
+	api "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	"github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
+	v2core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+
+	"github.com/deislabs/smc/pkg/envoy"
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/gogo/protobuf/types"
 	"github.com/golang/glog"
-
-	"github.com/deislabs/smc/pkg/envoy"
 )
 
 const (
@@ -23,7 +19,7 @@ const (
 )
 
 func (s *Server) newDiscoveryResponse(proxy envoy.Proxyer) (*xds.DiscoveryResponse, error) {
-	glog.Infof("[%s] Composing SDS Discovery Response for proxy: %s", serverName, proxy.GetCommonName())
+	glog.Infof("[%s] Composing Cluster Discovery Response for proxy: %s", serverName, proxy.GetCommonName())
 	resp := &xds.DiscoveryResponse{
 		TypeUrl: typeUrl,
 	}
@@ -42,14 +38,14 @@ func (s *Server) newDiscoveryResponse(proxy envoy.Proxyer) (*xds.DiscoveryRespon
 			Type: xds.Cluster_EDS,
 		},
 		EdsClusterConfig: &api.Cluster_EdsClusterConfig{
-			EdsConfig: &v2_core.ConfigSource{
-				ConfigSourceSpecifier: &v2_core.ConfigSource_ApiConfigSource{
-					ApiConfigSource: &v2_core.ApiConfigSource{
-						ApiType: v2_core.ApiConfigSource_GRPC,
-						GrpcServices: []*v2_core.GrpcService{
+			EdsConfig: &v2core.ConfigSource{
+				ConfigSourceSpecifier: &v2core.ConfigSource_ApiConfigSource{
+					ApiConfigSource: &v2core.ApiConfigSource{
+						ApiType: v2core.ApiConfigSource_GRPC,
+						GrpcServices: []*v2core.GrpcService{
 							{
-								TargetSpecifier: &v2_core.GrpcService_EnvoyGrpc_{
-									EnvoyGrpc: &v2_core.GrpcService_EnvoyGrpc{
+								TargetSpecifier: &v2core.GrpcService_EnvoyGrpc_{
+									EnvoyGrpc: &v2core.GrpcService_EnvoyGrpc{
 										// This must match the hard-coded EDS cluster name in the bootstrap config
 										ClusterName: "eds",
 									},
@@ -69,14 +65,14 @@ func (s *Server) newDiscoveryResponse(proxy envoy.Proxyer) (*xds.DiscoveryRespon
 					{
 						// The Name field must match the auth.Secret.Name from the SDS response
 						Name: "server_cert",
-						SdsConfig: &v2_core.ConfigSource{
-							ConfigSourceSpecifier: &v2_core.ConfigSource_ApiConfigSource{
-								ApiConfigSource: &v2_core.ApiConfigSource{
-									ApiType: v2_core.ApiConfigSource_GRPC,
-									GrpcServices: []*v2_core.GrpcService{
+						SdsConfig: &v2core.ConfigSource{
+							ConfigSourceSpecifier: &v2core.ConfigSource_ApiConfigSource{
+								ApiConfigSource: &v2core.ApiConfigSource{
+									ApiType: v2core.ApiConfigSource_GRPC,
+									GrpcServices: []*v2core.GrpcService{
 										{
-											TargetSpecifier: &v2_core.GrpcService_EnvoyGrpc_{
-												EnvoyGrpc: &v2_core.GrpcService_EnvoyGrpc{
+											TargetSpecifier: &v2core.GrpcService_EnvoyGrpc_{
+												EnvoyGrpc: &v2core.GrpcService_EnvoyGrpc{
 													// This must match the hard-coded SDS cluster name in the bootstrap config
 													ClusterName: "sds",
 												},
