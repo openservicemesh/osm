@@ -47,7 +47,7 @@ func (s *Server) StreamClusters(server xds.ClusterDiscoveryService_StreamCluster
 				return errGrpcClosed
 			}
 			if discoveryRequest.ErrorDetail != nil {
-				return errEnvoyError
+				return errDiscoveryRequest
 			}
 			if len(s.lastNonce) > 0 && discoveryRequest.ResponseNonce == s.lastNonce {
 				continue
