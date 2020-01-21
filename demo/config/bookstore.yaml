@@ -59,7 +59,7 @@ static_resources:
         require_client_certificate: true
         common_tls_context:
           tls_certificate_sds_secret_configs:
-            # This name must match the auth.Secret.Name field of the cert.pb proto
+          # This name must batch the auth.Secret.Name field of the cert.pb proto
           - name: server_cert
             sds_config:
               api_config_source:

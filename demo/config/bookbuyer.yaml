@@ -7,6 +7,15 @@ admin:
   address:
     socket_address: {address: 0.0.0.0, port_value: 15000}
 
+dynamic_resources:
+  cds_config:
+    api_config_source:
+      api_type: GRPC
+      grpc_services:
+        envoy_grpc:
+          cluster_name: cds_server_mtls
+
+
 static_resources:
   listeners:
 
@@ -137,7 +146,7 @@ static_resources:
                 port_value: 15124
 
 
-  - name: cds
+  - name: cds_server_mtls
     connect_timeout: 5s
     type: LOGICAL_DNS
     http2_protocol_options: {}
