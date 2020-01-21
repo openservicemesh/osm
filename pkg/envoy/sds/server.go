@@ -25,7 +25,7 @@ const (
 	certFileName = "cert.pem"
 	keyFileName  = "key.pem"
 
-	typeSecret = "type.googleapis.com/envoy.api.v2.auth.Secret"
+	typeUrl = "type.googleapis.com/envoy.api.v2.auth.Secret"
 )
 
 // Options provides all of the configuration parameters for secret discovery service.
@@ -80,7 +80,7 @@ func (s *Server) sdsDiscoveryResponse(si *secretItem, proxyID string) (*xdsapi.D
 	glog.Info("[SDS] Composing SDS Discovery Response...")
 	s.lastNonce = time.Now().String()
 	resp := &xdsapi.DiscoveryResponse{
-		TypeUrl:     typeSecret,
+		TypeUrl:     typeUrl,
 		VersionInfo: s.lastNonce,
 		Nonce:       s.lastNonce,
 	}

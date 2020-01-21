@@ -4,6 +4,7 @@ set -aueo pipefail
 
 source .env
 
+make docker-push-cds
 make docker-push-eds
 make docker-push-sds
 
@@ -26,6 +27,7 @@ kubectl create configmap azureconfig --from-file="$HOME/.azure/azureAuth.json" -
 ./demo/deploy-bookstore.sh bookstore-1
 ./demo/deploy-bookstore.sh bookstore-2
 
+./demo/deploy-cds.sh
 ./demo/deploy-sds.sh
 ./demo/deploy-eds.sh
 
