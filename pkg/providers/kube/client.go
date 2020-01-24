@@ -40,7 +40,7 @@ func NewProvider(kubeConfig *rest.Config, namespaces []string, announcements *ch
 		kubeClient:    kubeClient,
 		informers:     &informerCollection,
 		caches:        &cacheCollection,
-		announcements:  announcements,
+		announcements: announcements,
 		cacheSynced:   make(chan interface{}),
 	}
 

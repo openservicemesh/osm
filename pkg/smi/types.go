@@ -25,5 +25,5 @@ type Client struct {
 	cacheSynced   chan interface{}
 	providerIdent string
 	informers     *InformerCollection
-	announcements  *channels.RingChannel
+	announcements *channels.RingChannel
 }

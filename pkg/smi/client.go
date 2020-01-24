@@ -83,7 +83,7 @@ func newSMIClient(kubeClient *kubernetes.Clientset, smiClient *versioned.Clients
 		providerIdent: providerIdent,
 		informers:     &informerCollection,
 		caches:        &cacheCollection,
-		announcements:  announcements,
+		announcements: announcements,
 		cacheSynced:   make(chan interface{}),
 	}
 

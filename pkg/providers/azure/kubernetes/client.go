@@ -52,7 +52,7 @@ func newClient(kubeClient *kubernetes.Clientset, azureResourceClient *smcClient.
 		kubeClient:    kubeClient,
 		informers:     &informerCollection,
 		caches:        &cacheCollection,
-		announcements:  announcements,
+		announcements: announcements,
 		cacheSynced:   make(chan interface{}),
 	}
 

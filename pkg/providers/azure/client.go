@@ -36,7 +36,7 @@ func NewProvider(subscriptionID string, azureAuthFile string, announcements *cha
 		},
 
 		subscriptionID: subscriptionID,
-		announcements:   announcements,
+		announcements:  announcements,
 		meshTopology:   meshTopology,
 		providerID:     providerIdent,
 
