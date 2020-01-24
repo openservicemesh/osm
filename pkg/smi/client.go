@@ -1,11 +1,17 @@
 package smi
 
 import (
+	"fmt"
 	"time"
 
+	"github.com/deislabs/smi-sdk-go/pkg/apis/split/v1alpha2"
+	"github.com/eapache/channels"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/rest"
+
+	"github.com/deislabs/smc/pkg/endpoint"
 	"github.com/deislabs/smi-sdk-go/pkg/gen/client/split/clientset/versioned"
 	smiExternalVersions "github.com/deislabs/smi-sdk-go/pkg/gen/client/split/informers/externalversions"
-	"github.com/eapache/channels"
 	"github.com/golang/glog"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -14,8 +20,25 @@ import (
 
 var resyncPeriod = 1 * time.Second
 
-// Run executes informer collection.
-func (c *Client) Run(stopCh <-chan struct{}) error {
+// We have a few different k8s clients. This identifies these in logs.
+const kubernetesClientName = "Specification"
+
+// NewMeshSpecClient implements mesh.MeshSpec and creates the Kubernetes client, which retrieves SMI specific CRDs.
+func NewMeshSpecClient(kubeConfig *rest.Config, namespaces []string, announcement *channels.RingChannel, stop chan struct{}) MeshSpec {
+	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
+	smiClientset := versioned.NewForConfigOrDie(kubeConfig)
+
+	announcements := channels.NewRingChannel(1204)
+	client := newSMIClient(kubeClient, smiClientset, namespaces, announcements, kubernetesClientName)
+	err := client.run(stop)
+	if err != nil {
+		glog.Fatalf("Could not start %s client: %s", kubernetesClientName, err)
+	}
+	return client
+}
+
+// run executes informer collection.
+func (c *Client) run(stopCh <-chan struct{}) error {
 	glog.V(1).Infoln("SMI Client started")
 	var hasSynced []cache.InformerSynced
 
@@ -99,4 +122,39 @@ func newSMIClient(kubeClient *kubernetes.Clientset, smiClient *versioned.Clients
 	informerCollection.TrafficSplit.AddEventHandler(resourceHandler)
 
 	return &client
+}
+
+// ListTrafficSplits implements mesh.MeshSpec by returning the list of traffic splits.
+func (c *Client) ListTrafficSplits() []*v1alpha2.TrafficSplit {
+	var trafficSplits []*v1alpha2.TrafficSplit
+	for _, splitIface := range c.caches.TrafficSplit.List() {
+		split := splitIface.(*v1alpha2.TrafficSplit)
+		trafficSplits = append(trafficSplits, split)
+	}
+	return trafficSplits
+}
+
+// ListServices implements mesh.MeshSpec by returning the services observed from the given compute provider
+func (c *Client) ListServices() []endpoint.ServiceName {
+	// TODO(draychev): split the namespace and the service kubernetesClientName -- for non-kubernetes services we won't have namespace
+	var services []endpoint.ServiceName
+	for _, splitIface := range c.caches.TrafficSplit.List() {
+		split := splitIface.(*v1alpha2.TrafficSplit)
+		namespacedServiceName := fmt.Sprintf("%s/%s", split.Namespace, split.Spec.Service)
+		services = append(services, endpoint.ServiceName(namespacedServiceName))
+		for _, backend := range split.Spec.Backends {
+			namespacedServiceName := fmt.Sprintf("%s/%s", split.Namespace, backend.Service)
+			services = append(services, endpoint.ServiceName(namespacedServiceName))
+		}
+	}
+	return services
+}
+
+// GetService retrieves the Kubernetes Services resource for the given ServiceName.
+func (c *Client) GetService(svc endpoint.ServiceName) (service *v1.Service, exists bool, err error) {
+	svcIf, exists, err := c.caches.Services.GetByKey(string(svc))
+	if exists && err == nil {
+		return svcIf.(*v1.Service), exists, err
+	}
+	return nil, exists, err
 }

@@ -12,16 +12,16 @@ import (
 	"github.com/deislabs/smc/pkg/endpoint"
 	smcEnvoy "github.com/deislabs/smc/pkg/envoy"
 	"github.com/deislabs/smc/pkg/envoy/cla"
-	"github.com/deislabs/smc/pkg/mesh"
+	"github.com/deislabs/smc/pkg/smi"
 )
 
 // NewServiceCatalog creates a new service catalog
-func NewServiceCatalog(meshTopology mesh.Topology, endpointsProviders ...endpoint.Provider) MeshCataloger {
+func NewServiceCatalog(meshSpec smi.MeshSpec, endpointsProviders ...endpoint.Provider) MeshCataloger {
 	glog.Info("[catalog] Create a new Service Catalog.")
 	serviceCatalog := MeshCatalog{
 		servicesCache:      make(map[endpoint.ServiceName][]endpoint.Endpoint),
 		endpointsProviders: endpointsProviders,
-		meshTopology:       meshTopology,
+		meshSpec:           meshSpec,
 	}
 
 	// NOTE(draychev): helpful while developing alpha MVP -- remove before releasing beta version.
@@ -39,7 +39,7 @@ func NewServiceCatalog(meshTopology mesh.Topology, endpointsProviders ...endpoin
 
 // ListEndpoints constructs a DiscoveryResponse with all endpoints the given Envoy proxy should be aware of.
 // The bool return value indicates whether there have been any changes since the last invocation of this function.
-func (sc *MeshCatalog) ListEndpoints(clientID mesh.ClientIdentity) (*envoy.DiscoveryResponse, bool, error) {
+func (sc *MeshCatalog) ListEndpoints(clientID smi.ClientIdentity) (*envoy.DiscoveryResponse, bool, error) {
 	glog.Info("[catalog] Listing Endpoints for client: ", clientID)
 	allServices, err := sc.getWeightedEndpointsPerService()
 	if err != nil {
@@ -79,7 +79,7 @@ func (sc *MeshCatalog) refreshCache() {
 	glog.Info("[catalog] Refresh cache...")
 	servicesCache := make(map[endpoint.ServiceName][]endpoint.Endpoint)
 	// TODO(draychev): split the namespace from the service name -- non-K8s services won't have namespace
-	for _, namespacedServiceName := range sc.meshTopology.ListServices() {
+	for _, namespacedServiceName := range sc.meshSpec.ListServices() {
 		for _, provider := range sc.endpointsProviders {
 			newIps := provider.ListEndpointsForService(namespacedServiceName)
 			glog.V(7).Infof("[catalog][%s] Found ips=%+v for service=%s", provider.GetID(), endpointsToString(newIps), namespacedServiceName)
@@ -108,7 +108,7 @@ func (sc *MeshCatalog) getWeightedEndpointsPerService() (map[endpoint.ServiceNam
 	byTargetService := make(map[endpoint.ServiceName][]endpoint.WeightedService)
 	backendWeight := make(map[string]int)
 
-	for _, trafficSplit := range sc.meshTopology.ListTrafficSplits() {
+	for _, trafficSplit := range sc.meshSpec.ListTrafficSplits() {
 		targetServiceName := endpoint.ServiceName(trafficSplit.Spec.Service)
 		var services []endpoint.WeightedService
 		glog.V(7).Infof("[EDS][catalog] Discovered TrafficSplit resource: %s/%s for service %s\n", trafficSplit.Namespace, trafficSplit.Name, targetServiceName)
@@ -156,7 +156,7 @@ func (sc *MeshCatalog) listEndpointsForService(namespacedServiceName endpoint.Se
 }
 
 // RegisterNewEndpoint adds a newly connected Envoy proxy to the list of self-announced endpoints for a service.
-func (sc *MeshCatalog) RegisterNewEndpoint(mesh.ClientIdentity) {
+func (sc *MeshCatalog) RegisterNewEndpoint(smi.ClientIdentity) {
 	// TODO(draychev): implement
 	panic("NotImplemented")
 }

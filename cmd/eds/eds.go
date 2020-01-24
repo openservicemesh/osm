@@ -59,7 +59,7 @@ func main() {
 
 	// SMI Informers will write to this channel when they notice changes.
 	// This channel will be consumed by the ServiceName Mesh Controller.
-	// This is a signalling mechanism to notify SMC of a service mesh topology change which triggers Envoy updates.
+	// This is a signalling mechanism to notify SMC of a service mesh spec change which triggers Envoy updates.
 	announcements := channels.NewRingChannel(1024)
 
 	kubeConfig, err := clientcmd.BuildConfigFromFlags("", *kubeConfigFile)
@@ -70,18 +70,18 @@ func main() {
 	observeNamespaces := getNamespaces()
 
 	stopChan := make(chan struct{})
-	meshTopologyClient := smi.NewMeshTopologyClient(kubeConfig, observeNamespaces, announcements, stopChan)
+	meshSpecClient := smi.NewMeshSpecClient(kubeConfig, observeNamespaces, announcements, stopChan)
 	azureResourceClient := azureResource.NewClient(kubeConfig, observeNamespaces, announcements, stopChan)
 
 	endpointsProviders := []endpoint.Provider{
-		azure.NewProvider(*subscriptionID, *azureAuthFile, announcements, stopChan, meshTopologyClient, azureResourceClient, azureProviderName),
+		azure.NewProvider(*subscriptionID, *azureAuthFile, announcements, stopChan, meshSpecClient, azureResourceClient, azureProviderName),
 		kube.NewProvider(kubeConfig, observeNamespaces, announcements, stopChan, kubernetesProviderName),
 	}
 
-	serviceCatalog := catalog.NewServiceCatalog(meshTopologyClient, endpointsProviders...)
+	serviceCatalog := catalog.NewServiceCatalog(meshSpecClient, endpointsProviders...)
 
 	grpcServer, lis := utils.NewGrpc(serverType, *port, *certPem, *keyPem, *rootCertPem)
-	eds := edsServer.NewEDSServer(ctx, serviceCatalog, meshTopologyClient, announcements)
+	eds := edsServer.NewEDSServer(ctx, serviceCatalog, meshSpecClient, announcements)
 	envoyControlPlane.RegisterEndpointDiscoveryServiceServer(grpcServer, eds)
 	go utils.GrpcServe(ctx, grpcServer, lis, cancel, serverType)
 
