@@ -1,7 +1,6 @@
 package kube
 
 import (
-	"github.com/eapache/channels"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 )
@@ -25,5 +24,5 @@ type Client struct {
 	providerIdent string
 	kubeClient    kubernetes.Interface
 	informers     *InformerCollection
-	announcements *channels.RingChannel
+	announcements chan interface{}
 }

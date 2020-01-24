@@ -19,7 +19,7 @@ type Server struct {
 	ctx           context.Context // root context
 	catalog       catalog.MeshCataloger
 	meshSpec      smi.MeshSpec
-	announcements chan struct{}
+	announcements chan interface{}
 }
 
 // FetchEndpoints implements envoy.EndpointDiscoveryServiceServer
@@ -33,7 +33,7 @@ func (e *Server) DeltaEndpoints(xds.EndpointDiscoveryService_DeltaEndpointsServe
 }
 
 // NewEDSServer creates a new EDS server
-func NewEDSServer(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, announcements chan struct{}) *Server {
+func NewEDSServer(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, announcements chan interface{}) *Server {
 	glog.Info("[EDS] Create NewEDSServer")
 	return &Server{
 		ctx:           ctx,

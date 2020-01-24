@@ -2,7 +2,6 @@ package smi
 
 import (
 	"github.com/deislabs/smi-sdk-go/pkg/apis/split/v1alpha2"
-	"github.com/eapache/channels"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/cache"
 
@@ -29,7 +28,7 @@ type Client struct {
 	cacheSynced   chan interface{}
 	providerIdent string
 	informers     *InformerCollection
-	announcements *channels.RingChannel
+	announcements chan interface{}
 }
 
 // ClientIdentity is the identity of an Envoy proxy connected to the Service Mesh Controller.

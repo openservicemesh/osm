@@ -46,7 +46,7 @@ type Client struct {
 	azureClients
 
 	subscriptionID string
-	announcements  chan struct{}
+	announcements  chan interface{}
 	meshSpec       smi.MeshSpec
 
 	// Free-form string identifying the compute provider: Azure, Kubernetes etc.

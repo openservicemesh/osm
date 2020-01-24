@@ -59,7 +59,7 @@ func main() {
 	// SMI Informers will write to this channel when they notice changes.
 	// This channel will be consumed by the ServiceName Mesh Controller.
 	// This is a signalling mechanism to notify SMC of a service mesh spec change which triggers Envoy updates.
-	announcements := make(chan struct{})
+	announcements := make(chan interface{})
 
 	kubeConfig, err := clientcmd.BuildConfigFromFlags("", *kubeConfigFile)
 	if err != nil {

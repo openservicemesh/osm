@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/deislabs/smi-sdk-go/pkg/apis/split/v1alpha2"
-	"github.com/eapache/channels"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
 
@@ -24,12 +23,11 @@ var resyncPeriod = 1 * time.Second
 const kubernetesClientName = "Specification"
 
 // NewMeshSpecClient implements mesh.MeshSpec and creates the Kubernetes client, which retrieves SMI specific CRDs.
-func NewMeshSpecClient(kubeConfig *rest.Config, namespaces []string, announcement chan struct{}, stop chan struct{}) MeshSpec {
+func NewMeshSpecClient(kubeConfig *rest.Config, namespaces []string, announcements chan interface{}, stop chan struct{}) MeshSpec {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 	smiClientset := versioned.NewForConfigOrDie(kubeConfig)
 
-	announceChan := channels.NewRingChannel(1204)
-	client := newSMIClient(kubeClient, smiClientset, namespaces, announceChan, kubernetesClientName)
+	client := newSMIClient(kubeClient, smiClientset, namespaces, announcements, kubernetesClientName)
 	err := client.run(stop)
 	if err != nil {
 		glog.Fatalf("Could not start %s client: %s", kubernetesClientName, err)
@@ -82,7 +80,7 @@ func (c *Client) GetID() string {
 }
 
 // newClient creates a provider based on a Kubernetes client instance.
-func newSMIClient(kubeClient *kubernetes.Clientset, smiClient *versioned.Clientset, namespaces []string, announcements *channels.RingChannel, providerIdent string) *Client {
+func newSMIClient(kubeClient *kubernetes.Clientset, smiClient *versioned.Clientset, namespaces []string, announcements chan interface{}, providerIdent string) *Client {
 	var options []informers.SharedInformerOption
 	var smiOptions []smiExternalVersions.SharedInformerOption
 	for _, namespace := range namespaces {
