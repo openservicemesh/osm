@@ -5,8 +5,12 @@ import (
 
 	"github.com/deislabs/smc/pkg/endpoint"
 
+	TrafficTarget "github.com/deislabs/smi-sdk-go/pkg/apis/access/v1alpha1"
+	TrafficSpec "github.com/deislabs/smi-sdk-go/pkg/apis/specs/v1alpha1"
 	"github.com/deislabs/smi-sdk-go/pkg/apis/split/v1alpha2"
-	smiClient "github.com/deislabs/smi-sdk-go/pkg/gen/client/split/clientset/versioned"
+	smiTrafficTargetClient "github.com/deislabs/smi-sdk-go/pkg/gen/client/access/clientset/versioned"
+	smiTrafficSpecClient "github.com/deislabs/smi-sdk-go/pkg/gen/client/specs/clientset/versioned"
+	smiTrafficSplitClient "github.com/deislabs/smi-sdk-go/pkg/gen/client/split/clientset/versioned"
 	"github.com/eapache/channels"
 	"github.com/golang/glog"
 	v1 "k8s.io/api/core/v1"
@@ -22,8 +26,10 @@ const kubernetesClientName = "MeshTopology"
 // NewMeshTopologyClient creates the Kubernetes client, which retrieves SMI specific CRDs.
 func NewMeshTopologyClient(kubeConfig *rest.Config, namespaces []string, announceChan *channels.RingChannel, stopChan chan struct{}) mesh.Topology {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
-	smiClientset := smiClient.NewForConfigOrDie(kubeConfig)
-	client := newSMIClient(kubeClient, smiClientset, namespaces, announceChan, kubernetesClientName)
+	smiTrafficSplitClientSet := smiTrafficSplitClient.NewForConfigOrDie(kubeConfig)
+	smiTrafficSpecClientSet := smiTrafficSpecClient.NewForConfigOrDie(kubeConfig)
+	smiTrafficTargetClientSet := smiTrafficTargetClient.NewForConfigOrDie(kubeConfig)
+	client := newSMIClient(kubeClient, smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet, namespaces, announceChan, kubernetesClientName)
 	err := client.Run(stopChan)
 	if err != nil {
 		glog.Fatalf("Could not start %s client: %s", kubernetesClientName, err)
@@ -64,4 +70,24 @@ func (c *Client) GetService(svc endpoint.ServiceName) (service *v1.Service, exis
 		return svcIf.(*v1.Service), exists, err
 	}
 	return nil, exists, err
+}
+
+// ListHTTPTrafficSpecs implements mesh.Topology by returning the list of traffic specs.
+func (c *Client) ListHTTPTrafficSpecs() []*TrafficSpec.HTTPRouteGroup {
+	var httpTrafficSpec []*TrafficSpec.HTTPRouteGroup
+	for _, specIface := range c.caches.TrafficSpec.List() {
+		spec := specIface.(*TrafficSpec.HTTPRouteGroup)
+		httpTrafficSpec = append(httpTrafficSpec, spec)
+	}
+	return httpTrafficSpec
+}
+
+// ListTrafficTargets implements mesh.Topology by returning the list of traffic targets.
+func (c *Client) ListTrafficTargets() []*TrafficTarget.TrafficTarget {
+	var trafficTarget []*TrafficTarget.TrafficTarget
+	for _, targetIface := range c.caches.TrafficTarget.List() {
+		target := targetIface.(*TrafficTarget.TrafficTarget)
+		trafficTarget = append(trafficTarget, target)
+	}
+	return trafficTarget
 }
