@@ -39,7 +39,7 @@ func NewServiceCatalog(meshSpec smi.MeshSpec, endpointsProviders ...endpoint.Pro
 
 // ListEndpoints constructs a DiscoveryResponse with all endpoints the given Envoy proxy should be aware of.
 // The bool return value indicates whether there have been any changes since the last invocation of this function.
-func (sc *MeshCatalog) ListEndpoints(clientID mesh.ClientIdentity) (*envoy.DiscoveryResponse, bool, error) {
+func (sc *MeshCatalog) ListEndpoints(clientID smi.ClientIdentity) (*envoy.DiscoveryResponse, bool, error) {
 	glog.Info("[catalog] Listing Endpoints for client: ", clientID)
 	allServices, err := sc.getWeightedEndpointsPerService()
 	if err != nil {
@@ -156,7 +156,7 @@ func (sc *MeshCatalog) listEndpointsForService(namespacedServiceName endpoint.Se
 }
 
 // RegisterNewEndpoint adds a newly connected Envoy proxy to the list of self-announced endpoints for a service.
-func (sc *MeshCatalog) RegisterNewEndpoint(mesh.ClientIdentity) {
+func (sc *MeshCatalog) RegisterNewEndpoint(smi.ClientIdentity) {
 	// TODO(draychev): implement
 	panic("NotImplemented")
 }

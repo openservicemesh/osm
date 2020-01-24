@@ -10,6 +10,7 @@ import (
 type ClientIdentity string
 
 // Topology is an interface declaring functions, which provide the topology of a service mesh declared with SMI.
+// DEPRECATED
 type Topology interface {
 	// ListTrafficSplits lists TrafficSplit SMI resources.
 	ListTrafficSplits() []*v1alpha2.TrafficSplit
