@@ -16,9 +16,9 @@ import (
 )
 
 // NewServiceCatalog creates a new service catalog
-func NewServiceCatalog(meshTopology mesh.Topology, endpointsProviders ...endpoint.Provider) ServiceCataloger {
+func NewServiceCatalog(meshTopology mesh.Topology, endpointsProviders ...endpoint.Provider) MeshCataloger {
 	glog.Info("[catalog] Create a new Service Catalog.")
-	serviceCatalog := ServiceCatalog{
+	serviceCatalog := MeshCatalog{
 		servicesCache:      make(map[endpoint.ServiceName][]endpoint.Endpoint),
 		endpointsProviders: endpointsProviders,
 		meshTopology:       meshTopology,
@@ -39,7 +39,7 @@ func NewServiceCatalog(meshTopology mesh.Topology, endpointsProviders ...endpoin
 
 // ListEndpoints constructs a DiscoveryResponse with all endpoints the given Envoy proxy should be aware of.
 // The bool return value indicates whether there have been any changes since the last invocation of this function.
-func (sc *ServiceCatalog) ListEndpoints(clientID mesh.ClientIdentity) (*envoy.DiscoveryResponse, bool, error) {
+func (sc *MeshCatalog) ListEndpoints(clientID mesh.ClientIdentity) (*envoy.DiscoveryResponse, bool, error) {
 	glog.Info("[catalog] Listing Endpoints for client: ", clientID)
 	allServices, err := sc.getWeightedEndpointsPerService()
 	if err != nil {
@@ -75,7 +75,7 @@ func (sc *ServiceCatalog) ListEndpoints(clientID mesh.ClientIdentity) (*envoy.Di
 	return resp, false, nil
 }
 
-func (sc *ServiceCatalog) refreshCache() {
+func (sc *MeshCatalog) refreshCache() {
 	glog.Info("[catalog] Refresh cache...")
 	servicesCache := make(map[endpoint.ServiceName][]endpoint.Endpoint)
 	// TODO(draychev): split the namespace from the service name -- non-K8s services won't have namespace
@@ -104,7 +104,7 @@ func endpointsToString(endpoints []endpoint.Endpoint) []string {
 	return epts
 }
 
-func (sc *ServiceCatalog) getWeightedEndpointsPerService() (map[endpoint.ServiceName][]endpoint.WeightedService, error) {
+func (sc *MeshCatalog) getWeightedEndpointsPerService() (map[endpoint.ServiceName][]endpoint.WeightedService, error) {
 	byTargetService := make(map[endpoint.ServiceName][]endpoint.WeightedService)
 	backendWeight := make(map[string]int)
 
@@ -137,7 +137,7 @@ func (sc *ServiceCatalog) getWeightedEndpointsPerService() (map[endpoint.Service
 	return byTargetService, nil
 }
 
-func (sc *ServiceCatalog) listEndpointsForService(namespacedServiceName endpoint.ServiceName) ([]endpoint.Endpoint, error) {
+func (sc *MeshCatalog) listEndpointsForService(namespacedServiceName endpoint.ServiceName) ([]endpoint.Endpoint, error) {
 	sc.Lock()
 	defer sc.Unlock()
 	// TODO(draychev): split namespace from the service name -- for non-K8s services
@@ -156,25 +156,25 @@ func (sc *ServiceCatalog) listEndpointsForService(namespacedServiceName endpoint
 }
 
 // RegisterNewEndpoint adds a newly connected Envoy proxy to the list of self-announced endpoints for a service.
-func (sc *ServiceCatalog) RegisterNewEndpoint(mesh.ClientIdentity) {
+func (sc *MeshCatalog) RegisterNewEndpoint(mesh.ClientIdentity) {
 	// TODO(draychev): implement
 	panic("NotImplemented")
 }
 
 // ListEndpointsProviders retrieves the full list of endpoints providers registered with Service Catalog so far.
-func (sc *ServiceCatalog) ListEndpointsProviders() []endpoint.Provider {
+func (sc *MeshCatalog) ListEndpointsProviders() []endpoint.Provider {
 	// TODO(draychev): implement
 	panic("NotImplemented")
 }
 
 // GetAnnouncementChannel returns an instance of a channel, which notifies the system of an event requiring the execution of ListEndpoints.
-func (sc *ServiceCatalog) GetAnnouncementChannel() chan struct{} {
+func (sc *MeshCatalog) GetAnnouncementChannel() chan struct{} {
 	// TODO(draychev): implement
 	panic("NotImplemented")
 }
 
-// RegisterProxy implements ServiceCatalog and registers a newly connected proxy.
-func (sc *ServiceCatalog) RegisterProxy(proxy smcEnvoy.Proxyer) {
+// RegisterProxy implements MeshCatalog and registers a newly connected proxy.
+func (sc *MeshCatalog) RegisterProxy(proxy smcEnvoy.Proxyer) {
 	// TODO(draychev): implement
 	panic("NotImplemented")
 }

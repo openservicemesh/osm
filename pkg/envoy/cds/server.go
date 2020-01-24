@@ -19,7 +19,7 @@ const (
 )
 
 // NewCDSServer creates a new CDS server
-func NewCDSServer(catalog catalog.ServiceCataloger) *Server {
+func NewCDSServer(catalog catalog.MeshCataloger) *Server {
 	return &Server{
 		connectionNum: 0,
 		catalog:       catalog,
