@@ -12,8 +12,12 @@ clean-sds:
 clean-eds:
 	@rm -rf bin/eds
 
+.PHONY: clean-rds
+clean-rds:
+	@rm -rf bin/rds
+
 .PHONY: build
-build: build-sds build-eds
+build: build-sds build-eds build-rds
 
 .PHONY: build-sds
 build-sds: clean-sds
@@ -25,8 +29,13 @@ build-eds: clean-eds
 	@mkdir -p $(shell pwd)/bin
 	CGO_ENABLED=0 go build -v -o ./bin/eds ./cmd/eds
 
+.PHONY: build-rds
+build-rds: clean-rds
+	@mkdir -p $(shell pwd)/bin
+	CGO_ENABLED=0 go build -v -o ./bin/rds ./cmd/rds
+
 .PHONY: docker-build
-docker-build: build docker-build-sds docker-build-eds docker-build-bookbuyer docker-build-bookstore
+docker-build: build docker-build-sds docker-build-eds docker-build-rds docker-build-bookbuyer docker-build-bookstore
 
 .PHONY: go-vet
 go-vet:
@@ -56,6 +65,11 @@ docker-build-sds: build-sds sds-root-tls
 	@mkdir -p ./bin/
 	docker build --build-arg $(HOME)/go/ -t $(CTR_REGISTRY)/sds -f dockerfiles/Dockerfile.sds .
 
+.PHONY: docker-build-rds
+docker-build-rds: build-rds
+	@mkdir -p ./bin/
+	docker build --build-arg $(HOME)/go/ -t $(CTR_REGISTRY)/rds -f dockerfiles/Dockerfile.rds .
+
 .PHONY: build-counter
 build-counter:
 	@rm -rf $(shell pwd)/demo/bin
@@ -82,6 +96,10 @@ docker-push-eds: docker-build-eds
 docker-push-sds: docker-build-sds
 	docker push "$(CTR_REGISTRY)/sds"
 
+.PHONY: docker-push-rds
+docker-push-rds: docker-build-rds
+	docker push "$(CTR_REGISTRY)/rds"
+
 .PHONY: docker-push-bookbuyer
 docker-push-bookbuyer: docker-build-bookbuyer
 	docker push "$(CTR_REGISTRY)/bookbuyer"
@@ -95,7 +113,7 @@ docker-push-init: docker-build-init
 	docker push "$(CTR_REGISTRY)/init"
 
 .PHONY: docker-push
-docker-push: docker-push-eds docker-push-sds docker-push-init docker-push-bookbuyer docker-push-bookstore
+docker-push: docker-push-eds docker-push-sds docker-push-rds docker-push-init docker-push-bookbuyer docker-push-bookstore
 
 .PHONY: sds-root-tls
 sds-root-tls:

@@ -6,6 +6,7 @@ source .env
 
 make docker-push-eds
 make docker-push-sds
+make docker-push-rds
 
 make docker-push-init
 make docker-push-bookbuyer
@@ -28,7 +29,10 @@ kubectl create configmap azureconfig --from-file="$HOME/.azure/azureAuth.json" -
 
 ./demo/deploy-sds.sh
 ./demo/deploy-eds.sh
+./demo/deploy-rds.sh
 
 ./demo/deploy-traffic-split.sh
+./demo/deploy-traffic-spec.sh
+./demo/deploy-traffic-target.sh
 
 watch -n0.5 "kubectl get pods -nsmc -o wide"

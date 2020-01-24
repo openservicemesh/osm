@@ -32,19 +32,19 @@ static_resources:
                     cluster_name: sds_server_mtls
       filters:
       - name: envoy.http_connection_manager
-        config:
+        typed_config:
+          "@type": type.googleapis.com/envoy.config.filter.network.http_connection_manager.v2.HttpConnectionManager
           stat_prefix: ingress_http
-          route_config:
-            name: local_route
-            virtual_hosts:
-            - name: local_service
-              domains: ["*"]
-              routes:
-              - match:
-                  prefix: "/"
-                route:
-                  host_rewrite: httpbin.example.com
-                  cluster: httpbin_service
+          codec_type: AUTO
+          rds:
+            route_config_name: demo_route_config
+            config_source:
+              api_config_source:
+                api_type: GRPC
+                grpc_services:
+                  envoy_grpc:
+                    # will maintain connection based on cluster below.
+                    cluster_name: rds_cluster
           http_filters:
           - name: envoy.router
 
@@ -114,3 +114,15 @@ static_resources:
           - endpoint:
               address:
                 socket_address: { address: 0.0.0.0, port_value: 15123 }
+
+    - name: rds_cluster
+      connect_timeout: 5s
+      type: LOGICAL_DNS
+      http2_protocol_options: {}
+      load_assignment:
+        cluster_name: rds_cluster
+        endpoints:
+        - lb_endpoints:
+          - endpoint:
+              address:
+                socket_address: { address: 0.0.0.0, port_value: 15126 }
