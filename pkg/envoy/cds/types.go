@@ -11,7 +11,7 @@ type Server struct {
 
 	// secretsManager secrets.SecretsManager
 
-	catalog catalog.ServiceCataloger
+	catalog catalog.MeshCataloger
 
 	// close channel.
 	closing chan bool

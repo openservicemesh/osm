@@ -10,8 +10,8 @@ import (
 	"github.com/deislabs/smc/pkg/mesh"
 )
 
-// ServiceCatalog is the struct for the service catalog
-type ServiceCatalog struct {
+// MeshCatalog is the struct for the service catalog
+type MeshCatalog struct {
 	sync.Mutex
 
 	servicesCache      map[endpoint.ServiceName][]endpoint.Endpoint
@@ -20,8 +20,8 @@ type ServiceCatalog struct {
 	meshTopology mesh.Topology
 }
 
-// ServiceCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
-type ServiceCataloger interface {
+// MeshCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
+type MeshCataloger interface {
 	// ListEndpoints constructs a DiscoveryResponse with all endpoints the given Envoy proxy should be aware of.
 	// The bool return value indicates whether there have been any changes since the last invocation of this function.
 	ListEndpoints(mesh.ClientIdentity) (resp *envoy.DiscoveryResponse, hasChanged bool, err error)

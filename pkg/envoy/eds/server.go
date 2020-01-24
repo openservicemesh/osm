@@ -18,7 +18,7 @@ const (
 // EDS implements the Envoy xDS Endpoint Discovery Services
 type EDS struct {
 	ctx           context.Context // root context
-	catalog       catalog.ServiceCataloger
+	catalog       catalog.MeshCataloger
 	meshTopology  mesh.Topology
 	announcements *channels.RingChannel
 }
@@ -34,7 +34,7 @@ func (e *EDS) DeltaEndpoints(xds.EndpointDiscoveryService_DeltaEndpointsServer) 
 }
 
 // NewEDSServer creates a new EDS server
-func NewEDSServer(ctx context.Context, catalog catalog.ServiceCataloger, meshTopology mesh.Topology, announcements *channels.RingChannel) *EDS {
+func NewEDSServer(ctx context.Context, catalog catalog.MeshCataloger, meshTopology mesh.Topology, announcements *channels.RingChannel) *EDS {
 	glog.Info("[EDS] Create NewEDSServer")
 	return &EDS{
 		ctx:           ctx,
