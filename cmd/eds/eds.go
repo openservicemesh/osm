@@ -28,7 +28,7 @@ import (
 const (
 	serverType = "EDS"
 
-	defaultNamespace = "default"
+	defaultKubernetesNamespace = "default"
 
 	// These strings identify the participating clusters / endpoint providers.
 	// Ideally these should be not only the type of compute but also a unique identifier, like the FQDN of the cluster,
@@ -106,7 +106,7 @@ func parseFlags() {
 func getNamespaces() []string {
 	var namespaces []string
 	if namespace == nil {
-		defaultNS := defaultNamespace
+		defaultNS := defaultKubernetesNamespace
 		namespaces = []string{defaultNS}
 	} else {
 		namespaces = []string{*namespace}
