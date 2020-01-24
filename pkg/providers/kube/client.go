@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/eapache/channels"
+
 	"github.com/golang/glog"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/informers"
@@ -18,7 +19,7 @@ import (
 var resyncPeriod = 1 * time.Second
 
 // NewProvider implements mesh.EndpointsProvider, which creates a new Kubernetes cluster/compute provider.
-func NewProvider(kubeConfig *rest.Config, namespaces []string, announcements *channels.RingChannel, stop chan struct{}, providerIdent string) endpoint.Provider {
+func NewProvider(kubeConfig *rest.Config, namespaces []string, announcements chan struct{}, stop chan struct{}, providerIdent string) endpoint.Provider {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 
 	var options []informers.SharedInformerOption
@@ -40,8 +41,11 @@ func NewProvider(kubeConfig *rest.Config, namespaces []string, announcements *ch
 		kubeClient:    kubeClient,
 		informers:     &informerCollection,
 		caches:        &cacheCollection,
-		announcements: announcements,
-		cacheSynced:   make(chan interface{}),
+
+		// TODO(draychev): bridge announcements and this channel
+		announcements: channels.NewRingChannel(1024),
+
+		cacheSynced: make(chan interface{}),
 	}
 
 	h := handlers{client}

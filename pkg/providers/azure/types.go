@@ -9,8 +9,6 @@ import (
 	"github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2018-04-01/compute"
 	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2019-06-01/network"
 	"github.com/Azure/go-autorest/autorest"
-	"github.com/eapache/channels"
-
 	smc "github.com/deislabs/smc/pkg/apis/azureresource/v1"
 )
 
@@ -48,7 +46,7 @@ type Client struct {
 	azureClients
 
 	subscriptionID string
-	announcements  *channels.RingChannel
+	announcements  chan struct{}
 	meshSpec       smi.MeshSpec
 
 	// Free-form string identifying the compute provider: Azure, Kubernetes etc.

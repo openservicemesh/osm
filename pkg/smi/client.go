@@ -24,12 +24,12 @@ var resyncPeriod = 1 * time.Second
 const kubernetesClientName = "Specification"
 
 // NewMeshSpecClient implements mesh.MeshSpec and creates the Kubernetes client, which retrieves SMI specific CRDs.
-func NewMeshSpecClient(kubeConfig *rest.Config, namespaces []string, announcement *channels.RingChannel, stop chan struct{}) MeshSpec {
+func NewMeshSpecClient(kubeConfig *rest.Config, namespaces []string, announcement chan struct{}, stop chan struct{}) MeshSpec {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 	smiClientset := versioned.NewForConfigOrDie(kubeConfig)
 
-	announcements := channels.NewRingChannel(1204)
-	client := newSMIClient(kubeClient, smiClientset, namespaces, announcements, kubernetesClientName)
+	announceChan := channels.NewRingChannel(1204)
+	client := newSMIClient(kubeClient, smiClientset, namespaces, announceChan, kubernetesClientName)
 	err := client.run(stop)
 	if err != nil {
 		glog.Fatalf("Could not start %s client: %s", kubernetesClientName, err)

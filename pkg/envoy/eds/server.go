@@ -3,7 +3,6 @@ package eds
 import (
 	"context"
 
-	"github.com/eapache/channels"
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
 
@@ -20,7 +19,7 @@ type Server struct {
 	ctx           context.Context // root context
 	catalog       catalog.MeshCataloger
 	meshSpec      smi.MeshSpec
-	announcements *channels.RingChannel
+	announcements chan struct{}
 }
 
 // FetchEndpoints implements envoy.EndpointDiscoveryServiceServer
@@ -34,7 +33,7 @@ func (e *Server) DeltaEndpoints(xds.EndpointDiscoveryService_DeltaEndpointsServe
 }
 
 // NewEDSServer creates a new EDS server
-func NewEDSServer(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, announcements *channels.RingChannel) *Server {
+func NewEDSServer(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, announcements chan struct{}) *Server {
 	glog.Info("[EDS] Create NewEDSServer")
 	return &Server{
 		ctx:           ctx,
