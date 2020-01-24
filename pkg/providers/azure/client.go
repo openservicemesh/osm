@@ -13,7 +13,7 @@ import (
 )
 
 // NewProvider creates an Azure Client
-func NewProvider(subscriptionID string, azureAuthFile string, announcements *channels.RingChannel, stopChan chan struct{}, meshSpec smi.MeshSpec, azureResourceClient ResourceClient, providerIdent string) endpoint.Provider {
+func NewProvider(subscriptionID string, azureAuthFile string, announcements *channels.RingChannel, stop chan struct{}, meshSpec smi.MeshSpec, azureResourceClient ResourceClient, providerIdent string) endpoint.Provider {
 	var authorizer autorest.Authorizer
 	var err error
 	if authorizer, err = getAuthorizerWithRetry(azureAuthFile); err != nil {
@@ -59,7 +59,7 @@ func NewProvider(subscriptionID string, azureAuthFile string, announcements *cha
 			}
 	*/
 
-	if err := az.Run(stopChan); err != nil {
+	if err := az.Run(stop); err != nil {
 		glog.Fatal("[azure] Could not start Azure EndpointsProvider client", err)
 	}
 
