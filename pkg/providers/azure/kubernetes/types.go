@@ -1,7 +1,6 @@
 package azure
 
 import (
-	"github.com/eapache/channels"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 )
@@ -22,6 +21,6 @@ type Client struct {
 	cacheSynced   chan interface{}
 	kubeClient    kubernetes.Interface
 	informers     *InformerCollection
-	announcements *channels.RingChannel
+	announcements chan interface{}
 	providerIdent string
 }

@@ -6,14 +6,13 @@ import (
 	n "github.com/Azure/azure-sdk-for-go/services/network/mgmt/2019-06-01/network"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/deislabs/smc/pkg/smi"
-	"github.com/eapache/channels"
 	"github.com/golang/glog"
 
 	"github.com/deislabs/smc/pkg/endpoint"
 )
 
 // NewProvider creates an Azure Client
-func NewProvider(subscriptionID string, azureAuthFile string, announcements *channels.RingChannel, stop chan struct{}, meshSpec smi.MeshSpec, azureResourceClient ResourceClient, providerIdent string) endpoint.Provider {
+func NewProvider(subscriptionID string, azureAuthFile string, announcements chan interface{}, stop chan struct{}, meshSpec smi.MeshSpec, azureResourceClient ResourceClient, providerIdent string) endpoint.Provider {
 	var authorizer autorest.Authorizer
 	var err error
 	if authorizer, err = getAuthorizerWithRetry(azureAuthFile); err != nil {

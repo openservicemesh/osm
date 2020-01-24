@@ -9,7 +9,6 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/eapache/channels"
 	envoyControlPlane "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
@@ -60,7 +59,7 @@ func main() {
 	// SMI Informers will write to this channel when they notice changes.
 	// This channel will be consumed by the ServiceName Mesh Controller.
 	// This is a signalling mechanism to notify SMC of a service mesh spec change which triggers Envoy updates.
-	announcements := channels.NewRingChannel(1024)
+	announcements := make(chan interface{})
 
 	kubeConfig, err := clientcmd.BuildConfigFromFlags("", *kubeConfigFile)
 	if err != nil {
