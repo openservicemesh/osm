@@ -70,7 +70,7 @@ func main() {
 	observeNamespaces := getNamespaces()
 
 	stopChan := make(chan struct{})
-	meshTopologyClient := smi.NewMeshTopologyClient(kubeConfig, observeNamespaces, announcements, stopChan)
+	meshTopologyClient := smi.NewSpecificationClient(kubeConfig, observeNamespaces, announcements, stopChan)
 	azureResourceClient := azureResource.NewClient(kubeConfig, observeNamespaces, announcements, stopChan)
 
 	endpointsProviders := []endpoint.Provider{

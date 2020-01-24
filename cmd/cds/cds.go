@@ -63,7 +63,7 @@ func main() {
 	observeNamespaces := getNamespaces()
 
 	stop := make(chan struct{})
-	meshTopologyClient := smi.NewMeshTopologyClient(kubeConfig, observeNamespaces, announcements, stop)
+	meshTopologyClient := smi.NewSpecificationClient(kubeConfig, observeNamespaces, announcements, stop)
 
 	serviceCatalog := catalog.NewServiceCatalog(meshTopologyClient)
 
