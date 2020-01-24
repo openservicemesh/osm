@@ -49,7 +49,7 @@ type Client struct {
 
 	subscriptionID string
 	announcements  *channels.RingChannel
-	meshSpec   smi.MeshSpec
+	meshSpec       smi.MeshSpec
 
 	// Free-form string identifying the compute provider: Azure, Kubernetes etc.
 	// This is used in logs

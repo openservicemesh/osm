@@ -48,7 +48,7 @@ func main() {
 
 	// SMI Informers will write to this channel when they notice changes.
 	// This channel will be consumed by the ServiceName Mesh Controller.
-	// This is a signalling mechanism to notify SMC of a service mesh topology change which triggers Envoy updates.
+	// This is a signalling mechanism to notify SMC of a service mesh spec change which triggers Envoy updates.
 	// announcements := make(chan struct{})
 	// TODO(draychev): transition the channel below to the channel above
 	announcements := channels.NewRingChannel(1024)
@@ -63,7 +63,7 @@ func main() {
 	observeNamespaces := getNamespaces()
 
 	stop := make(chan struct{})
-	meshSpecClient := smi.NewSpecificationClient(kubeConfig, observeNamespaces, announcements, stop)
+	meshSpecClient := smi.NewMeshSpecClient(kubeConfig, observeNamespaces, announcements, stop)
 
 	serviceCatalog := catalog.NewServiceCatalog(meshSpecClient)
 

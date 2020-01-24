@@ -3,13 +3,11 @@ package catalog
 import (
 	"sync"
 
-	"github.com/deislabs/smc/pkg/smi"
-
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 
 	"github.com/deislabs/smc/pkg/endpoint"
 	smcEnvoy "github.com/deislabs/smc/pkg/envoy"
-	"github.com/deislabs/smc/pkg/mesh"
+	"github.com/deislabs/smc/pkg/smi"
 )
 
 // MeshCatalog is the struct for the service catalog

@@ -12,7 +12,7 @@ import (
 	"github.com/deislabs/smc/pkg/endpoint"
 	smcEnvoy "github.com/deislabs/smc/pkg/envoy"
 	"github.com/deislabs/smc/pkg/envoy/cla"
-	"github.com/deislabs/smc/pkg/mesh"
+	"github.com/deislabs/smc/pkg/smi"
 )
 
 // NewServiceCatalog creates a new service catalog

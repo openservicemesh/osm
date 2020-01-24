@@ -37,7 +37,7 @@ func NewProvider(subscriptionID string, azureAuthFile string, announcements *cha
 
 		subscriptionID: subscriptionID,
 		announcements:  announcements,
-		meshSpec:   meshSpec,
+		meshSpec:       meshSpec,
 		providerID:     providerIdent,
 
 		// AzureResource Client is needed here so the Azure EndpointsProvider can resolve a Kubernetes ServiceName
