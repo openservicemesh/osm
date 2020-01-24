@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -aueo pipefail
+
 rm -rf ./bin/eds
 
 if [ ! -f ".env" ]; then
