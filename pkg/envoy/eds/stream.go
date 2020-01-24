@@ -21,11 +21,11 @@ type edsStreamHandler struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	*EDS
+	*Server
 }
 
 // StreamEndpoints implements envoy.EndpointDiscoveryServiceServer and handles streaming of Endpoint changes to the Envoy proxies connected
-func (e *EDS) StreamEndpoints(server envoy.EndpointDiscoveryService_StreamEndpointsServer) error {
+func (e *Server) StreamEndpoints(server envoy.EndpointDiscoveryService_StreamEndpointsServer) error {
 	glog.Infof("[%s] Starting StreamEndpoints", serverName)
 
 	// Register the newly connected Envoy proxy.
@@ -38,7 +38,7 @@ func (e *EDS) StreamEndpoints(server envoy.EndpointDiscoveryService_StreamEndpoi
 	handler := &edsStreamHandler{
 		ctx:    ctx,
 		cancel: cancel,
-		EDS:    e,
+		Server: e,
 	}
 
 	// Periodic Updates -- useful for debugging
