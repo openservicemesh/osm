@@ -3,6 +3,8 @@ package catalog
 import (
 	"sync"
 
+	"github.com/deislabs/smc/pkg/smi"
+
 	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 
 	"github.com/deislabs/smc/pkg/endpoint"
@@ -17,7 +19,7 @@ type MeshCatalog struct {
 	servicesCache      map[endpoint.ServiceName][]endpoint.Endpoint
 	endpointsProviders []endpoint.Provider
 
-	meshTopology mesh.Topology
+	meshSpec smi.MeshSpec
 }
 
 // MeshCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.

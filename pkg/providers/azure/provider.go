@@ -66,7 +66,7 @@ func (az Client) GetID() string {
 }
 
 func parseAzureID(id azureID) (resourceGroup, computeKind, computeName, error) {
-	// Sample URI: /resource/subscriptions/e3f0/resourceGroups/meshTopology-rg/providers/Microsoft.Compute/virtualMachineScaleSets/baz
+	// Sample URI: /resource/subscriptions/e3f0/resourceGroups/meshSpec-rg/providers/Microsoft.Compute/virtualMachineScaleSets/baz
 	chunks := strings.Split(string(id), "/")
 	if len(chunks) != 9 {
 		return "", "", "", errIncorrectAzureURI
@@ -80,7 +80,7 @@ func parseAzureID(id azureID) (resourceGroup, computeKind, computeName, error) {
 func (az *Client) resolveService(svc endpoint.ServiceName) []azureID {
 	glog.V(7).Infof("[azure] Resolving service %s to an Azure URI", svc)
 	var azureIDs []azureID
-	service, exists, err := az.meshTopology.GetService(svc)
+	service, exists, err := az.meshSpec.GetService(svc)
 	if err != nil {
 		glog.Error("[azure] Error fetching Kubernetes Endpoints from cache: ", err)
 		return azureIDs

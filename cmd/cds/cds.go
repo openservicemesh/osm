@@ -63,9 +63,9 @@ func main() {
 	observeNamespaces := getNamespaces()
 
 	stop := make(chan struct{})
-	meshTopologyClient := smi.NewSpecificationClient(kubeConfig, observeNamespaces, announcements, stop)
+	meshSpecClient := smi.NewSpecificationClient(kubeConfig, observeNamespaces, announcements, stop)
 
-	serviceCatalog := catalog.NewServiceCatalog(meshTopologyClient)
+	serviceCatalog := catalog.NewServiceCatalog(meshSpecClient)
 
 	cds := cdsServer.NewCDSServer(serviceCatalog)
 

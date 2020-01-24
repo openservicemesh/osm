@@ -70,18 +70,18 @@ func main() {
 	observeNamespaces := getNamespaces()
 
 	stopChan := make(chan struct{})
-	meshTopologyClient := smi.NewSpecificationClient(kubeConfig, observeNamespaces, announcements, stopChan)
+	meshSpecClient := smi.NewSpecificationClient(kubeConfig, observeNamespaces, announcements, stopChan)
 	azureResourceClient := azureResource.NewClient(kubeConfig, observeNamespaces, announcements, stopChan)
 
 	endpointsProviders := []endpoint.Provider{
-		azure.NewProvider(*subscriptionID, *azureAuthFile, announcements, stopChan, meshTopologyClient, azureResourceClient, azureProviderName),
+		azure.NewProvider(*subscriptionID, *azureAuthFile, announcements, stopChan, meshSpecClient, azureResourceClient, azureProviderName),
 		kube.NewProvider(kubeConfig, observeNamespaces, announcements, stopChan, kubernetesProviderName),
 	}
 
-	serviceCatalog := catalog.NewServiceCatalog(meshTopologyClient, endpointsProviders...)
+	serviceCatalog := catalog.NewServiceCatalog(meshSpecClient, endpointsProviders...)
 
 	grpcServer, lis := utils.NewGrpc(serverType, *port, *certPem, *keyPem, *rootCertPem)
-	eds := edsServer.NewEDSServer(ctx, serviceCatalog, meshTopologyClient, announcements)
+	eds := edsServer.NewEDSServer(ctx, serviceCatalog, meshSpecClient, announcements)
 	envoyControlPlane.RegisterEndpointDiscoveryServiceServer(grpcServer, eds)
 	go utils.GrpcServe(ctx, grpcServer, lis, cancel, serverType)
 

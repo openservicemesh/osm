@@ -16,12 +16,12 @@ import (
 )
 
 // NewServiceCatalog creates a new service catalog
-func NewServiceCatalog(meshTopology mesh.Topology, endpointsProviders ...endpoint.Provider) MeshCataloger {
+func NewServiceCatalog(meshSpec smi.MeshSpec, endpointsProviders ...endpoint.Provider) MeshCataloger {
 	glog.Info("[catalog] Create a new Service Catalog.")
 	serviceCatalog := MeshCatalog{
 		servicesCache:      make(map[endpoint.ServiceName][]endpoint.Endpoint),
 		endpointsProviders: endpointsProviders,
-		meshTopology:       meshTopology,
+		meshSpec:           meshSpec,
 	}
 
 	// NOTE(draychev): helpful while developing alpha MVP -- remove before releasing beta version.
@@ -79,7 +79,7 @@ func (sc *MeshCatalog) refreshCache() {
 	glog.Info("[catalog] Refresh cache...")
 	servicesCache := make(map[endpoint.ServiceName][]endpoint.Endpoint)
 	// TODO(draychev): split the namespace from the service name -- non-K8s services won't have namespace
-	for _, namespacedServiceName := range sc.meshTopology.ListServices() {
+	for _, namespacedServiceName := range sc.meshSpec.ListServices() {
 		for _, provider := range sc.endpointsProviders {
 			newIps := provider.ListEndpointsForService(namespacedServiceName)
 			glog.V(7).Infof("[catalog][%s] Found ips=%+v for service=%s", provider.GetID(), endpointsToString(newIps), namespacedServiceName)
@@ -108,7 +108,7 @@ func (sc *MeshCatalog) getWeightedEndpointsPerService() (map[endpoint.ServiceNam
 	byTargetService := make(map[endpoint.ServiceName][]endpoint.WeightedService)
 	backendWeight := make(map[string]int)
 
-	for _, trafficSplit := range sc.meshTopology.ListTrafficSplits() {
+	for _, trafficSplit := range sc.meshSpec.ListTrafficSplits() {
 		targetServiceName := endpoint.ServiceName(trafficSplit.Spec.Service)
 		var services []endpoint.WeightedService
 		glog.V(7).Infof("[EDS][catalog] Discovered TrafficSplit resource: %s/%s for service %s\n", trafficSplit.Namespace, trafficSplit.Name, targetServiceName)

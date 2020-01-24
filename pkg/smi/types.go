@@ -35,8 +35,8 @@ type Client struct {
 // ClientIdentity is the identity of an Envoy proxy connected to the Service Mesh Controller.
 type ClientIdentity string
 
-// Specificator is an interface declaring functions, which provide the topology of a service mesh declared with SMI.
-type Specificator interface {
+// MeshSpec is an interface declaring functions, which provide the topology of a service mesh declared with SMI.
+type MeshSpec interface {
 	// ListTrafficSplits lists TrafficSplit SMI resources.
 	ListTrafficSplits() []*v1alpha2.TrafficSplit
 

@@ -23,8 +23,8 @@ var resyncPeriod = 1 * time.Second
 // We have a few different k8s clients. This identifies these in logs.
 const kubernetesClientName = "Specification"
 
-// NewSpecificationClient implements mesh.Specificator and creates the Kubernetes client, which retrieves SMI specific CRDs.
-func NewSpecificationClient(kubeConfig *rest.Config, namespaces []string, announcement *channels.RingChannel, stop chan struct{}) Specificator {
+// NewSpecificationClient implements mesh.MeshSpec and creates the Kubernetes client, which retrieves SMI specific CRDs.
+func NewSpecificationClient(kubeConfig *rest.Config, namespaces []string, announcement *channels.RingChannel, stop chan struct{}) MeshSpec {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 	smiClientset := versioned.NewForConfigOrDie(kubeConfig)
 
@@ -124,7 +124,7 @@ func newSMIClient(kubeClient *kubernetes.Clientset, smiClient *versioned.Clients
 	return &client
 }
 
-// ListTrafficSplits implements mesh.Specificator by returning the list of traffic splits.
+// ListTrafficSplits implements mesh.MeshSpec by returning the list of traffic splits.
 func (c *Client) ListTrafficSplits() []*v1alpha2.TrafficSplit {
 	var trafficSplits []*v1alpha2.TrafficSplit
 	for _, splitIface := range c.caches.TrafficSplit.List() {
@@ -134,7 +134,7 @@ func (c *Client) ListTrafficSplits() []*v1alpha2.TrafficSplit {
 	return trafficSplits
 }
 
-// ListServices implements mesh.Specificator by returning the services observed from the given compute provider
+// ListServices implements mesh.MeshSpec by returning the services observed from the given compute provider
 func (c *Client) ListServices() []endpoint.ServiceName {
 	// TODO(draychev): split the namespace and the service kubernetesClientName -- for non-kubernetes services we won't have namespace
 	var services []endpoint.ServiceName
