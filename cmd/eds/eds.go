@@ -69,13 +69,13 @@ func main() {
 
 	observeNamespaces := getNamespaces()
 
-	stopChan := make(chan struct{})
-	meshSpecClient := smi.NewMeshSpecClient(kubeConfig, observeNamespaces, announcements, stopChan)
-	azureResourceClient := azureResource.NewClient(kubeConfig, observeNamespaces, announcements, stopChan)
+	stop := make(chan struct{})
+	meshSpecClient := smi.NewMeshSpecClient(kubeConfig, observeNamespaces, announcements, stop)
+	azureResourceClient := azureResource.NewClient(kubeConfig, observeNamespaces, announcements, stop)
 
 	endpointsProviders := []endpoint.Provider{
-		azure.NewProvider(*subscriptionID, *azureAuthFile, announcements, stopChan, meshSpecClient, azureResourceClient, azureProviderName),
-		kube.NewProvider(kubeConfig, observeNamespaces, announcements, stopChan, kubernetesProviderName),
+		azure.NewProvider(*subscriptionID, *azureAuthFile, announcements, stop, meshSpecClient, azureResourceClient, azureProviderName),
+		kube.NewProvider(kubeConfig, observeNamespaces, announcements, stop, kubernetesProviderName),
 	}
 
 	serviceCatalog := catalog.NewServiceCatalog(meshSpecClient, endpointsProviders...)
@@ -89,7 +89,7 @@ func main() {
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	<-sigChan
 
-	close(stopChan)
+	close(stop)
 	glog.Info("[EDS] Goodbye!")
 }
 
