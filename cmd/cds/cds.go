@@ -25,7 +25,7 @@ import (
 const (
 	serverType = "CDS"
 
-	defaultNamespace = "default"
+	defaultKubernetesNamespace = "default"
 )
 
 var (
@@ -93,7 +93,7 @@ func parseFlags() {
 func getNamespaces() []string {
 	var namespaces []string
 	if namespace == nil {
-		defaultNS := defaultNamespace
+		defaultNS := defaultKubernetesNamespace
 		namespaces = []string{defaultNS}
 	} else {
 		namespaces = []string{*namespace}
