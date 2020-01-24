@@ -25,6 +25,10 @@ type ServiceCataloger interface {
 	// The bool return value indicates whether there have been any changes since the last invocation of this function.
 	ListEndpoints(mesh.ClientIdentity) (resp *envoy.DiscoveryResponse, hasChanged bool, err error)
 
+	// ListTrafficRoutes constructs a DiscoveryResponse with all traffic routes the given Envoy proxy should be aware of.
+	// The bool return value indicates whether there have been any changes since the last invocation of this function.
+	ListTrafficRoutes(mesh.ClientIdentity) (resp *envoy.DiscoveryResponse, hasChanged bool, err error)
+
 	// RegisterNewEndpoint adds a newly connected Envoy proxy to the list of self-announced endpoints for a service.
 	RegisterNewEndpoint(mesh.ClientIdentity)
 

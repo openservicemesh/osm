@@ -30,3 +30,17 @@ type WeightedService struct {
 	Weight      int         `json:"weight:omitempty"`
 	Endpoints   []Endpoint  `json:"endpoints:omitempty"`
 }
+
+// RoutePaths is a struct of a path and the allowed methods on a given route
+type RoutePaths struct {
+	RoutePathRegex string   `json:"route_path_regex:omitempty"`
+	RouteMethods   []string `json:"route_methods:omitempty"`
+}
+
+// TrafficTargetPolicies is a struct of the allowed RoutePaths from sources to a destination
+type TrafficTargetPolicies struct {
+	PolicyName       string     `json:"policy_name:omitempty"`
+	Destination      string     `json:"destination:omitempty"`
+	Source          string   `json:"sources:omitempty"`
+	PolicyRoutePaths []RoutePaths `json:"policy_route_paths:omitempty"`
+}
