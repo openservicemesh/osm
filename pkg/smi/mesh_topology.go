@@ -20,10 +20,10 @@ import (
 const kubernetesClientName = "MeshTopology"
 
 // NewMeshTopologyClient creates the Kubernetes client, which retrieves SMI specific CRDs.
-func NewMeshTopologyClient(kubeConfig *rest.Config, namespaces []string, announceChan *channels.RingChannel, stopChan chan struct{}) mesh.Topology {
+func NewMeshTopologyClient(kubeConfig *rest.Config, namespaces []string, announcements *channels.RingChannel, stopChan chan struct{}) mesh.Topology {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 	smiClientset := smiClient.NewForConfigOrDie(kubeConfig)
-	client := newSMIClient(kubeClient, smiClientset, namespaces, announceChan, kubernetesClientName)
+	client := newSMIClient(kubeClient, smiClientset, namespaces, announcements, kubernetesClientName)
 	err := client.Run(stopChan)
 	if err != nil {
 		glog.Fatalf("Could not start %s client: %s", kubernetesClientName, err)

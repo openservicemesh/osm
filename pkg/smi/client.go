@@ -59,7 +59,7 @@ func (c *Client) GetID() string {
 }
 
 // newClient creates a provider based on a Kubernetes client instance.
-func newSMIClient(kubeClient *kubernetes.Clientset, smiClient *versioned.Clientset, namespaces []string, announceChan *channels.RingChannel, providerIdent string) *Client {
+func newSMIClient(kubeClient *kubernetes.Clientset, smiClient *versioned.Clientset, namespaces []string, announcements *channels.RingChannel, providerIdent string) *Client {
 	var options []informers.SharedInformerOption
 	var smiOptions []smiExternalVersions.SharedInformerOption
 	for _, namespace := range namespaces {
@@ -83,7 +83,7 @@ func newSMIClient(kubeClient *kubernetes.Clientset, smiClient *versioned.Clients
 		providerIdent: providerIdent,
 		informers:     &informerCollection,
 		caches:        &cacheCollection,
-		announceChan:  announceChan,
+		announcements:  announcements,
 		cacheSynced:   make(chan interface{}),
 	}
 

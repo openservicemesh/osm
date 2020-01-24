@@ -47,7 +47,7 @@ type Client struct {
 	azureClients
 
 	subscriptionID string
-	announceChan   *channels.RingChannel
+	announcements   *channels.RingChannel
 	meshTopology   mesh.Topology
 
 	// Free-form string identifying the compute provider: Azure, Kubernetes etc.

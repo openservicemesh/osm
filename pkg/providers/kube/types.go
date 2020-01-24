@@ -26,5 +26,5 @@ type Client struct {
 	providerIdent string
 	kubeClient    kubernetes.Interface
 	informers     *InformerCollection
-	announceChan  *channels.RingChannel
+	announcements  *channels.RingChannel
 }
