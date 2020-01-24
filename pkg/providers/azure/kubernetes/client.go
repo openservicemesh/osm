@@ -22,10 +22,10 @@ const (
 var resyncPeriod = 1 * time.Second
 
 // NewClient creates the Kubernetes client, which retrieves the AzureResource CRD and Services resources.
-func NewClient(kubeConfig *rest.Config, namespaces []string, announceChan *channels.RingChannel, stopChan chan struct{}) *Client {
+func NewClient(kubeConfig *rest.Config, namespaces []string, announcements *channels.RingChannel, stopChan chan struct{}) *Client {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 	azureResourceClient := smcClient.NewForConfigOrDie(kubeConfig)
-	k8sClient := newClient(kubeClient, azureResourceClient, namespaces, announceChan)
+	k8sClient := newClient(kubeClient, azureResourceClient, namespaces, announcements)
 	if err := k8sClient.Run(stopChan); err != nil {
 		glog.Fatalf("Could not start %s client: %s", kubernetesClientName, err)
 	}
@@ -33,7 +33,7 @@ func NewClient(kubeConfig *rest.Config, namespaces []string, announceChan *chann
 }
 
 // newClient creates a provider based on a Kubernetes client instance.
-func newClient(kubeClient *kubernetes.Clientset, azureResourceClient *smcClient.Clientset, namespaces []string, announceChan *channels.RingChannel) *Client {
+func newClient(kubeClient *kubernetes.Clientset, azureResourceClient *smcClient.Clientset, namespaces []string, announcements *channels.RingChannel) *Client {
 	var options []smcInformers.SharedInformerOption
 	for _, namespace := range namespaces {
 		options = append(options, smcInformers.WithNamespace(namespace))
@@ -52,7 +52,7 @@ func newClient(kubeClient *kubernetes.Clientset, azureResourceClient *smcClient.
 		kubeClient:    kubeClient,
 		informers:     &informerCollection,
 		caches:        &cacheCollection,
-		announceChan:  announceChan,
+		announcements: announcements,
 		cacheSynced:   make(chan interface{}),
 	}
 

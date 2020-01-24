@@ -18,7 +18,7 @@ import (
 var resyncPeriod = 1 * time.Second
 
 // NewProvider implements mesh.EndpointsProvider, which creates a new Kubernetes cluster/compute provider.
-func NewProvider(kubeConfig *rest.Config, namespaces []string, announceChan *channels.RingChannel, stopChan chan struct{}, providerIdent string) endpoint.Provider {
+func NewProvider(kubeConfig *rest.Config, namespaces []string, announcements *channels.RingChannel, stopChan chan struct{}, providerIdent string) endpoint.Provider {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 
 	var options []informers.SharedInformerOption
@@ -40,7 +40,7 @@ func NewProvider(kubeConfig *rest.Config, namespaces []string, announceChan *cha
 		kubeClient:    kubeClient,
 		informers:     &informerCollection,
 		caches:        &cacheCollection,
-		announceChan:  announceChan,
+		announcements: announcements,
 		cacheSynced:   make(chan interface{}),
 	}
 
