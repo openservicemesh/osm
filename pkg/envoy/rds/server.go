@@ -12,8 +12,8 @@ import (
 
 // Server implements the Envoy xDS Route Discovery Services
 type Server struct {
-	ctx          context.Context // root context
-	catalog      catalog.MeshCataloger
+	ctx           context.Context // root context
+	catalog       catalog.MeshCataloger
 	meshSpec      smi.MeshSpec
 	announcements chan interface{}
 }
