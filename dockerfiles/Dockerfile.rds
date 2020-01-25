@@ -1,0 +1,3 @@
+FROM alpine:3.10.1
+ADD bin/rds /rds
+RUN chmod +x /rds

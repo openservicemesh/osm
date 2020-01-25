@@ -30,8 +30,12 @@ clean-sds:
 clean-eds:
 	@rm -rf bin/eds
 
+.PHONY: clean-rds
+clean-rds:
+	@rm -rf bin/rds
+
 .PHONY: build
-build: build-sds build-eds build-cds
+build: build-sds build-eds build-cds build-rds 
 
 .PHONY: build-cds
 build-cds: clean-cds
@@ -48,9 +52,14 @@ build-eds: clean-eds
 	@mkdir -p $(shell pwd)/bin
 	CGO_ENABLED=0 go build -v -o ./bin/eds ./cmd/eds
 
+.PHONY: build-rds
+build-rds: clean-rds
+	@mkdir -p $(shell pwd)/bin
+	CGO_ENABLED=0 go build -v -o ./bin/eds ./cmd/rds
+
 .PHONY: build-cross
 build-cross: LDFLAGS += -extldflags "-static"
-build-cross: build-cross-eds build-cross-sds
+build-cross: build-cross-eds build-cross-sds build-cross-cds build-cross-rds
 
 .PHONY: build-cross-cds
 build-cross-cds: gox
@@ -64,8 +73,12 @@ build-cross-eds: gox
 build-cross-sds: gox
 	GO111MODULE=on CGO_ENABLED=0 $(GOX) -output="./bin/{{.OS}}-{{.Arch}}/sds" -osarch='$(TARGETS)' -ldflags '$(LDFLAGS)' ./cmd/sds
 
+.PHONY: build-cross-rds
+build-cross-rds: gox
+	GO111MODULE=on CGO_ENABLED=0 $(GOX) -output="./bin/{{.OS}}-{{.Arch}}/rds" -osarch='$(TARGETS)' -ldflags '$(LDFLAGS)' ./cmd/rds
+
 .PHONY: docker-build
-docker-build: build-cross docker-build-sds docker-build-eds docker-build-bookbuyer docker-build-bookstore docker-build-cds
+docker-build: build-cross docker-build-sds docker-build-eds docker-build-bookbuyer docker-build-bookstore docker-build-cds docker-build-rds
 
 .PHONY: go-vet
 go-vet:
@@ -98,6 +111,11 @@ docker-build-sds: build-cross-sds
 	@mkdir -p ./bin/
 	docker build --build-arg $(HOME)/go/ -t $(CTR_REGISTRY)/sds -f dockerfiles/Dockerfile.sds .
 
+.PHONY: docker-build-rds
+docker-build-rds: build-rds
+	@mkdir -p ./bin/
+	docker build --build-arg $(HOME)/go/ -t $(CTR_REGISTRY)/rds -f dockerfiles/Dockerfile.rds .
+
 .PHONY: build-counter
 build-counter:
 	@rm -rf $(shell pwd)/demo/bin
@@ -128,6 +146,10 @@ docker-push-eds: docker-build-eds
 docker-push-sds: docker-build-sds
 	docker push "$(CTR_REGISTRY)/sds"
 
+.PHONY: docker-push-rds
+docker-push-rds: docker-build-rds
+	docker push "$(CTR_REGISTRY)/rds"
+
 .PHONY: docker-push-bookbuyer
 docker-push-bookbuyer: docker-build-bookbuyer
 	docker push "$(CTR_REGISTRY)/bookbuyer"
@@ -141,7 +163,7 @@ docker-push-init: docker-build-init
 	docker push "$(CTR_REGISTRY)/init"
 
 .PHONY: docker-push
-docker-push: docker-push-eds docker-push-sds docker-push-init docker-push-bookbuyer docker-push-bookstore docker-push-cds
+docker-push: docker-push-eds docker-push-sds docker-push-init docker-push-bookbuyer docker-push-bookstore docker-push-cds docker-push-rds
 
 .PHONY: sds-root-tls
 sds-root-tls:

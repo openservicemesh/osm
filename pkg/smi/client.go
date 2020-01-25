@@ -4,13 +4,19 @@ import (
 	"fmt"
 	"time"
 
+	TrafficTarget "github.com/deislabs/smi-sdk-go/pkg/apis/access/v1alpha1"
+	TrafficSpec "github.com/deislabs/smi-sdk-go/pkg/apis/specs/v1alpha1"
 	"github.com/deislabs/smi-sdk-go/pkg/apis/split/v1alpha2"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
 
 	"github.com/deislabs/smc/pkg/endpoint"
-	"github.com/deislabs/smi-sdk-go/pkg/gen/client/split/clientset/versioned"
-	smiExternalVersions "github.com/deislabs/smi-sdk-go/pkg/gen/client/split/informers/externalversions"
+	smiTrafficTargetClientVersion "github.com/deislabs/smi-sdk-go/pkg/gen/client/access/clientset/versioned"
+	smiTrafficTargetExternalVersions "github.com/deislabs/smi-sdk-go/pkg/gen/client/access/informers/externalversions"
+	smiTrafficSpecClientVersion "github.com/deislabs/smi-sdk-go/pkg/gen/client/specs/clientset/versioned"
+	smiTrafficSpecExternalVersions "github.com/deislabs/smi-sdk-go/pkg/gen/client/specs/informers/externalversions"
+	smiTrafficSplitClientVersion "github.com/deislabs/smi-sdk-go/pkg/gen/client/split/clientset/versioned"
+	smiTrafficSplitExternalVersions "github.com/deislabs/smi-sdk-go/pkg/gen/client/split/informers/externalversions"
 	"github.com/golang/glog"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -25,9 +31,12 @@ const kubernetesClientName = "Specification"
 // NewMeshSpecClient implements mesh.MeshSpec and creates the Kubernetes client, which retrieves SMI specific CRDs.
 func NewMeshSpecClient(kubeConfig *rest.Config, namespaces []string, announcements chan interface{}, stop chan struct{}) MeshSpec {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
-	smiClientset := versioned.NewForConfigOrDie(kubeConfig)
+	smiTrafficSplitClientSet := smiTrafficSplitClientVersion.NewForConfigOrDie(kubeConfig)
+	smiTrafficSpecClientSet := smiTrafficSpecClientVersion.NewForConfigOrDie(kubeConfig)
+	smiTrafficTargetClientSet := smiTrafficTargetClientVersion.NewForConfigOrDie(kubeConfig)
 
-	client := newSMIClient(kubeClient, smiClientset, namespaces, announcements, kubernetesClientName)
+	client := newSMIClient(kubeClient, smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet, namespaces, announcements, kubernetesClientName)
+	//	client := newSMIClient(kubeClient, smiClientset, namespaces, announcements, kubernetesClientName)
 	err := client.run(stop)
 	if err != nil {
 		glog.Fatalf("Could not start %s client: %s", kubernetesClientName, err)
@@ -45,8 +54,10 @@ func (c *Client) run(stopCh <-chan struct{}) error {
 	}
 
 	sharedInformers := map[friendlyName]cache.SharedInformer{
-		"TrafficSplit": c.informers.TrafficSplit,
-		"Services":     c.informers.Services,
+		"TrafficSplit":  c.informers.TrafficSplit,
+		"Services":      c.informers.Services,
+		"TrafficSpec":   c.informers.TrafficSpec,
+		"TrafficTarget": c.informers.TrafficTarget,
 	}
 
 	var names []friendlyName
@@ -80,24 +91,36 @@ func (c *Client) GetID() string {
 }
 
 // newClient creates a provider based on a Kubernetes client instance.
-func newSMIClient(kubeClient *kubernetes.Clientset, smiClient *versioned.Clientset, namespaces []string, announcements chan interface{}, providerIdent string) *Client {
+func newSMIClient(kubeClient *kubernetes.Clientset, smiTrafficSplitClient *smiTrafficSplitClientVersion.Clientset, smiTrafficSpecClient *smiTrafficSpecClientVersion.Clientset, smiTrafficTargetClient *smiTrafficTargetClientVersion.Clientset, namespaces []string, announcements chan interface{}, providerIdent string) *Client {
+	// func newSMIClient(kubeClient *kubernetes.Clientset, smiClient *versioned.Clientset, namespaces []string, announcements chan interface{}, providerIdent string) *Client {
 	var options []informers.SharedInformerOption
-	var smiOptions []smiExternalVersions.SharedInformerOption
+	var smiTrafficSplitOptions []smiTrafficSplitExternalVersions.SharedInformerOption
+	var smiTrafficSpecOptions []smiTrafficSpecExternalVersions.SharedInformerOption
+	var smiTrafficTargetOptions []smiTrafficTargetExternalVersions.SharedInformerOption
 	for _, namespace := range namespaces {
 		options = append(options, informers.WithNamespace(namespace))
-		smiOptions = append(smiOptions, smiExternalVersions.WithNamespace(namespace))
+		smiTrafficSplitOptions = append(smiTrafficSplitOptions, smiTrafficSplitExternalVersions.WithNamespace(namespace))
+		smiTrafficSpecOptions = append(smiTrafficSpecOptions, smiTrafficSpecExternalVersions.WithNamespace(namespace))
+		smiTrafficTargetOptions = append(smiTrafficTargetOptions, smiTrafficTargetExternalVersions.WithNamespace(namespace))
 	}
 
 	informerFactory := informers.NewSharedInformerFactoryWithOptions(kubeClient, resyncPeriod, options...)
-	smiInformerFactory := smiExternalVersions.NewSharedInformerFactoryWithOptions(smiClient, resyncPeriod, smiOptions...)
+	smiTrafficSplitInformerFactory := smiTrafficSplitExternalVersions.NewSharedInformerFactoryWithOptions(smiTrafficSplitClient, resyncPeriod, smiTrafficSplitOptions...)
+	smiTrafficSpecInformerFactory := smiTrafficSpecExternalVersions.NewSharedInformerFactoryWithOptions(smiTrafficSpecClient, resyncPeriod, smiTrafficSpecOptions...)
+	smiTrafficTargetInformerFactory := smiTrafficTargetExternalVersions.NewSharedInformerFactoryWithOptions(smiTrafficTargetClient, resyncPeriod, smiTrafficTargetOptions...)
+
 	informerCollection := InformerCollection{
-		Services:     informerFactory.Core().V1().Services().Informer(),
-		TrafficSplit: smiInformerFactory.Split().V1alpha2().TrafficSplits().Informer(),
+		Services:      informerFactory.Core().V1().Services().Informer(),
+		TrafficSplit:  smiTrafficSplitInformerFactory.Split().V1alpha2().TrafficSplits().Informer(),
+		TrafficSpec:   smiTrafficSpecInformerFactory.Specs().V1alpha1().HTTPRouteGroups().Informer(),
+		TrafficTarget: smiTrafficTargetInformerFactory.Access().V1alpha1().TrafficTargets().Informer(),
 	}
 
 	cacheCollection := CacheCollection{
-		Services:     informerCollection.Services.GetStore(),
-		TrafficSplit: informerCollection.TrafficSplit.GetStore(),
+		Services:      informerCollection.Services.GetStore(),
+		TrafficSplit:  informerCollection.TrafficSplit.GetStore(),
+		TrafficSpec:   informerCollection.TrafficSpec.GetStore(),
+		TrafficTarget: informerCollection.TrafficTarget.GetStore(),
 	}
 
 	client := Client{
@@ -118,6 +141,8 @@ func newSMIClient(kubeClient *kubernetes.Clientset, smiClient *versioned.Clients
 
 	informerCollection.Services.AddEventHandler(resourceHandler)
 	informerCollection.TrafficSplit.AddEventHandler(resourceHandler)
+	informerCollection.TrafficSpec.AddEventHandler(resourceHandler)
+	informerCollection.TrafficTarget.AddEventHandler(resourceHandler)
 
 	return &client
 }
@@ -130,6 +155,26 @@ func (c *Client) ListTrafficSplits() []*v1alpha2.TrafficSplit {
 		trafficSplits = append(trafficSplits, split)
 	}
 	return trafficSplits
+}
+
+// ListHTTPTrafficSpecs implements mesh.Topology by returning the list of traffic specs.
+func (c *Client) ListHTTPTrafficSpecs() []*TrafficSpec.HTTPRouteGroup {
+	var httpTrafficSpec []*TrafficSpec.HTTPRouteGroup
+	for _, specIface := range c.caches.TrafficSpec.List() {
+		spec := specIface.(*TrafficSpec.HTTPRouteGroup)
+		httpTrafficSpec = append(httpTrafficSpec, spec)
+	}
+	return httpTrafficSpec
+}
+
+// ListTrafficTargets implements mesh.Topology by returning the list of traffic targets.
+func (c *Client) ListTrafficTargets() []*TrafficTarget.TrafficTarget {
+	var trafficTarget []*TrafficTarget.TrafficTarget
+	for _, targetIface := range c.caches.TrafficTarget.List() {
+		target := targetIface.(*TrafficTarget.TrafficTarget)
+		trafficTarget = append(trafficTarget, target)
+	}
+	return trafficTarget
 }
 
 // ListServices implements mesh.MeshSpec by returning the services observed from the given compute provider
