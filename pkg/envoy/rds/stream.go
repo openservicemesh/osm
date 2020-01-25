@@ -16,17 +16,17 @@ type rdsStreamHandler struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	*RDS
+	*Server
 }
 
 // StreamRoutes handles streaming of route changes to the Envoy proxies connected
-func (r *RDS) StreamRoutes(server xds.RouteDiscoveryService_StreamRoutesServer) error {
+func (e *Server) StreamRoutes(server xds.RouteDiscoveryService_StreamRoutesServer) error {
 	glog.Info("[RDS] Starting StreamRoutes...")
 	ctx, cancel := context.WithCancel(context.Background())
 	handler := &rdsStreamHandler{
 		ctx:    ctx,
 		cancel: cancel,
-		RDS:    r,
+		Server:    e,
 	}
 
 	// Periodic Updates -- useful for debugging
@@ -35,12 +35,12 @@ func (r *RDS) StreamRoutes(server xds.RouteDiscoveryService_StreamRoutesServer) 
 		for {
 			glog.V(7).Infof("------------------------- Periodic Update %d -------------------------", counter)
 			counter++
-			r.announceChan.In() <- nil
+			e.announcements <- struct{}{}
 			time.Sleep(5 * time.Second)
 		}
 	}()
 
-	if err := handler.run(r.ctx, server); err != nil {
+	if err := handler.run(e.ctx, server); err != nil {
 		glog.Infof("error in handler %s", err)
 		return err
 	}
@@ -65,7 +65,7 @@ func (r *rdsStreamHandler) run(ctx context.Context, server envoy.RouteDiscoveryS
 			select {
 			case <-ctx.Done():
 				return nil
-			case <-r.announceChan.Out():
+			case <-r.announcements:
 				// NOTE: This is deliberately only focused on providing MVP tools to run a TrafficRoute demo.
 				glog.V(1).Infof("[RDS][stream] Received a change announcement! Updating all Envoy proxies.")
 				// TODO: flesh out the ClientIdentity for this similar to eds.go

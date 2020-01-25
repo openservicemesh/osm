@@ -7,6 +7,15 @@ admin:
   address:
     socket_address: {address: 0.0.0.0, port_value: 15000}
 
+dynamic_resources:
+  cds_config:
+    api_config_source:
+      api_type: GRPC
+      grpc_services:
+        envoy_grpc:
+          cluster_name: cds_server_mtls
+
+
 static_resources:
   listeners:
 
@@ -94,6 +103,15 @@ static_resources:
     connect_timeout: 5s
     type: LOGICAL_DNS
     http2_protocol_options: {}
+    tls_context:
+      common_tls_context:
+        tls_params:
+          tls_minimum_protocol_version: TLSv1_2
+          tls_maximum_protocol_version: TLSv1_3
+          cipher_suites: "[ECDHE-ECDSA-AES128-GCM-SHA256|ECDHE-ECDSA-CHACHA20-POLY1305]"
+        tls_certificates:
+          - certificate_chain: { filename: "/etc/ssl/certs/cert.pem" }
+            private_key: { filename: "/etc/ssl/certs/key.pem" }
     load_assignment:
       cluster_name: sds
       endpoints:
@@ -108,6 +126,15 @@ static_resources:
     connect_timeout: 5s
     type: LOGICAL_DNS
     http2_protocol_options: {}
+    tls_context:
+      common_tls_context:
+        tls_params:
+          tls_minimum_protocol_version: TLSv1_2
+          tls_maximum_protocol_version: TLSv1_3
+          cipher_suites: "[ECDHE-ECDSA-AES128-GCM-SHA256|ECDHE-ECDSA-CHACHA20-POLY1305]"
+        tls_certificates:
+          - certificate_chain: { filename: "/etc/ssl/certs/cert.pem" }
+            private_key: { filename: "/etc/ssl/certs/key.pem" }
     load_assignment:
       cluster_name: eds
       endpoints:
@@ -117,11 +144,44 @@ static_resources:
               socket_address:
                 address: eds.smc.svc.cluster.local
                 port_value: 15124
-  
-  - name: rds
-    connect_timeout : 5s
+
+
+  - name: cds_server_mtls
+    connect_timeout: 5s
     type: LOGICAL_DNS
     http2_protocol_options: {}
+    tls_context:
+      common_tls_context:
+        tls_params:
+          tls_minimum_protocol_version: TLSv1_2
+          tls_maximum_protocol_version: TLSv1_3
+          cipher_suites: "[ECDHE-ECDSA-AES128-GCM-SHA256|ECDHE-ECDSA-CHACHA20-POLY1305]"
+        tls_certificates:
+          - certificate_chain: { filename: "/etc/ssl/certs/cert.pem" }
+            private_key: { filename: "/etc/ssl/certs/key.pem" }
+    load_assignment:
+      cluster_name: cds
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: cds.smc.svc.cluster.local
+                port_value: 15125
+
+  - name: rds
+    connect_timeout: 5s
+    type: LOGICAL_DNS
+    http2_protocol_options: {}
+    tls_context:
+      common_tls_context:
+        tls_params:
+          tls_minimum_protocol_version: TLSv1_2
+          tls_maximum_protocol_version: TLSv1_3
+          cipher_suites: "[ECDHE-ECDSA-AES128-GCM-SHA256|ECDHE-ECDSA-CHACHA20-POLY1305]"
+        tls_certificates:
+          - certificate_chain: { filename: "/etc/ssl/certs/cert.pem" }
+            private_key: { filename: "/etc/ssl/certs/key.pem" }
     load_assignment:
       cluster_name: rds
       endpoints:

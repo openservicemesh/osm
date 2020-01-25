@@ -28,7 +28,7 @@ import (
 const (
 	serverType = "EDS"
 
-	defaultNamespace = "default"
+	defaultKubernetesNamespace = "default"
 
 	// These strings identify the participating clusters / endpoint providers.
 	// Ideally these should be not only the type of compute but also a unique identifier, like the FQDN of the cluster,
@@ -45,6 +45,9 @@ var (
 	verbosity      = flags.Int("verbosity", 1, "Set logging verbosity level")
 	namespace      = flags.String("namespace", "default", "Kubernetes namespace to watch.")
 	port           = flags.Int("port", 15124, "Endpoint Discovery Services port number. (Default: 15124)")
+	certPem        = flags.String("certpem", "", fmt.Sprintf("Full path to the %s Certificate PEM file", serverType))
+	keyPem         = flags.String("keypem", "", fmt.Sprintf("Full path to the %s Key PEM file", serverType))
+	rootCertPem    = flags.String("rootcertpem", "", "Full path to the Root Certificate PEM file")
 )
 
 func main() {
@@ -56,8 +59,8 @@ func main() {
 
 	// SMI Informers will write to this channel when they notice changes.
 	// This channel will be consumed by the ServiceName Mesh Controller.
-	// This is a signalling mechanism to notify SMC of a service mesh topology change which triggers Envoy updates.
-	announceChan := channels.NewRingChannel(1024)
+	// This is a signalling mechanism to notify SMC of a service mesh spec change which triggers Envoy updates.
+	announcements := channels.NewRingChannel(1024)
 
 	kubeConfig, err := clientcmd.BuildConfigFromFlags("", *kubeConfigFile)
 	if err != nil {
@@ -66,19 +69,19 @@ func main() {
 
 	observeNamespaces := getNamespaces()
 
-	stopChan := make(chan struct{})
-	meshTopologyClient := smi.NewMeshTopologyClient(kubeConfig, observeNamespaces, announceChan, stopChan)
-	azureResourceClient := azureResource.NewClient(kubeConfig, observeNamespaces, announceChan, stopChan)
+	stop := make(chan struct{})
+	meshSpecClient := smi.NewMeshSpecClient(kubeConfig, observeNamespaces, announcements, stop)
+	azureResourceClient := azureResource.NewClient(kubeConfig, observeNamespaces, announcements, stop)
 
 	endpointsProviders := []endpoint.Provider{
-		azure.NewProvider(*subscriptionID, *azureAuthFile, announceChan, stopChan, meshTopologyClient, azureResourceClient, azureProviderName),
-		kube.NewProvider(kubeConfig, observeNamespaces, announceChan, stopChan, kubernetesProviderName),
+		azure.NewProvider(*subscriptionID, *azureAuthFile, announcements, stop, meshSpecClient, azureResourceClient, azureProviderName),
+		kube.NewProvider(kubeConfig, observeNamespaces, announcements, stop, kubernetesProviderName),
 	}
 
-	serviceCatalog := catalog.NewServiceCatalog(meshTopologyClient, endpointsProviders...)
+	serviceCatalog := catalog.NewServiceCatalog(meshSpecClient, endpointsProviders...)
 
-	grpcServer, lis := utils.NewGrpc(serverType, *port)
-	eds := edsServer.NewEDSServer(ctx, serviceCatalog, meshTopologyClient, announceChan)
+	grpcServer, lis := utils.NewGrpc(serverType, *port, *certPem, *keyPem, *rootCertPem)
+	eds := edsServer.NewEDSServer(ctx, serviceCatalog, meshSpecClient, announcements)
 	envoyControlPlane.RegisterEndpointDiscoveryServiceServer(grpcServer, eds)
 	go utils.GrpcServe(ctx, grpcServer, lis, cancel, serverType)
 
@@ -86,7 +89,7 @@ func main() {
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	<-sigChan
 
-	close(stopChan)
+	close(stop)
 	glog.Info("[EDS] Goodbye!")
 }
 
@@ -103,7 +106,7 @@ func parseFlags() {
 func getNamespaces() []string {
 	var namespaces []string
 	if namespace == nil {
-		defaultNS := defaultNamespace
+		defaultNS := defaultKubernetesNamespace
 		namespaces = []string{defaultNS}
 	} else {
 		namespaces = []string{*namespace}

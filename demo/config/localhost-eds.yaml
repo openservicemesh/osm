@@ -6,6 +6,14 @@ admin:
   address:
     socket_address: { address: 0.0.0.0, port_value: 15000 }
 
+# Configure a Cluster Discovery Service w/ mTLS
+dynamic_resources:
+  cds_config:
+    api_config_source:
+      api_type: GRPC
+      grpc_services:
+        envoy_grpc:
+          cluster_name: cds_server_mtls
 
 static_resources:
   listeners:
@@ -81,7 +89,7 @@ static_resources:
             api_type: GRPC
             grpc_services:
               envoy_grpc:
-                cluster_name: eds_cluster
+                cluster_name: eds_server_mtls
 
     - name: httpbin_service
       connect_timeout: 5s
@@ -91,12 +99,21 @@ static_resources:
       lb_policy: ROUND_ROBIN
       hosts: [{ socket_address: { address: httpbin, port_value: 80 }}]
 
-    - name: eds_cluster
+    - name: eds_server_mtls
       connect_timeout: 5s
       type: LOGICAL_DNS
       http2_protocol_options: {}
+      tls_context:
+        common_tls_context:
+          tls_params:
+            tls_minimum_protocol_version: TLSv1_2
+            tls_maximum_protocol_version: TLSv1_3
+            cipher_suites: "[ECDHE-ECDSA-AES128-GCM-SHA256|ECDHE-ECDSA-CHACHA20-POLY1305]"
+          tls_certificates:
+            - certificate_chain: { filename: "./certificates/cert.pem" }
+              private_key: { filename: "./certificates/key.pem" }
       load_assignment:
-        cluster_name: eds_cluster
+        cluster_name: eds_server_mtls
         endpoints:
         - lb_endpoints:
           - endpoint:
@@ -107,6 +124,15 @@ static_resources:
       connect_timeout: 5s
       type: LOGICAL_DNS
       http2_protocol_options: {}
+      tls_context:
+        common_tls_context:
+          tls_params:
+            tls_minimum_protocol_version: TLSv1_2
+            tls_maximum_protocol_version: TLSv1_3
+            cipher_suites: "[ECDHE-ECDSA-AES128-GCM-SHA256|ECDHE-ECDSA-CHACHA20-POLY1305]"
+          tls_certificates:
+            - certificate_chain: { filename: "./certificates/cert.pem" }
+              private_key: { filename: "./certificates/key.pem" }
       load_assignment:
         cluster_name: sds_server_mtls
         endpoints:
@@ -115,12 +141,42 @@ static_resources:
               address:
                 socket_address: { address: 0.0.0.0, port_value: 15123 }
 
-    - name: rds_cluster
+    - name: cds_server_mtls
       connect_timeout: 5s
       type: LOGICAL_DNS
       http2_protocol_options: {}
+      tls_context:
+        common_tls_context:
+          tls_params:
+            tls_minimum_protocol_version: TLSv1_2
+            tls_maximum_protocol_version: TLSv1_3
+            cipher_suites: "[ECDHE-ECDSA-AES128-GCM-SHA256|ECDHE-ECDSA-CHACHA20-POLY1305]"
+          tls_certificates:
+            - certificate_chain: { filename: "./certificates/cert.pem" }
+              private_key: { filename: "./certificates/key.pem" }
       load_assignment:
-        cluster_name: rds_cluster
+        cluster_name: cds_server_mtls
+        endpoints:
+        - lb_endpoints:
+          - endpoint:
+              address:
+                socket_address: { address: 0.0.0.0, port_value: 15125 }
+
+    - name: rds_server_mtls
+      connect_timeout: 5s
+      type: LOGICAL_DNS
+      http2_protocol_options: {}
+      tls_context:
+        common_tls_context:
+          tls_params:
+            tls_minimum_protocol_version: TLSv1_2
+            tls_maximum_protocol_version: TLSv1_3
+            cipher_suites: "[ECDHE-ECDSA-AES128-GCM-SHA256|ECDHE-ECDSA-CHACHA20-POLY1305]"
+          tls_certificates:
+            - certificate_chain: { filename: "./certificates/cert.pem" }
+              private_key: { filename: "./certificates/key.pem" }
+      load_assignment:
+        cluster_name: rds_server_mtls
         endpoints:
         - lb_endpoints:
           - endpoint:

@@ -14,6 +14,8 @@ CERT_CLIENT="server.crt"
 CERT_DIR="certificates/"
 CERT_CONF="$(pwd)/demo/certs.conf"
 
+echo "Creating certificates in directory: $CERT_DIR"
+
 rm -rf "$(pwd)/$CERT_DIR"
 mkdir -p "$(pwd)/$CERT_DIR"
 pushd "$(pwd)/$CERT_DIR"
