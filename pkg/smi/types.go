@@ -4,6 +4,7 @@ import (
 	TrafficTarget "github.com/deislabs/smi-sdk-go/pkg/apis/access/v1alpha1"
 	TrafficSpec "github.com/deislabs/smi-sdk-go/pkg/apis/specs/v1alpha1"
 	TrafficSplit "github.com/deislabs/smi-sdk-go/pkg/apis/split/v1alpha2"
+
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/cache"
 
@@ -14,16 +15,16 @@ type friendlyName string
 
 // InformerCollection is a struct of the Kubernetes informers used in SMC
 type InformerCollection struct {
-	Services     cache.SharedIndexInformer
-	TrafficSplit cache.SharedIndexInformer
+	Services      cache.SharedIndexInformer
+	TrafficSplit  cache.SharedIndexInformer
 	TrafficSpec   cache.SharedIndexInformer
 	TrafficTarget cache.SharedIndexInformer
 }
 
 // CacheCollection is a struct of the Kubernetes caches used in SMC
 type CacheCollection struct {
-	Services     cache.Store
-	TrafficSplit cache.Store
+	Services      cache.Store
+	TrafficSplit  cache.Store
 	TrafficSpec   cache.Store
 	TrafficTarget cache.Store
 }

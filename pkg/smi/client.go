@@ -36,6 +36,7 @@ func NewMeshSpecClient(kubeConfig *rest.Config, namespaces []string, announcemen
 	smiTrafficTargetClientSet := smiTrafficTargetClientVersion.NewForConfigOrDie(kubeConfig)
 
 	client := newSMIClient(kubeClient, smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet, namespaces, announcements, kubernetesClientName)
+	//	client := newSMIClient(kubeClient, smiClientset, namespaces, announcements, kubernetesClientName)
 	err := client.run(stop)
 	if err != nil {
 		glog.Fatalf("Could not start %s client: %s", kubernetesClientName, err)
@@ -53,9 +54,9 @@ func (c *Client) run(stopCh <-chan struct{}) error {
 	}
 
 	sharedInformers := map[friendlyName]cache.SharedInformer{
-		"TrafficSplit": c.informers.TrafficSplit,
-		"Services":     c.informers.Services,
-		"TrafficSpec": c.informers.TrafficSpec,
+		"TrafficSplit":  c.informers.TrafficSplit,
+		"Services":      c.informers.Services,
+		"TrafficSpec":   c.informers.TrafficSpec,
 		"TrafficTarget": c.informers.TrafficTarget,
 	}
 
@@ -91,6 +92,7 @@ func (c *Client) GetID() string {
 
 // newClient creates a provider based on a Kubernetes client instance.
 func newSMIClient(kubeClient *kubernetes.Clientset, smiTrafficSplitClient *smiTrafficSplitClientVersion.Clientset, smiTrafficSpecClient *smiTrafficSpecClientVersion.Clientset, smiTrafficTargetClient *smiTrafficTargetClientVersion.Clientset, namespaces []string, announcements chan interface{}, providerIdent string) *Client {
+	// func newSMIClient(kubeClient *kubernetes.Clientset, smiClient *versioned.Clientset, namespaces []string, announcements chan interface{}, providerIdent string) *Client {
 	var options []informers.SharedInformerOption
 	var smiTrafficSplitOptions []smiTrafficSplitExternalVersions.SharedInformerOption
 	var smiTrafficSpecOptions []smiTrafficSpecExternalVersions.SharedInformerOption
@@ -108,15 +110,15 @@ func newSMIClient(kubeClient *kubernetes.Clientset, smiTrafficSplitClient *smiTr
 	smiTrafficTargetInformerFactory := smiTrafficTargetExternalVersions.NewSharedInformerFactoryWithOptions(smiTrafficTargetClient, resyncPeriod, smiTrafficTargetOptions...)
 
 	informerCollection := InformerCollection{
-		Services:     informerFactory.Core().V1().Services().Informer(),
-		TrafficSplit: smiTrafficSplitInformerFactory.Split().V1alpha2().TrafficSplits().Informer(),
+		Services:      informerFactory.Core().V1().Services().Informer(),
+		TrafficSplit:  smiTrafficSplitInformerFactory.Split().V1alpha2().TrafficSplits().Informer(),
 		TrafficSpec:   smiTrafficSpecInformerFactory.Specs().V1alpha1().HTTPRouteGroups().Informer(),
 		TrafficTarget: smiTrafficTargetInformerFactory.Access().V1alpha1().TrafficTargets().Informer(),
 	}
 
 	cacheCollection := CacheCollection{
-		Services:     informerCollection.Services.GetStore(),
-		TrafficSplit: informerCollection.TrafficSplit.GetStore(),
+		Services:      informerCollection.Services.GetStore(),
+		TrafficSplit:  informerCollection.TrafficSplit.GetStore(),
 		TrafficSpec:   informerCollection.TrafficSpec.GetStore(),
 		TrafficTarget: informerCollection.TrafficTarget.GetStore(),
 	}

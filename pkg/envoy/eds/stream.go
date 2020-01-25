@@ -47,7 +47,7 @@ func (e *Server) StreamEndpoints(server envoy.EndpointDiscoveryService_StreamEnd
 		for {
 			glog.V(7).Infof("------------------------- Periodic Update %d -------------------------", counter)
 			counter++
-			e.announcements.In() <- nil
+			e.announcements <- struct{}{}
 			time.Sleep(5 * time.Second)
 		}
 	}()
@@ -77,7 +77,7 @@ func (e *edsStreamHandler) run(ctx context.Context, server envoy.EndpointDiscove
 			select {
 			case <-ctx.Done():
 				return nil
-			case <-e.announcements.Out():
+			case <-e.announcements:
 				// NOTE(draychev): This is deliberately only focused on providing MVP tools to run a TrafficSplit demo.
 				glog.V(1).Infof("[%s][stream] Received a change announcement! Updating all Envoy proxies.", serverName)
 				// TODO(draychev): flesh out the ClientIdentity
