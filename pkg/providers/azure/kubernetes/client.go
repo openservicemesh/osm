@@ -22,7 +22,7 @@ const (
 var resyncPeriod = 1 * time.Second
 
 // NewClient creates the Kubernetes client, which retrieves the AzureResource CRD and Services resources.
-func NewClient(kubeConfig *rest.Config, namespaces []string, announcements *channels.RingChannel, stop chan struct{}) *Client {
+func NewClient(kubeConfig *rest.Config, namespaces []string, announcements chan interface{}, stop chan struct{}) *Client {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 	azureResourceClient := smcClient.NewForConfigOrDie(kubeConfig)
 	k8sClient := newClient(kubeClient, azureResourceClient, namespaces, announcements)

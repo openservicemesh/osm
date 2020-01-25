@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	"github.com/eapache/channels"
+
 	envoyControlPlane "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"

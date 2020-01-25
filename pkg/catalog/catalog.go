@@ -13,7 +13,6 @@ import (
 	smcEnvoy "github.com/deislabs/smc/pkg/envoy"
 	"github.com/deislabs/smc/pkg/envoy/cla"
 	"github.com/deislabs/smc/pkg/envoy/rc"
-	"github.com/deislabs/smc/pkg/mesh"
 	"github.com/deislabs/smc/pkg/smi"
 )
 
@@ -84,7 +83,7 @@ func (sc *MeshCatalog) ListEndpoints(clientID smi.ClientIdentity) (*envoy.Discov
 
 // ListTrafficRoutes constructs a DiscoveryResponse with all routes the given Envoy proxy should be aware of.
 // The bool return value indicates whether there have been any changes since the last invocation of this function.
-func (sc *MeshCatalog) ListTrafficRoutes(clientID mesh.ClientIdentity) (*envoy.DiscoveryResponse, bool, error) {
+func (sc *MeshCatalog) ListTrafficRoutes(clientID smi.ClientIdentity) (*envoy.DiscoveryResponse, bool, error) {
 	glog.Info("[catalog] Listing Routes for client: ", clientID)
 	allRoutes, err := sc.getHTTPPathsPerRoute()
 	if err != nil {
