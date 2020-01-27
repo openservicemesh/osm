@@ -55,7 +55,7 @@ build-eds: clean-eds
 .PHONY: build-rds
 build-rds: clean-rds
 	@mkdir -p $(shell pwd)/bin
-	CGO_ENABLED=0 go build -v -o ./bin/eds ./cmd/rds
+	CGO_ENABLED=0 go build -v -o ./bin/rds ./cmd/rds
 
 .PHONY: build-cross
 build-cross: LDFLAGS += -extldflags "-static"
@@ -112,7 +112,7 @@ docker-build-sds: build-cross-sds
 	docker build --build-arg $(HOME)/go/ -t $(CTR_REGISTRY)/sds -f dockerfiles/Dockerfile.sds .
 
 .PHONY: docker-build-rds
-docker-build-rds: build-rds
+docker-build-rds: build-cross-rds
 	@mkdir -p ./bin/
 	docker build --build-arg $(HOME)/go/ -t $(CTR_REGISTRY)/rds -f dockerfiles/Dockerfile.rds .
 
