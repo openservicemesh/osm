@@ -61,13 +61,13 @@ func main() {
 
 	observeNamespaces := getNamespaces()
 
-	stopChan := make(chan struct{})
-	meshTopologyClient := smi.NewMeshSpecClient(kubeConfig, observeNamespaces, announcements, stopChan)
-	azureResourceClient := azureResource.NewClient(kubeConfig, observeNamespaces, announcements, stopChan)
+	stop := make(chan struct{})
+	meshTopologyClient := smi.NewMeshSpecClient(kubeConfig, observeNamespaces, announcements, stop)
+	azureResourceClient := azureResource.NewClient(kubeConfig, observeNamespaces, announcements, stop)
 
 	endpointsProviders := []endpoint.Provider{
-		azure.NewProvider(*subscriptionID, *azureAuthFile, announcements, stopChan, meshTopologyClient, azureResourceClient, constants.AzureProviderName),
-		kube.NewProvider(kubeConfig, observeNamespaces, announcements, stopChan, constants.KubeProviderName),
+		azure.NewProvider(*subscriptionID, *azureAuthFile, announcements, stop, meshTopologyClient, azureResourceClient, constants.AzureProviderName),
+		kube.NewProvider(kubeConfig, observeNamespaces, announcements, stop, constants.KubeProviderName),
 	}
 
 	serviceCatalog := catalog.NewServiceCatalog(meshTopologyClient, endpointsProviders...)
@@ -81,7 +81,7 @@ func main() {
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	<-sigChan
 
-	close(stopChan)
+	close(stop)
 	glog.Info("[RDS] Goodbye!")
 }
 

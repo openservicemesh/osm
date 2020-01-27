@@ -45,7 +45,7 @@ func NewMeshSpecClient(kubeConfig *rest.Config, namespaces []string, announcemen
 }
 
 // run executes informer collection.
-func (c *Client) run(stopCh <-chan struct{}) error {
+func (c *Client) run(stop <-chan struct{}) error {
 	glog.V(1).Infoln("SMI Client started")
 	var hasSynced []cache.InformerSynced
 
@@ -68,12 +68,12 @@ func (c *Client) run(stopCh <-chan struct{}) error {
 		}
 		names = append(names, name)
 		glog.Info("Starting informer: ", name)
-		go informer.Run(stopCh)
+		go informer.Run(stop)
 		hasSynced = append(hasSynced, informer.HasSynced)
 	}
 
 	glog.V(1).Infof("[SMI Client] Waiting informers cache sync: %+v", names)
-	if !cache.WaitForCacheSync(stopCh, hasSynced...) {
+	if !cache.WaitForCacheSync(stop, hasSynced...) {
 		return errSyncingCaches
 	}
 

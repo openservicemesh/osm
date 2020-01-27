@@ -1,12 +1,12 @@
 package certificate
 
 type CertManager struct {
-	announcementsChan chan struct{}
+	announcements chan interface{}
 }
 
 func NewManager(stop chan struct{}) CertManager {
 	return CertManager{
-		announcementsChan: make(chan struct{}),
+		announcements: make(chan interface{}),
 	}
 }
 
@@ -16,6 +16,6 @@ func (m CertManager) IssueCertificate(cn CommonName) (Certificater, error) {
 	return newCertificate(cn)
 }
 
-func (m CertManager) GetSecretsChangeAnnouncementChan() <-chan struct{} {
-	return m.announcementsChan
+func (m CertManager) GetSecretsChangeAnnouncementChan() <-chan interface{} {
+	return m.announcements
 }

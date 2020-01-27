@@ -15,7 +15,7 @@ import (
 type MeshCatalog struct {
 	sync.Mutex
 
-	announcements chan struct{}
+	announcements chan interface{}
 
 	endpointsProviders []endpoint.Provider
 	meshSpec           smi.MeshSpec
@@ -44,7 +44,7 @@ type MeshCataloger interface {
 	ListEndpointsProviders() []endpoint.Provider
 
 	// GetAnnouncementChannel returns an instance of a channel, which notifies the system of an event requiring the execution of ListEndpoints.
-	GetAnnouncementChannel() chan struct{}
+	GetAnnouncementChannel() chan interface{}
 
 	// RegisterProxy registers a newly connected proxy with the service mesh catalog.
 	RegisterProxy(envoy.Proxyer)
