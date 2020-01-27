@@ -22,5 +22,5 @@ type Manager interface {
 	IssueCertificate(cn CommonName) (Certificater, error)
 
 	// GetSecretsChangeAnnouncementChan returns a channel, which is used to announce when changes have been made to the issued certificates.
-	GetSecretsChangeAnnouncementChan() <-chan struct{}
+	GetSecretsChangeAnnouncementChan() <-chan interface{}
 }
