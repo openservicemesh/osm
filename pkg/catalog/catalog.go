@@ -16,7 +16,7 @@ import (
 func NewMeshCatalog(meshSpec smi.MeshSpec, certManager certificate.Manager, stop <-chan struct{}, endpointsProviders ...endpoint.Provider) *MeshCatalog {
 	glog.Info("[catalog] Create a new Service MeshCatalog.")
 	serviceCatalog := MeshCatalog{
-		announcements: make(chan struct{}),
+		announcements: make(chan interface{}),
 
 		endpointsProviders: endpointsProviders,
 		meshSpec:           meshSpec,

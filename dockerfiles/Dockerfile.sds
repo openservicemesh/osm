@@ -1,5 +1,5 @@
 FROM alpine:3.10.1
-ADD ./bin/linux-amd64/sds /
+ADD bin/linux-amd64/sds /
 
 # TODO(draychev): extern
 ADD bin/cert.pem /tmp/keys/

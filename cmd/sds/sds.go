@@ -16,6 +16,7 @@ import (
 
 	"github.com/deislabs/smc/pkg/catalog"
 	"github.com/deislabs/smc/pkg/certificate"
+	"github.com/deislabs/smc/pkg/constants"
 	"github.com/deislabs/smc/pkg/envoy/sds"
 	"github.com/deislabs/smc/pkg/smi"
 	"github.com/deislabs/smc/pkg/utils"
@@ -23,8 +24,6 @@ import (
 
 const (
 	serverType = "SDS"
-
-	defaultNamespace = "default"
 )
 
 var (
@@ -52,7 +51,7 @@ func main() {
 
 	kubeConfig, err := clientcmd.BuildConfigFromFlags("", *kubeConfigFile)
 	if err != nil {
-		glog.Fatalf("[Server] Error fetching Kubernetes config. Ensure correctness of CLI argument 'kubeconfig=%s': %s", *kubeConfigFile, err)
+		glog.Fatalf("[SDS] Error fetching Kubernetes config. Ensure correctness of CLI argument 'kubeconfig=%s': %s", *kubeConfigFile, err)
 	}
 
 	observeNamespaces := getNamespaces()
@@ -88,7 +87,7 @@ func parseFlags() {
 func getNamespaces() []string {
 	var namespaces []string
 	if namespace == nil {
-		defaultNS := defaultNamespace
+		defaultNS := constants.DefaultKubeNamespace
 		namespaces = []string{defaultNS}
 	} else {
 		namespaces = []string{*namespace}

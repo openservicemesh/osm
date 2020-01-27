@@ -39,11 +39,8 @@ func NewProvider(kubeConfig *rest.Config, namespaces []string, announcements cha
 		kubeClient:    kubeClient,
 		informers:     &informerCollection,
 		caches:        &cacheCollection,
-
-		// TODO(draychev): bridge announcements and this announcements
-		announcements: channels.NewRingChannel(1024),
-
-		cacheSynced: make(chan interface{}),
+		announcements: announcements,
+		cacheSynced:   make(chan interface{}),
 	}
 
 	h := handlers{client}

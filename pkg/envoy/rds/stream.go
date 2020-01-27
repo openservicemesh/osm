@@ -69,7 +69,7 @@ func (r *rdsStreamHandler) run(ctx context.Context, server envoy.RouteDiscoveryS
 				// NOTE: This is deliberately only focused on providing MVP tools to run a TrafficRoute demo.
 				glog.V(1).Infof("[RDS][stream] Received a change announcement! Updating all Envoy proxies.")
 				// TODO: flesh out the ClientIdentity for this similar to eds.go
-				resp, _, err := r.catalog.ListTrafficRoutes("TBD")
+				resp, err := r.catalog.ListTrafficRoutes("TBD")
 				if err != nil {
 					glog.Error("[RDS][stream] Failed composing a DiscoveryResponse: ", err)
 					return err

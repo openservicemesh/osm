@@ -57,28 +57,23 @@ func main() {
 
 	kubeConfig, err := clientcmd.BuildConfigFromFlags("", *kubeConfigFile)
 	if err != nil {
-		glog.Fatalf("[Server] Error fetching Kubernetes config. Ensure correctness of CLI argument 'kubeconfig=%s': %s", *kubeConfigFile, err)
+		glog.Fatalf("[EDS] Error fetching Kubernetes config. Ensure correctness of CLI argument 'kubeconfig=%s': %s", *kubeConfigFile, err)
 	}
 
 	observeNamespaces := getNamespaces()
 
 	stop := make(chan struct{})
-
-	meshSpec := smi.NewMeshSpecClient(kubeConfig, observeNamespaces, announcements, stop)
+	meshSpecClient := smi.NewMeshSpecClient(kubeConfig, observeNamespaces, announcements, stop)
 	certManager := certificate.NewManager(stop)
 	azureResourceClient := azureResource.NewClient(kubeConfig, observeNamespaces, announcements, stop)
 
 	endpointsProviders := []endpoint.Provider{
 		azure.NewProvider(*subscriptionID, *azureAuthFile, announcements, stop, meshSpecClient, azureResourceClient, constants.AzureProviderName),
 		kube.NewProvider(kubeConfig, observeNamespaces, announcements, stop, constants.KubeProviderName),
-
-		// azure.NewProvider(*subscriptionID, *azureAuthFile, announcements, stop, meshSpec, azureResourceClient, azureProviderName),
-		// kube.NewProvider(kubeConfig, observeNamespaces, announcements, stop, kubernetesProviderName),
-
 	}
 
-	meshCatalog := catalog.NewMeshCatalog(meshSpec, certManager, stop, endpointsProviders...)
-	edsServer := eds.NewEDSServer(ctx, meshCatalog, meshSpec, announcements)
+	meshCatalog := catalog.NewMeshCatalog(meshSpecClient, certManager, stop, endpointsProviders...)
+	edsServer := eds.NewEDSServer(ctx, meshCatalog, meshSpecClient, announcements)
 
 	grpcServer, lis := utils.NewGrpc(serverType, *port, *certPem, *keyPem, *rootCertPem)
 	xds.RegisterEndpointDiscoveryServiceServer(grpcServer, edsServer)

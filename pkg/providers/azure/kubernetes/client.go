@@ -3,8 +3,6 @@ package azure
 import (
 	"time"
 
-	smc "github.com/deislabs/smc/pkg/apis/azureresource/v1"
-	"github.com/eapache/channels"
 	"github.com/golang/glog"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -26,8 +24,7 @@ func NewClient(kubeConfig *rest.Config, namespaces []string, announcements chan 
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 	azureResourceClient := smcClient.NewForConfigOrDie(kubeConfig)
 
-	ann := channels.NewRingChannel(1024)
-	k8sClient := newClient(kubeClient, azureResourceClient, namespaces, ann)
+	k8sClient := newClient(kubeClient, azureResourceClient, namespaces, announcements)
 	if err := k8sClient.Run(stop); err != nil {
 		glog.Fatalf("Could not start %s client: %s", kubernetesClientName, err)
 	}

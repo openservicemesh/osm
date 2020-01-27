@@ -15,6 +15,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/deislabs/smc/pkg/catalog"
+	"github.com/deislabs/smc/pkg/certificate"
 	"github.com/deislabs/smc/pkg/constants"
 	"github.com/deislabs/smc/pkg/endpoint"
 	rdsServer "github.com/deislabs/smc/pkg/envoy/rds"
@@ -69,11 +70,11 @@ func main() {
 		azure.NewProvider(*subscriptionID, *azureAuthFile, announcements, stop, meshTopologyClient, azureResourceClient, constants.AzureProviderName),
 		kube.NewProvider(kubeConfig, observeNamespaces, announcements, stop, constants.KubeProviderName),
 	}
-
-	serviceCatalog := catalog.NewServiceCatalog(meshTopologyClient, endpointsProviders...)
+	certManager := certificate.NewManager(stopChan)
+	meshCatalog := catalog.NewMeshCatalog(meshSpec, certManager, stopChan, endpointsProviders...)
 
 	grpcServer, lis := utils.NewGrpc(serverType, *port, *certPem, *keyPem, *rootCertPem)
-	rds := rdsServer.NewRDSServer(ctx, serviceCatalog, meshTopologyClient, announcements)
+	rds := rdsServer.NewRDSServer(ctx, meshCatalog, meshSpec, announcements)
 	envoyControlPlane.RegisterRouteDiscoveryServiceServer(grpcServer, rds)
 	go utils.GrpcServe(ctx, grpcServer, lis, cancel, serverType)
 
