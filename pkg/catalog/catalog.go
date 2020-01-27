@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	envoyV2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	protobufTypes "github.com/gogo/protobuf/types"
 	"github.com/golang/glog"
 
@@ -42,7 +42,7 @@ func NewServiceCatalog(meshSpec smi.MeshSpec, endpointsProviders ...endpoint.Pro
 
 // ListTrafficRoutes constructs a DiscoveryResponse with all routes the given Envoy proxy should be aware of.
 // The bool return value indicates whether there have been any changes since the last invocation of this function.
-func (sc *MeshCatalog) ListTrafficRoutes(clientID smi.ClientIdentity) (*v2.DiscoveryResponse, bool, error) {
+func (sc *MeshCatalog) ListTrafficRoutes(clientID smi.ClientIdentity) (*envoyV2.DiscoveryResponse, bool, error) {
 	glog.Info("[catalog] Listing Routes for client: ", clientID)
 	allRoutes, err := sc.getHTTPPathsPerRoute()
 	if err != nil {
@@ -68,7 +68,7 @@ func (sc *MeshCatalog) ListTrafficRoutes(clientID smi.ClientIdentity) (*v2.Disco
 		protos = append(protos, proto)
 	}
 
-	resp := &v2.DiscoveryResponse{
+	resp := &envoyV2.DiscoveryResponse{
 		Resources: protos,
 		TypeUrl:   rc.RouteConfigurationURI,
 	}
