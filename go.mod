@@ -17,7 +17,9 @@ require (
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/golang/protobuf v1.3.2
 	github.com/gorilla/mux v1.7.3
+	github.com/hashicorp/go-version v1.2.0 // indirect
 	github.com/json-iterator/go v1.1.8 // indirect
+	github.com/mitchellh/gox v1.0.1 // indirect
 	github.com/onsi/ginkgo v1.11.0
 	github.com/onsi/gomega v1.8.1
 	github.com/pkg/errors v0.8.1

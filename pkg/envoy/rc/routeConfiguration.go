@@ -20,7 +20,7 @@ func NewRouteConfiguration(trafficPolicies endpoint2.TrafficTargetPolicies) v2.R
 	rc := v2.RouteConfiguration{
 		Name: trafficPolicies.PolicyName,
 		VirtualHosts: []*route.VirtualHost{{
-			Name:    "bookstore",
+			Name:    trafficPolicies.Source,
 			Domains: []string{"*"},
 			Routes:  []*route.Route{},
 		}},
