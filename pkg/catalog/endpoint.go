@@ -10,7 +10,7 @@ import (
 	"github.com/deislabs/smc/pkg/smi"
 )
 
-// ListEndpoints constructs a DiscoveryResponse with all endpoints the given Envoy proxy should be aware of.
+// ListEndpoints constructs a map from service to weighted sub-services with all endpoints the given Envoy proxy should be aware of.
 // The bool return value indicates whether there have been any changes since the last invocation of this function.
 func (sc *MeshCatalog) ListEndpoints(clientID smi.ClientIdentity) (map[endpoint.ServiceName][]endpoint.WeightedService, error) {
 	glog.Info("[catalog] Listing Endpoints for client: ", clientID)
