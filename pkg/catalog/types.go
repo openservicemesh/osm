@@ -11,25 +11,6 @@ import (
 	"github.com/deislabs/smc/pkg/smi"
 )
 
-<<<<<<< HEAD
-// MeshCatalog is the struct for the service catalog
-type MeshCatalog struct {
-	sync.Mutex
-
-	announcements chan interface{}
-
-	endpointsProviders []endpoint.Provider
-	meshSpec           smi.MeshSpec
-	certManager        certificate.Manager
-
-	// Caches
-	servicesCache map[endpoint.ServiceName][]endpoint.Endpoint
-	// certificateCache map[endpoint.ServiceName]certificate.Certificater
-	connectedProxies []envoy.Proxyer
-}
-
-=======
->>>>>>> Implement SDS
 // MeshCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
 type MeshCataloger interface {
 	// ListEndpoints constructs a map of service to weighted handlers with all endpoints the given Envoy proxy should be aware of.

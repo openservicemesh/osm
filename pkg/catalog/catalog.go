@@ -54,28 +54,6 @@ func (sc *MeshCatalog) getHTTPPathsPerRoute() (map[string]endpoint.RoutePaths, e
 	return routes, nil
 }
 
-func (sc *MeshCatalog) getHTTPPathsPerRoute() (map[string]endpoint.RoutePaths, error) {
-	routes := make(map[string]endpoint.RoutePaths)
-	for _, trafficSpecs := range sc.meshSpec.ListHTTPTrafficSpecs() {
-		glog.V(7).Infof("[RDS][catalog] Discovered TrafficSpec resource: %s/%s \n", trafficSpecs.Namespace, trafficSpecs.Name)
-		if trafficSpecs.Matches == nil {
-			glog.Errorf("[RDS][catalog] TrafficSpec %s/%s has no matches in route; Skipping...", trafficSpecs.Namespace, trafficSpecs.Name)
-			continue
-		}
-		trafficKind := trafficSpecs.Kind
-		spec := fmt.Sprintf("%s/%s/%s", trafficSpecs.Name, trafficKind, trafficSpecs.Namespace)
-		//todo (snchh) : no mapping yet for route methods (GET,POST) in the envoy configuration
-		for _, trafficSpecsMatches := range trafficSpecs.Matches {
-			serviceRoute := endpoint.RoutePaths{}
-			serviceRoute.RoutePathRegex = trafficSpecsMatches.PathRegex
-			serviceRoute.RouteMethods = trafficSpecsMatches.Methods
-			routes[fmt.Sprintf("%s/%s", spec, trafficSpecsMatches.Name)] = serviceRoute
-		}
-	}
-	glog.V(7).Infof("[catalog] Constructed HTTP path routes: %+v", routes)
-	return routes, nil
-}
-
 func (sc *MeshCatalog) run(stop <-chan struct{}) {
 	glog.Info("[catalog] Running the Service MeshCatalog...")
 	allAnnouncementChans := []<-chan interface{}{

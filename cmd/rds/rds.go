@@ -63,15 +63,15 @@ func main() {
 	observeNamespaces := getNamespaces()
 
 	stop := make(chan struct{})
-	meshTopologyClient := smi.NewMeshSpecClient(kubeConfig, observeNamespaces, announcements, stop)
+	meshSpec := smi.NewMeshSpecClient(kubeConfig, observeNamespaces, announcements, stop)
 	azureResourceClient := azureResource.NewClient(kubeConfig, observeNamespaces, announcements, stop)
 
 	endpointsProviders := []endpoint.Provider{
-		azure.NewProvider(*subscriptionID, *azureAuthFile, announcements, stop, meshTopologyClient, azureResourceClient, constants.AzureProviderName),
+		azure.NewProvider(*subscriptionID, *azureAuthFile, announcements, stop, meshSpec, azureResourceClient, constants.AzureProviderName),
 		kube.NewProvider(kubeConfig, observeNamespaces, announcements, stop, constants.KubeProviderName),
 	}
-	certManager := certificate.NewManager(stopChan)
-	meshCatalog := catalog.NewMeshCatalog(meshSpec, certManager, stopChan, endpointsProviders...)
+	certManager := certificate.NewManager(stop)
+	meshCatalog := catalog.NewMeshCatalog(meshSpec, certManager, stop, endpointsProviders...)
 
 	grpcServer, lis := utils.NewGrpc(serverType, *port, *certPem, *keyPem, *rootCertPem)
 	rds := rdsServer.NewRDSServer(ctx, meshCatalog, meshSpec, announcements)
