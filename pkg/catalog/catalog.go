@@ -76,27 +76,6 @@ func (sc *MeshCatalog) ListTrafficRoutes(clientID smi.ClientIdentity) (*envoyV2.
 	return resp, false, nil
 }
 
-func (sc *MeshCatalog) refreshCache() {
-	glog.Info("[catalog] Refresh cache...")
-	servicesCache := make(map[endpoint.ServiceName][]endpoint.Endpoint)
-	// TODO(draychev): split the namespace from the service name -- non-K8s services won't have namespace
-	for _, namespacedServiceName := range sc.meshSpec.ListServices() {
-		for _, provider := range sc.endpointsProviders {
-			newIps := provider.ListEndpointsForService(namespacedServiceName)
-			glog.V(7).Infof("[catalog][%s] Found ips=%+v for service=%s", provider.GetID(), endpointsToString(newIps), namespacedServiceName)
-			if existingIps, exists := servicesCache[namespacedServiceName]; exists {
-				servicesCache[namespacedServiceName] = append(existingIps, newIps...)
-			} else {
-				servicesCache[namespacedServiceName] = newIps
-			}
-		}
-	}
-	glog.Infof("[catalog] Services cache: %+v", servicesCache)
-	sc.Lock()
-	sc.servicesCache = servicesCache
-	sc.Unlock()
-}
-
 func (sc *MeshCatalog) getHTTPPathsPerRoute() (map[string]endpoint.RoutePaths, error) {
 	routes := make(map[string]endpoint.RoutePaths)
 	for _, trafficSpecs := range sc.meshSpec.ListHTTPTrafficSpecs() {
