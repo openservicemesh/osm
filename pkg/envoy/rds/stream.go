@@ -26,7 +26,7 @@ func (e *Server) StreamRoutes(server xds.RouteDiscoveryService_StreamRoutesServe
 	handler := &rdsStreamHandler{
 		ctx:    ctx,
 		cancel: cancel,
-		Server:    e,
+		Server: e,
 	}
 
 	// Periodic Updates -- useful for debugging

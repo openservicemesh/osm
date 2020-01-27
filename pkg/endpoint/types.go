@@ -40,8 +40,8 @@ type RoutePaths struct {
 
 // TrafficTargetPolicies is a struct of the allowed RoutePaths from sources to a destination
 type TrafficTargetPolicies struct {
-	PolicyName       string     `json:"policy_name:omitempty"`
-	Destination      string     `json:"destination:omitempty"`
-	Source          string   `json:"sources:omitempty"`
+	PolicyName       string       `json:"policy_name:omitempty"`
+	Destination      string       `json:"destination:omitempty"`
+	Source           string       `json:"sources:omitempty"`
 	PolicyRoutePaths []RoutePaths `json:"policy_route_paths:omitempty"`
 }
