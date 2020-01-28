@@ -12,8 +12,7 @@ import (
 	"github.com/deislabs/smc/pkg/endpoint"
 )
 
-// ListEndpointsForService returns the IP addresses and Ports for the given ServiceName Name.
-// This function is required by the EndpointsProvider interface.
+// ListEndpointsForService implements endpoints.Provider interface and returns the IP addresses and Ports for the given ServiceName Name.
 func (az Client) ListEndpointsForService(svc endpoint.ServiceName) []endpoint.Endpoint {
 	var endpoints []endpoint.Endpoint
 
@@ -41,19 +40,25 @@ func (az Client) ListEndpointsForService(svc endpoint.ServiceName) []endpoint.En
 				continue
 			}
 			for _, ip := range ips {
-				endpoint := endpoint.Endpoint{
+				ept := endpoint.Endpoint{
 					IP:   ip,
 					Port: port,
 				}
-				endpoints = append(endpoints, endpoint)
+				endpoints = append(endpoints, ept)
 			}
 		}
 	}
 	return endpoints
 }
 
-// Run starts the Azure observer
-func (az Client) Run(stopCh <-chan struct{}) error {
+func (az Client) GetAnnouncementsChannel() <-chan interface{} {
+	// return az.announcements.Out()
+	// TODO(draychev): implement
+	return make(chan interface{})
+}
+
+// run starts the Azure observer
+func (az Client) run(stop <-chan struct{}) error {
 	glog.V(1).Infoln("Azure provider run started.")
 	// TODO(draychev): implement pub/sub
 	return nil

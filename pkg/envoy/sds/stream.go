@@ -1,38 +1,33 @@
 package sds
 
 import (
-	"io"
+	"time"
 
-	"github.com/deislabs/smc/pkg/utils"
 	envoyv2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	v2 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
-	"github.com/fsnotify/fsnotify"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-)
 
-const (
-	serverName = "SDS"
+	"github.com/deislabs/smc/pkg/envoy"
+	"github.com/deislabs/smc/pkg/utils"
 )
 
 // StreamSecrets handles streaming of the certs to the connected Envoy proxies
-func (s *Server) StreamSecrets(stream v2.SecretDiscoveryService_StreamSecretsServer) error {
-	glog.Infof("[%s] Starting SecretsStreamer", serverName)
-
+func (s *Server) StreamSecrets(server v2.SecretDiscoveryService_StreamSecretsServer) error {
 	// When a new Envoy proxy connects, ValidateClient would ensure that it has a valid certificate,
 	// and the Subject CN is in the allowedCommonNames set.
-	cn, err := utils.ValidateClient(stream.Context(), nil, serverName)
+	cn, err := utils.ValidateClient(server.Context(), nil, serverName)
 	if err != nil {
 		return errors.Wrap(err, "[%s] Could not start stream")
 	}
 
-	// TODO(draychev): Use the Subject Common Name to identify the Envoy proxy and determine what service it belongs to.
-	glog.Infof("[%s][stream] Client connected: Subject CN=%+v", serverName, cn)
+	// Register the newly connected proxy w/ the catalog.
+	ip := utils.GetIPFromContext(server.Context())
+	proxy := envoy.NewProxy(cn, ip)
+	s.catalog.RegisterProxy(envoy.NewProxy(cn, ip))
 
-	var recvErr error
-	var nodeID string
+	// TODO(draychev): Use the Subject Common Name to identify the Envoy proxy and determine what service it belongs to.
+	glog.Infof("[%s][stream] Client connected: Subject CN=%s", serverName, cn)
 
 	if err := s.isConnectionAllowed(); err != nil {
 		return err
@@ -47,95 +42,56 @@ func (s *Server) StreamSecrets(stream v2.SecretDiscoveryService_StreamSecretsSer
 			s.catalog.RegisterProxy(proxy)
 	*/
 
-	reqChannel := make(chan *envoyv2.DiscoveryRequest, 1)
+	reqChannel := make(chan *envoyv2.DiscoveryRequest)
+	go receive(reqChannel, server)
 
-	go func() {
-		defer close(reqChannel)
-		for {
-			var req *envoyv2.DiscoveryRequest
-
-			req, recvErr = stream.Recv()
-			if recvErr != nil {
-				if status.Code(recvErr) == codes.Canceled || recvErr == io.EOF {
-					glog.Infof("[%s] connection terminated %+v", serverName, recvErr)
-					return
-				}
-				glog.Infof("[%s] connection terminated with errors %+v", serverName, recvErr)
-				return
-			}
-			glog.Infof("[%s] Done!", serverName)
-			reqChannel <- req
-		}
-	}()
-
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		glog.Infof("[%s] Failed to create watcher: %+v", serverName, err)
-		return err
-	}
-	glog.Infof("[%s] Created file system watcher", serverName)
-	defer watcher.Close()
-
-	if err = watcher.Add(s.keysDirectory + certFileName); err != nil {
-		glog.Errorf("[%s] Failed to add %s/%s to watcher: %+v", serverName, s.keysDirectory, certFileName, err)
-		return err
-	}
+	// TODO(draychev): filter on announcement type; only respond to secrets change
+	announcements := s.catalog.GetAnnouncementChannel()
 
 	for {
 		select {
-		case discReq, ok := <-reqChannel:
+		case discoveryRequest, ok := <-reqChannel:
 			if !ok {
-				return recvErr
+				return errGrpcClosed
 			}
-			if discReq.ErrorDetail != nil {
+			if discoveryRequest.ErrorDetail != nil {
 				return errEnvoyError
 			}
-			if len(s.lastNonce) > 0 && discReq.ResponseNonce == s.lastNonce {
+			if len(s.lastNonce) > 0 && discoveryRequest.ResponseNonce == s.lastNonce {
 				continue
 			}
-			if discReq.Node == nil {
-				glog.Infof("[%s] Invalid discovery request with no node", serverName)
+			if discoveryRequest.Node == nil {
+				glog.Errorf("[%s] Invalid Service Discovery request with no node", serverName)
 				return errInvalidDiscoveryRequest
 			}
 
-			nodeID = discReq.Node.Id
-			glog.Infof("[%s] Discovery Request from Envoy ID: %s", serverName, nodeID)
+			glog.Infof("[%s][incoming] Discovery Request from Envoy: %s", serverName, proxy.GetCommonName())
 
-			secret, err := getSecretItem(s.keysDirectory)
+			response, err := s.newDiscoveryResponse(proxy)
 			if err != nil {
+				glog.Errorf("[%s] Failed constructing Secret Discovery Response: %+v", serverName, err)
 				return err
 			}
-			response, err := s.sdsDiscoveryResponse(secret, nodeID)
+			if err := server.Send(response); err != nil {
+				glog.Errorf("[%s] Failed to send Secret Discovery Response: %+v", serverName, err)
+				return err
+			}
+			glog.Infof("[%s] Sent Secrets Discovery Response to client: %s", serverName, cn)
+			glog.Infof("Deliberately sleeping for %d seconds...", sleepTime)
+			time.Sleep(sleepTime * time.Second)
+
+		case <-announcements:
+			glog.Infof("[%s][outgoing] Secrets change announcement received.", serverName)
+			response, err := s.newDiscoveryResponse(proxy)
 			if err != nil {
-				glog.Info(err)
+				glog.Errorf("[%s] Failed constructing Secret Discovery Response: %+v", serverName, err)
 				return err
 			}
-			if err := stream.Send(response); err != nil {
-				glog.Infof("[%s] Failed to send: %+v", serverName, err)
+			if err := server.Send(response); err != nil {
+				glog.Infof("[%s] Failed to send Secret Discovery Response: %+v", serverName, err)
 				return err
 			}
-		case ev := <-watcher.Events:
-			glog.Infof("[%s] Got a file system watcher event...", serverName)
-			if ev.Op == fsnotify.Remove || ev.Op == fsnotify.Rename {
-				glog.Infof("[%s] Key file is missing", serverName)
-				return errKeyFileMissing
-			}
-			secret, err := getSecretItem(s.keysDirectory)
-			if err != nil {
-				return err
-			}
-			response, err := s.sdsDiscoveryResponse(secret, nodeID)
-			if err != nil {
-				glog.Info(err)
-				return err
-			}
-			if err := stream.Send(response); err != nil {
-				glog.Infof("[%s] Failed to send: %+v", serverName, err)
-				return err
-			}
-		case err := <-watcher.Errors:
-			glog.Infof("[%s] Watcher got error: %+v", serverName, err)
-			return err
 		}
 	}
+
 }

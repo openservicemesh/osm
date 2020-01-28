@@ -2,12 +2,14 @@ package catalog
 
 import (
 	"fmt"
+	"reflect"
 	"time"
 
 	envoyV2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	protobufTypes "github.com/gogo/protobuf/types"
 	"github.com/golang/glog"
 
+	"github.com/deislabs/smc/pkg/certificate"
 	"github.com/deislabs/smc/pkg/endpoint"
 	"github.com/deislabs/smc/pkg/envoy/rc"
 	"github.com/deislabs/smc/pkg/smi"
@@ -18,42 +20,39 @@ const (
 	HTTPTraffic = "HTTPRouteGroup"
 )
 
-// NewServiceCatalog creates a new service catalog
-func NewServiceCatalog(meshSpec smi.MeshSpec, endpointsProviders ...endpoint.Provider) MeshCataloger {
-	glog.Info("[catalog] Create a new Service Catalog.")
+// NewMeshCatalog creates a new service catalog
+func NewMeshCatalog(meshSpec smi.MeshSpec, certManager certificate.Manager, stop <-chan struct{}, endpointsProviders ...endpoint.Provider) *MeshCatalog {
+	glog.Info("[catalog] Create a new Service MeshCatalog.")
 	serviceCatalog := MeshCatalog{
-		servicesCache:      make(map[endpoint.ServiceName][]endpoint.Endpoint),
+		announcements: make(chan interface{}),
+
 		endpointsProviders: endpointsProviders,
 		meshSpec:           meshSpec,
+		certManager:        certManager,
+
+		// Caches
+		servicesCache:    make(map[endpoint.ServiceName][]endpoint.Endpoint),
+		certificateCache: make(map[endpoint.ServiceName]certificate.Certificater),
 	}
 
-	// NOTE(draychev): helpful while developing alpha MVP -- remove before releasing beta version.
-	go func() {
-		counter := 0
-		for {
-			glog.V(7).Infof("------------------------- Service Catalog Cache Refresh %d -------------------------", counter)
-			counter++
-			serviceCatalog.refreshCache()
-			time.Sleep(5 * time.Second)
-		}
-	}()
+	serviceCatalog.run(stop)
+
 	return &serviceCatalog
 }
 
 // ListTrafficRoutes constructs a DiscoveryResponse with all routes the given Envoy proxy should be aware of.
-// The bool return value indicates whether there have been any changes since the last invocation of this function.
-func (sc *MeshCatalog) ListTrafficRoutes(clientID smi.ClientIdentity) (*envoyV2.DiscoveryResponse, bool, error) {
+func (sc *MeshCatalog) ListTrafficRoutes(clientID smi.ClientIdentity) (*envoyV2.DiscoveryResponse, error) {
 	glog.Info("[catalog] Listing Routes for client: ", clientID)
 	allRoutes, err := sc.getHTTPPathsPerRoute()
 	if err != nil {
 		glog.Error("[catalog] Could not get all routes: ", err)
-		return nil, false, err
+		return nil, err
 	}
 
 	allTrafficPolicies, err := getTrafficPolicyPerRoute(sc, allRoutes)
 	if err != nil {
 		glog.Error("[catalog] Could not get all traffic policies: ", err)
-		return nil, false, err
+		return nil, err
 	}
 
 	var protos []*protobufTypes.Any
@@ -73,7 +72,7 @@ func (sc *MeshCatalog) ListTrafficRoutes(clientID smi.ClientIdentity) (*envoyV2.
 		TypeUrl:   rc.RouteConfigurationURI,
 	}
 
-	return resp, false, nil
+	return resp, nil
 }
 
 func (sc *MeshCatalog) getHTTPPathsPerRoute() (map[string]endpoint.RoutePaths, error) {
@@ -138,8 +137,62 @@ func (sc *MeshCatalog) RegisterNewEndpoint(smi.ClientIdentity) {
 	panic("NotImplemented")
 }
 
-// ListEndpointsProviders retrieves the full list of endpoints providers registered with Service Catalog so far.
-func (sc *MeshCatalog) ListEndpointsProviders() []endpoint.Provider {
-	// TODO(draychev): implement
-	panic("NotImplemented")
+func (sc *MeshCatalog) run(stop <-chan struct{}) {
+	glog.Info("[catalog] Running the Service MeshCatalog...")
+	allAnnouncementChans := []<-chan interface{}{
+		// TODO(draychev): does the stop channel need to be here too?
+		// stop,
+		sc.certManager.GetSecretsChangeAnnouncementChan(),
+	}
+	for _, endpointProvider := range sc.endpointsProviders {
+		fmt.Printf("--> %+v", endpointProvider)
+		if endpointProvider != nil {
+			allAnnouncementChans = append(allAnnouncementChans, endpointProvider.GetAnnouncementsChannel())
+		}
+
+	}
+
+	cases := make([]reflect.SelectCase, len(allAnnouncementChans))
+
+	go func() {
+		glog.V(7).Info("[catalog] Start announcements loop.")
+		for {
+			for i, ch := range allAnnouncementChans {
+				cases[i] = reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(ch)}
+			}
+			idx, _, ok := reflect.Select(cases)
+			if !ok && idx == 0 {
+				glog.Info("[catalog] Stop announcements loop.")
+				return
+			} else if !ok {
+				glog.Error("[catalog] Announcement channel is closed.")
+				continue
+			}
+			sc.announcements <- struct{}{}
+			time.Sleep(1 * time.Second)
+		}
+	}()
+
+	// NOTE(draychev): helpful while developing alpha MVP -- remove before releasing beta version.
+	go func() {
+		glog.V(7).Info("[catalog] Start periodic cache refresh loop.")
+		counter := 0
+		for {
+			select {
+			case _, ok := <-stop:
+				if !ok {
+					glog.Info("[catalog] Stop periodic cache refresh loop.")
+					return
+				}
+			default:
+				glog.V(7).Infof("----- Service MeshCatalog Periodic Cache Refresh %d -----", counter)
+				counter++
+				sc.refreshCache()
+				// Announce so we trigger refresh of all connected Envoy proxies.
+				sc.announcements <- struct{}{}
+				time.Sleep(5 * time.Second)
+			}
+
+		}
+	}()
 }

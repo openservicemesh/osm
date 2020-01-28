@@ -3,13 +3,16 @@ package cds
 import (
 	"time"
 
-	"github.com/deislabs/smc/pkg/envoy"
-
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 
+	"github.com/deislabs/smc/pkg/envoy"
 	"github.com/deislabs/smc/pkg/utils"
+)
+
+const (
+	sleepTime = 5
 )
 
 // StreamClusters handles streaming of the certs to the connected Envoy proxies

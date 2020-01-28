@@ -15,9 +15,10 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/deislabs/smc/pkg/catalog"
+	"github.com/deislabs/smc/pkg/certificate"
 	"github.com/deislabs/smc/pkg/constants"
 	"github.com/deislabs/smc/pkg/endpoint"
-	rdsServer "github.com/deislabs/smc/pkg/envoy/rds"
+	"github.com/deislabs/smc/pkg/envoy/rds"
 	"github.com/deislabs/smc/pkg/providers/azure"
 	azureResource "github.com/deislabs/smc/pkg/providers/azure/kubernetes"
 	"github.com/deislabs/smc/pkg/providers/kube"
@@ -62,19 +63,19 @@ func main() {
 	observeNamespaces := getNamespaces()
 
 	stop := make(chan struct{})
-	meshTopologyClient := smi.NewMeshSpecClient(kubeConfig, observeNamespaces, announcements, stop)
+	meshSpecClient := smi.NewMeshSpecClient(kubeConfig, observeNamespaces, announcements, stop)
 	azureResourceClient := azureResource.NewClient(kubeConfig, observeNamespaces, announcements, stop)
 
 	endpointsProviders := []endpoint.Provider{
-		azure.NewProvider(*subscriptionID, *azureAuthFile, announcements, stop, meshTopologyClient, azureResourceClient, constants.AzureProviderName),
+		azure.NewProvider(*subscriptionID, *azureAuthFile, announcements, stop, meshSpecClient, azureResourceClient, constants.AzureProviderName),
 		kube.NewProvider(kubeConfig, observeNamespaces, announcements, stop, constants.KubeProviderName),
 	}
-
-	serviceCatalog := catalog.NewServiceCatalog(meshTopologyClient, endpointsProviders...)
+	certManager := certificate.NewManager(stop)
+	meshCatalog := catalog.NewMeshCatalog(meshSpecClient, certManager, stop, endpointsProviders...)
 
 	grpcServer, lis := utils.NewGrpc(serverType, *port, *certPem, *keyPem, *rootCertPem)
-	rds := rdsServer.NewRDSServer(ctx, serviceCatalog, meshTopologyClient, announcements)
-	envoyControlPlane.RegisterRouteDiscoveryServiceServer(grpcServer, rds)
+	rdsServer := rds.NewRDSServer(ctx, meshCatalog, meshSpecClient, announcements)
+	envoyControlPlane.RegisterRouteDiscoveryServiceServer(grpcServer, rdsServer)
 	go utils.GrpcServe(ctx, grpcServer, lis, cancel, serverType)
 
 	sigChan := make(chan os.Signal, 1)

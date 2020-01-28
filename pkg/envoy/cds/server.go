@@ -27,12 +27,12 @@ func NewCDSServer(catalog catalog.MeshCataloger) *Server {
 	}
 }
 
-// DeltaClusters implements CDS.ClusterDiscoveryServiceServer
+// DeltaClusters implements xds.ClusterDiscoveryServiceServer
 func (s *Server) DeltaClusters(xds.ClusterDiscoveryService_DeltaClustersServer) error {
 	panic("NotImplemented")
 }
 
-// FetchClusters implements CDS.ClusterDiscoveryServiceServer
+// FetchClusters implements xds.ClusterDiscoveryServiceServer
 func (s *Server) FetchClusters(ctx context.Context, discReq *xds.DiscoveryRequest) (*xds.DiscoveryResponse, error) {
 	glog.Infof("[%s] Fetching Clusters...", serverName)
 

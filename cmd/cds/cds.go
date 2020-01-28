@@ -15,8 +15,9 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/deislabs/smc/pkg/catalog"
+	"github.com/deislabs/smc/pkg/certificate"
 	"github.com/deislabs/smc/pkg/constants"
-	cdsServer "github.com/deislabs/smc/pkg/envoy/cds"
+	"github.com/deislabs/smc/pkg/envoy/cds"
 	"github.com/deislabs/smc/pkg/smi"
 	"github.com/deislabs/smc/pkg/utils"
 )
@@ -53,18 +54,17 @@ func main() {
 		glog.Fatalf("[%s] Error fetching Kubernetes config. Ensure correctness of CLI argument 'kubeconfig=%s': %s", serverType, *kubeConfigFile, err)
 	}
 
-	grpcServer, lis := utils.NewGrpc(serverType, *port, *certPem, *keyPem, *rootCertPem)
-
 	observeNamespaces := getNamespaces()
 
 	stop := make(chan struct{})
 	meshSpecClient := smi.NewMeshSpecClient(kubeConfig, observeNamespaces, announcements, stop)
+	certManager := certificate.NewManager(stop)
+	meshCatalog := catalog.NewMeshCatalog(meshSpecClient, certManager, stop)
+	cdsServer := cds.NewCDSServer(meshCatalog)
 
-	serviceCatalog := catalog.NewServiceCatalog(meshSpecClient)
+	grpcServer, lis := utils.NewGrpc(serverType, *port, *certPem, *keyPem, *rootCertPem)
+	xds.RegisterClusterDiscoveryServiceServer(grpcServer, cdsServer)
 
-	cds := cdsServer.NewCDSServer(serviceCatalog)
-
-	xds.RegisterClusterDiscoveryServiceServer(grpcServer, cds)
 	go utils.GrpcServe(ctx, grpcServer, lis, cancel, serverType)
 
 	sigChan := make(chan os.Signal, 1)
