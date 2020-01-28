@@ -7,14 +7,14 @@ import (
 	"io/ioutil"
 	"log"
 
-	"github.com/deislabs/smc/pkg/certificate"
-
 	"github.com/golang/glog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
+
+	"github.com/deislabs/smc/pkg/certificate"
 )
 
 func setupMutualTLS(insecure bool, serverName string, certPem string, keyPem string, rootCertPem string) grpc.ServerOption {

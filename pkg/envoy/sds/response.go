@@ -1,0 +1,69 @@
+package sds
+
+import (
+	"fmt"
+	"time"
+
+	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	"github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
+	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	"github.com/gogo/protobuf/types"
+	"github.com/golang/glog"
+
+	"github.com/deislabs/smc/pkg/envoy"
+)
+
+const (
+	sleepTime = 5
+)
+
+func (s *Server) newDiscoveryResponse(proxy envoy.Proxyer) (*v2.DiscoveryResponse, error) {
+	glog.Infof("[%s] Composing SDS Discovery Response for proxy: %s", serverName, proxy.GetCommonName())
+	cert, err := s.catalog.GetCertificateForService(proxy.GetService())
+	if err != nil {
+		glog.Errorf("[%s] Error obtaining a certificate for client %s: %s", serverName, proxy.GetCommonName(), err)
+		return nil, err
+	}
+
+	resp := &v2.DiscoveryResponse{
+		TypeUrl: typeUrl,
+	}
+
+	services := []string{"server_cert", "bookstore.mesh", "bookstore-1", "bookstore-2"}
+
+	for _, svc := range services {
+		secret := &auth.Secret{
+			// The Name field must match the tls_context.common_tls_context.tls_certificate_sds_secret_configs.name in the Envoy yaml config
+			Name: svc, // cert.GetName(),
+			Type: &auth.Secret_TlsCertificate{
+				TlsCertificate: &auth.TlsCertificate{
+					CertificateChain: &core.DataSource{
+						Specifier: &core.DataSource_InlineBytes{
+							InlineBytes: cert.GetCertificateChain(),
+						},
+					},
+					PrivateKey: &core.DataSource{
+						Specifier: &core.DataSource_InlineBytes{
+							InlineBytes: cert.GetPrivateKey(),
+						},
+					},
+				},
+			},
+		}
+		marshalledSecret, err := types.MarshalAny(secret)
+		if err != nil {
+			glog.Errorf("[%s] Failed to marshal secret for proxy %s: %v", serverName, proxy.GetCommonName(), err)
+			return nil, err
+		}
+		resp.Resources = append(resp.Resources, marshalledSecret)
+	}
+
+	s.lastVersion = s.lastVersion + 1
+	s.lastNonce = string(time.Now().Nanosecond())
+	resp.Nonce = s.lastNonce
+	resp.VersionInfo = fmt.Sprintf("v%d", s.lastVersion)
+
+	glog.V(7).Infof("[%s] Constructed response: %+v", serverName, resp)
+
+	return resp, nil
+}

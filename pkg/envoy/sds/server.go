@@ -2,152 +2,53 @@ package sds
 
 import (
 	"context"
-	"io/ioutil"
-	"time"
 
-	xdsapi "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	authapi "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	sdsapi "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
-	"github.com/gogo/protobuf/types"
+	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	xds "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	"github.com/golang/glog"
+
+	"github.com/deislabs/smc/pkg/catalog"
+	"github.com/deislabs/smc/pkg/envoy"
+	"github.com/deislabs/smc/pkg/utils"
 )
 
 const (
 	maxConnections = 10000
-
-	// Save the experimental keys here
-	keysDirTemp = "/tmp/keys/"
-
-	// TODO(draychev): remove hard coded stuff
-	certificateName = "server_cert"
-
-	certFileName = "cert.pem"
-	keyFileName  = "key.pem"
-
-	typeUrl = "type.googleapis.com/envoy.api.v2.auth.Secret"
+	typeUrl        = "type.googleapis.com/envoy.api.v2.auth.Secret"
+	serverName     = "SDS"
 )
 
-// Options provides all of the configuration parameters for secret discovery service.
-type Options struct {
-	// UDSPath is the unix domain socket through which SDS server communicates with proxies.
-	UDSPath string
-}
-
-type secretItem struct {
-	certificateChain []byte
-	privateKey       []byte
-}
-
-// Server is the SDS server struct
-type Server struct {
-	// TODO: we should track more than one nonce. One nonce limits us to have only one Envoy process per SDS server.
-	lastNonce string
-
-	connectionNum int
-	keysDirectory string
-
-	// secretsManager secrets.SecretsManager
-
-	// close channel.
-	closing chan bool
-}
-
 // NewSDSServer creates a new SDS server
-func NewSDSServer(keysDirectory *string) *Server {
-	keysDir := keysDirTemp
-	if keysDirectory != nil {
-		keysDir = *keysDirectory
-	}
-	// secretsManager := secrets.SecretsManager()
-
+func NewSDSServer(catalog catalog.MeshCataloger) *Server {
 	return &Server{
 		connectionNum: 0,
-		keysDirectory: keysDir,
-
+		catalog:       catalog,
 		// 	secretsManager: secretsManager,
 
 		closing: make(chan bool),
 	}
 }
 
-// DeltaSecrets is an SDS interface requirement
-func (s *Server) DeltaSecrets(sdsapi.SecretDiscoveryService_DeltaSecretsServer) error {
+// DeltaSecrets implements sds.SecretDiscoveryServiceServer
+func (s *Server) DeltaSecrets(xds.SecretDiscoveryService_DeltaSecretsServer) error {
 	panic("NotImplemented")
 }
 
-func (s *Server) sdsDiscoveryResponse(si *secretItem, proxyID string) (*xdsapi.DiscoveryResponse, error) {
-	glog.Info("[SDS] Composing SDS Discovery Response...")
-	s.lastNonce = time.Now().String()
-	resp := &xdsapi.DiscoveryResponse{
-		TypeUrl:     typeUrl,
-		VersionInfo: s.lastNonce,
-		Nonce:       s.lastNonce,
-	}
-
-	secret := &authapi.Secret{
-		Name: certificateName,
-	}
-	secret.Type = &authapi.Secret_TlsCertificate{
-		TlsCertificate: &authapi.TlsCertificate{
-			CertificateChain: &core.DataSource{
-				Specifier: &core.DataSource_InlineBytes{
-					InlineBytes: si.certificateChain,
-				},
-			},
-			PrivateKey: &core.DataSource{
-				Specifier: &core.DataSource_InlineBytes{
-					InlineBytes: si.privateKey,
-				},
-			},
-		},
-	}
-
-	ms, err := types.MarshalAny(secret)
-	if err != nil {
-		glog.Errorf("Failed to marshal secret for proxy %q: %v", proxyID, err)
-		return nil, err
-	}
-	resp.Resources = append(resp.Resources, ms)
-
-	return resp, nil
-}
-
-func getSecretItem(keyDirectory string) (*secretItem, error) {
-	cert, err := ioutil.ReadFile(keyDirectory + certFileName)
-	if err != nil {
-		glog.Infof("Failed to read cert chain from %s: %s", keyDirectory+certFileName, err)
-		return nil, err
-	}
-	key, err := ioutil.ReadFile(keyDirectory + keyFileName)
-	if err != nil {
-		glog.Info("Failed to read private key", err)
-		return nil, err
-	}
-
-	secret := &secretItem{
-		certificateChain: cert,
-		privateKey:       key,
-	}
-
-	return secret, nil
-}
-
-func (s *Server) isConnectionAllowed() error {
-	if s.connectionNum >= maxConnections {
-		return errTooManyConnections
-	}
-	s.connectionNum++
-	return nil
-}
-
-// FetchSecrets fetches the certs
-func (s *Server) FetchSecrets(ctx context.Context, discReq *xdsapi.DiscoveryRequest) (*xdsapi.DiscoveryResponse, error) {
+// FetchSecrets implements sds.SecretDiscoveryServiceServer
+func (s *Server) FetchSecrets(ctx context.Context, discReq *v2.DiscoveryRequest) (*v2.DiscoveryResponse, error) {
 	glog.Infof("[%s] Fetching Secrets...", serverName)
-	secret, err := getSecretItem(s.keysDirectory)
+
+	cn, err := utils.ValidateClient(ctx, nil, serverName)
 	if err != nil {
+		glog.Errorf("[%s] Error constructing Secrets Discovery Response: %s", serverName, err)
 		return nil, err
 	}
-	glog.Infof("[%s] Responding with Secrets...", serverName)
-	return s.sdsDiscoveryResponse(secret, discReq.Node.Id)
+
+	// Register the newly connected proxy w/ the catalog.
+	ip := utils.GetIPFromContext(ctx)
+	proxy := envoy.NewProxy(cn, ip)
+	s.catalog.RegisterProxy(proxy)
+
+	glog.Infof("[%s][FetchSecrets] Responding to proxy %s", serverName, proxy.GetCommonName())
+	return s.newDiscoveryResponse(proxy)
 }

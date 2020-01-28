@@ -10,16 +10,6 @@ import (
 	"github.com/deislabs/smc/pkg/smi"
 )
 
-// FetchEndpoints implements envoy.EndpointDiscoveryServiceServer
-func (e *Server) FetchEndpoints(context.Context, *xds.DiscoveryRequest) (*xds.DiscoveryResponse, error) {
-	panic("NotImplemented")
-}
-
-// DeltaEndpoints implements envoy.EndpointDiscoveryServiceServer
-func (e *Server) DeltaEndpoints(xds.EndpointDiscoveryService_DeltaEndpointsServer) error {
-	panic("NotImplemented")
-}
-
 // NewEDSServer creates a new EDS server
 func NewEDSServer(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, announcements chan interface{}) *Server {
 	glog.Info("[EDS] Create NewEDSServer")
@@ -29,4 +19,14 @@ func NewEDSServer(ctx context.Context, catalog catalog.MeshCataloger, meshSpec s
 		meshSpec:      meshSpec,
 		announcements: announcements,
 	}
+}
+
+// FetchEndpoints implements envoy.EndpointDiscoveryServiceServer
+func (e *Server) FetchEndpoints(context.Context, *xds.DiscoveryRequest) (*xds.DiscoveryResponse, error) {
+	panic("NotImplemented")
+}
+
+// DeltaEndpoints implements envoy.EndpointDiscoveryServiceServer
+func (e *Server) DeltaEndpoints(xds.EndpointDiscoveryService_DeltaEndpointsServer) error {
+	panic("NotImplemented")
 }

@@ -3,13 +3,12 @@ package azure
 import (
 	"time"
 
-	smc "github.com/deislabs/smc/pkg/apis/azureresource/v1"
-
 	"github.com/golang/glog"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
+	smc "github.com/deislabs/smc/pkg/apis/azureresource/v1"
 	smcClient "github.com/deislabs/smc/pkg/smc_client/clientset/versioned"
 	smcInformers "github.com/deislabs/smc/pkg/smc_client/informers/externalversions"
 )
@@ -24,6 +23,7 @@ var resyncPeriod = 1 * time.Second
 func NewClient(kubeConfig *rest.Config, namespaces []string, announcements chan interface{}, stop chan struct{}) *Client {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 	azureResourceClient := smcClient.NewForConfigOrDie(kubeConfig)
+
 	k8sClient := newClient(kubeClient, azureResourceClient, namespaces, announcements)
 	if err := k8sClient.Run(stop); err != nil {
 		glog.Fatalf("Could not start %s client: %s", kubernetesClientName, err)
@@ -68,17 +68,17 @@ func newClient(kubeClient *kubernetes.Clientset, azureResourceClient *smcClient.
 	return &client
 }
 
-// Run executes informer collection.
-func (c *Client) Run(stopCh <-chan struct{}) error {
+// run executes informer collection.
+func (c *Client) Run(stop <-chan struct{}) error {
 	glog.V(1).Infoln("Kubernetes Compute Provider started")
 	var hasSynced []cache.InformerSynced
 
 	glog.Info("Starting AzureResource informer")
-	go c.informers.AzureResource.Run(stopCh)
+	go c.informers.AzureResource.Run(stop)
 	hasSynced = append(hasSynced, c.informers.AzureResource.HasSynced)
 
 	glog.V(1).Infof("Waiting AzureResource informer cache sync")
-	if !cache.WaitForCacheSync(stopCh, hasSynced...) {
+	if !cache.WaitForCacheSync(stop, hasSynced...) {
 		return errSyncingCaches
 	}
 
