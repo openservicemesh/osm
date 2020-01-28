@@ -57,9 +57,9 @@ func main() {
 	observeNamespaces := getNamespaces()
 
 	stop := make(chan struct{})
-	meshSpec := smi.NewMeshSpecClient(kubeConfig, observeNamespaces, announcements, stop)
+	meshSpecClient := smi.NewMeshSpecClient(kubeConfig, observeNamespaces, announcements, stop)
 	certManager := certificate.NewManager(stop)
-	meshCatalog := catalog.NewMeshCatalog(meshSpec, certManager, stop)
+	meshCatalog := catalog.NewMeshCatalog(meshSpecClient, certManager, stop)
 	sdsServer := sds.NewSDSServer(meshCatalog)
 
 	grpcServer, lis := utils.NewGrpc(serverType, *port, *certPem, *keyPem, *rootCertPem)
