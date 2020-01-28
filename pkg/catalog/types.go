@@ -11,6 +11,22 @@ import (
 	"github.com/deislabs/smc/pkg/smi"
 )
 
+// MeshCatalog is the struct for the service catalog
+type MeshCatalog struct {
+	sync.Mutex
+
+	announcements chan interface{}
+
+	endpointsProviders []endpoint.Provider
+	meshSpec           smi.MeshSpec
+	certManager        certificate.Manager
+
+	// Caches
+	servicesCache    map[endpoint.ServiceName][]endpoint.Endpoint
+	certificateCache map[endpoint.ServiceName]certificate.Certificater
+	connectedProxies []envoy.Proxyer
+}
+
 // MeshCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
 type MeshCataloger interface {
 	// ListEndpoints constructs a map of service to weighted handlers with all endpoints the given Envoy proxy should be aware of.
@@ -28,20 +44,4 @@ type MeshCataloger interface {
 	// GetCertificateForService returns the SSL Certificate for the given service.
 	// This certificate will be used for service-to-service mTLS.
 	GetCertificateForService(endpoint.ServiceName) (certificate.Certificater, error)
-}
-
-// MeshCatalog is the struct for the service catalog
-type MeshCatalog struct {
-	sync.Mutex
-
-	announcements chan interface{}
-
-	endpointsProviders []endpoint.Provider
-	meshSpec           smi.MeshSpec
-	certManager        certificate.Manager
-
-	// Caches
-	servicesCache    map[endpoint.ServiceName][]endpoint.Endpoint
-	certificateCache map[endpoint.ServiceName]certificate.Certificater
-	connectedProxies []envoy.Proxyer
 }

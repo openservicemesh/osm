@@ -32,7 +32,7 @@ type NewInformerFunc func(versioned.Interface, time.Duration) cache.SharedIndexI
 
 // SharedInformerFactory a small interface to allow for adding an informer without an import cycle
 type SharedInformerFactory interface {
-	Start(stop <-chan struct{})
+	Start(stopCh <-chan struct{})
 	InformerFor(obj runtime.Object, newFunc NewInformerFunc) cache.SharedIndexInformer
 }
 

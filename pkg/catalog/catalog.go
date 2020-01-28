@@ -137,12 +137,6 @@ func (sc *MeshCatalog) RegisterNewEndpoint(smi.ClientIdentity) {
 	panic("NotImplemented")
 }
 
-// ListEndpointsProviders retrieves the full list of endpoints providers registered with Service Catalog so far.
-func (sc *MeshCatalog) ListEndpointsProviders() []endpoint.Provider {
-	// TODO(draychev): implement
-	panic("NotImplemented")
-}
-
 func (sc *MeshCatalog) run(stop <-chan struct{}) {
 	glog.Info("[catalog] Running the Service MeshCatalog...")
 	allAnnouncementChans := []<-chan interface{}{
