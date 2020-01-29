@@ -5,7 +5,7 @@ import (
 	TrafficSpec "github.com/deislabs/smi-sdk-go/pkg/apis/specs/v1alpha1"
 	TrafficSplit "github.com/deislabs/smi-sdk-go/pkg/apis/split/v1alpha2"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/deislabs/smc/pkg/endpoint"
@@ -50,7 +50,7 @@ type MeshSpec interface {
 	ListServices() []endpoint.ServiceName
 
 	// GetService fetches a specific service declared in SMI.
-	GetService(endpoint.ServiceName) (service *v1.Service, exists bool, err error)
+	GetService(endpoint.ServiceName) (service *corev1.Service, exists bool, err error)
 
 	// ListHTTPTrafficSpecs lists TrafficSpec SMI resources.
 	ListHTTPTrafficSpecs() []*TrafficSpec.HTTPRouteGroup

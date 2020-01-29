@@ -7,7 +7,7 @@ import (
 	TrafficTarget "github.com/deislabs/smi-sdk-go/pkg/apis/access/v1alpha1"
 	TrafficSpec "github.com/deislabs/smi-sdk-go/pkg/apis/specs/v1alpha1"
 	"github.com/deislabs/smi-sdk-go/pkg/apis/split/v1alpha2"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
 
 	"github.com/deislabs/smc/pkg/endpoint"
@@ -194,10 +194,10 @@ func (c *Client) ListServices() []endpoint.ServiceName {
 }
 
 // GetService retrieves the Kubernetes Services resource for the given ServiceName.
-func (c *Client) GetService(svc endpoint.ServiceName) (service *v1.Service, exists bool, err error) {
+func (c *Client) GetService(svc endpoint.ServiceName) (service *corev1.Service, exists bool, err error) {
 	svcIf, exists, err := c.caches.Services.GetByKey(string(svc))
 	if exists && err == nil {
-		return svcIf.(*v1.Service), exists, err
+		return svcIf.(*corev1.Service), exists, err
 	}
 	return nil, exists, err
 }
