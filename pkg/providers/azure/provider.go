@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/golang/glog"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 
 	smc "github.com/deislabs/smc/pkg/apis/azureresource/v1"
 	"github.com/deislabs/smc/pkg/endpoint"
@@ -103,7 +103,7 @@ type kv struct {
 	v string
 }
 
-func matchServiceAzureResource(svc *v1.Service, azureResourcesList []*smc.AzureResource) []azureID {
+func matchServiceAzureResource(svc *corev1.Service, azureResourcesList []*smc.AzureResource) []azureID {
 	glog.V(7).Infof("[azure] Match service %s to an AzureID", svc)
 	azureResources := make(map[kv]*smc.AzureResource)
 	for _, azRes := range azureResourcesList {

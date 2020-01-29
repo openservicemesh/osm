@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -84,7 +84,7 @@ func (c Client) ListEndpointsForService(svc endpoint.ServiceName) []endpoint.End
 	// TODO(draychev): get the port number from the service
 	port := endpoint.Port(15003)
 
-	if kubernetesEndpoints := endpointsInterface.(*v1.Endpoints); kubernetesEndpoints != nil {
+	if kubernetesEndpoints := endpointsInterface.(*corev1.Endpoints); kubernetesEndpoints != nil {
 		for _, kubernetesEndpoint := range kubernetesEndpoints.Subsets {
 			for _, address := range kubernetesEndpoint.Addresses {
 				ept := endpoint.Endpoint{
