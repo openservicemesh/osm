@@ -8,17 +8,17 @@ This document is the detailed design and architecture of the Service Mesh Contro
 
 ## Overview
 
-Service Mesh Controller (SMC) is a simple, complete, and standalone [service mesh](https://www.bing.com/search?q=What%27s+a+service+mesh%3F) solution.
-SMC provides a full featured control plane. It leverages an architecture based on [Envoy](https://www.envoyproxy.io/) reverse-proxy sidecars.
-While by default SMC ships with Envoy, the design utilizes [interfaces](#interfaces), which enable integrations with any service-mesh capable reverse-proxy.
-SMC relies on [SMI Spec](https://smi-spec.io/) for resource declaration and configuration.
-SMC ships out-of-the-box with all necessary components to deploy a complete service mesh on a single Kubernetes cluster.
+Service Mesh Controller (SMC) is a simple, complete, and standalone [service mesh](https://en.wikipedia.org/wiki/Service_mesh) solution.
+SMC provides a full featured control plane. It leverages an architecture based on [Envoy](https://www.envoyproxy.io/) reverse-proxy sidecar
+While by default SMC ships with Envoy, the design utilizes [interfaces](#interfaces), which enable integrations with any xDS compatible reverse-proxy.
+SMC relies on [SMI Spec](https://smi-spec.io/) to reference services that will participate in the service mesh.
+SMC ships out-of-the-box with all necessary components to deploy a complete service mesh spanning multiple compute platforms.
 
 
 
 ## Use Case
 
-*As on operator of services spanning diverse runtime platforms (Kubernetes and Virtual Machines on public and private clouds) I need an open source solution, which will dynamically*:
+*As on operator of services spanning diverse compute platforms (Kubernetes and Virtual Machines on public and private clouds) I need an open source solution, which will dynamically*:
   - **Apply policies** governing HTTP access between peer services within per-URI granularity
   - **Encrypt traffic** between services leveraging mTLS and short-lived certificates with a custom CA
   - **Rotate certificates** as often as necessary to make these short-lived and remove the need for certificate revocation management
@@ -40,8 +40,8 @@ SMC ships out-of-the-box with all necessary components to deploy a complete serv
 The Service Mesh Controller project is composed of the following five high-level components:
   1. [Proxy control plane](#1-proxy-control-plane) - handles gRPC connections from the service mesh sidecar proxies
   2. [Certificate manager](#2-certificate-manager) - handles issuance and management of certificates
-  3. [Endpoints provider](#3-endpoints-providers) - runtime platform observers retrieving routable IP addresses of the service mesh workloads
-  4. [Mesh specification](#4-mesh-specification) - facility to retrieve SMI Spec resources
+  3. [Endpoints provider](#3-endpoints-providers) - components specific to the participating compute platforms; retrieve routable IP addresses for mesh services
+  4. [Mesh specification](#4-mesh-specification) - facility to retrieve [SMI Spec](https://smi-spec.io/) [resources](https://github.com/deislabs/smi-spec#service-mesh-interface)
   5. [Mesh catalog](#5-mesh-catalog) - combinator of all other components
 
 
@@ -55,25 +55,24 @@ The Service Mesh Controller project is composed of the following five high-level
 Let's take a look at each component:
 
 ### (1) Proxy control plane
-The proxy control plane plays a key part in operating the [service mesh](https://www.bing.com/search?q=What%27s+a+service+mesh%3F). All proxies, installed as [sidecars](https://docs.microsoft.com/en-us/azure/architecture/patterns/sidecar) establish an mTLS gRPC connection to this component and continuously receive configuration updates. This component implements the interfaces required by the specific reverse proxy chosen. Our first iteration of SMC relies on [Envoy's go-control-plane xDS](https://github.com/envoyproxy/go-control-plane).
+The proxy control plane plays a key part in operating the [service mesh](https://www.bing.com/search?q=What%27s+a+service+mesh%3F). All proxies are installed as [sidecars](https://docs.microsoft.com/en-us/azure/architecture/patterns/sidecar) and establish an mTLS gRPC connection to the Proxy Control Plane. The proxies continuously receive configuration updates. This component implements the interfaces required by the specific reverse proxy chosen. SMC implements [Envoy's go-control-plane xDS](https://github.com/envoyproxy/go-control-plane).
 
-### (2) Certificate manager
-The certificate manager is component which provides each service participating in the service mesh with a TLS certificate.
+### (2) Certificate Manager
+The certificate manager is a component which provides each service participating in the service mesh with a TLS certificate.
 These service certificates are used to establish and encrypt connections between services using mTLS.
-The certificates encode the services' identity and implement the [SPIFFE X.509 Verifiable Identity Document](https://github.com/spiffe/spiffe/blob/master/standards/X509-SVID.md)
 
-### (3) Endpoints providers
-The endpoint providers are one or more components, which observer runtime platforms and resolve service names into IP addresses. These facilities understand virtual machines, virtual machine scale sets, etc. within cloud vendors, as well as pods within Kubernetes clusters.
+### (3) Endpoints Providers
+The endpoints providers are one or more components which communicate with the compute platforms (Kubernetes, VMs) participating in the service mesh. Endpoints providres resolve service names into lists of IP addresses. The Endpoints Providers understand the specific primitives of the compute provider they are implemented for, such as virtual machines, virtual machine scale sets, and Kubernetes clusters.
 
 ### (4) Mesh specification
-The mesh specififcation is a wrapper around the existing [SMI Spec](https://github.com/deislabs/smi-spec) componints. This component abstracts the specific storage chosen for the YAML definitions. This module is effectively a warpper around [SMI Spec's Kubernetes informers](https://github.com/deislabs/smi-sdk-go), currently abstracting away the storage (Kubernetes/etcd) specifics.
+The mesh specification is a wrapper around the existing [SMI Spec](https://github.com/deislabs/smi-spec) components. This component abstracts the specific storage chosen for the YAML definitions. This module is effectively a wrapper around [SMI Spec's Kubernetes informers](https://github.com/deislabs/smi-sdk-go), currently abstracting away the storage (Kubernetes/etcd) specifics.
 
 ### (5) Mesh catalog
 The mesh catalog is the central component of SMC, which combines the outputs of all other components into a structure, which can then be transformed to proxy configuration and dispatched to all listening proxies via the proxy control plane.
 This component:
-  1. Communicates with the [mesh specification module  (4)](#4-mesh-specification) to detect when a **new service** has been declared (or an existing one changed) via [SMI Spec](https://github.com/deislabs/smi-spec).
+  1. Communicates with the [mesh specification module  (4)](#4-mesh-specification) to detect when a service was created, changed, or deleted via [SMI Spec](https://github.com/deislabs/smi-spec).
   1. Reaches out to the [certificate manager (2)](#2-certificate-manager) and requests a new TLS certificate for the newly discovered service.
-  1. Retrieves the IP addresses of the mesh workloads by observing the runtime platforms via the [endpoints providers (3)](#3-endpoints-providers).
+  1. Retrieves the IP addresses of the mesh workloads by observing the compute platforms via the [endpoints providers (3)](#3-endpoints-providers).
   1. Combines the outputs of 1, 2, and 3 above into a data structure, which is then passed to the [proxy control plane (1)](#1-proxy-control-plane), serialized, and sent to all relevant connected proxies.
 
 ![diagram](https://user-images.githubusercontent.com/49918230/73008758-27b3a800-3e07-11ea-894e-93f53e08731e.png)
@@ -82,7 +81,7 @@ This component:
 
 ## Detailed component description
 
-This section outlines the conventions adopted and guiding the development of the Service Mesh Controller. Components discussed in this section:
+This section outlines the conventions adopted and guiding the development of the Service Mesh Controller (SMC). Components discussed in this section:
   - (A) Proxy [sidecar](https://docs.microsoft.com/en-us/azure/architecture/patterns/sidecar) - Envoy or other reverse-proxy with service-mesh capabilities
   - (B) [Proxy Certificate](#proxy-tls-certificate) - unique X.509 certificate issued to the specific proxy
   - (C) Service - [Kubernetes service resource](https://kubernetes.io/docs/concepts/services-networking/service/) referenced in SMI Spec
@@ -93,8 +92,8 @@ This section outlines the conventions adopted and guiding the development of the
     - (G) Kubernetes Pod - container running on a Kubernetes cluster, listening for connections on IP 1.2.3.12, port 81.
     - (H) On-prem compute - process running on a machine within the customer's private data center, listening for connections on IP 1.2.3.13, port 81.
 
-The Service (C) is assigned a Certificate (D), and is associated with an SMI Spec Policy (E).
-Traffic for Service (C) is handled by the Endpoints (F,G,H), where each endpoint is augmented with a Proxy (A).
+The [Service (C)](#c-service) is assigned a Certificate (D), and is associated with an SMI Spec Policy (E).
+Traffic for [Service (C)](#c-service) is handled by the Endpoints (F,G,H), where each endpoint is augmented with a Proxy (A).
 The Proxy (A) has a dedicated Certificate (B), which is different than the Service Cert (D), and is used for mTLS connection from the Proxy to the [proxy control plane](#1-proxy-control-plane).
 
 
@@ -135,44 +134,49 @@ spec:
 In SMC `Proxy` is defined as an abstract logical component, which:
   - fronts a mesh service process (container or binary running on Kubernetes or a VM)
   - maintains a connection to a proxy control plane (xDS server)
-  - continuously receives configuration updates (xDS protocol buffers)
+  - continuously receives configuration updates (xDS protocol buffers) from the [proxy control plane](#1-proxy-control-plane) (the Envoy xDS go-control-plane implementation)
 SMC ships out of the box with [Envoy](https://www.envoyproxy.io/) reverse-proxy implementation.
 
 ### (F,G,H) Endpoint
 Within the SMC codebase `Endpoint` is defined as the IP address and port number tuple of a container or a virtual machine, which is hosting a proxy, which is fronting a process, which is a member of a service and as such participates in the service mesh.
-The [service endpoints (F,G,H)](#service-endpoint) are the actual binaries serving traffic for the service (C).
+The [service endpoints (F,G,H)](#fgh-endpoint) are the actual binaries serving traffic for the [service (C)](#c-service).
 An endpoint uniquely identifies a container, binary, or a process.
 It has an IP address, port number, and belongs to a service.
-An endpoint must belong to a single service.
-A service may have zero, one or many endpoints.
-Each endpoint is given a proxy, which makes it a member of the service mesh.
-Each proxy can serve a single service.
-A service may be served by a single proxy (one-to-one relationship).
+A service can have zero or more endpoints, and each endpoint can have only one sidecar proxy. Since an endpoint must belong to a single service, it follows that an associated proxy must also belong to a single service.
 
 ### (D) Service TLS certificate
-The service TLS certificate is a SPIFFE-compatible X.509 certificate, issued for a Service.
 Proxies, fronting endpoints, which form a given service will share the certificate for the given service.
 This certificate is used to establish mTLS connection with peer proxies fronting endpoints of **other services** within the service mesh.
 The service certificate is short-lived.
 Each service certificate's lifetime will be [approximately 48 hours](#certificate-lifetime), which eliminates the need for a certificate revocation facility.
 SMC declares a type `ServiceCertificate` for these certificates.
 `ServiceCertificate` is how this kind of certificate is referred to in the [Interfaces](#interfaces) section of this document.
-The service certificates use the SPIFFE format for interoperability with other systems.
 
 ### (B) Proxy TLS certificate
-The proxy TLS certificate is a X.509 certificate issued to each individual proxy, by the certificate manager.
+The proxy TLS certificate is a X.509 certificate issued to each individual proxy, by the [Certificate Manager](#2-certificate-manager).
 This kind of certificate is different than the service certificate and is used exclusively for proxy-to-control-plane mTLS communication.
-Each Envoy proxy will bootstrapped with a proxy certificate, which will be used for the xDS mTLS communication.
+Each Envoy proxy will be bootstrapped with a proxy certificate, which will be used for the xDS mTLS communication.
 This kind of certificate is different than the one issued for service-to-service mTLS communication.
 SMC declares a type `ProxyCertificate` for these certificates.
 We refer to these certificates as `ProxyCertificate` in the [interfaces](#interfaces) declarations section of this document.
 This certificate's Common Name leverages the DNS-1123 standard with the following format: `<proxy-UUID>.<service-name>`. The chosen format allows us to uniquely identify the connected proxy (`proxy-UUID`) and the service, which this proxy belongs to (`service-name`).
 
-### (C) Policy
-The policy component referenced in the diagram above (C) is any SMI Spec resource referencing the service (C).
+### (E) Policy
+The policy component referenced in the diagram above (E) is any [SMI Spec resource](https://github.com/deislabs/smi-spec#service-mesh-interface) referencing the [service (C)](#c-service). For instance `TrafficSplit`, referencing a services `bookstore`, and `bookstore-v1`:
+```yaml
+apiVersion: split.smi-spec.io/v1alpha2
+kind: TrafficSplit
+metadata:
+  name: bookstore-traffic-split
+spec:
+  service: bookstore
+  backends:
+  - service: bookstore-v1
+    weight: 100
+```
 
 ### Certificate lifetime
-The service certificates issued by the certificate manager are short-lived certificates, with a validity of approximately 48 hours.
+The service certificates issued by the [Certificate Manager](#2-certificate-manager) are short-lived certificates, with a validity of approximately 48 hours.
 The short certificate expiration eliminates the need for an explicit revocation mechanism.
 Given certificate's expiration will be randomly shortened or extended from the 48 hours, in order to avoid [thundering herd problem](https://en.wikipedia.org/wiki/Thundering_herd_problem) inflicted on the underlying certificate management system. Proxy certificates on the other hand are long-lived certificates.
 
@@ -180,7 +184,7 @@ Given certificate's expiration will be randomly shortened or extended from the 4
 
   - `ProxyCertificate` is issued by SMC for a `Proxy`, which is expected to connect to the proxy control plane some time in the future. After the certificate is issued, and before the proxy connects to the proxy control plane, the certificate is in `unclaimed` state. The state of the certificate changes to `claimed` after a proxy has connected to the control plane using the certificate.
   - `Proxy` is the reverse-proxy, which attempts to connect to the proxy control plane; the `Proxy` may, or may not be allowed to connect to the proxy control plane.
-  - `Endpoint` is fronted by a `Proxy`, and is a member of a `Service`. SMC may have discovered endpoints, via the [endpoints providers](#endpoints-providers), which belong to a given service, but SMC has not seen any proxies, fronting these endpoints, connect to the proxy control plane yet.
+  - `Endpoint` is fronted by a `Proxy`, and is a member of a `Service`. SMC may have discovered endpoints, via the [endpoints providers](#3-endpoints-providers), which belong to a given service, but SMC has not seen any proxies, fronting these endpoints, connect to the proxy control plane yet.
 
 
 The **intersection** of the set of issued `ProxyCertificates` ∩ connected `Proxies` ∩ discovered `Endpoints` is the set of participants in the service mesh.
@@ -192,15 +196,19 @@ The **intersection** of the set of issued `ProxyCertificates` ∩ connected `Pro
 
   - Each `Proxy` is issued a unique `ProxyCertificate`, which is dedicated to xDS mTLS communication
   - `ProxyCertificate` has a per-proxy unique Subject CN, which identifies the `Proxy`
-  - The `Proxy`'s service membership is determined by examining the CN FQDN (`<proxy-UUID>.<service-name>`), where service name is string following the second period in the CN of the `ProxyCertificate`
+  - The `Proxy`'s service membership is determined by examining the CN FQDN (`<proxy-UUID>.<service-name>`), where service name is string following the first period in the CN of the `ProxyCertificate`. For example `proxy-XYZ.bookstore.mesh` is a CN assigned to a proxy, where `proxy-XYZ` is the unique ID of the proxy and `bookstore.mesh` is the name of the service.
   - There is one unique `ProxyCertificate` issued to one `Proxy`, which is dedicated to one unique `Endpoint`, and all of these can belong to only one `Service`
   - A mesh `Service` however would be constructed by one or more (`ProxyCertificate` + `Proxy` + `Endpoint`) tuples
 
 
+## Signalling
+The SMC leverages the [communicating sequential processes (CSP)](https://en.wikipedia.org/wiki/Communicating_sequential_processes) pattern for sending messages between the various components of the system. This section describes the signalling mechanism used by SMC.
+** TBD **
+
 ## Interfaces
 
 This section defines the [Go Interfaces](https://golang.org/doc/effective_go.html#interfaces) needed for
-the development of the Service Mesh Controller in [this repository](https://github.com/deislabs/smc).
+the development of the SMC in [this repository](https://github.com/deislabs/smc).
 
 
 This section adopts the following assumptions:
@@ -210,7 +218,7 @@ This section adopts the following assumptions:
 
 ### Proxy Control Plane
 
-The [Proxy control plane](#1-proxy-control-plane) handles gRPC connections from the service mesh sidecar proxies. This module is specialized based on the brand of reverse proxy used. The implementation details below focus on an Envoy proxy.
+The [Proxy control plane](#1-proxy-control-plane) handles gRPC connections from the service mesh sidecar proxies and implements Envoy's `go-control-plane`.
 
 For a fully functional Envoy-based service mesh, the proxy control plane must implement the following 4 interfaces:
   - Cluster Discovery Service - [source](https://github.com/envoyproxy/go-control-plane/blob/e9c1190525652deb975627b2ecc3deac35714025/envoy/api/v2/cds.pb.go#L189-L194)
@@ -322,7 +330,7 @@ type MeshCatalog interface {
     ListEndpointsProviders() []EndpointsProvider
 
     // GetAnnouncementChannel returns an instance of a channel, which notifies the system of an event requiring the execution of ListEndpoints.
-    // An event on this channel may appear as a result of a change in the SMI Sper definitions, rotation of a certificate, etc.
+    // An event on this channel may appear as a result of a change in the SMI Spec definitions, rotation of a certificate, etc.
     GetAnnouncementChannel() chan struct{}
 }
 ```
@@ -330,7 +338,7 @@ type MeshCatalog interface {
 Additional types needed for this interface:
 ```go
 // ClientIdentity is the assigned identity of an Envoy proxy connected to the EDS server.
-// This could be certificate CN, or SPIFFE identity. (TBD)
+// ClientIdentity is the certificate's CN.
 type ClientIdentity string
 ```
 
@@ -355,10 +363,8 @@ func (catalog *Catalog) ListEndpoints(client ClientIdentity) (envoy.DiscoveryRes
 ### Endpoints Providers Interface
 The [Endpoints providers](#3-endpoints-providers) component provides abstractions around the Go
 SDKs of various Kubernetes clusters, or cloud vendor's virtual machines and other compute, which
-participate in the service mesh. Each endpoint
-provider is responsible for either a particular Kubernetes cluster, or a cloud vendor subscription.
-The [Mesh catalog](#5-mesh-catalog) will query each [Endpoints provider](#3-endpoints-providers) for a particular [service](#c-service).
-interface).
+participate in the service mesh. Each [endpoint provider](#3-endpoints-providers) is responsible for either a particular Kubernetes cluster, or a cloud vendor subscription.
+The [Mesh catalog](#5-mesh-catalog) will query each [Endpoints provider](#3-endpoints-providers) for a particular [service](#c-service), and obtain the IP addresses and ports of the endpoints handling traffic for service.
 
 The [Endpoints providers](#3-endpoints-providers) are aware of:
   - Kubernetes Service and their own CRD (example: `AzureResource`)
@@ -369,7 +375,7 @@ The [Endpoints providers](#3-endpoints-providers) has no awareness of:
   - what Proxy or sidecar is
 
 > Note: As of this iteration of SMC we deliberately choose to leak the Mesh Specification implementation into the
-EndpointsProvider.  The Endpoints Providers are responsible for implementing a method to
+EndpointsProvider. The [Endpoints Providers](#3-endpoints-providers) are responsible for implementing a method to
 resolve an SMI-declared service to the provider's specific resource definition. For instance,
 when Azure EndpointProvider's `ListEndpointsForService` is invoked with some a service name
 the provider would use its own method to resolve the
@@ -404,7 +410,7 @@ type EndpointsProvider interface {
 This component provides an abstraction around the [SMI Spec Go SDK](https://github.com/deislabs/smi-sdk-go).
 The abstraction hides the Kubernetes primitives. This allows us to implement SMI Spec providers
 that do not rely exclusively on Kubernetes for storage etc. Mesh Specification Interface provides
-a set of methods, listing all Services, TrafficSplits, and policy definitions for the
+a set of methods, listing all Services, traffic splits, and policy definitions for the
 **entire service** mesh.
 
 The Mesh Specification implementation **has no awareness** of:
@@ -434,6 +440,39 @@ type MeshSpecification interface {
 }
 ```
 
+### Certificate Manager
+
+The `certificate.Manager()` as shown below is as simple as having a single method for issuing certificates, and another for obtaiting a notification channel.
+```go
+package certificate
+
+// Manager is the interface declaring the methods for the Certificate Maneger.
+type Manager interface {
+	// IssueCertificate issues a new certificate.
+	IssueCertificate(cn CommonName) (Certificater, error)
+
+	// GetSecretsChangeAnnouncementChan returns a channel, which is used to announce when changes have been made to the issued certificates.
+	GetSecretsChangeAnnouncementChan() <-chan struct{}
+}
+```
+
+
+
+Additionally we define an interface for the `Certificate` object, which requires the following 3 methods:
+```go
+// Certificater is the interface declaring methods each Certificate object must have.
+type Certificater interface {
+
+	// GetName retrieves the name of the cerificate.
+	GetName() string
+
+	// GetCertificateChain retrieves the cert chain.
+	GetCertificateChain() []byte
+
+	// GetPrivateKey returns the private key.
+	GetPrivateKey() []byte
+}
+```
 
 
 ## Appendix
