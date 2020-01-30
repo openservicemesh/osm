@@ -7,6 +7,7 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/deislabs/smc/pkg/endpoint"
+	"github.com/deislabs/smc/pkg/logging"
 	"github.com/deislabs/smc/pkg/smi"
 )
 
@@ -39,7 +40,7 @@ func (sc *MeshCatalog) getWeightedEndpointsPerService() (map[endpoint.ServiceNam
 	for _, trafficSplit := range sc.meshSpec.ListTrafficSplits() {
 		targetServiceName := endpoint.ServiceName(trafficSplit.Spec.Service)
 		var services []endpoint.WeightedService
-		glog.V(7).Infof("[Server][catalog] Discovered TrafficSplit resource: %s/%s for service %s\n", trafficSplit.Namespace, trafficSplit.Name, targetServiceName)
+		glog.V(log.LvlTrace).Infof("[Server][catalog] Discovered TrafficSplit resource: %s/%s for service %s\n", trafficSplit.Namespace, trafficSplit.Name, targetServiceName)
 		if trafficSplit.Spec.Backends == nil {
 			glog.Errorf("[Server][catalog] TrafficSplit %s/%s has no Backends in Spec; Skipping...", trafficSplit.Namespace, trafficSplit.Name)
 			continue
@@ -61,7 +62,7 @@ func (sc *MeshCatalog) getWeightedEndpointsPerService() (map[endpoint.ServiceNam
 		}
 		byTargetService[targetServiceName] = services
 	}
-	glog.V(7).Infof("[catalog] Constructed weighted services: %+v", byTargetService)
+	glog.V(log.LvlTrace).Infof("[catalog] Constructed weighted services: %+v", byTargetService)
 	return byTargetService, nil
 }
 

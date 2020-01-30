@@ -22,3 +22,4 @@ source .env
     --subscriptionID="$AZURE_SUBSCRIPTION" \
     --namespace="$K8S_NAMESPACE" \
     --verbosity=7
+    --verbosity=25

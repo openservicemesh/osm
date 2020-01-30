@@ -12,6 +12,7 @@ import (
 	"github.com/deislabs/smc/pkg/certificate"
 	"github.com/deislabs/smc/pkg/endpoint"
 	"github.com/deislabs/smc/pkg/envoy/rc"
+	"github.com/deislabs/smc/pkg/logging"
 	"github.com/deislabs/smc/pkg/smi"
 )
 
@@ -78,7 +79,7 @@ func (sc *MeshCatalog) ListTrafficRoutes(clientID smi.ClientIdentity) (*envoyV2.
 func (sc *MeshCatalog) getHTTPPathsPerRoute() (map[string]endpoint.RoutePaths, error) {
 	routes := make(map[string]endpoint.RoutePaths)
 	for _, trafficSpecs := range sc.meshSpec.ListHTTPTrafficSpecs() {
-		glog.V(7).Infof("[RDS][catalog] Discovered TrafficSpec resource: %s/%s \n", trafficSpecs.Namespace, trafficSpecs.Name)
+		glog.V(log.LvlTrace).Infof("[RDS][catalog] Discovered TrafficSpec resource: %s/%s \n", trafficSpecs.Namespace, trafficSpecs.Name)
 		if trafficSpecs.Matches == nil {
 			glog.Errorf("[RDS][catalog] TrafficSpec %s/%s has no matches in route; Skipping...", trafficSpecs.Namespace, trafficSpecs.Name)
 			continue
@@ -93,14 +94,14 @@ func (sc *MeshCatalog) getHTTPPathsPerRoute() (map[string]endpoint.RoutePaths, e
 			routes[fmt.Sprintf("%s/%s", spec, trafficSpecsMatches.Name)] = serviceRoute
 		}
 	}
-	glog.V(7).Infof("[catalog] Constructed HTTP path routes: %+v", routes)
+	glog.V(log.LvlTrace).Infof("[catalog] Constructed HTTP path routes: %+v", routes)
 	return routes, nil
 }
 
 func getTrafficPolicyPerRoute(sc *MeshCatalog, routes map[string]endpoint.RoutePaths) ([]endpoint.TrafficTargetPolicies, error) {
 	var trafficPolicies []endpoint.TrafficTargetPolicies
 	for _, trafficTargets := range sc.meshSpec.ListTrafficTargets() {
-		glog.V(7).Infof("[RDS][catalog] Discovered TrafficTarget resource: %s/%s \n", trafficTargets.Namespace, trafficTargets.Name)
+		glog.V(log.LvlTrace).Infof("[RDS][catalog] Discovered TrafficTarget resource: %s/%s \n", trafficTargets.Namespace, trafficTargets.Name)
 		if trafficTargets.Specs == nil || len(trafficTargets.Specs) == 0 {
 			glog.Errorf("[RDS][catalog] TrafficTarget %s/%s has no spec routes; Skipping...", trafficTargets.Namespace, trafficTargets.Name)
 			continue
@@ -127,7 +128,7 @@ func getTrafficPolicyPerRoute(sc *MeshCatalog, routes map[string]endpoint.RouteP
 		}
 	}
 
-	glog.V(7).Infof("[catalog] Constructed traffic routes: %+v", trafficPolicies)
+	glog.V(log.LvlTrace).Infof("[catalog] Constructed traffic routes: %+v", trafficPolicies)
 	return trafficPolicies, nil
 }
 
@@ -155,7 +156,7 @@ func (sc *MeshCatalog) run(stop <-chan struct{}) {
 	cases := make([]reflect.SelectCase, len(allAnnouncementChans))
 
 	go func() {
-		glog.V(7).Info("[catalog] Start announcements loop.")
+		glog.V(log.LvlTrace).Info("[catalog] Start announcements loop.")
 		for {
 			for i, ch := range allAnnouncementChans {
 				cases[i] = reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(ch)}
@@ -175,7 +176,7 @@ func (sc *MeshCatalog) run(stop <-chan struct{}) {
 
 	// NOTE(draychev): helpful while developing alpha MVP -- remove before releasing beta version.
 	go func() {
-		glog.V(7).Info("[catalog] Start periodic cache refresh loop.")
+		glog.V(log.LvlTrace).Info("[catalog] Start periodic cache refresh loop.")
 		counter := 0
 		for {
 			select {
@@ -185,7 +186,7 @@ func (sc *MeshCatalog) run(stop <-chan struct{}) {
 					return
 				}
 			default:
-				glog.V(7).Infof("----- Service MeshCatalog Periodic Cache Refresh %d -----", counter)
+				glog.V(log.LvlTrace).Infof("----- Service MeshCatalog Periodic Cache Refresh %d -----", counter)
 				counter++
 				sc.refreshCache()
 				// Announce so we trigger refresh of all connected Envoy proxies.

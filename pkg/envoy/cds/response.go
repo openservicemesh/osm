@@ -11,6 +11,7 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/deislabs/smc/pkg/envoy"
+	"github.com/deislabs/smc/pkg/logging"
 )
 
 func (s *Server) newDiscoveryResponse(proxy envoy.Proxyer) (*xds.DiscoveryResponse, error) {
@@ -94,7 +95,7 @@ func (s *Server) newDiscoveryResponse(proxy envoy.Proxyer) (*xds.DiscoveryRespon
 	resp.Nonce = s.lastNonce
 	resp.VersionInfo = fmt.Sprintf("v%d", s.lastVersion)
 
-	glog.V(7).Infof("[%s] Constructed response: %+v", serverName, resp)
+	glog.V(log.LvlTrace).Infof("[%s] Constructed response: %+v", serverName, resp)
 
 	return resp, nil
 }

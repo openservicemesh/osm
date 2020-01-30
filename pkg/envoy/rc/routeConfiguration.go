@@ -5,6 +5,8 @@ import (
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"github.com/golang/glog"
+
+	"github.com/deislabs/smc/pkg/logging"
 )
 
 const (
@@ -44,6 +46,6 @@ func NewRouteConfiguration(trafficPolicies endpoint2.TrafficTargetPolicies) v2.R
 		rc.VirtualHosts[0].Routes = append(rc.VirtualHosts[0].Routes, &route)
 	}
 
-	glog.V(7).Infof("[RDS] Constructed RouteConfiguration: %+v", rc)
+	glog.V(log.LvlTrace).Infof("[RDS] Constructed RouteConfiguration: %+v", rc)
 	return rc
 }
