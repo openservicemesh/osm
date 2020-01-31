@@ -74,7 +74,7 @@ static_resources:
           port_value: 83  # maps to 15003
 
   - name: bookstore.mesh  ## HACKS(delyan): This must match the domain name we are curling
-    connect_timeout: 5s
+    connect_timeout: 0.25s
     lb_policy: ROUND_ROBIN
     type: EDS
     eds_cluster_config:
@@ -97,7 +97,7 @@ static_resources:
                   cluster_name: sds
 
   - name: sds
-    connect_timeout: 5s
+    connect_timeout: 0.25s
     type: LOGICAL_DNS
     http2_protocol_options: {}
     tls_context:
@@ -120,7 +120,7 @@ static_resources:
                 port_value: 15123
 
   - name: eds
-    connect_timeout: 5s
+    connect_timeout: 0.25s
     type: LOGICAL_DNS
     http2_protocol_options: {}
     tls_context:
@@ -144,7 +144,7 @@ static_resources:
 
 
   - name: cds
-    connect_timeout: 5s
+    connect_timeout: 0.25s
     type: LOGICAL_DNS
     http2_protocol_options: {}
     tls_context:
@@ -168,7 +168,7 @@ static_resources:
 
 
   - name: rds
-    connect_timeout: 5s
+    connect_timeout: 0.25s
     type: LOGICAL_DNS
     http2_protocol_options: {}
     tls_context:

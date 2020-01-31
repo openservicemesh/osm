@@ -28,19 +28,11 @@ func (s *Server) StreamClusters(server xds.ClusterDiscoveryService_StreamCluster
 		return errors.Wrap(err, "[%s] Could not start stream")
 	}
 
-	// TODO(draychev): Use the Subject Common Name to identify the Envoy proxy and determine what service it belongs to.
-	glog.Infof("[%s][stream] Client connected: Subject CN=%s", serverName, cn)
-
-	/// Register the newly connected Envoy proxy.
-	//connectedProxyIPAddress := net.IP("TBD")
-	//connectedProxyCertCommonName := certificate.CommonName("TBD")
-	//proxy := envoy.NewProxy(connectedProxyCertCommonName, connectedProxyIPAddress)
-	//s.catalog.RegisterProxy(proxy)
-
 	// Register the newly connected proxy w/ the catalog.
 	ip := utils.GetIPFromContext(server.Context())
 	proxy := envoy.NewProxy(cn, ip)	
 	s.catalog.RegisterProxy(envoy.NewProxy(cn, ip))
+	glog.Infof("[%s][stream] Client connected: Subject CN=%s", serverName, cn)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
