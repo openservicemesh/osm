@@ -4,6 +4,8 @@ import (
 	"flag"
 	"fmt"
 
+	"github.com/deislabs/smc/pkg/tester"
+
 	"github.com/deislabs/smc/pkg/endpoint"
 
 	. "github.com/onsi/ginkgo"
@@ -86,10 +88,6 @@ var _ = Describe("Tests `appgw.ConfigBuilder`", func() {
 		},
 	}
 
-	serviceList := []*v1.Service{
-		service,
-	}
-
 	// Ideally we should be creating the `pods` resource instead of the `endpoints` resource
 	// and allowing the k8s API server to create the `endpoints` resource which we end up consuming.
 	// However since we are using a fake k8s client the resources are dumb which forces us to create the final
@@ -139,24 +137,15 @@ var _ = Describe("Tests `appgw.ConfigBuilder`", func() {
 		return trafficSplits
 	}
 
-	trafficSplitEvent := func() {
-		for {
-			select {
-			case event := <-meshSpecClient.Work:
-				// Check if we got an event of type secret.
-				if _, ok := event.Value.(*v1alpha2.TrafficSplit); ok {
-					return
-				}
-			}
-		}
-	}
-
 	BeforeEach(func() {
 		stopChannel = make(chan struct{})
+
+		tester.LoadService()
 
 		// Create the mock K8s client.
 		k8sClient = testclient.NewSimpleClientset()
 		smiClient = fake.NewSimpleClientset(nil)
+		Ω(smiClient).ToNot(BeNil())
 
 		_, err := k8sClient.CoreV1().Namespaces().Create(ns)
 		Ω(err).ToNot(HaveOccurred(), "Unable to create the namespace %s: %v", ingressNS, err)
@@ -193,7 +182,7 @@ var _ = Describe("Tests `appgw.ConfigBuilder`", func() {
 	Context("Tests TrafficSplit", func() {
 		It("Should be able to create Weighted Services from TrafficSplit CRD", func() {
 			// Wait for the controller to receive an ingress update.
-			trafficSplitEvent()
+			// trafficSplitEvent()
 			trafficSplits := testTrafficSplit()
 			fmt.Printf("Here are the traffic splits: %+v", trafficSplits)
 		})
