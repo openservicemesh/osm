@@ -33,7 +33,9 @@ func (e *Server) StreamEndpoints(server v2.EndpointDiscoveryService_StreamEndpoi
 
 	// Register the newly connected proxy w/ the catalog.
 	ip := utils.GetIPFromContext(server.Context())
-	e.catalog.RegisterProxy(envoy.NewProxy(cn, ip))
+	proxy := envoy.NewProxy(cn, ip)
+	e.catalog.RegisterProxy(proxy)
+	glog.Infof("[%s][stream] Client connected: Subject CN=%s", serverName, cn)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

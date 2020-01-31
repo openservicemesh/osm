@@ -17,6 +17,8 @@ const (
 
 // StreamClusters handles streaming of the clusters to the connected Envoy proxies
 func (s *Server) StreamClusters(server xds.ClusterDiscoveryService_StreamClustersServer) error {
+	glog.Infof("[%s] Starting StreamClusters", serverName)
+
 	// When a new Envoy proxy connects, ValidateClient would ensure that it has a valid certificate,
 	// and the Subject CN is in the allowedCommonNames set.
 	cn, err := utils.ValidateClient(server.Context(), nil, serverName)
@@ -27,9 +29,7 @@ func (s *Server) StreamClusters(server xds.ClusterDiscoveryService_StreamCluster
 	// Register the newly connected proxy w/ the catalog.
 	ip := utils.GetIPFromContext(server.Context())
 	proxy := envoy.NewProxy(cn, ip)
-	s.catalog.RegisterProxy(envoy.NewProxy(cn, ip))
-
-	// TODO(draychev): Use the Subject Common Name to identify the Envoy proxy and determine what service it belongs to.
+	s.catalog.RegisterProxy(proxy)
 	glog.Infof("[%s][stream] Client connected: Subject CN=%s", serverName, cn)
 
 	if err := s.isConnectionAllowed(); err != nil {
@@ -40,8 +40,20 @@ func (s *Server) StreamClusters(server xds.ClusterDiscoveryService_StreamCluster
 	reqChannel := make(chan *xds.DiscoveryRequest)
 	go receive(reqChannel, server)
 
+	var announcements chan interface{}
+	// Periodic Updates -- useful for debugging
+	go func() {
+		counter := 0
+		for {
+			glog.V(7).Infof("------------------------- %s Periodic Update %d -------------------------", serverName, counter)
+			counter++
+			announcements <- struct{}{}
+			time.Sleep(5 * time.Second)
+		}
+	}()
+
 	// TODO(draychev): filter on announcement type; only respond to Clusters change
-	announcements := s.catalog.GetAnnouncementChannel()
+	//announcements := s.catalog.GetAnnouncementChannel()
 
 	for {
 		select {

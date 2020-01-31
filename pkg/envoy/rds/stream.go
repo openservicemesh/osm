@@ -4,52 +4,51 @@ import (
 	"context"
 	"time"
 
-	envoy "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 
+	"github.com/deislabs/smc/pkg/envoy"
 	"github.com/deislabs/smc/pkg/envoy/rc"
-	"github.com/deislabs/smc/pkg/logging"
+	log "github.com/deislabs/smc/pkg/logging"
+	"github.com/deislabs/smc/pkg/utils"
 )
 
-type rdsStreamHandler struct {
-	ctx    context.Context
-	cancel context.CancelFunc
-
-	*Server
-}
+const (
+	serverName = "RDS"
+)
 
 // StreamRoutes handles streaming of route changes to the Envoy proxies connected
 func (e *Server) StreamRoutes(server xds.RouteDiscoveryService_StreamRoutesServer) error {
-	glog.Info("[RDS] Starting StreamRoutes...")
-	ctx, cancel := context.WithCancel(context.Background())
-	handler := &rdsStreamHandler{
-		ctx:    ctx,
-		cancel: cancel,
-		Server: e,
+	glog.Infof("[%s] Starting StreamRoutes", serverName)
+
+	// When a new Envoy proxy connects, ValidateClient would ensure that it has a valid certificate,
+	// and the Subject CN is in the allowedCommonNames set.
+	cn, err := utils.ValidateClient(server.Context(), nil, serverName)
+	if err != nil {
+		return errors.Wrapf(err, "[%s] Could not start StreamRoutes", serverName)
 	}
+
+	// Register the newly connected proxy w/ the catalog.
+	ip := utils.GetIPFromContext(server.Context())
+	proxy := envoy.NewProxy(cn, ip)
+	e.catalog.RegisterProxy(proxy)
+	glog.Infof("[%s][stream] Client connected: Subject CN=%s", serverName, cn)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	// Periodic Updates -- useful for debugging
 	go func() {
 		counter := 0
 		for {
-			glog.V(log.LvlTrace).Infof("------------------------- Periodic Update %d -------------------------", counter)
+			glog.V(log.LvlTrace).Infof("------------------------- %s Periodic Update %d -------------------------", serverName, counter)
 			counter++
 			e.announcements <- struct{}{}
 			time.Sleep(5 * time.Second)
 		}
 	}()
 
-	if err := handler.run(e.ctx, server); err != nil {
-		glog.Infof("error in handler %s", err)
-		return err
-	}
-	return nil
-}
-
-func (r *rdsStreamHandler) run(ctx context.Context, server envoy.RouteDiscoveryService_StreamRoutesServer) error {
-	defer r.cancel()
 	for {
 		request, err := server.Recv()
 		if err != nil {
@@ -57,7 +56,7 @@ func (r *rdsStreamHandler) run(ctx context.Context, server envoy.RouteDiscoveryS
 		}
 
 		if request.TypeUrl != rc.RouteConfigurationURI {
-			glog.Errorf("[RDS][stream] Unknown TypeUrl: %s", request.TypeUrl)
+			glog.Errorf("[%s][stream] Unknown TypeUrl: %s", serverName, request.TypeUrl)
 			return errUnknownTypeURL
 		}
 
@@ -66,17 +65,23 @@ func (r *rdsStreamHandler) run(ctx context.Context, server envoy.RouteDiscoveryS
 			select {
 			case <-ctx.Done():
 				return nil
-			case <-r.announcements:
+			case <-e.announcements:
 				// NOTE: This is deliberately only focused on providing MVP tools to run a TrafficRoute demo.
-				glog.V(log.LvlInfo).Infof("[RDS][stream] Received a change announcement! Updating all Envoy proxies.")
+				glog.V(log.LvlInfo).Infof("[%s][stream] Received a change announcement! Updating all Envoy proxies.", serverName)
 				// TODO: flesh out the ClientIdentity for this similar to eds.go
-				resp, err := r.catalog.ListTrafficRoutes("TBD")
+				trafficPolicies, err := e.catalog.ListTrafficRoutes("TBD")
 				if err != nil {
-					glog.Error("[RDS][stream] Failed composing a DiscoveryResponse: ", err)
+					glog.Errorf("[%s][stream] Failed listing routes: %+v", serverName, err)
+					return err
+				}
+				glog.Infof("[%s][stream] trafficPolicies: %+v", serverName, trafficPolicies)
+				resp, err := e.newDiscoveryResponse(trafficPolicies)
+				if err != nil {
+					glog.Errorf("[%s][stream] Failed composing a DiscoveryResponse: %+v", serverName, err)
 					return err
 				}
 				if err := server.Send(resp); err != nil {
-					glog.Error("[RDS][stream] Error sending DiscoveryResponse: ", err)
+					glog.Errorf("[%s][stream] Error sending DiscoveryResponse: %+v", serverName, err)
 				}
 				break Run
 			}

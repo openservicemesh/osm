@@ -21,6 +21,8 @@ make docker-push-bookstore
 
 kubectl create configmap kubeconfig --from-file="$HOME/.kube/config" -n "$K8S_NAMESPACE"
 kubectl create configmap azureconfig --from-file="$HOME/.azure/azureAuth.json" -n "$K8S_NAMESPACE"
+kubectl apply -f crd/AzureResource.yaml
+kubectl apply -f demo/AzureResource.yaml
 
 ./demo/deploy-bookbuyer.sh
 
@@ -29,6 +31,7 @@ kubectl create configmap azureconfig --from-file="$HOME/.azure/azureAuth.json" -
 ./demo/deploy-bookstore.sh bookstore-2
 
 ./demo/deploy-secrets.sh
+
 ./demo/deploy-cds.sh
 ./demo/deploy-sds.sh
 ./demo/deploy-eds.sh

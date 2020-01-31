@@ -24,23 +24,12 @@ func (s *Server) StreamSecrets(server v2.SecretDiscoveryService_StreamSecretsSer
 	// Register the newly connected proxy w/ the catalog.
 	ip := utils.GetIPFromContext(server.Context())
 	proxy := envoy.NewProxy(cn, ip)
-	s.catalog.RegisterProxy(envoy.NewProxy(cn, ip))
-
-	// TODO(draychev): Use the Subject Common Name to identify the Envoy proxy and determine what service it belongs to.
-	glog.Infof("[%s][stream] Client connected: Subject CN=%s", serverName, cn)
+	s.catalog.RegisterProxy(proxy)
+	glog.Infof("[%s][stream] Client connected: Subject CN=%+v", serverName, cn)
 
 	if err := s.isConnectionAllowed(); err != nil {
 		return err
 	}
-
-	/*
-		// TODO(draychev): enable this once we have ServiceCatalog in s.
-			// Register the newly connected Envoy proxy.
-			connectedProxyIPAddress := net.IP("TBD")
-			connectedProxyCertCommonName := certificate.CommonName("TBD")
-			proxy := envoy.NewProxy(connectedProxyCertCommonName, connectedProxyIPAddress)
-			s.catalog.RegisterProxy(proxy)
-	*/
 
 	reqChannel := make(chan *envoyv2.DiscoveryRequest)
 	go receive(reqChannel, server)

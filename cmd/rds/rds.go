@@ -65,17 +65,18 @@ func main() {
 
 	stop := make(chan struct{})
 	meshSpecClient := smi.NewMeshSpecClient(kubeConfig, observeNamespaces, announcements, stop)
+	certManager := certificate.NewManager(stop)
 	azureResourceClient := azureResource.NewClient(kubeConfig, observeNamespaces, announcements, stop)
 
 	endpointsProviders := []endpoint.Provider{
 		azure.NewProvider(*subscriptionID, *azureAuthFile, announcements, stop, meshSpecClient, azureResourceClient, constants.AzureProviderName),
 		kube.NewProvider(kubeConfig, observeNamespaces, announcements, stop, constants.KubeProviderName),
 	}
-	certManager := certificate.NewManager(stop)
-	meshCatalog := catalog.NewMeshCatalog(meshSpecClient, certManager, stop, endpointsProviders...)
 
-	grpcServer, lis := utils.NewGrpc(serverType, *port, *certPem, *keyPem, *rootCertPem)
+	meshCatalog := catalog.NewMeshCatalog(meshSpecClient, certManager, stop, endpointsProviders...)
 	rdsServer := rds.NewRDSServer(ctx, meshCatalog, meshSpecClient, announcements)
+
+	grpcServer, lis := utils.NewGrpc(serverType, *port, *certPem, *keyPem, *rootCertPem)	
 	envoyControlPlane.RegisterRouteDiscoveryServiceServer(grpcServer, rdsServer)
 	go utils.GrpcServe(ctx, grpcServer, lis, cancel, serverType)
 
