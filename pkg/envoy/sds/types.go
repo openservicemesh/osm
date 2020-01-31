@@ -6,14 +6,10 @@ import (
 
 // Server is the SDS server struct
 type Server struct {
-	lastVersion uint64
-	lastNonce   string
-
+	lastVersion   uint64
+	lastNonce     string
 	connectionNum int
-
-	// secretsManager secrets.SecretsManager
-
-	catalog catalog.MeshCataloger
+	catalog       catalog.MeshCataloger
 
 	// close channel.
 	closing chan bool

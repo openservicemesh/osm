@@ -26,14 +26,10 @@ func (s *Server) StreamClusters(server xds.ClusterDiscoveryService_StreamCluster
 		return errors.Wrap(err, "[%s] Could not start stream")
 	}
 
-
 	// Register the newly connected proxy w/ the catalog.
 	ip := utils.GetIPFromContext(server.Context())
 	proxy := envoy.NewProxy(cn, ip)
-	s.catalog.RegisterProxy(envoy.NewProxy(cn, ip))
-
-	
-	// TODO(draychev): Use the Subject Common Name to identify the Envoy proxy and determine what service it belongs to.
+	s.catalog.RegisterProxy(proxy)
 	glog.Infof("[%s][stream] Client connected: Subject CN=%s", serverName, cn)
 
 	if err := s.isConnectionAllowed(); err != nil {
@@ -59,51 +55,50 @@ func (s *Server) StreamClusters(server xds.ClusterDiscoveryService_StreamCluster
 	// TODO(draychev): filter on announcement type; only respond to Clusters change
 	//announcements := s.catalog.GetAnnouncementChannel()
 
-		for {
-			select {
-			case discoveryRequest, ok := <-reqChannel:
-				if !ok {
-					return errGrpcClosed
-				}
-				if discoveryRequest.ErrorDetail != nil {
-					return errDiscoveryRequest
-				}
-				if len(s.lastNonce) > 0 && discoveryRequest.ResponseNonce == s.lastNonce {
-					continue
-				}
-				if discoveryRequest.Node == nil {
-					glog.Errorf("[%s] Invalid Cluster Discovery request with no node", serverName)
-					return errInvalidDiscoveryRequest
-				}
-	
-				glog.Infof("[%s][incoming] Discovery Request from Envoy: %s", serverName, proxy.GetCommonName())
-	
-				response, err := s.newDiscoveryResponse(proxy)
-				if err != nil {
-					glog.Errorf("[%s] Failed constructing Cluster Discovery Response: %+v", serverName, err)
-					return err
-				}
-				if err := server.Send(response); err != nil {
-					glog.Errorf("[%s] Failed to send Cluster Discovery Response: %+v", serverName, err)
-					return err
-				}
-				glog.Infof("[%s] Sent Clusters Discovery Response to client: %s", serverName, cn)
-				glog.Infof("Deliberately sleeping for %d seconds...", sleepTime)
-				time.Sleep(sleepTime * time.Second)
-	
-			case <-announcements:
-				glog.Infof("[%s][outgoing] Clusters change announcement received.", serverName)
-				response, err := s.newDiscoveryResponse(proxy)
-				if err != nil {
-					glog.Errorf("[%s] Failed constructing Cluster Discovery Response: %+v", serverName, err)
-					return err
-				}
-				if err := server.Send(response); err != nil {
-					glog.Infof("[%s] Failed to send Cluster Discovery Response: %+v", serverName, err)
-					return err
-				}
+	for {
+		select {
+		case discoveryRequest, ok := <-reqChannel:
+			if !ok {
+				return errGrpcClosed
+			}
+			if discoveryRequest.ErrorDetail != nil {
+				return errDiscoveryRequest
+			}
+			if len(s.lastNonce) > 0 && discoveryRequest.ResponseNonce == s.lastNonce {
+				continue
+			}
+			if discoveryRequest.Node == nil {
+				glog.Errorf("[%s] Invalid Cluster Discovery request with no node", serverName)
+				return errInvalidDiscoveryRequest
+			}
+
+			glog.Infof("[%s][incoming] Discovery Request from Envoy: %s", serverName, proxy.GetCommonName())
+
+			response, err := s.newDiscoveryResponse(proxy)
+			if err != nil {
+				glog.Errorf("[%s] Failed constructing Cluster Discovery Response: %+v", serverName, err)
+				return err
+			}
+			if err := server.Send(response); err != nil {
+				glog.Errorf("[%s] Failed to send Cluster Discovery Response: %+v", serverName, err)
+				return err
+			}
+			glog.Infof("[%s] Sent Clusters Discovery Response to client: %s", serverName, cn)
+			glog.Infof("Deliberately sleeping for %d seconds...", sleepTime)
+			time.Sleep(sleepTime * time.Second)
+
+		case <-announcements:
+			glog.Infof("[%s][outgoing] Clusters change announcement received.", serverName)
+			response, err := s.newDiscoveryResponse(proxy)
+			if err != nil {
+				glog.Errorf("[%s] Failed constructing Cluster Discovery Response: %+v", serverName, err)
+				return err
+			}
+			if err := server.Send(response); err != nil {
+				glog.Infof("[%s] Failed to send Cluster Discovery Response: %+v", serverName, err)
+				return err
 			}
 		}
-
 	}
-	
+
+}
