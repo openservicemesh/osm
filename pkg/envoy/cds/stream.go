@@ -2,6 +2,7 @@ package cds
 
 import (
 	"time"
+	"context"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/deislabs/smc/pkg/envoy"
 	"github.com/deislabs/smc/pkg/utils"
+	"github.com/deislabs/smc/pkg/logging"
 )
 
 const (
@@ -28,77 +30,53 @@ func (s *Server) StreamClusters(server xds.ClusterDiscoveryService_StreamCluster
 
 	// Register the newly connected proxy w/ the catalog.
 	ip := utils.GetIPFromContext(server.Context())
-	proxy := envoy.NewProxy(cn, ip)
-	s.catalog.RegisterProxy(proxy)
+	proxy := envoy.NewProxy(cn, ip)	
+	s.catalog.RegisterProxy(envoy.NewProxy(cn, ip))
 	glog.Infof("[%s][stream] Client connected: Subject CN=%s", serverName, cn)
 
-	if err := s.isConnectionAllowed(); err != nil {
-		return err
-	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	// var recvErr error
-	reqChannel := make(chan *xds.DiscoveryRequest)
-	go receive(reqChannel, server)
-
-	var announcements chan interface{}
 	// Periodic Updates -- useful for debugging
 	go func() {
 		counter := 0
 		for {
-			glog.V(7).Infof("------------------------- %s Periodic Update %d -------------------------", serverName, counter)
+			glog.V(log.LvlTrace).Infof("------------------------- %s Periodic Update %d -------------------------", serverName, counter)
 			counter++
-			announcements <- struct{}{}
+			s.announcements <- struct{}{}
 			time.Sleep(5 * time.Second)
 		}
 	}()
 
-	// TODO(draychev): filter on announcement type; only respond to Clusters change
-	//announcements := s.catalog.GetAnnouncementChannel()
-
 	for {
-		select {
-		case discoveryRequest, ok := <-reqChannel:
-			if !ok {
-				return errGrpcClosed
-			}
-			if discoveryRequest.ErrorDetail != nil {
-				return errDiscoveryRequest
-			}
-			if len(s.lastNonce) > 0 && discoveryRequest.ResponseNonce == s.lastNonce {
-				continue
-			}
-			if discoveryRequest.Node == nil {
-				glog.Errorf("[%s] Invalid Cluster Discovery request with no node", serverName)
-				return errInvalidDiscoveryRequest
-			}
+		request, err := server.Recv()
+		if err != nil {
+			return errors.Wrap(err, "recv")
+		}
 
-			glog.Infof("[%s][incoming] Discovery Request from Envoy: %s", serverName, proxy.GetCommonName())
+		if request.TypeUrl != typeUrl {
+			glog.Errorf("[%s][stream] Unknown TypeUrl: %s", serverName, request.TypeUrl)
+			return errUnknownTypeURL
+		}
 
-			response, err := s.newDiscoveryResponse(proxy)
-			if err != nil {
-				glog.Errorf("[%s] Failed constructing Cluster Discovery Response: %+v", serverName, err)
-				return err
-			}
-			if err := server.Send(response); err != nil {
-				glog.Errorf("[%s] Failed to send Cluster Discovery Response: %+v", serverName, err)
-				return err
-			}
-			glog.Infof("[%s] Sent Clusters Discovery Response to client: %s", serverName, cn)
-			glog.Infof("Deliberately sleeping for %d seconds...", sleepTime)
-			time.Sleep(sleepTime * time.Second)
-
-		case <-announcements:
-			glog.Infof("[%s][outgoing] Clusters change announcement received.", serverName)
-			response, err := s.newDiscoveryResponse(proxy)
-			if err != nil {
-				glog.Errorf("[%s] Failed constructing Cluster Discovery Response: %+v", serverName, err)
-				return err
-			}
-			if err := server.Send(response); err != nil {
-				glog.Infof("[%s] Failed to send Cluster Discovery Response: %+v", serverName, err)
-				return err
+		Run:
+		for {
+			select {
+			case <-ctx.Done():
+				return nil
+			case <-s.announcements:
+				// NOTE: This is deliberately only focused on providing MVP tools to run a TrafficRoute demo.
+				glog.V(log.LvlInfo).Infof("[%s][stream] Received a change announcement! Updating all Envoy proxies.", serverName)
+				resp, err := s.newDiscoveryResponse(proxy)
+				if err != nil {
+					glog.Errorf("[%s][stream] Failed composing a DiscoveryResponse: %+v", serverName, err)
+					return err
+				}
+				if err := server.Send(resp); err != nil {
+					glog.Errorf("[%s][stream] Error sending DiscoveryResponse: %+v", serverName, err)
+				}
+				break Run
 			}
 		}
 	}
-
 }

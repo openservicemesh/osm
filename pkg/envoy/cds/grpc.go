@@ -26,11 +26,3 @@ func receive(reqChannel chan *v2.DiscoveryRequest, server v2.ClusterDiscoverySer
 		reqChannel <- request
 	}
 }
-
-func (s *Server) isConnectionAllowed() error {
-	if s.connectionNum >= maxConnections {
-		return errTooManyConnections
-	}
-	s.connectionNum++
-	return nil
-}

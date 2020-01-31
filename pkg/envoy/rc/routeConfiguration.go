@@ -34,9 +34,11 @@ func NewRouteConfiguration(trafficPolicies endpoint2.TrafficTargetPolicies) v2.R
 				PathSpecifier: &route.RouteMatch_Prefix{
 					Prefix: routePaths.RoutePathRegex,
 				},
+				Grpc: &route.RouteMatch_GrpcRouteMatchOptions{},
 			},
 			Action: &route.Route_Route{
 				Route: &route.RouteAction{
+					ClusterNotFoundResponseCode: route.RouteAction_SERVICE_UNAVAILABLE,
 					ClusterSpecifier: &route.RouteAction_Cluster{
 						Cluster: trafficPolicies.Destination,
 					},

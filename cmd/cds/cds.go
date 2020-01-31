@@ -61,7 +61,7 @@ func main() {
 	meshSpecClient := smi.NewMeshSpecClient(kubeConfig, observeNamespaces, announcements, stop)
 	certManager := certificate.NewManager(stop)
 	meshCatalog := catalog.NewMeshCatalog(meshSpecClient, certManager, stop)
-	cdsServer := cds.NewCDSServer(meshCatalog)
+	cdsServer := cds.NewCDSServer(meshCatalog, announcements)
 
 	grpcServer, lis := utils.NewGrpc(serverType, *port, *certPem, *keyPem, *rootCertPem)
 	xds.RegisterClusterDiscoveryServiceServer(grpcServer, cdsServer)
