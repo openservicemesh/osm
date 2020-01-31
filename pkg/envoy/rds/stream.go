@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/deislabs/smc/pkg/envoy/rc"
+	"github.com/deislabs/smc/pkg/logging"
 )
 
 type rdsStreamHandler struct {
@@ -33,7 +34,7 @@ func (e *Server) StreamRoutes(server xds.RouteDiscoveryService_StreamRoutesServe
 	go func() {
 		counter := 0
 		for {
-			glog.V(7).Infof("------------------------- Periodic Update %d -------------------------", counter)
+			glog.V(log.LvlTrace).Infof("------------------------- Periodic Update %d -------------------------", counter)
 			counter++
 			e.announcements <- struct{}{}
 			time.Sleep(5 * time.Second)
@@ -67,7 +68,7 @@ func (r *rdsStreamHandler) run(ctx context.Context, server envoy.RouteDiscoveryS
 				return nil
 			case <-r.announcements:
 				// NOTE: This is deliberately only focused on providing MVP tools to run a TrafficRoute demo.
-				glog.V(1).Infof("[RDS][stream] Received a change announcement! Updating all Envoy proxies.")
+				glog.V(log.LvlInfo).Infof("[RDS][stream] Received a change announcement! Updating all Envoy proxies.")
 				// TODO: flesh out the ClientIdentity for this similar to eds.go
 				resp, err := r.catalog.ListTrafficRoutes("TBD")
 				if err != nil {

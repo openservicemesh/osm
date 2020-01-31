@@ -11,6 +11,7 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/deislabs/smc/pkg/envoy"
+	"github.com/deislabs/smc/pkg/logging"
 )
 
 const (
@@ -63,7 +64,7 @@ func (s *Server) newDiscoveryResponse(proxy envoy.Proxyer) (*v2.DiscoveryRespons
 	resp.Nonce = s.lastNonce
 	resp.VersionInfo = fmt.Sprintf("v%d", s.lastVersion)
 
-	glog.V(7).Infof("[%s] Constructed response: %+v", serverName, resp)
+	glog.V(log.LvlTrace).Infof("[%s] Constructed response: %+v", serverName, resp)
 
 	return resp, nil
 }
