@@ -23,9 +23,7 @@ func NewSDSServer(catalog catalog.MeshCataloger) *Server {
 	return &Server{
 		connectionNum: 0,
 		catalog:       catalog,
-		// 	secretsManager: secretsManager,
-
-		closing: make(chan bool),
+		closing:       make(chan bool),
 	}
 }
 
