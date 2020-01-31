@@ -22,7 +22,44 @@ func (s *Server) newDiscoveryResponse(proxy envoy.Proxyer) (*xds.DiscoveryRespon
 
 	// The name must match the domain being cURLed in the demo
 	clusterName := "bookstore.mesh"
-	connTimeout := 5 * time.Second
+	connTimeout := 10 * time.Second
+
+	upstreamTLS := &auth.UpstreamTlsContext{
+		AllowRenegotiation: true,
+		CommonTlsContext: &auth.CommonTlsContext{
+			TlsParams:       nil,
+			TlsCertificates: nil,
+			TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{
+				{
+					// The Name field must match the auth.Secret.Name from the SDS response
+					Name: "server_cert",
+					SdsConfig: &v2core.ConfigSource{
+						ConfigSourceSpecifier: &v2core.ConfigSource_ApiConfigSource{
+							ApiConfigSource: &v2core.ApiConfigSource{
+								ApiType: v2core.ApiConfigSource_GRPC,
+								GrpcServices: []*v2core.GrpcService{
+									{
+										TargetSpecifier: &v2core.GrpcService_EnvoyGrpc_{
+											EnvoyGrpc: &v2core.GrpcService_EnvoyGrpc{
+												// This must match the hard-coded SDS cluster name in the bootstrap config
+												ClusterName: "sds",
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	tlsAny, err := types.MarshalAny(upstreamTLS)
+
+	if err != nil {
+		return nil, err
+	}
 
 	cluster := &xds.Cluster{
 		// The name must match the domain being cURLed in the demo
@@ -30,10 +67,13 @@ func (s *Server) newDiscoveryResponse(proxy envoy.Proxyer) (*xds.DiscoveryRespon
 		AltStatName:    clusterName,
 		ConnectTimeout: &connTimeout,
 		LbPolicy:       xds.Cluster_ROUND_ROBIN,
+		RespectDnsTtl: true,
+		DrainConnectionsOnHostRemoval: true,
 		ClusterDiscoveryType: &xds.Cluster_Type{
 			Type: xds.Cluster_EDS,
 		},
 		EdsClusterConfig: &xds.Cluster_EdsClusterConfig{
+			ServiceName: clusterName,
 			EdsConfig: &v2core.ConfigSource{
 				ConfigSourceSpecifier: &v2core.ConfigSource_ApiConfigSource{
 					ApiConfigSource: &v2core.ApiConfigSource{
@@ -52,34 +92,10 @@ func (s *Server) newDiscoveryResponse(proxy envoy.Proxyer) (*xds.DiscoveryRespon
 				},
 			},
 		},
-
-		TlsContext: &auth.UpstreamTlsContext{
-			CommonTlsContext: &auth.CommonTlsContext{
-				TlsParams:       nil,
-				TlsCertificates: nil,
-				TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{
-					{
-						// The Name field must match the auth.Secret.Name from the SDS response
-						Name: "server_cert",
-						SdsConfig: &v2core.ConfigSource{
-							ConfigSourceSpecifier: &v2core.ConfigSource_ApiConfigSource{
-								ApiConfigSource: &v2core.ApiConfigSource{
-									ApiType: v2core.ApiConfigSource_GRPC,
-									GrpcServices: []*v2core.GrpcService{
-										{
-											TargetSpecifier: &v2core.GrpcService_EnvoyGrpc_{
-												EnvoyGrpc: &v2core.GrpcService_EnvoyGrpc{
-													// This must match the hard-coded SDS cluster name in the bootstrap config
-													ClusterName: "sds",
-												},
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-				},
+		TransportSocket: &v2core.TransportSocket{
+			Name: "envoy.transport_sockets.tls",
+			ConfigType: &v2core.TransportSocket_TypedConfig{
+				TypedConfig: tlsAny,
 			},
 		},
 	}

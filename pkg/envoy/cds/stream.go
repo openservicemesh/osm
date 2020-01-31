@@ -2,6 +2,7 @@ package cds
 
 import (
 	"time"
+	"context"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/deislabs/smc/pkg/envoy"
 	"github.com/deislabs/smc/pkg/utils"
+	"github.com/deislabs/smc/pkg/logging"
 )
 
 const (
@@ -26,84 +28,63 @@ func (s *Server) StreamClusters(server xds.ClusterDiscoveryService_StreamCluster
 		return errors.Wrap(err, "[%s] Could not start stream")
 	}
 
-
-	// Register the newly connected proxy w/ the catalog.
-	ip := utils.GetIPFromContext(server.Context())
-	proxy := envoy.NewProxy(cn, ip)
-	s.catalog.RegisterProxy(envoy.NewProxy(cn, ip))
-
-	
 	// TODO(draychev): Use the Subject Common Name to identify the Envoy proxy and determine what service it belongs to.
 	glog.Infof("[%s][stream] Client connected: Subject CN=%s", serverName, cn)
 
-	if err := s.isConnectionAllowed(); err != nil {
-		return err
-	}
+	/// Register the newly connected Envoy proxy.
+	//connectedProxyIPAddress := net.IP("TBD")
+	//connectedProxyCertCommonName := certificate.CommonName("TBD")
+	//proxy := envoy.NewProxy(connectedProxyCertCommonName, connectedProxyIPAddress)
+	//s.catalog.RegisterProxy(proxy)
 
-	// var recvErr error
-	reqChannel := make(chan *xds.DiscoveryRequest)
-	go receive(reqChannel, server)
+	// Register the newly connected proxy w/ the catalog.
+	ip := utils.GetIPFromContext(server.Context())
+	proxy := envoy.NewProxy(cn, ip)	
+	s.catalog.RegisterProxy(envoy.NewProxy(cn, ip))
 
-	var announcements chan interface{}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	// Periodic Updates -- useful for debugging
 	go func() {
 		counter := 0
 		for {
-			glog.V(7).Infof("------------------------- %s Periodic Update %d -------------------------", serverName, counter)
+			glog.V(log.LvlTrace).Infof("------------------------- %s Periodic Update %d -------------------------", serverName, counter)
 			counter++
-			announcements <- struct{}{}
+			s.announcements <- struct{}{}
 			time.Sleep(5 * time.Second)
 		}
 	}()
 
-	// TODO(draychev): filter on announcement type; only respond to Clusters change
-	//announcements := s.catalog.GetAnnouncementChannel()
-
-		for {
-			select {
-			case discoveryRequest, ok := <-reqChannel:
-				if !ok {
-					return errGrpcClosed
-				}
-				if discoveryRequest.ErrorDetail != nil {
-					return errDiscoveryRequest
-				}
-				if len(s.lastNonce) > 0 && discoveryRequest.ResponseNonce == s.lastNonce {
-					continue
-				}
-				if discoveryRequest.Node == nil {
-					glog.Errorf("[%s] Invalid Cluster Discovery request with no node", serverName)
-					return errInvalidDiscoveryRequest
-				}
-	
-				glog.Infof("[%s][incoming] Discovery Request from Envoy: %s", serverName, proxy.GetCommonName())
-	
-				response, err := s.newDiscoveryResponse(proxy)
-				if err != nil {
-					glog.Errorf("[%s] Failed constructing Cluster Discovery Response: %+v", serverName, err)
-					return err
-				}
-				if err := server.Send(response); err != nil {
-					glog.Errorf("[%s] Failed to send Cluster Discovery Response: %+v", serverName, err)
-					return err
-				}
-				glog.Infof("[%s] Sent Clusters Discovery Response to client: %s", serverName, cn)
-				glog.Infof("Deliberately sleeping for %d seconds...", sleepTime)
-				time.Sleep(sleepTime * time.Second)
-	
-			case <-announcements:
-				glog.Infof("[%s][outgoing] Clusters change announcement received.", serverName)
-				response, err := s.newDiscoveryResponse(proxy)
-				if err != nil {
-					glog.Errorf("[%s] Failed constructing Cluster Discovery Response: %+v", serverName, err)
-					return err
-				}
-				if err := server.Send(response); err != nil {
-					glog.Infof("[%s] Failed to send Cluster Discovery Response: %+v", serverName, err)
-					return err
-				}
-			}
+	for {
+		request, err := server.Recv()
+		if err != nil {
+			return errors.Wrap(err, "recv")
 		}
 
+		if request.TypeUrl != typeUrl {
+			glog.Errorf("[%s][stream] Unknown TypeUrl: %s", serverName, request.TypeUrl)
+			return errUnknownTypeURL
+		}
+
+		Run:
+		for {
+			select {
+			case <-ctx.Done():
+				return nil
+			case <-s.announcements:
+				// NOTE: This is deliberately only focused on providing MVP tools to run a TrafficRoute demo.
+				glog.V(log.LvlInfo).Infof("[%s][stream] Received a change announcement! Updating all Envoy proxies.", serverName)
+				resp, err := s.newDiscoveryResponse(proxy)
+				if err != nil {
+					glog.Errorf("[%s][stream] Failed composing a DiscoveryResponse: %+v", serverName, err)
+					return err
+				}
+				if err := server.Send(resp); err != nil {
+					glog.Errorf("[%s][stream] Error sending DiscoveryResponse: %+v", serverName, err)
+				}
+				break Run
+			}
+		}
 	}
-	
+}
