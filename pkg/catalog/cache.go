@@ -4,6 +4,7 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/deislabs/smc/pkg/endpoint"
+	"github.com/deislabs/smc/pkg/logging"
 )
 
 func (sc *MeshCatalog) refreshCache() {
@@ -13,7 +14,7 @@ func (sc *MeshCatalog) refreshCache() {
 	for _, namespacedServiceName := range sc.meshSpec.ListServices() {
 		for _, provider := range sc.endpointsProviders {
 			newIps := provider.ListEndpointsForService(namespacedServiceName)
-			glog.V(7).Infof("[catalog][%s] Found ips=%+v for service=%s", provider.GetID(), endpointsToString(newIps), namespacedServiceName)
+			glog.V(log.LvlTrace).Infof("[catalog][%s] Found ips=%+v for service=%s", provider.GetID(), endpointsToString(newIps), namespacedServiceName)
 			if existingIps, exists := servicesCache[namespacedServiceName]; exists {
 				servicesCache[namespacedServiceName] = append(existingIps, newIps...)
 			} else {

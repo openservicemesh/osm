@@ -13,6 +13,7 @@ import (
 	"github.com/deislabs/smc/pkg/utils"
 	"github.com/deislabs/smc/pkg/certificate"
 	"github.com/deislabs/smc/pkg/envoy"
+	"github.com/deislabs/smc/pkg/logging"
 )
 
 const (
@@ -50,7 +51,7 @@ func (e *Server) StreamRoutes(server xds.RouteDiscoveryService_StreamRoutesServe
 	go func() {
 		counter := 0
 		for {
-			glog.V(7).Infof("------------------------- %s Periodic Update %d -------------------------", serverName, counter)
+			glog.V(log.LvlTrace).Infof("------------------------- %s Periodic Update %d -------------------------", serverName, counter)
 			counter++
 			e.announcements <- struct{}{}
 			time.Sleep(5 * time.Second)
@@ -75,7 +76,7 @@ func (e *Server) StreamRoutes(server xds.RouteDiscoveryService_StreamRoutesServe
 				return nil
 			case <-e.announcements:
 				// NOTE: This is deliberately only focused on providing MVP tools to run a TrafficRoute demo.
-				glog.V(1).Infof("[%s][stream] Received a change announcement! Updating all Envoy proxies.", serverName)
+				glog.V(log.LvlInfo).Infof("[%s][stream] Received a change announcement! Updating all Envoy proxies.", serverName)
 				// TODO: flesh out the ClientIdentity for this similar to eds.go
 				trafficPolicies, err := e.catalog.ListTrafficRoutes("TBD")
 				if err != nil {

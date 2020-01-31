@@ -15,7 +15,11 @@ source .env
 
 ./bin/rds \
     --kubeconfig="$HOME/.kube/config" \
+    --certpem="./certificates/cert.pem" \
+    --keypem="./certificates/key.pem" \
+    --rootcertpem="./certificates/cert.pem" \
     --azureAuthFile="$HOME/.azure/azureAuth.json" \
     --subscriptionID="$AZURE_SUBSCRIPTION" \
     --namespace="$K8S_NAMESPACE" \
     --verbosity=7
+    --verbosity=25

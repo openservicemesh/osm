@@ -9,6 +9,7 @@ import (
 
 	"github.com/deislabs/smc/pkg/certificate"
 	"github.com/deislabs/smc/pkg/endpoint"
+	"github.com/deislabs/smc/pkg/logging"
 	"github.com/deislabs/smc/pkg/smi"
 )
 
@@ -56,7 +57,7 @@ func (sc *MeshCatalog) run(stop <-chan struct{}) {
 	cases := make([]reflect.SelectCase, len(allAnnouncementChans))
 
 	go func() {
-		glog.V(7).Info("[catalog] Start announcements loop.")
+		glog.V(log.LvlTrace).Info("[catalog] Start announcements loop.")
 		for {
 			for i, ch := range allAnnouncementChans {
 				cases[i] = reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(ch)}
@@ -76,7 +77,7 @@ func (sc *MeshCatalog) run(stop <-chan struct{}) {
 
 	// NOTE(draychev): helpful while developing alpha MVP -- remove before releasing beta version.
 	go func() {
-		glog.V(7).Info("[catalog] Start periodic cache refresh loop.")
+		glog.V(log.LvlTrace).Info("[catalog] Start periodic cache refresh loop.")
 		counter := 0
 		for {
 			select {
@@ -86,7 +87,7 @@ func (sc *MeshCatalog) run(stop <-chan struct{}) {
 					return
 				}
 			default:
-				glog.V(7).Infof("----- Service MeshCatalog Periodic Cache Refresh %d -----", counter)
+				glog.V(log.LvlTrace).Infof("----- Service MeshCatalog Periodic Cache Refresh %d -----", counter)
 				counter++
 				sc.refreshCache()
 				// Announce so we trigger refresh of all connected Envoy proxies.
