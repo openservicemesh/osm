@@ -1,4 +1,4 @@
-package cds
+package lds
 
 import (
 	"io"
@@ -9,7 +9,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func receive(reqChannel chan *v2.DiscoveryRequest, server v2.ClusterDiscoveryService_StreamClustersServer) {
+func receive(reqChannel chan *v2.DiscoveryRequest, server v2.ListenerDiscoveryService_StreamListenersServer) {
 	defer close(reqChannel)
 	for {
 		var request *v2.DiscoveryRequest
