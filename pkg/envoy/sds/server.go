@@ -48,6 +48,7 @@ func (s *Server) FetchSecrets(ctx context.Context, discReq *v2.DiscoveryRequest)
 	ip := utils.GetIPFromContext(ctx)
 	proxy := envoy.NewProxy(cn, ip)
 	s.catalog.RegisterProxy(proxy)
+	glog.Infof("[%s][FetchSecrets] Client connected: Subject CN=%+v", serverName, cn)
 
 	glog.Infof("[%s][FetchSecrets] Responding to proxy %s", serverName, proxy.GetCommonName())
 	return s.newDiscoveryResponse(proxy)

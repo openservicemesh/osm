@@ -3,17 +3,15 @@ package rds
 import (
 	"context"
 	"time"
-	"net"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 
-	"github.com/deislabs/smc/pkg/envoy/rc"
-	"github.com/deislabs/smc/pkg/utils"
-	"github.com/deislabs/smc/pkg/certificate"
 	"github.com/deislabs/smc/pkg/envoy"
-	"github.com/deislabs/smc/pkg/logging"
+	"github.com/deislabs/smc/pkg/envoy/rc"
+	log "github.com/deislabs/smc/pkg/logging"
+	"github.com/deislabs/smc/pkg/utils"
 )
 
 const (
@@ -31,18 +29,11 @@ func (e *Server) StreamRoutes(server xds.RouteDiscoveryService_StreamRoutesServe
 		return errors.Wrapf(err, "[%s] Could not start StreamRoutes", serverName)
 	}
 
-	// TODO(draychev): Use the Subject Common Name to identify the Envoy proxy and determine what service it belongs to.
-	glog.Infof("[%s][stream] Client connected: Subject CN=%+v", serverName, cn)
-
-	// Register the newly connected Envoy proxy.
-	connectedProxyIPAddress := net.IP("TBD")
-	connectedProxyCertCommonName := certificate.CommonName("TBD")
-	proxy := envoy.NewProxy(connectedProxyCertCommonName, connectedProxyIPAddress)
-	e.catalog.RegisterProxy(proxy)
-
 	// Register the newly connected proxy w/ the catalog.
 	ip := utils.GetIPFromContext(server.Context())
-	e.catalog.RegisterProxy(envoy.NewProxy(cn, ip))
+	proxy := envoy.NewProxy(cn, ip)
+	e.catalog.RegisterProxy(proxy)
+	glog.Infof("[%s][stream] Client connected: Subject CN=%s", serverName, cn)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -69,7 +60,7 @@ func (e *Server) StreamRoutes(server xds.RouteDiscoveryService_StreamRoutesServe
 			return errUnknownTypeURL
 		}
 
-		Run:
+	Run:
 		for {
 			select {
 			case <-ctx.Done():
