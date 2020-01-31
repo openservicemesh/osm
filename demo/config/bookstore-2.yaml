@@ -83,7 +83,7 @@ static_resources:
 
 
   - name: sds
-    connect_timeout: 5s
+    connect_timeout: 0.25s
     type: LOGICAL_DNS
     http2_protocol_options: {}
     tls_context:
@@ -106,7 +106,7 @@ static_resources:
                 port_value: 15123
 
   - name: eds
-    connect_timeout: 5s
+    connect_timeout: 0.25s
     type: LOGICAL_DNS
     http2_protocol_options: {}
     tls_context:
@@ -129,7 +129,7 @@ static_resources:
                 port_value: 15124
 
   - name: cds
-    connect_timeout: 5s
+    connect_timeout: 0.25s
     type: LOGICAL_DNS
     http2_protocol_options: {}
     tls_context:
@@ -152,7 +152,7 @@ static_resources:
                 port_value: 15125
 
   - name: rds
-    connect_timeout: 5s
+    connect_timeout: 0.25s
     type: LOGICAL_DNS
     http2_protocol_options: {}
     tls_context:
