@@ -20,8 +20,8 @@ spec:
     targetPort: admin-port
     name: lds-envoy-admin-port
 
-  - port: 15125
-    targetPort: 15125
+  - port: 15127
+    targetPort: 15127
     name: lds-port
 
   selector:
@@ -43,11 +43,11 @@ spec:
   containers:
     - image: "${CTR_REGISTRY}/lds:latest"
       imagePullPolicy: Always
-      name: curl
+      name: cds
       ports:
         - containerPort: 15000
           name: admin-port
-        - containerPort: 15125
+        - containerPort: 15127
           name: lds-port
 
       command: [ "/lds"]
