@@ -83,6 +83,7 @@ func (s *Server) newDiscoveryResponse(proxy envoy.Proxyer) (*xds.DiscoveryRespon
 			},
 		},
 	}
+	glog.V(log.LvlTrace).Infof("[CDS] Constructed ClusterConfiguratio: %+v", cluster)
 	marshalledClusters, err := types.MarshalAny(cluster)
 	if err != nil {
 		glog.Errorf("[%s] Failed to marshal cluster for proxy %s: %v", serverName, proxy.GetCommonName(), err)
