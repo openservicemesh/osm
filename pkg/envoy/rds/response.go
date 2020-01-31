@@ -9,13 +9,13 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/deislabs/smc/pkg/endpoint"
-	"github.com/deislabs/smc/pkg/envoy/rc"
+	"github.com/deislabs/smc/pkg/envoy/route"
 )
 
 func (e *Server) newDiscoveryResponse(allTrafficPolicies []endpoint.TrafficTargetPolicies) (*v2.DiscoveryResponse, error) {
 	var protos []*types.Any
 	for _, trafficPolicies := range allTrafficPolicies {
-		routeConfiguration := rc.NewRouteConfiguration(trafficPolicies)
+		routeConfiguration := route.NewRouteConfiguration(trafficPolicies)
 
 		proto, err := types.MarshalAny(&routeConfiguration)
 		if err != nil {
@@ -27,7 +27,7 @@ func (e *Server) newDiscoveryResponse(allTrafficPolicies []endpoint.TrafficTarge
 
 	resp := &v2.DiscoveryResponse{
 		Resources: protos,
-		TypeUrl:   rc.RouteConfigurationURI,
+		TypeUrl:   route.RouteConfigurationURI,
 	}
 
 	e.lastVersion = e.lastVersion + 1

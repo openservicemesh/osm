@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/deislabs/smc/pkg/envoy"
-	"github.com/deislabs/smc/pkg/envoy/rc"
+	"github.com/deislabs/smc/pkg/envoy/route"
 	"github.com/deislabs/smc/pkg/log"
 	"github.com/deislabs/smc/pkg/utils"
 )
@@ -55,7 +55,7 @@ func (e *Server) StreamRoutes(server xds.RouteDiscoveryService_StreamRoutesServe
 			return errors.Wrap(err, "recv")
 		}
 
-		if request.TypeUrl != rc.RouteConfigurationURI {
+		if request.TypeUrl != route.RouteConfigurationURI {
 			glog.Errorf("[%s][stream] Unknown TypeUrl: %s", serverName, request.TypeUrl)
 			return errUnknownTypeURL
 		}
