@@ -3,8 +3,6 @@ package catalog
 import (
 	"sync"
 
-	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-
 	"github.com/deislabs/smc/pkg/certificate"
 	"github.com/deislabs/smc/pkg/endpoint"
 	"github.com/deislabs/smc/pkg/envoy"
@@ -32,8 +30,8 @@ type MeshCataloger interface {
 	// ListEndpoints constructs a map of service to weighted handlers with all endpoints the given Envoy proxy should be aware of.
 	ListEndpoints(smi.ClientIdentity) (map[endpoint.ServiceName][]endpoint.WeightedService, error)
 
-	// ListTrafficRoutes constructs a DiscoveryResponse with all traffic routes the given Envoy proxy should be aware of.
-	ListTrafficRoutes(smi.ClientIdentity) (resp *v2.DiscoveryResponse, err error)
+	// ListTrafficRoutes constructs a list of all the traffic policies /routes the given Envoy proxy should be aware of.
+	ListTrafficRoutes(smi.ClientIdentity) ([]endpoint.TrafficTargetPolicies, error)
 
 	// RegisterProxy registers a newly connected proxy with the service mesh catalog.
 	RegisterProxy(envoy.Proxyer)

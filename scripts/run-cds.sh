@@ -21,4 +21,4 @@ export GRPC_GO_LOG_SEVERITY_LEVEL=info
     --certpem="./certificates/cert.pem" \
     --keypem="./certificates/key.pem" \
     --rootcertpem="./certificates/cert.pem" \
-    --verbosity=7
+    --verbosity=25

@@ -12,6 +12,7 @@ import (
 	"github.com/deislabs/smc/pkg/certificate"
 	"github.com/deislabs/smc/pkg/envoy"
 	"github.com/deislabs/smc/pkg/envoy/cla"
+	"github.com/deislabs/smc/pkg/logging"
 	"github.com/deislabs/smc/pkg/utils"
 )
 
@@ -49,7 +50,7 @@ func (e *Server) StreamEndpoints(server v2.EndpointDiscoveryService_StreamEndpoi
 	go func() {
 		counter := 0
 		for {
-			glog.V(7).Infof("------------------------- %s Periodic Update %d -------------------------", serverName, counter)
+			glog.V(log.LvlTrace).Infof("------------------------- %s Periodic Update %d -------------------------", serverName, counter)
 			counter++
 			e.announcements <- struct{}{}
 			time.Sleep(5 * time.Second)
@@ -74,7 +75,7 @@ func (e *Server) StreamEndpoints(server v2.EndpointDiscoveryService_StreamEndpoi
 				return nil
 			case <-e.announcements:
 				// NOTE(draychev): This is deliberately only focused on providing MVP tools to run a TrafficSplit demo.
-				glog.V(1).Infof("[%s][stream] Received a change announcement! Updating all Envoy proxies.", serverName)
+				glog.V(log.LvlInfo).Infof("[%s][stream] Received a change announcement! Updating all Envoy proxies.", serverName)
 				// TODO(draychev): flesh out the ClientIdentity
 				weightedServices, err := e.catalog.ListEndpoints("TBD")
 				if err != nil {
