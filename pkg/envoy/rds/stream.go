@@ -10,7 +10,7 @@ import (
 
 	"github.com/deislabs/smc/pkg/envoy"
 	"github.com/deislabs/smc/pkg/envoy/rc"
-	log "github.com/deislabs/smc/pkg/logging"
+	"github.com/deislabs/smc/pkg/logging"
 	"github.com/deislabs/smc/pkg/utils"
 )
 
@@ -60,7 +60,7 @@ func (e *Server) StreamRoutes(server xds.RouteDiscoveryService_StreamRoutesServe
 			return errUnknownTypeURL
 		}
 
-	Run:
+		Run:
 		for {
 			select {
 			case <-ctx.Done():

@@ -2,13 +2,12 @@ package cds
 
 import "github.com/deislabs/smc/pkg/catalog"
 
-// Server is the ClusterDiscoveryService server struct
+//Server implements the Envoy xDS Cluster Discovery Services
 type Server struct {
-	lastVersion   uint64
-	lastNonce     string
-	connectionNum int
-	catalog       catalog.MeshCataloger
+	catalog  catalog.MeshCataloger
 
-	// close channel.
-	closing chan bool
+	announcements chan interface{}
+
+	lastVersion uint64
+	lastNonce   string
 }
