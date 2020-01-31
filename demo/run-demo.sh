@@ -28,10 +28,12 @@ kubectl create configmap azureconfig --from-file="$HOME/.azure/azureAuth.json" -
 ./demo/deploy-bookstore.sh bookstore-1
 ./demo/deploy-bookstore.sh bookstore-2
 
+./demo/deploy-secrets.sh
 ./demo/deploy-cds.sh
 ./demo/deploy-sds.sh
 ./demo/deploy-eds.sh
 ./demo/deploy-rds.sh
+./demo/deploy-lds.sh
 
 ./demo/deploy-traffic-split.sh
 ./demo/deploy-traffic-spec.sh

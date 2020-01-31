@@ -4,28 +4,28 @@ set -aueo pipefail
 
 source .env
 
-kubectl delete pod rds -n "$K8S_NAMESPACE" || true
+kubectl delete pod lds -n "$K8S_NAMESPACE" || true
 
 cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: Service
 metadata:
-  name: rds
+  name: lds
   namespace: $K8S_NAMESPACE
   labels:
-    app: rds
+    app: lds
 spec:
   ports:
   - port: 15000
     targetPort: admin-port
-    name: rds-envoy-admin-port
+    name: lds-envoy-admin-port
 
-  - port: 15126
-    targetPort: 15126
-    name: rds-port
+  - port: 15125
+    targetPort: 15125
+    name: lds-port
 
   selector:
-    app: rds
+    app: lds
 
   type: NodePort
 
@@ -34,30 +34,26 @@ spec:
 apiVersion: v1
 kind: Pod
 metadata:
-  name: rds
+  name: lds
   namespace: $K8S_NAMESPACE
   labels:
-    app: rds
+    app: lds
 
 spec:
   containers:
-    - image: "${CTR_REGISTRY}/rds:latest"
+    - image: "${CTR_REGISTRY}/lds:latest"
       imagePullPolicy: Always
       name: curl
       ports:
         - containerPort: 15000
           name: admin-port
-        - containerPort: 15126
-          name: rds-port
+        - containerPort: 15125
+          name: lds-port
 
-      command: [ "/rds"]
+      command: [ "/lds"]
       args:
         - "--kubeconfig"
         - "/kube/config"
-        - "--azureAuthFile"
-        - "/azure/azureAuth.json"
-        - "--subscriptionID"
-        - "$AZURE_SUBSCRIPTION"
         - "--verbosity"
         - "25"
         - "--namespace"
