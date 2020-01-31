@@ -19,6 +19,7 @@ import (
 	"github.com/deislabs/smc/pkg/constants"
 	"github.com/deislabs/smc/pkg/endpoint"
 	"github.com/deislabs/smc/pkg/envoy/rds"
+	"github.com/deislabs/smc/pkg/logging"
 	"github.com/deislabs/smc/pkg/providers/azure"
 	azureResource "github.com/deislabs/smc/pkg/providers/azure/kubernetes"
 	"github.com/deislabs/smc/pkg/providers/kube"
@@ -35,7 +36,7 @@ var (
 	kubeConfigFile = flags.String("kubeconfig", "", "Path to Kubernetes config file.")
 	azureAuthFile  = flags.String("azureAuthFile", "", "Path to Azure Auth File")
 	subscriptionID = flags.String("subscriptionID", "", "Azure Subscription")
-	verbosity      = flags.Int("verbosity", 1, "Set logging verbosity level")
+	verbosity      = flags.Int("verbosity", int(log.LvlInfo), "Set logging verbosity level")
 	namespace      = flags.String("namespace", "default", "Kubernetes namespace to watch.")
 	port           = flags.Int("port", 15126, "Route Discovery Services port number. (Default: 15126)")
 	certPem        = flags.String("certpem", "", fmt.Sprintf("Full path to the %s Certificate PEM file", serverType))
@@ -64,17 +65,18 @@ func main() {
 
 	stop := make(chan struct{})
 	meshSpecClient := smi.NewMeshSpecClient(kubeConfig, observeNamespaces, announcements, stop)
+	certManager := certificate.NewManager(stop)
 	azureResourceClient := azureResource.NewClient(kubeConfig, observeNamespaces, announcements, stop)
 
 	endpointsProviders := []endpoint.Provider{
 		azure.NewProvider(*subscriptionID, *azureAuthFile, announcements, stop, meshSpecClient, azureResourceClient, constants.AzureProviderName),
 		kube.NewProvider(kubeConfig, observeNamespaces, announcements, stop, constants.KubeProviderName),
 	}
-	certManager := certificate.NewManager(stop)
-	meshCatalog := catalog.NewMeshCatalog(meshSpecClient, certManager, stop, endpointsProviders...)
 
-	grpcServer, lis := utils.NewGrpc(serverType, *port, *certPem, *keyPem, *rootCertPem)
+	meshCatalog := catalog.NewMeshCatalog(meshSpecClient, certManager, stop, endpointsProviders...)
 	rdsServer := rds.NewRDSServer(ctx, meshCatalog, meshSpecClient, announcements)
+
+	grpcServer, lis := utils.NewGrpc(serverType, *port, *certPem, *keyPem, *rootCertPem)	
 	envoyControlPlane.RegisterRouteDiscoveryServiceServer(grpcServer, rdsServer)
 	go utils.GrpcServe(ctx, grpcServer, lis, cancel, serverType)
 

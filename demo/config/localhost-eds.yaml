@@ -52,7 +52,7 @@ static_resources:
                 grpc_services:
                   envoy_grpc:
                     # will maintain connection based on cluster below.
-                    cluster_name: rds_cluster
+                    cluster_name: rds_server_mtls
           http_filters:
           - name: envoy.router
 

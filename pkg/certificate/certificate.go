@@ -4,6 +4,8 @@ import (
 	"io/ioutil"
 
 	"github.com/golang/glog"
+
+	"github.com/deislabs/smc/pkg/logging"
 )
 
 const (
@@ -34,7 +36,7 @@ func (c Certificate) GetPrivateKey() []byte {
 }
 
 func newCertificate(cn CommonName) (*Certificate, error) {
-	glog.V(7).Infof("[certificate] Creating a certificate for CN=%s", cn)
+	glog.V(log.LvlTrace).Infof("[certificate] Creating a certificate for CN=%s", cn)
 	// TODO(draychev): Temporarily read certificates from file until we integrate w/ KeyVault
 	certificateChain, err := ioutil.ReadFile(keysDefaultDirectory + certFileName)
 	if err != nil {

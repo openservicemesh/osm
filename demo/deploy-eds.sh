@@ -64,7 +64,7 @@ spec:
         - "--subscriptionID"
         - "$AZURE_SUBSCRIPTION"
         - "--verbosity"
-        - "7"
+        - "25"
         - "--namespace"
         - "smc"
         - "--certpem"

@@ -11,6 +11,7 @@ import (
 	"k8s.io/client-go/rest"
 
 	"github.com/deislabs/smc/pkg/endpoint"
+	"github.com/deislabs/smc/pkg/logging"
 	smiTrafficTargetClientVersion "github.com/deislabs/smi-sdk-go/pkg/gen/client/access/clientset/versioned"
 	smiTrafficTargetExternalVersions "github.com/deislabs/smi-sdk-go/pkg/gen/client/access/informers/externalversions"
 	smiTrafficSpecClientVersion "github.com/deislabs/smi-sdk-go/pkg/gen/client/specs/clientset/versioned"
@@ -46,7 +47,7 @@ func NewMeshSpecClient(kubeConfig *rest.Config, namespaces []string, announcemen
 
 // run executes informer collection.
 func (c *Client) run(stop <-chan struct{}) error {
-	glog.V(1).Infoln("SMI Client started")
+	glog.V(log.LvlInfo).Infoln("SMI Client started")
 	var hasSynced []cache.InformerSynced
 
 	if c.informers == nil {
@@ -72,7 +73,7 @@ func (c *Client) run(stop <-chan struct{}) error {
 		hasSynced = append(hasSynced, informer.HasSynced)
 	}
 
-	glog.V(1).Infof("[SMI Client] Waiting informers cache sync: %+v", names)
+	glog.V(log.LvlInfo).Infof("[SMI Client] Waiting informers cache sync: %+v", names)
 	if !cache.WaitForCacheSync(stop, hasSynced...) {
 		return errSyncingCaches
 	}
@@ -80,7 +81,7 @@ func (c *Client) run(stop <-chan struct{}) error {
 	// Closing the cacheSynced channel signals to the rest of the system that... caches have been synced.
 	close(c.cacheSynced)
 
-	glog.V(1).Infof("[SMI Client] Cache sync finished for %+v", names)
+	glog.V(log.LvlInfo).Infof("[SMI Client] Cache sync finished for %+v", names)
 	return nil
 }
 

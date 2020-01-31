@@ -8,6 +8,7 @@ import (
 	"github.com/golang/glog"
 
 	smcEndpoint "github.com/deislabs/smc/pkg/endpoint"
+	"github.com/deislabs/smc/pkg/logging"
 )
 
 const (
@@ -64,6 +65,6 @@ func NewClusterLoadAssignment(targetServiceName smcEndpoint.ServiceName, weighte
 			cla.Endpoints[0].LbEndpoints = append(cla.Endpoints[0].LbEndpoints, &lbEpt)
 		}
 	}
-	glog.V(7).Infof("[EDS] Constructed ClusterLoadAssignment: %+v", cla)
+	glog.V(log.LvlTrace).Infof("[EDS] Constructed ClusterLoadAssignment: %+v", cla)
 	return cla
 }

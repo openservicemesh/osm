@@ -10,12 +10,15 @@ import (
 	"github.com/deislabs/smc/pkg/smi"
 )
 
-// Server implements the Envoy xDS Route Discovery Services
-type Server struct {
-	ctx           context.Context // root context
-	catalog       catalog.MeshCataloger
-	meshSpec      smi.MeshSpec
-	announcements chan interface{}
+// NewRDSServer creates a new RDS server
+func NewRDSServer(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, announcements chan interface{}) *Server {
+	glog.Info("[RDS] Create NewRDSServer")
+	return &Server{
+		ctx:           ctx,
+		catalog:       catalog,
+		meshSpec:      meshSpec,
+		announcements: announcements,
+	}
 }
 
 // FetchRoutes implements envoy.RouteDiscoveryServiceServer
@@ -26,15 +29,4 @@ func (r *Server) FetchRoutes(context.Context, *xds.DiscoveryRequest) (*xds.Disco
 // DeltaRoutes implements envoy.RouteDiscoveryServiceServer
 func (r *Server) DeltaRoutes(xds.RouteDiscoveryService_DeltaRoutesServer) error {
 	panic("NotImplemented")
-}
-
-// NewRDSServer creates a new RDS server
-func NewRDSServer(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, announcements chan interface{}) *Server {
-	glog.Info("[RDS] Create NewRDSServer...")
-	return &Server{
-		ctx:           ctx,
-		catalog:       catalog,
-		meshSpec:      meshSpec,
-		announcements: announcements,
-	}
 }
