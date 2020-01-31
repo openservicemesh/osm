@@ -25,8 +25,8 @@ spec:
     targetPort: admin-port
     name: cds-envoy-admin-port
 
-  - port: 15124
-    targetPort: 15124
+  - port: 15125
+    targetPort: 15125
     name: cds-port
 
   selector:
