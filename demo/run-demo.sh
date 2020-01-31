@@ -30,6 +30,8 @@ kubectl apply -f demo/AzureResource.yaml
 ./demo/deploy-bookstore.sh bookstore-1
 ./demo/deploy-bookstore.sh bookstore-2
 
+./demo/deploy-secrets.sh
+
 ./demo/deploy-cds.sh
 ./demo/deploy-sds.sh
 ./demo/deploy-eds.sh
