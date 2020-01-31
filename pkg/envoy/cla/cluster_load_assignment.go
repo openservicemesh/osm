@@ -8,7 +8,7 @@ import (
 	"github.com/golang/glog"
 
 	smcEndpoint "github.com/deislabs/smc/pkg/endpoint"
-	"github.com/deislabs/smc/pkg/logging"
+	"github.com/deislabs/smc/pkg/log"
 )
 
 const (

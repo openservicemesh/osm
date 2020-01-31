@@ -7,7 +7,6 @@ import (
 
 	"github.com/deislabs/smc/pkg/endpoint"
 	"github.com/deislabs/smc/pkg/smi"
-
 )
 
 const (

@@ -19,7 +19,7 @@ import (
 	"github.com/deislabs/smc/pkg/constants"
 	"github.com/deislabs/smc/pkg/endpoint"
 	"github.com/deislabs/smc/pkg/envoy/rds"
-	"github.com/deislabs/smc/pkg/logging"
+	"github.com/deislabs/smc/pkg/log"
 	"github.com/deislabs/smc/pkg/providers/azure"
 	azureResource "github.com/deislabs/smc/pkg/providers/azure/kubernetes"
 	"github.com/deislabs/smc/pkg/providers/kube"
@@ -36,7 +36,7 @@ var (
 	kubeConfigFile = flags.String("kubeconfig", "", "Path to Kubernetes config file.")
 	azureAuthFile  = flags.String("azureAuthFile", "", "Path to Azure Auth File")
 	subscriptionID = flags.String("subscriptionID", "", "Azure Subscription")
-	verbosity      = flags.Int("verbosity", int(log.LvlInfo), "Set logging verbosity level")
+	verbosity      = flags.Int("verbosity", int(log.LvlInfo), "Set log verbosity level")
 	namespace      = flags.String("namespace", "default", "Kubernetes namespace to watch.")
 	port           = flags.Int("port", 15126, "Route Discovery Services port number. (Default: 15126)")
 	certPem        = flags.String("certpem", "", fmt.Sprintf("Full path to the %s Certificate PEM file", serverType))
@@ -76,7 +76,7 @@ func main() {
 	meshCatalog := catalog.NewMeshCatalog(meshSpecClient, certManager, stop, endpointsProviders...)
 	rdsServer := rds.NewRDSServer(ctx, meshCatalog, meshSpecClient, announcements)
 
-	grpcServer, lis := utils.NewGrpc(serverType, *port, *certPem, *keyPem, *rootCertPem)	
+	grpcServer, lis := utils.NewGrpc(serverType, *port, *certPem, *keyPem, *rootCertPem)
 	envoyControlPlane.RegisterRouteDiscoveryServiceServer(grpcServer, rdsServer)
 	go utils.GrpcServe(ctx, grpcServer, lis, cancel, serverType)
 

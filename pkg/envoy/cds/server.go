@@ -19,7 +19,7 @@ const (
 )
 
 // NewCDSServer creates a new CDS server
-func NewCDSServer(catalog catalog.MeshCataloger, announcements chan interface {}) *Server {
+func NewCDSServer(catalog catalog.MeshCataloger, announcements chan interface{}) *Server {
 	return &Server{
 		catalog:       catalog,
 		announcements: announcements,

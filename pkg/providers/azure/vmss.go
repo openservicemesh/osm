@@ -7,7 +7,7 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/deislabs/smc/pkg/logging"
+	"github.com/deislabs/smc/pkg/log"
 )
 
 func (az *Client) getVMSS(rg resourceGroup, vmID azureID) ([]net.IP, error) {

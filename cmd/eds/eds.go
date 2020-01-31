@@ -19,7 +19,7 @@ import (
 	"github.com/deislabs/smc/pkg/constants"
 	"github.com/deislabs/smc/pkg/endpoint"
 	"github.com/deislabs/smc/pkg/envoy/eds"
-	"github.com/deislabs/smc/pkg/logging"
+	"github.com/deislabs/smc/pkg/log"
 	"github.com/deislabs/smc/pkg/providers/azure"
 	azureResource "github.com/deislabs/smc/pkg/providers/azure/kubernetes"
 	"github.com/deislabs/smc/pkg/providers/kube"
@@ -36,7 +36,7 @@ var (
 	kubeConfigFile = flags.String("kubeconfig", "", "Path to Kubernetes config file.")
 	azureAuthFile  = flags.String("azureAuthFile", "", "Path to Azure Auth File")
 	subscriptionID = flags.String("subscriptionID", "", "Azure Subscription")
-	verbosity      = flags.Int("verbosity", int(log.LvlInfo), "Set logging verbosity level")
+	verbosity      = flags.Int("verbosity", int(log.LvlInfo), "Set log verbosity level")
 	namespace      = flags.String("namespace", "default", "Kubernetes namespace to watch for SMI Spec.")
 	port           = flags.Int("port", 15124, "Endpoint Discovery Services port number. (Default: 15124)")
 	certPem        = flags.String("certpem", "", fmt.Sprintf("Full path to the %s Certificate PEM file", serverType))

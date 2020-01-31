@@ -18,7 +18,7 @@ import (
 	"github.com/deislabs/smc/pkg/certificate"
 	"github.com/deislabs/smc/pkg/constants"
 	"github.com/deislabs/smc/pkg/envoy/cds"
-	"github.com/deislabs/smc/pkg/logging"
+	"github.com/deislabs/smc/pkg/log"
 	"github.com/deislabs/smc/pkg/smi"
 	"github.com/deislabs/smc/pkg/utils"
 )
@@ -30,7 +30,7 @@ const (
 var (
 	flags          = pflag.NewFlagSet(`diplomat-cds`, pflag.ExitOnError)
 	kubeConfigFile = flags.String("kubeconfig", "", "Path to Kubernetes config file.")
-	verbosity      = flags.Int("verbosity", int(log.LvlInfo), "Set logging verbosity level")
+	verbosity      = flags.Int("verbosity", int(log.LvlInfo), "Set log verbosity level")
 	port           = flags.Int("port", 15125, "Clusters Discovery Service port number. (Default: 15125)")
 	namespace      = flags.String("namespace", "default", "Kubernetes namespace to watch for SMI Spec.")
 	certPem        = flags.String("certpem", "", fmt.Sprintf("Full path to the %s Certificate PEM file", serverType))
