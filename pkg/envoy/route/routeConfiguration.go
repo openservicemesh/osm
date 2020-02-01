@@ -1,4 +1,4 @@
-package rc
+package route
 
 import (
 	endpoint2 "github.com/deislabs/smc/pkg/endpoint"
@@ -19,7 +19,7 @@ const (
 // todo (snchh) : trafficPolicies.PolicyRoutePaths.RoutePathMethods not used
 func NewRouteConfiguration(trafficPolicies endpoint2.TrafficTargetPolicies) v2.RouteConfiguration {
 
-	rc := v2.RouteConfiguration{
+	routeConfiguration := v2.RouteConfiguration{
 		Name: trafficPolicies.PolicyName,
 		VirtualHosts: []*route.VirtualHost{{
 			Name:    trafficPolicies.Source,
@@ -29,7 +29,7 @@ func NewRouteConfiguration(trafficPolicies endpoint2.TrafficTargetPolicies) v2.R
 	}
 
 	for _, routePaths := range trafficPolicies.PolicyRoutePaths {
-		route := route.Route{
+		rt := route.Route{
 			Match: &route.RouteMatch{
 				PathSpecifier: &route.RouteMatch_Prefix{
 					Prefix: routePaths.RoutePathRegex,
@@ -45,9 +45,9 @@ func NewRouteConfiguration(trafficPolicies endpoint2.TrafficTargetPolicies) v2.R
 				},
 			},
 		}
-		rc.VirtualHosts[0].Routes = append(rc.VirtualHosts[0].Routes, &route)
+		routeConfiguration.VirtualHosts[0].Routes = append(routeConfiguration.VirtualHosts[0].Routes, &rt)
 	}
 
-	glog.V(log.LvlTrace).Infof("[RDS] Constructed RouteConfiguration: %+v", rc)
-	return rc
+	glog.V(log.LvlTrace).Infof("[RDS] Constructed RouteConfiguration: %+v", routeConfiguration)
+	return routeConfiguration
 }
