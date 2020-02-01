@@ -76,7 +76,7 @@ func main() {
 	meshCatalog := catalog.NewMeshCatalog(meshSpecClient, certManager, stop, endpointsProviders...)
 	rdsServer := rds.NewRDSServer(ctx, meshCatalog, meshSpecClient, announcements)
 
-	grpcServer, lis := utils.NewGrpc(serverType, *port, *certPem, *keyPem, *rootCertPem)	
+	grpcServer, lis := utils.NewGrpc(serverType, *port, *certPem, *keyPem, *rootCertPem)
 	envoyControlPlane.RegisterRouteDiscoveryServiceServer(grpcServer, rdsServer)
 	go utils.GrpcServe(ctx, grpcServer, lis, cancel, serverType)
 

@@ -60,7 +60,7 @@ func (e *Server) StreamRoutes(server xds.RouteDiscoveryService_StreamRoutesServe
 			return errUnknownTypeURL
 		}
 
-		Run:
+	Run:
 		for {
 			select {
 			case <-ctx.Done():

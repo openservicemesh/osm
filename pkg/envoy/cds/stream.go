@@ -1,16 +1,16 @@
 package cds
 
 import (
-	"time"
 	"context"
+	"time"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 
 	"github.com/deislabs/smc/pkg/envoy"
-	"github.com/deislabs/smc/pkg/utils"
 	"github.com/deislabs/smc/pkg/logging"
+	"github.com/deislabs/smc/pkg/utils"
 )
 
 const (
@@ -30,7 +30,7 @@ func (s *Server) StreamClusters(server xds.ClusterDiscoveryService_StreamCluster
 
 	// Register the newly connected proxy w/ the catalog.
 	ip := utils.GetIPFromContext(server.Context())
-	proxy := envoy.NewProxy(cn, ip)	
+	proxy := envoy.NewProxy(cn, ip)
 	s.catalog.RegisterProxy(envoy.NewProxy(cn, ip))
 	glog.Infof("[%s][stream] Client connected: Subject CN=%s", serverName, cn)
 
@@ -59,7 +59,7 @@ func (s *Server) StreamClusters(server xds.ClusterDiscoveryService_StreamCluster
 			return errUnknownTypeURL
 		}
 
-		Run:
+	Run:
 		for {
 			select {
 			case <-ctx.Done():
