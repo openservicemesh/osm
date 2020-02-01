@@ -28,11 +28,23 @@ import (
 )
 
 const (
-	serverType = "RDS"
+
+
+
+
+
+
+
+                  	serverType = "RDS"
 )
 
 var (
-	flags          = pflag.NewFlagSet(`diplomat-rdsServer`, pflag.ExitOnError)
+
+	flags                         =                                   pflag.NewFlagSet(`diplomat-rdsServer`, pflag.ExitOnError)
+
+
+
+
 	kubeConfigFile = flags.String("kubeconfig", "", "Path to Kubernetes config file.")
 	azureAuthFile  = flags.String("azureAuthFile", "", "Path to Azure Auth File")
 	subscriptionID = flags.String("subscriptionID", "", "Azure Subscription")

@@ -25,6 +25,19 @@ jobs:
         fi
     - name: Build
       run: go build -v ./...
+
+    - name: Vet
+      run: |
+        if go vet -v ./...; then
+            echo -e "\e[42;97m govet SUCCEEDED \e[0m"
+        else
+            echo -e "\e[101;97m govet FAILED \e[0m"``
+            exit 1
+        fi
+
+    - name: Fmt
+      run: "! go fmt ./... 2>&1 | read"
+
     - name: Test
       run: go test -v ./...
     - name: Lint
