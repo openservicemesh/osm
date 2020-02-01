@@ -5,13 +5,17 @@ import (
 	"time"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
+	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	v2core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	"github.com/gogo/protobuf/types"
 	"github.com/golang/glog"
+	"github.com/golang/protobuf/ptypes"
 
 	"github.com/deislabs/smc/pkg/envoy"
 	"github.com/deislabs/smc/pkg/log"
+)
+
+const (
+	sdsClusterName = "sds"
 )
 
 func (s *Server) newDiscoveryResponse(proxy envoy.Proxyer) (*xds.DiscoveryResponse, error) {
@@ -20,11 +24,50 @@ func (s *Server) newDiscoveryResponse(proxy envoy.Proxyer) (*xds.DiscoveryRespon
 		TypeUrl: typeUrl,
 	}
 
-	// The name must match the domain being cURLed in the demo
-	clusterName := "bookstore.mesh"
-	connTimeout := 10 * time.Second
+	{
+		cluster := getBookstoreCluster()
+		glog.V(log.LvlTrace).Infof("[CDS] Constructed ClusterConfiguration: %+v", cluster)
+		marshalledClusters, err := ptypes.MarshalAny(cluster)
+		if err != nil {
+			glog.Errorf("[%s] Failed to marshal cluster for proxy %s: %v", serverName, proxy.GetCommonName(), err)
+			return nil, err
+		}
+		resp.Resources = append(resp.Resources, marshalledClusters)
+	}
 
-	upstreamTLS := &auth.UpstreamTlsContext{
+	{
+		edsCluster := getEDS("bookstore.mesh")
+		glog.V(log.LvlTrace).Infof("[CDS] Constructed ClusterConfiguration: %+v", edsCluster)
+		marshalledClusters, err := ptypes.MarshalAny(edsCluster)
+		if err != nil {
+			glog.Errorf("[%s] Failed to marshal cluster for proxy %s: %v", serverName, proxy.GetCommonName(), err)
+			return nil, err
+		}
+		resp.Resources = append(resp.Resources, marshalledClusters)
+	}
+
+	{
+		rdsCluster := getEDS("bookstore.mesh")
+		glog.V(log.LvlTrace).Infof("[CDS] Constructed ClusterConfiguration: %+v", rdsCluster)
+		marshalledClusters, err := ptypes.MarshalAny(rdsCluster)
+		if err != nil {
+			glog.Errorf("[%s] Failed to marshal cluster for proxy %s: %v", serverName, proxy.GetCommonName(), err)
+			return nil, err
+		}
+		resp.Resources = append(resp.Resources, marshalledClusters)
+	}
+
+	s.lastVersion = s.lastVersion + 1
+	s.lastNonce = string(time.Now().Nanosecond())
+	resp.Nonce = s.lastNonce
+	resp.VersionInfo = fmt.Sprintf("v%d", s.lastVersion)
+
+	glog.V(log.LvlTrace).Infof("[%s] Constructed response: %+v", serverName, resp)
+
+	return resp, nil
+}
+func getUpstreamTLS() *auth.UpstreamTlsContext {
+	return &auth.UpstreamTlsContext{
 		AllowRenegotiation: true,
 		CommonTlsContext: &auth.CommonTlsContext{
 			TlsParams:       nil,
@@ -41,8 +84,7 @@ func (s *Server) newDiscoveryResponse(proxy envoy.Proxyer) (*xds.DiscoveryRespon
 									{
 										TargetSpecifier: &v2core.GrpcService_EnvoyGrpc_{
 											EnvoyGrpc: &v2core.GrpcService_EnvoyGrpc{
-												// This must match the hard-coded SDS cluster name in the bootstrap config
-												ClusterName: "sds",
+												ClusterName: sdsClusterName,
 											},
 										},
 									},
@@ -54,18 +96,25 @@ func (s *Server) newDiscoveryResponse(proxy envoy.Proxyer) (*xds.DiscoveryRespon
 			},
 		},
 	}
+}
 
-	tlsAny, err := types.MarshalAny(upstreamTLS)
+func getBookstoreCluster() *xds.Cluster {
+	// The name must match the domain being cURLed in the demo
+	clusterName := "bookstore.mesh"
+	connTimeout := ptypes.DurationProto(10 * time.Second)
+
+	tls, err := ptypes.MarshalAny(getUpstreamTLS())
 
 	if err != nil {
-		return nil, err
+		glog.Error("[CDS] Could not marshal the Upstream TLS: ", err)
+		return nil
 	}
 
-	cluster := &xds.Cluster{
+	return &xds.Cluster{
 		// The name must match the domain being cURLed in the demo
 		Name:                          clusterName,
 		AltStatName:                   clusterName,
-		ConnectTimeout:                &connTimeout,
+		ConnectTimeout:                connTimeout,
 		LbPolicy:                      xds.Cluster_ROUND_ROBIN,
 		RespectDnsTtl:                 true,
 		DrainConnectionsOnHostRemoval: true,
@@ -95,24 +144,8 @@ func (s *Server) newDiscoveryResponse(proxy envoy.Proxyer) (*xds.DiscoveryRespon
 		TransportSocket: &v2core.TransportSocket{
 			Name: "envoy.transport_sockets.tls",
 			ConfigType: &v2core.TransportSocket_TypedConfig{
-				TypedConfig: tlsAny,
+				TypedConfig: tls,
 			},
 		},
 	}
-	glog.V(log.LvlTrace).Infof("[CDS] Constructed ClusterConfiguratio: %+v", cluster)
-	marshalledClusters, err := types.MarshalAny(cluster)
-	if err != nil {
-		glog.Errorf("[%s] Failed to marshal cluster for proxy %s: %v", serverName, proxy.GetCommonName(), err)
-		return nil, err
-	}
-	resp.Resources = append(resp.Resources, marshalledClusters)
-
-	s.lastVersion = s.lastVersion + 1
-	s.lastNonce = string(time.Now().Nanosecond())
-	resp.Nonce = s.lastNonce
-	resp.VersionInfo = fmt.Sprintf("v%d", s.lastVersion)
-
-	glog.V(log.LvlTrace).Infof("[%s] Constructed response: %+v", serverName, resp)
-
-	return resp, nil
 }

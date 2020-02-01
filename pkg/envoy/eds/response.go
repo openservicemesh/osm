@@ -5,19 +5,20 @@ import (
 	"time"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	"github.com/gogo/protobuf/types"
 	"github.com/golang/glog"
+	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/any"
 
 	"github.com/deislabs/smc/pkg/endpoint"
 	"github.com/deislabs/smc/pkg/envoy/cla"
 )
 
 func (e *Server) newDiscoveryResponse(allServices map[endpoint.ServiceName][]endpoint.WeightedService) (*v2.DiscoveryResponse, error) {
-	var protos []*types.Any
+	var protos []*any.Any
 	for targetServiceName, weightedServices := range allServices {
 		loadAssignment := cla.NewClusterLoadAssignment(targetServiceName, weightedServices)
 
-		proto, err := types.MarshalAny(&loadAssignment)
+		proto, err := ptypes.MarshalAny(&loadAssignment)
 		if err != nil {
 			glog.Errorf("[catalog] Error marshalling ClusterLoadAssignmentURI %+v: %s", loadAssignment, err)
 			continue
