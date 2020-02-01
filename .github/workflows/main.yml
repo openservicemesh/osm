@@ -39,9 +39,6 @@ jobs:
     - name: Build
       run: go build -v ./...
 
-    - name: Test
-      run: go test -v ./...
-
     - name: Test with coverage
       run: |
         go get golang.org/x/lint/golint
