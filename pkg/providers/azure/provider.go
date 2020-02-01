@@ -10,7 +10,7 @@ import (
 
 	smc "github.com/deislabs/smc/pkg/apis/azureresource/v1"
 	"github.com/deislabs/smc/pkg/endpoint"
-	"github.com/deislabs/smc/pkg/logging"
+	"github.com/deislabs/smc/pkg/log"
 )
 
 // ListEndpointsForService implements endpoints.Provider interface and returns the IP addresses and Ports for the given ServiceName Name.
