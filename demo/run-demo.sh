@@ -36,6 +36,7 @@ kubectl apply -f demo/AzureResource.yaml
 ./demo/deploy-sds.sh
 ./demo/deploy-eds.sh
 ./demo/deploy-rds.sh
+./demo/deploy-lds.sh
 
 ./demo/deploy-traffic-split.sh
 ./demo/deploy-traffic-spec.sh

@@ -7,7 +7,7 @@ import (
 
 	"github.com/Azure/application-gateway-kubernetes-ingress/pkg/events"
 
-	"github.com/deislabs/smc/pkg/logging"
+	"github.com/deislabs/smc/pkg/log"
 )
 
 type handlers struct {

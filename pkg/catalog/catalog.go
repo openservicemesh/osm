@@ -9,7 +9,7 @@ import (
 
 	"github.com/deislabs/smc/pkg/certificate"
 	"github.com/deislabs/smc/pkg/endpoint"
-	"github.com/deislabs/smc/pkg/logging"
+	"github.com/deislabs/smc/pkg/log"
 	"github.com/deislabs/smc/pkg/smi"
 )
 

@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/deislabs/smc/pkg/envoy"
-	"github.com/deislabs/smc/pkg/logging"
+	"github.com/deislabs/smc/pkg/log"
 	"github.com/deislabs/smc/pkg/utils"
 )
 
@@ -17,7 +17,7 @@ const (
 	sleepTime = 5
 )
 
-// StreamClusters handles streaming of the certs to the connected Envoy proxies
+// StreamClusters handles streaming of the clusters to the connected Envoy proxies
 func (s *Server) StreamClusters(server xds.ClusterDiscoveryService_StreamClustersServer) error {
 	glog.Infof("[%s] Starting StreamClusters", serverName)
 

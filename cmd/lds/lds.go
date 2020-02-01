@@ -17,28 +17,22 @@ import (
 	"github.com/deislabs/smc/pkg/catalog"
 	"github.com/deislabs/smc/pkg/certificate"
 	"github.com/deislabs/smc/pkg/constants"
-	"github.com/deislabs/smc/pkg/endpoint"
-	"github.com/deislabs/smc/pkg/envoy/eds"
-	"github.com/deislabs/smc/pkg/log"
-	"github.com/deislabs/smc/pkg/providers/azure"
-	azureResource "github.com/deislabs/smc/pkg/providers/azure/kubernetes"
-	"github.com/deislabs/smc/pkg/providers/kube"
+	"github.com/deislabs/smc/pkg/envoy/lds"
+	log "github.com/deislabs/smc/pkg/logging"
 	"github.com/deislabs/smc/pkg/smi"
 	"github.com/deislabs/smc/pkg/utils"
 )
 
 const (
-	serverType = "EDS"
+	serverType = "LDS"
 )
 
 var (
-	flags          = pflag.NewFlagSet(`diplomat-eds`, pflag.ExitOnError)
+	flags          = pflag.NewFlagSet(`diplomat-lds`, pflag.ExitOnError)
 	kubeConfigFile = flags.String("kubeconfig", "", "Path to Kubernetes config file.")
-	azureAuthFile  = flags.String("azureAuthFile", "", "Path to Azure Auth File")
-	subscriptionID = flags.String("subscriptionID", "", "Azure Subscription")
-	verbosity      = flags.Int("verbosity", int(log.LvlInfo), "Set log verbosity level")
+	verbosity      = flags.Int("verbosity", int(log.LvlInfo), "Set logging verbosity level")
+	port           = flags.Int("port", 15127, "Listeners Discovery Service port number. (Default: 15127)")
 	namespace      = flags.String("namespace", "default", "Kubernetes namespace to watch for SMI Spec.")
-	port           = flags.Int("port", 15124, "Endpoint Discovery Services port number. (Default: 15124)")
 	certPem        = flags.String("certpem", "", fmt.Sprintf("Full path to the %s Certificate PEM file", serverType))
 	keyPem         = flags.String("keypem", "", fmt.Sprintf("Full path to the %s Key PEM file", serverType))
 	rootCertPem    = flags.String("rootcertpem", "", "Full path to the Root Certificate PEM file")
@@ -58,7 +52,7 @@ func main() {
 
 	kubeConfig, err := clientcmd.BuildConfigFromFlags("", *kubeConfigFile)
 	if err != nil {
-		glog.Fatalf("[EDS] Error fetching Kubernetes config. Ensure correctness of CLI argument 'kubeconfig=%s': %s", *kubeConfigFile, err)
+		glog.Fatalf("[%s] Error fetching Kubernetes config. Ensure correctness of CLI argument 'kubeconfig=%s': %s", serverType, *kubeConfigFile, err)
 	}
 
 	observeNamespaces := getNamespaces()
@@ -66,18 +60,11 @@ func main() {
 	stop := make(chan struct{})
 	meshSpecClient := smi.NewMeshSpecClient(kubeConfig, observeNamespaces, announcements, stop)
 	certManager := certificate.NewManager(stop)
-	azureResourceClient := azureResource.NewClient(kubeConfig, observeNamespaces, announcements, stop)
-
-	endpointsProviders := []endpoint.Provider{
-		azure.NewProvider(*subscriptionID, *azureAuthFile, announcements, stop, meshSpecClient, azureResourceClient, constants.AzureProviderName),
-		kube.NewProvider(kubeConfig, observeNamespaces, announcements, stop, constants.KubeProviderName),
-	}
-
-	meshCatalog := catalog.NewMeshCatalog(meshSpecClient, certManager, stop, endpointsProviders...)
-	edsServer := eds.NewEDSServer(ctx, meshCatalog, meshSpecClient, announcements)
+	meshCatalog := catalog.NewMeshCatalog(meshSpecClient, certManager, stop)
+	ldsServer := lds.NewLDSServer(meshCatalog)
 
 	grpcServer, lis := utils.NewGrpc(serverType, *port, *certPem, *keyPem, *rootCertPem)
-	xds.RegisterEndpointDiscoveryServiceServer(grpcServer, edsServer)
+	xds.RegisterListenerDiscoveryServiceServer(grpcServer, ldsServer)
 
 	go utils.GrpcServe(ctx, grpcServer, lis, cancel, serverType)
 
@@ -86,11 +73,11 @@ func main() {
 	<-sigChan
 
 	close(stop)
-	glog.Info("[EDS] Goodbye!")
+	glog.Infof("[%s] Goodbye!", serverType)
 }
 
 func parseFlags() {
-	// TODO(draychev): consolidate parseFlags - shared between sds.go and eds.go
+	// TODO(draychev): consolidate parseFlags - shared between lds.go and eds.go
 	if err := flags.Parse(os.Args); err != nil {
 		glog.Error(err)
 	}
@@ -107,6 +94,6 @@ func getNamespaces() []string {
 	} else {
 		namespaces = []string{*namespace}
 	}
-	glog.Infof("[EDS] Observing namespaces: %s", strings.Join(namespaces, ","))
+	glog.Infof("[%s] Observing namespaces: %s", serverType, strings.Join(namespaces, ","))
 	return namespaces
 }

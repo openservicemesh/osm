@@ -4,7 +4,7 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/deislabs/smc/pkg/endpoint"
-	"github.com/deislabs/smc/pkg/logging"
+	"github.com/deislabs/smc/pkg/log"
 )
 
 func (sc *MeshCatalog) refreshCache() {

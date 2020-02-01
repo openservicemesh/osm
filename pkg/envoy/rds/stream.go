@@ -10,7 +10,7 @@ import (
 
 	"github.com/deislabs/smc/pkg/envoy"
 	"github.com/deislabs/smc/pkg/envoy/rc"
-	"github.com/deislabs/smc/pkg/logging"
+	"github.com/deislabs/smc/pkg/log"
 	"github.com/deislabs/smc/pkg/utils"
 )
 

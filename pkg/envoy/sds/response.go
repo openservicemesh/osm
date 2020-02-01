@@ -11,7 +11,7 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/deislabs/smc/pkg/envoy"
-	"github.com/deislabs/smc/pkg/logging"
+	"github.com/deislabs/smc/pkg/log"
 )
 
 const (
