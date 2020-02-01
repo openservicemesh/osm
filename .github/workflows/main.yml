@@ -23,8 +23,6 @@ jobs:
             curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
             dep ensure
         fi
-    - name: Build
-      run: go build -v ./...
 
     - name: Vet
       run: |
@@ -37,6 +35,9 @@ jobs:
 
     - name: Fmt
       run: "! go fmt ./... 2>&1 | read"
+
+    - name: Build
+      run: go build -v ./...
 
     - name: Test
       run: go test -v ./...
