@@ -1,4 +1,4 @@
-package cds
+package lds
 
 import (
 	"io"
@@ -9,7 +9,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func receive(reqChannel chan *v2.DiscoveryRequest, server v2.ClusterDiscoveryService_StreamClustersServer) {
+func receive(reqChannel chan *v2.DiscoveryRequest, server v2.ListenerDiscoveryService_StreamListenersServer) {
 	defer close(reqChannel)
 	for {
 		var request *v2.DiscoveryRequest
@@ -25,4 +25,12 @@ func receive(reqChannel chan *v2.DiscoveryRequest, server v2.ClusterDiscoverySer
 		glog.Infof("[%s][grpc] Done!", serverName)
 		reqChannel <- request
 	}
+}
+
+func (s *Server) isConnectionAllowed() error {
+	if s.connectionNum >= maxConnections {
+		return errTooManyConnections
+	}
+	s.connectionNum++
+	return nil
 }
