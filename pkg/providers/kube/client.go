@@ -12,7 +12,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/deislabs/smc/pkg/endpoint"
-	"github.com/deislabs/smc/pkg/logging"
+	"github.com/deislabs/smc/pkg/log"
 )
 
 var resyncPeriod = 1 * time.Second

@@ -11,7 +11,7 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/deislabs/smc/pkg/envoy"
-	"github.com/deislabs/smc/pkg/logging"
+	"github.com/deislabs/smc/pkg/log"
 )
 
 func (s *Server) newDiscoveryResponse(proxy envoy.Proxyer) (*xds.DiscoveryResponse, error) {
@@ -63,11 +63,11 @@ func (s *Server) newDiscoveryResponse(proxy envoy.Proxyer) (*xds.DiscoveryRespon
 
 	cluster := &xds.Cluster{
 		// The name must match the domain being cURLed in the demo
-		Name:           clusterName,
-		AltStatName:    clusterName,
-		ConnectTimeout: &connTimeout,
-		LbPolicy:       xds.Cluster_ROUND_ROBIN,
-		RespectDnsTtl: true,
+		Name:                          clusterName,
+		AltStatName:                   clusterName,
+		ConnectTimeout:                &connTimeout,
+		LbPolicy:                      xds.Cluster_ROUND_ROBIN,
+		RespectDnsTtl:                 true,
 		DrainConnectionsOnHostRemoval: true,
 		ClusterDiscoveryType: &xds.Cluster_Type{
 			Type: xds.Cluster_EDS,

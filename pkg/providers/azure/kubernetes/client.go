@@ -9,7 +9,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	smc "github.com/deislabs/smc/pkg/apis/azureresource/v1"
-	"github.com/deislabs/smc/pkg/logging"
+	"github.com/deislabs/smc/pkg/log"
 	smcClient "github.com/deislabs/smc/pkg/smc_client/clientset/versioned"
 	smcInformers "github.com/deislabs/smc/pkg/smc_client/informers/externalversions"
 )
