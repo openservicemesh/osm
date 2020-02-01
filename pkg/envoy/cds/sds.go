@@ -5,18 +5,17 @@ import (
 )
 
 const (
-	edsClusterName = "eds"
-	edsAddress     = "eds.smc.svc.cluster.local"
-	edsPort        = uint32(15124)
+	sdsAddress = "sds.smc.svc.cluster.local"
+	sdsPort    = uint32(15123)
 )
 
-func getEDS() *v2.Cluster {
+func getSDS() *v2.Cluster {
 	return &v2.Cluster{
 		ConnectTimeout:       getTimeout(),
 		ClusterDiscoveryType: &v2.Cluster_Type{Type: v2.Cluster_LOGICAL_DNS},
-		Name:                 edsClusterName,
+		Name:                 sdsClusterName,
 		Http2ProtocolOptions: getHttp2(),
 		TransportSocket:      getTransportSocket(),
-		LoadAssignment:       getLoadAssignment(edsAddress, edsPort),
+		LoadAssignment:       getLoadAssignment(sdsAddress, sdsPort),
 	}
 }

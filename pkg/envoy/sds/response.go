@@ -30,7 +30,12 @@ func (s *Server) newDiscoveryResponse(proxy envoy.Proxyer) (*v2.DiscoveryRespons
 		TypeUrl: typeUrl,
 	}
 
-	services := []string{"server_cert", "bookstore.mesh", "bookstore-1", "bookstore-2"}
+	services := []string{
+		envoy.CertificateName,
+		"bookstore.mesh",
+		"bookstore-1",
+		"bookstore-2",
+	}
 
 	for _, svc := range services {
 		secret := &auth.Secret{
