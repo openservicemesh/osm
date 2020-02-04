@@ -19,7 +19,7 @@ SMC ships out-of-the-box with all necessary components to deploy a complete serv
 ## Use Case
 
 *As on operator of services spanning diverse compute platforms (Kubernetes and Virtual Machines on public and private clouds) I need an open-source solution, which will dynamically*:
-  - **Apply policies** governing HTTP access between peer services within per-URI granularity
+  - **Apply policies** governing TCP & HTTP access between peer services
   - **Encrypt traffic** between services leveraging mTLS and short-lived certificates with a custom CA
   - **Rotate certificates** as often as necessary to make these short-lived and remove the need for certificate revocation management
   - **Collect traces and metrics** to provide visibility into the health and operation of the services
@@ -40,9 +40,9 @@ SMC ships out-of-the-box with all necessary components to deploy a complete serv
 The Service Mesh Controller project is composed of the following five high-level components:
   1. [Proxy control plane](#1-proxy-control-plane) - handles gRPC connections from the service mesh sidecar proxies
   2. [Certificate manager](#2-certificate-manager) - handles issuance and management of certificates
-  3. [Endpoints provider](#3-endpoints-providers) - components specific to the participating compute platforms; retrieve routable IP addresses for mesh services
-  4. [Mesh specification](#4-mesh-specification) - facility to retrieve [SMI Spec](https://smi-spec.io/) [resources](https://github.com/deislabs/smi-spec#service-mesh-interface)
-  5. [Mesh catalog](#5-mesh-catalog) - combinator of all other components
+  3. [Endpoints providers](#3-endpoints-providers) - components capable of introspecting the participating compute platforms; these retrieve the IP addresses of the compute backing the services in the mesh
+  4. [Mesh specification](#4-mesh-specification) - wrapper around the [SMI Spec's Go SDK](https://github.com/deislabs/smi-sdk-go); this facility provides simple methods retrieve [SMI Spec](https://smi-spec.io/) [resources](https://github.com/deislabs/smi-spec#service-mesh-interface), abstracting away cluster and storage specifics
+  5. [Mesh catalog](#5-mesh-catalog) - the service mesh's heart; this is the central component that collects inputs from all other components and dispatches configuration to the proxy control plane
 
 
 ![components relationship](https://user-images.githubusercontent.com/49918230/73027022-8b030180-3e2a-11ea-8226-e466b5a68e0c.png)
@@ -55,22 +55,22 @@ The Service Mesh Controller project is composed of the following five high-level
 Let's take a look at each component:
 
 ### (1) Proxy control plane
-The proxy control plane plays a key part in operating the [service mesh](https://www.bing.com/search?q=What%27s+a+service+mesh%3F). All proxies are installed as [sidecars](https://docs.microsoft.com/en-us/azure/architecture/patterns/sidecar) and establish an mTLS gRPC connection to the Proxy Control Plane. The proxies continuously receive configuration updates. This component implements the interfaces required by the specific reverse proxy chosen. SMC implements [Envoy's go-control-plane xDS](https://github.com/envoyproxy/go-control-plane).
+Proxy Control plane plays a key part in operating the [service mesh](https://www.bing.com/search?q=What%27s+a+service+mesh%3F). All proxies are installed as [sidecars](https://docs.microsoft.com/en-us/azure/architecture/patterns/sidecar) and establish an mTLS gRPC connection to the Proxy Control Plane. The proxies continuously receive configuration updates. This component implements the interfaces required by the specific reverse proxy chosen. SMC implements [Envoy's go-control-plane xDS](https://github.com/envoyproxy/go-control-plane).
 
 ### (2) Certificate Manager
-The certificate manager is a component that provides each service participating in the service mesh with a TLS certificate.
+Certificate Manager is a component that provides each service participating in the service mesh with a TLS certificate.
 These service certificates are used to establish and encrypt connections between services using mTLS.
 
 ### (3) Endpoints Providers
-The endpoints providers are one or more components that communicate with the compute platforms (Kubernetes, VMs) participating in the service mesh. Endpoints providers resolve service names into lists of IP addresses. The Endpoints Providers understand the specific primitives of the compute provider they are implemented for, such as virtual machines, virtual machine scale sets, and Kubernetes clusters.
+Endpoints Providers are one or more components that communicate with the compute platforms (Kubernetes clusters, on-prem machines, or cloud-providers' VMs) participating in the service mesh. Endpoints providers resolve service names into lists of IP addresses. The Endpoints Providers understand the specific primitives of the compute provider they are implemented for, such as virtual machines, virtual machine scale sets, and Kubernetes clusters.
 
 ### (4) Mesh specification
-The mesh specification is a wrapper around the existing [SMI Spec](https://github.com/deislabs/smi-spec) components. This component abstracts the specific storage chosen for the YAML definitions. This module is effectively a wrapper around [SMI Spec's Kubernetes informers](https://github.com/deislabs/smi-sdk-go), currently abstracting away the storage (Kubernetes/etcd) specifics.
+Mesh Specification is a wrapper around the existing [SMI Spec](https://github.com/deislabs/smi-spec) components. This component abstracts the specific storage chosen for the YAML definitions. This module is effectively a wrapper around [SMI Spec's Kubernetes informers](https://github.com/deislabs/smi-sdk-go), currently abstracting away the storage (Kubernetes/etcd) specifics.
 
 ### (5) Mesh catalog
-The mesh catalog is the central component of SMC, which combines the outputs of all other components into a structure, which can then be transformed into proxy configuration and dispatched to all listening proxies via the proxy control plane.
+Mesh Catalog is the central component of SMC, which combines the outputs of all other components into a structure, which can then be transformed into proxy configuration and dispatched to all listening proxies via the proxy control plane.
 This component:
-  1. Communicates with the [mesh specification module  (4)](#4-mesh-specification) to detect when a service was created, changed, or deleted via [SMI Spec](https://github.com/deislabs/smi-spec).
+  1. Communicates with the [mesh specification module (4)](#4-mesh-specification) to detect when a [Kubernetes service](https://kubernetes.io/docs/concepts/services-networking/service/) was created, changed, or deleted via [SMI Spec](https://github.com/deislabs/smi-spec).
   1. Reaches out to the [certificate manager (2)](#2-certificate-manager) and requests a new TLS certificate for the newly discovered service.
   1. Retrieves the IP addresses of the mesh workloads by observing the compute platforms via the [endpoints providers (3)](#3-endpoints-providers).
   1. Combines the outputs of 1, 2, and 3 above into a data structure, which is then passed to the [proxy control plane (1)](#1-proxy-control-plane), serialized and sent to all relevant connected proxies.
@@ -83,7 +83,7 @@ This component:
 
 This section outlines the conventions adopted and guiding the development of the Service Mesh Controller (SMC). Components discussed in this section:
   - (A) Proxy [sidecar](https://docs.microsoft.com/en-us/azure/architecture/patterns/sidecar) - Envoy or other reverse-proxy with service-mesh capabilities
-  - (B) [Proxy Certificate](#proxy-tls-certificate) - unique X.509 certificate issued to the specific proxy
+  - (B) [Proxy Certificate](#proxy-tls-certificate) - unique X.509 certificate issued to the specific proxy by the [Certificate Manager](#2-certificate-manager)
   - (C) Service - [Kubernetes service resource](https://kubernetes.io/docs/concepts/services-networking/service/) referenced in SMI Spec
   - (D) [Service Certificate](#service-tls-certificate) - X.509 certificate issued to the service
   - (E) Policy - [SMI Spec](https://smi-spec.io/) traffic policy enforced by the target service's proxy
@@ -410,7 +410,7 @@ type EndpointsProvider interface {
 This component provides an abstraction around the [SMI Spec Go SDK](https://github.com/deislabs/smi-sdk-go).
 The abstraction hides the Kubernetes primitives. This allows us to implement SMI Spec providers
 that do not rely exclusively on Kubernetes for storage etc. Mesh Specification Interface provides
-a set of methods, listing all Services, traffic splits, and policy definitions for the
+a set of methods, listing all services, traffic splits, and policy definitions for the
 **entire service** mesh.
 
 The Mesh Specification implementation **has no awareness** of:
