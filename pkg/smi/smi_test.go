@@ -4,20 +4,19 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/deislabs/smc/pkg/tester"
+	"k8s.io/apimachinery/pkg/util/intstr"
 
-	"github.com/deislabs/smc/pkg/endpoint"
-
+	"github.com/Azure/application-gateway-kubernetes-ingress/pkg/version"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/rest"
 
-	"github.com/Azure/application-gateway-kubernetes-ingress/pkg/version"
+	"github.com/deislabs/smc/pkg/endpoint"
+	"github.com/deislabs/smc/pkg/tester"
 	"github.com/deislabs/smc/pkg/tests"
 	"github.com/deislabs/smi-sdk-go/pkg/apis/split/v1alpha2"
 	"github.com/deislabs/smi-sdk-go/pkg/gen/client/split/clientset/versioned/fake"
@@ -64,8 +63,22 @@ var _ = Describe("Tests `appgw.ConfigBuilder`", func() {
 		},
 	}
 
-	// Create the Ingress resource.
-	trafficSplit := v1alpha2.TrafficSplit{}
+	trafficSplit := v1alpha2.TrafficSplit{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "traffic-split",
+			Namespace: "ns",
+		},
+		Spec: v1alpha2.TrafficSplitSpec{
+			Service: "",
+			Backends: []v1alpha2.TrafficSplitBackend{
+				{
+					Service: "service-one",
+					Weight:  100,
+				},
+			},
+		},
+	}
 
 	service := &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
@@ -140,11 +153,9 @@ var _ = Describe("Tests `appgw.ConfigBuilder`", func() {
 	BeforeEach(func() {
 		stopChannel = make(chan struct{})
 
-		tester.LoadService()
-
 		// Create the mock K8s client.
 		k8sClient = testclient.NewSimpleClientset()
-		smiClient = fake.NewSimpleClientset(nil)
+		smiClient = fake.NewSimpleClientset(&trafficSplit)
 		Ω(smiClient).ToNot(BeNil())
 
 		_, err := k8sClient.CoreV1().Namespaces().Create(ns)
@@ -153,9 +164,13 @@ var _ = Describe("Tests `appgw.ConfigBuilder`", func() {
 		_, err = k8sClient.CoreV1().Nodes().Create(node)
 		Ω(err).ToNot(HaveOccurred(), "Unable to create node resource due to: %v", err)
 
-		// Create the service.
-		_, err = k8sClient.CoreV1().Services(ingressNS).Create(service)
-		Ω(err).ToNot(HaveOccurred(), "Unable to create service resource due to: %v", err)
+		// Load services.
+		for _, obj := range tester.LoadService() {
+			fmt.Printf("obj: %+v", obj)
+			fmt.Print(service)
+			// _, err = k8sClient.CoreV1().Services(ingressNS).Create(service)
+			// Ω(err).ToNot(HaveOccurred(), "Unable to create service resource due to: %v", err)
+		}
 
 		// Create the endpoints associated with this service.
 		_, err = k8sClient.CoreV1().Endpoints(ingressNS).Create(endpoints)
@@ -170,7 +185,8 @@ var _ = Describe("Tests `appgw.ConfigBuilder`", func() {
 		announcements := make(chan interface{})
 		kubeConfig := rest.Config{}
 		observeNamespaces := []string{"default"}
-		c := NewMeshSpecClient(&kubeConfig, observeNamespaces, announcements, stop)
+		kubeClient := kubernetes.NewForConfigOrDie(&kubeConfig)
+		c := NewMeshSpecClient(kubeClient, &kubeConfig, observeNamespaces, announcements, stop)
 		meshSpecClient = &c
 		Expect(meshSpecClient).ShouldNot(BeNil(), "Unable to create `k8scontext`")
 	})
@@ -183,6 +199,7 @@ var _ = Describe("Tests `appgw.ConfigBuilder`", func() {
 		It("Should be able to create Weighted Services from TrafficSplit CRD", func() {
 			// Wait for the controller to receive an ingress update.
 			// trafficSplitEvent()
+			panic("XX")
 			trafficSplits := testTrafficSplit()
 			fmt.Printf("Here are the traffic splits: %+v", trafficSplits)
 		})
