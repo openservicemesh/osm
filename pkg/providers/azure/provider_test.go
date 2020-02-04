@@ -3,7 +3,7 @@ package azure
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	v12 "github.com/deislabs/smc/pkg/apis/azureresource/v1"
@@ -28,7 +28,7 @@ var _ = Describe("Azure Compute Provider", func() {
 	Describe("Testing Azure Compute Provider", func() {
 		Context("Testing parseAzureID", func() {
 			It("returns default value in absence of an env var", func() {
-				svc := v1.Service{
+				svc := corev1.Service{
 					ObjectMeta: metav1.ObjectMeta{
 						Labels: map[string]string{
 							"k": "v",

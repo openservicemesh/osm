@@ -6,11 +6,6 @@ source .env
 
 kubectl delete pod cds -n "$K8S_NAMESPACE" || true
 
-echo -e "Add secrets"
-kubectl -n smc delete configmap ca-certpemstore ca-keypemstore || true
-kubectl -n smc create configmap ca-certpemstore --from-file=./bin/cert.pem
-kubectl -n smc create configmap ca-keypemstore --from-file=./bin/key.pem
-
 cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: Service
@@ -25,8 +20,8 @@ spec:
     targetPort: admin-port
     name: cds-envoy-admin-port
 
-  - port: 15124
-    targetPort: 15124
+  - port: 15125
+    targetPort: 15125
     name: cds-port
 
   selector:
@@ -60,7 +55,7 @@ spec:
         - "--kubeconfig"
         - "/kube/config"
         - "--verbosity"
-        - "7"
+        - "25"
         - "--namespace"
         - "smc"
         - "--certpem"

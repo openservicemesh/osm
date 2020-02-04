@@ -26,7 +26,7 @@ func setupMutualTLS(insecure bool, serverName string, certPem string, keyPem str
 	certPool := x509.NewCertPool()
 	pemCerts, err := ioutil.ReadFile(rootCertPem)
 	if err != nil {
-		log.Fatalf("[grpc][mTLS][%s] Failed to read client ca cert: %s", err, serverName)
+		log.Fatalf("[grpc][mTLS][%s] Failed to read client CA cert from %s: %s", serverName, rootCertPem, err)
 	}
 
 	// Load the set of Root CAs

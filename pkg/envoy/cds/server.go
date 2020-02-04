@@ -19,11 +19,10 @@ const (
 )
 
 // NewCDSServer creates a new CDS server
-func NewCDSServer(catalog catalog.MeshCataloger) *Server {
+func NewCDSServer(catalog catalog.MeshCataloger, announcements chan interface{}) *Server {
 	return &Server{
-		connectionNum: 0,
 		catalog:       catalog,
-		closing:       make(chan bool),
+		announcements: announcements,
 	}
 }
 
@@ -45,7 +44,7 @@ func (s *Server) FetchClusters(ctx context.Context, discReq *xds.DiscoveryReques
 	// Register the newly connected proxy w/ the catalog.
 	ip := utils.GetIPFromContext(ctx)
 	proxy := envoy.NewProxy(cn, ip)
-	// TODO(draychev):  s.catalog.RegisterProxy(proxy)
+	s.catalog.RegisterProxy(proxy)
 
 	glog.Infof("[%s][FetchClusters] Responding to proxy %s", serverName, proxy.GetCommonName())
 	return s.newDiscoveryResponse(proxy)

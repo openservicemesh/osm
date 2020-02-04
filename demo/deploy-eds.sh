@@ -6,11 +6,6 @@ source .env
 
 kubectl delete pod eds -n "$K8S_NAMESPACE" || true
 
-echo -e "Add secrets"
-kubectl -n smc delete configmap ca-certpemstore ca-keypemstore || true
-kubectl -n smc create configmap ca-certpemstore --from-file=./bin/cert.pem
-kubectl -n smc create configmap ca-keypemstore --from-file=./bin/key.pem
-
 cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: Service
@@ -64,7 +59,7 @@ spec:
         - "--subscriptionID"
         - "$AZURE_SUBSCRIPTION"
         - "--verbosity"
-        - "7"
+        - "25"
         - "--namespace"
         - "smc"
         - "--certpem"

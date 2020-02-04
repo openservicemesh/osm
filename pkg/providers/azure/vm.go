@@ -7,11 +7,12 @@ import (
 
 	"github.com/golang/glog"
 
+	"github.com/deislabs/smc/pkg/log"
 	"github.com/deislabs/smc/pkg/utils"
 )
 
 func (az *Client) getVM(rg resourceGroup, vmID azureID) ([]net.IP, error) {
-	glog.V(7).Infof("[azure] Fetching IPS of VM for %s in resource group: %s", vmID, rg)
+	glog.V(log.LvlTrace).Infof("[azure] Fetching IPS of VM for %s in resource group: %s", vmID, rg)
 	var ips []net.IP
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
