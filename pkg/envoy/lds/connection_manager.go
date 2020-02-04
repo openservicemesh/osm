@@ -14,7 +14,7 @@ const (
 	serverNameTODO  = "serverNameTODO"
 	routeConfigName = "upstream"
 	statPrefix      = "http"
-	accessLogPath = "/dev/stdout"
+	accessLogPath   = "/dev/stdout"
 )
 
 func getConnManager() *connMgr.HttpConnectionManager {
@@ -52,7 +52,7 @@ func getConnManager() *connMgr.HttpConnectionManager {
 	}
 }
 
-func getFileAccessLog() * accesslogconfig.FileAccessLog {
+func getFileAccessLog() *accesslogconfig.FileAccessLog {
 	accessLogger := &accesslogconfig.FileAccessLog{
 		Path: accessLogPath,
 		AccessLogFormat: &accesslogconfig.FileAccessLog_JsonFormat{
