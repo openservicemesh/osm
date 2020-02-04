@@ -22,6 +22,10 @@ include .env
 clean-cds:
 	@rm -rf bin/cds
 
+.PHONY: clean-lds
+clean-lds:
+	@rm -rf bin/lds
+
 .PHONY: clean-sds
 clean-sds:
 	@rm -rf bin/sds
@@ -35,12 +39,17 @@ clean-rds:
 	@rm -rf bin/rds
 
 .PHONY: build
-build: build-sds build-eds build-cds build-rds 
+build: build-sds build-eds build-cds build-rds build-lds
 
 .PHONY: build-cds
 build-cds: clean-cds
 	@mkdir -p $(shell pwd)/bin
 	CGO_ENABLED=0  go build -v -o ./bin/cds ./cmd/cds
+
+.PHONY: build-lds
+build-lds: clean-lds
+	@mkdir -p $(shell pwd)/bin
+	CGO_ENABLED=0  go build -v -o ./bin/lds ./cmd/lds
 
 .PHONY: build-sds
 build-sds: clean-sds
@@ -59,11 +68,15 @@ build-rds: clean-rds
 
 .PHONY: build-cross
 build-cross: LDFLAGS += -extldflags "-static"
-build-cross: build-cross-eds build-cross-sds build-cross-cds build-cross-rds
+build-cross: build-cross-eds build-cross-sds build-cross-cds build-cross-rds build-cross-lds
 
 .PHONY: build-cross-cds
 build-cross-cds: gox
 	GO111MODULE=on CGO_ENABLED=0 $(GOX) -output="./bin/{{.OS}}-{{.Arch}}/cds" -osarch='$(TARGETS)' -ldflags '$(LDFLAGS)' ./cmd/cds
+
+.PHONY: build-cross-lds
+build-cross-lds: gox
+	GO111MODULE=on CGO_ENABLED=0 $(GOX) -output="./bin/{{.OS}}-{{.Arch}}/lds" -osarch='$(TARGETS)' -ldflags '$(LDFLAGS)' ./cmd/lds
 
 .PHONY: build-cross-eds
 build-cross-eds: gox
@@ -78,7 +91,7 @@ build-cross-rds: gox
 	GO111MODULE=on CGO_ENABLED=0 $(GOX) -output="./bin/{{.OS}}-{{.Arch}}/rds" -osarch='$(TARGETS)' -ldflags '$(LDFLAGS)' ./cmd/rds
 
 .PHONY: docker-build
-docker-build: build-cross docker-build-sds docker-build-eds docker-build-bookbuyer docker-build-bookstore docker-build-cds docker-build-rds
+docker-build: build-cross docker-build-sds docker-build-eds docker-build-bookbuyer docker-build-bookstore docker-build-cds docker-build-rds docker-build-lds
 
 .PHONY: go-vet
 go-vet:
@@ -101,6 +114,10 @@ go-test:
 .PHONY: docker-build-cds
 docker-build-cds: build-cross-cds
 	docker build --build-arg $(HOME)/go/ -t $(CTR_REGISTRY)/cds -f dockerfiles/Dockerfile.cds .
+
+.PHONY: docker-build-lds
+docker-build-lds: build-cross-lds
+	docker build --build-arg $(HOME)/go/ -t $(CTR_REGISTRY)/lds -f dockerfiles/Dockerfile.lds .
 
 .PHONY: docker-build-eds
 docker-build-eds: build-cross-eds
@@ -138,6 +155,10 @@ docker-build-init:
 docker-push-cds: docker-build-cds
 	docker push "$(CTR_REGISTRY)/cds"
 
+.PHONY: docker-push-lds
+docker-push-lds: docker-build-lds
+	docker push "$(CTR_REGISTRY)/lds"
+
 .PHONY: docker-push-eds
 docker-push-eds: docker-build-eds
 	docker push "$(CTR_REGISTRY)/eds"
@@ -163,7 +184,7 @@ docker-push-init: docker-build-init
 	docker push "$(CTR_REGISTRY)/init"
 
 .PHONY: docker-push
-docker-push: docker-push-eds docker-push-sds docker-push-init docker-push-bookbuyer docker-push-bookstore docker-push-cds docker-push-rds
+docker-push: docker-push-eds docker-push-sds docker-push-init docker-push-bookbuyer docker-push-bookstore docker-push-cds docker-push-rds docker-push-lds
 
 .PHONY: sds-root-tls
 sds-root-tls:

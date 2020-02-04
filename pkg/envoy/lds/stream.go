@@ -17,11 +17,13 @@ const (
 
 // StreamListeners handles streaming of the listeners to the connected Envoy proxies
 func (s *Server) StreamListeners(server xds.ListenerDiscoveryService_StreamListenersServer) error {
+	glog.Infof("[%s] Starting StreamListeners", serverName)
+
 	// When a new Envoy proxy connects, ValidateClient would ensure that it has a valid certificate,
 	// and the Subject CN is in the allowedCommonNames set.
 	cn, err := utils.ValidateClient(server.Context(), nil, serverName)
 	if err != nil {
-		return errors.Wrap(err, "[%s] Could not start stream")
+		return errors.Wrapf(err, "[%s] Could not start StreamListeners", serverName)
 	}
 
 	// Register the newly connected proxy w/ the catalog.

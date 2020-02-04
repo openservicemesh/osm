@@ -11,7 +11,7 @@ require (
 	github.com/Azure/go-autorest/tracing v0.2.0 // indirect
 	github.com/deislabs/smi-sdk-go v0.2.0
 	github.com/eapache/channels v1.1.0
-	github.com/envoyproxy/go-control-plane v0.8.4
+	github.com/envoyproxy/go-control-plane v0.9.2
 	github.com/fsnotify/fsnotify v1.4.7
 	github.com/gogo/protobuf v1.2.2-0.20190730201129-28a6bbf47e48
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
@@ -30,8 +30,9 @@ require (
 	golang.org/x/sys v0.0.0-20200107162124-548cf772de50 // indirect
 	golang.org/x/tools v0.0.0-20200115222509-97cd989a7672 // indirect
 	golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543 // indirect
-	google.golang.org/grpc v1.22.1
+	google.golang.org/grpc v1.25.1
 	gopkg.in/yaml.v2 v2.2.7 // indirect
+	istio.io/gogo-genproto v0.0.0-20190731221249-06e20ada0df2 // indirect
 	k8s.io/api v0.0.0-20190614205929-e4e27c96b39a
 	k8s.io/apimachinery v0.0.0-20190612125636-6a5db36e93ad
 	k8s.io/client-go v11.0.0+incompatible

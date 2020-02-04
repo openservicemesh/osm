@@ -2,10 +2,10 @@ package cla
 
 import (
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
-	"github.com/gogo/protobuf/types"
+	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	"github.com/golang/glog"
+	"github.com/golang/protobuf/ptypes/wrappers"
 
 	smcEndpoint "github.com/deislabs/smc/pkg/endpoint"
 	"github.com/deislabs/smc/pkg/log"
@@ -48,7 +48,7 @@ func NewClusterLoadAssignment(targetServiceName smcEndpoint.ServiceName, weighte
 						Address: &core.Address{
 							Address: &core.Address_SocketAddress{
 								SocketAddress: &core.SocketAddress{
-									Protocol: core.TCP,
+									Protocol: core.SocketAddress_TCP,
 									Address:  string(meshEndpoint.IP),
 									PortSpecifier: &core.SocketAddress_PortValue{
 										PortValue: uint32(meshEndpoint.Port),
@@ -58,7 +58,7 @@ func NewClusterLoadAssignment(targetServiceName smcEndpoint.ServiceName, weighte
 						},
 					},
 				},
-				LoadBalancingWeight: &types.UInt32Value{
+				LoadBalancingWeight: &wrappers.UInt32Value{
 					Value: weight,
 				},
 			}

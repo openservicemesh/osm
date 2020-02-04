@@ -1,11 +1,11 @@
 package route
 
 import (
-	endpoint2 "github.com/deislabs/smc/pkg/endpoint"
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"github.com/golang/glog"
 
+	smcEndpoint "github.com/deislabs/smc/pkg/endpoint"
 	"github.com/deislabs/smc/pkg/log"
 )
 
@@ -17,7 +17,7 @@ const (
 //NewRouteConfiguration consrtucts the Envoy construct necessary for TrafficTarget implementation
 // todo (snchh) : need to figure out linking to name spaces
 // todo (snchh) : trafficPolicies.PolicyRoutePaths.RoutePathMethods not used
-func NewRouteConfiguration(trafficPolicies endpoint2.TrafficTargetPolicies) v2.RouteConfiguration {
+func NewRouteConfiguration(trafficPolicies smcEndpoint.TrafficTargetPolicies) v2.RouteConfiguration {
 
 	routeConfiguration := v2.RouteConfiguration{
 		Name: trafficPolicies.PolicyName,

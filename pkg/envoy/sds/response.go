@@ -5,10 +5,10 @@ import (
 	"time"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	"github.com/gogo/protobuf/types"
+	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
+	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	"github.com/golang/glog"
+	"github.com/golang/protobuf/ptypes"
 
 	"github.com/deislabs/smc/pkg/envoy"
 	"github.com/deislabs/smc/pkg/log"
@@ -30,7 +30,12 @@ func (s *Server) newDiscoveryResponse(proxy envoy.Proxyer) (*v2.DiscoveryRespons
 		TypeUrl: typeUrl,
 	}
 
-	services := []string{"server_cert", "bookstore.mesh", "bookstore-1", "bookstore-2"}
+	services := []string{
+		envoy.CertificateName,
+		"bookstore.mesh",
+		"bookstore-1",
+		"bookstore-2",
+	}
 
 	for _, svc := range services {
 		secret := &auth.Secret{
@@ -51,7 +56,7 @@ func (s *Server) newDiscoveryResponse(proxy envoy.Proxyer) (*v2.DiscoveryRespons
 				},
 			},
 		}
-		marshalledSecret, err := types.MarshalAny(secret)
+		marshalledSecret, err := ptypes.MarshalAny(secret)
 		if err != nil {
 			glog.Errorf("[%s] Failed to marshal secret for proxy %s: %v", serverName, proxy.GetCommonName(), err)
 			return nil, err
