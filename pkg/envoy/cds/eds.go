@@ -17,6 +17,6 @@ func getEDS() *v2.Cluster {
 		Name:                 edsClusterName,
 		Http2ProtocolOptions: getHttp2(),
 		TransportSocket:      getTransportSocket(),
-		LoadAssignment:       getLoadAssignment(edsAddress, edsPort),
+		LoadAssignment:       getLoadAssignment(edsClusterName, edsAddress, edsPort),
 	}
 }

@@ -5,20 +5,11 @@ import (
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes"
 )
 
 func getServiceCluster(clusterName string) *xds.Cluster {
 	connTimeout := ptypes.DurationProto(10 * time.Second)
-
-	tls, err := ptypes.MarshalAny(getUpstreamTLS())
-
-	if err != nil {
-		glog.Error("[CDS] Could not marshal the Upstream TLS: ", err)
-		return nil
-	}
-
 	return &xds.Cluster{
 		// The name must match the domain being cURLed in the demo
 		Name:                          clusterName,
@@ -50,11 +41,6 @@ func getServiceCluster(clusterName string) *xds.Cluster {
 				},
 			},
 		},
-		TransportSocket: &core.TransportSocket{
-			Name: "envoy.transport_sockets.tls",
-			ConfigType: &core.TransportSocket_TypedConfig{
-				TypedConfig: tls,
-			},
-		},
+		TransportSocket: getTransportSocket(),
 	}
 }

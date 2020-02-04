@@ -5,8 +5,9 @@ import (
 )
 
 const (
-	sdsAddress = "sds.smc.svc.cluster.local"
-	sdsPort    = uint32(15123)
+	sdsClusterName = "sds"
+	sdsAddress     = "sds.smc.svc.cluster.local"
+	sdsPort        = uint32(15123)
 )
 
 func getSDS() *v2.Cluster {
@@ -16,6 +17,6 @@ func getSDS() *v2.Cluster {
 		Name:                 sdsClusterName,
 		Http2ProtocolOptions: getHttp2(),
 		TransportSocket:      getTransportSocket(),
-		LoadAssignment:       getLoadAssignment(sdsAddress, sdsPort),
+		LoadAssignment:       getLoadAssignment(sdsClusterName, sdsAddress, sdsPort),
 	}
 }

@@ -12,10 +12,6 @@ import (
 	"github.com/deislabs/smc/pkg/log"
 )
 
-const (
-	sdsClusterName = "sds"
-)
-
 func (s *Server) newDiscoveryResponse(proxy envoy.Proxyer) (*xds.DiscoveryResponse, error) {
 	glog.Infof("[%s] Composing Cluster Discovery Response for proxy: %s", serverName, proxy.GetCommonName())
 	resp := &xds.DiscoveryResponse{
@@ -23,13 +19,13 @@ func (s *Server) newDiscoveryResponse(proxy envoy.Proxyer) (*xds.DiscoveryRespon
 	}
 
 	clusterFactories := []func() *xds.Cluster{
+		getEDS,
+		getRDS,
+		getSDS,
 		func() *xds.Cluster {
 			// The name must match the domain being cURLed in the demo
 			return getServiceCluster("bookstore.mesh")
 		},
-		getEDS,
-		getRDS,
-		getSDS,
 	}
 
 	for _, factory := range clusterFactories {

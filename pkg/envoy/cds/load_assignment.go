@@ -6,9 +6,9 @@ import (
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 )
 
-func getLoadAssignment(address string, port uint32) *v2.ClusterLoadAssignment {
+func getLoadAssignment(clusterName string, address string, port uint32) *v2.ClusterLoadAssignment {
 	return &v2.ClusterLoadAssignment{
-		ClusterName: edsClusterName,
+		ClusterName: clusterName,
 		Endpoints: []*endpoint.LocalityLbEndpoints{
 			{
 				LbEndpoints: []*endpoint.LbEndpoint{

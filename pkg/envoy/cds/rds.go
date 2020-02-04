@@ -17,6 +17,6 @@ func getRDS() *v2.Cluster {
 		Name:                 rdsClusterName,
 		Http2ProtocolOptions: getHttp2(),
 		TransportSocket:      getTransportSocket(),
-		LoadAssignment:       getLoadAssignment(rdsAddress, rdsPort),
+		LoadAssignment:       getLoadAssignment(rdsClusterName, rdsAddress, rdsPort),
 	}
 }
