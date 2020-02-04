@@ -4,6 +4,7 @@ import (
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"github.com/golang/glog"
+	"github.com/golang/protobuf/ptypes/wrappers"
 
 	smcEndpoint "github.com/deislabs/smc/pkg/endpoint"
 	"github.com/deislabs/smc/pkg/log"
@@ -34,13 +35,25 @@ func NewRouteConfiguration(trafficPolicies smcEndpoint.TrafficTargetPolicies) v2
 				PathSpecifier: &route.RouteMatch_Prefix{
 					Prefix: routePaths.RoutePathRegex,
 				},
-				Grpc: &route.RouteMatch_GrpcRouteMatchOptions{},
+				// TODO - should we keep this?? -- Grpc: &route.RouteMatch_GrpcRouteMatchOptions{},
 			},
 			Action: &route.Route_Route{
 				Route: &route.RouteAction{
-					ClusterNotFoundResponseCode: route.RouteAction_SERVICE_UNAVAILABLE,
-					ClusterSpecifier: &route.RouteAction_Cluster{
-						Cluster: trafficPolicies.Destination,
+					// TODO -- should we keep this -- ClusterNotFoundResponseCode: route.RouteAction_SERVICE_UNAVAILABLE,
+					/*
+						ClusterSpecifier: &route.RouteAction_Cluster{
+							Cluster: trafficPolicies.Destination,
+						},
+					*/
+					ClusterSpecifier: &route.RouteAction_WeightedClusters{
+						WeightedClusters: &route.WeightedCluster{
+							Clusters: []*route.WeightedCluster_ClusterWeight{{
+								Name: "bookstore.mesh",
+								Weight: &wrappers.UInt32Value{
+									Value: 100,
+								},
+							}},
+						},
 					},
 				},
 			},

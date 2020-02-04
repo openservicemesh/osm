@@ -25,7 +25,9 @@ dynamic_resources:
           cluster_name: lds
 
 static_resources:
+
   clusters:
+
   - name: cds
     connect_timeout: 0.25s
     type: LOGICAL_DNS
@@ -71,7 +73,7 @@ static_resources:
               socket_address:
                 address: lds.smc.svc.cluster.local
                 port_value: 15127
-      
+
   - name: eds
     connect_timeout: 0.25s
     type: LOGICAL_DNS
@@ -94,3 +96,26 @@ static_resources:
               socket_address:
                 address: eds.smc.svc.cluster.local
                 port_value: 15124
+
+  - name: rds
+    connect_timeout: 0.25s
+    type: LOGICAL_DNS
+    http2_protocol_options: {}
+    tls_context:
+      common_tls_context:
+        tls_params:
+          tls_minimum_protocol_version: TLSv1_2
+          tls_maximum_protocol_version: TLSv1_3
+          cipher_suites: "[ECDHE-ECDSA-AES128-GCM-SHA256|ECDHE-ECDSA-CHACHA20-POLY1305]"
+        tls_certificates:
+          - certificate_chain: { filename: "/etc/ssl/certs/cert.pem" }
+            private_key: { filename: "/etc/ssl/certs/key.pem" }
+    load_assignment:
+      cluster_name: rds
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: rds.smc.svc.cluster.local
+                port_value: 15126

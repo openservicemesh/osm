@@ -1,92 +1,126 @@
 package lds
 
 import (
-	accesslogconfig "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v2"
-	accessLogV2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
-	connMgr "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
+	"github.com/deislabs/smc/pkg/envoy"
+	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	"github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	envoy_hcm "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/glog"
-	"github.com/golang/protobuf/ptypes"
-	structpb "github.com/golang/protobuf/ptypes/struct"
 )
 
 const (
-	serverNameTODO  = "serverNameTODO"
-	routeConfigName = "upstream"
-	statPrefix      = "http"
-	accessLogPath   = "/dev/stdout"
+	statPrefix     = "http"
+	rdsClusterName = "rds"
 )
 
-func getConnManager() *connMgr.HttpConnectionManager {
-	accessLog, err := ptypes.MarshalAny(getFileAccessLog())
-	if err != nil {
-		glog.Error("[LDS] Could con construct HttpConnectionManager struct: ", err)
-		return nil
+func getConnManagerInbound() *envoy_hcm.HttpConnectionManager {
+	return &envoy_hcm.HttpConnectionManager{
+		StatPrefix: "http",
+		CodecType:  envoy_hcm.HttpConnectionManager_AUTO,
+		HttpFilters: []*envoy_hcm.HttpFilter{{
+			Name: wellknown.Router,
+		}},
+		RouteSpecifier: &envoy_hcm.HttpConnectionManager_RouteConfig{
+			RouteConfig: &xds.RouteConfiguration{
+				VirtualHosts: []*route.VirtualHost{{
+					Name:    "backend",
+					Domains: []string{"*"},
+					Routes: []*route.Route{{
+						Match: &route.RouteMatch{
+							PathSpecifier: &route.RouteMatch_Prefix{
+								Prefix: "/",
+							},
+						},
+						Action: &route.Route_Route{
+							Route: &route.RouteAction{
+								ClusterSpecifier: &route.RouteAction_Cluster{
+									Cluster: "bookstore-local",
+								},
+								// PrefixRewrite: "/stats/prometheus", // well-known Admin API endpoint
+							},
+						},
+					}},
+				}},
+			},
+		},
+		AccessLog: envoy.GetAccessLog(),
 	}
+}
 
-	rdsSource := getRDSSource()
-
-	return &connMgr.HttpConnectionManager{
-		ServerName: serverNameTODO,
-		CodecType:  connMgr.HttpConnectionManager_AUTO,
+func getConnManagerOutbound() *envoy_hcm.HttpConnectionManager {
+	return &envoy_hcm.HttpConnectionManager{
 		StatPrefix: statPrefix,
-		RouteSpecifier: &connMgr.HttpConnectionManager_Rds{
-			Rds: &connMgr.Rds{
-				RouteConfigName: routeConfigName,
-				ConfigSource:    rdsSource,
+		CodecType:  envoy_hcm.HttpConnectionManager_AUTO,
+		HttpFilters: []*envoy_hcm.HttpFilter{{
+			Name: wellknown.Router,
+		}},
+		RouteSpecifier: &envoy_hcm.HttpConnectionManager_RouteConfig{
+			RouteConfig: &xds.RouteConfiguration{
+				VirtualHosts: []*route.VirtualHost{{
+					Name:    "envoy_admin",
+					Domains: []string{"*"},
+					Routes: []*route.Route{{
+						Match: &route.RouteMatch{
+							PathSpecifier: &route.RouteMatch_Prefix{
+								Prefix: "/",
+							},
+						},
+						Action: &route.Route_Route{
+							Route: &route.RouteAction{
+								ClusterSpecifier: &route.RouteAction_Cluster{
+									Cluster: "bookstore.mesh",
+								},
+								// PrefixRewrite: "/stats/prometheus", // well-known Admin API endpoint
+							},
+						},
+					}},
+				}},
 			},
 		},
-		HttpFilters: []*connMgr.HttpFilter{
-			{
-				Name: wellknown.Router,
-			},
-		},
-		AccessLog: []*accessLogV2.AccessLog{
-			{
-				Name: wellknown.FileAccessLog,
-				ConfigType: &accessLogV2.AccessLog_TypedConfig{
-					TypedConfig: accessLog,
+
+		/*
+				HttpFilters: []*connMgr.HttpFilter{
+				{
+					Name: wellknown.Router,
 				},
 			},
-		},
+		*/
+		AccessLog: envoy.GetAccessLog(),
 	}
 }
 
-func getFileAccessLog() *accesslogconfig.FileAccessLog {
-	accessLogger := &accesslogconfig.FileAccessLog{
-		Path: accessLogPath,
-		AccessLogFormat: &accesslogconfig.FileAccessLog_JsonFormat{
-			JsonFormat: &structpb.Struct{
-				Fields: map[string]*structpb.Value{
-					"start_time":            pbStringValue(`%START_TIME%`),
-					"method":                pbStringValue(`%REQ(:METHOD)%`),
-					"path":                  pbStringValue(`%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%`),
-					"protocol":              pbStringValue(`%PROTOCOL%`),
-					"response_code":         pbStringValue(`%RESPONSE_CODE%`),
-					"response_code_details": pbStringValue(`%RESPONSE_CODE_DETAILS%`),
-					"time_to_first_byte":    pbStringValue(`%RESPONSE_DURATION%`),
-					"upstream_cluster":      pbStringValue(`%UPSTREAM_CLUSTER%`),
-					"response_flags":        pbStringValue(`%RESPONSE_FLAGS%`),
-					"bytes_received":        pbStringValue(`%BYTES_RECEIVED%`),
-					"bytes_sent":            pbStringValue(`%BYTES_SENT%`),
-					"duration":              pbStringValue(`%DURATION%`),
-					"upstream_service_time": pbStringValue(`%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%`),
-					"x_forwarded_for":       pbStringValue(`%REQ(X-FORWARDED-FOR)%`),
-					"user_agent":            pbStringValue(`%REQ(USER-AGENT)%`),
-					"request_id":            pbStringValue(`%REQ(X-REQUEST-ID)%`),
-					"authority":             pbStringValue(`%REQ(:AUTHORITY)%`),
-					"upstream_host":         pbStringValue(`%UPSTREAM_HOST%`),
-				},
+func getRouteConfig() *xds.RouteConfiguration {
+	routeConfiguration := xds.RouteConfiguration{
+		Name: "bookstore_route",
+		VirtualHosts: []*route.VirtualHost{{
+			Name:    "bookstore_host",
+			Domains: []string{"*"},
+			Routes:  []*route.Route{},
+		}},
+	}
+
+	rt := route.Route{
+		Match: &route.RouteMatch{
+			PathSpecifier: &route.RouteMatch_Prefix{
+				Prefix: "/",
+			},
+			// Grpc: &route.RouteMatch_GrpcRouteMatchOptions{},
+		},
+
+		Action: &route.Route_Route{
+			Route: &route.RouteAction{
+				// ClusterNotFoundResponseCode: route.RouteAction_SERVICE_UNAVAILABLE,
+				/*
+					ClusterSpecifier: &route.RouteAction_Cluster{
+						Cluster: "bookstore.mesh",
+					},
+				*/
+				ClusterSpecifier: envoy.GetWeightedCluster("bookstore.mesh", 100),
 			},
 		},
 	}
-	return accessLogger
-}
-
-func pbStringValue(v string) *structpb.Value {
-	return &structpb.Value{
-		Kind: &structpb.Value_StringValue{
-			StringValue: v,
-		},
-	}
+	routeConfiguration.VirtualHosts[0].Routes = append(routeConfiguration.VirtualHosts[0].Routes, &rt)
+	glog.Infof("[RDS] Constructed RouteConfiguration: %+v", routeConfiguration)
+	return &routeConfiguration
 }

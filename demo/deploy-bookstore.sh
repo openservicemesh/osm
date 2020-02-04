@@ -74,8 +74,6 @@ spec:
           volumeMounts:
            - name: config-volume
              mountPath: /etc/config
-           - name: certs-volume
-             mountPath: /etc/certs
            # Bootstrap certificates
            - name: ca-certpemstore
              mountPath: /etc/ssl/certs/cert.pem
@@ -90,9 +88,6 @@ spec:
         - name: config-volume
           configMap:
             name: envoyproxy-config
-        - name: certs-volume
-          configMap:
-            name: certificates-config
         # Bootstrap certificates
         - name: ca-certpemstore
           configMap:

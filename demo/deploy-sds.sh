@@ -59,7 +59,7 @@ spec:
         - "--kubeconfig"
         - "/kube/config"
         - "--verbosity"
-        - "25"
+        - "17"
         - "--certpem"
         - "/etc/ssl/certs/cert.pem"
         - "--keypem"

@@ -47,5 +47,5 @@ func (s *Server) FetchClusters(ctx context.Context, discReq *xds.DiscoveryReques
 	s.catalog.RegisterProxy(proxy)
 
 	glog.Infof("[%s][FetchClusters] Responding to proxy %s", serverName, proxy.GetCommonName())
-	return s.newDiscoveryResponse(proxy)
+	return s.newClusterDiscoveryResponse(proxy)
 }

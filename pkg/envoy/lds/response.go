@@ -5,6 +5,8 @@ import (
 	"time"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	listener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
+	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes"
 
@@ -18,26 +20,71 @@ func (s *Server) newDiscoveryResponse(proxy envoy.Proxyer) (*xds.DiscoveryRespon
 		TypeUrl: typeUrl,
 	}
 
-	listenerName := "the___listener"
-
-	lisnr := &xds.Listener{
-		Name:         listenerName,
-		Address:      getAddress(),
-		FilterChains: getFilterChain(),
-	}
-	marshalledListeners, err := ptypes.MarshalAny(lisnr)
+	connManager, err := ptypes.MarshalAny(getConnManagerOutbound())
 	if err != nil {
-		glog.Errorf("[%s] Failed to marshal listener for proxy %s: %v", serverName, proxy.GetCommonName(), err)
+		glog.Error("[LDS] Could not construct FilterChain: ", err)
 		return nil, err
 	}
-	resp.Resources = append(resp.Resources, marshalledListeners)
+	listenerOutbound := &xds.Listener{
+		Name:    "outbound_listener",
+		Address: envoy.GetAddress("0.0.0.0", 15001),
+		FilterChains: []*listener.FilterChain{
+			{
+				Filters: []*listener.Filter{
+					{
+						Name: wellknown.HTTPConnectionManager,
+						ConfigType: &listener.Filter_TypedConfig{
+							TypedConfig: connManager,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	connManagerInbound, err := ptypes.MarshalAny(getConnManagerInbound())
+	if err != nil {
+		glog.Error("[LDS] Could not construct inbound listener FilterChain: ", err)
+		return nil, err
+	}
+
+	listenerInbound := &xds.Listener{
+		Name:    "inbound_listener",
+		Address: envoy.GetAddress("0.0.0.0", 15003),
+		FilterChains: []*listener.FilterChain{
+			{
+				Filters: []*listener.Filter{
+					{
+						Name: wellknown.HTTPConnectionManager,
+						ConfigType: &listener.Filter_TypedConfig{
+							TypedConfig: connManagerInbound,
+						},
+					},
+				},
+			},
+		},
+	}
+	glog.Infof("[LDS] Constructed Outbound Listener: %+v", listenerOutbound)
+	glog.Infof("[LDS] Constructed Inbound Listener: %+v", listenerInbound)
+
+	marshalledOutbound, err := ptypes.MarshalAny(listenerOutbound)
+	if err != nil {
+		glog.Errorf("[%s] Failed to marshal outbound listener for proxy %s: %v", serverName, proxy.GetCommonName(), err)
+		return nil, err
+	}
+	resp.Resources = append(resp.Resources, marshalledOutbound)
+
+	marshalledInbound, err := ptypes.MarshalAny(listenerInbound)
+	if err != nil {
+		glog.Errorf("[%s] Failed to marshal inbound listener for proxy %s: %v", serverName, proxy.GetCommonName(), err)
+		return nil, err
+	}
+	resp.Resources = append(resp.Resources, marshalledInbound)
 
 	s.lastVersion = s.lastVersion + 1
 	s.lastNonce = string(time.Now().Nanosecond())
 	resp.Nonce = s.lastNonce
 	resp.VersionInfo = fmt.Sprintf("v%d", s.lastVersion)
-
 	glog.V(log.LvlTrace).Infof("[%s] Constructed response: %+v", serverName, resp)
-
 	return resp, nil
 }
