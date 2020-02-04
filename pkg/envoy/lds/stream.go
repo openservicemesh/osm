@@ -26,11 +26,6 @@ func (s *Server) StreamListeners(server xds.ListenerDiscoveryService_StreamListe
 		return errors.Wrapf(err, "[%s] Could not start StreamListeners", serverName)
 	}
 
-	// Register the newly connected proxy w/ the catalog.
-	ip := utils.GetIPFromContext(server.Context())
-	proxy := envoy.NewProxy(cn, ip)
-	s.catalog.RegisterProxy(envoy.NewProxy(cn, ip))
-
 	// TODO(draychev): Use the Subject Common Name to identify the Envoy proxy and determine what service it belongs to.
 	glog.Infof("[%s][stream] Client connected: Subject CN=%s", serverName, cn)
 
@@ -38,12 +33,15 @@ func (s *Server) StreamListeners(server xds.ListenerDiscoveryService_StreamListe
 		return err
 	}
 
+	// Register the newly connected proxy w/ the catalog.
+	ip := utils.GetIPFromContext(server.Context())
+	proxy := envoy.NewProxy(cn, ip)
+	msgCh := s.catalog.ProxyRegister(proxy.GetID())
+	defer s.catalog.ProxyUnregister(proxy.GetID())
+
 	// var recvErr error
 	reqChannel := make(chan *xds.DiscoveryRequest)
 	go receive(reqChannel, server)
-
-	// TODO(draychev): filter on announcement type; only respond to Listeners change
-	announcements := s.catalog.GetAnnouncementChannel()
 
 	for {
 		select {
@@ -77,8 +75,8 @@ func (s *Server) StreamListeners(server xds.ListenerDiscoveryService_StreamListe
 			glog.Infof("Deliberately sleeping for %d seconds...", sleepTime)
 			time.Sleep(sleepTime * time.Second)
 
-		case <-announcements:
-			glog.Infof("[%s][outgoing] Listeners change announcement received.", serverName)
+		case <-msgCh:
+			glog.Infof("[%s][outgoing] Listeners change msg received.", serverName)
 			response, err := s.newListenerDiscoveryResponse(proxy)
 			if err != nil {
 				glog.Errorf("[%s] Failed constructing Listener Discovery Response: %+v", serverName, err)

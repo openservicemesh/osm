@@ -2,7 +2,6 @@ package cds
 
 import (
 	"context"
-	"time"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
@@ -28,25 +27,16 @@ func (s *Server) StreamClusters(server xds.ClusterDiscoveryService_StreamCluster
 		return errors.Wrap(err, "[%s] Could not start stream")
 	}
 
+	glog.Infof("[%s][stream] Client connected: Subject CN=%s", serverName, cn)
+
 	// Register the newly connected proxy w/ the catalog.
 	ip := utils.GetIPFromContext(server.Context())
 	proxy := envoy.NewProxy(cn, ip)
-	s.catalog.RegisterProxy(envoy.NewProxy(cn, ip))
-	glog.Infof("[%s][stream] Client connected: Subject CN=%s", serverName, cn)
+	msgCh := s.catalog.ProxyRegister(proxy.GetID())
+	defer s.catalog.ProxyUnregister(proxy.GetID())
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-
-	// Periodic Updates -- useful for debugging
-	go func() {
-		counter := 0
-		for {
-			glog.V(log.LvlTrace).Infof("------------------------- %s Periodic Update %d -------------------------", serverName, counter)
-			counter++
-			s.announcements <- struct{}{}
-			time.Sleep(5 * time.Second)
-		}
-	}()
 
 	for {
 		request, err := server.Recv()
@@ -64,9 +54,9 @@ func (s *Server) StreamClusters(server xds.ClusterDiscoveryService_StreamCluster
 			select {
 			case <-ctx.Done():
 				return nil
-			case <-s.announcements:
+			case <-msgCh:
 				// NOTE: This is deliberately only focused on providing MVP tools to run a TrafficRoute demo.
-				glog.V(log.LvlInfo).Infof("[%s][stream] Received a change announcement! Updating all Envoy proxies.", serverName)
+				glog.V(log.LvlInfo).Infof("[%s][stream] Received a change msg! Updating all Envoy proxies.", serverName)
 				resp, err := s.newClusterDiscoveryResponse(proxy)
 				if err != nil {
 					glog.Errorf("[%s][stream] Failed composing a DiscoveryResponse: %+v", serverName, err)

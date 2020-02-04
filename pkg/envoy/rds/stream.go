@@ -2,7 +2,6 @@ package rds
 
 import (
 	"context"
-	"time"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
@@ -29,25 +28,16 @@ func (e *Server) StreamRoutes(server xds.RouteDiscoveryService_StreamRoutesServe
 		return errors.Wrapf(err, "[%s] Could not start StreamRoutes", serverName)
 	}
 
+	glog.Infof("[%s][stream] Client connected: Subject CN=%s", serverName, cn)
+
 	// Register the newly connected proxy w/ the catalog.
 	ip := utils.GetIPFromContext(server.Context())
 	proxy := envoy.NewProxy(cn, ip)
-	e.catalog.RegisterProxy(proxy)
-	glog.Infof("[%s][stream] Client connected: Subject CN=%s", serverName, cn)
+	msgCh := e.catalog.ProxyRegister(proxy.GetID())
+	defer e.catalog.ProxyUnregister(proxy.GetID())
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-
-	// Periodic Updates -- useful for debugging
-	go func() {
-		counter := 0
-		for {
-			glog.V(log.LvlTrace).Infof("------------------------- %s Periodic Update %d -------------------------", serverName, counter)
-			counter++
-			e.announcements <- struct{}{}
-			time.Sleep(5 * time.Second)
-		}
-	}()
 
 	for {
 		request, err := server.Recv()
@@ -65,9 +55,9 @@ func (e *Server) StreamRoutes(server xds.RouteDiscoveryService_StreamRoutesServe
 			select {
 			case <-ctx.Done():
 				return nil
-			case <-e.announcements:
+			case <-msgCh:
 				// NOTE: This is deliberately only focused on providing MVP tools to run a TrafficRoute demo.
-				glog.V(log.LvlInfo).Infof("[%s][stream] Received a change announcement! Updating all Envoy proxies.", serverName)
+				glog.V(log.LvlInfo).Infof("[%s][stream] Received a change msg! Updating all Envoy proxies.", serverName)
 				// TODO: flesh out the ClientIdentity for this similar to eds.go
 				trafficPolicies, err := e.catalog.ListTrafficRoutes("TBD")
 				if err != nil {

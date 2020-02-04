@@ -21,21 +21,20 @@ func (s *Server) StreamSecrets(server v2.SecretDiscoveryService_StreamSecretsSer
 		return errors.Wrap(err, "[%s] Could not start stream")
 	}
 
-	// Register the newly connected proxy w/ the catalog.
-	ip := utils.GetIPFromContext(server.Context())
-	proxy := envoy.NewProxy(cn, ip)
-	s.catalog.RegisterProxy(proxy)
 	glog.Infof("[%s][stream] Client connected: Subject CN=%+v", serverName, cn)
 
 	if err := s.isConnectionAllowed(); err != nil {
 		return err
 	}
 
+	// Register the newly connected proxy w/ the catalog.
+	ip := utils.GetIPFromContext(server.Context())
+	proxy := envoy.NewProxy(cn, ip)
+	msgCh := s.catalog.ProxyRegister(proxy.GetID())
+	defer s.catalog.ProxyUnregister(proxy.GetID())
+
 	reqChannel := make(chan *envoyv2.DiscoveryRequest)
 	go receive(reqChannel, server)
-
-	// TODO(draychev): filter on announcement type; only respond to secrets change
-	announcements := s.catalog.GetAnnouncementChannel()
 
 	for {
 		select {
@@ -69,8 +68,8 @@ func (s *Server) StreamSecrets(server v2.SecretDiscoveryService_StreamSecretsSer
 			glog.Infof("Deliberately sleeping for %d seconds...", sleepTime)
 			time.Sleep(sleepTime * time.Second)
 
-		case <-announcements:
-			glog.Infof("[%s][outgoing] Secrets change announcement received.", serverName)
+		case <-msgCh:
+			glog.Infof("[%s][outgoing] Secrets change msg received.", serverName)
 			response, err := s.newSecretDiscoveryResponse(proxy)
 			if err != nil {
 				glog.Errorf("[%s] Failed constructing Secret Discovery Response: %+v", serverName, err)

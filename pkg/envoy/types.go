@@ -19,4 +19,6 @@ type Proxyer interface {
 
 	// GetIP returns the IP address of the proxy.
 	GetIP() net.IP
+
+	GetID() string
 }
