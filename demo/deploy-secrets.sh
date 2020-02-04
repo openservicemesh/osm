@@ -2,6 +2,7 @@
 
 set -aueo pipefail
 
+# shellcheck disable=SC1091
 source .env
 
 echo -e "Add secrets"

@@ -2,6 +2,7 @@
 
 set -aueo pipefail
 
+# shellcheck disable=SC1091
 source .env
 
 kubectl delete deployment bookbuyer -n "$K8S_NAMESPACE"  || true
@@ -126,5 +127,5 @@ kubectl get endpoints --no-headers -o wide --selector app=bookbuyer -n "$K8S_NAM
 kubectl get service                -o wide                          -n "$K8S_NAMESPACE"
 
 for x in $(kubectl get service -n "$K8S_NAMESPACE" --selector app=bookbuyer --no-headers | awk '{print $1}'); do
-    kubectl get service $x -n "$K8S_NAMESPACE" -o jsonpath='{.status.loadBalancer.ingress[*].ip}'
+    kubectl get service "$x" -n "$K8S_NAMESPACE" -o jsonpath='{.status.loadBalancer.ingress[*].ip}'
 done

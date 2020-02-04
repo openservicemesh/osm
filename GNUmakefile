@@ -197,4 +197,4 @@ generate-crds:
 
 .PHONY: shellcheck
 shellcheck:
-	shellcheck $(shell find . -name '*.sh' -not -path ./vendor)
+	shellcheck -x ./*.sh ./**/*.sh

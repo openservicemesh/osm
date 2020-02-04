@@ -11,6 +11,7 @@ if [ ! -f ".env" ]; then
     exit 1
 fi
 
+# shellcheck disable=SC1091
 source .env
 
 ./bin/rds \
@@ -21,5 +22,4 @@ source .env
     --azureAuthFile="$HOME/.azure/azureAuth.json" \
     --subscriptionID="$AZURE_SUBSCRIPTION" \
     --namespace="$K8S_NAMESPACE" \
-    --verbosity=7
     --verbosity=25
