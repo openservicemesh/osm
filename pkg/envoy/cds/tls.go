@@ -20,33 +20,31 @@ func getTransportSocket() *core.TransportSocket {
 	}
 }
 
+func buildTlsCertChain() *auth.TlsCertificate {
+	return &auth.TlsCertificate{
+		CertificateChain: &core.DataSource{
+			Specifier: &core.DataSource_Filename{
+				Filename: "/etc/ssl/certs/cert.pem",
+			},
+		},
+		PrivateKey: &core.DataSource{
+			Specifier: &core.DataSource_Filename{
+				Filename: "/etc/ssl/certs/key.pem",
+			},
+		},
+	}
+}
+
 func getUpstreamTLS() *auth.UpstreamTlsContext {
 	return &auth.UpstreamTlsContext{
 		AllowRenegotiation: true,
 		CommonTlsContext: &auth.CommonTlsContext{
-			TlsParams:       nil,
-			TlsCertificates: nil,
-			TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{
-				{
-					// The Name field must match the auth.Secret.Name from the SDS response
-					Name: envoy.CertificateName,
-					SdsConfig: &core.ConfigSource{
-						ConfigSourceSpecifier: &core.ConfigSource_ApiConfigSource{
-							ApiConfigSource: &core.ApiConfigSource{
-								ApiType: core.ApiConfigSource_GRPC,
-								GrpcServices: []*core.GrpcService{
-									{
-										TargetSpecifier: &core.GrpcService_EnvoyGrpc_{
-											EnvoyGrpc: &core.GrpcService_EnvoyGrpc{
-												ClusterName: sdsClusterName,
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-				},
+			TlsParams: &auth.TlsParameters{
+				TlsMinimumProtocolVersion: 3,
+				TlsMaximumProtocolVersion: 4,
+			},
+			TlsCertificates: []*auth.TlsCertificate{
+				buildTlsCertChain(),
 			},
 		},
 	}
