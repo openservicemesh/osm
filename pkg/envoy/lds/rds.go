@@ -8,7 +8,7 @@ const (
 	rdsClusterName = "rds"
 )
 
-func getRDS() *core.ConfigSource {
+func getRDSSource() *core.ConfigSource {
 	service := &core.GrpcService{
 		TargetSpecifier: &core.GrpcService_EnvoyGrpc_{
 			EnvoyGrpc: &core.GrpcService_EnvoyGrpc{
