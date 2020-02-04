@@ -24,6 +24,10 @@ jobs:
             dep ensure
         fi
 
+    - name: ShellCheck
+      run: |
+        shellcheck $(find . -name *.sh -not -path ./vendor/)
+
     - name: Vet
       run: |
         if go vet -v ./...; then
