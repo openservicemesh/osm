@@ -194,3 +194,7 @@ sds-root-tls:
 .PHONY: generate-crds
 generate-crds:
 	@./crd/generate-AzureResource.sh
+
+.PHONY: shellcheck
+shellcheck:
+	shellcheck $(shell find . -name '*.sh' -not -path ./vendor)

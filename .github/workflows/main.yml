@@ -7,6 +7,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
+    - name: ShellCheck
+      run: |
+        shellcheck $(find . -name '*.sh' -not -path ./vendor)
+
     - name: Set up Go 1.13
       uses: actions/setup-go@v1
       with:
@@ -23,10 +27,6 @@ jobs:
             curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
             dep ensure
         fi
-
-    - name: ShellCheck
-      run: |
-        shellcheck $(find . -name *.sh -not -path ./vendor/)
 
     - name: Vet
       run: |
