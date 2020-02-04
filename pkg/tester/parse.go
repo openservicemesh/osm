@@ -3,6 +3,7 @@ package tester
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 
 	"github.com/golang/glog"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -10,7 +11,7 @@ import (
 )
 
 func LoadService() []runtime.Object {
-	return LoadKubernetesResource("service.yaml")
+	return LoadKubernetesResource("../../pkg/tester/fixtures/service.yaml")
 }
 
 // LoadKubernetesResource loads a Kubernetes YAML file.
@@ -23,12 +24,17 @@ func LoadKubernetesResource(filenames ...string) []runtime.Object {
 		}
 		content, err := ioutil.ReadFile(filename)
 		if err != nil {
-			panic(fmt.Sprintf("Could not load %s: %s", filename, err))
+			workingDir, _ := os.Getwd()
+			panic(fmt.Sprintf("[tester] Could not load %s (cwd=%s): %s", filename, workingDir, err))
 		}
 
 		decode := scheme.Codecs.UniversalDeserializer().Decode
-		obj, groupVersionKind, err := decode([]byte(content), nil, nil)
-		glog.Info("[tester] Loaded: %s", groupVersionKind)
+
+		obj, groupVersionKind, err := decode(content, nil, nil)
+		if err != nil {
+			glog.Fatalf("[tester] Could not decode object %s: %s", filename, err)
+		}
+		glog.Infof("[tester] Loaded: %s %s", groupVersionKind, obj)
 
 		if err != nil {
 			panic(fmt.Sprintf("Error while decoding YAML object. Err was: %s", err))
