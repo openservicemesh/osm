@@ -9,7 +9,7 @@ This document is the detailed design and architecture of the Service Mesh Contro
 ## Overview
 
 Service Mesh Controller (SMC) is a simple, complete, and standalone [service mesh](https://en.wikipedia.org/wiki/Service_mesh) solution.
-SMC provides a full featured control plane. It leverages an architecture based on [Envoy](https://www.envoyproxy.io/) reverse-proxy sidecar
+SMC provides a fully featured control plane. It leverages an architecture based on [Envoy](https://www.envoyproxy.io/) reverse-proxy sidecar
 While by default SMC ships with Envoy, the design utilizes [interfaces](#interfaces), which enable integrations with any xDS compatible reverse-proxy.
 SMC relies on [SMI Spec](https://smi-spec.io/) to reference services that will participate in the service mesh.
 SMC ships out-of-the-box with all necessary components to deploy a complete service mesh spanning multiple compute platforms.
@@ -18,7 +18,7 @@ SMC ships out-of-the-box with all necessary components to deploy a complete serv
 
 ## Use Case
 
-*As on operator of services spanning diverse compute platforms (Kubernetes and Virtual Machines on public and private clouds) I need an open source solution, which will dynamically*:
+*As on operator of services spanning diverse compute platforms (Kubernetes and Virtual Machines on public and private clouds) I need an open-source solution, which will dynamically*:
   - **Apply policies** governing HTTP access between peer services within per-URI granularity
   - **Encrypt traffic** between services leveraging mTLS and short-lived certificates with a custom CA
   - **Rotate certificates** as often as necessary to make these short-lived and remove the need for certificate revocation management
@@ -58,22 +58,22 @@ Let's take a look at each component:
 The proxy control plane plays a key part in operating the [service mesh](https://www.bing.com/search?q=What%27s+a+service+mesh%3F). All proxies are installed as [sidecars](https://docs.microsoft.com/en-us/azure/architecture/patterns/sidecar) and establish an mTLS gRPC connection to the Proxy Control Plane. The proxies continuously receive configuration updates. This component implements the interfaces required by the specific reverse proxy chosen. SMC implements [Envoy's go-control-plane xDS](https://github.com/envoyproxy/go-control-plane).
 
 ### (2) Certificate Manager
-The certificate manager is a component which provides each service participating in the service mesh with a TLS certificate.
+The certificate manager is a component that provides each service participating in the service mesh with a TLS certificate.
 These service certificates are used to establish and encrypt connections between services using mTLS.
 
 ### (3) Endpoints Providers
-The endpoints providers are one or more components which communicate with the compute platforms (Kubernetes, VMs) participating in the service mesh. Endpoints providres resolve service names into lists of IP addresses. The Endpoints Providers understand the specific primitives of the compute provider they are implemented for, such as virtual machines, virtual machine scale sets, and Kubernetes clusters.
+The endpoints providers are one or more components that communicate with the compute platforms (Kubernetes, VMs) participating in the service mesh. Endpoints providers resolve service names into lists of IP addresses. The Endpoints Providers understand the specific primitives of the compute provider they are implemented for, such as virtual machines, virtual machine scale sets, and Kubernetes clusters.
 
 ### (4) Mesh specification
 The mesh specification is a wrapper around the existing [SMI Spec](https://github.com/deislabs/smi-spec) components. This component abstracts the specific storage chosen for the YAML definitions. This module is effectively a wrapper around [SMI Spec's Kubernetes informers](https://github.com/deislabs/smi-sdk-go), currently abstracting away the storage (Kubernetes/etcd) specifics.
 
 ### (5) Mesh catalog
-The mesh catalog is the central component of SMC, which combines the outputs of all other components into a structure, which can then be transformed to proxy configuration and dispatched to all listening proxies via the proxy control plane.
+The mesh catalog is the central component of SMC, which combines the outputs of all other components into a structure, which can then be transformed into proxy configuration and dispatched to all listening proxies via the proxy control plane.
 This component:
   1. Communicates with the [mesh specification module  (4)](#4-mesh-specification) to detect when a service was created, changed, or deleted via [SMI Spec](https://github.com/deislabs/smi-spec).
   1. Reaches out to the [certificate manager (2)](#2-certificate-manager) and requests a new TLS certificate for the newly discovered service.
   1. Retrieves the IP addresses of the mesh workloads by observing the compute platforms via the [endpoints providers (3)](#3-endpoints-providers).
-  1. Combines the outputs of 1, 2, and 3 above into a data structure, which is then passed to the [proxy control plane (1)](#1-proxy-control-plane), serialized, and sent to all relevant connected proxies.
+  1. Combines the outputs of 1, 2, and 3 above into a data structure, which is then passed to the [proxy control plane (1)](#1-proxy-control-plane), serialized and sent to all relevant connected proxies.
 
 ![diagram](https://user-images.githubusercontent.com/49918230/73008758-27b3a800-3e07-11ea-894e-93f53e08731e.png)
 ([source](https://microsoft-my.sharepoint.com/:p:/p/derayche/EZRZ-xXd06dFqlWJG5nn2wkBQCm8MMlAtRcNk6Yuir9XhA?e=zPw4FZ))
@@ -92,16 +92,16 @@ This section outlines the conventions adopted and guiding the development of the
     - (G) Kubernetes Pod - container running on a Kubernetes cluster, listening for connections on IP 1.2.3.12, port 81.
     - (H) On-prem compute - process running on a machine within the customer's private data center, listening for connections on IP 1.2.3.13, port 81.
 
-The [Service (C)](#c-service) is assigned a Certificate (D), and is associated with an SMI Spec Policy (E).
-Traffic for [Service (C)](#c-service) is handled by the Endpoints (F,G,H), where each endpoint is augmented with a Proxy (A).
-The Proxy (A) has a dedicated Certificate (B), which is different than the Service Cert (D), and is used for mTLS connection from the Proxy to the [proxy control plane](#1-proxy-control-plane).
+The [Service (C)](#c-service) is assigned a Certificate (D) and is associated with an SMI Spec Policy (E).
+Traffic for [Service (C)](#c-service) is handled by the Endpoints (F, G, H) where each endpoint is augmented with a Proxy (A).
+The Proxy (A) has a dedicated Certificate (B), which is different from the Service Cert (D), and is used for mTLS connection from the Proxy to the [proxy control plane](#1-proxy-control-plane).
 
 
 ![service-relationships-diagram](https://user-images.githubusercontent.com/49918230/73034530-1a191500-3e3d-11ea-9a35-a1fd8cce8b53.png)
 
 
 ### (C) Service
-Service in the diagram above is a [Kubernetes service resource](https://kubernetes.io/docs/concepts/services-networking/service/) referenced in SMI Spec. Example is the `bookstore` service defined below and referenced by a `TrafficSplit` policy:
+Service in the diagram above is a [Kubernetes service resource](https://kubernetes.io/docs/concepts/services-networking/service/) referenced in SMI Spec. An example is the `bookstore` service defined below and referenced by a `TrafficSplit` policy:
 ```yaml
 apiVersion: v1
 kind: Service
@@ -162,7 +162,7 @@ We refer to these certificates as `ProxyCertificate` in the [interfaces](#interf
 This certificate's Common Name leverages the DNS-1123 standard with the following format: `<proxy-UUID>.<service-name>`. The chosen format allows us to uniquely identify the connected proxy (`proxy-UUID`) and the service, which this proxy belongs to (`service-name`).
 
 ### (E) Policy
-The policy component referenced in the diagram above (E) is any [SMI Spec resource](https://github.com/deislabs/smi-spec#service-mesh-interface) referencing the [service (C)](#c-service). For instance `TrafficSplit`, referencing a services `bookstore`, and `bookstore-v1`:
+The policy component referenced in the diagram above (E) is any [SMI Spec resource](https://github.com/deislabs/smi-spec#service-mesh-interface) referencing the [service (C)](#c-service). For instance, `TrafficSplit`, referencing a services `bookstore`, and `bookstore-v1`:
 ```yaml
 apiVersion: split.smi-spec.io/v1alpha2
 kind: TrafficSplit
@@ -178,11 +178,11 @@ spec:
 ### Certificate lifetime
 The service certificates issued by the [Certificate Manager](#2-certificate-manager) are short-lived certificates, with a validity of approximately 48 hours.
 The short certificate expiration eliminates the need for an explicit revocation mechanism.
-Given certificate's expiration will be randomly shortened or extended from the 48 hours, in order to avoid [thundering herd problem](https://en.wikipedia.org/wiki/Thundering_herd_problem) inflicted on the underlying certificate management system. Proxy certificates on the other hand are long-lived certificates.
+Given certificate's expiration will be randomly shortened or extended from the 48 hours, in order to avoid [thundering herd problem](https://en.wikipedia.org/wiki/Thundering_herd_problem) inflicted on the underlying certificate management system. Proxy certificates, on the other hand, are long-lived certificates.
 
 ### Proxy Certificate, Proxy, and Endpoint relationship
 
-  - `ProxyCertificate` is issued by SMC for a `Proxy`, which is expected to connect to the proxy control plane some time in the future. After the certificate is issued, and before the proxy connects to the proxy control plane, the certificate is in `unclaimed` state. The state of the certificate changes to `claimed` after a proxy has connected to the control plane using the certificate.
+  - `ProxyCertificate` is issued by SMC for a `Proxy`, which is expected to connect to the proxy control plane sometime in the future. After the certificate is issued, and before the proxy connects to the proxy control plane, the certificate is in the `unclaimed` state. The state of the certificate changes to `claimed` after a proxy has connected to the control plane using the certificate.
   - `Proxy` is the reverse-proxy, which attempts to connect to the proxy control plane; the `Proxy` may, or may not be allowed to connect to the proxy control plane.
   - `Endpoint` is fronted by a `Proxy`, and is a member of a `Service`. SMC may have discovered endpoints, via the [endpoints providers](#3-endpoints-providers), which belong to a given service, but SMC has not seen any proxies, fronting these endpoints, connect to the proxy control plane yet.
 
@@ -196,13 +196,13 @@ The **intersection** of the set of issued `ProxyCertificates` ∩ connected `Pro
 
   - Each `Proxy` is issued a unique `ProxyCertificate`, which is dedicated to xDS mTLS communication
   - `ProxyCertificate` has a per-proxy unique Subject CN, which identifies the `Proxy`
-  - The `Proxy`'s service membership is determined by examining the CN FQDN (`<proxy-UUID>.<service-name>`), where service name is string following the first period in the CN of the `ProxyCertificate`. For example `proxy-XYZ.bookstore.mesh` is a CN assigned to a proxy, where `proxy-XYZ` is the unique ID of the proxy and `bookstore.mesh` is the name of the service.
+  - The `Proxy`'s service membership is determined by examining the CN FQDN (`<proxy-UUID>.<service-name>`), where service name is string following the first period in the CN of the `ProxyCertificate`. For example, `proxy-XYZ.bookstore.mesh` is a CN assigned to a proxy, where `proxy-XYZ` is the unique ID of the proxy and `bookstore.mesh` is the name of the service.
   - There is one unique `ProxyCertificate` issued to one `Proxy`, which is dedicated to one unique `Endpoint`, and all of these can belong to only one `Service`
   - A mesh `Service` however would be constructed by one or more (`ProxyCertificate` + `Proxy` + `Endpoint`) tuples
 
 
-## Signalling
-The SMC leverages the [communicating sequential processes (CSP)](https://en.wikipedia.org/wiki/Communicating_sequential_processes) pattern for sending messages between the various components of the system. This section describes the signalling mechanism used by SMC.
+## Signaling
+The SMC leverages the [communicating sequential processes (CSP)](https://en.wikipedia.org/wiki/Communicating_sequential_processes) pattern for sending messages between the various components of the system. This section describes the signaling mechanism used by SMC.
 ** TBD **
 
 ## Interfaces
@@ -309,7 +309,7 @@ func (e *EDS) StreamEndpoints(server eds.EndpointDiscoveryService_StreamEndpoint
 
 ### Mesh Catalog Interface
 
-In the previous section we proposed an implementation of the `StreamEndpoints` method. This provides
+In the previous section, we proposed implementation of the `StreamEndpoints` method. This provides
 connected Envoy proxies with a mapping from a service name to a list of routable IP addresses and ports.
 The `ListEndpoints` and `GetAnnouncementChannel` methods will be provided by the SMC component, which we refer to
  as the **Mesh Catalog** in this document.
