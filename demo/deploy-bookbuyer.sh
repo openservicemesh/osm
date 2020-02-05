@@ -68,7 +68,7 @@ spec:
             - containerPort: 15000
               name: admin-port
           command: ["envoy"]
-          args: ["--log-level", "debug", "-c", "/etc/config/bookbuyer.yaml"]
+          args: ["--log-level", "debug", "-c", "/etc/config/bootstrap.yaml", "--service-node", "bookstore", "--service-cluster", "bookstore"]
           volumeMounts:
            - name: config-volume
              mountPath: /etc/config

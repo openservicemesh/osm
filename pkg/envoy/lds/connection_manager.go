@@ -14,7 +14,7 @@ const (
 	rdsClusterName = "rds"
 )
 
-func getConnManagerInbound() *envoy_hcm.HttpConnectionManager {
+func getServerConnManager() *envoy_hcm.HttpConnectionManager {
 	return &envoy_hcm.HttpConnectionManager{
 		StatPrefix: "http",
 		CodecType:  envoy_hcm.HttpConnectionManager_AUTO,

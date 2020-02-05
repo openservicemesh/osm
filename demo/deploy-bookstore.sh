@@ -70,7 +70,7 @@ spec:
             - containerPort: 15003
               name: mtls-port
           command: ["envoy"]
-          args: ["--log-level", "debug", "-c", "/etc/config/${SVC}.yaml"]
+          args: ["--log-level", "debug", "-c", "/etc/config/bootstrap.yaml", "--service-node", "bookstore", "--service-cluster", "bookstore"]
           volumeMounts:
            - name: config-volume
              mountPath: /etc/config

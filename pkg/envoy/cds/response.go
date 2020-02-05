@@ -11,14 +11,14 @@ import (
 	"github.com/golang/protobuf/ptypes"
 )
 
-func svcRemote(clusterName string) func() *xds.Cluster {
+func svcRemote(clusterName string, certificateName string) func() *xds.Cluster {
 	return func() *xds.Cluster {
 		// The name must match the domain being cURLed in the demo
-		return envoy.GetServiceCluster(clusterName)
+		return envoy.GetServiceCluster(clusterName, certificateName)
 	}
 }
 
-func svcLocal(clusterName string) func() *xds.Cluster {
+func svcLocal(clusterName string, _ string) func() *xds.Cluster {
 	return func() *xds.Cluster {
 		// The name must match the domain being cURLed in the demo
 		return getServiceClusterLocal(clusterName)
@@ -36,8 +36,8 @@ func (s *Server) newClusterDiscoveryResponse(proxy envoy.Proxyer) (*xds.Discover
 		// clusters.GetEDS,
 		// clusters.GetRDS,
 
-		svcRemote("bookstore.mesh"),
-		svcLocal("bookstore-local"),
+		svcRemote("bookstore.mesh", "bookstore.mesh"),
+		svcLocal("bookstore-local", "bookstore.mesh"),
 	}
 
 	for _, factory := range clusterFactories {

@@ -48,5 +48,5 @@ func (s *Server) FetchListeners(ctx context.Context, discReq *xds.DiscoveryReque
 	s.catalog.RegisterProxy(proxy)
 
 	glog.Infof("[%s][FetchListeners] Responding to proxy %s", serverName, proxy.GetCommonName())
-	return s.newDiscoveryResponse(proxy)
+	return s.newListenerDiscoveryResponse(proxy)
 }

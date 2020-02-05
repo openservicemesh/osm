@@ -14,18 +14,18 @@ import (
 	"github.com/deislabs/smc/pkg/log"
 )
 
-func (s *Server) newDiscoveryResponse(proxy envoy.Proxyer) (*xds.DiscoveryResponse, error) {
+func (s *Server) newListenerDiscoveryResponse(proxy envoy.Proxyer) (*xds.DiscoveryResponse, error) {
 	glog.Infof("[%s] Composing listener Discovery Response for proxy: %s", serverName, proxy.GetCommonName())
 	resp := &xds.DiscoveryResponse{
 		TypeUrl: typeUrl,
 	}
 
-	connManager, err := ptypes.MarshalAny(getConnManagerOutbound())
+	clientConnManager, err := ptypes.MarshalAny(getConnManagerOutbound())
 	if err != nil {
 		glog.Error("[LDS] Could not construct FilterChain: ", err)
 		return nil, err
 	}
-	listenerOutbound := &xds.Listener{
+	clientListener := &xds.Listener{
 		Name:    "outbound_listener",
 		Address: envoy.GetAddress("0.0.0.0", 15001),
 		FilterChains: []*listener.FilterChain{
@@ -34,7 +34,7 @@ func (s *Server) newDiscoveryResponse(proxy envoy.Proxyer) (*xds.DiscoveryRespon
 					{
 						Name: wellknown.HTTPConnectionManager,
 						ConfigType: &listener.Filter_TypedConfig{
-							TypedConfig: connManager,
+							TypedConfig: clientConnManager,
 						},
 					},
 				},
@@ -42,13 +42,13 @@ func (s *Server) newDiscoveryResponse(proxy envoy.Proxyer) (*xds.DiscoveryRespon
 		},
 	}
 
-	connManagerInbound, err := ptypes.MarshalAny(getConnManagerInbound())
+	serverConnManager, err := ptypes.MarshalAny(getServerConnManager())
 	if err != nil {
 		glog.Error("[LDS] Could not construct inbound listener FilterChain: ", err)
 		return nil, err
 	}
 
-	listenerInbound := &xds.Listener{
+	serverListener := &xds.Listener{
 		Name:    "inbound_listener",
 		Address: envoy.GetAddress("0.0.0.0", 15003),
 		FilterChains: []*listener.FilterChain{
@@ -57,24 +57,26 @@ func (s *Server) newDiscoveryResponse(proxy envoy.Proxyer) (*xds.DiscoveryRespon
 					{
 						Name: wellknown.HTTPConnectionManager,
 						ConfigType: &listener.Filter_TypedConfig{
-							TypedConfig: connManagerInbound,
+							TypedConfig: serverConnManager,
 						},
 					},
 				},
+				// TODO(draychev): enable "tls_context.require_client_certificate: true"
+				TransportSocket: envoy.GetTransportSocketForServiceDownstream("server_cert"), // TODO(draychev): remove hard-coded cert name
 			},
 		},
 	}
-	glog.Infof("[LDS] Constructed Outbound Listener: %+v", listenerOutbound)
-	glog.Infof("[LDS] Constructed Inbound Listener: %+v", listenerInbound)
+	glog.Infof("[LDS] Constructed Outbound Listener: %+v", clientListener)
+	glog.Infof("[LDS] Constructed Inbound Listener: %+v", serverListener)
 
-	marshalledOutbound, err := ptypes.MarshalAny(listenerOutbound)
+	marshalledOutbound, err := ptypes.MarshalAny(clientListener)
 	if err != nil {
 		glog.Errorf("[%s] Failed to marshal outbound listener for proxy %s: %v", serverName, proxy.GetCommonName(), err)
 		return nil, err
 	}
 	resp.Resources = append(resp.Resources, marshalledOutbound)
 
-	marshalledInbound, err := ptypes.MarshalAny(listenerInbound)
+	marshalledInbound, err := ptypes.MarshalAny(serverListener)
 	if err != nil {
 		glog.Errorf("[%s] Failed to marshal inbound listener for proxy %s: %v", serverName, proxy.GetCommonName(), err)
 		return nil, err

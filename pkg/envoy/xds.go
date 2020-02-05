@@ -171,17 +171,17 @@ func GetUpstreamTLS(certPem string, keyPem string) *auth.UpstreamTlsContext {
 	}
 }
 
-func getTLS(clusterName string) *any.Any {
-	tlsConfig := &auth.UpstreamTlsContext{
+func getTLSDownstream(certificateName string) *any.Any {
+	tlsConfig := &auth.DownstreamTlsContext{
 		CommonTlsContext: &auth.CommonTlsContext{
 			TlsParams: GetTLSParams(),
 			TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
-				Name:      clusterName, // "bookstore.mesh"
+				Name:      certificateName,
 				SdsConfig: GetGRPCSource(SDSClusterName),
 			}},
 			ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 				ValidationContextSdsSecretConfig: &auth.SdsSecretConfig{
-					Name:      clusterName, // "bookstore.mesh"
+					Name:      certificateName,
 					SdsConfig: GetGRPCSource(SDSClusterName),
 				},
 			},
@@ -196,17 +196,53 @@ func getTLS(clusterName string) *any.Any {
 	return tls
 }
 
-func GetServiceCluster(clusterName string) *xds.Cluster {
+func getTLSUpstream(certificateName string) *any.Any {
+	tlsConfig := &auth.UpstreamTlsContext{
+		CommonTlsContext: &auth.CommonTlsContext{
+			TlsParams: GetTLSParams(),
+			TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
+				Name:      certificateName,
+				SdsConfig: GetGRPCSource(SDSClusterName),
+			}},
+			ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
+				ValidationContextSdsSecretConfig: &auth.SdsSecretConfig{
+					Name:      certificateName,
+					SdsConfig: GetGRPCSource(SDSClusterName),
+				},
+			},
+		},
+	}
+
+	tls, err := ptypes.MarshalAny(tlsConfig)
+	if err != nil {
+		glog.Error("[CDS] Error marshalling UpstreamTLS: ", err)
+		return nil
+	}
+	return tls
+}
+
+func GetTransportSocketForServiceDownstream(certificateName string) *core.TransportSocket {
+	return &core.TransportSocket{
+		Name:       TransportSocketTLS,
+		ConfigType: &core.TransportSocket_TypedConfig{TypedConfig: getTLSDownstream(certificateName)},
+	}
+}
+
+func GetTransportSocketForServiceUpstream(certificateName string) *core.TransportSocket {
+	return &core.TransportSocket{
+		Name:       TransportSocketTLS,
+		ConfigType: &core.TransportSocket_TypedConfig{TypedConfig: getTLSUpstream(certificateName)},
+	}
+}
+
+func GetServiceCluster(clusterName string, certificateName string) *xds.Cluster {
 	return &xds.Cluster{
 		Name:                 clusterName,
 		ConnectTimeout:       ptypes.DurationProto(5 * time.Second),
 		LbPolicy:             xds.Cluster_ROUND_ROBIN,
 		ClusterDiscoveryType: &xds.Cluster_Type{Type: xds.Cluster_EDS},
 		EdsClusterConfig:     GetEDSCluster(),
-		TransportSocket: &core.TransportSocket{
-			Name:       TransportSocketTLS,
-			ConfigType: &core.TransportSocket_TypedConfig{TypedConfig: getTLS(clusterName)},
-		},
+		TransportSocket:      GetTransportSocketForServiceUpstream(certificateName),
 	}
 }
 
