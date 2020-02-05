@@ -3,8 +3,6 @@ package envoy
 import (
 	"time"
 
-	"github.com/golang/protobuf/ptypes/any"
-
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
@@ -15,6 +13,7 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/duration"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"

@@ -56,7 +56,7 @@ func (s *Server) StreamSecrets(server v2.SecretDiscoveryService_StreamSecretsSer
 
 			glog.Infof("[%s][incoming] Discovery Request from Envoy: %s", serverName, proxy.GetCommonName())
 
-			response, err := s.newDiscoveryResponse(proxy)
+			response, err := s.newSecretDiscoveryResponse(proxy)
 			if err != nil {
 				glog.Errorf("[%s] Failed constructing Secret Discovery Response: %+v", serverName, err)
 				return err
@@ -71,7 +71,7 @@ func (s *Server) StreamSecrets(server v2.SecretDiscoveryService_StreamSecretsSer
 
 		case <-announcements:
 			glog.Infof("[%s][outgoing] Secrets change announcement received.", serverName)
-			response, err := s.newDiscoveryResponse(proxy)
+			response, err := s.newSecretDiscoveryResponse(proxy)
 			if err != nil {
 				glog.Errorf("[%s] Failed constructing Secret Discovery Response: %+v", serverName, err)
 				return err

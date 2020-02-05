@@ -13,7 +13,7 @@ import (
 	"github.com/deislabs/smc/pkg/envoy/cla"
 )
 
-func (e *Server) newDiscoveryResponse(allServices map[endpoint.ServiceName][]endpoint.WeightedService) (*v2.DiscoveryResponse, error) {
+func (e *Server) newEndpointDiscoveryResponse(allServices map[endpoint.ServiceName][]endpoint.WeightedService) (*v2.DiscoveryResponse, error) {
 	var protos []*any.Any
 	for targetServiceName, weightedServices := range allServices {
 		loadAssignment := cla.NewClusterLoadAssignment(targetServiceName, weightedServices)
