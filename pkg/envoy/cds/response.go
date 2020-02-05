@@ -5,12 +5,25 @@ import (
 	"time"
 
 	"github.com/deislabs/smc/pkg/envoy"
-	"github.com/deislabs/smc/pkg/envoy/cds/clusters"
 	"github.com/deislabs/smc/pkg/log"
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes"
 )
+
+func svcRemote(clusterName string) func() *xds.Cluster {
+	return func() *xds.Cluster {
+		// The name must match the domain being cURLed in the demo
+		return envoy.GetServiceCluster(clusterName)
+	}
+}
+
+func svcLocal(clusterName string) func() *xds.Cluster {
+	return func() *xds.Cluster {
+		// The name must match the domain being cURLed in the demo
+		return getServiceClusterLocal(clusterName)
+	}
+}
 
 func (s *Server) newClusterDiscoveryResponse(proxy envoy.Proxyer) (*xds.DiscoveryResponse, error) {
 	glog.Infof("[%s] Composing Cluster Discovery Response for proxy: %s", serverName, proxy.GetCommonName())
@@ -18,23 +31,13 @@ func (s *Server) newClusterDiscoveryResponse(proxy envoy.Proxyer) (*xds.Discover
 		TypeUrl: typeUrl,
 	}
 
-	bookstoreMeshRemote := func() *xds.Cluster {
-		// The name must match the domain being cURLed in the demo
-		return envoy.GetServiceCluster("bookstore.mesh")
-	}
-
-	bookstoreMeshLocal := func() *xds.Cluster {
-		// The name must match the domain being cURLed in the demo
-		return getServiceClusterLocal("bookstore-local")
-	}
-
 	clusterFactories := []func() *xds.Cluster{
-		clusters.GetEDS,
-		clusters.GetRDS,
-		clusters.GetSDS,
+		// clusters.GetSDS,
+		// clusters.GetEDS,
+		// clusters.GetRDS,
 
-		bookstoreMeshRemote,
-		bookstoreMeshLocal,
+		svcRemote("bookstore.mesh"),
+		svcLocal("bookstore-local"),
 	}
 
 	for _, factory := range clusterFactories {

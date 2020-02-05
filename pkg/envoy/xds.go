@@ -3,29 +3,25 @@ package envoy
 import (
 	"time"
 
-	envoy_api_v2_endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
-
-	"github.com/golang/protobuf/ptypes/duration"
+	"github.com/golang/protobuf/ptypes/any"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	accesslog "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v2"
 	accessLogV2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/duration"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"
 )
 
 const (
 	accessLogPath = "/dev/stdout"
-
-	RDSClusterName = "rds"
-	RDSAddress     = "rds.smc.svc.cluster.local"
-	RDSPort        = 15126
 
 	SDSClusterName = "sds"
 	SDSAddress     = "sds.smc.svc.cluster.local"
@@ -34,6 +30,10 @@ const (
 	EDSClusterName = "eds"
 	EDSAddress     = "eds.smc.svc.cluster.local"
 	EDSPort        = 15124
+
+	RDSClusterName = "rds"
+	RDSAddress     = "rds.smc.svc.cluster.local"
+	RDSPort        = 15126
 
 	// cipher suites
 	aes    = "ECDHE-ECDSA-AES128-GCM-SHA256"
@@ -171,7 +171,7 @@ func GetUpstreamTLS(certPem string, keyPem string) *auth.UpstreamTlsContext {
 	}
 }
 
-func GetServiceCluster(clusterName string) *xds.Cluster {
+func getTLS(clusterName string) *any.Any {
 	tlsConfig := &auth.UpstreamTlsContext{
 		CommonTlsContext: &auth.CommonTlsContext{
 			TlsParams: GetTLSParams(),
@@ -193,32 +193,25 @@ func GetServiceCluster(clusterName string) *xds.Cluster {
 		glog.Error("[CDS] Error marshalling UpstreamTLS: ", err)
 		return nil
 	}
+	return tls
+}
 
-	connTimeout := ptypes.DurationProto(10 * time.Second)
+func GetServiceCluster(clusterName string) *xds.Cluster {
 	return &xds.Cluster{
-		// The Cluster.Name must match the domain being cURLed in the demo
-		Name:                          clusterName,
-		AltStatName:                   clusterName,
-		ConnectTimeout:                connTimeout,
-		LbPolicy:                      xds.Cluster_ROUND_ROBIN,
-		RespectDnsTtl:                 true,
-		DrainConnectionsOnHostRemoval: true,
-		ClusterDiscoveryType: &xds.Cluster_Type{
-			Type: xds.Cluster_EDS,
-		},
-		EdsClusterConfig: GetEDSCluster(clusterName),
+		Name:                 clusterName,
+		ConnectTimeout:       ptypes.DurationProto(5 * time.Second),
+		LbPolicy:             xds.Cluster_ROUND_ROBIN,
+		ClusterDiscoveryType: &xds.Cluster_Type{Type: xds.Cluster_EDS},
+		EdsClusterConfig:     GetEDSCluster(),
 		TransportSocket: &core.TransportSocket{
-			Name: TransportSocketTLS,
-			ConfigType: &core.TransportSocket_TypedConfig{
-				TypedConfig: tls,
-			},
+			Name:       TransportSocketTLS,
+			ConfigType: &core.TransportSocket_TypedConfig{TypedConfig: getTLS(clusterName)},
 		},
 	}
 }
 
-func GetEDSCluster(clusterName string) *xds.Cluster_EdsClusterConfig {
+func GetEDSCluster() *xds.Cluster_EdsClusterConfig {
 	return &xds.Cluster_EdsClusterConfig{
-		ServiceName: clusterName,
 		EdsConfig: &core.ConfigSource{
 			ConfigSourceSpecifier: &core.ConfigSource_ApiConfigSource{
 				ApiConfigSource: &core.ApiConfigSource{
@@ -226,10 +219,7 @@ func GetEDSCluster(clusterName string) *xds.Cluster_EdsClusterConfig {
 					GrpcServices: []*core.GrpcService{
 						{
 							TargetSpecifier: &core.GrpcService_EnvoyGrpc_{
-								EnvoyGrpc: &core.GrpcService_EnvoyGrpc{
-									// This must match the hard-coded EDS cluster name in the bootstrap config
-									ClusterName: EDSClusterName,
-								},
+								EnvoyGrpc: &core.GrpcService_EnvoyGrpc{ClusterName: EDSClusterName},
 							},
 						},
 					},
@@ -266,12 +256,12 @@ func GetTransportSocket() *core.TransportSocket {
 func GetLoadAssignment(clusterName string, address string, port uint32) *xds.ClusterLoadAssignment {
 	return &xds.ClusterLoadAssignment{
 		ClusterName: clusterName,
-		Endpoints: []*envoy_api_v2_endpoint.LocalityLbEndpoints{
+		Endpoints: []*endpoint.LocalityLbEndpoints{
 			{
-				LbEndpoints: []*envoy_api_v2_endpoint.LbEndpoint{
+				LbEndpoints: []*endpoint.LbEndpoint{
 					{
-						HostIdentifier: &envoy_api_v2_endpoint.LbEndpoint_Endpoint{
-							Endpoint: &envoy_api_v2_endpoint.Endpoint{
+						HostIdentifier: &endpoint.LbEndpoint_Endpoint{
+							Endpoint: &endpoint.Endpoint{
 								Address: GetAddress(address, port),
 							},
 						},
