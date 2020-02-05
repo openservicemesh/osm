@@ -5,19 +5,20 @@ import (
 	"time"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	"github.com/gogo/protobuf/types"
 	"github.com/golang/glog"
+	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/any"
 
 	"github.com/deislabs/smc/pkg/endpoint"
 	"github.com/deislabs/smc/pkg/envoy/route"
 )
 
 func (e *Server) newDiscoveryResponse(allTrafficPolicies []endpoint.TrafficTargetPolicies) (*v2.DiscoveryResponse, error) {
-	var protos []*types.Any
+	var protos []*any.Any
 	for _, trafficPolicies := range allTrafficPolicies {
 		routeConfiguration := route.NewRouteConfiguration(trafficPolicies)
 
-		proto, err := types.MarshalAny(&routeConfiguration)
+		proto, err := ptypes.MarshalAny(&routeConfiguration)
 		if err != nil {
 			glog.Errorf("[catalog] Error marshalling RouteConfigurationURI %+v: %s", routeConfiguration, err)
 			continue

@@ -5,6 +5,7 @@ set -aueo pipefail
 source .env
 
 make docker-push-cds
+make docker-push-lds
 make docker-push-eds
 make docker-push-sds
 make docker-push-rds
