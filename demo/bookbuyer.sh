@@ -6,7 +6,7 @@ COUNTER="http://bookstore.mesh/counter"
 INCREMT="http://bookstore.mesh/incrementcounter"
 
 while true; do
-    echo -e "\n\n--- $(date) ------------------------"
+    echo -e "\\n\\n--- $(date) ------------------------"
     echo "curl $COUNTER"
     curl -X GET -I -s --connect-timeout 1 --max-time 1 "$COUNTER" || true
     echo "---"

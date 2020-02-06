@@ -197,4 +197,4 @@ generate-crds:
 
 .PHONY: shellcheck
 shellcheck:
-	shellcheck -x ./*.sh ./**/*.sh
+	shellcheck -x $(shell find . -name '*.sh')
