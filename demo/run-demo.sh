@@ -5,6 +5,9 @@ set -aueo pipefail
 # shellcheck disable=SC1091
 source .env
 
+# Create the proxy certificates
+./scripts/gen-proxy-certificate.sh
+
 make docker-push-cds
 make docker-push-lds
 make docker-push-eds
@@ -14,9 +17,6 @@ make docker-push-rds
 make docker-push-init
 make docker-push-bookbuyer
 make docker-push-bookstore
-
-# Create the proxy certificates
-./scripts/gen-proxy-certificate.sh
 
 ./demo/clean-kubernetes.sh
 ./demo/create-container-registry-creds.sh
