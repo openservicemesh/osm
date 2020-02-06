@@ -55,7 +55,7 @@ spec:
         - "--kubeconfig"
         - "/kube/config"
         - "--verbosity"
-        - "25"
+        - "17"
         - "--namespace"
         - "smc"
         - "--certpem"

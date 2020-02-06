@@ -1,21 +1,11 @@
-node:
-  id: nodeBookstore1
-  cluster: clusterBookstore1
-
 admin:
   access_log_path: "/dev/stdout"
   address:
-    socket_address: {address: 0.0.0.0, port_value: 15000}
+    socket_address:
+      address: 0.0.0.0
+      port_value: 15000
 
-# Configure a Cluster Discovery Service w/ mTLS
 dynamic_resources:
-  cds_config:
-    api_config_source:
-      api_type: GRPC
-      grpc_services:
-        envoy_grpc:
-          cluster_name: cds
-  
   lds_config:
     api_config_source:
       api_type: GRPC
@@ -23,9 +13,61 @@ dynamic_resources:
         envoy_grpc:
           cluster_name: lds
 
+  cds_config:
+    api_config_source:
+      api_type: GRPC
+      grpc_services:
+        envoy_grpc:
+          cluster_name: cds
+
 static_resources:
   clusters:
-  
+
+  - name: sds
+    connect_timeout: 0.25s
+    type: LOGICAL_DNS
+    http2_protocol_options: {}
+    tls_context:
+      common_tls_context:
+        tls_params:
+          tls_minimum_protocol_version: TLSv1_2
+          tls_maximum_protocol_version: TLSv1_3
+          cipher_suites: "[ECDHE-ECDSA-AES128-GCM-SHA256|ECDHE-ECDSA-CHACHA20-POLY1305]"
+        tls_certificates:
+          - certificate_chain: { filename: "/etc/ssl/certs/cert.pem" }
+            private_key: { filename: "/etc/ssl/certs/key.pem" }
+    load_assignment:
+      cluster_name: sds
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: sds.smc.svc.cluster.local
+                port_value: 15123
+
+  - name: eds
+    connect_timeout: 0.25s
+    type: LOGICAL_DNS
+    http2_protocol_options: {}
+    tls_context:
+      common_tls_context:
+        tls_params:
+          tls_minimum_protocol_version: TLSv1_2
+          tls_maximum_protocol_version: TLSv1_3
+          cipher_suites: "[ECDHE-ECDSA-AES128-GCM-SHA256|ECDHE-ECDSA-CHACHA20-POLY1305]"
+        tls_certificates:
+          - certificate_chain: { filename: "/etc/ssl/certs/cert.pem" }
+            private_key: { filename: "/etc/ssl/certs/key.pem" }
+    load_assignment:
+      cluster_name: eds
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: eds.smc.svc.cluster.local
+                port_value: 15124
 
   - name: cds
     connect_timeout: 0.25s
@@ -50,6 +92,29 @@ static_resources:
                 address: cds.smc.svc.cluster.local
                 port_value: 15125
 
+  - name: rds
+    connect_timeout: 0.25s
+    type: LOGICAL_DNS
+    http2_protocol_options: {}
+    tls_context:
+      common_tls_context:
+        tls_params:
+          tls_minimum_protocol_version: TLSv1_2
+          tls_maximum_protocol_version: TLSv1_3
+          cipher_suites: "[ECDHE-ECDSA-AES128-GCM-SHA256|ECDHE-ECDSA-CHACHA20-POLY1305]"
+        tls_certificates:
+          - certificate_chain: { filename: "/etc/ssl/certs/cert.pem" }
+            private_key: { filename: "/etc/ssl/certs/key.pem" }
+    load_assignment:
+      cluster_name: rds
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: rds.smc.svc.cluster.local
+                port_value: 15126
+
   - name: lds
     connect_timeout: 0.25s
     type: LOGICAL_DNS
@@ -72,26 +137,3 @@ static_resources:
               socket_address:
                 address: lds.smc.svc.cluster.local
                 port_value: 15127
-
-  - name: eds
-    connect_timeout: 0.25s
-    type: LOGICAL_DNS
-    http2_protocol_options: {}
-    tls_context:
-      common_tls_context:
-        tls_params:
-          tls_minimum_protocol_version: TLSv1_2
-          tls_maximum_protocol_version: TLSv1_3
-          cipher_suites: "[ECDHE-ECDSA-AES128-GCM-SHA256|ECDHE-ECDSA-CHACHA20-POLY1305]"
-        tls_certificates:
-          - certificate_chain: { filename: "/etc/ssl/certs/cert.pem" }
-            private_key: { filename: "/etc/ssl/certs/key.pem" }
-    load_assignment:
-      cluster_name: eds
-      endpoints:
-      - lb_endpoints:
-        - endpoint:
-            address:
-              socket_address:
-                address: eds.smc.svc.cluster.local
-                port_value: 15124

@@ -76,7 +76,7 @@ func (e *Server) StreamEndpoints(server v2.EndpointDiscoveryService_StreamEndpoi
 					return err
 				}
 				glog.Infof("[%s][stream] WeightedServices: %+v", serverName, weightedServices)
-				resp, err := e.newDiscoveryResponse(weightedServices)
+				resp, err := e.newEndpointDiscoveryResponse(weightedServices)
 				if err != nil {
 					glog.Errorf("[%s][stream] Failed composing a DiscoveryResponse: %+v", serverName, err)
 					return err

@@ -13,7 +13,7 @@ import (
 	"github.com/deislabs/smc/pkg/envoy/route"
 )
 
-func (e *Server) newDiscoveryResponse(allTrafficPolicies []endpoint.TrafficTargetPolicies) (*v2.DiscoveryResponse, error) {
+func (e *Server) newRouteDiscoveryResponse(allTrafficPolicies []endpoint.TrafficTargetPolicies) (*v2.DiscoveryResponse, error) {
 	var protos []*any.Any
 	for _, trafficPolicies := range allTrafficPolicies {
 		routeConfiguration := route.NewRouteConfiguration(trafficPolicies)

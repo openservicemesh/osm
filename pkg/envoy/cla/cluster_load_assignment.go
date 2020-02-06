@@ -1,6 +1,7 @@
 package cla
 
 import (
+	"github.com/deislabs/smc/pkg/envoy"
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
@@ -45,17 +46,7 @@ func NewClusterLoadAssignment(targetServiceName smcEndpoint.ServiceName, weighte
 			lbEpt := endpoint.LbEndpoint{
 				HostIdentifier: &endpoint.LbEndpoint_Endpoint{
 					Endpoint: &endpoint.Endpoint{
-						Address: &core.Address{
-							Address: &core.Address_SocketAddress{
-								SocketAddress: &core.SocketAddress{
-									Protocol: core.SocketAddress_TCP,
-									Address:  string(meshEndpoint.IP),
-									PortSpecifier: &core.SocketAddress_PortValue{
-										PortValue: uint32(meshEndpoint.Port),
-									},
-								},
-							},
-						},
+						Address: envoy.GetAddress(string(meshEndpoint.IP), uint32(meshEndpoint.Port)),
 					},
 				},
 				LoadBalancingWeight: &wrappers.UInt32Value{

@@ -70,12 +70,10 @@ spec:
             - containerPort: 15003
               name: mtls-port
           command: ["envoy"]
-          args: ["--log-level", "debug", "-c", "/etc/config/${SVC}.yaml"]
+          args: ["--log-level", "debug", "-c", "/etc/config/bootstrap.yaml", "--service-node", "bookstore", "--service-cluster", "bookstore"]
           volumeMounts:
            - name: config-volume
              mountPath: /etc/config
-           - name: certs-volume
-             mountPath: /etc/certs
            # Bootstrap certificates
            - name: ca-certpemstore
              mountPath: /etc/ssl/certs/cert.pem
@@ -90,9 +88,6 @@ spec:
         - name: config-volume
           configMap:
             name: envoyproxy-config
-        - name: certs-volume
-          configMap:
-            name: certificates-config
         # Bootstrap certificates
         - name: ca-certpemstore
           configMap:

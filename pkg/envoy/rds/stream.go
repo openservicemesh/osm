@@ -75,7 +75,7 @@ func (e *Server) StreamRoutes(server xds.RouteDiscoveryService_StreamRoutesServe
 					return err
 				}
 				glog.Infof("[%s][stream] trafficPolicies: %+v", serverName, trafficPolicies)
-				resp, err := e.newDiscoveryResponse(trafficPolicies)
+				resp, err := e.newRouteDiscoveryResponse(trafficPolicies)
 				if err != nil {
 					glog.Errorf("[%s][stream] Failed composing a DiscoveryResponse: %+v", serverName, err)
 					return err

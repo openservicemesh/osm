@@ -18,7 +18,7 @@ const (
 	sleepTime = 5
 )
 
-func (s *Server) newDiscoveryResponse(proxy envoy.Proxyer) (*v2.DiscoveryResponse, error) {
+func (s *Server) newSecretDiscoveryResponse(proxy envoy.Proxyer) (*v2.DiscoveryResponse, error) {
 	glog.Infof("[%s] Composing SDS Discovery Response for proxy: %s", serverName, proxy.GetCommonName())
 	cert, err := s.catalog.GetCertificateForService(proxy.GetService())
 	if err != nil {

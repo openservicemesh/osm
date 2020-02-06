@@ -57,9 +57,6 @@ spec:
           volumeMounts:
            - name: config-volume
              mountPath: /etc/config
-           - name: certs-volume
-             mountPath: /etc/certs
-
 
         # Sidecar with Envoy PROXY
         - name: envoyproxy
@@ -71,12 +68,10 @@ spec:
             - containerPort: 15000
               name: admin-port
           command: ["envoy"]
-          args: ["--log-level", "debug", "-c", "/etc/config/bookbuyer.yaml"]
+          args: ["--log-level", "debug", "-c", "/etc/config/bootstrap.yaml", "--service-node", "bookstore", "--service-cluster", "bookstore"]
           volumeMounts:
            - name: config-volume
              mountPath: /etc/config
-           - name: certs-volume
-             mountPath: /etc/certs
            # Bootstrap certificates
            - name: ca-certpemstore
              mountPath: /etc/ssl/certs/cert.pem
@@ -114,9 +109,6 @@ spec:
         - name: config-volume
           configMap:
             name: envoyproxy-config
-        - name: certs-volume
-          configMap:
-            name: certificates-config
         # Bootstrap certificates
         - name: ca-certpemstore
           configMap:
