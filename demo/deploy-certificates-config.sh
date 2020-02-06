@@ -7,4 +7,4 @@ source .env
 
 kubectl delete configmap certificates-config -n "$K8S_NAMESPACE" || true
 
-kubectl create configmap certificates-config --from-file="$(pwd)/certificates/" -n "$K8S_NAMESPACE"
+kubectl create configmap certificates-config --from-file="$(pwd)/demo/certificates/" -n "$K8S_NAMESPACE"
