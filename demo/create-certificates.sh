@@ -9,15 +9,17 @@ ROOT_KEY="root.key"
 ROOT_CERT="root.crt"
 CERT_KEY="cert.key"
 
-CERT_DIR="certificates/"
+CUR_DIR="$(pwd)"
+CERT_DIR="$(pwd)/demo/certificates/"
 CERT_CONF="$(pwd)/demo/certs.conf"
 
 echo "Creating certificates in directory: $CERT_DIR"
 
-rm -rf "${$(pwd)/$CERT_DIR:?}"
-mkdir -p "${$(pwd)/$CERT_DIR:?}"
-pushd "${$(pwd)/$CERT_DIR:?}"
+mkdir -p $CERT_DIR
+rm -rf $CERT_DIR/*
 
+
+cd $CERT_DIR
 # Create Root Key
 openssl genrsa -out "$ROOT_KEY" 4096
 
@@ -75,3 +77,5 @@ for DOMAIN in "${domains[@]}"; do
             -text \
             -noout
 done
+
+cd $CUR_DIR
