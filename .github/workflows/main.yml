@@ -16,6 +16,9 @@ jobs:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v1
 
+    - name: ShellCheck
+      run: shellcheck -x $(find . -name '*.sh')
+
     - name: Get dependencies
       run: |
         go get -v -t -d ./...

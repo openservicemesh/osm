@@ -2,6 +2,7 @@
 
 set -aueo pipefail
 
+# shellcheck disable=SC1091
 source .env
 
 SVC=${1:-bookstore}
@@ -100,10 +101,10 @@ spec:
         - name: $CTR_REGISTRY_CREDS_NAME
 EOF
 
-kubectl get pods      --no-headers -o wide --selector app=$SVC -n "$K8S_NAMESPACE"
-kubectl get endpoints --no-headers -o wide --selector app=$SVC -n "$K8S_NAMESPACE"
+kubectl get pods      --no-headers -o wide --selector app="$SVC" -n "$K8S_NAMESPACE"
+kubectl get endpoints --no-headers -o wide --selector app="$SVC" -n "$K8S_NAMESPACE"
 kubectl get service                -o wide                     -n "$K8S_NAMESPACE"
 
-for x in $(kubectl get service -n "$K8S_NAMESPACE" --selector app=$SVC --no-headers | awk '{print $1}'); do
-    kubectl get service $x -n "$K8S_NAMESPACE" -o jsonpath='{.status.loadBalancer.ingress[*].ip}'
+for x in $(kubectl get service -n "$K8S_NAMESPACE" --selector app="$SVC" --no-headers | awk '{print $1}'); do
+    kubectl get service "$x" -n "$K8S_NAMESPACE" -o jsonpath='{.status.loadBalancer.ingress[*].ip}'
 done

@@ -2,6 +2,7 @@
 
 set -aueo pipefail
 
+# shellcheck disable=SC1091
 source .env
 
 kubectl delete pod cds -n "$K8S_NAMESPACE" || true

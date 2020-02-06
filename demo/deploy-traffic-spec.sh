@@ -2,21 +2,22 @@
 
 set -aueo pipefail
 
+# shellcheck disable=SC1091
 source .env
 
 kubectl apply -f - <<EOF
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
-metadata:  
+metadata:
   name: httproutegroups.specs.smi-spec.io
-spec:  
+spec:
   group: specs.smi-spec.io
   version: v1alpha1
-  scope: Namespaced 
-  names:    
+  scope: Namespaced
+  names:
     kind: HTTPRouteGroup
-    shortNames: 
+    shortNames:
       - htr
     plural: httproutegroups
     singular: httproutegroup
@@ -24,23 +25,21 @@ spec:
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
-metadata:  
+metadata:
   name: tcproutes.specs.smi-spec.io
-spec:  
+spec:
   group: specs.smi-spec.io
   version: v1alpha1
-  scope: Namespaced 
-  names:    
+  scope: Namespaced
+  names:
     kind: TCPRoute
-    shortNames: 
+    shortNames:
       - tr
     plural: tcproutes
     singular: tcproute
 EOF
 
 kubectl create namespace "$K8S_NAMESPACE" || true
-
-VM_NAME="myVM"
 
 kubectl apply -f - <<EOF
 apiVersion: specs.smi-spec.io/v1alpha1
