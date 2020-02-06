@@ -15,6 +15,9 @@ make docker-push-init
 make docker-push-bookbuyer
 make docker-push-bookstore
 
+# Create the proxy certificates
+./scripts/gen-proxy-certificate.sh
+
 ./demo/clean-kubernetes.sh
 ./demo/create-container-registry-creds.sh
 ./demo/create-certificates.sh
