@@ -3,6 +3,7 @@ package lds
 import (
 	"github.com/deislabs/smc/pkg/envoy"
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	envoy_hcm "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	wellknown "github.com/envoyproxy/go-control-plane/pkg/wellknown"
@@ -88,6 +89,42 @@ func getConnManagerOutbound() *envoy_hcm.HttpConnectionManager {
 		*/
 		AccessLog: envoy.GetAccessLog(),
 	}
+}
+
+func getRdsHttpConnectionFilter() *envoy_hcm.HttpConnectionManager {
+	return &envoy_hcm.HttpConnectionManager{
+		StatPrefix: "http",
+		CodecType:  envoy_hcm.HttpConnectionManager_AUTO,
+		HttpFilters: []*envoy_hcm.HttpFilter{{
+			Name: wellknown.Router,
+		}},
+		RouteSpecifier: &envoy_hcm.HttpConnectionManager_Rds{
+			Rds: &envoy_hcm.Rds{
+				ConfigSource:    getRdsConfig(),
+				RouteConfigName: "TODO_RDS",
+			},
+		},
+		AccessLog: envoy.GetAccessLog(),
+	}
+}
+
+func getRdsConfig() *core.ConfigSource {
+	rdsConfig := &core.ConfigSource{
+		ConfigSourceSpecifier: &core.ConfigSource_ApiConfigSource{
+			ApiConfigSource: &core.ApiConfigSource{
+				ApiType: core.ApiConfigSource_GRPC,
+				GrpcServices: []*core.GrpcService{
+					{
+						TargetSpecifier: &core.GrpcService_EnvoyGrpc_{
+							EnvoyGrpc: &core.GrpcService_EnvoyGrpc{ClusterName: rdsClusterName},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	return rdsConfig
 }
 
 func getRouteConfig() *xds.RouteConfiguration {

@@ -64,3 +64,56 @@ func NewRouteConfiguration(trafficPolicies smcEndpoint.TrafficTargetPolicies) v2
 	glog.V(log.LvlTrace).Infof("[RDS] Constructed RouteConfiguration: %+v", routeConfiguration)
 	return routeConfiguration
 }
+
+func GetServerRouteConfiguration() v2.RouteConfiguration {
+	routeConfig := v2.RouteConfiguration{
+		Name: "TODO_RDS",
+		VirtualHosts: []*route.VirtualHost{{
+			Name:    "backend",
+			Domains: []string{"*"},
+			Routes: []*route.Route{{
+				Match: &route.RouteMatch{
+					PathSpecifier: &route.RouteMatch_Prefix{
+						Prefix: "/",
+					},
+				},
+				Action: &route.Route_Route{
+					Route: &route.RouteAction{
+						ClusterSpecifier: &route.RouteAction_Cluster{
+							Cluster: "bookstore-local",
+						},
+						// PrefixRewrite: "/stats/prometheus", // well-known Admin API endpoint
+					},
+				},
+			}},
+		}},
+	}
+	return routeConfig
+}
+
+func GetClientRouteConfiguration() v2.RouteConfiguration {
+	routeConfig := v2.RouteConfiguration{
+		Name: "TODO_RDS",
+		VirtualHosts: []*route.VirtualHost{{
+			Name:    "envoy_admin",
+			Domains: []string{"*"},
+			Routes: []*route.Route{{
+				Match: &route.RouteMatch{
+					PathSpecifier: &route.RouteMatch_Prefix{
+						Prefix: "/",
+					},
+				},
+				Action: &route.Route_Route{
+					Route: &route.RouteAction{
+						ClusterSpecifier: &route.RouteAction_Cluster{
+							Cluster: "bookstore.mesh",
+						},
+						// PrefixRewrite: "/stats/prometheus", // well-known Admin API endpoint
+					},
+				},
+			}},
+		}},
+	}
+
+	return routeConfig
+}

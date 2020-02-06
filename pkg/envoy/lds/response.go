@@ -20,7 +20,7 @@ func (s *Server) newListenerDiscoveryResponse(proxy envoy.Proxyer) (*xds.Discove
 		TypeUrl: typeUrl,
 	}
 
-	clientConnManager, err := ptypes.MarshalAny(getConnManagerOutbound())
+	clientConnManager, err := ptypes.MarshalAny(getRdsHttpConnectionFilter())
 	if err != nil {
 		glog.Error("[LDS] Could not construct FilterChain: ", err)
 		return nil, err
@@ -42,7 +42,7 @@ func (s *Server) newListenerDiscoveryResponse(proxy envoy.Proxyer) (*xds.Discove
 		},
 	}
 
-	serverConnManager, err := ptypes.MarshalAny(getServerConnManager())
+	serverConnManager, err := ptypes.MarshalAny(getRdsHttpConnectionFilter())
 	if err != nil {
 		glog.Error("[LDS] Could not construct inbound listener FilterChain: ", err)
 		return nil, err
