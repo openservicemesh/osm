@@ -27,6 +27,28 @@ jobs:
             dep ensure
         fi
 
+    - name: Integration Test
+      env:
+        KUBE_CONFIG: ${{ secrets.KUBECONFIG }}
+        AZURE_SUBSCRIPTION: ${{ secrets.AZURE_SUBSCRIPTION }}
+        CTR_REGISTRY: ${{ secrets.CTR_REGISTRY }}
+        CTR_REGISTRY_CREDS_NAME: ${{ secrets.CTR_REGISTRY_CREDS_NAME }}
+        K8S_NAMESPACE: ${{ secrets.K8S_NAMESPACE }}
+        ACR_CREDS: ${{ secrets.ACR_CREDS }}
+        KUBECONFIG: ".kube/config"
+        DOCKER_USER: ${{ secrets.DOCKER_USER }}
+        DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
+      run: |
+        echo "KUBECONFIG: $KUBECONFIG"
+        mkdir -p ".kube"
+        echo "$KUBE_CONFIG" | base64 -d > "$KUBECONFIG"
+        echo "$DOCKER_PASS" | docker login delqn.azurecr.io -u "$DOCKER_USER" --password-stdin
+        echo "$ACR_CREDS" | base64 -d | kubectl apply -f -
+        ./ci/run-tests.sh
+
+
+
+
     - name: Vet
       run: |
         if go vet -v ./...; then
@@ -74,10 +96,4 @@ jobs:
         KUBE_CONFIG: ${{ secrets.KUBECONFIG }}
       with:
         args: get namespaces
-
-    - name: Integration Test
-      env:
-        KUBE_CONFIG: ${{ secrets.KUBECONFIG }}
-      run: |
-        ./demo/run-demo.sh
 
