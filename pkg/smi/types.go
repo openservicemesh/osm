@@ -1,9 +1,9 @@
 package smi
 
 import (
-	TrafficTarget "github.com/deislabs/smi-sdk-go/pkg/apis/access/v1alpha1"
-	TrafficSpec "github.com/deislabs/smi-sdk-go/pkg/apis/specs/v1alpha1"
-	TrafficSplit "github.com/deislabs/smi-sdk-go/pkg/apis/split/v1alpha2"
+	target "github.com/deislabs/smi-sdk-go/pkg/apis/access/v1alpha1"
+	spec "github.com/deislabs/smi-sdk-go/pkg/apis/specs/v1alpha1"
+	split "github.com/deislabs/smi-sdk-go/pkg/apis/split/v1alpha2"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/cache"
@@ -44,7 +44,7 @@ type ClientIdentity string
 // MeshSpec is an interface declaring functions, which provide the specs for a service mesh declared with SMI.
 type MeshSpec interface {
 	// ListTrafficSplits lists TrafficSplit SMI resources.
-	ListTrafficSplits() []*TrafficSplit.TrafficSplit
+	ListTrafficSplits() []*split.TrafficSplit
 
 	// ListServices fetches all services declared with SMI Spec.
 	ListServices() []endpoint.ServiceName
@@ -53,8 +53,8 @@ type MeshSpec interface {
 	GetService(endpoint.ServiceName) (service *corev1.Service, exists bool, err error)
 
 	// ListHTTPTrafficSpecs lists TrafficSpec SMI resources.
-	ListHTTPTrafficSpecs() []*TrafficSpec.HTTPRouteGroup
+	ListHTTPTrafficSpecs() []*spec.HTTPRouteGroup
 
 	// ListTrafficTargets lists TrafficTarget SMI resources.
-	ListTrafficTargets() []*TrafficTarget.TrafficTarget
+	ListTrafficTargets() []*target.TrafficTarget
 }
