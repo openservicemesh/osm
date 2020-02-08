@@ -18,7 +18,7 @@ metadata:
 destination:
   # (todo): use service account
   kind: Service
-  name: bookstore.mesh
+  name: bookstore-local
   namespace: "$K8S_NAMESPACE"
 specs:
 - kind: HTTPRouteGroup
@@ -28,6 +28,6 @@ specs:
 sources:
 # (todo): use service account
 - kind: Service
-  name: bookbuyer
+  name: bookstore.mesh
   namespace: "$K8S_NAMESPACE"
 EOF
