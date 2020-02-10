@@ -33,7 +33,7 @@ jobs:
         AZURE_SUBSCRIPTION: ${{ secrets.AZURE_SUBSCRIPTION }}
         CTR_REGISTRY: ${{ secrets.CTR_REGISTRY }}
         CTR_REGISTRY_CREDS_NAME: ${{ secrets.CTR_REGISTRY_CREDS_NAME }}
-        K8S_NAMESPACE: ${{ secrets.K8S_NAMESPACE }}
+        K8S_NAMESPACE: "ci-${{ github.sha }}"
         ACR_CREDS: ${{ secrets.ACR_CREDS }}
         KUBECONFIG: ".kube/config"
         DOCKER_USER: ${{ secrets.DOCKER_USER }}

@@ -40,10 +40,10 @@ openssl genrsa -out "$CERT_KEY" 2048
 
 declare -a domains
 domains=(\
-    "bookbuyer.$K8S_NAMESPACE.svc.cluster.local" \
-    "bookstore.$K8S_NAMESPACE.svc.cluster.local" \
-    "bookstore-1.$K8S_NAMESPACE.svc.cluster.local" \
-    "bookstore-2.$K8S_NAMESPACE.svc.cluster.local" )
+    "bookbuyer.mesh" \
+    "bookstore.mesh" \
+    "bookstore-1.mesh" \
+    "bookstore-2.mesh" )
 
 for DOMAIN in "${domains[@]}"; do
 
