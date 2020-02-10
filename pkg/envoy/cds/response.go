@@ -32,10 +32,6 @@ func (s *Server) newClusterDiscoveryResponse(proxy envoy.Proxyer) (*xds.Discover
 	}
 
 	clusterFactories := []func() *xds.Cluster{
-		// clusters.GetSDS,
-		// clusters.GetEDS,
-		// clusters.GetRDS,
-
 		svcRemote("bookstore.mesh", "bookstore.mesh"),
 		svcLocal("bookstore-local", "bookstore.mesh"),
 	}

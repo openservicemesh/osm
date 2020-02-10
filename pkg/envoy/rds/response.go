@@ -7,34 +7,34 @@ import (
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/any"
 
 	"github.com/deislabs/smc/pkg/endpoint"
 	"github.com/deislabs/smc/pkg/envoy/route"
+	"github.com/deislabs/smc/pkg/log"
 )
 
 func (e *Server) newRouteDiscoveryResponse(allTrafficPolicies []endpoint.TrafficTargetPolicies) (*v2.DiscoveryResponse, error) {
-	var protos []*any.Any
+	resp := &v2.DiscoveryResponse{
+		TypeUrl: route.RouteConfigurationURI,
+	}
+
 	for _, trafficPolicies := range allTrafficPolicies {
 		routeConfiguration := route.NewRouteConfiguration(trafficPolicies)
 
-		proto, err := ptypes.MarshalAny(&routeConfiguration)
-		if err != nil {
-			glog.Errorf("[catalog] Error marshalling RouteConfigurationURI %+v: %s", routeConfiguration, err)
-			continue
+		for _, config := range routeConfiguration {
+
+			marshalledRouteConfig, err := ptypes.MarshalAny(&config)
+			if err != nil {
+				glog.Errorf("[%s] Failed to marshal route config for proxy %v", serverName, err)
+				return nil, err
+			}
+			resp.Resources = append(resp.Resources, marshalledRouteConfig)
 		}
-		protos = append(protos, proto)
 	}
-
-	resp := &v2.DiscoveryResponse{
-		Resources: protos,
-		TypeUrl:   route.RouteConfigurationURI,
-	}
-
 	e.lastVersion = e.lastVersion + 1
 	e.lastNonce = string(time.Now().Nanosecond())
 	resp.Nonce = e.lastNonce
 	resp.VersionInfo = fmt.Sprintf("v%d", e.lastVersion)
-
+	glog.V(log.LvlTrace).Infof("[%s] Constructed response: %+v", serverName, resp)
 	return resp, nil
 }
