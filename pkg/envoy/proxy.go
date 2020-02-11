@@ -18,7 +18,8 @@ const (
 type Proxy struct {
 	certificate.CommonName
 	net.IP
-	ID string
+	id            ProxyID
+	announcements <-chan interface{}
 }
 
 // GetService implements Proxyer and determines the meshed service this endpoint should support based on the mTLS certificate.
@@ -39,15 +40,21 @@ func (p Proxy) GetIP() net.IP {
 	return p.IP
 }
 
-func (p Proxy) GetID() string {
-	return p.ID
+// GetID implements Proxyer and returns the ID of the envoy proxy
+func (p Proxy) GetID() ProxyID {
+	return p.id
+}
+
+func (p Proxy) GetAnnouncementsChannel() <-chan interface{} {
+	return p.announcements
 }
 
 // NewProxy creates a new instance of an Envoy proxy connected to the xDS servers.
-func NewProxy(cn certificate.CommonName, ip net.IP) Proxyer {
+func NewProxy(cn certificate.CommonName, ip net.IP, announcements <-chan interface{}) Proxyer {
 	return Proxy{
-		CommonName: cn,
-		IP:         ip,
-		ID:         utils.NewUuidStr(),
+		CommonName:    cn,
+		IP:            ip,
+		id:            ProxyID(utils.NewUuidStr()),
+		announcements: announcements,
 	}
 }

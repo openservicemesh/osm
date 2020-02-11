@@ -1,9 +1,13 @@
 package catalog
 
 import (
+	"net"
 	"reflect"
 
 	"github.com/golang/glog"
+
+	"github.com/deislabs/smc/pkg/certificate"
+	"github.com/deislabs/smc/pkg/envoy"
 )
 
 func (sc *MeshCatalog) handleBrokerSingals() {
@@ -65,16 +69,17 @@ func (sc *MeshCatalog) broadcastAnnouncementToProxies() {
 }
 
 // RegisterProxy implements MeshCatalog and registers a newly connected proxy.
-func (sc *MeshCatalog) RegisterProxy(id string) <-chan interface{} {
+func (sc *MeshCatalog) RegisterProxy(cn certificate.CommonName, ip net.IP) envoy.Proxyer {
 	announcements := make(chan interface{})
+	proxy := envoy.NewProxy(cn, ip, announcements)
 	sc.msgBroker.Lock()
-	sc.msgBroker.proxyChanMap[id] = announcements
+	sc.msgBroker.proxyChanMap[proxy.GetID()] = announcements
 	sc.msgBroker.Unlock()
-	glog.Infof("Registered proxy: %s, chan: %v", id, announcements)
-	return announcements
+	glog.Infof("Registered proxy: CN=%v, ip=%v, id=%s, channel= %v", proxy.GetCommonName(), proxy.GetIP(), proxy.GetID(), proxy.GetAnnouncementsChannel())
+	return proxy
 }
 
-func (sc *MeshCatalog) UnregisterProxy(id string) {
+func (sc *MeshCatalog) UnregisterProxy(id envoy.ProxyID) {
 	sc.msgBroker.Lock()
 	announcements, ok := sc.msgBroker.proxyChanMap[id]
 	sc.msgBroker.Unlock()

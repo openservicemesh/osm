@@ -7,7 +7,6 @@ import (
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 
-	"github.com/deislabs/smc/pkg/envoy"
 	"github.com/deislabs/smc/pkg/envoy/cla"
 	"github.com/deislabs/smc/pkg/log"
 	"github.com/deislabs/smc/pkg/utils"
@@ -32,8 +31,7 @@ func (e *Server) StreamEndpoints(server v2.EndpointDiscoveryService_StreamEndpoi
 
 	// Register the newly connected proxy w/ the catalog.
 	ip := utils.GetIPFromContext(server.Context())
-	proxy := envoy.NewProxy(cn, ip)
-	announcements := e.catalog.RegisterProxy(proxy.GetID())
+	proxy := e.catalog.RegisterProxy(cn, ip)
 	defer e.catalog.UnregisterProxy(proxy.GetID())
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -55,7 +53,7 @@ func (e *Server) StreamEndpoints(server v2.EndpointDiscoveryService_StreamEndpoi
 			select {
 			case <-ctx.Done():
 				return nil
-			case <-announcements:
+			case <-proxy.GetAnnouncementsChannel():
 				// NOTE(draychev): This is deliberately only focused on providing MVP tools to run a TrafficSplit demo.
 				glog.V(log.LvlInfo).Infof("[%s][stream] Received a change msg! Updating all Envoy proxies.", serverName)
 				// TODO(draychev): flesh out the ClientIdentity

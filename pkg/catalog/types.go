@@ -1,10 +1,12 @@
 package catalog
 
 import (
+	"net"
 	"sync"
 
 	"github.com/deislabs/smc/pkg/certificate"
 	"github.com/deislabs/smc/pkg/endpoint"
+	"github.com/deislabs/smc/pkg/envoy"
 	"github.com/deislabs/smc/pkg/smi"
 )
 
@@ -15,7 +17,7 @@ type MsgBroker struct {
 	register   <-chan chan interface{}
 	unregister <-chan chan interface{}
 
-	proxyChanMap map[string]chan interface{}
+	proxyChanMap map[envoy.ProxyID]chan interface{}
 }
 
 // MeshCatalog is the struct for the service catalog
@@ -47,8 +49,8 @@ type MeshCataloger interface {
 	GetCertificateForService(endpoint.ServiceName) (certificate.Certificater, error)
 
 	// RegisterProxy registers a newly connected proxy with the service mesh catalog.
-	RegisterProxy(string) <-chan interface{}
+	RegisterProxy(cn certificate.CommonName, ip net.IP) envoy.Proxyer
 
 	// UnregisterProxy unregisters an existing proxy from the service mesh catalog
-	UnregisterProxy(string)
+	UnregisterProxy(envoy.ProxyID)
 }

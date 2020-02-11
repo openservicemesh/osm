@@ -7,7 +7,6 @@ import (
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 
-	"github.com/deislabs/smc/pkg/envoy"
 	"github.com/deislabs/smc/pkg/utils"
 )
 
@@ -35,8 +34,7 @@ func (s *Server) StreamListeners(server xds.ListenerDiscoveryService_StreamListe
 
 	// Register the newly connected proxy w/ the catalog.
 	ip := utils.GetIPFromContext(server.Context())
-	proxy := envoy.NewProxy(cn, ip)
-	announcements := s.catalog.RegisterProxy(proxy.GetID())
+	proxy := s.catalog.RegisterProxy(cn, ip)
 	defer s.catalog.UnregisterProxy(proxy.GetID())
 
 	// var recvErr error
@@ -75,7 +73,7 @@ func (s *Server) StreamListeners(server xds.ListenerDiscoveryService_StreamListe
 			glog.Infof("Deliberately sleeping for %d seconds...", sleepTime)
 			time.Sleep(sleepTime * time.Second)
 
-		case <-announcements:
+		case <-proxy.GetAnnouncementsChannel():
 			glog.Infof("[%s][outgoing] Listeners change msg received.", serverName)
 			response, err := s.newListenerDiscoveryResponse(proxy)
 			if err != nil {

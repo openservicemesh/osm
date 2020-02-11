@@ -7,6 +7,12 @@ import (
 	"github.com/deislabs/smc/pkg/endpoint"
 )
 
+type ProxyID string
+
+func (id ProxyID) String() string {
+	return string(id)
+}
+
 // Proxyer is interface for a proxy or side-car connected to the service mesh control plane.
 // This is strictly dealing with the control plane idea of "proxy". Not the data plane "endpoint".
 type Proxyer interface {
@@ -21,5 +27,8 @@ type Proxyer interface {
 	GetIP() net.IP
 
 	// GetID returns the UUID assigned to the proxy connected to the control plane
-	GetID() string
+	GetID() ProxyID
+
+	// GetAnnouncementsChannel returns the announcement channel the proxy is listening on
+	GetAnnouncementsChannel() <-chan interface{}
 }

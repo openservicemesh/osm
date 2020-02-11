@@ -5,6 +5,7 @@ import (
 
 	"github.com/deislabs/smc/pkg/certificate"
 	"github.com/deislabs/smc/pkg/endpoint"
+	"github.com/deislabs/smc/pkg/envoy"
 	"github.com/deislabs/smc/pkg/smi"
 )
 
@@ -32,7 +33,7 @@ func NewMeshCatalog(meshSpec smi.MeshSpec, certManager certificate.Manager, stop
 func newMsgBroker(stop <-chan struct{}) *MsgBroker {
 	return &MsgBroker{
 		stop:         stop,
-		proxyChanMap: make(map[string]chan interface{}),
+		proxyChanMap: make(map[envoy.ProxyID]chan interface{}),
 	}
 }
 

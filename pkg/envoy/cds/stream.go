@@ -7,7 +7,6 @@ import (
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 
-	"github.com/deislabs/smc/pkg/envoy"
 	"github.com/deislabs/smc/pkg/log"
 	"github.com/deislabs/smc/pkg/utils"
 )
@@ -31,8 +30,7 @@ func (s *Server) StreamClusters(server xds.ClusterDiscoveryService_StreamCluster
 
 	// Register the newly connected proxy w/ the catalog.
 	ip := utils.GetIPFromContext(server.Context())
-	proxy := envoy.NewProxy(cn, ip)
-	announcements := s.catalog.RegisterProxy(proxy.GetID())
+	proxy := s.catalog.RegisterProxy(cn, ip)
 	defer s.catalog.UnregisterProxy(proxy.GetID())
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -54,7 +52,7 @@ func (s *Server) StreamClusters(server xds.ClusterDiscoveryService_StreamCluster
 			select {
 			case <-ctx.Done():
 				return nil
-			case <-announcements:
+			case <-proxy.GetAnnouncementsChannel():
 				// NOTE: This is deliberately only focused on providing MVP tools to run a TrafficRoute demo.
 				glog.V(log.LvlInfo).Infof("[%s][stream] Received a change msg! Updating all Envoy proxies.", serverName)
 				resp, err := s.newClusterDiscoveryResponse(proxy)
