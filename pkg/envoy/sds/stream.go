@@ -30,8 +30,8 @@ func (s *Server) StreamSecrets(server v2.SecretDiscoveryService_StreamSecretsSer
 	// Register the newly connected proxy w/ the catalog.
 	ip := utils.GetIPFromContext(server.Context())
 	proxy := envoy.NewProxy(cn, ip)
-	msgCh := s.catalog.ProxyRegister(proxy.GetID())
-	defer s.catalog.ProxyUnregister(proxy.GetID())
+	announcements := s.catalog.RegisterProxy(proxy.GetID())
+	defer s.catalog.UnregisterProxy(proxy.GetID())
 
 	reqChannel := make(chan *envoyv2.DiscoveryRequest)
 	go receive(reqChannel, server)
@@ -68,7 +68,7 @@ func (s *Server) StreamSecrets(server v2.SecretDiscoveryService_StreamSecretsSer
 			glog.Infof("Deliberately sleeping for %d seconds...", sleepTime)
 			time.Sleep(sleepTime * time.Second)
 
-		case <-msgCh:
+		case <-announcements:
 			glog.Infof("[%s][outgoing] Secrets change msg received.", serverName)
 			response, err := s.newSecretDiscoveryResponse(proxy)
 			if err != nil {

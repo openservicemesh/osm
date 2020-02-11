@@ -36,8 +36,8 @@ func (s *Server) StreamListeners(server xds.ListenerDiscoveryService_StreamListe
 	// Register the newly connected proxy w/ the catalog.
 	ip := utils.GetIPFromContext(server.Context())
 	proxy := envoy.NewProxy(cn, ip)
-	msgCh := s.catalog.ProxyRegister(proxy.GetID())
-	defer s.catalog.ProxyUnregister(proxy.GetID())
+	announcements := s.catalog.RegisterProxy(proxy.GetID())
+	defer s.catalog.UnregisterProxy(proxy.GetID())
 
 	// var recvErr error
 	reqChannel := make(chan *xds.DiscoveryRequest)
@@ -75,7 +75,7 @@ func (s *Server) StreamListeners(server xds.ListenerDiscoveryService_StreamListe
 			glog.Infof("Deliberately sleeping for %d seconds...", sleepTime)
 			time.Sleep(sleepTime * time.Second)
 
-		case <-msgCh:
+		case <-announcements:
 			glog.Infof("[%s][outgoing] Listeners change msg received.", serverName)
 			response, err := s.newListenerDiscoveryResponse(proxy)
 			if err != nil {

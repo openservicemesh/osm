@@ -20,5 +20,6 @@ type Proxyer interface {
 	// GetIP returns the IP address of the proxy.
 	GetIP() net.IP
 
+	// GetID returns the UUID assigned to the proxy connected to the control plane
 	GetID() string
 }

@@ -46,22 +46,9 @@ type MeshCataloger interface {
 	// This certificate will be used for service-to-service mTLS.
 	GetCertificateForService(endpoint.ServiceName) (certificate.Certificater, error)
 
-	//
-	// Proxy messaging interfaces
-	//
-
-	// ProxyProcessSignals handles signals sent to the proxy broker, ex. to stop
-	ProxyProcessSignals()
-
-	// ProxyProcessAnnouncements processes channel announcements and relays it to subscribed proxies
-	ProxyProcessAnnouncements()
-
 	// RegisterProxy registers a newly connected proxy with the service mesh catalog.
-	ProxyRegister(string) <-chan interface{}
+	RegisterProxy(string) <-chan interface{}
 
-	// ProxyUnregister unregisters an existing proxy from the service mesh catalog
-	ProxyUnregister(string)
-
-	// ProxyCount returns the count of proxies subscribed with the service mesh catalog
-	ProxyCount() int
+	// UnregisterProxy unregisters an existing proxy from the service mesh catalog
+	UnregisterProxy(string)
 }

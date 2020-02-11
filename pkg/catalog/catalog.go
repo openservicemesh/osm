@@ -20,7 +20,7 @@ func NewMeshCatalog(meshSpec smi.MeshSpec, certManager certificate.Manager, stop
 		servicesCache:    make(map[endpoint.ServiceName][]endpoint.Endpoint),
 		certificateCache: make(map[endpoint.ServiceName]certificate.Certificater),
 
-		// Proxy broker
+		// Message broker / broadcaster for all connected proxies
 		msgBroker: newMsgBroker(stop),
 	}
 
@@ -44,6 +44,6 @@ func (sc *MeshCatalog) RegisterNewEndpoint(smi.ClientIdentity) {
 
 func (sc *MeshCatalog) run(stop <-chan struct{}) {
 	glog.Info("[catalog] Running the Service MeshCatalog...")
-	go sc.ProxyProcessAnnouncements()
-	go sc.ProxyProcessSignals()
+	go sc.broadcastAnnouncementToProxies()
+	go sc.handleBrokerSingals()
 }

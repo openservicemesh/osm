@@ -32,8 +32,8 @@ func (s *Server) StreamClusters(server xds.ClusterDiscoveryService_StreamCluster
 	// Register the newly connected proxy w/ the catalog.
 	ip := utils.GetIPFromContext(server.Context())
 	proxy := envoy.NewProxy(cn, ip)
-	msgCh := s.catalog.ProxyRegister(proxy.GetID())
-	defer s.catalog.ProxyUnregister(proxy.GetID())
+	announcements := s.catalog.RegisterProxy(proxy.GetID())
+	defer s.catalog.UnregisterProxy(proxy.GetID())
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -54,7 +54,7 @@ func (s *Server) StreamClusters(server xds.ClusterDiscoveryService_StreamCluster
 			select {
 			case <-ctx.Done():
 				return nil
-			case <-msgCh:
+			case <-announcements:
 				// NOTE: This is deliberately only focused on providing MVP tools to run a TrafficRoute demo.
 				glog.V(log.LvlInfo).Infof("[%s][stream] Received a change msg! Updating all Envoy proxies.", serverName)
 				resp, err := s.newClusterDiscoveryResponse(proxy)

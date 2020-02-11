@@ -72,7 +72,7 @@ func (c *Client) GetID() string {
 }
 
 // ListEndpointsForService retrieves the list of IP addresses for the given service
-func (c *Client) ListEndpointsForService(svc endpoint.ServiceName) []endpoint.Endpoint {
+func (c Client) ListEndpointsForService(svc endpoint.ServiceName) []endpoint.Endpoint {
 	glog.Infof("[%s] Getting Endpoints for service %s on Kubernetes", c.providerIdent, svc)
 	var endpoints []endpoint.Endpoint
 	endpointsInterface, exist, err := c.caches.Endpoints.GetByKey(string(svc))

@@ -33,8 +33,8 @@ func (e *Server) StreamEndpoints(server v2.EndpointDiscoveryService_StreamEndpoi
 	// Register the newly connected proxy w/ the catalog.
 	ip := utils.GetIPFromContext(server.Context())
 	proxy := envoy.NewProxy(cn, ip)
-	msgCh := e.catalog.ProxyRegister(proxy.GetID())
-	defer e.catalog.ProxyUnregister(proxy.GetID())
+	announcements := e.catalog.RegisterProxy(proxy.GetID())
+	defer e.catalog.UnregisterProxy(proxy.GetID())
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -55,7 +55,7 @@ func (e *Server) StreamEndpoints(server v2.EndpointDiscoveryService_StreamEndpoi
 			select {
 			case <-ctx.Done():
 				return nil
-			case <-msgCh:
+			case <-announcements:
 				// NOTE(draychev): This is deliberately only focused on providing MVP tools to run a TrafficSplit demo.
 				glog.V(log.LvlInfo).Infof("[%s][stream] Received a change msg! Updating all Envoy proxies.", serverName)
 				// TODO(draychev): flesh out the ClientIdentity

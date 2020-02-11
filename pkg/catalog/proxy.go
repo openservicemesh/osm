@@ -6,7 +6,7 @@ import (
 	"github.com/golang/glog"
 )
 
-func (sc *MeshCatalog) ProxyProcessSignals() {
+func (sc *MeshCatalog) handleBrokerSingals() {
 	glog.Info("Handle proxy broker signalling")
 
 	for {
@@ -14,9 +14,9 @@ func (sc *MeshCatalog) ProxyProcessSignals() {
 		case <-sc.msgBroker.stop:
 			glog.Info("Stopping proxy broker")
 			sc.msgBroker.Lock()
-			for id, msgCh := range sc.msgBroker.proxyChanMap {
-				glog.Infof("Closing channel %v for proxy %v", id, msgCh)
-				close(msgCh)
+			for id, announcements := range sc.msgBroker.proxyChanMap {
+				glog.Infof("Closing channel %v for proxy %v", id, announcements)
+				close(announcements)
 			}
 			sc.msgBroker.Unlock()
 			glog.Info("Proxy broker exiting")
@@ -25,19 +25,19 @@ func (sc *MeshCatalog) ProxyProcessSignals() {
 	}
 }
 
-func (sc *MeshCatalog) ProxyProcessAnnouncements() {
-	var recvCh = []<-chan interface{}{}
+func (sc *MeshCatalog) broadcastAnnouncementToProxies() {
+	var changeAnnouncements = []<-chan interface{}{}
 
 	// Subscribe to announcements from SMI, Secrets, Endpoints providers
-	recvCh = append(recvCh, sc.meshSpec.GetAnnouncementsChannel())
-	recvCh = append(recvCh, sc.certManager.GetAnnouncementsChannel())
+	changeAnnouncements = append(changeAnnouncements, sc.meshSpec.GetAnnouncementsChannel())
+	changeAnnouncements = append(changeAnnouncements, sc.certManager.GetAnnouncementsChannel())
 	for _, ep := range sc.endpointsProviders {
-		recvCh = append(recvCh, ep.GetAnnouncementsChannel())
+		changeAnnouncements = append(changeAnnouncements, ep.GetAnnouncementsChannel())
 	}
 
-	cases := make([]reflect.SelectCase, len(recvCh))
+	cases := make([]reflect.SelectCase, len(changeAnnouncements))
 
-	for i, ch := range recvCh {
+	for i, ch := range changeAnnouncements {
 		cases[i] = reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(ch)}
 	}
 
@@ -49,41 +49,37 @@ func (sc *MeshCatalog) ProxyProcessAnnouncements() {
 			// This is an actual send and not a close on the channel
 			// Publish the message to subscribers
 			glog.Infof("Received new msg")
-			sc.ProxyCount() // This takes a lock
 			sc.msgBroker.Lock()
-			for _, msgCh := range sc.msgBroker.proxyChanMap {
+			for id, announcements := range sc.msgBroker.proxyChanMap {
 				select {
-				case msgCh <- msg:
-					glog.Infof("Publishing msg:[%v] on channel:[%v]", msg, msgCh)
-
-				default:
-					// nothing
+				case announcements <- msg:
+					glog.Infof("Publishing announcement:[%v], proxy id:[%v], channel:[%v]", msg, id, announcements)
 				}
 			}
 			sc.msgBroker.Unlock()
 		} else {
-			glog.Infof("Channel %v closed", recvCh[chosen])
+			glog.Infof("Channel %v closed", changeAnnouncements[chosen])
 		}
 	}
 
 }
 
 // RegisterProxy implements MeshCatalog and registers a newly connected proxy.
-func (sc *MeshCatalog) ProxyRegister(id string) <-chan interface{} {
-	msgCh := make(chan interface{})
+func (sc *MeshCatalog) RegisterProxy(id string) <-chan interface{} {
+	announcements := make(chan interface{})
 	sc.msgBroker.Lock()
-	sc.msgBroker.proxyChanMap[id] = msgCh
+	sc.msgBroker.proxyChanMap[id] = announcements
 	sc.msgBroker.Unlock()
-	glog.Infof("Registered proxy: %s, chan: %v", id, msgCh)
-	return msgCh
+	glog.Infof("Registered proxy: %s, chan: %v", id, announcements)
+	return announcements
 }
 
-func (sc *MeshCatalog) ProxyUnregister(id string) {
+func (sc *MeshCatalog) UnregisterProxy(id string) {
 	sc.msgBroker.Lock()
-	msgCh, ok := sc.msgBroker.proxyChanMap[id]
+	announcements, ok := sc.msgBroker.proxyChanMap[id]
 	sc.msgBroker.Unlock()
 	if ok {
-		close(msgCh)
+		close(announcements)
 		sc.msgBroker.Lock()
 		delete(sc.msgBroker.proxyChanMap, id)
 		sc.msgBroker.Unlock()
@@ -93,7 +89,7 @@ func (sc *MeshCatalog) ProxyUnregister(id string) {
 
 }
 
-func (sc *MeshCatalog) ProxyCount() int {
+func (sc *MeshCatalog) countRegisteredProxies() int {
 	sc.msgBroker.Lock()
 	defer sc.msgBroker.Unlock()
 	glog.Infof("Proxy count = %v", len(sc.msgBroker.proxyChanMap))
