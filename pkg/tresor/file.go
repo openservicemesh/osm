@@ -13,7 +13,7 @@ import (
 // certFromFile loads a x509 certificate from a PEM file.
 func certFromFile(caPEMFile string) (*x509.Certificate, error) {
 	if caPEMFile == "" {
-		return nil, errors.Wrap(errInvalidFileName, caKeyPEMFile)
+		return nil, errors.Wrap(errInvalidFileName, caPEMFile)
 	}
 
 	caPEM, err := ioutil.ReadFile(caPEMFile)
