@@ -52,17 +52,15 @@ func (az Client) ListEndpointsForService(svc endpoint.ServiceName) []endpoint.En
 	return endpoints
 }
 
-func (az Client) GetAnnouncementsChannel() <-chan interface{} {
-	// return az.announcements.Out()
-	// TODO(draychev): implement
-	return make(chan interface{})
-}
-
 // run starts the Azure observer
 func (az Client) run(stop <-chan struct{}) error {
 	glog.V(log.LvlInfo).Infoln("Azure provider run started.")
 	// TODO(draychev): implement pub/sub
 	return nil
+}
+
+func (az Client) GetAnnouncementsChannel() <-chan interface{} {
+	return az.announcements
 }
 
 // GetID returns the unique identifier for the compute provider.

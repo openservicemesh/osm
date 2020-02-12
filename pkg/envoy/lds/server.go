@@ -4,18 +4,14 @@ import (
 	"context"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	"github.com/golang/glog"
 
 	"github.com/deislabs/smc/pkg/catalog"
-	"github.com/deislabs/smc/pkg/envoy"
-	"github.com/deislabs/smc/pkg/utils"
 )
 
 const (
 	maxConnections = 10000
-
-	typeUrl    = "type.googleapis.com/envoy.api.v2.Listener"
-	serverName = "LDS"
+	typeUrl        = "type.googleapis.com/envoy.api.v2.Listener"
+	serverName     = "LDS"
 )
 
 // NewLDSServer creates a new LDS server
@@ -34,19 +30,5 @@ func (s *Server) DeltaListeners(xds.ListenerDiscoveryService_DeltaListenersServe
 
 // FetchListeners implements xds.ListenerDiscoveryServiceServer
 func (s *Server) FetchListeners(ctx context.Context, discReq *xds.DiscoveryRequest) (*xds.DiscoveryResponse, error) {
-	glog.Infof("[%s] Fetching Listeners...", serverName)
-
-	cn, err := utils.ValidateClient(ctx, nil, serverName)
-	if err != nil {
-		glog.Errorf("[%s] Error constructing Listeners Discovery Response: %s", serverName, err)
-		return nil, err
-	}
-
-	// Register the newly connected proxy w/ the catalog.
-	ip := utils.GetIPFromContext(ctx)
-	proxy := envoy.NewProxy(cn, ip)
-	s.catalog.RegisterProxy(proxy)
-
-	glog.Infof("[%s][FetchListeners] Responding to proxy %s", serverName, proxy.GetCommonName())
-	return s.newListenerDiscoveryResponse(proxy)
+	panic("NotImplemented")
 }

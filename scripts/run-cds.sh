@@ -20,5 +20,5 @@ export GRPC_GO_LOG_SEVERITY_LEVEL=info
     --kubeconfig="$HOME/.kube/config" \
     --certpem="./certificates/cert.pem" \
     --keypem="./certificates/key.pem" \
-    --rootcertpem="./certificates/cert.pem" \
+    --rootcertpem="./certificates/root-cert.pem" \
     --verbosity=25

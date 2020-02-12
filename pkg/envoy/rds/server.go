@@ -11,13 +11,12 @@ import (
 )
 
 // NewRDSServer creates a new RDS server
-func NewRDSServer(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, announcements chan interface{}) *Server {
+func NewRDSServer(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec) *Server {
 	glog.Info("[RDS] Create NewRDSServer")
 	return &Server{
-		ctx:           ctx,
-		catalog:       catalog,
-		meshSpec:      meshSpec,
-		announcements: announcements,
+		ctx:      ctx,
+		catalog:  catalog,
+		meshSpec: meshSpec,
 	}
 }
 

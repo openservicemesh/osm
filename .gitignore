@@ -28,7 +28,10 @@ debug
 [._]ss[a-gi-z]
 [._]sw[a-p]
 
+# IntelliJ / Goland
 .idea/
+
+# Emacs
 *~
 *#*
 
@@ -42,3 +45,10 @@ screenlog.*
 vendor/
 demo/bin/
 certificates
+
+# macOS files
+.DS_Store
+
+# Certificates etc
+*.pem
+./certs/

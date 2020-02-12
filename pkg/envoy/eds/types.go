@@ -13,8 +13,6 @@ type Server struct {
 	catalog  catalog.MeshCataloger
 	meshSpec smi.MeshSpec
 
-	announcements chan interface{}
-
 	lastVersion uint64
 	lastNonce   string
 }

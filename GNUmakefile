@@ -18,6 +18,10 @@ endif
 
 include .env
 
+.PHONY: clean-cert
+clean-cert:
+	@rm -rf bin/cert
+
 .PHONY: clean-cds
 clean-cds:
 	@rm -rf bin/cds
@@ -40,6 +44,11 @@ clean-rds:
 
 .PHONY: build
 build: build-sds build-eds build-cds build-rds build-lds
+
+.PHONY: build-cert
+build-cert: clean-cert
+	@mkdir -p $(shell pwd)/bin
+	CGO_ENABLED=0  go build -v -o ./bin/cert ./cmd/cert
 
 .PHONY: build-cds
 build-cds: clean-cds

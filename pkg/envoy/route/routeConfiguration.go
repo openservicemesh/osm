@@ -1,10 +1,11 @@
 package route
 
 import (
+	"strings"
+
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"github.com/golang/glog"
-	"github.com/golang/protobuf/ptypes/wrappers"
 
 	smcEndpoint "github.com/deislabs/smc/pkg/endpoint"
 	"github.com/deislabs/smc/pkg/log"
@@ -13,19 +14,33 @@ import (
 const (
 	// RouteConfigurationURI is the string constant of the Route Configuration URI
 	RouteConfigurationURI = "type.googleapis.com/envoy.api.v2.RouteConfiguration"
+	// DestinationRouteConfig is the name of the route config that the envoy will identify
+	DestinationRouteConfig = "RDS_Destination"
+	// SourceRouteConfig is the name of the route config that the envoy will identify
+	SourceRouteConfig = "RDS_Source"
 )
 
 //NewRouteConfiguration consrtucts the Envoy construct necessary for TrafficTarget implementation
 // todo (snchh) : need to figure out linking to name spaces
-// todo (snchh) : trafficPolicies.PolicyRoutePaths.RoutePathMethods not used
-func NewRouteConfiguration(trafficPolicies smcEndpoint.TrafficTargetPolicies) v2.RouteConfiguration {
+func NewRouteConfiguration(trafficPolicies smcEndpoint.TrafficTargetPolicies) []v2.RouteConfiguration {
 
-	routeConfiguration := v2.RouteConfiguration{
-		Name: trafficPolicies.PolicyName,
+	routeConfigurations := []v2.RouteConfiguration{}
+	serverRouteConfig := getServerRouteConfiguration(trafficPolicies)
+	routeConfigurations = append(routeConfigurations, serverRouteConfig)
+	clientRouteConfig := getClientRouteConfiguration(trafficPolicies)
+	routeConfigurations = append(routeConfigurations, clientRouteConfig)
+	return routeConfigurations
+}
+
+func getServerRouteConfiguration(trafficPolicies smcEndpoint.TrafficTargetPolicies) v2.RouteConfiguration {
+
+	routeConfig := v2.RouteConfiguration{
+		Name: DestinationRouteConfig,
 		VirtualHosts: []*route.VirtualHost{{
-			Name:    trafficPolicies.Source,
+			Name:    "backend",
 			Domains: []string{"*"},
 			Routes:  []*route.Route{},
+			Cors:    &route.CorsPolicy{},
 		}},
 	}
 
@@ -35,32 +50,60 @@ func NewRouteConfiguration(trafficPolicies smcEndpoint.TrafficTargetPolicies) v2
 				PathSpecifier: &route.RouteMatch_Prefix{
 					Prefix: routePaths.RoutePathRegex,
 				},
-				// TODO - should we keep this?? -- Grpc: &route.RouteMatch_GrpcRouteMatchOptions{},
 			},
 			Action: &route.Route_Route{
 				Route: &route.RouteAction{
-					// TODO -- should we keep this -- ClusterNotFoundResponseCode: route.RouteAction_SERVICE_UNAVAILABLE,
-					/*
-						ClusterSpecifier: &route.RouteAction_Cluster{
-							Cluster: trafficPolicies.Destination,
-						},
-					*/
-					ClusterSpecifier: &route.RouteAction_WeightedClusters{
-						WeightedClusters: &route.WeightedCluster{
-							Clusters: []*route.WeightedCluster_ClusterWeight{{
-								Name: "bookstore.mesh",
-								Weight: &wrappers.UInt32Value{
-									Value: 100,
-								},
-							}},
-						},
+					ClusterSpecifier: &route.RouteAction_Cluster{
+						Cluster: trafficPolicies.Destination,
 					},
 				},
 			},
 		}
-		routeConfiguration.VirtualHosts[0].Routes = append(routeConfiguration.VirtualHosts[0].Routes, &rt)
+		cors := &route.CorsPolicy{
+			AllowMethods: strings.Join(routePaths.RouteMethods, ", "),
+		}
+
+		routeConfig.VirtualHosts[0].Cors = cors
+		routeConfig.VirtualHosts[0].Routes = append(routeConfig.VirtualHosts[0].Routes, &rt)
+	}
+	glog.V(log.LvlTrace).Infof("[RDS] Constructed Server RouteConfiguration: %+v", routeConfig)
+	return routeConfig
+}
+
+func getClientRouteConfiguration(trafficPolicies smcEndpoint.TrafficTargetPolicies) v2.RouteConfiguration {
+	routeConfig := v2.RouteConfiguration{
+		Name: SourceRouteConfig,
+		VirtualHosts: []*route.VirtualHost{{
+			Name:    "envoy_admin",
+			Domains: []string{"*"},
+			Routes:  []*route.Route{},
+			Cors:    &route.CorsPolicy{},
+		}},
 	}
 
-	glog.V(log.LvlTrace).Infof("[RDS] Constructed RouteConfiguration: %+v", routeConfiguration)
-	return routeConfiguration
+	for _, routePaths := range trafficPolicies.PolicyRoutePaths {
+		rt := route.Route{
+			Match: &route.RouteMatch{
+				PathSpecifier: &route.RouteMatch_Prefix{
+					Prefix: routePaths.RoutePathRegex,
+				},
+			},
+			Action: &route.Route_Route{
+				Route: &route.RouteAction{
+					ClusterSpecifier: &route.RouteAction_Cluster{
+						Cluster: trafficPolicies.Source,
+					},
+				},
+			},
+		}
+
+		cors := &route.CorsPolicy{
+			AllowMethods: strings.Join(routePaths.RouteMethods, ", "),
+		}
+
+		routeConfig.VirtualHosts[0].Cors = cors
+		routeConfig.VirtualHosts[0].Routes = append(routeConfig.VirtualHosts[0].Routes, &rt)
+	}
+	glog.Infof("[RDS] Constructed Client RouteConfiguration: %+v", routeConfig)
+	return routeConfig
 }

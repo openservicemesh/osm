@@ -45,11 +45,6 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// SMI Informers will write to this channel when they notice changes.
-	// This channel will be consumed by the ServiceName Mesh Controller.
-	// This is a signalling mechanism to notify SMC of a service mesh spec change which triggers Envoy updates.
-	announcements := make(chan interface{})
-
 	kubeConfig, err := clientcmd.BuildConfigFromFlags("", *kubeConfigFile)
 	if err != nil {
 		glog.Fatalf("[SDS] Error fetching Kubernetes config. Ensure correctness of CLI argument 'kubeconfig=%s': %s", *kubeConfigFile, err)
@@ -58,7 +53,7 @@ func main() {
 	observeNamespaces := getNamespaces()
 
 	stop := make(chan struct{})
-	meshSpecClient := smi.NewMeshSpecClient(kubeConfig, observeNamespaces, announcements, stop)
+	meshSpecClient := smi.NewMeshSpecClient(kubeConfig, observeNamespaces, stop)
 	certManager := certificate.NewManager(stop)
 	meshCatalog := catalog.NewMeshCatalog(meshSpecClient, certManager, stop)
 	sdsServer := sds.NewSDSServer(meshCatalog)
