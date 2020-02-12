@@ -16,6 +16,6 @@ func (m CertManager) IssueCertificate(cn CommonName) (Certificater, error) {
 	return newCertificate(cn)
 }
 
-func (m CertManager) GetSecretsChangeAnnouncementChan() <-chan interface{} {
+func (m CertManager) GetAnnouncementsChannel() <-chan interface{} {
 	return m.announcements
 }

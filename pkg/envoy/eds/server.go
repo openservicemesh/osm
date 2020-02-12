@@ -11,13 +11,12 @@ import (
 )
 
 // NewEDSServer creates a new EDS server
-func NewEDSServer(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, announcements chan interface{}) *Server {
+func NewEDSServer(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec) *Server {
 	glog.Info("[EDS] Create NewEDSServer")
 	return &Server{
-		ctx:           ctx,
-		catalog:       catalog,
-		meshSpec:      meshSpec,
-		announcements: announcements,
+		ctx:      ctx,
+		catalog:  catalog,
+		meshSpec: meshSpec,
 	}
 }
 

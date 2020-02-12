@@ -24,20 +24,20 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-var resyncPeriod = 1 * time.Second
+var resyncPeriod = 10 * time.Second
 
 // We have a few different k8s clients. This identifies these in logs.
 const kubernetesClientName = "MeshSpec"
 
 // NewMeshSpecClient implements mesh.MeshSpec and creates the Kubernetes client, which retrieves SMI specific CRDs.
-func NewMeshSpecClient(kubeConfig *rest.Config, namespaces []string, announcements chan interface{}, stop chan struct{}) MeshSpec {
+func NewMeshSpecClient(kubeConfig *rest.Config, namespaces []string, stop chan struct{}) MeshSpec {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 	smiTrafficSplitClientSet := smiTrafficSplitClient.NewForConfigOrDie(kubeConfig)
 	smiTrafficSpecClientSet := smiTrafficSpecClient.NewForConfigOrDie(kubeConfig)
 	smiTrafficTargetClientSet := smiTrafficTargetClient.NewForConfigOrDie(kubeConfig)
 
-	client := newSMIClient(kubeClient, smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet, namespaces, announcements, kubernetesClientName)
-	//	client := newSMIClient(kubeClient, smiClientset, namespaces, announcements, kubernetesClientName)
+	client := newSMIClient(kubeClient, smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet, namespaces, kubernetesClientName)
+
 	err := client.run(stop)
 	if err != nil {
 		glog.Fatalf("Could not start %s client: %s", kubernetesClientName, err)
@@ -91,8 +91,12 @@ func (c *Client) GetID() string {
 	return c.providerIdent
 }
 
+func (c *Client) GetAnnouncementsChannel() <-chan interface{} {
+	return c.announcements
+}
+
 // newClient creates a provider based on a Kubernetes client instance.
-func newSMIClient(kubeClient *kubernetes.Clientset, smiTrafficSplitClient *smiTrafficSplitClient.Clientset, smiTrafficSpecClient *smiTrafficSpecClient.Clientset, smiTrafficTargetClient *smiTrafficTargetClient.Clientset, namespaces []string, announcements chan interface{}, providerIdent string) *Client {
+func newSMIClient(kubeClient *kubernetes.Clientset, smiTrafficSplitClient *smiTrafficSplitClient.Clientset, smiTrafficSpecClient *smiTrafficSpecClient.Clientset, smiTrafficTargetClient *smiTrafficTargetClient.Clientset, namespaces []string, providerIdent string) *Client {
 	// func newSMIClient(kubeClient *kubernetes.Clientset, smiClient *versioned.Clientset, namespaces []string, announcements chan interface{}, providerIdent string) *Client {
 	var options []informers.SharedInformerOption
 	var smiTrafficSplitOptions []smiTrafficSplitInformers.SharedInformerOption
@@ -128,8 +132,8 @@ func newSMIClient(kubeClient *kubernetes.Clientset, smiTrafficSplitClient *smiTr
 		providerIdent: providerIdent,
 		informers:     &informerCollection,
 		caches:        &cacheCollection,
-		announcements: announcements,
 		cacheSynced:   make(chan interface{}),
+		announcements: make(chan interface{}),
 	}
 
 	h := handlers{client}
