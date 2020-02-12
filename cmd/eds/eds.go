@@ -33,7 +33,7 @@ const (
 )
 
 var (
-	flags          = pflag.NewFlagSet(`diplomat-eds`, pflag.ExitOnError)
+	flags          = pflag.NewFlagSet(`eds`, pflag.ExitOnError)
 	kubeConfigFile = flags.String("kubeconfig", "", "Path to Kubernetes config file.")
 	azureAuthFile  = flags.String("azureAuthFile", "", "Path to Azure Auth File")
 	subscriptionID = flags.String("subscriptionID", "", "Azure Subscription")

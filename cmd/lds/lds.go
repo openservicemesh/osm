@@ -29,7 +29,7 @@ const (
 )
 
 var (
-	flags          = pflag.NewFlagSet(`diplomat-lds`, pflag.ExitOnError)
+	flags          = pflag.NewFlagSet(`lds`, pflag.ExitOnError)
 	kubeConfigFile = flags.String("kubeconfig", "", "Path to Kubernetes config file.")
 	verbosity      = flags.Int("verbosity", int(log.LvlInfo), "Set logging verbosity level")
 	port           = flags.Int("port", 15127, "Listeners Discovery Service port number. (Default: 15127)")
