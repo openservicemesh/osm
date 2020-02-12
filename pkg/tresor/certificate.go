@@ -10,6 +10,10 @@ import (
 	"time"
 )
 
+const (
+	rsaBits = 4096
+)
+
 // GetName implements Implements certificate.Certificater and returns the CN of the cert.
 func (c Certificate) GetName() string {
 	return c.name

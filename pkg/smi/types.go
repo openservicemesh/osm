@@ -57,4 +57,7 @@ type MeshSpec interface {
 
 	// ListTrafficTargets lists TrafficTarget SMI resources.
 	ListTrafficTargets() []*target.TrafficTarget
+
+	// GetAnnouncementsChannel returns the channel on which SMI makes annoucements
+	GetAnnouncementsChannel() <-chan interface{}
 }
