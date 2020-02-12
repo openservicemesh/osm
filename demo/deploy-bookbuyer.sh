@@ -5,6 +5,8 @@ set -aueo pipefail
 # shellcheck disable=SC1091
 source .env
 
+./demo/deploy-secrets.sh "bookbuyer"
+
 kubectl delete deployment bookbuyer -n "$K8S_NAMESPACE"  || true
 
 echo -e "Deploy BookBuyer demo service"
@@ -73,12 +75,14 @@ spec:
           volumeMounts:
            - name: config-volume
              mountPath: /etc/config
+
            # Bootstrap certificates
-           - name: ca-certpemstore
+           - name: ca-certpemstore-bookbuyer
              mountPath: /etc/ssl/certs/cert.pem
              subPath: cert.pem
              readOnly: false
-           - name: ca-keypemstore
+
+           - name: ca-keypemstore-bookbuyer
              mountPath: /etc/ssl/certs/key.pem
              subPath: key.pem
              readOnly: false
@@ -110,13 +114,15 @@ spec:
         - name: config-volume
           configMap:
             name: envoyproxy-config
+
         # Bootstrap certificates
-        - name: ca-certpemstore
+        - name: ca-certpemstore-bookbuyer
           configMap:
-            name: ca-certpemstore
-        - name: ca-keypemstore
+            name: ca-certpemstore-bookbuyer
+
+        - name: ca-keypemstore-bookbuyer
           configMap:
-            name: ca-keypemstore
+            name: ca-keypemstore-bookbuyer
 
       imagePullSecrets:
         - name: "$CTR_REGISTRY_CREDS_NAME"
