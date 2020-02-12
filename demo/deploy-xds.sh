@@ -10,7 +10,7 @@ PORT=${2:-9999}
 
 ./demo/deploy-secrets.sh "${NAME}"
 
-kubectl delete pod $NAME -n "${K8S_NAMESPACE}" || true
+kubectl delete pod "$NAME" -n "${K8S_NAMESPACE}" || true
 
 cat <<EOF | kubectl apply -f -
 apiVersion: v1

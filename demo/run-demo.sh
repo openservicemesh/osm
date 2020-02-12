@@ -1,27 +1,25 @@
 #!/bin/bash
 
-set -aueo pipefail
+set -auexo pipefail
 
 # shellcheck disable=SC1091
 source .env
 
-rm -rf ./certs
+rm -rf ./certificates
 
 ./demo/clean-kubernetes.sh
 
-targets=(
-    build-cert
-    docker-push-cds
-    docker-push-lds
-    docker-push-eds
-    docker-push-sds
-    docker-push-rds
-    docker-push-init
-    docker-push-bookbuyer
-    docker-push-bookstore
-)
+make build-cert
 
-parallel --jobs 16 make ::: ${targets[@]}
+make docker-push-cds
+make docker-push-lds
+make docker-push-eds
+make docker-push-sds
+make docker-push-rds
+
+make docker-push-init
+make docker-push-bookbuyer
+make docker-push-bookstore
 
 # Create the proxy certificates
 ./demo/gen-ca.sh
@@ -33,7 +31,6 @@ kubectl create configmap kubeconfig --from-file="$HOME/.kube/config" -n "$K8S_NA
 kubectl create configmap azureconfig --from-file="$HOME/.azure/azureAuth.json" -n "$K8S_NAMESPACE"
 kubectl apply -f crd/AzureResource.yaml
 kubectl apply -f demo/AzureResource.yaml
-
 
 ./demo/deploy-bookbuyer.sh
 
