@@ -9,6 +9,10 @@ import (
 	"github.com/deislabs/smc/pkg/certificate"
 )
 
+const (
+	rsaBits = 4096
+)
+
 // IssueCertificate implements certificate.Manager and returns a newly issued certificate.
 func (cm *CertManager) IssueCertificate(cn certificate.CommonName) (certificate.Certificater, error) {
 	if cert, exists := cm.cache[cn]; exists {
