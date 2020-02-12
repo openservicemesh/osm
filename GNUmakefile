@@ -60,6 +60,11 @@ build-lds: clean-lds
 	@mkdir -p $(shell pwd)/bin
 	CGO_ENABLED=0  go build -v -o ./bin/lds ./cmd/lds
 
+.PHONY: build-smc
+build-smc:
+	@mkdir -p $(shell pwd)/bin
+	CGO_ENABLED=0  go build -v -o ./bin/smc ./cmd/smc
+
 .PHONY: build-sds
 build-sds: clean-sds
 	@mkdir -p $(shell pwd)/bin
