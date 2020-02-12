@@ -18,7 +18,7 @@ import (
 var resyncPeriod = 1 * time.Second
 
 // NewProvider implements mesh.EndpointsProvider, which creates a new Kubernetes cluster/compute provider.
-func NewProvider(kubeConfig *rest.Config, namespaces []string, announcements chan interface{}, stop chan struct{}, providerIdent string) *Client {
+func NewProvider(kubeConfig *rest.Config, namespaces []string, stop chan struct{}, providerIdent string) *Client {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 
 	var options []informers.SharedInformerOption
@@ -40,8 +40,8 @@ func NewProvider(kubeConfig *rest.Config, namespaces []string, announcements cha
 		kubeClient:    kubeClient,
 		informers:     &informerCollection,
 		caches:        &cacheCollection,
-		announcements: announcements,
 		cacheSynced:   make(chan interface{}),
+		announcements: make(chan interface{}),
 	}
 
 	h := handlers{client}
@@ -59,6 +59,10 @@ func NewProvider(kubeConfig *rest.Config, namespaces []string, announcements cha
 	}
 
 	return &client
+}
+
+func (c *Client) GetAnnouncementsChannel() <-chan interface{} {
+	return c.announcements
 }
 
 // GetID returns a string descriptor / identifier of the compute provider.
@@ -97,12 +101,6 @@ func (c Client) ListEndpointsForService(svc endpoint.ServiceName) []endpoint.End
 		}
 	}
 	return endpoints
-}
-
-func (c Client) GetAnnouncementsChannel() <-chan interface{} {
-	// return c.announcements
-	// TODO(draychev): implement
-	return make(chan interface{})
 }
 
 // run executes informer collection.

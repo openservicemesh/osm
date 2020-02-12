@@ -26,7 +26,13 @@ func (h handlers) addFunc(obj interface{}) {
 func (h handlers) updateFunc(oldObj, newObj interface{}) {
 	glog.V(log.LvlTrace).Infof("[%s] Update event %+v", h.providerIdent, oldObj)
 	if reflect.DeepEqual(oldObj, newObj) {
-		return
+		glog.V(log.LvlTrace).Info("Update event: no change")
+		// TODO(shashank): This is a temporary hack to enable periodic updates
+		// from the informers to propagate to xDS streams even if there is no
+		// change. This is done to ensure that proxie's receive the updates
+		// in case they register AFTER an event is generated in the system, in
+		// which case they would miss the event.
+		//return
 	}
 	h.announcements <- events.Event{
 		Type:  events.Update,

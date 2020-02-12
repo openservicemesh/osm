@@ -7,6 +7,8 @@ source .env
 
 SVC=${1:-bookstore}
 
+./demo/deploy-secrets.sh "$SVC"
+
 kubectl delete deployment "$SVC" -n "$K8S_NAMESPACE"  || true
 
 echo -e "Deploy $SVC demo service"
@@ -76,11 +78,11 @@ spec:
            - name: config-volume
              mountPath: /etc/config
            # Bootstrap certificates
-           - name: ca-certpemstore
+           - name: ca-certpemstore-$SVC
              mountPath: /etc/ssl/certs/cert.pem
              subPath: cert.pem
              readOnly: false
-           - name: ca-keypemstore
+           - name: ca-keypemstore-$SVC
              mountPath: /etc/ssl/certs/key.pem
              subPath: key.pem
              readOnly: false
@@ -90,12 +92,12 @@ spec:
           configMap:
             name: envoyproxy-config
         # Bootstrap certificates
-        - name: ca-certpemstore
+        - name: ca-certpemstore-$SVC
           configMap:
-            name: ca-certpemstore
-        - name: ca-keypemstore
+            name: ca-certpemstore-$SVC
+        - name: ca-keypemstore-$SVC
           configMap:
-            name: ca-keypemstore
+            name: ca-keypemstore-$SVC
 
       imagePullSecrets:
         - name: $CTR_REGISTRY_CREDS_NAME

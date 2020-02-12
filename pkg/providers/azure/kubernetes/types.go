@@ -21,6 +21,6 @@ type Client struct {
 	cacheSynced   chan interface{}
 	kubeClient    kubernetes.Interface
 	informers     *InformerCollection
-	announcements chan interface{}
 	providerIdent string
+	announcements chan interface{}
 }

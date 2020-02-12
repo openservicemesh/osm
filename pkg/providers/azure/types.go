@@ -46,7 +46,6 @@ type Client struct {
 	azureClients
 
 	subscriptionID string
-	announcements  chan interface{}
 	meshSpec       smi.MeshSpec
 
 	// Free-form string identifying the compute provider: Azure, Kubernetes etc.
@@ -58,6 +57,8 @@ type Client struct {
 	// to the provider. At a later point we need to come up with an abstract mechanism, by which the Azure EndpointsProvider
 	// will convert a service name to an Azure resource URI.
 	azureResourceClient ResourceClient
+
+	announcements chan interface{}
 }
 
 // ResourceClient is an interface defining necessary functions to list the AzureResources.

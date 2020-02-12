@@ -1,12 +1,15 @@
 #!/bin/bash
 
-set -aueo pipefail
+set -auexo pipefail
 
 # shellcheck disable=SC1091
 source .env
 
-# Create the proxy certificates
-./scripts/gen-proxy-certificate.sh
+rm -rf ./certificates
+
+./demo/clean-kubernetes.sh
+
+make build-cert
 
 make docker-push-cds
 make docker-push-lds
@@ -18,10 +21,10 @@ make docker-push-init
 make docker-push-bookbuyer
 make docker-push-bookstore
 
-./demo/clean-kubernetes.sh
+# Create the proxy certificates
+./demo/gen-ca.sh
+
 ./demo/create-container-registry-creds.sh
-./demo/create-certificates.sh
-./demo/deploy-certificates-config.sh
 ./demo/deploy-envoyproxy-config.sh
 
 kubectl create configmap kubeconfig --from-file="$HOME/.kube/config" -n "$K8S_NAMESPACE"
@@ -31,11 +34,9 @@ kubectl apply -f demo/AzureResource.yaml
 
 ./demo/deploy-bookbuyer.sh
 
-./demo/deploy-bookstore.sh bookstore
-./demo/deploy-bookstore.sh bookstore-1
-./demo/deploy-bookstore.sh bookstore-2
-
-./demo/deploy-secrets.sh
+# ./demo/deploy-bookstore.sh bookstore
+./demo/deploy-bookstore.sh "bookstore-1"
+# ./demo/deploy-bookstore.sh bookstore-2
 
 ./demo/deploy-cds.sh
 ./demo/deploy-sds.sh
@@ -47,4 +48,4 @@ kubectl apply -f demo/AzureResource.yaml
 ./demo/deploy-traffic-spec.sh
 ./demo/deploy-traffic-target.sh
 
-watch -n0.5 "kubectl get pods -nsmc -o wide"
+watch -n0.5 "kubectl get pods -n${K8S_NAMESPACE} -o wide"

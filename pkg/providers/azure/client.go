@@ -11,8 +11,7 @@ import (
 )
 
 // NewProvider creates an Azure Client
-// func NewProvider(subscriptionID string, azureAuthFile string, announcements chan interface{}, stop chan struct{}, meshSpec smi.MeshSpec, azureResourceClient ResourceClient, providerIdent string) endpoint.Provider {
-func NewProvider(subscriptionID string, azureAuthFile string, announcements chan interface{}, stop chan struct{}, meshSpec smi.MeshSpec, azureResourceClient ResourceClient, providerIdent string) Client {
+func NewProvider(subscriptionID string, azureAuthFile string, stop chan struct{}, meshSpec smi.MeshSpec, azureResourceClient ResourceClient, providerIdent string) Client {
 	var authorizer autorest.Authorizer
 	var err error
 	if authorizer, err = getAuthorizerWithRetry(azureAuthFile); err != nil {
@@ -35,13 +34,14 @@ func NewProvider(subscriptionID string, azureAuthFile string, announcements chan
 		},
 
 		subscriptionID: subscriptionID,
-		announcements:  announcements,
 		meshSpec:       meshSpec,
 		providerID:     providerIdent,
 
 		// AzureResource Client is needed here so the Azure EndpointsProvider can resolve a Kubernetes ServiceName
 		// into an Azure URI. (Example: resolve "webService" to an IP of a VM.)
 		azureResourceClient: azureResourceClient,
+
+		announcements: make(chan interface{}),
 	}
 
 	az.publicIPsClient.Authorizer = az.authorizer
