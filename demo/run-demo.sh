@@ -6,6 +6,7 @@ set -auexo pipefail
 source .env
 
 rm -rf ./certificates
+rm -rf ./certs
 
 ./demo/clean-kubernetes.sh
 
@@ -23,7 +24,6 @@ make docker-push-bookstore
 
 # Create the proxy certificates
 ./demo/gen-ca.sh
-
 ./demo/create-container-registry-creds.sh
 ./demo/deploy-envoyproxy-config.sh
 

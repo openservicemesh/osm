@@ -4,6 +4,8 @@ import (
 	"net"
 	"strings"
 
+	"github.com/golang/glog"
+
 	"github.com/deislabs/smc/pkg/certificate"
 	"github.com/deislabs/smc/pkg/endpoint"
 	"github.com/deislabs/smc/pkg/utils"
@@ -27,7 +29,9 @@ type Proxy struct {
 func (p Proxy) GetService() endpoint.ServiceName {
 	cn := string(p.CommonName)
 	dotCount := strings.Count(cn, dot)
-	return endpoint.ServiceName(utils.GetLastNOfDotted(cn, dotCount))
+	serviceName := endpoint.ServiceName(utils.GetLastNOfDotted(cn, dotCount))
+	glog.Infof("ServiceName for proxy(%s) is (%s)", p.CommonName, serviceName)
+	return serviceName
 }
 
 // GetCommonName implements Proxyer and returns the Subject Common Name from the mTLS certificate of the Envoy proxy connected to xDS.

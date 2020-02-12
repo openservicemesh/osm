@@ -43,7 +43,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName) (certificate.
 	return cert, nil
 }
 
-// GetSecretsChangeAnnouncementChan implements certificate.Manager and returns the channel on which the certificate manager announces changes made to certificates.
-func (cm CertManager) GetSecretsChangeAnnouncementChan() <-chan interface{} {
+// GetAnnouncementsChannel implements certificate.Manager and returns the channel on which the certificate manager announces changes made to certificates.
+func (cm CertManager) GetAnnouncementsChannel() <-chan interface{} {
 	return cm.announcements
 }
