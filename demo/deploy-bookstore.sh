@@ -77,6 +77,7 @@ spec:
           volumeMounts:
            - name: config-volume
              mountPath: /etc/config
+
            # Bootstrap certificates
            - name: ca-certpemstore-$SVC
              mountPath: /etc/ssl/certs/cert.pem

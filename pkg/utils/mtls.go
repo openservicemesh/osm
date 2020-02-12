@@ -18,19 +18,19 @@ import (
 )
 
 func setupMutualTLS(insecure bool, serverName string, certPem string, keyPem string, rootCertPem string) grpc.ServerOption {
-	certificate, err := tls.LoadX509KeyPair(certPem, keyPem)
+	certif, err := tls.LoadX509KeyPair(certPem, keyPem)
 	if err != nil {
-		glog.Fatalf("[grpc][mTLS][%s]Failed loading Certificate (%+v) and Key (%+v) PEM files.", serverName, certPem, keyPem)
+		glog.Fatalf("[grpc][mTLS][%s] Failed loading Certificate (%+v) and Key (%+v) PEM files: %s", serverName, certPem, keyPem, err)
 	}
 
 	certPool := x509.NewCertPool()
-	pemCerts, err := ioutil.ReadFile(rootCertPem)
+	ca, err := ioutil.ReadFile(rootCertPem)
 	if err != nil {
 		log.Fatalf("[grpc][mTLS][%s] Failed to read client CA cert from %s: %s", serverName, rootCertPem, err)
 	}
 
 	// Load the set of Root CAs
-	if ok := certPool.AppendCertsFromPEM(pemCerts); !ok {
+	if ok := certPool.AppendCertsFromPEM(ca); !ok {
 		log.Fatalf("[grpc][mTLS][%s] Filed to append client certs.", serverName)
 	}
 
@@ -38,7 +38,7 @@ func setupMutualTLS(insecure bool, serverName string, certPem string, keyPem str
 		InsecureSkipVerify: insecure,
 		ServerName:         serverName,
 		ClientAuth:         tls.RequireAndVerifyClientCert,
-		Certificates:       []tls.Certificate{certificate},
+		Certificates:       []tls.Certificate{certif},
 		ClientCAs:          certPool,
 	}
 	return grpc.Creds(credentials.NewTLS(&tlsConfig))

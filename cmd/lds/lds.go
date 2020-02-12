@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"strings"
 	"syscall"
+	"time"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
@@ -15,11 +16,11 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/deislabs/smc/pkg/catalog"
-	"github.com/deislabs/smc/pkg/certificate"
 	"github.com/deislabs/smc/pkg/constants"
 	"github.com/deislabs/smc/pkg/envoy/lds"
 	"github.com/deislabs/smc/pkg/log"
 	"github.com/deislabs/smc/pkg/smi"
+	"github.com/deislabs/smc/pkg/tresor"
 	"github.com/deislabs/smc/pkg/utils"
 )
 
@@ -54,7 +55,10 @@ func main() {
 
 	stop := make(chan struct{})
 	meshSpecClient := smi.NewMeshSpecClient(kubeConfig, observeNamespaces, stop)
-	certManager := certificate.NewManager(stop)
+	certManager, err := tresor.NewCertManagerWithCAFromFile(*rootCertPem, *keyPem, "Acme", 1*time.Hour)
+	if err != nil {
+		glog.Fatal("Could not instantiate Certificate Manager: ", err)
+	}
 	meshCatalog := catalog.NewMeshCatalog(meshSpecClient, certManager, stop)
 	ldsServer := lds.NewLDSServer(meshCatalog)
 
