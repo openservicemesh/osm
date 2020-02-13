@@ -60,19 +60,19 @@ func main() {
 	observeNamespaces := getNamespaces()
 
 	stop := make(chan struct{})
-	meshSpecClient := smi.NewMeshSpecClient(kubeConfig, observeNamespaces, stop)
+	meshSpec := smi.NewMeshSpecClient(kubeConfig, observeNamespaces, stop)
 	certManager, err := tresor.NewCertManagerWithCAFromFile(*rootCertPem, *keyPem, "Acme", 1*time.Hour)
 	if err != nil {
 		glog.Fatal("Could not instantiate Certificate Manager: ", err)
 	}
 	azureResourceClient := azureResource.NewClient(kubeConfig, observeNamespaces, stop)
 	endpointsProviders := []endpoint.Provider{
-		azure.NewProvider(*subscriptionID, *azureAuthFile, stop, meshSpecClient, azureResourceClient, constants.AzureProviderName),
+		azure.NewProvider(*subscriptionID, *azureAuthFile, stop, meshSpec, azureResourceClient, constants.AzureProviderName),
 		kube.NewProvider(kubeConfig, observeNamespaces, stop, constants.KubeProviderName),
 	}
 
-	meshCatalog := catalog.NewMeshCatalog(meshSpecClient, certManager, stop, endpointsProviders...)
-	rdsServer := rds.NewRDSServer(ctx, meshCatalog, meshSpecClient)
+	meshCatalog := catalog.NewMeshCatalog(meshSpec, certManager, stop, endpointsProviders...)
+	rdsServer := rds.NewRDSServer(ctx, meshCatalog, meshSpec)
 
 	grpcServer, lis := utils.NewGrpc(serverType, *port, *certPem, *keyPem, *rootCertPem)
 	envoyControlPlane.RegisterRouteDiscoveryServiceServer(grpcServer, rdsServer)
