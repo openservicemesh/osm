@@ -2,6 +2,7 @@ package rds
 
 import (
 	"fmt"
+	"github.com/deislabs/smc/pkg/envoy"
 	"time"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -15,7 +16,7 @@ import (
 
 func (e *Server) newRouteDiscoveryResponse(allTrafficPolicies []endpoint.TrafficTargetPolicies) (*v2.DiscoveryResponse, error) {
 	resp := &v2.DiscoveryResponse{
-		TypeUrl: route.RouteConfigurationURI,
+		TypeUrl: envoy.TypeRDS,
 	}
 
 	for _, trafficPolicies := range allTrafficPolicies {

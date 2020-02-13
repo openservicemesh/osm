@@ -2,6 +2,7 @@ package eds
 
 import (
 	"fmt"
+	"github.com/deislabs/smc/pkg/envoy"
 	"time"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -20,7 +21,7 @@ func (e *Server) newEndpointDiscoveryResponse(allServices map[endpoint.ServiceNa
 
 		proto, err := ptypes.MarshalAny(&loadAssignment)
 		if err != nil {
-			glog.Errorf("[catalog] Error marshalling ClusterLoadAssignmentURI %+v: %s", loadAssignment, err)
+			glog.Errorf("[catalog] Error marshalling TypeCLA %+v: %s", loadAssignment, err)
 			continue
 		}
 		protos = append(protos, proto)
@@ -28,7 +29,7 @@ func (e *Server) newEndpointDiscoveryResponse(allServices map[endpoint.ServiceNa
 
 	resp := &v2.DiscoveryResponse{
 		Resources: protos,
-		TypeUrl:   cla.ClusterLoadAssignmentURI,
+		TypeUrl:   envoy.TypeCLA,
 	}
 
 	e.lastVersion = e.lastVersion + 1

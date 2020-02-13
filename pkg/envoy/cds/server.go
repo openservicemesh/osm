@@ -11,7 +11,6 @@ import (
 const (
 	maxConnections = 10000
 
-	typeUrl    = "type.googleapis.com/envoy.api.v2.Cluster"
 	serverName = "CDS"
 )
 

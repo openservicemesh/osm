@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	// RouteConfigurationURI is the string constant of the Route Configuration URI
-	RouteConfigurationURI = "type.googleapis.com/envoy.api.v2.RouteConfiguration"
+	// TypeRDS is the string constant of the Route Configuration URI
+
 	// DestinationRouteConfig is the name of the route config that the envoy will identify
 	DestinationRouteConfig = "RDS_Destination"
 	// SourceRouteConfig is the name of the route config that the envoy will identify

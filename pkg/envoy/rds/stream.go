@@ -2,12 +2,12 @@ package rds
 
 import (
 	"context"
+	"github.com/deislabs/smc/pkg/envoy"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 
-	"github.com/deislabs/smc/pkg/envoy/route"
 	"github.com/deislabs/smc/pkg/log"
 	"github.com/deislabs/smc/pkg/utils"
 )
@@ -43,7 +43,7 @@ func (e *Server) StreamRoutes(server xds.RouteDiscoveryService_StreamRoutesServe
 			return errors.Wrap(err, "recv")
 		}
 
-		if request.TypeUrl != route.RouteConfigurationURI {
+		if request.TypeUrl != envoy.TypeRDS {
 			glog.Errorf("[%s][stream] Unknown TypeUrl: %s", serverName, request.TypeUrl)
 			return errUnknownTypeURL
 		}

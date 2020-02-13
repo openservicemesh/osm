@@ -10,8 +10,8 @@ import (
 
 const (
 	maxConnections = 10000
-	typeUrl        = "type.googleapis.com/envoy.api.v2.Listener"
-	serverName     = "LDS"
+
+	serverName = "LDS"
 )
 
 // NewLDSServer creates a new LDS server
