@@ -54,12 +54,12 @@ func main() {
 	observeNamespaces := getNamespaces()
 
 	stop := make(chan struct{})
-	meshSpecClient := smi.NewMeshSpecClient(kubeConfig, observeNamespaces, stop)
+	meshSpec := smi.NewMeshSpecClient(kubeConfig, observeNamespaces, stop)
 	certManager, err := tresor.NewCertManagerWithCAFromFile(*rootCertPem, *keyPem, "Acme", 1*time.Hour)
 	if err != nil {
 		glog.Fatal("Could not instantiate Certificate Manager: ", err)
 	}
-	meshCatalog := catalog.NewMeshCatalog(meshSpecClient, certManager, stop)
+	meshCatalog := catalog.NewMeshCatalog(meshSpec, certManager, stop)
 	sdsServer := sds.NewSDSServer(meshCatalog)
 
 	grpcServer, lis := utils.NewGrpc(serverType, *port, *certPem, *keyPem, *rootCertPem)
