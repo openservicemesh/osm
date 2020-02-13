@@ -32,10 +32,11 @@ const (
 	serverType = "RDS"
 )
 
+var azureAuthFile string
+
 var (
 	flags          = pflag.NewFlagSet(`rds`, pflag.ExitOnError)
 	kubeConfigFile = flags.String("kubeconfig", "", "Path to Kubernetes config file.")
-	azureAuthFile  = flags.String("azureAuthFile", "", "Path to Azure Auth File")
 	subscriptionID = flags.String("subscriptionID", "", "Azure Subscription")
 	verbosity      = flags.Int("verbosity", int(log.LvlInfo), "Set log verbosity level")
 	namespace      = flags.String("namespace", "default", "Kubernetes namespace to watch.")
@@ -44,6 +45,10 @@ var (
 	keyPem         = flags.String("keypem", "", fmt.Sprintf("Full path to the %s Key PEM file", serverType))
 	rootCertPem    = flags.String("rootcertpem", "", "Full path to the Root Certificate PEM file")
 )
+
+func init() {
+	flags.StringVar(&azureAuthFile, "azureAuthFile", "", "Path to Azure Auth File")
+}
 
 func main() {
 	defer glog.Flush()
@@ -65,10 +70,14 @@ func main() {
 	if err != nil {
 		glog.Fatal("Could not instantiate Certificate Manager: ", err)
 	}
-	azureResourceClient := azureResource.NewClient(kubeConfig, observeNamespaces, stop)
 	endpointsProviders := []endpoint.Provider{
-		azure.NewProvider(*subscriptionID, *azureAuthFile, stop, meshSpec, azureResourceClient, constants.AzureProviderName),
 		kube.NewProvider(kubeConfig, observeNamespaces, stop, constants.KubeProviderName),
+	}
+
+	if azureAuthFile != "" {
+		azureResourceClient := azureResource.NewClient(kubeConfig, observeNamespaces, stop)
+		endpointsProviders = append(endpointsProviders, azure.NewProvider(
+			*subscriptionID, azureAuthFile, stop, meshSpecClient, azureResourceClient, constants.AzureProviderName))
 	}
 
 	meshCatalog := catalog.NewMeshCatalog(meshSpec, certManager, stop, endpointsProviders...)
