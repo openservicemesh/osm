@@ -2,12 +2,12 @@ package eds
 
 import (
 	"context"
+	"github.com/deislabs/smc/pkg/envoy"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 
-	"github.com/deislabs/smc/pkg/envoy/cla"
 	"github.com/deislabs/smc/pkg/log"
 	"github.com/deislabs/smc/pkg/utils"
 )
@@ -43,7 +43,7 @@ func (e *Server) StreamEndpoints(server v2.EndpointDiscoveryService_StreamEndpoi
 			return errors.Wrap(err, "recv")
 		}
 
-		if request.TypeUrl != cla.ClusterLoadAssignmentURI {
+		if request.TypeUrl != envoy.TypeCLA {
 			glog.Errorf("[%s][stream] Unknown TypeUrl: %s", serverName, request.TypeUrl)
 			return errUnknownTypeURL
 		}

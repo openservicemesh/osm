@@ -15,8 +15,8 @@ import (
 const (
 	zone = "zone"
 
-	// ClusterLoadAssignmentURI is the string constant of the Cluster Load Assignment URI
-	ClusterLoadAssignmentURI = "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment"
+	// TypeCLA is the string constant of the Cluster Load Assignment URI
+
 )
 
 // NewClusterLoadAssignment constructs the Envoy struct necessary for TrafficSplit implementation.

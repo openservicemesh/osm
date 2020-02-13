@@ -7,6 +7,15 @@ import (
 	"github.com/deislabs/smc/pkg/endpoint"
 )
 
+const (
+	TypeADS = "type.googleapis.com/envoy.api.v2.Cluster"
+	TypeCDS = "type.googleapis.com/envoy.api.v2.Cluster"
+	TypeLDS = "type.googleapis.com/envoy.api.v2.Listener"
+	TypeRDS = "type.googleapis.com/envoy.api.v2.RouteConfiguration"
+	TypeSDS = "type.googleapis.com/envoy.api.v2.auth.Secret"
+	TypeCLA = "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment"
+)
+
 type ProxyID string
 
 func (id ProxyID) String() string {

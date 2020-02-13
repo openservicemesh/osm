@@ -27,7 +27,7 @@ func (s *Server) newSecretDiscoveryResponse(proxy envoy.Proxyer) (*v2.DiscoveryR
 	}
 
 	resp := &v2.DiscoveryResponse{
-		TypeUrl: typeUrl,
+		TypeUrl: envoy.TypeSDS,
 	}
 
 	services := []string{

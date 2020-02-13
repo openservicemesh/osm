@@ -2,6 +2,7 @@ package cds
 
 import (
 	"context"
+	"github.com/deislabs/smc/pkg/envoy"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
@@ -42,7 +43,7 @@ func (s *Server) StreamClusters(server xds.ClusterDiscoveryService_StreamCluster
 			return errors.Wrap(err, "recv")
 		}
 
-		if request.TypeUrl != typeUrl {
+		if request.TypeUrl != envoy.TypeCDS {
 			glog.Errorf("[%s][stream] Unknown TypeUrl: %s", serverName, request.TypeUrl)
 			return errUnknownTypeURL
 		}

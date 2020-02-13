@@ -11,8 +11,8 @@ import (
 
 const (
 	maxConnections = 10000
-	typeUrl        = "type.googleapis.com/envoy.api.v2.auth.Secret"
-	serverName     = "SDS"
+
+	serverName = "SDS"
 )
 
 // NewSDSServer creates a new SDS server
