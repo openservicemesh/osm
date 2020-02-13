@@ -22,7 +22,7 @@ func NewMeshCatalog(meshSpec smi.MeshSpec, certManager certificate.Manager, stop
 		certificateCache: make(map[endpoint.ServiceName]certificate.Certificater),
 
 		// Message broker / broadcaster for all connected proxies
-		messageBroker: newMsgBroker(stop),
+		messageBroker: newMessageBroker(stop),
 	}
 
 	serviceCatalog.run(stop)
@@ -30,8 +30,8 @@ func NewMeshCatalog(meshSpec smi.MeshSpec, certManager certificate.Manager, stop
 	return &serviceCatalog
 }
 
-func newMsgBroker(stop <-chan struct{}) *MsgBroker {
-	return &MsgBroker{
+func newMessageBroker(stop <-chan struct{}) *MessageBroker {
+	return &MessageBroker{
 		stop:         stop,
 		proxyChanMap: make(map[envoy.ProxyID]chan interface{}),
 	}
