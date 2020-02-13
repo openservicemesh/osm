@@ -77,7 +77,7 @@ func main() {
 	if azureAuthFile != "" {
 		azureResourceClient := azureResource.NewClient(kubeConfig, observeNamespaces, stop)
 		endpointsProviders = append(endpointsProviders, azure.NewProvider(
-			*subscriptionID, azureAuthFile, stop, meshSpecClient, azureResourceClient, constants.AzureProviderName))
+			*subscriptionID, azureAuthFile, stop, meshSpec, azureResourceClient, constants.AzureProviderName))
 	}
 
 	meshCatalog := catalog.NewMeshCatalog(meshSpec, certManager, stop, endpointsProviders...)
