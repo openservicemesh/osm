@@ -55,7 +55,7 @@ func (e *Server) StreamEndpoints(server v2.EndpointDiscoveryService_StreamEndpoi
 				return nil
 			case <-proxy.GetAnnouncementsChannel():
 				// NOTE(draychev): This is deliberately only focused on providing MVP tools to run a TrafficSplit demo.
-				glog.V(log.LvlInfo).Infof("[%s][stream] Received a change msg! Updating all Envoy proxies.", serverName)
+				glog.V(log.LvlInfo).Infof("[%s][stream] Received a change message! Updating all Envoy proxies.", serverName)
 				// TODO(draychev): flesh out the ClientIdentity
 				weightedServices, err := e.catalog.ListEndpoints("TBD")
 				if err != nil {

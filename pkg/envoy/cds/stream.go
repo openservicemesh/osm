@@ -55,7 +55,7 @@ func (s *Server) StreamClusters(server xds.ClusterDiscoveryService_StreamCluster
 				return nil
 			case <-proxy.GetAnnouncementsChannel():
 				// NOTE: This is deliberately only focused on providing MVP tools to run a TrafficRoute demo.
-				glog.V(log.LvlInfo).Infof("[%s][stream] Received a change msg! Updating all Envoy proxies.", serverName)
+				glog.V(log.LvlInfo).Infof("[%s][stream] Received a change message! Updating all Envoy proxies.", serverName)
 				resp, err := s.newClusterDiscoveryResponse(proxy)
 				if err != nil {
 					glog.Errorf("[%s][stream] Failed composing a DiscoveryResponse: %+v", serverName, err)

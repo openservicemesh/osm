@@ -33,7 +33,7 @@ type MeshCatalog struct {
 	certificateCache map[endpoint.ServiceName]certificate.Certificater
 
 	// Proxy broker
-	msgBroker *MsgBroker
+	messageBroker *MsgBroker
 }
 
 // MeshCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.

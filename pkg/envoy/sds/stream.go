@@ -67,7 +67,7 @@ func (s *Server) StreamSecrets(server v2.SecretDiscoveryService_StreamSecretsSer
 			time.Sleep(sleepTime * time.Second)
 
 		case <-proxy.GetAnnouncementsChannel():
-			glog.Infof("[%s][outgoing] Secrets change msg received.", serverName)
+			glog.Infof("[%s][outgoing] Secrets change message received.", serverName)
 			response, err := s.newSecretDiscoveryResponse(proxy)
 			if err != nil {
 				glog.Errorf("[%s] Failed constructing Secret Discovery Response: %+v", serverName, err)

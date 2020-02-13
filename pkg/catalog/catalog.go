@@ -22,7 +22,7 @@ func NewMeshCatalog(meshSpec smi.MeshSpec, certManager certificate.Manager, stop
 		certificateCache: make(map[endpoint.ServiceName]certificate.Certificater),
 
 		// Message broker / broadcaster for all connected proxies
-		msgBroker: newMsgBroker(stop),
+		messageBroker: newMsgBroker(stop),
 	}
 
 	serviceCatalog.run(stop)

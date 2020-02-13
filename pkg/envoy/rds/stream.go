@@ -55,7 +55,7 @@ func (e *Server) StreamRoutes(server xds.RouteDiscoveryService_StreamRoutesServe
 				return nil
 			case <-proxy.GetAnnouncementsChannel():
 				// NOTE: This is deliberately only focused on providing MVP tools to run a TrafficRoute demo.
-				glog.V(log.LvlInfo).Infof("[%s][stream] Received a change msg! Updating all Envoy proxies.", serverName)
+				glog.V(log.LvlInfo).Infof("[%s][stream] Received a change message! Updating all Envoy proxies.", serverName)
 				// TODO: flesh out the ClientIdentity for this similar to eds.go
 				trafficPolicies, err := e.catalog.ListTrafficRoutes("TBD")
 				if err != nil {

@@ -15,14 +15,14 @@ func (sc *MeshCatalog) handleBrokerSingals() {
 
 	for {
 		select {
-		case <-sc.msgBroker.stop:
+		case <-sc.messageBroker.stop:
 			glog.Info("Stopping proxy broker")
-			sc.msgBroker.Lock()
-			for id, announcements := range sc.msgBroker.proxyChanMap {
+			sc.messageBroker.Lock()
+			for id, announcements := range sc.messageBroker.proxyChanMap {
 				glog.Infof("Closing channel %v for proxy %v", id, announcements)
 				close(announcements)
 			}
-			sc.msgBroker.Unlock()
+			sc.messageBroker.Unlock()
 			glog.Info("Proxy broker exiting")
 			return
 		}
@@ -47,20 +47,20 @@ func (sc *MeshCatalog) broadcastAnnouncementToProxies() {
 
 	// Keep receiving
 	for {
-		chosen, msg, ok := reflect.Select(cases)
+		chosen, message, ok := reflect.Select(cases)
 
 		if ok {
 			// This is an actual send and not a close on the channel
 			// Publish the message to subscribers
-			glog.Infof("Received new msg")
-			sc.msgBroker.Lock()
-			for id, announcements := range sc.msgBroker.proxyChanMap {
+			glog.Infof("Received new message")
+			sc.messageBroker.Lock()
+			for id, announcements := range sc.messageBroker.proxyChanMap {
 				select {
-				case announcements <- msg:
-					glog.Infof("Publishing announcement:[%v], proxy id:[%v], channel:[%v]", msg, id, announcements)
+				case announcements <- message:
+					glog.Infof("Publishing announcement:[%v], proxy id:[%v], channel:[%v]", message, id, announcements)
 				}
 			}
-			sc.msgBroker.Unlock()
+			sc.messageBroker.Unlock()
 		} else {
 			glog.Infof("Channel %v closed", changeAnnouncements[chosen])
 		}
@@ -72,22 +72,22 @@ func (sc *MeshCatalog) broadcastAnnouncementToProxies() {
 func (sc *MeshCatalog) RegisterProxy(cn certificate.CommonName, ip net.IP) envoy.Proxyer {
 	announcements := make(chan interface{})
 	proxy := envoy.NewProxy(cn, ip, announcements)
-	sc.msgBroker.Lock()
-	sc.msgBroker.proxyChanMap[proxy.GetID()] = announcements
-	sc.msgBroker.Unlock()
+	sc.messageBroker.Lock()
+	sc.messageBroker.proxyChanMap[proxy.GetID()] = announcements
+	sc.messageBroker.Unlock()
 	glog.Infof("Registered proxy: CN=%v, ip=%v, id=%s, channel= %v", proxy.GetCommonName(), proxy.GetIP(), proxy.GetID(), proxy.GetAnnouncementsChannel())
 	return proxy
 }
 
 func (sc *MeshCatalog) UnregisterProxy(id envoy.ProxyID) {
-	sc.msgBroker.Lock()
-	announcements, ok := sc.msgBroker.proxyChanMap[id]
-	sc.msgBroker.Unlock()
+	sc.messageBroker.Lock()
+	announcements, ok := sc.messageBroker.proxyChanMap[id]
+	sc.messageBroker.Unlock()
 	if ok {
 		close(announcements)
-		sc.msgBroker.Lock()
-		delete(sc.msgBroker.proxyChanMap, id)
-		sc.msgBroker.Unlock()
+		sc.messageBroker.Lock()
+		delete(sc.messageBroker.proxyChanMap, id)
+		sc.messageBroker.Unlock()
 	} else {
 		glog.Errorf("Failed to find channel for proxy %v", id)
 	}
@@ -95,8 +95,8 @@ func (sc *MeshCatalog) UnregisterProxy(id envoy.ProxyID) {
 }
 
 func (sc *MeshCatalog) countRegisteredProxies() int {
-	sc.msgBroker.Lock()
-	defer sc.msgBroker.Unlock()
-	glog.Infof("Proxy count = %v", len(sc.msgBroker.proxyChanMap))
-	return len(sc.msgBroker.proxyChanMap)
+	sc.messageBroker.Lock()
+	defer sc.messageBroker.Unlock()
+	glog.Infof("Proxy count = %v", len(sc.messageBroker.proxyChanMap))
+	return len(sc.messageBroker.proxyChanMap)
 }
