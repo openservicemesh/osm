@@ -1,6 +1,7 @@
 package main
 
 import (
+	goflag "flag"
 	"io"
 	"os"
 
@@ -21,13 +22,16 @@ func newRootCmd(args []string, out io.Writer) *cobra.Command {
 		Short: "Install and manage service mesh controller",
 		Long:  globalUsage,
 	}
+
+	cmd.PersistentFlags().AddGoFlagSet(goflag.CommandLine)
 	flags := cmd.PersistentFlags()
-	flags.Parse(args)
 
 	// Add subcommands here
 	cmd.AddCommand(
 		newInstallCmd(out),
 	)
+
+	flags.Parse(args)
 
 	return cmd
 }
