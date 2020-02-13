@@ -1,13 +1,18 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/deislabs/smc/pkg/certificate"
+	"github.com/deislabs/smc/pkg/tresor"
 )
 
 const installDesc = `
@@ -15,12 +20,15 @@ This command installs the smc control plane on the Kubernetes cluster.
 `
 
 type installCmd struct {
-	out        io.Writer
-	namespace  string
-	kubeClient kubernetes.Interface
-
+	out                     io.Writer
+	namespace               string
 	containerRegistry       string
 	containerRegistrySecret string
+
+	kubeClient  kubernetes.Interface
+	rootcertpem []byte
+	rootkeypem  []byte
+	certManager *tresor.CertManager
 }
 
 func newInstallCmd(out io.Writer) *cobra.Command {
@@ -52,84 +60,84 @@ func (i *installCmd) run() error {
 	if err != nil {
 		return err
 	}
+	//TODO create namespace if it doesn't already exist
 	i.kubeClient = client
 
-	if err := i.deployCDS(); err != nil {
-		return err
-	}
-	if err := i.deploySDS(); err != nil {
-		return err
-	}
-	if err := i.deployEDS(); err != nil {
-		return err
-	}
-	if err := i.deployRDS(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (i *installCmd) deployRDS() error {
-	deploymentsClient := i.kubeClient.AppsV1().Deployments(i.namespace)
-	servicesClient := i.kubeClient.CoreV1().Services(i.namespace)
-
-	deployment, service := generateRDSKubernetesConfig(i.namespace, i.containerRegistry, i.containerRegistrySecret)
-	if _, err := deploymentsClient.Create(deployment); err != nil {
+	if err = i.bootstrapRootCert(); err != nil {
 		return err
 	}
 
-	if _, err := servicesClient.Create(service); err != nil {
+	if err := i.deploy("cds", 15125); err != nil {
+		return err
+	}
+	if err := i.deploy("sds", 15123); err != nil {
+		return err
+	}
+	if err := i.deploy("eds", 15124); err != nil {
+		return err
+	}
+	if err := i.deploy("rds", 15126); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (i *installCmd) deployEDS() error {
-	deploymentsClient := i.kubeClient.AppsV1().Deployments(i.namespace)
-	servicesClient := i.kubeClient.CoreV1().Services(i.namespace)
+func (i *installCmd) bootstrapRootCert() error {
+	// generate root cert and key
+	org := "Azure Mesh"
+	minsValid := time.Duration(20) * time.Minute
+	certpem, keypem, cert, key, err := tresor.NewCA(org, minsValid)
+	if err != nil {
+		return err
+	}
+	i.rootcertpem = certpem
+	i.rootkeypem = keypem
 
-	deployment, service := generateEDSKubernetesConfig(i.namespace, i.containerRegistry, i.containerRegistrySecret)
+	i.certManager, err = tresor.NewCertManagerWithCA(cert, key, org, minsValid)
+	return err
+}
 
-	if _, err := deploymentsClient.Create(deployment); err != nil {
+func (i *installCmd) generateCerts(name string) error {
+	host := fmt.Sprintf("%s.azure.mesh", name)
+	cert, err := i.certManager.IssueCertificate(certificate.CommonName(host))
+	if err != nil {
 		return err
 	}
 
-	if _, err := servicesClient.Create(service); err != nil {
+	configmap := generateCertConfig(fmt.Sprintf("ca-rootcertpemstore-%s", name), i.namespace, "root-cert.pem", i.rootcertpem)
+	if _, err := i.kubeClient.CoreV1().ConfigMaps(i.namespace).Create(configmap); err != nil {
+		return err
+	}
+
+	configmap = generateCertConfig(fmt.Sprintf("ca-certpemstore-%s", name), i.namespace, "cert.pem", cert.GetCertificateChain())
+	if _, err := i.kubeClient.CoreV1().ConfigMaps(i.namespace).Create(configmap); err != nil {
+		return err
+	}
+
+	configmap = generateCertConfig(fmt.Sprintf("ca-keypemstore-%s", name), i.namespace, "key.pem", cert.GetPrivateKey())
+	if _, err := i.kubeClient.CoreV1().ConfigMaps(i.namespace).Create(configmap); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (i *installCmd) deployCDS() error {
-	deploymentsClient := i.kubeClient.AppsV1().Deployments(i.namespace)
-	servicesClient := i.kubeClient.CoreV1().Services(i.namespace)
-
-	deployment, service := generateCDSKubernetesConfig(i.namespace, i.containerRegistry, i.containerRegistrySecret)
-
-	if _, err := deploymentsClient.Create(deployment); err != nil {
+func (i *installCmd) deploy(name string, port int32) error {
+	if err := i.generateCerts(name); err != nil {
 		return err
 	}
 
-	if _, err := servicesClient.Create(service); err != nil {
-		return err
-	}
-	return nil
-}
+	deployment, service := generateKubernetesConfig(name, i.namespace, i.containerRegistry, i.containerRegistrySecret, port)
 
-func (i *installCmd) deploySDS() error {
-	deploymentsClient := i.kubeClient.AppsV1().Deployments(i.namespace)
-	servicesClient := i.kubeClient.CoreV1().Services(i.namespace)
-
-	deployment, service := generateSDSKubernetesConfig(i.namespace, i.containerRegistry, i.containerRegistrySecret)
-	if _, err := deploymentsClient.Create(deployment); err != nil {
+	if _, err := i.kubeClient.AppsV1().Deployments(i.namespace).Create(deployment); err != nil {
 		return err
 	}
 
-	if _, err := servicesClient.Create(service); err != nil {
+	if _, err := i.kubeClient.CoreV1().Services(i.namespace).Create(service); err != nil {
 		return err
 	}
+
 	return nil
 }
 

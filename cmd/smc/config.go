@@ -9,21 +9,34 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
+func generateCertConfig(name, namespace, key string, value []byte) *apiv1.ConfigMap {
+	data := map[string]string{}
+	data[key] = string(value)
+
+	return &apiv1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Data: data,
+	}
+}
+
 func generateNamespaceConfig(namespace string) *apiv1.Namespace {
 	return &apiv1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}}
 }
 
-func generateRDSKubernetesConfig(namespace, containerRegistry, containerRegistrySecret string) (*appsv1.Deployment, *apiv1.Service) {
+func generateKubernetesConfig(name, namespace, containerRegistry, containerRegistrySecret string, port int32) (*appsv1.Deployment, *apiv1.Service) {
 	service := &apiv1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "rds",
+			Name:      name,
 			Namespace: namespace,
-			Labels:    map[string]string{"app": "rds"},
+			Labels:    map[string]string{"app": name},
 		},
 		Spec: apiv1.ServiceSpec{
 			Ports: []apiv1.ServicePort{
 				{
-					Name: "rds-envoy-admin-port",
+					Name: fmt.Sprintf("%s-envoy-admin-port", name),
 					Port: 15000,
 					TargetPort: intstr.IntOrString{
 						Type:   intstr.String,
@@ -31,42 +44,42 @@ func generateRDSKubernetesConfig(namespace, containerRegistry, containerRegistry
 					},
 				},
 				{
-					Name: "rds-port",
-					Port: 15126,
+					Name: fmt.Sprintf("%s-port", name),
+					Port: port,
 					TargetPort: intstr.IntOrString{
 						Type:   intstr.Int,
-						IntVal: 15126,
+						IntVal: port,
 					},
 				},
 			},
-			Selector: map[string]string{"app": "rds"},
+			Selector: map[string]string{"app": name},
 			Type:     apiv1.ServiceTypeNodePort,
 		},
 	}
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "rds",
+			Name:      name,
 			Namespace: namespace,
-			Labels:    map[string]string{"app": "rds"},
+			Labels:    map[string]string{"app": name},
 		},
 		Spec: appsv1.DeploymentSpec{
 			Replicas: int32Ptr(1),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					"app": "rds",
+					"app": name,
 				},
 			},
 			Template: apiv1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: map[string]string{
-						"app": "rds",
+						"app": name,
 					},
 				},
 				Spec: apiv1.PodSpec{
 					Containers: []apiv1.Container{
 						{
-							Name:            "rds",
-							Image:           fmt.Sprintf("%s/rds:latest", containerRegistry),
+							Name:            name,
+							Image:           fmt.Sprintf("%s/%s:latest", containerRegistry, name),
 							ImagePullPolicy: apiv1.PullAlways,
 							Ports: []apiv1.ContainerPort{
 								{
@@ -74,24 +87,24 @@ func generateRDSKubernetesConfig(namespace, containerRegistry, containerRegistry
 									ContainerPort: 15000,
 								},
 								{
-									Name:          "rds-port",
-									ContainerPort: 15126,
+									Name:          fmt.Sprintf("%s-port", name),
+									ContainerPort: port,
 								},
 							},
-							Command: []string{"/rds"},
+							Command: []string{fmt.Sprintf("/%s", name)},
 							Args: []string{
 								"--kubeconfig",
 								"/kube/config",
 								"--verbosity",
 								"15",
 								"--namespace",
-								"smc",
+								namespace,
 								"--certpem",
 								"/etc/ssl/certs/cert.pem",
 								"--keypem",
 								"/etc/ssl/certs/key.pem",
 								"--rootcertpem",
-								"--/etc/ssl/certs/cert.pem",
+								"/etc/ssl/certs/root-cert.pem",
 							},
 							Env: []apiv1.EnvVar{
 								{
@@ -110,170 +123,21 @@ func generateRDSKubernetesConfig(namespace, containerRegistry, containerRegistry
 									MountPath: "/kube",
 								},
 								{
-									Name:      "ca-certpemstore",
+									Name:      fmt.Sprintf("ca-certpemstore-%s", name),
 									MountPath: "/etc/ssl/certs/cert.pem",
 									SubPath:   "cert.pem",
 									ReadOnly:  false,
 								},
 								{
-									Name:      "ca-keypemstore",
+									Name:      fmt.Sprintf("ca-keypemstore-%s", name),
 									MountPath: "/etc/ssl/certs/key.pem",
 									SubPath:   "key.pem",
 									ReadOnly:  false,
 								},
-							},
-						},
-					},
-					Volumes: []apiv1.Volume{
-						{
-							Name: "kubeconfig",
-							VolumeSource: apiv1.VolumeSource{
-								ConfigMap: &apiv1.ConfigMapVolumeSource{
-									LocalObjectReference: apiv1.LocalObjectReference{
-										Name: "kubeconfig",
-									},
-								},
-							},
-						},
-						{
-							Name: "ca-certpemstore",
-							VolumeSource: apiv1.VolumeSource{
-								ConfigMap: &apiv1.ConfigMapVolumeSource{
-									LocalObjectReference: apiv1.LocalObjectReference{
-										Name: "ca-certpemstore",
-									},
-								},
-							},
-						},
-						{
-							Name: "ca-keypemstore",
-							VolumeSource: apiv1.VolumeSource{
-								ConfigMap: &apiv1.ConfigMapVolumeSource{
-									LocalObjectReference: apiv1.LocalObjectReference{
-										Name: "ca-keypemstore",
-									},
-								},
-							},
-						},
-					},
-					ImagePullSecrets: []apiv1.LocalObjectReference{
-						{
-							Name: containerRegistrySecret,
-						},
-					},
-				},
-			},
-		},
-	}
-
-	return deployment, service
-}
-
-func generateEDSKubernetesConfig(namespace, containerRegistry, containerRegistrySecret string) (*appsv1.Deployment, *apiv1.Service) {
-	service := &apiv1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "eds",
-			Namespace: namespace,
-			Labels:    map[string]string{"app": "eds"},
-		},
-		Spec: apiv1.ServiceSpec{
-			Ports: []apiv1.ServicePort{
-				{
-					Name: "eds-envoy-admin-port",
-					Port: 15000,
-					TargetPort: intstr.IntOrString{
-						Type:   intstr.String,
-						StrVal: "admin-port",
-					},
-				},
-				{
-					Name: "eds-port",
-					Port: 15124,
-					TargetPort: intstr.IntOrString{
-						Type:   intstr.Int,
-						IntVal: 15124,
-					},
-				},
-			},
-			Selector: map[string]string{"app": "eds"},
-			Type:     apiv1.ServiceTypeNodePort,
-		},
-	}
-	deployment := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "eds",
-			Namespace: namespace,
-			Labels:    map[string]string{"app": "eds"},
-		},
-		Spec: appsv1.DeploymentSpec{
-			Replicas: int32Ptr(1),
-			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"app": "eds",
-				},
-			},
-			Template: apiv1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"app": "eds",
-					},
-				},
-				Spec: apiv1.PodSpec{
-					Containers: []apiv1.Container{
-						{
-							Name:            "eds",
-							Image:           fmt.Sprintf("%s/eds:latest", containerRegistry),
-							ImagePullPolicy: apiv1.PullAlways,
-							Ports: []apiv1.ContainerPort{
 								{
-									Name:          "admin-port",
-									ContainerPort: 15000,
-								},
-								{
-									Name:          "eds-port",
-									ContainerPort: 15124,
-								},
-							},
-							Command: []string{"/eds"},
-							Args: []string{
-								"--kubeconfig",
-								"/kube/config",
-								"--verbosity",
-								"15",
-								"smc",
-								"--certpem",
-								"/etc/ssl/certs/cert.pem",
-								"--keypem",
-								"/etc/ssl/certs/key.pem",
-								"--rootcertpem",
-								"--/etc/ssl/certs/cert.pem",
-							},
-							Env: []apiv1.EnvVar{
-								{
-									Name:  "GRPC_GO_LOG_VERBOSITY_LEVEL",
-									Value: "99",
-								},
-								{
-									Name:  "GRPC_GO_LOG_VERBOSITY_LEVEL",
-									Value: "info",
-								},
-							},
-
-							VolumeMounts: []apiv1.VolumeMount{
-								{
-									Name:      "kubeconfig",
-									MountPath: "/kube",
-								},
-								{
-									Name:      "ca-certpemstore",
-									MountPath: "/etc/ssl/certs/cert.pem",
-									SubPath:   "cert.pem",
-									ReadOnly:  false,
-								},
-								{
-									Name:      "ca-keypemstore",
-									MountPath: "/etc/ssl/certs/key.pem",
-									SubPath:   "key.pem",
+									Name:      fmt.Sprintf("ca-rootcertpemstore-%s", name),
+									MountPath: "/etc/ssl/certs/root-cert.pem",
+									SubPath:   "root-cert.pem",
 									ReadOnly:  false,
 								},
 							},
@@ -291,172 +155,31 @@ func generateEDSKubernetesConfig(namespace, containerRegistry, containerRegistry
 							},
 						},
 						{
-							Name: "ca-certpemstore",
+							Name: fmt.Sprintf("ca-certpemstore-%s", name),
 							VolumeSource: apiv1.VolumeSource{
 								ConfigMap: &apiv1.ConfigMapVolumeSource{
 									LocalObjectReference: apiv1.LocalObjectReference{
-										Name: "ca-certpemstore",
+										Name: fmt.Sprintf("ca-certpemstore-%s", name),
 									},
 								},
 							},
 						},
 						{
-							Name: "ca-keypemstore",
+							Name: fmt.Sprintf("ca-rootcertpemstore-%s", name),
 							VolumeSource: apiv1.VolumeSource{
 								ConfigMap: &apiv1.ConfigMapVolumeSource{
 									LocalObjectReference: apiv1.LocalObjectReference{
-										Name: "ca-keypemstore",
-									},
-								},
-							},
-						},
-					},
-					ImagePullSecrets: []apiv1.LocalObjectReference{
-						{
-							Name: containerRegistrySecret,
-						},
-					},
-				},
-			},
-		},
-	}
-	return deployment, service
-}
-
-func generateCDSKubernetesConfig(namespace, containerRegistry, containerRegistrySecret string) (*appsv1.Deployment, *apiv1.Service) {
-
-	service := &apiv1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "cds",
-			Namespace: namespace,
-			Labels:    map[string]string{"app": "cds"},
-		},
-		Spec: apiv1.ServiceSpec{
-			Ports: []apiv1.ServicePort{
-				{
-					Name: "cds-envoy-admin-port",
-					Port: 15000,
-					TargetPort: intstr.IntOrString{
-						Type:   intstr.String,
-						StrVal: "admin-port",
-					},
-				},
-				{
-					Name: "cds-port",
-					Port: 15124,
-					TargetPort: intstr.IntOrString{
-						Type:   intstr.Int,
-						IntVal: 15124,
-					},
-				},
-			},
-			Selector: map[string]string{"app": "cds"},
-			Type:     apiv1.ServiceTypeNodePort,
-		},
-	}
-
-	deployment := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "cds",
-			Namespace: namespace,
-			Labels:    map[string]string{"app": "cds"},
-		},
-		Spec: appsv1.DeploymentSpec{
-			Replicas: int32Ptr(1),
-			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"app": "cds",
-				},
-			},
-			Template: apiv1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"app": "cds",
-					},
-				},
-				Spec: apiv1.PodSpec{
-					Containers: []apiv1.Container{
-						{
-							Name:            "cds", //TODO was named curl mistake??
-							Image:           fmt.Sprintf("%s/cds:latest", containerRegistry),
-							ImagePullPolicy: apiv1.PullAlways,
-							Ports: []apiv1.ContainerPort{
-								{
-									Name:          "admin-port",
-									ContainerPort: 15000,
-								},
-								{
-									Name:          "cds-port",
-									ContainerPort: 15125,
-								},
-							},
-							Command: []string{"/cds"},
-							Args: []string{
-								"--kubeconfig",
-								"/kube/config",
-								"--verbosity",
-								"15",
-								"--namespace",
-								"smc",
-								"--certpem",
-								"/etc/ssl/certs/cert.pem",
-								"--keypem",
-								"/etc/ssl/certs/key.pem",
-								"--rootcertpem",
-								"--/etc/ssl/certs/cert.pem",
-							},
-							Env: []apiv1.EnvVar{
-								{
-									Name:  "GRPC_GO_LOG_VERBOSITY_LEVEL",
-									Value: "99",
-								},
-								{
-									Name:  "GRPC_GO_LOG_VERBOSITY_LEVEL",
-									Value: "info",
-								},
-							},
-
-							VolumeMounts: []apiv1.VolumeMount{
-								{
-									Name:      "kubeconfig",
-									MountPath: "/kube",
-								},
-								{
-									Name:      "ca-certpemstore",
-									MountPath: "/etc/ssl/certs/cert.pem",
-									SubPath:   "cert.pem",
-									ReadOnly:  false,
-								},
-							},
-						},
-					},
-					Volumes: []apiv1.Volume{
-						{
-							Name: "kubeconfig",
-							VolumeSource: apiv1.VolumeSource{
-								ConfigMap: &apiv1.ConfigMapVolumeSource{
-									LocalObjectReference: apiv1.LocalObjectReference{
-										Name: "kubeconfig",
+										Name: fmt.Sprintf("ca-rootcertpemstore-%s", name),
 									},
 								},
 							},
 						},
 						{
-							Name: "ca-certpemstore",
+							Name: fmt.Sprintf("ca-keypemstore-%s", name),
 							VolumeSource: apiv1.VolumeSource{
 								ConfigMap: &apiv1.ConfigMapVolumeSource{
 									LocalObjectReference: apiv1.LocalObjectReference{
-										Name: "ca-certpemstore",
-									},
-								},
-							},
-						},
-						{
-							Name: "ca-keypemstore",
-							VolumeSource: apiv1.VolumeSource{
-								ConfigMap: &apiv1.ConfigMapVolumeSource{
-									LocalObjectReference: apiv1.LocalObjectReference{
-										Name: "ca-keypemstore",
+										Name: fmt.Sprintf("ca-keypemstore-%s", name),
 									},
 								},
 							},
@@ -471,122 +194,6 @@ func generateCDSKubernetesConfig(namespace, containerRegistry, containerRegistry
 			},
 		},
 	}
-	return deployment, service
-}
 
-func generateSDSKubernetesConfig(namespace, containerRegistry, containerRegistrySecret string) (*appsv1.Deployment, *apiv1.Service) {
-	service := &apiv1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "sds",
-		},
-		Spec: apiv1.ServiceSpec{
-			Ports: []apiv1.ServicePort{
-				{
-					Name: "admin-port",
-					Port: 15000,
-					TargetPort: intstr.IntOrString{
-						Type:   intstr.String,
-						StrVal: "admin-port",
-					}, //TODO: double check these ports
-				},
-				{
-					Name: "sds-port",
-					Port: 15123,
-					TargetPort: intstr.IntOrString{
-						Type:   intstr.Int,
-						IntVal: 15123,
-					}, //TODO: double check these ports
-				},
-			},
-			Selector: map[string]string{"app": "sds"},
-			Type:     apiv1.ServiceTypeNodePort,
-		},
-	}
-
-	deployment := &appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "sds",
-		},
-		Spec: appsv1.DeploymentSpec{
-			Replicas: int32Ptr(1),
-			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"app": "sds",
-				},
-			},
-			Template: apiv1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"app": "sds",
-					},
-				},
-				Spec: apiv1.PodSpec{
-					Containers: []apiv1.Container{
-						{
-							Name:            "sds",
-							Image:           fmt.Sprintf("%s/sds:latest", containerRegistry),
-							ImagePullPolicy: apiv1.PullAlways,
-							Ports: []apiv1.ContainerPort{
-								{
-									Name:          "admin-port",
-									ContainerPort: 15000,
-								},
-								{
-									Name:          "sds-port",
-									ContainerPort: 15123,
-								},
-							},
-							Command: []string{"/sds"},
-							Args: []string{
-								"--kubeconfig",
-								"/kube/config",
-								"--verbosity",
-								"15",
-								"--certpem",
-								"/etc/ssl/certs/cert.pem",
-								"--keypem",
-								"/etc/ssl/certs/key.pem",
-								"--rootcertpem",
-								"/etc/ssl/certs/cert.pem",
-							},
-							Env: []apiv1.EnvVar{
-								{
-									Name:  "GRPC_GO_LOG_VERBOSITY_LEVEL",
-									Value: "99",
-								},
-								{
-									Name:  "GRPC_GO_LOG_VERBOSITY_LEVEL",
-									Value: "info",
-								},
-							},
-							VolumeMounts: []apiv1.VolumeMount{
-								{
-									Name:      "kubeconfig",
-									MountPath: "/kube",
-								},
-							},
-						},
-					},
-					Volumes: []apiv1.Volume{
-						{
-							Name: "kubeconfig",
-							VolumeSource: apiv1.VolumeSource{
-								ConfigMap: &apiv1.ConfigMapVolumeSource{
-									LocalObjectReference: apiv1.LocalObjectReference{
-										Name: "kubeconfig",
-									},
-								},
-							},
-						},
-					},
-					ImagePullSecrets: []apiv1.LocalObjectReference{
-						{
-							Name: containerRegistrySecret,
-						},
-					},
-				},
-			},
-		},
-	}
 	return deployment, service
 }
