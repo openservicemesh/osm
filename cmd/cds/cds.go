@@ -29,7 +29,7 @@ const (
 )
 
 var (
-	flags          = pflag.NewFlagSet(`diplomat-cds`, pflag.ExitOnError)
+	flags          = pflag.NewFlagSet(`cds`, pflag.ExitOnError)
 	kubeConfigFile = flags.String("kubeconfig", "", "Path to Kubernetes config file.")
 	verbosity      = flags.Int("verbosity", int(log.LvlInfo), "Set log verbosity level")
 	port           = flags.Int("port", 15125, "Clusters Discovery Service port number. (Default: 15125)")

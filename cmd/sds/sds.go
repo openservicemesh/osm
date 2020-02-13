@@ -29,7 +29,7 @@ const (
 )
 
 var (
-	flags          = pflag.NewFlagSet(`diplomat-sds`, pflag.ExitOnError)
+	flags          = pflag.NewFlagSet(`sds`, pflag.ExitOnError)
 	kubeConfigFile = flags.String("kubeconfig", "", "Path to Kubernetes config file.")
 	verbosity      = flags.Int("verbosity", int(log.LvlInfo), "Set log verbosity level")
 	port           = flags.Int("port", 15123, "Secrets Discovery Service port number. (Default: 15123)")
