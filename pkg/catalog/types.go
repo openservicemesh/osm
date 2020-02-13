@@ -10,7 +10,7 @@ import (
 	"github.com/deislabs/smc/pkg/smi"
 )
 
-type MsgBroker struct {
+type MessageBroker struct {
 	sync.Mutex
 
 	stop       <-chan struct{}
@@ -33,7 +33,7 @@ type MeshCatalog struct {
 	certificateCache map[endpoint.ServiceName]certificate.Certificater
 
 	// Proxy broker
-	msgBroker *MsgBroker
+	messageBroker *MessageBroker
 }
 
 // MeshCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.

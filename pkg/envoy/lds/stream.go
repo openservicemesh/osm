@@ -74,7 +74,7 @@ func (s *Server) StreamListeners(server xds.ListenerDiscoveryService_StreamListe
 			time.Sleep(sleepTime * time.Second)
 
 		case <-proxy.GetAnnouncementsChannel():
-			glog.Infof("[%s][outgoing] Listeners change msg received.", serverName)
+			glog.Infof("[%s][outgoing] Listeners change message received.", serverName)
 			response, err := s.newListenerDiscoveryResponse(proxy)
 			if err != nil {
 				glog.Errorf("[%s] Failed constructing Listener Discovery Response: %+v", serverName, err)
