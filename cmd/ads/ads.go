@@ -18,7 +18,9 @@ import (
 	"github.com/deislabs/smc/pkg/catalog"
 	"github.com/deislabs/smc/pkg/constants"
 	"github.com/deislabs/smc/pkg/envoy/ads"
+	"github.com/deislabs/smc/pkg/httpserver"
 	"github.com/deislabs/smc/pkg/log/level"
+	"github.com/deislabs/smc/pkg/metricsstore"
 	"github.com/deislabs/smc/pkg/smi"
 	"github.com/deislabs/smc/pkg/tresor"
 	"github.com/deislabs/smc/pkg/utils"
@@ -32,7 +34,7 @@ var (
 	flags          = pflag.NewFlagSet(`ads`, pflag.ExitOnError)
 	kubeConfigFile = flags.String("kubeconfig", "", "Path to Kubernetes config file.")
 	verbosity      = flags.Int("verbosity", int(level.Info), "Set log verbosity level")
-	port           = flags.Int("port", 15128, "Clusters Discovery Service port number. (Default: 15128)")
+	port           = flags.Int("port", 15128, "Clusters Discovery Service port number.")
 	namespace      = flags.String("namespace", "default", "Kubernetes namespace to watch for SMI Spec.")
 	certPem        = flags.String("certpem", "", fmt.Sprintf("Full path to the %s Certificate PEM file", serverType))
 	keyPem         = flags.String("keypem", "", fmt.Sprintf("Full path to the %s Key PEM file", serverType))
@@ -66,6 +68,11 @@ func main() {
 	xds.RegisterAggregatedDiscoveryServiceServer(grpcServer, adsServer)
 
 	go utils.GrpcServe(ctx, grpcServer, lis, cancel, serverType)
+
+	// initialize the http server and start it
+	metricsStore := metricsstore.NewMetricStore("TBD_NameSpace", "TBD_PodName")
+	httpServer := httpserver.NewHTTPServer(adsServer, metricsStore, "8888")
+	httpServer.Start()
 
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
