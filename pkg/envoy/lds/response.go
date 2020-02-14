@@ -10,6 +10,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes"
 
+	"github.com/deislabs/smc/pkg/constants"
 	"github.com/deislabs/smc/pkg/envoy"
 	"github.com/deislabs/smc/pkg/log/level"
 )
@@ -31,7 +32,7 @@ func (s *Server) NewListenerDiscoveryResponse(proxy envoy.Proxyer) (*xds.Discove
 	}
 	clientListener := &xds.Listener{
 		Name:    "outbound_listener",
-		Address: envoy.GetAddress("0.0.0.0", 15001),
+		Address: envoy.GetAddress(constants.WildcardIpAddr, constants.EnvoyOutboundListenerPort),
 		FilterChains: []*listener.FilterChain{
 			{
 				Filters: []*listener.Filter{
@@ -54,7 +55,7 @@ func (s *Server) NewListenerDiscoveryResponse(proxy envoy.Proxyer) (*xds.Discove
 
 	serverListener := &xds.Listener{
 		Name:    "inbound_listener",
-		Address: envoy.GetAddress("0.0.0.0", 15003),
+		Address: envoy.GetAddress(constants.WildcardIpAddr, constants.EnvoyInboundListenerPort),
 		FilterChains: []*listener.FilterChain{
 			{
 				Filters: []*listener.Filter{
