@@ -26,28 +26,8 @@ clean-cert:
 clean-ads:
 	@rm -rf bin/ads
 
-.PHONY: clean-cds
-clean-cds:
-	@rm -rf bin/cds
-
-.PHONY: clean-lds
-clean-lds:
-	@rm -rf bin/lds
-
-.PHONY: clean-sds
-clean-sds:
-	@rm -rf bin/sds
-
-.PHONY: clean-eds
-clean-eds:
-	@rm -rf bin/eds
-
-.PHONY: clean-rds
-clean-rds:
-	@rm -rf bin/rds
-
 .PHONY: build
-build: build-sds build-eds build-cds build-rds build-lds build-ads
+build: build-ads
 
 .PHONY: build-cert
 build-cert: clean-cert
@@ -59,66 +39,16 @@ build-ads: clean-ads
 	@mkdir -p $(shell pwd)/bin
 	CGO_ENABLED=0  go build -v -o ./bin/ads ./cmd/ads
 
-.PHONY: build-cds
-build-cds: clean-cds
-	@mkdir -p $(shell pwd)/bin
-	CGO_ENABLED=0  go build -v -o ./bin/cds ./cmd/cds
-
-.PHONY: build-lds
-build-lds: clean-lds
-	@mkdir -p $(shell pwd)/bin
-	CGO_ENABLED=0  go build -v -o ./bin/lds ./cmd/lds
-
-.PHONY: build-smc
-build-smc:
-	@mkdir -p $(shell pwd)/bin
-	CGO_ENABLED=0  go build -v -o ./bin/smc ./cmd/smc
-
-.PHONY: build-sds
-build-sds: clean-sds
-	@mkdir -p $(shell pwd)/bin
-	CGO_ENABLED=0  go build -v -o ./bin/sds ./cmd/sds
-
-.PHONY: build-eds
-build-eds: clean-eds
-	@mkdir -p $(shell pwd)/bin
-	CGO_ENABLED=0 go build -v -o ./bin/eds ./cmd/eds
-
-.PHONY: build-rds
-build-rds: clean-rds
-	@mkdir -p $(shell pwd)/bin
-	CGO_ENABLED=0 go build -v -o ./bin/rds ./cmd/rds
-
 .PHONY: build-cross
 build-cross: LDFLAGS += -extldflags "-static"
-build-cross: build-cross-eds build-cross-sds build-cross-cds build-cross-rds build-cross-lds build-cross-ads
+build-cross: build-cross-ads
 
 .PHONY: build-cross-ads
 build-cross-ads: gox
 	GO111MODULE=on CGO_ENABLED=0 $(GOX) -output="./bin/{{.OS}}-{{.Arch}}/ads" -osarch='$(TARGETS)' -ldflags '$(LDFLAGS)' ./cmd/ads
 
-.PHONY: build-cross-cds
-build-cross-cds: gox
-	GO111MODULE=on CGO_ENABLED=0 $(GOX) -output="./bin/{{.OS}}-{{.Arch}}/cds" -osarch='$(TARGETS)' -ldflags '$(LDFLAGS)' ./cmd/cds
-
-.PHONY: build-cross-lds
-build-cross-lds: gox
-	GO111MODULE=on CGO_ENABLED=0 $(GOX) -output="./bin/{{.OS}}-{{.Arch}}/lds" -osarch='$(TARGETS)' -ldflags '$(LDFLAGS)' ./cmd/lds
-
-.PHONY: build-cross-eds
-build-cross-eds: gox
-	GO111MODULE=on CGO_ENABLED=0 $(GOX) -output="./bin/{{.OS}}-{{.Arch}}/eds" -osarch='$(TARGETS)' -ldflags '$(LDFLAGS)' ./cmd/eds
-
-.PHONY: build-cross-sds
-build-cross-sds: gox
-	GO111MODULE=on CGO_ENABLED=0 $(GOX) -output="./bin/{{.OS}}-{{.Arch}}/sds" -osarch='$(TARGETS)' -ldflags '$(LDFLAGS)' ./cmd/sds
-
-.PHONY: build-cross-rds
-build-cross-rds: gox
-	GO111MODULE=on CGO_ENABLED=0 $(GOX) -output="./bin/{{.OS}}-{{.Arch}}/rds" -osarch='$(TARGETS)' -ldflags '$(LDFLAGS)' ./cmd/rds
-
 .PHONY: docker-build
-docker-build: build-cross docker-build-sds docker-build-eds docker-build-bookbuyer docker-build-bookstore docker-build-cds docker-build-rds docker-build-lds docker-build-ads
+docker-build: build-cross docker-build-bookbuyer docker-build-bookstore docker-build-ads
 
 .PHONY: go-vet
 go-vet:
@@ -136,33 +66,9 @@ go-fmt:
 go-test:
 	./scripts/go-test.sh
 
-
-### docker targets
 .PHONY: docker-build-ads
 docker-build-ads: build-cross-ads
 	docker build --build-arg $(HOME)/go/ -t $(CTR_REGISTRY)/ads -f dockerfiles/Dockerfile.ads .
-
-.PHONY: docker-build-cds
-docker-build-cds: build-cross-cds
-	docker build --build-arg $(HOME)/go/ -t $(CTR_REGISTRY)/cds -f dockerfiles/Dockerfile.cds .
-
-.PHONY: docker-build-lds
-docker-build-lds: build-cross-lds
-	docker build --build-arg $(HOME)/go/ -t $(CTR_REGISTRY)/lds -f dockerfiles/Dockerfile.lds .
-
-.PHONY: docker-build-eds
-docker-build-eds: build-cross-eds
-	docker build --build-arg $(HOME)/go/ -t $(CTR_REGISTRY)/eds -f dockerfiles/Dockerfile.eds .
-
-.PHONY: docker-build-sds
-docker-build-sds: build-cross-sds
-	@mkdir -p ./bin/
-	docker build --build-arg $(HOME)/go/ -t $(CTR_REGISTRY)/sds -f dockerfiles/Dockerfile.sds .
-
-.PHONY: docker-build-rds
-docker-build-rds: build-cross-rds
-	@mkdir -p ./bin/
-	docker build --build-arg $(HOME)/go/ -t $(CTR_REGISTRY)/rds -f dockerfiles/Dockerfile.rds .
 
 .PHONY: build-counter
 build-counter:
@@ -186,26 +92,6 @@ docker-build-init:
 docker-push-ads: docker-build-ads
 	docker push "$(CTR_REGISTRY)/ads"
 
-.PHONY: docker-push-cds
-docker-push-cds: docker-build-cds
-	docker push "$(CTR_REGISTRY)/cds"
-
-.PHONY: docker-push-lds
-docker-push-lds: docker-build-lds
-	docker push "$(CTR_REGISTRY)/lds"
-
-.PHONY: docker-push-eds
-docker-push-eds: docker-build-eds
-	docker push "$(CTR_REGISTRY)/eds"
-
-.PHONY: docker-push-sds
-docker-push-sds: docker-build-sds
-	docker push "$(CTR_REGISTRY)/sds"
-
-.PHONY: docker-push-rds
-docker-push-rds: docker-build-rds
-	docker push "$(CTR_REGISTRY)/rds"
-
 .PHONY: docker-push-bookbuyer
 docker-push-bookbuyer: docker-build-bookbuyer
 	docker push "$(CTR_REGISTRY)/bookbuyer"
@@ -219,12 +105,7 @@ docker-push-init: docker-build-init
 	docker push "$(CTR_REGISTRY)/init"
 
 .PHONY: docker-push
-docker-push: docker-push-eds docker-push-sds docker-push-init docker-push-bookbuyer docker-push-bookstore docker-push-cds docker-push-rds docker-push-lds
-
-.PHONY: sds-root-tls
-sds-root-tls:
-	@mkdir -p $(shell pwd)/bin
-	@./scripts/gen-proxy-certificate.sh
+docker-push: docker-push-init docker-push-bookbuyer docker-push-bookstore docker-push-ads
 
 .PHONY: generate-crds
 generate-crds:
