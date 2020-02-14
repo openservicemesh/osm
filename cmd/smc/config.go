@@ -5,9 +5,75 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
+
+func generateRBAC(namespace string) (*rbacv1.ClusterRole, *rbacv1.ClusterRoleBinding, *apiv1.ServiceAccount) {
+	role := &rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "smc-xds",
+		},
+		Rules: []rbacv1.PolicyRule{
+			rbacv1.PolicyRule{
+				APIGroups: []string{"apps"},
+				Resources: []string{"daemonsets", "deployments", "replicasets", "statefulsets"},
+				Verbs:     []string{"list", "get", "watch"},
+			},
+			rbacv1.PolicyRule{
+				APIGroups: []string{"batch"},
+				Resources: []string{"jobs"},
+				Verbs:     []string{"list", "get", "watch"},
+			},
+			rbacv1.PolicyRule{
+				APIGroups: []string{""},
+				Resources: []string{"pods", "endpoints", "services", "replicationcontrollers", "namespaces"},
+				Verbs:     []string{"list", "get", "watch"},
+			},
+			rbacv1.PolicyRule{
+				APIGroups: []string{"split.smi-spec.io"},
+				Resources: []string{"trafficsplits"},
+				Verbs:     []string{"list", "get", "watch"},
+			},
+			rbacv1.PolicyRule{
+				APIGroups: []string{"access.smi-spec.io"},
+				Resources: []string{"traffictargets"},
+				Verbs:     []string{"list", "get", "watch"},
+			},
+			rbacv1.PolicyRule{
+				APIGroups: []string{"specs.smi-spec.io"},
+				Resources: []string{"httproutegroups"},
+				Verbs:     []string{"list", "get", "watch"},
+			},
+		},
+	}
+	roleBinding := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "smc-xds",
+		},
+		Subjects: []rbacv1.Subject{
+			rbacv1.Subject{
+				Kind:      "ServiceAccount",
+				Name:      "smc-xds",
+				Namespace: namespace,
+			},
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     "ClusterRole",
+			Name:     "smc-xds",
+		},
+	}
+	serviceAccount := &apiv1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "smc-xds",
+			Namespace: namespace,
+		},
+	}
+
+	return role, roleBinding, serviceAccount
+}
 
 func generateCertConfig(name, namespace, key string, value []byte) *apiv1.ConfigMap {
 	data := map[string]string{}
@@ -93,8 +159,6 @@ func generateKubernetesConfig(name, namespace, containerRegistry, containerRegis
 							},
 							Command: []string{fmt.Sprintf("/%s", name)},
 							Args: []string{
-								"--kubeconfig",
-								"/kube/config",
 								"--verbosity",
 								"15",
 								"--namespace",
@@ -119,10 +183,6 @@ func generateKubernetesConfig(name, namespace, containerRegistry, containerRegis
 
 							VolumeMounts: []apiv1.VolumeMount{
 								{
-									Name:      "kubeconfig",
-									MountPath: "/kube",
-								},
-								{
 									Name:      fmt.Sprintf("ca-certpemstore-%s", name),
 									MountPath: "/etc/ssl/certs/cert.pem",
 									SubPath:   "cert.pem",
@@ -143,17 +203,8 @@ func generateKubernetesConfig(name, namespace, containerRegistry, containerRegis
 							},
 						},
 					},
+					ServiceAccountName: "smc-xds",
 					Volumes: []apiv1.Volume{
-						{
-							Name: "kubeconfig",
-							VolumeSource: apiv1.VolumeSource{
-								ConfigMap: &apiv1.ConfigMapVolumeSource{
-									LocalObjectReference: apiv1.LocalObjectReference{
-										Name: "kubeconfig",
-									},
-								},
-							},
-						},
 						{
 							Name: fmt.Sprintf("ca-certpemstore-%s", name),
 							VolumeSource: apiv1.VolumeSource{

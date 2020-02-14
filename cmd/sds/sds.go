@@ -13,6 +13,7 @@ import (
 	xds "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/deislabs/smc/pkg/catalog"
@@ -29,15 +30,22 @@ const (
 )
 
 var (
-	flags          = pflag.NewFlagSet(`sds`, pflag.ExitOnError)
-	kubeConfigFile = flags.String("kubeconfig", "", "Path to Kubernetes config file.")
-	verbosity      = flags.Int("verbosity", int(log.LvlInfo), "Set log verbosity level")
-	port           = flags.Int("port", 15123, "Secrets Discovery Service port number. (Default: 15123)")
-	namespace      = flags.String("namespace", "default", "Kubernetes namespace to watch for SMI Spec.")
-	certPem        = flags.String("certpem", "", fmt.Sprintf("Full path to the %s Certificate PEM file", serverType))
-	keyPem         = flags.String("keypem", "", fmt.Sprintf("Full path to the %s Key PEM file", serverType))
-	rootCertPem    = flags.String("rootcertpem", "", "Full path to the Root Certificate PEM file")
+	kubeConfigFile string
 )
+
+var (
+	flags       = pflag.NewFlagSet(`sds`, pflag.ExitOnError)
+	verbosity   = flags.Int("verbosity", int(log.LvlInfo), "Set log verbosity level")
+	port        = flags.Int("port", 15123, "Secrets Discovery Service port number. (Default: 15123)")
+	namespace   = flags.String("namespace", "default", "Kubernetes namespace to watch for SMI Spec.")
+	certPem     = flags.String("certpem", "", fmt.Sprintf("Full path to the %s Certificate PEM file", serverType))
+	keyPem      = flags.String("keypem", "", fmt.Sprintf("Full path to the %s Key PEM file", serverType))
+	rootCertPem = flags.String("rootcertpem", "", "Full path to the Root Certificate PEM file")
+)
+
+func init() {
+	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file.")
+}
 
 func main() {
 	defer glog.Flush()
@@ -46,9 +54,19 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	kubeConfig, err := clientcmd.BuildConfigFromFlags("", *kubeConfigFile)
-	if err != nil {
-		glog.Fatalf("[SDS] Error fetching Kubernetes config. Ensure correctness of CLI argument 'kubeconfig=%s': %s", *kubeConfigFile, err)
+	var kubeConfig *rest.Config
+	var err error
+	if kubeConfigFile != "" {
+		kubeConfig, err = clientcmd.BuildConfigFromFlags("", kubeConfigFile)
+		if err != nil {
+			glog.Fatalf("[SDS] Error fetching Kubernetes config. Ensure correctness of CLI argument 'kubeconfig=%s': %s", kubeConfigFile, err)
+		}
+	} else {
+		// creates the in-cluster config
+		kubeConfig, err = rest.InClusterConfig()
+		if err != nil {
+			glog.Fatalf("[SDS] Error generating Kubernetes config: %s", err)
+		}
 	}
 
 	observeNamespaces := getNamespaces()

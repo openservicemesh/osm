@@ -67,6 +67,10 @@ func (i *installCmd) run() error {
 		return err
 	}
 
+	if err := i.deployRBAC(); err != nil {
+		return err
+	}
+
 	if err := i.deploy("cds", 15125); err != nil {
 		return err
 	}
@@ -80,6 +84,20 @@ func (i *installCmd) run() error {
 		return err
 	}
 
+	return nil
+}
+
+func (i *installCmd) deployRBAC() error {
+	role, roleBinding, serviceAccount := generateRBAC(i.namespace)
+	if _, err := i.kubeClient.RbacV1().ClusterRoles().Create(role); err != nil {
+		return err
+	}
+	if _, err := i.kubeClient.RbacV1().ClusterRoleBindings().Create(roleBinding); err != nil {
+		return err
+	}
+	if _, err := i.kubeClient.CoreV1().ServiceAccounts(i.namespace).Create(serviceAccount); err != nil {
+		return err
+	}
 	return nil
 }
 

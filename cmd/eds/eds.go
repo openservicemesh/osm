@@ -13,6 +13,7 @@ import (
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/deislabs/smc/pkg/catalog"
@@ -32,11 +33,13 @@ const (
 	serverType = "EDS"
 )
 
-var azureAuthFile string
+var (
+	azureAuthFile  string
+	kubeConfigFile string
+)
 
 var (
 	flags          = pflag.NewFlagSet(`eds`, pflag.ExitOnError)
-	kubeConfigFile = flags.String("kubeconfig", "", "Path to Kubernetes config file.")
 	subscriptionID = flags.String("subscriptionID", "", "Azure Subscription")
 	verbosity      = flags.Int("verbosity", int(log.LvlInfo), "Set log verbosity level")
 	namespace      = flags.String("namespace", "default", "Kubernetes namespace to watch for SMI Spec.")
@@ -48,6 +51,7 @@ var (
 
 func init() {
 	flags.StringVar(&azureAuthFile, "azureAuthFile", "", "Path to Azure Auth File")
+	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file.")
 }
 
 func main() {
@@ -57,9 +61,19 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	kubeConfig, err := clientcmd.BuildConfigFromFlags("", *kubeConfigFile)
-	if err != nil {
-		glog.Fatalf("[EDS] Error fetching Kubernetes config. Ensure correctness of CLI argument 'kubeconfig=%s': %s", *kubeConfigFile, err)
+	var kubeConfig *rest.Config
+	var err error
+	if kubeConfigFile != "" {
+		kubeConfig, err = clientcmd.BuildConfigFromFlags("", kubeConfigFile)
+		if err != nil {
+			glog.Fatalf("[EDS] Error fetching Kubernetes config. Ensure correctness of CLI argument 'kubeconfig=%s': %s", kubeConfigFile, err)
+		}
+	} else {
+		// creates the in-cluster config
+		kubeConfig, err = rest.InClusterConfig()
+		if err != nil {
+			glog.Fatalf("[EDS] Error generating Kubernetes config: %s", err)
+		}
 	}
 
 	observeNamespaces := getNamespaces()
