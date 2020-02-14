@@ -60,7 +60,7 @@ func (s *Server) StreamListeners(server xds.ListenerDiscoveryService_StreamListe
 
 			glog.Infof("[%s][incoming] Discovery Request from Envoy: %s", serverName, proxy.GetCommonName())
 
-			response, err := s.newListenerDiscoveryResponse(proxy)
+			response, err := s.NewListenerDiscoveryResponse(proxy)
 			if err != nil {
 				glog.Errorf("[%s] Failed constructing Listener Discovery Response: %+v", serverName, err)
 				return err
@@ -75,7 +75,7 @@ func (s *Server) StreamListeners(server xds.ListenerDiscoveryService_StreamListe
 
 		case <-proxy.GetAnnouncementsChannel():
 			glog.Infof("[%s][outgoing] Listeners change message received.", serverName)
-			response, err := s.newListenerDiscoveryResponse(proxy)
+			response, err := s.NewListenerDiscoveryResponse(proxy)
 			if err != nil {
 				glog.Errorf("[%s] Failed constructing Listener Discovery Response: %+v", serverName, err)
 				return err

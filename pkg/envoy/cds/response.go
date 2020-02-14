@@ -25,7 +25,7 @@ func svcLocal(clusterName string, _ string) func() *xds.Cluster {
 	}
 }
 
-func (s *Server) newClusterDiscoveryResponse(proxy envoy.Proxyer) (*xds.DiscoveryResponse, error) {
+func (s *Server) NewClusterDiscoveryResponse(proxy envoy.Proxyer) (*xds.DiscoveryResponse, error) {
 	glog.Infof("[%s] Composing Cluster Discovery Response for proxy: %s", serverName, proxy.GetCommonName())
 	resp := &xds.DiscoveryResponse{
 		TypeUrl: envoy.TypeCDS,

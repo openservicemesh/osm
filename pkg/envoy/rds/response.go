@@ -14,7 +14,7 @@ import (
 	"github.com/deislabs/smc/pkg/log"
 )
 
-func (e *Server) newRouteDiscoveryResponse(allTrafficPolicies []endpoint.TrafficTargetPolicies) (*v2.DiscoveryResponse, error) {
+func (e *Server) NewRouteDiscoveryResponse(allTrafficPolicies []endpoint.TrafficTargetPolicies) (*v2.DiscoveryResponse, error) {
 	resp := &v2.DiscoveryResponse{
 		TypeUrl: envoy.TypeRDS,
 	}

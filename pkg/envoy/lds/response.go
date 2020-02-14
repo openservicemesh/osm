@@ -14,7 +14,7 @@ import (
 	"github.com/deislabs/smc/pkg/log"
 )
 
-func (s *Server) newListenerDiscoveryResponse(proxy envoy.Proxyer) (*xds.DiscoveryResponse, error) {
+func (s *Server) NewListenerDiscoveryResponse(proxy envoy.Proxyer) (*xds.DiscoveryResponse, error) {
 	glog.Infof("[%s] Composing listener Discovery Response for proxy: %s", serverName, proxy.GetCommonName())
 	resp := &xds.DiscoveryResponse{
 		TypeUrl: envoy.TypeLDS,
