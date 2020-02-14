@@ -17,7 +17,7 @@ const (
 	serverName = "EDS"
 )
 
-func (s *Server) NewEndpointDiscoveryResponse(proxy envoy.Proxyer) (*v2.DiscoveryResponse, error) {
+func (s *Server) NewEndpointDiscoveryResponse(proxy *envoy.Proxy) (*v2.DiscoveryResponse, error) {
 	allServices, err := s.catalog.ListEndpoints("TBD")
 	if err != nil {
 		glog.Errorf("[%s][stream] Failed listing endpoints: %+v", serverName, err)

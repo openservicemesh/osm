@@ -28,7 +28,7 @@ func (sc *MeshCatalog) refreshCache() {
 		}
 	}
 	glog.Infof("[catalog] Services cache: %+v", servicesCache)
-	sc.Lock()
+	sc.servicesMutex.Lock()
 	sc.servicesCache = servicesCache
-	sc.Unlock()
+	sc.servicesMutex.Unlock()
 }

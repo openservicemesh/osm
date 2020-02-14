@@ -62,6 +62,8 @@ func main() {
 		glog.Fatal("Could not instantiate Certificate Manager: ", err)
 	}
 	meshCatalog := catalog.NewMeshCatalog(meshSpec, certManager, stop)
+
+	// TODO(draychev): there should be no need to pass meshSpec to the ADS - it is already in meshCatalog
 	adsServer := ads.NewADSServer(ctx, meshCatalog, meshSpec)
 
 	grpcServer, lis := utils.NewGrpc(serverType, *port, *certPem, *keyPem, *rootCertPem)

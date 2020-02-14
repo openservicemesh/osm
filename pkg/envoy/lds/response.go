@@ -19,7 +19,7 @@ const (
 	serverName = "LDS"
 )
 
-func (s *Server) NewListenerDiscoveryResponse(proxy envoy.Proxyer) (*xds.DiscoveryResponse, error) {
+func (s *Server) NewListenerDiscoveryResponse(proxy *envoy.Proxy) (*xds.DiscoveryResponse, error) {
 	glog.Infof("[%s] Composing listener Discovery Response for proxy: %s", serverName, proxy.GetCommonName())
 	resp := &xds.DiscoveryResponse{
 		TypeUrl: string(envoy.TypeLDS),

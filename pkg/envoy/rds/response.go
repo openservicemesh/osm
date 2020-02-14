@@ -17,7 +17,7 @@ const (
 	serverName = "RDS"
 )
 
-func (s *Server) NewRouteDiscoveryResponse(proxy envoy.Proxyer) (*v2.DiscoveryResponse, error) {
+func (s *Server) NewRouteDiscoveryResponse(proxy *envoy.Proxy) (*v2.DiscoveryResponse, error) {
 	allTrafficPolicies, err := s.catalog.ListTrafficRoutes("TBD")
 	if err != nil {
 		glog.Errorf("[%s][stream] Failed listing routes: %+v", serverName, err)
