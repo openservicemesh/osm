@@ -13,7 +13,7 @@ const (
 	TypeLDS = "type.googleapis.com/envoy.api.v2.Listener"
 	TypeRDS = "type.googleapis.com/envoy.api.v2.RouteConfiguration"
 	TypeSDS = "type.googleapis.com/envoy.api.v2.auth.Secret"
-	TypeCLA = "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment"
+	TypeEDS = "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment"
 )
 
 type ProxyID string
