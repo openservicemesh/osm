@@ -10,7 +10,7 @@ import (
 
 	smc "github.com/deislabs/smc/pkg/apis/azureresource/v1"
 	"github.com/deislabs/smc/pkg/endpoint"
-	"github.com/deislabs/smc/pkg/log"
+	"github.com/deislabs/smc/pkg/log/level"
 )
 
 // ListEndpointsForService implements endpoints.Provider interface and returns the IP addresses and Ports for the given ServiceName Name.
@@ -54,7 +54,7 @@ func (az Client) ListEndpointsForService(svc endpoint.ServiceName) []endpoint.En
 
 // run starts the Azure observer
 func (az Client) run(stop <-chan struct{}) error {
-	glog.V(log.LvlInfo).Infoln("Azure provider run started.")
+	glog.V(level.Info).Infoln("Azure provider run started.")
 	// TODO(draychev): implement pub/sub
 	return nil
 }
@@ -82,7 +82,7 @@ func parseAzureID(id azureID) (resourceGroup, computeKind, computeName, error) {
 }
 
 func (az *Client) resolveService(svc endpoint.ServiceName) []azureID {
-	glog.V(log.LvlTrace).Infof("[azure] Resolving service %s to an Azure URI", svc)
+	glog.V(level.Trace).Infof("[azure] Resolving service %s to an Azure URI", svc)
 	var azureIDs []azureID
 	service, exists, err := az.meshSpec.GetService(svc)
 	if err != nil {
@@ -103,7 +103,7 @@ type kv struct {
 }
 
 func matchServiceAzureResource(svc *corev1.Service, azureResourcesList []*smc.AzureResource) []azureID {
-	glog.V(log.LvlTrace).Infof("[azure] Match service %s to an AzureID", svc)
+	glog.V(level.Trace).Infof("[azure] Match service %s to an AzureID", svc)
 	azureResources := make(map[kv]*smc.AzureResource)
 	for _, azRes := range azureResourcesList {
 		for k, v := range azRes.ObjectMeta.Labels {
@@ -123,6 +123,6 @@ func matchServiceAzureResource(svc *corev1.Service, azureResourcesList []*smc.Az
 	for uri := range uriSet {
 		uris = append(uris, uri)
 	}
-	glog.V(log.LvlTrace).Infof("[azure] Found matches for service %s: %+v", svc, uris)
+	glog.V(level.Trace).Infof("[azure] Found matches for service %s: %+v", svc, uris)
 	return uris
 }

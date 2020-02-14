@@ -8,7 +8,7 @@ import (
 	"github.com/golang/glog"
 
 	smcEndpoint "github.com/deislabs/smc/pkg/endpoint"
-	"github.com/deislabs/smc/pkg/log"
+	"github.com/deislabs/smc/pkg/log/level"
 )
 
 const (
@@ -66,7 +66,7 @@ func getServerRouteConfiguration(trafficPolicies smcEndpoint.TrafficTargetPolici
 		routeConfig.VirtualHosts[0].Cors = cors
 		routeConfig.VirtualHosts[0].Routes = append(routeConfig.VirtualHosts[0].Routes, &rt)
 	}
-	glog.V(log.LvlTrace).Infof("[RDS] Constructed Server RouteConfiguration: %+v", routeConfig)
+	glog.V(level.Trace).Infof("[RDS] Constructed Server RouteConfiguration: %+v", routeConfig)
 	return routeConfig
 }
 

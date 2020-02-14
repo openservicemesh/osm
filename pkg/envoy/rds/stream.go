@@ -2,13 +2,13 @@ package rds
 
 import (
 	"context"
-	"github.com/deislabs/smc/pkg/envoy"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 
-	"github.com/deislabs/smc/pkg/log"
+	"github.com/deislabs/smc/pkg/envoy"
+	"github.com/deislabs/smc/pkg/log/level"
 	"github.com/deislabs/smc/pkg/utils"
 )
 
@@ -55,7 +55,7 @@ func (e *Server) StreamRoutes(server xds.RouteDiscoveryService_StreamRoutesServe
 				return nil
 			case <-proxy.GetAnnouncementsChannel():
 				// NOTE: This is deliberately only focused on providing MVP tools to run a TrafficRoute demo.
-				glog.V(log.LvlInfo).Infof("[%s][stream] Received a change message! Updating all Envoy proxies.", serverName)
+				glog.V(level.Info).Infof("[%s][stream] Received a change message! Updating all Envoy proxies.", serverName)
 				// TODO: flesh out the ClientIdentity for this similar to eds.go
 				trafficPolicies, err := e.catalog.ListTrafficRoutes("TBD")
 				if err != nil {

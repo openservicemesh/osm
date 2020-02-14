@@ -5,13 +5,12 @@ import (
 	"net"
 	"time"
 
+	"github.com/deislabs/smc/pkg/log/level"
 	"github.com/golang/glog"
-
-	"github.com/deislabs/smc/pkg/log"
 )
 
 func (az *Client) getVMSS(rg resourceGroup, vmID azureID) ([]net.IP, error) {
-	glog.V(log.LvlTrace).Infof("[azure] Fetching IPS of VMSS for %s in resource group: %s", vmID, rg)
+	glog.V(level.Trace).Infof("[azure] Fetching IPS of VMSS for %s in resource group: %s", vmID, rg)
 	var ips []net.IP
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

@@ -12,7 +12,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/deislabs/smc/pkg/endpoint"
-	"github.com/deislabs/smc/pkg/log"
+	"github.com/deislabs/smc/pkg/log/level"
 )
 
 var resyncPeriod = 1 * time.Second
@@ -105,7 +105,7 @@ func (c Client) ListEndpointsForService(svc endpoint.ServiceName) []endpoint.End
 
 // run executes informer collection.
 func (c *Client) run(stop <-chan struct{}) error {
-	glog.V(log.LvlInfo).Infoln("Kubernetes Compute Provider started")
+	glog.V(level.Info).Infoln("Kubernetes Compute Provider started")
 	var hasSynced []cache.InformerSynced
 
 	if c.informers == nil {
@@ -128,7 +128,7 @@ func (c *Client) run(stop <-chan struct{}) error {
 		hasSynced = append(hasSynced, informer.HasSynced)
 	}
 
-	glog.V(log.LvlInfo).Infof("Waiting informers cache sync: %+v", names)
+	glog.V(level.Info).Infof("Waiting informers cache sync: %+v", names)
 	if !cache.WaitForCacheSync(stop, hasSynced...) {
 		return errSyncingCaches
 	}
@@ -136,6 +136,6 @@ func (c *Client) run(stop <-chan struct{}) error {
 	// Closing the cacheSynced channel signals to the rest of the system that... caches have been synced.
 	close(c.cacheSynced)
 
-	glog.V(log.LvlInfo).Infof("Cache sync finished for %+v", names)
+	glog.V(level.Info).Infof("Cache sync finished for %+v", names)
 	return nil
 }

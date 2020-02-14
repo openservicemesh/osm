@@ -9,7 +9,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	smc "github.com/deislabs/smc/pkg/apis/azureresource/v1"
-	"github.com/deislabs/smc/pkg/log"
+	"github.com/deislabs/smc/pkg/log/level"
 	smcClient "github.com/deislabs/smc/pkg/smc_client/clientset/versioned"
 	smcInformers "github.com/deislabs/smc/pkg/smc_client/informers/externalversions"
 )
@@ -71,14 +71,14 @@ func newClient(kubeClient *kubernetes.Clientset, azureResourceClient *smcClient.
 
 // run executes informer collection.
 func (c *Client) Run(stop <-chan struct{}) error {
-	glog.V(log.LvlInfo).Infoln("Kubernetes Compute Provider started")
+	glog.V(level.Info).Infoln("Kubernetes Compute Provider started")
 	var hasSynced []cache.InformerSynced
 
 	glog.Info("Starting AzureResource informer")
 	go c.informers.AzureResource.Run(stop)
 	hasSynced = append(hasSynced, c.informers.AzureResource.HasSynced)
 
-	glog.V(log.LvlInfo).Infof("Waiting AzureResource informer cache sync")
+	glog.V(level.Info).Infof("Waiting AzureResource informer cache sync")
 	if !cache.WaitForCacheSync(stop, hasSynced...) {
 		return errSyncingCaches
 	}
@@ -86,7 +86,7 @@ func (c *Client) Run(stop <-chan struct{}) error {
 	// Closing the cacheSynced channel signals to the rest of the system that... caches have been synced.
 	close(c.cacheSynced)
 
-	glog.V(log.LvlInfo).Info("Cache sync for AzureResource finished")
+	glog.V(level.Info).Info("Cache sync for AzureResource finished")
 	return nil
 }
 

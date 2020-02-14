@@ -11,7 +11,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 
 	"github.com/deislabs/smc/pkg/envoy"
-	"github.com/deislabs/smc/pkg/log"
+	"github.com/deislabs/smc/pkg/log/level"
 )
 
 const (
@@ -69,7 +69,7 @@ func (s *Server) NewSecretDiscoveryResponse(proxy envoy.Proxyer) (*v2.DiscoveryR
 	resp.Nonce = s.lastNonce
 	resp.VersionInfo = fmt.Sprintf("v%d", s.lastVersion)
 
-	glog.V(log.LvlTrace).Infof("[%s] Constructed response: %+v", serverName, resp)
+	glog.V(level.Trace).Infof("[%s] Constructed response: %+v", serverName, resp)
 
 	return resp, nil
 }
