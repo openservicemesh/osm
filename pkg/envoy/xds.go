@@ -6,17 +6,13 @@ import (
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
-	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	accesslog "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v2"
 	accessLogV2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
 	wellknown "github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
-	"github.com/golang/protobuf/ptypes/duration"
 	structpb "github.com/golang/protobuf/ptypes/struct"
-	"github.com/golang/protobuf/ptypes/wrappers"
 )
 
 const (
@@ -123,42 +119,6 @@ func pbStringValue(v string) *structpb.Value {
 	}
 }
 
-func GetWeightedCluster(clusterName string, weight uint32) *route.RouteAction_WeightedClusters {
-	return &route.RouteAction_WeightedClusters{
-		WeightedClusters: &route.WeightedCluster{
-			Clusters: []*route.WeightedCluster_ClusterWeight{{
-				Name: clusterName,
-				Weight: &wrappers.UInt32Value{
-					Value: weight,
-				},
-			}},
-		},
-	}
-}
-
-func GetUpstreamTLS(certPem string, keyPem string) *auth.UpstreamTlsContext {
-	return &auth.UpstreamTlsContext{
-		AllowRenegotiation: true,
-		CommonTlsContext: &auth.CommonTlsContext{
-			TlsParams: GetTLSParams(),
-			TlsCertificates: []*auth.TlsCertificate{
-				{
-					CertificateChain: &core.DataSource{
-						Specifier: &core.DataSource_Filename{
-							Filename: certPem,
-						},
-					},
-					PrivateKey: &core.DataSource{
-						Specifier: &core.DataSource_Filename{
-							Filename: keyPem,
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
 func getTLSDownstream(certificateName string) *any.Any {
 	tlsConfig := &auth.DownstreamTlsContext{
 		CommonTlsContext: &auth.CommonTlsContext{
@@ -244,49 +204,6 @@ func GetEDSCluster() *xds.Cluster_EdsClusterConfig {
 						{
 							TargetSpecifier: &core.GrpcService_EnvoyGrpc_{
 								EnvoyGrpc: &core.GrpcService_EnvoyGrpc{ClusterName: XDSClusterName},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
-func GetTimeout() *duration.Duration {
-	return &duration.Duration{
-		Seconds: 5,
-	}
-}
-
-func GetH2() *core.Http2ProtocolOptions {
-	return &core.Http2ProtocolOptions{}
-}
-
-func GetTransportSocket() *core.TransportSocket {
-	tls, err := ptypes.MarshalAny(GetUpstreamTLS("/etc/ssl/certs/cert.pem", "/etc/ssl/certs/key.pem"))
-	if err != nil {
-		glog.Error("[CDS] Error marshalling UpstreamTLS: ", err)
-		return nil
-	}
-	return &core.TransportSocket{
-		Name: TransportSocketTLS,
-		ConfigType: &core.TransportSocket_TypedConfig{
-			TypedConfig: tls,
-		},
-	}
-}
-
-func GetLoadAssignment(clusterName string, address string, port uint32) *xds.ClusterLoadAssignment {
-	return &xds.ClusterLoadAssignment{
-		ClusterName: clusterName,
-		Endpoints: []*endpoint.LocalityLbEndpoints{
-			{
-				LbEndpoints: []*endpoint.LbEndpoint{
-					{
-						HostIdentifier: &endpoint.LbEndpoint_Endpoint{
-							Endpoint: &endpoint.Endpoint{
-								Address: GetAddress(address, port),
 							},
 						},
 					},

@@ -9,10 +9,9 @@ import (
 
 // Server implements the Envoy xDS Endpoint Discovery Services
 type Server struct {
-	ctx      context.Context
-	catalog  catalog.MeshCataloger
-	meshSpec smi.MeshSpec
-
+	ctx         context.Context
+	catalog     catalog.MeshCataloger
+	meshSpec    smi.MeshSpec
 	lastVersion uint64
 	lastNonce   string
 }

@@ -14,9 +14,6 @@ import (
 
 const (
 	zone = "zone"
-
-	// TypeEDS is the string constant of the Cluster Load Assignment URI
-
 )
 
 // NewClusterLoadAssignment constructs the Envoy struct necessary for TrafficSplit implementation.
