@@ -8,11 +8,6 @@ import (
 	"github.com/deislabs/smc/pkg/certificate"
 )
 
-type CA []byte
-type CAPrivateKey []byte
-type CertPEM []byte
-type CertPrivKeyPEM []byte
-
 const (
 	TypeCertificate = "CERTIFICATE"
 	TypePrivateKey  = "PRIVATE KEY"
