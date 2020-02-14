@@ -1,7 +1,6 @@
 package cla
 
 import (
-	"github.com/deislabs/smc/pkg/envoy"
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
@@ -9,7 +8,8 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 
 	smcEndpoint "github.com/deislabs/smc/pkg/endpoint"
-	"github.com/deislabs/smc/pkg/log"
+	"github.com/deislabs/smc/pkg/envoy"
+	"github.com/deislabs/smc/pkg/log/level"
 )
 
 const (
@@ -56,6 +56,6 @@ func NewClusterLoadAssignment(targetServiceName smcEndpoint.ServiceName, weighte
 			cla.Endpoints[0].LbEndpoints = append(cla.Endpoints[0].LbEndpoints, &lbEpt)
 		}
 	}
-	glog.V(log.LvlTrace).Infof("[EDS] Constructed ClusterLoadAssignment: %+v", cla)
+	glog.V(level.Trace).Infof("[EDS] Constructed ClusterLoadAssignment: %+v", cla)
 	return cla
 }

@@ -2,7 +2,6 @@ package rds
 
 import (
 	"fmt"
-	"github.com/deislabs/smc/pkg/envoy"
 	"time"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -10,8 +9,9 @@ import (
 	"github.com/golang/protobuf/ptypes"
 
 	"github.com/deislabs/smc/pkg/endpoint"
+	"github.com/deislabs/smc/pkg/envoy"
 	"github.com/deislabs/smc/pkg/envoy/route"
-	"github.com/deislabs/smc/pkg/log"
+	"github.com/deislabs/smc/pkg/log/level"
 )
 
 func (e *Server) NewRouteDiscoveryResponse(allTrafficPolicies []endpoint.TrafficTargetPolicies) (*v2.DiscoveryResponse, error) {
@@ -36,6 +36,6 @@ func (e *Server) NewRouteDiscoveryResponse(allTrafficPolicies []endpoint.Traffic
 	e.lastNonce = string(time.Now().Nanosecond())
 	resp.Nonce = e.lastNonce
 	resp.VersionInfo = fmt.Sprintf("v%d", e.lastVersion)
-	glog.V(log.LvlTrace).Infof("[%s] Constructed response: %+v", serverName, resp)
+	glog.V(level.Trace).Infof("[%s] Constructed response: %+v", serverName, resp)
 	return resp, nil
 }

@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/deislabs/smc/pkg/envoy"
-	"github.com/deislabs/smc/pkg/log"
+	"github.com/deislabs/smc/pkg/log/level"
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes"
@@ -38,7 +38,7 @@ func (s *Server) NewClusterDiscoveryResponse(proxy envoy.Proxyer) (*xds.Discover
 
 	for _, factory := range clusterFactories {
 		cluster := factory()
-		glog.V(log.LvlTrace).Infof("[%s] Constructed ClusterConfiguration: %+v", serverName, cluster)
+		glog.V(level.Trace).Infof("[%s] Constructed ClusterConfiguration: %+v", serverName, cluster)
 		marshalledClusters, err := ptypes.MarshalAny(cluster)
 		if err != nil {
 			glog.Errorf("[%s] Failed to marshal cluster for proxy %s: %v", serverName, proxy.GetCommonName(), err)
@@ -51,7 +51,7 @@ func (s *Server) NewClusterDiscoveryResponse(proxy envoy.Proxyer) (*xds.Discover
 	resp.Nonce = s.lastNonce
 	resp.VersionInfo = fmt.Sprintf("v%d", s.lastVersion)
 
-	glog.V(log.LvlTrace).Infof("[%s] Constructed response: %+v", serverName, resp)
+	glog.V(level.Trace).Infof("[%s] Constructed response: %+v", serverName, resp)
 
 	return resp, nil
 }
