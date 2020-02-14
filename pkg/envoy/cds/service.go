@@ -9,6 +9,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/wrappers"
 
+	"github.com/deislabs/smc/pkg/constants"
 	"github.com/deislabs/smc/pkg/envoy"
 )
 
@@ -36,8 +37,8 @@ func getServiceClusterLocal(clusterName string) *xds.Cluster {
 					LbEndpoints: []*endpoint.LbEndpoint{{
 						HostIdentifier: &endpoint.LbEndpoint_Endpoint{
 							Endpoint: &endpoint.Endpoint{
-								// TODO(draychev): remove hard-coded values
-								Address: envoy.GetAddress("0.0.0.0", 80),
+								// TODO: Don't hardcode HttpPort, this depends on the service
+								Address: envoy.GetAddress(constants.WildcardIpAddr, constants.HttpPort),
 							},
 						},
 						LoadBalancingWeight: &wrappers.UInt32Value{

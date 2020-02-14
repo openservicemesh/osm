@@ -9,6 +9,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	smc "github.com/deislabs/smc/pkg/apis/azureresource/v1"
+	"github.com/deislabs/smc/pkg/constants"
 	"github.com/deislabs/smc/pkg/endpoint"
 	"github.com/deislabs/smc/pkg/log/level"
 )
@@ -18,7 +19,7 @@ func (az Client) ListEndpointsForService(svc endpoint.ServiceName) []endpoint.En
 	var endpoints []endpoint.Endpoint
 
 	// TODO(draychev): resolve the actual port number of this service
-	port := endpoint.Port(15003)
+	port := endpoint.Port(constants.EnvoyInboundListenerPort)
 	var computeKindObserver = map[computeKind]computeObserver{
 		vm:   az.getVM,
 		vmss: az.getVMSS,
