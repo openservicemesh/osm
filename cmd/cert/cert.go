@@ -12,6 +12,7 @@ import (
 
 	"github.com/deislabs/smc/pkg/certificate"
 	"github.com/deislabs/smc/pkg/tresor"
+	"github.com/deislabs/smc/pkg/tresor/pem"
 )
 
 var (
@@ -31,8 +32,8 @@ func main() {
 	defer glog.Flush()
 	parseFlags()
 
-	var caPEM tresor.CA
-	var caKeyPEM tresor.CAPrivateKey
+	var caPEM pem.RootCertificate
+	var caKeyPEM pem.RootPrivateKey
 	var certManager *tresor.CertManager
 	var err error
 

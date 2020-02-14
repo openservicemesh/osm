@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"github.com/deislabs/smc/pkg/certificate"
+	"github.com/deislabs/smc/pkg/tresor/pem"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 	"time"
@@ -52,7 +53,7 @@ func NewCertManagerWithCA(ca *x509.Certificate, caPrivKey *rsa.PrivateKey, org s
 }
 
 // NewSelfSignedCert creates a new self-signed certificate.
-func NewSelfSignedCert(host string, org string, validity time.Duration) (CertPEM, CertPrivKeyPEM, error) {
+func NewSelfSignedCert(host string, org string, validity time.Duration) (pem.Certificate, pem.PrivateKey, error) {
 	glog.Infof("Generating a new certificate for host: %s", host)
 	if host == "" {
 		return nil, nil, errInvalidHost
@@ -68,7 +69,7 @@ func NewSelfSignedCert(host string, org string, validity time.Duration) (CertPEM
 	return genCert(template, template, privateKey, privateKey)
 }
 
-func genCert(template, parent *x509.Certificate, certPrivKey, caPrivKey *rsa.PrivateKey) (CertPEM, CertPrivKeyPEM, error) {
+func genCert(template, parent *x509.Certificate, certPrivKey, caPrivKey *rsa.PrivateKey) (pem.Certificate, pem.PrivateKey, error) {
 	derBytes, err := x509.CreateCertificate(rand.Reader, template, parent, &certPrivKey.PublicKey, caPrivKey)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, errCreateCert.Error())
