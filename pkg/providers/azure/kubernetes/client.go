@@ -18,7 +18,7 @@ const (
 	kubernetesClientName = "AzureResourceClient"
 )
 
-var resyncPeriod = 1 * time.Second
+var resyncPeriod = 10 * time.Second
 
 // NewClient creates the Kubernetes client, which retrieves the AzureResource CRD and Services resources.
 func NewClient(kubeConfig *rest.Config, namespaces []string, stop chan struct{}) *Client {

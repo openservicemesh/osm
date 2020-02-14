@@ -15,7 +15,7 @@ import (
 	"github.com/deislabs/smc/pkg/log/level"
 )
 
-var resyncPeriod = 1 * time.Second
+var resyncPeriod = 10 * time.Second
 
 // NewProvider implements mesh.EndpointsProvider, which creates a new Kubernetes cluster/compute provider.
 func NewProvider(kubeConfig *rest.Config, namespaces []string, stop chan struct{}, providerIdent string) *Client {
