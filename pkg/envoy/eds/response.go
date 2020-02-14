@@ -21,7 +21,7 @@ func (e *Server) NewEndpointDiscoveryResponse(allServices map[endpoint.ServiceNa
 
 		proto, err := ptypes.MarshalAny(&loadAssignment)
 		if err != nil {
-			glog.Errorf("[catalog] Error marshalling TypeCLA %+v: %s", loadAssignment, err)
+			glog.Errorf("[catalog] Error marshalling TypeEDS %+v: %s", loadAssignment, err)
 			continue
 		}
 		protos = append(protos, proto)
@@ -29,7 +29,7 @@ func (e *Server) NewEndpointDiscoveryResponse(allServices map[endpoint.ServiceNa
 
 	resp := &v2.DiscoveryResponse{
 		Resources: protos,
-		TypeUrl:   envoy.TypeCLA,
+		TypeUrl:   envoy.TypeEDS,
 	}
 
 	e.lastVersion = e.lastVersion + 1

@@ -43,7 +43,7 @@ func (e *Server) StreamEndpoints(server v2.EndpointDiscoveryService_StreamEndpoi
 			return errors.Wrap(err, "recv")
 		}
 
-		if request.TypeUrl != envoy.TypeCLA {
+		if request.TypeUrl != envoy.TypeEDS {
 			glog.Errorf("[%s][stream] Unknown TypeUrl: %s", serverName, request.TypeUrl)
 			return errUnknownTypeURL
 		}

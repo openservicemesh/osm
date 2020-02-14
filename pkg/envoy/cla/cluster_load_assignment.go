@@ -15,7 +15,7 @@ import (
 const (
 	zone = "zone"
 
-	// TypeCLA is the string constant of the Cluster Load Assignment URI
+	// TypeEDS is the string constant of the Cluster Load Assignment URI
 
 )
 
