@@ -14,6 +14,10 @@ import (
 	"github.com/deislabs/smc/pkg/log/level"
 )
 
+const (
+	serverName = "LDS"
+)
+
 func (s *Server) NewListenerDiscoveryResponse(proxy envoy.Proxyer) (*xds.DiscoveryResponse, error) {
 	glog.Infof("[%s] Composing listener Discovery Response for proxy: %s", serverName, proxy.GetCommonName())
 	resp := &xds.DiscoveryResponse{

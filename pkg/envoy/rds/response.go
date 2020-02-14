@@ -14,6 +14,10 @@ import (
 	"github.com/deislabs/smc/pkg/log/level"
 )
 
+const (
+	serverName = "RDS"
+)
+
 func (s *Server) NewRouteDiscoveryResponse(allTrafficPolicies []endpoint.TrafficTargetPolicies) (*v2.DiscoveryResponse, error) {
 	resp := &v2.DiscoveryResponse{
 		TypeUrl: envoy.TypeRDS,

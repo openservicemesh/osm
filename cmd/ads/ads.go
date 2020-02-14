@@ -16,7 +16,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/deislabs/smc/pkg/catalog"
-	"github.com/deislabs/smc/pkg/constants"
 	"github.com/deislabs/smc/pkg/envoy/ads"
 	"github.com/deislabs/smc/pkg/log/level"
 	"github.com/deislabs/smc/pkg/smi"
@@ -25,7 +24,8 @@ import (
 )
 
 const (
-	serverType = "ADS"
+	serverType       = "ADS"
+	defaultNamespace = "default"
 )
 
 var (
@@ -88,7 +88,7 @@ func parseFlags() {
 func getNamespaces() []string {
 	var namespaces []string
 	if namespace == nil {
-		defaultNS := constants.DefaultKubeNamespace
+		defaultNS := defaultNamespace
 		namespaces = []string{defaultNS}
 	} else {
 		namespaces = []string{*namespace}

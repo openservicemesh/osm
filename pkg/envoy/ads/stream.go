@@ -15,6 +15,10 @@ import (
 	"github.com/deislabs/smc/pkg/utils"
 )
 
+const (
+	maxConnections = 10
+)
+
 // StreamAggregates handles streaming of the clusters to the connected Envoy proxies
 func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer) error {
 	glog.Infof("[%s] Starting StreamAggregates", serverName)
@@ -25,6 +29,8 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 	if err != nil {
 		return errors.Wrap(err, "[%s] Could not start stream")
 	}
+
+	// TODO(draychev): check for envoy.ErrTooManyConnections
 
 	glog.Infof("[%s][stream] Client connected: Subject CN=%s", serverName, cn)
 
@@ -138,8 +144,4 @@ func (s *Server) newAggregatedDiscoveryResponse(proxy envoy.Proxyer, request *v2
 	response.VersionInfo = fmt.Sprintf("v%d", s.lastVersion)
 	glog.V(level.Trace).Infof("[%s] Constructed response: %+v", serverName, response)
 	return response, nil
-}
-
-func makeEverything() *v2.DiscoveryResponse {
-	return &v2.DiscoveryResponse{}
 }

@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	sleepTime = 5
+	serverName = "SDS"
 )
 
 func (s *Server) NewSecretDiscoveryResponse(proxy envoy.Proxyer) (*v2.DiscoveryResponse, error) {

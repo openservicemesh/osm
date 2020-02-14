@@ -12,10 +12,9 @@ import (
 )
 
 const (
-	// TypeRDS is the string constant of the Route Configuration URI
-
 	// DestinationRouteConfig is the name of the route config that the envoy will identify
 	DestinationRouteConfig = "RDS_Destination"
+
 	// SourceRouteConfig is the name of the route config that the envoy will identify
 	SourceRouteConfig = "RDS_Source"
 )
