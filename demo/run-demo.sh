@@ -12,11 +12,7 @@ rm -rf ./certs
 
 make build-cert
 
-make docker-push-cds
-make docker-push-lds
-make docker-push-eds
-make docker-push-sds
-make docker-push-rds
+make docker-push-ads
 
 make docker-push-init
 make docker-push-bookbuyer
@@ -38,11 +34,7 @@ kubectl apply -f demo/AzureResource.yaml
 ./demo/deploy-bookstore.sh "bookstore-1"
 # ./demo/deploy-bookstore.sh bookstore-2
 
-./demo/deploy-cds.sh
-./demo/deploy-sds.sh
-./demo/deploy-eds.sh
-./demo/deploy-rds.sh
-./demo/deploy-lds.sh
+./demo/deploy-ads.sh
 
 ./demo/deploy-traffic-split.sh
 ./demo/deploy-traffic-spec.sh

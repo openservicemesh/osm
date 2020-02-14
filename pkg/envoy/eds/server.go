@@ -21,11 +21,11 @@ func NewEDSServer(ctx context.Context, catalog catalog.MeshCataloger, meshSpec s
 }
 
 // FetchEndpoints implements envoy.EndpointDiscoveryServiceServer
-func (e *Server) FetchEndpoints(context.Context, *xds.DiscoveryRequest) (*xds.DiscoveryResponse, error) {
+func (s *Server) FetchEndpoints(context.Context, *xds.DiscoveryRequest) (*xds.DiscoveryResponse, error) {
 	panic("NotImplemented")
 }
 
 // DeltaEndpoints implements envoy.EndpointDiscoveryServiceServer
-func (e *Server) DeltaEndpoints(xds.EndpointDiscoveryService_DeltaEndpointsServer) error {
+func (s *Server) DeltaEndpoints(xds.EndpointDiscoveryService_DeltaEndpointsServer) error {
 	panic("NotImplemented")
 }

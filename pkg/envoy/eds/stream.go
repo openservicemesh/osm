@@ -17,7 +17,7 @@ const (
 )
 
 // StreamEndpoints implements v2.EndpointDiscoveryService and handles streaming of Endpoint changes to the Envoy proxies connected.
-func (e *Server) StreamEndpoints(server v2.EndpointDiscoveryService_StreamEndpointsServer) error {
+func (s *Server) StreamEndpoints(server v2.EndpointDiscoveryService_StreamEndpointsServer) error {
 	glog.Infof("[%s] Starting StreamEndpoints", serverName)
 
 	// When a new Envoy proxy connects, ValidateClient would ensure that it has a valid certificate,
@@ -31,8 +31,8 @@ func (e *Server) StreamEndpoints(server v2.EndpointDiscoveryService_StreamEndpoi
 
 	// Register the newly connected proxy w/ the catalog.
 	ip := utils.GetIPFromContext(server.Context())
-	proxy := e.catalog.RegisterProxy(cn, ip)
-	defer e.catalog.UnregisterProxy(proxy.GetID())
+	proxy := s.catalog.RegisterProxy(cn, ip)
+	defer s.catalog.UnregisterProxy(proxy.GetID())
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -57,13 +57,13 @@ func (e *Server) StreamEndpoints(server v2.EndpointDiscoveryService_StreamEndpoi
 				// NOTE(draychev): This is deliberately only focused on providing MVP tools to run a TrafficSplit demo.
 				glog.V(level.Info).Infof("[%s][stream] Received a change message! Updating all Envoy proxies.", serverName)
 				// TODO(draychev): flesh out the ClientIdentity
-				weightedServices, err := e.catalog.ListEndpoints("TBD")
+				weightedServices, err := s.catalog.ListEndpoints("TBD")
 				if err != nil {
 					glog.Errorf("[%s][stream] Failed listing endpoints: %+v", serverName, err)
 					return err
 				}
 				glog.Infof("[%s][stream] WeightedServices: %+v", serverName, weightedServices)
-				resp, err := e.NewEndpointDiscoveryResponse(weightedServices)
+				resp, err := s.NewEndpointDiscoveryResponse(weightedServices)
 				if err != nil {
 					glog.Errorf("[%s][stream] Failed composing a DiscoveryResponse: %+v", serverName, err)
 					return err

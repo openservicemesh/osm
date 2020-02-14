@@ -21,11 +21,11 @@ func NewRDSServer(ctx context.Context, catalog catalog.MeshCataloger, meshSpec s
 }
 
 // FetchRoutes implements envoy.RouteDiscoveryServiceServer
-func (r *Server) FetchRoutes(context.Context, *xds.DiscoveryRequest) (*xds.DiscoveryResponse, error) {
+func (s *Server) FetchRoutes(context.Context, *xds.DiscoveryRequest) (*xds.DiscoveryResponse, error) {
 	panic("NotImplemented")
 }
 
 // DeltaRoutes implements envoy.RouteDiscoveryServiceServer
-func (r *Server) DeltaRoutes(xds.RouteDiscoveryService_DeltaRoutesServer) error {
+func (s *Server) DeltaRoutes(xds.RouteDiscoveryService_DeltaRoutesServer) error {
 	panic("NotImplemented")
 }

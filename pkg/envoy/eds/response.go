@@ -14,7 +14,7 @@ import (
 	"github.com/deislabs/smc/pkg/envoy/cla"
 )
 
-func (e *Server) NewEndpointDiscoveryResponse(allServices map[endpoint.ServiceName][]endpoint.WeightedService) (*v2.DiscoveryResponse, error) {
+func (s *Server) NewEndpointDiscoveryResponse(allServices map[endpoint.ServiceName][]endpoint.WeightedService) (*v2.DiscoveryResponse, error) {
 	var protos []*any.Any
 	for targetServiceName, weightedServices := range allServices {
 		loadAssignment := cla.NewClusterLoadAssignment(targetServiceName, weightedServices)
@@ -32,10 +32,10 @@ func (e *Server) NewEndpointDiscoveryResponse(allServices map[endpoint.ServiceNa
 		TypeUrl:   envoy.TypeEDS,
 	}
 
-	e.lastVersion = e.lastVersion + 1
-	e.lastNonce = string(time.Now().Nanosecond())
-	resp.Nonce = e.lastNonce
-	resp.VersionInfo = fmt.Sprintf("v%d", e.lastVersion)
+	s.lastVersion = s.lastVersion + 1
+	s.lastNonce = string(time.Now().Nanosecond())
+	resp.Nonce = s.lastNonce
+	resp.VersionInfo = fmt.Sprintf("v%d", s.lastVersion)
 
 	return resp, nil
 }

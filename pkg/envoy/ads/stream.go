@@ -3,6 +3,7 @@ package ads
 import (
 	"context"
 	"fmt"
+	"github.com/deislabs/smc/pkg/log/level"
 	"time"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -11,7 +12,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/deislabs/smc/pkg/envoy"
-	"github.com/deislabs/smc/pkg/log"
 	"github.com/deislabs/smc/pkg/utils"
 )
 
@@ -70,7 +70,7 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 			}
 
 		case <-proxy.GetAnnouncementsChannel():
-			glog.V(log.LvlInfo).Infof("[%s][stream] Change detected - update all Envoys.", serverName)
+			glog.V(level.Info).Infof("[%s][stream] Change detected - update all Envoys.", serverName)
 			s.sendAllResponses(proxy, server)
 		}
 	}
@@ -96,7 +96,7 @@ func (s *Server) newAggregatedDiscoveryResponse(proxy envoy.Proxyer, request *v2
 	var err error
 	var response *v2.DiscoveryResponse
 
-	glog.V(log.LvlInfo).Infof("[%s][stream] Received discovery request: %s", serverName, request.TypeUrl)
+	glog.V(level.Info).Infof("[%s][stream] Received discovery request: %s", serverName, request.TypeUrl)
 
 	switch request.TypeUrl {
 	case envoy.TypeEDS:
@@ -110,7 +110,7 @@ func (s *Server) newAggregatedDiscoveryResponse(proxy envoy.Proxyer, request *v2
 	case envoy.TypeCDS:
 		response, err = s.cdsServer.NewClusterDiscoveryResponse(proxy)
 	case envoy.TypeRDS:
-		glog.V(log.LvlInfo).Infof("[%s][stream] Received a change message! Updating all Envoy proxies.", serverName)
+		glog.V(level.Info).Infof("[%s][stream] Received a change message! Updating all Envoy proxies.", serverName)
 		trafficPolicies, err := s.catalog.ListTrafficRoutes("TBD")
 		if err != nil {
 			glog.Errorf("[%s][stream] Failed listing routes: %+v", serverName, err)
@@ -136,7 +136,7 @@ func (s *Server) newAggregatedDiscoveryResponse(proxy envoy.Proxyer, request *v2
 	s.lastNonce = string(time.Now().Nanosecond())
 	response.Nonce = s.lastNonce
 	response.VersionInfo = fmt.Sprintf("v%d", s.lastVersion)
-	glog.V(log.LvlTrace).Infof("[%s] Constructed response: %+v", serverName, response)
+	glog.V(level.Trace).Infof("[%s] Constructed response: %+v", serverName, response)
 	return response, nil
 }
 

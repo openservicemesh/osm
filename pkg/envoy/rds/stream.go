@@ -17,7 +17,7 @@ const (
 )
 
 // StreamRoutes handles streaming of route changes to the Envoy proxies connected
-func (e *Server) StreamRoutes(server xds.RouteDiscoveryService_StreamRoutesServer) error {
+func (s *Server) StreamRoutes(server xds.RouteDiscoveryService_StreamRoutesServer) error {
 	glog.Infof("[%s] Starting StreamRoutes", serverName)
 
 	// When a new Envoy proxy connects, ValidateClient would ensure that it has a valid certificate,
@@ -31,8 +31,8 @@ func (e *Server) StreamRoutes(server xds.RouteDiscoveryService_StreamRoutesServe
 
 	// Register the newly connected proxy w/ the catalog.
 	ip := utils.GetIPFromContext(server.Context())
-	proxy := e.catalog.RegisterProxy(cn, ip)
-	defer e.catalog.UnregisterProxy(proxy.GetID())
+	proxy := s.catalog.RegisterProxy(cn, ip)
+	defer s.catalog.UnregisterProxy(proxy.GetID())
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -57,13 +57,13 @@ func (e *Server) StreamRoutes(server xds.RouteDiscoveryService_StreamRoutesServe
 				// NOTE: This is deliberately only focused on providing MVP tools to run a TrafficRoute demo.
 				glog.V(level.Info).Infof("[%s][stream] Received a change message! Updating all Envoy proxies.", serverName)
 				// TODO: flesh out the ClientIdentity for this similar to eds.go
-				trafficPolicies, err := e.catalog.ListTrafficRoutes("TBD")
+				trafficPolicies, err := s.catalog.ListTrafficRoutes("TBD")
 				if err != nil {
 					glog.Errorf("[%s][stream] Failed listing routes: %+v", serverName, err)
 					return err
 				}
 				glog.Infof("[%s][stream] trafficPolicies: %+v", serverName, trafficPolicies)
-				resp, err := e.NewRouteDiscoveryResponse(trafficPolicies)
+				resp, err := s.NewRouteDiscoveryResponse(trafficPolicies)
 				if err != nil {
 					glog.Errorf("[%s][stream] Failed composing a DiscoveryResponse: %+v", serverName, err)
 					return err

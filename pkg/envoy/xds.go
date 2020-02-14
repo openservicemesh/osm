@@ -20,19 +20,8 @@ import (
 )
 
 const (
-	accessLogPath = "/dev/stdout"
-
-	SDSClusterName = "sds"
-	SDSAddress     = "sds.smc.svc.cluster.local"
-	SDSPort        = 15123
-
-	EDSClusterName = "eds"
-	EDSAddress     = "eds.smc.svc.cluster.local"
-	EDSPort        = 15124
-
-	RDSClusterName = "rds"
-	RDSAddress     = "rds.smc.svc.cluster.local"
-	RDSPort        = 15126
+	accessLogPath  = "/dev/stdout"
+	XDSClusterName = "ads"
 
 	// cipher suites
 	aes    = "ECDHE-ECDSA-AES128-GCM-SHA256"
@@ -176,12 +165,12 @@ func getTLSDownstream(certificateName string) *any.Any {
 			TlsParams: GetTLSParams(),
 			TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
 				Name:      certificateName,
-				SdsConfig: GetGRPCSource(SDSClusterName),
+				SdsConfig: GetGRPCSource(XDSClusterName),
 			}},
 			ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 				ValidationContextSdsSecretConfig: &auth.SdsSecretConfig{
 					Name:      certificateName,
-					SdsConfig: GetGRPCSource(SDSClusterName),
+					SdsConfig: GetGRPCSource(XDSClusterName),
 				},
 			},
 		},
@@ -201,12 +190,12 @@ func getTLSUpstream(certificateName string) *any.Any {
 			TlsParams: GetTLSParams(),
 			TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
 				Name:      certificateName,
-				SdsConfig: GetGRPCSource(SDSClusterName),
+				SdsConfig: GetGRPCSource(XDSClusterName),
 			}},
 			ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 				ValidationContextSdsSecretConfig: &auth.SdsSecretConfig{
 					Name:      certificateName,
-					SdsConfig: GetGRPCSource(SDSClusterName),
+					SdsConfig: GetGRPCSource(XDSClusterName),
 				},
 			},
 		},
@@ -254,7 +243,7 @@ func GetEDSCluster() *xds.Cluster_EdsClusterConfig {
 					GrpcServices: []*core.GrpcService{
 						{
 							TargetSpecifier: &core.GrpcService_EnvoyGrpc_{
-								EnvoyGrpc: &core.GrpcService_EnvoyGrpc{ClusterName: EDSClusterName},
+								EnvoyGrpc: &core.GrpcService_EnvoyGrpc{ClusterName: XDSClusterName},
 							},
 						},
 					},
