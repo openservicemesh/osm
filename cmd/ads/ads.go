@@ -18,7 +18,7 @@ import (
 	"github.com/deislabs/smc/pkg/catalog"
 	"github.com/deislabs/smc/pkg/constants"
 	"github.com/deislabs/smc/pkg/envoy/ads"
-	"github.com/deislabs/smc/pkg/log"
+	"github.com/deislabs/smc/pkg/log/level"
 	"github.com/deislabs/smc/pkg/smi"
 	"github.com/deislabs/smc/pkg/tresor"
 	"github.com/deislabs/smc/pkg/utils"
@@ -31,7 +31,7 @@ const (
 var (
 	flags          = pflag.NewFlagSet(`ads`, pflag.ExitOnError)
 	kubeConfigFile = flags.String("kubeconfig", "", "Path to Kubernetes config file.")
-	verbosity      = flags.Int("verbosity", int(log.LvlInfo), "Set log verbosity level")
+	verbosity      = flags.Int("verbosity", int(level.Info), "Set log verbosity level")
 	port           = flags.Int("port", 15128, "Clusters Discovery Service port number. (Default: 15128)")
 	namespace      = flags.String("namespace", "default", "Kubernetes namespace to watch for SMI Spec.")
 	certPem        = flags.String("certpem", "", fmt.Sprintf("Full path to the %s Certificate PEM file", serverType))

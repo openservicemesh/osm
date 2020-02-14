@@ -14,7 +14,7 @@ import (
 	"github.com/deislabs/smc/pkg/log/level"
 )
 
-func (e *Server) NewRouteDiscoveryResponse(allTrafficPolicies []endpoint.TrafficTargetPolicies) (*v2.DiscoveryResponse, error) {
+func (s *Server) NewRouteDiscoveryResponse(allTrafficPolicies []endpoint.TrafficTargetPolicies) (*v2.DiscoveryResponse, error) {
 	resp := &v2.DiscoveryResponse{
 		TypeUrl: envoy.TypeRDS,
 	}
@@ -32,10 +32,12 @@ func (e *Server) NewRouteDiscoveryResponse(allTrafficPolicies []endpoint.Traffic
 			resp.Resources = append(resp.Resources, marshalledRouteConfig)
 		}
 	}
-	e.lastVersion = e.lastVersion + 1
-	e.lastNonce = string(time.Now().Nanosecond())
-	resp.Nonce = e.lastNonce
-	resp.VersionInfo = fmt.Sprintf("v%d", e.lastVersion)
+
+	s.lastVersion = s.lastVersion + 1
+	s.lastNonce = string(time.Now().Nanosecond())
+	resp.Nonce = s.lastNonce
+	resp.VersionInfo = fmt.Sprintf("v%d", s.lastVersion)
 	glog.V(level.Trace).Infof("[%s] Constructed response: %+v", serverName, resp)
+
 	return resp, nil
 }

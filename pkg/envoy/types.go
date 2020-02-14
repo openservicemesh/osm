@@ -8,12 +8,12 @@ import (
 )
 
 const (
-	TypeADS = "type.googleapis.com/envoy.api.v2.Cluster"
-	TypeCDS = "type.googleapis.com/envoy.api.v2.Cluster"
-	TypeLDS = "type.googleapis.com/envoy.api.v2.Listener"
-	TypeRDS = "type.googleapis.com/envoy.api.v2.RouteConfiguration"
-	TypeSDS = "type.googleapis.com/envoy.api.v2.auth.Secret"
-	TypeEDS = "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment"
+	baseURI = "type.googleapis.com/envoy.api.v2."
+	TypeCDS = baseURI + "Cluster"
+	TypeLDS = baseURI + "Listener"
+	TypeRDS = baseURI + "RouteConfiguration"
+	TypeSDS = baseURI + "auth.Secret"
+	TypeEDS = baseURI + "ClusterLoadAssignment"
 )
 
 type ProxyID string

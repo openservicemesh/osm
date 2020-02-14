@@ -22,6 +22,10 @@ include .env
 clean-cert:
 	@rm -rf bin/cert
 
+.PHONY: clean-ads
+clean-ads:
+	@rm -rf bin/ads
+
 .PHONY: clean-cds
 clean-cds:
 	@rm -rf bin/cds
@@ -43,12 +47,17 @@ clean-rds:
 	@rm -rf bin/rds
 
 .PHONY: build
-build: build-sds build-eds build-cds build-rds build-lds
+build: build-sds build-eds build-cds build-rds build-lds build-ads
 
 .PHONY: build-cert
 build-cert: clean-cert
 	@mkdir -p $(shell pwd)/bin
 	CGO_ENABLED=0  go build -v -o ./bin/cert ./cmd/cert
+
+.PHONY: build-ads
+build-ads: clean-ads
+	@mkdir -p $(shell pwd)/bin
+	CGO_ENABLED=0  go build -v -o ./bin/ads ./cmd/ads
 
 .PHONY: build-cds
 build-cds: clean-cds
@@ -82,7 +91,11 @@ build-rds: clean-rds
 
 .PHONY: build-cross
 build-cross: LDFLAGS += -extldflags "-static"
-build-cross: build-cross-eds build-cross-sds build-cross-cds build-cross-rds build-cross-lds
+build-cross: build-cross-eds build-cross-sds build-cross-cds build-cross-rds build-cross-lds build-cross-ads
+
+.PHONY: build-cross-ads
+build-cross-ads: gox
+	GO111MODULE=on CGO_ENABLED=0 $(GOX) -output="./bin/{{.OS}}-{{.Arch}}/ads" -osarch='$(TARGETS)' -ldflags '$(LDFLAGS)' ./cmd/ads
 
 .PHONY: build-cross-cds
 build-cross-cds: gox
@@ -105,7 +118,7 @@ build-cross-rds: gox
 	GO111MODULE=on CGO_ENABLED=0 $(GOX) -output="./bin/{{.OS}}-{{.Arch}}/rds" -osarch='$(TARGETS)' -ldflags '$(LDFLAGS)' ./cmd/rds
 
 .PHONY: docker-build
-docker-build: build-cross docker-build-sds docker-build-eds docker-build-bookbuyer docker-build-bookstore docker-build-cds docker-build-rds docker-build-lds
+docker-build: build-cross docker-build-sds docker-build-eds docker-build-bookbuyer docker-build-bookstore docker-build-cds docker-build-rds docker-build-lds docker-build-ads
 
 .PHONY: go-vet
 go-vet:
@@ -125,6 +138,10 @@ go-test:
 
 
 ### docker targets
+.PHONY: docker-build-ads
+docker-build-ads: build-cross-ads
+	docker build --build-arg $(HOME)/go/ -t $(CTR_REGISTRY)/ads -f dockerfiles/Dockerfile.ads .
+
 .PHONY: docker-build-cds
 docker-build-cds: build-cross-cds
 	docker build --build-arg $(HOME)/go/ -t $(CTR_REGISTRY)/cds -f dockerfiles/Dockerfile.cds .
@@ -164,6 +181,10 @@ docker-build-bookstore: build-counter
 .PHONY: docker-build-init
 docker-build-init:
 	docker build -t $(CTR_REGISTRY)/init -f dockerfiles/Dockerfile.init .
+
+.PHONY: docker-push-ads
+docker-push-ads: docker-build-ads
+	docker push "$(CTR_REGISTRY)/ads"
 
 .PHONY: docker-push-cds
 docker-push-cds: docker-build-cds

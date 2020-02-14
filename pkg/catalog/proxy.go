@@ -45,7 +45,6 @@ func (sc *MeshCatalog) broadcastAnnouncementToProxies() {
 		cases[i] = reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(ch)}
 	}
 
-	// Keep receiving
 	for {
 		chosen, message, ok := reflect.Select(cases)
 
