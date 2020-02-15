@@ -29,8 +29,11 @@ type MeshCatalog struct {
 	certManager        certificate.Manager
 
 	// Caches
-	servicesCache    map[endpoint.ServiceName][]endpoint.Endpoint
-	certificateCache map[endpoint.ServiceName]certificate.Certificater
+	servicesCache        map[endpoint.ServiceName][]endpoint.Endpoint
+	certificateCache     map[endpoint.ServiceName]certificate.Certificater
+	serviceAccountsCache map[endpoint.ServiceAccount][]endpoint.ServiceName
+	targetServicesCache  map[endpoint.ServiceName][]endpoint.ServiceName
+	connectedProxies     []envoy.Proxyer
 
 	// Proxy broker
 	messageBroker *MessageBroker

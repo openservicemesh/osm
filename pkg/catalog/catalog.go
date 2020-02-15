@@ -18,8 +18,10 @@ func NewMeshCatalog(meshSpec smi.MeshSpec, certManager certificate.Manager, stop
 		certManager:        certManager,
 
 		// Caches
-		servicesCache:    make(map[endpoint.ServiceName][]endpoint.Endpoint),
-		certificateCache: make(map[endpoint.ServiceName]certificate.Certificater),
+		servicesCache:        make(map[endpoint.ServiceName][]endpoint.Endpoint),
+		certificateCache:     make(map[endpoint.ServiceName]certificate.Certificater),
+		serviceAccountsCache: make(map[endpoint.ServiceAccount][]endpoint.ServiceName),
+		targetServicesCache:  make(map[endpoint.ServiceName][]endpoint.ServiceName),
 
 		// Message broker / broadcaster for all connected proxies
 		messageBroker: newMessageBroker(stop),

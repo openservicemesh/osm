@@ -12,6 +12,15 @@ kubectl delete deployment bookbuyer -n "$K8S_NAMESPACE"  || true
 echo -e "Deploy BookBuyer demo service"
 cat <<EOF | kubectl apply -f -
 apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: bookbuyer-serviceaccount
+  namespace: $K8S_NAMESPACE
+automountServiceAccountToken: false
+
+---
+
+apiVersion: v1
 kind: Service
 metadata:
   name: bookbuyer
@@ -39,12 +48,17 @@ metadata:
   namespace: "$K8S_NAMESPACE"
 spec:
   replicas: 1
+  selector:
+    matchLabels:
+      app: bookbuyer
   template:
     metadata:
       labels:
         app: bookbuyer
         version: v1
     spec:
+      serviceAccountName: bookbuyer-serviceaccount
+      automountServiceAccountToken: false
       hostAliases:
       - ip: "127.0.0.1"
         hostnames:

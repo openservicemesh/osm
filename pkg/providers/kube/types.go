@@ -9,12 +9,14 @@ type friendlyName string
 
 // InformerCollection is a struct of the Kubernetes informers used in SMC
 type InformerCollection struct {
-	Endpoints cache.SharedIndexInformer
+	Endpoints   cache.SharedIndexInformer
+	Deployments cache.SharedIndexInformer
 }
 
 // CacheCollection is a struct of the Kubernetes caches used in SMC
 type CacheCollection struct {
-	Endpoints cache.Store
+	Endpoints   cache.Store
+	Deployments cache.Store
 }
 
 // Client is a struct for all components necessary to connect to and maintain state of a Kubernetes cluster.
