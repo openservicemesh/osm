@@ -31,7 +31,7 @@ func NewMeshCatalog(meshSpec smi.MeshSpec, certManager certificate.Manager, stop
 	return &serviceCatalog
 }
 
-func (sc MeshCatalog) GetDebugInfo() http.Handler {
+func (sc *MeshCatalog) GetDebugInfo() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// TODO(draychev): convert to CLI flag
 		if value, ok := os.LookupEnv("SMC_ENABLE_DEBUG"); ok && value == "true" {
