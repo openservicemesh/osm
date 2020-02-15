@@ -71,7 +71,8 @@ func main() {
 
 	// initialize the http server and start it
 	metricsStore := metricsstore.NewMetricStore("TBD_NameSpace", "TBD_PodName")
-	httpServer := httpserver.NewHTTPServer(adsServer, metricsStore, "8888")
+	// TODO(draychev): the port number should be configurable
+	httpServer := httpserver.NewHTTPServer(adsServer, metricsStore, "15000")
 	httpServer.Start()
 
 	sigChan := make(chan os.Signal, 1)
