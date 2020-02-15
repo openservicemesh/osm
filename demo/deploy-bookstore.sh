@@ -14,6 +14,15 @@ kubectl delete deployment "$SVC" -n "$K8S_NAMESPACE"  || true
 echo -e "Deploy $SVC demo service"
 cat <<EOF | kubectl apply -f -
 apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: "$SVC-serviceaccount"
+  namespace: $K8S_NAMESPACE
+automountServiceAccountToken: false
+
+---
+
+apiVersion: v1
 kind: Service
 metadata:
   name: $SVC
@@ -44,12 +53,17 @@ metadata:
   namespace: $K8S_NAMESPACE
 spec:
   replicas: 1
+  selector:
+    matchLabels:
+      app: $SVC
   template:
     metadata:
       labels:
         app: $SVC
         version: v1
     spec:
+      serviceAccountName: "$SVC-serviceaccount"
+      automountServiceAccountToken: false
       containers:
 
         - image: "${CTR_REGISTRY}/bookstore:latest"

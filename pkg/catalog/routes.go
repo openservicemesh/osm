@@ -6,6 +6,7 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/deislabs/smc/pkg/endpoint"
+	"github.com/deislabs/smc/pkg/log"
 	"github.com/deislabs/smc/pkg/smi"
 )
 
@@ -31,6 +32,61 @@ func (sc *MeshCatalog) ListTrafficRoutes(clientID smi.ClientIdentity) ([]endpoin
 	return allTrafficPolicies, nil
 }
 
+func (sc *MeshCatalog) listServicesForServiceAccount(namespacedServiceAccount endpoint.ServiceAccount) ([]endpoint.ServiceName, error) {
+	// TODO(draychev): split namespace from the service name -- for non-K8s services
+	glog.Infof("[catalog] Listing services for service account: %s", namespacedServiceAccount)
+	if _, found := sc.serviceAccountsCache[namespacedServiceAccount]; !found {
+		sc.refreshCache()
+	}
+	var services []endpoint.ServiceName
+	var found bool
+	if services, found = sc.serviceAccountsCache[namespacedServiceAccount]; !found {
+		glog.Errorf("[catalog] Did not find any services for service account %s", namespacedServiceAccount)
+		return nil, errNotFound
+	}
+	glog.Infof("[catalog] Found service account %s for service %s", servicesToString(services), namespacedServiceAccount)
+	return services, nil
+}
+
+func (sc *MeshCatalog) listAggregatedClusters(services []endpoint.ServiceName) []endpoint.ServiceName {
+	// TODO(draychev): split namespace from the service name -- for non-K8s services
+	glog.Infof("[catalog] Listing aggregated clusters for services : %v", services)
+	var clusters []endpoint.ServiceName
+	for _, service := range services {
+		var clusterFound bool
+		for key, values := range sc.targetServicesCache {
+			for _, value := range values {
+				if value == service {
+					glog.V(log.LvlTrace).Infof("[catalog] Found aggregated cluster %s for service %s", key, value)
+					clusterFound = true
+					clusters = append(clusters, key)
+				}
+				if !clusterFound {
+					clusters = append(clusters, service)
+					clusterFound = false
+				}
+			}
+		}
+	}
+	return uniques(clusters)
+}
+
+func (sc *MeshCatalog) listClustersForServices(services []endpoint.ServiceName) []endpoint.ServiceName {
+	// TODO(draychev): split namespace from the service name -- for non-K8s services
+	glog.Infof("[catalog] Finding active clusters for services %v", services)
+	var clusters []endpoint.ServiceName
+	for _, service := range services {
+		for _, values := range sc.targetServicesCache {
+			for _, value := range values {
+				if value == service {
+					clusters = append(clusters, service)
+				}
+			}
+		}
+	}
+	return uniques(clusters)
+}
+
 func (sc *MeshCatalog) getHTTPPathsPerRoute() (map[string]endpoint.RoutePaths, error) {
 	routes := make(map[string]endpoint.RoutePaths)
 	for _, trafficSpecs := range sc.meshSpec.ListHTTPTrafficSpecs() {
@@ -49,7 +105,7 @@ func (sc *MeshCatalog) getHTTPPathsPerRoute() (map[string]endpoint.RoutePaths, e
 			routes[fmt.Sprintf("%s/%s", spec, trafficSpecsMatches.Name)] = serviceRoute
 		}
 	}
-	glog.V(7).Infof("[catalog] Constructed HTTP path routes: %+v", routes)
+	glog.V(log.LvlTrace).Infof("[catalog] Constructed HTTP path routes: %+v", routes)
 	return routes, nil
 }
 
@@ -62,11 +118,31 @@ func getTrafficPolicyPerRoute(sc *MeshCatalog, routes map[string]endpoint.RouteP
 			continue
 		}
 
+		destServices, destErr := sc.listServicesForServiceAccount(endpoint.ServiceAccount(fmt.Sprintf("%s/%s", trafficTargets.Destination.Namespace, trafficTargets.Destination.Name)))
+		if destErr != nil {
+			glog.Errorf("[RDS][catalog] TrafficSpec %s/%s could not get services for service account %s", trafficTargets.Namespace, trafficTargets.Name, fmt.Sprintf("%s/%s", trafficTargets.Destination.Namespace, trafficTargets.Destination.Name))
+			return nil, destErr
+		}
+
 		for _, trafficSources := range trafficTargets.Sources {
+			srcServices, srcErr := sc.listServicesForServiceAccount(endpoint.ServiceAccount(fmt.Sprintf("%s/%s", trafficSources.Namespace, trafficSources.Name)))
+			if srcErr != nil {
+				glog.Errorf("[RDS][catalog] TrafficSpec %s/%s could not get services for service account %s", trafficTargets.Namespace, trafficTargets.Name, fmt.Sprintf("%s/%s", trafficSources.Namespace, trafficSources.Name))
+				return nil, srcErr
+			}
 			trafficTargetPolicy := endpoint.TrafficTargetPolicies{}
 			trafficTargetPolicy.PolicyName = trafficTargets.Name
-			trafficTargetPolicy.Destination = trafficTargets.Destination.Name
-			trafficTargetPolicy.Source = trafficSources.Name
+			trafficTargetPolicy.Destination = endpoint.TrafficResource{
+				ServiceAccount: endpoint.ServiceAccount(trafficTargets.Destination.Name),
+				Namespace:      trafficTargets.Destination.Namespace,
+				Services:       destServices,
+				Clusters:       sc.listClustersForServices(destServices)}
+			trafficTargetPolicy.Source = endpoint.TrafficResource{
+				ServiceAccount: endpoint.ServiceAccount(trafficSources.Name),
+				Namespace:      trafficSources.Namespace,
+				Services:       srcServices,
+				Clusters:       sc.listAggregatedClusters(trafficTargetPolicy.Destination.Clusters)}
+
 			for _, trafficTargetSpecs := range trafficTargets.Specs {
 				if trafficTargetSpecs.Kind != HTTPTraffic {
 					glog.Errorf("[RDS][catalog] TrafficTarget %s/%s has Spec Kind %s which isn't supported for now; Skipping...", trafficTargets.Namespace, trafficTargets.Name, trafficTargetSpecs.Kind)
@@ -83,6 +159,26 @@ func getTrafficPolicyPerRoute(sc *MeshCatalog, routes map[string]endpoint.RouteP
 		}
 	}
 
-	glog.V(7).Infof("[catalog] Constructed traffic routes: %+v", trafficPolicies)
+	glog.V(log.LvlTrace).Infof("[catalog] Constructed traffic routes: %+v", trafficPolicies)
 	return trafficPolicies, nil
+}
+
+func servicesToString(services []endpoint.ServiceName) []string {
+	var svcs []string
+	for _, svc := range services {
+		svcs = append(svcs, fmt.Sprintf("%v", svc))
+	}
+	return svcs
+}
+
+func uniques(intSlice []endpoint.ServiceName) []endpoint.ServiceName {
+	keys := make(map[endpoint.ServiceName]bool)
+	list := []endpoint.ServiceName{}
+	for _, entry := range intSlice {
+		if _, value := keys[entry]; !value {
+			keys[entry] = true
+			list = append(list, entry)
+		}
+	}
+	return list
 }

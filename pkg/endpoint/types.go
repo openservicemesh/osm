@@ -9,6 +9,9 @@ type Provider interface {
 	// Retrieve the IP addresses comprising the given service.
 	ListEndpointsForService(ServiceName) []Endpoint
 
+	// Retrieve the servics for a given service account
+	ListServicesForServiceAccount(ServiceAccount) []ServiceName
+
 	// GetID returns the unique identifier of the EndpointsProvider.
 	GetID() string
 
@@ -28,6 +31,9 @@ type Port uint32
 // ServiceName is a type for a service name
 type ServiceName string
 
+// ServiceAccount is a type for a service account
+type ServiceAccount string
+
 // WeightedService is a struct of a delegated service backing a target service
 type WeightedService struct {
 	ServiceName ServiceName `json:"service_name:omitempty"`
@@ -43,8 +49,16 @@ type RoutePaths struct {
 
 // TrafficTargetPolicies is a struct of the allowed RoutePaths from sources to a destination
 type TrafficTargetPolicies struct {
-	PolicyName       string       `json:"policy_name:omitempty"`
-	Destination      string       `json:"destination:omitempty"`
-	Source           string       `json:"sources:omitempty"`
-	PolicyRoutePaths []RoutePaths `json:"policy_route_paths:omitempty"`
+	PolicyName       string          `json:"policy_name:omitempty"`
+	Destination      TrafficResource `json:"destination:omitempty"`
+	Source           TrafficResource `json:"sources:omitempty"`
+	PolicyRoutePaths []RoutePaths    `json:"policy_route_paths:omitempty"`
+}
+
+//TrafficResource is a struct of the various resources of a source/destination in the TrafficTargetPolicies
+type TrafficResource struct {
+	ServiceAccount ServiceAccount `json:"service_account:omitempty"`
+	Namespace      string         `json:"namespace:omitempty"`
+	Services       []ServiceName  `json:"service_name:omitempty"`
+	Clusters       []ServiceName  `json:"cluster:omitempty"`
 }
