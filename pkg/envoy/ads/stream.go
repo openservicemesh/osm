@@ -3,7 +3,6 @@ package ads
 import (
 	"context"
 	"fmt"
-	"github.com/deislabs/smc/pkg/log/level"
 	"time"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -12,11 +11,8 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/deislabs/smc/pkg/envoy"
+	"github.com/deislabs/smc/pkg/log/level"
 	"github.com/deislabs/smc/pkg/utils"
-)
-
-const (
-	maxConnections = 10
 )
 
 // StreamAggregates handles streaming of the clusters to the connected Envoy proxies
@@ -83,56 +79,31 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 }
 
 func (s *Server) sendAllResponses(proxy envoy.Proxyer, server discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer) {
-	// Order is important
-	uris := []string{envoy.TypeCDS, envoy.TypeEDS, envoy.TypeLDS, envoy.TypeRDS, envoy.TypeSDS}
-	for _, uri := range uris {
-		request := &v2.DiscoveryRequest{TypeUrl: uri}
-		if discoveryResponse, err := s.newAggregatedDiscoveryResponse(proxy, request); err != nil {
+	// Order is important: CDS, EDS, LDS, RDS
+	// See: https://github.com/envoyproxy/go-control-plane/issues/59
+	for _, uri := range []envoy.TypeURI{envoy.TypeCDS, envoy.TypeEDS, envoy.TypeLDS, envoy.TypeRDS, envoy.TypeSDS} {
+		request := &v2.DiscoveryRequest{TypeUrl: string(uri)}
+		discoveryResponse, err := s.newAggregatedDiscoveryResponse(proxy, request)
+		if err != nil {
 			glog.Error(err)
 			continue
-		} else {
-			if err := server.Send(discoveryResponse); err != nil {
-				glog.Errorf("[%s][stream] Error sending DiscoveryResponse %s: %+v", serverName, uri, err)
-			}
 		}
+		if err := server.Send(discoveryResponse); err != nil {
+			glog.Errorf("[%s][stream] Error sending DiscoveryResponse %s: %+v", serverName, uri, err)
+		}
+
 	}
 }
 
 func (s *Server) newAggregatedDiscoveryResponse(proxy envoy.Proxyer, request *v2.DiscoveryRequest) (*v2.DiscoveryResponse, error) {
-	var err error
-	var response *v2.DiscoveryResponse
-
 	glog.V(level.Info).Infof("[%s][stream] Received discovery request: %s", serverName, request.TypeUrl)
-
-	switch request.TypeUrl {
-	case envoy.TypeEDS:
-		weightedServices, err := s.catalog.ListEndpoints("TBD")
-		if err != nil {
-			glog.Errorf("[%s][stream] Failed listing endpoints: %+v", serverName, err)
-			return nil, err
-		}
-		glog.Infof("[%s][stream] WeightedServices: %+v", serverName, weightedServices)
-		response, err = s.edsServer.NewEndpointDiscoveryResponse(weightedServices)
-	case envoy.TypeCDS:
-		response, err = s.cdsServer.NewClusterDiscoveryResponse(proxy)
-	case envoy.TypeRDS:
-		glog.V(level.Info).Infof("[%s][stream] Received a change message! Updating all Envoy proxies.", serverName)
-		trafficPolicies, err := s.catalog.ListTrafficRoutes("TBD")
-		if err != nil {
-			glog.Errorf("[%s][stream] Failed listing routes: %+v", serverName, err)
-			return nil, err
-		}
-		glog.Infof("[%s][stream] trafficPolicies: %+v", serverName, trafficPolicies)
-		response, err = s.rdsServer.NewRouteDiscoveryResponse(trafficPolicies)
-	case envoy.TypeLDS:
-		response, err = s.ldsServer.NewListenerDiscoveryResponse(proxy)
-	case envoy.TypeSDS:
-		response, err = s.sdsServer.NewSecretDiscoveryResponse(proxy)
-	default:
+	handler, ok := s.xdsHandlers[envoy.TypeURI(request.TypeUrl)]
+	if !ok {
 		glog.Errorf("Responder for TypeUrl %s is not implemented", request.TypeUrl)
 		return nil, errUnknownTypeURL
 	}
 
+	response, err := handler(proxy)
 	if err != nil {
 		glog.Errorf("Error creating %s response: %s", request.TypeUrl, err)
 		return nil, errCreatingResponse

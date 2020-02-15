@@ -2,7 +2,6 @@ package eds
 
 import (
 	"fmt"
-	"github.com/deislabs/smc/pkg/envoy"
 	"time"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -10,18 +9,28 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 
-	"github.com/deislabs/smc/pkg/endpoint"
+	"github.com/deislabs/smc/pkg/envoy"
 	"github.com/deislabs/smc/pkg/envoy/cla"
 )
 
-func (s *Server) NewEndpointDiscoveryResponse(allServices map[endpoint.ServiceName][]endpoint.WeightedService) (*v2.DiscoveryResponse, error) {
+const (
+	serverName = "EDS"
+)
+
+func (s *Server) NewEndpointDiscoveryResponse(proxy envoy.Proxyer) (*v2.DiscoveryResponse, error) {
+	allServices, err := s.catalog.ListEndpoints("TBD")
+	if err != nil {
+		glog.Errorf("[%s][stream] Failed listing endpoints: %+v", serverName, err)
+		return nil, err
+	}
+	glog.Infof("[%s][stream] WeightedServices: %+v", serverName, allServices)
 	var protos []*any.Any
 	for targetServiceName, weightedServices := range allServices {
 		loadAssignment := cla.NewClusterLoadAssignment(targetServiceName, weightedServices)
 
 		proto, err := ptypes.MarshalAny(&loadAssignment)
 		if err != nil {
-			glog.Errorf("[catalog] Error marshalling TypeEDS %+v: %s", loadAssignment, err)
+			glog.Errorf("[catalog] Error marshalling EDS payload %+v: %s", loadAssignment, err)
 			continue
 		}
 		protos = append(protos, proto)
@@ -29,7 +38,7 @@ func (s *Server) NewEndpointDiscoveryResponse(allServices map[endpoint.ServiceNa
 
 	resp := &v2.DiscoveryResponse{
 		Resources: protos,
-		TypeUrl:   envoy.TypeEDS,
+		TypeUrl:   string(envoy.TypeEDS),
 	}
 
 	s.lastVersion = s.lastVersion + 1

@@ -8,7 +8,6 @@ import (
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes"
 
-	"github.com/deislabs/smc/pkg/endpoint"
 	"github.com/deislabs/smc/pkg/envoy"
 	"github.com/deislabs/smc/pkg/envoy/route"
 	"github.com/deislabs/smc/pkg/log/level"
@@ -18,9 +17,16 @@ const (
 	serverName = "RDS"
 )
 
-func (s *Server) NewRouteDiscoveryResponse(allTrafficPolicies []endpoint.TrafficTargetPolicies) (*v2.DiscoveryResponse, error) {
+func (s *Server) NewRouteDiscoveryResponse(proxy envoy.Proxyer) (*v2.DiscoveryResponse, error) {
+	allTrafficPolicies, err := s.catalog.ListTrafficRoutes("TBD")
+	if err != nil {
+		glog.Errorf("[%s][stream] Failed listing routes: %+v", serverName, err)
+		return nil, err
+	}
+	glog.Infof("[%s][stream] trafficPolicies: %+v", serverName, allTrafficPolicies)
+
 	resp := &v2.DiscoveryResponse{
-		TypeUrl: envoy.TypeRDS,
+		TypeUrl: string(envoy.TypeRDS),
 	}
 
 	for _, trafficPolicies := range allTrafficPolicies {

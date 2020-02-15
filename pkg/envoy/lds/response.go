@@ -22,7 +22,7 @@ const (
 func (s *Server) NewListenerDiscoveryResponse(proxy envoy.Proxyer) (*xds.DiscoveryResponse, error) {
 	glog.Infof("[%s] Composing listener Discovery Response for proxy: %s", serverName, proxy.GetCommonName())
 	resp := &xds.DiscoveryResponse{
-		TypeUrl: envoy.TypeLDS,
+		TypeUrl: string(envoy.TypeLDS),
 	}
 
 	clientConnManager, err := ptypes.MarshalAny(getRdsHTTPClientConnectionFilter())

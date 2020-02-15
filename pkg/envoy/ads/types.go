@@ -1,7 +1,10 @@
 package ads
 
 import (
+	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+
 	"github.com/deislabs/smc/pkg/catalog"
+	"github.com/deislabs/smc/pkg/envoy"
 	"github.com/deislabs/smc/pkg/envoy/cds"
 	"github.com/deislabs/smc/pkg/envoy/eds"
 	"github.com/deislabs/smc/pkg/envoy/lds"
@@ -20,4 +23,6 @@ type Server struct {
 	ldsServer *lds.Server
 	sdsServer *sds.Server
 	cdsServer *cds.Server
+
+	xdsHandlers map[envoy.TypeURI]func(envoy.Proxyer) (*envoy_api_v2.DiscoveryResponse, error)
 }
