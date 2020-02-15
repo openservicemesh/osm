@@ -35,3 +35,11 @@ func NewADSServer(ctx context.Context, meshCatalog catalog.MeshCataloger, meshSp
 func (s *Server) DeltaAggregatedResources(server xds.AggregatedDiscoveryService_DeltaAggregatedResourcesServer) error {
 	panic("NotImplemented")
 }
+
+func (s *Server) Liveness() bool {
+	return true
+}
+
+func (s *Server) Readiness() bool {
+	return true
+}

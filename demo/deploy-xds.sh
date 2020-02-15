@@ -99,6 +99,19 @@ spec:
         subPath: root-cert.pem
         readOnly: false
 
+      readinessProbe:
+        httpGet:
+          path: /health/ready
+          port: 8888
+        initialDelaySeconds: 5
+        periodSeconds: 10
+      livenessProbe:
+        httpGet:
+          path: /health/alive
+          port: 8888
+        initialDelaySeconds: 15
+        periodSeconds: 20
+
   volumes:
     - name: kubeconfig
       configMap:
