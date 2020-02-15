@@ -70,9 +70,10 @@ func main() {
 	go utils.GrpcServe(ctx, grpcServer, lis, cancel, serverType)
 
 	// initialize the http server and start it
+	// TODO(draychev): figure out the NS and POD
 	metricsStore := metricsstore.NewMetricStore("TBD_NameSpace", "TBD_PodName")
 	// TODO(draychev): the port number should be configurable
-	httpServer := httpserver.NewHTTPServer(adsServer, metricsStore, "15000")
+	httpServer := httpserver.NewHTTPServer(adsServer, metricsStore, "15000", meshCatalog.GetDebugInfo)
 	httpServer.Start()
 
 	sigChan := make(chan os.Signal, 1)

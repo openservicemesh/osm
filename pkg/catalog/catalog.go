@@ -1,7 +1,10 @@
 package catalog
 
 import (
+	"fmt"
 	"github.com/golang/glog"
+	"net/http"
+	"os"
 
 	"github.com/deislabs/smc/pkg/certificate"
 	"github.com/deislabs/smc/pkg/endpoint"
@@ -24,10 +27,17 @@ func NewMeshCatalog(meshSpec smi.MeshSpec, certManager certificate.Manager, stop
 		// Message broker / broadcaster for all connected proxies
 		messageBroker: newMessageBroker(stop),
 	}
-
 	serviceCatalog.run(stop)
-
 	return &serviceCatalog
+}
+
+func (sc MeshCatalog) GetDebugInfo() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// TODO(draychev): convert to CLI flag
+		if value, ok := os.LookupEnv("SMC_ENABLE_DEBUG"); ok && value == "true" {
+			_, _ = fmt.Fprintf(w, "hello\n")
+		}
+	})
 }
 
 func newMessageBroker(stop <-chan struct{}) *MessageBroker {
