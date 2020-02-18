@@ -12,7 +12,7 @@ const (
 	WildcardIpAddr = "0.0.0.0"
 
 	// Listener ports configured on Envoy for handling inbound and outbound traffic
-	EnvoyInboundListenerPort   = 15003
+	EnvoyInboundListenerPort  = 15003
 	EnvoyOutboundListenerPort = 15001
 
 	HttpPort = 80

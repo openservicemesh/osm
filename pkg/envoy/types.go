@@ -7,13 +7,14 @@ import (
 	"github.com/deislabs/smc/pkg/endpoint"
 )
 
+type TypeURI string
+
 const (
-	baseURI = "type.googleapis.com/envoy.api.v2."
-	TypeCDS = baseURI + "Cluster"
-	TypeLDS = baseURI + "Listener"
-	TypeRDS = baseURI + "RouteConfiguration"
-	TypeSDS = baseURI + "auth.Secret"
-	TypeEDS = baseURI + "ClusterLoadAssignment"
+	TypeSDS TypeURI = "type.googleapis.com/envoy.api.v2.auth.Secret"
+	TypeCDS TypeURI = "type.googleapis.com/envoy.api.v2.Cluster"
+	TypeLDS TypeURI = "type.googleapis.com/envoy.api.v2.Listener"
+	TypeRDS TypeURI = "type.googleapis.com/envoy.api.v2.RouteConfiguration"
+	TypeEDS TypeURI = "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment"
 )
 
 type ProxyID string
