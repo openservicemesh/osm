@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/deislabs/smc/pkg/endpoint"
 	"github.com/deislabs/smc/pkg/envoy"
 	"github.com/deislabs/smc/pkg/log/level"
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -22,8 +21,13 @@ func svcLocal(clusterName string, _ string) *xds.Cluster {
 	return getServiceClusterLocal(clusterName)
 }
 
-func (s *Server) newClusterDiscoveryResponse(allServices map[endpoint.ServiceName][]endpoint.WeightedService, proxy envoy.Proxyer) (*xds.DiscoveryResponse, error) {
-	glog.Infof("[%s] Composing Cluster Discovery Response for proxy: %s and services : %v", serverName, proxy.GetCommonName(), allServices)
+func (s *Server) NewClusterDiscoveryResponse(proxy envoy.Proxyer) (*xds.DiscoveryResponse, error) {
+	allServices, err := s.catalog.ListEndpoints("TBD")
+	if err != nil {
+		glog.Errorf("[%s][stream] Failed listing endpoints: %+v", serverName, err)
+		return nil, err
+	}
+	glog.Infof("[%s][stream] WeightedServices: %+v", serverName, allServices)
 	resp := &xds.DiscoveryResponse{
 		TypeUrl: string(envoy.TypeCDS),
 	}
@@ -37,7 +41,7 @@ func (s *Server) newClusterDiscoveryResponse(allServices map[endpoint.ServiceNam
 	}
 
 	for _, cluster := range clusterFactories {
-		glog.V(log.LvlTrace).Infof("[%s] Constructed ClusterConfiguration: %+v", serverName, cluster)
+		glog.V(level.Trace).Infof("[%s] Constructed ClusterConfiguration: %+v", serverName, cluster)
 		marshalledClusters, err := ptypes.MarshalAny(cluster)
 		if err != nil {
 			glog.Errorf("[%s] Failed to marshal cluster for proxy %s: %v", serverName, proxy.GetCommonName(), err)
