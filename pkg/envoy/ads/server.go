@@ -31,7 +31,7 @@ func NewADSServer(ctx context.Context, meshCatalog catalog.MeshCataloger, meshSp
 		ldsServer: lds.NewLDSServer(meshCatalog),
 		sdsServer: sds.NewSDSServer(meshCatalog),
 	}
-	s.xdsHandlers = map[envoy.TypeURI]func(envoy.Proxyer) (*envoy_api_v2.DiscoveryResponse, error){
+	s.xdsHandlers = map[envoy.TypeURI]func(*envoy.Proxy) (*envoy_api_v2.DiscoveryResponse, error){
 		envoy.TypeEDS: s.edsServer.NewEndpointDiscoveryResponse,
 		envoy.TypeCDS: s.cdsServer.NewClusterDiscoveryResponse,
 		envoy.TypeRDS: s.rdsServer.NewRouteDiscoveryResponse,
