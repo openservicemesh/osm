@@ -107,6 +107,6 @@ func getClientRouteConfiguration(trafficPolicies smcEndpoint.TrafficTargetPolici
 			routeConfig.VirtualHosts[0].Routes = append(routeConfig.VirtualHosts[0].Routes, &rt)
 		}
 	}
-	glog.V(log.LvlTrace).Infof("[RDS] Constructed Client RouteConfiguration: %+v", routeConfig)
+	glog.V(level.Trace).Infof("[RDS] Constructed Client RouteConfiguration: %+v", routeConfig)
 	return routeConfig
 }

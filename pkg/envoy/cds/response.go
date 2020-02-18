@@ -21,9 +21,13 @@ func svcLocal(clusterName string, _ string) *xds.Cluster {
 	return getServiceClusterLocal(clusterName)
 }
 
-func (s *Server) NewClusterDiscoveryResponse(proxy *envoy.Proxy) (*xds.DiscoveryResponse, error) {
-
+func (s *Server) NewClusterDiscoveryResponse(proxy envoy.Proxyer) (*xds.DiscoveryResponse, error) {
 	allServices, err := s.catalog.ListEndpoints("TBD")
+	if err != nil {
+		glog.Errorf("[%s][stream] Failed listing endpoints: %+v", serverName, err)
+		return nil, err
+	}
+	glog.Infof("[%s][stream] WeightedServices: %+v", serverName, allServices)
 	resp := &xds.DiscoveryResponse{
 		TypeUrl: string(envoy.TypeCDS),
 	}
@@ -37,7 +41,7 @@ func (s *Server) NewClusterDiscoveryResponse(proxy *envoy.Proxy) (*xds.Discovery
 	}
 
 	for _, cluster := range clusterFactories {
-		glog.V(log.LvlTrace).Infof("[%s] Constructed ClusterConfiguration: %+v", serverName, cluster)
+		glog.V(level.Trace).Infof("[%s] Constructed ClusterConfiguration: %+v", serverName, cluster)
 		marshalledClusters, err := ptypes.MarshalAny(cluster)
 		if err != nil {
 			glog.Errorf("[%s] Failed to marshal cluster for proxy %s: %v", serverName, proxy.GetCommonName(), err)
