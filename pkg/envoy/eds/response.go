@@ -20,10 +20,10 @@ const (
 func (s *Server) NewEndpointDiscoveryResponse(proxy *envoy.Proxy) (*v2.DiscoveryResponse, error) {
 	allServices, err := s.catalog.ListEndpoints("TBD")
 	if err != nil {
-		glog.Errorf("[%s][stream] Failed listing endpoints: %+v", serverName, err)
+		glog.Errorf("[%s] Failed listing endpoints: %+v", serverName, err)
 		return nil, err
 	}
-	glog.Infof("[%s][stream] WeightedServices: %+v", serverName, allServices)
+	glog.Infof("[%s] WeightedServices: %+v", serverName, allServices)
 	var protos []*any.Any
 	for targetServiceName, weightedServices := range allServices {
 		loadAssignment := cla.NewClusterLoadAssignment(targetServiceName, weightedServices)

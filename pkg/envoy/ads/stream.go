@@ -26,7 +26,7 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 
 	// TODO(draychev): check for envoy.ErrTooManyConnections
 
-	glog.Infof("[%s][stream] Client connected: Subject CN=%s", serverName, cn)
+	glog.Infof("[%s] Client connected: Subject CN=%s", serverName, cn)
 
 	// Register the newly connected proxy w/ the catalog.
 	ip := utils.GetIPFromContext(server.Context())
@@ -62,15 +62,15 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 			}
 			resp, err := s.newAggregatedDiscoveryResponse(proxy, &discoveryRequest)
 			if err != nil {
-				glog.Errorf("[%s][stream] Failed composing a DiscoveryResponse: %+v", serverName, err)
+				glog.Errorf("[%s] Failed composing a DiscoveryResponse: %+v", serverName, err)
 				return err
 			}
 			if err := server.Send(resp); err != nil {
-				glog.Errorf("[%s][stream] Error sending DiscoveryResponse: %+v", serverName, err)
+				glog.Errorf("[%s] Error sending DiscoveryResponse: %+v", serverName, err)
 			}
 
 		case <-proxy.GetAnnouncementsChannel():
-			glog.V(level.Info).Infof("[%s][stream] Change detected - update all Envoys.", serverName)
+			glog.V(level.Info).Infof("[%s] Change detected - update all Envoys.", serverName)
 			s.sendAllResponses(proxy, &server)
 		}
 	}
@@ -87,14 +87,14 @@ func (s *Server) sendAllResponses(proxy *envoy.Proxy, server *discovery.Aggregat
 			continue
 		}
 		if err := (*server).Send(discoveryResponse); err != nil {
-			glog.Errorf("[%s][stream] Error sending DiscoveryResponse %s: %+v", serverName, uri, err)
+			glog.Errorf("[%s] Error sending DiscoveryResponse %s: %+v", serverName, uri, err)
 		}
 
 	}
 }
 
 func (s *Server) newAggregatedDiscoveryResponse(proxy *envoy.Proxy, request *v2.DiscoveryRequest) (*v2.DiscoveryResponse, error) {
-	glog.V(level.Info).Infof("[%s][stream] Received discovery request: %s", serverName, request.TypeUrl)
+	glog.V(level.Info).Infof("[%s] Received discovery request: %s", serverName, request.TypeUrl)
 	handler, ok := s.xdsHandlers[envoy.TypeURI(request.TypeUrl)]
 	if !ok {
 		glog.Errorf("Responder for TypeUrl %s is not implemented", request.TypeUrl)
