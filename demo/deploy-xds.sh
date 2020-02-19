@@ -58,8 +58,10 @@ spec:
 
       command: [ "/$NAME"]
       args:
-        - "--kubeconfig"
-        - "/kube/config"
+        - "--azureAuthFile"
+        - "/azure/azureAuth.json"
+        - "--subscriptionID"
+        - "$AZURE_SUBSCRIPTION"
         - "--verbosity"
         - "17"
         - "--namespace"
