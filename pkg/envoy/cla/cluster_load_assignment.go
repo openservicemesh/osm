@@ -39,7 +39,7 @@ func NewClusterLoadAssignment(targetServiceName smcEndpoint.ServiceName, weighte
 		}
 		weight := uint32(delegateService.Weight / lenIPs)
 		for _, meshEndpoint := range delegateService.Endpoints {
-			glog.Infof("[EDS][ClusterLoadAssignment] Adding Endpoint: Cluster=%s, Services=%s, Endpoint=%+v, Weight=%d\n", targetServiceName, delegateService.ServiceName, meshEndpoint, weight)
+			glog.Infof("[EDS][ClusterLoadAssignment] Adding Endpoint: Cluster=%s, Services=%s, Endpoint=%+v, Weight=%d\n", targetServiceName, delegateService.ServiceName, meshEndpoint.String(), weight)
 			lbEpt := endpoint.LbEndpoint{
 				HostIdentifier: &endpoint.LbEndpoint_Endpoint{
 					Endpoint: &endpoint.Endpoint{
