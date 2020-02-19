@@ -6,7 +6,5 @@ import (
 
 //Server implements the Envoy xDS Cluster Discovery Services
 type Server struct {
-	catalog     catalog.MeshCataloger
-	lastVersion uint64
-	lastNonce   string
+	catalog catalog.MeshCataloger
 }
