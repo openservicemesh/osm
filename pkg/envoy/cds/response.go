@@ -24,10 +24,10 @@ func svcLocal(clusterName string, _ string) *xds.Cluster {
 func (s *Server) NewClusterDiscoveryResponse(proxy *envoy.Proxy) (*xds.DiscoveryResponse, error) {
 	allServices, err := s.catalog.ListEndpoints("TBD")
 	if err != nil {
-		glog.Errorf("[%s][stream] Failed listing endpoints: %+v", serverName, err)
+		glog.Errorf("[%s] Failed listing endpoints: %+v", serverName, err)
 		return nil, err
 	}
-	glog.Infof("[%s][stream] WeightedServices: %+v", serverName, allServices)
+	glog.Infof("[%s] WeightedServices: %+v", serverName, allServices)
 	resp := &xds.DiscoveryResponse{
 		TypeUrl: string(envoy.TypeCDS),
 	}

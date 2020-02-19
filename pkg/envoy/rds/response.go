@@ -20,10 +20,10 @@ const (
 func (s *Server) NewRouteDiscoveryResponse(proxy *envoy.Proxy) (*v2.DiscoveryResponse, error) {
 	allTrafficPolicies, err := s.catalog.ListTrafficRoutes("TBD")
 	if err != nil {
-		glog.Errorf("[%s][stream] Failed listing routes: %+v", serverName, err)
+		glog.Errorf("[%s] Failed listing routes: %+v", serverName, err)
 		return nil, err
 	}
-	glog.Infof("[%s][stream] trafficPolicies: %+v", serverName, allTrafficPolicies)
+	glog.Infof("[%s] trafficPolicies: %+v", serverName, allTrafficPolicies)
 
 	resp := &v2.DiscoveryResponse{
 		TypeUrl: string(envoy.TypeRDS),
