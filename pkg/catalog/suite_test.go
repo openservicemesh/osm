@@ -1,4 +1,4 @@
-package cla
+package catalog
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestClusterLoadAssignment(t *testing.T) {
+func TestEndpoints(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Cluster Load Assignment Test Suite")
+	RunSpecs(t, "Endpoints Test Suite")
 }
