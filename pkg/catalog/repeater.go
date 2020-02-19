@@ -16,7 +16,7 @@ const (
 
 // repeater rebroadcasts announcements from SMI, Secrets, Endpoints providers etc. to all connected proxies.
 func (sc *MeshCatalog) repeater() {
-	lastUpdateAt := time.Now().Add(-5 * time.Minute)
+	lastUpdateAt := time.Now().Add(-1 * updateAtMostEvery)
 	for {
 		cases, caseNames := sc.getCases()
 		for {
