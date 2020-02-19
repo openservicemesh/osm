@@ -67,10 +67,6 @@ func NewProvider(kubeConfig *rest.Config, namespaces []string, stop chan struct{
 	return &client
 }
 
-func (c *Client) GetAnnouncementsChannel() <-chan interface{} {
-	return c.announcements
-}
-
 // GetID returns a string descriptor / identifier of the compute provider.
 // Required by interface: EndpointsProvider
 func (c *Client) GetID() string {

@@ -21,7 +21,7 @@ func svcLocal(clusterName string, _ string) *xds.Cluster {
 	return getServiceClusterLocal(clusterName)
 }
 
-func (s *Server) NewClusterDiscoveryResponse(proxy envoy.Proxyer) (*xds.DiscoveryResponse, error) {
+func (s *Server) NewClusterDiscoveryResponse(proxy *envoy.Proxy) (*xds.DiscoveryResponse, error) {
 	allServices, err := s.catalog.ListEndpoints("TBD")
 	if err != nil {
 		glog.Errorf("[%s][stream] Failed listing endpoints: %+v", serverName, err)

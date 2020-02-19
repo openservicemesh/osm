@@ -5,7 +5,6 @@ import (
 
 	"github.com/deislabs/smc/pkg/constants"
 	"github.com/deislabs/smc/pkg/endpoint"
-	"github.com/deislabs/smc/pkg/log"
 	"github.com/deislabs/smc/pkg/log/level"
 )
 
@@ -54,9 +53,9 @@ func (sc *MeshCatalog) refreshCache() {
 	glog.Infof("[catalog] Services cache: %+v", servicesCache)
 	glog.Infof("[catalog] ServiceAccounts cache: %+v", serviceAccountsCache)
 	glog.Infof("[catalog] TargetServicesMap cache: %+v", targetServicesMap)
-	sc.Lock()
+	sc.servicesMutex.Lock()
 	sc.servicesCache = servicesCache
 	sc.serviceAccountsCache = serviceAccountsCache
 	sc.targetServicesCache = targetServicesMap
-	sc.Unlock()
+	sc.servicesMutex.Unlock()
 }

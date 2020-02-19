@@ -59,12 +59,6 @@ func (az Client) ListServicesForServiceAccount(svcAccount endpoint.ServiceAccoun
 	panic("NotImplemented")
 }
 
-func (az Client) GetAnnouncementsChannel() <-chan interface{} {
-	// return az.announcements.Out()
-	// TODO(draychev): implement
-	return make(chan interface{})
-}
-
 // run starts the Azure observer
 func (az Client) run(stop <-chan struct{}) error {
 	glog.V(level.Info).Infoln("Azure provider run started.")

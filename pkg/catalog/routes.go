@@ -90,7 +90,7 @@ func (sc *MeshCatalog) listClustersForServices(services []endpoint.ServiceName) 
 func (sc *MeshCatalog) getHTTPPathsPerRoute() (map[string]endpoint.RoutePaths, error) {
 	routes := make(map[string]endpoint.RoutePaths)
 	for _, trafficSpecs := range sc.meshSpec.ListHTTPTrafficSpecs() {
-		glog.V(level.Trace).Infof("[RDS][catalog] Discovered TrafficSpec resource: %s/%s \n", trafficSpecs.Namespace, trafficSpecs.Name)
+		glog.V(level.Debug).Infof("[RDS][catalog] Discovered TrafficSpec resource: %s/%s \n", trafficSpecs.Namespace, trafficSpecs.Name)
 		if trafficSpecs.Matches == nil {
 			glog.Errorf("[RDS][catalog] TrafficSpec %s/%s has no matches in route; Skipping...", trafficSpecs.Namespace, trafficSpecs.Name)
 			continue
@@ -105,14 +105,14 @@ func (sc *MeshCatalog) getHTTPPathsPerRoute() (map[string]endpoint.RoutePaths, e
 			routes[fmt.Sprintf("%s/%s", spec, trafficSpecsMatches.Name)] = serviceRoute
 		}
 	}
-	glog.V(level.Trace).Infof("[catalog] Constructed HTTP path routes: %+v", routes)
+	glog.V(level.Debug).Infof("[catalog] Constructed HTTP path routes: %+v", routes)
 	return routes, nil
 }
 
 func getTrafficPolicyPerRoute(sc *MeshCatalog, routes map[string]endpoint.RoutePaths) ([]endpoint.TrafficTargetPolicies, error) {
 	var trafficPolicies []endpoint.TrafficTargetPolicies
 	for _, trafficTargets := range sc.meshSpec.ListTrafficTargets() {
-		glog.V(level.Trace).Infof("[RDS][catalog] Discovered TrafficTarget resource: %s/%s \n", trafficTargets.Namespace, trafficTargets.Name)
+		glog.V(level.Debug).Infof("[RDS][catalog] Discovered TrafficTarget resource: %s/%s \n", trafficTargets.Namespace, trafficTargets.Name)
 		if trafficTargets.Specs == nil || len(trafficTargets.Specs) == 0 {
 			glog.Errorf("[RDS][catalog] TrafficTarget %s/%s has no spec routes; Skipping...", trafficTargets.Namespace, trafficTargets.Name)
 			continue
@@ -159,7 +159,7 @@ func getTrafficPolicyPerRoute(sc *MeshCatalog, routes map[string]endpoint.RouteP
 		}
 	}
 
-	glog.V(level.Trace).Infof("[catalog] Constructed traffic routes: %+v", trafficPolicies)
+	glog.V(level.Debug).Infof("[catalog] Constructed traffic routes: %+v", trafficPolicies)
 	return trafficPolicies, nil
 }
 
