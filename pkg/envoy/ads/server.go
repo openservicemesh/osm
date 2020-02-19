@@ -22,23 +22,22 @@ const (
 
 // NewADSServer creates a new CDS server
 func NewADSServer(ctx context.Context, meshCatalog catalog.MeshCataloger, meshSpec smi.MeshSpec) *Server {
-	s := Server{
-		catalog: meshCatalog,
+	cdsServer := cds.NewCDSServer(meshCatalog)
+	rdsServer := rds.NewRDSServer(ctx, meshCatalog, meshSpec)
+	edsServer := eds.NewEDSServer(ctx, meshCatalog, meshSpec)
+	ldsServer := lds.NewLDSServer(meshCatalog)
+	sdsServer := sds.NewSDSServer(meshCatalog)
 
-		cdsServer: cds.NewCDSServer(meshCatalog),
-		rdsServer: rds.NewRDSServer(ctx, meshCatalog, meshSpec),
-		edsServer: eds.NewEDSServer(ctx, meshCatalog, meshSpec),
-		ldsServer: lds.NewLDSServer(meshCatalog),
-		sdsServer: sds.NewSDSServer(meshCatalog),
+	return &Server{
+		catalog: meshCatalog,
+		xdsHandlers: map[envoy.TypeURI]func(*envoy.Proxy) (*envoy_api_v2.DiscoveryResponse, error){
+			envoy.TypeEDS: edsServer.NewEndpointDiscoveryResponse,
+			envoy.TypeCDS: cdsServer.NewClusterDiscoveryResponse,
+			envoy.TypeRDS: rdsServer.NewRouteDiscoveryResponse,
+			envoy.TypeLDS: ldsServer.NewListenerDiscoveryResponse,
+			envoy.TypeSDS: sdsServer.NewSecretDiscoveryResponse,
+		},
 	}
-	s.xdsHandlers = map[envoy.TypeURI]func(*envoy.Proxy) (*envoy_api_v2.DiscoveryResponse, error){
-		envoy.TypeEDS: s.edsServer.NewEndpointDiscoveryResponse,
-		envoy.TypeCDS: s.cdsServer.NewClusterDiscoveryResponse,
-		envoy.TypeRDS: s.rdsServer.NewRouteDiscoveryResponse,
-		envoy.TypeLDS: s.ldsServer.NewListenerDiscoveryResponse,
-		envoy.TypeSDS: s.sdsServer.NewSecretDiscoveryResponse,
-	}
-	return &s
 }
 
 // DeltaAggregatedResources implements xds.AggregatedDiscoveryServiceServer
