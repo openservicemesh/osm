@@ -1,9 +1,6 @@
 package sds
 
 import (
-	"fmt"
-	"time"
-
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
@@ -11,7 +8,6 @@ import (
 	"github.com/golang/protobuf/ptypes"
 
 	"github.com/deislabs/smc/pkg/envoy"
-	"github.com/deislabs/smc/pkg/log/level"
 )
 
 const (
@@ -63,13 +59,5 @@ func (s *Server) NewSecretDiscoveryResponse(proxy *envoy.Proxy) (*v2.DiscoveryRe
 		}
 		resp.Resources = append(resp.Resources, marshalledSecret)
 	}
-
-	s.lastVersion = s.lastVersion + 1
-	s.lastNonce = string(time.Now().Nanosecond())
-	resp.Nonce = s.lastNonce
-	resp.VersionInfo = fmt.Sprintf("v%d", s.lastVersion)
-
-	glog.V(level.Trace).Infof("[%s] Constructed response: %+v", serverName, resp)
-
 	return resp, nil
 }

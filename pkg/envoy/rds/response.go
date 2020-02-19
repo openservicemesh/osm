@@ -1,16 +1,12 @@
 package rds
 
 import (
-	"fmt"
-	"time"
-
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes"
 
 	"github.com/deislabs/smc/pkg/envoy"
 	"github.com/deislabs/smc/pkg/envoy/route"
-	"github.com/deislabs/smc/pkg/log/level"
 )
 
 const (
@@ -42,12 +38,5 @@ func (s *Server) NewRouteDiscoveryResponse(proxy *envoy.Proxy) (*v2.DiscoveryRes
 			resp.Resources = append(resp.Resources, marshalledRouteConfig)
 		}
 	}
-
-	s.lastVersion = s.lastVersion + 1
-	s.lastNonce = string(time.Now().Nanosecond())
-	resp.Nonce = s.lastNonce
-	resp.VersionInfo = fmt.Sprintf("v%d", s.lastVersion)
-	glog.V(level.Trace).Infof("[%s] Constructed response: %+v", serverName, resp)
-
 	return resp, nil
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/deislabs/smc/pkg/utils"
 	"net"
 	"strings"
+	"time"
 )
 
 const (
@@ -19,6 +20,10 @@ type Proxy struct {
 	net.IP
 	endpoint.ServiceName
 	announcements chan interface{}
+
+	LastUpdated time.Time
+	LastVersion uint64
+	LastNonce   string
 }
 
 // GetService implements Proxyer and determines the meshed service this endpoint should support based on the mTLS certificate.
