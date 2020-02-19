@@ -1,9 +1,6 @@
 package eds
 
 import (
-	"fmt"
-	"time"
-
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes"
@@ -40,11 +37,5 @@ func (s *Server) NewEndpointDiscoveryResponse(proxy *envoy.Proxy) (*v2.Discovery
 		Resources: protos,
 		TypeUrl:   string(envoy.TypeEDS),
 	}
-
-	s.lastVersion = s.lastVersion + 1
-	s.lastNonce = string(time.Now().Nanosecond())
-	resp.Nonce = s.lastNonce
-	resp.VersionInfo = fmt.Sprintf("v%d", s.lastVersion)
-
 	return resp, nil
 }

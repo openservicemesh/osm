@@ -56,7 +56,7 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 				glog.Errorf("[%s] Discovery request error from proxy %s: %s", serverName, proxy.GetCommonName(), discoveryRequest.ErrorDetail)
 				return errEnvoyError
 			}
-			if len(s.lastNonce) > 0 && discoveryRequest.ResponseNonce == s.lastNonce {
+			if len(proxy.LastNonce) > 0 && discoveryRequest.ResponseNonce == proxy.LastNonce {
 				glog.Warningf("[%s] Nothing changed", serverName)
 				continue
 			}
@@ -107,10 +107,12 @@ func (s *Server) newAggregatedDiscoveryResponse(proxy *envoy.Proxy, request *v2.
 		return nil, errCreatingResponse
 	}
 
-	s.lastVersion = s.lastVersion + 1
-	s.lastNonce = string(time.Now().Nanosecond())
-	response.Nonce = s.lastNonce
-	response.VersionInfo = fmt.Sprintf("v%d", s.lastVersion)
+	proxy.LastVersion = proxy.LastVersion + 1
+	proxy.LastNonce = fmt.Sprintf("%d", time.Now().UnixNano())
+	response.Nonce = proxy.LastNonce
+	response.VersionInfo = fmt.Sprintf("v%d", proxy.LastVersion)
+
 	glog.V(level.Trace).Infof("[%s] Constructed %s response: %+v", serverName, request.TypeUrl, response)
+
 	return response, nil
 }

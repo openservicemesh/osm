@@ -1,9 +1,6 @@
 package lds
 
 import (
-	"fmt"
-	"time"
-
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	listener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
@@ -12,7 +9,6 @@ import (
 
 	"github.com/deislabs/smc/pkg/constants"
 	"github.com/deislabs/smc/pkg/envoy"
-	"github.com/deislabs/smc/pkg/log/level"
 )
 
 const (
@@ -85,11 +81,5 @@ func (s *Server) NewListenerDiscoveryResponse(proxy *envoy.Proxy) (*xds.Discover
 		return nil, err
 	}
 	resp.Resources = append(resp.Resources, marshalledInbound)
-
-	s.lastVersion = s.lastVersion + 1
-	s.lastNonce = string(time.Now().Nanosecond())
-	resp.Nonce = s.lastNonce
-	resp.VersionInfo = fmt.Sprintf("v%d", s.lastVersion)
-	glog.V(level.Trace).Infof("[%s] Constructed response: %+v", serverName, resp)
 	return resp, nil
 }

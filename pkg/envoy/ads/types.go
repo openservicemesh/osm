@@ -14,9 +14,7 @@ import (
 
 //Server implements the Envoy xDS Aggregate Discovery Services
 type Server struct {
-	catalog     catalog.MeshCataloger
-	lastVersion uint64
-	lastNonce   string
+	catalog catalog.MeshCataloger
 
 	rdsServer *rds.Server
 	edsServer *eds.Server
