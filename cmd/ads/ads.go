@@ -8,6 +8,7 @@ import (
 	"github.com/deislabs/smc/pkg/endpoint"
 	"github.com/deislabs/smc/pkg/providers/azure"
 	"github.com/deislabs/smc/pkg/providers/kube"
+	"k8s.io/client-go/rest"
 	"os"
 	"os/signal"
 	"strings"
@@ -35,11 +36,13 @@ const (
 	defaultNamespace = "default"
 )
 
-var azureAuthFile string
+var (
+	azureAuthFile  string
+	kubeConfigFile string
+)
 
 var (
 	flags          = pflag.NewFlagSet(`ads`, pflag.ExitOnError)
-	kubeConfigFile = flags.String("kubeconfig", "", "Path to Kubernetes config file.")
 	subscriptionID = flags.String("subscriptionID", "", "Azure Subscription")
 	verbosity      = flags.Int("verbosity", int(level.Info), "Set log verbosity level")
 	port           = flags.Int("port", 15128, "Clusters Discovery Service port number.")
@@ -51,6 +54,7 @@ var (
 
 func init() {
 	flags.StringVar(&azureAuthFile, "azureAuthFile", "", "Path to Azure Auth File")
+	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file.")
 }
 
 func main() {
@@ -60,9 +64,19 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	kubeConfig, err := clientcmd.BuildConfigFromFlags("", *kubeConfigFile)
-	if err != nil {
-		glog.Fatalf("[%s] Error fetching Kubernetes config. Ensure correctness of CLI argument 'kubeconfig=%s': %s", serverType, *kubeConfigFile, err)
+	var kubeConfig *rest.Config
+	var err error
+	if kubeConfigFile != "" {
+		kubeConfig, err = clientcmd.BuildConfigFromFlags("", kubeConfigFile)
+		if err != nil {
+			glog.Fatalf("[%s] Error fetching Kubernetes config. Ensure correctness of CLI argument 'kubeconfig=%s': %s", serverType, kubeConfigFile, err)
+		}
+	} else {
+		// creates the in-cluster config
+		kubeConfig, err = rest.InClusterConfig()
+		if err != nil {
+			glog.Fatalf("[RDS] Error generating Kubernetes config: %s", err)
+		}
 	}
 
 	observeNamespaces := getNamespaces()
