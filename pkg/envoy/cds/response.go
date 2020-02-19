@@ -11,33 +11,36 @@ import (
 	"github.com/golang/protobuf/ptypes"
 )
 
-func svcRemote(clusterName string, certificateName string) func() *xds.Cluster {
-	return func() *xds.Cluster {
-		// The name must match the domain being cURLed in the demo
-		return envoy.GetServiceCluster(clusterName, certificateName)
-	}
+func svcRemote(clusterName string, certificateName string) *xds.Cluster {
+	// The name must match the domain being cURLed in the demo
+	return envoy.GetServiceCluster(clusterName, certificateName)
 }
 
-func svcLocal(clusterName string, _ string) func() *xds.Cluster {
-	return func() *xds.Cluster {
-		// The name must match the domain being cURLed in the demo
-		return getServiceClusterLocal(clusterName)
-	}
+func svcLocal(clusterName string, _ string) *xds.Cluster {
+	// The name must match the domain being cURLed in the demo
+	return getServiceClusterLocal(clusterName)
 }
 
 func (s *Server) NewClusterDiscoveryResponse(proxy *envoy.Proxy) (*xds.DiscoveryResponse, error) {
-	glog.Infof("[%s] Composing Cluster Discovery Response for proxy: %s", serverName, proxy.GetCommonName())
+	allServices, err := s.catalog.ListEndpoints("TBD")
+	if err != nil {
+		glog.Errorf("[%s][stream] Failed listing endpoints: %+v", serverName, err)
+		return nil, err
+	}
+	glog.Infof("[%s][stream] WeightedServices: %+v", serverName, allServices)
 	resp := &xds.DiscoveryResponse{
 		TypeUrl: string(envoy.TypeCDS),
 	}
 
-	clusterFactories := []func() *xds.Cluster{
-		svcRemote("bookstore.mesh", "bookstore.mesh"),
-		svcLocal("bookstore-local", "bookstore.mesh"),
+	clusterFactories := []*xds.Cluster{}
+	for targetedServiceName, weightedServices := range allServices {
+		clusterFactories = append(clusterFactories, svcRemote(string(targetedServiceName), "bookstore.mesh"))
+		for _, localservice := range weightedServices {
+			clusterFactories = append(clusterFactories, svcLocal(string(localservice.ServiceName), "bookstore.mesh"))
+		}
 	}
 
-	for _, factory := range clusterFactories {
-		cluster := factory()
+	for _, cluster := range clusterFactories {
 		glog.V(level.Trace).Infof("[%s] Constructed ClusterConfiguration: %+v", serverName, cluster)
 		marshalledClusters, err := ptypes.MarshalAny(cluster)
 		if err != nil {

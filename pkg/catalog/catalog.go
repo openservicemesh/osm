@@ -23,6 +23,8 @@ func NewMeshCatalog(meshSpec smi.MeshSpec, certManager certificate.Manager, stop
 		certificateCache:     make(map[endpoint.ServiceName]certificate.Certificater),
 		connectedProxies:     mapset.NewSet(),
 		announcementChannels: mapset.NewSet(),
+		serviceAccountsCache: make(map[endpoint.ServiceAccount][]endpoint.ServiceName),
+		targetServicesCache:  make(map[endpoint.ServiceName][]endpoint.ServiceName),
 	}
 
 	for _, announcementChannel := range sc.getAnnouncementChannels() {
