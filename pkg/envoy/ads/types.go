@@ -12,7 +12,7 @@ import (
 	"github.com/deislabs/smc/pkg/envoy/sds"
 )
 
-//Server implements the Envoy xDS Aggregate Discovery Services
+// Server implements the Envoy xDS Aggregate Discovery Services
 type Server struct {
 	catalog catalog.MeshCataloger
 

@@ -3,10 +3,7 @@ package smi
 import (
 	"reflect"
 
-	"github.com/golang/glog"
-
 	"github.com/Azure/application-gateway-kubernetes-ingress/pkg/events"
-	"github.com/deislabs/smc/pkg/log/level"
 )
 
 type handlers struct {
@@ -15,7 +12,6 @@ type handlers struct {
 
 // general resource handlers
 func (h handlers) addFunc(obj interface{}) {
-	glog.V(level.Trace).Infof("[%s] Add event: %+v", h.providerIdent, obj)
 	h.announcements <- events.Event{
 		Type:  events.Create,
 		Value: obj,
@@ -23,15 +19,8 @@ func (h handlers) addFunc(obj interface{}) {
 }
 
 func (h handlers) updateFunc(oldObj, newObj interface{}) {
-	glog.V(level.Trace).Infof("[%s] Update event %+v", h.providerIdent, oldObj)
 	if reflect.DeepEqual(oldObj, newObj) {
-		glog.V(level.Trace).Info("Update event: no change")
-		// TODO(shashank): This is a temporary hack to enable periodic updates
-		// from the informers to propagate to xDS streams even if there is no
-		// change. This is done to ensure that proxie's receive the updates
-		// in case they register AFTER an event is generated in the system, in
-		// which case they would miss the event.
-		//return
+		return
 	}
 	h.announcements <- events.Event{
 		Type:  events.Update,
@@ -40,7 +29,6 @@ func (h handlers) updateFunc(oldObj, newObj interface{}) {
 }
 
 func (h handlers) deleteFunc(obj interface{}) {
-	glog.V(level.Trace).Infof("[%s] Delete event: %+v", h.providerIdent, obj)
 	h.announcements <- events.Event{
 		Type:  events.Delete,
 		Value: obj,

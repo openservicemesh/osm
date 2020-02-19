@@ -41,11 +41,12 @@ var _ = Describe("Testing Azure Compute Provider", func() {
 						"x": "y",
 					},
 				},
+
 				Spec: v12.AzureResourceSpec{
 					ResourceID: "/one/two/three",
 				},
 			}}
-			azID := matchServiceAzureResource(&svc, azureResources)
+			azID := matchServiceAzureResource(&svc, azureResources, "test-provider")
 			expectedAzureID := []azureID{"/one/two/three"}
 			Expect(azID).To(Equal(expectedAzureID))
 		})

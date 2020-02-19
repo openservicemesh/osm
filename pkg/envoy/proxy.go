@@ -1,12 +1,13 @@
 package envoy
 
 import (
-	"github.com/deislabs/smc/pkg/certificate"
-	"github.com/deislabs/smc/pkg/endpoint"
-	"github.com/deislabs/smc/pkg/utils"
 	"net"
 	"strings"
 	"time"
+
+	"github.com/deislabs/smc/pkg/certificate"
+	"github.com/deislabs/smc/pkg/endpoint"
+	"github.com/deislabs/smc/pkg/utils"
 )
 
 const (
@@ -23,7 +24,7 @@ type Proxy struct {
 
 	LastUpdated time.Time
 	LastVersion uint64
-	LastNonce   string
+	LastNonce   map[TypeURI]string
 }
 
 // GetService implements Proxyer and determines the meshed service this endpoint should support based on the mTLS certificate.

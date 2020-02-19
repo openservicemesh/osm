@@ -141,7 +141,7 @@ func (c Client) GetAnnouncementsChannel() <-chan interface{} {
 
 // run executes informer collection.
 func (c *Client) run(stop <-chan struct{}) error {
-	glog.V(level.Info).Infoln("Kubernetes Compute Provider started")
+	glog.V(level.Info).Infof("[%s] Kubernetes provider started", c.providerIdent)
 	var hasSynced []cache.InformerSynced
 
 	if c.informers == nil {
@@ -160,12 +160,12 @@ func (c *Client) run(stop <-chan struct{}) error {
 			continue
 		}
 		names = append(names, name)
-		glog.Info("Starting informer: ", name)
+		glog.Infof("[%s] Starting informer: %s", c.providerIdent, name)
 		go informer.Run(stop)
 		hasSynced = append(hasSynced, informer.HasSynced)
 	}
 
-	glog.V(level.Info).Infof("Waiting informers cache sync: %+v", names)
+	glog.V(level.Info).Infof("[%s] Waiting for informers cache sync: %+v", c.providerIdent, names)
 	if !cache.WaitForCacheSync(stop, hasSynced...) {
 		return errSyncingCaches
 	}
@@ -173,6 +173,6 @@ func (c *Client) run(stop <-chan struct{}) error {
 	// Closing the cacheSynced channel signals to the rest of the system that... caches have been synced.
 	close(c.cacheSynced)
 
-	glog.V(level.Info).Infof("Cache sync finished for %+v", names)
+	glog.V(level.Info).Infof("[%s] Cache sync finished for %+v", c.providerIdent, names)
 	return nil
 }

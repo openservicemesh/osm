@@ -28,15 +28,14 @@ func (s *Server) NewEndpointDiscoveryResponse(proxy *envoy.Proxy) (*v2.Discovery
 
 		proto, err := ptypes.MarshalAny(&loadAssignment)
 		if err != nil {
-			glog.Errorf("[catalog] Error marshalling EDS payload %+v: %s", loadAssignment, err)
+			glog.Errorf("[%s][Catalog] Error marshalling EDS payload %+v: %s", serverName, loadAssignment, err)
 			continue
 		}
 		protos = append(protos, proto)
 	}
 
-	resp := &v2.DiscoveryResponse{
+	return &v2.DiscoveryResponse{
 		Resources: protos,
 		TypeUrl:   string(envoy.TypeEDS),
-	}
-	return resp, nil
+	}, nil
 }

@@ -16,12 +16,12 @@ var _ = Describe("Testing Cluster Load Assignment", func() {
 			weightedServices = append(weightedServices, endpoint.WeightedService{
 				ServiceName: endpoint.ServiceName("bookstore-1"),
 				Weight:      50,
-				Endpoints:   []endpoint.Endpoint{endpoint.Endpoint{IP: net.IP("0.0.0.0")}},
+				Endpoints:   []endpoint.Endpoint{endpoint.Endpoint{IP: net.ParseIP("0.0.0.0")}},
 			})
 			weightedServices = append(weightedServices, endpoint.WeightedService{
 				ServiceName: endpoint.ServiceName("bookstore-2"),
 				Weight:      50,
-				Endpoints:   []endpoint.Endpoint{endpoint.Endpoint{IP: net.IP("0.0.0.1")}, endpoint.Endpoint{IP: net.IP("0.0.0.2")}},
+				Endpoints:   []endpoint.Endpoint{endpoint.Endpoint{IP: net.ParseIP("0.0.0.1")}, endpoint.Endpoint{IP: net.ParseIP("0.0.0.2")}},
 			})
 
 			cla := NewClusterLoadAssignment("bookstore", weightedServices)

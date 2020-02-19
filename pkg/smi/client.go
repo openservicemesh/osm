@@ -7,11 +7,6 @@ import (
 	target "github.com/deislabs/smi-sdk-go/pkg/apis/access/v1alpha1"
 	spec "github.com/deislabs/smi-sdk-go/pkg/apis/specs/v1alpha1"
 	split "github.com/deislabs/smi-sdk-go/pkg/apis/split/v1alpha2"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/rest"
-
-	"github.com/deislabs/smc/pkg/endpoint"
-	"github.com/deislabs/smc/pkg/log/level"
 	smiTrafficTargetClient "github.com/deislabs/smi-sdk-go/pkg/gen/client/access/clientset/versioned"
 	smiTrafficTargetInformers "github.com/deislabs/smi-sdk-go/pkg/gen/client/access/informers/externalversions"
 	smiTrafficSpecClient "github.com/deislabs/smi-sdk-go/pkg/gen/client/specs/clientset/versioned"
@@ -19,9 +14,14 @@ import (
 	smiTrafficSplitClient "github.com/deislabs/smi-sdk-go/pkg/gen/client/split/clientset/versioned"
 	smiTrafficSplitInformers "github.com/deislabs/smi-sdk-go/pkg/gen/client/split/informers/externalversions"
 	"github.com/golang/glog"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
+
+	"github.com/deislabs/smc/pkg/endpoint"
+	"github.com/deislabs/smc/pkg/log/level"
 )
 
 var resyncPeriod = 10 * time.Second
@@ -47,7 +47,7 @@ func NewMeshSpecClient(kubeConfig *rest.Config, namespaces []string, stop chan s
 
 // run executes informer collection.
 func (c *Client) run(stop <-chan struct{}) error {
-	glog.V(level.Info).Infoln("SMI Client started")
+	glog.V(level.Info).Infof("SMI Client started")
 	var hasSynced []cache.InformerSynced
 
 	if c.informers == nil {
@@ -68,12 +68,12 @@ func (c *Client) run(stop <-chan struct{}) error {
 			continue
 		}
 		names = append(names, name)
-		glog.Info("Starting informer: ", name)
+		glog.Infof("[%s] Starting informer: %s", c.providerIdent, name)
 		go informer.Run(stop)
 		hasSynced = append(hasSynced, informer.HasSynced)
 	}
 
-	glog.V(level.Info).Infof("[SMI Client] Waiting informers cache sync: %+v", names)
+	glog.V(level.Info).Infof("[%s] Waiting for informers cache sync: %+v", c.providerIdent, names)
 	if !cache.WaitForCacheSync(stop, hasSynced...) {
 		return errSyncingCaches
 	}
@@ -81,7 +81,7 @@ func (c *Client) run(stop <-chan struct{}) error {
 	// Closing the cacheSynced channel signals to the rest of the system that... caches have been synced.
 	close(c.cacheSynced)
 
-	glog.V(level.Info).Infof("[SMI Client] Cache sync finished for %+v", names)
+	glog.V(level.Info).Infof("[%s] Cache sync finished for %+v", c.providerIdent, names)
 	return nil
 }
 
@@ -157,8 +157,8 @@ func newSMIClient(kubeClient *kubernetes.Clientset, smiTrafficSplitClient *smiTr
 func (c *Client) ListTrafficSplits() []*split.TrafficSplit {
 	var trafficSplits []*split.TrafficSplit
 	for _, splitIface := range c.caches.TrafficSplit.List() {
-		split := splitIface.(*split.TrafficSplit)
-		trafficSplits = append(trafficSplits, split)
+		trafficSplit := splitIface.(*split.TrafficSplit)
+		trafficSplits = append(trafficSplits, trafficSplit)
 	}
 	return trafficSplits
 }
@@ -167,20 +167,20 @@ func (c *Client) ListTrafficSplits() []*split.TrafficSplit {
 func (c *Client) ListHTTPTrafficSpecs() []*spec.HTTPRouteGroup {
 	var httpTrafficSpec []*spec.HTTPRouteGroup
 	for _, specIface := range c.caches.TrafficSpec.List() {
-		spec := specIface.(*spec.HTTPRouteGroup)
-		httpTrafficSpec = append(httpTrafficSpec, spec)
+		routeGroup := specIface.(*spec.HTTPRouteGroup)
+		httpTrafficSpec = append(httpTrafficSpec, routeGroup)
 	}
 	return httpTrafficSpec
 }
 
 // ListTrafficTargets implements mesh.Topology by returning the list of traffic targets.
 func (c *Client) ListTrafficTargets() []*target.TrafficTarget {
-	var trafficTarget []*target.TrafficTarget
+	var trafficTargets []*target.TrafficTarget
 	for _, targetIface := range c.caches.TrafficTarget.List() {
-		target := targetIface.(*target.TrafficTarget)
-		trafficTarget = append(trafficTarget, target)
+		trafficTarget := targetIface.(*target.TrafficTarget)
+		trafficTargets = append(trafficTargets, trafficTarget)
 	}
-	return trafficTarget
+	return trafficTargets
 }
 
 // ListServices implements mesh.MeshSpec by returning the services observed from the given compute provider
@@ -190,12 +190,12 @@ func (c *Client) ListServices() ([]endpoint.ServiceName, map[endpoint.ServiceNam
 	// this holds a mapping of the target service to the backend services
 	targetServicesMap := make(map[endpoint.ServiceName][]endpoint.ServiceName)
 	for _, splitIface := range c.caches.TrafficSplit.List() {
-		split := splitIface.(*split.TrafficSplit)
-		namespacedServiceName := fmt.Sprintf("%s/%s", split.Namespace, split.Spec.Service)
+		trafficSplit := splitIface.(*split.TrafficSplit)
+		namespacedServiceName := fmt.Sprintf("%s/%s", trafficSplit.Namespace, trafficSplit.Spec.Service)
 		services = append(services, endpoint.ServiceName(namespacedServiceName))
 		var backends []endpoint.ServiceName
-		for _, backend := range split.Spec.Backends {
-			namespacedServiceName := fmt.Sprintf("%s/%s", split.Namespace, backend.Service)
+		for _, backend := range trafficSplit.Spec.Backends {
+			namespacedServiceName := fmt.Sprintf("%s/%s", trafficSplit.Namespace, backend.Service)
 			services = append(services, endpoint.ServiceName(namespacedServiceName))
 			backends = append(backends, endpoint.ServiceName(namespacedServiceName))
 		}
@@ -209,13 +209,13 @@ func (c *Client) ListServiceAccounts() []endpoint.ServiceAccount {
 	// TODO(draychev): split the namespace and the service kubernetesClientName -- for non-kubernetes services we won't have namespace
 	var serviceAccounts []endpoint.ServiceAccount
 	for _, targetIface := range c.caches.TrafficTarget.List() {
-		target := targetIface.(*target.TrafficTarget)
-		for _, sources := range target.Sources {
+		trafficTarget := targetIface.(*target.TrafficTarget)
+		for _, sources := range trafficTarget.Sources {
 			namespacedServiceAccount := fmt.Sprintf("%s/%s", sources.Namespace, sources.Name)
 			serviceAccounts = append(serviceAccounts, endpoint.ServiceAccount(namespacedServiceAccount))
 		}
 
-		destination := target.Destination
+		destination := trafficTarget.Destination
 		namespacedServiceAccount := fmt.Sprintf("%s/%s", destination.Namespace, destination.Name)
 		serviceAccounts = append(serviceAccounts, endpoint.ServiceAccount(namespacedServiceAccount))
 	}
@@ -224,9 +224,9 @@ func (c *Client) ListServiceAccounts() []endpoint.ServiceAccount {
 
 // GetService retrieves the Kubernetes Services resource for the given ServiceName.
 func (c *Client) GetService(svc endpoint.ServiceName) (service *corev1.Service, exists bool, err error) {
-	svcIf, exists, err := c.caches.Services.GetByKey(string(svc))
+	serviceInterface, exists, err := c.caches.Services.GetByKey(string(svc))
 	if exists && err == nil {
-		return svcIf.(*corev1.Service), exists, err
+		return serviceInterface.(*corev1.Service), exists, err
 	}
 	return nil, exists, err
 }

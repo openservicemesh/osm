@@ -11,12 +11,6 @@ import (
 	"github.com/deislabs/smc/pkg/smi"
 )
 
-// ListEndpoints constructs a map from service to weighted sub-services with all endpoints the given Envoy proxy should be aware of.
-func (sc *MeshCatalog) ListEndpoints(clientID smi.ClientIdentity) (map[endpoint.ServiceName][]endpoint.WeightedService, error) {
-	glog.Info("[catalog] Listing Endpoints for client: ", clientID)
-	return sc.getWeightedEndpointsPerService()
-}
-
 func (sc *MeshCatalog) listEndpointsForService(namespacedServiceName endpoint.ServiceName) ([]endpoint.Endpoint, error) {
 	// TODO(draychev): split namespace from the service name -- for non-K8s services
 	glog.Infof("[catalog] listEndpointsForService %s", namespacedServiceName)
@@ -33,16 +27,18 @@ func (sc *MeshCatalog) listEndpointsForService(namespacedServiceName endpoint.Se
 	return endpoints, nil
 }
 
-func (sc *MeshCatalog) getWeightedEndpointsPerService() (map[endpoint.ServiceName][]endpoint.WeightedService, error) {
+// ListEndpoints constructs a map from service to weighted sub-services with all endpoints the given Envoy proxy should be aware of.
+func (sc *MeshCatalog) ListEndpoints(clientID smi.ClientIdentity) (map[endpoint.ServiceName][]endpoint.WeightedService, error) {
+	glog.Info("[catalog] Listing Endpoints for client: ", clientID)
 	byTargetService := make(map[endpoint.ServiceName][]endpoint.WeightedService)
 	backendWeight := make(map[string]int)
 
 	for _, trafficSplit := range sc.meshSpec.ListTrafficSplits() {
 		targetServiceName := endpoint.ServiceName(fmt.Sprintf("%s/%s", trafficSplit.Namespace, trafficSplit.Spec.Service))
 		var services []endpoint.WeightedService
-		glog.V(level.Trace).Infof("[Server][catalog] Discovered TrafficSplit resource: %s/%s for service %s\n", trafficSplit.Namespace, trafficSplit.Name, targetServiceName)
+		glog.V(level.Trace).Infof("[catalog] Discovered TrafficSplit resource: %s/%s for service %s\n", trafficSplit.Namespace, trafficSplit.Name, targetServiceName)
 		if trafficSplit.Spec.Backends == nil {
-			glog.Errorf("[Server][catalog] TrafficSplit %s/%s has no Backends in Spec; Skipping...", trafficSplit.Namespace, trafficSplit.Name)
+			glog.Errorf("[catalog] TrafficSplit %s/%s has no Backends in Spec; Skipping...", trafficSplit.Namespace, trafficSplit.Name)
 			continue
 		}
 		for _, trafficSplitBackend := range trafficSplit.Spec.Backends {
@@ -69,7 +65,7 @@ func (sc *MeshCatalog) getWeightedEndpointsPerService() (map[endpoint.ServiceNam
 func endpointsToString(endpoints []endpoint.Endpoint) []string {
 	var epts []string
 	for _, ept := range endpoints {
-		epts = append(epts, fmt.Sprintf("%s:%d", ept.IP.String(), ept.Port))
+		epts = append(epts, fmt.Sprintf("%s:%d", ept.IP, ept.Port))
 	}
 	return epts
 }

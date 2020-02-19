@@ -26,10 +26,10 @@ func (az Client) ListEndpointsForService(svc endpoint.ServiceName) []endpoint.En
 	}
 
 	for _, azID := range az.resolveService(svc) {
-		glog.Infof("[azure] Getting Endpoints for service %s", svc)
+		glog.Infof("[%s] Getting Endpoints for service %s", az.providerID, svc)
 		resourceGroup, kind, _, err := parseAzureID(azID)
 		if err != nil {
-			glog.Errorf("[azure] Unable to parse Azure URI %s: %s", azID, err)
+			glog.Errorf("[%s] Unable to parse Azure URI %s: %s", az.providerID, azID, err)
 			continue
 		}
 
@@ -38,7 +38,7 @@ func (az Client) ListEndpointsForService(svc endpoint.ServiceName) []endpoint.En
 			var err error
 			ips, err = observer(resourceGroup, azID)
 			if err != nil {
-				glog.Error("[azure] Could not fetch VMSS services: ", err)
+				glog.Errorf("[%s] Could not fetch VMSS services: %s", az.providerID, err)
 				continue
 			}
 			for _, ip := range ips {
@@ -60,7 +60,7 @@ func (az Client) ListServicesForServiceAccount(svcAccount endpoint.ServiceAccoun
 }
 
 func (az Client) run(stop <-chan struct{}) error {
-	glog.V(level.Info).Infoln("Azure provider run started.")
+	glog.V(level.Info).Infof("[%s] Azure provider run started.", az.providerID)
 	// TODO(draychev): implement pub/sub
 	return nil
 }
@@ -89,19 +89,19 @@ func parseAzureID(id azureID) (resourceGroup, computeKind, computeName, error) {
 }
 
 func (az *Client) resolveService(svc endpoint.ServiceName) []azureID {
-	glog.V(level.Trace).Infof("[azure] Resolving service %s to an Azure URI", svc)
+	glog.V(level.Trace).Infof("[%s] Resolving service %s to an Azure URI", az.providerID, svc)
 	var azureIDs []azureID
 	service, exists, err := az.meshSpec.GetService(svc)
 	if err != nil {
-		glog.Error("[azure] Error fetching Kubernetes Endpoints from cache: ", err)
+		glog.Errorf("[%s] Error fetching Kubernetes Endpoints from cache: %s", az.providerID, err)
 		return azureIDs
 	}
 	if !exists {
-		glog.Errorf("[azure] Error fetching Kubernetes Endpoints from cache: service %s does not exist", svc)
+		glog.Errorf("[%s] Error fetching Kubernetes Endpoints from cache: service %s does not exist", az.providerID, svc)
 		return azureIDs
 	}
-	glog.Infof("[azure] Got the service: %+v", service)
-	return matchServiceAzureResource(service, az.azureResourceClient.ListAzureResources())
+	glog.Infof("[%s] Got the service: %+v", az.providerID, service)
+	return matchServiceAzureResource(service, az.azureResourceClient.ListAzureResources(), az.providerID)
 }
 
 type kv struct {
@@ -109,8 +109,8 @@ type kv struct {
 	v string
 }
 
-func matchServiceAzureResource(svc *corev1.Service, azureResourcesList []*smc.AzureResource) []azureID {
-	glog.V(level.Trace).Infof("[azure] Match service %s to an AzureID", svc)
+func matchServiceAzureResource(svc *corev1.Service, azureResourcesList []*smc.AzureResource, providerID string) []azureID {
+	glog.V(level.Trace).Infof("[%s] Match service %s to an AzureID", providerID, svc)
 	azureResources := make(map[kv]*smc.AzureResource)
 	for _, azRes := range azureResourcesList {
 		for k, v := range azRes.ObjectMeta.Labels {
@@ -130,6 +130,6 @@ func matchServiceAzureResource(svc *corev1.Service, azureResourcesList []*smc.Az
 	for uri := range uriSet {
 		uris = append(uris, uri)
 	}
-	glog.V(level.Trace).Infof("[azure] Found matches for service %s: %+v", svc, uris)
+	glog.V(level.Trace).Infof("[%s] Found matches for service %s: %+v", providerID, svc, uris)
 	return uris
 }

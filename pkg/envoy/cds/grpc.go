@@ -22,7 +22,6 @@ func receive(reqChannel chan *v2.DiscoveryRequest, server v2.ClusterDiscoverySer
 			glog.Errorf("[%s][grpc] Connection terminated with error: %+v", serverName, recvErr)
 			return
 		}
-		glog.Infof("[%s][grpc] Done!", serverName)
 		reqChannel <- request
 	}
 }

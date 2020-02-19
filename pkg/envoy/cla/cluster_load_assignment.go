@@ -1,6 +1,8 @@
 package cla
 
 import (
+	"encoding/json"
+
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
@@ -32,14 +34,23 @@ func NewClusterLoadAssignment(targetServiceName smcEndpoint.ServiceName, weighte
 	}
 
 	for _, delegateService := range weightedServices {
-		glog.Infof("Adding delegate service %+v to target service %s", delegateService, targetServiceName)
+		if delegateServiceJSON, err := json.Marshal(delegateService); err == nil {
+			glog.Infof("[CLA] Service %s delegates to %s", targetServiceName, string(delegateServiceJSON))
+		} else {
+			glog.Error("[CLA] Error marshaling delegate service: ", err)
+			glog.Infof("[CLA] Service %s delegates to %+v", targetServiceName, delegateService)
+		}
 		lenIPs := len(delegateService.Endpoints)
 		if lenIPs == 0 {
 			lenIPs = 1
 		}
 		weight := uint32(delegateService.Weight / lenIPs)
 		for _, meshEndpoint := range delegateService.Endpoints {
-			glog.Infof("[EDS][ClusterLoadAssignment] Adding Endpoint: Cluster=%s, Services=%s, Endpoint=%+v, Weight=%d\n", targetServiceName, delegateService.ServiceName, meshEndpoint.String(), weight)
+			if ept, err := json.Marshal(meshEndpoint); err == nil {
+				glog.Infof("[CLA] Adding Endpoint: Cluster=%s, Services=%s, Endpoint=%s, Weight=%d", targetServiceName, delegateService.ServiceName, string(ept), weight)
+			} else {
+				glog.Error("[CLA] Error marshalling meshEndpoint: ", meshEndpoint)
+			}
 			lbEpt := endpoint.LbEndpoint{
 				HostIdentifier: &endpoint.LbEndpoint_Endpoint{
 					Endpoint: &endpoint.Endpoint{
@@ -53,6 +64,6 @@ func NewClusterLoadAssignment(targetServiceName smcEndpoint.ServiceName, weighte
 			cla.Endpoints[0].LbEndpoints = append(cla.Endpoints[0].LbEndpoints, &lbEpt)
 		}
 	}
-	glog.V(level.Trace).Infof("[EDS] Constructed ClusterLoadAssignment: %+v", cla)
+	glog.V(level.Trace).Infof("[CLA] Constructed ClusterLoadAssignment: %+v", cla)
 	return cla
 }

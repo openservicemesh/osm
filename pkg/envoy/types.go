@@ -3,6 +3,10 @@ package envoy
 // TypeURI is a string describing the Envoy xDS payload.
 type TypeURI string
 
+// XDSResponseOrder is the order in which we send xDS responses: CDS, EDS, LDS, RDS
+// See: https://github.com/envoyproxy/go-control-plane/issues/59
+var XDSResponseOrder = []TypeURI{TypeCDS, TypeEDS, TypeLDS, TypeRDS, TypeSDS}
+
 const (
 	// TypeSDS is the SDS type URI.
 	TypeSDS TypeURI = "type.googleapis.com/envoy.api.v2.auth.Secret"

@@ -4,7 +4,6 @@ set -aueo pipefail
 
 rm -rf ./bin/ads
 
-NAME="ads"
 CGO_ENABLED=0 go build -v -o ./bin/ads ./cmd/ads
 CGO_ENABLED=0 go build -v -o ./bin/cert ./cmd/cert
 
@@ -17,13 +16,6 @@ unset GRPC_SSL_CIPHER_SUITES
 # Enable gRPC debug logging
 export GRPC_GO_LOG_VERBOSITY_LEVEL=99
 export GRPC_GO_LOG_SEVERITY_LEVEL=info
-
-mkdir -p "./certificates/$NAME"
-./bin/cert --host="$NAME.azure.mesh" \
-           --caPEMFileIn="./certificates/root-cert.pem" \
-           --caKeyPEMFileIn="./certificates/root-key.pem" \
-           --keyout "./certificates/$NAME/key.pem" \
-           --out "./certificates/$NAME/cert.pem"
 
 ./bin/ads \
     --kubeconfig="$HOME/.kube/config" \

@@ -1,22 +1,15 @@
 package cds
 
 import (
-	"github.com/deislabs/smc/pkg/envoy"
-	"github.com/deislabs/smc/pkg/log/level"
+	"encoding/json"
+
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes"
+
+	"github.com/deislabs/smc/pkg/envoy"
+	"github.com/deislabs/smc/pkg/log/level"
 )
-
-func svcRemote(clusterName string, certificateName string) *xds.Cluster {
-	// The name must match the domain being cURLed in the demo
-	return envoy.GetServiceCluster(clusterName, certificateName)
-}
-
-func svcLocal(clusterName string, _ string) *xds.Cluster {
-	// The name must match the domain being cURLed in the demo
-	return getServiceClusterLocal(clusterName)
-}
 
 // NewClusterDiscoveryResponse creates a new Cluster Discovery Response.
 func (s *Server) NewClusterDiscoveryResponse(proxy *envoy.Proxy) (*xds.DiscoveryResponse, error) {
@@ -30,16 +23,20 @@ func (s *Server) NewClusterDiscoveryResponse(proxy *envoy.Proxy) (*xds.Discovery
 		TypeUrl: string(envoy.TypeCDS),
 	}
 
-	clusterFactories := []*xds.Cluster{}
+	var clusterFactories []*xds.Cluster
 	for targetedServiceName, weightedServices := range allServices {
-		clusterFactories = append(clusterFactories, svcRemote(string(targetedServiceName), "bookstore.mesh"))
+		clusterFactories = append(clusterFactories, envoy.GetServiceCluster(string(targetedServiceName), "bookstore.mesh"))
 		for _, localservice := range weightedServices {
-			clusterFactories = append(clusterFactories, svcLocal(string(localservice.ServiceName), "bookstore.mesh"))
+			clusterFactories = append(clusterFactories, getServiceClusterLocal(string(localservice.ServiceName)))
 		}
 	}
 
 	for _, cluster := range clusterFactories {
-		glog.V(level.Trace).Infof("[%s] Constructed ClusterConfiguration: %+v", serverName, cluster)
+		if clusterJSON, err := json.Marshal(cluster); err == nil {
+			glog.V(level.Trace).Infof("[%s] Constructed ClusterConfiguration: %+v", serverName, string(clusterJSON))
+		} else {
+			glog.Error("[%s] Error marshaling cluster: %s", serverName, cluster)
+		}
 		marshalledClusters, err := ptypes.MarshalAny(cluster)
 		if err != nil {
 			glog.Errorf("[%s] Failed to marshal cluster for proxy %s: %v", serverName, proxy.GetCommonName(), err)

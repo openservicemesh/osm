@@ -1,6 +1,7 @@
 package route
 
 import (
+	"encoding/json"
 	"strings"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -19,16 +20,13 @@ const (
 	SourceRouteConfig = "RDS_Source"
 )
 
-//NewRouteConfiguration consrtucts the Envoy construct necessary for TrafficTarget implementation
+// NewRouteConfiguration creates the Envoy construct necessary for TrafficTarget implementation
 // todo (snchh) : need to figure out linking to name spaces
 func NewRouteConfiguration(trafficPolicies smcEndpoint.TrafficTargetPolicies) []v2.RouteConfiguration {
-
-	routeConfigurations := []v2.RouteConfiguration{}
-	serverRouteConfig := getServerRouteConfiguration(trafficPolicies)
-	routeConfigurations = append(routeConfigurations, serverRouteConfig)
-	clientRouteConfig := getClientRouteConfiguration(trafficPolicies)
-	routeConfigurations = append(routeConfigurations, clientRouteConfig)
-	return routeConfigurations
+	return []v2.RouteConfiguration{
+		getServerRouteConfiguration(trafficPolicies),
+		getClientRouteConfiguration(trafficPolicies),
+	}
 }
 
 func getServerRouteConfiguration(trafficPolicies smcEndpoint.TrafficTargetPolicies) v2.RouteConfiguration {
@@ -67,7 +65,12 @@ func getServerRouteConfiguration(trafficPolicies smcEndpoint.TrafficTargetPolici
 			routeConfig.VirtualHosts[0].Routes = append(routeConfig.VirtualHosts[0].Routes, &rt)
 		}
 	}
-	glog.V(level.Trace).Infof("[RDS] Constructed Server RouteConfiguration: %+v", routeConfig)
+	if routeConfigJSON, err := json.Marshal(routeConfig); err == nil {
+		glog.V(level.Trace).Infof("[RDS] Constructed Server RouteConfiguration: %+v", string(routeConfigJSON))
+	} else {
+		glog.Error("[RDS] Error marshaling route config: ", err)
+	}
+
 	return routeConfig
 }
 

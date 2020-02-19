@@ -38,7 +38,7 @@ func (az *Client) getVM(rg resourceGroup, vmID azureID) ([]net.IP, error) {
 
 		for _, ipConf := range *networkInterfaceName.IPConfigurations {
 			if ipConf.PrivateIPAddress != nil {
-				ips = append(ips, net.IP(*ipConf.PrivateIPAddress))
+				ips = append(ips, net.ParseIP(*ipConf.PrivateIPAddress))
 			}
 		}
 		cancel()
