@@ -11,6 +11,8 @@ SVC=${1:-bookstore}
 
 kubectl delete deployment "$SVC" -n "$K8S_NAMESPACE"  || true
 
+GIT_HASH=$(git rev-parse --short HEAD)
+
 echo -e "Deploy $SVC demo service"
 cat <<EOF | kubectl apply -f -
 apiVersion: v1
@@ -75,8 +77,8 @@ spec:
           command: ["/counter"]
           args: ["--path", "./", "--port", "80"]
           env:
-            - name: AZMESH_IDENTITY
-              value: $SVC
+            - name: IDENTITY
+              value: ${SVC}--${GIT_HASH}
 
         - image: envoyproxy/envoy-alpine-dev:latest
           imagePullPolicy: Always
