@@ -49,7 +49,7 @@ An example is provided in the `.env.example` in the root of this repo.
 
 1. To see the results of deploying the services and the service mesh - run the tailing script: `./demo/tail-bookbuyer.sh`
    - the script will connect to the bookbuyer Kubernetes Pod and will stream its logs
-   - the output will be the cURL command to the `bookstore.mesh` service and counter responses
+   - the output will be the output of the cURL command to the `bookstore.mesh` service and the count of books sold
    - a properly working service mesh will result in HTTP 200 OK responses from the bookstore, along with a monotonically increasing counter appearing in the response headers.
 
 ## Onboarding VMs to a service mesh
@@ -110,4 +110,4 @@ The following sections outline how to onboard VMs to participate in a service me
 
 - Check `/var/log/syslog` if you encounter issues with Envoy
 
-- Copy and run the bookstore app `smc/demo/bin/counter` on the VM
+- Copy and run the bookstore app `smc/demo/bin/bookstore` on the VM

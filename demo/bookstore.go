@@ -79,7 +79,7 @@ func incrementCounter(w http.ResponseWriter, r *http.Request) {
 func main() {
 	flag.Parse()
 	var err error
-	tmpl, err = template.ParseFiles(fmt.Sprintf("%s/counter.html.template", *path))
+	tmpl, err = template.ParseFiles(fmt.Sprintf("%s/bookstore.html.template", *path))
 	if err != nil {
 		log.Fatal(err)
 	}
