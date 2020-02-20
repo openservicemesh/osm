@@ -53,7 +53,7 @@ func (sc *MeshCatalog) listAggregatedClusters(services []endpoint.ServiceName) [
 	glog.Infof("[catalog] Listing aggregated clusters for services : %v", services)
 	var clusters []endpoint.ServiceName
 	for _, service := range services {
-		var clusterFound bool
+		clusterFound := false
 		for key, values := range sc.targetServicesCache {
 			for _, value := range values {
 				if value == service {
@@ -61,11 +61,11 @@ func (sc *MeshCatalog) listAggregatedClusters(services []endpoint.ServiceName) [
 					clusterFound = true
 					clusters = append(clusters, key)
 				}
-				if !clusterFound {
-					clusters = append(clusters, service)
-					clusterFound = false
-				}
 			}
+		}
+		if !clusterFound {
+			glog.V(level.Trace).Infof("[catalog] No aggregated cluster for service %s ", service)
+			clusters = append(clusters, service)
 		}
 	}
 	return uniques(clusters)
@@ -95,8 +95,7 @@ func (sc *MeshCatalog) getHTTPPathsPerRoute() (map[string]endpoint.RoutePaths, e
 			glog.Errorf("[RDS][catalog] TrafficSpec %s/%s has no matches in route; Skipping...", trafficSpecs.Namespace, trafficSpecs.Name)
 			continue
 		}
-		trafficKind := trafficSpecs.Kind
-		spec := fmt.Sprintf("%s/%s/%s", trafficSpecs.Name, trafficKind, trafficSpecs.Namespace)
+		spec := fmt.Sprintf("%s/%s/%s", trafficSpecs.Name, trafficSpecs.Kind, trafficSpecs.Namespace)
 		//todo (snchh) : no mapping yet for route methods (GET,POST) in the envoy configuration
 		for _, trafficSpecsMatches := range trafficSpecs.Matches {
 			serviceRoute := endpoint.RoutePaths{}
