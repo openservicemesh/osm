@@ -31,7 +31,7 @@ kubectl apply -f demo/AzureResource.yaml
 ./demo/deploy-bookbuyer.sh
 
 ./demo/deploy-bookstore.sh bookstore
-./demo/deploy-bookstore.sh "bookstore-1"
+./demo/deploy-bookstore.sh bookstore-1
 ./demo/deploy-bookstore.sh bookstore-2
 
 ./demo/deploy-xds.sh

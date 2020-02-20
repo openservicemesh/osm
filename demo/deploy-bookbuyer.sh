@@ -5,6 +5,8 @@ set -aueo pipefail
 # shellcheck disable=SC1091
 source .env
 
+WAIT_FOR_OK_SECONDS=${1:-0}
+
 ./demo/deploy-secrets.sh "bookbuyer"
 
 kubectl delete deployment bookbuyer -n "$K8S_NAMESPACE"  || true
@@ -75,6 +77,9 @@ spec:
           volumeMounts:
            - name: config-volume
              mountPath: /etc/config
+          env:
+            - name: "WAIT_FOR_OK_SECONDS"
+              value: "${WAIT_FOR_OK_SECONDS}"
 
         # Sidecar with Envoy PROXY
         - name: envoyproxy
