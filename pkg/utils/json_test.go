@@ -5,17 +5,15 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Utils", func() {
-	Describe("Testing utils helpers", func() {
-		Context("Test PrettyJSON", func() {
-			It("should return pretty JSON and no error", func() {
-				prettyJSON, err := PrettyJSON([]byte("{\"name\":\"baba yaga\"}"), "--prefix--")
-				Expect(err).ToNot(HaveOccurred())
-				Expect(prettyJSON).To(Equal([]byte(`{
+var _ = Describe("Testing utils helpers", func() {
+	Context("Test PrettyJSON", func() {
+		It("should return pretty JSON and no error", func() {
+			prettyJSON, err := PrettyJSON([]byte("{\"name\":\"baba yaga\"}"), "--prefix--")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(prettyJSON).To(Equal([]byte(`{
 --prefix--    "name": "baba yaga"
 --prefix--}`)))
-			})
 		})
-
 	})
+
 })
