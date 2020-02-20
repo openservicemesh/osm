@@ -15,6 +15,7 @@ import (
 	structpb "github.com/golang/protobuf/ptypes/struct"
 )
 
+// GetAddress creates an Envoy Address struct.
 func GetAddress(address string, port uint32) *core.Address {
 	// TODO(draychev): figure this out from the service
 	return &core.Address{
@@ -30,6 +31,7 @@ func GetAddress(address string, port uint32) *core.Address {
 	}
 }
 
+// GetTLSParams creates Envoy TlsParameters struct.
 func GetTLSParams() *auth.TlsParameters {
 	return &auth.TlsParameters{
 		TlsMinimumProtocolVersion: auth.TlsParameters_TLSv1_2,
@@ -38,6 +40,7 @@ func GetTLSParams() *auth.TlsParameters {
 	}
 }
 
+// GetAccessLog creates an Envoy AccessLog struct.
 func GetAccessLog() []*accessLogV2.AccessLog {
 	accessLog, err := ptypes.MarshalAny(getFileAccessLog())
 	if err != nil {
@@ -144,6 +147,7 @@ func getTLSUpstream(certificateName string) *any.Any {
 	return tls
 }
 
+// GetTransportSocketForServiceDownstream creates a downstream Envoy TransportSocket struct.
 func GetTransportSocketForServiceDownstream(certificateName string) *core.TransportSocket {
 	return &core.TransportSocket{
 		Name:       TransportSocketTLS,
@@ -151,6 +155,7 @@ func GetTransportSocketForServiceDownstream(certificateName string) *core.Transp
 	}
 }
 
+// GetTransportSocketForServiceUpstream creates an upstream TransportSocket struct.
 func GetTransportSocketForServiceUpstream(certificateName string) *core.TransportSocket {
 	return &core.TransportSocket{
 		Name:       TransportSocketTLS,
@@ -158,6 +163,7 @@ func GetTransportSocketForServiceUpstream(certificateName string) *core.Transpor
 	}
 }
 
+// GetServiceCluster creates an Envoy Cluster struct.
 func GetServiceCluster(clusterName string, certificateName string) *xds.Cluster {
 	return &xds.Cluster{
 		Name:                 clusterName,
@@ -169,6 +175,7 @@ func GetServiceCluster(clusterName string, certificateName string) *xds.Cluster 
 	}
 }
 
+// GetADSConfigSource creates an Envoy ConfigSource struct.
 func GetADSConfigSource() *core.ConfigSource {
 	return &core.ConfigSource{
 		ConfigSourceSpecifier: &core.ConfigSource_Ads{

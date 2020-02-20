@@ -14,6 +14,7 @@ const (
 	serverName = "EDS"
 )
 
+// NewEndpointDiscoveryResponse creates a new Endpoint Discovery Response.
 func (s *Server) NewEndpointDiscoveryResponse(proxy *envoy.Proxy) (*v2.DiscoveryResponse, error) {
 	allServices, err := s.catalog.ListEndpoints("TBD")
 	if err != nil {

@@ -91,6 +91,7 @@ func (c *Client) GetID() string {
 	return c.providerIdent
 }
 
+// GetAnnouncementsChannel returns the announcement channel for the SMI client.
 func (c *Client) GetAnnouncementsChannel() <-chan interface{} {
 	return c.announcements
 }

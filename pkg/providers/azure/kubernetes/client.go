@@ -69,7 +69,7 @@ func newClient(kubeClient *kubernetes.Clientset, azureResourceClient *smcClient.
 	return &client
 }
 
-// run executes informer collection.
+// Run executes informer collection.
 func (c *Client) Run(stop <-chan struct{}) error {
 	glog.V(level.Info).Infoln("Kubernetes Compute Provider started")
 	var hasSynced []cache.InformerSynced

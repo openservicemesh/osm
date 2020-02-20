@@ -15,6 +15,7 @@ const (
 	serverName = "LDS"
 )
 
+// NewListenerDiscoveryResponse creates a new Listener Discovery Response.
 func (s *Server) NewListenerDiscoveryResponse(proxy *envoy.Proxy) (*xds.DiscoveryResponse, error) {
 	glog.Infof("[%s] Composing listener Discovery Response for proxy: %s", serverName, proxy.GetCommonName())
 	resp := &xds.DiscoveryResponse{
@@ -28,7 +29,7 @@ func (s *Server) NewListenerDiscoveryResponse(proxy *envoy.Proxy) (*xds.Discover
 	}
 	clientListener := &xds.Listener{
 		Name:    "outbound_listener",
-		Address: envoy.GetAddress(constants.WildcardIpAddr, constants.EnvoyOutboundListenerPort),
+		Address: envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyOutboundListenerPort),
 		FilterChains: []*listener.FilterChain{
 			{
 				Filters: []*listener.Filter{
@@ -51,7 +52,7 @@ func (s *Server) NewListenerDiscoveryResponse(proxy *envoy.Proxy) (*xds.Discover
 
 	serverListener := &xds.Listener{
 		Name:    "inbound_listener",
-		Address: envoy.GetAddress(constants.WildcardIpAddr, constants.EnvoyInboundListenerPort),
+		Address: envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyInboundListenerPort),
 		FilterChains: []*listener.FilterChain{
 			{
 				Filters: []*listener.Filter{
