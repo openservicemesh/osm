@@ -14,6 +14,7 @@ const (
 	serverName = "SDS"
 )
 
+// NewSecretDiscoveryResponse creates a new Secrets Discovery Response.
 func (s *Server) NewSecretDiscoveryResponse(proxy *envoy.Proxy) (*v2.DiscoveryResponse, error) {
 	glog.Infof("[%s] Composing SDS Discovery Response for proxy: %s", serverName, proxy.GetCommonName())
 	cert, err := s.catalog.GetCertificateForService(proxy.GetService())

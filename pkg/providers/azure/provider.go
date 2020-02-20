@@ -53,19 +53,19 @@ func (az Client) ListEndpointsForService(svc endpoint.ServiceName) []endpoint.En
 	return endpoints
 }
 
-// ListServicesForServiceAccounts retrieves the list of Services for the given service account
+// ListServicesForServiceAccount retrieves the list of Services for the given service account
 func (az Client) ListServicesForServiceAccount(svcAccount endpoint.ServiceAccount) []endpoint.ServiceName {
 	//TODO (snchh) : need to figure out the service account equivalnent for azure
 	panic("NotImplemented")
 }
 
-// run starts the Azure observer
 func (az Client) run(stop <-chan struct{}) error {
 	glog.V(level.Info).Infoln("Azure provider run started.")
 	// TODO(draychev): implement pub/sub
 	return nil
 }
 
+// GetAnnouncementsChannel returns the announcement channel for the Azure endponits provider.
 func (az Client) GetAnnouncementsChannel() <-chan interface{} {
 	return az.announcements
 }

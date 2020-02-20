@@ -37,8 +37,8 @@ func getServiceClusterLocal(clusterName string) *xds.Cluster {
 					LbEndpoints: []*endpoint.LbEndpoint{{
 						HostIdentifier: &endpoint.LbEndpoint_Endpoint{
 							Endpoint: &endpoint.Endpoint{
-								// TODO: Don't hardcode HttpPort, this depends on the service
-								Address: envoy.GetAddress(constants.WildcardIpAddr, constants.HttpPort),
+								// TODO: Don't hardcode HTTPPort, this depends on the service
+								Address: envoy.GetAddress(constants.WildcardIPAddr, constants.HTTPPort),
 							},
 						},
 						LoadBalancingWeight: &wrappers.UInt32Value{

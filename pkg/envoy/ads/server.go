@@ -45,10 +45,14 @@ func (s *Server) DeltaAggregatedResources(server xds.AggregatedDiscoveryService_
 	panic("NotImplemented")
 }
 
+// Liveness is the Kubernetes liveness probe handler.
 func (s *Server) Liveness() bool {
+	// TODO(draychev): implement
 	return true
 }
 
+// Readiness is the Kubernetes readiness probe handler.
 func (s *Server) Readiness() bool {
+	// TODO(draychev): implement
 	return true
 }
