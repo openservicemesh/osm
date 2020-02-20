@@ -74,10 +74,16 @@ docker-build-ads: build-cross-ads
 build-bookstore:
 	@rm -rf $(shell pwd)/demo/bin
 	@mkdir -p $(shell pwd)/demo/bin
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ./demo/bin/bookstore ./demo/bookstore.go
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ./demo/bin/bookstore ./demo/cmd/bookstore/bookstore.go
+
+.PHONY: build-bookbuyer
+build-bookbuyer:
+	@rm -rf $(shell pwd)/demo/bin
+	@mkdir -p $(shell pwd)/demo/bin
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ./demo/bin/bookbuyer ./demo/cmd/bookbuyer/bookbuyer.go
 
 .PHONY: docker-build-bookbuyer
-docker-build-bookbuyer:
+docker-build-bookbuyer: build-bookbuyer
 	docker build -t $(CTR_REGISTRY)/bookbuyer -f dockerfiles/Dockerfile.bookbuyer .
 
 .PHONY: docker-build-bookstore
