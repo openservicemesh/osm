@@ -74,7 +74,7 @@ spec:
           ports:
             - containerPort: 80
               name: web
-          command: ["/counter"]
+          command: ["/bookstore"]
           args: ["--path", "./", "--port", "80"]
           env:
             - name: IDENTITY

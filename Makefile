@@ -70,18 +70,18 @@ go-test:
 docker-build-ads: build-cross-ads
 	docker build --build-arg $(HOME)/go/ -t $(CTR_REGISTRY)/ads -f dockerfiles/Dockerfile.ads .
 
-.PHONY: build-counter
-build-counter:
+.PHONY: build-bookstore
+build-bookstore:
 	@rm -rf $(shell pwd)/demo/bin
 	@mkdir -p $(shell pwd)/demo/bin
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ./demo/bin/counter ./demo/counter.go
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ./demo/bin/bookstore ./demo/bookstore.go
 
 .PHONY: docker-build-bookbuyer
 docker-build-bookbuyer:
 	docker build -t $(CTR_REGISTRY)/bookbuyer -f dockerfiles/Dockerfile.bookbuyer .
 
 .PHONY: docker-build-bookstore
-docker-build-bookstore: build-counter
+docker-build-bookstore: build-bookstore
 	docker build -t $(CTR_REGISTRY)/bookstore -f dockerfiles/Dockerfile.bookstore .
 
 .PHONY: docker-build-init

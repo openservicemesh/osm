@@ -13,7 +13,7 @@ kubectl apply -f - <<EOF
 kind: TrafficTarget
 apiVersion: access.smi-spec.io/v1alpha1
 metadata:
-  name: bookstore-service-counter
+  name: bookstore-service
   namespace: "$K8S_NAMESPACE"
 destination:
   # (todo): use service account
