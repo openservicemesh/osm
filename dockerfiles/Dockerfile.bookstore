@@ -1,8 +1,7 @@
 FROM alpine:3.10.1
 RUN apk --update --no-cache add curl
 RUN apk add --no-cache iptables
-ADD ./demo/bin/counter /
-ADD ./demo/counter.html.template /
+ADD ./demo/bin/bookstore /
+ADD ./demo/bookstore.html.template /
 WORKDIR /
-RUN chmod +x counter
-CMD ["sh","counter"]
+RUN chmod +x bookstore

@@ -1,7 +1,6 @@
 FROM alpine:3.10.1
 RUN apk --update --no-cache add curl
 RUN apk add --no-cache iptables
-ADD ./demo/bookbuyer.sh /
+ADD ./demo/bin/bookbuyer /
 WORKDIR /
-RUN chmod +x bookbuyer.sh
-CMD ["sh","bookbuyer.sh"]
+RUN chmod +x bookbuyer

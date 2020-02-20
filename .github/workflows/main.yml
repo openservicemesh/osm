@@ -27,6 +27,7 @@ jobs:
             dep ensure
         fi
 
+
     - name: Integration Test
       env:
         KUBE_CONFIG: ${{ secrets.KUBECONFIG }}
@@ -39,7 +40,6 @@ jobs:
         DOCKER_USER: ${{ secrets.DOCKER_USER }}
         DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
       run: |
-        echo "KUBECONFIG: $KUBECONFIG"
         mkdir -p ".kube"
         echo "$KUBE_CONFIG" | base64 -d > "$KUBECONFIG"
         echo "$DOCKER_PASS" | docker login delqn.azurecr.io -u "$DOCKER_USER" --password-stdin
@@ -49,17 +49,29 @@ jobs:
 
 
 
+    - name: Lint
+      run: |
+        go get golang.org/x/lint/golint
+        export GOPATH=$HOME/go
+        export GOBIN=$(go env GOPATH)/bin
+        export PATH=$PATH:$GOPATH
+        export PATH=$PATH:$GOBIN
+        golint -set_exit_status ./...
+
     - name: Vet
       run: |
         if go vet -v ./...; then
-            echo -e "\e[42;97m govet SUCCEEDED \e[0m"
+            echo -e "govet SUCCEEDED"
         else
-            echo -e "\e[101;97m govet FAILED \e[0m"``
+            echo -e "govet FAILED"
             exit 1
         fi
 
     - name: Fmt
       run: "! go fmt ./... 2>&1 | read"
+
+    - name: Build
+      run: go build -v ./...
 
     - name: Test with coverage
       run: |
@@ -78,22 +90,3 @@ jobs:
         gocov-xml < coverage.json > coverage.xml
         mkdir coverage
         gocov-html < coverage.json > coverage/index.html
-
-    - name: Lint
-      run: |
-        go get golang.org/x/lint/golint
-        export GOPATH=$HOME/go
-        export GOBIN=$(go env GOPATH)/bin
-        export PATH=$PATH:$GOPATH
-        export PATH=$PATH:$GOBIN
-        golint .
-
-    - name: Build
-      run: go build -v ./...
-
-    - uses: actions-hub/kubectl@master
-      env:
-        KUBE_CONFIG: ${{ secrets.KUBECONFIG }}
-      with:
-        args: get namespaces
-

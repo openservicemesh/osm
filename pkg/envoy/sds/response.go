@@ -1,9 +1,6 @@
 package sds
 
 import (
-	"fmt"
-	"time"
-
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
@@ -11,14 +8,14 @@ import (
 	"github.com/golang/protobuf/ptypes"
 
 	"github.com/deislabs/smc/pkg/envoy"
-	"github.com/deislabs/smc/pkg/log"
 )
 
 const (
-	sleepTime = 5
+	serverName = "SDS"
 )
 
-func (s *Server) newSecretDiscoveryResponse(proxy envoy.Proxyer) (*v2.DiscoveryResponse, error) {
+// NewSecretDiscoveryResponse creates a new Secrets Discovery Response.
+func (s *Server) NewSecretDiscoveryResponse(proxy *envoy.Proxy) (*v2.DiscoveryResponse, error) {
 	glog.Infof("[%s] Composing SDS Discovery Response for proxy: %s", serverName, proxy.GetCommonName())
 	cert, err := s.catalog.GetCertificateForService(proxy.GetService())
 	if err != nil {
@@ -27,7 +24,7 @@ func (s *Server) newSecretDiscoveryResponse(proxy envoy.Proxyer) (*v2.DiscoveryR
 	}
 
 	resp := &v2.DiscoveryResponse{
-		TypeUrl: typeUrl,
+		TypeUrl: string(envoy.TypeSDS),
 	}
 
 	services := []string{
@@ -63,13 +60,5 @@ func (s *Server) newSecretDiscoveryResponse(proxy envoy.Proxyer) (*v2.DiscoveryR
 		}
 		resp.Resources = append(resp.Resources, marshalledSecret)
 	}
-
-	s.lastVersion = s.lastVersion + 1
-	s.lastNonce = string(time.Now().Nanosecond())
-	resp.Nonce = s.lastNonce
-	resp.VersionInfo = fmt.Sprintf("v%d", s.lastVersion)
-
-	glog.V(log.LvlTrace).Infof("[%s] Constructed response: %+v", serverName, resp)
-
 	return resp, nil
 }

@@ -12,7 +12,4 @@ type Server struct {
 	ctx      context.Context
 	catalog  catalog.MeshCataloger
 	meshSpec smi.MeshSpec
-
-	lastVersion uint64
-	lastNonce   string
 }

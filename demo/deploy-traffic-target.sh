@@ -13,12 +13,12 @@ kubectl apply -f - <<EOF
 kind: TrafficTarget
 apiVersion: access.smi-spec.io/v1alpha1
 metadata:
-  name: bookstore-service-counter
+  name: bookstore-service
   namespace: "$K8S_NAMESPACE"
 destination:
   # (todo): use service account
-  kind: Service
-  name: bookstore-local
+  kind: ServiceAccount
+  name: bookstore-1-serviceaccount
   namespace: "$K8S_NAMESPACE"
 specs:
 - kind: HTTPRouteGroup
@@ -27,7 +27,7 @@ specs:
   - counter
 sources:
 # (todo): use service account
-- kind: Service
-  name: bookstore.mesh
+- kind: ServiceAccount
+  name: bookbuyer-serviceaccount
   namespace: "$K8S_NAMESPACE"
 EOF

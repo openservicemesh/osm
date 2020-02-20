@@ -3,12 +3,14 @@ package cds
 import (
 	"time"
 
-	"github.com/deislabs/smc/pkg/envoy"
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/wrappers"
+
+	"github.com/deislabs/smc/pkg/constants"
+	"github.com/deislabs/smc/pkg/envoy"
 )
 
 func getServiceClusterLocal(clusterName string) *xds.Cluster {
@@ -35,7 +37,8 @@ func getServiceClusterLocal(clusterName string) *xds.Cluster {
 					LbEndpoints: []*endpoint.LbEndpoint{{
 						HostIdentifier: &endpoint.LbEndpoint_Endpoint{
 							Endpoint: &endpoint.Endpoint{
-								Address: envoy.GetAddress("0.0.0.0", 80),
+								// TODO: Don't hardcode HTTPPort, this depends on the service
+								Address: envoy.GetAddress(constants.WildcardIPAddr, constants.HTTPPort),
 							},
 						},
 						LoadBalancingWeight: &wrappers.UInt32Value{

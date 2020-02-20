@@ -7,7 +7,7 @@ import (
 	"github.com/golang/glog"
 
 	"github.com/deislabs/smc/pkg/endpoint"
-	"github.com/deislabs/smc/pkg/log"
+	"github.com/deislabs/smc/pkg/log/level"
 	"github.com/deislabs/smc/pkg/smi"
 )
 
@@ -38,9 +38,9 @@ func (sc *MeshCatalog) getWeightedEndpointsPerService() (map[endpoint.ServiceNam
 	backendWeight := make(map[string]int)
 
 	for _, trafficSplit := range sc.meshSpec.ListTrafficSplits() {
-		targetServiceName := endpoint.ServiceName(trafficSplit.Spec.Service)
+		targetServiceName := endpoint.ServiceName(fmt.Sprintf("%s/%s", trafficSplit.Namespace, trafficSplit.Spec.Service))
 		var services []endpoint.WeightedService
-		glog.V(log.LvlTrace).Infof("[Server][catalog] Discovered TrafficSplit resource: %s/%s for service %s\n", trafficSplit.Namespace, trafficSplit.Name, targetServiceName)
+		glog.V(level.Trace).Infof("[Server][catalog] Discovered TrafficSplit resource: %s/%s for service %s\n", trafficSplit.Namespace, trafficSplit.Name, targetServiceName)
 		if trafficSplit.Spec.Backends == nil {
 			glog.Errorf("[Server][catalog] TrafficSplit %s/%s has no Backends in Spec; Skipping...", trafficSplit.Namespace, trafficSplit.Name)
 			continue
@@ -48,12 +48,12 @@ func (sc *MeshCatalog) getWeightedEndpointsPerService() (map[endpoint.ServiceNam
 		for _, trafficSplitBackend := range trafficSplit.Spec.Backends {
 			// TODO(draychev): PULL THIS FROM SERVICE REGISTRY
 			// svcName := mesh.ServiceName(fmt.Sprintf("%s/%s", trafficSplit.Namespace, trafficSplitBackend.ServiceName))
+			namespaced := fmt.Sprintf("%s/%s", trafficSplit.Namespace, trafficSplitBackend.Service)
 			backendWeight[trafficSplitBackend.Service] = trafficSplitBackend.Weight
 			weightedService := endpoint.WeightedService{}
-			weightedService.ServiceName = endpoint.ServiceName(trafficSplitBackend.Service)
+			weightedService.ServiceName = endpoint.ServiceName(namespaced)
 			weightedService.Weight = trafficSplitBackend.Weight
 			var err error
-			namespaced := fmt.Sprintf("%s/%s", trafficSplit.Namespace, trafficSplitBackend.Service)
 			if weightedService.Endpoints, err = sc.listEndpointsForService(endpoint.ServiceName(namespaced)); err != nil {
 				glog.Errorf("[catalog] Error getting Endpoints for service %s: %s", namespaced, err)
 				weightedService.Endpoints = []endpoint.Endpoint{}
@@ -62,7 +62,7 @@ func (sc *MeshCatalog) getWeightedEndpointsPerService() (map[endpoint.ServiceNam
 		}
 		byTargetService[targetServiceName] = services
 	}
-	glog.V(log.LvlTrace).Infof("[catalog] Constructed weighted services: %+v", byTargetService)
+	glog.V(level.Trace).Infof("[catalog] Constructed weighted services: %+v", byTargetService)
 	return byTargetService, nil
 }
 

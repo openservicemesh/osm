@@ -5,8 +5,8 @@ set -aueo pipefail
 # shellcheck disable=SC1091
 source .env
 
-NAME=${1:-unknown}
-PORT=${2:-9999}
+NAME="ads"
+PORT=15128
 
 ./demo/deploy-secrets.sh "${NAME}"
 
@@ -22,10 +22,6 @@ metadata:
     app: $NAME
 spec:
   ports:
-  - port: 15000
-    targetPort: admin-port
-    name: $NAME-envoy-admin-port
-
   - port: $PORT
     targetPort: $PORT
     name: $NAME-port
@@ -51,15 +47,15 @@ spec:
       imagePullPolicy: Always
       name: curl
       ports:
-        - containerPort: 15000
-          name: admin-port
         - containerPort: $PORT
           name: $NAME-port
 
       command: [ "/$NAME"]
       args:
-        - "--kubeconfig"
-        - "/kube/config"
+        - "--azureAuthFile"
+        - "/azure/azureAuth.json"
+        - "--subscriptionID"
+        - "$AZURE_SUBSCRIPTION"
         - "--verbosity"
         - "17"
         - "--namespace"
@@ -70,12 +66,6 @@ spec:
         - "/etc/ssl/certs/key.pem"
         - "--rootcertpem"
         - "/etc/ssl/certs/root-cert.pem"
-
-      env:
-        - name: GRPC_GO_LOG_VERBOSITY_LEVEL
-          value: "99"
-        - name: GRPC_GO_LOG_SEVERITY_LEVEL
-          value: "info"
 
       volumeMounts:
       - name: kubeconfig
@@ -98,6 +88,19 @@ spec:
         mountPath: /etc/ssl/certs/root-cert.pem
         subPath: root-cert.pem
         readOnly: false
+
+      readinessProbe:
+        httpGet:
+          path: /health/ready
+          port: 15000
+        initialDelaySeconds: 5
+        periodSeconds: 10
+      livenessProbe:
+        httpGet:
+          path: /health/alive
+          port: 15000
+        initialDelaySeconds: 15
+        periodSeconds: 20
 
   volumes:
     - name: kubeconfig

@@ -9,5 +9,5 @@ import (
 
 func TestClusterLoadAssignment(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Environment Suite")
+	RunSpecs(t, "Cluster Load Assignment Test Suite")
 }

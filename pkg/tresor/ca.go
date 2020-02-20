@@ -4,11 +4,12 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"github.com/deislabs/smc/pkg/tresor/pem"
 	"time"
 )
 
 // NewCA creates a new Certificate Authority.
-func NewCA(org string, validity time.Duration) (CA, CAPrivateKey, *x509.Certificate, *rsa.PrivateKey, error) {
+func NewCA(org string, validity time.Duration) (pem.RootCertificate, pem.RootPrivateKey, *x509.Certificate, *rsa.PrivateKey, error) {
 	template, err := makeTemplate("", org, validity)
 	if err != nil {
 		return nil, nil, nil, nil, err
@@ -22,5 +23,5 @@ func NewCA(org string, validity time.Duration) (CA, CAPrivateKey, *x509.Certific
 		return nil, nil, nil, nil, err
 	}
 	caCert, caKey, err := genCert(template, template, caPrivKey, caPrivKey)
-	return CA(caCert), CAPrivateKey(caKey), template, caPrivKey, err
+	return pem.RootCertificate(caCert), pem.RootPrivateKey(caKey), template, caPrivKey, err
 }

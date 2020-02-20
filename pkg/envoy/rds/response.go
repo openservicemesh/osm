@@ -1,21 +1,29 @@
 package rds
 
 import (
-	"fmt"
-	"time"
-
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes"
 
-	"github.com/deislabs/smc/pkg/endpoint"
+	"github.com/deislabs/smc/pkg/envoy"
 	"github.com/deislabs/smc/pkg/envoy/route"
-	"github.com/deislabs/smc/pkg/log"
 )
 
-func (e *Server) newRouteDiscoveryResponse(allTrafficPolicies []endpoint.TrafficTargetPolicies) (*v2.DiscoveryResponse, error) {
+const (
+	serverName = "RDS"
+)
+
+// NewRouteDiscoveryResponse creates a new Route Discovery Response.
+func (s *Server) NewRouteDiscoveryResponse(proxy *envoy.Proxy) (*v2.DiscoveryResponse, error) {
+	allTrafficPolicies, err := s.catalog.ListTrafficRoutes("TBD")
+	if err != nil {
+		glog.Errorf("[%s] Failed listing routes: %+v", serverName, err)
+		return nil, err
+	}
+	glog.Infof("[%s] trafficPolicies: %+v", serverName, allTrafficPolicies)
+
 	resp := &v2.DiscoveryResponse{
-		TypeUrl: route.RouteConfigurationURI,
+		TypeUrl: string(envoy.TypeRDS),
 	}
 
 	for _, trafficPolicies := range allTrafficPolicies {
@@ -31,10 +39,5 @@ func (e *Server) newRouteDiscoveryResponse(allTrafficPolicies []endpoint.Traffic
 			resp.Resources = append(resp.Resources, marshalledRouteConfig)
 		}
 	}
-	e.lastVersion = e.lastVersion + 1
-	e.lastNonce = string(time.Now().Nanosecond())
-	resp.Nonce = e.lastNonce
-	resp.VersionInfo = fmt.Sprintf("v%d", e.lastVersion)
-	glog.V(log.LvlTrace).Infof("[%s] Constructed response: %+v", serverName, resp)
 	return resp, nil
 }

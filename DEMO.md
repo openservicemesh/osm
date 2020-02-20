@@ -49,5 +49,65 @@ An example is provided in the `.env.example` in the root of this repo.
 
 1. To see the results of deploying the services and the service mesh - run the tailing script: `./demo/tail-bookbuyer.sh`
    - the script will connect to the bookbuyer Kubernetes Pod and will stream its logs
-   - the output will be the cURL command to the `bookstore.mesh` service and counter responses
+   - the output will be the output of the cURL command to the `bookstore.mesh` service and the count of books sold
    - a properly working service mesh will result in HTTP 200 OK responses from the bookstore, along with a monotonically increasing counter appearing in the response headers.
+
+## Onboarding VMs to a service mesh
+
+The following sections outline how to onboard VMs to participate in a service mesh comprising of services running in a Kubernetes cluster.
+
+
+### Requirements
+- Ubuntu VM on Azure
+- AKS cluster with advanced networking enabled - required for direct connectivity between K8s pods and services within the Azure VNET
+
+### Bootstrapping the VM with Envoy proxy
+
+#### Install and set up Envoy proxy
+- Install the Envoy proxy package
+	```
+	$ curl -sL https://getenvoy.io/gpg | sudo apt-key add -
+	$ sudo add-apt-repository "deb [arch=amd64] https://dl.bintray.com/tetrate/getenvoy-deb $(lsb_release -cs) stable"
+	$ sudo apt-get update
+	$ sudo apt-get install -y getenvoy-envoy
+	```
+- Verify Envoy is installed
+	```
+	$ envoy --version
+	```
+- Copy the Envoy boostrap configuration file `smc/demo/config/bootstrap.yaml`  to `/etc/envoy/bootstrap.yaml`
+	Refer to [Envoy - Getting Started guide](https://www.envoyproxy.io/docs/envoy/latest/start/start#https://www.envoyproxy.io/docs/envoy/latest/start/start#) for setting up the bootstrap configuration.
+
+- Add the hostname to IP address mapping for the xDS services in `/etc/hosts` file on the VM so that the envoy proxy can connect to the xDS services using their hostname specified in the bootstrap config file.
+
+- Configure the Envoy service by creating `envoy.service` file under `/etc/systemd/system` and register it as a service
+	```
+	[Unit]
+	Description=Envoy
+
+	[Service]
+	ExecStart=/usr/bin/envoy -c /etc/envoy/bootstrap.yaml
+	Restart=always
+	RestartSec=5
+	KillMode=mixed
+	SyslogIdentifier=envoy
+	LimitNOFILE=640000
+
+	[Install]
+	WantedBy=multi-user.target
+	```
+	```
+	$ systemctl daemon-reload
+	```
+- Set up the certificates required for mTLS between Envoy proxies and for Envoy proxy to SMC control plane communication
+	- Copy `smc/demo/certificates/*` to `/etc/certs/` on the VM
+	- Copy `smc/bin/cert.pem`, `smc/bin/key.pem` to `/etc/ssl/certs/` on the VM
+
+- Start Envoy proxy
+	```
+	$ systemctl start envoy
+	```
+
+- Check `/var/log/syslog` if you encounter issues with Envoy
+
+- Copy and run the bookstore app `smc/demo/bin/bookstore` on the VM

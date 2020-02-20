@@ -6,39 +6,16 @@ import (
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
-	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	accesslog "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v2"
 	accessLogV2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
 	wellknown "github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
-	"github.com/golang/protobuf/ptypes/duration"
 	structpb "github.com/golang/protobuf/ptypes/struct"
-	"github.com/golang/protobuf/ptypes/wrappers"
 )
 
-const (
-	accessLogPath = "/dev/stdout"
-
-	SDSClusterName = "sds"
-	SDSAddress     = "sds.smc.svc.cluster.local"
-	SDSPort        = 15123
-
-	EDSClusterName = "eds"
-	EDSAddress     = "eds.smc.svc.cluster.local"
-	EDSPort        = 15124
-
-	RDSClusterName = "rds"
-	RDSAddress     = "rds.smc.svc.cluster.local"
-	RDSPort        = 15126
-
-	// cipher suites
-	aes    = "ECDHE-ECDSA-AES128-GCM-SHA256"
-	chacha = "ECDHE-ECDSA-CHACHA20-POLY1305"
-)
-
+// GetAddress creates an Envoy Address struct.
 func GetAddress(address string, port uint32) *core.Address {
 	// TODO(draychev): figure this out from the service
 	return &core.Address{
@@ -54,6 +31,7 @@ func GetAddress(address string, port uint32) *core.Address {
 	}
 }
 
+// GetTLSParams creates Envoy TlsParameters struct.
 func GetTLSParams() *auth.TlsParameters {
 	return &auth.TlsParameters{
 		TlsMinimumProtocolVersion: auth.TlsParameters_TLSv1_2,
@@ -62,22 +40,7 @@ func GetTLSParams() *auth.TlsParameters {
 	}
 }
 
-func GetGRPCSource(clusterName string) *core.ConfigSource {
-	return &core.ConfigSource{
-		ConfigSourceSpecifier: &core.ConfigSource_ApiConfigSource{
-			ApiConfigSource: &core.ApiConfigSource{
-				ApiType: core.ApiConfigSource_GRPC,
-				GrpcServices: []*core.GrpcService{{
-					TargetSpecifier: &core.GrpcService_EnvoyGrpc_{
-						EnvoyGrpc: &core.GrpcService_EnvoyGrpc{ClusterName: clusterName},
-					},
-				}},
-				SetNodeOnFirstMessageOnly: true,
-			},
-		},
-	}
-}
-
+// GetAccessLog creates an Envoy AccessLog struct.
 func GetAccessLog() []*accessLogV2.AccessLog {
 	accessLog, err := ptypes.MarshalAny(getFileAccessLog())
 	if err != nil {
@@ -134,54 +97,18 @@ func pbStringValue(v string) *structpb.Value {
 	}
 }
 
-func GetWeightedCluster(clusterName string, weight uint32) *route.RouteAction_WeightedClusters {
-	return &route.RouteAction_WeightedClusters{
-		WeightedClusters: &route.WeightedCluster{
-			Clusters: []*route.WeightedCluster_ClusterWeight{{
-				Name: clusterName,
-				Weight: &wrappers.UInt32Value{
-					Value: weight,
-				},
-			}},
-		},
-	}
-}
-
-func GetUpstreamTLS(certPem string, keyPem string) *auth.UpstreamTlsContext {
-	return &auth.UpstreamTlsContext{
-		AllowRenegotiation: true,
-		CommonTlsContext: &auth.CommonTlsContext{
-			TlsParams: GetTLSParams(),
-			TlsCertificates: []*auth.TlsCertificate{
-				{
-					CertificateChain: &core.DataSource{
-						Specifier: &core.DataSource_Filename{
-							Filename: certPem,
-						},
-					},
-					PrivateKey: &core.DataSource{
-						Specifier: &core.DataSource_Filename{
-							Filename: keyPem,
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
 func getTLSDownstream(certificateName string) *any.Any {
 	tlsConfig := &auth.DownstreamTlsContext{
 		CommonTlsContext: &auth.CommonTlsContext{
 			TlsParams: GetTLSParams(),
 			TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
 				Name:      certificateName,
-				SdsConfig: GetGRPCSource(SDSClusterName),
+				SdsConfig: GetADSConfigSource(),
 			}},
 			ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 				ValidationContextSdsSecretConfig: &auth.SdsSecretConfig{
 					Name:      certificateName,
-					SdsConfig: GetGRPCSource(SDSClusterName),
+					SdsConfig: GetADSConfigSource(),
 				},
 			},
 		},
@@ -201,12 +128,12 @@ func getTLSUpstream(certificateName string) *any.Any {
 			TlsParams: GetTLSParams(),
 			TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
 				Name:      certificateName,
-				SdsConfig: GetGRPCSource(SDSClusterName),
+				SdsConfig: GetADSConfigSource(),
 			}},
 			ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 				ValidationContextSdsSecretConfig: &auth.SdsSecretConfig{
 					Name:      certificateName,
-					SdsConfig: GetGRPCSource(SDSClusterName),
+					SdsConfig: GetADSConfigSource(),
 				},
 			},
 		},
@@ -220,6 +147,7 @@ func getTLSUpstream(certificateName string) *any.Any {
 	return tls
 }
 
+// GetTransportSocketForServiceDownstream creates a downstream Envoy TransportSocket struct.
 func GetTransportSocketForServiceDownstream(certificateName string) *core.TransportSocket {
 	return &core.TransportSocket{
 		Name:       TransportSocketTLS,
@@ -227,6 +155,7 @@ func GetTransportSocketForServiceDownstream(certificateName string) *core.Transp
 	}
 }
 
+// GetTransportSocketForServiceUpstream creates an upstream TransportSocket struct.
 func GetTransportSocketForServiceUpstream(certificateName string) *core.TransportSocket {
 	return &core.TransportSocket{
 		Name:       TransportSocketTLS,
@@ -234,75 +163,23 @@ func GetTransportSocketForServiceUpstream(certificateName string) *core.Transpor
 	}
 }
 
+// GetServiceCluster creates an Envoy Cluster struct.
 func GetServiceCluster(clusterName string, certificateName string) *xds.Cluster {
 	return &xds.Cluster{
 		Name:                 clusterName,
 		ConnectTimeout:       ptypes.DurationProto(5 * time.Second),
 		LbPolicy:             xds.Cluster_ROUND_ROBIN,
 		ClusterDiscoveryType: &xds.Cluster_Type{Type: xds.Cluster_EDS},
-		EdsClusterConfig:     GetEDSCluster(),
+		EdsClusterConfig:     &xds.Cluster_EdsClusterConfig{EdsConfig: GetADSConfigSource()},
 		TransportSocket:      GetTransportSocketForServiceUpstream(certificateName),
 	}
 }
 
-func GetEDSCluster() *xds.Cluster_EdsClusterConfig {
-	return &xds.Cluster_EdsClusterConfig{
-		EdsConfig: &core.ConfigSource{
-			ConfigSourceSpecifier: &core.ConfigSource_ApiConfigSource{
-				ApiConfigSource: &core.ApiConfigSource{
-					ApiType: core.ApiConfigSource_GRPC,
-					GrpcServices: []*core.GrpcService{
-						{
-							TargetSpecifier: &core.GrpcService_EnvoyGrpc_{
-								EnvoyGrpc: &core.GrpcService_EnvoyGrpc{ClusterName: EDSClusterName},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
-func GetTimeout() *duration.Duration {
-	return &duration.Duration{
-		Seconds: 5,
-	}
-}
-
-func GetH2() *core.Http2ProtocolOptions {
-	return &core.Http2ProtocolOptions{}
-}
-
-func GetTransportSocket() *core.TransportSocket {
-	tls, err := ptypes.MarshalAny(GetUpstreamTLS("/etc/ssl/certs/cert.pem", "/etc/ssl/certs/key.pem"))
-	if err != nil {
-		glog.Error("[CDS] Error marshalling UpstreamTLS: ", err)
-		return nil
-	}
-	return &core.TransportSocket{
-		Name: TransportSocketTLS,
-		ConfigType: &core.TransportSocket_TypedConfig{
-			TypedConfig: tls,
-		},
-	}
-}
-
-func GetLoadAssignment(clusterName string, address string, port uint32) *xds.ClusterLoadAssignment {
-	return &xds.ClusterLoadAssignment{
-		ClusterName: clusterName,
-		Endpoints: []*endpoint.LocalityLbEndpoints{
-			{
-				LbEndpoints: []*endpoint.LbEndpoint{
-					{
-						HostIdentifier: &endpoint.LbEndpoint_Endpoint{
-							Endpoint: &endpoint.Endpoint{
-								Address: GetAddress(address, port),
-							},
-						},
-					},
-				},
-			},
+// GetADSConfigSource creates an Envoy ConfigSource struct.
+func GetADSConfigSource() *core.ConfigSource {
+	return &core.ConfigSource{
+		ConfigSourceSpecifier: &core.ConfigSource_Ads{
+			Ads: &core.AggregatedConfigSource{},
 		},
 	}
 }

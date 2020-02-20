@@ -8,17 +8,14 @@ import (
 	"github.com/deislabs/smc/pkg/certificate"
 )
 
-type CA []byte
-type CAPrivateKey []byte
-type CertPEM []byte
-type CertPrivKeyPEM []byte
-
 const (
+	// TypeCertificate is a string constant to be used in the generation of a certificate.
 	TypeCertificate = "CERTIFICATE"
-	TypePrivateKey  = "PRIVATE KEY"
+	// TypePrivateKey is a string constant to be used in the generation of a private key for a certificate.
+	TypePrivateKey = "PRIVATE KEY"
 )
 
-// Implements certificate.Manager
+// CertManager implements certificate.Manager
 type CertManager struct {
 	ca            *x509.Certificate
 	caPrivKey     *rsa.PrivateKey
@@ -28,7 +25,7 @@ type CertManager struct {
 	cache         map[certificate.CommonName]Certificate
 }
 
-// Implements certificate.Certificater
+// Certificate implements certificate.Certificater
 type Certificate struct {
 	name       string
 	certChain  []byte

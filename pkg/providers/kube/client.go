@@ -1,21 +1,24 @@
 package kube
 
 import (
+	"fmt"
 	"net"
 	"time"
 
 	"github.com/golang/glog"
 	corev1 "k8s.io/api/core/v1"
+	extensionsv1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/deislabs/smc/pkg/constants"
 	"github.com/deislabs/smc/pkg/endpoint"
-	"github.com/deislabs/smc/pkg/log"
+	"github.com/deislabs/smc/pkg/log/level"
 )
 
-var resyncPeriod = 1 * time.Second
+var resyncPeriod = 10 * time.Second
 
 // NewProvider implements mesh.EndpointsProvider, which creates a new Kubernetes cluster/compute provider.
 func NewProvider(kubeConfig *rest.Config, namespaces []string, stop chan struct{}, providerIdent string) *Client {
@@ -28,11 +31,13 @@ func NewProvider(kubeConfig *rest.Config, namespaces []string, stop chan struct{
 	informerFactory := informers.NewSharedInformerFactoryWithOptions(kubeClient, resyncPeriod, options...)
 
 	informerCollection := InformerCollection{
-		Endpoints: informerFactory.Core().V1().Endpoints().Informer(),
+		Endpoints:   informerFactory.Core().V1().Endpoints().Informer(),
+		Deployments: informerFactory.Extensions().V1beta1().Deployments().Informer(),
 	}
 
 	cacheCollection := CacheCollection{
-		Endpoints: informerCollection.Endpoints.GetStore(),
+		Endpoints:   informerCollection.Endpoints.GetStore(),
+		Deployments: informerCollection.Deployments.GetStore(),
 	}
 
 	client := Client{
@@ -53,16 +58,13 @@ func NewProvider(kubeConfig *rest.Config, namespaces []string, stop chan struct{
 	}
 
 	informerCollection.Endpoints.AddEventHandler(resourceHandler)
+	informerCollection.Deployments.AddEventHandler(resourceHandler)
 
 	if err := client.run(stop); err != nil {
 		glog.Fatal("Could not start Kubernetes EndpointProvider client", err)
 	}
 
 	return &client
-}
-
-func (c *Client) GetAnnouncementsChannel() <-chan interface{} {
-	return c.announcements
 }
 
 // GetID returns a string descriptor / identifier of the compute provider.
@@ -87,7 +89,7 @@ func (c Client) ListEndpointsForService(svc endpoint.ServiceName) []endpoint.End
 	}
 
 	// TODO(draychev): get the port number from the service
-	port := endpoint.Port(15003)
+	port := endpoint.Port(constants.EnvoyInboundListenerPort)
 
 	if kubernetesEndpoints := endpointsInterface.(*corev1.Endpoints); kubernetesEndpoints != nil {
 		for _, kubernetesEndpoint := range kubernetesEndpoints.Subsets {
@@ -103,9 +105,43 @@ func (c Client) ListEndpointsForService(svc endpoint.ServiceName) []endpoint.End
 	return endpoints
 }
 
+// ListServicesForServiceAccount retrieves the list of Services for the given service account
+func (c Client) ListServicesForServiceAccount(svcAccount endpoint.ServiceAccount) []endpoint.ServiceName {
+	glog.Infof("[%s] Getting Services for service account %s on Kubernetes", c.providerIdent, svcAccount)
+	var services []endpoint.ServiceName
+	deploymentsInterface := c.caches.Deployments.List()
+
+	for _, deployments := range deploymentsInterface {
+		if kubernetesDeployments := deployments.(*extensionsv1.Deployment); kubernetesDeployments != nil {
+			spec := kubernetesDeployments.Spec
+			namespacedSvcAccount := endpoint.ServiceAccount(fmt.Sprintf("%s/%s", kubernetesDeployments.Namespace, spec.Template.Spec.ServiceAccountName))
+			if svcAccount == namespacedSvcAccount {
+				var selectorLabel map[string]string
+				if spec.Selector != nil {
+					selectorLabel = spec.Selector.MatchLabels
+				} else {
+					selectorLabel = spec.Template.Labels
+				}
+				namespacedService := fmt.Sprintf("%s/%s", kubernetesDeployments.Namespace, selectorLabel["app"])
+				services = append(services, endpoint.ServiceName(namespacedService))
+			}
+		}
+	}
+
+	glog.Infof("[%s] Services %v observed on service account %s on Kubernetes", c.providerIdent, services, svcAccount)
+	return services
+}
+
+// GetAnnouncementsChannel returns the announcement channel for the Kubernetes endpoints provider.
+func (c Client) GetAnnouncementsChannel() <-chan interface{} {
+	// return c.announcements
+	// TODO(draychev): implement
+	return make(chan interface{})
+}
+
 // run executes informer collection.
 func (c *Client) run(stop <-chan struct{}) error {
-	glog.V(log.LvlInfo).Infoln("Kubernetes Compute Provider started")
+	glog.V(level.Info).Infoln("Kubernetes Compute Provider started")
 	var hasSynced []cache.InformerSynced
 
 	if c.informers == nil {
@@ -113,7 +149,8 @@ func (c *Client) run(stop <-chan struct{}) error {
 	}
 
 	sharedInformers := map[friendlyName]cache.SharedInformer{
-		"Endpoints": c.informers.Endpoints,
+		"Endpoints":   c.informers.Endpoints,
+		"Deployments": c.informers.Deployments,
 	}
 
 	var names []friendlyName
@@ -128,7 +165,7 @@ func (c *Client) run(stop <-chan struct{}) error {
 		hasSynced = append(hasSynced, informer.HasSynced)
 	}
 
-	glog.V(log.LvlInfo).Infof("Waiting informers cache sync: %+v", names)
+	glog.V(level.Info).Infof("Waiting informers cache sync: %+v", names)
 	if !cache.WaitForCacheSync(stop, hasSynced...) {
 		return errSyncingCaches
 	}
@@ -136,6 +173,6 @@ func (c *Client) run(stop <-chan struct{}) error {
 	// Closing the cacheSynced channel signals to the rest of the system that... caches have been synced.
 	close(c.cacheSynced)
 
-	glog.V(log.LvlInfo).Infof("Cache sync finished for %+v", names)
+	glog.V(level.Info).Infof("Cache sync finished for %+v", names)
 	return nil
 }

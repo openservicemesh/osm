@@ -11,7 +11,7 @@ import (
 	"k8s.io/client-go/rest"
 
 	"github.com/deislabs/smc/pkg/endpoint"
-	"github.com/deislabs/smc/pkg/log"
+	"github.com/deislabs/smc/pkg/log/level"
 	smiTrafficTargetClient "github.com/deislabs/smi-sdk-go/pkg/gen/client/access/clientset/versioned"
 	smiTrafficTargetInformers "github.com/deislabs/smi-sdk-go/pkg/gen/client/access/informers/externalversions"
 	smiTrafficSpecClient "github.com/deislabs/smi-sdk-go/pkg/gen/client/specs/clientset/versioned"
@@ -47,7 +47,7 @@ func NewMeshSpecClient(kubeConfig *rest.Config, namespaces []string, stop chan s
 
 // run executes informer collection.
 func (c *Client) run(stop <-chan struct{}) error {
-	glog.V(log.LvlInfo).Infoln("SMI Client started")
+	glog.V(level.Info).Infoln("SMI Client started")
 	var hasSynced []cache.InformerSynced
 
 	if c.informers == nil {
@@ -73,7 +73,7 @@ func (c *Client) run(stop <-chan struct{}) error {
 		hasSynced = append(hasSynced, informer.HasSynced)
 	}
 
-	glog.V(log.LvlInfo).Infof("[SMI Client] Waiting informers cache sync: %+v", names)
+	glog.V(level.Info).Infof("[SMI Client] Waiting informers cache sync: %+v", names)
 	if !cache.WaitForCacheSync(stop, hasSynced...) {
 		return errSyncingCaches
 	}
@@ -81,7 +81,7 @@ func (c *Client) run(stop <-chan struct{}) error {
 	// Closing the cacheSynced channel signals to the rest of the system that... caches have been synced.
 	close(c.cacheSynced)
 
-	glog.V(log.LvlInfo).Infof("[SMI Client] Cache sync finished for %+v", names)
+	glog.V(level.Info).Infof("[SMI Client] Cache sync finished for %+v", names)
 	return nil
 }
 
@@ -91,6 +91,7 @@ func (c *Client) GetID() string {
 	return c.providerIdent
 }
 
+// GetAnnouncementsChannel returns the announcement channel for the SMI client.
 func (c *Client) GetAnnouncementsChannel() <-chan interface{} {
 	return c.announcements
 }
@@ -183,19 +184,42 @@ func (c *Client) ListTrafficTargets() []*target.TrafficTarget {
 }
 
 // ListServices implements mesh.MeshSpec by returning the services observed from the given compute provider
-func (c *Client) ListServices() []endpoint.ServiceName {
+func (c *Client) ListServices() ([]endpoint.ServiceName, map[endpoint.ServiceName][]endpoint.ServiceName) {
 	// TODO(draychev): split the namespace and the service kubernetesClientName -- for non-kubernetes services we won't have namespace
 	var services []endpoint.ServiceName
+	// this holds a mapping of the target service to the backend services
+	targetServicesMap := make(map[endpoint.ServiceName][]endpoint.ServiceName)
 	for _, splitIface := range c.caches.TrafficSplit.List() {
 		split := splitIface.(*split.TrafficSplit)
 		namespacedServiceName := fmt.Sprintf("%s/%s", split.Namespace, split.Spec.Service)
 		services = append(services, endpoint.ServiceName(namespacedServiceName))
+		var backends []endpoint.ServiceName
 		for _, backend := range split.Spec.Backends {
 			namespacedServiceName := fmt.Sprintf("%s/%s", split.Namespace, backend.Service)
 			services = append(services, endpoint.ServiceName(namespacedServiceName))
+			backends = append(backends, endpoint.ServiceName(namespacedServiceName))
 		}
+		targetServicesMap[endpoint.ServiceName(namespacedServiceName)] = backends
 	}
-	return services
+	return services, targetServicesMap
+}
+
+// ListServiceAccounts implements mesh.MeshSpec by returning the service accounts observed from the given compute provider
+func (c *Client) ListServiceAccounts() []endpoint.ServiceAccount {
+	// TODO(draychev): split the namespace and the service kubernetesClientName -- for non-kubernetes services we won't have namespace
+	var serviceAccounts []endpoint.ServiceAccount
+	for _, targetIface := range c.caches.TrafficTarget.List() {
+		target := targetIface.(*target.TrafficTarget)
+		for _, sources := range target.Sources {
+			namespacedServiceAccount := fmt.Sprintf("%s/%s", sources.Namespace, sources.Name)
+			serviceAccounts = append(serviceAccounts, endpoint.ServiceAccount(namespacedServiceAccount))
+		}
+
+		destination := target.Destination
+		namespacedServiceAccount := fmt.Sprintf("%s/%s", destination.Namespace, destination.Name)
+		serviceAccounts = append(serviceAccounts, endpoint.ServiceAccount(namespacedServiceAccount))
+	}
+	return serviceAccounts
 }
 
 // GetService retrieves the Kubernetes Services resource for the given ServiceName.

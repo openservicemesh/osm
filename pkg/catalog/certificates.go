@@ -7,6 +7,7 @@ import (
 	"github.com/deislabs/smc/pkg/endpoint"
 )
 
+// GetCertificateForService returns the certificate the given proxy uses for mTLS to the XDS server.
 func (sc *MeshCatalog) GetCertificateForService(service endpoint.ServiceName) (certificate.Certificater, error) {
 	cert, exists := sc.certificateCache[service]
 	if exists {

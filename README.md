@@ -3,7 +3,7 @@
 [![build](https://github.com/deislabs/smc/workflows/Go/badge.svg)](https://github.com/deislabs/smc/actions?query=workflow%3AGo)
 [![report](https://goreportcard.com/badge/github.com/deislabs/smc)](https://goreportcard.com/report/github.com/deislabs/smc)
 [![codecov](https://codecov.io/gh/deislabs/smc/branch/master/graph/badge.svg)](https://codecov.io/gh/deislabs/smc)
-[![license](https://img.shields.io/github/license/deislabs/smc.svg)](https://github.com/deislabs/smc/blob/master/LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/deislabs/smc/blob/master/LICENSE)
 [![release](https://img.shields.io/github/release/deislabs/smc/all.svg)](https://github.com/deislabs/smc/releases)
 
 The Service Mesh Controller (SMC) is a light weight control plane for Service Meshes. It works with Envoy proxies(and other xDS compliant data plane proxies), configured as side-car containers, and continuously programs them to implement Service Mesh policies. It provides the following key benefits

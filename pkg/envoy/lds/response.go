@@ -1,23 +1,25 @@
 package lds
 
 import (
-	"fmt"
-	"time"
-
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	listener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes"
 
+	"github.com/deislabs/smc/pkg/constants"
 	"github.com/deislabs/smc/pkg/envoy"
-	"github.com/deislabs/smc/pkg/log"
 )
 
-func (s *Server) newListenerDiscoveryResponse(proxy envoy.Proxyer) (*xds.DiscoveryResponse, error) {
+const (
+	serverName = "LDS"
+)
+
+// NewListenerDiscoveryResponse creates a new Listener Discovery Response.
+func (s *Server) NewListenerDiscoveryResponse(proxy *envoy.Proxy) (*xds.DiscoveryResponse, error) {
 	glog.Infof("[%s] Composing listener Discovery Response for proxy: %s", serverName, proxy.GetCommonName())
 	resp := &xds.DiscoveryResponse{
-		TypeUrl: typeUrl,
+		TypeUrl: string(envoy.TypeLDS),
 	}
 
 	clientConnManager, err := ptypes.MarshalAny(getRdsHTTPClientConnectionFilter())
@@ -27,7 +29,7 @@ func (s *Server) newListenerDiscoveryResponse(proxy envoy.Proxyer) (*xds.Discove
 	}
 	clientListener := &xds.Listener{
 		Name:    "outbound_listener",
-		Address: envoy.GetAddress("0.0.0.0", 15001),
+		Address: envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyOutboundListenerPort),
 		FilterChains: []*listener.FilterChain{
 			{
 				Filters: []*listener.Filter{
@@ -50,7 +52,7 @@ func (s *Server) newListenerDiscoveryResponse(proxy envoy.Proxyer) (*xds.Discove
 
 	serverListener := &xds.Listener{
 		Name:    "inbound_listener",
-		Address: envoy.GetAddress("0.0.0.0", 15003),
+		Address: envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyInboundListenerPort),
 		FilterChains: []*listener.FilterChain{
 			{
 				Filters: []*listener.Filter{
@@ -80,11 +82,5 @@ func (s *Server) newListenerDiscoveryResponse(proxy envoy.Proxyer) (*xds.Discove
 		return nil, err
 	}
 	resp.Resources = append(resp.Resources, marshalledInbound)
-
-	s.lastVersion = s.lastVersion + 1
-	s.lastNonce = string(time.Now().Nanosecond())
-	resp.Nonce = s.lastNonce
-	resp.VersionInfo = fmt.Sprintf("v%d", s.lastVersion)
-	glog.V(log.LvlTrace).Infof("[%s] Constructed response: %+v", serverName, resp)
 	return resp, nil
 }

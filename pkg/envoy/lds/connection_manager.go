@@ -22,7 +22,7 @@ func getRdsHTTPClientConnectionFilter() *envoy_hcm.HttpConnectionManager {
 		}},
 		RouteSpecifier: &envoy_hcm.HttpConnectionManager_Rds{
 			Rds: &envoy_hcm.Rds{
-				ConfigSource:    envoy.GetGRPCSource(envoy.RDSClusterName),
+				ConfigSource:    envoy.GetADSConfigSource(),
 				RouteConfigName: route.SourceRouteConfig,
 			},
 		},
@@ -40,7 +40,7 @@ func getRdsHTTPServerConnectionFilter() *envoy_hcm.HttpConnectionManager {
 		}},
 		RouteSpecifier: &envoy_hcm.HttpConnectionManager_Rds{
 			Rds: &envoy_hcm.Rds{
-				ConfigSource:    envoy.GetGRPCSource(envoy.RDSClusterName),
+				ConfigSource:    envoy.GetADSConfigSource(),
 				RouteConfigName: route.DestinationRouteConfig,
 			},
 		},
