@@ -27,12 +27,21 @@ jobs:
             dep ensure
         fi
 
+    - name: Lint
+      run: |
+        go get golang.org/x/lint/golint
+        export GOPATH=$HOME/go
+        export GOBIN=$(go env GOPATH)/bin
+        export PATH=$PATH:$GOPATH
+        export PATH=$PATH:$GOBIN
+        golint -set_exit_status ./...
+
     - name: Vet
       run: |
         if go vet -v ./...; then
-            echo -e "\e[42;97m govet SUCCEEDED \e[0m"
+            echo -e "govet SUCCEEDED"
         else
-            echo -e "\e[101;97m govet FAILED \e[0m"``
+            echo -e "govet FAILED"
             exit 1
         fi
 
@@ -60,11 +69,3 @@ jobs:
         mkdir coverage
         gocov-html < coverage.json > coverage/index.html
 
-    - name: Lint
-      run: |
-        go get golang.org/x/lint/golint
-        export GOPATH=$HOME/go
-        export GOBIN=$(go env GOPATH)/bin
-        export PATH=$PATH:$GOPATH
-        export PATH=$PATH:$GOBIN
-        golint .
