@@ -170,14 +170,14 @@ func servicesToString(services []endpoint.ServiceName) []string {
 	return svcs
 }
 
-func uniques(intSlice []endpoint.ServiceName) []endpoint.ServiceName {
-	keys := make(map[endpoint.ServiceName]bool)
-	list := []endpoint.ServiceName{}
-	for _, entry := range intSlice {
+func uniques(slice []endpoint.ServiceName) []endpoint.ServiceName {
+	keys := make(map[endpoint.ServiceName]interface{})
+	uniqueSlice := []endpoint.ServiceName{}
+	for _, entry := range slice {
 		if _, value := keys[entry]; !value {
-			keys[entry] = true
-			list = append(list, entry)
+			keys[entry] = nil
+			uniqueSlice = append(uniqueSlice, entry)
 		}
 	}
-	return list
+	return uniqueSlice
 }
