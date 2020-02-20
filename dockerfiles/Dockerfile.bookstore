@@ -5,4 +5,3 @@ ADD ./demo/bin/bookstore /
 ADD ./demo/bookstore.html.template /
 WORKDIR /
 RUN chmod +x bookstore
-CMD ["sh","bookstore"]

@@ -71,6 +71,7 @@ spec:
         - name: bookbuyer
           image: "${CTR_REGISTRY}/bookbuyer:latest"
           imagePullPolicy: Always
+          command: ["/bookbuyer"]
           volumeMounts:
            - name: config-volume
              mountPath: /etc/config
