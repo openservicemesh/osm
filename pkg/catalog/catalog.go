@@ -1,6 +1,9 @@
 package catalog
 
 import (
+	"fmt"
+	"net/http"
+	"os"
 	"time"
 
 	mapset "github.com/deckarep/golang-set"
@@ -29,10 +32,20 @@ func NewMeshCatalog(meshSpec smi.MeshSpec, certManager certificate.Manager, stop
 
 	for _, announcementChannel := range sc.getAnnouncementChannels() {
 		sc.announcementChannels.Add(announcementChannel)
+
 	}
 
 	go sc.repeater()
 	return &sc
+}
+
+func (sc *MeshCatalog) GetDebugInfo() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// TODO(draychev): convert to CLI flag
+		if value, ok := os.LookupEnv("SMC_ENABLE_DEBUG"); ok && value == "true" {
+			_, _ = fmt.Fprintf(w, "hello\n")
+		}
+	})
 }
 
 // RegisterNewEndpoint adds a newly connected Envoy proxy to the list of self-announced endpoints for a service.

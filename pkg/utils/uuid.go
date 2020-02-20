@@ -4,7 +4,8 @@ import (
 	"github.com/google/uuid"
 )
 
-func NewUuidStr() string {
+// NewUUIDStr creates a new string UUID.
+func NewUUIDStr() string {
 	id := uuid.New()
 	return id.String()
 }

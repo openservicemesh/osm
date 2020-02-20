@@ -18,6 +18,7 @@ func svcLocal(clusterName string, _ string) *xds.Cluster {
 	return getServiceClusterLocal(clusterName)
 }
 
+// NewClusterDiscoveryResponse creates a new Cluster Discovery Response.
 func (s *Server) NewClusterDiscoveryResponse(proxy *envoy.Proxy) (*xds.DiscoveryResponse, error) {
 	allServices, err := s.catalog.ListEndpoints("TBD")
 	if err != nil {

@@ -13,7 +13,7 @@ const (
 	dot = "."
 )
 
-// EnvoyProxy is a representation of an Envoy proxy connected to the xDS server.
+// Proxy is a representation of an Envoy proxy connected to the xDS server.
 // This should at some point have a 1:1 match to an Endpoint (which is a member of a meshed service).
 type Proxy struct {
 	certificate.CommonName
@@ -42,6 +42,7 @@ func (p Proxy) GetIP() net.IP {
 	return p.IP
 }
 
+// GetAnnouncementsChannel returns the announcement channel for the given Envoy proxy.
 func (p Proxy) GetAnnouncementsChannel() chan interface{} {
 	return p.announcements
 }

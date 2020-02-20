@@ -132,6 +132,7 @@ func (c Client) ListServicesForServiceAccount(svcAccount endpoint.ServiceAccount
 	return services
 }
 
+// GetAnnouncementsChannel returns the announcement channel for the Kubernetes endpoints provider.
 func (c Client) GetAnnouncementsChannel() <-chan interface{} {
 	// return c.announcements
 	// TODO(draychev): implement
