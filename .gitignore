@@ -52,3 +52,4 @@ certificates
 # Certificates etc
 *.pem
 ./certs/
+commit_logs
