@@ -45,9 +45,7 @@ jobs:
         echo "$DOCKER_PASS" | docker login delqn.azurecr.io -u "$DOCKER_USER" --password-stdin
         echo "$ACR_CREDS" | base64 -d | kubectl apply -f -
         ./ci/run-tests.sh
-
-
-
+        go run ./demo/cmd/tail/tail.go
 
     - name: Lint
       run: |
