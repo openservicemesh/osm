@@ -114,3 +114,7 @@ generate-crds:
 .PHONY: shellcheck
 shellcheck:
 	shellcheck -x $(shell find . -name '*.sh')
+
+.PHONY: install-git-pre-push-hook
+install-git-pre-push-hook:
+	./scripts/install-git-pre-push-hook.sh
