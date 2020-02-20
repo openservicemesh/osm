@@ -67,4 +67,4 @@ jobs:
         export GOBIN=$(go env GOPATH)/bin
         export PATH=$PATH:$GOPATH
         export PATH=$PATH:$GOBIN
-        golint .
+        golint -set_exit_status ./...
