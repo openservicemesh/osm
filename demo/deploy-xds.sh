@@ -22,10 +22,6 @@ metadata:
     app: $NAME
 spec:
   ports:
-  - port: 15000
-    targetPort: admin-port
-    name: $NAME-envoy-admin-port
-
   - port: $PORT
     targetPort: $PORT
     name: $NAME-port
@@ -51,8 +47,6 @@ spec:
       imagePullPolicy: Always
       name: curl
       ports:
-        - containerPort: 15000
-          name: admin-port
         - containerPort: $PORT
           name: $NAME-port
 
@@ -72,12 +66,6 @@ spec:
         - "/etc/ssl/certs/key.pem"
         - "--rootcertpem"
         - "/etc/ssl/certs/root-cert.pem"
-
-      env:
-        - name: GRPC_GO_LOG_VERBOSITY_LEVEL
-          value: "99"
-        - name: GRPC_GO_LOG_SEVERITY_LEVEL
-          value: "info"
 
       volumeMounts:
       - name: kubeconfig
