@@ -4,6 +4,11 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/deislabs/smc/pkg/constants"
+	"github.com/deislabs/smc/pkg/endpoint"
+	"github.com/deislabs/smc/pkg/providers/azure"
+	"github.com/deislabs/smc/pkg/providers/kube"
+	"k8s.io/client-go/rest"
 	"os"
 	"os/signal"
 	"strings"
@@ -20,6 +25,7 @@ import (
 	"github.com/deislabs/smc/pkg/httpserver"
 	"github.com/deislabs/smc/pkg/log/level"
 	"github.com/deislabs/smc/pkg/metricsstore"
+	azureResource "github.com/deislabs/smc/pkg/providers/azure/kubernetes"
 	"github.com/deislabs/smc/pkg/smi"
 	"github.com/deislabs/smc/pkg/tresor"
 	"github.com/deislabs/smc/pkg/utils"
@@ -31,8 +37,13 @@ const (
 )
 
 var (
+	azureAuthFile  string
+	kubeConfigFile string
+)
+
+var (
 	flags          = pflag.NewFlagSet(`ads`, pflag.ExitOnError)
-	kubeConfigFile = flags.String("kubeconfig", "", "Path to Kubernetes config file.")
+	subscriptionID = flags.String("subscriptionID", "", "Azure Subscription")
 	verbosity      = flags.Int("verbosity", int(level.Info), "Set log verbosity level")
 	port           = flags.Int("port", 15128, "Clusters Discovery Service port number.")
 	namespace      = flags.String("namespace", "default", "Kubernetes namespace to watch for SMI Spec.")
@@ -41,6 +52,11 @@ var (
 	rootCertPem    = flags.String("rootcertpem", "", "Full path to the Root Certificate PEM file")
 )
 
+func init() {
+	flags.StringVar(&azureAuthFile, "azureAuthFile", "", "Path to Azure Auth File")
+	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file.")
+}
+
 func main() {
 	defer glog.Flush()
 	parseFlags()
@@ -48,9 +64,19 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	kubeConfig, err := clientcmd.BuildConfigFromFlags("", *kubeConfigFile)
-	if err != nil {
-		glog.Fatalf("[%s] Error fetching Kubernetes config. Ensure correctness of CLI argument 'kubeconfig=%s': %s", serverType, *kubeConfigFile, err)
+	var kubeConfig *rest.Config
+	var err error
+	if kubeConfigFile != "" {
+		kubeConfig, err = clientcmd.BuildConfigFromFlags("", kubeConfigFile)
+		if err != nil {
+			glog.Fatalf("[%s] Error fetching Kubernetes config. Ensure correctness of CLI argument 'kubeconfig=%s': %s", serverType, kubeConfigFile, err)
+		}
+	} else {
+		// creates the in-cluster config
+		kubeConfig, err = rest.InClusterConfig()
+		if err != nil {
+			glog.Fatalf("[RDS] Error generating Kubernetes config: %s", err)
+		}
 	}
 
 	observeNamespaces := getNamespaces()
@@ -61,7 +87,19 @@ func main() {
 	if err != nil {
 		glog.Fatal("Could not instantiate Certificate Manager: ", err)
 	}
-	meshCatalog := catalog.NewMeshCatalog(meshSpec, certManager, stop)
+
+	endpointsProviders := []endpoint.Provider{
+		kube.NewProvider(kubeConfig, observeNamespaces, stop, constants.KubeProviderName),
+	}
+
+	if azureAuthFile != "" {
+		azureResourceClient := azureResource.NewClient(kubeConfig, observeNamespaces, stop)
+		endpointsProviders = append(endpointsProviders, azure.NewProvider(
+			*subscriptionID, azureAuthFile, stop, meshSpec, azureResourceClient, constants.AzureProviderName))
+	}
+	meshCatalog := catalog.NewMeshCatalog(meshSpec, certManager, stop, endpointsProviders...)
+
+	// TODO(draychev): there should be no need to pass meshSpec to the ADS - it is already in meshCatalog
 	adsServer := ads.NewADSServer(ctx, meshCatalog, meshSpec)
 
 	grpcServer, lis := utils.NewGrpc(serverType, *port, *certPem, *keyPem, *rootCertPem)

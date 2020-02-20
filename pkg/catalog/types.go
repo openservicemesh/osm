@@ -4,36 +4,28 @@ import (
 	"net"
 	"sync"
 
+	mapset "github.com/deckarep/golang-set"
+
 	"github.com/deislabs/smc/pkg/certificate"
 	"github.com/deislabs/smc/pkg/endpoint"
 	"github.com/deislabs/smc/pkg/envoy"
 	"github.com/deislabs/smc/pkg/smi"
 )
 
-type MessageBroker struct {
-	sync.Mutex
-
-	stop       <-chan struct{}
-	register   <-chan chan interface{}
-	unregister <-chan chan interface{}
-
-	proxyChanMap map[envoy.ProxyID]chan interface{}
-}
-
 // MeshCatalog is the struct for the service catalog
 type MeshCatalog struct {
-	sync.Mutex
-
 	endpointsProviders []endpoint.Provider
 	meshSpec           smi.MeshSpec
 	certManager        certificate.Manager
 
-	// Caches
-	servicesCache    map[endpoint.ServiceName][]endpoint.Endpoint
-	certificateCache map[endpoint.ServiceName]certificate.Certificater
+	servicesCache        map[endpoint.ServiceName][]endpoint.Endpoint
+	servicesMutex        sync.Mutex
+	certificateCache     map[endpoint.ServiceName]certificate.Certificater
+	serviceAccountsCache map[endpoint.ServiceAccount][]endpoint.ServiceName
+	targetServicesCache  map[endpoint.ServiceName][]endpoint.ServiceName
 
-	// Proxy broker
-	messageBroker *MessageBroker
+	connectedProxies     mapset.Set
+	announcementChannels mapset.Set
 }
 
 // MeshCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
@@ -49,8 +41,13 @@ type MeshCataloger interface {
 	GetCertificateForService(endpoint.ServiceName) (certificate.Certificater, error)
 
 	// RegisterProxy registers a newly connected proxy with the service mesh catalog.
-	RegisterProxy(cn certificate.CommonName, ip net.IP) envoy.Proxyer
+	RegisterProxy(cn certificate.CommonName, ip net.IP) *envoy.Proxy
 
 	// UnregisterProxy unregisters an existing proxy from the service mesh catalog
-	UnregisterProxy(envoy.ProxyID)
+	UnregisterProxy(*envoy.Proxy) error
+}
+
+type announcementChannel struct {
+	announcer string
+	channel   <-chan interface{}
 }

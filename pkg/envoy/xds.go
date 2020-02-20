@@ -15,15 +15,6 @@ import (
 	structpb "github.com/golang/protobuf/ptypes/struct"
 )
 
-const (
-	accessLogPath  = "/dev/stdout"
-	XDSClusterName = "ads"
-
-	// cipher suites
-	aes    = "ECDHE-ECDSA-AES128-GCM-SHA256"
-	chacha = "ECDHE-ECDSA-CHACHA20-POLY1305"
-)
-
 func GetAddress(address string, port uint32) *core.Address {
 	// TODO(draychev): figure this out from the service
 	return &core.Address{
@@ -44,22 +35,6 @@ func GetTLSParams() *auth.TlsParameters {
 		TlsMinimumProtocolVersion: auth.TlsParameters_TLSv1_2,
 		TlsMaximumProtocolVersion: auth.TlsParameters_TLSv1_3,
 		CipherSuites:              []string{aes, chacha},
-	}
-}
-
-func GetGRPCSource(clusterName string) *core.ConfigSource {
-	return &core.ConfigSource{
-		ConfigSourceSpecifier: &core.ConfigSource_ApiConfigSource{
-			ApiConfigSource: &core.ApiConfigSource{
-				ApiType: core.ApiConfigSource_GRPC,
-				GrpcServices: []*core.GrpcService{{
-					TargetSpecifier: &core.GrpcService_EnvoyGrpc_{
-						EnvoyGrpc: &core.GrpcService_EnvoyGrpc{ClusterName: clusterName},
-					},
-				}},
-				SetNodeOnFirstMessageOnly: true,
-			},
-		},
 	}
 }
 
@@ -125,12 +100,12 @@ func getTLSDownstream(certificateName string) *any.Any {
 			TlsParams: GetTLSParams(),
 			TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
 				Name:      certificateName,
-				SdsConfig: GetGRPCSource(XDSClusterName),
+				SdsConfig: GetADSConfigSource(),
 			}},
 			ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 				ValidationContextSdsSecretConfig: &auth.SdsSecretConfig{
 					Name:      certificateName,
-					SdsConfig: GetGRPCSource(XDSClusterName),
+					SdsConfig: GetADSConfigSource(),
 				},
 			},
 		},
@@ -150,12 +125,12 @@ func getTLSUpstream(certificateName string) *any.Any {
 			TlsParams: GetTLSParams(),
 			TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
 				Name:      certificateName,
-				SdsConfig: GetGRPCSource(XDSClusterName),
+				SdsConfig: GetADSConfigSource(),
 			}},
 			ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 				ValidationContextSdsSecretConfig: &auth.SdsSecretConfig{
 					Name:      certificateName,
-					SdsConfig: GetGRPCSource(XDSClusterName),
+					SdsConfig: GetADSConfigSource(),
 				},
 			},
 		},
@@ -189,26 +164,15 @@ func GetServiceCluster(clusterName string, certificateName string) *xds.Cluster 
 		ConnectTimeout:       ptypes.DurationProto(5 * time.Second),
 		LbPolicy:             xds.Cluster_ROUND_ROBIN,
 		ClusterDiscoveryType: &xds.Cluster_Type{Type: xds.Cluster_EDS},
-		EdsClusterConfig:     GetEDSCluster(),
+		EdsClusterConfig:     &xds.Cluster_EdsClusterConfig{EdsConfig: GetADSConfigSource()},
 		TransportSocket:      GetTransportSocketForServiceUpstream(certificateName),
 	}
 }
 
-func GetEDSCluster() *xds.Cluster_EdsClusterConfig {
-	return &xds.Cluster_EdsClusterConfig{
-		EdsConfig: &core.ConfigSource{
-			ConfigSourceSpecifier: &core.ConfigSource_ApiConfigSource{
-				ApiConfigSource: &core.ApiConfigSource{
-					ApiType: core.ApiConfigSource_GRPC,
-					GrpcServices: []*core.GrpcService{
-						{
-							TargetSpecifier: &core.GrpcService_EnvoyGrpc_{
-								EnvoyGrpc: &core.GrpcService_EnvoyGrpc{ClusterName: XDSClusterName},
-							},
-						},
-					},
-				},
-			},
+func GetADSConfigSource() *core.ConfigSource {
+	return &core.ConfigSource{
+		ConfigSourceSpecifier: &core.ConfigSource_Ads{
+			Ads: &core.AggregatedConfigSource{},
 		},
 	}
 }

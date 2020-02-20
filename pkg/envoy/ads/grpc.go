@@ -11,11 +11,11 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func receive(requests chan *v2.DiscoveryRequest, server xds.AggregatedDiscoveryService_StreamAggregatedResourcesServer) {
+func receive(requests chan v2.DiscoveryRequest, server *xds.AggregatedDiscoveryService_StreamAggregatedResourcesServer) {
 	defer close(requests)
 	for {
 		var request *v2.DiscoveryRequest
-		request, recvErr := server.Recv()
+		request, recvErr := (*server).Recv()
 		if recvErr != nil {
 			if status.Code(recvErr) == codes.Canceled || recvErr == io.EOF {
 				glog.Errorf("[%s][grpc] Connection terminated: %+v", serverName, recvErr)
@@ -25,6 +25,6 @@ func receive(requests chan *v2.DiscoveryRequest, server xds.AggregatedDiscoveryS
 			return
 		}
 		glog.Infof("[%s][grpc] Done!", serverName)
-		requests <- request
+		requests <- *request
 	}
 }

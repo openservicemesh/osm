@@ -1,14 +1,12 @@
 package envoy
 
 import (
-	"net"
-	"strings"
-
-	"github.com/golang/glog"
-
 	"github.com/deislabs/smc/pkg/certificate"
 	"github.com/deislabs/smc/pkg/endpoint"
 	"github.com/deislabs/smc/pkg/utils"
+	"net"
+	"strings"
+	"time"
 )
 
 const (
@@ -20,18 +18,18 @@ const (
 type Proxy struct {
 	certificate.CommonName
 	net.IP
-	id            ProxyID
-	announcements <-chan interface{}
+	endpoint.ServiceName
+	announcements chan interface{}
+
+	LastUpdated time.Time
+	LastVersion uint64
+	LastNonce   string
 }
 
 // GetService implements Proxyer and determines the meshed service this endpoint should support based on the mTLS certificate.
 // From "a.b.c" returns "b.c". By convention "a" is the ID of the proxy. Remaining "b.c" is the name of the service.
 func (p Proxy) GetService() endpoint.ServiceName {
-	cn := string(p.CommonName)
-	dotCount := strings.Count(cn, dot)
-	serviceName := endpoint.ServiceName(utils.GetLastNOfDotted(cn, dotCount))
-	glog.Infof("ServiceName for proxy(%s) is (%s)", p.CommonName, serviceName)
-	return serviceName
+	return p.ServiceName
 }
 
 // GetCommonName implements Proxyer and returns the Subject Common Name from the mTLS certificate of the Envoy proxy connected to xDS.
@@ -44,21 +42,17 @@ func (p Proxy) GetIP() net.IP {
 	return p.IP
 }
 
-// GetID implements Proxyer and returns the ID of the envoy proxy
-func (p Proxy) GetID() ProxyID {
-	return p.id
-}
-
-func (p Proxy) GetAnnouncementsChannel() <-chan interface{} {
+func (p Proxy) GetAnnouncementsChannel() chan interface{} {
 	return p.announcements
 }
 
 // NewProxy creates a new instance of an Envoy proxy connected to the xDS servers.
-func NewProxy(cn certificate.CommonName, ip net.IP, announcements <-chan interface{}) Proxyer {
-	return Proxy{
+func NewProxy(cn certificate.CommonName, ip net.IP) *Proxy {
+	dotCount := strings.Count(string(cn), dot)
+	return &Proxy{
 		CommonName:    cn,
 		IP:            ip,
-		id:            ProxyID(utils.NewUuidStr()),
-		announcements: announcements,
+		ServiceName:   endpoint.ServiceName(utils.GetLastNOfDotted(string(cn), dotCount)),
+		announcements: make(chan interface{}),
 	}
 }

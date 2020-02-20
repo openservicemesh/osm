@@ -15,10 +15,8 @@ import (
 	"github.com/deislabs/smc/pkg/utils"
 )
 
-// StreamAggregates handles streaming of the clusters to the connected Envoy proxies
+// StreamAggregatedResources handles streaming of the clusters to the connected Envoy proxies
 func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer) error {
-	glog.Infof("[%s] Starting StreamAggregates", serverName)
-
 	// When a new Envoy proxy connects, ValidateClient would ensure that it has a valid certificate,
 	// and the Subject CN is in the allowedCommonNames set.
 	cn, err := utils.ValidateClient(server.Context(), nil, serverName)
@@ -28,20 +26,20 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 
 	// TODO(draychev): check for envoy.ErrTooManyConnections
 
-	glog.Infof("[%s][stream] Client connected: Subject CN=%s", serverName, cn)
+	glog.Infof("[%s] Client connected: Subject CN=%s", serverName, cn)
 
 	// Register the newly connected proxy w/ the catalog.
 	ip := utils.GetIPFromContext(server.Context())
 	proxy := s.catalog.RegisterProxy(cn, ip)
-	defer s.catalog.UnregisterProxy(proxy.GetID())
+	defer s.catalog.UnregisterProxy(proxy)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	requests := make(chan *v2.DiscoveryRequest)
-	go receive(requests, server)
+	requests := make(chan v2.DiscoveryRequest)
+	go receive(requests, &server)
 
-	s.sendAllResponses(proxy, server)
+	s.sendAllResponses(proxy, &server)
 
 	for {
 		select {
@@ -58,27 +56,27 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 				glog.Errorf("[%s] Discovery request error from proxy %s: %s", serverName, proxy.GetCommonName(), discoveryRequest.ErrorDetail)
 				return errEnvoyError
 			}
-			if len(s.lastNonce) > 0 && discoveryRequest.ResponseNonce == s.lastNonce {
+			if len(proxy.LastNonce) > 0 && discoveryRequest.ResponseNonce == proxy.LastNonce {
 				glog.Warningf("[%s] Nothing changed", serverName)
 				continue
 			}
-			resp, err := s.newAggregatedDiscoveryResponse(proxy, discoveryRequest)
+			resp, err := s.newAggregatedDiscoveryResponse(proxy, &discoveryRequest)
 			if err != nil {
-				glog.Errorf("[%s][stream] Failed composing a DiscoveryResponse: %+v", serverName, err)
+				glog.Errorf("[%s] Failed composing a DiscoveryResponse: %+v", serverName, err)
 				return err
 			}
 			if err := server.Send(resp); err != nil {
-				glog.Errorf("[%s][stream] Error sending DiscoveryResponse: %+v", serverName, err)
+				glog.Errorf("[%s] Error sending DiscoveryResponse: %+v", serverName, err)
 			}
 
 		case <-proxy.GetAnnouncementsChannel():
-			glog.V(level.Info).Infof("[%s][stream] Change detected - update all Envoys.", serverName)
-			s.sendAllResponses(proxy, server)
+			glog.V(level.Info).Infof("[%s] Change detected - update all Envoys.", serverName)
+			s.sendAllResponses(proxy, &server)
 		}
 	}
 }
 
-func (s *Server) sendAllResponses(proxy envoy.Proxyer, server discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer) {
+func (s *Server) sendAllResponses(proxy *envoy.Proxy, server *discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer) {
 	// Order is important: CDS, EDS, LDS, RDS
 	// See: https://github.com/envoyproxy/go-control-plane/issues/59
 	for _, uri := range []envoy.TypeURI{envoy.TypeCDS, envoy.TypeEDS, envoy.TypeLDS, envoy.TypeRDS, envoy.TypeSDS} {
@@ -88,15 +86,15 @@ func (s *Server) sendAllResponses(proxy envoy.Proxyer, server discovery.Aggregat
 			glog.Error(err)
 			continue
 		}
-		if err := server.Send(discoveryResponse); err != nil {
-			glog.Errorf("[%s][stream] Error sending DiscoveryResponse %s: %+v", serverName, uri, err)
+		if err := (*server).Send(discoveryResponse); err != nil {
+			glog.Errorf("[%s] Error sending DiscoveryResponse %s: %+v", serverName, uri, err)
 		}
 
 	}
 }
 
-func (s *Server) newAggregatedDiscoveryResponse(proxy envoy.Proxyer, request *v2.DiscoveryRequest) (*v2.DiscoveryResponse, error) {
-	glog.V(level.Info).Infof("[%s][stream] Received discovery request: %s", serverName, request.TypeUrl)
+func (s *Server) newAggregatedDiscoveryResponse(proxy *envoy.Proxy, request *v2.DiscoveryRequest) (*v2.DiscoveryResponse, error) {
+	glog.V(level.Info).Infof("[%s] Received discovery request: %s", serverName, request.TypeUrl)
 	handler, ok := s.xdsHandlers[envoy.TypeURI(request.TypeUrl)]
 	if !ok {
 		glog.Errorf("Responder for TypeUrl %s is not implemented", request.TypeUrl)
@@ -109,10 +107,12 @@ func (s *Server) newAggregatedDiscoveryResponse(proxy envoy.Proxyer, request *v2
 		return nil, errCreatingResponse
 	}
 
-	s.lastVersion = s.lastVersion + 1
-	s.lastNonce = string(time.Now().Nanosecond())
-	response.Nonce = s.lastNonce
-	response.VersionInfo = fmt.Sprintf("v%d", s.lastVersion)
-	glog.V(level.Trace).Infof("[%s] Constructed response: %+v", serverName, response)
+	proxy.LastVersion = proxy.LastVersion + 1
+	proxy.LastNonce = fmt.Sprintf("%d", time.Now().UnixNano())
+	response.Nonce = proxy.LastNonce
+	response.VersionInfo = fmt.Sprintf("v%d", proxy.LastVersion)
+
+	glog.V(level.Trace).Infof("[%s] Constructed %s response: %+v", serverName, request.TypeUrl, response)
+
 	return response, nil
 }

@@ -4,11 +4,13 @@ go 1.13
 
 require (
 	9fans.net/go v0.0.2 // indirect
+	contrib.go.opencensus.io/exporter/stackdriver v0.13.0 // indirect
 	github.com/Azure/application-gateway-kubernetes-ingress v0.0.0-20190820222238-dfce74a2549f
 	github.com/Azure/azure-sdk-for-go v34.0.0+incompatible
 	github.com/Azure/go-autorest/autorest v0.5.0
 	github.com/Azure/go-autorest/autorest/azure/auth v0.1.0
 	github.com/Azure/go-autorest/tracing v0.2.0 // indirect
+	github.com/deckarep/golang-set v1.7.1
 	github.com/deislabs/smi-sdk-go v0.2.0
 	github.com/eapache/channels v1.1.0
 	github.com/envoyproxy/go-control-plane v0.9.2
@@ -28,7 +30,7 @@ require (
 	github.com/rogpeppe/godef v1.1.1 // indirect
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.4.0 // indirect
+	go.uber.org/zap v1.13.0 // indirect
 	golang.org/x/net v0.0.0-20191209160850-c0dbc17a3553 // indirect
 	golang.org/x/sys v0.0.0-20200107162124-548cf772de50 // indirect
 	golang.org/x/tools v0.0.0-20200115222509-97cd989a7672 // indirect

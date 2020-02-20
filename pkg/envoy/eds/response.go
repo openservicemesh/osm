@@ -1,9 +1,6 @@
 package eds
 
 import (
-	"fmt"
-	"time"
-
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes"
@@ -17,13 +14,13 @@ const (
 	serverName = "EDS"
 )
 
-func (s *Server) NewEndpointDiscoveryResponse(proxy envoy.Proxyer) (*v2.DiscoveryResponse, error) {
+func (s *Server) NewEndpointDiscoveryResponse(proxy *envoy.Proxy) (*v2.DiscoveryResponse, error) {
 	allServices, err := s.catalog.ListEndpoints("TBD")
 	if err != nil {
-		glog.Errorf("[%s][stream] Failed listing endpoints: %+v", serverName, err)
+		glog.Errorf("[%s] Failed listing endpoints: %+v", serverName, err)
 		return nil, err
 	}
-	glog.Infof("[%s][stream] WeightedServices: %+v", serverName, allServices)
+	glog.Infof("[%s] WeightedServices: %+v", serverName, allServices)
 	var protos []*any.Any
 	for targetServiceName, weightedServices := range allServices {
 		loadAssignment := cla.NewClusterLoadAssignment(targetServiceName, weightedServices)
@@ -40,11 +37,5 @@ func (s *Server) NewEndpointDiscoveryResponse(proxy envoy.Proxyer) (*v2.Discover
 		Resources: protos,
 		TypeUrl:   string(envoy.TypeEDS),
 	}
-
-	s.lastVersion = s.lastVersion + 1
-	s.lastNonce = string(time.Now().Nanosecond())
-	resp.Nonce = s.lastNonce
-	resp.VersionInfo = fmt.Sprintf("v%d", s.lastVersion)
-
 	return resp, nil
 }

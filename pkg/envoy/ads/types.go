@@ -14,9 +14,7 @@ import (
 
 //Server implements the Envoy xDS Aggregate Discovery Services
 type Server struct {
-	catalog     catalog.MeshCataloger
-	lastVersion uint64
-	lastNonce   string
+	catalog catalog.MeshCataloger
 
 	rdsServer *rds.Server
 	edsServer *eds.Server
@@ -24,5 +22,5 @@ type Server struct {
 	sdsServer *sds.Server
 	cdsServer *cds.Server
 
-	xdsHandlers map[envoy.TypeURI]func(envoy.Proxyer) (*envoy_api_v2.DiscoveryResponse, error)
+	xdsHandlers map[envoy.TypeURI]func(*envoy.Proxy) (*envoy_api_v2.DiscoveryResponse, error)
 }

@@ -43,27 +43,29 @@ func getServerRouteConfiguration(trafficPolicies smcEndpoint.TrafficTargetPolici
 		}},
 	}
 
-	for _, routePaths := range trafficPolicies.PolicyRoutePaths {
-		rt := route.Route{
-			Match: &route.RouteMatch{
-				PathSpecifier: &route.RouteMatch_Prefix{
-					Prefix: routePaths.RoutePathRegex,
-				},
-			},
-			Action: &route.Route_Route{
-				Route: &route.RouteAction{
-					ClusterSpecifier: &route.RouteAction_Cluster{
-						Cluster: trafficPolicies.Destination,
+	for _, destinationClusters := range trafficPolicies.Destination.Clusters {
+		for _, routePaths := range trafficPolicies.PolicyRoutePaths {
+			rt := route.Route{
+				Match: &route.RouteMatch{
+					PathSpecifier: &route.RouteMatch_Prefix{
+						Prefix: routePaths.RoutePathRegex,
 					},
 				},
-			},
-		}
-		cors := &route.CorsPolicy{
-			AllowMethods: strings.Join(routePaths.RouteMethods, ", "),
-		}
+				Action: &route.Route_Route{
+					Route: &route.RouteAction{
+						ClusterSpecifier: &route.RouteAction_Cluster{
+							Cluster: string(destinationClusters),
+						},
+					},
+				},
+			}
+			cors := &route.CorsPolicy{
+				AllowMethods: strings.Join(routePaths.RouteMethods, ", "),
+			}
 
-		routeConfig.VirtualHosts[0].Cors = cors
-		routeConfig.VirtualHosts[0].Routes = append(routeConfig.VirtualHosts[0].Routes, &rt)
+			routeConfig.VirtualHosts[0].Cors = cors
+			routeConfig.VirtualHosts[0].Routes = append(routeConfig.VirtualHosts[0].Routes, &rt)
+		}
 	}
 	glog.V(level.Trace).Infof("[RDS] Constructed Server RouteConfiguration: %+v", routeConfig)
 	return routeConfig
@@ -80,29 +82,31 @@ func getClientRouteConfiguration(trafficPolicies smcEndpoint.TrafficTargetPolici
 		}},
 	}
 
-	for _, routePaths := range trafficPolicies.PolicyRoutePaths {
-		rt := route.Route{
-			Match: &route.RouteMatch{
-				PathSpecifier: &route.RouteMatch_Prefix{
-					Prefix: routePaths.RoutePathRegex,
-				},
-			},
-			Action: &route.Route_Route{
-				Route: &route.RouteAction{
-					ClusterSpecifier: &route.RouteAction_Cluster{
-						Cluster: trafficPolicies.Source,
+	for _, sourceClusters := range trafficPolicies.Source.Clusters {
+		for _, routePaths := range trafficPolicies.PolicyRoutePaths {
+			rt := route.Route{
+				Match: &route.RouteMatch{
+					PathSpecifier: &route.RouteMatch_Prefix{
+						Prefix: routePaths.RoutePathRegex,
 					},
 				},
-			},
-		}
+				Action: &route.Route_Route{
+					Route: &route.RouteAction{
+						ClusterSpecifier: &route.RouteAction_Cluster{
+							Cluster: string(sourceClusters),
+						},
+					},
+				},
+			}
 
-		cors := &route.CorsPolicy{
-			AllowMethods: strings.Join(routePaths.RouteMethods, ", "),
-		}
+			cors := &route.CorsPolicy{
+				AllowMethods: strings.Join(routePaths.RouteMethods, ", "),
+			}
 
-		routeConfig.VirtualHosts[0].Cors = cors
-		routeConfig.VirtualHosts[0].Routes = append(routeConfig.VirtualHosts[0].Routes, &rt)
+			routeConfig.VirtualHosts[0].Cors = cors
+			routeConfig.VirtualHosts[0].Routes = append(routeConfig.VirtualHosts[0].Routes, &rt)
+		}
 	}
-	glog.Infof("[RDS] Constructed Client RouteConfiguration: %+v", routeConfig)
+	glog.V(level.Trace).Infof("[RDS] Constructed Client RouteConfiguration: %+v", routeConfig)
 	return routeConfig
 }

@@ -11,8 +11,19 @@ SVC=${1:-bookstore}
 
 kubectl delete deployment "$SVC" -n "$K8S_NAMESPACE"  || true
 
+GIT_HASH=$(git rev-parse --short HEAD)
+
 echo -e "Deploy $SVC demo service"
 cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: "$SVC-serviceaccount"
+  namespace: $K8S_NAMESPACE
+automountServiceAccountToken: false
+
+---
+
 apiVersion: v1
 kind: Service
 metadata:
@@ -44,12 +55,17 @@ metadata:
   namespace: $K8S_NAMESPACE
 spec:
   replicas: 1
+  selector:
+    matchLabels:
+      app: $SVC
   template:
     metadata:
       labels:
         app: $SVC
         version: v1
     spec:
+      serviceAccountName: "$SVC-serviceaccount"
+      automountServiceAccountToken: false
       containers:
 
         - image: "${CTR_REGISTRY}/bookstore:latest"
@@ -61,8 +77,8 @@ spec:
           command: ["/counter"]
           args: ["--path", "./", "--port", "80"]
           env:
-            - name: AZMESH_IDENTITY
-              value: $SVC
+            - name: IDENTITY
+              value: ${SVC}--${GIT_HASH}
 
         - image: envoyproxy/envoy-alpine-dev:latest
           imagePullPolicy: Always
