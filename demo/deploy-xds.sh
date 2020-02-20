@@ -104,13 +104,13 @@ spec:
       readinessProbe:
         httpGet:
           path: /health/ready
-          port: 8888
+          port: 15000
         initialDelaySeconds: 5
         periodSeconds: 10
       livenessProbe:
         httpGet:
           path: /health/alive
-          port: 8888
+          port: 15000
         initialDelaySeconds: 15
         periodSeconds: 20
 
