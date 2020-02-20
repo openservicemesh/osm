@@ -15,6 +15,7 @@ const (
 func main() {
 	iteration := 0
 	for {
+		iteration += 1
 		fmt.Printf("---[ %d ]-----------------------------------------\n", iteration)
 		for _, url := range []string{counter, incremt} {
 			fetch(url)
