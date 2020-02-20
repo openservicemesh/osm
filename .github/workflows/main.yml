@@ -39,9 +39,9 @@ jobs:
     - name: Vet
       run: |
         if go vet -v ./...; then
-            echo -e "\e[42;97m govet SUCCEEDED \e[0m"
+            echo -e "govet SUCCEEDED"
         else
-            echo -e "\e[101;97m govet FAILED \e[0m"``
+            echo -e "govet FAILED"
             exit 1
         fi
 
