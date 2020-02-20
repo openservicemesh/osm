@@ -5,8 +5,8 @@ set -aueo pipefail
 # shellcheck disable=SC1091
 source .env
 
-NAME=${1:-unknown}
-PORT=${2:-9999}
+NAME="ads"
+PORT=15128
 
 ./demo/deploy-secrets.sh "${NAME}"
 

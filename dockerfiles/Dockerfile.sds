@@ -1,5 +1,0 @@
-FROM alpine:3.10.1
-ADD bin/linux-amd64/sds /
-
-WORKDIR /
-RUN chmod +x /sds
