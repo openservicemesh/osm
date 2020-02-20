@@ -61,7 +61,7 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 			if lastNonce, ok = proxy.LastNonce[typeURL]; !ok {
 				lastNonce = ""
 			}
-			if len(proxy.LastNonce) > 0 && discoveryRequest.ResponseNonce == lastNonce {
+			if lastNonce != "" && discoveryRequest.ResponseNonce == lastNonce {
 				glog.V(level.Trace).Infof("[%s] Nothing changed since Nonce=%s", serverName, discoveryRequest.ResponseNonce)
 				continue
 			}
@@ -76,6 +76,8 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 			}
 			if err := server.Send(resp); err != nil {
 				glog.Errorf("[%s] Error sending DiscoveryResponse: %+v", serverName, err)
+			} else {
+				glog.V(level.Trace).Infof("[%s] Sent Discovery Response %s to proxy %s: %s", serverName, resp.TypeUrl, proxy.GetCommonName())
 			}
 
 		case <-proxy.GetAnnouncementsChannel():
@@ -116,11 +118,11 @@ func (s *Server) newAggregatedDiscoveryResponse(proxy *envoy.Proxy, request *v2.
 		return nil, errCreatingResponse
 	}
 
-	proxy.LastVersion = proxy.LastVersion + 1
+	proxy.LastVersion[typeURL] = proxy.LastVersion[typeURL] + 1
 	proxy.LastNonce[typeURL] = fmt.Sprintf("%d", time.Now().UnixNano())
 	response.Nonce = proxy.LastNonce[typeURL]
 	response.VersionInfo = fmt.Sprintf("v%d", proxy.LastVersion)
-	proxy.LastUpdated = time.Now()
+	proxy.LastUpdated[typeURL] = time.Now()
 
 	glog.V(level.Trace).Infof("[%s] Constructed %s response.", serverName, request.TypeUrl)
 

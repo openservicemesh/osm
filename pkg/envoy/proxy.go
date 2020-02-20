@@ -22,8 +22,8 @@ type Proxy struct {
 	endpoint.ServiceName
 	announcements chan interface{}
 
-	LastUpdated time.Time
-	LastVersion uint64
+	LastUpdated map[TypeURI]time.Time
+	LastVersion map[TypeURI]uint64
 	LastNonce   map[TypeURI]string
 }
 
@@ -56,5 +56,8 @@ func NewProxy(cn certificate.CommonName, ip net.IP) *Proxy {
 		IP:            ip,
 		ServiceName:   endpoint.ServiceName(utils.GetLastNOfDotted(string(cn), dotCount)),
 		announcements: make(chan interface{}),
+		LastNonce:     make(map[TypeURI]string),
+		LastVersion:   make(map[TypeURI]uint64),
+		LastUpdated:   make(map[TypeURI]time.Time),
 	}
 }
