@@ -16,12 +16,42 @@ const (
 	// WildcardIPAddr is a string constant.
 	WildcardIPAddr = "0.0.0.0"
 
-	// EnvoyInboundListenerPort is the Envoy's inbound listener port number.
+	// EnvoyAdminPort is Envoy's admin port
+	EnvoyAdminPort = 15000
+
+	// EnvoyAdminPortName is Envoy's admin port name
+	EnvoyAdminPortName = "proxy-admin"
+
+	// EnvoyInboundListenerPort is Envoy's inbound listener port number.
 	EnvoyInboundListenerPort = 15003
 
-	// EnvoyOutboundListenerPort is the Envoy's outbound listener port number.
+	// EnvoyInboundListenerPortName is Envoy's inbound listener port name.
+	EnvoyInboundListenerPortName = "proxy-inbound"
+
+	// EnvoyOutboundListenerPort is Envoy's outbound listener port number.
 	EnvoyOutboundListenerPort = 15001
+
+	// EnvoyOutboundListenerPortName is Envoy's outbound listener port name.
+	EnvoyOutboundListenerPortName = "proxy-outbound"
+
+	// EnvoyUID is the Envoy's User ID
+	EnvoyUID int64 = 1337
 
 	// HTTPPort is a port number constant.
 	HTTPPort = 80
+
+	// CertCommonNameUUIDServiceDelimiter is the character used to delimit the UUID and service name in the certificate's CommonName
+	CertCommonNameUUIDServiceDelimiter = ";"
+
+	// NamespaceServiceDelimiter is the character used to delimit a namespace and a service name when used together
+	NamespaceServiceDelimiter = "/"
+
+	// InjectorWebhookPort is the port on which the sidecar injection webhook listens
+	InjectorWebhookPort = 9090
+
+	// RootCertPemStoreName is the name of the root certificate config store
+	RootCertPemStoreName = "ca-rootcertpemstore"
+
+	// RootCertPath is the path too the root certificate
+	RootCertPath = "/etc/ssl/certs/root-cert.pem"
 )

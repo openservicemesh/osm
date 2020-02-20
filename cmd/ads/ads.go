@@ -19,6 +19,7 @@ import (
 	"github.com/deislabs/smc/pkg/endpoint"
 	"github.com/deislabs/smc/pkg/envoy/ads"
 	"github.com/deislabs/smc/pkg/httpserver"
+	"github.com/deislabs/smc/pkg/injector"
 	"github.com/deislabs/smc/pkg/log/level"
 	"github.com/deislabs/smc/pkg/metricsstore"
 	"github.com/deislabs/smc/pkg/providers/azure"
@@ -38,6 +39,7 @@ const (
 var (
 	azureAuthFile  string
 	kubeConfigFile string
+	injectorConfig injector.Config
 )
 
 var (
@@ -55,6 +57,13 @@ var (
 func init() {
 	flags.StringVar(&azureAuthFile, "azureAuthFile", "", "Path to Azure Auth File")
 	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file.")
+
+	// sidecar injector options
+	flags.BoolVar(&injectorConfig.EnableTLS, "enable-tls", true, "Enable TLS")
+	flags.BoolVar(&injectorConfig.DefaultInjection, "default-injection", true, "Enable sidecar injection by default")
+	flags.IntVar(&injectorConfig.ListenPort, "webhook-port", constants.InjectorWebhookPort, "Webhook port for sidecar-injector")
+	flags.StringVar(&injectorConfig.InitContainerImage, "init-container-image", "", "InitContainer image")
+	flags.StringVar(&injectorConfig.SidecarImage, "sidecar-image", "", "Sidecar proxy Container image")
 }
 
 func main() {
@@ -79,6 +88,13 @@ func main() {
 		}
 	}
 
+	if injectorConfig.InitContainerImage == "" {
+		glog.Fatal("Please specify the init container image using --init-container-image ")
+	}
+	if injectorConfig.SidecarImage == "" {
+		glog.Fatal("Please specify the sidecar image using --sidecar-image ")
+	}
+
 	observeNamespaces := getNamespaces()
 	stop := signals.RegisterExitHandlers()
 
@@ -98,6 +114,10 @@ func main() {
 			*subscriptionID, azureAuthFile, stop, meshSpec, azureResourceClient, constants.AzureProviderName))
 	}
 	meshCatalog := catalog.NewMeshCatalog(meshSpec, certManager, stop, endpointsProviders...)
+
+	// Create the sidecar-injector webhook
+	webhook := injector.NewWebhook(injectorConfig, kubeConfig, certManager, meshCatalog, observeNamespaces)
+	go webhook.ListenAndServe(stop)
 
 	// TODO(draychev): there should be no need to pass meshSpec to the ADS - it is already in meshCatalog
 	adsServer := ads.NewADSServer(ctx, meshCatalog, meshSpec)

@@ -3,9 +3,11 @@ package envoy
 import (
 	"fmt"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/deislabs/smc/pkg/certificate"
+	"github.com/deislabs/smc/pkg/constants"
 	"github.com/deislabs/smc/pkg/endpoint"
 	"github.com/deislabs/smc/pkg/utils"
 )
@@ -88,10 +90,18 @@ func (p Proxy) GetAnnouncementsChannel() chan interface{} {
 
 // NewProxy creates a new instance of an Envoy proxy connected to the xDS servers.
 func NewProxy(cn certificate.CommonName, ip net.IP) *Proxy {
+	var cnWithUUIDStripped string
+	if strings.Contains(cn.String(), constants.CertCommonNameUUIDServiceDelimiter) {
+		tmp := strings.Split(cn.String(), constants.CertCommonNameUUIDServiceDelimiter)
+		cnWithUUIDStripped = tmp[1]
+	} else {
+		cnWithUUIDStripped = cn.String()
+	}
+
 	return &Proxy{
 		CommonName:         cn,
 		IP:                 ip,
-		ServiceName:        endpoint.ServiceName(utils.GetFirstOfDotted(string(cn))),
+		ServiceName:        endpoint.ServiceName(utils.GetFirstOfDotted(cnWithUUIDStripped)),
 		announcements:      make(chan interface{}),
 		lastNonce:          make(map[TypeURI]string),
 		lastSentVersion:    make(map[TypeURI]uint64),

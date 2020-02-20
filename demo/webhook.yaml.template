@@ -1,0 +1,20 @@
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: MutatingWebhookConfiguration
+metadata:
+  name: {{ .Name }}
+  labels:
+    app: {{ .Name }}
+webhooks:
+  - name: smc-inject.k8s.io
+    clientConfig:
+      service:
+        name: {{ .Name }}
+        namespace: {{ .Namespace }}
+        path: "/mutate"
+      caBundle: {{ .CaBundle }}
+    rules:
+      - operations: ["CREATE"]
+        apiGroups: [""]
+        apiVersions: ["v1"]
+        resources: ["pods"]
+    failurePolicy: Fail
