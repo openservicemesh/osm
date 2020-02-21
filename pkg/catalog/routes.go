@@ -92,11 +92,10 @@ func (sc *MeshCatalog) getHTTPPathsPerRoute() (map[string]endpoint.RoutePaths, e
 	for _, trafficSpecs := range sc.meshSpec.ListHTTPTrafficSpecs() {
 		glog.V(level.Debug).Infof("[RDS][catalog] Discovered TrafficSpec resource: %s/%s \n", trafficSpecs.Namespace, trafficSpecs.Name)
 		if trafficSpecs.Matches == nil {
-			glog.Errorf("[RDS][catalog] TrafficSpec %s/%s has no matches in route; Skipping...", trafficSpecs.Namespace, trafficSpecs.Name)
+			glog.Errorf("[catalog] TrafficSpec %s/%s has no matches in route; Skipping...", trafficSpecs.Namespace, trafficSpecs.Name)
 			continue
 		}
 		spec := fmt.Sprintf("%s/%s/%s", trafficSpecs.Name, trafficSpecs.Kind, trafficSpecs.Namespace)
-		//todo (snchh) : no mapping yet for route methods (GET,POST) in the envoy configuration
 		for _, trafficSpecsMatches := range trafficSpecs.Matches {
 			serviceRoute := endpoint.RoutePaths{}
 			serviceRoute.RoutePathRegex = trafficSpecsMatches.PathRegex
@@ -111,22 +110,22 @@ func (sc *MeshCatalog) getHTTPPathsPerRoute() (map[string]endpoint.RoutePaths, e
 func getTrafficPolicyPerRoute(sc *MeshCatalog, routes map[string]endpoint.RoutePaths) ([]endpoint.TrafficTargetPolicies, error) {
 	var trafficPolicies []endpoint.TrafficTargetPolicies
 	for _, trafficTargets := range sc.meshSpec.ListTrafficTargets() {
-		glog.V(level.Debug).Infof("[RDS][catalog] Discovered TrafficTarget resource: %s/%s \n", trafficTargets.Namespace, trafficTargets.Name)
+		glog.V(level.Debug).Infof("[catalog] Discovered TrafficTarget resource: %s/%s \n", trafficTargets.Namespace, trafficTargets.Name)
 		if trafficTargets.Specs == nil || len(trafficTargets.Specs) == 0 {
-			glog.Errorf("[RDS][catalog] TrafficTarget %s/%s has no spec routes; Skipping...", trafficTargets.Namespace, trafficTargets.Name)
+			glog.Errorf("[catalog] TrafficTarget %s/%s has no spec routes; Skipping...", trafficTargets.Namespace, trafficTargets.Name)
 			continue
 		}
 
 		destServices, destErr := sc.listServicesForServiceAccount(endpoint.ServiceAccount(fmt.Sprintf("%s/%s", trafficTargets.Destination.Namespace, trafficTargets.Destination.Name)))
 		if destErr != nil {
-			glog.Errorf("[RDS][catalog] TrafficSpec %s/%s could not get services for service account %s", trafficTargets.Namespace, trafficTargets.Name, fmt.Sprintf("%s/%s", trafficTargets.Destination.Namespace, trafficTargets.Destination.Name))
+			glog.Errorf("[catalog] TrafficSpec %s/%s could not get services for service account %s", trafficTargets.Namespace, trafficTargets.Name, fmt.Sprintf("%s/%s", trafficTargets.Destination.Namespace, trafficTargets.Destination.Name))
 			return nil, destErr
 		}
 
 		for _, trafficSources := range trafficTargets.Sources {
 			srcServices, srcErr := sc.listServicesForServiceAccount(endpoint.ServiceAccount(fmt.Sprintf("%s/%s", trafficSources.Namespace, trafficSources.Name)))
 			if srcErr != nil {
-				glog.Errorf("[RDS][catalog] TrafficSpec %s/%s could not get services for service account %s", trafficTargets.Namespace, trafficTargets.Name, fmt.Sprintf("%s/%s", trafficSources.Namespace, trafficSources.Name))
+				glog.Errorf("[catalog] TrafficSpec %s/%s could not get services for service account %s", trafficTargets.Namespace, trafficTargets.Name, fmt.Sprintf("%s/%s", trafficSources.Namespace, trafficSources.Name))
 				return nil, srcErr
 			}
 			trafficTargetPolicy := endpoint.TrafficTargetPolicies{}
@@ -144,13 +143,14 @@ func getTrafficPolicyPerRoute(sc *MeshCatalog, routes map[string]endpoint.RouteP
 
 			for _, trafficTargetSpecs := range trafficTargets.Specs {
 				if trafficTargetSpecs.Kind != HTTPTraffic {
-					glog.Errorf("[RDS][catalog] TrafficTarget %s/%s has Spec Kind %s which isn't supported for now; Skipping...", trafficTargets.Namespace, trafficTargets.Name, trafficTargetSpecs.Kind)
+					glog.Errorf("[catalog] TrafficTarget %s/%s has Spec Kind %s which isn't supported for now; Skipping...", trafficTargets.Namespace, trafficTargets.Name, trafficTargetSpecs.Kind)
 					continue
 				}
 				trafficTargetPolicy.PolicyRoutePaths = []endpoint.RoutePaths{}
 
 				for _, specMatches := range trafficTargetSpecs.Matches {
-					routePath := routes[fmt.Sprintf("%s/%s/%s/%s", trafficTargetSpecs.Name, trafficTargetSpecs.Kind, trafficTargets.Namespace, specMatches)]
+					routeKey := fmt.Sprintf("%s/%s/%s/%s", trafficTargetSpecs.Name, trafficTargetSpecs.Kind, trafficTargets.Namespace, specMatches)
+					routePath := routes[routeKey]
 					trafficTargetPolicy.PolicyRoutePaths = append(trafficTargetPolicy.PolicyRoutePaths, routePath)
 				}
 			}
