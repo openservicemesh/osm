@@ -10,10 +10,6 @@ import (
 	"github.com/deislabs/smc/pkg/log/level"
 )
 
-const (
-	serverName = "RDS"
-)
-
 // NewDiscoveryResponse creates a new Route Discovery Response.
 func (s *Server) NewDiscoveryResponse(proxy *envoy.Proxy) (*v2.DiscoveryResponse, error) {
 	allTrafficPolicies, err := s.catalog.ListTrafficRoutes("TBD")

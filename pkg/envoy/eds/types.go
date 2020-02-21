@@ -7,6 +7,10 @@ import (
 	"github.com/deislabs/smc/pkg/smi"
 )
 
+const (
+	serverName = "EDS"
+)
+
 // Server implements the Envoy xDS Endpoint Discovery Services
 type Server struct {
 	ctx      context.Context

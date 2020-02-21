@@ -4,11 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/deislabs/smc/pkg/constants"
-	"github.com/deislabs/smc/pkg/endpoint"
-	"github.com/deislabs/smc/pkg/providers/azure"
-	"github.com/deislabs/smc/pkg/providers/kube"
-	"k8s.io/client-go/rest"
 	"os"
 	"os/signal"
 	"strings"
@@ -18,14 +13,19 @@ import (
 	xds "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/deislabs/smc/pkg/catalog"
+	"github.com/deislabs/smc/pkg/constants"
+	"github.com/deislabs/smc/pkg/endpoint"
 	"github.com/deislabs/smc/pkg/envoy/ads"
 	"github.com/deislabs/smc/pkg/httpserver"
 	"github.com/deislabs/smc/pkg/log/level"
 	"github.com/deislabs/smc/pkg/metricsstore"
+	"github.com/deislabs/smc/pkg/providers/azure"
 	azureResource "github.com/deislabs/smc/pkg/providers/azure/kubernetes"
+	"github.com/deislabs/smc/pkg/providers/kube"
 	"github.com/deislabs/smc/pkg/smi"
 	"github.com/deislabs/smc/pkg/tresor"
 	"github.com/deislabs/smc/pkg/utils"
@@ -47,8 +47,8 @@ var (
 	verbosity      = flags.Int("verbosity", int(level.Info), "Set log verbosity level")
 	port           = flags.Int("port", 15128, "Clusters Discovery Service port number.")
 	namespace      = flags.String("namespace", "default", "Kubernetes namespace to watch for SMI Spec.")
-	certPem        = flags.String("certpem", "", fmt.Sprintf("Full path to the %s Certificate PEM file", serverType))
-	keyPem         = flags.String("keypem", "", fmt.Sprintf("Full path to the %s Key PEM file", serverType))
+	certPem        = flags.String("certpem", "", "Full path to the xDS Certificate PEM file")
+	keyPem         = flags.String("keypem", "", "Full path to the xDS Key PEM file")
 	rootCertPem    = flags.String("rootcertpem", "", "Full path to the Root Certificate PEM file")
 )
 
@@ -140,6 +140,6 @@ func getNamespaces() []string {
 	} else {
 		namespaces = []string{*namespace}
 	}
-	glog.Infof("[%s] Observing namespaces: %s", serverType, strings.Join(namespaces, ","))
+	glog.Infof("Observing namespaces: %s", strings.Join(namespaces, ","))
 	return namespaces
 }

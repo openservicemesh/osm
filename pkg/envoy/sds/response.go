@@ -10,10 +10,6 @@ import (
 	"github.com/deislabs/smc/pkg/envoy"
 )
 
-const (
-	serverName = "SDS"
-)
-
 // NewDiscoveryResponse creates a new Secrets Discovery Response.
 func (s *Server) NewDiscoveryResponse(proxy *envoy.Proxy) (*v2.DiscoveryResponse, error) {
 	glog.Infof("[%s] Composing SDS Discovery Response for proxy: %s", serverName, proxy.GetCommonName())
