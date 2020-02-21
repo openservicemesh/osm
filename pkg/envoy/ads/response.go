@@ -1,9 +1,5 @@
 package ads
 
-
-
-
-
 import (
 	"fmt"
 	"time"
