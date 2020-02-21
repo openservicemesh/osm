@@ -1,10 +1,18 @@
 package lds
 
-import "github.com/deislabs/smc/pkg/catalog"
+import (
+	"context"
+	"github.com/deislabs/smc/pkg/catalog"
+	"github.com/deislabs/smc/pkg/smi"
+)
+
+const (
+	serverName = "LDS"
+)
 
 // Server is the ClusterDiscoveryService server struct
 type Server struct {
-	connectionNum int
-	catalog       catalog.MeshCataloger
-	closing       chan bool
+	ctx      context.Context
+	catalog  catalog.MeshCataloger
+	meshSpec smi.MeshSpec
 }

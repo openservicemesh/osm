@@ -11,10 +11,6 @@ import (
 	"github.com/deislabs/smc/pkg/envoy"
 )
 
-const (
-	serverName = "LDS"
-)
-
 // NewDiscoveryResponse creates a new Listener Discovery Response.
 func (s *Server) NewDiscoveryResponse(proxy *envoy.Proxy) (*xds.DiscoveryResponse, error) {
 	glog.Infof("[%s] Composing listener Discovery Response for proxy: %s", serverName, proxy.GetCommonName())
@@ -46,7 +42,7 @@ func (s *Server) NewDiscoveryResponse(proxy *envoy.Proxy) (*xds.DiscoveryRespons
 
 	serverConnManager, err := ptypes.MarshalAny(getRdsHTTPServerConnectionFilter())
 	if err != nil {
-		glog.Error("[LDS] Could not construct inbound listener FilterChain: ", err)
+		glog.Errorf("[%s] Could not construct inbound listener FilterChain: %s", serverName, err)
 		return nil, err
 	}
 

@@ -10,10 +10,6 @@ import (
 	"github.com/deislabs/smc/pkg/envoy/cla"
 )
 
-const (
-	serverName = "EDS"
-)
-
 // NewDiscoveryResponse creates a new Endpoint Discovery Response.
 func (s *Server) NewDiscoveryResponse(proxy *envoy.Proxy) (*v2.DiscoveryResponse, error) {
 	allServices, err := s.catalog.ListEndpoints("TBD")
