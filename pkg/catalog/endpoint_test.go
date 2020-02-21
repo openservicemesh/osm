@@ -9,9 +9,9 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Cluster Load Assignment", func() {
-	Context("Testing NewClusterLoadAssignemnt", func() {
-		It("Returns cluster load assignment", func() {
+var _ = Describe("Endpoints To String", func() {
+	Context("Testing endpointsToString", func() {
+		It("Returns string list", func() {
 
 			endpoints := []endpoint.Endpoint{
 				{

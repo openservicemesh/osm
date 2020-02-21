@@ -7,6 +7,7 @@ import (
 
 	"github.com/deislabs/smc/pkg/envoy"
 	"github.com/deislabs/smc/pkg/envoy/route"
+	"github.com/deislabs/smc/pkg/log/level"
 )
 
 const (
@@ -20,7 +21,7 @@ func (s *Server) NewDiscoveryResponse(proxy *envoy.Proxy) (*v2.DiscoveryResponse
 		glog.Errorf("[%s] Failed listing routes: %+v", serverName, err)
 		return nil, err
 	}
-	glog.Infof("[%s] trafficPolicies: %+v", serverName, allTrafficPolicies)
+	glog.V(level.Debug).Infof("[%s] trafficPolicies: %+v", serverName, allTrafficPolicies)
 
 	resp := &v2.DiscoveryResponse{
 		TypeUrl: string(envoy.TypeRDS),

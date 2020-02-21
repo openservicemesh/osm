@@ -1,4 +1,4 @@
-package catalog
+package route
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestCatalog(t *testing.T) {
+func TestRouteConfiguration(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Catalog Test Suite")
+	RunSpecs(t, "Route Configuration Test Suite")
 }
