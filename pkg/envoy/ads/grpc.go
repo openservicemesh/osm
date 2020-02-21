@@ -24,7 +24,6 @@ func receive(requests chan v2.DiscoveryRequest, server *xds.AggregatedDiscoveryS
 			glog.Errorf("[%s][grpc] Connection terminated with error: %+v", serverName, recvErr)
 			return
 		}
-		glog.Infof("[%s][grpc] Done!", serverName)
 		requests <- *request
 	}
 }
