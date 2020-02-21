@@ -22,7 +22,7 @@ type MeshCatalog struct {
 	servicesMutex        sync.Mutex
 	certificateCache     map[endpoint.ServiceName]certificate.Certificater
 	serviceAccountsCache map[endpoint.ServiceAccount][]endpoint.ServiceName
-	targetServicesCache  map[endpoint.ServiceName][]endpoint.ServiceName
+	virtualServicesCache map[endpoint.ServiceName][]endpoint.ServiceName
 
 	connectedProxies     mapset.Set
 	announcementChannels mapset.Set

@@ -14,7 +14,7 @@ func (sc *MeshCatalog) refreshCache() {
 	serviceAccountsCache := make(map[endpoint.ServiceAccount][]endpoint.ServiceName)
 	// TODO(draychev): split the namespace from the service name -- non-K8s services won't have namespace
 
-	services, targetServicesMap := sc.meshSpec.ListServices()
+	services, virtualServicesMap := sc.meshSpec.ListServices()
 	for _, namespacedServiceName := range services {
 		for _, provider := range sc.endpointsProviders {
 			newIps := provider.ListEndpointsForService(namespacedServiceName)
@@ -52,10 +52,10 @@ func (sc *MeshCatalog) refreshCache() {
 	}
 	glog.Infof("[catalog] Services cache: %+v", servicesCache)
 	glog.Infof("[catalog] ServiceAccounts cache: %+v", serviceAccountsCache)
-	glog.Infof("[catalog] TargetServicesMap cache: %+v", targetServicesMap)
+	glog.Infof("[catalog] VirtualServicesMap cache: %+v", virtualServicesMap)
 	sc.servicesMutex.Lock()
 	sc.servicesCache = servicesCache
 	sc.serviceAccountsCache = serviceAccountsCache
-	sc.targetServicesCache = targetServicesMap
+	sc.virtualServicesCache = virtualServicesMap
 	sc.servicesMutex.Unlock()
 }

@@ -54,12 +54,12 @@ func (sc *MeshCatalog) listAggregatedClusters(services []endpoint.ServiceName) [
 	var clusters []endpoint.ServiceName
 	for _, service := range services {
 		clusterFound := false
-		for key, values := range sc.targetServicesCache {
-			for _, value := range values {
-				if value == service {
-					glog.V(level.Trace).Infof("[catalog] Found aggregated cluster %s for service %s", key, value)
+		for virtualService, actualServices := range sc.virtualServicesCache {
+			for _, actualService := range actualServices {
+				if actualService == service {
+					glog.V(level.Trace).Infof("[catalog] Found aggregated cluster %s for service %s", virtualService, service)
 					clusterFound = true
-					clusters = append(clusters, key)
+					clusters = append(clusters, virtualService)
 				}
 			}
 		}
@@ -76,9 +76,9 @@ func (sc *MeshCatalog) listClustersForServices(services []endpoint.ServiceName) 
 	glog.Infof("[catalog] Finding active clusters for services %v", services)
 	var clusters []endpoint.ServiceName
 	for _, service := range services {
-		for _, values := range sc.targetServicesCache {
-			for _, value := range values {
-				if value == service {
+		for _, actualServices := range sc.virtualServicesCache {
+			for _, actualService := range actualServices {
+				if actualService == service {
 					clusters = append(clusters, service)
 				}
 			}
