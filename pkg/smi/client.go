@@ -188,7 +188,7 @@ func (c *Client) ListServices() ([]endpoint.ServiceName, map[endpoint.ServiceNam
 	// TODO(draychev): split the namespace and the service kubernetesClientName -- for non-kubernetes services we won't have namespace
 	var services []endpoint.ServiceName
 	// this holds a mapping of the target service to the backend services
-	targetServicesMap := make(map[endpoint.ServiceName][]endpoint.ServiceName)
+	virtualServicesMap := make(map[endpoint.ServiceName][]endpoint.ServiceName)
 	for _, splitIface := range c.caches.TrafficSplit.List() {
 		split := splitIface.(*split.TrafficSplit)
 		namespacedServiceName := fmt.Sprintf("%s/%s", split.Namespace, split.Spec.Service)
@@ -199,9 +199,9 @@ func (c *Client) ListServices() ([]endpoint.ServiceName, map[endpoint.ServiceNam
 			services = append(services, endpoint.ServiceName(namespacedServiceName))
 			backends = append(backends, endpoint.ServiceName(namespacedServiceName))
 		}
-		targetServicesMap[endpoint.ServiceName(namespacedServiceName)] = backends
+		virtualServicesMap[endpoint.ServiceName(namespacedServiceName)] = backends
 	}
-	return services, targetServicesMap
+	return services, virtualServicesMap
 }
 
 // ListServiceAccounts implements mesh.MeshSpec by returning the service accounts observed from the given compute provider
