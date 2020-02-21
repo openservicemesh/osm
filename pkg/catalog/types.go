@@ -1,7 +1,6 @@
 package catalog
 
 import (
-	"net"
 	"sync"
 
 	mapset "github.com/deckarep/golang-set"
@@ -41,10 +40,10 @@ type MeshCataloger interface {
 	GetCertificateForService(endpoint.ServiceName) (certificate.Certificater, error)
 
 	// RegisterProxy registers a newly connected proxy with the service mesh catalog.
-	RegisterProxy(cn certificate.CommonName, ip net.IP) *envoy.Proxy
+	RegisterProxy(*envoy.Proxy)
 
 	// UnregisterProxy unregisters an existing proxy from the service mesh catalog
-	UnregisterProxy(*envoy.Proxy) error
+	UnregisterProxy(*envoy.Proxy)
 }
 
 type announcementChannel struct {

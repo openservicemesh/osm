@@ -1,12 +1,13 @@
 package envoy
 
 import (
-	"github.com/deislabs/smc/pkg/certificate"
-	"github.com/deislabs/smc/pkg/endpoint"
-	"github.com/deislabs/smc/pkg/utils"
 	"net"
 	"strings"
 	"time"
+
+	"github.com/deislabs/smc/pkg/certificate"
+	"github.com/deislabs/smc/pkg/endpoint"
+	"github.com/deislabs/smc/pkg/utils"
 )
 
 const (
@@ -26,18 +27,18 @@ type Proxy struct {
 	LastNonce   string
 }
 
-// GetService implements Proxyer and determines the meshed service this endpoint should support based on the mTLS certificate.
+// GetService determines the meshed service this endpoint should support based on the mTLS certificate.
 // From "a.b.c" returns "b.c". By convention "a" is the ID of the proxy. Remaining "b.c" is the name of the service.
 func (p Proxy) GetService() endpoint.ServiceName {
 	return p.ServiceName
 }
 
-// GetCommonName implements Proxyer and returns the Subject Common Name from the mTLS certificate of the Envoy proxy connected to xDS.
+// GetCommonName returns the Subject Common Name from the mTLS certificate of the Envoy proxy connected to xDS.
 func (p Proxy) GetCommonName() certificate.CommonName {
 	return p.CommonName
 }
 
-// GetIP implements Proxyer and returns the IP address of the Envoy proxy connected to xDS.
+// GetIP returns the IP address of the Envoy proxy connected to xDS.
 func (p Proxy) GetIP() net.IP {
 	return p.IP
 }

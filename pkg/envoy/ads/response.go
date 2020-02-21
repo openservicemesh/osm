@@ -36,7 +36,7 @@ func (s *Server) newAggregatedDiscoveryResponse(proxy *envoy.Proxy, request *env
 		return nil, errUnknownTypeURL
 	}
 
-	response, err := handler(proxy)
+	response, err := handler(s.ctx, s.catalog, s.meshSpec, proxy)
 	if err != nil {
 		glog.Errorf("Error creating %s response: %s", request.TypeUrl, err)
 		return nil, errCreatingResponse

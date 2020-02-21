@@ -1,19 +1,27 @@
 package sds
 
 import (
+	"context"
+
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes"
 
+	"github.com/deislabs/smc/pkg/catalog"
 	"github.com/deislabs/smc/pkg/envoy"
+	"github.com/deislabs/smc/pkg/smi"
 )
 
-// NewDiscoveryResponse creates a new Secrets Discovery Response.
-func (s *Server) NewDiscoveryResponse(proxy *envoy.Proxy) (*v2.DiscoveryResponse, error) {
+const (
+	serverName = "SDS"
+)
+
+// NewResponse creates a new Secrets Discovery Response.
+func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy) (*v2.DiscoveryResponse, error) {
 	glog.Infof("[%s] Composing SDS Discovery Response for proxy: %s", serverName, proxy.GetCommonName())
-	cert, err := s.catalog.GetCertificateForService(proxy.GetService())
+	cert, err := catalog.GetCertificateForService(proxy.GetService())
 	if err != nil {
 		glog.Errorf("[%s] Error obtaining a certificate for client %s: %s", serverName, proxy.GetCommonName(), err)
 		return nil, err
