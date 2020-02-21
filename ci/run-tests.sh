@@ -10,9 +10,7 @@ rm -rf ./certs
 ./demo/clean-kubernetes.sh
 
 make build-cert
-
 make docker-push-ads
-
 make docker-push-init
 make docker-push-bookbuyer
 make docker-push-bookstore
