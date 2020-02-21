@@ -25,7 +25,6 @@ func (s *Server) sendAllResponses(proxy *envoy.Proxy, server *envoy_service_disc
 		if err := (*server).Send(discoveryResponse); err != nil {
 			glog.Errorf("[%s] Error sending DiscoveryResponse %s: %+v", serverName, uri, err)
 		}
-
 	}
 }
 
