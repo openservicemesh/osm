@@ -1,11 +1,12 @@
 package cds
 
 import (
-	"github.com/deislabs/smc/pkg/envoy"
-	"github.com/deislabs/smc/pkg/log/level"
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes"
+
+	"github.com/deislabs/smc/pkg/envoy"
+	"github.com/deislabs/smc/pkg/log/level"
 )
 
 func svcRemote(clusterName string, certificateName string) *xds.Cluster {
@@ -18,8 +19,8 @@ func svcLocal(clusterName string, _ string) *xds.Cluster {
 	return getServiceClusterLocal(clusterName)
 }
 
-// NewClusterDiscoveryResponse creates a new Cluster Discovery Response.
-func (s *Server) NewClusterDiscoveryResponse(proxy *envoy.Proxy) (*xds.DiscoveryResponse, error) {
+// NewDiscoveryResponse creates a new Cluster Discovery Response.
+func (s *Server) NewDiscoveryResponse(proxy *envoy.Proxy) (*xds.DiscoveryResponse, error) {
 	allServices, err := s.catalog.ListEndpoints("TBD")
 	if err != nil {
 		glog.Errorf("[%s] Failed listing endpoints: %+v", serverName, err)

@@ -22,20 +22,14 @@ const (
 
 // NewADSServer creates a new CDS server
 func NewADSServer(ctx context.Context, meshCatalog catalog.MeshCataloger, meshSpec smi.MeshSpec) *Server {
-	cdsServer := cds.NewCDSServer(meshCatalog)
-	rdsServer := rds.NewRDSServer(ctx, meshCatalog, meshSpec)
-	edsServer := eds.NewEDSServer(ctx, meshCatalog, meshSpec)
-	ldsServer := lds.NewLDSServer(meshCatalog)
-	sdsServer := sds.NewSDSServer(meshCatalog)
-
 	return &Server{
 		catalog: meshCatalog,
 		xdsHandlers: map[envoy.TypeURI]func(*envoy.Proxy) (*envoy_api_v2.DiscoveryResponse, error){
-			envoy.TypeEDS: edsServer.NewEndpointDiscoveryResponse,
-			envoy.TypeCDS: cdsServer.NewClusterDiscoveryResponse,
-			envoy.TypeRDS: rdsServer.NewRouteDiscoveryResponse,
-			envoy.TypeLDS: ldsServer.NewListenerDiscoveryResponse,
-			envoy.TypeSDS: sdsServer.NewSecretDiscoveryResponse,
+			envoy.TypeEDS: eds.NewEDSServer(ctx, meshCatalog, meshSpec).NewDiscoveryResponse,
+			envoy.TypeCDS: cds.NewCDSServer(ctx, meshCatalog, meshSpec).NewDiscoveryResponse,
+			envoy.TypeRDS: rds.NewRDSServer(ctx, meshCatalog, meshSpec).NewDiscoveryResponse,
+			envoy.TypeLDS: lds.NewLDSServer(ctx, meshCatalog, meshSpec).NewDiscoveryResponse,
+			envoy.TypeSDS: sds.NewSDSServer(ctx, meshCatalog, meshSpec).NewDiscoveryResponse,
 		},
 	}
 }

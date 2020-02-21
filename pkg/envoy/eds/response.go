@@ -14,8 +14,8 @@ const (
 	serverName = "EDS"
 )
 
-// NewEndpointDiscoveryResponse creates a new Endpoint Discovery Response.
-func (s *Server) NewEndpointDiscoveryResponse(proxy *envoy.Proxy) (*v2.DiscoveryResponse, error) {
+// NewDiscoveryResponse creates a new Endpoint Discovery Response.
+func (s *Server) NewDiscoveryResponse(proxy *envoy.Proxy) (*v2.DiscoveryResponse, error) {
 	allServices, err := s.catalog.ListEndpoints("TBD")
 	if err != nil {
 		glog.Errorf("[%s] Failed listing endpoints: %+v", serverName, err)
