@@ -3,10 +3,10 @@ package catalog
 import (
 	"net"
 
-	"github.com/deislabs/smc/pkg/endpoint"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	"github.com/deislabs/smc/pkg/endpoint"
 )
 
 var _ = Describe("Endpoints To String", func() {

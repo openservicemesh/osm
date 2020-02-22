@@ -1,27 +1,25 @@
 package cds
 
 import (
+	"context"
+
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes"
 
+	"github.com/deislabs/smc/pkg/catalog"
 	"github.com/deislabs/smc/pkg/envoy"
 	"github.com/deislabs/smc/pkg/log/level"
+	"github.com/deislabs/smc/pkg/smi"
 )
 
-func svcRemote(clusterName string, certificateName string) *xds.Cluster {
-	// The name must match the domain being cURLed in the demo
-	return envoy.GetServiceCluster(clusterName, certificateName)
-}
+const (
+	serverName = "CDS"
+)
 
-func svcLocal(clusterName string, _ string) *xds.Cluster {
-	// The name must match the domain being cURLed in the demo
-	return getServiceClusterLocal(clusterName)
-}
-
-// NewDiscoveryResponse creates a new Cluster Discovery Response.
-func (s *Server) NewDiscoveryResponse(proxy *envoy.Proxy) (*xds.DiscoveryResponse, error) {
-	allServices, err := s.catalog.ListEndpoints("TBD")
+// NewResponse creates a new Cluster Discovery Response.
+func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy) (*xds.DiscoveryResponse, error) {
+	allServices, err := catalog.ListEndpoints("TBD")
 	if err != nil {
 		glog.Errorf("[%s] Failed listing endpoints: %+v", serverName, err)
 		return nil, err
@@ -33,9 +31,10 @@ func (s *Server) NewDiscoveryResponse(proxy *envoy.Proxy) (*xds.DiscoveryRespons
 
 	clusterFactories := []*xds.Cluster{}
 	for targetedServiceName, weightedServices := range allServices {
-		clusterFactories = append(clusterFactories, svcRemote(string(targetedServiceName), "bookstore.mesh"))
+		remoteService := envoy.GetServiceCluster(string(targetedServiceName), "bookstore.mesh")
+		clusterFactories = append(clusterFactories, remoteService)
 		for _, localservice := range weightedServices {
-			clusterFactories = append(clusterFactories, svcLocal(string(localservice.ServiceName), "bookstore.mesh"))
+			clusterFactories = append(clusterFactories, getServiceClusterLocal(string(localservice.ServiceName)))
 		}
 	}
 

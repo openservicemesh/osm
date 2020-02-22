@@ -1,18 +1,22 @@
 package lds
 
 import (
+	"context"
+
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	listener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes"
 
+	"github.com/deislabs/smc/pkg/catalog"
 	"github.com/deislabs/smc/pkg/constants"
 	"github.com/deislabs/smc/pkg/envoy"
+	"github.com/deislabs/smc/pkg/smi"
 )
 
-// NewDiscoveryResponse creates a new Listener Discovery Response.
-func (s *Server) NewDiscoveryResponse(proxy *envoy.Proxy) (*xds.DiscoveryResponse, error) {
+// NewResponse creates a new Listener Discovery Response.
+func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy) (*xds.DiscoveryResponse, error) {
 	glog.Infof("[%s] Composing listener Discovery Response for proxy: %s", serverName, proxy.GetCommonName())
 	resp := &xds.DiscoveryResponse{
 		TypeUrl: string(envoy.TypeLDS),

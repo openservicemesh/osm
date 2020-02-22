@@ -4,9 +4,10 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/golang/glog"
+
 	"github.com/deislabs/smc/pkg/envoy"
 	"github.com/deislabs/smc/pkg/log/level"
-	"github.com/golang/glog"
 )
 
 const (
@@ -45,11 +46,11 @@ func (sc *MeshCatalog) getCases() ([]reflect.SelectCase, []string) {
 
 func (sc *MeshCatalog) broadcast(message interface{}) {
 	for _, proxyInterface := range sc.connectedProxies.ToSlice() {
-		proxy := proxyInterface.(*envoy.Proxy)
-		glog.V(level.Debug).Infof("[repeater] Broadcast announcement to proxy %s", proxy.GetCommonName())
+		envoy := proxyInterface.(envoy.Proxy)
+		glog.V(level.Debug).Infof("[repeater] Broadcast announcement to envoy %s", envoy.GetCommonName())
 		select {
 		// send the message if possible - do not block
-		case proxy.GetAnnouncementsChannel() <- message:
+		case envoy.GetAnnouncementsChannel() <- message:
 		default:
 		}
 	}

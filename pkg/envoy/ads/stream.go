@@ -2,11 +2,13 @@ package ads
 
 import (
 	"context"
+
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 
+	"github.com/deislabs/smc/pkg/envoy"
 	"github.com/deislabs/smc/pkg/log/level"
 	"github.com/deislabs/smc/pkg/utils"
 )
@@ -26,7 +28,8 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 
 	// Register the newly connected proxy w/ the catalog.
 	ip := utils.GetIPFromContext(server.Context())
-	proxy := s.catalog.RegisterProxy(cn, ip)
+	proxy := envoy.NewProxy(cn, ip)
+	s.catalog.RegisterProxy(proxy)
 	defer s.catalog.UnregisterProxy(proxy)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -34,8 +37,6 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 
 	requests := make(chan v2.DiscoveryRequest)
 	go receive(requests, &server)
-
-	s.sendAllResponses(proxy, &server)
 
 	for {
 		select {

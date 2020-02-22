@@ -1,18 +1,26 @@
 package rds
 
 import (
+	"context"
+
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes"
 
+	"github.com/deislabs/smc/pkg/catalog"
 	"github.com/deislabs/smc/pkg/envoy"
 	"github.com/deislabs/smc/pkg/envoy/route"
 	"github.com/deislabs/smc/pkg/log/level"
+	"github.com/deislabs/smc/pkg/smi"
 )
 
-// NewDiscoveryResponse creates a new Route Discovery Response.
-func (s *Server) NewDiscoveryResponse(proxy *envoy.Proxy) (*v2.DiscoveryResponse, error) {
-	allTrafficPolicies, err := s.catalog.ListTrafficRoutes("TBD")
+const (
+	serverName = "RDS"
+)
+
+// NewResponse creates a new Route Discovery Response.
+func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy) (*v2.DiscoveryResponse, error) {
+	allTrafficPolicies, err := catalog.ListTrafficRoutes("TBD")
 	if err != nil {
 		glog.Errorf("[%s] Failed listing routes: %+v", serverName, err)
 		return nil, err

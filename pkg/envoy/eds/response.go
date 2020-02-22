@@ -1,18 +1,26 @@
 package eds
 
 import (
+	"context"
+
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 
+	"github.com/deislabs/smc/pkg/catalog"
 	"github.com/deislabs/smc/pkg/envoy"
 	"github.com/deislabs/smc/pkg/envoy/cla"
+	"github.com/deislabs/smc/pkg/smi"
 )
 
-// NewDiscoveryResponse creates a new Endpoint Discovery Response.
-func (s *Server) NewDiscoveryResponse(proxy *envoy.Proxy) (*v2.DiscoveryResponse, error) {
-	allServices, err := s.catalog.ListEndpoints("TBD")
+const (
+	serverName = "EDS"
+)
+
+// NewResponse creates a new Endpoint Discovery Response.
+func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy) (*v2.DiscoveryResponse, error) {
+	allServices, err := catalog.ListEndpoints("TBD")
 	if err != nil {
 		glog.Errorf("[%s] Failed listing endpoints: %+v", serverName, err)
 		return nil, err
@@ -24,7 +32,7 @@ func (s *Server) NewDiscoveryResponse(proxy *envoy.Proxy) (*v2.DiscoveryResponse
 
 		proto, err := ptypes.MarshalAny(&loadAssignment)
 		if err != nil {
-			glog.Errorf("[catalog] Error marshalling EDS payload %+v: %s", loadAssignment, err)
+			glog.Errorf("[Catalog] Error marshalling EDS payload %+v: %s", loadAssignment, err)
 			continue
 		}
 		protos = append(protos, proto)

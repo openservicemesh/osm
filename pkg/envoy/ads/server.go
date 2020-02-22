@@ -16,20 +16,18 @@ import (
 	"github.com/deislabs/smc/pkg/smi"
 )
 
-const (
-	serverName = "ADS"
-)
-
-// NewADSServer creates a new CDS server
+// NewADSServer creates a new Aggregated Discovery Service server
 func NewADSServer(ctx context.Context, meshCatalog catalog.MeshCataloger, meshSpec smi.MeshSpec) *Server {
 	return &Server{
-		catalog: meshCatalog,
-		xdsHandlers: map[envoy.TypeURI]func(*envoy.Proxy) (*envoy_api_v2.DiscoveryResponse, error){
-			envoy.TypeEDS: eds.NewEDSServer(ctx, meshCatalog, meshSpec).NewDiscoveryResponse,
-			envoy.TypeCDS: cds.NewCDSServer(ctx, meshCatalog, meshSpec).NewDiscoveryResponse,
-			envoy.TypeRDS: rds.NewRDSServer(ctx, meshCatalog, meshSpec).NewDiscoveryResponse,
-			envoy.TypeLDS: lds.NewLDSServer(ctx, meshCatalog, meshSpec).NewDiscoveryResponse,
-			envoy.TypeSDS: sds.NewSDSServer(ctx, meshCatalog, meshSpec).NewDiscoveryResponse,
+		catalog:  meshCatalog,
+		ctx:      ctx,
+		meshSpec: meshSpec,
+		xdsHandlers: map[envoy.TypeURI]func(context.Context, catalog.MeshCataloger, smi.MeshSpec, *envoy.Proxy) (*envoy_api_v2.DiscoveryResponse, error){
+			envoy.TypeEDS: eds.NewResponse,
+			envoy.TypeCDS: cds.NewResponse,
+			envoy.TypeRDS: rds.NewResponse,
+			envoy.TypeLDS: lds.NewResponse,
+			envoy.TypeSDS: sds.NewResponse,
 		},
 	}
 }
