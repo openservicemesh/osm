@@ -16,7 +16,7 @@ func GetLastNOfDotted(s string, n int) string {
 	return strings.Join(pieces, ".")
 }
 
-// GetFirstNOfDotted splits a string by period and returns the first chunk.
+// GetFirstOfDotted splits a string by period and returns the first chunk.
 func GetFirstOfDotted(s string) string {
 	split := strings.Split(s, ".")
 	return split[0]
