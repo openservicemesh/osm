@@ -46,7 +46,7 @@ func (sc *MeshCatalog) getCases() ([]reflect.SelectCase, []string) {
 
 func (sc *MeshCatalog) broadcast(message interface{}) {
 	for _, proxyInterface := range sc.connectedProxies.ToSlice() {
-		envoy := proxyInterface.(envoy.Proxy)
+		envoy := proxyInterface.(*envoy.Proxy)
 		glog.V(level.Debug).Infof("[repeater] Broadcast announcement to envoy %s", envoy.GetCommonName())
 		select {
 		// send the message if possible - do not block
