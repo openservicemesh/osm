@@ -2,7 +2,6 @@ package envoy
 
 import (
 	"net"
-	"strings"
 	"time"
 
 	"github.com/deislabs/smc/pkg/certificate"
@@ -50,11 +49,10 @@ func (p Proxy) GetAnnouncementsChannel() chan interface{} {
 
 // NewProxy creates a new instance of an Envoy proxy connected to the xDS servers.
 func NewProxy(cn certificate.CommonName, ip net.IP) *Proxy {
-	dotCount := strings.Count(string(cn), dot)
 	return &Proxy{
 		CommonName:    cn,
 		IP:            ip,
-		ServiceName:   endpoint.ServiceName(utils.GetLastNOfDotted(string(cn), dotCount)),
+		ServiceName:   endpoint.ServiceName(utils.GetFirstOfDotted(string(cn))),
 		announcements: make(chan interface{}),
 	}
 }
