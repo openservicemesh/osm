@@ -17,6 +17,7 @@ import (
 
 // NewResponse creates a new Listener Discovery Response.
 func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy) (*xds.DiscoveryResponse, error) {
+	glog.Infof("TEST LDS Service on proxy : %v proxy common name %s", proxy.GetService(), proxy.CommonName)
 	glog.Infof("[%s] Composing listener Discovery Response for proxy: %s", serverName, proxy.GetCommonName())
 	resp := &xds.DiscoveryResponse{
 		TypeUrl: string(envoy.TypeLDS),
@@ -64,7 +65,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 					},
 				},
 				// TODO(draychev): enable "tls_context.require_client_certificate: true"
-				TransportSocket: envoy.GetTransportSocketForServiceDownstream("server_cert"), // TODO(draychev): remove hard-coded cert name
+				TransportSocket: envoy.GetTransportSocketForServiceDownstream(envoy.CertificateName), // TODO(draychev): remove hard-coded cert name
 			},
 		},
 	}
