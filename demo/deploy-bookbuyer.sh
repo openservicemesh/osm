@@ -72,13 +72,10 @@ spec:
           image: "${CTR_REGISTRY}/bookbuyer:latest"
           imagePullPolicy: Always
           command: ["/bookbuyer"]
-          volumeMounts:
-           - name: config-volume
-             mountPath: /etc/config
 
         # Sidecar with Envoy PROXY
         - name: envoyproxy
-          image: envoyproxy/envoy-alpine-dev:latest
+          image: "${CTR_REGISTRY}/envoyproxy:latest"
           imagePullPolicy: Always
           securityContext:
             runAsUser: 1337
@@ -86,11 +83,8 @@ spec:
             - containerPort: 15000
               name: admin-port
           command: ["envoy"]
-          args: ["--log-level", "debug", "-c", "/etc/config/bootstrap.yaml", "--service-node", "bookstore", "--service-cluster", "bookstore"]
+          args: ["--log-level", "debug", "-c", "/etc/envoy/bootstrap.yaml", "--service-node", "bookstore", "--service-cluster", "bookstore"]
           volumeMounts:
-           - name: config-volume
-             mountPath: /etc/config
-
            # Bootstrap certificates
            - name: ca-certpemstore-bookbuyer
              mountPath: /etc/ssl/certs/cert.pem
@@ -126,10 +120,6 @@ spec:
               value: "169.254.169.254"
 
       volumes:
-        - name: config-volume
-          configMap:
-            name: envoyproxy-config
-
         # Bootstrap certificates
         - name: ca-certpemstore-bookbuyer
           configMap:
