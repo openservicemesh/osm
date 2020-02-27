@@ -7,8 +7,6 @@ source .env
 
 kubectl apply -f https://raw.githubusercontent.com/deislabs/smi-sdk-go/master/crds/access.yaml
 
-kubectl create namespace "$K8S_NAMESPACE" || true
-
 kubectl apply -f - <<EOF
 kind: TrafficTarget
 apiVersion: access.smi-spec.io/v1alpha1
