@@ -7,6 +7,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
+
+    - name: Reveal secret
+      run: |
+        echo $K8S_NAMESPACE
+
     - name: Set up Go 1.13
       uses: actions/setup-go@v1
       with:
