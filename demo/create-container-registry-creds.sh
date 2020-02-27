@@ -12,7 +12,6 @@ echo "Creating container registry credentials ($CTR_REGISTRY_CREDS_NAME) for Kub
 
 DOCKER_PASSWORD=$(az acr credential show -n "$REGISTRY" --query "passwords[0].value" | tr -d '"')
 
-kubectl delete secrets "$CTR_REGISTRY_CREDS_NAME" -n "$K8S_NAMESPACE" || true
 kubectl create secret docker-registry "$CTR_REGISTRY_CREDS_NAME" \
         -n "$K8S_NAMESPACE" \
         --docker-server="$REGISTRY_URL" \

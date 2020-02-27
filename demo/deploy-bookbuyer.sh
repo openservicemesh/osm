@@ -7,8 +7,6 @@ source .env
 
 ./demo/deploy-secrets.sh "bookbuyer"
 
-kubectl delete deployment bookbuyer -n "$K8S_NAMESPACE"  || true
-
 echo -e "Deploy BookBuyer demo service"
 cat <<EOF | kubectl apply -f -
 apiVersion: v1

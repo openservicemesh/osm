@@ -9,8 +9,6 @@ SVC=${1:-bookstore}
 
 ./demo/deploy-secrets.sh "$SVC"
 
-kubectl delete deployment "$SVC" -n "$K8S_NAMESPACE"  || true
-
 GIT_HASH=$(git rev-parse --short HEAD)
 
 echo -e "Deploy $SVC demo service"

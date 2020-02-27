@@ -7,13 +7,6 @@ source .env
 
 NAME=${1:-unknown}
 
-echo -e "Delete old secrets: ca-certpemstore-${NAME}, ca-keypemstore-${NAME}, ca-rootcertpemstore-${NAME}"
-kubectl -n "$K8S_NAMESPACE" \
-        delete configmap \
-        "ca-certpemstore-${NAME}" \
-        "ca-keypemstore-${NAME}" \
-        "ca-rootcertpemstore-${NAME}" || true
-
 echo -e "Generate certificates for ${NAME}"
 mkdir -p "./certificates/$NAME/"
 
