@@ -75,7 +75,7 @@ The following sections outline how to onboard VMs to participate in a service me
 	```
 	$ envoy --version
 	```
-- Copy the Envoy boostrap configuration file `smc/demo/config/bootstrap.yaml`  to `/etc/envoy/bootstrap.yaml`
+- Copy the Envoy boostrap configuration file `smc/config/bootstrap.yaml`  to `/etc/envoy/bootstrap.yaml`
 	Refer to [Envoy - Getting Started guide](https://www.envoyproxy.io/docs/envoy/latest/start/start#https://www.envoyproxy.io/docs/envoy/latest/start/start#) for setting up the bootstrap configuration.
 
 - Add the hostname to IP address mapping for the xDS services in `/etc/hosts` file on the VM so that the envoy proxy can connect to the xDS services using their hostname specified in the bootstrap config file.

@@ -80,7 +80,7 @@ spec:
             - name: IDENTITY
               value: ${SVC}--${GIT_HASH}
 
-        - image: envoyproxy/envoy-alpine-dev:latest
+        - image: "${CTR_REGISTRY}/envoyproxy:latest"
           imagePullPolicy: Always
           name: envoyproxy
           ports:
@@ -89,11 +89,8 @@ spec:
             - containerPort: 15003
               name: mtls-port
           command: ["envoy"]
-          args: ["--log-level", "debug", "-c", "/etc/config/bootstrap.yaml", "--service-node", "bookstore", "--service-cluster", "bookstore"]
+          args: ["--log-level", "debug", "-c", "/etc/envoy/bootstrap.yaml", "--service-node", "bookstore", "--service-cluster", "bookstore"]
           volumeMounts:
-           - name: config-volume
-             mountPath: /etc/config
-
            # Bootstrap certificates
            - name: ca-certpemstore-$SVC
              mountPath: /etc/ssl/certs/cert.pem
@@ -105,9 +102,6 @@ spec:
              readOnly: false
 
       volumes:
-        - name: config-volume
-          configMap:
-            name: envoyproxy-config
         # Bootstrap certificates
         - name: ca-certpemstore-$SVC
           configMap:

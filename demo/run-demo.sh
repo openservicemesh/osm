@@ -15,13 +15,13 @@ make build-cert
 make docker-push-ads
 
 make docker-push-init
+make docker-push-envoyproxy
 make docker-push-bookbuyer
 make docker-push-bookstore
 
 # Create the proxy certificates
 ./demo/gen-ca.sh
 ./demo/create-container-registry-creds.sh
-./demo/deploy-envoyproxy-config.sh
 
 kubectl create configmap kubeconfig --from-file="$HOME/.kube/config" -n "$K8S_NAMESPACE"
 kubectl create configmap azureconfig --from-file="$HOME/.azure/azureAuth.json" -n "$K8S_NAMESPACE"
