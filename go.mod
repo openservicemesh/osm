@@ -9,6 +9,7 @@ require (
 	github.com/Azure/azure-sdk-for-go v34.0.0+incompatible
 	github.com/Azure/go-autorest/autorest v0.5.0
 	github.com/Azure/go-autorest/autorest/azure/auth v0.1.0
+	github.com/Azure/go-autorest/autorest/to v0.2.0
 	github.com/Azure/go-autorest/tracing v0.2.0 // indirect
 	github.com/deckarep/golang-set v1.7.1
 	github.com/deislabs/smi-sdk-go v0.2.0
