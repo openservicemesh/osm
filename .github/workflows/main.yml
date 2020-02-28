@@ -27,6 +27,31 @@ jobs:
             dep ensure
         fi
 
+
+    - name: Integration Test
+      env:
+        KUBE_CONFIG: ${{ secrets.KUBECONFIG }}
+        AZURE_SUBSCRIPTION: ${{ secrets.AZURE_SUBSCRIPTION }}
+        CTR_REGISTRY: ${{ secrets.CTR_REGISTRY }}
+        CTR_REGISTRY_CREDS_NAME: ${{ secrets.CTR_REGISTRY_CREDS_NAME }}
+        K8S_NAMESPACE: "ci-${{ github.sha }}-${{ github.run_id }}-${{ github.run_number}}"
+        ACR_CREDS: ${{ secrets.ACR_CREDS }}
+        KUBECONFIG: ".kube/config"
+        DOCKER_USER: ${{ secrets.DOCKER_USER }}
+        DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
+        WAIT_FOR_OK_SECONDS: 55
+        IS_GITHUB: true
+        ACR: ${{ secrets.ACR }}
+      run: |
+        touch .env  # it is ok keep this empty
+        echo "Creating Kubernetes namespace: $K8S_NAMESPACE"
+        mkdir -p ".kube"
+        echo "$KUBE_CONFIG" | base64 -d > "$KUBECONFIG"
+        echo "$DOCKER_PASS" | docker login "$ACR" -u "$DOCKER_USER" --password-stdin
+        go run ./ci/cmd/cleanup-namespaces.go
+        ./demo/run-demo.sh
+        go run ./demo/cmd/tail/tail.go
+
     - name: Lint
       run: |
         go get golang.org/x/lint/golint
@@ -68,4 +93,3 @@ jobs:
         gocov-xml < coverage.json > coverage.xml
         mkdir coverage
         gocov-html < coverage.json > coverage/index.html
-

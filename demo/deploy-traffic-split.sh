@@ -21,6 +21,4 @@ spec:
 
   - service: bookstore-1
     weight: 100
-
-
 EOF

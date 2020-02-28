@@ -24,7 +24,7 @@ const (
 )
 
 var (
-	staleIfOlderThan = 12 * time.Hour
+	staleIfOlderThan = 5 * time.Minute
 )
 
 func main() {

@@ -5,6 +5,8 @@ set -aueo pipefail
 # shellcheck disable=SC1091
 source .env
 
+echo "WAIT_FOR_OK_SECONDS = ${WAIT_FOR_OK_SECONDS}"
+
 ./demo/deploy-secrets.sh "bookbuyer"
 
 kubectl delete deployment bookbuyer -n "$K8S_NAMESPACE"  || true
@@ -73,9 +75,13 @@ spec:
           imagePullPolicy: Always
           command: ["/bookbuyer"]
 
+          env:
+            - name: "WAIT_FOR_OK_SECONDS"
+              value: "$WAIT_FOR_OK_SECONDS"
+
         # Sidecar with Envoy PROXY
         - name: envoyproxy
-          image: "${CTR_REGISTRY}/envoyproxy:latest"
+          image: "envoyproxy/envoy-alpine-dev:latest"
           imagePullPolicy: Always
           securityContext:
             runAsUser: 1337
@@ -85,6 +91,9 @@ spec:
           command: ["envoy"]
           args: ["--log-level", "debug", "-c", "/etc/envoy/bootstrap.yaml", "--service-node", "bookstore", "--service-cluster", "bookstore"]
           volumeMounts:
+           - name: envoyproxy-config
+             mountPath: /etc/envoy
+
            # Bootstrap certificates
            - name: ca-certpemstore-bookbuyer
              mountPath: /etc/ssl/certs/cert.pem
@@ -128,6 +137,10 @@ spec:
         - name: ca-keypemstore-bookbuyer
           configMap:
             name: ca-keypemstore-bookbuyer
+
+        - name: envoyproxy-config
+          configMap:
+            name: envoyproxy-config
 
       imagePullSecrets:
         - name: "$CTR_REGISTRY_CREDS_NAME"
