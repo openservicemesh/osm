@@ -22,9 +22,6 @@ const (
 	// TransportSocketTLS is an Envoy string constant.
 	TransportSocketTLS = "envoy.transport_sockets.tls"
 
-	// CertificateName is a string constant for a certificate name.
-	CertificateName = "server_cert"
-
 	accessLogPath = "/dev/stdout"
 
 	// cipher suites
