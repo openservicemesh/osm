@@ -135,9 +135,15 @@ func generateKubernetesConfig(name, namespace, containerRegistry, containerRegis
 									ReadOnly:  false,
 								},
 								{
-									Name:      fmt.Sprintf("ca-rootcertpemstore-%s", name),
+									Name:      "ca-rootcertpemstore",
 									MountPath: "/etc/ssl/certs/root-cert.pem",
 									SubPath:   "root-cert.pem",
+									ReadOnly:  false,
+								},
+								{
+									Name:      "ca-rootkeypemstore",
+									MountPath: "/etc/ssl/certs/root-key.pem",
+									SubPath:   "root-key.pem",
 									ReadOnly:  false,
 								},
 							},
@@ -165,11 +171,21 @@ func generateKubernetesConfig(name, namespace, containerRegistry, containerRegis
 							},
 						},
 						{
-							Name: fmt.Sprintf("ca-rootcertpemstore-%s", name),
+							Name: "ca-rootcertpemstore",
 							VolumeSource: apiv1.VolumeSource{
 								ConfigMap: &apiv1.ConfigMapVolumeSource{
 									LocalObjectReference: apiv1.LocalObjectReference{
-										Name: fmt.Sprintf("ca-rootcertpemstore-%s", name),
+										Name: "ca-rootcertpemstore",
+									},
+								},
+							},
+						},
+						{
+							Name: "ca-rootkeypemstore",
+							VolumeSource: apiv1.VolumeSource{
+								ConfigMap: &apiv1.ConfigMapVolumeSource{
+									LocalObjectReference: apiv1.LocalObjectReference{
+										Name: "ca-rootkeypemstore",
 									},
 								},
 							},

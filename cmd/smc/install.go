@@ -105,7 +105,7 @@ func (i *installCmd) generateCerts(name string) error {
 		return err
 	}
 
-	configmap := generateCertConfig(fmt.Sprintf("ca-rootcertpemstore-%s", name), i.namespace, "root-cert.pem", i.rootcertpem)
+	configmap := generateCertConfig("ca-rootcertpemstore", i.namespace, "root-cert.pem", i.rootcertpem)
 	if _, err := i.kubeClient.CoreV1().ConfigMaps(i.namespace).Create(configmap); err != nil {
 		return err
 	}
@@ -116,6 +116,11 @@ func (i *installCmd) generateCerts(name string) error {
 	}
 
 	configmap = generateCertConfig(fmt.Sprintf("ca-keypemstore-%s", name), i.namespace, "key.pem", cert.GetPrivateKey())
+	if _, err := i.kubeClient.CoreV1().ConfigMaps(i.namespace).Create(configmap); err != nil {
+		return err
+	}
+
+	configmap = generateCertConfig("ca-rootkeypemstore", i.namespace, "root-key.pem", i.rootkeypem)
 	if _, err := i.kubeClient.CoreV1().ConfigMaps(i.namespace).Create(configmap); err != nil {
 		return err
 	}

@@ -88,11 +88,12 @@ spec:
         subPath: key.pem
         readOnly: false
 
-      - name: ca-rootcertpemstore-${NAME}
+      - name: ca-rootcertpemstore
         mountPath: /etc/ssl/certs/root-cert.pem
         subPath: root-cert.pem
         readOnly: false
-      - name: ca-rootkeypemstore-${NAME}
+
+      - name: ca-rootkeypemstore
         mountPath: /etc/ssl/certs/root-key.pem
         subPath: root-key.pem
         readOnly: false
@@ -120,12 +121,12 @@ spec:
     - name: ca-certpemstore-${NAME}
       configMap:
         name: ca-certpemstore-${NAME}
-    - name: ca-rootcertpemstore-${NAME}
+    - name: ca-rootcertpemstore
       configMap:
-        name: ca-rootcertpemstore-${NAME}
-    - name: ca-rootkeypemstore-${NAME}
+        name: ca-rootcertpemstore
+    - name: ca-rootkeypemstore
       configMap:
-        name: ca-rootkeypemstore-${NAME}
+        name: ca-rootkeypemstore
     - name: ca-keypemstore-${NAME}
       configMap:
         name: ca-keypemstore-${NAME}
