@@ -68,6 +68,8 @@ spec:
         - "/etc/ssl/certs/key.pem"
         - "--rootcertpem"
         - "/etc/ssl/certs/root-cert.pem"
+        - "--rootkeypem"
+        - "/etc/ssl/certs/root-key.pem"
 
       volumeMounts:
       - name: kubeconfig
@@ -89,6 +91,10 @@ spec:
       - name: ca-rootcertpemstore-${NAME}
         mountPath: /etc/ssl/certs/root-cert.pem
         subPath: root-cert.pem
+        readOnly: false
+      - name: ca-rootkeypemstore-${NAME}
+        mountPath: /etc/ssl/certs/root-key.pem
+        subPath: root-key.pem
         readOnly: false
 
       readinessProbe:
@@ -117,6 +123,9 @@ spec:
     - name: ca-rootcertpemstore-${NAME}
       configMap:
         name: ca-rootcertpemstore-${NAME}
+    - name: ca-rootkeypemstore-${NAME}
+      configMap:
+        name: ca-rootkeypemstore-${NAME}
     - name: ca-keypemstore-${NAME}
       configMap:
         name: ca-keypemstore-${NAME}
