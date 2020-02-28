@@ -38,7 +38,11 @@ func (sc *MeshCatalog) getWeightedEndpointsPerService() (map[endpoint.ServiceNam
 	backendWeight := make(map[string]int)
 
 	for _, trafficSplit := range sc.meshSpec.ListTrafficSplits() {
-		targetServiceName := endpoint.ServiceName(fmt.Sprintf("%s/%s", trafficSplit.Namespace, trafficSplit.Spec.Service))
+		namespacedTargerServiceName := endpoint.NamespacedService{
+			Namespace: trafficSplit.Namespace,
+			Service:   trafficSplit.Spec.Service,
+		}
+		targetServiceName := endpoint.ServiceName(namespacedTargerServiceName.String())
 		var services []endpoint.WeightedService
 		glog.V(level.Trace).Infof("[Server][catalog] Discovered TrafficSplit resource: %s/%s for service %s\n", trafficSplit.Namespace, trafficSplit.Name, targetServiceName)
 		if trafficSplit.Spec.Backends == nil {
@@ -48,14 +52,17 @@ func (sc *MeshCatalog) getWeightedEndpointsPerService() (map[endpoint.ServiceNam
 		for _, trafficSplitBackend := range trafficSplit.Spec.Backends {
 			// TODO(draychev): PULL THIS FROM SERVICE REGISTRY
 			// svcName := mesh.ServiceName(fmt.Sprintf("%s/%s", trafficSplit.Namespace, trafficSplitBackend.ServiceName))
-			namespaced := fmt.Sprintf("%s/%s", trafficSplit.Namespace, trafficSplitBackend.Service)
+			namespaced := endpoint.NamespacedService{
+				Namespace: trafficSplit.Namespace,
+				Service:   trafficSplitBackend.Service,
+			}
 			backendWeight[trafficSplitBackend.Service] = trafficSplitBackend.Weight
 			weightedService := endpoint.WeightedService{}
-			weightedService.ServiceName = endpoint.ServiceName(namespaced)
+			weightedService.ServiceName = endpoint.ServiceName(namespaced.String())
 			weightedService.Weight = trafficSplitBackend.Weight
 			var err error
-			if weightedService.Endpoints, err = sc.listEndpointsForService(endpoint.ServiceName(namespaced)); err != nil {
-				glog.Errorf("[catalog] Error getting Endpoints for service %s: %s", namespaced, err)
+			if weightedService.Endpoints, err = sc.listEndpointsForService(endpoint.ServiceName(namespaced.String())); err != nil {
+				glog.Errorf("[catalog] Error getting Endpoints for service %s: %s", namespaced.String(), err)
 				weightedService.Endpoints = []endpoint.Endpoint{}
 			}
 			services = append(services, weightedService)

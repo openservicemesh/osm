@@ -1,7 +1,6 @@
 package smi
 
 import (
-	"fmt"
 	"time"
 
 	target "github.com/deislabs/smi-sdk-go/pkg/apis/access/v1alpha1"
@@ -191,15 +190,21 @@ func (c *Client) ListServices() ([]endpoint.ServiceName, map[endpoint.ServiceNam
 	virtualServicesMap := make(map[endpoint.ServiceName][]endpoint.ServiceName)
 	for _, splitIface := range c.caches.TrafficSplit.List() {
 		split := splitIface.(*split.TrafficSplit)
-		namespacedServiceName := fmt.Sprintf("%s/%s", split.Namespace, split.Spec.Service)
-		services = append(services, endpoint.ServiceName(namespacedServiceName))
+		namespacedService := endpoint.NamespacedService{
+			Namespace: split.Namespace,
+			Service:   split.Spec.Service,
+		}
+		services = append(services, endpoint.ServiceName(namespacedService.String()))
 		var backends []endpoint.ServiceName
 		for _, backend := range split.Spec.Backends {
-			namespacedServiceName := fmt.Sprintf("%s/%s", split.Namespace, backend.Service)
-			services = append(services, endpoint.ServiceName(namespacedServiceName))
-			backends = append(backends, endpoint.ServiceName(namespacedServiceName))
+			namespacedService := endpoint.NamespacedService{
+				Namespace: split.Namespace,
+				Service:   backend.Service,
+			}
+			services = append(services, endpoint.ServiceName(namespacedService.String()))
+			backends = append(backends, endpoint.ServiceName(namespacedService.String()))
 		}
-		virtualServicesMap[endpoint.ServiceName(namespacedServiceName)] = backends
+		virtualServicesMap[endpoint.ServiceName(namespacedService.String())] = backends
 	}
 	return services, virtualServicesMap
 }
@@ -211,13 +216,19 @@ func (c *Client) ListServiceAccounts() []endpoint.ServiceAccount {
 	for _, targetIface := range c.caches.TrafficTarget.List() {
 		target := targetIface.(*target.TrafficTarget)
 		for _, sources := range target.Sources {
-			namespacedServiceAccount := fmt.Sprintf("%s/%s", sources.Namespace, sources.Name)
-			serviceAccounts = append(serviceAccounts, endpoint.ServiceAccount(namespacedServiceAccount))
+			namespacedServiceAccount := endpoint.NamespacedServiceAccount{
+				Namespace:      sources.Namespace,
+				ServiceAccount: sources.Name,
+			}
+			serviceAccounts = append(serviceAccounts, endpoint.ServiceAccount(namespacedServiceAccount.String()))
 		}
 
 		destination := target.Destination
-		namespacedServiceAccount := fmt.Sprintf("%s/%s", destination.Namespace, destination.Name)
-		serviceAccounts = append(serviceAccounts, endpoint.ServiceAccount(namespacedServiceAccount))
+		namespacedServiceAccount := endpoint.NamespacedServiceAccount{
+			Namespace:      destination.Namespace,
+			ServiceAccount: destination.Name,
+		}
+		serviceAccounts = append(serviceAccounts, endpoint.ServiceAccount(namespacedServiceAccount.String()))
 	}
 	return serviceAccounts
 }
