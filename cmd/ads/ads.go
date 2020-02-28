@@ -50,6 +50,7 @@ var (
 	certPem        = flags.String("certpem", "", "Full path to the xDS Certificate PEM file")
 	keyPem         = flags.String("keypem", "", "Full path to the xDS Key PEM file")
 	rootCertPem    = flags.String("rootcertpem", "", "Full path to the Root Certificate PEM file")
+	rootKeyPem     = flags.String("rootkeypem", "", "Full path to the Root Key PEM file")
 )
 
 func init() {
@@ -83,7 +84,7 @@ func main() {
 	stop := make(chan struct{})
 
 	meshSpec := smi.NewMeshSpecClient(kubeConfig, observeNamespaces, stop)
-	certManager, err := tresor.NewCertManagerWithCAFromFile(*rootCertPem, *keyPem, "Acme", 1*time.Hour)
+	certManager, err := tresor.NewCertManagerWithCAFromFile(*rootCertPem, *rootKeyPem, "Acme", 1*time.Hour)
 	if err != nil {
 		glog.Fatal("Could not instantiate Certificate Manager: ", err)
 	}
