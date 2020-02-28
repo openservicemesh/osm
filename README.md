@@ -15,5 +15,6 @@ The Service Mesh Controller (SMC) project is a light weight, envoy based service
 
 Note: This project is a work in progress. See the [demo instructions](demo/README.md) to get a sense of what we've accomplished and are working on.
 
+
 ## SMC Design
 Read more about the high level goals, design and architecture [here](DESIGN.md).
