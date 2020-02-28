@@ -7,13 +7,11 @@ source .env
 
 NAME=${1:-unknown}
 
-echo -e "Delete old secrets: ca-certpemstore-${NAME}, ca-keypemstore-${NAME}, ca-rootcertpemstore-${NAME}"
+echo -e "Delete old secrets: ca-certpemstore-${NAME}, ca-keypemstore-${NAME}"
 kubectl -n "$K8S_NAMESPACE" \
         delete configmap \
         "ca-certpemstore-${NAME}" \
-        "ca-keypemstore-${NAME}" \
-        "ca-rootkeypemstore-${NAME}" \
-        "ca-rootcertpemstore-${NAME}" || true
+        "ca-keypemstore-${NAME}" || true
 
 echo -e "Generate certificates for ${NAME}"
 mkdir -p "./certificates/$NAME/"
@@ -25,7 +23,5 @@ mkdir -p "./certificates/$NAME/"
            --out "./certificates/$NAME/cert.pem"
 
 echo -e "Add secrets"
-kubectl -n "$K8S_NAMESPACE" create configmap "ca-rootcertpemstore-${NAME}" --from-file="./certificates/root-cert.pem"
-kubectl -n "$K8S_NAMESPACE" create configmap "ca-rootkeypemstore-${NAME}" --from-file="./certificates/root-key.pem"
 kubectl -n "$K8S_NAMESPACE" create configmap "ca-certpemstore-${NAME}" --from-file="./certificates/$NAME/cert.pem"
 kubectl -n "$K8S_NAMESPACE" create configmap "ca-keypemstore-${NAME}" --from-file="./certificates/$NAME/key.pem"

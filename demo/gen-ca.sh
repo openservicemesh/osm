@@ -14,6 +14,9 @@ openssl req -x509 -sha256 -nodes -days 365 \
         -keyout "$KEY"  \
         -out "$CRT"
 
+kubectl -n "$K8S_NAMESPACE" create configmap "ca-rootcertpemstore" --from-file="$CRT"
+kubectl -n "$K8S_NAMESPACE" create configmap "ca-rootkeypemstore" --from-file="$KEY"
+
 exit 0
 
 ./bin/cert \
