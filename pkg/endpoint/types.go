@@ -1,6 +1,7 @@
 package endpoint
 
 import (
+	"fmt"
 	"net"
 )
 
@@ -31,8 +32,36 @@ type Port uint32
 // ServiceName is a type for a service name
 type ServiceName string
 
+func (s ServiceName) String() string {
+	return string(s)
+}
+
+// NamespacedService is a type for a namespaced service
+type NamespacedService struct {
+	Namespace string
+	Service   string
+}
+
+func (ns NamespacedService) String() string {
+	return fmt.Sprintf("%s/%s", ns.Namespace, ns.Service)
+}
+
 // ServiceAccount is a type for a service account
 type ServiceAccount string
+
+func (s ServiceAccount) String() string {
+	return string(s)
+}
+
+// NamespacedServiceAccount is a type for a namespaced service account
+type NamespacedServiceAccount struct {
+	Namespace      string
+	ServiceAccount string
+}
+
+func (ns NamespacedServiceAccount) String() string {
+	return fmt.Sprintf("%s/%s", ns.Namespace, ns.ServiceAccount)
+}
 
 // WeightedService is a struct of a delegated service backing a target service
 type WeightedService struct {
