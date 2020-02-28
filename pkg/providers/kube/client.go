@@ -1,6 +1,7 @@
 package kube
 
 import (
+	"fmt"
 	"net"
 	"time"
 
@@ -113,22 +114,16 @@ func (c Client) ListServicesForServiceAccount(svcAccount endpoint.ServiceAccount
 	for _, deployments := range deploymentsInterface {
 		if kubernetesDeployments := deployments.(*extensionsv1.Deployment); kubernetesDeployments != nil {
 			spec := kubernetesDeployments.Spec
-			namespacedSvcAccount := endpoint.NamespacedServiceAccount{
-				Namespace:      kubernetesDeployments.Namespace,
-				ServiceAccount: spec.Template.Spec.ServiceAccountName,
-			}
-			if svcAccount.String() == namespacedSvcAccount.String() {
+			namespacedSvcAccount := endpoint.ServiceAccount(fmt.Sprintf("%s/%s", kubernetesDeployments.Namespace, spec.Template.Spec.ServiceAccountName))
+			if svcAccount == namespacedSvcAccount {
 				var selectorLabel map[string]string
 				if spec.Selector != nil {
 					selectorLabel = spec.Selector.MatchLabels
 				} else {
 					selectorLabel = spec.Template.Labels
 				}
-				namespacedService := endpoint.NamespacedService{
-					Namespace: kubernetesDeployments.Namespace,
-					Service:   selectorLabel["app"],
-				}
-				services = append(services, endpoint.ServiceName(namespacedService.String()))
+				namespacedService := fmt.Sprintf("%s/%s", kubernetesDeployments.Namespace, selectorLabel["app"])
+				services = append(services, endpoint.ServiceName(namespacedService))
 			}
 		}
 	}

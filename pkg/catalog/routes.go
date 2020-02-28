@@ -116,24 +116,16 @@ func getTrafficPolicyPerRoute(sc *MeshCatalog, routes map[string]endpoint.RouteP
 			continue
 		}
 
-		dstNamespacedServiceAcc := endpoint.NamespacedServiceAccount{
-			Namespace:      trafficTargets.Destination.Namespace,
-			ServiceAccount: trafficTargets.Destination.Name,
-		}
-		destServices, destErr := sc.listServicesForServiceAccount(endpoint.ServiceAccount(dstNamespacedServiceAcc.String()))
+		destServices, destErr := sc.listServicesForServiceAccount(endpoint.ServiceAccount(fmt.Sprintf("%s/%s", trafficTargets.Destination.Namespace, trafficTargets.Destination.Name)))
 		if destErr != nil {
-			glog.Errorf("[catalog] TrafficSpec %s/%s could not get services for service account %s", trafficTargets.Namespace, trafficTargets.Name, dstNamespacedServiceAcc.String())
+			glog.Errorf("[catalog] TrafficSpec %s/%s could not get services for service account %s", trafficTargets.Namespace, trafficTargets.Name, fmt.Sprintf("%s/%s", trafficTargets.Destination.Namespace, trafficTargets.Destination.Name))
 			return nil, destErr
 		}
 
 		for _, trafficSources := range trafficTargets.Sources {
-			srcNamespacedServiceAcc := endpoint.NamespacedServiceAccount{
-				Namespace:      trafficSources.Namespace,
-				ServiceAccount: trafficSources.Name,
-			}
-			srcServices, srcErr := sc.listServicesForServiceAccount(endpoint.ServiceAccount(srcNamespacedServiceAcc.String()))
+			srcServices, srcErr := sc.listServicesForServiceAccount(endpoint.ServiceAccount(fmt.Sprintf("%s/%s", trafficSources.Namespace, trafficSources.Name)))
 			if srcErr != nil {
-				glog.Errorf("[catalog] TrafficSpec %s/%s could not get services for service account %s", trafficTargets.Namespace, trafficTargets.Name, srcNamespacedServiceAcc.String())
+				glog.Errorf("[catalog] TrafficSpec %s/%s could not get services for service account %s", trafficTargets.Namespace, trafficTargets.Name, fmt.Sprintf("%s/%s", trafficSources.Namespace, trafficSources.Name))
 				return nil, srcErr
 			}
 			trafficTargetPolicy := endpoint.TrafficTargetPolicies{}
