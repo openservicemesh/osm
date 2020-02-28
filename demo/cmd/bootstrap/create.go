@@ -32,27 +32,21 @@ func main() {
 	}
 
 	xdsHost := fmt.Sprintf("ads.%s.svc.cluster.local", namespace)
+	xdsPort := 15128
 	yamlContent := fmt.Sprintf(`---
 admin:
   access_log_path: "/dev/stdout"
-  address:
-    socket_address: {address: 0.0.0.0, port_value: 15000}
-
+  address: {socket_address: {address: 0.0.0.0, port_value: 15000}}
 dynamic_resources:
   ads_config:
     api_type: GRPC
     grpc_services:
-    - envoy_grpc:
-        cluster_name: ads
+    - envoy_grpc: {cluster_name: ads}
     set_node_on_first_message_only: true
-  cds_config:
-    ads: {}
-  lds_config:
-    ads: {}
-
+  cds_config: {ads: {}}
+  lds_config: {ads: {}}
 static_resources:
   clusters:
-
   - name: ads
     connect_timeout: 0.25s
     type: LOGICAL_DNS
@@ -70,12 +64,7 @@ static_resources:
       cluster_name: ads
       endpoints:
       - lb_endpoints:
-        - endpoint:
-            address:
-              socket_address:
-                address: %s
-                port_value: 15128
----`, xdsHost)
+        - endpoint:{address:{socket_address:{address: %s, port_value: %d}}}`, xdsHost, xdsPort)
 
 	path := filepath.Join(".", "config")
 	os.MkdirAll(path, os.ModePerm)
