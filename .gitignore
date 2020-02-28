@@ -53,3 +53,4 @@ certificates
 *.pem
 ./certs/
 commit_logs
+bootstrap.yaml

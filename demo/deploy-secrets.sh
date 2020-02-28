@@ -22,6 +22,6 @@ mkdir -p "./certificates/$NAME/"
            --keyout "./certificates/$NAME/key.pem" \
            --out "./certificates/$NAME/cert.pem"
 
-echo -e "Add secrets"
+echo -e "Add secrets for ${NAME}"
 kubectl -n "$K8S_NAMESPACE" create configmap "ca-certpemstore-${NAME}" --from-file="./certificates/$NAME/cert.pem"
 kubectl -n "$K8S_NAMESPACE" create configmap "ca-keypemstore-${NAME}" --from-file="./certificates/$NAME/key.pem"

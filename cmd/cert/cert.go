@@ -25,7 +25,7 @@ var (
 	caPEMFileOut    = flags.String("caPEMFileOut", "", "full path to the root cert to be created")
 	caKeyPEMFileOut = flags.String("caKeyPEMFileOut", "", "full path to the root cert key to be created")
 	org             = flags.String("org", "ACME Co", "name of the organization for certificate manager")
-	validity        = flags.Int("validity", 1, "validity duration of a certificate in MINUTES")
+	validity        = flags.Int("validity", 525600, "validity duration of a certificate in MINUTES")
 )
 
 func main() {

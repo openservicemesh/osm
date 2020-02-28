@@ -80,7 +80,7 @@ spec:
             - name: IDENTITY
               value: ${SVC}--${GIT_HASH}
 
-        - image: "${CTR_REGISTRY}/envoyproxy:latest"
+        - image: "envoyproxy/envoy-alpine-dev:latest"
           imagePullPolicy: Always
           name: envoyproxy
           ports:
@@ -91,24 +91,34 @@ spec:
           command: ["envoy"]
           args: ["--log-level", "debug", "-c", "/etc/envoy/bootstrap.yaml", "--service-node", "bookstore", "--service-cluster", "bookstore"]
           volumeMounts:
+           - name: config-volume
+             mountPath: /etc/envoy
+
            # Bootstrap certificates
            - name: ca-certpemstore-$SVC
              mountPath: /etc/ssl/certs/cert.pem
              subPath: cert.pem
              readOnly: false
+
            - name: ca-keypemstore-$SVC
              mountPath: /etc/ssl/certs/key.pem
              subPath: key.pem
              readOnly: false
 
       volumes:
+
         # Bootstrap certificates
         - name: ca-certpemstore-$SVC
           configMap:
             name: ca-certpemstore-$SVC
+
         - name: ca-keypemstore-$SVC
           configMap:
             name: ca-keypemstore-$SVC
+
+        - name: config-volume
+          configMap:
+            name: envoyproxy-config
 
       imagePullSecrets:
         - name: $CTR_REGISTRY_CREDS_NAME
@@ -116,7 +126,7 @@ EOF
 
 kubectl get pods      --no-headers -o wide --selector app="$SVC" -n "$K8S_NAMESPACE"
 kubectl get endpoints --no-headers -o wide --selector app="$SVC" -n "$K8S_NAMESPACE"
-kubectl get service                -o wide                     -n "$K8S_NAMESPACE"
+kubectl get service                -o wide                       -n "$K8S_NAMESPACE"
 
 for x in $(kubectl get service -n "$K8S_NAMESPACE" --selector app="$SVC" --no-headers | awk '{print $1}'); do
     kubectl get service "$x" -n "$K8S_NAMESPACE" -o jsonpath='{.status.loadBalancer.ingress[*].ip}'

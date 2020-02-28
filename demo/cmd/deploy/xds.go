@@ -63,7 +63,7 @@ func main() {
 	}
 
 	args := []string{
-
+		"--kubeconfig", "/kube/config",
 		"--subscriptionID", azureSubscription,
 		"--verbosity", "17",
 		"--namespace", namespace,
@@ -71,11 +71,12 @@ func main() {
 		"--keypem", "/etc/ssl/certs/key.pem",
 		"--rootcertpem",
 		"/etc/ssl/certs/root-cert.pem",
+		"--rootkeypem",
+		"/etc/ssl/certs/root-key.pem",
 	}
 
 	if os.Getenv(common.IsGithubEnvVar) != "true" {
 		args = append([]string{
-			"--kubeconfig", "/kube/config",
 			"--azureAuthFile", "/azure/azureAuth.json",
 		}, args...)
 	}
@@ -139,6 +140,16 @@ func main() {
 						},
 					},
 				},
+				{
+					Name: "ca-rootkeypemstore",
+					VolumeSource: v1.VolumeSource{
+						ConfigMap: &v1.ConfigMapVolumeSource{
+							LocalObjectReference: v1.LocalObjectReference{
+								Name: "ca-rootkeypemstore",
+							},
+						},
+					},
+				},
 			},
 			ImagePullSecrets: []v1.LocalObjectReference{
 				{
@@ -181,6 +192,12 @@ func main() {
 							Name:      "ca-keypemstore-ads",
 							MountPath: "/etc/ssl/certs/key.pem",
 							SubPath:   "key.pem",
+							ReadOnly:  false,
+						},
+						{
+							Name:      "ca-rootkeypemstore",
+							MountPath: "/etc/ssl/certs/root-key.pem",
+							SubPath:   "root-key.pem",
 							ReadOnly:  false,
 						},
 						{

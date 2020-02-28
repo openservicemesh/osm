@@ -6,7 +6,6 @@ set -aueo pipefail
 source .env
 
 kubectl apply -f - <<EOF
----
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
@@ -23,6 +22,7 @@ spec:
     singular: httproutegroup
 
 ---
+
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
@@ -37,11 +37,9 @@ spec:
       - tr
     plural: tcproutes
     singular: tcproute
-EOF
 
-kubectl create namespace "$K8S_NAMESPACE" || true
+---
 
-kubectl apply -f - <<EOF
 apiVersion: specs.smi-spec.io/v1alpha1
 kind: HTTPRouteGroup
 metadata:
