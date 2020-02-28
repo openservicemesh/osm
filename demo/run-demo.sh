@@ -12,12 +12,7 @@ rm -rf ./certs
 
 make build-cert
 
-make docker-push-ads
-
-make docker-push-init
-make docker-push-envoyproxy
-make docker-push-bookbuyer
-make docker-push-bookstore
+./demo/build-push-images.sh
 
 # Create the proxy certificates
 ./demo/gen-ca.sh
