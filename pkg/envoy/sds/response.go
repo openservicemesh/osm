@@ -32,32 +32,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 		TypeUrl: string(envoy.TypeSDS),
 	}
 
-	allServices, err := catalog.ListEndpoints("TBD")
-	if err != nil {
-		glog.Errorf("[%s] Failed listing endpoints: %+v", serverName, err)
-		return nil, err
-	}
-
-	for targetedServiceName, weightedServices := range allServices {
-		secret := newSecret(cert, string(targetedServiceName))
-		marshalledSecret, err := ptypes.MarshalAny(secret)
-		if err != nil {
-			glog.Errorf("[%s] Failed to marshal secret for proxy %s: %v", serverName, proxy.GetCommonName(), err)
-			return nil, err
-		}
-		resp.Resources = append(resp.Resources, marshalledSecret)
-		for _, localservice := range weightedServices {
-			secret := newSecret(cert, string(localservice.ServiceName))
-			marshalledSecret, err := ptypes.MarshalAny(secret)
-			if err != nil {
-				glog.Errorf("[%s] Failed to marshal secret for proxy %s: %v", serverName, proxy.GetCommonName(), err)
-				return nil, err
-			}
-			resp.Resources = append(resp.Resources, marshalledSecret)
-		}
-	}
-	//Add server_cert
-	serverSecret := newSecret(cert, envoy.CertificateName)
+	serverSecret := newSecret(cert, string(proxy.GetService()))
 	marshalledSecret, err := ptypes.MarshalAny(serverSecret)
 	if err != nil {
 		glog.Errorf("[%s] Failed to marshal secret for proxy %s: %v", serverName, proxy.GetCommonName(), err)

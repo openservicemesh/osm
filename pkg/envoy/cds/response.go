@@ -31,7 +31,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 
 	clusterFactories := []*xds.Cluster{}
 	for targetedServiceName, weightedServices := range allServices {
-		remoteService := envoy.GetServiceCluster(string(targetedServiceName), string(targetedServiceName))
+		remoteService := envoy.GetServiceCluster(string(targetedServiceName), string(proxy.GetService()))
 		clusterFactories = append(clusterFactories, remoteService)
 		for _, localservice := range weightedServices {
 			clusterFactories = append(clusterFactories, getServiceClusterLocal(string(localservice.ServiceName)))
