@@ -73,7 +73,7 @@ func main() {
 		"/etc/ssl/certs/root-cert.pem",
 	}
 
-	if os.Getenv(common.IsGithubEnvVar) == "true" {
+	if os.Getenv(common.IsGithubEnvVar) != "true" {
 		args = append([]string{
 			"--kubeconfig", "/kube/config",
 			"--azureAuthFile", "/azure/azureAuth.json",
