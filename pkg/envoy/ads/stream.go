@@ -27,6 +27,7 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 	glog.Infof("[%s] Client connected: Subject CN=%s", packageName, cn)
 
 	// Register the newly connected proxy w/ the catalog.
+	// TODO(draychev): this does not produce the correct IP address
 	ip := utils.GetIPFromContext(server.Context())
 	proxy := envoy.NewProxy(cn, ip)
 	s.catalog.RegisterProxy(proxy)
@@ -44,26 +45,41 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 			return nil
 
 		case discoveryRequest, ok := <-requests:
-			glog.Infof("[%s][incoming] Discovery Request %s from Envoy %s", packageName, discoveryRequest.TypeUrl, proxy.GetCommonName())
 			if !ok {
-				glog.Errorf("[%s] Proxy %s closed GRPC", packageName, proxy.GetCommonName())
+				glog.Errorf("[%s] Proxy %s closed GRPC", packageName, proxy)
 				return errGrpcClosed
 			}
+
 			if discoveryRequest.ErrorDetail != nil {
-				glog.Errorf("[%s] Discovery request error from proxy %s: %s", packageName, proxy.GetCommonName(), discoveryRequest.ErrorDetail)
+				glog.Errorf("[%s] Discovery request error from proxy %s: %s", packageName, proxy, discoveryRequest.ErrorDetail)
 				return errEnvoyError
 			}
-			if len(proxy.LastNonce) > 0 && discoveryRequest.ResponseNonce == proxy.LastNonce {
-				glog.Warningf("[%s] Nothing changed", packageName)
+
+			typeURL := envoy.TypeURI(discoveryRequest.TypeUrl)
+			var lastNonce string
+			if lastNonce, ok = proxy.LastNonce[typeURL]; !ok {
+				lastNonce = ""
+			}
+			if lastNonce != "" && discoveryRequest.ResponseNonce == lastNonce {
+				glog.V(level.Trace).Infof("[%s] Nothing changed since Nonce=%s", packageName, discoveryRequest.ResponseNonce)
 				continue
 			}
+
+			if discoveryRequest.ResponseNonce != "" {
+				glog.V(level.Trace).Infof("[%s] Received discovery request with Nonce=%s; matches=%t; proxy last Nonce=%s", packageName, discoveryRequest.ResponseNonce, discoveryRequest.ResponseNonce == lastNonce, lastNonce)
+			}
+			glog.Infof("[%s] Received discovery request <%s> from Envoy <%s> with Nonce=%s", packageName, discoveryRequest.TypeUrl, proxy, discoveryRequest.ResponseNonce)
+
 			resp, err := s.newAggregatedDiscoveryResponse(proxy, &discoveryRequest)
 			if err != nil {
-				glog.Errorf("[%s] Failed composing a DiscoveryResponse: %+v", packageName, err)
-				return err
+				glog.Errorf("[%s] Error composing a DiscoveryResponse: %+v", packageName, err)
+				continue
 			}
+
 			if err := server.Send(resp); err != nil {
 				glog.Errorf("[%s] Error sending DiscoveryResponse: %+v", packageName, err)
+			} else {
+				glog.V(level.Trace).Infof("[%s] Sent Discovery Response %s to proxy %s: %s", packageName, resp.TypeUrl, proxy, resp)
 			}
 
 		case <-proxy.GetAnnouncementsChannel():
