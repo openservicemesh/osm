@@ -2,6 +2,7 @@ package lds
 
 import (
 	"context"
+	"reflect"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	listener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
@@ -16,16 +17,20 @@ import (
 	"github.com/deislabs/smc/pkg/smi"
 )
 
+type empty struct{}
+
+var packageName = reflect.TypeOf(empty{}).PkgPath()
+
 // NewResponse creates a new Listener Discovery Response.
 func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy) (*xds.DiscoveryResponse, error) {
-	glog.Infof("[%s] Composing listener Discovery Response for proxy: %s", serverName, proxy.GetCommonName())
+	glog.Infof("[%s] Composing listener Discovery Response for proxy: %s", packageName, proxy.GetCommonName())
 	resp := &xds.DiscoveryResponse{
 		TypeUrl: string(envoy.TypeLDS),
 	}
 
 	clientConnManager, err := ptypes.MarshalAny(getHTTPConnectionManager(route.SourceRouteConfig))
 	if err != nil {
-		glog.Error("[LDS] Could not construct FilterChain: ", err)
+		glog.Errorf("[%s] Could not construct FilterChain: %s", packageName, err)
 		return nil, err
 	}
 	clientListener := &xds.Listener{
@@ -47,7 +52,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 
 	serverConnManager, err := ptypes.MarshalAny(getHTTPConnectionManager(route.DestinationRouteConfig))
 	if err != nil {
-		glog.Errorf("[%s] Could not construct inbound listener FilterChain: %s", serverName, err)
+		glog.Errorf("[%s] Could not construct inbound listener FilterChain: %s", packageName, err)
 		return nil, err
 	}
 
@@ -72,14 +77,14 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 
 	marshalledOutbound, err := ptypes.MarshalAny(clientListener)
 	if err != nil {
-		glog.Errorf("[%s] Failed to marshal outbound listener for proxy %s: %v", serverName, proxy.GetCommonName(), err)
+		glog.Errorf("[%s] Failed to marshal outbound listener for proxy %s: %v", packageName, proxy.GetCommonName(), err)
 		return nil, err
 	}
 	resp.Resources = append(resp.Resources, marshalledOutbound)
 
 	marshalledInbound, err := ptypes.MarshalAny(serverListener)
 	if err != nil {
-		glog.Errorf("[%s] Failed to marshal inbound listener for proxy %s: %v", serverName, proxy.GetCommonName(), err)
+		glog.Errorf("[%s] Failed to marshal inbound listener for proxy %s: %v", packageName, proxy.GetCommonName(), err)
 		return nil, err
 	}
 	resp.Resources = append(resp.Resources, marshalledInbound)

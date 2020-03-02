@@ -2,6 +2,7 @@ package rds
 
 import (
 	"context"
+	"reflect"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
@@ -14,18 +15,18 @@ import (
 	"github.com/deislabs/smc/pkg/smi"
 )
 
-const (
-	serverName = "RDS"
-)
+type empty struct{}
+
+var packageName = reflect.TypeOf(empty{}).PkgPath()
 
 // NewResponse creates a new Route Discovery Response.
 func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy) (*v2.DiscoveryResponse, error) {
 	allTrafficPolicies, err := catalog.ListTrafficRoutes("TBD")
 	if err != nil {
-		glog.Errorf("[%s] Failed listing routes: %+v", serverName, err)
+		glog.Errorf("[%s] Failed listing routes: %+v", packageName, err)
 		return nil, err
 	}
-	glog.V(level.Debug).Infof("[%s] trafficPolicies: %+v", serverName, allTrafficPolicies)
+	glog.V(level.Debug).Infof("[%s] trafficPolicies: %+v", packageName, allTrafficPolicies)
 
 	resp := &v2.DiscoveryResponse{
 		TypeUrl: string(envoy.TypeRDS),
@@ -38,7 +39,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 
 			marshalledRouteConfig, err := ptypes.MarshalAny(&config)
 			if err != nil {
-				glog.Errorf("[%s] Failed to marshal route config for proxy %v", serverName, err)
+				glog.Errorf("[%s] Failed to marshal route config for proxy %v", packageName, err)
 				return nil, err
 			}
 			resp.Resources = append(resp.Resources, marshalledRouteConfig)

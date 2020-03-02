@@ -18,10 +18,10 @@ func receive(requests chan v2.DiscoveryRequest, server *xds.AggregatedDiscoveryS
 		request, recvErr := (*server).Recv()
 		if recvErr != nil {
 			if status.Code(recvErr) == codes.Canceled || recvErr == io.EOF {
-				glog.Errorf("[%s][grpc] Connection terminated: %+v", serverName, recvErr)
+				glog.Errorf("[%s][grpc] Connection terminated: %+v", packageName, recvErr)
 				return
 			}
-			glog.Errorf("[%s][grpc] Connection terminated with error: %+v", serverName, recvErr)
+			glog.Errorf("[%s][grpc] Connection terminated with error: %+v", packageName, recvErr)
 			return
 		}
 		requests <- *request

@@ -2,6 +2,7 @@ package sds
 
 import (
 	"context"
+	"reflect"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
@@ -15,16 +16,16 @@ import (
 	"github.com/deislabs/smc/pkg/smi"
 )
 
-const (
-	serverName = "SDS"
-)
+type empty struct{}
+
+var packageName = reflect.TypeOf(empty{}).PkgPath()
 
 // NewResponse creates a new Secrets Discovery Response.
 func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy) (*v2.DiscoveryResponse, error) {
-	glog.Infof("[%s] Composing SDS Discovery Response for proxy: %s", serverName, proxy.GetCommonName())
+	glog.Infof("[%s] Composing SDS Discovery Response for proxy: %s", packageName, proxy.GetCommonName())
 	cert, err := catalog.GetCertificateForService(proxy.GetService())
 	if err != nil {
-		glog.Errorf("[%s] Error obtaining a certificate for client %s: %s", serverName, proxy.GetCommonName(), err)
+		glog.Errorf("[%s] Error obtaining a certificate for client %s: %s", packageName, proxy.GetCommonName(), err)
 		return nil, err
 	}
 
@@ -35,7 +36,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	serverSecret := newSecret(cert, string(proxy.GetService()))
 	marshalledSecret, err := ptypes.MarshalAny(serverSecret)
 	if err != nil {
-		glog.Errorf("[%s] Failed to marshal secret for proxy %s: %v", serverName, proxy.GetCommonName(), err)
+		glog.Errorf("[%s] Failed to marshal secret for proxy %s: %v", packageName, proxy.GetCommonName(), err)
 		return nil, err
 	}
 	resp.Resources = append(resp.Resources, marshalledSecret)
