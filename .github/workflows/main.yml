@@ -80,7 +80,7 @@ jobs:
         KUBECONFIG: ".kube/config"
         DOCKER_USER: ${{ secrets.DOCKER_USER }}
         DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
-        WAIT_FOR_OK_SECONDS: 55
+        WAIT_FOR_OK_SECONDS: 120
         IS_GITHUB: true
         ACR: ${{ secrets.ACR }}
       run: |
