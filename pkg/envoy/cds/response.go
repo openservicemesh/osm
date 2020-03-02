@@ -2,6 +2,7 @@ package cds
 
 import (
 	"context"
+	"reflect"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
@@ -13,18 +14,18 @@ import (
 	"github.com/deislabs/smc/pkg/smi"
 )
 
-const (
-	serverName = "CDS"
-)
+type empty struct{}
+
+var packageName = reflect.TypeOf(empty{}).PkgPath()
 
 // NewResponse creates a new Cluster Discovery Response.
 func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy) (*xds.DiscoveryResponse, error) {
 	allServices, err := catalog.ListEndpoints("TBD")
 	if err != nil {
-		glog.Errorf("[%s] Failed listing endpoints: %+v", serverName, err)
+		glog.Errorf("[%s] Failed listing endpoints: %+v", packageName, err)
 		return nil, err
 	}
-	glog.Infof("[%s] WeightedServices: %+v", serverName, allServices)
+	glog.Infof("[%s] WeightedServices: %+v", packageName, allServices)
 	resp := &xds.DiscoveryResponse{
 		TypeUrl: string(envoy.TypeCDS),
 	}
@@ -39,10 +40,10 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	}
 
 	for _, cluster := range clusterFactories {
-		glog.V(level.Trace).Infof("[%s] Constructed ClusterConfiguration: %+v", serverName, cluster)
+		glog.V(level.Trace).Infof("[%s] Constructed ClusterConfiguration: %+v", packageName, cluster)
 		marshalledClusters, err := ptypes.MarshalAny(cluster)
 		if err != nil {
-			glog.Errorf("[%s] Failed to marshal cluster for proxy %s: %v", serverName, proxy.GetCommonName(), err)
+			glog.Errorf("[%s] Failed to marshal cluster for proxy %s: %v", packageName, proxy.GetCommonName(), err)
 			return nil, err
 		}
 		resp.Resources = append(resp.Resources, marshalledClusters)

@@ -2,6 +2,7 @@ package ads
 
 import (
 	"context"
+	"reflect"
 
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 
@@ -10,9 +11,9 @@ import (
 	"github.com/deislabs/smc/pkg/smi"
 )
 
-const (
-	serverName = "ADS"
-)
+type empty struct{}
+
+var packageName = reflect.TypeOf(empty{}).PkgPath()
 
 //Server implements the Envoy xDS Aggregate Discovery Services
 type Server struct {

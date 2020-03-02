@@ -23,13 +23,13 @@ func (s *Server) sendAllResponses(proxy *envoy.Proxy, server *envoy_service_disc
 			continue
 		}
 		if err := (*server).Send(discoveryResponse); err != nil {
-			glog.Errorf("[%s] Error sending DiscoveryResponse %s: %+v", serverName, uri, err)
+			glog.Errorf("[%s] Error sending DiscoveryResponse %s: %+v", packageName, uri, err)
 		}
 	}
 }
 
 func (s *Server) newAggregatedDiscoveryResponse(proxy *envoy.Proxy, request *envoy_api_v2.DiscoveryRequest) (*envoy_api_v2.DiscoveryResponse, error) {
-	glog.V(level.Info).Infof("[%s] Received discovery request: %s", serverName, request.TypeUrl)
+	glog.V(level.Info).Infof("[%s] Received discovery request: %s", packageName, request.TypeUrl)
 	handler, ok := s.xdsHandlers[envoy.TypeURI(request.TypeUrl)]
 	if !ok {
 		glog.Errorf("Responder for TypeUrl %s is not implemented", request.TypeUrl)
@@ -47,7 +47,7 @@ func (s *Server) newAggregatedDiscoveryResponse(proxy *envoy.Proxy, request *env
 	response.Nonce = proxy.LastNonce
 	response.VersionInfo = fmt.Sprintf("v%d", proxy.LastVersion)
 
-	glog.V(level.Trace).Infof("[%s] Constructed %s response: %+v", serverName, request.TypeUrl, response)
+	glog.V(level.Trace).Infof("[%s] Constructed %s response: %+v", packageName, request.TypeUrl, response)
 
 	return response, nil
 }

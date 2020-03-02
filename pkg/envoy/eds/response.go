@@ -2,6 +2,7 @@ package eds
 
 import (
 	"context"
+	"reflect"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
@@ -14,18 +15,18 @@ import (
 	"github.com/deislabs/smc/pkg/smi"
 )
 
-const (
-	serverName = "EDS"
-)
+type empty struct{}
+
+var packageName = reflect.TypeOf(empty{}).PkgPath()
 
 // NewResponse creates a new Endpoint Discovery Response.
 func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy) (*v2.DiscoveryResponse, error) {
 	allServices, err := catalog.ListEndpoints("TBD")
 	if err != nil {
-		glog.Errorf("[%s] Failed listing endpoints: %+v", serverName, err)
+		glog.Errorf("[%s] Failed listing endpoints: %+v", packageName, err)
 		return nil, err
 	}
-	glog.Infof("[%s] WeightedServices: %+v", serverName, allServices)
+	glog.Infof("[%s] WeightedServices: %+v", packageName, allServices)
 	var protos []*any.Any
 	for targetServiceName, weightedServices := range allServices {
 		loadAssignment := cla.NewClusterLoadAssignment(targetServiceName, weightedServices)
