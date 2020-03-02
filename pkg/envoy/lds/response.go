@@ -12,6 +12,7 @@ import (
 	"github.com/deislabs/smc/pkg/catalog"
 	"github.com/deislabs/smc/pkg/constants"
 	"github.com/deislabs/smc/pkg/envoy"
+	"github.com/deislabs/smc/pkg/envoy/route"
 	"github.com/deislabs/smc/pkg/smi"
 )
 
@@ -22,7 +23,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 		TypeUrl: string(envoy.TypeLDS),
 	}
 
-	clientConnManager, err := ptypes.MarshalAny(getRdsHTTPClientConnectionFilter())
+	clientConnManager, err := ptypes.MarshalAny(getHTTPConnectionManager(route.SourceRouteConfig))
 	if err != nil {
 		glog.Error("[LDS] Could not construct FilterChain: ", err)
 		return nil, err
@@ -44,7 +45,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 		},
 	}
 
-	serverConnManager, err := ptypes.MarshalAny(getRdsHTTPServerConnectionFilter())
+	serverConnManager, err := ptypes.MarshalAny(getHTTPConnectionManager(route.DestinationRouteConfig))
 	if err != nil {
 		glog.Errorf("[%s] Could not construct inbound listener FilterChain: %s", serverName, err)
 		return nil, err
