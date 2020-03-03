@@ -53,11 +53,11 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 		glog.Infof("[%s] proxy %s (service %s) requested certificates [%s] (%s)", packageName, proxy.GetCommonName(), proxy.GetService(), strings.Join(request.ResourceNames, ","), description)
 		secret, err := getSecreteTypeFn(cert, proxy.GetService())
 		if err != nil {
-			return nil, errors.Wrapf(err, "[%s] error creating new %s for proxy %s for service %s", packageName, description, proxy, proxy.GetService())
+			return nil, errors.Wrapf(err, "[%s] error creating new %s for proxy %s for service %s", packageName, description, proxy.GetCommonName(), proxy.GetService())
 		}
 		marshalledSecret, err := ptypes.MarshalAny(secret)
 		if err != nil {
-			return nil, errors.Wrapf(err, "[%s] error marshaling secret for proxy %s for service %s", packageName, proxy, proxy.GetService())
+			return nil, errors.Wrapf(err, "[%s] error marshaling secret for proxy %s for service %s", packageName, proxy.GetCommonName(), proxy.GetService())
 		}
 		resp.Resources = append(resp.Resources, marshalledSecret)
 	}

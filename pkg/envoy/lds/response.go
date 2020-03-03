@@ -2,10 +2,10 @@ package lds
 
 import (
 	"context"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	"reflect"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	listener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/glog"
