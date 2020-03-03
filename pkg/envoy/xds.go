@@ -100,7 +100,7 @@ func pbStringValue(v string) *structpb.Value {
 	}
 }
 
-func getCommonTlsContext(serviceName endpoint.ServiceName) *auth.CommonTlsContext {
+func getCommonTLSContext(serviceName endpoint.ServiceName) *auth.CommonTlsContext {
 	return &auth.CommonTlsContext{
 		TlsParams: GetTLSParams(),
 		TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
@@ -119,7 +119,7 @@ func getCommonTlsContext(serviceName endpoint.ServiceName) *auth.CommonTlsContex
 // GetDownstreamTLSContext creates a downstream Envoy TLS Context.
 func GetDownstreamTLSContext(serviceName endpoint.ServiceName) *any.Any {
 	tlsConfig := &auth.DownstreamTlsContext{
-		CommonTlsContext: getCommonTlsContext(serviceName),
+		CommonTlsContext: getCommonTLSContext(serviceName),
 
 		// When RequireClientCertificate is enabled
 		// trusted CA certs must be provided via ValidationContextType
@@ -137,7 +137,7 @@ func GetDownstreamTLSContext(serviceName endpoint.ServiceName) *any.Any {
 // GetUpstreamTLSContext creates an upstream Envoy TLS Context.
 func GetUpstreamTLSContext(serviceName endpoint.ServiceName) *any.Any {
 	tlsConfig := &auth.UpstreamTlsContext{
-		CommonTlsContext: getCommonTlsContext(serviceName),
+		CommonTlsContext: getCommonTLSContext(serviceName),
 	}
 
 	tls, err := ptypes.MarshalAny(tlsConfig)
