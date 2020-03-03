@@ -70,7 +70,6 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 						},
 					},
 				},
-				// TODO(draychev): enable "tls_context.require_client_certificate: true"
 				TransportSocket: envoy.GetTransportSocketForServiceDownstream(proxy.GetService()),
 			},
 		},
