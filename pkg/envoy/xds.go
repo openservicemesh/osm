@@ -116,7 +116,8 @@ func getCommonTlsContext(serviceName endpoint.ServiceName) *auth.CommonTlsContex
 	}
 }
 
-func getDownstreamTLSContext(serviceName endpoint.ServiceName) *any.Any {
+// GetDownstreamTLSContext creates a downstream Envoy TLS Context.
+func GetDownstreamTLSContext(serviceName endpoint.ServiceName) *any.Any {
 	tlsConfig := &auth.DownstreamTlsContext{
 		CommonTlsContext: getCommonTlsContext(serviceName),
 
@@ -133,7 +134,8 @@ func getDownstreamTLSContext(serviceName endpoint.ServiceName) *any.Any {
 	return tls
 }
 
-func getUpstreamTLSContext(serviceName endpoint.ServiceName) *any.Any {
+// GetUpstreamTLSContext creates an upstream Envoy TLS Context.
+func GetUpstreamTLSContext(serviceName endpoint.ServiceName) *any.Any {
 	tlsConfig := &auth.UpstreamTlsContext{
 		CommonTlsContext: getCommonTlsContext(serviceName),
 	}
@@ -146,22 +148,6 @@ func getUpstreamTLSContext(serviceName endpoint.ServiceName) *any.Any {
 	return tls
 }
 
-// GetTransportSocketForServiceDownstream creates a downstream Envoy TransportSocket struct.
-func GetTransportSocketForServiceDownstream(serviceName endpoint.ServiceName) *core.TransportSocket {
-	return &core.TransportSocket{
-		Name:       TransportSocketTLS,
-		ConfigType: &core.TransportSocket_TypedConfig{TypedConfig: getDownstreamTLSContext(serviceName)},
-	}
-}
-
-// GetTransportSocketForServiceUpstream creates an upstream TransportSocket struct.
-func GetTransportSocketForServiceUpstream(serviceName endpoint.ServiceName) *core.TransportSocket {
-	return &core.TransportSocket{
-		Name:       TransportSocketTLS,
-		ConfigType: &core.TransportSocket_TypedConfig{TypedConfig: getUpstreamTLSContext(serviceName)},
-	}
-}
-
 // GetServiceCluster creates an Envoy Cluster struct.
 func GetServiceCluster(clusterName string, serviceName endpoint.ServiceName) *xds.Cluster {
 	return &xds.Cluster{
@@ -170,7 +156,12 @@ func GetServiceCluster(clusterName string, serviceName endpoint.ServiceName) *xd
 		LbPolicy:             xds.Cluster_ROUND_ROBIN,
 		ClusterDiscoveryType: &xds.Cluster_Type{Type: xds.Cluster_EDS},
 		EdsClusterConfig:     &xds.Cluster_EdsClusterConfig{EdsConfig: GetADSConfigSource()},
-		TransportSocket:      GetTransportSocketForServiceUpstream(serviceName),
+		TransportSocket: &core.TransportSocket{
+			Name: TransportSocketTLS,
+			ConfigType: &core.TransportSocket_TypedConfig{
+				TypedConfig: GetUpstreamTLSContext(serviceName),
+			},
+		},
 	}
 }
 

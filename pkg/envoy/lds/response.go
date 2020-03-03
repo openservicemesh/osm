@@ -2,6 +2,7 @@ package lds
 
 import (
 	"context"
+	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	"reflect"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -70,7 +71,12 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 						},
 					},
 				},
-				TransportSocket: envoy.GetTransportSocketForServiceDownstream(proxy.GetService()),
+				TransportSocket: &envoy_api_v2_core.TransportSocket{
+					Name: envoy.TransportSocketTLS,
+					ConfigType: &envoy_api_v2_core.TransportSocket_TypedConfig{
+						TypedConfig: envoy.GetDownstreamTLSContext(proxy.GetService()),
+					},
+				},
 			},
 		},
 	}
