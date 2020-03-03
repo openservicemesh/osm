@@ -186,25 +186,21 @@ func main() {
 							Name:      "ca-certpemstore-ads",
 							MountPath: "/etc/ssl/certs/cert.pem",
 							SubPath:   "cert.pem",
-							ReadOnly:  false,
 						},
 						{
 							Name:      "ca-keypemstore-ads",
 							MountPath: "/etc/ssl/certs/key.pem",
 							SubPath:   "key.pem",
-							ReadOnly:  false,
 						},
 						{
 							Name:      "ca-rootkeypemstore",
 							MountPath: "/etc/ssl/certs/root-key.pem",
 							SubPath:   "root-key.pem",
-							ReadOnly:  false,
 						},
 						{
 							Name:      "ca-rootcertpemstore",
 							MountPath: "/etc/ssl/certs/root-cert.pem",
 							SubPath:   "root-cert.pem",
-							ReadOnly:  false,
 						},
 					},
 					// ReadinessProbe

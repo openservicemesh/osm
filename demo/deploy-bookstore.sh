@@ -98,12 +98,14 @@ spec:
            - name: ca-certpemstore-$SVC
              mountPath: /etc/ssl/certs/cert.pem
              subPath: cert.pem
-             readOnly: false
 
            - name: ca-keypemstore-$SVC
              mountPath: /etc/ssl/certs/key.pem
              subPath: key.pem
-             readOnly: false
+
+           - name: ca-rootcertpemstore
+             mountPath: /etc/ssl/certs/root-cert.pem
+             subPath: root-cert.pem
 
       volumes:
 
@@ -115,6 +117,10 @@ spec:
         - name: ca-keypemstore-$SVC
           configMap:
             name: ca-keypemstore-$SVC
+
+        - name: ca-rootcertpemstore
+          configMap:
+            name: ca-rootcertpemstore
 
         - name: config-volume
           configMap:
