@@ -9,10 +9,6 @@ import (
 	"github.com/deislabs/smc/pkg/utils"
 )
 
-const (
-	dot = "."
-)
-
 // Proxy is a representation of an Envoy proxy connected to the xDS server.
 // This should at some point have a 1:1 match to an Endpoint (which is a member of a meshed service).
 type Proxy struct {
@@ -21,9 +17,13 @@ type Proxy struct {
 	endpoint.ServiceName
 	announcements chan interface{}
 
-	LastUpdated time.Time
-	LastVersion uint64
-	LastNonce   string
+	LastUpdated map[TypeURI]time.Time
+	LastVersion map[TypeURI]uint64
+	LastNonce   map[TypeURI]string
+}
+
+func (p Proxy) String() string {
+	return string(p.GetCommonName())
 }
 
 // GetService determines the meshed service this endpoint should support based on the mTLS certificate.
@@ -54,5 +54,8 @@ func NewProxy(cn certificate.CommonName, ip net.IP) *Proxy {
 		IP:            ip,
 		ServiceName:   endpoint.ServiceName(utils.GetFirstOfDotted(string(cn))),
 		announcements: make(chan interface{}),
+		LastNonce:     make(map[TypeURI]string),
+		LastVersion:   make(map[TypeURI]uint64),
+		LastUpdated:   make(map[TypeURI]time.Time),
 	}
 }
