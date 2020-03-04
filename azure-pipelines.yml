@@ -9,11 +9,98 @@ trigger:
 pool:
   vmImage: 'ubuntu-latest'
 
+variables:
+  GOPATH: '$(system.defaultWorkingDirectory)/gopath'
+  GOBIN:  '$(GOPATH)/bin'
+  modulePath: '$(GOPATH)/src/github.com/$(build.repository.name)'
+  GOOS: 'linux'
+  GO111MODULE: 'on'
+  GO_PROJ: 'github.com/Azure/$(build.repository.name)'
+
+
 steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
+- script: |
+    mkdir -p '$(GOBIN)'
+    mkdir -p '$(GOPATH)/pkg'
+    mkdir -p '$(modulePath)'
+    shopt -s extglob
+    shopt -s dotglob
+    mv !(gopath) '$(modulePath)'
+    echo '##vso[task.prependpath]$(GOBIN)'
+    echo '##vso[task.prependpath]$(GOROOT)/bin'
+  displayName: 'Set up the Go workspace'
 
 - script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+    go get golang.org/x/lint/golint
+    golint -set_exit_status ./...
+  workingDirectory: '$(modulePath)'
+  displayName: 'Go lint'
+
+- script: |
+    if go vet -v ./...; then
+        echo -e "govet SUCCEEDED"
+    else
+        echo -e "govet FAILED"
+        exit 1
+    fi
+  workingDirectory: '$(modulePath)'
+  displayName: 'Go vet'
+
+- script: |
+    set -u
+    go version
+
+    # set version
+    ORG_PATH="github.com/deislabs"
+    PROJECT_NAME="smc"
+    REPO_PATH="${ORG_PATH}/${PROJECT_NAME}"
+    VERSION_VAR="${REPO_PATH}/pkg/version.Version"
+    VERSION=$(git describe --abbrev=0 --tags)
+    DATE_VAR="${REPO_PATH}/pkg/version.BuildDate"
+    BUILD_DATE=$(date +%Y-%m-%d-%H:%MT%z)
+    COMMIT_VAR="${REPO_PATH}/pkg/version.GitCommit"
+    GIT_HASH=$(git rev-parse --short HEAD)
+
+    echo "VERSION $VERSION_VAR:$VERSION, BUILD_DATE $DATE_VAR:$BUILD_DATE, GIT_HASH $COMMIT_VAR:$GIT_HASH"
+    if  go install -ldflags "-s -X ${VERSION_VAR}=${VERSION} -X ${DATE_VAR}=${BUILD_DATE} -X ${COMMIT_VAR}=${GIT_HASH}" -v ./cmd/smc; then
+        chmod -R 777 $(GOBIN)
+        $(GOBIN)/smc --version
+        echo -e "\e[42;97m Build SUCCEEDED \e[0m"
+    else
+        echo -e "\e[101;97m Build FAILED \e[0m"
+        exit 1
+    fi
+  workingDirectory: '$(modulePath)'
+  displayName: 'Get dependencies and build'
+
+- script: |
+    go get github.com/jstemmer/go-junit-report
+    go get github.com/axw/gocov/gocov
+    go get github.com/AlekSi/gocov-xml
+    go get github.com/matm/gocov-html
+    go test -timeout 80s -v -coverprofile=coverage.txt -covermode count ./... > testoutput.txt || { echo "go test returned non-zero"; cat testoutput.txt; exit 1; }
+    cat testoutput.txt | go-junit-report > report.xml
+    gocov convert coverage.txt > coverage.json
+    gocov-xml < coverage.json > coverage.xml
+    mkdir coverage
+    gocov-html < coverage.json > coverage/index.html
+  workingDirectory: '$(modulePath)'
+  displayName: 'Run unit tests with code coverage'
+
+- task: PublishTestResults@2
+  continueOnError: true
+  condition: succeededOrFailed()
+  inputs:
+    failTaskOnFailedTests: true
+    testRunner: JUnit
+    testResultsFiles: $(System.DefaultWorkingDirectory)/**/report.xml
+
+
+- task: PublishCodeCoverageResults@1
+  continueOnError: true
+  condition: succeededOrFailed()
+  inputs:
+    codeCoverageTool: Cobertura
+    summaryFileLocation: $(modulePath)/coverage.xml
+    reportDirectory: $(modulePath)/coverage
+
