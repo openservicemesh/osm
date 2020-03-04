@@ -5,7 +5,7 @@ set -aueo pipefail
 # shellcheck disable=SC1091
 source .env
 
-kubectl apply -f https://raw.githubusercontent.com/deislabs/smi-sdk-go/master/crds/split.yaml
+kubectl apply -f https://raw.githubusercontent.com/deislabs/smi-sdk-go/v0.2.0/crds/split.yaml
 
 kubectl create namespace "$K8S_NAMESPACE" || true
 
