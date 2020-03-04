@@ -1,8 +1,7 @@
 package ads
 
 import (
-	"fmt"
-	"time"
+	"strconv"
 
 	"github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
@@ -42,10 +41,8 @@ func (s *Server) newAggregatedDiscoveryResponse(proxy *envoy.Proxy, request *env
 		return nil, errCreatingResponse
 	}
 
-	proxy.LastVersion[typeURL] = proxy.LastVersion[typeURL] + 1
-	proxy.LastNonce[typeURL] = fmt.Sprintf("%d", time.Now().UnixNano())
-	response.Nonce = proxy.LastNonce[typeURL]
-	response.VersionInfo = fmt.Sprintf("v%+v", proxy.LastVersion)
+	response.Nonce = proxy.SetNewNonce(typeURL)
+	response.VersionInfo = strconv.FormatUint(proxy.IncrementLastSentVersion(typeURL), 10)
 
 	glog.V(level.Trace).Infof("[%s] Constructed %s response.", packageName, request.TypeUrl)
 

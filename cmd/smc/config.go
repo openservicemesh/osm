@@ -96,7 +96,7 @@ func generateKubernetesConfig(name, namespace, containerRegistry, containerRegis
 								"--kubeconfig",
 								"/kube/config",
 								"--verbosity",
-								"15",
+								"25",
 								"--namespace",
 								namespace,
 								"--certpem",

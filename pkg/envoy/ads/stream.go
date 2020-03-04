@@ -2,6 +2,7 @@ package ads
 
 import (
 	"context"
+	"strconv"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
@@ -56,17 +57,32 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 			}
 
 			typeURL := envoy.TypeURI(discoveryRequest.TypeUrl)
-			var lastNonce string
-			if lastNonce, ok = proxy.LastNonce[typeURL]; !ok {
-				lastNonce = ""
+
+			requestVersion, err := strconv.ParseUint(discoveryRequest.VersionInfo, 10, 64)
+
+			glog.V(level.Debug).Infof("[%s] Incoming Discovery Request %s (nonce=%s; version=%d) from Envoy %s; last applied version: %d",
+				packageName, discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, requestVersion, proxy.GetCommonName(), proxy.GetLastAppliedVersion(typeURL))
+			glog.V(level.Debug).Infof("[%s] Last sent nonce=%s; last sent version=%d for Envoy %s",
+				packageName, proxy.GetLastSentNonce(typeURL), proxy.GetLastSentVersion(typeURL), proxy.GetCommonName())
+
+			proxy.SetLastAppliedVersion(typeURL, requestVersion)
+			if err != nil && discoveryRequest.VersionInfo != "" {
+				glog.Errorf("[%s] Error parsing %s discovery request VersionInfo (%s) from proxy %s: %s", packageName, typeURL, discoveryRequest.VersionInfo, proxy.GetCommonName(), err)
 			}
+
+			if requestVersion <= proxy.GetLastSentVersion(typeURL) {
+				glog.V(level.Debug).Infof("[%s] %s Discovery Request VersionInfo (%d) <= last sent VersionInfo (%d); ACK", packageName, typeURL, requestVersion, proxy.GetLastSentVersion(typeURL))
+				continue
+			}
+
+			lastNonce := proxy.GetLastSentNonce(typeURL)
 			if lastNonce != "" && discoveryRequest.ResponseNonce == lastNonce {
-				glog.V(level.Trace).Infof("[%s] Nothing changed since Nonce=%s", packageName, discoveryRequest.ResponseNonce)
+				glog.V(level.Debug).Infof("[%s] Nothing changed since Nonce=%s", packageName, discoveryRequest.ResponseNonce)
 				continue
 			}
 
 			if discoveryRequest.ResponseNonce != "" {
-				glog.V(level.Trace).Infof("[%s] Received discovery request with Nonce=%s; matches=%t; proxy last Nonce=%s", packageName, discoveryRequest.ResponseNonce, discoveryRequest.ResponseNonce == lastNonce, lastNonce)
+				glog.V(level.Debug).Infof("[%s] Received discovery request with Nonce=%s; matches=%t; proxy last Nonce=%s", packageName, discoveryRequest.ResponseNonce, discoveryRequest.ResponseNonce == lastNonce, lastNonce)
 			}
 			glog.Infof("[%s] Received discovery request <%s> from Envoy <%s> with Nonce=%s", packageName, discoveryRequest.TypeUrl, proxy, discoveryRequest.ResponseNonce)
 
@@ -79,7 +95,7 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 			if err := server.Send(resp); err != nil {
 				glog.Errorf("[%s] Error sending DiscoveryResponse: %+v", packageName, err)
 			} else {
-				glog.V(level.Trace).Infof("[%s] Sent Discovery Response %s to proxy %s: %s", packageName, resp.TypeUrl, proxy, resp)
+				glog.V(level.Debug).Infof("[%s] Sent Discovery Response %s to proxy %s: %s", packageName, resp.TypeUrl, proxy, resp)
 			}
 
 		case <-proxy.GetAnnouncementsChannel():

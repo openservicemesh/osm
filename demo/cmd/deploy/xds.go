@@ -65,7 +65,7 @@ func main() {
 	args := []string{
 		"--kubeconfig", "/kube/config",
 		"--subscriptionID", azureSubscription,
-		"--verbosity", "17",
+		"--verbosity", "25",
 		"--namespace", namespace,
 		"--certpem", "/etc/ssl/certs/cert.pem",
 		"--keypem", "/etc/ssl/certs/key.pem",
