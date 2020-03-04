@@ -4,6 +4,7 @@ set -auexo pipefail
 
 # shellcheck disable=SC1091
 source .env
+IS_GITHUB="${IS_GITHUB:-default false}"
 
 rm -rf ./certificates
 rm -rf ./certs
