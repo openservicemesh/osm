@@ -99,12 +99,14 @@ spec:
            - name: ca-certpemstore-bookbuyer
              mountPath: /etc/ssl/certs/cert.pem
              subPath: cert.pem
-             readOnly: false
 
            - name: ca-keypemstore-bookbuyer
              mountPath: /etc/ssl/certs/key.pem
              subPath: key.pem
-             readOnly: false
+
+           - name: ca-rootcertpemstore
+             mountPath: /etc/ssl/certs/root-cert.pem
+             subPath: root-cert.pem
 
       initContainers:
         - name: proxyinit
@@ -138,6 +140,10 @@ spec:
         - name: ca-keypemstore-bookbuyer
           configMap:
             name: ca-keypemstore-bookbuyer
+
+        - name: ca-rootcertpemstore
+          configMap:
+            name: ca-rootcertpemstore
 
         - name: envoyproxy-config
           configMap:

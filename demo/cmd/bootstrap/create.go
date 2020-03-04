@@ -59,6 +59,10 @@ static_resources:
     http2_protocol_options: {}
     tls_context:
       common_tls_context:
+        alpn_protocols:
+          - h2
+        validation_context:
+          trusted_ca: { filename: "/etc/ssl/certs/root-cert.pem" }
         tls_params:
           tls_minimum_protocol_version: TLSv1_2
           tls_maximum_protocol_version: TLSv1_3
