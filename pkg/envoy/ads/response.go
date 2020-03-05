@@ -35,6 +35,7 @@ func (s *Server) newAggregatedDiscoveryResponse(proxy *envoy.Proxy, request *env
 		return nil, errUnknownTypeURL
 	}
 
+	glog.V(level.Trace).Infof("[%s] Invoking handler for %s with request: %+v", packageName, typeURL, request)
 	response, err := handler(s.ctx, s.catalog, s.meshSpec, proxy, request)
 	if err != nil {
 		glog.Errorf("[%s] Responder for TypeUrl %s is not implemented", packageName, request.TypeUrl)
@@ -44,7 +45,7 @@ func (s *Server) newAggregatedDiscoveryResponse(proxy *envoy.Proxy, request *env
 	response.Nonce = proxy.SetNewNonce(typeURL)
 	response.VersionInfo = strconv.FormatUint(proxy.IncrementLastSentVersion(typeURL), 10)
 
-	glog.V(level.Trace).Infof("[%s] Constructed %s response.", packageName, request.TypeUrl)
+	glog.V(level.Trace).Infof("[%s] Constructed %s response: %+v", packageName, request.TypeUrl, response)
 
 	return response, nil
 }

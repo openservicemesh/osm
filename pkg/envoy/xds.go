@@ -1,13 +1,14 @@
 package envoy
 
 import (
+	"fmt"
 	"time"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	accesslog "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v2"
-	accessLogV2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
+	"github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes"
@@ -16,6 +17,17 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 
 	"github.com/deislabs/smc/pkg/endpoint"
+)
+
+const (
+	// ServiceCertPrefix is the prefix for the service certificate.
+	ServiceCertPrefix = "service-cert"
+
+	// RootCertPrefix is the prefix for the root certificate.
+	RootCertPrefix = "root-cert"
+
+	// Separator is the separator between the prefix and the name of the certificate.
+	Separator = ":"
 )
 
 // GetAddress creates an Envoy Address struct.
@@ -44,19 +56,17 @@ func GetTLSParams() *auth.TlsParameters {
 }
 
 // GetAccessLog creates an Envoy AccessLog struct.
-func GetAccessLog() []*accessLogV2.AccessLog {
+func GetAccessLog() []*envoy_config_filter_accesslog_v2.AccessLog {
 	accessLog, err := ptypes.MarshalAny(getFileAccessLog())
 	if err != nil {
 		glog.Error("[LDS] Could con construct AccessLog struct: ", err)
 		return nil
 	}
-	return []*accessLogV2.AccessLog{
-		{
-			Name: wellknown.FileAccessLog,
-			ConfigType: &accessLogV2.AccessLog_TypedConfig{
-				TypedConfig: accessLog,
-			},
-		},
+	return []*envoy_config_filter_accesslog_v2.AccessLog{{
+		Name: wellknown.FileAccessLog,
+		ConfigType: &envoy_config_filter_accesslog_v2.AccessLog_TypedConfig{
+			TypedConfig: accessLog,
+		}},
 	}
 }
 
@@ -104,12 +114,12 @@ func getCommonTLSContext(serviceName endpoint.ServiceName) *auth.CommonTlsContex
 	return &auth.CommonTlsContext{
 		TlsParams: GetTLSParams(),
 		TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
-			Name:      string(serviceName),
+			Name:      fmt.Sprintf("%s%s%s", ServiceCertPrefix, Separator, serviceName),
 			SdsConfig: GetADSConfigSource(),
 		}},
 		ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 			ValidationContextSdsSecretConfig: &auth.SdsSecretConfig{
-				Name:      string(serviceName),
+				Name:      fmt.Sprintf("%s%s%s", RootCertPrefix, Separator, serviceName),
 				SdsConfig: GetADSConfigSource(),
 			},
 		},
@@ -121,14 +131,13 @@ func GetDownstreamTLSContext(serviceName endpoint.ServiceName) *any.Any {
 	tlsConfig := &auth.DownstreamTlsContext{
 		CommonTlsContext: getCommonTLSContext(serviceName),
 
-		// When RequireClientCertificate is enabled
-		// trusted CA certs must be provided via ValidationContextType
+		// When RequireClientCertificate is enabled trusted CA certs must be provided via ValidationContextType
 		RequireClientCertificate: &wrappers.BoolValue{Value: true},
 	}
 
 	tls, err := ptypes.MarshalAny(tlsConfig)
 	if err != nil {
-		glog.Error("[CDS] Error marshalling UpstreamTLS: ", err)
+		glog.Error("[CDS] Error marshalling DownstreamTLS: ", err)
 		return nil
 	}
 	return tls
@@ -138,6 +147,7 @@ func GetDownstreamTLSContext(serviceName endpoint.ServiceName) *any.Any {
 func GetUpstreamTLSContext(serviceName endpoint.ServiceName) *any.Any {
 	tlsConfig := &auth.UpstreamTlsContext{
 		CommonTlsContext: getCommonTLSContext(serviceName),
+		Sni:              string(serviceName),
 	}
 
 	tls, err := ptypes.MarshalAny(tlsConfig)

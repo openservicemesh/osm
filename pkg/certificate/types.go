@@ -8,7 +8,7 @@ type CommonName string
 // Certificater is the interface declaring methods each Certificate object must have.
 type Certificater interface {
 
-	// GetName retrieves the name of the cerificate.
+	// GetName retrieves the name of the certificate.
 	GetName() string
 
 	// GetCertificateChain retrieves the cert chain.
@@ -21,7 +21,7 @@ type Certificater interface {
 	GetRootCertificate() *x509.Certificate
 }
 
-// Manager is the interface declaring the methods for the Certificate Maneger.
+// Manager is the interface declaring the methods for the Certificate Manager.
 type Manager interface {
 	// IssueCertificate issues a new certificate.
 	IssueCertificate(cn CommonName) (Certificater, error)

@@ -46,6 +46,8 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 			return nil
 
 		case discoveryRequest, ok := <-requests:
+			glog.Infof("[%s] Discovery Request %s (nonce=%s; version=%s) from Envoy %s", packageName, discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, proxy.GetCommonName())
+			glog.Infof("[%s] Last sent for %s nonce=%s; last sent version=%s for Envoy %s", packageName, discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, proxy.GetCommonName())
 			if !ok {
 				glog.Errorf("[%s] Proxy %s closed GRPC", packageName, proxy)
 				return errGrpcClosed
@@ -58,20 +60,21 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 
 			typeURL := envoy.TypeURI(discoveryRequest.TypeUrl)
 
-			requestVersion, err := strconv.ParseUint(discoveryRequest.VersionInfo, 10, 64)
+			ackVersion, err := strconv.ParseUint(discoveryRequest.VersionInfo, 10, 64)
+			if err != nil && discoveryRequest.VersionInfo != "" {
+				glog.Errorf("[%s] Error parsing %s discovery request VersionInfo (%s) from proxy %s: %s", packageName, typeURL, discoveryRequest.VersionInfo, proxy.GetCommonName(), err)
+				ackVersion = 0
+			}
 
 			glog.V(level.Debug).Infof("[%s] Incoming Discovery Request %s (nonce=%s; version=%d) from Envoy %s; last applied version: %d",
-				packageName, discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, requestVersion, proxy.GetCommonName(), proxy.GetLastAppliedVersion(typeURL))
+				packageName, discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, ackVersion, proxy.GetCommonName(), proxy.GetLastAppliedVersion(typeURL))
 			glog.V(level.Debug).Infof("[%s] Last sent nonce=%s; last sent version=%d for Envoy %s",
 				packageName, proxy.GetLastSentNonce(typeURL), proxy.GetLastSentVersion(typeURL), proxy.GetCommonName())
 
-			proxy.SetLastAppliedVersion(typeURL, requestVersion)
-			if err != nil && discoveryRequest.VersionInfo != "" {
-				glog.Errorf("[%s] Error parsing %s discovery request VersionInfo (%s) from proxy %s: %s", packageName, typeURL, discoveryRequest.VersionInfo, proxy.GetCommonName(), err)
-			}
+			proxy.SetLastAppliedVersion(typeURL, ackVersion)
 
-			if requestVersion <= proxy.GetLastSentVersion(typeURL) {
-				glog.V(level.Debug).Infof("[%s] %s Discovery Request VersionInfo (%d) <= last sent VersionInfo (%d); ACK", packageName, typeURL, requestVersion, proxy.GetLastSentVersion(typeURL))
+			if ackVersion > 0 && ackVersion <= proxy.GetLastSentVersion(typeURL) {
+				glog.V(level.Debug).Infof("[%s] %s Discovery Request VersionInfo (%d) <= last sent VersionInfo (%d); ACK", packageName, typeURL, ackVersion, proxy.GetLastSentVersion(typeURL))
 				continue
 			}
 

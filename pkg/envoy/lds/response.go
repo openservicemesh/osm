@@ -25,7 +25,7 @@ var packageName = utils.GetLastChunkOfSlashed(reflect.TypeOf(empty{}).PkgPath())
 
 // NewResponse creates a new Listener Discovery Response.
 func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, request *xds.DiscoveryRequest) (*xds.DiscoveryResponse, error) {
-	glog.Infof("[%s] Composing listener Discovery Response for proxy: %s", packageName, proxy.GetCommonName())
+	glog.Infof("[%s] Composing Listener Discovery Response for proxy: %s", packageName, proxy.GetCommonName())
 	resp := &xds.DiscoveryResponse{
 		TypeUrl: string(envoy.TypeLDS),
 	}
@@ -35,8 +35,10 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 		glog.Errorf("[%s] Could not construct FilterChain: %s", packageName, err)
 		return nil, err
 	}
+
+	outboundListenerName := "outbound_listener"
 	clientListener := &xds.Listener{
-		Name:    "outbound_listener",
+		Name:    outboundListenerName,
 		Address: envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyOutboundListenerPort),
 		FilterChains: []*listener.FilterChain{
 			{
@@ -51,6 +53,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 			},
 		},
 	}
+	glog.Infof("Creating an %s for proxy %s for service %s: %+v", outboundListenerName, proxy.GetCommonName(), proxy.GetService(), clientListener)
 
 	serverConnManager, err := ptypes.MarshalAny(getHTTPConnectionManager(route.DestinationRouteConfig))
 	if err != nil {
@@ -58,8 +61,9 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 		return nil, err
 	}
 
+	inboundListenerName := "inbound_listener"
 	serverListener := &xds.Listener{
-		Name:    "inbound_listener",
+		Name:    inboundListenerName,
 		Address: envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyInboundListenerPort),
 		FilterChains: []*listener.FilterChain{
 			{
@@ -71,6 +75,10 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 						},
 					},
 				},
+				// Source: https://www.envoyproxy.io/docs/envoy/latest/api-v2/api/v2/listener/listener_components.proto
+				FilterChainMatch: &listener.FilterChainMatch{
+					ServerNames: []string{"bookbuyer"}, // TODO(draychev): remove hard-coded demo value
+				},
 				TransportSocket: &envoy_api_v2_core.TransportSocket{
 					Name: envoy.TransportSocketTLS,
 					ConfigType: &envoy_api_v2_core.TransportSocket_TypedConfig{
@@ -80,6 +88,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 			},
 		},
 	}
+	glog.Infof("Created an %s for proxy %s for service %s: %+v", inboundListenerName, proxy.GetCommonName(), proxy.GetService(), serverListener)
 
 	marshalledOutbound, err := ptypes.MarshalAny(clientListener)
 	if err != nil {
