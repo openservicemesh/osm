@@ -105,6 +105,8 @@ func generateKubernetesConfig(name, namespace, containerRegistry, containerRegis
 								"/etc/ssl/certs/key.pem",
 								"--rootcertpem",
 								"/etc/ssl/certs/root-cert.pem",
+								"--rootkeypem",
+								"/etc/ssl/certs/root-key.pem",
 							},
 							Env: []apiv1.EnvVar{
 								{
