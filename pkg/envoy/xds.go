@@ -20,10 +20,10 @@ import (
 )
 
 const (
-	// ServiceCertPrefix is the prefix for the service certificate.
+	// ServiceCertPrefix is the prefix for the service certificate resource name. Example: "service-cert:webservice"
 	ServiceCertPrefix = "service-cert"
 
-	// RootCertPrefix is the prefix for the root certificate.
+	// RootCertPrefix is the prefix for the root certificate resource name. Example: "root-cert:webservice"
 	RootCertPrefix = "root-cert"
 
 	// Separator is the separator between the prefix and the name of the certificate.
