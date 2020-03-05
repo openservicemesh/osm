@@ -5,9 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"os/signal"
 	"strings"
-	"syscall"
 	"time"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
@@ -26,6 +24,7 @@ import (
 	"github.com/deislabs/smc/pkg/providers/azure"
 	azureResource "github.com/deislabs/smc/pkg/providers/azure/kubernetes"
 	"github.com/deislabs/smc/pkg/providers/kube"
+	"github.com/deislabs/smc/pkg/signals"
 	"github.com/deislabs/smc/pkg/smi"
 	"github.com/deislabs/smc/pkg/tresor"
 	"github.com/deislabs/smc/pkg/utils"
@@ -81,7 +80,7 @@ func main() {
 	}
 
 	observeNamespaces := getNamespaces()
-	stop := make(chan struct{})
+	stop := signals.RegisterExitHandlers()
 
 	meshSpec := smi.NewMeshSpecClient(kubeConfig, observeNamespaces, stop)
 	certManager, err := tresor.NewCertManagerWithCAFromFile(*rootCertPem, *rootKeyPem, "Acme", 1*time.Hour)
@@ -115,11 +114,9 @@ func main() {
 	httpServer := httpserver.NewHTTPServer(adsServer, metricsStore, "15000", meshCatalog.GetDebugInfo)
 	httpServer.Start()
 
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-	<-sigChan
+	// Wait for exit handler signal
+	<-stop
 
-	close(stop)
 	glog.Infof("[%s] Goodbye!", serverType)
 }
 
