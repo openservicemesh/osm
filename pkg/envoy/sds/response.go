@@ -27,10 +27,15 @@ type empty struct{}
 
 var packageName = utils.GetLastChunkOfSlashed(reflect.TypeOf(empty{}).PkgPath())
 
-type tuple struct {
-	certMaker    func(certificate.Certificater, string) (*auth.Secret, error)
+type task struct {
+	structMaker  func(certificate.Certificater, string) (*auth.Secret, error)
 	resourceName string
 }
+
+var (
+	rootCertPrefix    = fmt.Sprintf("%s%s", envoy.RootCertPrefix, envoy.Separator)
+	serviceCertPrefix = fmt.Sprintf("%s%s", envoy.ServiceCertPrefix, envoy.Separator)
+)
 
 // NewResponse creates a new Secrets Discovery Response.
 func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, request *xds.DiscoveryRequest) (*xds.DiscoveryResponse, error) {
@@ -45,53 +50,64 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 		TypeUrl: string(envoy.TypeSDS),
 	}
 
-	rootCertPrefix := fmt.Sprintf("%s%s", envoy.RootCertPrefix, envoy.Separator)
-	serviceCertPrefix := fmt.Sprintf("%s%s", envoy.ServiceCertPrefix, envoy.Separator)
-
-	var tasks []tuple
-	for _, resourceName := range request.ResourceNames {
-		if strings.HasPrefix(resourceName, serviceCertPrefix) {
-			requestFor := endpoint.ServiceName(resourceName[len(serviceCertPrefix):])
-			if proxy.GetService() != requestFor {
-				glog.Errorf("[%s] Proxy %s (service %s) requested service certificate %s; this is not allowed", packageName, proxy.GetCommonName(), proxy.GetService(), requestFor)
-				continue
-			}
-			tasks = append(tasks, tuple{
-				resourceName: resourceName,
-				certMaker:    getServiceCert,
-			})
-		} else if strings.HasPrefix(resourceName, rootCertPrefix) {
-			requestFor := endpoint.ServiceName(resourceName[len(rootCertPrefix):])
-			if proxy.GetService() != requestFor {
-				glog.Errorf("[%s] Proxy %s (service %s) requested root certificate %s; this is not allowed", packageName, proxy.GetCommonName(), proxy.GetService(), requestFor)
-				continue
-			}
-			tasks = append(tasks, tuple{
-				resourceName: resourceName,
-				certMaker:    getRootCert,
-			})
-		} else {
-			glog.Errorf("[%s] Request for an unrecognized resource: %s", packageName, resourceName)
-			continue
-		}
-	}
-
-	for _, tpl := range tasks {
-		glog.Infof("[%s] proxy %s (member of service %s) requested %s", packageName, proxy.GetCommonName(), proxy.GetService(), tpl.resourceName)
-		secret, err := tpl.certMaker(cert, tpl.resourceName)
+	// Iterate over the list of tasks and create response structs to be
+	// sent to the proxy that made the discovery request
+	for _, task := range getTasks(proxy, request) {
+		glog.Infof("[%s] proxy %s (member of service %s) requested %s", packageName, proxy.GetCommonName(), proxy.GetService(), task.resourceName)
+		secret, err := task.structMaker(cert, task.resourceName)
 		if err != nil {
-			return nil, errors.Wrapf(err, "[%s] error creating cert %s for proxy %s for service %s", packageName, tpl.resourceName, proxy.GetCommonName(), proxy.GetService())
+			return nil, errors.Wrapf(err, "[%s] error creating cert %s for proxy %s for service %s", packageName, task.resourceName, proxy.GetCommonName(), proxy.GetService())
 		}
 		marshalledSecret, err := ptypes.MarshalAny(secret)
 		if err != nil {
-			return nil, errors.Wrapf(err, "[%s] error marshaling cert %s for proxy %s for service %s", packageName, tpl.resourceName, proxy.GetCommonName(), proxy.GetService())
+			return nil, errors.Wrapf(err, "[%s] error marshaling cert %s for proxy %s for service %s", packageName, task.resourceName, proxy.GetCommonName(), proxy.GetService())
 		}
 		resp.Resources = append(resp.Resources, marshalledSecret)
 	}
 	return resp, nil
 }
 
-func getServiceCert(cert certificate.Certificater, name string) (*auth.Secret, error) {
+// getTasks creates a list of tasks (list of structs to be generated) based on the
+// proxy that made a discovery request and the discovery request itself
+func getTasks(proxy *envoy.Proxy, request *xds.DiscoveryRequest) []task {
+	var tasks []task
+
+	// the proxy may have made a request with a number of resources (certificates) expected to be sent back
+	for _, resourceName := range request.ResourceNames {
+		if strings.HasPrefix(resourceName, serviceCertPrefix) {
+			// this is a request for a service certificate
+			requestFor := endpoint.ServiceName(resourceName[len(serviceCertPrefix):])
+			if proxy.GetService() != requestFor {
+				glog.Errorf("[%s] Proxy %s (service %s) requested service certificate %s; this is not allowed", packageName, proxy.GetCommonName(), proxy.GetService(), requestFor)
+				continue
+			}
+			tasks = append(tasks, task{
+				resourceName: resourceName,
+				structMaker:  getServiceCertSecret,
+			})
+		} else if strings.HasPrefix(resourceName, rootCertPrefix) {
+			// this is a request for a root certificate
+			// proxies need this to verify other proxies certificates
+			requestFor := getServiceName(resourceName, envoy.RootCertPrefix)
+			if proxy.GetService() != requestFor {
+				glog.Errorf("[%s] Proxy %s (service %s) requested root certificate %s; this is not allowed", packageName, proxy.GetCommonName(), proxy.GetService(), requestFor)
+				continue
+			}
+			tasks = append(tasks, task{
+				resourceName: resourceName,
+				structMaker:  getRootCert,
+			})
+		} else {
+			glog.Errorf("[%s] Request for an unrecognized resource: %s", packageName, resourceName)
+			continue
+		}
+	}
+	return tasks
+}
+
+// getServiceCertSecret creates the struct with certificates for the service, which the
+// connected Envoy proxy belongs to.
+func getServiceCertSecret(cert certificate.Certificater, name string) (*auth.Secret, error) {
 	secret := &auth.Secret{
 		// The Name field must match the tls_context.common_tls_context.tls_certificate_sds_secret_configs.name in the Envoy yaml config
 		Name: name,
@@ -132,11 +148,17 @@ func getRootCert(cert certificate.Certificater, resourceName string) (*auth.Secr
 				},
 				/*MatchSubjectAltNames: []*envoy_type_matcher.StringMatcher{{
 					MatchPattern: &envoy_type_matcher.StringMatcher_Exact{
-						Exact: cert.GetName(), // TODO(draychev): flesh out
+						Exact: // TODO(draychev)
 					}},
-				},*/
+				},
+				*/
 			},
 		},
 	}
 	return secret, nil
+}
+
+func getServiceName(resourceName string, prefix string) endpoint.ServiceName {
+	rootCertPrefix := fmt.Sprintf("%s%s", prefix, envoy.Separator)
+	return endpoint.ServiceName(resourceName[len(rootCertPrefix):])
 }
