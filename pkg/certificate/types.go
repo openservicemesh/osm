@@ -3,6 +3,10 @@ package certificate
 // CommonName is the Subject Common Name from a given SSL certificate.
 type CommonName string
 
+func (cn CommonName) String() string {
+	return string(cn)
+}
+
 // Certificater is the interface declaring methods each Certificate object must have.
 type Certificater interface {
 
