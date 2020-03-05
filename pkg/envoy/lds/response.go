@@ -15,11 +15,12 @@ import (
 	"github.com/deislabs/smc/pkg/envoy"
 	"github.com/deislabs/smc/pkg/envoy/route"
 	"github.com/deislabs/smc/pkg/smi"
+	"github.com/deislabs/smc/pkg/utils"
 )
 
 type empty struct{}
 
-var packageName = reflect.TypeOf(empty{}).PkgPath()
+var packageName = utils.GetLastChunkOfSlashed(reflect.TypeOf(empty{}).PkgPath())
 
 // NewResponse creates a new Listener Discovery Response.
 func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy) (*xds.DiscoveryResponse, error) {

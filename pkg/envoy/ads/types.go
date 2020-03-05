@@ -4,16 +4,17 @@ import (
 	"context"
 	"reflect"
 
-	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	"github.com/envoyproxy/go-control-plane/envoy/api/v2"
 
 	"github.com/deislabs/smc/pkg/catalog"
 	"github.com/deislabs/smc/pkg/envoy"
 	"github.com/deislabs/smc/pkg/smi"
+	"github.com/deislabs/smc/pkg/utils"
 )
 
 type empty struct{}
 
-var packageName = reflect.TypeOf(empty{}).PkgPath()
+var packageName = utils.GetLastChunkOfSlashed(reflect.TypeOf(empty{}).PkgPath())
 
 //Server implements the Envoy xDS Aggregate Discovery Services
 type Server struct {
