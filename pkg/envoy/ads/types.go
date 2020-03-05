@@ -1,10 +1,11 @@
 package ads
 
+
 import (
 	"context"
 	"reflect"
 
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 
 	"github.com/deislabs/smc/pkg/catalog"
 	"github.com/deislabs/smc/pkg/envoy"
@@ -21,5 +22,5 @@ type Server struct {
 	ctx         context.Context
 	catalog     catalog.MeshCataloger
 	meshSpec    smi.MeshSpec
-	xdsHandlers map[envoy.TypeURI]func(context.Context, catalog.MeshCataloger, smi.MeshSpec, *envoy.Proxy) (*envoy_api_v2.DiscoveryResponse, error)
+	xdsHandlers map[envoy.TypeURI]func(context.Context, catalog.MeshCataloger, smi.MeshSpec, *envoy.Proxy, *xds.DiscoveryRequest) (*xds.DiscoveryResponse, error)
 }

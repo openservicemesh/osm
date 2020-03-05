@@ -23,7 +23,7 @@ type empty struct{}
 var packageName = utils.GetLastChunkOfSlashed(reflect.TypeOf(empty{}).PkgPath())
 
 // NewResponse creates a new Listener Discovery Response.
-func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy) (*xds.DiscoveryResponse, error) {
+func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, request *xds.DiscoveryRequest) (*xds.DiscoveryResponse, error) {
 	glog.Infof("[%s] Composing listener Discovery Response for proxy: %s", packageName, proxy.GetCommonName())
 	resp := &xds.DiscoveryResponse{
 		TypeUrl: string(envoy.TypeLDS),
@@ -71,7 +71,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 					},
 				},
 				// TODO(draychev): enable "tls_context.require_client_certificate: true"
-				TransportSocket: envoy.GetTransportSocketForServiceDownstream(string(proxy.GetService())),
+				TransportSocket: envoy.GetTransportSocketForServiceDownstream(proxy.GetService()),
 			},
 		},
 	}

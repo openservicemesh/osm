@@ -4,7 +4,7 @@ import (
 	"context"
 	"reflect"
 
-	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes"
 
@@ -21,7 +21,7 @@ type empty struct{}
 var packageName = utils.GetLastChunkOfSlashed(reflect.TypeOf(empty{}).PkgPath())
 
 // NewResponse creates a new Route Discovery Response.
-func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy) (*v2.DiscoveryResponse, error) {
+func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, request *xds.DiscoveryRequest) (*xds.DiscoveryResponse, error) {
 	allTrafficPolicies, err := catalog.ListTrafficRoutes("TBD")
 	if err != nil {
 		glog.Errorf("[%s] Failed listing routes: %+v", packageName, err)
@@ -29,7 +29,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	}
 	glog.V(level.Debug).Infof("[%s] trafficPolicies: %+v", packageName, allTrafficPolicies)
 
-	resp := &v2.DiscoveryResponse{
+	resp := &xds.DiscoveryResponse{
 		TypeUrl: string(envoy.TypeRDS),
 	}
 

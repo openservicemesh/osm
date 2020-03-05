@@ -35,7 +35,7 @@ func (s *Server) newAggregatedDiscoveryResponse(proxy *envoy.Proxy, request *env
 		return nil, errUnknownTypeURL
 	}
 
-	response, err := handler(s.ctx, s.catalog, s.meshSpec, proxy)
+	response, err := handler(s.ctx, s.catalog, s.meshSpec, proxy, request)
 	if err != nil {
 		glog.Errorf("[%s] Responder for TypeUrl %s is not implemented", packageName, request.TypeUrl)
 		return nil, errCreatingResponse

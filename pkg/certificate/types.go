@@ -1,5 +1,7 @@
 package certificate
 
+import "crypto/x509"
+
 // CommonName is the Subject Common Name from a given SSL certificate.
 type CommonName string
 
@@ -14,6 +16,9 @@ type Certificater interface {
 
 	// GetPrivateKey returns the private key.
 	GetPrivateKey() []byte
+
+	// GetRootCertificate returns the root certificate for the given cert.
+	GetRootCertificate() *x509.Certificate
 }
 
 // Manager is the interface declaring the methods for the Certificate Maneger.

@@ -3,6 +3,8 @@ package tresor
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"reflect"
+
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 
@@ -13,12 +15,16 @@ const (
 	rsaBits = 4096
 )
 
+type empty struct{}
+
+var packageName = reflect.TypeOf(empty{}).PkgPath()
+
 // IssueCertificate implements certificate.Manager and returns a newly issued certificate.
 func (cm *CertManager) IssueCertificate(cn certificate.CommonName) (certificate.Certificater, error) {
 	if cert, exists := cm.cache[cn]; exists {
 		return cert, nil
 	}
-	glog.Infof("[tresor] Issuing Certificate for CN=%s", cn)
+	glog.Infof("[%s] Issuing Certificate for CN=%s", packageName, cn)
 	if cm.ca == nil || cm.caPrivKey == nil {
 		return nil, errNoCA
 	}
@@ -38,6 +44,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName) (certificate.
 		name:       string(cn),
 		certChain:  certPEM,
 		privateKey: privKeyPEM,
+		ca:         cm.ca,
 	}
 	cm.cache[cn] = cert
 	return cert, nil

@@ -20,7 +20,7 @@ type empty struct{}
 var packageName = utils.GetLastChunkOfSlashed(reflect.TypeOf(empty{}).PkgPath())
 
 // NewResponse creates a new Cluster Discovery Response.
-func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy) (*xds.DiscoveryResponse, error) {
+func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, request *xds.DiscoveryRequest) (*xds.DiscoveryResponse, error) {
 	allServices, err := catalog.ListEndpoints("TBD")
 	if err != nil {
 		glog.Errorf("[%s] Failed listing endpoints: %+v", packageName, err)
@@ -31,9 +31,9 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 		TypeUrl: string(envoy.TypeCDS),
 	}
 
-	clusterFactories := []*xds.Cluster{}
+	var clusterFactories []*xds.Cluster
 	for targetedServiceName, weightedServices := range allServices {
-		remoteService := envoy.GetServiceCluster(string(targetedServiceName), string(proxy.GetService()))
+		remoteService := envoy.GetServiceCluster(string(targetedServiceName), proxy.GetService())
 		clusterFactories = append(clusterFactories, remoteService)
 		for _, localservice := range weightedServices {
 			clusterFactories = append(clusterFactories, getServiceClusterLocal(string(localservice.ServiceName)))
