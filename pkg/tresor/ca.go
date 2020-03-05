@@ -4,8 +4,9 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
-	"github.com/deislabs/smc/pkg/tresor/pem"
 	"time"
+
+	"github.com/deislabs/smc/pkg/tresor/pem"
 )
 
 // NewCA creates a new Certificate Authority.

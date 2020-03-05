@@ -4,7 +4,7 @@ import (
 	"context"
 	"reflect"
 
-	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
@@ -21,7 +21,7 @@ type empty struct{}
 var packageName = utils.GetLastChunkOfSlashed(reflect.TypeOf(empty{}).PkgPath())
 
 // NewResponse creates a new Endpoint Discovery Response.
-func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy) (*v2.DiscoveryResponse, error) {
+func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, request *xds.DiscoveryRequest) (*xds.DiscoveryResponse, error) {
 	allServices, err := catalog.ListEndpoints("TBD")
 	if err != nil {
 		glog.Errorf("[%s] Failed listing endpoints: %+v", packageName, err)
@@ -40,7 +40,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 		protos = append(protos, proto)
 	}
 
-	resp := &v2.DiscoveryResponse{
+	resp := &xds.DiscoveryResponse{
 		Resources: protos,
 		TypeUrl:   string(envoy.TypeEDS),
 	}

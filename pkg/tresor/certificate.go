@@ -4,26 +4,33 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
-	"github.com/deislabs/smc/pkg/certificate"
-	"github.com/deislabs/smc/pkg/tresor/pem"
+	"time"
+
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
-	"time"
+
+	"github.com/deislabs/smc/pkg/certificate"
+	"github.com/deislabs/smc/pkg/tresor/pem"
 )
 
-// GetName implements Implements certificate.Certificater and returns the CN of the cert.
+// GetName implements certificate.Certificater and returns the CN of the cert.
 func (c Certificate) GetName() string {
 	return c.name
 }
 
-// GetCertificateChain implements Implements certificate.Certificater and returns the certificate chain.
+// GetCertificateChain implements certificate.Certificater and returns the certificate chain.
 func (c Certificate) GetCertificateChain() []byte {
 	return c.certChain
 }
 
-// GetPrivateKey implements Implements certificate.Certificater and returns the private key of the cert.
+// GetPrivateKey implements certificate.Certificater and returns the private key of the cert.
 func (c Certificate) GetPrivateKey() []byte {
 	return c.privateKey
+}
+
+// GetRootCertificate implements certificate.Certificater and returns the root certificate for the given cert.
+func (c Certificate) GetRootCertificate() *x509.Certificate {
+	return c.ca
 }
 
 // NewCertManagerWithCAFromFile creates a new CertManager with the passed files containing the CA and CA Private Key

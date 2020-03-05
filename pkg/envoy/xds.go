@@ -1,18 +1,33 @@
 package envoy
 
 import (
+	"fmt"
 	"time"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	accesslog "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v2"
-	accessLogV2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
-	wellknown "github.com/envoyproxy/go-control-plane/pkg/wellknown"
+	"github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
+	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	structpb "github.com/golang/protobuf/ptypes/struct"
+	"github.com/golang/protobuf/ptypes/wrappers"
+
+	"github.com/deislabs/smc/pkg/endpoint"
+)
+
+const (
+	// ServiceCertPrefix is the prefix for the service certificate resource name. Example: "service-cert:webservice"
+	ServiceCertPrefix = "service-cert"
+
+	// RootCertPrefix is the prefix for the root certificate resource name. Example: "root-cert:webservice"
+	RootCertPrefix = "root-cert"
+
+	// Separator is the separator between the prefix and the name of the certificate.
+	Separator = ":"
 )
 
 // GetAddress creates an Envoy Address struct.
@@ -41,19 +56,17 @@ func GetTLSParams() *auth.TlsParameters {
 }
 
 // GetAccessLog creates an Envoy AccessLog struct.
-func GetAccessLog() []*accessLogV2.AccessLog {
+func GetAccessLog() []*envoy_config_filter_accesslog_v2.AccessLog {
 	accessLog, err := ptypes.MarshalAny(getFileAccessLog())
 	if err != nil {
 		glog.Error("[LDS] Could con construct AccessLog struct: ", err)
 		return nil
 	}
-	return []*accessLogV2.AccessLog{
-		{
-			Name: wellknown.FileAccessLog,
-			ConfigType: &accessLogV2.AccessLog_TypedConfig{
-				TypedConfig: accessLog,
-			},
-		},
+	return []*envoy_config_filter_accesslog_v2.AccessLog{{
+		Name: wellknown.FileAccessLog,
+		ConfigType: &envoy_config_filter_accesslog_v2.AccessLog_TypedConfig{
+			TypedConfig: accessLog,
+		}},
 	}
 }
 
@@ -97,46 +110,44 @@ func pbStringValue(v string) *structpb.Value {
 	}
 }
 
-func getTLSDownstream(certificateName string) *any.Any {
+func getCommonTLSContext(serviceName endpoint.ServiceName) *auth.CommonTlsContext {
+	return &auth.CommonTlsContext{
+		TlsParams: GetTLSParams(),
+		TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
+			Name:      fmt.Sprintf("%s%s%s", ServiceCertPrefix, Separator, serviceName),
+			SdsConfig: GetADSConfigSource(),
+		}},
+		ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
+			ValidationContextSdsSecretConfig: &auth.SdsSecretConfig{
+				Name:      fmt.Sprintf("%s%s%s", RootCertPrefix, Separator, serviceName),
+				SdsConfig: GetADSConfigSource(),
+			},
+		},
+	}
+}
+
+// GetDownstreamTLSContext creates a downstream Envoy TLS Context.
+func GetDownstreamTLSContext(serviceName endpoint.ServiceName) *any.Any {
 	tlsConfig := &auth.DownstreamTlsContext{
-		CommonTlsContext: &auth.CommonTlsContext{
-			TlsParams: GetTLSParams(),
-			TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
-				Name:      certificateName,
-				SdsConfig: GetADSConfigSource(),
-			}},
-			ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
-				ValidationContextSdsSecretConfig: &auth.SdsSecretConfig{
-					Name:      certificateName,
-					SdsConfig: GetADSConfigSource(),
-				},
-			},
-		},
+		CommonTlsContext: getCommonTLSContext(serviceName),
+
+		// When RequireClientCertificate is enabled trusted CA certs must be provided via ValidationContextType
+		RequireClientCertificate: &wrappers.BoolValue{Value: true},
 	}
 
 	tls, err := ptypes.MarshalAny(tlsConfig)
 	if err != nil {
-		glog.Error("[CDS] Error marshalling UpstreamTLS: ", err)
+		glog.Error("[CDS] Error marshalling DownstreamTLS: ", err)
 		return nil
 	}
 	return tls
 }
 
-func getTLSUpstream(certificateName string) *any.Any {
+// GetUpstreamTLSContext creates an upstream Envoy TLS Context.
+func GetUpstreamTLSContext(serviceName endpoint.ServiceName) *any.Any {
 	tlsConfig := &auth.UpstreamTlsContext{
-		CommonTlsContext: &auth.CommonTlsContext{
-			TlsParams: GetTLSParams(),
-			TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
-				Name:      certificateName,
-				SdsConfig: GetADSConfigSource(),
-			}},
-			ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
-				ValidationContextSdsSecretConfig: &auth.SdsSecretConfig{
-					Name:      certificateName,
-					SdsConfig: GetADSConfigSource(),
-				},
-			},
-		},
+		CommonTlsContext: getCommonTLSContext(serviceName),
+		Sni:              string(serviceName),
 	}
 
 	tls, err := ptypes.MarshalAny(tlsConfig)
@@ -145,33 +156,22 @@ func getTLSUpstream(certificateName string) *any.Any {
 		return nil
 	}
 	return tls
-}
-
-// GetTransportSocketForServiceDownstream creates a downstream Envoy TransportSocket struct.
-func GetTransportSocketForServiceDownstream(certificateName string) *core.TransportSocket {
-	return &core.TransportSocket{
-		Name:       TransportSocketTLS,
-		ConfigType: &core.TransportSocket_TypedConfig{TypedConfig: getTLSDownstream(certificateName)},
-	}
-}
-
-// GetTransportSocketForServiceUpstream creates an upstream TransportSocket struct.
-func GetTransportSocketForServiceUpstream(certificateName string) *core.TransportSocket {
-	return &core.TransportSocket{
-		Name:       TransportSocketTLS,
-		ConfigType: &core.TransportSocket_TypedConfig{TypedConfig: getTLSUpstream(certificateName)},
-	}
 }
 
 // GetServiceCluster creates an Envoy Cluster struct.
-func GetServiceCluster(clusterName string, certificateName string) *xds.Cluster {
+func GetServiceCluster(clusterName string, serviceName endpoint.ServiceName) *xds.Cluster {
 	return &xds.Cluster{
 		Name:                 clusterName,
 		ConnectTimeout:       ptypes.DurationProto(5 * time.Second),
 		LbPolicy:             xds.Cluster_ROUND_ROBIN,
 		ClusterDiscoveryType: &xds.Cluster_Type{Type: xds.Cluster_EDS},
 		EdsClusterConfig:     &xds.Cluster_EdsClusterConfig{EdsConfig: GetADSConfigSource()},
-		TransportSocket:      GetTransportSocketForServiceUpstream(certificateName),
+		TransportSocket: &core.TransportSocket{
+			Name: TransportSocketTLS,
+			ConfigType: &core.TransportSocket_TypedConfig{
+				TypedConfig: GetUpstreamTLSContext(serviceName),
+			},
+		},
 	}
 }
 
