@@ -44,6 +44,9 @@ type MeshCataloger interface {
 
 	// UnregisterProxy unregisters an existing proxy from the service mesh catalog
 	UnregisterProxy(*envoy.Proxy)
+
+	// GetServicesByServiceAccountName returns a list of services corresponding to a service account, and refreshes the cache if requested
+	GetServicesByServiceAccountName(endpoint.ServiceAccount, bool) []endpoint.ServiceName
 }
 
 type announcementChannel struct {
