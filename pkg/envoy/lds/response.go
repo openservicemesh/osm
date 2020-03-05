@@ -76,6 +76,8 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 					},
 				},
 				// Source: https://www.envoyproxy.io/docs/envoy/latest/api-v2/api/v2/listener/listener_components.proto
+				// The FilterChainMatch uses SNI from mTLS to match against the provided list of ServerNames.
+				// This ensures only clients authorized to talk to this listener are permitted to.
 				FilterChainMatch: &listener.FilterChainMatch{
 					ServerNames: []string{"bookbuyer"}, // TODO(draychev): remove hard-coded demo value
 				},
