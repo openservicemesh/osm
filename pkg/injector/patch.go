@@ -17,7 +17,6 @@ import (
 func (wh *Webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error) {
 	// Start patching the spec
 	var patches []JSONPatchOperation
-	var out []byte
 	glog.Info("Mutating")
 
 	// Get the service for a service account
@@ -29,7 +28,7 @@ func (wh *Webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 
 	if len(services) == 0 {
 		// No services found for this service account, don't patch
-		return out, fmt.Errorf("No service found for service account %q", pod.Spec.ServiceAccountName)
+		return nil, fmt.Errorf("No service found for service account %q", pod.Spec.ServiceAccountName)
 	}
 
 	// TODO(shashank): Don't assume 1-1 mapping between service account and service
@@ -41,11 +40,12 @@ func (wh *Webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 	serviceName := strings.Split(service.String(), constants.NamespaceServiceDelimiter)[1]
 
 	// Issue a certificate for the envoy fronting the service
-	cn := certificate.CommonName(fmt.Sprintf("%s%s%s.smc.mesh", utils.NewUUIDStr(), constants.CertCommonNameUUIDServiceDelimiter, serviceName))
-	cert, err := wh.certManager.IssueCertificate(cn) // TODO: fix this
+
+	cn := certificate.CommonName(utils.NewCertCommonNameWithUUID(fmt.Sprintf("%s.smc.mesh", serviceName))) 	// TODO: Don't hardcode domain
+	cert, err := wh.certManager.IssueCertificate(cn)
 	if err != nil {
 		glog.Errorf("Failed to issue TLS certificate for Envoy: %s", err)
-		return out, err
+		return nil, err
 	}
 
 	// Create kube secret for TLS cert and key used For Envoy to communicate with xDS
@@ -54,7 +54,7 @@ func (wh *Webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 	_, err = wh.createEnvoyTLSSecret(envoyTLSSecretName, "smc", cert.GetCertificateChain(), cert.GetPrivateKey())
 	if err != nil {
 		glog.Errorf("Failed to create TLS secret for Envoy sidecar: %s", err)
-		return out, err
+		return nil, err
 	}
 
 	// Create volume for envoy TLS secret
@@ -71,7 +71,7 @@ func (wh *Webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 	}
 	initContainerSpec, err := getInitContainerSpec(pod, &initContainerData)
 	if err != nil {
-		return out, err
+		return nil, err
 	}
 	patches = append(patches, addContainer(
 		pod.Spec.InitContainers,

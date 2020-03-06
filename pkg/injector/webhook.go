@@ -18,6 +18,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
+	"github.com/deislabs/smc/pkg/log/level"
 	"github.com/deislabs/smc/pkg/catalog"
 	"github.com/deislabs/smc/pkg/certificate"
 	"github.com/deislabs/smc/pkg/endpoint"
@@ -60,17 +61,17 @@ func (wh *Webhook) ListenAndServe(stop <-chan struct{}) {
 		Handler: mux,
 	}
 
-	glog.Infof("Starting server on :%v", wh.config.ListenPort)
+	glog.Infof("Starting sidecar-injection webhook server on :%v", wh.config.ListenPort)
 	go func() {
 		if wh.config.EnableTLS {
 			certPath := filepath.Join(tlsDir, tlsCertFile)
 			keyPath := filepath.Join(tlsDir, tlsKeyFile)
 			if err := server.ListenAndServeTLS(certPath, keyPath); err != nil {
-				glog.Fatalf("Error listening: %v", err)
+				glog.Fatalf("Sidecar-injection webhook HTTP server failed to start: %v", err)
 			}
 		} else {
 			if err := server.ListenAndServe(); err != nil {
-				glog.Fatalf("Error listening: %v", err)
+				glog.Fatalf("Sidecar-injection webhook HTTP server failed to start: %v", err)
 			}
 		}
 	}()
@@ -80,9 +81,9 @@ func (wh *Webhook) ListenAndServe(stop <-chan struct{}) {
 
 	// Stop the server
 	if err := server.Shutdown(ctx); err != nil {
-		glog.Errorf("Error shutting down HTTP server: %v", err)
+		glog.Errorf("Error shutting down sidecar-injection webhook HTTP server: %v", err)
 	} else {
-		glog.Info("Shut down HTTP server")
+		glog.Info("Done shutting down sidecar-injection webhook HTTP server")
 	}
 }
 
@@ -141,7 +142,7 @@ func (wh *Webhook) mutateHandler(w http.ResponseWriter, req *http.Request) {
 		glog.Errorf("Error writing response: %s", err)
 	}
 
-	glog.Info("Done responding to admission request")
+	glog.V(level.Debug).Info("Done responding to admission request")
 }
 
 func (wh *Webhook) mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
