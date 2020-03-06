@@ -18,6 +18,7 @@ import (
 const installDesc = `
 This command installs the smc control plane on the Kubernetes cluster.
 `
+const serviceAccountName = "smi-xds"
 
 type installCmd struct {
 	out                     io.Writer
@@ -67,16 +68,11 @@ func (i *installCmd) run() error {
 		return err
 	}
 
-	if err := i.deploy("cds", 15125); err != nil {
+	if err := i.deployRBAC(serviceAccountName); err != nil {
 		return err
 	}
-	if err := i.deploy("sds", 15123); err != nil {
-		return err
-	}
-	if err := i.deploy("eds", 15124); err != nil {
-		return err
-	}
-	if err := i.deploy("rds", 15126); err != nil {
+
+	if err := i.deploy("ads", serviceAccountName, 15128); err != nil {
 		return err
 	}
 
@@ -128,21 +124,39 @@ func (i *installCmd) generateCerts(name string) error {
 	return nil
 }
 
-func (i *installCmd) deploy(name string, port int32) error {
+func (i *installCmd) deploy(name, serviceAccountName string, port int32) error {
+	fmt.Println("generate certs")
 	if err := i.generateCerts(name); err != nil {
 		return err
 	}
 
-	deployment, service := generateKubernetesConfig(name, i.namespace, i.containerRegistry, i.containerRegistrySecret, port)
+	deployment, service := generateKubernetesConfig(name, i.namespace, serviceAccountName, i.containerRegistry, i.containerRegistrySecret, port)
 
-	if _, err := i.kubeClient.AppsV1().Deployments(i.namespace).Create(deployment); err != nil {
+	resp, err := i.kubeClient.AppsV1().Deployments(i.namespace).Create(deployment)
+	if err != nil {
 		return err
 	}
+	fmt.Println(resp)
 
 	if _, err := i.kubeClient.CoreV1().Services(i.namespace).Create(service); err != nil {
 		return err
 	}
+	fmt.Println("before end")
 
+	return nil
+}
+
+func (i *installCmd) deployRBAC(serviceAccountName string) error {
+	role, roleBinding, serviceAccount := generateRBAC(i.namespace, serviceAccountName)
+	if _, err := i.kubeClient.RbacV1().ClusterRoles().Create(role); err != nil {
+		return err
+	}
+	if _, err := i.kubeClient.RbacV1().ClusterRoleBindings().Create(roleBinding); err != nil {
+		return err
+	}
+	if _, err := i.kubeClient.CoreV1().ServiceAccounts(i.namespace).Create(serviceAccount); err != nil {
+		return err
+	}
 	return nil
 }
 
