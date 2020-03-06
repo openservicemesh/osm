@@ -18,7 +18,7 @@ var packageName = utils.GetLastChunkOfSlashed(reflect.TypeOf(empty{}).PkgPath())
 
 // ListEndpoints constructs a map from service to weighted sub-services with all endpoints the given Envoy proxy should be aware of.
 func (sc *MeshCatalog) ListEndpoints(clientID endpoint.NamespacedService) ([]endpoint.ServiceEndpoints, error) {
-	glog.Info("[catalog] Listing Endpoints for client: ", clientID)
+	glog.Info("[%s] Listing Endpoints for client: ", packageName, clientID)
 	// todo (sneha) : TBD if clientID is needed for filterning endpoints
 	return sc.getWeightedEndpointsPerService(clientID)
 }
@@ -26,17 +26,17 @@ func (sc *MeshCatalog) ListEndpoints(clientID endpoint.NamespacedService) ([]end
 func (sc *MeshCatalog) listEndpointsForService(service endpoint.Service) ([]endpoint.Endpoint, error) {
 	// TODO(draychev): split namespace from the service name -- for non-K8s services
 	// todo (sneha) : TBD if clientID is needed for filterning endpoints
-	glog.Infof("[catalog] listEndpointsForService %s", service.ServiceName)
+	glog.Infof("[%s] listEndpointsForService %s", packageName, service.ServiceName)
 	if _, found := sc.servicesCache[service]; !found {
 		sc.refreshCache()
 	}
 	var endpoints []endpoint.Endpoint
 	var found bool
 	if endpoints, found = sc.servicesCache[service]; !found {
-		glog.Errorf("[catalog] Did not find any Endpoints for service %s", service.ServiceName)
+		glog.Errorf("[%s] Did not find any Endpoints for service %s", packageName, service.ServiceName)
 		return nil, errNotFound
 	}
-	glog.Infof("[catalog] Found Endpoints %s for service %s", strings.Join(endpointsToString(endpoints), ","), service.ServiceName)
+	glog.Infof("[%s] Found Endpoints %s for service %s", strings.Join(endpointsToString(endpoints), ","), packageName, service.ServiceName)
 	return endpoints, nil
 }
 
@@ -64,13 +64,13 @@ func (sc *MeshCatalog) getWeightedEndpointsPerService(clientID endpoint.Namespac
 			}
 			var err error
 			if serviceEndpoints.Endpoints, err = sc.listEndpointsForService(serviceEndpoints.Service); err != nil {
-				glog.Errorf("[catalog] Error getting Endpoints for service %s: %s", namespacedServiceName, err)
+				glog.Errorf("[%s] Error getting Endpoints for service %s: %s", packageName, namespacedServiceName, err)
 				serviceEndpoints.Endpoints = []endpoint.Endpoint{}
 			}
 			services = append(services, serviceEndpoints)
 		}
 	}
-	glog.V(level.Trace).Infof("[catalog] Constructed services with endpoints: %+v", services)
+	glog.V(level.Trace).Infof("[%s] Constructed services with endpoints: %+v", packageName, services)
 	return services, nil
 }
 
