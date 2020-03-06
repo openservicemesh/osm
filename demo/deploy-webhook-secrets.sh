@@ -16,9 +16,9 @@ echo "Generating TLS keys ..."
 echo "Creating Kubernetes objects ..."
 
 # Create the TLS secret for the generated keys.
-kubectl -n "$K8S_NAMESPACE"  delete secret tls-webhook-server --ignore-not-found=true
-kubectl -n "$K8S_NAMESPACE" create secret tls tls-webhook-server \
-    --cert "${keydir}/tls-webhook-server.crt" \
-    --key "${keydir}/tls-webhook-server.key"
+kubectl -n "$K8S_NAMESPACE"  delete secret webhook-tls-certs --ignore-not-found=true
+kubectl -n "$K8S_NAMESPACE" create secret tls webhook-tls-certs \
+    --cert "${keydir}/webhook-tls-certs.crt" \
+    --key "${keydir}/webhook-tls-certs.key"
 
 echo "Done deploying webhook secrets"

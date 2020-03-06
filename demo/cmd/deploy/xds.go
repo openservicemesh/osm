@@ -165,7 +165,7 @@ func main() {
 					Name: "webhook-tls-certs",
 					VolumeSource: v1.VolumeSource{
 						Secret: &v1.SecretVolumeSource{
-							SecretName: "tls-webhook-server",
+							SecretName: "webhook-tls-certs",
 						},
 					},
 				},

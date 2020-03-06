@@ -10,7 +10,7 @@ cd "$key_dir" || exit 1
 # Generate the CA cert and private key
 openssl req -nodes -new -x509 -keyout ca.key -out ca.crt -subj "/CN=SMC Sidecar Injection Webhook"
 # Generate the private key for the webhook server
-openssl genrsa -out tls-webhook-server.key 2048
+openssl genrsa -out webhook-tls-certs.key 2048
 # Generate a Certificate Signing Request (CSR) for the private key, and sign it with the private key of the CA.
-openssl req -new -key tls-webhook-server.key -subj "/CN=ads.smc.svc" \
-    | openssl x509 -req -CA ca.crt -CAkey ca.key -CAcreateserial -out tls-webhook-server.crt
+openssl req -new -key webhook-tls-certs.key -subj "/CN=ads.smc.svc" \
+    | openssl x509 -req -CA ca.crt -CAkey ca.key -CAcreateserial -out webhook-tls-certs.crt
