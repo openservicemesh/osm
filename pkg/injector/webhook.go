@@ -18,10 +18,10 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
-	"github.com/deislabs/smc/pkg/log/level"
 	"github.com/deislabs/smc/pkg/catalog"
 	"github.com/deislabs/smc/pkg/certificate"
 	"github.com/deislabs/smc/pkg/endpoint"
+	"github.com/deislabs/smc/pkg/log/level"
 )
 
 const (
