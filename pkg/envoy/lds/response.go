@@ -5,7 +5,7 @@ import (
 	"reflect"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	"github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	listener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/glog"
@@ -25,12 +25,13 @@ var packageName = utils.GetLastChunkOfSlashed(reflect.TypeOf(empty{}).PkgPath())
 
 // NewResponse creates a new Listener Discovery Response.
 func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, request *xds.DiscoveryRequest) (*xds.DiscoveryResponse, error) {
-	glog.Infof("[%s] Composing Listener Discovery Response for proxy: %s", packageName, proxy.GetCommonName())
+	glog.Infof("[%s] Composing listener Discovery Response for proxy: %s", packageName, proxy.GetCommonName())
+	proxyServiceName := proxy.GetService()
 	resp := &xds.DiscoveryResponse{
 		TypeUrl: string(envoy.TypeLDS),
 	}
 
-	clientConnManager, err := ptypes.MarshalAny(getHTTPConnectionManager(route.SourceRouteConfig))
+	clientConnManager, err := ptypes.MarshalAny(getHTTPConnectionManager(route.OutboundRouteConfig))
 	if err != nil {
 		glog.Errorf("[%s] Could not construct FilterChain: %s", packageName, err)
 		return nil, err
@@ -55,7 +56,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	}
 	glog.Infof("Creating an %s for proxy %s for service %s: %+v", outboundListenerName, proxy.GetCommonName(), proxy.GetService(), clientListener)
 
-	serverConnManager, err := ptypes.MarshalAny(getHTTPConnectionManager(route.DestinationRouteConfig))
+	serverConnManager, err := ptypes.MarshalAny(getHTTPConnectionManager(route.InboundRouteConfig))
 	if err != nil {
 		glog.Errorf("[%s] Could not construct inbound listener FilterChain: %s", packageName, err)
 		return nil, err
@@ -84,7 +85,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 				TransportSocket: &envoy_api_v2_core.TransportSocket{
 					Name: envoy.TransportSocketTLS,
 					ConfigType: &envoy_api_v2_core.TransportSocket_TypedConfig{
-						TypedConfig: envoy.GetDownstreamTLSContext(proxy.GetService()),
+						TypedConfig: envoy.GetDownstreamTLSContext(proxyServiceName),
 					},
 				},
 			},

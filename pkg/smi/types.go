@@ -47,10 +47,10 @@ type MeshSpec interface {
 	ListTrafficSplits() []*split.TrafficSplit
 
 	// ListServices fetches all services declared with SMI Spec.
-	ListServices() ([]endpoint.ServiceName, map[endpoint.ServiceName][]endpoint.ServiceName)
+	ListServices() []endpoint.Service
 
 	// ListServiceAccounts fetches all service accounts declared with SMI Spec.
-	ListServiceAccounts() []endpoint.ServiceAccount
+	ListServiceAccounts() []endpoint.NamespacedServiceAccount
 
 	// GetService fetches a specific service declared in SMI.
 	GetService(endpoint.ServiceName) (service *corev1.Service, exists bool, err error)

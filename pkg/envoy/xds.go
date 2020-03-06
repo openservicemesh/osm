@@ -8,7 +8,7 @@ import (
 	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	accesslog "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v2"
-	"github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
+	envoy_config_filter_accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes"
@@ -110,7 +110,7 @@ func pbStringValue(v string) *structpb.Value {
 	}
 }
 
-func getCommonTLSContext(serviceName endpoint.ServiceName) *auth.CommonTlsContext {
+func getCommonTLSContext(serviceName endpoint.NamespacedService) *auth.CommonTlsContext {
 	return &auth.CommonTlsContext{
 		TlsParams: GetTLSParams(),
 		TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
@@ -127,7 +127,7 @@ func getCommonTLSContext(serviceName endpoint.ServiceName) *auth.CommonTlsContex
 }
 
 // GetDownstreamTLSContext creates a downstream Envoy TLS Context.
-func GetDownstreamTLSContext(serviceName endpoint.ServiceName) *any.Any {
+func GetDownstreamTLSContext(serviceName endpoint.NamespacedService) *any.Any {
 	tlsConfig := &auth.DownstreamTlsContext{
 		CommonTlsContext: getCommonTLSContext(serviceName),
 
@@ -144,10 +144,10 @@ func GetDownstreamTLSContext(serviceName endpoint.ServiceName) *any.Any {
 }
 
 // GetUpstreamTLSContext creates an upstream Envoy TLS Context.
-func GetUpstreamTLSContext(serviceName endpoint.ServiceName) *any.Any {
+func GetUpstreamTLSContext(serviceName endpoint.NamespacedService) *any.Any {
 	tlsConfig := &auth.UpstreamTlsContext{
 		CommonTlsContext: getCommonTLSContext(serviceName),
-		Sni:              string(serviceName),
+		Sni:              serviceName.String(),
 	}
 
 	tls, err := ptypes.MarshalAny(tlsConfig)
@@ -159,8 +159,8 @@ func GetUpstreamTLSContext(serviceName endpoint.ServiceName) *any.Any {
 }
 
 // GetServiceCluster creates an Envoy Cluster struct.
-func GetServiceCluster(clusterName string, serviceName endpoint.ServiceName) *xds.Cluster {
-	return &xds.Cluster{
+func GetServiceCluster(clusterName string, serviceName endpoint.NamespacedService) xds.Cluster {
+	return xds.Cluster{
 		Name:                 clusterName,
 		ConnectTimeout:       ptypes.DurationProto(5 * time.Second),
 		LbPolicy:             xds.Cluster_ROUND_ROBIN,

@@ -11,7 +11,7 @@ type Provider interface {
 	ListEndpointsForService(ServiceName) []Endpoint
 
 	// Retrieve the servics for a given service account
-	ListServicesForServiceAccount(ServiceAccount) []ServiceName
+	ListServicesForServiceAccount(NamespacedServiceAccount) []NamespacedService
 
 	// GetID returns the unique identifier of the EndpointsProvider.
 	GetID() string
@@ -63,11 +63,19 @@ func (ns NamespacedServiceAccount) String() string {
 	return fmt.Sprintf("%s/%s", ns.Namespace, ns.ServiceAccount)
 }
 
-// WeightedService is a struct of a delegated service backing a target service
-type WeightedService struct {
-	ServiceName ServiceName `json:"service_name:omitempty"`
-	Weight      int         `json:"weight:omitempty"`
-	Endpoints   []Endpoint  `json:"endpoints:omitempty"`
+// ClusterName is a type for a service name
+type ClusterName string
+
+// Service is a struct of a service name and its weight
+type Service struct {
+	ServiceName NamespacedService `json:"service_name:omitempty"`
+	Weight      int               `json:"weight:omitempty"`
+}
+
+// ServiceEndpoints is a struct of a service and its endpoints
+type ServiceEndpoints struct {
+	Service   Service    `json:"service:omitempty"`
+	Endpoints []Endpoint `json:"endpoints:omitempty"`
 }
 
 // RoutePaths is a struct of a path and the allowed methods on a given route
@@ -80,14 +88,20 @@ type RoutePaths struct {
 type TrafficTargetPolicies struct {
 	PolicyName       string          `json:"policy_name:omitempty"`
 	Destination      TrafficResource `json:"destination:omitempty"`
-	Source           TrafficResource `json:"sources:omitempty"`
+	Source           TrafficResource `json:"source:omitempty"`
 	PolicyRoutePaths []RoutePaths    `json:"policy_route_paths:omitempty"`
+}
+
+// WeightedCluster is a struct of a cluster and is weight that is backing a service
+type WeightedCluster struct {
+	ClusterName ClusterName `json:"cluster_name:omitempty"`
+	Weight      int         `json:"weight:omitempty"`
 }
 
 //TrafficResource is a struct of the various resources of a source/destination in the TrafficTargetPolicies
 type TrafficResource struct {
-	ServiceAccount ServiceAccount `json:"service_account:omitempty"`
-	Namespace      string         `json:"namespace:omitempty"`
-	Services       []ServiceName  `json:"service_name:omitempty"`
-	Clusters       []ServiceName  `json:"cluster:omitempty"`
+	ServiceAccount ServiceAccount      `json:"service_account:omitempty"`
+	Namespace      string              `json:"namespace:omitempty"`
+	Services       []NamespacedService `json:"services:omitempty"`
+	Clusters       []WeightedCluster   `json:"clusters:omitempty"`
 }

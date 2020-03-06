@@ -22,12 +22,11 @@ func NewMeshCatalog(meshSpec smi.MeshSpec, certManager certificate.Manager, stop
 		meshSpec:           meshSpec,
 		certManager:        certManager,
 
-		servicesCache:        make(map[endpoint.ServiceName][]endpoint.Endpoint),
-		certificateCache:     make(map[endpoint.ServiceName]certificate.Certificater),
+		servicesCache:        make(map[endpoint.Service][]endpoint.Endpoint),
+		certificateCache:     make(map[endpoint.NamespacedService]certificate.Certificater),
 		connectedProxies:     mapset.NewSet(),
 		announcementChannels: mapset.NewSet(),
-		serviceAccountsCache: make(map[endpoint.ServiceAccount][]endpoint.ServiceName),
-		virtualServicesCache: make(map[endpoint.ServiceName][]endpoint.ServiceName),
+		serviceAccountsCache: make(map[endpoint.NamespacedServiceAccount][]endpoint.NamespacedService),
 	}
 
 	for _, announcementChannel := range sc.getAnnouncementChannels() {

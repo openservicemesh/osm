@@ -20,11 +20,23 @@ var _ = Describe("Testing utils helpers", func() {
 var _ = Describe("Testing utils helpers", func() {
 	Context("Test GetFirstOfDotted", func() {
 		It("Should return the first slice of a string split on a dot.", func() {
-			Expect(GetFirstOfDotted("a.b.c")).To(Equal("a"))
+			Expect(GetFirstNOfDotted("a.b.c.d", 3)).To(Equal("b/a"))
+		})
+
+		It("Should return the first slice of a string split on a dot.", func() {
+			Expect(GetFirstNOfDotted("a.b.c", 2)).To(Equal("b/a"))
+		})
+
+		It("Should return the first slice of a string split on a dot.", func() {
+			Expect(GetFirstNOfDotted("a.b.c.d.e", 4)).To(Equal("b/a"))
+		})
+
+		It("Should return the first slice of a string split on a dot.", func() {
+			Expect(GetFirstNOfDotted("a.b", 1)).To(Equal("b/a"))
 		})
 
 		It("Should return the full string when there are no dots.", func() {
-			Expect(GetFirstOfDotted("abc")).To(Equal("abc"))
+			Expect(GetFirstNOfDotted("abc", 0)).To(Equal("abc"))
 		})
 	})
 })

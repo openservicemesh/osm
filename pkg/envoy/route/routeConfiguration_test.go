@@ -2,6 +2,8 @@ package route
 
 import (
 	"github.com/deislabs/smc/pkg/endpoint"
+	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	"github.com/golang/protobuf/ptypes/wrappers"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -10,19 +12,40 @@ import (
 var _ = Describe("Route Configuration", func() {
 	Context("Testing RouteConfiguration", func() {
 		It("Returns route configuration", func() {
+			destWeightedClusters := route.WeightedCluster{
+				Clusters: []*route.WeightedCluster_ClusterWeight{
+					{Name: "smc/bookstore-1", Weight: &wrappers.UInt32Value{Value: uint32(50)}},
+					{Name: "smc/bookstore-2", Weight: &wrappers.UInt32Value{Value: uint32(50)}}},
+				TotalWeight: &wrappers.UInt32Value{Value: uint32(100)},
+			}
+
+			srcWeightedClusters := route.WeightedCluster{
+				Clusters: []*route.WeightedCluster_ClusterWeight{
+					{Name: "smc/bookstore-1-local", Weight: &wrappers.UInt32Value{Value: uint32(50)}},
+					{Name: "smc/bookstore-2-local", Weight: &wrappers.UInt32Value{Value: uint32(50)}}},
+				TotalWeight: &wrappers.UInt32Value{Value: uint32(100)},
+			}
+
 			trafficPolicies := endpoint.TrafficTargetPolicies{
 				PolicyName: "bookbuyer-bookstore",
 				Destination: endpoint.TrafficResource{
 					ServiceAccount: "bookstore-serviceaccount",
 					Namespace:      "smc",
-					Services:       []endpoint.ServiceName{endpoint.ServiceName("smc/bookstore-1"), endpoint.ServiceName("smc/bookstore-2")},
-					Clusters:       []endpoint.ServiceName{endpoint.ServiceName("smc/bookstore-1"), endpoint.ServiceName("smc/bookstore-2")},
+					Services: []endpoint.NamespacedService{
+						endpoint.NamespacedService{Namespace: "smc", Service: "bookstore-1"},
+						endpoint.NamespacedService{Namespace: "smc", Service: "bookstore-2"}},
+					Clusters: []endpoint.WeightedCluster{
+						{ClusterName: endpoint.ClusterName("smc/bookstore-1"), Weight: 50},
+						{ClusterName: endpoint.ClusterName("smc/bookstore-2"), Weight: 50}},
 				},
 				Source: endpoint.TrafficResource{
 					ServiceAccount: "bookbuyer-serviceaccount",
 					Namespace:      "smc",
-					Services:       []endpoint.ServiceName{endpoint.ServiceName("smc/bookbuyer")},
-					Clusters:       []endpoint.ServiceName{endpoint.ServiceName("smc/bookstore.mesh")},
+					Services: []endpoint.NamespacedService{
+						endpoint.NamespacedService{Namespace: "smc", Service: "bookbuyer"}},
+					Clusters: []endpoint.WeightedCluster{
+						{ClusterName: endpoint.ClusterName("smc/bookstore-1"), Weight: 50},
+						{ClusterName: endpoint.ClusterName("smc/bookstore-2"), Weight: 50}},
 				},
 				PolicyRoutePaths: []endpoint.RoutePaths{
 					endpoint.RoutePaths{
@@ -32,23 +55,24 @@ var _ = Describe("Route Configuration", func() {
 				},
 			}
 
-			routeConfig := NewRouteConfiguration(trafficPolicies)
-			Expect(routeConfig).NotTo(Equal(nil))
-			Expect(len(routeConfig)).To(Equal(2))
-			//Validating the destination clusters and routes
-			Expect(routeConfig[0].Name).To(Equal(DestinationRouteConfig))
-			Expect(len(routeConfig[0].VirtualHosts[0].Routes)).To(Equal(2))
-			Expect(routeConfig[0].VirtualHosts[0].Cors.AllowMethods).To(Equal("GET"))
-			Expect(routeConfig[0].VirtualHosts[0].Routes[0].Match.GetPrefix()).To(Equal("/counter"))
-			Expect(routeConfig[0].VirtualHosts[0].Routes[0].GetRoute().GetCluster()).To(Equal("smc/bookstore-1"))
-			Expect(routeConfig[0].VirtualHosts[0].Routes[1].GetRoute().GetCluster()).To(Equal("smc/bookstore-2"))
-			//Validating the source clusters and routes
-			Expect(routeConfig[1].Name).To(Equal(SourceRouteConfig))
-			Expect(len(routeConfig[1].VirtualHosts)).To(Equal(1))
-			Expect(len(routeConfig[1].VirtualHosts[0].Routes)).To(Equal(1))
-			Expect(routeConfig[1].VirtualHosts[0].Cors.AllowMethods).To(Equal("GET"))
-			Expect(routeConfig[1].VirtualHosts[0].Routes[0].Match.GetPrefix()).To(Equal("/counter"))
-
+			//Validating the outbound clusters and routes
+			sourceRouteConfig := NewOutboundRouteConfiguration()
+			sourceRouteConfig = UpdateRouteConfiguration(trafficPolicies, sourceRouteConfig, true, false)
+			Expect(sourceRouteConfig).NotTo(Equal(nil))
+			Expect(sourceRouteConfig.Name).To(Equal(OutboundRouteConfig))
+			Expect(len(sourceRouteConfig.VirtualHosts)).To(Equal(1))
+			Expect(len(sourceRouteConfig.VirtualHosts[0].Routes)).To(Equal(1))
+			Expect(sourceRouteConfig.VirtualHosts[0].Routes[0].Match.GetPrefix()).To(Equal("/counter"))
+			Expect(sourceRouteConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters()).To(Equal(&destWeightedClusters))
+			//Validating the inbound clusters and routes
+			destinationRouteConfig := NewInboundRouteConfiguration()
+			destinationRouteConfig = UpdateRouteConfiguration(trafficPolicies, destinationRouteConfig, false, true)
+			Expect(destinationRouteConfig).NotTo(Equal(nil))
+			Expect(destinationRouteConfig.Name).To(Equal(InboundRouteConfig))
+			Expect(len(destinationRouteConfig.VirtualHosts)).To(Equal(1))
+			Expect(len(destinationRouteConfig.VirtualHosts[0].Routes)).To(Equal(1))
+			Expect(destinationRouteConfig.VirtualHosts[0].Routes[0].Match.GetPrefix()).To(Equal("/counter"))
+			Expect(destinationRouteConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters()).To(Equal(&srcWeightedClusters))
 		})
 	})
 })

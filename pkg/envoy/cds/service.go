@@ -13,8 +13,8 @@ import (
 	"github.com/deislabs/smc/pkg/envoy"
 )
 
-func getServiceClusterLocal(clusterName string) *xds.Cluster {
-	return &xds.Cluster{
+func getServiceClusterLocal(clusterName string) xds.Cluster {
+	return xds.Cluster{
 		// The name must match the domain being cURLed in the demo
 		Name:                          clusterName,
 		AltStatName:                   clusterName,
