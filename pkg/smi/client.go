@@ -191,7 +191,7 @@ func (c *Client) ListServices() []endpoint.Service {
 		for _, backend := range split.Spec.Backends {
 			namespacedServiceName := endpoint.NamespacedService{
 				Namespace: split.Namespace,
-				Service:   split.Spec.Service,
+				Service:   backend.Service,
 			}
 			services = append(services, endpoint.Service{ServiceName: namespacedServiceName, Weight: backend.Weight})
 		}
