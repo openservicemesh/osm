@@ -48,6 +48,7 @@ go run ./demo/cmd/deploy/xds.go
 ./demo/deploy-traffic-split.sh
 ./demo/deploy-traffic-spec.sh
 ./demo/deploy-traffic-target.sh
+./demo/deploy-traffic-target-2.sh
 
 if [[ "$IS_GITHUB" != "true" ]]; then
     watch -n0.5 "kubectl get pods -n${K8S_NAMESPACE} -o wide"

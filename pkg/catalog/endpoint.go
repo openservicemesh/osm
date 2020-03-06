@@ -9,7 +9,6 @@ import (
 
 	"github.com/deislabs/smc/pkg/endpoint"
 	"github.com/deislabs/smc/pkg/log/level"
-	"github.com/deislabs/smc/pkg/smi"
 	"github.com/deislabs/smc/pkg/utils"
 )
 
@@ -17,36 +16,36 @@ type empty struct{}
 
 var packageName = utils.GetLastChunkOfSlashed(reflect.TypeOf(empty{}).PkgPath())
 
-func (sc *MeshCatalog) listEndpointsForService(namespacedServiceName endpoint.ServiceName) ([]endpoint.Endpoint, error) {
+// ListEndpoints constructs a map from service to weighted sub-services with all endpoints the given Envoy proxy should be aware of.
+func (sc *MeshCatalog) ListEndpoints(clientID endpoint.NamespacedService) ([]endpoint.ServiceEndpoints, error) {
+	glog.Info("[catalog] Listing Endpoints for client: ", clientID)
+	// todo (sneha) : TBD if clientID is needed for filterning endpoints
+	return sc.getWeightedEndpointsPerService(clientID)
+}
+
+func (sc *MeshCatalog) listEndpointsForService(service endpoint.Service) ([]endpoint.Endpoint, error) {
 	// TODO(draychev): split namespace from the service name -- for non-K8s services
-	glog.Infof("[%s] listEndpointsForService %s", packageName, namespacedServiceName)
-	if _, found := sc.servicesCache[namespacedServiceName]; !found {
+	// todo (sneha) : TBD if clientID is needed for filterning endpoints
+	glog.Infof("[catalog] listEndpointsForService %s", service.ServiceName)
+	if _, found := sc.servicesCache[service]; !found {
 		sc.refreshCache()
 	}
 	var endpoints []endpoint.Endpoint
 	var found bool
-	if endpoints, found = sc.servicesCache[namespacedServiceName]; !found {
-		glog.Errorf("[%s] Did not find any Endpoints for service %s", packageName, namespacedServiceName)
+	if endpoints, found = sc.servicesCache[service]; !found {
+		glog.Errorf("[catalog] Did not find any Endpoints for service %s", service.ServiceName)
 		return nil, errNotFound
 	}
-	glog.Infof("[%s] Found Endpoints %s for service %s", packageName, strings.Join(endpointsToString(endpoints), ","), namespacedServiceName)
+	glog.Infof("[catalog] Found Endpoints %s for service %s", strings.Join(endpointsToString(endpoints), ","), service.ServiceName)
 	return endpoints, nil
 }
 
-// ListEndpoints constructs a map from service to weighted sub-services with all endpoints the given Envoy proxy should be aware of.
-func (sc *MeshCatalog) ListEndpoints(clientID smi.ClientIdentity) (map[endpoint.ServiceName][]endpoint.WeightedService, error) {
-	glog.Infof("[%s] Listing Endpoints for client: %s", packageName, clientID)
-	byTargetService := make(map[endpoint.ServiceName][]endpoint.WeightedService)
-	backendWeight := make(map[string]int)
+func (sc *MeshCatalog) getWeightedEndpointsPerService(clientID endpoint.NamespacedService) ([]endpoint.ServiceEndpoints, error) {
+	// todo (sneha) : TBD if clientID is needed for filterning endpoints
+	var services []endpoint.ServiceEndpoints
 
 	for _, trafficSplit := range sc.meshSpec.ListTrafficSplits() {
-		namespacedTargerServiceName := endpoint.NamespacedService{
-			Namespace: trafficSplit.Namespace,
-			Service:   trafficSplit.Spec.Service,
-		}
-		targetServiceName := endpoint.ServiceName(namespacedTargerServiceName.String())
-		var services []endpoint.WeightedService
-		glog.V(level.Trace).Infof("[%s] Discovered TrafficSplit resource: %s/%s for service %s", packageName, trafficSplit.Namespace, trafficSplit.Name, targetServiceName)
+		glog.V(level.Trace).Infof("[Server][catalog] Discovered TrafficSplit resource: %s/%s\n", trafficSplit.Namespace, trafficSplit.Name)
 		if trafficSplit.Spec.Backends == nil {
 			glog.Errorf("[%s] TrafficSplit %s/%s has no Backends in Spec; Skipping...", packageName, trafficSplit.Namespace, trafficSplit.Name)
 			continue
@@ -54,25 +53,25 @@ func (sc *MeshCatalog) ListEndpoints(clientID smi.ClientIdentity) (map[endpoint.
 		for _, trafficSplitBackend := range trafficSplit.Spec.Backends {
 			// TODO(draychev): PULL THIS FROM SERVICE REGISTRY
 			// svcName := mesh.ServiceName(fmt.Sprintf("%s/%s", trafficSplit.Namespace, trafficSplitBackend.ServiceName))
-			namespaced := endpoint.NamespacedService{
+			namespacedServiceName := endpoint.NamespacedService{
 				Namespace: trafficSplit.Namespace,
 				Service:   trafficSplitBackend.Service,
 			}
-			backendWeight[trafficSplitBackend.Service] = trafficSplitBackend.Weight
-			weightedService := endpoint.WeightedService{}
-			weightedService.ServiceName = endpoint.ServiceName(namespaced.String())
-			weightedService.Weight = trafficSplitBackend.Weight
-			var err error
-			if weightedService.Endpoints, err = sc.listEndpointsForService(endpoint.ServiceName(namespaced.String())); err != nil {
-				glog.Errorf("[%s] Error getting Endpoints for service %s: %s", packageName, namespaced.String(), err)
-				weightedService.Endpoints = []endpoint.Endpoint{}
+			serviceEndpoints := endpoint.ServiceEndpoints{}
+			serviceEndpoints.Service = endpoint.Service{
+				ServiceName: namespacedServiceName,
+				Weight:      trafficSplitBackend.Weight,
 			}
-			services = append(services, weightedService)
+			var err error
+			if serviceEndpoints.Endpoints, err = sc.listEndpointsForService(serviceEndpoints.Service); err != nil {
+				glog.Errorf("[catalog] Error getting Endpoints for service %s: %s", namespacedServiceName, err)
+				serviceEndpoints.Endpoints = []endpoint.Endpoint{}
+			}
+			services = append(services, serviceEndpoints)
 		}
-		byTargetService[targetServiceName] = services
 	}
-	glog.V(level.Trace).Infof("[%s] Constructed weighted services: %+v", packageName, byTargetService)
-	return byTargetService, nil
+	glog.V(level.Trace).Infof("[catalog] Constructed services with endpoints: %+v", services)
+	return services, nil
 }
 
 func endpointsToString(endpoints []endpoint.Endpoint) []string {

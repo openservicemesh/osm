@@ -20,5 +20,9 @@ spec:
   backends:
 
   - service: bookstore-1
-    weight: 100
+    weight: 50
+  - service: bookstore-2
+    weight: 50
+
+
 EOF

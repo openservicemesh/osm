@@ -21,28 +21,37 @@ var packageName = utils.GetLastChunkOfSlashed(reflect.TypeOf(empty{}).PkgPath())
 
 // NewResponse creates a new Cluster Discovery Response.
 func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, request *xds.DiscoveryRequest) (*xds.DiscoveryResponse, error) {
-	allServices, err := catalog.ListEndpoints("TBD")
+	proxyServiceName := proxy.GetService()
+	allTrafficPolicies, err := catalog.ListTrafficRoutes(proxyServiceName)
 	if err != nil {
 		glog.Errorf("[%s] Failed listing endpoints: %+v", packageName, err)
 		return nil, err
 	}
-	glog.Infof("[%s] WeightedServices: %+v", packageName, allServices)
+	glog.V(level.Debug).Infof("[%s] TrafficPolicies: %+v for proxy %s", packageName, allTrafficPolicies, proxy.CommonName)
 	resp := &xds.DiscoveryResponse{
 		TypeUrl: string(envoy.TypeCDS),
 	}
 
-	var clusterFactories []*xds.Cluster
-	for targetedServiceName, weightedServices := range allServices {
-		remoteService := envoy.GetServiceCluster(string(targetedServiceName), proxy.GetService())
-		clusterFactories = append(clusterFactories, remoteService)
-		for _, localservice := range weightedServices {
-			clusterFactories = append(clusterFactories, getServiceClusterLocal(string(localservice.ServiceName)))
+	clusterFactories := []xds.Cluster{}
+	for _, trafficPolicies := range allTrafficPolicies {
+		isSourceService := envoy.Contains(proxyServiceName, trafficPolicies.Source.Services)
+		isDestinationService := envoy.Contains(proxyServiceName, trafficPolicies.Destination.Services)
+		if isSourceService {
+			for _, cluster := range trafficPolicies.Source.Clusters {
+				remoteCluster := envoy.GetServiceCluster(string(cluster.ClusterName), proxyServiceName)
+				clusterFactories = append(clusterFactories, remoteCluster)
+			}
+		} else if isDestinationService {
+			for _, cluster := range trafficPolicies.Destination.Clusters {
+				clusterFactories = append(clusterFactories, getServiceClusterLocal(string(cluster.ClusterName+envoy.LocalCluster)))
+			}
 		}
 	}
 
+	clusterFactories = uniques(clusterFactories)
 	for _, cluster := range clusterFactories {
-		glog.V(level.Trace).Infof("[%s] Constructed ClusterConfiguration: %+v", packageName, cluster)
-		marshalledClusters, err := ptypes.MarshalAny(cluster)
+		glog.V(level.Debug).Infof("[%s] Proxy service %s constructed ClusterConfiguration: %+v ", packageName, proxyServiceName, cluster)
+		marshalledClusters, err := ptypes.MarshalAny(&cluster)
 		if err != nil {
 			glog.Errorf("[%s] Failed to marshal cluster for proxy %s: %v", packageName, proxy.GetCommonName(), err)
 			return nil, err
@@ -50,4 +59,20 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 		resp.Resources = append(resp.Resources, marshalledClusters)
 	}
 	return resp, nil
+}
+
+func uniques(slice []xds.Cluster) []xds.Cluster {
+	var isPresent bool
+	clusters := []xds.Cluster{}
+	for _, entry := range slice {
+		for _, cluster := range clusters {
+			if cluster.Name == entry.Name {
+				isPresent = true
+			}
+		}
+		if !isPresent {
+			clusters = append(clusters, entry)
+		}
+	}
+	return clusters
 }

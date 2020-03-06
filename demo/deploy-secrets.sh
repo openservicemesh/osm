@@ -16,7 +16,7 @@ kubectl -n "$K8S_NAMESPACE" \
 echo -e "Generate certificates for ${NAME}"
 mkdir -p "./certificates/$NAME/"
 
-./bin/cert --host="$NAME.azure.mesh" \
+./bin/cert --host="$NAME.$K8S_NAMESPACE.azure.mesh" \
            --caPEMFileIn="./certificates/root-cert.pem" \
            --caKeyPEMFileIn="./certificates/root-key.pem" \
            --keyout "./certificates/$NAME/key.pem" \

@@ -12,6 +12,7 @@ import (
 	"github.com/deislabs/smc/pkg/catalog"
 	"github.com/deislabs/smc/pkg/envoy"
 	"github.com/deislabs/smc/pkg/envoy/cla"
+	"github.com/deislabs/smc/pkg/log/level"
 	"github.com/deislabs/smc/pkg/smi"
 	"github.com/deislabs/smc/pkg/utils"
 )
@@ -22,15 +23,16 @@ var packageName = utils.GetLastChunkOfSlashed(reflect.TypeOf(empty{}).PkgPath())
 
 // NewResponse creates a new Endpoint Discovery Response.
 func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, request *xds.DiscoveryRequest) (*xds.DiscoveryResponse, error) {
-	allServices, err := catalog.ListEndpoints("TBD")
+	proxyServiceName := proxy.GetService()
+	allServicesEndpoints, err := catalog.ListEndpoints(proxyServiceName)
 	if err != nil {
 		glog.Errorf("[%s] Failed listing endpoints: %+v", packageName, err)
 		return nil, err
 	}
-	glog.Infof("[%s] WeightedServices: %+v", packageName, allServices)
+	glog.V(level.Debug).Infof("[%s] allServicesEndpoints: %+v", packageName, allServicesEndpoints)
 	var protos []*any.Any
-	for targetServiceName, weightedServices := range allServices {
-		loadAssignment := cla.NewClusterLoadAssignment(targetServiceName, weightedServices)
+	for _, serviceEndpoints := range allServicesEndpoints {
+		loadAssignment := cla.NewClusterLoadAssignment(serviceEndpoints)
 
 		proto, err := ptypes.MarshalAny(&loadAssignment)
 		if err != nil {
