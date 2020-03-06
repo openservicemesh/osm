@@ -79,7 +79,7 @@ func getTasks(proxy *envoy.Proxy, request *xds.DiscoveryRequest) []task {
 		if strings.HasPrefix(resourceName, serviceCertPrefix) {
 			// this is a request for a service certificate
 			requestFor := endpoint.ServiceName(resourceName[len(serviceCertPrefix):])
-			if endpoint.ServiceName(proxyServiceName.Service) != requestFor {
+			if endpoint.ServiceName(proxyServiceName.String()) != requestFor {
 				glog.Errorf("[%s] Proxy %s (service %s) requested service certificate %s; this is not allowed", packageName, proxy.GetCommonName(), proxy.GetService(), requestFor)
 				continue
 			}
@@ -91,7 +91,7 @@ func getTasks(proxy *envoy.Proxy, request *xds.DiscoveryRequest) []task {
 			// this is a request for a root certificate
 			// proxies need this to verify other proxies certificates
 			requestFor := getServiceName(resourceName, envoy.RootCertPrefix)
-			if endpoint.ServiceName(proxyServiceName.Service) != requestFor {
+			if endpoint.ServiceName(proxyServiceName.String()) != requestFor {
 				glog.Errorf("[%s] Proxy %s (service %s) requested root certificate %s; this is not allowed", packageName, proxy.GetCommonName(), proxy.GetService(), requestFor)
 				continue
 			}
