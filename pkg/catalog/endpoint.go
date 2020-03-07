@@ -18,7 +18,7 @@ var packageName = utils.GetLastChunkOfSlashed(reflect.TypeOf(empty{}).PkgPath())
 
 // ListEndpoints constructs a map from service to weighted sub-services with all endpoints the given Envoy proxy should be aware of.
 func (sc *MeshCatalog) ListEndpoints(clientID endpoint.NamespacedService) ([]endpoint.ServiceEndpoints, error) {
-	glog.Info("[%s] Listing Endpoints for client: ", packageName, clientID)
+	glog.Infof("[%s] Listing Endpoints for client: %s", packageName, clientID.String())
 	// todo (sneha) : TBD if clientID is needed for filterning endpoints
 	return sc.getWeightedEndpointsPerService(clientID)
 }
