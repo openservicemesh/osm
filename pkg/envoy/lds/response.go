@@ -80,7 +80,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 				// The FilterChainMatch uses SNI from mTLS to match against the provided list of ServerNames.
 				// This ensures only clients authorized to talk to this listener are permitted to.
 				FilterChainMatch: &listener.FilterChainMatch{
-					ServerNames: []string{"bookbuyer"}, // TODO(draychev): remove hard-coded demo value
+					ServerNames: []string{"smc/bookbuyer"}, // TODO(draychev): remove hard-coded demo value
 				},
 				TransportSocket: &envoy_api_v2_core.TransportSocket{
 					Name: envoy.TransportSocketTLS,
