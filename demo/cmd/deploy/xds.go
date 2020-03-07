@@ -3,18 +3,22 @@ package main
 import (
 	"fmt"
 	"os"
+	"path"
 
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/deislabs/smc/demo/cmd/common"
+	"github.com/deislabs/smc/pkg/constants"
 )
 
 func main() {
 	acr := os.Getenv(common.ContainerRegistryEnvVar)
 	containerRegistryCredsName := os.Getenv(common.ContainerRegistryCredsEnvVar)
 	azureSubscription := os.Getenv(common.AzureSubscription)
+	initContainer := path.Join(acr, "init")
+	envoyContainer := path.Join(acr, "envoyproxy:latest")
 	namespace := os.Getenv(common.KubeNamespaceEnvVar)
 
 	labels := map[string]string{
@@ -48,6 +52,13 @@ func main() {
 						IntVal: common.AggregatedDiscoveryServicePort,
 					},
 				},
+				{
+					Name: "sidecar-injector",
+					Port: 443,
+					TargetPort: intstr.IntOrString{
+						IntVal: constants.InjectorWebhookPort,
+					},
+				},
 			},
 			Selector: map[string]string{
 				"app": common.AggregatedDiscoveryServiceName,
@@ -69,10 +80,10 @@ func main() {
 		"--namespace", namespace,
 		"--certpem", "/etc/ssl/certs/cert.pem",
 		"--keypem", "/etc/ssl/certs/key.pem",
-		"--rootcertpem",
-		"/etc/ssl/certs/root-cert.pem",
-		"--rootkeypem",
-		"/etc/ssl/certs/root-key.pem",
+		"--rootcertpem", "/etc/ssl/certs/root-cert.pem",
+		"--rootkeypem", "/etc/ssl/certs/root-key.pem",
+		"--init-container-image", initContainer,
+		"--sidecar-image", envoyContainer,
 	}
 
 	if os.Getenv(common.IsGithubEnvVar) != "true" {
@@ -150,6 +161,14 @@ func main() {
 						},
 					},
 				},
+				{
+					Name: "webhook-tls-certs",
+					VolumeSource: v1.VolumeSource{
+						Secret: &v1.SecretVolumeSource{
+							SecretName: "webhook-tls-certs",
+						},
+					},
+				},
 			},
 			ImagePullSecrets: []v1.LocalObjectReference{
 				{
@@ -201,6 +220,11 @@ func main() {
 							Name:      "ca-rootcertpemstore",
 							MountPath: "/etc/ssl/certs/root-cert.pem",
 							SubPath:   "root-cert.pem",
+						},
+						{
+							Name:      "webhook-tls-certs",
+							MountPath: "/run/secrets/tls",
+							ReadOnly:  true,
 						},
 					},
 					// ReadinessProbe

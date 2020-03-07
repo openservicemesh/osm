@@ -36,20 +36,30 @@ kubectl create configmap azureconfig --from-file="$HOME/.azure/azureAuth.json" -
 kubectl apply -f crd/AzureResource.yaml
 ./demo/deploy-AzureResource.sh
 
-./demo/deploy-bookbuyer.sh
-
-./demo/deploy-bookstore.sh bookstore
-./demo/deploy-bookstore.sh bookstore-1
-./demo/deploy-bookstore.sh bookstore-2
-
-./demo/deploy-secrets.sh "ads"
-go run ./demo/cmd/deploy/xds.go
-
 ./demo/deploy-traffic-split.sh
 ./demo/deploy-traffic-spec.sh
 ./demo/deploy-traffic-target.sh
 
+./demo/deploy-secrets.sh "ads"
+./demo/deploy-webhook-secrets.sh
+go run ./demo/cmd/deploy/xds.go
+
+# Wait for POD to be ready before
+while [ "$(kubectl get pods -n smc ads -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}')" != "True" ];
+do
+  echo "waiting for pod ads to be ready" && sleep 2
+done
+
+./demo/deploy-webhook.sh "ads" "$K8S_NAMESPACE"
+
+# The POD creation for the services will fail if SMC has not picked up the
+# corresponding services defined in the SMI spec
+./demo/deploy-bookbuyer.sh
+
+./demo/deploy-bookstore.sh "bookstore"
+./demo/deploy-bookstore.sh "bookstore-1"
+./demo/deploy-bookstore.sh "bookstore-2"
+
 if [[ "$IS_GITHUB" != "true" ]]; then
     watch -n0.5 "kubectl get pods -n${K8S_NAMESPACE} -o wide"
 fi
-

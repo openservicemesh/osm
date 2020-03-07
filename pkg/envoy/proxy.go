@@ -88,10 +88,12 @@ func (p Proxy) GetAnnouncementsChannel() chan interface{} {
 
 // NewProxy creates a new instance of an Envoy proxy connected to the xDS servers.
 func NewProxy(cn certificate.CommonName, ip net.IP) *Proxy {
+	cnWithUUIDStripped := utils.GetCertCommonNameWithoutUUID(cn.String())
+
 	return &Proxy{
 		CommonName:         cn,
 		IP:                 ip,
-		ServiceName:        endpoint.ServiceName(utils.GetFirstOfDotted(string(cn))),
+		ServiceName:        endpoint.ServiceName(utils.GetFirstOfDotted(cnWithUUIDStripped)),
 		announcements:      make(chan interface{}),
 		lastNonce:          make(map[TypeURI]string),
 		lastSentVersion:    make(map[TypeURI]uint64),
