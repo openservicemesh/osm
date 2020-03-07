@@ -16,7 +16,6 @@ metadata:
   name: bookstore-service-new
   namespace: "$K8S_NAMESPACE"
 destination:
-  # (todo): use service account
   kind: ServiceAccount
   name: bookstore-2-serviceaccount
   namespace: "$K8S_NAMESPACE"
@@ -26,7 +25,6 @@ specs:
   matches:
   - incrementcounter
 sources:
-# (todo): use service account
 - kind: ServiceAccount
   name: bookbuyer-serviceaccount
   namespace: "$K8S_NAMESPACE"
