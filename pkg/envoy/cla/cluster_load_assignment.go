@@ -19,7 +19,7 @@ const (
 // NewClusterLoadAssignment constructs the Envoy struct necessary for TrafficSplit implementation.
 func NewClusterLoadAssignment(serviceEndpoints smcEndpoint.ServiceEndpoints) v2.ClusterLoadAssignment {
 	cla := v2.ClusterLoadAssignment{
-		ClusterName: string(serviceEndpoints.Service.ServiceName.String()),
+		ClusterName: string(serviceEndpoints.WeightedService.ServiceName.String()),
 		Endpoints: []*endpoint.LocalityLbEndpoints{
 			{
 				Locality: &core.Locality{
@@ -37,7 +37,7 @@ func NewClusterLoadAssignment(serviceEndpoints smcEndpoint.ServiceEndpoints) v2.
 	weight := uint32(100 / lenIPs)
 
 	for _, meshEndpoint := range serviceEndpoints.Endpoints {
-		glog.V(level.Trace).Infof("[EDS][ClusterLoadAssignment] Adding Endpoint: Cluster=%s, Services=%s, Endpoint=%+v, Weight=%d\n", serviceEndpoints.Service.ServiceName, serviceEndpoints.Service.ServiceName, meshEndpoint, weight)
+		glog.V(level.Trace).Infof("[EDS][ClusterLoadAssignment] Adding Endpoint: Cluster=%s, Services=%s, Endpoint=%+v, Weight=%d\n", serviceEndpoints.WeightedService.ServiceName, serviceEndpoints.WeightedService.ServiceName, meshEndpoint, weight)
 		lbEpt := endpoint.LbEndpoint{
 			HostIdentifier: &endpoint.LbEndpoint_Endpoint{
 				Endpoint: &endpoint.Endpoint{

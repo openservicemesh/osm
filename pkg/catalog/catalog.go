@@ -22,7 +22,7 @@ func NewMeshCatalog(meshSpec smi.MeshSpec, certManager certificate.Manager, stop
 		meshSpec:           meshSpec,
 		certManager:        certManager,
 
-		servicesCache:        make(map[endpoint.Service][]endpoint.Endpoint),
+		servicesCache:        make(map[endpoint.WeightedService][]endpoint.Endpoint),
 		certificateCache:     make(map[endpoint.NamespacedService]certificate.Certificater),
 		connectedProxies:     mapset.NewSet(),
 		announcementChannels: mapset.NewSet(),

@@ -23,7 +23,7 @@ func (sc *MeshCatalog) ListEndpoints(clientID endpoint.NamespacedService) ([]end
 	return sc.getWeightedEndpointsPerService(clientID)
 }
 
-func (sc *MeshCatalog) listEndpointsForService(service endpoint.Service) ([]endpoint.Endpoint, error) {
+func (sc *MeshCatalog) listEndpointsForService(service endpoint.WeightedService) ([]endpoint.Endpoint, error) {
 	// TODO(draychev): split namespace from the service name -- for non-K8s services
 	// todo (sneha) : TBD if clientID is needed for filterning endpoints
 	glog.Infof("[%s] listEndpointsForService %s", packageName, service.ServiceName)
@@ -58,12 +58,12 @@ func (sc *MeshCatalog) getWeightedEndpointsPerService(clientID endpoint.Namespac
 				Service:   trafficSplitBackend.Service,
 			}
 			serviceEndpoints := endpoint.ServiceEndpoints{}
-			serviceEndpoints.Service = endpoint.Service{
+			serviceEndpoints.WeightedService = endpoint.WeightedService{
 				ServiceName: namespacedServiceName,
 				Weight:      trafficSplitBackend.Weight,
 			}
 			var err error
-			if serviceEndpoints.Endpoints, err = sc.listEndpointsForService(serviceEndpoints.Service); err != nil {
+			if serviceEndpoints.Endpoints, err = sc.listEndpointsForService(serviceEndpoints.WeightedService); err != nil {
 				glog.Errorf("[%s] Error getting Endpoints for service %s: %s", packageName, namespacedServiceName, err)
 				serviceEndpoints.Endpoints = []endpoint.Endpoint{}
 			}

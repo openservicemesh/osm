@@ -66,16 +66,16 @@ func (ns NamespacedServiceAccount) String() string {
 // ClusterName is a type for a service name
 type ClusterName string
 
-// Service is a struct of a service name and its weight
-type Service struct {
+//WeightedService is a struct of a service name and its weight
+type WeightedService struct {
 	ServiceName NamespacedService `json:"service_name:omitempty"`
 	Weight      int               `json:"weight:omitempty"`
 }
 
-// ServiceEndpoints is a struct of a service and its endpoints
+// ServiceEndpoints is a struct of a weighted service and its endpoints
 type ServiceEndpoints struct {
-	Service   Service    `json:"service:omitempty"`
-	Endpoints []Endpoint `json:"endpoints:omitempty"`
+	WeightedService WeightedService `json:"service:omitempty"`
+	Endpoints       []Endpoint      `json:"endpoints:omitempty"`
 }
 
 // RoutePaths is a struct of a path and the allowed methods on a given route

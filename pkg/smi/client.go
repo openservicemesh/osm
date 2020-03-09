@@ -183,9 +183,9 @@ func (c *Client) ListTrafficTargets() []*target.TrafficTarget {
 }
 
 // ListServices implements mesh.MeshSpec by returning the services observed from the given compute provider
-func (c *Client) ListServices() []endpoint.Service {
+func (c *Client) ListServices() []endpoint.WeightedService {
 	// TODO(draychev): split the namespace and the service kubernetesClientName -- for non-kubernetes services we won't have namespace
-	var services []endpoint.Service
+	var services []endpoint.WeightedService
 	for _, splitIface := range c.caches.TrafficSplit.List() {
 		split := splitIface.(*split.TrafficSplit)
 		for _, backend := range split.Spec.Backends {
@@ -193,7 +193,7 @@ func (c *Client) ListServices() []endpoint.Service {
 				Namespace: split.Namespace,
 				Service:   backend.Service,
 			}
-			services = append(services, endpoint.Service{ServiceName: namespacedServiceName, Weight: backend.Weight})
+			services = append(services, endpoint.WeightedService{ServiceName: namespacedServiceName, Weight: backend.Weight})
 		}
 	}
 	return services

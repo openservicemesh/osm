@@ -10,7 +10,7 @@ import (
 
 func (sc *MeshCatalog) refreshCache() {
 	glog.Info("[catalog] Refresh cache...")
-	servicesCache := make(map[endpoint.Service][]endpoint.Endpoint)
+	servicesCache := make(map[endpoint.WeightedService][]endpoint.Endpoint)
 	serviceAccountsCache := make(map[endpoint.NamespacedServiceAccount][]endpoint.NamespacedService)
 	// TODO(draychev): split the namespace from the service name -- non-K8s services won't have namespace
 

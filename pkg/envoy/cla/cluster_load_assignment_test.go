@@ -14,7 +14,7 @@ var _ = Describe("Testing Cluster Load Assignment", func() {
 		It("Returns cluster load assignment", func() {
 			serviceEndpoints := []endpoint.ServiceEndpoints{}
 			serviceEndpoints = append(serviceEndpoints, endpoint.ServiceEndpoints{
-				Service: endpoint.Service{
+				WeightedService: endpoint.WeightedService{
 					ServiceName: endpoint.NamespacedService{Namespace: "smc", Service: "bookstore-1"},
 					Weight:      50,
 				},
@@ -23,7 +23,7 @@ var _ = Describe("Testing Cluster Load Assignment", func() {
 				},
 			})
 			serviceEndpoints = append(serviceEndpoints, endpoint.ServiceEndpoints{
-				Service: endpoint.Service{
+				WeightedService: endpoint.WeightedService{
 					ServiceName: endpoint.NamespacedService{Namespace: "smc", Service: "bookstore-2"},
 					Weight:      50,
 				},

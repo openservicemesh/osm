@@ -17,7 +17,7 @@ type MeshCatalog struct {
 	meshSpec           smi.MeshSpec
 	certManager        certificate.Manager
 
-	servicesCache        map[endpoint.Service][]endpoint.Endpoint
+	servicesCache        map[endpoint.WeightedService][]endpoint.Endpoint
 	servicesMutex        sync.Mutex
 	certificateCache     map[endpoint.NamespacedService]certificate.Certificater
 	serviceAccountsCache map[endpoint.NamespacedServiceAccount][]endpoint.NamespacedService
