@@ -33,13 +33,8 @@ metadata:
     app: $SVC
 spec:
   ports:
-  - port: 89
-    targetPort: 15000
-    name: admin-port
-
-  - port: 83
-    targetPort: 15003
-    name: mtls-port
+  - port: 80
+    name: bookstore-port
 
   selector:
     app: $SVC
