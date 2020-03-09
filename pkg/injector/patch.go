@@ -41,7 +41,7 @@ func (wh *Webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 
 	// Issue a certificate for the envoy fronting the service
 
-	cn := certificate.CommonName(utils.NewCertCommonNameWithUUID(fmt.Sprintf("%s.smc.mesh", serviceName))) // TODO: Don't hardcode domain
+	cn := certificate.CommonName(utils.NewCertCommonNameWithUUID(fmt.Sprintf("%s.%s.smc.mesh", serviceName, namespace))) // TODO: Don't hardcode domain
 	cert, err := wh.certManager.IssueCertificate(cn)
 	if err != nil {
 		glog.Errorf("Failed to issue TLS certificate for Envoy: %s", err)

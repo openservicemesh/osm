@@ -116,7 +116,7 @@ func getWeightedCluster(weightedClusters []endpoint.WeightedCluster, isLocalClus
 		clusterName := string(cluster.ClusterName)
 		total += cluster.Weight
 		if isLocalCluster {
-			clusterName += envoy.LocalCluster
+			clusterName += envoy.LocalClusterSuffix
 		}
 		wc.Clusters = append(wc.Clusters, &route.WeightedCluster_ClusterWeight{
 			Name:   clusterName,
@@ -134,7 +134,7 @@ func updateRouteActionWeightedClusters(existingWeightedCluster route.WeightedClu
 		clusterName := string(cluster.ClusterName)
 		total += cluster.Weight
 		if isLocalCluster {
-			clusterName += envoy.LocalCluster
+			clusterName += envoy.LocalClusterSuffix
 		}
 		existingWeightedCluster.Clusters = append(existingWeightedCluster.Clusters, &route.WeightedCluster_ClusterWeight{
 			Name:   clusterName,

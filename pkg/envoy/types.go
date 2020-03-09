@@ -32,6 +32,6 @@ const (
 	aes    = "ECDHE-ECDSA-AES128-GCM-SHA256"
 	chacha = "ECDHE-ECDSA-CHACHA20-POLY1305"
 
-	//LocalCluster is the tag to append to local clusters
-	LocalCluster = "-local"
+	//LocalClusterSuffix is the tag to append to local clusters
+	LocalClusterSuffix = "-local"
 )
