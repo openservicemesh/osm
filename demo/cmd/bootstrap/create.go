@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"k8s.io/api/core/v1"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -27,7 +28,7 @@ func main() {
 	}
 	clientset := getClient()
 
-	if err := clientset.CoreV1().ConfigMaps(namespace).Delete(configMapName, &metav1.DeleteOptions{}); err != nil {
+	if err := clientset.CoreV1().ConfigMaps(namespace).Delete(configMapName, &metav1.DeleteOptions{}); err != nil && !k8sErrors.IsNotFound(err) {
 		fmt.Println("Error deleting config map: ", err)
 	}
 
