@@ -24,7 +24,7 @@ func (wh *Webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 		Namespace:      namespace,
 		ServiceAccount: pod.Spec.ServiceAccountName,
 	}
-	services := wh.meshCatalog.GetServicesByServiceAccountName(endpoint.ServiceAccount(namespacedSvcAcc.String()), true)
+	services := wh.meshCatalog.GetServicesByServiceAccountName(namespacedSvcAcc, true)
 
 	if len(services) == 0 {
 		// No services found for this service account, don't patch
