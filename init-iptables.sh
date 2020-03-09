@@ -41,8 +41,8 @@ iptables -t nat -A OUTPUT -p tcp -j PROXY_OUTPUT
 # Don't redirect Envoy traffic back ti itself for non-loopback traffic
 iptables -t nat -A PROXY_OUTPUT -m owner --uid-owner "${PROXY_UID}" -j RETURN
 
-# TODO(shashank): Skip local container traffic
-#iptables -t nat -A PROXY_OUTPUT -d 127.0.0.1/32 -j RETURN
+# Skip localhost traffic
+iptables -t nat -A PROXY_OUTPUT -d 127.0.0.1/32 -j RETURN
 
 # Redirect remaining outbound traffic to Envou
 iptables -t nat -A PROXY_OUTPUT -j PROXY_REDIRECT

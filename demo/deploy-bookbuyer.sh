@@ -63,7 +63,7 @@ spec:
       serviceAccountName: bookbuyer-serviceaccount
       automountServiceAccountToken: false
       hostAliases:
-      - ip: "127.0.0.1"
+      - ip: "127.0.0.2"
         hostnames:
         - "${K8S_NAMESPACE}.uswest.mesh"
         - "bookbuyer.mesh"
