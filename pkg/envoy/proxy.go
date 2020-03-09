@@ -3,6 +3,7 @@ package envoy
 import (
 	"fmt"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/deislabs/smc/pkg/certificate"
@@ -10,12 +11,16 @@ import (
 	"github.com/deislabs/smc/pkg/utils"
 )
 
+const (
+	dot = "."
+)
+
 // Proxy is a representation of an Envoy proxy connected to the xDS server.
 // This should at some point have a 1:1 match to an Endpoint (which is a member of a meshed service).
 type Proxy struct {
 	certificate.CommonName
 	net.IP
-	endpoint.ServiceName
+	ServiceName   endpoint.NamespacedService
 	announcements chan interface{}
 
 	lastSentVersion    map[TypeURI]uint64
@@ -67,7 +72,7 @@ func (p Proxy) String() string {
 
 // GetService determines the meshed service this endpoint should support based on the mTLS certificate.
 // From "a.b.c" returns "b.c". By convention "a" is the ID of the proxy. Remaining "b.c" is the name of the service.
-func (p Proxy) GetService() endpoint.ServiceName {
+func (p Proxy) GetService() endpoint.NamespacedService {
 	return p.ServiceName
 }
 
@@ -89,11 +94,12 @@ func (p Proxy) GetAnnouncementsChannel() chan interface{} {
 // NewProxy creates a new instance of an Envoy proxy connected to the xDS servers.
 func NewProxy(cn certificate.CommonName, ip net.IP) *Proxy {
 	cnWithUUIDStripped := utils.GetCertCommonNameWithoutUUID(cn.String())
+	dotCount := strings.Count(string(cn), dot)
 
 	return &Proxy{
 		CommonName:         cn,
 		IP:                 ip,
-		ServiceName:        endpoint.ServiceName(utils.GetFirstOfDotted(cnWithUUIDStripped)),
+		ServiceName:        endpoint.NamespacedService(getNamespacedService(utils.GetFirstNOfDotted(cnWithUUIDStripped, dotCount))),
 		announcements:      make(chan interface{}),
 		lastNonce:          make(map[TypeURI]string),
 		lastSentVersion:    make(map[TypeURI]uint64),

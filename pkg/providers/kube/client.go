@@ -105,9 +105,9 @@ func (c Client) ListEndpointsForService(svc endpoint.ServiceName) []endpoint.End
 }
 
 // ListServicesForServiceAccount retrieves the list of Services for the given service account
-func (c Client) ListServicesForServiceAccount(svcAccount endpoint.ServiceAccount) []endpoint.ServiceName {
+func (c Client) ListServicesForServiceAccount(svcAccount endpoint.NamespacedServiceAccount) []endpoint.NamespacedService {
 	glog.Infof("[%s] Getting Services for service account %s on Kubernetes", c.providerIdent, svcAccount)
-	var services []endpoint.ServiceName
+	var services []endpoint.NamespacedService
 	deploymentsInterface := c.caches.Deployments.List()
 
 	for _, deployments := range deploymentsInterface {
@@ -117,7 +117,7 @@ func (c Client) ListServicesForServiceAccount(svcAccount endpoint.ServiceAccount
 				Namespace:      kubernetesDeployments.Namespace,
 				ServiceAccount: spec.Template.Spec.ServiceAccountName,
 			}
-			if svcAccount.String() == namespacedSvcAccount.String() {
+			if svcAccount == namespacedSvcAccount {
 				var selectorLabel map[string]string
 				if spec.Selector != nil {
 					selectorLabel = spec.Selector.MatchLabels
@@ -128,7 +128,7 @@ func (c Client) ListServicesForServiceAccount(svcAccount endpoint.ServiceAccount
 					Namespace: kubernetesDeployments.Namespace,
 					Service:   selectorLabel["app"],
 				}
-				services = append(services, endpoint.ServiceName(namespacedService.String()))
+				services = append(services, namespacedService)
 			}
 		}
 	}

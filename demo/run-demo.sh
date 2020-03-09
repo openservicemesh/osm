@@ -39,6 +39,7 @@ kubectl apply -f crd/AzureResource.yaml
 ./demo/deploy-traffic-split.sh
 ./demo/deploy-traffic-spec.sh
 ./demo/deploy-traffic-target.sh
+./demo/deploy-traffic-target-2.sh
 
 ./demo/deploy-secrets.sh "ads"
 ./demo/deploy-webhook-secrets.sh

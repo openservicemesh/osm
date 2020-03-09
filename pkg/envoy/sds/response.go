@@ -40,7 +40,8 @@ var (
 // NewResponse creates a new Secrets Discovery Response.
 func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, request *xds.DiscoveryRequest) (*xds.DiscoveryResponse, error) {
 	glog.Infof("[%s] Composing SDS Discovery Response for proxy: %s", packageName, proxy.GetCommonName())
-	cert, err := catalog.GetCertificateForService(proxy.GetService())
+	proxyServiceName := proxy.GetService()
+	cert, err := catalog.GetCertificateForService(proxyServiceName)
 	if err != nil {
 		glog.Errorf("[%s] Error obtaining a certificate for client %s: %s", packageName, proxy.GetCommonName(), err)
 		return nil, err
@@ -53,14 +54,14 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	// Iterate over the list of tasks and create response structs to be
 	// sent to the proxy that made the discovery request
 	for _, task := range getTasks(proxy, request) {
-		glog.Infof("[%s] proxy %s (member of service %s) requested %s", packageName, proxy.GetCommonName(), proxy.GetService(), task.resourceName)
+		glog.Infof("[%s] proxy %s (member of service %s) requested %s", packageName, proxy.GetCommonName(), proxyServiceName.String(), task.resourceName)
 		secret, err := task.structMaker(cert, task.resourceName)
 		if err != nil {
-			return nil, errors.Wrapf(err, "[%s] error creating cert %s for proxy %s for service %s", packageName, task.resourceName, proxy.GetCommonName(), proxy.GetService())
+			return nil, errors.Wrapf(err, "[%s] error creating cert %s for proxy %s for service %s", packageName, task.resourceName, proxy.GetCommonName(), proxyServiceName.String())
 		}
 		marshalledSecret, err := ptypes.MarshalAny(secret)
 		if err != nil {
-			return nil, errors.Wrapf(err, "[%s] error marshaling cert %s for proxy %s for service %s", packageName, task.resourceName, proxy.GetCommonName(), proxy.GetService())
+			return nil, errors.Wrapf(err, "[%s] error marshaling cert %s for proxy %s for service %s", packageName, task.resourceName, proxy.GetCommonName(), proxyServiceName.String())
 		}
 		resp.Resources = append(resp.Resources, marshalledSecret)
 	}
@@ -71,13 +72,14 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 // proxy that made a discovery request and the discovery request itself
 func getTasks(proxy *envoy.Proxy, request *xds.DiscoveryRequest) []task {
 	var tasks []task
+	proxyServiceName := proxy.GetService()
 
 	// the proxy may have made a request with a number of resources (certificates) expected to be sent back
 	for _, resourceName := range request.ResourceNames {
 		if strings.HasPrefix(resourceName, serviceCertPrefix) {
 			// this is a request for a service certificate
 			requestFor := endpoint.ServiceName(resourceName[len(serviceCertPrefix):])
-			if proxy.GetService() != requestFor {
+			if endpoint.ServiceName(proxyServiceName.String()) != requestFor {
 				glog.Errorf("[%s] Proxy %s (service %s) requested service certificate %s; this is not allowed", packageName, proxy.GetCommonName(), proxy.GetService(), requestFor)
 				continue
 			}
@@ -89,7 +91,7 @@ func getTasks(proxy *envoy.Proxy, request *xds.DiscoveryRequest) []task {
 			// this is a request for a root certificate
 			// proxies need this to verify other proxies certificates
 			requestFor := getServiceName(resourceName, envoy.RootCertPrefix)
-			if proxy.GetService() != requestFor {
+			if endpoint.ServiceName(proxyServiceName.String()) != requestFor {
 				glog.Errorf("[%s] Proxy %s (service %s) requested root certificate %s; this is not allowed", packageName, proxy.GetCommonName(), proxy.GetService(), requestFor)
 				continue
 			}

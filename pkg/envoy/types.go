@@ -31,4 +31,7 @@ const (
 	// cipher suites
 	aes    = "ECDHE-ECDSA-AES128-GCM-SHA256"
 	chacha = "ECDHE-ECDSA-CHACHA20-POLY1305"
+
+	//LocalClusterSuffix is the tag to append to local clusters
+	LocalClusterSuffix = "-local"
 )

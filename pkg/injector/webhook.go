@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"path/filepath"
-	//"strings"
 
 	"github.com/golang/glog"
 	"k8s.io/api/admission/v1beta1"
@@ -204,7 +203,7 @@ func (wh *Webhook) mustInject(pod *corev1.Pod, namespace string) (bool, error) {
 	}
 
 	// Check to see if the service account is referenced in SMI
-	services := wh.meshCatalog.GetServicesByServiceAccountName(endpoint.ServiceAccount(namespacedServiceAcc.String()), true)
+	services := wh.meshCatalog.GetServicesByServiceAccountName(namespacedServiceAcc, true)
 	if len(services) == 0 {
 		// No services found for this service account, don't patch
 		glog.Infof("No services found for service account %q", pod.Spec.ServiceAccountName)

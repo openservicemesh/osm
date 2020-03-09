@@ -17,11 +17,10 @@ type MeshCatalog struct {
 	meshSpec           smi.MeshSpec
 	certManager        certificate.Manager
 
-	servicesCache        map[endpoint.ServiceName][]endpoint.Endpoint
+	servicesCache        map[endpoint.WeightedService][]endpoint.Endpoint
 	servicesMutex        sync.Mutex
-	certificateCache     map[endpoint.ServiceName]certificate.Certificater
-	serviceAccountsCache map[endpoint.ServiceAccount][]endpoint.ServiceName
-	virtualServicesCache map[endpoint.ServiceName][]endpoint.ServiceName
+	certificateCache     map[endpoint.NamespacedService]certificate.Certificater
+	serviceAccountsCache map[endpoint.NamespacedServiceAccount][]endpoint.NamespacedService
 
 	connectedProxies     mapset.Set
 	announcementChannels mapset.Set
@@ -30,14 +29,14 @@ type MeshCatalog struct {
 // MeshCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
 type MeshCataloger interface {
 	// ListEndpoints constructs a map of service to weighted handlers with all endpoints the given Envoy proxy should be aware of.
-	ListEndpoints(smi.ClientIdentity) (map[endpoint.ServiceName][]endpoint.WeightedService, error)
+	ListEndpoints(endpoint.NamespacedService) ([]endpoint.ServiceEndpoints, error)
 
 	// ListTrafficRoutes constructs a list of all the traffic policies /routes the given Envoy proxy should be aware of.
-	ListTrafficRoutes(smi.ClientIdentity) ([]endpoint.TrafficTargetPolicies, error)
+	ListTrafficRoutes(endpoint.NamespacedService) ([]endpoint.TrafficTargetPolicies, error)
 
 	// GetCertificateForService returns the SSL Certificate for the given service.
 	// This certificate will be used for service-to-service mTLS.
-	GetCertificateForService(endpoint.ServiceName) (certificate.Certificater, error)
+	GetCertificateForService(endpoint.NamespacedService) (certificate.Certificater, error)
 
 	// RegisterProxy registers a newly connected proxy with the service mesh catalog.
 	RegisterProxy(*envoy.Proxy)
@@ -46,7 +45,7 @@ type MeshCataloger interface {
 	UnregisterProxy(*envoy.Proxy)
 
 	// GetServicesByServiceAccountName returns a list of services corresponding to a service account, and refreshes the cache if requested
-	GetServicesByServiceAccountName(endpoint.ServiceAccount, bool) []endpoint.ServiceName
+	GetServicesByServiceAccountName(endpoint.NamespacedServiceAccount, bool) []endpoint.NamespacedService
 }
 
 type announcementChannel struct {

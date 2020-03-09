@@ -5,7 +5,7 @@ import (
 )
 
 // GetServicesByServiceAccountName returns a list of services corresponding to a service account, and refreshes the cache if requested
-func (mc *MeshCatalog) GetServicesByServiceAccountName(sa endpoint.ServiceAccount, refreshCache bool) []endpoint.ServiceName {
+func (mc *MeshCatalog) GetServicesByServiceAccountName(sa endpoint.NamespacedServiceAccount, refreshCache bool) []endpoint.NamespacedService {
 	if refreshCache {
 		mc.refreshCache()
 	}

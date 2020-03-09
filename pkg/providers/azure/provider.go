@@ -54,7 +54,7 @@ func (az Client) ListEndpointsForService(svc endpoint.ServiceName) []endpoint.En
 }
 
 // ListServicesForServiceAccount retrieves the list of Services for the given service account
-func (az Client) ListServicesForServiceAccount(svcAccount endpoint.ServiceAccount) []endpoint.ServiceName {
+func (az Client) ListServicesForServiceAccount(svcAccount endpoint.NamespacedServiceAccount) []endpoint.NamespacedService {
 	//TODO (snchh) : need to figure out the service account equivalnent for azure
 	panic("NotImplemented")
 }

@@ -183,36 +183,26 @@ func (c *Client) ListTrafficTargets() []*target.TrafficTarget {
 }
 
 // ListServices implements mesh.MeshSpec by returning the services observed from the given compute provider
-func (c *Client) ListServices() ([]endpoint.ServiceName, map[endpoint.ServiceName][]endpoint.ServiceName) {
+func (c *Client) ListServices() []endpoint.WeightedService {
 	// TODO(draychev): split the namespace and the service kubernetesClientName -- for non-kubernetes services we won't have namespace
-	var services []endpoint.ServiceName
-	// this holds a mapping of the target service to the backend services
-	virtualServicesMap := make(map[endpoint.ServiceName][]endpoint.ServiceName)
+	var services []endpoint.WeightedService
 	for _, splitIface := range c.caches.TrafficSplit.List() {
 		split := splitIface.(*split.TrafficSplit)
-		namespacedService := endpoint.NamespacedService{
-			Namespace: split.Namespace,
-			Service:   split.Spec.Service,
-		}
-		services = append(services, endpoint.ServiceName(namespacedService.String()))
-		var backends []endpoint.ServiceName
 		for _, backend := range split.Spec.Backends {
-			namespacedService := endpoint.NamespacedService{
+			namespacedServiceName := endpoint.NamespacedService{
 				Namespace: split.Namespace,
 				Service:   backend.Service,
 			}
-			services = append(services, endpoint.ServiceName(namespacedService.String()))
-			backends = append(backends, endpoint.ServiceName(namespacedService.String()))
+			services = append(services, endpoint.WeightedService{ServiceName: namespacedServiceName, Weight: backend.Weight})
 		}
-		virtualServicesMap[endpoint.ServiceName(namespacedService.String())] = backends
 	}
-	return services, virtualServicesMap
+	return services
 }
 
 // ListServiceAccounts implements mesh.MeshSpec by returning the service accounts observed from the given compute provider
-func (c *Client) ListServiceAccounts() []endpoint.ServiceAccount {
+func (c *Client) ListServiceAccounts() []endpoint.NamespacedServiceAccount {
 	// TODO(draychev): split the namespace and the service kubernetesClientName -- for non-kubernetes services we won't have namespace
-	var serviceAccounts []endpoint.ServiceAccount
+	var serviceAccounts []endpoint.NamespacedServiceAccount
 	for _, targetIface := range c.caches.TrafficTarget.List() {
 		target := targetIface.(*target.TrafficTarget)
 		for _, sources := range target.Sources {
@@ -220,7 +210,7 @@ func (c *Client) ListServiceAccounts() []endpoint.ServiceAccount {
 				Namespace:      sources.Namespace,
 				ServiceAccount: sources.Name,
 			}
-			serviceAccounts = append(serviceAccounts, endpoint.ServiceAccount(namespacedServiceAccount.String()))
+			serviceAccounts = append(serviceAccounts, namespacedServiceAccount)
 		}
 
 		destination := target.Destination
@@ -228,7 +218,7 @@ func (c *Client) ListServiceAccounts() []endpoint.ServiceAccount {
 			Namespace:      destination.Namespace,
 			ServiceAccount: destination.Name,
 		}
-		serviceAccounts = append(serviceAccounts, endpoint.ServiceAccount(namespacedServiceAccount.String()))
+		serviceAccounts = append(serviceAccounts, namespacedServiceAccount)
 	}
 	return serviceAccounts
 }

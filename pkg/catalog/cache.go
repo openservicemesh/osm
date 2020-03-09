@@ -10,23 +10,23 @@ import (
 
 func (sc *MeshCatalog) refreshCache() {
 	glog.Info("[catalog] Refresh cache...")
-	servicesCache := make(map[endpoint.ServiceName][]endpoint.Endpoint)
-	serviceAccountsCache := make(map[endpoint.ServiceAccount][]endpoint.ServiceName)
+	servicesCache := make(map[endpoint.WeightedService][]endpoint.Endpoint)
+	serviceAccountsCache := make(map[endpoint.NamespacedServiceAccount][]endpoint.NamespacedService)
 	// TODO(draychev): split the namespace from the service name -- non-K8s services won't have namespace
 
-	services, virtualServicesMap := sc.meshSpec.ListServices()
-	for _, namespacedServiceName := range services {
+	services := sc.meshSpec.ListServices()
+	for _, service := range services {
 		for _, provider := range sc.endpointsProviders {
-			newIps := provider.ListEndpointsForService(namespacedServiceName)
+			newIps := provider.ListEndpointsForService(endpoint.ServiceName(service.ServiceName.String()))
 			if len(newIps) == 0 {
-				glog.Infof("[catalog][%s] No IPs found for service=%s", provider.GetID(), namespacedServiceName)
+				glog.Infof("[catalog][%s] No IPs found for service=%s", provider.GetID(), service.ServiceName)
 				continue
 			}
-			glog.V(level.Trace).Infof("[catalog][%s] Found IPs=%+v for service=%s", provider.GetID(), endpointsToString(newIps), namespacedServiceName)
-			if existingIps, exists := servicesCache[namespacedServiceName]; exists {
-				servicesCache[namespacedServiceName] = append(existingIps, newIps...)
+			glog.V(level.Trace).Infof("[catalog][%s] Found IPs=%+v for service=%s", provider.GetID(), endpointsToString(newIps), service.ServiceName)
+			if existingIps, exists := servicesCache[service]; exists {
+				servicesCache[service] = append(existingIps, newIps...)
 			} else {
-				servicesCache[namespacedServiceName] = newIps
+				servicesCache[service] = newIps
 			}
 		}
 	}
@@ -43,7 +43,18 @@ func (sc *MeshCatalog) refreshCache() {
 				}
 				glog.V(level.Trace).Infof("[catalog][%s] Found services=%+v for service account=%s", provider.GetID(), newServices, namespacesServiceAccounts)
 				if existingServices, exists := serviceAccountsCache[namespacesServiceAccounts]; exists {
-					serviceAccountsCache[namespacesServiceAccounts] = append(existingServices, newServices...)
+					// append only new services i.e. preventing duplication
+					for _, service := range newServices {
+						isPresent := false
+						for _, existingService := range serviceAccountsCache[namespacesServiceAccounts] {
+							if existingService.String() == service.String() {
+								isPresent = true
+							}
+							if !isPresent {
+								serviceAccountsCache[namespacesServiceAccounts] = append(existingServices, existingService)
+							}
+						}
+					}
 				} else {
 					serviceAccountsCache[namespacesServiceAccounts] = newServices
 				}
@@ -52,10 +63,8 @@ func (sc *MeshCatalog) refreshCache() {
 	}
 	glog.Infof("[catalog] Services cache: %+v", servicesCache)
 	glog.Infof("[catalog] ServiceAccounts cache: %+v", serviceAccountsCache)
-	glog.Infof("[catalog] VirtualServicesMap cache: %+v", virtualServicesMap)
 	sc.servicesMutex.Lock()
 	sc.servicesCache = servicesCache
 	sc.serviceAccountsCache = serviceAccountsCache
-	sc.virtualServicesCache = virtualServicesMap
 	sc.servicesMutex.Unlock()
 }
