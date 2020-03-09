@@ -33,9 +33,8 @@ metadata:
 spec:
   ports:
 
-  - port: 15000
-    targetPort: admin-port
-    name: bookbuyer-envoy-admin-port
+  - port: 9999
+    name: dummy-unused-port
 
   selector:
     app: bookbuyer

@@ -12,7 +12,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/deislabs/smc/pkg/constants"
 	"github.com/deislabs/smc/pkg/endpoint"
 	"github.com/deislabs/smc/pkg/log/level"
 )
@@ -87,17 +86,17 @@ func (c Client) ListEndpointsForService(svc endpoint.ServiceName) []endpoint.End
 		return endpoints
 	}
 
-	// TODO(draychev): get the port number from the service
-	port := endpoint.Port(constants.EnvoyInboundListenerPort)
-
 	if kubernetesEndpoints := endpointsInterface.(*corev1.Endpoints); kubernetesEndpoints != nil {
 		for _, kubernetesEndpoint := range kubernetesEndpoints.Subsets {
 			for _, address := range kubernetesEndpoint.Addresses {
-				ept := endpoint.Endpoint{
-					IP:   net.IP(address.IP),
-					Port: port,
+				for _, port := range kubernetesEndpoint.Ports {
+					ept := endpoint.Endpoint{
+						IP:   net.IP(address.IP),
+						Port: endpoint.Port(port.Port),
+					}
+					endpoints = append(endpoints, ept)
 				}
-				endpoints = append(endpoints, ept)
+
 			}
 		}
 	}
