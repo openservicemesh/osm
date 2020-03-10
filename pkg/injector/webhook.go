@@ -208,7 +208,6 @@ func (wh *Webhook) mustInject(pod *corev1.Pod, namespace string) (bool, error) {
 		glog.Infof("Request belongs to namespace=%s, not in the list of observing namespaces: %v", namespace, wh.namespaces)
 		return false, nil
 	}
-	// TODO(shashank): Check system namespace
 	namespacedServiceAcc := endpoint.NamespacedServiceAccount{
 		Namespace:      namespace,
 		ServiceAccount: pod.Spec.ServiceAccountName,
