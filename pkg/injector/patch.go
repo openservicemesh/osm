@@ -17,7 +17,7 @@ import (
 func (wh *Webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error) {
 	// Start patching the spec
 	var patches []JSONPatchOperation
-	glog.Info("Mutating")
+	glog.Infof("Patching POD spec: service-account=%s, namespace=%s", pod.Spec.ServiceAccountName, namespace)
 
 	// Get the service for a service account
 	namespacedSvcAcc := endpoint.NamespacedServiceAccount{
@@ -40,7 +40,6 @@ func (wh *Webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 	serviceName := strings.Split(service.String(), constants.NamespaceServiceDelimiter)[1]
 
 	// Issue a certificate for the envoy fronting the service
-
 	cn := certificate.CommonName(utils.NewCertCommonNameWithUUID(fmt.Sprintf("%s.%s.smc.mesh", serviceName, namespace))) // TODO: Don't hardcode domain
 	cert, err := wh.certManager.IssueCertificate(cn)
 	if err != nil {
@@ -49,7 +48,6 @@ func (wh *Webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 	}
 
 	// Create kube secret for TLS cert and key used For Envoy to communicate with xDS
-	glog.Infof("Pod: namespace = %v, service account = %v", pod.GetNamespace(), pod.Spec.ServiceAccountName)
 	envoyTLSSecretName := fmt.Sprintf("tls-%s", pod.Spec.ServiceAccountName)
 	_, err = wh.createEnvoyTLSSecret(envoyTLSSecretName, "smc", cert.GetCertificateChain(), cert.GetPrivateKey())
 	if err != nil {

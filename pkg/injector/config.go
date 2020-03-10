@@ -21,15 +21,13 @@ func (wh *Webhook) createEnvoyTLSSecret(name string, namespace string, tlsCert, 
 			tlsKeyFileKey:  tlsKey,
 		},
 	}
-	glog.Infof("Cert: %s", string(tlsCert[:]))
-	glog.Infof("Key: %s", string(tlsKey[:]))
 
 	if existing, err := wh.kubeClient.CoreV1().Secrets(namespace).Get(name, metav1.GetOptions{}); err == nil {
-		glog.Infof("Updating secret: name=%s, namespace=%s", name, namespace)
+		glog.Infof("Updating secret for envoy certs: name=%s, namespace=%s", name, namespace)
 		existing.Data = secret.Data
 		return wh.kubeClient.CoreV1().Secrets(namespace).Update(existing)
 	}
 
-	glog.Infof("Creating secret: name=%s, namespace=%s", name, namespace)
+	glog.Infof("Creating secret for envoy certs: name=%s, namespace=%s", name, namespace)
 	return wh.kubeClient.CoreV1().Secrets(namespace).Create(secret)
 }
