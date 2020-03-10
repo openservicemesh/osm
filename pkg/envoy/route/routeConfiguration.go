@@ -2,6 +2,7 @@ package route
 
 import (
 	"sort"
+	"strings"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
@@ -26,66 +27,39 @@ const (
 func UpdateRouteConfiguration(trafficPolicies smcEndpoint.TrafficTargetPolicies, routeConfig v2.RouteConfiguration, isSourceService bool, isDestinationService bool) v2.RouteConfiguration {
 	glog.V(level.Trace).Infof("[RDS] Updating Route Configuration")
 	var routeConfiguration v2.RouteConfiguration
+	var isLocalCluster bool
 	if isSourceService {
-		routeConfiguration = updateOutboundRouteConfiguration(trafficPolicies, routeConfig)
+		glog.V(level.Trace).Infof("[RDS] Updating OutboundRouteConfiguration for policy %v", trafficPolicies)
+		isLocalCluster = false
+		routeConfiguration = updateRoutes(trafficPolicies.PolicyRoutePaths, trafficPolicies.Source.Clusters, routeConfig, isLocalCluster)
 	} else if isDestinationService {
-		routeConfiguration = updateInboundRouteConfiguration(trafficPolicies, routeConfig)
+		glog.V(level.Trace).Infof("[RDS] Updating InboundRouteConfiguration for policy %v", trafficPolicies)
+		isLocalCluster = true
+		routeConfiguration = updateRoutes(trafficPolicies.PolicyRoutePaths, trafficPolicies.Destination.Clusters, routeConfig, isLocalCluster)
 	}
 	return routeConfiguration
 }
 
-func updateInboundRouteConfiguration(trafficPolicies smcEndpoint.TrafficTargetPolicies, routeConfig v2.RouteConfiguration) v2.RouteConfiguration {
-	// todo (sneha) : update cors policy
-	//allowedMethods := string.Trim(strings.Split(routeConfig.VirtualHosts[0].Cors.AllowMethods, ","))
-	glog.V(level.Trace).Infof("[RDS] Updating InboundRouteConfiguration for policy %v", trafficPolicies)
-	numberofRoutes := len(routeConfig.VirtualHosts[0].Routes)
-	for _, routePaths := range trafficPolicies.PolicyRoutePaths {
-		if numberofRoutes == 0 {
-			route := createRoute(routePaths.RoutePathRegex, trafficPolicies.Destination.Clusters, true)
-			//allowedMethods = append(allowedMethods, routePaths.RouteMethods...)
-			routeConfig.VirtualHosts[0].Routes = append(routeConfig.VirtualHosts[0].Routes, &route)
-			continue
-		}
-		for i := 0; i < numberofRoutes; i++ {
-			if routePaths.RoutePathRegex == routeConfig.VirtualHosts[0].Routes[i].GetMatch().GetPrefix() {
-				routeConfig.VirtualHosts[0].Routes[i].Action = updateRouteActionWeightedClusters(*routeConfig.VirtualHosts[0].Routes[i].GetRoute().GetWeightedClusters(), trafficPolicies.Source.Clusters, false)
-			} else {
-				route := createRoute(routePaths.RoutePathRegex, trafficPolicies.Destination.Clusters, false)
-				//allowedMethods = append(allowedMethods, routePaths.RouteMethods...)
-				routeConfig.VirtualHosts[0].Routes = append(routeConfig.VirtualHosts[0].Routes, &route)
-			}
-		}
-	}
-	routeConfig.VirtualHosts[0].Cors = &route.CorsPolicy{
-		AllowMethods: "GET",
-	}
-	glog.V(level.Debug).Infof("[RDS] Constructed InboundRouteConfiguration %+v", routeConfig)
-	return routeConfig
-}
-
-func updateOutboundRouteConfiguration(trafficPolicies smcEndpoint.TrafficTargetPolicies, routeConfig v2.RouteConfiguration) v2.RouteConfiguration {
-	// todo (sneha) : update cors policy
-	//allowedMethods := strings.Split(routeConfig.VirtualHosts[0].Cors.AllowMethods, ",")
-	glog.V(level.Trace).Infof("[RDS] Updating OutboundRouteConfiguration for policy %v", trafficPolicies)
-	for _, routePaths := range trafficPolicies.PolicyRoutePaths {
-		if len(routeConfig.VirtualHosts[0].Routes) == 0 {
-			route := createRoute(routePaths.RoutePathRegex, trafficPolicies.Source.Clusters, false)
-			//allowedMethods = append(allowedMethods, routePaths.RouteMethods...)
-			routeConfig.VirtualHosts[0].Routes = append(routeConfig.VirtualHosts[0].Routes, &route)
-			continue
-		}
+func updateRoutes(routePaths []smcEndpoint.RoutePaths, cluster []smcEndpoint.WeightedCluster, routeConfig v2.RouteConfiguration, isLocalCluster bool) v2.RouteConfiguration {
+	allowedMethods := strings.Split(routeConfig.VirtualHosts[0].Cors.AllowMethods, ",")
+	for _, path := range routePaths {
+		routedMatched := false
+		allowedMethods = append(allowedMethods, path.RouteMethods...)
 		for i := 0; i < len(routeConfig.VirtualHosts[0].Routes); i++ {
-			if routePaths.RoutePathRegex == routeConfig.VirtualHosts[0].Routes[i].GetMatch().GetPrefix() {
-				routeConfig.VirtualHosts[0].Routes[i].Action = updateRouteActionWeightedClusters(*routeConfig.VirtualHosts[0].Routes[i].GetRoute().GetWeightedClusters(), trafficPolicies.Source.Clusters, false)
-			} else {
-				route := createRoute(routePaths.RoutePathRegex, trafficPolicies.Source.Clusters, false)
-				//allowedMethods = append(allowedMethods, routePaths.RouteMethods...)
-				routeConfig.VirtualHosts[0].Routes = append(routeConfig.VirtualHosts[0].Routes, &route)
+			if path.RoutePathRegex == routeConfig.VirtualHosts[0].Routes[i].GetMatch().GetPrefix() {
+				routedMatched = true
+				routeConfig.VirtualHosts[0].Routes[i].Action = updateRouteActionWeightedClusters(*routeConfig.VirtualHosts[0].Routes[i].GetRoute().GetWeightedClusters(), cluster, isLocalCluster)
+				continue
 			}
 		}
+		if len(routeConfig.VirtualHosts[0].Routes) == 0 || !routedMatched {
+			route := createRoute(path.RoutePathRegex, cluster, isLocalCluster)
+			routeConfig.VirtualHosts[0].Routes = append(routeConfig.VirtualHosts[0].Routes, &route)
+		}
 	}
+	allowedMethods = updateAllowedMethods(allowedMethods)
 	routeConfig.VirtualHosts[0].Cors = &route.CorsPolicy{
-		AllowMethods: "GET",
+		AllowMethods: strings.Join(allowedMethods, ","),
 	}
 	glog.V(level.Debug).Infof("[RDS] Constructed OutboundRouteConfiguration %+v", routeConfig)
 	return routeConfig
@@ -164,6 +138,24 @@ func (c clusterWeightByName) Less(i, j int) bool {
 	return c[i].Name < c[j].Name
 }
 
+func updateAllowedMethods(allowedMethods []string) []string {
+	newAllowedMethods := []string{}
+	keys := make(map[string]interface{})
+	for _, method := range allowedMethods {
+		if method != "" {
+			if method == "*" {
+				newAllowedMethods = []string{"*"}
+				return newAllowedMethods
+			}
+			if _, value := keys[method]; !value {
+				keys[method] = nil
+				newAllowedMethods = append(newAllowedMethods, method)
+			}
+		}
+	}
+	return newAllowedMethods
+}
+
 //NewOutboundRouteConfiguration creates the outbound route configurations
 func NewOutboundRouteConfiguration() v2.RouteConfiguration {
 	routeConfiguration := v2.RouteConfiguration{
@@ -172,7 +164,7 @@ func NewOutboundRouteConfiguration() v2.RouteConfiguration {
 			Name:    "envoy_admin",
 			Domains: []string{"*"},
 			Routes:  []*route.Route{},
-			//Cors:    &route.CorsPolicy{},
+			Cors:    &route.CorsPolicy{},
 		}},
 		ValidateClusters: &wrappers.BoolValue{Value: true},
 	}
@@ -187,7 +179,7 @@ func NewInboundRouteConfiguration() v2.RouteConfiguration {
 			Name:    "backend",
 			Domains: []string{"*"},
 			Routes:  []*route.Route{},
-			//Cors:    &route.CorsPolicy{},
+			Cors:    &route.CorsPolicy{},
 		}},
 		ValidateClusters: &wrappers.BoolValue{Value: true},
 	}

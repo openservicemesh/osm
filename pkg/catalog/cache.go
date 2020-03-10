@@ -35,10 +35,10 @@ func (sc *MeshCatalog) refreshCache() {
 		for _, provider := range sc.endpointsProviders {
 			// TODO (snchh) : remove this provider check once we have figured out the service account story for azure vms
 			if provider.GetID() != constants.AzureProviderName {
-				glog.Infof("[catalog][%s] TEST Finding Services for servcie acccount =%s", provider.GetID(), namespacesServiceAccounts)
+				glog.V(level.Trace).Infof("[catalog][%s] Finding Services for servcie acccount =%s", provider.GetID(), namespacesServiceAccounts)
 				newServices := provider.ListServicesForServiceAccount(namespacesServiceAccounts)
 				if len(newServices) == 0 {
-					glog.Infof("[catalog][%s] No services found for service account=%s", provider.GetID(), namespacesServiceAccounts)
+					glog.V(level.Trace).Infof("[catalog][%s] No services found for service account=%s", provider.GetID(), namespacesServiceAccounts)
 					continue
 				}
 				glog.V(level.Trace).Infof("[catalog][%s] Found services=%+v for service account=%s", provider.GetID(), newServices, namespacesServiceAccounts)
