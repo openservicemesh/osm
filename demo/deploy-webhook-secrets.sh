@@ -9,7 +9,7 @@ keydir="$basedir/webhook-certs"
 
 # Generate keys into a temporary directory.
 echo "Generating TLS keys ..."
-"${basedir}/gen-keys.sh" "$keydir"
+"${basedir}/gen-keys.sh" "$keydir" "$K8S_NAMESPACE"
 
 # Create the `smc` namespace. This cannot be part of the YAML file as we first need to create the TLS secret,
 # which would fail otherwise.
