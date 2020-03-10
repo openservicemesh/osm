@@ -151,8 +151,7 @@ func (wh *Webhook) mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespo
 		glog.Errorf("Error unmarshaling request to Pod: %s", err)
 		return toAdmissionError(err)
 	}
-	glog.Infof("Request object: %v", string(req.Object.Raw))
-	glog.Infof("Request Old object: %v", string(req.OldObject.Raw))
+	glog.Infof("Mutation request:\nobject: %v\nold object: %v", string(req.Object.Raw), string(req.OldObject.Raw))
 
 	// Start building the response
 	resp := &v1beta1.AdmissionResponse{
