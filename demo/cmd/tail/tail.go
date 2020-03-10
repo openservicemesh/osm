@@ -6,10 +6,12 @@ import (
 	"io"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/deislabs/smc/demo/cmd/common"
+	"github.com/golang/glog"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -19,7 +21,6 @@ import (
 
 var (
 	waitForPod = 5 * time.Second
-	totalWait  = 30 * time.Second
 )
 
 const (
@@ -28,10 +29,19 @@ const (
 
 	// KubeNamespaceEnvVar is the environment variable for the Kubernetes namespace.
 	KubeNamespaceEnvVar = "K8S_NAMESPACE"
+
+	// WaitForPodTimeSecondsEnvVar is the environment variable for the time we will wait on the pod to be ready.
+	WaitForPodTimeSecondsEnvVar = "WAIT_FOR_POD_TIME_SECONDS"
 )
 
 func main() {
 	namespace := os.Getenv(KubeNamespaceEnvVar)
+	totalWaitString := os.Getenv(WaitForPodTimeSecondsEnvVar)
+	totalWait, err := strconv.ParseInt(totalWaitString, 10, 32)
+	if err != nil {
+		glog.Fatalf("Could not convert environment variable %s='%s' to int: %+v", WaitForPodTimeSecondsEnvVar, totalWaitString, err)
+	}
+	totalWaitSeconds := time.Duration(totalWait) * time.Second
 	containerName := "bookbuyer"
 	labelSelector := "app=bookbuyer"
 
@@ -70,7 +80,7 @@ Run:
 		}
 		for _, container := range pod.Status.ContainerStatuses {
 			if container.State.Waiting != nil && container.State.Waiting.Reason == "PodInitializing" {
-				if time.Now().Sub(startedWaiting) >= totalWait {
+				if time.Now().Sub(startedWaiting) >= totalWaitSeconds {
 					fmt.Printf("Waited for pod %s to become ready for %+v; Didn't happen", podName, totalWait)
 					os.Exit(1)
 				}

@@ -2,6 +2,7 @@ apiVersion: admissionregistration.k8s.io/v1beta1
 kind: MutatingWebhookConfiguration
 metadata:
   name: {{ .Name }}
+  namespace: {{ .Namespace }}
   labels:
     app: {{ .Name }}
 webhooks:

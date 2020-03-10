@@ -75,7 +75,7 @@ jobs:
         AZURE_SUBSCRIPTION: ${{ secrets.AZURE_SUBSCRIPTION }}
         CTR_REGISTRY: ${{ secrets.CTR_REGISTRY }}
         CTR_REGISTRY_CREDS_NAME: ${{ secrets.CTR_REGISTRY_CREDS_NAME }}
-        K8S_NAMESPACE: "ci-${{ github.sha }}-${{ github.run_id }}-${{ github.run_number}}"
+        K8S_NAMESPACE: "ci-${{ github.run_id }}-${{ github.run_number}}"
         ACR_CREDS: ${{ secrets.ACR_CREDS }}
         KUBECONFIG: ".kube/config"
         DOCKER_USER: ${{ secrets.DOCKER_USER }}
@@ -83,6 +83,7 @@ jobs:
         WAIT_FOR_OK_SECONDS: 120
         IS_GITHUB: true
         ACR: ${{ secrets.ACR }}
+        WAIT_FOR_POD_TIME_SECONDS: ${{ secrets.WAIT_FOR_POD_TIME_SECONDS }}
       run: |
         touch .env  # it is ok keep this empty
         echo "Creating Kubernetes namespace: $K8S_NAMESPACE"
