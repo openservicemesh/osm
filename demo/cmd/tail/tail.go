@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/deislabs/smc/demo/cmd/common"
+	"github.com/open-service-mesh/osm/demo/cmd/common"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"

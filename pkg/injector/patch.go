@@ -8,10 +8,10 @@ import (
 	"github.com/golang/glog"
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/deislabs/smc/pkg/certificate"
-	"github.com/deislabs/smc/pkg/constants"
-	"github.com/deislabs/smc/pkg/endpoint"
-	"github.com/deislabs/smc/pkg/utils"
+	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/open-service-mesh/osm/pkg/constants"
+	"github.com/open-service-mesh/osm/pkg/endpoint"
+	"github.com/open-service-mesh/osm/pkg/utils"
 )
 
 func (wh *Webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error) {

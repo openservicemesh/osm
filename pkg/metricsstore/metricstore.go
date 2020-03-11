@@ -8,7 +8,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	"github.com/deislabs/smc/pkg/version"
+	"github.com/open-service-mesh/osm/pkg/version"
 )
 
 // PrometheusNamespace is the Prometheus Namespace

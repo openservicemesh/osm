@@ -6,7 +6,7 @@ import (
 	"crypto/x509"
 	"time"
 
-	"github.com/deislabs/smc/pkg/tresor/pem"
+	"github.com/open-service-mesh/osm/pkg/tresor/pem"
 )
 
 // NewCA creates a new Certificate Authority.

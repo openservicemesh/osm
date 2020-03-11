@@ -15,12 +15,12 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/pkg/errors"
 
-	"github.com/deislabs/smc/pkg/catalog"
-	"github.com/deislabs/smc/pkg/certificate"
-	"github.com/deislabs/smc/pkg/endpoint"
-	"github.com/deislabs/smc/pkg/envoy"
-	"github.com/deislabs/smc/pkg/smi"
-	"github.com/deislabs/smc/pkg/utils"
+	"github.com/open-service-mesh/osm/pkg/catalog"
+	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/open-service-mesh/osm/pkg/endpoint"
+	"github.com/open-service-mesh/osm/pkg/envoy"
+	"github.com/open-service-mesh/osm/pkg/smi"
+	"github.com/open-service-mesh/osm/pkg/utils"
 )
 
 type empty struct{}

@@ -21,10 +21,10 @@ package v1
 import (
 	time "time"
 
-	azureresourcev1 "github.com/deislabs/smc/pkg/apis/azureresource/v1"
-	versioned "github.com/deislabs/smc/pkg/smc_client/clientset/versioned"
-	internalinterfaces "github.com/deislabs/smc/pkg/smc_client/informers/externalversions/internalinterfaces"
-	v1 "github.com/deislabs/smc/pkg/smc_client/listers/azureresource/v1"
+	azureresourcev1 "github.com/open-service-mesh/osm/pkg/apis/azureresource/v1"
+	versioned "github.com/open-service-mesh/osm/pkg/smc_client/clientset/versioned"
+	internalinterfaces "github.com/open-service-mesh/osm/pkg/smc_client/informers/externalversions/internalinterfaces"
+	v1 "github.com/open-service-mesh/osm/pkg/smc_client/listers/azureresource/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"

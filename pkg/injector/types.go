@@ -3,8 +3,8 @@ package injector
 import (
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/deislabs/smc/pkg/catalog"
-	"github.com/deislabs/smc/pkg/certificate"
+	"github.com/open-service-mesh/osm/pkg/catalog"
+	"github.com/open-service-mesh/osm/pkg/certificate"
 )
 
 const (

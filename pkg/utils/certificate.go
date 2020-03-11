@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/deislabs/smc/pkg/constants"
+	"github.com/open-service-mesh/osm/pkg/constants"
 )
 
 // NewCertCommonNameWithUUID returns a newly generated CommonName for a certificate of the form: <UUID>;<domain>

@@ -1,7 +1,7 @@
 package catalog
 
 import (
-	"github.com/deislabs/smc/pkg/envoy"
+	"github.com/open-service-mesh/osm/pkg/envoy"
 	"github.com/golang/glog"
 )
 

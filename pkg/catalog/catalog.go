@@ -9,9 +9,9 @@ import (
 	mapset "github.com/deckarep/golang-set"
 	"github.com/golang/glog"
 
-	"github.com/deislabs/smc/pkg/certificate"
-	"github.com/deislabs/smc/pkg/endpoint"
-	"github.com/deislabs/smc/pkg/smi"
+	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/open-service-mesh/osm/pkg/endpoint"
+	"github.com/open-service-mesh/osm/pkg/smi"
 )
 
 // NewMeshCatalog creates a new service catalog

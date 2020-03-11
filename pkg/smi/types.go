@@ -8,7 +8,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/deislabs/smc/pkg/endpoint"
+	"github.com/open-service-mesh/osm/pkg/endpoint"
 )
 
 type friendlyName string

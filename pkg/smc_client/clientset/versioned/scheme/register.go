@@ -19,7 +19,7 @@ limitations under the License.
 package scheme
 
 import (
-	smcv1 "github.com/deislabs/smc/pkg/apis/azureresource/v1"
+	smcv1 "github.com/open-service-mesh/osm/pkg/apis/azureresource/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
