@@ -2,6 +2,7 @@ package ads
 
 import (
 	"context"
+	"fmt"
 	"strconv"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -9,6 +10,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 
+	"github.com/deislabs/smc/pkg/endpoint"
 	"github.com/deislabs/smc/pkg/envoy"
 	"github.com/deislabs/smc/pkg/log/level"
 	"github.com/deislabs/smc/pkg/utils"
@@ -30,7 +32,25 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 	// Register the newly connected proxy w/ the catalog.
 	// TODO(draychev): this does not produce the correct IP address
 	ip := utils.GetIPFromContext(server.Context())
-	proxy := envoy.NewProxy(cn, ip)
+
+	// TODO: Need a better way to map a proxy to a service. This
+	// is primarly required because envoy configurations are programmed
+	// per service.
+	cnMeta := utils.GetCertificateCommonNameMeta(cn.String())
+	namespacedSvcAcc := endpoint.NamespacedServiceAccount{
+		Namespace:      cnMeta.Namespace,
+		ServiceAccount: cnMeta.ServiceAccountName,
+	}
+	services := s.catalog.GetServicesByServiceAccountName(namespacedSvcAcc, true)
+	if len(services) == 0 {
+		// No services found for this service account, don't patch
+		return fmt.Errorf("No service found for service account %q", namespacedSvcAcc)
+	}
+	// TODO: Don't assume a service account maps to a single service
+	namespacedService := services[0]
+	glog.Infof("cert: cn=%s, service=%s", cn, namespacedService)
+
+	proxy := envoy.NewProxy(cn, namespacedService, ip)
 	s.catalog.RegisterProxy(proxy)
 	defer s.catalog.UnregisterProxy(proxy)
 

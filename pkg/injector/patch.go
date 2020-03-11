@@ -3,14 +3,11 @@ package injector
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	"github.com/golang/glog"
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/deislabs/smc/pkg/certificate"
-	"github.com/deislabs/smc/pkg/constants"
-	"github.com/deislabs/smc/pkg/endpoint"
 	"github.com/deislabs/smc/pkg/utils"
 )
 
@@ -19,28 +16,9 @@ func (wh *Webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 	var patches []JSONPatchOperation
 	glog.Infof("Patching POD spec: service-account=%s, namespace=%s", pod.Spec.ServiceAccountName, namespace)
 
-	// Get the service for a service account
-	namespacedSvcAcc := endpoint.NamespacedServiceAccount{
-		Namespace:      namespace,
-		ServiceAccount: pod.Spec.ServiceAccountName,
-	}
-	services := wh.meshCatalog.GetServicesByServiceAccountName(namespacedSvcAcc, true)
-
-	if len(services) == 0 {
-		// No services found for this service account, don't patch
-		return nil, fmt.Errorf("No service found for service account %q", pod.Spec.ServiceAccountName)
-	}
-
-	// TODO(shashank): Don't assume 1-1 mapping between service account and service
-	service := services[0]
-	if !strings.Contains(service.String(), constants.NamespaceServiceDelimiter) {
-		panic("Service name should be of the form: namespace/service")
-	}
-
-	serviceName := strings.Split(service.String(), constants.NamespaceServiceDelimiter)[1]
-
-	// Issue a certificate for the envoy fronting the service
-	cn := certificate.CommonName(utils.NewCertCommonNameWithUUID(fmt.Sprintf("%s.%s.smc.mesh", serviceName, namespace))) // TODO: Don't hardcode domain
+	// Issue a certificate for the proxy sidecar
+	subDomain := "osm.mesh" // TODO: don't hardcode this
+	cn := certificate.CommonName(utils.NewCertCommonNameWithUUID(pod.Spec.ServiceAccountName, namespace, subDomain))
 	cert, err := wh.certManager.IssueCertificate(cn)
 	if err != nil {
 		glog.Errorf("Failed to issue TLS certificate for Envoy: %s", err)
@@ -81,7 +59,7 @@ func (wh *Webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 	envoySidecarData := EnvoySidecarData{
 		Name:    envoySidecarContainerName,
 		Image:   wh.config.SidecarImage,
-		Service: serviceName,
+		Service: pod.Spec.ServiceAccountName,
 	}
 	envoySidecarSpec, err := getEnvoySidecarContainerSpec(pod, &envoySidecarData)
 	patches = append(patches, addContainer(
