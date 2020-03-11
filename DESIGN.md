@@ -159,7 +159,7 @@ Each Envoy proxy will be bootstrapped with a proxy certificate, which will be us
 This kind of certificate is different than the one issued for service-to-service mTLS communication.
 SMC declares a type `ProxyCertificate` for these certificates.
 We refer to these certificates as `ProxyCertificate` in the [interfaces](#interfaces) declarations section of this document.
-This certificate's Common Name leverages the DNS-1123 standard with the following format: `<proxy-UUID>.<service-name>`. The chosen format allows us to uniquely identify the connected proxy (`proxy-UUID`) and the service, which this proxy belongs to (`service-name`).
+This certificate's Common Name leverages the DNS-1123 standard with the following format: `<proxy-UUID>.<service-name>.<service-namespace>`. The chosen format allows us to uniquely identify the connected proxy (`proxy-UUID`) and the namespaced service, which this proxy belongs to (`service-name.service-namespace`).
 
 ### (E) Policy
 The policy component referenced in the diagram above (E) is any [SMI Spec resource](https://github.com/deislabs/smi-spec#service-mesh-interface) referencing the [service (C)](#c-service). For instance, `TrafficSplit`, referencing a services `bookstore`, and `bookstore-v1`:
@@ -196,7 +196,7 @@ The **intersection** of the set of issued `ProxyCertificates` ∩ connected `Pro
 
   - Each `Proxy` is issued a unique `ProxyCertificate`, which is dedicated to xDS mTLS communication
   - `ProxyCertificate` has a per-proxy unique Subject CN, which identifies the `Proxy`
-  - The `Proxy`'s service membership is determined by examining the CN FQDN (`<proxy-UUID>.<service-name>`), where service name is string following the first period in the CN of the `ProxyCertificate`. For example, `proxy-XYZ.bookstore.mesh` is a CN assigned to a proxy, where `proxy-XYZ` is the unique ID of the proxy and `bookstore.mesh` is the name of the service.
+  - The `Proxy`'s service membership is determined by examining the CN FQDN (`<proxy-UUID>.<service-name>.<service-namespace>`), where service name and namespace are the strings following the first and second period respectively in the CN of the `ProxyCertificate`. For example, `proxy-XYZ.bookstore.smc.mesh` is a CN assigned to a proxy, where `proxy-XYZ` is the unique ID of the proxy, `bookstore` is the name of the service and `smc` is the namespace in which the service exists.
   - There is one unique `ProxyCertificate` issued to one `Proxy`, which is dedicated to one unique `Endpoint`, and all of these can belong to only one `Service`
   - A mesh `Service` however would be constructed by one or more (`ProxyCertificate` + `Proxy` + `Endpoint`) tuples
 
@@ -220,143 +220,115 @@ This section adopts the following assumptions:
 
 The [Proxy control plane](#1-proxy-control-plane) handles gRPC connections from the service mesh sidecar proxies and implements Envoy's `go-control-plane`.
 
-For a fully functional Envoy-based service mesh, the proxy control plane must implement the following 4 interfaces:
-  - Cluster Discovery Service - [source](https://github.com/envoyproxy/go-control-plane/blob/e9c1190525652deb975627b2ecc3deac35714025/envoy/api/v2/cds.pb.go#L189-L194)
+For a fully functional Envoy-based service mesh, the proxy control plane must implement the following interface:
+  - Aggregated Discovery Service - [source](https://github.com/envoyproxy/go-control-plane/blob/e9c1190525652deb975627b2ecc3deac35714025/envoy/service/discovery/v2/ads.pb.go#L172-L176)
     ```go
-    // ClusterDiscoveryServiceServer is the server API for ClusterDiscoveryService service.
-    type ClusterDiscoveryServiceServer interface {
-        StreamClusters(ClusterDiscoveryService_StreamClustersServer) error
-        DeltaClusters(ClusterDiscoveryService_DeltaClustersServer) error
-        FetchClusters(context.Context, *DiscoveryRequest) (*DiscoveryResponse, error)
-    }
-    ```
-  - Endpoint Discovery Service - [source](https://github.com/envoyproxy/go-control-plane/blob/e9c1190525652deb975627b2ecc3deac35714025/envoy/api/v2/eds.pb.go#L107-L114)
-    ```go
-    // EndpointDiscoveryServiceClient is the client API for EndpointDiscoveryService service.
-    type EndpointDiscoveryServiceClient interface {
-        StreamEndpoints(ctx context.Context, opts ...grpc.CallOption) (EndpointDiscoveryService_StreamEndpointsClient, error)
-        DeltaEndpoints(ctx context.Context, opts ...grpc.CallOption) (EndpointDiscoveryService_DeltaEndpointsClient, error)
-        FetchEndpoints(ctx context.Context, in *DiscoveryRequest, opts ...grpc.CallOption) (*DiscoveryResponse, error)
-    }
-    ```
-  - Route Discovery Service - [source](https://github.com/envoyproxy/go-control-plane/blob/e9c1190525652deb975627b2ecc3deac35714025/envoy/api/v2/rds.pb.go#L107-L114)
-    ```go
-    // RouteDiscoveryServiceClient is the client API for RouteDiscoveryService service.
-    type RouteDiscoveryServiceClient interface {
-        StreamRoutes(ctx context.Context, opts ...grpc.CallOption) (RouteDiscoveryService_StreamRoutesClient, error)
-        DeltaRoutes(ctx context.Context, opts ...grpc.CallOption) (RouteDiscoveryService_DeltaRoutesClient, error)
-        FetchRoutes(ctx context.Context, in *DiscoveryRequest, opts ...grpc.CallOption) (*DiscoveryResponse, error)
-    }
-    ```
-  - [Secrets Discovery Service](https://www.envoyproxy.io/docs/envoy/latest/configuration/security/secret#secret-discovery-service-sds) - [source](https://github.com/envoyproxy/go-control-plane/blob/e9c1190525652deb975627b2ecc3deac35714025/envoy/service/discovery/v2/sds.pb.go#L192-L197):
-    ```go
-    // SecretDiscoveryServiceServer is the server API for SecretDiscoveryService service.
-    type SecretDiscoveryServiceServer interface {
-        DeltaSecrets(SecretDiscoveryService_DeltaSecretsServer) error
-        StreamSecrets(SecretDiscoveryService_StreamSecretsServer) error
-        FetchSecrets(context.Context, *v2.DiscoveryRequest) (*v2.DiscoveryResponse, error)
-    }
+	// AggregatedDiscoveryServiceServer is the server API for AggregatedDiscoveryService service.
+	type AggregatedDiscoveryServiceServer interface {
+	StreamAggregatedResources(AggregatedDiscoveryService_StreamAggregatedResourcesServer) error
+	DeltaAggregatedResources(AggregatedDiscoveryService_DeltaAggregatedResourcesServer) error
+	}
     ```
 
-#### Endpoint Discovery Service
+#### Aggregated Discovery Service
 
-The `StreamEndpoints` method is the entrypoint into the EDS vertical of SMC. This is
-declared in the `EndpointDiscoveryServiceServer` interface, which is provided by the
-[Envoy Go control plane](https://github.com/envoyproxy/go-control-plane). It is declared in [eds.pb.go](https://github.com/envoyproxy/go-control-plane/blob/7e97c9c4b2547eebdca67d672b77957f1e089c74/envoy/service/endpoint/v3alpha/eds.pb.go#L200-L205).
-Methods `FetchEndpoints` and `DeltaEndpoints` are used by the EDS REST API. This project
-implements gRPC only and these two methods will not be implemented.
+The `StreamAggregatedResources` method is the entrypoint into the ADS vertical of SMC. This is
+declared in the `AggregatedDiscoveryServiceServer` interface, which is provided by the
+[Envoy Go control plane](https://github.com/envoyproxy/go-control-plane). It is declared in [ads.pb.go](https://github.com/envoyproxy/go-control-plane/blob/e9c1190525652deb975627b2ecc3deac35714025/envoy/service/discovery/v2/ads.pb.go#L172-L176).
+Method `DeltaAggregatedResources` is used by the ADS REST API. This project
+implements gRPC only and this method will not be implemented.
 
 When the [Envoy Go control plane](https://github.com/envoyproxy/go-control-plane) evaluates
-`StreamEndpoints` it passes a `EndpointDiscoveryService_StreamEndpointsServer` *server*. The
-implementation of the `StreamEndpoints` method will then use `server.Send(response)` to send
+`StreamAggregatedResources` it passes a `AggregatedDiscoveryService_StreamAggregatedResourcesServer` *server*. The
+implementation of the `StreamAggregatedResources` method will then use `server.Send(response)` to send
 an `envoy.DiscoveryResponce` to all connected proxies.
 
 
-An [MVP](https://en.wikipedia.org/wiki/Minimum_viable_product) implementation of `StreamEndpoints`
+An [MVP](https://en.wikipedia.org/wiki/Minimum_viable_product) implementation of `StreamAggregatedResources`
 would require:
-1. a method to initialize and populate a `DiscoveryResponse` struct. This will provide connected Envoy proxies with a mapping from a service name to a list of routable IP addresses and ports.
-1. a method of notifying the system when the method described in #1 needs to be evaluated to refresh the connected Envoy proxies with the latest available endpoints
-
-A sample implementation of `StreamEndpoints`:
-```go
-package smc
-
-// StreamEndpoints updates all proxies with the list of services, endpoints, weights etc.
-func (e *EDS) StreamEndpoints(server eds.EndpointDiscoveryService_StreamEndpointsServer) error {
-	// Figure out what the identity of the newly connected Envoy proxy is from the client certificate.
-	var ClientIdentity clientIdentity
-	clientIdentity = getClientIdentity(server)
-
-	// the EDS struct implements the proposed EndpointsDiscoverer interface
-	announcementsChan chan struct{}
-	announcementsChan = e.catalog.GetAnnouncementChannel()
-
-	e.RegisterNewEndpoint()
-
-	for {
-		select {
-		case <-announcementsChan
-			var discoveryResponse envoy.DiscoveryResponse
-			// clientIdentity is the identity of the Envoy proxy connected to this gRPC server.
-			discoveryResponse = e.catalog.ListEndpoints(clientIdentity)
-			eds.send(discoveryResponse)
-		}
-	}
-
-	return nil
-}
-```
+1. Depending on the `DiscoveryRequest.TypeUrl` the `DiscoveryResponse` struct for CDS, EDS, RDS, LDS or SDS is created. This will provide connected Envoy proxies with a list of clusters, mapping of service name to list of routable IP addresses, list of permitted routes, listeners and secrets respectively.
+1. a method of notifying the system when the method described in #1 needs to be evaluated to refresh the connected Envoy proxies with the latest available resources (endpoints, clusters, routes, listeners or secrets)
 
 ### Mesh Catalog Interface
 
-In the previous section, we proposed implementation of the `StreamEndpoints` method. This provides
-connected Envoy proxies with a mapping from a service name to a list of routable IP addresses and ports.
-The `ListEndpoints` and `GetAnnouncementChannel` methods will be provided by the SMC component, which we refer to
+In the previous section, we proposed implementation of the `StreamAggregatedResources` method. This provides
+connected Envoy proxies with a list of clusters, mapping of service name to list of routable IP addresses, list of permitted routes, listeners and secrets for CDS, EDS, RDS, LDS and SDS respectively.
+The `ListEndpoints`, `ListTrafficRoutes` and `GetCertificateForService` methods will be provided by the SMC component, which we refer to
  as the **Mesh Catalog** in this document.
 
-The Mesh Catalog will have access to the `MeshSpecification`, `SecretsProvider`, and the list of `EndpointsProvider`s.
+The Mesh Catalog will have access to the `MeshSpec`, `CertificateManager`, and the list of `EndpointsProvider`s.
 
 ```go
-// MeshCatalog is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
-type MeshCatalog interface {
+// MeshCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
+type MeshCataloger interface {
+	// ListEndpoints constructs a map of service to weighted handlers with all endpoints the given Envoy proxy should be aware of.
+	ListEndpoints(endpoint.NamespacedService) ([]endpoint.ServiceEndpoints, error)
 
-    // ListEndpoints constructs a DiscoveryResponse with all endpoints the given Envoy proxy should be aware of.
-    ListEndpoints(ClientIdentity) (envoy.DiscoveryResponse, error)
+	// ListTrafficRoutes constructs a list of all the traffic policies /routes the given Envoy proxy should be aware of.
+	ListTrafficRoutes(endpoint.NamespacedService) ([]endpoint.TrafficTargetPolicies, error)
 
-    // RegisterNewEndpoint adds a newly connected Envoy proxy to the list of self-announced endpoints for a service.
-    RegisterNewEndpoint(ClientIdentity)
+	// GetCertificateForService returns the SSL Certificate for the given service.
+	// This certificate will be used for service-to-service mTLS.
+	GetCertificateForService(endpoint.NamespacedService) (certificate.Certificater, error)
 
-    // ListEndpointsProviders retrieves the full list of endpoints providers registered with Mesh Catalog.
-    ListEndpointsProviders() []EndpointsProvider
+	// RegisterProxy registers a newly connected proxy with the service mesh catalog.
+	RegisterProxy(*envoy.Proxy)
 
-    // GetAnnouncementChannel returns an instance of a channel, which notifies the system of an event requiring the execution of ListEndpoints.
-    // An event on this channel may appear as a result of a change in the SMI Spec definitions, rotation of a certificate, etc.
-    GetAnnouncementChannel() chan struct{}
+	// UnregisterProxy unregisters an existing proxy from the service mesh catalog
+	UnregisterProxy(*envoy.Proxy)
+
+	// GetServicesByServiceAccountName returns a list of services corresponding to a service account, and refreshes the cache if requested
+	GetServicesByServiceAccountName(endpoint.NamespacedServiceAccount, bool) []endpoint.NamespacedService
 }
 ```
 
 Additional types needed for this interface:
 ```go
-// ClientIdentity is the assigned identity of an Envoy proxy connected to the EDS server.
-// ClientIdentity is the certificate's CN.
-type ClientIdentity string
+// NamespacedService is a type for a namespaced service
+type NamespacedService struct {
+	Namespace string
+	Service   string
+}
 ```
 
-
-Sample `ListEndpoints` implementation:
+```go
+// NamespacedServiceAccount is a type for a namespaced service account
+type NamespacedServiceAccount struct {
+	Namespace      string
+	ServiceAccount string
+}
+```
 
 ```go
-package catalog
+// ServiceEndpoints is a struct of a weighted service and its endpoints
+type ServiceEndpoints struct {
+	WeightedService WeightedService 
+	Endpoints       []Endpoint      
+}
+```
 
-func (catalog *Catalog) ListEndpoints(client ClientIdentity) (envoy.DiscoveryResponse, error) {
-	endpointsPerService := make(map[ServiceName][]Endpoint)
-	// Iterate through all compute/cluster/cloud providers participating in the service mesh and fetch
-	// lists of IP addresses and port numbers (endpoints) per service, per provider.
-	for _, provider in catalog.ListEndpointsProviders() {
-		for _, service in catalog.mesh.ListServices() {
-			endpointsFromProviderForService := catalog.providers.ListEndpointsForService(service)
-			// Merge endpointsFromProviderForService into endpointsPerService
-	}
+```go
+// TrafficTargetPolicies is a struct of the allowed RoutePaths from sources to a destination
+type TrafficTargetPolicies struct {
+	PolicyName       string          
+	Destination      TrafficResource 
+	Source           TrafficResource 
+	PolicyRoutePaths []RoutePaths    
+}
+```
+
+```go
+// Proxy is a representation of an Envoy proxy connected to the xDS server.
+// This should at some point have a 1:1 match to an Endpoint (which is a member of a meshed service).
+type Proxy struct {
+	certificate.CommonName
+	net.IP
+	ServiceName   endpoint.NamespacedService
+	announcements chan interface{}
+
+	lastSentVersion    map[TypeURI]uint64
+	lastAppliedVersion map[TypeURI]uint64
+	lastNonce          map[TypeURI]string
 }
 ```
 
@@ -409,34 +381,39 @@ type EndpointsProvider interface {
 ### Mesh Specification
 This component provides an abstraction around the [SMI Spec Go SDK](https://github.com/deislabs/smi-sdk-go).
 The abstraction hides the Kubernetes primitives. This allows us to implement SMI Spec providers
-that do not rely exclusively on Kubernetes for storage etc. Mesh Specification Interface provides
+that do not rely exclusively on Kubernetes for storage etc. `MeshSpec` Interface provides
 a set of methods, listing all services, traffic splits, and policy definitions for the
 **entire service** mesh.
 
-The Mesh Specification implementation **has no awareness** of:
+The `MeshSpec` implementation **has no awareness** of:
   - what Envoy or reverse-proxy is
   - what IP address, Port number, or Endpoint is
   - what Azure, Azure Resource Manager etc. is or how it works
 
 
 ```go
-package smc
+// MeshSpec is an interface declaring functions, which provide the specs for a service mesh declared with SMI.
+type MeshSpec interface {
+	// ListTrafficSplits lists TrafficSplit SMI resources.
+	ListTrafficSplits() []*split.TrafficSplit
 
-import (
-    "github.com/deislabs/smi-sdk-go/pkg/apis/split/v1alpha2"
-    "k8s.io/api/core/v1"
-)
+	// ListServices fetches all services declared with SMI Spec.
+	ListServices() []endpoint.WeightedService
 
-// MeshSpecification is an interface, which provides the specification of a service mesh declared with SMI.
-type MeshSpecification interface {
-    // ListTrafficSplits lists TrafficSplit SMI resources.
-    ListTrafficSplits() []*v1alpha2.TrafficSplit
+	// ListServiceAccounts fetches all service accounts declared with SMI Spec.
+	ListServiceAccounts() []endpoint.NamespacedServiceAccount
 
-    // ListServices fetches all services declared with SMI Spec.
-    ListServices() []ServiceName
+	// GetService fetches a specific service declared in SMI.
+	GetService(endpoint.ServiceName) (service *corev1.Service, exists bool, err error)
 
-   // GetService fetches a specific Kubernetes Service referenced in an SMI Spec resource.
-   GetService(ServiceName) (service *Service, exists bool, err error)
+	// ListHTTPTrafficSpecs lists TrafficSpec SMI resources.
+	ListHTTPTrafficSpecs() []*spec.HTTPRouteGroup
+
+	// ListTrafficTargets lists TrafficTarget SMI resources.
+	ListTrafficTargets() []*target.TrafficTarget
+
+	// GetAnnouncementsChannel returns the channel on which SMI makes annoucements
+	GetAnnouncementsChannel() <-chan interface{}
 }
 ```
 
@@ -458,12 +435,12 @@ type Manager interface {
 
 
 
-Additionally we define an interface for the `Certificate` object, which requires the following 3 methods:
+Additionally we define an interface for the `Certificate` object, which requires the following 4 methods:
 ```go
 // Certificater is the interface declaring methods each Certificate object must have.
 type Certificater interface {
 
-	// GetName retrieves the name of the cerificate.
+	// GetName retrieves the name of the certificate.
 	GetName() string
 
 	// GetCertificateChain retrieves the cert chain.
@@ -471,6 +448,9 @@ type Certificater interface {
 
 	// GetPrivateKey returns the private key.
 	GetPrivateKey() []byte
+
+	// GetRootCertificate returns the root certificate for the given cert.
+	GetRootCertificate() *x509.Certificate
 }
 ```
 
@@ -482,29 +462,77 @@ The following types are referenced in the interfaces proposed in this document:
 
   -  Port
       ```go
-      package smc
-
       // Port is a numerical port of an Envoy proxy
       type Port int
       ```
 
   -  ServiceName
       ```go
-      package smc
-
       // ServiceName is the name of a service defined via SMI
       type ServiceName string
+      ```
+      
+  -  ServiceAccount
+      ```go
+	 // ServiceAccount is a type for a service account
+	 type ServiceAccount string
       ```
 
   -  Endpoint
       ```go
-      package smc
-
-      import "net"
-
       // Endpoint is a tuple of IP and Port, representing an Envoy proxy, fronting an instance of a service
       type Endpoint struct {
           net.IP `json:"ip"`
           Port   `json:"port"`
       }
+      ```
+  - ClusterName
+      ```go
+      // ClusterName is a type for a service name
+      type ClusterName string
+      ```
+  -  WeightedService
+      ```go
+      //WeightedService is a struct of a service name and its weight
+      type WeightedService struct {
+	   ServiceName NamespacedService `json:"service_name:omitempty"`
+	   Weight      int               `json:"weight:omitempty"`
+      }
+      ```
+
+  -  ServiceEndpoints
+      ```go
+      // ServiceEndpoints is a struct of a weighted service and its endpoints
+      type ServiceEndpoints struct {
+	   WeightedService WeightedService `json:"service:omitempty"`
+	   Endpoints       []Endpoint      `json:"endpoints:omitempty"`
+      }
+      ```
+      
+  -  RoutePaths
+      ```go
+	 // RoutePaths is a struct of a path and the allowed methods on a given route
+         type RoutePaths struct {
+	      RoutePathRegex string   `json:"route_path_regex:omitempty"`
+	      RouteMethods   []string `json:"route_methods:omitempty"`
+         }
+      ```
+
+  -  WeightedCluster
+      ```go
+	 // WeightedCluster is a struct of a cluster and is weight that is backing a service
+         type WeightedCluster struct {
+	      ClusterName ClusterName `json:"cluster_name:omitempty"`
+	      Weight      int         `json:"weight:omitempty"`
+         }
+      ```
+  - TrafficResources
+      ```go
+      //TrafficResource is a struct of the various resources of a source/destination in the TrafficTargetPolicies
+	type TrafficResource struct {
+	     ServiceAccount ServiceAccount      `json:"service_account:omitempty"`
+	     Namespace      string              `json:"namespace:omitempty"`
+	     Services       []NamespacedService `json:"services:omitempty"`
+	     Clusters       []WeightedCluster   `json:"clusters:omitempty"`
+        }
       ```
