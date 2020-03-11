@@ -13,12 +13,15 @@ import (
 
 const (
 	waitForEnvVar = "WAIT_FOR_OK_SECONDS"
-
-	counter = "http://bookstore.mesh/counter"
-	incremt = "http://bookstore.mesh/incrementcounter"
 )
 
 func main() {
+	bookstoreService := os.Getenv("BOOKSTORE_SVC")
+	if bookstoreService == "" {
+		bookstoreService = "bookstore.mesh"
+	}
+	counter := fmt.Sprintf("http://%s/counter", bookstoreService)
+	incremt := fmt.Sprintf("http://%s/incrementcounter", bookstoreService)
 	waitForOK := getWaitForOK()
 	started := time.Now()
 	finishBy := started.Add(time.Duration(waitForOK) * time.Second)
