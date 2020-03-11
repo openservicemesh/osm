@@ -49,7 +49,7 @@ func (wh *Webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 
 	// Create kube secret for TLS cert and key used For Envoy to communicate with xDS
 	envoyTLSSecretName := fmt.Sprintf("tls-%s", pod.Spec.ServiceAccountName)
-	_, err = wh.createEnvoyTLSSecret(envoyTLSSecretName, "smc", cert.GetCertificateChain(), cert.GetPrivateKey())
+	_, err = wh.createEnvoyTLSSecret(envoyTLSSecretName, namespace, cert.GetCertificateChain(), cert.GetPrivateKey())
 	if err != nil {
 		glog.Errorf("Failed to create TLS secret for Envoy sidecar: %s", err)
 		return nil, err
