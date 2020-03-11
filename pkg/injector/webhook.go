@@ -32,6 +32,11 @@ const (
 var (
 	codecs       = serializer.NewCodecFactory(runtime.NewScheme())
 	deserializer = codecs.UniversalDeserializer()
+
+	kubeSystemNamespaces = []string{
+		metav1.NamespaceSystem,
+		metav1.NamespacePublic,
+	}
 )
 
 // NewWebhook returns a new Webhook object
@@ -181,6 +186,14 @@ func (wh *Webhook) mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespo
 }
 
 func (wh *Webhook) isNamespaceAllowed(namespace string) bool {
+	// Skip Kubernetes system namespaces
+	for _, ns := range kubeSystemNamespaces {
+		if ns == namespace {
+			return false
+		}
+	}
+
+	// Skip namespaces not being observed
 	for _, ns := range wh.namespaces {
 		if ns == namespace {
 			return true
@@ -195,7 +208,6 @@ func (wh *Webhook) mustInject(pod *corev1.Pod, namespace string) (bool, error) {
 		glog.Infof("Request belongs to namespace=%s, not in the list of observing namespaces: %v", namespace, wh.namespaces)
 		return false, nil
 	}
-	// TODO(shashank): Check system namespace
 	namespacedServiceAcc := endpoint.NamespacedServiceAccount{
 		Namespace:      namespace,
 		ServiceAccount: pod.Spec.ServiceAccountName,
