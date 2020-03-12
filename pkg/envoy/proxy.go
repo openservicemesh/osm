@@ -9,10 +9,6 @@ import (
 	"github.com/deislabs/smc/pkg/endpoint"
 )
 
-const (
-	dot = "."
-)
-
 // Proxy is a representation of an Envoy proxy connected to the xDS server.
 // This should at some point have a 1:1 match to an Endpoint (which is a member of a meshed service).
 type Proxy struct {

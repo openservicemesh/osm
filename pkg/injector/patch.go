@@ -57,9 +57,9 @@ func (wh *Webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 
 	// Add the Envoy sidecar
 	envoySidecarData := EnvoySidecarData{
-		Name:    envoySidecarContainerName,
-		Image:   wh.config.SidecarImage,
-		Service: pod.Spec.ServiceAccountName,
+		Name:           envoySidecarContainerName,
+		Image:          wh.config.SidecarImage,
+		ServiceAccount: pod.Spec.ServiceAccountName,
 	}
 	envoySidecarSpec, err := getEnvoySidecarContainerSpec(pod, &envoySidecarData)
 	patches = append(patches, addContainer(
