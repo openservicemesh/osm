@@ -5,6 +5,7 @@ go 1.13
 require (
 	9fans.net/go v0.0.2 // indirect
 	contrib.go.opencensus.io/exporter/stackdriver v0.13.0 // indirect
+	github.com/AlekSi/gocov-xml v0.0.0-20190121064608-3a14fb1c4737 // indirect
 	github.com/Azure/application-gateway-kubernetes-ingress v0.0.0-20190820222238-dfce74a2549f
 	github.com/Azure/azure-sdk-for-go v34.0.0+incompatible
 	github.com/Azure/go-autorest/autorest v0.5.0
@@ -23,6 +24,8 @@ require (
 	github.com/gorilla/mux v1.7.3
 	github.com/hashicorp/go-version v1.2.0 // indirect
 	github.com/json-iterator/go v1.1.8 // indirect
+	github.com/jstemmer/go-junit-report v0.9.1 // indirect
+	github.com/matm/gocov-html v0.0.0-20191111163307-9ee104d84c82 // indirect
 	github.com/mitchellh/gox v1.0.1 // indirect
 	github.com/onsi/ginkgo v1.11.0
 	github.com/onsi/gomega v1.8.1
@@ -32,9 +35,9 @@ require (
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5
 	go.uber.org/zap v1.13.0 // indirect
-	golang.org/x/net v0.0.0-20191209160850-c0dbc17a3553 // indirect
+	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
 	golang.org/x/sys v0.0.0-20200107162124-548cf772de50 // indirect
-	golang.org/x/tools v0.0.0-20200115222509-97cd989a7672 // indirect
+	golang.org/x/tools v0.0.0-20200312173932-797567968eeb // indirect
 	golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543 // indirect
 	google.golang.org/grpc v1.25.1
 	gopkg.in/yaml.v2 v2.2.7 // indirect

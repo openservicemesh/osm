@@ -71,6 +71,10 @@ go-fmt:
 go-test:
 	./scripts/go-test.sh
 
+.PHONY: go-test-coverage
+go-test-coverage:
+	./scripts/test-w-coverage.sh
+
 .PHONY: docker-build-ads
 docker-build-ads: build-cross-ads
 	docker build --build-arg $(HOME)/go/ -t $(CTR_REGISTRY)/ads -f dockerfiles/Dockerfile.ads .
