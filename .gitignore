@@ -46,6 +46,14 @@ vendor/
 demo/bin/
 certificates
 
+## Ignore test coverage files
+coverage.json
+coverage.txt
+coverage.xml
+coverage/
+report.xml
+testoutput.txt
+
 # macOS files
 .DS_Store
 
