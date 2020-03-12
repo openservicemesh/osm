@@ -38,7 +38,6 @@ require (
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
 	golang.org/x/sys v0.0.0-20200107162124-548cf772de50 // indirect
 	golang.org/x/tools v0.0.0-20200312173932-797567968eeb // indirect
-	golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543 // indirect
 	google.golang.org/grpc v1.25.1
 	gopkg.in/yaml.v2 v2.2.7 // indirect
 	istio.io/gogo-genproto v0.0.0-20190731221249-06e20ada0df2 // indirect
