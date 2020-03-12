@@ -46,7 +46,7 @@ kubectl apply -f crd/AzureResource.yaml
 go run ./demo/cmd/deploy/xds.go
 
 # Wait for POD to be ready before
-while [ "$(kubectl get pods -n smc ads -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}')" != "True" ];
+while [ "$(kubectl get pods -n osm ads -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}')" != "True" ];
 do
   echo "waiting for pod ads to be ready" && sleep 2
 done

@@ -208,7 +208,7 @@ The SMC leverages the [communicating sequential processes (CSP)](https://en.wiki
 ## Interfaces
 
 This section defines the [Go Interfaces](https://golang.org/doc/effective_go.html#interfaces) needed for
-the development of the SMC in [this repository](https://github.com/deislabs/smc).
+the development of the SMC in [this repository](https://github.com/open-service-mesh/osm).
 
 
 This section adopts the following assumptions:

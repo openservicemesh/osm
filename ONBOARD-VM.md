@@ -13,7 +13,7 @@ A service running on the VM that is a part of the service mesh will need to esta
 
 - Extract the Envoy bootstrap configuration by running the following command
 	```
-	$ smc envoy get bootstrap-config // TBD
+	$ osm envoy get bootstrap-config // TBD
 	```
 	Copy the output to `/etc/envoy/bootstrap.yaml` on the VM and configure Envoy to start using this bootstrap config file.
 
