@@ -52,7 +52,7 @@ type InitContainerData struct {
 
 // EnvoySidecarData is the type used to represent information about the Envoy sidecar
 type EnvoySidecarData struct {
-	Name    string
-	Image   string
-	Service string // TODO: This needs to be service account
+	Name           string
+	Image          string
+	ServiceAccount string
 }
