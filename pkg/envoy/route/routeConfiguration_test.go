@@ -78,3 +78,72 @@ var _ = Describe("Route Configuration", func() {
 		})
 	})
 })
+
+var _ = Describe("Cors Allowed Methods", func() {
+	Context("Testing updateAllowedMethods", func() {
+		It("Returns a unique list of allowed methods", func() {
+
+			allowedMethods := []string{"GET", "POST", "PUT", "POST", "GET", "GET"}
+			allowedMethods = updateAllowedMethods(allowedMethods)
+
+			expectedAllowedMethods := []string{"GET", "POST", "PUT"}
+			Expect(allowedMethods).To(Equal(expectedAllowedMethods))
+
+		})
+
+		It("Returns a wildcard allowed method (*)", func() {
+			allowedMethods := []string{"GET", "POST", "PUT", "POST", "GET", "GET", "*"}
+			allowedMethods = updateAllowedMethods(allowedMethods)
+
+			expectedAllowedMethods := []string{"*"}
+			Expect(allowedMethods).To(Equal(expectedAllowedMethods))
+		})
+	})
+})
+
+var _ = Describe("Weighted clusters", func() {
+	Context("Testing getnWeightedClusters", func() {
+		It("validated the creation of weighted clusters", func() {
+
+			weightedClusters := []endpoint.WeightedCluster{
+				{ClusterName: endpoint.ClusterName("smc/bookstore-1"), Weight: 30},
+				{ClusterName: endpoint.ClusterName("smc/bookstore-2"), Weight: 70},
+			}
+
+			routeWeightedClusters := getWeightedCluster(weightedClusters, true)
+			Expect(routeWeightedClusters.TotalWeight).To(Equal(&wrappers.UInt32Value{Value: uint32(100)}))
+			Expect(len(routeWeightedClusters.GetClusters())).To(Equal(2))
+			Expect(routeWeightedClusters.GetClusters()[0].Name).To(Equal("smc/bookstore-1-local"))
+			Expect(routeWeightedClusters.GetClusters()[0].Weight).To(Equal(&wrappers.UInt32Value{Value: uint32(30)}))
+			Expect(routeWeightedClusters.GetClusters()[1].Name).To(Equal("smc/bookstore-2-local"))
+			Expect(routeWeightedClusters.GetClusters()[1].Weight).To(Equal(&wrappers.UInt32Value{Value: uint32(70)}))
+
+		})
+	})
+})
+
+var _ = Describe("Route Action weighted clusters", func() {
+	Context("Testing updateRouteActionWeightedClusters", func() {
+		It("Returns the route action with newly added clusters", func() {
+
+			weightedClusters := []endpoint.WeightedCluster{
+				{ClusterName: endpoint.ClusterName("smc/bookstore-1"), Weight: 100},
+			}
+
+			newWeightedClusters := []endpoint.WeightedCluster{
+				{ClusterName: endpoint.ClusterName("smc/bookstore-2"), Weight: 100},
+			}
+
+			route1 := createRoute("counter", weightedClusters, false)
+			rt := []*route.Route{&route1}
+			updatedAction := updateRouteActionWeightedClusters(*rt[0].GetRoute().GetWeightedClusters(), newWeightedClusters, false)
+			Expect(updatedAction.Route.GetWeightedClusters().TotalWeight).To(Equal(&wrappers.UInt32Value{Value: uint32(200)}))
+			Expect(len(updatedAction.Route.GetWeightedClusters().GetClusters())).To(Equal(2))
+			Expect(updatedAction.Route.GetWeightedClusters().GetClusters()[0].Name).To(Equal("smc/bookstore-1"))
+			Expect(updatedAction.Route.GetWeightedClusters().GetClusters()[0].Weight).To(Equal(&wrappers.UInt32Value{Value: uint32(100)}))
+			Expect(updatedAction.Route.GetWeightedClusters().GetClusters()[1].Name).To(Equal("smc/bookstore-2"))
+			Expect(updatedAction.Route.GetWeightedClusters().GetClusters()[1].Weight).To(Equal(&wrappers.UInt32Value{Value: uint32(100)}))
+
+		})
+	})
+})

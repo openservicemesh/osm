@@ -65,6 +65,7 @@ func uniques(slice []xds.Cluster) []xds.Cluster {
 	var isPresent bool
 	clusters := []xds.Cluster{}
 	for _, entry := range slice {
+		isPresent = false
 		for _, cluster := range clusters {
 			if cluster.Name == entry.Name {
 				isPresent = true
