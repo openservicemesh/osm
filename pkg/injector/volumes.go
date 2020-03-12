@@ -10,6 +10,16 @@ import (
 func getVolumeSpec(envoyTLSSecretName string) []corev1.Volume {
 	return []corev1.Volume{
 		{
+			Name: envoyProxyConfig,
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: envoyProxyConfig,
+					},
+				},
+			},
+		},
+		{
 			// Envoy's TLS volume. This is sourced from the TLS secret
 			// references by 'envoyTLSSecretName'
 			Name: envoyTLSVolume,

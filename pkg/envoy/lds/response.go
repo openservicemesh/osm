@@ -76,12 +76,14 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 						},
 					},
 				},
+				/* --- This is commented out until we have a clear plan of how we are going to use FilterChainMatch ---
 				// Source: https://www.envoyproxy.io/docs/envoy/latest/api-v2/api/v2/listener/listener_components.proto
 				// The FilterChainMatch uses SNI from mTLS to match against the provided list of ServerNames.
 				// This ensures only clients authorized to talk to this listener are permitted to.
 				FilterChainMatch: &listener.FilterChainMatch{
 					ServerNames: []string{"smc/bookbuyer"}, // TODO(draychev): remove hard-coded demo value
 				},
+				*/
 				TransportSocket: &envoy_api_v2_core.TransportSocket{
 					Name: envoy.TransportSocketTLS,
 					ConfigType: &envoy_api_v2_core.TransportSocket_TypedConfig{

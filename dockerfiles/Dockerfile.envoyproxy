@@ -1,5 +1,0 @@
-# Base image
-FROM envoyproxy/envoy-alpine-dev:latest
-
-# Update image with config
-ADD ./config/bootstrap.yaml /etc/envoy/bootstrap.yaml

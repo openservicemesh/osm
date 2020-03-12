@@ -99,10 +99,6 @@ docker-build-bookstore: build-bookstore
 docker-build-init:
 	docker build -t $(CTR_REGISTRY)/init -f dockerfiles/Dockerfile.init .
 
-.PHONY: docker-build-envoyproxy
-docker-build-envoyproxy:
-	docker build -t $(CTR_REGISTRY)/envoyproxy -f dockerfiles/Dockerfile.envoyproxy .
-
 .PHONY: docker-push-ads
 docker-push-ads: docker-build-ads
 	docker push "$(CTR_REGISTRY)/ads"
@@ -119,12 +115,8 @@ docker-push-bookstore: docker-build-bookstore
 docker-push-init: docker-build-init
 	docker push "$(CTR_REGISTRY)/init"
 
-.PHONY: docker-push-envoypoxy
-docker-push-envoyproxy: docker-build-envoyproxy
-	docker push "$(CTR_REGISTRY)/envoyproxy"
-
 .PHONY: docker-push
-docker-push: docker-push-init docker-push-envoyproxy docker-push-bookbuyer docker-push-bookstore docker-push-ads
+docker-push: docker-push-init docker-push-bookbuyer docker-push-bookstore docker-push-ads
 
 .PHONY: generate-crds
 generate-crds:
