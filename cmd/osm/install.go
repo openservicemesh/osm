@@ -48,7 +48,7 @@ func newInstallCmd(out io.Writer) *cobra.Command {
 	}
 
 	f := cmd.Flags()
-	f.StringVarP(&install.namespace, "namespace", "n", "smc", "namespace to install control plane components")
+	f.StringVarP(&install.namespace, "namespace", "n", "osm", "namespace to install control plane components")
 	f.StringVar(&install.containerRegistry, "container-registry", "smctest.azurecr.io", "container registry that hosts control plane component images")
 	f.StringVar(&install.containerRegistrySecret, "container-registry-secret", "acr-creds", "name of the container registry Kubernetes Secret that contains container registry credentials")
 

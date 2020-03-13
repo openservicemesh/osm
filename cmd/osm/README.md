@@ -8,9 +8,9 @@ $ ./demo/clean-kubernetes.sh
 
 $ ./demo/create-container-registry-creds.sh // creates k8s secret for container registry creds
 
-$ make build-smc
-$ bin/smc install --container-registry <your-acr-registry.azurecr.io>
-$ k get pods -n smc
+$ make build-osm
+$ bin/osm install --container-registry <your-acr-registry.azurecr.io>
+$ k get pods -n osm
 ```
 
 To delete this test environment:

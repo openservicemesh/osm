@@ -8,8 +8,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var globalUsage = `smc enables you to install and manage the 
-service mesh controller in your Kubernetes cluster
+var globalUsage = `osm enables you to install and manage the 
+open service mesh control plane in your Kubernetes cluster
 
 To install and configure service mesh controller, run:
 
@@ -18,7 +18,7 @@ To install and configure service mesh controller, run:
 
 func newRootCmd(args []string, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "smc",
+		Use:   "osm",
 		Short: "Install and manage service mesh controller",
 		Long:  globalUsage,
 	}
