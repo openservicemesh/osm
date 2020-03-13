@@ -24,7 +24,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	proxyServiceName := proxy.GetService()
 	allTrafficPolicies, err := catalog.ListTrafficRoutes(proxyServiceName)
 	if err != nil {
-		glog.Errorf("[%s] Failed listing endpoints: %+v", packageName, err)
+		glog.Errorf("[%s] Failed listing traffic routes: %+v", packageName, err)
 		return nil, err
 	}
 	glog.V(level.Debug).Infof("[%s] TrafficPolicies: %+v for proxy %s", packageName, allTrafficPolicies, proxy.CommonName)
