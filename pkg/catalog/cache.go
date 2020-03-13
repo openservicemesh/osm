@@ -3,9 +3,9 @@ package catalog
 import (
 	"github.com/golang/glog"
 
-	"github.com/deislabs/smc/pkg/constants"
-	"github.com/deislabs/smc/pkg/endpoint"
-	"github.com/deislabs/smc/pkg/log/level"
+	"github.com/open-service-mesh/osm/pkg/constants"
+	"github.com/open-service-mesh/osm/pkg/endpoint"
+	"github.com/open-service-mesh/osm/pkg/log/level"
 )
 
 func (sc *MeshCatalog) refreshCache() {

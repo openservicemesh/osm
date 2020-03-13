@@ -21,7 +21,7 @@ package versioned
 import (
 	"fmt"
 
-	smcv1 "github.com/deislabs/smc/pkg/smc_client/clientset/versioned/typed/azureresource/v1"
+	smcv1 "github.com/open-service-mesh/osm/pkg/smc_client/clientset/versioned/typed/azureresource/v1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"

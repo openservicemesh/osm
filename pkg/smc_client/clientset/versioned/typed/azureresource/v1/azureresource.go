@@ -21,8 +21,8 @@ package v1
 import (
 	"time"
 
-	v1 "github.com/deislabs/smc/pkg/apis/azureresource/v1"
-	scheme "github.com/deislabs/smc/pkg/smc_client/clientset/versioned/scheme"
+	v1 "github.com/open-service-mesh/osm/pkg/apis/azureresource/v1"
+	scheme "github.com/open-service-mesh/osm/pkg/smc_client/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"

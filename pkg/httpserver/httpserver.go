@@ -8,8 +8,8 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/deislabs/smc/pkg/health"
-	"github.com/deislabs/smc/pkg/metricsstore"
+	"github.com/open-service-mesh/osm/pkg/health"
+	"github.com/open-service-mesh/osm/pkg/metricsstore"
 )
 
 // HTTPServer serving probes and metrics

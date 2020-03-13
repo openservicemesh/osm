@@ -19,7 +19,7 @@ limitations under the License.
 package fake
 
 import (
-	azureresourcev1 "github.com/deislabs/smc/pkg/apis/azureresource/v1"
+	azureresourcev1 "github.com/open-service-mesh/osm/pkg/apis/azureresource/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

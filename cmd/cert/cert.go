@@ -10,9 +10,9 @@ import (
 	"github.com/golang/glog"
 	"github.com/spf13/pflag"
 
-	"github.com/deislabs/smc/pkg/certificate"
-	"github.com/deislabs/smc/pkg/tresor"
-	"github.com/deislabs/smc/pkg/tresor/pem"
+	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/open-service-mesh/osm/pkg/tresor"
+	"github.com/open-service-mesh/osm/pkg/tresor/pem"
 )
 
 var (

@@ -5,10 +5,10 @@ import (
 
 	mapset "github.com/deckarep/golang-set"
 
-	"github.com/deislabs/smc/pkg/certificate"
-	"github.com/deislabs/smc/pkg/endpoint"
-	"github.com/deislabs/smc/pkg/envoy"
-	"github.com/deislabs/smc/pkg/smi"
+	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/open-service-mesh/osm/pkg/endpoint"
+	"github.com/open-service-mesh/osm/pkg/envoy"
+	"github.com/open-service-mesh/osm/pkg/smi"
 )
 
 // MeshCatalog is the struct for the service catalog

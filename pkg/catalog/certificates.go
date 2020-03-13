@@ -3,8 +3,8 @@ package catalog
 import (
 	"github.com/golang/glog"
 
-	"github.com/deislabs/smc/pkg/certificate"
-	"github.com/deislabs/smc/pkg/endpoint"
+	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/open-service-mesh/osm/pkg/endpoint"
 )
 
 // GetCertificateForService returns the certificate the given proxy uses for mTLS to the XDS server.

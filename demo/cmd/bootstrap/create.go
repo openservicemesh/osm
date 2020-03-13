@@ -13,7 +13,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/deislabs/smc/demo/cmd/common"
+	"github.com/open-service-mesh/osm/demo/cmd/common"
 )
 
 const (
