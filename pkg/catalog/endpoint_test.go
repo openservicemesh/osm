@@ -6,7 +6,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/deislabs/smc/pkg/endpoint"
+	"github.com/open-service-mesh/osm/pkg/endpoint"
 )
 
 var _ = Describe("Endpoints To String", func() {

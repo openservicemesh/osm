@@ -1,7 +1,7 @@
 package catalog
 
 import (
-	"github.com/deislabs/smc/pkg/endpoint"
+	"github.com/open-service-mesh/osm/pkg/endpoint"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

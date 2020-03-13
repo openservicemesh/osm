@@ -8,10 +8,10 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
-	smc "github.com/deislabs/smc/pkg/apis/azureresource/v1"
-	"github.com/deislabs/smc/pkg/log/level"
-	smcClient "github.com/deislabs/smc/pkg/smc_client/clientset/versioned"
-	smcInformers "github.com/deislabs/smc/pkg/smc_client/informers/externalversions"
+	smc "github.com/open-service-mesh/osm/pkg/apis/azureresource/v1"
+	"github.com/open-service-mesh/osm/pkg/log/level"
+	smcClient "github.com/open-service-mesh/osm/pkg/smc_client/clientset/versioned"
+	smcInformers "github.com/open-service-mesh/osm/pkg/smc_client/informers/externalversions"
 )
 
 const (

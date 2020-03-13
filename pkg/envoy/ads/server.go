@@ -6,14 +6,14 @@ import (
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 
-	"github.com/deislabs/smc/pkg/catalog"
-	"github.com/deislabs/smc/pkg/envoy"
-	"github.com/deislabs/smc/pkg/envoy/cds"
-	"github.com/deislabs/smc/pkg/envoy/eds"
-	"github.com/deislabs/smc/pkg/envoy/lds"
-	"github.com/deislabs/smc/pkg/envoy/rds"
-	"github.com/deislabs/smc/pkg/envoy/sds"
-	"github.com/deislabs/smc/pkg/smi"
+	"github.com/open-service-mesh/osm/pkg/catalog"
+	"github.com/open-service-mesh/osm/pkg/envoy"
+	"github.com/open-service-mesh/osm/pkg/envoy/cds"
+	"github.com/open-service-mesh/osm/pkg/envoy/eds"
+	"github.com/open-service-mesh/osm/pkg/envoy/lds"
+	"github.com/open-service-mesh/osm/pkg/envoy/rds"
+	"github.com/open-service-mesh/osm/pkg/envoy/sds"
+	"github.com/open-service-mesh/osm/pkg/smi"
 )
 
 // NewADSServer creates a new Aggregated Discovery Service server

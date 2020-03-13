@@ -9,8 +9,8 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/wrappers"
 
-	"github.com/deislabs/smc/pkg/constants"
-	"github.com/deislabs/smc/pkg/envoy"
+	"github.com/open-service-mesh/osm/pkg/constants"
+	"github.com/open-service-mesh/osm/pkg/envoy"
 )
 
 func getServiceClusterLocal(clusterName string) xds.Cluster {

@@ -12,8 +12,8 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/deislabs/smc/pkg/endpoint"
-	"github.com/deislabs/smc/pkg/log/level"
+	"github.com/open-service-mesh/osm/pkg/endpoint"
+	"github.com/open-service-mesh/osm/pkg/log/level"
 )
 
 var resyncPeriod = 10 * time.Second
