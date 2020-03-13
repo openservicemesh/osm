@@ -1,9 +1,9 @@
 package cds
 
 import (
+	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/envoy"
-	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

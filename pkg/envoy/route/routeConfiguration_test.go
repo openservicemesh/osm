@@ -1,9 +1,9 @@
 package route
 
 import (
-	"github.com/open-service-mesh/osm/pkg/endpoint"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"github.com/open-service-mesh/osm/pkg/endpoint"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

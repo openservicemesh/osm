@@ -1,9 +1,9 @@
 package catalog
 
 import (
-	"github.com/open-service-mesh/osm/pkg/endpoint"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/open-service-mesh/osm/pkg/endpoint"
 )
 
 var uniqueness = Describe("UniqueLists", func() {
