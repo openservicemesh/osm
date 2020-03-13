@@ -16,7 +16,7 @@ import (
 )
 
 const installDesc = `
-This command installs the smc control plane on the Kubernetes cluster.
+This command installs the osm control plane on the Kubernetes cluster.
 `
 const serviceAccountName = "smi-xds"
 
@@ -40,7 +40,7 @@ func newInstallCmd(out io.Writer) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "install",
-		Short: "install smc control plane",
+		Short: "install osm control plane",
 		Long:  installDesc,
 		RunE: func(_ *cobra.Command, args []string) error {
 			return install.run()

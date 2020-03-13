@@ -38,7 +38,7 @@ func NewMeshCatalog(meshSpec smi.MeshSpec, certManager certificate.Manager, stop
 	return &sc
 }
 
-// GetDebugInfo returns an HTTP handler for SMC debug endpoint.
+// GetDebugInfo returns an HTTP handler for OSM debug endpoint.
 func (sc *MeshCatalog) GetDebugInfo() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// TODO(draychev): convert to CLI flag

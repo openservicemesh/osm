@@ -1,4 +1,4 @@
-# smc install instructions for testing
+# osm install instructions for testing
 
 Note: Ensure [prerequisites](https://github.com/open-service-mesh/osm/blob/master/DEMO.md#prerequisites) are met and environment variables are set for these scripts to work.
 

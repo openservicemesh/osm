@@ -13,7 +13,7 @@ service mesh controller in your Kubernetes cluster
 
 To install and configure service mesh controller, run:
 
-   $ smc install
+   $ osm install
 `
 
 func newRootCmd(args []string, out io.Writer) *cobra.Command {

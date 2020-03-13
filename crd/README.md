@@ -1,4 +1,4 @@
-# Generating SMC CRDs
+# Generating OSM CRDs
 
 This document outlines the steps necessary to generate the Go code supporting the CRDs in [this](./crd/) directory.
 

@@ -12,7 +12,7 @@ import (
 )
 
 // PrometheusNamespace is the Prometheus Namespace
-var PrometheusNamespace = "smc"
+var PrometheusNamespace = "osm"
 
 // MetricStore is store maintaining all metrics
 type MetricStore interface {

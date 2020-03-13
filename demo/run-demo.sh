@@ -53,7 +53,7 @@ done
 
 ./demo/deploy-webhook.sh "ads" "$K8S_NAMESPACE"
 
-# The POD creation for the services will fail if SMC has not picked up the
+# The POD creation for the services will fail if OSM has not picked up the
 # corresponding services defined in the SMI spec
 ./demo/deploy-bookbuyer.sh
 
