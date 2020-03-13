@@ -19,9 +19,9 @@ limitations under the License.
 package fake
 
 import (
-	clientset "github.com/deislabs/smc/pkg/smc_client/clientset/versioned"
-	smcv1 "github.com/deislabs/smc/pkg/smc_client/clientset/versioned/typed/azureresource/v1"
-	fakesmcv1 "github.com/deislabs/smc/pkg/smc_client/clientset/versioned/typed/azureresource/v1/fake"
+	clientset "github.com/open-service-mesh/osm/pkg/smc_client/clientset/versioned"
+	smcv1 "github.com/open-service-mesh/osm/pkg/smc_client/clientset/versioned/typed/azureresource/v1"
+	fakesmcv1 "github.com/open-service-mesh/osm/pkg/smc_client/clientset/versioned/typed/azureresource/v1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"

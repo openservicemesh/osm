@@ -5,7 +5,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/deislabs/smc/pkg/log/level"
+	"github.com/open-service-mesh/osm/pkg/log/level"
 	"github.com/golang/glog"
 )
 

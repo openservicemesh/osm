@@ -5,7 +5,7 @@ import (
 	"crypto/x509"
 	"time"
 
-	"github.com/deislabs/smc/pkg/certificate"
+	"github.com/open-service-mesh/osm/pkg/certificate"
 )
 
 const (

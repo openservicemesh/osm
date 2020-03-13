@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/deislabs/smc/demo/cmd/common"
+	"github.com/open-service-mesh/osm/demo/cmd/common"
 )
 
 const (

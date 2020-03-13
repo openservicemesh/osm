@@ -10,7 +10,7 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/deislabs/smc/pkg/tresor/pem"
+	"github.com/open-service-mesh/osm/pkg/tresor/pem"
 	"github.com/pkg/errors"
 )
 

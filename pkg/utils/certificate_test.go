@@ -6,7 +6,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/deislabs/smc/pkg/constants"
+	"github.com/open-service-mesh/osm/pkg/constants"
 )
 
 const (
