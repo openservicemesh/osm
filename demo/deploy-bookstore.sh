@@ -7,9 +7,11 @@ source .env
 
 SVC=${1:-bookstore}
 
-./demo/deploy-secrets.sh "$SVC"
+NS="${K8S_NAMESPACE}-bookstore"
 
-kubectl delete deployment "$SVC" -n "$K8S_NAMESPACE"  || true
+./demo/deploy-secrets.sh "$SVC" "$NS"
+
+kubectl delete deployment "$SVC" -n "$NS"  || true
 
 GIT_HASH=$(git rev-parse --short HEAD)
 
@@ -19,7 +21,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: "$SVC-serviceaccount"
-  namespace: $K8S_NAMESPACE
+  namespace: $NS
 automountServiceAccountToken: false
 
 ---
@@ -28,7 +30,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: $SVC
-  namespace: $K8S_NAMESPACE
+  namespace: $NS
   labels:
     app: $SVC
 spec:
@@ -47,7 +49,7 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: $SVC
-  namespace: $K8S_NAMESPACE
+  namespace: $NS
 spec:
   replicas: 1
   selector:
@@ -79,10 +81,10 @@ spec:
         - name: $CTR_REGISTRY_CREDS_NAME
 EOF
 
-kubectl get pods      --no-headers -o wide --selector app="$SVC" -n "$K8S_NAMESPACE"
-kubectl get endpoints --no-headers -o wide --selector app="$SVC" -n "$K8S_NAMESPACE"
-kubectl get service                -o wide                       -n "$K8S_NAMESPACE"
+kubectl get pods      --no-headers -o wide --selector app="$SVC" -n "$NS"
+kubectl get endpoints --no-headers -o wide --selector app="$SVC" -n "$NS"
+kubectl get service                -o wide                       -n "$NS"
 
-for x in $(kubectl get service -n "$K8S_NAMESPACE" --selector app="$SVC" --no-headers | awk '{print $1}'); do
-    kubectl get service "$x" -n "$K8S_NAMESPACE" -o jsonpath='{.status.loadBalancer.ingress[*].ip}'
+for x in $(kubectl get service -n "$NS" --selector app="$SVC" --no-headers | awk '{print $1}'); do
+    kubectl get service "$x" -n "$NS" -o jsonpath='{.status.loadBalancer.ingress[*].ip}'
 done

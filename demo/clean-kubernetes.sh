@@ -6,7 +6,11 @@ set -aueo pipefail
 source .env
 
 kubectl delete mutatingwebhookconfiguration ads --ignore-not-found=true
-kubectl delete namespace "$K8S_NAMESPACE" || true
-kubectl create namespace "$K8S_NAMESPACE" || true
+
+for NAME in bookbuyer bookstore osm; do
+  kubectl delete namespace "${K8S_NAMESPACE}-${NAME}" || true
+  kubectl create namespace "${K8S_NAMESPACE}-${NAME}" || true
+done
+
 kubectl delete clusterrole smc-xds || true
 kubectl delete clusterrolebinding smc-xds || true

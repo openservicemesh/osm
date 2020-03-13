@@ -12,7 +12,7 @@ import (
 
 	"github.com/deislabs/smc/demo/cmd/common"
 	"github.com/golang/glog"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -35,7 +35,8 @@ const (
 )
 
 func main() {
-	namespace := os.Getenv(KubeNamespaceEnvVar)
+	// TODO(draychev): remove hardcoded bookbuyer
+	namespace := fmt.Sprintf("%s-bookbuyer", os.Getenv(KubeNamespaceEnvVar))
 	totalWaitString := os.Getenv(WaitForPodTimeSecondsEnvVar)
 	totalWait, err := strconv.ParseInt(totalWaitString, 10, 32)
 	if err != nil {

@@ -6,6 +6,7 @@ set -aueo pipefail
 source .env
 
 SVC="bookstore-vm"
+NS="${K8S_NAMESPACE}-bookstore"
 
 echo -e "Deploy $SVC demo service"
 cat <<EOF | kubectl apply -f -
@@ -13,7 +14,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: $SVC
-  namespace: $K8S_NAMESPACE
+  namespace: $NS
   labels:
     app: $SVC
 spec:
@@ -30,7 +31,7 @@ apiVersion: smc.osm.k8s.io/v1
 kind: AzureResource
 metadata:
   name: bookstore
-  namespace: $K8S_NAMESPACE
+  namespace: $NS
   labels:
     app: $SVC
 spec:

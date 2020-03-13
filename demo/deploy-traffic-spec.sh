@@ -5,6 +5,9 @@ set -aueo pipefail
 # shellcheck disable=SC1091
 source .env
 
+NAME=osm
+NS="${K8S_NAMESPACE}-${NAME}"
+
 kubectl apply -f - <<EOF
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -44,7 +47,7 @@ apiVersion: specs.smi-spec.io/v1alpha1
 kind: HTTPRouteGroup
 metadata:
   name: bookstore-service-routes
-  namespace: "$K8S_NAMESPACE"
+  namespace: "$NS"
 matches:
 - name: counter
   pathRegex: /counter

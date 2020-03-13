@@ -4,13 +4,16 @@ set -aueo pipefail
 
 # shellcheck disable=SC1091
 source .env
+
 WAIT_FOR_OK_SECONDS="${WAIT_FOR_OK_SECONDS:-default 120}"
 
 echo "WAIT_FOR_OK_SECONDS = ${WAIT_FOR_OK_SECONDS}"
 
-./demo/deploy-secrets.sh "bookbuyer"
+NS="${K8S_NAMESPACE}-bookbuyer"
 
-kubectl delete deployment bookbuyer -n "$K8S_NAMESPACE"  || true
+./demo/deploy-secrets.sh "bookbuyer" "$NS"
+
+kubectl delete deployment bookbuyer -n "$NS"  || true
 
 echo -e "Deploy BookBuyer demo service"
 cat <<EOF | kubectl apply -f -
@@ -18,7 +21,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: bookbuyer-serviceaccount
-  namespace: $K8S_NAMESPACE
+  namespace: $NS
 automountServiceAccountToken: false
 
 ---
@@ -27,7 +30,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: bookbuyer
-  namespace: "$K8S_NAMESPACE"
+  namespace: "$NS"
   labels:
     app: bookbuyer
 spec:
@@ -47,7 +50,7 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: bookbuyer
-  namespace: "$K8S_NAMESPACE"
+  namespace: "$NS"
 spec:
   replicas: 1
   selector:
@@ -84,10 +87,10 @@ spec:
         - name: "$CTR_REGISTRY_CREDS_NAME"
 EOF
 
-kubectl get pods      --no-headers -o wide --selector app=bookbuyer -n "$K8S_NAMESPACE"
-kubectl get endpoints --no-headers -o wide --selector app=bookbuyer -n "$K8S_NAMESPACE"
-kubectl get service                -o wide                          -n "$K8S_NAMESPACE"
+kubectl get pods      --no-headers -o wide --selector app=bookbuyer -n "$NS"
+kubectl get endpoints --no-headers -o wide --selector app=bookbuyer -n "$NS"
+kubectl get service                -o wide                          -n "$NS"
 
-for x in $(kubectl get service -n "$K8S_NAMESPACE" --selector app=bookbuyer --no-headers | awk '{print $1}'); do
-    kubectl get service "$x" -n "$K8S_NAMESPACE" -o jsonpath='{.status.loadBalancer.ingress[*].ip}'
+for x in $(kubectl get service -n "$NS" --selector app=bookbuyer --no-headers | awk '{print $1}'); do
+    kubectl get service "$x" -n "$NS" -o jsonpath='{.status.loadBalancer.ingress[*].ip}'
 done

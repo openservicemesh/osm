@@ -10,7 +10,9 @@ rm -rf ./certificates
 rm -rf ./certs
 
 ./demo/clean-kubernetes.sh
-go run  demo/cmd/bootstrap/create.go
+for NAME in bookbuyer bookstore osm; do
+    go run  demo/cmd/bootstrap/create.go --namespace="${K8S_NAMESPACE}-${NAME}"
+done
 
 make build-cert
 
@@ -30,8 +32,10 @@ else
     ./ci/create-container-registry-creds.sh
 fi
 
-kubectl create configmap kubeconfig  --from-file="$HOME/.kube/config"          -n "$K8S_NAMESPACE"
-kubectl create configmap azureconfig --from-file="$HOME/.azure/azureAuth.json" -n "$K8S_NAMESPACE"
+for NAME in bookbuyer bookstore osm; do
+    kubectl create configmap kubeconfig  --from-file="$HOME/.kube/config"          -n "${K8S_NAMESPACE}-${NAME}"
+    kubectl create configmap azureconfig --from-file="$HOME/.azure/azureAuth.json" -n "${K8S_NAMESPACE}-${NAME}"
+done
 
 kubectl apply -f crd/AzureResource.yaml
 ./demo/deploy-AzureResource.sh
@@ -41,17 +45,18 @@ kubectl apply -f crd/AzureResource.yaml
 ./demo/deploy-traffic-target.sh
 ./demo/deploy-traffic-target-2.sh
 
-./demo/deploy-secrets.sh "ads"
+OSM_NS="${K8S_NAMESPACE}-osm"
+./demo/deploy-secrets.sh "ads" "${OSM_NS}"
 ./demo/deploy-webhook-secrets.sh
-go run ./demo/cmd/deploy/xds.go
+go run ./demo/cmd/deploy/xds.go --namespace="${OSM_NS}"
 
 # Wait for POD to be ready before
-while [ "$(kubectl get pods -n "$K8S_NAMESPACE" ads -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}')" != "True" ];
+while [ "$(kubectl get pods -n "${OSM_NS}" ads -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}')" != "True" ];
 do
   echo "waiting for pod ads to be ready" && sleep 2
 done
 
-./demo/deploy-webhook.sh "ads" "$K8S_NAMESPACE"
+./demo/deploy-webhook.sh "ads" "${OSM_NS}"
 
 # The POD creation for the services will fail if SMC has not picked up the
 # corresponding services defined in the SMI spec
@@ -62,5 +67,5 @@ done
 ./demo/deploy-bookstore.sh "bookstore-2"
 
 if [[ "$IS_GITHUB" != "true" ]]; then
-    watch -n0.5 "kubectl get pods -n${K8S_NAMESPACE} -o wide"
+    watch -n0.5 "kubectl get pods -n${OSM_NS} -o wide"
 fi

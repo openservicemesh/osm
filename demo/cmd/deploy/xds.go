@@ -1,11 +1,12 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"path"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
@@ -19,7 +20,10 @@ func main() {
 	azureSubscription := os.Getenv(common.AzureSubscription)
 	initContainer := path.Join(acr, "init")
 	envoyContainer := path.Join(acr, "envoyproxy:latest")
-	namespace := os.Getenv(common.KubeNamespaceEnvVar)
+
+	var namespace string
+	flag.StringVar(&namespace, "namespace", "", "namespace")
+	flag.Parse()
 
 	labels := map[string]string{
 		"app": common.AggregatedDiscoveryServiceName,

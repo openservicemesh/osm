@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -21,7 +22,9 @@ const (
 )
 
 func main() {
-	namespace := os.Getenv(common.KubeNamespaceEnvVar)
+	var namespace string
+	flag.StringVar(&namespace, "namespace", "", "namespace")
+	flag.Parse()
 	if namespace == "" {
 		fmt.Println("Empty namespace")
 		os.Exit(1)
