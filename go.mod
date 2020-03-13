@@ -1,4 +1,4 @@
-module github.com/deislabs/smc
+module github.com/open-service-mesh/osm
 
 go 1.13
 
