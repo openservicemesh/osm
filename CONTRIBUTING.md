@@ -1,5 +1,5 @@
 # Contributing Guidlines
-The SMC project accepts contributions via GitHub pull requests. This document outlines the requirements for contributing to this project.
+The OSM project accepts contributions via GitHub pull requests. This document outlines the requirements for contributing to this project.
 
 ## Roadmap
 We use [GitHub Project Boards](https://github.com/open-service-mesh/osm/projects) to help give a high level overview and track what work is going on and what stage it is in. If you want an idea of our roadmap and prioritization, this is the best place to find that information.

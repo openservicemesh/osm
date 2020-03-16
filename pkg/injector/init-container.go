@@ -10,7 +10,7 @@ import (
 
 const (
 	// InitContainerName is the name of the init container
-	InitContainerName = "smc-init"
+	InitContainerName = "osm-init"
 )
 
 func getInitContainerSpec(pod *corev1.Pod, data *InitContainerData) (corev1.Container, error) {
@@ -26,15 +26,15 @@ func getInitContainerSpec(pod *corev1.Pod, data *InitContainerData) (corev1.Cont
 		},
 		Env: []corev1.EnvVar{
 			{
-				Name:  "SMC_PROXY_UID",
+				Name:  "OSM_PROXY_UID",
 				Value: fmt.Sprintf("%d", constants.EnvoyUID),
 			},
 			{
-				Name:  "SMC_ENVOY_INBOUND_PORT",
+				Name:  "OSM_ENVOY_INBOUND_PORT",
 				Value: fmt.Sprintf("%d", constants.EnvoyInboundListenerPort),
 			},
 			{
-				Name:  "SMC_ENVOY_OUTBOUND_PORT",
+				Name:  "OSM_ENVOY_OUTBOUND_PORT",
 				Value: fmt.Sprintf("%d", constants.EnvoyOutboundListenerPort),
 			},
 		},

@@ -7,7 +7,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes/wrappers"
 
-	smcEndpoint "github.com/open-service-mesh/osm/pkg/endpoint"
+	osmEndpoint "github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 	"github.com/open-service-mesh/osm/pkg/log/level"
 )
@@ -17,7 +17,7 @@ const (
 )
 
 // NewClusterLoadAssignment constructs the Envoy struct necessary for TrafficSplit implementation.
-func NewClusterLoadAssignment(serviceEndpoints smcEndpoint.ServiceEndpoints) v2.ClusterLoadAssignment {
+func NewClusterLoadAssignment(serviceEndpoints osmEndpoint.ServiceEndpoints) v2.ClusterLoadAssignment {
 	cla := v2.ClusterLoadAssignment{
 		ClusterName: string(serviceEndpoints.WeightedService.ServiceName.String()),
 		Endpoints: []*endpoint.LocalityLbEndpoints{

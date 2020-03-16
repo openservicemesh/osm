@@ -12,7 +12,7 @@ import (
 )
 
 // PrometheusNamespace is the Prometheus Namespace
-var PrometheusNamespace = "smc"
+var PrometheusNamespace = "osm"
 
 // MetricStore is store maintaining all metrics
 type MetricStore interface {
@@ -23,8 +23,8 @@ type MetricStore interface {
 	IncK8sAPIEventCounter()
 }
 
-// SMCMetricsStore is store
-type SMCMetricsStore struct {
+// OSMMetricsStore is store
+type OSMMetricsStore struct {
 	constLabels        prometheus.Labels
 	updateLatency      prometheus.Gauge
 	k8sAPIEventCounter prometheus.Counter
@@ -35,11 +35,11 @@ type SMCMetricsStore struct {
 // NewMetricStore returns a new metric store
 func NewMetricStore(nameSpace string, podName string) MetricStore {
 	constLabels := prometheus.Labels{
-		"smc_namespace": nameSpace,
-		"smc_pod":       podName,
-		"smc_version":   fmt.Sprintf("%s/%s/%s", version.Version, version.GitCommit, version.BuildDate),
+		"osm_namespace": nameSpace,
+		"osm_pod":       podName,
+		"osm_version":   fmt.Sprintf("%s/%s/%s", version.Version, version.GitCommit, version.BuildDate),
 	}
-	return &SMCMetricsStore{
+	return &OSMMetricsStore{
 		constLabels: constLabels,
 		updateLatency: prometheus.NewGauge(prometheus.GaugeOpts{
 			Namespace:   PrometheusNamespace,
@@ -58,29 +58,29 @@ func NewMetricStore(nameSpace string, podName string) MetricStore {
 }
 
 // Start store
-func (ms *SMCMetricsStore) Start() {
+func (ms *OSMMetricsStore) Start() {
 	ms.registry.MustRegister(ms.updateLatency)
 	ms.registry.MustRegister(ms.k8sAPIEventCounter)
 }
 
 // Stop store
-func (ms *SMCMetricsStore) Stop() {
+func (ms *OSMMetricsStore) Stop() {
 	ms.registry.Unregister(ms.updateLatency)
 	ms.registry.Unregister(ms.k8sAPIEventCounter)
 }
 
 // SetUpdateLatencySec updates latency
-func (ms *SMCMetricsStore) SetUpdateLatencySec(duration time.Duration) {
+func (ms *OSMMetricsStore) SetUpdateLatencySec(duration time.Duration) {
 	ms.updateLatency.Set(duration.Seconds())
 }
 
 // IncK8sAPIEventCounter increases the counter after recieving a k8s Event
-func (ms *SMCMetricsStore) IncK8sAPIEventCounter() {
+func (ms *OSMMetricsStore) IncK8sAPIEventCounter() {
 	ms.k8sAPIEventCounter.Inc()
 }
 
 // Handler return the registry
-func (ms *SMCMetricsStore) Handler() http.Handler {
+func (ms *OSMMetricsStore) Handler() http.Handler {
 	return promhttp.InstrumentMetricHandler(
 		ms.registry,
 		promhttp.HandlerFor(ms.registry, promhttp.HandlerOpts{}),

@@ -14,15 +14,15 @@ var _ = Describe("Route Configuration", func() {
 		It("Returns route configuration", func() {
 			destWeightedClusters := route.WeightedCluster{
 				Clusters: []*route.WeightedCluster_ClusterWeight{
-					{Name: "smc/bookstore-1", Weight: &wrappers.UInt32Value{Value: uint32(50)}},
-					{Name: "smc/bookstore-2", Weight: &wrappers.UInt32Value{Value: uint32(50)}}},
+					{Name: "osm/bookstore-1", Weight: &wrappers.UInt32Value{Value: uint32(50)}},
+					{Name: "osm/bookstore-2", Weight: &wrappers.UInt32Value{Value: uint32(50)}}},
 				TotalWeight: &wrappers.UInt32Value{Value: uint32(100)},
 			}
 
 			srcWeightedClusters := route.WeightedCluster{
 				Clusters: []*route.WeightedCluster_ClusterWeight{
-					{Name: "smc/bookstore-1-local", Weight: &wrappers.UInt32Value{Value: uint32(50)}},
-					{Name: "smc/bookstore-2-local", Weight: &wrappers.UInt32Value{Value: uint32(50)}}},
+					{Name: "osm/bookstore-1-local", Weight: &wrappers.UInt32Value{Value: uint32(50)}},
+					{Name: "osm/bookstore-2-local", Weight: &wrappers.UInt32Value{Value: uint32(50)}}},
 				TotalWeight: &wrappers.UInt32Value{Value: uint32(100)},
 			}
 
@@ -30,22 +30,22 @@ var _ = Describe("Route Configuration", func() {
 				PolicyName: "bookbuyer-bookstore",
 				Destination: endpoint.TrafficResource{
 					ServiceAccount: "bookstore-serviceaccount",
-					Namespace:      "smc",
+					Namespace:      "osm",
 					Services: []endpoint.NamespacedService{
-						endpoint.NamespacedService{Namespace: "smc", Service: "bookstore-1"},
-						endpoint.NamespacedService{Namespace: "smc", Service: "bookstore-2"}},
+						endpoint.NamespacedService{Namespace: "osm", Service: "bookstore-1"},
+						endpoint.NamespacedService{Namespace: "osm", Service: "bookstore-2"}},
 					Clusters: []endpoint.WeightedCluster{
-						{ClusterName: endpoint.ClusterName("smc/bookstore-1"), Weight: 50},
-						{ClusterName: endpoint.ClusterName("smc/bookstore-2"), Weight: 50}},
+						{ClusterName: endpoint.ClusterName("osm/bookstore-1"), Weight: 50},
+						{ClusterName: endpoint.ClusterName("osm/bookstore-2"), Weight: 50}},
 				},
 				Source: endpoint.TrafficResource{
 					ServiceAccount: "bookbuyer-serviceaccount",
-					Namespace:      "smc",
+					Namespace:      "osm",
 					Services: []endpoint.NamespacedService{
-						endpoint.NamespacedService{Namespace: "smc", Service: "bookbuyer"}},
+						endpoint.NamespacedService{Namespace: "osm", Service: "bookbuyer"}},
 					Clusters: []endpoint.WeightedCluster{
-						{ClusterName: endpoint.ClusterName("smc/bookstore-1"), Weight: 50},
-						{ClusterName: endpoint.ClusterName("smc/bookstore-2"), Weight: 50}},
+						{ClusterName: endpoint.ClusterName("osm/bookstore-1"), Weight: 50},
+						{ClusterName: endpoint.ClusterName("osm/bookstore-2"), Weight: 50}},
 				},
 				PolicyRoutePaths: []endpoint.RoutePaths{
 					endpoint.RoutePaths{
@@ -106,16 +106,16 @@ var _ = Describe("Weighted clusters", func() {
 		It("validated the creation of weighted clusters", func() {
 
 			weightedClusters := []endpoint.WeightedCluster{
-				{ClusterName: endpoint.ClusterName("smc/bookstore-1"), Weight: 30},
-				{ClusterName: endpoint.ClusterName("smc/bookstore-2"), Weight: 70},
+				{ClusterName: endpoint.ClusterName("osm/bookstore-1"), Weight: 30},
+				{ClusterName: endpoint.ClusterName("osm/bookstore-2"), Weight: 70},
 			}
 
 			routeWeightedClusters := getWeightedCluster(weightedClusters, true)
 			Expect(routeWeightedClusters.TotalWeight).To(Equal(&wrappers.UInt32Value{Value: uint32(100)}))
 			Expect(len(routeWeightedClusters.GetClusters())).To(Equal(2))
-			Expect(routeWeightedClusters.GetClusters()[0].Name).To(Equal("smc/bookstore-1-local"))
+			Expect(routeWeightedClusters.GetClusters()[0].Name).To(Equal("osm/bookstore-1-local"))
 			Expect(routeWeightedClusters.GetClusters()[0].Weight).To(Equal(&wrappers.UInt32Value{Value: uint32(30)}))
-			Expect(routeWeightedClusters.GetClusters()[1].Name).To(Equal("smc/bookstore-2-local"))
+			Expect(routeWeightedClusters.GetClusters()[1].Name).To(Equal("osm/bookstore-2-local"))
 			Expect(routeWeightedClusters.GetClusters()[1].Weight).To(Equal(&wrappers.UInt32Value{Value: uint32(70)}))
 
 		})
@@ -127,11 +127,11 @@ var _ = Describe("Route Action weighted clusters", func() {
 		It("Returns the route action with newly added clusters", func() {
 
 			weightedClusters := []endpoint.WeightedCluster{
-				{ClusterName: endpoint.ClusterName("smc/bookstore-1"), Weight: 100},
+				{ClusterName: endpoint.ClusterName("osm/bookstore-1"), Weight: 100},
 			}
 
 			newWeightedClusters := []endpoint.WeightedCluster{
-				{ClusterName: endpoint.ClusterName("smc/bookstore-2"), Weight: 100},
+				{ClusterName: endpoint.ClusterName("osm/bookstore-2"), Weight: 100},
 			}
 
 			route1 := createRoute("counter", weightedClusters, false)
@@ -139,9 +139,9 @@ var _ = Describe("Route Action weighted clusters", func() {
 			updatedAction := updateRouteActionWeightedClusters(*rt[0].GetRoute().GetWeightedClusters(), newWeightedClusters, false)
 			Expect(updatedAction.Route.GetWeightedClusters().TotalWeight).To(Equal(&wrappers.UInt32Value{Value: uint32(200)}))
 			Expect(len(updatedAction.Route.GetWeightedClusters().GetClusters())).To(Equal(2))
-			Expect(updatedAction.Route.GetWeightedClusters().GetClusters()[0].Name).To(Equal("smc/bookstore-1"))
+			Expect(updatedAction.Route.GetWeightedClusters().GetClusters()[0].Name).To(Equal("osm/bookstore-1"))
 			Expect(updatedAction.Route.GetWeightedClusters().GetClusters()[0].Weight).To(Equal(&wrappers.UInt32Value{Value: uint32(100)}))
-			Expect(updatedAction.Route.GetWeightedClusters().GetClusters()[1].Name).To(Equal("smc/bookstore-2"))
+			Expect(updatedAction.Route.GetWeightedClusters().GetClusters()[1].Name).To(Equal("osm/bookstore-2"))
 			Expect(updatedAction.Route.GetWeightedClusters().GetClusters()[1].Weight).To(Equal(&wrappers.UInt32Value{Value: uint32(100)}))
 
 		})

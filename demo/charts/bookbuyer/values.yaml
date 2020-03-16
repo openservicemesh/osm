@@ -5,7 +5,7 @@
 replicaCount: 1
 
 image:
-  repository: smctest.azurecr.io/bookbuyer
+  repository: osmtest.azurecr.io/bookbuyer
   pullPolicy: Always
 
 imagePullSecrets:

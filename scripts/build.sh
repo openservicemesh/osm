@@ -1,7 +1,7 @@
 #!/bin/bash
 
-ORG_PATH="github.com/deislabs"
-PROJECT_NAME="smc"
+ORG_PATH="github.com/open-service-mesh"
+PROJECT_NAME="osm"
 REPO_PATH="${ORG_PATH}/${PROJECT_NAME}"
 
 VERSION_VAR="${REPO_PATH}/pkg/version.Version"
