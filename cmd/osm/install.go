@@ -16,9 +16,9 @@ import (
 )
 
 const installDesc = `
-This command installs the smc control plane on the Kubernetes cluster.
+This command installs the osm control plane on the Kubernetes cluster.
 `
-const serviceAccountName = "smi-xds"
+const serviceAccountName = "smc-xds"
 
 type installCmd struct {
 	out                     io.Writer
@@ -40,7 +40,7 @@ func newInstallCmd(out io.Writer) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "install",
-		Short: "install smc control plane",
+		Short: "install osm control plane",
 		Long:  installDesc,
 		RunE: func(_ *cobra.Command, args []string) error {
 			return install.run()
@@ -48,7 +48,7 @@ func newInstallCmd(out io.Writer) *cobra.Command {
 	}
 
 	f := cmd.Flags()
-	f.StringVarP(&install.namespace, "namespace", "n", "smc", "namespace to install control plane components")
+	f.StringVarP(&install.namespace, "namespace", "n", "osm", "namespace to install control plane components")
 	f.StringVar(&install.containerRegistry, "container-registry", "smctest.azurecr.io", "container registry that hosts control plane component images")
 	f.StringVar(&install.containerRegistrySecret, "container-registry-secret", "acr-creds", "name of the container registry Kubernetes Secret that contains container registry credentials")
 

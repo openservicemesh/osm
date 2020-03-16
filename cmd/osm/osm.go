@@ -8,17 +8,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var globalUsage = `smc enables you to install and manage the 
+var globalUsage = `osm enables you to install and manage the 
 open service mesh in your Kubernetes cluster
 
 To install and configure open service mesh, run:
 
-   $ smc install
+   $ osm install
 `
 
 func newRootCmd(args []string, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "smc",
+		Use:   "osm",
 		Short: "Install and manage open service mesh",
 		Long:  globalUsage,
 	}
