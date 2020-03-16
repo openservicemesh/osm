@@ -5,8 +5,8 @@ import (
 	"net"
 	"time"
 
-	"github.com/open-service-mesh/osm/pkg/log/level"
 	"github.com/golang/glog"
+	"github.com/open-service-mesh/osm/pkg/log/level"
 )
 
 func (az *Client) getVMSS(rg resourceGroup, vmID azureID) ([]net.IP, error) {

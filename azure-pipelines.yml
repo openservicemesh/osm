@@ -51,8 +51,8 @@ steps:
     go version
 
     # set version
-    ORG_PATH="github.com/deislabs"
-    PROJECT_NAME="smc"
+    ORG_PATH="github.com/open-service-mesh"
+    PROJECT_NAME="osm"
     REPO_PATH="${ORG_PATH}/${PROJECT_NAME}"
     VERSION_VAR="${REPO_PATH}/pkg/version.Version"
     VERSION=$(git describe --abbrev=0 --tags)
@@ -62,9 +62,9 @@ steps:
     GIT_HASH=$(git rev-parse --short HEAD)
 
     echo "VERSION $VERSION_VAR:$VERSION, BUILD_DATE $DATE_VAR:$BUILD_DATE, GIT_HASH $COMMIT_VAR:$GIT_HASH"
-    if  go install -ldflags "-s -X ${VERSION_VAR}=${VERSION} -X ${DATE_VAR}=${BUILD_DATE} -X ${COMMIT_VAR}=${GIT_HASH}" -v ./cmd/smc; then
+    if  go install -ldflags "-s -X ${VERSION_VAR}=${VERSION} -X ${DATE_VAR}=${BUILD_DATE} -X ${COMMIT_VAR}=${GIT_HASH}" -v ./cmd/osm; then
         chmod -R 777 $(GOBIN)
-        $(GOBIN)/smc --version
+        $(GOBIN)/osm --version
         echo -e "\e[42;97m Build SUCCEEDED \e[0m"
     else
         echo -e "\e[101;97m Build FAILED \e[0m"
