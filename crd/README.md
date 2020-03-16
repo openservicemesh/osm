@@ -1,11 +1,11 @@
-# Generating SMC CRDs
+# Generating OSM CRDs
 
 This document outlines the steps necessary to generate the Go code supporting the CRDs in [this](./crd/) directory.
 
 ### Assumptions
 Code generation scripts assumes:
   - `$GOPATH` is correctly setup on this workstation
-  - this repository has been cloned in `$GOPATH/src/github.com/deislabs/smc/`
+  - this repository has been cloned in `$GOPATH/src/github.com/open-service-mesh/osm/`
 
 ### Prerequisites
   1. Download (clone) [the code-generation tool](https://github.com/kubernetes/code-generator):
@@ -21,8 +21,8 @@ Code generation scripts assumes:
         ```
         $GOPATH/src/k8s.io/code-generator/generate-groups.sh \
             all \
-            github.com/deislabs/smc/pkg/smc_client \
-            github.com/deislabs/smc/pkg/apis \
+            github.com/open-service-mesh/osm/pkg/osm_client \
+            github.com/open-service-mesh/osm/pkg/apis \
             "azureresource:v1"
         ```
 

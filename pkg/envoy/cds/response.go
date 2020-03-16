@@ -8,11 +8,11 @@ import (
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes"
 
-	"github.com/deislabs/smc/pkg/catalog"
-	"github.com/deislabs/smc/pkg/envoy"
-	"github.com/deislabs/smc/pkg/log/level"
-	"github.com/deislabs/smc/pkg/smi"
-	"github.com/deislabs/smc/pkg/utils"
+	"github.com/open-service-mesh/osm/pkg/catalog"
+	"github.com/open-service-mesh/osm/pkg/envoy"
+	"github.com/open-service-mesh/osm/pkg/log/level"
+	"github.com/open-service-mesh/osm/pkg/smi"
+	"github.com/open-service-mesh/osm/pkg/utils"
 )
 
 type empty struct{}

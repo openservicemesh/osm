@@ -3,7 +3,7 @@ package cla
 import (
 	"net"
 
-	"github.com/deislabs/smc/pkg/endpoint"
+	"github.com/open-service-mesh/osm/pkg/endpoint"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -15,7 +15,7 @@ var _ = Describe("Testing Cluster Load Assignment", func() {
 			serviceEndpoints := []endpoint.ServiceEndpoints{}
 			serviceEndpoints = append(serviceEndpoints, endpoint.ServiceEndpoints{
 				WeightedService: endpoint.WeightedService{
-					ServiceName: endpoint.NamespacedService{Namespace: "smc", Service: "bookstore-1"},
+					ServiceName: endpoint.NamespacedService{Namespace: "osm", Service: "bookstore-1"},
 					Weight:      50,
 				},
 				Endpoints: []endpoint.Endpoint{
@@ -24,7 +24,7 @@ var _ = Describe("Testing Cluster Load Assignment", func() {
 			})
 			serviceEndpoints = append(serviceEndpoints, endpoint.ServiceEndpoints{
 				WeightedService: endpoint.WeightedService{
-					ServiceName: endpoint.NamespacedService{Namespace: "smc", Service: "bookstore-2"},
+					ServiceName: endpoint.NamespacedService{Namespace: "osm", Service: "bookstore-2"},
 					Weight:      50,
 				},
 				Endpoints: []endpoint.Endpoint{
@@ -35,13 +35,13 @@ var _ = Describe("Testing Cluster Load Assignment", func() {
 
 			cla := NewClusterLoadAssignment(serviceEndpoints[0])
 			Expect(cla).NotTo(Equal(nil))
-			Expect(cla.ClusterName).To(Equal("smc/bookstore-1"))
+			Expect(cla.ClusterName).To(Equal("osm/bookstore-1"))
 			Expect(len(cla.Endpoints)).To(Equal(1))
 			Expect(len(cla.Endpoints[0].LbEndpoints)).To(Equal(1))
 			Expect(cla.Endpoints[0].LbEndpoints[0].GetLoadBalancingWeight().Value).To(Equal(uint32(100)))
 			cla2 := NewClusterLoadAssignment(serviceEndpoints[1])
 			Expect(cla2).NotTo(Equal(nil))
-			Expect(cla2.ClusterName).To(Equal("smc/bookstore-2"))
+			Expect(cla2.ClusterName).To(Equal("osm/bookstore-2"))
 			Expect(len(cla2.Endpoints)).To(Equal(1))
 			Expect(len(cla2.Endpoints[0].LbEndpoints)).To(Equal(2))
 			Expect(cla2.Endpoints[0].LbEndpoints[0].GetLoadBalancingWeight().Value).To(Equal(uint32(50)))

@@ -26,7 +26,7 @@ spec:
   type: NodePort
 ---
 
-apiVersion: smc.osm.k8s.io/v1
+apiVersion: osm.osm.k8s.io/v1
 kind: AzureResource
 metadata:
   name: bookstore

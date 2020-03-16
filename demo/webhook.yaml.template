@@ -6,7 +6,7 @@ metadata:
   labels:
     app: {{ .Name }}
 webhooks:
-  - name: smc-inject.k8s.io
+  - name: osm-inject.k8s.io
     clientConfig:
       service:
         name: {{ .Name }}

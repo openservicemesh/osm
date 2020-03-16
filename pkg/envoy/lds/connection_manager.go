@@ -4,7 +4,7 @@ import (
 	envoy_hcm "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 
-	"github.com/deislabs/smc/pkg/envoy"
+	"github.com/open-service-mesh/osm/pkg/envoy"
 )
 
 const (

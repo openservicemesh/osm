@@ -1,5 +1,5 @@
 // +k8s:deepcopy-gen=package,register
-// +groupName=smc.osm.k8s.io
+// +groupName=osm.osm.k8s.io
 
 // Package v1 contains API Schema definitions for the AzureResource v1 API group
 package v1
@@ -13,7 +13,7 @@ import (
 var (
 	// SchemeGroupVersion is group version used to register these objects
 	SchemeGroupVersion = schema.GroupVersion{
-		Group:   "smc.osm.k8s.io",
+		Group:   "osm.osm.k8s.io",
 		Version: "v1",
 	}
 

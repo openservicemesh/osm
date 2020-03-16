@@ -7,9 +7,9 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/deislabs/smc/pkg/endpoint"
-	"github.com/deislabs/smc/pkg/log/level"
-	"github.com/deislabs/smc/pkg/utils"
+	"github.com/open-service-mesh/osm/pkg/endpoint"
+	"github.com/open-service-mesh/osm/pkg/log/level"
+	"github.com/open-service-mesh/osm/pkg/utils"
 )
 
 type empty struct{}

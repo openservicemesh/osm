@@ -3,7 +3,7 @@ package injector
 import (
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/deislabs/smc/pkg/constants"
+	"github.com/open-service-mesh/osm/pkg/constants"
 )
 
 // getVolumeSpec returns a list of volumes to add to the POD

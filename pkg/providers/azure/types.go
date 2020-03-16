@@ -8,8 +8,8 @@ import (
 	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2019-06-01/network"
 	"github.com/Azure/go-autorest/autorest"
 
-	smc "github.com/deislabs/smc/pkg/apis/azureresource/v1"
-	"github.com/deislabs/smc/pkg/smi"
+	osm "github.com/open-service-mesh/osm/pkg/apis/azureresource/v1"
+	"github.com/open-service-mesh/osm/pkg/smi"
 )
 
 type resourceGroup string
@@ -64,5 +64,5 @@ type Client struct {
 // ResourceClient is an interface defining necessary functions to list the AzureResources.
 type ResourceClient interface {
 	// ListAzureResources lists the AzureResources, which will become mapping of a Service to an Azure URI.
-	ListAzureResources() []*smc.AzureResource
+	ListAzureResources() []*osm.AzureResource
 }

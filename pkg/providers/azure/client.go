@@ -7,7 +7,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/golang/glog"
 
-	"github.com/deislabs/smc/pkg/smi"
+	"github.com/open-service-mesh/osm/pkg/smi"
 )
 
 // NewProvider creates an Azure Client

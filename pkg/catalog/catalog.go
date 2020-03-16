@@ -9,9 +9,9 @@ import (
 	mapset "github.com/deckarep/golang-set"
 	"github.com/golang/glog"
 
-	"github.com/deislabs/smc/pkg/certificate"
-	"github.com/deislabs/smc/pkg/endpoint"
-	"github.com/deislabs/smc/pkg/smi"
+	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/open-service-mesh/osm/pkg/endpoint"
+	"github.com/open-service-mesh/osm/pkg/smi"
 )
 
 // NewMeshCatalog creates a new service catalog
@@ -38,11 +38,11 @@ func NewMeshCatalog(meshSpec smi.MeshSpec, certManager certificate.Manager, stop
 	return &sc
 }
 
-// GetDebugInfo returns an HTTP handler for SMC debug endpoint.
+// GetDebugInfo returns an HTTP handler for OSM debug endpoint.
 func (sc *MeshCatalog) GetDebugInfo() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// TODO(draychev): convert to CLI flag
-		if value, ok := os.LookupEnv("SMC_ENABLE_DEBUG"); ok && value == "true" {
+		if value, ok := os.LookupEnv("OSM_ENABLE_DEBUG"); ok && value == "true" {
 			_, _ = fmt.Fprintf(w, "hello\n")
 		}
 	})

@@ -9,8 +9,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	"github.com/deislabs/smc/demo/cmd/common"
-	"github.com/deislabs/smc/pkg/constants"
+	"github.com/open-service-mesh/osm/demo/cmd/common"
+	"github.com/open-service-mesh/osm/pkg/constants"
 )
 
 func main() {

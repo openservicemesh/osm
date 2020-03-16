@@ -9,10 +9,10 @@ import (
 	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes/wrappers"
 
-	"github.com/deislabs/smc/pkg/endpoint"
-	smcEndpoint "github.com/deislabs/smc/pkg/endpoint"
-	"github.com/deislabs/smc/pkg/envoy"
-	"github.com/deislabs/smc/pkg/log/level"
+	"github.com/open-service-mesh/osm/pkg/endpoint"
+	osmEndpoint "github.com/open-service-mesh/osm/pkg/endpoint"
+	"github.com/open-service-mesh/osm/pkg/envoy"
+	"github.com/open-service-mesh/osm/pkg/log/level"
 )
 
 const (
@@ -24,7 +24,7 @@ const (
 )
 
 //UpdateRouteConfiguration consrtucts the Envoy construct necessary for TrafficTarget implementation
-func UpdateRouteConfiguration(trafficPolicies smcEndpoint.TrafficTargetPolicies, routeConfig v2.RouteConfiguration, isSourceService bool, isDestinationService bool) v2.RouteConfiguration {
+func UpdateRouteConfiguration(trafficPolicies osmEndpoint.TrafficTargetPolicies, routeConfig v2.RouteConfiguration, isSourceService bool, isDestinationService bool) v2.RouteConfiguration {
 	glog.V(level.Trace).Infof("[RDS] Updating Route Configuration")
 	var routeConfiguration v2.RouteConfiguration
 	var isLocalCluster bool
@@ -40,7 +40,7 @@ func UpdateRouteConfiguration(trafficPolicies smcEndpoint.TrafficTargetPolicies,
 	return routeConfiguration
 }
 
-func updateRoutes(routePaths []smcEndpoint.RoutePaths, cluster []smcEndpoint.WeightedCluster, routeConfig v2.RouteConfiguration, isLocalCluster bool) v2.RouteConfiguration {
+func updateRoutes(routePaths []osmEndpoint.RoutePaths, cluster []osmEndpoint.WeightedCluster, routeConfig v2.RouteConfiguration, isLocalCluster bool) v2.RouteConfiguration {
 	allowedMethods := strings.Split(routeConfig.VirtualHosts[0].Cors.AllowMethods, ",")
 	for _, path := range routePaths {
 		routedMatched := false

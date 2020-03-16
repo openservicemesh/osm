@@ -14,7 +14,7 @@ import (
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 
-	"github.com/deislabs/smc/pkg/certificate"
+	"github.com/open-service-mesh/osm/pkg/certificate"
 )
 
 func setupMutualTLS(insecure bool, serverName string, certPem string, keyPem string, rootCertPem string) grpc.ServerOption {

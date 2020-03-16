@@ -8,7 +8,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/pkg/errors"
 
-	"github.com/deislabs/smc/pkg/certificate"
+	"github.com/open-service-mesh/osm/pkg/certificate"
 )
 
 const (
