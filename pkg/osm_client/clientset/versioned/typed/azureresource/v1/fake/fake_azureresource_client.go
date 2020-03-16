@@ -19,22 +19,22 @@ limitations under the License.
 package fake
 
 import (
-	v1 "github.com/open-service-mesh/osm/pkg/smc_client/clientset/versioned/typed/azureresource/v1"
+	v1 "github.com/open-service-mesh/osm/pkg/osm_client/clientset/versioned/typed/azureresource/v1"
 	rest "k8s.io/client-go/rest"
 	testing "k8s.io/client-go/testing"
 )
 
-type FakeSmcV1 struct {
+type FakeOsmV1 struct {
 	*testing.Fake
 }
 
-func (c *FakeSmcV1) AzureResources(namespace string) v1.AzureResourceInterface {
+func (c *FakeOsmV1) AzureResources(namespace string) v1.AzureResourceInterface {
 	return &FakeAzureResources{c, namespace}
 }
 
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
-func (c *FakeSmcV1) RESTClient() rest.Interface {
+func (c *FakeOsmV1) RESTClient() rest.Interface {
 	var ret *rest.RESTClient
 	return ret
 }

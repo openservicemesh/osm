@@ -47,10 +47,10 @@ build-cross: build-cross-ads
 build-cross-ads: gox
 	GO111MODULE=on CGO_ENABLED=0 $(GOX) -output="./bin/{{.OS}}-{{.Arch}}/ads" -osarch='$(TARGETS)' -ldflags '$(LDFLAGS)' ./cmd/ads
 
-.PHONY: build-smc
-build-smc:
+.PHONY: build-osm
+build-osm:
 	@mkdir -p $(shell pwd)/bin
-	CGO_ENABLED=0  go build -v -o ./bin/smc ./cmd/smc
+	CGO_ENABLED=0  go build -v -o ./bin/osm ./cmd/osm
 
 .PHONY: docker-build
 docker-build: build-cross docker-build-bookbuyer docker-build-bookstore docker-build-ads

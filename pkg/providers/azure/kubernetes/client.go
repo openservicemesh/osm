@@ -8,10 +8,10 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
-	smc "github.com/open-service-mesh/osm/pkg/apis/azureresource/v1"
+	osm "github.com/open-service-mesh/osm/pkg/apis/azureresource/v1"
 	"github.com/open-service-mesh/osm/pkg/log/level"
-	smcClient "github.com/open-service-mesh/osm/pkg/smc_client/clientset/versioned"
-	smcInformers "github.com/open-service-mesh/osm/pkg/smc_client/informers/externalversions"
+	osmClient "github.com/open-service-mesh/osm/pkg/osm_client/clientset/versioned"
+	osmInformers "github.com/open-service-mesh/osm/pkg/osm_client/informers/externalversions"
 )
 
 const (
@@ -23,7 +23,7 @@ var resyncPeriod = 10 * time.Second
 // NewClient creates the Kubernetes client, which retrieves the AzureResource CRD and Services resources.
 func NewClient(kubeConfig *rest.Config, namespaces []string, stop chan struct{}) *Client {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
-	azureResourceClient := smcClient.NewForConfigOrDie(kubeConfig)
+	azureResourceClient := osmClient.NewForConfigOrDie(kubeConfig)
 
 	k8sClient := newClient(kubeClient, azureResourceClient, namespaces)
 	if err := k8sClient.Run(stop); err != nil {
@@ -33,14 +33,14 @@ func NewClient(kubeConfig *rest.Config, namespaces []string, stop chan struct{})
 }
 
 // newClient creates a provider based on a Kubernetes client instance.
-func newClient(kubeClient *kubernetes.Clientset, azureResourceClient *smcClient.Clientset, namespaces []string) *Client {
-	var options []smcInformers.SharedInformerOption
+func newClient(kubeClient *kubernetes.Clientset, azureResourceClient *osmClient.Clientset, namespaces []string) *Client {
+	var options []osmInformers.SharedInformerOption
 	for _, namespace := range namespaces {
-		options = append(options, smcInformers.WithNamespace(namespace))
+		options = append(options, osmInformers.WithNamespace(namespace))
 	}
-	azureResourceFactory := smcInformers.NewSharedInformerFactoryWithOptions(azureResourceClient, resyncPeriod, options...)
+	azureResourceFactory := osmInformers.NewSharedInformerFactoryWithOptions(azureResourceClient, resyncPeriod, options...)
 	informerCollection := InformerCollection{
-		AzureResource: azureResourceFactory.Smc().V1().AzureResources().Informer(),
+		AzureResource: azureResourceFactory.Osm().V1().AzureResources().Informer(),
 	}
 
 	cacheCollection := CacheCollection{
@@ -91,10 +91,10 @@ func (c *Client) Run(stop <-chan struct{}) error {
 }
 
 // ListAzureResources lists the AzureResource CRD resources.
-func (c *Client) ListAzureResources() []*smc.AzureResource {
-	var azureResources []*smc.AzureResource
+func (c *Client) ListAzureResources() []*osm.AzureResource {
+	var azureResources []*osm.AzureResource
 	for _, azureResourceInterface := range c.caches.AzureResource.List() {
-		azureResource := azureResourceInterface.(*smc.AzureResource)
+		azureResource := azureResourceInterface.(*osm.AzureResource)
 		azureResources = append(azureResources, azureResource)
 	}
 	return azureResources

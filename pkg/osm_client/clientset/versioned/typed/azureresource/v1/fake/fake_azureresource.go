@@ -30,13 +30,13 @@ import (
 
 // FakeAzureResources implements AzureResourceInterface
 type FakeAzureResources struct {
-	Fake *FakeSmcV1
+	Fake *FakeOsmV1
 	ns   string
 }
 
-var azureresourcesResource = schema.GroupVersionResource{Group: "smc.osm.k8s.io", Version: "v1", Resource: "azureresources"}
+var azureresourcesResource = schema.GroupVersionResource{Group: "osm.osm.k8s.io", Version: "v1", Resource: "azureresources"}
 
-var azureresourcesKind = schema.GroupVersionKind{Group: "smc.osm.k8s.io", Version: "v1", Kind: "AzureResource"}
+var azureresourcesKind = schema.GroupVersionKind{Group: "osm.osm.k8s.io", Version: "v1", Kind: "AzureResource"}
 
 // Get takes name of the azureResource, and returns the corresponding azureResource object, and an error if there is any.
 func (c *FakeAzureResources) Get(name string, options v1.GetOptions) (result *azureresourcev1.AzureResource, err error) {

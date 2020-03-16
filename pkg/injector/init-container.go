@@ -10,7 +10,7 @@ import (
 
 const (
 	// InitContainerName is the name of the init container
-	InitContainerName = "smc-init"
+	InitContainerName = "osm-init"
 )
 
 func getInitContainerSpec(pod *corev1.Pod, data *InitContainerData) (corev1.Container, error) {

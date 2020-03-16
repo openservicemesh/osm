@@ -23,9 +23,9 @@ import (
 	sync "sync"
 	time "time"
 
-	versioned "github.com/open-service-mesh/osm/pkg/smc_client/clientset/versioned"
-	azureresource "github.com/open-service-mesh/osm/pkg/smc_client/informers/externalversions/azureresource"
-	internalinterfaces "github.com/open-service-mesh/osm/pkg/smc_client/informers/externalversions/internalinterfaces"
+	versioned "github.com/open-service-mesh/osm/pkg/osm_client/clientset/versioned"
+	azureresource "github.com/open-service-mesh/osm/pkg/osm_client/informers/externalversions/azureresource"
+	internalinterfaces "github.com/open-service-mesh/osm/pkg/osm_client/informers/externalversions/internalinterfaces"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -172,9 +172,9 @@ type SharedInformerFactory interface {
 	ForResource(resource schema.GroupVersionResource) (GenericInformer, error)
 	WaitForCacheSync(stopCh <-chan struct{}) map[reflect.Type]bool
 
-	Smc() azureresource.Interface
+	Osm() azureresource.Interface
 }
 
-func (f *sharedInformerFactory) Smc() azureresource.Interface {
+func (f *sharedInformerFactory) Osm() azureresource.Interface {
 	return azureresource.New(f, f.namespace, f.tweakListOptions)
 }

@@ -21,7 +21,7 @@ package versioned
 import (
 	"fmt"
 
-	smcv1 "github.com/open-service-mesh/osm/pkg/smc_client/clientset/versioned/typed/azureresource/v1"
+	osmv1 "github.com/open-service-mesh/osm/pkg/osm_client/clientset/versioned/typed/azureresource/v1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
@@ -29,19 +29,19 @@ import (
 
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
-	SmcV1() smcv1.SmcV1Interface
+	OsmV1() osmv1.OsmV1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	smcV1 *smcv1.SmcV1Client
+	osmV1 *osmv1.OsmV1Client
 }
 
-// SmcV1 retrieves the SmcV1Client
-func (c *Clientset) SmcV1() smcv1.SmcV1Interface {
-	return c.smcV1
+// OsmV1 retrieves the OsmV1Client
+func (c *Clientset) OsmV1() osmv1.OsmV1Interface {
+	return c.osmV1
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -65,7 +65,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	}
 	var cs Clientset
 	var err error
-	cs.smcV1, err = smcv1.NewForConfig(&configShallowCopy)
+	cs.osmV1, err = osmv1.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
-	cs.smcV1 = smcv1.NewForConfigOrDie(c)
+	cs.osmV1 = osmv1.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -90,7 +90,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
-	cs.smcV1 = smcv1.New(c)
+	cs.osmV1 = osmv1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

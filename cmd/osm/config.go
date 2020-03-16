@@ -192,7 +192,7 @@ func generateKubernetesConfig(name, namespace, serviceAccountName, containerRegi
 func generateRBAC(namespace, serviceAccountName string) (*rbacv1.ClusterRole, *rbacv1.ClusterRoleBinding, *apiv1.ServiceAccount) {
 	role := &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "smc-xds",
+			Name: "osm-xds",
 		},
 		Rules: []rbacv1.PolicyRule{
 			rbacv1.PolicyRule{
@@ -229,24 +229,24 @@ func generateRBAC(namespace, serviceAccountName string) (*rbacv1.ClusterRole, *r
 	}
 	roleBinding := &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "smc-xds",
+			Name: "osm-xds",
 		},
 		Subjects: []rbacv1.Subject{
 			rbacv1.Subject{
 				Kind:      "ServiceAccount",
-				Name:      "smc-xds",
+				Name:      "osm-xds",
 				Namespace: namespace,
 			},
 		},
 		RoleRef: rbacv1.RoleRef{
 			APIGroup: "rbac.authorization.k8s.io",
 			Kind:     "ClusterRole",
-			Name:     "smc-xds",
+			Name:     "osm-xds",
 		},
 	}
 	serviceAccount := &apiv1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "smc-xds",
+			Name:      "osm-xds",
 			Namespace: namespace,
 		},
 	}

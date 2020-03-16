@@ -20,26 +20,26 @@ package v1
 
 import (
 	v1 "github.com/open-service-mesh/osm/pkg/apis/azureresource/v1"
-	"github.com/open-service-mesh/osm/pkg/smc_client/clientset/versioned/scheme"
+	"github.com/open-service-mesh/osm/pkg/osm_client/clientset/versioned/scheme"
 	rest "k8s.io/client-go/rest"
 )
 
-type SmcV1Interface interface {
+type OsmV1Interface interface {
 	RESTClient() rest.Interface
 	AzureResourcesGetter
 }
 
-// SmcV1Client is used to interact with features provided by the smc.osm.k8s.io group.
-type SmcV1Client struct {
+// OsmV1Client is used to interact with features provided by the osm.osm.k8s.io group.
+type OsmV1Client struct {
 	restClient rest.Interface
 }
 
-func (c *SmcV1Client) AzureResources(namespace string) AzureResourceInterface {
+func (c *OsmV1Client) AzureResources(namespace string) AzureResourceInterface {
 	return newAzureResources(c, namespace)
 }
 
-// NewForConfig creates a new SmcV1Client for the given config.
-func NewForConfig(c *rest.Config) (*SmcV1Client, error) {
+// NewForConfig creates a new OsmV1Client for the given config.
+func NewForConfig(c *rest.Config) (*OsmV1Client, error) {
 	config := *c
 	if err := setConfigDefaults(&config); err != nil {
 		return nil, err
@@ -48,12 +48,12 @@ func NewForConfig(c *rest.Config) (*SmcV1Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &SmcV1Client{client}, nil
+	return &OsmV1Client{client}, nil
 }
 
-// NewForConfigOrDie creates a new SmcV1Client for the given config and
+// NewForConfigOrDie creates a new OsmV1Client for the given config and
 // panics if there is an error in the config.
-func NewForConfigOrDie(c *rest.Config) *SmcV1Client {
+func NewForConfigOrDie(c *rest.Config) *OsmV1Client {
 	client, err := NewForConfig(c)
 	if err != nil {
 		panic(err)
@@ -61,9 +61,9 @@ func NewForConfigOrDie(c *rest.Config) *SmcV1Client {
 	return client
 }
 
-// New creates a new SmcV1Client for the given RESTClient.
-func New(c rest.Interface) *SmcV1Client {
-	return &SmcV1Client{c}
+// New creates a new OsmV1Client for the given RESTClient.
+func New(c rest.Interface) *OsmV1Client {
+	return &OsmV1Client{c}
 }
 
 func setConfigDefaults(config *rest.Config) error {
@@ -81,7 +81,7 @@ func setConfigDefaults(config *rest.Config) error {
 
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
-func (c *SmcV1Client) RESTClient() rest.Interface {
+func (c *OsmV1Client) RESTClient() rest.Interface {
 	if c == nil {
 		return nil
 	}

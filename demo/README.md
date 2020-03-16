@@ -30,7 +30,7 @@
 In the root directory of the repo create a `.env` file. It is already listed in `.gitignore` so that anything you put in it would not accidentally leak into a public git repo. The `.env` file should contain the following Bash variables:
    - `K8S_NAMESPACE` - Namespace within your Kubernetes cluster, where OSM will be installed. This cannot be the `default` namespace because it has to be a namespace that can be deleted.
    - `AZURE_SUBSCRIPTION` - the Azure subscription where your Kubernete cluster resides. The demo will use this to configure the Endpoint Discovery Service's cloud observer.
-   - `CTR_REGISTRY` - URL of the container registry. For example: `draychev.azurecr.io/smc`
+   - `CTR_REGISTRY` - URL of the container registry. For example: `draychev.azurecr.io/osm`
    - `CTR_REGISTRY_CREDS_NAME` - name to be used for the Kubernetes secrets resource to be created from the Docker container registry.
 
 An example is provided in the `.env.example` in the root of this repo.
@@ -75,7 +75,7 @@ The following sections outline how to onboard VMs to participate in a service me
 	```
 	$ envoy --version
 	```
-- Copy the Envoy boostrap configuration file `smc/config/bootstrap.yaml`  to `/etc/envoy/bootstrap.yaml`
+- Copy the Envoy boostrap configuration file `osm/config/bootstrap.yaml`  to `/etc/envoy/bootstrap.yaml`
 	Refer to [Envoy - Getting Started guide](https://www.envoyproxy.io/docs/envoy/latest/start/start#https://www.envoyproxy.io/docs/envoy/latest/start/start#) for setting up the bootstrap configuration.
 
 - Add the hostname to IP address mapping for the xDS services in `/etc/hosts` file on the VM so that the envoy proxy can connect to the xDS services using their hostname specified in the bootstrap config file.
@@ -100,8 +100,8 @@ The following sections outline how to onboard VMs to participate in a service me
 	$ systemctl daemon-reload
 	```
 - Set up the certificates required for mTLS between Envoy proxies and for Envoy proxy to OSM control plane communication
-	- Copy `smc/demo/certificates/*` to `/etc/certs/` on the VM
-	- Copy `smc/bin/cert.pem`, `smc/bin/key.pem` to `/etc/ssl/certs/` on the VM
+	- Copy `osm/demo/certificates/*` to `/etc/certs/` on the VM
+	- Copy `osm/bin/cert.pem`, `osm/bin/key.pem` to `/etc/ssl/certs/` on the VM
 
 - Start Envoy proxy
 	```
@@ -110,4 +110,4 @@ The following sections outline how to onboard VMs to participate in a service me
 
 - Check `/var/log/syslog` if you encounter issues with Envoy
 
-- Copy and run the bookstore app `smc/demo/bin/bookstore` on the VM
+- Copy and run the bookstore app `osm/demo/bin/bookstore` on the VM

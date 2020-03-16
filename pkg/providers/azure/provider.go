@@ -8,7 +8,7 @@ import (
 	"github.com/golang/glog"
 	corev1 "k8s.io/api/core/v1"
 
-	smc "github.com/open-service-mesh/osm/pkg/apis/azureresource/v1"
+	osm "github.com/open-service-mesh/osm/pkg/apis/azureresource/v1"
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/log/level"
@@ -109,9 +109,9 @@ type kv struct {
 	v string
 }
 
-func matchServiceAzureResource(svc *corev1.Service, azureResourcesList []*smc.AzureResource) []azureID {
+func matchServiceAzureResource(svc *corev1.Service, azureResourcesList []*osm.AzureResource) []azureID {
 	glog.V(level.Trace).Infof("[azure] Match service %s to an AzureID", svc)
-	azureResources := make(map[kv]*smc.AzureResource)
+	azureResources := make(map[kv]*osm.AzureResource)
 	for _, azRes := range azureResourcesList {
 		for k, v := range azRes.ObjectMeta.Labels {
 			azureResources[kv{k, v}] = azRes

@@ -12,7 +12,7 @@ import (
 )
 
 // PrometheusNamespace is the Prometheus Namespace
-var PrometheusNamespace = "smc"
+var PrometheusNamespace = "osm"
 
 // MetricStore is store maintaining all metrics
 type MetricStore interface {
@@ -35,9 +35,9 @@ type OSMMetricsStore struct {
 // NewMetricStore returns a new metric store
 func NewMetricStore(nameSpace string, podName string) MetricStore {
 	constLabels := prometheus.Labels{
-		"smc_namespace": nameSpace,
-		"smc_pod":       podName,
-		"smc_version":   fmt.Sprintf("%s/%s/%s", version.Version, version.GitCommit, version.BuildDate),
+		"osm_namespace": nameSpace,
+		"osm_pod":       podName,
+		"osm_version":   fmt.Sprintf("%s/%s/%s", version.Version, version.GitCommit, version.BuildDate),
 	}
 	return &OSMMetricsStore{
 		constLabels: constLabels,

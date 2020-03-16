@@ -22,9 +22,9 @@ import (
 	time "time"
 
 	azureresourcev1 "github.com/open-service-mesh/osm/pkg/apis/azureresource/v1"
-	versioned "github.com/open-service-mesh/osm/pkg/smc_client/clientset/versioned"
-	internalinterfaces "github.com/open-service-mesh/osm/pkg/smc_client/informers/externalversions/internalinterfaces"
-	v1 "github.com/open-service-mesh/osm/pkg/smc_client/listers/azureresource/v1"
+	versioned "github.com/open-service-mesh/osm/pkg/osm_client/clientset/versioned"
+	internalinterfaces "github.com/open-service-mesh/osm/pkg/osm_client/informers/externalversions/internalinterfaces"
+	v1 "github.com/open-service-mesh/osm/pkg/osm_client/listers/azureresource/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"
@@ -61,13 +61,13 @@ func NewFilteredAzureResourceInformer(client versioned.Interface, namespace stri
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.SmcV1().AzureResources(namespace).List(options)
+				return client.OsmV1().AzureResources(namespace).List(options)
 			},
 			WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 				if tweakListOptions != nil {
 					tweakListOptions(&options)
 				}
-				return client.SmcV1().AzureResources(namespace).Watch(options)
+				return client.OsmV1().AzureResources(namespace).Watch(options)
 			},
 		},
 		&azureresourcev1.AzureResource{},

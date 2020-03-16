@@ -196,7 +196,7 @@ The **intersection** of the set of issued `ProxyCertificates` ∩ connected `Pro
 
   - Each `Proxy` is issued a unique `ProxyCertificate`, which is dedicated to xDS mTLS communication
   - `ProxyCertificate` has a per-proxy unique Subject CN, which identifies the `Proxy`
-  - The `Proxy`'s service membership is determined by examining the CN FQDN (`<proxy-UUID>.<service-name>.<service-namespace>`), where service name and namespace are the strings following the first and second period respectively in the CN of the `ProxyCertificate`. For example, `proxy-XYZ.bookstore.smc.mesh` is a CN assigned to a proxy, where `proxy-XYZ` is the unique ID of the proxy, `bookstore` is the name of the service and `smc` is the namespace in which the service exists.
+  - The `Proxy`'s service membership is determined by examining the CN FQDN (`<proxy-UUID>.<service-name>.<service-namespace>`), where service name and namespace are the strings following the first and second period respectively in the CN of the `ProxyCertificate`. For example, `proxy-XYZ.bookstore.osm.mesh` is a CN assigned to a proxy, where `proxy-XYZ` is the unique ID of the proxy, `bookstore` is the name of the service and `osm` is the namespace in which the service exists.
   - There is one unique `ProxyCertificate` issued to one `Proxy`, which is dedicated to one unique `Endpoint`, and all of these can belong to only one `Service`
   - A mesh `Service` however would be constructed by one or more (`ProxyCertificate` + `Proxy` + `Endpoint`) tuples
 
@@ -369,7 +369,7 @@ the service: `/resource/subscriptions/e3f0/resourceGroups/mesh-rg/providers/Micr
 From the URI the provider will resolve the list of IP addresses of participating Envoy proxies.
 
 ```go
-package smc
+package osm
 
 // EndpointsProvider is an interface to be implemented by components abstracting Kubernetes, Azure, and other compute/cluster providers.
 type EndpointsProvider interface {

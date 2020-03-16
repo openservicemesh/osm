@@ -19,8 +19,8 @@ limitations under the License.
 package azureresource
 
 import (
-	v1 "github.com/open-service-mesh/osm/pkg/smc_client/informers/externalversions/azureresource/v1"
-	internalinterfaces "github.com/open-service-mesh/osm/pkg/smc_client/informers/externalversions/internalinterfaces"
+	v1 "github.com/open-service-mesh/osm/pkg/osm_client/informers/externalversions/azureresource/v1"
+	internalinterfaces "github.com/open-service-mesh/osm/pkg/osm_client/informers/externalversions/internalinterfaces"
 )
 
 // Interface provides access to each of this group's versions.

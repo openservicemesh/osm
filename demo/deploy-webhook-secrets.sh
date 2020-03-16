@@ -11,7 +11,7 @@ keydir="$basedir/webhook-certs"
 echo "Generating TLS keys ..."
 "${basedir}/gen-keys.sh" "$keydir" "$K8S_NAMESPACE"
 
-# Create the `smc` namespace. This cannot be part of the YAML file as we first need to create the TLS secret,
+# Create the `osm` namespace. This cannot be part of the YAML file as we first need to create the TLS secret,
 # which would fail otherwise.
 echo "Creating Kubernetes objects ..."
 

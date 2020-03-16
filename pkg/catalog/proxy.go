@@ -1,8 +1,8 @@
 package catalog
 
 import (
-	"github.com/open-service-mesh/osm/pkg/envoy"
 	"github.com/golang/glog"
+	"github.com/open-service-mesh/osm/pkg/envoy"
 )
 
 // RegisterProxy implements MeshCatalog and registers a newly connected proxy.

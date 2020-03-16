@@ -19,9 +19,9 @@ limitations under the License.
 package fake
 
 import (
-	clientset "github.com/open-service-mesh/osm/pkg/smc_client/clientset/versioned"
-	smcv1 "github.com/open-service-mesh/osm/pkg/smc_client/clientset/versioned/typed/azureresource/v1"
-	fakesmcv1 "github.com/open-service-mesh/osm/pkg/smc_client/clientset/versioned/typed/azureresource/v1/fake"
+	clientset "github.com/open-service-mesh/osm/pkg/osm_client/clientset/versioned"
+	osmv1 "github.com/open-service-mesh/osm/pkg/osm_client/clientset/versioned/typed/azureresource/v1"
+	fakeosmv1 "github.com/open-service-mesh/osm/pkg/osm_client/clientset/versioned/typed/azureresource/v1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -76,7 +76,7 @@ func (c *Clientset) Tracker() testing.ObjectTracker {
 
 var _ clientset.Interface = &Clientset{}
 
-// SmcV1 retrieves the SmcV1Client
-func (c *Clientset) SmcV1() smcv1.SmcV1Interface {
-	return &fakesmcv1.FakeSmcV1{Fake: &c.Fake}
+// OsmV1 retrieves the OsmV1Client
+func (c *Clientset) OsmV1() osmv1.OsmV1Interface {
+	return &fakeosmv1.FakeOsmV1{Fake: &c.Fake}
 }

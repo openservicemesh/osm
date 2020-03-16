@@ -22,7 +22,7 @@ import (
 	"time"
 
 	v1 "github.com/open-service-mesh/osm/pkg/apis/azureresource/v1"
-	scheme "github.com/open-service-mesh/osm/pkg/smc_client/clientset/versioned/scheme"
+	scheme "github.com/open-service-mesh/osm/pkg/osm_client/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
@@ -55,7 +55,7 @@ type azureResources struct {
 }
 
 // newAzureResources returns a AzureResources
-func newAzureResources(c *SmcV1Client, namespace string) *azureResources {
+func newAzureResources(c *OsmV1Client, namespace string) *azureResources {
 	return &azureResources{
 		client: c.RESTClient(),
 		ns:     namespace,
