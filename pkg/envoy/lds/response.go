@@ -13,6 +13,7 @@ import (
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/constants"
+	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 	"github.com/open-service-mesh/osm/pkg/envoy/route"
 	"github.com/open-service-mesh/osm/pkg/smi"
@@ -63,6 +64,11 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	}
 
 	inboundListenerName := "inbound_listener"
+	serverNames, err := getFilterChainMatchServerNames(proxyServiceName, catalog)
+	if err != nil {
+		glog.Errorf("[%s] Failed to get client server names for proxy %s: %v", packageName, proxy.GetCommonName(), err)
+		return nil, err
+	}
 	serverListener := &xds.Listener{
 		Name:    inboundListenerName,
 		Address: envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyInboundListenerPort),
@@ -76,14 +82,11 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 						},
 					},
 				},
-				/* --- This is commented out until we have a clear plan of how we are going to use FilterChainMatch ---
-				// Source: https://www.envoyproxy.io/docs/envoy/latest/api-v2/api/v2/listener/listener_components.proto
 				// The FilterChainMatch uses SNI from mTLS to match against the provided list of ServerNames.
 				// This ensures only clients authorized to talk to this listener are permitted to.
 				FilterChainMatch: &listener.FilterChainMatch{
-					ServerNames: []string{"osm/bookbuyer"}, // TODO(draychev): remove hard-coded demo value
+					ServerNames: serverNames,
 				},
-				*/
 				TransportSocket: &envoy_api_v2_core.TransportSocket{
 					Name: envoy.TransportSocketTLS,
 					ConfigType: &envoy_api_v2_core.TransportSocket_TypedConfig{
@@ -109,4 +112,29 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	}
 	resp.Resources = append(resp.Resources, marshalledInbound)
 	return resp, nil
+}
+
+func getFilterChainMatchServerNames(proxyServiceName endpoint.NamespacedService, catalog catalog.MeshCataloger) ([]string, error) {
+	serverNamesMap := make(map[string]interface{})
+	var serverNames []string
+
+	allTrafficPolicies, err := catalog.ListTrafficRoutes(proxyServiceName)
+	if err != nil {
+		glog.Errorf("[%s] Failed listing traffic routes: %+v", packageName, err)
+		return nil, err
+	}
+
+	for _, trafficPolicies := range allTrafficPolicies {
+		isDestinationService := envoy.Contains(proxyServiceName, trafficPolicies.Destination.Services)
+		if isDestinationService {
+			for _, source := range trafficPolicies.Source.Services {
+				if _, server := serverNamesMap[source.String()]; !server {
+					serverNamesMap[source.String()] = nil
+					serverNames = append(serverNames, source.String())
+				}
+			}
+
+		}
+	}
+	return serverNames, nil
 }
