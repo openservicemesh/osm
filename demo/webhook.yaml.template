@@ -21,4 +21,4 @@ webhooks:
     failurePolicy: Fail
     namespaceSelector:
       matchLabels:
-        osm-inject: {{ .Namespace }}
+        osm-inject: enabled

@@ -40,13 +40,14 @@ var (
 )
 
 // NewWebhook returns a new Webhook object
-func NewWebhook(config Config, kubeConfig *rest.Config, certManager certificate.Manager, meshCatalog catalog.MeshCataloger, namespaces []string) *Webhook {
+func NewWebhook(config Config, kubeConfig *rest.Config, certManager certificate.Manager, meshCatalog catalog.MeshCataloger, namespaces []string, osmNamespace string) *Webhook {
 	return &Webhook{
-		config:      config,
-		kubeClient:  kubernetes.NewForConfigOrDie(kubeConfig),
-		certManager: certManager,
-		meshCatalog: meshCatalog,
-		namespaces:  namespaces,
+		config:       config,
+		kubeClient:   kubernetes.NewForConfigOrDie(kubeConfig),
+		certManager:  certManager,
+		meshCatalog:  meshCatalog,
+		namespaces:   namespaces,
+		osmNamespace: osmNamespace,
 	}
 }
 

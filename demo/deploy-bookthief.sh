@@ -10,7 +10,7 @@ echo "WAIT_FOR_OK_SECONDS = ${WAIT_FOR_OK_SECONDS}"
 
 ./demo/deploy-secrets.sh "bookthief"
 
-kubectl delete deployment bookthief -n "$K8S_NAMESPACE"  || true
+kubectl delete deployment bookthief -n "$BOOKTHIEF_NAMESPACE"  || true
 
 echo -e "Deploy BookThief demo service"
 cat <<EOF | kubectl apply -f -
@@ -18,7 +18,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: bookthief-serviceaccount
-  namespace: $K8S_NAMESPACE
+  namespace: $BOOKTHIEF_NAMESPACE
 automountServiceAccountToken: false
 
 ---
@@ -27,7 +27,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: bookthief
-  namespace: "$K8S_NAMESPACE"
+  namespace: "$BOOKTHIEF_NAMESPACE"
   labels:
     app: bookthief
 spec:
@@ -47,7 +47,7 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: bookthief
-  namespace: "$K8S_NAMESPACE"
+  namespace: "$BOOKTHIEF_NAMESPACE"
 spec:
   replicas: 1
   selector:
@@ -64,7 +64,7 @@ spec:
       hostAliases:
       - ip: "127.0.0.2"
         hostnames:
-        - "${K8S_NAMESPACE}.uswest.mesh"
+        - "${BOOKTHIEF_NAMESPACE}.uswest.mesh"
         - "bookstore.mesh"
 
       containers:
@@ -83,10 +83,10 @@ spec:
         - name: "$CTR_REGISTRY_CREDS_NAME"
 EOF
 
-kubectl get pods      --no-headers -o wide --selector app=bookthief -n "$K8S_NAMESPACE"
-kubectl get endpoints --no-headers -o wide --selector app=bookthief -n "$K8S_NAMESPACE"
-kubectl get service                -o wide                          -n "$K8S_NAMESPACE"
+kubectl get pods      --no-headers -o wide --selector app=bookthief -n "$BOOKTHIEF_NAMESPACE"
+kubectl get endpoints --no-headers -o wide --selector app=bookthief -n "$BOOKTHIEF_NAMESPACE"
+kubectl get service                -o wide                          -n "$BOOKTHIEF_NAMESPACE"
 
-for x in $(kubectl get service -n "$K8S_NAMESPACE" --selector app=bookthief --no-headers | awk '{print $1}'); do
-    kubectl get service "$x" -n "$K8S_NAMESPACE" -o jsonpath='{.status.loadBalancer.ingress[*].ip}'
+for x in $(kubectl get service -n "$BOOKTHIEF_NAMESPACE" --selector app=bookthief --no-headers | awk '{print $1}'); do
+    kubectl get service "$x" -n "$BOOKTHIEF_NAMESPACE" -o jsonpath='{.status.loadBalancer.ingress[*].ip}'
 done

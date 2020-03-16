@@ -12,10 +12,12 @@ echo "Creating container registry credentials ($CTR_REGISTRY_CREDS_NAME) for Kub
 
 DOCKER_PASSWORD=$(az acr credential show -n "$REGISTRY" --query "passwords[0].value" | tr -d '"')
 
-kubectl delete secrets "$CTR_REGISTRY_CREDS_NAME" -n "$K8S_NAMESPACE" || true
-kubectl create secret docker-registry "$CTR_REGISTRY_CREDS_NAME" \
-        -n "$K8S_NAMESPACE" \
+for ns in "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE" "$K8S_NAMESPACE"; do
+    kubectl delete secrets "$CTR_REGISTRY_CREDS_NAME" -n "$ns" || true
+    kubectl create secret docker-registry "$CTR_REGISTRY_CREDS_NAME" \
+        -n "$ns" \
         --docker-server="$REGISTRY_URL" \
         --docker-username="$REGISTRY" \
         --docker-email="noone@example.com" \
         --docker-password="$DOCKER_PASSWORD"
+done

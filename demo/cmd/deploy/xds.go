@@ -20,6 +20,7 @@ func main() {
 	initContainer := path.Join(acr, "init")
 	envoyContainer := path.Join(acr, "envoyproxy:latest")
 	namespace := os.Getenv(common.KubeNamespaceEnvVar)
+	appNamespaces := os.Getenv(common.AppNamespacesEnvVar)
 
 	labels := map[string]string{
 		"app": common.AggregatedDiscoveryServiceName,
@@ -77,7 +78,8 @@ func main() {
 		"--kubeconfig", "/kube/config",
 		"--subscriptionID", azureSubscription,
 		"--verbosity", "25",
-		"--namespace", namespace,
+		"--osmNamespace", namespace,
+		"--appNamespaces", appNamespaces,
 		"--certpem", "/etc/ssl/certs/cert.pem",
 		"--keypem", "/etc/ssl/certs/key.pem",
 		"--rootcertpem", "/etc/ssl/certs/root-cert.pem",

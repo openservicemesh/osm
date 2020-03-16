@@ -27,16 +27,24 @@ func (wh *Webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 
 	// Create kube secret for TLS cert and key used For Envoy to communicate with xDS
 	envoyTLSSecretName := fmt.Sprintf("tls-%s", pod.Spec.ServiceAccountName)
-	_, err = wh.createEnvoyTLSSecret(envoyTLSSecretName, namespace, cert.GetCertificateChain(), cert.GetPrivateKey())
+	_, err = wh.createEnvoyTLSSecret(envoyTLSSecretName, namespace, cert)
 	if err != nil {
 		glog.Errorf("Failed to create TLS secret for Envoy sidecar: %s", err)
+		return nil, err
+	}
+
+	// Create kube configMap for Envoy bootstrap config
+	envoyBootstrapConfigName := fmt.Sprintf("envoy-bootstrap-config-%s", pod.Spec.ServiceAccountName)
+	_, err = wh.createEnvoyBootstrapConfig(envoyBootstrapConfigName, namespace, wh.osmNamespace)
+	if err != nil {
+		glog.Errorf("Failed to create bootstrap config for Envoy sidecar: %s", err)
 		return nil, err
 	}
 
 	// Create volume for envoy TLS secret
 	patches = append(patches, addVolume(
 		pod.Spec.Volumes,
-		getVolumeSpec(envoyTLSSecretName),
+		getVolumeSpec(envoyBootstrapConfigName, envoyTLSSecretName),
 		"/spec/volumes")...,
 	)
 

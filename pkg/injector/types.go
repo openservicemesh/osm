@@ -8,17 +8,19 @@ import (
 )
 
 const (
-	envoyTLSVolume      = "envoy-tls-volume"
-	envoyRootCertVolume = "envoy-root-cert-volume"
+	envoyTLSVolume             = "envoy-tls-volume"
+	envoyBootstrapConfigVolume = "envoy-bootstrap-config-volume"
+	envoyRootCertVolume        = "envoy-root-cert-volume"
 )
 
 // Webhook is the type used to represent the webhook for sidecar injection
 type Webhook struct {
-	config      Config
-	kubeClient  kubernetes.Interface
-	certManager certificate.Manager
-	meshCatalog catalog.MeshCataloger
-	namespaces  []string
+	config       Config
+	kubeClient   kubernetes.Interface
+	certManager  certificate.Manager
+	meshCatalog  catalog.MeshCataloger
+	namespaces   []string
+	osmNamespace string
 }
 
 // Config is the type used to represent the config options for the sidecar injection

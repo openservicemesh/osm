@@ -27,4 +27,5 @@ type Client struct {
 	kubeClient    kubernetes.Interface
 	informers     *InformerCollection
 	announcements chan interface{}
+	namespaces    map[string]struct{}
 }

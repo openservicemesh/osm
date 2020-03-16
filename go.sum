@@ -556,6 +556,7 @@ k8s.io/apimachinery v0.0.0-20181127025237-2b1284ed4c93/go.mod h1:ccL7Eh7zubPUSh9
 k8s.io/apimachinery v0.0.0-20190612125636-6a5db36e93ad h1:x1lITOfDEbnzt8D1cZJsPbdnx/hnv28FxY2GKkxmxgU=
 k8s.io/apimachinery v0.0.0-20190612125636-6a5db36e93ad/go.mod h1:I4A+glKBHiTgiEjQiCCQfCAIcIMFGt291SmsvcrFzJA=
 k8s.io/apimachinery v0.17.3 h1:f+uZV6rm4/tHE7xXgLyToprg6xWairaClGVkm2t8omg=
+k8s.io/apimachinery v0.17.4 h1:UzM+38cPUJnzqSQ+E1PY4YxMHIzQyCg29LOoGfo79Zw=
 k8s.io/client-go v0.0.0-20190612125919-5c45477a8ae7 h1:LjXh7ChUmcT8ilhmqZ0ZSPQc06zsP4+pqJkKbcQ+g0k=
 k8s.io/client-go v0.0.0-20190612125919-5c45477a8ae7/go.mod h1:ElCnOBWqvEffJopQHDgJf1jrf7j/f2rNbGv6uUkuHrU=
 k8s.io/code-generator v0.0.0-20181114232248-ae218e241252/go.mod h1:IPqxl/YHk05nodzupwjke6ctMjyNRdV2zZ5/j3/F204=

@@ -13,6 +13,9 @@ const (
 	// KubeNamespaceEnvVar is the environment variable with the k8s namespace
 	KubeNamespaceEnvVar = "K8S_NAMESPACE"
 
+	// AppNamespacesEnvVar is the environment variable for a comma separated list of application namespaces
+	AppNamespacesEnvVar = "APP_NAMESPACES"
+
 	// IsGithubEnvVar is the environment variable indicating whether this runs in Github CI.
 	IsGithubEnvVar = "IS_GITHUB"
 

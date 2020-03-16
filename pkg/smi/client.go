@@ -29,13 +29,13 @@ var resyncPeriod = 10 * time.Second
 const kubernetesClientName = "MeshSpec"
 
 // NewMeshSpecClient implements mesh.MeshSpec and creates the Kubernetes client, which retrieves SMI specific CRDs.
-func NewMeshSpecClient(kubeConfig *rest.Config, namespaces []string, stop chan struct{}) MeshSpec {
+func NewMeshSpecClient(kubeConfig *rest.Config, osmNamespace string, namespaces []string, stop chan struct{}) MeshSpec {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 	smiTrafficSplitClientSet := smiTrafficSplitClient.NewForConfigOrDie(kubeConfig)
 	smiTrafficSpecClientSet := smiTrafficSpecClient.NewForConfigOrDie(kubeConfig)
 	smiTrafficTargetClientSet := smiTrafficTargetClient.NewForConfigOrDie(kubeConfig)
 
-	client := newSMIClient(kubeClient, smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet, namespaces, kubernetesClientName)
+	client := newSMIClient(kubeClient, smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet, osmNamespace, namespaces, kubernetesClientName)
 
 	err := client.run(stop)
 	if err != nil {
@@ -96,23 +96,11 @@ func (c *Client) GetAnnouncementsChannel() <-chan interface{} {
 }
 
 // newClient creates a provider based on a Kubernetes client instance.
-func newSMIClient(kubeClient *kubernetes.Clientset, smiTrafficSplitClient *smiTrafficSplitClient.Clientset, smiTrafficSpecClient *smiTrafficSpecClient.Clientset, smiTrafficTargetClient *smiTrafficTargetClient.Clientset, namespaces []string, providerIdent string) *Client {
-	// func newSMIClient(kubeClient *kubernetes.Clientset, smiClient *versioned.Clientset, namespaces []string, announcements chan interface{}, providerIdent string) *Client {
-	var options []informers.SharedInformerOption
-	var smiTrafficSplitOptions []smiTrafficSplitInformers.SharedInformerOption
-	var smiTrafficSpecOptions []smiTrafficSpecInformers.SharedInformerOption
-	var smiTrafficTargetOptions []smiTrafficTargetInformers.SharedInformerOption
-	for _, namespace := range namespaces {
-		options = append(options, informers.WithNamespace(namespace))
-		smiTrafficSplitOptions = append(smiTrafficSplitOptions, smiTrafficSplitInformers.WithNamespace(namespace))
-		smiTrafficSpecOptions = append(smiTrafficSpecOptions, smiTrafficSpecInformers.WithNamespace(namespace))
-		smiTrafficTargetOptions = append(smiTrafficTargetOptions, smiTrafficTargetInformers.WithNamespace(namespace))
-	}
-
-	informerFactory := informers.NewSharedInformerFactoryWithOptions(kubeClient, resyncPeriod, options...)
-	smiTrafficSplitInformerFactory := smiTrafficSplitInformers.NewSharedInformerFactoryWithOptions(smiTrafficSplitClient, resyncPeriod, smiTrafficSplitOptions...)
-	smiTrafficSpecInformerFactory := smiTrafficSpecInformers.NewSharedInformerFactoryWithOptions(smiTrafficSpecClient, resyncPeriod, smiTrafficSpecOptions...)
-	smiTrafficTargetInformerFactory := smiTrafficTargetInformers.NewSharedInformerFactoryWithOptions(smiTrafficTargetClient, resyncPeriod, smiTrafficTargetOptions...)
+func newSMIClient(kubeClient *kubernetes.Clientset, smiTrafficSplitClient *smiTrafficSplitClient.Clientset, smiTrafficSpecClient *smiTrafficSpecClient.Clientset, smiTrafficTargetClient *smiTrafficTargetClient.Clientset, osmNamespace string, namespaces []string, providerIdent string) *Client {
+	informerFactory := informers.NewSharedInformerFactory(kubeClient, resyncPeriod)
+	smiTrafficSplitInformerFactory := smiTrafficSplitInformers.NewSharedInformerFactory(smiTrafficSplitClient, resyncPeriod)
+	smiTrafficSpecInformerFactory := smiTrafficSpecInformers.NewSharedInformerFactory(smiTrafficSpecClient, resyncPeriod)
+	smiTrafficTargetInformerFactory := smiTrafficTargetInformers.NewSharedInformerFactory(smiTrafficTargetClient, resyncPeriod)
 
 	informerCollection := InformerCollection{
 		Services:      informerFactory.Core().V1().Services().Informer(),
@@ -134,6 +122,11 @@ func newSMIClient(kubeClient *kubernetes.Clientset, smiTrafficSplitClient *smiTr
 		caches:        &cacheCollection,
 		cacheSynced:   make(chan interface{}),
 		announcements: make(chan interface{}),
+		osmNamespace:  osmNamespace,
+		namespaces:    make(map[string]struct{}),
+	}
+	for _, ns := range namespaces {
+		client.namespaces[ns] = struct{}{}
 	}
 
 	h := handlers{client}
@@ -157,6 +150,10 @@ func (c *Client) ListTrafficSplits() []*split.TrafficSplit {
 	var trafficSplits []*split.TrafficSplit
 	for _, splitIface := range c.caches.TrafficSplit.List() {
 		split := splitIface.(*split.TrafficSplit)
+		if _, exists := c.namespaces[split.Namespace]; len(c.namespaces) > 0 && !exists {
+			// SMI policies should be namespaced to OSM's namespace
+			continue
+		}
 		trafficSplits = append(trafficSplits, split)
 	}
 	return trafficSplits
@@ -167,6 +164,10 @@ func (c *Client) ListHTTPTrafficSpecs() []*spec.HTTPRouteGroup {
 	var httpTrafficSpec []*spec.HTTPRouteGroup
 	for _, specIface := range c.caches.TrafficSpec.List() {
 		spec := specIface.(*spec.HTTPRouteGroup)
+		if _, exists := c.namespaces[spec.Namespace]; len(c.namespaces) > 0 && !exists {
+			// SMI policies should be namespaced to OSM's namespace
+			continue
+		}
 		httpTrafficSpec = append(httpTrafficSpec, spec)
 	}
 	return httpTrafficSpec
@@ -177,6 +178,10 @@ func (c *Client) ListTrafficTargets() []*target.TrafficTarget {
 	var trafficTarget []*target.TrafficTarget
 	for _, targetIface := range c.caches.TrafficTarget.List() {
 		target := targetIface.(*target.TrafficTarget)
+		if _, exists := c.namespaces[target.Namespace]; len(c.namespaces) > 0 && !exists {
+			// SMI policies should be namespaced to OSM's namespace
+			continue
+		}
 		trafficTarget = append(trafficTarget, target)
 	}
 	return trafficTarget
@@ -189,6 +194,9 @@ func (c *Client) ListServices() []endpoint.WeightedService {
 	for _, splitIface := range c.caches.TrafficSplit.List() {
 		split := splitIface.(*split.TrafficSplit)
 		for _, backend := range split.Spec.Backends {
+			// The TrafficSplit SMI Spec does not allow providing a namespace for the backends,
+			// so we assume that the top level namespace for the TrafficSplit is the namespace
+			// the backends belong to.
 			namespacedServiceName := endpoint.NamespacedService{
 				Namespace: split.Namespace,
 				Service:   backend.Service,
@@ -206,6 +214,12 @@ func (c *Client) ListServiceAccounts() []endpoint.NamespacedServiceAccount {
 	for _, targetIface := range c.caches.TrafficTarget.List() {
 		target := targetIface.(*target.TrafficTarget)
 		for _, sources := range target.Sources {
+			// Only monitor sources in namespaces OSM is observing
+			if _, exists := c.namespaces[sources.Namespace]; len(c.namespaces) > 0 && !exists {
+				// Doesn't belong to namespaces we are observing
+				glog.Errorf("Namespace %q for traffic sources not in the list of observing namespaces %v, skipping.", sources.Namespace, c.namespaces)
+				continue
+			}
 			namespacedServiceAccount := endpoint.NamespacedServiceAccount{
 				Namespace:      sources.Namespace,
 				ServiceAccount: sources.Name,
@@ -214,6 +228,12 @@ func (c *Client) ListServiceAccounts() []endpoint.NamespacedServiceAccount {
 		}
 
 		destination := target.Destination
+		// Only monitor destination in namespaces OSM is observing
+		if _, exists := c.namespaces[destination.Namespace]; len(c.namespaces) > 0 && !exists {
+			// Doesn't belong to namespaces we are observing
+			glog.Errorf("Namespace %q for traffic destination not in the list of observing namespaces %v, skipping.", destination.Namespace, c.namespaces)
+			continue
+		}
 		namespacedServiceAccount := endpoint.NamespacedServiceAccount{
 			Namespace:      destination.Namespace,
 			ServiceAccount: destination.Name,

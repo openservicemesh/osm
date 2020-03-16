@@ -23,4 +23,5 @@ type Client struct {
 	informers     *InformerCollection
 	providerIdent string
 	announcements chan interface{}
+	namespaces    map[string]struct{}
 }
