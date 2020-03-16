@@ -4,7 +4,7 @@ This document describes the steps to onboard a VM to the service mesh.
 
 ## Prerequisites
 - The VM's network interface should have connectivity to the Kubernetes POD IP addresses.
-A service running on the VM that is a part of the service mesh will need to establish connectivity with other services in the service mesh and the SMC control plane.
+A service running on the VM that is a part of the service mesh will need to establish connectivity with other services in the service mesh and the OSM control plane.
 
 - Envoy proxy needs to be installed on the VM prior to onboarding the VM into the service mesh.
 
@@ -38,4 +38,4 @@ A service running on the VM that is a part of the service mesh will need to esta
 
 - Start Envoy on the VM
 
-	At this point, the VM should connect to SMC and participate in the service mesh.
+	At this point, the VM should connect to OSM and participate in the service mesh.

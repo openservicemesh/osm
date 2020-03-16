@@ -5,12 +5,12 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-// InformerCollection is a struct of the Kubernetes informers used in SMC
+// InformerCollection is a struct of the Kubernetes informers used in OSM
 type InformerCollection struct {
 	AzureResource cache.SharedIndexInformer
 }
 
-// CacheCollection is a struct of the Kubernetes caches used in SMC
+// CacheCollection is a struct of the Kubernetes caches used in OSM
 type CacheCollection struct {
 	AzureResource cache.Store
 }

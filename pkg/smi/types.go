@@ -13,7 +13,7 @@ import (
 
 type friendlyName string
 
-// InformerCollection is a struct of the Kubernetes informers used in SMC
+// InformerCollection is a struct of the Kubernetes informers used in OSM
 type InformerCollection struct {
 	Services      cache.SharedIndexInformer
 	TrafficSplit  cache.SharedIndexInformer
@@ -21,7 +21,7 @@ type InformerCollection struct {
 	TrafficTarget cache.SharedIndexInformer
 }
 
-// CacheCollection is a struct of the Kubernetes caches used in SMC
+// CacheCollection is a struct of the Kubernetes caches used in OSM
 type CacheCollection struct {
 	Services      cache.Store
 	TrafficSplit  cache.Store
@@ -38,7 +38,7 @@ type Client struct {
 	announcements chan interface{}
 }
 
-// ClientIdentity is the identity of an Envoy proxy connected to the Service Mesh Controller.
+// ClientIdentity is the identity of an Envoy proxy connected to the Open Service Mesh.
 type ClientIdentity string
 
 // MeshSpec is an interface declaring functions, which provide the specs for a service mesh declared with SMI.

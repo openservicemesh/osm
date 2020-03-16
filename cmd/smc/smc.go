@@ -9,9 +9,9 @@ import (
 )
 
 var globalUsage = `smc enables you to install and manage the 
-service mesh controller in your Kubernetes cluster
+open service mesh in your Kubernetes cluster
 
-To install and configure service mesh controller, run:
+To install and configure open service mesh, run:
 
    $ smc install
 `
@@ -19,7 +19,7 @@ To install and configure service mesh controller, run:
 func newRootCmd(args []string, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "smc",
-		Short: "Install and manage service mesh controller",
+		Short: "Install and manage open service mesh",
 		Long:  globalUsage,
 	}
 

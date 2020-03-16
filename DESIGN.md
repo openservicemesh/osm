@@ -1,18 +1,18 @@
-# Service Mesh Controller Design
+# Open Service Mesh Design
 
 ## Document Purpose
 
-This document is the detailed design and architecture of the Service Mesh Controller being built in this repository.
+This document is the detailed design and architecture of the Open Service Mesh being built in this repository.
 
 
 
 ## Overview
 
-Service Mesh Controller (SMC) is a simple, complete, and standalone [service mesh](https://en.wikipedia.org/wiki/Service_mesh) solution.
-SMC provides a fully featured control plane. It leverages an architecture based on [Envoy](https://www.envoyproxy.io/) reverse-proxy sidecar
-While by default SMC ships with Envoy, the design utilizes [interfaces](#interfaces), which enable integrations with any xDS compatible reverse-proxy.
-SMC relies on [SMI Spec](https://smi-spec.io/) to reference services that will participate in the service mesh.
-SMC ships out-of-the-box with all necessary components to deploy a complete service mesh spanning multiple compute platforms.
+Open Service Mesh (OSM) is a simple, complete, and standalone [service mesh](https://en.wikipedia.org/wiki/Service_mesh) solution.
+OSM provides a fully featured control plane. It leverages an architecture based on [Envoy](https://www.envoyproxy.io/) reverse-proxy sidecar
+While by default OSM ships with Envoy, the design utilizes [interfaces](#interfaces), which enable integrations with any xDS compatible reverse-proxy.
+OSM relies on [SMI Spec](https://smi-spec.io/) to reference services that will participate in the service mesh.
+OSM ships out-of-the-box with all necessary components to deploy a complete service mesh spanning multiple compute platforms.
 
 
 
@@ -37,7 +37,7 @@ SMC ships out-of-the-box with all necessary components to deploy a complete serv
 
 ## High-level architecture
 
-The Service Mesh Controller project is composed of the following five high-level components:
+The Open Service Mesh project is composed of the following five high-level components:
   1. [Proxy control plane](#1-proxy-control-plane) - handles gRPC connections from the service mesh sidecar proxies
   2. [Certificate manager](#2-certificate-manager) - handles issuance and management of certificates
   3. [Endpoints providers](#3-endpoints-providers) - components capable of introspecting the participating compute platforms; these retrieve the IP addresses of the compute backing the services in the mesh
@@ -55,7 +55,7 @@ The Service Mesh Controller project is composed of the following five high-level
 Let's take a look at each component:
 
 ### (1) Proxy control plane
-Proxy Control plane plays a key part in operating the [service mesh](https://www.bing.com/search?q=What%27s+a+service+mesh%3F). All proxies are installed as [sidecars](https://docs.microsoft.com/en-us/azure/architecture/patterns/sidecar) and establish an mTLS gRPC connection to the Proxy Control Plane. The proxies continuously receive configuration updates. This component implements the interfaces required by the specific reverse proxy chosen. SMC implements [Envoy's go-control-plane xDS](https://github.com/envoyproxy/go-control-plane).
+Proxy Control plane plays a key part in operating the [service mesh](https://www.bing.com/search?q=What%27s+a+service+mesh%3F). All proxies are installed as [sidecars](https://docs.microsoft.com/en-us/azure/architecture/patterns/sidecar) and establish an mTLS gRPC connection to the Proxy Control Plane. The proxies continuously receive configuration updates. This component implements the interfaces required by the specific reverse proxy chosen. OSM implements [Envoy's go-control-plane xDS](https://github.com/envoyproxy/go-control-plane).
 
 ### (2) Certificate Manager
 Certificate Manager is a component that provides each service participating in the service mesh with a TLS certificate.
@@ -68,7 +68,7 @@ Endpoints Providers are one or more components that communicate with the compute
 Mesh Specification is a wrapper around the existing [SMI Spec](https://github.com/deislabs/smi-spec) components. This component abstracts the specific storage chosen for the YAML definitions. This module is effectively a wrapper around [SMI Spec's Kubernetes informers](https://github.com/deislabs/smi-sdk-go), currently abstracting away the storage (Kubernetes/etcd) specifics.
 
 ### (5) Mesh catalog
-Mesh Catalog is the central component of SMC, which combines the outputs of all other components into a structure, which can then be transformed into proxy configuration and dispatched to all listening proxies via the proxy control plane.
+Mesh Catalog is the central component of OSM, which combines the outputs of all other components into a structure, which can then be transformed into proxy configuration and dispatched to all listening proxies via the proxy control plane.
 This component:
   1. Communicates with the [mesh specification module (4)](#4-mesh-specification) to detect when a [Kubernetes service](https://kubernetes.io/docs/concepts/services-networking/service/) was created, changed, or deleted via [SMI Spec](https://github.com/deislabs/smi-spec).
   1. Reaches out to the [certificate manager (2)](#2-certificate-manager) and requests a new TLS certificate for the newly discovered service.
@@ -81,7 +81,7 @@ This component:
 
 ## Detailed component description
 
-This section outlines the conventions adopted and guiding the development of the Service Mesh Controller (SMC). Components discussed in this section:
+This section outlines the conventions adopted and guiding the development of the Open Service Mesh (OSM). Components discussed in this section:
   - (A) Proxy [sidecar](https://docs.microsoft.com/en-us/azure/architecture/patterns/sidecar) - Envoy or other reverse-proxy with service-mesh capabilities
   - (B) [Proxy Certificate](#proxy-tls-certificate) - unique X.509 certificate issued to the specific proxy by the [Certificate Manager](#2-certificate-manager)
   - (C) Service - [Kubernetes service resource](https://kubernetes.io/docs/concepts/services-networking/service/) referenced in SMI Spec
@@ -131,14 +131,14 @@ spec:
 ```
 
 ### (A) Proxy
-In SMC `Proxy` is defined as an abstract logical component, which:
+In OSM `Proxy` is defined as an abstract logical component, which:
   - fronts a mesh service process (container or binary running on Kubernetes or a VM)
   - maintains a connection to a proxy control plane (xDS server)
   - continuously receives configuration updates (xDS protocol buffers) from the [proxy control plane](#1-proxy-control-plane) (the Envoy xDS go-control-plane implementation)
-SMC ships out of the box with [Envoy](https://www.envoyproxy.io/) reverse-proxy implementation.
+OSM ships out of the box with [Envoy](https://www.envoyproxy.io/) reverse-proxy implementation.
 
 ### (F,G,H) Endpoint
-Within the SMC codebase `Endpoint` is defined as the IP address and port number tuple of a container or a virtual machine, which is hosting a proxy, which is fronting a process, which is a member of a service and as such participates in the service mesh.
+Within the OSM codebase `Endpoint` is defined as the IP address and port number tuple of a container or a virtual machine, which is hosting a proxy, which is fronting a process, which is a member of a service and as such participates in the service mesh.
 The [service endpoints (F,G,H)](#fgh-endpoint) are the actual binaries serving traffic for the [service (C)](#c-service).
 An endpoint uniquely identifies a container, binary, or a process.
 It has an IP address, port number, and belongs to a service.
@@ -149,7 +149,7 @@ Proxies, fronting endpoints, which form a given service will share the certifica
 This certificate is used to establish mTLS connection with peer proxies fronting endpoints of **other services** within the service mesh.
 The service certificate is short-lived.
 Each service certificate's lifetime will be [approximately 48 hours](#certificate-lifetime), which eliminates the need for a certificate revocation facility.
-SMC declares a type `ServiceCertificate` for these certificates.
+OSM declares a type `ServiceCertificate` for these certificates.
 `ServiceCertificate` is how this kind of certificate is referred to in the [Interfaces](#interfaces) section of this document.
 
 ### (B) Proxy TLS certificate
@@ -157,7 +157,7 @@ The proxy TLS certificate is a X.509 certificate issued to each individual proxy
 This kind of certificate is different than the service certificate and is used exclusively for proxy-to-control-plane mTLS communication.
 Each Envoy proxy will be bootstrapped with a proxy certificate, which will be used for the xDS mTLS communication.
 This kind of certificate is different than the one issued for service-to-service mTLS communication.
-SMC declares a type `ProxyCertificate` for these certificates.
+OSM declares a type `ProxyCertificate` for these certificates.
 We refer to these certificates as `ProxyCertificate` in the [interfaces](#interfaces) declarations section of this document.
 This certificate's Common Name leverages the DNS-1123 standard with the following format: `<proxy-UUID>.<service-name>.<service-namespace>`. The chosen format allows us to uniquely identify the connected proxy (`proxy-UUID`) and the namespaced service, which this proxy belongs to (`service-name.service-namespace`).
 
@@ -182,9 +182,9 @@ Given certificate's expiration will be randomly shortened or extended from the 4
 
 ### Proxy Certificate, Proxy, and Endpoint relationship
 
-  - `ProxyCertificate` is issued by SMC for a `Proxy`, which is expected to connect to the proxy control plane sometime in the future. After the certificate is issued, and before the proxy connects to the proxy control plane, the certificate is in the `unclaimed` state. The state of the certificate changes to `claimed` after a proxy has connected to the control plane using the certificate.
+  - `ProxyCertificate` is issued by OSM for a `Proxy`, which is expected to connect to the proxy control plane sometime in the future. After the certificate is issued, and before the proxy connects to the proxy control plane, the certificate is in the `unclaimed` state. The state of the certificate changes to `claimed` after a proxy has connected to the control plane using the certificate.
   - `Proxy` is the reverse-proxy, which attempts to connect to the proxy control plane; the `Proxy` may, or may not be allowed to connect to the proxy control plane.
-  - `Endpoint` is fronted by a `Proxy`, and is a member of a `Service`. SMC may have discovered endpoints, via the [endpoints providers](#3-endpoints-providers), which belong to a given service, but SMC has not seen any proxies, fronting these endpoints, connect to the proxy control plane yet.
+  - `Endpoint` is fronted by a `Proxy`, and is a member of a `Service`. OSM may have discovered endpoints, via the [endpoints providers](#3-endpoints-providers), which belong to a given service, but OSM has not seen any proxies, fronting these endpoints, connect to the proxy control plane yet.
 
 
 The **intersection** of the set of issued `ProxyCertificates` ∩ connected `Proxies` ∩ discovered `Endpoints` is the set of participants in the service mesh.
@@ -202,13 +202,13 @@ The **intersection** of the set of issued `ProxyCertificates` ∩ connected `Pro
 
 
 ## Signaling
-The SMC leverages the [communicating sequential processes (CSP)](https://en.wikipedia.org/wiki/Communicating_sequential_processes) pattern for sending messages between the various components of the system. This section describes the signaling mechanism used by SMC.
+The OSM leverages the [communicating sequential processes (CSP)](https://en.wikipedia.org/wiki/Communicating_sequential_processes) pattern for sending messages between the various components of the system. This section describes the signaling mechanism used by OSM.
 ** TBD **
 
 ## Interfaces
 
 This section defines the [Go Interfaces](https://golang.org/doc/effective_go.html#interfaces) needed for
-the development of the SMC in [this repository](https://github.com/open-service-mesh/osm).
+the development of the OSM in [this repository](https://github.com/open-service-mesh/osm).
 
 
 This section adopts the following assumptions:
@@ -232,7 +232,7 @@ For a fully functional Envoy-based service mesh, the proxy control plane must im
 
 #### Aggregated Discovery Service
 
-The `StreamAggregatedResources` method is the entrypoint into the ADS vertical of SMC. This is
+The `StreamAggregatedResources` method is the entrypoint into the ADS vertical of OSM. This is
 declared in the `AggregatedDiscoveryServiceServer` interface, which is provided by the
 [Envoy Go control plane](https://github.com/envoyproxy/go-control-plane). It is declared in [ads.pb.go](https://github.com/envoyproxy/go-control-plane/blob/e9c1190525652deb975627b2ecc3deac35714025/envoy/service/discovery/v2/ads.pb.go#L172-L176).
 Method `DeltaAggregatedResources` is used by the ADS REST API. This project
@@ -253,7 +253,7 @@ would require:
 
 In the previous section, we proposed implementation of the `StreamAggregatedResources` method. This provides
 connected Envoy proxies with a list of clusters, mapping of service name to list of routable IP addresses, list of permitted routes, listeners and secrets for CDS, EDS, RDS, LDS and SDS respectively.
-The `ListEndpoints`, `ListTrafficRoutes` and `GetCertificateForService` methods will be provided by the SMC component, which we refer to
+The `ListEndpoints`, `ListTrafficRoutes` and `GetCertificateForService` methods will be provided by the OSM component, which we refer to
  as the **Mesh Catalog** in this document.
 
 The Mesh Catalog will have access to the `MeshSpec`, `CertificateManager`, and the list of `EndpointsProvider`s.
@@ -346,7 +346,7 @@ The [Endpoints providers](#3-endpoints-providers) has no awareness of:
   - what SMI Spec is
   - what Proxy or sidecar is
 
-> Note: As of this iteration of SMC we deliberately choose to leak the Mesh Specification implementation into the
+> Note: As of this iteration of OSM we deliberately choose to leak the Mesh Specification implementation into the
 EndpointsProvider. The [Endpoints Providers](#3-endpoints-providers) are responsible for implementing a method to
 resolve an SMI-declared service to the provider's specific resource definition. For instance,
 when Azure EndpointProvider's `ListEndpointsForService` is invoked with some a service name

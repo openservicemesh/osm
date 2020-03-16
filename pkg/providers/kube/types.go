@@ -7,13 +7,13 @@ import (
 
 type friendlyName string
 
-// InformerCollection is a struct of the Kubernetes informers used in SMC
+// InformerCollection is a struct of the Kubernetes informers used in OSM
 type InformerCollection struct {
 	Endpoints   cache.SharedIndexInformer
 	Deployments cache.SharedIndexInformer
 }
 
-// CacheCollection is a struct of the Kubernetes caches used in SMC
+// CacheCollection is a struct of the Kubernetes caches used in OSM
 type CacheCollection struct {
 	Endpoints   cache.Store
 	Deployments cache.Store
