@@ -19,3 +19,6 @@ webhooks:
         apiVersions: ["v1"]
         resources: ["pods"]
     failurePolicy: Fail
+    namespaceSelector:
+      matchLabels:
+        osm: {{ .Namespace }}
