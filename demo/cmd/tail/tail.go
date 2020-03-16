@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -42,25 +43,67 @@ func main() {
 		glog.Fatalf("Could not convert environment variable %s='%s' to int: %+v", WaitForPodTimeSecondsEnvVar, totalWaitString, err)
 	}
 	totalWaitSeconds := time.Duration(totalWait) * time.Second
-	containerName := "bookbuyer"
-	labelSelector := "app=bookbuyer"
+	bookBuyerContainerName := "bookbuyer"
+	bookBuyerSelector := "app=bookbuyer"
+	adsPodSelector := "app=ads"
 
-	fmt.Printf("Tail looking for container %s in namespace %s\n", containerName, namespace)
+	fmt.Printf("Tail looking for container %s in namespace %s\n", bookBuyerContainerName, namespace)
 	if namespace == "" {
 		fmt.Println("Empty namespace")
 		os.Exit(1)
 	}
 	clientset := getClient()
 
-	podList, err := clientset.CoreV1().Pods(namespace).List(metav1.ListOptions{LabelSelector: labelSelector})
+	bookBuyerPodName, err := getPodName(namespace, bookBuyerSelector)
 	if err != nil {
-		fmt.Println("Error fetching pods: ", err)
-		os.Exit(1)
+		glog.Fatal("Error getting Bookbuyer pod: ", err)
+	}
+	startedWaiting := time.Now()
+Run:
+	for {
+		pod, err := clientset.CoreV1().Pods(namespace).Get(bookBuyerPodName, metav1.GetOptions{})
+		if err != nil {
+			fmt.Printf("Error getting pod %s/%s: %s\n", namespace, bookBuyerPodName, err)
+			os.Exit(1)
+		}
+		for _, container := range pod.Status.ContainerStatuses {
+			if container.State.Waiting != nil && container.State.Waiting.Reason == "PodInitializing" {
+				if time.Now().Sub(startedWaiting) >= totalWaitSeconds {
+					fmt.Printf("Waited for pod %s to become ready for %+v; Didn't happen", bookBuyerPodName, totalWait)
+					os.Exit(1)
+				}
+				fmt.Printf("Pod %s/%s is still initializing; Waiting %+v (%+v/%+v)\n", namespace, bookBuyerPodName, waitForPod, time.Now().Sub(startedWaiting), totalWait)
+				time.Sleep(waitForPod)
+			} else {
+				break Run
+			}
+		}
+	}
+	logs := getPodLogs(namespace, bookBuyerPodName, bookBuyerContainerName, true)
+	if strings.HasSuffix(logs, common.Success) {
+		fmt.Println("The test succeeded")
+		os.Exit(0)
+	}
+	fmt.Println(logs)
+
+	adsPodName, err := getPodName(namespace, adsPodSelector)
+	if err != nil {
+		glog.Fatalf("Error getting ADS pods with selector %s in namespace %s: %s", adsPodName, namespace, err)
+	}
+	fmt.Println("-------- ADS LOGS --------\n", getPodLogs(namespace, adsPodName, "", false))
+	os.Exit(1)
+}
+
+func getPodName(namespace, selector string) (string, error) {
+	clientset := getClient()
+
+	podList, err := clientset.CoreV1().Pods(namespace).List(metav1.ListOptions{LabelSelector: selector})
+	if err != nil {
+		return "", err
 	}
 
 	if len(podList.Items) == 0 {
-		fmt.Println("Zero pods found")
-		os.Exit(1)
+		return "", errors.New("Zero pods found")
 	}
 
 	sort.SliceStable(podList.Items, func(i, j int) bool {
@@ -69,31 +112,14 @@ func main() {
 		return p1 > p2
 	})
 
-	podName := podList.Items[0].Name
-	startedWaiting := time.Now()
-Run:
-	for {
-		pod, err := clientset.CoreV1().Pods(namespace).Get(podName, metav1.GetOptions{})
-		if err != nil {
-			fmt.Printf("Error getting pod %s/%s: %s\n", namespace, podName, err)
-			os.Exit(1)
-		}
-		for _, container := range pod.Status.ContainerStatuses {
-			if container.State.Waiting != nil && container.State.Waiting.Reason == "PodInitializing" {
-				if time.Now().Sub(startedWaiting) >= totalWaitSeconds {
-					fmt.Printf("Waited for pod %s to become ready for %+v; Didn't happen", podName, totalWait)
-					os.Exit(1)
-				}
-				fmt.Printf("Pod %s/%s is still initializing; Waiting %+v (%+v/%+v)\n", namespace, podName, waitForPod, time.Now().Sub(startedWaiting), totalWait)
-				time.Sleep(waitForPod)
-			} else {
-				break Run
-			}
-		}
-	}
+	return podList.Items[0].Name, nil
+}
+
+func getPodLogs(namespace string, podName string, containerName string, follow bool) string {
+	clientset := getClient()
 	options := &v1.PodLogOptions{
 		Container: containerName,
-		Follow:    true,
+		Follow:    follow,
 	}
 	req := clientset.CoreV1().Pods(namespace).GetLogs(podName, options)
 	podLogs, err := req.Stream()
@@ -108,13 +134,7 @@ Run:
 	if err != nil {
 		fmt.Println("error in copy information from podLogs to buf")
 	}
-	logs := buf.String()
-	if strings.HasSuffix(logs, common.Success) {
-		fmt.Println("The test succeeded")
-		os.Exit(0)
-	}
-	fmt.Println(logs)
-	os.Exit(1)
+	return buf.String()
 }
 
 func getClient() *kubernetes.Clientset {
