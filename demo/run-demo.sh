@@ -10,6 +10,9 @@ rm -rf ./certificates
 rm -rf ./certs
 
 ./demo/clean-kubernetes.sh
+
+kubectl create namespace "$K8S_NAMESPACE"
+kubectl label  namespaces "$K8S_NAMESPACE" osm-inject="$K8S_NAMESPACE"
 go run  demo/cmd/bootstrap/create.go
 
 make build-cert

@@ -7,7 +7,7 @@ webhookCertsDir="$basedir/webhook-certs"
 rootCACert="$webhookCertsDir/ca.crt"
 name="$1"
 namespace="$2"
-webhookname="${namespace}-${name}"
+webhookname="${namespace}-${name}-webhook"
 echo "Creating Kubernetes webhook resoures"
 
 # Read the PEM-encoded CA certificate, base64 encode it, and replace the `${CA_PEM_B64}` placeholder in the YAML
