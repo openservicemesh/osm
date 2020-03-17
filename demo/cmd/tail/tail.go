@@ -113,17 +113,12 @@ func main() {
 	}()
 
 	bookBuyerLogs := getPodLogs(namespace, bookBuyerPodName, bookBuyerContainerName, true)
-	if strings.HasSuffix(bookBuyerLogs, common.Success) {
+	bookThiefLogs := getPodLogs(namespace, bookThiefPodName, bookBuyerContainerName, true)
+	if strings.HasSuffix(bookBuyerLogs, common.Success) && strings.HasSuffix(bookThiefLogs, common.Success) {
 		fmt.Println("The test succeeded")
 		os.Exit(0)
 	}
 	fmt.Println(bookBuyerLogs)
-
-	bookThiefLogs := getPodLogs(namespace, bookThiefPodName, bookBuyerContainerName, true)
-	if strings.HasSuffix(bookThiefLogs, common.Success) {
-		fmt.Println("The test succeeded")
-		os.Exit(0)
-	}
 	fmt.Println(bookThiefLogs)
 
 	adsPodName, err := getPodName(namespace, adsPodSelector)
