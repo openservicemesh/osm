@@ -45,7 +45,7 @@ kubectl apply -f crd/AzureResource.yaml
 ./demo/deploy-traffic-target-2.sh
 # this is a temporary workaround to have envoy run on the bookthief pod
 # todo: remove this once we have annotations supported 
-./demo/deploy-traffic-target-3.sh
+./demo/deploy-traffic-target-bookthief.sh
 
 ./demo/deploy-secrets.sh "ads"
 ./demo/deploy-webhook-secrets.sh

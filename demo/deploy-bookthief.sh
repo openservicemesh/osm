@@ -65,7 +65,6 @@ spec:
       - ip: "127.0.0.2"
         hostnames:
         - "${K8S_NAMESPACE}.uswest.mesh"
-        - "bookthief.mesh"
         - "bookstore.mesh"
 
       containers:
