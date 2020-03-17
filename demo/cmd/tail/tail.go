@@ -13,7 +13,7 @@ import (
 
 	"github.com/golang/glog"
 	"github.com/open-service-mesh/osm/demo/cmd/common"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -45,9 +45,11 @@ func main() {
 	totalWaitSeconds := time.Duration(totalWait) * time.Second
 	bookBuyerContainerName := "bookbuyer"
 	bookBuyerSelector := "app=bookbuyer"
+	bookThiefContainerName := "bookthief"
+	bookThiefSelector := "app=bookthief"
 	adsPodSelector := "app=ads"
 
-	fmt.Printf("Tail looking for container %s in namespace %s\n", bookBuyerContainerName, namespace)
+	fmt.Printf("Tail looking for containers %s and %s in namespace %s\n", bookBuyerContainerName, bookThiefContainerName, namespace)
 	if namespace == "" {
 		fmt.Println("Empty namespace")
 		os.Exit(1)
@@ -58,33 +60,66 @@ func main() {
 	if err != nil {
 		glog.Fatal("Error getting Bookbuyer pod: ", err)
 	}
+
+	bookThiefPodName, err := getPodName(namespace, bookThiefSelector)
+	if err != nil {
+		glog.Fatal("Error getting Bookthief pod: ", err)
+	}
 	startedWaiting := time.Now()
-Run:
-	for {
-		pod, err := clientset.CoreV1().Pods(namespace).Get(bookBuyerPodName, metav1.GetOptions{})
-		if err != nil {
-			fmt.Printf("Error getting pod %s/%s: %s\n", namespace, bookBuyerPodName, err)
-			os.Exit(1)
-		}
-		for _, container := range pod.Status.ContainerStatuses {
-			if container.State.Waiting != nil && container.State.Waiting.Reason == "PodInitializing" {
-				if time.Now().Sub(startedWaiting) >= totalWaitSeconds {
-					fmt.Printf("Waited for pod %s to become ready for %+v; Didn't happen", bookBuyerPodName, totalWait)
-					os.Exit(1)
+	go func() {
+	Run:
+		for {
+			bookBuyerPod, err := clientset.CoreV1().Pods(namespace).Get(bookBuyerPodName, metav1.GetOptions{})
+			if err != nil {
+				fmt.Printf("Error getting pod %s/%s: %s\n", namespace, bookBuyerPodName, err)
+				os.Exit(1)
+			}
+			for _, container := range bookBuyerPod.Status.ContainerStatuses {
+				if container.State.Waiting != nil && container.State.Waiting.Reason == "PodInitializing" {
+					if time.Now().Sub(startedWaiting) >= totalWaitSeconds {
+						fmt.Printf("Waited for pod %s to become ready for %+v; Didn't happen", bookBuyerPodName, totalWait)
+						os.Exit(1)
+					}
+					fmt.Printf("Pod %s/%s is still initializing; Waiting %+v (%+v/%+v)\n", namespace, bookBuyerPodName, waitForPod, time.Now().Sub(startedWaiting), totalWait)
+					time.Sleep(waitForPod)
+				} else {
+					break Run
 				}
-				fmt.Printf("Pod %s/%s is still initializing; Waiting %+v (%+v/%+v)\n", namespace, bookBuyerPodName, waitForPod, time.Now().Sub(startedWaiting), totalWait)
-				time.Sleep(waitForPod)
-			} else {
-				break Run
 			}
 		}
-	}
-	logs := getPodLogs(namespace, bookBuyerPodName, bookBuyerContainerName, true)
-	if strings.HasSuffix(logs, common.Success) {
+	}()
+
+	go func() {
+	Run:
+		for {
+			bookThiefPod, err := clientset.CoreV1().Pods(namespace).Get(bookThiefPodName, metav1.GetOptions{})
+			if err != nil {
+				fmt.Printf("Error getting pod %s/%s: %s\n", namespace, bookBuyerPodName, err)
+				os.Exit(1)
+			}
+			for _, container := range bookThiefPod.Status.ContainerStatuses {
+				if container.State.Waiting != nil && container.State.Waiting.Reason == "PodInitializing" {
+					if time.Now().Sub(startedWaiting) >= totalWaitSeconds {
+						fmt.Printf("Waited for pod %s to become ready for %+v; Didn't happen", bookThiefPodName, totalWait)
+						os.Exit(1)
+					}
+					fmt.Printf("Pod %s/%s is still initializing; Waiting %+v (%+v/%+v)\n", namespace, bookThiefPodName, waitForPod, time.Now().Sub(startedWaiting), totalWait)
+					time.Sleep(waitForPod)
+				} else {
+					break Run
+				}
+			}
+		}
+	}()
+
+	bookBuyerLogs := getPodLogs(namespace, bookBuyerPodName, bookBuyerContainerName, true)
+	bookThiefLogs := getPodLogs(namespace, bookThiefPodName, bookThiefContainerName, true)
+	if strings.HasSuffix(bookBuyerLogs, common.Success) && strings.HasSuffix(bookThiefLogs, common.Success) {
 		fmt.Println("The test succeeded")
 		os.Exit(0)
 	}
-	fmt.Println(logs)
+	fmt.Println(bookBuyerLogs)
+	fmt.Println(bookThiefLogs)
 
 	adsPodName, err := getPodName(namespace, adsPodSelector)
 	if err != nil {

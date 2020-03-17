@@ -1,0 +1,35 @@
+# Default values for bookthief.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: smctest.azurecr.io/bookthief
+  pullPolicy: Always
+
+imagePullSecrets:
+  - name: acr-creds
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: bookthief-serviceaccount
+
+service:
+  type: ClusterIP
+  ports:
+    - port: 15000
+      targetPort: admin-port
+      name: bookthief-envoy-admin-port
+    - port: 1
+      targetPort: admin
+      name: bookthief
+
+env:
+  WAIT_FOR_OK_SECONDS: 120
+  BOOKSTORE_SVC: bookstore

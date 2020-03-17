@@ -43,6 +43,9 @@ kubectl apply -f crd/AzureResource.yaml
 ./demo/deploy-traffic-spec.sh
 ./demo/deploy-traffic-target.sh
 ./demo/deploy-traffic-target-2.sh
+# this is a temporary workaround to have envoy run on the bookthief pod
+# todo: remove this once we have annotations supported 
+./demo/deploy-traffic-target-bookthief.sh
 
 ./demo/deploy-secrets.sh "ads"
 ./demo/deploy-webhook-secrets.sh
@@ -59,6 +62,7 @@ done
 # The POD creation for the services will fail if OSM has not picked up the
 # corresponding services defined in the SMI spec
 ./demo/deploy-bookbuyer.sh
+./demo/deploy-bookthief.sh
 
 ./demo/deploy-bookstore.sh "bookstore"
 ./demo/deploy-bookstore.sh "bookstore-1"

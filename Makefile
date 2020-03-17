@@ -91,9 +91,19 @@ build-bookbuyer:
 	@mkdir -p $(shell pwd)/demo/bin
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ./demo/bin/bookbuyer ./demo/cmd/bookbuyer/bookbuyer.go
 
+.PHONY: build-bookthief
+build-bookthief:
+	@rm -rf $(shell pwd)/demo/bin
+	@mkdir -p $(shell pwd)/demo/bin
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ./demo/bin/bookthief ./demo/cmd/bookthief/bookthief.go
+
 .PHONY: docker-build-bookbuyer
 docker-build-bookbuyer: build-bookbuyer
 	docker build -t $(CTR_REGISTRY)/bookbuyer -f dockerfiles/Dockerfile.bookbuyer .
+
+.PHONY: docker-build-bookthief
+docker-build-bookthief: build-bookthief
+	docker build -t $(CTR_REGISTRY)/bookthief -f dockerfiles/Dockerfile.bookthief .
 
 .PHONY: docker-build-bookstore
 docker-build-bookstore: build-bookstore
@@ -111,6 +121,10 @@ docker-push-ads: docker-build-ads
 docker-push-bookbuyer: docker-build-bookbuyer
 	docker push "$(CTR_REGISTRY)/bookbuyer"
 
+.PHONY: docker-push-bookthief
+docker-push-bookthief: docker-build-bookthief
+	docker push "$(CTR_REGISTRY)/bookthief"
+
 .PHONY: docker-push-bookstore
 docker-push-bookstore: docker-build-bookstore
 	docker push "$(CTR_REGISTRY)/bookstore"
@@ -120,7 +134,7 @@ docker-push-init: docker-build-init
 	docker push "$(CTR_REGISTRY)/init"
 
 .PHONY: docker-push
-docker-push: docker-push-init docker-push-bookbuyer docker-push-bookstore docker-push-ads
+docker-push: docker-push-init docker-push-bookbuyer docker-push-bookthief docker-push-bookstore docker-push-ads
 
 .PHONY: generate-crds
 generate-crds:
