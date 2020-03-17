@@ -113,7 +113,7 @@ func main() {
 	}()
 
 	bookBuyerLogs := getPodLogs(namespace, bookBuyerPodName, bookBuyerContainerName, true)
-	bookThiefLogs := getPodLogs(namespace, bookThiefPodName, bookBuyerContainerName, true)
+	bookThiefLogs := getPodLogs(namespace, bookThiefPodName, bookThiefContainerName, true)
 	if strings.HasSuffix(bookBuyerLogs, common.Success) && strings.HasSuffix(bookThiefLogs, common.Success) {
 		fmt.Println("The test succeeded")
 		os.Exit(0)
