@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/open-service-mesh/osm/demo/cmd/common"
+	"github.com/deislabs/smc/demo/cmd/common"
 )
 
 const (
@@ -28,7 +28,7 @@ func main() {
 	iteration := 0
 	for {
 		iteration++
-		fmt.Printf("---Bookbuyer:[ %d ]-----------------------------------------\n", iteration)
+		fmt.Printf("---Bookthief:[ %d ]-----------------------------------------\n", iteration)
 		var responses []int
 		for _, url := range []string{counter, incremt} {
 			response := fetch(url)
@@ -36,7 +36,8 @@ func main() {
 			responses = append(responses, response)
 		}
 		if waitForOK != 0 {
-			if responses[0] == 200 {
+			//since bookthief doesn't have any traffic policies setup to talk to bookstore it will get a 404
+			if responses[0] == 404 {
 				fmt.Printf(common.Success)
 				os.Exit(0)
 			} else if time.Now().After(finishBy) {
