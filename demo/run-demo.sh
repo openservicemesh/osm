@@ -16,6 +16,9 @@ exit_error() {
 }
 
 # Check for required environment variables
+if [ -z "$OSM_ID" ]; then
+    exit_error "Missing OSM_ID env variable"
+fi
 if [ -z "$K8S_NAMESPACE" ]; then
     exit_error "Missing K8S_NAMESPACE env variable"
 fi
@@ -38,7 +41,7 @@ fi
 kubectl create namespace "$K8S_NAMESPACE"
 for ns in "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE"; do
     kubectl create namespace "$ns"
-    kubectl label  namespaces "$ns" osm-inject=enabled
+    kubectl label  namespaces "$ns" osm-inject="$OSM_ID"
 done
 # APP_NAMESPACES is a comma separated list of namespaces that informs OSM of the
 # namespaces it should observe.
@@ -86,7 +89,7 @@ do
   echo "waiting for pod ads to be ready" && sleep 2
 done
 
-./demo/deploy-webhook.sh "ads" "$K8S_NAMESPACE"
+./demo/deploy-webhook.sh "ads" "$K8S_NAMESPACE" "$OSM_ID"
 
 # The POD creation for the services will fail if OSM has not picked up the
 # corresponding services defined in the SMI spec
