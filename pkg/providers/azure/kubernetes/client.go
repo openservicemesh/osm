@@ -95,12 +95,18 @@ func (c *Client) ListAzureResources() []*osm.AzureResource {
 	var azureResources []*osm.AzureResource
 	for _, azureResourceInterface := range c.caches.AzureResource.List() {
 		azureResource := azureResourceInterface.(*osm.AzureResource)
-		if _, exists := c.namespaces[azureResource.Namespace]; len(c.namespaces) > 0 && !exists {
+		if c.IsNotObservedNamespace(azureResource.Namespace) {
 			// Doesn't belong to namespaces we are observing
-			glog.Errorf("Namespace %q for AzureResource not in the list of observing namespaces %v, skipping.", azureResource.Namespace, c.namespaces)
+			glog.V(level.Trace).Infof("Namespace %q for AzureResource not in the list of observing namespaces %v, skipping.", azureResource.Namespace, c.namespaces)
 			continue
 		}
 		azureResources = append(azureResources, azureResource)
 	}
 	return azureResources
+}
+
+// IsNotObservedNamespace returns true if the namespace does not belong to a non-empty list of namespaces the Client is observing
+func (c Client) IsNotObservedNamespace(namespace string) bool {
+	_, exists := c.namespaces[namespace]
+	return len(c.namespaces) > 0 && !exists
 }

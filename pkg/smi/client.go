@@ -150,8 +150,7 @@ func (c *Client) ListTrafficSplits() []*split.TrafficSplit {
 	var trafficSplits []*split.TrafficSplit
 	for _, splitIface := range c.caches.TrafficSplit.List() {
 		split := splitIface.(*split.TrafficSplit)
-		if _, exists := c.namespaces[split.Namespace]; len(c.namespaces) > 0 && !exists {
-			// SMI policies should be namespaced to OSM's namespace
+		if c.IsNotObservedNamespace(split.Namespace) {
 			continue
 		}
 		trafficSplits = append(trafficSplits, split)
@@ -164,8 +163,7 @@ func (c *Client) ListHTTPTrafficSpecs() []*spec.HTTPRouteGroup {
 	var httpTrafficSpec []*spec.HTTPRouteGroup
 	for _, specIface := range c.caches.TrafficSpec.List() {
 		spec := specIface.(*spec.HTTPRouteGroup)
-		if _, exists := c.namespaces[spec.Namespace]; len(c.namespaces) > 0 && !exists {
-			// SMI policies should be namespaced to OSM's namespace
+		if c.IsNotObservedNamespace(spec.Namespace) {
 			continue
 		}
 		httpTrafficSpec = append(httpTrafficSpec, spec)
@@ -178,8 +176,7 @@ func (c *Client) ListTrafficTargets() []*target.TrafficTarget {
 	var trafficTarget []*target.TrafficTarget
 	for _, targetIface := range c.caches.TrafficTarget.List() {
 		target := targetIface.(*target.TrafficTarget)
-		if _, exists := c.namespaces[target.Namespace]; len(c.namespaces) > 0 && !exists {
-			// SMI policies should be namespaced to OSM's namespace
+		if c.IsNotObservedNamespace(target.Namespace) {
 			continue
 		}
 		trafficTarget = append(trafficTarget, target)
@@ -215,9 +212,9 @@ func (c *Client) ListServiceAccounts() []endpoint.NamespacedServiceAccount {
 		target := targetIface.(*target.TrafficTarget)
 		for _, sources := range target.Sources {
 			// Only monitor sources in namespaces OSM is observing
-			if _, exists := c.namespaces[sources.Namespace]; len(c.namespaces) > 0 && !exists {
+			if c.IsNotObservedNamespace(sources.Namespace) {
 				// Doesn't belong to namespaces we are observing
-				glog.Errorf("Namespace %q for traffic sources not in the list of observing namespaces %v, skipping.", sources.Namespace, c.namespaces)
+				glog.V(level.Trace).Infof("Namespace %q for traffic sources not in the list of observing namespaces %v, skipping.", sources.Namespace, c.namespaces)
 				continue
 			}
 			namespacedServiceAccount := endpoint.NamespacedServiceAccount{
@@ -229,9 +226,9 @@ func (c *Client) ListServiceAccounts() []endpoint.NamespacedServiceAccount {
 
 		destination := target.Destination
 		// Only monitor destination in namespaces OSM is observing
-		if _, exists := c.namespaces[destination.Namespace]; len(c.namespaces) > 0 && !exists {
+		if c.IsNotObservedNamespace(destination.Namespace) {
 			// Doesn't belong to namespaces we are observing
-			glog.Errorf("Namespace %q for traffic destination not in the list of observing namespaces %v, skipping.", destination.Namespace, c.namespaces)
+			glog.V(level.Trace).Infof("Namespace %q for traffic destination not in the list of observing namespaces %v, skipping.", destination.Namespace, c.namespaces)
 			continue
 		}
 		namespacedServiceAccount := endpoint.NamespacedServiceAccount{
@@ -250,4 +247,10 @@ func (c *Client) GetService(svc endpoint.ServiceName) (service *corev1.Service, 
 		return svcIf.(*corev1.Service), exists, err
 	}
 	return nil, exists, err
+}
+
+// IsNotObservedNamespace returns true if the namespace does not belong to a non-empty list of namespaces the Client is observing
+func (c Client) IsNotObservedNamespace(namespace string) bool {
+	_, exists := c.namespaces[namespace]
+	return len(c.namespaces) > 0 && !exists
 }

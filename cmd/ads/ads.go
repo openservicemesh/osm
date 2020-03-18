@@ -39,7 +39,7 @@ const (
 var (
 	azureAuthFile  string
 	kubeConfigFile string
-	appNamespaces  string
+	appNamespaces  string // comma separated list of namespaces to observe
 	osmNamespace   string
 	injectorConfig injector.Config
 )

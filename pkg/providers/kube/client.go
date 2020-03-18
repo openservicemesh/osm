@@ -86,9 +86,9 @@ func (c Client) ListEndpointsForService(svc endpoint.ServiceName) []endpoint.End
 	}
 
 	if kubernetesEndpoints := endpointsInterface.(*corev1.Endpoints); kubernetesEndpoints != nil {
-		if _, exists := c.namespaces[kubernetesEndpoints.Namespace]; len(c.namespaces) > 0 && !exists {
+		if c.IsNotObservedNamespace(kubernetesEndpoints.Namespace) {
 			// Doesn't belong to namespaces we are observing
-			glog.Errorf("Namespace %q for service %s's endpoints not in the list of observing namespaces %v, skipping.", svc, kubernetesEndpoints.Namespace, c.namespaces)
+			glog.V(level.Trace).Infof("Namespace %q for service %s's endpoints not in the list of observing namespaces %v, skipping.", svc, kubernetesEndpoints.Namespace, c.namespaces)
 			return endpoints
 		}
 		for _, kubernetesEndpoint := range kubernetesEndpoints.Subsets {
@@ -115,9 +115,9 @@ func (c Client) ListServicesForServiceAccount(svcAccount endpoint.NamespacedServ
 
 	for _, deployments := range deploymentsInterface {
 		if kubernetesDeployments := deployments.(*extensionsv1.Deployment); kubernetesDeployments != nil {
-			if _, exists := c.namespaces[kubernetesDeployments.Namespace]; len(c.namespaces) > 0 && !exists {
+			if c.IsNotObservedNamespace(kubernetesDeployments.Namespace) {
 				// Doesn't belong to namespaces we are observing
-				glog.Errorf("Namespace %q for K8s Deployment %q not in the list of observing namespaces %v, skipping.", kubernetesDeployments.Namespace, kubernetesDeployments.Name, c.namespaces)
+				glog.V(level.Trace).Infof("Namespace %q for K8s Deployment %q not in the list of observing namespaces %v, skipping.", kubernetesDeployments.Namespace, kubernetesDeployments.Name, c.namespaces)
 				continue
 			}
 			spec := kubernetesDeployments.Spec
@@ -188,4 +188,10 @@ func (c *Client) run(stop <-chan struct{}) error {
 
 	glog.V(level.Info).Infof("Cache sync finished for %+v", names)
 	return nil
+}
+
+// IsNotObservedNamespace returns true if the namespace does not belong to a non-empty list of namespaces the Client is observing
+func (c Client) IsNotObservedNamespace(namespace string) bool {
+	_, exists := c.namespaces[namespace]
+	return len(c.namespaces) > 0 && !exists
 }
