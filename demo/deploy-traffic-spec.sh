@@ -44,7 +44,7 @@ apiVersion: specs.smi-spec.io/v1alpha1
 kind: HTTPRouteGroup
 metadata:
   name: bookstore-service-routes
-  namespace: "$K8S_NAMESPACE"
+  namespace: "$BOOKSTORE_NAMESPACE"
 matches:
 - name: counter
   pathRegex: /counter

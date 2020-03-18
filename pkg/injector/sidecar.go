@@ -7,7 +7,6 @@ import (
 )
 
 const (
-	envoyProxyConfig          = "envoyproxy-config"
 	envoyProxyConfigPath      = "/etc/envoy"
 	envoySidecarContainerName = "envoyproxy"
 	envoyTLSCertPath          = "/etc/ssl/certs"
@@ -37,7 +36,7 @@ func getEnvoySidecarContainerSpec(pod *corev1.Pod, data *EnvoySidecarData) (core
 		},
 		VolumeMounts: []corev1.VolumeMount{
 			{
-				Name:      envoyProxyConfig,
+				Name:      envoyBootstrapConfigVolume,
 				ReadOnly:  true,
 				MountPath: envoyProxyConfigPath,
 			},
@@ -45,11 +44,6 @@ func getEnvoySidecarContainerSpec(pod *corev1.Pod, data *EnvoySidecarData) (core
 				Name:      envoyTLSVolume,
 				ReadOnly:  true,
 				MountPath: envoyTLSCertPath,
-			},
-			{
-				Name:      envoyRootCertVolume,
-				ReadOnly:  true,
-				MountPath: constants.RootCertPath,
 			},
 		},
 		Command: []string{

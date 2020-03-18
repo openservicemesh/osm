@@ -36,6 +36,8 @@ type Client struct {
 	providerIdent string
 	informers     *InformerCollection
 	announcements chan interface{}
+	osmNamespace  string
+	namespaces    map[string]struct{}
 }
 
 // ClientIdentity is the identity of an Envoy proxy connected to the Open Service Mesh.

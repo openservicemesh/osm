@@ -12,7 +12,7 @@ apiVersion: split.smi-spec.io/v1alpha2
 kind: TrafficSplit
 metadata:
   name: bookstore.mesh
-  namespace: "$K8S_NAMESPACE"
+  namespace: "$BOOKSTORE_NAMESPACE"
 spec:
   service: bookstore.mesh
   backends:

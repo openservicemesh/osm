@@ -34,11 +34,7 @@ func NewClient(kubeConfig *rest.Config, namespaces []string, stop chan struct{})
 
 // newClient creates a provider based on a Kubernetes client instance.
 func newClient(kubeClient *kubernetes.Clientset, azureResourceClient *osmClient.Clientset, namespaces []string) *Client {
-	var options []osmInformers.SharedInformerOption
-	for _, namespace := range namespaces {
-		options = append(options, osmInformers.WithNamespace(namespace))
-	}
-	azureResourceFactory := osmInformers.NewSharedInformerFactoryWithOptions(azureResourceClient, resyncPeriod, options...)
+	azureResourceFactory := osmInformers.NewSharedInformerFactory(azureResourceClient, resyncPeriod)
 	informerCollection := InformerCollection{
 		AzureResource: azureResourceFactory.Osm().V1().AzureResources().Informer(),
 	}
@@ -54,6 +50,10 @@ func newClient(kubeClient *kubernetes.Clientset, azureResourceClient *osmClient.
 		caches:        &cacheCollection,
 		cacheSynced:   make(chan interface{}),
 		announcements: make(chan interface{}),
+		namespaces:    make(map[string]struct{}),
+	}
+	for _, ns := range namespaces {
+		client.namespaces[ns] = struct{}{}
 	}
 
 	h := handlers{client}
@@ -95,7 +95,18 @@ func (c *Client) ListAzureResources() []*osm.AzureResource {
 	var azureResources []*osm.AzureResource
 	for _, azureResourceInterface := range c.caches.AzureResource.List() {
 		azureResource := azureResourceInterface.(*osm.AzureResource)
+		if c.IsNotObservedNamespace(azureResource.Namespace) {
+			// Doesn't belong to namespaces we are observing
+			glog.V(level.Trace).Infof("Namespace %q for AzureResource not in the list of observing namespaces %v, skipping.", azureResource.Namespace, c.namespaces)
+			continue
+		}
 		azureResources = append(azureResources, azureResource)
 	}
 	return azureResources
+}
+
+// IsNotObservedNamespace returns true if the namespace does not belong to a non-empty list of namespaces the Client is observing
+func (c Client) IsNotObservedNamespace(namespace string) bool {
+	_, exists := c.namespaces[namespace]
+	return len(c.namespaces) > 0 && !exists
 }

@@ -9,11 +9,43 @@ IS_GITHUB="${IS_GITHUB:-default false}"
 rm -rf ./certificates
 rm -rf ./certs
 
+exit_error() {
+    error="$1"
+    echo "$error"
+    exit 1
+}
+
+# Check for required environment variables
+if [ -z "$OSM_ID" ]; then
+    exit_error "Missing OSM_ID env variable"
+fi
+if [ -z "$K8S_NAMESPACE" ]; then
+    exit_error "Missing K8S_NAMESPACE env variable"
+fi
+if [ -z "$BOOKBUYER_NAMESPACE" ]; then
+    exit_error "Missing BOOKBUYER_NAMESPACE env variable"
+fi
+if [ -z "$BOOKSTORE_NAMESPACE" ]; then
+    exit_error "Missing BOOKSTORE_NAMESPACE env variable"
+fi
+if [ -z "$BOOKTHIEF_NAMESPACE" ]; then
+    exit_error "Missing BOOKTHIEF_NAMESPACE env variable"
+fi
+
 ./demo/clean-kubernetes.sh
 
+# The demo uses the following namespaces defined by environment variables:
+# 1. K8S_NAMESPACE: OSM's namespace
+# 2. BOOKBUYER_NAMESPACE: Namespace for the Bookbuyer service
+# 3. BOOKSTORE_NAMESPACE: Namespace for the Bookstore service
 kubectl create namespace "$K8S_NAMESPACE"
-kubectl label  namespaces "$K8S_NAMESPACE" osm-inject="$K8S_NAMESPACE"
-go run  demo/cmd/bootstrap/create.go
+for ns in "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE"; do
+    kubectl create namespace "$ns"
+    kubectl label  namespaces "$ns" osm-inject="$OSM_ID"
+done
+# APP_NAMESPACES is a comma separated list of namespaces that informs OSM of the
+# namespaces it should observe.
+export APP_NAMESPACES="$BOOKBUYER_NAMESPACE,$BOOKSTORE_NAMESPACE,$BOOKTHIEF_NAMESPACE"
 
 make build-cert
 
@@ -44,7 +76,7 @@ kubectl apply -f crd/AzureResource.yaml
 ./demo/deploy-traffic-target.sh
 ./demo/deploy-traffic-target-2.sh
 # this is a temporary workaround to have envoy run on the bookthief pod
-# todo: remove this once we have annotations supported 
+# todo: remove this once we have annotations supported
 ./demo/deploy-traffic-target-bookthief.sh
 
 ./demo/deploy-secrets.sh "ads"
@@ -57,7 +89,7 @@ do
   echo "waiting for pod ads to be ready" && sleep 2
 done
 
-./demo/deploy-webhook.sh "ads" "$K8S_NAMESPACE"
+./demo/deploy-webhook.sh "ads" "$K8S_NAMESPACE" "$OSM_ID"
 
 # The POD creation for the services will fail if OSM has not picked up the
 # corresponding services defined in the SMI spec
@@ -69,5 +101,5 @@ done
 ./demo/deploy-bookstore.sh "bookstore-2"
 
 if [[ "$IS_GITHUB" != "true" ]]; then
-    watch -n0.5 "kubectl get pods -n${K8S_NAMESPACE} -o wide"
+    watch -n5 "printf \"Namespace ${K8S_NAMESPACE}:\n\"; kubectl get pods -n ${K8S_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKBUYER_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKBUYER_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKSTORE_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKSTORE_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKTHIEF_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKTHIEF_NAMESPACE} -o wide"
 fi

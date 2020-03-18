@@ -21,12 +21,7 @@ var resyncPeriod = 10 * time.Second
 // NewProvider implements mesh.EndpointsProvider, which creates a new Kubernetes cluster/compute provider.
 func NewProvider(kubeConfig *rest.Config, namespaces []string, stop chan struct{}, providerIdent string) *Client {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
-
-	var options []informers.SharedInformerOption
-	for _, namespace := range namespaces {
-		options = append(options, informers.WithNamespace(namespace))
-	}
-	informerFactory := informers.NewSharedInformerFactoryWithOptions(kubeClient, resyncPeriod, options...)
+	informerFactory := informers.NewSharedInformerFactory(kubeClient, resyncPeriod)
 
 	informerCollection := InformerCollection{
 		Endpoints:   informerFactory.Core().V1().Endpoints().Informer(),
@@ -45,6 +40,10 @@ func NewProvider(kubeConfig *rest.Config, namespaces []string, stop chan struct{
 		caches:        &cacheCollection,
 		cacheSynced:   make(chan interface{}),
 		announcements: make(chan interface{}),
+		namespaces:    make(map[string]struct{}),
+	}
+	for _, ns := range namespaces {
+		client.namespaces[ns] = struct{}{}
 	}
 
 	h := handlers{client}
@@ -87,6 +86,11 @@ func (c Client) ListEndpointsForService(svc endpoint.ServiceName) []endpoint.End
 	}
 
 	if kubernetesEndpoints := endpointsInterface.(*corev1.Endpoints); kubernetesEndpoints != nil {
+		if c.IsNotObservedNamespace(kubernetesEndpoints.Namespace) {
+			// Doesn't belong to namespaces we are observing
+			glog.V(level.Trace).Infof("Namespace %q for service %s's endpoints not in the list of observing namespaces %v, skipping.", svc, kubernetesEndpoints.Namespace, c.namespaces)
+			return endpoints
+		}
 		for _, kubernetesEndpoint := range kubernetesEndpoints.Subsets {
 			for _, address := range kubernetesEndpoint.Addresses {
 				for _, port := range kubernetesEndpoint.Ports {
@@ -111,6 +115,11 @@ func (c Client) ListServicesForServiceAccount(svcAccount endpoint.NamespacedServ
 
 	for _, deployments := range deploymentsInterface {
 		if kubernetesDeployments := deployments.(*extensionsv1.Deployment); kubernetesDeployments != nil {
+			if c.IsNotObservedNamespace(kubernetesDeployments.Namespace) {
+				// Doesn't belong to namespaces we are observing
+				glog.V(level.Trace).Infof("Namespace %q for K8s Deployment %q not in the list of observing namespaces %v, skipping.", kubernetesDeployments.Namespace, kubernetesDeployments.Name, c.namespaces)
+				continue
+			}
 			spec := kubernetesDeployments.Spec
 			namespacedSvcAccount := endpoint.NamespacedServiceAccount{
 				Namespace:      kubernetesDeployments.Namespace,
@@ -179,4 +188,10 @@ func (c *Client) run(stop <-chan struct{}) error {
 
 	glog.V(level.Info).Infof("Cache sync finished for %+v", names)
 	return nil
+}
+
+// IsNotObservedNamespace returns true if the namespace does not belong to a non-empty list of namespaces the Client is observing
+func (c Client) IsNotObservedNamespace(namespace string) bool {
+	_, exists := c.namespaces[namespace]
+	return len(c.namespaces) > 0 && !exists
 }

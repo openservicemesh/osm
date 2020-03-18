@@ -76,6 +76,10 @@ jobs:
         CTR_REGISTRY: ${{ secrets.CTR_REGISTRY }}
         CTR_REGISTRY_CREDS_NAME: ${{ secrets.CTR_REGISTRY_CREDS_NAME }}
         K8S_NAMESPACE: "ci-${{ github.run_id }}-${{ github.run_number}}"
+        BOOKBUYER_NAMESPACE: "ci-bookbuyer-${{ github.run_id }}-${{ github.run_number}}"
+        BOOKSTORE_NAMESPACE: "ci-bookstore-${{ github.run_id }}-${{ github.run_number}}"
+        BOOKTHIEF_NAMESPACE: "ci-bookthief-${{ github.run_id }}-${{ github.run_number}}"
+        OSM_ID: "osm-ci-${{ github.run_id }}-${{ github.run_number}}"
         ACR_CREDS: ${{ secrets.ACR_CREDS }}
         KUBECONFIG: ".kube/config"
         DOCKER_USER: ${{ secrets.DOCKER_USER }}

@@ -28,15 +28,23 @@ const (
 	// KubeConfigEnvVar is the environment variable for KUBECONFIG.
 	KubeConfigEnvVar = "KUBECONFIG"
 
-	// KubeNamespaceEnvVar is the environment variable for the Kubernetes namespace.
-	KubeNamespaceEnvVar = "K8S_NAMESPACE"
+	// OSMNamespaceEnvVar is the environment variable for the OSM namespace.
+	OSMNamespaceEnvVar = "K8S_NAMESPACE"
+
+	// BookbuyerNamespaceEnvVar is the environment variable for the Bookbuyer namespace.
+	BookbuyerNamespaceEnvVar = "BOOKBUYER_NAMESPACE"
+
+	// BookthiefNamespaceEnvVar is the environment variable for the Bookbuyer namespace.
+	BookthiefNamespaceEnvVar = "BOOKTHIEF_NAMESPACE"
 
 	// WaitForPodTimeSecondsEnvVar is the environment variable for the time we will wait on the pod to be ready.
 	WaitForPodTimeSecondsEnvVar = "WAIT_FOR_POD_TIME_SECONDS"
 )
 
 func main() {
-	namespace := os.Getenv(KubeNamespaceEnvVar)
+	osmNS := os.Getenv(OSMNamespaceEnvVar)
+	bookbuyerNS := os.Getenv(BookbuyerNamespaceEnvVar)
+	bookthiefNS := os.Getenv(BookthiefNamespaceEnvVar)
 	totalWaitString := os.Getenv(WaitForPodTimeSecondsEnvVar)
 	totalWait, err := strconv.ParseInt(totalWaitString, 10, 32)
 	if err != nil {
@@ -49,19 +57,19 @@ func main() {
 	bookThiefSelector := "app=bookthief"
 	adsPodSelector := "app=ads"
 
-	fmt.Printf("Tail looking for containers %s and %s in namespace %s\n", bookBuyerContainerName, bookThiefContainerName, namespace)
-	if namespace == "" {
-		fmt.Println("Empty namespace")
+	fmt.Printf("Tail looking for containers:namespace - %s:%s and %s:%s\n", bookBuyerContainerName, bookbuyerNS, bookThiefContainerName, bookthiefNS)
+	if bookbuyerNS == "" || bookthiefNS == "" {
+		fmt.Printf("Namespace cannot be empty, bookbuyer=%s, bookthief=%s\n", bookbuyerNS, bookthiefNS)
 		os.Exit(1)
 	}
 	clientset := getClient()
 
-	bookBuyerPodName, err := getPodName(namespace, bookBuyerSelector)
+	bookBuyerPodName, err := getPodName(bookbuyerNS, bookBuyerSelector)
 	if err != nil {
 		glog.Fatal("Error getting Bookbuyer pod: ", err)
 	}
 
-	bookThiefPodName, err := getPodName(namespace, bookThiefSelector)
+	bookThiefPodName, err := getPodName(bookthiefNS, bookThiefSelector)
 	if err != nil {
 		glog.Fatal("Error getting Bookthief pod: ", err)
 	}
@@ -69,9 +77,9 @@ func main() {
 	go func() {
 	Run:
 		for {
-			bookBuyerPod, err := clientset.CoreV1().Pods(namespace).Get(bookBuyerPodName, metav1.GetOptions{})
+			bookBuyerPod, err := clientset.CoreV1().Pods(bookbuyerNS).Get(bookBuyerPodName, metav1.GetOptions{})
 			if err != nil {
-				fmt.Printf("Error getting pod %s/%s: %s\n", namespace, bookBuyerPodName, err)
+				fmt.Printf("Error getting pod %s/%s: %s\n", bookbuyerNS, bookBuyerPodName, err)
 				os.Exit(1)
 			}
 			for _, container := range bookBuyerPod.Status.ContainerStatuses {
@@ -80,7 +88,7 @@ func main() {
 						fmt.Printf("Waited for pod %s to become ready for %+v; Didn't happen", bookBuyerPodName, totalWait)
 						os.Exit(1)
 					}
-					fmt.Printf("Pod %s/%s is still initializing; Waiting %+v (%+v/%+v)\n", namespace, bookBuyerPodName, waitForPod, time.Now().Sub(startedWaiting), totalWait)
+					fmt.Printf("Pod %s/%s is still initializing; Waiting %+v (%+v/%+v)\n", bookbuyerNS, bookBuyerPodName, waitForPod, time.Now().Sub(startedWaiting), totalWait)
 					time.Sleep(waitForPod)
 				} else {
 					break Run
@@ -92,9 +100,9 @@ func main() {
 	go func() {
 	Run:
 		for {
-			bookThiefPod, err := clientset.CoreV1().Pods(namespace).Get(bookThiefPodName, metav1.GetOptions{})
+			bookThiefPod, err := clientset.CoreV1().Pods(bookthiefNS).Get(bookThiefPodName, metav1.GetOptions{})
 			if err != nil {
-				fmt.Printf("Error getting pod %s/%s: %s\n", namespace, bookBuyerPodName, err)
+				fmt.Printf("Error getting pod %s/%s: %s\n", bookthiefNS, bookBuyerPodName, err)
 				os.Exit(1)
 			}
 			for _, container := range bookThiefPod.Status.ContainerStatuses {
@@ -103,7 +111,7 @@ func main() {
 						fmt.Printf("Waited for pod %s to become ready for %+v; Didn't happen", bookThiefPodName, totalWait)
 						os.Exit(1)
 					}
-					fmt.Printf("Pod %s/%s is still initializing; Waiting %+v (%+v/%+v)\n", namespace, bookThiefPodName, waitForPod, time.Now().Sub(startedWaiting), totalWait)
+					fmt.Printf("Pod %s/%s is still initializing; Waiting %+v (%+v/%+v)\n", bookthiefNS, bookThiefPodName, waitForPod, time.Now().Sub(startedWaiting), totalWait)
 					time.Sleep(waitForPod)
 				} else {
 					break Run
@@ -112,8 +120,8 @@ func main() {
 		}
 	}()
 
-	bookBuyerLogs := getPodLogs(namespace, bookBuyerPodName, bookBuyerContainerName, true)
-	bookThiefLogs := getPodLogs(namespace, bookThiefPodName, bookThiefContainerName, true)
+	bookBuyerLogs := getPodLogs(bookbuyerNS, bookBuyerPodName, bookBuyerContainerName, true)
+	bookThiefLogs := getPodLogs(bookthiefNS, bookThiefPodName, bookThiefContainerName, true)
 	if strings.HasSuffix(bookBuyerLogs, common.Success) && strings.HasSuffix(bookThiefLogs, common.Success) {
 		fmt.Println("The test succeeded")
 		os.Exit(0)
@@ -121,11 +129,11 @@ func main() {
 	fmt.Println(bookBuyerLogs)
 	fmt.Println(bookThiefLogs)
 
-	adsPodName, err := getPodName(namespace, adsPodSelector)
+	adsPodName, err := getPodName(osmNS, adsPodSelector)
 	if err != nil {
-		glog.Fatalf("Error getting ADS pods with selector %s in namespace %s: %s", adsPodName, namespace, err)
+		glog.Fatalf("Error getting ADS pods with selector %s in namespace %s: %s", adsPodName, osmNS, err)
 	}
-	fmt.Println("-------- ADS LOGS --------\n", getPodLogs(namespace, adsPodName, "", false))
+	fmt.Println("-------- ADS LOGS --------\n", getPodLogs(osmNS, adsPodName, "", false))
 	os.Exit(1)
 }
 

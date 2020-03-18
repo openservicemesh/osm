@@ -39,6 +39,8 @@ const (
 var (
 	azureAuthFile  string
 	kubeConfigFile string
+	appNamespaces  string // comma separated list of namespaces to observe
+	osmNamespace   string
 	injectorConfig injector.Config
 )
 
@@ -47,7 +49,6 @@ var (
 	subscriptionID = flags.String("subscriptionID", "", "Azure Subscription")
 	verbosity      = flags.Int("verbosity", int(level.Info), "Set log verbosity level")
 	port           = flags.Int("port", 15128, "Clusters Discovery Service port number.")
-	namespace      = flags.String("namespace", "default", "Kubernetes namespace to watch for SMI Spec.")
 	certPem        = flags.String("certpem", "", "Full path to the xDS Certificate PEM file")
 	keyPem         = flags.String("keypem", "", "Full path to the xDS Key PEM file")
 	rootCertPem    = flags.String("rootcertpem", "", "Full path to the Root Certificate PEM file")
@@ -57,6 +58,8 @@ var (
 func init() {
 	flags.StringVar(&azureAuthFile, "azureAuthFile", "", "Path to Azure Auth File")
 	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file.")
+	flags.StringVar(&appNamespaces, "appNamespaces", "", "List of comma separated application namespaces OSM should manage.")
+	flags.StringVar(&osmNamespace, "osmNamespace", "", "Namespace to which OSM belongs to.")
 
 	// sidecar injector options
 	flags.BoolVar(&injectorConfig.EnableTLS, "enable-tls", true, "Enable TLS")
@@ -88,6 +91,9 @@ func main() {
 		}
 	}
 
+	if osmNamespace == "" {
+		glog.Fatal("Please specify the OSM namespace using --osmNamespace")
+	}
 	if injectorConfig.InitContainerImage == "" {
 		glog.Fatal("Please specify the init container image using --init-container-image ")
 	}
@@ -98,7 +104,7 @@ func main() {
 	observeNamespaces := getNamespaces()
 	stop := signals.RegisterExitHandlers()
 
-	meshSpec := smi.NewMeshSpecClient(kubeConfig, observeNamespaces, stop)
+	meshSpec := smi.NewMeshSpecClient(kubeConfig, osmNamespace, observeNamespaces, stop)
 	certManager, err := tresor.NewCertManagerWithCAFromFile(*rootCertPem, *rootKeyPem, "Acme", 1*time.Hour)
 	if err != nil {
 		glog.Fatal("Could not instantiate Certificate Manager: ", err)
@@ -116,7 +122,7 @@ func main() {
 	meshCatalog := catalog.NewMeshCatalog(meshSpec, certManager, stop, endpointsProviders...)
 
 	// Create the sidecar-injector webhook
-	webhook := injector.NewWebhook(injectorConfig, kubeConfig, certManager, meshCatalog, observeNamespaces)
+	webhook := injector.NewWebhook(injectorConfig, kubeConfig, certManager, meshCatalog, observeNamespaces, osmNamespace)
 	go webhook.ListenAndServe(stop)
 
 	// TODO(draychev): there should be no need to pass meshSpec to the ADS - it is already in meshCatalog
@@ -152,12 +158,16 @@ func parseFlags() {
 
 func getNamespaces() []string {
 	var namespaces []string
-	if namespace == nil {
-		defaultNS := defaultNamespace
-		namespaces = []string{defaultNS}
+	if appNamespaces == "" {
+		glog.Info("appNamespaces not specified, observing all namespaces")
+		// TODO: Warn the user about this, as this could interfere with other
+		// instances of OSM in the cluster.
 	} else {
-		namespaces = []string{*namespace}
+		glog.Infof("Observing namespaces: %s", appNamespaces)
+		namespaces = strings.Split(appNamespaces, ",")
+		for i, ns := range namespaces {
+			namespaces[i] = strings.TrimSpace(ns)
+		}
 	}
-	glog.Infof("Observing namespaces: %s", strings.Join(namespaces, ","))
 	return namespaces
 }
