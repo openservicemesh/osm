@@ -43,7 +43,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 			}
 		} else if isDestinationService {
 			for _, cluster := range trafficPolicies.Destination.Clusters {
-				clusterFactories = append(clusterFactories, getServiceClusterLocal(string(cluster.ClusterName+envoy.LocalClusterSuffix)))
+				clusterFactories = append(clusterFactories, getServiceClusterLocal(catalog, proxyServiceName, string(cluster.ClusterName+envoy.LocalClusterSuffix)))
 			}
 		}
 	}
