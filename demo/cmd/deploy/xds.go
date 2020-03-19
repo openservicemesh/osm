@@ -5,7 +5,7 @@ import (
 	"os"
 	"path"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
@@ -21,6 +21,7 @@ func main() {
 	envoyContainer := path.Join(acr, "envoyproxy:latest")
 	namespace := os.Getenv(common.KubeNamespaceEnvVar)
 	appNamespaces := os.Getenv(common.AppNamespacesEnvVar)
+	osmID := os.Getenv(common.OsmIDEnvVar)
 
 	labels := map[string]string{
 		"app": common.AggregatedDiscoveryServiceName,
@@ -78,6 +79,7 @@ func main() {
 		"--kubeconfig", "/kube/config",
 		"--subscriptionID", azureSubscription,
 		"--verbosity", "25",
+		"--osmID", osmID,
 		"--osmNamespace", namespace,
 		"--appNamespaces", appNamespaces,
 		"--certpem", "/etc/ssl/certs/cert.pem",

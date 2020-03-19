@@ -9,6 +9,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/open-service-mesh/osm/pkg/endpoint"
+	"github.com/open-service-mesh/osm/pkg/namespace"
 )
 
 type friendlyName string
@@ -31,13 +32,13 @@ type CacheCollection struct {
 
 // Client is a struct for all components necessary to connect to and maintain state of a Kubernetes cluster.
 type Client struct {
-	caches        *CacheCollection
-	cacheSynced   chan interface{}
-	providerIdent string
-	informers     *InformerCollection
-	announcements chan interface{}
-	osmNamespace  string
-	namespaces    map[string]struct{}
+	caches              *CacheCollection
+	cacheSynced         chan interface{}
+	providerIdent       string
+	informers           *InformerCollection
+	announcements       chan interface{}
+	osmNamespace        string
+	namespaceController namespace.Controller
 }
 
 // ClientIdentity is the identity of an Envoy proxy connected to the Open Service Mesh.

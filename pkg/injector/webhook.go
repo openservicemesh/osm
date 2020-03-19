@@ -22,6 +22,7 @@ import (
 	"github.com/open-service-mesh/osm/pkg/certificate"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/log/level"
+	"github.com/open-service-mesh/osm/pkg/namespace"
 )
 
 const (
@@ -44,14 +45,14 @@ var (
 )
 
 // NewWebhook returns a new Webhook object
-func NewWebhook(config Config, kubeConfig *rest.Config, certManager certificate.Manager, meshCatalog catalog.MeshCataloger, namespaces []string, osmNamespace string) *Webhook {
+func NewWebhook(config Config, kubeConfig *rest.Config, certManager certificate.Manager, meshCatalog catalog.MeshCataloger, namespaceController namespace.Controller, osmNamespace string) *Webhook {
 	return &Webhook{
-		config:       config,
-		kubeClient:   kubernetes.NewForConfigOrDie(kubeConfig),
-		certManager:  certManager,
-		meshCatalog:  meshCatalog,
-		namespaces:   namespaces,
-		osmNamespace: osmNamespace,
+		config:              config,
+		kubeClient:          kubernetes.NewForConfigOrDie(kubeConfig),
+		certManager:         certManager,
+		meshCatalog:         meshCatalog,
+		namespaceController: namespaceController,
+		osmNamespace:        osmNamespace,
 	}
 }
 
@@ -197,20 +198,14 @@ func (wh *Webhook) isNamespaceAllowed(namespace string) bool {
 			return false
 		}
 	}
-
 	// Skip namespaces not being observed
-	for _, ns := range wh.namespaces {
-		if ns == namespace {
-			return true
-		}
-	}
-	return false
+	return wh.namespaceController.IsMonitoredNamespace(namespace)
 }
 
 func (wh *Webhook) mustInject(pod *corev1.Pod, namespace string) (bool, error) {
-	// If the request belongs to a namespace we are not observing, skip it
+	// If the request belongs to a namespace we are not monitoring, skip it
 	if !wh.isNamespaceAllowed(namespace) {
-		glog.Infof("Request belongs to namespace=%s, not in the list of observing namespaces: %v", namespace, wh.namespaces)
+		glog.Infof("Request belongs to namespace=%s not in the list of monitored namespaces", namespace)
 		return false, nil
 	}
 

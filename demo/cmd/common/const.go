@@ -16,6 +16,9 @@ const (
 	// AppNamespacesEnvVar is the environment variable for a comma separated list of application namespaces
 	AppNamespacesEnvVar = "APP_NAMESPACES"
 
+	// OsmIDEnvVar is the environment variable for the namespace an OSM instance belongs to
+	OsmIDEnvVar = "OSM_ID"
+
 	// IsGithubEnvVar is the environment variable indicating whether this runs in Github CI.
 	IsGithubEnvVar = "IS_GITHUB"
 

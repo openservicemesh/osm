@@ -12,6 +12,8 @@ import (
 	"github.com/open-service-mesh/osm/pkg/log/level"
 	osmClient "github.com/open-service-mesh/osm/pkg/osm_client/clientset/versioned"
 	osmInformers "github.com/open-service-mesh/osm/pkg/osm_client/informers/externalversions"
+
+	"github.com/open-service-mesh/osm/pkg/namespace"
 )
 
 const (
@@ -21,11 +23,11 @@ const (
 var resyncPeriod = 10 * time.Second
 
 // NewClient creates the Kubernetes client, which retrieves the AzureResource CRD and Services resources.
-func NewClient(kubeConfig *rest.Config, namespaces []string, stop chan struct{}) *Client {
+func NewClient(kubeConfig *rest.Config, namespaceController namespace.Controller, stop chan struct{}) *Client {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 	azureResourceClient := osmClient.NewForConfigOrDie(kubeConfig)
 
-	k8sClient := newClient(kubeClient, azureResourceClient, namespaces)
+	k8sClient := newClient(kubeClient, azureResourceClient, namespaceController)
 	if err := k8sClient.Run(stop); err != nil {
 		glog.Fatalf("Could not start %s client: %s", kubernetesClientName, err)
 	}
@@ -33,7 +35,7 @@ func NewClient(kubeConfig *rest.Config, namespaces []string, stop chan struct{})
 }
 
 // newClient creates a provider based on a Kubernetes client instance.
-func newClient(kubeClient *kubernetes.Clientset, azureResourceClient *osmClient.Clientset, namespaces []string) *Client {
+func newClient(kubeClient *kubernetes.Clientset, azureResourceClient *osmClient.Clientset, namespaceController namespace.Controller) *Client {
 	azureResourceFactory := osmInformers.NewSharedInformerFactory(azureResourceClient, resyncPeriod)
 	informerCollection := InformerCollection{
 		AzureResource: azureResourceFactory.Osm().V1().AzureResources().Informer(),
@@ -44,16 +46,13 @@ func newClient(kubeClient *kubernetes.Clientset, azureResourceClient *osmClient.
 	}
 
 	client := Client{
-		providerIdent: kubernetesClientName,
-		kubeClient:    kubeClient,
-		informers:     &informerCollection,
-		caches:        &cacheCollection,
-		cacheSynced:   make(chan interface{}),
-		announcements: make(chan interface{}),
-		namespaces:    make(map[string]struct{}),
-	}
-	for _, ns := range namespaces {
-		client.namespaces[ns] = struct{}{}
+		providerIdent:       kubernetesClientName,
+		kubeClient:          kubeClient,
+		informers:           &informerCollection,
+		caches:              &cacheCollection,
+		cacheSynced:         make(chan interface{}),
+		announcements:       make(chan interface{}),
+		namespaceController: namespaceController,
 	}
 
 	h := handlers{client}
@@ -95,18 +94,11 @@ func (c *Client) ListAzureResources() []*osm.AzureResource {
 	var azureResources []*osm.AzureResource
 	for _, azureResourceInterface := range c.caches.AzureResource.List() {
 		azureResource := azureResourceInterface.(*osm.AzureResource)
-		if c.IsNotObservedNamespace(azureResource.Namespace) {
+		if !c.namespaceController.IsMonitoredNamespace(azureResource.Namespace) {
 			// Doesn't belong to namespaces we are observing
-			glog.V(level.Trace).Infof("Namespace %q for AzureResource not in the list of observing namespaces %v, skipping.", azureResource.Namespace, c.namespaces)
 			continue
 		}
 		azureResources = append(azureResources, azureResource)
 	}
 	return azureResources
-}
-
-// IsNotObservedNamespace returns true if the namespace does not belong to a non-empty list of namespaces the Client is observing
-func (c Client) IsNotObservedNamespace(namespace string) bool {
-	_, exists := c.namespaces[namespace]
-	return len(c.namespaces) > 0 && !exists
 }

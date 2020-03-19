@@ -41,7 +41,7 @@ fi
 kubectl create namespace "$K8S_NAMESPACE"
 for ns in "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE"; do
     kubectl create namespace "$ns"
-    kubectl label  namespaces "$ns" osm-inject="$OSM_ID"
+    kubectl label  namespaces "$ns" openservicemesh.io/monitor="$OSM_ID"
 done
 # APP_NAMESPACES is a comma separated list of namespaces that informs OSM of the
 # namespaces it should observe.
