@@ -11,13 +11,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Azure/go-autorest/autorest/to"
 	"github.com/golang/glog"
-	"github.com/open-service-mesh/osm/demo/cmd/common"
+	"k8s.io/api/admissionregistration/v1beta1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/open-service-mesh/osm/demo/cmd/common"
 )
 
 var (
@@ -57,6 +60,12 @@ func main() {
 	bookThiefSelector := "app=bookthief"
 	adsPodSelector := "app=ads"
 
+	namespaces := []string{
+		bookbuyerNS,
+		bookthiefNS,
+		osmNS,
+	}
+
 	fmt.Printf("Tail looking for containers:namespace - %s:%s and %s:%s\n", bookBuyerContainerName, bookbuyerNS, bookThiefContainerName, bookthiefNS)
 	if bookbuyerNS == "" || bookthiefNS == "" {
 		fmt.Printf("Namespace cannot be empty, bookbuyer=%s, bookthief=%s\n", bookbuyerNS, bookthiefNS)
@@ -84,11 +93,11 @@ func main() {
 			}
 			for _, container := range bookBuyerPod.Status.ContainerStatuses {
 				if container.State.Waiting != nil && container.State.Waiting.Reason == "PodInitializing" {
-					if time.Now().Sub(startedWaiting) >= totalWaitSeconds {
+					if time.Since(startedWaiting) >= totalWaitSeconds {
 						fmt.Printf("Waited for pod %s to become ready for %+v; Didn't happen", bookBuyerPodName, totalWait)
 						os.Exit(1)
 					}
-					fmt.Printf("Pod %s/%s is still initializing; Waiting %+v (%+v/%+v)\n", bookbuyerNS, bookBuyerPodName, waitForPod, time.Now().Sub(startedWaiting), totalWait)
+					fmt.Printf("Pod %s/%s is still initializing; Waiting %+v (%+v/%+v)\n", bookbuyerNS, bookBuyerPodName, waitForPod, time.Since(startedWaiting), totalWait)
 					time.Sleep(waitForPod)
 				} else {
 					break Run
@@ -107,11 +116,11 @@ func main() {
 			}
 			for _, container := range bookThiefPod.Status.ContainerStatuses {
 				if container.State.Waiting != nil && container.State.Waiting.Reason == "PodInitializing" {
-					if time.Now().Sub(startedWaiting) >= totalWaitSeconds {
+					if time.Since(startedWaiting) >= totalWaitSeconds {
 						fmt.Printf("Waited for pod %s to become ready for %+v; Didn't happen", bookThiefPodName, totalWait)
 						os.Exit(1)
 					}
-					fmt.Printf("Pod %s/%s is still initializing; Waiting %+v (%+v/%+v)\n", bookthiefNS, bookThiefPodName, waitForPod, time.Now().Sub(startedWaiting), totalWait)
+					fmt.Printf("Pod %s/%s is still initializing; Waiting %+v (%+v/%+v)\n", bookthiefNS, bookThiefPodName, waitForPod, time.Since(startedWaiting), totalWait)
 					time.Sleep(waitForPod)
 				} else {
 					break Run
@@ -124,6 +133,8 @@ func main() {
 	bookThiefLogs := getPodLogs(bookthiefNS, bookThiefPodName, bookThiefContainerName, true)
 	if strings.HasSuffix(bookBuyerLogs, common.Success) && strings.HasSuffix(bookThiefLogs, common.Success) {
 		fmt.Println("The test succeeded")
+		deleteNamespaces(clientset, namespaces...)
+		deleteWebhooks(clientset, namespaces...)
 		os.Exit(0)
 	}
 	fmt.Println(bookBuyerLogs)
@@ -135,6 +146,45 @@ func main() {
 	}
 	fmt.Println("-------- ADS LOGS --------\n", getPodLogs(osmNS, adsPodName, "", false))
 	os.Exit(1)
+}
+
+func deleteNamespaces(client *kubernetes.Clientset, namespaces ...string) {
+	deleteOptions := &metav1.DeleteOptions{
+		GracePeriodSeconds: to.Int64Ptr(0),
+	}
+
+	for _, ns := range namespaces {
+		if err := client.CoreV1().Namespaces().Delete(ns, deleteOptions); err != nil {
+			glog.Errorf("Error deleting namespace %s: %s", ns, err)
+		}
+		glog.Infof("Deleted namespace: %s", ns)
+	}
+}
+
+func deleteWebhooks(client *kubernetes.Clientset, namespaces ...string) {
+	deleteOptions := &metav1.DeleteOptions{
+		GracePeriodSeconds: to.Int64Ptr(0),
+	}
+
+	var webhooks *v1beta1.MutatingWebhookConfigurationList
+	var err error
+	webhooks, err = client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().List(metav1.ListOptions{})
+	if err != nil {
+		glog.Errorf("Error listing webhooks: %s", err)
+	}
+
+	for _, webhook := range webhooks.Items {
+		for _, ns := range namespaces {
+			// Convention is - the webhook name is prefixed with the namespace where OSM is.
+			if !strings.HasPrefix(webhook.Name, ns) {
+				continue
+			}
+			if err := client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Delete(webhook.Name, deleteOptions); err != nil {
+				glog.Errorf("Error deleting webhook %s: %s", webhook.Name, err)
+			}
+			glog.Infof("Deleted mutating webhook: %s", webhook.Name)
+		}
+	}
 }
 
 func getPodName(namespace, selector string) (string, error) {
