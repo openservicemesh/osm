@@ -57,7 +57,7 @@ spec:
         app: $SVC
         version: v1
       annotations:
-        "osm.io/sidecar-injection": "enabled"
+        "openservicemesh.io/sidecar-injection": "enabled"
     spec:
       serviceAccountName: "$SVC-serviceaccount"
       automountServiceAccountToken: false

@@ -30,7 +30,7 @@ const (
 	tlsKeyFile  = `tls.key`
 
 	// Annotations
-	annotationInject = "osm.io/sidecar-injection"
+	annotationInject = "openservicemesh.io/sidecar-injection"
 )
 
 var (
