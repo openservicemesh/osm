@@ -1,0 +1,87 @@
+package namespace
+
+import (
+	"time"
+
+	"github.com/golang/glog"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
+
+	"github.com/open-service-mesh/osm/pkg/log/level"
+)
+
+const (
+	monitorLabel = "openservicemesh.io/monitor"
+)
+
+var (
+	resyncPeriod = 10 * time.Second
+)
+
+// NewNamespaceController implements namespace.Controller and creates the Kubernetes client to manage namespaces.
+func NewNamespaceController(kubeConfig *rest.Config, osmID string, stop chan struct{}) Controller {
+	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
+
+	// Only monitor namespaces that are labeled with this OSM's ID
+	monitorNamespaceLabel := map[string]string{monitorLabel: osmID}
+	labelSelector := fields.SelectorFromSet(monitorNamespaceLabel).String()
+	option := informers.WithTweakListOptions(func(opt *metav1.ListOptions) {
+		opt.LabelSelector = labelSelector
+	})
+	informerFactory := informers.NewSharedInformerFactoryWithOptions(kubeClient, resyncPeriod, option)
+	informer := informerFactory.Core().V1().Namespaces().Informer()
+
+	client := Client{
+		informer:    informer,
+		cache:       informer.GetStore(),
+		cacheSynced: make(chan interface{}),
+	}
+
+	h := handlers{client}
+
+	resourceHandler := cache.ResourceEventHandlerFuncs{
+		AddFunc:    h.addFunc,
+		UpdateFunc: h.updateFunc,
+		DeleteFunc: h.deleteFunc,
+	}
+
+	informer.AddEventHandler(resourceHandler)
+
+	if err := client.run(stop); err != nil {
+		glog.Fatal("Could not start Kubernetes Namespaces client", err)
+	}
+
+	glog.Infof("Monitoring namespaces with the label: %s=%s", monitorLabel, osmID)
+	return client
+}
+
+// run executes informer collection.
+func (c *Client) run(stop <-chan struct{}) error {
+	glog.V(level.Info).Infoln("Namespace controller client started")
+
+	if c.informer == nil {
+		return errInitInformers
+	}
+
+	go c.informer.Run(stop)
+	glog.V(level.Info).Infof("Waiting namespace.Monitor informer cache sync")
+	if !cache.WaitForCacheSync(stop, c.informer.HasSynced) {
+		return errSyncingCaches
+	}
+
+	// Closing the cacheSynced channel signals to the rest of the system that... caches have been synced.
+	close(c.cacheSynced)
+
+	glog.V(level.Info).Infof("Cache sync finished for namespace.Monitor informer")
+	return nil
+}
+
+// IsMonitoredNamespace returns a boolean indicating if the namespace is among the list of monitored namespaces
+func (c Client) IsMonitoredNamespace(namespace string) bool {
+	_, exists, _ := c.cache.GetByKey(namespace)
+	return exists
+}

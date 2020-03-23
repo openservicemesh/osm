@@ -5,6 +5,7 @@ import (
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/open-service-mesh/osm/pkg/namespace"
 )
 
 const (
@@ -15,12 +16,12 @@ const (
 
 // Webhook is the type used to represent the webhook for sidecar injection
 type Webhook struct {
-	config       Config
-	kubeClient   kubernetes.Interface
-	certManager  certificate.Manager
-	meshCatalog  catalog.MeshCataloger
-	namespaces   []string
-	osmNamespace string
+	config              Config
+	kubeClient          kubernetes.Interface
+	certManager         certificate.Manager
+	meshCatalog         catalog.MeshCataloger
+	namespaceController namespace.Controller
+	osmNamespace        string
 }
 
 // Config is the type used to represent the config options for the sidecar injection
