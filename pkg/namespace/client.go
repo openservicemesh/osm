@@ -3,15 +3,12 @@ package namespace
 import (
 	"time"
 
+	"github.com/golang/glog"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
-
-	//corev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/rest"
-
-	"github.com/golang/glog"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/open-service-mesh/osm/pkg/log/level"
@@ -28,25 +25,19 @@ var (
 // NewNamespaceController implements namespace.Controller and creates the Kubernetes client to manage namespaces.
 func NewNamespaceController(kubeConfig *rest.Config, osmID string, stop chan struct{}) Controller {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
-	var options []informers.SharedInformerOption
 
 	// Only monitor namespaces that are labeled with this OSM's ID
-	monitorNamespaceLabel := map[string]string{monitorLabel: osmID} // FIXME
+	monitorNamespaceLabel := map[string]string{monitorLabel: osmID}
 	labelSelector := fields.SelectorFromSet(monitorNamespaceLabel).String()
-	options = append(options, informers.WithTweakListOptions(func(opt *metav1.ListOptions) {
+	option := informers.WithTweakListOptions(func(opt *metav1.ListOptions) {
 		opt.LabelSelector = labelSelector
-	}))
-	informerFactory := informers.NewSharedInformerFactoryWithOptions(kubeClient, resyncPeriod, options...)
-	informerCollection := InformerCollection{
-		MonitorNamespaces: informerFactory.Core().V1().Namespaces().Informer(),
-	}
-	cacheCollection := CacheCollection{
-		MonitorNamespaces: informerCollection.MonitorNamespaces.GetStore(),
-	}
+	})
+	informerFactory := informers.NewSharedInformerFactoryWithOptions(kubeClient, resyncPeriod, option)
+	informer := informerFactory.Core().V1().Namespaces().Informer()
 
 	client := Client{
-		informers:   &informerCollection,
-		caches:      &cacheCollection,
+		informer:    informer,
+		cache:       informer.GetStore(),
 		cacheSynced: make(chan interface{}),
 	}
 
@@ -58,54 +49,39 @@ func NewNamespaceController(kubeConfig *rest.Config, osmID string, stop chan str
 		DeleteFunc: h.deleteFunc,
 	}
 
-	informerCollection.MonitorNamespaces.AddEventHandler(resourceHandler)
+	informer.AddEventHandler(resourceHandler)
 
 	if err := client.run(stop); err != nil {
 		glog.Fatal("Could not start Kubernetes Namespaces client", err)
 	}
 
+	glog.Infof("Monitoring namespaces with the label: %s=%s", monitorLabel, osmID)
 	return client
 }
 
 // run executes informer collection.
 func (c *Client) run(stop <-chan struct{}) error {
 	glog.V(level.Info).Infoln("Namespace controller client started")
-	var hasSynced []cache.InformerSynced
 
-	if c.informers == nil {
+	if c.informer == nil {
 		return errInitInformers
 	}
 
-	sharedInformers := map[friendlyName]cache.SharedInformer{
-		"MonitorNamespaces": c.informers.MonitorNamespaces,
-	}
-
-	var names []friendlyName
-	for name, informer := range sharedInformers {
-		// Depending on the use-case, some Informers from the collection may not have been initialized.
-		if informer == nil {
-			continue
-		}
-		names = append(names, name)
-		glog.Info("Starting namespace informer: ", name)
-		go informer.Run(stop)
-		hasSynced = append(hasSynced, informer.HasSynced)
-	}
-
-	glog.V(level.Info).Infof("Waiting informers cache sync: %+v", names)
-	if !cache.WaitForCacheSync(stop, hasSynced...) {
+	go c.informer.Run(stop)
+	glog.V(level.Info).Infof("Waiting namespace.Monitor informer cache sync")
+	if !cache.WaitForCacheSync(stop, c.informer.HasSynced) {
 		return errSyncingCaches
 	}
 
 	// Closing the cacheSynced channel signals to the rest of the system that... caches have been synced.
 	close(c.cacheSynced)
 
-	glog.V(level.Info).Infof("Cache sync finished for %+v", names)
+	glog.V(level.Info).Infof("Cache sync finished for namespace.Monitor informer")
 	return nil
 }
 
 // IsMonitoredNamespace returns a boolean indicating if the namespace is among the list of monitored namespaces
 func (c Client) IsMonitoredNamespace(namespace string) bool {
-	_, exists, _ := c.caches.MonitorNamespaces.GetByKey(namespace)
+	_, exists, _ := c.cache.GetByKey(namespace)
 	return exists
 }
