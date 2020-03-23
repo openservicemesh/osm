@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"sort"
 	"strconv"
@@ -40,6 +39,9 @@ const (
 	// BookthiefNamespaceEnvVar is the environment variable for the Bookbuyer namespace.
 	BookthiefNamespaceEnvVar = "BOOKTHIEF_NAMESPACE"
 
+	// BookstoreNamespaceEnvVar is the environment variable for the Bookbuyer namespace.
+	BookstoreNamespaceEnvVar = "BOOKSTORE_NAMESPACE"
+
 	// WaitForPodTimeSecondsEnvVar is the environment variable for the time we will wait on the pod to be ready.
 	WaitForPodTimeSecondsEnvVar = "WAIT_FOR_POD_TIME_SECONDS"
 )
@@ -48,6 +50,7 @@ func main() {
 	osmNS := os.Getenv(OSMNamespaceEnvVar)
 	bookbuyerNS := os.Getenv(BookbuyerNamespaceEnvVar)
 	bookthiefNS := os.Getenv(BookthiefNamespaceEnvVar)
+	bookstoreNS := os.Getenv(BookstoreNamespaceEnvVar)
 	totalWaitString := os.Getenv(WaitForPodTimeSecondsEnvVar)
 	totalWait, err := strconv.ParseInt(totalWaitString, 10, 32)
 	if err != nil {
@@ -63,6 +66,7 @@ func main() {
 	namespaces := []string{
 		bookbuyerNS,
 		bookthiefNS,
+		bookstoreNS,
 		osmNS,
 	}
 
@@ -82,6 +86,9 @@ func main() {
 	if err != nil {
 		glog.Fatal("Error getting Bookthief pod: ", err)
 	}
+
+	bookbuyerReady := make(chan struct{})
+	bookthiefReady := make(chan struct{})
 	startedWaiting := time.Now()
 	go func() {
 	Run:
@@ -100,6 +107,8 @@ func main() {
 					fmt.Printf("Pod %s/%s is still initializing; Waiting %+v (%+v/%+v)\n", bookbuyerNS, bookBuyerPodName, waitForPod, time.Since(startedWaiting), totalWait)
 					time.Sleep(waitForPod)
 				} else {
+					fmt.Println("Bookbuyer pod init done")
+					close(bookbuyerReady)
 					break Run
 				}
 			}
@@ -123,22 +132,39 @@ func main() {
 					fmt.Printf("Pod %s/%s is still initializing; Waiting %+v (%+v/%+v)\n", bookthiefNS, bookThiefPodName, waitForPod, time.Since(startedWaiting), totalWait)
 					time.Sleep(waitForPod)
 				} else {
+					fmt.Println("Bookthief pod init done")
+					close(bookthiefReady)
 					break Run
 				}
 			}
 		}
 	}()
 
-	bookBuyerLogs := getPodLogs(bookbuyerNS, bookBuyerPodName, bookBuyerContainerName, true)
-	bookThiefLogs := getPodLogs(bookthiefNS, bookThiefPodName, bookThiefContainerName, true)
-	if strings.HasSuffix(bookBuyerLogs, common.Success) && strings.HasSuffix(bookThiefLogs, common.Success) {
-		fmt.Println("The test succeeded")
-		deleteNamespaces(clientset, namespaces...)
-		deleteWebhooks(clientset, namespaces...)
-		os.Exit(0)
+	<-bookbuyerReady
+	<-bookthiefReady
+	// Poll for success
+	for {
+		if time.Since(startedWaiting) >= totalWaitSeconds {
+			// failure
+			break
+		}
+		bookBuyerLogs := getPodLogs(bookbuyerNS, bookBuyerPodName, bookBuyerContainerName, false)
+		bookThiefLogs := getPodLogs(bookthiefNS, bookThiefPodName, bookThiefContainerName, false)
+
+		if strings.Contains(bookBuyerLogs, common.Success) && strings.Contains(bookThiefLogs, common.Success) {
+			fmt.Println("The test succeeded")
+			deleteNamespaces(clientset, namespaces...)
+			deleteWebhooks(clientset, namespaces...)
+			os.Exit(0)
+		}
 	}
-	fmt.Println(bookBuyerLogs)
-	fmt.Println(bookThiefLogs)
+
+	fmt.Println("The test failed")
+
+	bookBuyerLogs := getPodLogs(bookbuyerNS, bookBuyerPodName, bookBuyerContainerName, false)
+	bookThiefLogs := getPodLogs(bookthiefNS, bookThiefPodName, bookThiefContainerName, false)
+	fmt.Println("-------- Bookbuyer LOGS --------\n", bookBuyerLogs)
+	fmt.Println("-------- Bookthief LOGS --------\n", bookThiefLogs)
 
 	adsPodName, err := getPodName(osmNS, adsPodSelector)
 	if err != nil {
@@ -210,23 +236,22 @@ func getPodName(namespace, selector string) (string, error) {
 
 func getPodLogs(namespace string, podName string, containerName string, follow bool) string {
 	clientset := getClient()
+	sinceTime := metav1.NewTime(time.Now().Add(time.Duration(-2 * time.Second)))
 	options := &v1.PodLogOptions{
 		Container: containerName,
 		Follow:    follow,
+		SinceTime: &sinceTime,
 	}
-	req := clientset.CoreV1().Pods(namespace).GetLogs(podName, options)
-	podLogs, err := req.Stream()
+
+	rc, err := clientset.CoreV1().Pods(namespace).GetLogs(podName, options).Stream()
 	if err != nil {
 		fmt.Println("Error in opening stream: ", err)
 		os.Exit(1)
 	}
-	defer podLogs.Close()
 
+	defer rc.Close()
 	buf := new(bytes.Buffer)
-	_, err = io.Copy(buf, podLogs)
-	if err != nil {
-		fmt.Println("error in copy information from podLogs to buf")
-	}
+	buf.ReadFrom(rc)
 	return buf.String()
 }
 

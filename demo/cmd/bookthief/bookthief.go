@@ -39,7 +39,6 @@ func main() {
 			//since bookthief doesn't have any traffic policies setup to talk to bookstore it will get a 404
 			if responses[0] == 404 {
 				fmt.Printf(common.Success)
-				os.Exit(0)
 			} else if time.Now().After(finishBy) {
 				fmt.Printf("It has been %v since we started the test. Response code from %s is %d. This test has failed.",
 					time.Now().Sub(started), counter, responses[0])
