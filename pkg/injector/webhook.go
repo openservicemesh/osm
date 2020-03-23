@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"path/filepath"
+	"strings"
 
 	"github.com/golang/glog"
 	"k8s.io/api/admission/v1beta1"
@@ -27,6 +28,9 @@ const (
 	tlsDir      = `/run/secrets/tls`
 	tlsCertFile = `tls.crt`
 	tlsKeyFile  = `tls.key`
+
+	// Annotations
+	annotationInject = "openservicemesh.io/sidecar-injection"
 )
 
 var (
@@ -209,12 +213,29 @@ func (wh *Webhook) mustInject(pod *corev1.Pod, namespace string) (bool, error) {
 		glog.Infof("Request belongs to namespace=%s, not in the list of observing namespaces: %v", namespace, wh.namespaces)
 		return false, nil
 	}
+
+	// Check if the POD is annotated for injection
+	inject := strings.ToLower(pod.ObjectMeta.Annotations[annotationInject])
+	glog.V(level.Debug).Infof("Sidecar injection annotation: '%s:%s'", annotationInject, inject)
+	if inject != "" {
+
+		switch inject {
+		case "enabled", "yes", "true":
+			return true, nil
+		case "disabled", "no", "false":
+			return false, nil
+		default:
+			return false, fmt.Errorf("Invalid annotion value specified for annotation %q: %s", annotationInject, inject)
+		}
+	}
+
+	// Implicit sidecar injection based on SMI policy
+
+	// Check to see if the service account is referenced in SMI
 	namespacedServiceAcc := endpoint.NamespacedServiceAccount{
 		Namespace:      namespace,
 		ServiceAccount: pod.Spec.ServiceAccountName,
 	}
-
-	// Check to see if the service account is referenced in SMI
 	services := wh.meshCatalog.GetServicesByServiceAccountName(namespacedServiceAcc, true)
 	if len(services) == 0 {
 		// No services found for this service account, don't patch
