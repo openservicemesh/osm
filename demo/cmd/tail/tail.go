@@ -26,6 +26,8 @@ var (
 	waitForPod = 5 * time.Second
 )
 
+var errNoPodsFound = errors.New("no pods found")
+
 const (
 	// KubeConfigEnvVar is the environment variable for KUBECONFIG.
 	KubeConfigEnvVar = "KUBECONFIG"
@@ -222,7 +224,8 @@ func getPodName(namespace, selector string) (string, error) {
 	}
 
 	if len(podList.Items) == 0 {
-		return "", errors.New("Zero pods found")
+		glog.Errorf("Zero pods found for selector %s in namespace %s", selector, namespace)
+		return "", errNoPodsFound
 	}
 
 	sort.SliceStable(podList.Items, func(i, j int) bool {
