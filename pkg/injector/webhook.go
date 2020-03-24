@@ -20,7 +20,6 @@ import (
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/certificate"
-	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/log/level"
 	"github.com/open-service-mesh/osm/pkg/namespace"
 )
@@ -202,6 +201,18 @@ func (wh *Webhook) isNamespaceAllowed(namespace string) bool {
 	return wh.namespaceController.IsMonitoredNamespace(namespace)
 }
 
+// mustInject determines whether the sidecar must be injected.
+//
+// The sidecar injection is performed when:
+// 1. The namespace is annotated for OSM monitoring, and
+// 2. The POD is not annotated with sidecar-injection or is set to enabled/yes/true
+//
+// The sidecar injection is not performed when:
+// 1. The namespace is not annotated for OSM monitoring, or
+// 2. The POD is annotated with sidecar-injection set to disabled/no/false
+//
+// The function returns an error when:
+// 1. The value of the POD level sidecar-injection annotation is invalid
 func (wh *Webhook) mustInject(pod *corev1.Pod, namespace string) (bool, error) {
 	// If the request belongs to a namespace we are not monitoring, skip it
 	if !wh.isNamespaceAllowed(namespace) {
@@ -224,20 +235,8 @@ func (wh *Webhook) mustInject(pod *corev1.Pod, namespace string) (bool, error) {
 		}
 	}
 
-	// Implicit sidecar injection based on SMI policy
-
-	// Check to see if the service account is referenced in SMI
-	namespacedServiceAcc := endpoint.NamespacedServiceAccount{
-		Namespace:      namespace,
-		ServiceAccount: pod.Spec.ServiceAccountName,
-	}
-	services := wh.meshCatalog.GetServicesByServiceAccountName(namespacedServiceAcc, true)
-	if len(services) == 0 {
-		// No services found for this service account, don't patch
-		glog.Infof("No services found for service account %q", pod.Spec.ServiceAccountName)
-		return false, nil
-	}
-
+	// If we reached here, it means the namespace was annotated for OSM to monitor
+	// and no POD level sidecar injection overrides are present.
 	return true, nil
 }
 
