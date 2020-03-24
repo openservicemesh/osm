@@ -85,28 +85,25 @@ done
 
 ./demo/deploy-webhook.sh "ads" "$K8S_NAMESPACE" "$OSM_ID"
 
-# Deploy bookstore before applying SMI policies. The POD spec is annotated with sidecar injection as enabled.
+# Deploy bookstore
 ./demo/deploy-bookstore.sh "bookstore"
 ./demo/deploy-bookstore.sh "bookstore-1"
 ./demo/deploy-bookstore.sh "bookstore-2"
+# Deploy bookbuyer
+./demo/deploy-bookbuyer.sh
+# Deploy bookthief
+./demo/deploy-bookthief.sh
 
 # Apply SMI policies
 ./demo/deploy-traffic-split.sh
 ./demo/deploy-traffic-spec.sh
 ./demo/deploy-traffic-target.sh
 ./demo/deploy-traffic-target-2.sh
-# This is a temporary workaround to have envoy run on the bookthief pod
-# TODO: To remove this, annotate the POD and also update the test to not
+# To remove this, annotate the POD and also update the test to not
 # expect a 404. This is because if an SMI policy is not defined but sidecar
 # is injected, the gRPC xDS stream will be dropped by ADS because there is
 # no service/service-account associated with the service.
 ./demo/deploy-traffic-target-bookthief.sh
-
-# Since the bookbuyer POD is not annotated for sidecar injection, we rely on implicit
-# sidecar injection based on SMI policies by deploying bookbuyer AFTER the SMI policies
-# referencing it have been applied.
-./demo/deploy-bookbuyer.sh
-./demo/deploy-bookthief.sh
 
 if [[ "$IS_GITHUB" != "true" ]]; then
     watch -n5 "printf \"Namespace ${K8S_NAMESPACE}:\n\"; kubectl get pods -n ${K8S_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKBUYER_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKBUYER_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKSTORE_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKSTORE_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKTHIEF_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKTHIEF_NAMESPACE} -o wide"
