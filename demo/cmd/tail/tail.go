@@ -78,23 +78,24 @@ func main() {
 		os.Exit(1)
 	}
 	clientset := getClient()
-
-	bookBuyerPodName, err := getPodName(bookbuyerNS, bookBuyerSelector)
-	if err != nil {
-		glog.Fatal("Error getting Bookbuyer pod: ", err)
-	}
-
-	bookThiefPodName, err := getPodName(bookthiefNS, bookThiefSelector)
-	if err != nil {
-		glog.Fatal("Error getting Bookthief pod: ", err)
-	}
-
 	bookbuyerReady := make(chan struct{})
 	bookthiefReady := make(chan struct{})
 	startedWaiting := time.Now()
+
 	go func() {
 	Run:
 		for {
+			if time.Since(startedWaiting) >= totalWaitSeconds {
+				fmt.Printf("Waited for bookbuyer pod to become ready for %+v; Didn't happen", totalWait)
+				os.Exit(1)
+			}
+			bookBuyerPodName, err := getPodName(bookbuyerNS, bookBuyerSelector)
+			if err != nil {
+				fmt.Println("Error getting bookbuyer pod: ", err)
+				time.Sleep(waitForPod)
+				// Pod might not be up yet, try again
+				continue
+			}
 			bookBuyerPod, err := clientset.CoreV1().Pods(bookbuyerNS).Get(bookBuyerPodName, metav1.GetOptions{})
 			if err != nil {
 				fmt.Printf("Error getting pod %s/%s: %s\n", bookbuyerNS, bookBuyerPodName, err)
@@ -102,10 +103,6 @@ func main() {
 			}
 			for _, container := range bookBuyerPod.Status.ContainerStatuses {
 				if container.State.Waiting != nil && container.State.Waiting.Reason == "PodInitializing" {
-					if time.Since(startedWaiting) >= totalWaitSeconds {
-						fmt.Printf("Waited for pod %s to become ready for %+v; Didn't happen", bookBuyerPodName, totalWait)
-						os.Exit(1)
-					}
 					fmt.Printf("Pod %s/%s is still initializing; Waiting %+v (%+v/%+v)\n", bookbuyerNS, bookBuyerPodName, waitForPod, time.Since(startedWaiting), totalWait)
 					time.Sleep(waitForPod)
 				} else {
@@ -120,17 +117,24 @@ func main() {
 	go func() {
 	Run:
 		for {
+			if time.Since(startedWaiting) >= totalWaitSeconds {
+				fmt.Printf("Waited for bookthief pod to become ready for %+v; Didn't happen", totalWait)
+				os.Exit(1)
+			}
+			bookThiefPodName, err := getPodName(bookthiefNS, bookThiefSelector)
+			if err != nil {
+				fmt.Println("Error getting Bookthief pod: ", err)
+				time.Sleep(waitForPod)
+				// Pod might not be up yet, try again
+				continue
+			}
 			bookThiefPod, err := clientset.CoreV1().Pods(bookthiefNS).Get(bookThiefPodName, metav1.GetOptions{})
 			if err != nil {
-				fmt.Printf("Error getting pod %s/%s: %s\n", bookthiefNS, bookBuyerPodName, err)
+				fmt.Printf("Error getting pod %s/%s: %s\n", bookthiefNS, bookThiefPodName, err)
 				os.Exit(1)
 			}
 			for _, container := range bookThiefPod.Status.ContainerStatuses {
 				if container.State.Waiting != nil && container.State.Waiting.Reason == "PodInitializing" {
-					if time.Since(startedWaiting) >= totalWaitSeconds {
-						fmt.Printf("Waited for pod %s to become ready for %+v; Didn't happen", bookThiefPodName, totalWait)
-						os.Exit(1)
-					}
 					fmt.Printf("Pod %s/%s is still initializing; Waiting %+v (%+v/%+v)\n", bookthiefNS, bookThiefPodName, waitForPod, time.Since(startedWaiting), totalWait)
 					time.Sleep(waitForPod)
 				} else {
@@ -144,6 +148,18 @@ func main() {
 
 	<-bookbuyerReady
 	<-bookthiefReady
+
+	bookBuyerPodName, err := getPodName(bookbuyerNS, bookBuyerSelector)
+	if err != nil {
+		fmt.Println("Error getting bookbuyer pod after pod being ready: ", err)
+		os.Exit(1)
+	}
+	bookThiefPodName, err := getPodName(bookthiefNS, bookThiefSelector)
+	if err != nil {
+		fmt.Println("Error getting bookthief pod after pod being ready: ", err)
+		os.Exit(1)
+	}
+
 	// Poll for success
 	for {
 		if time.Since(startedWaiting) >= totalWaitSeconds {
