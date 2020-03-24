@@ -1,80 +1,47 @@
 package main
 
 import (
-	"crypto/rsa"
-	"crypto/x509"
-	"flag"
+	goflag "flag"
+	"io"
 	"os"
-	"time"
 
 	"github.com/golang/glog"
-	"github.com/spf13/pflag"
-
-	"github.com/open-service-mesh/osm/pkg/certificate"
-	"github.com/open-service-mesh/osm/pkg/tresor"
-	"github.com/open-service-mesh/osm/pkg/tresor/pem"
+	"github.com/spf13/cobra"
+	//"github.com/open-service-mesh/osm/pkg/certificate"
+	//"github.com/open-service-mesh/osm/pkg/tresor"
+	//"github.com/open-service-mesh/osm/pkg/tresor/pem"
 )
 
-var (
-	flags           = pflag.NewFlagSet(`certificate-tresor`, pflag.ExitOnError)
-	host            = flags.String("host", "bookstore.mesh", "host name for the certificate")
-	out             = flags.String("out", "", "full path to the certificate PEM file")
-	keyout          = flags.String("keyout", "", "full path to the private key PEM file")
-	caPEMFileIn     = flags.String("caPEMFileIn", "", "full path to the root cert to be loaded")
-	caKeyPEMFileIn  = flags.String("caKeyPEMFileIn", "", "full path to the root cert key to be loaded")
-	caPEMFileOut    = flags.String("caPEMFileOut", "", "full path to the root cert to be created")
-	caKeyPEMFileOut = flags.String("caKeyPEMFileOut", "", "full path to the root cert key to be created")
-	org             = flags.String("org", "ACME Co", "name of the organization for certificate manager")
-	validity        = flags.Int("validity", 525600, "validity duration of a certificate in MINUTES")
-)
+var globalUsage = `cert enables you to generate certificates
+and keys to use for components of OSM
+`
+
+func newRootCmd(args []string, out io.Writer) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "cert",
+		Short: "Create and manage certificates and keys with CA",
+		Long:  globalUsage,
+	}
+
+	cmd.PersistentFlags().AddGoFlagSet(goflag.CommandLine)
+	flags := cmd.PersistentFlags()
+
+	// Add subcommands here
+	cmd.AddCommand(
+		newBootstrapCmd(out),
+		newGenerateCmd(out),
+	)
+
+	flags.Parse(args)
+
+	return cmd
+}
 
 func main() {
-	defer glog.Flush()
-	parseFlags()
-
-	var caPEM pem.RootCertificate
-	var caKeyPEM pem.RootPrivateKey
-	var certManager *tresor.CertManager
-	var err error
-
-	validityMinutes := time.Duration(*validity) * time.Minute
-
-	if caPEMFileIn != nil && caKeyPEMFileIn != nil && *caPEMFileIn != "" && *caKeyPEMFileIn != "" {
-		if certManager, err = tresor.NewCertManagerWithCAFromFile(*caPEMFileIn, *caKeyPEMFileIn, *org, validityMinutes); err != nil {
-			glog.Fatal(err)
-		}
-	} else {
-		var ca *x509.Certificate
-		var caKey *rsa.PrivateKey
-		if caPEM, caKeyPEM, ca, caKey, err = tresor.NewCA(*org, validityMinutes); err != nil {
-			glog.Fatal(err)
-		}
-		certManager, err = tresor.NewCertManagerWithCA(ca, caKey, *org, validityMinutes)
+	cmd := newRootCmd(os.Args[1:], os.Stdout)
+	if err := cmd.Execute(); err != nil {
+		os.Exit(1)
 	}
-
-	if err != nil {
-		glog.Fatal("Could not instantiate Certificate Manager: ", err)
-	}
-
-	cert, err := certManager.IssueCertificate(certificate.CommonName(*host))
-	if err != nil {
-		glog.Fatal("Error creating a new certificate: ", err)
-	}
-
-	if caPEMFileOut != nil && *caPEMFileOut != "" {
-		writeFile(*caPEMFileOut, caPEM)
-	}
-	if caKeyPEMFileOut != nil && *caPEMFileOut != "" {
-		writeFile(*caKeyPEMFileOut, caKeyPEM)
-	}
-
-	if out != nil && *out != "" {
-		writeFile(*out, cert.GetCertificateChain())
-	}
-	if keyout != nil && *keyout != "" {
-		writeFile(*keyout, cert.GetPrivateKey())
-	}
-
 }
 
 func writeFile(fileName string, content []byte) {
@@ -92,15 +59,5 @@ func writeFile(fileName string, content []byte) {
 	glog.Infof("Wrote %d bytes to %s", bytesWritten, fileName)
 	if err := keyOut.Close(); err != nil {
 		glog.Fatalf("Error closing %s: %s", fileName, err)
-	}
-}
-
-func parseFlags() {
-	if err := flags.Parse(os.Args); err != nil {
-		glog.Fatal("Error parsing command line arguments:", err)
-	}
-	err := flag.CommandLine.Parse([]string{})
-	if err != nil {
-		glog.Fatal("Could not parse command line parameters: ", err)
 	}
 }

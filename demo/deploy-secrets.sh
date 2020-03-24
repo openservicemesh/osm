@@ -16,11 +16,11 @@ kubectl -n "$K8S_NAMESPACE" \
 echo -e "Generate certificates for ${NAME}"
 mkdir -p "./certificates/$NAME/"
 
-./bin/cert --host="$NAME.$K8S_NAMESPACE.azure.mesh" \
-           --caPEMFileIn="./certificates/root-cert.pem" \
-           --caKeyPEMFileIn="./certificates/root-key.pem" \
-           --keyout "./certificates/$NAME/key.pem" \
-           --out "./certificates/$NAME/cert.pem"
+./bin/cert generate --host="$NAME.$K8S_NAMESPACE.azure.mesh" \
+                    --caPEMFileIn="./certificates/root-cert.pem" \
+                    --caKeyPEMFileIn="./certificates/root-key.pem" \
+                    --keyout "./certificates/$NAME/key.pem" \
+                    --out "./certificates/$NAME/cert.pem"
 
 echo -e "Add secrets for ${NAME}"
 kubectl -n "$K8S_NAMESPACE" create configmap "ca-certpemstore-${NAME}" --from-file="./certificates/$NAME/cert.pem"
