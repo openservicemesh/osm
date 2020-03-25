@@ -37,9 +37,6 @@ const (
 	// EnvoyUID is the Envoy's User ID
 	EnvoyUID int64 = 1337
 
-	// HTTPPort is a port number constant.
-	HTTPPort = 80
-
 	// CertCommonNameUUIDServiceDelimiter is the character used to delimit the UUID and service name in the certificate's CommonName
 	CertCommonNameUUIDServiceDelimiter = ";"
 
