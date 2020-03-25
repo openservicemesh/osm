@@ -68,10 +68,7 @@ func (sc *MeshCatalog) getAnnouncementChannels() []announcementChannel {
 
 	go func() {
 		ticker := time.NewTicker(updateAtLeastEvery)
-		select {
-		case tick := <-ticker.C:
-			ticking <- tick
-		}
+		ticking <- ticker.C
 	}()
 	return announcementChannels
 }
