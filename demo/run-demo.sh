@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -aueo pipefail
+set -auexo pipefail
 
 # shellcheck disable=SC1091
 source .env
