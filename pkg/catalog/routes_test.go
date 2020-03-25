@@ -6,7 +6,7 @@ import (
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 )
 
-var uniqueness = Describe("UniqueLists", func() {
+var _ = Describe("UniqueLists", func() {
 	Context("Testing uniqueness of services", func() {
 		It("Returns unique list of services", func() {
 
@@ -51,7 +51,7 @@ var uniqueness = Describe("UniqueLists", func() {
 	})
 })
 
-var serviceToString = Describe("ServicesToString", func() {
+var _ = Describe("ServicesToString", func() {
 	Context("Testing servicesToString", func() {
 		It("Returns string list", func() {
 
