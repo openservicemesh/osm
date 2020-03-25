@@ -46,12 +46,10 @@ func NewProvider(kubeConfig *rest.Config, namespaceController namespace.Controll
 		namespaceController: namespaceController,
 	}
 
-	h := handlers{client}
-
 	resourceHandler := cache.ResourceEventHandlerFuncs{
-		AddFunc:    h.addFunc,
-		UpdateFunc: h.updateFunc,
-		DeleteFunc: h.deleteFunc,
+		AddFunc:    client.addFunc,
+		UpdateFunc: client.updateFunc,
+		DeleteFunc: client.deleteFunc,
 	}
 
 	informerCollection.Endpoints.AddEventHandler(resourceHandler)

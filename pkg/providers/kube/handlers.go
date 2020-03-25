@@ -5,38 +5,33 @@ import (
 
 	"github.com/golang/glog"
 
-	"github.com/Azure/application-gateway-kubernetes-ingress/pkg/events"
 	"github.com/open-service-mesh/osm/pkg/log/level"
 )
 
-type handlers struct {
-	Client
-}
-
 // general resource handlers
-func (h handlers) addFunc(obj interface{}) {
-	glog.V(level.Trace).Infof("[%s] Add event: %+v", h.providerIdent, obj)
-	h.announcements <- events.Event{
-		Type:  events.Create,
+func (c Client) addFunc(obj interface{}) {
+	glog.V(level.Trace).Infof("[%s] Add event: %+v", c.providerIdent, obj)
+	c.announcements <- Event{
+		Type:  Create,
 		Value: obj,
 	}
 }
 
-func (h handlers) updateFunc(oldObj, newObj interface{}) {
-	glog.V(level.Trace).Infof("[%s] Update event %+v", h.providerIdent, oldObj)
+func (c Client) updateFunc(oldObj, newObj interface{}) {
+	glog.V(level.Trace).Infof("[%s] Update event %+v", c.providerIdent, oldObj)
 	if reflect.DeepEqual(oldObj, newObj) {
 		return
 	}
-	h.announcements <- events.Event{
-		Type:  events.Update,
+	c.announcements <- Event{
+		Type:  Update,
 		Value: newObj,
 	}
 }
 
-func (h handlers) deleteFunc(obj interface{}) {
-	glog.V(level.Trace).Infof("[%s] Delete event: %+v", h.providerIdent, obj)
-	h.announcements <- events.Event{
-		Type:  events.Delete,
+func (c Client) deleteFunc(obj interface{}) {
+	glog.V(level.Trace).Infof("[%s] Delete event: %+v", c.providerIdent, obj)
+	c.announcements <- Event{
+		Type:  Delete,
 		Value: obj,
 	}
 }
