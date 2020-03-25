@@ -100,7 +100,7 @@ func (az *Client) resolveService(svc endpoint.ServiceName) []azureID {
 		glog.Errorf("[azure] Error fetching Kubernetes Endpoints from cache: service %s does not exist", svc)
 		return azureIDs
 	}
-	glog.Infof("[azure] Got the service: %+v", service)
+	glog.V(level.Trace).Infof("[azure] Got the service: %+v", service)
 	return matchServiceAzureResource(service, az.azureResourceClient.ListAzureResources())
 }
 
