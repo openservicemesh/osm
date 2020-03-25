@@ -1,6 +1,7 @@
 package smi
 
 import (
+	"strings"
 	"time"
 
 	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha1"
@@ -74,7 +75,7 @@ func (c *Client) run(stop <-chan struct{}) error {
 		hasSynced = append(hasSynced, informer.HasSynced)
 	}
 
-	glog.V(level.Info).Infof("[SMI Client] Waiting informers cache sync: %+v", names)
+	glog.V(level.Info).Infof("[SMI Client] Waiting for informers' cache to sync: %+v", strings.Join(names, ", "))
 	if !cache.WaitForCacheSync(stop, hasSynced...) {
 		return errSyncingCaches
 	}

@@ -4,34 +4,48 @@ import (
 	"reflect"
 
 	"github.com/golang/glog"
+	"k8s.io/client-go/tools/cache"
 
 	"github.com/open-service-mesh/osm/pkg/log/level"
 )
 
-// general resource handlers
-func (c Client) addFunc(obj interface{}) {
-	glog.V(level.Trace).Infof("[%s] Add event: %+v", c.providerIdent, obj)
-	c.announcements <- Event{
-		Type:  Create,
-		Value: obj,
+func (c Client) getResourceEventHandlers(informerName string) cache.ResourceEventHandlerFuncs {
+	return cache.ResourceEventHandlerFuncs{
+		AddFunc:    c.addFunc(informerName),
+		UpdateFunc: c.updateFunc(informerName),
+		DeleteFunc: c.deleteFunc(informerName),
 	}
 }
 
-func (c Client) updateFunc(oldObj, newObj interface{}) {
-	glog.V(level.Trace).Infof("[%s] Update event %+v", c.providerIdent, oldObj)
-	if reflect.DeepEqual(oldObj, newObj) {
-		return
-	}
-	c.announcements <- Event{
-		Type:  Update,
-		Value: newObj,
+func (c Client) addFunc(informerName string) func(obj interface{}) {
+	return func(obj interface{}) {
+		glog.V(level.Trace).Infof("[%s][%s] Add event: %+v", c.providerIdent, informerName, obj)
+		c.announcements <- Event{
+			Type:  Create,
+			Value: obj,
+		}
 	}
 }
 
-func (c Client) deleteFunc(obj interface{}) {
-	glog.V(level.Trace).Infof("[%s] Delete event: %+v", c.providerIdent, obj)
-	c.announcements <- Event{
-		Type:  Delete,
-		Value: obj,
+func (c Client) updateFunc(informerName string) func(oldObj, newObj interface{}) {
+	return func(oldObj, newObj interface{}) {
+		glog.V(level.Trace).Infof("[%s][%s] Update event %+v", c.providerIdent, informerName, oldObj)
+		if reflect.DeepEqual(oldObj, newObj) {
+			return
+		}
+		c.announcements <- Event{
+			Type:  Update,
+			Value: newObj,
+		}
+	}
+}
+
+func (c Client) deleteFunc(informerName string) func(obj interface{}) {
+	return func(obj interface{}) {
+		glog.V(level.Trace).Infof("[%s][%s] Delete event: %+v", c.providerIdent, informerName, obj)
+		c.announcements <- Event{
+			Type:  Delete,
+			Value: obj,
+		}
 	}
 }

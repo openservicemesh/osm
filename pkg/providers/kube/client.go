@@ -2,6 +2,7 @@ package kube
 
 import (
 	"net"
+	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -46,14 +47,8 @@ func NewProvider(kubeConfig *rest.Config, namespaceController namespace.Controll
 		namespaceController: namespaceController,
 	}
 
-	resourceHandler := cache.ResourceEventHandlerFuncs{
-		AddFunc:    client.addFunc,
-		UpdateFunc: client.updateFunc,
-		DeleteFunc: client.deleteFunc,
-	}
-
-	informerCollection.Endpoints.AddEventHandler(resourceHandler)
-	informerCollection.Deployments.AddEventHandler(resourceHandler)
+	informerCollection.Endpoints.AddEventHandler(client.getResourceEventHandlers("Endpoints"))
+	informerCollection.Deployments.AddEventHandler(client.getResourceEventHandlers("Deployments"))
 
 	if err := client.run(stop); err != nil {
 		glog.Fatalf("[%s] Could not start Kubernetes EndpointProvider client: %s", packageName, err)
@@ -146,9 +141,7 @@ func (c Client) GetAnnouncementsChannel() <-chan interface{} {
 	return c.announcements
 }
 
-// run executes informer collection.
 func (c *Client) run(stop <-chan struct{}) error {
-	glog.V(level.Info).Infof("[%s] Kubernetes Compute Provider started", packageName)
 	var hasSynced []cache.InformerSynced
 
 	if c.informers == nil {
@@ -167,11 +160,12 @@ func (c *Client) run(stop <-chan struct{}) error {
 			continue
 		}
 		names = append(names, name)
+		glog.V(level.Debug).Infof("[%s] Starting informer %s", packageName, name)
 		go informer.Run(stop)
 		hasSynced = append(hasSynced, informer.HasSynced)
 	}
 
-	glog.V(level.Info).Infof("[%s] Waiting for informer's cache to sync: %+v", packageName, names)
+	glog.V(level.Info).Infof("[%s] Waiting for informer's cache to sync: %+v", packageName, strings.Join(names, ", "))
 	if !cache.WaitForCacheSync(stop, hasSynced...) {
 		return errSyncingCaches
 	}
