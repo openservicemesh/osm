@@ -21,7 +21,7 @@ func main() {
 		bookstoreService = "bookstore.mesh"
 	}
 	counter := fmt.Sprintf("http://%s/counter", bookstoreService)
-	incremt := fmt.Sprintf("http://%s/incrementcounter", bookstoreService)
+	incremt := fmt.Sprintf("http://%s/buy-a-book", bookstoreService)
 	waitForOK := getWaitForOK()
 	started := time.Now()
 	finishBy := started.Add(time.Duration(waitForOK) * time.Second)

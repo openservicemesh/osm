@@ -21,7 +21,7 @@ func main() {
 		bookstoreService = "bookstore.mesh"
 	}
 	counter := fmt.Sprintf("http://%s/counter", bookstoreService)
-	incremt := fmt.Sprintf("http://%s/incrementcounter", bookstoreService)
+	buyBook := fmt.Sprintf("http://%s/buy-a-book", bookstoreService)
 	waitForOK := getWaitForOK()
 	started := time.Now()
 	finishBy := started.Add(time.Duration(waitForOK) * time.Second)
@@ -30,7 +30,7 @@ func main() {
 		iteration++
 		fmt.Printf("---Bookbuyer:[ %d ]-----------------------------------------\n", iteration)
 		var responses []int
-		for _, url := range []string{counter, incremt} {
+		for _, url := range []string{counter, buyBook} {
 			response := fetch(url)
 			fmt.Println("")
 			responses = append(responses, response)

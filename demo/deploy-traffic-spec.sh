@@ -49,8 +49,8 @@ matches:
 - name: counter
   pathRegex: /counter
   methods: ["GET"]
-- name: incrementcounter
-  pathRegex: /incrementcounter
+- name: buy-a-book
+  pathRegex: /buy-a-book
   methods: ["GET"]
 - name: updatecounter
   pathRegex: /updatecounter

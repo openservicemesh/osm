@@ -92,7 +92,7 @@ func main() {
 	//endpoints
 	router.HandleFunc("/counter", getCurrentCounter).Methods("GET")
 	router.HandleFunc("/counter", updateCounterValue).Methods("POST")
-	router.HandleFunc("/incrementcounter", incrementCounter).Methods("GET")
+	router.HandleFunc("/buy-a-book", incrementCounter).Methods("GET")
 	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {})
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), router))
 }
