@@ -10,8 +10,6 @@ import (
 	"github.com/open-service-mesh/osm/pkg/utils"
 )
 
-type friendlyName string
-
 type empty struct{}
 
 var packageName = utils.GetLastChunkOfSlashed(reflect.TypeOf(empty{}).PkgPath())

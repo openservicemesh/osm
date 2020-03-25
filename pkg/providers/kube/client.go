@@ -157,12 +157,12 @@ func (c *Client) run(stop <-chan struct{}) error {
 		return errInitInformers
 	}
 
-	sharedInformers := map[friendlyName]cache.SharedInformer{
+	sharedInformers := map[string]cache.SharedInformer{
 		"Endpoints":   c.informers.Endpoints,
 		"Deployments": c.informers.Deployments,
 	}
 
-	var names []friendlyName
+	var names []string
 	for name, informer := range sharedInformers {
 		// Depending on the use-case, some Informers from the collection may not have been initialized.
 		if informer == nil {
