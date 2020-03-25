@@ -13,7 +13,7 @@ const (
 	envoyBootstrapConfigFile  = "/etc/envoy/bootstrap.yaml"
 )
 
-func getEnvoySidecarContainerSpec(pod *corev1.Pod, data *EnvoySidecarData) (corev1.Container, error) {
+func getEnvoySidecarContainerSpec(data *EnvoySidecarData) (corev1.Container, error) {
 	container := corev1.Container{
 		Name:            data.Name,
 		Image:           data.Image,
