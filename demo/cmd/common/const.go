@@ -36,4 +36,10 @@ const (
 
 	// AzureSubscription is the name of the env var storing the azure subscription to watch.
 	AzureSubscription = "AZURE_SUBSCRIPTION"
+
+	// BooksBought header
+	BooksBoughtHeader = "Booksbought"
+
+	// Identity header
+	IdentityHeader = "Identity"
 )

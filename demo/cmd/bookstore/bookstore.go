@@ -11,6 +11,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/open-service-mesh/osm/demo/cmd/common"
+
 	"github.com/golang/glog"
 
 	"github.com/gorilla/mux"
@@ -23,22 +25,30 @@ var path = flag.String("path", ".", "path to the HTML template")
 var booksBought int
 var tmpl *template.Template
 
-// getCurrentBooksBought gets the value of the counter
-func getCurrentBooksBought(w http.ResponseWriter, r *http.Request) {
-
-	w.Header().Set("BooksBought", fmt.Sprintf("%d", booksBought))
+func getIdentity() string {
 	ident := os.Getenv("IDENTITY")
 	if ident == "" {
 		if identity != nil {
 			ident = *identity
 		}
 	}
-	w.Header().Set("Identity", ident)
-	err := tmpl.Execute(w, map[string]string{"Identity": ident, "BooksBought": fmt.Sprintf("%d", booksBought)})
+	return ident
+}
+
+// getCurrentBooksBought gets the value of the counter
+func getCurrentBooksBought(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set(common.BooksBoughtHeader, fmt.Sprintf("%d", booksBought))
+
+	w.Header().Set(common.IdentityHeader, getIdentity())
+	err := tmpl.Execute(w, map[string]string{
+		common.IdentityHeader:    getIdentity(),
+		common.BooksBoughtHeader: fmt.Sprintf("%d", booksBought),
+	})
 	if err != nil {
 		glog.Fatal("Could not render template", err)
 	}
-	fmt.Printf("%s;  URL: %q;  Count: %d\n", ident, html.EscapeString(r.URL.Path), booksBought)
+	fmt.Printf("%s;  URL: %q;  Count: %d\n", getIdentity(), html.EscapeString(r.URL.Path), booksBought)
 }
 
 // updateBooksBoughtValue updates the booksBought value to the one specified by the user
@@ -50,38 +60,32 @@ func updateBooksBoughtValue(w http.ResponseWriter, r *http.Request) {
 		glog.Fatal("Could not decode request body", err)
 	}
 	booksBought = updatedBooksBought
-	w.Header().Set("BooksBought", fmt.Sprintf("%d", booksBought))
-	ident := os.Getenv("IDENTITY")
-	if ident == "" {
-		if identity != nil {
-			ident = *identity
-		}
-	}
-	w.Header().Set("Identity", ident)
-	err = tmpl.Execute(w, map[string]string{"Identity": ident, "BooksBought": fmt.Sprintf("%d", booksBought)})
+	w.Header().Set(common.BooksBoughtHeader, fmt.Sprintf("%d", booksBought))
+	w.Header().Set(common.IdentityHeader, getIdentity())
+	err = tmpl.Execute(w, map[string]string{
+		common.IdentityHeader:    getIdentity(),
+		common.BooksBoughtHeader: fmt.Sprintf("%d", booksBought),
+	})
 	if err != nil {
 		glog.Fatal("Could not render template", err)
 	}
-	fmt.Printf("%s;  URL: %q;  Count: %d\n", ident, html.EscapeString(r.URL.Path), booksBought)
+	fmt.Printf("%s;  URL: %q;  %s: %d\n", getIdentity(), html.EscapeString(r.URL.Path), common.BooksBoughtHeader, booksBought)
 }
 
 // incrementBooksBought increments the value of the booksBought
 func incrementBooksBought(w http.ResponseWriter, r *http.Request) {
 
 	booksBought++
-	w.Header().Set("BooksBought", fmt.Sprintf("%d", booksBought))
-	ident := os.Getenv("IDENTITY")
-	if ident == "" {
-		if identity != nil {
-			ident = *identity
-		}
-	}
-	w.Header().Set("Identity", ident)
-	err := tmpl.Execute(w, map[string]string{"Identity": ident, "BooksBought": fmt.Sprintf("%d", booksBought)})
+	w.Header().Set(common.BooksBoughtHeader, fmt.Sprintf("%d", booksBought))
+	w.Header().Set(common.IdentityHeader, getIdentity())
+	err := tmpl.Execute(w, map[string]string{
+		common.IdentityHeader:    getIdentity(),
+		common.BooksBoughtHeader: fmt.Sprintf("%d", booksBought),
+	})
 	if err != nil {
 		glog.Fatal("Could not render template", err)
 	}
-	fmt.Printf("%s;  URL: %q;  Count: %d\n", ident, html.EscapeString(r.URL.Path), booksBought)
+	fmt.Printf("%s;  URL: %q;  Count: %d\n", getIdentity(), html.EscapeString(r.URL.Path), booksBought)
 	// Loop through headers
 	for name, headers := range r.Header {
 		name = strings.ToLower(name)

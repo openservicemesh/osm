@@ -57,7 +57,7 @@ func fetch(url string) (responseCode int) {
 		fmt.Printf("Error fetching %s: %s\n", url, err)
 	} else {
 		responseCode = resp.StatusCode
-		for _, hdr := range []string{"Identity", "BooksBought", "Server", "Date"} {
+		for _, hdr := range []string{common.IdentityHeader, common.BooksBoughtHeader, "Server", "Date"} {
 			fmt.Printf("%s: %s\n", hdr, getHeader(resp.Header, hdr))
 		}
 		fmt.Printf("Status: %s\n", resp.Status)
