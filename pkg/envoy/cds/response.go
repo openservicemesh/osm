@@ -32,7 +32,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 		TypeUrl: string(envoy.TypeCDS),
 	}
 
-	clusterFactories := []xds.Cluster{}
+	var clusterFactories []xds.Cluster
 	for _, trafficPolicies := range allTrafficPolicies {
 		isSourceService := envoy.Contains(proxyServiceName, trafficPolicies.Source.Services)
 		isDestinationService := envoy.Contains(proxyServiceName, trafficPolicies.Destination.Services)
@@ -63,7 +63,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 
 func uniques(slice []xds.Cluster) []xds.Cluster {
 	var isPresent bool
-	clusters := []xds.Cluster{}
+	var clusters []xds.Cluster
 	for _, entry := range slice {
 		isPresent = false
 		for _, cluster := range clusters {
