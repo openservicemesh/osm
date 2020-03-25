@@ -11,6 +11,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/golang/glog"
+
 	"github.com/gorilla/mux"
 )
 
@@ -18,56 +20,68 @@ var identity = flag.String("ident", "unidentified", "the identity of the contain
 
 var port = flag.Int("port", 80, "port on which this app is listening for incoming HTTP")
 var path = flag.String("path", ".", "path to the HTML template")
-var counter int
+var booksBought int
 var tmpl *template.Template
 
-// getCurrentCounter gets the value of the counter
-func getCurrentCounter(w http.ResponseWriter, r *http.Request) {
+// getCurrentBooksBought gets the value of the counter
+func getCurrentBooksBought(w http.ResponseWriter, r *http.Request) {
 
-	w.Header().Set("Counter", fmt.Sprintf("%d", counter))
+	w.Header().Set("BooksBought", fmt.Sprintf("%d", booksBought))
 	ident := os.Getenv("IDENTITY")
 	if ident == "" {
 		if identity != nil {
 			ident = *identity
 		}
 	}
-	w.Header().Set("Identity", fmt.Sprintf("%s", ident))
-	tmpl.Execute(w, map[string]string{"Identity": ident, "Counter": fmt.Sprintf("%d", counter)})
-	fmt.Printf("%s;  URL: %q;  Count: %d\n", ident, html.EscapeString(r.URL.Path), counter)
+	w.Header().Set("Identity", ident)
+	err := tmpl.Execute(w, map[string]string{"Identity": ident, "BooksBought": fmt.Sprintf("%d", booksBought)})
+	if err != nil {
+		glog.Fatal("Could not render template", err)
+	}
+	fmt.Printf("%s;  URL: %q;  Count: %d\n", ident, html.EscapeString(r.URL.Path), booksBought)
 }
 
-// updateCounterValue updates the counter value to the one specified by the user
-func updateCounterValue(w http.ResponseWriter, r *http.Request) {
+// updateBooksBoughtValue updates the booksBought value to the one specified by the user
+func updateBooksBoughtValue(w http.ResponseWriter, r *http.Request) {
 
-	var updatedCounter int
-	json.NewDecoder(r.Body).Decode(&updatedCounter)
-	counter = updatedCounter
-	w.Header().Set("Counter", fmt.Sprintf("%d", counter))
+	var updatedBooksBought int
+	err := json.NewDecoder(r.Body).Decode(&updatedBooksBought)
+	if err != nil {
+		glog.Fatal("Could not decode request body", err)
+	}
+	booksBought = updatedBooksBought
+	w.Header().Set("BooksBought", fmt.Sprintf("%d", booksBought))
 	ident := os.Getenv("IDENTITY")
 	if ident == "" {
 		if identity != nil {
 			ident = *identity
 		}
 	}
-	w.Header().Set("Identity", fmt.Sprintf("%s", ident))
-	tmpl.Execute(w, map[string]string{"Identity": ident, "Counter": fmt.Sprintf("%d", counter)})
-	fmt.Printf("%s;  URL: %q;  Count: %d\n", ident, html.EscapeString(r.URL.Path), counter)
+	w.Header().Set("Identity", ident)
+	err = tmpl.Execute(w, map[string]string{"Identity": ident, "BooksBought": fmt.Sprintf("%d", booksBought)})
+	if err != nil {
+		glog.Fatal("Could not render template", err)
+	}
+	fmt.Printf("%s;  URL: %q;  Count: %d\n", ident, html.EscapeString(r.URL.Path), booksBought)
 }
 
-// incrementCounter increments the value of the counter
-func incrementCounter(w http.ResponseWriter, r *http.Request) {
+// incrementBooksBought increments the value of the booksBought
+func incrementBooksBought(w http.ResponseWriter, r *http.Request) {
 
-	counter++
-	w.Header().Set("Counter", fmt.Sprintf("%d", counter))
+	booksBought++
+	w.Header().Set("BooksBought", fmt.Sprintf("%d", booksBought))
 	ident := os.Getenv("IDENTITY")
 	if ident == "" {
 		if identity != nil {
 			ident = *identity
 		}
 	}
-	w.Header().Set("Identity", fmt.Sprintf("%s", ident))
-	tmpl.Execute(w, map[string]string{"Identity": ident, "Counter": fmt.Sprintf("%d", counter)})
-	fmt.Printf("%s;  URL: %q;  Count: %d\n", ident, html.EscapeString(r.URL.Path), counter)
+	w.Header().Set("Identity", ident)
+	err := tmpl.Execute(w, map[string]string{"Identity": ident, "BooksBought": fmt.Sprintf("%d", booksBought)})
+	if err != nil {
+		glog.Fatal("Could not render template", err)
+	}
+	fmt.Printf("%s;  URL: %q;  Count: %d\n", ident, html.EscapeString(r.URL.Path), booksBought)
 	// Loop through headers
 	for name, headers := range r.Header {
 		name = strings.ToLower(name)
@@ -84,15 +98,15 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	counter = 1
+	booksBought = 1
 
 	//initializing router
 	router := mux.NewRouter()
 
 	//endpoints
-	router.HandleFunc("/counter", getCurrentCounter).Methods("GET")
-	router.HandleFunc("/counter", updateCounterValue).Methods("POST")
-	router.HandleFunc("/buy-a-book", incrementCounter).Methods("GET")
+	router.HandleFunc("/books-bought", getCurrentBooksBought).Methods("GET")
+	router.HandleFunc("/books-bought", updateBooksBoughtValue).Methods("POST")
+	router.HandleFunc("/buy-a-book", incrementBooksBought).Methods("GET")
 	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {})
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), router))
 }

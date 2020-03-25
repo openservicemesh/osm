@@ -20,8 +20,8 @@ func main() {
 	if bookstoreService == "" {
 		bookstoreService = "bookstore.mesh"
 	}
-	counter := fmt.Sprintf("http://%s/counter", bookstoreService)
-	incremt := fmt.Sprintf("http://%s/buy-a-book", bookstoreService)
+	booksBought := fmt.Sprintf("http://%s/books-bought", bookstoreService)
+	buyBook := fmt.Sprintf("http://%s/buy-a-book", bookstoreService)
 	waitForOK := getWaitForOK()
 	started := time.Now()
 	finishBy := started.Add(time.Duration(waitForOK) * time.Second)
@@ -30,7 +30,7 @@ func main() {
 		iteration++
 		fmt.Printf("---Bookthief:[ %d ]-----------------------------------------\n", iteration)
 		var responses []int
-		for _, url := range []string{counter, incremt} {
+		for _, url := range []string{booksBought, buyBook} {
 			response := fetch(url)
 			fmt.Println("")
 			responses = append(responses, response)
@@ -41,7 +41,7 @@ func main() {
 				fmt.Printf(common.Success)
 			} else if time.Now().After(finishBy) {
 				fmt.Printf("It has been %v since we started the test. Response code from %s is %d. This test has failed.",
-					time.Since(started), counter, responses[0])
+					time.Since(started), booksBought, responses[0])
 				fmt.Printf(common.Failure)
 				os.Exit(1)
 			}
@@ -57,7 +57,7 @@ func fetch(url string) (responseCode int) {
 		fmt.Printf("Error fetching %s: %s\n", url, err)
 	} else {
 		responseCode = resp.StatusCode
-		for _, hdr := range []string{"Identity", "Counter", "Server", "Date"} {
+		for _, hdr := range []string{"Identity", "BooksBought", "Server", "Date"} {
 			fmt.Printf("%s: %s\n", hdr, getHeader(resp.Header, hdr))
 		}
 		fmt.Printf("Status: %s\n", resp.Status)
