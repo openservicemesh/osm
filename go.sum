@@ -272,6 +272,8 @@ github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a/go.mod h1:bCqn
 github.com/remyoudompheng/bigfft v0.0.0-20170806203942-52369c62f446/go.mod h1:uYEyJGbgTkfkS4+E/PavXkNJcbFIpEtjt2B0KDQ5+9M=
 github.com/rogpeppe/fastuuid v0.0.0-20150106093220-6724a57986af/go.mod h1:XWv6SoW27p1b0cqNHllgS5HIMJraePCO15w5zCzIWYg=
 github.com/russross/blackfriday v1.5.2/go.mod h1:JO/DiYxRf+HjHt06OyowR9PTA263kcR/rfWxYHBV53g=
+github.com/servicemeshinterface/smi-sdk-go v0.1.0/go.mod h1:XtuUxvpGDaHrWsY5rrjKstdSZLNJq6pBD9T8J5wrjn4=
+github.com/servicemeshinterface/smi-sdk-go v0.2.0/go.mod h1:0k1wou4pOCBNFoyxOkTUoB9XDtB2RBvJ03S5aJREHCI=
 github.com/servicemeshinterface/smi-sdk-go v0.3.0 h1:tJ2D0u5KnbtmbZLfJNJtMZg4EqofyLTdmeQekSlgLSA=
 github.com/servicemeshinterface/smi-sdk-go v0.3.0/go.mod h1:/jM1BV6xy7OgcmHuZ5cyMO4IC4dG2+ska2KsL1/8MLE=
 github.com/sirupsen/logrus v1.2.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPxbbu5VWo=
