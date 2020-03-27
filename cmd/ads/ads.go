@@ -32,8 +32,7 @@ import (
 )
 
 const (
-	serverType       = "ADS"
-	defaultNamespace = "default"
+	serverType = "ADS"
 )
 
 var (
