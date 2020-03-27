@@ -43,7 +43,7 @@ func NewNamespaceController(kubeConfig *rest.Config, osmID string, stop chan str
 		announcements: make(chan interface{}),
 	}
 
-	informer.AddEventHandler(k8s.GetKubernetesEventHandlers("Endpoints", "Kubernetes", client.announcements))
+	informer.AddEventHandler(k8s.GetKubernetesEventHandlers("Namespaces", "Kubernetes", client.announcements))
 
 	if err := client.run(stop); err != nil {
 		glog.Fatal("Could not start Kubernetes Namespaces client", err)
