@@ -99,7 +99,10 @@ func (wh *Webhook) ListenAndServe(stop <-chan struct{}) {
 func (wh *Webhook) healthReadyHandler(w http.ResponseWriter, req *http.Request) {
 	// TODO(shashank): If TLS certificate is not present, mark as not ready
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Health OK"))
+	_, err := w.Write([]byte("Health OK"))
+	if err != nil {
+		glog.Error("[%s] Error writing bytes: %s", packageName, err)
+	}
 }
 
 func (wh *Webhook) mutateHandler(w http.ResponseWriter, req *http.Request) {

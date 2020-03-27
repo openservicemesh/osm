@@ -1,11 +1,14 @@
 package injector
 
 import (
+	"reflect"
+
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/certificate"
 	"github.com/open-service-mesh/osm/pkg/namespace"
+	"github.com/open-service-mesh/osm/pkg/utils"
 )
 
 const (
@@ -13,6 +16,10 @@ const (
 	envoyBootstrapConfigVolume = "envoy-bootstrap-config-volume"
 	envoyRootCertVolume        = "envoy-root-cert-volume"
 )
+
+type empty struct{}
+
+var packageName = utils.GetLastChunkOfSlashed(reflect.TypeOf(empty{}).PkgPath())
 
 // Webhook is the type used to represent the webhook for sidecar injection
 type Webhook struct {
