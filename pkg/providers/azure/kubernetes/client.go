@@ -9,11 +9,11 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	osm "github.com/open-service-mesh/osm/pkg/apis/azureresource/v1"
+	k8s "github.com/open-service-mesh/osm/pkg/kubernetes"
 	"github.com/open-service-mesh/osm/pkg/log/level"
+	"github.com/open-service-mesh/osm/pkg/namespace"
 	osmClient "github.com/open-service-mesh/osm/pkg/osm_client/clientset/versioned"
 	osmInformers "github.com/open-service-mesh/osm/pkg/osm_client/informers/externalversions"
-
-	"github.com/open-service-mesh/osm/pkg/namespace"
 )
 
 const (
@@ -55,15 +55,7 @@ func newClient(kubeClient *kubernetes.Clientset, azureResourceClient *osmClient.
 		namespaceController: namespaceController,
 	}
 
-	h := handlers{client}
-
-	resourceHandler := cache.ResourceEventHandlerFuncs{
-		AddFunc:    h.addFunc,
-		UpdateFunc: h.updateFunc,
-		DeleteFunc: h.deleteFunc,
-	}
-
-	informerCollection.AzureResource.AddEventHandler(resourceHandler)
+	informerCollection.AzureResource.AddEventHandler(k8s.GetKubernetesEventHandlers("AzureResource", "Azure", client.announcements))
 
 	return &client
 }
