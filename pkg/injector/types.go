@@ -11,7 +11,6 @@ import (
 const (
 	envoyTLSVolume             = "envoy-tls-volume"
 	envoyBootstrapConfigVolume = "envoy-bootstrap-config-volume"
-	envoyRootCertVolume        = "envoy-root-cert-volume"
 )
 
 // Webhook is the type used to represent the webhook for sidecar injection
