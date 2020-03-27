@@ -49,7 +49,7 @@ var _ = Describe("Route Configuration", func() {
 				},
 				PolicyRoutePaths: []endpoint.RoutePaths{
 					endpoint.RoutePaths{
-						RoutePathRegex: "/counter",
+						RoutePathRegex: "/books-bought",
 						RouteMethods:   []string{"GET"},
 					},
 				},
@@ -62,7 +62,7 @@ var _ = Describe("Route Configuration", func() {
 			Expect(sourceRouteConfig.Name).To(Equal(OutboundRouteConfig))
 			Expect(len(sourceRouteConfig.VirtualHosts)).To(Equal(1))
 			Expect(len(sourceRouteConfig.VirtualHosts[0].Routes)).To(Equal(1))
-			Expect(sourceRouteConfig.VirtualHosts[0].Routes[0].Match.GetPrefix()).To(Equal("/counter"))
+			Expect(sourceRouteConfig.VirtualHosts[0].Routes[0].Match.GetPrefix()).To(Equal("/books-bought"))
 			Expect(sourceRouteConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters()).To(Equal(&destWeightedClusters))
 			Expect(sourceRouteConfig.VirtualHosts[0].Cors.AllowMethods).To(Equal("GET"))
 			//Validating the inbound clusters and routes
@@ -72,7 +72,7 @@ var _ = Describe("Route Configuration", func() {
 			Expect(destinationRouteConfig.Name).To(Equal(InboundRouteConfig))
 			Expect(len(destinationRouteConfig.VirtualHosts)).To(Equal(1))
 			Expect(len(destinationRouteConfig.VirtualHosts[0].Routes)).To(Equal(1))
-			Expect(destinationRouteConfig.VirtualHosts[0].Routes[0].Match.GetPrefix()).To(Equal("/counter"))
+			Expect(destinationRouteConfig.VirtualHosts[0].Routes[0].Match.GetPrefix()).To(Equal("/books-bought"))
 			Expect(destinationRouteConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters()).To(Equal(&srcWeightedClusters))
 			Expect(destinationRouteConfig.VirtualHosts[0].Cors.AllowMethods).To(Equal("GET"))
 		})
@@ -134,7 +134,7 @@ var _ = Describe("Route Action weighted clusters", func() {
 				{ClusterName: endpoint.ClusterName("osm/bookstore-2"), Weight: 100},
 			}
 
-			route1 := createRoute("counter", weightedClusters, false)
+			route1 := createRoute("books-bought", weightedClusters, false)
 			rt := []*route.Route{&route1}
 			updatedAction := updateRouteActionWeightedClusters(*rt[0].GetRoute().GetWeightedClusters(), newWeightedClusters, false)
 			Expect(updatedAction.Route.GetWeightedClusters().TotalWeight).To(Equal(&wrappers.UInt32Value{Value: uint32(200)}))

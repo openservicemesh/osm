@@ -11,6 +11,10 @@ import (
 	"os"
 	"strings"
 
+	"github.com/open-service-mesh/osm/demo/cmd/common"
+
+	"github.com/golang/glog"
+
 	"github.com/gorilla/mux"
 )
 
@@ -18,56 +22,63 @@ var identity = flag.String("ident", "unidentified", "the identity of the contain
 
 var port = flag.Int("port", 80, "port on which this app is listening for incoming HTTP")
 var path = flag.String("path", ".", "path to the HTML template")
-var counter int
-var tmpl *template.Template
+var booksBought int
 
-// getCurrentCounter gets the value of the counter
-func getCurrentCounter(w http.ResponseWriter, r *http.Request) {
-
-	w.Header().Set("Counter", fmt.Sprintf("%d", counter))
+func getIdentity() string {
 	ident := os.Getenv("IDENTITY")
 	if ident == "" {
 		if identity != nil {
 			ident = *identity
 		}
 	}
-	w.Header().Set("Identity", fmt.Sprintf("%s", ident))
-	tmpl.Execute(w, map[string]string{"Identity": ident, "Counter": fmt.Sprintf("%d", counter)})
-	fmt.Printf("%s;  URL: %q;  Count: %d\n", ident, html.EscapeString(r.URL.Path), counter)
+	return ident
 }
 
-// updateCounterValue updates the counter value to the one specified by the user
-func updateCounterValue(w http.ResponseWriter, r *http.Request) {
-
-	var updatedCounter int
-	json.NewDecoder(r.Body).Decode(&updatedCounter)
-	counter = updatedCounter
-	w.Header().Set("Counter", fmt.Sprintf("%d", counter))
-	ident := os.Getenv("IDENTITY")
-	if ident == "" {
-		if identity != nil {
-			ident = *identity
-		}
-	}
-	w.Header().Set("Identity", fmt.Sprintf("%s", ident))
-	tmpl.Execute(w, map[string]string{"Identity": ident, "Counter": fmt.Sprintf("%d", counter)})
-	fmt.Printf("%s;  URL: %q;  Count: %d\n", ident, html.EscapeString(r.URL.Path), counter)
+func setHeaders(w http.ResponseWriter) {
+	w.Header().Set(common.BooksBoughtHeader, fmt.Sprintf("%d", booksBought))
+	w.Header().Set(common.IdentityHeader, getIdentity())
 }
 
-// incrementCounter increments the value of the counter
-func incrementCounter(w http.ResponseWriter, r *http.Request) {
-
-	counter++
-	w.Header().Set("Counter", fmt.Sprintf("%d", counter))
-	ident := os.Getenv("IDENTITY")
-	if ident == "" {
-		if identity != nil {
-			ident = *identity
-		}
+func renderTemplate(w http.ResponseWriter) {
+	tmpl, err := template.ParseFiles(fmt.Sprintf("%s/bookstore.html.template", *path))
+	if err != nil {
+		log.Fatal(err)
 	}
-	w.Header().Set("Identity", fmt.Sprintf("%s", ident))
-	tmpl.Execute(w, map[string]string{"Identity": ident, "Counter": fmt.Sprintf("%d", counter)})
-	fmt.Printf("%s;  URL: %q;  Count: %d\n", ident, html.EscapeString(r.URL.Path), counter)
+	err = tmpl.Execute(w, map[string]string{
+		common.IdentityHeader:    getIdentity(),
+		common.BooksBoughtHeader: fmt.Sprintf("%d", booksBought),
+	})
+	if err != nil {
+		glog.Fatal("Could not render template", err)
+	}
+}
+
+func getBooksBought(w http.ResponseWriter, r *http.Request) {
+	setHeaders(w)
+	renderTemplate(w)
+	fmt.Printf("%s;  URL: %q;  Count: %d\n", getIdentity(), html.EscapeString(r.URL.Path), booksBought)
+}
+
+// updateBooksBought updates the booksBought value to the one specified by the user
+func updateBooksBought(w http.ResponseWriter, r *http.Request) {
+	var updatedBooksBought int
+	err := json.NewDecoder(r.Body).Decode(&updatedBooksBought)
+	if err != nil {
+		glog.Fatal("Could not decode request body", err)
+	}
+	booksBought = updatedBooksBought
+	setHeaders(w)
+	renderTemplate(w)
+	fmt.Printf("%s;  URL: %q;  %s: %d\n", getIdentity(), html.EscapeString(r.URL.Path), common.BooksBoughtHeader, booksBought)
+}
+
+// buyBook increments the value of the booksBought
+func buyBook(w http.ResponseWriter, r *http.Request) {
+
+	booksBought++
+	setHeaders(w)
+	renderTemplate(w)
+	fmt.Printf("%s;  URL: %q;  Count: %d\n", getIdentity(), html.EscapeString(r.URL.Path), booksBought)
 	// Loop through headers
 	for name, headers := range r.Header {
 		name = strings.ToLower(name)
@@ -79,20 +90,15 @@ func incrementCounter(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	flag.Parse()
-	var err error
-	tmpl, err = template.ParseFiles(fmt.Sprintf("%s/bookstore.html.template", *path))
-	if err != nil {
-		log.Fatal(err)
-	}
-	counter = 1
+	booksBought = 1
 
 	//initializing router
 	router := mux.NewRouter()
 
 	//endpoints
-	router.HandleFunc("/counter", getCurrentCounter).Methods("GET")
-	router.HandleFunc("/counter", updateCounterValue).Methods("POST")
-	router.HandleFunc("/incrementcounter", incrementCounter).Methods("GET")
+	router.HandleFunc("/books-bought", getBooksBought).Methods("GET")
+	router.HandleFunc("/books-bought", updateBooksBought).Methods("POST")
+	router.HandleFunc("/buy-a-book", buyBook).Methods("GET")
 	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {})
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), router))
 }

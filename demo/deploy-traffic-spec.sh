@@ -46,13 +46,13 @@ metadata:
   name: bookstore-service-routes
   namespace: "$BOOKSTORE_NAMESPACE"
 matches:
-- name: counter
-  pathRegex: /counter
+- name: books-bought
+  pathRegex: /books-bought
   methods: ["GET"]
-- name: incrementcounter
-  pathRegex: /incrementcounter
+- name: buy-a-book
+  pathRegex: /buy-a-book
   methods: ["GET"]
-- name: updatecounter
-  pathRegex: /updatecounter
+- name: update-books-bought
+  pathRegex: /update-books-bought
   methods: ["POST"]
 EOF
