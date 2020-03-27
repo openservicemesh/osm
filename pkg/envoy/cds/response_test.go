@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var uniqueness = Describe("UniqueLists", func() {
+var _ = Describe("UniqueLists", func() {
 	Context("Testing uniqueness of clusters", func() {
 		It("Returns unique list of clusters for CDS", func() {
 
