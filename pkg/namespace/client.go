@@ -11,6 +11,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
+	k8s "github.com/open-service-mesh/osm/pkg/kubernetes"
 	"github.com/open-service-mesh/osm/pkg/log/level"
 )
 
@@ -36,20 +37,13 @@ func NewNamespaceController(kubeConfig *rest.Config, osmID string, stop chan str
 	informer := informerFactory.Core().V1().Namespaces().Informer()
 
 	client := Client{
-		informer:    informer,
-		cache:       informer.GetStore(),
-		cacheSynced: make(chan interface{}),
+		informer:      informer,
+		cache:         informer.GetStore(),
+		cacheSynced:   make(chan interface{}),
+		announcements: make(chan interface{}),
 	}
 
-	h := handlers{client}
-
-	resourceHandler := cache.ResourceEventHandlerFuncs{
-		AddFunc:    h.addFunc,
-		UpdateFunc: h.updateFunc,
-		DeleteFunc: h.deleteFunc,
-	}
-
-	informer.AddEventHandler(resourceHandler)
+	informer.AddEventHandler(k8s.GetKubernetesEventHandlers("Endpoints", "Kubernetes", client.announcements))
 
 	if err := client.run(stop); err != nil {
 		glog.Fatal("Could not start Kubernetes Namespaces client", err)
