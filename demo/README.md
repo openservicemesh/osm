@@ -39,7 +39,7 @@ An example is provided in the `.env.example` in the root of this repo.
 1. From the root of this repository execute `./demo/run-demo.sh`. This script will:
    - compile both the Endpoint Discovery Service and the Secrets Discovery Service, create separate containers and push these to the workstation's default container registry (See `~/.docker/config.json`)
    - create a BookBuyer service, composed of a Bash script running `curl http://bookstore.mesh/` in an infinite loop (see `demo/bookbuyer.sh`); creates a container and uploats it to your contaner registry
-   - create a Bookstore service, composed of a single binary, a web server, which increases a counter on every GET request/response and returns that counter in a header; creates a container and uploats it to your contaner registry
+   - create a Bookstore service, composed of a single binary, a web server, which increases a counter (books bought) on every GET request/response and returns that counter in a header; creates a container and uploats it to your contaner registry
    - the demo script assumes you have Azure Container Registry and automatically provisions credentials to your local workstation and pushes a secret to your Kubernetes cluster
    - another script creates certificates to be distributed by SDS and saves these in the Kubernetes cluster
    - bootstrap Envoy configs (ConfigMaps) for the bookstore and bookbuyer services are also uploaded (applid) to the K8s cluster

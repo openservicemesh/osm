@@ -21,7 +21,7 @@ specs:
 - kind: HTTPRouteGroup
   name: bookstore-service-routes
   matches:
-  - counter
+  - books-bought
 sources:
 - kind: ServiceAccount
   name: bookbuyer-serviceaccount

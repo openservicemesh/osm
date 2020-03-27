@@ -255,7 +255,7 @@ func getPodName(namespace, selector string) (string, error) {
 
 func getPodLogs(namespace string, podName string, containerName string, follow bool) string {
 	clientset := getClient()
-	sinceTime := metav1.NewTime(time.Now().Add(time.Duration(-2 * time.Second)))
+	sinceTime := metav1.NewTime(time.Now().Add(-2 * time.Second))
 	options := &v1.PodLogOptions{
 		Container: containerName,
 		Follow:    follow,
@@ -270,7 +270,10 @@ func getPodLogs(namespace string, podName string, containerName string, follow b
 
 	defer rc.Close()
 	buf := new(bytes.Buffer)
-	buf.ReadFrom(rc)
+	_, err = buf.ReadFrom(rc)
+	if err != nil {
+		glog.Error("Error reading from pod logs stream", err)
+	}
 	return buf.String()
 }
 

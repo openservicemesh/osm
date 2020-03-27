@@ -62,6 +62,7 @@ go-vet:
 .PHONY: go-lint
 go-lint:
 	golint ./cmd ./pkg
+	golangci-lint run --tests --enable-all # --disable gochecknoglobals --disable gochecknoinit
 
 .PHONY: go-fmt
 go-fmt:

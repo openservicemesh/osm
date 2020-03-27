@@ -12,26 +12,26 @@ import (
 )
 
 func (az *Client) getVM(rg resourceGroup, vmID azureID) ([]net.IP, error) {
-	glog.V(level.Trace).Infof("[azure] Fetching IPS of VM for %s in resource group: %s", vmID, rg)
+	glog.V(level.Trace).Infof("[%s] Fetching IPS of VM for %s in resource group: %s", packageName, vmID, rg)
 	var ips []net.IP
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	list, err := az.vmClient.List(ctx, string(rg))
-	glog.Infof("[azure] Listing VMs for resource group: %s", rg)
+	glog.Infof("[%s] Listing VMs for resource group: %s", packageName, rg)
 	if err != nil {
-		glog.Error("[azure] Could not retrieve all VMs: ", err)
+		glog.Errorf("[%s] Could not retrieve all VMs: %s", packageName, err)
 	}
 	for _, vm := range list.Values() {
 		if *vm.ID != string(vmID) {
 			continue
 		}
 		networkInterfaceID := (*vm.NetworkProfile.NetworkInterfaces)[0].ID
-		glog.Infof("[azure] Found VM %s with NIC %s", *vm.Name, *networkInterfaceID)
+		glog.Infof("[%s] Found VM %s with NIC %s", packageName, *vm.Name, *networkInterfaceID)
 		ctxA, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		interfaceName := utils.GetLastChunkOfSlashed(*networkInterfaceID)
 		networkInterfaceName, err := az.netClient.Get(ctxA, string(rg), interfaceName, "")
 		if err != nil {
-			glog.Error("[azure] Could got get network interface ", interfaceName, " for resource group ", rg, err)
+			glog.Errorf("[%s] Could got get network interface %s for resource group %s: %s", packageName, interfaceName, rg, err)
 			cancel()
 			continue
 		}

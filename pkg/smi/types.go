@@ -12,8 +12,6 @@ import (
 	"github.com/open-service-mesh/osm/pkg/namespace"
 )
 
-type friendlyName string
-
 // InformerCollection is a struct of the Kubernetes informers used in OSM
 type InformerCollection struct {
 	Services      cache.SharedIndexInformer
