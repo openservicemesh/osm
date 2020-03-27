@@ -4,25 +4,25 @@ import (
 	"strings"
 	"time"
 
-	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha1"
-	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha1"
-	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/informers"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/cache"
-
 	"github.com/golang/glog"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/log/level"
+	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha1"
+	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha1"
+	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	smiTrafficTargetClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/clientset/versioned"
 	smiTrafficTargetInformers "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/informers/externalversions"
 	smiTrafficSpecClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/specs/clientset/versioned"
 	smiTrafficSpecInformers "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/specs/informers/externalversions"
 	smiTrafficSplitClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/clientset/versioned"
 	smiTrafficSplitInformers "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/informers/externalversions"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
 
+	k8s "github.com/open-service-mesh/osm/pkg/kubernetes"
 	"github.com/open-service-mesh/osm/pkg/namespace"
 )
 
@@ -129,18 +129,10 @@ func newSMIClient(kubeClient *kubernetes.Clientset, smiTrafficSplitClient *smiTr
 		namespaceController: namespaceController,
 	}
 
-	h := handlers{client}
-
-	resourceHandler := cache.ResourceEventHandlerFuncs{
-		AddFunc:    h.addFunc,
-		UpdateFunc: h.updateFunc,
-		DeleteFunc: h.deleteFunc,
-	}
-
-	informerCollection.Services.AddEventHandler(resourceHandler)
-	informerCollection.TrafficSplit.AddEventHandler(resourceHandler)
-	informerCollection.TrafficSpec.AddEventHandler(resourceHandler)
-	informerCollection.TrafficTarget.AddEventHandler(resourceHandler)
+	informerCollection.Services.AddEventHandler(k8s.GetKubernetesEventHandlers("Services", "SMI", client.announcements))
+	informerCollection.TrafficSplit.AddEventHandler(k8s.GetKubernetesEventHandlers("TrafficSplit", "SMI", client.announcements))
+	informerCollection.TrafficSpec.AddEventHandler(k8s.GetKubernetesEventHandlers("TrafficSpec", "SMI", client.announcements))
+	informerCollection.TrafficTarget.AddEventHandler(k8s.GetKubernetesEventHandlers("TrafficTarget", "SMI", client.announcements))
 
 	return &client
 }
