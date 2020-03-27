@@ -21,7 +21,7 @@ type fakeMetricHandler struct {
 func (m *fakeMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	_, err := w.Write([]byte(m.metric))
 	if err != nil {
-		glog.Error("[%s] Error writing bytes: %s", packageName, err)
+		glog.Errorf("[%s] Error writing bytes: %s", packageName, err)
 	}
 }
 
