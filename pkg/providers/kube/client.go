@@ -56,7 +56,7 @@ func NewProvider(kubeConfig *rest.Config, namespaceController namespace.Controll
 	informerCollection.Deployments.AddEventHandler(resourceHandler)
 
 	if err := client.run(stop); err != nil {
-		glog.Fatal("Could not start Kubernetes EndpointProvider client", err)
+		glog.Fatalf("[%s] Could not start Kubernetes EndpointProvider client: %s", packageName, err)
 	}
 
 	return &client
@@ -70,16 +70,16 @@ func (c *Client) GetID() string {
 
 // ListEndpointsForService retrieves the list of IP addresses for the given service
 func (c Client) ListEndpointsForService(svc endpoint.ServiceName) []endpoint.Endpoint {
-	glog.Infof("[%s] Getting Endpoints for service %s on Kubernetes", c.providerIdent, svc)
+	glog.Infof("[%s][%s] Getting Endpoints for service %s on Kubernetes", packageName, c.providerIdent, svc)
 	var endpoints []endpoint.Endpoint
 	endpointsInterface, exist, err := c.caches.Endpoints.GetByKey(string(svc))
 	if err != nil {
-		glog.Errorf("[%s] Error fetching Kubernetes Endpoints from cache: %s", c.providerIdent, err)
+		glog.Errorf("[%s][%s] Error fetching Kubernetes Endpoints from cache: %s", packageName, c.providerIdent, err)
 		return endpoints
 	}
 
 	if !exist {
-		glog.Errorf("[%s] Error fetching Kubernetes Endpoints from cache: ServiceName %s does not exist", c.providerIdent, svc)
+		glog.Errorf("[%s][%s] Error fetching Kubernetes Endpoints from cache: ServiceName %s does not exist", packageName, c.providerIdent, svc)
 		return endpoints
 	}
 
@@ -106,7 +106,7 @@ func (c Client) ListEndpointsForService(svc endpoint.ServiceName) []endpoint.End
 
 // ListServicesForServiceAccount retrieves the list of Services for the given service account
 func (c Client) ListServicesForServiceAccount(svcAccount endpoint.NamespacedServiceAccount) []endpoint.NamespacedService {
-	glog.Infof("[%s] Getting Services for service account %s on Kubernetes", c.providerIdent, svcAccount)
+	glog.Infof("[%s][%s] Getting Services for service account %s on Kubernetes", packageName, c.providerIdent, svcAccount)
 	var services []endpoint.NamespacedService
 	deploymentsInterface := c.caches.Deployments.List()
 
@@ -137,7 +137,7 @@ func (c Client) ListServicesForServiceAccount(svcAccount endpoint.NamespacedServ
 		}
 	}
 
-	glog.Infof("[%s] Services %v observed on service account %s on Kubernetes", c.providerIdent, services, svcAccount)
+	glog.Infof("[%s][%s] Services %v observed on service account %s on Kubernetes", packageName, c.providerIdent, services, svcAccount)
 	return services
 }
 
@@ -150,7 +150,7 @@ func (c Client) GetAnnouncementsChannel() <-chan interface{} {
 
 // run executes informer collection.
 func (c *Client) run(stop <-chan struct{}) error {
-	glog.V(level.Info).Infoln("Kubernetes Compute Provider started")
+	glog.V(level.Info).Infof("[%s] Kubernetes Compute Provider started", packageName)
 	var hasSynced []cache.InformerSynced
 
 	if c.informers == nil {
@@ -169,12 +169,11 @@ func (c *Client) run(stop <-chan struct{}) error {
 			continue
 		}
 		names = append(names, name)
-		glog.Info("Starting informer: ", name)
 		go informer.Run(stop)
 		hasSynced = append(hasSynced, informer.HasSynced)
 	}
 
-	glog.V(level.Info).Infof("Waiting informers cache sync: %+v", names)
+	glog.V(level.Info).Infof("[%s] Waiting for informer's cache to sync: %+v", packageName, names)
 	if !cache.WaitForCacheSync(stop, hasSynced...) {
 		return errSyncingCaches
 	}
