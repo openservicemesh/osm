@@ -5,6 +5,8 @@ import (
 	"strings"
 	"time"
 
+	kubernetes2 "github.com/open-service-mesh/osm/pkg/kubernetes"
+
 	"github.com/golang/glog"
 	corev1 "k8s.io/api/core/v1"
 	extensionsv1 "k8s.io/api/extensions/v1beta1"
@@ -47,8 +49,8 @@ func NewProvider(kubeConfig *rest.Config, namespaceController namespace.Controll
 		namespaceController: namespaceController,
 	}
 
-	informerCollection.Endpoints.AddEventHandler(client.getResourceEventHandlers("Endpoints"))
-	informerCollection.Deployments.AddEventHandler(client.getResourceEventHandlers("Deployments"))
+	informerCollection.Endpoints.AddEventHandler(kubernetes2.GetKubernetesEventHandlers("Endpoints", "Kubernetes", client.announcements))
+	informerCollection.Deployments.AddEventHandler(kubernetes2.GetKubernetesEventHandlers("Deployments", "Kubernetes", client.announcements))
 
 	if err := client.run(stop); err != nil {
 		glog.Fatalf("[%s] Could not start Kubernetes EndpointProvider client: %s", packageName, err)
