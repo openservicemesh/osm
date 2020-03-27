@@ -40,7 +40,7 @@ func main() {
 				fmt.Printf(common.Success)
 			} else if time.Now().After(finishBy) {
 				fmt.Printf("It has been %v since we started the test. Response code from %s is %d. This test has failed.",
-					time.Now().Sub(started), counter, responses[0])
+					time.Since(started), counter, responses[0])
 				fmt.Printf(common.Failure)
 				os.Exit(1)
 			}

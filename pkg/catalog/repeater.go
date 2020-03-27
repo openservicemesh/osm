@@ -23,7 +23,7 @@ func (sc *MeshCatalog) repeater() {
 		for {
 			if chosenIdx, message, ok := reflect.Select(cases); ok {
 				glog.Infof("[repeater] Received announcement from %s", caseNames[chosenIdx])
-				delta := time.Now().Sub(lastUpdateAt)
+				delta := time.Since(lastUpdateAt)
 				if delta >= updateAtMostEvery {
 					sc.broadcast(message)
 					lastUpdateAt = time.Now()
