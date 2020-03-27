@@ -4,13 +4,13 @@ go 1.13
 
 require (
 	contrib.go.opencensus.io/exporter/ocagent v0.5.0 // indirect
+	git.apache.org/thrift.git v0.0.0-20180902110319-2566ecd5d999 // indirect
 	github.com/Azure/azure-sdk-for-go v34.0.0+incompatible
 	github.com/Azure/go-autorest v12.1.0+incompatible // indirect
-	github.com/Azure/go-autorest/autorest v0.5.0
+	github.com/Azure/go-autorest/autorest v0.10.0
 	github.com/Azure/go-autorest/autorest/azure/auth v0.1.0
 	github.com/Azure/go-autorest/autorest/to v0.2.0
 	github.com/Azure/go-autorest/autorest/validation v0.1.0 // indirect
-	github.com/Azure/go-autorest/tracing v0.2.0 // indirect
 	github.com/axw/gocov v1.0.0 // indirect
 	github.com/deckarep/golang-set v1.7.1
 	github.com/eapache/channels v1.1.0 // indirect
@@ -19,6 +19,7 @@ require (
 	github.com/getlantern/deepcopy v0.0.0-20160317154340-7f45deb8130a // indirect
 	github.com/gogo/protobuf v1.2.2-0.20190730201129-28a6bbf47e48 // indirect
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
+	github.com/golang/lint v0.0.0-20180702182130-06c8688daad7 // indirect
 	github.com/golang/protobuf v1.3.2
 	github.com/google/go-cmp v0.3.1 // indirect
 	github.com/google/uuid v1.1.1
@@ -36,7 +37,6 @@ require (
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5
 	go.opencensus.io v0.22.1 // indirect
-	golang.org/x/crypto v0.0.0-20191011191535-87dc89f01550 // indirect
 	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b // indirect
 	golang.org/x/sync v0.0.0-20190911185100-cd5d95a43a6e // indirect
 	golang.org/x/sys v0.0.0-20200107162124-548cf772de50 // indirect
