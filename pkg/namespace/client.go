@@ -37,13 +37,12 @@ func NewNamespaceController(kubeConfig *rest.Config, osmID string, stop chan str
 	informer := informerFactory.Core().V1().Namespaces().Informer()
 
 	client := Client{
-		informer:      informer,
-		cache:         informer.GetStore(),
-		cacheSynced:   make(chan interface{}),
-		announcements: make(chan interface{}),
+		informer:    informer,
+		cache:       informer.GetStore(),
+		cacheSynced: make(chan interface{}),
 	}
 
-	informer.AddEventHandler(k8s.GetKubernetesEventHandlers("Namespaces", "Kubernetes", client.announcements))
+	informer.AddEventHandler(k8s.GetKubernetesEventHandlers("Namespaces", "Kubernetes", nil))
 
 	if err := client.run(stop); err != nil {
 		glog.Fatal("Could not start Kubernetes Namespaces client", err)
