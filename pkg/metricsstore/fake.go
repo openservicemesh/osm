@@ -3,6 +3,8 @@ package metricsstore
 import (
 	"net/http"
 	"time"
+
+	"github.com/golang/glog"
 )
 
 // NewFakeMetricStore return a fake metric store
@@ -17,7 +19,10 @@ type fakeMetricHandler struct {
 }
 
 func (m *fakeMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte(m.metric))
+	_, err := w.Write([]byte(m.metric))
+	if err != nil {
+		glog.Errorf("[%s] Error writing bytes: %s", packageName, err)
+	}
 }
 
 func (ms *fakeMetricStore) Start() {}

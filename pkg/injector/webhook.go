@@ -99,7 +99,10 @@ func (wh *Webhook) ListenAndServe(stop <-chan struct{}) {
 func (wh *Webhook) healthReadyHandler(w http.ResponseWriter, req *http.Request) {
 	// TODO(shashank): If TLS certificate is not present, mark as not ready
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Health OK"))
+	_, err := w.Write([]byte("Health OK"))
+	if err != nil {
+		glog.Errorf("[%s] Error writing bytes: %s", packageName, err)
+	}
 }
 
 func (wh *Webhook) mutateHandler(w http.ResponseWriter, req *http.Request) {
@@ -108,7 +111,7 @@ func (wh *Webhook) mutateHandler(w http.ResponseWriter, req *http.Request) {
 	if contentType := req.Header.Get("Content-Type"); contentType != "application/json" {
 		errmsg := fmt.Sprintf("Invalid Content-Type: %q", contentType)
 		http.Error(w, errmsg, http.StatusUnsupportedMediaType)
-		glog.Errorf("Request error: error=%s, code=%v", errmsg, http.StatusUnsupportedMediaType)
+		glog.Errorf("[%s] Request error: error=%s, code=%v", packageName, errmsg, http.StatusUnsupportedMediaType)
 		return
 	}
 
@@ -118,7 +121,7 @@ func (wh *Webhook) mutateHandler(w http.ResponseWriter, req *http.Request) {
 		if body, err = ioutil.ReadAll(req.Body); err != nil {
 			errmsg := fmt.Sprintf("Error reading request body: %s", err)
 			http.Error(w, errmsg, http.StatusInternalServerError)
-			glog.Errorf("Request error: error=%s, code=%v", errmsg, http.StatusInternalServerError)
+			glog.Errorf("[%s] Request error: error=%s, code=%v", packageName, errmsg, http.StatusInternalServerError)
 			return
 		}
 	}
@@ -126,7 +129,7 @@ func (wh *Webhook) mutateHandler(w http.ResponseWriter, req *http.Request) {
 	if len(body) == 0 {
 		errmsg := "Empty request body"
 		http.Error(w, errmsg, http.StatusBadRequest)
-		glog.Errorf("Request error: error=%s, code=%v", errmsg, http.StatusBadRequest)
+		glog.Errorf("[%s] Request error: error=%s, code=%v", packageName, errmsg, http.StatusBadRequest)
 		return
 	}
 
@@ -143,7 +146,7 @@ func (wh *Webhook) mutateHandler(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		errmsg := fmt.Sprintf("Error marshalling admission response: %s", err)
 		http.Error(w, errmsg, http.StatusInternalServerError)
-		glog.Errorf("Request error, error=%s, code=%v", errmsg, http.StatusInternalServerError)
+		glog.Errorf("[%s] Request error, error=%s, code=%v", packageName, errmsg, http.StatusInternalServerError)
 		return
 	}
 
