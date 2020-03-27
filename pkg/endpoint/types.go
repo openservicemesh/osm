@@ -26,6 +26,10 @@ type Endpoint struct {
 	Port   `json:"port"`
 }
 
+func (ep Endpoint) String() string {
+	return fmt.Sprintf("(ip=%s, port=%d)", ep.IP, ep.Port)
+}
+
 // Port is a numerical port of an Envoy proxy
 type Port uint32
 
