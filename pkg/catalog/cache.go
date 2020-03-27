@@ -17,17 +17,13 @@ func (sc *MeshCatalog) refreshCache() {
 	services := sc.meshSpec.ListServices()
 	for _, service := range services {
 		for _, provider := range sc.endpointsProviders {
-			newIps := provider.ListEndpointsForService(endpoint.ServiceName(service.ServiceName.String()))
-			if len(newIps) == 0 {
+			endpoints := provider.ListEndpointsForService(endpoint.ServiceName(service.ServiceName.String()))
+			if len(endpoints) == 0 {
 				glog.Infof("[%s][%s] No IPs found for service=%s", packageName, provider.GetID(), service.ServiceName)
 				continue
 			}
-			glog.V(level.Trace).Infof("[%s][%s] Found IPs=%+v for service=%s", packageName, provider.GetID(), endpointsToString(newIps), service.ServiceName)
-			if existingIps, exists := servicesCache[service]; exists {
-				servicesCache[service] = append(existingIps, newIps...)
-			} else {
-				servicesCache[service] = newIps
-			}
+			glog.V(level.Trace).Infof("[%s][%s] Found Endpoints=%v for service=%s", packageName, provider.GetID(), endpointsToString(endpoints), service.ServiceName)
+			servicesCache[service] = endpoints
 		}
 	}
 
