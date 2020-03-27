@@ -19,6 +19,8 @@ import (
 
 var resyncPeriod = 10 * time.Second
 
+const namespaceSelectorLabel = "app"
+
 // NewProvider implements mesh.EndpointsProvider, which creates a new Kubernetes cluster/compute provider.
 func NewProvider(kubeConfig *rest.Config, namespaceController namespace.Controller, stop chan struct{}, providerIdent string) *Client {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
@@ -130,7 +132,7 @@ func (c Client) ListServicesForServiceAccount(svcAccount endpoint.NamespacedServ
 				}
 				namespacedService := endpoint.NamespacedService{
 					Namespace: kubernetesDeployments.Namespace,
-					Service:   selectorLabel["app"],
+					Service:   selectorLabel[namespaceSelectorLabel],
 				}
 				services = append(services, namespacedService)
 			}
