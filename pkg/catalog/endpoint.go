@@ -3,7 +3,6 @@ package catalog
 import (
 	"fmt"
 	"reflect"
-	"strings"
 
 	"github.com/golang/glog"
 
@@ -36,13 +35,13 @@ func (sc *MeshCatalog) listEndpointsForService(service endpoint.WeightedService)
 		glog.Errorf("[%s] Did not find any Endpoints for service %s", packageName, service.ServiceName)
 		return nil, errNotFound
 	}
-	glog.Infof("[%s] Found Endpoints %s for service %s", strings.Join(endpointsToString(endpoints), ","), packageName, service.ServiceName)
+	glog.Infof("[%s] Found Endpoints=%v for service %s", packageName, endpointsToString(endpoints), service.ServiceName)
 	return endpoints, nil
 }
 
 func (sc *MeshCatalog) getWeightedEndpointsPerService(clientID endpoint.NamespacedService) ([]endpoint.ServiceEndpoints, error) {
 	// todo (sneha) : TBD if clientID is needed for filtering endpoints
-	var services []endpoint.ServiceEndpoints
+	var serviceEndpoints []endpoint.ServiceEndpoints
 
 	for _, trafficSplit := range sc.meshSpec.ListTrafficSplits() {
 		glog.V(level.Debug).Infof("[%s] Discovered TrafficSplit resource: %s/%s", packageName, trafficSplit.Namespace, trafficSplit.Name)
@@ -55,27 +54,27 @@ func (sc *MeshCatalog) getWeightedEndpointsPerService(clientID endpoint.Namespac
 				Namespace: trafficSplit.Namespace,
 				Service:   trafficSplitBackend.Service,
 			}
-			serviceEndpoints := endpoint.ServiceEndpoints{}
-			serviceEndpoints.WeightedService = endpoint.WeightedService{
+			svcEp := endpoint.ServiceEndpoints{}
+			svcEp.WeightedService = endpoint.WeightedService{
 				ServiceName: namespacedServiceName,
 				Weight:      trafficSplitBackend.Weight,
 			}
 			var err error
-			if serviceEndpoints.Endpoints, err = sc.listEndpointsForService(serviceEndpoints.WeightedService); err != nil {
+			if svcEp.Endpoints, err = sc.listEndpointsForService(svcEp.WeightedService); err != nil {
 				glog.Errorf("[%s] Error getting Endpoints for service %s: %s", packageName, namespacedServiceName, err)
-				serviceEndpoints.Endpoints = []endpoint.Endpoint{}
+				svcEp.Endpoints = []endpoint.Endpoint{}
 			}
-			services = append(services, serviceEndpoints)
+			serviceEndpoints = append(serviceEndpoints, svcEp)
 		}
 	}
-	glog.V(level.Debug).Infof("[%s] Constructed service endpoints: %+v", packageName, services)
-	return services, nil
+	glog.V(level.Trace).Infof("[%s] Constructed service endpoints: %+v", packageName, serviceEndpoints)
+	return serviceEndpoints, nil
 }
 
 func endpointsToString(endpoints []endpoint.Endpoint) []string {
 	var epts []string
 	for _, ept := range endpoints {
-		epts = append(epts, fmt.Sprintf("%s:%d", ept.IP, ept.Port))
+		epts = append(epts, fmt.Sprintf("%s:%d", string(ept.IP[:]), ept.Port))
 	}
 	return epts
 }
