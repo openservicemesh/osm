@@ -22,7 +22,7 @@ func (sc *MeshCatalog) refreshCache() {
 				glog.Infof("[%s][%s] No IPs found for service=%s", packageName, provider.GetID(), service.ServiceName)
 				continue
 			}
-			glog.V(level.Trace).Infof("[%s][%s] Found Endpoints=%v for service=%s", packageName, provider.GetID(), endpointsToString(endpoints), service.ServiceName)
+			glog.V(level.Trace).Infof("[%s][%s] Found Endpoints=%s for service=%s", packageName, provider.GetID(), endpointsToString(endpoints), service.ServiceName)
 			servicesCache[service] = endpoints
 		}
 	}

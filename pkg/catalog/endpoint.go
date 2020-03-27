@@ -3,6 +3,7 @@ package catalog
 import (
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/golang/glog"
 
@@ -71,10 +72,11 @@ func (sc *MeshCatalog) getWeightedEndpointsPerService(clientID endpoint.Namespac
 	return serviceEndpoints, nil
 }
 
-func endpointsToString(endpoints []endpoint.Endpoint) []string {
+// endpointsToString stringifies a list of endpoints to a readable form
+func endpointsToString(endpoints []endpoint.Endpoint) string {
 	var epts []string
-	for _, ept := range endpoints {
-		epts = append(epts, fmt.Sprintf("%s:%d", string(ept.IP[:]), ept.Port))
+	for _, ep := range endpoints {
+		epts = append(epts, fmt.Sprintf("%s", ep))
 	}
-	return epts
+	return strings.Join(epts, ",")
 }

@@ -11,7 +11,7 @@ import (
 
 var _ = Describe("Endpoints To String", func() {
 	Context("Testing endpointsToString", func() {
-		It("Returns string list", func() {
+		It("Returns string representation of a list of endpoints", func() {
 
 			endpoints := []endpoint.Endpoint{
 				{
@@ -25,10 +25,7 @@ var _ = Describe("Endpoints To String", func() {
 			}
 
 			actual := endpointsToString(endpoints)
-			expected := []string{
-				"10.20.30.1:10",
-				"210.220.230.21:202",
-			}
+			expected := "(ip=10.20.30.1, port=10),(ip=210.220.230.21, port=202)"
 			Expect(actual).To(Equal(expected))
 		})
 	})
