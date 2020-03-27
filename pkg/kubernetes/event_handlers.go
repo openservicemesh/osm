@@ -21,9 +21,11 @@ func GetKubernetesEventHandlers(informerName string, providerName string, announ
 func Add(informerName string, providerName string, announce chan interface{}) func(obj interface{}) {
 	return func(obj interface{}) {
 		glog.V(level.Trace).Infof("[%s][%s] Add event: %+v", providerName, informerName, obj)
-		announce <- Event{
-			Type:  CreateEvent,
-			Value: obj,
+		if announce != nil {
+			announce <- Event{
+				Type:  CreateEvent,
+				Value: obj,
+			}
 		}
 	}
 }
@@ -35,9 +37,11 @@ func Update(informerName string, providerName string, announce chan interface{})
 		if reflect.DeepEqual(oldObj, newObj) {
 			return
 		}
-		announce <- Event{
-			Type:  UpdateEvent,
-			Value: newObj,
+		if announce != nil {
+			announce <- Event{
+				Type:  UpdateEvent,
+				Value: newObj,
+			}
 		}
 	}
 }
@@ -46,9 +50,11 @@ func Update(informerName string, providerName string, announce chan interface{})
 func Delete(informerName string, providerName string, announce chan interface{}) func(obj interface{}) {
 	return func(obj interface{}) {
 		glog.V(level.Trace).Infof("[%s][%s] Delete event: %+v", providerName, informerName, obj)
-		announce <- Event{
-			Type:  DeleteEvent,
-			Value: obj,
+		if announce != nil {
+			announce <- Event{
+				Type:  DeleteEvent,
+				Value: obj,
+			}
 		}
 	}
 }
