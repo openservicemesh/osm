@@ -8,7 +8,10 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
+<<<<<<< HEAD
 // GetKubernetesEventHandlers creates Kubernetes events handlers.
+=======
+>>>>>>> kubernetes: Carving out Kubernetes event handlers in their own package so we can reuse them
 func GetKubernetesEventHandlers(informerName string, providerName string, announcements chan interface{}) cache.ResourceEventHandlerFuncs {
 	return cache.ResourceEventHandlerFuncs{
 		AddFunc:    Add(informerName, providerName, announcements),
@@ -17,7 +20,10 @@ func GetKubernetesEventHandlers(informerName string, providerName string, announ
 	}
 }
 
+<<<<<<< HEAD
 // Add a new item to Kubernetes caches from an incoming Kubernetes event.
+=======
+>>>>>>> kubernetes: Carving out Kubernetes event handlers in their own package so we can reuse them
 func Add(informerName string, providerName string, announce chan interface{}) func(obj interface{}) {
 	return func(obj interface{}) {
 		glog.V(level.Trace).Infof("[%s][%s] Add event: %+v", providerName, informerName, obj)
@@ -28,7 +34,10 @@ func Add(informerName string, providerName string, announce chan interface{}) fu
 	}
 }
 
+<<<<<<< HEAD
 // Update caches with an incoming Kubernetes event.
+=======
+>>>>>>> kubernetes: Carving out Kubernetes event handlers in their own package so we can reuse them
 func Update(informerName string, providerName string, announce chan interface{}) func(oldObj, newObj interface{}) {
 	return func(oldObj, newObj interface{}) {
 		glog.V(level.Trace).Infof("[%s][%s] Update event %+v", providerName, informerName, oldObj)
@@ -42,7 +51,10 @@ func Update(informerName string, providerName string, announce chan interface{})
 	}
 }
 
+<<<<<<< HEAD
 // Delete Kubernetes cache from an incoming Kubernetes event.
+=======
+>>>>>>> kubernetes: Carving out Kubernetes event handlers in their own package so we can reuse them
 func Delete(informerName string, providerName string, announce chan interface{}) func(obj interface{}) {
 	return func(obj interface{}) {
 		glog.V(level.Trace).Infof("[%s][%s] Delete event: %+v", providerName, informerName, obj)
