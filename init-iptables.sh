@@ -3,6 +3,7 @@
 set -auexo pipefail
 
 PROXY_ADMIN_PORT=${PROXY_ADMIN_PORT:-15000}
+PROXY_STATS_PORT=${PROXY_STATS_PORT:-15010}
 PROXY_PORT=${PROXY_PORT:-15001}
 PROXY_INBOUND_PORT=${PROXY_INBOUND_PORT:-15003}
 PROXY_UID=${PROXY_UID:-1337}
@@ -26,6 +27,7 @@ iptables -t nat -A PREROUTING -p tcp -j PROXY_INBOUND
 
 # Skip inbound SSH redirection
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "${SSH_PORT}" -j RETURN
+iptables -t nat -A PROXY_INBOUND -p tcp --dport "${PROXY_STATS_PORT}" -j RETURN
 # Redirect remaining inbound traffic to PROXY_INBOUND_PORT
 iptables -t nat -A PROXY_INBOUND -p tcp -j PROXY_IN_REDIRECT
 

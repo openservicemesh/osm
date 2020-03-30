@@ -28,6 +28,9 @@ const (
 	// EnvoyInboundListenerPortName is Envoy's inbound listener port name.
 	EnvoyInboundListenerPortName = "proxy-inbound"
 
+	// EnvoyInboundPromethuesListenerPortName is Envoy's inbound listener port name for prometheus.
+	EnvoyInboundPromethuesListenerPortName = "proxy-metrics"
+
 	// EnvoyOutboundListenerPort is Envoy's outbound listener port number.
 	EnvoyOutboundListenerPort = 15001
 
@@ -36,6 +39,15 @@ const (
 
 	// EnvoyUID is the Envoy's User ID
 	EnvoyUID int64 = 1337
+
+	// EnvoyAdminAddress is the admin IP for Envoy
+	EnvoyAdminAddress = "127.0.0.1"
+
+	// EnvoyAdminCluster is the cluster name for Envoy's Admin
+	EnvoyAdminCluster = "envoy-admin-cluster"
+
+	// EnvoyPrometheusInboundListenerPort is Envoy's inbound listener port number for prometheus
+	EnvoyPrometheusInboundListenerPort = 15010
 
 	// CertCommonNameUUIDServiceDelimiter is the character used to delimit the UUID and service name in the certificate's CommonName
 	CertCommonNameUUIDServiceDelimiter = ";"
@@ -60,4 +72,7 @@ const (
 
 	// AggregatedDiscoveryServicePort is the port on which XDS listens for new connections.
 	AggregatedDiscoveryServicePort = 15128
+
+	// PrometheusScrapePath is the path for prometheus to scrap envoy metrics from
+	PrometheusScrapePath = "/stats/prometheus"
 )

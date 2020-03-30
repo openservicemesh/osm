@@ -85,6 +85,8 @@ done
 
 ./demo/deploy-webhook.sh "ads" "$K8S_NAMESPACE" "$OSM_ID"
 
+# Deploy prometheus to get metrics
+./demo/deploy-prometheus.sh
 # Deploy bookstore
 ./demo/deploy-bookstore.sh "bookstore"
 ./demo/deploy-bookstore.sh "bookstore-1"
@@ -106,5 +108,5 @@ done
 ./demo/deploy-traffic-target-bookthief.sh
 
 if [[ "$IS_GITHUB" != "true" ]]; then
-    watch -n5 "printf \"Namespace ${K8S_NAMESPACE}:\n\"; kubectl get pods -n ${K8S_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKBUYER_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKBUYER_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKSTORE_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKSTORE_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKTHIEF_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKTHIEF_NAMESPACE} -o wide"
+    watch -n5 "printf \"Namespace ${K8S_NAMESPACE}:\n\"; kubectl get pods -n ${K8S_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKBUYER_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKBUYER_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKSTORE_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKSTORE_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKTHIEF_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKTHIEF_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${PROMETHEUS_NAMESPACE}:\n\"; kubectl get pods -n ${PROMETHEUS_NAMESPACE} -o wide"
 fi

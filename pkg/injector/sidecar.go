@@ -33,6 +33,10 @@ func getEnvoySidecarContainerSpec(data *EnvoySidecarData) corev1.Container {
 				Name:          constants.EnvoyInboundListenerPortName,
 				ContainerPort: constants.EnvoyInboundListenerPort,
 			},
+			{
+				Name:          constants.EnvoyInboundPromethuesListenerPortName,
+				ContainerPort: constants.EnvoyPrometheusInboundListenerPort,
+			},
 		},
 		VolumeMounts: []corev1.VolumeMount{
 			{

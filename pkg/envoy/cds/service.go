@@ -65,3 +65,34 @@ func getServiceClusterLocal(catalog catalog.MeshCataloger, proxyService endpoint
 
 	return xdsCluster
 }
+
+func getPrometheusCluster(clusterName string) xds.Cluster {
+	return xds.Cluster{
+		// The name must match the domain being cURLed in the demo
+		Name:           clusterName,
+		AltStatName:    clusterName,
+		ConnectTimeout: ptypes.DurationProto(1 * time.Second),
+		ClusterDiscoveryType: &xds.Cluster_Type{
+			Type: xds.Cluster_STATIC,
+		},
+		LbPolicy: xds.Cluster_ROUND_ROBIN,
+		LoadAssignment: &xds.ClusterLoadAssignment{
+			// NOTE: results.ServiceName is the top level service that is cURLed.
+			ClusterName: clusterName,
+			Endpoints: []*envoyEndpoint.LocalityLbEndpoints{
+				{
+					LbEndpoints: []*envoyEndpoint.LbEndpoint{{
+						HostIdentifier: &envoyEndpoint.LbEndpoint_Endpoint{
+							Endpoint: &envoyEndpoint.Endpoint{
+								Address: envoy.GetAddress(constants.EnvoyAdminAddress, constants.EnvoyAdminPort),
+							},
+						},
+						LoadBalancingWeight: &wrappers.UInt32Value{
+							Value: weightAcceptAll,
+						},
+					}},
+				},
+			},
+		},
+	}
+}

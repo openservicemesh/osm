@@ -80,6 +80,8 @@ jobs:
         BOOKBUYER_NAMESPACE: "ci-bookbuyer-${{ github.run_id }}-${{ github.run_number}}"
         BOOKSTORE_NAMESPACE: "ci-bookstore-${{ github.run_id }}-${{ github.run_number}}"
         BOOKTHIEF_NAMESPACE: "ci-bookthief-${{ github.run_id }}-${{ github.run_number}}"
+        PROMETHEUS_NAMESPACE: "ci-monitoring-${{ github.run_id }}-${{ github.run_number}}"
+        PROMETHEUS_SVC: "ci-prometheus-${{ github.run_id }}-${{ github.run_number}}"
         OSM_ID: "osm-ci-${{ github.run_id }}-${{ github.run_number}}"
         ACR_CREDS: ${{ secrets.ACR_CREDS }}
         KUBECONFIG: ".kube/config"
