@@ -4,10 +4,9 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog/log"
 
 	"github.com/open-service-mesh/osm/pkg/envoy"
-	"github.com/open-service-mesh/osm/pkg/log/level"
 )
 
 const (
@@ -22,7 +21,7 @@ func (sc *MeshCatalog) repeater() {
 		cases, caseNames := sc.getCases()
 		for {
 			if chosenIdx, message, ok := reflect.Select(cases); ok {
-				glog.Infof("[repeater] Received announcement from %s", caseNames[chosenIdx])
+				log.Info().Msgf("[repeater] Received announcement from %s", caseNames[chosenIdx])
 				delta := time.Since(lastUpdateAt)
 				if delta >= updateAtMostEvery {
 					sc.broadcast(message)
@@ -47,7 +46,7 @@ func (sc *MeshCatalog) getCases() ([]reflect.SelectCase, []string) {
 func (sc *MeshCatalog) broadcast(message interface{}) {
 	for _, proxyInterface := range sc.connectedProxies.ToSlice() {
 		envoy := proxyInterface.(*envoy.Proxy)
-		glog.V(level.Debug).Infof("[repeater] Broadcast announcement to envoy %s", envoy.GetCommonName())
+		log.Debug().Msgf("[repeater] Broadcast announcement to envoy %s", envoy.GetCommonName())
 		select {
 		// send the message if possible - do not block
 		case envoy.GetAnnouncementsChannel() <- message:

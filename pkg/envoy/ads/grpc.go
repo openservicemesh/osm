@@ -6,7 +6,7 @@ import (
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	xds "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -18,10 +18,10 @@ func receive(requests chan v2.DiscoveryRequest, server *xds.AggregatedDiscoveryS
 		request, recvErr := (*server).Recv()
 		if recvErr != nil {
 			if status.Code(recvErr) == codes.Canceled || recvErr == io.EOF {
-				glog.Errorf("[%s][grpc] Connection terminated: %+v", packageName, recvErr)
+				log.Error().Msgf("[%s][grpc] Connection terminated: %+v", packageName, recvErr)
 				return
 			}
-			glog.Errorf("[%s][grpc] Connection terminated with error: %+v", packageName, recvErr)
+			log.Error().Msgf("[%s][grpc] Connection terminated with error: %+v", packageName, recvErr)
 			return
 		}
 		requests <- *request

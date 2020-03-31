@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog/log"
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
@@ -14,14 +14,14 @@ import (
 func (wh *Webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error) {
 	// Start patching the spec
 	var patches []JSONPatchOperation
-	glog.Infof("Patching POD spec: service-account=%s, namespace=%s", pod.Spec.ServiceAccountName, namespace)
+	log.Info().Msgf("Patching POD spec: service-account=%s, namespace=%s", pod.Spec.ServiceAccountName, namespace)
 
 	// Issue a certificate for the proxy sidecar
 	subDomain := "osm.mesh" // TODO: don't hardcode this
 	cn := certificate.CommonName(utils.NewCertCommonNameWithUUID(pod.Spec.ServiceAccountName, namespace, subDomain))
 	cert, err := wh.certManager.IssueCertificate(cn)
 	if err != nil {
-		glog.Errorf("Failed to issue TLS certificate for Envoy: %s", err)
+		log.Error().Err(err).Msg("Failed to issue TLS certificate for Envoy")
 		return nil, err
 	}
 
@@ -29,7 +29,7 @@ func (wh *Webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 	envoyTLSSecretName := fmt.Sprintf("tls-%s", pod.Spec.ServiceAccountName)
 	_, err = wh.createEnvoyTLSSecret(envoyTLSSecretName, namespace, cert)
 	if err != nil {
-		glog.Errorf("Failed to create TLS secret for Envoy sidecar: %s", err)
+		log.Error().Err(err).Msgf("Failed to create TLS secret for Envoy sidecar")
 		return nil, err
 	}
 
@@ -37,7 +37,7 @@ func (wh *Webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 	envoyBootstrapConfigName := fmt.Sprintf("envoy-bootstrap-config-%s", pod.Spec.ServiceAccountName)
 	_, err = wh.createEnvoyBootstrapConfig(envoyBootstrapConfigName, namespace, wh.osmNamespace)
 	if err != nil {
-		glog.Errorf("Failed to create bootstrap config for Envoy sidecar: %s", err)
+		log.Error().Err(err).Msg("Failed to create bootstrap config for Envoy sidecar")
 		return nil, err
 	}
 

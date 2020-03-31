@@ -87,7 +87,7 @@ func generateKubernetesConfig(name, namespace, serviceAccountName, containerRegi
 							Command: []string{fmt.Sprintf("/%s", name)},
 							Args: []string{
 								"--verbosity",
-								"25",
+								"info",
 								"--namespace",
 								namespace,
 								"--certpem",

@@ -10,11 +10,11 @@ import (
 	accesslog "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v2"
 	envoy_config_filter_accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"github.com/rs/zerolog/log"
 
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 )
@@ -59,7 +59,7 @@ func GetTLSParams() *auth.TlsParameters {
 func GetAccessLog() []*envoy_config_filter_accesslog_v2.AccessLog {
 	accessLog, err := ptypes.MarshalAny(getFileAccessLog())
 	if err != nil {
-		glog.Error("[LDS] Could con construct AccessLog struct: ", err)
+		log.Error().Err(err).Msg("[LDS] Could con construct AccessLog struct")
 		return nil
 	}
 	return []*envoy_config_filter_accesslog_v2.AccessLog{{
@@ -137,7 +137,7 @@ func GetDownstreamTLSContext(serviceName endpoint.NamespacedService) *any.Any {
 
 	tls, err := ptypes.MarshalAny(tlsConfig)
 	if err != nil {
-		glog.Error("[CDS] Error marshalling DownstreamTLS: ", err)
+		log.Error().Err(err).Msg("[CDS] Error marshalling DownstreamTLS")
 		return nil
 	}
 	return tls
@@ -152,7 +152,7 @@ func GetUpstreamTLSContext(serviceName endpoint.NamespacedService) *any.Any {
 
 	tls, err := ptypes.MarshalAny(tlsConfig)
 	if err != nil {
-		glog.Error("[CDS] Error marshalling UpstreamTLS: ", err)
+		log.Error().Err(err).Msg("[CDS] Error marshalling UpstreamTLS")
 		return nil
 	}
 	return tls

@@ -4,12 +4,11 @@ import (
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
-	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"github.com/rs/zerolog/log"
 
 	osmEndpoint "github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/envoy"
-	"github.com/open-service-mesh/osm/pkg/log/level"
 )
 
 const (
@@ -37,7 +36,7 @@ func NewClusterLoadAssignment(serviceEndpoints osmEndpoint.ServiceEndpoints) v2.
 	weight := uint32(100 / lenIPs)
 
 	for _, meshEndpoint := range serviceEndpoints.Endpoints {
-		glog.V(level.Trace).Infof("[EDS][ClusterLoadAssignment] Adding Endpoint: Cluster=%s, Services=%s, Endpoint=%+v, Weight=%d\n", serviceEndpoints.WeightedService.ServiceName, serviceEndpoints.WeightedService.ServiceName, meshEndpoint, weight)
+		log.Trace().Msgf("[EDS][ClusterLoadAssignment] Adding Endpoint: Cluster=%s, Services=%s, Endpoint=%+v, Weight=%d\n", serviceEndpoints.WeightedService.ServiceName, serviceEndpoints.WeightedService.ServiceName, meshEndpoint, weight)
 		lbEpt := endpoint.LbEndpoint{
 			HostIdentifier: &endpoint.LbEndpoint_Endpoint{
 				Endpoint: &endpoint.Endpoint{
@@ -50,6 +49,6 @@ func NewClusterLoadAssignment(serviceEndpoints osmEndpoint.ServiceEndpoints) v2.
 		}
 		cla.Endpoints[0].LbEndpoints = append(cla.Endpoints[0].LbEndpoints, &lbEpt)
 	}
-	glog.V(level.Debug).Infof("[EDS] Constructed ClusterLoadAssignment: %+v", cla)
+	log.Debug().Msgf("[EDS] Constructed ClusterLoadAssignment: %+v", cla)
 	return cla
 }

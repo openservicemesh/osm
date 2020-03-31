@@ -7,7 +7,7 @@ import (
 
 	kubernetes2 "github.com/open-service-mesh/osm/pkg/kubernetes"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog/log"
 	corev1 "k8s.io/api/core/v1"
 	extensionsv1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/client-go/informers"
@@ -16,7 +16,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/open-service-mesh/osm/pkg/endpoint"
-	"github.com/open-service-mesh/osm/pkg/log/level"
+
 	"github.com/open-service-mesh/osm/pkg/namespace"
 )
 
@@ -53,7 +53,7 @@ func NewProvider(kubeConfig *rest.Config, namespaceController namespace.Controll
 	informerCollection.Deployments.AddEventHandler(kubernetes2.GetKubernetesEventHandlers("Deployments", "Kubernetes", client.announcements))
 
 	if err := client.run(stop); err != nil {
-		glog.Fatalf("[%s] Could not start Kubernetes EndpointProvider client: %s", packageName, err)
+		log.Fatal().Err(err).Msgf("[%s] Could not start Kubernetes EndpointProvider client", packageName)
 	}
 
 	return &client
@@ -67,16 +67,16 @@ func (c *Client) GetID() string {
 
 // ListEndpointsForService retrieves the list of IP addresses for the given service
 func (c Client) ListEndpointsForService(svc endpoint.ServiceName) []endpoint.Endpoint {
-	glog.Infof("[%s][%s] Getting Endpoints for service %s on Kubernetes", packageName, c.providerIdent, svc)
+	log.Info().Msgf("[%s][%s] Getting Endpoints for service %s on Kubernetes", packageName, c.providerIdent, svc)
 	var endpoints []endpoint.Endpoint
 	endpointsInterface, exist, err := c.caches.Endpoints.GetByKey(string(svc))
 	if err != nil {
-		glog.Errorf("[%s][%s] Error fetching Kubernetes Endpoints from cache: %s", packageName, c.providerIdent, err)
+		log.Error().Err(err).Msgf("[%s][%s] Error fetching Kubernetes Endpoints from cache", packageName, c.providerIdent)
 		return endpoints
 	}
 
 	if !exist {
-		glog.Errorf("[%s][%s] Error fetching Kubernetes Endpoints from cache: ServiceName %s does not exist", packageName, c.providerIdent, svc)
+		log.Error().Msgf("[%s][%s] Error fetching Kubernetes Endpoints from cache: ServiceName %s does not exist", packageName, c.providerIdent, svc)
 		return endpoints
 	}
 
@@ -103,7 +103,7 @@ func (c Client) ListEndpointsForService(svc endpoint.ServiceName) []endpoint.End
 
 // ListServicesForServiceAccount retrieves the list of Services for the given service account
 func (c Client) ListServicesForServiceAccount(svcAccount endpoint.NamespacedServiceAccount) []endpoint.NamespacedService {
-	glog.Infof("[%s][%s] Getting Services for service account %s on Kubernetes", packageName, c.providerIdent, svcAccount)
+	log.Info().Msgf("[%s][%s] Getting Services for service account %s on Kubernetes", packageName, c.providerIdent, svcAccount)
 	var services []endpoint.NamespacedService
 	deploymentsInterface := c.caches.Deployments.List()
 
@@ -134,7 +134,7 @@ func (c Client) ListServicesForServiceAccount(svcAccount endpoint.NamespacedServ
 		}
 	}
 
-	glog.Infof("[%s][%s] Services %v observed on service account %s on Kubernetes", packageName, c.providerIdent, services, svcAccount)
+	log.Info().Msgf("[%s][%s] Services %v observed on service account %s on Kubernetes", packageName, c.providerIdent, services, svcAccount)
 	return services
 }
 
@@ -162,12 +162,12 @@ func (c *Client) run(stop <-chan struct{}) error {
 			continue
 		}
 		names = append(names, name)
-		glog.V(level.Debug).Infof("[%s] Starting informer %s", packageName, name)
+		log.Debug().Msgf("[%s] Starting informer %s", packageName, name)
 		go informer.Run(stop)
 		hasSynced = append(hasSynced, informer.HasSynced)
 	}
 
-	glog.V(level.Info).Infof("[%s] Waiting for informer's cache to sync: %+v", packageName, strings.Join(names, ", "))
+	log.Info().Msgf("[%s] Waiting for informer's cache to sync: %+v", packageName, strings.Join(names, ", "))
 	if !cache.WaitForCacheSync(stop, hasSynced...) {
 		return errSyncingCaches
 	}
@@ -175,6 +175,6 @@ func (c *Client) run(stop <-chan struct{}) error {
 	// Closing the cacheSynced channel signals to the rest of the system that... caches have been synced.
 	close(c.cacheSynced)
 
-	glog.V(level.Info).Infof("Cache sync finished for %+v", names)
+	log.Info().Msgf("Cache sync finished for %+v", names)
 	return nil
 }

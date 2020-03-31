@@ -5,8 +5,8 @@ import (
 	"crypto/rsa"
 	"reflect"
 
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
 )
@@ -24,7 +24,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName) (certificate.
 	if cert, exists := cm.cache[cn]; exists {
 		return cert, nil
 	}
-	glog.Infof("[%s] Issuing Certificate for CN=%s", packageName, cn)
+	log.Info().Msgf("[%s] Issuing Certificate for CN=%s", packageName, cn)
 	if cm.ca == nil || cm.caPrivKey == nil {
 		return nil, errNoCA
 	}

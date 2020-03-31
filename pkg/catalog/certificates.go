@@ -1,7 +1,7 @@
 package catalog
 
 import (
-	"github.com/golang/glog"
+	"github.com/rs/zerolog/log"
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
@@ -15,7 +15,7 @@ func (sc *MeshCatalog) GetCertificateForService(service endpoint.NamespacedServi
 	}
 	newCert, err := sc.certManager.IssueCertificate(certificate.CommonName(service.String()))
 	if err != nil {
-		glog.Errorf("Failed issuing a new certificate for service %s: %s", service, err)
+		log.Error().Err(err).Msgf("Failed issuing a new certificate for service %s", service)
 		return nil, err
 	}
 	sc.certificateCache[service] = newCert

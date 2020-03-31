@@ -30,4 +30,4 @@ mkdir -p "./certificates/$NAME"
     --certpem="./certificates/ads/cert.pem" \
     --keypem="./certificates/ads/key.pem" \
     --rootcertpem="./certificates/root-cert.pem" \
-    --verbosity=25
+    --verbosity="info"

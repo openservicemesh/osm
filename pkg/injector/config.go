@@ -5,7 +5,7 @@ import (
 	"encoding/pem"
 	"fmt"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog/log"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -40,12 +40,12 @@ func (wh *Webhook) createEnvoyTLSSecret(name string, namespace string, cert cert
 	}
 
 	if existing, err := wh.kubeClient.CoreV1().Secrets(namespace).Get(name, metav1.GetOptions{}); err == nil {
-		glog.Infof("Updating secret for envoy certs: name=%s, namespace=%s", name, namespace)
+		log.Info().Msgf("Updating secret for envoy certs: name=%s, namespace=%s", name, namespace)
 		existing.Data = secret.Data
 		return wh.kubeClient.CoreV1().Secrets(namespace).Update(existing)
 	}
 
-	glog.Infof("Creating secret for envoy certs: name=%s, namespace=%s", name, namespace)
+	log.Info().Msgf("Creating secret for envoy certs: name=%s, namespace=%s", name, namespace)
 	return wh.kubeClient.CoreV1().Secrets(namespace).Create(secret)
 }
 
@@ -116,11 +116,11 @@ static_resources:
 	}
 
 	if existing, err := wh.kubeClient.CoreV1().ConfigMaps(namespace).Get(name, metav1.GetOptions{}); err == nil {
-		glog.Infof("Updating configMap for envoy bootstrap config: name=%s, namespace=%s", name, namespace)
+		log.Info().Msgf("Updating configMap for envoy bootstrap config: name=%s, namespace=%s", name, namespace)
 		existing.Data = configMap.Data
 		return wh.kubeClient.CoreV1().ConfigMaps(namespace).Update(existing)
 	}
 
-	glog.Infof("Creating configMap for envoy boostrap config: name=%s, namespace=%s", name, namespace)
+	log.Info().Msgf("Creating configMap for envoy boostrap config: name=%s, namespace=%s", name, namespace)
 	return wh.kubeClient.CoreV1().ConfigMaps(namespace).Create(configMap)
 }

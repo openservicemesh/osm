@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog/log"
 	"k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,7 +20,7 @@ import (
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/certificate"
-	"github.com/open-service-mesh/osm/pkg/log/level"
+
 	"github.com/open-service-mesh/osm/pkg/namespace"
 )
 
@@ -70,17 +70,17 @@ func (wh *Webhook) ListenAndServe(stop <-chan struct{}) {
 		Handler: mux,
 	}
 
-	glog.Infof("Starting sidecar-injection webhook server on :%v", wh.config.ListenPort)
+	log.Info().Msgf("Starting sidecar-injection webhook server on :%v", wh.config.ListenPort)
 	go func() {
 		if wh.config.EnableTLS {
 			certPath := filepath.Join(tlsDir, tlsCertFile)
 			keyPath := filepath.Join(tlsDir, tlsKeyFile)
 			if err := server.ListenAndServeTLS(certPath, keyPath); err != nil {
-				glog.Fatalf("Sidecar-injection webhook HTTP server failed to start: %v", err)
+				log.Fatal().Err(err).Msgf("Sidecar-injection webhook HTTP server failed to start")
 			}
 		} else {
 			if err := server.ListenAndServe(); err != nil {
-				glog.Fatalf("Sidecar-injection webhook HTTP server failed to start: %v", err)
+				log.Fatal().Err(err).Msgf("Sidecar-injection webhook HTTP server failed to start")
 			}
 		}
 	}()
@@ -90,9 +90,9 @@ func (wh *Webhook) ListenAndServe(stop <-chan struct{}) {
 
 	// Stop the server
 	if err := server.Shutdown(ctx); err != nil {
-		glog.Errorf("Error shutting down sidecar-injection webhook HTTP server: %v", err)
+		log.Error().Err(err).Msg("Error shutting down sidecar-injection webhook HTTP server")
 	} else {
-		glog.Info("Done shutting down sidecar-injection webhook HTTP server")
+		log.Info().Msg("Done shutting down sidecar-injection webhook HTTP server")
 	}
 }
 
@@ -101,17 +101,17 @@ func (wh *Webhook) healthReadyHandler(w http.ResponseWriter, req *http.Request) 
 	w.WriteHeader(http.StatusOK)
 	_, err := w.Write([]byte("Health OK"))
 	if err != nil {
-		glog.Errorf("[%s] Error writing bytes: %s", packageName, err)
+		log.Error().Err(err).Msgf("[%s] Error writing bytes", packageName)
 	}
 }
 
 func (wh *Webhook) mutateHandler(w http.ResponseWriter, req *http.Request) {
-	glog.Infof("Request received: Method=%v, URL=%v", req.Method, req.URL)
+	log.Info().Msgf("Request received: Method=%v, URL=%v", req.Method, req.URL)
 
 	if contentType := req.Header.Get("Content-Type"); contentType != "application/json" {
 		errmsg := fmt.Sprintf("Invalid Content-Type: %q", contentType)
 		http.Error(w, errmsg, http.StatusUnsupportedMediaType)
-		glog.Errorf("[%s] Request error: error=%s, code=%v", packageName, errmsg, http.StatusUnsupportedMediaType)
+		log.Error().Msgf("[%s] Request error: error=%s, code=%v", packageName, errmsg, http.StatusUnsupportedMediaType)
 		return
 	}
 
@@ -121,7 +121,7 @@ func (wh *Webhook) mutateHandler(w http.ResponseWriter, req *http.Request) {
 		if body, err = ioutil.ReadAll(req.Body); err != nil {
 			errmsg := fmt.Sprintf("Error reading request body: %s", err)
 			http.Error(w, errmsg, http.StatusInternalServerError)
-			glog.Errorf("[%s] Request error: error=%s, code=%v", packageName, errmsg, http.StatusInternalServerError)
+			log.Error().Msgf("[%s] Request error: error=%s, code=%v", packageName, errmsg, http.StatusInternalServerError)
 			return
 		}
 	}
@@ -129,14 +129,14 @@ func (wh *Webhook) mutateHandler(w http.ResponseWriter, req *http.Request) {
 	if len(body) == 0 {
 		errmsg := "Empty request body"
 		http.Error(w, errmsg, http.StatusBadRequest)
-		glog.Errorf("[%s] Request error: error=%s, code=%v", packageName, errmsg, http.StatusBadRequest)
+		log.Error().Msgf("[%s] Request error: error=%s, code=%v", packageName, errmsg, http.StatusBadRequest)
 		return
 	}
 
 	var admissionReq v1beta1.AdmissionReview
 	var admissionResp v1beta1.AdmissionReview
 	if _, _, err := deserializer.Decode(body, nil, &admissionReq); err != nil {
-		glog.Errorf("Error decoding admission request: %s", err)
+		log.Error().Err(err).Msg("Error decoding admission request")
 		admissionResp.Response = toAdmissionError(err)
 	} else {
 		admissionResp.Response = wh.mutate(admissionReq.Request)
@@ -146,25 +146,25 @@ func (wh *Webhook) mutateHandler(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		errmsg := fmt.Sprintf("Error marshalling admission response: %s", err)
 		http.Error(w, errmsg, http.StatusInternalServerError)
-		glog.Errorf("[%s] Request error, error=%s, code=%v", packageName, errmsg, http.StatusInternalServerError)
+		log.Error().Msgf("[%s] Request error, error=%s, code=%v", packageName, errmsg, http.StatusInternalServerError)
 		return
 	}
 
 	if _, err := w.Write(resp); err != nil {
-		glog.Errorf("Error writing response: %s", err)
+		log.Error().Err(err).Msg("Error writing admission response")
 	}
 
-	glog.V(level.Debug).Info("Done responding to admission request")
+	log.Debug().Msg("Done responding to admission request")
 }
 
 func (wh *Webhook) mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
 	// Decode the Pod spec from the request
 	var pod corev1.Pod
 	if err := json.Unmarshal(req.Object.Raw, &pod); err != nil {
-		glog.Errorf("Error unmarshaling request to Pod: %s", err)
+		log.Error().Err(err).Msg("Error unmarshaling request to Pod")
 		return toAdmissionError(err)
 	}
-	glog.Infof("Mutation request:\nobject: %v\nold object: %v", string(req.Object.Raw), string(req.OldObject.Raw))
+	log.Info().Msgf("Mutation request:\nobject: %v\nold object: %v", string(req.Object.Raw), string(req.OldObject.Raw))
 
 	// Start building the response
 	resp := &v1beta1.AdmissionResponse{
@@ -174,22 +174,22 @@ func (wh *Webhook) mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespo
 
 	// Check if we must inject the sidecar
 	if inject, err := wh.mustInject(&pod, req.Namespace); err != nil {
-		glog.Errorf("Error checking if sidecar must be injected: %s", err)
+		log.Error().Err(err).Msg("Error checking if sidecar must be injected")
 		return toAdmissionError(err)
 	} else if !inject {
-		glog.Info("Skipping sidecar injection")
+		log.Info().Msg("Skipping sidecar injection")
 		return resp
 	}
 
 	// Create the patches for the spec
 	patchBytes, err := wh.createPatch(&pod, req.Namespace)
 	if err != nil {
-		glog.Infof("Failed to create patch: %s", err)
+		log.Error().Err(err).Msg("Failed to create patch")
 		return toAdmissionError(err)
 	}
 
 	patchAdmissionResponse(resp, patchBytes)
-	glog.Info("Done patching admission response")
+	log.Info().Msg("Done patching admission response")
 	return resp
 }
 
@@ -219,13 +219,13 @@ func (wh *Webhook) isNamespaceAllowed(namespace string) bool {
 func (wh *Webhook) mustInject(pod *corev1.Pod, namespace string) (bool, error) {
 	// If the request belongs to a namespace we are not monitoring, skip it
 	if !wh.isNamespaceAllowed(namespace) {
-		glog.Infof("Request belongs to namespace=%s not in the list of monitored namespaces", namespace)
+		log.Info().Msgf("Request belongs to namespace=%s not in the list of monitored namespaces", namespace)
 		return false, nil
 	}
 
 	// Check if the POD is annotated for injection
 	inject := strings.ToLower(pod.ObjectMeta.Annotations[annotationInject])
-	glog.V(level.Debug).Infof("Sidecar injection annotation: '%s:%s'", annotationInject, inject)
+	log.Debug().Msgf("Sidecar injection annotation: '%s:%s'", annotationInject, inject)
 	if inject != "" {
 
 		switch inject {
