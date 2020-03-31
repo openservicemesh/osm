@@ -7,6 +7,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/golang/glog"
 
+	"github.com/open-service-mesh/osm/pkg/azure"
 	"github.com/open-service-mesh/osm/pkg/smi"
 )
 
@@ -14,7 +15,7 @@ import (
 func NewProvider(subscriptionID string, azureAuthFile string, stop chan struct{}, meshSpec smi.MeshSpec, azureResourceClient ResourceClient, providerIdent string) Client {
 	var authorizer autorest.Authorizer
 	var err error
-	if authorizer, err = getAuthorizerWithRetry(azureAuthFile); err != nil {
+	if authorizer, err = azure.GetAuthorizerWithRetry(azureAuthFile); err != nil {
 		glog.Fatal("Failed obtaining authentication token for Azure Resource Manager")
 	}
 
