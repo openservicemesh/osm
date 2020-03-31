@@ -19,6 +19,7 @@ const (
 
 func main() {
 	acr := os.Getenv(common.ContainerRegistryEnvVar)
+	adsVersion := os.Getenv(common.ContainerTag)
 	containerRegistryCredsName := os.Getenv(common.ContainerRegistryCredsEnvVar)
 	azureSubscription := os.Getenv(common.AzureSubscription)
 	initContainer := path.Join(acr, "init")
@@ -185,7 +186,7 @@ func main() {
 			InitContainers: nil,
 			Containers: []v1.Container{
 				{
-					Image:           fmt.Sprintf("%s/%s:latest", acr, common.AggregatedDiscoveryServiceName),
+					Image:           fmt.Sprintf("%s/%s:%s", acr, common.AggregatedDiscoveryServiceName, adsVersion),
 					ImagePullPolicy: "Always",
 					Name:            common.AggregatedDiscoveryServiceName,
 					Ports: []v1.ContainerPort{

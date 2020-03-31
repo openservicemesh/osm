@@ -70,7 +70,7 @@ spec:
       containers:
         # Main container with APP
         - name: bookbuyer
-          image: "${CTR_REGISTRY}/bookbuyer:latest"
+          image: "${CTR_REGISTRY}/bookbuyer:${CTR_TAG}"
           imagePullPolicy: Always
           command: ["/bookbuyer"]
 
