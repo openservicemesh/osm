@@ -9,6 +9,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/open-service-mesh/osm/demo/cmd/common"
 	"github.com/open-service-mesh/osm/pkg/certificate"
 	"github.com/pkg/errors"
 )
@@ -97,8 +98,43 @@ static_resources:
             address:
               socket_address:
                 address: %s
-                port_value: 15128
----`, xdsHost)
+                port_value: %d
+
+  - name: metrics_server
+    connect_timeout: 0.25s
+    type: LOGICAL_DNS
+    http2_protocol_options: {}
+    tls_context:
+      common_tls_context:
+        alpn_protocols:
+          - h2
+        validation_context:
+          trusted_ca: { filename: "/etc/ssl/certs/root-cert.pem" }
+        tls_params:
+          tls_minimum_protocol_version: TLSv1_2
+          tls_maximum_protocol_version: TLSv1_3
+          cipher_suites: "[ECDHE-ECDSA-AES128-GCM-SHA256|ECDHE-ECDSA-CHACHA20-POLY1305]"
+        tls_certificates:
+          - certificate_chain: { filename: "/etc/ssl/certs/cert.pem" }
+            private_key: { filename: "/etc/ssl/certs/key.pem" }
+    load_assignment:
+      cluster_name: metrics_server
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: %s
+                port_value: %d
+
+stats_sinks:
+  - name: envoy.metrics_service
+    config:
+      grpc_service:
+        envoy_grpc:
+          cluster_name: metrics_server
+
+---`, xdsHost, common.AggregatedDiscoveryServicePort, xdsHost, common.MetricsServicePort)
 
 	configMap := &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{

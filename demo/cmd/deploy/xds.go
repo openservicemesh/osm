@@ -61,6 +61,13 @@ func main() {
 						IntVal: constants.InjectorWebhookPort,
 					},
 				},
+				{
+					Name: "metrics-server",
+					Port: common.MetricsServicePort,
+					TargetPort: intstr.IntOrString{
+						IntVal: common.MetricsServicePort,
+					},
+				},
 			},
 			Selector: map[string]string{
 				"app": common.AggregatedDiscoveryServiceName,
