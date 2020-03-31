@@ -13,12 +13,15 @@ import (
 	"github.com/open-service-mesh/osm/pkg/constants"
 )
 
+const (
+	defaultEnvoyImage = "envoyproxy/envoy-alpine:latest" // v1.13.1 currently
+)
+
 func main() {
 	acr := os.Getenv(common.ContainerRegistryEnvVar)
 	containerRegistryCredsName := os.Getenv(common.ContainerRegistryCredsEnvVar)
 	azureSubscription := os.Getenv(common.AzureSubscription)
 	initContainer := path.Join(acr, "init")
-	envoyContainer := path.Join(acr, "envoyproxy:latest")
 	namespace := os.Getenv(common.KubeNamespaceEnvVar)
 	appNamespaces := os.Getenv(common.AppNamespacesEnvVar)
 	osmID := os.Getenv(common.OsmIDEnvVar)
@@ -87,7 +90,7 @@ func main() {
 		"--rootcertpem", "/etc/ssl/certs/root-cert.pem",
 		"--rootkeypem", "/etc/ssl/certs/root-key.pem",
 		"--init-container-image", initContainer,
-		"--sidecar-image", envoyContainer,
+		"--sidecar-image", defaultEnvoyImage,
 	}
 
 	if os.Getenv(common.IsGithubEnvVar) != "true" {
