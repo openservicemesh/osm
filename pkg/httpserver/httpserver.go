@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog/log"
 
 	"github.com/open-service-mesh/osm/pkg/health"
 	"github.com/open-service-mesh/osm/pkg/metricsstore"
@@ -49,9 +49,9 @@ func NewHTTPServer(somethingWithProbes health.Probes, metricStore metricsstore.M
 
 func (s *httpServer) Start() {
 	go func() {
-		glog.Infof("Starting API Server on %s", s.server.Addr)
+		log.Info().Msgf("Starting API Server on %s", s.server.Addr)
 		if err := s.server.ListenAndServe(); err != nil {
-			glog.Fatal("Failed to start API server", err)
+			log.Fatal().Err(err).Msg("Failed to start API server")
 		}
 	}()
 }
@@ -60,6 +60,6 @@ func (s *httpServer) Stop() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := s.server.Shutdown(ctx); err != nil {
-		glog.Error("Unable to shutdown API server gracefully", err)
+		log.Error().Err(err).Msg("Unable to shutdown API server gracefully")
 	}
 }

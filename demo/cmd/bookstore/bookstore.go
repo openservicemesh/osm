@@ -6,16 +6,14 @@ import (
 	"fmt"
 	"html"
 	"html/template"
-	"log"
 	"net/http"
 	"os"
 	"strings"
 
-	"github.com/open-service-mesh/osm/demo/cmd/common"
-
-	"github.com/golang/glog"
-
 	"github.com/gorilla/mux"
+	"github.com/rs/zerolog/log"
+
+	"github.com/open-service-mesh/osm/demo/cmd/common"
 )
 
 var identity = flag.String("ident", "unidentified", "the identity of the container where this demo app is running (VM, K8s, etc)")
@@ -42,14 +40,14 @@ func setHeaders(w http.ResponseWriter) {
 func renderTemplate(w http.ResponseWriter) {
 	tmpl, err := template.ParseFiles(fmt.Sprintf("%s/bookstore.html.template", *path))
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err).Msg("Failed to parse HTML template file")
 	}
 	err = tmpl.Execute(w, map[string]string{
 		common.IdentityHeader:    getIdentity(),
 		common.BooksBoughtHeader: fmt.Sprintf("%d", booksBought),
 	})
 	if err != nil {
-		glog.Fatal("Could not render template", err)
+		log.Fatal().Err(err).Msg("Could not render template")
 	}
 }
 
@@ -64,7 +62,7 @@ func updateBooksBought(w http.ResponseWriter, r *http.Request) {
 	var updatedBooksBought int
 	err := json.NewDecoder(r.Body).Decode(&updatedBooksBought)
 	if err != nil {
-		glog.Fatal("Could not decode request body", err)
+		log.Fatal().Err(err).Msg("Could not decode request body")
 	}
 	booksBought = updatedBooksBought
 	setHeaders(w)
@@ -100,5 +98,6 @@ func main() {
 	router.HandleFunc("/books-bought", updateBooksBought).Methods("POST")
 	router.HandleFunc("/buy-a-book", buyBook).Methods("GET")
 	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {})
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), router))
+	err := http.ListenAndServe(fmt.Sprintf(":%d", *port), router)
+	log.Fatal().Err(err).Msgf("Failed to start HTTP server on port %d", *port)
 }

@@ -81,7 +81,7 @@ func main() {
 	args := []string{
 		"--kubeconfig", "/kube/config",
 		"--subscriptionID", azureSubscription,
-		"--verbosity", "25",
+		"--verbosity", "trace",
 		"--osmID", osmID,
 		"--osmNamespace", namespace,
 		"--appNamespaces", appNamespaces,

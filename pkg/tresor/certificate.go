@@ -6,8 +6,8 @@ import (
 	"crypto/x509"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
 	"github.com/open-service-mesh/osm/pkg/tresor/pem"
@@ -61,7 +61,7 @@ func NewCertManagerWithCA(ca *x509.Certificate, caPrivKey *rsa.PrivateKey, org s
 
 // NewSelfSignedCert creates a new self-signed certificate.
 func NewSelfSignedCert(host string, org string, validity time.Duration) (pem.Certificate, pem.PrivateKey, error) {
-	glog.Infof("Generating a new certificate for host: %s", host)
+	log.Info().Msgf("Generating a new certificate for host: %s", host)
 	if host == "" {
 		return nil, nil, errInvalidHost
 	}

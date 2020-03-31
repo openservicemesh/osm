@@ -11,9 +11,9 @@ import (
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/certificate"
@@ -39,11 +39,11 @@ var (
 
 // NewResponse creates a new Secrets Discovery Response.
 func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, request *xds.DiscoveryRequest) (*xds.DiscoveryResponse, error) {
-	glog.Infof("[%s] Composing SDS Discovery Response for proxy: %s", packageName, proxy.GetCommonName())
+	log.Info().Msgf("[%s] Composing SDS Discovery Response for proxy: %s", packageName, proxy.GetCommonName())
 	proxyServiceName := proxy.GetService()
 	cert, err := catalog.GetCertificateForService(proxyServiceName)
 	if err != nil {
-		glog.Errorf("[%s] Error obtaining a certificate for client %s: %s", packageName, proxy.GetCommonName(), err)
+		log.Error().Err(err).Msgf("[%s] Error obtaining a certificate for client %s", packageName, proxy.GetCommonName())
 		return nil, err
 	}
 
@@ -54,7 +54,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	// Iterate over the list of tasks and create response structs to be
 	// sent to the proxy that made the discovery request
 	for _, task := range getTasks(proxy, request) {
-		glog.Infof("[%s] proxy %s (member of service %s) requested %s", packageName, proxy.GetCommonName(), proxyServiceName.String(), task.resourceName)
+		log.Info().Msgf("[%s] proxy %s (member of service %s) requested %s", packageName, proxy.GetCommonName(), proxyServiceName.String(), task.resourceName)
 		secret, err := task.structMaker(cert, task.resourceName)
 		if err != nil {
 			return nil, errors.Wrapf(err, "[%s] error creating cert %s for proxy %s for service %s", packageName, task.resourceName, proxy.GetCommonName(), proxyServiceName.String())
@@ -80,7 +80,7 @@ func getTasks(proxy *envoy.Proxy, request *xds.DiscoveryRequest) []task {
 			// this is a request for a service certificate
 			requestFor := endpoint.ServiceName(resourceName[len(serviceCertPrefix):])
 			if endpoint.ServiceName(proxyServiceName.String()) != requestFor {
-				glog.Errorf("[%s] Proxy %s (service %s) requested service certificate %s; this is not allowed", packageName, proxy.GetCommonName(), proxy.GetService(), requestFor)
+				log.Error().Msgf("[%s] Proxy %s (service %s) requested service certificate %s; this is not allowed", packageName, proxy.GetCommonName(), proxy.GetService(), requestFor)
 				continue
 			}
 			tasks = append(tasks, task{
@@ -92,7 +92,7 @@ func getTasks(proxy *envoy.Proxy, request *xds.DiscoveryRequest) []task {
 			// proxies need this to verify other proxies certificates
 			requestFor := getServiceName(resourceName, envoy.RootCertPrefix)
 			if endpoint.ServiceName(proxyServiceName.String()) != requestFor {
-				glog.Errorf("[%s] Proxy %s (service %s) requested root certificate %s; this is not allowed", packageName, proxy.GetCommonName(), proxy.GetService(), requestFor)
+				log.Error().Msgf("[%s] Proxy %s (service %s) requested root certificate %s; this is not allowed", packageName, proxy.GetCommonName(), proxy.GetService(), requestFor)
 				continue
 			}
 			tasks = append(tasks, task{
@@ -100,7 +100,7 @@ func getTasks(proxy *envoy.Proxy, request *xds.DiscoveryRequest) []task {
 				structMaker:  getRootCert,
 			})
 		} else {
-			glog.Errorf("[%s] Request for an unrecognized resource: %s", packageName, resourceName)
+			log.Error().Msgf("[%s] Request for an unrecognized resource: %s", packageName, resourceName)
 			continue
 		}
 	}

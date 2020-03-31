@@ -5,14 +5,14 @@ import (
 	"reflect"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
+	"github.com/rs/zerolog/log"
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 	"github.com/open-service-mesh/osm/pkg/envoy/cla"
-	"github.com/open-service-mesh/osm/pkg/log/level"
+
 	"github.com/open-service-mesh/osm/pkg/smi"
 	"github.com/open-service-mesh/osm/pkg/utils"
 )
@@ -26,17 +26,17 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	proxyServiceName := proxy.GetService()
 	allServicesEndpoints, err := catalog.ListEndpoints(proxyServiceName)
 	if err != nil {
-		glog.Errorf("[%s] Failed listing endpoints: %+v", packageName, err)
+		log.Error().Err(err).Msgf("[%s] Failed listing endpoints", packageName)
 		return nil, err
 	}
-	glog.V(level.Debug).Infof("[%s] allServicesEndpoints: %+v", packageName, allServicesEndpoints)
+	log.Debug().Msgf("[%s] allServicesEndpoints: %+v", packageName, allServicesEndpoints)
 	var protos []*any.Any
 	for _, serviceEndpoints := range allServicesEndpoints {
 		loadAssignment := cla.NewClusterLoadAssignment(serviceEndpoints)
 
 		proto, err := ptypes.MarshalAny(&loadAssignment)
 		if err != nil {
-			glog.Errorf("[Catalog] Error marshalling EDS payload %+v: %s", loadAssignment, err)
+			log.Error().Err(err).Msgf("[Catalog] Error marshalling EDS payload %+v", loadAssignment)
 			continue
 		}
 		protos = append(protos, proto)

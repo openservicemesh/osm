@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/Azure/go-autorest/autorest/to"
-	"github.com/golang/glog"
+	"github.com/rs/zerolog/log"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -28,11 +28,11 @@ func main() {
 
 	webHooks, err := clientset.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().List(metav1.ListOptions{})
 	if err != nil {
-		glog.Error("Error listing mutating webhooks: ", err)
+		log.Error().Err(err).Msg("Error listing mutating webhooks")
 	}
 	namespaces, err := clientset.CoreV1().Namespaces().List(metav1.ListOptions{})
 	if err != nil {
-		glog.Error("Error listing namespaces: ", err)
+		log.Error().Err(err).Msgf("Error listing namespaces")
 		os.Exit(1)
 	}
 
@@ -45,7 +45,7 @@ func main() {
 	}
 
 	if len(namespacesToDelete) == 0 {
-		glog.Info("No stale namespaces to cleanup.")
+		log.Info().Msg("No stale namespaces to cleanup.")
 		return
 	}
 
@@ -55,9 +55,9 @@ func main() {
 
 	for _, ns := range namespacesToDelete {
 		if err = clientset.CoreV1().Namespaces().Delete(ns.Name, deleteOptions); err != nil {
-			glog.Errorf("Error deleting namespace %s: %s", ns.Name, err)
+			log.Error().Err(err).Msgf("Error deleting namespace %s", ns.Name)
 		}
-		glog.Infof("Deleted namespace: %s", ns.Name)
+		log.Info().Msgf("Deleted namespace: %s", ns.Name)
 		for _, webhook := range webHooks.Items {
 			// Convention is - the webhook name is prefixed with the namespace where OSM is.
 			if !strings.HasPrefix(webhook.Name, ns.Name) {
@@ -65,9 +65,9 @@ func main() {
 			}
 			opts := metav1.DeleteOptions{}
 			if err = clientset.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Delete(webhook.Name, &opts); err != nil {
-				glog.Errorf("Error deleting webhook %s: %s", webhook.Name, err)
+				log.Error().Err(err).Msgf("Error deleting webhook %s", webhook.Name)
 			}
-			glog.Infof("Deleted mutating webhook: %s", webhook.Name)
+			log.Info().Msgf("Deleted mutating webhook: %s", webhook.Name)
 		}
 	}
 }
@@ -79,19 +79,19 @@ func getClient() *kubernetes.Clientset {
 	if kubeConfigFile != "" {
 		kubeConfig, err = clientcmd.BuildConfigFromFlags("", kubeConfigFile)
 		if err != nil {
-			glog.Errorf("Error fetching Kubernetes config. Ensure correctness of CLI argument 'kubeconfig=%s': %s", kubeConfigFile, err)
+			log.Error().Err(err).Msgf("Error fetching Kubernetes config. Ensure correctness of CLI argument 'kubeconfig=%s", kubeConfigFile)
 		}
 	} else {
 		// creates the in-cluster config
 		kubeConfig, err = rest.InClusterConfig()
 		if err != nil {
-			glog.Errorf("Error generating Kubernetes config: %s", err)
+			log.Error().Err(err).Msg("Error generating Kubernetes config")
 		}
 	}
 
 	clientset, err := kubernetes.NewForConfig(kubeConfig)
 	if err != nil {
-		glog.Error("error in getting access to K8S")
+		log.Error().Msgf("error in getting access to K8S")
 	}
 	return clientset
 }
