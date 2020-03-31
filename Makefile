@@ -78,7 +78,7 @@ go-test-coverage:
 
 .PHONY: docker-build-ads
 docker-build-ads: build-cross-ads
-	docker build --build-arg $(HOME)/go/ -t $(CTR_REGISTRY)/ads -f dockerfiles/Dockerfile.ads .
+	docker build --build-arg $(HOME)/go/ -t $(CTR_REGISTRY)/ads:$(CTR_TAG) -f dockerfiles/Dockerfile.ads .
 
 .PHONY: build-bookstore
 build-bookstore:
@@ -100,39 +100,39 @@ build-bookthief:
 
 .PHONY: docker-build-bookbuyer
 docker-build-bookbuyer: build-bookbuyer
-	docker build -t $(CTR_REGISTRY)/bookbuyer -f dockerfiles/Dockerfile.bookbuyer .
+	docker build -t $(CTR_REGISTRY)/bookbuyer:$(CTR_TAG) -f dockerfiles/Dockerfile.bookbuyer .
 
 .PHONY: docker-build-bookthief
 docker-build-bookthief: build-bookthief
-	docker build -t $(CTR_REGISTRY)/bookthief -f dockerfiles/Dockerfile.bookthief .
+	docker build -t $(CTR_REGISTRY)/bookthief:$(CTR_TAG) -f dockerfiles/Dockerfile.bookthief .
 
 .PHONY: docker-build-bookstore
 docker-build-bookstore: build-bookstore
-	docker build -t $(CTR_REGISTRY)/bookstore -f dockerfiles/Dockerfile.bookstore .
+	docker build -t $(CTR_REGISTRY)/bookstore:$(CTR_TAG) -f dockerfiles/Dockerfile.bookstore .
 
 .PHONY: docker-build-init
 docker-build-init:
-	docker build -t $(CTR_REGISTRY)/init -f dockerfiles/Dockerfile.init .
+	docker build -t $(CTR_REGISTRY)/init:$(CTR_TAG) -f dockerfiles/Dockerfile.init .
 
 .PHONY: docker-push-ads
 docker-push-ads: docker-build-ads
-	docker push "$(CTR_REGISTRY)/ads"
+	docker push "$(CTR_REGISTRY)/ads:$(CTR_TAG)"
 
 .PHONY: docker-push-bookbuyer
 docker-push-bookbuyer: docker-build-bookbuyer
-	docker push "$(CTR_REGISTRY)/bookbuyer"
+	docker push "$(CTR_REGISTRY)/bookbuyer:$(CTR_TAG)"
 
 .PHONY: docker-push-bookthief
 docker-push-bookthief: docker-build-bookthief
-	docker push "$(CTR_REGISTRY)/bookthief"
+	docker push "$(CTR_REGISTRY)/bookthief:$(CTR_TAG)"
 
 .PHONY: docker-push-bookstore
 docker-push-bookstore: docker-build-bookstore
-	docker push "$(CTR_REGISTRY)/bookstore"
+	docker push "$(CTR_REGISTRY)/bookstore:$(CTR_TAG)"
 
 .PHONY: docker-push-init
 docker-push-init: docker-build-init
-	docker push "$(CTR_REGISTRY)/init"
+	docker push "$(CTR_REGISTRY)/init:$(CTR_TAG)"
 
 .PHONY: docker-push
 docker-push: docker-push-init docker-push-bookbuyer docker-push-bookthief docker-push-bookstore docker-push-ads

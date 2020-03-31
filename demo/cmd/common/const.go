@@ -34,6 +34,9 @@ const (
 	// ContainerRegistryEnvVar is the name of the environment variable storing the container registry.
 	ContainerRegistryEnvVar = "CTR_REGISTRY"
 
+	// ContainerTag is the name of the environment variable storing the container tag for the images to be used.
+	ContainerTag = "CTR_TAG"
+
 	// AzureSubscription is the name of the env var storing the azure subscription to watch.
 	AzureSubscription = "AZURE_SUBSCRIPTION"
 
