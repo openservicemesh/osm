@@ -18,6 +18,8 @@ const (
 	tlsRootCertFileKey = "root-cert.pem"
 	tlsCertFileKey     = "cert.pem"
 	tlsKeyFileKey      = "key.pem"
+	adsServiceName     = "ads"
+	metricsServiceName = "metrics_service"
 )
 
 func (wh *Webhook) createEnvoyTLSSecret(name string, namespace string, cert certificate.Certificater) (*corev1.Secret, error) {
@@ -63,7 +65,7 @@ dynamic_resources:
     api_type: GRPC
     grpc_services:
     - envoy_grpc:
-        cluster_name: ads
+        cluster_name: %s
     set_node_on_first_message_only: true
   cds_config:
     ads: {}
@@ -72,69 +74,22 @@ dynamic_resources:
 
 static_resources:
   clusters:
-
-  - name: ads
-    connect_timeout: 0.25s
-    type: LOGICAL_DNS
-    http2_protocol_options: {}
-    tls_context:
-      common_tls_context:
-        alpn_protocols:
-          - h2
-        validation_context:
-          trusted_ca: { filename: "/etc/ssl/certs/root-cert.pem" }
-        tls_params:
-          tls_minimum_protocol_version: TLSv1_2
-          tls_maximum_protocol_version: TLSv1_3
-          cipher_suites: "[ECDHE-ECDSA-AES128-GCM-SHA256|ECDHE-ECDSA-CHACHA20-POLY1305]"
-        tls_certificates:
-          - certificate_chain: { filename: "/etc/ssl/certs/cert.pem" }
-            private_key: { filename: "/etc/ssl/certs/key.pem" }
-    load_assignment:
-      cluster_name: ads
-      endpoints:
-      - lb_endpoints:
-        - endpoint:
-            address:
-              socket_address:
-                address: %s
-                port_value: %d
-
-  - name: metrics_server
-    connect_timeout: 0.25s
-    type: LOGICAL_DNS
-    http2_protocol_options: {}
-    tls_context:
-      common_tls_context:
-        alpn_protocols:
-          - h2
-        validation_context:
-          trusted_ca: { filename: "/etc/ssl/certs/root-cert.pem" }
-        tls_params:
-          tls_minimum_protocol_version: TLSv1_2
-          tls_maximum_protocol_version: TLSv1_3
-          cipher_suites: "[ECDHE-ECDSA-AES128-GCM-SHA256|ECDHE-ECDSA-CHACHA20-POLY1305]"
-        tls_certificates:
-          - certificate_chain: { filename: "/etc/ssl/certs/cert.pem" }
-            private_key: { filename: "/etc/ssl/certs/key.pem" }
-    load_assignment:
-      cluster_name: metrics_server
-      endpoints:
-      - lb_endpoints:
-        - endpoint:
-            address:
-              socket_address:
-                address: %s
-                port_value: %d
+%s
+%s
 
 stats_sinks:
   - name: envoy.metrics_service
     config:
       grpc_service:
         envoy_grpc:
-          cluster_name: metrics_server
+          cluster_name: %s
 
----`, xdsHost, common.AggregatedDiscoveryServicePort, xdsHost, common.MetricsServicePort)
+---`,
+		adsServiceName,
+		getCluster(adsServiceName, xdsHost, common.AggregatedDiscoveryServicePort),
+		getCluster(metricsServiceName, xdsHost, common.MetricsServicePort),
+		metricsServiceName,
+	)
 
 	configMap := &corev1.ConfigMap{
 		TypeMeta: metav1.TypeMeta{
@@ -159,4 +114,35 @@ stats_sinks:
 
 	glog.Infof("Creating configMap for envoy boostrap config: name=%s, namespace=%s", name, namespace)
 	return wh.kubeClient.CoreV1().ConfigMaps(namespace).Create(configMap)
+}
+
+func getCluster(clusterName string, address string, port int) string {
+	return fmt.Sprintf(`
+  - name: %s
+    connect_timeout: 0.25s
+    type: LOGICAL_DNS
+    http2_protocol_options: {}
+    tls_context:
+      common_tls_context:
+        alpn_protocols:
+          - h2
+        validation_context:
+          trusted_ca: { filename: "/etc/ssl/certs/root-cert.pem" }
+        tls_params:
+          tls_minimum_protocol_version: TLSv1_2
+          tls_maximum_protocol_version: TLSv1_3
+          cipher_suites: "[ECDHE-ECDSA-AES128-GCM-SHA256|ECDHE-ECDSA-CHACHA20-POLY1305]"
+        tls_certificates:
+          - certificate_chain: { filename: "/etc/ssl/certs/cert.pem" }
+            private_key: { filename: "/etc/ssl/certs/key.pem" }
+    load_assignment:
+      cluster_name: %s
+      endpoints:
+      - lb_endpoints:
+        - endpoint:
+            address:
+              socket_address:
+                address: %s
+                port_value: %d
+`, clusterName, clusterName, address, port)
 }

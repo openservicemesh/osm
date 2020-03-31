@@ -54,7 +54,7 @@ func (s *server) StreamMetrics(stream v2.MetricsService_StreamMetricsServer) err
 		}
 		jsonMetrics, err := json.Marshal(msg.EnvoyMetrics)
 		if err != nil {
-			glog.Error("Failed marshaling EnvoyMetrics: ", err)
+			glog.Errorf("[%s] Failed marshaling EnvoyMetrics: %s", serverType, err)
 			return nil
 		}
 		glog.Infof("[%s] CN=%s metrics_count=%d metrics=%s", serverType, cn, len(msg.EnvoyMetrics), string(jsonMetrics))
