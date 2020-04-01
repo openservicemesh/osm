@@ -18,7 +18,7 @@ const (
 func newKeyVaultClient(keyVaultName string, azureAuthFile string) (*client, error) {
 	authorizer, err := azure.GetAuthorizerWithRetry(azureAuthFile, azureKeyVaultBaseURI)
 	if err != nil {
-		log.Error().Err(err).Msgf("[%s] Error getting Azure Key Vault authorizer", packageName)
+		log.Error().Err(err).Msg("Error getting Azure Key Vault authorizer")
 		return nil, err
 	}
 

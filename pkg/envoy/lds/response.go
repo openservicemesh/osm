@@ -21,7 +21,7 @@ type empty struct{}
 
 // NewResponse creates a new Listener Discovery Response.
 func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, request *xds.DiscoveryRequest) (*xds.DiscoveryResponse, error) {
-	log.Info().Msgf("[%s] Composing listener Discovery Response for proxy: %s", packageName, proxy.GetCommonName())
+	log.Info().Msgf("Composing listener Discovery Response for proxy: %s", proxy.GetCommonName())
 	proxyServiceName := proxy.GetService()
 	resp := &xds.DiscoveryResponse{
 		TypeUrl: string(envoy.TypeLDS),
@@ -29,7 +29,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 
 	clientConnManager, err := ptypes.MarshalAny(getHTTPConnectionManager(route.OutboundRouteConfig))
 	if err != nil {
-		log.Error().Err(err).Msgf("[%s] Could not construct FilterChain", packageName)
+		log.Error().Err(err).Msgf("Could not construct FilterChain")
 		return nil, err
 	}
 
@@ -54,14 +54,14 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 
 	serverConnManager, err := ptypes.MarshalAny(getHTTPConnectionManager(route.InboundRouteConfig))
 	if err != nil {
-		log.Error().Err(err).Msgf("[%s] Could not construct inbound listener FilterChain", packageName)
+		log.Error().Err(err).Msg("Could not construct inbound listener FilterChain")
 		return nil, err
 	}
 
 	inboundListenerName := "inbound_listener"
 	serverNames, err := getFilterChainMatchServerNames(proxyServiceName, catalog)
 	if err != nil {
-		log.Error().Err(err).Msgf("[%s] Failed to get client server names for proxy %s", packageName, proxy.GetCommonName())
+		log.Error().Err(err).Msgf("Failed to get client server names for proxy %s", proxy.GetCommonName())
 		return nil, err
 	}
 	serverListener := &xds.Listener{
@@ -95,14 +95,14 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 
 	marshalledOutbound, err := ptypes.MarshalAny(clientListener)
 	if err != nil {
-		log.Error().Err(err).Msgf("[%s] Failed to marshal outbound listener for proxy %s", packageName, proxy.GetCommonName())
+		log.Error().Err(err).Msgf("Failed to marshal outbound listener for proxy %s", proxy.GetCommonName())
 		return nil, err
 	}
 	resp.Resources = append(resp.Resources, marshalledOutbound)
 
 	marshalledInbound, err := ptypes.MarshalAny(serverListener)
 	if err != nil {
-		log.Error().Err(err).Msgf("[%s] Failed to marshal inbound listener for proxy %s", packageName, proxy.GetCommonName())
+		log.Error().Err(err).Msgf("Failed to marshal inbound listener for proxy %s", proxy.GetCommonName())
 		return nil, err
 	}
 	resp.Resources = append(resp.Resources, marshalledInbound)
@@ -115,7 +115,7 @@ func getFilterChainMatchServerNames(proxyServiceName endpoint.NamespacedService,
 
 	allTrafficPolicies, err := catalog.ListTrafficRoutes(proxyServiceName)
 	if err != nil {
-		log.Error().Err(err).Msgf("[%s] Failed listing traffic routes", packageName)
+		log.Error().Err(err).Msg("Failed listing traffic routes")
 		return nil, err
 	}
 

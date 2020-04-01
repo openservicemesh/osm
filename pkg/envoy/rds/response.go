@@ -20,10 +20,10 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	proxyServiceName := proxy.GetService()
 	allTrafficPolicies, err := catalog.ListTrafficRoutes(proxyServiceName)
 	if err != nil {
-		log.Error().Err(err).Msgf("[%s] Failed listing routes", packageName)
+		log.Error().Err(err).Msg("Failed listing routes")
 		return nil, err
 	}
-	log.Debug().Msgf("[%s] trafficPolicies: %+v", packageName, allTrafficPolicies)
+	log.Debug().Msgf("trafficPolicies: %+v", allTrafficPolicies)
 
 	resp := &xds.DiscoveryResponse{
 		TypeUrl: string(envoy.TypeRDS),
@@ -47,7 +47,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	for _, config := range routeConfiguration {
 		marshalledRouteConfig, err := ptypes.MarshalAny(&config)
 		if err != nil {
-			log.Error().Err(err).Msgf("[%s] Failed to marshal route config for proxy", packageName)
+			log.Error().Err(err).Msgf("Failed to marshal route config for proxy")
 			return nil, err
 		}
 		resp.Resources = append(resp.Resources, marshalledRouteConfig)

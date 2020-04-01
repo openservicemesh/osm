@@ -20,7 +20,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName) (certificate.
 	if cert, exists := cm.cache[cn]; exists {
 		return cert, nil
 	}
-	log.Info().Msgf("[%s] Issuing Certificate for CN=%s", packageName, cn)
+	log.Info().Msgf("Issuing Certificate for CN=%s", cn)
 	if cm.ca == nil || cm.caPrivKey == nil {
 		return nil, errNoCA
 	}

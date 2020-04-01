@@ -60,7 +60,7 @@ func NewProvider(subscriptionID string, azureAuthFile string, stop chan struct{}
 	*/
 
 	if err := az.run(stop); err != nil {
-		log.Fatal().Err(err).Msgf("[%s] Could not start Azure EndpointsProvider client", packageName)
+		log.Fatal().Err(err).Msg("Could not start Azure EndpointsProvider client")
 	}
 
 	return az

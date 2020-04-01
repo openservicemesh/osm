@@ -21,10 +21,10 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	proxyServiceName := proxy.GetService()
 	allServicesEndpoints, err := catalog.ListEndpoints(proxyServiceName)
 	if err != nil {
-		log.Error().Err(err).Msgf("[%s] Failed listing endpoints", packageName)
+		log.Error().Err(err).Msgf("Failed listing endpoints")
 		return nil, err
 	}
-	log.Debug().Msgf("[%s] allServicesEndpoints: %+v", packageName, allServicesEndpoints)
+	log.Debug().Msgf("allServicesEndpoints: %+v", allServicesEndpoints)
 	var protos []*any.Any
 	for _, serviceEndpoints := range allServicesEndpoints {
 		loadAssignment := cla.NewClusterLoadAssignment(serviceEndpoints)
