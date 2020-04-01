@@ -31,7 +31,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 
 		proto, err := ptypes.MarshalAny(&loadAssignment)
 		if err != nil {
-			log.Error().Err(err).Msgf("[Catalog] Error marshalling EDS payload %+v", loadAssignment)
+			log.Error().Err(err).Msgf("Error marshalling EDS payload %+v", loadAssignment)
 			continue
 		}
 		protos = append(protos, proto)

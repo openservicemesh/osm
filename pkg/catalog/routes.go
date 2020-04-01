@@ -14,16 +14,16 @@ const (
 
 // ListTrafficRoutes constructs a DiscoveryResponse with all routes the given Envoy proxy should be aware of.
 func (sc *MeshCatalog) ListTrafficRoutes(clientID endpoint.NamespacedService) ([]endpoint.TrafficTargetPolicies, error) {
-	log.Info().Msgf("[catalog] Listing Routes for client: %s", clientID)
+	log.Info().Msgf("Listing Routes for client: %s", clientID)
 	allRoutes, err := sc.getHTTPPathsPerRoute()
 	if err != nil {
-		log.Error().Err(err).Msgf("[catalog] Could not get all routes")
+		log.Error().Err(err).Msgf("Could not get all routes")
 		return nil, err
 	}
 
 	allTrafficPolicies, err := getTrafficPolicyPerRoute(sc, allRoutes, clientID)
 	if err != nil {
-		log.Error().Err(err).Msgf("[catalog] Could not get all traffic policies")
+		log.Error().Err(err).Msgf("Could not get all traffic policies")
 		return nil, err
 	}
 	return allTrafficPolicies, nil
@@ -31,23 +31,23 @@ func (sc *MeshCatalog) ListTrafficRoutes(clientID endpoint.NamespacedService) ([
 
 func (sc *MeshCatalog) listServicesForServiceAccount(namespacedServiceAccount endpoint.NamespacedServiceAccount) ([]endpoint.NamespacedService, error) {
 	// TODO(draychev): split namespace from the service name -- for non-K8s services
-	log.Info().Msgf("[catalog] Listing services for service account: %s", namespacedServiceAccount)
+	log.Info().Msgf("Listing services for service account: %s", namespacedServiceAccount)
 	if _, found := sc.serviceAccountsCache[namespacedServiceAccount]; !found {
 		sc.refreshCache()
 	}
 	var services []endpoint.NamespacedService
 	var found bool
 	if services, found = sc.serviceAccountsCache[namespacedServiceAccount]; !found {
-		log.Error().Msgf("[catalog] Did not find any services for service account %s", namespacedServiceAccount)
+		log.Error().Msgf("Did not find any services for service account %s", namespacedServiceAccount)
 		return nil, errNotFound
 	}
-	log.Info().Msgf("[catalog] Found service account %s for service %s", servicesToString(services), namespacedServiceAccount)
+	log.Info().Msgf("Found service account %s for service %s", servicesToString(services), namespacedServiceAccount)
 	return services, nil
 }
 
 func (sc *MeshCatalog) listClustersForServices(services []endpoint.NamespacedService) []endpoint.WeightedCluster {
 	// TODO(draychev): split namespace from the service name -- for non-K8s services
-	log.Info().Msgf("[catalog] Finding active clusters for services %v", services)
+	log.Info().Msgf("Finding active clusters for services %v", services)
 	var clusters []endpoint.WeightedCluster
 	for _, service := range services {
 		for activeService := range sc.servicesCache {
@@ -65,7 +65,7 @@ func (sc *MeshCatalog) listClustersForServices(services []endpoint.NamespacedSer
 
 func (sc *MeshCatalog) getActiveServices(services []endpoint.NamespacedService) []endpoint.NamespacedService {
 	// TODO(draychev): split namespace from the service name -- for non-K8s services
-	log.Info().Msgf("[catalog] Finding active services only %v", services)
+	log.Info().Msgf("Finding active services only %v", services)
 	var activeServices []endpoint.NamespacedService
 	for _, service := range services {
 		for activeService := range sc.servicesCache {
@@ -80,9 +80,9 @@ func (sc *MeshCatalog) getActiveServices(services []endpoint.NamespacedService) 
 func (sc *MeshCatalog) getHTTPPathsPerRoute() (map[string]endpoint.RoutePaths, error) {
 	routes := make(map[string]endpoint.RoutePaths)
 	for _, trafficSpecs := range sc.meshSpec.ListHTTPTrafficSpecs() {
-		log.Debug().Msgf("[RDS][catalog] Discovered TrafficSpec resource: %s/%s \n", trafficSpecs.Namespace, trafficSpecs.Name)
+		log.Debug().Msgf("Discovered TrafficSpec resource: %s/%s \n", trafficSpecs.Namespace, trafficSpecs.Name)
 		if trafficSpecs.Matches == nil {
-			log.Error().Msgf("[catalog] TrafficSpec %s/%s has no matches in route; Skipping...", trafficSpecs.Namespace, trafficSpecs.Name)
+			log.Error().Msgf("TrafficSpec %s/%s has no matches in route; Skipping...", trafficSpecs.Namespace, trafficSpecs.Name)
 			continue
 		}
 		// since this method gets only spces related to HTTPRouteGroups added HTTPTRaffic to the specKey by default
@@ -94,16 +94,16 @@ func (sc *MeshCatalog) getHTTPPathsPerRoute() (map[string]endpoint.RoutePaths, e
 			routes[fmt.Sprintf("%s/%s", specKey, trafficSpecsMatches.Name)] = serviceRoute
 		}
 	}
-	log.Debug().Msgf("[catalog] Constructed HTTP path routes: %+v", routes)
+	log.Debug().Msgf("Constructed HTTP path routes: %+v", routes)
 	return routes, nil
 }
 
 func getTrafficPolicyPerRoute(sc *MeshCatalog, routes map[string]endpoint.RoutePaths, clientID endpoint.NamespacedService) ([]endpoint.TrafficTargetPolicies, error) {
 	var trafficPolicies []endpoint.TrafficTargetPolicies
 	for _, trafficTargets := range sc.meshSpec.ListTrafficTargets() {
-		log.Debug().Msgf("[catalog] Discovered TrafficTarget resource: %s/%s \n", trafficTargets.Namespace, trafficTargets.Name)
+		log.Debug().Msgf("Discovered TrafficTarget resource: %s/%s \n", trafficTargets.Namespace, trafficTargets.Name)
 		if trafficTargets.Specs == nil || len(trafficTargets.Specs) == 0 {
-			log.Error().Msgf("[catalog] TrafficTarget %s/%s has no spec routes; Skipping...", trafficTargets.Namespace, trafficTargets.Name)
+			log.Error().Msgf("TrafficTarget %s/%s has no spec routes; Skipping...", trafficTargets.Namespace, trafficTargets.Name)
 			continue
 		}
 
@@ -113,7 +113,7 @@ func getTrafficPolicyPerRoute(sc *MeshCatalog, routes map[string]endpoint.RouteP
 		}
 		destServices, destErr := sc.listServicesForServiceAccount(dstNamespacedServiceAcc)
 		if destErr != nil {
-			log.Error().Msgf("[catalog] TrafficSpec %s/%s could not get services for service account %s", trafficTargets.Namespace, trafficTargets.Name, dstNamespacedServiceAcc.String())
+			log.Error().Msgf("TrafficSpec %s/%s could not get services for service account %s", trafficTargets.Namespace, trafficTargets.Name, dstNamespacedServiceAcc.String())
 			return nil, destErr
 		}
 
@@ -129,7 +129,7 @@ func getTrafficPolicyPerRoute(sc *MeshCatalog, routes map[string]endpoint.RouteP
 				}
 				srcServices, srcErr := sc.listServicesForServiceAccount(namespacedServiceAccount)
 				if srcErr != nil {
-					log.Error().Msgf("[catalog] TrafficSpec %s/%s could not get services for service account %s", trafficTargets.Namespace, trafficTargets.Name, fmt.Sprintf("%s/%s", trafficSources.Namespace, trafficSources.Name))
+					log.Error().Msgf("TrafficSpec %s/%s could not get services for service account %s", trafficTargets.Namespace, trafficTargets.Name, fmt.Sprintf("%s/%s", trafficSources.Namespace, trafficSources.Name))
 					return nil, srcErr
 				}
 				trafficTargetPolicy := endpoint.TrafficTargetPolicies{}
@@ -147,7 +147,7 @@ func getTrafficPolicyPerRoute(sc *MeshCatalog, routes map[string]endpoint.RouteP
 
 				for _, trafficTargetSpecs := range trafficTargets.Specs {
 					if trafficTargetSpecs.Kind != HTTPTraffic {
-						log.Error().Msgf("[catalog] TrafficTarget %s/%s has Spec Kind %s which isn't supported for now; Skipping...", trafficTargets.Namespace, trafficTargets.Name, trafficTargetSpecs.Kind)
+						log.Error().Msgf("TrafficTarget %s/%s has Spec Kind %s which isn't supported for now; Skipping...", trafficTargets.Namespace, trafficTargets.Name, trafficTargetSpecs.Kind)
 						continue
 					}
 					trafficTargetPolicy.PolicyRoutePaths = []endpoint.RoutePaths{}
@@ -165,7 +165,7 @@ func getTrafficPolicyPerRoute(sc *MeshCatalog, routes map[string]endpoint.RouteP
 			}
 		}
 	}
-	log.Debug().Msgf("[catalog] Constructed traffic policies: %+v", trafficPolicies)
+	log.Debug().Msgf("Constructed traffic policies: %+v", trafficPolicies)
 	return trafficPolicies, nil
 }
 

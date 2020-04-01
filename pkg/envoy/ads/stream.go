@@ -85,10 +85,10 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 				ackVersion = 0
 			}
 
-			log.Debug().Msgf("[%s] Incoming Discovery Request %s (nonce=%s; version=%d) from Envoy %s; last applied version: %d",
-				packageName, discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, ackVersion, proxy.GetCommonName(), proxy.GetLastAppliedVersion(typeURL))
-			log.Debug().Msgf("[%s] Last sent nonce=%s; last sent version=%d for Envoy %s",
-				packageName, proxy.GetLastSentNonce(typeURL), proxy.GetLastSentVersion(typeURL), proxy.GetCommonName())
+			log.Debug().Msgf("Incoming Discovery Request %s (nonce=%s; version=%d) from Envoy %s; last applied version: %d",
+				discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, ackVersion, proxy.GetCommonName(), proxy.GetLastAppliedVersion(typeURL))
+			log.Debug().Msgf("Last sent nonce=%s; last sent version=%d for Envoy %s",
+				proxy.GetLastSentNonce(typeURL), proxy.GetLastSentVersion(typeURL), proxy.GetCommonName())
 
 			proxy.SetLastAppliedVersion(typeURL, ackVersion)
 
