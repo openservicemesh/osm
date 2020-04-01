@@ -5,7 +5,6 @@ import (
 	c "github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2018-04-01/compute"
 	n "github.com/Azure/azure-sdk-for-go/services/network/mgmt/2019-06-01/network"
 	"github.com/Azure/go-autorest/autorest"
-	"github.com/rs/zerolog/log"
 
 	"github.com/open-service-mesh/osm/pkg/azure"
 	"github.com/open-service-mesh/osm/pkg/smi"

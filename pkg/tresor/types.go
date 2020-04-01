@@ -3,9 +3,13 @@ package tresor
 import (
 	"crypto/rsa"
 	"crypto/x509"
+	"reflect"
 	"time"
 
+	zlog "github.com/rs/zerolog/log"
+
 	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/open-service-mesh/osm/pkg/utils"
 )
 
 const (
@@ -14,6 +18,11 @@ const (
 
 	// TypePrivateKey is a string constant to be used in the generation of a private key for a certificate.
 	TypePrivateKey = "PRIVATE KEY"
+)
+
+var (
+	packageName = utils.GetLastChunkOfSlashed(reflect.TypeOf(empty{}).PkgPath())
+	log         = zlog.With().Str("comp", packageName).Caller().Logger()
 )
 
 // CertManager implements certificate.Manager

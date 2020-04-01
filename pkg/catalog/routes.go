@@ -3,8 +3,6 @@ package catalog
 import (
 	"fmt"
 
-	"github.com/rs/zerolog/log"
-
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 )

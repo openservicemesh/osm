@@ -1,4 +1,4 @@
-package metricsstore
+package cds
 
 import (
 	"reflect"

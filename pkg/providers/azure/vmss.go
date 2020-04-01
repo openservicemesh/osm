@@ -4,8 +4,6 @@ import (
 	"context"
 	"net"
 	"time"
-
-	"github.com/rs/zerolog/log"
 )
 
 func (az *Client) getVMSS(rg resourceGroup, vmID azureID) ([]net.IP, error) {

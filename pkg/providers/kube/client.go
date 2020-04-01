@@ -7,7 +7,6 @@ import (
 
 	kubernetes2 "github.com/open-service-mesh/osm/pkg/kubernetes"
 
-	"github.com/rs/zerolog/log"
 	corev1 "k8s.io/api/core/v1"
 	extensionsv1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/client-go/informers"

@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/pem"
 	"fmt"
-	"reflect"
 	"strings"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -13,19 +12,15 @@ import (
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/certificate"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 	"github.com/open-service-mesh/osm/pkg/smi"
-	"github.com/open-service-mesh/osm/pkg/utils"
 )
 
 type empty struct{}
-
-var packageName = utils.GetLastChunkOfSlashed(reflect.TypeOf(empty{}).PkgPath())
 
 type task struct {
 	structMaker  func(certificate.Certificater, string) (*auth.Secret, error)

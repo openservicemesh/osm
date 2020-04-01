@@ -3,6 +3,7 @@ package kube
 import (
 	"reflect"
 
+	zlog "github.com/rs/zerolog/log"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
@@ -12,7 +13,10 @@ import (
 
 type empty struct{}
 
-var packageName = utils.GetLastChunkOfSlashed(reflect.TypeOf(empty{}).PkgPath())
+var (
+	packageName = utils.GetLastChunkOfSlashed(reflect.TypeOf(empty{}).PkgPath())
+	log         = zlog.With().Str("comp", packageName).Caller().Logger()
+)
 
 // InformerCollection is a struct of the Kubernetes informers used in OSM
 type InformerCollection struct {

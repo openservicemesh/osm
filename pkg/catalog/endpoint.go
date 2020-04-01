@@ -1,19 +1,12 @@
 package catalog
 
 import (
-	"reflect"
 	"strings"
 
-	"github.com/rs/zerolog/log"
-
 	"github.com/open-service-mesh/osm/pkg/endpoint"
-
-	"github.com/open-service-mesh/osm/pkg/utils"
 )
 
 type empty struct{}
-
-var packageName = utils.GetLastChunkOfSlashed(reflect.TypeOf(empty{}).PkgPath())
 
 // ListEndpoints constructs a map from service to weighted sub-services with all endpoints the given Envoy proxy should be aware of.
 func (sc *MeshCatalog) ListEndpoints(clientID endpoint.NamespacedService) ([]endpoint.ServiceEndpoints, error) {

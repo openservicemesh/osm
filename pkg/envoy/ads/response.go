@@ -5,7 +5,6 @@ import (
 
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_service_discovery_v2 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
-	"github.com/rs/zerolog/log"
 
 	"github.com/open-service-mesh/osm/pkg/envoy"
 )

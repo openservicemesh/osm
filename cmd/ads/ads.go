@@ -9,7 +9,7 @@ import (
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
+	zlog "github.com/rs/zerolog/log"
 	"github.com/spf13/pflag"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -54,6 +54,7 @@ var (
 	keyPem         = flags.String("keypem", "", "Full path to the xDS Key PEM file")
 	rootCertPem    = flags.String("rootcertpem", "", "Full path to the Root Certificate PEM file")
 	rootKeyPem     = flags.String("rootkeypem", "", "Full path to the Root Key PEM file")
+	log            = zlog.With().Str("comp", "main").Caller().Logger()
 )
 
 func init() {
@@ -73,6 +74,7 @@ func init() {
 }
 
 func main() {
+	log.Trace().Msg("Starting ADS")
 	parseFlags()
 	setLogLevel()
 

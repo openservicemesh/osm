@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/rs/zerolog/log"
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/open-service-mesh/osm/pkg/certificate"

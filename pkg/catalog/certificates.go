@@ -1,8 +1,6 @@
 package catalog
 
 import (
-	"github.com/rs/zerolog/log"
-
 	"github.com/open-service-mesh/osm/pkg/certificate"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 )

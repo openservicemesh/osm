@@ -2,7 +2,6 @@ package catalog
 
 import (
 	"github.com/open-service-mesh/osm/pkg/envoy"
-	"github.com/rs/zerolog/log"
 )
 
 // RegisterProxy implements MeshCatalog and registers a newly connected proxy.

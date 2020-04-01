@@ -3,8 +3,6 @@ package metricsstore
 import (
 	"net/http"
 	"time"
-
-	"github.com/rs/zerolog/log"
 )
 
 // NewFakeMetricStore return a fake metric store
