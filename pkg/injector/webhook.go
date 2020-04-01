@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/rs/zerolog/log"
 	"k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -101,7 +100,7 @@ func (wh *Webhook) healthReadyHandler(w http.ResponseWriter, req *http.Request) 
 	w.WriteHeader(http.StatusOK)
 	_, err := w.Write([]byte("Health OK"))
 	if err != nil {
-		log.Error().Err(err).Msgf("[%s] Error writing bytes", packageName)
+		log.Error().Err(err).Msgf("Error writing bytes")
 	}
 }
 
@@ -111,7 +110,7 @@ func (wh *Webhook) mutateHandler(w http.ResponseWriter, req *http.Request) {
 	if contentType := req.Header.Get("Content-Type"); contentType != "application/json" {
 		errmsg := fmt.Sprintf("Invalid Content-Type: %q", contentType)
 		http.Error(w, errmsg, http.StatusUnsupportedMediaType)
-		log.Error().Msgf("[%s] Request error: error=%s, code=%v", packageName, errmsg, http.StatusUnsupportedMediaType)
+		log.Error().Msgf("Request error: error=%s, code=%v", errmsg, http.StatusUnsupportedMediaType)
 		return
 	}
 
@@ -121,7 +120,7 @@ func (wh *Webhook) mutateHandler(w http.ResponseWriter, req *http.Request) {
 		if body, err = ioutil.ReadAll(req.Body); err != nil {
 			errmsg := fmt.Sprintf("Error reading request body: %s", err)
 			http.Error(w, errmsg, http.StatusInternalServerError)
-			log.Error().Msgf("[%s] Request error: error=%s, code=%v", packageName, errmsg, http.StatusInternalServerError)
+			log.Error().Msgf("Request error: error=%s, code=%v", errmsg, http.StatusInternalServerError)
 			return
 		}
 	}
@@ -129,7 +128,7 @@ func (wh *Webhook) mutateHandler(w http.ResponseWriter, req *http.Request) {
 	if len(body) == 0 {
 		errmsg := "Empty request body"
 		http.Error(w, errmsg, http.StatusBadRequest)
-		log.Error().Msgf("[%s] Request error: error=%s, code=%v", packageName, errmsg, http.StatusBadRequest)
+		log.Error().Msgf("Request error: error=%s, code=%v", errmsg, http.StatusBadRequest)
 		return
 	}
 
@@ -146,7 +145,7 @@ func (wh *Webhook) mutateHandler(w http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		errmsg := fmt.Sprintf("Error marshalling admission response: %s", err)
 		http.Error(w, errmsg, http.StatusInternalServerError)
-		log.Error().Msgf("[%s] Request error, error=%s, code=%v", packageName, errmsg, http.StatusInternalServerError)
+		log.Error().Msgf("Request error, error=%s, code=%v", errmsg, http.StatusInternalServerError)
 		return
 	}
 

@@ -5,7 +5,6 @@ import (
 
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_service_discovery_v2 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
-	"github.com/rs/zerolog/log"
 
 	"github.com/open-service-mesh/osm/pkg/envoy"
 )
@@ -21,7 +20,7 @@ func (s *Server) sendAllResponses(proxy *envoy.Proxy, server *envoy_service_disc
 			continue
 		}
 		if err := (*server).Send(discoveryResponse); err != nil {
-			log.Error().Err(err).Msgf("[%s] Error sending DiscoveryResponse %s", packageName, uri)
+			log.Error().Err(err).Msgf("Error sending DiscoveryResponse %s", uri)
 		}
 	}
 }
@@ -30,21 +29,21 @@ func (s *Server) newAggregatedDiscoveryResponse(proxy *envoy.Proxy, request *env
 	typeURL := envoy.TypeURI(request.TypeUrl)
 	handler, ok := s.xdsHandlers[typeURL]
 	if !ok {
-		log.Error().Msgf("[%s] Responder for TypeUrl %s is not implemented", packageName, request.TypeUrl)
+		log.Error().Msgf("Responder for TypeUrl %s is not implemented", request.TypeUrl)
 		return nil, errUnknownTypeURL
 	}
 
-	log.Trace().Msgf("[%s] Invoking handler for %s with request: %+v", packageName, typeURL, request)
+	log.Trace().Msgf(" Invoking handler for %s with request: %+v", typeURL, request)
 	response, err := handler(s.ctx, s.catalog, s.meshSpec, proxy, request)
 	if err != nil {
-		log.Error().Msgf("[%s] Responder for TypeUrl %s is not implemented", packageName, request.TypeUrl)
+		log.Error().Msgf("Responder for TypeUrl %s is not implemented", request.TypeUrl)
 		return nil, errCreatingResponse
 	}
 
 	response.Nonce = proxy.SetNewNonce(typeURL)
 	response.VersionInfo = strconv.FormatUint(proxy.IncrementLastSentVersion(typeURL), 10)
 
-	log.Trace().Msgf("[%s] Constructed %s response: %+v", packageName, request.TypeUrl, response)
+	log.Trace().Msgf("Constructed %s response: %+v", request.TypeUrl, response)
 
 	return response, nil
 }

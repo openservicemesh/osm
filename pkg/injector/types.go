@@ -7,6 +7,7 @@ import (
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/open-service-mesh/osm/pkg/logger"
 	"github.com/open-service-mesh/osm/pkg/namespace"
 	"github.com/open-service-mesh/osm/pkg/utils"
 )
@@ -18,7 +19,10 @@ const (
 
 type empty struct{}
 
-var packageName = utils.GetLastChunkOfSlashed(reflect.TypeOf(empty{}).PkgPath())
+var (
+	packageName = utils.GetLastChunkOfSlashed(reflect.TypeOf(empty{}).PkgPath())
+	log         = logger.New(packageName)
+)
 
 // Webhook is the type used to represent the webhook for sidecar injection
 type Webhook struct {

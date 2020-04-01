@@ -3,10 +3,8 @@ package tresor
 import (
 	"crypto/rand"
 	"crypto/rsa"
-	"reflect"
 
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
 )
@@ -17,14 +15,12 @@ const (
 
 type empty struct{}
 
-var packageName = reflect.TypeOf(empty{}).PkgPath()
-
 // IssueCertificate implements certificate.Manager and returns a newly issued certificate.
 func (cm *CertManager) IssueCertificate(cn certificate.CommonName) (certificate.Certificater, error) {
 	if cert, exists := cm.cache[cn]; exists {
 		return cert, nil
 	}
-	log.Info().Msgf("[%s] Issuing Certificate for CN=%s", packageName, cn)
+	log.Info().Msgf("Issuing Certificate for CN=%s", cn)
 	if cm.ca == nil || cm.caPrivKey == nil {
 		return nil, errNoCA
 	}

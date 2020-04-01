@@ -10,6 +10,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 
 	osm "github.com/open-service-mesh/osm/pkg/apis/azureresource/v1"
+	"github.com/open-service-mesh/osm/pkg/logger"
 	"github.com/open-service-mesh/osm/pkg/smi"
 	"github.com/open-service-mesh/osm/pkg/utils"
 )
@@ -25,7 +26,10 @@ const (
 
 type empty struct{}
 
-var packageName = utils.GetLastChunkOfSlashed(reflect.TypeOf(empty{}).PkgPath())
+var (
+	packageName = utils.GetLastChunkOfSlashed(reflect.TypeOf(empty{}).PkgPath())
+	log         = logger.New(packageName)
+)
 
 // azureID is a string type alias, which is the URI of a unique Azure cloud resource.
 type azureID string

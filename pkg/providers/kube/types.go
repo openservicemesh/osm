@@ -6,13 +6,17 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/open-service-mesh/osm/pkg/logger"
 	"github.com/open-service-mesh/osm/pkg/namespace"
 	"github.com/open-service-mesh/osm/pkg/utils"
 )
 
 type empty struct{}
 
-var packageName = utils.GetLastChunkOfSlashed(reflect.TypeOf(empty{}).PkgPath())
+var (
+	packageName = utils.GetLastChunkOfSlashed(reflect.TypeOf(empty{}).PkgPath())
+	log         = logger.New(packageName)
+)
 
 // InformerCollection is a struct of the Kubernetes informers used in OSM
 type InformerCollection struct {

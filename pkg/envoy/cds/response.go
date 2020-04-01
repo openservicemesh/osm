@@ -2,32 +2,25 @@ package cds
 
 import (
 	"context"
-	"reflect"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/protobuf/ptypes"
-	"github.com/rs/zerolog/log"
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 
 	"github.com/open-service-mesh/osm/pkg/smi"
-	"github.com/open-service-mesh/osm/pkg/utils"
 )
-
-type empty struct{}
-
-var packageName = utils.GetLastChunkOfSlashed(reflect.TypeOf(empty{}).PkgPath())
 
 // NewResponse creates a new Cluster Discovery Response.
 func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, request *xds.DiscoveryRequest) (*xds.DiscoveryResponse, error) {
 	proxyServiceName := proxy.GetService()
 	allTrafficPolicies, err := catalog.ListTrafficRoutes(proxyServiceName)
 	if err != nil {
-		log.Error().Err(err).Msgf("[%s] Failed listing traffic routes", packageName)
+		log.Error().Err(err).Msgf("Failed listing traffic routes")
 		return nil, err
 	}
-	log.Debug().Msgf("[%s] TrafficPolicies: %+v for proxy %s", packageName, allTrafficPolicies, proxy.CommonName)
+	log.Debug().Msgf("TrafficPolicies: %+v for proxy %s", allTrafficPolicies, proxy.CommonName)
 	resp := &xds.DiscoveryResponse{
 		TypeUrl: string(envoy.TypeCDS),
 	}
@@ -50,10 +43,10 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 
 	clusterFactories = uniques(clusterFactories)
 	for _, cluster := range clusterFactories {
-		log.Debug().Msgf("[%s] Proxy service %s constructed ClusterConfiguration: %+v ", packageName, proxyServiceName, cluster)
+		log.Debug().Msgf("Proxy service %s constructed ClusterConfiguration: %+v ", proxyServiceName, cluster)
 		marshalledClusters, err := ptypes.MarshalAny(&cluster)
 		if err != nil {
-			log.Error().Err(err).Msgf("[%s] Failed to marshal cluster for proxy %s", packageName, proxy.GetCommonName())
+			log.Error().Err(err).Msgf("Failed to marshal cluster for proxy %s", proxy.GetCommonName())
 			return nil, err
 		}
 		resp.Resources = append(resp.Resources, marshalledClusters)

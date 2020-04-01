@@ -1,4 +1,4 @@
-package metricsstore
+package rds
 
 import (
 	"reflect"
@@ -6,8 +6,6 @@ import (
 	"github.com/open-service-mesh/osm/pkg/logger"
 	"github.com/open-service-mesh/osm/pkg/utils"
 )
-
-type empty struct{}
 
 var (
 	packageName = utils.GetLastChunkOfSlashed(reflect.TypeOf(empty{}).PkgPath())

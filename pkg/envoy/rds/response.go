@@ -2,33 +2,28 @@ package rds
 
 import (
 	"context"
-	"reflect"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/protobuf/ptypes"
-	"github.com/rs/zerolog/log"
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 	"github.com/open-service-mesh/osm/pkg/envoy/route"
 
 	"github.com/open-service-mesh/osm/pkg/smi"
-	"github.com/open-service-mesh/osm/pkg/utils"
 )
 
 type empty struct{}
-
-var packageName = utils.GetLastChunkOfSlashed(reflect.TypeOf(empty{}).PkgPath())
 
 // NewResponse creates a new Route Discovery Response.
 func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, request *xds.DiscoveryRequest) (*xds.DiscoveryResponse, error) {
 	proxyServiceName := proxy.GetService()
 	allTrafficPolicies, err := catalog.ListTrafficRoutes(proxyServiceName)
 	if err != nil {
-		log.Error().Err(err).Msgf("[%s] Failed listing routes", packageName)
+		log.Error().Err(err).Msg("Failed listing routes")
 		return nil, err
 	}
-	log.Debug().Msgf("[%s] trafficPolicies: %+v", packageName, allTrafficPolicies)
+	log.Debug().Msgf("trafficPolicies: %+v", allTrafficPolicies)
 
 	resp := &xds.DiscoveryResponse{
 		TypeUrl: string(envoy.TypeRDS),
@@ -52,7 +47,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	for _, config := range routeConfiguration {
 		marshalledRouteConfig, err := ptypes.MarshalAny(&config)
 		if err != nil {
-			log.Error().Err(err).Msgf("[%s] Failed to marshal route config for proxy", packageName)
+			log.Error().Err(err).Msgf("Failed to marshal route config for proxy")
 			return nil, err
 		}
 		resp.Resources = append(resp.Resources, marshalledRouteConfig)

@@ -8,7 +8,6 @@ import (
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog/log"
 
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/envoy"
@@ -27,7 +26,7 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 
 	// TODO(draychev): check for envoy.ErrTooManyConnections
 
-	log.Info().Msgf("[%s] Client connected: Subject CN=%s", packageName, cn)
+	log.Info().Msgf("Client connected: Subject CN=%s", cn)
 
 	// Register the newly connected proxy w/ the catalog.
 	// TODO(draychev): this does not produce the correct IP address
@@ -66,15 +65,15 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 			return nil
 
 		case discoveryRequest, ok := <-requests:
-			log.Info().Msgf("[%s] Discovery Request %s (nonce=%s; version=%s) from Envoy %s", packageName, discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, proxy.GetCommonName())
-			log.Info().Msgf("[%s] Last sent for %s nonce=%s; last sent version=%s for Envoy %s", packageName, discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, proxy.GetCommonName())
+			log.Info().Msgf("Discovery Request %s (nonce=%s; version=%s) from Envoy %s", discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, proxy.GetCommonName())
+			log.Info().Msgf("Last sent for %s nonce=%s; last sent version=%s for Envoy %s", discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, proxy.GetCommonName())
 			if !ok {
-				log.Error().Msgf("[%s] Proxy %s closed GRPC", packageName, proxy)
+				log.Error().Msgf("Proxy %s closed GRPC", proxy)
 				return errGrpcClosed
 			}
 
 			if discoveryRequest.ErrorDetail != nil {
-				log.Error().Msgf("[%s] Discovery request error from proxy %s: %s", packageName, proxy, discoveryRequest.ErrorDetail)
+				log.Error().Msgf("Discovery request error from proxy %s: %s", proxy, discoveryRequest.ErrorDetail)
 				return errEnvoyError
 			}
 
@@ -82,47 +81,47 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 
 			ackVersion, err := strconv.ParseUint(discoveryRequest.VersionInfo, 10, 64)
 			if err != nil && discoveryRequest.VersionInfo != "" {
-				log.Error().Err(err).Msgf("[%s] Error parsing %s discovery request VersionInfo (%s) from proxy %s", packageName, typeURL, discoveryRequest.VersionInfo, proxy.GetCommonName())
+				log.Error().Err(err).Msgf("Error parsing %s discovery request VersionInfo (%s) from proxy %s", typeURL, discoveryRequest.VersionInfo, proxy.GetCommonName())
 				ackVersion = 0
 			}
 
-			log.Debug().Msgf("[%s] Incoming Discovery Request %s (nonce=%s; version=%d) from Envoy %s; last applied version: %d",
-				packageName, discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, ackVersion, proxy.GetCommonName(), proxy.GetLastAppliedVersion(typeURL))
-			log.Debug().Msgf("[%s] Last sent nonce=%s; last sent version=%d for Envoy %s",
-				packageName, proxy.GetLastSentNonce(typeURL), proxy.GetLastSentVersion(typeURL), proxy.GetCommonName())
+			log.Debug().Msgf("Incoming Discovery Request %s (nonce=%s; version=%d) from Envoy %s; last applied version: %d",
+				discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, ackVersion, proxy.GetCommonName(), proxy.GetLastAppliedVersion(typeURL))
+			log.Debug().Msgf("Last sent nonce=%s; last sent version=%d for Envoy %s",
+				proxy.GetLastSentNonce(typeURL), proxy.GetLastSentVersion(typeURL), proxy.GetCommonName())
 
 			proxy.SetLastAppliedVersion(typeURL, ackVersion)
 
 			if ackVersion > 0 && ackVersion <= proxy.GetLastSentVersion(typeURL) {
-				log.Debug().Msgf("[%s] %s Discovery Request VersionInfo (%d) <= last sent VersionInfo (%d); ACK", packageName, typeURL, ackVersion, proxy.GetLastSentVersion(typeURL))
+				log.Debug().Msgf("%s Discovery Request VersionInfo (%d) <= last sent VersionInfo (%d); ACK", typeURL, ackVersion, proxy.GetLastSentVersion(typeURL))
 				continue
 			}
 
 			lastNonce := proxy.GetLastSentNonce(typeURL)
 			if lastNonce != "" && discoveryRequest.ResponseNonce == lastNonce {
-				log.Debug().Msgf("[%s] Nothing changed since Nonce=%s", packageName, discoveryRequest.ResponseNonce)
+				log.Debug().Msgf("Nothing changed since Nonce=%s", discoveryRequest.ResponseNonce)
 				continue
 			}
 
 			if discoveryRequest.ResponseNonce != "" {
-				log.Debug().Msgf("[%s] Received discovery request with Nonce=%s; matches=%t; proxy last Nonce=%s", packageName, discoveryRequest.ResponseNonce, discoveryRequest.ResponseNonce == lastNonce, lastNonce)
+				log.Debug().Msgf("Received discovery request with Nonce=%s; matches=%t; proxy last Nonce=%s", discoveryRequest.ResponseNonce, discoveryRequest.ResponseNonce == lastNonce, lastNonce)
 			}
-			log.Info().Msgf("[%s] Received discovery request <%s> from Envoy <%s> with Nonce=%s", packageName, discoveryRequest.TypeUrl, proxy, discoveryRequest.ResponseNonce)
+			log.Info().Msgf("Received discovery request <%s> from Envoy <%s> with Nonce=%s", discoveryRequest.TypeUrl, proxy, discoveryRequest.ResponseNonce)
 
 			resp, err := s.newAggregatedDiscoveryResponse(proxy, &discoveryRequest)
 			if err != nil {
-				log.Error().Err(err).Msgf("[%s] Error composing a DiscoveryResponse", packageName)
+				log.Error().Err(err).Msgf("Error composing a DiscoveryResponse")
 				continue
 			}
 
 			if err := server.Send(resp); err != nil {
-				log.Error().Err(err).Msgf("[%s] Error sending DiscoveryResponse", packageName)
+				log.Error().Err(err).Msgf("Error sending DiscoveryResponse")
 			} else {
-				log.Debug().Msgf("[%s] Sent Discovery Response %s to proxy %s: %s", packageName, resp.TypeUrl, proxy, resp)
+				log.Debug().Msgf("Sent Discovery Response %s to proxy %s: %s", resp.TypeUrl, proxy, resp)
 			}
 
 		case <-proxy.GetAnnouncementsChannel():
-			log.Info().Msgf("[%s] Change detected - update all Envoys.", packageName)
+			log.Info().Msgf("Change detected - update all Envoys.")
 			s.sendAllResponses(proxy, &server)
 		}
 	}

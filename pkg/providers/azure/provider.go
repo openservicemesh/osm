@@ -5,7 +5,6 @@ import (
 	"net"
 	"strings"
 
-	"github.com/rs/zerolog/log"
 	corev1 "k8s.io/api/core/v1"
 
 	osm "github.com/open-service-mesh/osm/pkg/apis/azureresource/v1"
@@ -25,10 +24,10 @@ func (az Client) ListEndpointsForService(svc endpoint.ServiceName) []endpoint.En
 	}
 
 	for _, azID := range az.resolveService(svc) {
-		log.Info().Msgf("[%s] Getting Endpoints for service %s", packageName, svc)
+		log.Info().Msgf("Getting Endpoints for service %s", svc)
 		resourceGroup, kind, _, err := parseAzureID(azID)
 		if err != nil {
-			log.Error().Err(err).Msgf("[%s] Unable to parse Azure URI %s", packageName, azID)
+			log.Error().Err(err).Msgf("Unable to parse Azure URI %s", azID)
 			continue
 		}
 
@@ -37,7 +36,7 @@ func (az Client) ListEndpointsForService(svc endpoint.ServiceName) []endpoint.En
 			var err error
 			ips, err = observer(resourceGroup, azID)
 			if err != nil {
-				log.Error().Err(err).Msgf("[%s] Could not fetch VMSS services", packageName)
+				log.Error().Err(err).Msg("Could not fetch VMSS services")
 				continue
 			}
 			for _, ip := range ips {
@@ -89,18 +88,18 @@ func parseAzureID(id azureID) (resourceGroup, computeKind, computeName, error) {
 }
 
 func (az *Client) resolveService(svc endpoint.ServiceName) []azureID {
-	log.Trace().Msgf("[%s] Resolving service %s to an Azure URI", packageName, svc)
+	log.Trace().Msgf("Resolving service %s to an Azure URI", svc)
 	var azureIDs []azureID
 	service, exists, err := az.meshSpec.GetService(svc)
 	if err != nil {
-		log.Error().Err(err).Msgf("[%s] Error fetching Kubernetes Endpoints from cache", packageName)
+		log.Error().Err(err).Msg("Error fetching Kubernetes Endpoints from cache")
 		return azureIDs
 	}
 	if !exists {
-		log.Error().Msgf("[%s] Error fetching Kubernetes Endpoints from cache: service %s does not exist", packageName, svc)
+		log.Error().Msgf("Error fetching Kubernetes Endpoints from cache: service %s does not exist", svc)
 		return azureIDs
 	}
-	log.Trace().Msgf("[%s] Got the service: %+v", packageName, service)
+	log.Trace().Msgf("Got the service: %+v", service)
 	return matchServiceAzureResource(service, az.azureResourceClient.ListAzureResources())
 }
 
@@ -110,7 +109,7 @@ type kv struct {
 }
 
 func matchServiceAzureResource(svc *corev1.Service, azureResourcesList []*osm.AzureResource) []azureID {
-	log.Trace().Msgf("[%s] Match service %s to an AzureID", packageName, svc)
+	log.Trace().Msgf("Match service %s to an AzureID", svc)
 	azureResources := make(map[kv]*osm.AzureResource)
 	for _, azRes := range azureResourcesList {
 		for k, v := range azRes.ObjectMeta.Labels {
@@ -130,6 +129,6 @@ func matchServiceAzureResource(svc *corev1.Service, azureResourcesList []*osm.Az
 	for uri := range uriSet {
 		uris = append(uris, uri)
 	}
-	log.Trace().Msgf("[%s] Found matches for service %s: %+v", packageName, svc, uris)
+	log.Trace().Msgf("Found matches for service %s: %+v", svc, uris)
 	return uris
 }

@@ -4,12 +4,9 @@ import (
 	"context"
 	"flag"
 	"os"
-	"strings"
 	"time"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/pflag"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -21,6 +18,7 @@ import (
 	"github.com/open-service-mesh/osm/pkg/httpserver"
 	"github.com/open-service-mesh/osm/pkg/injector"
 
+	"github.com/open-service-mesh/osm/pkg/logger"
 	"github.com/open-service-mesh/osm/pkg/metricsstore"
 	"github.com/open-service-mesh/osm/pkg/namespace"
 	"github.com/open-service-mesh/osm/pkg/providers/azure"
@@ -54,6 +52,7 @@ var (
 	keyPem         = flags.String("keypem", "", "Full path to the xDS Key PEM file")
 	rootCertPem    = flags.String("rootcertpem", "", "Full path to the Root Certificate PEM file")
 	rootKeyPem     = flags.String("rootkeypem", "", "Full path to the Root Key PEM file")
+	log            = logger.New("main")
 )
 
 func init() {
@@ -73,8 +72,9 @@ func init() {
 }
 
 func main() {
+	log.Trace().Msg("Starting ADS")
 	parseFlags()
-	setLogLevel()
+	logger.SetLogLevel(verbosity)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -90,7 +90,7 @@ func main() {
 		// creates the in-cluster config
 		kubeConfig, err = rest.InClusterConfig()
 		if err != nil {
-			log.Fatal().Err(err).Msg("[RDS] Error generating Kubernetes config")
+			log.Fatal().Err(err).Msg("Error generating Kubernetes config")
 		}
 	}
 
@@ -158,37 +158,4 @@ func parseFlags() {
 		log.Fatal().Err(err).Msg("Error parsing cmd line arguments")
 	}
 	_ = flag.CommandLine.Parse([]string{})
-}
-
-func setLogLevel() {
-	switch strings.ToLower(verbosity) {
-	// DebugLevel defines debug log level.
-	case "debug":
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
-
-	case "info":
-		zerolog.SetGlobalLevel(zerolog.InfoLevel)
-
-	case "warn":
-		zerolog.SetGlobalLevel(zerolog.WarnLevel)
-
-	case "error":
-		zerolog.SetGlobalLevel(zerolog.ErrorLevel)
-
-	case "fatal":
-		zerolog.SetGlobalLevel(zerolog.FatalLevel)
-
-	case "panic":
-		zerolog.SetGlobalLevel(zerolog.PanicLevel)
-
-	case "disabled":
-		zerolog.SetGlobalLevel(zerolog.Disabled)
-
-	case "trace":
-		zerolog.SetGlobalLevel(zerolog.TraceLevel)
-
-	default:
-		allowedLevels := []string{"debug", "info", "warn", "error", "fatal", "panic", "disabled", "trace"}
-		log.Fatal().Msgf("Invalid log level '%s' specified. Please specify one of %v", verbosity, allowedLevels)
-	}
 }

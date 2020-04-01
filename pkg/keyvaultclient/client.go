@@ -6,7 +6,6 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault"
 	az "github.com/Azure/go-autorest/autorest/azure"
-	"github.com/rs/zerolog/log"
 
 	"github.com/open-service-mesh/osm/pkg/azure"
 )
@@ -19,7 +18,7 @@ const (
 func newKeyVaultClient(keyVaultName string, azureAuthFile string) (*client, error) {
 	authorizer, err := azure.GetAuthorizerWithRetry(azureAuthFile, azureKeyVaultBaseURI)
 	if err != nil {
-		log.Error().Err(err).Msgf("[%s] Error getting Azure Key Vault authorizer", packageName)
+		log.Error().Err(err).Msg("Error getting Azure Key Vault authorizer")
 		return nil, err
 	}
 
