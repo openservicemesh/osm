@@ -6,12 +6,11 @@ import (
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
-	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"github.com/rs/zerolog/log"
 
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/envoy"
-	"github.com/open-service-mesh/osm/pkg/log/level"
 )
 
 const (
@@ -24,15 +23,15 @@ const (
 
 //UpdateRouteConfiguration consrtucts the Envoy construct necessary for TrafficTarget implementation
 func UpdateRouteConfiguration(trafficPolicies endpoint.TrafficTargetPolicies, routeConfig v2.RouteConfiguration, isSourceService bool, isDestinationService bool) v2.RouteConfiguration {
-	glog.V(level.Trace).Infof("[RDS] Updating Route Configuration")
+	log.Trace().Msgf("[RDS] Updating Route Configuration")
 	var routeConfiguration v2.RouteConfiguration
 	var isLocalCluster bool
 	if isSourceService {
-		glog.V(level.Trace).Infof("[RDS] Updating OutboundRouteConfiguration for policy %v", trafficPolicies)
+		log.Trace().Msgf("[RDS] Updating OutboundRouteConfiguration for policy %v", trafficPolicies)
 		isLocalCluster = false
 		routeConfiguration = updateRoutes(trafficPolicies.PolicyRoutePaths, trafficPolicies.Source.Clusters, routeConfig, isLocalCluster)
 	} else if isDestinationService {
-		glog.V(level.Trace).Infof("[RDS] Updating InboundRouteConfiguration for policy %v", trafficPolicies)
+		log.Trace().Msgf("[RDS] Updating InboundRouteConfiguration for policy %v", trafficPolicies)
 		isLocalCluster = true
 		routeConfiguration = updateRoutes(trafficPolicies.PolicyRoutePaths, trafficPolicies.Destination.Clusters, routeConfig, isLocalCluster)
 	}
@@ -60,7 +59,7 @@ func updateRoutes(routePaths []endpoint.RoutePaths, cluster []endpoint.WeightedC
 	routeConfig.VirtualHosts[0].Cors = &route.CorsPolicy{
 		AllowMethods: strings.Join(allowedMethods, ","),
 	}
-	glog.V(level.Debug).Infof("[RDS] Constructed OutboundRouteConfiguration %+v", routeConfig)
+	log.Debug().Msgf("[RDS] Constructed OutboundRouteConfiguration %+v", routeConfig)
 	return routeConfig
 }
 

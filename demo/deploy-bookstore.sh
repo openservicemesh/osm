@@ -63,7 +63,7 @@ spec:
       automountServiceAccountToken: false
       containers:
 
-        - image: "${CTR_REGISTRY}/bookstore:latest"
+        - image: "${CTR_REGISTRY}/bookstore:${CTR_TAG}"
           imagePullPolicy: Always
           name: $SVC
           ports:

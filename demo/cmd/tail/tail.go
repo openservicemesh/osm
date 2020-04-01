@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/Azure/go-autorest/autorest/to"
-	"github.com/golang/glog"
+	"github.com/rs/zerolog/log"
 	"k8s.io/api/admissionregistration/v1beta1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -56,7 +56,7 @@ func main() {
 	totalWaitString := os.Getenv(WaitForPodTimeSecondsEnvVar)
 	totalWait, err := strconv.ParseInt(totalWaitString, 10, 32)
 	if err != nil {
-		glog.Fatalf("Could not convert environment variable %s='%s' to int: %+v", WaitForPodTimeSecondsEnvVar, totalWaitString, err)
+		log.Fatal().Err(err).Msgf("Could not convert environment variable %s='%s' to int", WaitForPodTimeSecondsEnvVar, totalWaitString)
 	}
 	totalWaitSeconds := time.Duration(totalWait) * time.Second
 	bookBuyerContainerName := "bookbuyer"
@@ -186,7 +186,7 @@ func main() {
 
 	adsPodName, err := getPodName(osmNS, adsPodSelector)
 	if err != nil {
-		glog.Fatalf("Error getting ADS pods with selector %s in namespace %s: %s", adsPodName, osmNS, err)
+		log.Fatal().Err(err).Msgf("Error getting ADS pods with selector %s in namespace %s", adsPodName, osmNS)
 	}
 	fmt.Println("-------- ADS LOGS --------\n", getPodLogs(osmNS, adsPodName, "", false))
 	os.Exit(1)
@@ -199,9 +199,9 @@ func deleteNamespaces(client *kubernetes.Clientset, namespaces ...string) {
 
 	for _, ns := range namespaces {
 		if err := client.CoreV1().Namespaces().Delete(ns, deleteOptions); err != nil {
-			glog.Errorf("Error deleting namespace %s: %s", ns, err)
+			log.Error().Err(err).Msgf("Error deleting namespace %s", ns)
 		}
-		glog.Infof("Deleted namespace: %s", ns)
+		log.Info().Msgf("Deleted namespace: %s", ns)
 	}
 }
 
@@ -214,7 +214,7 @@ func deleteWebhooks(client *kubernetes.Clientset, namespaces ...string) {
 	var err error
 	webhooks, err = client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().List(metav1.ListOptions{})
 	if err != nil {
-		glog.Errorf("Error listing webhooks: %s", err)
+		log.Error().Err(err).Msg("Error listing webhooks")
 	}
 
 	for _, webhook := range webhooks.Items {
@@ -224,9 +224,9 @@ func deleteWebhooks(client *kubernetes.Clientset, namespaces ...string) {
 				continue
 			}
 			if err := client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Delete(webhook.Name, deleteOptions); err != nil {
-				glog.Errorf("Error deleting webhook %s: %s", webhook.Name, err)
+				log.Error().Err(err).Msgf("Error deleting webhook %s", webhook.Name)
 			}
-			glog.Infof("Deleted mutating webhook: %s", webhook.Name)
+			log.Info().Msgf("Deleted mutating webhook: %s", webhook.Name)
 		}
 	}
 }
@@ -240,7 +240,7 @@ func getPodName(namespace, selector string) (string, error) {
 	}
 
 	if len(podList.Items) == 0 {
-		glog.Errorf("Zero pods found for selector %s in namespace %s", selector, namespace)
+		log.Error().Msgf("Zero pods found for selector %s in namespace %s", selector, namespace)
 		return "", errNoPodsFound
 	}
 
@@ -272,7 +272,7 @@ func getPodLogs(namespace string, podName string, containerName string, follow b
 	buf := new(bytes.Buffer)
 	_, err = buf.ReadFrom(rc)
 	if err != nil {
-		glog.Error("Error reading from pod logs stream", err)
+		log.Error().Err(err).Msg("Error reading from pod logs stream")
 	}
 	return buf.String()
 }

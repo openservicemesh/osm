@@ -3,7 +3,7 @@ package namespace
 import (
 	"time"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog/log"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/informers"
@@ -12,7 +12,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	k8s "github.com/open-service-mesh/osm/pkg/kubernetes"
-	"github.com/open-service-mesh/osm/pkg/log/level"
 )
 
 const (
@@ -45,23 +44,23 @@ func NewNamespaceController(kubeConfig *rest.Config, osmID string, stop chan str
 	informer.AddEventHandler(k8s.GetKubernetesEventHandlers("Namespaces", "Kubernetes", nil))
 
 	if err := client.run(stop); err != nil {
-		glog.Fatal("Could not start Kubernetes Namespaces client", err)
+		log.Fatal().Err(err).Msg("Could not start Kubernetes Namespaces client")
 	}
 
-	glog.Infof("Monitoring namespaces with the label: %s=%s", monitorLabel, osmID)
+	log.Info().Msgf("Monitoring namespaces with the label: %s=%s", monitorLabel, osmID)
 	return client
 }
 
 // run executes informer collection.
 func (c *Client) run(stop <-chan struct{}) error {
-	glog.V(level.Info).Infoln("Namespace controller client started")
+	log.Info().Msg("Namespace controller client started")
 
 	if c.informer == nil {
 		return errInitInformers
 	}
 
 	go c.informer.Run(stop)
-	glog.V(level.Info).Infof("Waiting namespace.Monitor informer cache sync")
+	log.Info().Msgf("Waiting namespace.Monitor informer cache sync")
 	if !cache.WaitForCacheSync(stop, c.informer.HasSynced) {
 		return errSyncingCaches
 	}
@@ -69,7 +68,7 @@ func (c *Client) run(stop <-chan struct{}) error {
 	// Closing the cacheSynced channel signals to the rest of the system that... caches have been synced.
 	close(c.cacheSynced)
 
-	glog.V(level.Info).Infof("Cache sync finished for namespace.Monitor informer")
+	log.Info().Msgf("Cache sync finished for namespace.Monitor informer")
 	return nil
 }
 

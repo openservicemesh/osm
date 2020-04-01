@@ -5,10 +5,10 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog/log"
 
 	"github.com/open-service-mesh/osm/pkg/endpoint"
-	"github.com/open-service-mesh/osm/pkg/log/level"
+
 	"github.com/open-service-mesh/osm/pkg/utils"
 )
 
@@ -18,7 +18,7 @@ var packageName = utils.GetLastChunkOfSlashed(reflect.TypeOf(empty{}).PkgPath())
 
 // ListEndpoints constructs a map from service to weighted sub-services with all endpoints the given Envoy proxy should be aware of.
 func (sc *MeshCatalog) ListEndpoints(clientID endpoint.NamespacedService) ([]endpoint.ServiceEndpoints, error) {
-	glog.Infof("[%s] Listing Endpoints for client: %s", packageName, clientID.String())
+	log.Info().Msgf("[%s] Listing Endpoints for client: %s", packageName, clientID.String())
 	// todo (sneha) : TBD if clientID is needed for filtering endpoints
 	return sc.getWeightedEndpointsPerService(clientID)
 }
@@ -26,17 +26,17 @@ func (sc *MeshCatalog) ListEndpoints(clientID endpoint.NamespacedService) ([]end
 func (sc *MeshCatalog) listEndpointsForService(service endpoint.WeightedService) ([]endpoint.Endpoint, error) {
 	// TODO(draychev): split namespace from the service name -- for non-K8s services
 	// todo (sneha) : TBD if clientID is needed for filtering endpoints
-	glog.Infof("[%s] listEndpointsForService %s", packageName, service.ServiceName)
+	log.Info().Msgf("[%s] listEndpointsForService %s", packageName, service.ServiceName)
 	if _, found := sc.servicesCache[service]; !found {
 		sc.refreshCache()
 	}
 	var endpoints []endpoint.Endpoint
 	var found bool
 	if endpoints, found = sc.servicesCache[service]; !found {
-		glog.Errorf("[%s] Did not find any Endpoints for service %s", packageName, service.ServiceName)
+		log.Error().Msgf("[%s] Did not find any Endpoints for service %s", packageName, service.ServiceName)
 		return nil, errNotFound
 	}
-	glog.Infof("[%s] Found Endpoints=%v for service %s", packageName, endpointsToString(endpoints), service.ServiceName)
+	log.Info().Msgf("[%s] Found Endpoints=%v for service %s", packageName, endpointsToString(endpoints), service.ServiceName)
 	return endpoints, nil
 }
 
@@ -45,9 +45,9 @@ func (sc *MeshCatalog) getWeightedEndpointsPerService(clientID endpoint.Namespac
 	var serviceEndpoints []endpoint.ServiceEndpoints
 
 	for _, trafficSplit := range sc.meshSpec.ListTrafficSplits() {
-		glog.V(level.Debug).Infof("[%s] Discovered TrafficSplit resource: %s/%s", packageName, trafficSplit.Namespace, trafficSplit.Name)
+		log.Debug().Msgf("[%s] Discovered TrafficSplit resource: %s/%s", packageName, trafficSplit.Namespace, trafficSplit.Name)
 		if trafficSplit.Spec.Backends == nil {
-			glog.Errorf("[%s] TrafficSplit %s/%s has no Backends in Spec; Skipping...", packageName, trafficSplit.Namespace, trafficSplit.Name)
+			log.Error().Msgf("[%s] TrafficSplit %s/%s has no Backends in Spec; Skipping...", packageName, trafficSplit.Namespace, trafficSplit.Name)
 			continue
 		}
 		for _, trafficSplitBackend := range trafficSplit.Spec.Backends {
@@ -62,13 +62,13 @@ func (sc *MeshCatalog) getWeightedEndpointsPerService(clientID endpoint.Namespac
 			}
 			var err error
 			if svcEp.Endpoints, err = sc.listEndpointsForService(svcEp.WeightedService); err != nil {
-				glog.Errorf("[%s] Error getting Endpoints for service %s: %s", packageName, namespacedServiceName, err)
+				log.Error().Err(err).Msgf("[%s] Error getting Endpoints for service %s", packageName, namespacedServiceName)
 				svcEp.Endpoints = []endpoint.Endpoint{}
 			}
 			serviceEndpoints = append(serviceEndpoints, svcEp)
 		}
 	}
-	glog.V(level.Trace).Infof("[%s] Constructed service endpoints: %+v", packageName, serviceEndpoints)
+	log.Trace().Msgf("[%s] Constructed service endpoints: %+v", packageName, serviceEndpoints)
 	return serviceEndpoints, nil
 }
 

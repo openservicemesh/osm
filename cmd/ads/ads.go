@@ -3,12 +3,13 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
-	"github.com/golang/glog"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/pflag"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -19,7 +20,7 @@ import (
 	"github.com/open-service-mesh/osm/pkg/envoy/ads"
 	"github.com/open-service-mesh/osm/pkg/httpserver"
 	"github.com/open-service-mesh/osm/pkg/injector"
-	"github.com/open-service-mesh/osm/pkg/log/level"
+
 	"github.com/open-service-mesh/osm/pkg/metricsstore"
 	"github.com/open-service-mesh/osm/pkg/namespace"
 	"github.com/open-service-mesh/osm/pkg/providers/azure"
@@ -36,6 +37,7 @@ const (
 )
 
 var (
+	verbosity      string
 	osmID          string // An ID that uniquely identifies an OSM instance
 	azureAuthFile  string
 	kubeConfigFile string
@@ -47,7 +49,6 @@ var (
 var (
 	flags          = pflag.NewFlagSet(`ads`, pflag.ExitOnError)
 	subscriptionID = flags.String("subscriptionID", "", "Azure Subscription")
-	verbosity      = flags.Int("verbosity", int(level.Info), "Set log verbosity level")
 	port           = flags.Int("port", 15128, "Clusters Discovery Service port number.")
 	certPem        = flags.String("certpem", "", "Full path to the xDS Certificate PEM file")
 	keyPem         = flags.String("keypem", "", "Full path to the xDS Key PEM file")
@@ -56,6 +57,7 @@ var (
 )
 
 func init() {
+	flags.StringVar(&verbosity, "verbosity", "info", "Set log verbosity level")
 	flags.StringVar(&osmID, "osmID", "", "OSM instance ID")
 	flags.StringVar(&azureAuthFile, "azureAuthFile", "", "Path to Azure Auth File")
 	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file.")
@@ -71,8 +73,8 @@ func init() {
 }
 
 func main() {
-	defer glog.Flush()
 	parseFlags()
+	setLogLevel()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -82,27 +84,27 @@ func main() {
 	if kubeConfigFile != "" {
 		kubeConfig, err = clientcmd.BuildConfigFromFlags("", kubeConfigFile)
 		if err != nil {
-			glog.Fatalf("[%s] Error fetching Kubernetes config. Ensure correctness of CLI argument 'kubeconfig=%s': %s", serverType, kubeConfigFile, err)
+			log.Fatal().Err(err).Msgf("[%s] Error fetching Kubernetes config. Ensure correctness of CLI argument 'kubeconfig=%s'", serverType, kubeConfigFile)
 		}
 	} else {
 		// creates the in-cluster config
 		kubeConfig, err = rest.InClusterConfig()
 		if err != nil {
-			glog.Fatalf("[RDS] Error generating Kubernetes config: %s", err)
+			log.Fatal().Err(err).Msg("[RDS] Error generating Kubernetes config")
 		}
 	}
 
 	if osmID == "" {
-		glog.Fatal("Please specify the OSM instance ID using --osmID")
+		log.Fatal().Msg("Please specify the OSM instance ID using --osmID")
 	}
 	if osmNamespace == "" {
-		glog.Fatal("Please specify the OSM namespace using --osmNamespace")
+		log.Fatal().Msg("Please specify the OSM namespace using --osmNamespace")
 	}
 	if injectorConfig.InitContainerImage == "" {
-		glog.Fatal("Please specify the init container image using --init-container-image ")
+		log.Fatal().Msg("Please specify the init container image using --init-container-image ")
 	}
 	if injectorConfig.SidecarImage == "" {
-		glog.Fatal("Please specify the sidecar image using --sidecar-image ")
+		log.Fatal().Msg("Please specify the sidecar image using --sidecar-image ")
 	}
 
 	stop := signals.RegisterExitHandlers()
@@ -111,7 +113,7 @@ func main() {
 	meshSpec := smi.NewMeshSpecClient(kubeConfig, osmNamespace, namespaceController, stop)
 	certManager, err := tresor.NewCertManagerWithCAFromFile(*rootCertPem, *rootKeyPem, "Acme", 1*time.Hour)
 	if err != nil {
-		glog.Fatal("Could not instantiate Certificate Manager: ", err)
+		log.Fatal().Err(err).Msg("Could not instantiate Certificate Manager")
 	}
 
 	endpointsProviders := []endpoint.Provider{
@@ -147,15 +149,46 @@ func main() {
 	// Wait for exit handler signal
 	<-stop
 
-	glog.Infof("[%s] Goodbye!", serverType)
+	log.Info().Msgf("[%s] Goodbye!", serverType)
 }
 
 func parseFlags() {
 	// TODO(draychev): consolidate parseFlags - shared between ads.go and eds.go
 	if err := flags.Parse(os.Args); err != nil {
-		glog.Error(err)
+		log.Fatal().Err(err).Msg("Error parsing cmd line arguments")
 	}
 	_ = flag.CommandLine.Parse([]string{})
-	_ = flag.Lookup("v").Value.Set(fmt.Sprintf("%d", *verbosity))
-	_ = flag.Lookup("logtostderr").Value.Set("true")
+}
+
+func setLogLevel() {
+	switch strings.ToLower(verbosity) {
+	// DebugLevel defines debug log level.
+	case "debug":
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+
+	case "info":
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
+
+	case "warn":
+		zerolog.SetGlobalLevel(zerolog.WarnLevel)
+
+	case "error":
+		zerolog.SetGlobalLevel(zerolog.ErrorLevel)
+
+	case "fatal":
+		zerolog.SetGlobalLevel(zerolog.FatalLevel)
+
+	case "panic":
+		zerolog.SetGlobalLevel(zerolog.PanicLevel)
+
+	case "disabled":
+		zerolog.SetGlobalLevel(zerolog.Disabled)
+
+	case "trace":
+		zerolog.SetGlobalLevel(zerolog.TraceLevel)
+
+	default:
+		allowedLevels := []string{"debug", "info", "warn", "error", "fatal", "panic", "disabled", "trace"}
+		log.Fatal().Msgf("Invalid log level '%s' specified. Please specify one of %v", verbosity, allowedLevels)
+	}
 }

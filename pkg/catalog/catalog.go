@@ -7,7 +7,7 @@ import (
 	"time"
 
 	mapset "github.com/deckarep/golang-set"
-	"github.com/golang/glog"
+	"github.com/rs/zerolog/log"
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
@@ -16,7 +16,7 @@ import (
 
 // NewMeshCatalog creates a new service catalog
 func NewMeshCatalog(meshSpec smi.MeshSpec, certManager certificate.Manager, stop <-chan struct{}, endpointsProviders ...endpoint.Provider) *MeshCatalog {
-	glog.Info("[catalog] Create a new Service MeshCatalog.")
+	log.Info().Msg("[catalog] Create a new Service MeshCatalog.")
 	sc := MeshCatalog{
 		endpointsProviders: endpointsProviders,
 		meshSpec:           meshSpec,

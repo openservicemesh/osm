@@ -5,12 +5,12 @@ import (
 	"reflect"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	"github.com/golang/glog"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/rs/zerolog/log"
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/envoy"
-	"github.com/open-service-mesh/osm/pkg/log/level"
+
 	"github.com/open-service-mesh/osm/pkg/smi"
 	"github.com/open-service-mesh/osm/pkg/utils"
 )
@@ -24,10 +24,10 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	proxyServiceName := proxy.GetService()
 	allTrafficPolicies, err := catalog.ListTrafficRoutes(proxyServiceName)
 	if err != nil {
-		glog.Errorf("[%s] Failed listing traffic routes: %+v", packageName, err)
+		log.Error().Err(err).Msgf("[%s] Failed listing traffic routes", packageName)
 		return nil, err
 	}
-	glog.V(level.Debug).Infof("[%s] TrafficPolicies: %+v for proxy %s", packageName, allTrafficPolicies, proxy.CommonName)
+	log.Debug().Msgf("[%s] TrafficPolicies: %+v for proxy %s", packageName, allTrafficPolicies, proxy.CommonName)
 	resp := &xds.DiscoveryResponse{
 		TypeUrl: string(envoy.TypeCDS),
 	}
@@ -50,10 +50,10 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 
 	clusterFactories = uniques(clusterFactories)
 	for _, cluster := range clusterFactories {
-		glog.V(level.Debug).Infof("[%s] Proxy service %s constructed ClusterConfiguration: %+v ", packageName, proxyServiceName, cluster)
+		log.Debug().Msgf("[%s] Proxy service %s constructed ClusterConfiguration: %+v ", packageName, proxyServiceName, cluster)
 		marshalledClusters, err := ptypes.MarshalAny(&cluster)
 		if err != nil {
-			glog.Errorf("[%s] Failed to marshal cluster for proxy %s: %v", packageName, proxy.GetCommonName(), err)
+			log.Error().Err(err).Msgf("[%s] Failed to marshal cluster for proxy %s", packageName, proxy.GetCommonName())
 			return nil, err
 		}
 		resp.Resources = append(resp.Resources, marshalledClusters)

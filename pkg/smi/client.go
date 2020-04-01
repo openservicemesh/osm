@@ -4,9 +4,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/glog"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
-	"github.com/open-service-mesh/osm/pkg/log/level"
+	"github.com/rs/zerolog/log"
+
 	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha1"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha1"
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
@@ -42,14 +42,14 @@ func NewMeshSpecClient(kubeConfig *rest.Config, osmNamespace string, namespaceCo
 
 	err := client.run(stop)
 	if err != nil {
-		glog.Fatalf("Could not start %s client: %s", kubernetesClientName, err)
+		log.Fatal().Err(err).Msgf("Could not start %s client", kubernetesClientName)
 	}
 	return client
 }
 
 // run executes informer collection.
 func (c *Client) run(stop <-chan struct{}) error {
-	glog.V(level.Info).Infoln("SMI Client started")
+	log.Info().Msg("SMI Client started")
 	var hasSynced []cache.InformerSynced
 
 	if c.informers == nil {
@@ -70,12 +70,12 @@ func (c *Client) run(stop <-chan struct{}) error {
 			continue
 		}
 		names = append(names, name)
-		glog.Info("Starting informer: ", name)
+		log.Info().Msgf("Starting informer: %s", name)
 		go informer.Run(stop)
 		hasSynced = append(hasSynced, informer.HasSynced)
 	}
 
-	glog.V(level.Info).Infof("[SMI Client] Waiting for informers' cache to sync: %+v", strings.Join(names, ", "))
+	log.Info().Msgf("[SMI Client] Waiting for informers' cache to sync: %+v", strings.Join(names, ", "))
 	if !cache.WaitForCacheSync(stop, hasSynced...) {
 		return errSyncingCaches
 	}
@@ -83,7 +83,7 @@ func (c *Client) run(stop <-chan struct{}) error {
 	// Closing the cacheSynced channel signals to the rest of the system that... caches have been synced.
 	close(c.cacheSynced)
 
-	glog.V(level.Info).Infof("[SMI Client] Cache sync finished for %+v", names)
+	log.Info().Msgf("[SMI Client] Cache sync finished for %+v", names)
 	return nil
 }
 

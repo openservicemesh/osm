@@ -5,9 +5,8 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"io/ioutil"
-	"log"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
@@ -20,18 +19,18 @@ import (
 func setupMutualTLS(insecure bool, serverName string, certPem string, keyPem string, rootCertPem string) grpc.ServerOption {
 	certif, err := tls.LoadX509KeyPair(certPem, keyPem)
 	if err != nil {
-		glog.Fatalf("[grpc][mTLS][%s] Failed loading Certificate (%+v) and Key (%+v) PEM files: %s", serverName, certPem, keyPem, err)
+		log.Fatal().Err(err).Msgf("[grpc][mTLS][%s] Failed loading Certificate (%+v) and Key (%+v) PEM files", serverName, certPem, keyPem)
 	}
 
 	certPool := x509.NewCertPool()
 	ca, err := ioutil.ReadFile(rootCertPem)
 	if err != nil {
-		log.Fatalf("[grpc][mTLS][%s] Failed to read client CA cert from %s: %s", serverName, rootCertPem, err)
+		log.Fatal().Err(err).Msgf("[grpc][mTLS][%s] Failed to read client CA cert from %s", serverName, rootCertPem)
 	}
 
 	// Load the set of Root CAs
 	if ok := certPool.AppendCertsFromPEM(ca); !ok {
-		log.Fatalf("[grpc][mTLS][%s] Filed to append client certs.", serverName)
+		log.Fatal().Msgf("[grpc][mTLS][%s] Filed to append client certs.", serverName)
 	}
 
 	tlsConfig := tls.Config{
@@ -48,25 +47,25 @@ func setupMutualTLS(insecure bool, serverName string, certPem string, keyPem str
 func ValidateClient(ctx context.Context, allowedCommonNames map[string]interface{}, serverName string) (certificate.CommonName, error) {
 	mtlsPeer, ok := peer.FromContext(ctx)
 	if !ok {
-		glog.Errorf("[grpc][mTLS][%s] No peer found", serverName)
+		log.Error().Msgf("[grpc][mTLS][%s] No peer found", serverName)
 		return "", status.Error(codes.Unauthenticated, "no peer found")
 	}
 
 	tlsAuth, ok := mtlsPeer.AuthInfo.(credentials.TLSInfo)
 	if !ok {
-		glog.Errorf("[grpc][mTLS][%s] Unexpected peer transport credentials.", serverName)
+		log.Error().Msgf("[grpc][mTLS][%s] Unexpected peer transport credentials.", serverName)
 		return "", status.Error(codes.Unauthenticated, "unexpected peer transport credentials")
 	}
 
 	if len(tlsAuth.State.VerifiedChains) == 0 || len(tlsAuth.State.VerifiedChains[0]) == 0 {
-		glog.Errorf("[grpc][mTLS][%s] Could not verify peer certificate.", serverName)
+		log.Error().Msgf("[grpc][mTLS][%s] Could not verify peer certificate.", serverName)
 		return "", status.Error(codes.Unauthenticated, "could not verify peer certificate")
 	}
 
 	// Check whether the subject common name is one that is allowed to connect.
 	cn := tlsAuth.State.VerifiedChains[0][0].Subject.CommonName
 	if _, ok := allowedCommonNames[cn]; len(allowedCommonNames) > 0 && !ok {
-		glog.Errorf("[grpc][mTLS][%s] Subject common name %+v not allowed", serverName, cn)
+		log.Error().Msgf("[grpc][mTLS][%s] Subject common name %+v not allowed", serverName, cn)
 		return "", status.Error(codes.Unauthenticated, "disallowed subject common name")
 	}
 	return certificate.CommonName(cn), nil

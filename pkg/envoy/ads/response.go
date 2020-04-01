@@ -5,10 +5,9 @@ import (
 
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_service_discovery_v2 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
-	"github.com/golang/glog"
+	"github.com/rs/zerolog/log"
 
 	"github.com/open-service-mesh/osm/pkg/envoy"
-	"github.com/open-service-mesh/osm/pkg/log/level"
 )
 
 func (s *Server) sendAllResponses(proxy *envoy.Proxy, server *envoy_service_discovery_v2.AggregatedDiscoveryService_StreamAggregatedResourcesServer) {
@@ -18,11 +17,11 @@ func (s *Server) sendAllResponses(proxy *envoy.Proxy, server *envoy_service_disc
 		request := &envoy_api_v2.DiscoveryRequest{TypeUrl: string(uri)}
 		discoveryResponse, err := s.newAggregatedDiscoveryResponse(proxy, request)
 		if err != nil {
-			glog.Error(err)
+			log.Error().Err(err).Msg("Failed to create ADS discovery response")
 			continue
 		}
 		if err := (*server).Send(discoveryResponse); err != nil {
-			glog.Errorf("[%s] Error sending DiscoveryResponse %s: %+v", packageName, uri, err)
+			log.Error().Err(err).Msgf("[%s] Error sending DiscoveryResponse %s", packageName, uri)
 		}
 	}
 }
@@ -31,21 +30,21 @@ func (s *Server) newAggregatedDiscoveryResponse(proxy *envoy.Proxy, request *env
 	typeURL := envoy.TypeURI(request.TypeUrl)
 	handler, ok := s.xdsHandlers[typeURL]
 	if !ok {
-		glog.Errorf("[%s] Responder for TypeUrl %s is not implemented", packageName, request.TypeUrl)
+		log.Error().Msgf("[%s] Responder for TypeUrl %s is not implemented", packageName, request.TypeUrl)
 		return nil, errUnknownTypeURL
 	}
 
-	glog.V(level.Trace).Infof("[%s] Invoking handler for %s with request: %+v", packageName, typeURL, request)
+	log.Trace().Msgf("[%s] Invoking handler for %s with request: %+v", packageName, typeURL, request)
 	response, err := handler(s.ctx, s.catalog, s.meshSpec, proxy, request)
 	if err != nil {
-		glog.Errorf("[%s] Responder for TypeUrl %s is not implemented", packageName, request.TypeUrl)
+		log.Error().Msgf("[%s] Responder for TypeUrl %s is not implemented", packageName, request.TypeUrl)
 		return nil, errCreatingResponse
 	}
 
 	response.Nonce = proxy.SetNewNonce(typeURL)
 	response.VersionInfo = strconv.FormatUint(proxy.IncrementLastSentVersion(typeURL), 10)
 
-	glog.V(level.Trace).Infof("[%s] Constructed %s response: %+v", packageName, request.TypeUrl, response)
+	log.Trace().Msgf("[%s] Constructed %s response: %+v", packageName, request.TypeUrl, response)
 
 	return response, nil
 }

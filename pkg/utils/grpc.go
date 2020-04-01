@@ -6,7 +6,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 )
@@ -17,15 +17,15 @@ const (
 
 // NewGrpc creates a new gRPC server
 func NewGrpc(serverType string, port int, certPem string, keyPem string, rootCertPem string) (*grpc.Server, net.Listener) {
-	glog.Infof("Setting up %s gRPC server...", serverType)
+	log.Info().Msgf("Setting up %s gRPC server...", serverType)
 	addr := fmt.Sprintf(":%d", port)
 	lis, err := net.Listen("tcp", addr)
 	if err != nil {
-		glog.Fatalf("Could not start %s gRPC server on %s: %s", serverType, addr, err)
+		log.Fatal().Err(err).Msgf("Could not start %s gRPC server on %s", serverType, addr)
 	}
 
 	keepAlive := 60 * time.Second
-	glog.Infof("Parameters for %s gRPC server: MaxConcurrentStreams=%d;  KeepAlive=%+v", serverType, maxStreams, keepAlive)
+	log.Info().Msgf("Parameters for %s gRPC server: MaxConcurrentStreams=%d;  KeepAlive=%+v", serverType, maxStreams, keepAlive)
 
 	grpcOptions := []grpc.ServerOption{
 		grpc.MaxConcurrentStreams(maxStreams),
@@ -42,20 +42,20 @@ func NewGrpc(serverType string, port int, certPem string, keyPem string, rootCer
 func GrpcServe(ctx context.Context, grpcServer *grpc.Server, lis net.Listener, cancel context.CancelFunc, serverType string) {
 	go func() {
 		if err := grpcServer.Serve(lis); err != nil {
-			glog.Errorf("[grpc][%s] Error serving: %+v", serverType, err)
+			log.Error().Err(err).Msgf("[grpc][%s] Error serving gRPC request", serverType)
 		}
 		cancel()
 	}()
-	glog.Infof("[grpc][%s] Started server on: %s", serverType, lis.Addr().String())
+	log.Info().Msgf("[grpc][%s] Started server on: %s", serverType, lis.Addr().String())
 
 	<-ctx.Done()
 
-	glog.Infof("[grpc][%s] stopping %s server", serverType, serverType)
+	log.Info().Msgf("[grpc][%s] stopping %s server", serverType, serverType)
 
 	if grpcServer != nil {
-		glog.Infof("[grpc][%s] Gracefully stopping %s gRPC server", serverType, serverType)
+		log.Info().Msgf("[grpc][%s] Gracefully stopping %s gRPC server", serverType, serverType)
 		grpcServer.GracefulStop()
-		glog.Infof("[grpc][%s] gRPC Server stopped", serverType)
+		log.Info().Msgf("[grpc][%s] gRPC Server stopped", serverType)
 	}
-	glog.Infof("[grpc][%s] exiting %s gRPC server", serverType, serverType)
+	log.Info().Msgf("[grpc][%s] exiting %s gRPC server", serverType, serverType)
 }

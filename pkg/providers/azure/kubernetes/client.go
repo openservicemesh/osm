@@ -3,14 +3,14 @@ package azure
 import (
 	"time"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog/log"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
 	osm "github.com/open-service-mesh/osm/pkg/apis/azureresource/v1"
 	k8s "github.com/open-service-mesh/osm/pkg/kubernetes"
-	"github.com/open-service-mesh/osm/pkg/log/level"
+
 	"github.com/open-service-mesh/osm/pkg/namespace"
 	osmClient "github.com/open-service-mesh/osm/pkg/osm_client/clientset/versioned"
 	osmInformers "github.com/open-service-mesh/osm/pkg/osm_client/informers/externalversions"
@@ -29,7 +29,7 @@ func NewClient(kubeConfig *rest.Config, namespaceController namespace.Controller
 
 	k8sClient := newClient(kubeClient, azureResourceClient, namespaceController)
 	if err := k8sClient.Run(stop); err != nil {
-		glog.Fatalf("Could not start %s client: %s", kubernetesClientName, err)
+		log.Fatal().Err(err).Msgf("Could not start %s client", kubernetesClientName)
 	}
 	return k8sClient
 }
@@ -62,14 +62,14 @@ func newClient(kubeClient *kubernetes.Clientset, azureResourceClient *osmClient.
 
 // Run executes informer collection.
 func (c *Client) Run(stop <-chan struct{}) error {
-	glog.V(level.Info).Infoln("Kubernetes Compute Provider started")
+	log.Info().Msg("Kubernetes Compute Provider started")
 	var hasSynced []cache.InformerSynced
 
-	glog.Info("Starting AzureResource informer")
+	log.Info().Msg("Starting AzureResource informer")
 	go c.informers.AzureResource.Run(stop)
 	hasSynced = append(hasSynced, c.informers.AzureResource.HasSynced)
 
-	glog.V(level.Info).Infof("Waiting AzureResource informer cache sync")
+	log.Info().Msgf("Waiting AzureResource informer cache sync")
 	if !cache.WaitForCacheSync(stop, hasSynced...) {
 		return errSyncingCaches
 	}
@@ -77,7 +77,7 @@ func (c *Client) Run(stop <-chan struct{}) error {
 	// Closing the cacheSynced channel signals to the rest of the system that... caches have been synced.
 	close(c.cacheSynced)
 
-	glog.V(level.Info).Info("Cache sync for AzureResource finished")
+	log.Info().Msg("Cache sync for AzureResource finished")
 	return nil
 }
 

@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/golang/glog"
+	"github.com/rs/zerolog/log"
 )
 
 // NewFakeMetricStore return a fake metric store
@@ -21,7 +21,7 @@ type fakeMetricHandler struct {
 func (m *fakeMetricHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	_, err := w.Write([]byte(m.metric))
 	if err != nil {
-		glog.Errorf("[%s] Error writing bytes: %s", packageName, err)
+		log.Error().Err(err).Msgf("[%s] Error writing bytes", packageName)
 	}
 }
 
