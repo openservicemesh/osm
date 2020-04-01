@@ -3,11 +3,11 @@ package injector
 import (
 	"reflect"
 
-	zlog "github.com/rs/zerolog/log"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/open-service-mesh/osm/pkg/logger"
 	"github.com/open-service-mesh/osm/pkg/namespace"
 	"github.com/open-service-mesh/osm/pkg/utils"
 )
@@ -21,7 +21,7 @@ type empty struct{}
 
 var (
 	packageName = utils.GetLastChunkOfSlashed(reflect.TypeOf(empty{}).PkgPath())
-	log         = zlog.With().Str("comp", packageName).Caller().Logger()
+	log         = logger.New(packageName)
 )
 
 // Webhook is the type used to represent the webhook for sidecar injection

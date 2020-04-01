@@ -5,10 +5,10 @@ import (
 	"reflect"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	zlog "github.com/rs/zerolog/log"
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/envoy"
+	"github.com/open-service-mesh/osm/pkg/logger"
 	"github.com/open-service-mesh/osm/pkg/smi"
 	"github.com/open-service-mesh/osm/pkg/utils"
 )
@@ -17,7 +17,7 @@ type empty struct{}
 
 var (
 	packageName = utils.GetLastChunkOfSlashed(reflect.TypeOf(empty{}).PkgPath())
-	log         = zlog.With().Str("comp", packageName).Caller().Logger()
+	log         = logger.New(packageName)
 )
 
 //Server implements the Envoy xDS Aggregate Discovery Services
