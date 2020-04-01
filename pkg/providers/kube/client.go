@@ -88,8 +88,13 @@ func (c Client) ListEndpointsForService(svc endpoint.ServiceName) []endpoint.End
 		for _, kubernetesEndpoint := range kubernetesEndpoints.Subsets {
 			for _, address := range kubernetesEndpoint.Addresses {
 				for _, port := range kubernetesEndpoint.Ports {
+					ip := net.ParseIP(address.IP)
+					if ip == nil {
+						log.Error().Msgf("Error parsing IP address %s", address.IP)
+						break
+					}
 					ept := endpoint.Endpoint{
-						IP:   net.IP(address.IP),
+						IP:   ip,
 						Port: endpoint.Port(port.Port),
 					}
 					endpoints = append(endpoints, ept)

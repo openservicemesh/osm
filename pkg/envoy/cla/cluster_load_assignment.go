@@ -40,7 +40,7 @@ func NewClusterLoadAssignment(serviceEndpoints osmEndpoint.ServiceEndpoints) v2.
 		lbEpt := endpoint.LbEndpoint{
 			HostIdentifier: &endpoint.LbEndpoint_Endpoint{
 				Endpoint: &endpoint.Endpoint{
-					Address: envoy.GetAddress(string(meshEndpoint.IP), uint32(meshEndpoint.Port)),
+					Address: envoy.GetAddress(meshEndpoint.IP.String(), uint32(meshEndpoint.Port)),
 				},
 			},
 			LoadBalancingWeight: &wrappers.UInt32Value{
