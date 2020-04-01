@@ -8,7 +8,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2019-06-01/network"
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure/auth"
-	"github.com/golang/glog"
+	"github.com/rs/zerolog/log"
 )
 
 const (
@@ -32,11 +32,11 @@ func GetAuthorizerWithRetry(azureAuthFile string) (autorest.Authorizer, error) {
 		}
 
 		if retryCount >= maxAuthRetryCount {
-			glog.Errorf("Tried %d times to get ARM authorization token; Error: %s", retryCount, err)
+			log.Error().Err(err).Msgf("Tried %d times to get ARM authorization token", retryCount)
 			return nil, ErrUnableToObtainArmAuth
 		}
 		retryCount++
-		glog.Errorf("Failed fetching authorization token for ARM. Will retry in %v. Error: %s", retryPause, err)
+		log.Error().Err(err).Msgf("Failed fetching authorization token for ARM. Will retry in %v", retryPause)
 		time.Sleep(retryPause)
 	}
 }
