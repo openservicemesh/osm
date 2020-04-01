@@ -1,7 +1,6 @@
 package catalog
 
 import (
-	"fmt"
 	"reflect"
 	"strings"
 
@@ -76,7 +75,7 @@ func (sc *MeshCatalog) getWeightedEndpointsPerService(clientID endpoint.Namespac
 func endpointsToString(endpoints []endpoint.Endpoint) string {
 	var epts []string
 	for _, ep := range endpoints {
-		epts = append(epts, fmt.Sprintf("%s", ep))
+		epts = append(epts, ep.String())
 	}
 	return strings.Join(epts, ",")
 }
