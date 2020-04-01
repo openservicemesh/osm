@@ -15,7 +15,7 @@ import (
 func NewProvider(subscriptionID string, azureAuthFile string, stop chan struct{}, meshSpec smi.MeshSpec, azureResourceClient ResourceClient, providerIdent string) Client {
 	var authorizer autorest.Authorizer
 	var err error
-	if authorizer, err = azure.GetAuthorizerWithRetry(azureAuthFile); err != nil {
+	if authorizer, err = azure.GetAuthorizerWithRetry(azureAuthFile, n.DefaultBaseURI); err != nil {
 		glog.Fatal("Failed obtaining authentication token for Azure Resource Manager")
 	}
 
