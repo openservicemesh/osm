@@ -16,7 +16,7 @@ func NewProvider(subscriptionID string, azureAuthFile string, stop chan struct{}
 	var authorizer autorest.Authorizer
 	var err error
 
-	if authorizer, err = azure.GetAuthorizerWithRetry(azureAuthFile); err != nil {
+	if authorizer, err = azure.GetAuthorizerWithRetry(azureAuthFile, n.DefaultBaseURI); err != nil {
 		log.Fatal().Err(err).Msg("Failed obtaining authentication token for Azure Resource Manager")
 	}
 
