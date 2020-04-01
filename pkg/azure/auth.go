@@ -7,7 +7,8 @@ import (
 
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure/auth"
-	"github.com/rs/zerolog/log"
+
+	"github.com/open-service-mesh/osm/pkg/logger"
 )
 
 const (
@@ -17,6 +18,8 @@ const (
 
 // ErrUnableToObtainArmAuth is the error returned when GetAuthorizerWithRetry has not been able to authorize with ARM
 var ErrUnableToObtainArmAuth = errors.New("unable to obtain ARM authorizer")
+
+var log = logger.New("azure")
 
 // GetAuthorizerWithRetry obtains an Azure Resource Manager authorizer.
 func GetAuthorizerWithRetry(azureAuthFile string, baseURI string) (autorest.Authorizer, error) {
