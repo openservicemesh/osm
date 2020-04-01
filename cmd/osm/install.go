@@ -18,7 +18,10 @@ import (
 const installDesc = `
 This command installs the osm control plane on the Kubernetes cluster.
 `
-const serviceAccountName = "osm-xds"
+const (
+	serviceAccountName = "osm-xds"
+	certValidityTime   = 20 * time.Minute
+)
 
 type installCmd struct {
 	out                     io.Writer
@@ -82,15 +85,14 @@ func (i *installCmd) run() error {
 func (i *installCmd) bootstrapRootCert() error {
 	// generate root cert and key
 	org := "Azure Mesh"
-	minsValid := time.Duration(20) * time.Minute
-	certpem, keypem, cert, key, err := tresor.NewCA(org, minsValid)
+	certpem, keypem, cert, key, err := tresor.NewCA(org, certValidityTime)
 	if err != nil {
 		return err
 	}
 	i.rootcertpem = certpem
 	i.rootkeypem = keypem
 
-	i.certManager, err = tresor.NewCertManagerWithCA(cert, key, org, minsValid)
+	i.certManager, err = tresor.NewCertManagerWithCA(cert, key, org, certValidityTime)
 	return err
 }
 

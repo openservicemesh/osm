@@ -14,7 +14,8 @@ import (
 )
 
 const (
-	defaultEnvoyImage = "envoyproxy/envoy-alpine:latest" // v1.13.1 currently
+	defaultEnvoyImage          = "envoyproxy/envoy-alpine:latest" // v1.13.1 currently
+	sidecarInjectorWebhookPort = 443
 )
 
 func main() {
@@ -60,7 +61,7 @@ func main() {
 				},
 				{
 					Name: "sidecar-injector",
-					Port: 443,
+					Port: sidecarInjectorWebhookPort,
 					TargetPort: intstr.IntOrString{
 						IntVal: constants.InjectorWebhookPort,
 					},

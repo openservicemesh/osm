@@ -28,6 +28,9 @@ const (
 
 	// Separator is the separator between the prefix and the name of the certificate.
 	Separator = ":"
+
+	// ConnectionTimeout is the timeout duration used by Envoy to timeout connections
+	ConnectionTimeout = 5 * time.Second
 )
 
 // GetAddress creates an Envoy Address struct.
@@ -162,7 +165,7 @@ func GetUpstreamTLSContext(serviceName endpoint.NamespacedService) *any.Any {
 func GetServiceCluster(clusterName string, serviceName endpoint.NamespacedService) xds.Cluster {
 	return xds.Cluster{
 		Name:                 clusterName,
-		ConnectTimeout:       ptypes.DurationProto(5 * time.Second),
+		ConnectTimeout:       ptypes.DurationProto(ConnectionTimeout),
 		LbPolicy:             xds.Cluster_ROUND_ROBIN,
 		ClusterDiscoveryType: &xds.Cluster_Type{Type: xds.Cluster_EDS},
 		EdsClusterConfig:     &xds.Cluster_EdsClusterConfig{EdsConfig: GetADSConfigSource()},
