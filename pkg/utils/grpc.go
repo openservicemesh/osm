@@ -12,7 +12,8 @@ import (
 )
 
 const (
-	maxStreams = 100000
+	maxStreams              = 100000
+	streamKeepAliveDuration = 60 * time.Second
 )
 
 // NewGrpc creates a new gRPC server
@@ -24,13 +25,12 @@ func NewGrpc(serverType string, port int, certPem string, keyPem string, rootCer
 		log.Fatal().Err(err).Msgf("Could not start %s gRPC server on %s", serverType, addr)
 	}
 
-	keepAlive := 60 * time.Second
-	log.Info().Msgf("Parameters for %s gRPC server: MaxConcurrentStreams=%d;  KeepAlive=%+v", serverType, maxStreams, keepAlive)
+	log.Info().Msgf("Parameters for %s gRPC server: MaxConcurrentStreams=%d;  KeepAlive=%+v", serverType, maxStreams, streamKeepAliveDuration)
 
 	grpcOptions := []grpc.ServerOption{
 		grpc.MaxConcurrentStreams(maxStreams),
 		grpc.KeepaliveParams(keepalive.ServerParameters{
-			Time: keepAlive,
+			Time: streamKeepAliveDuration,
 		}),
 		setupMutualTLS(false, serverType, certPem, keyPem, rootCertPem),
 	}

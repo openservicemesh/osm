@@ -77,8 +77,9 @@ func (az Client) GetID() string {
 
 func parseAzureID(id azureID) (resourceGroup, computeKind, computeName, error) {
 	// Sample URI: /resource/subscriptions/e3f0/resourceGroups/meshSpec-rg/providers/Microsoft.Compute/virtualMachineScaleSets/baz
+	azureIDPathLen := 9 // See above
 	chunks := strings.Split(string(id), "/")
-	if len(chunks) != 9 {
+	if len(chunks) != azureIDPathLen {
 		return "", "", "", errIncorrectAzureURI
 	}
 	resGroup := resourceGroup(chunks[4])

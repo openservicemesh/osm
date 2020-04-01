@@ -15,6 +15,10 @@ import (
 	"github.com/open-service-mesh/osm/pkg/envoy"
 )
 
+const (
+	weightAcceptAll uint32 = 100
+)
+
 func getServiceClusterLocal(catalog catalog.MeshCataloger, proxyService endpoint.NamespacedService, clusterName string) xds.Cluster {
 	xdsCluster := xds.Cluster{
 		// The name must match the domain being cURLed in the demo
@@ -51,7 +55,7 @@ func getServiceClusterLocal(catalog catalog.MeshCataloger, proxyService endpoint
 						},
 					},
 					LoadBalancingWeight: &wrappers.UInt32Value{
-						Value: 100, // Local cluster accepts all traffic
+						Value: weightAcceptAll, // Local cluster accepts all traffic
 					},
 				}},
 			}

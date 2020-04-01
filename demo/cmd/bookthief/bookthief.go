@@ -12,7 +12,8 @@ import (
 )
 
 const (
-	waitForEnvVar = "WAIT_FOR_OK_SECONDS"
+	waitForEnvVar                = "WAIT_FOR_OK_SECONDS"
+	sleepDurationBetweenRequests = 3 * time.Second
 )
 
 func main() {
@@ -37,7 +38,7 @@ func main() {
 		}
 		if waitForOK != 0 {
 			//since bookthief doesn't have any traffic policies setup to talk to bookstore it will get a 404
-			if responses[0] == 404 {
+			if responses[0] == http.StatusNotFound {
 				fmt.Printf(common.Success)
 			} else if time.Now().After(finishBy) {
 				fmt.Printf("It has been %v since we started the test. Response code from %s is %d. This test has failed.",
@@ -47,7 +48,7 @@ func main() {
 			}
 		}
 		fmt.Print("\n\n")
-		time.Sleep(3 * time.Second)
+		time.Sleep(sleepDurationBetweenRequests)
 	}
 }
 

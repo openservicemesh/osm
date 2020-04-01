@@ -12,7 +12,8 @@ import (
 )
 
 const (
-	waitForEnvVar = "WAIT_FOR_OK_SECONDS"
+	waitForEnvVar                = "WAIT_FOR_OK_SECONDS"
+	sleepDurationBetweenRequests = 3 * time.Second
 )
 
 func main() {
@@ -36,7 +37,7 @@ func main() {
 			responses = append(responses, response)
 		}
 		if waitForOK != 0 {
-			if responses[0] == 200 {
+			if responses[0] == http.StatusOK {
 				fmt.Printf(common.Success)
 			} else if time.Now().After(finishBy) {
 				fmt.Printf("It has been %v since we started the test. Response code from %s is %d. This test has failed.",
@@ -46,7 +47,7 @@ func main() {
 			}
 		}
 		fmt.Print("\n\n")
-		time.Sleep(3 * time.Second)
+		time.Sleep(sleepDurationBetweenRequests)
 	}
 }
 
