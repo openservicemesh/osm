@@ -19,7 +19,7 @@ import (
 func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer) error {
 	// When a new Envoy proxy connects, ValidateClient would ensure that it has a valid certificate,
 	// and the Subject CN is in the allowedCommonNames set.
-	cn, err := utils.ValidateClient(server.Context(), nil, packageName)
+	cn, err := utils.ValidateClient(server.Context(), nil)
 	if err != nil {
 		return errors.Wrap(err, "[%s] Could not start stream")
 	}
