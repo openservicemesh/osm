@@ -29,11 +29,11 @@ func main() {
 	osmID := os.Getenv(common.OsmIDEnvVar)
 
 	labels := map[string]string{
-		"app": common.AggregatedDiscoveryServiceName,
+		"app": constants.AggregatedDiscoveryServiceName,
 	}
 
 	meta := metav1.ObjectMeta{
-		Name:      common.AggregatedDiscoveryServiceName,
+		Name:      constants.AggregatedDiscoveryServiceName,
 		Namespace: namespace,
 		Labels:    labels,
 	}
@@ -53,10 +53,10 @@ func main() {
 		Spec: v1.ServiceSpec{
 			Ports: []v1.ServicePort{
 				{
-					Name: fmt.Sprintf("%s-port", common.AggregatedDiscoveryServiceName),
-					Port: common.AggregatedDiscoveryServicePort,
+					Name: fmt.Sprintf("%s-port", constants.AggregatedDiscoveryServiceName),
+					Port: constants.AggregatedDiscoveryServicePort,
 					TargetPort: intstr.IntOrString{
-						IntVal: common.AggregatedDiscoveryServicePort,
+						IntVal: constants.AggregatedDiscoveryServicePort,
 					},
 				},
 				{
@@ -68,7 +68,7 @@ func main() {
 				},
 			},
 			Selector: map[string]string{
-				"app": common.AggregatedDiscoveryServiceName,
+				"app": constants.AggregatedDiscoveryServiceName,
 			},
 			Type: "NodePort",
 		},
@@ -187,13 +187,13 @@ func main() {
 			InitContainers: nil,
 			Containers: []v1.Container{
 				{
-					Image:           fmt.Sprintf("%s/%s:%s", acr, common.AggregatedDiscoveryServiceName, adsVersion),
+					Image:           fmt.Sprintf("%s/%s:%s", acr, constants.AggregatedDiscoveryServiceName, adsVersion),
 					ImagePullPolicy: "Always",
-					Name:            common.AggregatedDiscoveryServiceName,
+					Name:            constants.AggregatedDiscoveryServiceName,
 					Ports: []v1.ContainerPort{
 						{
-							ContainerPort: common.AggregatedDiscoveryServicePort,
-							Name:          fmt.Sprintf("%s-port", common.AggregatedDiscoveryServiceName),
+							ContainerPort: constants.AggregatedDiscoveryServicePort,
+							Name:          fmt.Sprintf("%s-port", constants.AggregatedDiscoveryServiceName),
 						},
 					},
 					Command: []string{

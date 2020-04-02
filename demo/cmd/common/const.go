@@ -22,12 +22,6 @@ const (
 	// IsGithubEnvVar is the environment variable indicating whether this runs in Github CI.
 	IsGithubEnvVar = "IS_GITHUB"
 
-	// AggregatedDiscoveryServiceName is the name of the ADS service.
-	AggregatedDiscoveryServiceName = "ads"
-
-	// AggregatedDiscoveryServicePort is the port on which XDS listens for new connections.
-	AggregatedDiscoveryServicePort = 15128
-
 	// ContainerRegistryCredsEnvVar is the name of the environment variable storing the name of the container registry creds.
 	ContainerRegistryCredsEnvVar = "CTR_REGISTRY_CREDS_NAME"
 
