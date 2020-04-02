@@ -143,7 +143,7 @@ func main() {
 	// TODO(draychev): figure out the NS and POD
 	metricsStore := metricsstore.NewMetricStore("TBD_NameSpace", "TBD_PodName")
 	// TODO(draychev): the port number should be configurable
-	httpServer := httpserver.NewHTTPServer(adsServer, metricsStore, "15000", meshCatalog.GetDebugInfo)
+	httpServer := httpserver.NewHTTPServer(adsServer, metricsStore, constants.MetricsServerPort, meshCatalog.GetDebugInfo)
 	httpServer.Start()
 
 	// Wait for exit handler signal
