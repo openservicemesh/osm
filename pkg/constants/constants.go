@@ -51,4 +51,7 @@ const (
 
 	// RootCertPath is the path too the root certificate
 	RootCertPath = "/etc/ssl/certs/root-cert.pem"
+
+	// MetricsServerPort is the port on which OSM exposes its own metrics server
+	MetricsServerPort = 9091
 )

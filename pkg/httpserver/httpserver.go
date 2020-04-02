@@ -37,10 +37,10 @@ func NewHealthMux(handlers map[string]http.Handler) *http.ServeMux {
 }
 
 // NewHTTPServer creates a new api server
-func NewHTTPServer(somethingWithProbes health.Probes, metricStore metricsstore.MetricStore, apiPort string, debugInfo func() http.Handler) HTTPServer {
+func NewHTTPServer(somethingWithProbes health.Probes, metricStore metricsstore.MetricStore, apiPort int32, debugInfo func() http.Handler) HTTPServer {
 	return &httpServer{
 		server: &http.Server{
-			Addr: fmt.Sprintf(":%s", apiPort),
+			Addr: fmt.Sprintf(":%d", apiPort),
 			Handler: NewHealthMux(map[string]http.Handler{
 				"/health/ready": health.ReadinessHandler(somethingWithProbes),
 				"/health/alive": health.LivenessHandler(somethingWithProbes),
