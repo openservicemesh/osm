@@ -14,8 +14,6 @@ import (
 	"github.com/open-service-mesh/osm/pkg/smi"
 )
 
-type empty struct{}
-
 // NewResponse creates a new Endpoint Discovery Response.
 func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, request *xds.DiscoveryRequest) (*xds.DiscoveryResponse, error) {
 	proxyServiceName := proxy.GetService()

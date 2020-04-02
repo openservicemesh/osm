@@ -7,7 +7,6 @@ import (
 
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/azure/auth"
-	"github.com/rs/zerolog/log"
 )
 
 const (

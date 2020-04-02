@@ -20,8 +20,6 @@ import (
 	"github.com/open-service-mesh/osm/pkg/smi"
 )
 
-type empty struct{}
-
 type task struct {
 	structMaker  func(certificate.Certificater, string) (*auth.Secret, error)
 	resourceName string

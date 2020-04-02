@@ -4,7 +4,12 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/open-service-mesh/osm/pkg/logger"
 	"github.com/open-service-mesh/osm/pkg/namespace"
+)
+
+var (
+	log = logger.New("azure-kube-provider")
 )
 
 // InformerCollection is a struct of the Kubernetes informers used in OSM

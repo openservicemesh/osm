@@ -2,7 +2,6 @@ package ads
 
 import (
 	"context"
-	"reflect"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 
@@ -10,14 +9,10 @@ import (
 	"github.com/open-service-mesh/osm/pkg/envoy"
 	"github.com/open-service-mesh/osm/pkg/logger"
 	"github.com/open-service-mesh/osm/pkg/smi"
-	"github.com/open-service-mesh/osm/pkg/utils"
 )
 
-type empty struct{}
-
 var (
-	packageName = utils.GetLastChunkOfSlashed(reflect.TypeOf(empty{}).PkgPath())
-	log         = logger.New(packageName)
+	log = logger.New("envoy/ads")
 )
 
 //Server implements the Envoy xDS Aggregate Discovery Services

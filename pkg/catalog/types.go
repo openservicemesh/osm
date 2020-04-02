@@ -1,7 +1,6 @@
 package catalog
 
 import (
-	"reflect"
 	"sync"
 
 	mapset "github.com/deckarep/golang-set"
@@ -11,11 +10,10 @@ import (
 	"github.com/open-service-mesh/osm/pkg/envoy"
 	"github.com/open-service-mesh/osm/pkg/logger"
 	"github.com/open-service-mesh/osm/pkg/smi"
-	"github.com/open-service-mesh/osm/pkg/utils"
 )
 
 var (
-	log = logger.New(utils.GetLastChunkOfSlashed(reflect.TypeOf(empty{}).PkgPath()))
+	log = logger.New("mesh-catalog")
 )
 
 // MeshCatalog is the struct for the service catalog

@@ -3,8 +3,6 @@ package kubernetes
 import (
 	"reflect"
 
-	"github.com/rs/zerolog/log"
-
 	"k8s.io/client-go/tools/cache"
 )
 

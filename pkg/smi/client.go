@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/open-service-mesh/osm/pkg/endpoint"
-	"github.com/rs/zerolog/log"
 
 	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha1"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha1"
