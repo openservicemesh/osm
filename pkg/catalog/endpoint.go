@@ -6,8 +6,6 @@ import (
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 )
 
-type empty struct{}
-
 // ListEndpoints constructs a map from service to weighted sub-services with all endpoints the given Envoy proxy should be aware of.
 func (sc *MeshCatalog) ListEndpoints(clientID endpoint.NamespacedService) ([]endpoint.ServiceEndpoints, error) {
 	log.Info().Msgf("Listing Endpoints for client: %s", clientID.String())

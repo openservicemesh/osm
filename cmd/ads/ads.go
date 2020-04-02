@@ -52,7 +52,7 @@ var (
 	keyPem         = flags.String("keypem", "", "Full path to the xDS Key PEM file")
 	rootCertPem    = flags.String("rootcertpem", "", "Full path to the Root Certificate PEM file")
 	rootKeyPem     = flags.String("rootkeypem", "", "Full path to the Root Key PEM file")
-	log            = logger.New("main")
+	log            = logger.New("ads/main")
 )
 
 func init() {

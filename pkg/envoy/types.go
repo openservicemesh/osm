@@ -1,11 +1,19 @@
 package envoy
 
+import (
+	"github.com/open-service-mesh/osm/pkg/logger"
+)
+
+var (
+	// XDSResponseOrder is the order in which we send xDS responses: CDS, EDS, LDS, RDS
+	// See: https://github.com/envoyproxy/go-control-plane/issues/59
+	XDSResponseOrder = []TypeURI{TypeCDS, TypeEDS, TypeLDS, TypeRDS, TypeSDS}
+
+	log = logger.New("envoy")
+)
+
 // TypeURI is a string describing the Envoy xDS payload.
 type TypeURI string
-
-// XDSResponseOrder is the order in which we send xDS responses: CDS, EDS, LDS, RDS
-// See: https://github.com/envoyproxy/go-control-plane/issues/59
-var XDSResponseOrder = []TypeURI{TypeCDS, TypeEDS, TypeLDS, TypeRDS, TypeSDS}
 
 const (
 	// TypeSDS is the SDS type URI.

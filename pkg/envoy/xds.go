@@ -14,7 +14,6 @@ import (
 	"github.com/golang/protobuf/ptypes/any"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"
-	"github.com/rs/zerolog/log"
 
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 )

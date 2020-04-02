@@ -17,8 +17,6 @@ import (
 	"github.com/open-service-mesh/osm/pkg/smi"
 )
 
-type empty struct{}
-
 // NewResponse creates a new Listener Discovery Response.
 func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, request *xds.DiscoveryRequest) (*xds.DiscoveryResponse, error) {
 	log.Info().Msgf("Composing listener Discovery Response for proxy: %s", proxy.GetCommonName())

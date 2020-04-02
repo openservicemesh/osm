@@ -1,5 +1,13 @@
 package kubernetes
 
+import (
+	"github.com/open-service-mesh/osm/pkg/logger"
+)
+
+var (
+	log = logger.New("kube-events")
+)
+
 // EventType is the type of event we have received from Kubernetes
 type EventType int
 

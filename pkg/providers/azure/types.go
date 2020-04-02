@@ -2,7 +2,6 @@ package azure
 
 import (
 	"net"
-	"reflect"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/latest/resources/mgmt/resources"
 	"github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2018-04-01/compute"
@@ -12,7 +11,6 @@ import (
 	osm "github.com/open-service-mesh/osm/pkg/apis/azureresource/v1"
 	"github.com/open-service-mesh/osm/pkg/logger"
 	"github.com/open-service-mesh/osm/pkg/smi"
-	"github.com/open-service-mesh/osm/pkg/utils"
 )
 
 type resourceGroup string
@@ -24,11 +22,8 @@ const (
 	vmss computeKind = "Microsoft.Compute/virtualMachineScaleSets"
 )
 
-type empty struct{}
-
 var (
-	packageName = utils.GetLastChunkOfSlashed(reflect.TypeOf(empty{}).PkgPath())
-	log         = logger.New(packageName)
+	log = logger.New("azure-provider")
 )
 
 // azureID is a string type alias, which is the URI of a unique Azure cloud resource.

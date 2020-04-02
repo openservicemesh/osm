@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/rs/zerolog/log"
-
 	"github.com/open-service-mesh/osm/pkg/health"
 	"github.com/open-service-mesh/osm/pkg/metricsstore"
 )
@@ -15,16 +13,6 @@ import (
 const (
 	contextTimeoutDuration = 5 * time.Second
 )
-
-// HTTPServer serving probes and metrics
-type HTTPServer interface {
-	Start()
-	Stop()
-}
-
-type httpServer struct {
-	server *http.Server
-}
 
 // NewHealthMux makes a new *http.ServeMux
 func NewHealthMux(handlers map[string]http.Handler) *http.ServeMux {

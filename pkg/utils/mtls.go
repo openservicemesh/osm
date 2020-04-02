@@ -6,7 +6,6 @@ import (
 	"crypto/x509"
 	"io/ioutil"
 
-	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
@@ -44,28 +43,28 @@ func setupMutualTLS(insecure bool, serverName string, certPem string, keyPem str
 }
 
 // ValidateClient ensures that the connected client is authorized to connect to the gRPC server.
-func ValidateClient(ctx context.Context, allowedCommonNames map[string]interface{}, serverName string) (certificate.CommonName, error) {
+func ValidateClient(ctx context.Context, allowedCommonNames map[string]interface{}) (certificate.CommonName, error) {
 	mtlsPeer, ok := peer.FromContext(ctx)
 	if !ok {
-		log.Error().Msgf("[grpc][mTLS][%s] No peer found", serverName)
+		log.Error().Msg("[grpc][mTLS] No peer found")
 		return "", status.Error(codes.Unauthenticated, "no peer found")
 	}
 
 	tlsAuth, ok := mtlsPeer.AuthInfo.(credentials.TLSInfo)
 	if !ok {
-		log.Error().Msgf("[grpc][mTLS][%s] Unexpected peer transport credentials.", serverName)
+		log.Error().Msg("[grpc][mTLS] Unexpected peer transport credentials")
 		return "", status.Error(codes.Unauthenticated, "unexpected peer transport credentials")
 	}
 
 	if len(tlsAuth.State.VerifiedChains) == 0 || len(tlsAuth.State.VerifiedChains[0]) == 0 {
-		log.Error().Msgf("[grpc][mTLS][%s] Could not verify peer certificate.", serverName)
+		log.Error().Msgf("[grpc][mTLS] Could not verify peer certificate")
 		return "", status.Error(codes.Unauthenticated, "could not verify peer certificate")
 	}
 
 	// Check whether the subject common name is one that is allowed to connect.
 	cn := tlsAuth.State.VerifiedChains[0][0].Subject.CommonName
 	if _, ok := allowedCommonNames[cn]; len(allowedCommonNames) > 0 && !ok {
-		log.Error().Msgf("[grpc][mTLS][%s] Subject common name %+v not allowed", serverName, cn)
+		log.Error().Msgf("[grpc][mTLS] Subject common name %+v not allowed", cn)
 		return "", status.Error(codes.Unauthenticated, "disallowed subject common name")
 	}
 	return certificate.CommonName(cn), nil
