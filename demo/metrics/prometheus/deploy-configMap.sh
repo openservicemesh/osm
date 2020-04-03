@@ -15,6 +15,6 @@ metadata:
   name: "$PROMETHEUS_SVC-server-conf"
   labels:
     name: "$PROMETHEUS_SVC-server-conf"
-  namespace: "$PROMETHEUS_NAMESPACE"
+  namespace: "$K8S_NAMESPACE"
 $promethuesConfig  
 EOF

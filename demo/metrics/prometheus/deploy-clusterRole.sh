@@ -33,7 +33,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: "$PROMETHEUS_SVC-serviceaccount"
-  namespace: "$PROMETHEUS_NAMESPACE"
+  namespace: "$K8S_NAMESPACE"
 ---
 
 apiVersion: rbac.authorization.k8s.io/v1beta1
@@ -47,5 +47,5 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: "$PROMETHEUS_SVC-serviceaccount"
-  namespace: "$PROMETHEUS_NAMESPACE"
+  namespace: "$K8S_NAMESPACE"
 EOF

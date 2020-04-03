@@ -15,7 +15,5 @@ kubectl delete clusterrole osm-xds || true
 kubectl delete clusterrolebinding osm-xds || true
 
 # cleaning all prometheus related resources
-kubectl delete all --all -n "$PROMETHEUS_NAMESPACE"
 kubectl delete clusterrole "$PROMETHEUS_SVC" || true
 kubectl delete clusterrolebinding "$PROMETHEUS_SVC" || true
-kubectl delete namespace "$PROMETHEUS_NAMESPACE" || true

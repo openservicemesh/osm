@@ -11,7 +11,7 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: "$PROMETHEUS_SVC-deployment"
-  namespace: "$PROMETHEUS_NAMESPACE"
+  namespace: "$K8S_NAMESPACE"
 spec:
   replicas: 1
   strategy:
@@ -28,8 +28,9 @@ spec:
           args:
             - "--config.file=/etc/$PROMETHEUS_SVC/prometheus.yml"
             - "--storage.tsdb.path=/$PROMETHEUS_SVC/"
+            - "--web.listen-address=:7070"
           ports:
-            - containerPort: 9090
+            - containerPort: 7070
           volumeMounts:
             - name: "$PROMETHEUS_SVC-config-volume"
               mountPath: /etc/$PROMETHEUS_SVC/
@@ -49,16 +50,15 @@ apiVersion: v1
 kind: Service
 metadata:
   name: "$PROMETHEUS_SVC-service"
-  namespace: "$PROMETHEUS_NAMESPACE"
+  namespace: "$K8S_NAMESPACE"
   annotations:
       prometheus.io/scrape: 'true'
-      prometheus.io/port:   '9090'
+      prometheus.io/port:   '7070'
 spec:
   selector:
     app: "$PROMETHEUS_SVC-server"
   type: NodePort
   ports:
-    - port: 8080
-      targetPort: 9090
+    - port: 7070
 EOF
       

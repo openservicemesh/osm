@@ -40,8 +40,8 @@ const (
 	// EnvoyUID is the Envoy's User ID
 	EnvoyUID int64 = 1337
 
-	// EnvoyAdminAddress is the admin IP for Envoy
-	EnvoyAdminAddress = "127.0.0.1"
+	// LocalhostIPAddress is the local host address.
+	LocalhostIPAddress = "127.0.0.1"
 
 	// EnvoyAdminCluster is the cluster name for Envoy's Admin
 	EnvoyAdminCluster = "envoy-admin-cluster"

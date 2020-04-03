@@ -84,7 +84,7 @@ func getPrometheusCluster(clusterName string) xds.Cluster {
 					LbEndpoints: []*envoyEndpoint.LbEndpoint{{
 						HostIdentifier: &envoyEndpoint.LbEndpoint_Endpoint{
 							Endpoint: &envoyEndpoint.Endpoint{
-								Address: envoy.GetAddress(constants.EnvoyAdminAddress, constants.EnvoyAdminPort),
+								Address: envoy.GetAddress(constants.LocalhostIPAddress, constants.EnvoyAdminPort),
 							},
 						},
 						LoadBalancingWeight: &wrappers.UInt32Value{
