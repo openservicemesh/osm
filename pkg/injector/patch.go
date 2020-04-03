@@ -3,6 +3,8 @@ package injector
 import (
 	"encoding/json"
 	"fmt"
+	"path"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -74,6 +76,15 @@ func (wh *Webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 		"/spec/containers")...,
 	)
 
+	// Patch annotations
+	/* TODO: Add default annotations for stats collection
+	patches = append(patches, updateAnnotation(
+		pod.Annotations,
+		map[string]string{"test-key": "test-val"},
+		"/metadata/annotations")...,
+	)
+	*/
+
 	return json.Marshal(patches)
 }
 
@@ -117,4 +128,42 @@ func addContainer(target, add []corev1.Container, basePath string) (patch []JSON
 		})
 	}
 	return patch
+}
+
+func updateAnnotation(target, add map[string]string, basePath string) (patch []JSONPatchOperation) {
+	for key, value := range add {
+		if target == nil {
+			// First one will be a Create
+			target = map[string]string{}
+			patch = append(patch, JSONPatchOperation{
+				Op:   "add",
+				Path: basePath,
+				Value: map[string]string{
+					key: value,
+				},
+			})
+		} else {
+			// Update
+			op := "add"
+			if target[key] != "" {
+				op = "replace"
+			}
+			patch = append(patch, JSONPatchOperation{
+				Op:    op,
+				Path:  path.Join(basePath, escapeJSONPointerValue(key)),
+				Value: value,
+			})
+		}
+	}
+
+	return patch
+}
+
+// escapeJSONPointerValue escapes a JSON value as per https://tools.ietf.org/html/rfc6901.
+// Character '~' is encoded to '~0' and '/' is encoded to '~1' because
+// they have special meanings in JSON Pointer.
+func escapeJSONPointerValue(s string) string {
+	s = strings.Replace(s, "~", "~0", -1)
+	s = strings.Replace(s, "/", "~1", -1)
+	return s
 }
