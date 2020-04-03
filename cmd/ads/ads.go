@@ -47,7 +47,7 @@ var (
 var (
 	flags          = pflag.NewFlagSet(`ads`, pflag.ExitOnError)
 	subscriptionID = flags.String("subscriptionID", "", "Azure Subscription")
-	port           = flags.Int("port", 15128, "Clusters Discovery Service port number.")
+	port           = flags.Int("port", constants.AggregatedDiscoveryServicePort, "Aggregated Discovery Service port number.")
 	certPem        = flags.String("certpem", "", "Full path to the xDS Certificate PEM file")
 	keyPem         = flags.String("keypem", "", "Full path to the xDS Key PEM file")
 	rootCertPem    = flags.String("rootcertpem", "", "Full path to the Root Certificate PEM file")
