@@ -45,14 +45,14 @@ var (
 )
 
 var (
-	flags          = pflag.NewFlagSet(`ads`, pflag.ExitOnError)
-	subscriptionID = flags.String("subscriptionID", "", "Azure Subscription")
-	port           = flags.Int("port", constants.AggregatedDiscoveryServicePort, "Aggregated Discovery Service port number.")
-	certPem        = flags.String("certpem", "", "Full path to the xDS Certificate PEM file")
-	keyPem         = flags.String("keypem", "", "Full path to the xDS Key PEM file")
-	rootCertPem    = flags.String("rootcertpem", "", "Full path to the Root Certificate PEM file")
-	rootKeyPem     = flags.String("rootkeypem", "", "Full path to the Root Key PEM file")
-	log            = logger.New("ads/main")
+	flags               = pflag.NewFlagSet(`ads`, pflag.ExitOnError)
+	azureSubscriptionID = flags.String("azureSubscriptionID", "", "Azure Subscription ID")
+	port                = flags.Int("port", constants.AggregatedDiscoveryServicePort, "Aggregated Discovery Service port number.")
+	certPem             = flags.String("certpem", "", "Full path to the xDS Certificate PEM file")
+	keyPem              = flags.String("keypem", "", "Full path to the xDS Key PEM file")
+	rootCertPem         = flags.String("rootcertpem", "", "Full path to the Root Certificate PEM file")
+	rootKeyPem          = flags.String("rootkeypem", "", "Full path to the Root Key PEM file")
+	log                 = logger.New("ads/main")
 )
 
 func init() {
@@ -123,7 +123,7 @@ func main() {
 	if azureAuthFile != "" {
 		azureResourceClient := azureResource.NewClient(kubeConfig, namespaceController, stop)
 		endpointsProviders = append(endpointsProviders, azure.NewProvider(
-			*subscriptionID, azureAuthFile, stop, meshSpec, azureResourceClient, constants.AzureProviderName))
+			*azureSubscriptionID, azureAuthFile, stop, meshSpec, azureResourceClient, constants.AzureProviderName))
 	}
 	meshCatalog := catalog.NewMeshCatalog(meshSpec, certManager, stop, endpointsProviders...)
 
