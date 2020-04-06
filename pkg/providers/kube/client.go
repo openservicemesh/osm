@@ -7,8 +7,8 @@ import (
 
 	kubernetes2 "github.com/open-service-mesh/osm/pkg/kubernetes"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	extensionsv1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -30,7 +30,7 @@ func NewProvider(kubeConfig *rest.Config, namespaceController namespace.Controll
 
 	informerCollection := InformerCollection{
 		Endpoints:   informerFactory.Core().V1().Endpoints().Informer(),
-		Deployments: informerFactory.Extensions().V1beta1().Deployments().Informer(),
+		Deployments: informerFactory.Apps().V1().Deployments().Informer(),
 	}
 
 	cacheCollection := CacheCollection{
@@ -112,7 +112,7 @@ func (c Client) ListServicesForServiceAccount(svcAccount endpoint.NamespacedServ
 	deploymentsInterface := c.caches.Deployments.List()
 
 	for _, deployments := range deploymentsInterface {
-		if kubernetesDeployments := deployments.(*extensionsv1.Deployment); kubernetesDeployments != nil {
+		if kubernetesDeployments := deployments.(*appsv1.Deployment); kubernetesDeployments != nil {
 			if !c.namespaceController.IsMonitoredNamespace(kubernetesDeployments.Namespace) {
 				// Doesn't belong to namespaces we are observing
 				continue
