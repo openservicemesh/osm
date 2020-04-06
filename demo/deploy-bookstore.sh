@@ -56,8 +56,12 @@ spec:
       labels:
         app: $SVC
         version: v1
+      # TODO : move prometheus annotations to patch code
       annotations:
         "openservicemesh.io/sidecar-injection": "enabled"
+        "prometheus.io/scrape": "true"
+        "prometheus.io/port": "15010"
+        "prometheus.io/path": "/stats/prometheus"
     spec:
       serviceAccountName: "$SVC-serviceaccount"
       automountServiceAccountToken: false

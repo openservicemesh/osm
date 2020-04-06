@@ -13,3 +13,7 @@ for ns in "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE" "
 done
 kubectl delete clusterrole osm-xds || true
 kubectl delete clusterrolebinding osm-xds || true
+
+# cleaning all prometheus related resources
+kubectl delete clusterrole "$PROMETHEUS_SVC" || true
+kubectl delete clusterrolebinding "$PROMETHEUS_SVC" || true

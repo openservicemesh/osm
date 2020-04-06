@@ -85,6 +85,8 @@ done
 
 ./demo/deploy-webhook.sh "ads" "$K8S_NAMESPACE" "$OSM_ID"
 
+# Deploy prometheus to get metrics
+./demo/deploy-prometheus.sh
 # Deploy bookstore
 ./demo/deploy-bookstore.sh "bookstore"
 ./demo/deploy-bookstore.sh "bookstore-1"

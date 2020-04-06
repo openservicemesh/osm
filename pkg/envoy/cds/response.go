@@ -7,8 +7,8 @@ import (
 	"github.com/golang/protobuf/ptypes"
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
+	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/envoy"
-
 	"github.com/open-service-mesh/osm/pkg/smi"
 )
 
@@ -51,6 +51,14 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 		}
 		resp.Resources = append(resp.Resources, marshalledClusters)
 	}
+
+	prometheusCluster := getPrometheusCluster(constants.EnvoyAdminCluster)
+	marshalledCluster, err := ptypes.MarshalAny(&prometheusCluster)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed to marshal prometheus cluster for proxy %s", proxy.GetCommonName())
+		return nil, err
+	}
+	resp.Resources = append(resp.Resources, marshalledCluster)
 	return resp, nil
 }
 

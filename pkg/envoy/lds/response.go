@@ -17,6 +17,12 @@ import (
 	"github.com/open-service-mesh/osm/pkg/smi"
 )
 
+const (
+	inboundListenerName    = "inbound_listener"
+	outboundListenerName   = "outbound_listener"
+	prometheusListenerName = "inbound_prometheus_listener"
+)
+
 // NewResponse creates a new Listener Discovery Response.
 func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, request *xds.DiscoveryRequest) (*xds.DiscoveryResponse, error) {
 	log.Info().Msgf("Composing listener Discovery Response for proxy: %s", proxy.GetCommonName())
@@ -31,7 +37,6 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 		return nil, err
 	}
 
-	outboundListenerName := "outbound_listener"
 	clientListener := &xds.Listener{
 		Name:    outboundListenerName,
 		Address: envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyOutboundListenerPort),
@@ -48,7 +53,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 			},
 		},
 	}
-	log.Info().Msgf("Creating an %s for proxy %s for service %s: %+v", outboundListenerName, proxy.GetCommonName(), proxy.GetService(), clientListener)
+	log.Info().Msgf("Created listener %s for proxy %s for service %s: %+v", outboundListenerName, proxy.GetCommonName(), proxy.GetService(), clientListener)
 
 	serverConnManager, err := ptypes.MarshalAny(getHTTPConnectionManager(route.InboundRouteConfig))
 	if err != nil {
@@ -56,7 +61,6 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 		return nil, err
 	}
 
-	inboundListenerName := "inbound_listener"
 	serverNames, err := getFilterChainMatchServerNames(proxyServiceName, catalog)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to get client server names for proxy %s", proxy.GetCommonName())
@@ -89,7 +93,36 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 			},
 		},
 	}
-	log.Info().Msgf("Created an %s for proxy %s for service %s: %+v", inboundListenerName, proxy.GetCommonName(), proxy.GetService(), serverListener)
+	log.Info().Msgf("Created listener %s for proxy %s for service %s: %+v", inboundListenerName, proxy.GetCommonName(), proxy.GetService(), serverListener)
+	prometheusConnManager, err := ptypes.MarshalAny(getPrometheusConnectionManager(prometheusListenerName, constants.PrometheusScrapePath, constants.EnvoyAdminCluster))
+	if err != nil {
+		log.Error().Err(err).Msgf("Could not construct prometheus listener connection manager")
+		return nil, err
+	}
+	prometheusListener := &xds.Listener{
+		Name:             prometheusListenerName,
+		TrafficDirection: envoy_api_v2_core.TrafficDirection_INBOUND,
+		Address:          envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyPrometheusInboundListenerPort),
+		FilterChains: []*listener.FilterChain{
+			{
+				Filters: []*listener.Filter{
+					{
+						Name: wellknown.HTTPConnectionManager,
+						ConfigType: &listener.Filter_TypedConfig{
+							TypedConfig: prometheusConnManager,
+						},
+					},
+				},
+			},
+		},
+	}
+	log.Info().Msgf("Created listener %s for proxy %s for service %s: %+v", prometheusListenerName, proxy.GetCommonName(), proxy.GetService(), prometheusListener)
+	marshalledPrometheus, err := ptypes.MarshalAny(prometheusListener)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed to marshal inbound listener for proxy %s", proxy.GetCommonName())
+		return nil, err
+	}
+	resp.Resources = append(resp.Resources, marshalledPrometheus)
 
 	marshalledOutbound, err := ptypes.MarshalAny(clientListener)
 	if err != nil {
