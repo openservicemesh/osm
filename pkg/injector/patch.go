@@ -4,12 +4,20 @@ import (
 	"encoding/json"
 	"fmt"
 	"path"
+	"strconv"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/utils"
+)
+
+const (
+	prometheusScrapeAnnotation = "prometheus.io/scrape"
+	prometheusPortAnnotation   = "prometheus.io/port"
+	prometheusPathAnnotation   = "prometheus.io/path"
 )
 
 func (wh *Webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error) {
@@ -77,13 +85,15 @@ func (wh *Webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 	)
 
 	// Patch annotations
-	/* TODO: Add default annotations for stats collection
+	prometheusAnnotations := make(map[string]string)
+	prometheusAnnotations[prometheusScrapeAnnotation] = strconv.FormatBool(true)
+	prometheusAnnotations[prometheusPortAnnotation] = strconv.Itoa(constants.EnvoyPrometheusInboundListenerPort)
+	prometheusAnnotations[prometheusPathAnnotation] = constants.PrometheusScrapePath
 	patches = append(patches, updateAnnotation(
 		pod.Annotations,
-		map[string]string{"test-key": "test-val"},
+		prometheusAnnotations,
 		"/metadata/annotations")...,
 	)
-	*/
 
 	return json.Marshal(patches)
 }
