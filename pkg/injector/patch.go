@@ -85,10 +85,11 @@ func (wh *Webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 	)
 
 	// Patch annotations
-	prometheusAnnotations := make(map[string]string)
-	prometheusAnnotations[prometheusScrapeAnnotation] = strconv.FormatBool(true)
-	prometheusAnnotations[prometheusPortAnnotation] = strconv.Itoa(constants.EnvoyPrometheusInboundListenerPort)
-	prometheusAnnotations[prometheusPathAnnotation] = constants.PrometheusScrapePath
+	prometheusAnnotations := map[string]string{
+		prometheusScrapeAnnotation: strconv.FormatBool(true),
+		prometheusPortAnnotation:   strconv.Itoa(constants.EnvoyPrometheusInboundListenerPort),
+		prometheusPathAnnotation:   constants.PrometheusScrapePath,
+	}
 	patches = append(patches, updateAnnotation(
 		pod.Annotations,
 		prometheusAnnotations,
