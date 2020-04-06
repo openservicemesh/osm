@@ -7,13 +7,16 @@ source .env
 
 echo -e "Deploy $PROMETHEUS_SVC monitoring service"
 cat <<EOF | kubectl apply -f -
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: "$PROMETHEUS_SVC-deployment"
   namespace: "$K8S_NAMESPACE"
 spec:
   replicas: 1
+  selector:
+    matchLabels:
+      app:  "$PROMETHEUS_SVC-server"
   strategy:
     type: Recreate
   template:
@@ -61,4 +64,3 @@ spec:
   ports:
     - port: 7070
 EOF
-      
