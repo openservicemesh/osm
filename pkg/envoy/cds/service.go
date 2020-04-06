@@ -16,7 +16,8 @@ import (
 )
 
 const (
-	weightAcceptAll uint32 = 100
+	weightAcceptAll   uint32        = 100
+	connectionTimeout time.Duration = 1 * time.Second
 )
 
 func getServiceClusterLocal(catalog catalog.MeshCataloger, proxyService endpoint.NamespacedService, clusterName string) xds.Cluster {
@@ -24,7 +25,7 @@ func getServiceClusterLocal(catalog catalog.MeshCataloger, proxyService endpoint
 		// The name must match the domain being cURLed in the demo
 		Name:                          clusterName,
 		AltStatName:                   clusterName,
-		ConnectTimeout:                ptypes.DurationProto(1 * time.Second),
+		ConnectTimeout:                ptypes.DurationProto(connectionTimeout),
 		LbPolicy:                      xds.Cluster_ROUND_ROBIN,
 		RespectDnsTtl:                 true,
 		DrainConnectionsOnHostRemoval: true,
@@ -71,7 +72,7 @@ func getPrometheusCluster(clusterName string) xds.Cluster {
 		// The name must match the domain being cURLed in the demo
 		Name:           clusterName,
 		AltStatName:    clusterName,
-		ConnectTimeout: ptypes.DurationProto(1 * time.Second),
+		ConnectTimeout: ptypes.DurationProto(connectionTimeout),
 		ClusterDiscoveryType: &xds.Cluster_Type{
 			Type: xds.Cluster_STATIC,
 		},
