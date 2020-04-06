@@ -58,11 +58,6 @@ spec:
       labels:
         app: bookthief
         version: v1
-      # TODO : move prometheus annotations to patch code
-      annotations:
-        "prometheus.io/scrape": "true"
-        "prometheus.io/port": "15010"
-        "prometheus.io/path": "/stats/prometheus"
     spec:
       serviceAccountName: bookthief-serviceaccount
       automountServiceAccountToken: false
