@@ -15,23 +15,32 @@ const (
 
 // IssueCertificate implements certificate.Manager and returns a newly issued certificate.
 func (cm *CertManager) IssueCertificate(cn certificate.CommonName) (certificate.Certificater, error) {
+	log.Info().Msgf("Issuing new certificate for CN=%s", cn)
 	if cert, exists := cm.cache[cn]; exists {
+		log.Info().Msgf("Found in cache - certificate with CN=%s", cn)
 		return cert, nil
 	}
-	log.Info().Msgf("Issuing Certificate for CN=%s", cn)
+
 	if cm.ca == nil || cm.caPrivKey == nil {
+		log.Error().Msgf("Invalid CA provided for issuance of certificate with CN=%s", cn)
 		return nil, errNoCA
 	}
+
 	certPrivKey, err := rsa.GenerateKey(rand.Reader, rsaBits)
 	if err != nil {
+		log.Error().Err(err).Msgf("Error generating private key for certificate with CN=%s", cn)
 		return nil, errors.Wrap(err, errGeneratingPrivateKey.Error())
 	}
+
 	template, err := makeTemplate(string(cn), cm.org, cm.validity)
 	if err != nil {
+		log.Error().Err(err).Msgf("Error creating template for certificate with CN=%s", cn)
 		return nil, err
 	}
+
 	certPEM, privKeyPEM, err := genCert(template, cm.ca, certPrivKey, cm.caPrivKey)
 	if err != nil {
+		log.Error().Err(err).Msgf("Error creating certificate with CN=%s", cn)
 		return nil, err
 	}
 	cert := Certificate{
