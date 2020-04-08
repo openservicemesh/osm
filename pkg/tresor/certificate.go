@@ -78,15 +78,21 @@ func NewSelfSignedCert(host string, org string, validity time.Duration) (pem.Cer
 func genCert(template, parent *x509.Certificate, certPrivKey, caPrivKey *rsa.PrivateKey) (pem.Certificate, pem.PrivateKey, error) {
 	derBytes, err := x509.CreateCertificate(rand.Reader, template, parent, &certPrivKey.PublicKey, caPrivKey)
 	if err != nil {
+		log.Error().Err(err).Msgf("Error issuing x509.CreateCertificate command for CN=%s", template.Subject.CommonName)
 		return nil, nil, errors.Wrap(err, errCreateCert.Error())
 	}
+
 	certPEM, err := encodeCert(derBytes)
 	if err != nil {
+		log.Error().Err(err).Msgf("Error encoding certificate with CN=%s", template.Subject.CommonName)
 		return nil, nil, err
 	}
+
 	privKeyPEM, err := encodeKey(certPrivKey)
 	if err != nil {
+		log.Error().Err(err).Msgf("Error encoding private key for certificate with CN=%s", template.Subject.CommonName)
 		return nil, nil, err
 	}
+
 	return certPEM, privKeyPEM, nil
 }
