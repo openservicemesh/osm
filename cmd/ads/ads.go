@@ -111,6 +111,11 @@ func main() {
 
 	namespaceController := namespace.NewNamespaceController(kubeConfig, osmID, stop)
 	meshSpec := smi.NewMeshSpecClient(kubeConfig, osmNamespace, namespaceController, stop)
+	cert, err := tresor.LoadCA(*rootCertPem, *rootKeyPem)
+	if err != nil {
+		log.Fatal().Msgf("Error loading CA from files %s and %s", *rootCertPem, *rootKeyPem)
+	}
+	log.Info().Msgf("Loaded CA root %s cert from files %s and %s", cert.GetName(), *rootCertPem, *rootKeyPem)
 	certManager, err := tresor.NewCertManagerWithCAFromFile(*rootCertPem, *rootKeyPem, "Acme", 1*time.Hour)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Could not instantiate Certificate Manager")
