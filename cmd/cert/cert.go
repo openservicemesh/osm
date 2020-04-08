@@ -7,16 +7,16 @@ import (
 	"os"
 	"time"
 
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/pflag"
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/open-service-mesh/osm/pkg/logger"
 	"github.com/open-service-mesh/osm/pkg/tresor"
 	"github.com/open-service-mesh/osm/pkg/tresor/pem"
 )
 
 var (
-	flags           = pflag.NewFlagSet(`certificate-tresor`, pflag.ExitOnError)
+	flags           = pflag.NewFlagSet("certificate-tresor", pflag.ExitOnError)
 	host            = flags.String("host", "bookstore.mesh", "host name for the certificate")
 	out             = flags.String("out", "", "full path to the certificate PEM file")
 	keyout          = flags.String("keyout", "", "full path to the private key PEM file")
@@ -26,59 +26,67 @@ var (
 	caKeyPEMFileOut = flags.String("caKeyPEMFileOut", "", "full path to the root cert key to be created")
 	org             = flags.String("org", "ACME Co", "name of the organization for certificate manager")
 	validity        = flags.Int("validity", 525600, "validity duration of a certificate in MINUTES")
+	genca           = flags.Bool("genca", false, "set this flag to true to generate a new CA certificate; no other certificates will be created")
+)
+
+var (
+	log = logger.New("cert")
 )
 
 func main() {
 	parseFlags()
 
-	var caPEM pem.RootCertificate
-	var caKeyPEM pem.RootPrivateKey
-	var certManager *tresor.CertManager
-	var err error
-
-	validityMinutes := time.Duration(*validity) * time.Minute
-
-	if caPEMFileIn != nil && caKeyPEMFileIn != nil && *caPEMFileIn != "" && *caKeyPEMFileIn != "" {
-		if certManager, err = tresor.NewCertManagerWithCAFromFile(*caPEMFileIn, *caKeyPEMFileIn, *org, validityMinutes); err != nil {
-			log.Fatal().Err(err).Msg("Failed to create new Certificate Manager")
-		}
-	} else {
-		var ca *x509.Certificate
-		var caKey *rsa.PrivateKey
-		if caPEM, caKeyPEM, ca, caKey, err = tresor.NewCA(*org, validityMinutes); err != nil {
+	if *genca {
+		validityMinutes := time.Duration(*validity) * time.Minute
+		caPEM, caKeyPEM, _, _, err := tresor.NewCA(*org, validityMinutes)
+		if err != nil {
 			log.Fatal().Err(err).Msg("Failed to create new Certificate Authority")
 		}
-		certManager, err = tresor.NewCertManagerWithCA(ca, caKey, *org, validityMinutes)
+		writeFile(*caPEMFileOut, caPEM)
+		writeFile(*caKeyPEMFileOut, caKeyPEM)
+		os.Exit(0)
 	}
 
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to instantiate Certificate Manager")
-	}
-
+	certManager, caPEM, caKeyPEM, _, _ := getCertManager()
 	cert, err := certManager.IssueCertificate(certificate.CommonName(*host))
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to a new certificate")
 	}
 
-	if caPEMFileOut != nil && *caPEMFileOut != "" {
-		writeFile(*caPEMFileOut, caPEM)
-	}
-	if caKeyPEMFileOut != nil && *caPEMFileOut != "" {
-		writeFile(*caKeyPEMFileOut, caKeyPEM)
+	writeFile(*caPEMFileOut, caPEM)
+	writeFile(*caKeyPEMFileOut, caKeyPEM)
+
+	writeFile(*out, cert.GetCertificateChain())
+	writeFile(*keyout, cert.GetPrivateKey())
+
+}
+
+func getCertManager() (*tresor.CertManager, pem.RootCertificate, pem.RootPrivateKey, *x509.Certificate, *rsa.PrivateKey) {
+	validityMinutes := time.Duration(*validity) * time.Minute
+
+	if caPEMFileIn != nil && caKeyPEMFileIn != nil && *caPEMFileIn != "" && *caKeyPEMFileIn != "" {
+		certManager, err := tresor.NewCertManagerWithCAFromFile(*caPEMFileIn, *caKeyPEMFileIn, *org, validityMinutes)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to create new Certificate Manager")
+		}
+		return certManager, nil, nil, nil, nil
 	}
 
-	if out != nil && *out != "" {
-		writeFile(*out, cert.GetCertificateChain())
+	caPEM, caKeyPEM, ca, caKey, err := tresor.NewCA(*org, validityMinutes)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to create new Certificate Authority")
 	}
-	if keyout != nil && *keyout != "" {
-		writeFile(*keyout, cert.GetPrivateKey())
+	certManager, err := tresor.NewCertManagerWithCA(ca, caKey, *org, validityMinutes)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to instantiate Certificate Manager")
 	}
-
+	return certManager, caPEM, caKeyPEM, ca, caKey
 }
 
 func writeFile(fileName string, content []byte) {
 	if fileName == "" {
-		log.Fatal().Msgf("Invalid file name: %+v", fileName)
+		log.Error().Msgf("Invalid file name: %+v", fileName)
+		return
 	}
 	keyOut, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
