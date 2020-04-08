@@ -4,8 +4,11 @@ import (
 	goflag "flag"
 	"io"
 	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 var globalUsage = `osm enables you to install and manage the 
@@ -42,4 +45,20 @@ func main() {
 	if err := cmd.Execute(); err != nil {
 		os.Exit(1)
 	}
+}
+
+func homeDir() string {
+	if h := os.Getenv("HOME"); h != "" {
+		return h
+	}
+	return os.Getenv("USERPROFILE") // windows
+}
+
+func getKubeClient(context string) (kubernetes.Interface, error) {
+	kubeConfigPath := filepath.Join(homeDir(), ".kube", "config")
+	config, err := clientcmd.BuildConfigFromFlags("", kubeConfigPath)
+	if err != nil {
+		return nil, err
+	}
+	return kubernetes.NewForConfig(config)
 }

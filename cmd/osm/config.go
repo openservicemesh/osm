@@ -3,11 +3,19 @@ package main
 import (
 	"fmt"
 
+	admissionv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	apiv1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+
+	"github.com/open-service-mesh/osm/pkg/constants"
+)
+
+const (
+	defaultEnvoyImage          = "envoyproxy/envoy-alpine:latest" // v1.13.1 currently
+	sidecarInjectorWebhookPort = 443
 )
 
 func generateCertConfig(name, namespace, key string, value []byte) *apiv1.ConfigMap {
@@ -42,6 +50,13 @@ func generateKubernetesConfig(name, namespace, serviceAccountName, containerRegi
 					TargetPort: intstr.IntOrString{
 						Type:   intstr.Int,
 						IntVal: port,
+					},
+				},
+				{
+					Name: "sidecar-injector",
+					Port: sidecarInjectorWebhookPort,
+					TargetPort: intstr.IntOrString{
+						IntVal: constants.InjectorWebhookPort,
 					},
 				},
 			},
@@ -86,18 +101,17 @@ func generateKubernetesConfig(name, namespace, serviceAccountName, containerRegi
 							},
 							Command: []string{fmt.Sprintf("/%s", name)},
 							Args: []string{
-								"--verbosity",
-								"info",
-								"--namespace",
-								namespace,
-								"--certpem",
-								"/etc/ssl/certs/cert.pem",
-								"--keypem",
-								"/etc/ssl/certs/key.pem",
-								"--rootcertpem",
-								"/etc/ssl/certs/root-cert.pem",
-								"--rootkeypem",
-								"/etc/ssl/certs/root-key.pem",
+								"--verbosity", "trace",
+								"--osmNamespace", namespace,
+								"--osmID", "osm-local",
+								//TODO "--appNamespaces, appNamespace,
+								"--certpem", "/etc/ssl/certs/cert.pem",
+								"--keypem", "/etc/ssl/certs/key.pem",
+								"--rootcertpem", "/etc/ssl/certs/root-cert.pem",
+								"--rootkeypem", "/etc/ssl/certs/root-key.pem",
+								"--init-container-image",
+								fmt.Sprintf("%s/%s:latest", containerRegistry, "init"),
+								"--sidecar-image", defaultEnvoyImage,
 							},
 							Env: []apiv1.EnvVar{
 								{
@@ -130,6 +144,11 @@ func generateKubernetesConfig(name, namespace, serviceAccountName, containerRegi
 									Name:      "ca-rootkeypemstore",
 									MountPath: "/etc/ssl/certs/root-key.pem",
 									SubPath:   "root-key.pem",
+								},
+								{
+									Name:      "webhook-tls-certs",
+									MountPath: "/run/secrets/tls",
+									ReadOnly:  true,
 								},
 							},
 						},
@@ -176,6 +195,14 @@ func generateKubernetesConfig(name, namespace, serviceAccountName, containerRegi
 								},
 							},
 						},
+						{
+							Name: "webhook-tls-certs",
+							VolumeSource: apiv1.VolumeSource{
+								Secret: &apiv1.SecretVolumeSource{
+									SecretName: "webhook-tls-certs",
+								},
+							},
+						},
 					},
 					ImagePullSecrets: []apiv1.LocalObjectReference{
 						{
@@ -196,7 +223,7 @@ func generateRBAC(namespace, serviceAccountName string) (*rbacv1.ClusterRole, *r
 		},
 		Rules: []rbacv1.PolicyRule{
 			rbacv1.PolicyRule{
-				APIGroups: []string{"apps"},
+				APIGroups: []string{"apps", "extensions"},
 				Resources: []string{"daemonsets", "deployments", "replicasets", "statefulsets"},
 				Verbs:     []string{"list", "get", "watch"},
 			},
@@ -209,6 +236,11 @@ func generateRBAC(namespace, serviceAccountName string) (*rbacv1.ClusterRole, *r
 				APIGroups: []string{""},
 				Resources: []string{"pods", "endpoints", "services", "replicationcontrollers", "namespaces"},
 				Verbs:     []string{"list", "get", "watch"},
+			},
+			rbacv1.PolicyRule{
+				APIGroups: []string{""},
+				Resources: []string{"secrets", "configmaps"},
+				Verbs:     []string{"create"},
 			},
 			rbacv1.PolicyRule{
 				APIGroups: []string{"split.smi-spec.io"},
@@ -253,3 +285,50 @@ func generateRBAC(namespace, serviceAccountName string) (*rbacv1.ClusterRole, *r
 
 	return role, roleBinding, serviceAccount
 }
+
+func generateWebhookConfig(caBundle []byte, namespace string) *admissionv1beta1.MutatingWebhookConfiguration {
+
+	webhookConfig := &admissionv1beta1.MutatingWebhookConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-ads-webhook", namespace),
+			Namespace: namespace,
+			Labels:    map[string]string{"app": "ads"},
+		},
+	}
+
+	policyFail := admissionv1beta1.Fail
+	path := "/mutate"
+	webhooks := []admissionv1beta1.MutatingWebhook{
+		admissionv1beta1.MutatingWebhook{
+			Name: "osm-inject.k8s.io",
+			ClientConfig: admissionv1beta1.WebhookClientConfig{
+				Service: &admissionv1beta1.ServiceReference{
+					Namespace: namespace,
+					Name:      "ads",
+					Path:      &path,
+				},
+				CABundle: caBundle,
+			},
+			Rules: []admissionv1beta1.RuleWithOperations{
+				admissionv1beta1.RuleWithOperations{
+					Operations: []admissionv1beta1.OperationType{admissionv1beta1.Create},
+					Rule: admissionv1beta1.Rule{
+						APIGroups:   []string{""},
+						APIVersions: []string{"v1"},
+						Resources:   []string{"pods"},
+					},
+				},
+			},
+			FailurePolicy: &policyFail,
+			NamespaceSelector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"openservicemesh.io/monitor": "osm-local",
+				},
+			},
+		},
+	}
+	webhookConfig.Webhooks = webhooks
+	return webhookConfig
+}
+
+func int32Ptr(i int32) *int32 { return &i }
