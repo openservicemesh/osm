@@ -29,6 +29,7 @@ func (c Certificate) GetPrivateKey() []byte {
 // GetRootCertificate implements certificate.Certificater and returns the root certificate for the given cert.
 func (c Certificate) GetRootCertificate() *x509.Certificate {
 	if c.ca == nil {
+		log.Info().Msgf("No root certificate available for certificate with CN=%s", c.x509Cert.Subject.CommonName)
 		return nil
 	}
 	return c.ca.x509Cert

@@ -64,24 +64,24 @@ func getCertManager() (*tresor.CertManager, *tresor.Certificate) {
 	if caPEMFileIn != nil && caKeyPEMFileIn != nil && *caPEMFileIn != "" && *caKeyPEMFileIn != "" {
 		ca, err := tresor.LoadCA(*caPEMFileIn, *caKeyPEMFileIn)
 		if err != nil {
-			log.Fatal().Err(err).Msgf("Error loading certificate & key from files %s and %s", *caPEMFileIn, *caKeyPEMFileIn)
+			log.Fatal().Err(err).Msgf("Error loading root certificate & key from files %s and %s", *caPEMFileIn, *caKeyPEMFileIn)
 		}
 		certManager, err := tresor.NewCertManager(ca, validityMinutes)
 		if err != nil {
 			log.Fatal().Err(err).Msg("Failed to create new Certificate Manager")
 		}
-		return certManager, nil
+		return certManager, ca
 	}
 
-	cert, err := tresor.NewCA(validityMinutes)
+	ca, err := tresor.NewCA(validityMinutes)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to create new Certificate Authority")
 	}
-	certManager, err := tresor.NewCertManager(cert, validityMinutes)
+	certManager, err := tresor.NewCertManager(ca, validityMinutes)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to instantiate Certificate Manager")
 	}
-	return certManager, cert
+	return certManager, ca
 }
 
 func writeFile(fileName string, content []byte) {

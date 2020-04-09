@@ -14,13 +14,13 @@ var _ = Describe("Test Certificate Manager", func() {
 		rootKeyPem := "sample_private_key.pem"
 		cert, err := LoadCA(rootCertPem, rootKeyPem)
 		if err != nil {
-			log.Fatal().Msgf("Error loading CA from files %s and %s", rootCertPem, rootKeyPem)
+			log.Fatal().Err(err).Msgf("Error loading CA from files %s and %s", rootCertPem, rootKeyPem)
 		}
-		m, err1 := NewCertManager(cert, validity)
+		m, newCertError := NewCertManager(cert, validity)
 		It("should issue a certificate", func() {
-			Expect(err1).ToNot(HaveOccurred())
-			cert, err2 := m.IssueCertificate("a.b.c")
-			Expect(err2).ToNot(HaveOccurred())
+			Expect(newCertError).ToNot(HaveOccurred())
+			cert, issueCerterror := m.IssueCertificate("a.b.c")
+			Expect(issueCerterror).ToNot(HaveOccurred())
 			Expect(cert.GetName()).To(Equal("a.b.c"))
 		})
 	})
