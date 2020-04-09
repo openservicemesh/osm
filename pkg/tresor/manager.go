@@ -3,6 +3,10 @@ package tresor
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"math/big"
+	"time"
 
 	"github.com/pkg/errors"
 
@@ -13,11 +17,11 @@ import (
 func (cm *CertManager) IssueCertificate(cn certificate.CommonName) (certificate.Certificater, error) {
 	log.Info().Msgf("Issuing new certificate for CN=%s", cn)
 	if cert, exists := cm.cache[cn]; exists {
-		log.Info().Msgf("Found in cache - certificate with CN=%s", cn)
+		log.Info().Msgf("Found in cache certificate with CN=%s", cn)
 		return cert, nil
 	}
 
-	if cm.ca == nil || cm.ca.rsaKey == nil {
+	if cm.ca == nil || cm.ca.x509Cert == nil || cm.ca.rsaKey == nil {
 		log.Error().Msgf("Invalid CA provided for issuance of certificate with CN=%s", cn)
 		return nil, errNoCA
 	}
@@ -28,17 +32,45 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName) (certificate.
 		return nil, errors.Wrap(err, errGeneratingPrivateKey.Error())
 	}
 
-	template, err := makeTemplate(string(cn), org, cm.validity)
+	serialNumber, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
 	if err != nil {
-		log.Error().Err(err).Msgf("Error creating template for certificate with CN=%s", cn)
+		return nil, errors.Wrap(err, errGeneratingSerialNumber.Error())
+	}
+
+	now := time.Now()
+	template := x509.Certificate{
+		SerialNumber: serialNumber,
+		DNSNames:     []string{string(cn)},
+		Subject: pkix.Name{
+			CommonName:   string(cn),
+			Organization: []string{org},
+		},
+		NotBefore: now,
+		NotAfter:  now.Add(cm.validity),
+
+		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		BasicConstraintsValid: true,
+	}
+
+	derBytes, err := x509.CreateCertificate(rand.Reader, &template, cm.ca.x509Cert, &certPrivKey.PublicKey, cm.ca.rsaKey)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error issuing x509.CreateCertificate command for CN=%s", template.Subject.CommonName)
+		return nil, errors.Wrap(err, errCreateCert.Error())
+	}
+
+	certPEM, err := encodeCert(derBytes)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error encoding certificate with CN=%s", template.Subject.CommonName)
 		return nil, err
 	}
 
-	certPEM, privKeyPEM, err := genCert(template, cm.ca.x509Cert, certPrivKey, cm.ca.rsaKey)
+	privKeyPEM, err := encodeKey(certPrivKey)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error creating certificate with CN=%s", cn)
+		log.Error().Err(err).Msgf("Error encoding private key for certificate with CN=%s", template.Subject.CommonName)
 		return nil, err
 	}
+
 	cert := Certificate{
 		name:       string(cn),
 		certChain:  certPEM,
