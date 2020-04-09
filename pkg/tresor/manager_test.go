@@ -10,12 +10,17 @@ import (
 var _ = Describe("Test Certificate Manager", func() {
 	Context("Test issuing a certificate", func() {
 		validity := 3 * time.Second
-		org := "contoso"
-		m, err1 := NewCertManagerWithCAFromFile("sample_certificate.pem", "sample_private_key.pem", org, validity)
+		rootCertPem := "sample_certificate.pem"
+		rootKeyPem := "sample_private_key.pem"
+		cert, err := LoadCA(rootCertPem, rootKeyPem)
+		if err != nil {
+			log.Fatal().Err(err).Msgf("Error loading CA from files %s and %s", rootCertPem, rootKeyPem)
+		}
+		m, newCertError := NewCertManager(cert, validity)
 		It("should issue a certificate", func() {
-			Expect(err1).ToNot(HaveOccurred())
-			cert, err2 := m.IssueCertificate("a.b.c")
-			Expect(err2).ToNot(HaveOccurred())
+			Expect(newCertError).ToNot(HaveOccurred())
+			cert, issueCerterror := m.IssueCertificate("a.b.c")
+			Expect(issueCerterror).ToNot(HaveOccurred())
 			Expect(cert.GetName()).To(Equal("a.b.c"))
 		})
 	})
