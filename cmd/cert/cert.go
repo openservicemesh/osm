@@ -1,8 +1,6 @@
 package main
 
 import (
-	"crypto/rsa"
-	"crypto/x509"
 	"flag"
 	"os"
 	"time"
@@ -12,7 +10,6 @@ import (
 	"github.com/open-service-mesh/osm/pkg/certificate"
 	"github.com/open-service-mesh/osm/pkg/logger"
 	"github.com/open-service-mesh/osm/pkg/tresor"
-	"github.com/open-service-mesh/osm/pkg/tresor/pem"
 )
 
 var (
@@ -24,7 +21,6 @@ var (
 	caKeyPEMFileIn  = flags.String("caKeyPEMFileIn", "", "full path to the root cert key to be loaded")
 	caPEMFileOut    = flags.String("caPEMFileOut", "", "full path to the root cert to be created")
 	caKeyPEMFileOut = flags.String("caKeyPEMFileOut", "", "full path to the root cert key to be created")
-	org             = flags.String("org", "ACME Co", "name of the organization for certificate manager")
 	validity        = flags.Int("validity", 525600, "validity duration of a certificate in MINUTES")
 	genca           = flags.Bool("genca", false, "set this flag to true to generate a new CA certificate; no other certificates will be created")
 )
@@ -38,49 +34,54 @@ func main() {
 
 	if *genca {
 		validityMinutes := time.Duration(*validity) * time.Minute
-		caPEM, caKeyPEM, _, _, err := tresor.NewCA(*org, validityMinutes)
+		rootCert, err := tresor.NewCA(validityMinutes)
 		if err != nil {
 			log.Fatal().Err(err).Msg("Failed to create new Certificate Authority")
 		}
-		writeFile(*caPEMFileOut, caPEM)
-		writeFile(*caKeyPEMFileOut, caKeyPEM)
+		writeFile(*caPEMFileOut, rootCert.GetCertificateChain())
+		writeFile(*caKeyPEMFileOut, rootCert.GetPrivateKey())
 		os.Exit(0)
 	}
 
-	certManager, caPEM, caKeyPEM, _, _ := getCertManager()
+	certManager, rootCert := getCertManager()
+
+	writeFile(*caPEMFileOut, rootCert.GetCertificateChain())
+	writeFile(*caKeyPEMFileOut, rootCert.GetPrivateKey())
+
 	cert, err := certManager.IssueCertificate(certificate.CommonName(*host))
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to a new certificate")
 	}
-
-	writeFile(*caPEMFileOut, caPEM)
-	writeFile(*caKeyPEMFileOut, caKeyPEM)
 
 	writeFile(*out, cert.GetCertificateChain())
 	writeFile(*keyout, cert.GetPrivateKey())
 
 }
 
-func getCertManager() (*tresor.CertManager, pem.RootCertificate, pem.RootPrivateKey, *x509.Certificate, *rsa.PrivateKey) {
+func getCertManager() (*tresor.CertManager, *tresor.Certificate) {
 	validityMinutes := time.Duration(*validity) * time.Minute
 
 	if caPEMFileIn != nil && caKeyPEMFileIn != nil && *caPEMFileIn != "" && *caKeyPEMFileIn != "" {
-		certManager, err := tresor.NewCertManagerWithCAFromFile(*caPEMFileIn, *caKeyPEMFileIn, *org, validityMinutes)
+		ca, err := tresor.LoadCA(*caPEMFileIn, *caKeyPEMFileIn)
+		if err != nil {
+			log.Fatal().Err(err).Msgf("Error loading certificate & key from files %s and %s", *caPEMFileIn, *caKeyPEMFileIn)
+		}
+		certManager, err := tresor.NewCertManager(ca, validityMinutes)
 		if err != nil {
 			log.Fatal().Err(err).Msg("Failed to create new Certificate Manager")
 		}
-		return certManager, nil, nil, nil, nil
+		return certManager, nil
 	}
 
-	caPEM, caKeyPEM, ca, caKey, err := tresor.NewCA(*org, validityMinutes)
+	cert, err := tresor.NewCA(validityMinutes)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to create new Certificate Authority")
 	}
-	certManager, err := tresor.NewCertManagerWithCA(ca, caKey, *org, validityMinutes)
+	certManager, err := tresor.NewCertManager(cert, validityMinutes)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to instantiate Certificate Manager")
 	}
-	return certManager, caPEM, caKeyPEM, ca, caKey
+	return certManager, cert
 }
 
 func writeFile(fileName string, content []byte) {

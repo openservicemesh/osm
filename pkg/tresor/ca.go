@@ -8,21 +8,16 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-
-	"github.com/open-service-mesh/osm/pkg/tresor/pem"
 )
 
 // NewCA creates a new Certificate Authority.
-func NewCA(org string, validity time.Duration) (pem.RootCertificate, pem.RootPrivateKey, *x509.Certificate, *rsa.PrivateKey, error) {
-	// Validity duration of the certificate
-	notBefore := time.Now()
-	notAfter := notBefore.Add(validity)
-
+func NewCA(validity time.Duration) (*Certificate, error) {
 	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
 	if err != nil {
-		return nil, nil, nil, nil, errors.Wrap(err, errGeneratingSerialNumber.Error())
+		return nil, errors.Wrap(err, errGeneratingSerialNumber.Error())
 	}
 
+	now := time.Now()
 	template := &x509.Certificate{
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
@@ -31,23 +26,45 @@ func NewCA(org string, validity time.Duration) (pem.RootCertificate, pem.RootPri
 			Locality:     []string{"CA"},
 			Organization: []string{org},
 		},
-		NotBefore:             notBefore,
-		NotAfter:              notAfter,
+		NotBefore:             now,
+		NotAfter:              now.Add(validity),
 		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
 		BasicConstraintsValid: true,
 		IsCA:                  true,
 	}
 
-	caPrivKey, err := rsa.GenerateKey(rand.Reader, 4096)
+	rsaKey, err := rsa.GenerateKey(rand.Reader, rsaBits)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error generating key for CA for org %s", org)
-		return nil, nil, nil, nil, err
+		return nil, err
 	}
 
-	caCert, caKey, err := genCert(template, template, caPrivKey, caPrivKey)
+	// Self-sign the root certificate
+	derBytes, err := x509.CreateCertificate(rand.Reader, template, template, &rsaKey.PublicKey, rsaKey)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error generating certificate for CA for org %s", org)
-		return nil, nil, nil, nil, err
+		log.Error().Err(err).Msgf("Error issuing x509.CreateCertificate command for CN=%s", template.Subject.CommonName)
+		return nil, errors.Wrap(err, errCreateCert.Error())
 	}
-	return pem.RootCertificate(caCert), pem.RootPrivateKey(caKey), template, caPrivKey, err
+
+	pemCert, err := encodeCert(derBytes)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error encoding certificate with CN=%s", template.Subject.CommonName)
+		return nil, err
+	}
+
+	pemKey, err := encodeKey(rsaKey)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error encoding private key for certificate with CN=%s", template.Subject.CommonName)
+		return nil, err
+	}
+
+	rootCertificate := Certificate{
+		name:       rootCertificateName,
+		certChain:  pemCert,
+		privateKey: pemKey,
+		x509Cert:   template,
+		rsaKey:     rsaKey,
+	}
+
+	return &rootCertificate, nil
 }

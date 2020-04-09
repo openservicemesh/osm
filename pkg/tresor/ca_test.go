@@ -1,6 +1,7 @@
 package tresor
 
 import (
+	"crypto/x509"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -9,11 +10,12 @@ import (
 
 var _ = Describe("Test creation of a new CA", func() {
 	Context("Create a new CA", func() {
-		_, _, cert, _, err := NewCA("org", 2*time.Second)
+		cert, err := NewCA(2 * time.Second)
 		It("should create a new CA", func() {
 			Expect(err).ToNot(HaveOccurred())
-			Expect(cert.NotAfter.Sub(cert.NotBefore)).To(Equal(2 * time.Second))
-			Expect(cert.Subject.Organization).To(Equal([]string{"org"}))
+			Expect(cert.x509Cert.NotAfter.Sub(cert.x509Cert.NotBefore)).To(Equal(2 * time.Second))
+			Expect(cert.x509Cert.KeyUsage).To(Equal(x509.KeyUsageCertSign | x509.KeyUsageCRLSign))
+			Expect(cert.x509Cert.IsCA).To(BeTrue())
 		})
 	})
 })
