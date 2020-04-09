@@ -57,6 +57,19 @@ func LoadCA(certFilePEM string, keyFilePEM string) (*Certificate, error) {
 	return &rootCertificate, nil
 }
 
+// NewCertManager creates a new CertManager with the passed CA and CA Private Key
+func NewCertManager(ca *Certificate, validity time.Duration) (*CertManager, error) {
+	cm := CertManager{
+		ca: ca,
+
+		validity: validity,
+
+		announcements: make(chan interface{}),
+		cache:         make(map[certificate.CommonName]Certificate),
+	}
+	return &cm, nil
+}
+
 // NewCertManagerWithCAFromFile creates a new CertManager with the passed files containing the CA and CA Private Key
 func NewCertManagerWithCAFromFile(certFilePEM string, keyFilePEM string, org string, validity time.Duration) (*CertManager, error) {
 	ca, _, err := certFromFile(certFilePEM)
