@@ -9,10 +9,6 @@ import (
 	"github.com/open-service-mesh/osm/pkg/certificate"
 )
 
-const (
-	rsaBits = 4096
-)
-
 // IssueCertificate implements certificate.Manager and returns a newly issued certificate.
 func (cm *CertManager) IssueCertificate(cn certificate.CommonName) (certificate.Certificater, error) {
 	log.Info().Msgf("Issuing new certificate for CN=%s", cn)
@@ -21,7 +17,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName) (certificate.
 		return cert, nil
 	}
 
-	if cm.ca == nil || cm.caPrivKey == nil {
+	if cm.ca == nil || cm.ca.rsaKey == nil {
 		log.Error().Msgf("Invalid CA provided for issuance of certificate with CN=%s", cn)
 		return nil, errNoCA
 	}
@@ -32,13 +28,13 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName) (certificate.
 		return nil, errors.Wrap(err, errGeneratingPrivateKey.Error())
 	}
 
-	template, err := makeTemplate(string(cn), cm.org, cm.validity)
+	template, err := makeTemplate(string(cn), org, cm.validity)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error creating template for certificate with CN=%s", cn)
 		return nil, err
 	}
 
-	certPEM, privKeyPEM, err := genCert(template, cm.ca, certPrivKey, cm.caPrivKey)
+	certPEM, privKeyPEM, err := genCert(template, cm.ca.x509Cert, certPrivKey, cm.ca.rsaKey)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error creating certificate with CN=%s", cn)
 		return nil, err

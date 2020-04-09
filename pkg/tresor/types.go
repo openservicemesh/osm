@@ -7,6 +7,7 @@ import (
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
 	"github.com/open-service-mesh/osm/pkg/logger"
+	"github.com/open-service-mesh/osm/pkg/tresor/pem"
 )
 
 const (
@@ -15,6 +16,15 @@ const (
 
 	// TypePrivateKey is a string constant to be used in the generation of a private key for a certificate.
 	TypePrivateKey = "PRIVATE KEY"
+
+	// String constant used for the name of the root certificate
+	rootCertificateName = "root-certificate"
+
+	// How many bits to use for the RSA key
+	rsaBits = 4096
+
+	// Organization field of certificates issued by Tresor
+	org = "Open Service Mesh Tresor"
 )
 
 var (
@@ -23,18 +33,33 @@ var (
 
 // CertManager implements certificate.Manager
 type CertManager struct {
-	ca            *x509.Certificate
-	caPrivKey     *rsa.PrivateKey
+	// How long will newly issued certificates be valid for
+	validity time.Duration
+
+	// The Certificate Authority root certificate to be used by this certificate manager
+	ca *Certificate
+
+	// The channel announcing to the rest of the system when a certificate has changed
 	announcements <-chan interface{}
-	org           string
-	validity      time.Duration
-	cache         map[certificate.CommonName]Certificate
+
+	// Cache for all the certificates issued
+	cache map[certificate.CommonName]Certificate
 }
 
 // Certificate implements certificate.Certificater
 type Certificate struct {
-	name       string
-	certChain  []byte
-	privateKey []byte
-	ca         *x509.Certificate
+	// The name of the certificate
+	name string
+
+	// PEM encoded Certificate and Key (byte arrays)
+	certChain  pem.Certificate
+	privateKey pem.PrivateKey
+
+	// Same as above - but x509 Cert and RSA private key
+	x509Cert *x509.Certificate
+	rsaKey   *rsa.PrivateKey
+
+	// The CA signing this certificate.
+	// If the certificate itself is a root certificate this would be nil.
+	ca *Certificate
 }

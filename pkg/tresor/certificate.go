@@ -29,7 +29,7 @@ func (c Certificate) GetPrivateKey() []byte {
 
 // GetRootCertificate implements certificate.Certificater and returns the root certificate for the given cert.
 func (c Certificate) GetRootCertificate() *x509.Certificate {
-	return c.ca
+	return c.ca.x509Cert
 }
 
 // NewCertManagerWithCAFromFile creates a new CertManager with the passed files containing the CA and CA Private Key
@@ -49,10 +49,12 @@ func NewCertManagerWithCAFromFile(certFilePEM string, keyFilePEM string, org str
 // NewCertManagerWithCA creates a new CertManager with the passed CA and CA Private Key
 func NewCertManagerWithCA(ca *x509.Certificate, caPrivKey *rsa.PrivateKey, org string, validity time.Duration) (*CertManager, error) {
 	cm := CertManager{
-		ca:            ca,
-		caPrivKey:     caPrivKey,
+		ca: &Certificate{
+			name:     rootCertificateName,
+			x509Cert: ca,
+			rsaKey:   caPrivKey,
+		},
 		announcements: make(chan interface{}),
-		org:           org,
 		validity:      validity,
 		cache:         make(map[certificate.CommonName]Certificate),
 	}
