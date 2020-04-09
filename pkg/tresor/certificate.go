@@ -58,23 +58,6 @@ func NewCertManagerWithCA(ca *x509.Certificate, caPrivKey *rsa.PrivateKey, org s
 	return &cm, nil
 }
 
-// NewSelfSignedCert creates a new self-signed certificate.
-func NewSelfSignedCert(host string, org string, validity time.Duration) (pem.Certificate, pem.PrivateKey, error) {
-	log.Info().Msgf("Generating a new certificate for host: %s", host)
-	if host == "" {
-		return nil, nil, errInvalidHost
-	}
-	privateKey, err := rsa.GenerateKey(rand.Reader, rsaBits)
-	if err != nil {
-		return nil, nil, errors.Wrap(err, errGeneratingPrivateKey.Error())
-	}
-	template, err := makeTemplate(host, org, validity)
-	if err != nil {
-		return nil, nil, err
-	}
-	return genCert(template, template, privateKey, privateKey)
-}
-
 func genCert(template, parent *x509.Certificate, certPrivKey, caPrivKey *rsa.PrivateKey) (pem.Certificate, pem.PrivateKey, error) {
 	derBytes, err := x509.CreateCertificate(rand.Reader, template, parent, &certPrivKey.PublicKey, caPrivKey)
 	if err != nil {
