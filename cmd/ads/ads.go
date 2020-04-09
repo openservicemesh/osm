@@ -17,7 +17,6 @@ import (
 	"github.com/open-service-mesh/osm/pkg/envoy/ads"
 	"github.com/open-service-mesh/osm/pkg/httpserver"
 	"github.com/open-service-mesh/osm/pkg/injector"
-
 	"github.com/open-service-mesh/osm/pkg/logger"
 	"github.com/open-service-mesh/osm/pkg/metricsstore"
 	"github.com/open-service-mesh/osm/pkg/namespace"
@@ -111,9 +110,14 @@ func main() {
 
 	namespaceController := namespace.NewNamespaceController(kubeConfig, osmID, stop)
 	meshSpec := smi.NewMeshSpecClient(kubeConfig, osmNamespace, namespaceController, stop)
-	certManager, err := tresor.NewCertManagerWithCAFromFile(*rootCertPem, *rootKeyPem, "Acme", 1*time.Hour)
+	cert, err := tresor.LoadCA(*rootCertPem, *rootKeyPem)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Could not instantiate Certificate Manager")
+		log.Fatal().Msgf("Error loading CA from files %s and %s", *rootCertPem, *rootKeyPem)
+	}
+	log.Info().Msgf("Loaded CA root %s cert from files %s and %s", cert.GetName(), *rootCertPem, *rootKeyPem)
+	certManager, err := tresor.NewCertManager(cert, 1*time.Hour)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to instantiate Certificate Manager")
 	}
 
 	endpointsProviders := []endpoint.Provider{

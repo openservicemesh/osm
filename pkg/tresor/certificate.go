@@ -32,6 +32,42 @@ func (c Certificate) GetRootCertificate() *x509.Certificate {
 	return c.ca.x509Cert
 }
 
+// LoadCA loads the certificate and its key from the supplied PEM files.
+func LoadCA(certFilePEM string, keyFilePEM string) (*Certificate, error) {
+	x509Cert, pemCert, err := certFromFile(certFilePEM)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error loading certificate from file %s", certFilePEM)
+		return nil, err
+	}
+
+	rsaKey, pemKey, err := privKeyFromFile(keyFilePEM)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error loading private key from file %s", keyFilePEM)
+		return nil, err
+	}
+
+	rootCertificate := Certificate{
+		name:       rootCertificateName,
+		certChain:  pemCert,
+		privateKey: pemKey,
+		x509Cert:   x509Cert,
+		rsaKey:     rsaKey,
+		ca:         nil, // this is the CA itself
+	}
+	return &rootCertificate, nil
+}
+
+// NewCertManager creates a new CertManager with the passed CA and CA Private Key
+func NewCertManager(ca *Certificate, validity time.Duration) (*CertManager, error) {
+	cm := CertManager{
+		ca:            ca,
+		validity:      validity,
+		announcements: make(chan interface{}),
+		cache:         make(map[certificate.CommonName]Certificate),
+	}
+	return &cm, nil
+}
+
 // NewCertManagerWithCAFromFile creates a new CertManager with the passed files containing the CA and CA Private Key
 func NewCertManagerWithCAFromFile(certFilePEM string, keyFilePEM string, org string, validity time.Duration) (*CertManager, error) {
 	ca, _, err := certFromFile(certFilePEM)
