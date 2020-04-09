@@ -4,7 +4,6 @@ import (
 	"errors"
 )
 
-var errInvalidHost = errors.New("invalid host")
 var errEncodeKey = errors.New("encode key")
 var errEncodeCert = errors.New("encode cert")
 var errCreateCert = errors.New("create cert")
