@@ -8,52 +8,52 @@ import (
 	"io/ioutil"
 
 	"github.com/pkg/errors"
+
+	tresorPem "github.com/open-service-mesh/osm/pkg/tresor/pem"
 )
 
-// certFromFile loads a x509 certificate from a PEM file.
-func certFromFile(caPEMFile string) (*x509.Certificate, error) {
+func certFromFile(caPEMFile string) (*x509.Certificate, tresorPem.Certificate, error) {
 	if caPEMFile == "" {
-		return nil, errors.Wrap(errInvalidFileName, caPEMFile)
+		return nil, nil, errors.Wrap(errInvalidFileName, caPEMFile)
 	}
 
 	caPEM, err := ioutil.ReadFile(caPEMFile)
 	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("failed reading file: %+v", caPEMFile))
+		return nil, nil, errors.Wrap(err, fmt.Sprintf("failed reading file: %+v", caPEMFile))
 	}
 
 	caBlock, _ := pem.Decode(caPEM)
 	if caBlock == nil || caBlock.Type != TypeCertificate {
-		return nil, errDecodingPEMBlock
+		return nil, nil, errDecodingPEMBlock
 	}
 
 	ca, err := x509.ParseCertificate(caBlock.Bytes)
 	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("failed parsing certificate loaded from %+v", caPEMFile))
+		return nil, nil, errors.Wrap(err, fmt.Sprintf("failed parsing certificate loaded from %+v", caPEMFile))
 	}
 
-	return ca, nil
+	return ca, caBlock.Bytes, nil
 }
 
-// privKeyFromFile loads a x509 certificate private key from a PEM file.
-func privKeyFromFile(caKeyPEMFile string) (*rsa.PrivateKey, error) {
+func privKeyFromFile(caKeyPEMFile string) (*rsa.PrivateKey, tresorPem.PrivateKey, error) {
 	if caKeyPEMFile == "" {
-		return nil, errors.Wrap(errInvalidFileName, caKeyPEMFile)
+		return nil, nil, errors.Wrap(errInvalidFileName, caKeyPEMFile)
 	}
 
 	caKeyPEM, err := ioutil.ReadFile(caKeyPEMFile)
 	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("faled reading file: %+v", caKeyPEMFile))
+		return nil, nil, errors.Wrap(err, fmt.Sprintf("faled reading file: %+v", caKeyPEMFile))
 	}
 
 	caKeyBlock, _ := pem.Decode(caKeyPEM)
 	if caKeyBlock == nil || caKeyBlock.Type != TypePrivateKey {
-		return nil, err
+		return nil, nil, err
 	}
 
 	caKeyInterface, err := x509.ParsePKCS8PrivateKey(caKeyBlock.Bytes)
 	if err != nil {
-		return nil, errors.Wrap(err, fmt.Sprintf("failed parsing private key loaded from %+v", caKeyPEMFile))
+		return nil, nil, errors.Wrap(err, fmt.Sprintf("failed parsing private key loaded from %+v", caKeyPEMFile))
 	}
 
-	return caKeyInterface.(*rsa.PrivateKey), nil
+	return caKeyInterface.(*rsa.PrivateKey), caKeyBlock.Bytes, nil
 }

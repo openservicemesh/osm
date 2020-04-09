@@ -33,16 +33,17 @@ func (c Certificate) GetRootCertificate() *x509.Certificate {
 }
 
 // NewCertManagerWithCAFromFile creates a new CertManager with the passed files containing the CA and CA Private Key
-func NewCertManagerWithCAFromFile(caPEMFile string, caPrivKeyPEMFile string, org string, validity time.Duration) (*CertManager, error) {
-	ca, err := certFromFile(caPEMFile)
+func NewCertManagerWithCAFromFile(certFilePEM string, keyFilePEM string, org string, validity time.Duration) (*CertManager, error) {
+	ca, _, err := certFromFile(certFilePEM)
 	if err != nil {
 		return nil, err
 	}
-	caPrivKey, err := privKeyFromFile(caPrivKeyPEMFile)
+	rsaKey, _, err := privKeyFromFile(keyFilePEM)
 	if err != nil {
+		log.Error().Err(err).Msgf("Error loading private key from file %s", keyFilePEM)
 		return nil, err
 	}
-	return NewCertManagerWithCA(ca, caPrivKey, org, validity)
+	return NewCertManagerWithCA(ca, rsaKey, org, validity)
 }
 
 // NewCertManagerWithCA creates a new CertManager with the passed CA and CA Private Key
