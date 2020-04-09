@@ -5,7 +5,6 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"math/big"
 	"time"
 
 	"github.com/pkg/errors"
@@ -19,7 +18,6 @@ func NewCA(org string, validity time.Duration) (pem.RootCertificate, pem.RootPri
 	notBefore := time.Now()
 	notAfter := notBefore.Add(validity)
 
-	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
 	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
 	if err != nil {
 		return nil, nil, nil, nil, errors.Wrap(err, errGeneratingSerialNumber.Error())
