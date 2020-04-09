@@ -37,17 +37,17 @@ const (
 )
 
 var _ = Describe("Test Tresor Tools", func() {
-	Context("Test encodeCert function", func() {
-		cert, err := encodeCert([]byte{1, 2, 3})
+	Context("Test encodeCertDERtoPEM function", func() {
+		cert, err := encodeCertDERtoPEM([]byte{1, 2, 3})
 		It("should have encoded DER bytes into a PEM certificate", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(cert).NotTo(Equal(nil))
 		})
 	})
 
-	Context("Test encodeKey function", func() {
+	Context("Test encodeKeyDERtoPEM function", func() {
 		privKey, pemKey, err1 := privKeyFromFile("sample_private_key.pem")
-		actual, err2 := encodeKey(privKey)
+		actual, err2 := encodeKeyDERtoPEM(privKey)
 		It("should have encoded the bytes of the key into a PEM key", func() {
 			Expect(err1).ShouldNot(HaveOccurred())
 			Expect(err2).ShouldNot(HaveOccurred())

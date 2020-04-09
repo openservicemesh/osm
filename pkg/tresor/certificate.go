@@ -104,13 +104,13 @@ func genCert(template, parent *x509.Certificate, certPrivKey, caPrivKey *rsa.Pri
 		return nil, nil, errors.Wrap(err, errCreateCert.Error())
 	}
 
-	certPEM, err := encodeCert(derBytes)
+	certPEM, err := encodeCertDERtoPEM(derBytes)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error encoding certificate with CN=%s", template.Subject.CommonName)
 		return nil, nil, err
 	}
 
-	privKeyPEM, err := encodeKey(certPrivKey)
+	privKeyPEM, err := encodeKeyDERtoPEM(certPrivKey)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error encoding private key for certificate with CN=%s", template.Subject.CommonName)
 		return nil, nil, err
