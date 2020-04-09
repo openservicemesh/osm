@@ -60,10 +60,8 @@ func LoadCA(certFilePEM string, keyFilePEM string) (*Certificate, error) {
 // NewCertManager creates a new CertManager with the passed CA and CA Private Key
 func NewCertManager(ca *Certificate, validity time.Duration) (*CertManager, error) {
 	cm := CertManager{
-		ca: ca,
-
-		validity: validity,
-
+		ca:            ca,
+		validity:      validity,
 		announcements: make(chan interface{}),
 		cache:         make(map[certificate.CommonName]Certificate),
 	}
