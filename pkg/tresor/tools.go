@@ -6,13 +6,18 @@ import (
 	"crypto/x509"
 	pemEnc "encoding/pem"
 
-	"github.com/open-service-mesh/osm/pkg/tresor/pem"
 	"github.com/pkg/errors"
+
+	"github.com/open-service-mesh/osm/pkg/tresor/pem"
 )
 
 func encodeCert(derBytes []byte) (pem.Certificate, error) {
 	certOut := &bytes.Buffer{}
-	if err := pemEnc.Encode(certOut, &pemEnc.Block{Type: TypeCertificate, Bytes: derBytes}); err != nil {
+	block := pemEnc.Block{
+		Type:  TypeCertificate,
+		Bytes: derBytes,
+	}
+	if err := pemEnc.Encode(certOut, &block); err != nil {
 		return nil, errors.Wrap(err, errEncodeCert.Error())
 	}
 	return certOut.Bytes(), nil
@@ -24,7 +29,11 @@ func encodeKey(priv *rsa.PrivateKey) (pem.PrivateKey, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, errMarshalPrivateKey.Error())
 	}
-	if err := pemEnc.Encode(keyOut, &pemEnc.Block{Type: TypePrivateKey, Bytes: privBytes}); err != nil {
+	block := pemEnc.Block{
+		Type:  TypePrivateKey,
+		Bytes: privBytes,
+	}
+	if err := pemEnc.Encode(keyOut, &block); err != nil {
 		return nil, errors.Wrap(err, errEncodeKey.Error())
 	}
 	return keyOut.Bytes(), nil
