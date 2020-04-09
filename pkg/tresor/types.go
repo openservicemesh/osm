@@ -3,6 +3,7 @@ package tresor
 import (
 	"crypto/rsa"
 	"crypto/x509"
+	"math/big"
 	"time"
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
@@ -23,12 +24,16 @@ const (
 	// How many bits to use for the RSA key
 	rsaBits = 4096
 
+	// How many bits in the certificate serial number
+	certSerialNumberBits = 128
+
 	// Organization field of certificates issued by Tresor
 	org = "Open Service Mesh Tresor"
 )
 
 var (
-	log = logger.New("tresor")
+	log               = logger.New("tresor")
+	serialNumberLimit = new(big.Int).Lsh(big.NewInt(1), certSerialNumberBits)
 )
 
 // CertManager implements certificate.Manager

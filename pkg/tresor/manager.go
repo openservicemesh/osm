@@ -5,7 +5,6 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"math/big"
 	"time"
 
 	"github.com/pkg/errors"
@@ -32,7 +31,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName) (certificate.
 		return nil, errors.Wrap(err, errGeneratingPrivateKey.Error())
 	}
 
-	serialNumber, err := rand.Int(rand.Reader, new(big.Int).Lsh(big.NewInt(1), 128))
+	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
 	if err != nil {
 		return nil, errors.Wrap(err, errGeneratingSerialNumber.Error())
 	}
