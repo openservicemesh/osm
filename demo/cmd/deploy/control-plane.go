@@ -16,12 +16,12 @@ func main() {
 		os.Exit(1)
 	}
 	clientset := common.GetClient()
-	err := xds.Xds(clientset, namespace)
+	err := xds.DeployXds(clientset, namespace)
 	if err != nil {
 		fmt.Println("Error creating xds: ", err)
 		os.Exit(1)
 	}
-	err = metrics.Prometheus(clientset, namespace)
+	err = metrics.DeployPrometheus(clientset, namespace)
 	if err != nil {
 		fmt.Println("Error creating prometheus: ", err)
 		os.Exit(1)

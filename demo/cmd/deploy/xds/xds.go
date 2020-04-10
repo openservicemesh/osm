@@ -6,8 +6,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// Xds deploys xds service
-func Xds(clientSet *kubernetes.Clientset, namespace string) error {
+// DeployXds deploys various compontents of xds service
+func DeployXds(clientSet *kubernetes.Clientset, namespace string) error {
 	if err := deployXdsService(clientSet, namespace); err != nil {
 		return fmt.Errorf("Unable to deploy xds service : %v", err)
 	}
