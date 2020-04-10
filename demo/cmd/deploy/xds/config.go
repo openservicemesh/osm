@@ -1,11 +1,11 @@
-package main
+package xds
 
 import (
 	"fmt"
 	"os"
 	"path"
 
-	v1 "k8s.io/api/core/v1"
+	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
@@ -18,16 +18,7 @@ const (
 	sidecarInjectorWebhookPort = 443
 )
 
-func main() {
-	acr := os.Getenv(common.ContainerRegistryEnvVar)
-	adsVersion := os.Getenv(common.ContainerTag)
-	containerRegistryCredsName := os.Getenv(common.ContainerRegistryCredsEnvVar)
-	azureSubscription := os.Getenv(common.AzureSubscription)
-	initContainer := path.Join(acr, "init")
-	namespace := os.Getenv(common.KubeNamespaceEnvVar)
-	appNamespaces := os.Getenv(common.AppNamespacesEnvVar)
-	osmID := os.Getenv(common.OsmIDEnvVar)
-
+func getXdsLabelMeta(namespace string) metav1.ObjectMeta {
 	labels := map[string]string{
 		"app": constants.AggregatedDiscoveryServiceName,
 	}
@@ -37,21 +28,19 @@ func main() {
 		Namespace: namespace,
 		Labels:    labels,
 	}
+	return meta
+}
 
-	if namespace == "" {
-		fmt.Println("Empty namespace")
-		os.Exit(1)
-	}
-	clientset := common.GetClient()
-
-	svc := &v1.Service{
+func generateXdsService(namespace string) *apiv1.Service {
+	meta := getXdsLabelMeta(namespace)
+	service := &apiv1.Service{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Service",
 			APIVersion: "v1",
 		},
 		ObjectMeta: meta,
-		Spec: v1.ServiceSpec{
-			Ports: []v1.ServicePort{
+		Spec: apiv1.ServiceSpec{
+			Ports: []apiv1.ServicePort{
 				{
 					Name: fmt.Sprintf("%s-port", constants.AggregatedDiscoveryServiceName),
 					Port: constants.AggregatedDiscoveryServicePort,
@@ -70,16 +59,22 @@ func main() {
 			Selector: map[string]string{
 				"app": constants.AggregatedDiscoveryServiceName,
 			},
-			Type: "NodePort",
+			Type: apiv1.ServiceTypeNodePort,
 		},
 	}
+	return service
+}
 
-	_, err := clientset.CoreV1().Services(namespace).Create(svc)
-	if err != nil {
-		fmt.Println("Error creating service: ", err)
-		os.Exit(1)
-	}
+func generateXdsPod(namespace string) *apiv1.Pod {
+	acr := os.Getenv(common.ContainerRegistryEnvVar)
+	adsVersion := os.Getenv(common.ContainerTag)
+	containerRegistryCredsName := os.Getenv(common.ContainerRegistryCredsEnvVar)
+	azureSubscription := os.Getenv(common.AzureSubscription)
+	initContainer := path.Join(acr, "init")
+	appNamespaces := os.Getenv(common.AppNamespacesEnvVar)
+	osmID := os.Getenv(common.OsmIDEnvVar)
 
+	meta := getXdsLabelMeta(namespace)
 	args := []string{
 		"--kubeconfig", "/kube/config",
 		"--azureSubscriptionID", azureSubscription,
@@ -101,19 +96,19 @@ func main() {
 		}, args...)
 	}
 
-	pod := &v1.Pod{
+	pod := &apiv1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "",
 			APIVersion: "",
 		},
 		ObjectMeta: meta,
-		Spec: v1.PodSpec{
-			Volumes: []v1.Volume{
+		Spec: apiv1.PodSpec{
+			Volumes: []apiv1.Volume{
 				{
 					Name: "kubeconfig",
-					VolumeSource: v1.VolumeSource{
-						ConfigMap: &v1.ConfigMapVolumeSource{
-							LocalObjectReference: v1.LocalObjectReference{
+					VolumeSource: apiv1.VolumeSource{
+						ConfigMap: &apiv1.ConfigMapVolumeSource{
+							LocalObjectReference: apiv1.LocalObjectReference{
 								Name: "kubeconfig",
 							},
 						},
@@ -121,9 +116,9 @@ func main() {
 				},
 				{
 					Name: "azureconfig",
-					VolumeSource: v1.VolumeSource{
-						ConfigMap: &v1.ConfigMapVolumeSource{
-							LocalObjectReference: v1.LocalObjectReference{
+					VolumeSource: apiv1.VolumeSource{
+						ConfigMap: &apiv1.ConfigMapVolumeSource{
+							LocalObjectReference: apiv1.LocalObjectReference{
 								Name: "azureconfig",
 							},
 						},
@@ -131,9 +126,9 @@ func main() {
 				},
 				{
 					Name: "ca-certpemstore-ads",
-					VolumeSource: v1.VolumeSource{
-						ConfigMap: &v1.ConfigMapVolumeSource{
-							LocalObjectReference: v1.LocalObjectReference{
+					VolumeSource: apiv1.VolumeSource{
+						ConfigMap: &apiv1.ConfigMapVolumeSource{
+							LocalObjectReference: apiv1.LocalObjectReference{
 								Name: "ca-certpemstore-ads",
 							},
 						},
@@ -141,9 +136,9 @@ func main() {
 				},
 				{
 					Name: "ca-rootcertpemstore",
-					VolumeSource: v1.VolumeSource{
-						ConfigMap: &v1.ConfigMapVolumeSource{
-							LocalObjectReference: v1.LocalObjectReference{
+					VolumeSource: apiv1.VolumeSource{
+						ConfigMap: &apiv1.ConfigMapVolumeSource{
+							LocalObjectReference: apiv1.LocalObjectReference{
 								Name: "ca-rootcertpemstore",
 							},
 						},
@@ -152,9 +147,9 @@ func main() {
 
 				{
 					Name: "ca-keypemstore-ads",
-					VolumeSource: v1.VolumeSource{
-						ConfigMap: &v1.ConfigMapVolumeSource{
-							LocalObjectReference: v1.LocalObjectReference{
+					VolumeSource: apiv1.VolumeSource{
+						ConfigMap: &apiv1.ConfigMapVolumeSource{
+							LocalObjectReference: apiv1.LocalObjectReference{
 								Name: "ca-keypemstore-ads",
 							},
 						},
@@ -162,9 +157,9 @@ func main() {
 				},
 				{
 					Name: "ca-rootkeypemstore",
-					VolumeSource: v1.VolumeSource{
-						ConfigMap: &v1.ConfigMapVolumeSource{
-							LocalObjectReference: v1.LocalObjectReference{
+					VolumeSource: apiv1.VolumeSource{
+						ConfigMap: &apiv1.ConfigMapVolumeSource{
+							LocalObjectReference: apiv1.LocalObjectReference{
 								Name: "ca-rootkeypemstore",
 							},
 						},
@@ -172,25 +167,25 @@ func main() {
 				},
 				{
 					Name: "webhook-tls-certs",
-					VolumeSource: v1.VolumeSource{
-						Secret: &v1.SecretVolumeSource{
+					VolumeSource: apiv1.VolumeSource{
+						Secret: &apiv1.SecretVolumeSource{
 							SecretName: "webhook-tls-certs",
 						},
 					},
 				},
 			},
-			ImagePullSecrets: []v1.LocalObjectReference{
+			ImagePullSecrets: []apiv1.LocalObjectReference{
 				{
 					Name: containerRegistryCredsName,
 				},
 			},
 			InitContainers: nil,
-			Containers: []v1.Container{
+			Containers: []apiv1.Container{
 				{
 					Image:           fmt.Sprintf("%s/%s:%s", acr, constants.AggregatedDiscoveryServiceName, adsVersion),
-					ImagePullPolicy: "Always",
+					ImagePullPolicy: apiv1.PullAlways,
 					Name:            constants.AggregatedDiscoveryServiceName,
-					Ports: []v1.ContainerPort{
+					Ports: []apiv1.ContainerPort{
 						{
 							ContainerPort: constants.AggregatedDiscoveryServicePort,
 							Name:          fmt.Sprintf("%s-port", constants.AggregatedDiscoveryServiceName),
@@ -200,7 +195,7 @@ func main() {
 						"/ads",
 					},
 					Args: args,
-					VolumeMounts: []v1.VolumeMount{
+					VolumeMounts: []apiv1.VolumeMount{
 						{
 							Name:      "kubeconfig",
 							MountPath: "/kube",
@@ -242,11 +237,5 @@ func main() {
 			},
 		},
 	}
-
-	_, err = clientset.CoreV1().Pods(namespace).Create(pod)
-	if err != nil {
-		fmt.Println("Error creating pod: ", err)
-		os.Exit(1)
-	}
-
+	return pod
 }
