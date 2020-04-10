@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	defaultEnvoyImage          = "envoyproxy/envoy-alpine:latest" // v1.13.1 currently
+	defaultEnvoyImage          = "envoyproxy/envoy-alpine:v1.14.1"
 	sidecarInjectorWebhookPort = 443
 )
 
