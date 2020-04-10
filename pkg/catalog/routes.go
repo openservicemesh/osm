@@ -85,7 +85,7 @@ func (sc *MeshCatalog) getHTTPPathsPerRoute() (map[string]endpoint.RoutePaths, e
 			log.Error().Msgf("TrafficSpec %s/%s has no matches in route; Skipping...", trafficSpecs.Namespace, trafficSpecs.Name)
 			continue
 		}
-		// since this method gets only spces related to HTTPRouteGroups added HTTPTRaffic to the specKey by default
+		// since this method gets only specs related to HTTPRouteGroups added HTTPTraffic to the specKey by default
 		specKey := fmt.Sprintf("%s/%s/%s", HTTPTraffic, trafficSpecs.Namespace, trafficSpecs.Name)
 		for _, trafficSpecsMatches := range trafficSpecs.Matches {
 			serviceRoute := endpoint.RoutePaths{}

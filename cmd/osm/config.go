@@ -35,7 +35,7 @@ func generateNamespaceConfig(namespace string) *apiv1.Namespace {
 	return &apiv1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}}
 }
 
-func generateKubernetesConfig(name, namespace, serviceAccountName, containerRegistry, containerRegistrySecret string, port int32) (*appsv1.Deployment, *apiv1.Service) {
+func generateKubernetesConfig(name, namespace, appNamespaces, serviceAccountName, containerRegistry, containerRegistrySecret string, port int32) (*appsv1.Deployment, *apiv1.Service) {
 	service := &apiv1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -104,7 +104,7 @@ func generateKubernetesConfig(name, namespace, serviceAccountName, containerRegi
 								"--verbosity", "trace",
 								"--osmNamespace", namespace,
 								"--osmID", "osm-local",
-								//TODO "--appNamespaces, appNamespace,
+								"--appNamespaces", appNamespaces,
 								"--certpem", "/etc/ssl/certs/cert.pem",
 								"--keypem", "/etc/ssl/certs/key.pem",
 								"--rootcertpem", "/etc/ssl/certs/root-cert.pem",

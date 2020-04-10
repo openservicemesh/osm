@@ -24,6 +24,7 @@ type installCmd struct {
 	containerRegistry       string
 	containerRegistrySecret string
 	kubeClient              kubernetes.Interface
+	appNamespaces           string
 }
 
 func newInstallCmd(out io.Writer) *cobra.Command {
@@ -43,6 +44,7 @@ func newInstallCmd(out io.Writer) *cobra.Command {
 
 	f := cmd.Flags()
 	f.StringVarP(&install.namespace, "namespace", "n", "osm-system", "namespace to install control plane components")
+	f.StringVar(&install.appNamespaces, "app-namespaces", "bookbuyer-ns,bookstore-ns,booktheif-ns", "application namespaces for automatic sidecar inject (comma separated")
 	f.StringVar(&install.containerRegistry, "container-registry", "smctest.azurecr.io", "container registry that hosts control plane component images")
 	f.StringVar(&install.containerRegistrySecret, "container-registry-secret", "acr-creds", "name of the container registry Kubernetes Secret that contains container registry credentials")
 
@@ -93,7 +95,7 @@ func generateAdsSecrets() error {
 }
 
 func (i *installCmd) deploy(name, serviceAccountName string, port int32) error {
-	deployment, service := generateKubernetesConfig(name, i.namespace, serviceAccountName, i.containerRegistry, i.containerRegistrySecret, port)
+	deployment, service := generateKubernetesConfig(name, i.namespace, i.appNamespaces, serviceAccountName, i.containerRegistry, i.containerRegistrySecret, port)
 
 	_, err := i.kubeClient.AppsV1().Deployments(i.namespace).Create(deployment)
 	if err != nil {
