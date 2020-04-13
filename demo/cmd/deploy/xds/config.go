@@ -18,7 +18,7 @@ const (
 	sidecarInjectorWebhookPort = 443
 )
 
-func getXdsLabelMeta(namespace string) metav1.ObjectMeta {
+func getXDSLabelMeta(namespace string) metav1.ObjectMeta {
 	labels := map[string]string{
 		"app": constants.AggregatedDiscoveryServiceName,
 	}
@@ -31,8 +31,8 @@ func getXdsLabelMeta(namespace string) metav1.ObjectMeta {
 	return meta
 }
 
-func generateXdsService(namespace string) *apiv1.Service {
-	meta := getXdsLabelMeta(namespace)
+func generateXDSService(namespace string) *apiv1.Service {
+	meta := getXDSLabelMeta(namespace)
 	service := &apiv1.Service{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Service",
@@ -65,7 +65,7 @@ func generateXdsService(namespace string) *apiv1.Service {
 	return service
 }
 
-func generateXdsPod(namespace string) *apiv1.Pod {
+func generateXDSPod(namespace string) *apiv1.Pod {
 	acr := os.Getenv(common.ContainerRegistryEnvVar)
 	adsVersion := os.Getenv(common.ContainerTag)
 	containerRegistryCredsName := os.Getenv(common.ContainerRegistryCredsEnvVar)
@@ -74,7 +74,7 @@ func generateXdsPod(namespace string) *apiv1.Pod {
 	appNamespaces := os.Getenv(common.AppNamespacesEnvVar)
 	osmID := os.Getenv(common.OsmIDEnvVar)
 
-	meta := getXdsLabelMeta(namespace)
+	meta := getXDSLabelMeta(namespace)
 	args := []string{
 		"--kubeconfig", "/kube/config",
 		"--azureSubscriptionID", azureSubscription,

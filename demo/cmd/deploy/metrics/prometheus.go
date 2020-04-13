@@ -9,8 +9,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// Prometheus deploys prometheus service
-func Prometheus(clientSet *kubernetes.Clientset, namespace string) error {
+// DeployPrometheus deploys various components of prometheus service
+func DeployPrometheus(clientSet *kubernetes.Clientset, namespace string) error {
 	prometheusSvc := os.Getenv(common.PrometheusVar)
 	serviceAccount := fmt.Sprintf("%s-serviceaccount", prometheusSvc)
 	if err := deployPrometheusRBAC(clientSet, prometheusSvc, namespace, serviceAccount); err != nil {
