@@ -43,9 +43,6 @@ for ns in "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE"; 
     kubectl create namespace "$ns"
     kubectl label  namespaces "$ns" openservicemesh.io/monitor="$OSM_ID"
 done
-# APP_NAMESPACES is a comma separated list of namespaces that informs OSM of the
-# namespaces it should observe.
-export APP_NAMESPACES="$BOOKBUYER_NAMESPACE,$BOOKSTORE_NAMESPACE,$BOOKTHIEF_NAMESPACE"
 
 make build-cert
 
