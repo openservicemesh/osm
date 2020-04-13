@@ -71,7 +71,6 @@ func generateXDSPod(namespace string) *apiv1.Pod {
 	containerRegistryCredsName := os.Getenv(common.ContainerRegistryCredsEnvVar)
 	azureSubscription := os.Getenv(common.AzureSubscription)
 	initContainer := path.Join(acr, "init")
-	appNamespaces := os.Getenv(common.AppNamespacesEnvVar)
 	osmID := os.Getenv(common.OsmIDEnvVar)
 
 	meta := getXDSLabelMeta(namespace)
@@ -81,7 +80,6 @@ func generateXDSPod(namespace string) *apiv1.Pod {
 		"--verbosity", "trace",
 		"--osmID", osmID,
 		"--osmNamespace", namespace,
-		"--appNamespaces", appNamespaces,
 		"--certpem", "/etc/ssl/certs/cert.pem",
 		"--keypem", "/etc/ssl/certs/key.pem",
 		"--rootcertpem", "/etc/ssl/certs/root-cert.pem",
