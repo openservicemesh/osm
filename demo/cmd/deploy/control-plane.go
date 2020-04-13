@@ -16,7 +16,7 @@ func main() {
 		os.Exit(1)
 	}
 	clientset := common.GetClient()
-	err := xds.DeployXds(clientset, namespace)
+	err := xds.DeployXDS(clientset, namespace)
 	if err != nil {
 		fmt.Println("Error creating xds: ", err)
 		os.Exit(1)

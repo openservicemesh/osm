@@ -6,27 +6,27 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// DeployXds deploys various compontents of xds service
-func DeployXds(clientSet *kubernetes.Clientset, namespace string) error {
-	if err := deployXdsService(clientSet, namespace); err != nil {
+// DeployXDS deploys various compontents of xds service
+func DeployXDS(clientSet *kubernetes.Clientset, namespace string) error {
+	if err := deployXDSService(clientSet, namespace); err != nil {
 		return fmt.Errorf("Unable to deploy xds service : %v", err)
 	}
-	if err := deployXdsPod(clientSet, namespace); err != nil {
+	if err := deployXDSPod(clientSet, namespace); err != nil {
 		return fmt.Errorf("Unable to deploy xds pod : %v", err)
 	}
 	return nil
 }
 
-func deployXdsService(clientSet *kubernetes.Clientset, namespace string) error {
-	service := generateXdsService(namespace)
+func deployXDSService(clientSet *kubernetes.Clientset, namespace string) error {
+	service := generateXDSService(namespace)
 	if _, err := clientSet.CoreV1().Services(namespace).Create(service); err != nil {
 		return err
 	}
 	return nil
 }
 
-func deployXdsPod(clientSet *kubernetes.Clientset, namespace string) error {
-	pod := generateXdsPod(namespace)
+func deployXDSPod(clientSet *kubernetes.Clientset, namespace string) error {
+	pod := generateXDSPod(namespace)
 	if _, err := clientSet.CoreV1().Pods(namespace).Create(pod); err != nil {
 		return err
 	}
