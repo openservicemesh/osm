@@ -24,8 +24,6 @@ func main() {
 	booksBought := fmt.Sprintf("http://%s/books-bought", bookstoreService)
 	buyBook := fmt.Sprintf("http://%s/buy-a-book", bookstoreService)
 	waitForOK := getWaitForOK()
-	started := time.Now()
-	finishBy := started.Add(time.Duration(waitForOK) * time.Second)
 	iteration := 0
 	for {
 		iteration++
@@ -40,11 +38,8 @@ func main() {
 			//since bookthief doesn't have any traffic policies setup to talk to bookstore it will get a 404
 			if responses[0] == http.StatusNotFound {
 				fmt.Printf(common.Success)
-			} else if time.Now().After(finishBy) {
-				fmt.Printf("It has been %v since we started the test. Response code from %s is %d. This test has failed.",
-					time.Since(started), booksBought, responses[0])
-				fmt.Printf(common.Failure)
-				os.Exit(1)
+			} else {
+				fmt.Printf("Error, response code = %d", responses[0])
 			}
 		}
 		fmt.Print("\n\n")
