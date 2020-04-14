@@ -62,7 +62,7 @@ jobs:
         go get -u github.com/axw/gocov/gocov
         go get -u github.com/AlekSi/gocov-xml
         go get -u github.com/matm/gocov-html
-        go test -timeout 80s -v -coverprofile=coverage.txt -covermode count ./... | tee testoutput.txt || { echo "go test returned non-zero"; cat testoutput.txt; exit 1; }
+        go test -timeout 80s -v -coverprofile=coverage.txt -covermode count ./... | tee testoutput.txt; test ${PIPESTATUS[0]} -eq 0 || { echo "go test returned non-zero exit code"; exit 1; }
         cat testoutput.txt | go-junit-report > report.xml
         gocov convert coverage.txt > coverage.json
         gocov-xml < coverage.json > coverage.xml
