@@ -13,9 +13,6 @@ const (
 	// KubeNamespaceEnvVar is the environment variable with the k8s namespace
 	KubeNamespaceEnvVar = "K8S_NAMESPACE"
 
-	// AppNamespacesEnvVar is the environment variable for a comma separated list of application namespaces
-	AppNamespacesEnvVar = "APP_NAMESPACES"
-
 	// OsmIDEnvVar is the environment variable for the namespace an OSM instance belongs to
 	OsmIDEnvVar = "OSM_ID"
 
@@ -39,4 +36,7 @@ const (
 
 	// IdentityHeader is the header returned by the bookstore and observed by the bookbuyer.
 	IdentityHeader = "Identity"
+
+	// PrometheusVar is the environment variable for promethues service name
+	PrometheusVar = "PROMETHEUS_SVC"
 )

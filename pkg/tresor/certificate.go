@@ -1,15 +1,10 @@
 package tresor
 
 import (
-	"crypto/rand"
-	"crypto/rsa"
 	"crypto/x509"
 	"time"
 
-	"github.com/pkg/errors"
-
 	"github.com/open-service-mesh/osm/pkg/certificate"
-	"github.com/open-service-mesh/osm/pkg/tresor/pem"
 )
 
 // GetName implements certificate.Certificater and returns the CN of the cert.
@@ -29,6 +24,10 @@ func (c Certificate) GetPrivateKey() []byte {
 
 // GetRootCertificate implements certificate.Certificater and returns the root certificate for the given cert.
 func (c Certificate) GetRootCertificate() *x509.Certificate {
+	if c.ca == nil {
+		log.Info().Msgf("No root certificate available for certificate with CN=%s", c.x509Cert.Subject.CommonName)
+		return nil
+	}
 	return c.ca.x509Cert
 }
 
@@ -66,55 +65,4 @@ func NewCertManager(ca *Certificate, validity time.Duration) (*CertManager, erro
 		cache:         make(map[certificate.CommonName]Certificate),
 	}
 	return &cm, nil
-}
-
-// NewCertManagerWithCAFromFile creates a new CertManager with the passed files containing the CA and CA Private Key
-func NewCertManagerWithCAFromFile(certFilePEM string, keyFilePEM string, org string, validity time.Duration) (*CertManager, error) {
-	ca, _, err := certFromFile(certFilePEM)
-	if err != nil {
-		return nil, err
-	}
-	rsaKey, _, err := privKeyFromFile(keyFilePEM)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error loading private key from file %s", keyFilePEM)
-		return nil, err
-	}
-	return NewCertManagerWithCA(ca, rsaKey, org, validity)
-}
-
-// NewCertManagerWithCA creates a new CertManager with the passed CA and CA Private Key
-func NewCertManagerWithCA(ca *x509.Certificate, caPrivKey *rsa.PrivateKey, org string, validity time.Duration) (*CertManager, error) {
-	cm := CertManager{
-		ca: &Certificate{
-			name:     rootCertificateName,
-			x509Cert: ca,
-			rsaKey:   caPrivKey,
-		},
-		announcements: make(chan interface{}),
-		validity:      validity,
-		cache:         make(map[certificate.CommonName]Certificate),
-	}
-	return &cm, nil
-}
-
-func genCert(template, parent *x509.Certificate, certPrivKey, caPrivKey *rsa.PrivateKey) (pem.Certificate, pem.PrivateKey, error) {
-	derBytes, err := x509.CreateCertificate(rand.Reader, template, parent, &certPrivKey.PublicKey, caPrivKey)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error issuing x509.CreateCertificate command for CN=%s", template.Subject.CommonName)
-		return nil, nil, errors.Wrap(err, errCreateCert.Error())
-	}
-
-	certPEM, err := encodeCertDERtoPEM(derBytes)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error encoding certificate with CN=%s", template.Subject.CommonName)
-		return nil, nil, err
-	}
-
-	privKeyPEM, err := encodeKeyDERtoPEM(certPrivKey)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error encoding private key for certificate with CN=%s", template.Subject.CommonName)
-		return nil, nil, err
-	}
-
-	return certPEM, privKeyPEM, nil
 }

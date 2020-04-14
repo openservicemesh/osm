@@ -43,9 +43,6 @@ for ns in "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE"; 
     kubectl create namespace "$ns"
     kubectl label  namespaces "$ns" openservicemesh.io/monitor="$OSM_ID"
 done
-# APP_NAMESPACES is a comma separated list of namespaces that informs OSM of the
-# namespaces it should observe.
-export APP_NAMESPACES="$BOOKBUYER_NAMESPACE,$BOOKSTORE_NAMESPACE,$BOOKTHIEF_NAMESPACE"
 
 make build-cert
 
@@ -74,7 +71,8 @@ kubectl apply -f crd/AzureResource.yaml
 # Deploy OSM
 ./demo/deploy-secrets.sh "ads"
 ./demo/deploy-webhook-secrets.sh
-go run ./demo/cmd/deploy/xds.go
+# Deploys Xds and Prometheus
+go run ./demo/cmd/deploy/control-plane.go
 
 # Wait for POD to be ready before deploying the webhook config.
 # K8s API server will probe on the webhook port when the config is deployed.
@@ -85,8 +83,6 @@ done
 
 ./demo/deploy-webhook.sh "ads" "$K8S_NAMESPACE" "$OSM_ID"
 
-# Deploy prometheus to get metrics
-./demo/deploy-prometheus.sh
 # Deploy bookstore
 ./demo/deploy-bookstore.sh "bookstore-1"
 ./demo/deploy-bookstore.sh "bookstore-2"

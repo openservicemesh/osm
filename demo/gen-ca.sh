@@ -14,7 +14,6 @@ mkdir -p "$DIR"
 ./bin/cert \
     --caPEMFileOut="${CRT}" \
     --caKeyPEMFileOut="${KEY}" \
-    --org="Azure Mesh" \
     --genca=true
 
 echo -e "Creating configmap for root cert"

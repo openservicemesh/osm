@@ -38,7 +38,6 @@ var (
 	osmID          string // An ID that uniquely identifies an OSM instance
 	azureAuthFile  string
 	kubeConfigFile string
-	appNamespaces  string // comma separated list of namespaces to observe
 	osmNamespace   string
 	injectorConfig injector.Config
 )
@@ -59,7 +58,6 @@ func init() {
 	flags.StringVar(&osmID, "osmID", "", "OSM instance ID")
 	flags.StringVar(&azureAuthFile, "azureAuthFile", "", "Path to Azure Auth File")
 	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file.")
-	flags.StringVar(&appNamespaces, "appNamespaces", "", "List of comma separated application namespaces OSM should manage.")
 	flags.StringVar(&osmNamespace, "osmNamespace", "", "Namespace to which OSM belongs to.")
 
 	// sidecar injector options

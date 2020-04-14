@@ -84,15 +84,14 @@ func (i *installCmd) run() error {
 
 func (i *installCmd) bootstrapRootCert() error {
 	// generate root cert and key
-	org := "Azure Mesh"
-	certpem, keypem, cert, key, err := tresor.NewCA(org, certValidityTime)
+	rootCert, err := tresor.NewCA(certValidityTime)
 	if err != nil {
 		return err
 	}
-	i.rootcertpem = certpem
-	i.rootkeypem = keypem
+	i.rootcertpem = rootCert.GetCertificateChain()
+	i.rootkeypem = rootCert.GetPrivateKey()
 
-	i.certManager, err = tresor.NewCertManagerWithCA(cert, key, org, certValidityTime)
+	i.certManager, err = tresor.NewCertManager(rootCert, certValidityTime)
 	return err
 }
 
