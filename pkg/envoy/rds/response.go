@@ -28,8 +28,8 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	}
 
 	routeConfiguration := []xds.RouteConfiguration{}
-	sourceRouteConfig := route.NewOutboundRouteConfiguration()
-	destinationRouteConfig := route.NewInboundRouteConfiguration()
+	sourceRouteConfig := route.NewRouteConfiguration(route.OutboundRouteConfig)
+	destinationRouteConfig := route.NewRouteConfiguration(route.InboundRouteConfig)
 	for _, trafficPolicies := range allTrafficPolicies {
 		isSourceService := envoy.Contains(proxyServiceName, trafficPolicies.Source.Services)
 		isDestinationService := envoy.Contains(proxyServiceName, trafficPolicies.Destination.Services)

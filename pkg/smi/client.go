@@ -181,6 +181,7 @@ func (c *Client) ListServices() []endpoint.WeightedService {
 	var services []endpoint.WeightedService
 	for _, splitIface := range c.caches.TrafficSplit.List() {
 		split := splitIface.(*split.TrafficSplit)
+		domain := split.Spec.Service
 		for _, backend := range split.Spec.Backends {
 			// The TrafficSplit SMI Spec does not allow providing a namespace for the backends,
 			// so we assume that the top level namespace for the TrafficSplit is the namespace
@@ -189,7 +190,7 @@ func (c *Client) ListServices() []endpoint.WeightedService {
 				Namespace: split.Namespace,
 				Service:   backend.Service,
 			}
-			services = append(services, endpoint.WeightedService{ServiceName: namespacedServiceName, Weight: backend.Weight})
+			services = append(services, endpoint.WeightedService{ServiceName: namespacedServiceName, Weight: backend.Weight, Domain: domain})
 		}
 	}
 	return services

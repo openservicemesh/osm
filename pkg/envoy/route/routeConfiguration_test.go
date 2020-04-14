@@ -53,10 +53,11 @@ var _ = Describe("Route Configuration", func() {
 						RouteMethods:   []string{"GET"},
 					},
 				},
+				Domains: []string{"bookstore.mesh"},
 			}
 
 			//Validating the outbound clusters and routes
-			sourceRouteConfig := NewOutboundRouteConfiguration()
+			sourceRouteConfig := NewRouteConfiguration(OutboundRouteConfig)
 			sourceRouteConfig = UpdateRouteConfiguration(trafficPolicies, sourceRouteConfig, true, false)
 			Expect(sourceRouteConfig).NotTo(Equal(nil))
 			Expect(sourceRouteConfig.Name).To(Equal(OutboundRouteConfig))
@@ -65,8 +66,9 @@ var _ = Describe("Route Configuration", func() {
 			Expect(sourceRouteConfig.VirtualHosts[0].Routes[0].Match.GetSafeRegex().Regex).To(Equal("/books-bought"))
 			Expect(sourceRouteConfig.VirtualHosts[0].Routes[0].Match.GetHeaders()[0].GetExactMatch()).To(Equal("GET"))
 			Expect(sourceRouteConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters()).To(Equal(&destWeightedClusters))
+			Expect(sourceRouteConfig.VirtualHosts[0].Domains).To(Equal([]string{"bookstore.mesh"}))
 			//Validating the inbound clusters and routes
-			destinationRouteConfig := NewInboundRouteConfiguration()
+			destinationRouteConfig := NewRouteConfiguration(InboundRouteConfig)
 			destinationRouteConfig = UpdateRouteConfiguration(trafficPolicies, destinationRouteConfig, false, true)
 			Expect(destinationRouteConfig).NotTo(Equal(nil))
 			Expect(destinationRouteConfig.Name).To(Equal(InboundRouteConfig))
@@ -75,6 +77,94 @@ var _ = Describe("Route Configuration", func() {
 			Expect(destinationRouteConfig.VirtualHosts[0].Routes[0].Match.GetSafeRegex().Regex).To(Equal("/books-bought"))
 			Expect(sourceRouteConfig.VirtualHosts[0].Routes[0].Match.GetHeaders()[0].GetExactMatch()).To(Equal("GET"))
 			Expect(destinationRouteConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters()).To(Equal(&srcWeightedClusters))
+			Expect(destinationRouteConfig.VirtualHosts[0].Domains).To(Equal([]string{"bookstore.mesh"}))
+		})
+	})
+
+	Context("Testing RouteConfiguration with multiple domains", func() {
+		It("Returns route configuration with two virtual hosts", func() {
+			trafficPolicy1 := endpoint.TrafficTargetPolicies{
+				PolicyName: "bookbuyer-bookstore",
+				Destination: endpoint.TrafficResource{
+					ServiceAccount: "bookstore-serviceaccount",
+					Namespace:      "osm",
+					Services: []endpoint.NamespacedService{
+						endpoint.NamespacedService{Namespace: "osm", Service: "bookstore-1"},
+						endpoint.NamespacedService{Namespace: "osm", Service: "bookstore-2"}},
+					Clusters: []endpoint.WeightedCluster{
+						{ClusterName: endpoint.ClusterName("osm/bookstore-1"), Weight: 50},
+						{ClusterName: endpoint.ClusterName("osm/bookstore-2"), Weight: 50}},
+				},
+				Source: endpoint.TrafficResource{
+					ServiceAccount: "bookbuyer-serviceaccount",
+					Namespace:      "osm",
+					Services: []endpoint.NamespacedService{
+						endpoint.NamespacedService{Namespace: "osm", Service: "bookbuyer"}},
+					Clusters: []endpoint.WeightedCluster{
+						{ClusterName: endpoint.ClusterName("osm/bookstore-1"), Weight: 50},
+						{ClusterName: endpoint.ClusterName("osm/bookstore-2"), Weight: 50}},
+				},
+				PolicyRoutePaths: []endpoint.RoutePaths{
+					endpoint.RoutePaths{
+						RoutePathRegex: "/books-bought",
+						RouteMethods:   []string{"GET"},
+					},
+				},
+				Domains: []string{"bookstore.mesh"},
+			}
+
+			trafficPolicy2 := endpoint.TrafficTargetPolicies{
+				PolicyName: "bookbuyer-bookstore",
+				Destination: endpoint.TrafficResource{
+					ServiceAccount: "bookstore-serviceaccount",
+					Namespace:      "osm",
+					Services: []endpoint.NamespacedService{
+						endpoint.NamespacedService{Namespace: "osm", Service: "bookstore-1"},
+						endpoint.NamespacedService{Namespace: "osm", Service: "bookstore-2"}},
+					Clusters: []endpoint.WeightedCluster{
+						{ClusterName: endpoint.ClusterName("osm/bookstore-1"), Weight: 50},
+						{ClusterName: endpoint.ClusterName("osm/bookstore-2"), Weight: 50}},
+				},
+				Source: endpoint.TrafficResource{
+					ServiceAccount: "bookbuyer-serviceaccount",
+					Namespace:      "osm",
+					Services: []endpoint.NamespacedService{
+						endpoint.NamespacedService{Namespace: "osm", Service: "bookbuyer"}},
+					Clusters: []endpoint.WeightedCluster{
+						{ClusterName: endpoint.ClusterName("osm/bookstore-1"), Weight: 50},
+						{ClusterName: endpoint.ClusterName("osm/bookstore-2"), Weight: 50}},
+				},
+				PolicyRoutePaths: []endpoint.RoutePaths{
+					endpoint.RoutePaths{
+						RoutePathRegex: "/books-bought",
+						RouteMethods:   []string{"GET"},
+					},
+				},
+				Domains: []string{"bookinventory.mesh"},
+			}
+
+			//Validating the outbound clusters and routes
+			sourceRouteConfig := NewRouteConfiguration(OutboundRouteConfig)
+			sourceRouteConfig = UpdateRouteConfiguration(trafficPolicy1, sourceRouteConfig, true, false)
+			sourceRouteConfig = UpdateRouteConfiguration(trafficPolicy2, sourceRouteConfig, true, false)
+			Expect(sourceRouteConfig).NotTo(Equal(nil))
+			Expect(sourceRouteConfig.Name).To(Equal(OutboundRouteConfig))
+			Expect(len(sourceRouteConfig.VirtualHosts)).To(Equal(2))
+			Expect(len(sourceRouteConfig.VirtualHosts[0].Routes)).To(Equal(1))
+			Expect(sourceRouteConfig.VirtualHosts[0].Domains).To(Equal([]string{"bookstore.mesh"}))
+			Expect(len(sourceRouteConfig.VirtualHosts[1].Routes)).To(Equal(1))
+			Expect(sourceRouteConfig.VirtualHosts[1].Domains).To(Equal([]string{"bookinventory.mesh"}))
+			//Validating the inbound clusters and routes
+			destinationRouteConfig := NewRouteConfiguration(InboundRouteConfig)
+			destinationRouteConfig = UpdateRouteConfiguration(trafficPolicy1, destinationRouteConfig, false, true)
+			destinationRouteConfig = UpdateRouteConfiguration(trafficPolicy2, destinationRouteConfig, false, true)
+			Expect(destinationRouteConfig).NotTo(Equal(nil))
+			Expect(destinationRouteConfig.Name).To(Equal(InboundRouteConfig))
+			Expect(len(destinationRouteConfig.VirtualHosts)).To(Equal(2))
+			Expect(len(destinationRouteConfig.VirtualHosts[0].Routes)).To(Equal(1))
+			Expect(destinationRouteConfig.VirtualHosts[0].Domains).To(Equal([]string{"bookstore.mesh"}))
+			Expect(len(destinationRouteConfig.VirtualHosts[1].Routes)).To(Equal(1))
+			Expect(destinationRouteConfig.VirtualHosts[1].Domains).To(Equal([]string{"bookinventory.mesh"}))
 		})
 	})
 })

@@ -1,6 +1,8 @@
 package route
 
 import (
+	"fmt"
+	"reflect"
 	"sort"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -21,6 +23,12 @@ const (
 
 	// maxRegexProgramSize is the max supported regex complexity
 	maxRegexProgramSize = 1024
+
+	//InboundVirtualHost is the name of the virtual host on that inbound route configuration
+	inboundVirtualHost = "backend"
+
+	//OutboundVirtualHost is the name of the virtual host on that outbound route configuration
+	outboundVirtualHost = "envoy_admin"
 )
 
 var (
@@ -39,32 +47,60 @@ func UpdateRouteConfiguration(trafficPolicies endpoint.TrafficTargetPolicies, ro
 	if isSourceService {
 		log.Trace().Msgf("[RDS] Updating OutboundRouteConfiguration for policy %v", trafficPolicies)
 		isLocalCluster = false
-		routeConfiguration = updateRoutes(trafficPolicies.PolicyRoutePaths, trafficPolicies.Source.Clusters, routeConfig, isLocalCluster)
+		routeConfiguration = updateRoutes(trafficPolicies.PolicyRoutePaths, trafficPolicies.Source.Clusters, trafficPolicies.Domains, routeConfig, isLocalCluster)
 	} else if isDestinationService {
 		log.Trace().Msgf("[RDS] Updating InboundRouteConfiguration for policy %v", trafficPolicies)
 		isLocalCluster = true
-		routeConfiguration = updateRoutes(trafficPolicies.PolicyRoutePaths, trafficPolicies.Destination.Clusters, routeConfig, isLocalCluster)
+		routeConfiguration = updateRoutes(trafficPolicies.PolicyRoutePaths, trafficPolicies.Destination.Clusters, trafficPolicies.Domains, routeConfig, isLocalCluster)
 	}
 	return routeConfiguration
 }
 
-func updateRoutes(routePaths []endpoint.RoutePaths, cluster []endpoint.WeightedCluster, routeConfig v2.RouteConfiguration, isLocalCluster bool) v2.RouteConfiguration {
+func updateRoutes(routePaths []endpoint.RoutePaths, clusters []endpoint.WeightedCluster, domains []string, routeConfig v2.RouteConfiguration, isLocalCluster bool) v2.RouteConfiguration {
 	for _, path := range routePaths {
 		routedMatched := false
-		for i := 0; i < len(routeConfig.VirtualHosts[0].Routes); i++ {
-			if path.RoutePathRegex == routeConfig.VirtualHosts[0].Routes[i].GetMatch().GetPrefix() {
-				routedMatched = true
-				routeConfig.VirtualHosts[0].Routes[i].Action = updateRouteActionWeightedClusters(*routeConfig.VirtualHosts[0].Routes[i].GetRoute().GetWeightedClusters(), cluster, isLocalCluster)
+		virtualHostExists := false
+		virtualHosts := routeConfig.VirtualHosts
+		virtualHostCount := len(virtualHosts)
+		for index := 0; index < virtualHostCount; index++ {
+			if reflect.DeepEqual(virtualHosts[index].Domains, domains) {
+				virtualHostExists = true
+				for i := 0; i < len(routeConfig.VirtualHosts[index].Routes); i++ {
+					if path.RoutePathRegex == routeConfig.VirtualHosts[index].Routes[i].GetMatch().GetPrefix() {
+						routedMatched = true
+						routeConfig.VirtualHosts[index].Routes[i].Action = updateRouteActionWeightedClusters(*routeConfig.VirtualHosts[index].Routes[i].GetRoute().GetWeightedClusters(), clusters, isLocalCluster)
+						continue
+					}
+				}
+				if !routedMatched {
+					route := createRoute(&path, clusters, isLocalCluster)
+					routeConfig.VirtualHosts[index].Routes = append(routeConfig.VirtualHosts[index].Routes, &route)
+				}
 				continue
 			}
 		}
-		if len(routeConfig.VirtualHosts[0].Routes) == 0 || !routedMatched {
-			route := createRoute(&path, cluster, isLocalCluster)
-			routeConfig.VirtualHosts[0].Routes = append(routeConfig.VirtualHosts[0].Routes, &route)
+		if !virtualHostExists {
+			var name string
+			if name = fmt.Sprintf("%s_%d", outboundVirtualHost, virtualHostCount); isLocalCluster {
+				name = fmt.Sprintf("%s_%d", inboundVirtualHost, virtualHostCount)
+			}
+			virtualhost := createVirtualHost(name, domains)
+			route := createRoute(&path, clusters, isLocalCluster)
+			virtualhost.Routes = append(virtualhost.Routes, &route)
+			routeConfig.VirtualHosts = append(routeConfig.VirtualHosts, &virtualhost)
 		}
 	}
 	log.Debug().Msgf("[RDS] Constructed OutboundRouteConfiguration %+v", routeConfig)
 	return routeConfig
+}
+
+func createVirtualHost(name string, domains []string) v2route.VirtualHost {
+	virtualHost := v2route.VirtualHost{
+		Name:    name,
+		Domains: domains,
+		Routes:  []*v2route.Route{},
+	}
+	return virtualHost
 }
 
 func createRoute(path *endpoint.RoutePaths, weightedClusters []endpoint.WeightedCluster, isLocalCluster bool) v2route.Route {
@@ -176,31 +212,11 @@ func sanitizeHTTPMethods(allowedMethods []string) []string {
 	return newAllowedMethods
 }
 
-//NewOutboundRouteConfiguration creates the outbound route configurations
-func NewOutboundRouteConfiguration() v2.RouteConfiguration {
+//NewRouteConfiguration creates the route configuration
+func NewRouteConfiguration(routeConfigName string) v2.RouteConfiguration {
 	routeConfiguration := v2.RouteConfiguration{
-		Name: OutboundRouteConfig,
-		VirtualHosts: []*v2route.VirtualHost{{
-			Name:    "envoy_admin",
-			Domains: []string{"*"},
-			Routes:  []*v2route.Route{},
-			Cors:    &v2route.CorsPolicy{},
-		}},
-		ValidateClusters: &wrappers.BoolValue{Value: true},
-	}
-	return routeConfiguration
-}
-
-//NewInboundRouteConfiguration creates the inbound route configurations
-func NewInboundRouteConfiguration() v2.RouteConfiguration {
-	routeConfiguration := v2.RouteConfiguration{
-		Name: InboundRouteConfig,
-		VirtualHosts: []*v2route.VirtualHost{{
-			Name:    "backend",
-			Domains: []string{"*"},
-			Routes:  []*v2route.Route{},
-			Cors:    &v2route.CorsPolicy{},
-		}},
+		Name:             routeConfigName,
+		VirtualHosts:     []*v2route.VirtualHost{},
 		ValidateClusters: &wrappers.BoolValue{Value: true},
 	}
 	return routeConfiguration

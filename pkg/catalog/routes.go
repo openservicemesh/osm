@@ -63,6 +63,20 @@ func (sc *MeshCatalog) listClustersForServices(services []endpoint.NamespacedSer
 	return uniqueClusters(clusters)
 }
 
+func (sc *MeshCatalog) listDomainsForServices(services []endpoint.NamespacedService) []string {
+
+	log.Info().Msgf("Finding domains for services %v", services)
+	var domains []string
+	for _, service := range services {
+		for activeService := range sc.servicesCache {
+			if activeService.ServiceName == service {
+				domains = append(domains, activeService.Domain)
+			}
+		}
+	}
+	return uniqueDomains(domains)
+}
+
 func (sc *MeshCatalog) getActiveServices(services []endpoint.NamespacedService) []endpoint.NamespacedService {
 	// TODO(draychev): split namespace from the service name -- for non-K8s services
 	log.Info().Msgf("Finding active services only %v", services)
@@ -144,6 +158,7 @@ func getTrafficPolicyPerRoute(sc *MeshCatalog, routes map[string]endpoint.RouteP
 					Namespace:      trafficSources.Namespace,
 					Services:       srcServices,
 					Clusters:       destClusters}
+				trafficTargetPolicy.Domains = sc.listDomainsForServices(activeDestServices)
 
 				for _, trafficTargetSpecs := range trafficTargets.Specs {
 					if trafficTargetSpecs.Kind != HTTPTraffic {
@@ -192,6 +207,18 @@ func uniqueServices(slice []endpoint.NamespacedService) []endpoint.NamespacedSer
 func uniqueClusters(slice []endpoint.WeightedCluster) []endpoint.WeightedCluster {
 	keys := make(map[endpoint.WeightedCluster]interface{})
 	uniqueSlice := []endpoint.WeightedCluster{}
+	for _, entry := range slice {
+		if _, value := keys[entry]; !value {
+			keys[entry] = nil
+			uniqueSlice = append(uniqueSlice, entry)
+		}
+	}
+	return uniqueSlice
+}
+
+func uniqueDomains(slice []string) []string {
+	keys := make(map[string]interface{})
+	uniqueSlice := []string{}
 	for _, entry := range slice {
 		if _, value := keys[entry]; !value {
 			keys[entry] = nil
