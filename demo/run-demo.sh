@@ -33,16 +33,7 @@ if [ -z "$BOOKTHIEF_NAMESPACE" ]; then
 fi
 
 ./demo/clean-kubernetes.sh
-
-# The demo uses the following namespaces defined by environment variables:
-# 1. K8S_NAMESPACE: OSM's namespace
-# 2. BOOKBUYER_NAMESPACE: Namespace for the Bookbuyer service
-# 3. BOOKSTORE_NAMESPACE: Namespace for the Bookstore service
-kubectl create namespace "$K8S_NAMESPACE"
-for ns in "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE"; do
-    kubectl create namespace "$ns"
-    kubectl label  namespaces "$ns" openservicemesh.io/monitor="$OSM_ID"
-done
+./demo/create-namespaces.sh
 
 make build-cert
 
@@ -83,18 +74,8 @@ done
 
 ./demo/deploy-webhook.sh "ads" "$K8S_NAMESPACE" "$OSM_ID"
 
-# Deploy bookstore
-./demo/deploy-bookstore.sh "bookstore-1"
-./demo/deploy-bookstore.sh "bookstore-2"
-# Deploy bookbuyer
-./demo/deploy-bookbuyer.sh
-# Deploy bookthief
-./demo/deploy-bookthief.sh
+./demo/deploy-apps.sh
 
-# Apply SMI policies
-./demo/deploy-traffic-split.sh
-./demo/deploy-traffic-spec.sh
-./demo/deploy-traffic-target.sh
 
 if [[ "$IS_GITHUB" != "true" ]]; then
     watch -n5 "printf \"Namespace ${K8S_NAMESPACE}:\n\"; kubectl get pods -n ${K8S_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKBUYER_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKBUYER_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKSTORE_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKSTORE_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKTHIEF_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKTHIEF_NAMESPACE} -o wide"
