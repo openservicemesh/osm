@@ -45,22 +45,33 @@ func (sc *MeshCatalog) listServicesForServiceAccount(namespacedServiceAccount en
 	return services, nil
 }
 
-func (sc *MeshCatalog) listClustersForServices(services []endpoint.NamespacedService) []endpoint.WeightedCluster {
+//GetWeightedClusterForService returns the weighted cluster for a given service
+func (sc *MeshCatalog) GetWeightedClusterForService(service endpoint.NamespacedService) (endpoint.WeightedCluster, error) {
 	// TODO(draychev): split namespace from the service name -- for non-K8s services
-	log.Info().Msgf("Finding active clusters for services %v", services)
-	var clusters []endpoint.WeightedCluster
-	for _, service := range services {
-		for activeService := range sc.servicesCache {
-			if activeService.ServiceName == service {
-				weightedCluster := endpoint.WeightedCluster{
-					ClusterName: endpoint.ClusterName(activeService.ServiceName.String()),
-					Weight:      activeService.Weight,
-				}
-				clusters = append(clusters, weightedCluster)
+	log.Info().Msgf("Finding weighted cluster for service %s", service)
+	var weightedCluster endpoint.WeightedCluster
+	for activeService := range sc.servicesCache {
+		if activeService.ServiceName == service {
+			weightedCluster = endpoint.WeightedCluster{
+				ClusterName: endpoint.ClusterName(activeService.ServiceName.String()),
+				Weight:      activeService.Weight,
 			}
+			return weightedCluster, nil
 		}
 	}
-	return uniqueClusters(clusters)
+	return weightedCluster, errServiceNotFound
+}
+
+//GetDomainForService returns the domain name of a service
+func (sc *MeshCatalog) GetDomainForService(service endpoint.NamespacedService) (string, error) {
+	log.Info().Msgf("Finding domain for service %s", service)
+	var domain string
+	for activeService := range sc.servicesCache {
+		if activeService.ServiceName == service {
+			return activeService.Domain, nil
+		}
+	}
+	return domain, errServiceNotFound
 }
 
 func (sc *MeshCatalog) getActiveServices(services []endpoint.NamespacedService) []endpoint.NamespacedService {
@@ -118,50 +129,47 @@ func getTrafficPolicyPerRoute(sc *MeshCatalog, routePolicies map[string]endpoint
 		}
 
 		activeDestServices := sc.getActiveServices(destServices)
-		destClusters := sc.listClustersForServices(activeDestServices)
-		//Routes are configured only if destination cluster/s exist i.e traffic split (endpoints) is setup
-		if len(destClusters) > 0 {
+		//Routes are configured only if destination services exist i.e traffic split (endpoints) is setup
+		if len(activeDestServices) == 0 || activeDestServices == nil {
+			continue
+		}
+		for _, trafficSources := range trafficTargets.Sources {
+			namespacedServiceAccount := endpoint.NamespacedServiceAccount{
+				Namespace:      trafficSources.Namespace,
+				ServiceAccount: trafficSources.Name,
+			}
+			srcServices, srcErr := sc.listServicesForServiceAccount(namespacedServiceAccount)
+			if srcErr != nil {
+				log.Error().Msgf("TrafficSpec %s/%s could not get services for service account %s", trafficTargets.Namespace, trafficTargets.Name, fmt.Sprintf("%s/%s", trafficSources.Namespace, trafficSources.Name))
+				return nil, srcErr
+			}
+			trafficPolicy := endpoint.TrafficPolicy{}
+			trafficPolicy.PolicyName = trafficTargets.Name
+			trafficPolicy.Destination = endpoint.TrafficPolicyResource{
+				ServiceAccount: endpoint.ServiceAccount(trafficTargets.Destination.Name),
+				Namespace:      trafficTargets.Destination.Namespace,
+				Services:       activeDestServices}
+			trafficPolicy.Source = endpoint.TrafficPolicyResource{
+				ServiceAccount: endpoint.ServiceAccount(trafficSources.Name),
+				Namespace:      trafficSources.Namespace,
+				Services:       srcServices}
 
-			for _, trafficSources := range trafficTargets.Sources {
-				namespacedServiceAccount := endpoint.NamespacedServiceAccount{
-					Namespace:      trafficSources.Namespace,
-					ServiceAccount: trafficSources.Name,
+			for _, trafficTargetSpecs := range trafficTargets.Specs {
+				if trafficTargetSpecs.Kind != HTTPTraffic {
+					log.Error().Msgf("TrafficTarget %s/%s has Spec Kind %s which isn't supported for now; Skipping...", trafficTargets.Namespace, trafficTargets.Name, trafficTargetSpecs.Kind)
+					continue
 				}
-				srcServices, srcErr := sc.listServicesForServiceAccount(namespacedServiceAccount)
-				if srcErr != nil {
-					log.Error().Msgf("TrafficSpec %s/%s could not get services for service account %s", trafficTargets.Namespace, trafficTargets.Name, fmt.Sprintf("%s/%s", trafficSources.Namespace, trafficSources.Name))
-					return nil, srcErr
-				}
-				trafficPolicy := endpoint.TrafficPolicy{}
-				trafficPolicy.PolicyName = trafficTargets.Name
-				trafficPolicy.Destination = endpoint.TrafficPolicyResource{
-					ServiceAccount: endpoint.ServiceAccount(trafficTargets.Destination.Name),
-					Namespace:      trafficTargets.Destination.Namespace,
-					Services:       activeDestServices,
-					Clusters:       destClusters}
-				trafficPolicy.Source = endpoint.TrafficPolicyResource{
-					ServiceAccount: endpoint.ServiceAccount(trafficSources.Name),
-					Namespace:      trafficSources.Namespace,
-					Services:       srcServices,
-					Clusters:       destClusters}
+				trafficPolicy.RoutePolicies = []endpoint.RoutePolicy{}
 
-				for _, trafficTargetSpecs := range trafficTargets.Specs {
-					if trafficTargetSpecs.Kind != HTTPTraffic {
-						log.Error().Msgf("TrafficTarget %s/%s has Spec Kind %s which isn't supported for now; Skipping...", trafficTargets.Namespace, trafficTargets.Name, trafficTargetSpecs.Kind)
-						continue
-					}
-					trafficPolicy.RoutePolicies = []endpoint.RoutePolicy{}
-
-					for _, specMatches := range trafficTargetSpecs.Matches {
-						routeKey := fmt.Sprintf("%s/%s/%s/%s", trafficTargetSpecs.Kind, trafficTargets.Namespace, trafficTargetSpecs.Name, specMatches)
-						routePolicy := routePolicies[routeKey]
-						trafficPolicy.RoutePolicies = append(trafficPolicy.RoutePolicies, routePolicy)
-					}
+				for _, specMatches := range trafficTargetSpecs.Matches {
+					routeKey := fmt.Sprintf("%s/%s/%s/%s", trafficTargetSpecs.Kind, trafficTargets.Namespace, trafficTargetSpecs.Name, specMatches)
+					routePolicy := routePolicies[routeKey]
+					trafficPolicy.RoutePolicies = append(trafficPolicy.RoutePolicies, routePolicy)
 				}
-				// append a traffic policy only if it corresponds to the clientID
-				if envoy.Contains(clientID, trafficPolicy.Source.Services) || envoy.Contains(clientID, trafficPolicy.Destination.Services) {
-					trafficPolicies = append(trafficPolicies, trafficPolicy)
-				}
+			}
+			// append a traffic policy only if it corresponds to the clientID
+			if envoy.Contains(clientID, trafficPolicy.Source.Services) || envoy.Contains(clientID, trafficPolicy.Destination.Services) {
+				trafficPolicies = append(trafficPolicies, trafficPolicy)
 			}
 		}
 	}
@@ -180,18 +188,6 @@ func servicesToString(services []endpoint.NamespacedService) []string {
 func uniqueServices(slice []endpoint.NamespacedService) []endpoint.NamespacedService {
 	keys := make(map[endpoint.NamespacedService]interface{})
 	uniqueSlice := []endpoint.NamespacedService{}
-	for _, entry := range slice {
-		if _, value := keys[entry]; !value {
-			keys[entry] = nil
-			uniqueSlice = append(uniqueSlice, entry)
-		}
-	}
-	return uniqueSlice
-}
-
-func uniqueClusters(slice []endpoint.WeightedCluster) []endpoint.WeightedCluster {
-	keys := make(map[endpoint.WeightedCluster]interface{})
-	uniqueSlice := []endpoint.WeightedCluster{}
 	for _, entry := range slice {
 		if _, value := keys[entry]; !value {
 			keys[entry] = nil

@@ -7,6 +7,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
+	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 	"github.com/open-service-mesh/osm/pkg/envoy/route"
 
@@ -28,17 +29,35 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	}
 
 	routeConfiguration := []xds.RouteConfiguration{}
-	sourceRouteConfig := route.NewOutboundRouteConfiguration()
-	destinationRouteConfig := route.NewInboundRouteConfiguration()
+	sourceRouteConfig := route.NewRouteConfigurationStub(route.OutboundRouteConfig)
+	destinationRouteConfig := route.NewRouteConfigurationStub(route.InboundRouteConfig)
+	sourceAggregatedRoutesByDomain := make(map[string][]endpoint.RoutePolicyWeightedClusters)
+	destinationAggregatedRoutesByDomain := make(map[string][]endpoint.RoutePolicyWeightedClusters)
+
 	for _, trafficPolicies := range allTrafficPolicies {
 		isSourceService := envoy.Contains(proxyServiceName, trafficPolicies.Source.Services)
 		isDestinationService := envoy.Contains(proxyServiceName, trafficPolicies.Destination.Services)
-		if isSourceService {
-			sourceRouteConfig = route.UpdateRouteConfiguration(trafficPolicies, sourceRouteConfig, isSourceService, isDestinationService)
-		} else if isDestinationService {
-			destinationRouteConfig = route.UpdateRouteConfiguration(trafficPolicies, destinationRouteConfig, isSourceService, isDestinationService)
+		for _, service := range trafficPolicies.Destination.Services {
+			domain, err := catalog.GetDomainForService(service)
+			if err != nil {
+				log.Error().Err(err).Msg("Failed listing domains")
+				return nil, err
+			}
+			weightedCluster, err := catalog.GetWeightedClusterForService(service)
+			if err != nil {
+				log.Error().Err(err).Msg("Failed listing clusters")
+				return nil, err
+			}
+			if isSourceService {
+				aggregateRoutesByDomain(sourceAggregatedRoutesByDomain, trafficPolicies.RoutePolicies, weightedCluster, domain)
+			}
+			if isDestinationService {
+				aggregateRoutesByDomain(destinationAggregatedRoutesByDomain, trafficPolicies.RoutePolicies, weightedCluster, domain)
+			}
 		}
 	}
+	sourceRouteConfig = route.UpdateRouteConfiguration(sourceAggregatedRoutesByDomain, sourceRouteConfig, true, false)
+	destinationRouteConfig = route.UpdateRouteConfiguration(destinationAggregatedRoutesByDomain, destinationRouteConfig, false, true)
 	routeConfiguration = append(routeConfiguration, sourceRouteConfig)
 	routeConfiguration = append(routeConfiguration, destinationRouteConfig)
 
@@ -51,4 +70,51 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 		resp.Resources = append(resp.Resources, marshalledRouteConfig)
 	}
 	return resp, nil
+}
+
+func aggregateRoutesByDomain(domainRoutesMap map[string][]endpoint.RoutePolicyWeightedClusters, routePolicies []endpoint.RoutePolicy, weightedCluster endpoint.WeightedCluster, domain string) /*map[string][]endpoint.RoutePolicyWeightedClusters*/ {
+	routesList, exists := domainRoutesMap[domain]
+	if !exists {
+		// no domain found, create a new route and cluster mapping and add the domain
+		var routeWeightedClustersList []endpoint.RoutePolicyWeightedClusters
+		for _, route := range routePolicies {
+			routeWeightedClustersList = append(routeWeightedClustersList, createRoutePolicyWeightedClusters(route, weightedCluster))
+		}
+		domainRoutesMap[domain] = routeWeightedClustersList
+	} else {
+		for _, route := range routePolicies {
+			routeIndex, routeFound := routeExits(routesList, route)
+			if routeFound {
+				// add the cluster to the existing route
+				routesList[routeIndex].WeightedClusters = append(routesList[routeIndex].WeightedClusters, weightedCluster)
+				routesList[routeIndex].RoutePolicy.Methods = append(routesList[routeIndex].RoutePolicy.Methods, route.Methods...)
+			} else {
+				// no route found, create a new route and cluster mapping on domain
+				routesList = append(routesList, createRoutePolicyWeightedClusters(route, weightedCluster))
+			}
+			domainRoutesMap[domain] = routesList
+		}
+	}
+	//return domainRoutesMap
+}
+
+func createRoutePolicyWeightedClusters(routePolicy endpoint.RoutePolicy, weightedCluster endpoint.WeightedCluster) endpoint.RoutePolicyWeightedClusters {
+	return endpoint.RoutePolicyWeightedClusters{
+		RoutePolicy:      routePolicy,
+		WeightedClusters: []endpoint.WeightedCluster{weightedCluster},
+	}
+}
+
+func routeExits(routesList []endpoint.RoutePolicyWeightedClusters, routePolicy endpoint.RoutePolicy) (int, bool) {
+	routeExists := false
+	index := -1
+	// check if the route is already in list
+	for i, routeWeightedClusters := range routesList {
+		if routeWeightedClusters.RoutePolicy.PathRegex == routePolicy.PathRegex {
+			routeExists = true
+			index = i
+			return index, routeExists
+		}
+	}
+	return index, routeExists
 }

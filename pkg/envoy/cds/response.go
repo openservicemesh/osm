@@ -29,13 +29,22 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	for _, trafficPolicies := range allTrafficPolicies {
 		isSourceService := envoy.Contains(proxyServiceName, trafficPolicies.Source.Services)
 		isDestinationService := envoy.Contains(proxyServiceName, trafficPolicies.Destination.Services)
-		if isSourceService {
-			for _, cluster := range trafficPolicies.Source.Clusters {
+		//iterate through only destination services here since envoy is programmed by destination
+		for _, service := range trafficPolicies.Destination.Services {
+			if isSourceService {
+				cluster, err := catalog.GetWeightedClusterForService(service)
+				if err != nil {
+					log.Error().Err(err).Msgf("Failed to find cluster")
+					return nil, err
+				}
 				remoteCluster := envoy.GetServiceCluster(string(cluster.ClusterName), proxyServiceName)
 				clusterFactories = append(clusterFactories, remoteCluster)
-			}
-		} else if isDestinationService {
-			for _, cluster := range trafficPolicies.Destination.Clusters {
+			} else if isDestinationService {
+				cluster, err := catalog.GetWeightedClusterForService(service)
+				if err != nil {
+					log.Error().Err(err).Msgf("Failed to find cluster")
+					return nil, err
+				}
 				clusterFactories = append(clusterFactories, getServiceClusterLocal(catalog, proxyServiceName, string(cluster.ClusterName+envoy.LocalClusterSuffix)))
 			}
 		}
