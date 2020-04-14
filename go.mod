@@ -48,7 +48,7 @@ require (
 	google.golang.org/grpc v1.25.1
 	k8s.io/api v0.17.4
 	k8s.io/apimachinery v0.17.4
-	k8s.io/client-go v0.17.4
+	k8s.io/client-go v0.18.0
 	k8s.io/utils v0.0.0-20190607212802-c55fbcfc754a // indirect
 )
 
