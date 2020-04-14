@@ -43,6 +43,7 @@ specs:
   name: bookstore-service-routes
   matches:
   - buy-a-book
+  - update-books-bought
 sources:
 - kind: ServiceAccount
   name: bookbuyer-serviceaccount
