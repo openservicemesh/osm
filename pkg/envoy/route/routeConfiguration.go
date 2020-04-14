@@ -88,7 +88,7 @@ func createRoute(path *endpoint.RoutePaths, weightedClusters []endpoint.Weighted
 
 	// For a given route path, sanitize the methods in case there
 	// is wildcard or if there are duplicates
-	allowedMethods := updateAllowedMethods(path.RouteMethods)
+	allowedMethods := sanitizeHTTPMethods(path.RouteMethods)
 	for _, method := range allowedMethods {
 		headerMatcher := &v2route.HeaderMatcher{
 			Name: ":method",
@@ -156,7 +156,9 @@ func (c clusterWeightByName) Less(i, j int) bool {
 	return c[i].Name < c[j].Name
 }
 
-func updateAllowedMethods(allowedMethods []string) []string {
+// sanitizeHTTPMethods takes in a list of HTTP methods including a wildcard (*) and returns a wildcard if any of
+// the methods is a wildcard or sanitizes the input list to avoid duplicates.
+func sanitizeHTTPMethods(allowedMethods []string) []string {
 	newAllowedMethods := []string{}
 	keys := make(map[string]interface{})
 	for _, method := range allowedMethods {
