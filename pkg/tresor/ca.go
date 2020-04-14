@@ -46,13 +46,13 @@ func NewCA(validity time.Duration) (*Certificate, error) {
 		return nil, errors.Wrap(err, errCreateCert.Error())
 	}
 
-	pemCert, err := encodeCert(derBytes)
+	pemCert, err := encodeCertDERtoPEM(derBytes)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error encoding certificate with CN=%s", template.Subject.CommonName)
 		return nil, err
 	}
 
-	pemKey, err := encodeKey(rsaKey)
+	pemKey, err := encodeKeyDERtoPEM(rsaKey)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error encoding private key for certificate with CN=%s", template.Subject.CommonName)
 		return nil, err
