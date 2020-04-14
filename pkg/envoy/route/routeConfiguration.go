@@ -2,10 +2,9 @@ package route
 
 import (
 	"sort"
-	"strings"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	v2route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
 	"github.com/golang/protobuf/ptypes/wrappers"
 
@@ -50,10 +49,8 @@ func UpdateRouteConfiguration(trafficPolicies endpoint.TrafficTargetPolicies, ro
 }
 
 func updateRoutes(routePaths []endpoint.RoutePaths, cluster []endpoint.WeightedCluster, routeConfig v2.RouteConfiguration, isLocalCluster bool) v2.RouteConfiguration {
-	allowedMethods := strings.Split(routeConfig.VirtualHosts[0].Cors.AllowMethods, ",")
 	for _, path := range routePaths {
 		routedMatched := false
-		allowedMethods = append(allowedMethods, path.RouteMethods...)
 		for i := 0; i < len(routeConfig.VirtualHosts[0].Routes); i++ {
 			if path.RoutePathRegex == routeConfig.VirtualHosts[0].Routes[i].GetMatch().GetPrefix() {
 				routedMatched = true
@@ -62,41 +59,50 @@ func updateRoutes(routePaths []endpoint.RoutePaths, cluster []endpoint.WeightedC
 			}
 		}
 		if len(routeConfig.VirtualHosts[0].Routes) == 0 || !routedMatched {
-			route := createRoute(path.RoutePathRegex, cluster, isLocalCluster)
+			route := createRoute(&path, cluster, isLocalCluster)
 			routeConfig.VirtualHosts[0].Routes = append(routeConfig.VirtualHosts[0].Routes, &route)
 		}
-	}
-	allowedMethods = updateAllowedMethods(allowedMethods)
-	routeConfig.VirtualHosts[0].Cors = &route.CorsPolicy{
-		AllowMethods: strings.Join(allowedMethods, ","),
 	}
 	log.Debug().Msgf("[RDS] Constructed OutboundRouteConfiguration %+v", routeConfig)
 	return routeConfig
 }
 
-func createRoute(pathRegex string, weightedClusters []endpoint.WeightedCluster, isLocalCluster bool) route.Route {
-	route := route.Route{
-		Match: &route.RouteMatch{
-			PathSpecifier: &route.RouteMatch_SafeRegex{
+func createRoute(path *endpoint.RoutePaths, weightedClusters []endpoint.WeightedCluster, isLocalCluster bool) v2route.Route {
+	route := v2route.Route{
+		Match: &v2route.RouteMatch{
+			PathSpecifier: &v2route.RouteMatch_SafeRegex{
 				SafeRegex: &matcher.RegexMatcher{
 					EngineType: regexEngine,
-					Regex:      pathRegex,
+					Regex:      path.RoutePathRegex,
 				},
 			},
 		},
-		Action: &route.Route_Route{
-			Route: &route.RouteAction{
-				ClusterSpecifier: &route.RouteAction_WeightedClusters{
+		Action: &v2route.Route_Route{
+			Route: &v2route.RouteAction{
+				ClusterSpecifier: &v2route.RouteAction_WeightedClusters{
 					WeightedClusters: getWeightedCluster(weightedClusters, isLocalCluster),
 				},
 			},
 		},
 	}
+
+	// For a given route path, sanitize the methods in case there
+	// is wildcard or if there are duplicates
+	allowedMethods := updateAllowedMethods(path.RouteMethods)
+	for _, method := range allowedMethods {
+		headerMatcher := &v2route.HeaderMatcher{
+			Name: ":method",
+			HeaderMatchSpecifier: &v2route.HeaderMatcher_ExactMatch{
+				ExactMatch: method,
+			},
+		}
+		route.Match.Headers = append(route.Match.Headers, headerMatcher)
+	}
 	return route
 }
 
-func getWeightedCluster(weightedClusters []endpoint.WeightedCluster, isLocalCluster bool) *route.WeightedCluster {
-	var wc route.WeightedCluster
+func getWeightedCluster(weightedClusters []endpoint.WeightedCluster, isLocalCluster bool) *v2route.WeightedCluster {
+	var wc v2route.WeightedCluster
 	var total int
 	for _, cluster := range weightedClusters {
 		clusterName := string(cluster.ClusterName)
@@ -104,7 +110,7 @@ func getWeightedCluster(weightedClusters []endpoint.WeightedCluster, isLocalClus
 		if isLocalCluster {
 			clusterName += envoy.LocalClusterSuffix
 		}
-		wc.Clusters = append(wc.Clusters, &route.WeightedCluster_ClusterWeight{
+		wc.Clusters = append(wc.Clusters, &v2route.WeightedCluster_ClusterWeight{
 			Name:   clusterName,
 			Weight: &wrappers.UInt32Value{Value: uint32(cluster.Weight)},
 		})
@@ -114,7 +120,7 @@ func getWeightedCluster(weightedClusters []endpoint.WeightedCluster, isLocalClus
 	return &wc
 }
 
-func updateRouteActionWeightedClusters(existingWeightedCluster route.WeightedCluster, newWeightedClusters []endpoint.WeightedCluster, isLocalCluster bool) *route.Route_Route {
+func updateRouteActionWeightedClusters(existingWeightedCluster v2route.WeightedCluster, newWeightedClusters []endpoint.WeightedCluster, isLocalCluster bool) *v2route.Route_Route {
 	total := int(existingWeightedCluster.TotalWeight.GetValue())
 	for _, cluster := range newWeightedClusters {
 		clusterName := string(cluster.ClusterName)
@@ -122,16 +128,16 @@ func updateRouteActionWeightedClusters(existingWeightedCluster route.WeightedClu
 		if isLocalCluster {
 			clusterName += envoy.LocalClusterSuffix
 		}
-		existingWeightedCluster.Clusters = append(existingWeightedCluster.Clusters, &route.WeightedCluster_ClusterWeight{
+		existingWeightedCluster.Clusters = append(existingWeightedCluster.Clusters, &v2route.WeightedCluster_ClusterWeight{
 			Name:   clusterName,
 			Weight: &wrappers.UInt32Value{Value: uint32(cluster.Weight)},
 		})
 	}
 	existingWeightedCluster.TotalWeight = &wrappers.UInt32Value{Value: uint32(total)}
 	sort.Stable(clusterWeightByName(existingWeightedCluster.Clusters))
-	action := &route.Route_Route{
-		Route: &route.RouteAction{
-			ClusterSpecifier: &route.RouteAction_WeightedClusters{
+	action := &v2route.Route_Route{
+		Route: &v2route.RouteAction{
+			ClusterSpecifier: &v2route.RouteAction_WeightedClusters{
 				WeightedClusters: &existingWeightedCluster,
 			},
 		},
@@ -139,7 +145,7 @@ func updateRouteActionWeightedClusters(existingWeightedCluster route.WeightedClu
 	return action
 }
 
-type clusterWeightByName []*route.WeightedCluster_ClusterWeight
+type clusterWeightByName []*v2route.WeightedCluster_ClusterWeight
 
 func (c clusterWeightByName) Len() int      { return len(c) }
 func (c clusterWeightByName) Swap(i, j int) { c[i], c[j] = c[j], c[i] }
@@ -172,11 +178,11 @@ func updateAllowedMethods(allowedMethods []string) []string {
 func NewOutboundRouteConfiguration() v2.RouteConfiguration {
 	routeConfiguration := v2.RouteConfiguration{
 		Name: OutboundRouteConfig,
-		VirtualHosts: []*route.VirtualHost{{
+		VirtualHosts: []*v2route.VirtualHost{{
 			Name:    "envoy_admin",
 			Domains: []string{"*"},
-			Routes:  []*route.Route{},
-			Cors:    &route.CorsPolicy{},
+			Routes:  []*v2route.Route{},
+			Cors:    &v2route.CorsPolicy{},
 		}},
 		ValidateClusters: &wrappers.BoolValue{Value: true},
 	}
@@ -187,11 +193,11 @@ func NewOutboundRouteConfiguration() v2.RouteConfiguration {
 func NewInboundRouteConfiguration() v2.RouteConfiguration {
 	routeConfiguration := v2.RouteConfiguration{
 		Name: InboundRouteConfig,
-		VirtualHosts: []*route.VirtualHost{{
+		VirtualHosts: []*v2route.VirtualHost{{
 			Name:    "backend",
 			Domains: []string{"*"},
-			Routes:  []*route.Route{},
-			Cors:    &route.CorsPolicy{},
+			Routes:  []*v2route.Route{},
+			Cors:    &v2route.CorsPolicy{},
 		}},
 		ValidateClusters: &wrappers.BoolValue{Value: true},
 	}
