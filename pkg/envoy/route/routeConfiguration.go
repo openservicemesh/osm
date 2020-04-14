@@ -6,6 +6,7 @@ import (
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
 	"github.com/golang/protobuf/ptypes/wrappers"
 
 	"github.com/open-service-mesh/osm/pkg/endpoint"
@@ -18,6 +19,17 @@ const (
 
 	//OutboundRouteConfig is the name of the route config that the envoy will identify
 	OutboundRouteConfig = "RDS_Outbound"
+
+	// maxRegexProgramSize is the max supported regex complexity
+	maxRegexProgramSize = 1024
+)
+
+var (
+	regexEngine = &matcher.RegexMatcher_GoogleRe2{GoogleRe2: &matcher.RegexMatcher_GoogleRE2{
+		MaxProgramSize: &wrappers.UInt32Value{
+			Value: uint32(maxRegexProgramSize),
+		},
+	}}
 )
 
 //UpdateRouteConfiguration consrtucts the Envoy construct necessary for TrafficTarget implementation
@@ -62,11 +74,14 @@ func updateRoutes(routePaths []endpoint.RoutePaths, cluster []endpoint.WeightedC
 	return routeConfig
 }
 
-func createRoute(pathPrefix string, weightedClusters []endpoint.WeightedCluster, isLocalCluster bool) route.Route {
+func createRoute(pathRegex string, weightedClusters []endpoint.WeightedCluster, isLocalCluster bool) route.Route {
 	route := route.Route{
 		Match: &route.RouteMatch{
-			PathSpecifier: &route.RouteMatch_Prefix{
-				Prefix: pathPrefix,
+			PathSpecifier: &route.RouteMatch_SafeRegex{
+				SafeRegex: &matcher.RegexMatcher{
+					EngineType: regexEngine,
+					Regex:      pathRegex,
+				},
 			},
 		},
 		Action: &route.Route_Route{

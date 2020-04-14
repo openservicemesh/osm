@@ -96,7 +96,7 @@ func main() {
 	//endpoints
 	router.HandleFunc("/books-bought", getBooksBought).Methods("GET")
 	router.HandleFunc("/books-bought", updateBooksBought).Methods("POST")
-	router.HandleFunc("/buy-a-book", buyBook).Methods("GET")
+	router.HandleFunc("/buy-a-book/new", buyBook).Methods("GET")
 	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {})
 	err := http.ListenAndServe(fmt.Sprintf(":%d", *port), router)
 	log.Fatal().Err(err).Msgf("Failed to start HTTP server on port %d", *port)

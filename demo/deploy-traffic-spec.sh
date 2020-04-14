@@ -50,7 +50,7 @@ matches:
   pathRegex: /books-bought
   methods: ["GET"]
 - name: buy-a-book
-  pathRegex: /buy-a-book
+  pathRegex: ".*a-book.*new"
   methods: ["GET"]
 - name: update-books-bought
   pathRegex: /update-books-bought

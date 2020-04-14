@@ -22,7 +22,7 @@ func main() {
 		bookstoreService = "bookstore.mesh"
 	}
 	booksBought := fmt.Sprintf("http://%s/books-bought", bookstoreService)
-	buyBook := fmt.Sprintf("http://%s/buy-a-book", bookstoreService)
+	buyBook := fmt.Sprintf("http://%s/buy-a-book/new", bookstoreService)
 	waitForOK := getWaitForOK()
 	iteration := 0
 	for {
