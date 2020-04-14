@@ -62,7 +62,7 @@ var _ = Describe("Route Configuration", func() {
 			Expect(sourceRouteConfig.Name).To(Equal(OutboundRouteConfig))
 			Expect(len(sourceRouteConfig.VirtualHosts)).To(Equal(1))
 			Expect(len(sourceRouteConfig.VirtualHosts[0].Routes)).To(Equal(1))
-			Expect(sourceRouteConfig.VirtualHosts[0].Routes[0].Match.GetPrefix()).To(Equal("/books-bought"))
+			Expect(sourceRouteConfig.VirtualHosts[0].Routes[0].Match.GetSafeRegex().Regex).To(Equal("/books-bought"))
 			Expect(sourceRouteConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters()).To(Equal(&destWeightedClusters))
 			Expect(sourceRouteConfig.VirtualHosts[0].Cors.AllowMethods).To(Equal("GET"))
 			//Validating the inbound clusters and routes
@@ -72,7 +72,7 @@ var _ = Describe("Route Configuration", func() {
 			Expect(destinationRouteConfig.Name).To(Equal(InboundRouteConfig))
 			Expect(len(destinationRouteConfig.VirtualHosts)).To(Equal(1))
 			Expect(len(destinationRouteConfig.VirtualHosts[0].Routes)).To(Equal(1))
-			Expect(destinationRouteConfig.VirtualHosts[0].Routes[0].Match.GetPrefix()).To(Equal("/books-bought"))
+			Expect(destinationRouteConfig.VirtualHosts[0].Routes[0].Match.GetSafeRegex().Regex).To(Equal("/books-bought"))
 			Expect(destinationRouteConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters()).To(Equal(&srcWeightedClusters))
 			Expect(destinationRouteConfig.VirtualHosts[0].Cors.AllowMethods).To(Equal("GET"))
 		})
