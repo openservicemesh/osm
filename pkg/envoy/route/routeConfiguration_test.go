@@ -80,11 +80,11 @@ var _ = Describe("Route Configuration", func() {
 })
 
 var _ = Describe("Cors Allowed Methods", func() {
-	Context("Testing updateAllowedMethods", func() {
+	Context("Testing sanitizeHTTPMethods", func() {
 		It("Returns a unique list of allowed methods", func() {
 
 			allowedMethods := []string{"GET", "POST", "PUT", "POST", "GET", "GET"}
-			allowedMethods = updateAllowedMethods(allowedMethods)
+			allowedMethods = sanitizeHTTPMethods(allowedMethods)
 
 			expectedAllowedMethods := []string{"GET", "POST", "PUT"}
 			Expect(allowedMethods).To(Equal(expectedAllowedMethods))
@@ -93,7 +93,7 @@ var _ = Describe("Cors Allowed Methods", func() {
 
 		It("Returns a wildcard allowed method (*)", func() {
 			allowedMethods := []string{"GET", "POST", "PUT", "POST", "GET", "GET", "*"}
-			allowedMethods = updateAllowedMethods(allowedMethods)
+			allowedMethods = sanitizeHTTPMethods(allowedMethods)
 
 			expectedAllowedMethods := []string{"*"}
 			Expect(allowedMethods).To(Equal(expectedAllowedMethods))
