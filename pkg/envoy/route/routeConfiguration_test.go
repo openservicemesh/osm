@@ -47,10 +47,10 @@ var _ = Describe("Route Configuration", func() {
 						{ClusterName: endpoint.ClusterName("osm/bookstore-1"), Weight: 50},
 						{ClusterName: endpoint.ClusterName("osm/bookstore-2"), Weight: 50}},
 				},
-				PolicyRoutePaths: []endpoint.RoutePaths{
-					endpoint.RoutePaths{
-						RoutePathRegex: "/books-bought",
-						RouteMethods:   []string{"GET"},
+				PolicyRoutePaths: []endpoint.RoutePolicy{
+					endpoint.RoutePolicy{
+						PathRegex: "/books-bought",
+						Methods:   []string{"GET"},
 					},
 				},
 			}
@@ -134,9 +134,9 @@ var _ = Describe("Route Action weighted clusters", func() {
 				{ClusterName: endpoint.ClusterName("osm/bookstore-2"), Weight: 100},
 			}
 
-			routePath := endpoint.RoutePaths{
-				RoutePathRegex: "books-bought",
-				RouteMethods:   []string{"GET", "POST"},
+			routePath := endpoint.RoutePolicy{
+				PathRegex: "books-bought",
+				Methods:   []string{"GET", "POST"},
 			}
 			route1 := createRoute(&routePath, weightedClusters, false)
 			rt := []*route.Route{&route1}
