@@ -2,6 +2,7 @@ package logger
 
 import (
 	"fmt"
+	"os"
 	"path"
 	"runtime"
 	"strings"
@@ -23,6 +24,9 @@ func (h CallerHook) Run(e *zerolog.Event, level zerolog.Level, msg string) {
 // New creates a new zerolog.Logger
 func New(component string) zerolog.Logger {
 	l := log.With().Str("component", component).Logger().Hook(CallerHook{})
+	if os.Getenv("OSM_HUMAN_DEBUG_LOG") == "true" {
+		return l.Output(zerolog.ConsoleWriter{Out: os.Stdout})
+	}
 	return l
 }
 
