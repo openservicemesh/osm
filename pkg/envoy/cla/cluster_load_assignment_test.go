@@ -12,8 +12,8 @@ import (
 var _ = Describe("Testing Cluster Load Assignment", func() {
 	Context("Testing NewClusterLoadAssignemnt", func() {
 		It("Returns cluster load assignment", func() {
-			serviceEndpoints := []endpoint.ServiceEndpoints{}
-			serviceEndpoints = append(serviceEndpoints, endpoint.ServiceEndpoints{
+			serviceEndpoints := []endpoint.WeightedServiceEndpoints{}
+			serviceEndpoints = append(serviceEndpoints, endpoint.WeightedServiceEndpoints{
 				WeightedService: endpoint.WeightedService{
 					ServiceName: endpoint.NamespacedService{Namespace: "osm", Service: "bookstore-1"},
 					Weight:      50,
@@ -22,7 +22,7 @@ var _ = Describe("Testing Cluster Load Assignment", func() {
 					endpoint.Endpoint{IP: net.IP("0.0.0.0")},
 				},
 			})
-			serviceEndpoints = append(serviceEndpoints, endpoint.ServiceEndpoints{
+			serviceEndpoints = append(serviceEndpoints, endpoint.WeightedServiceEndpoints{
 				WeightedService: endpoint.WeightedService{
 					ServiceName: endpoint.NamespacedService{Namespace: "osm", Service: "bookstore-2"},
 					Weight:      50,
