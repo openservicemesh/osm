@@ -265,7 +265,7 @@ type MeshCataloger interface {
 	ListTrafficSplitEndpoints(endpoint.NamespacedService) ([]endpoint.ServiceEndpoints, error)
 
 	// ListTrafficPolicies constructs a list of all the traffic policies /routes the given Envoy proxy should be aware of.
-	ListTrafficPolicies(endpoint.NamespacedService) ([]endpoint.TrafficTargetPolicies, error)
+	ListTrafficPolicies(endpoint.NamespacedService) ([]endpoint.TrafficPolicy, error)
 
 	// GetCertificateForService returns the SSL Certificate for the given service.
 	// This certificate will be used for service-to-service mTLS.
@@ -308,8 +308,8 @@ type WeightedServiceEndpoints struct {
 ```
 
 ```go
-// TrafficTargetPolicies is a struct of the allowed RoutePaths from sources to a destination
-type TrafficTargetPolicies struct {
+// TrafficPolicy is a struct of the allowed RoutePaths from sources to a destination
+type TrafficPolicy struct {
 	PolicyName       string          
 	Destination      TrafficResource 
 	Source           TrafficResource 
@@ -528,7 +528,7 @@ The following types are referenced in the interfaces proposed in this document:
       ```
   - TrafficResources
       ```go
-      //TrafficResource is a struct of the various resources of a source/destination in the TrafficTargetPolicies
+      //TrafficResource is a struct of the various resources of a source/destination in the TrafficPolicy
 	type TrafficResource struct {
 	     ServiceAccount ServiceAccount      `json:"service_account:omitempty"`
 	     Namespace      string              `json:"namespace:omitempty"`
