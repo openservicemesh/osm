@@ -39,7 +39,7 @@ func (sc *MeshCatalog) listServicesForServiceAccount(namespacedServiceAccount en
 	var found bool
 	if services, found = sc.serviceAccountsCache[namespacedServiceAccount]; !found {
 		log.Error().Msgf("Did not find any services for service account %s", namespacedServiceAccount)
-		return nil, errNotFound
+		return nil, errServiceNotFound
 	}
 	log.Info().Msgf("Found service account %s for service %s", servicesToString(services), namespacedServiceAccount)
 	return services, nil

@@ -3,5 +3,5 @@ package catalog
 import "errors"
 
 var (
-	errNotFound = errors.New("no such service found")
+	errServiceNotFound = errors.New("no such service found")
 )
