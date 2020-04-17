@@ -300,8 +300,8 @@ type NamespacedServiceAccount struct {
 ```
 
 ```go
-// ServiceEndpoints is a struct of a weighted service and its endpoints
-type ServiceEndpoints struct {
+// WeightedServiceEndpoints is a struct of a weighted service and its endpoints
+type WeightedServiceEndpoints struct {
 	WeightedService WeightedService 
 	Endpoints       []Endpoint      
 }
@@ -500,10 +500,10 @@ The following types are referenced in the interfaces proposed in this document:
       }
       ```
 
-  -  ServiceEndpoints
+  -  WeightedServiceEndpoints
       ```go
-      // ServiceEndpoints is a struct of a weighted service and its endpoints
-      type ServiceEndpoints struct {
+      // WeightedServiceEndpoints is a struct of a weighted service and its endpoints
+      type WeightedServiceEndpoints struct {
 	   WeightedService WeightedService `json:"service:omitempty"`
 	   Endpoints       []Endpoint      `json:"endpoints:omitempty"`
       }

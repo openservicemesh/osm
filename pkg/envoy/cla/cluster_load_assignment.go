@@ -15,7 +15,7 @@ const (
 )
 
 // NewClusterLoadAssignment constructs the Envoy struct necessary for TrafficSplit implementation.
-func NewClusterLoadAssignment(serviceEndpoints osmEndpoint.ServiceEndpoints) v2.ClusterLoadAssignment {
+func NewClusterLoadAssignment(serviceEndpoints osmEndpoint.WeightedServiceEndpoints) v2.ClusterLoadAssignment {
 	cla := v2.ClusterLoadAssignment{
 		ClusterName: string(serviceEndpoints.WeightedService.ServiceName.String()),
 		Endpoints: []*endpoint.LocalityLbEndpoints{

@@ -34,7 +34,7 @@ type MeshCatalog struct {
 // MeshCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
 type MeshCataloger interface {
 	// ListEndpoints constructs a map of service to weighted handlers with all endpoints the given Envoy proxy should be aware of.
-	ListEndpoints(endpoint.NamespacedService) ([]endpoint.ServiceEndpoints, error)
+	ListEndpoints(endpoint.NamespacedService) ([]endpoint.WeightedServiceEndpoints, error)
 
 	// ListTrafficRoutes constructs a list of all the traffic policies /routes the given Envoy proxy should be aware of.
 	ListTrafficRoutes(endpoint.NamespacedService) ([]endpoint.TrafficTargetPolicies, error)
