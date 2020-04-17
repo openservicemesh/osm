@@ -134,12 +134,12 @@ func getTrafficPolicyPerRoute(sc *MeshCatalog, routePolicies map[string]endpoint
 				}
 				trafficPolicy := endpoint.TrafficPolicy{}
 				trafficPolicy.PolicyName = trafficTargets.Name
-				trafficPolicy.Destination = endpoint.TrafficResource{
+				trafficPolicy.Destination = endpoint.TrafficPolicyResource{
 					ServiceAccount: endpoint.ServiceAccount(trafficTargets.Destination.Name),
 					Namespace:      trafficTargets.Destination.Namespace,
 					Services:       activeDestServices,
 					Clusters:       destClusters}
-				trafficPolicy.Source = endpoint.TrafficResource{
+				trafficPolicy.Source = endpoint.TrafficPolicyResource{
 					ServiceAccount: endpoint.ServiceAccount(trafficSources.Name),
 					Namespace:      trafficSources.Namespace,
 					Services:       srcServices,
@@ -150,12 +150,12 @@ func getTrafficPolicyPerRoute(sc *MeshCatalog, routePolicies map[string]endpoint
 						log.Error().Msgf("TrafficTarget %s/%s has Spec Kind %s which isn't supported for now; Skipping...", trafficTargets.Namespace, trafficTargets.Name, trafficTargetSpecs.Kind)
 						continue
 					}
-					trafficPolicy.PolicyRoutePaths = []endpoint.RoutePolicy{}
+					trafficPolicy.RoutePolicies = []endpoint.RoutePolicy{}
 
 					for _, specMatches := range trafficTargetSpecs.Matches {
 						routeKey := fmt.Sprintf("%s/%s/%s/%s", trafficTargetSpecs.Kind, trafficTargets.Namespace, trafficTargetSpecs.Name, specMatches)
-						routePath := routePolicies[routeKey]
-						trafficPolicy.PolicyRoutePaths = append(trafficPolicy.PolicyRoutePaths, routePath)
+						routePolicy := routePolicies[routeKey]
+						trafficPolicy.RoutePolicies = append(trafficPolicy.RoutePolicies, routePolicy)
 					}
 				}
 				// append a traffic policy only if it corresponds to the clientID
