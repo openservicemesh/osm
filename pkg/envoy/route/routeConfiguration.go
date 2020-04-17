@@ -48,11 +48,11 @@ func UpdateRouteConfiguration(trafficPolicies endpoint.TrafficPolicy, routeConfi
 	return routeConfiguration
 }
 
-func updateRoutes(routePaths []endpoint.RoutePaths, cluster []endpoint.WeightedCluster, routeConfig v2.RouteConfiguration, isLocalCluster bool) v2.RouteConfiguration {
+func updateRoutes(routePaths []endpoint.RoutePolicy, cluster []endpoint.WeightedCluster, routeConfig v2.RouteConfiguration, isLocalCluster bool) v2.RouteConfiguration {
 	for _, path := range routePaths {
 		routedMatched := false
 		for i := 0; i < len(routeConfig.VirtualHosts[0].Routes); i++ {
-			if path.RoutePathRegex == routeConfig.VirtualHosts[0].Routes[i].GetMatch().GetPrefix() {
+			if path.PathRegex == routeConfig.VirtualHosts[0].Routes[i].GetMatch().GetPrefix() {
 				routedMatched = true
 				routeConfig.VirtualHosts[0].Routes[i].Action = updateRouteActionWeightedClusters(*routeConfig.VirtualHosts[0].Routes[i].GetRoute().GetWeightedClusters(), cluster, isLocalCluster)
 				continue
@@ -67,13 +67,13 @@ func updateRoutes(routePaths []endpoint.RoutePaths, cluster []endpoint.WeightedC
 	return routeConfig
 }
 
-func createRoute(path *endpoint.RoutePaths, weightedClusters []endpoint.WeightedCluster, isLocalCluster bool) v2route.Route {
+func createRoute(path *endpoint.RoutePolicy, weightedClusters []endpoint.WeightedCluster, isLocalCluster bool) v2route.Route {
 	route := v2route.Route{
 		Match: &v2route.RouteMatch{
 			PathSpecifier: &v2route.RouteMatch_SafeRegex{
 				SafeRegex: &matcher.RegexMatcher{
 					EngineType: regexEngine,
-					Regex:      path.RoutePathRegex,
+					Regex:      path.PathRegex,
 				},
 			},
 		},
@@ -88,7 +88,7 @@ func createRoute(path *endpoint.RoutePaths, weightedClusters []endpoint.Weighted
 
 	// For a given route path, sanitize the methods in case there
 	// is wildcard or if there are duplicates
-	allowedMethods := sanitizeHTTPMethods(path.RouteMethods)
+	allowedMethods := sanitizeHTTPMethods(path.Methods)
 	for _, method := range allowedMethods {
 		headerMatcher := &v2route.HeaderMatcher{
 			Name: ":method",

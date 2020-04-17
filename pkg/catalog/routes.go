@@ -77,8 +77,8 @@ func (sc *MeshCatalog) getActiveServices(services []endpoint.NamespacedService) 
 	return uniqueServices(activeServices)
 }
 
-func (sc *MeshCatalog) getHTTPPathsPerRoute() (map[string]endpoint.RoutePaths, error) {
-	routes := make(map[string]endpoint.RoutePaths)
+func (sc *MeshCatalog) getHTTPPathsPerRoute() (map[string]endpoint.RoutePolicy, error) {
+	routePolicies := make(map[string]endpoint.RoutePolicy)
 	for _, trafficSpecs := range sc.meshSpec.ListHTTPTrafficSpecs() {
 		log.Debug().Msgf("Discovered TrafficSpec resource: %s/%s \n", trafficSpecs.Namespace, trafficSpecs.Name)
 		if trafficSpecs.Matches == nil {
@@ -88,17 +88,17 @@ func (sc *MeshCatalog) getHTTPPathsPerRoute() (map[string]endpoint.RoutePaths, e
 		// since this method gets only specs related to HTTPRouteGroups added HTTPTraffic to the specKey by default
 		specKey := fmt.Sprintf("%s/%s/%s", HTTPTraffic, trafficSpecs.Namespace, trafficSpecs.Name)
 		for _, trafficSpecsMatches := range trafficSpecs.Matches {
-			serviceRoute := endpoint.RoutePaths{}
-			serviceRoute.RoutePathRegex = trafficSpecsMatches.PathRegex
-			serviceRoute.RouteMethods = trafficSpecsMatches.Methods
-			routes[fmt.Sprintf("%s/%s", specKey, trafficSpecsMatches.Name)] = serviceRoute
+			serviceRoute := endpoint.RoutePolicy{}
+			serviceRoute.PathRegex = trafficSpecsMatches.PathRegex
+			serviceRoute.Methods = trafficSpecsMatches.Methods
+			routePolicies[fmt.Sprintf("%s/%s", specKey, trafficSpecsMatches.Name)] = serviceRoute
 		}
 	}
-	log.Debug().Msgf("Constructed HTTP path routes: %+v", routes)
-	return routes, nil
+	log.Debug().Msgf("Constructed HTTP path routes: %+v", routePolicies)
+	return routePolicies, nil
 }
 
-func getTrafficPolicyPerRoute(sc *MeshCatalog, routes map[string]endpoint.RoutePaths, clientID endpoint.NamespacedService) ([]endpoint.TrafficPolicy, error) {
+func getTrafficPolicyPerRoute(sc *MeshCatalog, routePolicies map[string]endpoint.RoutePolicy, clientID endpoint.NamespacedService) ([]endpoint.TrafficPolicy, error) {
 	var trafficPolicies []endpoint.TrafficPolicy
 	for _, trafficTargets := range sc.meshSpec.ListTrafficTargets() {
 		log.Debug().Msgf("Discovered TrafficTarget resource: %s/%s \n", trafficTargets.Namespace, trafficTargets.Name)
@@ -150,11 +150,11 @@ func getTrafficPolicyPerRoute(sc *MeshCatalog, routes map[string]endpoint.RouteP
 						log.Error().Msgf("TrafficTarget %s/%s has Spec Kind %s which isn't supported for now; Skipping...", trafficTargets.Namespace, trafficTargets.Name, trafficTargetSpecs.Kind)
 						continue
 					}
-					trafficPolicy.PolicyRoutePaths = []endpoint.RoutePaths{}
+					trafficPolicy.PolicyRoutePaths = []endpoint.RoutePolicy{}
 
 					for _, specMatches := range trafficTargetSpecs.Matches {
 						routeKey := fmt.Sprintf("%s/%s/%s/%s", trafficTargetSpecs.Kind, trafficTargets.Namespace, trafficTargetSpecs.Name, specMatches)
-						routePath := routes[routeKey]
+						routePath := routePolicies[routeKey]
 						trafficPolicy.PolicyRoutePaths = append(trafficPolicy.PolicyRoutePaths, routePath)
 					}
 				}
