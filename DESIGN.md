@@ -253,7 +253,7 @@ would require:
 
 In the previous section, we proposed implementation of the `StreamAggregatedResources` method. This provides
 connected Envoy proxies with a list of clusters, mapping of service name to list of routable IP addresses, list of permitted routes, listeners and secrets for CDS, EDS, RDS, LDS and SDS respectively.
-The `ListEndpoints`, `ListTrafficRoutes` and `GetCertificateForService` methods will be provided by the OSM component, which we refer to
+The `ListEndpoints`, `ListTrafficPolicies` and `GetCertificateForService` methods will be provided by the OSM component, which we refer to
  as the **Mesh Catalog** in this document.
 
 The Mesh Catalog will have access to the `MeshSpec`, `CertificateManager`, and the list of `EndpointsProvider`s.
@@ -264,8 +264,8 @@ type MeshCataloger interface {
 	// ListEndpoints constructs a map of service to weighted handlers with all endpoints the given Envoy proxy should be aware of.
 	ListEndpoints(endpoint.NamespacedService) ([]endpoint.ServiceEndpoints, error)
 
-	// ListTrafficRoutes constructs a list of all the traffic policies /routes the given Envoy proxy should be aware of.
-	ListTrafficRoutes(endpoint.NamespacedService) ([]endpoint.TrafficTargetPolicies, error)
+	// ListTrafficPolicies constructs a list of all the traffic policies /routes the given Envoy proxy should be aware of.
+	ListTrafficPolicies(endpoint.NamespacedService) ([]endpoint.TrafficTargetPolicies, error)
 
 	// GetCertificateForService returns the SSL Certificate for the given service.
 	// This certificate will be used for service-to-service mTLS.

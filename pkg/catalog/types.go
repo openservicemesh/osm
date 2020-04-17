@@ -36,8 +36,8 @@ type MeshCataloger interface {
 	// ListEndpoints constructs a map of service to weighted handlers with all endpoints the given Envoy proxy should be aware of.
 	ListEndpoints(endpoint.NamespacedService) ([]endpoint.ServiceEndpoints, error)
 
-	// ListTrafficRoutes constructs a list of all the traffic policies /routes the given Envoy proxy should be aware of.
-	ListTrafficRoutes(endpoint.NamespacedService) ([]endpoint.TrafficTargetPolicies, error)
+	// ListTrafficPolicies returns all the traffic policies for a given service that Envoy proxy should be aware of.
+	ListTrafficPolicies(endpoint.NamespacedService) ([]endpoint.TrafficTargetPolicies, error)
 
 	// GetCertificateForService returns the SSL Certificate for the given service.
 	// This certificate will be used for service-to-service mTLS.

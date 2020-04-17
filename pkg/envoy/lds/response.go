@@ -144,7 +144,7 @@ func getFilterChainMatchServerNames(proxyServiceName endpoint.NamespacedService,
 	serverNamesMap := make(map[string]interface{})
 	var serverNames []string
 
-	allTrafficPolicies, err := catalog.ListTrafficRoutes(proxyServiceName)
+	allTrafficPolicies, err := catalog.ListTrafficPolicies(proxyServiceName)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed listing traffic routes")
 		return nil, err

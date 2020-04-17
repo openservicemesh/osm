@@ -15,7 +15,7 @@ import (
 // NewResponse creates a new Cluster Discovery Response.
 func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, request *xds.DiscoveryRequest) (*xds.DiscoveryResponse, error) {
 	proxyServiceName := proxy.GetService()
-	allTrafficPolicies, err := catalog.ListTrafficRoutes(proxyServiceName)
+	allTrafficPolicies, err := catalog.ListTrafficPolicies(proxyServiceName)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed listing traffic routes")
 		return nil, err
