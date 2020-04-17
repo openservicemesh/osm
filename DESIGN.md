@@ -349,7 +349,7 @@ The [Endpoints providers](#3-endpoints-providers) has no awareness of:
 > Note: As of this iteration of OSM we deliberately choose to leak the Mesh Specification implementation into the
 EndpointsProvider. The [Endpoints Providers](#3-endpoints-providers) are responsible for implementing a method to
 resolve an SMI-declared service to the provider's specific resource definition. For instance,
-when Azure EndpointProvider's `ListTrafficSplitEndpointsForService` is invoked with some a service name
+when Azure EndpointProvider's `ListEndpointsForService` is invoked with some a service name
 the provider would use its own method to resolve the
 service to a list of Azure URIs (example: `/resource/subscriptions/e3f0/resourceGroups/mesh-rg/providers/Microsoft.Compute/virtualMachineScaleSets/baz`).
 These URIs are unique identifiers of Azure VMs, VMSS, or other compute with Envoy reverse-proxies,
@@ -357,12 +357,12 @@ participating in the service mesh.
 
 In the sample `ListTrafficSplitEndpoints` implementation, the Mesh Catalog loops over a list of [Endpoints providers](#3-endpoints-providers):
 ```go
-for _, provider in catalog.ListTrafficSplitEndpointsProviders() {
+for _, provider in catalog.ListEndpointsProviders() {
 ```
 
-For each `provider` registered in the Mesh Catalog, we invoke `ListTrafficSplitEndpointsForService`.
+For each `provider` registered in the Mesh Catalog, we invoke `ListEndpointsForService`.
 The function will be provided a `ServiceName`, which is an SMI-declared service. The provider will
-resolve the service to its own resource ID. For example `ListTrafficSplitEndpointsForService` invoked on the
+resolve the service to its own resource ID. For example `ListEndpointsForService` invoked on the
 Azure EndpointsProvider with service `webservice`, will resolve `webservice` to the URI of an
 [Azure VM](https://azure.microsoft.com/en-us/services/virtual-machines/) hosting an instance of
 the service: `/resource/subscriptions/e3f0/resourceGroups/mesh-rg/providers/Microsoft.Compute/virtualMachineScaleSets/baz`.
@@ -373,8 +373,8 @@ package osm
 
 // EndpointsProvider is an interface to be implemented by components abstracting Kubernetes, Azure, and other compute/cluster providers.
 type EndpointsProvider interface {
-    // ListTrafficSplitEndpointsForService fetches the IPs and Ports for the given service
-    ListTrafficSplitEndpointsForService(ServiceName) []Endpoint
+    // ListEndpointsForService fetches the IPs and Ports for the given service
+    ListEndpointsForService(ServiceName) []Endpoint
 }
 ```
 
