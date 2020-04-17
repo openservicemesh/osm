@@ -6,8 +6,8 @@ import (
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 )
 
-// ListEndpoints constructs a map from service to weighted sub-services with all endpoints the given Envoy proxy should be aware of.
-func (sc *MeshCatalog) ListEndpoints(clientID endpoint.NamespacedService) ([]endpoint.WeightedServiceEndpoints, error) {
+// ListTrafficSplitEndpoints constructs a map from service to weighted sub-services with all endpoints the given Envoy proxy should be aware of.
+func (sc *MeshCatalog) ListTrafficSplitEndpoints(clientID endpoint.NamespacedService) ([]endpoint.WeightedServiceEndpoints, error) {
 	log.Info().Msgf("Listing Endpoints for client: %s", clientID.String())
 	// todo (sneha) : TBD if clientID is needed for filtering endpoints
 	return sc.getWeightedEndpointsPerService(clientID)

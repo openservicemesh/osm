@@ -17,7 +17,7 @@ import (
 // NewResponse creates a new Endpoint Discovery Response.
 func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, request *xds.DiscoveryRequest) (*xds.DiscoveryResponse, error) {
 	proxyServiceName := proxy.GetService()
-	allServicesEndpoints, err := catalog.ListEndpoints(proxyServiceName)
+	allServicesEndpoints, err := catalog.ListTrafficSplitEndpoints(proxyServiceName)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed listing endpoints")
 		return nil, err

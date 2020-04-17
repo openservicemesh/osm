@@ -253,7 +253,7 @@ would require:
 
 In the previous section, we proposed implementation of the `StreamAggregatedResources` method. This provides
 connected Envoy proxies with a list of clusters, mapping of service name to list of routable IP addresses, list of permitted routes, listeners and secrets for CDS, EDS, RDS, LDS and SDS respectively.
-The `ListEndpoints`, `ListTrafficPolicies` and `GetCertificateForService` methods will be provided by the OSM component, which we refer to
+The `ListTrafficSplitEndpoints`, `ListTrafficPolicies` and `GetCertificateForService` methods will be provided by the OSM component, which we refer to
  as the **Mesh Catalog** in this document.
 
 The Mesh Catalog will have access to the `MeshSpec`, `CertificateManager`, and the list of `EndpointsProvider`s.
@@ -261,8 +261,8 @@ The Mesh Catalog will have access to the `MeshSpec`, `CertificateManager`, and t
 ```go
 // MeshCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
 type MeshCataloger interface {
-	// ListEndpoints constructs a map of service to weighted handlers with all endpoints the given Envoy proxy should be aware of.
-	ListEndpoints(endpoint.NamespacedService) ([]endpoint.ServiceEndpoints, error)
+	// ListTrafficSplitEndpoints constructs a map of service to weighted handlers with all endpoints the given Envoy proxy should be aware of.
+	ListTrafficSplitEndpoints(endpoint.NamespacedService) ([]endpoint.ServiceEndpoints, error)
 
 	// ListTrafficPolicies constructs a list of all the traffic policies /routes the given Envoy proxy should be aware of.
 	ListTrafficPolicies(endpoint.NamespacedService) ([]endpoint.TrafficTargetPolicies, error)
@@ -349,20 +349,20 @@ The [Endpoints providers](#3-endpoints-providers) has no awareness of:
 > Note: As of this iteration of OSM we deliberately choose to leak the Mesh Specification implementation into the
 EndpointsProvider. The [Endpoints Providers](#3-endpoints-providers) are responsible for implementing a method to
 resolve an SMI-declared service to the provider's specific resource definition. For instance,
-when Azure EndpointProvider's `ListEndpointsForService` is invoked with some a service name
+when Azure EndpointProvider's `ListTrafficSplitEndpointsForService` is invoked with some a service name
 the provider would use its own method to resolve the
 service to a list of Azure URIs (example: `/resource/subscriptions/e3f0/resourceGroups/mesh-rg/providers/Microsoft.Compute/virtualMachineScaleSets/baz`).
 These URIs are unique identifiers of Azure VMs, VMSS, or other compute with Envoy reverse-proxies,
 participating in the service mesh.
 
-In the sample `ListEndpoints` implementation, the Mesh Catalog loops over a list of [Endpoints providers](#3-endpoints-providers):
+In the sample `ListTrafficSplitEndpoints` implementation, the Mesh Catalog loops over a list of [Endpoints providers](#3-endpoints-providers):
 ```go
-for _, provider in catalog.ListEndpointsProviders() {
+for _, provider in catalog.ListTrafficSplitEndpointsProviders() {
 ```
 
-For each `provider` registered in the Mesh Catalog, we invoke `ListEndpointsForService`.
+For each `provider` registered in the Mesh Catalog, we invoke `ListTrafficSplitEndpointsForService`.
 The function will be provided a `ServiceName`, which is an SMI-declared service. The provider will
-resolve the service to its own resource ID. For example `ListEndpointsForService` invoked on the
+resolve the service to its own resource ID. For example `ListTrafficSplitEndpointsForService` invoked on the
 Azure EndpointsProvider with service `webservice`, will resolve `webservice` to the URI of an
 [Azure VM](https://azure.microsoft.com/en-us/services/virtual-machines/) hosting an instance of
 the service: `/resource/subscriptions/e3f0/resourceGroups/mesh-rg/providers/Microsoft.Compute/virtualMachineScaleSets/baz`.
@@ -373,8 +373,8 @@ package osm
 
 // EndpointsProvider is an interface to be implemented by components abstracting Kubernetes, Azure, and other compute/cluster providers.
 type EndpointsProvider interface {
-    // ListEndpointsForService fetches the IPs and Ports for the given service
-    ListEndpointsForService(ServiceName) []Endpoint
+    // ListTrafficSplitEndpointsForService fetches the IPs and Ports for the given service
+    ListTrafficSplitEndpointsForService(ServiceName) []Endpoint
 }
 ```
 

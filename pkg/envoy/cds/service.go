@@ -42,7 +42,7 @@ func getServiceClusterLocal(catalog catalog.MeshCataloger, proxyService endpoint
 		},
 	}
 
-	svcEndpoints, _ := catalog.ListEndpoints(proxyService)
+	svcEndpoints, _ := catalog.ListTrafficSplitEndpoints(proxyService)
 	for _, svcEp := range svcEndpoints {
 		for _, ep := range svcEp.Endpoints {
 			localityEndpoint := &envoyEndpoint.LocalityLbEndpoints{
