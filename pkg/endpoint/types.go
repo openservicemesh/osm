@@ -88,8 +88,8 @@ type RoutePaths struct {
 	RouteMethods   []string `json:"route_methods:omitempty"`
 }
 
-// TrafficTargetPolicies is a struct of the allowed RoutePaths from sources to a destination
-type TrafficTargetPolicies struct {
+// TrafficPolicy is a struct of the allowed RoutePaths from sources to a destination
+type TrafficPolicy struct {
 	PolicyName       string          `json:"policy_name:omitempty"`
 	Destination      TrafficResource `json:"destination:omitempty"`
 	Source           TrafficResource `json:"source:omitempty"`
@@ -102,7 +102,7 @@ type WeightedCluster struct {
 	Weight      int         `json:"weight:omitempty"`
 }
 
-//TrafficResource is a struct of the various resources of a source/destination in the TrafficTargetPolicies
+//TrafficResource is a struct of the various resources of a source/destination in the TrafficPolicy
 type TrafficResource struct {
 	ServiceAccount ServiceAccount      `json:"service_account:omitempty"`
 	Namespace      string              `json:"namespace:omitempty"`

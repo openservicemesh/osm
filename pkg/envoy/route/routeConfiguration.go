@@ -32,7 +32,7 @@ var (
 )
 
 //UpdateRouteConfiguration consrtucts the Envoy construct necessary for TrafficTarget implementation
-func UpdateRouteConfiguration(trafficPolicies endpoint.TrafficTargetPolicies, routeConfig v2.RouteConfiguration, isSourceService bool, isDestinationService bool) v2.RouteConfiguration {
+func UpdateRouteConfiguration(trafficPolicies endpoint.TrafficPolicy, routeConfig v2.RouteConfiguration, isSourceService bool, isDestinationService bool) v2.RouteConfiguration {
 	log.Trace().Msgf("[RDS] Updating Route Configuration")
 	var routeConfiguration v2.RouteConfiguration
 	var isLocalCluster bool

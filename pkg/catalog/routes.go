@@ -13,7 +13,7 @@ const (
 )
 
 // ListTrafficPolicies returns all the traffic policies for a given service that Envoy proxy should be aware of.
-func (sc *MeshCatalog) ListTrafficPolicies(clientID endpoint.NamespacedService) ([]endpoint.TrafficTargetPolicies, error) {
+func (sc *MeshCatalog) ListTrafficPolicies(clientID endpoint.NamespacedService) ([]endpoint.TrafficPolicy, error) {
 	log.Info().Msgf("Listing Routes for client: %s", clientID)
 	allRoutes, err := sc.getHTTPPathsPerRoute()
 	if err != nil {
@@ -98,8 +98,8 @@ func (sc *MeshCatalog) getHTTPPathsPerRoute() (map[string]endpoint.RoutePaths, e
 	return routes, nil
 }
 
-func getTrafficPolicyPerRoute(sc *MeshCatalog, routes map[string]endpoint.RoutePaths, clientID endpoint.NamespacedService) ([]endpoint.TrafficTargetPolicies, error) {
-	var trafficPolicies []endpoint.TrafficTargetPolicies
+func getTrafficPolicyPerRoute(sc *MeshCatalog, routes map[string]endpoint.RoutePaths, clientID endpoint.NamespacedService) ([]endpoint.TrafficPolicy, error) {
+	var trafficPolicies []endpoint.TrafficPolicy
 	for _, trafficTargets := range sc.meshSpec.ListTrafficTargets() {
 		log.Debug().Msgf("Discovered TrafficTarget resource: %s/%s \n", trafficTargets.Namespace, trafficTargets.Name)
 		if trafficTargets.Specs == nil || len(trafficTargets.Specs) == 0 {
@@ -132,14 +132,14 @@ func getTrafficPolicyPerRoute(sc *MeshCatalog, routes map[string]endpoint.RouteP
 					log.Error().Msgf("TrafficSpec %s/%s could not get services for service account %s", trafficTargets.Namespace, trafficTargets.Name, fmt.Sprintf("%s/%s", trafficSources.Namespace, trafficSources.Name))
 					return nil, srcErr
 				}
-				trafficTargetPolicy := endpoint.TrafficTargetPolicies{}
-				trafficTargetPolicy.PolicyName = trafficTargets.Name
-				trafficTargetPolicy.Destination = endpoint.TrafficResource{
+				trafficPolicy := endpoint.TrafficPolicy{}
+				trafficPolicy.PolicyName = trafficTargets.Name
+				trafficPolicy.Destination = endpoint.TrafficResource{
 					ServiceAccount: endpoint.ServiceAccount(trafficTargets.Destination.Name),
 					Namespace:      trafficTargets.Destination.Namespace,
 					Services:       activeDestServices,
 					Clusters:       destClusters}
-				trafficTargetPolicy.Source = endpoint.TrafficResource{
+				trafficPolicy.Source = endpoint.TrafficResource{
 					ServiceAccount: endpoint.ServiceAccount(trafficSources.Name),
 					Namespace:      trafficSources.Namespace,
 					Services:       srcServices,
@@ -150,17 +150,17 @@ func getTrafficPolicyPerRoute(sc *MeshCatalog, routes map[string]endpoint.RouteP
 						log.Error().Msgf("TrafficTarget %s/%s has Spec Kind %s which isn't supported for now; Skipping...", trafficTargets.Namespace, trafficTargets.Name, trafficTargetSpecs.Kind)
 						continue
 					}
-					trafficTargetPolicy.PolicyRoutePaths = []endpoint.RoutePaths{}
+					trafficPolicy.PolicyRoutePaths = []endpoint.RoutePaths{}
 
 					for _, specMatches := range trafficTargetSpecs.Matches {
 						routeKey := fmt.Sprintf("%s/%s/%s/%s", trafficTargetSpecs.Kind, trafficTargets.Namespace, trafficTargetSpecs.Name, specMatches)
 						routePath := routes[routeKey]
-						trafficTargetPolicy.PolicyRoutePaths = append(trafficTargetPolicy.PolicyRoutePaths, routePath)
+						trafficPolicy.PolicyRoutePaths = append(trafficPolicy.PolicyRoutePaths, routePath)
 					}
 				}
 				// append a traffic policy only if it corresponds to the clientID
-				if envoy.Contains(clientID, trafficTargetPolicy.Source.Services) || envoy.Contains(clientID, trafficTargetPolicy.Destination.Services) {
-					trafficPolicies = append(trafficPolicies, trafficTargetPolicy)
+				if envoy.Contains(clientID, trafficPolicy.Source.Services) || envoy.Contains(clientID, trafficPolicy.Destination.Services) {
+					trafficPolicies = append(trafficPolicies, trafficPolicy)
 				}
 			}
 		}

@@ -26,7 +26,7 @@ var _ = Describe("Route Configuration", func() {
 				TotalWeight: &wrappers.UInt32Value{Value: uint32(100)},
 			}
 
-			trafficPolicies := endpoint.TrafficTargetPolicies{
+			trafficPolicies := endpoint.TrafficPolicy{
 				PolicyName: "bookbuyer-bookstore",
 				Destination: endpoint.TrafficResource{
 					ServiceAccount: "bookstore-serviceaccount",
