@@ -12,8 +12,8 @@ const (
 	HTTPTraffic = "HTTPRouteGroup"
 )
 
-// ListTrafficRoutes constructs a DiscoveryResponse with all routes the given Envoy proxy should be aware of.
-func (sc *MeshCatalog) ListTrafficRoutes(clientID endpoint.NamespacedService) ([]endpoint.TrafficTargetPolicies, error) {
+// ListTrafficPolicies returns all the traffic policies for a given service that Envoy proxy should be aware of.
+func (sc *MeshCatalog) ListTrafficPolicies(clientID endpoint.NamespacedService) ([]endpoint.TrafficTargetPolicies, error) {
 	log.Info().Msgf("Listing Routes for client: %s", clientID)
 	allRoutes, err := sc.getHTTPPathsPerRoute()
 	if err != nil {
