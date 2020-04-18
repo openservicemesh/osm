@@ -79,7 +79,7 @@ spec:
     protocol: TCP
 EOF
 
-kubectl logs -f $(kubectl get pods --selector app=vault --no-headers=true | awk '{print $1}')
+kubectl logs -f "$(kubectl get pods --selector app=vault --no-headers=true | awk '{print $1}')"
 
 
 exit 0
