@@ -8,6 +8,7 @@ import (
 )
 
 var _ = Describe("Test NamespacedService methods", func() {
+
 	Context("Testing GetCommonName", func() {
 		It("should return DNS-1123 of the NamespacedService struct", func() {
 			namespacedService := NamespacedService{
