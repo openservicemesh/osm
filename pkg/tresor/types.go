@@ -67,7 +67,7 @@ type Certificate struct {
 	x509Cert *x509.Certificate
 	rsaKey   *rsa.PrivateKey
 
-	// The CA signing this certificate.
+	// The CA issuing this certificate.
 	// If the certificate itself is a root certificate this would be nil.
-	ca *Certificate
+	issuingCA pem.RootCertificate
 }

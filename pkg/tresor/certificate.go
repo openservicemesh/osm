@@ -23,15 +23,11 @@ func (c Certificate) GetPrivateKey() []byte {
 
 // GetIssuingCA implements certificate.Certificater and returns the root certificate for the given cert.
 func (c Certificate) GetIssuingCA() []byte {
-	if c.ca == nil {
-		log.Info().Msgf("No root certificate available for certificate with CN=%s", c.x509Cert.Subject.CommonName)
+	if c.issuingCA == nil {
+		log.Info().Msgf("No issuing CA available for cert %s", c.name)
 		return nil
 	}
-	cert, err := encodeCertDERtoPEM(c.ca.x509Cert.Raw)
-	if err != nil {
-		log.Error().Err(err).Msg("Error PEM encoding root certificate")
-	}
-	return cert
+	return c.issuingCA
 }
 
 // LoadCA loads the certificate and its key from the supplied PEM files.
@@ -54,13 +50,16 @@ func LoadCA(certFilePEM string, keyFilePEM string) (*Certificate, error) {
 		privateKey: pemKey,
 		x509Cert:   x509Cert,
 		rsaKey:     rsaKey,
-		ca:         nil, // this is the CA itself
+		issuingCA:  nil, // this is the CA itself
 	}
 	return &rootCertificate, nil
 }
 
 // NewCertManager creates a new CertManager with the passed CA and CA Private Key
 func NewCertManager(ca *Certificate, validity time.Duration) (*CertManager, error) {
+	if ca == nil {
+		return nil, errNoIssuingCA
+	}
 	cm := CertManager{
 		ca:             ca,
 		validityPeriod: validity,

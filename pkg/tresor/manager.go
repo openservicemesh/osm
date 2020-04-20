@@ -74,7 +74,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName) (certificate.
 		name:       string(cn),
 		certChain:  certPEM,
 		privateKey: privKeyPEM,
-		ca:         cm.ca,
+		issuingCA:  cm.ca.issuingCA,
 	}
 	cm.cache[cn] = cert
 	return cert, nil
