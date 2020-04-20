@@ -9,7 +9,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/open-service-mesh/osm/pkg/certificate"
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/utils"
 )
@@ -27,8 +26,8 @@ func (wh *Webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 
 	// Issue a certificate for the proxy sidecar
 	subDomain := "osm.mesh" // TODO: don't hardcode this
-	cn := certificate.CommonName(utils.NewCertCommonNameWithUUID(pod.Spec.ServiceAccountName, namespace, subDomain))
-	cert, err := wh.certManager.IssueCertificate(cn)
+	cn := utils.NewCertCommonNameWithUUID(pod.Spec.ServiceAccountName, namespace, subDomain)
+	bootstrapCertificate, err := wh.certManager.IssueCertificate(cn)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to issue TLS certificate for Envoy")
 		return nil, err
@@ -36,7 +35,7 @@ func (wh *Webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 
 	// Create kube secret for TLS cert and key used For Envoy to communicate with xDS
 	envoyTLSSecretName := fmt.Sprintf("tls-%s", pod.Spec.ServiceAccountName)
-	_, err = wh.createEnvoyTLSSecret(envoyTLSSecretName, namespace, cert)
+	_, err = wh.createEnvoyTLSSecret(envoyTLSSecretName, namespace, bootstrapCertificate)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to create TLS secret for Envoy sidecar")
 		return nil, err

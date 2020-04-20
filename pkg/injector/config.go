@@ -106,9 +106,9 @@ func (wh *Webhook) createEnvoyBootstrapConfig(name, namespace, osmNamespace stri
 		EnvoyAdminPort: constants.EnvoyAdminPort,
 		XDSClusterName: constants.AggregatedDiscoveryServiceName,
 
-		RootCertPath: path.Join(envoyTLSCertPath, tlsRootCertFileKey),
-		CertPath:     path.Join(envoyTLSCertPath, tlsCertFileKey),
-		KeyPath:      path.Join(envoyTLSCertPath, tlsKeyFileKey),
+		RootCertPath: path.Join(envoyCertificatesDirectory, tlsRootCertFileKey),
+		CertPath:     path.Join(envoyCertificatesDirectory, tlsCertFileKey),
+		KeyPath:      path.Join(envoyCertificatesDirectory, tlsKeyFileKey),
 
 		XDSHost: fmt.Sprintf("%s.%s.svc.cluster.local", constants.AggregatedDiscoveryServiceName, osmNamespace),
 		XDSPort: constants.AggregatedDiscoveryServicePort,
