@@ -3,6 +3,9 @@ package endpoint
 import (
 	"fmt"
 	"net"
+	"strings"
+
+	"github.com/open-service-mesh/osm/pkg/certificate"
 )
 
 // Provider is an interface to be implemented by components abstracting Kubernetes, Azure, and other compute/cluster providers
@@ -55,6 +58,11 @@ type ServiceAccount string
 
 func (s ServiceAccount) String() string {
 	return string(s)
+}
+
+// GetCommonName returns the Subject CN for the NamespacedService to be used for its certificate.
+func (ns NamespacedService) GetCommonName() certificate.CommonName {
+	return certificate.CommonName(strings.Join([]string{ns.Service, ns.Namespace, "svc", "cluster", "local"}, "."))
 }
 
 // NamespacedServiceAccount is a type for a namespaced service account
