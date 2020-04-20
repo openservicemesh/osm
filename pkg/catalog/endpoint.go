@@ -40,6 +40,7 @@ func (sc *MeshCatalog) getWeightedEndpointsPerService(clientID endpoint.Namespac
 			log.Error().Msgf("TrafficSplit %s/%s has no Backends in Spec; Skipping...", trafficSplit.Namespace, trafficSplit.Name)
 			continue
 		}
+		domain := trafficSplit.Spec.Service
 		for _, trafficSplitBackend := range trafficSplit.Spec.Backends {
 			namespacedServiceName := endpoint.NamespacedService{
 				Namespace: trafficSplit.Namespace,
@@ -49,6 +50,7 @@ func (sc *MeshCatalog) getWeightedEndpointsPerService(clientID endpoint.Namespac
 			svcEp.WeightedService = endpoint.WeightedService{
 				ServiceName: namespacedServiceName,
 				Weight:      trafficSplitBackend.Weight,
+				Domain:      domain,
 			}
 			var err error
 			if svcEp.Endpoints, err = sc.listEndpointsForService(svcEp.WeightedService); err != nil {

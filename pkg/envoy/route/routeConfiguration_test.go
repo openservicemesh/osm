@@ -1,7 +1,6 @@
 package route
 
 import (
-	route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 
@@ -9,77 +8,19 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Route Configuration", func() {
-	Context("Testing RouteConfiguration", func() {
-		It("Returns route configuration", func() {
-			destWeightedClusters := route.WeightedCluster{
-				Clusters: []*route.WeightedCluster_ClusterWeight{
-					{Name: "osm/bookstore-1", Weight: &wrappers.UInt32Value{Value: uint32(50)}},
-					{Name: "osm/bookstore-2", Weight: &wrappers.UInt32Value{Value: uint32(50)}}},
-				TotalWeight: &wrappers.UInt32Value{Value: uint32(100)},
-			}
-
-			srcWeightedClusters := route.WeightedCluster{
-				Clusters: []*route.WeightedCluster_ClusterWeight{
-					{Name: "osm/bookstore-1-local", Weight: &wrappers.UInt32Value{Value: uint32(50)}},
-					{Name: "osm/bookstore-2-local", Weight: &wrappers.UInt32Value{Value: uint32(50)}}},
-				TotalWeight: &wrappers.UInt32Value{Value: uint32(100)},
-			}
-
-			trafficPolicies := endpoint.TrafficPolicy{
-				PolicyName: "bookbuyer-bookstore",
-				Destination: endpoint.TrafficPolicyResource{
-					ServiceAccount: "bookstore-serviceaccount",
-					Namespace:      "osm",
-					Services: []endpoint.NamespacedService{
-						endpoint.NamespacedService{Namespace: "osm", Service: "bookstore-1"},
-						endpoint.NamespacedService{Namespace: "osm", Service: "bookstore-2"}},
-					Clusters: []endpoint.WeightedCluster{
-						{ClusterName: endpoint.ClusterName("osm/bookstore-1"), Weight: 50},
-						{ClusterName: endpoint.ClusterName("osm/bookstore-2"), Weight: 50}},
-				},
-				Source: endpoint.TrafficPolicyResource{
-					ServiceAccount: "bookbuyer-serviceaccount",
-					Namespace:      "osm",
-					Services: []endpoint.NamespacedService{
-						endpoint.NamespacedService{Namespace: "osm", Service: "bookbuyer"}},
-					Clusters: []endpoint.WeightedCluster{
-						{ClusterName: endpoint.ClusterName("osm/bookstore-1"), Weight: 50},
-						{ClusterName: endpoint.ClusterName("osm/bookstore-2"), Weight: 50}},
-				},
-				RoutePolicies: []endpoint.RoutePolicy{
-					endpoint.RoutePolicy{
-						PathRegex: "/books-bought",
-						Methods:   []string{"GET"},
-					},
-				},
-			}
-
-			//Validating the outbound clusters and routes
-			sourceRouteConfig := NewOutboundRouteConfiguration()
-			sourceRouteConfig = UpdateRouteConfiguration(trafficPolicies, sourceRouteConfig, true, false)
-			Expect(sourceRouteConfig).NotTo(Equal(nil))
-			Expect(sourceRouteConfig.Name).To(Equal(OutboundRouteConfig))
-			Expect(len(sourceRouteConfig.VirtualHosts)).To(Equal(1))
-			Expect(len(sourceRouteConfig.VirtualHosts[0].Routes)).To(Equal(1))
-			Expect(sourceRouteConfig.VirtualHosts[0].Routes[0].Match.GetSafeRegex().Regex).To(Equal("/books-bought"))
-			Expect(sourceRouteConfig.VirtualHosts[0].Routes[0].Match.GetHeaders()[0].GetExactMatch()).To(Equal("GET"))
-			Expect(sourceRouteConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters()).To(Equal(&destWeightedClusters))
-			//Validating the inbound clusters and routes
-			destinationRouteConfig := NewInboundRouteConfiguration()
-			destinationRouteConfig = UpdateRouteConfiguration(trafficPolicies, destinationRouteConfig, false, true)
-			Expect(destinationRouteConfig).NotTo(Equal(nil))
-			Expect(destinationRouteConfig.Name).To(Equal(InboundRouteConfig))
-			Expect(len(destinationRouteConfig.VirtualHosts)).To(Equal(1))
-			Expect(len(destinationRouteConfig.VirtualHosts[0].Routes)).To(Equal(1))
-			Expect(destinationRouteConfig.VirtualHosts[0].Routes[0].Match.GetSafeRegex().Regex).To(Equal("/books-bought"))
-			Expect(sourceRouteConfig.VirtualHosts[0].Routes[0].Match.GetHeaders()[0].GetExactMatch()).To(Equal("GET"))
-			Expect(destinationRouteConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters()).To(Equal(&srcWeightedClusters))
+var _ = Describe("VirtualHost with domains", func() {
+	Context("Testing the creation of virtual host object in the route configuration", func() {
+		It("Returns the virtual host with domains", func() {
+			virtualHost := createVirtualHostStub("inboud|bookstore.mesh", "bookstore.mesh")
+			Expect(virtualHost.Name).To(Equal("inboud|bookstore.mesh"))
+			Expect(virtualHost.Domains).To(Equal([]string{"bookstore.mesh"}))
+			Expect(len(virtualHost.Domains)).To(Equal(1))
+			Expect(len(virtualHost.Routes)).To(Equal(0))
 		})
 	})
 })
 
-var _ = Describe("Cors Allowed Methods", func() {
+var _ = Describe("Allowed methods on a route", func() {
 	Context("Testing sanitizeHTTPMethods", func() {
 		It("Returns a unique list of allowed methods", func() {
 
@@ -102,7 +43,7 @@ var _ = Describe("Cors Allowed Methods", func() {
 })
 
 var _ = Describe("Weighted clusters", func() {
-	Context("Testing getnWeightedClusters", func() {
+	Context("Testing getWeightedClusters", func() {
 		It("validated the creation of weighted clusters", func() {
 
 			weightedClusters := []endpoint.WeightedCluster{
@@ -122,32 +63,88 @@ var _ = Describe("Weighted clusters", func() {
 	})
 })
 
-var _ = Describe("Route Action weighted clusters", func() {
-	Context("Testing updateRouteActionWeightedClusters", func() {
-		It("Returns the route action with newly added clusters", func() {
+var _ = Describe("Routes with weighted clusters", func() {
+	Context("Testing creation of routes object in route configuration", func() {
+		var routeWeightedClustersList []endpoint.RoutePolicyWeightedClusters
+		weightedClusters := []endpoint.WeightedCluster{
+			{ClusterName: endpoint.ClusterName("osm/bookstore-1"), Weight: 100},
+			{ClusterName: endpoint.ClusterName("osm/bookstore-2"), Weight: 100},
+		}
+
+		It("Adds a new route", func() {
+
+			routePolicy := endpoint.RoutePolicy{
+				PathRegex: "/books-bought",
+				Methods:   []string{"GET", "POST"},
+			}
+			routeWeightedClustersList = append(routeWeightedClustersList, endpoint.RoutePolicyWeightedClusters{RoutePolicy: routePolicy, WeightedClusters: weightedClusters})
+
+			rt := createRoutes(routeWeightedClustersList, false)
+			Expect(len(rt)).To(Equal(1))
+			Expect(rt[0].Match.GetSafeRegex().Regex).To(Equal("/books-bought"))
+			Expect(rt[0].Match.GetHeaders()[0].GetExactMatch()).To(Equal("GET"))
+			Expect(rt[0].Match.GetHeaders()[1].GetExactMatch()).To(Equal("POST"))
+			Expect(rt[0].GetRoute().GetWeightedClusters().TotalWeight).To(Equal(&wrappers.UInt32Value{Value: uint32(200)}))
+			Expect(len(rt[0].GetRoute().GetWeightedClusters().GetClusters())).To(Equal(2))
+			Expect(rt[0].GetRoute().GetWeightedClusters().GetClusters()[0].Name).To(Equal("osm/bookstore-1"))
+			Expect(rt[0].GetRoute().GetWeightedClusters().GetClusters()[0].Weight).To(Equal(&wrappers.UInt32Value{Value: uint32(100)}))
+			Expect(rt[0].GetRoute().GetWeightedClusters().GetClusters()[1].Name).To(Equal("osm/bookstore-2"))
+			Expect(rt[0].GetRoute().GetWeightedClusters().GetClusters()[1].Weight).To(Equal(&wrappers.UInt32Value{Value: uint32(100)}))
+
+		})
+
+		It("Appends another route", func() {
+
+			routePolicy2 := endpoint.RoutePolicy{
+				PathRegex: "/buy-a-book",
+				Methods:   []string{"GET"},
+			}
+			routeWeightedClustersList = append(routeWeightedClustersList, endpoint.RoutePolicyWeightedClusters{RoutePolicy: routePolicy2, WeightedClusters: weightedClusters})
+
+			rt := createRoutes(routeWeightedClustersList, false)
+			Expect(len(rt)).To(Equal(2))
+			Expect(rt[1].Match.GetSafeRegex().Regex).To(Equal("/buy-a-book"))
+			Expect(rt[1].Match.GetHeaders()[0].GetExactMatch()).To(Equal("GET"))
+			Expect(rt[1].GetRoute().GetWeightedClusters().TotalWeight).To(Equal(&wrappers.UInt32Value{Value: uint32(200)}))
+			Expect(len(rt[1].GetRoute().GetWeightedClusters().GetClusters())).To(Equal(2))
+			Expect(rt[1].GetRoute().GetWeightedClusters().GetClusters()[0].Name).To(Equal("osm/bookstore-1"))
+			Expect(rt[1].GetRoute().GetWeightedClusters().GetClusters()[0].Weight).To(Equal(&wrappers.UInt32Value{Value: uint32(100)}))
+			Expect(rt[1].GetRoute().GetWeightedClusters().GetClusters()[1].Name).To(Equal("osm/bookstore-2"))
+			Expect(rt[1].GetRoute().GetWeightedClusters().GetClusters()[1].Weight).To(Equal(&wrappers.UInt32Value{Value: uint32(100)}))
+
+		})
+	})
+})
+
+var _ = Describe("Route Configuration", func() {
+	Context("Testing creation of RouteConfiguration object", func() {
+		It("Returns outbound route configuration", func() {
 
 			weightedClusters := []endpoint.WeightedCluster{
 				{ClusterName: endpoint.ClusterName("osm/bookstore-1"), Weight: 100},
-			}
-
-			newWeightedClusters := []endpoint.WeightedCluster{
 				{ClusterName: endpoint.ClusterName("osm/bookstore-2"), Weight: 100},
 			}
-
-			routePath := endpoint.RoutePolicy{
-				PathRegex: "books-bought",
-				Methods:   []string{"GET", "POST"},
+			routePolicy := endpoint.RoutePolicy{
+				PathRegex: "/books-bought",
+				Methods:   []string{"GET"},
 			}
-			route1 := createRoute(&routePath, weightedClusters, false)
-			rt := []*route.Route{&route1}
-			updatedAction := updateRouteActionWeightedClusters(*rt[0].GetRoute().GetWeightedClusters(), newWeightedClusters, false)
-			Expect(updatedAction.Route.GetWeightedClusters().TotalWeight).To(Equal(&wrappers.UInt32Value{Value: uint32(200)}))
-			Expect(len(updatedAction.Route.GetWeightedClusters().GetClusters())).To(Equal(2))
-			Expect(updatedAction.Route.GetWeightedClusters().GetClusters()[0].Name).To(Equal("osm/bookstore-1"))
-			Expect(updatedAction.Route.GetWeightedClusters().GetClusters()[0].Weight).To(Equal(&wrappers.UInt32Value{Value: uint32(100)}))
-			Expect(updatedAction.Route.GetWeightedClusters().GetClusters()[1].Name).To(Equal("osm/bookstore-2"))
-			Expect(updatedAction.Route.GetWeightedClusters().GetClusters()[1].Weight).To(Equal(&wrappers.UInt32Value{Value: uint32(100)}))
+			routePolicyWeightedClustersList := []endpoint.RoutePolicyWeightedClusters{
+				{RoutePolicy: routePolicy, WeightedClusters: weightedClusters},
+			}
+			sourceDomainAggregatedData := map[string][]endpoint.RoutePolicyWeightedClusters{
+				"bookstore.mesh": routePolicyWeightedClustersList,
+			}
 
+			//Validating the outbound clusters and routes
+			sourceRouteConfig := NewRouteConfigurationStub(OutboundRouteConfig)
+			sourceRouteConfig = UpdateRouteConfiguration(sourceDomainAggregatedData, sourceRouteConfig, true, false)
+			Expect(sourceRouteConfig).NotTo(Equal(nil))
+			Expect(sourceRouteConfig.Name).To(Equal(OutboundRouteConfig))
+			Expect(len(sourceRouteConfig.VirtualHosts)).To(Equal(1))
+			Expect(len(sourceRouteConfig.VirtualHosts[0].Routes)).To(Equal(1))
+			Expect(sourceRouteConfig.VirtualHosts[0].Routes[0].Match.GetSafeRegex().Regex).To(Equal("/books-bought"))
+			Expect(sourceRouteConfig.VirtualHosts[0].Routes[0].Match.GetHeaders()[0].GetExactMatch()).To(Equal("GET"))
+			Expect(len(sourceRouteConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters().GetClusters())).To(Equal(2))
 		})
 	})
 })

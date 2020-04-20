@@ -51,6 +51,12 @@ type MeshCataloger interface {
 
 	// GetServicesByServiceAccountName returns a list of services corresponding to a service account, and refreshes the cache if requested
 	GetServicesByServiceAccountName(endpoint.NamespacedServiceAccount, bool) []endpoint.NamespacedService
+
+	//GetDomainForService returns the domain name of a service
+	GetDomainForService(service endpoint.NamespacedService) (string, error)
+
+	//GetWeightedClusterForService returns the weighted cluster for a service
+	GetWeightedClusterForService(service endpoint.NamespacedService) (endpoint.WeightedCluster, error)
 }
 
 type announcementChannel struct {
