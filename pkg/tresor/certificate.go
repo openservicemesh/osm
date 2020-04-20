@@ -1,7 +1,6 @@
 package tresor
 
 import (
-	"crypto/x509"
 	"time"
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
@@ -23,12 +22,16 @@ func (c Certificate) GetPrivateKey() []byte {
 }
 
 // GetIssuingCA implements certificate.Certificater and returns the root certificate for the given cert.
-func (c Certificate) GetIssuingCA() *x509.Certificate {
+func (c Certificate) GetIssuingCA() []byte {
 	if c.ca == nil {
 		log.Info().Msgf("No root certificate available for certificate with CN=%s", c.x509Cert.Subject.CommonName)
 		return nil
 	}
-	return c.ca.x509Cert
+	cert, err := encodeCertDERtoPEM(c.ca.x509Cert.Raw)
+	if err != nil {
+		log.Error().Err(err).Msg("Error PEM encoding root certificate")
+	}
+	return cert
 }
 
 // LoadCA loads the certificate and its key from the supplied PEM files.

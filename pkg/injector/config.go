@@ -3,7 +3,6 @@ package injector
 import (
 	"bufio"
 	"bytes"
-	"encoding/pem"
 	"fmt"
 	"path"
 	"text/template"
@@ -13,7 +12,6 @@ import (
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
 	"github.com/open-service-mesh/osm/pkg/constants"
-	"github.com/pkg/errors"
 )
 
 const (
@@ -82,20 +80,12 @@ type envoyBootstrapConfigMeta struct {
 }
 
 func (wh *Webhook) createEnvoyTLSSecret(name string, namespace string, cert certificate.Certificater) (*corev1.Secret, error) {
-	// PEM encode the root certificate
-	block := pem.Block{Type: "CERTIFICATE", Bytes: cert.GetIssuingCA().Raw}
-	var rootCert bytes.Buffer
-	err := pem.Encode(&rootCert, &block)
-	if err != nil {
-		return nil, errors.Wrap(err, "error PEM encoding certificate")
-	}
-
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
 		Data: map[string][]byte{
-			tlsRootCertFileKey: rootCert.Bytes(),
+			tlsRootCertFileKey: cert.GetIssuingCA(),
 			tlsCertFileKey:     cert.GetCertificateChain(),
 			tlsKeyFileKey:      cert.GetPrivateKey(),
 		},
@@ -112,19 +102,16 @@ func (wh *Webhook) createEnvoyTLSSecret(name string, namespace string, cert cert
 }
 
 func (wh *Webhook) createEnvoyBootstrapConfig(name, namespace, osmNamespace string) (*corev1.ConfigMap, error) {
-	xdsHost := fmt.Sprintf("%s.%s.svc.cluster.local", constants.AggregatedDiscoveryServiceName, osmNamespace)
-	rootCertPath := path.Join(envoyTLSCertPath, tlsRootCertFileKey)
-	certPath := path.Join(envoyTLSCertPath, tlsCertFileKey)
-	keyPath := path.Join(envoyTLSCertPath, tlsKeyFileKey)
-
 	configMeta := envoyBootstrapConfigMeta{
 		EnvoyAdminPort: constants.EnvoyAdminPort,
 		XDSClusterName: constants.AggregatedDiscoveryServiceName,
-		RootCertPath:   rootCertPath,
-		CertPath:       certPath,
-		KeyPath:        keyPath,
-		XDSHost:        xdsHost,
-		XDSPort:        constants.AggregatedDiscoveryServicePort,
+
+		RootCertPath: path.Join(envoyTLSCertPath, tlsRootCertFileKey),
+		CertPath:     path.Join(envoyTLSCertPath, tlsCertFileKey),
+		KeyPath:      path.Join(envoyTLSCertPath, tlsKeyFileKey),
+
+		XDSHost: fmt.Sprintf("%s.%s.svc.cluster.local", constants.AggregatedDiscoveryServiceName, osmNamespace),
+		XDSPort: constants.AggregatedDiscoveryServicePort,
 	}
 	yamlContent, err := renderEnvoyBootstrapConfig(configMeta)
 	if err != nil {
@@ -153,7 +140,7 @@ func (wh *Webhook) createEnvoyBootstrapConfig(name, namespace, osmNamespace stri
 		return wh.kubeClient.CoreV1().ConfigMaps(namespace).Update(existing)
 	}
 
-	log.Info().Msgf("Creating configMap for envoy boostrap config: name=%s, namespace=%s", name, namespace)
+	log.Info().Msgf("Creating configMap for envoy bootstrap config: name=%s, namespace=%s", name, namespace)
 	return wh.kubeClient.CoreV1().ConfigMaps(namespace).Create(configMap)
 }
 

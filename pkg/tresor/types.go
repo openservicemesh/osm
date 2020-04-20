@@ -56,6 +56,9 @@ type Certificate struct {
 	// The name of the certificate
 	name string
 
+	// When the cert expires
+	expiration time.Time
+
 	// PEM encoded Certificate and Key (byte arrays)
 	certChain  pem.Certificate
 	privateKey pem.PrivateKey

@@ -1,7 +1,5 @@
 package certificate
 
-import "crypto/x509"
-
 // CommonName is the Subject Common Name from a given SSL certificate.
 type CommonName string
 
@@ -22,7 +20,7 @@ type Certificater interface {
 	GetPrivateKey() []byte
 
 	// GetIssuingCA returns the root certificate for the given cert.
-	GetIssuingCA() *x509.Certificate
+	GetIssuingCA() []byte
 }
 
 // Manager is the interface declaring the methods for the Certificate Manager.

@@ -1,9 +1,7 @@
 package sds
 
 import (
-	"bytes"
 	"context"
-	"encoding/pem"
 	"fmt"
 	"strings"
 
@@ -125,12 +123,6 @@ func getServiceCertSecret(cert certificate.Certificater, name string) (*auth.Sec
 }
 
 func getRootCert(cert certificate.Certificater, resourceName string) (*auth.Secret, error) {
-	block := pem.Block{Type: "CERTIFICATE", Bytes: cert.GetIssuingCA().Raw}
-	var rootCert bytes.Buffer
-	err := pem.Encode(&rootCert, &block)
-	if err != nil {
-		return nil, errors.Wrap(err, "error PEM encoding certificate")
-	}
 	secret := &auth.Secret{
 		// The Name field must match the tls_context.common_tls_context.tls_certificate_sds_secret_configs.name
 		Name: resourceName,
@@ -138,7 +130,7 @@ func getRootCert(cert certificate.Certificater, resourceName string) (*auth.Secr
 			ValidationContext: &auth.CertificateValidationContext{
 				TrustedCa: &core.DataSource{
 					Specifier: &core.DataSource_InlineBytes{
-						InlineBytes: rootCert.Bytes(),
+						InlineBytes: cert.GetIssuingCA(),
 					},
 				},
 				/*MatchSubjectAltNames: []*envoy_type_matcher.StringMatcher{{
