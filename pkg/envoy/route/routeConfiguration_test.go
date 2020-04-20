@@ -28,7 +28,7 @@ var _ = Describe("Route Configuration", func() {
 
 			trafficPolicies := endpoint.TrafficPolicy{
 				PolicyName: "bookbuyer-bookstore",
-				Destination: endpoint.TrafficResource{
+				Destination: endpoint.TrafficPolicyResource{
 					ServiceAccount: "bookstore-serviceaccount",
 					Namespace:      "osm",
 					Services: []endpoint.NamespacedService{
@@ -38,7 +38,7 @@ var _ = Describe("Route Configuration", func() {
 						{ClusterName: endpoint.ClusterName("osm/bookstore-1"), Weight: 50},
 						{ClusterName: endpoint.ClusterName("osm/bookstore-2"), Weight: 50}},
 				},
-				Source: endpoint.TrafficResource{
+				Source: endpoint.TrafficPolicyResource{
 					ServiceAccount: "bookbuyer-serviceaccount",
 					Namespace:      "osm",
 					Services: []endpoint.NamespacedService{
@@ -47,7 +47,7 @@ var _ = Describe("Route Configuration", func() {
 						{ClusterName: endpoint.ClusterName("osm/bookstore-1"), Weight: 50},
 						{ClusterName: endpoint.ClusterName("osm/bookstore-2"), Weight: 50}},
 				},
-				PolicyRoutePaths: []endpoint.RoutePolicy{
+				RoutePolicies: []endpoint.RoutePolicy{
 					endpoint.RoutePolicy{
 						PathRegex: "/books-bought",
 						Methods:   []string{"GET"},

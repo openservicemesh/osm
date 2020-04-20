@@ -39,27 +39,27 @@ func UpdateRouteConfiguration(trafficPolicies endpoint.TrafficPolicy, routeConfi
 	if isSourceService {
 		log.Trace().Msgf("[RDS] Updating OutboundRouteConfiguration for policy %v", trafficPolicies)
 		isLocalCluster = false
-		routeConfiguration = updateRoutes(trafficPolicies.PolicyRoutePaths, trafficPolicies.Source.Clusters, routeConfig, isLocalCluster)
+		routeConfiguration = updateRoutes(trafficPolicies.RoutePolicies, trafficPolicies.Source.Clusters, routeConfig, isLocalCluster)
 	} else if isDestinationService {
 		log.Trace().Msgf("[RDS] Updating InboundRouteConfiguration for policy %v", trafficPolicies)
 		isLocalCluster = true
-		routeConfiguration = updateRoutes(trafficPolicies.PolicyRoutePaths, trafficPolicies.Destination.Clusters, routeConfig, isLocalCluster)
+		routeConfiguration = updateRoutes(trafficPolicies.RoutePolicies, trafficPolicies.Destination.Clusters, routeConfig, isLocalCluster)
 	}
 	return routeConfiguration
 }
 
-func updateRoutes(routePaths []endpoint.RoutePolicy, cluster []endpoint.WeightedCluster, routeConfig v2.RouteConfiguration, isLocalCluster bool) v2.RouteConfiguration {
-	for _, path := range routePaths {
+func updateRoutes(routePolicies []endpoint.RoutePolicy, cluster []endpoint.WeightedCluster, routeConfig v2.RouteConfiguration, isLocalCluster bool) v2.RouteConfiguration {
+	for _, routePolicy := range routePolicies {
 		routedMatched := false
 		for i := 0; i < len(routeConfig.VirtualHosts[0].Routes); i++ {
-			if path.PathRegex == routeConfig.VirtualHosts[0].Routes[i].GetMatch().GetPrefix() {
+			if routePolicy.PathRegex == routeConfig.VirtualHosts[0].Routes[i].GetMatch().GetPrefix() {
 				routedMatched = true
 				routeConfig.VirtualHosts[0].Routes[i].Action = updateRouteActionWeightedClusters(*routeConfig.VirtualHosts[0].Routes[i].GetRoute().GetWeightedClusters(), cluster, isLocalCluster)
 				continue
 			}
 		}
 		if len(routeConfig.VirtualHosts[0].Routes) == 0 || !routedMatched {
-			route := createRoute(&path, cluster, isLocalCluster)
+			route := createRoute(&routePolicy, cluster, isLocalCluster)
 			routeConfig.VirtualHosts[0].Routes = append(routeConfig.VirtualHosts[0].Routes, &route)
 		}
 	}
@@ -67,13 +67,13 @@ func updateRoutes(routePaths []endpoint.RoutePolicy, cluster []endpoint.Weighted
 	return routeConfig
 }
 
-func createRoute(path *endpoint.RoutePolicy, weightedClusters []endpoint.WeightedCluster, isLocalCluster bool) v2route.Route {
+func createRoute(routePolicy *endpoint.RoutePolicy, weightedClusters []endpoint.WeightedCluster, isLocalCluster bool) v2route.Route {
 	route := v2route.Route{
 		Match: &v2route.RouteMatch{
 			PathSpecifier: &v2route.RouteMatch_SafeRegex{
 				SafeRegex: &matcher.RegexMatcher{
 					EngineType: regexEngine,
-					Regex:      path.PathRegex,
+					Regex:      routePolicy.PathRegex,
 				},
 			},
 		},
@@ -88,7 +88,7 @@ func createRoute(path *endpoint.RoutePolicy, weightedClusters []endpoint.Weighte
 
 	// For a given route path, sanitize the methods in case there
 	// is wildcard or if there are duplicates
-	allowedMethods := sanitizeHTTPMethods(path.Methods)
+	allowedMethods := sanitizeHTTPMethods(routePolicy.Methods)
 	for _, method := range allowedMethods {
 		headerMatcher := &v2route.HeaderMatcher{
 			Name: ":method",
