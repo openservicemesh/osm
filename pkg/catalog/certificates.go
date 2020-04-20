@@ -11,9 +11,9 @@ func (sc *MeshCatalog) GetCertificateForService(service endpoint.NamespacedServi
 	if exists {
 		return cert, nil
 	}
-	newCert, err := sc.certManager.IssueCertificate(certificate.CommonName(service.String()))
+	newCert, err := sc.certManager.IssueCertificate(service.GetCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed issuing a new certificate for service %s", service)
+		log.Error().Err(err).Msgf("Error issuing a new certificate for service %s", service)
 		return nil, err
 	}
 	sc.certificateCache[service] = newCert
