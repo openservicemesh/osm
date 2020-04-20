@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	pemEnc "encoding/pem"
+	"fmt"
 
 	"github.com/pkg/errors"
 
@@ -40,4 +41,21 @@ func encodeKeyDERtoPEM(priv *rsa.PrivateKey) (pem.PrivateKey, error) {
 		return nil, errors.Wrap(err, errEncodeKey.Error())
 	}
 	return keyOut.Bytes(), nil
+}
+
+// DecodePEMCertificate converts a certificate from PEM to x509 encoding
+func DecodePEMCertificate(certPEM []byte) (*x509.Certificate, []byte, error) {
+	block, rest := pemEnc.Decode(certPEM)
+	if block == nil || block.Type != TypeCertificate {
+		log.Error().Msg("failed to DecodePEMCertificate PEM block containing certificate")
+		return nil, nil, errors.New(fmt.Sprintf("err parsing %s PEM block", TypeCertificate))
+	}
+
+	pub, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error parsing certificate")
+		return nil, nil, err
+	}
+
+	return pub, rest, nil
 }
