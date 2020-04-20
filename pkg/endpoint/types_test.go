@@ -7,9 +7,9 @@ import (
 	"github.com/open-service-mesh/osm/pkg/certificate"
 )
 
-var _ = Describe("UniqueLists", func() {
-	Context("Testing uniqueness of services", func() {
-		It("Returns unique list of services", func() {
+var _ = Describe("Test NamespacedService methods", func() {
+	Context("Testing GetCommonName", func() {
+		It("should return DNS-1123 of the NamespacedService struct", func() {
 			namespacedService := NamespacedService{
 				Namespace: "namespace-here",
 				Service:   "service-name-here",
