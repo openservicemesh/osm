@@ -7,10 +7,10 @@ import (
 )
 
 const (
-	envoyProxyConfigPath      = "/etc/envoy"
-	envoySidecarContainerName = "envoyproxy"
-	envoyTLSCertPath          = "/etc/ssl/certs"
-	envoyBootstrapConfigFile  = "/etc/envoy/bootstrap.yaml"
+	envoyProxyConfigPath       = "/etc/envoy"
+	envoySidecarContainerName  = "envoyproxy"
+	envoyCertificatesDirectory = "/etc/ssl/certs"
+	envoyBootstrapConfigFile   = "/etc/envoy/bootstrap.yaml"
 )
 
 func getEnvoySidecarContainerSpec(data *EnvoySidecarData) corev1.Container {
@@ -47,7 +47,7 @@ func getEnvoySidecarContainerSpec(data *EnvoySidecarData) corev1.Container {
 			{
 				Name:      envoyTLSVolume,
 				ReadOnly:  true,
-				MountPath: envoyTLSCertPath,
+				MountPath: envoyCertificatesDirectory,
 			},
 		},
 		Command: []string{
