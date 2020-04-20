@@ -21,24 +21,26 @@ func (c Certificate) GetPrivateKey() []byte {
 	return c.privateKey
 }
 
+// TODO(draychev) -- all of these need error output
 // GetIssuingCA implements certificate.Certificater and returns the root certificate for the given cert.
 func (c Certificate) GetIssuingCA() []byte {
 	if c.issuingCA == nil {
-		log.Info().Msgf("No issuing CA available for cert %s", c.name)
+		log.Fatal().Msgf("No issuing CA available for cert %s", c.name) // TODO!!!!!!!!!!!!!!!!!
 		return nil
 	}
-	return c.issuingCA
+
+	return c.issuingCA.GetCertificateChain()
 }
 
 // LoadCA loads the certificate and its key from the supplied PEM files.
 func LoadCA(certFilePEM string, keyFilePEM string) (*Certificate, error) {
-	x509Cert, pemCert, err := certFromFile(certFilePEM)
+	pemCert, err := LoadCertificateFromFile(certFilePEM)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error loading certificate from file %s", certFilePEM)
 		return nil, err
 	}
 
-	rsaKey, pemKey, err := privKeyFromFile(keyFilePEM)
+	pemKey, err := LoadPrivateKeyFromFile(keyFilePEM)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error loading private key from file %s", keyFilePEM)
 		return nil, err
@@ -48,9 +50,6 @@ func LoadCA(certFilePEM string, keyFilePEM string) (*Certificate, error) {
 		name:       rootCertificateName,
 		certChain:  pemCert,
 		privateKey: pemKey,
-		x509Cert:   x509Cert,
-		rsaKey:     rsaKey,
-		issuingCA:  nil, // this is the CA itself
 	}
 	return &rootCertificate, nil
 }
@@ -60,11 +59,11 @@ func NewCertManager(ca *Certificate, validity time.Duration) (*CertManager, erro
 	if ca == nil {
 		return nil, errNoIssuingCA
 	}
-	cm := CertManager{
+
+	return &CertManager{
 		ca:             ca,
 		validityPeriod: validity,
 		announcements:  make(chan interface{}),
 		cache:          make(map[certificate.CommonName]Certificate),
-	}
-	return &cm, nil
+	}, nil
 }

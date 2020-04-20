@@ -20,7 +20,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName) (certificate.
 		return cert, nil
 	}
 
-	if cm.ca == nil || cm.ca.x509Cert == nil || cm.ca.rsaKey == nil {
+	if cm.ca == nil {
 		log.Error().Msgf("Invalid CA provided for issuance of certificate with CN=%s", cn)
 		return nil, errNoIssuingCA
 	}
@@ -52,7 +52,17 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName) (certificate.
 		BasicConstraintsValid: true,
 	}
 
-	derBytes, err := x509.CreateCertificate(rand.Reader, &template, cm.ca.x509Cert, &certPrivKey.PublicKey, cm.ca.rsaKey)
+	x509Root, err := DecodePEMCertificate(cm.ca.GetCertificateChain())
+	if err != nil {
+		log.Error().Err(err).Msg("Error decoding Root Certificate's PEM")
+	}
+
+	rsaKeyRoot, err := DecodePEMPrivateKey(cm.ca.GetPrivateKey())
+	if err != nil {
+		log.Error().Err(err).Msg("Error decoding Root Certificate's Private Key PEM ")
+	}
+
+	derBytes, err := x509.CreateCertificate(rand.Reader, &template, x509Root, &certPrivKey.PublicKey, rsaKeyRoot)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error issuing x509.CreateCertificate command for CN=%s", template.Subject.CommonName)
 		return nil, errors.Wrap(err, errCreateCert.Error())
@@ -71,10 +81,10 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName) (certificate.
 	}
 
 	cert := Certificate{
-		name:       string(cn),
+		name:       string(cn), // TODO(draychev): why even have a name if this is going to be the CN?
 		certChain:  certPEM,
 		privateKey: privKeyPEM,
-		issuingCA:  cm.ca.issuingCA,
+		issuingCA:  cm.ca,
 	}
 	cm.cache[cn] = cert
 	return cert, nil

@@ -1,10 +1,7 @@
 package tresor
 
 import (
-	"crypto/rsa"
-	"crypto/x509"
 	"encoding/pem"
-	"fmt"
 	"io/ioutil"
 
 	"github.com/pkg/errors"
@@ -12,50 +9,45 @@ import (
 	tresorPem "github.com/open-service-mesh/osm/pkg/tresor/pem"
 )
 
-func certFromFile(caPEMFile string) (*x509.Certificate, tresorPem.Certificate, error) {
+func LoadCertificateFromFile(caPEMFile string) (tresorPem.Certificate, error) {
 	if caPEMFile == "" {
-		return nil, nil, errors.Wrap(errInvalidFileName, caPEMFile)
+		return nil, errors.Wrap(errInvalidFileName, caPEMFile)
 	}
 
 	caPEM, err := ioutil.ReadFile(caPEMFile)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, fmt.Sprintf("failed reading file: %+v", caPEMFile))
+		log.Error().Err(err).Msgf("Error reading file: %+v", caPEMFile)
+		return nil, err
 	}
 
 	caBlock, _ := pem.Decode(caPEM)
 	if caBlock == nil || caBlock.Type != TypeCertificate {
-		return nil, nil, errDecodingPEMBlock
+		log.Error().Err(err).Msgf("Certificate not found in file: %+v", caPEMFile)
+		return nil, errDecodingPEMBlock
 	}
 
-	ca, err := x509.ParseCertificate(caBlock.Bytes)
-	if err != nil {
-		return nil, nil, errors.Wrap(err, fmt.Sprintf("failed parsing certificate loaded from %+v", caPEMFile))
-	}
-
-	return ca, caBlock.Bytes, nil
+	return pem.EncodeToMemory(caBlock), nil
 }
 
-func privKeyFromFile(caKeyPEMFile string) (*rsa.PrivateKey, tresorPem.PrivateKey, error) {
+func LoadPrivateKeyFromFile(caKeyPEMFile string) (tresorPem.PrivateKey, error) {
 	if caKeyPEMFile == "" {
-		return nil, nil, errors.Wrap(errInvalidFileName, caKeyPEMFile)
+		log.Error().Msgf("Invalid file for private key: %s", caKeyPEMFile)
+		return nil, errInvalidFileName
 	}
 
 	caKeyPEM, err := ioutil.ReadFile(caKeyPEMFile)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, fmt.Sprintf("faled reading file: %+v", caKeyPEMFile))
+		log.Error().Err(err).Msgf("Error reading file: %+v", caKeyPEMFile)
+		return nil, err
 	}
 
 	caKeyBlock, _ := pem.Decode(caKeyPEM)
 	if caKeyBlock == nil || caKeyBlock.Type != TypePrivateKey {
-		return nil, nil, err
+		log.Error().Err(err).Msgf("Private Key not found in file: %+v", caKeyPEMFile)
+		return nil, err
 	}
 
-	caKeyInterface, err := x509.ParsePKCS8PrivateKey(caKeyBlock.Bytes)
-	if err != nil {
-		return nil, nil, errors.Wrap(err, fmt.Sprintf("failed parsing private key loaded from %+v", caKeyPEMFile))
-	}
-
-	return caKeyInterface.(*rsa.PrivateKey), caKeyBlock.Bytes, nil
+	return pem.EncodeToMemory(caKeyBlock), nil
 }
 
 // LoadCertificateFromFile loads a certificate from a PEM file.

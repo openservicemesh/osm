@@ -1,8 +1,6 @@
 package tresor
 
 import (
-	"crypto/rsa"
-	"crypto/x509"
 	"math/big"
 	"time"
 
@@ -17,6 +15,9 @@ const (
 
 	// TypePrivateKey is a string constant to be used in the generation of a private key for a certificate.
 	TypePrivateKey = "PRIVATE KEY"
+
+	// TypePublicKey is a string constant to be used in the generation of a public key for a certificate.
+	TypePublicKey = "PUBLIC KEY"
 
 	// String constant used for the name of the root certificate
 	rootCertificateName = "root-certificate"
@@ -56,6 +57,7 @@ type Certificate struct {
 	// The name of the certificate
 	name string
 
+	// TODO(draychev): implement!
 	// When the cert expires
 	expiration time.Time
 
@@ -63,11 +65,7 @@ type Certificate struct {
 	certChain  pem.Certificate
 	privateKey pem.PrivateKey
 
-	// Same as above - but x509 Cert and RSA private key
-	x509Cert *x509.Certificate
-	rsaKey   *rsa.PrivateKey
-
 	// The CA issuing this certificate.
 	// If the certificate itself is a root certificate this would be nil.
-	issuingCA pem.RootCertificate
+	issuingCA *Certificate
 }
