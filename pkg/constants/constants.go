@@ -1,9 +1,6 @@
 package constants
 
 const (
-	// DefaultKubeNamespace is the default Kubernetes namespace.
-	DefaultKubeNamespace = "default"
-
 	// AzureProviderName is the string constant used for the ID of the Azure endpoints provider.
 	// These strings identify the participating clusters / endpoint providers.
 	// Ideally these should be not only the type of compute but also a unique identifier, like the FQDN of the cluster,
@@ -49,20 +46,8 @@ const (
 	// EnvoyPrometheusInboundListenerPort is Envoy's inbound listener port number for prometheus
 	EnvoyPrometheusInboundListenerPort = 15010
 
-	// CertCommonNameUUIDServiceDelimiter is the character used to delimit the UUID and service name in the certificate's CommonName
-	CertCommonNameUUIDServiceDelimiter = ";"
-
-	// NamespaceServiceDelimiter is the character used to delimit a namespace and a service name when used together
-	NamespaceServiceDelimiter = "/"
-
 	// InjectorWebhookPort is the port on which the sidecar injection webhook listens
 	InjectorWebhookPort = 9090
-
-	// RootCertPemStoreName is the name of the root certificate config store
-	RootCertPemStoreName = "ca-rootcertpemstore"
-
-	// RootCertPath is the path too the root certificate
-	RootCertPath = "/etc/ssl/certs/root-cert.pem"
 
 	// MetricsServerPort is the port on which OSM exposes its own metrics server
 	MetricsServerPort = 9091

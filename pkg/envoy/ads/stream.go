@@ -35,7 +35,7 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 	// TODO: Need a better way to map a proxy to a service. This
 	// is primarly required because envoy configurations are programmed
 	// per service.
-	cnMeta := utils.GetCertificateCommonNameMeta(cn.String())
+	cnMeta := utils.GetCertificateCommonNameMeta(cn)
 	namespacedSvcAcc := endpoint.NamespacedServiceAccount{
 		Namespace:      cnMeta.Namespace,
 		ServiceAccount: cnMeta.ServiceAccountName,
