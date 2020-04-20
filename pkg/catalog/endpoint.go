@@ -24,7 +24,7 @@ func (sc *MeshCatalog) listEndpointsForService(service endpoint.WeightedService)
 	var found bool
 	if endpoints, found = sc.servicesCache[service]; !found {
 		log.Error().Msgf("Did not find any Endpoints for service %s", service.ServiceName)
-		return nil, errNotFound
+		return nil, errServiceNotFound
 	}
 	log.Info().Msgf("Found Endpoints=%v for service %s", endpointsToString(endpoints), service.ServiceName)
 	return endpoints, nil
