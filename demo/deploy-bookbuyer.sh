@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -aueo pipefail
+set -auexo pipefail
 
 # shellcheck disable=SC1091
 source .env
@@ -11,7 +11,7 @@ echo "WAIT_FOR_OK_SECONDS = ${WAIT_FOR_OK_SECONDS}"
 kubectl create namespace "$BOOKBUYER_NAMESPACE" || true
 kubectl delete deployment bookbuyer -n "$BOOKBUYER_NAMESPACE"  || true
 
-echo -e "Deploy BookBuyer demo service"
+echo -e "Deploy BookBuyer Service Account"
 cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: ServiceAccount
@@ -19,9 +19,10 @@ metadata:
   name: bookbuyer-serviceaccount
   namespace: $BOOKBUYER_NAMESPACE
 automountServiceAccountToken: false
+EOF
 
----
-
+echo -e "Deploy BookBuyer Service"
+cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: Service
 metadata:
@@ -39,9 +40,10 @@ spec:
     app: bookbuyer
 
   type: NodePort
+EOF
 
----
-
+echo -e "Deploy BookBuyer Deployment"
+cat <<EOF | kubectl apply -f -
 apiVersion: apps/v1
 kind: Deployment
 metadata:

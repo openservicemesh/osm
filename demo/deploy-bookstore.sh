@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -aueo pipefail
+set -auexo pipefail
 
 # shellcheck disable=SC1091
 source .env
@@ -11,7 +11,7 @@ kubectl delete deployment "$SVC" -n "$BOOKSTORE_NAMESPACE"  || true
 
 GIT_HASH=$(git rev-parse --short HEAD)
 
-echo -e "Deploy $SVC demo service"
+echo -e "Deploy $SVC Namespace"
 cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: ServiceAccount
@@ -19,9 +19,10 @@ metadata:
   name: "$SVC-serviceaccount"
   namespace: $BOOKSTORE_NAMESPACE
 automountServiceAccountToken: false
+EOF
 
----
-
+echo -e "Deploy $SVC Service"
+cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: Service
 metadata:
@@ -38,9 +39,10 @@ spec:
     app: $SVC
 
   type: NodePort
+EOF
 
----
-
+echo -e "Deploy $SVC Deployment"
+cat <<EOF | kubectl apply -f -
 apiVersion: apps/v1
 kind: Deployment
 metadata:

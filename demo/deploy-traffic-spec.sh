@@ -5,6 +5,7 @@ set -aueo pipefail
 # shellcheck disable=SC1091
 source .env
 
+echo "Deploy HTTPRouteGroup CRD"
 kubectl apply -f - <<EOF
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
@@ -20,9 +21,10 @@ spec:
       - htr
     plural: httproutegroups
     singular: httproutegroup
+EOF
 
----
-
+echo "Deploy TCPRoute CRD"
+kubectl apply -f - <<EOF
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
@@ -38,8 +40,10 @@ spec:
     plural: tcproutes
     singular: tcproute
 
----
+EOF
 
+echo "Create HTTPRouteGroup"
+kubectl apply -f - <<EOF
 apiVersion: specs.smi-spec.io/v1alpha1
 kind: HTTPRouteGroup
 metadata:
