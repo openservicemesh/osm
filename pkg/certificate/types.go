@@ -21,8 +21,8 @@ type Certificater interface {
 	// GetPrivateKey returns the private key.
 	GetPrivateKey() []byte
 
-	// GetRootCertificate returns the root certificate for the given cert.
-	GetRootCertificate() *x509.Certificate
+	// GetIssuingCA returns the root certificate for the given cert.
+	GetIssuingCA() *x509.Certificate
 }
 
 // Manager is the interface declaring the methods for the Certificate Manager.

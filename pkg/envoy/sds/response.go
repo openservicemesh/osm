@@ -125,7 +125,7 @@ func getServiceCertSecret(cert certificate.Certificater, name string) (*auth.Sec
 }
 
 func getRootCert(cert certificate.Certificater, resourceName string) (*auth.Secret, error) {
-	block := pem.Block{Type: "CERTIFICATE", Bytes: cert.GetRootCertificate().Raw}
+	block := pem.Block{Type: "CERTIFICATE", Bytes: cert.GetIssuingCA().Raw}
 	var rootCert bytes.Buffer
 	err := pem.Encode(&rootCert, &block)
 	if err != nil {

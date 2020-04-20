@@ -83,7 +83,7 @@ type envoyBootstrapConfigMeta struct {
 
 func (wh *Webhook) createEnvoyTLSSecret(name string, namespace string, cert certificate.Certificater) (*corev1.Secret, error) {
 	// PEM encode the root certificate
-	block := pem.Block{Type: "CERTIFICATE", Bytes: cert.GetRootCertificate().Raw}
+	block := pem.Block{Type: "CERTIFICATE", Bytes: cert.GetIssuingCA().Raw}
 	var rootCert bytes.Buffer
 	err := pem.Encode(&rootCert, &block)
 	if err != nil {
