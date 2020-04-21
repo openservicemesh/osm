@@ -85,7 +85,7 @@ var _ = Describe("Test Tresor Tools", func() {
 var _ = Describe("Test tools", func() {
 	Context("Testing decoding of PEMs", func() {
 		It("should have decoded the PEM into x509 certificate", func() {
-			x509Cert, _, err := DecodePEMCertificate([]byte(certPEM))
+			x509Cert, err := DecodePEMCertificate([]byte(certPEM))
 			Expect(err).ToNot(HaveOccurred())
 			expectedCN := "mail.google.com"
 			Expect(x509Cert.Subject.CommonName).To(Equal(expectedCN))
