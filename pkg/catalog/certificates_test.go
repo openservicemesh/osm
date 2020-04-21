@@ -30,7 +30,7 @@ var _ = Describe("Test certificate tooling", func() {
 			actual := cert.GetCertificateChain()
 			expected := []byte{45, 45, 45, 45, 45, 66, 69, 71, 73, 78, 32, 67, 69, 82, 84, 73, 70, 73, 67, 65, 84, 69, 45, 45, 45, 45, 45, 10, 77, 73, 73, 70, 49}
 			Expect(actual[:33]).To(Equal(expected))
-			x509Cert, _, err := tresor.DecodePEMCertificate(cert.GetCertificateChain())
+			x509Cert, err := tresor.DecodePEMCertificate(cert.GetCertificateChain())
 			Expect(err).ToNot(HaveOccurred())
 			expectedCN := "service-name-here.namespace-here.svc.cluster.local"
 			Expect(x509Cert.Subject.CommonName).To(Equal(expectedCN))

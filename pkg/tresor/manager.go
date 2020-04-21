@@ -22,7 +22,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName) (certificate.
 
 	if cm.ca == nil || cm.ca.x509Cert == nil || cm.ca.rsaKey == nil {
 		log.Error().Msgf("Invalid CA provided for issuance of certificate with CN=%s", cn)
-		return nil, errNoCA
+		return nil, errNoIssuingCA
 	}
 
 	certPrivKey, err := rsa.GenerateKey(rand.Reader, rsaBits)
