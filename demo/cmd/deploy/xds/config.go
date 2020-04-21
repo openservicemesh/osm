@@ -192,6 +192,10 @@ func generateXDSPod(namespace string) *apiv1.Pod {
 					Command: []string{
 						"/ads",
 					},
+					Env: []apiv1.EnvVar{{
+						Name:  common.HumanReadableLogMessagesEnvVar,
+						Value: os.Getenv(common.HumanReadableLogMessagesEnvVar),
+					}},
 					Args: args,
 					VolumeMounts: []apiv1.VolumeMount{
 						{

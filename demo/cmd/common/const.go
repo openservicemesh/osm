@@ -39,4 +39,7 @@ const (
 
 	// PrometheusVar is the environment variable for promethues service name
 	PrometheusVar = "PROMETHEUS_SVC"
+
+	// HumanReadableLogMessagesEnvVar is an environment variable, which when set to "true" enables colorful human-readable log messages.
+	HumanReadableLogMessagesEnvVar = "OSM_HUMAN_DEBUG_LOG"
 )
