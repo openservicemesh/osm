@@ -20,6 +20,7 @@ const (
 	issuingCAField   = "issuing_ca"
 )
 
+// Client is a Hashi Vault client instance.
 type Client struct {
 	// How long will newly issued certificates be valid for
 	validity time.Duration
@@ -37,6 +38,7 @@ type Client struct {
 	client *api.Client
 }
 
+// NewCertManager implements certificate.Manager and wraps a Hashi Vault with methods to allow easy certificate issuance.
 func NewCertManager(vaultAddr, token string, validity time.Duration) (*Client, error) {
 	c := &Client{
 		validity:      validity,
@@ -66,6 +68,7 @@ func NewCertManager(vaultAddr, token string, validity time.Duration) (*Client, e
 	return c, nil
 }
 
+// IssueCertificate issues a certificate by leveraging the Hashi Vault client.
 func (c *Client) IssueCertificate(cn certificate.CommonName) (certificate.Certificater, error) {
 	secret, err := c.client.Logical().Write(getIssueURL(), getIssuanceData(cn, c.validity))
 	if err != nil {
@@ -76,6 +79,7 @@ func (c *Client) IssueCertificate(cn certificate.CommonName) (certificate.Certif
 	return newCert(cn, secret, time.Now().Add(c.validity)), nil
 }
 
+// GetAnnouncementsChannel returns a channel used by the Hashi Vault instance to signal when a certificate has been changed.
 func (c *Client) GetAnnouncementsChannel() <-chan interface{} {
 	return c.announcements
 }
@@ -96,18 +100,22 @@ type Certificate struct {
 	issuingCA pem.RootCertificate
 }
 
+// GetName returns the common name of the given certificate.
 func (c Certificate) GetName() string {
 	return c.commonName.String()
 }
 
+// GetCertificateChain returns the PEM encoded certificate.
 func (c Certificate) GetCertificateChain() []byte {
 	return c.certChain
 }
 
+// GetPrivateKey returns the PEM encoded private key of the given certificate.
 func (c Certificate) GetPrivateKey() []byte {
 	return c.privateKey
 }
 
+// GetIssuingCA returns the root certificate signing the given cert.
 func (c Certificate) GetIssuingCA() []byte {
 	return c.issuingCA
 }

@@ -66,6 +66,6 @@ const (
 	// CertificationAuthorityCommonName is the CN used for the root certificate for OSM.
 	CertificationAuthorityCommonName = "Open Service Mesh Certification Authority"
 
-	// When the root cert expires
+	// CertificationAuthorityRootExpiration is when the root certificate expires
 	CertificationAuthorityRootExpiration = 87600 * time.Hour // a decade
 )
