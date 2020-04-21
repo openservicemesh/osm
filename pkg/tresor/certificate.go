@@ -8,7 +8,7 @@ import (
 
 // GetName implements certificate.Certificater and returns the CN of the cert.
 func (c Certificate) GetName() string {
-	return c.name
+	return c.commonName.String()
 }
 
 // GetCertificateChain implements certificate.Certificater and returns the certificate chain.
@@ -21,11 +21,10 @@ func (c Certificate) GetPrivateKey() []byte {
 	return c.privateKey
 }
 
-// TODO(draychev) -- all of these need error output
 // GetIssuingCA implements certificate.Certificater and returns the root certificate for the given cert.
 func (c Certificate) GetIssuingCA() []byte {
 	if c.issuingCA == nil {
-		log.Fatal().Msgf("No issuing CA available for cert %s", c.name) // TODO!!!!!!!!!!!!!!!!!
+		log.Fatal().Msgf("No issuing CA available for cert %s", c.commonName)
 		return nil
 	}
 
@@ -46,10 +45,16 @@ func LoadCA(certFilePEM string, keyFilePEM string) (*Certificate, error) {
 		return nil, err
 	}
 
+	x509RootCert, err := DecodePEMCertificate(pemCert)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error converting certificate from PEM to x509 - CN=%s", rootCertificateName)
+	}
+
 	rootCertificate := Certificate{
-		name:       rootCertificateName,
+		commonName: rootCertificateName,
 		certChain:  pemCert,
 		privateKey: pemKey,
+		expiration: x509RootCert.NotAfter,
 	}
 	return &rootCertificate, nil
 }
@@ -61,9 +66,16 @@ func NewCertManager(ca *Certificate, validity time.Duration) (*CertManager, erro
 	}
 
 	return &CertManager{
-		ca:             ca,
+		// The root certificate signing all newly issued certificates
+		ca: ca,
+
+		// Newly issued certificates will be valid for this duration
 		validityPeriod: validity,
-		announcements:  make(chan interface{}),
-		cache:          make(map[certificate.CommonName]Certificate),
+
+		// Channel used to inform other components of cert changes (rotation etc.)
+		announcements: make(chan interface{}),
+
+		// Certificate cache
+		cache: make(map[certificate.CommonName]Certificate),
 	}, nil
 }

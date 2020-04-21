@@ -91,8 +91,6 @@ func (wh *Webhook) createEnvoyTLSSecret(name string, namespace string, cert cert
 		},
 	}
 
-	log.Info().Msgf(">>> Cert %+v", secret)
-
 	if existing, err := wh.kubeClient.CoreV1().Secrets(namespace).Get(name, metav1.GetOptions{}); err == nil {
 		log.Info().Msgf("Updating secret for envoy certs: name=%s, namespace=%s", name, namespace)
 		existing.Data = secret.Data

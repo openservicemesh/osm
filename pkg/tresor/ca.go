@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 )
 
+// CertificationAuthorityCommonName is the CN used for the root certificate for OSM.
 const CertificationAuthorityCommonName = "Open Service Mesh Certification Authority"
 
 // NewCA creates a new Certificate Authority.
@@ -61,9 +62,10 @@ func NewCA(validity time.Duration) (*Certificate, error) {
 	}
 
 	rootCertificate := Certificate{
-		name:       rootCertificateName,
+		commonName: rootCertificateName,
 		certChain:  pemCert,
 		privateKey: pemKey,
+		expiration: template.NotAfter,
 	}
 
 	return &rootCertificate, nil

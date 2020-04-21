@@ -81,10 +81,11 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName) (certificate.
 	}
 
 	cert := Certificate{
-		name:       string(cn), // TODO(draychev): why even have a name if this is going to be the CN?
+		commonName: cn,
 		certChain:  certPEM,
 		privateKey: privKeyPEM,
 		issuingCA:  cm.ca,
+		expiration: template.NotAfter,
 	}
 	cm.cache[cn] = cert
 	return cert, nil
