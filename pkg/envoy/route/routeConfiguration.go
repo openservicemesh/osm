@@ -73,37 +73,40 @@ func createVirtualHostStub(name string, domain string) v2route.VirtualHost {
 func createRoutes(routePolicyWeightedClustersList []endpoint.RoutePolicyWeightedClusters, isLocalCluster bool) []*v2route.Route {
 	var routes []*v2route.Route
 	for _, routePolicyWeightedClusters := range routePolicyWeightedClustersList {
-		route := v2route.Route{
-			Match: &v2route.RouteMatch{
-				PathSpecifier: &v2route.RouteMatch_SafeRegex{
-					SafeRegex: &matcher.RegexMatcher{
-						EngineType: regexEngine,
-						Regex:      routePolicyWeightedClusters.RoutePolicy.PathRegex,
-					},
-				},
-			},
-			Action: &v2route.Route_Route{
-				Route: &v2route.RouteAction{
-					ClusterSpecifier: &v2route.RouteAction_WeightedClusters{
-						WeightedClusters: getWeightedCluster(routePolicyWeightedClusters.WeightedClusters, isLocalCluster),
-					},
-				},
-			},
-		}
-
 		// For a given route path, sanitize the methods in case there
 		// is wildcard or if there are duplicates
 		allowedMethods := sanitizeHTTPMethods(routePolicyWeightedClusters.RoutePolicy.Methods)
 		for _, method := range allowedMethods {
-			headerMatcher := &v2route.HeaderMatcher{
-				Name: ":method",
-				HeaderMatchSpecifier: &v2route.HeaderMatcher_ExactMatch{
-					ExactMatch: method,
+			route := v2route.Route{
+				Match: &v2route.RouteMatch{
+					PathSpecifier: &v2route.RouteMatch_SafeRegex{
+						SafeRegex: &matcher.RegexMatcher{
+							EngineType: regexEngine,
+							Regex:      routePolicyWeightedClusters.RoutePolicy.PathRegex,
+						},
+					},
+					Headers: []*v2route.HeaderMatcher{
+						&v2route.HeaderMatcher{
+							Name: ":method",
+							HeaderMatchSpecifier: &v2route.HeaderMatcher_SafeRegexMatch{
+								SafeRegexMatch: &matcher.RegexMatcher{
+									EngineType: regexEngine,
+									Regex:      method,
+								},
+							},
+						},
+					},
+				},
+				Action: &v2route.Route_Route{
+					Route: &v2route.RouteAction{
+						ClusterSpecifier: &v2route.RouteAction_WeightedClusters{
+							WeightedClusters: getWeightedCluster(routePolicyWeightedClusters.WeightedClusters, isLocalCluster),
+						},
+					},
 				},
 			}
-			route.Match.Headers = append(route.Match.Headers, headerMatcher)
+			routes = append(routes, &route)
 		}
-		routes = append(routes, &route)
 	}
 	return routes
 }
