@@ -72,7 +72,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	return resp, nil
 }
 
-func aggregateRoutesByDomain(domainRoutesMap map[string][]endpoint.RoutePolicyWeightedClusters, routePolicies []endpoint.RoutePolicy, weightedCluster endpoint.WeightedCluster, domain string) /*map[string][]endpoint.RoutePolicyWeightedClusters*/ {
+func aggregateRoutesByDomain(domainRoutesMap map[string][]endpoint.RoutePolicyWeightedClusters, routePolicies []endpoint.RoutePolicy, weightedCluster endpoint.WeightedCluster, domain string) {
 	routesList, exists := domainRoutesMap[domain]
 	if !exists {
 		// no domain found, create a new route and cluster mapping and add the domain
@@ -95,7 +95,6 @@ func aggregateRoutesByDomain(domainRoutesMap map[string][]endpoint.RoutePolicyWe
 			domainRoutesMap[domain] = routesList
 		}
 	}
-	//return domainRoutesMap
 }
 
 func createRoutePolicyWeightedClusters(routePolicy endpoint.RoutePolicy, weightedCluster endpoint.WeightedCluster) endpoint.RoutePolicyWeightedClusters {
