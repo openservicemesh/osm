@@ -1,6 +1,8 @@
 package catalog
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -25,15 +27,22 @@ var _ = Describe("Test certificate tooling", func() {
 				Namespace: "namespace-here",
 				Service:   "service-name-here",
 			}
+
 			cert, err := mc.certManager.IssueCertificate(namespacedService.GetCommonName())
 			Expect(err).ToNot(HaveOccurred())
+
 			actual := cert.GetCertificateChain()
-			expected := []byte{45, 45, 45, 45, 45, 66, 69, 71, 73, 78, 32, 67, 69, 82, 84, 73, 70, 73, 67, 65, 84, 69, 45, 45, 45, 45, 45, 10, 77, 73, 73, 70, 49}
-			Expect(actual[:33]).To(Equal(expected))
+			expected := "-----BEGIN CERTIFICATE-----\nMII"
+			Expect(string(actual[:len(expected)])).To(Equal(expected))
+
 			x509Cert, err := tresor.DecodePEMCertificate(cert.GetCertificateChain())
 			Expect(err).ToNot(HaveOccurred())
+
 			expectedCN := "service-name-here.namespace-here.svc.cluster.local"
 			Expect(x509Cert.Subject.CommonName).To(Equal(expectedCN))
+
+			Expect(x509Cert.NotAfter.After(time.Now())).To(BeTrue())
+			Expect(x509Cert.NotAfter.Before(time.Now().Add(24 * time.Hour))).To(BeTrue())
 		})
 	})
 })
