@@ -8,7 +8,7 @@ import (
 
 // GetName implements certificate.Certificater and returns the CN of the cert.
 func (c Certificate) GetName() string {
-	return c.name
+	return c.commonName
 }
 
 // GetCertificateChain implements certificate.Certificater and returns the certificate chain.
@@ -49,7 +49,7 @@ func LoadCA(certFilePEM string, keyFilePEM string) (*Certificate, error) {
 	}
 
 	rootCertificate := Certificate{
-		name:       rootCertificateName,
+		commonName: rootCertificateName,
 		certChain:  pemCert,
 		privateKey: pemKey,
 		x509Cert:   x509Cert,

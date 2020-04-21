@@ -18,7 +18,7 @@ const (
 	// TypePrivateKey is a string constant to be used in the generation of a private key for a certificate.
 	TypePrivateKey = "PRIVATE KEY"
 
-	// String constant used for the name of the root certificate
+	// String constant used for the commonName of the root certificate
 	rootCertificateName = "root-certificate"
 
 	// How many bits to use for the RSA key
@@ -53,8 +53,8 @@ type CertManager struct {
 
 // Certificate implements certificate.Certificater
 type Certificate struct {
-	// The name of the certificate
-	name string
+	// The commonName of the certificate
+	commonName string
 
 	// When the cert expires
 	expiration time.Time

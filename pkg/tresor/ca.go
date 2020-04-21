@@ -10,6 +10,9 @@ import (
 	"github.com/pkg/errors"
 )
 
+// CertificationAuthorityCommonName is the CN used for the root certificate for OSM.
+const CertificationAuthorityCommonName = "Open Service Mesh Certification Authority"
+
 // NewCA creates a new Certificate Authority.
 func NewCA(validity time.Duration) (*Certificate, error) {
 	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
@@ -21,7 +24,7 @@ func NewCA(validity time.Duration) (*Certificate, error) {
 	template := &x509.Certificate{
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
-			CommonName:   "Azure Mesh RSA Certification Authority",
+			CommonName:   CertificationAuthorityCommonName,
 			Country:      []string{"US"},
 			Locality:     []string{"CA"},
 			Organization: []string{org},
@@ -59,11 +62,10 @@ func NewCA(validity time.Duration) (*Certificate, error) {
 	}
 
 	rootCertificate := Certificate{
-		name:       rootCertificateName,
+		commonName: rootCertificateName,
 		certChain:  pemCert,
 		privateKey: pemKey,
-		x509Cert:   template,
-		rsaKey:     rsaKey,
+		expiration: template.NotAfter,
 	}
 
 	return &rootCertificate, nil

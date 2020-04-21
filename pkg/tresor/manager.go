@@ -71,7 +71,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName) (certificate.
 	}
 
 	cert := Certificate{
-		name:       string(cn),
+		commonName: string(cn),
 		certChain:  certPEM,
 		privateKey: privKeyPEM,
 		ca:         cm.ca,
