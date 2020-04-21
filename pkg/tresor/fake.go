@@ -13,9 +13,9 @@ func NewFakeCertManager() *CertManager {
 		log.Error().Err(err).Msg("Error creating CA for fake cert manager")
 	}
 	return &CertManager{
-		ca:            ca,
-		validity:      1 * time.Hour,
-		announcements: make(chan interface{}),
-		cache:         make(map[certificate.CommonName]Certificate),
+		ca:                   ca,
+		certificatesValidFor: 1 * time.Hour,
+		announcements:        make(chan interface{}),
+		cache:                make(map[certificate.CommonName]Certificate),
 	}
 }
