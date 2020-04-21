@@ -29,7 +29,7 @@ func (wh *Webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 	cn := utils.NewCertCommonNameWithUUID(pod.Spec.ServiceAccountName, namespace, subDomain)
 	bootstrapCertificate, err := wh.certManager.IssueCertificate(cn)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to issue TLS certificate for Envoy")
+		log.Error().Err(err).Msgf("Error issuing bootstrap certificate for Envoy with CN=%s", cn)
 		return nil, err
 	}
 
