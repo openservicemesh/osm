@@ -192,6 +192,10 @@ func generateXDSPod(namespace string) *apiv1.Pod {
 					Command: []string{
 						"/ads",
 					},
+					Env: []apiv1.EnvVar{{
+						Name:  "OSM_HUMAN_DEBUG_LOG",
+						Value: "true",
+					}},
 					Args: args,
 					VolumeMounts: []apiv1.VolumeMount{
 						{
