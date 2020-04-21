@@ -45,7 +45,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName) (certificate.
 			Organization: []string{org},
 		},
 		NotBefore: now,
-		NotAfter:  now.Add(cm.validity),
+		NotAfter:  now.Add(cm.validityPeriod),
 
 		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
