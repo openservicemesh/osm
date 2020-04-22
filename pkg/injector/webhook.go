@@ -27,9 +27,6 @@ const (
 	tlsDir      = `/run/secrets/tls`
 	tlsCertFile = `tls.crt`
 	tlsKeyFile  = `tls.key`
-
-	// Annotations
-	annotationInject = "openservicemesh.io/sidecar-injection"
 )
 
 var (

@@ -24,9 +24,11 @@ func (wh *Webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 	var patches []JSONPatchOperation
 	log.Info().Msgf("Patching POD spec: service-account=%s, namespace=%s", pod.Spec.ServiceAccountName, namespace)
 
+	serviceName := getServiceName(pod)
+
 	// Issue a certificate for the proxy sidecar
 	subDomain := "osm.mesh" // TODO: don't hardcode this
-	cn := utils.NewCertCommonNameWithUUID(pod.Spec.ServiceAccountName, namespace, subDomain)
+	cn := utils.NewCertCommonNameWithUUID(serviceName, namespace, subDomain)
 	bootstrapCertificate, err := wh.certManager.IssueCertificate(cn)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error issuing bootstrap certificate for Envoy with CN=%s", cn)
@@ -34,7 +36,7 @@ func (wh *Webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 	}
 
 	// Create kube secret for TLS cert and key used For Envoy to communicate with xDS
-	envoyTLSSecretName := fmt.Sprintf("tls-%s", pod.Spec.ServiceAccountName)
+	envoyTLSSecretName := fmt.Sprintf("tls-%s", serviceName)
 	_, err = wh.createEnvoyTLSSecret(envoyTLSSecretName, namespace, bootstrapCertificate)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to create TLS secret for Envoy sidecar")
@@ -42,7 +44,7 @@ func (wh *Webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 	}
 
 	// Create kube configMap for Envoy bootstrap config
-	envoyBootstrapConfigName := fmt.Sprintf("envoy-bootstrap-config-%s", pod.Spec.ServiceAccountName)
+	envoyBootstrapConfigName := fmt.Sprintf("envoy-bootstrap-config-%s", serviceName)
 	_, err = wh.createEnvoyBootstrapConfig(envoyBootstrapConfigName, namespace, wh.osmNamespace)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create bootstrap config for Envoy sidecar")
@@ -73,9 +75,9 @@ func (wh *Webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 
 	// Add the Envoy sidecar
 	envoySidecarData := EnvoySidecarData{
-		Name:           envoySidecarContainerName,
-		Image:          wh.config.SidecarImage,
-		ServiceAccount: pod.Spec.ServiceAccountName,
+		Name:    envoySidecarContainerName,
+		Image:   wh.config.SidecarImage,
+		Service: serviceName,
 	}
 	patches = append(patches, addContainer(
 		pod.Spec.Containers,
@@ -96,6 +98,16 @@ func (wh *Webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 	)
 
 	return json.Marshal(patches)
+}
+
+func getServiceName(pod *corev1.Pod) string {
+	// Check if the POD is annotated for injection
+	service, found := pod.ObjectMeta.Annotations[annotationService]
+	if !found {
+		log.Info().Msgf("Missing annotation '%s', using the ServiceAccount name for the Service", annotationService)
+		return pod.Spec.ServiceAccountName
+	}
+	return service
 }
 
 func addVolume(target, add []corev1.Volume, basePath string) (patch []JSONPatchOperation) {
