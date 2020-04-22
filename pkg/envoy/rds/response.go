@@ -56,6 +56,12 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 			}
 		}
 	}
+
+	// Process ingress policy if applicable
+	if err = processIngressPolicy(proxyServiceName, catalog, destinationAggregatedRoutesByDomain); err != nil {
+		return nil, err
+	}
+
 	sourceRouteConfig = route.UpdateRouteConfiguration(sourceAggregatedRoutesByDomain, sourceRouteConfig, true, false)
 	destinationRouteConfig = route.UpdateRouteConfiguration(destinationAggregatedRoutesByDomain, destinationRouteConfig, false, true)
 	routeConfiguration = append(routeConfiguration, sourceRouteConfig)
@@ -116,4 +122,22 @@ func routeExits(routesList []endpoint.RoutePolicyWeightedClusters, routePolicy e
 		}
 	}
 	return index, routeExists
+}
+
+func processIngressPolicy(proxyServiceName endpoint.NamespacedService, catalog catalog.MeshCataloger, domainRoutesMap map[string][]endpoint.RoutePolicyWeightedClusters) error {
+	domainRoutePoliciesMap, found, err := catalog.GetIngressRoutePoliciesPerDomain(proxyServiceName)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed to get ingress route configuration for proxy %s", proxyServiceName)
+		return err
+	}
+	if found {
+		ingressWeightedCluster, err := catalog.GetIngressWeightedCluster(proxyServiceName)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to get weighted ingress clusters for proxy %s", proxyServiceName)
+		}
+		for domain, routePolicies := range domainRoutePoliciesMap {
+			aggregateRoutesByDomain(domainRoutesMap, routePolicies, ingressWeightedCluster, domain)
+		}
+	}
+	return nil
 }

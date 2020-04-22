@@ -8,6 +8,7 @@ import (
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/constants"
+	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 	"github.com/open-service-mesh/osm/pkg/smi"
 )
@@ -45,9 +46,20 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 					log.Error().Err(err).Msgf("Failed to find cluster")
 					return nil, err
 				}
-				clusterFactories = append(clusterFactories, getServiceClusterLocal(catalog, proxyServiceName, string(cluster.ClusterName+envoy.LocalClusterSuffix)))
+				localCluster, err := getServiceClusterLocal(catalog, proxyServiceName, string(cluster.ClusterName+envoy.LocalClusterSuffix))
+				if err != nil {
+					log.Error().Err(err).Msgf("Failed to get local cluster for proxy %s", proxyServiceName)
+					return nil, err
+				}
+				clusterFactories = append(clusterFactories, *localCluster)
 			}
 		}
+	}
+
+	// Process ingress policy if applicable
+	clusterFactories, err = getIngressServiceCluster(proxyServiceName, catalog, clusterFactories)
+	if err != nil {
+		return nil, err
 	}
 
 	clusterFactories = uniques(clusterFactories)
@@ -86,4 +98,25 @@ func uniques(slice []xds.Cluster) []xds.Cluster {
 		}
 	}
 	return clusters
+}
+
+func getIngressServiceCluster(proxyServiceName endpoint.NamespacedService, catalog catalog.MeshCataloger, clusters []xds.Cluster) ([]xds.Cluster, error) {
+	_, found, err := catalog.GetIngressRoutePoliciesPerDomain(proxyServiceName)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed to get ingress configuration for proxy %s", proxyServiceName)
+		return clusters, err
+	}
+	if found {
+		ingressWeightedCluster, err := catalog.GetIngressWeightedCluster(proxyServiceName)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to get weighted ingress clusters for proxy %s", proxyServiceName)
+		}
+		localCluster, err := getServiceClusterLocal(catalog, proxyServiceName, string(ingressWeightedCluster.ClusterName+envoy.LocalClusterSuffix))
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to get local cluster for proxy %s", proxyServiceName)
+			return nil, err
+		}
+		clusters = append(clusters, *localCluster)
+	}
+	return clusters, nil
 }

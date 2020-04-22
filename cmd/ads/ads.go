@@ -16,6 +16,7 @@ import (
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/envoy/ads"
 	"github.com/open-service-mesh/osm/pkg/httpserver"
+	"github.com/open-service-mesh/osm/pkg/ingress"
 	"github.com/open-service-mesh/osm/pkg/injector"
 	"github.com/open-service-mesh/osm/pkg/logger"
 	"github.com/open-service-mesh/osm/pkg/metricsstore"
@@ -128,7 +129,9 @@ func main() {
 		endpointsProviders = append(endpointsProviders, azure.NewProvider(
 			*azureSubscriptionID, azureAuthFile, stop, meshSpec, azureResourceClient, constants.AzureProviderName))
 	}
-	meshCatalog := catalog.NewMeshCatalog(meshSpec, certManager, stop, endpointsProviders...)
+
+	ingressClient := ingress.NewIngressClient(kubeConfig, namespaceController, stop)
+	meshCatalog := catalog.NewMeshCatalog(meshSpec, certManager, ingressClient, stop, endpointsProviders...)
 
 	// Create the sidecar-injector webhook
 	webhook := injector.NewWebhook(injectorConfig, kubeConfig, certManager, meshCatalog, namespaceController, osmNamespace)

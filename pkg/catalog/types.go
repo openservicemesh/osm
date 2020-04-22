@@ -8,6 +8,7 @@ import (
 	"github.com/open-service-mesh/osm/pkg/certificate"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/envoy"
+	"github.com/open-service-mesh/osm/pkg/ingress"
 	"github.com/open-service-mesh/osm/pkg/logger"
 	"github.com/open-service-mesh/osm/pkg/smi"
 )
@@ -21,6 +22,7 @@ type MeshCatalog struct {
 	endpointsProviders []endpoint.Provider
 	meshSpec           smi.MeshSpec
 	certManager        certificate.Manager
+	ingressMonitor     ingress.Monitor
 
 	servicesCache        map[endpoint.WeightedService][]endpoint.Endpoint
 	servicesMutex        sync.Mutex
@@ -38,6 +40,9 @@ type MeshCataloger interface {
 
 	// ListTrafficPolicies returns all the traffic policies for a given service that Envoy proxy should be aware of.
 	ListTrafficPolicies(endpoint.NamespacedService) ([]endpoint.TrafficPolicy, error)
+
+	// ListEndpointsForService returns the list of provider endpoints corresponding to a service
+	ListEndpointsForService(endpoint.ServiceName) ([]endpoint.Endpoint, error)
 
 	// GetCertificateForService returns the SSL Certificate for the given service.
 	// This certificate will be used for service-to-service mTLS.
@@ -57,6 +62,15 @@ type MeshCataloger interface {
 
 	//GetWeightedClusterForService returns the weighted cluster for a service
 	GetWeightedClusterForService(service endpoint.NamespacedService) (endpoint.WeightedCluster, error)
+
+	// IsIngressService returns a boolean indicating if the service is a backend for an ingress resource
+	IsIngressService(endpoint.NamespacedService) (bool, error)
+
+	// GetIngressRoutePoliciesPerDomain returns the route policies per domain associated with an ingress service
+	GetIngressRoutePoliciesPerDomain(endpoint.NamespacedService) (map[string][]endpoint.RoutePolicy, bool, error)
+
+	// GetIngressWeightedCluster returns the weighted cluster for an ingress service
+	GetIngressWeightedCluster(endpoint.NamespacedService) (endpoint.WeightedCluster, error)
 }
 
 type announcementChannel struct {

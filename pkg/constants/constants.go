@@ -68,4 +68,7 @@ const (
 
 	// CertificationAuthorityRootExpiration is when the root certificate expires
 	CertificationAuthorityRootExpiration = 87600 * time.Hour // a decade
+
+	// OSMKubeResourceMonitorAnnotation is the key of the annotation used to monitor a K8s resource
+	OSMKubeResourceMonitorAnnotation = "openservicemesh.io/monitor"
 )
