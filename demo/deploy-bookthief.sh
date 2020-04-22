@@ -58,6 +58,8 @@ spec:
       labels:
         app: bookthief
         version: v1
+      annotations:
+        "openservicemesh.io/osm-service": "bookthief"
     spec:
       serviceAccountName: bookthief-serviceaccount
       automountServiceAccountToken: false
