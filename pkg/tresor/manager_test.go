@@ -3,6 +3,8 @@ package tresor
 import (
 	"time"
 
+	"github.com/open-service-mesh/osm/pkg/certificate"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -57,7 +59,8 @@ var _ = Describe("Test Certificate Manager", func() {
 		validity := 3 * time.Second
 		rootCertPem := "sample_certificate.pem"
 		rootKeyPem := "sample_private_key.pem"
-		rootCert, err := NewCA(1 * time.Hour)
+		cn := certificate.CommonName("Test CA")
+		rootCert, err := NewCA(cn, 1*time.Hour)
 		if err != nil {
 			log.Fatal().Err(err).Msgf("Error loading CA from files %s and %s", rootCertPem, rootKeyPem)
 		}
@@ -83,7 +86,7 @@ var _ = Describe("Test Certificate Manager", func() {
 			pemRootCert := cert.GetIssuingCA()
 			xRootCert, err := DecodePEMCertificate(pemRootCert)
 			Expect(err).ToNot(HaveOccurred(), string(pemRootCert))
-			Expect(xRootCert.Subject.CommonName).To(Equal(CertificationAuthorityCommonName))
+			Expect(xRootCert.Subject.CommonName).To(Equal(cn.String()))
 		})
 	})
 })

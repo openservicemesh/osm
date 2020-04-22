@@ -10,7 +10,7 @@ import (
 
 var _ = Describe("Test creation of a new CA", func() {
 	Context("Create a new CA", func() {
-		cert, err := NewCA(2 * time.Second)
+		cert, err := NewCA("Tresor CA for Testing", 2*time.Second)
 		It("should create a new CA", func() {
 			Expect(err).ToNot(HaveOccurred())
 

@@ -8,7 +8,7 @@ import (
 
 // NewFakeCertManager creates a fake CertManager used for testing.
 func NewFakeCertManager() *CertManager {
-	ca, err := NewCA(1 * time.Hour)
+	ca, err := NewCA("Fake Tresor CN", 1*time.Hour)
 	if err != nil {
 		log.Error().Err(err).Msg("Error creating CA for fake cert manager")
 	}
