@@ -1,5 +1,7 @@
 package constants
 
+import "time"
+
 const (
 	// AzureProviderName is the string constant used for the ID of the Azure endpoints provider.
 	// These strings identify the participating clusters / endpoint providers.
@@ -60,4 +62,10 @@ const (
 
 	// PrometheusScrapePath is the path for prometheus to scrap envoy metrics from
 	PrometheusScrapePath = "/stats/prometheus"
+
+	// CertificationAuthorityCommonName is the CN used for the root certificate for OSM.
+	CertificationAuthorityCommonName = "Open Service Mesh Certification Authority"
+
+	// CertificationAuthorityRootExpiration is when the root certificate expires
+	CertificationAuthorityRootExpiration = 87600 * time.Hour // a decade
 )

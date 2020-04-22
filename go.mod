@@ -25,6 +25,7 @@ require (
 	github.com/googleapis/gnostic v0.3.1 // indirect
 	github.com/gorilla/mux v1.7.3
 	github.com/grpc-ecosystem/grpc-gateway v1.9.1 // indirect
+	github.com/hashicorp/vault/api v1.0.4
 	github.com/imdario/mergo v0.3.7 // indirect
 	github.com/knative/pkg v0.0.0-20190619032946-d90a9bc97dde // indirect
 	github.com/matm/gocov-html v0.0.0-20160206185555-f6dd0fd0ebc7 // indirect
