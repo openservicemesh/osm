@@ -45,8 +45,12 @@ func main() {
 
 	certManager, rootCert := getCertManager()
 
-	writeFile(*caPEMFileOut, rootCert.GetCertificateChain())
-	writeFile(*caKeyPEMFileOut, rootCert.GetPrivateKey())
+	if *caPEMFileOut != "" {
+		writeFile(*caPEMFileOut, rootCert.GetCertificateChain())
+	}
+	if *caKeyPEMFileOut != "" {
+		writeFile(*caKeyPEMFileOut, rootCert.GetPrivateKey())
+	}
 
 	cert, err := certManager.IssueCertificate(certificate.CommonName(*host))
 	if err != nil {
