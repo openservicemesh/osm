@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/pflag"
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/logger"
 	"github.com/open-service-mesh/osm/pkg/tresor"
 )
@@ -32,9 +33,10 @@ var (
 func main() {
 	parseFlags()
 
+	certValidityPeriod := time.Duration(*validity) * time.Minute
+
 	if *genca {
-		validityMinutes := time.Duration(*validity) * time.Minute
-		rootCert, err := tresor.NewCA(validityMinutes)
+		rootCert, err := tresor.NewCA(constants.CertificationAuthorityCommonName, certValidityPeriod)
 		if err != nil {
 			log.Fatal().Err(err).Msg("Failed to create new Certificate Authority")
 		}
@@ -43,7 +45,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	certManager, rootCert := getCertManager()
+	certManager, rootCert := getCertManager(certValidityPeriod)
 
 	if *caPEMFileOut != "" {
 		writeFile(*caPEMFileOut, rootCert.GetCertificateChain())
@@ -62,26 +64,24 @@ func main() {
 
 }
 
-func getCertManager() (*tresor.CertManager, *tresor.Certificate) {
-	validityMinutes := time.Duration(*validity) * time.Minute
-
+func getCertManager(certValidityPeriod time.Duration) (*tresor.CertManager, *tresor.Certificate) {
 	if caPEMFileIn != nil && caKeyPEMFileIn != nil && *caPEMFileIn != "" && *caKeyPEMFileIn != "" {
 		ca, err := tresor.LoadCA(*caPEMFileIn, *caKeyPEMFileIn)
 		if err != nil {
 			log.Fatal().Err(err).Msgf("Error loading root certificate & key from files %s and %s", *caPEMFileIn, *caKeyPEMFileIn)
 		}
-		certManager, err := tresor.NewCertManager(ca, validityMinutes)
+		certManager, err := tresor.NewCertManager(ca, certValidityPeriod)
 		if err != nil {
 			log.Fatal().Err(err).Msg("Failed to create new Certificate Manager")
 		}
 		return certManager, ca
 	}
 
-	ca, err := tresor.NewCA(validityMinutes)
+	ca, err := tresor.NewCA(constants.CertificationAuthorityCommonName, certValidityPeriod)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to create new Certificate Authority")
 	}
-	certManager, err := tresor.NewCertManager(ca, validityMinutes)
+	certManager, err := tresor.NewCertManager(ca, certValidityPeriod)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to instantiate Certificate Manager")
 	}
