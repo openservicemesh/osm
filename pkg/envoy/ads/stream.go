@@ -2,7 +2,6 @@ package ads
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -36,17 +35,10 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 	// is primarly required because envoy configurations are programmed
 	// per service.
 	cnMeta := utils.GetCertificateCommonNameMeta(cn)
-	namespacedSvcAcc := endpoint.NamespacedServiceAccount{
-		Namespace:      cnMeta.Namespace,
-		ServiceAccount: cnMeta.ServiceAccountName,
+	namespacedService := endpoint.NamespacedService{
+		Namespace: cnMeta.Namespace,
+		Service:   cnMeta.ServiceName,
 	}
-	services := s.catalog.GetServicesByServiceAccountName(namespacedSvcAcc, true)
-	if len(services) == 0 {
-		// No services found for this service account, don't patch
-		return fmt.Errorf("No service found for service account %q", namespacedSvcAcc)
-	}
-	// TODO: Don't assume a service account maps to a single service
-	namespacedService := services[0]
 	log.Info().Msgf("cert: cn=%s, service=%s", cn, namespacedService)
 
 	proxy := envoy.NewProxy(cn, namespacedService, ip)
