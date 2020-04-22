@@ -1,13 +1,10 @@
 #!/bin/bash
 
-set -auexo pipefail
+set -aueo pipefail
 
 # shellcheck disable=SC1091
 source .env
 IS_GITHUB="${IS_GITHUB:-default false}"
-
-rm -rf ./certificates
-rm -rf ./certs
 
 exit_error() {
     error="$1"
@@ -32,20 +29,25 @@ if [ -z "$BOOKTHIEF_NAMESPACE" ]; then
     exit_error "Missing BOOKTHIEF_NAMESPACE env variable"
 fi
 
-./demo/clean-kubernetes.sh
+if [[ "$IS_GITHUB" != "true" ]]; then
+    # In Github CI we always use a new namespace - so this is not necessary
+    ./demo/clean-kubernetes.sh
+fi
 
 # The demo uses osm's namespace as defined by environment variables, K8S_NAMESPACE
 # to house the control plane components.
 kubectl create namespace "$K8S_NAMESPACE"
 
-make build-cert
-
-./demo/build-push-images.sh
-
-# Create the proxy certificates
-./demo/gen-ca.sh
+echo "Certificate Manager in use: $CERT_MANAGER"
+if [ "$CERT_MANAGER" = "vault" ]; then
+    echo "Installing Hashi Vault"
+    ./demo/deploy-vault.sh
+fi
 
 if [[ "$IS_GITHUB" != "true" ]]; then
+    # For Github CI we achieve these at a different time or different script
+    # See .github/workflows/main.yml
+    ./demo/build-push-images.sh
     ./demo/create-container-registry-creds.sh
 else
     mkdir -p "$HOME/.kube"
@@ -62,9 +64,6 @@ kubectl create configmap azureconfig --from-file="$HOME/.azure/azureAuth.json" -
 kubectl apply -f crd/AzureResource.yaml
 ./demo/deploy-AzureResource.sh
 
-# Deploy OSM
-./demo/deploy-secrets.sh "ads"
-
 # Deploys Xds and Prometheus
 go run ./demo/cmd/deploy/control-plane.go
 
@@ -72,7 +71,7 @@ go run ./demo/cmd/deploy/control-plane.go
 # K8s API server will probe on the webhook port when the config is deployed.
 while [ "$(kubectl get pods -n "$K8S_NAMESPACE" ads -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}')" != "True" ];
 do
-  echo "waiting for pod ads to be ready" && sleep 2
+  echo "waiting for pod ads to be ready" && sleep 5
 done
 
 # Wait for the CA Bundle secret to become available

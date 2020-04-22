@@ -30,7 +30,7 @@ spec:
         imagePullPolicy: Always
         # args: ['server', '-dev']
         command: ["/bin/sh","-c"]
-        args: ["vault server -dev -dev-listen-address=0.0.0.0:8200 -dev-root-token-id='xxx' & sleep 1; echo 'xxx'>~/.vault-token; VAULT_ADDR=http://localhost:8200 vault secrets enable pki; VAULT_ADDR=http://localhost:8200 vault secrets tune -max-lease-ttl=87600h pki; VAULT_ADDR=http://localhost:8200 vault write pki/config/urls issuing_certificates='http://127.0.0.1:8200/v1/pki/ca' crl_distribution_points='http://127.0.0.1:8200/v1/pki/crl'; VAULT_ADDR=http://localhost:8200 vault write pki/roles/open-service-mesh allow_any_name=true allow_subdomains=true; tail /dev/random"]
+        args: ["vault server -dev -dev-listen-address=0.0.0.0:8200 -dev-root-token-id=$VAULT_TOKEN & sleep 1; echo $VAULT_TOKEN>~/.vault-token; VAULT_ADDR=http://localhost:8200 vault secrets enable pki; VAULT_ADDR=http://localhost:8200 vault secrets tune -max-lease-ttl=87600h pki; VAULT_ADDR=http://localhost:8200 vault write pki/config/urls issuing_certificates='http://127.0.0.1:8200/v1/pki/ca' crl_distribution_points='http://127.0.0.1:8200/v1/pki/crl'; VAULT_ADDR=http://localhost:8200 vault write pki/roles/open-service-mesh allow_any_name=true allow_subdomains=true; tail /dev/random"]
         securityContext:
           capabilities:
             add: ['IPC_LOCK']

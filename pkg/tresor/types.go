@@ -40,7 +40,7 @@ type CertManager struct {
 	validityPeriod time.Duration
 
 	// The Certificate Authority root certificate to be used by this certificate manager
-	ca *Certificate
+	ca certificate.Certificater
 
 	// The channel announcing to the rest of the system when a certificate has changed
 	announcements <-chan interface{}
@@ -64,5 +64,5 @@ type Certificate struct {
 
 	// The CA issuing this certificate.
 	// If the certificate itself is a root certificate this would be nil.
-	issuingCA *Certificate
+	issuingCA certificate.Certificater
 }

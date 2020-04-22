@@ -51,6 +51,36 @@ jobs:
     - name: Build
       run: go build -v ./...
 
+    - name: Cleanup stale CI namespaces
+      env:
+        KUBE_CONFIG: ${{ secrets.KUBECONFIG }}
+        KUBECONFIG: ".kube/config"
+      run: |
+        touch .env  # it is ok keep this empty
+        mkdir -p ".kube"
+        echo "$KUBE_CONFIG" | base64 -d > "$KUBECONFIG"
+        go run ./ci/cmd/cleanup-namespaces.go
+
+    - name: Create Docker images
+      env:
+        KUBE_CONFIG: ${{ secrets.KUBECONFIG }}
+        CTR_REGISTRY: ${{ secrets.CTR_REGISTRY }}
+        CTR_REGISTRY_CREDS_NAME: ${{ secrets.CTR_REGISTRY_CREDS_NAME }}
+        CTR_TAG: "${{ github.run_id }}-${{ github.run_number}}"
+        ACR_CREDS: ${{ secrets.ACR_CREDS }}
+        KUBECONFIG: ".kube/config"
+        DOCKER_USER: ${{ secrets.DOCKER_USER }}
+        DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
+        IS_GITHUB: true
+        ACR: ${{ secrets.ACR }}
+      run: |
+        touch .env  # it is ok keep this empty
+        echo "Creating Kubernetes namespace: $K8S_NAMESPACE"
+        mkdir -p ".kube"
+        echo "$KUBE_CONFIG" | base64 -d > "$KUBECONFIG"
+        echo "$DOCKER_PASS" | docker login "$ACR" -u "$DOCKER_USER" --password-stdin
+        ./demo/build-push-images.sh
+
     - name: Test with coverage
       run: |
         export GOPATH=$HOME/go
@@ -69,19 +99,19 @@ jobs:
         mkdir coverage
         gocov-html < coverage.json > coverage/index.html
 
-    - name: Integration Test
+    - name: Integration Test with Tresor
       env:
         KUBE_CONFIG: ${{ secrets.KUBECONFIG }}
         AZURE_SUBSCRIPTION: ${{ secrets.AZURE_SUBSCRIPTION }}
         CTR_REGISTRY: ${{ secrets.CTR_REGISTRY }}
         CTR_REGISTRY_CREDS_NAME: ${{ secrets.CTR_REGISTRY_CREDS_NAME }}
         CTR_TAG: "${{ github.run_id }}-${{ github.run_number}}"
-        K8S_NAMESPACE: "ci-${{ github.run_id }}-${{ github.run_number}}"
-        BOOKBUYER_NAMESPACE: "ci-bookbuyer-${{ github.run_id }}-${{ github.run_number}}"
-        BOOKSTORE_NAMESPACE: "ci-bookstore-${{ github.run_id }}-${{ github.run_number}}"
-        BOOKTHIEF_NAMESPACE: "ci-bookthief-${{ github.run_id }}-${{ github.run_number}}"
-        PROMETHEUS_SVC: "ci-prometheus-${{ github.run_id }}-${{ github.run_number}}"
-        OSM_ID: "osm-ci-${{ github.run_id }}-${{ github.run_number}}"
+        K8S_NAMESPACE: "ci-${{ github.run_id }}-${{ github.run_number}}-tresor"
+        BOOKBUYER_NAMESPACE: "ci-bookbuyer-${{ github.run_id }}-${{ github.run_number}}-tresor"
+        BOOKSTORE_NAMESPACE: "ci-bookstore-${{ github.run_id }}-${{ github.run_number}}-tresor"
+        BOOKTHIEF_NAMESPACE: "ci-bookthief-${{ github.run_id }}-${{ github.run_number}}-tresor"
+        PROMETHEUS_SVC: "ci-prometheus-${{ github.run_id }}-${{ github.run_number}}-tresor"
+        OSM_ID: "osm-ci-${{ github.run_id }}-${{ github.run_number}}-hashivault"
         ACR_CREDS: ${{ secrets.ACR_CREDS }}
         KUBECONFIG: ".kube/config"
         DOCKER_USER: ${{ secrets.DOCKER_USER }}
@@ -91,6 +121,7 @@ jobs:
         ACR: ${{ secrets.ACR }}
         WAIT_FOR_POD_TIME_SECONDS: ${{ secrets.WAIT_FOR_POD_TIME_SECONDS }}
         OSM_HUMAN_DEBUG_LOG: ${{ secrets.OSM_HUMAN_DEBUG_LOG }}
+        CERT_MANAGER: "tresor"
       run: |
         touch .env  # it is ok keep this empty
         echo "Creating Kubernetes namespace: $K8S_NAMESPACE"
@@ -98,5 +129,42 @@ jobs:
         echo "$KUBE_CONFIG" | base64 -d > "$KUBECONFIG"
         echo "$DOCKER_PASS" | docker login "$ACR" -u "$DOCKER_USER" --password-stdin
         go run ./ci/cmd/cleanup-namespaces.go
+        ./demo/run-demo.sh
+        go run ./demo/cmd/tail/tail.go
+
+
+    - name: Integration Test with Hashi Vault
+      env:
+        KUBE_CONFIG: ${{ secrets.KUBECONFIG }}
+        AZURE_SUBSCRIPTION: ${{ secrets.AZURE_SUBSCRIPTION }}
+        CTR_REGISTRY: ${{ secrets.CTR_REGISTRY }}
+        CTR_REGISTRY_CREDS_NAME: ${{ secrets.CTR_REGISTRY_CREDS_NAME }}
+        CTR_TAG: "${{ github.run_id }}-${{ github.run_number}}"
+        K8S_NAMESPACE: "ci-${{ github.run_id }}-${{ github.run_number}}-hashivault"
+        BOOKBUYER_NAMESPACE: "ci-bookbuyer-${{ github.run_id }}-${{ github.run_number}}-hashivault"
+        BOOKSTORE_NAMESPACE: "ci-bookstore-${{ github.run_id }}-${{ github.run_number}}-hashivault"
+        BOOKTHIEF_NAMESPACE: "ci-bookthief-${{ github.run_id }}-${{ github.run_number}}-hashivault"
+        PROMETHEUS_SVC: "ci-prometheus-${{ github.run_id }}-${{ github.run_number}}-hashivault"
+        OSM_ID: "osm-ci-${{ github.run_id }}-${{ github.run_number}}-hashivault"
+        ACR_CREDS: ${{ secrets.ACR_CREDS }}
+        KUBECONFIG: ".kube/config"
+        DOCKER_USER: ${{ secrets.DOCKER_USER }}
+        DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
+        WAIT_FOR_OK_SECONDS: 120
+        IS_GITHUB: true
+        ACR: ${{ secrets.ACR }}
+        WAIT_FOR_POD_TIME_SECONDS: ${{ secrets.WAIT_FOR_POD_TIME_SECONDS }}
+        OSM_HUMAN_DEBUG_LOG: ${{ secrets.OSM_HUMAN_DEBUG_LOG }}
+        CERT_MANAGER: "vault"
+        VAULT_HOST: "vault.default.svc.cluster.local"
+        VAULT_PROTOCOL: "http"
+        VAULT_PORT: "8200"
+        VAULT_TOKEN: ${{ secrets.VAULT_TOKEN }}
+      run: |
+        touch .env  # it is ok keep this empty
+        echo "Creating Kubernetes namespace: $K8S_NAMESPACE"
+        mkdir -p ".kube"
+        echo "$KUBE_CONFIG" | base64 -d > "$KUBECONFIG"
+        echo "$DOCKER_PASS" | docker login "$ACR" -u "$DOCKER_USER" --password-stdin
         ./demo/run-demo.sh
         go run ./demo/cmd/tail/tail.go
