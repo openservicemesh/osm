@@ -21,7 +21,7 @@ var (
 )
 
 // NewIngressClient implements ingress.Monitor and creates the Kubernetes client to monitor Ingress resources.
-func NewIngressClient(kubeConfig *rest.Config, namespaceController namespace.Controller, stop chan struct{}) Monitor {
+func NewIngressClient(kubeConfig *rest.Config, namespaceController namespace.Controller, stop chan struct{}) (Monitor, error) {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 
 	informerFactory := informers.NewSharedInformerFactory(kubeClient, resyncPeriod)
@@ -38,10 +38,11 @@ func NewIngressClient(kubeConfig *rest.Config, namespaceController namespace.Con
 	informer.AddEventHandler(k8s.GetKubernetesEventHandlers("Ingress", "Kubernetes", client.announcements))
 
 	if err := client.run(stop); err != nil {
-		log.Fatal().Err(err).Msg("Could not start Kubernetes Ingress client")
+		log.Error().Err(err).Msg("Could not start Kubernetes Ingress client")
+		return nil, err
 	}
 
-	return client
+	return client, nil
 }
 
 // run executes informer collection.
@@ -76,8 +77,8 @@ func (c Client) GetIngressResources(service endpoint.NamespacedService) ([]*exte
 	for _, ingressInterface := range c.cache.List() {
 		ingress, ok := ingressInterface.(*extensionsV1beta.Ingress)
 		if !ok {
-			log.Error().Msg("Invalid ingress object")
-			return ingressResources, false, errInvalidObject
+			log.Error().Msg("Failed type assertion for Ingress in ingress cache")
+			continue
 		}
 		// TODO(check if needed): Check if the ingress resource belongs to the overall list of monitored namespaces
 		if !c.namespaceController.IsMonitoredNamespace(ingress.Namespace) {
@@ -92,7 +93,6 @@ func (c Client) GetIngressResources(service endpoint.NamespacedService) ([]*exte
 		if enabled, err := isMonitoredResource(ingress); !enabled || err != nil {
 			return ingressResources, enabled, err
 		}
-		// Process the backend services
 		if backend := ingress.Spec.Backend; backend != nil && backend.ServiceName == service.Service {
 			// Default backend service
 			ingressResources = append(ingressResources, ingress)

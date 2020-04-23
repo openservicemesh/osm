@@ -130,7 +130,10 @@ func main() {
 			*azureSubscriptionID, azureAuthFile, stop, meshSpec, azureResourceClient, constants.AzureProviderName))
 	}
 
-	ingressClient := ingress.NewIngressClient(kubeConfig, namespaceController, stop)
+	ingressClient, err := ingress.NewIngressClient(kubeConfig, namespaceController, stop)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to initialize ingress client")
+	}
 	meshCatalog := catalog.NewMeshCatalog(meshSpec, certManager, ingressClient, stop, endpointsProviders...)
 
 	// Create the sidecar-injector webhook

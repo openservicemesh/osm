@@ -106,17 +106,18 @@ func getIngressServiceCluster(proxyServiceName endpoint.NamespacedService, catal
 		log.Error().Err(err).Msgf("Failed to get ingress configuration for proxy %s", proxyServiceName)
 		return clusters, err
 	}
-	if found {
-		ingressWeightedCluster, err := catalog.GetIngressWeightedCluster(proxyServiceName)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to get weighted ingress clusters for proxy %s", proxyServiceName)
-		}
-		localCluster, err := getServiceClusterLocal(catalog, proxyServiceName, string(ingressWeightedCluster.ClusterName+envoy.LocalClusterSuffix))
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to get local cluster for proxy %s", proxyServiceName)
-			return nil, err
-		}
-		clusters = append(clusters, *localCluster)
+	if !found {
+		return clusters, nil
 	}
+	ingressWeightedCluster, err := catalog.GetIngressWeightedCluster(proxyServiceName)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed to get weighted ingress clusters for proxy %s", proxyServiceName)
+	}
+	localCluster, err := getServiceClusterLocal(catalog, proxyServiceName, string(ingressWeightedCluster.ClusterName+envoy.LocalClusterSuffix))
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed to get local cluster for proxy %s", proxyServiceName)
+		return nil, err
+	}
+	clusters = append(clusters, *localCluster)
 	return clusters, nil
 }

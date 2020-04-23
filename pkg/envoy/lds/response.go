@@ -199,42 +199,48 @@ func getInMeshFilterChains(proxyServiceName endpoint.NamespacedService, mc catal
 			for _, srcService := range sourceServices {
 				// Get the endpoint for this source
 				serviceEndpoints, _ := mc.ListEndpointsForService(endpoint.ServiceName(srcService.String()))
-				for _, endpoint := range serviceEndpoints {
-					// Build a filter chain for this endpoint
-					cidr := convertIPAddressToCidr(endpoint.IP.String())
-					endpointFilterChain := &listener.FilterChain{
-						Filters: []*listener.Filter{
-							{
-								Name: wellknown.HTTPConnectionManager,
-								ConfigType: &listener.Filter_TypedConfig{
-									TypedConfig: filterConfig,
-								},
-							},
-						},
-						// The FilterChainMatch uses SNI from mTLS to match against the provided list of ServerNames.
-						// This ensures only clients authorized to talk to this listener are permitted to.
-						FilterChainMatch: &listener.FilterChainMatch{
-							ServerNames: serverNames,
-							SourcePrefixRanges: []*envoy_api_v2_core.CidrRange{
-								cidr,
-							},
-						},
-
-						TransportSocket: &envoy_api_v2_core.TransportSocket{
-							Name: envoy.TransportSocketTLS,
-							ConfigType: &envoy_api_v2_core.TransportSocket_TypedConfig{
-								TypedConfig: envoy.GetDownstreamTLSContext(proxyServiceName),
-							},
-						},
-					}
-					filterChains = append(filterChains, endpointFilterChain)
-				}
+				endpointFilterChains := getFilterChainFromEndpoints(proxyServiceName, serviceEndpoints, serverNames, filterConfig)
+				filterChains = append(filterChains, endpointFilterChains...)
 			}
 		}
 	}
 
 	applyFilterChain := len(filterChains) > 0
 	return filterChains, applyFilterChain, nil
+}
+
+func getFilterChainFromEndpoints(proxyServiceName endpoint.NamespacedService, serviceEndpoints []endpoint.Endpoint, serverNames []string, filterConfig *any.Any) []*listener.FilterChain {
+	var filterChains []*listener.FilterChain
+	for _, endpoint := range serviceEndpoints {
+		// Build a filter chain for this endpoint
+		cidr := convertIPAddressToCidr(endpoint.IP.String())
+		endpointFilterChain := &listener.FilterChain{
+			Filters: []*listener.Filter{
+				{
+					Name: wellknown.HTTPConnectionManager,
+					ConfigType: &listener.Filter_TypedConfig{
+						TypedConfig: filterConfig,
+					},
+				},
+			},
+			// The FilterChainMatch uses SNI from mTLS to match against the provided list of ServerNames.
+			// This ensures only clients authorized to talk to this listener are permitted to.
+			FilterChainMatch: &listener.FilterChainMatch{
+				ServerNames: serverNames,
+				SourcePrefixRanges: []*envoy_api_v2_core.CidrRange{
+					cidr,
+				},
+			},
+			TransportSocket: &envoy_api_v2_core.TransportSocket{
+				Name: envoy.TransportSocketTLS,
+				ConfigType: &envoy_api_v2_core.TransportSocket_TypedConfig{
+					TypedConfig: envoy.GetDownstreamTLSContext(proxyServiceName),
+				},
+			},
+		}
+		filterChains = append(filterChains, endpointFilterChain)
+	}
+	return filterChains
 }
 
 func getMaxCidrPrefixLen(addr string) uint32 {
