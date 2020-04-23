@@ -14,20 +14,20 @@ const (
 
 // IsIngressService returns a boolean indicating if the service is a backend for an ingress resource
 func (mc *MeshCatalog) IsIngressService(service endpoint.NamespacedService) (bool, error) {
-	_, found, err := mc.GetIngressRoutePoliciesPerDomain(service)
-	return found, err
+	policies, err := mc.GetIngressRoutePoliciesPerDomain(service)
+	return len(policies) > 0, err
 }
 
 // GetIngressRoutePoliciesPerDomain returns the route policies per domain associated with an ingress service
-func (mc *MeshCatalog) GetIngressRoutePoliciesPerDomain(service endpoint.NamespacedService) (map[string][]endpoint.RoutePolicy, bool, error) {
+func (mc *MeshCatalog) GetIngressRoutePoliciesPerDomain(service endpoint.NamespacedService) (map[string][]endpoint.RoutePolicy, error) {
 	domainRoutesMap := make(map[string][]endpoint.RoutePolicy)
-	ingresses, found, err := mc.ingressMonitor.GetIngressResources(service)
+	ingresses, err := mc.ingressMonitor.GetIngressResources(service)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to get ingress resources with backend %s", service)
-		return domainRoutesMap, false, err
+		return domainRoutesMap, err
 	}
-	if !found {
-		return domainRoutesMap, false, err
+	if len(ingresses) == 0 {
+		return domainRoutesMap, err
 	}
 
 	for _, ingress := range ingresses {
@@ -62,7 +62,7 @@ func (mc *MeshCatalog) GetIngressRoutePoliciesPerDomain(service endpoint.Namespa
 			}
 		}
 	}
-	return domainRoutesMap, true, nil
+	return domainRoutesMap, nil
 }
 
 // GetIngressWeightedCluster returns the weighted cluster for an ingress service

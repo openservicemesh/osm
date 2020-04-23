@@ -14,8 +14,8 @@ func NewFakeIngressMonitor() Monitor {
 }
 
 // GetIngressResources returns the ingress resources whose backends correspond to the service
-func (f fakeIngressMonitor) GetIngressResources(endpoint.NamespacedService) ([]*extensionsV1beta.Ingress, bool, error) {
-	return nil, false, nil
+func (f fakeIngressMonitor) GetIngressResources(endpoint.NamespacedService) ([]*extensionsV1beta.Ingress, error) {
+	return nil, nil
 }
 
 // GetAnnouncementsChannel returns the channel on which Ingress Monitor makes annoucements

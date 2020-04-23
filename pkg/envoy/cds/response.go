@@ -101,12 +101,12 @@ func uniques(slice []xds.Cluster) []xds.Cluster {
 }
 
 func getIngressServiceCluster(proxyServiceName endpoint.NamespacedService, catalog catalog.MeshCataloger, clusters []xds.Cluster) ([]xds.Cluster, error) {
-	_, found, err := catalog.GetIngressRoutePoliciesPerDomain(proxyServiceName)
+	ingressRoutePolicies, err := catalog.GetIngressRoutePoliciesPerDomain(proxyServiceName)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to get ingress configuration for proxy %s", proxyServiceName)
 		return clusters, err
 	}
-	if !found {
+	if len(ingressRoutePolicies) == 0 {
 		return clusters, nil
 	}
 	ingressWeightedCluster, err := catalog.GetIngressWeightedCluster(proxyServiceName)

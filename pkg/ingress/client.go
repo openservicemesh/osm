@@ -72,7 +72,7 @@ func (c Client) GetAnnouncementsChannel() <-chan interface{} {
 }
 
 // GetIngressResources returns the ingress resources whose backends correspond to the service
-func (c Client) GetIngressResources(service endpoint.NamespacedService) ([]*extensionsV1beta.Ingress, bool, error) {
+func (c Client) GetIngressResources(service endpoint.NamespacedService) ([]*extensionsV1beta.Ingress, error) {
 	var ingressResources []*extensionsV1beta.Ingress
 	for _, ingressInterface := range c.cache.List() {
 		ingress, ok := ingressInterface.(*extensionsV1beta.Ingress)
@@ -91,7 +91,7 @@ func (c Client) GetIngressResources(service endpoint.NamespacedService) ([]*exte
 		}
 		// Check if the ingress resources is annotated for monitor
 		if enabled, err := isMonitoredResource(ingress); !enabled || err != nil {
-			return ingressResources, enabled, err
+			continue
 		}
 		if backend := ingress.Spec.Backend; backend != nil && backend.ServiceName == service.Service {
 			// Default backend service
@@ -109,7 +109,7 @@ func (c Client) GetIngressResources(service endpoint.NamespacedService) ([]*exte
 			}
 		}
 	}
-	return ingressResources, len(ingressResources) > 0, nil
+	return ingressResources, nil
 }
 
 func isMonitoredResource(ingress *extensionsV1beta.Ingress) (bool, error) {

@@ -67,7 +67,7 @@ type MeshCataloger interface {
 	IsIngressService(endpoint.NamespacedService) (bool, error)
 
 	// GetIngressRoutePoliciesPerDomain returns the route policies per domain associated with an ingress service
-	GetIngressRoutePoliciesPerDomain(endpoint.NamespacedService) (map[string][]endpoint.RoutePolicy, bool, error)
+	GetIngressRoutePoliciesPerDomain(endpoint.NamespacedService) (map[string][]endpoint.RoutePolicy, error)
 
 	// GetIngressWeightedCluster returns the weighted cluster for an ingress service
 	GetIngressWeightedCluster(endpoint.NamespacedService) (endpoint.WeightedCluster, error)
