@@ -5,19 +5,19 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-const envoyBootstrapConfigTmpl = `
+const expectedEnvoyConfig = `
 admin:
   access_log_path: /dev/stdout
   address:
     socket_address:
       address: 0.0.0.0
-      port_value: '{{.EnvoyAdminPort}}'
+      port_value: "3465"
 dynamic_resources:
   ads_config:
     api_type: GRPC
     grpc_services:
     - envoy_grpc:
-        cluster_name: '{{.XDSClusterName}}'
+        cluster_name: XDSClusterName
     set_node_on_first_message_only: true
   cds_config:
     ads: {}
@@ -28,40 +28,51 @@ static_resources:
   - connect_timeout: 0.25s
     http2_protocol_options: {}
     load_assignment:
-      cluster_name: '{{.XDSClusterName}}'
+      cluster_name: XDSClusterName
       endpoints:
       - lb_endpoints:
         - endpoint:
             address:
               socket_address:
-                address: '{{.XDSHost}}'
-                port_value: '{{.XDSPort}}'
-    name: '{{.XDSClusterName}}'
+                address: XDSHost
+                port_value: 2345
+    name: XDSClusterName
     tls_context:
       common_tls_context:
         alpn_protocols:
         - h2
         tls_certificates:
         - certificate_chain:
-            inline_bytes: '{{.Cert}}'
+            inline_bytes: Cert
           private_key:
-            inline_bytes: '{{.Key}}'
+            inline_bytes: Key
         tls_params:
           cipher_suites: '[ECDHE-ECDSA-AES128-GCM-SHA256|ECDHE-ECDSA-CHACHA20-POLY1305]'
           tls_maximum_protocol_version: TLSv1_3
           tls_minimum_protocol_version: TLSv1_2
         validation_context:
           trusted_ca:
-            inline_bytes: '{{.RootCert}}'
+            inline_bytes: RootCert
     type: LOGICAL_DNS
 `
 
 var _ = Describe("Test Envoy configuration creation", func() {
 	Context("create envoy config", func() {
 		It("creates envoy config", func() {
-			actual := getEnvoyConfigYAML()
-			expected := envoyBootstrapConfigTmpl[1:]
-			Expect(actual).To(Equal(expected))
+			config := envoyBootstrapConfigMeta{
+				EnvoyAdminPort: 3465,
+				XDSClusterName: "XDSClusterName",
+				RootCert:       "RootCert",
+				Cert:           "Cert",
+				Key:            "Key",
+				XDSHost:        "XDSHost",
+				XDSPort:        2345,
+			}
+
+			actual, err := getEnvoyConfigYAML(config)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(string(actual)).To(Equal(expectedEnvoyConfig[1:]))
 		})
 	})
 })

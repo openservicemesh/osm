@@ -1,12 +1,10 @@
 package injector
 
 import (
-	"bufio"
-	"bytes"
 	"encoding/base64"
 	"fmt"
+	"strconv"
 	"strings"
-	"text/template"
 
 	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
@@ -16,15 +14,14 @@ import (
 	"github.com/open-service-mesh/osm/pkg/constants"
 )
 
-// TODO(draychev): move away from template and use fn params
-func getEnvoyConfigYAML() string {
+func getEnvoyConfigYAML(config envoyBootstrapConfigMeta) ([]byte, error) {
 	m := map[interface{}]interface{}{
 		"admin": map[string]interface{}{
 			"access_log_path": "/dev/stdout",
 			"address": map[string]interface{}{
 				"socket_address": map[string]string{
 					"address":    "0.0.0.0",
-					"port_value": "{{.EnvoyAdminPort}}",
+					"port_value": strconv.Itoa(config.EnvoyAdminPort),
 				},
 			},
 		},
@@ -35,7 +32,7 @@ func getEnvoyConfigYAML() string {
 				"grpc_services": []map[string]interface{}{
 					{
 						"envoy_grpc": map[string]interface{}{
-							"cluster_name": "{{.XDSClusterName}}",
+							"cluster_name": config.XDSClusterName,
 						},
 					},
 				},
@@ -52,7 +49,7 @@ func getEnvoyConfigYAML() string {
 		"static_resources": map[string]interface{}{
 			"clusters": []map[string]interface{}{
 				{
-					"name":                   "{{.XDSClusterName}}",
+					"name":                   config.XDSClusterName,
 					"connect_timeout":        "0.25s",
 					"type":                   "LOGICAL_DNS",
 					"http2_protocol_options": map[string]string{},
@@ -63,7 +60,7 @@ func getEnvoyConfigYAML() string {
 							},
 							"validation_context": map[string]interface{}{
 								"trusted_ca": map[string]interface{}{
-									"inline_bytes": "{{.RootCert}}",
+									"inline_bytes": config.RootCert,
 								},
 							},
 							"tls_params": map[string]interface{}{
@@ -74,17 +71,17 @@ func getEnvoyConfigYAML() string {
 							"tls_certificates": []map[string]interface{}{
 								{
 									"certificate_chain": map[string]interface{}{
-										"inline_bytes": "{{.Cert}}",
+										"inline_bytes": config.Cert,
 									},
 									"private_key": map[string]interface{}{
-										"inline_bytes": "{{.Key}}",
+										"inline_bytes": config.Key,
 									},
 								},
 							},
 						},
 					},
 					"load_assignment": map[string]interface{}{
-						"cluster_name": "{{.XDSClusterName}}",
+						"cluster_name": config.XDSClusterName,
 						"endpoints": []map[string]interface{}{
 							{
 								"lb_endpoints": []map[string]interface{}{
@@ -92,8 +89,8 @@ func getEnvoyConfigYAML() string {
 										"endpoint": map[string]interface{}{
 											"address": map[string]interface{}{
 												"socket_address": map[string]interface{}{
-													"address":    "{{.XDSHost}}",
-													"port_value": "{{.XDSPort}}",
+													"address":    config.XDSHost,
+													"port_value": config.XDSPort,
 												},
 											},
 										},
@@ -107,21 +104,12 @@ func getEnvoyConfigYAML() string {
 		},
 	}
 
-	d, err := yaml.Marshal(&m)
+	configYAML, err := yaml.Marshal(&m)
 	if err != nil {
-		log.Fatal().Err(err).Msgf("Error marshaling")
+		log.Error().Err(err).Msgf("Error marshaling Envoy config struct into YAML")
+		return nil, err
 	}
-	return string(d)
-}
-
-type envoyBootstrapConfigMeta struct {
-	EnvoyAdminPort int32
-	XDSClusterName string
-	RootCert       string
-	Cert           string
-	Key            string
-	XDSHost        string
-	XDSPort        int32
+	return configYAML, err
 }
 
 func (wh *Webhook) createEnvoyBootstrapConfig(name, namespace, osmNamespace string, cert certificate.Certificater) (*corev1.Secret, error) {
@@ -136,9 +124,9 @@ func (wh *Webhook) createEnvoyBootstrapConfig(name, namespace, osmNamespace stri
 		XDSHost: fmt.Sprintf("%s.%s.svc.cluster.local", constants.AggregatedDiscoveryServiceName, osmNamespace),
 		XDSPort: constants.AggregatedDiscoveryServicePort,
 	}
-	yamlContent, err := renderEnvoyBootstrapConfig(configMeta)
+	yamlContent, err := getEnvoyConfigYAML(configMeta)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to render Envoy bootstrap config from template")
+		log.Error().Err(err).Msg("Error creating Envoy bootstrap YAML")
 		return nil, err
 	}
 
@@ -162,22 +150,4 @@ func (wh *Webhook) createEnvoyBootstrapConfig(name, namespace, osmNamespace stri
 
 func getEnvoyConfigPath() string {
 	return strings.Join([]string{envoyProxyConfigPath, envoyBootstrapConfigFile}, "/")
-}
-
-func renderEnvoyBootstrapConfig(configMeta envoyBootstrapConfigMeta) ([]byte, error) {
-	tmpl, err := template.New("envoy-bootstrap-config").Parse(getEnvoyConfigYAML())
-	if err != nil {
-		return nil, err
-	}
-
-	var data bytes.Buffer
-	w := bufio.NewWriter(&data)
-	if err := tmpl.Execute(w, configMeta); err != nil {
-		return nil, err
-	}
-	err = w.Flush()
-	if err != nil {
-		return nil, err
-	}
-	return data.Bytes(), nil
 }
