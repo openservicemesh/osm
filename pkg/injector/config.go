@@ -16,14 +16,7 @@ import (
 	"github.com/open-service-mesh/osm/pkg/constants"
 )
 
-const bootstrapFile = "bootstrap.yaml"
-
-const (
-	tlsRootCertFileKey = "root-cert.pem"
-	tlsCertFileKey     = "cert.pem"
-	tlsKeyFileKey      = "key.pem"
-)
-
+// TODO(draychev): move away from template and use fn params
 func getEnvoyConfigYAML() string {
 	m := map[interface{}]interface{}{
 		"admin": map[string]interface{}{
