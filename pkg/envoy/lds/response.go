@@ -89,12 +89,6 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 		log.Info().Msgf("Found an ingress resource for service %s, applying necessary filters", proxyServiceName)
 		// This proxy is fronting a service that is a backend for an ingress, add a FilterChain for it
 		ingressFilterChain := &listener.FilterChain{
-			FilterChainMatch: &listener.FilterChainMatch{
-				// TODO(shashank): Check if the match below is needed for ingress
-				SourcePrefixRanges: []*envoy_api_v2_core.CidrRange{
-					convertIPAddressToCidr("0.0.0.0/0"),
-				},
-			},
 			Filters: []*listener.Filter{
 				{
 					Name: wellknown.HTTPConnectionManager,
