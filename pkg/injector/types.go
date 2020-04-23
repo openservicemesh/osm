@@ -14,7 +14,6 @@ const (
 	annotationInject  = "openservicemesh.io/sidecar-injection"
 	annotationService = "openservicemesh.io/osm-service"
 
-	envoyTLSVolume             = "envoy-tls-volume"
 	envoyBootstrapConfigVolume = "envoy-bootstrap-config-volume"
 )
 

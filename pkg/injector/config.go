@@ -3,8 +3,8 @@ package injector
 import (
 	"bufio"
 	"bytes"
+	"encoding/base64"
 	"fmt"
-	"path"
 	"text/template"
 
 	"gopkg.in/yaml.v2"
@@ -19,10 +19,8 @@ const bootstrapFile = "bootstrap.yaml"
 
 const (
 	tlsRootCertFileKey = "root-cert.pem"
-
-	tlsCertFileKey = "cert.pem"
-
-	tlsKeyFileKey = "key.pem"
+	tlsCertFileKey     = "cert.pem"
+	tlsKeyFileKey      = "key.pem"
 )
 
 func getEnvoyConfigYAML() string {
@@ -71,7 +69,7 @@ func getEnvoyConfigYAML() string {
 							},
 							"validation_context": map[string]interface{}{
 								"trusted_ca": map[string]interface{}{
-									"filename": "{{.RootCertPath}}",
+									"inline_bytes": "{{.RootCert}}",
 								},
 							},
 							"tls_params": map[string]interface{}{
@@ -82,10 +80,10 @@ func getEnvoyConfigYAML() string {
 							"tls_certificates": []map[string]interface{}{
 								{
 									"certificate_chain": map[string]interface{}{
-										"filename": "{{.CertPath}}",
+										"inline_bytes": "{{.Cert}}",
 									},
 									"private_key": map[string]interface{}{
-										"filename": "{{.KeyPath}}",
+										"inline_bytes": "{{.Key}}",
 									},
 								},
 							},
@@ -125,43 +123,21 @@ func getEnvoyConfigYAML() string {
 type envoyBootstrapConfigMeta struct {
 	EnvoyAdminPort int32
 	XDSClusterName string
-	RootCertPath   string
-	CertPath       string
-	KeyPath        string
+	RootCert       string
+	Cert           string
+	Key            string
 	XDSHost        string
 	XDSPort        int32
 }
 
-func (wh *Webhook) createEnvoyTLSSecret(name string, namespace string, cert certificate.Certificater) (*corev1.Secret, error) {
-	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
-		Data: map[string][]byte{
-			tlsRootCertFileKey: cert.GetIssuingCA(),
-			tlsCertFileKey:     cert.GetCertificateChain(),
-			tlsKeyFileKey:      cert.GetPrivateKey(),
-		},
-	}
-
-	if existing, err := wh.kubeClient.CoreV1().Secrets(namespace).Get(name, metav1.GetOptions{}); err == nil {
-		log.Info().Msgf("Updating secret for envoy certs: name=%s, namespace=%s", name, namespace)
-		existing.Data = secret.Data
-		return wh.kubeClient.CoreV1().Secrets(namespace).Update(existing)
-	}
-
-	log.Info().Msgf("Creating secret for envoy certs: name=%s, namespace=%s", name, namespace)
-	return wh.kubeClient.CoreV1().Secrets(namespace).Create(secret)
-}
-
-func (wh *Webhook) createEnvoyBootstrapConfig(name, namespace, osmNamespace string) (*corev1.Secret, error) {
+func (wh *Webhook) createEnvoyBootstrapConfig(name, namespace, osmNamespace string, cert certificate.Certificater) (*corev1.ConfigMap, error) {
 	configMeta := envoyBootstrapConfigMeta{
 		EnvoyAdminPort: constants.EnvoyAdminPort,
 		XDSClusterName: constants.AggregatedDiscoveryServiceName,
 
-		RootCertPath: path.Join(envoyCertificatesDirectory, tlsRootCertFileKey),
-		CertPath:     path.Join(envoyCertificatesDirectory, tlsCertFileKey),
-		KeyPath:      path.Join(envoyCertificatesDirectory, tlsKeyFileKey),
+		RootCert: base64.StdEncoding.EncodeToString(cert.GetIssuingCA()),
+		Cert:     base64.StdEncoding.EncodeToString(cert.GetCertificateChain()),
+		Key:      base64.StdEncoding.EncodeToString(cert.GetPrivateKey()),
 
 		XDSHost: fmt.Sprintf("%s.%s.svc.cluster.local", constants.AggregatedDiscoveryServiceName, osmNamespace),
 		XDSPort: constants.AggregatedDiscoveryServicePort,
