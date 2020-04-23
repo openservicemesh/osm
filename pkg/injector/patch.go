@@ -17,6 +17,9 @@ const (
 	prometheusScrapeAnnotation = "prometheus.io/scrape"
 	prometheusPortAnnotation   = "prometheus.io/port"
 	prometheusPathAnnotation   = "prometheus.io/path"
+
+	volumesBasePath        = "/spec/volumes"
+	initContainersBasePath = "/spec/initContainers"
 )
 
 func (wh *Webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error) {
@@ -47,7 +50,7 @@ func (wh *Webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 	patches = append(patches, addVolume(
 		pod.Spec.Volumes,
 		getVolumeSpec(envoyBootstrapConfigName),
-		"/spec/volumes")...,
+		volumesBasePath)...,
 	)
 
 	// Add the Init Container
@@ -62,7 +65,7 @@ func (wh *Webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 	patches = append(patches, addContainer(
 		pod.Spec.InitContainers,
 		[]corev1.Container{initContainerSpec},
-		"/spec/initContainers")...,
+		initContainersBasePath)...,
 	)
 
 	// Add the Envoy sidecar

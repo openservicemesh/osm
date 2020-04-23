@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
+	"strings"
 	"text/template"
 
 	"gopkg.in/yaml.v2"
@@ -15,14 +16,7 @@ import (
 	"github.com/open-service-mesh/osm/pkg/constants"
 )
 
-const bootstrapFile = "bootstrap.yaml"
-
-const (
-	tlsRootCertFileKey = "root-cert.pem"
-	tlsCertFileKey     = "cert.pem"
-	tlsKeyFileKey      = "key.pem"
-)
-
+// TODO(draychev): move away from template and use fn params
 func getEnvoyConfigYAML() string {
 	m := map[interface{}]interface{}{
 		"admin": map[string]interface{}{
@@ -130,7 +124,7 @@ type envoyBootstrapConfigMeta struct {
 	XDSPort        int32
 }
 
-func (wh *Webhook) createEnvoyBootstrapConfig(name, namespace, osmNamespace string, cert certificate.Certificater) (*corev1.ConfigMap, error) {
+func (wh *Webhook) createEnvoyBootstrapConfig(name, namespace, osmNamespace string, cert certificate.Certificater) (*corev1.Secret, error) {
 	configMeta := envoyBootstrapConfigMeta{
 		EnvoyAdminPort: constants.EnvoyAdminPort,
 		XDSClusterName: constants.AggregatedDiscoveryServiceName,
@@ -147,12 +141,13 @@ func (wh *Webhook) createEnvoyBootstrapConfig(name, namespace, osmNamespace stri
 		log.Error().Err(err).Msg("Failed to render Envoy bootstrap config from template")
 		return nil, err
 	}
+
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
 		Data: map[string][]byte{
-			bootstrapFile: yamlContent,
+			envoyBootstrapConfigFile: yamlContent,
 		},
 	}
 	if existing, err := wh.kubeClient.CoreV1().Secrets(namespace).Get(name, metav1.GetOptions{}); err == nil {
@@ -163,6 +158,10 @@ func (wh *Webhook) createEnvoyBootstrapConfig(name, namespace, osmNamespace stri
 
 	log.Info().Msgf("Creating bootstrap config for Envoy: name=%s, namespace=%s", name, namespace)
 	return wh.kubeClient.CoreV1().Secrets(namespace).Create(secret)
+}
+
+func getEnvoyConfigPath() string {
+	return strings.Join([]string{envoyProxyConfigPath, envoyBootstrapConfigFile}, "/")
 }
 
 func renderEnvoyBootstrapConfig(configMeta envoyBootstrapConfigMeta) ([]byte, error) {

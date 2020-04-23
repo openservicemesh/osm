@@ -7,9 +7,9 @@ import (
 )
 
 const (
+	envoyBootstrapConfigFile  = "bootstrap.yaml"
 	envoyProxyConfigPath      = "/etc/envoy"
 	envoySidecarContainerName = "envoyproxy"
-	envoyBootstrapConfigFile  = "/etc/envoy/bootstrap.yaml"
 )
 
 func getEnvoySidecarContainerSpec(data *EnvoySidecarData) corev1.Container {
@@ -49,7 +49,7 @@ func getEnvoySidecarContainerSpec(data *EnvoySidecarData) corev1.Container {
 		},
 		Args: []string{
 			"--log-level", "debug", // TODO: remove
-			"--config-path", envoyBootstrapConfigFile,
+			"--config-path", getEnvoyConfigPath(),
 			"--service-node", data.Service,
 			"--service-cluster", data.Service,
 		},

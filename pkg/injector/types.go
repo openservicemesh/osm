@@ -17,9 +17,7 @@ const (
 	envoyBootstrapConfigVolume = "envoy-bootstrap-config-volume"
 )
 
-var (
-	log = logger.New("sidecar-injector")
-)
+var log = logger.New("sidecar-injector")
 
 // Webhook is the type used to represent the webhook for sidecar injection
 type Webhook struct {
