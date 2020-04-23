@@ -19,8 +19,10 @@ const bootstrapFile = "bootstrap.yaml"
 
 const (
 	tlsRootCertFileKey = "root-cert.pem"
-	tlsCertFileKey     = "cert.pem"
-	tlsKeyFileKey      = "key.pem"
+
+	tlsCertFileKey = "cert.pem"
+
+	tlsKeyFileKey = "key.pem"
 )
 
 func getEnvoyConfigYAML() string {
