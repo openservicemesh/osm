@@ -7,6 +7,9 @@ import (
 const (
 	// regexMatchAll is a match all regex pattern
 	regexMatchAll = ".*"
+
+	// wildcardDomain is a wildcard matching all domains
+	wildcardDomain = "*"
 )
 
 // IsIngressService returns a boolean indicating if the service is a backend for an ingress resource
@@ -28,10 +31,19 @@ func (mc *MeshCatalog) GetIngressRoutePoliciesPerDomain(service endpoint.Namespa
 	}
 
 	for _, ingress := range ingresses {
+		if ingress.Spec.Backend != nil && ingress.Spec.Backend.ServiceName == service.Service {
+			// A default backend rule exists and will be used in
+			// case more specific rules are not specified
+			defaultRoutePolicy := endpoint.RoutePolicy{
+				PathRegex: regexMatchAll,
+				Methods:   []string{regexMatchAll},
+			}
+			configMap[wildcardDomain] = append(configMap[wildcardDomain], defaultRoutePolicy)
+		}
 		for _, rule := range ingress.Spec.Rules {
 			domain := rule.Host
 			if domain == "" {
-				domain = "*"
+				domain = wildcardDomain
 			}
 			for _, ingressPath := range rule.HTTP.Paths {
 				if ingressPath.Backend.ServiceName == service.Service {
