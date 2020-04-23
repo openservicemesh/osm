@@ -33,7 +33,7 @@ dynamic_resources:
     grpc_services:
     - envoy_grpc:
         cluster_name: '{{.XDSClusterName}}'
-    set_node_on_first_message_only: "true"
+    set_node_on_first_message_only: true
   cds_config:
     ads: {}
   lds_config:
