@@ -94,7 +94,7 @@ func getEnvoyConfigYAML() string {
 						},
 					},
 				},
-				"set_node_on_first_message_only": "true",
+				"set_node_on_first_message_only": true,
 			},
 			"cds_config": map[string]interface{}{
 				"ads": map[string]string{},
