@@ -20,14 +20,14 @@ func (mc *MeshCatalog) IsIngressService(service endpoint.NamespacedService) (boo
 
 // GetIngressRoutePoliciesPerDomain returns the route policies per domain associated with an ingress service
 func (mc *MeshCatalog) GetIngressRoutePoliciesPerDomain(service endpoint.NamespacedService) (map[string][]endpoint.RoutePolicy, bool, error) {
-	configMap := make(map[string][]endpoint.RoutePolicy)
+	domainRoutesMap := make(map[string][]endpoint.RoutePolicy)
 	ingresses, found, err := mc.ingressMonitor.GetIngressResources(service)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to get ingress resources with backend %s", service)
-		return configMap, false, err
+		return domainRoutesMap, false, err
 	}
 	if !found {
-		return configMap, false, err
+		return domainRoutesMap, false, err
 	}
 
 	for _, ingress := range ingresses {
@@ -38,7 +38,7 @@ func (mc *MeshCatalog) GetIngressRoutePoliciesPerDomain(service endpoint.Namespa
 				PathRegex: regexMatchAll,
 				Methods:   []string{regexMatchAll},
 			}
-			configMap[wildcardDomain] = append(configMap[wildcardDomain], defaultRoutePolicy)
+			domainRoutesMap[wildcardDomain] = append(domainRoutesMap[wildcardDomain], defaultRoutePolicy)
 		}
 		for _, rule := range ingress.Spec.Rules {
 			domain := rule.Host
@@ -57,13 +57,12 @@ func (mc *MeshCatalog) GetIngressRoutePoliciesPerDomain(service endpoint.Namespa
 						PathRegex: pathRegex,
 						Methods:   []string{regexMatchAll},
 					}
-					configMap[domain] = append(configMap[domain], routePolicy)
+					domainRoutesMap[domain] = append(domainRoutesMap[domain], routePolicy)
 				}
 			}
 		}
 	}
-	// TODO: if no path is specified, default
-	return configMap, true, nil
+	return domainRoutesMap, true, nil
 }
 
 // GetIngressWeightedCluster returns the weighted cluster for an ingress service
