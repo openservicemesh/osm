@@ -43,7 +43,7 @@ func (wh *Webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 		return nil, err
 	}
 
-	// Create kube configMap for Envoy bootstrap config
+	// Create kube secret for Envoy bootstrap config
 	envoyBootstrapConfigName := fmt.Sprintf("envoy-bootstrap-config-%s", serviceName)
 	_, err = wh.createEnvoyBootstrapConfig(envoyBootstrapConfigName, namespace, wh.osmNamespace)
 	if err != nil {

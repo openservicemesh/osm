@@ -15,6 +15,8 @@ import (
 	"github.com/open-service-mesh/osm/pkg/constants"
 )
 
+const bootstrapFile = "bootstrap.yaml"
+
 const (
 	tlsRootCertFileKey = "root-cert.pem"
 	tlsCertFileKey     = "cert.pem"
@@ -150,7 +152,7 @@ func (wh *Webhook) createEnvoyTLSSecret(name string, namespace string, cert cert
 	return wh.kubeClient.CoreV1().Secrets(namespace).Create(secret)
 }
 
-func (wh *Webhook) createEnvoyBootstrapConfig(name, namespace, osmNamespace string) (*corev1.ConfigMap, error) {
+func (wh *Webhook) createEnvoyBootstrapConfig(name, namespace, osmNamespace string) (*corev1.Secret, error) {
 	configMeta := envoyBootstrapConfigMeta{
 		EnvoyAdminPort: constants.EnvoyAdminPort,
 		XDSClusterName: constants.AggregatedDiscoveryServiceName,
@@ -167,46 +169,38 @@ func (wh *Webhook) createEnvoyBootstrapConfig(name, namespace, osmNamespace stri
 		log.Error().Err(err).Msg("Failed to render Envoy bootstrap config from template")
 		return nil, err
 	}
-
-	configMap := &corev1.ConfigMap{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ConfigMap",
-			APIVersion: "v1",
-		},
+	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
+			Name: name,
 		},
-		Data: map[string]string{
-			"bootstrap.yaml": yamlContent,
+		Data: map[string][]byte{
+			bootstrapFile: yamlContent,
 		},
-		BinaryData: nil,
+	}
+	if existing, err := wh.kubeClient.CoreV1().Secrets(namespace).Get(name, metav1.GetOptions{}); err == nil {
+		log.Info().Msgf("Updating bootstrap config Envoy: name=%s, namespace=%s", name, namespace)
+		existing.Data = secret.Data
+		return wh.kubeClient.CoreV1().Secrets(namespace).Update(existing)
 	}
 
-	if existing, err := wh.kubeClient.CoreV1().ConfigMaps(namespace).Get(name, metav1.GetOptions{}); err == nil {
-		log.Info().Msgf("Updating configMap for envoy bootstrap config: name=%s, namespace=%s", name, namespace)
-		existing.Data = configMap.Data
-		return wh.kubeClient.CoreV1().ConfigMaps(namespace).Update(existing)
-	}
-
-	log.Info().Msgf("Creating configMap for envoy bootstrap config: name=%s, namespace=%s", name, namespace)
-	return wh.kubeClient.CoreV1().ConfigMaps(namespace).Create(configMap)
+	log.Info().Msgf("Creating bootstrap config for Envoy: name=%s, namespace=%s", name, namespace)
+	return wh.kubeClient.CoreV1().Secrets(namespace).Create(secret)
 }
 
-func renderEnvoyBootstrapConfig(configMeta envoyBootstrapConfigMeta) (string, error) {
+func renderEnvoyBootstrapConfig(configMeta envoyBootstrapConfigMeta) ([]byte, error) {
 	tmpl, err := template.New("envoy-bootstrap-config").Parse(getEnvoyConfigYAML())
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	var data bytes.Buffer
 	w := bufio.NewWriter(&data)
 	if err := tmpl.Execute(w, configMeta); err != nil {
-		return "", err
+		return nil, err
 	}
 	err = w.Flush()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return data.String(), nil
+	return data.Bytes(), nil
 }
