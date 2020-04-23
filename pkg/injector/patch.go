@@ -17,6 +17,9 @@ const (
 	prometheusScrapeAnnotation = "prometheus.io/scrape"
 	prometheusPortAnnotation   = "prometheus.io/port"
 	prometheusPathAnnotation   = "prometheus.io/path"
+
+	volumesBasePath        = "/spec/volumes"
+	initContainersBasePath = "/spec/initContainers"
 )
 
 func (wh *Webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error) {
@@ -35,17 +38,9 @@ func (wh *Webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 		return nil, err
 	}
 
-	// Create kube secret for TLS cert and key used For Envoy to communicate with xDS
-	envoyTLSSecretName := fmt.Sprintf("tls-%s", serviceName)
-	_, err = wh.createEnvoyTLSSecret(envoyTLSSecretName, namespace, bootstrapCertificate)
-	if err != nil {
-		log.Error().Err(err).Msgf("Failed to create TLS secret for Envoy sidecar")
-		return nil, err
-	}
-
 	// Create kube secret for Envoy bootstrap config
 	envoyBootstrapConfigName := fmt.Sprintf("envoy-bootstrap-config-%s", serviceName)
-	_, err = wh.createEnvoyBootstrapConfig(envoyBootstrapConfigName, namespace, wh.osmNamespace)
+	_, err = wh.createEnvoyBootstrapConfig(envoyBootstrapConfigName, namespace, wh.osmNamespace, bootstrapCertificate)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create bootstrap config for Envoy sidecar")
 		return nil, err
@@ -54,8 +49,8 @@ func (wh *Webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 	// Create volume for envoy TLS secret
 	patches = append(patches, addVolume(
 		pod.Spec.Volumes,
-		getVolumeSpec(envoyBootstrapConfigName, envoyTLSSecretName),
-		"/spec/volumes")...,
+		getVolumeSpec(envoyBootstrapConfigName),
+		volumesBasePath)...,
 	)
 
 	// Add the Init Container
@@ -70,7 +65,7 @@ func (wh *Webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 	patches = append(patches, addContainer(
 		pod.Spec.InitContainers,
 		[]corev1.Container{initContainerSpec},
-		"/spec/initContainers")...,
+		initContainersBasePath)...,
 	)
 
 	// Add the Envoy sidecar

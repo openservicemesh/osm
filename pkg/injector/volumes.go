@@ -5,23 +5,13 @@ import (
 )
 
 // getVolumeSpec returns a list of volumes to add to the POD
-func getVolumeSpec(envoyBootstrapConfigName, envoyTLSSecretName string) []corev1.Volume {
+func getVolumeSpec(envoyBootstrapConfigName string) []corev1.Volume {
 	return []corev1.Volume{
 		{
 			Name: envoyBootstrapConfigVolume,
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
 					SecretName: envoyBootstrapConfigName,
-				},
-			},
-		},
-		{
-			// Envoy's TLS volume. This is sourced from the TLS secret
-			// referenced by 'envoyTLSSecretName'
-			Name: envoyTLSVolume,
-			VolumeSource: corev1.VolumeSource{
-				Secret: &corev1.SecretVolumeSource{
-					SecretName: envoyTLSSecretName,
 				},
 			},
 		},

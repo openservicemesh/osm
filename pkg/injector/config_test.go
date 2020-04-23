@@ -43,16 +43,16 @@ static_resources:
         - h2
         tls_certificates:
         - certificate_chain:
-            filename: '{{.CertPath}}'
+            inline_bytes: '{{.Cert}}'
           private_key:
-            filename: '{{.KeyPath}}'
+            inline_bytes: '{{.Key}}'
         tls_params:
           cipher_suites: '[ECDHE-ECDSA-AES128-GCM-SHA256|ECDHE-ECDSA-CHACHA20-POLY1305]'
           tls_maximum_protocol_version: TLSv1_3
           tls_minimum_protocol_version: TLSv1_2
         validation_context:
           trusted_ca:
-            filename: '{{.RootCertPath}}'
+            inline_bytes: '{{.RootCert}}'
     type: LOGICAL_DNS
 `
 
@@ -62,6 +62,14 @@ var _ = Describe("Test Envoy configuration creation", func() {
 			actual := getEnvoyConfigYAML()
 			expected := envoyBootstrapConfigTmpl[1:]
 			Expect(actual).To(Equal(expected))
+		})
+	})
+})
+
+var _ = Describe("Test Envoy config path creation function", func() {
+	Context("create envoy config path", func() {
+		It("creates envoy config path", func() {
+			Expect(getEnvoyConfigPath()).To(Equal("/etc/envoy/bootstrap.yaml"))
 		})
 	})
 })
