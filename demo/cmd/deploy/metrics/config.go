@@ -103,7 +103,6 @@ func generatePrometheusService(svc string, namespace string) *apiv1.Service {
 			Selector: map[string]string{
 				"app": fmt.Sprintf("%s-server", svc),
 			},
-			Type: apiv1.ServiceTypeNodePort,
 			Ports: []apiv1.ServicePort{
 				{Port: prometheusPort},
 			},

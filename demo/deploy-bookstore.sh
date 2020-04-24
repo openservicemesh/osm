@@ -37,8 +37,6 @@ spec:
 
   selector:
     app: $SVC
-
-  type: NodePort
 EOF
 
 echo -e "Deploy $SVC Deployment"

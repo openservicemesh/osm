@@ -60,7 +60,6 @@ metadata:
 spec:
   selector:
     app: "$PROMETHEUS_SVC-server"
-  type: NodePort
   ports:
     - port: 7070
 EOF

@@ -23,7 +23,6 @@ spec:
     name: app-port
   selector:
     app: $SVC
-  type: NodePort
 ---
 
 apiVersion: osm.osm.k8s.io/v1

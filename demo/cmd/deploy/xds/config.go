@@ -59,7 +59,6 @@ func generateXDSService(namespace string) *apiv1.Service {
 			Selector: map[string]string{
 				"app": constants.AggregatedDiscoveryServiceName,
 			},
-			Type: apiv1.ServiceTypeNodePort,
 		},
 	}
 	return service

@@ -38,8 +38,6 @@ spec:
 
   selector:
     app: bookbuyer
-
-  type: NodePort
 EOF
 
 echo -e "Deploy BookBuyer Deployment"
