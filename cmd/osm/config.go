@@ -144,11 +144,6 @@ func generateKubernetesConfig(name, namespace, serviceAccountName, containerRegi
 									MountPath: "/etc/ssl/certs/root-key.pem",
 									SubPath:   "root-key.pem",
 								},
-								{
-									Name:      "webhook-tls-certs",
-									MountPath: "/run/secrets/tls",
-									ReadOnly:  true,
-								},
 							},
 						},
 					},
@@ -191,14 +186,6 @@ func generateKubernetesConfig(name, namespace, serviceAccountName, containerRegi
 									LocalObjectReference: apiv1.LocalObjectReference{
 										Name: fmt.Sprintf("ca-keypemstore-%s", name),
 									},
-								},
-							},
-						},
-						{
-							Name: "webhook-tls-certs",
-							VolumeSource: apiv1.VolumeSource{
-								Secret: &apiv1.SecretVolumeSource{
-									SecretName: "webhook-tls-certs",
 								},
 							},
 						},
@@ -298,7 +285,7 @@ func generateWebhookConfig(caBundle []byte, namespace string) *admissionv1beta1.
 	policyFail := admissionv1beta1.Fail
 	path := "/mutate"
 	webhooks := []admissionv1beta1.MutatingWebhook{
-		admissionv1beta1.MutatingWebhook{
+		{
 			Name: "osm-inject.k8s.io",
 			ClientConfig: admissionv1beta1.WebhookClientConfig{
 				Service: &admissionv1beta1.ServiceReference{
@@ -309,7 +296,7 @@ func generateWebhookConfig(caBundle []byte, namespace string) *admissionv1beta1.
 				CABundle: caBundle,
 			},
 			Rules: []admissionv1beta1.RuleWithOperations{
-				admissionv1beta1.RuleWithOperations{
+				{
 					Operations: []admissionv1beta1.OperationType{admissionv1beta1.Create},
 					Rule: admissionv1beta1.Rule{
 						APIGroups:   []string{""},

@@ -163,14 +163,6 @@ func generateXDSPod(namespace string) *apiv1.Pod {
 						},
 					},
 				},
-				{
-					Name: "webhook-tls-certs",
-					VolumeSource: apiv1.VolumeSource{
-						Secret: &apiv1.SecretVolumeSource{
-							SecretName: "webhook-tls-certs",
-						},
-					},
-				},
 			},
 			ImagePullSecrets: []apiv1.LocalObjectReference{
 				{
@@ -226,11 +218,6 @@ func generateXDSPod(namespace string) *apiv1.Pod {
 							Name:      "ca-rootcertpemstore",
 							MountPath: "/etc/ssl/certs/root-cert.pem",
 							SubPath:   "root-cert.pem",
-						},
-						{
-							Name:      "webhook-tls-certs",
-							MountPath: "/run/secrets/tls",
-							ReadOnly:  true,
 						},
 					},
 					// ReadinessProbe

@@ -2,14 +2,16 @@ package injector
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"path/filepath"
 	"strings"
 
+	"github.com/Azure/go-autorest/autorest/to"
 	"k8s.io/api/admission/v1beta1"
+	admissionv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -17,16 +19,11 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
+	"github.com/open-service-mesh/osm/demo/cmd/common"
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/certificate"
-
+	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/namespace"
-)
-
-const (
-	tlsDir      = `/run/secrets/tls`
-	tlsCertFile = `tls.crt`
-	tlsKeyFile  = `tls.key`
 )
 
 var (
@@ -39,20 +36,47 @@ var (
 	}
 )
 
-// NewWebhook returns a new Webhook object
-func NewWebhook(config Config, kubeConfig *rest.Config, certManager certificate.Manager, meshCatalog catalog.MeshCataloger, namespaceController namespace.Controller, osmNamespace string) *Webhook {
-	return &Webhook{
+// NewWebhook returns a new webhook object
+func NewWebhook(config Config, kubeConfig *rest.Config, certManager certificate.Manager, meshCatalog catalog.MeshCataloger, namespaceController namespace.Controller, osmID, osmNamespace, webhookName string, stop <-chan struct{}) error {
+	if webhookName == "" {
+		return ErrInvalidWebhookName
+	}
+	cn := certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.AggregatedDiscoveryServiceName, osmNamespace))
+	cert, err := certManager.IssueCertificate(cn)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error issuing certificate for the mutating webhook")
+		return err
+	}
+
+	wh := webhook{
 		config:              config,
 		kubeClient:          kubernetes.NewForConfigOrDie(kubeConfig),
 		certManager:         certManager,
 		meshCatalog:         meshCatalog,
 		namespaceController: namespaceController,
 		osmNamespace:        osmNamespace,
+		cert:                cert,
 	}
+
+	go wh.run(stop)
+
+	// --- MutatingWebhookConfiguration ---
+	// Generally we have accepted the principle that one-time setup and configuration will be applied via Helm.
+	// The block below is exception. We start the web server and then apply the webhook configuration.
+	// CA bundle is easily available via the certManager already initialized.
+	// Requirement: ADS pod must have sufficient privileges to apply MutatingWebhookConfiguration.
+	{
+		err = createMutatingWebhookConfiguration(cert.GetIssuingCA(), osmID, osmNamespace, webhookName)
+		if err != nil {
+			log.Error().Err(err).Msg("Error creating MutatingWebhookConfiguration")
+			return err
+		}
+	}
+
+	return nil
 }
 
-// ListenAndServe starts the mutating webhook
-func (wh *Webhook) ListenAndServe(stop <-chan struct{}) {
+func (wh *webhook) run(stop <-chan struct{}) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -69,9 +93,19 @@ func (wh *Webhook) ListenAndServe(stop <-chan struct{}) {
 	log.Info().Msgf("Starting sidecar-injection webhook server on :%v", wh.config.ListenPort)
 	go func() {
 		if wh.config.EnableTLS {
-			certPath := filepath.Join(tlsDir, tlsCertFile)
-			keyPath := filepath.Join(tlsDir, tlsKeyFile)
-			if err := server.ListenAndServeTLS(certPath, keyPath); err != nil {
+			// Generate a key pair from your pem-encoded cert and key ([]byte).
+			cert, err := tls.X509KeyPair(wh.cert.GetCertificateChain(), wh.cert.GetPrivateKey())
+			if err != nil {
+				// TODO(draychev): bubble these up as errors instead of fataling here (https://github.com/open-service-mesh/osm/issues/534)
+				log.Fatal().Err(err).Msg("Error parsing webhook certificate")
+			}
+
+			server.TLSConfig = &tls.Config{
+				Certificates: []tls.Certificate{cert},
+			}
+
+			if err := server.ListenAndServeTLS("", ""); err != nil {
+				// TODO(draychev): bubble these up as errors instead of fataling here (https://github.com/open-service-mesh/osm/issues/534)
 				log.Fatal().Err(err).Msgf("Sidecar-injection webhook HTTP server failed to start")
 			}
 		} else {
@@ -92,7 +126,7 @@ func (wh *Webhook) ListenAndServe(stop <-chan struct{}) {
 	}
 }
 
-func (wh *Webhook) healthReadyHandler(w http.ResponseWriter, req *http.Request) {
+func (wh *webhook) healthReadyHandler(w http.ResponseWriter, req *http.Request) {
 	// TODO(shashank): If TLS certificate is not present, mark as not ready
 	w.WriteHeader(http.StatusOK)
 	_, err := w.Write([]byte("Health OK"))
@@ -101,7 +135,7 @@ func (wh *Webhook) healthReadyHandler(w http.ResponseWriter, req *http.Request) 
 	}
 }
 
-func (wh *Webhook) mutateHandler(w http.ResponseWriter, req *http.Request) {
+func (wh *webhook) mutateHandler(w http.ResponseWriter, req *http.Request) {
 	log.Info().Msgf("Request received: Method=%v, URL=%v", req.Method, req.URL)
 
 	if contentType := req.Header.Get("Content-Type"); contentType != "application/json" {
@@ -153,7 +187,7 @@ func (wh *Webhook) mutateHandler(w http.ResponseWriter, req *http.Request) {
 	log.Debug().Msg("Done responding to admission request")
 }
 
-func (wh *Webhook) mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
+func (wh *webhook) mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
 	// Decode the Pod spec from the request
 	var pod corev1.Pod
 	if err := json.Unmarshal(req.Object.Raw, &pod); err != nil {
@@ -189,7 +223,7 @@ func (wh *Webhook) mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespo
 	return resp
 }
 
-func (wh *Webhook) isNamespaceAllowed(namespace string) bool {
+func (wh *webhook) isNamespaceAllowed(namespace string) bool {
 	// Skip Kubernetes system namespaces
 	for _, ns := range kubeSystemNamespaces {
 		if ns == namespace {
@@ -212,7 +246,7 @@ func (wh *Webhook) isNamespaceAllowed(namespace string) bool {
 //
 // The function returns an error when:
 // 1. The value of the POD level sidecar-injection annotation is invalid
-func (wh *Webhook) mustInject(pod *corev1.Pod, namespace string) (bool, error) {
+func (wh *webhook) mustInject(pod *corev1.Pod, namespace string) (bool, error) {
 	// If the request belongs to a namespace we are not monitoring, skip it
 	if !wh.isNamespaceAllowed(namespace) {
 		log.Info().Msgf("Request belongs to namespace=%s not in the list of monitored namespaces", namespace)
@@ -253,4 +287,84 @@ func patchAdmissionResponse(resp *v1beta1.AdmissionResponse, patchBytes []byte) 
 		pt := v1beta1.PatchTypeJSONPatch
 		return &pt
 	}()
+}
+
+func createMutatingWebhookConfiguration(ca []byte, osmID, osmNamespace, webhookName string) error {
+	log.Info().Msgf("%s is creating a webhook with name %s", constants.AggregatedDiscoveryServiceName, webhookName)
+	fail := admissionv1beta1.Fail
+	webhook := admissionv1beta1.MutatingWebhookConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      webhookName,
+			Namespace: osmNamespace,
+			Labels: map[string]string{
+				// TODO(draychev): get this from CLI arg instead of const (https://github.com/open-service-mesh/osm/issues/542)
+				"app": constants.AggregatedDiscoveryServiceName,
+			},
+		},
+		Webhooks: []admissionv1beta1.MutatingWebhook{
+			{
+				Name: "osm-inject.k8s.io",
+				ClientConfig: admissionv1beta1.WebhookClientConfig{
+					Service: &admissionv1beta1.ServiceReference{
+						Namespace: osmNamespace,
+						// TODO(draychev): get this from CLI arg instead of const (https://github.com/open-service-mesh/osm/issues/542)
+						Name: constants.AggregatedDiscoveryServiceName,
+						Path: to.StringPtr("/mutate"),
+					},
+					CABundle: ca,
+				},
+				Rules: []admissionv1beta1.RuleWithOperations{
+					{
+						Operations: []admissionv1beta1.OperationType{admissionv1beta1.Create},
+						Rule: admissionv1beta1.Rule{
+							APIGroups:   []string{""},
+							APIVersions: []string{"v1"},
+							Resources:   []string{"pods"},
+						},
+					},
+				},
+				FailurePolicy: &fail,
+				NamespaceSelector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						namespace.MonitorLabel: osmID,
+					},
+				},
+			},
+		},
+	}
+
+	clientSet := common.GetClient()
+
+	opts := metav1.DeleteOptions{
+		GracePeriodSeconds: to.Int64Ptr(0),
+	}
+
+	webhooks, err := clientSet.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		log.Error().Err(err).Msgf("Error listing webhooks, while looking for %s", webhookName)
+		return err
+	}
+
+	if exists(webhookName, webhooks) {
+		if err := clientSet.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Delete(context.Background(), webhookName, opts); err != nil {
+			log.Error().Err(err).Msgf("Error deleting webhook %s", webhookName)
+			return err
+		}
+	}
+
+	if _, err := clientSet.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Create(context.Background(), &webhook, metav1.CreateOptions{}); err != nil {
+		return err
+	}
+
+	log.Info().Msgf("Created MutatingWebhookConfiguration %s in namespace %s", webhookName, osmNamespace)
+	return nil
+}
+
+func exists(webhookName string, list *admissionv1beta1.MutatingWebhookConfigurationList) bool {
+	for _, wh := range list.Items {
+		if wh.Name == webhookName {
+			return true
+		}
+	}
+	return false
 }
