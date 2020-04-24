@@ -1,8 +1,10 @@
 package xds
 
 import (
+	"context"
 	"fmt"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -19,7 +21,7 @@ func DeployXDS(clientSet *kubernetes.Clientset, namespace string) error {
 
 func deployXDSService(clientSet *kubernetes.Clientset, namespace string) error {
 	service := generateXDSService(namespace)
-	if _, err := clientSet.CoreV1().Services(namespace).Create(service); err != nil {
+	if _, err := clientSet.CoreV1().Services(namespace).Create(context.Background(), service, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 	return nil
@@ -27,7 +29,7 @@ func deployXDSService(clientSet *kubernetes.Clientset, namespace string) error {
 
 func deployXDSPod(clientSet *kubernetes.Clientset, namespace string) error {
 	pod := generateXDSPod(namespace)
-	if _, err := clientSet.CoreV1().Pods(namespace).Create(pod); err != nil {
+	if _, err := clientSet.CoreV1().Pods(namespace).Create(context.Background(), pod, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 	return nil

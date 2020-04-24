@@ -1,11 +1,13 @@
 package metrics
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
 
 	"github.com/open-service-mesh/osm/demo/cmd/common"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -30,7 +32,7 @@ func DeployPrometheus(clientSet *kubernetes.Clientset, namespace string) error {
 
 func deployPrometheusService(clientSet *kubernetes.Clientset, svc string, namespace string) error {
 	service := generatePrometheusService(svc, namespace)
-	if _, err := clientSet.CoreV1().Services(namespace).Create(service); err != nil {
+	if _, err := clientSet.CoreV1().Services(namespace).Create(context.Background(), service, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 	return nil
@@ -38,7 +40,7 @@ func deployPrometheusService(clientSet *kubernetes.Clientset, svc string, namesp
 
 func deployPrometheusDeployment(clientSet *kubernetes.Clientset, svc string, namespace string) error {
 	deployment := generatePrometheusDeployment(svc, namespace)
-	if _, err := clientSet.AppsV1().Deployments(namespace).Create(deployment); err != nil {
+	if _, err := clientSet.AppsV1().Deployments(namespace).Create(context.Background(), deployment, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 	return nil
@@ -50,7 +52,7 @@ func deployPrometheusConfigMap(clientSet *kubernetes.Clientset, svc string, name
 		return err
 	}
 	configMap := generatePrometheusConfigMap(svc, namespace, prometheusYaml)
-	if _, err := clientSet.CoreV1().ConfigMaps(namespace).Create(configMap); err != nil {
+	if _, err := clientSet.CoreV1().ConfigMaps(namespace).Create(context.Background(), configMap, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 	return nil
@@ -58,13 +60,13 @@ func deployPrometheusConfigMap(clientSet *kubernetes.Clientset, svc string, name
 
 func deployPrometheusRBAC(clientSet *kubernetes.Clientset, svc string, namespace string, serviceAccountName string) error {
 	role, roleBinding, serviceAccount := generatePrometheusRBAC(svc, namespace, serviceAccountName)
-	if _, err := clientSet.RbacV1().ClusterRoles().Create(role); err != nil {
+	if _, err := clientSet.RbacV1().ClusterRoles().Create(context.Background(), role, metav1.CreateOptions{}); err != nil {
 		return err
 	}
-	if _, err := clientSet.RbacV1().ClusterRoleBindings().Create(roleBinding); err != nil {
+	if _, err := clientSet.RbacV1().ClusterRoleBindings().Create(context.Background(), roleBinding, metav1.CreateOptions{}); err != nil {
 		return err
 	}
-	if _, err := clientSet.CoreV1().ServiceAccounts(namespace).Create(serviceAccount); err != nil {
+	if _, err := clientSet.CoreV1().ServiceAccounts(namespace).Create(context.Background(), serviceAccount, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 	return nil

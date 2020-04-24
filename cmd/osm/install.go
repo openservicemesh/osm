@@ -1,12 +1,14 @@
 package main
 
 import (
+	"context"
 	"io"
 	"io/ioutil"
 	"os/exec"
 	"time"
 
 	"github.com/spf13/cobra"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -95,12 +97,12 @@ func generateAdsSecrets() error {
 func (i *installCmd) deploy(name, serviceAccountName string, port int32) error {
 	deployment, service := generateKubernetesConfig(name, i.namespace, serviceAccountName, i.containerRegistry, i.containerRegistrySecret, port)
 
-	_, err := i.kubeClient.AppsV1().Deployments(i.namespace).Create(deployment)
+	_, err := i.kubeClient.AppsV1().Deployments(i.namespace).Create(context.Background(), deployment, metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}
 
-	if _, err := i.kubeClient.CoreV1().Services(i.namespace).Create(service); err != nil {
+	if _, err := i.kubeClient.CoreV1().Services(i.namespace).Create(context.Background(), service, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 
@@ -109,13 +111,13 @@ func (i *installCmd) deploy(name, serviceAccountName string, port int32) error {
 
 func (i *installCmd) deployRBAC(serviceAccountName string) error {
 	role, roleBinding, serviceAccount := generateRBAC(i.namespace, serviceAccountName)
-	if _, err := i.kubeClient.RbacV1().ClusterRoles().Create(role); err != nil {
+	if _, err := i.kubeClient.RbacV1().ClusterRoles().Create(context.Background(), role, metav1.CreateOptions{}); err != nil {
 		return err
 	}
-	if _, err := i.kubeClient.RbacV1().ClusterRoleBindings().Create(roleBinding); err != nil {
+	if _, err := i.kubeClient.RbacV1().ClusterRoleBindings().Create(context.Background(), roleBinding, metav1.CreateOptions{}); err != nil {
 		return err
 	}
-	if _, err := i.kubeClient.CoreV1().ServiceAccounts(i.namespace).Create(serviceAccount); err != nil {
+	if _, err := i.kubeClient.CoreV1().ServiceAccounts(i.namespace).Create(context.Background(), serviceAccount, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 	return nil
@@ -127,7 +129,7 @@ func (i *installCmd) deployWebhook() error {
 		return err
 	}
 	webhookConfig := generateWebhookConfig(caBundle, i.namespace)
-	_, err = i.kubeClient.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Create(webhookConfig)
+	_, err = i.kubeClient.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Create(context.Background(), webhookConfig, metav1.CreateOptions{})
 
 	return err
 }
