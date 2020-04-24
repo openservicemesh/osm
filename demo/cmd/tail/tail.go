@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -96,7 +97,7 @@ func main() {
 				// Pod might not be up yet, try again
 				continue
 			}
-			bookBuyerPod, err := clientset.CoreV1().Pods(bookbuyerNS).Get(bookBuyerPodName, metav1.GetOptions{})
+			bookBuyerPod, err := clientset.CoreV1().Pods(bookbuyerNS).Get(context.Background(), bookBuyerPodName, metav1.GetOptions{})
 			if err != nil {
 				fmt.Printf("Error getting pod %s/%s: %s\n", bookbuyerNS, bookBuyerPodName, err)
 				os.Exit(1)
@@ -128,7 +129,7 @@ func main() {
 				// Pod might not be up yet, try again
 				continue
 			}
-			bookThiefPod, err := clientset.CoreV1().Pods(bookthiefNS).Get(bookThiefPodName, metav1.GetOptions{})
+			bookThiefPod, err := clientset.CoreV1().Pods(bookthiefNS).Get(context.Background(), bookThiefPodName, metav1.GetOptions{})
 			if err != nil {
 				fmt.Printf("Error getting pod %s/%s: %s\n", bookthiefNS, bookThiefPodName, err)
 				os.Exit(1)
@@ -193,12 +194,12 @@ func main() {
 }
 
 func deleteNamespaces(client *kubernetes.Clientset, namespaces ...string) {
-	deleteOptions := &metav1.DeleteOptions{
+	deleteOptions := metav1.DeleteOptions{
 		GracePeriodSeconds: to.Int64Ptr(0),
 	}
 
 	for _, ns := range namespaces {
-		if err := client.CoreV1().Namespaces().Delete(ns, deleteOptions); err != nil {
+		if err := client.CoreV1().Namespaces().Delete(context.Background(), ns, deleteOptions); err != nil {
 			log.Error().Err(err).Msgf("Error deleting namespace %s", ns)
 		}
 		log.Info().Msgf("Deleted namespace: %s", ns)
@@ -206,13 +207,13 @@ func deleteNamespaces(client *kubernetes.Clientset, namespaces ...string) {
 }
 
 func deleteWebhooks(client *kubernetes.Clientset, namespaces ...string) {
-	deleteOptions := &metav1.DeleteOptions{
+	deleteOptions := metav1.DeleteOptions{
 		GracePeriodSeconds: to.Int64Ptr(0),
 	}
 
 	var webhooks *v1beta1.MutatingWebhookConfigurationList
 	var err error
-	webhooks, err = client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().List(metav1.ListOptions{})
+	webhooks, err = client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		log.Error().Err(err).Msg("Error listing webhooks")
 	}
@@ -223,7 +224,7 @@ func deleteWebhooks(client *kubernetes.Clientset, namespaces ...string) {
 			if !strings.HasPrefix(webhook.Name, ns) {
 				continue
 			}
-			if err := client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Delete(webhook.Name, deleteOptions); err != nil {
+			if err := client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Delete(context.Background(), webhook.Name, deleteOptions); err != nil {
 				log.Error().Err(err).Msgf("Error deleting webhook %s", webhook.Name)
 			}
 			log.Info().Msgf("Deleted mutating webhook: %s", webhook.Name)
@@ -234,7 +235,7 @@ func deleteWebhooks(client *kubernetes.Clientset, namespaces ...string) {
 func getPodName(namespace, selector string) (string, error) {
 	clientset := getClient()
 
-	podList, err := clientset.CoreV1().Pods(namespace).List(metav1.ListOptions{LabelSelector: selector})
+	podList, err := clientset.CoreV1().Pods(namespace).List(context.Background(), metav1.ListOptions{LabelSelector: selector})
 	if err != nil {
 		return "", err
 	}
@@ -262,7 +263,7 @@ func getPodLogs(namespace string, podName string, containerName string, follow b
 		SinceTime: &sinceTime,
 	}
 
-	rc, err := clientset.CoreV1().Pods(namespace).GetLogs(podName, options).Stream()
+	rc, err := clientset.CoreV1().Pods(namespace).GetLogs(podName, options).Stream(context.Background())
 	if err != nil {
 		fmt.Println("Error in opening stream: ", err)
 		os.Exit(1)

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"os"
 	"strings"
 	"time"
@@ -26,11 +27,11 @@ var (
 func main() {
 	clientset := getClient()
 
-	webHooks, err := clientset.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().List(metav1.ListOptions{})
+	webHooks, err := clientset.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		log.Error().Err(err).Msg("Error listing mutating webhooks")
 	}
-	namespaces, err := clientset.CoreV1().Namespaces().List(metav1.ListOptions{})
+	namespaces, err := clientset.CoreV1().Namespaces().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		log.Error().Err(err).Msgf("Error listing namespaces")
 		os.Exit(1)
@@ -49,12 +50,12 @@ func main() {
 		return
 	}
 
-	deleteOptions := &metav1.DeleteOptions{
+	deleteOptions := metav1.DeleteOptions{
 		GracePeriodSeconds: to.Int64Ptr(0),
 	}
 
 	for _, ns := range namespacesToDelete {
-		if err = clientset.CoreV1().Namespaces().Delete(ns.Name, deleteOptions); err != nil {
+		if err = clientset.CoreV1().Namespaces().Delete(context.Background(), ns.Name, deleteOptions); err != nil {
 			log.Error().Err(err).Msgf("Error deleting namespace %s", ns.Name)
 		}
 		log.Info().Msgf("Deleted namespace: %s", ns.Name)
@@ -64,7 +65,7 @@ func main() {
 				continue
 			}
 			opts := metav1.DeleteOptions{}
-			if err = clientset.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Delete(webhook.Name, &opts); err != nil {
+			if err = clientset.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Delete(context.Background(), webhook.Name, opts); err != nil {
 				log.Error().Err(err).Msgf("Error deleting webhook %s", webhook.Name)
 			}
 			log.Info().Msgf("Deleted mutating webhook: %s", webhook.Name)

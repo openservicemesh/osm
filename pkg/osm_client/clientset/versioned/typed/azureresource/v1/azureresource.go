@@ -19,6 +19,7 @@ limitations under the License.
 package v1
 
 import (
+	"context"
 	"time"
 
 	v1 "github.com/open-service-mesh/osm/pkg/apis/azureresource/v1"
@@ -70,7 +71,7 @@ func (c *azureResources) Get(name string, options metav1.GetOptions) (result *v1
 		Resource("azureresources").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
-		Do().
+		Do(context.Background()).
 		Into(result)
 	return
 }
@@ -87,7 +88,7 @@ func (c *azureResources) List(opts metav1.ListOptions) (result *v1.AzureResource
 		Resource("azureresources").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Do().
+		Do(context.Background()).
 		Into(result)
 	return
 }
@@ -104,7 +105,7 @@ func (c *azureResources) Watch(opts metav1.ListOptions) (watch.Interface, error)
 		Resource("azureresources").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
-		Watch()
+		Watch(context.Background())
 }
 
 // Create takes the representation of a azureResource and creates it.  Returns the server's representation of the azureResource, and an error, if there is any.
@@ -114,7 +115,7 @@ func (c *azureResources) Create(azureResource *v1.AzureResource) (result *v1.Azu
 		Namespace(c.ns).
 		Resource("azureresources").
 		Body(azureResource).
-		Do().
+		Do(context.Background()).
 		Into(result)
 	return
 }
@@ -127,7 +128,7 @@ func (c *azureResources) Update(azureResource *v1.AzureResource) (result *v1.Azu
 		Resource("azureresources").
 		Name(azureResource.Name).
 		Body(azureResource).
-		Do().
+		Do(context.Background()).
 		Into(result)
 	return
 }
@@ -139,7 +140,7 @@ func (c *azureResources) Delete(name string, options *metav1.DeleteOptions) erro
 		Resource("azureresources").
 		Name(name).
 		Body(options).
-		Do().
+		Do(context.Background()).
 		Error()
 }
 
@@ -155,7 +156,7 @@ func (c *azureResources) DeleteCollection(options *metav1.DeleteOptions, listOpt
 		VersionedParams(&listOptions, scheme.ParameterCodec).
 		Timeout(timeout).
 		Body(options).
-		Do().
+		Do(context.Background()).
 		Error()
 }
 
@@ -168,7 +169,7 @@ func (c *azureResources) Patch(name string, pt types.PatchType, data []byte, sub
 		SubResource(subresources...).
 		Name(name).
 		Body(data).
-		Do().
+		Do(context.Background()).
 		Into(result)
 	return
 }

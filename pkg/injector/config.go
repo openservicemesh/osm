@@ -1,6 +1,7 @@
 package injector
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"strconv"
@@ -138,14 +139,14 @@ func (wh *Webhook) createEnvoyBootstrapConfig(name, namespace, osmNamespace stri
 			envoyBootstrapConfigFile: yamlContent,
 		},
 	}
-	if existing, err := wh.kubeClient.CoreV1().Secrets(namespace).Get(name, metav1.GetOptions{}); err == nil {
+	if existing, err := wh.kubeClient.CoreV1().Secrets(namespace).Get(context.Background(), name, metav1.GetOptions{}); err == nil {
 		log.Info().Msgf("Updating bootstrap config Envoy: name=%s, namespace=%s", name, namespace)
 		existing.Data = secret.Data
-		return wh.kubeClient.CoreV1().Secrets(namespace).Update(existing)
+		return wh.kubeClient.CoreV1().Secrets(namespace).Update(context.Background(), existing, metav1.UpdateOptions{})
 	}
 
 	log.Info().Msgf("Creating bootstrap config for Envoy: name=%s, namespace=%s", name, namespace)
-	return wh.kubeClient.CoreV1().Secrets(namespace).Create(secret)
+	return wh.kubeClient.CoreV1().Secrets(namespace).Create(context.Background(), secret, metav1.CreateOptions{})
 }
 
 func getEnvoyConfigPath() string {

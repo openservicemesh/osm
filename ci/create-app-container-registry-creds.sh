@@ -4,7 +4,7 @@ set -aueo pipefail
 REGISTRY=$(echo "$CTR_REGISTRY" | awk -F'.' '{print $1}')
 REGISTRY_URL=$(echo "$CTR_REGISTRY" | awk -F'.' '{print $1 "." $2 "." $3}')
 
-for ns in "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE" "$K8S_NAMESPACE"; do
+for ns in "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE"; do
     kubectl delete secrets "$CTR_REGISTRY_CREDS_NAME" -n "$ns" || true
     kubectl create secret docker-registry "$CTR_REGISTRY_CREDS_NAME" \
         -n "$ns" \

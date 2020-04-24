@@ -9,6 +9,7 @@ import (
 	matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
 	"github.com/golang/protobuf/ptypes/wrappers"
 
+	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 )
@@ -91,7 +92,7 @@ func createRoutes(routePolicyWeightedClustersList []endpoint.RoutePolicyWeighted
 							HeaderMatchSpecifier: &v2route.HeaderMatcher_SafeRegexMatch{
 								SafeRegexMatch: &matcher.RegexMatcher{
 									EngineType: regexEngine,
-									Regex:      method,
+									Regex:      getRegexForMethod(method),
 								},
 							},
 						},
@@ -148,8 +149,8 @@ func sanitizeHTTPMethods(allowedMethods []string) []string {
 	keys := make(map[string]interface{})
 	for _, method := range allowedMethods {
 		if method != "" {
-			if method == "*" {
-				newAllowedMethods = []string{"*"}
+			if method == constants.WildcardHTTPMethod {
+				newAllowedMethods = []string{constants.WildcardHTTPMethod}
 				return newAllowedMethods
 			}
 			if _, value := keys[method]; !value {
@@ -169,4 +170,12 @@ func NewRouteConfigurationStub(routeConfigName string) v2.RouteConfiguration {
 		ValidateClusters: &wrappers.BoolValue{Value: true},
 	}
 	return routeConfiguration
+}
+
+func getRegexForMethod(httpMethod string) string {
+	methodRegex := httpMethod
+	if httpMethod == constants.WildcardHTTPMethod {
+		methodRegex = constants.RegexMatchAll
+	}
+	return methodRegex
 }
