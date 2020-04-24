@@ -33,7 +33,10 @@ if [ -z "$BOOKTHIEF_NAMESPACE" ]; then
 fi
 
 ./demo/clean-kubernetes.sh
-./demo/create-namespaces.sh
+
+# The demo uses osm's namespace as defined by environment variables, K8S_NAMESPACE
+# to house the control plane components.
+kubectl create namespace "$K8S_NAMESPACE"
 
 make build-cert
 
@@ -50,7 +53,7 @@ else
     mkdir -p "$HOME/.azure"
     touch "$HOME/.azure/azureAuth.json"
     # This script is specifically for CI
-    ./ci/create-container-registry-creds.sh
+    ./ci/create-osm-container-registry-creds.sh
 fi
 
 kubectl create configmap kubeconfig  --from-file="$HOME/.kube/config"          -n "$K8S_NAMESPACE"
