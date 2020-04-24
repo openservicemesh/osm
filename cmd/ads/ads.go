@@ -12,6 +12,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
+	"github.com/open-service-mesh/osm/pkg/certificate"
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/envoy/ads"
@@ -30,6 +31,7 @@ import (
 )
 
 const (
+	// TODO(draychev): pass this via CLI param (https://github.com/open-service-mesh/osm/issues/542)
 	serverType = "ADS"
 )
 
@@ -46,11 +48,10 @@ var (
 	flags               = pflag.NewFlagSet(`ads`, pflag.ExitOnError)
 	azureSubscriptionID = flags.String("azureSubscriptionID", "", "Azure Subscription ID")
 	port                = flags.Int("port", constants.AggregatedDiscoveryServicePort, "Aggregated Discovery Service port number.")
-	certPem             = flags.String("certpem", "", "Full path to the xDS Certificate PEM file")
-	keyPem              = flags.String("keypem", "", "Full path to the xDS Key PEM file")
 	rootCertPem         = flags.String("rootcertpem", "", "Full path to the Root Certificate PEM file")
 	rootKeyPem          = flags.String("rootkeypem", "", "Full path to the Root Key PEM file")
 	log                 = logger.New("ads/main")
+	validity            = flags.Int("validity", 525600, "validity duration of a certificate in MINUTES")
 )
 
 func init() {
@@ -108,17 +109,28 @@ func main() {
 
 	namespaceController := namespace.NewNamespaceController(kubeConfig, osmID, stop)
 	meshSpec := smi.NewMeshSpecClient(kubeConfig, osmNamespace, namespaceController, stop)
-	ca, err := tresor.LoadCA(*rootCertPem, *rootKeyPem)
-	if ca == nil || err != nil {
-		log.Fatal().Err(err).Msgf("Error loading CA from files %s and %s", *rootCertPem, *rootKeyPem)
-	}
 
-	log.Info().Msgf("Loaded CA root certificate from files %s and %s", *rootCertPem, *rootKeyPem)
-	certManager, err := tresor.NewCertManager(ca, 1*time.Hour)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to instantiate Certificate Manager")
-	}
+	certValidityPeriod := time.Duration(*validity) * time.Minute
 
+	var certManager certificate.Manager
+
+	{
+		// TODO(draychev): save/load root cert from persistent storage:  https://github.com/open-service-mesh/osm/issues/541
+		certManagerKind := "tresor"
+		rootCert, err := tresor.NewCA(constants.CertificationAuthorityCommonName, certValidityPeriod)
+		if err != nil {
+			log.Fatal().Err(err).Msgf("Failed to create new Certificate Authority with cert issuer %s", certManagerKind)
+		}
+
+		if rootCert == nil {
+			log.Fatal().Msgf("Invalid root certificate created by cert issuer %s", certManagerKind)
+		}
+
+		certManager, err = tresor.NewCertManager(rootCert, certValidityPeriod)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to instantiate Azure Key Vault as a Certificate Manager")
+		}
+	}
 	endpointsProviders := []endpoint.Provider{
 		kube.NewProvider(kubeConfig, namespaceController, stop, constants.KubeProviderName),
 	}
@@ -137,7 +149,13 @@ func main() {
 	// TODO(draychev): there should be no need to pass meshSpec to the ADS - it is already in meshCatalog
 	adsServer := ads.NewADSServer(ctx, meshCatalog, meshSpec)
 
-	grpcServer, lis := utils.NewGrpc(serverType, *port, *certPem, *keyPem, *rootCertPem)
+	// TODO(draychev): we need to pass this hard-coded string is a CLI argument (https://github.com/open-service-mesh/osm/issues/542)
+	adsCert, err := certManager.IssueCertificate("ads")
+	if err != nil {
+		log.Fatal().Err(err)
+	}
+
+	grpcServer, lis := utils.NewGrpc(serverType, *port, adsCert.GetCertificateChain(), adsCert.GetPrivateKey(), adsCert.GetIssuingCA())
 	xds.RegisterAggregatedDiscoveryServiceServer(grpcServer, adsServer)
 
 	go utils.GrpcServe(ctx, grpcServer, lis, cancel, serverType)

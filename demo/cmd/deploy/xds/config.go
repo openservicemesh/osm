@@ -79,10 +79,6 @@ func generateXDSPod(namespace string) *apiv1.Pod {
 		"--verbosity", "trace",
 		"--osmID", osmID,
 		"--osmNamespace", namespace,
-		"--certpem", "/etc/ssl/certs/cert.pem",
-		"--keypem", "/etc/ssl/certs/key.pem",
-		"--rootcertpem", "/etc/ssl/certs/root-cert.pem",
-		"--rootkeypem", "/etc/ssl/certs/root-key.pem",
 		"--init-container-image", initContainer,
 		"--sidecar-image", defaultEnvoyImage,
 	}
@@ -121,47 +117,7 @@ func generateXDSPod(namespace string) *apiv1.Pod {
 						},
 					},
 				},
-				{
-					Name: "ca-certpemstore-ads",
-					VolumeSource: apiv1.VolumeSource{
-						ConfigMap: &apiv1.ConfigMapVolumeSource{
-							LocalObjectReference: apiv1.LocalObjectReference{
-								Name: "ca-certpemstore-ads",
-							},
-						},
-					},
-				},
-				{
-					Name: "ca-rootcertpemstore",
-					VolumeSource: apiv1.VolumeSource{
-						ConfigMap: &apiv1.ConfigMapVolumeSource{
-							LocalObjectReference: apiv1.LocalObjectReference{
-								Name: "ca-rootcertpemstore",
-							},
-						},
-					},
-				},
 
-				{
-					Name: "ca-keypemstore-ads",
-					VolumeSource: apiv1.VolumeSource{
-						ConfigMap: &apiv1.ConfigMapVolumeSource{
-							LocalObjectReference: apiv1.LocalObjectReference{
-								Name: "ca-keypemstore-ads",
-							},
-						},
-					},
-				},
-				{
-					Name: "ca-rootkeypemstore",
-					VolumeSource: apiv1.VolumeSource{
-						ConfigMap: &apiv1.ConfigMapVolumeSource{
-							LocalObjectReference: apiv1.LocalObjectReference{
-								Name: "ca-rootkeypemstore",
-							},
-						},
-					},
-				},
 				{
 					Name: "webhook-tls-certs",
 					VolumeSource: apiv1.VolumeSource{
@@ -206,26 +162,7 @@ func generateXDSPod(namespace string) *apiv1.Pod {
 							Name:      "azureconfig",
 							MountPath: "/azure",
 						},
-						{
-							Name:      "ca-certpemstore-ads",
-							MountPath: "/etc/ssl/certs/cert.pem",
-							SubPath:   "cert.pem",
-						},
-						{
-							Name:      "ca-keypemstore-ads",
-							MountPath: "/etc/ssl/certs/key.pem",
-							SubPath:   "key.pem",
-						},
-						{
-							Name:      "ca-rootkeypemstore",
-							MountPath: "/etc/ssl/certs/root-key.pem",
-							SubPath:   "root-key.pem",
-						},
-						{
-							Name:      "ca-rootcertpemstore",
-							MountPath: "/etc/ssl/certs/root-cert.pem",
-							SubPath:   "root-cert.pem",
-						},
+
 						{
 							Name:      "webhook-tls-certs",
 							MountPath: "/run/secrets/tls",

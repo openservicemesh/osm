@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"io/ioutil"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -15,20 +14,16 @@ import (
 	"github.com/open-service-mesh/osm/pkg/certificate"
 )
 
-func setupMutualTLS(insecure bool, serverName string, certPem string, keyPem string, rootCertPem string) grpc.ServerOption {
-	certif, err := tls.LoadX509KeyPair(certPem, keyPem)
+func setupMutualTLS(insecure bool, serverName string, certPem []byte, keyPem []byte, rootCertPem []byte) grpc.ServerOption {
+	certif, err := tls.X509KeyPair(certPem, keyPem)
 	if err != nil {
 		log.Fatal().Err(err).Msgf("[grpc][mTLS][%s] Failed loading Certificate (%+v) and Key (%+v) PEM files", serverName, certPem, keyPem)
 	}
 
 	certPool := x509.NewCertPool()
-	ca, err := ioutil.ReadFile(rootCertPem)
-	if err != nil {
-		log.Fatal().Err(err).Msgf("[grpc][mTLS][%s] Failed to read client CA cert from %s", serverName, rootCertPem)
-	}
 
 	// Load the set of Root CAs
-	if ok := certPool.AppendCertsFromPEM(ca); !ok {
+	if ok := certPool.AppendCertsFromPEM(rootCertPem); !ok {
 		log.Fatal().Msgf("[grpc][mTLS][%s] Filed to append client certs.", serverName)
 	}
 
