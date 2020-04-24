@@ -2,9 +2,6 @@ package lds
 
 import (
 	"context"
-	"net"
-	"strconv"
-	"strings"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
@@ -12,7 +9,6 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
-	"github.com/golang/protobuf/ptypes/wrappers"
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/constants"
@@ -72,12 +68,12 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 		FilterChains: []*listener.FilterChain{},
 	}
 
-	meshFilterChains, applyMeshFilterChain, err := getInMeshFilterChains(proxyServiceName, catalog, serverConnManager)
+	meshFilterChain, err := getInMeshFilterChain(proxyServiceName, catalog, serverConnManager)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to construct in-mesh filter chain for proxy %s", proxy.GetCommonName())
 	}
-	if applyMeshFilterChain {
-		serverListener.FilterChains = append(serverListener.FilterChains, meshFilterChains...)
+	if meshFilterChain != nil {
+		serverListener.FilterChains = append(serverListener.FilterChains, meshFilterChain)
 	}
 
 	isIngress, err := catalog.IsIngressService(proxyServiceName)
@@ -177,97 +173,39 @@ func getFilterChainMatchServerNames(proxyServiceName endpoint.NamespacedService,
 	return serverNames, nil
 }
 
-func getInMeshFilterChains(proxyServiceName endpoint.NamespacedService, mc catalog.MeshCataloger, filterConfig *any.Any) ([]*listener.FilterChain, bool, error) {
-	allTrafficPolicies, err := mc.ListTrafficPolicies(proxyServiceName)
-	if err != nil {
-		log.Error().Err(err).Msgf("Failed to list traffic policies for proxy %s", proxyServiceName)
-		return nil, false, err
-	}
-
+func getInMeshFilterChain(proxyServiceName endpoint.NamespacedService, mc catalog.MeshCataloger, filterConfig *any.Any) (*listener.FilterChain, error) {
 	serverNames, err := getFilterChainMatchServerNames(proxyServiceName, mc)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to get client server names for proxy %s", proxyServiceName)
-		return nil, false, err
+		return nil, err
+	}
+	if len(serverNames) == 0 {
+		log.Debug().Msgf("No mesh filter chain to apply")
+		return nil, nil
 	}
 
-	var filterChains []*listener.FilterChain
-	for _, policy := range allTrafficPolicies {
-		isDestinationService := envoy.Contains(proxyServiceName, policy.Destination.Services)
-		if isDestinationService {
-			sourceServices := policy.Source.Services
-			// For each source, build a filter chain match
-			for _, srcService := range sourceServices {
-				// Get the endpoint for this source
-				serviceEndpoints, _ := mc.ListEndpointsForService(endpoint.ServiceName(srcService.String()))
-				endpointFilterChains := getFilterChainFromEndpoints(proxyServiceName, serviceEndpoints, serverNames, filterConfig)
-				filterChains = append(filterChains, endpointFilterChains...)
-			}
-		}
-	}
-
-	applyFilterChain := len(filterChains) > 0
-	return filterChains, applyFilterChain, nil
-}
-
-func getFilterChainFromEndpoints(proxyServiceName endpoint.NamespacedService, serviceEndpoints []endpoint.Endpoint, serverNames []string, filterConfig *any.Any) []*listener.FilterChain {
-	var filterChains []*listener.FilterChain
-	for _, endpoint := range serviceEndpoints {
-		// Build a filter chain for this endpoint
-		cidr := convertIPAddressToCidr(endpoint.IP.String())
-		endpointFilterChain := &listener.FilterChain{
-			Filters: []*listener.Filter{
-				{
-					Name: wellknown.HTTPConnectionManager,
-					ConfigType: &listener.Filter_TypedConfig{
-						TypedConfig: filterConfig,
-					},
+	filterChain := &listener.FilterChain{
+		Filters: []*listener.Filter{
+			{
+				Name: wellknown.HTTPConnectionManager,
+				ConfigType: &listener.Filter_TypedConfig{
+					TypedConfig: filterConfig,
 				},
 			},
-			// The FilterChainMatch uses SNI from mTLS to match against the provided list of ServerNames.
-			// This ensures only clients authorized to talk to this listener are permitted to.
-			FilterChainMatch: &listener.FilterChainMatch{
-				ServerNames: serverNames,
-				SourcePrefixRanges: []*envoy_api_v2_core.CidrRange{
-					cidr,
-				},
+		},
+		// The FilterChainMatch uses SNI from mTLS to match against the provided list of ServerNames.
+		// This ensures only clients authorized to talk to this listener are permitted to.
+		FilterChainMatch: &listener.FilterChainMatch{
+			ServerNames:       serverNames,
+			TransportProtocol: "tls",
+		},
+		TransportSocket: &envoy_api_v2_core.TransportSocket{
+			Name: envoy.TransportSocketTLS,
+			ConfigType: &envoy_api_v2_core.TransportSocket_TypedConfig{
+				TypedConfig: envoy.GetDownstreamTLSContext(proxyServiceName),
 			},
-			TransportSocket: &envoy_api_v2_core.TransportSocket{
-				Name: envoy.TransportSocketTLS,
-				ConfigType: &envoy_api_v2_core.TransportSocket_TypedConfig{
-					TypedConfig: envoy.GetDownstreamTLSContext(proxyServiceName),
-				},
-			},
-		}
-		filterChains = append(filterChains, endpointFilterChain)
-	}
-	return filterChains
-}
-
-func getMaxCidrPrefixLen(addr string) uint32 {
-	ip := net.ParseIP(addr)
-	if ip.To4() == nil {
-		// IPv6 address
-		return 128
-	}
-	// IPv4 address
-	return 32
-}
-
-func convertIPAddressToCidr(addr string) *envoy_api_v2_core.CidrRange {
-	if len(addr) == 0 {
-		return nil
-	}
-	cidr := &envoy_api_v2_core.CidrRange{
-		AddressPrefix: addr,
-		PrefixLen: &wrappers.UInt32Value{
-			Value: getMaxCidrPrefixLen(addr),
 		},
 	}
-	if strings.Contains(addr, "/") {
-		chunks := strings.Split(addr, "/")
-		cidr.AddressPrefix = chunks[0]
-		prefix, _ := strconv.Atoi(chunks[1])
-		cidr.PrefixLen.Value = uint32(prefix)
-	}
-	return cidr
+
+	return filterChain, nil
 }
