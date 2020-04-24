@@ -64,3 +64,13 @@ type EnvoySidecarData struct {
 	Image   string
 	Service string
 }
+
+type envoyBootstrapConfigMeta struct {
+	EnvoyAdminPort int
+	XDSClusterName string
+	RootCert       string
+	Cert           string
+	Key            string
+	XDSHost        string
+	XDSPort        int
+}
