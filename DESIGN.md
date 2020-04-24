@@ -302,18 +302,18 @@ type NamespacedServiceAccount struct {
 ```go
 // WeightedServiceEndpoints is a struct of a weighted service and its endpoints
 type WeightedServiceEndpoints struct {
-	WeightedService WeightedService 
-	Endpoints       []Endpoint      
+	WeightedService WeightedService
+	Endpoints       []Endpoint
 }
 ```
 
 ```go
 // TrafficPolicy is a struct of the allowed RoutePaths from sources to a destination
 type TrafficPolicy struct {
-	PolicyName       string          
-	Destination      TrafficResource 
-	Source           TrafficResource 
-	PolicyRoutePaths []RoutePolicy    
+	PolicyName       string
+	Destination      TrafficResource
+	Source           TrafficResource
+	PolicyRoutePaths []RoutePolicy
 }
 ```
 
@@ -450,7 +450,7 @@ type Certificater interface {
 	GetPrivateKey() []byte
 
 	// GetIssuingCA returns the root certificate for the given cert.
-	GetIssuingCA() *x509.Certificate
+	GetIssuingCA() Certificater
 }
 ```
 
@@ -471,7 +471,7 @@ The following types are referenced in the interfaces proposed in this document:
       // ServiceName is the name of a service defined via SMI
       type ServiceName string
       ```
-      
+
   -  ServiceAccount
       ```go
 	 // ServiceAccount is a type for a service account
@@ -508,7 +508,7 @@ The following types are referenced in the interfaces proposed in this document:
 	   Endpoints       []Endpoint      `json:"endpoints:omitempty"`
       }
       ```
-      
+
   -  RoutePolicy
       ```go
 	 // RoutePolicy is a struct of a path and the allowed methods on a given route
