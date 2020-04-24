@@ -62,7 +62,6 @@ func generateKubernetesConfig(name, namespace, serviceAccountName, containerRegi
 				},
 			},
 			Selector: map[string]string{"app": name},
-			Type:     apiv1.ServiceTypeNodePort,
 		},
 	}
 	deployment := &appsv1.Deployment{

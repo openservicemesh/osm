@@ -39,8 +39,6 @@ spec:
   selector:
     app: bookthief
 
-  type: NodePort
-
 ---
 
 apiVersion: apps/v1
