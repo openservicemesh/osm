@@ -68,4 +68,10 @@ const (
 
 	// CertificationAuthorityRootExpiration is when the root certificate expires
 	CertificationAuthorityRootExpiration = 87600 * time.Hour // a decade
+
+	// RegexMatchAll is a regex pattern match for all
+	RegexMatchAll = ".*"
+
+	// WildcardHTTPMethod is a wildcard for all HTTP methods
+	WildcardHTTPMethod = "*"
 )

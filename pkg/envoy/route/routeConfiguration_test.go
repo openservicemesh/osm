@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 )
 
@@ -155,6 +156,19 @@ var _ = Describe("Route Configuration", func() {
 			Expect(sourceRouteConfig.VirtualHosts[0].Routes[0].Match.GetSafeRegex().Regex).To(Equal(routePolicy.PathRegex))
 			Expect(sourceRouteConfig.VirtualHosts[0].Routes[0].Match.GetHeaders()[0].GetSafeRegexMatch().Regex).To(Equal(routePolicy.Methods[0]))
 			Expect(len(sourceRouteConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters().GetClusters())).To(Equal(len(weightedClusters)))
+		})
+	})
+})
+
+var _ = Describe("Route Configuration", func() {
+	Context("Testing regex matches for HTTP methods", func() {
+		It("Tests that the wildcard HTTP method correctly translates to a match all regex", func() {
+			regex := getRegexForMethod("*")
+			Expect(regex).To(Equal(constants.RegexMatchAll))
+		})
+		It("Tests that a non wildcard HTTP method correctly translates to its corresponding regex", func() {
+			regex := getRegexForMethod("GET")
+			Expect(regex).To(Equal("GET"))
 		})
 	})
 })
