@@ -48,6 +48,8 @@ var (
 	flags               = pflag.NewFlagSet(`ads`, pflag.ExitOnError)
 	azureSubscriptionID = flags.String("azureSubscriptionID", "", "Azure Subscription ID")
 	port                = flags.Int("port", constants.AggregatedDiscoveryServicePort, "Aggregated Discovery Service port number.")
+	certPem             = flags.String("certpem", "", "Full path to the xDS Certificate PEM file")
+	keyPem              = flags.String("keypem", "", "Full path to the xDS Key PEM file")
 	rootCertPem         = flags.String("rootcertpem", "", "Full path to the Root Certificate PEM file")
 	rootKeyPem          = flags.String("rootkeypem", "", "Full path to the Root Key PEM file")
 	log                 = logger.New("ads/main")
@@ -128,7 +130,7 @@ func main() {
 
 		certManager, err = tresor.NewCertManager(rootCert, certValidityPeriod)
 		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to instantiate Azure Key Vault as a Certificate Manager")
+			log.Fatal().Err(err).Msg("Failed to instantiate certificate manager")
 		}
 	}
 	endpointsProviders := []endpoint.Provider{

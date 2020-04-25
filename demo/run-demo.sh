@@ -42,6 +42,9 @@ make build-cert
 
 ./demo/build-push-images.sh
 
+# Create the proxy certificates
+./demo/gen-ca.sh
+
 if [[ "$IS_GITHUB" != "true" ]]; then
     ./demo/create-container-registry-creds.sh
 else
@@ -60,6 +63,7 @@ kubectl apply -f crd/AzureResource.yaml
 ./demo/deploy-AzureResource.sh
 
 # Deploy OSM
+./demo/deploy-secrets.sh "ads"
 ./demo/deploy-webhook-secrets.sh
 # Deploys Xds and Prometheus
 go run ./demo/cmd/deploy/control-plane.go

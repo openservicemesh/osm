@@ -8,6 +8,8 @@ WAIT_FOR_OK_SECONDS="${WAIT_FOR_OK_SECONDS:-default 120}"
 
 echo "WAIT_FOR_OK_SECONDS = ${WAIT_FOR_OK_SECONDS}"
 
+./demo/deploy-secrets.sh "bookthief"
+
 kubectl delete deployment bookthief -n "$BOOKTHIEF_NAMESPACE"  || true
 
 echo -e "Deploy BookThief demo service"

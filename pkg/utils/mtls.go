@@ -14,7 +14,7 @@ import (
 	"github.com/open-service-mesh/osm/pkg/certificate"
 )
 
-func setupMutualTLS(insecure bool, serverName string, certPem []byte, keyPem []byte, rootCertPem []byte) grpc.ServerOption {
+func setupMutualTLS(insecure bool, serverName string, certPem []byte, keyPem []byte, ca []byte) grpc.ServerOption {
 	certif, err := tls.X509KeyPair(certPem, keyPem)
 	if err != nil {
 		log.Fatal().Err(err).Msgf("[grpc][mTLS][%s] Failed loading Certificate (%+v) and Key (%+v) PEM files", serverName, certPem, keyPem)
@@ -23,7 +23,7 @@ func setupMutualTLS(insecure bool, serverName string, certPem []byte, keyPem []b
 	certPool := x509.NewCertPool()
 
 	// Load the set of Root CAs
-	if ok := certPool.AppendCertsFromPEM(rootCertPem); !ok {
+	if ok := certPool.AppendCertsFromPEM(ca); !ok {
 		log.Fatal().Msgf("[grpc][mTLS][%s] Filed to append client certs.", serverName)
 	}
 
