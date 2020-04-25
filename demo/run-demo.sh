@@ -38,11 +38,15 @@ fi
 # to house the control plane components.
 kubectl create namespace "$K8S_NAMESPACE"
 
+
 echo "Certificate Manager in use: $CERT_MANAGER"
 if [ "$CERT_MANAGER" = "vault" ]; then
     echo "Installing Hashi Vault"
     ./demo/deploy-vault.sh
 fi
+
+./demo/build-push-images.sh
+
 
 if [[ "$IS_GITHUB" != "true" ]]; then
     # For Github CI we achieve these at a different time or different script
