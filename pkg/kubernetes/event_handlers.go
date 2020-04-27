@@ -1,6 +1,7 @@
 package kubernetes
 
 import (
+	"os"
 	"reflect"
 
 	"k8s.io/client-go/tools/cache"
@@ -18,7 +19,9 @@ func GetKubernetesEventHandlers(informerName string, providerName string, announ
 // Add a new item to Kubernetes caches from an incoming Kubernetes event.
 func Add(informerName string, providerName string, announce chan interface{}) func(obj interface{}) {
 	return func(obj interface{}) {
-		log.Trace().Msgf("[%s][%s] Add event: %+v", providerName, informerName, obj)
+		if os.Getenv("OSM_LOG_KUBERNETES_EVENTS") == "true" {
+			log.Trace().Msgf("[%s][%s] Add event: %+v", providerName, informerName, obj)
+		}
 		if announce != nil {
 			announce <- Event{
 				Type:  CreateEvent,
@@ -31,7 +34,9 @@ func Add(informerName string, providerName string, announce chan interface{}) fu
 // Update caches with an incoming Kubernetes event.
 func Update(informerName string, providerName string, announce chan interface{}) func(oldObj, newObj interface{}) {
 	return func(oldObj, newObj interface{}) {
-		log.Trace().Msgf("[%s][%s] Update event %+v", providerName, informerName, oldObj)
+		if os.Getenv("OSM_LOG_KUBERNETES_EVENTS") == "true" {
+			log.Trace().Msgf("[%s][%s] Update event %+v", providerName, informerName, oldObj)
+		}
 		if reflect.DeepEqual(oldObj, newObj) {
 			return
 		}
@@ -47,7 +52,9 @@ func Update(informerName string, providerName string, announce chan interface{})
 // Delete Kubernetes cache from an incoming Kubernetes event.
 func Delete(informerName string, providerName string, announce chan interface{}) func(obj interface{}) {
 	return func(obj interface{}) {
-		log.Trace().Msgf("[%s][%s] Delete event: %+v", providerName, informerName, obj)
+		if os.Getenv("OSM_LOG_KUBERNETES_EVENTS") == "true" {
+			log.Trace().Msgf("[%s][%s] Delete event: %+v", providerName, informerName, obj)
+		}
 		if announce != nil {
 			announce <- Event{
 				Type:  DeleteEvent,
