@@ -72,3 +72,17 @@ func endpointsToString(endpoints []endpoint.Endpoint) string {
 	}
 	return strings.Join(epts, ",")
 }
+
+// ListEndpointsForService returns the list of provider endpoints corresponding to a service
+func (sc *MeshCatalog) ListEndpointsForService(service endpoint.ServiceName) ([]endpoint.Endpoint, error) {
+	var endpoints []endpoint.Endpoint
+	for _, provider := range sc.endpointsProviders {
+		ep := provider.ListEndpointsForService(service)
+		if len(ep) == 0 {
+			log.Trace().Msgf("[%s] No endpoints found for service=%s", provider.GetID(), service)
+			continue
+		}
+		endpoints = append(endpoints, ep...)
+	}
+	return endpoints, nil
+}

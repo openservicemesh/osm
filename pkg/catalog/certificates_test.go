@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/open-service-mesh/osm/pkg/endpoint"
+	"github.com/open-service-mesh/osm/pkg/ingress"
 	"github.com/open-service-mesh/osm/pkg/smi"
 	"github.com/open-service-mesh/osm/pkg/tresor"
 )
@@ -14,9 +15,10 @@ import (
 func newMeshCatalog() *MeshCatalog {
 	meshSpec := smi.NewFakeMeshSpecClient()
 	certManager := tresor.NewFakeCertManager()
+	ingressMonitor := ingress.NewFakeIngressMonitor()
 	stop := make(<-chan struct{})
 	var endpointProviders []endpoint.Provider
-	return NewMeshCatalog(meshSpec, certManager, stop, endpointProviders...)
+	return NewMeshCatalog(meshSpec, certManager, ingressMonitor, stop, endpointProviders...)
 }
 
 var _ = Describe("Test certificate tooling", func() {
