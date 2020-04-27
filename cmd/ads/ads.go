@@ -34,6 +34,8 @@ import (
 const (
 	// TODO(draychev): pass this via CLI param (https://github.com/open-service-mesh/osm/issues/542)
 	serverType = "ADS"
+
+	defaultCertValidityMinutes = 525600 // 1 year
 )
 
 var (
@@ -54,7 +56,7 @@ var (
 	rootCertPem         = flags.String("rootcertpem", "", "Full path to the Root Certificate PEM file")
 	rootKeyPem          = flags.String("rootkeypem", "", "Full path to the Root Key PEM file")
 	log                 = logger.New("ads/main")
-	validity            = flags.Int("validity", 525600, "validity duration of a certificate in MINUTES")
+	validity            = flags.Int("validity", defaultCertValidityMinutes, "validity duration of a certificate in MINUTES")
 )
 
 func init() {
