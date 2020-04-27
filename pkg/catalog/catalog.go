@@ -10,16 +10,18 @@ import (
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
+	"github.com/open-service-mesh/osm/pkg/ingress"
 	"github.com/open-service-mesh/osm/pkg/smi"
 )
 
 // NewMeshCatalog creates a new service catalog
-func NewMeshCatalog(meshSpec smi.MeshSpec, certManager certificate.Manager, stop <-chan struct{}, endpointsProviders ...endpoint.Provider) *MeshCatalog {
+func NewMeshCatalog(meshSpec smi.MeshSpec, certManager certificate.Manager, ingressMonitor ingress.Monitor, stop <-chan struct{}, endpointsProviders ...endpoint.Provider) *MeshCatalog {
 	log.Info().Msg("Create a new Service MeshCatalog.")
 	sc := MeshCatalog{
 		endpointsProviders: endpointsProviders,
 		meshSpec:           meshSpec,
 		certManager:        certManager,
+		ingressMonitor:     ingressMonitor,
 
 		servicesCache:        make(map[endpoint.WeightedService][]endpoint.Endpoint),
 		certificateCache:     make(map[endpoint.NamespacedService]certificate.Certificater),
@@ -58,6 +60,7 @@ func (sc *MeshCatalog) getAnnouncementChannels() []announcementChannel {
 	announcementChannels := []announcementChannel{
 		{"MeshSpec", sc.meshSpec.GetAnnouncementsChannel()},
 		{"CertManager", sc.certManager.GetAnnouncementsChannel()},
+		{"IngressMonitor", sc.ingressMonitor.GetAnnouncementsChannel()},
 		{"Ticker", ticking},
 	}
 	for _, ep := range sc.endpointsProviders {
