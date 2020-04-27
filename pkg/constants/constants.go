@@ -74,4 +74,7 @@ const (
 
 	// WildcardHTTPMethod is a wildcard for all HTTP methods
 	WildcardHTTPMethod = "*"
+
+	// OSMKubeResourceMonitorAnnotation is the key of the annotation used to monitor a K8s resource
+	OSMKubeResourceMonitorAnnotation = "openservicemesh.io/monitor"
 )
