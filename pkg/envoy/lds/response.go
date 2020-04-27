@@ -8,6 +8,7 @@ import (
 	listener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/any"
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/constants"
@@ -61,38 +62,32 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 		return nil, err
 	}
 
-	serverNames, err := getFilterChainMatchServerNames(proxyServiceName, catalog)
+	serverListener := &xds.Listener{
+		Name:         inboundListenerName,
+		Address:      envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyInboundListenerPort),
+		FilterChains: []*listener.FilterChain{},
+	}
+
+	meshFilterChain, err := getInboundInMeshFilterChain(proxyServiceName, catalog, serverConnManager)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed to get client server names for proxy %s", proxy.GetCommonName())
+		log.Error().Err(err).Msgf("Failed to construct in-mesh filter chain for proxy %s", proxy.GetCommonName())
+	}
+	if meshFilterChain != nil {
+		serverListener.FilterChains = append(serverListener.FilterChains, meshFilterChain)
+	}
+
+	isIngress, err := catalog.IsIngressService(proxyServiceName)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error checking service %s for ingress", proxyServiceName)
 		return nil, err
 	}
-	serverListener := &xds.Listener{
-		Name:    inboundListenerName,
-		Address: envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyInboundListenerPort),
-		FilterChains: []*listener.FilterChain{
-			{
-				Filters: []*listener.Filter{
-					{
-						Name: wellknown.HTTPConnectionManager,
-						ConfigType: &listener.Filter_TypedConfig{
-							TypedConfig: serverConnManager,
-						},
-					},
-				},
-				// The FilterChainMatch uses SNI from mTLS to match against the provided list of ServerNames.
-				// This ensures only clients authorized to talk to this listener are permitted to.
-				FilterChainMatch: &listener.FilterChainMatch{
-					ServerNames: serverNames,
-				},
-				TransportSocket: &envoy_api_v2_core.TransportSocket{
-					Name: envoy.TransportSocketTLS,
-					ConfigType: &envoy_api_v2_core.TransportSocket_TypedConfig{
-						TypedConfig: envoy.GetDownstreamTLSContext(proxyServiceName),
-					},
-				},
-			},
-		},
+	if isIngress {
+		log.Info().Msgf("Found an ingress resource for service %s, applying necessary filters", proxyServiceName)
+		// This proxy is fronting a service that is a backend for an ingress, add a FilterChain for it
+		ingressFilterChain := getInboundIngressFilterChain(serverConnManager)
+		serverListener.FilterChains = append(serverListener.FilterChains, ingressFilterChain)
 	}
+
 	log.Info().Msgf("Created listener %s for proxy %s for service %s: %+v", inboundListenerName, proxy.GetCommonName(), proxy.GetService(), serverListener)
 	prometheusConnManager, err := ptypes.MarshalAny(getPrometheusConnectionManager(prometheusListenerName, constants.PrometheusScrapePath, constants.EnvoyAdminCluster))
 	if err != nil {
@@ -131,12 +126,16 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	}
 	resp.Resources = append(resp.Resources, marshalledOutbound)
 
-	marshalledInbound, err := ptypes.MarshalAny(serverListener)
-	if err != nil {
-		log.Error().Err(err).Msgf("Failed to marshal inbound listener for proxy %s", proxy.GetCommonName())
-		return nil, err
+	if len(serverListener.FilterChains) > 0 {
+		// Inbound filter chains can be empty if the there both ingress and in-mesh policies are not configued.
+		// Configuring a listener without a filter chain is an error.
+		marshalledInbound, err := ptypes.MarshalAny(serverListener)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to marshal inbound listener for proxy %s", proxy.GetCommonName())
+			return nil, err
+		}
+		resp.Resources = append(resp.Resources, marshalledInbound)
 	}
-	resp.Resources = append(resp.Resources, marshalledInbound)
 	return resp, nil
 }
 
@@ -163,4 +162,54 @@ func getFilterChainMatchServerNames(proxyServiceName endpoint.NamespacedService,
 		}
 	}
 	return serverNames, nil
+}
+
+func getInboundInMeshFilterChain(proxyServiceName endpoint.NamespacedService, mc catalog.MeshCataloger, filterConfig *any.Any) (*listener.FilterChain, error) {
+	serverNames, err := getFilterChainMatchServerNames(proxyServiceName, mc)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed to get client server names for proxy %s", proxyServiceName)
+		return nil, err
+	}
+	if len(serverNames) == 0 {
+		log.Debug().Msgf("No mesh filter chain to apply")
+		return nil, nil
+	}
+
+	filterChain := &listener.FilterChain{
+		Filters: []*listener.Filter{
+			{
+				Name: wellknown.HTTPConnectionManager,
+				ConfigType: &listener.Filter_TypedConfig{
+					TypedConfig: filterConfig,
+				},
+			},
+		},
+		// The FilterChainMatch uses SNI from mTLS to match against the provided list of ServerNames.
+		// This ensures only clients authorized to talk to this listener are permitted to.
+		FilterChainMatch: &listener.FilterChainMatch{
+			ServerNames:       serverNames,
+			TransportProtocol: "tls",
+		},
+		TransportSocket: &envoy_api_v2_core.TransportSocket{
+			Name: envoy.TransportSocketTLS,
+			ConfigType: &envoy_api_v2_core.TransportSocket_TypedConfig{
+				TypedConfig: envoy.GetDownstreamTLSContext(proxyServiceName),
+			},
+		},
+	}
+
+	return filterChain, nil
+}
+
+func getInboundIngressFilterChain(filterConfig *any.Any) *listener.FilterChain {
+	return &listener.FilterChain{
+		Filters: []*listener.Filter{
+			{
+				Name: wellknown.HTTPConnectionManager,
+				ConfigType: &listener.Filter_TypedConfig{
+					TypedConfig: filterConfig,
+				},
+			},
+		},
+	}
 }

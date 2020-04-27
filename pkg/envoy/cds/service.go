@@ -20,7 +20,7 @@ const (
 	connectionTimeout time.Duration = 1 * time.Second
 )
 
-func getServiceClusterLocal(catalog catalog.MeshCataloger, proxyService endpoint.NamespacedService, clusterName string) xds.Cluster {
+func getServiceClusterLocal(catalog catalog.MeshCataloger, proxyServiceName endpoint.NamespacedService, clusterName string) (*xds.Cluster, error) {
 	xdsCluster := xds.Cluster{
 		// The name must match the domain being cURLed in the demo
 		Name:                          clusterName,
@@ -42,29 +42,32 @@ func getServiceClusterLocal(catalog catalog.MeshCataloger, proxyService endpoint
 		},
 	}
 
-	svcEndpoints, _ := catalog.ListTrafficSplitEndpoints(proxyService)
-	for _, svcEp := range svcEndpoints {
-		for _, ep := range svcEp.Endpoints {
-			localityEndpoint := &envoyEndpoint.LocalityLbEndpoints{
-				Locality: &core.Locality{
-					Zone: "zone",
-				},
-				LbEndpoints: []*envoyEndpoint.LbEndpoint{{
-					HostIdentifier: &envoyEndpoint.LbEndpoint_Endpoint{
-						Endpoint: &envoyEndpoint.Endpoint{
-							Address: envoy.GetAddress(constants.WildcardIPAddr, uint32(ep.Port)),
-						},
-					},
-					LoadBalancingWeight: &wrappers.UInt32Value{
-						Value: weightAcceptAll, // Local cluster accepts all traffic
-					},
-				}},
-			}
-			xdsCluster.LoadAssignment.Endpoints = append(xdsCluster.LoadAssignment.Endpoints, localityEndpoint)
-		}
+	endpoints, err := catalog.ListEndpointsForService(endpoint.ServiceName(proxyServiceName.String()))
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed to get endpoints for service %s", proxyServiceName)
+		return nil, err
 	}
 
-	return xdsCluster
+	for _, ep := range endpoints {
+		localityEndpoint := &envoyEndpoint.LocalityLbEndpoints{
+			Locality: &core.Locality{
+				Zone: "zone",
+			},
+			LbEndpoints: []*envoyEndpoint.LbEndpoint{{
+				HostIdentifier: &envoyEndpoint.LbEndpoint_Endpoint{
+					Endpoint: &envoyEndpoint.Endpoint{
+						Address: envoy.GetAddress(constants.WildcardIPAddr, uint32(ep.Port)),
+					},
+				},
+				LoadBalancingWeight: &wrappers.UInt32Value{
+					Value: weightAcceptAll, // Local cluster accepts all traffic
+				},
+			}},
+		}
+		xdsCluster.LoadAssignment.Endpoints = append(xdsCluster.LoadAssignment.Endpoints, localityEndpoint)
+	}
+
+	return &xdsCluster, nil
 }
 
 func getPrometheusCluster(clusterName string) xds.Cluster {
