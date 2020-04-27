@@ -11,6 +11,7 @@ require (
 	github.com/deckarep/golang-set v1.7.1
 	github.com/envoyproxy/go-control-plane v0.9.2
 	github.com/evanphx/json-patch v4.5.0+incompatible // indirect
+	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/golang/protobuf v1.3.2
 	github.com/google/go-cmp v0.3.1 // indirect
 	github.com/google/uuid v1.1.1

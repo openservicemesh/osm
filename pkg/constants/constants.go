@@ -77,4 +77,7 @@ const (
 
 	// OSMKubeResourceMonitorAnnotation is the key of the annotation used to monitor a K8s resource
 	OSMKubeResourceMonitorAnnotation = "openservicemesh.io/monitor"
+
+	// EnvoyLogAggregatorPortNumber is the port on which the Envoy Log Aggregator listens.
+	EnvoyLogAggregatorPortNumber = 15999
 )

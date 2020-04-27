@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/open-service-mesh/osm/pkg/constants"
+
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
@@ -30,6 +32,9 @@ const (
 
 	// ConnectionTimeout is the timeout duration used by Envoy to timeout connections
 	ConnectionTimeout = 5 * time.Second
+
+	// Cluster aggregating logs from all Envoy proxies
+	logAggregator = constants.AggregatedDiscoveryServiceName
 )
 
 // GetAddress creates an Envoy Address struct.
@@ -59,20 +64,15 @@ func GetTLSParams() *auth.TlsParameters {
 
 // GetAccessLog creates an Envoy AccessLog struct.
 func GetAccessLog() []*envoy_config_filter_accesslog_v2.AccessLog {
-	accessLog, err := ptypes.MarshalAny(getFileAccessLog())
-	if err != nil {
-		log.Error().Err(err).Msg("[LDS] Could con construct AccessLog struct")
-		return nil
-	}
-	return []*envoy_config_filter_accesslog_v2.AccessLog{{
-		Name: wellknown.FileAccessLog,
-		ConfigType: &envoy_config_filter_accesslog_v2.AccessLog_TypedConfig{
-			TypedConfig: accessLog,
-		}},
+	return []*envoy_config_filter_accesslog_v2.AccessLog{
+		getFileAccessLog(),
+
+		// TODO(draychev): add feature flag
+		getGRPCAccessLog(),
 	}
 }
 
-func getFileAccessLog() *accesslog.FileAccessLog {
+func getFileAccessLog() *envoy_config_filter_accesslog_v2.AccessLog {
 	accessLogger := &accesslog.FileAccessLog{
 		Path: accessLogPath,
 		AccessLogFormat: &accesslog.FileAccessLog_JsonFormat{
@@ -101,7 +101,47 @@ func getFileAccessLog() *accesslog.FileAccessLog {
 			},
 		},
 	}
-	return accessLogger
+
+	accessLog, err := ptypes.MarshalAny(accessLogger)
+	if err != nil {
+		log.Error().Err(err).Msg("Error marshaling file access log Envoy config")
+		return nil
+	}
+
+	return &envoy_config_filter_accesslog_v2.AccessLog{
+		Name: wellknown.FileAccessLog,
+		ConfigType: &envoy_config_filter_accesslog_v2.AccessLog_TypedConfig{
+			TypedConfig: accessLog,
+		},
+	}
+}
+
+func getGRPCAccessLog() *envoy_config_filter_accesslog_v2.AccessLog {
+	// Now GRPC log aggregator
+	grpcAccessLogger := &accesslog.HttpGrpcAccessLogConfig{
+		CommonConfig: &accesslog.CommonGrpcAccessLogConfig{
+			GrpcService: &core.GrpcService{
+				TargetSpecifier: &core.GrpcService_EnvoyGrpc_{
+					EnvoyGrpc: &core.GrpcService_EnvoyGrpc{
+						ClusterName: logAggregator,
+					},
+				},
+			},
+		},
+	}
+
+	grpcAccessLog, err := ptypes.MarshalAny(grpcAccessLogger)
+	if err != nil {
+		log.Error().Err(err).Msg("Error marshaling file access log Envoy config")
+		return nil
+	}
+
+	return &envoy_config_filter_accesslog_v2.AccessLog{
+		Name: wellknown.HTTPGRPCAccessLog,
+		ConfigType: &envoy_config_filter_accesslog_v2.AccessLog_TypedConfig{
+			TypedConfig: grpcAccessLog,
+		},
+	}
 }
 
 func pbStringValue(v string) *structpb.Value {

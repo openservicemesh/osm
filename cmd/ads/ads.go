@@ -16,6 +16,7 @@ import (
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/envoy/ads"
+	envoyLogger "github.com/open-service-mesh/osm/pkg/envoy/logger"
 	"github.com/open-service-mesh/osm/pkg/httpserver"
 	"github.com/open-service-mesh/osm/pkg/injector"
 	"github.com/open-service-mesh/osm/pkg/logger"
@@ -165,6 +166,13 @@ func main() {
 	// initialize the http server and start it
 	// TODO(draychev): figure out the NS and POD
 	metricsStore := metricsstore.NewMetricStore("TBD_NameSpace", "TBD_PodName")
+
+	loggerCert, err := certManager.IssueCertificate("envoy-logger")
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error issuing a new certificate for the Envoy log aggregation service")
+	}
+	envoyLogger.Start(constants.EnvoyLogAggregatorPortNumber, loggerCert, stop)
+
 	// TODO(draychev): the port number should be configurable
 	httpServer := httpserver.NewHTTPServer(adsServer, metricsStore, constants.MetricsServerPort, meshCatalog.GetDebugInfo)
 	httpServer.Start()
