@@ -171,7 +171,7 @@ func getInboundInMeshFilterChain(proxyServiceName endpoint.NamespacedService, mc
 		return nil, err
 	}
 	if len(serverNames) == 0 {
-		log.Debug().Msgf("No mesh filter chain to apply")
+		log.Debug().Msg("No mesh filter chain to apply")
 		return nil, nil
 	}
 
