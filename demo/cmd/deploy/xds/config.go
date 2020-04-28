@@ -85,6 +85,7 @@ func generateXDSPod(namespace string) *apiv1.Pod {
 		"--rootkeypem", "/etc/ssl/certs/root-key.pem",
 		"--init-container-image", initContainer,
 		"--sidecar-image", defaultEnvoyImage,
+		"--caBundleSecretName", fmt.Sprintf("osm-ca-%s", osmID),
 	}
 
 	if os.Getenv(common.IsGithubEnvVar) != "true" {
