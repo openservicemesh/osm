@@ -90,6 +90,7 @@ jobs:
         IS_GITHUB: true
         ACR: ${{ secrets.ACR }}
         WAIT_FOR_POD_TIME_SECONDS: ${{ secrets.WAIT_FOR_POD_TIME_SECONDS }}
+        OSM_HUMAN_DEBUG_LOG: ${{ secrets.OSM_HUMAN_DEBUG_LOG }}
       run: |
         touch .env  # it is ok keep this empty
         echo "Creating Kubernetes namespace: $K8S_NAMESPACE"
