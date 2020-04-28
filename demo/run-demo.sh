@@ -64,7 +64,7 @@ kubectl apply -f crd/AzureResource.yaml
 
 # Deploy OSM
 ./demo/deploy-secrets.sh "ads"
-./demo/deploy-webhook-secrets.sh
+
 # Deploys Xds and Prometheus
 go run ./demo/cmd/deploy/control-plane.go
 
@@ -73,6 +73,13 @@ go run ./demo/cmd/deploy/control-plane.go
 while [ "$(kubectl get pods -n "$K8S_NAMESPACE" ads -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}')" != "True" ];
 do
   echo "waiting for pod ads to be ready" && sleep 2
+done
+
+# Wait for the CA Bundle secret to become available
+CA_BUNDLE_SECRET="osm-ca-${OSM_ID}"
+while [ "$(kubectl get secrets "$CA_BUNDLE_SECRET" -n "$K8S_NAMESPACE" --no-headers | wc -l)" -lt "1" ];
+do
+  echo "waiting for secret $CA_BUNDLE_SECRET to be created" && sleep 2
 done
 
 ./demo/deploy-webhook.sh "ads" "$K8S_NAMESPACE" "$OSM_ID"

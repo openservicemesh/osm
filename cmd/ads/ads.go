@@ -40,7 +40,6 @@ const (
 
 	defaultCertValidityMinutes = 525600 // 1 year
 
-	tlsCAKey = "ca.crt"
 )
 
 var (
@@ -164,8 +163,9 @@ func main() {
 	meshCatalog := catalog.NewMeshCatalog(meshSpec, certManager, ingressClient, stop, endpointsProviders...)
 
 	// Create the sidecar-injector webhook
-	webhook := injector.NewWebhook(injectorConfig, kubeConfig, certManager, meshCatalog, namespaceController, osmNamespace)
-	go webhook.ListenAndServe(stop)
+	if err := injector.NewWebhook(injectorConfig, kubeConfig, certManager, meshCatalog, namespaceController, osmNamespace, stop); err != nil {
+		log.Fatal().Err(err).Msg("Error creating mutating webhook")
+	}
 
 	// TODO(draychev): there should be no need to pass meshSpec to the ADS - it is already in meshCatalog
 	adsServer := ads.NewADSServer(ctx, meshCatalog, meshSpec)
@@ -219,7 +219,7 @@ func createCABundleKubernetesSecret(kubeConfig *rest.Config, certManager certifi
 			Name: *caBundleSecretName,
 		},
 		Data: map[string][]byte{
-			tlsCAKey: cert.GetIssuingCA(),
+			constants.KubernetesOpaqueSecretCAKey: cert.GetIssuingCA(),
 		},
 	}
 

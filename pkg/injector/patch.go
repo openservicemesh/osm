@@ -22,7 +22,7 @@ const (
 	initContainersBasePath = "/spec/initContainers"
 )
 
-func (wh *Webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error) {
+func (wh *webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error) {
 	// Start patching the spec
 	var patches []JSONPatchOperation
 	log.Info().Msgf("Patching POD spec: service-account=%s, namespace=%s", pod.Spec.ServiceAccountName, namespace)
