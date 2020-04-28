@@ -63,6 +63,7 @@ var (
 	port                = flags.Int("port", constants.AggregatedDiscoveryServicePort, "Aggregated Discovery Service port number.")
 	log                 = logger.New("ads/main")
 	validity            = flags.Int("validity", defaultCertValidityMinutes, "validity duration of a certificate in MINUTES")
+	webhookName         = flags.String("webhookName", "", "Name of the MutatingWebhookConfiguration to be created by ADS")
 )
 
 func init() {
@@ -169,7 +170,10 @@ func main() {
 	meshCatalog := catalog.NewMeshCatalog(meshSpec, certManager, ingressClient, stop, endpointsProviders...)
 
 	// Create the sidecar-injector webhook
-	if err := injector.NewWebhook(injectorConfig, kubeConfig, certManager, meshCatalog, namespaceController, osmNamespace, stop); err != nil {
+	if webhookName == nil || *webhookName == "" {
+		log.Fatal().Msg("Invalid --webhookName value")
+	}
+	if err := injector.NewWebhook(injectorConfig, kubeConfig, certManager, meshCatalog, namespaceController, osmID, osmNamespace, *webhookName, stop); err != nil {
 		log.Fatal().Err(err).Msg("Error creating mutating webhook")
 	}
 
