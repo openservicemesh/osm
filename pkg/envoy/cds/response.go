@@ -10,6 +10,7 @@ import (
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/envoy"
+	"github.com/open-service-mesh/osm/pkg/featureflags"
 	"github.com/open-service-mesh/osm/pkg/smi"
 )
 
@@ -56,10 +57,12 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 		}
 	}
 
-	// Process ingress policy if applicable
-	clusterFactories, err = getIngressServiceCluster(proxyServiceName, catalog, clusterFactories)
-	if err != nil {
-		return nil, err
+	if featureflags.IsIngressEnabled() {
+		// Process ingress policy if applicable
+		clusterFactories, err = getIngressServiceCluster(proxyServiceName, catalog, clusterFactories)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	clusterFactories = uniques(clusterFactories)

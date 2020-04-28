@@ -15,6 +15,7 @@ import (
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 	"github.com/open-service-mesh/osm/pkg/envoy/route"
+	"github.com/open-service-mesh/osm/pkg/featureflags"
 	"github.com/open-service-mesh/osm/pkg/smi"
 )
 
@@ -76,16 +77,18 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 		serverListener.FilterChains = append(serverListener.FilterChains, meshFilterChain)
 	}
 
-	isIngress, err := catalog.IsIngressService(proxyServiceName)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error checking service %s for ingress", proxyServiceName)
-		return nil, err
-	}
-	if isIngress {
-		log.Info().Msgf("Found an ingress resource for service %s, applying necessary filters", proxyServiceName)
-		// This proxy is fronting a service that is a backend for an ingress, add a FilterChain for it
-		ingressFilterChain := getInboundIngressFilterChain(serverConnManager)
-		serverListener.FilterChains = append(serverListener.FilterChains, ingressFilterChain)
+	if featureflags.IsIngressEnabled() {
+		isIngress, err := catalog.IsIngressService(proxyServiceName)
+		if err != nil {
+			log.Error().Err(err).Msgf("Error checking service %s for ingress", proxyServiceName)
+			return nil, err
+		}
+		if isIngress {
+			log.Info().Msgf("Found an ingress resource for service %s, applying necessary filters", proxyServiceName)
+			// This proxy is fronting a service that is a backend for an ingress, add a FilterChain for it
+			ingressFilterChain := getInboundIngressFilterChain(serverConnManager)
+			serverListener.FilterChains = append(serverListener.FilterChains, ingressFilterChain)
+		}
 	}
 
 	log.Info().Msgf("Created listener %s for proxy %s for service %s: %+v", inboundListenerName, proxy.GetCommonName(), proxy.GetService(), serverListener)
