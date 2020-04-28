@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 
+	"github.com/open-service-mesh/osm/pkg/constants"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -25,9 +27,10 @@ var _ = Describe("Test creation of CA bundle k8s secret", func() {
 
 			actual, err := k8sClient.CoreV1().Secrets(namespace).Get(context.Background(), secretName, v1.GetOptions{})
 			Expect(err).ToNot(HaveOccurred())
-			expected := "-----BEGIN CERTIFICATE-----\nMIIFWj"
-			stringPEM := string(actual.Data[tlsCAKey])[:len(expected)]
+			expected := "-----BEGIN CERTIFICATE-----\nMIIF"
+			stringPEM := string(actual.Data[constants.KubernetesOpaqueSecretCAKey])[:len(expected)]
 			Expect(stringPEM).To(Equal(expected))
+			Expect(len(actual.Data[constants.KubernetesOpaqueSecretCAKey])).To(Equal(1915))
 		})
 	})
 })
