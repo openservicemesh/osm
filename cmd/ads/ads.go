@@ -11,6 +11,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
@@ -56,10 +57,6 @@ var (
 	caBundleSecretName  = flags.String("caBundleSecretName", "", "Name of the Kubernetes Secret for the OSM CA bundle")
 	azureSubscriptionID = flags.String("azureSubscriptionID", "", "Azure Subscription ID")
 	port                = flags.Int("port", constants.AggregatedDiscoveryServicePort, "Aggregated Discovery Service port number.")
-	certPem             = flags.String("certpem", "", "Full path to the xDS Certificate PEM file")
-	keyPem              = flags.String("keypem", "", "Full path to the xDS Key PEM file")
-	rootCertPem         = flags.String("rootcertpem", "", "Full path to the Root Certificate PEM file")
-	rootKeyPem          = flags.String("rootkeypem", "", "Full path to the Root Key PEM file")
 	log                 = logger.New("ads/main")
 	validity            = flags.Int("validity", defaultCertValidityMinutes, "validity duration of a certificate in MINUTES")
 )
@@ -142,7 +139,8 @@ func main() {
 		}
 	}
 
-	if err := createCABundleKubernetesSecret(kubeConfig, certManager, caBundleSecretName); err != nil {
+	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
+	if err := createCABundleKubernetesSecret(kubeClient, certManager, osmNamespace, *caBundleSecretName); err != nil {
 		log.Error().Err(err).Msgf("Error exporting CA bundle into Kubernetes secret with name %s", *caBundleSecretName)
 	}
 
@@ -202,13 +200,13 @@ func parseFlags() {
 	_ = flag.CommandLine.Parse([]string{})
 }
 
-func createCABundleKubernetesSecret(kubeConfig *rest.Config, certManager certificate.Manager, caBundleSecretName *string) error {
-	if caBundleSecretName == nil || *caBundleSecretName == "" {
+func createCABundleKubernetesSecret(kubeClient clientset.Interface, certManager certificate.Manager, namespace, caBundleSecretName string) error {
+	if caBundleSecretName == "" {
 		return nil
 	}
-	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
-	cn := "localhost" // the CN does not matter much - cert won't be used -- 'localhost' is used for throwaway certs.
-	cert, err := certManager.IssueCertificate("localhost")
+	// the CN does not matter much - cert won't be used -- 'localhost' is used for throwaway certs.
+	cn := certificate.CommonName("localhost")
+	cert, err := certManager.IssueCertificate(cn)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error issuing %s certificate", cn)
 		return nil
@@ -216,14 +214,15 @@ func createCABundleKubernetesSecret(kubeConfig *rest.Config, certManager certifi
 
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: *caBundleSecretName,
+			Name:      caBundleSecretName,
+			Namespace: namespace,
 		},
 		Data: map[string][]byte{
 			constants.KubernetesOpaqueSecretCAKey: cert.GetIssuingCA(),
 		},
 	}
 
-	log.Info().Msgf("Creating bootstrap config for Envoy: name=%s, namespace=%s", *caBundleSecretName, osmNamespace)
-	_, err = kubeClient.CoreV1().Secrets(osmNamespace).Create(context.Background(), secret, metav1.CreateOptions{})
+	log.Info().Msgf("Creating bootstrap config for Envoy: name=%s, namespace=%s", caBundleSecretName, namespace)
+	_, err = kubeClient.CoreV1().Secrets(namespace).Create(context.Background(), secret, metav1.CreateOptions{})
 	return err
 }
