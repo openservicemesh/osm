@@ -77,7 +77,7 @@ done
 
 # Wait for the CA Bundle secret to become available
 CA_BUNDLE_SECRET="osm-ca-${OSM_ID}"
-while [ "$(kubectl get secrets "$CA_BUNDLE_SECRET" -n "$K8S_NAMESPACE" --no-headers | wc -l)" != "1" ];
+while [ "$(kubectl get secrets "$CA_BUNDLE_SECRET" -n "$K8S_NAMESPACE" --no-headers | wc -l)" -lt "1" ];
 do
   echo "waiting for secret $CA_BUNDLE_SECRET to be created" && sleep 2
 done
