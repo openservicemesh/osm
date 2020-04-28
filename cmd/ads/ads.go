@@ -8,6 +8,9 @@ import (
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	"github.com/spf13/pflag"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
@@ -36,6 +39,8 @@ const (
 	serverType = "ADS"
 
 	defaultCertValidityMinutes = 525600 // 1 year
+
+	tlsCAKey = "ca.crt"
 )
 
 var (
@@ -49,6 +54,7 @@ var (
 
 var (
 	flags               = pflag.NewFlagSet(`ads`, pflag.ExitOnError)
+	caBundleSecretName  = flags.String("caBundleSecretName", "", "Name of the Kubernetes Secret for the OSM CA bundle")
 	azureSubscriptionID = flags.String("azureSubscriptionID", "", "Azure Subscription ID")
 	port                = flags.Int("port", constants.AggregatedDiscoveryServicePort, "Aggregated Discovery Service port number.")
 	certPem             = flags.String("certpem", "", "Full path to the xDS Certificate PEM file")
@@ -136,6 +142,11 @@ func main() {
 			log.Fatal().Err(err).Msg("Failed to instantiate certificate manager")
 		}
 	}
+
+	if err := createCABundleKubernetesSecret(kubeConfig, certManager, caBundleSecretName); err != nil {
+		log.Error().Err(err).Msgf("Error exporting CA bundle into Kubernetes secret with name %s", *caBundleSecretName)
+	}
+
 	endpointsProviders := []endpoint.Provider{
 		kube.NewProvider(kubeConfig, namespaceController, stop, constants.KubeProviderName),
 	}
@@ -189,4 +200,30 @@ func parseFlags() {
 		log.Fatal().Err(err).Msg("Error parsing cmd line arguments")
 	}
 	_ = flag.CommandLine.Parse([]string{})
+}
+
+func createCABundleKubernetesSecret(kubeConfig *rest.Config, certManager certificate.Manager, caBundleSecretName *string) error {
+	if caBundleSecretName == nil || *caBundleSecretName == "" {
+		return nil
+	}
+	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
+	cn := "localhost" // the CN does not matter much - cert won't be used -- 'localhost' is used for throwaway certs.
+	cert, err := certManager.IssueCertificate("localhost")
+	if err != nil {
+		log.Error().Err(err).Msgf("Error issuing %s certificate", cn)
+		return nil
+	}
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: *caBundleSecretName,
+		},
+		Data: map[string][]byte{
+			tlsCAKey: cert.GetIssuingCA(),
+		},
+	}
+
+	log.Info().Msgf("Creating bootstrap config for Envoy: name=%s, namespace=%s", *caBundleSecretName, osmNamespace)
+	_, err = kubeClient.CoreV1().Secrets(osmNamespace).Create(context.Background(), secret, metav1.CreateOptions{})
+	return err
 }
