@@ -40,7 +40,6 @@ const (
 
 	defaultCertValidityMinutes = 525600 // 1 year
 
-	tlsCAKey = "ca.crt"
 )
 
 var (
@@ -50,7 +49,6 @@ var (
 	kubeConfigFile string
 	osmNamespace   string
 	injectorConfig injector.Config
-	webhookName    string
 )
 
 var (
@@ -73,12 +71,10 @@ func init() {
 	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file.")
 	flags.StringVar(&osmNamespace, "osmNamespace", "", "Namespace to which OSM belongs to.")
 
-	flags.StringVar(&webhookName, "webhookname", "", "Providing a webhook name will inform ADS to create a new mutating webhook on startup")
-
 	// sidecar injector options
 	flags.BoolVar(&injectorConfig.EnableTLS, "enable-tls", true, "Enable TLS")
 	flags.BoolVar(&injectorConfig.DefaultInjection, "default-injection", true, "Enable sidecar injection by default")
-	flags.IntVar(&injectorConfig.ListenPort, "webhook-port", constants.InjectorWebhookPort, "webhook port for sidecar-injector")
+	flags.IntVar(&injectorConfig.ListenPort, "webhook-port", constants.InjectorWebhookPort, "Webhook port for sidecar-injector")
 	flags.StringVar(&injectorConfig.InitContainerImage, "init-container-image", "", "InitContainer image")
 	flags.StringVar(&injectorConfig.SidecarImage, "sidecar-image", "", "Sidecar proxy Container image")
 }
@@ -167,11 +163,8 @@ func main() {
 	meshCatalog := catalog.NewMeshCatalog(meshSpec, certManager, ingressClient, stop, endpointsProviders...)
 
 	// Create the sidecar-injector webhook
-	if err := injector.NewWebhook(injectorConfig, kubeConfig, certManager, meshCatalog, namespaceController, osmID, osmNamespace, webhookName, stop); err != nil {
-		if err == injector.ErrInvalidWebhookName {
-			log.Fatal().Err(err).Msgf("Invalid webhook name provided: '%s'", webhookName)
-		}
-		log.Fatal().Err(err).Msgf("Error creating mutating webhook %s", webhookName)
+	if err := injector.NewWebhook(injectorConfig, kubeConfig, certManager, meshCatalog, namespaceController, osmNamespace, stop); err != nil {
+		log.Fatal().Err(err).Msg("Error creating mutating webhook")
 	}
 
 	// TODO(draychev): there should be no need to pass meshSpec to the ADS - it is already in meshCatalog
@@ -226,7 +219,7 @@ func createCABundleKubernetesSecret(kubeConfig *rest.Config, certManager certifi
 			Name: *caBundleSecretName,
 		},
 		Data: map[string][]byte{
-			tlsCAKey: cert.GetIssuingCA(),
+			constants.KubernetesOpaqueSecretCAKey: cert.GetIssuingCA(),
 		},
 	}
 

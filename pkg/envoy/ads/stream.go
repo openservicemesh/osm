@@ -108,6 +108,8 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 
 			if err := server.Send(resp); err != nil {
 				log.Error().Err(err).Msgf("Error sending DiscoveryResponse")
+			} else {
+				log.Debug().Msgf("Sent Discovery Response %s to proxy %s: %s", resp.TypeUrl, proxy, resp)
 			}
 
 		case <-proxy.GetAnnouncementsChannel():

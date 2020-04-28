@@ -10,7 +10,10 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+
+	"github.com/open-service-mesh/osm/pkg/constants"
 )
 
 const installDesc = `
@@ -82,12 +85,6 @@ func (i *installCmd) run() error {
 		fmt.Fprintf(i.out, "Successfully created Kubernetes secret [%s]\n", i.containerRegistrySecret)
 	}
 
-	fmt.Fprintf(i.out, "Setting up CA and generating certificates for osm control plane\n")
-	if err = generateAdsSecrets(); err != nil {
-		return fmt.Errorf("error setting up CA and generating certificates for osm control plane: %s", err)
-	}
-	fmt.Fprintf(i.out, "Successfully set up CA and generated certificates for osm control plane\n")
-
 	fmt.Fprintf(i.out, "Generating Kubernetes RBAC for osm control plane\n")
 	if err := i.deployRBAC(serviceAccountName); err != nil {
 		return fmt.Errorf("error generating Kubernetes RBAC for osm control plane: %s", err)
@@ -99,6 +96,13 @@ func (i *installCmd) run() error {
 		return fmt.Errorf("error deployment osm Kubernetes deployment and service: %s", err)
 	}
 	fmt.Fprintf(i.out, "Successfully deployed osm Kubernetes deployment and service")
+
+	//TODO(michelle): wait for ads pod to be ready and for the CA bundle k8s secret to be available (created) before deploying webhook config
+	fmt.Fprintf(i.out, "Deploying sidecar injection webhook\n")
+	if err := i.deployWebhook(); err != nil {
+		return fmt.Errorf("error deploying webhook: %s", err)
+	}
+	fmt.Fprintf(i.out, "Successfully deployed webhook\n")
 
 	fmt.Fprintf(i.out, "Successfully deployed osm control plane\n")
 	fmt.Fprintf(i.out, "Happy Meshing!\n")
@@ -135,17 +139,6 @@ func (i *installCmd) createContainerRegistrySecret() error {
 	return nil
 }
 
-func generateAdsSecrets() error {
-	cmd := exec.Command("./demo/gen-ca.sh") //TODO: update to use tresor
-	if err := cmd.Run(); err != nil {
-		return err
-	}
-	cmd = exec.Command("./demo/deploy-secrets.sh", "ads") //TODO: update to use tresor
-	err := cmd.Run()
-	return err
-
-}
-
 func (i *installCmd) deploy(name, serviceAccountName string, port int32) error {
 	deployment, service := generateKubernetesConfig(name, i.namespace, serviceAccountName, i.containerRegistry, i.containerRegistrySecret, port)
 
@@ -173,4 +166,16 @@ func (i *installCmd) deployRBAC(serviceAccountName string) error {
 		return err
 	}
 	return nil
+}
+
+func (i *installCmd) deployWebhook() error {
+	secret, err := i.kubeClient.CoreV1().Secrets(i.namespace).Get(context.Background(), getCABundleSecretName(), v1.GetOptions{})
+	if err != nil {
+		return err
+	}
+	caBundle := secret.Data[constants.KubernetesOpaqueSecretCAKey]
+	webhookConfig := generateWebhookConfig(caBundle, i.namespace)
+	_, err = i.kubeClient.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Create(context.Background(), webhookConfig, metav1.CreateOptions{})
+
+	return err
 }

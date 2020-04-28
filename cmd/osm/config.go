@@ -11,6 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/open-service-mesh/osm/pkg/constants"
+	ns "github.com/open-service-mesh/osm/pkg/namespace"
 )
 
 const (
@@ -18,6 +19,10 @@ const (
 	sidecarInjectorWebhookPort = 443
 	defaultOSMInstanceID       = "osm-local"
 )
+
+func getCABundleSecretName() string {
+	return fmt.Sprintf("osm-ca-%s", defaultOSMInstanceID)
+}
 
 func generateCertConfig(name, namespace, key string, value []byte) *apiv1.ConfigMap {
 	data := map[string]string{}
@@ -104,13 +109,10 @@ func generateKubernetesConfig(name, namespace, serviceAccountName, containerRegi
 								"--verbosity", "trace",
 								"--osmNamespace", namespace,
 								"--osmID", defaultOSMInstanceID,
-								"--certpem", "/etc/ssl/certs/cert.pem",
-								"--keypem", "/etc/ssl/certs/key.pem",
-								"--rootcertpem", "/etc/ssl/certs/root-cert.pem",
-								"--rootkeypem", "/etc/ssl/certs/root-key.pem",
 								"--init-container-image",
 								fmt.Sprintf("%s/%s:latest", containerRegistry, "init"),
 								"--sidecar-image", defaultEnvoyImage,
+								"--caBundleSecretName", getCABundleSecretName(),
 							},
 							Env: []apiv1.EnvVar{
 								{
@@ -308,7 +310,7 @@ func generateWebhookConfig(caBundle []byte, namespace string) *admissionv1beta1.
 			FailurePolicy: &policyFail,
 			NamespaceSelector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					"openservicemesh.io/monitor": defaultOSMInstanceID,
+					ns.MonitorLabel: defaultOSMInstanceID,
 				},
 			},
 		},
