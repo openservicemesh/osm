@@ -24,7 +24,9 @@ import (
 )
 
 var (
-	waitForPod = 5 * time.Second
+	waitForPod               = 5 * time.Second
+	pollLogsFromTimeSince    = 2 * time.Second
+	failureLogsFromTimeSince = 10 * time.Minute
 )
 
 var errNoPodsFound = errors.New("no pods found")
@@ -167,8 +169,8 @@ func main() {
 			// failure
 			break
 		}
-		bookBuyerLogs := getPodLogs(bookbuyerNS, bookBuyerPodName, bookBuyerContainerName, false)
-		bookThiefLogs := getPodLogs(bookthiefNS, bookThiefPodName, bookThiefContainerName, false)
+		bookBuyerLogs := getPodLogs(bookbuyerNS, bookBuyerPodName, bookBuyerContainerName, false, pollLogsFromTimeSince)
+		bookThiefLogs := getPodLogs(bookthiefNS, bookThiefPodName, bookThiefContainerName, false, pollLogsFromTimeSince)
 
 		if strings.Contains(bookBuyerLogs, common.Success) && strings.Contains(bookThiefLogs, common.Success) {
 			fmt.Println("The test succeeded")
@@ -180,8 +182,8 @@ func main() {
 
 	fmt.Println("The test failed")
 
-	bookBuyerLogs := getPodLogs(bookbuyerNS, bookBuyerPodName, bookBuyerContainerName, false)
-	bookThiefLogs := getPodLogs(bookthiefNS, bookThiefPodName, bookThiefContainerName, false)
+	bookBuyerLogs := getPodLogs(bookbuyerNS, bookBuyerPodName, bookBuyerContainerName, false, failureLogsFromTimeSince)
+	bookThiefLogs := getPodLogs(bookthiefNS, bookThiefPodName, bookThiefContainerName, false, failureLogsFromTimeSince)
 	fmt.Println("-------- Bookbuyer LOGS --------\n", bookBuyerLogs)
 	fmt.Println("-------- Bookthief LOGS --------\n", bookThiefLogs)
 
@@ -189,7 +191,7 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Error getting ADS pods with selector %s in namespace %s", adsPodName, osmNS)
 	}
-	fmt.Println("-------- ADS LOGS --------\n", getPodLogs(osmNS, adsPodName, "", false))
+	fmt.Println("-------- ADS LOGS --------\n", getPodLogs(osmNS, adsPodName, "", false, failureLogsFromTimeSince))
 	os.Exit(1)
 }
 
@@ -254,9 +256,9 @@ func getPodName(namespace, selector string) (string, error) {
 	return podList.Items[0].Name, nil
 }
 
-func getPodLogs(namespace string, podName string, containerName string, follow bool) string {
+func getPodLogs(namespace string, podName string, containerName string, follow bool, timeSince time.Duration) string {
 	clientset := getClient()
-	sinceTime := metav1.NewTime(time.Now().Add(-10 * time.Minute))
+	sinceTime := metav1.NewTime(time.Now().Add(-timeSince))
 	options := &v1.PodLogOptions{
 		Container: containerName,
 		Follow:    follow,
