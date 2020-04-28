@@ -2,11 +2,11 @@ package injector
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"path/filepath"
 	"strings"
 
 	"k8s.io/api/admission/v1beta1"
@@ -19,14 +19,8 @@ import (
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/certificate"
-
+	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/namespace"
-)
-
-const (
-	tlsDir      = `/run/secrets/tls`
-	tlsCertFile = `tls.crt`
-	tlsKeyFile  = `tls.key`
 )
 
 var (
@@ -39,20 +33,31 @@ var (
 	}
 )
 
-// NewWebhook returns a new Webhook object
-func NewWebhook(config Config, kubeConfig *rest.Config, certManager certificate.Manager, meshCatalog catalog.MeshCataloger, namespaceController namespace.Controller, osmNamespace string) *Webhook {
-	return &Webhook{
+// NewWebhook returns a new webhook object
+func NewWebhook(config Config, kubeConfig *rest.Config, certManager certificate.Manager, meshCatalog catalog.MeshCataloger, namespaceController namespace.Controller, osmNamespace string, stop <-chan struct{}) error {
+	cn := certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.AggregatedDiscoveryServiceName, osmNamespace))
+	cert, err := certManager.IssueCertificate(cn)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error issuing certificate for the mutating webhook")
+		return err
+	}
+
+	wh := webhook{
 		config:              config,
 		kubeClient:          kubernetes.NewForConfigOrDie(kubeConfig),
 		certManager:         certManager,
 		meshCatalog:         meshCatalog,
 		namespaceController: namespaceController,
 		osmNamespace:        osmNamespace,
+		cert:                cert,
 	}
+
+	go wh.run(stop)
+
+	return nil
 }
 
-// ListenAndServe starts the mutating webhook
-func (wh *Webhook) ListenAndServe(stop <-chan struct{}) {
+func (wh *webhook) run(stop <-chan struct{}) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -69,9 +74,19 @@ func (wh *Webhook) ListenAndServe(stop <-chan struct{}) {
 	log.Info().Msgf("Starting sidecar-injection webhook server on :%v", wh.config.ListenPort)
 	go func() {
 		if wh.config.EnableTLS {
-			certPath := filepath.Join(tlsDir, tlsCertFile)
-			keyPath := filepath.Join(tlsDir, tlsKeyFile)
-			if err := server.ListenAndServeTLS(certPath, keyPath); err != nil {
+			// Generate a key pair from your pem-encoded cert and key ([]byte).
+			cert, err := tls.X509KeyPair(wh.cert.GetCertificateChain(), wh.cert.GetPrivateKey())
+			if err != nil {
+				// TODO(draychev): bubble these up as errors instead of fataling here (https://github.com/open-service-mesh/osm/issues/534)
+				log.Fatal().Err(err).Msg("Error parsing webhook certificate")
+			}
+
+			server.TLSConfig = &tls.Config{
+				Certificates: []tls.Certificate{cert},
+			}
+
+			if err := server.ListenAndServeTLS("", ""); err != nil {
+				// TODO(draychev): bubble these up as errors instead of fataling here (https://github.com/open-service-mesh/osm/issues/534)
 				log.Fatal().Err(err).Msgf("Sidecar-injection webhook HTTP server failed to start")
 			}
 		} else {
@@ -92,7 +107,7 @@ func (wh *Webhook) ListenAndServe(stop <-chan struct{}) {
 	}
 }
 
-func (wh *Webhook) healthReadyHandler(w http.ResponseWriter, req *http.Request) {
+func (wh *webhook) healthReadyHandler(w http.ResponseWriter, req *http.Request) {
 	// TODO(shashank): If TLS certificate is not present, mark as not ready
 	w.WriteHeader(http.StatusOK)
 	_, err := w.Write([]byte("Health OK"))
@@ -101,7 +116,7 @@ func (wh *Webhook) healthReadyHandler(w http.ResponseWriter, req *http.Request) 
 	}
 }
 
-func (wh *Webhook) mutateHandler(w http.ResponseWriter, req *http.Request) {
+func (wh *webhook) mutateHandler(w http.ResponseWriter, req *http.Request) {
 	log.Info().Msgf("Request received: Method=%v, URL=%v", req.Method, req.URL)
 
 	if contentType := req.Header.Get("Content-Type"); contentType != "application/json" {
@@ -153,7 +168,7 @@ func (wh *Webhook) mutateHandler(w http.ResponseWriter, req *http.Request) {
 	log.Debug().Msg("Done responding to admission request")
 }
 
-func (wh *Webhook) mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
+func (wh *webhook) mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
 	// Decode the Pod spec from the request
 	var pod corev1.Pod
 	if err := json.Unmarshal(req.Object.Raw, &pod); err != nil {
@@ -189,7 +204,7 @@ func (wh *Webhook) mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespo
 	return resp
 }
 
-func (wh *Webhook) isNamespaceAllowed(namespace string) bool {
+func (wh *webhook) isNamespaceAllowed(namespace string) bool {
 	// Skip Kubernetes system namespaces
 	for _, ns := range kubeSystemNamespaces {
 		if ns == namespace {
@@ -212,7 +227,7 @@ func (wh *Webhook) isNamespaceAllowed(namespace string) bool {
 //
 // The function returns an error when:
 // 1. The value of the POD level sidecar-injection annotation is invalid
-func (wh *Webhook) mustInject(pod *corev1.Pod, namespace string) (bool, error) {
+func (wh *webhook) mustInject(pod *corev1.Pod, namespace string) (bool, error) {
 	// If the request belongs to a namespace we are not monitoring, skip it
 	if !wh.isNamespaceAllowed(namespace) {
 		log.Info().Msgf("Request belongs to namespace=%s not in the list of monitored namespaces", namespace)

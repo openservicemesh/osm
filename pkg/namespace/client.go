@@ -14,7 +14,8 @@ import (
 )
 
 const (
-	monitorLabel = "openservicemesh.io/monitor"
+	// MonitorLabel is the annotation label used to indicate whether a namespace should be monitored by OSM.
+	MonitorLabel = "openservicemesh.io/monitor"
 )
 
 var (
@@ -26,7 +27,7 @@ func NewNamespaceController(kubeConfig *rest.Config, osmID string, stop chan str
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 
 	// Only monitor namespaces that are labeled with this OSM's ID
-	monitorNamespaceLabel := map[string]string{monitorLabel: osmID}
+	monitorNamespaceLabel := map[string]string{MonitorLabel: osmID}
 	labelSelector := fields.SelectorFromSet(monitorNamespaceLabel).String()
 	option := informers.WithTweakListOptions(func(opt *metav1.ListOptions) {
 		opt.LabelSelector = labelSelector
@@ -46,7 +47,7 @@ func NewNamespaceController(kubeConfig *rest.Config, osmID string, stop chan str
 		log.Fatal().Err(err).Msg("Could not start Kubernetes Namespaces client")
 	}
 
-	log.Info().Msgf("Monitoring namespaces with the label: %s=%s", monitorLabel, osmID)
+	log.Info().Msgf("Monitoring namespaces with the label: %s=%s", MonitorLabel, osmID)
 	return client
 }
 

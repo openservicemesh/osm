@@ -4,15 +4,16 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os/exec"
 	"strings"
-	"time"
 
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+
+	"github.com/open-service-mesh/osm/pkg/constants"
 )
 
 const installDesc = `
@@ -20,7 +21,6 @@ This command installs the osm control plane on the Kubernetes cluster.
 `
 const (
 	serviceAccountName = "osm-xds"
-	certValidityTime   = 20 * time.Minute
 )
 
 type installCmd struct {
@@ -85,12 +85,6 @@ func (i *installCmd) run() error {
 		fmt.Fprintf(i.out, "Successfully created Kubernetes secret [%s]\n", i.containerRegistrySecret)
 	}
 
-	fmt.Fprintf(i.out, "Setting up CA and generating certificates for osm control plane\n")
-	if err = generateAdsSecrets(); err != nil {
-		return fmt.Errorf("error setting up CA and generating certificates for osm control plane: %s", err)
-	}
-	fmt.Fprintf(i.out, "Successfully set up CA and generated certificates for osm control plane\n")
-
 	fmt.Fprintf(i.out, "Generating Kubernetes RBAC for osm control plane\n")
 	if err := i.deployRBAC(serviceAccountName); err != nil {
 		return fmt.Errorf("error generating Kubernetes RBAC for osm control plane: %s", err)
@@ -103,18 +97,13 @@ func (i *installCmd) run() error {
 	}
 	fmt.Fprintf(i.out, "Successfully deployed osm Kubernetes deployment and service")
 
-	fmt.Fprintf(i.out, "Generating certificates for sidecar injection webhook\n")
-	if err := generateWebhookSecrets(); err != nil {
-		return fmt.Errorf("error generating certificates for sidecar injection webhook: %s", err)
-	}
-	fmt.Fprintf(i.out, "Successfully generated webhook certificates\n")
-
-	//TODO(michelle): wait for ads pod to be ready before deploying webhook config
+	//TODO(michelle): wait for ads pod to be ready and for the CA bundle k8s secret to be available (created) before deploying webhook config
 	fmt.Fprintf(i.out, "Deploying sidecar injection webhook\n")
 	if err := i.deployWebhook(); err != nil {
 		return fmt.Errorf("error deploying webhook: %s", err)
 	}
 	fmt.Fprintf(i.out, "Successfully deployed webhook\n")
+
 	fmt.Fprintf(i.out, "Successfully deployed osm control plane\n")
 	fmt.Fprintf(i.out, "Happy Meshing!\n")
 
@@ -150,17 +139,6 @@ func (i *installCmd) createContainerRegistrySecret() error {
 	return nil
 }
 
-func generateAdsSecrets() error {
-	cmd := exec.Command("./demo/gen-ca.sh") //TODO: update to use tresor
-	if err := cmd.Run(); err != nil {
-		return err
-	}
-	cmd = exec.Command("./demo/deploy-secrets.sh", "ads") //TODO: update to use tresor
-	err := cmd.Run()
-	return err
-
-}
-
 func (i *installCmd) deploy(name, serviceAccountName string, port int32) error {
 	deployment, service := generateKubernetesConfig(name, i.namespace, serviceAccountName, i.containerRegistry, i.containerRegistrySecret, port)
 
@@ -191,27 +169,13 @@ func (i *installCmd) deployRBAC(serviceAccountName string) error {
 }
 
 func (i *installCmd) deployWebhook() error {
-	caBundle, err := genCABundle()
+	secret, err := i.kubeClient.CoreV1().Secrets(i.namespace).Get(context.Background(), getCABundleSecretName(), v1.GetOptions{})
 	if err != nil {
 		return err
 	}
+	caBundle := secret.Data[constants.KubernetesOpaqueSecretCAKey]
 	webhookConfig := generateWebhookConfig(caBundle, i.namespace)
 	_, err = i.kubeClient.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Create(context.Background(), webhookConfig, metav1.CreateOptions{})
 
-	return err
-}
-
-func genCABundle() ([]byte, error) {
-	data, err := ioutil.ReadFile("./demo/webhook-certs/ca.crt") //TODO: const
-	if err != nil {
-		return nil, err
-	}
-
-	return data, nil
-}
-
-func generateWebhookSecrets() error {
-	cmd := exec.Command("./demo/deploy-webhook-secrets.sh") //TODO make const
-	err := cmd.Run()
 	return err
 }
