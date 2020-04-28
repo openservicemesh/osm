@@ -256,7 +256,7 @@ func getPodName(namespace, selector string) (string, error) {
 
 func getPodLogs(namespace string, podName string, containerName string, follow bool) string {
 	clientset := getClient()
-	sinceTime := metav1.NewTime(time.Now().Add(-2 * time.Second))
+	sinceTime := metav1.NewTime(time.Now().Add(-10 * time.Minute))
 	options := &v1.PodLogOptions{
 		Container: containerName,
 		Follow:    follow,
