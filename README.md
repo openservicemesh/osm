@@ -31,6 +31,13 @@ The `osm-id` is a unique ID for an OSM instance generated during OSM install.
 
 After a namespace is labeled for monitoring, new services deployed in a monitored namespace will be a part of the service mesh and OSM will perform automatic sidecar injection for newly created PODs in that namespace.
 
+For a service to be a part of the service mesh, OSM requires a 1-to-1 mapping between a pod, a service and a service account. This means a pod in a service mesh must run a single service, and the service must be associated with a single service account.
+This can be achieved using either of the following ways:
+- A service running on a pod must have the same name as the service account of the pod, or
+- A pod running a service whose name is not the same as the pod's service account name should be annoted with the name of the service
+
+For example, if a service `bookstore` is running on a pod with service account `bookstore-svc-acc`, the pod must be annotated with the service name as `"openservicemesh.io/osm-service": "bookstore"`. If the pod's service account has the same name as the service running on it, `bookstore` in this example, then such an annotation is not required.
+
 #### Disabling automatic sidecar injection
 Since the sidecar is automatically injected for PODs belonging to a monitored namespace, PODs that are not a part of the service mesh but belong to a monitored namespace should be configured to not have the sidecar injected. This can be achieved by any of the following ways.
 
