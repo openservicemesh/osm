@@ -50,8 +50,8 @@ func getEnvoySidecarContainerSpec(data *EnvoySidecarData) corev1.Container {
 		Args: []string{
 			"--log-level", "debug", // TODO: remove
 			"--config-path", getEnvoyConfigPath(),
-			"--service-node", data.Service,
-			"--service-cluster", data.Service,
+			"--service-node", data.EnvoyNodeID,
+			"--service-cluster", data.EnvoyClusterID,
 		},
 	}
 

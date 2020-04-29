@@ -151,7 +151,13 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to initialize ingress client")
 	}
-	meshCatalog := catalog.NewMeshCatalog(meshSpec, certManager, ingressClient, stop, endpointsProviders...)
+	meshCatalog := catalog.NewMeshCatalog(
+		kubernetes.NewForConfigOrDie(kubeConfig),
+		meshSpec,
+		certManager,
+		ingressClient,
+		stop,
+		endpointsProviders...)
 
 	// Create the sidecar-injector webhook
 	if err := injector.NewWebhook(injectorConfig, kubeConfig, certManager, meshCatalog, namespaceController, osmID, osmNamespace, webhookName, stop); err != nil {

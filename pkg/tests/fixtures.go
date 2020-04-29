@@ -6,14 +6,20 @@ import (
 
 	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha1"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 
+	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 )
 
 const (
 	// Namespace is the commonly used namespace.
 	Namespace = "default"
+
+	// PodName is the name of the pod commonly used namespace.
+	PodName = "pod-name"
 
 	// BookstoreServiceName is the name of the bookstore service.
 	BookstoreServiceName = "bookstore"
@@ -42,6 +48,15 @@ const (
 
 	// BookstoreBuyPath is the path to the bookstore.
 	BookstoreBuyPath = "/buy"
+
+	// SelectorKey is a Pod selector key constant.
+	SelectorKey = "app"
+
+	// SelectorValue is a Pod selector value constant.
+	SelectorValue = "frontend"
+
+	// EnvoyUID is the unique ID of the Envoy used for unit tests.
+	EnvoyUID = "A-B-C-D"
 )
 
 var (
@@ -161,3 +176,40 @@ var (
 		}},
 	}
 )
+
+// NewPodTestFixture creates a new Pod struct for testing.
+func NewPodTestFixture(namespace string, podName string) corev1.Pod {
+	return corev1.Pod{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      podName,
+			Namespace: namespace,
+			Labels: map[string]string{
+				SelectorKey:                      SelectorValue,
+				constants.EnvoyUniqueIDLabelName: EnvoyUID,
+			},
+		},
+		Spec: corev1.PodSpec{},
+	}
+}
+
+// NewServiceFixture creates a new Service
+func NewServiceFixture(serviceName, namespace string, selectors map[string]string) *corev1.Service {
+	return &corev1.Service{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      serviceName,
+			Namespace: namespace,
+		},
+		Spec: corev1.ServiceSpec{
+			Ports: []corev1.ServicePort{{
+				Name: "servicePort",
+				TargetPort: intstr.IntOrString{
+					Type:   intstr.String,
+					StrVal: "backendName",
+				},
+				Protocol: corev1.ProtocolTCP,
+				Port:     int32(8080),
+			}},
+			Selector: selectors,
+		},
+	}
+}

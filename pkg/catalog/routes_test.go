@@ -3,6 +3,8 @@ package catalog
 import (
 	"fmt"
 
+	testclient "k8s.io/client-go/kubernetes/fake"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -16,7 +18,8 @@ import (
 
 var _ = Describe("Catalog tests", func() {
 	endpointProviders := []endpoint.Provider{kube.NewFakeProvider()}
-	meshCatalog := NewMeshCatalog(smi.NewFakeMeshSpecClient(), tresor.NewFakeCertManager(), ingress.NewFakeIngressMonitor(), make(<-chan struct{}), endpointProviders...)
+	kubeClient := testclient.NewSimpleClientset()
+	meshCatalog := NewMeshCatalog(kubeClient, smi.NewFakeMeshSpecClient(), tresor.NewFakeCertManager(), ingress.NewFakeIngressMonitor(), make(<-chan struct{}), endpointProviders...)
 
 	Context("Testing UniqueLists", func() {
 		It("Returns unique list of services", func() {

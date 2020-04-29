@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	envoy_api_v2_endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	"github.com/golang/protobuf/ptypes"
@@ -15,6 +14,7 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	testclient "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/certificate"
@@ -50,7 +50,7 @@ var _ = Describe("UniqueLists", func() {
 		It("Returns unique list of clusters for CDS", func() {
 			cn := certificate.CommonName("bookbuyer.openservicemesh.io")
 			proxy := envoy.NewProxy(cn, tests.BookbuyerService, nil)
-			resp, err := NewResponse(context.Background(), catalog.NewFakeMeshCatalog(), smi.NewFakeMeshSpecClient(), proxy, nil)
+			resp, err := NewResponse(context.Background(), catalog.NewFakeMeshCatalog(testclient.NewSimpleClientset()), smi.NewFakeMeshSpecClient(), proxy, nil)
 			Expect(err).ToNot(HaveOccurred())
 
 			expected := xds.DiscoveryResponse{

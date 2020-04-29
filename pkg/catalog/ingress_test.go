@@ -6,6 +6,7 @@ import (
 	extensionsV1beta "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	testclient "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/open-service-mesh/osm/pkg/certificate/providers/tresor"
 	"github.com/open-service-mesh/osm/pkg/constants"
@@ -34,7 +35,8 @@ func newFakeMeshCatalog() *MeshCatalog {
 	ingressMonitor.FakeIngresses = getFakeIngresses()
 	stop := make(<-chan struct{})
 	var endpointProviders []endpoint.Provider
-	return NewMeshCatalog(meshSpec, certManager, ingressMonitor, stop, endpointProviders...)
+	kubeClient := testclient.NewSimpleClientset()
+	return NewMeshCatalog(kubeClient, meshSpec, certManager, ingressMonitor, stop, endpointProviders...)
 }
 
 func getFakeIngresses() []*extensionsV1beta.Ingress {

@@ -4,6 +4,8 @@ import (
 	"sync"
 	"time"
 
+	"k8s.io/client-go/kubernetes"
+
 	mapset "github.com/deckarep/golang-set"
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
@@ -33,6 +35,10 @@ type MeshCatalog struct {
 	expectedProxies      map[certificate.CommonName]expectedProxy
 	connectedProxies     map[certificate.CommonName]connectedProxy
 	announcementChannels mapset.Set
+
+	// Current assumption is that OSM is working with a single Kubernetes cluster.
+	// This here is the client to that cluster.
+	kubeClient kubernetes.Interface
 }
 
 // MeshCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
@@ -52,6 +58,9 @@ type MeshCataloger interface {
 
 	// ExpectProxy catalogs the fact that a certificate was issued for an Envoy proxy and this is expected to connect to XDS.
 	ExpectProxy(certificate.CommonName)
+
+	// GetServiceFromEnvoyCertificate returns the single service given Envoy is a member of based on the certificate provided, which is a cert issued to an Envoy for XDS communication (not Envoy-to-Envoy).
+	GetServiceFromEnvoyCertificate(certificate.CommonName) (*endpoint.NamespacedService, error)
 
 	// RegisterProxy registers a newly connected proxy with the service mesh catalog.
 	RegisterProxy(*envoy.Proxy)
@@ -93,4 +102,10 @@ type connectedProxy struct {
 
 	// When the proxy connected to the XDS control plane
 	connectedOn time.Time
+}
+
+// certificateCommonNameMeta is the type that stores the metadata present in the CommonName field in a proxy's certificate
+type certificateCommonNameMeta struct {
+	ProxyID   string
+	Namespace string
 }
