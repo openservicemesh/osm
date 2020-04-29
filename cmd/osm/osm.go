@@ -2,13 +2,14 @@ package main
 
 import (
 	goflag "flag"
+	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 
 	"github.com/spf13/cobra"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
+	"helm.sh/helm/v3/pkg/action"
+
+	"github.com/open-service-mesh/osm/pkg/cli"
 )
 
 var globalUsage = `osm enables you to install and manage the 
@@ -19,7 +20,9 @@ To install and configure open service mesh, run:
    $ osm install
 `
 
-func newRootCmd(args []string, out io.Writer) *cobra.Command {
+var settings = cli.New()
+
+func newRootCmd(config *action.Configuration, out io.Writer, args []string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "osm",
 		Short: "Install and manage open service mesh",
@@ -28,10 +31,13 @@ func newRootCmd(args []string, out io.Writer) *cobra.Command {
 
 	cmd.PersistentFlags().AddGoFlagSet(goflag.CommandLine)
 	flags := cmd.PersistentFlags()
+	settings.AddFlags(flags)
 
 	// Add subcommands here
 	cmd.AddCommand(
-		newInstallCmd(out),
+		newInstallCmd(config, out),
+		newConfigCmd(config, out),
+		newEnvCmd(out),
 	)
 
 	flags.Parse(args)
@@ -40,25 +46,22 @@ func newRootCmd(args []string, out io.Writer) *cobra.Command {
 }
 
 func main() {
-	cmd := newRootCmd(os.Args[1:], os.Stdout)
+	actionConfig := new(action.Configuration)
+	cmd := newRootCmd(actionConfig, os.Stdout, os.Args[1:])
+	actionConfig.Init(settings.RESTClientGetter(), settings.Namespace(), "secret", debug)
+
+	// run when each command's execute method is called
+	cobra.OnInitialize(func() {
+		if err := actionConfig.Init(settings.RESTClientGetter(), settings.Namespace(), "secret", debug); err != nil {
+			os.Exit(1)
+		}
+	})
 
 	if err := cmd.Execute(); err != nil {
 		os.Exit(1)
 	}
 }
 
-func homeDir() string {
-	if h := os.Getenv("HOME"); h != "" {
-		return h
-	}
-	return os.Getenv("USERPROFILE") // windows
-}
-
-func getKubeClient(context string) (kubernetes.Interface, error) {
-	kubeConfigPath := filepath.Join(homeDir(), ".kube", "config")
-	config, err := clientcmd.BuildConfigFromFlags("", kubeConfigPath)
-	if err != nil {
-		return nil, err
-	}
-	return kubernetes.NewForConfig(config)
+func debug(format string, v ...interface{}) {
+	format = fmt.Sprintf("[debug] %s\n", format)
 }

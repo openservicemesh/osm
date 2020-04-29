@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus-deployment
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: prometheus-server
+  template:
+    metadata:
+      labels:
+        app: prometheus-server
+    spec:
+      containers:
+      - args:
+        - --config.file=/etc/prometheus/prometheus.yml
+        - --storage.tsdb.path=/prometheus/
+        - --web.listen-address=:7070
+        image: prom/prometheus:v2.2.1
+        imagePullPolicy: Always
+        name: prometheus
+        ports:
+        - containerPort: 7070
+        volumeMounts:
+        - mountPath: /etc/prometheus/
+          name: prometheus-config-volume
+        - mountPath: /prometheus/
+          name: prometheus-storage-volume
+      serviceAccountName: prometheus-serviceaccount
+      volumes:
+      - configMap:
+          defaultMode: 420
+          name: prometheus-server-conf
+        name: prometheus-config-volume
+      - emptyDir: {}
+        name: prometheus-storage-volume

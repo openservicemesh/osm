@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ads
+  labels:
+    app: ads
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: ads
+  template:
+    metadata:
+      labels:
+        app: ads
+    spec:
+      serviceAccountName: {{ include "osm.serviceAccountName" . }}
+      containers:
+        - name: ads
+          image: "{{ .Values.image.registry }}/ads:{{ .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: "admin-port"
+              containerPort: 15000
+            - name: "ads-port"
+              containerPort: 15128
+          command: ['/ads']
+          args: [
+            "--verbosity", "trace",
+            "--osmNamespace", "{{.Values.namespace}}",
+            "--osmID", "{{.Values.osmID}}",
+            "--init-container-image", "{{.Values.image.registry}}/init",
+            "--sidecar-image", "{{.Values.sidecarImage}}",
+            "--webhookName", "osm-webhook-{{.Values.osmID}}",
+          ]
+    {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}

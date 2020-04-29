@@ -11,8 +11,8 @@ kubectl delete mutatingwebhookconfiguration "$WEBHOOK_NAME" --ignore-not-found=t
 for ns in "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE" "$K8S_NAMESPACE"; do
     kubectl delete namespace "$ns" || true
 done
-kubectl delete clusterrole osm-xds || true
-kubectl delete clusterrolebinding osm-xds || true
+kubectl delete clusterrole osm || true
+kubectl delete clusterrolebinding osm || true
 
 # cleaning all prometheus related resources
 kubectl delete clusterrole "$PROMETHEUS_SVC" || true

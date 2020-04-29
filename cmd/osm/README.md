@@ -10,9 +10,18 @@ $ ./demo/build-push-images.sh
 ```
 
 ## Install osm control plane
-Build the `osm` binary and install the control plane:
+Build the `osm` binary:
 ```console
 $ make build-osm
+```
+
+Create a container registry secret to be able to pull OSM images from your registry
+```console
+$ bin/osm config acr-secret [your-registry.azurecr.io]
+```
+
+Install the osm control plane
+```console
 $ bin/osm install --container-registry <your-registry>.azurecr.io
 $ kubectl get pods -n osm-system  # check if `ads-<some-hash>` pod is running
 ```
