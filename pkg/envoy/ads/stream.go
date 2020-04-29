@@ -25,10 +25,6 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 
 	// TODO(draychev): check for envoy.ErrTooManyConnections
 
-	log.Info().Msgf("Client connected: Subject CN=%s", cn)
-
-	// Register the newly connected proxy w/ the catalog.
-	// TODO(draychev): this does not produce the correct IP address
 	ip := utils.GetIPFromContext(server.Context())
 
 	// TODO: Need a better way to map a proxy to a service. This
@@ -39,7 +35,7 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 		Namespace: cnMeta.Namespace,
 		Service:   cnMeta.ServiceName,
 	}
-	log.Info().Msgf("cert: cn=%s, service=%s", cn, namespacedService)
+	log.Info().Msgf("Client %s connected: Subject CN=%s; Service=%s", ip, cn, namespacedService)
 
 	proxy := envoy.NewProxy(cn, namespacedService, ip)
 	s.catalog.RegisterProxy(proxy)
