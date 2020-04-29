@@ -25,7 +25,8 @@ func NewMeshCatalog(meshSpec smi.MeshSpec, certManager certificate.Manager, ingr
 
 		servicesCache:        make(map[endpoint.WeightedService][]endpoint.Endpoint),
 		certificateCache:     make(map[endpoint.NamespacedService]certificate.Certificater),
-		connectedProxies:     mapset.NewSet(),
+		expectedProxies:      make(map[certificate.CommonName]expectedProxy),
+		connectedProxies:     make(map[certificate.CommonName]connectedProxy),
 		announcementChannels: mapset.NewSet(),
 		serviceAccountsCache: make(map[endpoint.NamespacedServiceAccount][]endpoint.NamespacedService),
 	}
