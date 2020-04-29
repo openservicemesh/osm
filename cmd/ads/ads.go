@@ -20,6 +20,7 @@ import (
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/envoy/ads"
+	"github.com/open-service-mesh/osm/pkg/featureflags"
 	"github.com/open-service-mesh/osm/pkg/httpserver"
 	"github.com/open-service-mesh/osm/pkg/ingress"
 	"github.com/open-service-mesh/osm/pkg/injector"
@@ -50,6 +51,9 @@ var (
 	kubeConfigFile string
 	osmNamespace   string
 	injectorConfig injector.Config
+
+	// feature flag options
+	optionalFeatures featureflags.OptionalFeatures
 )
 
 var (
@@ -74,12 +78,16 @@ func init() {
 	flags.IntVar(&injectorConfig.ListenPort, "webhook-port", constants.InjectorWebhookPort, "Webhook port for sidecar-injector")
 	flags.StringVar(&injectorConfig.InitContainerImage, "init-container-image", "", "InitContainer image")
 	flags.StringVar(&injectorConfig.SidecarImage, "sidecar-image", "", "Sidecar proxy Container image")
+
+	// feature flags
+	flags.BoolVar(&optionalFeatures.Ingress, "enable-ingress", false, "Enable ingress in OSM")
 }
 
 func main() {
 	log.Trace().Msg("Starting ADS")
 	parseFlags()
 	logger.SetLogLevel(verbosity)
+	featureflags.Initialize(optionalFeatures)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
