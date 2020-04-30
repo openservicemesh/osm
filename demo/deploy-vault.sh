@@ -2,6 +2,7 @@
 
 # Source: https://raw.githubusercontent.com/hashicorp/microsoft-oss-conference/ffdea87a63a115ca6a8ecaf0a02f1b605ac853bf/kubernetes/vault.yaml
 
+# shellcheck disable=SC1091
 source .env
 
 kubectl delete deployment vault -n "$K8S_NAMESPACE"
