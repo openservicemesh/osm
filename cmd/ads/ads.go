@@ -170,8 +170,8 @@ func main() {
 	meshCatalog := catalog.NewMeshCatalog(meshSpec, certManager, ingressClient, stop, endpointsProviders...)
 
 	// Create the sidecar-injector webhook
-	if webhookName == nil || *webhookName == "" {
-		log.Fatal().Msg("Invalid --webhookName value")
+	if *webhookName == "" {
+		log.Fatal().Msgf("Invalid --webhookName value: '%s'", *webhookName)
 	}
 	if err := injector.NewWebhook(injectorConfig, kubeConfig, certManager, meshCatalog, namespaceController, osmID, osmNamespace, *webhookName, stop); err != nil {
 		log.Fatal().Err(err).Msg("Error creating mutating webhook")

@@ -82,7 +82,7 @@ do
   echo "waiting for secret $CA_BUNDLE_SECRET to be created" && sleep 2
 done
 
-./demo/deploy-webhook.sh "ads" "$K8S_NAMESPACE" "$OSM_ID"
+### ./demo/deploy-webhook.sh "ads" "$K8S_NAMESPACE" "$OSM_ID"
 
 ./demo/deploy-apps.sh
 
