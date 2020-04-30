@@ -42,6 +42,7 @@ const (
 
 	defaultCertValidityMinutes = 525600 // 1 year
 
+	caBundleSecretNameCLIParam = "caBundleSecretName"
 )
 
 var (
@@ -58,7 +59,7 @@ var (
 
 var (
 	flags               = pflag.NewFlagSet(`ads`, pflag.ExitOnError)
-	caBundleSecretName  = flags.String("caBundleSecretName", "", "Name of the Kubernetes Secret for the OSM CA bundle")
+	caBundleSecretName  = flags.String(caBundleSecretNameCLIParam, "", "Name of the Kubernetes Secret for the OSM CA bundle")
 	azureSubscriptionID = flags.String("azureSubscriptionID", "", "Azure Subscription ID")
 	port                = flags.Int("port", constants.AggregatedDiscoveryServicePort, "Aggregated Discovery Service port number.")
 	log                 = logger.New("ads/main")
@@ -147,9 +148,13 @@ func main() {
 		}
 	}
 
-	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
-	if err := createCABundleKubernetesSecret(kubeClient, certManager, osmNamespace, *caBundleSecretName); err != nil {
-		log.Error().Err(err).Msgf("Error exporting CA bundle into Kubernetes secret with name %s", *caBundleSecretName)
+	if *caBundleSecretName == "" {
+		log.Info().Msgf("CA bundle will not be exported to a k8s secret (no --%s provided)", caBundleSecretNameCLIParam)
+	} else {
+		kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
+		if err := createCABundleKubernetesSecret(kubeClient, certManager, osmNamespace, *caBundleSecretName); err != nil {
+			log.Error().Err(err).Msgf("Error exporting CA bundle into Kubernetes secret with name %s", *caBundleSecretName)
+		}
 	}
 
 	endpointsProviders := []endpoint.Provider{
