@@ -32,9 +32,6 @@ type webhook struct {
 
 // Config is the type used to represent the config options for the sidecar injection
 type Config struct {
-	// EnableTLS defines whether TLS is used or not
-	EnableTLS bool
-
 	// DefaultInjection defines whether sidecar injection is enabled by default
 	DefaultInjection bool
 
