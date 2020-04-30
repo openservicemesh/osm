@@ -136,6 +136,10 @@ var _ = Describe("Route Configuration", func() {
 				{ClusterName: endpoint.ClusterName("osm/bookstore-1"), Weight: 100},
 				{ClusterName: endpoint.ClusterName("osm/bookstore-2"), Weight: 100},
 			}
+			totalClusterWeight := 0
+			for _, cluster := range weightedClusters {
+				totalClusterWeight += cluster.Weight
+			}
 			routePolicy := endpoint.RoutePolicy{
 				PathRegex: "/books-bought",
 				Methods:   []string{"GET"},
@@ -157,6 +161,7 @@ var _ = Describe("Route Configuration", func() {
 			Expect(sourceRouteConfig.VirtualHosts[0].Routes[0].Match.GetSafeRegex().Regex).To(Equal(constants.RegexMatchAll))
 			Expect(sourceRouteConfig.VirtualHosts[0].Routes[0].Match.GetHeaders()[0].GetSafeRegexMatch().Regex).To(Equal(constants.RegexMatchAll))
 			Expect(len(sourceRouteConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters().GetClusters())).To(Equal(len(weightedClusters)))
+			Expect(sourceRouteConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters().TotalWeight).To(Equal(&wrappers.UInt32Value{Value: uint32(totalClusterWeight)}))
 		})
 	})
 })

@@ -73,11 +73,11 @@ func createVirtualHostStub(name string, domain string) v2route.VirtualHost {
 
 func createRoutes(routePolicyWeightedClustersList []endpoint.RoutePolicyWeightedClusters, isLocalCluster bool) []*v2route.Route {
 	var routes []*v2route.Route
-	// for source envoy configure for wild card routes and methods with weighted distribution on all clusters based on traffic split
 	if !isLocalCluster {
+		// For a source service, configure a wildcard route match with weighted routes to upstream clusters based on traffic split policies
 		weightedClusters := getDistinctWeightedClusters(routePolicyWeightedClustersList)
 		totalClustersWeight := getTotalWeightForClusters(weightedClusters)
-		route := fillRouteObject(constants.RegexMatchAll, constants.WildcardHTTPMethod, weightedClusters, totalClustersWeight, isLocalCluster)
+		route := getRoute(constants.RegexMatchAll, constants.WildcardHTTPMethod, weightedClusters, totalClustersWeight, isLocalCluster)
 		routes = append(routes, &route)
 		return routes
 	}
@@ -86,14 +86,14 @@ func createRoutes(routePolicyWeightedClustersList []endpoint.RoutePolicyWeighted
 		// is wildcard or if there are duplicates
 		allowedMethods := sanitizeHTTPMethods(routePolicyWeightedClusters.RoutePolicy.Methods)
 		for _, method := range allowedMethods {
-			route := fillRouteObject(routePolicyWeightedClusters.RoutePolicy.PathRegex, method, routePolicyWeightedClusters.WeightedClusters, 100, isLocalCluster)
+			route := getRoute(routePolicyWeightedClusters.RoutePolicy.PathRegex, method, routePolicyWeightedClusters.WeightedClusters, 100, isLocalCluster)
 			routes = append(routes, &route)
 		}
 	}
 	return routes
 }
 
-func fillRouteObject(pathRegex string, method string, weightedCLusters []endpoint.WeightedCluster, totalClustersWeight int, isLocalCluster bool) v2route.Route {
+func getRoute(pathRegex string, method string, weightedCLusters []endpoint.WeightedCluster, totalClustersWeight int, isLocalCluster bool) v2route.Route {
 	route := v2route.Route{
 		Match: &v2route.RouteMatch{
 			PathSpecifier: &v2route.RouteMatch_SafeRegex{
@@ -140,6 +140,7 @@ func getWeightedCluster(weightedClusters []endpoint.WeightedCluster, totalCluste
 		})
 	}
 	if !isLocalCluster {
+		// for source service, the pre-computed total weight based on traffic splits is used
 		total = totalClustersWeight
 	}
 	wc.TotalWeight = &wrappers.UInt32Value{Value: uint32(total)}
@@ -147,6 +148,8 @@ func getWeightedCluster(weightedClusters []endpoint.WeightedCluster, totalCluste
 	return &wc
 }
 
+// This method gets a list of all the distinct upstream clusters for a domain
+// needed to configure source service's weighted routes
 func getDistinctWeightedClusters(routePolicyWeightedClustersList []endpoint.RoutePolicyWeightedClusters) []endpoint.WeightedCluster {
 	var weightedClusters []endpoint.WeightedCluster
 	for _, perRouteWeightedClusters := range routePolicyWeightedClustersList {
