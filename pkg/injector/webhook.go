@@ -73,26 +73,20 @@ func (wh *webhook) run(stop <-chan struct{}) {
 
 	log.Info().Msgf("Starting sidecar-injection webhook server on :%v", wh.config.ListenPort)
 	go func() {
-		if wh.config.EnableTLS {
-			// Generate a key pair from your pem-encoded cert and key ([]byte).
-			cert, err := tls.X509KeyPair(wh.cert.GetCertificateChain(), wh.cert.GetPrivateKey())
-			if err != nil {
-				// TODO(draychev): bubble these up as errors instead of fataling here (https://github.com/open-service-mesh/osm/issues/534)
-				log.Fatal().Err(err).Msg("Error parsing webhook certificate")
-			}
+		// Generate a key pair from your pem-encoded cert and key ([]byte).
+		cert, err := tls.X509KeyPair(wh.cert.GetCertificateChain(), wh.cert.GetPrivateKey())
+		if err != nil {
+			// TODO(draychev): bubble these up as errors instead of fataling here (https://github.com/open-service-mesh/osm/issues/534)
+			log.Fatal().Err(err).Msg("Error parsing webhook certificate")
+		}
 
-			server.TLSConfig = &tls.Config{
-				Certificates: []tls.Certificate{cert},
-			}
+		server.TLSConfig = &tls.Config{
+			Certificates: []tls.Certificate{cert},
+		}
 
-			if err := server.ListenAndServeTLS("", ""); err != nil {
-				// TODO(draychev): bubble these up as errors instead of fataling here (https://github.com/open-service-mesh/osm/issues/534)
-				log.Fatal().Err(err).Msgf("Sidecar-injection webhook HTTP server failed to start")
-			}
-		} else {
-			if err := server.ListenAndServe(); err != nil {
-				log.Fatal().Err(err).Msgf("Sidecar-injection webhook HTTP server failed to start")
-			}
+		if err := server.ListenAndServeTLS("", ""); err != nil {
+			// TODO(draychev): bubble these up as errors instead of fataling here (https://github.com/open-service-mesh/osm/issues/534)
+			log.Fatal().Err(err).Msgf("Sidecar-injection webhook HTTP server failed to start")
 		}
 	}()
 
