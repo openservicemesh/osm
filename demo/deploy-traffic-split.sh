@@ -11,15 +11,15 @@ kubectl apply -f - <<EOF
 apiVersion: split.smi-spec.io/v1alpha2
 kind: TrafficSplit
 metadata:
-  name: bookstore.mesh
+  name: bookstore-split
   namespace: "$BOOKSTORE_NAMESPACE"
 spec:
-  service: bookstore.mesh
+  service: "bookstore-v1.$BOOKSTORE_NAMESPACE"
   backends:
 
-  - service: bookstore-1
+  - service: bookstore-v1
     weight: 50
-  - service: bookstore-2
+  - service: bookstore-v2
     weight: 50
 
 

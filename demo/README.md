@@ -28,7 +28,11 @@
 
 ## Configure Environment Variables
 In the root directory of the repo create a `.env` file. It is already listed in `.gitignore` so that anything you put in it would not accidentally leak into a public git repo. The `.env` file should contain the following Bash variables:
-   - `K8S_NAMESPACE` - Namespace within your Kubernetes cluster, where OSM will be installed. This cannot be the `default` namespace because it has to be a namespace that can be deleted.
+   - `K8S_NAMESPACE` - Namespace within your Kubernetes cluster where OSM will be installed. This cannot be the `default` namespace because it has to be a namespace that can be deleted.
+   - `BOOKBUYER_NAMESPACE` - Namespace where the bookbuyer app will be deployed to
+   - `BOOKSTORE_NAMESPACE` - Namespace where the bookstore app will be deployed to
+   - `BOOKTHIEF_NAMESPACE` - Namespace where the bookthief app will be deployed to
+   - `OSM_ID` - An ID to uniquely identify an OSM instance within the cluster. For example: `osm-local`
    - `AZURE_SUBSCRIPTION` - the Azure subscription where your Kubernete cluster resides. The demo will use this to configure the Endpoint Discovery Service's cloud observer.
    - `CTR_REGISTRY` - URL of the container registry. For example: `draychev.azurecr.io/osm`
    - `CTR_REGISTRY_CREDS_NAME` - name to be used for the Kubernetes secrets resource to be created from the Docker container registry.
@@ -36,21 +40,19 @@ In the root directory of the repo create a `.env` file. It is already listed in 
 An example is provided in the `.env.example` in the root of this repo.
 
 ## Run the Demo
-1. From the root of this repository execute `./demo/run-demo.sh`. This script will:
-   - compile both the Endpoint Discovery Service and the Secrets Discovery Service, create separate containers and push these to the workstation's default container registry (See `~/.docker/config.json`)
-   - create a BookBuyer service, composed of a Bash script running `curl http://bookstore.mesh/` in an infinite loop (see `demo/bookbuyer.sh`); creates a container and uploats it to your contaner registry
-   - create a Bookstore service, composed of a single binary, a web server, which increases a counter (books bought) on every GET request/response and returns that counter in a header; creates a container and uploats it to your contaner registry
-   - the demo script assumes you have Azure Container Registry and automatically provisions credentials to your local workstation and pushes a secret to your Kubernetes cluster
-   - another script creates certificates to be distributed by SDS and saves these in the Kubernetes cluster
-   - bootstrap Envoy configs (ConfigMaps) for the bookstore and bookbuyer services are also uploaded (applid) to the K8s cluster
-   - a Kubernetes Deployment and Services are applied for the bookstore, bookbuyer, eds, and sds containers
-   - an SMI TrafficSplit policy is applied
-   - finally a script runs in an infinite loop querying the Pods within the Kubernetes cluster
+1. From the root of this repository execute `./demo/run-demo.sh`. The demo script assumes you have Azure Container Registry and automatically provisions credentials to your local workstation and pushes a secret to your Kubernetes cluster
+   This script will:
+   - compile OSM's control plane (ADS), create separate a container image and push it to the workstation's default container registry (See `~/.docker/config.json`)
+   - create a `bookbuyer` service that curls the `bookstore` serivce for books (see `demo/cmd/bookbuyer/bookbuyer.go`); creates a container and uploats it to your contaner registry; creates a deployment for the `bookbuyer` service
+   - create a `bookthief` service that curls the `bookstore` serivce for books (see `demo/cmd/bookthief/bookthief.go`); creates a container and uploats it to your contaner registry; creates a deployment for the `bookthief` service
+   - create 2 versions of the `bookstore` service `bookstore-v1` and `bookstore-v2`, composed of a single binary, a web server, which increases a counter (books bought) on every GET request/response and returns that counter in a header; creates a container and uploats it to your contaner registry
+   - applies SMI traffic policies allowing `bookbuyer` to access `bookstore-v1` and `bookstore-v2`, while preventing `bookthief` from accessing the `bookstore` services
+   - finally a command indefinitely watches the relevant pods within the Kubernetes cluster
 
-1. To see the results of deploying the services and the service mesh - run the tailing script: `./demo/tail-bookbuyer.sh`
-   - the script will connect to the bookbuyer Kubernetes Pod and will stream its logs
-   - the output will be the output of the cURL command to the `bookstore.mesh` service and the count of books sold
-   - a properly working service mesh will result in HTTP 200 OK responses from the bookstore, along with a monotonically increasing counter appearing in the response headers.
+1. To see the results of deploying the services and the service mesh - run the tailing scripts:
+   - the scripts will connect to the respecitve Kubernetes Pod and stream its logs
+   - the output will be the output of the cURL command to the `bookstore-v1` and `bookstore-v2` services and the count of books sold
+   - a properly working service mesh will result in HTTP 200 OK with `./demo/tail-bookbuyer.sh` along with a monotonically increasing counter appearing in the response headers, while `./demo/tail-bookthief.sh` will result in HTTP 404 Not Found
 
 ## Onboarding VMs to a service mesh
 

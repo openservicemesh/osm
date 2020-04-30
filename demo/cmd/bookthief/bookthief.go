@@ -17,10 +17,12 @@ const (
 )
 
 func main() {
+	bookstoreNamespace := os.Getenv(common.BookstoreNamespaceEnvVar)
 	bookstoreService := os.Getenv("BOOKSTORE_SVC")
 	if bookstoreService == "" {
-		bookstoreService = "bookstore.mesh"
+		bookstoreService = "bookstore-v1"
 	}
+	bookstoreService = fmt.Sprintf("%s.%s", bookstoreService, bookstoreNamespace) // FQDN
 	booksBought := fmt.Sprintf("http://%s/books-bought", bookstoreService)
 	buyBook := fmt.Sprintf("http://%s/buy-a-book/new", bookstoreService)
 	waitForOK := getWaitForOK()

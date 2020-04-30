@@ -4,8 +4,8 @@ set -auexo pipefail
 
 # shellcheck disable=SC1091
 source .env
-
-SVC=${1:-bookstore}
+VERSION=${1:-v1}
+SVC="bookstore-$VERSION"
 
 kubectl delete deployment "$SVC" -n "$BOOKSTORE_NAMESPACE"  || true
 
@@ -51,11 +51,12 @@ spec:
   selector:
     matchLabels:
       app: $SVC
+      version: $VERSION
   template:
     metadata:
       labels:
         app: $SVC
-        version: v1
+        version: $VERSION
       annotations:
         "openservicemesh.io/sidecar-injection": "enabled"
         "openservicemesh.io/osm-service": "$SVC"

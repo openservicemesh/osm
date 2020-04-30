@@ -30,8 +30,8 @@ else
     ./ci/create-app-container-registry-creds.sh
 fi
 # Deploy bookstore
-./demo/deploy-bookstore.sh "bookstore-1"
-./demo/deploy-bookstore.sh "bookstore-2"
+./demo/deploy-bookstore.sh "v1"
+./demo/deploy-bookstore.sh "v2"
 # Deploy bookbuyer
 ./demo/deploy-bookbuyer.sh
 # Deploy bookthief

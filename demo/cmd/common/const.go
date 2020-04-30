@@ -42,4 +42,7 @@ const (
 
 	// HumanReadableLogMessagesEnvVar is an environment variable, which when set to "true" enables colorful human-readable log messages.
 	HumanReadableLogMessagesEnvVar = "OSM_HUMAN_DEBUG_LOG"
+
+	// BookstoreNamespaceEnvVar is the environment variable for the Bookbuyer namespace.
+	BookstoreNamespaceEnvVar = "BOOKSTORE_NAMESPACE"
 )

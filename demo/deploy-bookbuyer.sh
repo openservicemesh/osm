@@ -62,12 +62,6 @@ spec:
     spec:
       serviceAccountName: bookbuyer-serviceaccount
       automountServiceAccountToken: false
-      hostAliases:
-      - ip: "127.0.0.2"
-        hostnames:
-        - "${BOOKBUYER_NAMESPACE}.uswest.mesh"
-        - "bookbuyer.mesh"
-        - "bookstore.mesh"
 
       containers:
         # Main container with APP
@@ -79,6 +73,8 @@ spec:
           env:
             - name: "WAIT_FOR_OK_SECONDS"
               value: "$WAIT_FOR_OK_SECONDS"
+            - name: "BOOKSTORE_NAMESPACE"
+              value: "$BOOKSTORE_NAMESPACE"
 
 
       imagePullSecrets:
