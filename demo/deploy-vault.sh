@@ -2,6 +2,8 @@
 
 # Source: https://raw.githubusercontent.com/hashicorp/microsoft-oss-conference/ffdea87a63a115ca6a8ecaf0a02f1b605ac853bf/kubernetes/vault.yaml
 
+source .env
+
 kubectl delete deployment vault -n "$K8S_NAMESPACE"
 kubectl delete pod vault -n "$K8S_NAMESPACE"
 kubectl delete service vault -n "$K8S_NAMESPACE"
