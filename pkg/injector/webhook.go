@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/Azure/go-autorest/autorest/to"
-	"github.com/open-service-mesh/osm/demo/cmd/common"
 	"k8s.io/api/admission/v1beta1"
 	admissionv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -36,6 +35,14 @@ var (
 	}
 )
 
+const (
+	osmWebhookName        = "osm-inject.k8s.io"
+	osmWebhookLabelKey    = "app"
+	osmWebhookServiceName = constants.AggregatedDiscoveryServiceName
+	osmWebhookLabelValue  = constants.AggregatedDiscoveryServiceName
+	osmWebhookMutatePath  = "/mutate"
+)
+
 // NewWebhook starts a new web server handling requests from the injector MutatingWebhookConfiguration
 func NewWebhook(config Config, kubeConfig *rest.Config, certManager certificate.Manager, meshCatalog catalog.MeshCataloger, namespaceController namespace.Controller, osmID, osmNamespace, webhookName string, stop <-chan struct{}) error {
 	cn := certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.AggregatedDiscoveryServiceName, osmNamespace))
@@ -55,12 +62,12 @@ func NewWebhook(config Config, kubeConfig *rest.Config, certManager certificate.
 		cert:                cert,
 	}
 
-	err = createMutatingWebhookConfiguration(cert, osmID, osmNamespace, webhookName)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Error creating MutatingWebhookCnofiguration")
-	}
-
 	go wh.run(stop)
+
+	err = createMutatingWebhookConfiguration(cert, osmID, osmNamespace, webhookName, wh.kubeClient)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error creating MutatingWebhookConfiguration")
+	}
 
 	return nil
 }
@@ -278,7 +285,7 @@ func patchAdmissionResponse(resp *v1beta1.AdmissionResponse, patchBytes []byte) 
 	}()
 }
 
-func createMutatingWebhookConfiguration(cert certificate.Certificater, osmID, osmNamespace, webhookName string) error {
+func createMutatingWebhookConfiguration(cert certificate.Certificater, osmID, osmNamespace, webhookName string, clientSet kubernetes.Interface) error {
 	fail := admissionv1beta1.Fail
 	webhook := admissionv1beta1.MutatingWebhookConfiguration{
 		TypeMeta: metav1.TypeMeta{
@@ -286,20 +293,19 @@ func createMutatingWebhookConfiguration(cert certificate.Certificater, osmID, os
 			APIVersion: "",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      webhookName,
-			Namespace: osmNamespace,
+			Name: webhookName,
 			Labels: map[string]string{
-				"app": constants.AggregatedDiscoveryServiceName,
+				osmWebhookLabelKey: osmWebhookLabelValue,
 			},
 		},
 		Webhooks: []admissionv1beta1.MutatingWebhook{
 			{
-				Name: "osm-inject.k8s.io",
+				Name: osmWebhookName,
 				ClientConfig: admissionv1beta1.WebhookClientConfig{
 					Service: &admissionv1beta1.ServiceReference{
 						Namespace: osmNamespace,
-						Name:      constants.AggregatedDiscoveryServiceName,
-						Path:      to.StringPtr("/mutate"),
+						Name:      osmWebhookServiceName,
+						Path:      to.StringPtr(osmWebhookMutatePath),
 					},
 					CABundle: cert.GetCertificateChain(),
 				},
@@ -323,8 +329,6 @@ func createMutatingWebhookConfiguration(cert certificate.Certificater, osmID, os
 		},
 	}
 
-	clientSet := common.GetClient()
-
 	exists, err := hookExists(clientSet, webhookName)
 	if err != nil {
 		return err
@@ -340,11 +344,11 @@ func createMutatingWebhookConfiguration(cert certificate.Certificater, osmID, os
 	if _, err := clientSet.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Create(context.Background(), &webhook, metav1.CreateOptions{}); err != nil {
 		return err
 	}
-	log.Info().Msgf("Created MutatingWebhookConfiguration %s in namespace %s", webhookName, osmNamespace)
+	log.Info().Msgf("Created MutatingWebhookConfiguration %s", webhookName)
 	return nil
 }
 
-func hookExists(clientSet *kubernetes.Clientset, webhookName string) (bool, error) {
+func hookExists(clientSet kubernetes.Interface, webhookName string) (bool, error) {
 	webhooks, err := clientSet.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		return false, err
