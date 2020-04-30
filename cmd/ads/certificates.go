@@ -18,7 +18,7 @@ const (
 	tresorKind certificateManagerKind = "tresor"
 
 	// Azure Key Vault integration; uses AKV for certificat storage only; certs are signed on the OSM pod
-	keyvualtKind = "keyvault"
+	keyVaultKind = "keyvault"
 
 	// Hashi Vault integration; OSM is pointed to an external Vault; signing of certs happens on Vault
 	vaultKind = "vault"
@@ -27,7 +27,7 @@ const (
 // Functions we can call to create a Certificate Manager for each kind of supported certificate issuer
 var certManagers = map[certificateManagerKind]func() certificate.Manager{
 	tresorKind:   getTresorCertificateManager,
-	keyvualtKind: getAzureKeyVaultCertManager,
+	keyVaultKind: getAzureKeyVaultCertManager,
 	vaultKind:    getHashiVaultCertManager,
 }
 

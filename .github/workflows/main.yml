@@ -111,7 +111,7 @@ jobs:
         BOOKSTORE_NAMESPACE: "ci-bookstore-${{ github.run_id }}-${{ github.run_number}}-tresor"
         BOOKTHIEF_NAMESPACE: "ci-bookthief-${{ github.run_id }}-${{ github.run_number}}-tresor"
         PROMETHEUS_SVC: "ci-prometheus-${{ github.run_id }}-${{ github.run_number}}-tresor"
-        OSM_ID: "osm-ci-${{ github.run_id }}-${{ github.run_number}}-hashivault"
+        OSM_ID: "osm-ci-${{ github.run_id }}-${{ github.run_number}}-tresor"
         ACR_CREDS: ${{ secrets.ACR_CREDS }}
         KUBECONFIG: ".kube/config"
         DOCKER_USER: ${{ secrets.DOCKER_USER }}
@@ -128,10 +128,8 @@ jobs:
         mkdir -p ".kube"
         echo "$KUBE_CONFIG" | base64 -d > "$KUBECONFIG"
         echo "$DOCKER_PASS" | docker login "$ACR" -u "$DOCKER_USER" --password-stdin
-        go run ./ci/cmd/cleanup-namespaces.go
         ./demo/run-demo.sh
         go run ./demo/cmd/tail/tail.go
-
 
     - name: Integration Test with Hashi Vault
       env:
@@ -156,7 +154,7 @@ jobs:
         WAIT_FOR_POD_TIME_SECONDS: ${{ secrets.WAIT_FOR_POD_TIME_SECONDS }}
         OSM_HUMAN_DEBUG_LOG: ${{ secrets.OSM_HUMAN_DEBUG_LOG }}
         CERT_MANAGER: "vault"
-        VAULT_HOST: "vault.default.svc.cluster.local"
+        VAULT_HOST: "vault.ci-${{ github.run_id }}-${{ github.run_number}}-hashivault.svc.cluster.local"
         VAULT_PROTOCOL: "http"
         VAULT_PORT: "8200"
         VAULT_TOKEN: ${{ secrets.VAULT_TOKEN }}
