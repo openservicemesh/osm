@@ -9,7 +9,9 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/Azure/go-autorest/autorest/to"
 	"k8s.io/api/admission/v1beta1"
+	admissionv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -33,8 +35,16 @@ var (
 	}
 )
 
+const (
+	osmWebhookName        = "osm-inject.k8s.io"
+	osmWebhookLabelKey    = "app"
+	osmWebhookServiceName = constants.AggregatedDiscoveryServiceName
+	osmWebhookLabelValue  = constants.AggregatedDiscoveryServiceName
+	osmWebhookMutatePath  = "/mutate"
+)
+
 // NewWebhook starts a new web server handling requests from the injector MutatingWebhookConfiguration
-func NewWebhook(config Config, kubeConfig *rest.Config, certManager certificate.Manager, meshCatalog catalog.MeshCataloger, namespaceController namespace.Controller, osmNamespace string, stop <-chan struct{}) error {
+func NewWebhook(config Config, kubeConfig *rest.Config, certManager certificate.Manager, meshCatalog catalog.MeshCataloger, namespaceController namespace.Controller, osmID, osmNamespace, webhookName string, stop <-chan struct{}) error {
 	cn := certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.AggregatedDiscoveryServiceName, osmNamespace))
 	cert, err := certManager.IssueCertificate(cn)
 	if err != nil {
@@ -53,6 +63,11 @@ func NewWebhook(config Config, kubeConfig *rest.Config, certManager certificate.
 	}
 
 	go wh.run(stop)
+
+	err = createMutatingWebhookConfiguration(cert, osmID, osmNamespace, webhookName, wh.kubeClient)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Error creating MutatingWebhookConfiguration")
+	}
 
 	return nil
 }
@@ -262,4 +277,80 @@ func patchAdmissionResponse(resp *v1beta1.AdmissionResponse, patchBytes []byte) 
 		pt := v1beta1.PatchTypeJSONPatch
 		return &pt
 	}()
+}
+
+func createMutatingWebhookConfiguration(cert certificate.Certificater, osmID, osmNamespace, webhookName string, clientSet kubernetes.Interface) error {
+	fail := admissionv1beta1.Fail
+	webhook := admissionv1beta1.MutatingWebhookConfiguration{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "",
+			APIVersion: "",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: webhookName,
+			Labels: map[string]string{
+				osmWebhookLabelKey: osmWebhookLabelValue,
+			},
+		},
+		Webhooks: []admissionv1beta1.MutatingWebhook{
+			{
+				Name: osmWebhookName,
+				ClientConfig: admissionv1beta1.WebhookClientConfig{
+					Service: &admissionv1beta1.ServiceReference{
+						Namespace: osmNamespace,
+						Name:      osmWebhookServiceName,
+						Path:      to.StringPtr(osmWebhookMutatePath),
+					},
+					CABundle: cert.GetCertificateChain(),
+				},
+				Rules: []admissionv1beta1.RuleWithOperations{
+					{
+						Operations: []admissionv1beta1.OperationType{admissionv1beta1.Create},
+						Rule: admissionv1beta1.Rule{
+							APIGroups:   []string{""},
+							APIVersions: []string{"v1"},
+							Resources:   []string{"pods"},
+						},
+					},
+				},
+				FailurePolicy: &fail,
+				NamespaceSelector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						namespace.MonitorLabel: osmID,
+					},
+				},
+			},
+		},
+	}
+
+	exists, err := hookExists(clientSet, webhookName)
+	if err != nil {
+		return err
+	}
+	if exists {
+		opts := metav1.DeleteOptions{
+			GracePeriodSeconds: to.Int64Ptr(0),
+		}
+		if err := clientSet.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Delete(context.Background(), webhook.Name, opts); err != nil {
+			log.Error().Err(err).Msgf("Error deleting webhook %s", webhookName)
+		}
+	}
+	if _, err := clientSet.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Create(context.Background(), &webhook, metav1.CreateOptions{}); err != nil {
+		return err
+	}
+	log.Info().Msgf("Created MutatingWebhookConfiguration %s", webhookName)
+	return nil
+}
+
+func hookExists(clientSet kubernetes.Interface, webhookName string) (bool, error) {
+	webhooks, err := clientSet.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return false, err
+	}
+	for _, webhook := range webhooks.Items {
+		if webhook.Name == webhookName {
+			return true, nil
+		}
+	}
+	return false, nil
 }

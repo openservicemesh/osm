@@ -82,6 +82,7 @@ func generateXDSPod(namespace string) *apiv1.Pod {
 		"--init-container-image", initContainer,
 		"--sidecar-image", defaultEnvoyImage,
 		"--caBundleSecretName", fmt.Sprintf("osm-ca-%s", osmID),
+		"--webhookName", fmt.Sprintf("osm-webhook-%s", osmID),
 	}
 
 	if os.Getenv(common.IsGithubEnvVar) != "true" {
