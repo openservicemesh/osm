@@ -30,4 +30,8 @@ func validateCLIParams() {
 	if injectorConfig.SidecarImage == "" {
 		log.Fatal().Msg("Please specify the sidecar image using --sidecar-image ")
 	}
+
+	if webhookName == "" {
+		log.Fatal().Msgf("Invalid --webhookName value: '%s'", webhookName)
+	}
 }

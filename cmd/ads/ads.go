@@ -47,6 +47,7 @@ var (
 	azureAuthFile  string
 	kubeConfigFile string
 	osmNamespace   string
+	webhookName    string
 	injectorConfig injector.Config
 
 	// feature flag options
@@ -70,8 +71,6 @@ var (
 	vaultHost     = flags.String("vaultHost", "vault.default.svc.cluster.local", "Host name of the Hashi Vault")
 	vaultPort     = flags.Int("vaultPort", 8200, "Port of the Hashi Vault")
 	vaultToken    = flags.String("vaultToken", "", "Secret token for the the Hashi Vault")
-
-	webhookName = flags.String("webhookName", "", "Name of the MutatingWebhookConfiguration to be created by ADS")
 )
 
 func init() {
@@ -80,6 +79,7 @@ func init() {
 	flags.StringVar(&azureAuthFile, "azureAuthFile", "", "Path to Azure Auth File")
 	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file.")
 	flags.StringVar(&osmNamespace, "osmNamespace", "", "Namespace to which OSM belongs to.")
+	flags.StringVar(&webhookName, "webhookName", "", "Name of the MutatingWebhookConfiguration to be created by ADS")
 
 	// sidecar injector options
 	flags.BoolVar(&injectorConfig.DefaultInjection, "default-injection", true, "Enable sidecar injection by default")
@@ -148,10 +148,7 @@ func main() {
 	meshCatalog := catalog.NewMeshCatalog(meshSpec, certManager, ingressClient, stop, endpointsProviders...)
 
 	// Create the sidecar-injector webhook
-	if *webhookName == "" {
-		log.Fatal().Msgf("Invalid --webhookName value: '%s'", *webhookName)
-	}
-	if err := injector.NewWebhook(injectorConfig, kubeConfig, certManager, meshCatalog, namespaceController, osmID, osmNamespace, *webhookName, stop); err != nil {
+	if err := injector.NewWebhook(injectorConfig, kubeConfig, certManager, meshCatalog, namespaceController, osmID, osmNamespace, webhookName, stop); err != nil {
 		log.Fatal().Err(err).Msg("Error creating mutating webhook")
 	}
 
