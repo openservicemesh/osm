@@ -13,7 +13,7 @@ import (
 // This should at some point have a 1:1 match to an Endpoint (which is a member of a meshed service).
 type Proxy struct {
 	certificate.CommonName
-	net.IP
+	net.Addr
 	ServiceName   endpoint.NamespacedService
 	announcements chan interface{}
 
@@ -76,8 +76,8 @@ func (p Proxy) GetCommonName() certificate.CommonName {
 }
 
 // GetIP returns the IP address of the Envoy proxy connected to xDS.
-func (p Proxy) GetIP() net.IP {
-	return p.IP
+func (p Proxy) GetIP() net.Addr {
+	return p.Addr
 }
 
 // GetAnnouncementsChannel returns the announcement channel for the given Envoy proxy.
@@ -86,10 +86,10 @@ func (p Proxy) GetAnnouncementsChannel() chan interface{} {
 }
 
 // NewProxy creates a new instance of an Envoy proxy connected to the xDS servers.
-func NewProxy(cn certificate.CommonName, namespacedService endpoint.NamespacedService, ip net.IP) *Proxy {
+func NewProxy(cn certificate.CommonName, namespacedService endpoint.NamespacedService, ip net.Addr) *Proxy {
 	return &Proxy{
 		CommonName:         cn,
-		IP:                 ip,
+		Addr:               ip,
 		ServiceName:        namespacedService,
 		announcements:      make(chan interface{}),
 		lastNonce:          make(map[TypeURI]string),

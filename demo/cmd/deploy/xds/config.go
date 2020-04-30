@@ -86,6 +86,7 @@ func generateXDSPod(namespace string) *apiv1.Pod {
 		"--vaultHost", os.Getenv("VAULT_HOST"),
 		"--vaultProtocol", os.Getenv("VAULT_PROTOCOL"),
 		"--vaultToken", os.Getenv("VAULT_TOKEN"),
+		"--webhookName", fmt.Sprintf("osm-webhook-%s", osmID),
 	}
 
 	if os.Getenv(common.IsGithubEnvVar) != "true" {

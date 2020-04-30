@@ -73,46 +73,59 @@ func createVirtualHostStub(name string, domain string) v2route.VirtualHost {
 
 func createRoutes(routePolicyWeightedClustersList []endpoint.RoutePolicyWeightedClusters, isLocalCluster bool) []*v2route.Route {
 	var routes []*v2route.Route
+	if !isLocalCluster {
+		// For a source service, configure a wildcard route match with weighted routes to upstream clusters based on traffic split policies
+		weightedClusters := getDistinctWeightedClusters(routePolicyWeightedClustersList)
+		totalClustersWeight := getTotalWeightForClusters(weightedClusters)
+		route := getRoute(constants.RegexMatchAll, constants.WildcardHTTPMethod, weightedClusters, totalClustersWeight, isLocalCluster)
+		routes = append(routes, &route)
+		return routes
+	}
 	for _, routePolicyWeightedClusters := range routePolicyWeightedClustersList {
 		// For a given route path, sanitize the methods in case there
 		// is wildcard or if there are duplicates
 		allowedMethods := sanitizeHTTPMethods(routePolicyWeightedClusters.RoutePolicy.Methods)
 		for _, method := range allowedMethods {
-			route := v2route.Route{
-				Match: &v2route.RouteMatch{
-					PathSpecifier: &v2route.RouteMatch_SafeRegex{
-						SafeRegex: &matcher.RegexMatcher{
-							EngineType: regexEngine,
-							Regex:      routePolicyWeightedClusters.RoutePolicy.PathRegex,
-						},
-					},
-					Headers: []*v2route.HeaderMatcher{
-						&v2route.HeaderMatcher{
-							Name: ":method",
-							HeaderMatchSpecifier: &v2route.HeaderMatcher_SafeRegexMatch{
-								SafeRegexMatch: &matcher.RegexMatcher{
-									EngineType: regexEngine,
-									Regex:      getRegexForMethod(method),
-								},
-							},
-						},
-					},
-				},
-				Action: &v2route.Route_Route{
-					Route: &v2route.RouteAction{
-						ClusterSpecifier: &v2route.RouteAction_WeightedClusters{
-							WeightedClusters: getWeightedCluster(routePolicyWeightedClusters.WeightedClusters, isLocalCluster),
-						},
-					},
-				},
-			}
+			route := getRoute(routePolicyWeightedClusters.RoutePolicy.PathRegex, method, routePolicyWeightedClusters.WeightedClusters, 100, isLocalCluster)
 			routes = append(routes, &route)
 		}
 	}
 	return routes
 }
 
-func getWeightedCluster(weightedClusters []endpoint.WeightedCluster, isLocalCluster bool) *v2route.WeightedCluster {
+func getRoute(pathRegex string, method string, weightedCLusters []endpoint.WeightedCluster, totalClustersWeight int, isLocalCluster bool) v2route.Route {
+	route := v2route.Route{
+		Match: &v2route.RouteMatch{
+			PathSpecifier: &v2route.RouteMatch_SafeRegex{
+				SafeRegex: &matcher.RegexMatcher{
+					EngineType: regexEngine,
+					Regex:      pathRegex,
+				},
+			},
+			Headers: []*v2route.HeaderMatcher{
+				{
+					Name: ":method",
+					HeaderMatchSpecifier: &v2route.HeaderMatcher_SafeRegexMatch{
+						SafeRegexMatch: &matcher.RegexMatcher{
+							EngineType: regexEngine,
+							Regex:      getRegexForMethod(method),
+						},
+					},
+				},
+			},
+		},
+		Action: &v2route.Route_Route{
+			Route: &v2route.RouteAction{
+				ClusterSpecifier: &v2route.RouteAction_WeightedClusters{
+					WeightedClusters: getWeightedCluster(weightedCLusters, totalClustersWeight, isLocalCluster),
+				},
+			},
+		},
+	}
+	return route
+}
+
+func getWeightedCluster(weightedClusters []endpoint.WeightedCluster, totalClustersWeight int, isLocalCluster bool) *v2route.WeightedCluster {
 	var wc v2route.WeightedCluster
 	var total int
 	for _, cluster := range weightedClusters {
@@ -126,9 +139,42 @@ func getWeightedCluster(weightedClusters []endpoint.WeightedCluster, isLocalClus
 			Weight: &wrappers.UInt32Value{Value: uint32(cluster.Weight)},
 		})
 	}
+	if !isLocalCluster {
+		// for source service, the pre-computed total weight based on traffic splits is used
+		total = totalClustersWeight
+	}
 	wc.TotalWeight = &wrappers.UInt32Value{Value: uint32(total)}
 	sort.Stable(clusterWeightByName(wc.Clusters))
 	return &wc
+}
+
+// This method gets a list of all the distinct upstream clusters for a domain
+// needed to configure source service's weighted routes
+func getDistinctWeightedClusters(routePolicyWeightedClustersList []endpoint.RoutePolicyWeightedClusters) []endpoint.WeightedCluster {
+	var weightedClusters []endpoint.WeightedCluster
+	for _, perRouteWeightedClusters := range routePolicyWeightedClustersList {
+		for _, cluster := range perRouteWeightedClusters.WeightedClusters {
+			var clusterExists bool
+			for _, existingCluster := range weightedClusters {
+				if existingCluster.ClusterName == cluster.ClusterName {
+					clusterExists = true
+					continue
+				}
+			}
+			if !clusterExists {
+				weightedClusters = append(weightedClusters, cluster)
+			}
+		}
+	}
+	return weightedClusters
+}
+
+func getTotalWeightForClusters(weightedClusters []endpoint.WeightedCluster) int {
+	var totalWeight int
+	for _, cluster := range weightedClusters {
+		totalWeight += cluster.Weight
+	}
+	return totalWeight
 }
 
 type clusterWeightByName []*v2route.WeightedCluster_ClusterWeight

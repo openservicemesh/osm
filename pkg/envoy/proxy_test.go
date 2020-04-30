@@ -2,7 +2,6 @@ package envoy
 
 import (
 	"fmt"
-	"net"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -28,7 +27,7 @@ var _ = Describe("Test proxy methods", func() {
 				Service:   svc,
 			}
 
-			proxy := NewProxy(cn, namespacedSvc, net.IP{})
+			proxy := NewProxy(cn, namespacedSvc, nil)
 
 			actualCN := proxy.GetCommonName()
 			Expect(actualCN).To(Equal(certificate.CommonName(commonNameForProxy)))

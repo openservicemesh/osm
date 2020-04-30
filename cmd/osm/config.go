@@ -113,6 +113,7 @@ func generateKubernetesConfig(name, namespace, serviceAccountName, containerRegi
 								fmt.Sprintf("%s/%s:latest", containerRegistry, "init"),
 								"--sidecar-image", defaultEnvoyImage,
 								"--caBundleSecretName", getCABundleSecretName(),
+								"--webhookName", fmt.Sprintf("osm-webhook-%s", defaultOSMInstanceID),
 							},
 							Env: []apiv1.EnvVar{
 								{

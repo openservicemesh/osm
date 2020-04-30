@@ -9,6 +9,7 @@ import (
 
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
+	"github.com/open-service-mesh/osm/pkg/envoy"
 )
 
 var _ = Describe("VirtualHost with domains", func() {
@@ -58,7 +59,7 @@ var _ = Describe("Weighted clusters", func() {
 				totalClusterWeight += cluster.Weight
 			}
 
-			routeWeightedClusters := getWeightedCluster(weightedClusters, true)
+			routeWeightedClusters := getWeightedCluster(weightedClusters, totalClusterWeight, true)
 			Expect(routeWeightedClusters.TotalWeight).To(Equal(&wrappers.UInt32Value{Value: uint32(totalClusterWeight)}))
 			Expect(len(routeWeightedClusters.GetClusters())).To(Equal(len(weightedClusters)))
 
@@ -90,7 +91,7 @@ var _ = Describe("Routes with weighted clusters", func() {
 			}
 			routeWeightedClustersList = append(routeWeightedClustersList, endpoint.RoutePolicyWeightedClusters{RoutePolicy: routePolicy, WeightedClusters: weightedClusters})
 
-			rt := createRoutes(routeWeightedClustersList, false)
+			rt := createRoutes(routeWeightedClustersList, true)
 			Expect(len(rt)).To(Equal(len(routePolicy.Methods)))
 
 			for i, route := range rt {
@@ -99,7 +100,7 @@ var _ = Describe("Routes with weighted clusters", func() {
 				Expect(route.GetRoute().GetWeightedClusters().TotalWeight).To(Equal(&wrappers.UInt32Value{Value: uint32(totalClusterWeight)}))
 				Expect(len(route.GetRoute().GetWeightedClusters().GetClusters())).To(Equal(len(weightedClusters)))
 				for j, cluster := range route.GetRoute().GetWeightedClusters().GetClusters() {
-					Expect(cluster.Name).To(Equal(string(weightedClusters[j].ClusterName)))
+					Expect(cluster.Name).To(Equal(string(weightedClusters[j].ClusterName) + envoy.LocalClusterSuffix))
 					Expect(cluster.Weight).To(Equal(&wrappers.UInt32Value{Value: uint32(weightedClusters[j].Weight)}))
 				}
 			}
@@ -113,14 +114,14 @@ var _ = Describe("Routes with weighted clusters", func() {
 			}
 			routeWeightedClustersList = append(routeWeightedClustersList, endpoint.RoutePolicyWeightedClusters{RoutePolicy: routePolicy2, WeightedClusters: weightedClusters})
 			httpMethodCount := 3 // 2 from previously added routes + 1 append
-			rt := createRoutes(routeWeightedClustersList, false)
+			rt := createRoutes(routeWeightedClustersList, true)
 			Expect(len(rt)).To(Equal(httpMethodCount))
 			Expect(rt[2].Match.GetSafeRegex().Regex).To(Equal(routePolicy2.PathRegex))
 			Expect(rt[2].Match.GetHeaders()[0].GetSafeRegexMatch().Regex).To(Equal(routePolicy2.Methods[0]))
 			Expect(rt[2].GetRoute().GetWeightedClusters().TotalWeight).To(Equal(&wrappers.UInt32Value{Value: uint32(totalClusterWeight)}))
 			Expect(len(rt[2].GetRoute().GetWeightedClusters().GetClusters())).To(Equal(len(weightedClusters)))
 			for j, cluster := range rt[2].GetRoute().GetWeightedClusters().GetClusters() {
-				Expect(cluster.Name).To(Equal(string(weightedClusters[j].ClusterName)))
+				Expect(cluster.Name).To(Equal(string(weightedClusters[j].ClusterName) + envoy.LocalClusterSuffix))
 				Expect(cluster.Weight).To(Equal(&wrappers.UInt32Value{Value: uint32(weightedClusters[j].Weight)}))
 			}
 		})
@@ -134,6 +135,10 @@ var _ = Describe("Route Configuration", func() {
 			weightedClusters := []endpoint.WeightedCluster{
 				{ClusterName: endpoint.ClusterName("osm/bookstore-1"), Weight: 100},
 				{ClusterName: endpoint.ClusterName("osm/bookstore-2"), Weight: 100},
+			}
+			totalClusterWeight := 0
+			for _, cluster := range weightedClusters {
+				totalClusterWeight += cluster.Weight
 			}
 			routePolicy := endpoint.RoutePolicy{
 				PathRegex: "/books-bought",
@@ -152,10 +157,11 @@ var _ = Describe("Route Configuration", func() {
 			Expect(sourceRouteConfig).NotTo(Equal(nil))
 			Expect(sourceRouteConfig.Name).To(Equal(OutboundRouteConfig))
 			Expect(len(sourceRouteConfig.VirtualHosts)).To(Equal(len(sourceDomainAggregatedData)))
-			Expect(len(sourceRouteConfig.VirtualHosts[0].Routes)).To(Equal(len(routePolicy.Methods)))
-			Expect(sourceRouteConfig.VirtualHosts[0].Routes[0].Match.GetSafeRegex().Regex).To(Equal(routePolicy.PathRegex))
-			Expect(sourceRouteConfig.VirtualHosts[0].Routes[0].Match.GetHeaders()[0].GetSafeRegexMatch().Regex).To(Equal(routePolicy.Methods[0]))
+			Expect(len(sourceRouteConfig.VirtualHosts[0].Routes)).To(Equal(1))
+			Expect(sourceRouteConfig.VirtualHosts[0].Routes[0].Match.GetSafeRegex().Regex).To(Equal(constants.RegexMatchAll))
+			Expect(sourceRouteConfig.VirtualHosts[0].Routes[0].Match.GetHeaders()[0].GetSafeRegexMatch().Regex).To(Equal(constants.RegexMatchAll))
 			Expect(len(sourceRouteConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters().GetClusters())).To(Equal(len(weightedClusters)))
+			Expect(sourceRouteConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters().TotalWeight).To(Equal(&wrappers.UInt32Value{Value: uint32(totalClusterWeight)}))
 		})
 	})
 })

@@ -70,6 +70,8 @@ var (
 	vaultHost     = flags.String("vaultHost", "vault.default.svc.cluster.local", "Host name of the Hashi Vault")
 	vaultPort     = flags.Int("vaultPort", 8200, "Port of the Hashi Vault")
 	vaultToken    = flags.String("vaultToken", "", "Secret token for the the Hashi Vault")
+
+	webhookName = flags.String("webhookName", "", "Name of the MutatingWebhookConfiguration to be created by ADS")
 )
 
 func init() {
@@ -80,7 +82,6 @@ func init() {
 	flags.StringVar(&osmNamespace, "osmNamespace", "", "Namespace to which OSM belongs to.")
 
 	// sidecar injector options
-	flags.BoolVar(&injectorConfig.EnableTLS, "enable-tls", true, "Enable TLS")
 	flags.BoolVar(&injectorConfig.DefaultInjection, "default-injection", true, "Enable sidecar injection by default")
 	flags.IntVar(&injectorConfig.ListenPort, "webhook-port", constants.InjectorWebhookPort, "Webhook port for sidecar-injector")
 	flags.StringVar(&injectorConfig.InitContainerImage, "init-container-image", "", "InitContainer image")
@@ -147,7 +148,10 @@ func main() {
 	meshCatalog := catalog.NewMeshCatalog(meshSpec, certManager, ingressClient, stop, endpointsProviders...)
 
 	// Create the sidecar-injector webhook
-	if err := injector.NewWebhook(injectorConfig, kubeConfig, certManager, meshCatalog, namespaceController, osmNamespace, stop); err != nil {
+	if *webhookName == "" {
+		log.Fatal().Msgf("Invalid --webhookName value: '%s'", *webhookName)
+	}
+	if err := injector.NewWebhook(injectorConfig, kubeConfig, certManager, meshCatalog, namespaceController, osmID, osmNamespace, *webhookName, stop); err != nil {
 		log.Fatal().Err(err).Msg("Error creating mutating webhook")
 	}
 
