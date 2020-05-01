@@ -59,7 +59,7 @@ func getTresorCertificateManager() certificate.Manager {
 }
 
 func getAzureKeyVaultCertManager() certificate.Manager {
-	// TODO(draychev): implement: https://github.com/open-service-mesh/osm/issues/577
+
 	log.Fatal().Msg("Azure Key Vault certificate manager is not implemented")
 	return nil
 }
