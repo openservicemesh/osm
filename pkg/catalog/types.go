@@ -2,6 +2,7 @@ package catalog
 
 import (
 	"sync"
+	"time"
 
 	mapset "github.com/deckarep/golang-set"
 
@@ -29,7 +30,8 @@ type MeshCatalog struct {
 	certificateCache     map[endpoint.NamespacedService]certificate.Certificater
 	serviceAccountsCache map[endpoint.NamespacedServiceAccount][]endpoint.NamespacedService
 
-	connectedProxies     mapset.Set
+	expectedProxies      map[certificate.CommonName]expectedProxy
+	connectedProxies     map[certificate.CommonName]connectedProxy
 	announcementChannels mapset.Set
 }
 
@@ -47,6 +49,9 @@ type MeshCataloger interface {
 	// GetCertificateForService returns the SSL Certificate for the given service.
 	// This certificate will be used for service-to-service mTLS.
 	GetCertificateForService(endpoint.NamespacedService) (certificate.Certificater, error)
+
+	// ExpectProxy catalogs the fact that a certificate was issued for an Envoy proxy and this is expected to connect to XDS.
+	ExpectProxy(certificate.CommonName)
 
 	// RegisterProxy registers a newly connected proxy with the service mesh catalog.
 	RegisterProxy(*envoy.Proxy)
@@ -76,4 +81,16 @@ type MeshCataloger interface {
 type announcementChannel struct {
 	announcer string
 	channel   <-chan interface{}
+}
+
+type expectedProxy struct {
+	// The time the certificate, identified by CN, for the expected proxy was issued on
+	issuedOn time.Time
+}
+type connectedProxy struct {
+	// Proxy which connected to the XDS control plane
+	proxy *envoy.Proxy
+
+	// When the proxy connected to the XDS control plane
+	connectedOn time.Time
 }

@@ -3,8 +3,6 @@ package catalog
 import (
 	"reflect"
 	"time"
-
-	"github.com/open-service-mesh/osm/pkg/envoy"
 )
 
 const (
@@ -42,12 +40,11 @@ func (sc *MeshCatalog) getCases() ([]reflect.SelectCase, []string) {
 }
 
 func (sc *MeshCatalog) broadcast(message interface{}) {
-	for _, proxyInterface := range sc.connectedProxies.ToSlice() {
-		envoy := proxyInterface.(*envoy.Proxy)
-		log.Debug().Msgf("[repeater] Broadcast announcement to envoy %s", envoy.GetCommonName())
+	for _, connectedEnvoy := range sc.connectedProxies {
+		log.Debug().Msgf("[repeater] Broadcast announcement to envoy %s", connectedEnvoy.proxy.GetCommonName())
 		select {
 		// send the message if possible - do not block
-		case envoy.GetAnnouncementsChannel() <- message:
+		case connectedEnvoy.proxy.GetAnnouncementsChannel() <- message:
 		default:
 		}
 	}
