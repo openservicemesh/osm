@@ -14,7 +14,7 @@ const (
 	maxTTL    = 3 * time.Minute
 )
 
-// NewCA creates a new certification authority within Hashi Vault. No certificate is returned by this function.
+// NewCA creates a new certification authority within Hashi Vault. Returns the new root certificate WITHOUT the private key.
 func (cm *CertManager) NewCA(cn certificate.CommonName, validity time.Duration) (certificate.Certificater, error) {
 	if _, err := cm.client.Logical().Write("pki/root/generate/internal", getIssuanceData(cn, validity)); err != nil {
 		log.Error().Err(err).Msg("Error creating a new root certificate")
