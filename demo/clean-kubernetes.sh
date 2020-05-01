@@ -19,5 +19,5 @@ kubectl delete clusterrole "$PROMETHEUS_SVC" || true
 kubectl delete clusterrolebinding "$PROMETHEUS_SVC" || true
 
 # Clean up Hashicorp Vault deployment
-kubectl delete deployment vault -n "$K8S_NAMESPACE"
-kubectl delete service vault -n "$K8S_NAMESPACE"
+kubectl delete deployment vault -n "$K8S_NAMESPACE" || true
+kubectl delete service vault -n "$K8S_NAMESPACE" || true
