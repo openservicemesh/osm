@@ -2,6 +2,9 @@ package catalog
 
 import (
 	"fmt"
+	"time"
+
+	"github.com/open-service-mesh/osm/pkg/certificate"
 
 	testclient "k8s.io/client-go/kubernetes/fake"
 
@@ -19,7 +22,9 @@ import (
 var _ = Describe("Catalog tests", func() {
 	endpointProviders := []endpoint.Provider{kube.NewFakeProvider()}
 	kubeClient := testclient.NewSimpleClientset()
-	meshCatalog := NewMeshCatalog(kubeClient, smi.NewFakeMeshSpecClient(), tresor.NewFakeCertManager(), ingress.NewFakeIngressMonitor(), make(<-chan struct{}), endpointProviders...)
+	cache := make(map[certificate.CommonName]certificate.Certificater)
+	certManager := tresor.NewFakeCertManager(&cache, 1*time.Hour)
+	meshCatalog := NewMeshCatalog(kubeClient, smi.NewFakeMeshSpecClient(), certManager, ingress.NewFakeIngressMonitor(), make(<-chan struct{}), endpointProviders...)
 
 	Context("Testing UniqueLists", func() {
 		It("Returns unique list of services", func() {

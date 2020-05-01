@@ -1,8 +1,12 @@
 package catalog
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	"github.com/open-service-mesh/osm/pkg/certificate"
 	extensionsV1beta "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -30,7 +34,8 @@ var (
 
 func newFakeMeshCatalog() *MeshCatalog {
 	meshSpec := smi.NewFakeMeshSpecClient()
-	certManager := tresor.NewFakeCertManager()
+	cache := make(map[certificate.CommonName]certificate.Certificater)
+	certManager := tresor.NewFakeCertManager(&cache, 1*time.Hour)
 	ingressMonitor := ingress.NewFakeIngressMonitor()
 	ingressMonitor.FakeIngresses = getFakeIngresses()
 	stop := make(<-chan struct{})

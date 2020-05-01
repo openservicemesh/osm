@@ -2,22 +2,24 @@ package main
 
 import (
 	"context"
-
-	"github.com/open-service-mesh/osm/pkg/constants"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/open-service-mesh/osm/pkg/certificate/providers/tresor"
 	testclient "k8s.io/client-go/kubernetes/fake"
+
+	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/open-service-mesh/osm/pkg/certificate/providers/tresor"
+	"github.com/open-service-mesh/osm/pkg/constants"
 )
 
 var _ = Describe("Test creation of CA bundle k8s secret", func() {
 	Context("Testing createCABundleKubernetesSecret", func() {
 		It("creates a k8s secret", func() {
 
-			certManager := tresor.NewFakeCertManager()
+			cache := make(map[certificate.CommonName]certificate.Certificater)
+			certManager := tresor.NewFakeCertManager(&cache, 1*time.Hour)
 			secretName := "--secret--name--"
 			namespace := "--namespace--"
 			k8sClient := testclient.NewSimpleClientset()

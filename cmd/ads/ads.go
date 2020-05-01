@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"os"
+	"time"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	"github.com/spf13/pflag"
@@ -50,6 +51,7 @@ var (
 	kubeConfigFile string
 	osmNamespace   string
 	webhookName    string
+	validity       int
 	injectorConfig injector.Config
 
 	// feature flag options
@@ -62,7 +64,6 @@ var (
 	azureSubscriptionID = flags.String("azureSubscriptionID", "", "Azure Subscription ID")
 	port                = flags.Int("port", constants.AggregatedDiscoveryServicePort, "Aggregated Discovery Service port number.")
 	log                 = logger.New("ads/main")
-	validity            = flags.Int("validity", defaultCertValidityMinutes, "validity duration of a certificate in MINUTES")
 
 	// What is the Certification Authority to be used
 	certManagerKind = flags.String("certmanager", "tresor", "Certificate manager")
@@ -82,6 +83,7 @@ func init() {
 	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file.")
 	flags.StringVar(&osmNamespace, "osmNamespace", "", "Namespace to which OSM belongs to.")
 	flags.StringVar(&webhookName, "webhookName", "", "Name of the MutatingWebhookConfiguration to be created by ADS")
+	flags.IntVar(&validity, "validity", defaultCertValidityMinutes, "validity duration of a certificate in MINUTES")
 
 	// sidecar injector options
 	flags.BoolVar(&injectorConfig.DefaultInjection, "default-injection", true, "Enable sidecar injection by default")
@@ -127,6 +129,9 @@ func main() {
 	meshSpec := smi.NewMeshSpecClient(kubeConfig, osmNamespace, namespaceController, stop)
 
 	certManager := certManagers[certificateManagerKind(*certManagerKind)]()
+
+	certValidityPeriod := time.Duration(validity) * time.Minute
+	log.Info().Msgf("Certificates will be valid for %+v", certValidityPeriod)
 
 	if *caBundleSecretName == "" {
 		log.Info().Msgf("CA bundle will not be exported to a k8s secret (no --%s provided)", caBundleSecretNameCLIParam)

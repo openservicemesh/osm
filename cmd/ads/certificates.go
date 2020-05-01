@@ -17,7 +17,7 @@ const (
 	// Tresor is an internal package, which leverages Kubernetes secrets and signs certs on the OSM pod
 	tresorKind certificateManagerKind = "tresor"
 
-	// Azure Key Vault integration; uses AKV for certificat storage only; certs are signed on the OSM pod
+	// Azure Key Vault integration; uses AKV for certificate storage only; certs are signed on the OSM pod
 	keyVaultKind = "keyvault"
 
 	// Hashi Vault integration; OSM is pointed to an external Vault; signing of certs happens on Vault
@@ -85,5 +85,5 @@ func getHashiVaultCertManager() certificate.Manager {
 }
 
 func getCertValidityPeriod() time.Duration {
-	return time.Duration(*validity) * time.Minute
+	return time.Duration(validity) * time.Minute
 }

@@ -1,5 +1,7 @@
 package certificate
 
+import "time"
+
 // CommonName is the Subject Common Name from a given SSL certificate.
 type CommonName string
 
@@ -21,12 +23,18 @@ type Certificater interface {
 
 	// GetIssuingCA returns the root certificate for the given cert.
 	GetIssuingCA() []byte
+
+	// GetExpiration returns the time the certificate would expire.
+	GetExpiration() time.Time
 }
 
 // Manager is the interface declaring the methods for the Certificate Manager.
 type Manager interface {
 	// IssueCertificate issues a new certificate.
-	IssueCertificate(cn CommonName) (Certificater, error)
+	IssueCertificate(CommonName) (Certificater, error)
+
+	// RotateCertificate rotates an existing certificate.
+	RotateCertificate(CommonName) (Certificater, error)
 
 	// GetAnnouncementsChannel returns a channel, which is used to announce when changes have been made to the issued certificates.
 	GetAnnouncementsChannel() <-chan interface{}
