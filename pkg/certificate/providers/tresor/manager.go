@@ -46,6 +46,7 @@ func (cm CertManager) GetAnnouncementsChannel() <-chan interface{} {
 	return cm.announcements
 }
 
+// NewCertificate creates a new certificate.
 func NewCertificate(cn certificate.CommonName, validityPeriod time.Duration, ca certificate.Certificater) ([]byte, []byte, *time.Time, error) {
 
 	certPrivKey, err := rsa.GenerateKey(rand.Reader, rsaBits)
