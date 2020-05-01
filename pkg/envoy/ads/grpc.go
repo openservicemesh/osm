@@ -23,6 +23,10 @@ func receive(requests chan v2.DiscoveryRequest, server *xds.AggregatedDiscoveryS
 			log.Error().Msgf("[grpc] Connection terminated with error: %+v", recvErr)
 			return
 		}
-		requests <- *request
+		if request.TypeUrl != "" {
+			requests <- *request
+		} else {
+			log.Warn().Msgf("[grpc] Unknown resource: %s", request.String())
+		}
 	}
 }
