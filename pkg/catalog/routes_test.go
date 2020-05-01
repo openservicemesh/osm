@@ -5,6 +5,7 @@ import (
 
 	testclient "k8s.io/client-go/kubernetes/fake"
 
+	set "github.com/deckarep/golang-set"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -21,44 +22,6 @@ var _ = Describe("Catalog tests", func() {
 	kubeClient := testclient.NewSimpleClientset()
 	meshCatalog := NewMeshCatalog(kubeClient, smi.NewFakeMeshSpecClient(), tresor.NewFakeCertManager(), ingress.NewFakeIngressMonitor(), make(<-chan struct{}), endpointProviders...)
 
-	Context("Testing UniqueLists", func() {
-		It("Returns unique list of services", func() {
-
-			services := []endpoint.NamespacedService{
-				{Namespace: "osm", Service: "booktore-1"},
-				{Namespace: "osm", Service: "booktore-1"},
-				{Namespace: "osm", Service: "booktore-2"},
-				{Namespace: "osm", Service: "booktore-3"},
-				{Namespace: "osm", Service: "booktore-2"},
-			}
-
-			actual := uniqueServices(services)
-			expected := []endpoint.NamespacedService{
-				{Namespace: "osm", Service: "booktore-1"},
-				{Namespace: "osm", Service: "booktore-2"},
-				{Namespace: "osm", Service: "booktore-3"},
-			}
-			Expect(actual).To(Equal(expected))
-		})
-	})
-
-	Context("Testing servicesToString", func() {
-		It("Returns string list", func() {
-
-			services := []endpoint.NamespacedService{
-				{Namespace: "osm", Service: "bookstore-1"},
-				{Namespace: "osm", Service: "bookstore-2"},
-			}
-
-			actual := servicesToString(services)
-			expected := []string{
-				"osm/bookstore-1",
-				"osm/bookstore-2",
-			}
-			Expect(actual).To(Equal(expected))
-		})
-	})
-
 	Context("Test ListTrafficPolicies", func() {
 		It("lists traffic policies", func() {
 			actual, err := meshCatalog.ListTrafficPolicies(tests.BookstoreService)
@@ -71,12 +34,12 @@ var _ = Describe("Catalog tests", func() {
 
 	Context("Test getActiveServices", func() {
 		It("lists active services", func() {
-			actual := meshCatalog.getActiveServices([]endpoint.NamespacedService{tests.BookstoreService})
-			expected := []endpoint.NamespacedService{{
+			actual := meshCatalog.getActiveServices(set.NewSet(tests.BookstoreService))
+			expected := set.NewSet(endpoint.NamespacedService{
 				Namespace: "default",
 				Service:   "bookstore",
-			}}
-			Expect(actual).To(Equal(expected))
+			})
+			Expect(actual.Equal(expected)).To(Equal(true))
 		})
 	})
 
@@ -90,12 +53,12 @@ var _ = Describe("Catalog tests", func() {
 				Destination: endpoint.TrafficPolicyResource{
 					ServiceAccount: tests.BookstoreServiceAccountName,
 					Namespace:      tests.Namespace,
-					Services:       []endpoint.NamespacedService{tests.BookstoreService},
+					Services:       set.NewSet(tests.BookstoreService),
 				},
 				Source: endpoint.TrafficPolicyResource{
 					ServiceAccount: tests.BookbuyerServiceAccountName,
 					Namespace:      tests.Namespace,
-					Services:       []endpoint.NamespacedService{tests.BookbuyerService},
+					Services:       set.NewSet(tests.BookbuyerService),
 				},
 				RoutePolicies: []endpoint.RoutePolicy{{PathRegex: "", Methods: nil}},
 			}}
@@ -106,18 +69,18 @@ var _ = Describe("Catalog tests", func() {
 
 	Context("Test listServicesForServiceAccount", func() {
 		mc := MeshCatalog{
-			serviceAccountsCache: map[endpoint.NamespacedServiceAccount][]endpoint.NamespacedService{
+			serviceAccountToServicesCache: map[endpoint.NamespacedServiceAccount][]endpoint.NamespacedService{
 				tests.BookstoreServiceAccount: {tests.BookstoreService},
 			},
 		}
 		It("lists services for service account", func() {
 			actual, err := mc.listServicesForServiceAccount(tests.BookstoreServiceAccount)
 			Expect(err).ToNot(HaveOccurred())
-			expected := []endpoint.NamespacedService{{
+			expected := set.NewSet(endpoint.NamespacedService{
 				Namespace: tests.Namespace,
 				Service:   tests.BookstoreServiceName,
-			}}
-			Expect(actual).To(Equal(expected))
+			})
+			Expect(actual.Equal(expected)).To(Equal(true))
 		})
 	})
 

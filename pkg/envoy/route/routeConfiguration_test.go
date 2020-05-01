@@ -1,8 +1,7 @@
 package route
 
 import (
-	"fmt"
-
+	set "github.com/deckarep/golang-set"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -50,23 +49,37 @@ var _ = Describe("Weighted clusters", func() {
 	Context("Testing getWeightedClusters", func() {
 		It("validated the creation of weighted clusters", func() {
 
-			weightedClusters := []endpoint.WeightedCluster{
-				{ClusterName: endpoint.ClusterName("osm/bookstore-1"), Weight: 30},
-				{ClusterName: endpoint.ClusterName("osm/bookstore-2"), Weight: 70},
+			weightedClusters := set.NewSetFromSlice([]interface{}{
+				endpoint.WeightedCluster{ClusterName: endpoint.ClusterName("osm/bookstore-1"), Weight: 30},
+				endpoint.WeightedCluster{ClusterName: endpoint.ClusterName("osm/bookstore-2"), Weight: 70},
+			})
+
+			clustersExpected := set.NewSet()
+			weightsExpected := set.NewSet()
+			for weightedClusterInterface := range weightedClusters.Iter() {
+				cluster := weightedClusterInterface.(endpoint.WeightedCluster)
+				clustersExpected.Add(string(cluster.ClusterName + envoy.LocalClusterSuffix))
+				weightsExpected.Add(uint32(cluster.Weight))
 			}
+
 			totalClusterWeight := 0
-			for _, cluster := range weightedClusters {
+			for clusterInterface := range weightedClusters.Iter() {
+				cluster := clusterInterface.(endpoint.WeightedCluster)
 				totalClusterWeight += cluster.Weight
 			}
 
 			routeWeightedClusters := getWeightedCluster(weightedClusters, totalClusterWeight, true)
 			Expect(routeWeightedClusters.TotalWeight).To(Equal(&wrappers.UInt32Value{Value: uint32(totalClusterWeight)}))
-			Expect(len(routeWeightedClusters.GetClusters())).To(Equal(len(weightedClusters)))
+			Expect(len(routeWeightedClusters.GetClusters())).To(Equal(weightedClusters.Cardinality()))
 
-			for j, cluster := range routeWeightedClusters.GetClusters() {
-				Expect(cluster.Name).To(Equal(fmt.Sprintf("%s-local", weightedClusters[j].ClusterName)))
-				Expect(cluster.Weight).To(Equal(&wrappers.UInt32Value{Value: uint32(weightedClusters[j].Weight)}))
+			clustersActual := set.NewSet()
+			weightsActual := set.NewSet()
+			for _, cluster := range routeWeightedClusters.GetClusters() {
+				clustersActual.Add(cluster.Name)
+				weightsActual.Add(cluster.Weight.Value)
 			}
+			Expect(clustersActual.Equal(clustersExpected)).To(Equal(true))
+			Expect(weightsActual.Equal(weightsExpected)).To(Equal(true))
 		})
 	})
 })
@@ -74,14 +87,27 @@ var _ = Describe("Weighted clusters", func() {
 var _ = Describe("Routes with weighted clusters", func() {
 	Context("Testing creation of routes object in route configuration", func() {
 		var routeWeightedClustersList []endpoint.RoutePolicyWeightedClusters
-		weightedClusters := []endpoint.WeightedCluster{
-			{ClusterName: endpoint.ClusterName("osm/bookstore-1"), Weight: 100},
-			{ClusterName: endpoint.ClusterName("osm/bookstore-2"), Weight: 100},
+		weightedClusters := set.NewSetFromSlice([]interface{}{
+			endpoint.WeightedCluster{ClusterName: endpoint.ClusterName("osm/bookstore-1"), Weight: 100},
+			endpoint.WeightedCluster{ClusterName: endpoint.ClusterName("osm/bookstore-2"), Weight: 100},
+		})
+
+		clustersExpected := set.NewSet()
+		weightsExpected := set.NewSet()
+		for weightedClusterInterface := range weightedClusters.Iter() {
+			cluster := weightedClusterInterface.(endpoint.WeightedCluster)
+			clustersExpected.Add(string(cluster.ClusterName + envoy.LocalClusterSuffix))
+			weightsExpected.Add(uint32(cluster.Weight))
 		}
+
 		totalClusterWeight := 0
-		for _, cluster := range weightedClusters {
+		for clusterInterface := range weightedClusters.Iter() {
+			cluster := clusterInterface.(endpoint.WeightedCluster)
 			totalClusterWeight += cluster.Weight
 		}
+
+		clustersActual := set.NewSet()
+		weightsActual := set.NewSet()
 
 		It("Adds a new route", func() {
 
@@ -98,12 +124,14 @@ var _ = Describe("Routes with weighted clusters", func() {
 				Expect(route.Match.GetSafeRegex().Regex).To(Equal(routePolicy.PathRegex))
 				Expect(route.Match.GetHeaders()[0].GetSafeRegexMatch().Regex).To(Equal(routePolicy.Methods[i]))
 				Expect(route.GetRoute().GetWeightedClusters().TotalWeight).To(Equal(&wrappers.UInt32Value{Value: uint32(totalClusterWeight)}))
-				Expect(len(route.GetRoute().GetWeightedClusters().GetClusters())).To(Equal(len(weightedClusters)))
-				for j, cluster := range route.GetRoute().GetWeightedClusters().GetClusters() {
-					Expect(cluster.Name).To(Equal(string(weightedClusters[j].ClusterName) + envoy.LocalClusterSuffix))
-					Expect(cluster.Weight).To(Equal(&wrappers.UInt32Value{Value: uint32(weightedClusters[j].Weight)}))
+				Expect(len(route.GetRoute().GetWeightedClusters().GetClusters())).To(Equal(weightedClusters.Cardinality()))
+				for _, cluster := range route.GetRoute().GetWeightedClusters().GetClusters() {
+					clustersActual.Add(cluster.Name)
+					weightsActual.Add(cluster.Weight.Value)
 				}
 			}
+			Expect(clustersActual.Equal(clustersExpected)).To(Equal(true))
+			Expect(weightsActual.Equal(weightsExpected)).To(Equal(true))
 		})
 
 		It("Appends another route", func() {
@@ -119,11 +147,13 @@ var _ = Describe("Routes with weighted clusters", func() {
 			Expect(rt[2].Match.GetSafeRegex().Regex).To(Equal(routePolicy2.PathRegex))
 			Expect(rt[2].Match.GetHeaders()[0].GetSafeRegexMatch().Regex).To(Equal(routePolicy2.Methods[0]))
 			Expect(rt[2].GetRoute().GetWeightedClusters().TotalWeight).To(Equal(&wrappers.UInt32Value{Value: uint32(totalClusterWeight)}))
-			Expect(len(rt[2].GetRoute().GetWeightedClusters().GetClusters())).To(Equal(len(weightedClusters)))
-			for j, cluster := range rt[2].GetRoute().GetWeightedClusters().GetClusters() {
-				Expect(cluster.Name).To(Equal(string(weightedClusters[j].ClusterName) + envoy.LocalClusterSuffix))
-				Expect(cluster.Weight).To(Equal(&wrappers.UInt32Value{Value: uint32(weightedClusters[j].Weight)}))
+			Expect(len(rt[2].GetRoute().GetWeightedClusters().GetClusters())).To(Equal(weightedClusters.Cardinality()))
+			for _, cluster := range rt[2].GetRoute().GetWeightedClusters().GetClusters() {
+				clustersActual.Add(cluster.Name)
+				weightsActual.Add(cluster.Weight.Value)
 			}
+			Expect(clustersActual.Equal(clustersExpected)).To(Equal(true))
+			Expect(weightsActual.Equal(weightsExpected)).To(Equal(true))
 		})
 	})
 })
@@ -132,12 +162,13 @@ var _ = Describe("Route Configuration", func() {
 	Context("Testing creation of RouteConfiguration object", func() {
 		It("Returns outbound route configuration", func() {
 
-			weightedClusters := []endpoint.WeightedCluster{
-				{ClusterName: endpoint.ClusterName("osm/bookstore-1"), Weight: 100},
-				{ClusterName: endpoint.ClusterName("osm/bookstore-2"), Weight: 100},
-			}
+			weightedClusters := set.NewSet()
+			weightedClusters.Add(endpoint.WeightedCluster{ClusterName: endpoint.ClusterName("osm/bookstore-1"), Weight: 100})
+			weightedClusters.Add(endpoint.WeightedCluster{ClusterName: endpoint.ClusterName("osm/bookstore-2"), Weight: 100})
+
 			totalClusterWeight := 0
-			for _, cluster := range weightedClusters {
+			for clusterInterface := range weightedClusters.Iter() {
+				cluster := clusterInterface.(endpoint.WeightedCluster)
 				totalClusterWeight += cluster.Weight
 			}
 			routePolicy := endpoint.RoutePolicy{
@@ -160,7 +191,7 @@ var _ = Describe("Route Configuration", func() {
 			Expect(len(sourceRouteConfig.VirtualHosts[0].Routes)).To(Equal(1))
 			Expect(sourceRouteConfig.VirtualHosts[0].Routes[0].Match.GetSafeRegex().Regex).To(Equal(constants.RegexMatchAll))
 			Expect(sourceRouteConfig.VirtualHosts[0].Routes[0].Match.GetHeaders()[0].GetSafeRegexMatch().Regex).To(Equal(constants.RegexMatchAll))
-			Expect(len(sourceRouteConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters().GetClusters())).To(Equal(len(weightedClusters)))
+			Expect(len(sourceRouteConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters().GetClusters())).To(Equal(weightedClusters.Cardinality()))
 			Expect(sourceRouteConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters().TotalWeight).To(Equal(&wrappers.UInt32Value{Value: uint32(totalClusterWeight)}))
 		})
 	})
