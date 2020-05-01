@@ -5,7 +5,7 @@ import (
 
 	"github.com/open-service-mesh/osm/pkg/namespace"
 
-	"github.com/open-service-mesh/osm/pkg/tresor"
+	"github.com/open-service-mesh/osm/pkg/certificate/providers/tresor"
 	// v12 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"

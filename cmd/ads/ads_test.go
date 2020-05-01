@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/open-service-mesh/osm/pkg/tresor"
+	"github.com/open-service-mesh/osm/pkg/certificate/providers/tresor"
 	testclient "k8s.io/client-go/kubernetes/fake"
 )
 

@@ -5,7 +5,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	tresorPem "github.com/open-service-mesh/osm/pkg/tresor/pem"
+	tresorPem "github.com/open-service-mesh/osm/pkg/certificate/providers/tresor/pem"
 )
 
 const (

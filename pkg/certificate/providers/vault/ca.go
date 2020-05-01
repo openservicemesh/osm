@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/vault/api"
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
-	"github.com/open-service-mesh/osm/pkg/tresor/pem"
+	"github.com/open-service-mesh/osm/pkg/certificate/providers/tresor/pem"
 )
 
 const (
