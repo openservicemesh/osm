@@ -124,6 +124,8 @@ jobs:
         CERT_MANAGER: "tresor"
       run: |
         touch .env  # it is ok keep this empty
+        echo "Ensure K8s namespace $K8S_NAMESPACE is clean from previous runs"
+        ./demo/clean-kubernetes.sh
         echo "Creating Kubernetes namespace: $K8S_NAMESPACE"
         mkdir -p ".kube"
         echo "$KUBE_CONFIG" | base64 -d > "$KUBECONFIG"
@@ -160,6 +162,8 @@ jobs:
         VAULT_TOKEN: ${{ secrets.VAULT_TOKEN }}
       run: |
         touch .env  # it is ok keep this empty
+        echo "Ensure K8s namespace $K8S_NAMESPACE is clean from previous runs"
+        ./demo/clean-kubernetes.sh
         echo "Creating Kubernetes namespace: $K8S_NAMESPACE"
         mkdir -p ".kube"
         echo "$KUBE_CONFIG" | base64 -d > "$KUBECONFIG"
