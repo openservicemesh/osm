@@ -7,8 +7,8 @@ import (
 	"github.com/open-service-mesh/osm/pkg/certificate"
 )
 
-// Client is a Hashi Vault client instance.
-type Client struct {
+// CertManager implements certificate.Manager and contains a Hashi Vault client instance.
+type CertManager struct {
 	// How long will newly issued certificates be valid for
 	validity time.Duration
 
@@ -21,6 +21,6 @@ type Client struct {
 	// Cache for all the certificates issued
 	cache map[certificate.CommonName]Certificate
 
-	// Hashicorp Vault Client
+	// Hashicorp Vault client
 	client *api.Client
 }
