@@ -20,8 +20,8 @@ const (
 )
 
 // NewCertManager implements certificate.Manager and wraps a Hashi Vault with methods to allow easy certificate issuance.
-func NewCertManager(vaultAddr, token string, validity time.Duration) (*Client, error) {
-	c := &Client{
+func NewCertManager(vaultAddr, token string, validity time.Duration) (*CertManager, error) {
+	c := &CertManager{
 		validity:      validity,
 		announcements: make(chan interface{}),
 		cache:         make(map[certificate.CommonName]Certificate),
@@ -50,19 +50,19 @@ func NewCertManager(vaultAddr, token string, validity time.Duration) (*Client, e
 }
 
 // IssueCertificate issues a certificate by leveraging the Hashi Vault client.
-func (c *Client) IssueCertificate(cn certificate.CommonName) (certificate.Certificater, error) {
-	secret, err := c.client.Logical().Write(getIssueURL(), getIssuanceData(cn, c.validity))
+func (cm *CertManager) IssueCertificate(cn certificate.CommonName) (certificate.Certificater, error) {
+	secret, err := cm.client.Logical().Write(getIssueURL(), getIssuanceData(cn, cm.validity))
 	if err != nil {
 		log.Error().Err(err).Msgf("Error issuing new certificate for CN=%s", cn)
 		return nil, err
 	}
 
-	return newCert(cn, secret, time.Now().Add(c.validity)), nil
+	return newCert(cn, secret, time.Now().Add(cm.validity)), nil
 }
 
 // GetAnnouncementsChannel returns a channel used by the Hashi Vault instance to signal when a certificate has been changed.
-func (c *Client) GetAnnouncementsChannel() <-chan interface{} {
-	return c.announcements
+func (cm *CertManager) GetAnnouncementsChannel() <-chan interface{} {
+	return cm.announcements
 }
 
 // Certificate implements certificate.Certificater

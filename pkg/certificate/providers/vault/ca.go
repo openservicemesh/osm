@@ -14,9 +14,9 @@ const (
 	maxTTL    = 3 * time.Minute
 )
 
-// NewCA creates a new certification authority within Hashi Vault. No certificate is returned by this function.
-func (c *Client) NewCA(cn certificate.CommonName, validity time.Duration) (certificate.Certificater, error) {
-	if _, err := c.client.Logical().Write("pki/root/generate/internal", getIssuanceData(cn, validity)); err != nil {
+// NewCA creates a new certification authority within Hashi Vault. Returns the new root certificate WITHOUT the private key.
+func (cm *CertManager) NewCA(cn certificate.CommonName, validity time.Duration) (certificate.Certificater, error) {
+	if _, err := cm.client.Logical().Write("pki/root/generate/internal", getIssuanceData(cn, validity)); err != nil {
 		log.Error().Err(err).Msg("Error creating a new root certificate")
 		return nil, err
 	}
@@ -31,18 +31,18 @@ func (c *Client) NewCA(cn certificate.CommonName, validity time.Duration) (certi
 		"max_ttl":           getDurationInMinutes(maxTTL),
 	}
 
-	if _, err := c.client.Logical().Write(getRoleConfigURL(), options); err != nil {
+	if _, err := cm.client.Logical().Write(getRoleConfigURL(), options); err != nil {
 		return nil, err
 	}
 
 	// Ensure cert generation has been initialized correctly
-	secret, err := c.client.Logical().Write(getIssueURL(), getIssuanceData("localhost", c.validity))
+	secret, err := cm.client.Logical().Write(getIssueURL(), getIssuanceData("localhost", cm.validity))
 	if err != nil {
 		log.Error().Err(err).Msg("Error creating a test certificate with the newly instantiated Hashi Vault client")
 		return nil, err
 	}
 
-	return newRootCert(cn, secret, time.Now().Add(c.validity)), nil
+	return newRootCert(cn, secret, time.Now().Add(cm.validity)), nil
 }
 
 func newRootCert(cn certificate.CommonName, secret *api.Secret, expiration time.Time) *Certificate {
