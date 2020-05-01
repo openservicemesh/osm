@@ -8,6 +8,7 @@ import (
 	"github.com/golang/protobuf/ptypes/any"
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
+	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 	"github.com/open-service-mesh/osm/pkg/envoy/cla"
 
@@ -17,11 +18,32 @@ import (
 // NewResponse creates a new Endpoint Discovery Response.
 func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, request *xds.DiscoveryRequest) (*xds.DiscoveryResponse, error) {
 	proxyServiceName := proxy.GetService()
-	allServicesEndpoints, err := catalog.ListTrafficSplitEndpoints(proxyServiceName)
+	allTrafficPolicies, err := catalog.ListTrafficPolicies(proxyServiceName)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed listing endpoints")
+		log.Error().Err(err).Msgf("Failed listing traffic policies")
 		return nil, err
 	}
+
+	destinationMap := make(map[endpoint.NamespacedService]struct{})
+	for _, trafficPolicy := range allTrafficPolicies {
+		isSourceService := envoy.Contains(proxyServiceName, trafficPolicy.Source.Services)
+		if isSourceService {
+			for _, service := range trafficPolicy.Destination.Services {
+				destinationMap[service] = struct{}{}
+			}
+		}
+	}
+
+	var allServicesEndpoints []endpoint.WeightedServiceEndpoints
+	for dest := range destinationMap {
+		serviceEndpoints, err := catalog.ListTrafficSplitEndpoints(dest)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed listing endpoints")
+			return nil, err
+		}
+		allServicesEndpoints = append(allServicesEndpoints, serviceEndpoints...)
+	}
+
 	log.Debug().Msgf("allServicesEndpoints: %+v", allServicesEndpoints)
 	var protos []*any.Any
 	for _, serviceEndpoints := range allServicesEndpoints {

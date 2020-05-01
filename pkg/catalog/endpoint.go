@@ -9,7 +9,6 @@ import (
 // ListTrafficSplitEndpoints constructs a map from service to weighted sub-services with all endpoints the given Envoy proxy should be aware of.
 func (sc *MeshCatalog) ListTrafficSplitEndpoints(clientID endpoint.NamespacedService) ([]endpoint.WeightedServiceEndpoints, error) {
 	log.Info().Msgf("Listing Endpoints for client: %s", clientID.String())
-	// todo (sneha) : TBD if clientID is needed for filtering endpoints
 	return sc.getWeightedEndpointsPerService(clientID)
 }
 
@@ -31,7 +30,6 @@ func (sc *MeshCatalog) listEndpointsForService(service endpoint.WeightedService)
 }
 
 func (sc *MeshCatalog) getWeightedEndpointsPerService(clientID endpoint.NamespacedService) ([]endpoint.WeightedServiceEndpoints, error) {
-	// todo (sneha) : TBD if clientID is needed for filtering endpoints
 	var serviceEndpoints []endpoint.WeightedServiceEndpoints
 
 	for _, trafficSplit := range sc.meshSpec.ListTrafficSplits() {
@@ -45,6 +43,9 @@ func (sc *MeshCatalog) getWeightedEndpointsPerService(clientID endpoint.Namespac
 			namespacedServiceName := endpoint.NamespacedService{
 				Namespace: trafficSplit.Namespace,
 				Service:   trafficSplitBackend.Service,
+			}
+			if clientID != namespacedServiceName {
+				continue
 			}
 			svcEp := endpoint.WeightedServiceEndpoints{}
 			svcEp.WeightedService = endpoint.WeightedService{
