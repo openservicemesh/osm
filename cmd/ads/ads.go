@@ -73,6 +73,9 @@ var (
 	vaultHost     = flags.String("vaultHost", "vault.default.svc.cluster.local", "Host name of the Hashi Vault")
 	vaultPort     = flags.Int("vaultPort", 8200, "Port of the Hashi Vault")
 	vaultToken    = flags.String("vaultToken", "", "Secret token for the the Hashi Vault")
+
+	// When certmanager == "keyvault"
+	keyVaultName = flags.String("keyVaultName", "", "Name of the Azure Key Vault to be used")
 )
 
 func init() {

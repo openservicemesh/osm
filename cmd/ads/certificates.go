@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/open-service-mesh/osm/pkg/certificate/providers/keyvault"
+
 	"github.com/open-service-mesh/osm/pkg/certificate"
 	"github.com/open-service-mesh/osm/pkg/certificate/providers/tresor"
 	"github.com/open-service-mesh/osm/pkg/certificate/providers/vault"
@@ -59,9 +61,12 @@ func getTresorCertificateManager() certificate.Manager {
 }
 
 func getAzureKeyVaultCertManager() certificate.Manager {
-
-	log.Fatal().Msg("Azure Key Vault certificate manager is not implemented")
-	return nil
+	validityPeriod := 1 * time.Minute
+	certManager, err := keyvault.NewCertificateManager(validityPeriod, *keyVaultName, azureAuthFile, osmID, keyvault.CustomCertificateAuthority)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Could not instantiate Azure Key Vault certificate manager")
+	}
+	return certManager
 }
 
 func getHashiVaultCertManager() certificate.Manager {
