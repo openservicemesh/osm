@@ -13,7 +13,7 @@ func NewFakeCertManager() *CertManager {
 		log.Error().Err(err).Msg("Error creating CA for fake cert manager")
 	}
 	return &CertManager{
-		ca:             ca,
+		ca:             ca.(*Certificate),
 		validityPeriod: 1 * time.Hour,
 		announcements:  make(chan interface{}),
 		cache:          make(map[certificate.CommonName]Certificate),

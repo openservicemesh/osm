@@ -13,7 +13,7 @@ import (
 )
 
 // NewCA creates a new Certificate Authority.
-func NewCA(cn certificate.CommonName, validity time.Duration) (*Certificate, error) {
+func NewCA(cn certificate.CommonName, validity time.Duration) (certificate.Certificater, error) {
 	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
 	if err != nil {
 		return nil, errors.Wrap(err, errGeneratingSerialNumber.Error())

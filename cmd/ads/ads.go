@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"os"
-	"time"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	"github.com/spf13/pflag"
@@ -32,7 +31,6 @@ import (
 	"github.com/open-service-mesh/osm/pkg/providers/kube"
 	"github.com/open-service-mesh/osm/pkg/signals"
 	"github.com/open-service-mesh/osm/pkg/smi"
-	"github.com/open-service-mesh/osm/pkg/tresor"
 	"github.com/open-service-mesh/osm/pkg/utils"
 )
 
@@ -51,6 +49,7 @@ var (
 	azureAuthFile  string
 	kubeConfigFile string
 	osmNamespace   string
+	webhookName    string
 	injectorConfig injector.Config
 
 	// feature flag options
@@ -64,7 +63,16 @@ var (
 	port                = flags.Int("port", constants.AggregatedDiscoveryServicePort, "Aggregated Discovery Service port number.")
 	log                 = logger.New("ads/main")
 	validity            = flags.Int("validity", defaultCertValidityMinutes, "validity duration of a certificate in MINUTES")
-	webhookName         = flags.String("webhookName", "", "Name of the MutatingWebhookConfiguration to be created by ADS")
+
+	// What is the Certification Authority to be used
+	certManagerKind = flags.String("certmanager", "tresor", "Certificate manager")
+
+	// TODO(draychev): convert all these flags to spf13/cobra: https://github.com/open-service-mesh/osm/issues/576
+	// When certmanager == "vault"
+	vaultProtocol = flags.String("vaultProtocol", "http", "Host name of the Hashi Vault")
+	vaultHost     = flags.String("vaultHost", "vault.default.svc.cluster.local", "Host name of the Hashi Vault")
+	vaultPort     = flags.Int("vaultPort", 8200, "Port of the Hashi Vault")
+	vaultToken    = flags.String("vaultToken", "", "Secret token for the the Hashi Vault")
 )
 
 func init() {
@@ -73,6 +81,7 @@ func init() {
 	flags.StringVar(&azureAuthFile, "azureAuthFile", "", "Path to Azure Auth File")
 	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file.")
 	flags.StringVar(&osmNamespace, "osmNamespace", "", "Namespace to which OSM belongs to.")
+	flags.StringVar(&webhookName, "webhookName", "", "Name of the MutatingWebhookConfiguration to be created by ADS")
 
 	// sidecar injector options
 	flags.BoolVar(&injectorConfig.DefaultInjection, "default-injection", true, "Enable sidecar injection by default")
@@ -93,6 +102,10 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	// This ensures CLI parameters (and dependent values) are correct.
+	// Side effects: This will log.Fatal on error resulting in os.Exit(255)
+	validateCLIParams()
+
 	var kubeConfig *rest.Config
 	var err error
 	if kubeConfigFile != "" {
@@ -108,45 +121,12 @@ func main() {
 		}
 	}
 
-	if osmID == "" {
-		log.Fatal().Msg("Please specify the OSM instance ID using --osmID")
-	}
-	if osmNamespace == "" {
-		log.Fatal().Msg("Please specify the OSM namespace using --osmNamespace")
-	}
-	if injectorConfig.InitContainerImage == "" {
-		log.Fatal().Msg("Please specify the init container image using --init-container-image ")
-	}
-	if injectorConfig.SidecarImage == "" {
-		log.Fatal().Msg("Please specify the sidecar image using --sidecar-image ")
-	}
-
 	stop := signals.RegisterExitHandlers()
 
 	namespaceController := namespace.NewNamespaceController(kubeConfig, osmID, stop)
 	meshSpec := smi.NewMeshSpecClient(kubeConfig, osmNamespace, namespaceController, stop)
 
-	certValidityPeriod := time.Duration(*validity) * time.Minute
-
-	var certManager certificate.Manager
-
-	{
-		// TODO(draychev): save/load root cert from persistent storage:  https://github.com/open-service-mesh/osm/issues/541
-		certManagerKind := "tresor"
-		rootCert, err := tresor.NewCA(constants.CertificationAuthorityCommonName, certValidityPeriod)
-		if err != nil {
-			log.Fatal().Err(err).Msgf("Failed to create new Certificate Authority with cert issuer %s", certManagerKind)
-		}
-
-		if rootCert == nil {
-			log.Fatal().Msgf("Invalid root certificate created by cert issuer %s", certManagerKind)
-		}
-
-		certManager, err = tresor.NewCertManager(rootCert, certValidityPeriod)
-		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to instantiate certificate manager")
-		}
-	}
+	certManager := certManagers[certificateManagerKind(*certManagerKind)]()
 
 	if *caBundleSecretName == "" {
 		log.Info().Msgf("CA bundle will not be exported to a k8s secret (no --%s provided)", caBundleSecretNameCLIParam)
@@ -174,10 +154,7 @@ func main() {
 	meshCatalog := catalog.NewMeshCatalog(meshSpec, certManager, ingressClient, stop, endpointsProviders...)
 
 	// Create the sidecar-injector webhook
-	if *webhookName == "" {
-		log.Fatal().Msgf("Invalid --webhookName value: '%s'", *webhookName)
-	}
-	if err := injector.NewWebhook(injectorConfig, kubeConfig, certManager, meshCatalog, namespaceController, osmID, osmNamespace, *webhookName, stop); err != nil {
+	if err := injector.NewWebhook(injectorConfig, kubeConfig, certManager, meshCatalog, namespaceController, osmID, osmNamespace, webhookName, stop); err != nil {
 		log.Fatal().Err(err).Msg("Error creating mutating webhook")
 	}
 
@@ -218,8 +195,10 @@ func parseFlags() {
 
 func createCABundleKubernetesSecret(kubeClient clientset.Interface, certManager certificate.Manager, namespace, caBundleSecretName string) error {
 	if caBundleSecretName == "" {
+		log.Info().Msg("No name provided for CA bundle k8s secret. Skip creation of secret")
 		return nil
 	}
+
 	// the CN does not matter much - cert won't be used -- 'localhost' is used for throwaway certs.
 	cn := certificate.CommonName("localhost")
 	cert, err := certManager.IssueCertificate(cn)
@@ -238,7 +217,12 @@ func createCABundleKubernetesSecret(kubeClient clientset.Interface, certManager 
 		},
 	}
 
-	log.Info().Msgf("Creating bootstrap config for Envoy: name=%s, namespace=%s", caBundleSecretName, namespace)
 	_, err = kubeClient.CoreV1().Secrets(namespace).Create(context.Background(), secret, metav1.CreateOptions{})
-	return err
+	if err != nil {
+		log.Error().Err(err).Msgf("Error creating CA bundle Kubernetes secret %s in namespace %s", caBundleSecretName, namespace)
+		return err
+	}
+
+	log.Info().Msgf("Created CA bundle Kubernetes secret %s in namespace %s", caBundleSecretName, namespace)
+	return nil
 }

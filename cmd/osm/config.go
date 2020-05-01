@@ -125,74 +125,9 @@ func generateKubernetesConfig(name, namespace, serviceAccountName, containerRegi
 									Value: "info",
 								},
 							},
-
-							VolumeMounts: []apiv1.VolumeMount{
-								{
-									Name:      fmt.Sprintf("ca-certpemstore-%s", name),
-									MountPath: "/etc/ssl/certs/cert.pem",
-									SubPath:   "cert.pem",
-								},
-								{
-									Name:      fmt.Sprintf("ca-keypemstore-%s", name),
-									MountPath: "/etc/ssl/certs/key.pem",
-									SubPath:   "key.pem",
-								},
-								{
-									Name:      "ca-rootcertpemstore",
-									MountPath: "/etc/ssl/certs/root-cert.pem",
-									SubPath:   "root-cert.pem",
-								},
-								{
-									Name:      "ca-rootkeypemstore",
-									MountPath: "/etc/ssl/certs/root-key.pem",
-									SubPath:   "root-key.pem",
-								},
-							},
 						},
 					},
 					ServiceAccountName: serviceAccountName,
-					Volumes: []apiv1.Volume{
-						{
-							Name: fmt.Sprintf("ca-certpemstore-%s", name),
-							VolumeSource: apiv1.VolumeSource{
-								ConfigMap: &apiv1.ConfigMapVolumeSource{
-									LocalObjectReference: apiv1.LocalObjectReference{
-										Name: fmt.Sprintf("ca-certpemstore-%s", name),
-									},
-								},
-							},
-						},
-						{
-							Name: "ca-rootcertpemstore",
-							VolumeSource: apiv1.VolumeSource{
-								ConfigMap: &apiv1.ConfigMapVolumeSource{
-									LocalObjectReference: apiv1.LocalObjectReference{
-										Name: "ca-rootcertpemstore",
-									},
-								},
-							},
-						},
-						{
-							Name: "ca-rootkeypemstore",
-							VolumeSource: apiv1.VolumeSource{
-								ConfigMap: &apiv1.ConfigMapVolumeSource{
-									LocalObjectReference: apiv1.LocalObjectReference{
-										Name: "ca-rootkeypemstore",
-									},
-								},
-							},
-						},
-						{
-							Name: fmt.Sprintf("ca-keypemstore-%s", name),
-							VolumeSource: apiv1.VolumeSource{
-								ConfigMap: &apiv1.ConfigMapVolumeSource{
-									LocalObjectReference: apiv1.LocalObjectReference{
-										Name: fmt.Sprintf("ca-keypemstore-%s", name),
-									},
-								},
-							},
-						},
-					},
 					ImagePullSecrets: []apiv1.LocalObjectReference{
 						{
 							Name: containerRegistrySecret,

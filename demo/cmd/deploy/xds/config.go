@@ -82,6 +82,10 @@ func generateXDSPod(namespace string) *apiv1.Pod {
 		"--init-container-image", initContainer,
 		"--sidecar-image", defaultEnvoyImage,
 		"--caBundleSecretName", fmt.Sprintf("osm-ca-%s", osmID),
+		"--certmanager", os.Getenv("CERT_MANAGER"),
+		"--vaultHost", os.Getenv("VAULT_HOST"),
+		"--vaultProtocol", os.Getenv("VAULT_PROTOCOL"),
+		"--vaultToken", os.Getenv("VAULT_TOKEN"),
 		"--webhookName", fmt.Sprintf("osm-webhook-%s", osmID),
 	}
 
@@ -115,47 +119,6 @@ func generateXDSPod(namespace string) *apiv1.Pod {
 						ConfigMap: &apiv1.ConfigMapVolumeSource{
 							LocalObjectReference: apiv1.LocalObjectReference{
 								Name: "azureconfig",
-							},
-						},
-					},
-				},
-				{
-					Name: "ca-certpemstore-ads",
-					VolumeSource: apiv1.VolumeSource{
-						ConfigMap: &apiv1.ConfigMapVolumeSource{
-							LocalObjectReference: apiv1.LocalObjectReference{
-								Name: "ca-certpemstore-ads",
-							},
-						},
-					},
-				},
-				{
-					Name: "ca-rootcertpemstore",
-					VolumeSource: apiv1.VolumeSource{
-						ConfigMap: &apiv1.ConfigMapVolumeSource{
-							LocalObjectReference: apiv1.LocalObjectReference{
-								Name: "ca-rootcertpemstore",
-							},
-						},
-					},
-				},
-
-				{
-					Name: "ca-keypemstore-ads",
-					VolumeSource: apiv1.VolumeSource{
-						ConfigMap: &apiv1.ConfigMapVolumeSource{
-							LocalObjectReference: apiv1.LocalObjectReference{
-								Name: "ca-keypemstore-ads",
-							},
-						},
-					},
-				},
-				{
-					Name: "ca-rootkeypemstore",
-					VolumeSource: apiv1.VolumeSource{
-						ConfigMap: &apiv1.ConfigMapVolumeSource{
-							LocalObjectReference: apiv1.LocalObjectReference{
-								Name: "ca-rootkeypemstore",
 							},
 						},
 					},
@@ -195,26 +158,6 @@ func generateXDSPod(namespace string) *apiv1.Pod {
 						{
 							Name:      "azureconfig",
 							MountPath: "/azure",
-						},
-						{
-							Name:      "ca-certpemstore-ads",
-							MountPath: "/etc/ssl/certs/cert.pem",
-							SubPath:   "cert.pem",
-						},
-						{
-							Name:      "ca-keypemstore-ads",
-							MountPath: "/etc/ssl/certs/key.pem",
-							SubPath:   "key.pem",
-						},
-						{
-							Name:      "ca-rootkeypemstore",
-							MountPath: "/etc/ssl/certs/root-key.pem",
-							SubPath:   "root-key.pem",
-						},
-						{
-							Name:      "ca-rootcertpemstore",
-							MountPath: "/etc/ssl/certs/root-cert.pem",
-							SubPath:   "root-cert.pem",
 						},
 					},
 					// ReadinessProbe

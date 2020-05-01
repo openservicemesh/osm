@@ -29,10 +29,6 @@ clean-ads:
 .PHONY: build
 build: build-ads
 
-.PHONY: build-cert
-build-cert: clean-cert
-	@mkdir -p $(shell pwd)/bin
-	CGO_ENABLED=0  go build -v -o ./bin/cert ./cmd/cert
 
 .PHONY: build-ads
 build-ads: clean-ads
@@ -48,7 +44,7 @@ build-cross-ads: gox
 	GO111MODULE=on CGO_ENABLED=0 $(GOX) -output="./bin/{{.OS}}-{{.Arch}}/ads" -osarch='$(TARGETS)' -ldflags '$(LDFLAGS)' ./cmd/ads
 
 .PHONY: build-osm
-build-osm: build-cert
+build-osm:
 	@mkdir -p $(shell pwd)/bin
 	CGO_ENABLED=0  go build -v -o ./bin/osm ./cmd/osm
 

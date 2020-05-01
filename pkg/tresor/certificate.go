@@ -60,7 +60,7 @@ func LoadCA(certFilePEM string, keyFilePEM string) (*Certificate, error) {
 }
 
 // NewCertManager creates a new CertManager with the passed CA and CA Private Key
-func NewCertManager(ca *Certificate, validity time.Duration) (*CertManager, error) {
+func NewCertManager(ca certificate.Certificater, validity time.Duration) (*CertManager, error) {
 	if ca == nil {
 		return nil, errNoIssuingCA
 	}
