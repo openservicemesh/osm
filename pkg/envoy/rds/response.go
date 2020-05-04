@@ -10,7 +10,7 @@ import (
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 	"github.com/open-service-mesh/osm/pkg/envoy/route"
-
+	"github.com/open-service-mesh/osm/pkg/featureflags"
 	"github.com/open-service-mesh/osm/pkg/smi"
 )
 
@@ -56,6 +56,14 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 			}
 		}
 	}
+
+	if featureflags.IsIngressEnabled() {
+		// Process ingress policy if applicable
+		if err = updateRoutesForIngress(proxyServiceName, catalog, destinationAggregatedRoutesByDomain); err != nil {
+			return nil, err
+		}
+	}
+
 	sourceRouteConfig = route.UpdateRouteConfiguration(sourceAggregatedRoutesByDomain, sourceRouteConfig, true, false)
 	destinationRouteConfig = route.UpdateRouteConfiguration(destinationAggregatedRoutesByDomain, destinationRouteConfig, false, true)
 	routeConfiguration = append(routeConfiguration, sourceRouteConfig)
@@ -116,4 +124,25 @@ func routeExits(routesList []endpoint.RoutePolicyWeightedClusters, routePolicy e
 		}
 	}
 	return index, routeExists
+}
+
+func updateRoutesForIngress(proxyServiceName endpoint.NamespacedService, catalog catalog.MeshCataloger, domainRoutesMap map[string][]endpoint.RoutePolicyWeightedClusters) error {
+	domainRoutePoliciesMap, err := catalog.GetIngressRoutePoliciesPerDomain(proxyServiceName)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed to get ingress route configuration for proxy %s", proxyServiceName)
+		return err
+	}
+	if len(domainRoutePoliciesMap) == 0 {
+		return nil
+	}
+
+	ingressWeightedCluster, err := catalog.GetIngressWeightedCluster(proxyServiceName)
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed to get weighted ingress clusters for proxy %s", proxyServiceName)
+		return err
+	}
+	for domain, routePolicies := range domainRoutePoliciesMap {
+		aggregateRoutesByDomain(domainRoutesMap, routePolicies, ingressWeightedCluster, domain)
+	}
+	return nil
 }
