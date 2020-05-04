@@ -54,7 +54,7 @@ func newClient(kubeClient *kubernetes.Clientset, azureResourceClient *osmClient.
 		namespaceController: namespaceController,
 	}
 
-	informerCollection.AzureResource.AddEventHandler(k8s.GetKubernetesEventHandlers("AzureResource", "Azure", client.announcements))
+	informerCollection.AzureResource.AddEventHandler(k8s.GetKubernetesEventHandlers("AzureResource", "Azure", client.announcements, client.namespaceController))
 
 	return &client
 }

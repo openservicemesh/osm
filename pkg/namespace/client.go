@@ -9,8 +9,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
-
-	k8s "github.com/open-service-mesh/osm/pkg/kubernetes"
 )
 
 const (
@@ -40,8 +38,6 @@ func NewNamespaceController(kubeConfig *rest.Config, osmID string, stop chan str
 		cache:       informer.GetStore(),
 		cacheSynced: make(chan interface{}),
 	}
-
-	informer.AddEventHandler(k8s.GetKubernetesEventHandlers("Namespaces", "Kubernetes", nil))
 
 	if err := client.run(stop); err != nil {
 		log.Fatal().Err(err).Msg("Could not start Kubernetes Namespaces client")
