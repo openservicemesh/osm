@@ -13,15 +13,15 @@ const (
 )
 
 // ListTrafficPolicies returns all the traffic policies for a given service that Envoy proxy should be aware of.
-func (sc *MeshCatalog) ListTrafficPolicies(clientID endpoint.NamespacedService) ([]endpoint.TrafficPolicy, error) {
+func (mc *MeshCatalog) ListTrafficPolicies(clientID endpoint.NamespacedService) ([]endpoint.TrafficPolicy, error) {
 	log.Info().Msgf("Listing Routes for client: %s", clientID)
-	allRoutes, err := sc.getHTTPPathsPerRoute()
+	allRoutes, err := mc.getHTTPPathsPerRoute()
 	if err != nil {
 		log.Error().Err(err).Msgf("Could not get all routes")
 		return nil, err
 	}
 
-	allTrafficPolicies, err := getTrafficPolicyPerRoute(sc, allRoutes, clientID)
+	allTrafficPolicies, err := getTrafficPolicyPerRoute(mc, allRoutes, clientID)
 	if err != nil {
 		log.Error().Err(err).Msgf("Could not get all traffic policies")
 		return nil, err
@@ -29,15 +29,15 @@ func (sc *MeshCatalog) ListTrafficPolicies(clientID endpoint.NamespacedService) 
 	return allTrafficPolicies, nil
 }
 
-func (sc *MeshCatalog) listServicesForServiceAccount(namespacedServiceAccount endpoint.NamespacedServiceAccount) ([]endpoint.NamespacedService, error) {
+func (mc *MeshCatalog) listServicesForServiceAccount(namespacedServiceAccount endpoint.NamespacedServiceAccount) ([]endpoint.NamespacedService, error) {
 	// TODO(draychev): split namespace from the service name -- for non-K8s services
 	log.Info().Msgf("Listing services for service account: %s", namespacedServiceAccount)
-	if _, found := sc.serviceAccountsCache[namespacedServiceAccount]; !found {
-		sc.refreshCache()
+	if _, found := mc.serviceAccountsCache[namespacedServiceAccount]; !found {
+		mc.refreshCache()
 	}
 	var services []endpoint.NamespacedService
 	var found bool
-	if services, found = sc.serviceAccountsCache[namespacedServiceAccount]; !found {
+	if services, found = mc.serviceAccountsCache[namespacedServiceAccount]; !found {
 		log.Error().Msgf("Did not find any services for service account %s", namespacedServiceAccount)
 		return nil, errServiceNotFound
 	}
@@ -46,11 +46,11 @@ func (sc *MeshCatalog) listServicesForServiceAccount(namespacedServiceAccount en
 }
 
 //GetWeightedClusterForService returns the weighted cluster for a given service
-func (sc *MeshCatalog) GetWeightedClusterForService(service endpoint.NamespacedService) (endpoint.WeightedCluster, error) {
+func (mc *MeshCatalog) GetWeightedClusterForService(service endpoint.NamespacedService) (endpoint.WeightedCluster, error) {
 	// TODO(draychev): split namespace from the service name -- for non-K8s services
 	log.Info().Msgf("Finding weighted cluster for service %s", service)
 	var weightedCluster endpoint.WeightedCluster
-	for activeService := range sc.servicesCache {
+	for activeService := range mc.servicesCache {
 		if activeService.ServiceName == service {
 			weightedCluster = endpoint.WeightedCluster{
 				ClusterName: endpoint.ClusterName(activeService.ServiceName.String()),
@@ -63,10 +63,10 @@ func (sc *MeshCatalog) GetWeightedClusterForService(service endpoint.NamespacedS
 }
 
 //GetDomainForService returns the domain name of a service
-func (sc *MeshCatalog) GetDomainForService(service endpoint.NamespacedService) (string, error) {
+func (mc *MeshCatalog) GetDomainForService(service endpoint.NamespacedService) (string, error) {
 	log.Info().Msgf("Finding domain for service %s", service)
 	var domain string
-	for activeService := range sc.servicesCache {
+	for activeService := range mc.servicesCache {
 		if activeService.ServiceName == service {
 			return activeService.Domain, nil
 		}
@@ -74,12 +74,12 @@ func (sc *MeshCatalog) GetDomainForService(service endpoint.NamespacedService) (
 	return domain, errServiceNotFound
 }
 
-func (sc *MeshCatalog) getActiveServices(services []endpoint.NamespacedService) []endpoint.NamespacedService {
+func (mc *MeshCatalog) getActiveServices(services []endpoint.NamespacedService) []endpoint.NamespacedService {
 	// TODO(draychev): split namespace from the service name -- for non-K8s services
 	log.Info().Msgf("Finding active services only %v", services)
 	var activeServices []endpoint.NamespacedService
 	for _, service := range services {
-		for activeService := range sc.servicesCache {
+		for activeService := range mc.servicesCache {
 			if activeService.ServiceName == service {
 				activeServices = append(activeServices, service)
 			}
@@ -88,9 +88,9 @@ func (sc *MeshCatalog) getActiveServices(services []endpoint.NamespacedService) 
 	return uniqueServices(activeServices)
 }
 
-func (sc *MeshCatalog) getHTTPPathsPerRoute() (map[string]endpoint.RoutePolicy, error) {
+func (mc *MeshCatalog) getHTTPPathsPerRoute() (map[string]endpoint.RoutePolicy, error) {
 	routePolicies := make(map[string]endpoint.RoutePolicy)
-	for _, trafficSpecs := range sc.meshSpec.ListHTTPTrafficSpecs() {
+	for _, trafficSpecs := range mc.meshSpec.ListHTTPTrafficSpecs() {
 		log.Debug().Msgf("Discovered TrafficSpec resource: %s/%s \n", trafficSpecs.Namespace, trafficSpecs.Name)
 		if trafficSpecs.Matches == nil {
 			log.Error().Msgf("TrafficSpec %s/%s has no matches in route; Skipping...", trafficSpecs.Namespace, trafficSpecs.Name)

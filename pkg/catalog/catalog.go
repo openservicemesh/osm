@@ -41,7 +41,7 @@ func NewMeshCatalog(meshSpec smi.MeshSpec, certManager certificate.Manager, ingr
 }
 
 // GetDebugInfo returns an HTTP handler for OSM debug endpoint.
-func (sc *MeshCatalog) GetDebugInfo() http.Handler {
+func (mc *MeshCatalog) GetDebugInfo() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// TODO(draychev): convert to CLI flag
 		if value, ok := os.LookupEnv("OSM_ENABLE_DEBUG"); ok && value == "true" {
@@ -51,20 +51,20 @@ func (sc *MeshCatalog) GetDebugInfo() http.Handler {
 }
 
 // RegisterNewEndpoint adds a newly connected Envoy proxy to the list of self-announced endpoints for a service.
-func (sc *MeshCatalog) RegisterNewEndpoint(smi.ClientIdentity) {
+func (mc *MeshCatalog) RegisterNewEndpoint(smi.ClientIdentity) {
 	// TODO(draychev): implement
 	panic("NotImplemented")
 }
 
-func (sc *MeshCatalog) getAnnouncementChannels() []announcementChannel {
+func (mc *MeshCatalog) getAnnouncementChannels() []announcementChannel {
 	ticking := make(chan interface{})
 	announcementChannels := []announcementChannel{
-		{"MeshSpec", sc.meshSpec.GetAnnouncementsChannel()},
-		{"CertManager", sc.certManager.GetAnnouncementsChannel()},
-		{"IngressMonitor", sc.ingressMonitor.GetAnnouncementsChannel()},
+		{"MeshSpec", mc.meshSpec.GetAnnouncementsChannel()},
+		{"CertManager", mc.certManager.GetAnnouncementsChannel()},
+		{"IngressMonitor", mc.ingressMonitor.GetAnnouncementsChannel()},
 		{"Ticker", ticking},
 	}
-	for _, ep := range sc.endpointsProviders {
+	for _, ep := range mc.endpointsProviders {
 		annCh := announcementChannel{ep.GetID(), ep.GetAnnouncementsChannel()}
 		announcementChannels = append(announcementChannels, annCh)
 	}
