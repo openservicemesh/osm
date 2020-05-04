@@ -25,3 +25,8 @@ serviceAccount:
 features:
   ingressv1alpha1:
     enabled: true
+
+prometheus:
+  serviceName: osm-prometheus
+  port: 7070
+  labelSelector: osm-prometheus-server
