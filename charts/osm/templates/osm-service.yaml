@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ads
+  labels:
+    app: ads
+spec:
+  type: NodePort
+  ports:
+    - name: ads-port
+      port: 15128
+      targetPort: 15128
+    - name: sidecar-injector 
+      port: 443
+      targetPort: 9090
+  selector:
+    app: ads

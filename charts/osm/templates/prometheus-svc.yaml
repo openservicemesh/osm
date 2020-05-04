@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{.Values.prometheus.serviceName}}-service
+  annotations:
+    prometheus.io/port: "{{.Values.prometheus.port}}"
+    prometheus.io/scrape: "true"
+spec:
+  ports:
+  - port: {{.Values.prometheus.port}}
+    protocol: TCP
+    targetPort: {{.Values.prometheus.port}}
+  selector:
+    app: {{.Values.prometheus.labelSelector}}

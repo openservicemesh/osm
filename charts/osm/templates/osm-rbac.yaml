@@ -1,0 +1,52 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Values.serviceAccount.name }}
+rules:
+  - apiGroups: ["apps"]
+    resources: ["daemonsets", "deployments", "replicasets", "statefulsets"]
+    verbs: ["list", "get", "watch"]
+{{- if .Values.features.ingressv1alpha1.enabled }}
+  - apiGroups: ["extensions"]
+    resources: ["ingresses"]
+    verbs: ["list", "get", "watch"]
+{{- end }}
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["list", "get", "watch"]
+  - apiGroups: [""]
+    resources: ["endpoints", "namespaces", "pods", "replicationcontrollers", "services"]
+    verbs: ["list", "get", "watch"]
+  - apiGroups: [""]
+    resources: ["secrets", "configmaps"]
+    verbs: ["create", "update"]
+  - apiGroups: ["admissionregistration.k8s.io"]
+    resources: ["mutatingwebhookconfigurations"]
+    verbs: ["get", "list", "watch", "create", "update"]
+  - apiGroups: ["split.smi-spec.io"]
+    resources: ["trafficsplits"]
+    verbs: ["list", "get", "watch"]
+  - apiGroups: ["access.smi-spec.io"]
+    resources: ["traffictargets"]
+    verbs: ["list", "get", "watch"]
+  - apiGroups: ["specs.smi-spec.io"]
+    resources: ["httproutegroups"]
+    verbs: ["list", "get", "watch"]
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Values.serviceAccount.name }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Values.serviceAccount.name }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Values.serviceAccount.name }}
+    namespace: {{ .Values.namespace }}
+roleRef:
+  kind: ClusterRole
+  name: {{ .Values.serviceAccount.name }}
+  apiGroup: rbac.authorization.k8s.io

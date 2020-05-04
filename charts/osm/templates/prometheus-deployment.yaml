@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{.Values.prometheus.serviceName}}-deployment
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: {{.Values.prometheus.labelSelector}}
+  template:
+    metadata:
+      labels:
+        app: {{.Values.prometheus.labelSelector}}
+    spec:
+      containers:
+      - name: prometheus
+        ports:
+        - containerPort: {{.Values.prometheus.port}}
+        args:
+        - --config.file=/etc/prometheus/prometheus.yml
+        - --storage.tsdb.path=/prometheus/
+        - --web.listen-address=:{{.Values.prometheus.port}}
+        image: prom/prometheus:v2.2.1
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /etc/prometheus/
+          name: prometheus-config-volume
+        - mountPath: /prometheus/
+          name: prometheus-storage-volume
+      serviceAccountName: {{.Values.prometheus.serviceName}}-serviceaccount
+      volumes:
+      - name: prometheus-config-volume
+        configMap:
+          defaultMode: 420
+          name: {{.Values.prometheus.serviceName}}-server-conf
+      - name: prometheus-storage-volume
+        emptyDir: {}

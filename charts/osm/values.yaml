@@ -1,0 +1,32 @@
+# Default values for osm.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# TODO: rename ads pod/deployment/service to osm
+name: ads
+namespace: osm-system
+osmID: osm-local
+
+replicaCount: 1
+
+image:
+  registry: smctest.azurecr.io
+  pullPolicy: Always
+
+imagePullSecrets:
+  - name: acr-creds
+
+initContainer: smctest.azurecr.io/init
+sidecarImage: envoyproxy/envoy-alpine:v1.14.1
+
+serviceAccount:
+  name: osm
+
+features:
+  ingressv1alpha1:
+    enabled: true
+
+prometheus:
+  serviceName: osm-prometheus
+  port: 7070
+  labelSelector: osm-prometheus-server
