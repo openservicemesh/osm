@@ -5,7 +5,7 @@ import (
 	"io"
 
 	"github.com/spf13/cobra"
-	"helm.sh/helm/v3/pkg/action"
+	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/strvals"
 )
@@ -14,21 +14,21 @@ const installDesc = `
 This command installs the osm control plane on the Kubernetes cluster.
 `
 const (
-	defaultOSMChartPath = "charts/osm"
+	defaultOSMChartPath    = "charts/osm"
+	defaultHelmReleaseName = "osm-cp"
 )
 
 type installCmd struct {
 	out                     io.Writer
-	config                  *action.Configuration
 	containerRegistry       string
 	containerRegistrySecret string
+	chartPath               string
 }
 
-func newInstallCmd(config *action.Configuration, out io.Writer) *cobra.Command {
+func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 
-	install := &installCmd{
-		out:    out,
-		config: config,
+	inst := &installCmd{
+		out: out,
 	}
 
 	cmd := &cobra.Command{
@@ -36,24 +36,30 @@ func newInstallCmd(config *action.Configuration, out io.Writer) *cobra.Command {
 		Short: "install osm control plane",
 		Long:  installDesc,
 		RunE: func(_ *cobra.Command, args []string) error {
-			return install.run()
+			return inst.run(helm.NewInstall(config))
 		},
 	}
 
 	f := cmd.Flags()
-	f.StringVar(&install.containerRegistry, "container-registry", "smctest.azurecr.io", "container registry that hosts control plane component images")
-	f.StringVar(&install.containerRegistrySecret, "container-registry-secret", "acr-creds", "name of Kubernetes secret for container registry credentials to be created if it doesn't already exist")
+	f.StringVar(&inst.containerRegistry, "container-registry", "smctest.azurecr.io", "container registry that hosts control plane component images")
+	f.StringVar(&inst.containerRegistrySecret, "container-registry-secret", "acr-creds", "name of Kubernetes secret for container registry credentials to be created if it doesn't already exist")
+	f.StringVar(&inst.chartPath, "osm-chart-path", "", "path to osm chart to override default chart")
 
 	return cmd
 }
 
-func (i *installCmd) run() error {
-	installClient := action.NewInstall(i.config)
-	installClient.ReleaseName = "osm-cp"
+func (i *installCmd) run(installClient *helm.Install) error {
+	installClient.ReleaseName = defaultHelmReleaseName
 	installClient.Namespace = settings.Namespace()
 	installClient.CreateNamespace = true
 
-	chartRequested, err := loader.Load(defaultOSMChartPath)
+	chart := ""
+	if i.chartPath != "" {
+		chart = i.chartPath
+	} else {
+		chart = defaultOSMChartPath
+	}
+	chartRequested, err := loader.Load(chart)
 	if err != nil {
 		return err
 	}
@@ -67,6 +73,7 @@ func (i *installCmd) run() error {
 		return err
 	}
 
+	fmt.Fprintf(i.out, "OSM installed successfully in %s namespace\n", settings.Namespace())
 	return nil
 }
 
@@ -75,6 +82,7 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 	valuesConfig := []string{
 		fmt.Sprintf("image.registry=%s", i.containerRegistry),
 		fmt.Sprintf("imagePullSecrets[0].name=%s", i.containerRegistrySecret),
+		fmt.Sprintf("namespace=%s", settings.Namespace()),
 	}
 
 	for _, val := range valuesConfig {
