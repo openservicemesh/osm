@@ -57,7 +57,7 @@ func (mc *MeshCatalog) GetWeightedClusterForService(service endpoint.NamespacedS
 			}, nil
 		}
 	}
-	log.Error().Msgf("Did not find WeightedCluster for %s", service)
+	log.Error().Msgf("Did not find WeightedCluster for service %q", service)
 	return endpoint.WeightedCluster{}, errServiceNotFound
 }
 
