@@ -31,6 +31,9 @@ const (
 	// TypeEDS is the EDS type URI.
 	TypeEDS TypeURI = "type.googleapis.com/envoy.api.v2.ClusterLoadAssignment"
 
+	// TypeUpstreamTLSContext is an Envoy type URI.
+	TypeUpstreamTLSContext TypeURI = "type.googleapis.com/envoy.api.v2.auth.UpstreamTlsContext"
+
 	// TransportSocketTLS is an Envoy string constant.
 	TransportSocketTLS = "envoy.transport_sockets.tls"
 
