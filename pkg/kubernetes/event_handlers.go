@@ -23,6 +23,7 @@ func Add(informerName string, providerName string, announce chan interface{}, na
 	return func(obj interface{}) {
 		ns := getNamespace(obj)
 		if !namespaceController.IsMonitoredNamespace(ns) {
+			log.Debug().Msgf("Not monitored: %s", ns)
 			return
 		}
 		if os.Getenv("OSM_LOG_KUBERNETES_EVENTS") == "true" {
