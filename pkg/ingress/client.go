@@ -2,7 +2,6 @@ package ingress
 
 import (
 	"strings"
-	"time"
 
 	extensionsV1beta "k8s.io/api/extensions/v1beta1"
 	"k8s.io/client-go/informers"
@@ -16,15 +15,11 @@ import (
 	"github.com/open-service-mesh/osm/pkg/namespace"
 )
 
-var (
-	resyncPeriod = 60 * time.Second
-)
-
 // NewIngressClient implements ingress.Monitor and creates the Kubernetes client to monitor Ingress resources.
 func NewIngressClient(kubeConfig *rest.Config, namespaceController namespace.Controller, stop chan struct{}) (Monitor, error) {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 
-	informerFactory := informers.NewSharedInformerFactory(kubeClient, resyncPeriod)
+	informerFactory := informers.NewSharedInformerFactory(kubeClient, k8s.DefaultKubeEventResyncInterval)
 	informer := informerFactory.Extensions().V1beta1().Ingresses().Informer()
 
 	client := Client{

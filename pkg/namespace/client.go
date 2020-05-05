@@ -17,7 +17,7 @@ const (
 )
 
 var (
-	resyncPeriod = 10 * time.Second
+	resyncPeriod = 30 * time.Second
 )
 
 // NewNamespaceController implements namespace.Controller and creates the Kubernetes client to manage namespaces.

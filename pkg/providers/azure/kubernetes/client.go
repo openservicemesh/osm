@@ -1,8 +1,6 @@
 package azure
 
 import (
-	"time"
-
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
@@ -19,8 +17,6 @@ const (
 	kubernetesClientName = "AzureResourceClient"
 )
 
-var resyncPeriod = 10 * time.Second
-
 // NewClient creates the Kubernetes client, which retrieves the AzureResource CRD and Services resources.
 func NewClient(kubeConfig *rest.Config, namespaceController namespace.Controller, stop chan struct{}) *Client {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
@@ -35,7 +31,7 @@ func NewClient(kubeConfig *rest.Config, namespaceController namespace.Controller
 
 // newClient creates a provider based on a Kubernetes client instance.
 func newClient(kubeClient *kubernetes.Clientset, azureResourceClient *osmClient.Clientset, namespaceController namespace.Controller) *Client {
-	azureResourceFactory := osmInformers.NewSharedInformerFactory(azureResourceClient, resyncPeriod)
+	azureResourceFactory := osmInformers.NewSharedInformerFactory(azureResourceClient, k8s.DefaultKubeEventResyncInterval)
 	informerCollection := InformerCollection{
 		AzureResource: azureResourceFactory.Osm().V1().AzureResources().Informer(),
 	}

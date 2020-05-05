@@ -2,7 +2,6 @@ package smi
 
 import (
 	"strings"
-	"time"
 
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 
@@ -24,8 +23,6 @@ import (
 	k8s "github.com/open-service-mesh/osm/pkg/kubernetes"
 	"github.com/open-service-mesh/osm/pkg/namespace"
 )
-
-var resyncPeriod = 10 * time.Second
 
 // We have a few different k8s clients. This identifies these in logs.
 const kubernetesClientName = "MeshSpec"
@@ -99,10 +96,10 @@ func (c *Client) GetAnnouncementsChannel() <-chan interface{} {
 
 // newClient creates a provider based on a Kubernetes client instance.
 func newSMIClient(kubeClient *kubernetes.Clientset, smiTrafficSplitClient *smiTrafficSplitClient.Clientset, smiTrafficSpecClient *smiTrafficSpecClient.Clientset, smiTrafficTargetClient *smiTrafficTargetClient.Clientset, osmNamespace string, namespaceController namespace.Controller, providerIdent string) *Client {
-	informerFactory := informers.NewSharedInformerFactory(kubeClient, resyncPeriod)
-	smiTrafficSplitInformerFactory := smiTrafficSplitInformers.NewSharedInformerFactory(smiTrafficSplitClient, resyncPeriod)
-	smiTrafficSpecInformerFactory := smiTrafficSpecInformers.NewSharedInformerFactory(smiTrafficSpecClient, resyncPeriod)
-	smiTrafficTargetInformerFactory := smiTrafficTargetInformers.NewSharedInformerFactory(smiTrafficTargetClient, resyncPeriod)
+	informerFactory := informers.NewSharedInformerFactory(kubeClient, k8s.DefaultKubeEventResyncInterval)
+	smiTrafficSplitInformerFactory := smiTrafficSplitInformers.NewSharedInformerFactory(smiTrafficSplitClient, k8s.DefaultKubeEventResyncInterval)
+	smiTrafficSpecInformerFactory := smiTrafficSpecInformers.NewSharedInformerFactory(smiTrafficSpecClient, k8s.DefaultKubeEventResyncInterval)
+	smiTrafficTargetInformerFactory := smiTrafficTargetInformers.NewSharedInformerFactory(smiTrafficTargetClient, k8s.DefaultKubeEventResyncInterval)
 
 	informerCollection := InformerCollection{
 		Services:      informerFactory.Core().V1().Services().Informer(),

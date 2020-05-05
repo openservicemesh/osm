@@ -45,9 +45,6 @@ func Update(informerName string, providerName string, announce chan interface{},
 		if !namespaceController.IsMonitoredNamespace(ns) {
 			return
 		}
-		if reflect.DeepEqual(oldObj, newObj) {
-			return
-		}
 		if os.Getenv("OSM_LOG_KUBERNETES_EVENTS") == "true" {
 			log.Trace().Msgf("[%s][%s] Update event %+v", providerName, informerName, oldObj)
 		}
