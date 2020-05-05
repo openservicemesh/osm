@@ -8,6 +8,7 @@ import (
 	"github.com/open-service-mesh/osm/pkg/smi"
 )
 
+// NewFakeMeshCatalog creates a struct implementing catalog.Mesh to be used for tests.
 func NewFakeMeshCatalog() MeshCataloger {
 	meshSpec := smi.NewFakeMeshSpecClient()
 	certManager := tresor.NewFakeCertManager()
