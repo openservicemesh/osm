@@ -36,6 +36,8 @@ func NewMeshCatalog(meshSpec smi.MeshSpec, certManager certificate.Manager, ingr
 
 	}
 
+	sc.refreshCache()
+
 	go sc.repeater()
 	return &sc
 }
