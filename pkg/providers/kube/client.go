@@ -48,8 +48,8 @@ func NewProvider(kubeConfig *rest.Config, namespaceController namespace.Controll
 		namespaceController: namespaceController,
 	}
 
-	informerCollection.Endpoints.AddEventHandler(kubernetes2.GetKubernetesEventHandlers("Endpoints", "Kubernetes", client.announcements))
-	informerCollection.Deployments.AddEventHandler(kubernetes2.GetKubernetesEventHandlers("Deployments", "Kubernetes", client.announcements))
+	informerCollection.Endpoints.AddEventHandler(kubernetes2.GetKubernetesEventHandlers("Endpoints", "Kubernetes", client.announcements, client.namespaceController))
+	informerCollection.Deployments.AddEventHandler(kubernetes2.GetKubernetesEventHandlers("Deployments", "Kubernetes", client.announcements, client.namespaceController))
 
 	if err := client.run(stop); err != nil {
 		log.Fatal().Err(err).Msg("Could not start Kubernetes EndpointProvider client")

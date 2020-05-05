@@ -20,7 +20,7 @@ var _ = Describe("Test Kubernetes Provider", func() {
 			c := NewFakeProvider()
 			actual := c.ListEndpointsForService("default/bookstore")
 			expected := []endpoint.Endpoint{{
-				IP:   net.IP("8.8.8.8"),
+				IP:   net.ParseIP("8.8.8.8"),
 				Port: 8888,
 			}}
 			Expect(actual).To(Equal(expected))
