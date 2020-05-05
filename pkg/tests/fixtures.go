@@ -65,7 +65,7 @@ var (
 
 	// Endpoint is an endpoint object.
 	Endpoint = endpoint.Endpoint{
-		IP:   net.IP("8.8.8.8"),
+		IP:   net.ParseIP("8.8.8.8"),
 		Port: endpoint.Port(8888),
 	}
 
