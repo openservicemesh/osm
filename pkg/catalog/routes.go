@@ -13,15 +13,15 @@ const (
 )
 
 // ListTrafficPolicies returns all the traffic policies for a given service that Envoy proxy should be aware of.
-func (mc *MeshCatalog) ListTrafficPolicies(clientID endpoint.NamespacedService) ([]endpoint.TrafficPolicy, error) {
-	log.Info().Msgf("Listing Routes for client: %s", clientID)
+func (mc *MeshCatalog) ListTrafficPolicies(service endpoint.NamespacedService) ([]endpoint.TrafficPolicy, error) {
+	log.Info().Msgf("Listing Routes for service: %s", service)
 	allRoutes, err := mc.getHTTPPathsPerRoute()
 	if err != nil {
 		log.Error().Err(err).Msgf("Could not get all routes")
 		return nil, err
 	}
 
-	allTrafficPolicies, err := getTrafficPolicyPerRoute(mc, allRoutes, clientID)
+	allTrafficPolicies, err := getTrafficPolicyPerRoute(mc, allRoutes, service)
 	if err != nil {
 		log.Error().Err(err).Msgf("Could not get all traffic policies")
 		return nil, err
@@ -35,9 +35,9 @@ func (mc *MeshCatalog) listServicesForServiceAccount(namespacedServiceAccount en
 	if _, found := mc.serviceAccountsCache[namespacedServiceAccount]; !found {
 		mc.refreshCache()
 	}
-	var services []endpoint.NamespacedService
-	var found bool
-	if services, found = mc.serviceAccountsCache[namespacedServiceAccount]; !found {
+
+	services, found := mc.serviceAccountsCache[namespacedServiceAccount]
+	if !found {
 		log.Error().Msgf("Did not find any services for service account %s", namespacedServiceAccount)
 		return nil, errServiceNotFound
 	}
@@ -49,17 +49,16 @@ func (mc *MeshCatalog) listServicesForServiceAccount(namespacedServiceAccount en
 func (mc *MeshCatalog) GetWeightedClusterForService(service endpoint.NamespacedService) (endpoint.WeightedCluster, error) {
 	// TODO(draychev): split namespace from the service name -- for non-K8s services
 	log.Info().Msgf("Finding weighted cluster for service %s", service)
-	var weightedCluster endpoint.WeightedCluster
 	for activeService := range mc.servicesCache {
 		if activeService.ServiceName == service {
-			weightedCluster = endpoint.WeightedCluster{
+			return endpoint.WeightedCluster{
 				ClusterName: endpoint.ClusterName(activeService.ServiceName.String()),
 				Weight:      activeService.Weight,
-			}
-			return weightedCluster, nil
+			}, nil
 		}
 	}
-	return weightedCluster, errServiceNotFound
+	log.Error().Msgf("Did not find WeightedCluster for %s", service)
+	return endpoint.WeightedCluster{}, errServiceNotFound
 }
 
 //GetDomainForService returns the domain name of a service
@@ -109,9 +108,9 @@ func (mc *MeshCatalog) getHTTPPathsPerRoute() (map[string]endpoint.RoutePolicy, 
 	return routePolicies, nil
 }
 
-func getTrafficPolicyPerRoute(sc *MeshCatalog, routePolicies map[string]endpoint.RoutePolicy, clientID endpoint.NamespacedService) ([]endpoint.TrafficPolicy, error) {
+func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[string]endpoint.RoutePolicy, service endpoint.NamespacedService) ([]endpoint.TrafficPolicy, error) {
 	var trafficPolicies []endpoint.TrafficPolicy
-	for _, trafficTargets := range sc.meshSpec.ListTrafficTargets() {
+	for _, trafficTargets := range mc.meshSpec.ListTrafficTargets() {
 		log.Debug().Msgf("Discovered TrafficTarget resource: %s/%s \n", trafficTargets.Namespace, trafficTargets.Name)
 		if trafficTargets.Specs == nil || len(trafficTargets.Specs) == 0 {
 			log.Error().Msgf("TrafficTarget %s/%s has no spec routes; Skipping...", trafficTargets.Namespace, trafficTargets.Name)
@@ -122,13 +121,13 @@ func getTrafficPolicyPerRoute(sc *MeshCatalog, routePolicies map[string]endpoint
 			Namespace:      trafficTargets.Destination.Namespace,
 			ServiceAccount: trafficTargets.Destination.Name,
 		}
-		destServices, destErr := sc.listServicesForServiceAccount(dstNamespacedServiceAcc)
+		destServices, destErr := mc.listServicesForServiceAccount(dstNamespacedServiceAcc)
 		if destErr != nil {
-			log.Error().Msgf("TrafficSpec %s/%s could not get services for service account %s", trafficTargets.Namespace, trafficTargets.Name, dstNamespacedServiceAcc.String())
+			log.Error().Msgf("TrafficSpec %s/%s could not get destination services for service account %s", trafficTargets.Namespace, trafficTargets.Name, dstNamespacedServiceAcc.String())
 			return nil, destErr
 		}
 
-		activeDestServices := sc.getActiveServices(destServices)
+		activeDestServices := mc.getActiveServices(destServices)
 		//Routes are configured only if destination services exist i.e traffic split (endpoints) is setup
 		if len(activeDestServices) == 0 || activeDestServices == nil {
 			continue
@@ -138,9 +137,10 @@ func getTrafficPolicyPerRoute(sc *MeshCatalog, routePolicies map[string]endpoint
 				Namespace:      trafficSources.Namespace,
 				ServiceAccount: trafficSources.Name,
 			}
-			srcServices, srcErr := sc.listServicesForServiceAccount(namespacedServiceAccount)
+
+			srcServices, srcErr := mc.listServicesForServiceAccount(namespacedServiceAccount)
 			if srcErr != nil {
-				log.Error().Msgf("TrafficSpec %s/%s could not get services for service account %s", trafficTargets.Namespace, trafficTargets.Name, fmt.Sprintf("%s/%s", trafficSources.Namespace, trafficSources.Name))
+				log.Error().Msgf("TrafficSpec %s/%s could not get source services for service account %s", trafficTargets.Namespace, trafficTargets.Name, fmt.Sprintf("%s/%s", trafficSources.Namespace, trafficSources.Name))
 				return nil, srcErr
 			}
 			trafficPolicy := endpoint.TrafficPolicy{}
@@ -167,12 +167,13 @@ func getTrafficPolicyPerRoute(sc *MeshCatalog, routePolicies map[string]endpoint
 					trafficPolicy.RoutePolicies = append(trafficPolicy.RoutePolicies, routePolicy)
 				}
 			}
-			// append a traffic policy only if it corresponds to the clientID
-			if envoy.Contains(clientID, trafficPolicy.Source.Services) || envoy.Contains(clientID, trafficPolicy.Destination.Services) {
+			// append a traffic policy only if it corresponds to the service
+			if envoy.Contains(service, trafficPolicy.Source.Services) || envoy.Contains(service, trafficPolicy.Destination.Services) {
 				trafficPolicies = append(trafficPolicies, trafficPolicy)
 			}
 		}
 	}
+
 	log.Debug().Msgf("Constructed traffic policies: %+v", trafficPolicies)
 	return trafficPolicies, nil
 }
