@@ -14,7 +14,7 @@ spec:
       labels:
         app: ads
     spec:
-      serviceAccountName: {{ include "osm.serviceAccountName" . }}
+      serviceAccountName: {{ .Values.serviceAccount.name }}-{{ .Values.osmID }}
       containers:
         - name: ads
           image: "{{ .Values.image.registry }}/ads:{{ .Chart.AppVersion }}"
