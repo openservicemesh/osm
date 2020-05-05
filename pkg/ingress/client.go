@@ -35,7 +35,7 @@ func NewIngressClient(kubeConfig *rest.Config, namespaceController namespace.Con
 		namespaceController: namespaceController,
 	}
 
-	informer.AddEventHandler(k8s.GetKubernetesEventHandlers("Ingress", "Kubernetes", client.announcements))
+	informer.AddEventHandler(k8s.GetKubernetesEventHandlers("Ingress", "Kubernetes", client.announcements, client.namespaceController))
 
 	if err := client.run(stop); err != nil {
 		log.Error().Err(err).Msg("Could not start Kubernetes Ingress client")

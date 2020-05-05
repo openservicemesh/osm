@@ -128,10 +128,10 @@ func newSMIClient(kubeClient *kubernetes.Clientset, smiTrafficSplitClient *smiTr
 		namespaceController: namespaceController,
 	}
 
-	informerCollection.Services.AddEventHandler(k8s.GetKubernetesEventHandlers("Services", "SMI", client.announcements))
-	informerCollection.TrafficSplit.AddEventHandler(k8s.GetKubernetesEventHandlers("TrafficSplit", "SMI", client.announcements))
-	informerCollection.TrafficSpec.AddEventHandler(k8s.GetKubernetesEventHandlers("TrafficSpec", "SMI", client.announcements))
-	informerCollection.TrafficTarget.AddEventHandler(k8s.GetKubernetesEventHandlers("TrafficTarget", "SMI", client.announcements))
+	informerCollection.Services.AddEventHandler(k8s.GetKubernetesEventHandlers("Services", "SMI", client.announcements, client.namespaceController))
+	informerCollection.TrafficSplit.AddEventHandler(k8s.GetKubernetesEventHandlers("TrafficSplit", "SMI", client.announcements, client.namespaceController))
+	informerCollection.TrafficSpec.AddEventHandler(k8s.GetKubernetesEventHandlers("TrafficSpec", "SMI", client.announcements, client.namespaceController))
+	informerCollection.TrafficTarget.AddEventHandler(k8s.GetKubernetesEventHandlers("TrafficTarget", "SMI", client.announcements, client.namespaceController))
 
 	return &client
 }
