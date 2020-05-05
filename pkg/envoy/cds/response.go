@@ -19,7 +19,7 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpe
 	proxyServiceName := proxy.GetService()
 	allTrafficPolicies, err := catalog.ListTrafficPolicies(proxyServiceName)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed listing traffic routes for proxy for service name '%s'", proxyServiceName)
+		log.Error().Err(err).Msgf("Failed listing traffic routes for proxy for service name %q", proxyServiceName)
 		return nil, err
 	}
 	log.Debug().Msgf("TrafficPolicies: %+v for proxy %s", allTrafficPolicies, proxy.CommonName)
