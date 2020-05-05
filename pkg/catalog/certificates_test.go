@@ -8,29 +8,17 @@ import (
 
 	"github.com/open-service-mesh/osm/pkg/certificate/providers/tresor"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
-	"github.com/open-service-mesh/osm/pkg/ingress"
-	"github.com/open-service-mesh/osm/pkg/smi"
 )
-
-func newMeshCatalog() *MeshCatalog {
-	meshSpec := smi.NewFakeMeshSpecClient()
-	certManager := tresor.NewFakeCertManager()
-	ingressMonitor := ingress.NewFakeIngressMonitor()
-	stop := make(<-chan struct{})
-	var endpointProviders []endpoint.Provider
-	return NewMeshCatalog(meshSpec, certManager, ingressMonitor, stop, endpointProviders...)
-}
 
 var _ = Describe("Test certificate tooling", func() {
 	Context("Testing DecodePEMCertificate along with GetCommonName and IssueCertificate", func() {
-		mc := newMeshCatalog()
+		namespacedService := endpoint.NamespacedService{
+			Namespace: "namespace-here",
+			Service:   "service-name-here",
+		}
+		mc := NewFakeMeshCatalog()
 		It("issues a PEM certificate with the correct CN", func() {
-			namespacedService := endpoint.NamespacedService{
-				Namespace: "namespace-here",
-				Service:   "service-name-here",
-			}
-
-			cert, err := mc.certManager.IssueCertificate(namespacedService.GetCommonName())
+			cert, err := mc.GetCertificateForService(namespacedService)
 			Expect(err).ToNot(HaveOccurred())
 
 			actual := cert.GetCertificateChain()
