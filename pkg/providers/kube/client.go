@@ -3,9 +3,8 @@ package kube
 import (
 	"net"
 	"strings"
-	"time"
 
-	kubernetes2 "github.com/open-service-mesh/osm/pkg/kubernetes"
+	k8s "github.com/open-service-mesh/osm/pkg/kubernetes"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -19,14 +18,12 @@ import (
 	"github.com/open-service-mesh/osm/pkg/namespace"
 )
 
-var resyncPeriod = 10 * time.Second
-
 const namespaceSelectorLabel = "app"
 
 // NewProvider implements mesh.EndpointsProvider, which creates a new Kubernetes cluster/compute provider.
 func NewProvider(kubeConfig *rest.Config, namespaceController namespace.Controller, stop chan struct{}, providerIdent string) *Client {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
-	informerFactory := informers.NewSharedInformerFactory(kubeClient, resyncPeriod)
+	informerFactory := informers.NewSharedInformerFactory(kubeClient, k8s.DefaultKubeEventResyncInterval)
 
 	informerCollection := InformerCollection{
 		Endpoints:   informerFactory.Core().V1().Endpoints().Informer(),
@@ -48,8 +45,8 @@ func NewProvider(kubeConfig *rest.Config, namespaceController namespace.Controll
 		namespaceController: namespaceController,
 	}
 
-	informerCollection.Endpoints.AddEventHandler(kubernetes2.GetKubernetesEventHandlers("Endpoints", "Kubernetes", client.announcements, client.namespaceController))
-	informerCollection.Deployments.AddEventHandler(kubernetes2.GetKubernetesEventHandlers("Deployments", "Kubernetes", client.announcements, client.namespaceController))
+	informerCollection.Endpoints.AddEventHandler(k8s.GetKubernetesEventHandlers("Endpoints", "Kubernetes", client.announcements, client.namespaceController))
+	informerCollection.Deployments.AddEventHandler(k8s.GetKubernetesEventHandlers("Deployments", "Kubernetes", client.announcements, client.namespaceController))
 
 	if err := client.run(stop); err != nil {
 		log.Fatal().Err(err).Msg("Could not start Kubernetes EndpointProvider client")

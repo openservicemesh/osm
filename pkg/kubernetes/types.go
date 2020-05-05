@@ -1,6 +1,8 @@
 package kubernetes
 
 import (
+	"time"
+
 	"github.com/open-service-mesh/osm/pkg/logger"
 )
 
@@ -20,6 +22,11 @@ const (
 
 	// DeleteEvent is a type of a Kubernetes API event.
 	DeleteEvent
+)
+
+const (
+	// DefaultKubeEventResyncInterval is the default resync interval for k8s events
+	DefaultKubeEventResyncInterval = 30 * time.Second
 )
 
 // Event is the combined type and actual object we received from Kubernetes
