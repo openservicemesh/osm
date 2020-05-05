@@ -132,6 +132,7 @@ jobs:
         echo "$DOCKER_PASS" | docker login "$ACR" -u "$DOCKER_USER" --password-stdin
         ./demo/run-demo.sh
         go run ./demo/cmd/tail/tail.go
+        ./ci/clean-webhook.sh "OSM_ID"
 
     - name: Integration Test with Hashi Vault
       env:
@@ -170,3 +171,4 @@ jobs:
         echo "$DOCKER_PASS" | docker login "$ACR" -u "$DOCKER_USER" --password-stdin
         ./demo/run-demo.sh
         go run ./demo/cmd/tail/tail.go
+        ./ci/clean-webhook.sh "OSM_ID"
