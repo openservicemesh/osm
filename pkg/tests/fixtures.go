@@ -155,7 +155,8 @@ var (
 			Name:      RouteGroupName,
 		},
 		Matches: []spec.HTTPMatch{{
-			Name:      MatchName,
+			Name: MatchName,
+
 			PathRegex: BookstoreBuyPath,
 			Methods:   []string{"GET"},
 		}},
