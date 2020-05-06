@@ -1,11 +1,15 @@
 package kubernetes
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	"reflect"
+
+	"github.com/google/uuid"
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/open-service-mesh/osm/pkg/namespace"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
+	"github.com/open-service-mesh/osm/pkg/tests"
 )
 
 const (
@@ -14,19 +18,17 @@ const (
 	testNamespace = "test-namespace"
 )
 
-var (
-	monitoredNamespaces = []string{testNamespace}
-)
-
 var _ = Describe("Testing event handlers", func() {
-	Context("Test Add on a monitored namespace", func() {
-		fakeNamespaceController := namespace.NewFakeNamespaceController(monitoredNamespaces)
+	Context("Test add on a monitored namespace", func() {
+		nsFilter := func(obj interface{}) bool {
+			ns := reflect.ValueOf(obj).Elem().FieldByName("ObjectMeta").FieldByName("Namespace").String()
+			return ns == testNamespace
+		}
 
 		It("Should add the event to the announcement channel", func() {
 			announcements := make(chan interface{}, 1)
-			var pod corev1.Pod
-			pod.Namespace = testNamespace
-			Add(testInformer, testProvider, announcements, fakeNamespaceController)(&pod)
+			pod := tests.NewPodTestFixture(testNamespace, "pod-name")
+			add(testInformer, testProvider, announcements, nsFilter)(&pod)
 			Expect(len(announcements)).To(Equal(1))
 			<-announcements
 		})
@@ -35,8 +37,17 @@ var _ = Describe("Testing event handlers", func() {
 			announcements := make(chan interface{}, 1)
 			var pod corev1.Pod
 			pod.Namespace = "not-a-monitored-namespace"
-			Add(testInformer, testProvider, announcements, fakeNamespaceController)(&pod)
+			add(testInformer, testProvider, announcements, nsFilter)(&pod)
 			Expect(len(announcements)).To(Equal(0))
+		})
+	})
+
+	Context("create getNamespace", func() {
+		It("gets the namespace name", func() {
+			ns := uuid.New().String()
+			pod := tests.NewPodTestFixture(ns, uuid.New().String())
+			actual := getNamespace(&pod)
+			Expect(actual).To(Equal(ns))
 		})
 	})
 })

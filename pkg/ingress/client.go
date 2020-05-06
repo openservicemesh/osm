@@ -1,6 +1,7 @@
 package ingress
 
 import (
+	"reflect"
 	"strings"
 
 	extensionsV1beta "k8s.io/api/extensions/v1beta1"
@@ -30,7 +31,11 @@ func NewIngressClient(kubeConfig *rest.Config, namespaceController namespace.Con
 		namespaceController: namespaceController,
 	}
 
-	informer.AddEventHandler(k8s.GetKubernetesEventHandlers("Ingress", "Kubernetes", client.announcements, client.namespaceController))
+	nsFilter := func(obj interface{}) bool {
+		ns := reflect.ValueOf(obj).Elem().FieldByName("ObjectMeta").FieldByName("Namespace").String()
+		return !namespaceController.IsMonitoredNamespace(ns)
+	}
+	informer.AddEventHandler(k8s.GetKubernetesEventHandlers("Ingress", "Kubernetes", client.announcements, nsFilter))
 
 	if err := client.run(stop); err != nil {
 		log.Error().Err(err).Msg("Could not start Kubernetes Ingress client")

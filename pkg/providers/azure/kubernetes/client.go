@@ -1,6 +1,8 @@
 package azure
 
 import (
+	"reflect"
+
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
@@ -50,7 +52,11 @@ func newClient(kubeClient *kubernetes.Clientset, azureResourceClient *osmClient.
 		namespaceController: namespaceController,
 	}
 
-	informerCollection.AzureResource.AddEventHandler(k8s.GetKubernetesEventHandlers("AzureResource", "Azure", client.announcements, client.namespaceController))
+	nsFilter := func(obj interface{}) bool {
+		ns := reflect.ValueOf(obj).Elem().FieldByName("ObjectMeta").FieldByName("Namespace").String()
+		return !namespaceController.IsMonitoredNamespace(ns)
+	}
+	informerCollection.AzureResource.AddEventHandler(k8s.GetKubernetesEventHandlers("AzureResource", "Azure", client.announcements, nsFilter))
 
 	return &client
 }
