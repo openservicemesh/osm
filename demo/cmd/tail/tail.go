@@ -49,6 +49,9 @@ const (
 
 	// WaitForPodTimeSecondsEnvVar is the environment variable for the time we will wait on the pod to be ready.
 	WaitForPodTimeSecondsEnvVar = "WAIT_FOR_POD_TIME_SECONDS"
+
+	// OsmIDEnvVar is the environment variable for the ID of an OSM instance
+	OsmIDEnvVar = "OSM_ID"
 )
 
 func main() {
@@ -57,6 +60,8 @@ func main() {
 	bookthiefNS := os.Getenv(BookthiefNamespaceEnvVar)
 	bookstoreNS := os.Getenv(BookstoreNamespaceEnvVar)
 	totalWaitString := os.Getenv(WaitForPodTimeSecondsEnvVar)
+	osmID := os.Getenv(OsmIDEnvVar)
+	webhookName := fmt.Sprintf("osm-webhook-%s", osmID)
 	totalWait, err := strconv.ParseInt(totalWaitString, 10, 32)
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Could not convert environment variable %s='%s' to int", WaitForPodTimeSecondsEnvVar, totalWaitString)
@@ -175,7 +180,7 @@ func main() {
 		if strings.Contains(bookBuyerLogs, common.Success) && strings.Contains(bookThiefLogs, common.Success) {
 			fmt.Println("The test succeeded")
 			deleteNamespaces(clientset, namespaces...)
-			deleteWebhooks(clientset, namespaces...)
+			deleteWebhook(clientset, webhookName)
 			os.Exit(0)
 		}
 	}
@@ -208,7 +213,7 @@ func deleteNamespaces(client *kubernetes.Clientset, namespaces ...string) {
 	}
 }
 
-func deleteWebhooks(client *kubernetes.Clientset, namespaces ...string) {
+func deleteWebhook(client *kubernetes.Clientset, webhookName string) {
 	deleteOptions := metav1.DeleteOptions{
 		GracePeriodSeconds: to.Int64Ptr(0),
 	}
@@ -221,11 +226,7 @@ func deleteWebhooks(client *kubernetes.Clientset, namespaces ...string) {
 	}
 
 	for _, webhook := range webhooks.Items {
-		for _, ns := range namespaces {
-			// Convention is - the webhook name is prefixed with the namespace where OSM is.
-			if !strings.HasPrefix(webhook.Name, ns) {
-				continue
-			}
+		if webhook.Name == webhookName {
 			if err := client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Delete(context.Background(), webhook.Name, deleteOptions); err != nil {
 				log.Error().Err(err).Msgf("Error deleting webhook %s", webhook.Name)
 			}
