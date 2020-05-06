@@ -8,7 +8,6 @@ import (
 
 	"github.com/Azure/go-autorest/autorest/to"
 	"github.com/rs/zerolog/log"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -37,38 +36,29 @@ func main() {
 		os.Exit(1)
 	}
 
-	var namespacesToDelete []v1.Namespace
-	for _, ns := range namespaces.Items {
-		isStale := time.Since(ns.CreationTimestamp.UTC()) > staleIfOlderThan
-		if isStale && strings.HasPrefix(ns.Name, "ci-") {
-			namespacesToDelete = append(namespacesToDelete, ns)
-		}
-	}
-
-	if len(namespacesToDelete) == 0 {
-		log.Info().Msg("No stale namespaces to cleanup.")
-		return
-	}
-
 	deleteOptions := metav1.DeleteOptions{
 		GracePeriodSeconds: to.Int64Ptr(0),
 	}
 
-	for _, ns := range namespacesToDelete {
-		if err = clientset.CoreV1().Namespaces().Delete(context.Background(), ns.Name, deleteOptions); err != nil {
-			log.Error().Err(err).Msgf("Error deleting namespace %s", ns.Name)
-		}
-		log.Info().Msgf("Deleted namespace: %s", ns.Name)
-		for _, webhook := range webHooks.Items {
-			// Convention is - the webhook name is prefixed with the namespace where OSM is.
-			if !strings.HasPrefix(webhook.Name, ns.Name) {
-				continue
+	// Delete stale namespaces
+	for _, ns := range namespaces.Items {
+		isStale := time.Since(ns.CreationTimestamp.UTC()) > staleIfOlderThan
+		if isStale && strings.HasPrefix(ns.Name, "ci-") {
+			log.Info().Msgf("Deleting namespace: %s", ns.Name)
+			if err = clientset.CoreV1().Namespaces().Delete(context.Background(), ns.Name, deleteOptions); err != nil {
+				log.Error().Err(err).Msgf("Error deleting namespace %s", ns.Name)
 			}
-			opts := metav1.DeleteOptions{}
-			if err = clientset.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Delete(context.Background(), webhook.Name, opts); err != nil {
+		}
+	}
+
+	// Delete stale mutating webhook configurations
+	for _, webhook := range webHooks.Items {
+		isStale := time.Since(webhook.CreationTimestamp.UTC()) > staleIfOlderThan
+		if isStale && strings.HasPrefix(webhook.Name, "ci-") {
+			log.Info().Msgf("Deleting mutating webhook: %s", webhook.Name)
+			if err = clientset.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Delete(context.Background(), webhook.Name, deleteOptions); err != nil {
 				log.Error().Err(err).Msgf("Error deleting webhook %s", webhook.Name)
 			}
-			log.Info().Msgf("Deleted mutating webhook: %s", webhook.Name)
 		}
 	}
 }
