@@ -7,6 +7,7 @@ import (
 	"time"
 
 	mapset "github.com/deckarep/golang-set"
+	"k8s.io/client-go/kubernetes"
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
@@ -15,7 +16,7 @@ import (
 )
 
 // NewMeshCatalog creates a new service catalog
-func NewMeshCatalog(meshSpec smi.MeshSpec, certManager certificate.Manager, ingressMonitor ingress.Monitor, stop <-chan struct{}, endpointsProviders ...endpoint.Provider) *MeshCatalog {
+func NewMeshCatalog(kubeClient kubernetes.Interface, meshSpec smi.MeshSpec, certManager certificate.Manager, ingressMonitor ingress.Monitor, stop <-chan struct{}, endpointsProviders ...endpoint.Provider) *MeshCatalog {
 	log.Info().Msg("Create a new Service MeshCatalog.")
 	sc := MeshCatalog{
 		endpointsProviders: endpointsProviders,
@@ -29,6 +30,11 @@ func NewMeshCatalog(meshSpec smi.MeshSpec, certManager certificate.Manager, ingr
 		connectedProxies:     make(map[certificate.CommonName]connectedProxy),
 		announcementChannels: mapset.NewSet(),
 		serviceAccountsCache: make(map[endpoint.NamespacedServiceAccount][]endpoint.NamespacedService),
+
+		// Kubernetes needed to determine what Services a pod that connects to XDS belongs to.
+		// In multicluster scenarios this would be a map of cluster ID to Kubernetes client.
+		// The certificate itself would contain the cluster ID making it easy to lookup the client in this map.
+		kubeClient: kubeClient,
 	}
 
 	for _, announcementChannel := range sc.getAnnouncementChannels() {

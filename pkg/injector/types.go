@@ -11,8 +11,7 @@ import (
 
 const (
 	// OSM Annotations
-	annotationInject  = "openservicemesh.io/sidecar-injection"
-	annotationService = "openservicemesh.io/osm-service"
+	annotationInject = "openservicemesh.io/sidecar-injection"
 
 	envoyBootstrapConfigVolume = "envoy-bootstrap-config-volume"
 )
@@ -58,9 +57,10 @@ type InitContainerData struct {
 
 // EnvoySidecarData is the type used to represent information about the Envoy sidecar
 type EnvoySidecarData struct {
-	Name    string
-	Image   string
-	Service string
+	Name           string
+	Image          string
+	EnvoyNodeID    string
+	EnvoyClusterID string
 }
 
 type envoyBootstrapConfigMeta struct {

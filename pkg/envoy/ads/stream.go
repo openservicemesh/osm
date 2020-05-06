@@ -8,9 +8,7 @@ import (
 	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	"github.com/pkg/errors"
 
-	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/envoy"
-
 	"github.com/open-service-mesh/osm/pkg/utils"
 )
 
@@ -27,17 +25,14 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 
 	ip := utils.GetIPFromContext(server.Context())
 
-	// TODO: Need a better way to map a proxy to a service. This
-	// is primarly required because envoy configurations are programmed
-	// per service.
-	cnMeta := utils.GetCertificateCommonNameMeta(cn)
-	namespacedService := endpoint.NamespacedService{
-		Namespace: cnMeta.Namespace,
-		Service:   cnMeta.ServiceName,
+	namespacedService, err := s.catalog.GetServiceFromEnvoyCertificate(cn)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error fetching service for Envoy %s with CN %s", ip, cn)
+		return err
 	}
 	log.Info().Msgf("Client %s connected: Subject CN=%s; Service=%s", ip, cn, namespacedService)
 
-	proxy := envoy.NewProxy(cn, namespacedService, ip)
+	proxy := envoy.NewProxy(cn, *namespacedService, ip)
 	s.catalog.RegisterProxy(proxy)
 	defer s.catalog.UnregisterProxy(proxy)
 

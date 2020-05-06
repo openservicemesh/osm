@@ -6,10 +6,11 @@ import (
 	"github.com/open-service-mesh/osm/pkg/ingress"
 	"github.com/open-service-mesh/osm/pkg/providers/kube"
 	"github.com/open-service-mesh/osm/pkg/smi"
+	"k8s.io/client-go/kubernetes"
 )
 
 // NewFakeMeshCatalog creates a new struct implementing catalog.MeshCataloger interface used for testing.
-func NewFakeMeshCatalog() MeshCataloger {
+func NewFakeMeshCatalog(kubeClient kubernetes.Interface) MeshCataloger {
 	meshSpec := smi.NewFakeMeshSpecClient()
 	certManager := tresor.NewFakeCertManager()
 	ingressMonitor := ingress.NewFakeIngressMonitor()
@@ -17,5 +18,5 @@ func NewFakeMeshCatalog() MeshCataloger {
 	endpointProviders := []endpoint.Provider{
 		kube.NewFakeProvider(),
 	}
-	return NewMeshCatalog(meshSpec, certManager, ingressMonitor, stop, endpointProviders...)
+	return NewMeshCatalog(kubeClient, meshSpec, certManager, ingressMonitor, stop, endpointProviders...)
 }

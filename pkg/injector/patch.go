@@ -7,10 +7,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/google/uuid"
 	corev1 "k8s.io/api/core/v1"
 
+	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/constants"
-	"github.com/open-service-mesh/osm/pkg/utils"
 )
 
 const (
@@ -20,18 +21,19 @@ const (
 
 	volumesBasePath        = "/spec/volumes"
 	initContainersBasePath = "/spec/initContainers"
+	labelsPath             = "/metadata/labels"
 )
 
 func (wh *webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error) {
+	// This string uniquely identifies the pod. Ideally this would be the pod.UID, but this is not available at this point.
+	proxyUUID := uuid.New().String()
+
 	// Start patching the spec
 	var patches []JSONPatchOperation
 	log.Info().Msgf("Patching POD spec: service-account=%s, namespace=%s", pod.Spec.ServiceAccountName, namespace)
 
-	serviceName := getServiceName(pod)
-
-	// Issue a certificate for the proxy sidecar
-	subDomain := "osm.mesh" // TODO: don't hardcode this
-	cn := utils.NewCertCommonNameWithUUID(serviceName, namespace, subDomain)
+	// Issue a certificate for the proxy sidecar - used for Envoy to connect to XDS (not Envoy-to-Envoy connections)
+	cn := catalog.NewCertCommonNameWithProxyID(proxyUUID, namespace)
 	bootstrapCertificate, err := wh.certManager.IssueCertificate(cn)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error issuing bootstrap certificate for Envoy with CN=%s", cn)
@@ -41,7 +43,7 @@ func (wh *webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 	wh.meshCatalog.ExpectProxy(cn)
 
 	// Create kube secret for Envoy bootstrap config
-	envoyBootstrapConfigName := fmt.Sprintf("envoy-bootstrap-config-%s", serviceName)
+	envoyBootstrapConfigName := fmt.Sprintf("envoy-bootstrap-config-%s", proxyUUID)
 	_, err = wh.createEnvoyBootstrapConfig(envoyBootstrapConfigName, namespace, wh.osmNamespace, bootstrapCertificate)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create bootstrap config for Envoy sidecar")
@@ -72,9 +74,10 @@ func (wh *webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 
 	// Add the Envoy sidecar
 	envoySidecarData := EnvoySidecarData{
-		Name:    envoySidecarContainerName,
-		Image:   wh.config.SidecarImage,
-		Service: serviceName,
+		Name:           envoySidecarContainerName,
+		Image:          wh.config.SidecarImage,
+		EnvoyNodeID:    proxyUUID,
+		EnvoyClusterID: proxyUUID, // TODO(draychev)
 	}
 	patches = append(patches, addContainer(
 		pod.Spec.Containers,
@@ -94,17 +97,9 @@ func (wh *webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 		"/metadata/annotations")...,
 	)
 
-	return json.Marshal(patches)
-}
+	patches = append(patches, *updateLabels(pod, proxyUUID))
 
-func getServiceName(pod *corev1.Pod) string {
-	// Check if the POD is annotated for injection
-	service, found := pod.ObjectMeta.Annotations[annotationService]
-	if !found {
-		log.Info().Msgf("Missing annotation '%s', using the ServiceAccount name for the Service", annotationService)
-		return pod.Spec.ServiceAccountName
-	}
-	return service
+	return json.Marshal(patches)
 }
 
 func addVolume(target, add []corev1.Volume, basePath string) (patch []JSONPatchOperation) {
@@ -176,6 +171,32 @@ func updateAnnotation(target, add map[string]string, basePath string) (patch []J
 	}
 
 	return patch
+}
+
+// This function will append a label to the pod, which points to the unique Envoy ID used in the
+// xDS certificate for that Envoy. This label will help xDS match the actual pod to the Envoy that
+// connects to xDS (with the certificate's CN matching this label).
+func updateLabels(pod *corev1.Pod, envoyUID string) *JSONPatchOperation {
+	if len(pod.Labels) == 0 {
+		return &JSONPatchOperation{
+			Op:    "add",
+			Path:  labelsPath,
+			Value: map[string]string{constants.EnvoyUniqueIDLabelName: envoyUID},
+		}
+	}
+
+	getOp := func() string {
+		if _, exists := pod.Labels[constants.EnvoyUniqueIDLabelName]; exists {
+			return "replace"
+		}
+		return "add"
+	}
+
+	return &JSONPatchOperation{
+		Op:    getOp(),
+		Path:  path.Join(labelsPath, constants.EnvoyUniqueIDLabelName),
+		Value: envoyUID,
+	}
 }
 
 // escapeJSONPointerValue escapes a JSON value as per https://tools.ietf.org/html/rfc6901.

@@ -3,6 +3,8 @@ package catalog
 import (
 	"time"
 
+	testclient "k8s.io/client-go/kubernetes/fake"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -16,7 +18,7 @@ var _ = Describe("Test certificate tooling", func() {
 			Namespace: "namespace-here",
 			Service:   "service-name-here",
 		}
-		mc := NewFakeMeshCatalog()
+		mc := NewFakeMeshCatalog(testclient.NewSimpleClientset())
 		It("issues a PEM certificate with the correct CN", func() {
 			cert, err := mc.GetCertificateForService(namespacedService)
 			Expect(err).ToNot(HaveOccurred())

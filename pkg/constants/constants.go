@@ -80,4 +80,7 @@ const (
 
 	// KubernetesOpaqueSecretCAKey is the key which holds the CA bundle in a Kubernetes secret.
 	KubernetesOpaqueSecretCAKey = "ca.crt"
+
+	// EnvoyUniqueIDLabelName is the label applied to pods with the unique ID of the Envoy sidecar.
+	EnvoyUniqueIDLabelName = "osm-envoy-uid"
 )
