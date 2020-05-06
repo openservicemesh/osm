@@ -13,8 +13,8 @@ type namespaceFilter func(obj interface{}) bool
 func GetKubernetesEventHandlers(informerName string, providerName string, announcements chan interface{}, nsFilter namespaceFilter) cache.ResourceEventHandlerFuncs {
 	return cache.ResourceEventHandlerFuncs{
 		AddFunc:    add(informerName, providerName, announcements, nsFilter),
-		UpdateFunc: upd(informerName, providerName, announcements, nsFilter),
-		DeleteFunc: del(informerName, providerName, announcements, nsFilter),
+		UpdateFunc: update(informerName, providerName, announcements, nsFilter),
+		DeleteFunc: delete(informerName, providerName, announcements, nsFilter),
 	}
 }
 
@@ -37,15 +37,15 @@ func add(informerName string, providerName string, announce chan interface{}, ns
 	}
 }
 
-// upd caches with an incoming Kubernetes event.
-func upd(informerName string, providerName string, announce chan interface{}, nsFilter namespaceFilter) func(oldObj, newObj interface{}) {
+// update caches with an incoming Kubernetes event.
+func update(informerName string, providerName string, announce chan interface{}, nsFilter namespaceFilter) func(oldObj, newObj interface{}) {
 	return func(oldObj, newObj interface{}) {
 		if nsFilter != nil && !nsFilter(newObj) {
 			log.Debug().Msgf("Namespace %q is not observed by OSM; ignoring UPDATE event", getNamespace(newObj))
 			return
 		}
 		if os.Getenv("OSM_LOG_KUBERNETES_EVENTS") == "true" {
-			log.Trace().Msgf("[%s][%s] upd event %+v", providerName, informerName, oldObj)
+			log.Trace().Msgf("[%s][%s] update event %+v", providerName, informerName, oldObj)
 		}
 		if announce != nil {
 			announce <- Event{
@@ -57,7 +57,7 @@ func upd(informerName string, providerName string, announce chan interface{}, ns
 }
 
 // delete Kubernetes cache from an incoming Kubernetes event.
-func del(informerName string, providerName string, announce chan interface{}, nsFilter namespaceFilter) func(obj interface{}) {
+func delete(informerName string, providerName string, announce chan interface{}, nsFilter namespaceFilter) func(obj interface{}) {
 	return func(obj interface{}) {
 		if nsFilter != nil && !nsFilter(obj) {
 			log.Debug().Msgf("Namespace %q is not observed by OSM; ignoring DELETE event", getNamespace(obj))
