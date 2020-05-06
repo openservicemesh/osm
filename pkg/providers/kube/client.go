@@ -2,6 +2,7 @@ package kube
 
 import (
 	"net"
+	"reflect"
 	"strings"
 
 	k8s "github.com/open-service-mesh/osm/pkg/kubernetes"
@@ -45,8 +46,12 @@ func NewProvider(kubeConfig *rest.Config, namespaceController namespace.Controll
 		namespaceController: namespaceController,
 	}
 
-	informerCollection.Endpoints.AddEventHandler(k8s.GetKubernetesEventHandlers("Endpoints", "Kubernetes", client.announcements, client.namespaceController))
-	informerCollection.Deployments.AddEventHandler(k8s.GetKubernetesEventHandlers("Deployments", "Kubernetes", client.announcements, client.namespaceController))
+	nsFilter := func(obj interface{}) bool {
+		ns := reflect.ValueOf(obj).Elem().FieldByName("ObjectMeta").FieldByName("Namespace").String()
+		return !namespaceController.IsMonitoredNamespace(ns)
+	}
+	informerCollection.Endpoints.AddEventHandler(k8s.GetKubernetesEventHandlers("Endpoints", "Kubernetes", client.announcements, nsFilter))
+	informerCollection.Deployments.AddEventHandler(k8s.GetKubernetesEventHandlers("Deployments", "Kubernetes", client.announcements, nsFilter))
 
 	if err := client.run(stop); err != nil {
 		log.Fatal().Err(err).Msg("Could not start Kubernetes EndpointProvider client")
