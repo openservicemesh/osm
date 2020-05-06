@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 
+	set "github.com/deckarep/golang-set"
 	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha1"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
@@ -90,12 +91,12 @@ var (
 		Destination: endpoint.TrafficPolicyResource{
 			ServiceAccount: BookstoreServiceAccountName,
 			Namespace:      Namespace,
-			Services:       []endpoint.NamespacedService{BookstoreService},
+			Services:       set.NewSet(BookstoreService),
 		},
 		Source: endpoint.TrafficPolicyResource{
 			ServiceAccount: BookbuyerServiceAccountName,
 			Namespace:      Namespace,
-			Services:       []endpoint.NamespacedService{BookbuyerService},
+			Services:       set.NewSet(BookbuyerService),
 		},
 		RoutePolicies: []endpoint.RoutePolicy{{
 			PathRegex: BookstoreBuyPath,

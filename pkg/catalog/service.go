@@ -9,5 +9,5 @@ func (mc *MeshCatalog) GetServicesByServiceAccountName(sa endpoint.NamespacedSer
 	if refreshCache {
 		mc.refreshCache()
 	}
-	return mc.serviceAccountsCache[sa]
+	return mc.serviceAccountToServicesCache[sa]
 }

@@ -3,8 +3,9 @@ package catalog
 import (
 	"fmt"
 
+	set "github.com/deckarep/golang-set"
+
 	"github.com/open-service-mesh/osm/pkg/endpoint"
-	"github.com/open-service-mesh/osm/pkg/envoy"
 )
 
 const (
@@ -29,20 +30,23 @@ func (mc *MeshCatalog) ListTrafficPolicies(service endpoint.NamespacedService) (
 	return allTrafficPolicies, nil
 }
 
-func (mc *MeshCatalog) listServicesForServiceAccount(namespacedServiceAccount endpoint.NamespacedServiceAccount) ([]endpoint.NamespacedService, error) {
+func (mc *MeshCatalog) listServicesForServiceAccount(namespacedServiceAccount endpoint.NamespacedServiceAccount) (set.Set, error) {
 	// TODO(draychev): split namespace from the service name -- for non-K8s services
-	log.Info().Msgf("Listing services for service account: %s", namespacedServiceAccount)
-	if _, found := mc.serviceAccountsCache[namespacedServiceAccount]; !found {
+	log.Info().Msgf("Listing services for ServiceAccount: %s", namespacedServiceAccount)
+	if _, found := mc.serviceAccountToServicesCache[namespacedServiceAccount]; !found {
 		mc.refreshCache()
 	}
-
-	services, found := mc.serviceAccountsCache[namespacedServiceAccount]
+	services, found := mc.serviceAccountToServicesCache[namespacedServiceAccount]
 	if !found {
-		log.Error().Msgf("Did not find any services for service account %s", namespacedServiceAccount)
+		log.Error().Msgf("Did not find any services for ServiceAccount: %s", namespacedServiceAccount)
 		return nil, errServiceNotFound
 	}
-	log.Info().Msgf("Found service account %s for service %s", servicesToString(services), namespacedServiceAccount)
-	return services, nil
+	log.Info().Msgf("Found services %v for ServiceAccount: %s", services, namespacedServiceAccount)
+	servicesMap := set.NewSet()
+	for _, service := range services {
+		servicesMap.Add(service)
+	}
+	return servicesMap, nil
 }
 
 //GetWeightedClusterForService returns the weighted cluster for a given service
@@ -73,18 +77,14 @@ func (mc *MeshCatalog) GetDomainForService(service endpoint.NamespacedService) (
 	return domain, errServiceNotFound
 }
 
-func (mc *MeshCatalog) getActiveServices(services []endpoint.NamespacedService) []endpoint.NamespacedService {
+func (mc *MeshCatalog) getActiveServices(services set.Set) set.Set {
 	// TODO(draychev): split namespace from the service name -- for non-K8s services
 	log.Info().Msgf("Finding active services only %v", services)
-	var activeServices []endpoint.NamespacedService
-	for _, service := range services {
-		for activeService := range mc.servicesCache {
-			if activeService.ServiceName == service {
-				activeServices = append(activeServices, service)
-			}
-		}
+	activeServices := set.NewSet()
+	for service := range mc.servicesCache {
+		activeServices.Add(service.ServiceName)
 	}
-	return uniqueServices(activeServices)
+	return activeServices.Intersect(services)
 }
 
 func (mc *MeshCatalog) getHTTPPathsPerRoute() (map[string]endpoint.RoutePolicy, error) {
@@ -129,7 +129,7 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[string]endpoint
 
 		activeDestServices := mc.getActiveServices(destServices)
 		//Routes are configured only if destination services exist i.e traffic split (endpoints) is setup
-		if len(activeDestServices) == 0 || activeDestServices == nil {
+		if activeDestServices.Cardinality() == 0 || activeDestServices == nil {
 			continue
 		}
 		for _, trafficSources := range trafficTargets.Sources {
@@ -168,7 +168,7 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[string]endpoint
 				}
 			}
 			// append a traffic policy only if it corresponds to the service
-			if envoy.Contains(service, trafficPolicy.Source.Services) || envoy.Contains(service, trafficPolicy.Destination.Services) {
+			if trafficPolicy.Source.Services.Contains(service) || trafficPolicy.Destination.Services.Contains(service) {
 				trafficPolicies = append(trafficPolicies, trafficPolicy)
 			}
 		}
@@ -176,24 +176,4 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[string]endpoint
 
 	log.Debug().Msgf("Constructed traffic policies: %+v", trafficPolicies)
 	return trafficPolicies, nil
-}
-
-func servicesToString(services []endpoint.NamespacedService) []string {
-	var svcs []string
-	for _, svc := range services {
-		svcs = append(svcs, fmt.Sprintf("%v", svc.String()))
-	}
-	return svcs
-}
-
-func uniqueServices(slice []endpoint.NamespacedService) []endpoint.NamespacedService {
-	keys := make(map[endpoint.NamespacedService]interface{})
-	uniqueSlice := []endpoint.NamespacedService{}
-	for _, entry := range slice {
-		if _, value := keys[entry]; !value {
-			keys[entry] = nil
-			uniqueSlice = append(uniqueSlice, entry)
-		}
-	}
-	return uniqueSlice
 }

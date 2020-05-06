@@ -27,12 +27,13 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpe
 		TypeUrl: string(envoy.TypeCDS),
 	}
 
-	var clusterFactories []xds.Cluster
+	clusterFactories := make(map[string]xds.Cluster)
 	for _, trafficPolicies := range allTrafficPolicies {
-		isSourceService := envoy.Contains(proxyServiceName, trafficPolicies.Source.Services)
-		isDestinationService := envoy.Contains(proxyServiceName, trafficPolicies.Destination.Services)
+		isSourceService := trafficPolicies.Source.Services.Contains(proxyServiceName)
+		isDestinationService := trafficPolicies.Destination.Services.Contains(proxyServiceName)
 		//iterate through only destination services here since envoy is programmed by destination
-		for _, service := range trafficPolicies.Destination.Services {
+		for serviceInterface := range trafficPolicies.Destination.Services.Iter() {
+			service := serviceInterface.(endpoint.NamespacedService)
 			if isSourceService {
 				cluster, err := catalog.GetWeightedClusterForService(service)
 				if err != nil {
@@ -40,19 +41,20 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpe
 					return nil, err
 				}
 				remoteCluster := envoy.GetServiceCluster(string(cluster.ClusterName), proxyServiceName)
-				clusterFactories = append(clusterFactories, remoteCluster)
+				clusterFactories[remoteCluster.Name] = remoteCluster
 			} else if isDestinationService {
 				cluster, err := catalog.GetWeightedClusterForService(service)
 				if err != nil {
 					log.Error().Err(err).Msgf("Failed to find cluster")
 					return nil, err
 				}
-				localCluster, err := getServiceClusterLocal(catalog, proxyServiceName, string(cluster.ClusterName+envoy.LocalClusterSuffix))
+				localClusterName := string(cluster.ClusterName + envoy.LocalClusterSuffix)
+				localCluster, err := getServiceClusterLocal(catalog, proxyServiceName, localClusterName)
 				if err != nil {
 					log.Error().Err(err).Msgf("Failed to get local cluster for proxy %s", proxyServiceName)
 					return nil, err
 				}
-				clusterFactories = append(clusterFactories, *localCluster)
+				clusterFactories[localClusterName] = *localCluster
 			}
 		}
 	}
@@ -64,8 +66,6 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpe
 			return nil, err
 		}
 	}
-
-	clusterFactories = uniques(clusterFactories)
 	for _, cluster := range clusterFactories {
 		log.Debug().Msgf("Proxy service %s constructed ClusterConfiguration: %+v ", proxyServiceName, cluster)
 		marshalledClusters, err := ptypes.MarshalAny(&cluster)
@@ -86,24 +86,7 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpe
 	return resp, nil
 }
 
-func uniques(slice []xds.Cluster) []xds.Cluster {
-	var isPresent bool
-	var clusters []xds.Cluster
-	for _, entry := range slice {
-		isPresent = false
-		for _, cluster := range clusters {
-			if cluster.Name == entry.Name {
-				isPresent = true
-			}
-		}
-		if !isPresent {
-			clusters = append(clusters, entry)
-		}
-	}
-	return clusters
-}
-
-func getIngressServiceCluster(proxyServiceName endpoint.NamespacedService, catalog catalog.MeshCataloger, clusters []xds.Cluster) ([]xds.Cluster, error) {
+func getIngressServiceCluster(proxyServiceName endpoint.NamespacedService, catalog catalog.MeshCataloger, clusters map[string]xds.Cluster) (map[string]xds.Cluster, error) {
 	isIngress, err := catalog.IsIngressService(proxyServiceName)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error checking service %s for ingress", proxyServiceName)
@@ -117,11 +100,12 @@ func getIngressServiceCluster(proxyServiceName endpoint.NamespacedService, catal
 		log.Error().Err(err).Msgf("Failed to get weighted ingress clusters for proxy %s", proxyServiceName)
 		return clusters, err
 	}
-	localCluster, err := getServiceClusterLocal(catalog, proxyServiceName, string(ingressWeightedCluster.ClusterName+envoy.LocalClusterSuffix))
+	localClusterName := string(ingressWeightedCluster.ClusterName + envoy.LocalClusterSuffix)
+	localCluster, err := getServiceClusterLocal(catalog, proxyServiceName, localClusterName)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to get local cluster for proxy %s", proxyServiceName)
 		return nil, err
 	}
-	clusters = append(clusters, *localCluster)
+	clusters[localClusterName] = *localCluster
 	return clusters, nil
 }

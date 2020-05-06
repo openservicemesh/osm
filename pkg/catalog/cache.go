@@ -8,7 +8,7 @@ import (
 func (mc *MeshCatalog) refreshCache() {
 	log.Info().Msg("Refresh cache...")
 	servicesCache := make(map[endpoint.WeightedService][]endpoint.Endpoint)
-	serviceAccountsCache := make(map[endpoint.NamespacedServiceAccount][]endpoint.NamespacedService)
+	serviceAccountToServicesCache := make(map[endpoint.NamespacedServiceAccount][]endpoint.NamespacedService)
 	// TODO(draychev): split the namespace from the service name -- non-K8s services won't have namespace
 
 	services := mc.meshSpec.ListServices()
@@ -35,29 +35,14 @@ func (mc *MeshCatalog) refreshCache() {
 					continue
 				}
 				log.Trace().Msgf("[%s] Found services=%+v for ServiceAccount=%s", provider.GetID(), newServices, namespacesServiceAccounts)
-				if existingServices, exists := serviceAccountsCache[namespacesServiceAccounts]; exists {
-					// append only new services i.e. preventing duplication
-					for _, service := range newServices {
-						isPresent := false
-						for _, existingService := range serviceAccountsCache[namespacesServiceAccounts] {
-							if existingService.String() == service.String() {
-								isPresent = true
-							}
-							if !isPresent {
-								serviceAccountsCache[namespacesServiceAccounts] = append(existingServices, existingService)
-							}
-						}
-					}
-				} else {
-					serviceAccountsCache[namespacesServiceAccounts] = newServices
-				}
+				serviceAccountToServicesCache[namespacesServiceAccounts] = newServices
 			}
 		}
 	}
 	log.Info().Msgf("Services cache: %+v", servicesCache)
-	log.Info().Msgf("ServiceAccounts cache: %+v", serviceAccountsCache)
+	log.Info().Msgf("ServiceAccountToServices cache: %+v", serviceAccountToServicesCache)
 	mc.servicesMutex.Lock()
 	mc.servicesCache = servicesCache
-	mc.serviceAccountsCache = serviceAccountsCache
+	mc.serviceAccountToServicesCache = serviceAccountToServicesCache
 	mc.servicesMutex.Unlock()
 }

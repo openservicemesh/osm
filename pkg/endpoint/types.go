@@ -5,6 +5,8 @@ import (
 	"net"
 	"strings"
 
+	set "github.com/deckarep/golang-set"
+
 	"github.com/open-service-mesh/osm/pkg/certificate"
 )
 
@@ -13,7 +15,7 @@ type Provider interface {
 	// Retrieve the IP addresses comprising the given service.
 	ListEndpointsForService(ServiceName) []Endpoint
 
-	// Retrieve the servics for a given service account
+	// Retrieve the namespaced services for a given service account
 	ListServicesForServiceAccount(NamespacedServiceAccount) []NamespacedService
 
 	// GetID returns the unique identifier of the EndpointsProvider.
@@ -113,13 +115,13 @@ type WeightedCluster struct {
 
 //TrafficPolicyResource is a struct of the various resources of a source/destination in the TrafficPolicy
 type TrafficPolicyResource struct {
-	ServiceAccount ServiceAccount      `json:"service_account:omitempty"`
-	Namespace      string              `json:"namespace:omitempty"`
-	Services       []NamespacedService `json:"services:omitempty"`
+	ServiceAccount ServiceAccount `json:"service_account:omitempty"`
+	Namespace      string         `json:"namespace:omitempty"`
+	Services       set.Set        `json:"services:omitempty"`
 }
 
 //RoutePolicyWeightedClusters is a struct of a route and the weighted clusters on that route
 type RoutePolicyWeightedClusters struct {
-	RoutePolicy      RoutePolicy
-	WeightedClusters []WeightedCluster
+	RoutePolicy      RoutePolicy `json:"route_policy:omitempty"`
+	WeightedClusters set.Set     `json:"weighted_clusters:omitempty"`
 }

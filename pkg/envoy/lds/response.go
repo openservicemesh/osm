@@ -153,9 +153,10 @@ func getFilterChainMatchServerNames(proxyServiceName endpoint.NamespacedService,
 	}
 
 	for _, trafficPolicies := range allTrafficPolicies {
-		isDestinationService := envoy.Contains(proxyServiceName, trafficPolicies.Destination.Services)
+		isDestinationService := trafficPolicies.Destination.Services.Contains(proxyServiceName)
 		if isDestinationService {
-			for _, source := range trafficPolicies.Source.Services {
+			for sourceInterface := range trafficPolicies.Source.Services.Iter() {
+				source := sourceInterface.(endpoint.NamespacedService)
 				if _, server := serverNamesMap[source.String()]; !server {
 					serverNamesMap[source.String()] = nil
 					serverNames = append(serverNames, source.String())

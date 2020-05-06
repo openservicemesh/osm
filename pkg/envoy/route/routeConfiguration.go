@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 
+	set "github.com/deckarep/golang-set"
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	v2route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
@@ -93,7 +94,7 @@ func createRoutes(routePolicyWeightedClustersList []endpoint.RoutePolicyWeighted
 	return routes
 }
 
-func getRoute(pathRegex string, method string, weightedCLusters []endpoint.WeightedCluster, totalClustersWeight int, isLocalCluster bool) v2route.Route {
+func getRoute(pathRegex string, method string, weightedClusters set.Set, totalClustersWeight int, isLocalCluster bool) v2route.Route {
 	route := v2route.Route{
 		Match: &v2route.RouteMatch{
 			PathSpecifier: &v2route.RouteMatch_SafeRegex{
@@ -117,7 +118,7 @@ func getRoute(pathRegex string, method string, weightedCLusters []endpoint.Weigh
 		Action: &v2route.Route_Route{
 			Route: &v2route.RouteAction{
 				ClusterSpecifier: &v2route.RouteAction_WeightedClusters{
-					WeightedClusters: getWeightedCluster(weightedCLusters, totalClustersWeight, isLocalCluster),
+					WeightedClusters: getWeightedCluster(weightedClusters, totalClustersWeight, isLocalCluster),
 				},
 			},
 		},
@@ -125,10 +126,11 @@ func getRoute(pathRegex string, method string, weightedCLusters []endpoint.Weigh
 	return route
 }
 
-func getWeightedCluster(weightedClusters []endpoint.WeightedCluster, totalClustersWeight int, isLocalCluster bool) *v2route.WeightedCluster {
+func getWeightedCluster(weightedClusters set.Set, totalClustersWeight int, isLocalCluster bool) *v2route.WeightedCluster {
 	var wc v2route.WeightedCluster
 	var total int
-	for _, cluster := range weightedClusters {
+	for clusterInterface := range weightedClusters.Iter() {
+		cluster := clusterInterface.(endpoint.WeightedCluster)
 		clusterName := string(cluster.ClusterName)
 		total += cluster.Weight
 		if isLocalCluster {
@@ -150,28 +152,21 @@ func getWeightedCluster(weightedClusters []endpoint.WeightedCluster, totalCluste
 
 // This method gets a list of all the distinct upstream clusters for a domain
 // needed to configure source service's weighted routes
-func getDistinctWeightedClusters(routePolicyWeightedClustersList []endpoint.RoutePolicyWeightedClusters) []endpoint.WeightedCluster {
-	var weightedClusters []endpoint.WeightedCluster
-	for _, perRouteWeightedClusters := range routePolicyWeightedClustersList {
-		for _, cluster := range perRouteWeightedClusters.WeightedClusters {
-			var clusterExists bool
-			for _, existingCluster := range weightedClusters {
-				if existingCluster.ClusterName == cluster.ClusterName {
-					clusterExists = true
-					continue
-				}
-			}
-			if !clusterExists {
-				weightedClusters = append(weightedClusters, cluster)
-			}
+func getDistinctWeightedClusters(routePolicyWeightedClustersList []endpoint.RoutePolicyWeightedClusters) set.Set {
+	weightedClusters := set.NewSet()
+	for i, perRouteWeightedClusters := range routePolicyWeightedClustersList {
+		if i == 0 {
+			weightedClusters = perRouteWeightedClusters.WeightedClusters
 		}
+		weightedClusters.Union(perRouteWeightedClusters.WeightedClusters)
 	}
 	return weightedClusters
 }
 
-func getTotalWeightForClusters(weightedClusters []endpoint.WeightedCluster) int {
+func getTotalWeightForClusters(weightedClusters set.Set) int {
 	var totalWeight int
-	for _, cluster := range weightedClusters {
+	for clusterInterface := range weightedClusters.Iter() {
+		cluster := clusterInterface.(endpoint.WeightedCluster)
 		totalWeight += cluster.Weight
 	}
 	return totalWeight

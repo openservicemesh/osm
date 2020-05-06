@@ -20,15 +20,16 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	proxyServiceName := proxy.GetService()
 	allTrafficPolicies, err := catalog.ListTrafficPolicies(proxyServiceName)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed listing traffic policies")
+		log.Error().Err(err).Msgf("Failed to list traffic policies for proxy service %q", proxyServiceName)
 		return nil, err
 	}
 
 	destinationMap := make(map[endpoint.NamespacedService]struct{})
 	for _, trafficPolicy := range allTrafficPolicies {
-		isSourceService := envoy.Contains(proxyServiceName, trafficPolicy.Source.Services)
+		isSourceService := trafficPolicy.Source.Services.Contains(proxyServiceName)
 		if isSourceService {
-			for _, service := range trafficPolicy.Destination.Services {
+			for serviceInterface := range trafficPolicy.Destination.Services.Iter() {
+				service := serviceInterface.(endpoint.NamespacedService)
 				destinationMap[service] = struct{}{}
 			}
 		}

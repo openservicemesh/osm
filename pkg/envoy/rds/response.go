@@ -3,6 +3,7 @@ package rds
 import (
 	"context"
 
+	set "github.com/deckarep/golang-set"
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/protobuf/ptypes"
 
@@ -35,9 +36,10 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	destinationAggregatedRoutesByDomain := make(map[string][]endpoint.RoutePolicyWeightedClusters)
 
 	for _, trafficPolicies := range allTrafficPolicies {
-		isSourceService := envoy.Contains(proxyServiceName, trafficPolicies.Source.Services)
-		isDestinationService := envoy.Contains(proxyServiceName, trafficPolicies.Destination.Services)
-		for _, service := range trafficPolicies.Destination.Services {
+		isSourceService := trafficPolicies.Source.Services.Contains(proxyServiceName)
+		isDestinationService := trafficPolicies.Destination.Services.Contains(proxyServiceName)
+		for serviceInterface := range trafficPolicies.Destination.Services.Iter() {
+			service := serviceInterface.(endpoint.NamespacedService)
 			domain, err := catalog.GetDomainForService(service)
 			if err != nil {
 				log.Error().Err(err).Msg("Failed listing domains")
@@ -94,7 +96,7 @@ func aggregateRoutesByDomain(domainRoutesMap map[string][]endpoint.RoutePolicyWe
 			routeIndex, routeFound := routeExits(routesList, route)
 			if routeFound {
 				// add the cluster to the existing route
-				routesList[routeIndex].WeightedClusters = append(routesList[routeIndex].WeightedClusters, weightedCluster)
+				routesList[routeIndex].WeightedClusters.Add(weightedCluster)
 				routesList[routeIndex].RoutePolicy.Methods = append(routesList[routeIndex].RoutePolicy.Methods, route.Methods...)
 			} else {
 				// no route found, create a new route and cluster mapping on domain
@@ -108,7 +110,7 @@ func aggregateRoutesByDomain(domainRoutesMap map[string][]endpoint.RoutePolicyWe
 func createRoutePolicyWeightedClusters(routePolicy endpoint.RoutePolicy, weightedCluster endpoint.WeightedCluster) endpoint.RoutePolicyWeightedClusters {
 	return endpoint.RoutePolicyWeightedClusters{
 		RoutePolicy:      routePolicy,
-		WeightedClusters: []endpoint.WeightedCluster{weightedCluster},
+		WeightedClusters: set.NewSet(weightedCluster),
 	}
 }
 

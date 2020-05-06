@@ -27,10 +27,10 @@ type MeshCatalog struct {
 	certManager        certificate.Manager
 	ingressMonitor     ingress.Monitor
 
-	servicesCache        map[endpoint.WeightedService][]endpoint.Endpoint
-	servicesMutex        sync.Mutex
-	certificateCache     map[endpoint.NamespacedService]certificate.Certificater
-	serviceAccountsCache map[endpoint.NamespacedServiceAccount][]endpoint.NamespacedService
+	servicesCache                 map[endpoint.WeightedService][]endpoint.Endpoint
+	servicesMutex                 sync.Mutex
+	certificateCache              map[endpoint.NamespacedService]certificate.Certificater
+	serviceAccountToServicesCache map[endpoint.NamespacedServiceAccount][]endpoint.NamespacedService
 
 	expectedProxies      map[certificate.CommonName]expectedProxy
 	connectedProxies     map[certificate.CommonName]connectedProxy
