@@ -128,7 +128,7 @@ func newSMIClient(kubeClient *kubernetes.Clientset, smiTrafficSplitClient *smiTr
 
 	nsFilter := func(obj interface{}) bool {
 		ns := reflect.ValueOf(obj).Elem().FieldByName("ObjectMeta").FieldByName("Namespace").String()
-		return !namespaceController.IsMonitoredNamespace(ns)
+		return namespaceController.IsMonitoredNamespace(ns)
 	}
 	informerCollection.Services.AddEventHandler(k8s.GetKubernetesEventHandlers("Services", "SMI", client.announcements, nsFilter))
 	informerCollection.TrafficSplit.AddEventHandler(k8s.GetKubernetesEventHandlers("TrafficSplit", "SMI", client.announcements, nsFilter))

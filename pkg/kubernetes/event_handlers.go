@@ -21,7 +21,7 @@ func GetKubernetesEventHandlers(informerName string, providerName string, announ
 // add a new item to Kubernetes caches from an incoming Kubernetes event.
 func add(informerName string, providerName string, announce chan interface{}, nsFilter namespaceFilter) func(obj interface{}) {
 	return func(obj interface{}) {
-		if nsFilter != nil && !nsFilter(obj) {
+		if nsFilter == nil || !nsFilter(obj) {
 			log.Debug().Msgf("Namespace %q is not observed by OSM; ignoring ADD event", getNamespace(obj))
 			return
 		}
@@ -40,7 +40,7 @@ func add(informerName string, providerName string, announce chan interface{}, ns
 // update caches with an incoming Kubernetes event.
 func update(informerName string, providerName string, announce chan interface{}, nsFilter namespaceFilter) func(oldObj, newObj interface{}) {
 	return func(oldObj, newObj interface{}) {
-		if nsFilter != nil && !nsFilter(newObj) {
+		if nsFilter == nil || !nsFilter(newObj) {
 			log.Debug().Msgf("Namespace %q is not observed by OSM; ignoring UPDATE event", getNamespace(newObj))
 			return
 		}
@@ -59,7 +59,7 @@ func update(informerName string, providerName string, announce chan interface{},
 // delete Kubernetes cache from an incoming Kubernetes event.
 func delete(informerName string, providerName string, announce chan interface{}, nsFilter namespaceFilter) func(obj interface{}) {
 	return func(obj interface{}) {
-		if nsFilter != nil && !nsFilter(obj) {
+		if nsFilter == nil || !nsFilter(obj) {
 			log.Debug().Msgf("Namespace %q is not observed by OSM; ignoring DELETE event", getNamespace(obj))
 			return
 		}

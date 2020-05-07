@@ -33,7 +33,7 @@ func NewIngressClient(kubeConfig *rest.Config, namespaceController namespace.Con
 
 	nsFilter := func(obj interface{}) bool {
 		ns := reflect.ValueOf(obj).Elem().FieldByName("ObjectMeta").FieldByName("Namespace").String()
-		return !namespaceController.IsMonitoredNamespace(ns)
+		return namespaceController.IsMonitoredNamespace(ns)
 	}
 	informer.AddEventHandler(k8s.GetKubernetesEventHandlers("Ingress", "Kubernetes", client.announcements, nsFilter))
 
