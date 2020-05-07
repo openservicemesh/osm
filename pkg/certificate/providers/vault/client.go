@@ -173,7 +173,7 @@ func (c Certificate) GetIssuingCA() []byte {
 	return c.issuingCA
 }
 
-// GetExpiration returns the time the given certificate expires.
+// GetExpiration implements certificate.Certificater and returns the time the given certificate expires.
 func (c Certificate) GetExpiration() time.Time {
 	return c.expiration
 }

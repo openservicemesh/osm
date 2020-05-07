@@ -463,6 +463,9 @@ type Certificater interface {
 
 	// GetIssuingCA returns the root certificate for the given cert.
 	GetIssuingCA() Certificater
+
+	// GetExpiration() returns the expiration of the certificate
+	GetExpiration() time.Time
 }
 ```
 

@@ -7,6 +7,8 @@ import (
 	"crypto/x509/pkix"
 	"time"
 
+	"github.com/open-service-mesh/osm/pkg/certificate/providers/tresor/pem"
+
 	"github.com/open-service-mesh/osm/pkg/certificate"
 
 	"github.com/pkg/errors"
@@ -66,6 +68,22 @@ func NewCA(cn certificate.CommonName, validity time.Duration) (certificate.Certi
 		privateKey: pemKey,
 		expiration: template.NotAfter,
 	}
+
+	rootCertificate.issuingCA = rootCertificate
+
+	return &rootCertificate, nil
+}
+
+// NewCertificateFromPEM is a helper returning a certificate.Certificater from the PEM components given.
+func NewCertificateFromPEM(pemCert pem.Certificate, pemKey pem.PrivateKey, expiration time.Time) (certificate.Certificater, error) {
+	rootCertificate := Certificate{
+		commonName: rootCertificateName,
+		certChain:  pemCert,
+		privateKey: pemKey,
+		expiration: expiration,
+	}
+
+	rootCertificate.issuingCA = rootCertificate
 
 	return &rootCertificate, nil
 }
