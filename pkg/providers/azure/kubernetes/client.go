@@ -52,11 +52,11 @@ func newClient(kubeClient *kubernetes.Clientset, azureResourceClient *osmClient.
 		namespaceController: namespaceController,
 	}
 
-	nsFilter := func(obj interface{}) bool {
+	shouldObserve := func(obj interface{}) bool {
 		ns := reflect.ValueOf(obj).Elem().FieldByName("ObjectMeta").FieldByName("Namespace").String()
-		return !namespaceController.IsMonitoredNamespace(ns)
+		return namespaceController.IsMonitoredNamespace(ns)
 	}
-	informerCollection.AzureResource.AddEventHandler(k8s.GetKubernetesEventHandlers("AzureResource", "Azure", client.announcements, nsFilter))
+	informerCollection.AzureResource.AddEventHandler(k8s.GetKubernetesEventHandlers("AzureResource", "Azure", client.announcements, shouldObserve))
 
 	return &client
 }

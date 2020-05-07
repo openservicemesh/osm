@@ -31,11 +31,11 @@ func NewIngressClient(kubeConfig *rest.Config, namespaceController namespace.Con
 		namespaceController: namespaceController,
 	}
 
-	nsFilter := func(obj interface{}) bool {
+	shouldObserve := func(obj interface{}) bool {
 		ns := reflect.ValueOf(obj).Elem().FieldByName("ObjectMeta").FieldByName("Namespace").String()
-		return !namespaceController.IsMonitoredNamespace(ns)
+		return namespaceController.IsMonitoredNamespace(ns)
 	}
-	informer.AddEventHandler(k8s.GetKubernetesEventHandlers("Ingress", "Kubernetes", client.announcements, nsFilter))
+	informer.AddEventHandler(k8s.GetKubernetesEventHandlers("Ingress", "Kubernetes", client.announcements, shouldObserve))
 
 	if err := client.run(stop); err != nil {
 		log.Error().Err(err).Msg("Could not start Kubernetes Ingress client")

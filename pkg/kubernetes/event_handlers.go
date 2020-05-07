@@ -7,21 +7,26 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-type namespaceFilter func(obj interface{}) bool
+// observeFilter returns true for YES observe and false for NO do not pay attention to this
+// This filter could be added optionally by anything using GetKubernetesEventHandlers()
+type observeFilter func(obj interface{}) bool
 
 // GetKubernetesEventHandlers creates Kubernetes events handlers.
-func GetKubernetesEventHandlers(informerName string, providerName string, announcements chan interface{}, nsFilter namespaceFilter) cache.ResourceEventHandlerFuncs {
+func GetKubernetesEventHandlers(informerName string, providerName string, announcements chan interface{}, shouldObserve observeFilter) cache.ResourceEventHandlerFuncs {
+	if shouldObserve == nil {
+		shouldObserve = func(obj interface{}) bool { return true }
+	}
 	return cache.ResourceEventHandlerFuncs{
-		AddFunc:    add(informerName, providerName, announcements, nsFilter),
-		UpdateFunc: update(informerName, providerName, announcements, nsFilter),
-		DeleteFunc: delete(informerName, providerName, announcements, nsFilter),
+		AddFunc:    add(informerName, providerName, announcements, shouldObserve),
+		UpdateFunc: update(informerName, providerName, announcements, shouldObserve),
+		DeleteFunc: delete(informerName, providerName, announcements, shouldObserve),
 	}
 }
 
 // add a new item to Kubernetes caches from an incoming Kubernetes event.
-func add(informerName string, providerName string, announce chan interface{}, nsFilter namespaceFilter) func(obj interface{}) {
+func add(informerName string, providerName string, announce chan interface{}, shouldObserve observeFilter) func(obj interface{}) {
 	return func(obj interface{}) {
-		if nsFilter != nil && !nsFilter(obj) {
+		if !shouldObserve(obj) {
 			log.Debug().Msgf("Namespace %q is not observed by OSM; ignoring ADD event", getNamespace(obj))
 			return
 		}
@@ -38,9 +43,9 @@ func add(informerName string, providerName string, announce chan interface{}, ns
 }
 
 // update caches with an incoming Kubernetes event.
-func update(informerName string, providerName string, announce chan interface{}, nsFilter namespaceFilter) func(oldObj, newObj interface{}) {
+func update(informerName string, providerName string, announce chan interface{}, shouldObserve observeFilter) func(oldObj, newObj interface{}) {
 	return func(oldObj, newObj interface{}) {
-		if nsFilter != nil && !nsFilter(newObj) {
+		if !shouldObserve(newObj) {
 			log.Debug().Msgf("Namespace %q is not observed by OSM; ignoring UPDATE event", getNamespace(newObj))
 			return
 		}
@@ -57,9 +62,9 @@ func update(informerName string, providerName string, announce chan interface{},
 }
 
 // delete Kubernetes cache from an incoming Kubernetes event.
-func delete(informerName string, providerName string, announce chan interface{}, nsFilter namespaceFilter) func(obj interface{}) {
+func delete(informerName string, providerName string, announce chan interface{}, shouldObserve observeFilter) func(obj interface{}) {
 	return func(obj interface{}) {
-		if nsFilter != nil && !nsFilter(obj) {
+		if !shouldObserve(obj) {
 			log.Debug().Msgf("Namespace %q is not observed by OSM; ignoring DELETE event", getNamespace(obj))
 			return
 		}
