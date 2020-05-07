@@ -27,7 +27,6 @@ type MeshCatalog struct {
 	certManager        certificate.Manager
 	ingressMonitor     ingress.Monitor
 
-	servicesCache                 map[endpoint.WeightedService][]endpoint.Endpoint
 	servicesMutex                 sync.Mutex
 	certificateCache              map[endpoint.NamespacedService]certificate.Certificater
 	serviceAccountToServicesCache map[endpoint.NamespacedServiceAccount][]endpoint.NamespacedService
@@ -43,8 +42,6 @@ type MeshCatalog struct {
 
 // MeshCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
 type MeshCataloger interface {
-	// ListTrafficSplitEndpoints constructs a map of service to weighted handlers with all endpoints the given Envoy proxy should be aware of.
-	ListTrafficSplitEndpoints(endpoint.NamespacedService) ([]endpoint.WeightedServiceEndpoints, error)
 
 	// ListTrafficPolicies returns all the traffic policies for a given service that Envoy proxy should be aware of.
 	ListTrafficPolicies(endpoint.NamespacedService) ([]endpoint.TrafficPolicy, error)

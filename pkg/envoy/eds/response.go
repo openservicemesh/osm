@@ -24,31 +24,26 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 		return nil, err
 	}
 
-	destinationMap := make(map[endpoint.NamespacedService]struct{})
+	allServicesEndpoints := make(map[endpoint.NamespacedService][]endpoint.Endpoint)
 	for _, trafficPolicy := range allTrafficPolicies {
 		isSourceService := trafficPolicy.Source.Services.Contains(proxyServiceName)
 		if isSourceService {
 			for serviceInterface := range trafficPolicy.Destination.Services.Iter() {
-				service := serviceInterface.(endpoint.NamespacedService)
-				destinationMap[service] = struct{}{}
+				destService := serviceInterface.(endpoint.NamespacedService)
+				serviceEndpoints, err := catalog.ListEndpointsForService(endpoint.ServiceName(destService.String()))
+				if err != nil {
+					log.Error().Err(err).Msgf("Failed listing endpoints")
+					return nil, err
+				}
+				allServicesEndpoints[destService] = serviceEndpoints
 			}
 		}
 	}
 
-	var allServicesEndpoints []endpoint.WeightedServiceEndpoints
-	for dest := range destinationMap {
-		serviceEndpoints, err := catalog.ListTrafficSplitEndpoints(dest)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed listing endpoints")
-			return nil, err
-		}
-		allServicesEndpoints = append(allServicesEndpoints, serviceEndpoints...)
-	}
-
 	log.Debug().Msgf("allServicesEndpoints: %+v", allServicesEndpoints)
 	var protos []*any.Any
-	for _, serviceEndpoints := range allServicesEndpoints {
-		loadAssignment := cla.NewClusterLoadAssignment(serviceEndpoints)
+	for serviceName, serviceEndpoints := range allServicesEndpoints {
+		loadAssignment := cla.NewClusterLoadAssignment(serviceName, serviceEndpoints)
 
 		proto, err := ptypes.MarshalAny(&loadAssignment)
 		if err != nil {

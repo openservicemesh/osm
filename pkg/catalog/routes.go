@@ -53,7 +53,8 @@ func (mc *MeshCatalog) listServicesForServiceAccount(namespacedServiceAccount en
 func (mc *MeshCatalog) GetWeightedClusterForService(service endpoint.NamespacedService) (endpoint.WeightedCluster, error) {
 	// TODO(draychev): split namespace from the service name -- for non-K8s services
 	log.Info().Msgf("Finding weighted cluster for service %s", service)
-	for activeService := range mc.servicesCache {
+	servicesList := mc.meshSpec.ListServices()
+	for _, activeService := range servicesList {
 		if activeService.ServiceName == service {
 			return endpoint.WeightedCluster{
 				ClusterName: endpoint.ClusterName(activeService.ServiceName.String()),
@@ -69,7 +70,8 @@ func (mc *MeshCatalog) GetWeightedClusterForService(service endpoint.NamespacedS
 func (mc *MeshCatalog) GetDomainForService(service endpoint.NamespacedService) (string, error) {
 	log.Info().Msgf("Finding domain for service %s", service)
 	var domain string
-	for activeService := range mc.servicesCache {
+	servicesList := mc.meshSpec.ListServices()
+	for _, activeService := range servicesList {
 		if activeService.ServiceName == service {
 			return activeService.Domain, nil
 		}
@@ -81,7 +83,8 @@ func (mc *MeshCatalog) getActiveServices(services set.Set) set.Set {
 	// TODO(draychev): split namespace from the service name -- for non-K8s services
 	log.Info().Msgf("Finding active services only %v", services)
 	activeServices := set.NewSet()
-	for service := range mc.servicesCache {
+	servicesList := mc.meshSpec.ListServices()
+	for _, service := range servicesList {
 		activeServices.Add(service.ServiceName)
 	}
 	return activeServices.Intersect(services)

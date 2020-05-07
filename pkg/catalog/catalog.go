@@ -24,7 +24,6 @@ func NewMeshCatalog(kubeClient kubernetes.Interface, meshSpec smi.MeshSpec, cert
 		certManager:        certManager,
 		ingressMonitor:     ingressMonitor,
 
-		servicesCache:                 make(map[endpoint.WeightedService][]endpoint.Endpoint),
 		certificateCache:              make(map[endpoint.NamespacedService]certificate.Certificater),
 		expectedProxies:               make(map[certificate.CommonName]expectedProxy),
 		connectedProxies:              make(map[certificate.CommonName]connectedProxy),
