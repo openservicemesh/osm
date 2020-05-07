@@ -89,7 +89,22 @@ func getPodFromCertificate(cn certificate.CommonName, kubeClient kubernetes.Inte
 		return nil, errMoreThanOnePodForCertificate
 	}
 
-	return pods[0], nil
+	pod := pods[0]
+
+	// Ensure the Namespace encoded in the certificate matches that of the Pod
+	if pod.Namespace != cnMeta.Namespace {
+		log.Warn().Msgf("Pod %s belongs to Namespace %q while the pod's cert was issued for Namespace %q", pod.Name, pod.Namespace, cnMeta.Namespace)
+		return nil, errNamespaceDoesNotMatchCertificate
+	}
+
+	// Ensure the ServiceAccount encoded in the certificate matches that of the Pod
+	if pod.Spec.ServiceAccountName != cnMeta.ServiceAccount {
+		// Since we search for the pod in the namespace we obtain from the certificate -- these namespaces will always matech.
+		log.Warn().Msgf("Pod %s/%s belongs to ServiceAccount %q while the pod's cert was issued for ServiceAccount %q", pod.Namespace, pod.Name, pod.Spec.ServiceAccountName, cnMeta.ServiceAccount)
+		return nil, errServiceAccountDoesNotMatchCertificate
+	}
+
+	return pod, nil
 }
 
 func mapStringStringToSet(m map[string]string) mapset.Set {
@@ -122,16 +137,17 @@ func listServicesForPod(pod *v1.Pod, kubeClient kubernetes.Interface) ([]v1.Serv
 
 func getCertificateCommonNameMeta(cn certificate.CommonName) (*certificateCommonNameMeta, error) {
 	chunks := strings.Split(cn.String(), domainDelimiter)
-	if len(chunks) < 2 {
+	if len(chunks) < 3 {
 		return nil, errInvalidCertificateCN
 	}
 	return &certificateCommonNameMeta{
-		ProxyID:   chunks[0],
-		Namespace: chunks[1],
+		ProxyID:        chunks[0],
+		ServiceAccount: chunks[1],
+		Namespace:      chunks[2],
 	}, nil
 }
 
-// NewCertCommonNameWithProxyID returns a newly generated CommonName for a certificate of the form: <ProxyID>.<domain>
-func NewCertCommonNameWithProxyID(proxyUUID, namespace string) certificate.CommonName {
-	return certificate.CommonName(strings.Join([]string{proxyUUID, namespace}, domainDelimiter))
+// NewCertCommonNameWithProxyID returns a newly generated CommonName for a certificate of the form: <ProxyID>.<serviceAccount>.<namespace>
+func NewCertCommonNameWithProxyID(proxyUUID, serviceAccount, namespace string) certificate.CommonName {
+	return certificate.CommonName(strings.Join([]string{proxyUUID, serviceAccount, namespace}, domainDelimiter))
 }

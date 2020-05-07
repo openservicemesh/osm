@@ -106,6 +106,7 @@ type connectedProxy struct {
 
 // certificateCommonNameMeta is the type that stores the metadata present in the CommonName field in a proxy's certificate
 type certificateCommonNameMeta struct {
-	ProxyID   string
-	Namespace string
+	ProxyID        string
+	ServiceAccount string
+	Namespace      string
 }

@@ -189,7 +189,9 @@ func NewPodTestFixture(namespace string, podName string) corev1.Pod {
 				constants.EnvoyUniqueIDLabelName: EnvoyUID,
 			},
 		},
-		Spec: corev1.PodSpec{},
+		Spec: corev1.PodSpec{
+			ServiceAccountName: BookbuyerServiceAccountName,
+		},
 	}
 }
 
