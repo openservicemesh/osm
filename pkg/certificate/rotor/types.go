@@ -1,4 +1,4 @@
-package rotisserie
+package rotor
 
 import "github.com/open-service-mesh/osm/pkg/logger"
 

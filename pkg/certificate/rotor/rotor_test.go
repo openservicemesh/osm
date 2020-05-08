@@ -1,4 +1,4 @@
-package rotisserie_test
+package rotor_test
 
 import (
 	"fmt"
@@ -9,7 +9,7 @@ import (
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
 	"github.com/open-service-mesh/osm/pkg/certificate/providers/tresor"
-	"github.com/open-service-mesh/osm/pkg/certificate/rotisserie"
+	"github.com/open-service-mesh/osm/pkg/certificate/rotor"
 )
 
 var _ = Describe("Test Rotisserie", func() {
@@ -24,7 +24,7 @@ var _ = Describe("Test Rotisserie", func() {
 		It("determines whether a certificate has expired", func() {
 			cert, err := certManager.IssueCertificate(cn)
 			Expect(err).ToNot(HaveOccurred())
-			actual := rotisserie.ShouldRotate(cert)
+			actual := rotor.ShouldRotate(cert)
 			Expect(actual).To(BeFalse())
 		})
 	})
@@ -42,7 +42,7 @@ var _ = Describe("Test Rotisserie", func() {
 		})
 
 		It("will determine that the certificate needs to be rotated because it has already expired due to negative validity period", func() {
-			actual := rotisserie.ShouldRotate(certA)
+			actual := rotor.ShouldRotate(certA)
 			Expect(actual).To(BeTrue())
 		})
 
@@ -51,7 +51,7 @@ var _ = Describe("Test Rotisserie", func() {
 			Expect(cache[cn]).To(Equal(certA))
 
 			start := time.Now()
-			announcements := rotisserie.New(1*time.Millisecond, done, certManager, &cache)
+			announcements := rotor.New(1*time.Millisecond, done, certManager, &cache)
 			// Wait for one certificate rotation to be announced and terminate
 			<-announcements
 			close(done)

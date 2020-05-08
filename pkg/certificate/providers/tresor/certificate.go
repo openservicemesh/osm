@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
-	"github.com/open-service-mesh/osm/pkg/certificate/rotisserie"
+	"github.com/open-service-mesh/osm/pkg/certificate/rotor"
 )
 
 // GetName implements certificate.Certificater and returns the CN of the cert.
@@ -93,7 +93,7 @@ func NewCertManager(ca certificate.Certificater, validity time.Duration) (*CertM
 	// Instantiating a new certificate rotation mechanism will start a goroutine and return an announcement channel
 	// which we use to get notified when a cert has been rotated. From thene we pass that onto whoever is listening
 	// to the announcement channel of pkg/tresor.
-	announcements := rotisserie.New(checkExpirationInterval, done, &certManager, &cache)
+	announcements := rotor.New(checkExpirationInterval, done, &certManager, &cache)
 	go func() {
 		for {
 			<-announcements

@@ -1,4 +1,4 @@
-package rotisserie
+package rotor
 
 import (
 	"time"

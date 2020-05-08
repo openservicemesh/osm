@@ -3,12 +3,11 @@ package vault
 import (
 	"time"
 
-	"github.com/open-service-mesh/osm/pkg/certificate/rotisserie"
-
 	"github.com/hashicorp/vault/api"
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
 	"github.com/open-service-mesh/osm/pkg/certificate/providers/tresor/pem"
+	"github.com/open-service-mesh/osm/pkg/certificate/rotor"
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/logger"
 )
@@ -19,6 +18,8 @@ const (
 	certificateField = "certificate"
 	privateKeyField  = "private_key"
 	issuingCAField   = "issuing_ca"
+
+	checkCertificateExpirationInterval = 5 * time.Second
 )
 
 // NewCertManager implements certificate.Manager and wraps a Hashi Vault with methods to allow easy certificate issuance.
@@ -52,11 +53,11 @@ func NewCertManager(vaultAddr, token string, validity time.Duration) (*CertManag
 
 	// Setup certificate rotation
 	done := make(chan interface{})
-	checkExpirationInterval := 5 * time.Second
+
 	// Instantiating a new certificate rotation mechanism will start a goroutine and return an announcement channel
 	// which we use to get notified when a cert has been rotated. From thene we pass that onto whoever is listening
 	// to the announcement channel of pkg/tresor.
-	announcements := rotisserie.New(checkExpirationInterval, done, c, &cache)
+	announcements := rotor.New(checkCertificateExpirationInterval, done, c, &cache)
 	go func() {
 		for {
 			<-announcements
