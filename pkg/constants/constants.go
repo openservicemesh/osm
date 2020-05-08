@@ -73,6 +73,12 @@ const (
 	// OSMControllerPort is the port on which XDS listens for new connections.
 	OSMControllerPort = 15128
 
+	// OSMDeploymentName is the name of the OSM Kubernetes Deployment
+	OSMDeploymentName = "osm-deployment"
+
+	// AggregatedDiscoveryServicePort is the port on which XDS listens for new connections.
+	AggregatedDiscoveryServicePort = 15128
+
 	// PrometheusScrapePath is the path for prometheus to scrap envoy metrics from
 	PrometheusScrapePath = "/stats/prometheus"
 
