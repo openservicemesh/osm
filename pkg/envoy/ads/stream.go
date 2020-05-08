@@ -32,7 +32,7 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 	}
 	log.Info().Msgf("Client %s connected: Subject CN=%s; Service=%s", ip, cn, namespacedService)
 
-	proxy := envoy.NewProxy(cn, *namespacedService, ip)
+	proxy := envoy.NewProxy(cn, ip)
 	s.catalog.RegisterProxy(proxy)
 	defer s.catalog.UnregisterProxy(proxy)
 

@@ -18,7 +18,13 @@ import (
 
 // NewResponse creates a new Route Discovery Response.
 func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, request *xds.DiscoveryRequest) (*xds.DiscoveryResponse, error) {
-	proxyServiceName := proxy.GetService()
+	svc, err := catalog.GetServiceFromEnvoyCertificate(proxy.GetCommonName())
+	if err != nil {
+		log.Error().Err(err).Msgf("Error looking up Service for Envoy with CN=%q", proxy.GetCommonName())
+		return nil, err
+	}
+	proxyServiceName := *svc
+
 	allTrafficPolicies, err := catalog.ListTrafficPolicies(proxyServiceName)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed listing routes")

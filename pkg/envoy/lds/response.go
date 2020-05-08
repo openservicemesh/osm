@@ -27,8 +27,15 @@ const (
 
 // NewResponse creates a new Listener Discovery Response.
 func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, request *xds.DiscoveryRequest) (*xds.DiscoveryResponse, error) {
+	svc, err := catalog.GetServiceFromEnvoyCertificate(proxy.GetCommonName())
+	if err != nil {
+		log.Error().Err(err).Msgf("Error looking up Service for Envoy with CN=%q", proxy.GetCommonName())
+		return nil, err
+	}
+	proxyServiceName := *svc
+
 	log.Info().Msgf("Composing listener Discovery Response for proxy: %s", proxy.GetCommonName())
-	proxyServiceName := proxy.GetService()
+
 	resp := &xds.DiscoveryResponse{
 		TypeUrl: string(envoy.TypeLDS),
 	}
@@ -55,7 +62,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 			},
 		},
 	}
-	log.Info().Msgf("Created listener %s for proxy %s for service %s: %+v", outboundListenerName, proxy.GetCommonName(), proxy.GetService(), clientListener)
+	log.Info().Msgf("Created listener %s for proxy %s for service %s: %+v", outboundListenerName, proxy.GetCommonName(), proxyServiceName, clientListener)
 
 	serverConnManager, err := ptypes.MarshalAny(getHTTPConnectionManager(route.InboundRouteConfig))
 	if err != nil {
@@ -91,7 +98,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 		}
 	}
 
-	log.Info().Msgf("Created listener %s for proxy %s for service %s: %+v", inboundListenerName, proxy.GetCommonName(), proxy.GetService(), serverListener)
+	log.Info().Msgf("Created listener %s for proxy %s for service %s: %+v", inboundListenerName, proxy.GetCommonName(), proxyServiceName, serverListener)
 	prometheusConnManager, err := ptypes.MarshalAny(getPrometheusConnectionManager(prometheusListenerName, constants.PrometheusScrapePath, constants.EnvoyAdminCluster))
 	if err != nil {
 		log.Error().Err(err).Msgf("Could not construct prometheus listener connection manager")
@@ -114,7 +121,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 			},
 		},
 	}
-	log.Info().Msgf("Created listener %s for proxy %s for service %s: %+v", prometheusListenerName, proxy.GetCommonName(), proxy.GetService(), prometheusListener)
+	log.Info().Msgf("Created listener %s for proxy %s for service %s: %+v", prometheusListenerName, proxy.GetCommonName(), proxyServiceName, prometheusListener)
 	marshalledPrometheus, err := ptypes.MarshalAny(prometheusListener)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to marshal inbound listener for proxy %s", proxy.GetCommonName())
