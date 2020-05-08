@@ -81,6 +81,15 @@ const (
 	// KubernetesOpaqueSecretCAKey is the key which holds the CA bundle in a Kubernetes secret.
 	KubernetesOpaqueSecretCAKey = "ca.crt"
 
+	// KubernetesOpaqueSecretRootPrivateKeyKey is the key which holds the CA's private key in a Kubernetes secret.
+	KubernetesOpaqueSecretRootPrivateKeyKey = "private.key"
+
+	// KubernetesOpaqueSecretCAExpiration is the key which holds the CA's expiration in a Kubernetes secret.
+	KubernetesOpaqueSecretCAExpiration = "expiration"
+
 	// EnvoyUniqueIDLabelName is the label applied to pods with the unique ID of the Envoy sidecar.
 	EnvoyUniqueIDLabelName = "osm-envoy-uid"
+
+	// TimeDateLayout is the layout for time.Parse used in this repo
+	TimeDateLayout = "2006-01-02T15:04:05.000Z"
 )

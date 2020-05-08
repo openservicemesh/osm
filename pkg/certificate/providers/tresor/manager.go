@@ -12,7 +12,6 @@ import (
 	"github.com/open-service-mesh/osm/pkg/certificate"
 )
 
-// IssueCertificate implements certificate.Manager and returns a newly issued certificate.
 func (cm *CertManager) issue(cn certificate.CommonName) (certificate.Certificater, error) {
 	if cm.ca == nil {
 		log.Error().Msgf("Invalid CA provided for issuance of certificate with CN=%s", cn)
@@ -97,7 +96,7 @@ func (cm *CertManager) getFromCache(cn certificate.CommonName) certificate.Certi
 
 // IssueCertificate implements certificate.Manager and returns a newly issued certificate.
 func (cm *CertManager) IssueCertificate(cn certificate.CommonName) (certificate.Certificater, error) {
-	log.Info().Msgf("Issuing new certificate for CN=%s", cn)
+	log.Info().Msgf("Issuing new certificate for CN=%s, which will expire in %+v", cn, cm.validityPeriod)
 
 	start := time.Now()
 

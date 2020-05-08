@@ -38,20 +38,24 @@ const (
 	// TODO(draychev): pass this via CLI param (https://github.com/open-service-mesh/osm/issues/542)
 	serverType = "ADS"
 
-	defaultCertValidityMinutes = 525600 // 1 year
+	defaultServiceCertValidityMinutes = 525600 // 1 year
 
 	caBundleSecretNameCLIParam = "caBundleSecretName"
 )
 
 var (
-	verbosity      string
-	osmID          string // An ID that uniquely identifies an OSM instance
-	azureAuthFile  string
-	kubeConfigFile string
-	osmNamespace   string
-	webhookName    string
-	validity       int
+	verbosity                  string
+	osmID                      string // An ID that uniquely identifies an OSM instance
+	azureAuthFile              string
+	kubeConfigFile             string
+	osmNamespace               string
+	webhookName                string
+	serviceCertValidityMinutes int
+
 	injectorConfig injector.Config
+
+	// Enabling this will keep CA's private key in a K8s secret within the OSM namespace
+	keepRootPrivateKeyInKubernetes bool
 
 	// feature flag options
 	optionalFeatures featureflags.OptionalFeatures
@@ -82,7 +86,8 @@ func init() {
 	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file.")
 	flags.StringVar(&osmNamespace, "osmNamespace", "", "Namespace to which OSM belongs to.")
 	flags.StringVar(&webhookName, "webhookName", "", "Name of the MutatingWebhookConfiguration to be created by ADS")
-	flags.IntVar(&validity, "validity", defaultCertValidityMinutes, "validity duration of a certificate in minutes")
+	flags.IntVar(&serviceCertValidityMinutes, "serviceCertValidityMinutes", defaultServiceCertValidityMinutes, "serviceCertValidityMinutes duration of a certificate in minutes")
+	flags.BoolVar(&keepRootPrivateKeyInKubernetes, "keepRootPrivateKeyInKubernetes", false, "Set to true to keep the CA's private key as a Kubernetes secret in the OSM's namespace")
 
 	// sidecar injector options
 	flags.BoolVar(&injectorConfig.DefaultInjection, "default-injection", true, "Enable sidecar injection by default")
@@ -127,7 +132,7 @@ func main() {
 	namespaceController := namespace.NewNamespaceController(kubeConfig, osmID, stop)
 	meshSpec := smi.NewMeshSpecClient(kubeConfig, osmNamespace, namespaceController, stop)
 
-	certManager := certManagers[certificateManagerKind(*certManagerKind)]()
+	certManager := certManagers[certificateManagerKind(*certManagerKind)](kubeConfig)
 
 	log.Info().Msgf("Service certificates will be valid for %+v", getServiceCertValidityPeriod())
 
@@ -216,18 +221,26 @@ func createCABundleKubernetesSecret(kubeClient clientset.Interface, certManager 
 		return nil
 	}
 
+	return saveSecretToKubernetes(kubeClient, cert, namespace, caBundleSecretName, nil)
+}
+
+func saveSecretToKubernetes(kubeClient clientset.Interface, cert certificate.Certificater, namespace, caBundleSecretName string, privKey []byte) error {
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      caBundleSecretName,
 			Namespace: namespace,
 		},
 		Data: map[string][]byte{
-			constants.KubernetesOpaqueSecretCAKey: cert.GetIssuingCA(),
+			constants.KubernetesOpaqueSecretCAKey:        cert.GetIssuingCA(),
+			constants.KubernetesOpaqueSecretCAExpiration: encodeExpiration(cert.GetExpiration()),
 		},
 	}
 
-	_, err = kubeClient.CoreV1().Secrets(namespace).Create(context.Background(), secret, metav1.CreateOptions{})
-	if err != nil {
+	if privKey != nil {
+		secret.Data[constants.KubernetesOpaqueSecretRootPrivateKeyKey] = privKey
+	}
+
+	if _, err := kubeClient.CoreV1().Secrets(namespace).Create(context.Background(), secret, metav1.CreateOptions{}); err != nil {
 		log.Error().Err(err).Msgf("Error creating CA bundle Kubernetes secret %s in namespace %s", caBundleSecretName, namespace)
 		return err
 	}
