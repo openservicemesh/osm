@@ -22,13 +22,14 @@ var _ = Describe("Test XDS certificate tooling", func() {
 	kubeClient := testclient.NewSimpleClientset()
 
 	mc := NewFakeMeshCatalog(kubeClient)
-	cn := certificate.CommonName(fmt.Sprintf("%s.%s", tests.EnvoyUID, tests.Namespace))
+	cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s", tests.EnvoyUID, tests.BookbuyerServiceAccountName, tests.Namespace))
 
 	Context("Test GetServiceFromEnvoyCertificate()", func() {
 		It("works as expected", func() {
 			pod := tests.NewPodTestFixture(tests.Namespace, "pod-name")
 			_, err := kubeClient.CoreV1().Pods(tests.Namespace).Create(context.TODO(), &pod, metav1.CreateOptions{})
 			Expect(err).ToNot(HaveOccurred())
+			Expect(pod.Spec.ServiceAccountName).To(Equal(tests.BookbuyerServiceAccountName))
 
 			// Create the SERVICE
 			svcName := uuid.New().String()
@@ -74,7 +75,7 @@ var _ = Describe("Test XDS certificate tooling", func() {
 			_, err = kubeClient.CoreV1().Services(namespace).Create(context.TODO(), svc, metav1.CreateOptions{})
 			Expect(err).ToNot(HaveOccurred())
 
-			podCN := certificate.CommonName(fmt.Sprintf("%s.%s", envoyUID, namespace))
+			podCN := certificate.CommonName(fmt.Sprintf("%s.%s.%s", envoyUID, tests.BookbuyerServiceAccountName, namespace))
 			service, err := getServiceFromCertificate(podCN, kubeClient)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -97,12 +98,36 @@ var _ = Describe("Test XDS certificate tooling", func() {
 			_, err := kubeClient.CoreV1().Pods(namespace).Create(context.TODO(), &newPod, metav1.CreateOptions{})
 			Expect(err).ToNot(HaveOccurred())
 
-			newCN := certificate.CommonName(fmt.Sprintf("%s.%s", envoyUID, namespace))
+			newCN := certificate.CommonName(fmt.Sprintf("%s.%s.%s", envoyUID, tests.BookbuyerServiceAccountName, namespace))
 			actualPod, err := getPodFromCertificate(newCN, kubeClient)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(actualPod.Name).To(Equal(newPod.Name))
 			Expect(actualPod).To(Equal(&newPod))
+		})
+	})
+
+	Context("Test getPodFromCertificate()", func() {
+		It("fails with invalid certificate", func() {
+			namespace := uuid.New().String()
+			envoyUID := uuid.New().String()
+
+			// Create a pod with the same certificateCN twice
+			for range []int{0, 1} {
+				podName := uuid.New().String()
+				newPod := tests.NewPodTestFixture(namespace, podName)
+				newPod.Labels[constants.EnvoyUniqueIDLabelName] = envoyUID
+
+				_, err := kubeClient.CoreV1().Pods(namespace).Create(context.TODO(), &newPod, metav1.CreateOptions{})
+				Expect(err).ToNot(HaveOccurred())
+			}
+
+			// No service account in this CN
+			newCN := certificate.CommonName(fmt.Sprintf("%s.%s", envoyUID, namespace))
+			actualPod, err := getPodFromCertificate(newCN, kubeClient)
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(Equal(errInvalidCertificateCN))
+			Expect(actualPod).To(BeNil())
 		})
 	})
 
@@ -121,10 +146,55 @@ var _ = Describe("Test XDS certificate tooling", func() {
 				Expect(err).ToNot(HaveOccurred())
 			}
 
-			newCN := certificate.CommonName(fmt.Sprintf("%s.%s", envoyUID, namespace))
+			newCN := certificate.CommonName(fmt.Sprintf("%s.%s.%s", envoyUID, tests.BookbuyerServiceAccountName, namespace))
 			actualPod, err := getPodFromCertificate(newCN, kubeClient)
 			Expect(err).To(HaveOccurred())
 			Expect(err).To(Equal(errMoreThanOnePodForCertificate))
+			Expect(actualPod).To(BeNil())
+		})
+	})
+
+	Context("Test getPodFromCertificate()", func() {
+		It("fails when service account does not match certificate", func() {
+			namespace := uuid.New().String()
+			envoyUID := uuid.New().String()
+			randomServiceAccount := uuid.New().String()
+
+			podName := uuid.New().String()
+			newPod := tests.NewPodTestFixture(namespace, podName)
+			newPod.Labels[constants.EnvoyUniqueIDLabelName] = envoyUID
+
+			_, err := kubeClient.CoreV1().Pods(namespace).Create(context.TODO(), &newPod, metav1.CreateOptions{})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(newPod.Spec.ServiceAccountName).ToNot(Equal(randomServiceAccount))
+			Expect(newPod.Spec.ServiceAccountName).To(Equal(tests.BookbuyerServiceAccountName))
+
+			newCN := certificate.CommonName(fmt.Sprintf("%s.%s.%s", envoyUID, randomServiceAccount, namespace))
+			actualPod, err := getPodFromCertificate(newCN, kubeClient)
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(Equal(errServiceAccountDoesNotMatchCertificate))
+			Expect(actualPod).To(BeNil())
+		})
+	})
+
+	Context("Test getPodFromCertificate()", func() {
+		It("fails when namespace does not match certificate", func() {
+			namespace := uuid.New().String()
+			envoyUID := uuid.New().String()
+			someOtherRandomNamespace := uuid.New().String()
+
+			podName := uuid.New().String()
+			newPod := tests.NewPodTestFixture(namespace, podName)
+			newPod.Labels[constants.EnvoyUniqueIDLabelName] = envoyUID
+
+			_, err := kubeClient.CoreV1().Pods(namespace).Create(context.TODO(), &newPod, metav1.CreateOptions{})
+			Expect(err).ToNot(HaveOccurred())
+
+			newCN := certificate.CommonName(fmt.Sprintf("%s.%s.%s", envoyUID, tests.BookbuyerServiceAccountName, someOtherRandomNamespace))
+			actualPod, err := getPodFromCertificate(newCN, kubeClient)
+			Expect(err).To(HaveOccurred())
+			// Since the namespace on the certificate is different than where the pod is...
+			Expect(err).To(Equal(errDidNotFindPodForCertificate))
 			Expect(actualPod).To(BeNil())
 		})
 	})
@@ -175,15 +245,17 @@ var _ = Describe("Test XDS certificate tooling", func() {
 		It("parses CN into certificateCommonNameMeta", func() {
 			proxyID := uuid.New().String()
 			testNamespace := uuid.New().String()
+			serviceAccount := uuid.New().String()
 
-			cn := certificate.CommonName(fmt.Sprintf("%s.%s", proxyID, testNamespace))
+			cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s", proxyID, serviceAccount, testNamespace))
 
 			cnMeta, err := getCertificateCommonNameMeta(cn)
 			Expect(err).ToNot(HaveOccurred())
 
 			expected := &certificateCommonNameMeta{
-				ProxyID:   proxyID,
-				Namespace: testNamespace,
+				ProxyID:        proxyID,
+				ServiceAccount: serviceAccount,
+				Namespace:      testNamespace,
 			}
 			Expect(cnMeta).To(Equal(expected))
 		})
@@ -198,15 +270,17 @@ var _ = Describe("Test XDS certificate tooling", func() {
 		It("returns the the CommonName of the form <proxyID>.<namespace>", func() {
 
 			proxyID := uuid.New().String()
+			serviceAccount := uuid.New().String()
 			namespace := uuid.New().String()
 
-			cn := NewCertCommonNameWithProxyID(proxyID, namespace)
-			Expect(cn).To(Equal(certificate.CommonName(fmt.Sprintf("%s.%s", proxyID, namespace))))
+			cn := NewCertCommonNameWithProxyID(proxyID, serviceAccount, namespace)
+			Expect(cn).To(Equal(certificate.CommonName(fmt.Sprintf("%s.%s.%s", proxyID, serviceAccount, namespace))))
 
 			actualMeta, err := getCertificateCommonNameMeta(cn)
 			expectedMeta := certificateCommonNameMeta{
-				ProxyID:   proxyID,
-				Namespace: namespace,
+				ProxyID:        proxyID,
+				ServiceAccount: serviceAccount,
+				Namespace:      namespace,
 			}
 			Expect(err).ToNot(HaveOccurred())
 			Expect(actualMeta).To(Equal(&expectedMeta))

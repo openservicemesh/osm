@@ -202,6 +202,7 @@ func (wh *webhook) mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespo
 	}
 
 	// Create the patches for the spec
+	// We use req.Namespace because pod.Namespace is "" at this point
 	patchBytes, err := wh.createPatch(&pod, req.Namespace)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create patch")
