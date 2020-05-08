@@ -7,12 +7,15 @@ import (
 	"time"
 
 	"github.com/Azure/go-autorest/autorest/to"
-	"github.com/rs/zerolog/log"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+
+	"github.com/open-service-mesh/osm/pkg/logger"
 )
+
+var log = logger.New("ci/maestro")
 
 const (
 	// KubeConfigEnvVar is the environment variable name for KUBECONFIG
