@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"os"
-	"time"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	"github.com/spf13/pflag"
@@ -83,7 +82,7 @@ func init() {
 	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file.")
 	flags.StringVar(&osmNamespace, "osmNamespace", "", "Namespace to which OSM belongs to.")
 	flags.StringVar(&webhookName, "webhookName", "", "Name of the MutatingWebhookConfiguration to be created by ADS")
-	flags.IntVar(&validity, "validity", defaultCertValidityMinutes, "validity duration of a certificate in MINUTES")
+	flags.IntVar(&validity, "validity", defaultCertValidityMinutes, "validity duration of a certificate in minutes")
 
 	// sidecar injector options
 	flags.BoolVar(&injectorConfig.DefaultInjection, "default-injection", true, "Enable sidecar injection by default")
@@ -130,8 +129,7 @@ func main() {
 
 	certManager := certManagers[certificateManagerKind(*certManagerKind)]()
 
-	certValidityPeriod := time.Duration(validity) * time.Minute
-	log.Info().Msgf("Certificates will be valid for %+v", certValidityPeriod)
+	log.Info().Msgf("Service certificates will be valid for %+v", getServiceCertValidityPeriod())
 
 	if *caBundleSecretName == "" {
 		log.Info().Msgf("CA bundle will not be exported to a k8s secret (no --%s provided)", caBundleSecretNameCLIParam)
