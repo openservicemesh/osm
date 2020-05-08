@@ -91,7 +91,7 @@ func NewCertManager(ca certificate.Certificater, validity time.Duration) (*CertM
 	done := make(chan interface{})
 	checkExpirationInterval := 5 * time.Second
 	// Instantiating a new certificate rotation mechanism will start a goroutine and return an announcement channel
-	// which we use to get notified when a cert has been rotated. From thene we pass that onto whoever is listening
+	// which we use to get notified when a cert has been rotated. From then we pass that onto whoever is listening
 	// to the announcement channel of pkg/tresor.
 	announcements := rotor.New(checkExpirationInterval, done, &certManager, &cache)
 	go func() {
