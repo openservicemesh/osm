@@ -161,6 +161,18 @@ func generateXDSPod(namespace string) *apiv1.Pod {
 						},
 					},
 					// ReadinessProbe
+					ReadinessProbe: &apiv1.Probe{
+						InitialDelaySeconds: 1,
+						Handler: apiv1.Handler{
+							HTTPGet: &apiv1.HTTPGetAction{
+								Scheme: apiv1.URISchemeHTTPS,
+								Path:   "/health/ready",
+								Port: intstr.IntOrString{
+									IntVal: constants.InjectorWebhookPort,
+								},
+							},
+						},
+					},
 					// LivenessProbe
 				},
 			},

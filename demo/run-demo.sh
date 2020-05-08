@@ -67,8 +67,7 @@ kubectl apply -f crd/AzureResource.yaml
 # Deploys Xds and Prometheus
 go run ./demo/cmd/deploy/control-plane.go
 
-# Wait for POD to be ready before deploying the webhook config.
-# K8s API server will probe on the webhook port when the config is deployed.
+# Wait for POD to be ready before deploying the apps.
 while [ "$(kubectl get pods -n "$K8S_NAMESPACE" ads -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}')" != "True" ];
 do
   echo "waiting for pod ads to be ready" && sleep 5
