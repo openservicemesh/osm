@@ -13,13 +13,7 @@ import (
 )
 
 // IssueCertificate implements certificate.Manager and returns a newly issued certificate.
-func (cm *CertManager) IssueCertificate(cn certificate.CommonName) (certificate.Certificater, error) {
-	log.Info().Msgf("Issuing new certificate for CN=%s", cn)
-	if cert, exists := cm.cache[cn]; exists {
-		log.Info().Msgf("Found in cache certificate with CN=%s", cn)
-		return cert, nil
-	}
-
+func (cm *CertManager) issue(cn certificate.CommonName) (certificate.Certificater, error) {
 	if cm.ca == nil {
 		log.Error().Msgf("Invalid CA provided for issuance of certificate with CN=%s", cn)
 		return nil, errNoIssuingCA
@@ -87,11 +81,65 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName) (certificate.
 		issuingCA:  cm.ca,
 		expiration: template.NotAfter,
 	}
-	cm.cache[cn] = cert
+
+	return cert, nil
+}
+
+func (cm *CertManager) getFromCache(cn certificate.CommonName) certificate.Certificater {
+	cm.cacheLock.Lock()
+	defer cm.cacheLock.Unlock()
+	if cert, exists := (*cm.cache)[cn]; exists {
+		log.Trace().Msgf("Found in cache certificate with CN=%s", cn)
+		return cert
+	}
+	return nil
+}
+
+// IssueCertificate implements certificate.Manager and returns a newly issued certificate.
+func (cm *CertManager) IssueCertificate(cn certificate.CommonName) (certificate.Certificater, error) {
+	log.Info().Msgf("Issuing new certificate for CN=%s", cn)
+
+	start := time.Now()
+
+	if cert := cm.getFromCache(cn); cert != nil {
+		return cert, nil
+	}
+
+	cert, err := cm.issue(cn)
+	if err != nil {
+		return cert, err
+	}
+
+	cm.cacheLock.Lock()
+	(*cm.cache)[cn] = cert
+	cm.cacheLock.Unlock()
+
+	log.Info().Msgf("Issuing new certificate for CN=%s took %+v", cn, time.Since(start))
+
+	return cert, nil
+}
+
+// RotateCertificate implements certificate.Manager and rotates an existing certificate.
+func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate.Certificater, error) {
+	log.Info().Msgf("Rotating certificate for CN=%s", cn)
+
+	start := time.Now()
+
+	cert, err := cm.issue(cn)
+	if err != nil {
+		return cert, err
+	}
+
+	cm.cacheLock.Lock()
+	(*cm.cache)[cn] = cert
+	cm.cacheLock.Unlock()
+
+	log.Info().Msgf("Rotating certificate CN=%s took %+v", cn, time.Since(start))
+
 	return cert, nil
 }
 
 // GetAnnouncementsChannel implements certificate.Manager and returns the channel on which the certificate manager announces changes made to certificates.
-func (cm CertManager) GetAnnouncementsChannel() <-chan interface{} {
+func (cm *CertManager) GetAnnouncementsChannel() <-chan interface{} {
 	return cm.announcements
 }

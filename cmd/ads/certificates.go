@@ -17,7 +17,7 @@ const (
 	// Tresor is an internal package, which leverages Kubernetes secrets and signs certs on the OSM pod
 	tresorKind certificateManagerKind = "tresor"
 
-	// Azure Key Vault integration; uses AKV for certificat storage only; certs are signed on the OSM pod
+	// Azure Key Vault integration; uses AKV for certificate storage only; certs are signed on the OSM pod
 	keyVaultKind = "keyvault"
 
 	// Hashi Vault integration; OSM is pointed to an external Vault; signing of certs happens on Vault
@@ -41,7 +41,7 @@ func getPossibleCertManagers() []string {
 }
 
 func getTresorCertificateManager() certificate.Manager {
-	rootCert, err := tresor.NewCA(constants.CertificationAuthorityCommonName, getCertValidityPeriod())
+	rootCert, err := tresor.NewCA(constants.CertificationAuthorityCommonName, getServiceCertValidityPeriod())
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Failed to create new Certificate Authority with cert issuer %s", *certManagerKind)
 	}
@@ -50,7 +50,7 @@ func getTresorCertificateManager() certificate.Manager {
 		log.Fatal().Msgf("Invalid root certificate created by cert issuer %s", *certManagerKind)
 	}
 
-	certManager, err := tresor.NewCertManager(rootCert, getCertValidityPeriod())
+	certManager, err := tresor.NewCertManager(rootCert, getServiceCertValidityPeriod())
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to instantiate Azure Key Vault as a Certificate Manager")
 	}
@@ -71,7 +71,7 @@ func getHashiVaultCertManager() certificate.Manager {
 
 	// A Vault address would have the following shape: "http://vault.default.svc.cluster.local:8200"
 	vaultAddr := fmt.Sprintf("%s://%s:%d", *vaultProtocol, *vaultHost, *vaultPort)
-	vaultCertManager, err := vault.NewCertManager(vaultAddr, *vaultToken, getCertValidityPeriod())
+	vaultCertManager, err := vault.NewCertManager(vaultAddr, *vaultToken, getServiceCertValidityPeriod())
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error instantiating Hashicorp Vault as a Certificate Manager")
 	}
@@ -84,6 +84,6 @@ func getHashiVaultCertManager() certificate.Manager {
 	return vaultCertManager
 }
 
-func getCertValidityPeriod() time.Duration {
-	return time.Duration(*validity) * time.Minute
+func getServiceCertValidityPeriod() time.Duration {
+	return time.Duration(validity) * time.Minute
 }

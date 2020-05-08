@@ -2,6 +2,7 @@ package tresor
 
 import (
 	"math/big"
+	"sync"
 	"time"
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
@@ -43,10 +44,11 @@ type CertManager struct {
 	ca certificate.Certificater
 
 	// The channel announcing to the rest of the system when a certificate has changed
-	announcements <-chan interface{}
+	announcements chan interface{}
 
 	// Cache for all the certificates issued
-	cache map[certificate.CommonName]Certificate
+	cache     *map[certificate.CommonName]certificate.Certificater
+	cacheLock sync.Mutex
 }
 
 // Certificate implements certificate.Certificater
