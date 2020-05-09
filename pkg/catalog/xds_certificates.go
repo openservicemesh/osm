@@ -70,11 +70,11 @@ func getPodFromCertificate(cn certificate.CommonName, kubeClient kubernetes.Inte
 		return nil, err
 	}
 
-	var pods []*v1.Pod
+	var pods []v1.Pod
 	for _, pod := range podList.Items {
 		for labelKey, labelValue := range pod.Labels {
 			if labelKey == constants.EnvoyUniqueIDLabelName && labelValue == cnMeta.ProxyID {
-				pods = append(pods, &pod)
+				pods = append(pods, pod)
 			}
 		}
 	}
@@ -90,6 +90,7 @@ func getPodFromCertificate(cn certificate.CommonName, kubeClient kubernetes.Inte
 	}
 
 	pod := pods[0]
+	log.Trace().Msgf("Found pod %s for proxyID %s", pod.Name, cnMeta.ProxyID)
 
 	// Ensure the Namespace encoded in the certificate matches that of the Pod
 	if pod.Namespace != cnMeta.Namespace {
@@ -104,7 +105,7 @@ func getPodFromCertificate(cn certificate.CommonName, kubeClient kubernetes.Inte
 		return nil, errServiceAccountDoesNotMatchCertificate
 	}
 
-	return pod, nil
+	return &pod, nil
 }
 
 func mapStringStringToSet(m map[string]string) mapset.Set {
