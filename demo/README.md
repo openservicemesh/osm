@@ -26,14 +26,10 @@
    - Create local Docker credentials for your ACR: `az acr login --name name_of_your_Azure_Container_Registry`. This command will create new credentials in `~/.docker/config.json`, which will be used by the demo scripts below.
 1. Create [Azure authentication JSON](https://docs.microsoft.com/en-us/dotnet/api/overview/azure/containerinstance?view=azure-dotnet#authentication) file. These credentials will be used by OSM to connect to Azure and fetch IP addresses of virtual machines participating in the service mesh: `az ad sp create-for-rbac --sdk-auth > $HOME/.azure/azureAuth.json`
 
-## Configure Environment Variables
-In the root directory of the repo create a `.env` file. It is already listed in `.gitignore` so that anything you put in it would not accidentally leak into a public git repo. The `.env` file should contain the following Bash variables:
-   - `K8S_NAMESPACE` - Namespace within your Kubernetes cluster, where OSM will be installed. This cannot be the `default` namespace because it has to be a namespace that can be deleted.
-   - `AZURE_SUBSCRIPTION` - the Azure subscription where your Kubernete cluster resides. The demo will use this to configure the Endpoint Discovery Service's cloud observer.
-   - `CTR_REGISTRY` - URL of the container registry. For example: `draychev.azurecr.io/osm`
-   - `CTR_REGISTRY_CREDS_NAME` - name to be used for the Kubernetes secrets resource to be created from the Docker container registry.
 
-An example is provided in the `.env.example` in the root of this repo.
+## Configure Environment Variables
+In the root directory of the repo create a `.env` file. It is already listed in `.gitignore` so that anything you put in it would not accidentally leak into a public git repo. Refer to `.env.example` in the root of this repo for the mandatory and optional environment variables.
+
 
 ## Run the Demo
 1. From the root of this repository execute `./demo/run-demo.sh`. This script will:
