@@ -28,6 +28,21 @@ fi
 if [ -z "$BOOKTHIEF_NAMESPACE" ]; then
     exit_error "Missing BOOKTHIEF_NAMESPACE env variable"
 fi
+if [ -z "$CERT_MANAGER" ]; then
+    exit_error "Missing CERT_MANAGER env variable"
+fi
+if [ -z "$CTR_REGISTRY" ]; then
+    exit_error "Missing CTR_REGISTRY env variable"
+fi
+if [ -z "$CTR_REGISTRY_CREDS_NAME" ]; then
+    exit_error "Missing CTR_REGISTRY_CREDS_NAME env variable"
+fi
+if [ -z "$CTR_TAG" ]; then
+    exit_error "Missing CTR_TAG env variable"
+fi
+if [ -z "$PROMETHEUS_SVC" ]; then
+    exit_error "Missing PROMETHEUS_SVC env variable"
+fi
 
 if [[ "$IS_GITHUB" != "true" ]]; then
     # In Github CI we always use a new namespace - so this is not necessary
