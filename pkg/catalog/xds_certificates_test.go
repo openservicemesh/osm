@@ -90,20 +90,44 @@ var _ = Describe("Test XDS certificate tooling", func() {
 	Context("Test getPodFromCertificate()", func() {
 		It("works as expected", func() {
 			envoyUID := uuid.New().String()
+			someOtherEnvoyUID := uuid.New().String()
 			namespace := uuid.New().String()
-			podName := uuid.New().String()
-			newPod := tests.NewPodTestFixture(namespace, podName)
-			newPod.Labels[constants.EnvoyUniqueIDLabelName] = envoyUID
 
-			_, err := kubeClient.CoreV1().Pods(namespace).Create(context.TODO(), &newPod, metav1.CreateOptions{})
+			// Ensure correct presetup
+			pods, err := kubeClient.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{})
 			Expect(err).ToNot(HaveOccurred())
+			Expect(len(pods.Items)).To(Equal(0))
+
+			{
+				newPod0 := tests.NewPodTestFixture(namespace, fmt.Sprintf("pod-0-%s", uuid.New()))
+				newPod0.Labels[constants.EnvoyUniqueIDLabelName] = someOtherEnvoyUID
+				_, err := kubeClient.CoreV1().Pods(namespace).Create(context.TODO(), &newPod0, metav1.CreateOptions{})
+				Expect(err).ToNot(HaveOccurred())
+			}
+
+			newPod1 := tests.NewPodTestFixture(namespace, fmt.Sprintf("pod-1-%s", uuid.New()))
+			newPod1.Labels[constants.EnvoyUniqueIDLabelName] = envoyUID
+			_, err = kubeClient.CoreV1().Pods(namespace).Create(context.TODO(), &newPod1, metav1.CreateOptions{})
+			Expect(err).ToNot(HaveOccurred())
+
+			{
+				newPod2 := tests.NewPodTestFixture(namespace, fmt.Sprintf("pod-2-%s", uuid.New()))
+				newPod2.Labels[constants.EnvoyUniqueIDLabelName] = someOtherEnvoyUID
+				_, err := kubeClient.CoreV1().Pods(namespace).Create(context.TODO(), &newPod2, metav1.CreateOptions{})
+				Expect(err).ToNot(HaveOccurred())
+			}
+
+			// Ensure correct setup
+			pods, err = kubeClient.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(pods.Items)).To(Equal(3))
 
 			newCN := certificate.CommonName(fmt.Sprintf("%s.%s.%s", envoyUID, tests.BookbuyerServiceAccountName, namespace))
 			actualPod, err := getPodFromCertificate(newCN, kubeClient)
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(actualPod.Name).To(Equal(newPod.Name))
-			Expect(actualPod).To(Equal(&newPod))
+			Expect(actualPod.Name).To(Equal(newPod1.Name))
+			Expect(actualPod).To(Equal(&newPod1))
 		})
 	})
 
