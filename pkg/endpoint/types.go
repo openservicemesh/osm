@@ -87,12 +87,6 @@ type WeightedService struct {
 	Domain      string            `json:"domain:omitempty"`
 }
 
-// WeightedServiceEndpoints is a struct of a weighted service and its endpoints
-type WeightedServiceEndpoints struct {
-	WeightedService WeightedService `json:"service:omitempty"`
-	Endpoints       []Endpoint      `json:"endpoints:omitempty"`
-}
-
 // RoutePolicy is a struct of a path regex and the methods on a given route
 type RoutePolicy struct {
 	PathRegex string   `json:"path_regex:omitempty"`

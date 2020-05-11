@@ -265,7 +265,7 @@ would require:
 
 In the previous section, we proposed implementation of the `StreamAggregatedResources` method. This provides
 connected Envoy proxies with a list of clusters, mapping of service name to list of routable IP addresses, list of permitted routes, listeners and secrets for CDS, EDS, RDS, LDS and SDS respectively.
-The `ListTrafficSplitEndpoints`, `ListTrafficPolicies` and `GetCertificateForService` methods will be provided by the OSM component, which we refer to
+The `ListEndpointsForService`, `ListTrafficPolicies` and `GetCertificateForService` methods will be provided by the OSM component, which we refer to
  as the **Mesh Catalog** in this document.
 
 The Mesh Catalog will have access to the `MeshSpec`, `CertificateManager`, and the list of `EndpointsProvider`s.
@@ -273,8 +273,8 @@ The Mesh Catalog will have access to the `MeshSpec`, `CertificateManager`, and t
 ```go
 // MeshCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
 type MeshCataloger interface {
-	// ListTrafficSplitEndpoints constructs a map of service to weighted handlers with all endpoints the given Envoy proxy should be aware of.
-	ListTrafficSplitEndpoints(endpoint.NamespacedService) ([]endpoint.ServiceEndpoints, error)
+	// ListEndpointsForService returns the list of provider endpoints corresponding to a service
+	ListEndpointsForService(endpoint.ServiceName) ([]endpoint.Endpoint, error)
 
 	// ListTrafficPolicies constructs a list of all the traffic policies /routes the given Envoy proxy should be aware of.
 	ListTrafficPolicies(endpoint.NamespacedService) ([]endpoint.TrafficPolicy, error)
@@ -308,14 +308,6 @@ type NamespacedService struct {
 type NamespacedServiceAccount struct {
 	Namespace      string
 	ServiceAccount string
-}
-```
-
-```go
-// WeightedServiceEndpoints is a struct of a weighted service and its endpoints
-type WeightedServiceEndpoints struct {
-	WeightedService WeightedService
-	Endpoints       []Endpoint
 }
 ```
 
@@ -367,7 +359,7 @@ service to a list of Azure URIs (example: `/resource/subscriptions/e3f0/resource
 These URIs are unique identifiers of Azure VMs, VMSS, or other compute with Envoy reverse-proxies,
 participating in the service mesh.
 
-In the sample `ListTrafficSplitEndpoints` implementation, the Mesh Catalog loops over a list of [Endpoints providers](#3-endpoints-providers):
+In the sample `ListEndpointsForService` implementation, the Mesh Catalog loops over a list of [Endpoints providers](#3-endpoints-providers):
 ```go
 for _, provider in catalog.ListEndpointsProviders() {
 ```
@@ -512,15 +504,6 @@ The following types are referenced in the interfaces proposed in this document:
       type WeightedService struct {
 	   ServiceName NamespacedService `json:"service_name:omitempty"`
 	   Weight      int               `json:"weight:omitempty"`
-      }
-      ```
-
-  -  WeightedServiceEndpoints
-      ```go
-      // WeightedServiceEndpoints is a struct of a weighted service and its endpoints
-      type WeightedServiceEndpoints struct {
-	   WeightedService WeightedService `json:"service:omitempty"`
-	   Endpoints       []Endpoint      `json:"endpoints:omitempty"`
       }
       ```
 

@@ -7,23 +7,7 @@ import (
 
 func (mc *MeshCatalog) refreshCache() {
 	log.Info().Msg("Refresh cache...")
-	servicesCache := make(map[endpoint.WeightedService][]endpoint.Endpoint)
 	serviceAccountToServicesCache := make(map[endpoint.NamespacedServiceAccount][]endpoint.NamespacedService)
-	// TODO(draychev): split the namespace from the service name -- non-K8s services won't have namespace
-
-	services := mc.meshSpec.ListServices()
-	for _, service := range services {
-		for _, provider := range mc.endpointsProviders {
-			endpoints := provider.ListEndpointsForService(endpoint.ServiceName(service.ServiceName.String()))
-			if len(endpoints) == 0 {
-				log.Info().Msgf("[%s] No IPs found for service=%s", provider.GetID(), service.ServiceName)
-				continue
-			}
-			log.Trace().Msgf("[%s] Found Endpoints=%s for service=%s", provider.GetID(), endpointsToString(endpoints), service.ServiceName)
-			servicesCache[service] = endpoints
-		}
-	}
-
 	for _, namespacesServiceAccounts := range mc.meshSpec.ListServiceAccounts() {
 		for _, provider := range mc.endpointsProviders {
 			// TODO (snchh) : remove this provider check once we have figured out the service account story for azure vms
@@ -39,10 +23,8 @@ func (mc *MeshCatalog) refreshCache() {
 			}
 		}
 	}
-	log.Info().Msgf("Services cache: %+v", servicesCache)
 	log.Info().Msgf("ServiceAccountToServices cache: %+v", serviceAccountToServicesCache)
 	mc.servicesMutex.Lock()
-	mc.servicesCache = servicesCache
 	mc.serviceAccountToServicesCache = serviceAccountToServicesCache
 	mc.servicesMutex.Unlock()
 }

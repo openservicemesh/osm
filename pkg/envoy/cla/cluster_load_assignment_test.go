@@ -12,34 +12,29 @@ import (
 var _ = Describe("Testing Cluster Load Assignment", func() {
 	Context("Testing NewClusterLoadAssignemnt", func() {
 		It("Returns cluster load assignment", func() {
-			serviceEndpoints := []endpoint.WeightedServiceEndpoints{}
-			serviceEndpoints = append(serviceEndpoints, endpoint.WeightedServiceEndpoints{
-				WeightedService: endpoint.WeightedService{
-					ServiceName: endpoint.NamespacedService{Namespace: "osm", Service: "bookstore-1"},
-					Weight:      50,
-				},
-				Endpoints: []endpoint.Endpoint{
-					endpoint.Endpoint{IP: net.IP("0.0.0.0")},
-				},
-			})
-			serviceEndpoints = append(serviceEndpoints, endpoint.WeightedServiceEndpoints{
-				WeightedService: endpoint.WeightedService{
-					ServiceName: endpoint.NamespacedService{Namespace: "osm", Service: "bookstore-2"},
-					Weight:      50,
-				},
-				Endpoints: []endpoint.Endpoint{
-					endpoint.Endpoint{IP: net.IP("0.0.0.1")},
-					endpoint.Endpoint{IP: net.IP("0.0.0.2")},
-				},
-			})
 
-			cla := NewClusterLoadAssignment(serviceEndpoints[0])
+			namespacedServices := []endpoint.NamespacedService{
+				{Namespace: "osm", Service: "bookstore-1"},
+				{Namespace: "osm", Service: "bookstore-2"},
+			}
+
+			allServiceEndpoints := map[endpoint.NamespacedService][]endpoint.Endpoint{
+				namespacedServices[0]: {
+					{IP: net.IP("0.0.0.0")},
+				},
+				namespacedServices[1]: {
+					{IP: net.IP("0.0.0.1")},
+					{IP: net.IP("0.0.0.2")},
+				},
+			}
+
+			cla := NewClusterLoadAssignment(namespacedServices[0], allServiceEndpoints[namespacedServices[0]])
 			Expect(cla).NotTo(Equal(nil))
 			Expect(cla.ClusterName).To(Equal("osm/bookstore-1"))
 			Expect(len(cla.Endpoints)).To(Equal(1))
 			Expect(len(cla.Endpoints[0].LbEndpoints)).To(Equal(1))
 			Expect(cla.Endpoints[0].LbEndpoints[0].GetLoadBalancingWeight().Value).To(Equal(uint32(100)))
-			cla2 := NewClusterLoadAssignment(serviceEndpoints[1])
+			cla2 := NewClusterLoadAssignment(namespacedServices[1], allServiceEndpoints[namespacedServices[1]])
 			Expect(cla2).NotTo(Equal(nil))
 			Expect(cla2.ClusterName).To(Equal("osm/bookstore-2"))
 			Expect(len(cla2.Endpoints)).To(Equal(1))
