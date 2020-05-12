@@ -57,8 +57,6 @@ spec:
       labels:
         app: bookbuyer
         version: v1
-      annotations:
-        "openservicemesh.io/osm-service": "bookbuyer"
     spec:
       serviceAccountName: bookbuyer-serviceaccount
       automountServiceAccountToken: false
