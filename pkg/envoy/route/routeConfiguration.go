@@ -42,7 +42,7 @@ var (
 )
 
 //UpdateRouteConfiguration consrtucts the Envoy construct necessary for TrafficTarget implementation
-func UpdateRouteConfiguration(domainRoutesMap map[string][]trafficpolicy.RouteWeightedClusters, routeConfig v2.RouteConfiguration, isSourceConfig bool, isDestinationConfig bool) v2.RouteConfiguration {
+func UpdateRouteConfiguration(domainRoutesMap map[string]map[string]trafficpolicy.RouteWeightedClusters, routeConfig v2.RouteConfiguration, isSourceConfig bool, isDestinationConfig bool) v2.RouteConfiguration {
 	log.Trace().Msgf("[RDS] Updating Route Configuration")
 	var isLocalCluster bool
 	var virtualHostName string
@@ -56,9 +56,9 @@ func UpdateRouteConfiguration(domainRoutesMap map[string][]trafficpolicy.RouteWe
 		isLocalCluster = true
 		virtualHostName = inboundVirtualHost
 	}
-	for domain, routePolicyWeightedClustersList := range domainRoutesMap {
+	for domain, routePolicyWeightedClustersMap := range domainRoutesMap {
 		virtualHost := createVirtualHostStub(fmt.Sprintf("%s|%s", virtualHostName, domain), domain)
-		virtualHost.Routes = createRoutes(routePolicyWeightedClustersList, isLocalCluster)
+		virtualHost.Routes = createRoutes(routePolicyWeightedClustersMap, isLocalCluster)
 		routeConfig.VirtualHosts = append(routeConfig.VirtualHosts, &virtualHost)
 	}
 	return routeConfig
@@ -73,17 +73,17 @@ func createVirtualHostStub(name string, domain string) v2route.VirtualHost {
 	return virtualHost
 }
 
-func createRoutes(routePolicyWeightedClustersList []trafficpolicy.RouteWeightedClusters, isLocalCluster bool) []*v2route.Route {
+func createRoutes(routePolicyWeightedClustersMap map[string]trafficpolicy.RouteWeightedClusters, isLocalCluster bool) []*v2route.Route {
 	var routes []*v2route.Route
 	if !isLocalCluster {
 		// For a source service, configure a wildcard route match with weighted routes to upstream clusters based on traffic split policies
-		weightedClusters := getDistinctWeightedClusters(routePolicyWeightedClustersList)
+		weightedClusters := getDistinctWeightedClusters(routePolicyWeightedClustersMap)
 		totalClustersWeight := getTotalWeightForClusters(weightedClusters)
 		route := getRoute(constants.RegexMatchAll, constants.WildcardHTTPMethod, weightedClusters, totalClustersWeight, isLocalCluster)
 		routes = append(routes, &route)
 		return routes
 	}
-	for _, routePolicyWeightedClusters := range routePolicyWeightedClustersList {
+	for _, routePolicyWeightedClusters := range routePolicyWeightedClustersMap {
 		// For a given route path, sanitize the methods in case there
 		// is wildcard or if there are duplicates
 		allowedMethods := sanitizeHTTPMethods(routePolicyWeightedClusters.Route.Methods)
@@ -153,10 +153,10 @@ func getWeightedCluster(weightedClusters set.Set, totalClustersWeight int, isLoc
 
 // This method gets a list of all the distinct upstream clusters for a domain
 // needed to configure source service's weighted routes
-func getDistinctWeightedClusters(routePolicyWeightedClustersList []trafficpolicy.RouteWeightedClusters) set.Set {
+func getDistinctWeightedClusters(routePolicyWeightedClustersMap map[string]trafficpolicy.RouteWeightedClusters) set.Set {
 	weightedClusters := set.NewSet()
-	for i, perRouteWeightedClusters := range routePolicyWeightedClustersList {
-		if i == 0 {
+	for _, perRouteWeightedClusters := range routePolicyWeightedClustersMap {
+		if weightedClusters.Cardinality() == 0 {
 			weightedClusters = perRouteWeightedClusters.WeightedClusters
 		}
 		weightedClusters.Union(perRouteWeightedClusters.WeightedClusters)

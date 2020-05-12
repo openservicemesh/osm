@@ -2,6 +2,7 @@ package route
 
 import (
 	set "github.com/deckarep/golang-set"
+	v2route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -87,7 +88,7 @@ var _ = Describe("Weighted clusters", func() {
 
 var _ = Describe("Routes with weighted clusters", func() {
 	Context("Testing creation of routes object in route configuration", func() {
-		var routeWeightedClustersList []trafficpolicy.RouteWeightedClusters
+		routeWeightedClustersMap := make(map[string]trafficpolicy.RouteWeightedClusters)
 		weightedClusters := set.NewSetFromSlice([]interface{}{
 			service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1"), Weight: 100},
 			service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-2"), Weight: 100},
@@ -116,9 +117,9 @@ var _ = Describe("Routes with weighted clusters", func() {
 				PathRegex: "/books-bought",
 				Methods:   []string{"GET", "POST"},
 			}
-			routeWeightedClustersList = append(routeWeightedClustersList, trafficpolicy.RouteWeightedClusters{Route: routePolicy, WeightedClusters: weightedClusters})
 
-			rt := createRoutes(routeWeightedClustersList, true)
+			routeWeightedClustersMap[routePolicy.PathRegex] = trafficpolicy.RouteWeightedClusters{Route: routePolicy, WeightedClusters: weightedClusters}
+			rt := createRoutes(routeWeightedClustersMap, true)
 			Expect(len(rt)).To(Equal(len(routePolicy.Methods)))
 
 			for i, route := range rt {
@@ -141,15 +142,23 @@ var _ = Describe("Routes with weighted clusters", func() {
 				PathRegex: "/buy-a-book",
 				Methods:   []string{"GET"},
 			}
-			routeWeightedClustersList = append(routeWeightedClustersList, trafficpolicy.RouteWeightedClusters{Route: routePolicy2, WeightedClusters: weightedClusters})
+			routeWeightedClustersMap[routePolicy2.PathRegex] = trafficpolicy.RouteWeightedClusters{Route: routePolicy2, WeightedClusters: weightedClusters}
+
 			httpMethodCount := 3 // 2 from previously added routes + 1 append
-			rt := createRoutes(routeWeightedClustersList, true)
+
+			rt := createRoutes(routeWeightedClustersMap, true)
+
 			Expect(len(rt)).To(Equal(httpMethodCount))
-			Expect(rt[2].Match.GetSafeRegex().Regex).To(Equal(routePolicy2.PathRegex))
-			Expect(rt[2].Match.GetHeaders()[0].GetSafeRegexMatch().Regex).To(Equal(routePolicy2.Methods[0]))
-			Expect(rt[2].GetRoute().GetWeightedClusters().TotalWeight).To(Equal(&wrappers.UInt32Value{Value: uint32(totalClusterWeight)}))
-			Expect(len(rt[2].GetRoute().GetWeightedClusters().GetClusters())).To(Equal(weightedClusters.Cardinality()))
-			for _, cluster := range rt[2].GetRoute().GetWeightedClusters().GetClusters() {
+			var newRoute *v2route.Route
+			for _, route := range rt {
+				if route.Match.GetSafeRegex().Regex == routePolicy2.PathRegex {
+					newRoute = route
+				}
+			}
+			Expect(newRoute.Match.GetHeaders()[0].GetSafeRegexMatch().Regex).To(Equal(routePolicy2.Methods[0]))
+			Expect(newRoute.GetRoute().GetWeightedClusters().TotalWeight).To(Equal(&wrappers.UInt32Value{Value: uint32(totalClusterWeight)}))
+			Expect(len(newRoute.GetRoute().GetWeightedClusters().GetClusters())).To(Equal(weightedClusters.Cardinality()))
+			for _, cluster := range newRoute.GetRoute().GetWeightedClusters().GetClusters() {
 				clustersActual.Add(cluster.Name)
 				weightsActual.Add(cluster.Weight.Value)
 			}
@@ -176,11 +185,13 @@ var _ = Describe("Route Configuration", func() {
 				PathRegex: "/books-bought",
 				Methods:   []string{"GET"},
 			}
-			routePolicyWeightedClustersList := []trafficpolicy.RouteWeightedClusters{
-				{Route: routePolicy, WeightedClusters: weightedClusters},
+
+			sourceDomainRouteData := map[string]trafficpolicy.RouteWeightedClusters{
+				routePolicy.PathRegex: trafficpolicy.RouteWeightedClusters{Route: routePolicy, WeightedClusters: weightedClusters},
 			}
-			sourceDomainAggregatedData := map[string][]trafficpolicy.RouteWeightedClusters{
-				"bookstore.mesh": routePolicyWeightedClustersList,
+
+			sourceDomainAggregatedData := map[string]map[string]trafficpolicy.RouteWeightedClusters{
+				"bookstore.mesh": sourceDomainRouteData,
 			}
 
 			//Validating the outbound clusters and routes
