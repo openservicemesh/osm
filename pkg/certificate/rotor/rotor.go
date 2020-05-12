@@ -59,7 +59,7 @@ func (r *rotor) checkAndRotate() {
 				continue
 			}
 			r.announcements <- nil
-			log.Trace().Msgf("Rotated cert CN=%s", newCert.GetName())
+			log.Trace().Msgf("Rotated cert CN=%s", newCert.GetCommonName())
 		}
 	}
 }
