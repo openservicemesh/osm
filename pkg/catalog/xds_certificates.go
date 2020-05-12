@@ -84,6 +84,10 @@ func getPodFromCertificate(cn certificate.CommonName, kubeClient kubernetes.Inte
 		return nil, errDidNotFindPodForCertificate
 	}
 
+	// --- CONVENTION ---
+	// By Open Service Mesh convention the number of services a pod can belong to is 1
+	// This is a limitation we set in place in order to make the mesh easy to understand and reason about.
+	// When a pod belongs to more than one service XDS will not program the Envoy proxy, leaving it out of the mesh.
 	if len(pods) > 1 {
 		log.Error().Msgf("Found more than one pod with label %s = %s in namespace %s; There should be only one!", constants.EnvoyUniqueIDLabelName, cnMeta.ProxyID, cnMeta.Namespace)
 		return nil, errMoreThanOnePodForCertificate
@@ -94,7 +98,7 @@ func getPodFromCertificate(cn certificate.CommonName, kubeClient kubernetes.Inte
 
 	// Ensure the Namespace encoded in the certificate matches that of the Pod
 	if pod.Namespace != cnMeta.Namespace {
-		log.Warn().Msgf("Pod %s belongs to Namespace %q while the pod's cert was issued for Namespace %q", pod.Name, pod.Namespace, cnMeta.Namespace)
+		log.Warn().Msgf("Pod %s belongs to Namespace %s while the pod's cert was issued for Namespace %s", pod.Name, pod.Namespace, cnMeta.Namespace)
 		return nil, errNamespaceDoesNotMatchCertificate
 	}
 
