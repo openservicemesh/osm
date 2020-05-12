@@ -8,11 +8,12 @@ import (
 	"github.com/golang/protobuf/ptypes"
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
-	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 	"github.com/open-service-mesh/osm/pkg/envoy/route"
 	"github.com/open-service-mesh/osm/pkg/featureflags"
+	"github.com/open-service-mesh/osm/pkg/service"
 	"github.com/open-service-mesh/osm/pkg/smi"
+	"github.com/open-service-mesh/osm/pkg/trafficpolicy"
 )
 
 // NewResponse creates a new Route Discovery Response.
@@ -32,14 +33,14 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	routeConfiguration := []xds.RouteConfiguration{}
 	sourceRouteConfig := route.NewRouteConfigurationStub(route.OutboundRouteConfig)
 	destinationRouteConfig := route.NewRouteConfigurationStub(route.InboundRouteConfig)
-	sourceAggregatedRoutesByDomain := make(map[string][]endpoint.RoutePolicyWeightedClusters)
-	destinationAggregatedRoutesByDomain := make(map[string][]endpoint.RoutePolicyWeightedClusters)
+	sourceAggregatedRoutesByDomain := make(map[string][]trafficpolicy.RouteWeightedClusters)
+	destinationAggregatedRoutesByDomain := make(map[string][]trafficpolicy.RouteWeightedClusters)
 
 	for _, trafficPolicies := range allTrafficPolicies {
 		isSourceService := trafficPolicies.Source.Services.Contains(proxyServiceName)
 		isDestinationService := trafficPolicies.Destination.Services.Contains(proxyServiceName)
 		for serviceInterface := range trafficPolicies.Destination.Services.Iter() {
-			service := serviceInterface.(endpoint.NamespacedService)
+			service := serviceInterface.(service.NamespacedService)
 			domain, err := catalog.GetDomainForService(service)
 			if err != nil {
 				log.Error().Err(err).Msg("Failed listing domains")
@@ -51,10 +52,10 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 				return nil, err
 			}
 			if isSourceService {
-				aggregateRoutesByDomain(sourceAggregatedRoutesByDomain, trafficPolicies.RoutePolicies, weightedCluster, domain)
+				aggregateRoutesByDomain(sourceAggregatedRoutesByDomain, trafficPolicies.Routes, weightedCluster, domain)
 			}
 			if isDestinationService {
-				aggregateRoutesByDomain(destinationAggregatedRoutesByDomain, trafficPolicies.RoutePolicies, weightedCluster, domain)
+				aggregateRoutesByDomain(destinationAggregatedRoutesByDomain, trafficPolicies.Routes, weightedCluster, domain)
 			}
 		}
 	}
@@ -82,11 +83,11 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	return resp, nil
 }
 
-func aggregateRoutesByDomain(domainRoutesMap map[string][]endpoint.RoutePolicyWeightedClusters, routePolicies []endpoint.RoutePolicy, weightedCluster endpoint.WeightedCluster, domain string) {
+func aggregateRoutesByDomain(domainRoutesMap map[string][]trafficpolicy.RouteWeightedClusters, routePolicies []trafficpolicy.Route, weightedCluster service.WeightedCluster, domain string) {
 	routesList, exists := domainRoutesMap[domain]
 	if !exists {
 		// no domain found, create a new route and cluster mapping and add the domain
-		var routeWeightedClustersList []endpoint.RoutePolicyWeightedClusters
+		var routeWeightedClustersList []trafficpolicy.RouteWeightedClusters
 		for _, route := range routePolicies {
 			routeWeightedClustersList = append(routeWeightedClustersList, createRoutePolicyWeightedClusters(route, weightedCluster))
 		}
@@ -97,7 +98,7 @@ func aggregateRoutesByDomain(domainRoutesMap map[string][]endpoint.RoutePolicyWe
 			if routeFound {
 				// add the cluster to the existing route
 				routesList[routeIndex].WeightedClusters.Add(weightedCluster)
-				routesList[routeIndex].RoutePolicy.Methods = append(routesList[routeIndex].RoutePolicy.Methods, route.Methods...)
+				routesList[routeIndex].Route.Methods = append(routesList[routeIndex].Route.Methods, route.Methods...)
 			} else {
 				// no route found, create a new route and cluster mapping on domain
 				routesList = append(routesList, createRoutePolicyWeightedClusters(route, weightedCluster))
@@ -107,19 +108,19 @@ func aggregateRoutesByDomain(domainRoutesMap map[string][]endpoint.RoutePolicyWe
 	}
 }
 
-func createRoutePolicyWeightedClusters(routePolicy endpoint.RoutePolicy, weightedCluster endpoint.WeightedCluster) endpoint.RoutePolicyWeightedClusters {
-	return endpoint.RoutePolicyWeightedClusters{
-		RoutePolicy:      routePolicy,
+func createRoutePolicyWeightedClusters(routePolicy trafficpolicy.Route, weightedCluster service.WeightedCluster) trafficpolicy.RouteWeightedClusters {
+	return trafficpolicy.RouteWeightedClusters{
+		Route:            routePolicy,
 		WeightedClusters: set.NewSet(weightedCluster),
 	}
 }
 
-func routeExits(routesList []endpoint.RoutePolicyWeightedClusters, routePolicy endpoint.RoutePolicy) (int, bool) {
+func routeExits(routesList []trafficpolicy.RouteWeightedClusters, routePolicy trafficpolicy.Route) (int, bool) {
 	routeExists := false
 	index := -1
 	// check if the route is already in list
 	for i, routeWeightedClusters := range routesList {
-		if routeWeightedClusters.RoutePolicy.PathRegex == routePolicy.PathRegex {
+		if routeWeightedClusters.Route.PathRegex == routePolicy.PathRegex {
 			routeExists = true
 			index = i
 			return index, routeExists
@@ -128,7 +129,7 @@ func routeExits(routesList []endpoint.RoutePolicyWeightedClusters, routePolicy e
 	return index, routeExists
 }
 
-func updateRoutesForIngress(proxyServiceName endpoint.NamespacedService, catalog catalog.MeshCataloger, domainRoutesMap map[string][]endpoint.RoutePolicyWeightedClusters) error {
+func updateRoutesForIngress(proxyServiceName service.NamespacedService, catalog catalog.MeshCataloger, domainRoutesMap map[string][]trafficpolicy.RouteWeightedClusters) error {
 	domainRoutePoliciesMap, err := catalog.GetIngressRoutePoliciesPerDomain(proxyServiceName)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to get ingress route configuration for proxy %s", proxyServiceName)

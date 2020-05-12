@@ -4,9 +4,9 @@ import (
 	extensionsV1beta "k8s.io/api/extensions/v1beta1"
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/logger"
 	"github.com/open-service-mesh/osm/pkg/namespace"
+	"github.com/open-service-mesh/osm/pkg/service"
 )
 
 var (
@@ -25,7 +25,7 @@ type Client struct {
 // Monitor is the client interface for K8s Ingress resource
 type Monitor interface {
 	// GetIngressResources returns the ingress resources whose backends correspond to the service
-	GetIngressResources(endpoint.NamespacedService) ([]*extensionsV1beta.Ingress, error)
+	GetIngressResources(service.NamespacedService) ([]*extensionsV1beta.Ingress, error)
 
 	// GetAnnouncementsChannel returns the channel on which Ingress Monitor makes annoucements
 	GetAnnouncementsChannel() <-chan interface{}

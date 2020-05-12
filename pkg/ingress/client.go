@@ -11,9 +11,9 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/open-service-mesh/osm/pkg/constants"
-	"github.com/open-service-mesh/osm/pkg/endpoint"
 	k8s "github.com/open-service-mesh/osm/pkg/kubernetes"
 	"github.com/open-service-mesh/osm/pkg/namespace"
+	"github.com/open-service-mesh/osm/pkg/service"
 )
 
 // NewIngressClient implements ingress.Monitor and creates the Kubernetes client to monitor Ingress resources.
@@ -72,7 +72,7 @@ func (c Client) GetAnnouncementsChannel() <-chan interface{} {
 }
 
 // GetIngressResources returns the ingress resources whose backends correspond to the service
-func (c Client) GetIngressResources(service endpoint.NamespacedService) ([]*extensionsV1beta.Ingress, error) {
+func (c Client) GetIngressResources(nsService service.NamespacedService) ([]*extensionsV1beta.Ingress, error) {
 	var ingressResources []*extensionsV1beta.Ingress
 	for _, ingressInterface := range c.cache.List() {
 		ingress, ok := ingressInterface.(*extensionsV1beta.Ingress)
@@ -85,7 +85,7 @@ func (c Client) GetIngressResources(service endpoint.NamespacedService) ([]*exte
 			continue
 		}
 		// Check if the ingress resource belongs to the same namespace as the service
-		if ingress.Namespace != service.Namespace {
+		if ingress.Namespace != nsService.Namespace {
 			// The ingress resource does not belong to the namespace of the service
 			continue
 		}
@@ -93,7 +93,7 @@ func (c Client) GetIngressResources(service endpoint.NamespacedService) ([]*exte
 		if enabled, err := isMonitoredResource(ingress); !enabled || err != nil {
 			continue
 		}
-		if backend := ingress.Spec.Backend; backend != nil && backend.ServiceName == service.Service {
+		if backend := ingress.Spec.Backend; backend != nil && backend.ServiceName == nsService.Service {
 			// Default backend service
 			ingressResources = append(ingressResources, ingress)
 			continue
@@ -102,7 +102,7 @@ func (c Client) GetIngressResources(service endpoint.NamespacedService) ([]*exte
 	ingressRule:
 		for _, rule := range ingress.Spec.Rules {
 			for _, path := range rule.HTTP.Paths {
-				if path.Backend.ServiceName == service.Service {
+				if path.Backend.ServiceName == nsService.Service {
 					ingressResources = append(ingressResources, ingress)
 					break ingressRule
 				}

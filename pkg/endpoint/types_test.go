@@ -5,12 +5,13 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/open-service-mesh/osm/pkg/service"
 )
 
 var _ = Describe("Test NamespacedService methods", func() {
 	Context("Testing GetCommonName", func() {
 		It("should return DNS-1123 of the NamespacedService struct", func() {
-			namespacedService := NamespacedService{
+			namespacedService := service.NamespacedService{
 				Namespace: "namespace-here",
 				Service:   "service-name-here",
 			}

@@ -8,9 +8,9 @@ import (
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/constants"
-	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 	"github.com/open-service-mesh/osm/pkg/featureflags"
+	"github.com/open-service-mesh/osm/pkg/service"
 	"github.com/open-service-mesh/osm/pkg/smi"
 )
 
@@ -33,7 +33,7 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpe
 		isDestinationService := trafficPolicies.Destination.Services.Contains(proxyServiceName)
 		//iterate through only destination services here since envoy is programmed by destination
 		for serviceInterface := range trafficPolicies.Destination.Services.Iter() {
-			service := serviceInterface.(endpoint.NamespacedService)
+			service := serviceInterface.(service.NamespacedService)
 			if isSourceService {
 				cluster, err := catalog.GetWeightedClusterForService(service)
 				if err != nil {
@@ -86,7 +86,7 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpe
 	return resp, nil
 }
 
-func getIngressServiceCluster(proxyServiceName endpoint.NamespacedService, catalog catalog.MeshCataloger, clusters map[string]xds.Cluster) (map[string]xds.Cluster, error) {
+func getIngressServiceCluster(proxyServiceName service.NamespacedService, catalog catalog.MeshCataloger, clusters map[string]xds.Cluster) (map[string]xds.Cluster, error) {
 	isIngress, err := catalog.IsIngressService(proxyServiceName)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error checking service %s for ingress", proxyServiceName)

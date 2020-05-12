@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
-	"github.com/open-service-mesh/osm/pkg/endpoint"
+	"github.com/open-service-mesh/osm/pkg/service"
 )
 
 const (
@@ -22,7 +22,7 @@ var _ = Describe("Test proxy methods", func() {
 			commonNameForService := fmt.Sprintf("%s.%s.svc.cluster.local", svc, ns)
 			cn := certificate.CommonName(commonNameForProxy)
 
-			namespacedSvc := endpoint.NamespacedService{
+			namespacedSvc := service.NamespacedService{
 				Namespace: ns,
 				Service:   svc,
 			}

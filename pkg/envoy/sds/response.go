@@ -13,8 +13,8 @@ import (
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/certificate"
-	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/envoy"
+	"github.com/open-service-mesh/osm/pkg/service"
 	"github.com/open-service-mesh/osm/pkg/smi"
 )
 
@@ -69,8 +69,8 @@ func getTasks(proxy *envoy.Proxy, request *xds.DiscoveryRequest) []task {
 	for _, resourceName := range request.ResourceNames {
 		if strings.HasPrefix(resourceName, serviceCertPrefix) {
 			// this is a request for a service certificate
-			requestFor := endpoint.ServiceName(resourceName[len(serviceCertPrefix):])
-			if endpoint.ServiceName(proxyServiceName.String()) != requestFor {
+			requestFor := service.Name(resourceName[len(serviceCertPrefix):])
+			if service.Name(proxyServiceName.String()) != requestFor {
 				log.Error().Msgf("Proxy %s (service %s) requested service certificate %s; this is not allowed", proxy.GetCommonName(), proxy.GetService(), requestFor)
 				continue
 			}
@@ -82,7 +82,7 @@ func getTasks(proxy *envoy.Proxy, request *xds.DiscoveryRequest) []task {
 			// this is a request for a root certificate
 			// proxies need this to verify other proxies certificates
 			requestFor := getServiceName(resourceName, envoy.RootCertPrefix)
-			if endpoint.ServiceName(proxyServiceName.String()) != requestFor {
+			if service.Name(proxyServiceName.String()) != requestFor {
 				log.Error().Msgf("Proxy %s (service %s) requested root certificate %s; this is not allowed", proxy.GetCommonName(), proxy.GetService(), requestFor)
 				continue
 			}
@@ -145,7 +145,7 @@ func getRootCert(cert certificate.Certificater, resourceName string) (*auth.Secr
 	return secret, nil
 }
 
-func getServiceName(resourceName string, prefix string) endpoint.ServiceName {
+func getServiceName(resourceName string, prefix string) service.Name {
 	rootCertPrefix := fmt.Sprintf("%s%s", prefix, envoy.Separator)
-	return endpoint.ServiceName(resourceName[len(rootCertPrefix):])
+	return service.Name(resourceName[len(rootCertPrefix):])
 }

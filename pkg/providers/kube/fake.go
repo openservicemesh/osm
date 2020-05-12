@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/open-service-mesh/osm/pkg/endpoint"
+	"github.com/open-service-mesh/osm/pkg/service"
 	"github.com/open-service-mesh/osm/pkg/tests"
 )
 
@@ -11,10 +12,10 @@ import (
 func NewFakeProvider() endpoint.Provider {
 
 	return &fakeClient{
-		endpoints: map[endpoint.ServiceName][]endpoint.Endpoint{
+		endpoints: map[service.Name][]endpoint.Endpoint{
 			tests.NamespacedServiceName: {tests.Endpoint},
 		},
-		services: map[endpoint.NamespacedServiceAccount][]endpoint.NamespacedService{
+		services: map[service.NamespacedServiceAccount][]service.NamespacedService{
 			tests.BookstoreServiceAccount: {tests.BookstoreService},
 			tests.BookbuyerServiceAccount: {tests.BookbuyerService},
 		},
@@ -22,12 +23,12 @@ func NewFakeProvider() endpoint.Provider {
 }
 
 type fakeClient struct {
-	endpoints map[endpoint.ServiceName][]endpoint.Endpoint
-	services  map[endpoint.NamespacedServiceAccount][]endpoint.NamespacedService
+	endpoints map[service.Name][]endpoint.Endpoint
+	services  map[service.NamespacedServiceAccount][]service.NamespacedService
 }
 
 // Retrieve the IP addresses comprising the given service.
-func (f fakeClient) ListEndpointsForService(name endpoint.ServiceName) []endpoint.Endpoint {
+func (f fakeClient) ListEndpointsForService(name service.Name) []endpoint.Endpoint {
 	if svc, ok := f.endpoints[name]; ok {
 		return svc
 	}
@@ -35,7 +36,7 @@ func (f fakeClient) ListEndpointsForService(name endpoint.ServiceName) []endpoin
 }
 
 // Retrieve the service for a given service account
-func (f fakeClient) ListServicesForServiceAccount(account endpoint.NamespacedServiceAccount) []endpoint.NamespacedService {
+func (f fakeClient) ListServicesForServiceAccount(account service.NamespacedServiceAccount) []service.NamespacedService {
 	services, ok := f.services[account]
 	if !ok {
 		panic(fmt.Sprintf("You asked fake k8s provider's ListServicesForServiceAccount for a ServiceAccount=%s, but that's not in cache: %+v", account, f.services))

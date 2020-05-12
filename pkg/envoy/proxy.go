@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
-	"github.com/open-service-mesh/osm/pkg/endpoint"
+	"github.com/open-service-mesh/osm/pkg/service"
 )
 
 // Proxy is a representation of an Envoy proxy connected to the xDS server.
@@ -14,7 +14,7 @@ import (
 type Proxy struct {
 	certificate.CommonName
 	net.Addr
-	ServiceName   endpoint.NamespacedService
+	ServiceName   service.NamespacedService
 	announcements chan interface{}
 
 	lastSentVersion    map[TypeURI]uint64
@@ -66,7 +66,7 @@ func (p Proxy) String() string {
 
 // GetService determines the meshed service this endpoint should support based on the mTLS certificate.
 // From "a.b.c" returns "b.c". By convention "a" is the ID of the proxy. Remaining "b.c" is the name of the service.
-func (p Proxy) GetService() endpoint.NamespacedService {
+func (p Proxy) GetService() service.NamespacedService {
 	return p.ServiceName
 }
 
@@ -86,7 +86,7 @@ func (p Proxy) GetAnnouncementsChannel() chan interface{} {
 }
 
 // NewProxy creates a new instance of an Envoy proxy connected to the xDS servers.
-func NewProxy(cn certificate.CommonName, namespacedService endpoint.NamespacedService, ip net.Addr) *Proxy {
+func NewProxy(cn certificate.CommonName, namespacedService service.NamespacedService, ip net.Addr) *Proxy {
 	return &Proxy{
 		CommonName:         cn,
 		Addr:               ip,

@@ -13,6 +13,8 @@ import (
 
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
+	"github.com/open-service-mesh/osm/pkg/service"
+	"github.com/open-service-mesh/osm/pkg/trafficpolicy"
 )
 
 const (
@@ -62,19 +64,19 @@ const (
 
 var (
 	// BookstoreService is the bookstore service.
-	BookstoreService = endpoint.NamespacedService{
+	BookstoreService = service.NamespacedService{
 		Namespace: Namespace,
 		Service:   BookstoreServiceName,
 	}
 
 	// BookbuyerService is the bookbuyer service.
-	BookbuyerService = endpoint.NamespacedService{
+	BookbuyerService = service.NamespacedService{
 		Namespace: Namespace,
 		Service:   BookbuyerServiceName,
 	}
 
 	// RoutePolicy is a route policy.
-	RoutePolicy = endpoint.RoutePolicy{
+	RoutePolicy = trafficpolicy.Route{
 		PathRegex: BookstoreBuyPath,
 		Methods:   []string{"GET"},
 	}
@@ -86,19 +88,19 @@ var (
 	}
 
 	// TrafficPolicy is a traffic policy SMI object.
-	TrafficPolicy = endpoint.TrafficPolicy{
-		PolicyName: TrafficTargetName,
-		Destination: endpoint.TrafficPolicyResource{
+	TrafficPolicy = trafficpolicy.TrafficTarget{
+		Name: TrafficTargetName,
+		Destination: trafficpolicy.TrafficResource{
 			ServiceAccount: BookstoreServiceAccountName,
 			Namespace:      Namespace,
 			Services:       set.NewSet(BookstoreService),
 		},
-		Source: endpoint.TrafficPolicyResource{
+		Source: trafficpolicy.TrafficResource{
 			ServiceAccount: BookbuyerServiceAccountName,
 			Namespace:      Namespace,
 			Services:       set.NewSet(BookbuyerService),
 		},
-		RoutePolicies: []endpoint.RoutePolicy{{
+		Routes: []trafficpolicy.Route{{
 			PathRegex: BookstoreBuyPath,
 			Methods:   []string{"GET"},
 		}},
@@ -132,27 +134,27 @@ var (
 	}
 
 	// RoutePolicyMap is a map of a key to a route policy SMI object.
-	RoutePolicyMap = map[string]endpoint.RoutePolicy{
+	RoutePolicyMap = map[string]trafficpolicy.Route{
 		fmt.Sprintf("HTTPRouteGroup/%s/%s/%s", Namespace, TrafficTargetName, MatchName): RoutePolicy}
 
 	// NamespacedServiceName is a namespaced service.
-	NamespacedServiceName = endpoint.ServiceName(fmt.Sprintf("%s/%s", BookstoreService.Namespace, BookstoreService.Service))
+	NamespacedServiceName = service.Name(fmt.Sprintf("%s/%s", BookstoreService.Namespace, BookstoreService.Service))
 
 	// BookstoreServiceAccount is a namespaced service account.
-	BookstoreServiceAccount = endpoint.NamespacedServiceAccount{
+	BookstoreServiceAccount = service.NamespacedServiceAccount{
 		Namespace:      Namespace,
 		ServiceAccount: BookstoreServiceAccountName,
 	}
 
 	// BookbuyerServiceAccount is a namespaced bookbuyer account.
-	BookbuyerServiceAccount = endpoint.NamespacedServiceAccount{
+	BookbuyerServiceAccount = service.NamespacedServiceAccount{
 		Namespace:      Namespace,
 		ServiceAccount: BookbuyerServiceAccountName,
 	}
 
 	// WeightedService is a service with a weight used for traffic split.
-	WeightedService = endpoint.WeightedService{
-		ServiceName: endpoint.NamespacedService{
+	WeightedService = service.WeightedService{
+		ServiceName: service.NamespacedService{
 			Namespace: Namespace,
 			Service:   BookstoreServiceName,
 		},

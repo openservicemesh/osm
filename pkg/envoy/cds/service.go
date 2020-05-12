@@ -11,8 +11,8 @@ import (
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/constants"
-	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/envoy"
+	"github.com/open-service-mesh/osm/pkg/service"
 )
 
 const (
@@ -20,7 +20,7 @@ const (
 	connectionTimeout time.Duration = 1 * time.Second
 )
 
-func getServiceClusterLocal(catalog catalog.MeshCataloger, proxyServiceName endpoint.NamespacedService, clusterName string) (*xds.Cluster, error) {
+func getServiceClusterLocal(catalog catalog.MeshCataloger, proxyServiceName service.NamespacedService, clusterName string) (*xds.Cluster, error) {
 	xdsCluster := xds.Cluster{
 		// The name must match the domain being cURLed in the demo
 		Name:                          clusterName,
@@ -42,7 +42,7 @@ func getServiceClusterLocal(catalog catalog.MeshCataloger, proxyServiceName endp
 		},
 	}
 
-	endpoints, err := catalog.ListEndpointsForService(endpoint.ServiceName(proxyServiceName.String()))
+	endpoints, err := catalog.ListEndpointsForService(service.Name(proxyServiceName.String()))
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to get endpoints for service %s", proxyServiceName)
 		return nil, err

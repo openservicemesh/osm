@@ -15,7 +15,7 @@ import (
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"
 
-	"github.com/open-service-mesh/osm/pkg/endpoint"
+	"github.com/open-service-mesh/osm/pkg/service"
 )
 
 const (
@@ -112,7 +112,7 @@ func pbStringValue(v string) *structpb.Value {
 	}
 }
 
-func getCommonTLSContext(serviceName endpoint.NamespacedService) *auth.CommonTlsContext {
+func getCommonTLSContext(serviceName service.NamespacedService) *auth.CommonTlsContext {
 	return &auth.CommonTlsContext{
 		TlsParams: GetTLSParams(),
 		TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
@@ -129,7 +129,7 @@ func getCommonTLSContext(serviceName endpoint.NamespacedService) *auth.CommonTls
 }
 
 // GetDownstreamTLSContext creates a downstream Envoy TLS Context.
-func GetDownstreamTLSContext(serviceName endpoint.NamespacedService) *any.Any {
+func GetDownstreamTLSContext(serviceName service.NamespacedService) *any.Any {
 	tlsConfig := &auth.DownstreamTlsContext{
 		CommonTlsContext: getCommonTLSContext(serviceName),
 
@@ -146,7 +146,7 @@ func GetDownstreamTLSContext(serviceName endpoint.NamespacedService) *any.Any {
 }
 
 // GetUpstreamTLSContext creates an upstream Envoy TLS Context.
-func GetUpstreamTLSContext(serviceName endpoint.NamespacedService) *any.Any {
+func GetUpstreamTLSContext(serviceName service.NamespacedService) *any.Any {
 	tlsConfig := &auth.UpstreamTlsContext{
 		CommonTlsContext: getCommonTLSContext(serviceName),
 		Sni:              serviceName.String(),
@@ -161,7 +161,7 @@ func GetUpstreamTLSContext(serviceName endpoint.NamespacedService) *any.Any {
 }
 
 // GetServiceCluster creates an Envoy Cluster struct.
-func GetServiceCluster(clusterName string, serviceName endpoint.NamespacedService) xds.Cluster {
+func GetServiceCluster(clusterName string, serviceName service.NamespacedService) xds.Cluster {
 	return xds.Cluster{
 		Name:                 clusterName,
 		ConnectTimeout:       ptypes.DurationProto(ConnectionTimeout),

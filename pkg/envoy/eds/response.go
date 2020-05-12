@@ -11,6 +11,7 @@ import (
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 	"github.com/open-service-mesh/osm/pkg/envoy/cla"
+	"github.com/open-service-mesh/osm/pkg/service"
 
 	"github.com/open-service-mesh/osm/pkg/smi"
 )
@@ -24,13 +25,13 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 		return nil, err
 	}
 
-	allServicesEndpoints := make(map[endpoint.NamespacedService][]endpoint.Endpoint)
+	allServicesEndpoints := make(map[service.NamespacedService][]endpoint.Endpoint)
 	for _, trafficPolicy := range allTrafficPolicies {
 		isSourceService := trafficPolicy.Source.Services.Contains(proxyServiceName)
 		if isSourceService {
 			for serviceInterface := range trafficPolicy.Destination.Services.Iter() {
-				destService := serviceInterface.(endpoint.NamespacedService)
-				serviceEndpoints, err := catalog.ListEndpointsForService(endpoint.ServiceName(destService.String()))
+				destService := serviceInterface.(service.NamespacedService)
+				serviceEndpoints, err := catalog.ListEndpointsForService(service.Name(destService.String()))
 				if err != nil {
 					log.Error().Err(err).Msgf("Failed listing endpoints")
 					return nil, err

@@ -2,20 +2,20 @@ package catalog
 
 import (
 	"github.com/open-service-mesh/osm/pkg/certificate"
-	"github.com/open-service-mesh/osm/pkg/endpoint"
+	"github.com/open-service-mesh/osm/pkg/service"
 )
 
 // GetCertificateForService returns the certificate the given proxy uses for mTLS to the XDS server.
-func (mc *MeshCatalog) GetCertificateForService(service endpoint.NamespacedService) (certificate.Certificater, error) {
-	cert, exists := mc.certificateCache[service]
+func (mc *MeshCatalog) GetCertificateForService(nsService service.NamespacedService) (certificate.Certificater, error) {
+	cert, exists := mc.certificateCache[nsService]
 	if exists {
 		return cert, nil
 	}
-	newCert, err := mc.certManager.IssueCertificate(service.GetCommonName())
+	newCert, err := mc.certManager.IssueCertificate(nsService.GetCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error issuing a new certificate for service %s", service)
+		log.Error().Err(err).Msgf("Error issuing a new certificate for service %s", nsService)
 		return nil, err
 	}
-	mc.certificateCache[service] = newCert
+	mc.certificateCache[nsService] = newCert
 	return newCert, nil
 }

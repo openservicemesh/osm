@@ -2,12 +2,12 @@ package catalog
 
 import (
 	"github.com/open-service-mesh/osm/pkg/constants"
-	"github.com/open-service-mesh/osm/pkg/endpoint"
+	"github.com/open-service-mesh/osm/pkg/service"
 )
 
 func (mc *MeshCatalog) refreshCache() {
 	log.Info().Msg("Refresh cache...")
-	serviceAccountToServicesCache := make(map[endpoint.NamespacedServiceAccount][]endpoint.NamespacedService)
+	serviceAccountToServicesCache := make(map[service.NamespacedServiceAccount][]service.NamespacedService)
 	for _, namespacesServiceAccounts := range mc.meshSpec.ListServiceAccounts() {
 		for _, provider := range mc.endpointsProviders {
 			// TODO (snchh) : remove this provider check once we have figured out the service account story for azure vms

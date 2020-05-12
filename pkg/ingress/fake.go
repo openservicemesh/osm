@@ -1,9 +1,8 @@
 package ingress
 
 import (
+	"github.com/open-service-mesh/osm/pkg/service"
 	extensionsV1beta "k8s.io/api/extensions/v1beta1"
-
-	"github.com/open-service-mesh/osm/pkg/endpoint"
 )
 
 // FakeIngressMonitor returns a fake ingress monitor object
@@ -18,7 +17,7 @@ func NewFakeIngressMonitor() FakeIngressMonitor {
 }
 
 // GetIngressResources returns the ingress resources whose backends correspond to the service
-func (f FakeIngressMonitor) GetIngressResources(endpoint.NamespacedService) ([]*extensionsV1beta.Ingress, error) {
+func (f FakeIngressMonitor) GetIngressResources(service.NamespacedService) ([]*extensionsV1beta.Ingress, error) {
 	return f.FakeIngresses, nil
 }
 

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	k8s "github.com/open-service-mesh/osm/pkg/kubernetes"
+	"github.com/open-service-mesh/osm/pkg/service"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -67,7 +68,7 @@ func (c *Client) GetID() string {
 }
 
 // ListEndpointsForService retrieves the list of IP addresses for the given service
-func (c Client) ListEndpointsForService(svc endpoint.ServiceName) []endpoint.Endpoint {
+func (c Client) ListEndpointsForService(svc service.Name) []endpoint.Endpoint {
 	log.Info().Msgf("[%s] Getting Endpoints for service %s on Kubernetes", c.providerIdent, svc)
 	var endpoints []endpoint.Endpoint
 	endpointsInterface, exist, err := c.caches.Endpoints.GetByKey(string(svc))
@@ -108,9 +109,9 @@ func (c Client) ListEndpointsForService(svc endpoint.ServiceName) []endpoint.End
 }
 
 // ListServicesForServiceAccount retrieves the list of Services for the given service account
-func (c Client) ListServicesForServiceAccount(svcAccount endpoint.NamespacedServiceAccount) []endpoint.NamespacedService {
+func (c Client) ListServicesForServiceAccount(svcAccount service.NamespacedServiceAccount) []service.NamespacedService {
 	log.Info().Msgf("[%s] Getting Services for service account %s on Kubernetes", c.providerIdent, svcAccount)
-	var services []endpoint.NamespacedService
+	var services []service.NamespacedService
 	deploymentsInterface := c.caches.Deployments.List()
 
 	for _, deployments := range deploymentsInterface {
@@ -120,7 +121,7 @@ func (c Client) ListServicesForServiceAccount(svcAccount endpoint.NamespacedServ
 				continue
 			}
 			spec := kubernetesDeployments.Spec
-			namespacedSvcAccount := endpoint.NamespacedServiceAccount{
+			namespacedSvcAccount := service.NamespacedServiceAccount{
 				Namespace:      kubernetesDeployments.Namespace,
 				ServiceAccount: spec.Template.Spec.ServiceAccountName,
 			}
@@ -131,7 +132,7 @@ func (c Client) ListServicesForServiceAccount(svcAccount endpoint.NamespacedServ
 				} else {
 					selectorLabel = spec.Template.Labels
 				}
-				namespacedService := endpoint.NamespacedService{
+				namespacedService := service.NamespacedService{
 					Namespace: kubernetesDeployments.Namespace,
 					Service:   selectorLabel[namespaceSelectorLabel],
 				}

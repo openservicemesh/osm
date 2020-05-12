@@ -4,6 +4,7 @@ import (
 	"net"
 
 	"github.com/open-service-mesh/osm/pkg/endpoint"
+	"github.com/open-service-mesh/osm/pkg/service"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -13,12 +14,12 @@ var _ = Describe("Testing Cluster Load Assignment", func() {
 	Context("Testing NewClusterLoadAssignemnt", func() {
 		It("Returns cluster load assignment", func() {
 
-			namespacedServices := []endpoint.NamespacedService{
+			namespacedServices := []service.NamespacedService{
 				{Namespace: "osm", Service: "bookstore-1"},
 				{Namespace: "osm", Service: "bookstore-2"},
 			}
 
-			allServiceEndpoints := map[endpoint.NamespacedService][]endpoint.Endpoint{
+			allServiceEndpoints := map[service.NamespacedService][]endpoint.Endpoint{
 				namespacedServices[0]: {
 					{IP: net.IP("0.0.0.0")},
 				},

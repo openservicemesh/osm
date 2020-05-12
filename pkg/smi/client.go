@@ -4,8 +4,6 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/open-service-mesh/osm/pkg/endpoint"
-
 	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha1"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha1"
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
@@ -23,6 +21,7 @@ import (
 
 	k8s "github.com/open-service-mesh/osm/pkg/kubernetes"
 	"github.com/open-service-mesh/osm/pkg/namespace"
+	"github.com/open-service-mesh/osm/pkg/service"
 )
 
 // We have a few different k8s clients. This identifies these in logs.
@@ -178,9 +177,9 @@ func (c *Client) ListTrafficTargets() []*target.TrafficTarget {
 }
 
 // ListServices implements mesh.MeshSpec by returning the services observed from the given compute provider
-func (c *Client) ListServices() []endpoint.WeightedService {
+func (c *Client) ListServices() []service.WeightedService {
 	// TODO(draychev): split the namespace and the service kubernetesClientName -- for non-kubernetes services we won't have namespace
-	var services []endpoint.WeightedService
+	var services []service.WeightedService
 	for _, splitIface := range c.caches.TrafficSplit.List() {
 		split := splitIface.(*split.TrafficSplit)
 		domain := split.Spec.Service
@@ -188,20 +187,20 @@ func (c *Client) ListServices() []endpoint.WeightedService {
 			// The TrafficSplit SMI Spec does not allow providing a namespace for the backends,
 			// so we assume that the top level namespace for the TrafficSplit is the namespace
 			// the backends belong to.
-			namespacedServiceName := endpoint.NamespacedService{
+			namespacedServiceName := service.NamespacedService{
 				Namespace: split.Namespace,
 				Service:   backend.Service,
 			}
-			services = append(services, endpoint.WeightedService{ServiceName: namespacedServiceName, Weight: backend.Weight, Domain: domain})
+			services = append(services, service.WeightedService{ServiceName: namespacedServiceName, Weight: backend.Weight, Domain: domain})
 		}
 	}
 	return services
 }
 
 // ListServiceAccounts implements mesh.MeshSpec by returning the service accounts observed from the given compute provider
-func (c *Client) ListServiceAccounts() []endpoint.NamespacedServiceAccount {
+func (c *Client) ListServiceAccounts() []service.NamespacedServiceAccount {
 	// TODO(draychev): split the namespace and the service kubernetesClientName -- for non-kubernetes services we won't have namespace
-	var serviceAccounts []endpoint.NamespacedServiceAccount
+	var serviceAccounts []service.NamespacedServiceAccount
 	for _, targetIface := range c.caches.TrafficTarget.List() {
 		target := targetIface.(*target.TrafficTarget)
 		for _, sources := range target.Sources {
@@ -210,7 +209,7 @@ func (c *Client) ListServiceAccounts() []endpoint.NamespacedServiceAccount {
 				// Doesn't belong to namespaces we are observing
 				continue
 			}
-			namespacedServiceAccount := endpoint.NamespacedServiceAccount{
+			namespacedServiceAccount := service.NamespacedServiceAccount{
 				Namespace:      sources.Namespace,
 				ServiceAccount: sources.Name,
 			}
@@ -223,7 +222,7 @@ func (c *Client) ListServiceAccounts() []endpoint.NamespacedServiceAccount {
 			// Doesn't belong to namespaces we are observing
 			continue
 		}
-		namespacedServiceAccount := endpoint.NamespacedServiceAccount{
+		namespacedServiceAccount := service.NamespacedServiceAccount{
 			Namespace:      destination.Namespace,
 			ServiceAccount: destination.Name,
 		}
@@ -233,7 +232,7 @@ func (c *Client) ListServiceAccounts() []endpoint.NamespacedServiceAccount {
 }
 
 // GetService retrieves the Kubernetes Services resource for the given ServiceName.
-func (c *Client) GetService(svc endpoint.ServiceName) (service *corev1.Service, exists bool, err error) {
+func (c *Client) GetService(svc service.Name) (service *corev1.Service, exists bool, err error) {
 	svcIf, exists, err := c.caches.Services.GetByKey(string(svc))
 	if exists && err == nil {
 		return svcIf.(*corev1.Service), exists, err

@@ -7,8 +7,9 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/open-service-mesh/osm/pkg/constants"
-	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/envoy"
+	"github.com/open-service-mesh/osm/pkg/service"
+	"github.com/open-service-mesh/osm/pkg/trafficpolicy"
 )
 
 var _ = Describe("VirtualHost with domains", func() {
@@ -50,21 +51,21 @@ var _ = Describe("Weighted clusters", func() {
 		It("validated the creation of weighted clusters", func() {
 
 			weightedClusters := set.NewSetFromSlice([]interface{}{
-				endpoint.WeightedCluster{ClusterName: endpoint.ClusterName("osm/bookstore-1"), Weight: 30},
-				endpoint.WeightedCluster{ClusterName: endpoint.ClusterName("osm/bookstore-2"), Weight: 70},
+				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1"), Weight: 30},
+				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-2"), Weight: 70},
 			})
 
 			clustersExpected := set.NewSet()
 			weightsExpected := set.NewSet()
 			for weightedClusterInterface := range weightedClusters.Iter() {
-				cluster := weightedClusterInterface.(endpoint.WeightedCluster)
+				cluster := weightedClusterInterface.(service.WeightedCluster)
 				clustersExpected.Add(string(cluster.ClusterName + envoy.LocalClusterSuffix))
 				weightsExpected.Add(uint32(cluster.Weight))
 			}
 
 			totalClusterWeight := 0
 			for clusterInterface := range weightedClusters.Iter() {
-				cluster := clusterInterface.(endpoint.WeightedCluster)
+				cluster := clusterInterface.(service.WeightedCluster)
 				totalClusterWeight += cluster.Weight
 			}
 
@@ -86,23 +87,23 @@ var _ = Describe("Weighted clusters", func() {
 
 var _ = Describe("Routes with weighted clusters", func() {
 	Context("Testing creation of routes object in route configuration", func() {
-		var routeWeightedClustersList []endpoint.RoutePolicyWeightedClusters
+		var routeWeightedClustersList []trafficpolicy.RouteWeightedClusters
 		weightedClusters := set.NewSetFromSlice([]interface{}{
-			endpoint.WeightedCluster{ClusterName: endpoint.ClusterName("osm/bookstore-1"), Weight: 100},
-			endpoint.WeightedCluster{ClusterName: endpoint.ClusterName("osm/bookstore-2"), Weight: 100},
+			service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1"), Weight: 100},
+			service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-2"), Weight: 100},
 		})
 
 		clustersExpected := set.NewSet()
 		weightsExpected := set.NewSet()
 		for weightedClusterInterface := range weightedClusters.Iter() {
-			cluster := weightedClusterInterface.(endpoint.WeightedCluster)
+			cluster := weightedClusterInterface.(service.WeightedCluster)
 			clustersExpected.Add(string(cluster.ClusterName + envoy.LocalClusterSuffix))
 			weightsExpected.Add(uint32(cluster.Weight))
 		}
 
 		totalClusterWeight := 0
 		for clusterInterface := range weightedClusters.Iter() {
-			cluster := clusterInterface.(endpoint.WeightedCluster)
+			cluster := clusterInterface.(service.WeightedCluster)
 			totalClusterWeight += cluster.Weight
 		}
 
@@ -111,11 +112,11 @@ var _ = Describe("Routes with weighted clusters", func() {
 
 		It("Adds a new route", func() {
 
-			routePolicy := endpoint.RoutePolicy{
+			routePolicy := trafficpolicy.Route{
 				PathRegex: "/books-bought",
 				Methods:   []string{"GET", "POST"},
 			}
-			routeWeightedClustersList = append(routeWeightedClustersList, endpoint.RoutePolicyWeightedClusters{RoutePolicy: routePolicy, WeightedClusters: weightedClusters})
+			routeWeightedClustersList = append(routeWeightedClustersList, trafficpolicy.RouteWeightedClusters{Route: routePolicy, WeightedClusters: weightedClusters})
 
 			rt := createRoutes(routeWeightedClustersList, true)
 			Expect(len(rt)).To(Equal(len(routePolicy.Methods)))
@@ -136,11 +137,11 @@ var _ = Describe("Routes with weighted clusters", func() {
 
 		It("Appends another route", func() {
 
-			routePolicy2 := endpoint.RoutePolicy{
+			routePolicy2 := trafficpolicy.Route{
 				PathRegex: "/buy-a-book",
 				Methods:   []string{"GET"},
 			}
-			routeWeightedClustersList = append(routeWeightedClustersList, endpoint.RoutePolicyWeightedClusters{RoutePolicy: routePolicy2, WeightedClusters: weightedClusters})
+			routeWeightedClustersList = append(routeWeightedClustersList, trafficpolicy.RouteWeightedClusters{Route: routePolicy2, WeightedClusters: weightedClusters})
 			httpMethodCount := 3 // 2 from previously added routes + 1 append
 			rt := createRoutes(routeWeightedClustersList, true)
 			Expect(len(rt)).To(Equal(httpMethodCount))
@@ -163,22 +164,22 @@ var _ = Describe("Route Configuration", func() {
 		It("Returns outbound route configuration", func() {
 
 			weightedClusters := set.NewSet()
-			weightedClusters.Add(endpoint.WeightedCluster{ClusterName: endpoint.ClusterName("osm/bookstore-1"), Weight: 100})
-			weightedClusters.Add(endpoint.WeightedCluster{ClusterName: endpoint.ClusterName("osm/bookstore-2"), Weight: 100})
+			weightedClusters.Add(service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1"), Weight: 100})
+			weightedClusters.Add(service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-2"), Weight: 100})
 
 			totalClusterWeight := 0
 			for clusterInterface := range weightedClusters.Iter() {
-				cluster := clusterInterface.(endpoint.WeightedCluster)
+				cluster := clusterInterface.(service.WeightedCluster)
 				totalClusterWeight += cluster.Weight
 			}
-			routePolicy := endpoint.RoutePolicy{
+			routePolicy := trafficpolicy.Route{
 				PathRegex: "/books-bought",
 				Methods:   []string{"GET"},
 			}
-			routePolicyWeightedClustersList := []endpoint.RoutePolicyWeightedClusters{
-				{RoutePolicy: routePolicy, WeightedClusters: weightedClusters},
+			routePolicyWeightedClustersList := []trafficpolicy.RouteWeightedClusters{
+				{Route: routePolicy, WeightedClusters: weightedClusters},
 			}
-			sourceDomainAggregatedData := map[string][]endpoint.RoutePolicyWeightedClusters{
+			sourceDomainAggregatedData := map[string][]trafficpolicy.RouteWeightedClusters{
 				"bookstore.mesh": routePolicyWeightedClustersList,
 			}
 
