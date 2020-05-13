@@ -153,8 +153,8 @@ type Certificate struct {
 	issuingCA pem.RootCertificate
 }
 
-// GetName returns the common name of the given certificate.
-func (c Certificate) GetName() string {
+// GetCommonName returns the common name of the given certificate.
+func (c Certificate) GetCommonName() string {
 	return c.commonName.String()
 }
 

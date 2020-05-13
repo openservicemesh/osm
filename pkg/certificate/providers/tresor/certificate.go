@@ -11,8 +11,8 @@ const (
 	checkCertificateExpirationInterval = 5 * time.Second
 )
 
-// GetName implements certificate.Certificater and returns the CN of the cert.
-func (c Certificate) GetName() string {
+// GetCommonName implements certificate.Certificater and returns the CN of the cert.
+func (c Certificate) GetCommonName() string {
 	return c.commonName.String()
 }
 

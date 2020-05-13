@@ -444,8 +444,8 @@ Additionally we define an interface for the `Certificate` object, which requires
 // Certificater is the interface declaring methods each Certificate object must have.
 type Certificater interface {
 
-	// GetName retrieves the name of the certificate.
-	GetName() string
+	// GetCommonName retrieves the name of the certificate.
+	GetCommonName() string
 
 	// GetCertificateChain retrieves the cert chain.
 	GetCertificateChain() []byte
