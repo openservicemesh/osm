@@ -9,58 +9,6 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Route exists in routePolicyWeightedClustersList", func() {
-	Context("Testing a route is already in a given list of routes", func() {
-		It("Returns true and the index of route in the list", func() {
-
-			weightedClusters := set.NewSetFromSlice([]interface{}{
-				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1"), Weight: 100},
-				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-2"), Weight: 100},
-			})
-			routePolicy := trafficpolicy.Route{
-				PathRegex: "/books-bought",
-				Methods:   []string{"GET"},
-			}
-			routePolicyWeightedClustersList := []trafficpolicy.RouteWeightedClusters{
-				{Route: routePolicy, WeightedClusters: weightedClusters},
-			}
-			newRoutePolicy := trafficpolicy.Route{
-				PathRegex: "/books-bought",
-				Methods:   []string{"GET"},
-			}
-
-			index, routeExists := routeExits(routePolicyWeightedClustersList, newRoutePolicy)
-			Expect(index).To(Equal(0))
-			Expect(routeExists).To(Equal(true))
-		})
-	})
-
-	Context("Testing a route doesn't exist a given list of routes", func() {
-		It("Returns false and the index of -1", func() {
-
-			weightedClusters := set.NewSetFromSlice([]interface{}{
-				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1"), Weight: 100},
-				service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-2"), Weight: 100},
-			})
-			routePolicy := trafficpolicy.Route{
-				PathRegex: "/books-bought",
-				Methods:   []string{"GET"},
-			}
-			routeWeightedClustersList := []trafficpolicy.RouteWeightedClusters{
-				{Route: routePolicy, WeightedClusters: weightedClusters},
-			}
-			newRoutePolicy := trafficpolicy.Route{
-				PathRegex: "/buy-a-book",
-				Methods:   []string{"GET"},
-			}
-
-			index, routeExists := routeExits(routeWeightedClustersList, newRoutePolicy)
-			Expect(index).To(Equal(-1))
-			Expect(routeExists).To(Equal(false))
-		})
-	})
-})
-
 var _ = Describe("Construct RoutePolicyWeightedClusters object", func() {
 	Context("Testing the creating of a RoutePolicyWeightedClusters object", func() {
 		It("Returns RoutePolicyWeightedClusters", func() {
@@ -84,7 +32,7 @@ var _ = Describe("Construct RoutePolicyWeightedClusters object", func() {
 })
 
 var _ = Describe("AggregateRoutesByDomain", func() {
-	domainRoutesMap := make(map[string][]trafficpolicy.RouteWeightedClusters)
+	domainRoutesMap := make(map[string]map[string]trafficpolicy.RouteWeightedClusters)
 	weightedClustersMap := set.NewSet()
 	Context("Building a map of routes by domain", func() {
 		It("Returns a new aggregated map of domain and routes", func() {
@@ -101,10 +49,13 @@ var _ = Describe("AggregateRoutesByDomain", func() {
 			Expect(len(domainRoutesMap)).To(Equal(1))
 			Expect(len(domainRoutesMap["bookstore.mesh"])).To(Equal(2))
 
-			for j := range domainRoutesMap["bookstore.mesh"] {
-				Expect(domainRoutesMap["bookstore.mesh"][j].Route).To(Equal(routePolicies[j]))
-				Expect(domainRoutesMap["bookstore.mesh"][j].WeightedClusters.Cardinality()).To(Equal(1))
-				Expect(domainRoutesMap["bookstore.mesh"][j].WeightedClusters.Equal(weightedClustersMap)).To(Equal(true))
+			for _, routePolicy := range routePolicies {
+				_, routePolicyExists := domainRoutesMap["bookstore.mesh"][routePolicy.PathRegex]
+				Expect(routePolicyExists).To(Equal(true))
+			}
+			for path := range domainRoutesMap["bookstore.mesh"] {
+				Expect(domainRoutesMap["bookstore.mesh"][path].WeightedClusters.Cardinality()).To(Equal(1))
+				Expect(domainRoutesMap["bookstore.mesh"][path].WeightedClusters.Equal(weightedClustersMap)).To(Equal(true))
 			}
 		})
 	})
@@ -122,9 +73,9 @@ var _ = Describe("AggregateRoutesByDomain", func() {
 			Expect(domainRoutesMap).NotTo(Equal(nil))
 			Expect(len(domainRoutesMap)).To(Equal(1))
 			Expect(len(domainRoutesMap["bookstore.mesh"])).To(Equal(3))
-			Expect(domainRoutesMap["bookstore.mesh"][2].Route).To(Equal(routePolicies[0]))
-			Expect(domainRoutesMap["bookstore.mesh"][2].WeightedClusters.Cardinality()).To(Equal(1))
-			Expect(domainRoutesMap["bookstore.mesh"][2].WeightedClusters.Equal(weightedClustersMap)).To(Equal(true))
+			Expect(domainRoutesMap["bookstore.mesh"][routePolicies[0].PathRegex].Route).To(Equal(routePolicies[0]))
+			Expect(domainRoutesMap["bookstore.mesh"][routePolicies[0].PathRegex].WeightedClusters.Cardinality()).To(Equal(1))
+			Expect(domainRoutesMap["bookstore.mesh"][routePolicies[0].PathRegex].WeightedClusters.Equal(weightedClustersMap)).To(Equal(true))
 		})
 	})
 
@@ -141,9 +92,9 @@ var _ = Describe("AggregateRoutesByDomain", func() {
 			Expect(domainRoutesMap).NotTo(Equal(nil))
 			Expect(len(domainRoutesMap)).To(Equal(1))
 			Expect(len(domainRoutesMap["bookstore.mesh"])).To(Equal(3))
-			Expect(domainRoutesMap["bookstore.mesh"][2].Route).To(Equal(trafficpolicy.Route{PathRegex: "/update-books-bought", Methods: []string{"GET", "GET"}}))
-			Expect(domainRoutesMap["bookstore.mesh"][2].WeightedClusters.Cardinality()).To(Equal(2))
-			Expect(domainRoutesMap["bookstore.mesh"][2].WeightedClusters.Equal(weightedClustersMap)).To(Equal(true))
+			Expect(domainRoutesMap["bookstore.mesh"][routePolicies[0].PathRegex].WeightedClusters.Cardinality()).To(Equal(2))
+			Expect(domainRoutesMap["bookstore.mesh"][routePolicies[0].PathRegex].Route).To(Equal(trafficpolicy.Route{PathRegex: "/update-books-bought", Methods: []string{"GET", "GET"}}))
+			Expect(domainRoutesMap["bookstore.mesh"][routePolicies[0].PathRegex].WeightedClusters.Equal(weightedClustersMap)).To(Equal(true))
 		})
 	})
 })

@@ -33,8 +33,8 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	routeConfiguration := []xds.RouteConfiguration{}
 	sourceRouteConfig := route.NewRouteConfigurationStub(route.OutboundRouteConfig)
 	destinationRouteConfig := route.NewRouteConfigurationStub(route.InboundRouteConfig)
-	sourceAggregatedRoutesByDomain := make(map[string][]trafficpolicy.RouteWeightedClusters)
-	destinationAggregatedRoutesByDomain := make(map[string][]trafficpolicy.RouteWeightedClusters)
+	sourceAggregatedRoutesByDomain := make(map[string]map[string]trafficpolicy.RouteWeightedClusters)
+	destinationAggregatedRoutesByDomain := make(map[string]map[string]trafficpolicy.RouteWeightedClusters)
 
 	for _, trafficPolicies := range allTrafficPolicies {
 		isSourceService := trafficPolicies.Source.Services.Contains(proxyServiceName)
@@ -83,27 +83,22 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	return resp, nil
 }
 
-func aggregateRoutesByDomain(domainRoutesMap map[string][]trafficpolicy.RouteWeightedClusters, routePolicies []trafficpolicy.Route, weightedCluster service.WeightedCluster, domain string) {
-	routesList, exists := domainRoutesMap[domain]
+func aggregateRoutesByDomain(domainRoutesMap map[string]map[string]trafficpolicy.RouteWeightedClusters, routePolicies []trafficpolicy.Route, weightedCluster service.WeightedCluster, domain string) {
+	_, exists := domainRoutesMap[domain]
 	if !exists {
-		// no domain found, create a new route and cluster mapping and add the domain
-		var routeWeightedClustersList []trafficpolicy.RouteWeightedClusters
-		for _, route := range routePolicies {
-			routeWeightedClustersList = append(routeWeightedClustersList, createRoutePolicyWeightedClusters(route, weightedCluster))
-		}
-		domainRoutesMap[domain] = routeWeightedClustersList
-	} else {
-		for _, route := range routePolicies {
-			routeIndex, routeFound := routeExits(routesList, route)
-			if routeFound {
-				// add the cluster to the existing route
-				routesList[routeIndex].WeightedClusters.Add(weightedCluster)
-				routesList[routeIndex].Route.Methods = append(routesList[routeIndex].Route.Methods, route.Methods...)
-			} else {
-				// no route found, create a new route and cluster mapping on domain
-				routesList = append(routesList, createRoutePolicyWeightedClusters(route, weightedCluster))
-			}
-			domainRoutesMap[domain] = routesList
+		// no domain found, create a new route map
+		domainRoutesMap[domain] = make(map[string]trafficpolicy.RouteWeightedClusters)
+	}
+	for _, route := range routePolicies {
+		routePolicyWeightedCluster, routeFound := domainRoutesMap[domain][route.PathRegex]
+		if routeFound {
+			// add the cluster to the existing route
+			routePolicyWeightedCluster.WeightedClusters.Add(weightedCluster)
+			routePolicyWeightedCluster.Route.Methods = append(routePolicyWeightedCluster.Route.Methods, route.Methods...)
+			domainRoutesMap[domain][route.PathRegex] = routePolicyWeightedCluster
+		} else {
+			// no route found, create a new route and cluster mapping on domain
+			domainRoutesMap[domain][route.PathRegex] = createRoutePolicyWeightedClusters(route, weightedCluster)
 		}
 	}
 }
@@ -115,21 +110,7 @@ func createRoutePolicyWeightedClusters(routePolicy trafficpolicy.Route, weighted
 	}
 }
 
-func routeExits(routesList []trafficpolicy.RouteWeightedClusters, routePolicy trafficpolicy.Route) (int, bool) {
-	routeExists := false
-	index := -1
-	// check if the route is already in list
-	for i, routeWeightedClusters := range routesList {
-		if routeWeightedClusters.Route.PathRegex == routePolicy.PathRegex {
-			routeExists = true
-			index = i
-			return index, routeExists
-		}
-	}
-	return index, routeExists
-}
-
-func updateRoutesForIngress(proxyServiceName service.NamespacedService, catalog catalog.MeshCataloger, domainRoutesMap map[string][]trafficpolicy.RouteWeightedClusters) error {
+func updateRoutesForIngress(proxyServiceName service.NamespacedService, catalog catalog.MeshCataloger, domainRoutesMap map[string]map[string]trafficpolicy.RouteWeightedClusters) error {
 	domainRoutePoliciesMap, err := catalog.GetIngressRoutePoliciesPerDomain(proxyServiceName)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to get ingress route configuration for proxy %s", proxyServiceName)
