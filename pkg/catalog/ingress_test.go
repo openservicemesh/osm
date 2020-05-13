@@ -16,6 +16,7 @@ import (
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/ingress"
+	"github.com/open-service-mesh/osm/pkg/service"
 	"github.com/open-service-mesh/osm/pkg/smi"
 )
 
@@ -143,7 +144,7 @@ var _ = Describe("Test ingress route policies", func() {
 	Context("Testing GetIngressRoutePoliciesPerDomain", func() {
 		mc := newFakeMeshCatalog()
 		It("Gets the route policies per domain from multiple ingress resources corresponding to a service", func() {
-			fakeService := endpoint.NamespacedService{
+			fakeService := service.NamespacedService{
 				Namespace: fakeIngressNamespace,
 				Service:   fakeIngressService,
 			}

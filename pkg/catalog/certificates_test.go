@@ -9,12 +9,12 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/open-service-mesh/osm/pkg/certificate/providers/tresor"
-	"github.com/open-service-mesh/osm/pkg/endpoint"
+	"github.com/open-service-mesh/osm/pkg/service"
 )
 
 var _ = Describe("Test certificate tooling", func() {
 	Context("Testing DecodePEMCertificate along with GetCommonName and IssueCertificate", func() {
-		namespacedService := endpoint.NamespacedService{
+		namespacedService := service.NamespacedService{
 			Namespace: "namespace-here",
 			Service:   "service-name-here",
 		}

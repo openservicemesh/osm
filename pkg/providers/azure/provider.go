@@ -10,10 +10,11 @@ import (
 	osm "github.com/open-service-mesh/osm/pkg/apis/azureresource/v1"
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
+	"github.com/open-service-mesh/osm/pkg/service"
 )
 
 // ListEndpointsForService implements endpoints.Provider interface and returns the IP addresses and Ports for the given ServiceName Name.
-func (az Client) ListEndpointsForService(svc endpoint.ServiceName) []endpoint.Endpoint {
+func (az Client) ListEndpointsForService(svc service.Name) []endpoint.Endpoint {
 	var endpoints []endpoint.Endpoint
 
 	// TODO(draychev): resolve the actual port number of this service
@@ -52,7 +53,7 @@ func (az Client) ListEndpointsForService(svc endpoint.ServiceName) []endpoint.En
 }
 
 // ListServicesForServiceAccount retrieves the list of Services for the given service account
-func (az Client) ListServicesForServiceAccount(svcAccount endpoint.NamespacedServiceAccount) []endpoint.NamespacedService {
+func (az Client) ListServicesForServiceAccount(svcAccount service.NamespacedServiceAccount) []service.NamespacedService {
 	//TODO (snchh) : need to figure out the service account equivalnent for azure
 	panic("NotImplemented")
 }
@@ -87,7 +88,7 @@ func parseAzureID(id azureID) (resourceGroup, computeKind, computeName, error) {
 	return resGroup, kind, name, nil
 }
 
-func (az *Client) resolveService(svc endpoint.ServiceName) []azureID {
+func (az *Client) resolveService(svc service.Name) []azureID {
 	log.Trace().Msgf("Resolving service %s to an Azure URI", svc)
 	var azureIDs []azureID
 	service, exists, err := az.meshSpec.GetService(svc)

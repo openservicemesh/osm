@@ -8,6 +8,7 @@ import (
 
 	osmEndpoint "github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/envoy"
+	"github.com/open-service-mesh/osm/pkg/service"
 )
 
 const (
@@ -15,7 +16,7 @@ const (
 )
 
 // NewClusterLoadAssignment constructs the Envoy struct necessary for TrafficSplit implementation.
-func NewClusterLoadAssignment(serviceName osmEndpoint.NamespacedService, serviceEndpoints []osmEndpoint.Endpoint) v2.ClusterLoadAssignment {
+func NewClusterLoadAssignment(serviceName service.NamespacedService, serviceEndpoints []osmEndpoint.Endpoint) v2.ClusterLoadAssignment {
 	cla := v2.ClusterLoadAssignment{
 		ClusterName: serviceName.String(),
 		Endpoints: []*endpoint.LocalityLbEndpoints{

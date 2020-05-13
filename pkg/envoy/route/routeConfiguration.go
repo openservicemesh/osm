@@ -11,8 +11,9 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 
 	"github.com/open-service-mesh/osm/pkg/constants"
-	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/envoy"
+	"github.com/open-service-mesh/osm/pkg/service"
+	"github.com/open-service-mesh/osm/pkg/trafficpolicy"
 )
 
 const (
@@ -41,7 +42,7 @@ var (
 )
 
 //UpdateRouteConfiguration consrtucts the Envoy construct necessary for TrafficTarget implementation
-func UpdateRouteConfiguration(domainRoutesMap map[string][]endpoint.RoutePolicyWeightedClusters, routeConfig v2.RouteConfiguration, isSourceConfig bool, isDestinationConfig bool) v2.RouteConfiguration {
+func UpdateRouteConfiguration(domainRoutesMap map[string][]trafficpolicy.RouteWeightedClusters, routeConfig v2.RouteConfiguration, isSourceConfig bool, isDestinationConfig bool) v2.RouteConfiguration {
 	log.Trace().Msgf("[RDS] Updating Route Configuration")
 	var isLocalCluster bool
 	var virtualHostName string
@@ -72,7 +73,7 @@ func createVirtualHostStub(name string, domain string) v2route.VirtualHost {
 	return virtualHost
 }
 
-func createRoutes(routePolicyWeightedClustersList []endpoint.RoutePolicyWeightedClusters, isLocalCluster bool) []*v2route.Route {
+func createRoutes(routePolicyWeightedClustersList []trafficpolicy.RouteWeightedClusters, isLocalCluster bool) []*v2route.Route {
 	var routes []*v2route.Route
 	if !isLocalCluster {
 		// For a source service, configure a wildcard route match with weighted routes to upstream clusters based on traffic split policies
@@ -85,9 +86,9 @@ func createRoutes(routePolicyWeightedClustersList []endpoint.RoutePolicyWeighted
 	for _, routePolicyWeightedClusters := range routePolicyWeightedClustersList {
 		// For a given route path, sanitize the methods in case there
 		// is wildcard or if there are duplicates
-		allowedMethods := sanitizeHTTPMethods(routePolicyWeightedClusters.RoutePolicy.Methods)
+		allowedMethods := sanitizeHTTPMethods(routePolicyWeightedClusters.Route.Methods)
 		for _, method := range allowedMethods {
-			route := getRoute(routePolicyWeightedClusters.RoutePolicy.PathRegex, method, routePolicyWeightedClusters.WeightedClusters, 100, isLocalCluster)
+			route := getRoute(routePolicyWeightedClusters.Route.PathRegex, method, routePolicyWeightedClusters.WeightedClusters, 100, isLocalCluster)
 			routes = append(routes, &route)
 		}
 	}
@@ -130,7 +131,7 @@ func getWeightedCluster(weightedClusters set.Set, totalClustersWeight int, isLoc
 	var wc v2route.WeightedCluster
 	var total int
 	for clusterInterface := range weightedClusters.Iter() {
-		cluster := clusterInterface.(endpoint.WeightedCluster)
+		cluster := clusterInterface.(service.WeightedCluster)
 		clusterName := string(cluster.ClusterName)
 		total += cluster.Weight
 		if isLocalCluster {
@@ -152,7 +153,7 @@ func getWeightedCluster(weightedClusters set.Set, totalClustersWeight int, isLoc
 
 // This method gets a list of all the distinct upstream clusters for a domain
 // needed to configure source service's weighted routes
-func getDistinctWeightedClusters(routePolicyWeightedClustersList []endpoint.RoutePolicyWeightedClusters) set.Set {
+func getDistinctWeightedClusters(routePolicyWeightedClustersList []trafficpolicy.RouteWeightedClusters) set.Set {
 	weightedClusters := set.NewSet()
 	for i, perRouteWeightedClusters := range routePolicyWeightedClustersList {
 		if i == 0 {
@@ -166,7 +167,7 @@ func getDistinctWeightedClusters(routePolicyWeightedClustersList []endpoint.Rout
 func getTotalWeightForClusters(weightedClusters set.Set) int {
 	var totalWeight int
 	for clusterInterface := range weightedClusters.Iter() {
-		cluster := clusterInterface.(endpoint.WeightedCluster)
+		cluster := clusterInterface.(service.WeightedCluster)
 		totalWeight += cluster.Weight
 	}
 	return totalWeight

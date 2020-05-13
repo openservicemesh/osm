@@ -8,9 +8,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/logger"
 	"github.com/open-service-mesh/osm/pkg/namespace"
+	"github.com/open-service-mesh/osm/pkg/service"
 )
 
 var (
@@ -53,13 +53,13 @@ type MeshSpec interface {
 	ListTrafficSplits() []*split.TrafficSplit
 
 	// ListServices fetches all services declared with SMI Spec.
-	ListServices() []endpoint.WeightedService
+	ListServices() []service.WeightedService
 
 	// ListServiceAccounts fetches all service accounts declared with SMI Spec.
-	ListServiceAccounts() []endpoint.NamespacedServiceAccount
+	ListServiceAccounts() []service.NamespacedServiceAccount
 
 	// GetService fetches a specific service declared in SMI.
-	GetService(endpoint.ServiceName) (service *corev1.Service, exists bool, err error)
+	GetService(service.Name) (service *corev1.Service, exists bool, err error)
 
 	// ListHTTPTrafficSpecs lists TrafficSpec SMI resources.
 	ListHTTPTrafficSpecs() []*spec.HTTPRouteGroup

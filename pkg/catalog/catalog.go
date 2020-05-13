@@ -6,12 +6,13 @@ import (
 	"os"
 	"time"
 
-	mapset "github.com/deckarep/golang-set"
+	set "github.com/deckarep/golang-set"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/ingress"
+	"github.com/open-service-mesh/osm/pkg/service"
 	"github.com/open-service-mesh/osm/pkg/smi"
 )
 
@@ -24,11 +25,11 @@ func NewMeshCatalog(kubeClient kubernetes.Interface, meshSpec smi.MeshSpec, cert
 		certManager:        certManager,
 		ingressMonitor:     ingressMonitor,
 
-		certificateCache:              make(map[endpoint.NamespacedService]certificate.Certificater),
+		certificateCache:              make(map[service.NamespacedService]certificate.Certificater),
 		expectedProxies:               make(map[certificate.CommonName]expectedProxy),
 		connectedProxies:              make(map[certificate.CommonName]connectedProxy),
-		announcementChannels:          mapset.NewSet(),
-		serviceAccountToServicesCache: make(map[endpoint.NamespacedServiceAccount][]endpoint.NamespacedService),
+		announcementChannels:          set.NewSet(),
+		serviceAccountToServicesCache: make(map[service.NamespacedServiceAccount][]service.NamespacedService),
 
 		// Kubernetes needed to determine what Services a pod that connects to XDS belongs to.
 		// In multicluster scenarios this would be a map of cluster ID to Kubernetes client.

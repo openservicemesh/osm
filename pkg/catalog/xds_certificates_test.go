@@ -13,7 +13,7 @@ import (
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
 	"github.com/open-service-mesh/osm/pkg/constants"
-	"github.com/open-service-mesh/osm/pkg/endpoint"
+	"github.com/open-service-mesh/osm/pkg/service"
 	"github.com/open-service-mesh/osm/pkg/tests"
 )
 
@@ -38,13 +38,13 @@ var _ = Describe("Test XDS certificate tooling", func() {
 			_, err = kubeClient.CoreV1().Services(tests.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{})
 			Expect(err).ToNot(HaveOccurred())
 
-			service, err := mc.GetServiceFromEnvoyCertificate(cn)
+			nsService, err := mc.GetServiceFromEnvoyCertificate(cn)
 			Expect(err).ToNot(HaveOccurred())
-			expected := endpoint.NamespacedService{
+			expected := service.NamespacedService{
 				Namespace: tests.Namespace,
 				Service:   svcName,
 			}
-			Expect(service).To(Equal(&expected))
+			Expect(nsService).To(Equal(&expected))
 		})
 
 		It("returns an error with an invalid CN", func() {
@@ -76,14 +76,14 @@ var _ = Describe("Test XDS certificate tooling", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			podCN := certificate.CommonName(fmt.Sprintf("%s.%s.%s", envoyUID, tests.BookbuyerServiceAccountName, namespace))
-			service, err := getServiceFromCertificate(podCN, kubeClient)
+			nsService, err := getServiceFromCertificate(podCN, kubeClient)
 			Expect(err).ToNot(HaveOccurred())
 
-			expected := endpoint.NamespacedService{
+			expected := service.NamespacedService{
 				Namespace: namespace,
 				Service:   svcName,
 			}
-			Expect(service).To(Equal(&expected))
+			Expect(nsService).To(Equal(&expected))
 		})
 	})
 

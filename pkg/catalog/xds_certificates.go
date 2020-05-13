@@ -7,12 +7,12 @@ import (
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/open-service-mesh/osm/pkg/constants"
+	"github.com/open-service-mesh/osm/pkg/service"
 	v1 "k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
-	"github.com/open-service-mesh/osm/pkg/endpoint"
 )
 
 const (
@@ -20,7 +20,7 @@ const (
 )
 
 // GetServiceFromEnvoyCertificate returns the single service given Envoy is a member of based on the certificate provided, which is a cert issued to an Envoy for XDS communication (not Envoy-to-Envoy).
-func (mc *MeshCatalog) GetServiceFromEnvoyCertificate(cn certificate.CommonName) (*endpoint.NamespacedService, error) {
+func (mc *MeshCatalog) GetServiceFromEnvoyCertificate(cn certificate.CommonName) (*service.NamespacedService, error) {
 	service, err := getServiceFromCertificate(cn, mc.kubeClient)
 	if err != nil {
 		return nil, err
@@ -29,7 +29,7 @@ func (mc *MeshCatalog) GetServiceFromEnvoyCertificate(cn certificate.CommonName)
 	return service, nil
 }
 
-func getServiceFromCertificate(cn certificate.CommonName, kubeClient kubernetes.Interface) (*endpoint.NamespacedService, error) {
+func getServiceFromCertificate(cn certificate.CommonName, kubeClient kubernetes.Interface) (*service.NamespacedService, error) {
 	pod, err := getPodFromCertificate(cn, kubeClient)
 	if err != nil {
 		return nil, err
@@ -50,7 +50,7 @@ func getServiceFromCertificate(cn certificate.CommonName, kubeClient kubernetes.
 		return nil, err
 	}
 
-	return &endpoint.NamespacedService{
+	return &service.NamespacedService{
 		Namespace: cnMeta.Namespace,
 		Service:   services[0].Name,
 	}, nil

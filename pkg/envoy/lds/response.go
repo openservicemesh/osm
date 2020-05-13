@@ -12,10 +12,10 @@ import (
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/constants"
-	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 	"github.com/open-service-mesh/osm/pkg/envoy/route"
 	"github.com/open-service-mesh/osm/pkg/featureflags"
+	"github.com/open-service-mesh/osm/pkg/service"
 	"github.com/open-service-mesh/osm/pkg/smi"
 )
 
@@ -142,7 +142,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	return resp, nil
 }
 
-func getFilterChainMatchServerNames(proxyServiceName endpoint.NamespacedService, catalog catalog.MeshCataloger) ([]string, error) {
+func getFilterChainMatchServerNames(proxyServiceName service.NamespacedService, catalog catalog.MeshCataloger) ([]string, error) {
 	serverNamesMap := make(map[string]interface{})
 	var serverNames []string
 
@@ -156,7 +156,7 @@ func getFilterChainMatchServerNames(proxyServiceName endpoint.NamespacedService,
 		isDestinationService := trafficPolicies.Destination.Services.Contains(proxyServiceName)
 		if isDestinationService {
 			for sourceInterface := range trafficPolicies.Source.Services.Iter() {
-				source := sourceInterface.(endpoint.NamespacedService)
+				source := sourceInterface.(service.NamespacedService)
 				if _, server := serverNamesMap[source.String()]; !server {
 					serverNamesMap[source.String()] = nil
 					serverNames = append(serverNames, source.String())
@@ -168,7 +168,7 @@ func getFilterChainMatchServerNames(proxyServiceName endpoint.NamespacedService,
 	return serverNames, nil
 }
 
-func getInboundInMeshFilterChain(proxyServiceName endpoint.NamespacedService, mc catalog.MeshCataloger, filterConfig *any.Any) (*listener.FilterChain, error) {
+func getInboundInMeshFilterChain(proxyServiceName service.NamespacedService, mc catalog.MeshCataloger, filterConfig *any.Any) (*listener.FilterChain, error) {
 	serverNames, err := getFilterChainMatchServerNames(proxyServiceName, mc)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to get client server names for proxy %s", proxyServiceName)
