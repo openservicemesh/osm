@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/spf13/cobra"
 	helm "helm.sh/helm/v3/pkg/action"
@@ -31,7 +32,9 @@ Usage:
 
 `
 const (
-	defaultOSMChartPath = "charts/osm"
+	defaultOSMChartPath  = "charts/osm"
+	defaultCertManager   = "tresor"
+	defaultVaultProtocol = "http"
 )
 
 type installCmd struct {
@@ -40,6 +43,10 @@ type installCmd struct {
 	containerRegistrySecret string
 	chartPath               string
 	osmID                   string
+	certManager             string
+	vaultHost               string
+	vaultProtocol           string
+	vaultToken              string
 }
 
 func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
@@ -62,6 +69,10 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.StringVar(&inst.containerRegistrySecret, "container-registry-secret", "acr-creds", "name of Kubernetes secret for container registry credentials to be created if it doesn't already exist")
 	f.StringVar(&inst.chartPath, "osm-chart-path", "", "path to osm chart to override default chart")
 	f.StringVar(&inst.osmID, "osm-id", "", "unique ID for an instance of the OSM control plane")
+	f.StringVar(&inst.certManager, "cert-manager", defaultCertManager, "certificate manager to use (tresor or vault)")
+	f.StringVar(&inst.vaultHost, "vault-host", "", "Hashicorp Vault host/service - where Vault is installed")
+	f.StringVar(&inst.vaultProtocol, "vault-protocol", defaultVaultProtocol, "protocol to use to connect to Vault")
+	f.StringVar(&inst.vaultToken, "vault-token", "", "token that should be used to connect to Vault")
 
 	return cmd
 }
@@ -85,6 +96,18 @@ func (i *installCmd) run(installClient *helm.Install) error {
 		return err
 	}
 
+	if strings.EqualFold(i.certManager, "vault") {
+		var missingFields []string
+		if i.vaultHost == "" {
+			missingFields = append(missingFields, "vault-host")
+		}
+		if i.vaultToken == "" {
+			missingFields = append(missingFields, "vault-token")
+		}
+		if len(missingFields) != 0 {
+			return fmt.Errorf("Missing arguments for cert-manager vault: %v", missingFields)
+		}
+	}
 	values, err := i.resolveValues()
 	if err != nil {
 		return err
@@ -105,6 +128,10 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 		fmt.Sprintf("imagePullSecrets[0].name=%s", i.containerRegistrySecret),
 		fmt.Sprintf("namespace=%s", settings.Namespace()),
 		fmt.Sprintf("osmID=%s", i.osmID),
+		fmt.Sprintf("certManager=%s", i.certManager),
+		fmt.Sprintf("vault.host=%s", i.vaultHost),
+		fmt.Sprintf("vault.protocol=%s", i.vaultProtocol),
+		fmt.Sprintf("vault.token=%s", i.vaultToken),
 	}
 
 	for _, val := range valuesConfig {
