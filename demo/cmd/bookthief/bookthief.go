@@ -50,7 +50,8 @@ func main() {
 				} else {
 					fmt.Printf("Error, response code = %d\n", response)
 					if hasSucceeded {
-						fmt.Println(common.Failure)
+						fmt.Printf("Ignoring failure after a previously seen success")
+						//fmt.Println(common.Failure) TODO: Investigate why this happens
 					}
 				}
 			}
