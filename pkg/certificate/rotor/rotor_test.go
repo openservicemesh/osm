@@ -12,7 +12,7 @@ import (
 	"github.com/open-service-mesh/osm/pkg/certificate/rotor"
 )
 
-var _ = Describe("Test Rotisserie", func() {
+var _ = Describe("Test Rotor", func() {
 
 	cn := certificate.CommonName("foo")
 
