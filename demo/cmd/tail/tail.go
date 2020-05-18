@@ -172,6 +172,7 @@ func main() {
 	for {
 		if time.Since(startedWaiting) >= totalWaitSeconds {
 			// failure
+			fmt.Println("Timed out waiting for success")
 			break
 		}
 		bookBuyerLogs := getPodLogs(bookbuyerNS, bookBuyerPodName, bookBuyerContainerName, false, pollLogsFromTimeSince)
@@ -182,6 +183,10 @@ func main() {
 			deleteNamespaces(clientset, namespaces...)
 			deleteWebhook(clientset, webhookName)
 			os.Exit(0)
+		} else if strings.Contains(bookBuyerLogs, common.Failure) || strings.Contains(bookThiefLogs, common.Failure) {
+			// failure
+			fmt.Println("One of bookbuyer, bookthief failed")
+			break
 		}
 	}
 

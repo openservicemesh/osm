@@ -14,6 +14,7 @@ import (
 const (
 	waitForEnvVar                = "WAIT_FOR_OK_SECONDS"
 	sleepDurationBetweenRequests = 3 * time.Second
+	minSuccessThreshold          = 10
 )
 
 func main() {
@@ -25,23 +26,36 @@ func main() {
 	buyBook := fmt.Sprintf("http://%s/buy-a-book/new", bookstoreService)
 	waitForOK := getWaitForOK()
 	iteration := 0
+	successCount := 0
+	hasSucceeded := false
+	urlSuccessMap := map[string]bool{booksBought: false, buyBook: false}
 	for {
 		iteration++
 		fmt.Printf("---Bookthief:[ %d ]-----------------------------------------\n", iteration)
-		var responses []int
 		for _, url := range []string{booksBought, buyBook} {
 			response := fetch(url)
 			fmt.Println("")
-			responses = append(responses, response)
-		}
-		if waitForOK != 0 {
-			//since bookthief doesn't have any traffic policies setup to talk to bookstore it will get a 404
-			if responses[0] == http.StatusNotFound {
-				fmt.Printf(common.Success)
-			} else {
-				fmt.Printf("Error, response code = %d", responses[0])
+			if waitForOK != 0 {
+				//since bookthief doesn't have any traffic policies setup to talk to bookstore it will get a 404
+				if response == http.StatusNotFound {
+					urlSuccessMap[url] = true
+					if urlSuccessMap[booksBought] == true && urlSuccessMap[buyBook] == true {
+						// All the queries have succeeded, test should succeed from this point
+						hasSucceeded = true
+					}
+					successCount++
+					if successCount >= minSuccessThreshold {
+						fmt.Println(common.Success)
+					}
+				} else {
+					fmt.Printf("Error, response code = %d\n", response)
+					if hasSucceeded {
+						fmt.Println(common.Failure)
+					}
+				}
 			}
 		}
+
 		fmt.Print("\n\n")
 		time.Sleep(sleepDurationBetweenRequests)
 	}
