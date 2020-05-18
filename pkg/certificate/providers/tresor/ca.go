@@ -15,7 +15,7 @@ import (
 )
 
 // NewCA creates a new Certificate Authority.
-func NewCA(cn certificate.CommonName, validity time.Duration) (certificate.Certificater, error) {
+func NewCA(cn certificate.CommonName, validity time.Duration, rootCertCountry, rootCertLocality, rootCertOrganization string) (certificate.Certificater, error) {
 	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
 	if err != nil {
 		return nil, errors.Wrap(err, errGeneratingSerialNumber.Error())
@@ -26,9 +26,9 @@ func NewCA(cn certificate.CommonName, validity time.Duration) (certificate.Certi
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
 			CommonName:   cn.String(),
-			Country:      []string{"US"},
-			Locality:     []string{"CA"},
-			Organization: []string{org},
+			Country:      []string{rootCertCountry},
+			Locality:     []string{rootCertLocality},
+			Organization: []string{rootCertOrganization},
 		},
 		NotBefore:             now,
 		NotAfter:              now.Add(validity),

@@ -25,9 +25,6 @@ const (
 
 	// How many bits in the certificate serial number
 	certSerialNumberBits = 128
-
-	// Organization field of certificates issued by Tresor
-	org = "Open Service Mesh Tresor"
 )
 
 var (

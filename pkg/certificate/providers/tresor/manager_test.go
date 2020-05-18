@@ -60,15 +60,18 @@ var _ = Describe("Test Certificate Manager", func() {
 		rootCertPem := "sample_certificate.pem"
 		rootKeyPem := "sample_private_key.pem"
 		cn := certificate.CommonName("Test CA")
-		rootCert, err := NewCA(cn, 1*time.Hour)
+		rootCertCountry := "US"
+		rootCertLocality := "CA"
+		rootCertOrganization := "Open Service Mesh Tresor"
+		rootCert, err := NewCA(cn, 1*time.Hour, rootCertCountry, rootCertLocality, rootCertOrganization)
 		if err != nil {
 			log.Fatal().Err(err).Msgf("Error loading CA from files %s and %s", rootCertPem, rootKeyPem)
 		}
 		m, newCertError := NewCertManager(rootCert, validity)
 		It("should issue a certificate", func() {
 			Expect(newCertError).ToNot(HaveOccurred())
-			cert, issueCerterror := m.IssueCertificate(serviceFQDN)
-			Expect(issueCerterror).ToNot(HaveOccurred())
+			cert, issueCertificateError := m.IssueCertificate(serviceFQDN)
+			Expect(issueCertificateError).ToNot(HaveOccurred())
 			Expect(cert.GetCommonName()).To(Equal(serviceFQDN))
 
 			x509Cert, err := DecodePEMCertificate(rootCert.GetCertificateChain())
