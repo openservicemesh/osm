@@ -27,7 +27,9 @@ func GetKubernetesEventHandlers(informerName string, providerName string, announ
 func add(informerName string, providerName string, announce chan interface{}, shouldObserve observeFilter) func(obj interface{}) {
 	return func(obj interface{}) {
 		if !shouldObserve(obj) {
-			log.Debug().Msgf("Namespace %q is not observed by OSM; ignoring ADD event", getNamespace(obj))
+			if os.Getenv("OSM_LOG_KUBERNETES_EVENTS") == "true" {
+				log.Debug().Msgf("Namespace %q is not observed by OSM; ignoring ADD event", getNamespace(obj))
+			}
 			return
 		}
 		if os.Getenv("OSM_LOG_KUBERNETES_EVENTS") == "true" {
@@ -46,7 +48,9 @@ func add(informerName string, providerName string, announce chan interface{}, sh
 func update(informerName string, providerName string, announce chan interface{}, shouldObserve observeFilter) func(oldObj, newObj interface{}) {
 	return func(oldObj, newObj interface{}) {
 		if !shouldObserve(newObj) {
-			log.Debug().Msgf("Namespace %q is not observed by OSM; ignoring UPDATE event", getNamespace(newObj))
+			if os.Getenv("OSM_LOG_KUBERNETES_EVENTS") == "true" {
+				log.Debug().Msgf("Namespace %q is not observed by OSM; ignoring UPDATE event", getNamespace(newObj))
+			}
 			return
 		}
 		if os.Getenv("OSM_LOG_KUBERNETES_EVENTS") == "true" {
@@ -65,7 +69,9 @@ func update(informerName string, providerName string, announce chan interface{},
 func delete(informerName string, providerName string, announce chan interface{}, shouldObserve observeFilter) func(obj interface{}) {
 	return func(obj interface{}) {
 		if !shouldObserve(obj) {
-			log.Debug().Msgf("Namespace %q is not observed by OSM; ignoring DELETE event", getNamespace(obj))
+			if os.Getenv("OSM_LOG_KUBERNETES_EVENTS") == "true" {
+				log.Debug().Msgf("Namespace %q is not observed by OSM; ignoring DELETE event", getNamespace(obj))
+			}
 			return
 		}
 		if os.Getenv("OSM_LOG_KUBERNETES_EVENTS") == "true" {
