@@ -21,7 +21,6 @@ type observeFilter func(obj interface{}) bool
 
 // GetKubernetesEventHandlers creates Kubernetes events handlers.
 func GetKubernetesEventHandlers(informerName string, providerName string, announcements chan interface{}, shouldObserve observeFilter) cache.ResourceEventHandlerFuncs {
-
 	if shouldObserve == nil {
 		shouldObserve = func(obj interface{}) bool { return true }
 	}
