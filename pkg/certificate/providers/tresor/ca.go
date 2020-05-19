@@ -39,7 +39,7 @@ func NewCA(cn certificate.CommonName, validity time.Duration, rootCertCountry, r
 
 	rsaKey, err := rsa.GenerateKey(rand.Reader, rsaBits)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error generating key for CA for org %s", org)
+		log.Error().Err(err).Msgf("Error generating key for CA for org %s", rootCertOrganization)
 		return nil, err
 	}
 

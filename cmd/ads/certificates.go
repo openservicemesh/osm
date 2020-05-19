@@ -92,7 +92,7 @@ func getTresorCertificateManager(kubeConfig *rest.Config) certificate.Manager {
 		rootCert = getNewRootCertFromTresor(kubeClient, osmNamespace, rootCertSecretName, keepRootPrivateKeyInKubernetes)
 	}
 
-	certManager, err := tresor.NewCertManager(rootCert, getServiceCertValidityPeriod())
+	certManager, err := tresor.NewCertManager(rootCert, getServiceCertValidityPeriod(), rootCertOrganization)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to instantiate Azure Key Vault as a Certificate Manager")
 	}

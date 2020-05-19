@@ -69,6 +69,9 @@ const (
 	// CertificationAuthorityRootExpiration is when the root certificate expires
 	CertificationAuthorityRootExpiration = 87600 * time.Hour // a decade
 
+	// XDSCertificateValidityPeriod is the TTL of the certificates used for Envoy to xDS communication.
+	XDSCertificateValidityPeriod = 87600 * time.Hour // a decade
+
 	// RegexMatchAll is a regex pattern match for all
 	RegexMatchAll = ".*"
 

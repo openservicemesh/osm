@@ -46,6 +46,8 @@ type CertManager struct {
 	// Cache for all the certificates issued
 	cache     *map[certificate.CommonName]certificate.Certificater
 	cacheLock sync.Mutex
+
+	certificatesOrganization string
 }
 
 // Certificate implements certificate.Certificater

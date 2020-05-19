@@ -22,7 +22,7 @@ var _ = Describe("Test Rotor", func() {
 		certManager := tresor.NewFakeCertManager(&cache, validityPeriod)
 
 		It("determines whether a certificate has expired", func() {
-			cert, err := certManager.IssueCertificate(cn)
+			cert, err := certManager.IssueCertificate(cn, nil)
 			Expect(err).ToNot(HaveOccurred())
 			actual := rotor.ShouldRotate(cert)
 			Expect(actual).To(BeFalse())
@@ -34,7 +34,7 @@ var _ = Describe("Test Rotor", func() {
 		validityPeriod := -1 * time.Hour // negative time means this cert has already expired -- will be rotated asap
 		certManager := tresor.NewFakeCertManager(&cache, validityPeriod)
 
-		certA, err := certManager.IssueCertificate(cn)
+		certA, err := certManager.IssueCertificate(cn, nil)
 
 		It("issued a new certificate", func() {
 			Expect(err).ToNot(HaveOccurred())
@@ -58,7 +58,7 @@ var _ = Describe("Test Rotor", func() {
 
 			fmt.Printf("It took %+v to rotate certificate %s\n", time.Since(start), cn)
 
-			newCert, err := certManager.IssueCertificate(cn)
+			newCert, err := certManager.IssueCertificate(cn, nil)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(newCert.GetExpiration()).ToNot(Equal(certA.GetExpiration()))
 			Expect(newCert).ToNot(Equal(certA))

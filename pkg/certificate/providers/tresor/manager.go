@@ -12,7 +12,10 @@ import (
 	"github.com/open-service-mesh/osm/pkg/certificate"
 )
 
-func (cm *CertManager) issue(cn certificate.CommonName) (certificate.Certificater, error) {
+func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod *time.Duration) (certificate.Certificater, error) {
+	if validityPeriod == nil {
+		validityPeriod = &cm.validityPeriod
+	}
 	if cm.ca == nil {
 		log.Error().Msgf("Invalid CA provided for issuance of certificate with CN=%s", cn)
 		return nil, errNoIssuingCA
@@ -35,10 +38,10 @@ func (cm *CertManager) issue(cn certificate.CommonName) (certificate.Certificate
 		DNSNames:     []string{string(cn)},
 		Subject: pkix.Name{
 			CommonName:   string(cn),
-			Organization: []string{org},
+			Organization: []string{cm.certificatesOrganization},
 		},
 		NotBefore: now,
-		NotAfter:  now.Add(cm.validityPeriod),
+		NotAfter:  now.Add(*validityPeriod),
 
 		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
@@ -95,7 +98,7 @@ func (cm *CertManager) getFromCache(cn certificate.CommonName) certificate.Certi
 }
 
 // IssueCertificate implements certificate.Manager and returns a newly issued certificate.
-func (cm *CertManager) IssueCertificate(cn certificate.CommonName) (certificate.Certificater, error) {
+func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validity *time.Duration) (certificate.Certificater, error) {
 	log.Info().Msgf("Issuing new certificate for CN=%s, which will expire in %+v", cn, cm.validityPeriod)
 
 	start := time.Now()
@@ -104,7 +107,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName) (certificate.
 		return cert, nil
 	}
 
-	cert, err := cm.issue(cn)
+	cert, err := cm.issue(cn, validity)
 	if err != nil {
 		return cert, err
 	}
@@ -124,7 +127,7 @@ func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate
 
 	start := time.Now()
 
-	cert, err := cm.issue(cn)
+	cert, err := cm.issue(cn, &cm.validityPeriod)
 	if err != nil {
 		return cert, err
 	}
