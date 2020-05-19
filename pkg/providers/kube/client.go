@@ -108,8 +108,8 @@ func (c Client) ListEndpointsForService(svc service.Name) []endpoint.Endpoint {
 	return endpoints
 }
 
-// ListServicesForServiceAccount retrieves the list of Services for the given service account
-func (c Client) ListServicesForServiceAccount(svcAccount service.NamespacedServiceAccount) []service.NamespacedService {
+// GetServiceForServiceAccount retrieves the service for the given service account
+func (c Client) GetServiceForServiceAccount(svcAccount service.NamespacedServiceAccount) (*service.NamespacedService, error) {
 	log.Info().Msgf("[%s] Getting Services for service account %s on Kubernetes", c.providerIdent, svcAccount)
 	var services []service.NamespacedService
 	deploymentsInterface := c.caches.Deployments.List()
@@ -141,8 +141,25 @@ func (c Client) ListServicesForServiceAccount(svcAccount service.NamespacedServi
 		}
 	}
 
+	if len(services) == 0 {
+		log.Error().Msgf("Did not find any service with serviceAccount = %s in namespace %s", svcAccount.ServiceAccount, svcAccount.Namespace)
+		return nil, errDidNotFindServiceForServiceAccount
+	}
+
+	// --- CONVENTION ---
+	// By Open Service Mesh convention the number of services for a service account is 1
+	// This is a limitation we set in place in order to make the mesh easy to understand and reason about.
+	// When a servcie account has more than one service XDS will not apply any SMI policy for that service, leaving it out of the mesh.
+	if len(services) > 1 {
+		log.Error().Msgf("Found more than one service for serviceAccount %s in namespace %s; There should be only one!", svcAccount.ServiceAccount, svcAccount.Namespace)
+		return nil, errMoreThanServiceForServiceAccount
+	}
+
+	service := services[0]
+	log.Trace().Msgf("Found service %s for serviceAccount %s in namespace %s", service.Service, svcAccount.ServiceAccount, svcAccount.Namespace)
+
 	log.Info().Msgf("[%s] Services %v observed on service account %s on Kubernetes", c.providerIdent, services, svcAccount)
-	return services
+	return &service, nil
 }
 
 // GetAnnouncementsChannel returns the announcement channel for the Kubernetes endpoints provider.

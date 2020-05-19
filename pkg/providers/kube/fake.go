@@ -15,16 +15,16 @@ func NewFakeProvider() endpoint.Provider {
 		endpoints: map[service.Name][]endpoint.Endpoint{
 			tests.NamespacedServiceName: {tests.Endpoint},
 		},
-		services: map[service.NamespacedServiceAccount][]service.NamespacedService{
-			tests.BookstoreServiceAccount: {tests.BookstoreService},
-			tests.BookbuyerServiceAccount: {tests.BookbuyerService},
+		services: map[service.NamespacedServiceAccount]*service.NamespacedService{
+			tests.BookstoreServiceAccount: &tests.BookstoreService,
+			tests.BookbuyerServiceAccount: &tests.BookbuyerService,
 		},
 	}
 }
 
 type fakeClient struct {
 	endpoints map[service.Name][]endpoint.Endpoint
-	services  map[service.NamespacedServiceAccount][]service.NamespacedService
+	services  map[service.NamespacedServiceAccount]*service.NamespacedService
 }
 
 // Retrieve the IP addresses comprising the given service.
@@ -35,13 +35,12 @@ func (f fakeClient) ListEndpointsForService(name service.Name) []endpoint.Endpoi
 	panic(fmt.Sprintf("You are asking for ServiceName=%s but the fake Kubernetes client has not been initialized with this. What we have is: %+v", name, f.endpoints))
 }
 
-// Retrieve the service for a given service account
-func (f fakeClient) ListServicesForServiceAccount(account service.NamespacedServiceAccount) []service.NamespacedService {
-	services, ok := f.services[account]
+func (f fakeClient) GetServiceForServiceAccount(svcAccount service.NamespacedServiceAccount) (*service.NamespacedService, error) {
+	services, ok := f.services[svcAccount]
 	if !ok {
-		panic(fmt.Sprintf("You asked fake k8s provider's ListServicesForServiceAccount for a ServiceAccount=%s, but that's not in cache: %+v", account, f.services))
+		panic(fmt.Sprintf("You asked fake k8s provider's GetServiceForServiceAccount for a ServiceAccount=%s, but that's not in cache: %+v", svcAccount, f.services))
 	}
-	return services
+	return services, nil
 }
 
 // GetID returns the unique identifier of the EndpointsProvider.
