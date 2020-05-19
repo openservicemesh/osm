@@ -84,7 +84,10 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 		if isIngress {
 			log.Info().Msgf("Found an ingress resource for service %s, applying necessary filters", proxyServiceName)
 			// This proxy is fronting a service that is a backend for an ingress, add a FilterChain for it
-			ingressFilterChain := getInboundIngressFilterChain(marshalledInboundConnManager)
+			ingressFilterChain, err := getInboundIngressFilterChain(proxyServiceName, marshalledInboundConnManager)
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed to construct ingress filter chain for proxy %s", proxyServiceName)
+			}
 			inboundListener.FilterChains = append(inboundListener.FilterChains, ingressFilterChain)
 		}
 	}
@@ -149,7 +152,7 @@ func getInboundInMeshFilterChain(proxyServiceName service.NamespacedService, mc 
 		log.Debug().Msg("No mesh filter chain to apply")
 		return nil, nil
 	}
-	marshalledDownstreamTLSContext, err := envoy.MessageToAny(envoy.GetDownstreamTLSContext(proxyServiceName))
+	marshalledDownstreamTLSContext, err := envoy.MessageToAny(envoy.GetDownstreamTLSContext(proxyServiceName, true /* mTLS */))
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshalling DownstreamTLSContext object for proxy %s", proxyServiceName)
 		return nil, err
@@ -168,7 +171,7 @@ func getInboundInMeshFilterChain(proxyServiceName service.NamespacedService, mc 
 		// This ensures only clients authorized to talk to this listener are permitted to.
 		FilterChainMatch: &listener.FilterChainMatch{
 			ServerNames:       serverNames,
-			TransportProtocol: "tls",
+			TransportProtocol: envoy.TransportProtocolTLS,
 		},
 		TransportSocket: &envoy_api_v2_core.TransportSocket{
 			Name: envoy.TransportSocketTLS,
@@ -181,8 +184,22 @@ func getInboundInMeshFilterChain(proxyServiceName service.NamespacedService, mc 
 	return filterChain, nil
 }
 
-func getInboundIngressFilterChain(filterConfig *any.Any) *listener.FilterChain {
+func getInboundIngressFilterChain(proxyServiceName service.NamespacedService, filterConfig *any.Any) (*listener.FilterChain, error) {
+	marshalledDownstreamTLSContext, err := envoy.MessageToAny(envoy.GetDownstreamTLSContext(proxyServiceName, false /* TLS */))
+	if err != nil {
+		log.Error().Err(err).Msgf("Error marshalling DownstreamTLSContext object for proxy %s", proxyServiceName)
+		return nil, err
+	}
 	return &listener.FilterChain{
+		FilterChainMatch: &listener.FilterChainMatch{
+			TransportProtocol: envoy.TransportProtocolTLS,
+		},
+		TransportSocket: &envoy_api_v2_core.TransportSocket{
+			Name: envoy.TransportSocketTLS,
+			ConfigType: &envoy_api_v2_core.TransportSocket_TypedConfig{
+				TypedConfig: marshalledDownstreamTLSContext,
+			},
+		},
 		Filters: []*listener.Filter{
 			{
 				Name: wellknown.HTTPConnectionManager,
@@ -191,5 +208,5 @@ func getInboundIngressFilterChain(filterConfig *any.Any) *listener.FilterChain {
 				},
 			},
 		},
-	}
+	}, nil
 }
