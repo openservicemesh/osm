@@ -92,4 +92,12 @@ const (
 
 	// TimeDateLayout is the layout for time.Parse used in this repo
 	TimeDateLayout = "2006-01-02T15:04:05.000Z"
+
+	// ----- Environment Variables
+
+	// EnvVarLogKubernetesEvents is the name of the env var instructing the event handlers whether to log at all (true/false)
+	EnvVarLogKubernetesEvents = "OSM_LOG_KUBERNETES_EVENTS"
+
+	// EnvVarHumanReadableLogMessages is an environment variable, which when set to "true" enables colorful human-readable log messages.
+	EnvVarHumanReadableLogMessages = "OSM_HUMAN_DEBUG_LOG"
 )
