@@ -213,26 +213,24 @@ func createCABundleKubernetesSecret(kubeClient clientset.Interface, certManager 
 		return nil
 	}
 
-	// the CN does not matter much - cert won't be used -- 'localhost' is used for throwaway certs.
-	cn := certificate.CommonName("localhost")
-	cert, err := certManager.IssueCertificate(cn, nil)
+	ca, err := certManager.GetRootCertificate()
 	if err != nil {
-		log.Error().Err(err).Msgf("Error issuing %s certificate", cn)
+		log.Error().Err(err).Msgf("Error getting root certificate")
 		return nil
 	}
 
-	return saveSecretToKubernetes(kubeClient, cert, namespace, caBundleSecretName, nil)
+	return saveSecretToKubernetes(kubeClient, ca, namespace, caBundleSecretName, nil)
 }
 
-func saveSecretToKubernetes(kubeClient clientset.Interface, cert certificate.Certificater, namespace, caBundleSecretName string, privKey []byte) error {
+func saveSecretToKubernetes(kubeClient clientset.Interface, ca certificate.Certificater, namespace, caBundleSecretName string, privKey []byte) error {
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      caBundleSecretName,
 			Namespace: namespace,
 		},
 		Data: map[string][]byte{
-			constants.KubernetesOpaqueSecretCAKey:        cert.GetIssuingCA(),
-			constants.KubernetesOpaqueSecretCAExpiration: encodeExpiration(cert.GetExpiration()),
+			constants.KubernetesOpaqueSecretCAKey:        ca.GetCertificateChain(),
+			constants.KubernetesOpaqueSecretCAExpiration: encodeExpiration(ca.GetExpiration()),
 		},
 	}
 

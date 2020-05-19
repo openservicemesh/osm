@@ -36,6 +36,9 @@ type Manager interface {
 	// RotateCertificate rotates an existing certificate.
 	RotateCertificate(CommonName) (Certificater, error)
 
+	// GetRootCertificate returns the root certificate in PEM format and its expiration.
+	GetRootCertificate() (Certificater, error)
+
 	// GetAnnouncementsChannel returns a channel, which is used to announce when changes have been made to the issued certificates.
 	GetAnnouncementsChannel() <-chan interface{}
 }

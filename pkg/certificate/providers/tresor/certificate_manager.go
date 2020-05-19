@@ -141,6 +141,11 @@ func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate
 	return cert, nil
 }
 
+// GetRootCertificate returns the root certificate.
+func (cm *CertManager) GetRootCertificate() (certificate.Certificater, error) {
+	return cm.ca, nil
+}
+
 // GetAnnouncementsChannel implements certificate.Manager and returns the channel on which the certificate manager announces changes made to certificates.
 func (cm *CertManager) GetAnnouncementsChannel() <-chan interface{} {
 	return cm.announcements

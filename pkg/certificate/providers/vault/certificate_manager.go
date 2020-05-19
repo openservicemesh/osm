@@ -116,6 +116,11 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validity *tim
 	return cert, nil
 }
 
+// GetRootCertificate returns the root certificate.
+func (cm *CertManager) GetRootCertificate() (certificate.Certificater, error) {
+	return cm.ca, nil
+}
+
 // GetAnnouncementsChannel returns a channel used by the Hashi Vault instance to signal when a certificate has been changed.
 func (cm *CertManager) GetAnnouncementsChannel() <-chan interface{} {
 	return cm.announcements
