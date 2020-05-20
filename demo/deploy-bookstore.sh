@@ -32,7 +32,7 @@ metadata:
     app: $SVC
 spec:
   ports:
-  - port: 80
+  - port: 8080
     name: bookstore-port
 
   selector:
@@ -62,15 +62,14 @@ spec:
       serviceAccountName: "$SVC-serviceaccount"
       automountServiceAccountToken: false
       containers:
-
         - image: "${CTR_REGISTRY}/bookstore:${CTR_TAG}"
           imagePullPolicy: Always
           name: $SVC
           ports:
-            - containerPort: 80
+            - containerPort: 8080
               name: web
           command: ["/bookstore"]
-          args: ["--path", "./", "--port", "80"]
+          args: ["--path", "./", "--port", "8080"]
           env:
             - name: IDENTITY
               value: ${SVC}--${GIT_HASH}
