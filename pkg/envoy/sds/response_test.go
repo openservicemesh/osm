@@ -131,7 +131,7 @@ var _ = Describe("Test SDS response functions", func() {
 
 	Context("Test getTasks()", func() {
 		It("returns a list of root certificate issuance tasks", func() {
-			proxy := envoy.NewProxy("cn", nil)
+			proxy := envoy.NewProxy("cn", service.NamespacedService{}, nil)
 			req := envoy_api_v2.DiscoveryRequest{
 				ResourceNames: []string{"root-cert:ns/svc"},
 				TypeUrl:       "",
@@ -146,7 +146,7 @@ var _ = Describe("Test SDS response functions", func() {
 		})
 
 		It("returns a list of service certificate tasks", func() {
-			proxy := envoy.NewProxy("cn", nil)
+			proxy := envoy.NewProxy("cn", service.NamespacedService{}, nil)
 			req := envoy_api_v2.DiscoveryRequest{
 				ResourceNames: []string{"service-cert:ns/svc"},
 				TypeUrl:       "",
@@ -161,7 +161,7 @@ var _ = Describe("Test SDS response functions", func() {
 		})
 
 		It("returns empty list - the proxy requested something that does not belong to that proxy", func() {
-			proxy := envoy.NewProxy("cn", nil)
+			proxy := envoy.NewProxy("cn", service.NamespacedService{}, nil)
 			req := envoy_api_v2.DiscoveryRequest{
 				ResourceNames: []string{"service-cert:ns/svc"},
 				TypeUrl:       "",
