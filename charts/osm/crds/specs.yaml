@@ -1,17 +1,18 @@
+---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
-metadata:  
+metadata:
   name: httproutegroups.specs.smi-spec.io
 spec:
   group: specs.smi-spec.io
-  version: v1alpha2
   scope: Namespaced 
   names:
     kind: HTTPRouteGroup
-    shortNames: 
+    shortNames:
       - htr
     plural: httproutegroups
     singular: httproutegroup
+  version: v1alpha2
   versions:
     - name: v1alpha2
       served: true
@@ -63,19 +64,25 @@ spec:
                   type: object
                   additionalProperties:
                     type: string
-
 ---
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
-metadata:  
-  name: tcproutes.spec.smi-spec.io
-spec:  
-  group: spec.smi-spec.io
-  version: v1alpha1
-  scope: Namespaced 
-  names:    
+metadata:
+  name: tcproutes.specs.smi-spec.io
+spec:
+  group: specs.smi-spec.io
+  scope: Namespaced
+  names:
     kind: TCPRoute
-    shortNames: 
+    shortNames:
       - tr
     plural: tcproutes
     singular: tcproute
+  version: v1alpha2
+  versions:
+    - name: v1alpha2
+      served: true
+      storage: true
+    - name: v1alpha1
+      served: false
+      storage: false
