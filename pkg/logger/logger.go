@@ -9,6 +9,8 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+
+	"github.com/open-service-mesh/osm/pkg/constants"
 )
 
 // CallerHook implements zerolog.Hook interface.
@@ -24,7 +26,7 @@ func (h CallerHook) Run(e *zerolog.Event, level zerolog.Level, msg string) {
 // New creates a new zerolog.Logger
 func New(component string) zerolog.Logger {
 	l := log.With().Str("component", component).Logger().Hook(CallerHook{})
-	if os.Getenv("OSM_HUMAN_DEBUG_LOG") == "true" {
+	if os.Getenv(constants.EnvVarHumanReadableLogMessages) == "true" {
 		return l.Output(zerolog.ConsoleWriter{Out: os.Stdout})
 	}
 	return l
