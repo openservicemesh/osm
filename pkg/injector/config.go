@@ -67,7 +67,6 @@ func getEnvoyConfigYAML(config envoyBootstrapConfigMeta) ([]byte, error) {
 							"tls_params": map[string]interface{}{
 								"tls_minimum_protocol_version": "TLSv1_2",
 								"tls_maximum_protocol_version": "TLSv1_3",
-								"cipher_suites":                "[ECDHE-ECDSA-AES128-GCM-SHA256|ECDHE-ECDSA-CHACHA20-POLY1305]",
 							},
 							"tls_certificates": []map[string]interface{}{
 								{

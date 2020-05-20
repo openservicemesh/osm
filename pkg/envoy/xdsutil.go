@@ -60,7 +60,6 @@ func GetTLSParams() *auth.TlsParameters {
 	return &auth.TlsParameters{
 		TlsMinimumProtocolVersion: auth.TlsParameters_TLSv1_2,
 		TlsMaximumProtocolVersion: auth.TlsParameters_TLSv1_3,
-		CipherSuites:              []string{aes, chacha},
 	}
 }
 

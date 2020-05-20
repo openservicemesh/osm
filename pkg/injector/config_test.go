@@ -47,7 +47,6 @@ static_resources:
           private_key:
             inline_bytes: Key
         tls_params:
-          cipher_suites: '[ECDHE-ECDSA-AES128-GCM-SHA256|ECDHE-ECDSA-CHACHA20-POLY1305]'
           tls_maximum_protocol_version: TLSv1_3
           tls_minimum_protocol_version: TLSv1_2
         validation_context:
