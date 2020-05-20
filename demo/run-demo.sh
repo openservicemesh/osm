@@ -83,10 +83,23 @@ kubectl apply -f crd/AzureResource.yaml
 go run ./demo/cmd/deploy/control-plane.go
 
 # Wait for POD to be ready before deploying the apps.
-while [ "$(kubectl get pods -n "$K8S_NAMESPACE" ads -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}')" != "True" ];
-do
-  echo "waiting for pod ads to be ready" && sleep 5
+ads_pod_name="ads"
+max=6
+for x in $(seq 1 $max); do
+    pod_ready="$(kubectl get pods -n "$K8S_NAMESPACE" ${ads_pod_name} -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}')"
+    if [ "$pod_ready" == "True" ]; then
+        break
+    fi
+
+    pod_status="$(kubectl get pods -n "$K8S_NAMESPACE" "ads" -o 'jsonpath={..status.phase}')"
+    echo "[${x}] Pod status is ${pod_status}; waiting for pod ${ads_pod_name} to be Ready" && sleep 5
 done
+
+if [ "$x" == "$max" ]; then
+    pod_status="$(kubectl get pods -n "$K8S_NAMESPACE" "ads" -o 'jsonpath={..status.phase}')"
+    echo "Pod ${ads_pod_name} status is ${pod_status} -- still not Ready"
+    exit 1
+fi
 
 ./demo/deploy-apps.sh
 
