@@ -26,10 +26,8 @@ wait_for_ads_pod() {
         echo "[${x}] Pod status is ${pod_status}; waiting for pod ${ads_pod_name} to be Ready" && sleep 5
     done
 
-    if [ "$x" == "$max" ]; then
-        pod_status="$(kubectl get pods -n "$K8S_NAMESPACE" "ads" -o 'jsonpath={..status.phase}')"
-        exit_error "Pod ${ads_pod_name} status is ${pod_status} -- still not Ready"
-    fi
+    pod_status="$(kubectl get pods -n "$K8S_NAMESPACE" "ads" -o 'jsonpath={..status.phase}')"
+    exit_error "Pod ${ads_pod_name} status is ${pod_status} -- still not Ready"
 }
 
 # Check for required environment variables
