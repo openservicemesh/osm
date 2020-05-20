@@ -5,7 +5,7 @@ import (
 	"net"
 
 	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha1"
-	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha1"
+	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -164,7 +164,7 @@ var (
 	// HTTPRouteGroup is the HTTP route group SMI object.
 	HTTPRouteGroup = spec.HTTPRouteGroup{
 		TypeMeta: v1.TypeMeta{
-			APIVersion: "specs.smi-spec.io/v1alpha1",
+			APIVersion: "specs.smi-spec.io/v1alpha2",
 			Kind:       "HTTPRouteGroup",
 		},
 		ObjectMeta: v1.ObjectMeta{
