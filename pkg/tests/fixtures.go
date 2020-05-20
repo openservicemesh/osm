@@ -153,7 +153,7 @@ var (
 
 	// WeightedService is a service with a weight used for traffic split.
 	WeightedService = service.WeightedService{
-		ServiceName: service.NamespacedService{
+		NamespacedService: service.NamespacedService{
 			Namespace: Namespace,
 			Service:   BookstoreServiceName,
 		},

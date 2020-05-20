@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
@@ -26,7 +27,7 @@ func (ns NamespacedService) String() string {
 
 //Equals checks if two namespaced services are equal
 func (ns NamespacedService) Equals(service NamespacedService) bool {
-	return (ns.Namespace == service.Namespace) && (ns.Service == service.Service)
+	return reflect.DeepEqual(ns, service)
 }
 
 // Account is a type for a service account
@@ -56,9 +57,9 @@ type ClusterName string
 
 //WeightedService is a struct of a service name, its weight and domain
 type WeightedService struct {
-	ServiceName NamespacedService `json:"service_name:omitempty"`
-	Weight      int               `json:"weight:omitempty"`
-	Domain      string            `json:"domain:omitempty"`
+	NamespacedService NamespacedService `json:"service_name:omitempty"`
+	Weight            int               `json:"weight:omitempty"`
+	Domain            string            `json:"domain:omitempty"`
 }
 
 // WeightedCluster is a struct of a cluster and is weight that is backing a service

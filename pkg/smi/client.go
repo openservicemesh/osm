@@ -191,7 +191,7 @@ func (c *Client) ListServices() []service.WeightedService {
 				Namespace: split.Namespace,
 				Service:   backend.Service,
 			}
-			services = append(services, service.WeightedService{ServiceName: namespacedServiceName, Weight: backend.Weight, Domain: domain})
+			services = append(services, service.WeightedService{NamespacedService: namespacedServiceName, Weight: backend.Weight, Domain: domain})
 		}
 	}
 	return services
