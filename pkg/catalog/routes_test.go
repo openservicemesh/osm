@@ -6,7 +6,6 @@ import (
 
 	testclient "k8s.io/client-go/kubernetes/fake"
 
-	set "github.com/deckarep/golang-set"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -38,14 +37,15 @@ var _ = Describe("Catalog tests", func() {
 		})
 	})
 
-	Context("Test getActiveServices", func() {
+	Context("Test getActiveService", func() {
 		It("lists active services", func() {
-			actual := meshCatalog.getActiveServices(set.NewSet(tests.BookstoreService))
-			expected := set.NewSet(service.NamespacedService{
+			actual, err := meshCatalog.getActiveService(tests.BookstoreService)
+			Expect(err).ToNot(HaveOccurred())
+			expected := &service.NamespacedService{
 				Namespace: "default",
 				Service:   "bookstore",
-			})
-			Expect(actual.Equal(expected)).To(Equal(true))
+			}
+			Expect(actual).To(Equal(expected))
 		})
 	})
 
@@ -59,34 +59,17 @@ var _ = Describe("Catalog tests", func() {
 				Destination: trafficpolicy.TrafficResource{
 					ServiceAccount: tests.BookstoreServiceAccountName,
 					Namespace:      tests.Namespace,
-					Services:       set.NewSet(tests.BookstoreService),
+					Service:        tests.BookstoreService,
 				},
 				Source: trafficpolicy.TrafficResource{
 					ServiceAccount: tests.BookbuyerServiceAccountName,
 					Namespace:      tests.Namespace,
-					Services:       set.NewSet(tests.BookbuyerService),
+					Service:        tests.BookbuyerService,
 				},
 				Routes: []trafficpolicy.Route{{PathRegex: "", Methods: nil}},
 			}}
 
 			Expect(allTrafficPolicies).To(Equal(expected))
-		})
-	})
-
-	Context("Test listServicesForServiceAccount", func() {
-		mc := MeshCatalog{
-			serviceAccountToServicesCache: map[service.NamespacedServiceAccount][]service.NamespacedService{
-				tests.BookstoreServiceAccount: {tests.BookstoreService},
-			},
-		}
-		It("lists services for service account", func() {
-			actual, err := mc.listServicesForServiceAccount(tests.BookstoreServiceAccount)
-			Expect(err).ToNot(HaveOccurred())
-			expected := set.NewSet(service.NamespacedService{
-				Namespace: tests.Namespace,
-				Service:   tests.BookstoreServiceName,
-			})
-			Expect(actual.Equal(expected)).To(Equal(true))
 		})
 	})
 

@@ -35,33 +35,31 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpe
 
 	clusterFactories := make(map[string]xds.Cluster)
 	for _, trafficPolicies := range allTrafficPolicies {
-		isSourceService := trafficPolicies.Source.Services.Contains(proxyServiceName)
-		isDestinationService := trafficPolicies.Destination.Services.Contains(proxyServiceName)
+		isSourceService := trafficPolicies.Source.Service.Equals(proxyServiceName)
+		isDestinationService := trafficPolicies.Destination.Service.Equals(proxyServiceName)
 		//iterate through only destination services here since envoy is programmed by destination
-		for serviceInterface := range trafficPolicies.Destination.Services.Iter() {
-			service := serviceInterface.(service.NamespacedService)
-			if isSourceService {
-				cluster, err := catalog.GetWeightedClusterForService(service)
-				if err != nil {
-					log.Error().Err(err).Msgf("Failed to find cluster")
-					return nil, err
-				}
-				remoteCluster := envoy.GetServiceCluster(string(cluster.ClusterName), proxyServiceName)
-				clusterFactories[remoteCluster.Name] = remoteCluster
-			} else if isDestinationService {
-				cluster, err := catalog.GetWeightedClusterForService(service)
-				if err != nil {
-					log.Error().Err(err).Msgf("Failed to find cluster")
-					return nil, err
-				}
-				localClusterName := string(cluster.ClusterName + envoy.LocalClusterSuffix)
-				localCluster, err := getServiceClusterLocal(catalog, proxyServiceName, localClusterName)
-				if err != nil {
-					log.Error().Err(err).Msgf("Failed to get local cluster for proxy %s", proxyServiceName)
-					return nil, err
-				}
-				clusterFactories[localClusterName] = *localCluster
+		service := trafficPolicies.Destination.Service
+		if isSourceService {
+			cluster, err := catalog.GetWeightedClusterForService(service)
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed to find cluster")
+				return nil, err
 			}
+			remoteCluster := envoy.GetServiceCluster(string(cluster.ClusterName), proxyServiceName)
+			clusterFactories[remoteCluster.Name] = remoteCluster
+		} else if isDestinationService {
+			cluster, err := catalog.GetWeightedClusterForService(service)
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed to find cluster")
+				return nil, err
+			}
+			localClusterName := string(cluster.ClusterName + envoy.LocalClusterSuffix)
+			localCluster, err := getServiceClusterLocal(catalog, proxyServiceName, localClusterName)
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed to get local cluster for proxy %s", proxyServiceName)
+				return nil, err
+			}
+			clusterFactories[localClusterName] = *localCluster
 		}
 	}
 

@@ -3,8 +3,6 @@ package catalog
 import (
 	"fmt"
 
-	set "github.com/deckarep/golang-set"
-
 	"github.com/open-service-mesh/osm/pkg/service"
 	"github.com/open-service-mesh/osm/pkg/trafficpolicy"
 )
@@ -29,25 +27,6 @@ func (mc *MeshCatalog) ListTrafficPolicies(service service.NamespacedService) ([
 		return nil, err
 	}
 	return allTrafficPolicies, nil
-}
-
-func (mc *MeshCatalog) listServicesForServiceAccount(namespacedServiceAccount service.NamespacedServiceAccount) (set.Set, error) {
-	// TODO(draychev): split namespace from the service name -- for non-K8s services
-	log.Info().Msgf("Listing services for ServiceAccount: %s", namespacedServiceAccount)
-	if _, found := mc.serviceAccountToServicesCache[namespacedServiceAccount]; !found {
-		mc.refreshCache()
-	}
-	services, found := mc.serviceAccountToServicesCache[namespacedServiceAccount]
-	if !found {
-		log.Error().Msgf("Did not find any services for ServiceAccount: %s", namespacedServiceAccount)
-		return nil, errServiceNotFound
-	}
-	log.Info().Msgf("Found services %v for ServiceAccount: %s", services, namespacedServiceAccount)
-	servicesMap := set.NewSet()
-	for _, service := range services {
-		servicesMap.Add(service)
-	}
-	return servicesMap, nil
 }
 
 //GetWeightedClusterForService returns the weighted cluster for a given service
@@ -80,15 +59,17 @@ func (mc *MeshCatalog) GetDomainForService(nsService service.NamespacedService) 
 	return domain, errServiceNotFound
 }
 
-func (mc *MeshCatalog) getActiveServices(services set.Set) set.Set {
+func (mc *MeshCatalog) getActiveService(nsService service.NamespacedService) (*service.NamespacedService, error) {
 	// TODO(draychev): split namespace from the service name -- for non-K8s services
-	log.Info().Msgf("Finding active services only %v", services)
-	activeServices := set.NewSet()
+	log.Info().Msgf("Finding active services only %v", nsService)
 	servicesList := mc.meshSpec.ListServices()
 	for _, service := range servicesList {
-		activeServices.Add(service.ServiceName)
+		if service.ServiceName == nsService {
+			svc := service.ServiceName
+			return &svc, nil
+		}
 	}
-	return activeServices.Intersect(services)
+	return nil, errServiceNotFound
 }
 
 func (mc *MeshCatalog) getHTTPPathsPerRoute() (map[string]trafficpolicy.Route, error) {
@@ -125,15 +106,15 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[string]trafficp
 			Namespace:      trafficTargets.Destination.Namespace,
 			ServiceAccount: trafficTargets.Destination.Name,
 		}
-		destServices, destErr := mc.listServicesForServiceAccount(dstNamespacedServiceAcc)
+		destService, destErr := mc.GetServiceForServiceAccount(dstNamespacedServiceAcc)
 		if destErr != nil {
 			log.Error().Msgf("TrafficSpec %s/%s could not get destination services for service account %s", trafficTargets.Namespace, trafficTargets.Name, dstNamespacedServiceAcc.String())
 			return nil, destErr
 		}
 
-		activeDestServices := mc.getActiveServices(destServices)
+		activeDestService, activeDestServiceErr := mc.getActiveService(*destService)
 		//Routes are configured only if destination services exist i.e traffic split (endpoints) is setup
-		if activeDestServices.Cardinality() == 0 || activeDestServices == nil {
+		if activeDestServiceErr != nil {
 			continue
 		}
 		for _, trafficSources := range trafficTargets.Sources {
@@ -142,7 +123,7 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[string]trafficp
 				ServiceAccount: trafficSources.Name,
 			}
 
-			srcServices, srcErr := mc.listServicesForServiceAccount(namespacedServiceAccount)
+			srcServices, srcErr := mc.GetServiceForServiceAccount(namespacedServiceAccount)
 			if srcErr != nil {
 				log.Error().Msgf("TrafficSpec %s/%s could not get source services for service account %s", trafficTargets.Namespace, trafficTargets.Name, fmt.Sprintf("%s/%s", trafficSources.Namespace, trafficSources.Name))
 				return nil, srcErr
@@ -152,11 +133,11 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[string]trafficp
 			trafficPolicy.Destination = trafficpolicy.TrafficResource{
 				ServiceAccount: service.Account(trafficTargets.Destination.Name),
 				Namespace:      trafficTargets.Destination.Namespace,
-				Services:       activeDestServices}
+				Service:        *activeDestService}
 			trafficPolicy.Source = trafficpolicy.TrafficResource{
 				ServiceAccount: service.Account(trafficSources.Name),
 				Namespace:      trafficSources.Namespace,
-				Services:       srcServices}
+				Service:        *srcServices}
 
 			for _, trafficTargetSpecs := range trafficTargets.Specs {
 				if trafficTargetSpecs.Kind != HTTPTraffic {
@@ -172,7 +153,7 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[string]trafficp
 				}
 			}
 			// append a traffic policy only if it corresponds to the service
-			if trafficPolicy.Source.Services.Contains(nsService) || trafficPolicy.Destination.Services.Contains(nsService) {
+			if trafficPolicy.Source.Service.Equals(nsService) || trafficPolicy.Destination.Service.Equals(nsService) {
 				trafficPolicies = append(trafficPolicies, trafficPolicy)
 			}
 		}

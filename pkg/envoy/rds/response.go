@@ -43,26 +43,24 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	destinationAggregatedRoutesByDomain := make(map[string]map[string]trafficpolicy.RouteWeightedClusters)
 
 	for _, trafficPolicies := range allTrafficPolicies {
-		isSourceService := trafficPolicies.Source.Services.Contains(proxyServiceName)
-		isDestinationService := trafficPolicies.Destination.Services.Contains(proxyServiceName)
-		for serviceInterface := range trafficPolicies.Destination.Services.Iter() {
-			service := serviceInterface.(service.NamespacedService)
-			domain, err := catalog.GetDomainForService(service)
-			if err != nil {
-				log.Error().Err(err).Msg("Failed listing domains")
-				return nil, err
-			}
-			weightedCluster, err := catalog.GetWeightedClusterForService(service)
-			if err != nil {
-				log.Error().Err(err).Msg("Failed listing clusters")
-				return nil, err
-			}
-			if isSourceService {
-				aggregateRoutesByDomain(sourceAggregatedRoutesByDomain, trafficPolicies.Routes, weightedCluster, domain)
-			}
-			if isDestinationService {
-				aggregateRoutesByDomain(destinationAggregatedRoutesByDomain, trafficPolicies.Routes, weightedCluster, domain)
-			}
+		isSourceService := trafficPolicies.Source.Service.Equals(proxyServiceName)
+		isDestinationService := trafficPolicies.Destination.Service.Equals(proxyServiceName)
+		service := trafficPolicies.Destination.Service
+		domain, err := catalog.GetDomainForService(service)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed listing domains")
+			return nil, err
+		}
+		weightedCluster, err := catalog.GetWeightedClusterForService(service)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed listing clusters")
+			return nil, err
+		}
+		if isSourceService {
+			aggregateRoutesByDomain(sourceAggregatedRoutesByDomain, trafficPolicies.Routes, weightedCluster, domain)
+		}
+		if isDestinationService {
+			aggregateRoutesByDomain(destinationAggregatedRoutesByDomain, trafficPolicies.Routes, weightedCluster, domain)
 		}
 	}
 

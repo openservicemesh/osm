@@ -12,6 +12,24 @@ exit_error() {
     exit 1
 }
 
+wait_for_ads_pod() {
+    # Wait for POD to be ready before deploying the apps.
+    ads_pod_name="ads"
+    max=6
+    for x in $(seq 1 $max); do
+        pod_ready="$(kubectl get pods -n "$K8S_NAMESPACE" ${ads_pod_name} -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}')"
+        if [ "$pod_ready" == "True" ]; then
+            return
+        fi
+
+        pod_status="$(kubectl get pods -n "$K8S_NAMESPACE" "ads" -o 'jsonpath={..status.phase}')"
+        echo "[${x}] Pod status is ${pod_status}; waiting for pod ${ads_pod_name} to be Ready" && sleep 5
+    done
+
+    pod_status="$(kubectl get pods -n "$K8S_NAMESPACE" "ads" -o 'jsonpath={..status.phase}')"
+    exit_error "Pod ${ads_pod_name} status is ${pod_status} -- still not Ready"
+}
+
 # Check for required environment variables
 if [ -z "$OSM_ID" ]; then
     exit_error "Missing OSM_ID env variable"
@@ -81,12 +99,7 @@ kubectl apply -f crd/AzureResource.yaml
 
 # Deploys Xds and Prometheus
 go run ./demo/cmd/deploy/control-plane.go
-
-# Wait for POD to be ready before deploying the apps.
-while [ "$(kubectl get pods -n "$K8S_NAMESPACE" ads -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}')" != "True" ];
-do
-  echo "waiting for pod ads to be ready" && sleep 5
-done
+wait_for_ads_pod
 
 ./demo/deploy-apps.sh
 

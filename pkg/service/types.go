@@ -24,6 +24,11 @@ func (ns NamespacedService) String() string {
 	return fmt.Sprintf("%s/%s", ns.Namespace, ns.Service)
 }
 
+//Equals checks if two namespaced services are equal
+func (ns NamespacedService) Equals(service NamespacedService) bool {
+	return (ns.Namespace == service.Namespace) && (ns.Service == service.Service)
+}
+
 // Account is a type for a service account
 type Account string
 
