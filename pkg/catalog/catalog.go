@@ -25,11 +25,10 @@ func NewMeshCatalog(kubeClient kubernetes.Interface, meshSpec smi.MeshSpec, cert
 		certManager:        certManager,
 		ingressMonitor:     ingressMonitor,
 
-		certificateCache:              make(map[service.NamespacedService]certificate.Certificater),
-		expectedProxies:               make(map[certificate.CommonName]expectedProxy),
-		connectedProxies:              make(map[certificate.CommonName]connectedProxy),
-		announcementChannels:          set.NewSet(),
-		serviceAccountToServicesCache: make(map[service.NamespacedServiceAccount][]service.NamespacedService),
+		certificateCache:     make(map[service.NamespacedService]certificate.Certificater),
+		expectedProxies:      make(map[certificate.CommonName]expectedProxy),
+		connectedProxies:     make(map[certificate.CommonName]connectedProxy),
+		announcementChannels: set.NewSet(),
 
 		// Kubernetes needed to determine what Services a pod that connects to XDS belongs to.
 		// In multicluster scenarios this would be a map of cluster ID to Kubernetes client.
@@ -41,8 +40,6 @@ func NewMeshCatalog(kubeClient kubernetes.Interface, meshSpec smi.MeshSpec, cert
 		sc.announcementChannels.Add(announcementChannel)
 
 	}
-
-	sc.refreshCache()
 
 	go sc.repeater()
 	return &sc

@@ -29,9 +29,8 @@ type MeshCatalog struct {
 	certManager        certificate.Manager
 	ingressMonitor     ingress.Monitor
 
-	servicesMutex                 sync.Mutex
-	certificateCache              map[service.NamespacedService]certificate.Certificater
-	serviceAccountToServicesCache map[service.NamespacedServiceAccount][]service.NamespacedService
+	servicesMutex    sync.Mutex
+	certificateCache map[service.NamespacedService]certificate.Certificater
 
 	expectedProxies      map[certificate.CommonName]expectedProxy
 	connectedProxies     map[certificate.CommonName]connectedProxy
@@ -67,8 +66,8 @@ type MeshCataloger interface {
 	// UnregisterProxy unregisters an existing proxy from the service mesh catalog
 	UnregisterProxy(*envoy.Proxy)
 
-	// GetServicesByServiceAccountName returns a list of services corresponding to a service account, and refreshes the cache if requested
-	GetServicesByServiceAccountName(service.NamespacedServiceAccount, bool) []service.NamespacedService
+	// GetServiceForServiceAccount returns the service corresponding to a service account
+	GetServiceForServiceAccount(service.NamespacedServiceAccount) (*service.NamespacedService, error)
 
 	//GetDomainForService returns the domain name of a service
 	GetDomainForService(service service.NamespacedService) (string, error)

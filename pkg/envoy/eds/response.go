@@ -27,17 +27,15 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 
 	allServicesEndpoints := make(map[service.NamespacedService][]endpoint.Endpoint)
 	for _, trafficPolicy := range allTrafficPolicies {
-		isSourceService := trafficPolicy.Source.Services.Contains(proxyServiceName)
+		isSourceService := trafficPolicy.Source.Service.Equals(proxyServiceName)
 		if isSourceService {
-			for serviceInterface := range trafficPolicy.Destination.Services.Iter() {
-				destService := serviceInterface.(service.NamespacedService)
-				serviceEndpoints, err := catalog.ListEndpointsForService(service.Name(destService.String()))
-				if err != nil {
-					log.Error().Err(err).Msgf("Failed listing endpoints")
-					return nil, err
-				}
-				allServicesEndpoints[destService] = serviceEndpoints
+			destService := trafficPolicy.Destination.Service
+			serviceEndpoints, err := catalog.ListEndpointsForService(service.Name(destService.String()))
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed listing endpoints")
+				return nil, err
 			}
+			allServicesEndpoints[destService] = serviceEndpoints
 		}
 	}
 
