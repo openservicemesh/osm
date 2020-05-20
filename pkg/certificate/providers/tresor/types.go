@@ -25,9 +25,6 @@ const (
 
 	// How many bits in the certificate serial number
 	certSerialNumberBits = 128
-
-	// Organization field of certificates issued by Tresor
-	org = "Open Service Mesh Tresor"
 )
 
 var (
@@ -49,6 +46,8 @@ type CertManager struct {
 	// Cache for all the certificates issued
 	cache     *map[certificate.CommonName]certificate.Certificater
 	cacheLock sync.Mutex
+
+	certificatesOrganization string
 }
 
 // Certificate implements certificate.Certificater

@@ -35,12 +35,11 @@ import (
 )
 
 const (
-	// TODO(draychev): pass this via CLI param (https://github.com/open-service-mesh/osm/issues/542)
-	serverType = "ADS"
-
+	// TODO(draychev): pass these via CLI param (https://github.com/open-service-mesh/osm/issues/542)
+	serverType                        = "ADS"
 	defaultServiceCertValidityMinutes = 525600 // 1 year
-
-	caBundleSecretNameCLIParam = "caBundleSecretName"
+	caBundleSecretNameCLIParam        = "caBundleSecretName"
+	xdsServerCertificateCommonName    = "ads"
 )
 
 var (
@@ -176,7 +175,8 @@ func main() {
 	adsServer := ads.NewADSServer(ctx, meshCatalog, meshSpec)
 
 	// TODO(draychev): we need to pass this hard-coded string is a CLI argument (https://github.com/open-service-mesh/osm/issues/542)
-	adsCert, err := certManager.IssueCertificate("ads")
+	validityPeriod := constants.XDSCertificateValidityPeriod
+	adsCert, err := certManager.IssueCertificate(xdsServerCertificateCommonName, &validityPeriod)
 	if err != nil {
 		log.Fatal().Err(err)
 	}
@@ -215,7 +215,7 @@ func createCABundleKubernetesSecret(kubeClient clientset.Interface, certManager 
 
 	// the CN does not matter much - cert won't be used -- 'localhost' is used for throwaway certs.
 	cn := certificate.CommonName("localhost")
-	cert, err := certManager.IssueCertificate(cn)
+	cert, err := certManager.IssueCertificate(cn, nil)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error issuing %s certificate", cn)
 		return nil

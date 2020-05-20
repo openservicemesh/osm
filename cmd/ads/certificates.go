@@ -31,6 +31,11 @@ const (
 
 	// Name of the Kubernetes secret where we store the Root certificate for the service mesh
 	rootCertSecretName = "root-cert"
+
+	// Additional values for the root certificate
+	rootCertCountry      = "US"
+	rootCertLocality     = "CA"
+	rootCertOrganization = "Open Service Mesh"
 )
 
 // Functions we can call to create a Certificate Manager for each kind of supported certificate issuer
@@ -50,7 +55,7 @@ func getPossibleCertManagers() []string {
 }
 
 func getNewRootCertFromTresor(kubeClient kubernetes.Interface, namespace, rootCertSecretName string, saveRootPrivateKeyInKubernetes bool) certificate.Certificater {
-	rootCert, err := tresor.NewCA(constants.CertificationAuthorityCommonName, constants.CertificationAuthorityRootExpiration)
+	rootCert, err := tresor.NewCA(constants.CertificationAuthorityCommonName, constants.CertificationAuthorityRootExpiration, rootCertCountry, rootCertLocality, rootCertOrganization)
 
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Failed to create new Certificate Authority with cert issuer %s", *certManagerKind)
@@ -87,7 +92,7 @@ func getTresorCertificateManager(kubeConfig *rest.Config) certificate.Manager {
 		rootCert = getNewRootCertFromTresor(kubeClient, osmNamespace, rootCertSecretName, keepRootPrivateKeyInKubernetes)
 	}
 
-	certManager, err := tresor.NewCertManager(rootCert, getServiceCertValidityPeriod())
+	certManager, err := tresor.NewCertManager(rootCert, getServiceCertValidityPeriod(), rootCertOrganization)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to instantiate Azure Key Vault as a Certificate Manager")
 	}
