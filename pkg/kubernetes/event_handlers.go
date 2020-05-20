@@ -5,6 +5,8 @@ import (
 	"reflect"
 
 	"k8s.io/client-go/tools/cache"
+
+	"github.com/open-service-mesh/osm/pkg/constants"
 )
 
 const (
@@ -13,7 +15,7 @@ const (
 	eventDelete = "DELETE"
 )
 
-var emitLogs = os.Getenv("OSM_LOG_KUBERNETES_EVENTS") == "true"
+var emitLogs = os.Getenv(constants.EnvVarLogKubernetesEvents) == "true"
 
 // observeFilter returns true for YES observe and false for NO do not pay attention to this
 // This filter could be added optionally by anything using GetKubernetesEventHandlers()
