@@ -427,13 +427,19 @@ The `certificate.Manager()` as shown below is as simple as having a single metho
 ```go
 package certificate
 
-// Manager is the interface declaring the methods for the Certificate Maneger.
+// Manager is the interface declaring the methods for the Certificate Manager.
 type Manager interface {
 	// IssueCertificate issues a new certificate.
-	IssueCertificate(cn CommonName) (Certificater, error)
+	IssueCertificate(CommonName, *time.Duration) (Certificater, error)
+
+	// RotateCertificate rotates an existing certificate.
+	RotateCertificate(CommonName) (Certificater, error)
+
+	// GetRootCertificate returns the root certificate. 
+	GetRootCertificate() (Certificater, error)
 
 	// GetAnnouncementsChannel returns a channel, which is used to announce when changes have been made to the issued certificates.
-	GetAnnouncementsChannel() <-chan struct{}
+	GetAnnouncementsChannel() <-chan interface{}
 }
 ```
 
