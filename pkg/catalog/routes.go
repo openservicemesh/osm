@@ -35,9 +35,9 @@ func (mc *MeshCatalog) GetWeightedClusterForService(nsService service.Namespaced
 	log.Info().Msgf("Finding weighted cluster for service %s", nsService)
 	servicesList := mc.meshSpec.ListServices()
 	for _, activeService := range servicesList {
-		if activeService.ServiceName == nsService {
+		if activeService.NamespacedService == nsService {
 			return service.WeightedCluster{
-				ClusterName: service.ClusterName(activeService.ServiceName.String()),
+				ClusterName: service.ClusterName(activeService.NamespacedService.String()),
 				Weight:      activeService.Weight,
 			}, nil
 		}
@@ -52,7 +52,7 @@ func (mc *MeshCatalog) GetDomainForService(nsService service.NamespacedService) 
 	var domain string
 	servicesList := mc.meshSpec.ListServices()
 	for _, activeService := range servicesList {
-		if activeService.ServiceName == nsService {
+		if activeService.NamespacedService == nsService {
 			return activeService.Domain, nil
 		}
 	}
@@ -64,8 +64,8 @@ func (mc *MeshCatalog) getActiveService(nsService service.NamespacedService) (*s
 	log.Info().Msgf("Finding active services only %v", nsService)
 	servicesList := mc.meshSpec.ListServices()
 	for _, service := range servicesList {
-		if service.ServiceName == nsService {
-			svc := service.ServiceName
+		if service.NamespacedService == nsService {
+			svc := service.NamespacedService
 			return &svc, nil
 		}
 	}
