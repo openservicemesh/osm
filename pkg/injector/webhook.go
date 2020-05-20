@@ -46,7 +46,8 @@ const (
 // NewWebhook starts a new web server handling requests from the injector MutatingWebhookConfiguration
 func NewWebhook(config Config, kubeConfig *rest.Config, certManager certificate.Manager, meshCatalog catalog.MeshCataloger, namespaceController namespace.Controller, osmID, osmNamespace, webhookName string, stop <-chan struct{}) error {
 	cn := certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.AggregatedDiscoveryServiceName, osmNamespace))
-	cert, err := certManager.IssueCertificate(cn)
+	validityPeriod := constants.XDSCertificateValidityPeriod
+	cert, err := certManager.IssueCertificate(cn, &validityPeriod)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error issuing certificate for the mutating webhook")
 		return err

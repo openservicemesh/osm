@@ -11,7 +11,9 @@ func (mc *MeshCatalog) GetCertificateForService(nsService service.NamespacedServ
 	if exists {
 		return cert, nil
 	}
-	newCert, err := mc.certManager.IssueCertificate(nsService.GetCommonName())
+
+	// Issuing a new certificate with duration=nil will use the default cert TTL set in certManager
+	newCert, err := mc.certManager.IssueCertificate(nsService.GetCommonName(), nil)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error issuing a new certificate for service %s", nsService)
 		return nil, err

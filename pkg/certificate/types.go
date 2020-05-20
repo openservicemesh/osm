@@ -31,7 +31,7 @@ type Certificater interface {
 // Manager is the interface declaring the methods for the Certificate Manager.
 type Manager interface {
 	// IssueCertificate issues a new certificate.
-	IssueCertificate(CommonName) (Certificater, error)
+	IssueCertificate(CommonName, *time.Duration) (Certificater, error)
 
 	// RotateCertificate rotates an existing certificate.
 	RotateCertificate(CommonName) (Certificater, error)

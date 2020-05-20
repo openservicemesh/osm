@@ -84,7 +84,7 @@ var _ = Describe("Test SDS response functions", func() {
 			cache := make(map[certificate.CommonName]certificate.Certificater)
 			certManager := tresor.NewFakeCertManager(&cache, 1*time.Hour)
 
-			cert, err := certManager.IssueCertificate("blah")
+			cert, err := certManager.IssueCertificate("blah", nil)
 			Expect(err).ToNot(HaveOccurred())
 
 			resourceName := "root-cert:blah"

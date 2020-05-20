@@ -21,5 +21,5 @@ func (mc *MeshCatalog) RegisterProxy(p *envoy.Proxy) {
 // UnregisterProxy unregisters the given proxy from the catalog.
 func (mc *MeshCatalog) UnregisterProxy(p *envoy.Proxy) {
 	delete(mc.connectedProxies, p.CommonName)
-	log.Info().Msgf("Unregistered p: CN=%v, ip=%v", p.GetCommonName(), p.GetIP())
+	log.Info().Msgf("Unregistered proxy: CN=%v, ip=%v", p.GetCommonName(), p.GetIP())
 }
