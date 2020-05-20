@@ -16,7 +16,13 @@ import (
 
 // NewResponse creates a new Cluster Discovery Response.
 func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpec, proxy *envoy.Proxy, _ *xds.DiscoveryRequest) (*xds.DiscoveryResponse, error) {
-	proxyServiceName := proxy.GetService()
+	svc, err := catalog.GetServiceFromEnvoyCertificate(proxy.GetCommonName())
+	if err != nil {
+		log.Error().Err(err).Msgf("Error looking up Service for Envoy with CN=%q", proxy.GetCommonName())
+		return nil, err
+	}
+	proxyServiceName := *svc
+
 	allTrafficPolicies, err := catalog.ListTrafficPolicies(proxyServiceName)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed listing traffic routes for proxy for service name %q", proxyServiceName)

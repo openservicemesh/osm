@@ -123,11 +123,13 @@ func getCommonTLSContext(serviceName service.NamespacedService) *auth.CommonTlsC
 	return &auth.CommonTlsContext{
 		TlsParams: GetTLSParams(),
 		TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
+			// Example ==> Name: "service-cert:NameSpaceHere/ServiceNameHere"
 			Name:      fmt.Sprintf("%s%s%s", ServiceCertPrefix, Separator, serviceName),
 			SdsConfig: GetADSConfigSource(),
 		}},
 		ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 			ValidationContextSdsSecretConfig: &auth.SdsSecretConfig{
+				// Example ==> Name: "root-cert:NameSpaceHere/ServiceNameHere"
 				Name:      fmt.Sprintf("%s%s%s", RootCertPrefix, Separator, serviceName),
 				SdsConfig: GetADSConfigSource(),
 			},

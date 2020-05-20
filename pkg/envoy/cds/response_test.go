@@ -12,12 +12,15 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/wrappers"
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 	"github.com/open-service-mesh/osm/pkg/smi"
 	"github.com/open-service-mesh/osm/pkg/tests"
@@ -26,9 +29,37 @@ import (
 var _ = Describe("CDS Response", func() {
 	Context("Test cds.NewResponse", func() {
 		It("Returns unique list of clusters for CDS", func() {
-			cn := certificate.CommonName("bookbuyer.openservicemesh.io")
-			proxy := envoy.NewProxy(cn, tests.BookbuyerService, nil)
-			resp, err := NewResponse(context.Background(), catalog.NewFakeMeshCatalog(testclient.NewSimpleClientset()), smi.NewFakeMeshSpecClient(), proxy, nil)
+			kubeClient := testclient.NewSimpleClientset()
+			smiClient := smi.NewFakeMeshSpecClient()
+
+			proxyUUID := fmt.Sprintf("proxy-0-%s", uuid.New())
+			podName := fmt.Sprintf("pod-0-%s", uuid.New())
+
+			// The format of the CN matters
+			xdsCertificate := certificate.CommonName(fmt.Sprintf("%s.%s.%s.foo.bar", proxyUUID, tests.BookbuyerServiceAccountName, tests.Namespace))
+			proxy := envoy.NewProxy(xdsCertificate, nil)
+
+			{
+				// Create a pod to match the CN
+				pod := tests.NewPodTestFixture(tests.Namespace, podName)
+				pod.Labels[constants.EnvoyUniqueIDLabelName] = proxyUUID // This is what links the Pod and the Certificate
+				_, err := kubeClient.CoreV1().Pods(tests.Namespace).Create(context.TODO(), &pod, metav1.CreateOptions{})
+				Expect(err).ToNot(HaveOccurred())
+			}
+
+			{
+				// Create a service for the pod created above
+				selectors := map[string]string{
+					// These need to match teh POD created above
+					tests.SelectorKey: tests.SelectorValue,
+				}
+				// The serviceName must match the SMI
+				service := tests.NewServiceFixture(tests.BookbuyerServiceName, tests.Namespace, selectors)
+				_, err := kubeClient.CoreV1().Services(tests.Namespace).Create(context.TODO(), service, metav1.CreateOptions{})
+				Expect(err).ToNot(HaveOccurred())
+			}
+
+			resp, err := NewResponse(context.Background(), catalog.NewFakeMeshCatalog(kubeClient), smiClient, proxy, nil)
 			Expect(err).ToNot(HaveOccurred())
 
 			expected := xds.DiscoveryResponse{
@@ -45,6 +76,26 @@ var _ = Describe("CDS Response", func() {
 				TypeUrl: string(envoy.TypeCDS),
 				Nonce:   "",
 			}
+
+			// There are to any.Any resources in the ClusterDiscoveryStruct (Clusters)
+			Expect(len((*resp).Resources)).To(Equal(2))
+
+			expectedClusters := []string{
+				"default/bookstore",
+				"envoy-admin-cluster",
+			}
+
+			for clusterIdx, expectedClusterName := range expectedClusters {
+				// The first cluster is the route to the Bookstore
+				// Second cluster is the Envoy Admin
+				cluster := xds.Cluster{}
+				err = ptypes.UnmarshalAny(resp.Resources[clusterIdx], &cluster)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(cluster.Name).To(Equal(expectedClusterName))
+			}
+
+			Expect((*resp).Resources[0]).To(Equal(expected.Resources[0]))
+			Expect((*resp).Resources[1]).To(Equal(expected.Resources[1]))
 			Expect(*resp).To(Equal(expected))
 
 			expectedClusterLoadAssignment := &xds.ClusterLoadAssignment{
