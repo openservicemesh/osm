@@ -15,7 +15,7 @@ exit_error() {
 wait_for_ads_pod() {
     # Wait for POD to be ready before deploying the apps.
     ads_pod_name="ads"
-    max=6
+    max=12
     for x in $(seq 1 $max); do
         pod_ready="$(kubectl get pods -n "$K8S_NAMESPACE" ${ads_pod_name} -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}')"
         if [ "$pod_ready" == "True" ]; then
