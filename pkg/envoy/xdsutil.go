@@ -18,12 +18,19 @@ import (
 	"github.com/open-service-mesh/osm/pkg/service"
 )
 
+// XDSResourceKind is a type for the different kind of resources Envoys can request frm SDS
+type XDSResourceKind string
+
+func (rk XDSResourceKind) String() string {
+	return string(rk)
+}
+
 const (
 	// ServiceCertPrefix is the prefix for the service certificate resource name. Example: "service-cert:webservice"
-	ServiceCertPrefix = "service-cert"
+	ServiceCertPrefix XDSResourceKind = "service-cert"
 
 	// RootCertPrefix is the prefix for the root certificate resource name. Example: "root-cert:webservice"
-	RootCertPrefix = "root-cert"
+	RootCertPrefix XDSResourceKind = "root-cert"
 
 	// Separator is the separator between the prefix and the name of the certificate.
 	Separator = ":"
