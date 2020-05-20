@@ -7,6 +7,14 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
+const (
+	eventAdd    = "ADD"
+	eventUpdate = "UPDATE"
+	eventDelete = "DELETE"
+)
+
+var emitLogs = os.Getenv("OSM_LOG_KUBERNETES_EVENTS") == "true"
+
 // observeFilter returns true for YES observe and false for NO do not pay attention to this
 // This filter could be added optionally by anything using GetKubernetesEventHandlers()
 type observeFilter func(obj interface{}) bool
@@ -17,22 +25,19 @@ func GetKubernetesEventHandlers(informerName string, providerName string, announ
 		shouldObserve = func(obj interface{}) bool { return true }
 	}
 	return cache.ResourceEventHandlerFuncs{
-		AddFunc:    add(informerName, providerName, announcements, shouldObserve),
-		UpdateFunc: update(informerName, providerName, announcements, shouldObserve),
-		DeleteFunc: delete(informerName, providerName, announcements, shouldObserve),
+		AddFunc:    addEvent(informerName, providerName, announcements, shouldObserve, eventAdd),
+		UpdateFunc: updateEvent(informerName, providerName, announcements, shouldObserve, eventUpdate),
+		DeleteFunc: deleteEvent(informerName, providerName, announcements, shouldObserve, eventDelete),
 	}
 }
 
-// add a new item to Kubernetes caches from an incoming Kubernetes event.
-func add(informerName string, providerName string, announce chan interface{}, shouldObserve observeFilter) func(obj interface{}) {
+func addEvent(informerName string, providerName string, announce chan interface{}, shouldObserve observeFilter, eventType string) func(obj interface{}) {
 	return func(obj interface{}) {
 		if !shouldObserve(obj) {
-			log.Debug().Msgf("Namespace %q is not observed by OSM; ignoring ADD event", getNamespace(obj))
+			logNotObservedNamespace(obj, eventType)
 			return
 		}
-		if os.Getenv("OSM_LOG_KUBERNETES_EVENTS") == "true" {
-			log.Trace().Msgf("[%s][%s] add event: %+v", providerName, informerName, obj)
-		}
+		logEvent(eventType, providerName, informerName, obj)
 		if announce != nil {
 			announce <- Event{
 				Type:  CreateEvent,
@@ -42,16 +47,13 @@ func add(informerName string, providerName string, announce chan interface{}, sh
 	}
 }
 
-// update caches with an incoming Kubernetes event.
-func update(informerName string, providerName string, announce chan interface{}, shouldObserve observeFilter) func(oldObj, newObj interface{}) {
+func updateEvent(informerName string, providerName string, announce chan interface{}, shouldObserve observeFilter, eventType string) func(oldObj, newObj interface{}) {
 	return func(oldObj, newObj interface{}) {
 		if !shouldObserve(newObj) {
-			log.Debug().Msgf("Namespace %q is not observed by OSM; ignoring UPDATE event", getNamespace(newObj))
+			logNotObservedNamespace(newObj, eventType)
 			return
 		}
-		if os.Getenv("OSM_LOG_KUBERNETES_EVENTS") == "true" {
-			log.Trace().Msgf("[%s][%s] update event %+v", providerName, informerName, oldObj)
-		}
+		logEvent(eventType, providerName, informerName, oldObj)
 		if announce != nil {
 			announce <- Event{
 				Type:  UpdateEvent,
@@ -61,16 +63,13 @@ func update(informerName string, providerName string, announce chan interface{},
 	}
 }
 
-// delete Kubernetes cache from an incoming Kubernetes event.
-func delete(informerName string, providerName string, announce chan interface{}, shouldObserve observeFilter) func(obj interface{}) {
+func deleteEvent(informerName string, providerName string, announce chan interface{}, shouldObserve observeFilter, eventType string) func(obj interface{}) {
 	return func(obj interface{}) {
 		if !shouldObserve(obj) {
-			log.Debug().Msgf("Namespace %q is not observed by OSM; ignoring DELETE event", getNamespace(obj))
+			logNotObservedNamespace(obj, eventType)
 			return
 		}
-		if os.Getenv("OSM_LOG_KUBERNETES_EVENTS") == "true" {
-			log.Trace().Msgf("[%s][%s] delete event: %+v", providerName, informerName, obj)
-		}
+		logEvent(eventType, providerName, informerName, obj)
 		if announce != nil {
 			announce <- Event{
 				Type:  DeleteEvent,
@@ -82,4 +81,16 @@ func delete(informerName string, providerName string, announce chan interface{},
 
 func getNamespace(obj interface{}) string {
 	return reflect.ValueOf(obj).Elem().FieldByName("ObjectMeta").FieldByName("Namespace").String()
+}
+
+func logNotObservedNamespace(obj interface{}, eventType string) {
+	if emitLogs {
+		log.Debug().Msgf("Namespace %q is not observed by OSM; ignoring %s event", getNamespace(obj), eventType)
+	}
+}
+
+func logEvent(eventType, providerName, informerName string, obj interface{}) {
+	if emitLogs {
+		log.Trace().Msgf("[%s][%s] %s event: %+v", providerName, informerName, eventType, obj)
+	}
 }
