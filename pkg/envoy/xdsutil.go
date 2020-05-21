@@ -10,6 +10,7 @@ import (
 	accesslog "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v2"
 	envoy_config_filter_accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
+	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	structpb "github.com/golang/protobuf/ptypes/struct"
@@ -67,7 +68,7 @@ func GetTLSParams() *auth.TlsParameters {
 func GetAccessLog() []*envoy_config_filter_accesslog_v2.AccessLog {
 	accessLog, err := ptypes.MarshalAny(getFileAccessLog())
 	if err != nil {
-		log.Error().Err(err).Msg("[LDS] Could con construct AccessLog struct")
+		log.Error().Err(err).Msg("Error marshalling AccessLog object")
 		return nil
 	}
 	return []*envoy_config_filter_accesslog_v2.AccessLog{{
@@ -136,36 +137,43 @@ func getCommonTLSContext(serviceName service.NamespacedService) *auth.CommonTlsC
 	}
 }
 
-// GetDownstreamTLSContext creates a downstream Envoy TLS Context.
-func GetDownstreamTLSContext(serviceName service.NamespacedService) *any.Any {
+// MessageToAnyWithError converts from proto message to proto Any and returns an error if any
+func MessageToAnyWithError(pb proto.Message) (*any.Any, error) {
+	msg, err := ptypes.MarshalAny(pb)
+	if err != nil {
+		log.Error().Err(err).Msg("Error marshalling proto object")
+		return nil, err
+	}
+	return msg, nil
+}
+
+// MessageToAny converts from proto message to proto Any
+func MessageToAny(pb proto.Message) *any.Any {
+	msg, err := ptypes.MarshalAny(pb)
+	if err != nil {
+		log.Error().Err(err).Msg("Error marshalling proto object")
+		return nil
+	}
+	return msg
+}
+
+// GetDownstreamTLSContext creates a downstream Envoy TLS Context
+func GetDownstreamTLSContext(serviceName service.NamespacedService) *auth.DownstreamTlsContext {
 	tlsConfig := &auth.DownstreamTlsContext{
 		CommonTlsContext: getCommonTLSContext(serviceName),
-
 		// When RequireClientCertificate is enabled trusted CA certs must be provided via ValidationContextType
 		RequireClientCertificate: &wrappers.BoolValue{Value: true},
 	}
-
-	tls, err := ptypes.MarshalAny(tlsConfig)
-	if err != nil {
-		log.Error().Err(err).Msg("[CDS] Error marshalling DownstreamTLS")
-		return nil
-	}
-	return tls
+	return tlsConfig
 }
 
-// GetUpstreamTLSContext creates an upstream Envoy TLS Context.
-func GetUpstreamTLSContext(serviceName service.NamespacedService) *any.Any {
+// GetUpstreamTLSContext creates an upstream Envoy TLS Context
+func GetUpstreamTLSContext(serviceName service.NamespacedService) *auth.UpstreamTlsContext {
 	tlsConfig := &auth.UpstreamTlsContext{
 		CommonTlsContext: getCommonTLSContext(serviceName),
 		Sni:              serviceName.String(),
 	}
-
-	tls, err := ptypes.MarshalAny(tlsConfig)
-	if err != nil {
-		log.Error().Err(err).Msg("[CDS] Error marshalling UpstreamTLS")
-		return nil
-	}
-	return tls
+	return tlsConfig
 }
 
 // GetServiceCluster creates an Envoy Cluster struct.
@@ -179,7 +187,7 @@ func GetServiceCluster(clusterName string, serviceName service.NamespacedService
 		TransportSocket: &core.TransportSocket{
 			Name: TransportSocketTLS,
 			ConfigType: &core.TransportSocket_TypedConfig{
-				TypedConfig: GetUpstreamTLSContext(serviceName),
+				TypedConfig: MessageToAny(GetUpstreamTLSContext(serviceName)),
 			},
 		},
 	}

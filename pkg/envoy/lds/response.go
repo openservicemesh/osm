@@ -168,7 +168,7 @@ func getInboundInMeshFilterChain(proxyServiceName service.NamespacedService, mc 
 		TransportSocket: &envoy_api_v2_core.TransportSocket{
 			Name: envoy.TransportSocketTLS,
 			ConfigType: &envoy_api_v2_core.TransportSocket_TypedConfig{
-				TypedConfig: envoy.GetDownstreamTLSContext(proxyServiceName),
+				TypedConfig: envoy.MessageToAny(envoy.GetDownstreamTLSContext(proxyServiceName)),
 			},
 		},
 	}
