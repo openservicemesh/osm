@@ -103,4 +103,7 @@ const (
 
 	// EnvVarHumanReadableLogMessages is an environment variable, which when set to "true" enables colorful human-readable log messages.
 	EnvVarHumanReadableLogMessages = "OSM_HUMAN_DEBUG_LOG"
+
+	// WildcardClusterWeight is the default wildcard cluster weight
+	WildcardClusterWeight = 100
 )

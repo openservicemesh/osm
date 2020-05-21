@@ -14,7 +14,6 @@ import (
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/ingress"
 	"github.com/open-service-mesh/osm/pkg/providers/kube"
-	"github.com/open-service-mesh/osm/pkg/service"
 	"github.com/open-service-mesh/osm/pkg/smi"
 	"github.com/open-service-mesh/osm/pkg/tests"
 	"github.com/open-service-mesh/osm/pkg/trafficpolicy"
@@ -37,18 +36,6 @@ var _ = Describe("Catalog tests", func() {
 		})
 	})
 
-	Context("Test getActiveService", func() {
-		It("lists active services", func() {
-			actual, err := meshCatalog.getActiveService(tests.BookstoreService)
-			Expect(err).ToNot(HaveOccurred())
-			expected := &service.NamespacedService{
-				Namespace: "default",
-				Service:   "bookstore",
-			}
-			Expect(actual).To(Equal(expected))
-		})
-	})
-
 	Context("Test getTrafficPolicyPerRoute", func() {
 		It("lists traffic policies", func() {
 			allTrafficPolicies, err := getTrafficPolicyPerRoute(meshCatalog, tests.RoutePolicyMap, tests.BookstoreService)
@@ -66,7 +53,7 @@ var _ = Describe("Catalog tests", func() {
 					Namespace:      tests.Namespace,
 					Service:        tests.BookbuyerService,
 				},
-				Routes: []trafficpolicy.Route{{PathRegex: "", Methods: nil}},
+				Route: trafficpolicy.Route{PathRegex: "", Methods: nil},
 			}}
 
 			Expect(allTrafficPolicies).To(Equal(expected))
@@ -79,10 +66,18 @@ var _ = Describe("Catalog tests", func() {
 			actual, err := mc.getHTTPPathsPerRoute()
 			Expect(err).ToNot(HaveOccurred())
 
-			key := fmt.Sprintf("HTTPRouteGroup/%s/%s/%s", tests.Namespace, tests.RouteGroupName, tests.MatchName)
+			keyBuy := fmt.Sprintf("HTTPRouteGroup/%s/%s/%s", tests.Namespace, tests.RouteGroupName, tests.BuyBooksMatchName)
+			keySell := fmt.Sprintf("HTTPRouteGroup/%s/%s/%s", tests.Namespace, tests.RouteGroupName, tests.SellBooksMatchName)
 			expected := map[string]trafficpolicy.Route{
-				key: {
+				keyBuy: {
 					PathRegex: tests.BookstoreBuyPath,
+					Methods:   []string{"GET"},
+					Headers: map[string]string{
+						"host": tests.Domain,
+					},
+				},
+				keySell: {
+					PathRegex: tests.BookstoreSellPath,
 					Methods:   []string{"GET"},
 				},
 			}

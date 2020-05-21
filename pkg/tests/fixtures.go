@@ -36,8 +36,11 @@ const (
 	// TrafficTargetName is the name of the traffic target SMI object.
 	TrafficTargetName = "bookbuyer-access-bookstore"
 
-	// MatchName is the name of the match object.
-	MatchName = "buy-books"
+	// BuyBooksMatchName is the name of the match object.
+	BuyBooksMatchName = "buy-books"
+
+	// SellBooksMatchName is the name of the match object.
+	SellBooksMatchName = "sell-books"
 
 	// Domain is a domain
 	Domain = "contoso.com"
@@ -50,6 +53,9 @@ const (
 
 	// BookstoreBuyPath is the path to the bookstore.
 	BookstoreBuyPath = "/buy"
+
+	// BookstoreSellPath is the path to the bookstore.
+	BookstoreSellPath = "/sell"
 
 	// SelectorKey is a Pod selector key constant.
 	SelectorKey = "app"
@@ -99,10 +105,13 @@ var (
 			Namespace:      Namespace,
 			Service:        BookbuyerService,
 		},
-		Routes: []trafficpolicy.Route{{
+		Route: trafficpolicy.Route{
 			PathRegex: BookstoreBuyPath,
 			Methods:   []string{"GET"},
-		}},
+			Headers: map[string]string{
+				"host": Domain,
+			},
+		},
 	}
 
 	// TrafficTarget is a traffic target SMI object.
@@ -134,7 +143,7 @@ var (
 
 	// RoutePolicyMap is a map of a key to a route policy SMI object.
 	RoutePolicyMap = map[string]trafficpolicy.Route{
-		fmt.Sprintf("HTTPRouteGroup/%s/%s/%s", Namespace, TrafficTargetName, MatchName): RoutePolicy}
+		fmt.Sprintf("HTTPRouteGroup/%s/%s/%s", Namespace, TrafficTargetName, BuyBooksMatchName): RoutePolicy}
 
 	// NamespacedServiceName is a namespaced service.
 	NamespacedServiceName = service.Name(fmt.Sprintf("%s/%s", BookstoreService.Namespace, BookstoreService.Service))
@@ -172,10 +181,18 @@ var (
 			Name:      RouteGroupName,
 		},
 		Matches: []spec.HTTPMatch{{
-			Name:      MatchName,
+			Name:      BuyBooksMatchName,
 			PathRegex: BookstoreBuyPath,
 			Methods:   []string{"GET"},
-		}},
+			Headers: map[string]string{
+				"host": Domain,
+			},
+		},
+			{
+				Name:      SellBooksMatchName,
+				PathRegex: BookstoreSellPath,
+				Methods:   []string{"GET"},
+			}},
 	}
 )
 

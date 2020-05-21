@@ -7,8 +7,9 @@ import (
 
 // Route is a struct of a path regex and the methods on a given route
 type Route struct {
-	PathRegex string   `json:"path_regex:omitempty"`
-	Methods   []string `json:"methods:omitempty"`
+	PathRegex string            `json:"path_regex:omitempty"`
+	Methods   []string          `json:"methods:omitempty"`
+	Headers   map[string]string `json:"headers:omitempty"`
 }
 
 // TrafficTarget is a struct of the allowed RoutePaths from sources to a destination
@@ -16,7 +17,7 @@ type TrafficTarget struct {
 	Name        string          `json:"name:omitempty"`
 	Destination TrafficResource `json:"destination:omitempty"`
 	Source      TrafficResource `json:"source:omitempty"`
-	Routes      []Route         `json:"route:omitempty"`
+	Route       Route           `json:"route:omitempty"`
 }
 
 //TrafficResource is a struct of the various resources of a source/destination in the TrafficPolicy

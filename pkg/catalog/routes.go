@@ -3,6 +3,7 @@ package catalog
 import (
 	"fmt"
 
+	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/service"
 	"github.com/open-service-mesh/osm/pkg/trafficpolicy"
 )
@@ -10,6 +11,9 @@ import (
 const (
 	//HTTPTraffic specifies HTTP Traffic Policy
 	HTTPTraffic = "HTTPRouteGroup"
+
+	//HostHeader specifies the host header key
+	HostHeader = "host"
 )
 
 // ListTrafficPolicies returns all the traffic policies for a given service that Envoy proxy should be aware of.
@@ -33,6 +37,8 @@ func (mc *MeshCatalog) ListTrafficPolicies(service service.NamespacedService) ([
 func (mc *MeshCatalog) GetWeightedClusterForService(nsService service.NamespacedService) (service.WeightedCluster, error) {
 	// TODO(draychev): split namespace from the service name -- for non-K8s services
 	log.Info().Msgf("Finding weighted cluster for service %s", nsService)
+
+	//retrieve the weighted clusters from traffic split
 	servicesList := mc.meshSpec.ListServices()
 	for _, activeService := range servicesList {
 		if activeService.NamespacedService == nsService {
@@ -42,34 +48,32 @@ func (mc *MeshCatalog) GetWeightedClusterForService(nsService service.Namespaced
 			}, nil
 		}
 	}
-	log.Error().Msgf("Did not find WeightedCluster for service %q", nsService)
-	return service.WeightedCluster{}, errServiceNotFound
+
+	//service not referenced in traffic split, assign a default weight of 100 to the service/cluster
+	return service.WeightedCluster{
+		ClusterName: service.ClusterName(nsService.String()),
+		Weight:      constants.WildcardClusterWeight,
+	}, nil
 }
 
 //GetDomainForService returns the domain name of a service
-func (mc *MeshCatalog) GetDomainForService(nsService service.NamespacedService) (string, error) {
+func (mc *MeshCatalog) GetDomainForService(nsService service.NamespacedService, routeHeaders map[string]string) (string, error) {
 	log.Info().Msgf("Finding domain for service %s", nsService)
 	var domain string
+
+	//retrieve the domain name from traffic split
 	servicesList := mc.meshSpec.ListServices()
 	for _, activeService := range servicesList {
 		if activeService.NamespacedService == nsService {
 			return activeService.Domain, nil
 		}
 	}
-	return domain, errServiceNotFound
-}
-
-func (mc *MeshCatalog) getActiveService(nsService service.NamespacedService) (*service.NamespacedService, error) {
-	// TODO(draychev): split namespace from the service name -- for non-K8s services
-	log.Info().Msgf("Finding active services only %v", nsService)
-	servicesList := mc.meshSpec.ListServices()
-	for _, service := range servicesList {
-		if service.NamespacedService == nsService {
-			svc := service.NamespacedService
-			return &svc, nil
-		}
+	//service not referenced in traffic split, check if the traffic policy has the host header as a part of the route spec
+	hostName, hostExists := routeHeaders[HostHeader]
+	if hostExists {
+		return hostName, nil
 	}
-	return nil, errServiceNotFound
+	return domain, errDomainNotFoundForService
 }
 
 func (mc *MeshCatalog) getHTTPPathsPerRoute() (map[string]trafficpolicy.Route, error) {
@@ -86,6 +90,7 @@ func (mc *MeshCatalog) getHTTPPathsPerRoute() (map[string]trafficpolicy.Route, e
 			serviceRoute := trafficpolicy.Route{}
 			serviceRoute.PathRegex = trafficSpecsMatches.PathRegex
 			serviceRoute.Methods = trafficSpecsMatches.Methods
+			serviceRoute.Headers = trafficSpecsMatches.Headers
 			routePolicies[fmt.Sprintf("%s/%s", specKey, trafficSpecsMatches.Name)] = serviceRoute
 		}
 	}
@@ -112,11 +117,6 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[string]trafficp
 			return nil, destErr
 		}
 
-		activeDestService, activeDestServiceErr := mc.getActiveService(*destService)
-		//Routes are configured only if destination services exist i.e traffic split (endpoints) is setup
-		if activeDestServiceErr != nil {
-			continue
-		}
 		for _, trafficSources := range trafficTargets.Sources {
 			namespacedServiceAccount := service.NamespacedServiceAccount{
 				Namespace:      trafficSources.Namespace,
@@ -128,33 +128,32 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[string]trafficp
 				log.Error().Msgf("TrafficSpec %s/%s could not get source services for service account %s", trafficTargets.Namespace, trafficTargets.Name, fmt.Sprintf("%s/%s", trafficSources.Namespace, trafficSources.Name))
 				return nil, srcErr
 			}
-			trafficPolicy := trafficpolicy.TrafficTarget{}
-			trafficPolicy.Name = trafficTargets.Name
-			trafficPolicy.Destination = trafficpolicy.TrafficResource{
+			policy := trafficpolicy.TrafficTarget{}
+			policy.Name = trafficTargets.Name
+			policy.Destination = trafficpolicy.TrafficResource{
 				ServiceAccount: service.Account(trafficTargets.Destination.Name),
 				Namespace:      trafficTargets.Destination.Namespace,
-				Service:        *activeDestService}
-			trafficPolicy.Source = trafficpolicy.TrafficResource{
+				Service:        destService}
+			policy.Source = trafficpolicy.TrafficResource{
 				ServiceAccount: service.Account(trafficSources.Name),
 				Namespace:      trafficSources.Namespace,
-				Service:        *srcServices}
+				Service:        srcServices}
 
 			for _, trafficTargetSpecs := range trafficTargets.Specs {
 				if trafficTargetSpecs.Kind != HTTPTraffic {
 					log.Error().Msgf("TrafficTarget %s/%s has Spec Kind %s which isn't supported for now; Skipping...", trafficTargets.Namespace, trafficTargets.Name, trafficTargetSpecs.Kind)
 					continue
 				}
-				trafficPolicy.Routes = []trafficpolicy.Route{}
-
 				for _, specMatches := range trafficTargetSpecs.Matches {
 					routeKey := fmt.Sprintf("%s/%s/%s/%s", trafficTargetSpecs.Kind, trafficTargets.Namespace, trafficTargetSpecs.Name, specMatches)
 					routePolicy := routePolicies[routeKey]
-					trafficPolicy.Routes = append(trafficPolicy.Routes, routePolicy)
+					policy.Route = routePolicy
+
+					// append a traffic policy only if it corresponds to the service
+					if policy.Source.Service.Equals(nsService) || policy.Destination.Service.Equals(nsService) {
+						trafficPolicies = append(trafficPolicies, policy)
+					}
 				}
-			}
-			// append a traffic policy only if it corresponds to the service
-			if trafficPolicy.Source.Service.Equals(nsService) || trafficPolicy.Destination.Service.Equals(nsService) {
-				trafficPolicies = append(trafficPolicies, trafficPolicy)
 			}
 		}
 	}
