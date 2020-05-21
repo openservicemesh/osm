@@ -4,12 +4,30 @@ set -auexo pipefail
 
 # shellcheck disable=SC1091
 source .env
-
-SVC=${1:-bookstore}
+VERSION=${1:-v1}
+SVC="bookstore-$VERSION"
 
 kubectl delete deployment "$SVC" -n "$BOOKSTORE_NAMESPACE"  || true
 
 GIT_HASH=$(git rev-parse --short HEAD)
+
+# Create a top level service just for the bookstore.mesh domain
+echo -e "Deploy $SVC Service"
+cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Service
+metadata:
+  name: bookstore-mesh
+  namespace: $BOOKSTORE_NAMESPACE
+  labels:
+    app: bookstore-mesh
+spec:
+  ports:
+  - port: 8080
+    name: bookstore-port
+  selector:
+    app: bookstore-mesh
+EOF
 
 echo -e "Deploy $SVC Namespace"
 cat <<EOF | kubectl apply -f -
@@ -51,11 +69,12 @@ spec:
   selector:
     matchLabels:
       app: $SVC
+      version: $VERSION
   template:
     metadata:
       labels:
         app: $SVC
-        version: v1
+        version: $VERSION
       annotations:
         "openservicemesh.io/sidecar-injection": "enabled"
     spec:

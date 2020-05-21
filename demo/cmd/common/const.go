@@ -39,4 +39,7 @@ const (
 
 	// PrometheusVar is the environment variable for promethues service name
 	PrometheusVar = "PROMETHEUS_SVC"
+
+	// BookstoreNamespaceEnvVar is the environment variable for the Bookbuyer namespace.
+	BookstoreNamespaceEnvVar = "BOOKSTORE_NAMESPACE"
 )
