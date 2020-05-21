@@ -74,6 +74,11 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 		Name:         inboundListenerName,
 		Address:      envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyInboundListenerPort),
 		FilterChains: []*listener.FilterChain{},
+		ListenerFilters: []*listener.ListenerFilter{
+			{
+				Name: wellknown.TlsInspector,
+			},
+		},
 	}
 
 	meshFilterChain, err := getInboundInMeshFilterChain(proxyServiceName, catalog, serverConnManager)
