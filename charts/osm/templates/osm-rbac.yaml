@@ -1,7 +1,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ .Values.serviceAccount.name }}
+  name: {{ .Values.serviceAccount.name }}-{{ .Values.osmID }}
 rules:
   - apiGroups: ["apps"]
     resources: ["daemonsets", "deployments", "replicasets", "statefulsets"]
@@ -36,17 +36,17 @@ rules:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: {{ .Values.serviceAccount.name }}
+  name: {{ .Values.serviceAccount.name }}-{{ .Values.osmID }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ .Values.serviceAccount.name }}
+  name: {{ .Values.serviceAccount.name }}-{{ .Values.osmID }}
 subjects:
   - kind: ServiceAccount
-    name: {{ .Values.serviceAccount.name }}
+    name: {{ .Values.serviceAccount.name }}-{{ .Values.osmID }}
     namespace: {{ .Values.namespace }}
 roleRef:
   kind: ClusterRole
-  name: {{ .Values.serviceAccount.name }}
+  name: {{ .Values.serviceAccount.name }}-{{ .Values.osmID }}
   apiGroup: rbac.authorization.k8s.io

@@ -35,9 +35,10 @@ func newRootCmd(config *action.Configuration, out io.Writer, args []string) *cob
 
 	// Add subcommands here
 	cmd.AddCommand(
-		newInstallCmd(config, out),
+		newAdminCmd(config, out),
 		newConfigCmd(config, out),
 		newEnvCmd(out),
+		newInstallCmd(config, out),
 	)
 
 	flags.Parse(args)

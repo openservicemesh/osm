@@ -38,6 +38,7 @@ func TestInstallRun(t *testing.T) {
 		chartPath:               "testdata/test-chart",
 		containerRegistry:       testRegistry,
 		containerRegistrySecret: testRegistrySecret,
+		osmID:                   "testid-123",
 	}
 
 	installClient := helm.NewInstall(config)
@@ -51,9 +52,9 @@ func TestInstallRun(t *testing.T) {
 		t.Errorf("Expected %s, got %s", expectedOutput, result)
 	}
 
-	rel, err := config.Releases.Get(defaultHelmReleaseName, 1)
+	rel, err := config.Releases.Get(installCmd.osmID, 1)
 	if err != nil {
-		t.Errorf("Expected helm release %s, got err %s", defaultHelmReleaseName, err)
+		t.Errorf("Expected helm release %s, got err %s", installCmd.osmID, err)
 	}
 
 	//user did not set any values. Used same defaults from test-chart so this is empty.
@@ -67,6 +68,7 @@ func TestInstallRun(t *testing.T) {
 			},
 		},
 		"namespace": settings.Namespace(),
+		"osmID":     installCmd.osmID,
 	}
 	if !reflect.DeepEqual(rel.Config, expectedUserValues) {
 		t.Errorf("Expected helm release values to resolve as %#v\nbut got %#v", expectedUserValues, rel.Config)
@@ -83,6 +85,7 @@ func TestResolveValues(t *testing.T) {
 	installCmd := &installCmd{
 		containerRegistry:       testRegistry,
 		containerRegistrySecret: testRegistrySecret,
+		osmID:                   "helloworld",
 	}
 
 	vals, err := installCmd.resolveValues()
@@ -100,6 +103,7 @@ func TestResolveValues(t *testing.T) {
 			},
 		},
 		"namespace": settings.Namespace(),
+		"osmID":     installCmd.osmID,
 	}
 	if !reflect.DeepEqual(vals, expected) {
 		t.Errorf("Expected values to resolve as %#v\nbut got %#v", expected, vals)
