@@ -53,7 +53,9 @@ var _ = Describe("Catalog tests", func() {
 					Namespace:      tests.Namespace,
 					Service:        tests.BookbuyerService,
 				},
-				Route: trafficpolicy.Route{PathRegex: "", Methods: nil},
+				Route: trafficpolicy.Route{PathRegex: tests.BookstoreBuyPath, Methods: []string{"GET"}, Headers: map[string]string{
+					"host": tests.Domain,
+				}},
 			}}
 
 			Expect(allTrafficPolicies).To(Equal(expected))
@@ -66,21 +68,19 @@ var _ = Describe("Catalog tests", func() {
 			actual, err := mc.getHTTPPathsPerRoute()
 			Expect(err).ToNot(HaveOccurred())
 
-			keyBuy := fmt.Sprintf("HTTPRouteGroup/%s/%s/%s", tests.Namespace, tests.RouteGroupName, tests.BuyBooksMatchName)
-			keySell := fmt.Sprintf("HTTPRouteGroup/%s/%s/%s", tests.Namespace, tests.RouteGroupName, tests.SellBooksMatchName)
-			expected := map[string]trafficpolicy.Route{
-				keyBuy: {
-					PathRegex: tests.BookstoreBuyPath,
-					Methods:   []string{"GET"},
-					Headers: map[string]string{
-						"host": tests.Domain,
-					},
-				},
-				keySell: {
-					PathRegex: tests.BookstoreSellPath,
-					Methods:   []string{"GET"},
-				},
-			}
+			specKey := fmt.Sprintf("HTTPRouteGroup/%s/%s", tests.Namespace, tests.RouteGroupName)
+			expected := map[string]map[string]trafficpolicy.Route{
+				specKey: map[string]trafficpolicy.Route{
+					tests.BuyBooksMatchName: {
+						PathRegex: tests.BookstoreBuyPath,
+						Methods:   []string{"GET"},
+						Headers: map[string]string{
+							"host": tests.Domain,
+						}},
+					tests.SellBooksMatchName: {
+						PathRegex: tests.BookstoreSellPath,
+						Methods:   []string{"GET"},
+					}}}
 			Expect(actual).To(Equal(expected))
 		})
 	})

@@ -76,8 +76,8 @@ func (mc *MeshCatalog) GetDomainForService(nsService service.NamespacedService, 
 	return domain, errDomainNotFoundForService
 }
 
-func (mc *MeshCatalog) getHTTPPathsPerRoute() (map[string]trafficpolicy.Route, error) {
-	routePolicies := make(map[string]trafficpolicy.Route)
+func (mc *MeshCatalog) getHTTPPathsPerRoute() (map[string]map[string]trafficpolicy.Route, error) {
+	routePolicies := make(map[string]map[string]trafficpolicy.Route)
 	for _, trafficSpecs := range mc.meshSpec.ListHTTPTrafficSpecs() {
 		log.Debug().Msgf("Discovered TrafficSpec resource: %s/%s \n", trafficSpecs.Namespace, trafficSpecs.Name)
 		if trafficSpecs.Matches == nil {
@@ -86,19 +86,20 @@ func (mc *MeshCatalog) getHTTPPathsPerRoute() (map[string]trafficpolicy.Route, e
 		}
 		// since this method gets only specs related to HTTPRouteGroups added HTTPTraffic to the specKey by default
 		specKey := fmt.Sprintf("%s/%s/%s", HTTPTraffic, trafficSpecs.Namespace, trafficSpecs.Name)
+		routePolicies[specKey] = make(map[string]trafficpolicy.Route)
 		for _, trafficSpecsMatches := range trafficSpecs.Matches {
 			serviceRoute := trafficpolicy.Route{}
 			serviceRoute.PathRegex = trafficSpecsMatches.PathRegex
 			serviceRoute.Methods = trafficSpecsMatches.Methods
 			serviceRoute.Headers = trafficSpecsMatches.Headers
-			routePolicies[fmt.Sprintf("%s/%s", specKey, trafficSpecsMatches.Name)] = serviceRoute
+			routePolicies[specKey][trafficSpecsMatches.Name] = serviceRoute
 		}
 	}
 	log.Debug().Msgf("Constructed HTTP path routes: %+v", routePolicies)
 	return routePolicies, nil
 }
 
-func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[string]trafficpolicy.Route, nsService service.NamespacedService) ([]trafficpolicy.TrafficTarget, error) {
+func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[string]map[string]trafficpolicy.Route, nsService service.NamespacedService) ([]trafficpolicy.TrafficTarget, error) {
 	var trafficPolicies []trafficpolicy.TrafficTarget
 	for _, trafficTargets := range mc.meshSpec.ListTrafficTargets() {
 		log.Debug().Msgf("Discovered TrafficTarget resource: %s/%s \n", trafficTargets.Namespace, trafficTargets.Name)
@@ -113,7 +114,7 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[string]trafficp
 		}
 		destService, destErr := mc.GetServiceForServiceAccount(dstNamespacedServiceAcc)
 		if destErr != nil {
-			log.Error().Msgf("TrafficSpec %s/%s could not get destination services for service account %s", trafficTargets.Namespace, trafficTargets.Name, dstNamespacedServiceAcc.String())
+			log.Error().Msgf("TrafficTarget %s/%s could not get destination services for service account %s", trafficTargets.Namespace, trafficTargets.Name, dstNamespacedServiceAcc.String())
 			return nil, destErr
 		}
 
@@ -125,7 +126,7 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[string]trafficp
 
 			srcServices, srcErr := mc.GetServiceForServiceAccount(namespacedServiceAccount)
 			if srcErr != nil {
-				log.Error().Msgf("TrafficSpec %s/%s could not get source services for service account %s", trafficTargets.Namespace, trafficTargets.Name, fmt.Sprintf("%s/%s", trafficSources.Namespace, trafficSources.Name))
+				log.Error().Msgf("TrafficTarget %s/%s could not get source services for service account %s", trafficTargets.Namespace, trafficTargets.Name, fmt.Sprintf("%s/%s", trafficSources.Namespace, trafficSources.Name))
 				return nil, srcErr
 			}
 			policy := trafficpolicy.TrafficTarget{}
@@ -144,14 +145,36 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[string]trafficp
 					log.Error().Msgf("TrafficTarget %s/%s has Spec Kind %s which isn't supported for now; Skipping...", trafficTargets.Namespace, trafficTargets.Name, trafficTargetSpecs.Kind)
 					continue
 				}
-				for _, specMatches := range trafficTargetSpecs.Matches {
-					routeKey := fmt.Sprintf("%s/%s/%s/%s", trafficTargetSpecs.Kind, trafficTargets.Namespace, trafficTargetSpecs.Name, specMatches)
-					routePolicy := routePolicies[routeKey]
-					policy.Route = routePolicy
 
-					// append a traffic policy only if it corresponds to the service
-					if policy.Source.Service.Equals(nsService) || policy.Destination.Service.Equals(nsService) {
-						trafficPolicies = append(trafficPolicies, policy)
+				specKey := fmt.Sprintf("%s/%s/%s", trafficTargetSpecs.Kind, trafficTargets.Namespace, trafficTargetSpecs.Name)
+				routePoliciesMatched, matchFound := routePolicies[specKey]
+				if !matchFound {
+					log.Error().Msgf("TrafficTarget %s/%s could not find a TrafficSpec %s", trafficTargets.Namespace, trafficTargets.Name, specKey)
+					return nil, errNoTrafficSpecFoundForTrafficPolicy
+
+				}
+				if len(trafficTargetSpecs.Matches) == 0 {
+					// no match name provided, so routes are build for all matches in traffic spec
+					for _, routePolicy := range routePoliciesMatched {
+						policy.Route = routePolicy
+						// append a traffic policy only if it corresponds to the service
+						if policy.Source.Service.Equals(nsService) || policy.Destination.Service.Equals(nsService) {
+							trafficPolicies = append(trafficPolicies, policy)
+						}
+					}
+				} else {
+					// route is built only for the matche name specified in the policy
+					for _, specMatchesName := range trafficTargetSpecs.Matches {
+						routePolicy, matchFound := routePoliciesMatched[specMatchesName]
+						if !matchFound {
+							log.Error().Msgf("TrafficTarget %s/%s could not find a TrafficSpec %s with match name %s", trafficTargets.Namespace, trafficTargets.Name, specKey, specMatchesName)
+							return nil, errNoTrafficSpecFoundForTrafficPolicy
+						}
+						policy.Route = routePolicy
+						// append a traffic policy only if it corresponds to the service
+						if policy.Source.Service.Equals(nsService) || policy.Destination.Service.Equals(nsService) {
+							trafficPolicies = append(trafficPolicies, policy)
+						}
 					}
 				}
 			}

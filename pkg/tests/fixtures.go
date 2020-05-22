@@ -84,6 +84,9 @@ var (
 	RoutePolicy = trafficpolicy.Route{
 		PathRegex: BookstoreBuyPath,
 		Methods:   []string{"GET"},
+		Headers: map[string]string{
+			"host": Domain,
+		},
 	}
 
 	// Endpoint is an endpoint object.
@@ -125,25 +128,26 @@ var (
 			Namespace: "default",
 		},
 		Destination: target.IdentityBindingSubject{
-			Kind:      "BookstoreServiceAccount",
+			Kind:      "ServiceAccount",
 			Name:      BookstoreServiceAccountName,
 			Namespace: "default",
 		},
 		Sources: []target.IdentityBindingSubject{{
-			Kind:      "BookstoreServiceAccount",
+			Kind:      "ServiceAccount",
 			Name:      BookbuyerServiceAccountName,
 			Namespace: "default",
 		}},
 		Specs: []target.TrafficTargetSpec{{
 			Kind:    "HTTPRouteGroup",
 			Name:    RouteGroupName,
-			Matches: []string{"buy-books"},
+			Matches: []string{BuyBooksMatchName},
 		}},
 	}
 
 	// RoutePolicyMap is a map of a key to a route policy SMI object.
-	RoutePolicyMap = map[string]trafficpolicy.Route{
-		fmt.Sprintf("HTTPRouteGroup/%s/%s/%s", Namespace, TrafficTargetName, BuyBooksMatchName): RoutePolicy}
+	RoutePolicyMap = map[string]map[string]trafficpolicy.Route{
+		fmt.Sprintf("HTTPRouteGroup/%s/%s", Namespace, RouteGroupName): {
+			BuyBooksMatchName: RoutePolicy}}
 
 	// NamespacedServiceName is a namespaced service.
 	NamespacedServiceName = service.Name(fmt.Sprintf("%s/%s", BookstoreService.Namespace, BookstoreService.Service))
@@ -180,19 +184,21 @@ var (
 			Namespace: "default",
 			Name:      RouteGroupName,
 		},
-		Matches: []spec.HTTPMatch{{
-			Name:      BuyBooksMatchName,
-			PathRegex: BookstoreBuyPath,
-			Methods:   []string{"GET"},
-			Headers: map[string]string{
-				"host": Domain,
+		Matches: []spec.HTTPMatch{
+			{
+				Name:      BuyBooksMatchName,
+				PathRegex: BookstoreBuyPath,
+				Methods:   []string{"GET"},
+				Headers: map[string]string{
+					"host": Domain,
+				},
 			},
-		},
 			{
 				Name:      SellBooksMatchName,
 				PathRegex: BookstoreSellPath,
 				Methods:   []string{"GET"},
-			}},
+			},
+		},
 	}
 )
 
