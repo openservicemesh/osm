@@ -99,6 +99,40 @@ jobs:
         mkdir coverage
         gocov-html < coverage.json > coverage/index.html
 
+    - name: Integration Test with Tresor using osm install
+      env:
+        KUBE_CONFIG: ${{ secrets.KUBECONFIG }}
+        AZURE_SUBSCRIPTION: ${{ secrets.AZURE_SUBSCRIPTION }}
+        CTR_REGISTRY: ${{ secrets.CTR_REGISTRY }}
+        CTR_REGISTRY_CREDS_NAME: ${{ secrets.CTR_REGISTRY_CREDS_NAME }}
+        CTR_TAG: "${{ github.run_id }}-${{ github.run_number}}"
+        K8S_NAMESPACE: "ci-${{ github.run_id }}-${{ github.run_number}}-osm-install"
+        BOOKBUYER_NAMESPACE: "ci-bookbuyer-${{ github.run_id }}-${{ github.run_number}}-osm-install"
+        BOOKSTORE_NAMESPACE: "ci-bookstore-${{ github.run_id }}-${{ github.run_number}}-osm-install"
+        BOOKTHIEF_NAMESPACE: "ci-bookthief-${{ github.run_id }}-${{ github.run_number}}-osm-install"
+        PROMETHEUS_SVC: "ci-prometheus-${{ github.run_id }}-${{ github.run_number}}-osm-install"
+        OSM_ID: "osm-ci-${{ github.run_id }}-${{ github.run_number}}-osm-install"
+        ACR_CREDS: ${{ secrets.ACR_CREDS }}
+        KUBECONFIG: ".kube/config"
+        DOCKER_USER: ${{ secrets.DOCKER_USER }}
+        DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
+        WAIT_FOR_OK_SECONDS: 120
+        IS_GITHUB: true
+        ACR: ${{ secrets.ACR }}
+        WAIT_FOR_POD_TIME_SECONDS: ${{ secrets.WAIT_FOR_POD_TIME_SECONDS }}
+        OSM_HUMAN_DEBUG_LOG: ${{ secrets.OSM_HUMAN_DEBUG_LOG }}
+        CERT_MANAGER: "tresor"
+      run: |
+        touch .env  # it is ok keep this empty
+        echo "Ensure K8s namespace $K8S_NAMESPACE is clean from previous runs"
+        ./demo/clean-kubernetes.sh
+        echo "Creating Kubernetes namespace: $K8S_NAMESPACE"
+        mkdir -p ".kube"
+        echo "$KUBE_CONFIG" | base64 -d > "$KUBECONFIG"
+        echo "$DOCKER_PASS" | docker login "$ACR" -u "$DOCKER_USER" --password-stdin
+        ./demo/run-osm-demo.sh
+        go run ./ci/cmd/maestro.go
+
     - name: Integration Test with Tresor
       env:
         KUBE_CONFIG: ${{ secrets.KUBECONFIG }}

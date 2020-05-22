@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: promthetheus-server-conf-{{.Release.Name}}
+  name: prometheus-server-conf-{{.Release.Name}}
   labels:
     name: prometheus-server-conf-{{.Release.Name}}
 data:
