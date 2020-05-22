@@ -34,6 +34,6 @@ spec:
       - name: prometheus-config-volume
         configMap:
           defaultMode: 420
-          name: {{.Values.prometheus.serviceName}}-server-conf
+          name: {{.Values.prometheus.serviceName}}-server-conf-{{.Values.osmID}}
       - name: prometheus-storage-volume
         emptyDir: {}

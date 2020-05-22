@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{.Values.prometheus.serviceName}}-server-conf
+  name: {{.Values.prometheus.serviceName}}-server-conf-{{.Values.osmID}}
   labels:
-    name: {{.Values.prometheus.serviceName}}-server-conf
+    name: {{.Values.prometheus.serviceName}}-server-conf-{{.Values.osmID}}
 data:
   prometheus.yml: |
     global:
