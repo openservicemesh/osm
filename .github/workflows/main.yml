@@ -155,7 +155,7 @@ jobs:
         ACR: ${{ secrets.ACR }}
         WAIT_FOR_POD_TIME_SECONDS: ${{ secrets.WAIT_FOR_POD_TIME_SECONDS }}
         OSM_HUMAN_DEBUG_LOG: ${{ secrets.OSM_HUMAN_DEBUG_LOG }}
-        CERT_MANAGER: "vault"
+        CERT_MANAGER: "vault"  # enables Hashi Vault integration
         VAULT_HOST: "vault.ci-${{ github.run_id }}-${{ github.run_number}}-hashivault.svc.cluster.local"
         VAULT_PROTOCOL: "http"
         VAULT_PORT: "8200"
