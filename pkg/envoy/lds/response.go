@@ -152,6 +152,7 @@ func getInboundInMeshFilterChain(proxyServiceName service.NamespacedService, mc 
 	marshalledDownstreamTLSContext, err := envoy.MessageToAny(envoy.GetDownstreamTLSContext(proxyServiceName))
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshalling DownstreamTLSContext object for proxy %s", proxyServiceName)
+		return nil, err
 	}
 
 	filterChain := &listener.FilterChain{

@@ -48,6 +48,7 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpe
 			remoteCluster, err := envoy.GetServiceCluster(string(cluster.ClusterName), proxyServiceName)
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed to construct service cluster for proxy %s", proxyServiceName)
+				return nil, err
 			}
 			clusterFactories[remoteCluster.Name] = *remoteCluster
 		} else if isDestinationService {
