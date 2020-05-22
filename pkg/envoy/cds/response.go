@@ -45,8 +45,11 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpe
 				log.Error().Err(err).Msgf("Failed to find cluster")
 				return nil, err
 			}
-			remoteCluster := envoy.GetServiceCluster(string(cluster.ClusterName), proxyServiceName)
-			clusterFactories[remoteCluster.Name] = remoteCluster
+			remoteCluster, err := envoy.GetServiceCluster(string(cluster.ClusterName), proxyServiceName)
+			if err != nil {
+				log.Error().Err(err).Msgf("Failed to construct service cluster for proxy %s", proxyServiceName)
+			}
+			clusterFactories[remoteCluster.Name] = *remoteCluster
 		} else if isDestinationService {
 			cluster, err := catalog.GetWeightedClusterForService(service)
 			if err != nil {

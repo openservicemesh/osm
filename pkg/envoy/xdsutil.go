@@ -137,24 +137,13 @@ func getCommonTLSContext(serviceName service.NamespacedService) *auth.CommonTlsC
 	}
 }
 
-// MessageToAnyWithError converts from proto message to proto Any and returns an error if any
-func MessageToAnyWithError(pb proto.Message) (*any.Any, error) {
+// MessageToAny converts from proto message to proto Any and returns an error if any
+func MessageToAny(pb proto.Message) (*any.Any, error) {
 	msg, err := ptypes.MarshalAny(pb)
 	if err != nil {
-		log.Error().Err(err).Msg("Error marshalling proto object")
 		return nil, err
 	}
 	return msg, nil
-}
-
-// MessageToAny converts from proto message to proto Any
-func MessageToAny(pb proto.Message) *any.Any {
-	msg, err := ptypes.MarshalAny(pb)
-	if err != nil {
-		log.Error().Err(err).Msg("Error marshalling proto object")
-		return nil
-	}
-	return msg
 }
 
 // GetDownstreamTLSContext creates a downstream Envoy TLS Context
@@ -177,8 +166,12 @@ func GetUpstreamTLSContext(serviceName service.NamespacedService) *auth.Upstream
 }
 
 // GetServiceCluster creates an Envoy Cluster struct.
-func GetServiceCluster(clusterName string, serviceName service.NamespacedService) xds.Cluster {
-	return xds.Cluster{
+func GetServiceCluster(clusterName string, serviceName service.NamespacedService) (*xds.Cluster, error) {
+	marshalledUpstreamTLSContext, err := MessageToAny(GetUpstreamTLSContext(serviceName))
+	if err != nil {
+		return nil, err
+	}
+	return &xds.Cluster{
 		Name:                 clusterName,
 		ConnectTimeout:       ptypes.DurationProto(ConnectionTimeout),
 		LbPolicy:             xds.Cluster_ROUND_ROBIN,
@@ -187,10 +180,10 @@ func GetServiceCluster(clusterName string, serviceName service.NamespacedService
 		TransportSocket: &core.TransportSocket{
 			Name: TransportSocketTLS,
 			ConfigType: &core.TransportSocket_TypedConfig{
-				TypedConfig: MessageToAny(GetUpstreamTLSContext(serviceName)),
+				TypedConfig: marshalledUpstreamTLSContext,
 			},
 		},
-	}
+	}, nil
 }
 
 // GetADSConfigSource creates an Envoy ConfigSource struct.
