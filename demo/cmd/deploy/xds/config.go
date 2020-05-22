@@ -81,14 +81,20 @@ func generateXDSPod(namespace string) *apiv1.Pod {
 		"--osmNamespace", namespace,
 		"--init-container-image", initContainer,
 		"--sidecar-image", defaultEnvoyImage,
+
+		// A non-empty caBundleSecretName indicates that cert issuer
+		// should both read CA from and write CA to Kubernetes
+		// This also means that the root private key will be saved in a k8s secret.
+		// To disable this feature - delete this CLI param or set it to
+		// an empty string"".
 		"--caBundleSecretName", fmt.Sprintf("osm-ca-%s", osmID),
+
 		"--certmanager", os.Getenv("CERT_MANAGER"),
 		"--vaultHost", os.Getenv("VAULT_HOST"),
 		"--vaultProtocol", os.Getenv("VAULT_PROTOCOL"),
 		"--vaultToken", os.Getenv("VAULT_TOKEN"),
 		"--webhookName", fmt.Sprintf("osm-webhook-%s", osmID),
 		"--serviceCertValidityMinutes", "1", // Certificate validity length in minutes
-		"--keepRootPrivateKeyInKubernetes", "true",
 	}
 
 	if os.Getenv(common.IsGithubEnvVar) != "true" {

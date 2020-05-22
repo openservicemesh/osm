@@ -29,9 +29,6 @@ const (
 	// Hashi Vault integration; OSM is pointed to an external Vault; signing of certs happens on Vault
 	vaultKind = "vault"
 
-	// Name of the Kubernetes secret where we store the Root certificate for the service mesh
-	rootCertSecretName = "root-cert"
-
 	// Additional values for the root certificate
 	rootCertCountry      = "US"
 	rootCertLocality     = "CA"
@@ -54,7 +51,7 @@ func getPossibleCertManagers() []string {
 	return possible
 }
 
-func getNewRootCertFromTresor(kubeClient kubernetes.Interface, namespace, rootCertSecretName string, saveRootPrivateKeyInKubernetes bool) certificate.Certificater {
+func getNewRootCertFromTresor(kubeClient kubernetes.Interface, namespace, caBundleSecretName string) certificate.Certificater {
 	rootCert, err := tresor.NewCA(constants.CertificationAuthorityCommonName, constants.CertificationAuthorityRootExpiration, rootCertCountry, rootCertLocality, rootCertOrganization)
 
 	if err != nil {
@@ -69,9 +66,9 @@ func getNewRootCertFromTresor(kubeClient kubernetes.Interface, namespace, rootCe
 		log.Fatal().Err(err).Msg("Root cert does not have a private key")
 	}
 
-	if saveRootPrivateKeyInKubernetes {
-		if err := saveSecretToKubernetes(kubeClient, rootCert, namespace, rootCertSecretName, rootCert.GetPrivateKey()); err != nil {
-			log.Error().Err(err).Msgf("Error exporting CA bundle into Kubernetes secret with name %s", rootCertSecretName)
+	if caBundleSecretName != "" {
+		if err := saveSecretToKubernetes(kubeClient, rootCert, namespace, caBundleSecretName, rootCert.GetPrivateKey()); err != nil {
+			log.Error().Err(err).Msgf("Error exporting CA bundle into Kubernetes secret with name %s", caBundleSecretName)
 		}
 	}
 
@@ -83,12 +80,17 @@ func getTresorCertificateManager(kubeConfig *rest.Config) certificate.Manager {
 
 	var err error
 	var rootCert certificate.Certificater
-	if keepRootPrivateKeyInKubernetes {
-		rootCert = getCertFromKubernetes(kubeClient, osmNamespace, rootCertSecretName)
+
+	// A non-empty caBundleSecretName indicates to the certificate issuer to
+	// load the CA from the given k8s secret within the namespace where OSM is install.d
+	// An empty string or nil value would not load or save/load CA.
+	if caBundleSecretName != nil || *caBundleSecretName != "" {
+		rootCert = getCertFromKubernetes(kubeClient, osmNamespace, *caBundleSecretName)
 	}
 
 	if rootCert == nil {
-		rootCert = getNewRootCertFromTresor(kubeClient, osmNamespace, rootCertSecretName, keepRootPrivateKeyInKubernetes)
+		// A non-empty caBundleSecretName will save the CA and its private key as a kubernetes secret.
+		rootCert = getNewRootCertFromTresor(kubeClient, osmNamespace, *caBundleSecretName)
 	}
 
 	certManager, err := tresor.NewCertManager(rootCert, getServiceCertValidityPeriod(), rootCertOrganization)

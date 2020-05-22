@@ -53,9 +53,6 @@ var (
 
 	injectorConfig injector.Config
 
-	// Enabling this will keep CA's private key in a K8s secret within the OSM namespace
-	keepRootPrivateKeyInKubernetes bool
-
 	// feature flag options
 	optionalFeatures featureflags.OptionalFeatures
 )
@@ -86,7 +83,6 @@ func init() {
 	flags.StringVar(&osmNamespace, "osmNamespace", "", "Namespace to which OSM belongs to.")
 	flags.StringVar(&webhookName, "webhookName", "", "Name of the MutatingWebhookConfiguration to be created by ADS")
 	flags.IntVar(&serviceCertValidityMinutes, "serviceCertValidityMinutes", defaultServiceCertValidityMinutes, "serviceCertValidityMinutes duration of a certificate in minutes")
-	flags.BoolVar(&keepRootPrivateKeyInKubernetes, "keepRootPrivateKeyInKubernetes", false, "Set to true to keep the CA's private key as a Kubernetes secret in the OSM's namespace")
 
 	// sidecar injector options
 	flags.BoolVar(&injectorConfig.DefaultInjection, "default-injection", true, "Enable sidecar injection by default")
