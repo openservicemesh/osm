@@ -32,6 +32,10 @@ spec:
             "--init-container-image", "{{.Values.image.registry}}/init",
             "--sidecar-image", "{{.Values.sidecarImage}}",
             "--webhookName", "osm-webhook-{{.Values.osmID}}",
+            "--certmanager", "{{.Values.certManager}}",
+            "--vaultHost", "{{.Values.vault.host}}",
+            "--vaultProtocol", "{{.Values.vault.protocol}}",
+            "--vaultToken", "{{.Values.vault.token}}"
           ]
     {{- with .Values.imagePullSecrets }}
       imagePullSecrets:

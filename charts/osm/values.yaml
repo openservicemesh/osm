@@ -30,3 +30,10 @@ prometheus:
   serviceName: osm-prometheus
   port: 7070
   labelSelector: osm-prometheus-server
+
+certManager: tresor
+
+vault:
+  host:
+  protocol: http
+  token:
