@@ -14,7 +14,7 @@ spec:
       labels:
         app: ads
     spec:
-      serviceAccountName: {{ .Values.serviceAccount.name }}-{{ .Values.osmID }}
+      serviceAccountName: {{ .Release.Name }}
       containers:
         - name: ads
           image: "{{ .Values.image.registry }}/ads:{{ .Chart.AppVersion }}"
@@ -28,10 +28,10 @@ spec:
           args: [
             "--verbosity", "trace",
             "--osmNamespace", "{{.Values.namespace}}",
-            "--osmID", "{{.Values.osmID}}",
+            "--osmID", "{{.Release.Name}}",
             "--init-container-image", "{{.Values.image.registry}}/init",
             "--sidecar-image", "{{.Values.sidecarImage}}",
-            "--webhookName", "osm-webhook-{{.Values.osmID}}",
+            "--webhookName", "osm-webhook-{{.Release.Name}}",
             "--certmanager", "{{.Values.certManager}}",
             "--vaultHost", "{{.Values.vault.host}}",
             "--vaultProtocol", "{{.Values.vault.protocol}}",
