@@ -15,16 +15,16 @@ func NewFakeProvider() endpoint.Provider {
 		endpoints: map[service.Name][]endpoint.Endpoint{
 			tests.NamespacedServiceName: {tests.Endpoint},
 		},
-		services: map[service.NamespacedServiceAccount]*service.NamespacedService{
-			tests.BookstoreServiceAccount: &tests.BookstoreService,
-			tests.BookbuyerServiceAccount: &tests.BookbuyerService,
+		services: map[service.NamespacedServiceAccount]service.NamespacedService{
+			tests.BookstoreServiceAccount: tests.BookstoreService,
+			tests.BookbuyerServiceAccount: tests.BookbuyerService,
 		},
 	}
 }
 
 type fakeClient struct {
 	endpoints map[service.Name][]endpoint.Endpoint
-	services  map[service.NamespacedServiceAccount]*service.NamespacedService
+	services  map[service.NamespacedServiceAccount]service.NamespacedService
 }
 
 // Retrieve the IP addresses comprising the given service.
@@ -35,7 +35,7 @@ func (f fakeClient) ListEndpointsForService(name service.Name) []endpoint.Endpoi
 	panic(fmt.Sprintf("You are asking for ServiceName=%s but the fake Kubernetes client has not been initialized with this. What we have is: %+v", name, f.endpoints))
 }
 
-func (f fakeClient) GetServiceForServiceAccount(svcAccount service.NamespacedServiceAccount) (*service.NamespacedService, error) {
+func (f fakeClient) GetServiceForServiceAccount(svcAccount service.NamespacedServiceAccount) (service.NamespacedService, error) {
 	services, ok := f.services[svcAccount]
 	if !ok {
 		panic(fmt.Sprintf("You asked fake k8s provider's GetServiceForServiceAccount for a ServiceAccount=%s, but that's not in cache: %+v", svcAccount, f.services))

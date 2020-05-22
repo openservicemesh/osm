@@ -13,7 +13,7 @@ type Provider interface {
 	ListEndpointsForService(service.Name) []Endpoint
 
 	// Retrieve the namespaced service for a given service account
-	GetServiceForServiceAccount(service.NamespacedServiceAccount) (*service.NamespacedService, error)
+	GetServiceForServiceAccount(service.NamespacedServiceAccount) (service.NamespacedService, error)
 
 	// GetID returns the unique identifier of the EndpointsProvider.
 	GetID() string

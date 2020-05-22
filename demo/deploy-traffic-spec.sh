@@ -19,12 +19,18 @@ matches:
   pathRegex: /books-bought
   methods:
   - GET
+  headers:
+  - host: "bookstore-mesh.$BOOKSTORE_NAMESPACE"
 - name: buy-a-book
   pathRegex: ".*a-book.*new"
   methods: 
   - GET
+  headers:
+  - host: "bookstore-mesh.$BOOKSTORE_NAMESPACE"
 - name: update-books-bought
   pathRegex: /update-books-bought
   methods:
   - POST
+  headers:
+  - host: "bookstore-mesh.$BOOKSTORE_NAMESPACE"
 EOF

@@ -67,10 +67,10 @@ type MeshCataloger interface {
 	UnregisterProxy(*envoy.Proxy)
 
 	// GetServiceForServiceAccount returns the service corresponding to a service account
-	GetServiceForServiceAccount(service.NamespacedServiceAccount) (*service.NamespacedService, error)
+	GetServiceForServiceAccount(service.NamespacedServiceAccount) (service.NamespacedService, error)
 
 	//GetDomainForService returns the domain name of a service
-	GetDomainForService(service service.NamespacedService) (string, error)
+	GetDomainForService(service service.NamespacedService, routeHeaders map[string]string) (string, error)
 
 	//GetWeightedClusterForService returns the weighted cluster for a service
 	GetWeightedClusterForService(service service.NamespacedService) (service.WeightedCluster, error)

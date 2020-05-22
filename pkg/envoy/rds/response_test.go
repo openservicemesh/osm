@@ -1,12 +1,25 @@
 package rds
 
 import (
+	"time"
+
 	set "github.com/deckarep/golang-set"
-	"github.com/open-service-mesh/osm/pkg/service"
-	"github.com/open-service-mesh/osm/pkg/trafficpolicy"
+	testclient "k8s.io/client-go/kubernetes/fake"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	"github.com/open-service-mesh/osm/pkg/catalog"
+	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/open-service-mesh/osm/pkg/certificate/providers/tresor"
+	"github.com/open-service-mesh/osm/pkg/constants"
+	"github.com/open-service-mesh/osm/pkg/endpoint"
+	"github.com/open-service-mesh/osm/pkg/ingress"
+	"github.com/open-service-mesh/osm/pkg/providers/kube"
+	"github.com/open-service-mesh/osm/pkg/service"
+	"github.com/open-service-mesh/osm/pkg/smi"
+	"github.com/open-service-mesh/osm/pkg/tests"
+	"github.com/open-service-mesh/osm/pkg/trafficpolicy"
 )
 
 var _ = Describe("Construct RoutePolicyWeightedClusters object", func() {
@@ -44,7 +57,9 @@ var _ = Describe("AggregateRoutesByDomain", func() {
 			}
 			weightedClustersMap.Add(weightedCluster)
 
-			aggregateRoutesByDomain(domainRoutesMap, routePolicies, weightedCluster, "bookstore.mesh")
+			for _, routePolicy := range routePolicies {
+				aggregateRoutesByDomain(domainRoutesMap, routePolicy, weightedCluster, "bookstore.mesh")
+			}
 			Expect(domainRoutesMap).NotTo(Equal(nil))
 			Expect(len(domainRoutesMap)).To(Equal(1))
 			Expect(len(domainRoutesMap["bookstore.mesh"])).To(Equal(2))
@@ -63,38 +78,96 @@ var _ = Describe("AggregateRoutesByDomain", func() {
 	Context("Adding a route to existing domain in the map", func() {
 		It("Returns the map of with a new route on the domain", func() {
 
-			weightedCluster := service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1"), Weight: 100}
-			routePolicies := []trafficpolicy.Route{
-				{PathRegex: "/update-books-bought", Methods: []string{"GET"}},
+			weightedCluster := service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1"), Weight: constants.WildcardClusterWeight}
+			routePolicy := trafficpolicy.Route{
+				PathRegex: "/update-books-bought",
+				Methods:   []string{"GET"},
 			}
 			weightedClustersMap.Add(weightedCluster)
 
-			aggregateRoutesByDomain(domainRoutesMap, routePolicies, weightedCluster, "bookstore.mesh")
+			aggregateRoutesByDomain(domainRoutesMap, routePolicy, weightedCluster, "bookstore.mesh")
 			Expect(domainRoutesMap).NotTo(Equal(nil))
 			Expect(len(domainRoutesMap)).To(Equal(1))
 			Expect(len(domainRoutesMap["bookstore.mesh"])).To(Equal(3))
-			Expect(domainRoutesMap["bookstore.mesh"][routePolicies[0].PathRegex].Route).To(Equal(routePolicies[0]))
-			Expect(domainRoutesMap["bookstore.mesh"][routePolicies[0].PathRegex].WeightedClusters.Cardinality()).To(Equal(1))
-			Expect(domainRoutesMap["bookstore.mesh"][routePolicies[0].PathRegex].WeightedClusters.Equal(weightedClustersMap)).To(Equal(true))
+			Expect(domainRoutesMap["bookstore.mesh"][routePolicy.PathRegex].Route).To(Equal(routePolicy))
+			Expect(domainRoutesMap["bookstore.mesh"][routePolicy.PathRegex].WeightedClusters.Cardinality()).To(Equal(1))
+			Expect(domainRoutesMap["bookstore.mesh"][routePolicy.PathRegex].WeightedClusters.Equal(weightedClustersMap)).To(Equal(true))
 		})
 	})
 
 	Context("Adding a cluster to an existing route to existing domain in the map", func() {
 		It("Returns the map of with a new weighted cluster on a route in the domain", func() {
 
-			weightedCluster := service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-2"), Weight: 100}
-			routePolicies := []trafficpolicy.Route{
-				{PathRegex: "/update-books-bought", Methods: []string{"GET"}},
+			weightedCluster := service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-2"), Weight: constants.WildcardClusterWeight}
+			routePolicy := trafficpolicy.Route{
+				PathRegex: "/update-books-bought",
+				Methods:   []string{"GET"},
 			}
 			weightedClustersMap.Add(weightedCluster)
 
-			aggregateRoutesByDomain(domainRoutesMap, routePolicies, weightedCluster, "bookstore.mesh")
+			aggregateRoutesByDomain(domainRoutesMap, routePolicy, weightedCluster, "bookstore.mesh")
 			Expect(domainRoutesMap).NotTo(Equal(nil))
 			Expect(len(domainRoutesMap)).To(Equal(1))
 			Expect(len(domainRoutesMap["bookstore.mesh"])).To(Equal(3))
-			Expect(domainRoutesMap["bookstore.mesh"][routePolicies[0].PathRegex].WeightedClusters.Cardinality()).To(Equal(2))
-			Expect(domainRoutesMap["bookstore.mesh"][routePolicies[0].PathRegex].Route).To(Equal(trafficpolicy.Route{PathRegex: "/update-books-bought", Methods: []string{"GET", "GET"}}))
-			Expect(domainRoutesMap["bookstore.mesh"][routePolicies[0].PathRegex].WeightedClusters.Equal(weightedClustersMap)).To(Equal(true))
+			Expect(domainRoutesMap["bookstore.mesh"][routePolicy.PathRegex].WeightedClusters.Cardinality()).To(Equal(2))
+			Expect(domainRoutesMap["bookstore.mesh"][routePolicy.PathRegex].Route).To(Equal(trafficpolicy.Route{PathRegex: "/update-books-bought", Methods: []string{"GET", "GET"}}))
+			Expect(domainRoutesMap["bookstore.mesh"][routePolicy.PathRegex].WeightedClusters.Equal(weightedClustersMap)).To(Equal(true))
+		})
+	})
+})
+
+var _ = Describe("RDS Response", func() {
+	endpointProviders := []endpoint.Provider{kube.NewFakeProvider()}
+	kubeClient := testclient.NewSimpleClientset()
+	cache := make(map[certificate.CommonName]certificate.Certificater)
+	certManager := tresor.NewFakeCertManager(&cache, 1*time.Hour)
+	meshCatalog := catalog.NewMeshCatalog(kubeClient, smi.NewFakeMeshSpecClient(), certManager, ingress.NewFakeIngressMonitor(), make(<-chan struct{}), endpointProviders...)
+
+	Context("Test GetDomainsForService", func() {
+		It("returns domain for service from traffic split", func() {
+
+			actual, err := meshCatalog.GetDomainForService(tests.BookstoreService, tests.HTTPRouteGroup.Matches[0].Headers)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(actual).To(Equal(tests.Domain))
+		})
+
+		It("returns domain for service from traffic spec http header host", func() {
+
+			actual, err := meshCatalog.GetDomainForService(tests.BookbuyerService, tests.HTTPRouteGroup.Matches[0].Headers)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(actual).To(Equal(tests.Domain))
+		})
+
+		It("no domain found for service", func() {
+
+			_, err := meshCatalog.GetDomainForService(tests.BookbuyerService, tests.HTTPRouteGroup.Matches[1].Headers)
+			Expect(err).To(HaveOccurred())
+		})
+	})
+
+	Context("GetWeightedClusterForService", func() {
+		It("returns weighted cluster for service from traffic split", func() {
+
+			actual, err := meshCatalog.GetWeightedClusterForService(tests.BookstoreService)
+			Expect(err).ToNot(HaveOccurred())
+
+			expected := service.WeightedCluster{
+				ClusterName: service.ClusterName(tests.WeightedService.NamespacedService.String()),
+				Weight:      tests.WeightedService.Weight,
+			}
+			Expect(actual).To(Equal(expected))
+		})
+
+		It("returns weighted cluster for service with default weight of 100", func() {
+
+			actual, err := meshCatalog.GetWeightedClusterForService(tests.BookbuyerService)
+			Expect(err).ToNot(HaveOccurred())
+
+			expected := service.WeightedCluster{
+				ClusterName: service.ClusterName(tests.BookbuyerService.String()),
+				Weight:      tests.Weight,
+			}
+			Expect(actual).To(Equal(expected))
 		})
 	})
 })
