@@ -149,6 +149,11 @@ func getInboundInMeshFilterChain(proxyServiceName service.NamespacedService, mc 
 		log.Debug().Msg("No mesh filter chain to apply")
 		return nil, nil
 	}
+	marshalledDownstreamTLSContext, err := envoy.MessageToAny(envoy.GetDownstreamTLSContext(proxyServiceName))
+	if err != nil {
+		log.Error().Err(err).Msgf("Error marshalling DownstreamTLSContext object for proxy %s", proxyServiceName)
+		return nil, err
+	}
 
 	filterChain := &listener.FilterChain{
 		Filters: []*listener.Filter{
@@ -168,7 +173,7 @@ func getInboundInMeshFilterChain(proxyServiceName service.NamespacedService, mc 
 		TransportSocket: &envoy_api_v2_core.TransportSocket{
 			Name: envoy.TransportSocketTLS,
 			ConfigType: &envoy_api_v2_core.TransportSocket_TypedConfig{
-				TypedConfig: envoy.MessageToAny(envoy.GetDownstreamTLSContext(proxyServiceName)),
+				TypedConfig: marshalledDownstreamTLSContext,
 			},
 		},
 	}
