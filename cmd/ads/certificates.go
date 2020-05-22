@@ -85,10 +85,9 @@ func getTresorCertificateManager(kubeConfig *rest.Config) certificate.Manager {
 	var rootCert certificate.Certificater
 	if keepRootPrivateKeyInKubernetes {
 		rootCert = getCertFromKubernetes(kubeClient, osmNamespace, rootCertSecretName)
-		if rootCert == nil {
-			rootCert = getNewRootCertFromTresor(kubeClient, osmNamespace, rootCertSecretName, keepRootPrivateKeyInKubernetes)
-		}
-	} else {
+	}
+
+	if rootCert == nil {
 		rootCert = getNewRootCertFromTresor(kubeClient, osmNamespace, rootCertSecretName, keepRootPrivateKeyInKubernetes)
 	}
 
