@@ -59,7 +59,7 @@ jobs:
         touch .env  # it is ok keep this empty
         mkdir -p ".kube"
         echo "$KUBE_CONFIG" | base64 -d > "$KUBECONFIG"
-        go run ./ci/cmd/cleanup-namespaces.go
+        go run ./ci/cmd/cleanup/cleanup-namespaces.go
 
     - name: Create Docker images
       env:
@@ -131,7 +131,7 @@ jobs:
         echo "$KUBE_CONFIG" | base64 -d > "$KUBECONFIG"
         echo "$DOCKER_PASS" | docker login "$ACR" -u "$DOCKER_USER" --password-stdin
         ./demo/run-demo.sh
-        go run ./demo/cmd/tail/tail.go
+        go run ./ci/cmd/maestro.go
 
     - name: Integration Test with Hashi Vault
       env:
@@ -169,4 +169,4 @@ jobs:
         echo "$KUBE_CONFIG" | base64 -d > "$KUBECONFIG"
         echo "$DOCKER_PASS" | docker login "$ACR" -u "$DOCKER_USER" --password-stdin
         ./demo/run-demo.sh
-        go run ./demo/cmd/tail/tail.go
+        go run ./ci/cmd/maestro.go
