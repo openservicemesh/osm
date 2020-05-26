@@ -7,10 +7,15 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 	"github.com/open-service-mesh/osm/pkg/service"
 	"github.com/open-service-mesh/osm/pkg/trafficpolicy"
+)
+
+const (
+	testHeaderKey = "test-header"
 )
 
 var _ = Describe("VirtualHost with domains", func() {
@@ -184,6 +189,10 @@ var _ = Describe("Route Configuration", func() {
 			routePolicy := trafficpolicy.Route{
 				PathRegex: "/books-bought",
 				Methods:   []string{"GET"},
+				Headers: map[string]string{
+					testHeaderKey:         "This is a test header",
+					catalog.HostHeaderKey: "bookstore.mesh",
+				},
 			}
 
 			sourceDomainRouteData := map[string]trafficpolicy.RouteWeightedClusters{
@@ -201,10 +210,54 @@ var _ = Describe("Route Configuration", func() {
 			Expect(sourceRouteConfig.Name).To(Equal(OutboundRouteConfig))
 			Expect(len(sourceRouteConfig.VirtualHosts)).To(Equal(len(sourceDomainAggregatedData)))
 			Expect(len(sourceRouteConfig.VirtualHosts[0].Routes)).To(Equal(1))
+			Expect(len(sourceRouteConfig.VirtualHosts[0].Routes[0].Match.Headers)).To(Equal(1))
 			Expect(sourceRouteConfig.VirtualHosts[0].Routes[0].Match.GetSafeRegex().Regex).To(Equal(constants.RegexMatchAll))
 			Expect(sourceRouteConfig.VirtualHosts[0].Routes[0].Match.GetHeaders()[0].GetSafeRegexMatch().Regex).To(Equal(constants.RegexMatchAll))
 			Expect(len(sourceRouteConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters().GetClusters())).To(Equal(weightedClusters.Cardinality()))
 			Expect(sourceRouteConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters().TotalWeight).To(Equal(&wrappers.UInt32Value{Value: uint32(totalClusterWeight)}))
+		})
+
+		It("Returns inbound route configuration", func() {
+
+			weightedClusters := set.NewSet()
+			weightedClusters.Add(service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1"), Weight: 100})
+
+			totalClusterWeight := 0
+			for clusterInterface := range weightedClusters.Iter() {
+				cluster := clusterInterface.(service.WeightedCluster)
+				totalClusterWeight += cluster.Weight
+			}
+			routePolicy := trafficpolicy.Route{
+				PathRegex: "/books-bought",
+				Methods:   []string{"GET"},
+				Headers: map[string]string{
+					testHeaderKey:         "This is a test header",
+					catalog.HostHeaderKey: "bookstore.mesh",
+				},
+			}
+
+			destDomainRouteData := map[string]trafficpolicy.RouteWeightedClusters{
+				routePolicy.PathRegex: trafficpolicy.RouteWeightedClusters{Route: routePolicy, WeightedClusters: weightedClusters},
+			}
+
+			destDomainAggregatedData := map[string]map[string]trafficpolicy.RouteWeightedClusters{
+				"bookstore.mesh": destDomainRouteData,
+			}
+
+			//Validating the inbound clusters and routes
+			destRouteConfig := NewRouteConfigurationStub(InboundRouteConfig)
+			destRouteConfig = UpdateRouteConfiguration(destDomainAggregatedData, destRouteConfig, false, true)
+			Expect(destRouteConfig).NotTo(Equal(nil))
+			Expect(destRouteConfig.Name).To(Equal(InboundRouteConfig))
+			Expect(len(destRouteConfig.VirtualHosts)).To(Equal(len(destDomainAggregatedData)))
+			Expect(len(destRouteConfig.VirtualHosts[0].Routes)).To(Equal(1))
+			Expect(len(destRouteConfig.VirtualHosts[0].Routes[0].Match.Headers)).To(Equal(2))
+			Expect(destRouteConfig.VirtualHosts[0].Routes[0].Match.GetHeaders()[0].Name).To(Equal(MethodHeaderKey))
+			Expect(destRouteConfig.VirtualHosts[0].Routes[0].Match.GetHeaders()[0].GetSafeRegexMatch().Regex).To(Equal(routePolicy.Methods[0]))
+			Expect(destRouteConfig.VirtualHosts[0].Routes[0].Match.GetHeaders()[1].Name).To(Equal(testHeaderKey))
+			Expect(destRouteConfig.VirtualHosts[0].Routes[0].Match.GetHeaders()[1].GetSafeRegexMatch().Regex).To(Equal(routePolicy.Headers[testHeaderKey]))
+			Expect(len(destRouteConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters().GetClusters())).To(Equal(weightedClusters.Cardinality()))
+			Expect(destRouteConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters().TotalWeight).To(Equal(&wrappers.UInt32Value{Value: uint32(totalClusterWeight)}))
 		})
 	})
 })
@@ -218,6 +271,53 @@ var _ = Describe("Route Configuration", func() {
 		It("Tests that a non wildcard HTTP method correctly translates to its corresponding regex", func() {
 			regex := getRegexForMethod("GET")
 			Expect(regex).To(Equal("GET"))
+		})
+	})
+})
+
+var _ = Describe("Routes with headers", func() {
+	Context("Testing getHeadersForRoute", func() {
+		It("Returns a list of HeaderMatcher for a route", func() {
+			routePolicy := trafficpolicy.Route{
+				PathRegex: "/books-bought",
+				Methods:   []string{"GET", "POST"},
+				Headers: map[string]string{
+					testHeaderKey: "This is a test header",
+				},
+			}
+			headers := getHeadersForRoute(routePolicy.Methods[0], routePolicy.Headers)
+			noOfHeaders := len(routePolicy.Headers) + 1 // an additional header for the methods
+			Expect(len(headers)).To(Equal(noOfHeaders))
+			Expect(headers[0].Name).To(Equal(MethodHeaderKey))
+			Expect(headers[0].GetSafeRegexMatch().Regex).To(Equal(routePolicy.Methods[0]))
+			Expect(headers[1].Name).To(Equal(testHeaderKey))
+			Expect(headers[1].GetSafeRegexMatch().Regex).To(Equal(routePolicy.Headers[testHeaderKey]))
+		})
+
+		It("Returns only one HeaderMatcher for a route", func() {
+			routePolicy := trafficpolicy.Route{
+				PathRegex: "/books-bought",
+				Methods:   []string{"GET", "POST"},
+			}
+			headers := getHeadersForRoute(routePolicy.Methods[1], routePolicy.Headers)
+			noOfHeaders := len(routePolicy.Headers) + 1 // an additional header for the methods
+			Expect(len(headers)).To(Equal(noOfHeaders))
+			Expect(headers[0].Name).To(Equal(MethodHeaderKey))
+			Expect(headers[0].GetSafeRegexMatch().Regex).To(Equal(routePolicy.Methods[1]))
+		})
+
+		It("Returns only one HeaderMatcher for a route ignoring the host", func() {
+			routePolicy := trafficpolicy.Route{
+				PathRegex: "/books-bought",
+				Methods:   []string{"GET", "POST"},
+				Headers: map[string]string{
+					catalog.HostHeaderKey: "bookstore.mesh",
+				},
+			}
+			headers := getHeadersForRoute(routePolicy.Methods[0], routePolicy.Headers)
+			Expect(len(headers)).To(Equal(1))
+			Expect(headers[0].Name).To(Equal(MethodHeaderKey))
+			Expect(headers[0].GetSafeRegexMatch().Regex).To(Equal(routePolicy.Methods[0]))
 		})
 	})
 })

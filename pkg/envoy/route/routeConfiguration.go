@@ -10,6 +10,7 @@ import (
 	matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
 	"github.com/golang/protobuf/ptypes/wrappers"
 
+	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 	"github.com/open-service-mesh/osm/pkg/service"
@@ -31,6 +32,9 @@ const (
 
 	//OutboundVirtualHost is the name of the virtual host on the outbound route configuration
 	outboundVirtualHost = "outbound_virtualHost"
+
+	// MethodHeaderKey is the key of the header for HTTP methods
+	MethodHeaderKey = ":method"
 )
 
 var (
@@ -76,10 +80,11 @@ func createVirtualHostStub(name string, domain string) v2route.VirtualHost {
 func createRoutes(routePolicyWeightedClustersMap map[string]trafficpolicy.RouteWeightedClusters, isLocalCluster bool) []*v2route.Route {
 	var routes []*v2route.Route
 	if !isLocalCluster {
-		// For a source service, configure a wildcard route match with weighted routes to upstream clusters based on traffic split policies
+		// For a source service, configure a wildcard route match (without any headers) with weighted routes to upstream clusters based on traffic split policies
 		weightedClusters := getDistinctWeightedClusters(routePolicyWeightedClustersMap)
 		totalClustersWeight := getTotalWeightForClusters(weightedClusters)
-		route := getRoute(constants.RegexMatchAll, constants.WildcardHTTPMethod, weightedClusters, totalClustersWeight, isLocalCluster)
+		emptyHeaders := make(map[string]string)
+		route := getRoute(constants.RegexMatchAll, constants.WildcardHTTPMethod, emptyHeaders, weightedClusters, totalClustersWeight, isLocalCluster)
 		routes = append(routes, &route)
 		return routes
 	}
@@ -88,14 +93,14 @@ func createRoutes(routePolicyWeightedClustersMap map[string]trafficpolicy.RouteW
 		// is wildcard or if there are duplicates
 		allowedMethods := sanitizeHTTPMethods(routePolicyWeightedClusters.Route.Methods)
 		for _, method := range allowedMethods {
-			route := getRoute(routePolicyWeightedClusters.Route.PathRegex, method, routePolicyWeightedClusters.WeightedClusters, 100, isLocalCluster)
+			route := getRoute(routePolicyWeightedClusters.Route.PathRegex, method, routePolicyWeightedClusters.Route.Headers, routePolicyWeightedClusters.WeightedClusters, 100, isLocalCluster)
 			routes = append(routes, &route)
 		}
 	}
 	return routes
 }
 
-func getRoute(pathRegex string, method string, weightedClusters set.Set, totalClustersWeight int, isLocalCluster bool) v2route.Route {
+func getRoute(pathRegex string, method string, headersMap map[string]string, weightedClusters set.Set, totalClustersWeight int, isLocalCluster bool) v2route.Route {
 	route := v2route.Route{
 		Match: &v2route.RouteMatch{
 			PathSpecifier: &v2route.RouteMatch_SafeRegex{
@@ -104,17 +109,7 @@ func getRoute(pathRegex string, method string, weightedClusters set.Set, totalCl
 					Regex:      pathRegex,
 				},
 			},
-			Headers: []*v2route.HeaderMatcher{
-				{
-					Name: ":method",
-					HeaderMatchSpecifier: &v2route.HeaderMatcher_SafeRegexMatch{
-						SafeRegexMatch: &matcher.RegexMatcher{
-							EngineType: regexEngine,
-							Regex:      getRegexForMethod(method),
-						},
-					},
-				},
-			},
+			Headers: getHeadersForRoute(method, headersMap),
 		},
 		Action: &v2route.Route_Route{
 			Route: &v2route.RouteAction{
@@ -125,6 +120,42 @@ func getRoute(pathRegex string, method string, weightedClusters set.Set, totalCl
 		},
 	}
 	return route
+}
+
+func getHeadersForRoute(method string, headersMap map[string]string) []*v2route.HeaderMatcher {
+	var headers []*v2route.HeaderMatcher
+
+	// add methods header
+	methodsHeader := v2route.HeaderMatcher{
+		Name: MethodHeaderKey,
+		HeaderMatchSpecifier: &v2route.HeaderMatcher_SafeRegexMatch{
+			SafeRegexMatch: &matcher.RegexMatcher{
+				EngineType: regexEngine,
+				Regex:      getRegexForMethod(method),
+			},
+		},
+	}
+	headers = append(headers, &methodsHeader)
+
+	// add all other custom headers
+	for headerKey, headerValue := range headersMap {
+		// omit the host header as we have already configured this for the domain
+		if headerKey == catalog.HostHeaderKey {
+			continue
+		}
+		header := v2route.HeaderMatcher{
+			Name: headerKey,
+			HeaderMatchSpecifier: &v2route.HeaderMatcher_SafeRegexMatch{
+				SafeRegexMatch: &matcher.RegexMatcher{
+					EngineType: regexEngine,
+					Regex:      headerValue,
+				},
+			},
+		}
+		headers = append(headers, &header)
+
+	}
+	return headers
 }
 
 func getWeightedCluster(weightedClusters set.Set, totalClustersWeight int, isLocalCluster bool) *v2route.WeightedCluster {
