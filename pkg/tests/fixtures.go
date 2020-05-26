@@ -145,9 +145,9 @@ var (
 	}
 
 	// RoutePolicyMap is a map of a key to a route policy SMI object.
-	RoutePolicyMap = map[string]map[string]trafficpolicy.Route{
-		fmt.Sprintf("HTTPRouteGroup/%s/%s", Namespace, RouteGroupName): {
-			BuyBooksMatchName: RoutePolicy}}
+	RoutePolicyMap = map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.Route{
+		trafficpolicy.TrafficSpecName(fmt.Sprintf("HTTPRouteGroup/%s/%s", Namespace, RouteGroupName)): {
+			trafficpolicy.TrafficSpecMatchName(BuyBooksMatchName): RoutePolicy}}
 
 	// NamespacedServiceName is a namespaced service.
 	NamespacedServiceName = service.Name(fmt.Sprintf("%s/%s", BookstoreService.Namespace, BookstoreService.Service))

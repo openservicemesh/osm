@@ -68,19 +68,28 @@ var _ = Describe("Catalog tests", func() {
 			actual, err := mc.getHTTPPathsPerRoute()
 			Expect(err).ToNot(HaveOccurred())
 
-			specKey := fmt.Sprintf("HTTPRouteGroup/%s/%s", tests.Namespace, tests.RouteGroupName)
-			expected := map[string]map[string]trafficpolicy.Route{
-				specKey: map[string]trafficpolicy.Route{
-					tests.BuyBooksMatchName: {
+			specKey := mc.getTrafficSpecName("HTTPRouteGroup", tests.Namespace, tests.RouteGroupName)
+			expected := map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.Route{
+				specKey: map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.Route{
+					trafficpolicy.TrafficSpecMatchName(tests.BuyBooksMatchName): {
 						PathRegex: tests.BookstoreBuyPath,
 						Methods:   []string{"GET"},
 						Headers: map[string]string{
 							"host": tests.Domain,
 						}},
-					tests.SellBooksMatchName: {
+					trafficpolicy.TrafficSpecMatchName(tests.SellBooksMatchName): {
 						PathRegex: tests.BookstoreSellPath,
 						Methods:   []string{"GET"},
 					}}}
+			Expect(actual).To(Equal(expected))
+		})
+	})
+
+	Context("Test getTrafficSpecName", func() {
+		mc := MeshCatalog{meshSpec: smi.NewFakeMeshSpecClient()}
+		It("returns the name of the TrafficSpec", func() {
+			actual := mc.getTrafficSpecName("HTTPRouteGroup", tests.Namespace, tests.RouteGroupName)
+			expected := trafficpolicy.TrafficSpecName(fmt.Sprintf("HTTPRouteGroup/%s/%s", tests.Namespace, tests.RouteGroupName))
 			Expect(actual).To(Equal(expected))
 		})
 	})
