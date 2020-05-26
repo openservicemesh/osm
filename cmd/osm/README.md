@@ -2,7 +2,7 @@
 
 
 ## Setting up your environment
-_Note: Ensure [prerequisites](https://github.com/open-service-mesh/osm/blob/master/DEMO.md#prerequisites) are met._
+_Note: Ensure [prerequisites](https://github.com/open-service-mesh/osm/blob/master/demo/README.md#prerequisites) are met._
 
 Currently, you must build and push all the `osm` image artifacts to your own Azure container registry to install and test the service mesh. Build and push all osm related image artifacts using the script:
 ```console
