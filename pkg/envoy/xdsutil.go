@@ -38,6 +38,9 @@ const (
 
 	// ConnectionTimeout is the timeout duration used by Envoy to timeout connections
 	ConnectionTimeout = 5 * time.Second
+
+	// TransportProtocolTLS is the TLS transport protocol used in Envoy configurations
+	TransportProtocolTLS = "tls"
 )
 
 // GetAddress creates an Envoy Address struct.
@@ -147,11 +150,11 @@ func MessageToAny(pb proto.Message) (*any.Any, error) {
 }
 
 // GetDownstreamTLSContext creates a downstream Envoy TLS Context
-func GetDownstreamTLSContext(serviceName service.NamespacedService) *auth.DownstreamTlsContext {
+func GetDownstreamTLSContext(serviceName service.NamespacedService, mTLS bool) *auth.DownstreamTlsContext {
 	tlsConfig := &auth.DownstreamTlsContext{
 		CommonTlsContext: getCommonTLSContext(serviceName),
 		// When RequireClientCertificate is enabled trusted CA certs must be provided via ValidationContextType
-		RequireClientCertificate: &wrappers.BoolValue{Value: true},
+		RequireClientCertificate: &wrappers.BoolValue{Value: mTLS},
 	}
 	return tlsConfig
 }

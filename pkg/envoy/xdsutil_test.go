@@ -38,7 +38,7 @@ var _ = Describe("Test Envoy tools", func() {
 
 	Context("Test GetDownstreamTLSContext()", func() {
 		It("should return TLS context", func() {
-			tlsContext := GetDownstreamTLSContext(tests.BookstoreService)
+			tlsContext := GetDownstreamTLSContext(tests.BookstoreService, true)
 
 			expectedTLSContext := envoy_api_v2_auth.DownstreamTlsContext{
 				CommonTlsContext: &envoy_api_v2_auth.CommonTlsContext{
@@ -74,6 +74,20 @@ var _ = Describe("Test Envoy tools", func() {
 			Expect(tlsContext.CommonTlsContext.TlsCertificateSdsSecretConfigs).To(Equal(expectedTLSContext.CommonTlsContext.TlsCertificateSdsSecretConfigs))
 			Expect(tlsContext.CommonTlsContext.ValidationContextType).To(Equal(expectedTLSContext.CommonTlsContext.ValidationContextType))
 			Expect(*tlsContext).To(Equal(expectedTLSContext))
+		})
+	})
+
+	Context("Test GetDownstreamTLSContext() for mTLS", func() {
+		It("should return TLS context with client certificate validation enabled", func() {
+			tlsContext := GetDownstreamTLSContext(tests.BookstoreService, true)
+			Expect(*tlsContext.RequireClientCertificate).To(Equal(wrappers.BoolValue{Value: true}))
+		})
+	})
+
+	Context("Test GetDownstreamTLSContext() for TLS", func() {
+		It("should return TLS context with client certificate validation disabled", func() {
+			tlsContext := GetDownstreamTLSContext(tests.BookstoreService, false)
+			Expect(*tlsContext.RequireClientCertificate).To(Equal(wrappers.BoolValue{Value: false}))
 		})
 	})
 
