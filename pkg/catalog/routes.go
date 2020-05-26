@@ -76,30 +76,36 @@ func (mc *MeshCatalog) GetDomainForService(nsService service.NamespacedService, 
 	return domain, errDomainNotFoundForService
 }
 
-func (mc *MeshCatalog) getHTTPPathsPerRoute() (map[string]map[string]trafficpolicy.Route, error) {
-	routePolicies := make(map[string]map[string]trafficpolicy.Route)
+func (mc *MeshCatalog) getHTTPPathsPerRoute() (map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.Route, error) {
+	routePolicies := make(map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.Route)
 	for _, trafficSpecs := range mc.meshSpec.ListHTTPTrafficSpecs() {
 		log.Debug().Msgf("Discovered TrafficSpec resource: %s/%s \n", trafficSpecs.Namespace, trafficSpecs.Name)
 		if trafficSpecs.Matches == nil {
 			log.Error().Msgf("TrafficSpec %s/%s has no matches in route; Skipping...", trafficSpecs.Namespace, trafficSpecs.Name)
 			continue
 		}
-		// since this method gets only specs related to HTTPRouteGroups added HTTPTraffic to the specKey by default
-		specKey := fmt.Sprintf("%s/%s/%s", HTTPTraffic, trafficSpecs.Namespace, trafficSpecs.Name)
-		routePolicies[specKey] = make(map[string]trafficpolicy.Route)
+
+		specKey := mc.getTrafficSpecName(HTTPTraffic, trafficSpecs.Namespace, trafficSpecs.Name)
+		routePolicies[specKey] = make(map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.Route)
 		for _, trafficSpecsMatches := range trafficSpecs.Matches {
 			serviceRoute := trafficpolicy.Route{}
 			serviceRoute.PathRegex = trafficSpecsMatches.PathRegex
 			serviceRoute.Methods = trafficSpecsMatches.Methods
 			serviceRoute.Headers = trafficSpecsMatches.Headers
-			routePolicies[specKey][trafficSpecsMatches.Name] = serviceRoute
+			routePolicies[specKey][trafficpolicy.TrafficSpecMatchName(trafficSpecsMatches.Name)] = serviceRoute
 		}
 	}
 	log.Debug().Msgf("Constructed HTTP path routes: %+v", routePolicies)
 	return routePolicies, nil
 }
 
-func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[string]map[string]trafficpolicy.Route, nsService service.NamespacedService) ([]trafficpolicy.TrafficTarget, error) {
+func (mc *MeshCatalog) getTrafficSpecName(trafficSpecKind string, trafficSpecNamespace string, trafficSpecName string) trafficpolicy.TrafficSpecName {
+	// since this method gets only specs related to HTTPRouteGroups added HTTPTraffic to the specKey by default
+	specKey := fmt.Sprintf("%s/%s/%s", trafficSpecKind, trafficSpecNamespace, trafficSpecName)
+	return trafficpolicy.TrafficSpecName(specKey)
+}
+
+func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.Route, nsService service.NamespacedService) ([]trafficpolicy.TrafficTarget, error) {
 	var trafficPolicies []trafficpolicy.TrafficTarget
 	for _, trafficTargets := range mc.meshSpec.ListTrafficTargets() {
 		log.Debug().Msgf("Discovered TrafficTarget resource: %s/%s \n", trafficTargets.Namespace, trafficTargets.Name)
@@ -146,7 +152,7 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[string]map[stri
 					continue
 				}
 
-				specKey := fmt.Sprintf("%s/%s/%s", trafficTargetSpecs.Kind, trafficTargets.Namespace, trafficTargetSpecs.Name)
+				specKey := mc.getTrafficSpecName(trafficTargetSpecs.Kind, trafficTargets.Namespace, trafficTargetSpecs.Name)
 				routePoliciesMatched, matchFound := routePolicies[specKey]
 				if !matchFound {
 					log.Error().Msgf("TrafficTarget %s/%s could not find a TrafficSpec %s", trafficTargets.Namespace, trafficTargets.Name, specKey)
@@ -165,7 +171,7 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[string]map[stri
 				} else {
 					// route is built only for the matche name specified in the policy
 					for _, specMatchesName := range trafficTargetSpecs.Matches {
-						routePolicy, matchFound := routePoliciesMatched[specMatchesName]
+						routePolicy, matchFound := routePoliciesMatched[trafficpolicy.TrafficSpecMatchName(specMatchesName)]
 						if !matchFound {
 							log.Error().Msgf("TrafficTarget %s/%s could not find a TrafficSpec %s with match name %s", trafficTargets.Namespace, trafficTargets.Name, specKey, specMatchesName)
 							return nil, errNoTrafficSpecFoundForTrafficPolicy

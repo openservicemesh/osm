@@ -5,6 +5,12 @@ import (
 	"github.com/open-service-mesh/osm/pkg/service"
 )
 
+// TrafficSpecName is the namespaced name of the SMI TrafficSpec
+type TrafficSpecName string
+
+// TrafficSpecMatchName is the  name of a match in SMI TrafficSpec
+type TrafficSpecMatchName string
+
 // Route is a struct of a path regex and the methods on a given route
 type Route struct {
 	PathRegex string            `json:"path_regex:omitempty"`
