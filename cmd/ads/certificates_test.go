@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
@@ -116,7 +115,7 @@ var _ = Describe("Test CMD tools", func() {
 			ns := uuid.New().String()
 			secretName := uuid.New().String()
 
-			cert := getNewRootCertFromTresor(kubeClient, ns, secretName, true)
+			cert := getNewRootCertFromTresor(kubeClient, ns, secretName)
 
 			expected := &corev1.Secret{
 				ObjectMeta: v1.ObjectMeta{
@@ -135,6 +134,21 @@ var _ = Describe("Test CMD tools", func() {
 
 			Expect(*actual).To(Equal(*expected))
 		})
-	})
 
+		It("does NOT save root cert to k8s because the CA bundle secret name is an empty string", func() {
+			kubeClient := testclient.NewSimpleClientset()
+
+			ns := uuid.New().String()
+			secretName := "" // an empty secret name disables saving CA and its private key to a k8s secret
+
+			cert := getNewRootCertFromTresor(kubeClient, ns, secretName)
+			Ω(len(cert.GetCertificateChain())).Should(BeNumerically(">", 10))
+			Ω(len(cert.GetPrivateKey())).Should(BeNumerically(">", 10))
+			Ω(time.Since(cert.GetExpiration())).Should(BeNumerically("<", 0))
+
+			actual, err := kubeClient.CoreV1().Secrets(ns).List(context.Background(), v1.ListOptions{})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(actual.Items)).To(Equal(0))
+		})
+	})
 })
