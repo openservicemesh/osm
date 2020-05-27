@@ -36,7 +36,7 @@ func NewClusterLoadAssignment(serviceName service.NamespacedService, serviceEndp
 	weight := uint32(100 / lenIPs)
 
 	for _, meshEndpoint := range serviceEndpoints {
-		log.Trace().Msgf("[EDS][ClusterLoadAssignment] Adding Endpoint: Cluster=%s, Services=%s, Endpoint=%+v, Weight=%d\n", serviceName.String(), serviceName.String(), meshEndpoint, weight)
+		log.Trace().Msgf("[EDS][ClusterLoadAssignment] Adding Endpoint: Cluster=%s, Services=%s, Endpoint=%+v, Weight=%d", serviceName.String(), serviceName.String(), meshEndpoint, weight)
 		lbEpt := endpoint.LbEndpoint{
 			HostIdentifier: &endpoint.LbEndpoint_Endpoint{
 				Endpoint: &endpoint.Endpoint{
