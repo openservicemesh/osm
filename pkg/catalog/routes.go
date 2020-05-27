@@ -85,6 +85,7 @@ func (mc *MeshCatalog) getHTTPPathsPerRoute() (map[trafficpolicy.TrafficSpecName
 			continue
 		}
 
+		// since this method gets only specs related to HTTPRouteGroups added HTTPTraffic to the specKey by default
 		specKey := mc.getTrafficSpecName(HTTPTraffic, trafficSpecs.Namespace, trafficSpecs.Name)
 		routePolicies[specKey] = make(map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.Route)
 		for _, trafficSpecsMatches := range trafficSpecs.Matches {
@@ -92,6 +93,15 @@ func (mc *MeshCatalog) getHTTPPathsPerRoute() (map[trafficpolicy.TrafficSpecName
 			serviceRoute.PathRegex = trafficSpecsMatches.PathRegex
 			serviceRoute.Methods = trafficSpecsMatches.Methods
 			serviceRoute.Headers = trafficSpecsMatches.Headers
+			if len(serviceRoute.Headers) != 0 {
+				// When pathRegex and methods are not defined, the header filters are applied to any path and all HTTP methods
+				if serviceRoute.PathRegex == "" {
+					serviceRoute.PathRegex = constants.RegexMatchAll
+				}
+				if serviceRoute.Methods == nil {
+					serviceRoute.Methods = []string{constants.WildcardHTTPMethod}
+				}
+			}
 			routePolicies[specKey][trafficpolicy.TrafficSpecMatchName(trafficSpecsMatches.Name)] = serviceRoute
 		}
 	}
@@ -100,7 +110,6 @@ func (mc *MeshCatalog) getHTTPPathsPerRoute() (map[trafficpolicy.TrafficSpecName
 }
 
 func (mc *MeshCatalog) getTrafficSpecName(trafficSpecKind string, trafficSpecNamespace string, trafficSpecName string) trafficpolicy.TrafficSpecName {
-	// since this method gets only specs related to HTTPRouteGroups added HTTPTraffic to the specKey by default
 	specKey := fmt.Sprintf("%s/%s/%s", trafficSpecKind, trafficSpecNamespace, trafficSpecName)
 	return trafficpolicy.TrafficSpecName(specKey)
 }

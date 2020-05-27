@@ -80,7 +80,14 @@ var _ = Describe("Catalog tests", func() {
 					trafficpolicy.TrafficSpecMatchName(tests.SellBooksMatchName): {
 						PathRegex: tests.BookstoreSellPath,
 						Methods:   []string{"GET"},
-					}}}
+					},
+					trafficpolicy.TrafficSpecMatchName(tests.WildcardWithHeadersMatchName): {
+						PathRegex: ".*",
+						Methods:   []string{"*"},
+						Headers: map[string]string{
+							"host": tests.Domain,
+						}}},
+			}
 			Expect(actual).To(Equal(expected))
 		})
 	})

@@ -42,6 +42,9 @@ const (
 	// SellBooksMatchName is the name of the match object.
 	SellBooksMatchName = "sell-books"
 
+	// WildcardWithHeadersMatchName is the name of the match object.
+	WildcardWithHeadersMatchName = "allow-everything-on-header"
+
 	// Domain is a domain
 	Domain = "contoso.com"
 
@@ -197,6 +200,12 @@ var (
 				Name:      SellBooksMatchName,
 				PathRegex: BookstoreSellPath,
 				Methods:   []string{"GET"},
+			},
+			{
+				Name: WildcardWithHeadersMatchName,
+				Headers: map[string]string{
+					"host": Domain,
+				},
 			},
 		},
 	}
