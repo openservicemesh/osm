@@ -17,7 +17,7 @@ spec:
       serviceAccountName: {{ .Release.Name }}
       containers:
         - name: ads
-          image: "{{ .Values.image.registry }}/ads:{{ .Chart.AppVersion }}"
+          image: "{{ .Values.image.registry }}/ads:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: "admin-port"

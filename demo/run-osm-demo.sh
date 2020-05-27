@@ -111,7 +111,7 @@ else
 fi
 
 # Deploys Xds and Prometheus
-bin/osm install --osm-id "$OSM_ID" --namespace "$K8S_NAMESPACE"
+bin/osm install --osm-id "$OSM_ID" --namespace "$K8S_NAMESPACE" --container-registry "$CTR_REGISTRY" --container-registry-secret "$CTR_REGISTRY_CREDS_NAME" --osm-image-tag "$CTR_TAG"
 wait_for_ads_pod
 
 ./demo/deploy-apps.sh

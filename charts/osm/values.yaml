@@ -12,6 +12,7 @@ replicaCount: 1
 image:
   registry: smctest.azurecr.io
   pullPolicy: Always
+  tag: latest
 
 imagePullSecrets:
   - name: acr-creds

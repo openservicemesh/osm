@@ -16,6 +16,7 @@ import (
 var (
 	testRegistry       = "test-registry"
 	testRegistrySecret = "test-registry-secret"
+	testOsmImageTag    = "test-tag"
 	testVaultHost      = "vault.osm.svc.cluster.local"
 	testVaultProtocol  = "http"
 	testVaultToken     = "token"
@@ -42,6 +43,7 @@ func TestInstallRun(t *testing.T) {
 		containerRegistry:       testRegistry,
 		containerRegistrySecret: testRegistrySecret,
 		osmID:                   "testid-123",
+		osmImageTag:             testOsmImageTag,
 		certManager:             "tresor",
 	}
 
@@ -66,6 +68,7 @@ func TestInstallRun(t *testing.T) {
 		"certManager": "tresor",
 		"image": map[string]interface{}{
 			"registry": testRegistry,
+			"tag":      testOsmImageTag,
 		},
 		"imagePullSecrets": []interface{}{
 			map[string]interface{}{
@@ -113,6 +116,7 @@ func TestInstallRunVault(t *testing.T) {
 		vaultHost:               testVaultHost,
 		vaultToken:              testVaultToken,
 		vaultProtocol:           "http",
+		osmImageTag:             testOsmImageTag,
 	}
 
 	installClient := helm.NewInstall(config)
@@ -135,6 +139,7 @@ func TestInstallRunVault(t *testing.T) {
 		"certManager": "vault",
 		"image": map[string]interface{}{
 			"registry": testRegistry,
+			"tag":      testOsmImageTag,
 		},
 		"imagePullSecrets": []interface{}{
 			map[string]interface{}{
@@ -200,6 +205,7 @@ func TestResolveValues(t *testing.T) {
 		vaultHost:               testVaultHost,
 		vaultProtocol:           testVaultProtocol,
 		vaultToken:              testVaultToken,
+		osmImageTag:             testOsmImageTag,
 	}
 
 	vals, err := installCmd.resolveValues()
@@ -211,6 +217,7 @@ func TestResolveValues(t *testing.T) {
 		"certManager": "vault",
 		"image": map[string]interface{}{
 			"registry": testRegistry,
+			"tag":      testOsmImageTag,
 		},
 		"imagePullSecrets": []interface{}{
 			map[string]interface{}{
