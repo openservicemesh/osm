@@ -49,7 +49,7 @@ func (r *rotor) checkAndRotate() {
 		shouldRotate := ShouldRotate(cert)
 
 		word := map[bool]string{true: "will", false: "will not"}[shouldRotate]
-		log.Trace().Msgf("Cert %s %s be rotated as it expires in %+v", cn, word, time.Until(cert.GetExpiration()))
+		log.Trace().Msgf("Cert %s %s be rotated; expires in %+v; tolerance is %+v", cn, word, time.Until(cert.GetExpiration()), tolerance)
 
 		if shouldRotate {
 			// Remove the certificate from the cache of the certificate manager
