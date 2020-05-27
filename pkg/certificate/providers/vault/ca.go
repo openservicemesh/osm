@@ -10,8 +10,7 @@ import (
 )
 
 const (
-	vaultRole = "open-service-mesh"
-	maxTTL    = 3 * time.Minute
+	maxTTL = 3 * time.Minute
 )
 
 // NewCA creates a new certification authority within Hashi Vault. Returns the new root certificate WITHOUT the private key.
@@ -31,12 +30,12 @@ func (cm *CertManager) NewCA(cn certificate.CommonName, validity time.Duration) 
 		"max_ttl":           getDurationInMinutes(maxTTL),
 	}
 
-	if _, err := cm.client.Logical().Write(getRoleConfigURL(), options); err != nil {
+	if _, err := cm.client.Logical().Write(getRoleConfigURL(cm.vaultRole), options); err != nil {
 		return nil, err
 	}
 
 	// Ensure cert generation has been initialized correctly
-	secret, err := cm.client.Logical().Write(getIssueURL(), getIssuanceData("localhost", cm.validity))
+	secret, err := cm.client.Logical().Write(getIssueURL(cm.vaultRole), getIssuanceData("localhost", cm.validity))
 	if err != nil {
 		log.Error().Err(err).Msg("Error creating a test certificate with the newly instantiated Hashi Vault client")
 		return nil, err
