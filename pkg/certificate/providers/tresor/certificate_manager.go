@@ -98,7 +98,7 @@ func (cm *CertManager) getFromCache(cn certificate.CommonName) certificate.Certi
 }
 
 // IssueCertificate implements certificate.Manager and returns a newly issued certificate.
-func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validity *time.Duration) (certificate.Certificater, error) {
+func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPeriod *time.Duration) (certificate.Certificater, error) {
 	log.Info().Msgf("Issuing new certificate for CN=%s, which will expire in %+v", cn, cm.validityPeriod)
 
 	start := time.Now()
@@ -107,7 +107,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validity *tim
 		return cert, nil
 	}
 
-	cert, err := cm.issue(cn, validity)
+	cert, err := cm.issue(cn, validityPeriod)
 	if err != nil {
 		return cert, err
 	}

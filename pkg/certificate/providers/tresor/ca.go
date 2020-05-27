@@ -15,7 +15,7 @@ import (
 )
 
 // NewCA creates a new Certificate Authority.
-func NewCA(cn certificate.CommonName, validity time.Duration, rootCertCountry, rootCertLocality, rootCertOrganization string) (certificate.Certificater, error) {
+func NewCA(cn certificate.CommonName, validityPeriod time.Duration, rootCertCountry, rootCertLocality, rootCertOrganization string) (certificate.Certificater, error) {
 	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
 	if err != nil {
 		return nil, errors.Wrap(err, errGeneratingSerialNumber.Error())
@@ -31,7 +31,7 @@ func NewCA(cn certificate.CommonName, validity time.Duration, rootCertCountry, r
 			Organization: []string{rootCertOrganization},
 		},
 		NotBefore:             now,
-		NotAfter:              now.Add(validity),
+		NotAfter:              now.Add(validityPeriod),
 		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
 		BasicConstraintsValid: true,
 		IsCA:                  true,

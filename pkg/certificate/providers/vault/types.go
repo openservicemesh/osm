@@ -11,7 +11,7 @@ import (
 // CertManager implements certificate.Manager and contains a Hashi Vault client instance.
 type CertManager struct {
 	// How long will newly issued certificates be valid for
-	validity time.Duration
+	validityPeriod time.Duration
 
 	// The Certificate Authority root certificate to be used by this certificate manager
 	ca certificate.Certificater

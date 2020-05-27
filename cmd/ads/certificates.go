@@ -52,7 +52,7 @@ func getPossibleCertManagers() []string {
 }
 
 func getNewRootCertFromTresor(kubeClient kubernetes.Interface, namespace, caBundleSecretName string) certificate.Certificater {
-	rootCert, err := tresor.NewCA(constants.CertificationAuthorityCommonName, constants.CertificationAuthorityRootExpiration, rootCertCountry, rootCertLocality, rootCertOrganization)
+	rootCert, err := tresor.NewCA(constants.CertificationAuthorityCommonName, constants.CertificationAuthorityRootValidityPeriod, rootCertCountry, rootCertLocality, rootCertOrganization)
 
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Failed to create new Certificate Authority with cert issuer %s", *certManagerKind)
@@ -84,13 +84,13 @@ func getTresorCertificateManager(kubeConfig *rest.Config) certificate.Manager {
 	// A non-empty caBundleSecretName indicates to the certificate issuer to
 	// load the CA from the given k8s secret within the namespace where OSM is install.d
 	// An empty string or nil value would not load or save/load CA.
-	if caBundleSecretName != nil || *caBundleSecretName != "" {
-		rootCert = getCertFromKubernetes(kubeClient, osmNamespace, *caBundleSecretName)
+	if caBundleSecretName != "" {
+		rootCert = getCertFromKubernetes(kubeClient, osmNamespace, caBundleSecretName)
 	}
 
 	if rootCert == nil {
 		// A non-empty caBundleSecretName will save the CA and its private key as a kubernetes secret.
-		rootCert = getNewRootCertFromTresor(kubeClient, osmNamespace, *caBundleSecretName)
+		rootCert = getNewRootCertFromTresor(kubeClient, osmNamespace, caBundleSecretName)
 	}
 
 	certManager, err := tresor.NewCertManager(rootCert, getServiceCertValidityPeriod(), rootCertOrganization)

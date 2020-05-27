@@ -7,8 +7,8 @@ import (
 	"github.com/open-service-mesh/osm/pkg/certificate"
 )
 
-func getDurationInMinutes(validity time.Duration) string {
-	return fmt.Sprintf("%dh", validity/time.Hour)
+func getDurationInMinutes(validityPeriod time.Duration) string {
+	return fmt.Sprintf("%dh", validityPeriod/time.Hour)
 }
 
 func getIssueURL(vaultRole string) string {
@@ -19,9 +19,9 @@ func getRoleConfigURL(vaultRole string) string {
 	return fmt.Sprintf("pki/roles/%s", vaultRole)
 }
 
-func getIssuanceData(cn certificate.CommonName, validity time.Duration) map[string]interface{} {
+func getIssuanceData(cn certificate.CommonName, validityPeriod time.Duration) map[string]interface{} {
 	return map[string]interface{}{
 		"common_name": cn.String(),
-		"ttl":         getDurationInMinutes(validity),
+		"ttl":         getDurationInMinutes(validityPeriod),
 	}
 }

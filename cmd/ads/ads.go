@@ -37,7 +37,7 @@ import (
 const (
 	// TODO(draychev): pass these via CLI param (https://github.com/open-service-mesh/osm/issues/542)
 	serverType                        = "ADS"
-	defaultServiceCertValidityMinutes = 525600 // 1 year
+	defaultServiceCertValidityMinutes = 60 // 1 hour
 	caBundleSecretNameCLIParam        = "caBundleSecretName"
 	xdsServerCertificateCommonName    = "ads"
 )
@@ -50,6 +50,7 @@ var (
 	osmNamespace               string
 	webhookName                string
 	serviceCertValidityMinutes int
+	caBundleSecretName         string
 
 	injectorConfig injector.Config
 
@@ -59,7 +60,6 @@ var (
 
 var (
 	flags               = pflag.NewFlagSet(`ads`, pflag.ExitOnError)
-	caBundleSecretName  = flags.String(caBundleSecretNameCLIParam, "", "Name of the Kubernetes Secret for the OSM CA bundle")
 	azureSubscriptionID = flags.String("azureSubscriptionID", "", "Azure Subscription ID")
 	port                = flags.Int("port", constants.AggregatedDiscoveryServicePort, "Aggregated Discovery Service port number.")
 	log                 = logger.New("ads/main")
@@ -83,7 +83,8 @@ func init() {
 	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file.")
 	flags.StringVar(&osmNamespace, "osmNamespace", "", "Namespace to which OSM belongs to.")
 	flags.StringVar(&webhookName, "webhookName", "", "Name of the MutatingWebhookConfiguration to be created by ADS")
-	flags.IntVar(&serviceCertValidityMinutes, "serviceCertValidityMinutes", defaultServiceCertValidityMinutes, "serviceCertValidityMinutes duration of a certificate in minutes")
+	flags.IntVar(&serviceCertValidityMinutes, "serviceCertValidityMinutes", defaultServiceCertValidityMinutes, "Certificate validityPeriod duration in minutes")
+	flags.StringVar(&caBundleSecretName, caBundleSecretNameCLIParam, "", "Name of the Kubernetes Secret for the OSM CA bundle")
 
 	// sidecar injector options
 	flags.BoolVar(&injectorConfig.DefaultInjection, "default-injection", true, "Enable sidecar injection by default")
@@ -132,12 +133,12 @@ func main() {
 
 	log.Info().Msgf("Service certificates will be valid for %+v", getServiceCertValidityPeriod())
 
-	if *caBundleSecretName == "" {
+	if caBundleSecretName == "" {
 		log.Info().Msgf("CA bundle will not be exported to a k8s secret (no --%s provided)", caBundleSecretNameCLIParam)
 	} else {
 		kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
-		if err := createCABundleKubernetesSecret(kubeClient, certManager, osmNamespace, *caBundleSecretName); err != nil {
-			log.Error().Err(err).Msgf("Error exporting CA bundle into Kubernetes secret with name %s", *caBundleSecretName)
+		if err := createCABundleKubernetesSecret(kubeClient, certManager, osmNamespace, caBundleSecretName); err != nil {
+			log.Error().Err(err).Msgf("Error exporting CA bundle into Kubernetes secret with name %s", caBundleSecretName)
 		}
 	}
 
