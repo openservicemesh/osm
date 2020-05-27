@@ -26,6 +26,7 @@ spec:
               containerPort: 15128
           command: ['/ads']
           args: [
+            "--azureAuthFile", "/azure/azureAuth.json",
             "--verbosity", "trace",
             "--osmNamespace", "{{.Values.namespace}}",
             "--osmID", "{{.Values.osmID}}",
@@ -37,7 +38,7 @@ spec:
             "--vaultHost", "{{.Values.vault.host}}",
             "--vaultProtocol", "{{.Values.vault.protocol}}",
             "--vaultToken", "{{.Values.vault.token}}",
-            "--serviceCertValidityMinutes", "1", # Certificate validity length in minutes
+            "--serviceCertValidityMinutes", "1",
             "--keepRootPrivateKeyInKubernetes", "true"
           ]
     {{- with .Values.imagePullSecrets }}
