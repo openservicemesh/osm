@@ -14,20 +14,18 @@ exit_error() {
 
 wait_for_ads_pod() {
     # Wait for POD to be ready before deploying the apps.
-    ads_pod_name="ads"
+    ads_pod_name=$(kubectl get pods -n osm-system-ns-1 --selector app=ads --no-headers | awk '{print $1}')
+    expect_status="Running"
     max=12
     for x in $(seq 1 $max); do
-        pod_ready="$(kubectl get pods -n "$K8S_NAMESPACE" ${ads_pod_name} -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}')"
-        if [ "$pod_ready" == "True" ]; then
+        pod_status="$(kubectl get pods -n "$K8S_NAMESPACE" "ads" -o 'jsonpath={..status.phase}')"
+        if [ "$pod_status" == "$expect_status" ]; then
             return
         fi
-
-        pod_status="$(kubectl get pods -n "$K8S_NAMESPACE" "ads" -o 'jsonpath={..status.phase}')"
-        echo "[${x}] Pod status is ${pod_status}; waiting for pod ${ads_pod_name} to be Ready" && sleep 5
+        echo "[${x}] Pod status is ${pod_status}; waiting for pod ${ads_pod_name} to be $expect_status" && sleep 5
     done
 
-    pod_status="$(kubectl get pods -n "$K8S_NAMESPACE" "ads" -o 'jsonpath={..status.phase}')"
-    exit_error "Pod ${ads_pod_name} status is ${pod_status} -- still not Ready"
+    exit_error "Pod ${ads_pod_name} status is ${pod_status} -- still not $expect_status"
 }
 
 # Check for required environment variables
