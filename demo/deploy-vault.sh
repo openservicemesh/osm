@@ -32,9 +32,30 @@ spec:
       - name: vault
         image: registry.hub.docker.com/library/vault:1.4.0
         imagePullPolicy: Always
-        # args: ['server', '-dev']
         command: ["/bin/sh","-c"]
-        args: ["vault server -dev -dev-listen-address=0.0.0.0:8200 -dev-root-token-id=$VAULT_TOKEN & sleep 1; echo $VAULT_TOKEN>~/.vault-token; VAULT_ADDR=http://localhost:8200 vault secrets enable pki; VAULT_ADDR=http://localhost:8200 vault secrets tune -max-lease-ttl=87600h pki; VAULT_ADDR=http://localhost:8200 vault write pki/config/urls issuing_certificates='http://127.0.0.1:8200/v1/pki/ca' crl_distribution_points='http://127.0.0.1:8200/v1/pki/crl'; VAULT_ADDR=http://localhost:8200 vault write pki/roles/open-service-mesh allow_any_name=true allow_subdomains=true; tail /dev/random"]
+        args:
+          - |
+            # Start the Vault Server
+            vault server -dev -dev-listen-address=0.0.0.0:8200 -dev-root-token-id=$VAULT_TOKEN & sleep 1;
+
+            # Make the token available to the following commands
+            echo $VAULT_TOKEN>~/.vault-token;
+
+            # Enable PKI secrets engine
+            vault secrets enable pki;
+
+            # Set the max allowed lease for a certificate to a decade
+            vault secrets tune -max-lease-ttl=87600h pki;
+
+            # Set the URLs (See: https://www.vaultproject.io/docs/secrets/pki#set-url-configuration)
+            vault write pki/config/urls issuing_certificates='http://127.0.0.1:8200/v1/pki/ca' crl_distribution_points='http://127.0.0.1:8200/v1/pki/crl';
+
+            # Configure a role for OSM (See: https://www.vaultproject.io/docs/secrets/pki#configure-a-role)
+            vault write pki/roles/${VAULT_ROLE} allow_any_name=true allow_subdomains=true;
+
+            # Create the root certificate (See: https://www.vaultproject.io/docs/secrets/pki#setup)
+            vault write pki/root/generate/internal common_name='osm.root' ttl='8765h';
+            tail /dev/random;
         securityContext:
           capabilities:
             add: ['IPC_LOCK']
@@ -46,6 +67,8 @@ spec:
           name: cluster-port
           protocol: TCP
         env:
+        - name: VAULT_ADDR
+          value: "http://localhost:8200"
         - name: POD_IP_ADDR
           valueFrom:
             fieldRef:
