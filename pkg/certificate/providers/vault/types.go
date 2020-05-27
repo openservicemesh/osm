@@ -25,4 +25,7 @@ type CertManager struct {
 
 	// Hashicorp Vault client
 	client *api.Client
+
+	// The Vault role configured for OSM and passed as a CLI.
+	vaultRole string
 }

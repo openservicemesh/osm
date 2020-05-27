@@ -160,6 +160,7 @@ jobs:
         VAULT_PROTOCOL: "http"
         VAULT_PORT: "8200"
         VAULT_TOKEN: ${{ secrets.VAULT_TOKEN }}
+        VAULT_ROLE: "open-service-mesh"
       run: |
         touch .env  # it is ok keep this empty
         echo "Ensure K8s namespace $K8S_NAMESPACE is clean from previous runs"

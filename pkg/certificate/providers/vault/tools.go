@@ -11,11 +11,11 @@ func getDurationInMinutes(validity time.Duration) string {
 	return fmt.Sprintf("%dh", validity/time.Hour)
 }
 
-func getIssueURL() string {
+func getIssueURL(vaultRole string) string {
 	return fmt.Sprintf("pki/issue/%+v", vaultRole)
 }
 
-func getRoleConfigURL() string {
+func getRoleConfigURL(vaultRole string) string {
 	return fmt.Sprintf("pki/roles/%s", vaultRole)
 }
 

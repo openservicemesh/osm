@@ -23,12 +23,13 @@ const (
 )
 
 // NewCertManager implements certificate.Manager and wraps a Hashi Vault with methods to allow easy certificate issuance.
-func NewCertManager(vaultAddr, token string, validity time.Duration) (*CertManager, error) {
+func NewCertManager(vaultAddr, token string, validity time.Duration, vaultRole string) (*CertManager, error) {
 	cache := make(map[certificate.CommonName]certificate.Certificater)
 	c := &CertManager{
 		validity:      validity,
 		announcements: make(chan interface{}),
 		cache:         &cache,
+		vaultRole:     vaultRole,
 	}
 	config := api.DefaultConfig()
 	config.Address = vaultAddr
@@ -69,7 +70,7 @@ func NewCertManager(vaultAddr, token string, validity time.Duration) (*CertManag
 }
 
 func (cm *CertManager) issue(cn certificate.CommonName, validity *time.Duration) (certificate.Certificater, error) {
-	secret, err := cm.client.Logical().Write(getIssueURL(), getIssuanceData(cn, cm.validity))
+	secret, err := cm.client.Logical().Write(getIssueURL(cm.vaultRole), getIssuanceData(cn, cm.validity))
 	if err != nil {
 		log.Error().Err(err).Msgf("Error issuing new certificate for CN=%s", cn)
 		return nil, err

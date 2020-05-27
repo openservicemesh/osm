@@ -93,6 +93,7 @@ func generateXDSPod(namespace string) *apiv1.Pod {
 		"--vaultHost", os.Getenv("VAULT_HOST"),
 		"--vaultProtocol", os.Getenv("VAULT_PROTOCOL"),
 		"--vaultToken", os.Getenv("VAULT_TOKEN"),
+		"--vaultRole", os.Getenv("VAULT_ROLE"),
 		"--webhookName", fmt.Sprintf("osm-webhook-%s", osmID),
 		"--serviceCertValidityMinutes", "1", // Certificate validity length in minutes
 	}

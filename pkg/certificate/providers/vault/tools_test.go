@@ -1,6 +1,7 @@
 package vault
 
 import (
+	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -10,6 +11,8 @@ import (
 )
 
 var _ = Describe("Test tools", func() {
+	vaultRole := "open-service-mesh"
+
 	Context("Test converting duration into Vault recognizable string", func() {
 		It("converts 36 hours into correct string representation", func() {
 			actual := getDurationInMinutes(2160 * time.Minute)
@@ -20,16 +23,16 @@ var _ = Describe("Test tools", func() {
 
 	Context("Test cert issuance URL", func() {
 		It("creates the URL for issuing a new certificate", func() {
-			actual := getIssueURL()
-			expected := "pki/issue/open-service-mesh"
+			actual := getIssueURL(vaultRole)
+			expected := fmt.Sprintf("pki/issue/%s", vaultRole)
 			Expect(actual).To(Equal(expected))
 		})
 	})
 
 	Context("Test role config URL", func() {
 		It("creates the URL for role configuration", func() {
-			actual := getRoleConfigURL()
-			expected := "pki/roles/open-service-mesh"
+			actual := getRoleConfigURL(vaultRole)
+			expected := fmt.Sprintf("pki/roles/%s", vaultRole)
 			Expect(actual).To(Equal(expected))
 		})
 	})

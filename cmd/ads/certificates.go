@@ -173,7 +173,7 @@ func getHashiVaultCertManager(_ *rest.Config) certificate.Manager {
 
 	// A Vault address would have the following shape: "http://vault.default.svc.cluster.local:8200"
 	vaultAddr := fmt.Sprintf("%s://%s:%d", *vaultProtocol, *vaultHost, *vaultPort)
-	vaultCertManager, err := vault.NewCertManager(vaultAddr, *vaultToken, getServiceCertValidityPeriod())
+	vaultCertManager, err := vault.NewCertManager(vaultAddr, *vaultToken, getServiceCertValidityPeriod(), *vaultRole)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error instantiating Hashicorp Vault as a Certificate Manager")
 	}
