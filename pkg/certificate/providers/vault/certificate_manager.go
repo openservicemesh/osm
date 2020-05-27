@@ -40,17 +40,21 @@ func NewCertManager(vaultAddr, token string, validity time.Duration, vaultRole s
 		return nil, err
 	}
 
-	log.Info().Msgf("Created Vault CertManager at %v", vaultAddr)
+	log.Info().Msgf("Created Vault CertManager, with vaultRole=%q at %v", vaultRole, vaultAddr)
 
 	c.client.SetToken(token)
 
-	rootCert, err := c.NewCA(constants.CertificationAuthorityCommonName, constants.CertificationAuthorityRootExpiration)
+	someCert, err := c.issue("localhost", nil)
 	if err != nil {
-		log.Error().Err(err).Msg("Error creating CA")
 		return nil, err
 	}
 
-	c.ca = rootCert
+	c.ca = &Certificate{
+		commonName: constants.CertificationAuthorityCommonName,
+		expiration: time.Now().Add(8765 * time.Hour), // a decade
+		certChain:  someCert.GetIssuingCA(),
+		issuingCA:  someCert.GetIssuingCA(),
+	}
 
 	// Setup certificate rotation
 	done := make(chan interface{})

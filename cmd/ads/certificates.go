@@ -178,11 +178,6 @@ func getHashiVaultCertManager(_ *rest.Config) certificate.Manager {
 		log.Fatal().Err(err).Msg("Error instantiating Hashicorp Vault as a Certificate Manager")
 	}
 
-	_, err = vaultCertManager.NewCA(constants.CertificationAuthorityCommonName, constants.CertificationAuthorityRootExpiration)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to create new Certificate Authority")
-	}
-
 	return vaultCertManager
 }
 
