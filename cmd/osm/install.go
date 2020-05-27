@@ -22,10 +22,12 @@ Usage:
   $ osm install --namespace hello-world
 
 Each instance of the osm control plane installation is given a unqiue ID
-referred to as the osm ID. An osm ID can be passed in via the --osm-id flag.
+referred to as the OSM ID. An OSM ID can be passed in via the --osm-id flag.
 The osm ID is used in various different ways by the control plane including
 the resource name for the MutatingWebhookConfiguration created by the control
 plane for sidecar injection of envoy proxies.
+
+By default, OSM ID will be configured to "osm-cp-<namespace>" where namespace is the namespace where the control plane is being installed
 
 Usage:
   $ osm install --osm-id "hello-osm"

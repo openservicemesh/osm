@@ -17,7 +17,7 @@ in.
 Only use this in non-production and test environments.
 
 Usage:
-  $ osm admin delete-osm <osm-id> --namespace osm-system
+  $ osm admin delete-osm [OSM ID] --namespace osm-system
 `
 
 type adminDeleteOsm struct {
@@ -33,7 +33,7 @@ func newAdminDelete(config *action.Configuration, out io.Writer) *cobra.Command 
 	}
 
 	cmd := &cobra.Command{
-		Use:   "delete-osm",
+		Use:   "delete-osm [OSM ID]",
 		Short: "delete osm instance",
 		Long:  adminDeleteOsmDescription,
 		Args:  require.MinimumNArgs(1),

@@ -36,7 +36,7 @@ func newConfigACRSecretCmd(config *action.Configuration, out io.Writer) *cobra.C
 	}
 
 	cmd := &cobra.Command{
-		Use:   "acr-secret",
+		Use:   "acr-secret [ACR Registry]",
 		Short: "configure ACR Kubernetes secret for pulling OSM images",
 		Long:  configACRSecretDescription,
 		Args:  require.MinimumNArgs(1),
