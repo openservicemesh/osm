@@ -6,12 +6,15 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/open-service-mesh/osm/blob/master/LICENSE)
 [![release](https://img.shields.io/github/release/open-service-mesh/osm/all.svg)](https://github.com/open-service-mesh/osm/releases)
 
-The Open Service Mesh (OSM) project is a light weight, envoy based service mesh for applications running in Kubernetes and on VMs. It works with Envoy proxies configured as side-car containers and continuously programs them to implement Service Mesh Interface(SMI) policies. It provides the following key benefits
-1. Native support for Virtual Machines. Can be easily extended to support Serverless workloads also.
-2. Compatible with Service Mesh Interface specification. Users can express Service Mesh policies through SMI
-3. Provides declarative APIs to add and remove Kubernetes Services and VMs in a mesh. Supports Hybrid Meshes comprising of K8S services, VMs and other types of compute instances.
-4. Provides auto-injection of Envoy proxy in Kubernetes services and Virtual Machines when added to the mesh
-5. Provides a pluggable interface to integrate with external certificate management services/solutions
+It is no secret that although microservice environments enable portability, faster and more frequent deployment cycles and even simpler organizational structure via specialized teams, they also increase the complexity of deployments, make it harder to debug existing applications and secure applications in dynamic environments at scale. Using a [service mesh][1] reduces some of the operational burden of microservice environments with a single, dedicated layer of infrastructure for managing service-to-service communication.
+
+The Open Service Mesh (OSM) project is a light weight, envoy based service mesh for applications running in Kubernetes and is compatible with [Service Mesh Interface (SMI)][2]. The OSM control plane is a set of components installed in a single namespace in Kubernetes and also comes with command line tool called `osm`. Once an application is added to the mesh, OSM installs an Envoy proxy as a sidecar container next to each instance of the application (inside each application Pod in Kubernetes) which then manages all traffic to and from the application. Once the proxy is configured, users have fine grained control on service to service communication and visibility and consistency of metrics for debugging and monitoring without having to touch application code. OSM aims to be simple to install and run while empowering end users with the following features:
+
+1. More easily manage deployments and transparently manage deployments. OSM enables various deployment strategies (Canary, A/B testing) for applications running on Kubernetes.
+1. Secure service to service communication by enabling mTLS and fine grained access control policies.
+1. Get simple to understand and consistent insights into application metrics for debugging and monitoring.
+1. Integrate with external external certificate management services/solutions with a pluggable interface.
+1. Onboard applications onto the mesh by enabling automatic sidecar injection of Envoy proxy.
 
 Note: This project is a work in progress. See the [demo instructions](demo/README.md) to get a sense of what we've accomplished and are working on.
 
@@ -45,3 +48,6 @@ To stop OSM from monitoring a namespace, remove the monitoring label from the na
 ```
 $ kubectl label namespace <namespace> openservicemesh.io/monitor-
 ```
+
+[1]: https://en.wikipedia.org/wiki/Service_mesh
+[2]: https://github.com/servicemeshinterface/smi-spec/blob/master/SPEC.md
