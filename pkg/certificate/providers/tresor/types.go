@@ -34,7 +34,7 @@ var (
 
 // CertManager implements certificate.Manager
 type CertManager struct {
-	// How long will newly issued certificates be valid for
+	// Period for which the newly issued certificate will be valid.
 	validityPeriod time.Duration
 
 	// The Certificate Authority root certificate to be used by this certificate manager

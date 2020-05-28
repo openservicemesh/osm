@@ -23,13 +23,13 @@ const (
 )
 
 // NewCertManager implements certificate.Manager and wraps a Hashi Vault with methods to allow easy certificate issuance.
-func NewCertManager(vaultAddr, token string, validity time.Duration, vaultRole string) (*CertManager, error) {
+func NewCertManager(vaultAddr, token string, validityPeriod time.Duration, vaultRole string) (*CertManager, error) {
 	cache := make(map[certificate.CommonName]certificate.Certificater)
 	c := &CertManager{
-		validity:      validity,
-		announcements: make(chan interface{}),
-		cache:         &cache,
-		vaultRole:     vaultRole,
+		validityPeriod: validityPeriod,
+		announcements:  make(chan interface{}),
+		cache:          &cache,
+		vaultRole:      vaultRole,
 	}
 	config := api.DefaultConfig()
 	config.Address = vaultAddr
@@ -73,18 +73,18 @@ func NewCertManager(vaultAddr, token string, validity time.Duration, vaultRole s
 	return c, nil
 }
 
-func (cm *CertManager) issue(cn certificate.CommonName, validity *time.Duration) (certificate.Certificater, error) {
-	secret, err := cm.client.Logical().Write(getIssueURL(cm.vaultRole), getIssuanceData(cn, cm.validity))
+func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod *time.Duration) (certificate.Certificater, error) {
+	secret, err := cm.client.Logical().Write(getIssueURL(cm.vaultRole), getIssuanceData(cn, cm.validityPeriod))
 	if err != nil {
 		log.Error().Err(err).Msgf("Error issuing new certificate for CN=%s", cn)
 		return nil, err
 	}
 
-	if validity == nil {
-		validity = &cm.validity
+	if validityPeriod == nil {
+		validityPeriod = &cm.validityPeriod
 	}
 
-	return newCert(cn, secret, time.Now().Add(*validity)), nil
+	return newCert(cn, secret, time.Now().Add(*validityPeriod)), nil
 }
 
 func (cm *CertManager) getFromCache(cn certificate.CommonName) certificate.Certificater {
@@ -98,7 +98,7 @@ func (cm *CertManager) getFromCache(cn certificate.CommonName) certificate.Certi
 }
 
 // IssueCertificate issues a certificate by leveraging the Hashi Vault CertManager.
-func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validity *time.Duration) (certificate.Certificater, error) {
+func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPeriod *time.Duration) (certificate.Certificater, error) {
 	log.Info().Msgf("Issuing new certificate for CN=%s", cn)
 
 	start := time.Now()
@@ -107,7 +107,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validity *tim
 		return cert, nil
 	}
 
-	cert, err := cm.issue(cn, validity)
+	cert, err := cm.issue(cn, validityPeriod)
 	if err != nil {
 		return cert, err
 	}
@@ -137,7 +137,7 @@ func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate
 
 	start := time.Now()
 
-	cert, err := cm.issue(cn, &cm.validity)
+	cert, err := cm.issue(cn, &cm.validityPeriod)
 	if err != nil {
 		return cert, err
 	}

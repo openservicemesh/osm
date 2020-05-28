@@ -66,8 +66,8 @@ const (
 	// CertificationAuthorityCommonName is the CN used for the root certificate for OSM.
 	CertificationAuthorityCommonName = "Open Service Mesh Certification Authority"
 
-	// CertificationAuthorityRootExpiration is when the root certificate expires
-	CertificationAuthorityRootExpiration = 87600 * time.Hour // a decade
+	// CertificationAuthorityRootValidityPeriod is when the root certificate expires
+	CertificationAuthorityRootValidityPeriod = 87600 * time.Hour // a decade
 
 	// XDSCertificateValidityPeriod is the TTL of the certificates used for Envoy to xDS communication.
 	XDSCertificateValidityPeriod = 87600 * time.Hour // a decade
