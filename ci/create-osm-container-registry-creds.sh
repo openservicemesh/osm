@@ -1,4 +1,5 @@
 #!/bin/bash
+
 set -aueo pipefail
 
 REGISTRY=$(echo "$CTR_REGISTRY" | awk -F'.' '{print $1}')

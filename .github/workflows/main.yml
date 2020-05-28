@@ -7,6 +7,37 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
+    - name: Info Please
+      env:
+        ACR: ${{ secrets.ACR }}
+        KUBE_CONFIG: ${{ secrets.KUBECONFIG }}
+        CTR_REGISTRY: ${{ secrets.CTR_REGISTRY }}
+        CTR_REGISTRY_CREDS_NAME: ${{ secrets.CTR_REGISTRY_CREDS_NAME }}
+        CTR_TAG: "${{ github.run_id }}-${{ github.run_number}}"
+        K8S_NAMESPACE: "ci-${{ github.run_id }}-${{ github.run_number}}-tresor"
+        BOOKBUYER_NAMESPACE: "ci-bookbuyer-${{ github.run_id }}-${{ github.run_number}}-tresor"
+        BOOKSTORE_NAMESPACE: "ci-bookstore-${{ github.run_id }}-${{ github.run_number}}-tresor"
+        BOOKTHIEF_NAMESPACE: "ci-bookthief-${{ github.run_id }}-${{ github.run_number}}-tresor"
+        PROMETHEUS_SVC: "ci-prometheus-${{ github.run_id }}-${{ github.run_number}}-tresor"
+        OSM_ID: "osm-ci-${{ github.run_id }}-${{ github.run_number}}-tresor"
+        KUBECONFIG: ".kube/config"
+        DOCKER_USER: ${{ secrets.DOCKER_USER }}
+        DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
+      run: |
+        mkdir -p ".kube"
+        echo "$KUBE_CONFIG" | base64 -d > "$KUBECONFIG"
+        echo -e "OSM_ID: ${OSM_ID}"
+        echo -e "K8S_NAMESPACE: ${K8S_NAMESPACE}"
+        echo -e "\n\n-------------------- Kubernetes Cluster Info --------------------"
+        kubectl cluster-info
+        echo -e "\n\n-------------------- Kubernetes Namespaces --------------------"
+        kubectl get namespaces
+        echo -e "\n\n-------------------- Kubernetes Pods --------------------"
+        kubectl get pods -A
+        echo -e "\n\n-------------------- Docker Images Available --------------------"
+        echo "$DOCKER_PASS" | docker login "$ACR" -u "$DOCKER_USER" --password-stdin
+        docker images $ACR
+
     - name: Set up Go 1.13
       uses: actions/setup-go@v1
       with:
@@ -67,7 +98,6 @@ jobs:
         CTR_REGISTRY: ${{ secrets.CTR_REGISTRY }}
         CTR_REGISTRY_CREDS_NAME: ${{ secrets.CTR_REGISTRY_CREDS_NAME }}
         CTR_TAG: "${{ github.run_id }}-${{ github.run_number}}"
-        ACR_CREDS: ${{ secrets.ACR_CREDS }}
         KUBECONFIG: ".kube/config"
         DOCKER_USER: ${{ secrets.DOCKER_USER }}
         DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
@@ -112,7 +142,6 @@ jobs:
         BOOKTHIEF_NAMESPACE: "ci-bookthief-${{ github.run_id }}-${{ github.run_number}}-tresor"
         PROMETHEUS_SVC: "ci-prometheus-${{ github.run_id }}-${{ github.run_number}}-tresor"
         OSM_ID: "osm-ci-${{ github.run_id }}-${{ github.run_number}}-tresor"
-        ACR_CREDS: ${{ secrets.ACR_CREDS }}
         KUBECONFIG: ".kube/config"
         DOCKER_USER: ${{ secrets.DOCKER_USER }}
         DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
@@ -146,7 +175,6 @@ jobs:
         BOOKTHIEF_NAMESPACE: "ci-bookthief-${{ github.run_id }}-${{ github.run_number}}-hashivault"
         PROMETHEUS_SVC: "ci-prometheus-${{ github.run_id }}-${{ github.run_number}}-hashivault"
         OSM_ID: "osm-ci-${{ github.run_id }}-${{ github.run_number}}-hashivault"
-        ACR_CREDS: ${{ secrets.ACR_CREDS }}
         KUBECONFIG: ".kube/config"
         DOCKER_USER: ${{ secrets.DOCKER_USER }}
         DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
