@@ -4,9 +4,6 @@ set -auexo pipefail
 
 # shellcheck disable=SC1091
 source .env
-WAIT_FOR_OK_SECONDS="${WAIT_FOR_OK_SECONDS:-default 120}"
-
-echo "WAIT_FOR_OK_SECONDS = ${WAIT_FOR_OK_SECONDS}"
 
 kubectl create namespace "$BOOKBUYER_NAMESPACE" || true
 kubectl delete deployment bookbuyer -n "$BOOKBUYER_NAMESPACE"  || true
@@ -69,8 +66,6 @@ spec:
           command: ["/bookbuyer"]
 
           env:
-            - name: "WAIT_FOR_OK_SECONDS"
-              value: "$WAIT_FOR_OK_SECONDS"
             - name: "BOOKSTORE_NAMESPACE"
               value: "$BOOKSTORE_NAMESPACE"
 

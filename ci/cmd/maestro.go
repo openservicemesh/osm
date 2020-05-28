@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/open-service-mesh/osm/ci/cmd/maestro"
+	"github.com/open-service-mesh/osm/demo/cmd/common"
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/logger"
 )
@@ -29,7 +30,7 @@ var (
 	bookbuyerNS   = os.Getenv(maestro.BookbuyerNamespaceEnvVar)
 	bookthiefNS   = os.Getenv(maestro.BookthiefNamespaceEnvVar)
 	bookstoreNS   = os.Getenv(maestro.BookstoreNamespaceEnvVar)
-	maxWaitString = os.Getenv(maestro.WaitForPodTimeSecondsEnvVar)
+	maxWaitString = common.GetEnv(maestro.WaitForPodTimeSecondsEnvVar, "30")
 	osmID         = os.Getenv(maestro.OsmIDEnvVar)
 
 	namespaces = []string{
@@ -82,11 +83,11 @@ func main() {
 	bookThiefCh := make(chan maestro.TestResult)
 	maestro.SearchLogsForSuccess(kubeClient, bookthiefNS, bookThiefPodName, bookThiefLabel, maxWait(), bookThiefCh)
 
-	bookBuyerSucceeded := <-bookBuyerCh
-	bookThiefSucceeded := <-bookThiefCh
+	bookBuyerTestResult := <-bookBuyerCh
+	bookThiefTestResult := <-bookThiefCh
 
 	// When both pods return success - easy - we are good to go! CI passed!
-	if bookBuyerSucceeded == maestro.TestsPassed && bookThiefSucceeded == maestro.TestsPassed {
+	if bookBuyerTestResult == maestro.TestsPassed && bookThiefTestResult == maestro.TestsPassed {
 		log.Info().Msg("Test succeeded")
 		maestro.DeleteNamespaces(kubeClient, namespaces...)
 		webhookName := fmt.Sprintf("osm-webhook-%s", osmID)
@@ -101,12 +102,12 @@ func main() {
 		maestro.TestsTimedOut: "timedout",
 	}
 
-	if bookBuyerSucceeded != maestro.TestsPassed {
-		log.Error().Msgf("Bookbuyer test %s", humanize[bookThiefSucceeded])
+	if bookBuyerTestResult != maestro.TestsPassed {
+		log.Error().Msgf("Bookbuyer test %s", humanize[bookBuyerTestResult])
 	}
 
-	if bookThiefSucceeded != maestro.TestsPassed {
-		log.Error().Msgf("BookThief test %s", humanize[bookThiefSucceeded])
+	if bookThiefTestResult != maestro.TestsPassed {
+		log.Error().Msgf("BookThief test %s", humanize[bookThiefTestResult])
 	}
 
 	fmt.Println("The integration test failed")

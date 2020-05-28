@@ -4,9 +4,6 @@ set -aueo pipefail
 
 # shellcheck disable=SC1091
 source .env
-WAIT_FOR_OK_SECONDS="${WAIT_FOR_OK_SECONDS:-default 120}"
-
-echo "WAIT_FOR_OK_SECONDS = ${WAIT_FOR_OK_SECONDS}"
 
 kubectl delete deployment bookthief -n "$BOOKTHIEF_NAMESPACE"  || true
 
@@ -66,8 +63,6 @@ spec:
           command: ["/bookthief"]
 
           env:
-            - name: "WAIT_FOR_OK_SECONDS"
-              value: "$WAIT_FOR_OK_SECONDS"
             - name: "BOOKSTORE_NAMESPACE"
               value: "$BOOKSTORE_NAMESPACE"
 
