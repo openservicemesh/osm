@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{.Values.prometheus.serviceName}}-deployment
+  name: prometheus-{{.Release.Name}}
 spec:
   replicas: 1
   strategy:
@@ -29,11 +29,11 @@ spec:
           name: prometheus-config-volume
         - mountPath: /prometheus/
           name: prometheus-storage-volume
-      serviceAccountName: {{.Values.prometheus.serviceName}}-{{.Values.osmID}}-serviceaccount
+      serviceAccountName: prometheus-{{.Release.Name}}-serviceaccount
       volumes:
       - name: prometheus-config-volume
         configMap:
           defaultMode: 420
-          name: {{.Values.prometheus.serviceName}}-server-conf
+          name: prometheus-server-conf-{{.Release.Name}}
       - name: prometheus-storage-volume
         emptyDir: {}

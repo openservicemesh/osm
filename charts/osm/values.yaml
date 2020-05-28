@@ -12,6 +12,7 @@ replicaCount: 1
 image:
   registry: smctest.azurecr.io
   pullPolicy: Always
+  tag: latest
 
 imagePullSecrets:
   - name: acr-creds
@@ -19,15 +20,11 @@ imagePullSecrets:
 initContainer: smctest.azurecr.io/init
 sidecarImage: envoyproxy/envoy-alpine:v1.14.1
 
-serviceAccount:
-  name: osm
-
 features:
   ingressv1alpha1:
     enabled: true
 
 prometheus:
-  serviceName: osm-prometheus
   port: 7070
   labelSelector: osm-prometheus-server
 
