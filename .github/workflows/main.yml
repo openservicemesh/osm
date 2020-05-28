@@ -19,7 +19,7 @@ jobs:
         BOOKSTORE_NAMESPACE: "ci-bookstore-${{ github.run_id }}-${{ github.run_number}}-tresor"
         BOOKTHIEF_NAMESPACE: "ci-bookthief-${{ github.run_id }}-${{ github.run_number}}-tresor"
         PROMETHEUS_SVC: "ci-prometheus-${{ github.run_id }}-${{ github.run_number}}-tresor"
-        OSM_ID: "osm-ci-${{ github.run_id }}-${{ github.run_number}}-tresor"
+        OSM_ID: "ci-${{ github.run_id }}-${{ github.run_number}}-tresor" # Same as namespace
         KUBECONFIG: ".kube/config"
         DOCKER_USER: ${{ secrets.DOCKER_USER }}
         DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
@@ -141,7 +141,7 @@ jobs:
         BOOKSTORE_NAMESPACE: "ci-bookstore-${{ github.run_id }}-${{ github.run_number}}-tresor"
         BOOKTHIEF_NAMESPACE: "ci-bookthief-${{ github.run_id }}-${{ github.run_number}}-tresor"
         PROMETHEUS_SVC: "ci-prometheus-${{ github.run_id }}-${{ github.run_number}}-tresor"
-        OSM_ID: "osm-ci-${{ github.run_id }}-${{ github.run_number}}-tresor"
+        OSM_ID: "ci-${{ github.run_id }}-${{ github.run_number}}-tresor" # Same as namespace
         KUBECONFIG: ".kube/config"
         DOCKER_USER: ${{ secrets.DOCKER_USER }}
         DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
@@ -174,7 +174,7 @@ jobs:
         BOOKSTORE_NAMESPACE: "ci-bookstore-${{ github.run_id }}-${{ github.run_number}}-hashivault"
         BOOKTHIEF_NAMESPACE: "ci-bookthief-${{ github.run_id }}-${{ github.run_number}}-hashivault"
         PROMETHEUS_SVC: "ci-prometheus-${{ github.run_id }}-${{ github.run_number}}-hashivault"
-        OSM_ID: "osm-ci-${{ github.run_id }}-${{ github.run_number}}-hashivault"
+        OSM_ID: "ci-${{ github.run_id }}-${{ github.run_number}}-hashivault" # Same as namespace
         KUBECONFIG: ".kube/config"
         DOCKER_USER: ${{ secrets.DOCKER_USER }}
         DOCKER_PASS: ${{ secrets.DOCKER_PASS }}

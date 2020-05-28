@@ -28,14 +28,16 @@ spec:
           args: [
             "--verbosity", "trace",
             "--osmNamespace", "{{.Values.namespace}}",
-            "--osmID", "{{.Release.Name}}",
+            "--osmID", "{{.Values.namespace}}",
             "--init-container-image", "{{.Values.image.registry}}/init",
             "--sidecar-image", "{{.Values.sidecarImage}}",
-            "--webhookName", "osm-webhook-{{.Release.Name}}",
+            "--webhookName", "osm-webhook-{{.Values.namespace}}",
+            "--caBundleSecretName", "osm-ca-{{.Values.namespace}}",
             "--certmanager", "{{.Values.certManager}}",
             "--vaultHost", "{{.Values.vault.host}}",
             "--vaultProtocol", "{{.Values.vault.protocol}}",
-            "--vaultToken", "{{.Values.vault.token}}"
+            "--vaultToken", "{{.Values.vault.token}}",
+            "--serviceCertValidityMinutes", "{{.Values.serviceCertValidityMinutes}}"
           ]
     {{- with .Values.imagePullSecrets }}
       imagePullSecrets:

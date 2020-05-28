@@ -40,17 +40,17 @@ const (
 )
 
 type installCmd struct {
-	out                     io.Writer
-	containerRegistry       string
-	containerRegistrySecret string
-	chartPath               string
-	osmID                   string
-	osmImageTag             string
-	certManager             string
-	vaultHost               string
-	vaultProtocol           string
-	vaultToken              string
-	vaultRole               string
+	out                        io.Writer
+	containerRegistry          string
+	containerRegistrySecret    string
+	chartPath                  string
+	osmImageTag                string
+	certManager                string
+	vaultHost                  string
+	vaultProtocol              string
+	vaultToken                 string
+	vaultRole                  string
+	serviceCertValidityMinutes int
 }
 
 func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
@@ -73,21 +73,18 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.StringVar(&inst.osmImageTag, "osm-image-tag", "latest", "osm image tag")
 	f.StringVar(&inst.containerRegistrySecret, "container-registry-secret", "acr-creds", "name of Kubernetes secret for container registry credentials to be created if it doesn't already exist")
 	f.StringVar(&inst.chartPath, "osm-chart-path", "", "path to osm chart to override default chart")
-	f.StringVar(&inst.osmID, "osm-id", "", "unique ID for an instance of the OSM control plane")
 	f.StringVar(&inst.certManager, "cert-manager", defaultCertManager, "certificate manager to use (tresor or vault)")
 	f.StringVar(&inst.vaultHost, "vault-host", "", "Hashicorp Vault host/service - where Vault is installed")
 	f.StringVar(&inst.vaultProtocol, "vault-protocol", defaultVaultProtocol, "protocol to use to connect to Vault")
 	f.StringVar(&inst.vaultToken, "vault-token", "", "token that should be used to connect to Vault")
 	f.StringVar(&inst.vaultRole, "vault-role", "open-service-mesh", "Vault role to be used by Open Service Mesh")
+	f.IntVar(&inst.serviceCertValidityMinutes, "service-cert-validity-minutes", int(1), "Certificate TTL in minutes")
 
 	return cmd
 }
 
 func (i *installCmd) run(installClient *helm.Install) error {
-	if i.osmID == "" {
-		i.osmID = "osm-cp-" + settings.Namespace()
-	}
-	installClient.ReleaseName = i.osmID
+	installClient.ReleaseName = settings.Namespace()
 	installClient.Namespace = settings.Namespace()
 	installClient.CreateNamespace = true
 
@@ -134,11 +131,11 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 		fmt.Sprintf("image.tag=%s", i.osmImageTag),
 		fmt.Sprintf("imagePullSecrets[0].name=%s", i.containerRegistrySecret),
 		fmt.Sprintf("namespace=%s", settings.Namespace()),
-		fmt.Sprintf("osmID=%s", i.osmID),
 		fmt.Sprintf("certManager=%s", i.certManager),
 		fmt.Sprintf("vault.host=%s", i.vaultHost),
 		fmt.Sprintf("vault.protocol=%s", i.vaultProtocol),
 		fmt.Sprintf("vault.token=%s", i.vaultToken),
+		fmt.Sprintf("serviceCertValidityMinutes=%d", i.serviceCertValidityMinutes),
 	}
 
 	for _, val := range valuesConfig {
