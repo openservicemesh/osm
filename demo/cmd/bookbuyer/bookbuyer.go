@@ -31,11 +31,15 @@ func main() {
 	successCount := 0
 	hasSucceeded := false
 	urlSuccessMap := map[string]bool{booksBought: false, buyBook: false}
+	headersMap := map[string]string{
+		"client-app": "bookbuyer", // this is a custom header
+		"user-agent": "Go-http-client/1.1"}
+	urlHeadersMap := map[string]map[string]string{booksBought: headersMap, buyBook: nil}
 	for {
 		iteration++
 		fmt.Printf("---Bookbuyer:[ %d ]-----------------------------------------\n", iteration)
-		for _, url := range []string{booksBought, buyBook} {
-			response := fetch(url)
+		for url, headersMap := range urlHeadersMap {
+			response := fetch(url, headersMap)
 			fmt.Println("")
 			if waitForOK != 0 {
 				if response == http.StatusOK {
@@ -62,9 +66,20 @@ func main() {
 	}
 }
 
-func fetch(url string) (responseCode int) {
-	fmt.Printf("Fetching %s\n", url)
-	if resp, err := http.Get(url); err != nil {
+func fetch(url string, headersMap map[string]string) (responseCode int) {
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		fmt.Printf("Error requesting %s: %s\n", url, err)
+	}
+	if headersMap != nil {
+		for headerKey, headerValue := range headersMap {
+			req.Header.Add(headerKey, headerValue)
+		}
+	}
+	fmt.Printf("Fetching %s\n", req.URL)
+	fmt.Printf("Request Headers: %v\n", req.Header)
+	if resp, err := client.Do(req); err != nil {
 		fmt.Printf("Error fetching %s: %s\n", url, err)
 	} else {
 		responseCode = resp.StatusCode

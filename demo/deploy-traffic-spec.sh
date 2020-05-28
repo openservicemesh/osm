@@ -21,6 +21,8 @@ matches:
   - GET
   headers:
   - host: "bookstore-mesh.$BOOKSTORE_NAMESPACE"
+  - "user-agent": ".*-http-client/*.*"
+  - "client-app": "bookbuyer"
 - name: buy-a-book
   pathRegex: ".*a-book.*new"
   methods: 

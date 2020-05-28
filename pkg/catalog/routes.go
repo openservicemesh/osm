@@ -12,8 +12,8 @@ const (
 	//HTTPTraffic specifies HTTP Traffic Policy
 	HTTPTraffic = "HTTPRouteGroup"
 
-	//HostHeader specifies the host header key
-	HostHeader = "host"
+	//HostHeaderKey specifies the host header key
+	HostHeaderKey = "host"
 )
 
 // ListTrafficPolicies returns all the traffic policies for a given service that Envoy proxy should be aware of.
@@ -69,7 +69,7 @@ func (mc *MeshCatalog) GetDomainForService(nsService service.NamespacedService, 
 		}
 	}
 	//service not referenced in traffic split, check if the traffic policy has the host header as a part of the route spec
-	hostName, hostExists := routeHeaders[HostHeader]
+	hostName, hostExists := routeHeaders[HostHeaderKey]
 	if hostExists {
 		return hostName, nil
 	}
