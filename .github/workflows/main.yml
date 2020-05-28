@@ -38,10 +38,10 @@ jobs:
         echo "$DOCKER_PASS" | docker login "$ACR" -u "$DOCKER_USER" --password-stdin
         docker images $ACR
 
-    - name: Set up Go 1.13
+    - name: Set up Go 1.14
       uses: actions/setup-go@v1
       with:
-        go-version: 1.13
+        go-version: 1.14
       id: go
 
     - name: Check out code into the Go module directory

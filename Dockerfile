@@ -1,6 +1,6 @@
 
 #build stage
-FROM golang:1.13.5-alpine3.11 AS builder
+FROM golang:1.14.3-alpine3.11 AS builder
 
 RUN apk update
 RUN apk add --no-cache make
@@ -11,5 +11,3 @@ ENV GOPATH=/usr/local/go/tools
 RUN go get -u golang.org/x/tools/...
 RUN go get -u golang.org/x/tools/gopls/...
 RUN go get -u github.com/go-delve/delve/cmd/dlv
-
-
