@@ -9,7 +9,7 @@ This document is the detailed design and architecture of the Open Service Mesh b
 ## Overview
 
 Open Service Mesh (OSM) is a simple, complete, and standalone [service mesh](https://en.wikipedia.org/wiki/Service_mesh) solution.
-OSM provides a fully featured control plane. It leverages an architecture based on [Envoy](https://www.envoyproxy.io/) reverse-proxy sidecar
+OSM provides a fully featured control plane. It leverages an architecture based on [Envoy](https://www.envoyproxy.io/) reverse-proxy sidecar.
 While by default OSM ships with Envoy, the design utilizes [interfaces](#interfaces), which enable integrations with any xDS compatible reverse-proxy.
 OSM relies on [SMI Spec](https://smi-spec.io/) to reference services that will participate in the service mesh.
 OSM ships out-of-the-box with all necessary components to deploy a complete service mesh spanning multiple compute platforms.
@@ -41,7 +41,7 @@ The Open Service Mesh project is composed of the following five high-level compo
   1. [Proxy control plane](#1-proxy-control-plane) - handles gRPC connections from the service mesh sidecar proxies
   2. [Certificate manager](#2-certificate-manager) - handles issuance and management of certificates
   3. [Endpoints providers](#3-endpoints-providers) - components capable of introspecting the participating compute platforms; these retrieve the IP addresses of the compute backing the services in the mesh
-  4. [Mesh specification](#4-mesh-specification) - wrapper around the [SMI Spec's Go SDK](https://github.com/deislabs/smi-sdk-go); this facility provides simple methods retrieve [SMI Spec](https://smi-spec.io/) [resources](https://github.com/deislabs/smi-spec#service-mesh-interface), abstracting away cluster and storage specifics
+  4. [Mesh specification](#4-mesh-specification) - wrapper around the [SMI Spec's Go SDK](https://github.com/deislabs/smi-sdk-go); this facility provides simple methods to retrieve [SMI Spec](https://smi-spec.io/) [resources](https://github.com/deislabs/smi-spec#service-mesh-interface), abstracting away cluster and storage specifics
   5. [Mesh catalog](#5-mesh-catalog) - the service mesh's heart; this is the central component that collects inputs from all other components and dispatches configuration to the proxy control plane
 
 
@@ -178,7 +178,7 @@ spec:
 ### Certificate lifetime
 The service certificates issued by the [Certificate Manager](#2-certificate-manager) are short-lived certificates, with a validity of approximately 48 hours.
 The short certificate expiration eliminates the need for an explicit revocation mechanism.
-Given certificate's expiration will be randomly shortened or extended from the 48 hours, in order to avoid [thundering herd problem](https://en.wikipedia.org/wiki/Thundering_herd_problem) inflicted on the underlying certificate management system. Proxy certificates, on the other hand, are long-lived certificates.
+A given certificate's expiration will be randomly shortened or extended from the 48 hours, in order to avoid [thundering herd problem](https://en.wikipedia.org/wiki/Thundering_herd_problem) inflicted on the underlying certificate management system. Proxy certificates, on the other hand, are long-lived certificates.
 
 ### Proxy Certificate, Proxy, and Endpoint relationship
 
@@ -202,7 +202,7 @@ The **intersection** of the set of issued `ProxyCertificates` ∩ connected `Pro
 
 
 ## Pod lifecycle
-When a new pod is created (via deployment) the creation is intercepted by a MutationWebhookConfiguration. The actual web server handling webhook requests is the OSM pod itself. A request to create a new pod results in patch operation adding the Envoy sidecar. The webhook handler server creates a bootstrap configuration for the Envoy proxy with two critical components:
+When a new pod is created (via deployment) the creation is intercepted by a MutationWebhookConfiguration. The actual web server handling webhook requests is the OSM pod itself. A request to create a new pod results in a patch operation adding the Envoy sidecar. The webhook handler server creates a bootstrap configuration for the Envoy proxy with two critical components:
   - address of the XDS server (this is the OSM pod itself)
   - mTLS certificate to connect to XDS (this certificate is different than the service-to-service certificates issued by OSM)
 
@@ -361,7 +361,7 @@ participating in the service mesh.
 
 In the sample `ListEndpointsForService` implementation, the Mesh Catalog loops over a list of [Endpoints providers](#3-endpoints-providers):
 ```go
-for _, provider in catalog.ListEndpointsProviders() {
+for _, provider := range catalog.ListEndpointsProviders() {
 ```
 
 For each `provider` registered in the Mesh Catalog, we invoke `ListEndpointsForService`.
@@ -423,7 +423,7 @@ type MeshSpec interface {
 
 ### Certificate Manager
 
-The `certificate.Manager()` as shown below is as simple as having a single method for issuing certificates, and another for obtaiting a notification channel.
+The `certificate.Manager` as shown below is as simple as having a single method for issuing certificates, and another for obtaiting a notification channel.
 ```go
 package certificate
 
@@ -435,7 +435,7 @@ type Manager interface {
 	// RotateCertificate rotates an existing certificate.
 	RotateCertificate(CommonName) (Certificater, error)
 
-	// GetRootCertificate returns the root certificate. 
+	// GetRootCertificate returns the root certificate.
 	GetRootCertificate() (Certificater, error)
 
 	// GetAnnouncementsChannel returns a channel, which is used to announce when changes have been made to the issued certificates.
@@ -445,7 +445,7 @@ type Manager interface {
 
 
 
-Additionally we define an interface for the `Certificate` object, which requires the following 4 methods:
+Additionally we define an interface for the `Certificate` object, which requires the following methods:
 ```go
 // Certificater is the interface declaring methods each Certificate object must have.
 type Certificater interface {
