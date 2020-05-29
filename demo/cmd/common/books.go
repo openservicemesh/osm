@@ -91,6 +91,12 @@ func GetBooks(participantName string, expectedResponseCode int) {
 
 			}
 
+			if previouslySucceeded && !succeeded {
+				// This is a regression. We had success previously, but now we are seeing a failure.
+				// Reset the success counter.
+				successCount = 0
+			}
+
 			// Keep track of the previous state so we can track a) sequential successes and b) regressions.
 			previouslySucceeded = allUrlsSucceeded(urlSuccessMap)
 		}
