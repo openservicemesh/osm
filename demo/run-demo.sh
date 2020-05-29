@@ -14,7 +14,7 @@ exit_error() {
 
 wait_for_ads_pod() {
     # Wait for POD to be ready before deploying the apps.
-    ads_pod_name=$(kubectl get pods -n osm-system-ns-1 --selector app=ads --no-headers | awk '{print $1}')
+    ads_pod_name=$(kubectl get pods -n "$K8S_NAMESPACE" --selector app=ads --no-headers | awk '{print $1}')
     expect_status="Running"
     max=12
     for x in $(seq 1 $max); do
