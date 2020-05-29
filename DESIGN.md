@@ -445,7 +445,7 @@ type Manager interface {
 
 
 
-Additionally we define an interface for the `Certificate` object, which requires the following 5 methods:
+Additionally we define an interface for the `Certificate` object, which requires the following methods:
 ```go
 // Certificater is the interface declaring methods each Certificate object must have.
 type Certificater interface {
