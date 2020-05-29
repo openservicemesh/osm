@@ -149,6 +149,7 @@ jobs:
         IS_GITHUB: true
         ACR: ${{ secrets.ACR }}
         CI_MAX_WAIT_FOR_POD_TIME_SECONDS: ${{ secrets.CI_MAX_WAIT_FOR_POD_TIME_SECONDS }}
+        CI_MIN_SUCCESS_THRESHOLD: ${{ secrets.CI_MIN_SUCCESS_THRESHOLD }}
         OSM_HUMAN_DEBUG_LOG: ${{ secrets.OSM_HUMAN_DEBUG_LOG }}
         CERT_MANAGER: "tresor"
       run: |
@@ -182,6 +183,7 @@ jobs:
         IS_GITHUB: true
         ACR: ${{ secrets.ACR }}
         CI_MAX_WAIT_FOR_POD_TIME_SECONDS: ${{ secrets.CI_MAX_WAIT_FOR_POD_TIME_SECONDS }}
+        CI_MIN_SUCCESS_THRESHOLD: ${{ secrets.CI_MIN_SUCCESS_THRESHOLD }}
         OSM_HUMAN_DEBUG_LOG: ${{ secrets.OSM_HUMAN_DEBUG_LOG }}
         CERT_MANAGER: "vault"  # enables Hashi Vault integration
         VAULT_HOST: "vault.ci-${{ github.run_id }}-${{ github.run_number}}-hashivault.svc.cluster.local"
