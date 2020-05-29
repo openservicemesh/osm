@@ -1,11 +1,11 @@
 package common
 
 const (
-	// Success is the string constant emitted at the end of the Bookbuyer logs when the test succeeded.
-	Success = "SUCCESS"
+	// Success is the string constant emitted at the end of the Bookbuyer/Bookthief logs when the test succeeded.
+	Success = "MAESTRO! THIS TEST SUCCEEDED!"
 
-	// Failure is the string constant emitted at the end of the Bookbuyer logs when the test failed.
-	Failure = "FAILURE"
+	// Failure is the string constant emitted at the end of the Bookbuyer/Bookthief logs when the test failed.
+	Failure = "MAESTRO, WE HAVE A PROBLEM! THIS TEST FAILED!"
 
 	// KubeConfigEnvVar is the environment variable holding path to kube config
 	KubeConfigEnvVar = "KUBECONFIG"

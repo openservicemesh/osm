@@ -31,5 +31,4 @@ service:
       name: bookthief
 
 env:
-  WAIT_FOR_OK_SECONDS: 120
   BOOKSTORE_SVC: bookstore
