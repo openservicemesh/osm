@@ -54,10 +54,10 @@ func GetBooks(participantName string, expectedResponseCode int) {
 	}
 
 	// Count how many times we have reached out to the bookstore
-	var iteration int64 = 0
+	var iteration int64
 
 	// Count how many times BOTH urls have returned the expected status code
-	var successCount int64 = 0
+	var successCount int64
 
 	// Keep state of the previous success/failure so we know when things regress
 	previouslySucceeded := false
@@ -134,9 +134,11 @@ func fetch(url string) (responseCode int) {
 	}
 	fmt.Printf("\nFetching %s\n", req.URL)
 	fmt.Printf("Request Headers: %v\n", req.Header)
-	if resp, err := client.Do(req); err != nil {
+	resp, err := client.Do(req)
+	if err != nil {
 		fmt.Printf("Error fetching %s: %s\n", url, err)
 	} else {
+		defer resp.Body.Close()
 		responseCode = resp.StatusCode
 		for _, hdr := range interestingHeaders {
 			fmt.Printf("%s: %s\n", hdr, getHeader(resp.Header, hdr))
