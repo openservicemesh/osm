@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/open-service-mesh/osm/ci/cmd/maestro"
+	"github.com/open-service-mesh/osm/demo/cmd/common"
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/logger"
 )
@@ -113,8 +115,8 @@ func main() {
 
 	bookBuyerLogs := maestro.GetPodLogs(kubeClient, bookbuyerNS, bookBuyerPodName, bookBuyerLabel, maestro.FailureLogsFromTimeSince)
 	bookThiefLogs := maestro.GetPodLogs(kubeClient, bookthiefNS, bookThiefPodName, bookThiefLabel, maestro.FailureLogsFromTimeSince)
-	fmt.Println("-------- Bookbuyer LOGS --------\n", bookBuyerLogs)
-	fmt.Println("-------- Bookthief LOGS --------\n", bookThiefLogs)
+	fmt.Println("-------- Bookbuyer LOGS --------\n", cutIt(bookBuyerLogs))
+	fmt.Println("-------- Bookthief LOGS --------\n", cutIt(bookThiefLogs))
 
 	osmPodName, err := maestro.GetPodName(kubeClient, osmNamespace, adsPodSelector)
 	if err != nil {
@@ -124,6 +126,22 @@ func main() {
 	fmt.Println("-------- ADS LOGS --------\n", maestro.GetPodLogs(kubeClient, osmNamespace, osmPodName, "", maestro.FailureLogsFromTimeSince))
 
 	os.Exit(1)
+}
+
+func cutItAt(logs string, at string) string {
+	firstOccurrence := strings.Index(logs, at)
+	if firstOccurrence == -1 {
+		return logs
+	}
+	return logs[:firstOccurrence+len(at)]
+}
+
+func cutIt(logs string) string {
+	firstSuccess := strings.Index(logs, common.Success)
+	if firstSuccess == -1 {
+		return cutItAt(logs, common.Failure)
+	}
+	return cutItAt(logs, common.Success)
 }
 
 func maxWait() time.Duration {
