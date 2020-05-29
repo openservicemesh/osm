@@ -7,11 +7,10 @@ import (
 	"crypto/x509/pkix"
 	"time"
 
-	"github.com/open-service-mesh/osm/pkg/certificate/providers/tresor/pem"
+	"github.com/pkg/errors"
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
-
-	"github.com/pkg/errors"
+	"github.com/open-service-mesh/osm/pkg/certificate/providers/tresor/pem"
 )
 
 // NewCA creates a new Certificate Authority.
