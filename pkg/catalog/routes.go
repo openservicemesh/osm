@@ -33,6 +33,30 @@ func (mc *MeshCatalog) ListTrafficPolicies(service service.NamespacedService) ([
 	return allTrafficPolicies, nil
 }
 
+// ListAllowedIncomingServerNames lists the server names allowed to connect to the given downstream service.
+func (mc *MeshCatalog) ListAllowedIncomingServerNames(svc service.NamespacedService) ([]string, error) {
+	serverNamesMap := make(map[string]interface{})
+	var serverNames []string
+
+	allTrafficPolicies, err := mc.ListTrafficPolicies(svc)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed listing traffic routes")
+		return nil, err
+	}
+
+	for _, trafficPolicies := range allTrafficPolicies {
+		isDestinationService := trafficPolicies.Destination.Service.Equals(svc)
+		if isDestinationService {
+			source := trafficPolicies.Source.Service
+			if _, server := serverNamesMap[source.String()]; !server {
+				serverNamesMap[source.String()] = nil
+				serverNames = append(serverNames, source.String())
+			}
+		}
+	}
+	return serverNames, nil
+}
+
 //GetWeightedClusterForService returns the weighted cluster for a given service
 func (mc *MeshCatalog) GetWeightedClusterForService(nsService service.NamespacedService) (service.WeightedCluster, error) {
 	// TODO(draychev): split namespace from the service name -- for non-K8s services

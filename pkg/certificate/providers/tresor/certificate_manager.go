@@ -35,7 +35,10 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod *time.Dur
 	now := time.Now()
 	template := x509.Certificate{
 		SerialNumber: serialNumber,
-		DNSNames:     []string{string(cn)},
+
+		// Subject Alternate Name (SAN) values. (Note that these values may not be valid
+		DNSNames: []string{string(cn)},
+
 		Subject: pkix.Name{
 			CommonName:   string(cn),
 			Organization: []string{cm.certificatesOrganization},

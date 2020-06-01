@@ -119,31 +119,8 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	return resp, nil
 }
 
-func getFilterChainMatchServerNames(proxyServiceName service.NamespacedService, catalog catalog.MeshCataloger) ([]string, error) {
-	serverNamesMap := make(map[string]interface{})
-	var serverNames []string
-
-	allTrafficPolicies, err := catalog.ListTrafficPolicies(proxyServiceName)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed listing traffic routes")
-		return nil, err
-	}
-
-	for _, trafficPolicies := range allTrafficPolicies {
-		isDestinationService := trafficPolicies.Destination.Service.Equals(proxyServiceName)
-		if isDestinationService {
-			source := trafficPolicies.Source.Service
-			if _, server := serverNamesMap[source.String()]; !server {
-				serverNamesMap[source.String()] = nil
-				serverNames = append(serverNames, source.String())
-			}
-		}
-	}
-	return serverNames, nil
-}
-
 func getInboundInMeshFilterChain(proxyServiceName service.NamespacedService, mc catalog.MeshCataloger, filterConfig *any.Any) (*listener.FilterChain, error) {
-	serverNames, err := getFilterChainMatchServerNames(proxyServiceName, mc)
+	serverNames, err := mc.ListAllowedIncomingServerNames(proxyServiceName)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to get client server names for proxy %s", proxyServiceName)
 		return nil, err

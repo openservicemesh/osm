@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	testclient "k8s.io/client-go/kubernetes/fake"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -17,6 +15,7 @@ import (
 	"github.com/open-service-mesh/osm/pkg/smi"
 	"github.com/open-service-mesh/osm/pkg/tests"
 	"github.com/open-service-mesh/osm/pkg/trafficpolicy"
+	testclient "k8s.io/client-go/kubernetes/fake"
 )
 
 var _ = Describe("Catalog tests", func() {
@@ -98,6 +97,16 @@ var _ = Describe("Catalog tests", func() {
 			actual := mc.getTrafficSpecName("HTTPRouteGroup", tests.Namespace, tests.RouteGroupName)
 			expected := trafficpolicy.TrafficSpecName(fmt.Sprintf("HTTPRouteGroup/%s/%s", tests.Namespace, tests.RouteGroupName))
 			Expect(actual).To(Equal(expected))
+		})
+	})
+
+	Context("Test ListPermittedIncomingServerNames()", func() {
+		It("returns the list of server names allowed to communicate with the hosted service", func() {
+			mc := NewFakeMeshCatalog(testclient.NewSimpleClientset())
+			actualList, err := mc.ListAllowedIncomingServerNames(tests.BookstoreService)
+			Expect(err).ToNot(HaveOccurred())
+			expectedList := []string{tests.BookbuyerService.String()}
+			Expect(actualList).To(Equal(expectedList))
 		})
 	})
 })
