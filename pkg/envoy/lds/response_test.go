@@ -32,6 +32,11 @@ var _ = Describe("Test LDS response", func() {
 
 			Expect(filterChain.FilterChainMatch.TransportProtocol).To(Equal(envoy.TransportProtocolTLS))
 			Expect(filterChain.FilterChainMatch.ServerNames).To(Equal(expectedServerNames))
+
+			// Ensure the UpstreamTlsContext.Sni field from the client matches one of the strings
+			// in the servers FilterChainMatch.ServerNames
+			tlsContext := envoy.GetUpstreamTLSContext(tests.BookbuyerService)
+			Expect(tlsContext.Sni).To(Equal(filterChain.FilterChainMatch.ServerNames[0]))
 		})
 	})
 })

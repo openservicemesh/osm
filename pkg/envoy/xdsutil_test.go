@@ -133,6 +133,14 @@ var _ = Describe("Test Envoy tools", func() {
 		})
 	})
 
+	Context("Test GetUpstreamTLSContext()", func() {
+		It("creates correct UpstreamTlsContext.Sni field", func() {
+			tlsContext := GetUpstreamTLSContext(tests.BookbuyerService)
+			// The Sni field here must match one of the strings in the ServerNames list created by lds.getInboundInMeshFilterChain()
+			Expect(tlsContext.Sni).To(Equal(tests.BookbuyerService.String()))
+		})
+	})
+
 	Context("Test getCommonTLSContext()", func() {
 		It("returns proper auth.CommonTlsContext", func() {
 			namespacedService := service.NamespacedService{
