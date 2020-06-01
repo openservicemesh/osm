@@ -107,7 +107,8 @@ var _ = Describe("Test SDS response functions", func() {
 						},
 						MatchSubjectAltNames: []*envoy_type_matcher.StringMatcher{{
 							MatchPattern: &envoy_type_matcher.StringMatcher_Exact{
-								Exact: tests.BookbuyerService.String(),
+								// The Certificates Subject Common Name will look like this: "bookbuyer.default.svc.cluster.local"
+								Exact: tests.BookbuyerService.GetCommonName().String(),
 							}},
 						},
 					},
@@ -115,7 +116,10 @@ var _ = Describe("Test SDS response functions", func() {
 			}
 
 			Expect(actual.Name).To(Equal(expected.Name))
+
+			Expect(actual.GetValidationContext().MatchSubjectAltNames[0].GetExact()).To(Equal("bookbuyer.default.svc.cluster.local"))
 			Expect(actual.GetValidationContext().MatchSubjectAltNames).To(Equal(expected.GetValidationContext().MatchSubjectAltNames))
+
 			Expect(actual.GetValidationContext()).To(Equal(expected.GetValidationContext()))
 			Expect(actual).To(Equal(expected))
 		})
