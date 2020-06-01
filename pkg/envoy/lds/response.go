@@ -146,12 +146,14 @@ func getInboundInMeshFilterChain(proxyServiceName service.NamespacedService, mc 
 				},
 			},
 		},
+
 		// The FilterChainMatch uses SNI from mTLS to match against the provided list of ServerNames.
 		// This ensures only clients authorized to talk to this listener are permitted to.
 		FilterChainMatch: &listener.FilterChainMatch{
 			ServerNames:       serverNames,
 			TransportProtocol: envoy.TransportProtocolTLS,
 		},
+
 		TransportSocket: &envoy_api_v2_core.TransportSocket{
 			Name: envoy.TransportSocketTLS,
 			ConfigType: &envoy_api_v2_core.TransportSocket_TypedConfig{
