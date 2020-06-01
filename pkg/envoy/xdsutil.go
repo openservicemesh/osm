@@ -167,7 +167,7 @@ func GetUpstreamTLSContext(serviceName service.NamespacedService) *auth.Upstream
 		// The Sni field is going to be used to do FilterChainMatch in getInboundInMeshFilterChain()
 		// The "Sni" field below of an incoming request will be matched aganist a list of server names
 		// in FilterChainMatch.ServerNames
-		Sni: serviceName.String(),
+		Sni: serviceName.GetCommonName().String(),
 	}
 	return tlsConfig
 }

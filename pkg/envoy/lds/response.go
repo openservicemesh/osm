@@ -152,7 +152,7 @@ func getInboundInMeshFilterChain(proxyServiceName service.NamespacedService, mc 
 		// This field is configured by the GetDownstreamTLSContext() function.
 		// This is not a field obtained from the mTLS Certificate.
 		FilterChainMatch: &listener.FilterChainMatch{
-			ServerNames:       toStringList(serverNames),
+			ServerNames:       toCommonNamesList(serverNames),
 			TransportProtocol: envoy.TransportProtocolTLS,
 		},
 
@@ -194,10 +194,10 @@ func getInboundIngressFilterChain(proxyServiceName service.NamespacedService, fi
 	}, nil
 }
 
-func toStringList(services []service.NamespacedService) []string {
+func toCommonNamesList(services []service.NamespacedService) []string {
 	var stringList []string
 	for _, svc := range services {
-		stringList = append(stringList, svc.String())
+		stringList = append(stringList, svc.GetCommonName().String())
 	}
 	return stringList
 }
