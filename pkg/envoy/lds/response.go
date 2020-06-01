@@ -150,7 +150,7 @@ func getInboundInMeshFilterChain(proxyServiceName service.NamespacedService, mc 
 		// The FilterChainMatch uses SNI from mTLS to match against the provided list of ServerNames.
 		// This ensures only clients authorized to talk to this listener are permitted to.
 		FilterChainMatch: &listener.FilterChainMatch{
-			ServerNames:       serverNames,
+			ServerNames:       toStringList(serverNames),
 			TransportProtocol: envoy.TransportProtocolTLS,
 		},
 
@@ -190,4 +190,12 @@ func getInboundIngressFilterChain(proxyServiceName service.NamespacedService, fi
 			},
 		},
 	}, nil
+}
+
+func toStringList(services []service.NamespacedService) []string {
+	var stringList []string
+	for _, svc := range services {
+		stringList = append(stringList, svc.String())
+	}
+	return stringList
 }

@@ -228,9 +228,12 @@ func getRootCert(cert certificate.Certificater, resourceName string, proxyServic
 	}
 
 	for _, serverName := range serverNames {
-		matchSANs = append(matchSANs, &envoy_type_matcher.StringMatcher{MatchPattern: &envoy_type_matcher.StringMatcher_Exact{
-			Exact: serverName,
-		}})
+		match := envoy_type_matcher.StringMatcher{
+			MatchPattern: &envoy_type_matcher.StringMatcher_Exact{
+				Exact: serverName.GetCommonName().String(),
+			},
+		}
+		matchSANs = append(matchSANs, &match)
 	}
 
 	secret := &auth.Secret{

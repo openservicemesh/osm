@@ -33,10 +33,10 @@ func (mc *MeshCatalog) ListTrafficPolicies(service service.NamespacedService) ([
 	return allTrafficPolicies, nil
 }
 
-// ListAllowedIncomingServerNames lists the server names allowed to connect to the given downstream service.
-func (mc *MeshCatalog) ListAllowedIncomingServerNames(svc service.NamespacedService) ([]string, error) {
+// ListAllowedIncomingServices lists the server names allowed to connect to the given downstream service.
+func (mc *MeshCatalog) ListAllowedIncomingServices(svc service.NamespacedService) ([]service.NamespacedService, error) {
 	serverNamesMap := make(map[string]interface{})
-	var serverNames []string
+	var serverNames []service.NamespacedService
 
 	allTrafficPolicies, err := mc.ListTrafficPolicies(svc)
 	if err != nil {
@@ -50,7 +50,7 @@ func (mc *MeshCatalog) ListAllowedIncomingServerNames(svc service.NamespacedServ
 			source := trafficPolicies.Source.Service
 			if _, server := serverNamesMap[source.String()]; !server {
 				serverNamesMap[source.String()] = nil
-				serverNames = append(serverNames, source.String())
+				serverNames = append(serverNames, source)
 			}
 		}
 	}
