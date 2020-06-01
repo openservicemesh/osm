@@ -1,6 +1,6 @@
 module github.com/open-service-mesh/osm
 
-go 1.13
+go 1.14
 
 require (
 	github.com/Azure/azure-sdk-for-go v34.0.0+incompatible
