@@ -3,17 +3,20 @@ package sds
 import (
 	"time"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	envoy_type_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	testclient "k8s.io/client-go/kubernetes/fake"
 
+	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/certificate"
 	"github.com/open-service-mesh/osm/pkg/certificate/providers/tresor"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 	"github.com/open-service-mesh/osm/pkg/service"
+	"github.com/open-service-mesh/osm/pkg/tests"
 )
 
 var _ = Describe("Test SDS response functions", func() {
@@ -88,7 +91,8 @@ var _ = Describe("Test SDS response functions", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			resourceName := "root-cert:blah"
-			actual, err := getRootCert(cert, resourceName)
+			mc := catalog.NewFakeMeshCatalog(testclient.NewSimpleClientset())
+			actual, err := getRootCert(cert, resourceName, tests.BookstoreService, mc)
 			Expect(err).ToNot(HaveOccurred())
 
 			expected := &auth.Secret{
@@ -101,9 +105,18 @@ var _ = Describe("Test SDS response functions", func() {
 								InlineBytes: cert.GetIssuingCA(),
 							},
 						},
+						MatchSubjectAltNames: []*envoy_type_matcher.StringMatcher{{
+							MatchPattern: &envoy_type_matcher.StringMatcher_Exact{
+								Exact: tests.BookbuyerService.String(),
+							}},
+						},
 					},
 				},
 			}
+
+			Expect(actual.Name).To(Equal(expected.Name))
+			Expect(actual.GetValidationContext().MatchSubjectAltNames).To(Equal(expected.GetValidationContext().MatchSubjectAltNames))
+			Expect(actual.GetValidationContext()).To(Equal(expected.GetValidationContext()))
 			Expect(actual).To(Equal(expected))
 		})
 	})

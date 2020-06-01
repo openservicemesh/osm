@@ -122,13 +122,15 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 func getInboundInMeshFilterChain(proxyServiceName service.NamespacedService, mc catalog.MeshCataloger, filterConfig *any.Any) (*listener.FilterChain, error) {
 	serverNames, err := mc.ListAllowedIncomingServerNames(proxyServiceName)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed to get client server names for proxy %s", proxyServiceName)
+		log.Error().Err(err).Msgf("Error getting server names for connected client proxy %s", proxyServiceName)
 		return nil, err
 	}
+
 	if len(serverNames) == 0 {
 		log.Debug().Msg("No mesh filter chain to apply")
 		return nil, nil
 	}
+
 	marshalledDownstreamTLSContext, err := envoy.MessageToAny(envoy.GetDownstreamTLSContext(proxyServiceName, true /* mTLS */))
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshalling DownstreamTLSContext object for proxy %s", proxyServiceName)

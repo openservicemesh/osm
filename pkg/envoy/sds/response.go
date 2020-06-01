@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	envoy_type_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
+
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
@@ -59,14 +61,16 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpe
 	// sent to the proxy that made the discovery request
 	for _, task := range getTasks(proxy, request, serviceForProxy) {
 		log.Info().Msgf("proxy %s (member of service %s) requested %s", proxy.GetCommonName(), serviceForProxy.String(), task.resourceName)
-		secret, err := task.structMaker(cert, task.resourceName)
+		envoyProto, err := task.makeEnvoyProto(cert, task.resourceName, serviceForProxy, catalog)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error creating cert %s for proxy %s for service %s", task.resourceName, proxy.GetCommonName(), serviceForProxy.String())
 		}
-		marshalledSecret, err := ptypes.MarshalAny(secret)
+
+		marshalledSecret, err := ptypes.MarshalAny(envoyProto)
 		if err != nil {
 			return nil, errors.Wrapf(err, "error marshaling cert %s for proxy %s for service %s", task.resourceName, proxy.GetCommonName(), serviceForProxy.String())
 		}
+
 		resp.Resources = append(resp.Resources, marshalledSecret)
 	}
 	return resp, nil
@@ -134,8 +138,8 @@ func getServiceCertTask(resourceName string, serviceForProxy service.NamespacedS
 	}
 
 	return &task{
-		resourceName: resourceName,
-		structMaker:  getServiceCertSecret,
+		resourceName:   resourceName,
+		makeEnvoyProto: getServiceCertSecret,
 	}, nil
 }
 
@@ -152,8 +156,8 @@ func getRootCertTask(resourceName string, serviceForProxy service.NamespacedServ
 	}
 
 	return &task{
-		resourceName: resourceName,
-		structMaker:  getRootCert,
+		resourceName:   resourceName,
+		makeEnvoyProto: getRootCert,
 	}, nil
 }
 
@@ -190,7 +194,7 @@ func getTasks(proxy *envoy.Proxy, request *xds.DiscoveryRequest, serviceForProxy
 
 // getServiceCertSecret creates the struct with certificates for the service, which the
 // connected Envoy proxy belongs to.
-func getServiceCertSecret(cert certificate.Certificater, name string) (*auth.Secret, error) {
+func getServiceCertSecret(cert certificate.Certificater, name string, _ service.NamespacedService, _ catalog.MeshCataloger) (*auth.Secret, error) {
 	secret := &auth.Secret{
 		// The Name field must match the tls_context.common_tls_context.tls_certificate_sds_secret_configs.name in the Envoy yaml config
 		Name: name,
@@ -212,7 +216,23 @@ func getServiceCertSecret(cert certificate.Certificater, name string) (*auth.Sec
 	return secret, nil
 }
 
-func getRootCert(cert certificate.Certificater, resourceName string) (*auth.Secret, error) {
+func getRootCert(cert certificate.Certificater, resourceName string, proxyServiceName service.NamespacedService, mc catalog.MeshCataloger) (*auth.Secret, error) {
+	var matchSANs []*envoy_type_matcher.StringMatcher
+
+	// This block constructs a list of Server Names that are allowed to connect to the downstream service.
+	// The allowed list is derived from SMI's Traffic Policy.
+	serverNames, err := mc.ListAllowedIncomingServerNames(proxyServiceName)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error getting server names for connected client proxy %s", proxyServiceName)
+		return nil, err
+	}
+
+	for _, serverName := range serverNames {
+		matchSANs = append(matchSANs, &envoy_type_matcher.StringMatcher{MatchPattern: &envoy_type_matcher.StringMatcher_Exact{
+			Exact: serverName,
+		}})
+	}
+
 	secret := &auth.Secret{
 		// The Name field must match the tls_context.common_tls_context.tls_certificate_sds_secret_configs.name
 		Name: resourceName,
@@ -223,14 +243,13 @@ func getRootCert(cert certificate.Certificater, resourceName string) (*auth.Secr
 						InlineBytes: cert.GetIssuingCA(),
 					},
 				},
-				/*MatchSubjectAltNames: []*envoy_type_matcher.StringMatcher{{
-					MatchPattern: &envoy_type_matcher.StringMatcher_Exact{
-						Exact: // TODO(draychev) enable this -- see  https://github.com/open-service-mesh/osm/issues/674
-					}},
-				},
-				*/
+
+				// Ensure the Subject Alternate Names (SAN) added by CertificateManager.IssueCertificate()
+				// matches what is allowed to connect to the downstream service as defined in TrafficPolicy.
+				MatchSubjectAltNames: matchSANs,
 			},
 		},
 	}
+
 	return secret, nil
 }
