@@ -120,7 +120,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 }
 
 func getInboundInMeshFilterChain(proxyServiceName service.NamespacedService, mc catalog.MeshCataloger, filterConfig *any.Any) (*listener.FilterChain, error) {
-	serverNames, err := mc.ListAllowedIncomingServerNames(proxyServiceName)
+	serverNames, err := mc.ListAllowedIncomingServices(proxyServiceName)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error getting server names for connected client proxy %s", proxyServiceName)
 		return nil, err
@@ -147,8 +147,10 @@ func getInboundInMeshFilterChain(proxyServiceName service.NamespacedService, mc 
 			},
 		},
 
-		// The FilterChainMatch uses SNI from mTLS to match against the provided list of ServerNames.
-		// This ensures only clients authorized to talk to this listener are permitted to.
+		// Apply this filter chain only to requests where the auth.UpstreamTlsContext.Sni matches
+		// one from the list of ServerNames provided below.
+		// This field is configured by the GetDownstreamTLSContext() function.
+		// This is not a field obtained from the mTLS Certificate.
 		FilterChainMatch: &listener.FilterChainMatch{
 			ServerNames:       toStringList(serverNames),
 			TransportProtocol: envoy.TransportProtocolTLS,
