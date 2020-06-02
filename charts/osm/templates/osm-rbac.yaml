@@ -15,7 +15,7 @@ rules:
     resources: ["jobs"]
     verbs: ["list", "get", "watch"]
   - apiGroups: [""]
-    resources: ["endpoints", "namespaces", "pods", "replicationcontrollers", "services"]
+    resources: ["endpoints", "namespaces", "pods", "replicationcontrollers", "services", "secrets"]
     verbs: ["list", "get", "watch"]
   - apiGroups: [""]
     resources: ["secrets", "configmaps"]

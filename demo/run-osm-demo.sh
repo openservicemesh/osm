@@ -103,27 +103,34 @@ fi
 if [[ "$IS_GITHUB" != "true" ]]; then
     # For Github CI we achieve these at a different time or different script
     # See .github/workflows/main.yml
-    #./demo/build-push-images.sh
+    ./demo/build-push-images.sh
     ./demo/create-container-registry-creds.sh
 else
     # This script is specifically for CI
     ./ci/create-osm-container-registry-creds.sh
 fi
 
+for ns in "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE"; do
+    kubectl create namespace "$ns"
+    kubectl label  namespaces "$ns" openservicemesh.io/monitor="$K8S_NAMESPACE"
+done
+
+# Apply SMI policies
+./demo/deploy-traffic-split.sh
+./demo/deploy-traffic-spec.sh
+./demo/deploy-traffic-target.sh
+
 # Deploys Xds and Prometheus
 echo "Certificate Manager in use: $CERT_MANAGER"
 if [ "$CERT_MANAGER" = "vault" ]; then
 bin/osm install --namespace "$K8S_NAMESPACE" --cert-manager="$CERT_MANAGER" --vault-host="$VAULT_HOST" --vault-token="$VAULT_TOKEN" --vault-protocol="$VAULT_PROTOCOL" --container-registry "$CTR_REGISTRY" --container-registry-secret "$CTR_REGISTRY_CREDS_NAME" --osm-image-tag "$CTR_TAG"
-wait_for_ads_pod
-
-./demo/deploy-apps.sh
 else
 bin/osm install --namespace "$K8S_NAMESPACE" --container-registry "$CTR_REGISTRY" --container-registry-secret "$CTR_REGISTRY_CREDS_NAME" --osm-image-tag "$CTR_TAG"
+fi
+
 wait_for_ads_pod
 
 ./demo/deploy-apps.sh
-fi
-
 
 if [[ "$IS_GITHUB" != "true" ]]; then
     watch -n5 "printf \"Namespace ${K8S_NAMESPACE}:\n\"; kubectl get pods -n ${K8S_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKBUYER_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKBUYER_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKSTORE_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKSTORE_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKTHIEF_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKTHIEF_NAMESPACE} -o wide"
