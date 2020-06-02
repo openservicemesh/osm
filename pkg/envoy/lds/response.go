@@ -120,7 +120,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 }
 
 func getInboundInMeshFilterChain(proxyServiceName service.NamespacedService, mc catalog.MeshCataloger, filterConfig *any.Any) (*listener.FilterChain, error) {
-	serverNames, err := mc.ListAllowedIncomingServices(proxyServiceName)
+	serverNames, err := mc.ListAllowedPeerServices(proxyServiceName)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error getting server names for connected client proxy %s", proxyServiceName)
 		return nil, err

@@ -104,7 +104,7 @@ var _ = Describe("Catalog tests", func() {
 	Context("Test ListPermittedIncomingServerNames()", func() {
 		It("returns the list of server names allowed to communicate with the hosted service", func() {
 			mc := NewFakeMeshCatalog(testclient.NewSimpleClientset())
-			actualList, err := mc.ListAllowedIncomingServices(tests.BookstoreService)
+			actualList, err := mc.ListAllowedPeerServices(tests.BookstoreService)
 			Expect(err).ToNot(HaveOccurred())
 			expectedList := []service.NamespacedService{tests.BookbuyerService}
 			Expect(actualList).To(Equal(expectedList))

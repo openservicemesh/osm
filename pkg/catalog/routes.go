@@ -35,9 +35,9 @@ func (mc *MeshCatalog) ListTrafficPolicies(service service.NamespacedService) ([
 	return allTrafficPolicies, nil
 }
 
-// ListAllowedIncomingServices lists the server names allowed to connect to the given downstream service.
-func (mc *MeshCatalog) ListAllowedIncomingServices(destinationService service.NamespacedService) ([]service.NamespacedService, error) {
-	allTrafficPolicies, err := mc.ListTrafficPolicies(destinationService)
+// ListAllowedPeerServices lists the server names allowed to connect to the given downstream service.
+func (mc *MeshCatalog) ListAllowedPeerServices(svc service.NamespacedService) ([]service.NamespacedService, error) {
+	allTrafficPolicies, err := mc.ListTrafficPolicies(svc)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed listing traffic routes")
 		return nil, err
@@ -45,7 +45,7 @@ func (mc *MeshCatalog) ListAllowedIncomingServices(destinationService service.Na
 
 	allowedServicesSet := mapset.NewSet()
 	for _, trafficPolicies := range allTrafficPolicies {
-		if !trafficPolicies.Destination.Service.Equals(destinationService) {
+		if !trafficPolicies.Destination.Service.Equals(svc) {
 			continue
 		}
 		allowedServicesSet.Add(trafficPolicies.Source.Service)

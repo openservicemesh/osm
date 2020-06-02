@@ -221,7 +221,7 @@ func getRootCert(cert certificate.Certificater, resourceName string, proxyServic
 
 	// This block constructs a list of Server Names that are allowed to connect to the downstream service.
 	// The allowed list is derived from SMI's Traffic Policy.
-	serverNames, err := mc.ListAllowedIncomingServices(proxyServiceName)
+	serverNames, err := mc.ListAllowedPeerServices(proxyServiceName)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error getting server names for connected client proxy %s", proxyServiceName)
 		return nil, err
