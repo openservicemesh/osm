@@ -45,6 +45,9 @@ func (mc *MeshCatalog) ListAllowedPeerServices(svc service.NamespacedService) ([
 
 	allowedServicesSet := mapset.NewSet()
 	for _, trafficPolicies := range allTrafficPolicies {
+		// Out of all Traffic Policies available - focus only on these for which we need to
+		// get allowed peer services. Ignore all other policies.
+		// i.e. - only look at policies where the destination matches the svc passed to this function.
 		if !trafficPolicies.Destination.Service.Equals(svc) {
 			continue
 		}
