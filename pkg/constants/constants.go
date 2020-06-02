@@ -106,4 +106,7 @@ const (
 
 	// WildcardClusterWeight is the default wildcard cluster weight
 	WildcardClusterWeight = 100
+
+	// PrometheusDefaultRetentionTime is the default days for which data is retained in prometheus
+	PrometheusDefaultRetentionTime = "15d"
 )

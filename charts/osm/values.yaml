@@ -26,6 +26,8 @@ features:
 prometheus:
   port: 7070
   labelSelector: osm-prometheus-server
+  retention:
+    time: 15d
 
 certManager: tresor
 

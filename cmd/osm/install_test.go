@@ -20,6 +20,7 @@ var (
 	testVaultHost      = "vault.osm.svc.cluster.local"
 	testVaultProtocol  = "http"
 	testVaultToken     = "token"
+	testRetentionTime  = "5d"
 )
 
 func TestInstallRun(t *testing.T) {
@@ -45,6 +46,7 @@ func TestInstallRun(t *testing.T) {
 		osmImageTag:                testOsmImageTag,
 		certManager:                "tresor",
 		serviceCertValidityMinutes: 1,
+		prometheusRetentionTime:    testRetentionTime,
 	}
 
 	installClient := helm.NewInstall(config)
@@ -82,6 +84,10 @@ func TestInstallRun(t *testing.T) {
 			"protocol": "",
 			"token":    "",
 		},
+		"prometheus": map[string]interface{}{
+			"retention": map[string]interface{}{
+				"time": "5d",
+			}},
 	}
 	if !cmp.Equal(rel.Config, expectedUserValues) {
 		t.Errorf("Expected helm release values to resolve as %#v\nbut got %#v", expectedUserValues, rel.Config)
@@ -119,6 +125,7 @@ func TestInstallRunVault(t *testing.T) {
 		vaultProtocol:              "http",
 		osmImageTag:                testOsmImageTag,
 		serviceCertValidityMinutes: 1,
+		prometheusRetentionTime:    testRetentionTime,
 	}
 
 	installClient := helm.NewInstall(config)
@@ -155,6 +162,10 @@ func TestInstallRunVault(t *testing.T) {
 			"protocol": "http",
 			"token":    testVaultToken,
 		},
+		"prometheus": map[string]interface{}{
+			"retention": map[string]interface{}{
+				"time": "5d",
+			}},
 	}
 	if !cmp.Equal(rel.Config, expectedUserValues) {
 		t.Errorf("Expected helm release values to resolve as %#v\nbut got %#v", expectedUserValues, rel.Config)
@@ -209,6 +220,7 @@ func TestResolveValues(t *testing.T) {
 		vaultToken:                 testVaultToken,
 		osmImageTag:                testOsmImageTag,
 		serviceCertValidityMinutes: 1,
+		prometheusRetentionTime:    testRetentionTime,
 	}
 
 	vals, err := installCmd.resolveValues()
@@ -234,6 +246,10 @@ func TestResolveValues(t *testing.T) {
 			"protocol": "http",
 			"token":    testVaultToken,
 		},
+		"prometheus": map[string]interface{}{
+			"retention": map[string]interface{}{
+				"time": "5d",
+			}},
 	}
 	if !cmp.Equal(vals, expected) {
 		t.Errorf("Expected values to resolve as %#v\nbut got %#v", expected, vals)

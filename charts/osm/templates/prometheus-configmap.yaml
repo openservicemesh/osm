@@ -58,14 +58,47 @@ data:
           regex: ([^:]+)(?::\d+)?;(\d+)
           replacement: $1:$2
           target_label: __address__
-        - action: labelmap
-          regex: __meta_kubernetes_pod_label_(.+)
         - source_labels: [__meta_kubernetes_namespace]
           action: replace
-          target_label: kubernetes_namespace
+          target_label: source_namespace
         - source_labels: [__meta_kubernetes_pod_name]
           action: replace
-          target_label: kubernetes_pod_name
+          target_label: source_pod_name
+        - regex: '(__meta_kubernetes_pod_label_app)'
+          action: labelmap
+          replacement: source_service
+        - regex: '(__meta_kubernetes_pod_label_osm_envoy_uid|__meta_kubernetes_pod_label_pod_template_hash|__meta_kubernetes_pod_label_version)'
+          action: drop
+        # for non-ReplicaSets (DaemonSet, StatefulSet)
+        # __meta_kubernetes_pod_controller_kind=DaemonSet
+        # __meta_kubernetes_pod_controller_name=foo
+        # =>
+        # workload_kind=DaemonSet
+        # workload_name=foo
+        - source_labels: [__meta_kubernetes_pod_controller_kind]
+          action: replace
+          target_label: source_workload_kind
+        - source_labels: [__meta_kubernetes_pod_controller_name]
+          action: replace
+          target_label: source_workload_name
+        # for ReplicaSets
+        # __meta_kubernetes_pod_controller_kind=ReplicaSet
+        # __meta_kubernetes_pod_controller_name=foo-bar-123
+        # =>
+        # workload_kind=Deployment
+        # workload_name=foo-bar
+        # deplyment=foo
+        - source_labels: [__meta_kubernetes_pod_controller_kind]
+          action: replace
+          regex: ^ReplicaSet$
+          target_label: source_workload_kind
+          replacement: Deployment
+        - source_labels:
+          - __meta_kubernetes_pod_controller_kind
+          - __meta_kubernetes_pod_controller_name
+          action: replace
+          regex: ^ReplicaSet;(.*)-[^-]+$
+          target_label: source_workload_name       
 
       - job_name: 'kubernetes-cadvisor'
         scheme: https

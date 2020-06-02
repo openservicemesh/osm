@@ -6,15 +6,18 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/open-service-mesh/osm/demo/cmd/common"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+
+	"github.com/open-service-mesh/osm/demo/cmd/common"
+	"github.com/open-service-mesh/osm/pkg/constants"
 )
 
 // DeployPrometheus deploys various components of prometheus service
 func DeployPrometheus(clientSet *kubernetes.Clientset, namespace string) error {
 	prometheusSvc := os.Getenv(common.PrometheusVar)
 	serviceAccount := fmt.Sprintf("%s-serviceaccount", prometheusSvc)
+	prometheusRetentionTime := common.GetEnv(common.PrometheusRetention, constants.PrometheusDefaultRetentionTime)
 	if err := deployPrometheusRBAC(clientSet, prometheusSvc, namespace, serviceAccount); err != nil {
 		return fmt.Errorf("Unable to deploy prometheus RBAC : %v", err)
 	}
@@ -24,7 +27,7 @@ func DeployPrometheus(clientSet *kubernetes.Clientset, namespace string) error {
 	if err := deployPrometheusService(clientSet, prometheusSvc, namespace); err != nil {
 		return fmt.Errorf("Unable to deploy prometheus service : %v", err)
 	}
-	if err := deployPrometheusDeployment(clientSet, prometheusSvc, namespace); err != nil {
+	if err := deployPrometheusDeployment(clientSet, prometheusSvc, namespace, prometheusRetentionTime); err != nil {
 		return fmt.Errorf("Unable to deploy prometheus deployment : %v", err)
 	}
 	return nil
@@ -38,8 +41,8 @@ func deployPrometheusService(clientSet *kubernetes.Clientset, svc string, namesp
 	return nil
 }
 
-func deployPrometheusDeployment(clientSet *kubernetes.Clientset, svc string, namespace string) error {
-	deployment := generatePrometheusDeployment(svc, namespace)
+func deployPrometheusDeployment(clientSet *kubernetes.Clientset, svc string, namespace string, retentionTime string) error {
+	deployment := generatePrometheusDeployment(svc, namespace, retentionTime)
 	if _, err := clientSet.AppsV1().Deployments(namespace).Create(context.Background(), deployment, metav1.CreateOptions{}); err != nil {
 		return err
 	}
