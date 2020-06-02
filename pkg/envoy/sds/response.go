@@ -219,7 +219,7 @@ func getServiceCertSecret(cert certificate.Certificater, name string, _ service.
 func getRootCert(cert certificate.Certificater, resourceName string, proxyServiceName service.NamespacedService, mc catalog.MeshCataloger) (*auth.Secret, error) {
 	var matchSANs []*envoy_type_matcher.StringMatcher
 
-	// This block constructs a list of Server Names that are allowed to connect to the downstream service.
+	// This block constructs a list of Server Names (peers) that are allowed to connect to the given service.
 	// The allowed list is derived from SMI's Traffic Policy.
 	serverNames, err := mc.ListAllowedPeerServices(proxyServiceName)
 	if err != nil {
