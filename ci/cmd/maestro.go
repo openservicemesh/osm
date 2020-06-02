@@ -32,7 +32,7 @@ var (
 	bookthiefNS   = os.Getenv(maestro.BookthiefNamespaceEnvVar)
 	bookstoreNS   = os.Getenv(maestro.BookstoreNamespaceEnvVar)
 	maxWaitString = common.GetEnv(maestro.WaitForPodTimeSecondsEnvVar, "30")
-	osmID         = os.Getenv(maestro.OsmIDEnvVar)
+	osmID         = osmNamespace
 
 	namespaces = []string{
 		bookbuyerNS,
