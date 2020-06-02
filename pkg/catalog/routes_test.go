@@ -101,7 +101,7 @@ var _ = Describe("Catalog tests", func() {
 		})
 	})
 
-	Context("Test ListPermittedIncomingServerNames()", func() {
+	Context("Test ListAllowedPeerServices()", func() {
 		It("returns the list of server names allowed to communicate with the hosted service", func() {
 			mc := NewFakeMeshCatalog(testclient.NewSimpleClientset())
 			actualList, err := mc.ListAllowedPeerServices(tests.BookstoreService)
