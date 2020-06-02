@@ -22,6 +22,11 @@ import (
 	"github.com/open-service-mesh/osm/pkg/trafficpolicy"
 )
 
+const (
+	testHeaderKey1 = "test-header-1"
+	testHeaderKey2 = "test-header-2"
+)
+
 var _ = Describe("Construct RoutePolicyWeightedClusters object", func() {
 	Context("Testing the creating of a RoutePolicyWeightedClusters object", func() {
 		It("Returns RoutePolicyWeightedClusters", func() {
@@ -82,6 +87,9 @@ var _ = Describe("AggregateRoutesByDomain", func() {
 			routePolicy := trafficpolicy.Route{
 				PathRegex: "/update-books-bought",
 				Methods:   []string{"GET"},
+				Headers: map[string]string{
+					testHeaderKey1: "This is a test header 1",
+				},
 			}
 			weightedClustersMap.Add(weightedCluster)
 
@@ -91,6 +99,7 @@ var _ = Describe("AggregateRoutesByDomain", func() {
 			Expect(len(domainRoutesMap["bookstore.mesh"])).To(Equal(3))
 			Expect(domainRoutesMap["bookstore.mesh"][routePolicy.PathRegex].Route).To(Equal(routePolicy))
 			Expect(domainRoutesMap["bookstore.mesh"][routePolicy.PathRegex].WeightedClusters.Cardinality()).To(Equal(1))
+			Expect(domainRoutesMap["bookstore.mesh"][routePolicy.PathRegex].Route).To(Equal(trafficpolicy.Route{PathRegex: "/update-books-bought", Methods: []string{"GET"}, Headers: map[string]string{testHeaderKey1: "This is a test header 1"}}))
 			Expect(domainRoutesMap["bookstore.mesh"][routePolicy.PathRegex].WeightedClusters.Equal(weightedClustersMap)).To(Equal(true))
 		})
 	})
@@ -102,6 +111,9 @@ var _ = Describe("AggregateRoutesByDomain", func() {
 			routePolicy := trafficpolicy.Route{
 				PathRegex: "/update-books-bought",
 				Methods:   []string{"GET"},
+				Headers: map[string]string{
+					testHeaderKey2: "This is a test header 2",
+				},
 			}
 			weightedClustersMap.Add(weightedCluster)
 
@@ -110,7 +122,7 @@ var _ = Describe("AggregateRoutesByDomain", func() {
 			Expect(len(domainRoutesMap)).To(Equal(1))
 			Expect(len(domainRoutesMap["bookstore.mesh"])).To(Equal(3))
 			Expect(domainRoutesMap["bookstore.mesh"][routePolicy.PathRegex].WeightedClusters.Cardinality()).To(Equal(2))
-			Expect(domainRoutesMap["bookstore.mesh"][routePolicy.PathRegex].Route).To(Equal(trafficpolicy.Route{PathRegex: "/update-books-bought", Methods: []string{"GET", "GET"}}))
+			Expect(domainRoutesMap["bookstore.mesh"][routePolicy.PathRegex].Route).To(Equal(trafficpolicy.Route{PathRegex: "/update-books-bought", Methods: []string{"GET", "GET"}, Headers: map[string]string{testHeaderKey1: "This is a test header 1", testHeaderKey2: "This is a test header 2"}}))
 			Expect(domainRoutesMap["bookstore.mesh"][routePolicy.PathRegex].WeightedClusters.Equal(weightedClustersMap)).To(Equal(true))
 		})
 	})

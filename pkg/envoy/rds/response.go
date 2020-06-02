@@ -98,6 +98,12 @@ func aggregateRoutesByDomain(domainRoutesMap map[string]map[string]trafficpolicy
 		// add the cluster to the existing route
 		routePolicyWeightedCluster.WeightedClusters.Add(weightedCluster)
 		routePolicyWeightedCluster.Route.Methods = append(routePolicyWeightedCluster.Route.Methods, routePolicy.Methods...)
+		if routePolicyWeightedCluster.Route.Headers == nil {
+			routePolicyWeightedCluster.Route.Headers = make(map[string]string)
+		}
+		for headerKey, headerValue := range routePolicy.Headers {
+			routePolicyWeightedCluster.Route.Headers[headerKey] = headerValue
+		}
 		domainRoutesMap[domain][routePolicy.PathRegex] = routePolicyWeightedCluster
 	} else {
 		// no route found, create a new route and cluster mapping on domain
