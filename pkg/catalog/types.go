@@ -45,7 +45,7 @@ type MeshCataloger interface {
 	// ListTrafficPolicies returns all the traffic policies for a given service that Envoy proxy should be aware of.
 	ListTrafficPolicies(service.NamespacedService) ([]trafficpolicy.TrafficTarget, error)
 
-	// ListAllowedIncomingServices lists the server names allowed to connect to the given downstream service.
+	// ListAllowedIncomingServices lists the services allowed to connect to the given downstream service (argument to this function).
 	ListAllowedIncomingServices(service.NamespacedService) ([]service.NamespacedService, error)
 
 	// ListEndpointsForService returns the list of provider endpoints corresponding to a service

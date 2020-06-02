@@ -3,6 +3,8 @@ package catalog
 import (
 	"fmt"
 
+	mapset "github.com/deckarep/golang-set"
+
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/service"
 	"github.com/open-service-mesh/osm/pkg/trafficpolicy"
@@ -34,27 +36,28 @@ func (mc *MeshCatalog) ListTrafficPolicies(service service.NamespacedService) ([
 }
 
 // ListAllowedIncomingServices lists the server names allowed to connect to the given downstream service.
-func (mc *MeshCatalog) ListAllowedIncomingServices(svc service.NamespacedService) ([]service.NamespacedService, error) {
-	serverNamesMap := make(map[string]interface{})
-	var serverNames []service.NamespacedService
-
-	allTrafficPolicies, err := mc.ListTrafficPolicies(svc)
+func (mc *MeshCatalog) ListAllowedIncomingServices(destinationService service.NamespacedService) ([]service.NamespacedService, error) {
+	allTrafficPolicies, err := mc.ListTrafficPolicies(destinationService)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed listing traffic routes")
 		return nil, err
 	}
 
+	allowedServicesSet := mapset.NewSet()
 	for _, trafficPolicies := range allTrafficPolicies {
-		isDestinationService := trafficPolicies.Destination.Service.Equals(svc)
-		if isDestinationService {
-			source := trafficPolicies.Source.Service
-			if _, server := serverNamesMap[source.String()]; !server {
-				serverNamesMap[source.String()] = nil
-				serverNames = append(serverNames, source)
-			}
+		if !trafficPolicies.Destination.Service.Equals(destinationService) {
+			continue
 		}
+		allowedServicesSet.Add(trafficPolicies.Source.Service)
 	}
-	return serverNames, nil
+
+	// Convert the set of interfaces to a list of namespaced services
+	var allowedServices []service.NamespacedService
+	for svc := range allowedServicesSet.Iter() {
+		allowedServices = append(allowedServices, svc.(service.NamespacedService))
+	}
+
+	return allowedServices, nil
 }
 
 //GetWeightedClusterForService returns the weighted cluster for a given service
