@@ -3,9 +3,9 @@ package main
 import (
 	"bytes"
 	"io/ioutil"
-	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chartutil"
 	kubefake "helm.sh/helm/v3/pkg/kube/fake"
@@ -20,6 +20,7 @@ var (
 	testVaultHost      = "vault.osm.svc.cluster.local"
 	testVaultProtocol  = "http"
 	testVaultToken     = "token"
+	testRetentionTime  = "5d"
 )
 
 func TestInstallRun(t *testing.T) {
@@ -38,13 +39,14 @@ func TestInstallRun(t *testing.T) {
 	}
 
 	installCmd := &installCmd{
-		out:                     out,
-		chartPath:               "testdata/test-chart",
-		containerRegistry:       testRegistry,
-		containerRegistrySecret: testRegistrySecret,
-		osmID:                   "testid-123",
-		osmImageTag:             testOsmImageTag,
-		certManager:             "tresor",
+		out:                        out,
+		chartPath:                  "testdata/test-chart",
+		containerRegistry:          testRegistry,
+		containerRegistrySecret:    testRegistrySecret,
+		osmImageTag:                testOsmImageTag,
+		certManager:                "tresor",
+		serviceCertValidityMinutes: 1,
+		prometheusRetentionTime:    testRetentionTime,
 	}
 
 	installClient := helm.NewInstall(config)
@@ -58,9 +60,9 @@ func TestInstallRun(t *testing.T) {
 		t.Errorf("Expected %s, got %s", expectedOutput, result)
 	}
 
-	rel, err := config.Releases.Get(installCmd.osmID, 1)
+	rel, err := config.Releases.Get(settings.Namespace(), 1)
 	if err != nil {
-		t.Errorf("Expected helm release %s, got err %s", installCmd.osmID, err)
+		t.Errorf("Expected helm release %s, got err %s", settings.Namespace(), err)
 	}
 
 	//user did not set any values. Used same defaults from test-chart so this is empty.
@@ -75,16 +77,21 @@ func TestInstallRun(t *testing.T) {
 				"name": testRegistrySecret,
 			},
 		},
-		"namespace": settings.Namespace(),
-		"osmID":     installCmd.osmID,
+		"namespace":                  settings.Namespace(),
+		"serviceCertValidityMinutes": int64(1),
 		"vault": map[string]interface{}{
 			"host":     "",
 			"protocol": "",
 			"token":    "",
 		},
+		"prometheus": map[string]interface{}{
+			"retention": map[string]interface{}{
+				"time": "5d",
+			}},
 	}
-	if !reflect.DeepEqual(rel.Config, expectedUserValues) {
+	if !cmp.Equal(rel.Config, expectedUserValues) {
 		t.Errorf("Expected helm release values to resolve as %#v\nbut got %#v", expectedUserValues, rel.Config)
+		t.Errorf("This is the diff: %s", cmp.Diff(rel.Config, expectedUserValues))
 	}
 
 	if rel.Namespace != settings.Namespace() {
@@ -108,15 +115,17 @@ func TestInstallRunVault(t *testing.T) {
 	}
 
 	installCmd := &installCmd{
-		out:                     out,
-		chartPath:               "testdata/test-chart",
-		containerRegistry:       testRegistry,
-		containerRegistrySecret: testRegistrySecret,
-		certManager:             "vault",
-		vaultHost:               testVaultHost,
-		vaultToken:              testVaultToken,
-		vaultProtocol:           "http",
-		osmImageTag:             testOsmImageTag,
+		out:                        out,
+		chartPath:                  "testdata/test-chart",
+		containerRegistry:          testRegistry,
+		containerRegistrySecret:    testRegistrySecret,
+		certManager:                "vault",
+		vaultHost:                  testVaultHost,
+		vaultToken:                 testVaultToken,
+		vaultProtocol:              "http",
+		osmImageTag:                testOsmImageTag,
+		serviceCertValidityMinutes: 1,
+		prometheusRetentionTime:    testRetentionTime,
 	}
 
 	installClient := helm.NewInstall(config)
@@ -130,9 +139,9 @@ func TestInstallRunVault(t *testing.T) {
 		t.Errorf("Expected %s, got %s", expectedOutput, result)
 	}
 
-	rel, err := config.Releases.Get(installCmd.osmID, 1)
+	rel, err := config.Releases.Get(settings.Namespace(), 1)
 	if err != nil {
-		t.Errorf("Expected helm release %s, got err %s", installCmd.osmID, err)
+		t.Errorf("Expected helm release %s, got err %s", settings.Namespace(), err)
 	}
 
 	expectedUserValues := map[string]interface{}{
@@ -146,16 +155,21 @@ func TestInstallRunVault(t *testing.T) {
 				"name": testRegistrySecret,
 			},
 		},
-		"namespace": settings.Namespace(),
-		"osmID":     installCmd.osmID,
+		"namespace":                  settings.Namespace(),
+		"serviceCertValidityMinutes": int64(1),
 		"vault": map[string]interface{}{
 			"host":     testVaultHost,
 			"protocol": "http",
 			"token":    testVaultToken,
 		},
+		"prometheus": map[string]interface{}{
+			"retention": map[string]interface{}{
+				"time": "5d",
+			}},
 	}
-	if !reflect.DeepEqual(rel.Config, expectedUserValues) {
+	if !cmp.Equal(rel.Config, expectedUserValues) {
 		t.Errorf("Expected helm release values to resolve as %#v\nbut got %#v", expectedUserValues, rel.Config)
+		t.Errorf("This is the diff: %s", cmp.Diff(rel.Config, expectedUserValues))
 	}
 
 	if rel.Namespace != settings.Namespace() {
@@ -198,14 +212,15 @@ func TestInstallRunVaultNoArgs(t *testing.T) {
 func TestResolveValues(t *testing.T) {
 
 	installCmd := &installCmd{
-		containerRegistry:       testRegistry,
-		containerRegistrySecret: testRegistrySecret,
-		osmID:                   "helloworld",
-		certManager:             "vault",
-		vaultHost:               testVaultHost,
-		vaultProtocol:           testVaultProtocol,
-		vaultToken:              testVaultToken,
-		osmImageTag:             testOsmImageTag,
+		containerRegistry:          testRegistry,
+		containerRegistrySecret:    testRegistrySecret,
+		certManager:                "vault",
+		vaultHost:                  testVaultHost,
+		vaultProtocol:              testVaultProtocol,
+		vaultToken:                 testVaultToken,
+		osmImageTag:                testOsmImageTag,
+		serviceCertValidityMinutes: 1,
+		prometheusRetentionTime:    testRetentionTime,
 	}
 
 	vals, err := installCmd.resolveValues()
@@ -224,15 +239,20 @@ func TestResolveValues(t *testing.T) {
 				"name": testRegistrySecret,
 			},
 		},
-		"namespace": settings.Namespace(),
-		"osmID":     installCmd.osmID,
+		"namespace":                  settings.Namespace(),
+		"serviceCertValidityMinutes": int64(1),
 		"vault": map[string]interface{}{
 			"host":     testVaultHost,
 			"protocol": "http",
 			"token":    testVaultToken,
 		},
+		"prometheus": map[string]interface{}{
+			"retention": map[string]interface{}{
+				"time": "5d",
+			}},
 	}
-	if !reflect.DeepEqual(vals, expected) {
+	if !cmp.Equal(vals, expected) {
 		t.Errorf("Expected values to resolve as %#v\nbut got %#v", expected, vals)
+		t.Errorf("This is the diff: %s", cmp.Diff(vals, expected))
 	}
 }

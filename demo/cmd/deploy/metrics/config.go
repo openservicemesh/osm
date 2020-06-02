@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	defaultPrometheusImage     = "prom/prometheus:v2.2.1"
+	defaultPrometheusImage     = "prom/prometheus:v2.18.1"
 	prometheusPort             = 7070
 	prometheusScrapeAnnotation = "prometheus.io/scrape"
 	prometheusPortAnnotation   = "prometheus.io/port"
@@ -119,7 +119,7 @@ func generatePrometheusService(svc string, namespace string) *apiv1.Service {
 	return service
 }
 
-func generatePrometheusDeployment(svc string, namespace string) *appsv1.Deployment {
+func generatePrometheusDeployment(svc string, namespace string, retentionTime string) *appsv1.Deployment {
 	replicas := int32(1)
 	defalutMode := int32(420)
 	deployment := &appsv1.Deployment{
@@ -154,6 +154,7 @@ func generatePrometheusDeployment(svc string, namespace string) *appsv1.Deployme
 							Args: []string{
 								fmt.Sprintf("--config.file=/etc/%s/prometheus.yml", svc),
 								fmt.Sprintf("--storage.tsdb.path=/%s/", svc),
+								fmt.Sprintf("--storage.tsdb.retention.time=%s", retentionTime),
 								fmt.Sprintf("--web.listen-address=:%s", strconv.Itoa(prometheusPort)),
 							},
 							Ports: []apiv1.ContainerPort{

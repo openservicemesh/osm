@@ -5,7 +5,6 @@
 # TODO: rename ads pod/deployment/service to osm
 name: ads
 namespace: osm-system
-osmID: osm-local
 
 replicaCount: 1
 
@@ -27,6 +26,8 @@ features:
 prometheus:
   port: 7070
   labelSelector: osm-prometheus-server
+  retention:
+    time: 15d
 
 certManager: tresor
 
@@ -34,3 +35,5 @@ vault:
   host:
   protocol: http
   token:
+
+serviceCertValidityMinutes: 1

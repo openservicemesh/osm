@@ -37,9 +37,6 @@ const (
 
 	// WaitForPodTimeSecondsEnvVar is the environment variable for the time we will wait on the pod to be ready.
 	WaitForPodTimeSecondsEnvVar = "CI_MAX_WAIT_FOR_POD_TIME_SECONDS"
-
-	// OsmIDEnvVar is the environment variable for the ID of an OSM instance
-	OsmIDEnvVar = "OSM_ID"
 )
 
 var (

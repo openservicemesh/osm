@@ -19,7 +19,7 @@ jobs:
         BOOKSTORE_NAMESPACE: "ci-bookstore-${{ github.run_id }}-${{ github.run_number}}-tresor"
         BOOKTHIEF_NAMESPACE: "ci-bookthief-${{ github.run_id }}-${{ github.run_number}}-tresor"
         PROMETHEUS_SVC: "ci-prometheus-${{ github.run_id }}-${{ github.run_number}}-tresor"
-        OSM_ID: "osm-ci-${{ github.run_id }}-${{ github.run_number}}-tresor"
+        OSM_ID: "ci-${{ github.run_id }}-${{ github.run_number}}-tresor" # Same as namespace
         KUBECONFIG: ".kube/config"
         DOCKER_USER: ${{ secrets.DOCKER_USER }}
         DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
@@ -141,7 +141,7 @@ jobs:
         BOOKSTORE_NAMESPACE: "ci-bookstore-${{ github.run_id }}-${{ github.run_number}}-tresor"
         BOOKTHIEF_NAMESPACE: "ci-bookthief-${{ github.run_id }}-${{ github.run_number}}-tresor"
         PROMETHEUS_SVC: "ci-prometheus-${{ github.run_id }}-${{ github.run_number}}-tresor"
-        OSM_ID: "osm-ci-${{ github.run_id }}-${{ github.run_number}}-tresor"
+        OSM_ID: "ci-${{ github.run_id }}-${{ github.run_number}}-tresor" # Same as namespace
         KUBECONFIG: ".kube/config"
         DOCKER_USER: ${{ secrets.DOCKER_USER }}
         DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
@@ -149,6 +149,7 @@ jobs:
         IS_GITHUB: true
         ACR: ${{ secrets.ACR }}
         CI_MAX_WAIT_FOR_POD_TIME_SECONDS: ${{ secrets.CI_MAX_WAIT_FOR_POD_TIME_SECONDS }}
+        CI_MIN_SUCCESS_THRESHOLD: ${{ secrets.CI_MIN_SUCCESS_THRESHOLD }}
         OSM_HUMAN_DEBUG_LOG: ${{ secrets.OSM_HUMAN_DEBUG_LOG }}
         CERT_MANAGER: "tresor"
       run: |
@@ -174,7 +175,7 @@ jobs:
         BOOKSTORE_NAMESPACE: "ci-bookstore-${{ github.run_id }}-${{ github.run_number}}-hashivault"
         BOOKTHIEF_NAMESPACE: "ci-bookthief-${{ github.run_id }}-${{ github.run_number}}-hashivault"
         PROMETHEUS_SVC: "ci-prometheus-${{ github.run_id }}-${{ github.run_number}}-hashivault"
-        OSM_ID: "osm-ci-${{ github.run_id }}-${{ github.run_number}}-hashivault"
+        OSM_ID: "ci-${{ github.run_id }}-${{ github.run_number}}-hashivault" # Same as namespace
         KUBECONFIG: ".kube/config"
         DOCKER_USER: ${{ secrets.DOCKER_USER }}
         DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
@@ -182,6 +183,7 @@ jobs:
         IS_GITHUB: true
         ACR: ${{ secrets.ACR }}
         CI_MAX_WAIT_FOR_POD_TIME_SECONDS: ${{ secrets.CI_MAX_WAIT_FOR_POD_TIME_SECONDS }}
+        CI_MIN_SUCCESS_THRESHOLD: ${{ secrets.CI_MIN_SUCCESS_THRESHOLD }}
         OSM_HUMAN_DEBUG_LOG: ${{ secrets.OSM_HUMAN_DEBUG_LOG }}
         CERT_MANAGER: "vault"  # enables Hashi Vault integration
         VAULT_HOST: "vault.ci-${{ github.run_id }}-${{ github.run_number}}-hashivault.svc.cluster.local"

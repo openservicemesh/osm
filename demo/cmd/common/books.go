@@ -14,7 +14,7 @@ import (
 
 var (
 	sleepDurationBetweenRequestsSecondsStr = GetEnv("CI_SLEEP_BETWEEN_REQUESTS_SECONDS", "3")
-	minSuccessThresholdStr                 = GetEnv("CI_MIN_SUCCESS_THRESHOLD", "3")
+	minSuccessThresholdStr                 = GetEnv("CI_MIN_SUCCESS_THRESHOLD", "1")
 	maxIterationsStr                       = GetEnv("CI_MAX_ITERATIONS_THRESHOLD", "30")
 	bookstoreServiceName                   = GetEnv("BOOKSTORE_SVC", "bookstore-mesh")
 	bookstoreNamespace                     = os.Getenv(BookstoreNamespaceEnvVar)
