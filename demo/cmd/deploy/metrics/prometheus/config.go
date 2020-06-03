@@ -11,10 +11,14 @@ import (
 )
 
 const (
-	defaultPrometheusImage     = "prom/prometheus:v2.18.1"
-	prometheusPort             = 7070
-	prometheusScrapeAnnotation = "prometheus.io/scrape"
-	prometheusPortAnnotation   = "prometheus.io/port"
+	defaultPrometheusImage = "prom/prometheus:v2.18.1"
+
+	// PrometheusScrapeAnnotation is the annotation to scrape prometheus
+	PrometheusScrapeAnnotation = "prometheus.io/scrape"
+	// PrometheusPortAnnotation is the annotation for the port to scrape prometheus on
+	PrometheusPortAnnotation = "prometheus.io/port"
+	// PrometheusPort is the port on which Prometheus is exposed
+	PrometheusPort = 7070
 )
 
 func generatePrometheusRBAC(svc string, namespace string, serviceAccountName string) (*rbacv1.ClusterRole, *rbacv1.ClusterRoleBinding, *apiv1.ServiceAccount) {
@@ -104,15 +108,15 @@ func generatePrometheusService(svc string, namespace string) *apiv1.Service {
 				"app": fmt.Sprintf("%s-server", svc),
 			},
 			Ports: []apiv1.ServicePort{
-				{Port: prometheusPort},
+				{Port: PrometheusPort},
 			},
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
 			Name:      fmt.Sprintf("%s-service", svc),
 			Annotations: map[string]string{
-				prometheusScrapeAnnotation: strconv.FormatBool(true),
-				prometheusPortAnnotation:   strconv.Itoa(prometheusPort),
+				PrometheusScrapeAnnotation: strconv.FormatBool(true),
+				PrometheusPortAnnotation:   strconv.Itoa(PrometheusPort),
 			},
 		},
 	}
@@ -155,10 +159,10 @@ func generatePrometheusDeployment(svc string, namespace string, retentionTime st
 								fmt.Sprintf("--config.file=/etc/%s/prometheus.yml", svc),
 								fmt.Sprintf("--storage.tsdb.path=/%s/", svc),
 								fmt.Sprintf("--storage.tsdb.retention.time=%s", retentionTime),
-								fmt.Sprintf("--web.listen-address=:%s", strconv.Itoa(prometheusPort)),
+								fmt.Sprintf("--web.listen-address=:%s", strconv.Itoa(PrometheusPort)),
 							},
 							Ports: []apiv1.ContainerPort{
-								{ContainerPort: prometheusPort},
+								{ContainerPort: PrometheusPort},
 							},
 							VolumeMounts: []apiv1.VolumeMount{
 								{Name: fmt.Sprintf("%s-config-volume", svc), MountPath: fmt.Sprintf("/etc/%s/", svc)},
