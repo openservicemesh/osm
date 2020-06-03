@@ -1,45 +1,83 @@
 package sds
 
 import (
+	"context"
+	"fmt"
 	"time"
 
-	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	envoy_type_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/open-service-mesh/osm/pkg/constants"
+	"github.com/open-service-mesh/osm/pkg/service"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/certificate"
 	"github.com/open-service-mesh/osm/pkg/certificate/providers/tresor"
 	"github.com/open-service-mesh/osm/pkg/envoy"
-	"github.com/open-service-mesh/osm/pkg/service"
 	"github.com/open-service-mesh/osm/pkg/tests"
 )
 
 var _ = Describe("Test SDS response functions", func() {
-	Context("Test getResourceKindFromRequest()", func() {
+
+	prep := func(resourceNames []string, namespace, svcName string) (certificate.Certificater, *envoy.Proxy, catalog.MeshCataloger) {
+		serviceAccount := tests.BookbuyerServiceAccountName
+		proxyID := uuid.New().String()
+		podName := uuid.New().String()
+
+		newPod := tests.NewPodTestFixture(namespace, podName)
+		newPod.Labels[constants.EnvoyUniqueIDLabelName] = proxyID
+		newPod.Labels[tests.SelectorKey] = tests.SelectorValue
+		kubeClient := testclient.NewSimpleClientset()
+		_, err := kubeClient.CoreV1().Pods(namespace).Create(context.TODO(), &newPod, metav1.CreateOptions{})
+		Expect(err).ToNot(HaveOccurred())
+
+		// Create the SERVICE
+		selector := map[string]string{tests.SelectorKey: tests.SelectorValue}
+		svc := tests.NewServiceFixture(svcName, namespace, selector)
+		_, err = kubeClient.CoreV1().Services(namespace).Create(context.TODO(), svc, metav1.CreateOptions{})
+		Expect(err).ToNot(HaveOccurred())
+
+		cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s", proxyID, serviceAccount, namespace))
+
+		proxy := envoy.NewProxy(cn, nil)
+		cache := make(map[certificate.CommonName]certificate.Certificater)
+		validityPeriod := 1 * time.Hour
+		certManager := tresor.NewFakeCertManager(&cache, validityPeriod)
+
+		cert, err := certManager.IssueCertificate(cn, nil)
+		Expect(err).ToNot(HaveOccurred())
+
+		mc := catalog.NewFakeMeshCatalog(kubeClient)
+
+		return cert, proxy, mc
+	}
+
+	Context("Test getRequestedCertType()", func() {
 		It("returns service cert", func() {
-			actual, err := getResourceKindFromRequest("service-cert:blahBlahBlahCert")
+			actual, err := getRequestedCertType("service-cert:blahBlahBlahCert")
 			Expect(err).ToNot(HaveOccurred())
-			Expect(actual).To(Equal(envoy.ServiceCertPrefix))
+			Expect(actual).To(Equal(envoy.ServiceCertType))
 		})
 
 		It("returns root cert", func() {
-			actual, err := getResourceKindFromRequest("root-cert:blahBlahBlahCert")
+			actual, err := getRequestedCertType("root-cert:blahBlahBlahCert")
 			Expect(err).ToNot(HaveOccurred())
-			Expect(actual).To(Equal(envoy.RootCertPrefix))
+			Expect(actual).To(Equal(envoy.RootCertType))
 		})
 
 		It("returns an error", func() {
-			_, err := getResourceKindFromRequest("blahBlahBlahCert")
+			_, err := getRequestedCertType("blahBlahBlahCert")
 			Expect(err).To(HaveOccurred())
 		})
 
 		It("returns an error", func() {
-			_, err := getResourceKindFromRequest("service-cert:blah:BlahBlahCert")
+			_, err := getRequestedCertType("service-cert:blah:BlahBlahCert")
 			Expect(err).To(HaveOccurred())
 		})
 	})
@@ -125,70 +163,47 @@ var _ = Describe("Test SDS response functions", func() {
 		})
 	})
 
-	Context("Test getRootCertTask()", func() {
-		It("returns a properly formatted task", func() {
-			resourceName := "root-cert:ns/svc"
-			serviceForProxy := service.NamespacedService{Namespace: "ns", Service: "svc"}
-			proxyCN := certificate.CommonName("blah")
-
-			actualTask, err := getRootCertTask(resourceName, serviceForProxy, proxyCN)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(actualTask.resourceName).To(Equal("root-cert:ns/svc"))
-		})
-
-		It("returns an error", func() {
-			resourceName := "root-cert:ns"
-			serviceForProxy := service.NamespacedService{Namespace: "ns", Service: "svc"}
-			proxyCN := certificate.CommonName("blah")
-
-			_, err := getRootCertTask(resourceName, serviceForProxy, proxyCN)
-			Expect(err).To(HaveOccurred())
-		})
-	})
-
-	Context("Test getTasks()", func() {
+	Context("Test getEnvoySDSSecrets()", func() {
 		It("returns a list of root certificate issuance tasks", func() {
-			proxy := envoy.NewProxy("cn", nil)
-			req := envoy_api_v2.DiscoveryRequest{
-				ResourceNames: []string{"root-cert:ns/svc"},
-				TypeUrl:       "",
-			}
-			serviceForProxy := service.NamespacedService{
-				Namespace: "ns",
-				Service:   "svc",
-			}
-			actual := getTasks(proxy, &req, serviceForProxy)
+			namespace := uuid.New().String()
+			serviceName := uuid.New().String()
+			resourceNames := []string{fmt.Sprintf("root-cert:%s/%s", namespace, serviceName)}
+			cert, proxy, mc := prep(resourceNames, namespace, serviceName)
+
+			actual := getEnvoySDSSecrets(cert, proxy, resourceNames, mc)
+
 			Expect(len(actual)).To(Equal(1))
-			Expect(actual[0].resourceName).To(Equal("root-cert:ns/svc"))
+			Expect(actual[0].Name).To(Equal(fmt.Sprintf("root-cert:%s/%s", namespace, serviceName)))
+			// Expect(actual[0].GetTlsCertificate()).ToNot(BeNil())
+			Expect(actual[0].GetTlsCertificate()).To(BeNil())
+			Expect(actual[0].GetValidationContext().TrustedCa.GetInlineBytes()).ToNot(BeNil())
 		})
 
 		It("returns a list of service certificate tasks", func() {
-			proxy := envoy.NewProxy("cn", nil)
-			req := envoy_api_v2.DiscoveryRequest{
-				ResourceNames: []string{"service-cert:ns/svc"},
-				TypeUrl:       "",
-			}
-			serviceForProxy := service.NamespacedService{
-				Namespace: "ns",
-				Service:   "svc",
-			}
-			actual := getTasks(proxy, &req, serviceForProxy)
+			namespace := uuid.New().String()
+			serviceName := uuid.New().String()
+			resourceNames := []string{fmt.Sprintf("service-cert:%s/%s", namespace, serviceName)}
+			cert, proxy, mc := prep(resourceNames, namespace, serviceName)
+
+			actual := getEnvoySDSSecrets(cert, proxy, resourceNames, mc)
+
 			Expect(len(actual)).To(Equal(1))
-			Expect(actual[0].resourceName).To(Equal("service-cert:ns/svc"))
+			Expect(actual[0].Name).To(Equal(fmt.Sprintf("service-cert:%s/%s", namespace, serviceName)))
+			Expect(actual[0].GetTlsCertificate().PrivateKey.Specifier).ToNot(BeNil())
+			Expect(actual[0].GetTlsCertificate().CertificateChain.Specifier).ToNot(BeNil())
+			Expect(actual[0].GetValidationContext()).To(BeNil())
 		})
 
 		It("returns empty list - the proxy requested something that does not belong to that proxy", func() {
-			proxy := envoy.NewProxy("cn", nil)
-			req := envoy_api_v2.DiscoveryRequest{
-				ResourceNames: []string{"service-cert:ns/svc"},
-				TypeUrl:       "",
-			}
-			serviceForProxy := service.NamespacedService{
-				Namespace: "nsXXX",
-				Service:   "svcXXX",
-			}
-			actual := getTasks(proxy, &req, serviceForProxy)
+			namespace := uuid.New().String()
+			serviceName := uuid.New().String()
+			resourceNames := []string{"service-cert:SomeOtherNamespace/SomeOtherService"}
+			cert, proxy, mc := prep(resourceNames, namespace, serviceName)
+
+			actual := getEnvoySDSSecrets(cert, proxy, resourceNames, mc)
+
 			Expect(len(actual)).To(Equal(0))
 		})
 	})
+
 })

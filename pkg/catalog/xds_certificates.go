@@ -21,12 +21,12 @@ const (
 
 // GetServiceFromEnvoyCertificate returns the single service given Envoy is a member of based on the certificate provided, which is a cert issued to an Envoy for XDS communication (not Envoy-to-Envoy).
 func (mc *MeshCatalog) GetServiceFromEnvoyCertificate(cn certificate.CommonName) (*service.NamespacedService, error) {
-	service, err := getServiceFromCertificate(cn, mc.kubeClient)
+	svc, err := getServiceFromCertificate(cn, mc.kubeClient)
 	if err != nil {
 		return nil, err
 	}
 
-	return service, nil
+	return svc, nil
 }
 
 func getServiceFromCertificate(cn certificate.CommonName, kubeClient kubernetes.Interface) (*service.NamespacedService, error) {
@@ -130,10 +130,10 @@ func listServicesForPod(pod *v1.Pod, kubeClient kubernetes.Interface) ([]v1.Serv
 
 	podLabels := mapStringStringToSet(pod.Labels)
 
-	for _, service := range svcList.Items {
-		serviceLabelSet := mapStringStringToSet(service.Spec.Selector)
+	for _, svc := range svcList.Items {
+		serviceLabelSet := mapStringStringToSet(svc.Spec.Selector)
 		if serviceLabelSet.Intersect(podLabels).Cardinality() > 0 {
-			serviceList = append(serviceList, service)
+			serviceList = append(serviceList, svc)
 		}
 	}
 

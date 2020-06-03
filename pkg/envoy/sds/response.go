@@ -5,13 +5,12 @@ import (
 	"fmt"
 	"strings"
 
-	envoy_type_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
-
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	envoy_type_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
 	"github.com/golang/protobuf/ptypes"
-	"github.com/pkg/errors"
+	"github.com/golang/protobuf/ptypes/any"
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/certificate"
@@ -21,59 +20,52 @@ import (
 )
 
 var (
-	rootCertPrefix    = fmt.Sprintf("%s%s", envoy.RootCertPrefix, envoy.Separator)
-	serviceCertPrefix = fmt.Sprintf("%s%s", envoy.ServiceCertPrefix, envoy.Separator)
+	rootCertPrefix    = fmt.Sprintf("%s%s", envoy.RootCertType, envoy.Separator)
+	serviceCertPrefix = fmt.Sprintf("%s%s", envoy.ServiceCertType, envoy.Separator)
 )
 
-var validResourceKinds = map[envoy.XDSResourceKind]interface{}{
-	envoy.ServiceCertPrefix: nil,
-	envoy.RootCertPrefix:    nil,
-}
-
-// For each kind of a Resource requested we define a function that handles the response
-var taskMakerFuncs = map[envoy.XDSResourceKind]func(resourceName string, serviceForProxy service.NamespacedService, proxyCN certificate.CommonName) (*task, error){
-	envoy.ServiceCertPrefix: getServiceCertTask,
-	envoy.RootCertPrefix:    getRootCertTask,
+var validResourceTypes = map[envoy.SDSCertType]interface{}{
+	envoy.ServiceCertType: nil,
+	envoy.RootCertType:    nil,
 }
 
 // NewResponse creates a new Secrets Discovery Response.
 func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpec, proxy *envoy.Proxy, request *xds.DiscoveryRequest) (*xds.DiscoveryResponse, error) {
-	svc, err := catalog.GetServiceFromEnvoyCertificate(proxy.GetCommonName())
+	log.Info().Msgf("Composing SDS Discovery Response for proxy: %s", proxy.GetCommonName())
+
+	serviceForProxy, err := catalog.GetServiceFromEnvoyCertificate(proxy.GetCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up Service for Envoy with CN=%q", proxy.GetCommonName())
 		return nil, err
 	}
-	serviceForProxy := *svc
 
-	log.Info().Msgf("Composing SDS Discovery Response for proxy: %s", proxy.GetCommonName())
-
-	cert, err := catalog.GetCertificateForService(serviceForProxy)
+	cert, err := catalog.GetCertificateForService(*serviceForProxy)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error obtaining a certificate for client %s", proxy.GetCommonName())
 		return nil, err
 	}
 
-	resp := &xds.DiscoveryResponse{
-		TypeUrl: string(envoy.TypeSDS),
-	}
-
 	// Iterate over the list of tasks and create response structs to be
 	// sent to the proxy that made the discovery request
-	for _, task := range getTasks(proxy, request, serviceForProxy) {
-		log.Info().Msgf("proxy %s (member of service %s) requested %s", proxy.GetCommonName(), serviceForProxy.String(), task.resourceName)
-		envoyProto, err := task.makeEnvoyProto(cert, task.resourceName, serviceForProxy, catalog)
-		if err != nil {
-			return nil, errors.Wrapf(err, "error creating cert %s for proxy %s for service %s", task.resourceName, proxy.GetCommonName(), serviceForProxy.String())
-		}
+	var resources []*any.Any
 
+	requestedCerts := request.ResourceNames
+	log.Trace().Msgf("Received SDS request for ResourceNames (certificates) %+v", requestedCerts)
+
+	// request.ResourceNames is expected to be a list of either "service-cert:namespace/service" or "root-cert:namespace/service"
+	for _, envoyProto := range getEnvoySDSSecrets(cert, proxy, requestedCerts, catalog) {
 		marshalledSecret, err := ptypes.MarshalAny(envoyProto)
 		if err != nil {
-			return nil, errors.Wrapf(err, "error marshaling cert %s for proxy %s for service %s", task.resourceName, proxy.GetCommonName(), serviceForProxy.String())
+			log.Error().Err(err).Msgf("Error marshaling Envoy secret %s for proxy %s for service %s", envoyProto.Name, proxy.GetCommonName(), serviceForProxy.String())
+			continue
 		}
 
-		resp.Resources = append(resp.Resources, marshalledSecret)
+		resources = append(resources, marshalledSecret)
 	}
-	return resp, nil
+	return &xds.DiscoveryResponse{
+		TypeUrl:   string(envoy.TypeSDS),
+		Resources: resources,
+	}, nil
 }
 
 func getServiceFromServiceCertificateRequest(resourceName string) (service.NamespacedService, error) {
@@ -106,95 +98,96 @@ func getServiceFromRootCertificateRequest(resourceName string) (service.Namespac
 	}, nil
 }
 
-func getResourceKindFromRequest(resourceName string) (envoy.XDSResourceKind, error) {
-	// The resourceName is of the format "service-cert:namespace/serviceName"
-	// The first string before the colon is the resource kind
-	// Resource kind could be one of "service-cert" or "root-cert"
-	split := strings.Split(resourceName, envoy.Separator)
+func getRequestedCertType(requestedCertificate string) (envoy.SDSCertType, error) {
+	// The requestedCertificate is of the format "service-cert:namespace/serviceName"
+	// The first string before the colon is the resource certType
+	// requestedCertificate could be one of "service-cert" or "root-cert"
+	split := strings.Split(requestedCertificate, envoy.Separator)
 	if len(split) != 2 {
-		log.Error().Msgf("Invalid resourceName requested %q; Expected strings separated by a single colon ':'", resourceName)
+		log.Error().Msgf("Invalid requestedCertificate requested %q; Expected strings separated by a single colon ':'", requestedCertificate)
 		return "", errInvalidResourceName
 	}
 
-	kind := envoy.XDSResourceKind(split[0])
-
-	if _, ok := validResourceKinds[kind]; !ok {
+	certType := envoy.SDSCertType(split[0])
+	if _, ok := validResourceTypes[certType]; !ok {
 		return "", errInvalidResourceKind
 	}
 
-	return kind, nil
+	return certType, nil
 }
 
-func getServiceCertTask(resourceName string, serviceForProxy service.NamespacedService, proxyCN certificate.CommonName) (*task, error) {
-	requestFor, err := getServiceFromServiceCertificateRequest(resourceName)
+func getEnvoySDSSecrets(cert certificate.Certificater, proxy *envoy.Proxy, requestedCerts []string, catalog catalog.MeshCataloger) []*auth.Secret {
+	// requestedCerts is expected to be a list of either "service-cert:namespace/service" or "root-cert:namespace/service"
+
+	var envoySecrets []*auth.Secret
+
+	svc, err := catalog.GetServiceFromEnvoyCertificate(proxy.GetCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error parsing SDS request for resource name: %q", resourceName)
-		return nil, err
+		log.Error().Err(err).Msgf("Error looking up Service for Envoy with CN=%q", proxy.GetCommonName())
+		return nil
 	}
+	serviceForProxy := *svc
 
-	if serviceForProxy != requestFor {
-		log.Error().Msgf("Proxy %s (service %s) requested service certificate %s; this is not allowed", proxyCN, serviceForProxy, requestFor)
-		return nil, errUnauthorizedRequestForServiceFromProxy
-	}
-
-	return &task{
-		resourceName:   resourceName,
-		makeEnvoyProto: getServiceCertSecret,
-	}, nil
-}
-
-func getRootCertTask(resourceName string, serviceForProxy service.NamespacedService, proxyCN certificate.CommonName) (*task, error) {
-	requestFor, err := getServiceFromRootCertificateRequest(resourceName)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error parsing SDS request for root certificate: %q", resourceName)
-		return nil, err
-	}
-
-	if serviceForProxy != requestFor {
-		log.Error().Msgf("Proxy %s (service %s) requested root certificate %s; this is not allowed", proxyCN, serviceForProxy, requestFor)
-		return nil, errUnauthorizedRequestForRootCertFromProxy
-	}
-
-	return &task{
-		resourceName:   resourceName,
-		makeEnvoyProto: getRootCert,
-	}, nil
-}
-
-// getTasks creates a list of tasks (list of structs to be generated) based on the
-// proxy that made a discovery request and the discovery request itself
-func getTasks(proxy *envoy.Proxy, request *xds.DiscoveryRequest, serviceForProxy service.NamespacedService) []task {
-	var tasks []task
-
-	// The Envoy makes a request for a list of resources (aka certificates), which we will send as a response.
-	for _, resourceName := range request.ResourceNames {
-		// resourceKind could be either "service-cert" or "root-cert"
-		resourceKind, err := getResourceKindFromRequest(resourceName)
+	// The Envoy makes a request for a list of resources (aka certificates), which we will send as a response to the SDS request.
+	for _, requestedCertificate := range requestedCerts {
+		// requestedCertType could be either "service-cert" or "root-cert"
+		requestedCertType, err := getRequestedCertType(requestedCertificate)
 		if err != nil {
-			log.Error().Err(err).Msgf("Invalid resource kind requested: %q", resourceName)
+			log.Error().Err(err).Msgf("Invalid resource kind requested: %q", requestedCertificate)
 			continue
 		}
 
-		taskMakerFunc, ok := taskMakerFuncs[resourceKind]
-		if !ok {
-			log.Error().Msgf("Request for an unrecognized resource: %s", resourceKind)
-			continue
+		if requestedCertType == envoy.ServiceCertType {
+			// Make sure that the Envoy requesting a cert for a service indeed belongs to that service
+			requestForService, err := getServiceFromServiceCertificateRequest(requestedCertificate)
+			if err != nil {
+				log.Error().Err(err).Msgf("Error parsing SDS request for certificate type: %q", requestedCertificate)
+				continue
+			}
+
+			if serviceForProxy != requestForService {
+				log.Error().Msgf("Proxy %s (service %s) requested service certificate %s; this is not allowed", proxy.GetCommonName(), serviceForProxy, requestForService)
+				continue
+			}
+
+			log.Info().Msgf("proxy %s (member of service %s) requested %s", proxy.GetCommonName(), serviceForProxy.String(), requestedCertificate)
+			envoySecret, err := getServiceCertSecret(cert, requestedCertificate)
+			if err != nil {
+				log.Error().Err(err).Msgf("Error creating cert %s for proxy %s for service %s", requestedCertificate, proxy.GetCommonName(), serviceForProxy.String())
+				continue
+			}
+			envoySecrets = append(envoySecrets, envoySecret)
 		}
 
-		task, err := taskMakerFunc(resourceName, serviceForProxy, proxy.GetCommonName())
-		if err != nil {
-			log.Error().Err(err).Msgf("Error creating SDS task for requested resourceName %q for proxy %q", resourceName, proxy.GetCommonName())
-			continue
+		if requestedCertType == envoy.RootCertType {
+			// Make sure that the Envoy requesting a cert for a service indeed belongs to that service
+			requestForService, err := getServiceFromRootCertificateRequest(requestedCertificate)
+			if err != nil {
+				log.Error().Err(err).Msgf("Error parsing SDS request for certificate type: %q", requestedCertificate)
+				continue
+			}
+
+			if serviceForProxy != requestForService {
+				log.Error().Msgf("Proxy %s (service %s) requested service certificate %s; this is not allowed", proxy.GetCommonName(), serviceForProxy, requestForService)
+				continue
+			}
+
+			log.Info().Msgf("proxy %s (member of service %s) requested %s", proxy.GetCommonName(), serviceForProxy.String(), requestedCertificate)
+			envoySecret, err := getRootCert(cert, requestedCertificate, serviceForProxy, catalog)
+			if err != nil {
+				log.Error().Err(err).Msgf("Error creating cert %s for proxy %s for service %s", requestedCertificate, proxy.GetCommonName(), serviceForProxy.String())
+				continue
+			}
+			envoySecrets = append(envoySecrets, envoySecret)
 		}
 
-		tasks = append(tasks, *task)
 	}
-	return tasks
+	return envoySecrets
 }
 
 // getServiceCertSecret creates the struct with certificates for the service, which the
 // connected Envoy proxy belongs to.
-func getServiceCertSecret(cert certificate.Certificater, name string, _ service.NamespacedService, _ catalog.MeshCataloger) (*auth.Secret, error) {
+func getServiceCertSecret(cert certificate.Certificater, name string) (*auth.Secret, error) {
 	secret := &auth.Secret{
 		// The Name field must match the tls_context.common_tls_context.tls_certificate_sds_secret_configs.name in the Envoy yaml config
 		Name: name,
