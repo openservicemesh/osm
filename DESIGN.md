@@ -279,8 +279,11 @@ type MeshCataloger interface {
 	// ListTrafficPolicies constructs a list of all the traffic policies /routes the given Envoy proxy should be aware of.
 	ListTrafficPolicies(endpoint.NamespacedService) ([]endpoint.TrafficPolicy, error)
 
-	// ListAllowedPeerServices lists the server names allowed to connect to the given downstream service.
-	ListAllowedPeerServices(service.NamespacedService) ([]service.NamespacedService, error) {
+	// ListAllowedInboundServices lists the inbound services allowed to connect to the given service.
+	ListAllowedInboundServices(service.NamespacedService) ([]service.NamespacedService, error)
+
+	// ListAllowedOutboundServices lists the services the given service is allowed outbound connections to.
+	ListAllowedOutboundServices(service.NamespacedService) ([]service.NamespacedService, error)
 
 	// GetCertificateForService returns the SSL Certificate for the given service.
 	// This certificate will be used for service-to-service mTLS.

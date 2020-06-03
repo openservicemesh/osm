@@ -48,7 +48,7 @@ var _ = Describe("Test XDS certificate tooling", func() {
 		})
 
 		It("returns an error with an invalid CN", func() {
-			service, err := mc.GetServiceFromEnvoyCertificate("blah")
+			service, err := mc.GetServiceFromEnvoyCertificate("getAllowedDirectionalServices")
 			Expect(err).To(HaveOccurred())
 			Expect(service).To(BeNil())
 		})

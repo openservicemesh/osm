@@ -52,8 +52,11 @@ func (mc *MeshCatalog) ListTrafficPolicies(service service.NamespacedService) ([
 	return allTrafficPolicies, nil
 }
 
-// ListAllowedPeerServices lists the server names allowed to connect to the given downstream service.
-func (mc *MeshCatalog) ListAllowedPeerServices(svc service.NamespacedService) ([]service.NamespacedService, error) {
+// This function returns the list of connected services.
+// This is a bimodal function:
+//   - it could list services that are allowed to connect to the given service (inbound)
+//   - it could list services that the given service can connect to (outbound)
+func (mc *MeshCatalog) getAllowedDirectionalServices(svc service.NamespacedService, directn direction) ([]service.NamespacedService, error) {
 	allTrafficPolicies, err := mc.ListTrafficPolicies(svc)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed listing traffic routes")
@@ -61,14 +64,21 @@ func (mc *MeshCatalog) ListAllowedPeerServices(svc service.NamespacedService) ([
 	}
 
 	allowedServicesSet := mapset.NewSet()
-	for _, trafficPolicies := range allTrafficPolicies {
-		// Out of all Traffic Policies available - focus only on these for which we need to
-		// get allowed peer services. Ignore all other policies.
-		// i.e. - only look at policies where the destination matches the svc passed to this function.
-		if !trafficPolicies.Destination.Service.Equals(svc) {
-			continue
+
+	for _, policy := range allTrafficPolicies {
+		if directn == inbound {
+			// we are looking for services that can connect to the given service
+			if policy.Destination.Service.Equals(svc) {
+				allowedServicesSet.Add(policy.Source.Service)
+			}
 		}
-		allowedServicesSet.Add(trafficPolicies.Source.Service)
+
+		if directn == outbound {
+			// we are looking for services the given svc can connect to
+			if policy.Source.Service.Equals(svc) {
+				allowedServicesSet.Add(policy.Destination.Service)
+			}
+		}
 	}
 
 	// Convert the set of interfaces to a list of namespaced services
@@ -77,7 +87,25 @@ func (mc *MeshCatalog) ListAllowedPeerServices(svc service.NamespacedService) ([
 		allowedServices = append(allowedServices, svc.(service.NamespacedService))
 	}
 
+	msg := map[direction]string{
+		inbound:  "Allowed inbound services for destination service %q: %+v",
+		outbound: "Allowed outbound services from source %q: %+v",
+	}[directn]
+
+	log.Trace().Msgf(msg, svc, allowedServices)
+
 	return allowedServices, nil
+}
+
+// ListAllowedInboundServices lists the inbound services allowed to connect to the given service.
+func (mc *MeshCatalog) ListAllowedInboundServices(destinationService service.NamespacedService) ([]service.NamespacedService, error) {
+	return mc.getAllowedDirectionalServices(destinationService, inbound)
+
+}
+
+// ListAllowedOutboundServices lists the services the given service is allowed outbound connections to.
+func (mc *MeshCatalog) ListAllowedOutboundServices(sourceService service.NamespacedService) ([]service.NamespacedService, error) {
+	return mc.getAllowedDirectionalServices(sourceService, outbound)
 }
 
 //GetWeightedClusterForService returns the weighted cluster for a given service
