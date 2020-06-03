@@ -84,10 +84,10 @@ make build-osm
 
 if [[ "$IS_GITHUB" != "true" ]]; then
     # In Github CI we always use a new namespace - so this is not necessary
-    bin/osm admin delete-osm "$OSM_ID" || true
+    bin/osm admin delete-osm --namespace "$K8S_NAMESPACE" || true
     ./demo/clean-kubernetes.sh
 else
-    bin/osm admin delete-osm "$OSM_ID" || true
+    bin/osm admin delete-osm --namespace "$K8S_NAMESPACE" || true
 fi
 
 # The demo uses osm's namespace as defined by environment variables, K8S_NAMESPACE

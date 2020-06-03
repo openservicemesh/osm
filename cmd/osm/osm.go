@@ -24,9 +24,10 @@ var settings = cli.New()
 
 func newRootCmd(config *action.Configuration, out io.Writer, args []string) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "osm",
-		Short: "Install and manage open service mesh",
-		Long:  globalUsage,
+		Use:          "osm",
+		Short:        "Install and manage open service mesh",
+		Long:         globalUsage,
+		SilenceUsage: true,
 	}
 
 	cmd.PersistentFlags().AddGoFlagSet(goflag.CommandLine)

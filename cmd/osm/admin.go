@@ -17,7 +17,7 @@ of osm installations.
 func newAdminCmd(config *action.Configuration, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "admin",
-		Short: "admin osm installs",
+		Short: "manage osm installations",
 		Long:  adminDescription,
 		Args:  require.NoArgs,
 	}
