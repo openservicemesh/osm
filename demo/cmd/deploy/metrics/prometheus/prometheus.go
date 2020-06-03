@@ -77,7 +77,7 @@ func deployPrometheusRBAC(clientSet *kubernetes.Clientset, svc string, namespace
 
 func getPrometheusYamlConfig() (string, error) {
 	var prometheusYaml string
-	fileContent, err := ioutil.ReadFile("./demo/cmd/deploy/metrics/prometheus-config.txt")
+	fileContent, err := ioutil.ReadFile("./demo/cmd/deploy/metrics/prometheus/prometheus-config.txt")
 	if err != nil {
 		err = fmt.Errorf("Unable to get prometheus config : %v", err)
 		return prometheusYaml, err

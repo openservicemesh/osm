@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/open-service-mesh/osm/demo/cmd/common"
-	"github.com/open-service-mesh/osm/demo/cmd/deploy/metrics"
+	prometheus "github.com/open-service-mesh/osm/demo/cmd/deploy/metrics/prometheus"
 	"github.com/open-service-mesh/osm/demo/cmd/deploy/xds"
 )
 
@@ -21,7 +21,7 @@ func main() {
 		fmt.Println("Error creating xds: ", err)
 		os.Exit(1)
 	}
-	err = metrics.DeployPrometheus(clientset, namespace)
+	err = prometheus.DeployPrometheus(clientset, namespace)
 	if err != nil {
 		fmt.Println("Error creating prometheus: ", err)
 		os.Exit(1)
