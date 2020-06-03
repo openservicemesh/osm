@@ -119,39 +119,18 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	return resp, nil
 }
 
-func getFilterChainMatchServerNames(proxyServiceName service.NamespacedService, catalog catalog.MeshCataloger) ([]string, error) {
-	serverNamesMap := make(map[string]interface{})
-	var serverNames []string
-
-	allTrafficPolicies, err := catalog.ListTrafficPolicies(proxyServiceName)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed listing traffic routes")
-		return nil, err
-	}
-
-	for _, trafficPolicies := range allTrafficPolicies {
-		isDestinationService := trafficPolicies.Destination.Service.Equals(proxyServiceName)
-		if isDestinationService {
-			source := trafficPolicies.Source.Service
-			if _, server := serverNamesMap[source.String()]; !server {
-				serverNamesMap[source.String()] = nil
-				serverNames = append(serverNames, source.String())
-			}
-		}
-	}
-	return serverNames, nil
-}
-
 func getInboundInMeshFilterChain(proxyServiceName service.NamespacedService, mc catalog.MeshCataloger, filterConfig *any.Any) (*listener.FilterChain, error) {
-	serverNames, err := getFilterChainMatchServerNames(proxyServiceName, mc)
+	serverNames, err := mc.ListAllowedPeerServices(proxyServiceName)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed to get client server names for proxy %s", proxyServiceName)
+		log.Error().Err(err).Msgf("Error getting server names for connected client proxy %s", proxyServiceName)
 		return nil, err
 	}
+
 	if len(serverNames) == 0 {
 		log.Debug().Msg("No mesh filter chain to apply")
 		return nil, nil
 	}
+
 	marshalledDownstreamTLSContext, err := envoy.MessageToAny(envoy.GetDownstreamTLSContext(proxyServiceName, true /* mTLS */))
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshalling DownstreamTLSContext object for proxy %s", proxyServiceName)
@@ -167,12 +146,16 @@ func getInboundInMeshFilterChain(proxyServiceName service.NamespacedService, mc 
 				},
 			},
 		},
-		// The FilterChainMatch uses SNI from mTLS to match against the provided list of ServerNames.
-		// This ensures only clients authorized to talk to this listener are permitted to.
+
+		// Apply this filter chain only to requests where the auth.UpstreamTlsContext.Sni matches
+		// one from the list of ServerNames provided below.
+		// This field is configured by the GetDownstreamTLSContext() function.
+		// This is not a field obtained from the mTLS Certificate.
 		FilterChainMatch: &listener.FilterChainMatch{
-			ServerNames:       serverNames,
+			ServerNames:       toCommonNamesList(serverNames),
 			TransportProtocol: envoy.TransportProtocolTLS,
 		},
+
 		TransportSocket: &envoy_api_v2_core.TransportSocket{
 			Name: envoy.TransportSocketTLS,
 			ConfigType: &envoy_api_v2_core.TransportSocket_TypedConfig{
@@ -209,4 +192,12 @@ func getInboundIngressFilterChain(proxyServiceName service.NamespacedService, fi
 			},
 		},
 	}, nil
+}
+
+func toCommonNamesList(services []service.NamespacedService) []string {
+	var stringList []string
+	for _, svc := range services {
+		stringList = append(stringList, svc.GetCommonName().String())
+	}
+	return stringList
 }

@@ -1,7 +1,6 @@
 package catalog
 
 import (
-	"sync"
 	"time"
 
 	"k8s.io/client-go/kubernetes"
@@ -29,7 +28,6 @@ type MeshCatalog struct {
 	certManager        certificate.Manager
 	ingressMonitor     ingress.Monitor
 
-	servicesMutex    sync.Mutex
 	certificateCache map[service.NamespacedService]certificate.Certificater
 
 	expectedProxies      map[certificate.CommonName]expectedProxy
@@ -46,6 +44,9 @@ type MeshCataloger interface {
 
 	// ListTrafficPolicies returns all the traffic policies for a given service that Envoy proxy should be aware of.
 	ListTrafficPolicies(service.NamespacedService) ([]trafficpolicy.TrafficTarget, error)
+
+	// ListAllowedPeerServices lists the services allowed to connect to the given downstream service (argument to this function).
+	ListAllowedPeerServices(service.NamespacedService) ([]service.NamespacedService, error)
 
 	// ListEndpointsForService returns the list of provider endpoints corresponding to a service
 	ListEndpointsForService(service.Name) ([]endpoint.Endpoint, error)

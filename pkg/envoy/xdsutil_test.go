@@ -122,14 +122,29 @@ var _ = Describe("Test Envoy tools", func() {
 					},
 					AlpnProtocols: nil,
 				},
-				Sni:                "default/bookstore",
+				Sni:                tests.BookstoreService.GetCommonName().String(), // "bookstore.default.svc.cluster.local"
 				AllowRenegotiation: false,
 			}
+
+			// Ensure the SNI is in the expected format!
+			Expect(tlsContext.Sni).To(Equal(tests.BookstoreService.GetCommonName().String()))
+			Expect(tlsContext.Sni).To(Equal("bookstore.default.svc.cluster.local"))
+
 			Expect(tlsContext.CommonTlsContext.TlsParams).To(Equal(expectedTLSContext.CommonTlsContext.TlsParams))
 			Expect(tlsContext.CommonTlsContext.TlsCertificates).To(Equal(expectedTLSContext.CommonTlsContext.TlsCertificates))
 			Expect(tlsContext.CommonTlsContext.TlsCertificateSdsSecretConfigs).To(Equal(expectedTLSContext.CommonTlsContext.TlsCertificateSdsSecretConfigs))
 			Expect(tlsContext.CommonTlsContext.ValidationContextType).To(Equal(expectedTLSContext.CommonTlsContext.ValidationContextType))
 			Expect(*tlsContext).To(Equal(expectedTLSContext))
+		})
+	})
+
+	Context("Test GetUpstreamTLSContext()", func() {
+		It("creates correct UpstreamTlsContext.Sni field", func() {
+			tlsContext := GetUpstreamTLSContext(tests.BookbuyerService)
+			// The Sni field here must match one of the strings in the ServerNames list created by lds.getInboundInMeshFilterChain()
+			Expect(tlsContext.Sni).To(Equal(tests.BookbuyerService.GetCommonName().String()))
+			// To show the actual string for human comprehension
+			Expect(tlsContext.Sni).To(Equal("bookbuyer.default.svc.cluster.local"))
 		})
 	})
 

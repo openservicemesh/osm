@@ -163,7 +163,11 @@ func GetDownstreamTLSContext(serviceName service.NamespacedService, mTLS bool) *
 func GetUpstreamTLSContext(serviceName service.NamespacedService) *auth.UpstreamTlsContext {
 	tlsConfig := &auth.UpstreamTlsContext{
 		CommonTlsContext: getCommonTLSContext(serviceName),
-		Sni:              serviceName.String(),
+
+		// The Sni field is going to be used to do FilterChainMatch in getInboundInMeshFilterChain()
+		// The "Sni" field below of an incoming request will be matched aganist a list of server names
+		// in FilterChainMatch.ServerNames
+		Sni: serviceName.GetCommonName().String(),
 	}
 	return tlsConfig
 }
