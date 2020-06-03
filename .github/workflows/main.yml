@@ -199,5 +199,5 @@ jobs:
         mkdir -p ".kube"
         echo "$KUBE_CONFIG" | base64 -d > "$KUBECONFIG"
         echo "$DOCKER_PASS" | docker login "$ACR" -u "$DOCKER_USER" --password-stdin
-        ./demo/run-demo.sh
+        ./demo/run-osm-demo.sh
         go run ./ci/cmd/maestro.go
