@@ -1,7 +1,12 @@
 name: Go
-on: [push, pull_request]
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
 jobs:
-
   build:
     name: Build
     runs-on: ubuntu-latest
