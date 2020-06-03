@@ -102,14 +102,12 @@ var (
 	TrafficPolicy = trafficpolicy.TrafficTarget{
 		Name: TrafficTargetName,
 		Destination: trafficpolicy.TrafficResource{
-			ServiceAccount: BookstoreServiceAccountName,
-			Namespace:      Namespace,
-			Service:        BookstoreService,
+			Namespace: Namespace,
+			Service:   BookstoreService,
 		},
 		Source: trafficpolicy.TrafficResource{
-			ServiceAccount: BookbuyerServiceAccountName,
-			Namespace:      Namespace,
-			Service:        BookbuyerService,
+			Namespace: Namespace,
+			Service:   BookbuyerService,
 		},
 		Route: trafficpolicy.Route{
 			PathRegex: BookstoreBuyPath,
