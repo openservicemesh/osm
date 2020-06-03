@@ -1,7 +1,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: prometheus-{{ .Release.Name }}
+  name: {{.Release.Name}}-prometheus
 rules:
   - apiGroups: [""]
     resources: ["nodes", "node/proxy", "services", "endpoints", "pods"]
@@ -15,17 +15,17 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: prometheus-{{ .Release.Name }}
+  name: {{.Release.Name}}-prometheus
 subjects:
   - kind: ServiceAccount
-    name: prometheus-{{ .Release.Name }}-serviceaccount
+    name: osm-prometheus-serviceaccount
     namespace: {{ .Values.namespace }}
 roleRef:
   kind: ClusterRole
-  name: prometheus-{{ .Release.Name }}
+  name: {{.Release.Name}}-prometheus
   apiGroup: rbac.authorization.k8s.io
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: prometheus-{{.Release.Name}}-serviceaccount
+  name: osm-prometheus-serviceaccount

@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: prometheus-{{.Release.Name}}
+  name: osm-prometheus
   annotations:
     prometheus.io/port: "{{.Values.prometheus.port}}"
     prometheus.io/scrape: "true"
