@@ -111,10 +111,18 @@ else
 fi
 
 # Deploys Xds and Prometheus
+echo "Certificate Manager in use: $CERT_MANAGER"
+if [ "$CERT_MANAGER" = "vault" ]; then
+bin/osm install --namespace "$K8S_NAMESPACE" --cert-manager="$CERT_MANAGER" --vault-host="$VAULT_HOST" --vault-token="$VAULT_TOKEN" --vault-protocol="$VAULT_PROTOCOL" --container-registry "$CTR_REGISTRY" --container-registry-secret "$CTR_REGISTRY_CREDS_NAME" --osm-image-tag "$CTR_TAG"
+wait_for_ads_pod
+
+./demo/deploy-apps.sh
+else
 bin/osm install --namespace "$K8S_NAMESPACE" --container-registry "$CTR_REGISTRY" --container-registry-secret "$CTR_REGISTRY_CREDS_NAME" --osm-image-tag "$CTR_TAG"
 wait_for_ads_pod
 
 ./demo/deploy-apps.sh
+fi
 
 
 if [[ "$IS_GITHUB" != "true" ]]; then
