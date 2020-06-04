@@ -4,7 +4,7 @@ metadata:
   name: {{.Release.Name}}-prometheus
 rules:
   - apiGroups: [""]
-    resources: ["nodes", "node/proxy", "services", "endpoints", "pods"]
+    resources: ["nodes", "nodes/proxy", "services", "endpoints", "pods"]
     verbs: ["list", "get", "watch"]
   - apiGroups: ["extensions"]
     resources: ["ingresses"]
