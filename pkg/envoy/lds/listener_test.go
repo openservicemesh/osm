@@ -24,7 +24,7 @@ var _ = Describe("Construct inbound listener object", func() {
 
 	Context("Testing the creating of inbound listener", func() {
 		It("Returns an inbound listener config", func() {
-			listener, _ := buildInboundListener()
+			listener := buildInboundListener()
 			Expect(listener.Address).To(Equal(envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyInboundListenerPort)))
 			Expect(len(listener.ListenerFilters)).To(Equal(1)) // tls-inpsector listener filter
 			Expect(listener.ListenerFilters[0].Name).To(Equal(wellknown.TlsInspector))

@@ -12,7 +12,6 @@ import (
 	"github.com/open-service-mesh/osm/pkg/envoy"
 	"github.com/open-service-mesh/osm/pkg/envoy/cla"
 	"github.com/open-service-mesh/osm/pkg/service"
-
 	"github.com/open-service-mesh/osm/pkg/smi"
 )
 
