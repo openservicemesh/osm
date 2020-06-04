@@ -1,0 +1,6 @@
+FROM alpine:3.10.1
+RUN apk add --no-cache iptables
+ADD ./demo/bin/bookwarehouse /
+WORKDIR /
+EXPOSE 8080
+RUN chmod +x bookwarehouse

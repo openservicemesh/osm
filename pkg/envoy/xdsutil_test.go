@@ -57,7 +57,7 @@ var _ = Describe("Test Envoy tools", func() {
 					}},
 					ValidationContextType: &envoy_api_v2_auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 						ValidationContextSdsSecretConfig: &envoy_api_v2_auth.SdsSecretConfig{
-							Name: fmt.Sprintf("%s%s%s", RootCertPrefix, Separator, "default/bookstore"),
+							Name: fmt.Sprintf("%s%s%s", RootCertType, Separator, "default/bookstore"),
 							SdsConfig: &envoy_api_v2_core.ConfigSource{
 								ConfigSourceSpecifier: &envoy_api_v2_core.ConfigSource_Ads{
 									Ads: &envoy_api_v2_core.AggregatedConfigSource{},
@@ -112,7 +112,7 @@ var _ = Describe("Test Envoy tools", func() {
 					}},
 					ValidationContextType: &envoy_api_v2_auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 						ValidationContextSdsSecretConfig: &envoy_api_v2_auth.SdsSecretConfig{
-							Name: fmt.Sprintf("%s%s%s", RootCertPrefix, Separator, "default/bookstore"),
+							Name: fmt.Sprintf("%s%s%s", RootCertType, Separator, "default/bookstore"),
 							SdsConfig: &envoy_api_v2_core.ConfigSource{
 								ConfigSourceSpecifier: &envoy_api_v2_core.ConfigSource_Ads{
 									Ads: &envoy_api_v2_core.AggregatedConfigSource{},
@@ -161,12 +161,12 @@ var _ = Describe("Test Envoy tools", func() {
 			expected := &envoy_api_v2_auth.CommonTlsContext{
 				TlsParams: GetTLSParams(),
 				TlsCertificateSdsSecretConfigs: []*envoy_api_v2_auth.SdsSecretConfig{{
-					Name:      fmt.Sprintf("%s%s%s/%s", ServiceCertPrefix, Separator, namespacedService.Namespace, namespacedService.Service),
+					Name:      fmt.Sprintf("%s%s%s/%s", ServiceCertType, Separator, namespacedService.Namespace, namespacedService.Service),
 					SdsConfig: GetADSConfigSource(),
 				}},
 				ValidationContextType: &envoy_api_v2_auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 					ValidationContextSdsSecretConfig: &envoy_api_v2_auth.SdsSecretConfig{
-						Name:      fmt.Sprintf("%s%s%s/%s", RootCertPrefix, Separator, namespacedService.Namespace, namespacedService.Service),
+						Name:      fmt.Sprintf("%s%s%s/%s", RootCertType, Separator, namespacedService.Namespace, namespacedService.Service),
 						SdsConfig: GetADSConfigSource(),
 					},
 				},

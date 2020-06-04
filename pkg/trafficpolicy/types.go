@@ -28,9 +28,8 @@ type TrafficTarget struct {
 
 //TrafficResource is a struct of the various resources of a source/destination in the TrafficPolicy
 type TrafficResource struct {
-	ServiceAccount service.Account           `json:"service_account:omitempty"`
-	Namespace      string                    `json:"namespace:omitempty"`
-	Service        service.NamespacedService `json:"services:omitempty"`
+	Namespace string                    `json:"namespace:omitempty"`
+	Service   service.NamespacedService `json:"services:omitempty"`
 }
 
 //RouteWeightedClusters is a struct of a route and the weighted clusters on that route

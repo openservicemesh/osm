@@ -19,19 +19,19 @@ import (
 	"github.com/open-service-mesh/osm/pkg/service"
 )
 
-// XDSResourceKind is a type for the different kind of resources Envoys can request frm SDS
-type XDSResourceKind string
+// SDSCertType is a type of a certificate requested by an Envoy proxy via SDS.
+type SDSCertType string
 
-func (rk XDSResourceKind) String() string {
-	return string(rk)
+func (ct SDSCertType) String() string {
+	return string(ct)
 }
 
 const (
-	// ServiceCertPrefix is the prefix for the service certificate resource name. Example: "service-cert:webservice"
-	ServiceCertPrefix XDSResourceKind = "service-cert"
+	// ServiceCertType is the prefix for the service certificate resource name. Example: "service-cert:webservice"
+	ServiceCertType SDSCertType = "service-cert"
 
-	// RootCertPrefix is the prefix for the root certificate resource name. Example: "root-cert:webservice"
-	RootCertPrefix XDSResourceKind = "root-cert"
+	// RootCertType is the prefix for the root certificate resource name. Example: "root-cert:webservice"
+	RootCertType SDSCertType = "root-cert"
 
 	// Separator is the separator between the prefix and the name of the certificate.
 	Separator = ":"
@@ -127,13 +127,13 @@ func getCommonTLSContext(serviceName service.NamespacedService) *auth.CommonTlsC
 		TlsParams: GetTLSParams(),
 		TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
 			// Example ==> Name: "service-cert:NameSpaceHere/ServiceNameHere"
-			Name:      fmt.Sprintf("%s%s%s", ServiceCertPrefix, Separator, serviceName),
+			Name:      fmt.Sprintf("%s%s%s", ServiceCertType, Separator, serviceName),
 			SdsConfig: GetADSConfigSource(),
 		}},
 		ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 			ValidationContextSdsSecretConfig: &auth.SdsSecretConfig{
 				// Example ==> Name: "root-cert:NameSpaceHere/ServiceNameHere"
-				Name:      fmt.Sprintf("%s%s%s", RootCertPrefix, Separator, serviceName),
+				Name:      fmt.Sprintf("%s%s%s", RootCertType, Separator, serviceName),
 				SdsConfig: GetADSConfigSource(),
 			},
 		},

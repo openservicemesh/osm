@@ -177,13 +177,11 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[trafficpolicy.T
 			policy := trafficpolicy.TrafficTarget{}
 			policy.Name = trafficTargets.Name
 			policy.Destination = trafficpolicy.TrafficResource{
-				ServiceAccount: service.Account(trafficTargets.Destination.Name),
-				Namespace:      trafficTargets.Destination.Namespace,
-				Service:        destService}
+				Namespace: trafficTargets.Destination.Namespace,
+				Service:   destService}
 			policy.Source = trafficpolicy.TrafficResource{
-				ServiceAccount: service.Account(trafficSources.Name),
-				Namespace:      trafficSources.Namespace,
-				Service:        srcServices}
+				Namespace: trafficSources.Namespace,
+				Service:   srcServices}
 
 			for _, trafficTargetSpecs := range trafficTargets.Specs {
 				if trafficTargetSpecs.Kind != HTTPTraffic {

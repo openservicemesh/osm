@@ -44,14 +44,12 @@ var _ = Describe("Catalog tests", func() {
 			expected := []trafficpolicy.TrafficTarget{{
 				Name: tests.TrafficTargetName,
 				Destination: trafficpolicy.TrafficResource{
-					ServiceAccount: tests.BookstoreServiceAccountName,
-					Namespace:      tests.Namespace,
-					Service:        tests.BookstoreService,
+					Namespace: tests.Namespace,
+					Service:   tests.BookstoreService,
 				},
 				Source: trafficpolicy.TrafficResource{
-					ServiceAccount: tests.BookbuyerServiceAccountName,
-					Namespace:      tests.Namespace,
-					Service:        tests.BookbuyerService,
+					Namespace: tests.Namespace,
+					Service:   tests.BookbuyerService,
 				},
 				Route: trafficpolicy.Route{PathRegex: tests.BookstoreBuyPath, Methods: []string{"GET"}, Headers: map[string]string{
 					"host": tests.Domain,

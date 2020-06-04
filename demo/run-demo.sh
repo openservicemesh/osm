@@ -35,6 +35,9 @@ fi
 if [ -z "$K8S_NAMESPACE" ]; then
     exit_error "Missing K8S_NAMESPACE env variable"
 fi
+if [ -z "$BOOKWAREHOUSE_NAMESPACE" ]; then
+    exit_error "Missing BOOKWAREHOUSE_NAMESPACE env variable"
+fi
 if [ -z "$BOOKBUYER_NAMESPACE" ]; then
     exit_error "Missing BOOKBUYER_NAMESPACE env variable"
 fi

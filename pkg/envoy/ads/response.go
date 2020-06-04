@@ -33,7 +33,7 @@ func (s *Server) newAggregatedDiscoveryResponse(proxy *envoy.Proxy, request *env
 		return nil, errUnknownTypeURL
 	}
 
-	log.Trace().Msgf(" Invoking handler for %s with request: %+v", typeURL, request)
+	log.Trace().Msgf("Invoking handler for %s with request: %+v", typeURL, request)
 	response, err := handler(s.ctx, s.catalog, s.meshSpec, proxy, request)
 	if err != nil {
 		log.Error().Msgf("Responder for TypeUrl %s is not implemented", request.TypeUrl)

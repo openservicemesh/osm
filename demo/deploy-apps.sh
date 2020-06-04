@@ -5,7 +5,7 @@ set -auexo pipefail
 # shellcheck disable=SC1091
 source .env
 
-for ns in "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE"; do
+for ns in "$BOOKWAREHOUSE_NAMESPACE" "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE"; do
     kubectl create namespace "$ns"
     kubectl label  namespaces "$ns" openservicemesh.io/monitor="$OSM_ID"
 done
@@ -16,7 +16,7 @@ if [[ "$IS_GITHUB" != "true" ]]; then
 
   DOCKER_PASSWORD=$(az acr credential show -n "$REGISTRY" --query "passwords[0].value" | tr -d '"')
 
-  for ns in "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE"; do
+  for ns in "$BOOKWAREHOUSE_NAMESPACE" "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE"; do
       kubectl delete secrets "$CTR_REGISTRY_CREDS_NAME" -n "$ns" || true
       kubectl create secret docker-registry "$CTR_REGISTRY_CREDS_NAME" \
           -n "$ns" \
@@ -36,6 +36,8 @@ fi
 ./demo/deploy-bookbuyer.sh
 # Deploy bookthief
 ./demo/deploy-bookthief.sh
+
+./demo/deploy-bookwarehouse.sh
 
 # Apply SMI policies
 ./demo/deploy-traffic-split.sh
