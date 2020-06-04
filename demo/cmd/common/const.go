@@ -45,4 +45,7 @@ const (
 
 	// BookstoreNamespaceEnvVar is the environment variable for the Bookbuyer namespace.
 	BookstoreNamespaceEnvVar = "BOOKSTORE_NAMESPACE"
+
+	// BookwarehouseNamespaceEnvVar is the environment variable for the Bookwarehouse namespace.
+	BookwarehouseNamespaceEnvVar = "BOOKWAREHOUSE_NAMESPACE"
 )

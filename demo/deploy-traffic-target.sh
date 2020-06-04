@@ -49,4 +49,29 @@ sources:
 - kind: ServiceAccount
   name: bookbuyer-serviceaccount
   namespace: "$BOOKBUYER_NAMESPACE"
+
+---
+
+kind: TrafficTarget
+apiVersion: access.smi-spec.io/v1alpha1
+metadata:
+  name: bookstore-access-bookwarehouse
+  namespace: "$BOOKWAREHOUSE_NAMESPACE"
+destination:
+  kind: ServiceAccount
+  name: bookwarehouse-serviceaccount
+  namespace: "$BOOKWAREHOUSE_NAMESPACE"
+specs:
+- kind: HTTPRouteGroup
+  name: bookwarehouse-service-routes
+  matches:
+  - restock-books
+sources:
+- kind: ServiceAccount
+  name: bookstore-v1-serviceaccount
+  namespace: "$BOOKSTORE_NAMESPACE"
+- kind: ServiceAccount
+  name: bookstore-v2-serviceaccount
+  namespace: "$BOOKSTORE_NAMESPACE"
+
 EOF

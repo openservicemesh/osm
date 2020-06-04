@@ -49,7 +49,7 @@ build-osm:
 	CGO_ENABLED=0  go build -v -o ./bin/osm ./cmd/osm
 
 .PHONY: docker-build
-docker-build: build-cross docker-build-bookbuyer docker-build-bookstore docker-build-ads
+docker-build: build-cross docker-build-bookbuyer docker-build-bookstore docker-build-ads docker-build-bookwarehouse
 
 .PHONY: go-vet
 go-vet:
@@ -82,6 +82,12 @@ build-bookstore:
 	@mkdir -p $(shell pwd)/demo/bin
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ./demo/bin/bookstore ./demo/cmd/bookstore/bookstore.go
 
+.PHONY: build-bookwarehouse
+build-bookwarehouse:
+	@rm -rf $(shell pwd)/demo/bin
+	@mkdir -p $(shell pwd)/demo/bin
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ./demo/bin/bookwarehouse ./demo/cmd/bookwarehouse/bookwarehouse.go
+
 .PHONY: build-bookbuyer
 build-bookbuyer:
 	@rm -rf $(shell pwd)/demo/bin
@@ -106,6 +112,10 @@ docker-build-bookthief: build-bookthief
 docker-build-bookstore: build-bookstore
 	docker build -t $(CTR_REGISTRY)/bookstore:$(CTR_TAG) -f dockerfiles/Dockerfile.bookstore .
 
+.PHONY: docker-build-bookwarehouse
+docker-build-bookwarehouse: build-bookwarehouse
+	docker build -t $(CTR_REGISTRY)/bookwarehouse:$(CTR_TAG) -f dockerfiles/Dockerfile.bookwarehouse .
+
 .PHONY: docker-build-init
 docker-build-init:
 	docker build -t $(CTR_REGISTRY)/init:$(CTR_TAG) -f dockerfiles/Dockerfile.init .
@@ -126,12 +136,16 @@ docker-push-bookthief: docker-build-bookthief
 docker-push-bookstore: docker-build-bookstore
 	docker push "$(CTR_REGISTRY)/bookstore:$(CTR_TAG)"
 
+.PHONY: docker-push-bookwarehouse
+docker-push-bookwarehouse: docker-build-bookwarehouse
+	docker push "$(CTR_REGISTRY)/bookwarehouse:$(CTR_TAG)"
+
 .PHONY: docker-push-init
 docker-push-init: docker-build-init
 	docker push "$(CTR_REGISTRY)/init:$(CTR_TAG)"
 
 .PHONY: docker-push
-docker-push: docker-push-init docker-push-bookbuyer docker-push-bookthief docker-push-bookstore docker-push-ads
+docker-push: docker-push-init docker-push-bookbuyer docker-push-bookthief docker-push-bookstore docker-push-ads docker-push-bookwarehouse
 
 .PHONY: generate-crds
 generate-crds:
