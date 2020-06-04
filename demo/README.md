@@ -14,11 +14,13 @@
 ## Prerequisites
 1. Clone this repo on your workstation
 1. Provision access to a Kubernetes cluster - save the credentials in `~/.kube/config` or set the config path in `$KUBECONFIG` env variable:
-   - The Azure Kubernetes Service is a fitting provider of a hosted Kubernetes service
-   - [Install Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
-   - Login to your Azure account: `az login`
-   - Create an AKS cluster via [Azure Portal](https://portal.azure.com/)
-   - Using the Azure CLI download AKS credentials into `~/.kube/config`: `az aks get-credentials --resource-group your_Resource_Group --name your_AKS_name`
+	- Option 1: Local [kind](https://kind.sigs.k8s.io/) cluster
+		- Provision a local cluster in Docker: `kind create cluster`
+   	- Option 2: Azure Kubernetes Service managed cluster
+		- [Install Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
+		- Login to your Azure account: `az login`
+		- Create an AKS cluster via [Azure Portal](https://portal.azure.com/)
+		- Using the Azure CLI download AKS credentials into `~/.kube/config`: `az aks get-credentials --resource-group your_Resource_Group --name your_AKS_name`
 1. Authenticate with a container registry, which is accessible to both your workstation and your Kubernetes cluster. One such registry is the Azure Container Registry (ACR), which is used by the demo scripts in this repo:
    - [Install Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
    - Login to your Azure account: `az login`
@@ -32,12 +34,12 @@ In the root directory of the repo create a `.env` file. It is already listed in 
 
 
 ## Run the Demo
-1. From the root of this repository execute `./demo/run-demo.sh`. The demo script assumes you have Azure Container Registry and automatically provisions credentials to your local workstation and pushes a secret to your Kubernetes cluster
+1. From the root of this repository execute `./demo/run-osm-demo.sh`.
    This script will:
    - compile OSM's control plane (ADS), create separate a container image and push it to the workstation's default container registry (See `~/.docker/config.json`)
    - create a `bookstore-mesh` service that provides the `bookstore-mesh` domain for the `bookstore` service backends
-   - create a `bookbuyer` service that curls `bookstore-mesh` domain for books (see `demo/cmd/bookbuyer/bookbuyer.go`); creates a container and uploats it to your contaner registry; creates a deployment for the `bookbuyer` service
-   - create a `bookthief` service that curls the `bookstore-mesh` domain for books (see `demo/cmd/bookthief/bookthief.go`); creates a container and uploats it to your contaner registry; creates a deployment for the `bookthief` service
+   - create a `bookbuyer` service that curls `bookstore-mesh` domain for books (see `demo/cmd/bookbuyer/bookbuyer.go`); creates a container and uploads it to your contaner registry; creates a deployment for the `bookbuyer` service
+   - create a `bookthief` service that curls the `bookstore-mesh` domain for books (see `demo/cmd/bookthief/bookthief.go`); creates a container and uploads it to your contaner registry; creates a deployment for the `bookthief` service
    - create 2 backends for `bookstore-mesh` service `bookstore-v1` and `bookstore-v2`, composed of a single binary, a web server, which increases a counter (books bought) on every GET request/response and returns that counter in a header; creates a container and uploats it to your contaner registry
    - applies SMI traffic policies allowing `bookbuyer` to access `bookstore-v1` and `bookstore-v2`, while preventing `bookthief` from accessing the `bookstore` services
    - finally a command indefinitely watches the relevant pods within the Kubernetes cluster
@@ -45,7 +47,7 @@ In the root directory of the repo create a `.env` file. It is already listed in 
 1. To see the results of deploying the services and the service mesh - run the tailing scripts:
    - the scripts will connect to the respecitve Kubernetes Pod and stream its logs
    - the output will be the output of the curl command to the `bookstore-mesh` domain and the count of books sold
-   - a properly working service mesh will result in HTTP 200 OK with `./demo/tail-bookbuyer.sh` along with a monotonically increasing counter appearing in the response headers, while `./demo/tail-bookthief.sh` will result in HTTP 404 Not Found
+   - a properly working service mesh will result in HTTP 200 OK with `./demo/tail-bookbuyer.sh` along with a monotonically increasing counter appearing in the response headers, while `./demo/tail-bookthief.sh` will result in HTTP 404 Not Found. This can be automatically checked with `go run ./ci/cmd/maestro.go`
 
 ## Onboarding VMs to a service mesh
 

@@ -5,14 +5,14 @@ set -aueo pipefail
 # shellcheck disable=SC1091
 source .env
 
-WEBHOOK_NAME="osm-webhook-$OSM_ID"
+WEBHOOK_NAME="osm-webhook-$K8S_NAMESPACE"
 
 kubectl delete mutatingwebhookconfiguration "$WEBHOOK_NAME" --ignore-not-found=true
 for ns in "$BOOKWAREHOUSE_NAMESPACE" "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE" "$K8S_NAMESPACE"; do
     kubectl delete namespace "$ns" || true
 done
-kubectl delete clusterrole osm || true
-kubectl delete clusterrolebinding osm || true
+kubectl delete clusterrole ads || true
+kubectl delete clusterrolebinding ads || true
 
 # cleaning all prometheus related resources
 kubectl delete clusterrole "$PROMETHEUS_SVC" || true

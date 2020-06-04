@@ -29,7 +29,7 @@ spec:
             "--verbosity", "trace",
             "--osmNamespace", "{{.Values.namespace}}",
             "--osmID", "{{.Values.namespace}}",
-            "--init-container-image", "{{.Values.image.registry}}/init",
+            "--init-container-image", "{{.Values.image.registry}}/init:{{ .Values.image.tag }}",
             "--sidecar-image", "{{.Values.sidecarImage}}",
             "--webhookName", "osm-webhook-{{.Values.namespace}}",
             "--caBundleSecretName", "osm-ca-{{.Values.namespace}}",
@@ -39,6 +39,12 @@ spec:
             "--vaultToken", "{{.Values.vault.token}}",
             "--serviceCertValidityMinutes", "{{.Values.serviceCertValidityMinutes}}"
           ]
+          readinessProbe:
+            initialDelaySeconds: 1
+            httpGet:
+              scheme: HTTPS
+              path: /health/ready
+              port: 9090
     {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
