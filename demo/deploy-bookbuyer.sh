@@ -68,7 +68,8 @@ spec:
           env:
             - name: "BOOKSTORE_NAMESPACE"
               value: "$BOOKSTORE_NAMESPACE"
-
+            - name: "OSM_HUMAN_DEBUG_LOG"
+              value: "true"
 
       imagePullSecrets:
         - name: "$CTR_REGISTRY_CREDS_NAME"
