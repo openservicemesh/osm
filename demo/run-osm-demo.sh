@@ -76,9 +76,6 @@ fi
 if [ -z "$CTR_TAG" ]; then
     exit_error "Missing CTR_TAG env variable"
 fi
-if [ -z "$PROMETHEUS_SVC" ]; then
-    exit_error "Missing PROMETHEUS_SVC env variable"
-fi
 
 make build-osm
 

@@ -11,4 +11,4 @@ spec:
     protocol: TCP
     targetPort: {{.Values.prometheus.port}}
   selector:
-    app: {{.Values.prometheus.labelSelector}}
+    app: osm-prometheus
