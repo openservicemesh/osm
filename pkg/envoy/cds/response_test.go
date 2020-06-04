@@ -199,7 +199,7 @@ var _ = Describe("CDS Response", func() {
 						}},
 						ValidationContextType: &envoy_api_v2_auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 							ValidationContextSdsSecretConfig: &envoy_api_v2_auth.SdsSecretConfig{
-								Name: fmt.Sprintf("%s%s%s", envoy.RootCertPrefix, envoy.Separator, "default/bookstore"),
+								Name: fmt.Sprintf("%s%s%s", envoy.RootCertType, envoy.Separator, "default/bookstore"),
 								SdsConfig: &envoy_api_v2_core.ConfigSource{
 									ConfigSourceSpecifier: &envoy_api_v2_core.ConfigSource_Ads{
 										Ads: &envoy_api_v2_core.AggregatedConfigSource{},
