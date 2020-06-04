@@ -92,6 +92,10 @@ spec:
           env:
             - name: IDENTITY
               value: ${SVC}--${GIT_HASH}
+            - name: BOOKWAREHOUSE_NAMESPACE
+              value: ${BOOKWAREHOUSE_NAMESPACE}
+            - name: "OSM_HUMAN_DEBUG_LOG"
+              value: "true"
 
       imagePullSecrets:
         - name: $CTR_REGISTRY_CREDS_NAME

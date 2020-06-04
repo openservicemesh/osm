@@ -110,7 +110,7 @@ else
     ./ci/create-osm-container-registry-creds.sh
 fi
 
-for ns in "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE"; do
+for ns in "$BOOKWAREHOUSE_NAMESPACE" "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE"; do
     kubectl create namespace "$ns"
     kubectl label  namespaces "$ns" openservicemesh.io/monitor="$K8S_NAMESPACE"
 done

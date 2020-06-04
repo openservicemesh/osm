@@ -2,14 +2,13 @@ package common
 
 import (
 	"fmt"
-
-	"github.com/open-service-mesh/osm/pkg/logger"
-
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/open-service-mesh/osm/pkg/logger"
 )
 
 var (
@@ -18,10 +17,14 @@ var (
 	maxIterationsStr                       = GetEnv("CI_MAX_ITERATIONS_THRESHOLD", "30")
 	bookstoreServiceName                   = GetEnv("BOOKSTORE_SVC", "bookstore-mesh")
 	bookstoreNamespace                     = os.Getenv(BookstoreNamespaceEnvVar)
+	warehouseServiceName                   = "bookwarehouse"
+	bookwarehouseNamespace                 = os.Getenv(BookwarehouseNamespaceEnvVar)
 
-	bookstoreService = fmt.Sprintf("%s.%s", bookstoreServiceName, bookstoreNamespace) // FQDN
+	bookstoreService = fmt.Sprintf("%s.%s", bookstoreServiceName, bookstoreNamespace)     // FQDN
+	warehouseService = fmt.Sprintf("%s.%s", warehouseServiceName, bookwarehouseNamespace) // FQDN
 	booksBought      = fmt.Sprintf("http://%s/books-bought", bookstoreService)
 	buyBook          = fmt.Sprintf("http://%s/buy-a-book/new", bookstoreService)
+	chargeAccountURL = fmt.Sprintf("http://%s/%s", warehouseService, RestockWarehouseURL)
 
 	interestingHeaders = []string{IdentityHeader, BooksBoughtHeader, "Server", "Date"}
 
@@ -33,6 +36,41 @@ var (
 		buyBook: nil,
 	}
 )
+
+const (
+	// RestockWarehouseURL is a header string constant.
+	RestockWarehouseURL = "restock-books"
+)
+
+var log = logger.New("demo")
+
+// RestockBooks restocks the bookstore with certain amount of books from the warehouse.
+func RestockBooks(amount int) {
+	log.Info().Msgf("Restocking from book warehouse with %d books", amount)
+
+	client := &http.Client{}
+	requestBody := strings.NewReader(strconv.Itoa(1))
+	req, err := http.NewRequest("POST", chargeAccountURL, requestBody)
+	if err != nil {
+		log.Info().Msgf("RestockBooks: error posting to %s: %s ", chargeAccountURL, err)
+		return
+	}
+
+	log.Info().Msgf("RestockBooks: Posted to %s with headers %v", req.URL, req.Header)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Info().Msgf("RestockBooks: Error posting to %s: %s ", chargeAccountURL, err)
+		return
+	}
+
+	defer resp.Body.Close()
+	for _, hdr := range interestingHeaders {
+		log.Info().Msgf("RestockBooks (%s) adding header {%s: %s}", chargeAccountURL, hdr, getHeader(resp.Header, hdr))
+	}
+	log.Info().Msgf("RestockBooks (%s) finished w/ status: %s %d ", chargeAccountURL, resp.Status, resp.StatusCode)
+
+}
 
 // GetEnv is much  like os.Getenv() but with a default value.
 func GetEnv(envVar string, defaultValue string) string {
@@ -127,11 +165,11 @@ func fetch(url string) (responseCode int) {
 	if err != nil {
 		fmt.Printf("Error requesting %s: %s\n", url, err)
 	}
-	if headersMap != nil {
-		for headerKey, headerValue := range headersMap {
-			req.Header.Add(headerKey, headerValue)
-		}
+
+	for headerKey, headerValue := range headersMap {
+		req.Header.Add(headerKey, headerValue)
 	}
+
 	fmt.Printf("\nFetching %s\n", req.URL)
 	fmt.Printf("Request Headers: %v\n", req.Header)
 	resp, err := client.Do(req)

@@ -1,7 +1,12 @@
 name: Go
-on: [push, pull_request]
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
 jobs:
-
   build:
     name: Build
     runs-on: ubuntu-latest
@@ -15,6 +20,7 @@ jobs:
         CTR_REGISTRY_CREDS_NAME: ${{ secrets.CTR_REGISTRY_CREDS_NAME }}
         CTR_TAG: "${{ github.run_id }}-${{ github.run_number}}"
         K8S_NAMESPACE: "ci-${{ github.run_id }}-${{ github.run_number}}-tresor"
+        BOOKWAREHOUSE_NAMESPACE: "ci-bookwarehouse-${{ github.run_id }}-${{ github.run_number}}-tresor"
         BOOKBUYER_NAMESPACE: "ci-bookbuyer-${{ github.run_id }}-${{ github.run_number}}-tresor"
         BOOKSTORE_NAMESPACE: "ci-bookstore-${{ github.run_id }}-${{ github.run_number}}-tresor"
         BOOKTHIEF_NAMESPACE: "ci-bookthief-${{ github.run_id }}-${{ github.run_number}}-tresor"
@@ -137,6 +143,7 @@ jobs:
         CTR_REGISTRY_CREDS_NAME: ${{ secrets.CTR_REGISTRY_CREDS_NAME }}
         CTR_TAG: "${{ github.run_id }}-${{ github.run_number}}"
         K8S_NAMESPACE: "ci-${{ github.run_id }}-${{ github.run_number}}-tresor"
+        BOOKWAREHOUSE_NAMESPACE: "ci-bookwarehouse-${{ github.run_id }}-${{ github.run_number}}-tresor"
         BOOKBUYER_NAMESPACE: "ci-bookbuyer-${{ github.run_id }}-${{ github.run_number}}-tresor"
         BOOKSTORE_NAMESPACE: "ci-bookstore-${{ github.run_id }}-${{ github.run_number}}-tresor"
         BOOKTHIEF_NAMESPACE: "ci-bookthief-${{ github.run_id }}-${{ github.run_number}}-tresor"
@@ -148,8 +155,8 @@ jobs:
         WAIT_FOR_OK_SECONDS: 120
         IS_GITHUB: true
         ACR: ${{ secrets.ACR }}
-        CI_MAX_WAIT_FOR_POD_TIME_SECONDS: ${{ secrets.CI_MAX_WAIT_FOR_POD_TIME_SECONDS }}
-        CI_MIN_SUCCESS_THRESHOLD: ${{ secrets.CI_MIN_SUCCESS_THRESHOLD }}
+        CI_MAX_WAIT_FOR_POD_TIME_SECONDS: 30
+        CI_MIN_SUCCESS_THRESHOLD: 1
         OSM_HUMAN_DEBUG_LOG: ${{ secrets.OSM_HUMAN_DEBUG_LOG }}
         CERT_MANAGER: "tresor"
       run: |
@@ -171,6 +178,7 @@ jobs:
         CTR_REGISTRY_CREDS_NAME: ${{ secrets.CTR_REGISTRY_CREDS_NAME }}
         CTR_TAG: "${{ github.run_id }}-${{ github.run_number}}"
         K8S_NAMESPACE: "ci-${{ github.run_id }}-${{ github.run_number}}-hashivault"
+        BOOKWAREHOUSE_NAMESPACE: "ci-bookwarehouse-${{ github.run_id }}-${{ github.run_number}}-hashivault"
         BOOKBUYER_NAMESPACE: "ci-bookbuyer-${{ github.run_id }}-${{ github.run_number}}-hashivault"
         BOOKSTORE_NAMESPACE: "ci-bookstore-${{ github.run_id }}-${{ github.run_number}}-hashivault"
         BOOKTHIEF_NAMESPACE: "ci-bookthief-${{ github.run_id }}-${{ github.run_number}}-hashivault"
@@ -182,8 +190,8 @@ jobs:
         WAIT_FOR_OK_SECONDS: 120
         IS_GITHUB: true
         ACR: ${{ secrets.ACR }}
-        CI_MAX_WAIT_FOR_POD_TIME_SECONDS: ${{ secrets.CI_MAX_WAIT_FOR_POD_TIME_SECONDS }}
-        CI_MIN_SUCCESS_THRESHOLD: ${{ secrets.CI_MIN_SUCCESS_THRESHOLD }}
+        CI_MAX_WAIT_FOR_POD_TIME_SECONDS: 30
+        CI_MIN_SUCCESS_THRESHOLD: 1
         OSM_HUMAN_DEBUG_LOG: ${{ secrets.OSM_HUMAN_DEBUG_LOG }}
         CERT_MANAGER: "vault"  # enables Hashi Vault integration
         VAULT_HOST: "vault.ci-${{ github.run_id }}-${{ github.run_number}}-hashivault.svc.cluster.local"
