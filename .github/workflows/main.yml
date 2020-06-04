@@ -155,7 +155,7 @@ jobs:
         WAIT_FOR_OK_SECONDS: 120
         IS_GITHUB: true
         ACR: ${{ secrets.ACR }}
-        CI_MAX_WAIT_FOR_POD_TIME_SECONDS: ${{ secrets.CI_MAX_WAIT_FOR_POD_TIME_SECONDS }}
+        CI_MAX_WAIT_FOR_POD_TIME_SECONDS: 30
         CI_MIN_SUCCESS_THRESHOLD: 1
         OSM_HUMAN_DEBUG_LOG: ${{ secrets.OSM_HUMAN_DEBUG_LOG }}
         CERT_MANAGER: "tresor"
@@ -190,7 +190,7 @@ jobs:
         WAIT_FOR_OK_SECONDS: 120
         IS_GITHUB: true
         ACR: ${{ secrets.ACR }}
-        CI_MAX_WAIT_FOR_POD_TIME_SECONDS: ${{ secrets.CI_MAX_WAIT_FOR_POD_TIME_SECONDS }}
+        CI_MAX_WAIT_FOR_POD_TIME_SECONDS: 30
         CI_MIN_SUCCESS_THRESHOLD: 1
         OSM_HUMAN_DEBUG_LOG: ${{ secrets.OSM_HUMAN_DEBUG_LOG }}
         CERT_MANAGER: "vault"  # enables Hashi Vault integration
