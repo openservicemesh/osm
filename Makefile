@@ -46,7 +46,7 @@ build-cross-ads: gox
 .PHONY: build-osm
 build-osm:
 	@mkdir -p $(shell pwd)/bin
-	CGO_ENABLED=0  go build -v -o ./bin/osm ./cmd/osm
+	CGO_ENABLED=0  go build -v -o ./bin/osm -ldflags "-X main.chartTGZSource=$$(go run scripts/generate_chart/generate_chart.go)" ./cmd/osm
 
 .PHONY: docker-build
 docker-build: build-cross docker-build-bookbuyer docker-build-bookstore docker-build-ads docker-build-bookwarehouse
