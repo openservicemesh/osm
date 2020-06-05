@@ -168,8 +168,8 @@ type Certificate struct {
 }
 
 // GetCommonName returns the common name of the given certificate.
-func (c Certificate) GetCommonName() CommonName {
-	return c.commonName.String()
+func (c Certificate) GetCommonName() certificate.CommonName {
+	return c.commonName
 }
 
 // GetCertificateChain returns the PEM encoded certificate.

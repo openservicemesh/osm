@@ -12,8 +12,8 @@ const (
 )
 
 // GetCommonName implements certificate.Certificater and returns the CN of the cert.
-func (c Certificate) GetCommonName() CommonName {
-	return c.commonName.String()
+func (c Certificate) GetCommonName() certificate.CommonName {
+	return c.commonName
 }
 
 // GetCertificateChain implements certificate.Certificater and returns the certificate chain.
