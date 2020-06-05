@@ -19,7 +19,7 @@ func buildOutboundListener(connManager *envoy_hcm.HttpConnectionManager) (*xds.L
 		return nil, err
 	}
 
-	listener := &xds.Listener{
+	return &xds.Listener{
 		Name:             outboundListenerName,
 		Address:          envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyOutboundListenerPort),
 		TrafficDirection: envoy_api_v2_core.TrafficDirection_OUTBOUND,
@@ -35,12 +35,11 @@ func buildOutboundListener(connManager *envoy_hcm.HttpConnectionManager) (*xds.L
 				},
 			},
 		},
-	}
-	return listener, nil
+	}, nil
 }
 
-func buildInboundListener() (*xds.Listener, error) {
-	listener := &xds.Listener{
+func buildInboundListener() *xds.Listener {
+	return &xds.Listener{
 		Name:             inboundListenerName,
 		Address:          envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyInboundListenerPort),
 		TrafficDirection: envoy_api_v2_core.TrafficDirection_INBOUND,
@@ -51,7 +50,6 @@ func buildInboundListener() (*xds.Listener, error) {
 			},
 		},
 	}
-	return listener, nil
 }
 
 func buildPrometheusListener(connManager *envoy_hcm.HttpConnectionManager) (*xds.Listener, error) {
