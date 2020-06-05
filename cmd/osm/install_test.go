@@ -77,7 +77,6 @@ func TestInstallRun(t *testing.T) {
 				"name": testRegistrySecret,
 			},
 		},
-		"namespace":                  settings.Namespace(),
 		"serviceCertValidityMinutes": int64(1),
 		"vault": map[string]interface{}{
 			"host":     "",
@@ -155,7 +154,6 @@ func TestInstallRunVault(t *testing.T) {
 				"name": testRegistrySecret,
 			},
 		},
-		"namespace":                  settings.Namespace(),
 		"serviceCertValidityMinutes": int64(1),
 		"vault": map[string]interface{}{
 			"host":     testVaultHost,
@@ -239,7 +237,6 @@ func TestResolveValues(t *testing.T) {
 				"name": testRegistrySecret,
 			},
 		},
-		"namespace":                  settings.Namespace(),
 		"serviceCertValidityMinutes": int64(1),
 		"vault": map[string]interface{}{
 			"host":     testVaultHost,
