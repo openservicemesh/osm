@@ -16,6 +16,7 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod *time.Dur
 	if validityPeriod == nil {
 		validityPeriod = &cm.validityPeriod
 	}
+
 	if cm.ca == nil {
 		log.Error().Msgf("Invalid CA provided for issuance of certificate with CN=%s", cn)
 		return nil, errNoIssuingCA
@@ -36,7 +37,6 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod *time.Dur
 	template := x509.Certificate{
 		SerialNumber: serialNumber,
 
-		// Subject Alternate Name (SAN) values. (Note that these values may not be valid
 		DNSNames: []string{string(cn)},
 
 		Subject: pkix.Name{
@@ -87,6 +87,8 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod *time.Dur
 		expiration: template.NotAfter,
 	}
 
+	log.Info().Msgf("Created new certificate for CN=%s, which will expire in %+v on %+v", cn, validityPeriod, template.NotAfter)
+
 	return cert, nil
 }
 
@@ -102,8 +104,6 @@ func (cm *CertManager) getFromCache(cn certificate.CommonName) certificate.Certi
 
 // IssueCertificate implements certificate.Manager and returns a newly issued certificate.
 func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPeriod *time.Duration) (certificate.Certificater, error) {
-	log.Info().Msgf("Issuing new certificate for CN=%s, which will expire in %+v", cn, cm.validityPeriod)
-
 	start := time.Now()
 
 	if cert := cm.getFromCache(cn); cert != nil {
