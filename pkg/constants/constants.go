@@ -27,8 +27,8 @@ const (
 	// EnvoyInboundListenerPortName is Envoy's inbound listener port name.
 	EnvoyInboundListenerPortName = "proxy-inbound"
 
-	// EnvoyInboundPromethuesListenerPortName is Envoy's inbound listener port name for prometheus.
-	EnvoyInboundPromethuesListenerPortName = "proxy-metrics"
+	// EnvoyInboundPrometheusListenerPortName is Envoy's inbound listener port name for prometheus.
+	EnvoyInboundPrometheusListenerPortName = "proxy-metrics"
 
 	// EnvoyOutboundListenerPort is Envoy's outbound listener port number.
 	EnvoyOutboundListenerPort = 15001
