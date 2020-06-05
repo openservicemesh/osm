@@ -168,7 +168,7 @@ type Certificate struct {
 }
 
 // GetCommonName returns the common name of the given certificate.
-func (c Certificate) GetCommonName() string {
+func (c Certificate) GetCommonName() CommonName {
 	return c.commonName.String()
 }
 
