@@ -29,7 +29,7 @@ const (
 // The response build 3 Listeners:
 // 1. Inbound listener to handle incoming traffic
 // 2. Outbound listener to handle outgoing traffic
-// 3. Promethrus listener for metrics
+// 3. Prometheus listener for metrics
 func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, request *xds.DiscoveryRequest) (*xds.DiscoveryResponse, error) {
 	svc, err := catalog.GetServiceFromEnvoyCertificate(proxy.GetCommonName())
 	if err != nil {
