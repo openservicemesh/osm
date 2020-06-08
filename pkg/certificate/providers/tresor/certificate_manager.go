@@ -87,7 +87,7 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod *time.Dur
 		expiration: template.NotAfter,
 	}
 
-	log.Info().Msgf("Created new certificate for CN=%s, which will expire in %+v on %+v", cn, validityPeriod, template.NotAfter)
+	log.Info().Msgf("Created new certificate for CN=%s; validity=%+v; expires on %+v; serial: %+v", cn, validityPeriod, template.NotAfter, template.SerialNumber)
 
 	return cert, nil
 }
@@ -119,7 +119,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 	(*cm.cache)[cn] = cert
 	cm.cacheLock.Unlock()
 
-	log.Info().Msgf("Issuing new certificate for CN=%s took %+v", cn, time.Since(start))
+	log.Info().Msgf("It took %+v to issue certificate with CN=%s", time.Since(start), cn)
 
 	return cert, nil
 }
