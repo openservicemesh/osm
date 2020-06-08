@@ -3,6 +3,7 @@ package route
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	set "github.com/deckarep/golang-set"
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -13,6 +14,7 @@ import (
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/envoy"
+	"github.com/open-service-mesh/osm/pkg/kubernetes"
 	"github.com/open-service-mesh/osm/pkg/service"
 	"github.com/open-service-mesh/osm/pkg/trafficpolicy"
 )
@@ -49,29 +51,37 @@ var (
 func UpdateRouteConfiguration(domainRoutesMap map[string]map[string]trafficpolicy.RouteWeightedClusters, routeConfig v2.RouteConfiguration, isSourceConfig bool, isDestinationConfig bool) v2.RouteConfiguration {
 	log.Trace().Msgf("[RDS] Updating Route Configuration")
 	var isLocalCluster bool
-	var virtualHostName string
+	var virtualHostPrefix string
 
 	if isSourceConfig {
 		log.Trace().Msgf("[RDS] Updating OutboundRouteConfiguration for policy %v", domainRoutesMap)
 		isLocalCluster = false
-		virtualHostName = outboundVirtualHost
+		virtualHostPrefix = outboundVirtualHost
 	} else if isDestinationConfig {
 		log.Trace().Msgf("[RDS] Updating InboundRouteConfiguration for policy %v", domainRoutesMap)
 		isLocalCluster = true
-		virtualHostName = inboundVirtualHost
+		virtualHostPrefix = inboundVirtualHost
 	}
 	for domain, routePolicyWeightedClustersMap := range domainRoutesMap {
-		virtualHost := createVirtualHostStub(fmt.Sprintf("%s|%s", virtualHostName, domain), domain)
+		virtualHost := createVirtualHostStub(virtualHostPrefix, domain)
 		virtualHost.Routes = createRoutes(routePolicyWeightedClustersMap, isLocalCluster)
 		routeConfig.VirtualHosts = append(routeConfig.VirtualHosts, &virtualHost)
 	}
 	return routeConfig
 }
 
-func createVirtualHostStub(name string, domain string) v2route.VirtualHost {
+func createVirtualHostStub(namePrefix string, domain string) v2route.VirtualHost {
+	// If domain consists a comma separated list of domains, it means multiple
+	// domains match against the same route config.
+	domains := strings.Split(domain, ",")
+	for i := range domains {
+		domains[i] = strings.TrimSpace(domains[i])
+	}
+
+	name := fmt.Sprintf("%s|%s", namePrefix, kubernetes.GetServiceNameFromDomain(domains[0]))
 	virtualHost := v2route.VirtualHost{
 		Name:    name,
-		Domains: []string{domain},
+		Domains: domains,
 		Routes:  []*v2route.Route{},
 	}
 	return virtualHost

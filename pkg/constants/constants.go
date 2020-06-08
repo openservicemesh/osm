@@ -109,4 +109,7 @@ const (
 
 	// PrometheusDefaultRetentionTime is the default days for which data is retained in prometheus
 	PrometheusDefaultRetentionTime = "15d"
+
+	// DomainDelimiter is a delimiter used in representing domains
+	DomainDelimiter = "."
 )

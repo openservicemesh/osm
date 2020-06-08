@@ -68,6 +68,9 @@ const (
 
 	// EnvoyUID is the unique ID of the Envoy used for unit tests.
 	EnvoyUID = "A-B-C-D"
+
+	// ServicePort is the port used by a service
+	ServicePort = 9999
 )
 
 var (
@@ -241,7 +244,7 @@ func NewServiceFixture(serviceName, namespace string, selectors map[string]strin
 					StrVal: "backendName",
 				},
 				Protocol: corev1.ProtocolTCP,
-				Port:     int32(8080),
+				Port:     ServicePort,
 			}},
 			Selector: selectors,
 		},
