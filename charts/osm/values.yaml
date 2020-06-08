@@ -4,7 +4,6 @@
 
 # TODO: rename ads pod/deployment/service to osm
 name: ads
-namespace: osm-system
 
 replicaCount: 1
 

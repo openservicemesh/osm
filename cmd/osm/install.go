@@ -139,7 +139,6 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 		fmt.Sprintf("image.registry=%s", i.containerRegistry),
 		fmt.Sprintf("image.tag=%s", i.osmImageTag),
 		fmt.Sprintf("imagePullSecrets[0].name=%s", i.containerRegistrySecret),
-		fmt.Sprintf("namespace=%s", settings.Namespace()),
 		fmt.Sprintf("certManager=%s", i.certManager),
 		fmt.Sprintf("vault.host=%s", i.vaultHost),
 		fmt.Sprintf("vault.protocol=%s", i.vaultProtocol),
