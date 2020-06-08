@@ -34,7 +34,7 @@ var _ = Describe("Test Certificate Manager", func() {
 
 			cert, err := m.IssueCertificate(serviceFQDN, nil)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(cert.GetCommonName()).To(Equal(serviceFQDN))
+			Expect(cert.GetCommonName()).To(Equal(certificate.CommonName(serviceFQDN)))
 
 			x509RootCert, err := certificate.DecodePEMCertificate(rootCert.GetCertificateChain())
 			Expect(err).ToNot(HaveOccurred())
@@ -72,7 +72,7 @@ var _ = Describe("Test Certificate Manager", func() {
 			Expect(newCertError).ToNot(HaveOccurred())
 			cert, issueCertificateError := m.IssueCertificate(serviceFQDN, nil)
 			Expect(issueCertificateError).ToNot(HaveOccurred())
-			Expect(cert.GetCommonName()).To(Equal(serviceFQDN))
+			Expect(cert.GetCommonName()).To(Equal(certificate.CommonName(serviceFQDN)))
 
 			x509Cert, err := certificate.DecodePEMCertificate(rootCert.GetCertificateChain())
 			Expect(err).ToNot(HaveOccurred())
