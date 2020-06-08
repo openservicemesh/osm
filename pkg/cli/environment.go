@@ -13,6 +13,7 @@ import (
 
 const (
 	defaultOSMNamespace = "osm-system"
+	osmNamespaceEnvVar  = "OSM_NAMESPACE"
 )
 
 // EnvSettings describes all of the cli environment settings
@@ -24,7 +25,7 @@ type EnvSettings struct {
 // New relevant environment variables set and returns EnvSettings
 func New() *EnvSettings {
 	env := &EnvSettings{
-		namespace: envOr("OSM_NAMESPACE", defaultOSMNamespace),
+		namespace: envOr(osmNamespaceEnvVar, defaultOSMNamespace),
 	}
 
 	// bind to kubernetes config flags
@@ -49,7 +50,7 @@ func (s *EnvSettings) AddFlags(fs *pflag.FlagSet) {
 // EnvVars returns a map of all OSM related environment variables
 func (s *EnvSettings) EnvVars() map[string]string {
 	return map[string]string{
-		"OSM_NAMESPACE": s.Namespace(),
+		osmNamespaceEnvVar: s.Namespace(),
 	}
 }
 
