@@ -13,7 +13,7 @@ func (cn CommonName) String() string {
 type Certificater interface {
 
 	// GetCommonName retrieves the name of the certificate.
-	GetCommonName() string
+	GetCommonName() CommonName
 
 	// GetCertificateChain retrieves the cert chain.
 	GetCertificateChain() []byte
