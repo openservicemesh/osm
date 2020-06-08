@@ -240,8 +240,8 @@ func (c *Client) GetService(svc service.Name) (service *corev1.Service, exists b
 	return nil, exists, err
 }
 
-// GetServices returns a list of services that are part of monitored namespaces
-func (c Client) GetServices() ([]*corev1.Service, error) {
+// ListServices returns a list of services that are part of monitored namespaces
+func (c Client) ListServices() ([]*corev1.Service, error) {
 	var services []*corev1.Service
 
 	for _, serviceInterface := range c.caches.Services.List() {

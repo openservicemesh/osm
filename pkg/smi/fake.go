@@ -66,7 +66,7 @@ func (f fakeMeshSpec) GetAnnouncementsChannel() <-chan interface{} {
 	return make(chan interface{})
 }
 
-// GetServices returns a list of services that are part of monitored namespaces
-func (f fakeMeshSpec) GetServices() ([]*corev1.Service, error) {
+// ListServices returns a list of services that are part of monitored namespaces
+func (f fakeMeshSpec) ListServices() ([]*corev1.Service, error) {
 	return f.services, nil
 }
