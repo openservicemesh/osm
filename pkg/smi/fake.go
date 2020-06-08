@@ -15,6 +15,7 @@ type fakeMeshSpec struct {
 	trafficTargets   []*target.TrafficTarget
 	weightedServices []service.WeightedService
 	serviceAccounts  []service.NamespacedServiceAccount
+	services         []*corev1.Service
 }
 
 // NewFakeMeshSpecClient creates a fake Mesh Spec used for testing.
@@ -35,8 +36,8 @@ func (f fakeMeshSpec) ListTrafficSplits() []*split.TrafficSplit {
 	return nil
 }
 
-// ListServices fetches all services declared with SMI Spec for the fake Mesh Spec.
-func (f fakeMeshSpec) ListServices() []service.WeightedService {
+// ListTrafficSplitServices fetches all services declared with SMI Spec for the fake Mesh Spec.
+func (f fakeMeshSpec) ListTrafficSplitServices() []service.WeightedService {
 	return f.weightedServices
 }
 
@@ -63,4 +64,9 @@ func (f fakeMeshSpec) ListTrafficTargets() []*target.TrafficTarget {
 // GetAnnouncementsChannel returns the channel on which SMI makes announcements for the fake Mesh Spec.
 func (f fakeMeshSpec) GetAnnouncementsChannel() <-chan interface{} {
 	return make(chan interface{})
+}
+
+// ListServices returns a list of services that are part of monitored namespaces
+func (f fakeMeshSpec) ListServices() ([]*corev1.Service, error) {
+	return f.services, nil
 }
