@@ -248,7 +248,7 @@ func (c Client) ListServices() ([]*corev1.Service, error) {
 		svc, ok := serviceInterface.(*corev1.Service)
 		if !ok {
 			log.Error().Err(errInvalidServiceObjectType).Msg("Failed type assertion for Service in Services cache")
-			return nil, errInvalidServiceObjectType
+			continue
 		}
 		if !c.namespaceController.IsMonitoredNamespace(svc.Namespace) {
 			continue
