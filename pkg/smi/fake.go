@@ -36,8 +36,8 @@ func (f fakeMeshSpec) ListTrafficSplits() []*split.TrafficSplit {
 	return nil
 }
 
-// ListServices fetches all services declared with SMI Spec for the fake Mesh Spec.
-func (f fakeMeshSpec) ListServices() []service.WeightedService {
+// ListTrafficSplitServices fetches all services declared with SMI Spec for the fake Mesh Spec.
+func (f fakeMeshSpec) ListTrafficSplitServices() []service.WeightedService {
 	return f.weightedServices
 }
 

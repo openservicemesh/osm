@@ -52,8 +52,8 @@ type MeshSpec interface {
 	// ListTrafficSplits lists TrafficSplit SMI resources.
 	ListTrafficSplits() []*split.TrafficSplit
 
-	// ListServices fetches all services declared with SMI Spec.
-	ListServices() []service.WeightedService
+	// ListTrafficSplitServices fetches all services declared with SMI Spec.
+	ListTrafficSplitServices() []service.WeightedService
 
 	// ListServiceAccounts fetches all service accounts declared with SMI Spec.
 	ListServiceAccounts() []service.NamespacedServiceAccount
