@@ -25,7 +25,6 @@ features:
 
 prometheus:
   port: 7070
-  labelSelector: osm-prometheus-server
   retention:
     time: 15d
 
@@ -37,3 +36,6 @@ vault:
   token:
 
 serviceCertValidityMinutes: 1
+
+grafana:
+  port: 3000
