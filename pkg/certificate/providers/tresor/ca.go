@@ -10,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
-	"github.com/open-service-mesh/osm/pkg/certificate/providers/tresor/pem"
+	"github.com/open-service-mesh/osm/pkg/certificate/pem"
 )
 
 // NewCA creates a new Certificate Authority.
@@ -49,13 +49,13 @@ func NewCA(cn certificate.CommonName, validityPeriod time.Duration, rootCertCoun
 		return nil, errors.Wrap(err, errCreateCert.Error())
 	}
 
-	pemCert, err := encodeCertDERtoPEM(derBytes)
+	pemCert, err := certificate.EncodeCertDERtoPEM(derBytes)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error encoding certificate with CN=%s", template.Subject.CommonName)
 		return nil, err
 	}
 
-	pemKey, err := encodeKeyDERtoPEM(rsaKey)
+	pemKey, err := certificate.EncodeKeyDERtoPEM(rsaKey)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error encoding private key for certificate with CN=%s", template.Subject.CommonName)
 		return nil, err
