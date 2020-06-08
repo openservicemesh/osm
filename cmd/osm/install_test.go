@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"io/ioutil"
+	"path/filepath"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -11,6 +12,8 @@ import (
 	kubefake "helm.sh/helm/v3/pkg/kube/fake"
 	"helm.sh/helm/v3/pkg/storage"
 	"helm.sh/helm/v3/pkg/storage/driver"
+
+	"github.com/open-service-mesh/osm/pkg/cli"
 )
 
 var (
@@ -77,7 +80,6 @@ func TestInstallRun(t *testing.T) {
 				"name": testRegistrySecret,
 			},
 		},
-		"namespace":                  settings.Namespace(),
 		"serviceCertValidityMinutes": int64(1),
 		"vault": map[string]interface{}{
 			"host":     "",
@@ -88,6 +90,87 @@ func TestInstallRun(t *testing.T) {
 			"retention": map[string]interface{}{
 				"time": "5d",
 			}},
+	}
+	if !cmp.Equal(rel.Config, expectedUserValues) {
+		t.Errorf("Expected helm release values to resolve as %#v\nbut got %#v", expectedUserValues, rel.Config)
+		t.Errorf("This is the diff: %s", cmp.Diff(rel.Config, expectedUserValues))
+	}
+
+	if rel.Namespace != settings.Namespace() {
+		t.Errorf("Expected helm release namespace to be %s, got %s", settings.Namespace(), rel.Namespace)
+	}
+}
+
+func TestInstallRunDefaultChart(t *testing.T) {
+	var err error
+	chartTGZSource, err = cli.GetChartSource(filepath.Join("testdata", "test-chart"))
+	if err != nil {
+		t.Fatal("failed to package chart:", err)
+	}
+
+	out := new(bytes.Buffer)
+	store := storage.Init(driver.NewMemory())
+	if mem, ok := store.Driver.(*driver.Memory); ok {
+		mem.SetNamespace(settings.Namespace())
+	}
+
+	config := &helm.Configuration{
+		Releases: store,
+		KubeClient: &kubefake.PrintingKubeClient{
+			Out: ioutil.Discard},
+		Capabilities: chartutil.DefaultCapabilities,
+		Log:          func(format string, v ...interface{}) {},
+	}
+
+	installCmd := &installCmd{
+		out:                        out,
+		containerRegistry:          testRegistry,
+		containerRegistrySecret:    testRegistrySecret,
+		osmImageTag:                testOsmImageTag,
+		certManager:                "tresor",
+		serviceCertValidityMinutes: 1,
+		prometheusRetentionTime:    testRetentionTime,
+	}
+
+	installClient := helm.NewInstall(config)
+	if err := installCmd.run(installClient); err != nil {
+		t.Fatal(err)
+	}
+
+	expectedOutput := "OSM installed successfully in osm-system namespace\n"
+	result := out.String()
+	if result != expectedOutput {
+		t.Errorf("Expected %s, got %s", expectedOutput, result)
+	}
+
+	rel, err := config.Releases.Get(settings.Namespace(), 1)
+	if err != nil {
+		t.Errorf("Expected helm release %s, got err %s", settings.Namespace(), err)
+	}
+
+	//user did not set any values. Used same defaults from test-chart so this is empty.
+	expectedUserValues := map[string]interface{}{
+		"certManager": "tresor",
+		"image": map[string]interface{}{
+			"registry": testRegistry,
+			"tag":      testOsmImageTag,
+		},
+		"imagePullSecrets": []interface{}{
+			map[string]interface{}{
+				"name": testRegistrySecret,
+			},
+		},
+		"serviceCertValidityMinutes": int64(1),
+		"vault": map[string]interface{}{
+			"host":     "",
+			"protocol": "",
+			"token":    "",
+		},
+		"prometheus": map[string]interface{}{
+			"retention": map[string]interface{}{
+				"time": "5d",
+			},
+		},
 	}
 	if !cmp.Equal(rel.Config, expectedUserValues) {
 		t.Errorf("Expected helm release values to resolve as %#v\nbut got %#v", expectedUserValues, rel.Config)
@@ -155,7 +238,6 @@ func TestInstallRunVault(t *testing.T) {
 				"name": testRegistrySecret,
 			},
 		},
-		"namespace":                  settings.Namespace(),
 		"serviceCertValidityMinutes": int64(1),
 		"vault": map[string]interface{}{
 			"host":     testVaultHost,
@@ -239,7 +321,6 @@ func TestResolveValues(t *testing.T) {
 				"name": testRegistrySecret,
 			},
 		},
-		"namespace":                  settings.Namespace(),
 		"serviceCertValidityMinutes": int64(1),
 		"vault": map[string]interface{}{
 			"host":     testVaultHost,

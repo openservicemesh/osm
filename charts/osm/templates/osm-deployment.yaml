@@ -27,12 +27,12 @@ spec:
           command: ['/ads']
           args: [
             "--verbosity", "trace",
-            "--osmNamespace", "{{.Values.namespace}}",
-            "--osmID", "{{.Values.namespace}}",
+            "--osmNamespace", "{{.Release.Namespace}}",
+            "--osmID", "{{.Release.Namespace}}",
             "--init-container-image", "{{.Values.image.registry}}/init:{{ .Values.image.tag }}",
             "--sidecar-image", "{{.Values.sidecarImage}}",
-            "--webhookName", "osm-webhook-{{.Values.namespace}}",
-            "--caBundleSecretName", "osm-ca-{{.Values.namespace}}",
+            "--webhookName", "osm-webhook-{{.Release.Namespace}}",
+            "--caBundleSecretName", "osm-ca-{{.Release.Namespace}}",
             "--certmanager", "{{.Values.certManager}}",
             "--vaultHost", "{{.Values.vault.host}}",
             "--vaultProtocol", "{{.Values.vault.protocol}}",

@@ -7,9 +7,11 @@ import (
 
 	"github.com/spf13/cobra"
 	helm "helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/strvals"
 
+	"github.com/open-service-mesh/osm/pkg/cli"
 	"github.com/open-service-mesh/osm/pkg/constants"
 )
 
@@ -36,10 +38,13 @@ Usage:
 
 `
 const (
-	defaultOSMChartPath  = "charts/osm"
 	defaultCertManager   = "tresor"
 	defaultVaultProtocol = "http"
 )
+
+// chartTGZSource is a base64-encoded, gzipped tarball of the default Helm chart.
+// Its value is initialized at build time.
+var chartTGZSource string
 
 type installCmd struct {
 	out                        io.Writer
@@ -92,13 +97,13 @@ func (i *installCmd) run(installClient *helm.Install) error {
 	installClient.Namespace = settings.Namespace()
 	installClient.CreateNamespace = true
 
-	chart := ""
+	var chartRequested *chart.Chart
+	var err error
 	if i.chartPath != "" {
-		chart = i.chartPath
+		chartRequested, err = loader.Load(i.chartPath)
 	} else {
-		chart = defaultOSMChartPath
+		chartRequested, err = cli.LoadChart(chartTGZSource)
 	}
-	chartRequested, err := loader.Load(chart)
 	if err != nil {
 		return err
 	}
@@ -134,7 +139,6 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 		fmt.Sprintf("image.registry=%s", i.containerRegistry),
 		fmt.Sprintf("image.tag=%s", i.osmImageTag),
 		fmt.Sprintf("imagePullSecrets[0].name=%s", i.containerRegistrySecret),
-		fmt.Sprintf("namespace=%s", settings.Namespace()),
 		fmt.Sprintf("certManager=%s", i.certManager),
 		fmt.Sprintf("vault.host=%s", i.vaultHost),
 		fmt.Sprintf("vault.protocol=%s", i.vaultProtocol),

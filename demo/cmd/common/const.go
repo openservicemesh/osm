@@ -37,9 +37,6 @@ const (
 	// IdentityHeader is the header returned by the bookstore and observed by the bookbuyer.
 	IdentityHeader = "Identity"
 
-	// PrometheusVar is the environment variable for promethues service name
-	PrometheusVar = "PROMETHEUS_SVC"
-
 	// PrometheusRetention is the environment variable for retention time of promethues data
 	PrometheusRetention = "PROMETHEUS_RETENTION_TIME"
 

@@ -4,10 +4,10 @@ metadata:
   name: {{.Release.Name}}-prometheus
 rules:
   - apiGroups: [""]
-    resources: ["nodes", "nodes/proxy", "services", "endpoints", "pods"]
+    resources: ["nodes", "nodes/proxy",  "nodes/metrics", "services", "endpoints", "pods", "ingresses", "configmaps"]
     verbs: ["list", "get", "watch"]
   - apiGroups: ["extensions"]
-    resources: ["ingresses"]
+    resources: ["ingresses", "ingresses/status"]
     verbs: ["list", "get", "watch"]
   - nonResourceURLs: ["/metrics"]
     verbs: ["get"]
@@ -19,7 +19,7 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: osm-prometheus-serviceaccount
-    namespace: {{ .Values.namespace }}
+    namespace: {{ .Release.Namespace }}
 roleRef:
   kind: ClusterRole
   name: {{.Release.Name}}-prometheus

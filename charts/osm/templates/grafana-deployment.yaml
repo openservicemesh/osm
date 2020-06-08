@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: osm-grafana
+  labels:
+    app: osm-grafana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: osm-grafana
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: osm-grafana
+    spec:
+      serviceAccountName: osm-grafana-serviceaccount
+      containers:
+        - name: grafana
+          image: "grafana/grafana:7.0.1"
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: osm-grafana-config
+              mountPath: "/etc/grafana/grafana.ini"
+              subPath: grafana.ini
+            - name: osm-grafana-storage
+              mountPath: "/var/lib/grafana"
+            - name: osm-grafana-datasources
+              mountPath: /etc/grafana/provisioning/datasources
+              readOnly: false
+          ports:
+            - containerPort: {{.Values.grafana.port}}
+      volumes:
+        - name: osm-grafana-config
+          configMap:
+            name: osm-grafana-config
+        - name: osm-grafana-datasources
+          configMap:
+            name: osm-grafana-datasources
+        - name: osm-grafana-storage
+          emptyDir: {}

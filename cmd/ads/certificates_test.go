@@ -107,48 +107,4 @@ var _ = Describe("Test CMD tools", func() {
 			Expect(*actual).To(Equal(*expected))
 		})
 	})
-
-	Context("Testing getNewRootCertFromTresor", func() {
-		It("saves root cert to k8s and returns it", func() {
-			kubeClient := testclient.NewSimpleClientset()
-
-			ns := uuid.New().String()
-			secretName := uuid.New().String()
-
-			cert := getNewRootCertFromTresor(kubeClient, ns, secretName)
-
-			expected := &corev1.Secret{
-				ObjectMeta: v1.ObjectMeta{
-					Name:      secretName,
-					Namespace: ns,
-				},
-				Data: map[string][]byte{
-					constants.KubernetesOpaqueSecretCAKey:             cert.GetCertificateChain(),
-					constants.KubernetesOpaqueSecretCAExpiration:      encodeExpiration(cert.GetExpiration()),
-					constants.KubernetesOpaqueSecretRootPrivateKeyKey: cert.GetPrivateKey(),
-				},
-			}
-
-			actual, err := kubeClient.CoreV1().Secrets(ns).Get(context.Background(), secretName, v1.GetOptions{})
-			Expect(err).ToNot(HaveOccurred())
-
-			Expect(*actual).To(Equal(*expected))
-		})
-
-		It("does NOT save root cert to k8s because the CA bundle secret name is an empty string", func() {
-			kubeClient := testclient.NewSimpleClientset()
-
-			ns := uuid.New().String()
-			secretName := "" // an empty secret name disables saving CA and its private key to a k8s secret
-
-			cert := getNewRootCertFromTresor(kubeClient, ns, secretName)
-			Ω(len(cert.GetCertificateChain())).Should(BeNumerically(">", 10))
-			Ω(len(cert.GetPrivateKey())).Should(BeNumerically(">", 10))
-			Ω(time.Since(cert.GetExpiration())).Should(BeNumerically("<", 0))
-
-			actual, err := kubeClient.CoreV1().Secrets(ns).List(context.Background(), v1.ListOptions{})
-			Expect(err).ToNot(HaveOccurred())
-			Expect(len(actual.Items)).To(Equal(0))
-		})
-	})
 })

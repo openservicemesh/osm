@@ -51,30 +51,6 @@ func getPossibleCertManagers() []string {
 	return possible
 }
 
-func getNewRootCertFromTresor(kubeClient kubernetes.Interface, namespace, caBundleSecretName string) certificate.Certificater {
-	rootCert, err := tresor.NewCA(constants.CertificationAuthorityCommonName, constants.CertificationAuthorityRootValidityPeriod, rootCertCountry, rootCertLocality, rootCertOrganization)
-
-	if err != nil {
-		log.Fatal().Err(err).Msgf("Failed to create new Certificate Authority with cert issuer %s", *certManagerKind)
-	}
-
-	if rootCert == nil {
-		log.Fatal().Msgf("Invalid root certificate created by cert issuer %s", *certManagerKind)
-	}
-
-	if rootCert.GetPrivateKey() == nil {
-		log.Fatal().Err(err).Msg("Root cert does not have a private key")
-	}
-
-	if caBundleSecretName != "" {
-		if err := saveSecretToKubernetes(kubeClient, rootCert, namespace, caBundleSecretName, rootCert.GetPrivateKey()); err != nil {
-			log.Error().Err(err).Msgf("Error exporting CA bundle into Kubernetes secret with name %s", caBundleSecretName)
-		}
-	}
-
-	return rootCert
-}
-
 func getTresorCertificateManager(kubeConfig *rest.Config) certificate.Manager {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 
@@ -89,8 +65,19 @@ func getTresorCertificateManager(kubeConfig *rest.Config) certificate.Manager {
 	}
 
 	if rootCert == nil {
-		// A non-empty caBundleSecretName will save the CA and its private key as a kubernetes secret.
-		rootCert = getNewRootCertFromTresor(kubeClient, osmNamespace, caBundleSecretName)
+		rootCert, err = tresor.NewCA(constants.CertificationAuthorityCommonName, constants.CertificationAuthorityRootValidityPeriod, rootCertCountry, rootCertLocality, rootCertOrganization)
+
+		if err != nil {
+			log.Fatal().Err(err).Msgf("Failed to create new Certificate Authority with cert issuer %s", *certManagerKind)
+		}
+
+		if rootCert == nil {
+			log.Fatal().Msgf("Invalid root certificate created by cert issuer %s", *certManagerKind)
+		}
+
+		if rootCert.GetPrivateKey() == nil {
+			log.Fatal().Err(err).Msg("Root cert does not have a private key")
+		}
 	}
 
 	certManager, err := tresor.NewCertManager(rootCert, getServiceCertValidityPeriod(), rootCertOrganization)

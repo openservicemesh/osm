@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strings"
 
+	mapset "github.com/deckarep/golang-set"
 	k8s "github.com/open-service-mesh/osm/pkg/kubernetes"
 	"github.com/open-service-mesh/osm/pkg/service"
 
@@ -111,7 +112,7 @@ func (c Client) ListEndpointsForService(svc service.Name) []endpoint.Endpoint {
 // GetServiceForServiceAccount retrieves the service for the given service account
 func (c Client) GetServiceForServiceAccount(svcAccount service.NamespacedServiceAccount) (service.NamespacedService, error) {
 	log.Info().Msgf("[%s] Getting Services for service account %s on Kubernetes", c.providerIdent, svcAccount)
-	var services []service.NamespacedService
+	services := mapset.NewSet()
 	deploymentsInterface := c.caches.Deployments.List()
 
 	for _, deployments := range deploymentsInterface {
@@ -136,12 +137,12 @@ func (c Client) GetServiceForServiceAccount(svcAccount service.NamespacedService
 					Namespace: kubernetesDeployments.Namespace,
 					Service:   selectorLabel[namespaceSelectorLabel],
 				}
-				services = append(services, namespacedService)
+				services.Add(namespacedService)
 			}
 		}
 	}
 
-	if len(services) == 0 {
+	if services.Cardinality() == 0 {
 		log.Error().Msgf("Did not find any service with serviceAccount = %s in namespace %s", svcAccount.ServiceAccount, svcAccount.Namespace)
 		return service.NamespacedService{}, errDidNotFindServiceForServiceAccount
 	}
@@ -150,12 +151,12 @@ func (c Client) GetServiceForServiceAccount(svcAccount service.NamespacedService
 	// By Open Service Mesh convention the number of services for a service account is 1
 	// This is a limitation we set in place in order to make the mesh easy to understand and reason about.
 	// When a servcie account has more than one service XDS will not apply any SMI policy for that service, leaving it out of the mesh.
-	if len(services) > 1 {
+	if services.Cardinality() > 1 {
 		log.Error().Msgf("Found more than one service for serviceAccount %s in namespace %s; There should be only one!", svcAccount.ServiceAccount, svcAccount.Namespace)
 		return service.NamespacedService{}, errMoreThanServiceForServiceAccount
 	}
 
-	service := services[0]
+	service := services.Pop().(service.NamespacedService)
 	log.Trace().Msgf("Found service %s for serviceAccount %s in namespace %s", service.Service, svcAccount.ServiceAccount, svcAccount.Namespace)
 
 	log.Info().Msgf("[%s] Services %v observed on service account %s on Kubernetes", c.providerIdent, services, svcAccount)

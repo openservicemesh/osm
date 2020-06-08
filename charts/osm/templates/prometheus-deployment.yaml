@@ -8,11 +8,11 @@ spec:
     type: Recreate
   selector:
     matchLabels:
-      app: {{.Values.prometheus.labelSelector}}
+      app: osm-prometheus
   template:
     metadata:
       labels:
-        app: {{.Values.prometheus.labelSelector}}
+        app: osm-prometheus
     spec:
       containers:
       - name: prometheus
