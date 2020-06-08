@@ -69,4 +69,7 @@ type MeshSpec interface {
 
 	// GetAnnouncementsChannel returns the channel on which SMI makes announcements
 	GetAnnouncementsChannel() <-chan interface{}
+
+	// GetServices returns a list of services that are part of monitored namespaces
+	GetServices() ([]*corev1.Service, error)
 }

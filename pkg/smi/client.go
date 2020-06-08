@@ -239,3 +239,21 @@ func (c *Client) GetService(svc service.Name) (service *corev1.Service, exists b
 	}
 	return nil, exists, err
 }
+
+// GetServices returns a list of services that are part of monitored namespaces
+func (c Client) GetServices() ([]*corev1.Service, error) {
+	var services []*corev1.Service
+
+	for _, serviceInterface := range c.caches.Services.List() {
+		svc, ok := serviceInterface.(*corev1.Service)
+		if !ok {
+			log.Error().Err(errInvalidServiceObjectType).Msg("Failed type assertion for Service in Services cache")
+			return nil, errInvalidServiceObjectType
+		}
+		if !c.namespaceController.IsMonitoredNamespace(svc.Namespace) {
+			continue
+		}
+		services = append(services, svc)
+	}
+	return services, nil
+}
