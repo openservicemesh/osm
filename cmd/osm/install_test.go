@@ -160,7 +160,6 @@ func TestInstallRunDefaultChart(t *testing.T) {
 				"name": testRegistrySecret,
 			},
 		},
-		"namespace":                  settings.Namespace(),
 		"serviceCertValidityMinutes": int64(1),
 		"vault": map[string]interface{}{
 			"host":     "",
