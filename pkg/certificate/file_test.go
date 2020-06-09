@@ -1,4 +1,4 @@
-package tresor
+package certificate
 
 import (
 	"crypto/rsa"

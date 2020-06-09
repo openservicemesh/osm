@@ -37,7 +37,8 @@ spec:
             "--vaultHost", "{{.Values.vault.host}}",
             "--vaultProtocol", "{{.Values.vault.protocol}}",
             "--vaultToken", "{{.Values.vault.token}}",
-            "--serviceCertValidityMinutes", "{{.Values.serviceCertValidityMinutes}}"
+            "--serviceCertValidityMinutes", "{{.Values.serviceCertValidityMinutes}}",
+            "--enableDebugServer", "{{.Values.enableDebugServer}}"
           ]
           readinessProbe:
             initialDelaySeconds: 1

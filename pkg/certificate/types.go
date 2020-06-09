@@ -1,6 +1,18 @@
 package certificate
 
-import "time"
+import (
+	"time"
+
+	"github.com/open-service-mesh/osm/pkg/logger"
+)
+
+const (
+	// TypeCertificate is a string constant to be used in the generation of a certificate.
+	TypeCertificate = "CERTIFICATE"
+
+	// TypePrivateKey is a string constant to be used in the generation of a private key for a certificate.
+	TypePrivateKey = "PRIVATE KEY"
+)
 
 // CommonName is the Subject Common Name from a given SSL certificate.
 type CommonName string
@@ -42,3 +54,7 @@ type Manager interface {
 	// GetAnnouncementsChannel returns a channel, which is used to announce when changes have been made to the issued certificates.
 	GetAnnouncementsChannel() <-chan interface{}
 }
+
+var (
+	log = logger.New("certificate")
+)
