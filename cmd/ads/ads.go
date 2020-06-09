@@ -86,7 +86,7 @@ func init() {
 	flags.StringVar(&webhookName, "webhookName", "", "Name of the MutatingWebhookConfiguration to be created by ADS")
 	flags.IntVar(&serviceCertValidityMinutes, "serviceCertValidityMinutes", defaultServiceCertValidityMinutes, "Certificate validityPeriod duration in minutes")
 	flags.StringVar(&caBundleSecretName, caBundleSecretNameCLIParam, "", "Name of the Kubernetes Secret for the OSM CA bundle")
-	flags.BoolVar(&enableDebugServer, "enableDebugServer", false, "Set to true to enable OSM debug HTTP server")
+	flags.BoolVar(&enableDebugServer, "enableDebugServer", false, "Enable OSM debug HTTP server")
 
 	// sidecar injector options
 	flags.BoolVar(&injectorConfig.DefaultInjection, "default-injection", true, "Enable sidecar injection by default")
