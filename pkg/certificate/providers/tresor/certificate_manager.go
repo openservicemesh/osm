@@ -51,12 +51,12 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod *time.Dur
 		BasicConstraintsValid: true,
 	}
 
-	x509Root, err := DecodePEMCertificate(cm.ca.GetCertificateChain())
+	x509Root, err := certificate.DecodePEMCertificate(cm.ca.GetCertificateChain())
 	if err != nil {
 		log.Error().Err(err).Msg("Error decoding Root Certificate's PEM")
 	}
 
-	rsaKeyRoot, err := DecodePEMPrivateKey(cm.ca.GetPrivateKey())
+	rsaKeyRoot, err := certificate.DecodePEMPrivateKey(cm.ca.GetPrivateKey())
 	if err != nil {
 		log.Error().Err(err).Msg("Error decoding Root Certificate's Private Key PEM ")
 	}
@@ -67,13 +67,13 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod *time.Dur
 		return nil, errors.Wrap(err, errCreateCert.Error())
 	}
 
-	certPEM, err := encodeCertDERtoPEM(derBytes)
+	certPEM, err := certificate.EncodeCertDERtoPEM(derBytes)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error encoding certificate with CN=%s", template.Subject.CommonName)
 		return nil, err
 	}
 
-	privKeyPEM, err := encodeKeyDERtoPEM(certPrivKey)
+	privKeyPEM, err := certificate.EncodeKeyDERtoPEM(certPrivKey)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error encoding private key for certificate with CN=%s", template.Subject.CommonName)
 		return nil, err

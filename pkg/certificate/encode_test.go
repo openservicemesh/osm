@@ -1,11 +1,11 @@
-package tresor
+package certificate
 
 import (
 	"crypto/rsa"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	tresorPem "github.com/open-service-mesh/osm/pkg/certificate/providers/tresor/pem"
+	"github.com/open-service-mesh/osm/pkg/certificate/pem"
 )
 
 const (
@@ -65,16 +65,16 @@ yE+vPxsiUkvQHdO2fojCkY8jg70jxM+gu59tPDNbw3Uh/2Ij310FgTHsnGQMyA==
 )
 
 var _ = Describe("Test Tresor Tools", func() {
-	Context("Test encodeCertDERtoPEM function", func() {
-		cert, err := encodeCertDERtoPEM([]byte{1, 2, 3})
+	Context("Test EncodeCertDERtoPEM function", func() {
+		cert, err := EncodeCertDERtoPEM([]byte{1, 2, 3})
 		It("should have encoded DER bytes into a PEM certificate", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(cert).NotTo(Equal(nil))
 		})
 	})
 
-	Context("Test encodeKeyDERtoPEM function", func() {
-		var pemKey tresorPem.PrivateKey
+	Context("Test EncodeKeyDERtoPEM function", func() {
+		var pemKey pem.PrivateKey
 		var privKey *rsa.PrivateKey
 
 		It("loads PEM key from file", func() {
@@ -93,7 +93,7 @@ var _ = Describe("Test Tresor Tools", func() {
 		})
 
 		It("loaded PEM key from file", func() {
-			actual, err := encodeKeyDERtoPEM(privKey)
+			actual, err := EncodeKeyDERtoPEM(privKey)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(string(actual)).To(Equal(expectedPrivateKey))
 

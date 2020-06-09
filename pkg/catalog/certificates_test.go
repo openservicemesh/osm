@@ -8,7 +8,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/open-service-mesh/osm/pkg/certificate/providers/tresor"
+	"github.com/open-service-mesh/osm/pkg/certificate"
 	"github.com/open-service-mesh/osm/pkg/service"
 )
 
@@ -27,7 +27,7 @@ var _ = Describe("Test certificate tooling", func() {
 			expected := "-----BEGIN CERTIFICATE-----\nMII"
 			Expect(string(actual[:len(expected)])).To(Equal(expected))
 
-			x509Cert, err := tresor.DecodePEMCertificate(cert.GetCertificateChain())
+			x509Cert, err := certificate.DecodePEMCertificate(cert.GetCertificateChain())
 			Expect(err).ToNot(HaveOccurred())
 
 			expectedCN := "service-name-here.namespace-here.svc.cluster.local"

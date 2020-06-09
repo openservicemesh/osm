@@ -18,8 +18,8 @@ var _ = Describe("Test Certificate Manager", func() {
 
 	Context("Test issuing a certificate from a CA loaded from file", func() {
 		validity := 3 * time.Second
-		rootCertPem := "sample_certificate.pem"
-		rootKeyPem := "sample_private_key.pem"
+		rootCertPem := "../../sample_certificate.pem"
+		rootKeyPem := "../../sample_private_key.pem"
 
 		It("should be able to load a certificate from disk", func() {
 			var err error
@@ -36,20 +36,20 @@ var _ = Describe("Test Certificate Manager", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cert.GetCommonName()).To(Equal(certificate.CommonName(serviceFQDN)))
 
-			x509RootCert, err := DecodePEMCertificate(rootCert.GetCertificateChain())
+			x509RootCert, err := certificate.DecodePEMCertificate(rootCert.GetCertificateChain())
 			Expect(err).ToNot(HaveOccurred())
 
-			issuingCAPEM, err := encodeCertDERtoPEM(x509RootCert.Raw)
+			issuingCAPEM, err := certificate.EncodeCertDERtoPEM(x509RootCert.Raw)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cert.GetIssuingCA()).To(Equal([]byte(issuingCAPEM)))
 
 			pemCert := cert.GetCertificateChain()
-			x509Cert, err := DecodePEMCertificate(pemCert)
+			x509Cert, err := certificate.DecodePEMCertificate(pemCert)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(x509Cert.Subject.CommonName).To(Equal(serviceFQDN))
 
 			pemRootCert := cert.GetIssuingCA()
-			xRootCert, err := DecodePEMCertificate(pemRootCert)
+			xRootCert, err := certificate.DecodePEMCertificate(pemRootCert)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(xRootCert.Subject.CommonName).To(Equal(rootFQDN))
 		})
@@ -74,20 +74,20 @@ var _ = Describe("Test Certificate Manager", func() {
 			Expect(issueCertificateError).ToNot(HaveOccurred())
 			Expect(cert.GetCommonName()).To(Equal(certificate.CommonName(serviceFQDN)))
 
-			x509Cert, err := DecodePEMCertificate(rootCert.GetCertificateChain())
+			x509Cert, err := certificate.DecodePEMCertificate(rootCert.GetCertificateChain())
 			Expect(err).ToNot(HaveOccurred())
 
-			issuingCAPEM, err := encodeCertDERtoPEM(x509Cert.Raw)
+			issuingCAPEM, err := certificate.EncodeCertDERtoPEM(x509Cert.Raw)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cert.GetIssuingCA()).To(Equal([]byte(issuingCAPEM)))
 
 			pemCert := cert.GetCertificateChain()
-			xCert, err := DecodePEMCertificate(pemCert)
+			xCert, err := certificate.DecodePEMCertificate(pemCert)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(xCert.Subject.CommonName).To(Equal(serviceFQDN))
 
 			pemRootCert := cert.GetIssuingCA()
-			xRootCert, err := DecodePEMCertificate(pemRootCert)
+			xRootCert, err := certificate.DecodePEMCertificate(pemRootCert)
 			Expect(err).ToNot(HaveOccurred(), string(pemRootCert))
 			Expect(xRootCert.Subject.CommonName).To(Equal(cn.String()))
 		})

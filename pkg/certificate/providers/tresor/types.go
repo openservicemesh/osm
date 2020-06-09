@@ -6,17 +6,11 @@ import (
 	"time"
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
-	"github.com/open-service-mesh/osm/pkg/certificate/providers/tresor/pem"
+	"github.com/open-service-mesh/osm/pkg/certificate/pem"
 	"github.com/open-service-mesh/osm/pkg/logger"
 )
 
 const (
-	// TypeCertificate is a string constant to be used in the generation of a certificate.
-	TypeCertificate = "CERTIFICATE"
-
-	// TypePrivateKey is a string constant to be used in the generation of a private key for a certificate.
-	TypePrivateKey = "PRIVATE KEY"
-
 	// String constant used for the commonName of the root certificate
 	rootCertificateName = "root-certificate"
 

@@ -1,4 +1,4 @@
-package tresor
+package certificate
 
 import (
 	"bytes"
@@ -8,12 +8,12 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/open-service-mesh/osm/pkg/certificate/providers/tresor/pem"
+	"github.com/open-service-mesh/osm/pkg/certificate/pem"
 )
 
-// encodeCertDERtoPEM encodes the certificate provided in DER format into PEM format
+// EncodeCertDERtoPEM encodes the certificate provided in DER format into PEM format
 // More information on the 2 formats is available in the following article: https://support.ssl.com/Knowledgebase/Article/View/19/0/der-vs-crt-vs-cer-vs-pem-certificates-and-how-to-convert-them
-func encodeCertDERtoPEM(derBytes []byte) (pem.Certificate, error) {
+func EncodeCertDERtoPEM(derBytes []byte) (pem.Certificate, error) {
 	certOut := &bytes.Buffer{}
 	block := pemEnc.Block{
 		Type:  TypeCertificate,
@@ -25,8 +25,8 @@ func encodeCertDERtoPEM(derBytes []byte) (pem.Certificate, error) {
 	return certOut.Bytes(), nil
 }
 
-// encodeKeyDERtoPEM converts a DER encoded private key into a PEM encoded key
-func encodeKeyDERtoPEM(priv *rsa.PrivateKey) (pem.PrivateKey, error) {
+// EncodeKeyDERtoPEM converts a DER encoded private key into a PEM encoded key
+func EncodeKeyDERtoPEM(priv *rsa.PrivateKey) (pem.PrivateKey, error) {
 	keyOut := &bytes.Buffer{}
 	privBytes, err := x509.MarshalPKCS8PrivateKey(priv)
 	if err != nil {
