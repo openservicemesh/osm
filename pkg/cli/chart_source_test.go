@@ -3,40 +3,43 @@ package cli
 import (
 	"io/ioutil"
 	"os"
-	"testing"
 
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"helm.sh/helm/v3/pkg/chartutil"
 )
 
-func TestChartSource(t *testing.T) {
-	tmp, err := ioutil.TempDir(os.TempDir(), "osm-test")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() {
-		err := os.RemoveAll(tmp)
-		if err != nil {
-			t.Log(err)
-		}
-	}()
+var _ = Describe("Chart Source", func() {
+	It("Loads a chart without errors", func() {
+		By("Creating a temp dir")
 
-	chartName := "test-chart"
-	chartPath, err := chartutil.Create(chartName, tmp)
-	if err != nil {
-		t.Fatal(err)
-	}
+		tmp, err := ioutil.TempDir(os.TempDir(), "osm-test")
+		Expect(err).NotTo(HaveOccurred())
 
-	source, err := GetChartSource(chartPath)
-	if err != nil {
-		t.Fatal(err)
-	}
+		defer func() {
+			By("cleaning up the temp dir")
+			err := os.RemoveAll(tmp)
+			if err != nil {
+				GinkgoT().Log(err)
+			}
+		}()
 
-	ch, err := LoadChart(source)
-	if err != nil {
-		t.Fatal(err)
-	}
+		By("Creating a dummy chart")
 
-	if ch.Name() != chartName {
-		t.Errorf("expected chart name %q, got %q", chartName, ch.Name())
-	}
-}
+		chartName := "test-chart"
+		chartPath, err := chartutil.Create(chartName, tmp)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Getting source from the chart path")
+
+		source, err := GetChartSource(chartPath)
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Loading the chart source")
+
+		ch, err := LoadChart(source)
+		Expect(err).NotTo(HaveOccurred())
+
+		Expect(ch.Name()).To(Equal(chartName))
+	})
+})
