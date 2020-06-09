@@ -62,7 +62,7 @@ steps:
     GIT_HASH=$(git rev-parse --short HEAD)
 
     echo "VERSION $VERSION_VAR:$VERSION, BUILD_DATE $DATE_VAR:$BUILD_DATE, GIT_HASH $COMMIT_VAR:$GIT_HASH"
-    if  go install -ldflags "-s -X ${VERSION_VAR}=${VERSION} -X ${DATE_VAR}=${BUILD_DATE} -X ${COMMIT_VAR}=${GIT_HASH}" -v ./cmd/osm; then
+    if  go install -ldflags "-s -X ${VERSION_VAR}=${VERSION} -X ${DATE_VAR}=${BUILD_DATE} -X ${COMMIT_VAR}=${GIT_HASH}" -v ./cmd/cli; then
         chmod -R 777 $(GOBIN)
         $(GOBIN)/osm --version
         echo -e "\e[42;97m Build SUCCEEDED \e[0m"
