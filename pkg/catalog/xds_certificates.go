@@ -26,7 +26,7 @@ func (mc *MeshCatalog) GetServiceFromEnvoyCertificate(cn certificate.CommonName)
 }
 
 func getServiceFromCertificate(cn certificate.CommonName, kubeClient kubernetes.Interface) (*service.NamespacedService, error) {
-	pod, err := getPodFromCertificate(cn, kubeClient)
+	pod, err := GetPodFromCertificate(cn, kubeClient)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +52,8 @@ func getServiceFromCertificate(cn certificate.CommonName, kubeClient kubernetes.
 	}, nil
 }
 
-func getPodFromCertificate(cn certificate.CommonName, kubeClient kubernetes.Interface) (*v1.Pod, error) {
+// GetPodFromCertificate returns the Kubernetes Pod object for a given certificate.
+func GetPodFromCertificate(cn certificate.CommonName, kubeClient kubernetes.Interface) (*v1.Pod, error) {
 	cnMeta, err := getCertificateCommonNameMeta(cn)
 	if err != nil {
 		return nil, err
