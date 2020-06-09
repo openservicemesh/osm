@@ -2,10 +2,15 @@ package catalog
 
 import (
 	"fmt"
+	"reflect"
+	"strings"
 
 	mapset "github.com/deckarep/golang-set"
+	corev1 "k8s.io/api/core/v1"
 
 	"github.com/open-service-mesh/osm/pkg/constants"
+	"github.com/open-service-mesh/osm/pkg/featureflags"
+	"github.com/open-service-mesh/osm/pkg/kubernetes"
 	"github.com/open-service-mesh/osm/pkg/service"
 	"github.com/open-service-mesh/osm/pkg/trafficpolicy"
 )
@@ -20,7 +25,19 @@ const (
 
 // ListTrafficPolicies returns all the traffic policies for a given service that Envoy proxy should be aware of.
 func (mc *MeshCatalog) ListTrafficPolicies(service service.NamespacedService) ([]trafficpolicy.TrafficTarget, error) {
-	log.Info().Msgf("Listing Routes for service: %s", service)
+	log.Info().Msgf("Listing traffic policies for service: %s", service)
+
+	if featureflags.IsSMIAccessControlDisabled() {
+		// Build traffic policies from service discovery for allow-all policy
+		trafficPolicies, err := mc.buildAllowAllTrafficPolicies(service)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to build allow-all traffic policy for service %s", service)
+			return nil, err
+		}
+		return trafficPolicies, nil
+	}
+
+	// Build traffic policies from SMI
 	allRoutes, err := mc.getHTTPPathsPerRoute()
 	if err != nil {
 		log.Error().Err(err).Msgf("Could not get all routes")
@@ -226,4 +243,56 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[trafficpolicy.T
 
 	log.Debug().Msgf("Constructed traffic policies: %+v", trafficPolicies)
 	return trafficPolicies, nil
+}
+
+func (mc *MeshCatalog) buildAllowAllTrafficPolicies(service service.NamespacedService) ([]trafficpolicy.TrafficTarget, error) {
+	services, err := mc.meshSpec.ListServices()
+	if err != nil {
+		log.Error().Err(err).Msgf("Error building traffic policies for service %s", service)
+		return nil, err
+	}
+
+	var trafficTargets []trafficpolicy.TrafficTarget
+	for _, source := range services {
+		for _, destination := range services {
+			if reflect.DeepEqual(source, destination) {
+				continue
+			}
+			allowTrafficTarget := mc.buildAllowPolicyForSourceToDest(source, destination)
+			trafficTargets = append(trafficTargets, allowTrafficTarget)
+		}
+	}
+	log.Trace().Msgf("all traffic policies: %v", trafficTargets)
+	return trafficTargets, nil
+}
+
+func (mc *MeshCatalog) buildAllowPolicyForSourceToDest(source *corev1.Service, destination *corev1.Service) trafficpolicy.TrafficTarget {
+	sourceTrafficResource := trafficpolicy.TrafficResource{
+		Namespace: source.Namespace,
+		Service: service.NamespacedService{
+			Namespace: source.Namespace,
+			Service:   source.Name,
+		},
+	}
+	destinationTrafficResource := trafficpolicy.TrafficResource{
+		Namespace: destination.Namespace,
+		Service: service.NamespacedService{
+			Namespace: destination.Namespace,
+			Service:   destination.Name,
+		},
+	}
+
+	serviceDomains := kubernetes.GetDomainsForService(destination)
+	hostHeader := map[string]string{HostHeaderKey: strings.Join(serviceDomains[:], ",")}
+	allowAllRoute := trafficpolicy.Route{
+		PathRegex: constants.RegexMatchAll,
+		Methods:   []string{constants.WildcardHTTPMethod},
+		Headers:   hostHeader,
+	}
+	return trafficpolicy.TrafficTarget{
+		Name:        fmt.Sprintf("%s->%s", source, destination),
+		Destination: destinationTrafficResource,
+		Source:      sourceTrafficResource,
+		Route:       allowAllRoute,
+	}
 }

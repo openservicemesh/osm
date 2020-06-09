@@ -96,6 +96,7 @@ func init() {
 
 	// feature flags
 	flags.BoolVar(&optionalFeatures.Ingress, "enable-ingress", false, "Enable ingress in OSM")
+	flags.BoolVar(&optionalFeatures.SMIAccessControlDisabled, "disable-smi-access-control-policy", false, "Disable SMI access control policies")
 }
 
 func main() {
@@ -158,6 +159,7 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to initialize ingress client")
 	}
+
 	meshCatalog := catalog.NewMeshCatalog(
 		kubernetes.NewForConfigOrDie(kubeConfig),
 		meshSpec,
