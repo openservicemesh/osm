@@ -176,8 +176,8 @@ func (c *Client) ListTrafficTargets() []*target.TrafficTarget {
 	return trafficTarget
 }
 
-// ListServices implements mesh.MeshSpec by returning the services observed from the given compute provider
-func (c *Client) ListServices() []service.WeightedService {
+// ListTrafficSplitServices implements mesh.MeshSpec by returning the services observed from the given compute provider
+func (c *Client) ListTrafficSplitServices() []service.WeightedService {
 	// TODO(draychev): split the namespace and the service kubernetesClientName -- for non-kubernetes services we won't have namespace
 	var services []service.WeightedService
 	for _, splitIface := range c.caches.TrafficSplit.List() {
@@ -238,4 +238,22 @@ func (c *Client) GetService(svc service.Name) (service *corev1.Service, exists b
 		return svcIf.(*corev1.Service), exists, err
 	}
 	return nil, exists, err
+}
+
+// ListServices returns a list of services that are part of monitored namespaces
+func (c Client) ListServices() ([]*corev1.Service, error) {
+	var services []*corev1.Service
+
+	for _, serviceInterface := range c.caches.Services.List() {
+		svc, ok := serviceInterface.(*corev1.Service)
+		if !ok {
+			log.Error().Err(errInvalidServiceObjectType).Msg("Failed type assertion for Service in Services cache")
+			continue
+		}
+		if !c.namespaceController.IsMonitoredNamespace(svc.Namespace) {
+			continue
+		}
+		services = append(services, svc)
+	}
+	return services, nil
 }

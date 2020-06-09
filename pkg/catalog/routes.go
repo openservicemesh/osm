@@ -69,7 +69,7 @@ func (mc *MeshCatalog) GetWeightedClusterForService(nsService service.Namespaced
 	log.Info().Msgf("Finding weighted cluster for service %s", nsService)
 
 	//retrieve the weighted clusters from traffic split
-	servicesList := mc.meshSpec.ListServices()
+	servicesList := mc.meshSpec.ListTrafficSplitServices()
 	for _, activeService := range servicesList {
 		if activeService.NamespacedService == nsService {
 			return service.WeightedCluster{
@@ -92,7 +92,7 @@ func (mc *MeshCatalog) GetDomainForService(nsService service.NamespacedService, 
 	var domain string
 
 	//retrieve the domain name from traffic split
-	servicesList := mc.meshSpec.ListServices()
+	servicesList := mc.meshSpec.ListTrafficSplitServices()
 	for _, activeService := range servicesList {
 		if activeService.NamespacedService == nsService {
 			return activeService.Domain, nil

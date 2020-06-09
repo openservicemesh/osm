@@ -52,8 +52,8 @@ type MeshSpec interface {
 	// ListTrafficSplits lists TrafficSplit SMI resources.
 	ListTrafficSplits() []*split.TrafficSplit
 
-	// ListServices fetches all services declared with SMI Spec.
-	ListServices() []service.WeightedService
+	// ListTrafficSplitServices fetches all services declared with SMI Spec.
+	ListTrafficSplitServices() []service.WeightedService
 
 	// ListServiceAccounts fetches all service accounts declared with SMI Spec.
 	ListServiceAccounts() []service.NamespacedServiceAccount
@@ -69,4 +69,7 @@ type MeshSpec interface {
 
 	// GetAnnouncementsChannel returns the channel on which SMI makes announcements
 	GetAnnouncementsChannel() <-chan interface{}
+
+	// ListServices returns a list of services that are part of monitored namespaces
+	ListServices() ([]*corev1.Service, error)
 }
