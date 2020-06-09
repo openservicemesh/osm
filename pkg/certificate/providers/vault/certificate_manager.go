@@ -91,7 +91,11 @@ func (cm *CertManager) getFromCache(cn certificate.CommonName) certificate.Certi
 	cm.cacheLock.Lock()
 	defer cm.cacheLock.Unlock()
 	if cert, exists := (*cm.cache)[cn]; exists {
-		log.Trace().Msgf("Found in cache certificate with CN=%s", cn)
+		log.Trace().Msgf("Certificate found in cache CN=%s", cn)
+		if rotor.ShouldRotate(cert) {
+			log.Trace().Msgf("Certificate found in cache but has expired CN=%s", cn)
+			return nil
+		}
 		return cert
 	}
 	return nil
