@@ -4,6 +4,8 @@ set -aueo pipefail
 
 # shellcheck disable=SC1091
 source .env
+BOOKSTORE_SVC="${BOOKSTORE_SVC:-bookstore-mesh}"
+BOOKTHIEF_EXPECTED_RESPONSE_CODE="${BOOKTHIEF_EXPECTED_RESPONSE_CODE:-404}"
 
 kubectl delete deployment bookthief -n "$BOOKTHIEF_NAMESPACE"  || true
 
@@ -67,7 +69,10 @@ spec:
               value: "$BOOKSTORE_NAMESPACE"
             - name: "OSM_HUMAN_DEBUG_LOG"
               value: "true"
-
+            - name: "BOOKSTORE_SVC"
+              value: "$BOOKSTORE_SVC"
+            - name: "BOOKTHIEF_EXPECTED_RESPONSE_CODE"
+              value: "$BOOKTHIEF_EXPECTED_RESPONSE_CODE"
 
       imagePullSecrets:
         - name: "$CTR_REGISTRY_CREDS_NAME"

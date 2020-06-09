@@ -216,3 +216,13 @@ func getEnvVars(participantName string) (minSuccessThreshold int64, maxIteration
 
 	return minSuccessThreshold, maxIterations, time.Duration(sleepDurationBetweenRequestsInt) * time.Second
 }
+
+// GetExpectedResponseCodeFromEnvVar returns the expected response code based on the given environment variable
+func GetExpectedResponseCodeFromEnvVar(envVar, defaultValue string) int {
+	expectedRespCodeStr := GetEnv(envVar, defaultValue)
+	expectedRespCode, err := strconv.ParseInt(expectedRespCodeStr, 10, 0)
+	if err != nil {
+		log.Fatal().Err(err).Msgf("Could not convert environment variable %s='%s' to int", envVar, expectedRespCodeStr)
+	}
+	return int(expectedRespCode)
+}
