@@ -38,7 +38,12 @@ spec:
             "--vaultProtocol", "{{.Values.vault.protocol}}",
             "--vaultToken", "{{.Values.vault.token}}",
             "--serviceCertValidityMinutes", "{{.Values.serviceCertValidityMinutes}}",
-            "--enableDebugServer", "{{.Values.enableDebugServer}}"
+            {{- if .Values.enableDebugServer }}
+            "--enableDebugServer",
+            {{- end }}
+            {{- if .Values.disableSMIAccessControlPolicy }}
+            "--disable-smi-access-control-policy",
+            {{- end }}
           ]
           readinessProbe:
             initialDelaySeconds: 1
