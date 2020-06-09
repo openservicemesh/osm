@@ -90,6 +90,7 @@ func TestInstallRun(t *testing.T) {
 			"retention": map[string]interface{}{
 				"time": "5d",
 			}},
+		"enableDebugServer": false,
 	}
 	if !cmp.Equal(rel.Config, expectedUserValues) {
 		t.Errorf("Expected helm release values to resolve as %#v\nbut got %#v", expectedUserValues, rel.Config)
@@ -171,6 +172,7 @@ func TestInstallRunDefaultChart(t *testing.T) {
 				"time": "5d",
 			},
 		},
+		"enableDebugServer": false,
 	}
 	if !cmp.Equal(rel.Config, expectedUserValues) {
 		t.Errorf("Expected helm release values to resolve as %#v\nbut got %#v", expectedUserValues, rel.Config)
@@ -248,6 +250,7 @@ func TestInstallRunVault(t *testing.T) {
 			"retention": map[string]interface{}{
 				"time": "5d",
 			}},
+		"enableDebugServer": false,
 	}
 	if !cmp.Equal(rel.Config, expectedUserValues) {
 		t.Errorf("Expected helm release values to resolve as %#v\nbut got %#v", expectedUserValues, rel.Config)
@@ -331,6 +334,7 @@ func TestResolveValues(t *testing.T) {
 			"retention": map[string]interface{}{
 				"time": "5d",
 			}},
+		"enableDebugServer": false,
 	}
 	if !cmp.Equal(vals, expected) {
 		t.Errorf("Expected values to resolve as %#v\nbut got %#v", expected, vals)
