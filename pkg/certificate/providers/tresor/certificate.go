@@ -43,19 +43,19 @@ func (c Certificate) GetExpiration() time.Time {
 
 // LoadCA loads the certificate and its key from the supplied PEM files.
 func LoadCA(certFilePEM string, keyFilePEM string) (*Certificate, error) {
-	pemCert, err := LoadCertificateFromFile(certFilePEM)
+	pemCert, err := certificate.LoadCertificateFromFile(certFilePEM)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error loading certificate from file %s", certFilePEM)
 		return nil, err
 	}
 
-	pemKey, err := LoadPrivateKeyFromFile(keyFilePEM)
+	pemKey, err := certificate.LoadPrivateKeyFromFile(keyFilePEM)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error loading private key from file %s", keyFilePEM)
 		return nil, err
 	}
 
-	x509RootCert, err := DecodePEMCertificate(pemCert)
+	x509RootCert, err := certificate.DecodePEMCertificate(pemCert)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error converting certificate from PEM to x509 - CN=%s", rootCertificateName)
 	}

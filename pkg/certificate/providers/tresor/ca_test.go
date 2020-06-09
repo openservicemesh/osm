@@ -6,6 +6,8 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	"github.com/open-service-mesh/osm/pkg/certificate"
 )
 
 var _ = Describe("Test creation of a new CA", func() {
@@ -17,7 +19,7 @@ var _ = Describe("Test creation of a new CA", func() {
 		It("should create a new CA", func() {
 			Expect(err).ToNot(HaveOccurred())
 
-			x509Cert, err := DecodePEMCertificate(cert.GetCertificateChain())
+			x509Cert, err := certificate.DecodePEMCertificate(cert.GetCertificateChain())
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(x509Cert.NotAfter.Sub(x509Cert.NotBefore)).To(Equal(2 * time.Second))
