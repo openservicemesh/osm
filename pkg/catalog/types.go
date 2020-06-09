@@ -1,6 +1,7 @@
 package catalog
 
 import (
+	"sync"
 	"time"
 
 	"k8s.io/client-go/kubernetes"
@@ -30,8 +31,15 @@ type MeshCatalog struct {
 
 	certificateCache map[service.NamespacedService]certificate.Certificater
 
-	expectedProxies      map[certificate.CommonName]expectedProxy
+	expectedProxies     map[certificate.CommonName]expectedProxy
+	expectedProxiesLock sync.Mutex
+
 	connectedProxies     map[certificate.CommonName]connectedProxy
+	connectedProxiesLock sync.Mutex
+
+	disconnectedProxies     map[certificate.CommonName]disconnectedProxy
+	disconnectedProxiesLock sync.Mutex
+
 	announcementChannels mapset.Set
 
 	// Current assumption is that OSM is working with a single Kubernetes cluster.
@@ -93,14 +101,19 @@ type announcementChannel struct {
 
 type expectedProxy struct {
 	// The time the certificate, identified by CN, for the expected proxy was issued on
-	issuedOn time.Time
+	certificateIssuedOn time.Time
 }
+
 type connectedProxy struct {
 	// Proxy which connected to the XDS control plane
 	proxy *envoy.Proxy
 
 	// When the proxy connected to the XDS control plane
 	connectedOn time.Time
+}
+
+type disconnectedProxy struct {
+	lastSeen time.Time
 }
 
 // certificateCommonNameMeta is the type that stores the metadata present in the CommonName field in a proxy's certificate

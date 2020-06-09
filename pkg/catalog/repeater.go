@@ -40,6 +40,7 @@ func (mc *MeshCatalog) getCases() ([]reflect.SelectCase, []string) {
 }
 
 func (mc *MeshCatalog) broadcast(message interface{}) {
+	mc.connectedProxiesLock.Lock()
 	for _, connectedEnvoy := range mc.connectedProxies {
 		log.Debug().Msgf("[repeater] Broadcast announcement to envoy %s", connectedEnvoy.proxy.GetCommonName())
 		select {
@@ -48,4 +49,5 @@ func (mc *MeshCatalog) broadcast(message interface{}) {
 		default:
 		}
 	}
+	mc.connectedProxiesLock.Unlock()
 }
