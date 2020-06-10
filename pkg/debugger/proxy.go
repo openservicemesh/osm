@@ -41,11 +41,10 @@ func printProxies(w http.ResponseWriter, proxies map[certificate.CommonName]time
 }
 
 func (ds debugServer) getProxy(cn certificate.CommonName, w http.ResponseWriter) {
-	_, err := catalog.GetPodFromCertificate(cn, ds.kubeClient)
+	pod, err := catalog.GetPodFromCertificate(cn, ds.kubeClient)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting pod with CN=%s", cn)
+		log.Error().Err(err).Msgf("Error getting Pod from certificate with CN=%s", cn)
 	}
-	// TODO(draychev): get Envoy debug
-	envoyConfig := "TODO"
+	envoyConfig := ds.getEnvoyConfig(pod, cn)
 	_, _ = fmt.Fprintf(w, "%s\n", envoyConfig)
 }
