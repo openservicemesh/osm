@@ -128,7 +128,8 @@ if [ "$CERT_MANAGER" = "vault" ]; then
       --vault-protocol="$VAULT_PROTOCOL" \
       --container-registry "$CTR_REGISTRY" \
       --container-registry-secret "$CTR_REGISTRY_CREDS_NAME" \
-      --osm-image-tag "$CTR_TAG"
+      --osm-image-tag "$CTR_TAG" \
+      -enable-debug-server
 else
   bin/osm install \
       --namespace "$K8S_NAMESPACE" \
