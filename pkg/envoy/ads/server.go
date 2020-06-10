@@ -2,11 +2,13 @@ package ads
 
 import (
 	"context"
+	"time"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_service_discovery_v2 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
+	"github.com/open-service-mesh/osm/pkg/certificate"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 	"github.com/open-service-mesh/osm/pkg/envoy/cds"
 	"github.com/open-service-mesh/osm/pkg/envoy/eds"
@@ -17,8 +19,8 @@ import (
 )
 
 // NewADSServer creates a new Aggregated Discovery Service server
-func NewADSServer(ctx context.Context, meshCatalog catalog.MeshCataloger, meshSpec smi.MeshSpec) *Server {
-	return &Server{
+func NewADSServer(ctx context.Context, meshCatalog catalog.MeshCataloger, meshSpec smi.MeshSpec, enableDebug bool) *Server {
+	server := Server{
 		catalog:  meshCatalog,
 		ctx:      ctx,
 		meshSpec: meshSpec,
@@ -29,7 +31,14 @@ func NewADSServer(ctx context.Context, meshCatalog catalog.MeshCataloger, meshSp
 			envoy.TypeLDS: lds.NewResponse,
 			envoy.TypeSDS: sds.NewResponse,
 		},
+		enableDebug: enableDebug,
 	}
+
+	if enableDebug {
+		server.xdsLog = make(map[certificate.CommonName]map[envoy.TypeURI][]time.Time)
+	}
+
+	return &server
 }
 
 // DeltaAggregatedResources implements envoy_service_discovery_v2.AggregatedDiscoveryServiceServer

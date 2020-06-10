@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
-
 	"github.com/open-service-mesh/osm/pkg/certificate"
 )
 

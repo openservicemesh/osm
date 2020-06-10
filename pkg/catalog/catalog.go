@@ -1,9 +1,6 @@
 package catalog
 
 import (
-	"fmt"
-	"net/http"
-	"os"
 	"time"
 
 	set "github.com/deckarep/golang-set"
@@ -44,16 +41,6 @@ func NewMeshCatalog(kubeClient kubernetes.Interface, meshSpec smi.MeshSpec, cert
 
 	go sc.repeater()
 	return &sc
-}
-
-// GetDebugInfo returns an HTTP handler for OSM debug endpoint.
-func (mc *MeshCatalog) GetDebugInfo() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// TODO(draychev): convert to CLI flag
-		if value, ok := os.LookupEnv("OSM_ENABLE_DEBUG"); ok && value == "true" {
-			_, _ = fmt.Fprintf(w, "hello\n")
-		}
-	})
 }
 
 // RegisterNewEndpoint adds a newly connected Envoy proxy to the list of self-announced endpoints for a service.

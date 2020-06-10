@@ -17,6 +17,7 @@ import (
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/certificate"
 	"github.com/open-service-mesh/osm/pkg/constants"
+	"github.com/open-service-mesh/osm/pkg/debugger"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/envoy/ads"
 	"github.com/open-service-mesh/osm/pkg/featureflags"
@@ -132,7 +133,7 @@ func main() {
 	namespaceController := namespace.NewNamespaceController(kubeConfig, osmID, stop)
 	meshSpec := smi.NewMeshSpecClient(kubeConfig, osmNamespace, namespaceController, stop)
 
-	certManager := certManagers[certificateManagerKind(*certManagerKind)](kubeConfig)
+	certManager, certDebugger := certManagers[certificateManagerKind(*certManagerKind)](kubeConfig, enableDebugServer)
 
 	log.Info().Msgf("Service certificates will be valid for %+v", getServiceCertValidityPeriod())
 
@@ -174,7 +175,7 @@ func main() {
 	}
 
 	// TODO(draychev): there should be no need to pass meshSpec to the ADS - it is already in meshCatalog
-	adsServer := ads.NewADSServer(ctx, meshCatalog, meshSpec)
+	xdsServer := ads.NewADSServer(ctx, meshCatalog, meshSpec, enableDebugServer)
 
 	// TODO(draychev): we need to pass this hard-coded string is a CLI argument (https://github.com/open-service-mesh/osm/issues/542)
 	validityPeriod := constants.XDSCertificateValidityPeriod
@@ -184,15 +185,20 @@ func main() {
 	}
 
 	grpcServer, lis := utils.NewGrpc(serverType, *port, adsCert.GetCertificateChain(), adsCert.GetPrivateKey(), adsCert.GetIssuingCA())
-	xds.RegisterAggregatedDiscoveryServiceServer(grpcServer, adsServer)
+	xds.RegisterAggregatedDiscoveryServiceServer(grpcServer, xdsServer)
 
 	go utils.GrpcServe(ctx, grpcServer, lis, cancel, serverType)
 
 	// initialize the http server and start it
 	// TODO(draychev): figure out the NS and POD
 	metricsStore := metricsstore.NewMetricStore("TBD_NameSpace", "TBD_PodName")
-	// TODO(draychev): the port number should be configurable
-	httpServer := httpserver.NewHTTPServer(adsServer, metricsStore, constants.MetricsServerPort, meshCatalog.GetDebugInfo)
+
+	// Expose /debug endpoints and data only if the enableDebugServer flag is enabled
+	var debugServer debugger.DebugServer
+	if enableDebugServer {
+		debugServer = debugger.NewDebugServer(certDebugger, xdsServer, meshCatalog, kubeConfig)
+	}
+	httpServer := httpserver.NewHTTPServer(xdsServer, metricsStore, constants.MetricsServerPort, debugServer)
 	httpServer.Start()
 
 	// Wait for exit handler signal
