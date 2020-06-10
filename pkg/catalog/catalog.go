@@ -28,6 +28,7 @@ func NewMeshCatalog(kubeClient kubernetes.Interface, meshSpec smi.MeshSpec, cert
 		certificateCache:     make(map[service.NamespacedService]certificate.Certificater),
 		expectedProxies:      make(map[certificate.CommonName]expectedProxy),
 		connectedProxies:     make(map[certificate.CommonName]connectedProxy),
+		disconnectedProxies:  make(map[certificate.CommonName]disconnectedProxy),
 		announcementChannels: set.NewSet(),
 
 		// Kubernetes needed to determine what Services a pod that connects to XDS belongs to.
