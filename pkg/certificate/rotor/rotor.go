@@ -1,14 +1,21 @@
 package rotor
 
 import (
+	"math/rand"
 	"time"
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
 )
 
 const (
-	tolerance         = 30 * time.Second
-	maxSecondsShorter = 5
+	// How much earlier (before expiration) should a certificate be renewed
+	renewBeforeCertExpires = 30 * time.Second
+
+	// So that we do not renew all certs at the same time - add noise.
+	// These define the min and max of the seconds of noise to be added
+	// to the early certificate renewal.
+	minNoiseSeconds = 1
+	maxNoiseSeconds = 5
 )
 
 type rotor struct {
@@ -20,7 +27,7 @@ type rotor struct {
 }
 
 // New creates and starts a new facility for automatic certificate rotation.
-func New(checkInterval time.Duration, done chan interface{}, certManager certificate.Manager, certificates *map[certificate.CommonName]certificate.Certificater) <-chan interface{} {
+func New(checkInterval time.Duration, certManager certificate.Manager, certificates *map[certificate.CommonName]certificate.Certificater) <-chan interface{} {
 	rtr := rotor{
 		certificates:  certificates,
 		certManager:   certManager,
@@ -32,12 +39,8 @@ func New(checkInterval time.Duration, done chan interface{}, certManager certifi
 	ticker := time.NewTicker(checkInterval)
 	go func() {
 		for {
-			select {
-			case <-done:
-				return
-			case <-ticker.C:
-				rtr.checkAndRotate()
-			}
+			rtr.checkAndRotate()
+			<-ticker.C
 		}
 	}()
 
@@ -49,7 +52,7 @@ func (r *rotor) checkAndRotate() {
 		shouldRotate := ShouldRotate(cert)
 
 		word := map[bool]string{true: "will", false: "will not"}[shouldRotate]
-		log.Trace().Msgf("Cert %s %s be rotated; expires in %+v; tolerance is %+v", cn, word, time.Until(cert.GetExpiration()), tolerance)
+		log.Trace().Msgf("Cert %s %s be rotated; expires in %+v; renewBeforeCertExpires is %+v", cn, word, time.Until(cert.GetExpiration()), renewBeforeCertExpires)
 
 		if shouldRotate {
 			// Remove the certificate from the cache of the certificate manager
@@ -66,7 +69,11 @@ func (r *rotor) checkAndRotate() {
 
 // ShouldRotate determines whether a certificate should be rotated.
 func ShouldRotate(cert certificate.Certificater) bool {
-	expiresAt := cert.GetExpiration()
-	randomSeconds := time.Duration(maxSecondsShorter) * time.Second
-	return time.Until(expiresAt) < (tolerance - randomSeconds)
+	// The certificate is going to expire at a timestamp T
+	// We want to renew earlier. How much earlier is defined in renewBeforeCertExpires.
+	// We add a few seconds noise to the early renew period so that certificates that may have been
+	// created at the same time are not renewed at the exact same time.
+	intNoise := rand.Intn(maxNoiseSeconds-minNoiseSeconds) + minNoiseSeconds
+	secondsNoise := time.Duration(intNoise) * time.Second
+	return time.Until(cert.GetExpiration()) <= (renewBeforeCertExpires + secondsNoise)
 }
