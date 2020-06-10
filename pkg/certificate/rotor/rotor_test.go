@@ -51,7 +51,7 @@ var _ = Describe("Test Rotor", func() {
 			Expect(cache[cn]).To(Equal(certA))
 
 			start := time.Now()
-			announcements := rotor.New(1*time.Millisecond, done, certManager, &cache)
+			announcements := rotor.New(360*time.Second, certManager, &cache)
 			// Wait for one certificate rotation to be announced and terminate
 			<-announcements
 			close(done)
