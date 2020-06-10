@@ -120,9 +120,21 @@ done
 # Deploys Xds and Prometheus
 echo "Certificate Manager in use: $CERT_MANAGER"
 if [ "$CERT_MANAGER" = "vault" ]; then
-bin/osm install --namespace "$K8S_NAMESPACE" --cert-manager="$CERT_MANAGER" --vault-host="$VAULT_HOST" --vault-token="$VAULT_TOKEN" --vault-protocol="$VAULT_PROTOCOL" --container-registry "$CTR_REGISTRY" --container-registry-secret "$CTR_REGISTRY_CREDS_NAME" --osm-image-tag "$CTR_TAG"
+  bin/osm install \
+      --namespace "$K8S_NAMESPACE" \
+      --cert-manager="$CERT_MANAGER" \
+      --vault-host="$VAULT_HOST" \
+      --vault-token="$VAULT_TOKEN" \
+      --vault-protocol="$VAULT_PROTOCOL" \
+      --container-registry "$CTR_REGISTRY" \
+      --container-registry-secret "$CTR_REGISTRY_CREDS_NAME" \
+      --osm-image-tag "$CTR_TAG"
 else
-bin/osm install --namespace "$K8S_NAMESPACE" --container-registry "$CTR_REGISTRY" --container-registry-secret "$CTR_REGISTRY_CREDS_NAME" --osm-image-tag "$CTR_TAG"
+  bin/osm install \
+      --namespace "$K8S_NAMESPACE" \
+      --container-registry "$CTR_REGISTRY" \
+      --container-registry-secret "$CTR_REGISTRY_CREDS_NAME" \
+      --osm-image-tag "$CTR_TAG"
 fi
 
 wait_for_ads_pod
