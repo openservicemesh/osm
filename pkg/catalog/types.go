@@ -101,7 +101,7 @@ type announcementChannel struct {
 
 type expectedProxy struct {
 	// The time the certificate, identified by CN, for the expected proxy was issued on
-	certificateIssuedOn time.Time
+	certificateIssuedAt time.Time
 }
 
 type connectedProxy struct {
@@ -109,7 +109,7 @@ type connectedProxy struct {
 	proxy *envoy.Proxy
 
 	// When the proxy connected to the XDS control plane
-	connectedOn time.Time
+	connectedAt time.Time
 }
 
 type disconnectedProxy struct {

@@ -11,7 +11,7 @@ import (
 func (mc *MeshCatalog) ExpectProxy(cn certificate.CommonName) {
 	mc.expectedProxiesLock.Lock()
 	mc.expectedProxies[cn] = expectedProxy{
-		certificateIssuedOn: time.Now(),
+		certificateIssuedAt: time.Now(),
 	}
 	mc.expectedProxiesLock.Unlock()
 }
@@ -21,7 +21,7 @@ func (mc *MeshCatalog) RegisterProxy(p *envoy.Proxy) {
 	mc.connectedProxiesLock.Lock()
 	mc.connectedProxies[p.CommonName] = connectedProxy{
 		proxy:       p,
-		connectedOn: time.Now(),
+		connectedAt: time.Now(),
 	}
 	mc.connectedProxiesLock.Unlock()
 	log.Info().Msgf("Registered new proxy: CN=%v, ip=%v", p.GetCommonName(), p.GetIP())

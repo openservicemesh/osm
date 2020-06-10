@@ -14,7 +14,7 @@ import (
 )
 
 // NewFakeMeshCatalog creates a new struct implementing catalog.MeshCataloger interface used for testing.
-func NewFakeMeshCatalog(kubeClient kubernetes.Interface) MeshCataloger {
+func NewFakeMeshCatalog(kubeClient kubernetes.Interface) *MeshCatalog {
 	meshSpec := smi.NewFakeMeshSpecClient()
 	cache := make(map[certificate.CommonName]certificate.Certificater)
 	certManager := tresor.NewFakeCertManager(&cache, 1*time.Hour)
