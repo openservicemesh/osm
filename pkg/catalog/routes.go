@@ -85,7 +85,11 @@ func (mc *MeshCatalog) GetWeightedClusterForService(nsService service.Namespaced
 	// TODO(draychev): split namespace from the service name -- for non-K8s services
 	log.Info().Msgf("Finding weighted cluster for service %s", nsService)
 
-	//retrieve the weighted clusters from traffic split
+	if featureflags.IsSMIAccessControlDisabled() {
+		return getDefaultWeightedClusterForService(nsService), nil
+	}
+
+	// Retrieve the weighted clusters from traffic split
 	servicesList := mc.meshSpec.ListTrafficSplitServices()
 	for _, activeService := range servicesList {
 		if activeService.NamespacedService == nsService {
@@ -96,31 +100,28 @@ func (mc *MeshCatalog) GetWeightedClusterForService(nsService service.Namespaced
 		}
 	}
 
-	//service not referenced in traffic split, assign a default weight of 100 to the service/cluster
-	return service.WeightedCluster{
-		ClusterName: service.ClusterName(nsService.String()),
-		Weight:      constants.WildcardClusterWeight,
-	}, nil
+	// Use a default weighted cluster as an SMI TrafficSplit policy is not defined for the service
+	return getDefaultWeightedClusterForService(nsService), nil
 }
 
 //GetDomainForService returns the domain name of a service
 func (mc *MeshCatalog) GetDomainForService(nsService service.NamespacedService, routeHeaders map[string]string) (string, error) {
 	log.Info().Msgf("Finding domain for service %s", nsService)
-	var domain string
 
-	//retrieve the domain name from traffic split
+	if featureflags.IsSMIAccessControlDisabled() {
+		return getHostHeaderFromRouteHeaders(routeHeaders)
+	}
+
+	// Retrieve the domain name from traffic split
 	servicesList := mc.meshSpec.ListTrafficSplitServices()
 	for _, activeService := range servicesList {
 		if activeService.NamespacedService == nsService {
 			return activeService.Domain, nil
 		}
 	}
-	//service not referenced in traffic split, check if the traffic policy has the host header as a part of the route spec
-	hostName, hostExists := routeHeaders[HostHeaderKey]
-	if hostExists {
-		return hostName, nil
-	}
-	return domain, errDomainNotFoundForService
+
+	// Use the host header as an SMI TrafficSplit policy is not defined for the service
+	return getHostHeaderFromRouteHeaders(routeHeaders)
 }
 
 func (mc *MeshCatalog) getHTTPPathsPerRoute() (map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.Route, error) {
@@ -294,5 +295,20 @@ func (mc *MeshCatalog) buildAllowPolicyForSourceToDest(source *corev1.Service, d
 		Destination: destinationTrafficResource,
 		Source:      sourceTrafficResource,
 		Route:       allowAllRoute,
+	}
+}
+
+func getHostHeaderFromRouteHeaders(routeHeaders map[string]string) (string, error) {
+	hostName, hostExists := routeHeaders[HostHeaderKey]
+	if hostExists {
+		return hostName, nil
+	}
+	return "", errDomainNotFoundForService
+}
+
+func getDefaultWeightedClusterForService(nsService service.NamespacedService) service.WeightedCluster {
+	return service.WeightedCluster{
+		ClusterName: service.ClusterName(nsService.String()),
+		Weight:      constants.WildcardClusterWeight,
 	}
 }
