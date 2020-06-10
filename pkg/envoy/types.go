@@ -15,6 +15,10 @@ var (
 // TypeURI is a string describing the Envoy xDS payload.
 type TypeURI string
 
+func (t TypeURI) String() string {
+	return string(t)
+}
+
 const (
 	// TypeSDS is the SDS type URI.
 	TypeSDS TypeURI = "type.googleapis.com/envoy.api.v2.auth.Secret"

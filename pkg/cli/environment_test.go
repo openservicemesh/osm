@@ -2,79 +2,50 @@ package cli
 
 import (
 	"os"
-	"strings"
-	"testing"
 
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"github.com/spf13/pflag"
 )
 
-type testCase struct {
-	name              string
-	argsInput         string
-	envVarsInput      map[string]string
-	expectedNamespace string
-}
+var _ = Describe("New", func() {
+	var flags *pflag.FlagSet
 
-func TestNew(t *testing.T) {
+	BeforeEach(func() {
+		flags = pflag.NewFlagSet("test-new", pflag.ContinueOnError)
+	})
 
-	tests := []testCase{
-		testCase{
-			name:              "default",
-			expectedNamespace: "osm-system",
-		},
-		testCase{
-			name:              "with namespace flag set",
-			argsInput:         "--namespace=osm-ns",
-			expectedNamespace: "osm-ns",
-		},
-		testCase{
-			name: "with envvar set",
-			envVarsInput: map[string]string{
-				"OSM_NAMESPACE": "osm-env",
-			},
-			expectedNamespace: "osm-env",
-		},
-		testCase{
-			name:      "with flags and envvar set",
-			argsInput: "--namespace=osm-flag-ns",
-			envVarsInput: map[string]string{
-				"OSM_NAMESPACE": "osm-env",
-			},
-			expectedNamespace: "osm-flag-ns",
-		},
-	}
+	It("sets the default namespace", func() {
+		settings := New()
+		settings.AddFlags(flags)
+		flags.Parse(nil)
+		Expect(settings.Namespace()).To(Equal(defaultOSMNamespace))
+	})
 
-	for _, test := range tests {
-		defer resetEnv()()
+	It("sets the namespace from the flag", func() {
+		settings := New()
+		settings.AddFlags(flags)
+		flags.Parse([]string{"--namespace=osm-ns"})
+		Expect(settings.Namespace()).To(Equal("osm-ns"))
+	})
 
-		for k, v := range test.envVarsInput {
-			os.Setenv(k, v)
-		}
-
-		flags := pflag.NewFlagSet("test-new", pflag.ContinueOnError)
+	It("sets the namespace from the env var", func() {
+		os.Setenv(osmNamespaceEnvVar, "osm-env")
+		defer os.Unsetenv(osmNamespaceEnvVar)
 
 		settings := New()
 		settings.AddFlags(flags)
-		flags.Parse(strings.Split(test.argsInput, " "))
+		flags.Parse(nil)
+		Expect(settings.Namespace()).To(Equal("osm-env"))
+	})
 
-		if settings.Namespace() != test.expectedNamespace {
-			t.Errorf("[test: %s] expected namespace %s, got %s", test.name, test.expectedNamespace, settings.Namespace())
-		}
-	}
-}
+	It("overrides the env var with the flag", func() {
+		os.Setenv(osmNamespaceEnvVar, "osm-env")
+		defer os.Unsetenv(osmNamespaceEnvVar)
 
-func resetEnv() func() {
-	origEnv := os.Environ()
-
-	// unset any local env vars
-	for e := range New().EnvVars() {
-		os.Unsetenv(e)
-	}
-
-	return func() {
-		for _, pair := range origEnv {
-			kv := strings.SplitN(pair, "=", 2)
-			os.Setenv(kv[0], kv[1])
-		}
-	}
-}
+		settings := New()
+		settings.AddFlags(flags)
+		flags.Parse([]string{"--namespace=osm-ns"})
+		Expect(settings.Namespace()).To(Equal("osm-ns"))
+	})
+})

@@ -2,10 +2,15 @@ package catalog
 
 import (
 	"fmt"
+	"reflect"
+	"strings"
 
 	mapset "github.com/deckarep/golang-set"
+	corev1 "k8s.io/api/core/v1"
 
 	"github.com/open-service-mesh/osm/pkg/constants"
+	"github.com/open-service-mesh/osm/pkg/featureflags"
+	"github.com/open-service-mesh/osm/pkg/kubernetes"
 	"github.com/open-service-mesh/osm/pkg/service"
 	"github.com/open-service-mesh/osm/pkg/trafficpolicy"
 )
@@ -20,7 +25,19 @@ const (
 
 // ListTrafficPolicies returns all the traffic policies for a given service that Envoy proxy should be aware of.
 func (mc *MeshCatalog) ListTrafficPolicies(service service.NamespacedService) ([]trafficpolicy.TrafficTarget, error) {
-	log.Info().Msgf("Listing Routes for service: %s", service)
+	log.Info().Msgf("Listing traffic policies for service: %s", service)
+
+	if featureflags.IsSMIAccessControlDisabled() {
+		// Build traffic policies from service discovery for allow-all policy
+		trafficPolicies, err := mc.buildAllowAllTrafficPolicies(service)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to build allow-all traffic policy for service %s", service)
+			return nil, err
+		}
+		return trafficPolicies, nil
+	}
+
+	// Build traffic policies from SMI
 	allRoutes, err := mc.getHTTPPathsPerRoute()
 	if err != nil {
 		log.Error().Err(err).Msgf("Could not get all routes")
@@ -68,7 +85,11 @@ func (mc *MeshCatalog) GetWeightedClusterForService(nsService service.Namespaced
 	// TODO(draychev): split namespace from the service name -- for non-K8s services
 	log.Info().Msgf("Finding weighted cluster for service %s", nsService)
 
-	//retrieve the weighted clusters from traffic split
+	if featureflags.IsSMIAccessControlDisabled() {
+		return getDefaultWeightedClusterForService(nsService), nil
+	}
+
+	// Retrieve the weighted clusters from traffic split
 	servicesList := mc.meshSpec.ListTrafficSplitServices()
 	for _, activeService := range servicesList {
 		if activeService.NamespacedService == nsService {
@@ -79,31 +100,28 @@ func (mc *MeshCatalog) GetWeightedClusterForService(nsService service.Namespaced
 		}
 	}
 
-	//service not referenced in traffic split, assign a default weight of 100 to the service/cluster
-	return service.WeightedCluster{
-		ClusterName: service.ClusterName(nsService.String()),
-		Weight:      constants.WildcardClusterWeight,
-	}, nil
+	// Use a default weighted cluster as an SMI TrafficSplit policy is not defined for the service
+	return getDefaultWeightedClusterForService(nsService), nil
 }
 
 //GetDomainForService returns the domain name of a service
 func (mc *MeshCatalog) GetDomainForService(nsService service.NamespacedService, routeHeaders map[string]string) (string, error) {
 	log.Info().Msgf("Finding domain for service %s", nsService)
-	var domain string
 
-	//retrieve the domain name from traffic split
+	if featureflags.IsSMIAccessControlDisabled() {
+		return getHostHeaderFromRouteHeaders(routeHeaders)
+	}
+
+	// Retrieve the domain name from traffic split
 	servicesList := mc.meshSpec.ListTrafficSplitServices()
 	for _, activeService := range servicesList {
 		if activeService.NamespacedService == nsService {
 			return activeService.Domain, nil
 		}
 	}
-	//service not referenced in traffic split, check if the traffic policy has the host header as a part of the route spec
-	hostName, hostExists := routeHeaders[HostHeaderKey]
-	if hostExists {
-		return hostName, nil
-	}
-	return domain, errDomainNotFoundForService
+
+	// Use the host header as an SMI TrafficSplit policy is not defined for the service
+	return getHostHeaderFromRouteHeaders(routeHeaders)
 }
 
 func (mc *MeshCatalog) getHTTPPathsPerRoute() (map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.Route, error) {
@@ -226,4 +244,71 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[trafficpolicy.T
 
 	log.Debug().Msgf("Constructed traffic policies: %+v", trafficPolicies)
 	return trafficPolicies, nil
+}
+
+func (mc *MeshCatalog) buildAllowAllTrafficPolicies(service service.NamespacedService) ([]trafficpolicy.TrafficTarget, error) {
+	services, err := mc.meshSpec.ListServices()
+	if err != nil {
+		log.Error().Err(err).Msgf("Error building traffic policies for service %s", service)
+		return nil, err
+	}
+
+	var trafficTargets []trafficpolicy.TrafficTarget
+	for _, source := range services {
+		for _, destination := range services {
+			if reflect.DeepEqual(source, destination) {
+				continue
+			}
+			allowTrafficTarget := mc.buildAllowPolicyForSourceToDest(source, destination)
+			trafficTargets = append(trafficTargets, allowTrafficTarget)
+		}
+	}
+	log.Trace().Msgf("all traffic policies: %v", trafficTargets)
+	return trafficTargets, nil
+}
+
+func (mc *MeshCatalog) buildAllowPolicyForSourceToDest(source *corev1.Service, destination *corev1.Service) trafficpolicy.TrafficTarget {
+	sourceTrafficResource := trafficpolicy.TrafficResource{
+		Namespace: source.Namespace,
+		Service: service.NamespacedService{
+			Namespace: source.Namespace,
+			Service:   source.Name,
+		},
+	}
+	destinationTrafficResource := trafficpolicy.TrafficResource{
+		Namespace: destination.Namespace,
+		Service: service.NamespacedService{
+			Namespace: destination.Namespace,
+			Service:   destination.Name,
+		},
+	}
+
+	serviceDomains := kubernetes.GetDomainsForService(destination)
+	hostHeader := map[string]string{HostHeaderKey: strings.Join(serviceDomains[:], ",")}
+	allowAllRoute := trafficpolicy.Route{
+		PathRegex: constants.RegexMatchAll,
+		Methods:   []string{constants.WildcardHTTPMethod},
+		Headers:   hostHeader,
+	}
+	return trafficpolicy.TrafficTarget{
+		Name:        fmt.Sprintf("%s->%s", source, destination),
+		Destination: destinationTrafficResource,
+		Source:      sourceTrafficResource,
+		Route:       allowAllRoute,
+	}
+}
+
+func getHostHeaderFromRouteHeaders(routeHeaders map[string]string) (string, error) {
+	hostName, hostExists := routeHeaders[HostHeaderKey]
+	if hostExists {
+		return hostName, nil
+	}
+	return "", errDomainNotFoundForService
+}
+
+func getDefaultWeightedClusterForService(nsService service.NamespacedService) service.WeightedCluster {
+	return service.WeightedCluster{
+		ClusterName: service.ClusterName(nsService.String()),
+		Weight:      constants.WildcardClusterWeight,
+	}
 }

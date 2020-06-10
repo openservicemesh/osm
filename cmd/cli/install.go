@@ -47,18 +47,20 @@ const (
 var chartTGZSource string
 
 type installCmd struct {
-	out                        io.Writer
-	containerRegistry          string
-	containerRegistrySecret    string
-	chartPath                  string
-	osmImageTag                string
-	certManager                string
-	vaultHost                  string
-	vaultProtocol              string
-	vaultToken                 string
-	vaultRole                  string
-	serviceCertValidityMinutes int
-	prometheusRetentionTime    string
+	out                           io.Writer
+	containerRegistry             string
+	containerRegistrySecret       string
+	chartPath                     string
+	osmImageTag                   string
+	certManager                   string
+	vaultHost                     string
+	vaultProtocol                 string
+	vaultToken                    string
+	vaultRole                     string
+	serviceCertValidityMinutes    int
+	prometheusRetentionTime       string
+	enableDebugServer             bool
+	disableSMIAccessControlPolicy bool
 }
 
 func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
@@ -88,6 +90,8 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.StringVar(&inst.vaultRole, "vault-role", "open-service-mesh", "Vault role to be used by Open Service Mesh")
 	f.IntVar(&inst.serviceCertValidityMinutes, "service-cert-validity-minutes", int(1), "Certificate TTL in minutes")
 	f.StringVar(&inst.prometheusRetentionTime, "promethues-retention-time", constants.PrometheusDefaultRetentionTime, "Duration for which data will be retained in prometheus")
+	f.BoolVar(&inst.enableDebugServer, "enable-debug-server", false, "Enable the debug HTTP server")
+	f.BoolVar(&inst.disableSMIAccessControlPolicy, "disable-smi-access-control-policy", false, "Disable SMI access control policy")
 
 	return cmd
 }
@@ -145,6 +149,8 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 		fmt.Sprintf("vault.token=%s", i.vaultToken),
 		fmt.Sprintf("serviceCertValidityMinutes=%d", i.serviceCertValidityMinutes),
 		fmt.Sprintf("prometheus.retention.time=%s", i.prometheusRetentionTime),
+		fmt.Sprintf("enableDebugServer=%t", i.enableDebugServer),
+		fmt.Sprintf("disableSMIAccessControlPolicy=%t", i.disableSMIAccessControlPolicy),
 	}
 
 	for _, val := range valuesConfig {

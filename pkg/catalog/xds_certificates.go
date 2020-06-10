@@ -6,17 +6,13 @@ import (
 	"strings"
 
 	mapset "github.com/deckarep/golang-set"
-	"github.com/open-service-mesh/osm/pkg/constants"
-	"github.com/open-service-mesh/osm/pkg/service"
 	v1 "k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
-)
-
-const (
-	domainDelimiter = "."
+	"github.com/open-service-mesh/osm/pkg/constants"
+	"github.com/open-service-mesh/osm/pkg/service"
 )
 
 // GetServiceFromEnvoyCertificate returns the single service given Envoy is a member of based on the certificate provided, which is a cert issued to an Envoy for XDS communication (not Envoy-to-Envoy).
@@ -30,7 +26,7 @@ func (mc *MeshCatalog) GetServiceFromEnvoyCertificate(cn certificate.CommonName)
 }
 
 func getServiceFromCertificate(cn certificate.CommonName, kubeClient kubernetes.Interface) (*service.NamespacedService, error) {
-	pod, err := getPodFromCertificate(cn, kubeClient)
+	pod, err := GetPodFromCertificate(cn, kubeClient)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +52,8 @@ func getServiceFromCertificate(cn certificate.CommonName, kubeClient kubernetes.
 	}, nil
 }
 
-func getPodFromCertificate(cn certificate.CommonName, kubeClient kubernetes.Interface) (*v1.Pod, error) {
+// GetPodFromCertificate returns the Kubernetes Pod object for a given certificate.
+func GetPodFromCertificate(cn certificate.CommonName, kubeClient kubernetes.Interface) (*v1.Pod, error) {
 	cnMeta, err := getCertificateCommonNameMeta(cn)
 	if err != nil {
 		return nil, err
@@ -141,7 +138,7 @@ func listServicesForPod(pod *v1.Pod, kubeClient kubernetes.Interface) ([]v1.Serv
 }
 
 func getCertificateCommonNameMeta(cn certificate.CommonName) (*certificateCommonNameMeta, error) {
-	chunks := strings.Split(cn.String(), domainDelimiter)
+	chunks := strings.Split(cn.String(), constants.DomainDelimiter)
 	if len(chunks) < 3 {
 		return nil, errInvalidCertificateCN
 	}
@@ -154,5 +151,5 @@ func getCertificateCommonNameMeta(cn certificate.CommonName) (*certificateCommon
 
 // NewCertCommonNameWithProxyID returns a newly generated CommonName for a certificate of the form: <ProxyID>.<serviceAccount>.<namespace>
 func NewCertCommonNameWithProxyID(proxyUUID, serviceAccount, namespace string) certificate.CommonName {
-	return certificate.CommonName(strings.Join([]string{proxyUUID, serviceAccount, namespace}, domainDelimiter))
+	return certificate.CommonName(strings.Join([]string{proxyUUID, serviceAccount, namespace}, constants.DomainDelimiter))
 }

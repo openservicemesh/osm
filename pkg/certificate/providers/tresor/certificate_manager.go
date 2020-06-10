@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/open-service-mesh/osm/pkg/certificate/rotor"
 )
 
 func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod *time.Duration) (certificate.Certificater, error) {
@@ -87,7 +88,7 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod *time.Dur
 		expiration: template.NotAfter,
 	}
 
-	log.Info().Msgf("Created new certificate for CN=%s, which will expire in %+v on %+v", cn, validityPeriod, template.NotAfter)
+	log.Info().Msgf("Created new certificate for CN=%s; validity=%+v; expires on %+v; serial: %+v", cn, validityPeriod, template.NotAfter, template.SerialNumber)
 
 	return cert, nil
 }
@@ -96,7 +97,11 @@ func (cm *CertManager) getFromCache(cn certificate.CommonName) certificate.Certi
 	cm.cacheLock.Lock()
 	defer cm.cacheLock.Unlock()
 	if cert, exists := (*cm.cache)[cn]; exists {
-		log.Trace().Msgf("Found in cache certificate with CN=%s", cn)
+		log.Trace().Msgf("Certificate found in cache CN=%s", cn)
+		if rotor.ShouldRotate(cert) {
+			log.Trace().Msgf("Certificate found in cache but has expired CN=%s", cn)
+			return nil
+		}
 		return cert
 	}
 	return nil
@@ -119,7 +124,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 	(*cm.cache)[cn] = cert
 	cm.cacheLock.Unlock()
 
-	log.Info().Msgf("Issuing new certificate for CN=%s took %+v", cn, time.Since(start))
+	log.Info().Msgf("It took %+v to issue certificate with CN=%s", time.Since(start), cn)
 
 	return cert, nil
 }

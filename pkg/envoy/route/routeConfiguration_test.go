@@ -1,6 +1,9 @@
 package route
 
 import (
+	"fmt"
+	"strings"
+
 	set "github.com/deckarep/golang-set"
 	v2route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -18,14 +21,40 @@ const (
 	testHeaderKey = "test-header"
 )
 
-var _ = Describe("VirtualHost with domains", func() {
-	Context("Testing the creation of virtual host object in the route configuration", func() {
-		It("Returns the virtual host with domains", func() {
-			virtualHost := createVirtualHostStub("inboud|bookstore.mesh", "bookstore.mesh")
-			Expect(virtualHost.Name).To(Equal("inboud|bookstore.mesh"))
-			Expect(virtualHost.Domains).To(Equal([]string{"bookstore.mesh"}))
-			Expect(len(virtualHost.Domains)).To(Equal(1))
-			Expect(len(virtualHost.Routes)).To(Equal(0))
+var _ = Describe("VirtualHost cration", func() {
+	Context("Testing createVirtualHostStub", func() {
+		containsDomain := func(vhost v2route.VirtualHost, domain string) bool {
+			for _, entry := range vhost.Domains {
+				if entry == domain {
+					return true
+				}
+			}
+			return false
+		}
+		It("Returns a VirtualHost object for a single domain", func() {
+			prefix := "test"
+			service := "test-service"
+			domain := fmt.Sprintf("%s.namespace.svc.cluster.local", service)
+
+			vhost := createVirtualHostStub(prefix, domain)
+			Expect(len(vhost.Domains)).To(Equal(1))
+			Expect(vhost.Domains[0]).To(Equal(domain))
+			Expect(vhost.Name).To(Equal(fmt.Sprintf("%s|%s", prefix, service)))
+		})
+
+		It("Returns a VirtualHost object for multiple comma seprated domains", func() {
+			prefix := "test"
+			service := "test-service"
+			domain := fmt.Sprintf("%[1]s.namespace,%[1]s.namespace.svc,%[1]s.namespace.svc.cluster.local", service)
+			expectedDomains := strings.Split(domain, ",")
+			expectedDomainCount := len(expectedDomains)
+
+			vhost := createVirtualHostStub(prefix, domain)
+			Expect(len(vhost.Domains)).To(Equal(expectedDomainCount))
+			for _, entry := range expectedDomains {
+				Expect(containsDomain(vhost, entry)).To(BeTrue())
+			}
+			Expect(vhost.Name).To(Equal(fmt.Sprintf("%s|%s", prefix, service)))
 		})
 	})
 })

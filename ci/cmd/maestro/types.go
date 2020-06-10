@@ -37,6 +37,9 @@ const (
 
 	// WaitForPodTimeSecondsEnvVar is the environment variable for the time we will wait on the pod to be ready.
 	WaitForPodTimeSecondsEnvVar = "CI_MAX_WAIT_FOR_POD_TIME_SECONDS"
+
+	// WaitForOKSecondsEnvVar is the environment variable for the time to wait till a success is returned by the server.
+	WaitForOKSecondsEnvVar = "CI_WAIT_FOR_OK_SECONDS"
 )
 
 var (

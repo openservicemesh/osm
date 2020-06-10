@@ -51,6 +51,7 @@ var (
 	webhookName                string
 	serviceCertValidityMinutes int
 	caBundleSecretName         string
+	enableDebugServer          bool
 
 	injectorConfig injector.Config
 
@@ -85,6 +86,7 @@ func init() {
 	flags.StringVar(&webhookName, "webhookName", "", "Name of the MutatingWebhookConfiguration to be created by ADS")
 	flags.IntVar(&serviceCertValidityMinutes, "serviceCertValidityMinutes", defaultServiceCertValidityMinutes, "Certificate validityPeriod duration in minutes")
 	flags.StringVar(&caBundleSecretName, caBundleSecretNameCLIParam, "", "Name of the Kubernetes Secret for the OSM CA bundle")
+	flags.BoolVar(&enableDebugServer, "enableDebugServer", false, "Enable OSM debug HTTP server")
 
 	// sidecar injector options
 	flags.BoolVar(&injectorConfig.DefaultInjection, "default-injection", true, "Enable sidecar injection by default")
@@ -94,6 +96,7 @@ func init() {
 
 	// feature flags
 	flags.BoolVar(&optionalFeatures.Ingress, "enable-ingress", false, "Enable ingress in OSM")
+	flags.BoolVar(&optionalFeatures.SMIAccessControlDisabled, "disable-smi-access-control-policy", false, "Disable SMI access control policies")
 }
 
 func main() {
@@ -156,6 +159,7 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to initialize ingress client")
 	}
+
 	meshCatalog := catalog.NewMeshCatalog(
 		kubernetes.NewForConfigOrDie(kubeConfig),
 		meshSpec,

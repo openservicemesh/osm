@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
 	"github.com/open-service-mesh/osm/pkg/certificate/providers/tresor"
+	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/ingress"
 	"github.com/open-service-mesh/osm/pkg/providers/kube"
@@ -106,6 +108,43 @@ var _ = Describe("Catalog tests", func() {
 			Expect(err).ToNot(HaveOccurred())
 			expectedList := []service.NamespacedService{tests.BookbuyerService}
 			Expect(actualList).To(Equal(expectedList))
+		})
+	})
+
+	Context("Testing buildAllowPolicyForSourceToDest", func() {
+		It("Returns a trafficpolicy.TrafficTarget object to build an allow policy from source to destination service ", func() {
+			selectors := map[string]string{
+				tests.SelectorKey: tests.SelectorValue,
+			}
+			source := tests.NewServiceFixture(tests.BookbuyerServiceName, tests.Namespace, selectors)
+			expectedSourceTrafficResource := trafficpolicy.TrafficResource{
+				Namespace: source.Namespace,
+				Service: service.NamespacedService{
+					Namespace: source.Namespace,
+					Service:   source.Name,
+				},
+			}
+			destination := tests.NewServiceFixture(tests.BookstoreServiceName, tests.Namespace, selectors)
+			expectedDestinationTrafficResource := trafficpolicy.TrafficResource{
+				Namespace: destination.Namespace,
+				Service: service.NamespacedService{
+					Namespace: destination.Namespace,
+					Service:   destination.Name,
+				},
+			}
+
+			expectedHostHeaders := map[string]string{HostHeaderKey: tests.BookstoreServiceName}
+			expectedRoute := trafficpolicy.Route{
+				PathRegex: constants.RegexMatchAll,
+				Methods:   []string{constants.WildcardHTTPMethod},
+				Headers:   expectedHostHeaders,
+			}
+
+			trafficTarget := meshCatalog.buildAllowPolicyForSourceToDest(source, destination)
+			Expect(cmp.Equal(trafficTarget.Source, expectedSourceTrafficResource)).To(BeTrue())
+			Expect(cmp.Equal(trafficTarget.Destination, expectedDestinationTrafficResource)).To(BeTrue())
+			Expect(cmp.Equal(trafficTarget.Route.PathRegex, expectedRoute.PathRegex)).To(BeTrue())
+			Expect(cmp.Equal(trafficTarget.Route.Methods, expectedRoute.Methods)).To(BeTrue())
 		})
 	})
 })

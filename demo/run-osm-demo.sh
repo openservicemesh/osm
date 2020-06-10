@@ -123,9 +123,22 @@ done
 # Deploys Xds and Prometheus
 echo "Certificate Manager in use: $CERT_MANAGER"
 if [ "$CERT_MANAGER" = "vault" ]; then
-bin/osm install --namespace "$K8S_NAMESPACE" --cert-manager="$CERT_MANAGER" --vault-host="$VAULT_HOST" --vault-token="$VAULT_TOKEN" --vault-protocol="$VAULT_PROTOCOL" --container-registry "$CTR_REGISTRY" --container-registry-secret "$CTR_REGISTRY_CREDS_NAME" --osm-image-tag "$CTR_TAG"
+  bin/osm install \
+      --namespace "$K8S_NAMESPACE" \
+      --cert-manager="$CERT_MANAGER" \
+      --vault-host="$VAULT_HOST" \
+      --vault-token="$VAULT_TOKEN" \
+      --vault-protocol="$VAULT_PROTOCOL" \
+      --container-registry "$CTR_REGISTRY" \
+      --container-registry-secret "$CTR_REGISTRY_CREDS_NAME" \
+      --osm-image-tag "$CTR_TAG" \
+      --enable-debug-server
 else
-bin/osm install --namespace "$K8S_NAMESPACE" --container-registry "$CTR_REGISTRY" --container-registry-secret "$CTR_REGISTRY_CREDS_NAME" --osm-image-tag "$CTR_TAG"
+  bin/osm install \
+      --namespace "$K8S_NAMESPACE" \
+      --container-registry "$CTR_REGISTRY" \
+      --container-registry-secret "$CTR_REGISTRY_CREDS_NAME" \
+      --osm-image-tag "$CTR_TAG"
 fi
 
 wait_for_ads_pod
@@ -133,5 +146,5 @@ wait_for_ads_pod
 ./demo/deploy-apps.sh
 
 if [[ "$IS_GITHUB" != "true" ]]; then
-    watch -n5 "printf \"Namespace ${K8S_NAMESPACE}:\n\"; kubectl get pods -n ${K8S_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKBUYER_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKBUYER_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKSTORE_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKSTORE_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKTHIEF_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKTHIEF_NAMESPACE} -o wide"
+    watch -n5 "printf \"Namespace ${K8S_NAMESPACE}:\n\"; kubectl get pods -n ${K8S_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKBUYER_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKBUYER_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKSTORE_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKSTORE_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKTHIEF_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKTHIEF_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKWAREHOUSE_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKWAREHOUSE_NAMESPACE} -o wide"
 fi

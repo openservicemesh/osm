@@ -45,3 +45,4 @@ Set the variables in Github Secrets as `DOCKER_USER` and `DOCKER_PASS`
  - `OSM_HUMAN_DEBUG_LOG` - set it to `true` to show human-readable log lines (vs JSON blobs)
  - `VAULT_TOKEN` - (string) random string, which will be used as a Vault token in the CI Vault setup; example: `abcd`
  - `CI_MAX_WAIT_FOR_POD_TIME_SECONDS` - (integer) max number of seconds the CI system will wait for bookbuyer and bookthief pods to be ready / running; example: `15`
+ - `CI_WAIT_FOR_OK_SECONDS` - (integer) number of seconds the CI system will wait for bookbuyer and bookthief pods to poll for a success once the pods are ready; example: `15`

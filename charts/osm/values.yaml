@@ -38,3 +38,6 @@ serviceCertValidityMinutes: 1
 
 grafana:
   port: 3000
+
+enableDebugServer: false
+disableSMIAccessControlPolicy: false

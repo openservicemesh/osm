@@ -17,6 +17,14 @@ rules:
   - apiGroups: [""]
     resources: ["endpoints", "namespaces", "pods", "replicationcontrollers", "services", "secrets"]
     verbs: ["list", "get", "watch"]
+
+  # Port forwarding is needed for the OSM pod to be able to connect
+  # to participating Envoys and fetch their configuration.
+  # This is used by the OSM debugging system.
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "pods/portforward"]
+    verbs: ["get", "list", "create"]
+
   - apiGroups: [""]
     resources: ["secrets", "configmaps"]
     verbs: ["create", "update"]
