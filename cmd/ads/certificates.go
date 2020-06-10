@@ -14,6 +14,7 @@ import (
 	"github.com/open-service-mesh/osm/pkg/certificate/providers/tresor"
 	"github.com/open-service-mesh/osm/pkg/certificate/providers/vault"
 	"github.com/open-service-mesh/osm/pkg/constants"
+	"github.com/open-service-mesh/osm/pkg/debugger"
 )
 
 type certificateManagerKind string
@@ -36,7 +37,7 @@ const (
 )
 
 // Functions we can call to create a Certificate Manager for each kind of supported certificate issuer
-var certManagers = map[certificateManagerKind]func(kubeConfig *rest.Config) certificate.Manager{
+var certManagers = map[certificateManagerKind]func(kubeConfig *rest.Config, enableDebugServer bool) (certificate.Manager, debugger.CertificateManagerDebugger){
 	tresorKind:   getTresorCertificateManager,
 	keyVaultKind: getAzureKeyVaultCertManager,
 	vaultKind:    getHashiVaultCertManager,
@@ -51,7 +52,7 @@ func getPossibleCertManagers() []string {
 	return possible
 }
 
-func getTresorCertificateManager(kubeConfig *rest.Config) certificate.Manager {
+func getTresorCertificateManager(kubeConfig *rest.Config, enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger) {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 
 	var err error
@@ -85,7 +86,7 @@ func getTresorCertificateManager(kubeConfig *rest.Config) certificate.Manager {
 		log.Fatal().Err(err).Msg("Failed to instantiate Azure Key Vault as a Certificate Manager")
 	}
 
-	return certManager
+	return certManager, certManager
 }
 
 func getCertFromKubernetes(kubeClient kubernetes.Interface, namespace, secretName string) certificate.Certificater {
@@ -147,13 +148,13 @@ func getCertFromKubernetes(kubeClient kubernetes.Interface, namespace, secretNam
 	return rootCert
 }
 
-func getAzureKeyVaultCertManager(_ *rest.Config) certificate.Manager {
+func getAzureKeyVaultCertManager(_ *rest.Config, enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger) {
 	// TODO(draychev): implement: https://github.com/open-service-mesh/osm/issues/577
 	log.Fatal().Msg("Azure Key Vault certificate manager is not implemented")
-	return nil
+	return nil, nil
 }
 
-func getHashiVaultCertManager(_ *rest.Config) certificate.Manager {
+func getHashiVaultCertManager(_ *rest.Config, enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger) {
 	if _, ok := map[string]interface{}{"http": nil, "https": nil}[*vaultProtocol]; !ok {
 		log.Fatal().Msgf("Value %s is not a valid Hashi Vault protocol", *vaultProtocol)
 	}
@@ -165,7 +166,7 @@ func getHashiVaultCertManager(_ *rest.Config) certificate.Manager {
 		log.Fatal().Err(err).Msg("Error instantiating Hashicorp Vault as a Certificate Manager")
 	}
 
-	return vaultCertManager
+	return vaultCertManager, vaultCertManager
 }
 
 func getServiceCertValidityPeriod() time.Duration {

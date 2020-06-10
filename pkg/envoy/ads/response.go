@@ -2,6 +2,7 @@ package ads
 
 import (
 	"strconv"
+	"time"
 
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_service_discovery_v2 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
@@ -31,6 +32,13 @@ func (s *Server) newAggregatedDiscoveryResponse(proxy *envoy.Proxy, request *env
 	if !ok {
 		log.Error().Msgf("Responder for TypeUrl %s is not implemented", request.TypeUrl)
 		return nil, errUnknownTypeURL
+	}
+
+	if s.enableDebug {
+		if _, ok := s.xdsLog[proxy.GetCommonName()]; !ok {
+			s.xdsLog[proxy.GetCommonName()] = make(map[envoy.TypeURI][]time.Time)
+		}
+		s.xdsLog[proxy.GetCommonName()][typeURL] = append(s.xdsLog[proxy.GetCommonName()][typeURL], time.Now())
 	}
 
 	log.Trace().Msgf("Invoking handler for %s with request: %+v", typeURL, request)

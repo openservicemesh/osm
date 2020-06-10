@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/open-service-mesh/osm/pkg/debugger"
 	"github.com/open-service-mesh/osm/pkg/health"
 	"github.com/open-service-mesh/osm/pkg/metricsstore"
 )
@@ -24,17 +25,24 @@ func NewHealthMux(handlers map[string]http.Handler) *http.ServeMux {
 	return router
 }
 
-// NewHTTPServer creates a new api server
-func NewHTTPServer(somethingWithProbes health.Probes, metricStore metricsstore.MetricStore, apiPort int32, debugInfo func() http.Handler) HTTPServer {
+// NewHTTPServer creates a new API server
+func NewHTTPServer(somethingWithProbes health.Probes, metricStore metricsstore.MetricStore, apiPort int32, debugServer debugger.DebugServer) HTTPServer {
+	handlers := map[string]http.Handler{
+		"/health/ready": health.ReadinessHandler(somethingWithProbes),
+		"/health/alive": health.LivenessHandler(somethingWithProbes),
+		"/metrics":      metricStore.Handler(),
+	}
+
+	if debugServer != nil {
+		for url, handler := range debugServer.GetHandlers() {
+			handlers[url] = handler
+		}
+	}
+
 	return &httpServer{
 		server: &http.Server{
-			Addr: fmt.Sprintf(":%d", apiPort),
-			Handler: NewHealthMux(map[string]http.Handler{
-				"/health/ready": health.ReadinessHandler(somethingWithProbes),
-				"/health/alive": health.LivenessHandler(somethingWithProbes),
-				"/metrics":      metricStore.Handler(),
-				"/debug":        debugInfo(),
-			}),
+			Addr:    fmt.Sprintf(":%d", apiPort),
+			Handler: NewHealthMux(handlers),
 		},
 	}
 }
