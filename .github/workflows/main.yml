@@ -150,10 +150,10 @@ jobs:
         KUBECONFIG: ".kube/config"
         DOCKER_USER: ${{ secrets.DOCKER_USER }}
         DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
-        WAIT_FOR_OK_SECONDS: 120
+        CI_WAIT_FOR_OK_SECONDS: 60
         IS_GITHUB: true
         ACR: ${{ secrets.ACR }}
-        CI_MAX_WAIT_FOR_POD_TIME_SECONDS: 30
+        CI_MAX_WAIT_FOR_POD_TIME_SECONDS: 60
         CI_MIN_SUCCESS_THRESHOLD: 1
         OSM_HUMAN_DEBUG_LOG: ${{ secrets.OSM_HUMAN_DEBUG_LOG }}
         CERT_MANAGER: "tresor"
@@ -184,10 +184,10 @@ jobs:
         KUBECONFIG: ".kube/config"
         DOCKER_USER: ${{ secrets.DOCKER_USER }}
         DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
-        WAIT_FOR_OK_SECONDS: 120
+        CI_WAIT_FOR_OK_SECONDS: 60
         IS_GITHUB: true
         ACR: ${{ secrets.ACR }}
-        CI_MAX_WAIT_FOR_POD_TIME_SECONDS: 30
+        CI_MAX_WAIT_FOR_POD_TIME_SECONDS: 60
         CI_MIN_SUCCESS_THRESHOLD: 1
         OSM_HUMAN_DEBUG_LOG: ${{ secrets.OSM_HUMAN_DEBUG_LOG }}
         CERT_MANAGER: "vault"  # enables Hashi Vault integration
