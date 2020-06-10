@@ -12,21 +12,19 @@ exit_error() {
     exit 1
 }
 
-wait_for_ads_pod() {
+wait_for_pod() {
   # Wait for POD to be ready before deploying the apps.
-  max=12
-  for x in $(seq 1 $max); do
-    pods=$(kubectl get pods -n "$K8S_NAMESPACE" -l app=ads)
-    if [ ! -z "$pods" ]; then
-      echo "$pods"
-      ads_pod_name="$(kubectl get pods -n "$K8S_NAMESPACE" -l app=ads -o jsonpath="{.items[0].metadata.name}")"
-      if [ ! -z "$ads_pod_name" ]; then
-        wait_for_pod_ready "$ads_pod_name"
-        return
-      fi
+  app_label=$1
+  pods=$(kubectl get pods -n "$K8S_NAMESPACE" -l "app=$app_label")
+  if [ ! -z "$pods" ]; then
+    echo "$pods"
+    pod_name="$(kubectl get pods -n "$K8S_NAMESPACE" -l "app=$app_label" -o jsonpath="{.items[0].metadata.name}")"
+    if [ ! -z "$pod_name" ]; then
+      wait_for_pod_ready "$pod_name"
     fi
-  done
-
+  else
+    exit_error "No Pod found with label app=$app_label"
+  fi
 }
 
 wait_for_pod_ready() {
@@ -138,7 +136,9 @@ else
       --osm-image-tag "$CTR_TAG"
 fi
 
-wait_for_ads_pod
+wait_for_pod "ads"
+wait_for_pod "osm-prometheus"
+wait_for_pod "osm-grafana"
 
 ./demo/deploy-apps.sh
 
