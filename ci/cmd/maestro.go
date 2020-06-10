@@ -27,12 +27,13 @@ var (
 	bookThiefSelector = fmt.Sprintf("%s=%s", selectorKey, bookThiefLabel)
 	bookBuyerSelector = fmt.Sprintf("%s=%s", selectorKey, bookBuyerLabel)
 
-	osmNamespace  = os.Getenv(maestro.OSMNamespaceEnvVar)
-	bookbuyerNS   = os.Getenv(maestro.BookbuyerNamespaceEnvVar)
-	bookthiefNS   = os.Getenv(maestro.BookthiefNamespaceEnvVar)
-	bookstoreNS   = os.Getenv(maestro.BookstoreNamespaceEnvVar)
-	maxWaitString = common.GetEnv(maestro.WaitForPodTimeSecondsEnvVar, "30")
-	osmID         = osmNamespace
+	osmNamespace     = os.Getenv(maestro.OSMNamespaceEnvVar)
+	bookbuyerNS      = os.Getenv(maestro.BookbuyerNamespaceEnvVar)
+	bookthiefNS      = os.Getenv(maestro.BookthiefNamespaceEnvVar)
+	bookstoreNS      = os.Getenv(maestro.BookstoreNamespaceEnvVar)
+	maxPodWaitString = common.GetEnv(maestro.WaitForPodTimeSecondsEnvVar, "30")
+	maxOKWaitString  = common.GetEnv(maestro.WaitForOKSecondsEnvVar, "30")
+	osmID            = osmNamespace
 
 	namespaces = []string{
 		bookbuyerNS,
@@ -57,10 +58,10 @@ func main() {
 		var wg sync.WaitGroup
 
 		wg.Add(1)
-		go maestro.WaitForPodToBeReady(kubeClient, maxWait(), bookthiefNS, bookThiefSelector, &wg)
+		go maestro.WaitForPodToBeReady(kubeClient, maxWaitForPod(), bookthiefNS, bookThiefSelector, &wg)
 
 		wg.Add(1)
-		go maestro.WaitForPodToBeReady(kubeClient, maxWait(), bookbuyerNS, bookBuyerSelector, &wg)
+		go maestro.WaitForPodToBeReady(kubeClient, maxWaitForPod(), bookbuyerNS, bookBuyerSelector, &wg)
 
 		wg.Wait()
 	}
@@ -79,10 +80,10 @@ func main() {
 
 	// Tail the logs of the BookBuyer and BookThief pods concurrently and watch for success or failure.
 	bookBuyerCh := make(chan maestro.TestResult)
-	maestro.SearchLogsForSuccess(kubeClient, bookbuyerNS, bookBuyerPodName, bookBuyerLabel, maxWait(), bookBuyerCh)
+	maestro.SearchLogsForSuccess(kubeClient, bookbuyerNS, bookBuyerPodName, bookBuyerLabel, maxWaitForOK(), bookBuyerCh)
 
 	bookThiefCh := make(chan maestro.TestResult)
-	maestro.SearchLogsForSuccess(kubeClient, bookthiefNS, bookThiefPodName, bookThiefLabel, maxWait(), bookThiefCh)
+	maestro.SearchLogsForSuccess(kubeClient, bookthiefNS, bookThiefPodName, bookThiefLabel, maxWaitForOK(), bookThiefCh)
 
 	bookBuyerTestResult := <-bookBuyerCh
 	bookThiefTestResult := <-bookThiefCh
@@ -144,10 +145,18 @@ func cutIt(logs string) string {
 	return cutItAt(logs, common.Success)
 }
 
-func maxWait() time.Duration {
-	maxWaitInt, err := strconv.ParseInt(maxWaitString, 10, 32)
+func maxWaitForPod() time.Duration {
+	maxWaitInt, err := strconv.ParseInt(maxPodWaitString, 10, 32)
 	if err != nil {
-		log.Fatal().Err(err).Msgf("Could not convert environment variable %s='%s' to int", maestro.WaitForPodTimeSecondsEnvVar, maxWaitString)
+		log.Fatal().Err(err).Msgf("Could not convert environment variable %s='%s' to int", maestro.WaitForPodTimeSecondsEnvVar, maxPodWaitString)
+	}
+	return time.Duration(maxWaitInt) * time.Second
+}
+
+func maxWaitForOK() time.Duration {
+	maxWaitInt, err := strconv.ParseInt(maxOKWaitString, 10, 32)
+	if err != nil {
+		log.Fatal().Err(err).Msgf("Could not convert environment variable %s='%s' to int", maestro.WaitForOKSecondsEnvVar, maxOKWaitString)
 	}
 	return time.Duration(maxWaitInt) * time.Second
 }
