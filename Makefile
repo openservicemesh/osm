@@ -22,26 +22,26 @@ include .env
 clean-cert:
 	@rm -rf bin/cert
 
-.PHONY: clean-ads
-clean-ads:
-	@rm -rf bin/ads
+.PHONY: clean-osm-controller
+clean-osm-controller:
+	@rm -rf bin/osm-controller
 
 .PHONY: build
-build: build-ads
+build: build-osm-controller
 
 
-.PHONY: build-ads
-build-ads: clean-ads
+.PHONY: build-osm-controller
+build-osm-controller: clean-osm-controller
 	@mkdir -p $(shell pwd)/bin
-	CGO_ENABLED=0  go build -v -o ./bin/ads ./cmd/ads
+	CGO_ENABLED=0  go build -v -o ./bin/osm-controller ./cmd/ads
 
 .PHONY: build-cross
 build-cross: LDFLAGS += -extldflags "-static"
-build-cross: build-cross-ads
+build-cross: build-cross-osm-controller
 
-.PHONY: build-cross-ads
-build-cross-ads: gox
-	GO111MODULE=on CGO_ENABLED=0 $(GOX) -output="./bin/{{.OS}}-{{.Arch}}/ads" -osarch='$(TARGETS)' -ldflags '$(LDFLAGS)' ./cmd/ads
+.PHONY: build-cross-osm-controller
+build-cross-osm-controller: gox
+	GO111MODULE=on CGO_ENABLED=0 $(GOX) -output="./bin/{{.OS}}-{{.Arch}}/osm-controller" -osarch='$(TARGETS)' -ldflags '$(LDFLAGS)' ./cmd/ads
 
 .PHONY: build-osm
 build-osm:
@@ -49,7 +49,7 @@ build-osm:
 	go run scripts/generate_chart/generate_chart.go | CGO_ENABLED=0  go build -v -o ./bin/osm -ldflags "-X main.chartTGZSource=$$(cat -)" ./cmd/cli
 
 .PHONY: docker-build
-docker-build: build-cross docker-build-bookbuyer docker-build-bookstore docker-build-ads docker-build-bookwarehouse
+docker-build: build-cross docker-build-bookbuyer docker-build-bookstore docker-build-osm-controller docker-build-bookwarehouse
 
 .PHONY: go-vet
 go-vet:
@@ -72,9 +72,9 @@ go-test:
 go-test-coverage:
 	./scripts/test-w-coverage.sh
 
-.PHONY: docker-build-ads
-docker-build-ads: build-cross-ads
-	docker build --build-arg $(HOME)/go/ -t $(CTR_REGISTRY)/ads:$(CTR_TAG) -f dockerfiles/Dockerfile.ads .
+.PHONY: docker-build-osm-controller
+docker-build-osm-controller: build-cross-osm-controller
+	docker build --build-arg $(HOME)/go/ -t $(CTR_REGISTRY)/osm-controller:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-controller .
 
 .PHONY: build-bookstore
 build-bookstore:
@@ -120,9 +120,9 @@ docker-build-bookwarehouse: build-bookwarehouse
 docker-build-init:
 	docker build -t $(CTR_REGISTRY)/init:$(CTR_TAG) -f dockerfiles/Dockerfile.init .
 
-.PHONY: docker-push-ads
-docker-push-ads: docker-build-ads
-	docker push "$(CTR_REGISTRY)/ads:$(CTR_TAG)"
+.PHONY: docker-push-osm-controller
+docker-push-osm-controller: docker-build-osm-controller
+	docker push "$(CTR_REGISTRY)/osm-controller:$(CTR_TAG)"
 
 .PHONY: docker-push-bookbuyer
 docker-push-bookbuyer: docker-build-bookbuyer
@@ -145,7 +145,7 @@ docker-push-init: docker-build-init
 	docker push "$(CTR_REGISTRY)/init:$(CTR_TAG)"
 
 .PHONY: docker-push
-docker-push: docker-push-init docker-push-bookbuyer docker-push-bookthief docker-push-bookstore docker-push-ads docker-push-bookwarehouse
+docker-push: docker-push-init docker-push-bookbuyer docker-push-bookthief docker-push-bookstore docker-push-osm-controller docker-push-bookwarehouse
 
 .PHONY: generate-crds
 generate-crds:

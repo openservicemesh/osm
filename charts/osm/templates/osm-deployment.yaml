@@ -1,30 +1,30 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ads
+  name: osm-controller
   labels:
-    app: ads
+    app: osm-controller
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      app: ads
+      app: osm-controller
   template:
     metadata:
       labels:
-        app: ads
+        app: osm-controller
     spec:
       serviceAccountName: {{ .Release.Name }}
       containers:
-        - name: ads
-          image: "{{ .Values.image.registry }}/ads:{{ .Values.image.tag }}"
+        - name: osm-controller
+          image: "{{ .Values.image.registry }}/osm-controller:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: "admin-port"
               containerPort: 15000
-            - name: "ads-port"
+            - name: "osm-controller-port"
               containerPort: 15128
-          command: ['/ads']
+          command: ['/osm-controller']
           args: [
             "--verbosity", "trace",
             "--osmNamespace", "{{.Release.Namespace}}",

@@ -2,7 +2,7 @@
 
 set -aueo pipefail
 
-make docker-push-ads
+make docker-push-osm-controller
 
 make docker-push-init
 make docker-push-bookbuyer
