@@ -134,7 +134,7 @@ jobs:
         mkdir coverage
         gocov-html < coverage.json > coverage/index.html
 
-    - name: Integration Test with Tresor
+    - name: Integration Test with Tresor and SMI traffic policies
       env:
         KUBE_CONFIG: ${{ secrets.KUBECONFIG }}
         AZURE_SUBSCRIPTION: ${{ secrets.AZURE_SUBSCRIPTION }}
@@ -157,6 +157,8 @@ jobs:
         CI_MIN_SUCCESS_THRESHOLD: 1
         OSM_HUMAN_DEBUG_LOG: ${{ secrets.OSM_HUMAN_DEBUG_LOG }}
         CERT_MANAGER: "tresor"
+        BOOKTHIEF_EXPECTED_RESPONSE_CODE: "404"
+        BOOKSTORE_SVC: "bookstore-mesh"
       run: |
         touch .env  # it is ok keep this empty
         echo "Ensure K8s namespace $K8S_NAMESPACE is clean from previous runs"
@@ -168,7 +170,7 @@ jobs:
         ./demo/run-osm-demo.sh
         go run ./ci/cmd/maestro.go
 
-    - name: Integration Test with Hashi Vault
+    - name: Integration Test with Hashi Vault and Allow-all traffic policy
       env:
         KUBE_CONFIG: ${{ secrets.KUBECONFIG }}
         AZURE_SUBSCRIPTION: ${{ secrets.AZURE_SUBSCRIPTION }}
@@ -196,6 +198,8 @@ jobs:
         VAULT_PORT: "8200"
         VAULT_TOKEN: ${{ secrets.VAULT_TOKEN }}
         VAULT_ROLE: "open-service-mesh"
+        BOOKTHIEF_EXPECTED_RESPONSE_CODE: "200"
+        BOOKSTORE_SVC: "bookstore-v1"
       run: |
         touch .env  # it is ok keep this empty
         echo "Ensure K8s namespace $K8S_NAMESPACE is clean from previous runs"
@@ -204,5 +208,5 @@ jobs:
         mkdir -p ".kube"
         echo "$KUBE_CONFIG" | base64 -d > "$KUBECONFIG"
         echo "$DOCKER_PASS" | docker login "$ACR" -u "$DOCKER_USER" --password-stdin
-        ./demo/run-osm-demo.sh
+        ./demo/run-osm-demo.sh --disable-smi-access-control-policy
         go run ./ci/cmd/maestro.go

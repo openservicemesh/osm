@@ -4,7 +4,8 @@ set -aueo pipefail
 
 # shellcheck disable=SC1091
 source .env
-IS_GITHUB="${IS_GITHUB:-default false}"
+IS_GITHUB="${IS_GITHUB:-false}"
+optionalInstallArgs=$*
 
 exit_error() {
     error="$1"
@@ -121,6 +122,7 @@ done
 # Deploys Xds and Prometheus
 echo "Certificate Manager in use: $CERT_MANAGER"
 if [ "$CERT_MANAGER" = "vault" ]; then
+  # shellcheck disable=SC2086
   bin/osm install \
       --namespace "$K8S_NAMESPACE" \
       --cert-manager="$CERT_MANAGER" \
@@ -130,14 +132,17 @@ if [ "$CERT_MANAGER" = "vault" ]; then
       --container-registry "$CTR_REGISTRY" \
       --container-registry-secret "$CTR_REGISTRY_CREDS_NAME" \
       --osm-image-tag "$CTR_TAG" \
-      --enable-debug-server
+      --enable-debug-server \
+      $optionalInstallArgs
 else
+  # shellcheck disable=SC2086
   bin/osm install \
       --namespace "$K8S_NAMESPACE" \
       --container-registry "$CTR_REGISTRY" \
       --container-registry-secret "$CTR_REGISTRY_CREDS_NAME" \
       --osm-image-tag "$CTR_TAG" \
-      --enable-debug-server
+      --enable-debug-server \
+      $optionalInstallArgs
 fi
 
 wait_for_pod "ads"

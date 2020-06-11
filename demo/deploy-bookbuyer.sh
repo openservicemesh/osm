@@ -4,6 +4,7 @@ set -auexo pipefail
 
 # shellcheck disable=SC1091
 source .env
+BOOKSTORE_SVC="${BOOKSTORE_SVC:-bookstore-mesh}"
 
 kubectl create namespace "$BOOKBUYER_NAMESPACE" || true
 kubectl delete deployment bookbuyer -n "$BOOKBUYER_NAMESPACE"  || true
@@ -70,6 +71,8 @@ spec:
               value: "$BOOKSTORE_NAMESPACE"
             - name: "OSM_HUMAN_DEBUG_LOG"
               value: "true"
+            - name: "BOOKSTORE_SVC"
+              value: "$BOOKSTORE_SVC"
 
       imagePullSecrets:
         - name: "$CTR_REGISTRY_CREDS_NAME"
