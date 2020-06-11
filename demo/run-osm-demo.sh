@@ -62,6 +62,9 @@ fi
 if [ -z "$BOOKTHIEF_NAMESPACE" ]; then
     exit_error "Missing BOOKTHIEF_NAMESPACE env variable"
 fi
+if [ -z "$BOOKWAREHOUSE_NAMESPACE" ]; then
+    exit_error "Missing BOOKWAREHOUSE_NAMESPACE env variable"
+fi
 if [ -z "$CERT_MANAGER" ]; then
     exit_error "Missing CERT_MANAGER env variable"
 fi
