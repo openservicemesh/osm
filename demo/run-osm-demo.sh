@@ -136,7 +136,8 @@ else
       --namespace "$K8S_NAMESPACE" \
       --container-registry "$CTR_REGISTRY" \
       --container-registry-secret "$CTR_REGISTRY_CREDS_NAME" \
-      --osm-image-tag "$CTR_TAG"
+      --osm-image-tag "$CTR_TAG" \
+      --enable-debug-server
 fi
 
 wait_for_pod "ads"
