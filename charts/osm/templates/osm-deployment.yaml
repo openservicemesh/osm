@@ -22,7 +22,7 @@ spec:
           ports:
             - name: "admin-port"
               containerPort: 15000
-            - name: "osm-controller-port"
+            - name: "osm-port"
               containerPort: 15128
           command: ['/osm-controller']
           args: [

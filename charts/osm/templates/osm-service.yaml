@@ -6,7 +6,7 @@ metadata:
     app: osm-controller
 spec:
   ports:
-    - name: osm-controller-port
+    - name: osm-port
       port: 15128
       targetPort: 15128
     - name: sidecar-injector 
