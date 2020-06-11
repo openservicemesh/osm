@@ -54,8 +54,8 @@ const (
 	// MetricsServerPort is the port on which OSM exposes its own metrics server
 	MetricsServerPort = 9091
 
-	// AggregatedDiscoveryServiceName is the name of the ADS service.
-	AggregatedDiscoveryServiceName = "osm-controller"
+	// OSMControllerServiceName is the name of the ADS service.
+	OSMControllerServiceName = "osm-controller"
 
 	// AggregatedDiscoveryServicePort is the port on which XDS listens for new connections.
 	AggregatedDiscoveryServicePort = 15128

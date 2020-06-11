@@ -23,7 +23,7 @@ const (
 )
 
 var (
-	adsPodSelector    = fmt.Sprintf("%s=%s", selectorKey, constants.AggregatedDiscoveryServiceName)
+	adsPodSelector    = fmt.Sprintf("%s=%s", selectorKey, constants.OSMControllerServiceName)
 	bookThiefSelector = fmt.Sprintf("%s=%s", selectorKey, bookThiefLabel)
 	bookBuyerSelector = fmt.Sprintf("%s=%s", selectorKey, bookBuyerLabel)
 

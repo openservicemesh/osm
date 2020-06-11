@@ -115,13 +115,13 @@ func getEnvoyConfigYAML(config envoyBootstrapConfigMeta) ([]byte, error) {
 func (wh *webhook) createEnvoyBootstrapConfig(name, namespace, osmNamespace string, cert certificate.Certificater) (*corev1.Secret, error) {
 	configMeta := envoyBootstrapConfigMeta{
 		EnvoyAdminPort: constants.EnvoyAdminPort,
-		XDSClusterName: constants.AggregatedDiscoveryServiceName,
+		XDSClusterName: constants.OSMControllerServiceName,
 
 		RootCert: base64.StdEncoding.EncodeToString(cert.GetIssuingCA()),
 		Cert:     base64.StdEncoding.EncodeToString(cert.GetCertificateChain()),
 		Key:      base64.StdEncoding.EncodeToString(cert.GetPrivateKey()),
 
-		XDSHost: fmt.Sprintf("%s.%s.svc.cluster.local", constants.AggregatedDiscoveryServiceName, osmNamespace),
+		XDSHost: fmt.Sprintf("%s.%s.svc.cluster.local", constants.OSMControllerServiceName, osmNamespace),
 		XDSPort: constants.AggregatedDiscoveryServicePort,
 	}
 	yamlContent, err := getEnvoyConfigYAML(configMeta)
