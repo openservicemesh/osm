@@ -34,6 +34,9 @@ func NewFakeXDSServer(cert *x509.Certificate, requestsCh chan xds_discovery.Disc
 // Send implements AggregatedDiscoveryService_StreamAggregatedResourcesServer
 func (s *XDSServer) Send(r *xds_discovery.DiscoveryResponse) error {
 	s.responses = append(s.responses, r)
+	if s.responsesCh != nil {
+		s.responsesCh <- *r
+	}
 	return nil
 }
 
@@ -47,6 +50,7 @@ func (s *XDSServer) Recv() (*xds_discovery.DiscoveryRequest, error) {
 		ResponseNonce: "",
 		ErrorDetail:   nil,
 	}
+	log.Info().Msgf("Recv() got a DiscoveryRequest from requestsCh: %+v", r)
 	return &r, nil
 }
 
@@ -74,7 +78,7 @@ func (s *XDSServer) SetTrailer(metadata.MD) {
 
 // Context returns the context for this stream.
 func (s *XDSServer) Context() context.Context {
-	return nil
+	return s.ctx
 }
 
 // SendMsg sends a message. On error, SendMsg aborts the stream and the
