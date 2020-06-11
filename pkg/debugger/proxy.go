@@ -24,6 +24,17 @@ func (ds debugServer) getProxies() http.Handler {
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		// This function is needed to convert the list of connected proxies to
+		// the type (map) required by the printProxies function.
+		listConnected := func() map[certificate.CommonName]time.Time {
+			proxies := make(map[certificate.CommonName]time.Time)
+			for cn, proxy := range ds.meshCatalogDebugger.ListConnectedProxies() {
+				proxies[cn] = (*proxy).GetConnectedAt()
+			}
+			return proxies
+		}
+
 		if specificProxy, ok := r.URL.Query()[specificProxyQueryKey]; !ok {
 			printProxies(w, listConnected(), "Connected")
 			printProxies(w, ds.meshCatalogDebugger.ListExpectedProxies(), "Expected")

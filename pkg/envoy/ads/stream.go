@@ -40,6 +40,7 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 	defer cancel()
 
 	requests := make(chan v2.DiscoveryRequest)
+
 	go receive(requests, &server, proxy)
 
 	for {
@@ -51,27 +52,27 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 			log.Info().Msgf("Received %s (nonce=%s; version=%s) from Envoy %s", discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, proxy.GetCommonName())
 			log.Info().Msgf("Last sent for %s nonce=%s; last sent version=%s for Envoy %s", discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, proxy.GetCommonName())
 			if !ok {
-				log.Error().Msgf("Proxy %s closed GRPC", proxy)
+				log.Error().Msgf("Proxy %s closed GRPC!", proxy.GetCommonName())
 				return errGrpcClosed
 			}
 
 			if discoveryRequest.ErrorDetail != nil {
 				log.Error().Msgf("[NACK] Discovery request error from proxy %s: %s", proxy, discoveryRequest.ErrorDetail)
-				return errEnvoyError
+				// NOTE(draychev): We could also return errEnvoyError - but it seems appropriate to also ignore this request and continue on.
+				continue
 			}
 
 			typeURL := envoy.TypeURI(discoveryRequest.TypeUrl)
 
-			ackVersion, err := strconv.ParseUint(discoveryRequest.VersionInfo, 10, 64)
-			if err != nil && discoveryRequest.VersionInfo != "" {
-				log.Error().Err(err).Msgf("Error parsing %s discovery request VersionInfo (%s) from proxy %s", typeURL, discoveryRequest.VersionInfo, proxy.GetCommonName())
-				ackVersion = 0
+			ackVersion := uint64(0)
+			if discoveryRequest.VersionInfo != "" {
+				if ackVersion, err = strconv.ParseUint(discoveryRequest.VersionInfo, 10, 64); err != nil {
+					log.Error().Err(err).Msgf("Error parsing %s discovery request VersionInfo (%s) from proxy %s", typeURL, discoveryRequest.VersionInfo, proxy.GetCommonName())
+				}
 			}
 
-			log.Debug().Msgf("Incoming Discovery Request %s (nonce=%s; version=%d) from Envoy %s; last applied version: %d",
-				discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, ackVersion, proxy.GetCommonName(), proxy.GetLastAppliedVersion(typeURL))
-			log.Debug().Msgf("Last sent nonce=%s; last sent version=%d for Envoy %s",
-				proxy.GetLastSentNonce(typeURL), proxy.GetLastSentVersion(typeURL), proxy.GetCommonName())
+			log.Debug().Msgf("Incoming Discovery Request %s (nonce=%s; version=%d) from Envoy %s; last applied version: %d", discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, ackVersion, proxy.GetCommonName(), proxy.GetLastAppliedVersion(typeURL))
+			log.Debug().Msgf("Last sent nonce=%s; last sent version=%d for Envoy %s", proxy.GetLastSentNonce(typeURL), proxy.GetLastSentVersion(typeURL), proxy.GetCommonName())
 
 			proxy.SetLastAppliedVersion(typeURL, ackVersion)
 

@@ -6,6 +6,7 @@ import (
 	"google.golang.org/grpc/peer"
 
 	envoy_service_discovery_v2 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
+	"google.golang.org/grpc/peer"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"google.golang.org/grpc/metadata"
@@ -35,23 +36,22 @@ func NewFakeXDSServer(cert *x509.Certificate, requestsCh chan v2.DiscoveryReques
 
 // Send implements AggregatedDiscoveryService_StreamAggregatedResourcesServer
 func (s *XDSServer) Send(r *v2.DiscoveryResponse) error {
+	log.Info().Msgf("Fake GRPC XDS sending message: %+v", *r)
 	s.responses = append(s.responses, r)
+	if s.responsesCh != nil {
+		s.responsesCh <- *r
+	}
 	return nil
 }
 
 // Recv implements AggregatedDiscoveryService_StreamAggregatedResourcesServer
 func (s *XDSServer) Recv() (*v2.DiscoveryRequest, error) {
-	r := v2.DiscoveryRequest{
-		VersionInfo:          "",
-		Node:                 nil,
-		ResourceNames:        nil,
-		TypeUrl:              "",
-		ResponseNonce:        "",
-		ErrorDetail:          nil,
-		XXX_NoUnkeyedLiteral: struct{}{},
-		XXX_unrecognized:     nil,
-		XXX_sizecache:        0,
+	log.Info().Msg("Recv() from Envoy invoked. Waiting on requestsCh.")
+	var r v2.DiscoveryRequest
+	if s.requestsCh != nil {
+		r = <-s.requestsCh
 	}
+	log.Info().Msgf("Recv() got a DiscoveryRequest from requestsCh: %+v", r)
 	return &r, nil
 }
 
@@ -79,7 +79,7 @@ func (s *XDSServer) SetTrailer(metadata.MD) {
 
 // Context returns the context for this stream.
 func (s *XDSServer) Context() context.Context {
-	return nil
+	return s.ctx
 }
 
 // SendMsg sends a message. On error, SendMsg aborts the stream and the
