@@ -5,9 +5,6 @@ set -aueo pipefail
 # shellcheck disable=SC1091
 source .env
 
-WEBHOOK_NAME="osm-webhook-$K8S_NAMESPACE"
-
-kubectl delete mutatingwebhookconfiguration "$WEBHOOK_NAME" --ignore-not-found=true
 for ns in "$BOOKWAREHOUSE_NAMESPACE" "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE" "$K8S_NAMESPACE"; do
     kubectl delete namespace "$ns" || true
 done

@@ -84,7 +84,7 @@ func init() {
 	flags.StringVar(&azureAuthFile, "azureAuthFile", "", "Path to Azure Auth File")
 	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file.")
 	flags.StringVar(&osmNamespace, "osmNamespace", "", "Namespace to which OSM belongs to.")
-	flags.StringVar(&webhookName, "webhookName", "", "Name of the MutatingWebhookConfiguration to be created by ADS")
+	flags.StringVar(&webhookName, "webhookName", "", "Name of the MutatingWebhookConfiguration to be configured by ADS")
 	flags.IntVar(&serviceCertValidityMinutes, "serviceCertValidityMinutes", defaultServiceCertValidityMinutes, "Certificate validityPeriod duration in minutes")
 	flags.StringVar(&caBundleSecretName, caBundleSecretNameCLIParam, "", "Name of the Kubernetes Secret for the OSM CA bundle")
 	flags.BoolVar(&enableDebugServer, "enableDebugServer", false, "Enable OSM debug HTTP server")
