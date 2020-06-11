@@ -6,17 +6,40 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/open-service-mesh/osm/blob/master/LICENSE)
 [![release](https://img.shields.io/github/release/open-service-mesh/osm/all.svg)](https://github.com/open-service-mesh/osm/releases)
 
+Open Service Mesh (OSM) is a light weight, Envoy based, [SMI][2] compliant service mesh for applications running in Kubernetes.
+
+## Overview
+
 It is no secret that although microservice environments enable portability, faster and more frequent deployment cycles and even simpler organizational structure via specialized teams, they also increase the complexity of deployments, make it harder to debug existing applications and secure applications in dynamic environments at scale. Using a [service mesh][1] reduces some of the operational burden of microservice environments with a single, dedicated layer of infrastructure for managing service-to-service communication.
 
-The Open Service Mesh (OSM) project is a light weight, envoy based service mesh for applications running in Kubernetes and is compatible with [Service Mesh Interface (SMI)][2]. The OSM control plane is a set of components installed in a single namespace in Kubernetes and also comes with command line tool called `osm`. Once an application is added to the mesh, OSM installs an Envoy proxy as a sidecar container next to each instance of the application (inside each application Pod in Kubernetes) which then manages all traffic to and from the application. Once the proxy is configured, users have fine grained control on service to service communication and visibility and consistency of metrics for debugging and monitoring without having to touch application code. OSM aims to be simple to install and run while empowering end users with the following features:
+The OSM project consists of a control plane which is a set of components installed in a single namespace in a Kubernetes cluster and a command line tool called `osm` for working with the control plane and applications running within the mesh. Once an application is added to the mesh, the OSM control plane installs an Envoy proxy as a sidecar container next to each instance of the application (inside each application Pod in Kubernetes) which then manages all traffic to and from the application. Once the proxy is configured, users have fine grained control on service to service communication and visibility and consistency of metrics for debugging and monitoring without having to touch application code. OSM aims to be simple to install and run while empowering end users with the following features:
 
-1. More easily manage deployments and transparently manage deployments. OSM enables various deployment strategies (Canary, A/B testing) for applications running on Kubernetes.
 1. Secure service to service communication by enabling mTLS and fine grained access control policies.
-1. Get simple to understand and consistent insights into application metrics for debugging and monitoring.
+1. Manage deployments more easily and transparently with various deployment strategies (Canary, A/B testing) for applications running on Kubernetes.
+1. Get simple to understand and consistent insights into application metrics for debugging and monitoring with Grafana dashboards.
 1. Integrate with external external certificate management services/solutions with a pluggable interface.
 1. Onboard applications onto the mesh by enabling automatic sidecar injection of Envoy proxy.
 
 Note: This project is a work in progress. See the [demo instructions](demo/README.md) to get a sense of what we've accomplished and are working on.
+
+## Getting Started
+
+## Prerequisites
+- Running Kubernetes cluster at v1.17.0 or later
+- A private container registry (temporary requirement as this is currently a private repo)
+
+### Install
+
+The simplest way of installing open service mesh on a Kubernetes cluster is by using the `osm` CLI.
+
+Binary downloads of the OSM client can be found on the [Releases page](https://github.com/open-service-mesh/osm/releases).
+Unpack the `osm` binary and add it to your PATH to get started.
+
+See the [installation guide](docs/installation_guide.md) for more options.
+
+### Quickstart
+
+To rapidly get OSM up and running, see the [Quickstart Guide](docs/quickstart_guide.md).
 
 ## OSM Design
 
