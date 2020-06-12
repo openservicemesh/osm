@@ -30,7 +30,7 @@ rules:
     verbs: ["create", "update"]
   - apiGroups: ["admissionregistration.k8s.io"]
     resources: ["mutatingwebhookconfigurations"]
-    verbs: ["get", "list", "watch", "create", "update", "delete"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
   - apiGroups: ["split.smi-spec.io"]
     resources: ["trafficsplits"]
     verbs: ["list", "get", "watch"]

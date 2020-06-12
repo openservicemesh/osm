@@ -52,3 +52,31 @@ data:
         version: 1
         # <bool> allow users to edit datasources from the UI.
         editable: true
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: osm-grafana-dashboards
+  labels:
+    app: osm-grafana
+data:
+  dashboards.yaml: |
+    apiVersion: 1
+    providers:
+    - name: 'Prometheus'
+      orgId: 1
+      folder: ''
+      type: file
+      disableDeletion: false
+      editable: true
+      updateIntervalSeconds: 10
+      options:
+        path: /etc/grafana/provisioning/dashboards
+  osm-pod.json: |
+{{ .Files.Get "grafana/dashboards/osm-pod.json" | replace "${DS_PROMETHEUS}" "Prometheus" | indent 4 }}
+  osm-workload.json: |
+{{ .Files.Get "grafana/dashboards/osm-workload.json" | replace "${DS_PROMETHEUS}" "Prometheus" | indent 4 }}
+  osm-service-to-service.json: |
+{{ .Files.Get "grafana/dashboards/osm-service-to-service.json" | replace "${DS_PROMETHEUS}" "Prometheus" | indent 4 }}

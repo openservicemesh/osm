@@ -88,7 +88,7 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod *time.Dur
 		expiration: template.NotAfter,
 	}
 
-	log.Info().Msgf("Created new certificate for CN=%s; validity=%+v; expires on %+v; serial: %+v", cn, validityPeriod, template.NotAfter, template.SerialNumber)
+	log.Info().Msgf("Created new certificate for CN=%s; validity=%+v; expires on %+v; serial: %x", cn, validityPeriod, template.NotAfter, template.SerialNumber)
 
 	return cert, nil
 }
