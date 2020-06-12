@@ -54,7 +54,7 @@ const (
 	// MetricsServerPort is the port on which OSM exposes its own metrics server
 	MetricsServerPort = 9091
 
-	// OSMControllerName is the name of the ADS service.
+	// OSMControllerName is the name of the OSM Controller (formerly ADS service).
 	OSMControllerName = "osm-controller"
 
 	// OSMControllerPort is the port on which XDS listens for new connections.
