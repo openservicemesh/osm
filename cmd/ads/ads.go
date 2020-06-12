@@ -63,7 +63,7 @@ var (
 var (
 	flags               = pflag.NewFlagSet(`ads`, pflag.ExitOnError)
 	azureSubscriptionID = flags.String("azureSubscriptionID", "", "Azure Subscription ID")
-	port                = flags.Int("port", constants.AggregatedDiscoveryServicePort, "Aggregated Discovery Service port number.")
+	port                = flags.Int("port", constants.OSMControllerPort, "Aggregated Discovery Service port number.")
 	log                 = logger.New("ads/main")
 
 	// What is the Certification Authority to be used

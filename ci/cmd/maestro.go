@@ -26,7 +26,7 @@ const (
 )
 
 var (
-	adsPodSelector        = fmt.Sprintf("%s=%s", selectorKey, constants.OSMControllerServiceName)
+	osmControllerPodSelector        = fmt.Sprintf("%s=%s", selectorKey, constants.OSMControllerName)
 	bookThiefSelector     = fmt.Sprintf("%s=%s", selectorKey, bookThiefLabel)
 	bookBuyerSelector     = fmt.Sprintf("%s=%s", selectorKey, bookBuyerLabel)
 	bookstoreV1Selector   = fmt.Sprintf("%s=%s", selectorKey, bookstoreV1Label)
@@ -137,7 +137,7 @@ func main() {
 	fmt.Println("-------- Bookbuyer LOGS --------\n", cutIt(bookBuyerLogs))
 	fmt.Println("-------- Bookthief LOGS --------\n", cutIt(bookThiefLogs))
 
-	osmPodName, err := maestro.GetPodName(kubeClient, osmNamespace, adsPodSelector)
+	osmControllerPodName, err := maestro.GetPodName(kubeClient, osmNamespace, adsPodSelector)
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Error getting ADS pods with selector %s in namespace %s", osmPodName, osmNamespace)
 	}
