@@ -17,20 +17,28 @@ import (
 var log = logger.New("ci/maestro")
 
 const (
-	bookBuyerLabel = "bookbuyer"
-	bookThiefLabel = "bookthief"
-	selectorKey    = "app"
+	bookBuyerLabel     = "bookbuyer"
+	bookThiefLabel     = "bookthief"
+	bookstoreV1Label   = "bookstore-v1"
+	bookstoreV2Label   = "bookstore-v2"
+	bookWarehouseLabel = "bookwarehouse"
+	selectorKey        = "app"
 )
 
 var (
-	adsPodSelector    = fmt.Sprintf("%s=%s", selectorKey, constants.AggregatedDiscoveryServiceName)
-	bookThiefSelector = fmt.Sprintf("%s=%s", selectorKey, bookThiefLabel)
-	bookBuyerSelector = fmt.Sprintf("%s=%s", selectorKey, bookBuyerLabel)
+	adsPodSelector        = fmt.Sprintf("%s=%s", selectorKey, constants.AggregatedDiscoveryServiceName)
+	bookThiefSelector     = fmt.Sprintf("%s=%s", selectorKey, bookThiefLabel)
+	bookBuyerSelector     = fmt.Sprintf("%s=%s", selectorKey, bookBuyerLabel)
+	bookstoreV1Selector   = fmt.Sprintf("%s=%s", selectorKey, bookstoreV1Label)
+	bookstoreV2Selector   = fmt.Sprintf("%s=%s", selectorKey, bookstoreV2Label)
+	bookWarehouseSelector = fmt.Sprintf("%s=%s", selectorKey, bookWarehouseLabel)
 
-	osmNamespace     = os.Getenv(maestro.OSMNamespaceEnvVar)
-	bookbuyerNS      = os.Getenv(maestro.BookbuyerNamespaceEnvVar)
-	bookthiefNS      = os.Getenv(maestro.BookthiefNamespaceEnvVar)
-	bookstoreNS      = os.Getenv(maestro.BookstoreNamespaceEnvVar)
+	osmNamespace    = os.Getenv(maestro.OSMNamespaceEnvVar)
+	bookbuyerNS     = os.Getenv(maestro.BookbuyerNamespaceEnvVar)
+	bookthiefNS     = os.Getenv(maestro.BookthiefNamespaceEnvVar)
+	bookstoreNS     = os.Getenv(maestro.BookstoreNamespaceEnvVar)
+	bookWarehouseNS = os.Getenv(common.BookwarehouseNamespaceEnvVar)
+
 	maxPodWaitString = common.GetEnv(maestro.WaitForPodTimeSecondsEnvVar, "30")
 	maxOKWaitString  = common.GetEnv(maestro.WaitForOKSecondsEnvVar, "30")
 	osmID            = osmNamespace
@@ -39,17 +47,18 @@ var (
 		bookbuyerNS,
 		bookthiefNS,
 		bookstoreNS,
+		bookWarehouseNS,
 		osmNamespace,
 	}
 )
 
 func main() {
-	if bookbuyerNS == "" || bookthiefNS == "" {
-		log.Error().Msgf("Namespace cannot be empty, bookbuyer=%s, bookthief=%s", bookbuyerNS, bookthiefNS)
+	if bookbuyerNS == "" || bookthiefNS == "" || bookstoreNS == "" || bookWarehouseNS == "" {
+		log.Error().Msgf("Namespace cannot be empty, bookbuyer=%s, bookthief=%s, bookstore=%s, bookwarehouse=%s", bookbuyerNS, bookthiefNS, bookstoreNS, bookWarehouseNS)
 		os.Exit(1)
 	}
 
-	log.Info().Msgf("Looking for: %s/%s and %s/%s", bookBuyerLabel, bookbuyerNS, bookThiefLabel, bookthiefNS)
+	log.Info().Msgf("Looking for: %s/%s, %s/%s, %s/%s, %s/%s, %s/%s", bookBuyerLabel, bookbuyerNS, bookThiefLabel, bookthiefNS, bookstoreV1Label, bookstoreNS, bookstoreV2Label, bookstoreNS, bookWarehouseLabel, bookWarehouseNS)
 
 	kubeClient := maestro.GetKubernetesClient()
 
@@ -62,6 +71,15 @@ func main() {
 
 		wg.Add(1)
 		go maestro.WaitForPodToBeReady(kubeClient, maxWaitForPod(), bookbuyerNS, bookBuyerSelector, &wg)
+
+		wg.Add(1)
+		go maestro.WaitForPodToBeReady(kubeClient, maxWaitForPod(), bookstoreNS, bookstoreV1Selector, &wg)
+
+		wg.Add(1)
+		go maestro.WaitForPodToBeReady(kubeClient, maxWaitForPod(), bookstoreNS, bookstoreV2Selector, &wg)
+
+		wg.Add(1)
+		go maestro.WaitForPodToBeReady(kubeClient, maxWaitForPod(), bookWarehouseNS, bookWarehouseSelector, &wg)
 
 		wg.Wait()
 	}
