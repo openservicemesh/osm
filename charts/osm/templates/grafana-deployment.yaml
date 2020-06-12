@@ -29,7 +29,10 @@ spec:
               mountPath: "/var/lib/grafana"
             - name: osm-grafana-datasources
               mountPath: /etc/grafana/provisioning/datasources
-              readOnly: false
+              readOnly: true
+            - name: osm-grafana-dashboards
+              mountPath: /etc/grafana/provisioning/dashboards
+              readOnly: true
           ports:
             - containerPort: {{.Values.grafana.port}}
       volumes:
@@ -39,5 +42,8 @@ spec:
         - name: osm-grafana-datasources
           configMap:
             name: osm-grafana-datasources
+        - name: osm-grafana-dashboards
+          configMap:
+            name: osm-grafana-dashboards
         - name: osm-grafana-storage
           emptyDir: {}
