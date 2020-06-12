@@ -30,8 +30,11 @@ const (
 	// ServiceCertType is the prefix for the service certificate resource name. Example: "service-cert:webservice"
 	ServiceCertType SDSCertType = "service-cert"
 
-	// RootCertType is the prefix for the root certificate resource name. Example: "root-cert:webservice"
-	RootCertType SDSCertType = "root-cert"
+	// RootCertTypeForMTLS is the prefix for the mTLS root certificate resource name. Example: "root-cert-for-mtls:webservice"
+	RootCertTypeForMTLS SDSCertType = "root-cert-for-mtls"
+
+	// RootCertTypeForHTTPS is the prefix for the HTTPS root certificate resource name. Example: "root-cert-https:webservice"
+	RootCertTypeForHTTPS SDSCertType = "root-cert-https"
 
 	// Separator is the separator between the prefix and the name of the certificate.
 	Separator = ":"
@@ -122,7 +125,13 @@ func pbStringValue(v string) *structpb.Value {
 	}
 }
 
-func getCommonTLSContext(serviceName service.NamespacedService) *auth.CommonTlsContext {
+func getCommonTLSContext(serviceName service.NamespacedService, mTLS bool) *auth.CommonTlsContext {
+	var sdsSecretName string
+	if mTLS {
+		sdsSecretName = fmt.Sprintf("%s%s%s", RootCertTypeForMTLS, Separator, serviceName)
+	} else {
+		sdsSecretName = fmt.Sprintf("%s%s%s", RootCertTypeForHTTPS, Separator, serviceName)
+	}
 	return &auth.CommonTlsContext{
 		TlsParams: GetTLSParams(),
 		TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
@@ -133,7 +142,7 @@ func getCommonTLSContext(serviceName service.NamespacedService) *auth.CommonTlsC
 		ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 			ValidationContextSdsSecretConfig: &auth.SdsSecretConfig{
 				// Example ==> Name: "root-cert:NameSpaceHere/ServiceNameHere"
-				Name:      fmt.Sprintf("%s%s%s", RootCertType, Separator, serviceName),
+				Name:      sdsSecretName,
 				SdsConfig: GetADSConfigSource(),
 			},
 		},
@@ -152,7 +161,7 @@ func MessageToAny(pb proto.Message) (*any.Any, error) {
 // GetDownstreamTLSContext creates a downstream Envoy TLS Context
 func GetDownstreamTLSContext(serviceName service.NamespacedService, mTLS bool) *auth.DownstreamTlsContext {
 	tlsConfig := &auth.DownstreamTlsContext{
-		CommonTlsContext: getCommonTLSContext(serviceName),
+		CommonTlsContext: getCommonTLSContext(serviceName, mTLS),
 		// When RequireClientCertificate is enabled trusted CA certs must be provided via ValidationContextType
 		RequireClientCertificate: &wrappers.BoolValue{Value: mTLS},
 	}
@@ -162,7 +171,7 @@ func GetDownstreamTLSContext(serviceName service.NamespacedService, mTLS bool) *
 // GetUpstreamTLSContext creates an upstream Envoy TLS Context
 func GetUpstreamTLSContext(serviceName service.NamespacedService) *auth.UpstreamTlsContext {
 	tlsConfig := &auth.UpstreamTlsContext{
-		CommonTlsContext: getCommonTLSContext(serviceName),
+		CommonTlsContext: getCommonTLSContext(serviceName, true /* mTLS */),
 
 		// The Sni field is going to be used to do FilterChainMatch in getInboundInMeshFilterChain()
 		// The "Sni" field below of an incoming request will be matched aganist a list of server names

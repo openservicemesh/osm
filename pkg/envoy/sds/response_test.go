@@ -65,10 +65,16 @@ var _ = Describe("Test SDS response functions", func() {
 			Expect(actual).To(Equal(envoy.ServiceCertType))
 		})
 
-		It("returns root cert", func() {
-			actual, err := getRequestedCertType("root-cert:blahBlahBlahCert")
+		It("returns root cert for mTLS", func() {
+			actual, err := getRequestedCertType("root-cert-for-mtls:blahBlahBlahCert")
 			Expect(err).ToNot(HaveOccurred())
-			Expect(actual).To(Equal(envoy.RootCertType))
+			Expect(actual).To(Equal(envoy.RootCertTypeForMTLS))
+		})
+
+		It("returns root cert for non-mTLS", func() {
+			actual, err := getRequestedCertType("root-cert-https:blahBlahBlahCert")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(actual).To(Equal(envoy.RootCertTypeForHTTPS))
 		})
 
 		It("returns an error", func() {
@@ -103,7 +109,7 @@ var _ = Describe("Test SDS response functions", func() {
 
 	Context("Test getServiceFromRootCertificateRequest()", func() {
 		It("returns a properly formatted NamespacedService", func() {
-			actual, err := getServiceFromRootCertificateRequest("root-cert:foo/bar")
+			actual, err := getServiceFromRootCertificateRequest("root-cert-for-mtls:foo/bar", envoy.RootCertTypeForMTLS)
 			Expect(err).ToNot(HaveOccurred())
 			expected := service.NamespacedService{
 				Namespace: "foo",
@@ -113,7 +119,24 @@ var _ = Describe("Test SDS response functions", func() {
 		})
 
 		It("returns an error", func() {
-			actual, err := getServiceFromRootCertificateRequest("root-cert:guh")
+			actual, err := getServiceFromRootCertificateRequest("root-cert-for-mtls:guh", envoy.RootCertTypeForMTLS)
+			Expect(err).To(HaveOccurred())
+			expected := service.NamespacedService{}
+			Expect(actual).To(Equal(expected))
+		})
+
+		It("returns a properly formatted NamespacedService", func() {
+			actual, err := getServiceFromRootCertificateRequest("root-cert-https:foo/bar", envoy.RootCertTypeForHTTPS)
+			Expect(err).ToNot(HaveOccurred())
+			expected := service.NamespacedService{
+				Namespace: "foo",
+				Service:   "bar",
+			}
+			Expect(actual).To(Equal(expected))
+		})
+
+		It("returns an error", func() {
+			actual, err := getServiceFromRootCertificateRequest("root-cert-https:guh", envoy.RootCertTypeForHTTPS)
 			Expect(err).To(HaveOccurred())
 			expected := service.NamespacedService{}
 			Expect(actual).To(Equal(expected))
@@ -130,7 +153,7 @@ var _ = Describe("Test SDS response functions", func() {
 
 			resourceName := "root-cert:blah"
 			mc := catalog.NewFakeMeshCatalog(testclient.NewSimpleClientset())
-			actual, err := getRootCert(cert, resourceName, tests.BookstoreService, mc)
+			actual, err := getRootCert(cert, resourceName, tests.BookstoreService, mc, envoy.RootCertTypeForMTLS)
 			Expect(err).ToNot(HaveOccurred())
 
 			expected := &auth.Secret{
@@ -164,16 +187,31 @@ var _ = Describe("Test SDS response functions", func() {
 	})
 
 	Context("Test getEnvoySDSSecrets()", func() {
-		It("returns a list of root certificate issuance tasks", func() {
+		It("returns a list of root certificate issuance tasks for a mTLS root cert", func() {
 			namespace := uuid.New().String()
 			serviceName := uuid.New().String()
-			resourceNames := []string{fmt.Sprintf("root-cert:%s/%s", namespace, serviceName)}
+			resourceNames := []string{fmt.Sprintf("root-cert-for-mtls:%s/%s", namespace, serviceName)}
 			cert, proxy, mc := prep(resourceNames, namespace, serviceName)
 
 			actual := getEnvoySDSSecrets(cert, proxy, resourceNames, mc)
 
 			Expect(len(actual)).To(Equal(1))
-			Expect(actual[0].Name).To(Equal(fmt.Sprintf("root-cert:%s/%s", namespace, serviceName)))
+			Expect(actual[0].Name).To(Equal(fmt.Sprintf("root-cert-for-mtls:%s/%s", namespace, serviceName)))
+			// Expect(actual[0].GetTlsCertificate()).ToNot(BeNil())
+			Expect(actual[0].GetTlsCertificate()).To(BeNil())
+			Expect(actual[0].GetValidationContext().TrustedCa.GetInlineBytes()).ToNot(BeNil())
+		})
+
+		It("returns a list of root certificate issuance tasks for a HTTPS root cert", func() {
+			namespace := uuid.New().String()
+			serviceName := uuid.New().String()
+			resourceNames := []string{fmt.Sprintf("root-cert-https:%s/%s", namespace, serviceName)}
+			cert, proxy, mc := prep(resourceNames, namespace, serviceName)
+
+			actual := getEnvoySDSSecrets(cert, proxy, resourceNames, mc)
+
+			Expect(len(actual)).To(Equal(1))
+			Expect(actual[0].Name).To(Equal(fmt.Sprintf("root-cert-https:%s/%s", namespace, serviceName)))
 			// Expect(actual[0].GetTlsCertificate()).ToNot(BeNil())
 			Expect(actual[0].GetTlsCertificate()).To(BeNil())
 			Expect(actual[0].GetValidationContext().TrustedCa.GetInlineBytes()).ToNot(BeNil())
