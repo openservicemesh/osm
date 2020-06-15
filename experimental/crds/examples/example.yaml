@@ -1,0 +1,7 @@
+apiVersion: envoy.openservicemesh.io/v1
+kind: BackpressureConfig
+metadata:
+  name: jonathans-max-requests-per-second
+  namespace: osm-system
+spec:
+  maxRequestsPerConnection: 3
