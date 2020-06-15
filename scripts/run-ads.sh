@@ -2,10 +2,10 @@
 
 set -aueo pipefail
 
-rm -rf ./bin/ads
+rm -rf ./bin/osm-controller
 
-NAME="ads"
-CGO_ENABLED=0 go build -v -o ./bin/ads ./cmd/ads
+NAME="osm-controller"
+CGO_ENABLED=0 go build -v -o ./bin/osm-controller ./cmd/ads
 
 # GRPC_TRACE=all GRPC_VERBOSITY=DEBUG GODEBUG='http2debug=2,gctrace=1,netdns=go+1'
 
