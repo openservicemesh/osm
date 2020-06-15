@@ -9,7 +9,6 @@ import (
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/envoy"
-	"github.com/open-service-mesh/osm/pkg/featureflags"
 	"github.com/open-service-mesh/osm/pkg/service"
 	"github.com/open-service-mesh/osm/pkg/smi"
 )
@@ -67,12 +66,10 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpe
 		}
 	}
 
-	if featureflags.IsIngressEnabled() {
-		// Process ingress policy if applicable
-		clusterFactories, err = getIngressServiceCluster(proxyServiceName, catalog, clusterFactories)
-		if err != nil {
-			return nil, err
-		}
+	// Process ingress policy if applicable
+	clusterFactories, err = getIngressServiceCluster(proxyServiceName, catalog, clusterFactories)
+	if err != nil {
+		return nil, err
 	}
 	for _, cluster := range clusterFactories {
 		log.Debug().Msgf("Proxy service %s constructed ClusterConfiguration: %+v ", proxyServiceName, cluster)

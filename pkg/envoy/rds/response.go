@@ -10,7 +10,6 @@ import (
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 	"github.com/open-service-mesh/osm/pkg/envoy/route"
-	"github.com/open-service-mesh/osm/pkg/featureflags"
 	"github.com/open-service-mesh/osm/pkg/service"
 	"github.com/open-service-mesh/osm/pkg/smi"
 	"github.com/open-service-mesh/osm/pkg/trafficpolicy"
@@ -64,11 +63,9 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 		}
 	}
 
-	if featureflags.IsIngressEnabled() {
-		// Process ingress policy if applicable
-		if err = updateRoutesForIngress(proxyServiceName, catalog, destinationAggregatedRoutesByDomain); err != nil {
-			return nil, err
-		}
+	// Process ingress policy if applicable
+	if err = updateRoutesForIngress(proxyServiceName, catalog, destinationAggregatedRoutesByDomain); err != nil {
+		return nil, err
 	}
 
 	sourceRouteConfig = route.UpdateRouteConfiguration(sourceAggregatedRoutesByDomain, sourceRouteConfig, true, false)

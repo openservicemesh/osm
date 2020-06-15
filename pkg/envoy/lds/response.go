@@ -14,7 +14,6 @@ import (
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 	"github.com/open-service-mesh/osm/pkg/envoy/route"
-	"github.com/open-service-mesh/osm/pkg/featureflags"
 	"github.com/open-service-mesh/osm/pkg/service"
 	"github.com/open-service-mesh/osm/pkg/smi"
 )
@@ -72,22 +71,23 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	if meshFilterChain != nil {
 		inboundListener.FilterChains = append(inboundListener.FilterChains, meshFilterChain)
 	}
-	if featureflags.IsIngressEnabled() {
-		isIngress, err := catalog.IsIngressService(proxyServiceName)
-		if err != nil {
-			log.Error().Err(err).Msgf("Error checking service %s for ingress", proxyServiceName)
-			return nil, err
-		}
-		if isIngress {
-			log.Info().Msgf("Found an ingress resource for service %s, applying necessary filters", proxyServiceName)
-			// This proxy is fronting a service that is a backend for an ingress, add a FilterChain for it
-			ingressFilterChain, err := getInboundIngressFilterChain(proxyServiceName, marshalledInboundConnManager)
-			if err != nil {
-				log.Error().Err(err).Msgf("Failed to construct ingress filter chain for proxy %s", proxyServiceName)
-			}
-			inboundListener.FilterChains = append(inboundListener.FilterChains, ingressFilterChain)
-		}
+
+	// Apply a filter chain for ingress if applicable
+	isIngress, err := catalog.IsIngressService(proxyServiceName)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error checking service %s for ingress", proxyServiceName)
+		return nil, err
 	}
+	if isIngress {
+		log.Info().Msgf("Found an ingress resource for service %s, applying necessary filters", proxyServiceName)
+		// This proxy is fronting a service that is a backend for an ingress, add a FilterChain for it
+		ingressFilterChain, err := getInboundIngressFilterChain(proxyServiceName, marshalledInboundConnManager)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to construct ingress filter chain for proxy %s", proxyServiceName)
+		}
+		inboundListener.FilterChains = append(inboundListener.FilterChains, ingressFilterChain)
+	}
+
 	if len(inboundListener.FilterChains) > 0 {
 		// Inbound filter chains can be empty if the there both ingress and in-mesh policies are not configued.
 		// Configuring a listener without a filter chain is an error.
