@@ -4,4 +4,4 @@ metadata:
   name: jonathans-max-requests-per-second
   namespace: osm-system
 spec:
-  maxRequestsPerConnection: 3
+  maxRequestsPerConnection: 5
