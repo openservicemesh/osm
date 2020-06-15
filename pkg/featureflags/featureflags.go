@@ -8,7 +8,6 @@ import (
 
 // OptionalFeatures is a struct to enable/disable optional features
 type OptionalFeatures struct {
-	Ingress                  bool
 	SMIAccessControlDisabled bool
 }
 
@@ -25,11 +24,6 @@ func Initialize(optionalFeatures OptionalFeatures) {
 	once.Do(func() {
 		Features = optionalFeatures
 	})
-}
-
-// IsIngressEnabled returns a boolean indicating if the ingress feature is enabled
-func IsIngressEnabled() bool {
-	return Features.Ingress
 }
 
 // IsSMIAccessControlDisabled returns a boolean indicating if access control is disabled
