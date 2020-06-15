@@ -54,11 +54,11 @@ const (
 	// MetricsServerPort is the port on which OSM exposes its own metrics server
 	MetricsServerPort = 9091
 
-	// AggregatedDiscoveryServiceName is the name of the ADS service.
-	AggregatedDiscoveryServiceName = "ads"
+	// OSMControllerName is the name of the OSM Controller (formerly ADS service).
+	OSMControllerName = "osm-controller"
 
-	// AggregatedDiscoveryServicePort is the port on which XDS listens for new connections.
-	AggregatedDiscoveryServicePort = 15128
+	// OSMControllerPort is the port on which XDS listens for new connections.
+	OSMControllerPort = 15128
 
 	// PrometheusScrapePath is the path for prometheus to scrap envoy metrics from
 	PrometheusScrapePath = "/stats/prometheus"

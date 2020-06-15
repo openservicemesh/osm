@@ -145,7 +145,7 @@ else
       $optionalInstallArgs
 fi
 
-wait_for_pod "ads"
+wait_for_pod "osm-controller"
 wait_for_pod "osm-prometheus"
 wait_for_pod "osm-grafana"
 

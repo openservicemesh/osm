@@ -2,13 +2,13 @@ apiVersion: admissionregistration.k8s.io/v1beta1
 kind: MutatingWebhookConfiguration
 metadata:
   labels:
-    app: ads
+    app: osm-controller
   name: osm-webhook-{{.Release.Name}}
 webhooks:
 - name: osm-inject.k8s.io
   clientConfig:
     service:
-      name: ads
+      name: osm-controller
       namespace: {{.Release.Namespace}}
       path: /mutate
       port: 443
