@@ -20,13 +20,21 @@ import (
 )
 
 var (
-	rootCertPrefix    = fmt.Sprintf("%s%s", envoy.RootCertType, envoy.Separator)
-	serviceCertPrefix = fmt.Sprintf("%s%s", envoy.ServiceCertType, envoy.Separator)
+	rootCertStrictPrefix  = fmt.Sprintf("%s%s", envoy.RootCertTypeForMTLS, envoy.Separator)
+	rootCertRelaxedPrefix = fmt.Sprintf("%s%s", envoy.RootCertTypeForHTTPS, envoy.Separator)
+	serviceCertPrefix     = fmt.Sprintf("%s%s", envoy.ServiceCertType, envoy.Separator)
 )
 
 var validResourceTypes = map[envoy.SDSCertType]interface{}{
-	envoy.ServiceCertType: nil,
-	envoy.RootCertType:    nil,
+	envoy.ServiceCertType:      nil,
+	envoy.RootCertTypeForMTLS:  nil,
+	envoy.RootCertTypeForHTTPS: nil,
+}
+
+var certTypeToPrefix = map[envoy.SDSCertType]string{
+	envoy.ServiceCertType:      serviceCertPrefix,
+	envoy.RootCertTypeForMTLS:  rootCertStrictPrefix,
+	envoy.RootCertTypeForHTTPS: rootCertRelaxedPrefix,
 }
 
 // NewResponse creates a new Secrets Discovery Response.
@@ -83,10 +91,11 @@ func getServiceFromServiceCertificateRequest(resourceName string) (service.Names
 	}, nil
 }
 
-func getServiceFromRootCertificateRequest(resourceName string) (service.NamespacedService, error) {
+func getServiceFromRootCertificateRequest(resourceName string, requestedCertType envoy.SDSCertType) (service.NamespacedService, error) {
 	// This is a Root Certificate request, which means the resource name begins with "root-cert:"
 	// We remove this;  what remains is the namespace and the service separated by a slash:  namespace/service
-	slashed := strings.Split(resourceName[len(rootCertPrefix):], "/")
+
+	slashed := strings.Split(resourceName[len(certTypeToPrefix[requestedCertType]):], "/")
 	if len(slashed) != 2 {
 		log.Error().Msgf("Error converting %q into a NamespacedService: expected two strings separated by a slash", resourceName)
 		return service.NamespacedService{}, errInvalidResourceRequested
@@ -159,9 +168,9 @@ func getEnvoySDSSecrets(cert certificate.Certificater, proxy *envoy.Proxy, reque
 			envoySecrets = append(envoySecrets, envoySecret)
 		}
 
-		if requestedCertType == envoy.RootCertType {
+		if requestedCertType == envoy.RootCertTypeForMTLS || requestedCertType == envoy.RootCertTypeForHTTPS {
 			// Make sure that the Envoy requesting a cert for a service indeed belongs to that service
-			requestForService, err := getServiceFromRootCertificateRequest(requestedCertificate)
+			requestForService, err := getServiceFromRootCertificateRequest(requestedCertificate, requestedCertType)
 			if err != nil {
 				log.Error().Err(err).Msgf("Error parsing SDS request for certificate type: %q", requestedCertificate)
 				continue
@@ -173,7 +182,7 @@ func getEnvoySDSSecrets(cert certificate.Certificater, proxy *envoy.Proxy, reque
 			}
 
 			log.Info().Msgf("proxy %s (member of service %s) requested %s", proxy.GetCommonName(), serviceForProxy.String(), requestedCertificate)
-			envoySecret, err := getRootCert(cert, requestedCertificate, serviceForProxy, catalog)
+			envoySecret, err := getRootCert(cert, requestedCertificate, serviceForProxy, catalog, requestedCertType)
 			if err != nil {
 				log.Error().Err(err).Msgf("Error creating cert %s for proxy %s for service %s", requestedCertificate, proxy.GetCommonName(), serviceForProxy.String())
 				continue
@@ -209,26 +218,7 @@ func getServiceCertSecret(cert certificate.Certificater, name string) (*auth.Sec
 	return secret, nil
 }
 
-func getRootCert(cert certificate.Certificater, resourceName string, proxyServiceName service.NamespacedService, mc catalog.MeshCataloger) (*auth.Secret, error) {
-	var matchSANs []*envoy_type_matcher.StringMatcher
-
-	// This block constructs a list of Server Names (peers) that are allowed to connect to the given service.
-	// The allowed list is derived from SMI's Traffic Policy.
-	serverNames, err := mc.ListAllowedPeerServices(proxyServiceName)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error getting server names for connected client proxy %s", proxyServiceName)
-		return nil, err
-	}
-
-	for _, serverName := range serverNames {
-		match := envoy_type_matcher.StringMatcher{
-			MatchPattern: &envoy_type_matcher.StringMatcher_Exact{
-				Exact: serverName.GetCommonName().String(),
-			},
-		}
-		matchSANs = append(matchSANs, &match)
-	}
-
+func getRootCert(cert certificate.Certificater, resourceName string, proxyServiceName service.NamespacedService, mc catalog.MeshCataloger, requestedCertType envoy.SDSCertType) (*auth.Secret, error) {
 	secret := &auth.Secret{
 		// The Name field must match the tls_context.common_tls_context.tls_certificate_sds_secret_configs.name
 		Name: resourceName,
@@ -239,12 +229,31 @@ func getRootCert(cert certificate.Certificater, resourceName string, proxyServic
 						InlineBytes: cert.GetIssuingCA(),
 					},
 				},
-
-				// Ensure the Subject Alternate Names (SAN) added by CertificateManager.IssueCertificate()
-				// matches what is allowed to connect to the downstream service as defined in TrafficPolicy.
-				MatchSubjectAltNames: matchSANs,
 			},
 		},
+	}
+
+	if requestedCertType == envoy.RootCertTypeForMTLS {
+		var matchSANs []*envoy_type_matcher.StringMatcher
+		// This block constructs a list of Server Names (peers) that are allowed to connect to the given service.
+		// The allowed list is derived from SMI's Traffic Policy.
+		serverNames, err := mc.ListAllowedPeerServices(proxyServiceName)
+		if err != nil {
+			log.Error().Err(err).Msgf("Error getting server names for connected client proxy %s", proxyServiceName)
+			return nil, err
+		}
+
+		for _, serverName := range serverNames {
+			match := envoy_type_matcher.StringMatcher{
+				MatchPattern: &envoy_type_matcher.StringMatcher_Exact{
+					Exact: serverName.GetCommonName().String(),
+				},
+			}
+			matchSANs = append(matchSANs, &match)
+		}
+		// Ensure the Subject Alternate Names (SAN) added by CertificateManager.IssueCertificate()
+		// matches what is allowed to connect to the downstream service as defined in TrafficPolicy.
+		secret.GetValidationContext().MatchSubjectAltNames = matchSANs
 	}
 
 	return secret, nil

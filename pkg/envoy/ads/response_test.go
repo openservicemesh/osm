@@ -50,7 +50,8 @@ var _ = Describe("Test ADS response functions", func() {
 	proxy := envoy.NewProxy(cn, nil)
 
 	expectedSecretOneName := fmt.Sprintf("service-cert:default/%s", serviceName)
-	expectedSecretTwoName := fmt.Sprintf("root-cert:default/%s", serviceName)
+	expectedSecretTwoName := fmt.Sprintf("root-cert-for-mtls:default/%s", serviceName)
+	expectedSecretThreeName := fmt.Sprintf("root-cert-https:default/%s", serviceName)
 
 	Context("Test getRequestedCertType()", func() {
 		It("returns service cert", func() {
@@ -61,6 +62,7 @@ var _ = Describe("Test ADS response functions", func() {
 				ResourceNames: []string{
 					expectedSecretOneName,
 					expectedSecretTwoName,
+					expectedSecretThreeName,
 				},
 			}
 			Expect(actual).ToNot(BeNil())
@@ -97,7 +99,7 @@ var _ = Describe("Test ADS response functions", func() {
 
 			Expect((*actualResponses)[4].VersionInfo).To(Equal("1"))
 			Expect((*actualResponses)[4].TypeUrl).To(Equal(string(envoy.TypeSDS)))
-			Expect(len((*actualResponses)[4].Resources)).To(Equal(2))
+			Expect(len((*actualResponses)[4].Resources)).To(Equal(3))
 
 			secretOne := envoy_api_v2_auth.Secret{}
 			firstSecret := (*actualResponses)[4].Resources[0]
@@ -108,6 +110,11 @@ var _ = Describe("Test ADS response functions", func() {
 			secondSecret := (*actualResponses)[4].Resources[1]
 			err = ptypes.UnmarshalAny(secondSecret, &secretTwo)
 			Expect(secretTwo.Name).To(Equal(expectedSecretTwoName))
+
+			secretThree := envoy_api_v2_auth.Secret{}
+			thirdSecret := (*actualResponses)[4].Resources[2]
+			err = ptypes.UnmarshalAny(thirdSecret, &secretThree)
+			Expect(secretThree.Name).To(Equal(expectedSecretThreeName))
 
 		})
 	})
