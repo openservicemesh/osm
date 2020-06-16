@@ -58,6 +58,34 @@ data:
 apiVersion: v1
 kind: ConfigMap
 metadata:
+  name: osm-grafana-dashboard-definition-dataplane
+  labels:
+    app: osm-grafana
+data:
+  osm-pod.json: |
+{{ .Files.Get "grafana/dashboards/osm-pod.json" | replace "${DS_PROMETHEUS}" "Prometheus" | indent 4 }}
+  osm-workload.json: |
+{{ .Files.Get "grafana/dashboards/osm-workload.json" | replace "${DS_PROMETHEUS}" "Prometheus" | indent 4 }}
+  osm-service-to-service.json: |
+{{ .Files.Get "grafana/dashboards/osm-service-to-service.json" | replace "${DS_PROMETHEUS}" "Prometheus" | indent 4 }}
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: osm-grafana-dashboard-definition-controlplane
+  labels:
+    app: osm-grafana
+data:
+  osm-control-plane.json: |
+{{ .Files.Get "grafana/dashboards/osm-control-plane.json" | replace "${DS_PROMETHEUS}" "Prometheus" | indent 4 }}
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
   name: osm-grafana-dashboards
   labels:
     app: osm-grafana
@@ -65,18 +93,21 @@ data:
   dashboards.yaml: |
     apiVersion: 1
     providers:
-    - name: 'Prometheus'
+    - name: 'OSM Data Plane'
       orgId: 1
-      folder: ''
+      folder: 'OSM Data Plane'
       type: file
       disableDeletion: false
       editable: true
       updateIntervalSeconds: 10
       options:
-        path: /etc/grafana/provisioning/dashboards
-  osm-pod.json: |
-{{ .Files.Get "grafana/dashboards/osm-pod.json" | replace "${DS_PROMETHEUS}" "Prometheus" | indent 4 }}
-  osm-workload.json: |
-{{ .Files.Get "grafana/dashboards/osm-workload.json" | replace "${DS_PROMETHEUS}" "Prometheus" | indent 4 }}
-  osm-service-to-service.json: |
-{{ .Files.Get "grafana/dashboards/osm-service-to-service.json" | replace "${DS_PROMETHEUS}" "Prometheus" | indent 4 }}
+        path: /etc/grafana/provisioning/dashboards/dataplane
+    - name: 'OSM Control Plane'
+      orgId: 1
+      folder: 'OSM Control Plane'
+      type: file
+      disableDeletion: false
+      editable: true
+      updateIntervalSeconds: 10
+      options:
+        path: /etc/grafana/provisioning/dashboards/controlplane

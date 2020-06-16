@@ -33,6 +33,12 @@ spec:
             - name: osm-grafana-dashboards
               mountPath: /etc/grafana/provisioning/dashboards
               readOnly: true
+            - name: osm-grafana-dashboard-definition-controlplane
+              mountPath: /etc/grafana/provisioning/dashboards/controlplane
+              readOnly: true
+            - name: osm-grafana-dashboard-definition-dataplane
+              mountPath: /etc/grafana/provisioning/dashboards/dataplane
+              readOnly: true
           ports:
             - containerPort: {{.Values.grafana.port}}
       volumes:
@@ -45,5 +51,11 @@ spec:
         - name: osm-grafana-dashboards
           configMap:
             name: osm-grafana-dashboards
+        - name: osm-grafana-dashboard-definition-controlplane
+          configMap:
+            name: osm-grafana-dashboard-definition-controlplane
+        - name: osm-grafana-dashboard-definition-dataplane
+          configMap:
+            name: osm-grafana-dashboard-definition-dataplane
         - name: osm-grafana-storage
           emptyDir: {}
