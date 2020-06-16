@@ -56,16 +56,8 @@ func NewCertManager(vaultAddr, token string, validityPeriod time.Duration, vault
 		issuingCA:  someCert.GetIssuingCA(),
 	}
 
-	// Instantiating a new certificate rotation mechanism will start a goroutine and return an announcement channel
-	// which we use to get notified when a cert has been rotated. From then we pass that onto whoever is listening
-	// to the announcement channel of pkg/tresor.
-	announcements := rotor.New(checkCertificateExpirationInterval, c, &cache)
-	go func() {
-		for {
-			<-announcements
-			c.announcements <- nil
-		}
-	}()
+	// Instantiating a new certificate rotation mechanism will start a goroutine for certificate rotation.
+	rotor.Start(checkCertificateExpirationInterval, c, &cache)
 
 	return c, nil
 }
@@ -146,6 +138,7 @@ func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate
 	cm.cacheLock.Lock()
 	(*cm.cache)[cn] = cert
 	cm.cacheLock.Unlock()
+	cm.announcements <- nil
 
 	log.Info().Msgf("Rotating certificate CN=%s took %+v", cn, time.Since(start))
 
