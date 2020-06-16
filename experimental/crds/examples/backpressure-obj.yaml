@@ -1,5 +1,5 @@
 apiVersion: envoy.openservicemesh.io/v1
-kind: BackpressureConfig
+kind: OSMBackpressureConfig
 metadata:
   name: jonathans-max-requests-per-second
   namespace: osm-system
