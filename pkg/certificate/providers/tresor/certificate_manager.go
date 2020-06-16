@@ -129,6 +129,14 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 	return cert, nil
 }
 
+// GetCertificate returns a certificate given its Common Name (CN)
+func (cm *CertManager) GetCertificate(cn certificate.CommonName) (certificate.Certificater, error) {
+	if cert := cm.getFromCache(cn); cert != nil {
+		return cert, nil
+	}
+	return nil, errCertNotFound
+}
+
 // RotateCertificate implements certificate.Manager and rotates an existing certificate.
 func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate.Certificater, error) {
 	log.Info().Msgf("Rotating certificate for CN=%s", cn)

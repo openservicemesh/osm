@@ -37,4 +37,21 @@ var _ = Describe("Test certificate tooling", func() {
 			Expect(x509Cert.NotAfter.Before(time.Now().Add(24 * time.Hour))).To(BeTrue())
 		})
 	})
+
+	Context("Testing GetCertificateForService for issuance and retrieval of cached certificates", func() {
+		namespacedService := service.NamespacedService{
+			Namespace: "namespace-here",
+			Service:   "service-name-here",
+		}
+		mc := NewFakeMeshCatalog(testclient.NewSimpleClientset())
+		It("issues a PEM certificate with the correct CN", func() {
+			cert, err := mc.GetCertificateForService(namespacedService)
+			Expect(err).ToNot(HaveOccurred())
+
+			cachedCert, err := mc.GetCertificateForService(namespacedService)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(cert).To(Equal(cachedCert))
+		})
+	})
 })

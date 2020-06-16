@@ -9,7 +9,6 @@ import (
 	"github.com/open-service-mesh/osm/pkg/certificate"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/ingress"
-	"github.com/open-service-mesh/osm/pkg/service"
 	"github.com/open-service-mesh/osm/pkg/smi"
 )
 
@@ -22,7 +21,6 @@ func NewMeshCatalog(kubeClient kubernetes.Interface, meshSpec smi.MeshSpec, cert
 		certManager:        certManager,
 		ingressMonitor:     ingressMonitor,
 
-		certificateCache:     make(map[service.NamespacedService]certificate.Certificater),
 		expectedProxies:      make(map[certificate.CommonName]expectedProxy),
 		connectedProxies:     make(map[certificate.CommonName]connectedProxy),
 		disconnectedProxies:  make(map[certificate.CommonName]disconnectedProxy),

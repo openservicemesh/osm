@@ -45,6 +45,9 @@ type Manager interface {
 	// IssueCertificate issues a new certificate.
 	IssueCertificate(CommonName, *time.Duration) (Certificater, error)
 
+	// GetCertificate returns a certificate given its Common Name (CN)
+	GetCertificate(CommonName) (Certificater, error)
+
 	// RotateCertificate rotates an existing certificate.
 	RotateCertificate(CommonName) (Certificater, error)
 
