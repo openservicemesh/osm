@@ -28,7 +28,7 @@ OSM only monitors ingress resources that are annotated with `openservicemesh.io/
 
 The example configurations describe how to expose HTTPS routes for the `bookstore-v1` HTTPS service running on port `8080` in the `bookstore-ns` namespace, outside the cluster. The ingress configuration will expose the HTTPS path `/books-bought` on the `bookstore-v1` service.
 
-Since OSM uses its own root certificate, the ingress controller must be provisioned with OSM's root certificate to be able to authenticate the certificate presented by backend servers. OSM stores the root certificate in a Kubernetes secret called `root-cert` with the key `ca.crt` in the namespace OSM is deployed (`osm-system` by default).
+Since OSM uses its own root certificate, the ingress controller must be provisioned with OSM's root certificate to be able to authenticate the certificate presented by backend servers. OSM stores the CA root certificate in a Kubernetes secret called `osm-ca-bundle` with the key `ca.crt` in the namespace OSM is deployed (`osm-system` by default).
 
 ### Using Nginx Ingress Controller
 An ingress configuration yaml with [Nginx Ingress Controller][2] for the `bookstore-v1` service described above would look as follows.
@@ -51,7 +51,7 @@ metadata:
     nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
     nginx.ingress.kubernetes.io/configuration-snippet: |
       proxy_ssl_name "bookstore-v1.bookstore-ns.svc.cluster.local";
-    nginx.ingress.kubernetes.io/proxy-ssl-secret: "osm-system/root-cert"
+    nginx.ingress.kubernetes.io/proxy-ssl-secret: "osm-system/osm-ca-bundle"
     nginx.ingress.kubernetes.io/proxy-ssl-verify: "on"
     openservicemesh.io/monitor: enabled
 spec:
@@ -84,7 +84,7 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: azure/application-gateway
     appgw.ingress.kubernetes.io/backend-protocol: "https"
-    appgw.ingress.kubernetes.io/appgw-trusted-root-certificate: "osm-root-cert"
+    appgw.ingress.kubernetes.io/appgw-trusted-root-certificate: "osm-ca-bundle"
     appgw.ingress.kubernetes.io/backend-hostname: "bookstore-v1.bookstore-ns.svc.cluster.local"
     openservicemesh.io/monitor: enabled
 spec:

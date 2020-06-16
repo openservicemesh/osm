@@ -32,7 +32,7 @@ spec:
             "--init-container-image", "{{.Values.image.registry}}/init:{{ .Values.image.tag }}",
             "--sidecar-image", "{{.Values.sidecarImage}}",
             "--webhookName", "osm-webhook-{{.Release.Namespace}}",
-            "--caBundleSecretName", "osm-ca-{{.Release.Namespace}}",
+            "--caBundleSecretName", "osm-ca-bundle",
             "--certmanager", "{{.Values.certManager}}",
             "--vaultHost", "{{.Values.vault.host}}",
             "--vaultProtocol", "{{.Values.vault.protocol}}",
