@@ -92,4 +92,29 @@ var _ = Describe("Test Certificate Manager", func() {
 			Expect(xRootCert.Subject.CommonName).To(Equal(cn.String()))
 		})
 	})
+
+	Context("Test Getting a certificate from the cache", func() {
+		validity := 1 * time.Hour
+		rootCertPem := "sample_certificate.pem"
+		rootKeyPem := "sample_private_key.pem"
+		cn := certificate.CommonName("Test CA")
+		rootCertCountry := "US"
+		rootCertLocality := "CA"
+		rootCertOrganization := "Open Service Mesh Tresor"
+		rootCert, err := NewCA(cn, validity, rootCertCountry, rootCertLocality, rootCertOrganization)
+		if err != nil {
+			log.Fatal().Err(err).Msgf("Error loading CA from files %s and %s", rootCertPem, rootKeyPem)
+		}
+		m, newCertError := NewCertManager(rootCert, validity, "org")
+		It("should get an issued certificate from the cache", func() {
+			Expect(newCertError).ToNot(HaveOccurred())
+			cert, issueCertificateError := m.IssueCertificate(serviceFQDN, &validity)
+			Expect(issueCertificateError).ToNot(HaveOccurred())
+			Expect(cert.GetCommonName()).To(Equal(certificate.CommonName(serviceFQDN)))
+
+			cachedCert, getCertificateError := m.GetCertificate(serviceFQDN)
+			Expect(getCertificateError).ToNot(HaveOccurred())
+			Expect(cachedCert).To(Equal(cert))
+		})
+	})
 })

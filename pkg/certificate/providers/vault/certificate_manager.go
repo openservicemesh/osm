@@ -114,6 +114,14 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 	return cert, nil
 }
 
+// GetCertificate returns a certificate given its Common Name (CN)
+func (cm *CertManager) GetCertificate(cn certificate.CommonName) (certificate.Certificater, error) {
+	if cert := cm.getFromCache(cn); cert != nil {
+		return cert, nil
+	}
+	return nil, errCertNotFound
+}
+
 // GetRootCertificate returns the root certificate.
 func (cm *CertManager) GetRootCertificate() (certificate.Certificater, error) {
 	return cm.ca, nil

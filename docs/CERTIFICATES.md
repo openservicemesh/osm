@@ -127,6 +127,7 @@ This is a Hasticorp Vault client, which satisfies the `certificate.Manager`
 interface. It provides the following methods:
 ```
   - IssueCertificate - issues new certificates
+  - GetCertificate - retrieves a certificate given its Common Name (CN)
   - RotateCertificate - rotates expiring certificates
   - GetAnnouncementsChannel - returns a channel, which is used to announce when certificates have been issued or rotated
 ```

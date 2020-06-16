@@ -29,8 +29,6 @@ type MeshCatalog struct {
 	certManager        certificate.Manager
 	ingressMonitor     ingress.Monitor
 
-	certificateCache map[service.NamespacedService]certificate.Certificater
-
 	expectedProxies     map[certificate.CommonName]expectedProxy
 	expectedProxiesLock sync.Mutex
 
