@@ -143,6 +143,7 @@ func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate
 	cm.cacheLock.Lock()
 	(*cm.cache)[cn] = cert
 	cm.cacheLock.Unlock()
+	cm.announcements <- nil
 
 	log.Info().Msgf("Rotating certificate CN=%s took %+v", cn, time.Since(start))
 

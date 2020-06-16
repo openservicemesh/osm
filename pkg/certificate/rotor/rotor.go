@@ -21,17 +21,13 @@ const (
 type rotor struct {
 	certificates *map[certificate.CommonName]certificate.Certificater
 	certManager  certificate.Manager
-
-	// Announce to the outside world that a certificate has been rotated.
-	announcements chan interface{}
 }
 
-// New creates and starts a new facility for automatic certificate rotation.
-func New(checkInterval time.Duration, certManager certificate.Manager, certificates *map[certificate.CommonName]certificate.Certificater) <-chan interface{} {
+// Start creates and starts a new facility for automatic certificate rotation.
+func Start(checkInterval time.Duration, certManager certificate.Manager, certificates *map[certificate.CommonName]certificate.Certificater) {
 	rtr := rotor{
-		certificates:  certificates,
-		certManager:   certManager,
-		announcements: make(chan interface{}),
+		certificates: certificates,
+		certManager:  certManager,
 	}
 
 	// TODO(draychev): current implementation is the naive one - we iterate over a list of certificates we are given
@@ -43,8 +39,6 @@ func New(checkInterval time.Duration, certManager certificate.Manager, certifica
 			<-ticker.C
 		}
 	}()
-
-	return rtr.announcements
 }
 
 func (r *rotor) checkAndRotate() {
@@ -61,7 +55,6 @@ func (r *rotor) checkAndRotate() {
 				log.Error().Err(err).Msgf("Error rotating cert CN=%s", cn)
 				continue
 			}
-			r.announcements <- nil
 			log.Trace().Msgf("Rotated cert CN=%s", newCert.GetCommonName())
 		}
 	}
