@@ -13,7 +13,7 @@ fi
 
 ../code-generator/generate-groups.sh \
     all \
-    github.com/open-service-mesh/osm/pkg/client \
-    github.com/open-service-mesh/osm/pkg/apis \
+    github.com/open-service-mesh/osm/experimental/pkg/client \
+    github.com/open-service-mesh/osm/experimental/pkg/apis \
     "osmbackpressureconfig:v1" \
     --go-header-file ../code-generator/hack/boilerplate.go.txt
