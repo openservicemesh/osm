@@ -56,6 +56,11 @@ type MeshCataloger interface {
 
 	// ListAllowedOutboundServices lists the services the given service is allowed outbound connections to.
 	ListAllowedOutboundServices(service.NamespacedService) ([]service.NamespacedService, error)
+	//TO DO
+	//ListSMIPolicies() ([]*split.TrafficSplit, []service.WeightedService, []service.NamespacedServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget, []*corev1.Service)
+
+	// ListAllowedPeerServices lists the services allowed to connect to the given downstream service (argument to this function).
+	ListAllowedPeerServices(service.NamespacedService) ([]service.NamespacedService, error)
 
 	// ListEndpointsForService returns the list of provider endpoints corresponding to a service
 	ListEndpointsForService(service.Name) ([]endpoint.Endpoint, error)

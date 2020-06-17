@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
+	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha1"
 )
 
 // ListExpectedProxies lists the Envoy proxies yet to connect and the time their XDS certificate was issued.
@@ -52,4 +53,24 @@ func (mc *MeshCatalog) ListDisconnectedProxies() map[certificate.CommonName]time
 	}
 	mc.disconnectedProxiesLock.Unlock()
 	return proxies
+}
+
+// ListPolicies returns all policies OSM is aware of.
+// func (mc *MeshCatalog) ListPolicies() ([]*split.TrafficSplit, []service.WeightedService, []service.NamespacedServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget, []*corev1.Service) {
+// 	trafficSplits := mc.meshSpec.ListTrafficSplits()
+// 	splitServices := mc.meshSpec.ListTrafficSplitServices()
+// 	serviceAccouns := mc.meshSpec.ListServiceAccounts()
+// 	trafficSpecs := mc.meshSpec.ListHTTPTrafficSpecs()
+// 	trafficTargets := mc.meshSpec.ListTrafficTargets()
+// 	services, err := mc.meshSpec.ListServices()
+// 	if err != nil {
+// 		services = nil
+// 	}
+
+// 	return trafficSplits, splitServices, serviceAccouns, trafficSpecs, trafficTargets, services
+// }
+
+// ListSMIPolicies returns SMI traffic targets OSM is aware of.
+func (mc *MeshCatalog) ListSMIPolicies() []*target.TrafficTarget {
+	return mc.meshSpec.ListTrafficTargets()
 }

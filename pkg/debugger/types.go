@@ -4,13 +4,13 @@ import (
 	"net/http"
 	"time"
 
-	"k8s.io/client-go/rest"
-
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 	"github.com/open-service-mesh/osm/pkg/logger"
+	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha1"
 )
 
 var log = logger.New("debugger")
@@ -40,6 +40,10 @@ type MeshCatalogDebugger interface {
 
 	// ListDisconnectedProxies lists the Envoy proxies disconnected and the time last seen.
 	ListDisconnectedProxies() map[certificate.CommonName]time.Time
+
+	// ListSMIPolicies lists the SMI policies detected by OSM.
+	//ListSMIPolicies() ([]*split.TrafficSplit, []service.WeightedService, []service.NamespacedServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget, []*corev1.Service)
+	ListSMIPolicies() []*target.TrafficTarget
 }
 
 // XDSDebugger is an interface providing debugging server with methods introspecting XDS.

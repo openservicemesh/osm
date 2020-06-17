@@ -1,12 +1,37 @@
 package debugger
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 )
 
-func (ds debugServer) getPolicies() http.Handler {
+type policies struct {
+	//TrafficSplits   []string `json:"traffic_splits"`
+	//SplitServices   []string `json:"split_services"`
+	//ServiceAccounts []string `json:"service_accounts"`
+	//TrafficSpecs    []string `json:"traffic_specs"`
+	TrafficTargets []string `json:"traffic_targets"`
+	//Services        []string `json:"services"`
+}
+
+func (ds debugServer) getSMIPoliciesHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = fmt.Fprintf(w, "hello")
+
+		trafficTargets := ds.meshCatalogDebugger.ListSMIPolicies()
+
+		var p policies
+
+		for _, item := range trafficTargets {
+			p.TrafficTargets = append(p.TrafficTargets, item.Name)
+		}
+
+		jsonPolicies, err := json.Marshal(p)
+		if err != nil {
+			log.Error().Err(err).Msg("Error marshalling p")
+		}
+
+		_, _ = fmt.Fprint(w, string(jsonPolicies))
+
 	})
 }
