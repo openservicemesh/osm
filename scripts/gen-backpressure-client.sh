@@ -15,4 +15,5 @@ fi
     all \
     github.com/open-service-mesh/osm/pkg/client \
     github.com/open-service-mesh/osm/pkg/apis \
-    "osmbackpressureconfig:v1"
+    "osmbackpressureconfig:v1" \
+    --go-header-file ../code-generator/hack/boilerplate.go.txt
