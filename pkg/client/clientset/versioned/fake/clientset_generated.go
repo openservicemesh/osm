@@ -20,8 +20,8 @@ package fake
 
 import (
 	clientset "github.com/open-service-mesh/osm/pkg/client/clientset/versioned"
-	envoyv1 "github.com/open-service-mesh/osm/pkg/client/clientset/versioned/typed/osmbackpressureconfig/v1"
-	fakeenvoyv1 "github.com/open-service-mesh/osm/pkg/client/clientset/versioned/typed/osmbackpressureconfig/v1/fake"
+	backpressurev1 "github.com/open-service-mesh/osm/pkg/client/clientset/versioned/typed/osmbackpressureconfig/v1"
+	fakebackpressurev1 "github.com/open-service-mesh/osm/pkg/client/clientset/versioned/typed/osmbackpressureconfig/v1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -76,7 +76,7 @@ func (c *Clientset) Tracker() testing.ObjectTracker {
 
 var _ clientset.Interface = &Clientset{}
 
-// EnvoyV1 retrieves the EnvoyV1Client
-func (c *Clientset) EnvoyV1() envoyv1.EnvoyV1Interface {
-	return &fakeenvoyv1.FakeEnvoyV1{Fake: &c.Fake}
+// BackpressureV1 retrieves the BackpressureV1Client
+func (c *Clientset) BackpressureV1() backpressurev1.BackpressureV1Interface {
+	return &fakebackpressurev1.FakeBackpressureV1{Fake: &c.Fake}
 }
