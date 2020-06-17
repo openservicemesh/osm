@@ -18,12 +18,12 @@ var _ = Describe("Test debugger method", func() {
 	Context("Testing GetPolicy", func() {
 		It("return policy", func() {
 			ds := debugServer{}
-			handler := ds.getPolicies()
-			rr := httptest.NewRecorder()
-			handler.ServeHTTP(rr, nil)
-			actual := rr.Body.String()
-			expected := 123
-			Expect(actual).To(Equal(expected))
+			smiPoliciesHandler := ds.getSMIPoliciesHandler()
+			responseRecorder := httptest.NewRecorder()
+			smiPoliciesHandler.ServeHTTP(responseRecorder, nil)
+			actualResponseBody := responseRecorder.Body.String()
+			expectedResponseBody := "This here is what we expect the body of the HTTP response to be..."
+			Expect(actualResponseBody).To(Equal(expectedResponseBody))
 		})
 	})
 })
