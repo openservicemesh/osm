@@ -53,7 +53,7 @@ docker-build: build-cross docker-build-bookbuyer docker-build-bookstore docker-b
 
 .PHONY: go-vet
 go-vet:
-	go vet ./cmd ./pkg
+	go vet ./...
 
 .PHONY: go-lint
 go-lint:
@@ -62,7 +62,7 @@ go-lint:
 
 .PHONY: go-fmt
 go-fmt:
-	./scripts/go-fmt.sh
+	go fmt ./...
 
 .PHONY: go-test
 go-test:
