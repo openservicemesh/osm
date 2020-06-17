@@ -7,6 +7,6 @@ import (
 
 func (ds debugServer) getSMIPoliciesHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = fmt.Fprintf(w, "hello")
+		_, _ = fmt.Fprintf(w, "{name: chelsea}")
 	})
 }
