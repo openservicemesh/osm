@@ -1,9 +1,9 @@
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  name: osmbackpressureconfigs.envoy.openservicemesh.io
+  name: osmbackpressureconfigs.policy.openservicemesh.io
 spec:
-  group: envoy.openservicemesh.io
+  group: policy.openservicemesh.io
   version: v1
   names:
     kind: OSMBackpressureConfig
