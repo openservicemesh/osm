@@ -19,7 +19,7 @@ limitations under the License.
 package fake
 
 import (
-	envoyv1 "github.com/open-service-mesh/osm/pkg/apis/osmbackpressureconfig/v1"
+	osmbackpressureconfigv1 "github.com/open-service-mesh/osm/pkg/apis/osmbackpressureconfig/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -31,7 +31,7 @@ var scheme = runtime.NewScheme()
 var codecs = serializer.NewCodecFactory(scheme)
 
 var localSchemeBuilder = runtime.SchemeBuilder{
-	envoyv1.AddToScheme,
+	osmbackpressureconfigv1.AddToScheme,
 }
 
 // AddToScheme adds all types of this clientset into the given scheme. This allows composition

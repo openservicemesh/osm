@@ -21,7 +21,7 @@ package versioned
 import (
 	"fmt"
 
-	envoyv1 "github.com/open-service-mesh/osm/pkg/client/clientset/versioned/typed/osmbackpressureconfig/v1"
+	osmbackpressureconfigv1 "github.com/open-service-mesh/osm/pkg/client/clientset/versioned/typed/osmbackpressureconfig/v1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
@@ -29,19 +29,19 @@ import (
 
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
-	EnvoyV1() envoyv1.EnvoyV1Interface
+	OsmbackpressureconfigV1() osmbackpressureconfigv1.OsmbackpressureconfigV1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	envoyV1 *envoyv1.EnvoyV1Client
+	osmbackpressureconfigV1 *osmbackpressureconfigv1.OsmbackpressureconfigV1Client
 }
 
-// EnvoyV1 retrieves the EnvoyV1Client
-func (c *Clientset) EnvoyV1() envoyv1.EnvoyV1Interface {
-	return c.envoyV1
+// OsmbackpressureconfigV1 retrieves the OsmbackpressureconfigV1Client
+func (c *Clientset) OsmbackpressureconfigV1() osmbackpressureconfigv1.OsmbackpressureconfigV1Interface {
+	return c.osmbackpressureconfigV1
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -65,7 +65,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	}
 	var cs Clientset
 	var err error
-	cs.envoyV1, err = envoyv1.NewForConfig(&configShallowCopy)
+	cs.osmbackpressureconfigV1, err = osmbackpressureconfigv1.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
-	cs.envoyV1 = envoyv1.NewForConfigOrDie(c)
+	cs.osmbackpressureconfigV1 = osmbackpressureconfigv1.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -90,7 +90,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
-	cs.envoyV1 = envoyv1.New(c)
+	cs.osmbackpressureconfigV1 = osmbackpressureconfigv1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs
