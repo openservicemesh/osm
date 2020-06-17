@@ -1,6 +1,11 @@
 package catalog
 
 import (
+	"github.com/open-service-mesh/osm/pkg/service"
+	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha1"
+	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha2"
+	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
+	corev1 "k8s.io/api/core/v1"
 	"time"
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
@@ -52,4 +57,19 @@ func (mc *MeshCatalog) ListDisconnectedProxies() map[certificate.CommonName]time
 	}
 	mc.disconnectedProxiesLock.Unlock()
 	return proxies
+}
+
+// ListPolicies returns all policies OSM is aware of.
+func (mc *MeshCatalog) ListPolicies() ([]*split.TrafficSplit, []service.WeightedService, []service.NamespacedServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget, []*corev1.Service) {
+	trafficSplits := mc.meshSpec.ListTrafficSplits()
+	splitServices := mc.meshSpec.ListTrafficSplitServices()
+	serviceAccouns := mc.meshSpec.ListServiceAccounts()
+	trafficSpecs := mc.meshSpec.ListHTTPTrafficSpecs()
+	trafficTargets := mc.meshSpec.ListTrafficTargets()
+	services, err := mc.meshSpec.ListServices()
+	if err != nil {
+		services = nil
+	}
+
+	return trafficSplits, splitServices, serviceAccouns, trafficSpecs, trafficTargets, services
 }
