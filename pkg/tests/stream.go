@@ -3,7 +3,6 @@ package tests
 import (
 	"context"
 	"crypto/x509"
-	"google.golang.org/grpc/peer"
 
 	envoy_service_discovery_v2 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	"google.golang.org/grpc/peer"

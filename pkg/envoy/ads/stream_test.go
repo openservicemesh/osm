@@ -85,7 +85,6 @@ var _ = Describe("Test StreamAggregatedResources XDS implementation", func() {
 		catalog:     mc,
 		meshSpec:    smi.NewFakeMeshSpecClient(),
 		xdsHandlers: getHandlers(),
-		quit:        make(chan struct{}),
 	}
 
 	// Start the server!!
@@ -131,11 +130,6 @@ var _ = Describe("Test StreamAggregatedResources XDS implementation", func() {
 			fromEnvoyToOSM <- *req
 
 			Expect(proxy.GetLastAppliedVersion(envoy.TypeSDS)).To(Equal(uint64(234)))
-			Expect(len(*actualResponses)).To(Equal(1))
-
-			// We are done!
-			close(adsServer.quit)
-
 			Expect(len(*actualResponses)).To(Equal(1))
 		})
 
