@@ -88,9 +88,9 @@ func (s *Server) newAggregatedDiscoveryResponse(proxy *envoy.Proxy, request *env
 	response.VersionInfo = strconv.FormatUint(proxy.IncrementLastSentVersion(typeURL), 10)
 
 	if envoy.TypeURI(request.TypeUrl) == envoy.TypeSDS {
-		log.Trace().Msgf("Constructed %s response: --redacted--", request.TypeUrl)
+		log.Trace().Msgf("Constructed %s response: VersionInfo=%s", response.TypeUrl, response.VersionInfo)
 	} else {
-		log.Trace().Msgf("Constructed %s response: %+v", request.TypeUrl, response)
+		log.Trace().Msgf("Constructed %s response: VersionInfo=%s; %+v", response.TypeUrl, response.VersionInfo, response)
 	}
 
 	return response, nil
