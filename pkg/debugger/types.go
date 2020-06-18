@@ -36,7 +36,7 @@ type MeshCatalogDebugger interface {
 	ListExpectedProxies() map[certificate.CommonName]time.Time
 
 	// ListConnectedProxies lists the Envoy proxies already connected and the time they first connected.
-	ListConnectedProxies() map[certificate.CommonName]time.Time
+	ListConnectedProxies() map[certificate.CommonName]*envoy.Proxy
 
 	// ListDisconnectedProxies lists the Envoy proxies disconnected and the time last seen.
 	ListDisconnectedProxies() map[certificate.CommonName]time.Time
