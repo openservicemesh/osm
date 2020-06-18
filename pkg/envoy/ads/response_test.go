@@ -3,6 +3,7 @@ package ads
 import (
 	"context"
 	"fmt"
+	"time"
 
 	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/open-service-mesh/osm/pkg/certificate/providers/tresor"
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/smi"
 	"github.com/open-service-mesh/osm/pkg/tests"
@@ -71,7 +73,14 @@ var _ = Describe("Test ADS response functions", func() {
 	})
 
 	Context("Test sendAllResponses()", func() {
-		server, actualResponses := tests.NewFakeXDSServer()
+
+		cache := make(map[certificate.CommonName]certificate.Certificater)
+		certManager := tresor.NewFakeCertManager(&cache, 1*time.Hour)
+		cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s", uuid.New(), tests.BookbuyerServiceAccountName, tests.Namespace))
+		certPEM, _ := certManager.IssueCertificate(cn, nil)
+		cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())
+		server, actualResponses := tests.NewFakeXDSServer(cert, nil, nil)
+
 		It("returns Aggregated Discovery Service response", func() {
 			s := Server{
 				ctx:         context.TODO(),
