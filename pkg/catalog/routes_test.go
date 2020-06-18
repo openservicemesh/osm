@@ -101,10 +101,10 @@ var _ = Describe("Catalog tests", func() {
 		})
 	})
 
-	Context("Test ListAllowedPeerServices()", func() {
+	Context("Test ListAllowedInboundServices()", func() {
 		It("returns the list of server names allowed to communicate with the hosted service", func() {
 			mc := NewFakeMeshCatalog(testclient.NewSimpleClientset())
-			actualList, err := mc.ListAllowedPeerServices(tests.BookstoreService)
+			actualList, err := mc.ListAllowedInboundServices(tests.BookstoreService)
 			Expect(err).ToNot(HaveOccurred())
 			expectedList := []service.NamespacedService{tests.BookbuyerService}
 			Expect(actualList).To(Equal(expectedList))
@@ -145,6 +145,17 @@ var _ = Describe("Catalog tests", func() {
 			Expect(cmp.Equal(trafficTarget.Destination, expectedDestinationTrafficResource)).To(BeTrue())
 			Expect(cmp.Equal(trafficTarget.Route.PathRegex, expectedRoute.PathRegex)).To(BeTrue())
 			Expect(cmp.Equal(trafficTarget.Route.Methods, expectedRoute.Methods)).To(BeTrue())
+		})
+	})
+
+	Context("Test ListAllowedOutboundServices()", func() {
+		It("returns the list of server names the given service is allowed to communicate with", func() {
+			mc := NewFakeMeshCatalog(testclient.NewSimpleClientset())
+			actualList, err := mc.ListAllowedOutboundServices(tests.BookbuyerService)
+			Expect(err).ToNot(HaveOccurred())
+			expectedList := []service.NamespacedService{tests.BookstoreService}
+			Expect(actualList).To(Equal(expectedList))
+
 		})
 	})
 })

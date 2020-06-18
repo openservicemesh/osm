@@ -237,13 +237,15 @@ func getRootCert(cert certificate.Certificater, resourceName string, proxyServic
 		var matchSANs []*envoy_type_matcher.StringMatcher
 		// This block constructs a list of Server Names (peers) that are allowed to connect to the given service.
 		// The allowed list is derived from SMI's Traffic Policy.
-		serverNames, err := mc.ListAllowedPeerServices(proxyServiceName)
+		serverNames, err := mc.ListAllowedInboundServices(proxyServiceName)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error getting server names for connected client proxy %s", proxyServiceName)
 			return nil, err
 		}
 
+		var matchingInboundCerts []string
 		for _, serverName := range serverNames {
+			matchingInboundCerts = append(matchingInboundCerts, serverName.GetCommonName().String())
 			match := envoy_type_matcher.StringMatcher{
 				MatchPattern: &envoy_type_matcher.StringMatcher_Exact{
 					Exact: serverName.GetCommonName().String(),
@@ -251,6 +253,30 @@ func getRootCert(cert certificate.Certificater, resourceName string, proxyServic
 			}
 			matchSANs = append(matchSANs, &match)
 		}
+
+		log.Trace().Msgf("Proxy for service %s will only allow inbound SANs exactly matching: %+v", proxyServiceName, matchingInboundCerts)
+
+		// This block constructs a list of Server Names (peers) that are allowed to connect to the given service.
+		// The allowed list is derived from SMI's Traffic Policy.
+		serverNames, err = mc.ListAllowedOutboundServices(proxyServiceName)
+		if err != nil {
+			log.Error().Err(err).Msgf("Error getting server names for connected client proxy %s", proxyServiceName)
+			return nil, err
+		}
+
+		var matchingOutboundCerts []string
+		for _, serverName := range serverNames {
+			matchingOutboundCerts = append(matchingOutboundCerts, serverName.GetCommonName().String())
+			match := envoy_type_matcher.StringMatcher{
+				MatchPattern: &envoy_type_matcher.StringMatcher_Exact{
+					Exact: serverName.GetCommonName().String(),
+				},
+			}
+			matchSANs = append(matchSANs, &match)
+		}
+
+		log.Trace().Msgf("Proxy for service %s will only allow outbound SANs exactly matching: %+v", proxyServiceName, matchingOutboundCerts)
+
 		// Ensure the Subject Alternate Names (SAN) added by CertificateManager.IssueCertificate()
 		// matches what is allowed to connect to the downstream service as defined in TrafficPolicy.
 		secret.GetValidationContext().MatchSubjectAltNames = matchSANs
