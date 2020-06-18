@@ -17,6 +17,9 @@ type Proxy struct {
 	ServiceName   service.NamespacedService
 	announcements chan interface{}
 
+	// The time this Proxy connected to the OSM control plane
+	connectedAt time.Time
+
 	lastSentVersion    map[TypeURI]uint64
 	lastAppliedVersion map[TypeURI]uint64
 	lastNonce          map[TypeURI]string
@@ -37,10 +40,15 @@ func (p Proxy) GetLastSentVersion(typeURI TypeURI) uint64 {
 	return p.lastSentVersion[typeURI]
 }
 
-// IncrementLastSentVersion incremens last sent version.
+// IncrementLastSentVersion increments last sent version.
 func (p *Proxy) IncrementLastSentVersion(typeURI TypeURI) uint64 {
 	p.lastSentVersion[typeURI]++
 	return p.GetLastSentVersion(typeURI)
+}
+
+// SetLastSentVersion records the version of the given config last sent to the proxy.
+func (p *Proxy) SetLastSentVersion(typeURI TypeURI, ver uint64) {
+	p.lastSentVersion[typeURI] = ver
 }
 
 // GetLastSentNonce returns last sent nonce.
@@ -75,6 +83,11 @@ func (p Proxy) GetCommonName() certificate.CommonName {
 	return p.CommonName
 }
 
+// GetConnectedAt returns the timestamp of when the given proxy connected to the control plane.
+func (p Proxy) GetConnectedAt() time.Time {
+	return p.connectedAt
+}
+
 // GetIP returns the IP address of the Envoy proxy connected to xDS.
 func (p Proxy) GetIP() net.Addr {
 	return p.Addr
@@ -90,6 +103,8 @@ func NewProxy(cn certificate.CommonName, ip net.Addr) *Proxy {
 	return &Proxy{
 		CommonName: cn,
 		Addr:       ip,
+
+		connectedAt: time.Now(),
 
 		announcements:      make(chan interface{}),
 		lastNonce:          make(map[TypeURI]string),
