@@ -2,6 +2,8 @@ package tests
 
 import (
 	"context"
+	"crypto/x509"
+	"google.golang.org/grpc/peer"
 
 	envoy_service_discovery_v2 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 
@@ -11,12 +13,23 @@ import (
 
 // XDSServer implements AggregatedDiscoveryService_StreamAggregatedResourcesServer
 type XDSServer struct {
-	responses []*v2.DiscoveryResponse
+	ctx         context.Context
+	responses   []*v2.DiscoveryResponse
+	requestsCh  chan v2.DiscoveryRequest
+	responsesCh chan v2.DiscoveryResponse
 }
 
 // NewFakeXDSServer returns a new XDSServer and implements AggregatedDiscoveryService_StreamAggregatedResourcesServer
-func NewFakeXDSServer() (envoy_service_discovery_v2.AggregatedDiscoveryService_StreamAggregatedResourcesServer, *[]*v2.DiscoveryResponse) {
-	server := XDSServer{}
+func NewFakeXDSServer(cert *x509.Certificate, requestsCh chan v2.DiscoveryRequest, responsesCh chan v2.DiscoveryResponse) (envoy_service_discovery_v2.AggregatedDiscoveryService_StreamAggregatedResourcesServer, *[]*v2.DiscoveryResponse) {
+	peerKey := peer.Peer{
+		Addr:     NewMockAddress("9.8.7.6"),
+		AuthInfo: NewMockAuthInfo(cert),
+	}
+	server := XDSServer{
+		ctx:         peer.NewContext(context.TODO(), &peerKey),
+		requestsCh:  requestsCh,
+		responsesCh: responsesCh,
+	}
 	return &server, &server.responses
 }
 
