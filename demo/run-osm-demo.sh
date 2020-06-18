@@ -83,6 +83,9 @@ else
     bin/osm admin delete-osm --namespace "$K8S_NAMESPACE" || true
 fi
 
+# Run pre-install checks to make sure OSM can be installed in the current kubectl context.
+bin/osm check --pre
+
 # The demo uses osm's namespace as defined by environment variables, K8S_NAMESPACE
 # to house the control plane components.
 kubectl create namespace "$K8S_NAMESPACE"
