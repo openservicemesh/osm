@@ -40,7 +40,7 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 	defer cancel()
 
 	requests := make(chan v2.DiscoveryRequest)
-	go receive(requests, &server)
+	go receive(requests, &server, proxy)
 
 	for {
 		select {

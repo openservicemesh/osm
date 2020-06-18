@@ -5,12 +5,13 @@ import (
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	xds "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
-
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/open-service-mesh/osm/pkg/envoy"
 )
 
-func receive(requests chan v2.DiscoveryRequest, server *xds.AggregatedDiscoveryService_StreamAggregatedResourcesServer) {
+func receive(requests chan v2.DiscoveryRequest, server *xds.AggregatedDiscoveryService_StreamAggregatedResourcesServer, proxy *envoy.Proxy) {
 	defer close(requests)
 	for {
 		var request *v2.DiscoveryRequest
@@ -24,9 +25,10 @@ func receive(requests chan v2.DiscoveryRequest, server *xds.AggregatedDiscoveryS
 			return
 		}
 		if request.TypeUrl != "" {
+			log.Trace().Msgf("[grpc] Received DiscoveryRequest from Envoy %s: %+v", proxy.GetCommonName(), request)
 			requests <- *request
 		} else {
-			log.Warn().Msgf("[grpc] Unknown resource: %s", request.String())
+			log.Warn().Msgf("[grpc] Unknown resource: %+v", request)
 		}
 	}
 }
