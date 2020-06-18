@@ -13,12 +13,12 @@ import (
 type XDSServer struct {
 	ctx         context.Context
 	responses   []*xds_discovery.DiscoveryResponse
-	requestsCh  chan xds_discovery.DiscoveryRequest
-	responsesCh chan xds_discovery.DiscoveryResponse
+	requestsCh  chan *xds_discovery.DiscoveryRequest
+	responsesCh chan *xds_discovery.DiscoveryResponse
 }
 
 // NewFakeXDSServer returns a new XDSServer and implements AggregatedDiscoveryService_StreamAggregatedResourcesServer
-func NewFakeXDSServer(cert *x509.Certificate, requestsCh chan xds_discovery.DiscoveryRequest, responsesCh chan xds_discovery.DiscoveryResponse) (xds_discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer, *[]*xds_discovery.DiscoveryResponse) {
+func NewFakeXDSServer(cert *x509.Certificate, requestsCh chan *xds_discovery.DiscoveryRequest, responsesCh chan *xds_discovery.DiscoveryResponse) (xds_discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer, *[]*xds_discovery.DiscoveryResponse) {
 	peerKey := peer.Peer{
 		Addr:     NewMockAddress("9.8.7.6"),
 		AuthInfo: NewMockAuthInfo(cert),
@@ -35,23 +35,20 @@ func NewFakeXDSServer(cert *x509.Certificate, requestsCh chan xds_discovery.Disc
 func (s *XDSServer) Send(r *xds_discovery.DiscoveryResponse) error {
 	s.responses = append(s.responses, r)
 	if s.responsesCh != nil {
-		s.responsesCh <- *r
+		s.responsesCh <- r
 	}
 	return nil
 }
 
 // Recv implements AggregatedDiscoveryService_StreamAggregatedResourcesServer
 func (s *XDSServer) Recv() (*xds_discovery.DiscoveryRequest, error) {
-	r := xds_discovery.DiscoveryRequest{
-		VersionInfo:   "",
-		Node:          nil,
-		ResourceNames: nil,
-		TypeUrl:       "",
-		ResponseNonce: "",
-		ErrorDetail:   nil,
+	log.Info().Msg("Recv() from Envoy invoked. Waiting on requestsCh.")
+	var r *xds_discovery.DiscoveryRequest
+	if s.requestsCh != nil {
+		r = <-s.requestsCh
 	}
-	log.Info().Msgf("Recv() got a DiscoveryRequest from requestsCh: %+v", r)
-	return &r, nil
+	log.Info().Msgf("Recv() got a DiscoveryRequest from requestsCh")
+	return r, nil
 }
 
 // SetHeader sets the header metadata. It may be called multiple times.

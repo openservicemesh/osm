@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/google/uuid"
 	"google.golang.org/grpc/peer"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,13 +14,13 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/open-service-mesh/osm/pkg/catalog"
-	"github.com/open-service-mesh/osm/pkg/certificate"
-	"github.com/open-service-mesh/osm/pkg/certificate/providers/tresor"
-	"github.com/open-service-mesh/osm/pkg/constants"
-	"github.com/open-service-mesh/osm/pkg/envoy"
-	"github.com/open-service-mesh/osm/pkg/smi"
-	"github.com/open-service-mesh/osm/pkg/tests"
+	"github.com/openservicemesh/osm/pkg/catalog"
+	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
+	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/smi"
+	"github.com/openservicemesh/osm/pkg/tests"
 )
 
 var _ = Describe("Test StreamAggregatedResources XDS implementation", func() {
@@ -70,10 +70,10 @@ var _ = Describe("Test StreamAggregatedResources XDS implementation", func() {
 	cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())
 
 	// Send DiscoveryRequests to this channel - this will make it as if an Envoy proxy sent a request to OSM
-	fromEnvoyToOSM := make(chan envoy_api_v2.DiscoveryRequest)
+	fromEnvoyToOSM := make(chan *xds_discovery.DiscoveryRequest)
 
 	// OSM responses to the Envoy proxy would end up here
-	responseCh := make(chan envoy_api_v2.DiscoveryResponse)
+	responseCh := make(chan *xds_discovery.DiscoveryResponse)
 
 	xds, actualResponses := tests.NewFakeXDSServer(cert, fromEnvoyToOSM, responseCh)
 
@@ -85,7 +85,6 @@ var _ = Describe("Test StreamAggregatedResources XDS implementation", func() {
 		catalog:     mc,
 		meshSpec:    smi.NewFakeMeshSpecClient(),
 		xdsHandlers: getHandlers(),
-		quit:        make(chan struct{}),
 	}
 
 	// Start the server!!
@@ -95,8 +94,8 @@ var _ = Describe("Test StreamAggregatedResources XDS implementation", func() {
 
 		It("handles NACK (DiscoveryRequest with an Error)", func() {
 			// Make a NACK and send it to OSM
-			nack := tests.NewDiscoveryRequestWithError(envoy.TypeSDS.String(), "aa", "failed to apply SDS config", uint64(123))
-			fromEnvoyToOSM <- *nack
+			nack := tests.NewDiscoveryRequestWithError(envoy.TypeSDS, "aa", "failed to apply SDS config", uint64(123))
+			fromEnvoyToOSM <- nack
 
 			// There were NO responses back from OSM because
 			Expect(len(*actualResponses)).To(Equal(0))
@@ -111,8 +110,8 @@ var _ = Describe("Test StreamAggregatedResources XDS implementation", func() {
 			Expect(len(mc.ListDisconnectedProxies())).To(Equal(0))
 
 			// Send a request with a new higher VersionInfo
-			req := tests.NewDiscoveryRequest(envoy.TypeSDS.String(), "yy", uint64(234))
-			fromEnvoyToOSM <- *req
+			req := tests.NewDiscoveryRequest(envoy.TypeSDS, "yy", uint64(234))
+			fromEnvoyToOSM <- req
 
 			response := <-responseCh
 
@@ -127,15 +126,10 @@ var _ = Describe("Test StreamAggregatedResources XDS implementation", func() {
 
 			// ACK version 235
 
-			req = tests.NewDiscoveryRequest(envoy.TypeSDS.String(), "xx", uint64(235))
-			fromEnvoyToOSM <- *req
+			req = tests.NewDiscoveryRequest(envoy.TypeSDS, "xx", uint64(235))
+			fromEnvoyToOSM <- req
 
 			Expect(proxy.GetLastAppliedVersion(envoy.TypeSDS)).To(Equal(uint64(234)))
-			Expect(len(*actualResponses)).To(Equal(1))
-
-			// We are done!
-			close(adsServer.quit)
-
 			Expect(len(*actualResponses)).To(Equal(1))
 		})
 

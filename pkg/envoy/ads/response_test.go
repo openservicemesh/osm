@@ -3,7 +3,6 @@ package ads
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	xds_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
