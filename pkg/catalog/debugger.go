@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/open-service-mesh/osm/pkg/envoy"
 )
 
 // ListExpectedProxies lists the Envoy proxies yet to connect and the time their XDS certificate was issued.
@@ -28,15 +29,15 @@ func (mc *MeshCatalog) ListExpectedProxies() map[certificate.CommonName]time.Tim
 }
 
 // ListConnectedProxies lists the Envoy proxies already connected and the time they first connected.
-func (mc *MeshCatalog) ListConnectedProxies() map[certificate.CommonName]time.Time {
-	proxies := make(map[certificate.CommonName]time.Time)
+func (mc *MeshCatalog) ListConnectedProxies() map[certificate.CommonName]*envoy.Proxy {
+	proxies := make(map[certificate.CommonName]*envoy.Proxy)
 	mc.connectedProxiesLock.Lock()
 	mc.disconnectedProxiesLock.Lock()
 	for cn, props := range mc.connectedProxies {
 		if _, ok := mc.disconnectedProxies[cn]; ok {
 			continue
 		}
-		proxies[cn] = props.connectedAt
+		proxies[cn] = props.proxy
 	}
 	mc.disconnectedProxiesLock.Unlock()
 	mc.connectedProxiesLock.Unlock()
