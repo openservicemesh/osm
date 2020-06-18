@@ -48,7 +48,7 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 			return nil
 
 		case discoveryRequest, ok := <-requests:
-			log.Info().Msgf("Discovery Request %s (nonce=%s; version=%s) from Envoy %s", discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, proxy.GetCommonName())
+			log.Info().Msgf("Received %s (nonce=%s; version=%s) from Envoy %s", discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, proxy.GetCommonName())
 			log.Info().Msgf("Last sent for %s nonce=%s; last sent version=%s for Envoy %s", discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, proxy.GetCommonName())
 			if !ok {
 				log.Error().Msgf("Proxy %s closed GRPC", proxy)
@@ -56,7 +56,7 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 			}
 
 			if discoveryRequest.ErrorDetail != nil {
-				log.Error().Msgf("Discovery request error from proxy %s: %s", proxy, discoveryRequest.ErrorDetail)
+				log.Error().Msgf("[NACK] Discovery request error from proxy %s: %s", proxy, discoveryRequest.ErrorDetail)
 				return errEnvoyError
 			}
 
@@ -76,7 +76,7 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 			proxy.SetLastAppliedVersion(typeURL, ackVersion)
 
 			if ackVersion > 0 && ackVersion <= proxy.GetLastSentVersion(typeURL) {
-				log.Debug().Msgf("%s Discovery Request VersionInfo (%d) <= last sent VersionInfo (%d); ACK", typeURL, ackVersion, proxy.GetLastSentVersion(typeURL))
+				log.Debug().Msgf("Request %s VersionInfo (%d) <= last sent VersionInfo (%d); ACK", typeURL, ackVersion, proxy.GetLastSentVersion(typeURL))
 				continue
 			}
 
@@ -104,6 +104,7 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 		case <-proxy.GetAnnouncementsChannel():
 			log.Info().Msgf("Change detected - update all Envoys.")
 			s.sendAllResponses(proxy, &server)
+
 		}
 	}
 }
