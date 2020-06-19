@@ -63,6 +63,6 @@ func (mc *MeshCatalog) GetIngressRoutePoliciesPerDomain(service service.Namespac
 func (mc *MeshCatalog) GetIngressWeightedCluster(svc service.NamespacedService) (service.WeightedCluster, error) {
 	return service.WeightedCluster{
 		ClusterName: service.ClusterName(svc.String()),
-		Weight:      constants.WildcardClusterWeight,
+		Weight:      constants.ClusterWeightAcceptAll,
 	}, nil
 }
