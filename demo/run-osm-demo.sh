@@ -84,7 +84,7 @@ else
 fi
 
 # Run pre-install checks to make sure OSM can be installed in the current kubectl context.
-bin/osm check --pre
+bin/osm check --pre-install --namespace "$K8S_NAMESPACE"
 
 # The demo uses osm's namespace as defined by environment variables, K8S_NAMESPACE
 # to house the control plane components.

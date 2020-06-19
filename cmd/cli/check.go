@@ -5,17 +5,22 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/open-service-mesh/osm/pkg/check"
 	"github.com/spf13/cobra"
+
+	"github.com/open-service-mesh/osm/pkg/check"
 )
 
 const checkDescription = `
-The check command checks that osm is installed and running properly.
+This command checks that osm is installed and running properly.
+
+Pre-install validation can be performed by passing the --pre-install flag. When
+enabled, the command will check that OSM can be installed and run in the
+configured namespace.
 `
 
 type checkCmd struct {
-	out io.Writer
-	pre bool
+	out        io.Writer
+	preInstall bool
 }
 
 func newCheckCmd(out io.Writer) *cobra.Command {
@@ -33,7 +38,7 @@ func newCheckCmd(out io.Writer) *cobra.Command {
 	}
 
 	f := cmd.Flags()
-	f.BoolVar(&checkCmd.pre, "pre", checkCmd.pre, "run only pre-install checks")
+	f.BoolVar(&checkCmd.preInstall, "pre-install", checkCmd.preInstall, "run only pre-install checks")
 
 	return cmd
 }
@@ -43,7 +48,7 @@ func (c *checkCmd) run() error {
 
 	var checks []check.Check
 
-	if c.pre {
+	if c.preInstall {
 		checks = check.PreinstallChecks()
 	}
 

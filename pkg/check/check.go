@@ -2,13 +2,11 @@ package check
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/open-service-mesh/osm/pkg/cli"
 	authv1 "k8s.io/api/authorization/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/version"
@@ -140,19 +138,6 @@ var (
 		},
 	}
 
-	controlPlaneNs = Check{
-		name: "control plane namespace doesn't exist",
-		run: func(c *Checker) (err error) {
-			_, err = c.k8s.CoreV1().Namespaces().Get(context.TODO(), c.namespace, metav1.GetOptions{})
-			if apierrors.IsNotFound(err) {
-				err = nil
-			} else if err == nil {
-				err = errors.New("namespace already exists")
-			}
-			return
-		},
-	}
-
 	modifyIptables = Check{
 		name: "can modify iptables",
 		run: func(c *Checker) error {
@@ -204,7 +189,6 @@ func PreinstallChecks() []Check {
 		queryK8sAPI,
 
 		k8sVersion,
-		controlPlaneNs,
 		authzCheck("create", "", "v1", "namespaces"),
 		// TODO: instead of enumerating the authz checks, render the Helm chart
 		// to figure out which resources we need to be able to install.

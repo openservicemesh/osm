@@ -8,7 +8,6 @@ import (
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
 	policyv1beta1 "k8s.io/api/policy/v1beta1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
@@ -135,14 +134,6 @@ func (f failingRESTClientGetter) ToRESTConfig() (*rest.Config, error) {
 	return nil, errors.New("ToRESTConfig error")
 }
 
-func namespace(name string) *corev1.Namespace {
-	return &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
-	}
-}
-
 type failingServerVersionGetter struct {
 	*fakediscovery.FakeDiscovery
 }
@@ -205,43 +196,6 @@ var _ = Describe("checks", func() {
 			}
 			err := k8sVersion.run(c)
 			Expect(err).To(MatchError("Kubernetes version v1.10.0 does not match supported versions ^1.15"))
-		})
-	})
-
-	Describe("controlPlaneNs", func() {
-		It("passes when the namespace doesn't exist", func() {
-			c := &Checker{
-				k8s: fake.NewSimpleClientset(),
-			}
-			err := controlPlaneNs.run(c)
-			Expect(err).NotTo(HaveOccurred())
-		})
-		It("passes when a different namespace already exists", func() {
-			c := &Checker{
-				k8s:       fake.NewSimpleClientset(namespace("not-ns")),
-				namespace: "ns",
-			}
-			err := controlPlaneNs.run(c)
-			Expect(err).NotTo(HaveOccurred())
-		})
-		It("fails when the namespace already exists", func() {
-			c := &Checker{
-				k8s:       fake.NewSimpleClientset(namespace("ns")),
-				namespace: "ns",
-			}
-			err := controlPlaneNs.run(c)
-			Expect(err).To(MatchError("namespace already exists"))
-		})
-		It("fails when some other error occurs", func() {
-			k8s := fake.NewSimpleClientset()
-			k8s.Fake.PrependReactor("get", "namespaces", func(testing.Action) (bool, runtime.Object, error) {
-				return true, nil, errors.New("error getting namespace")
-			})
-			c := &Checker{
-				k8s: k8s,
-			}
-			err := controlPlaneNs.run(c)
-			Expect(err).To(HaveOccurred())
 		})
 	})
 

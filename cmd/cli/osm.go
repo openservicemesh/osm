@@ -13,7 +13,7 @@ import (
 )
 
 var globalUsage = `osm enables you to install and manage the
-open service mesh in your Kubernetes cluster
+Open Service Mesh in your Kubernetes cluster
 
 To install and configure open service mesh, run:
 
