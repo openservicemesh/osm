@@ -26,7 +26,7 @@ import (
 var _ = Describe("Test SDS response functions", func() {
 
 	prep := func(resourceNames []string, namespace, svcName string) (certificate.Certificater, *envoy.Proxy, catalog.MeshCataloger) {
-		serviceAccount := tests.BookbuyerServiceAccountName
+		serviceAccount := tests.BookstoreServiceAccountName
 		proxyID := uuid.New().String()
 		podName := uuid.New().String()
 
@@ -169,6 +169,7 @@ var _ = Describe("Test SDS response functions", func() {
 						MatchSubjectAltNames: []*envoy_type_matcher.StringMatcher{{
 							MatchPattern: &envoy_type_matcher.StringMatcher_Exact{
 								// The Certificates Subject Common Name will look like this: "bookbuyer.default.svc.cluster.local"
+								// BookbuyerService is an inbound service that is allowed.
 								Exact: tests.BookbuyerService.GetCommonName().String(),
 							}},
 						},

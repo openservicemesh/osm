@@ -10,6 +10,7 @@ import (
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/envoy"
+	"github.com/open-service-mesh/osm/pkg/service"
 	"github.com/open-service-mesh/osm/pkg/smi"
 )
 
@@ -54,7 +55,7 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpe
 
 	// Create a local cluster for the service.
 	// The local cluster will be used for incoming traffic.
-	localClusterName := fmt.Sprintf("%s%s", proxyServiceName, envoy.LocalClusterSuffix)
+	localClusterName := getLocalClusterName(proxyServiceName)
 	localCluster, err := getServiceClusterLocal(catalog, proxyServiceName, localClusterName)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to get local cluster config for proxy %s", proxyServiceName)
@@ -80,4 +81,8 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpe
 	}
 	resp.Resources = append(resp.Resources, marshalledCluster)
 	return resp, nil
+}
+
+func getLocalClusterName(proxyServiceName service.NamespacedService) string {
+	return fmt.Sprintf("%s%s", proxyServiceName, envoy.LocalClusterSuffix)
 }
