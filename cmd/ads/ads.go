@@ -114,17 +114,9 @@ func main() {
 
 	var kubeConfig *rest.Config
 	var err error
-	if kubeConfigFile != "" {
-		kubeConfig, err = clientcmd.BuildConfigFromFlags("", kubeConfigFile)
-		if err != nil {
-			log.Fatal().Err(err).Msgf("[%s] Error fetching Kubernetes config. Ensure correctness of CLI argument 'kubeconfig=%s'", serverType, kubeConfigFile)
-		}
-	} else {
-		// creates the in-cluster config
-		kubeConfig, err = rest.InClusterConfig()
-		if err != nil {
-			log.Fatal().Err(err).Msg("Error generating Kubernetes config")
-		}
+	kubeConfig, err = clientcmd.BuildConfigFromFlags("", kubeConfigFile)
+	if err != nil {
+		log.Fatal().Err(err).Msgf("[%s] Failed to create kube config (kubeconfig=%s)", serverType, kubeConfigFile)
 	}
 
 	stop := signals.RegisterExitHandlers()
