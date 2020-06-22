@@ -37,7 +37,7 @@ func NewMeshSpecClient(kubeConfig *rest.Config, osmNamespace string, namespaceCo
 	smiTrafficTargetClientSet := smiTrafficTargetClient.NewForConfigOrDie(kubeConfig)
 	backPressureClientSet := backPressureClient.NewForConfigOrDie(kubeConfig)
 
-	client := newSMIClient(kubeClient, smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet, backpressureClientSet, osmNamespace, namespaceController, kubernetesClientName)
+	client := newSMIClient(kubeClient, smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet, backPressureClientSet, osmNamespace, namespaceController, kubernetesClientName)
 
 	err := client.run(stop)
 	if err != nil {
@@ -110,6 +110,7 @@ func newSMIClient(kubeClient *kubernetes.Clientset, smiTrafficSplitClient *smiTr
 		TrafficSplit:  smiTrafficSplitInformerFactory.Split().V1alpha2().TrafficSplits().Informer(),
 		TrafficSpec:   smiTrafficSpecInformerFactory.Specs().V1alpha2().HTTPRouteGroups().Informer(),
 		TrafficTarget: smiTrafficTargetInformerFactory.Access().V1alpha1().TrafficTargets().Informer(),
+		BackPressure:  backPressureInformerFactory.Osmbackpressureconfig().V1().OSMBackpressureConfigs().Informer(),
 	}
 
 	cacheCollection := CacheCollection{
@@ -117,6 +118,7 @@ func newSMIClient(kubeClient *kubernetes.Clientset, smiTrafficSplitClient *smiTr
 		TrafficSplit:  informerCollection.TrafficSplit.GetStore(),
 		TrafficSpec:   informerCollection.TrafficSpec.GetStore(),
 		TrafficTarget: informerCollection.TrafficTarget.GetStore(),
+		BackPressure:  informerCollection.BackPressure.GetStore(),
 	}
 
 	client := Client{
@@ -137,6 +139,7 @@ func newSMIClient(kubeClient *kubernetes.Clientset, smiTrafficSplitClient *smiTr
 	informerCollection.TrafficSplit.AddEventHandler(k8s.GetKubernetesEventHandlers("TrafficSplit", "SMI", client.announcements, shouldObserve))
 	informerCollection.TrafficSpec.AddEventHandler(k8s.GetKubernetesEventHandlers("TrafficSpec", "SMI", client.announcements, shouldObserve))
 	informerCollection.TrafficTarget.AddEventHandler(k8s.GetKubernetesEventHandlers("TrafficTarget", "SMI", client.announcements, shouldObserve))
+	informerCollection.BackPressure.AddEventHandler(k8s.GetKubernetesEventHandlers("BackPressure", "SMI", client.announcements, shouldObserve))
 
 	return &client
 }
@@ -191,7 +194,7 @@ func (c *Client) ListTrafficSplitServices() []service.WeightedService {
 			// The TrafficSplit SMI Spec does not allow providing a namespace for the backends,
 			// so we assume that the top level namespace for the TrafficSplit is the namespace
 			// the backends belong to.
-			namespacedServiceName := service.NamespacedService{
+			namespacedServiceName := service.NamespacedService {
 				Namespace: split.Namespace,
 				Service:   backend.Service,
 			}
@@ -213,7 +216,7 @@ func (c *Client) ListServiceAccounts() []service.NamespacedServiceAccount {
 				// Doesn't belong to namespaces we are observing
 				continue
 			}
-			namespacedServiceAccount := service.NamespacedServiceAccount{
+			namespacedServiceAccount := service.NamespacedServiceAccount {
 				Namespace:      sources.Namespace,
 				ServiceAccount: sources.Name,
 			}
