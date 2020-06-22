@@ -16,7 +16,6 @@ import (
 )
 
 const (
-	weightAcceptAll   uint32        = 100
 	connectionTimeout time.Duration = 1 * time.Second
 )
 
@@ -60,7 +59,7 @@ func getServiceClusterLocal(catalog catalog.MeshCataloger, proxyServiceName serv
 					},
 				},
 				LoadBalancingWeight: &wrappers.UInt32Value{
-					Value: weightAcceptAll, // Local cluster accepts all traffic
+					Value: constants.ClusterWeightAcceptAll, // Local cluster accepts all traffic
 				},
 			}},
 		}
@@ -92,7 +91,7 @@ func getPrometheusCluster(clusterName string) xds.Cluster {
 							},
 						},
 						LoadBalancingWeight: &wrappers.UInt32Value{
-							Value: weightAcceptAll,
+							Value: constants.ClusterWeightAcceptAll,
 						},
 					}},
 				},
