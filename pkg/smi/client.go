@@ -13,8 +13,8 @@ import (
 	smiTrafficSpecInformers "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/specs/informers/externalversions"
 	smiTrafficSplitClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/clientset/versioned"
 	smiTrafficSplitInformers "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/informers/externalversions"
-	backPressureClient "experimental/pkg/client/clientset/versioned"
-    backPressureInformer "experimental/pkg/client/informers/externalversions"
+	backPressureClient "github.com/open-service-mesh/osm/experimental/pkg/client/clientset/versioned"
+    backPressureInformers "github.com/open-service-mesh/osm/experimental/pkg/client/informers/externalversions"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -35,8 +35,9 @@ func NewMeshSpecClient(kubeConfig *rest.Config, osmNamespace string, namespaceCo
 	smiTrafficSplitClientSet := smiTrafficSplitClient.NewForConfigOrDie(kubeConfig)
 	smiTrafficSpecClientSet := smiTrafficSpecClient.NewForConfigOrDie(kubeConfig)
 	smiTrafficTargetClientSet := smiTrafficTargetClient.NewForConfigOrDie(kubeConfig)
+	backPressureClientSet := backPressureClient.NewForConfigOrDie(kubeConfig)
 
-	client := newSMIClient(kubeClient, smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet, osmNamespace, namespaceController, kubernetesClientName)
+	client := newSMIClient(kubeClient, smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet, backpressureClientSet, osmNamespace, namespaceController, kubernetesClientName)
 
 	err := client.run(stop)
 	if err != nil {
@@ -97,11 +98,12 @@ func (c *Client) GetAnnouncementsChannel() <-chan interface{} {
 }
 
 // newClient creates a provider based on a Kubernetes client instance.
-func newSMIClient(kubeClient *kubernetes.Clientset, smiTrafficSplitClient *smiTrafficSplitClient.Clientset, smiTrafficSpecClient *smiTrafficSpecClient.Clientset, smiTrafficTargetClient *smiTrafficTargetClient.Clientset, osmNamespace string, namespaceController namespace.Controller, providerIdent string) *Client {
+func newSMIClient(kubeClient *kubernetes.Clientset, smiTrafficSplitClient *smiTrafficSplitClient.Clientset, smiTrafficSpecClient *smiTrafficSpecClient.Clientset, smiTrafficTargetClient *smiTrafficTargetClient.Clientset, backPressureClient *backPressureClient.Clientset, osmNamespace string, namespaceController namespace.Controller, providerIdent string) *Client {
 	informerFactory := informers.NewSharedInformerFactory(kubeClient, k8s.DefaultKubeEventResyncInterval)
 	smiTrafficSplitInformerFactory := smiTrafficSplitInformers.NewSharedInformerFactory(smiTrafficSplitClient, k8s.DefaultKubeEventResyncInterval)
 	smiTrafficSpecInformerFactory := smiTrafficSpecInformers.NewSharedInformerFactory(smiTrafficSpecClient, k8s.DefaultKubeEventResyncInterval)
 	smiTrafficTargetInformerFactory := smiTrafficTargetInformers.NewSharedInformerFactory(smiTrafficTargetClient, k8s.DefaultKubeEventResyncInterval)
+	backPressureInformerFactory := backPressureInformers.NewSharedInformerFactoryWithOptions(backPressureClient, k8s.DefaultKubeEventResyncInterval)
 
 	informerCollection := InformerCollection{
 		Services:      informerFactory.Core().V1().Services().Informer(),
