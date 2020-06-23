@@ -19,7 +19,11 @@ spec:
               type: string
             namespaces:
               description: "Namespacess to observe"
-              type: list
+              type: array
+              items:
+                type: string
             ingresses:
               description: "Ingresses to observe"
-              type: list
+              type: array
+              items:
+                type: string

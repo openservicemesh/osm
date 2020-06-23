@@ -90,6 +90,8 @@ fi
 # to house the control plane components.
 kubectl create namespace "$K8S_NAMESPACE"
 
+./demo/deploy-osmconfig.sh
+
 echo "Certificate Manager in use: $CERT_MANAGER"
 if [ "$CERT_MANAGER" = "vault" ]; then
     echo "Installing Hashi Vault"

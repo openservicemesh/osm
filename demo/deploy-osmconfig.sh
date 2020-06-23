@@ -5,6 +5,8 @@ set -aueo pipefail
 # shellcheck disable=SC1091
 source .env
 
+kubectl delete crds osmconfigs.osm.k8s.io || true
+
 kubectl apply -f ./crd/OSMConfig.yaml || true
 
 cat <<EOF | kubectl apply -f -
@@ -16,10 +18,10 @@ metadata:
 spec:
   logVerbosity: trace
   namespaces:
-    - $BOOKWAREHOUSE_NAMESPACE
-    - $BOOKBUYER_NAMESPACE
-    - $BOOKSTORE_NAMESPACE
-    - $BOOKTHIEF_NAMESPACE
+    - "$BOOKWAREHOUSE_NAMESPACE"
+    - "$BOOKBUYER_NAMESPACE"
+    - "$BOOKSTORE_NAMESPACE"
+    - "$BOOKTHIEF_NAMESPACE"
   ingresses:
-    - something
+    - "something"
 EOF

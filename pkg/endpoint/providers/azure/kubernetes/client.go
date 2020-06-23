@@ -43,13 +43,13 @@ func newClient(kubeClient *kubernetes.Clientset, azureResourceClient *osmClient.
 	}
 
 	client := Client{
-		providerIdent:       kubernetesClientName,
-		kubeClient:          kubeClient,
-		informers:           &informerCollection,
-		caches:              &cacheCollection,
-		cacheSynced:         make(chan interface{}),
-		announcements:       make(chan interface{}),
-		configerator: configerator,
+		providerIdent: kubernetesClientName,
+		kubeClient:    kubeClient,
+		informers:     &informerCollection,
+		caches:        &cacheCollection,
+		cacheSynced:   make(chan interface{}),
+		announcements: make(chan interface{}),
+		configerator:  configerator,
 	}
 
 	shouldObserve := func(obj interface{}) bool {

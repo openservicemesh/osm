@@ -25,10 +25,12 @@ type Config struct {
 
 // Client is the k8s client struct for the OSMConfig CRD.
 type Client struct {
-	informer      cache.SharedIndexInformer
-	cache         cache.Store
-	cacheSynced   chan interface{}
-	announcements chan interface{}
+	configCRDName      string
+	configCRDNamespace string
+	informer           cache.SharedIndexInformer
+	cache              cache.Store
+	cacheSynced        chan interface{}
+	announcements      chan interface{}
 }
 
 // Configurator is the controller interface for K8s namespaces

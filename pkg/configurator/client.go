@@ -18,15 +18,18 @@ var (
 
 // NewConfigurator implements namespace.Configurator and creates the Kubernetes client to manage namespaces.
 func NewConfigurator(kubeConfig *rest.Config, stop chan struct{}, configCRDNamespace, configCRDName string) Configurator {
+	log.Info().Msgf("Watching for OSM Config CRD with name=%s in namespace=%s", configCRDName, configCRDNamespace)
 	kubeClient := versioned.NewForConfigOrDie(kubeConfig)
 	informerFactory := externalversions.NewSharedInformerFactory(kubeClient, resyncPeriod)
 	informer := informerFactory.Osm().V1().OSMConfigs().Informer()
 
 	client := Client{
-		informer:      informer,
-		cache:         informer.GetStore(),
-		cacheSynced:   make(chan interface{}),
-		announcements: make(chan interface{}),
+		configCRDName:      configCRDName,
+		configCRDNamespace: configCRDNamespace,
+		informer:           informer,
+		cache:              informer.GetStore(),
+		cacheSynced:        make(chan interface{}),
+		announcements:      make(chan interface{}),
 	}
 
 	if err := client.run(stop); err != nil {
@@ -61,10 +64,4 @@ func (c *Client) run(stop <-chan struct{}) error {
 
 	log.Debug().Msgf("Cache sync finished for OSM Configurator informer")
 	return nil
-}
-
-// IsMonitoredNamespace returns a boolean indicating if the namespace is among the list of monitored namespaces
-func (c Client) IsMonitoredNamespace(namespace string) bool {
-	_, exists, _ := c.cache.GetByKey(namespace)
-	return exists
 }
