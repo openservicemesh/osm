@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"github.com/open-service-mesh/osm/pkg/configurator"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -22,8 +21,8 @@ import (
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/constants"
-	"github.com/open-service-mesh/osm/pkg/namespace"
 )
 
 var (
@@ -42,7 +41,7 @@ const (
 )
 
 // NewWebhook starts a new web server handling requests from the injector MutatingWebhookConfiguration
-func NewWebhook(config Config, kubeConfig *rest.Config, certManager certificate.Manager, meshCatalog catalog.MeshCataloger, namespaceController namespace.Controller, osmID, osmNamespace, webhookName string, stop <-chan struct{}, configerator configurator.Configurator) error {
+func NewWebhook(config Config, kubeConfig *rest.Config, certManager certificate.Manager, meshCatalog catalog.MeshCataloger, configerator configurator.Configurator, osmID, osmNamespace, webhookName string, stop <-chan struct{}) error {
 	cn := certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.OSMControllerName, osmNamespace))
 	validityPeriod := constants.XDSCertificateValidityPeriod
 	cert, err := certManager.IssueCertificate(cn, &validityPeriod)
@@ -52,13 +51,13 @@ func NewWebhook(config Config, kubeConfig *rest.Config, certManager certificate.
 	}
 
 	wh := webhook{
-		config:              config,
-		kubeClient:          kubernetes.NewForConfigOrDie(kubeConfig),
-		certManager:         certManager,
-		meshCatalog:         meshCatalog,
-		namespaceController: namespaceController,
-		osmNamespace:        osmNamespace,
-		cert:                cert,
+		config:       config,
+		kubeClient:   kubernetes.NewForConfigOrDie(kubeConfig),
+		certManager:  certManager,
+		meshCatalog:  meshCatalog,
+		configerator: configerator,
+		osmNamespace: osmNamespace,
+		cert:         cert,
 	}
 
 	go wh.run(stop)
@@ -221,7 +220,7 @@ func (wh *webhook) isNamespaceAllowed(namespace string) bool {
 		}
 	}
 	// Skip namespaces not being observed
-	return wh.namespaceController.IsMonitoredNamespace(namespace)
+	return wh.configerator.IsMonitoredNamespace(namespace)
 }
 
 // mustInject determines whether the sidecar must be injected.

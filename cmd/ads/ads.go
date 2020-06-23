@@ -30,7 +30,6 @@ import (
 	"github.com/open-service-mesh/osm/pkg/injector"
 	"github.com/open-service-mesh/osm/pkg/logger"
 	"github.com/open-service-mesh/osm/pkg/metricsstore"
-	"github.com/open-service-mesh/osm/pkg/namespace"
 	"github.com/open-service-mesh/osm/pkg/signals"
 	"github.com/open-service-mesh/osm/pkg/smi"
 	"github.com/open-service-mesh/osm/pkg/utils"
@@ -132,8 +131,9 @@ func main() {
 
 	stop := signals.RegisterExitHandlers()
 
-	namespaceController := namespace.NewNamespaceController(kubeConfig, osmID, stop)
-	meshSpec := smi.NewMeshSpecClient(kubeConfig, osmNamespace, namespaceController, stop)
+	configerator := configurator.NewConfigurator(kubeConfig, stop, osmNamespace, osmConfigName)
+
+	meshSpec := smi.NewMeshSpecClient(kubeConfig, osmNamespace, configerator, stop)
 
 	certManager, certDebugger := certManagers[certificateManagerKind(*certManagerKind)](kubeConfig, enableDebugServer)
 
@@ -149,18 +149,16 @@ func main() {
 	}
 
 	endpointsProviders := []endpoint.Provider{
-		kube.NewProvider(kubeConfig, namespaceController, stop, constants.KubeProviderName),
+		kube.NewProvider(kubeConfig, configerator, stop, constants.KubeProviderName),
 	}
 
 	if azureAuthFile != "" {
-		azureResourceClient := azureResource.NewClient(kubeConfig, namespaceController, stop)
+		azureResourceClient := azureResource.NewClient(kubeConfig, configerator, stop)
 		endpointsProviders = append(endpointsProviders, azure.NewProvider(
 			*azureSubscriptionID, azureAuthFile, stop, meshSpec, azureResourceClient, constants.AzureProviderName))
 	}
 
-	configerator := configurator.NewConfigurator(kubeConfig, stop, osmNamespace, osmConfigName)
-
-	ingressClient, err := ingress.NewIngressClient(kubeConfig, namespaceController, stop)
+	ingressClient, err := ingress.NewIngressClient(kubeConfig, configerator, stop)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to initialize ingress client")
 	}
@@ -175,7 +173,7 @@ func main() {
 		endpointsProviders...)
 
 	// Create the sidecar-injector webhook
-	if err := injector.NewWebhook(injectorConfig, kubeConfig, certManager, meshCatalog, namespaceController, osmID, osmNamespace, webhookName, stop, configerator); err != nil {
+	if err := injector.NewWebhook(injectorConfig, kubeConfig, certManager, meshCatalog, configerator, osmID, osmNamespace, webhookName, stop); err != nil {
 		log.Fatal().Err(err).Msg("Error creating mutating webhook")
 	}
 

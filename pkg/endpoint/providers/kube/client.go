@@ -1,6 +1,7 @@
 package kube
 
 import (
+	"github.com/open-service-mesh/osm/pkg/configurator"
 	"net"
 	"reflect"
 	"strings"
@@ -17,14 +18,12 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/open-service-mesh/osm/pkg/endpoint"
-
-	"github.com/open-service-mesh/osm/pkg/namespace"
 )
 
 const namespaceSelectorLabel = "app"
 
 // NewProvider implements mesh.EndpointsProvider, which creates a new Kubernetes cluster/compute provider.
-func NewProvider(kubeConfig *rest.Config, namespaceController namespace.Controller, stop chan struct{}, providerIdent string) *Client {
+func NewProvider(kubeConfig *rest.Config, configerator configurator.Configurator, stop chan struct{}, providerIdent string) *Client {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 	informerFactory := informers.NewSharedInformerFactory(kubeClient, k8s.DefaultKubeEventResyncInterval)
 
@@ -39,18 +38,18 @@ func NewProvider(kubeConfig *rest.Config, namespaceController namespace.Controll
 	}
 
 	client := Client{
-		providerIdent:       providerIdent,
-		kubeClient:          kubeClient,
-		informers:           &informerCollection,
-		caches:              &cacheCollection,
-		cacheSynced:         make(chan interface{}),
-		announcements:       make(chan interface{}),
-		namespaceController: namespaceController,
+		providerIdent: providerIdent,
+		kubeClient:    kubeClient,
+		informers:     &informerCollection,
+		caches:        &cacheCollection,
+		cacheSynced:   make(chan interface{}),
+		announcements: make(chan interface{}),
+		configerator:  configerator,
 	}
 
 	shouldObserve := func(obj interface{}) bool {
 		ns := reflect.ValueOf(obj).Elem().FieldByName("ObjectMeta").FieldByName("Namespace").String()
-		return namespaceController.IsMonitoredNamespace(ns)
+		return configerator.IsMonitoredNamespace(ns)
 	}
 	informerCollection.Endpoints.AddEventHandler(k8s.GetKubernetesEventHandlers("Endpoints", "Kubernetes", client.announcements, shouldObserve))
 	informerCollection.Deployments.AddEventHandler(k8s.GetKubernetesEventHandlers("Deployments", "Kubernetes", client.announcements, shouldObserve))
@@ -84,7 +83,7 @@ func (c Client) ListEndpointsForService(svc service.Name) []endpoint.Endpoint {
 	}
 
 	if kubernetesEndpoints := endpointsInterface.(*corev1.Endpoints); kubernetesEndpoints != nil {
-		if !c.namespaceController.IsMonitoredNamespace(kubernetesEndpoints.Namespace) {
+		if !c.configerator.IsMonitoredNamespace(kubernetesEndpoints.Namespace) {
 			// Doesn't belong to namespaces we are observing
 			return endpoints
 		}
@@ -117,7 +116,7 @@ func (c Client) GetServiceForServiceAccount(svcAccount service.NamespacedService
 
 	for _, deployments := range deploymentsInterface {
 		if kubernetesDeployments := deployments.(*appsv1.Deployment); kubernetesDeployments != nil {
-			if !c.namespaceController.IsMonitoredNamespace(kubernetesDeployments.Namespace) {
+			if !c.configerator.IsMonitoredNamespace(kubernetesDeployments.Namespace) {
 				// Doesn't belong to namespaces we are observing
 				continue
 			}

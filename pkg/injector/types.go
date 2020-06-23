@@ -1,12 +1,12 @@
 package injector
 
 import (
+	"github.com/open-service-mesh/osm/pkg/configurator"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/certificate"
 	"github.com/open-service-mesh/osm/pkg/logger"
-	"github.com/open-service-mesh/osm/pkg/namespace"
 )
 
 const (
@@ -20,13 +20,13 @@ var log = logger.New("sidecar-injector")
 
 // webhook is the type used to represent the webhook for sidecar injection
 type webhook struct {
-	config              Config
-	kubeClient          kubernetes.Interface
-	certManager         certificate.Manager
-	meshCatalog         catalog.MeshCataloger
-	namespaceController namespace.Controller
-	osmNamespace        string
-	cert                certificate.Certificater
+	config       Config
+	kubeClient   kubernetes.Interface
+	certManager  certificate.Manager
+	meshCatalog  catalog.MeshCataloger
+	configerator configurator.Configurator
+	osmNamespace string
+	cert         certificate.Certificater
 }
 
 // Config is the type used to represent the config options for the sidecar injection

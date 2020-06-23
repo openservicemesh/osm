@@ -10,30 +10,30 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/constants"
 	k8s "github.com/open-service-mesh/osm/pkg/kubernetes"
-	"github.com/open-service-mesh/osm/pkg/namespace"
 	"github.com/open-service-mesh/osm/pkg/service"
 )
 
 // NewIngressClient implements ingress.Monitor and creates the Kubernetes client to monitor Ingress resources.
-func NewIngressClient(kubeConfig *rest.Config, namespaceController namespace.Controller, stop chan struct{}) (Monitor, error) {
+func NewIngressClient(kubeConfig *rest.Config, configerator configurator.Configurator, stop chan struct{}) (Monitor, error) {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 
 	informerFactory := informers.NewSharedInformerFactory(kubeClient, k8s.DefaultKubeEventResyncInterval)
 	informer := informerFactory.Extensions().V1beta1().Ingresses().Informer()
 
 	client := Client{
-		informer:            informer,
-		cache:               informer.GetStore(),
-		cacheSynced:         make(chan interface{}),
-		announcements:       make(chan interface{}),
-		namespaceController: namespaceController,
+		informer:      informer,
+		cache:         informer.GetStore(),
+		cacheSynced:   make(chan interface{}),
+		announcements: make(chan interface{}),
+		configerator:  configerator,
 	}
 
 	shouldObserve := func(obj interface{}) bool {
 		ns := reflect.ValueOf(obj).Elem().FieldByName("ObjectMeta").FieldByName("Namespace").String()
-		return namespaceController.IsMonitoredNamespace(ns)
+		return configerator.IsMonitoredNamespace(ns)
 	}
 	informer.AddEventHandler(k8s.GetKubernetesEventHandlers("Ingress", "Kubernetes", client.announcements, shouldObserve))
 
@@ -81,7 +81,7 @@ func (c Client) GetIngressResources(nsService service.NamespacedService) ([]*ext
 			continue
 		}
 		// TODO(check if needed): Check if the ingress resource belongs to the overall list of monitored namespaces
-		if !c.namespaceController.IsMonitoredNamespace(ingress.Namespace) {
+		if !c.configerator.IsMonitoredNamespace(ingress.Namespace) {
 			continue
 		}
 		// Check if the ingress resource belongs to the same namespace as the service

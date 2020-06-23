@@ -1,6 +1,7 @@
 package smi
 
 import (
+	"github.com/open-service-mesh/osm/pkg/configurator"
 	"reflect"
 	"strings"
 
@@ -20,7 +21,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	k8s "github.com/open-service-mesh/osm/pkg/kubernetes"
-	"github.com/open-service-mesh/osm/pkg/namespace"
 	"github.com/open-service-mesh/osm/pkg/service"
 )
 
@@ -28,13 +28,13 @@ import (
 const kubernetesClientName = "MeshSpec"
 
 // NewMeshSpecClient implements mesh.MeshSpec and creates the Kubernetes client, which retrieves SMI specific CRDs.
-func NewMeshSpecClient(kubeConfig *rest.Config, osmNamespace string, namespaceController namespace.Controller, stop chan struct{}) MeshSpec {
+func NewMeshSpecClient(kubeConfig *rest.Config, osmNamespace string, configerator configurator.Configurator, stop chan struct{}) MeshSpec {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 	smiTrafficSplitClientSet := smiTrafficSplitClient.NewForConfigOrDie(kubeConfig)
 	smiTrafficSpecClientSet := smiTrafficSpecClient.NewForConfigOrDie(kubeConfig)
 	smiTrafficTargetClientSet := smiTrafficTargetClient.NewForConfigOrDie(kubeConfig)
 
-	client := newSMIClient(kubeClient, smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet, osmNamespace, namespaceController, kubernetesClientName)
+	client := newSMIClient(kubeClient, smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet, osmNamespace, configerator, kubernetesClientName)
 
 	err := client.run(stop)
 	if err != nil {
@@ -95,7 +95,7 @@ func (c *Client) GetAnnouncementsChannel() <-chan interface{} {
 }
 
 // newClient creates a provider based on a Kubernetes client instance.
-func newSMIClient(kubeClient *kubernetes.Clientset, smiTrafficSplitClient *smiTrafficSplitClient.Clientset, smiTrafficSpecClient *smiTrafficSpecClient.Clientset, smiTrafficTargetClient *smiTrafficTargetClient.Clientset, osmNamespace string, namespaceController namespace.Controller, providerIdent string) *Client {
+func newSMIClient(kubeClient *kubernetes.Clientset, smiTrafficSplitClient *smiTrafficSplitClient.Clientset, smiTrafficSpecClient *smiTrafficSpecClient.Clientset, smiTrafficTargetClient *smiTrafficTargetClient.Clientset, osmNamespace string, configerator configurator.Configurator, providerIdent string) *Client {
 	informerFactory := informers.NewSharedInformerFactory(kubeClient, k8s.DefaultKubeEventResyncInterval)
 	smiTrafficSplitInformerFactory := smiTrafficSplitInformers.NewSharedInformerFactory(smiTrafficSplitClient, k8s.DefaultKubeEventResyncInterval)
 	smiTrafficSpecInformerFactory := smiTrafficSpecInformers.NewSharedInformerFactory(smiTrafficSpecClient, k8s.DefaultKubeEventResyncInterval)
@@ -116,18 +116,18 @@ func newSMIClient(kubeClient *kubernetes.Clientset, smiTrafficSplitClient *smiTr
 	}
 
 	client := Client{
-		providerIdent:       providerIdent,
-		informers:           &informerCollection,
-		caches:              &cacheCollection,
-		cacheSynced:         make(chan interface{}),
-		announcements:       make(chan interface{}),
-		osmNamespace:        osmNamespace,
-		namespaceController: namespaceController,
+		providerIdent: providerIdent,
+		informers:     &informerCollection,
+		caches:        &cacheCollection,
+		cacheSynced:   make(chan interface{}),
+		announcements: make(chan interface{}),
+		osmNamespace:  osmNamespace,
+		configerator:  configerator,
 	}
 
 	shouldObserve := func(obj interface{}) bool {
 		ns := reflect.ValueOf(obj).Elem().FieldByName("ObjectMeta").FieldByName("Namespace").String()
-		return namespaceController.IsMonitoredNamespace(ns)
+		return configerator.IsMonitoredNamespace(ns)
 	}
 	informerCollection.Services.AddEventHandler(k8s.GetKubernetesEventHandlers("Services", "SMI", client.announcements, shouldObserve))
 	informerCollection.TrafficSplit.AddEventHandler(k8s.GetKubernetesEventHandlers("TrafficSplit", "SMI", client.announcements, shouldObserve))
@@ -142,7 +142,7 @@ func (c *Client) ListTrafficSplits() []*split.TrafficSplit {
 	var trafficSplits []*split.TrafficSplit
 	for _, splitIface := range c.caches.TrafficSplit.List() {
 		split := splitIface.(*split.TrafficSplit)
-		if !c.namespaceController.IsMonitoredNamespace(split.Namespace) {
+		if !c.configerator.IsMonitoredNamespace(split.Namespace) {
 			continue
 		}
 		trafficSplits = append(trafficSplits, split)
@@ -155,7 +155,7 @@ func (c *Client) ListHTTPTrafficSpecs() []*spec.HTTPRouteGroup {
 	var httpTrafficSpec []*spec.HTTPRouteGroup
 	for _, specIface := range c.caches.TrafficSpec.List() {
 		spec := specIface.(*spec.HTTPRouteGroup)
-		if !c.namespaceController.IsMonitoredNamespace(spec.Namespace) {
+		if !c.configerator.IsMonitoredNamespace(spec.Namespace) {
 			continue
 		}
 		httpTrafficSpec = append(httpTrafficSpec, spec)
@@ -168,7 +168,7 @@ func (c *Client) ListTrafficTargets() []*target.TrafficTarget {
 	var trafficTarget []*target.TrafficTarget
 	for _, targetIface := range c.caches.TrafficTarget.List() {
 		target := targetIface.(*target.TrafficTarget)
-		if !c.namespaceController.IsMonitoredNamespace(target.Namespace) {
+		if !c.configerator.IsMonitoredNamespace(target.Namespace) {
 			continue
 		}
 		trafficTarget = append(trafficTarget, target)
@@ -205,7 +205,7 @@ func (c *Client) ListServiceAccounts() []service.NamespacedServiceAccount {
 		target := targetIface.(*target.TrafficTarget)
 		for _, sources := range target.Sources {
 			// Only monitor sources in namespaces OSM is observing
-			if !c.namespaceController.IsMonitoredNamespace(sources.Namespace) {
+			if !c.configerator.IsMonitoredNamespace(sources.Namespace) {
 				// Doesn't belong to namespaces we are observing
 				continue
 			}
@@ -218,7 +218,7 @@ func (c *Client) ListServiceAccounts() []service.NamespacedServiceAccount {
 
 		destination := target.Destination
 		// Only monitor destination in namespaces OSM is observing
-		if !c.namespaceController.IsMonitoredNamespace(destination.Namespace) {
+		if !c.configerator.IsMonitoredNamespace(destination.Namespace) {
 			// Doesn't belong to namespaces we are observing
 			continue
 		}
@@ -250,7 +250,7 @@ func (c Client) ListServices() ([]*corev1.Service, error) {
 			log.Error().Err(errInvalidServiceObjectType).Msg("Failed type assertion for Service in Services cache")
 			continue
 		}
-		if !c.namespaceController.IsMonitoredNamespace(svc.Namespace) {
+		if !c.configerator.IsMonitoredNamespace(svc.Namespace) {
 			continue
 		}
 		services = append(services, svc)
