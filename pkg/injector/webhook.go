@@ -236,9 +236,9 @@ func (wh *webhook) isNamespaceAllowed(namespace string) bool {
 // The function returns an error when:
 // 1. The value of the POD level sidecar-injection annotation is invalid
 func (wh *webhook) mustInject(pod *corev1.Pod, namespace string) (bool, error) {
-	// If the request belongs to a namespace we are not monitoring, skip it
+	// If the request from a namespace we are not monitoring, skip it
 	if !wh.isNamespaceAllowed(namespace) {
-		log.Info().Msgf("Request belongs to namespace=%s not in the list of monitored namespaces", namespace)
+		log.Info().Msgf("Request from namespace=%s not in the list of monitored namespaces", namespace)
 		return false, nil
 	}
 
