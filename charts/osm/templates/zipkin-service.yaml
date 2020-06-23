@@ -9,6 +9,6 @@ spec:
     app: zipkin
   ports:
   - protocol: TCP
-    port: {{.Values.zipkin.port}}
-    targetPort: {{.Values.zipkin.port}}
+    port: {{.Values.OpenServiceMesh.grafana.port}}
+    targetPort: {{.Values.OpenServiceMesh.grafana.port}}
   type: ClusterIP
