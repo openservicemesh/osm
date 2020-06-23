@@ -40,6 +40,10 @@ rules:
   - apiGroups: ["specs.smi-spec.io"]
     resources: ["httproutegroups"]
     verbs: ["list", "get", "watch"]
+  - apiGroups: ["osm.k8s.io"]
+    resources: ["osmconfigs"]
+    verbs: ["list", "get", "watch"]
+
 ---
 apiVersion: v1
 kind: ServiceAccount
