@@ -10,9 +10,10 @@ import (
 // GetHandlers implements DebugServer interface and returns the rist of URLs and the handling functions.
 func (ds debugServer) GetHandlers() map[string]http.Handler {
 	handlers := map[string]http.Handler{
-		"/debug/certs": ds.getCertHandler(),
-		"/debug/xds":   ds.getXDSHandler(),
-		"/debug/proxy": ds.getProxies(),
+		"/debug/certs":    ds.getCertHandler(),
+		"/debug/xds":      ds.getXDSHandler(),
+		"/debug/proxy":    ds.getProxies(),
+		"/debug/policies": ds.getSMIPoliciesHandler(),
 	}
 
 	// provides an index of the available /debug endpoints
