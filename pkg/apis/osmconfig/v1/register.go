@@ -13,7 +13,7 @@ import (
 var (
 	// SchemeGroupVersion is group version used to register these objects
 	SchemeGroupVersion = schema.GroupVersion{
-		Group:   "osm.osm.k8s.io",
+		Group:   "osm.k8s.io",
 		Version: "v1",
 	}
 

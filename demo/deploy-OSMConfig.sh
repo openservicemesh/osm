@@ -5,7 +5,8 @@ set -aueo pipefail
 # shellcheck disable=SC1091
 source .env
 
-echo -e "Deploy $SVC demo service"
+kubectl apply -f ./crd/OSMConfig.yaml || true
+
 cat <<EOF | kubectl apply -f -
 apiVersion: osm.k8s.io/v1
 kind: OSMConfig
