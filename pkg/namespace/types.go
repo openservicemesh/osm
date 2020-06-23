@@ -18,7 +18,7 @@ type Client struct {
 	announcements chan interface{}
 }
 
-// Controller is the controller interface for K8s namespaces
+// Configurator is the controller interface for K8s namespaces
 type Controller interface {
 	IsMonitoredNamespace(string) bool
 }

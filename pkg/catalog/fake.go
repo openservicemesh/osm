@@ -23,5 +23,5 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface) *MeshCatalog {
 	endpointProviders := []endpoint.Provider{
 		kube.NewFakeProvider(),
 	}
-	return NewMeshCatalog(kubeClient, meshSpec, certManager, ingressMonitor, stop, endpointProviders...)
+	return NewMeshCatalog(kubeClient, meshSpec, certManager, ingressMonitor, stop, nil, endpointProviders...)
 }

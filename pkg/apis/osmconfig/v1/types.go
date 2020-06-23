@@ -4,10 +4,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// OSMConfig is an object with configurtanio key/values for the OSM control plane.
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// OSMConfig is an object with configurtanio key/values for the OSM control plane.
 type OSMConfig struct {
 	metav1.TypeMeta `json:",inline"`
 

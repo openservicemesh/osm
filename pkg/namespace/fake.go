@@ -1,6 +1,6 @@
 package namespace
 
-// FakeNamespaceController is a fake namespace.Controller used for testing
+// FakeNamespaceController is a fake namespace.Configurator used for testing
 type FakeNamespaceController struct {
 	monitoredNamespaces []string
 	Controller

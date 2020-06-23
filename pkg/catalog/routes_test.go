@@ -26,7 +26,7 @@ var _ = Describe("Catalog tests", func() {
 	kubeClient := testclient.NewSimpleClientset()
 	cache := make(map[certificate.CommonName]certificate.Certificater)
 	certManager := tresor.NewFakeCertManager(&cache, 1*time.Hour)
-	meshCatalog := NewMeshCatalog(kubeClient, smi.NewFakeMeshSpecClient(), certManager, ingress.NewFakeIngressMonitor(), make(<-chan struct{}), endpointProviders...)
+	meshCatalog := NewMeshCatalog(kubeClient, smi.NewFakeMeshSpecClient(), certManager, ingress.NewFakeIngressMonitor(), make(<-chan struct{}), nil, endpointProviders...)
 
 	Context("Test ListTrafficPolicies", func() {
 		It("lists traffic policies", func() {

@@ -22,7 +22,7 @@ var (
 	resyncPeriod = 30 * time.Second
 )
 
-// NewNamespaceController implements namespace.Controller and creates the Kubernetes client to manage namespaces.
+// NewNamespaceController implements namespace.Configurator and creates the Kubernetes client to manage namespaces.
 func NewNamespaceController(kubeConfig *rest.Config, osmID string, stop chan struct{}) Controller {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 

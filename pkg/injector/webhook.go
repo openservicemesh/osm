@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"github.com/open-service-mesh/osm/pkg/configurator"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -41,7 +42,7 @@ const (
 )
 
 // NewWebhook starts a new web server handling requests from the injector MutatingWebhookConfiguration
-func NewWebhook(config Config, kubeConfig *rest.Config, certManager certificate.Manager, meshCatalog catalog.MeshCataloger, namespaceController namespace.Controller, osmID, osmNamespace, webhookName string, stop <-chan struct{}) error {
+func NewWebhook(config Config, kubeConfig *rest.Config, certManager certificate.Manager, meshCatalog catalog.MeshCataloger, namespaceController namespace.Controller, osmID, osmNamespace, webhookName string, stop <-chan struct{}, configerator configurator.Configurator) error {
 	cn := certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.OSMControllerName, osmNamespace))
 	validityPeriod := constants.XDSCertificateValidityPeriod
 	cert, err := certManager.IssueCertificate(cn, &validityPeriod)

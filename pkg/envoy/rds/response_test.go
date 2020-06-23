@@ -133,7 +133,7 @@ var _ = Describe("RDS Response", func() {
 	kubeClient := testclient.NewSimpleClientset()
 	cache := make(map[certificate.CommonName]certificate.Certificater)
 	certManager := tresor.NewFakeCertManager(&cache, 1*time.Hour)
-	meshCatalog := catalog.NewMeshCatalog(kubeClient, smi.NewFakeMeshSpecClient(), certManager, ingress.NewFakeIngressMonitor(), make(<-chan struct{}), endpointProviders...)
+	meshCatalog := catalog.NewMeshCatalog(kubeClient, smi.NewFakeMeshSpecClient(), certManager, ingress.NewFakeIngressMonitor(), make(<-chan struct{}), nil, endpointProviders...)
 
 	Context("Test GetDomainsForService", func() {
 		It("returns domain for service from traffic split", func() {

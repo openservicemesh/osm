@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"github.com/open-service-mesh/osm/pkg/configurator"
 	"os"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
@@ -49,6 +50,7 @@ var (
 	azureAuthFile              string
 	kubeConfigFile             string
 	osmNamespace               string
+	osmConfigName              string
 	webhookName                string
 	serviceCertValidityMinutes int
 	caBundleSecretName         string
@@ -84,6 +86,7 @@ func init() {
 	flags.StringVar(&azureAuthFile, "azureAuthFile", "", "Path to Azure Auth File")
 	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file.")
 	flags.StringVar(&osmNamespace, "osmNamespace", "", "Namespace to which OSM belongs to.")
+	flags.StringVar(&osmConfigName, "osmNamespace", "osm-config", "Name of the OSM Config CRD.")
 	flags.StringVar(&webhookName, "webhookName", "", "Name of the MutatingWebhookConfiguration to be configured by ADS")
 	flags.IntVar(&serviceCertValidityMinutes, "serviceCertValidityMinutes", defaultServiceCertValidityMinutes, "Certificate validityPeriod duration in minutes")
 	flags.StringVar(&caBundleSecretName, caBundleSecretNameCLIParam, "", "Name of the Kubernetes Secret for the OSM CA bundle")
@@ -117,13 +120,13 @@ func main() {
 	if kubeConfigFile != "" {
 		kubeConfig, err = clientcmd.BuildConfigFromFlags("", kubeConfigFile)
 		if err != nil {
-			log.Fatal().Err(err).Msgf("[%s] Error fetching Kubernetes config. Ensure correctness of CLI argument 'kubeconfig=%s'", serverType, kubeConfigFile)
+			log.Fatal().Err(err).Msgf("[%s] Error fetching Kubernetes configerator. Ensure correctness of CLI argument 'kubeconfig=%s'", serverType, kubeConfigFile)
 		}
 	} else {
-		// creates the in-cluster config
+		// creates the in-cluster configerator
 		kubeConfig, err = rest.InClusterConfig()
 		if err != nil {
-			log.Fatal().Err(err).Msg("Error generating Kubernetes config")
+			log.Fatal().Err(err).Msg("Error generating Kubernetes configerator")
 		}
 	}
 
@@ -155,6 +158,8 @@ func main() {
 			*azureSubscriptionID, azureAuthFile, stop, meshSpec, azureResourceClient, constants.AzureProviderName))
 	}
 
+	configerator := configurator.NewConfigurator(kubeConfig, stop, osmNamespace, osmConfigName)
+
 	ingressClient, err := ingress.NewIngressClient(kubeConfig, namespaceController, stop)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to initialize ingress client")
@@ -166,15 +171,16 @@ func main() {
 		certManager,
 		ingressClient,
 		stop,
+		configerator,
 		endpointsProviders...)
 
 	// Create the sidecar-injector webhook
-	if err := injector.NewWebhook(injectorConfig, kubeConfig, certManager, meshCatalog, namespaceController, osmID, osmNamespace, webhookName, stop); err != nil {
+	if err := injector.NewWebhook(injectorConfig, kubeConfig, certManager, meshCatalog, namespaceController, osmID, osmNamespace, webhookName, stop, configerator); err != nil {
 		log.Fatal().Err(err).Msg("Error creating mutating webhook")
 	}
 
 	// TODO(draychev): there should be no need to pass meshSpec to the ADS - it is already in meshCatalog
-	xdsServer := ads.NewADSServer(ctx, meshCatalog, meshSpec, enableDebugServer, osmNamespace)
+	xdsServer := ads.NewADSServer(ctx, meshCatalog, meshSpec, enableDebugServer, configerator)
 
 	// TODO(draychev): we need to pass this hard-coded string is a CLI argument (https://github.com/open-service-mesh/osm/issues/542)
 	validityPeriod := constants.XDSCertificateValidityPeriod

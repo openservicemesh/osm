@@ -42,7 +42,7 @@ func newFakeMeshCatalog() *MeshCatalog {
 	stop := make(<-chan struct{})
 	var endpointProviders []endpoint.Provider
 	kubeClient := testclient.NewSimpleClientset()
-	return NewMeshCatalog(kubeClient, meshSpec, certManager, ingressMonitor, stop, endpointProviders...)
+	return NewMeshCatalog(kubeClient, meshSpec, certManager, ingressMonitor, stop, nil, endpointProviders...)
 }
 
 func getFakeIngresses() []*extensionsV1beta.Ingress {

@@ -2,6 +2,7 @@ package ads
 
 import (
 	"context"
+	"github.com/open-service-mesh/osm/pkg/configurator"
 	"time"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -20,7 +21,7 @@ import (
 )
 
 // NewADSServer creates a new Aggregated Discovery Service server
-func NewADSServer(ctx context.Context, meshCatalog catalog.MeshCataloger, meshSpec smi.MeshSpec, enableDebug bool, osmNamespace string) *Server {
+func NewADSServer(ctx context.Context, meshCatalog catalog.MeshCataloger, meshSpec smi.MeshSpec, enableDebug bool, configerator configurator.Configurator) *Server {
 	server := Server{
 		catalog:      meshCatalog,
 		ctx:          ctx,
