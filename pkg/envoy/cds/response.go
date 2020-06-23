@@ -58,6 +58,12 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpe
 	}
 	clusterFactories = append(clusterFactories, localCluster)
 
+	if cfg.IsEgressEnabled() {
+		// Add a passthrough cluster for egress
+		passthroughCluster := envoy.GetOutboundPassthroughCluster()
+		clusterFactories = append(clusterFactories, passthroughCluster)
+	}
+
 	for _, cluster := range clusterFactories {
 		log.Debug().Msgf("Proxy service %s constructed ClusterConfiguration: %+v ", proxyServiceName, cluster)
 		marshalledClusters, err := ptypes.MarshalAny(cluster)
