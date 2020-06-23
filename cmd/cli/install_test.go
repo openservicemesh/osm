@@ -63,7 +63,7 @@ var _ = Describe("Running the install command", func() {
 			}
 
 			installClient := helm.NewInstall(config)
-			err = installCmd.run(installClient)
+			err = installCmd.run(installClient, false)
 		})
 
 		It("should not error", func() {
@@ -92,6 +92,7 @@ var _ = Describe("Running the install command", func() {
 				Expect(rel.Config).To(BeEquivalentTo(map[string]interface{}{
 					"OpenServiceMesh": map[string]interface{}{
 						"certManager": "tresor",
+						"meshName":    "",
 						"image": map[string]interface{}{
 							"registry": testRegistry,
 							"tag":      testOsmImageTag,
@@ -158,7 +159,7 @@ var _ = Describe("Running the install command", func() {
 			}
 
 			installClient := helm.NewInstall(config)
-			err = installCmd.run(installClient)
+			err = installCmd.run(installClient, false)
 		})
 
 		It("should not error", func() {
@@ -187,6 +188,7 @@ var _ = Describe("Running the install command", func() {
 				Expect(rel.Config).To(BeEquivalentTo(map[string]interface{}{
 					"OpenServiceMesh": map[string]interface{}{
 						"certManager": "tresor",
+						"meshName":    "",
 						"image": map[string]interface{}{
 							"registry": testRegistry,
 							"tag":      testOsmImageTag,
@@ -257,7 +259,7 @@ var _ = Describe("Running the install command", func() {
 			}
 
 			installClient := helm.NewInstall(config)
-			err = installCmd.run(installClient)
+			err = installCmd.run(installClient, false)
 		})
 
 		It("should not error", func() {
@@ -286,6 +288,7 @@ var _ = Describe("Running the install command", func() {
 				Expect(rel.Config).To(BeEquivalentTo(map[string]interface{}{
 					"OpenServiceMesh": map[string]interface{}{
 						"certManager": "vault",
+						"meshName":    "",
 						"image": map[string]interface{}{
 							"registry": testRegistry,
 							"tag":      testOsmImageTag,
@@ -350,7 +353,7 @@ var _ = Describe("Running the install command", func() {
 			}
 
 			installClient := helm.NewInstall(config)
-			err = installCmd.run(installClient)
+			err = installCmd.run(installClient, false)
 		})
 
 		It("should error", func() {
@@ -390,6 +393,7 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 		Expect(vals).To(BeEquivalentTo(map[string]interface{}{
 			"OpenServiceMesh": map[string]interface{}{
 				"certManager": "vault",
+				"meshName":    "",
 				"image": map[string]interface{}{
 					"registry": testRegistry,
 					"tag":      testOsmImageTag,

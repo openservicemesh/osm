@@ -23,11 +23,11 @@ var (
 )
 
 // NewNamespaceController implements namespace.Controller and creates the Kubernetes client to manage namespaces.
-func NewNamespaceController(kubeConfig *rest.Config, osmID string, stop chan struct{}) Controller {
+func NewNamespaceController(kubeConfig *rest.Config, meshName string, stop chan struct{}) Controller {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 
-	// Only monitor namespaces that are labeled with this OSM's ID
-	monitorNamespaceLabel := map[string]string{MonitorLabel: osmID}
+	// Only monitor namespaces that are labeled with this OSM's mesh name
+	monitorNamespaceLabel := map[string]string{MonitorLabel: meshName}
 	labelSelector := fields.SelectorFromSet(monitorNamespaceLabel).String()
 	option := informers.WithTweakListOptions(func(opt *metav1.ListOptions) {
 		opt.LabelSelector = labelSelector
@@ -48,7 +48,7 @@ func NewNamespaceController(kubeConfig *rest.Config, osmID string, stop chan str
 
 	informer.AddEventHandler(k8s.GetKubernetesEventHandlers("Namespace", "NamespaceClient", client.announcements, nil))
 
-	log.Info().Msgf("Monitoring namespaces with the label: %s=%s", MonitorLabel, osmID)
+	log.Info().Msgf("Monitoring namespaces with the label: %s=%s", MonitorLabel, meshName)
 	return client
 }
 

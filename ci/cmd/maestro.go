@@ -41,7 +41,7 @@ var (
 
 	maxPodWaitString = common.GetEnv(maestro.WaitForPodTimeSecondsEnvVar, "30")
 	maxOKWaitString  = common.GetEnv(maestro.WaitForOKSecondsEnvVar, "30")
-	osmID            = osmNamespace
+	meshName         = osmNamespace
 
 	namespaces = []string{
 		bookbuyerNS,
@@ -110,7 +110,7 @@ func main() {
 	if bookBuyerTestResult == maestro.TestsPassed && bookThiefTestResult == maestro.TestsPassed {
 		log.Info().Msg("Test succeeded")
 		maestro.DeleteNamespaces(kubeClient, namespaces...)
-		webhookName := fmt.Sprintf("osm-webhook-%s", osmID)
+		webhookName := fmt.Sprintf("osm-webhook-%s", meshName)
 		maestro.DeleteWebhook(kubeClient, webhookName)
 		os.Exit(0)
 	}

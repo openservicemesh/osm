@@ -15,8 +15,8 @@ func validateCLIParams() {
 		}
 	}
 
-	if osmID == "" {
-		log.Fatal().Msg("Please specify the OSM instance ID using --osmID")
+	if meshName == "" {
+		log.Fatal().Msg("Please specify the mesh name using --meshName")
 	}
 
 	if osmNamespace == "" {

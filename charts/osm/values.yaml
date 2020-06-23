@@ -27,3 +27,4 @@ OpenServiceMesh:
     port: 9411
   enableDebugServer: false
   disableSMIAccessControlPolicy: false
+  meshName: osm

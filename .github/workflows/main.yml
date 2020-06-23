@@ -31,7 +31,7 @@ jobs:
         run: |
           mkdir -p ".kube"
           echo "$KUBE_CONFIG" | base64 -d > "$KUBECONFIG"
-          echo -e "OSM_ID: ${OSM_ID}"
+          echo -e "MESH_NAME: ${MESH_NAME}"
           echo -e "K8S_NAMESPACE: ${K8S_NAMESPACE}"
           echo -e "\n\n-------------------- Kubernetes Cluster Info --------------------"
           kubectl cluster-info
@@ -261,7 +261,7 @@ jobs:
           BOOKBUYER_NAMESPACE: "ci-bookbuyer-${{ github.run_id }}-${{ github.run_number}}-tresor"
           BOOKSTORE_NAMESPACE: "ci-bookstore-${{ github.run_id }}-${{ github.run_number}}-tresor"
           BOOKTHIEF_NAMESPACE: "ci-bookthief-${{ github.run_id }}-${{ github.run_number}}-tresor"
-          OSM_ID: "ci-${{ github.run_id }}-${{ github.run_number}}-tresor" # Same as namespace
+          MESH_NAME: "ci-${{ github.run_id }}-${{ github.run_number}}-tresor" # Same as namespace
           CERT_MANAGER: "tresor"
           BOOKTHIEF_EXPECTED_RESPONSE_CODE: "404"
           BOOKSTORE_SVC: "bookstore-mesh"
@@ -306,7 +306,7 @@ jobs:
           BOOKBUYER_NAMESPACE: "ci-bookbuyer-${{ github.run_id }}-${{ github.run_number}}-hashivault"
           BOOKSTORE_NAMESPACE: "ci-bookstore-${{ github.run_id }}-${{ github.run_number}}-hashivault"
           BOOKTHIEF_NAMESPACE: "ci-bookthief-${{ github.run_id }}-${{ github.run_number}}-hashivault"
-          OSM_ID: "ci-${{ github.run_id }}-${{ github.run_number}}-hashivault" # Same as namespace
+          MESH_NAME: "ci-${{ github.run_id }}-${{ github.run_number}}-hashivault" # Same as namespace
           CERT_MANAGER: "vault" # enables Hashi Vault integration
           VAULT_HOST: "vault.ci-${{ github.run_id }}-${{ github.run_number}}-hashivault.svc.cluster.local"
           VAULT_PROTOCOL: "http"

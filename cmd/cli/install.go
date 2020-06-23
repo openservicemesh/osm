@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"strings"
@@ -10,6 +11,10 @@ import (
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/strvals"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/open-service-mesh/osm/pkg/cli"
 	"github.com/open-service-mesh/osm/pkg/constants"
@@ -25,16 +30,17 @@ namespace does not exist, it will be created.
 Usage:
   $ osm install --namespace hello-world
 
-Each instance of the osm control plane installation is given a unqiue ID
-referred to as the OSM ID. An OSM ID can be passed in via the --osm-id flag.
-The osm ID is used in various different ways by the control plane including
-the resource name for the MutatingWebhookConfiguration created by the control
+Each instance of the osm control plane installation is given a unqiue mesh 
+name. A mesh name can be passed in via the --mesh-name flag or a default will
+be provided for you.
+The mesh name is used in various different ways by the control plane including
+as the resource name for the MutatingWebhookConfiguration created by the control
 plane for sidecar injection of envoy proxies.
 
-By default, OSM ID will be configured to "osm-cp-<namespace>" where namespace is the namespace where the control plane is being installed
+By default, mesh-name will be configured to "osm."
 
 Usage:
-  $ osm install --osm-id "hello-osm"
+  $ osm install --mesh-name "hello-osm"
 
 `
 const (
@@ -61,10 +67,10 @@ type installCmd struct {
 	prometheusRetentionTime       string
 	enableDebugServer             bool
 	disableSMIAccessControlPolicy bool
+	meshName                      string
 }
 
 func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
-
 	inst := &installCmd{
 		out: out,
 	}
@@ -74,7 +80,7 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 		Short: "install osm control plane",
 		Long:  installDesc,
 		RunE: func(_ *cobra.Command, args []string) error {
-			return inst.run(helm.NewInstall(config))
+			return inst.run(helm.NewInstall(config), true)
 		},
 	}
 
@@ -92,11 +98,12 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.StringVar(&inst.prometheusRetentionTime, "prometheus-retention-time", constants.PrometheusDefaultRetentionTime, "Duration for which data will be retained in prometheus")
 	f.BoolVar(&inst.enableDebugServer, "enable-debug-server", false, "Enable the debug HTTP server")
 	f.BoolVar(&inst.disableSMIAccessControlPolicy, "disable-smi-access-control-policy", false, "Disable SMI access control policy")
+	f.StringVar(&inst.meshName, "mesh-name", "osm", "Name of the service mesh")
 
 	return cmd
 }
 
-func (i *installCmd) run(installClient *helm.Install) error {
+func (i *installCmd) run(installClient *helm.Install, loadKubeconfig bool) error {
 	installClient.ReleaseName = settings.Namespace()
 	installClient.Namespace = settings.Namespace()
 	installClient.CreateNamespace = true
@@ -124,6 +131,39 @@ func (i *installCmd) run(installClient *helm.Install) error {
 			return fmt.Errorf("Missing arguments for cert-manager vault: %v", missingFields)
 		}
 	}
+
+	// Wrapping this code with a check for unit testing
+	if loadKubeconfig {
+		loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+		configOverrides := &clientcmd.ConfigOverrides{}
+		clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
+		config, err := clientConfig.ClientConfig()
+		if err != nil {
+			checkedPath := strings.Join(loadingRules.Precedence, ",")
+			return fmt.Errorf("Error fetching kubeconfig from %s", checkedPath)
+		}
+
+		clientset, err := kubernetes.NewForConfig(config)
+		if err != nil {
+			return fmt.Errorf("Could not access Kubernetes cluster. Check kubeconfig")
+		}
+		deploymentsClient := clientset.AppsV1().Deployments("") // Get deployments from all namespaces
+
+		labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"meshName": i.meshName}}
+
+		listOptions := metav1.ListOptions{
+			LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
+		}
+		list, err := deploymentsClient.List(context.TODO(), listOptions)
+		if err != nil {
+			return err
+		}
+
+		if len(list.Items) != 0 {
+			return fmt.Errorf("Mesh %s already exists in cluster. Please specify a new mesh name using --mesh-name", i.meshName)
+		}
+	}
+
 	values, err := i.resolveValues()
 	if err != nil {
 		return err
@@ -152,6 +192,7 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 		fmt.Sprintf("OpenServiceMesh.prometheus.retention.time=%s", i.prometheusRetentionTime),
 		fmt.Sprintf("OpenServiceMesh.enableDebugServer=%t", i.enableDebugServer),
 		fmt.Sprintf("OpenServiceMesh.disableSMIAccessControlPolicy=%t", i.disableSMIAccessControlPolicy),
+		fmt.Sprintf("OpenServiceMesh.meshName=%s", i.meshName),
 	}
 
 	for _, val := range valuesConfig {

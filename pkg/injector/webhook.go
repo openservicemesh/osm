@@ -41,7 +41,7 @@ const (
 )
 
 // NewWebhook starts a new web server handling requests from the injector MutatingWebhookConfiguration
-func NewWebhook(config Config, kubeConfig *rest.Config, certManager certificate.Manager, meshCatalog catalog.MeshCataloger, namespaceController namespace.Controller, osmID, osmNamespace, webhookName string, stop <-chan struct{}) error {
+func NewWebhook(config Config, kubeConfig *rest.Config, certManager certificate.Manager, meshCatalog catalog.MeshCataloger, namespaceController namespace.Controller, meshName, osmNamespace, webhookName string, stop <-chan struct{}) error {
 	cn := certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.OSMControllerName, osmNamespace))
 	validityPeriod := constants.XDSCertificateValidityPeriod
 	cert, err := certManager.IssueCertificate(cn, &validityPeriod)
@@ -62,7 +62,7 @@ func NewWebhook(config Config, kubeConfig *rest.Config, certManager certificate.
 
 	go wh.run(stop)
 
-	err = patchMutatingWebhookConfiguration(cert, osmID, osmNamespace, webhookName, wh.kubeClient)
+	err = patchMutatingWebhookConfiguration(cert, meshName, osmNamespace, webhookName, wh.kubeClient)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error configuring MutatingWebhookConfiguration")
 	}
@@ -278,7 +278,7 @@ func patchAdmissionResponse(resp *v1beta1.AdmissionResponse, patchBytes []byte) 
 	}()
 }
 
-func patchMutatingWebhookConfiguration(cert certificate.Certificater, osmID, osmNamespace, webhookName string, clientSet kubernetes.Interface) error {
+func patchMutatingWebhookConfiguration(cert certificate.Certificater, meshName, osmNamespace, webhookName string, clientSet kubernetes.Interface) error {
 	if err := hookExists(clientSet, webhookName); err != nil {
 		log.Error().Err(err).Msgf("Error getting webhook %s", webhookName)
 	}

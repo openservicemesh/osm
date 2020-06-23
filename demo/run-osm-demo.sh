@@ -105,7 +105,7 @@ fi
 
 for ns in "$BOOKWAREHOUSE_NAMESPACE" "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE"; do
     kubectl create namespace "$ns"
-    kubectl label  namespaces "$ns" openservicemesh.io/monitor="$K8S_NAMESPACE"
+    kubectl label  namespaces "$ns" openservicemesh.io/monitor="$MESH_NAME"
 done
 
 # Apply SMI policies
@@ -119,6 +119,7 @@ if [ "$CERT_MANAGER" = "vault" ]; then
   # shellcheck disable=SC2086
   bin/osm install \
       --namespace "$K8S_NAMESPACE" \
+      --mesh-name "$MESH_NAME" \
       --cert-manager="$CERT_MANAGER" \
       --vault-host="$VAULT_HOST" \
       --vault-token="$VAULT_TOKEN" \
@@ -132,6 +133,7 @@ else
   # shellcheck disable=SC2086
   bin/osm install \
       --namespace "$K8S_NAMESPACE" \
+      --mesh-name "$MESH_NAME" \
       --container-registry "$CTR_REGISTRY" \
       --container-registry-secret "$CTR_REGISTRY_CREDS_NAME" \
       --osm-image-tag "$CTR_TAG" \
