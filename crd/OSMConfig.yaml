@@ -17,3 +17,9 @@ spec:
             logVerbosity:
               description: "Log verbosity"
               type: string
+            namespaces:
+              description: "Namespacess to observe"
+              type: list
+            ingresses:
+              description: "Ingresses to observe"
+              type: list

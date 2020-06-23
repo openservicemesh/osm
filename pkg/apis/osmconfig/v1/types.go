@@ -25,6 +25,12 @@ type OSMConfigSpec struct {
 
 	// LogVerbosity is the verbosity level of the logging system.
 	LogVerbosity string `json:"logVerbosity"`
+
+	// Namespaces is the list of namespaces OSM will observe and mutate.
+	Namespaces []string `json:"namespaces"`
+
+	// Ingresses is the Kubernetes Ingress resources OSM will observe.
+	Ingresses []string `json:"ingresses"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

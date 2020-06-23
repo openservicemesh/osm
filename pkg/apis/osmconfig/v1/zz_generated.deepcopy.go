@@ -89,6 +89,16 @@ func (in *OSMConfigSpec) DeepCopyInto(out *OSMConfigSpec) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
 	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
+	if in.Namespaces != nil {
+		in, out := &in.Namespaces, &out.Namespaces
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
+	if in.Ingresses != nil {
+		in, out := &in.Ingresses, &out.Ingresses
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	return
 }
 

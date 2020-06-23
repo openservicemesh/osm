@@ -15,4 +15,11 @@ metadata:
   namespace: $K8S_NAMESPACE
 spec:
   logVerbosity: trace
+  namespaces:
+    - $BOOKWAREHOUSE_NAMESPACE
+    - $BOOKBUYER_NAMESPACE
+    - $BOOKSTORE_NAMESPACE
+    - $BOOKTHIEF_NAMESPACE
+  ingresses:
+    - something
 EOF
