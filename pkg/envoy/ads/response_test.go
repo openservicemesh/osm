@@ -31,7 +31,9 @@ var _ = Describe("Test ADS response functions", func() {
 	kubeClient := testclient.NewSimpleClientset()
 	namespace := tests.Namespace
 	envoyUID := tests.EnvoyUID
-	serviceName := uuid.New().String()
+	serviceName := tests.BookstoreServiceName
+	serviceAccountName := tests.BookstoreServiceAccountName
+
 	labels := map[string]string{constants.EnvoyUniqueIDLabelName: tests.EnvoyUID}
 	mc := catalog.NewFakeMeshCatalog(kubeClient)
 
@@ -48,7 +50,7 @@ var _ = Describe("Test ADS response functions", func() {
 	It("should have created a service", func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
-	cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s", envoyUID, tests.BookbuyerServiceAccountName, namespace))
+	cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s", envoyUID, serviceAccountName, namespace))
 	proxy := envoy.NewProxy(cn, nil)
 
 	expectedSecretOneName := fmt.Sprintf("service-cert:default/%s", serviceName)
@@ -76,7 +78,7 @@ var _ = Describe("Test ADS response functions", func() {
 
 		cache := make(map[certificate.CommonName]certificate.Certificater)
 		certManager := tresor.NewFakeCertManager(&cache, 1*time.Hour)
-		cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s", uuid.New(), tests.BookbuyerServiceAccountName, tests.Namespace))
+		cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s", uuid.New(), serviceAccountName, tests.Namespace))
 		certPEM, _ := certManager.IssueCertificate(cn, nil)
 		cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())
 		server, actualResponses := tests.NewFakeXDSServer(cert, nil, nil)

@@ -70,7 +70,10 @@ const (
 	EnvoyUID = "A-B-C-D"
 
 	// ServicePort is the port used by a service
-	ServicePort = 9999
+	ServicePort = 8888
+
+	// ServiceIP is the IP used by a service
+	ServiceIP = "8.8.8.8"
 )
 
 var (
@@ -97,8 +100,8 @@ var (
 
 	// Endpoint is an endpoint object.
 	Endpoint = endpoint.Endpoint{
-		IP:   net.ParseIP("8.8.8.8"),
-		Port: endpoint.Port(8888),
+		IP:   net.ParseIP(ServiceIP),
+		Port: endpoint.Port(ServicePort),
 	}
 
 	// TrafficPolicy is a traffic policy SMI object.
@@ -224,7 +227,24 @@ func NewPodTestFixture(namespace string, podName string) corev1.Pod {
 			},
 		},
 		Spec: corev1.PodSpec{
-			ServiceAccountName: BookbuyerServiceAccountName,
+			ServiceAccountName: BookstoreServiceAccountName,
+		},
+	}
+}
+
+// NewPodTestFixtureWithOptions creates a new Pod struct with options for testing.
+func NewPodTestFixtureWithOptions(namespace string, podName string, serviceAccountName string) corev1.Pod {
+	return corev1.Pod{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      podName,
+			Namespace: namespace,
+			Labels: map[string]string{
+				SelectorKey:                      SelectorValue,
+				constants.EnvoyUniqueIDLabelName: EnvoyUID,
+			},
+		},
+		Spec: corev1.PodSpec{
+			ServiceAccountName: serviceAccountName,
 		},
 	}
 }
