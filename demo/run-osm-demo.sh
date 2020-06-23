@@ -48,9 +48,6 @@ wait_for_pod_ready() {
 }
 
 # Check for required environment variables
-if [ -z "$OSM_ID" ]; then
-    exit_error "Missing OSM_ID env variable"
-fi
 if [ -z "$K8S_NAMESPACE" ]; then
     exit_error "Missing K8S_NAMESPACE env variable"
 fi

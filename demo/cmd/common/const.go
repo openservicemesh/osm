@@ -13,9 +13,6 @@ const (
 	// KubeNamespaceEnvVar is the environment variable with the k8s namespace
 	KubeNamespaceEnvVar = "K8S_NAMESPACE"
 
-	// OsmIDEnvVar is the environment variable for the namespace an OSM instance belongs to
-	OsmIDEnvVar = "OSM_ID"
-
 	// IsGithubEnvVar is the environment variable indicating whether this runs in Github CI.
 	IsGithubEnvVar = "IS_GITHUB"
 
@@ -27,9 +24,6 @@ const (
 
 	// ContainerTag is the name of the environment variable storing the container tag for the images to be used.
 	ContainerTag = "CTR_TAG"
-
-	// AzureSubscription is the name of the env var storing the azure subscription to watch.
-	AzureSubscription = "AZURE_SUBSCRIPTION"
 
 	// BooksBoughtHeader is the header returned by the bookstore and observed by the bookbuyer.
 	BooksBoughtHeader = "Booksbought"
