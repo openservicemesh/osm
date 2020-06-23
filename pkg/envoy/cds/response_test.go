@@ -20,6 +20,7 @@ import (
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 	"github.com/open-service-mesh/osm/pkg/smi"
@@ -63,7 +64,12 @@ var _ = Describe("CDS Response", func() {
 				Expect(err).ToNot(HaveOccurred())
 			}
 
-			resp, err := NewResponse(context.Background(), catalog.NewFakeMeshCatalog(kubeClient), smiClient, proxy, nil)
+			config := &configurator.Config{
+				OSMNamespace:     "-test-namespace-",
+				EnablePrometheus: true,
+				EnableTracing:    true,
+			}
+			resp, err := NewResponse(context.Background(), catalog.NewFakeMeshCatalog(kubeClient), smiClient, proxy, nil, config)
 			Expect(err).ToNot(HaveOccurred())
 
 			// There are to any.Any resources in the ClusterDiscoveryStruct (Clusters)
@@ -71,7 +77,8 @@ var _ = Describe("CDS Response", func() {
 			// 1. Destination cluster
 			// 2. Source cluster
 			// 3. Prometheus cluster
-			numExpectedClusters := 3
+			// 4. Zipkin cluster
+			numExpectedClusters := 4
 			Expect(len((*resp).Resources)).To(Equal(numExpectedClusters))
 
 			{

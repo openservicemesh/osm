@@ -1,6 +1,8 @@
 package injector
 
 import (
+	"fmt"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -53,6 +55,14 @@ static_resources:
           trusted_ca:
             inline_bytes: RootCert
     type: LOGICAL_DNS
+tracing:
+  http:
+    name: envoy.zipkin
+    typed_config:
+      '@type': type.googleapis.com/envoy.config.trace.v2.ZipkinConfig
+      collector_cluster: envoy-zipkin-cluster
+      collector_endpoint: /api/v2/spans
+      collector_endpoint_version: HTTP_JSON
 `
 
 var _ = Describe("Test Envoy configuration creation", func() {
@@ -71,7 +81,8 @@ var _ = Describe("Test Envoy configuration creation", func() {
 			actual, err := getEnvoyConfigYAML(config)
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(string(actual)).To(Equal(expectedEnvoyConfig[1:]))
+			Expect(string(actual)).To(Equal(expectedEnvoyConfig[1:]),
+				fmt.Sprintf("Expected:\n%s\nActual:\n%s\n", expectedEnvoyConfig, string(actual)))
 		})
 	})
 })

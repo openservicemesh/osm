@@ -174,7 +174,7 @@ func main() {
 	}
 
 	// TODO(draychev): there should be no need to pass meshSpec to the ADS - it is already in meshCatalog
-	xdsServer := ads.NewADSServer(ctx, meshCatalog, meshSpec, enableDebugServer)
+	xdsServer := ads.NewADSServer(ctx, meshCatalog, meshSpec, enableDebugServer, osmNamespace)
 
 	// TODO(draychev): we need to pass this hard-coded string is a CLI argument (https://github.com/open-service-mesh/osm/issues/542)
 	validityPeriod := constants.XDSCertificateValidityPeriod

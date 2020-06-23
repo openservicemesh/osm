@@ -1,0 +1,14 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: zipkin
+  labels:
+    app: zipkin
+spec:
+  selector:
+    app: zipkin
+  ports:
+  - protocol: TCP
+    port: {{.Values.OpenServiceMesh.grafana.port}}
+    targetPort: {{.Values.OpenServiceMesh.grafana.port}}
+  type: ClusterIP
