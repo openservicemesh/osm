@@ -40,6 +40,7 @@ func newRootCmd(config *action.Configuration, out io.Writer, args []string) *cob
 		newEnvCmd(out),
 		newInstallCmd(config, out),
 		newCheckCmd(out),
+		newDashboardCmd(config, out),
 	)
 
 	flags.Parse(args)
