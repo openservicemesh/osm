@@ -10,6 +10,7 @@ require (
 	github.com/Azure/go-autorest/autorest/to v0.2.0
 	github.com/Azure/go-autorest/autorest/validation v0.1.0 // indirect
 	github.com/deckarep/golang-set v1.7.1
+	github.com/docker/go-connections v0.4.0
 	github.com/envoyproxy/go-control-plane v0.9.2
 	github.com/golang/protobuf v1.3.2
 	github.com/google/go-cmp v0.4.0

@@ -4,27 +4,29 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha1"
+	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha2"
+	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
+	corev1 "k8s.io/api/core/v1"
+
+	"github.com/open-service-mesh/osm/pkg/service"
 )
 
 type policies struct {
-	//TrafficSplits   []string `json:"traffic_splits"`
-	//SplitServices   []string `json:"split_services"`
-	//ServiceAccounts []string `json:"service_accounts"`
-	//TrafficSpecs    []string `json:"traffic_specs"`
-	TrafficTargets []string `json:"traffic_targets"`
-	//Services        []string `json:"services"`
+	TrafficSplits    []*split.TrafficSplit              `json:"traffic_splits"`
+	WeightedServices []service.WeightedService          `json:"weighted_services"`
+	ServiceAccounts  []service.NamespacedServiceAccount `json:"service_accounts"`
+	RouteGroups      []*spec.HTTPRouteGroup             `json:"route_groups"`
+	TrafficTargets   []*target.TrafficTarget            `json:"traffic_targets"`
+	Services         []*corev1.Service                  `json:"services"`
 }
 
 func (ds debugServer) getSMIPoliciesHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		trafficTargets := ds.meshCatalogDebugger.ListSMIPolicies()
-
 		var p policies
-
-		for _, item := range trafficTargets {
-			p.TrafficTargets = append(p.TrafficTargets, item.Name)
-		}
+		p.TrafficSplits, p.WeightedServices, p.ServiceAccounts, p.RouteGroups, p.TrafficTargets, p.Services = ds.meshCatalogDebugger.ListSMIPolicies()
 
 		jsonPolicies, err := json.Marshal(p)
 		if err != nil {
@@ -32,6 +34,5 @@ func (ds debugServer) getSMIPoliciesHandler() http.Handler {
 		}
 
 		_, _ = fmt.Fprint(w, string(jsonPolicies))
-
 	})
 }

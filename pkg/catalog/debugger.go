@@ -3,10 +3,9 @@ package catalog
 import (
 	"time"
 
-	"github.com/open-service-mesh/osm/pkg/certificate"
-
 	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha1"
 
+	"github.com/open-service-mesh/osm/pkg/certificate"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 )
 

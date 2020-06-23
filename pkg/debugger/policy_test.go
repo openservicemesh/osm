@@ -2,8 +2,6 @@ package debugger
 
 import (
 	"fmt"
-	"github.com/open-service-mesh/osm/pkg/tests"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"net/http/httptest"
 	"testing"
 	"time"
@@ -12,12 +10,15 @@ import (
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha2"
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/open-service-mesh/osm/pkg/envoy"
 	"github.com/open-service-mesh/osm/pkg/service"
+	"github.com/open-service-mesh/osm/pkg/tests"
 )
 
 func TestEndpoints(t *testing.T) {
@@ -50,7 +51,7 @@ func (f fakeMeshCatalogDebuger) ListExpectedProxies() map[certificate.CommonName
 }
 
 // ListConnectedProxies implements MeshCatalogDebugger
-func (f fakeMeshCatalogDebuger) ListConnectedProxies() map[certificate.CommonName]time.Time {
+func (f fakeMeshCatalogDebuger) ListConnectedProxies() map[certificate.CommonName]*envoy.Proxy {
 	panic("implement me")
 }
 

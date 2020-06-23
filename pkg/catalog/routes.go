@@ -108,6 +108,10 @@ func (mc *MeshCatalog) ListAllowedOutboundServices(sourceService service.Namespa
 	return mc.getAllowedDirectionalServices(sourceService, outbound)
 }
 
+func (mc *MeshCatalog) ListAllowedPeerServices(namespacedService service.NamespacedService) ([]service.NamespacedService, error) {
+	panic("implement me")
+}
+
 //GetWeightedClusterForService returns the weighted cluster for a given service
 func (mc *MeshCatalog) GetWeightedClusterForService(nsService service.NamespacedService) (service.WeightedCluster, error) {
 	// TODO(draychev): split namespace from the service name -- for non-K8s services
