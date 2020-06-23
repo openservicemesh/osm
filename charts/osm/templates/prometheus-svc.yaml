@@ -3,12 +3,12 @@ kind: Service
 metadata:
   name: osm-prometheus
   annotations:
-    prometheus.io/port: "{{.Values.prometheus.port}}"
+    prometheus.io/port: "{{.Values.OpenServiceMesh.prometheus.port}}"
     prometheus.io/scrape: "true"
 spec:
   ports:
-  - port: {{.Values.prometheus.port}}
+  - port: {{.Values.OpenServiceMesh.prometheus.port}}
     protocol: TCP
-    targetPort: {{.Values.prometheus.port}}
+    targetPort: {{.Values.OpenServiceMesh.prometheus.port}}
   selector:
     app: osm-prometheus
