@@ -21,6 +21,7 @@ var (
 	testVaultHost      = "vault.osm.svc.cluster.local"
 	testVaultProtocol  = "http"
 	testVaultToken     = "token"
+	testVaultRole      = "role"
 	testRetentionTime  = "5d"
 )
 
@@ -89,29 +90,31 @@ var _ = Describe("Running the install command", func() {
 
 			It("should have the correct values", func() {
 				Expect(rel.Config).To(BeEquivalentTo(map[string]interface{}{
-					"certManager": "tresor",
-					"image": map[string]interface{}{
-						"registry": testRegistry,
-						"tag":      testOsmImageTag,
-					},
-					"imagePullSecrets": []interface{}{
-						map[string]interface{}{
-							"name": testRegistrySecret,
+					"OpenServiceMesh": map[string]interface{}{
+						"certManager": "tresor",
+						"image": map[string]interface{}{
+							"registry": testRegistry,
+							"tag":      testOsmImageTag,
 						},
-					},
-					"serviceCertValidityMinutes": int64(1),
-					"vault": map[string]interface{}{
-						"host":     "",
-						"protocol": "",
-						"token":    "",
-					},
-					"prometheus": map[string]interface{}{
-						"retention": map[string]interface{}{
-							"time": "5d",
-						}},
-					"enableDebugServer":             false,
-					"disableSMIAccessControlPolicy": false,
-				}))
+						"imagePullSecrets": []interface{}{
+							map[string]interface{}{
+								"name": testRegistrySecret,
+							},
+						},
+						"serviceCertValidityMinutes": int64(1),
+						"vault": map[string]interface{}{
+							"host":     "",
+							"protocol": "",
+							"token":    "",
+							"role":     "",
+						},
+						"prometheus": map[string]interface{}{
+							"retention": map[string]interface{}{
+								"time": "5d",
+							}},
+						"enableDebugServer":             false,
+						"disableSMIAccessControlPolicy": false,
+					}}))
 			})
 
 			It("should be installed in the correct namespace", func() {
@@ -182,29 +185,31 @@ var _ = Describe("Running the install command", func() {
 
 			It("should have the correct values", func() {
 				Expect(rel.Config).To(BeEquivalentTo(map[string]interface{}{
-					"certManager": "tresor",
-					"image": map[string]interface{}{
-						"registry": testRegistry,
-						"tag":      testOsmImageTag,
-					},
-					"imagePullSecrets": []interface{}{
-						map[string]interface{}{
-							"name": testRegistrySecret,
+					"OpenServiceMesh": map[string]interface{}{
+						"certManager": "tresor",
+						"image": map[string]interface{}{
+							"registry": testRegistry,
+							"tag":      testOsmImageTag,
 						},
-					},
-					"serviceCertValidityMinutes": int64(1),
-					"vault": map[string]interface{}{
-						"host":     "",
-						"protocol": "",
-						"token":    "",
-					},
-					"prometheus": map[string]interface{}{
-						"retention": map[string]interface{}{
-							"time": "5d",
-						}},
-					"enableDebugServer":             false,
-					"disableSMIAccessControlPolicy": false,
-				}))
+						"imagePullSecrets": []interface{}{
+							map[string]interface{}{
+								"name": testRegistrySecret,
+							},
+						},
+						"serviceCertValidityMinutes": int64(1),
+						"vault": map[string]interface{}{
+							"host":     "",
+							"protocol": "",
+							"token":    "",
+							"role":     "",
+						},
+						"prometheus": map[string]interface{}{
+							"retention": map[string]interface{}{
+								"time": "5d",
+							}},
+						"enableDebugServer":             false,
+						"disableSMIAccessControlPolicy": false,
+					}}))
 			})
 
 			It("should be installed in the correct namespace", func() {
@@ -244,6 +249,7 @@ var _ = Describe("Running the install command", func() {
 				certManager:                "vault",
 				vaultHost:                  testVaultHost,
 				vaultToken:                 testVaultToken,
+				vaultRole:                  testVaultRole,
 				vaultProtocol:              "http",
 				osmImageTag:                testOsmImageTag,
 				serviceCertValidityMinutes: 1,
@@ -278,30 +284,32 @@ var _ = Describe("Running the install command", func() {
 
 			It("should have the correct values", func() {
 				Expect(rel.Config).To(BeEquivalentTo(map[string]interface{}{
-					"certManager": "vault",
-					"image": map[string]interface{}{
-						"registry": testRegistry,
-						"tag":      testOsmImageTag,
-					},
-					"imagePullSecrets": []interface{}{
-						map[string]interface{}{
-							"name": testRegistrySecret,
+					"OpenServiceMesh": map[string]interface{}{
+						"certManager": "vault",
+						"image": map[string]interface{}{
+							"registry": testRegistry,
+							"tag":      testOsmImageTag,
 						},
-					},
-					"serviceCertValidityMinutes": int64(1),
-					"vault": map[string]interface{}{
-						"host":     testVaultHost,
-						"protocol": "http",
-						"token":    testVaultToken,
-					},
-					"prometheus": map[string]interface{}{
-						"retention": map[string]interface{}{
-							"time": "5d",
+						"imagePullSecrets": []interface{}{
+							map[string]interface{}{
+								"name": testRegistrySecret,
+							},
 						},
-					},
-					"enableDebugServer":             false,
-					"disableSMIAccessControlPolicy": false,
-				}))
+						"serviceCertValidityMinutes": int64(1),
+						"vault": map[string]interface{}{
+							"host":     testVaultHost,
+							"protocol": "http",
+							"token":    testVaultToken,
+							"role":     testVaultRole,
+						},
+						"prometheus": map[string]interface{}{
+							"retention": map[string]interface{}{
+								"time": "5d",
+							},
+						},
+						"enableDebugServer":             false,
+						"disableSMIAccessControlPolicy": false,
+					}}))
 			})
 
 			It("should be installed in the correct namespace", func() {
@@ -365,6 +373,7 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 			vaultHost:                  testVaultHost,
 			vaultProtocol:              testVaultProtocol,
 			vaultToken:                 testVaultToken,
+			vaultRole:                  testVaultRole,
 			osmImageTag:                testOsmImageTag,
 			serviceCertValidityMinutes: 1,
 			prometheusRetentionTime:    testRetentionTime,
@@ -379,29 +388,31 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 
 	It("should resolve correctly", func() {
 		Expect(vals).To(BeEquivalentTo(map[string]interface{}{
-			"certManager": "vault",
-			"image": map[string]interface{}{
-				"registry": testRegistry,
-				"tag":      testOsmImageTag,
-			},
-			"imagePullSecrets": []interface{}{
-				map[string]interface{}{
-					"name": testRegistrySecret,
+			"OpenServiceMesh": map[string]interface{}{
+				"certManager": "vault",
+				"image": map[string]interface{}{
+					"registry": testRegistry,
+					"tag":      testOsmImageTag,
 				},
-			},
-			"serviceCertValidityMinutes": int64(1),
-			"vault": map[string]interface{}{
-				"host":     testVaultHost,
-				"protocol": "http",
-				"token":    testVaultToken,
-			},
-			"prometheus": map[string]interface{}{
-				"retention": map[string]interface{}{
-					"time": "5d",
+				"imagePullSecrets": []interface{}{
+					map[string]interface{}{
+						"name": testRegistrySecret,
+					},
 				},
-			},
-			"enableDebugServer":             false,
-			"disableSMIAccessControlPolicy": false,
-		}))
+				"serviceCertValidityMinutes": int64(1),
+				"vault": map[string]interface{}{
+					"host":     testVaultHost,
+					"protocol": "http",
+					"token":    testVaultToken,
+					"role":     testVaultRole,
+				},
+				"prometheus": map[string]interface{}{
+					"retention": map[string]interface{}{
+						"time": "5d",
+					},
+				},
+				"enableDebugServer":             false,
+				"disableSMIAccessControlPolicy": false,
+			}}))
 	})
 })

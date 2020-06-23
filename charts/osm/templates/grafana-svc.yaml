@@ -6,6 +6,6 @@ metadata:
     app: osm-grafana
 spec:
   ports:
-    - port: {{.Values.grafana.port}}
+    - port: {{.Values.OpenServiceMesh.grafana.port}}
   selector:
     app: osm-grafana
