@@ -140,17 +140,18 @@ func (i *installCmd) run(installClient *helm.Install) error {
 func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 	finalValues := map[string]interface{}{}
 	valuesConfig := []string{
-		fmt.Sprintf("image.registry=%s", i.containerRegistry),
-		fmt.Sprintf("image.tag=%s", i.osmImageTag),
-		fmt.Sprintf("imagePullSecrets[0].name=%s", i.containerRegistrySecret),
-		fmt.Sprintf("certManager=%s", i.certManager),
-		fmt.Sprintf("vault.host=%s", i.vaultHost),
-		fmt.Sprintf("vault.protocol=%s", i.vaultProtocol),
-		fmt.Sprintf("vault.token=%s", i.vaultToken),
-		fmt.Sprintf("serviceCertValidityMinutes=%d", i.serviceCertValidityMinutes),
-		fmt.Sprintf("prometheus.retention.time=%s", i.prometheusRetentionTime),
-		fmt.Sprintf("enableDebugServer=%t", i.enableDebugServer),
-		fmt.Sprintf("disableSMIAccessControlPolicy=%t", i.disableSMIAccessControlPolicy),
+		fmt.Sprintf("OpenServiceMesh.image.registry=%s", i.containerRegistry),
+		fmt.Sprintf("OpenServiceMesh.image.tag=%s", i.osmImageTag),
+		fmt.Sprintf("OpenServiceMesh.imagePullSecrets[0].name=%s", i.containerRegistrySecret),
+		fmt.Sprintf("OpenServiceMesh.certManager=%s", i.certManager),
+		fmt.Sprintf("OpenServiceMesh.vault.host=%s", i.vaultHost),
+		fmt.Sprintf("OpenServiceMesh.vault.protocol=%s", i.vaultProtocol),
+		fmt.Sprintf("OpenServiceMesh.vault.token=%s", i.vaultToken),
+		fmt.Sprintf("OpenServiceMesh.vault.role=%s", i.vaultRole),
+		fmt.Sprintf("OpenServiceMesh.serviceCertValidityMinutes=%d", i.serviceCertValidityMinutes),
+		fmt.Sprintf("OpenServiceMesh.prometheus.retention.time=%s", i.prometheusRetentionTime),
+		fmt.Sprintf("OpenServiceMesh.enableDebugServer=%t", i.enableDebugServer),
+		fmt.Sprintf("OpenServiceMesh.disableSMIAccessControlPolicy=%t", i.disableSMIAccessControlPolicy),
 	}
 
 	for _, val := range valuesConfig {

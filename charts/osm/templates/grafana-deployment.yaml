@@ -40,7 +40,7 @@ spec:
               mountPath: /etc/grafana/provisioning/dashboards/dataplane
               readOnly: true
           ports:
-            - containerPort: {{.Values.grafana.port}}
+            - containerPort: {{.Values.OpenServiceMesh.grafana.port}}
       volumes:
         - name: osm-grafana-config
           configMap:

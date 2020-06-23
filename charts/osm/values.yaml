@@ -1,43 +1,31 @@
 # Default values for osm.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
-
-# TODO: rename ads pod/deployment/service to osm
-name: ads
-
-replicaCount: 1
-
-image:
-  registry: smctest.azurecr.io
-  pullPolicy: Always
-  tag: latest
-
-imagePullSecrets:
-  - name: acr-creds
-
-initContainer: smctest.azurecr.io/init
-sidecarImage: envoyproxy/envoy-alpine:v1.14.1
-
-features:
-  ingressv1alpha1:
-    enabled: true
-
-prometheus:
-  port: 7070
-  retention:
-    time: 15d
-
-certManager: tresor
-
-vault:
-  host:
-  protocol: http
-  token:
-
-serviceCertValidityMinutes: 1
-
-grafana:
-  port: 3000
-
-enableDebugServer: false
-disableSMIAccessControlPolicy: false
+OpenServiceMesh:
+  replicaCount: 1
+  image:
+    registry: smctest.azurecr.io
+    pullPolicy: Always
+    tag: latest
+  imagePullSecrets:
+    - name: acr-creds
+  initContainer: smctest.azurecr.io/init
+  sidecarImage: envoyproxy/envoy-alpine:v1.14.1
+  features:
+    ingressv1alpha1:
+      enabled: true
+  prometheus:
+    port: 7070
+    retention:
+      time: 15d
+  certManager: tresor
+  vault:
+    host:
+    protocol: http
+    token:
+    role: open-service-mesh
+  serviceCertValidityMinutes: 1
+  grafana:
+    port: 3000
+  enableDebugServer: false
+  disableSMIAccessControlPolicy: false

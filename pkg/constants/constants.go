@@ -104,8 +104,8 @@ const (
 	// EnvVarHumanReadableLogMessages is an environment variable, which when set to "true" enables colorful human-readable log messages.
 	EnvVarHumanReadableLogMessages = "OSM_HUMAN_DEBUG_LOG"
 
-	// WildcardClusterWeight is the default wildcard cluster weight
-	WildcardClusterWeight = 100
+	// ClusterWeightAcceptAll is the weight for a cluster that accepts 100 percent of traffic sent to it
+	ClusterWeightAcceptAll = 100
 
 	// PrometheusDefaultRetentionTime is the default days for which data is retained in prometheus
 	PrometheusDefaultRetentionTime = "15d"

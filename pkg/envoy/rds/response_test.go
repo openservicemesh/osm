@@ -83,7 +83,7 @@ var _ = Describe("AggregateRoutesByDomain", func() {
 	Context("Adding a route to existing domain in the map", func() {
 		It("Returns the map of with a new route on the domain", func() {
 
-			weightedCluster := service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1"), Weight: constants.WildcardClusterWeight}
+			weightedCluster := service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1"), Weight: constants.ClusterWeightAcceptAll}
 			routePolicy := trafficpolicy.Route{
 				PathRegex: "/update-books-bought",
 				Methods:   []string{"GET"},
@@ -107,7 +107,7 @@ var _ = Describe("AggregateRoutesByDomain", func() {
 	Context("Adding a cluster to an existing route to existing domain in the map", func() {
 		It("Returns the map of with a new weighted cluster on a route in the domain", func() {
 
-			weightedCluster := service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-2"), Weight: constants.WildcardClusterWeight}
+			weightedCluster := service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-2"), Weight: constants.ClusterWeightAcceptAll}
 			routePolicy := trafficpolicy.Route{
 				PathRegex: "/update-books-bought",
 				Methods:   []string{"GET"},

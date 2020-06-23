@@ -1,0 +1,7 @@
+apiVersion: policy.openservicemesh.io/v1
+kind: OSMBackpressureConfig
+metadata:
+  name: jonathans-max-requests-per-second
+  namespace: osm-system
+spec:
+  maxRequestsPerConnection: 5

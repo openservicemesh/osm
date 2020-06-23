@@ -75,9 +75,24 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 
 			proxy.SetLastAppliedVersion(typeURL, ackVersion)
 
+			// In the DiscoveryRequest we have a VersionInfo field.
+			// When this is smaller or equal to what we last sent to this proxy - it is
+			// interpreted as an acknoweldgement of a previously sent request.
+			// Such DiscoveryRequest requires no further action.
 			if ackVersion > 0 && ackVersion <= proxy.GetLastSentVersion(typeURL) {
 				log.Debug().Msgf("Request %s VersionInfo (%d) <= last sent VersionInfo (%d); ACK", typeURL, ackVersion, proxy.GetLastSentVersion(typeURL))
 				continue
+			}
+
+			// The version of the config received along with the DiscoveryRequest (ackVersion)
+			// is what the Envoy proxy may be acknowledging. It is acknowledging
+			// and not requesting when the ackVersion is <= what we last sent.
+			// It is possible however for a proxy to have a version that is higher
+			// than what we last sent. (Perhaps the control plane restarted.)
+			// In that case we want to make sure that we send new responses with
+			// VersionInfo incremented starting with the version which the proxy last had.
+			if ackVersion > proxy.GetLastSentVersion(typeURL) {
+				proxy.SetLastSentVersion(typeURL, ackVersion)
 			}
 
 			lastNonce := proxy.GetLastSentNonce(typeURL)

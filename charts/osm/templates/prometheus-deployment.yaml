@@ -17,12 +17,12 @@ spec:
       containers:
       - name: prometheus
         ports:
-        - containerPort: {{.Values.prometheus.port}}
+        - containerPort: {{.Values.OpenServiceMesh.prometheus.port}}
         args:
         - --config.file=/etc/prometheus/prometheus.yml
         - --storage.tsdb.path=/prometheus/
-        - --storage.tsdb.retention.time={{.Values.prometheus.retention.time}}
-        - --web.listen-address=:{{.Values.prometheus.port}}
+        - --storage.tsdb.retention.time={{.Values.OpenServiceMesh.prometheus.retention.time}}
+        - --web.listen-address=:{{.Values.OpenServiceMesh.prometheus.port}}
         image: prom/prometheus:v2.18.1
         imagePullPolicy: Always
         volumeMounts:

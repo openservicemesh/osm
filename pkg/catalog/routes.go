@@ -337,6 +337,6 @@ func getHostHeaderFromRouteHeaders(routeHeaders map[string]string) (string, erro
 func getDefaultWeightedClusterForService(nsService service.NamespacedService) service.WeightedCluster {
 	return service.WeightedCluster{
 		ClusterName: service.ClusterName(nsService.String()),
-		Weight:      constants.WildcardClusterWeight,
+		Weight:      constants.ClusterWeightAcceptAll,
 	}
 }

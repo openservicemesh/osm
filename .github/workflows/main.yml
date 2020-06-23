@@ -2,211 +2,326 @@ name: Go
 on:
   push:
     branches:
-    - master
+      - master
   pull_request:
     branches:
-    - master
+      - master
+env:
+  KUBE_CONFIG: ${{ secrets.KUBECONFIG }}
+  AZURE_SUBSCRIPTION: ${{ secrets.AZURE_SUBSCRIPTION }}
+  CTR_REGISTRY: ${{ secrets.CTR_REGISTRY }}
+  CTR_REGISTRY_CREDS_NAME: ${{ secrets.CTR_REGISTRY_CREDS_NAME }}
+  CTR_TAG: "${{ github.run_id }}-${{ github.run_number}}"
+  KUBECONFIG: ".kube/config"
+  DOCKER_USER: ${{ secrets.DOCKER_USER }}
+  DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
+  CI_WAIT_FOR_OK_SECONDS: 60
+  IS_GITHUB: true
+  ACR: ${{ secrets.ACR }}
+  CI_MAX_WAIT_FOR_POD_TIME_SECONDS: 60
+  CI_MIN_SUCCESS_THRESHOLD: 1
+  OSM_HUMAN_DEBUG_LOG: ${{ secrets.OSM_HUMAN_DEBUG_LOG }}
+
 jobs:
-  build:
-    name: Build
+  info:
+    name: Info Please
     runs-on: ubuntu-latest
     steps:
+      - name: Info Please
+        run: |
+          mkdir -p ".kube"
+          echo "$KUBE_CONFIG" | base64 -d > "$KUBECONFIG"
+          echo -e "OSM_ID: ${OSM_ID}"
+          echo -e "K8S_NAMESPACE: ${K8S_NAMESPACE}"
+          echo -e "\n\n-------------------- Kubernetes Cluster Info --------------------"
+          kubectl cluster-info
+          echo -e "\n\n-------------------- Kubernetes Namespaces --------------------"
+          kubectl get namespaces
+          echo -e "\n\n-------------------- Kubernetes Pods --------------------"
+          kubectl get pods -A
+          echo -e "\n\n-------------------- Docker Images Available --------------------"
+          echo "$DOCKER_PASS" | docker login "$ACR" -u "$DOCKER_USER" --password-stdin
+          docker images $ACR
 
-    - name: Info Please
-      env:
-        ACR: ${{ secrets.ACR }}
-        KUBE_CONFIG: ${{ secrets.KUBECONFIG }}
-        CTR_REGISTRY: ${{ secrets.CTR_REGISTRY }}
-        CTR_REGISTRY_CREDS_NAME: ${{ secrets.CTR_REGISTRY_CREDS_NAME }}
-        CTR_TAG: "${{ github.run_id }}-${{ github.run_number}}"
-        K8S_NAMESPACE: "ci-${{ github.run_id }}-${{ github.run_number}}-tresor"
-        BOOKWAREHOUSE_NAMESPACE: "ci-bookwarehouse-${{ github.run_id }}-${{ github.run_number}}-tresor"
-        BOOKBUYER_NAMESPACE: "ci-bookbuyer-${{ github.run_id }}-${{ github.run_number}}-tresor"
-        BOOKSTORE_NAMESPACE: "ci-bookstore-${{ github.run_id }}-${{ github.run_number}}-tresor"
-        BOOKTHIEF_NAMESPACE: "ci-bookthief-${{ github.run_id }}-${{ github.run_number}}-tresor"
-        OSM_ID: "ci-${{ github.run_id }}-${{ github.run_number}}-tresor" # Same as namespace
-        KUBECONFIG: ".kube/config"
-        DOCKER_USER: ${{ secrets.DOCKER_USER }}
-        DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
-      run: |
-        mkdir -p ".kube"
-        echo "$KUBE_CONFIG" | base64 -d > "$KUBECONFIG"
-        echo -e "OSM_ID: ${OSM_ID}"
-        echo -e "K8S_NAMESPACE: ${K8S_NAMESPACE}"
-        echo -e "\n\n-------------------- Kubernetes Cluster Info --------------------"
-        kubectl cluster-info
-        echo -e "\n\n-------------------- Kubernetes Namespaces --------------------"
-        kubectl get namespaces
-        echo -e "\n\n-------------------- Kubernetes Pods --------------------"
-        kubectl get pods -A
-        echo -e "\n\n-------------------- Docker Images Available --------------------"
-        echo "$DOCKER_PASS" | docker login "$ACR" -u "$DOCKER_USER" --password-stdin
-        docker images $ACR
+  shellcheck:
+    name: Shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: ShellCheck
+        run: shellcheck -x $(find . -name '*.sh')
 
-    - name: Set up Go 1.14
-      uses: actions/setup-go@v1
-      with:
-        go-version: 1.14
-      id: go
+  gofmt:
+    name: Go fmt
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Setup Go 1.14
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.14
+      - name: Go Fmt
+        run: "! gofmt -l . | read"
 
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v1
+  golint:
+    name: Go lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Setup Go 1.14
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.14
+      - name: Go Lint
+        run: |
+          export PATH=$PATH:$(go env GOPATH)/bin
+          go get golang.org/x/lint/golint
+          golint -set_exit_status ./...
 
-    - name: ShellCheck
-      run: shellcheck -x $(find . -name '*.sh')
+  build:
+    name: Go build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Restore Module Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-gomod2-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-gomod2-
+      - name: Restore Build Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/go-build
+          key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}
+      - name: Setup Go 1.14
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.14
+      - name: Go Build
+        run: go build -v ./...
 
-    - name: Get dependencies
-      run: |
-        go get -v -t -d ./...
-        if [ -f Gopkg.toml ]; then
-            curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-            dep ensure
-        fi
+  govet:
+    name: Go vet
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Restore Module Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-gomod2-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-gomod2-
+      - name: Restore Build Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/go-build
+          key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}
+      - name: Setup Go 1.14
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.14
+      - name: Go Vet
+        run: go vet -v ./...
 
-    - name: Lint
-      run: |
-        go get golang.org/x/lint/golint
-        export GOPATH=$HOME/go
-        export GOBIN=$(go env GOPATH)/bin
-        export PATH=$PATH:$GOPATH
-        export PATH=$PATH:$GOBIN
-        golint -set_exit_status ./...
+  unittest:
+    name: Go test
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Restore Module Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-gomod2-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-gomod2-
+      - name: Restore Build Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/go-build
+          key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}
+      - name: Setup Go 1.14
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.14
+      - name: Test
+        run: |
+          export PATH=$PATH:$(go env GOPATH)/bin
+          go get -u github.com/jstemmer/go-junit-report
+          go get -u github.com/axw/gocov/gocov
+          go get -u github.com/AlekSi/gocov-xml
+          go get -u github.com/matm/gocov-html
+          go test -timeout 80s -v -coverprofile=coverage.txt -covermode count ./... | tee testoutput.txt; test ${PIPESTATUS[0]} -eq 0 || { echo "go test returned non-zero exit code"; exit 1; }
+          cat testoutput.txt | go-junit-report > report.xml
+          gocov convert coverage.txt > coverage.json
+          gocov-xml < coverage.json > coverage.xml
+          mkdir coverage
+          gocov-html < coverage.json > coverage/index.html
 
-    - name: Vet
-      run: |
-        if go vet -v ./...; then
-            echo -e "govet SUCCEEDED"
-        else
-            echo -e "govet FAILED"
-            exit 1
-        fi
+  cleanup:
+    name: Cleanup stale CI namespaces
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Restore Module Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-gomod2-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-gomod2-
+      - name: Restore Build Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/go-build
+          key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}
+      - name: Setup Go 1.14
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.14
+      - name: Cleanup stale CI namespaces
+        run: |
+          touch .env  # it is ok keep this empty
+          mkdir -p ".kube"
+          echo "$KUBE_CONFIG" | base64 -d > "$KUBECONFIG"
+          go run ./ci/cmd/cleanup/cleanup-namespaces.go
 
-    - name: Fmt
-      run: "! go fmt ./... 2>&1 | read"
+  docker-build:
+    name: Create Docker images
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Restore Module Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-gomod2-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-gomod2-
+      - name: Restore Build Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/go-build
+          key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}
+      - name: Setup Go 1.14
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.14
+      - name: Create Docker images
+        run: |
+          touch .env  # it is ok keep this empty
+          echo "Creating Kubernetes namespace: $K8S_NAMESPACE"
+          mkdir -p ".kube"
+          echo "$KUBE_CONFIG" | base64 -d > "$KUBECONFIG"
+          echo "$DOCKER_PASS" | docker login "$ACR" -u "$DOCKER_USER" --password-stdin
+          ./demo/build-push-images.sh
 
-    - name: Build
-      run: go build -v ./...
+  integration-tresor:
+    name: Integration Test with Tresor and SMI traffic policies
+    runs-on: ubuntu-latest
+    needs: [info, docker-build]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Restore Module Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-gomod2-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-gomod2-
+      - name: Restore Build Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/go-build
+          key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}
+      - name: Setup Go 1.14
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.14
+        id: go
+      - env:
+          K8S_NAMESPACE: "ci-${{ github.run_id }}-${{ github.run_number}}-tresor"
+          BOOKWAREHOUSE_NAMESPACE: "ci-bookwarehouse-${{ github.run_id }}-${{ github.run_number}}-tresor"
+          BOOKBUYER_NAMESPACE: "ci-bookbuyer-${{ github.run_id }}-${{ github.run_number}}-tresor"
+          BOOKSTORE_NAMESPACE: "ci-bookstore-${{ github.run_id }}-${{ github.run_number}}-tresor"
+          BOOKTHIEF_NAMESPACE: "ci-bookthief-${{ github.run_id }}-${{ github.run_number}}-tresor"
+          OSM_ID: "ci-${{ github.run_id }}-${{ github.run_number}}-tresor" # Same as namespace
+          CERT_MANAGER: "tresor"
+          BOOKTHIEF_EXPECTED_RESPONSE_CODE: "404"
+          BOOKSTORE_SVC: "bookstore-mesh"
+        run: |
+          touch .env  # it is ok keep this empty
+          mkdir -p ".kube"
+          echo "$KUBE_CONFIG" | base64 -d > "$KUBECONFIG"
+          echo "Ensure K8s namespace $K8S_NAMESPACE is clean from previous runs"
+          ./demo/clean-kubernetes.sh
+          echo "Creating Kubernetes namespace: $K8S_NAMESPACE"
+          echo "$DOCKER_PASS" | docker login "$ACR" -u "$DOCKER_USER" --password-stdin
+          ./demo/run-osm-demo.sh
+          go run ./ci/cmd/maestro.go
 
-    - name: Cleanup stale CI namespaces
-      env:
-        KUBE_CONFIG: ${{ secrets.KUBECONFIG }}
-        KUBECONFIG: ".kube/config"
-      run: |
-        touch .env  # it is ok keep this empty
-        mkdir -p ".kube"
-        echo "$KUBE_CONFIG" | base64 -d > "$KUBECONFIG"
-        go run ./ci/cmd/cleanup/cleanup-namespaces.go
-
-    - name: Create Docker images
-      env:
-        KUBE_CONFIG: ${{ secrets.KUBECONFIG }}
-        CTR_REGISTRY: ${{ secrets.CTR_REGISTRY }}
-        CTR_REGISTRY_CREDS_NAME: ${{ secrets.CTR_REGISTRY_CREDS_NAME }}
-        CTR_TAG: "${{ github.run_id }}-${{ github.run_number}}"
-        KUBECONFIG: ".kube/config"
-        DOCKER_USER: ${{ secrets.DOCKER_USER }}
-        DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
-        IS_GITHUB: true
-        ACR: ${{ secrets.ACR }}
-      run: |
-        touch .env  # it is ok keep this empty
-        echo "Creating Kubernetes namespace: $K8S_NAMESPACE"
-        mkdir -p ".kube"
-        echo "$KUBE_CONFIG" | base64 -d > "$KUBECONFIG"
-        echo "$DOCKER_PASS" | docker login "$ACR" -u "$DOCKER_USER" --password-stdin
-        ./demo/build-push-images.sh
-
-    - name: Test with coverage
-      run: |
-        export GOPATH=$HOME/go
-        export GOBIN=$(go env GOPATH)/bin
-        export PATH=$PATH:$GOPATH
-        export PATH=$PATH:$GOBIN
-        go get golang.org/x/lint/golint
-        go get -u github.com/jstemmer/go-junit-report
-        go get -u github.com/axw/gocov/gocov
-        go get -u github.com/AlekSi/gocov-xml
-        go get -u github.com/matm/gocov-html
-        go test -timeout 80s -v -coverprofile=coverage.txt -covermode count ./... | tee testoutput.txt; test ${PIPESTATUS[0]} -eq 0 || { echo "go test returned non-zero exit code"; exit 1; }
-        cat testoutput.txt | go-junit-report > report.xml
-        gocov convert coverage.txt > coverage.json
-        gocov-xml < coverage.json > coverage.xml
-        mkdir coverage
-        gocov-html < coverage.json > coverage/index.html
-
-    - name: Integration Test with Tresor and SMI traffic policies
-      env:
-        KUBE_CONFIG: ${{ secrets.KUBECONFIG }}
-        AZURE_SUBSCRIPTION: ${{ secrets.AZURE_SUBSCRIPTION }}
-        CTR_REGISTRY: ${{ secrets.CTR_REGISTRY }}
-        CTR_REGISTRY_CREDS_NAME: ${{ secrets.CTR_REGISTRY_CREDS_NAME }}
-        CTR_TAG: "${{ github.run_id }}-${{ github.run_number}}"
-        K8S_NAMESPACE: "ci-${{ github.run_id }}-${{ github.run_number}}-tresor"
-        BOOKWAREHOUSE_NAMESPACE: "ci-bookwarehouse-${{ github.run_id }}-${{ github.run_number}}-tresor"
-        BOOKBUYER_NAMESPACE: "ci-bookbuyer-${{ github.run_id }}-${{ github.run_number}}-tresor"
-        BOOKSTORE_NAMESPACE: "ci-bookstore-${{ github.run_id }}-${{ github.run_number}}-tresor"
-        BOOKTHIEF_NAMESPACE: "ci-bookthief-${{ github.run_id }}-${{ github.run_number}}-tresor"
-        OSM_ID: "ci-${{ github.run_id }}-${{ github.run_number}}-tresor" # Same as namespace
-        KUBECONFIG: ".kube/config"
-        DOCKER_USER: ${{ secrets.DOCKER_USER }}
-        DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
-        CI_WAIT_FOR_OK_SECONDS: 60
-        IS_GITHUB: true
-        ACR: ${{ secrets.ACR }}
-        CI_MAX_WAIT_FOR_POD_TIME_SECONDS: 60
-        CI_MIN_SUCCESS_THRESHOLD: 1
-        OSM_HUMAN_DEBUG_LOG: ${{ secrets.OSM_HUMAN_DEBUG_LOG }}
-        CERT_MANAGER: "tresor"
-        BOOKTHIEF_EXPECTED_RESPONSE_CODE: "404"
-        BOOKSTORE_SVC: "bookstore-mesh"
-      run: |
-        touch .env  # it is ok keep this empty
-        echo "Ensure K8s namespace $K8S_NAMESPACE is clean from previous runs"
-        ./demo/clean-kubernetes.sh
-        echo "Creating Kubernetes namespace: $K8S_NAMESPACE"
-        mkdir -p ".kube"
-        echo "$KUBE_CONFIG" | base64 -d > "$KUBECONFIG"
-        echo "$DOCKER_PASS" | docker login "$ACR" -u "$DOCKER_USER" --password-stdin
-        ./demo/run-osm-demo.sh
-        go run ./ci/cmd/maestro.go
-
-    - name: Integration Test with Hashi Vault and Allow-all traffic policy
-      env:
-        KUBE_CONFIG: ${{ secrets.KUBECONFIG }}
-        AZURE_SUBSCRIPTION: ${{ secrets.AZURE_SUBSCRIPTION }}
-        CTR_REGISTRY: ${{ secrets.CTR_REGISTRY }}
-        CTR_REGISTRY_CREDS_NAME: ${{ secrets.CTR_REGISTRY_CREDS_NAME }}
-        CTR_TAG: "${{ github.run_id }}-${{ github.run_number}}"
-        K8S_NAMESPACE: "ci-${{ github.run_id }}-${{ github.run_number}}-hashivault"
-        BOOKWAREHOUSE_NAMESPACE: "ci-bookwarehouse-${{ github.run_id }}-${{ github.run_number}}-hashivault"
-        BOOKBUYER_NAMESPACE: "ci-bookbuyer-${{ github.run_id }}-${{ github.run_number}}-hashivault"
-        BOOKSTORE_NAMESPACE: "ci-bookstore-${{ github.run_id }}-${{ github.run_number}}-hashivault"
-        BOOKTHIEF_NAMESPACE: "ci-bookthief-${{ github.run_id }}-${{ github.run_number}}-hashivault"
-        OSM_ID: "ci-${{ github.run_id }}-${{ github.run_number}}-hashivault" # Same as namespace
-        KUBECONFIG: ".kube/config"
-        DOCKER_USER: ${{ secrets.DOCKER_USER }}
-        DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
-        CI_WAIT_FOR_OK_SECONDS: 60
-        IS_GITHUB: true
-        ACR: ${{ secrets.ACR }}
-        CI_MAX_WAIT_FOR_POD_TIME_SECONDS: 60
-        CI_MIN_SUCCESS_THRESHOLD: 1
-        OSM_HUMAN_DEBUG_LOG: ${{ secrets.OSM_HUMAN_DEBUG_LOG }}
-        CERT_MANAGER: "vault"  # enables Hashi Vault integration
-        VAULT_HOST: "vault.ci-${{ github.run_id }}-${{ github.run_number}}-hashivault.svc.cluster.local"
-        VAULT_PROTOCOL: "http"
-        VAULT_PORT: "8200"
-        VAULT_TOKEN: ${{ secrets.VAULT_TOKEN }}
-        VAULT_ROLE: "open-service-mesh"
-        BOOKTHIEF_EXPECTED_RESPONSE_CODE: "200"
-        BOOKSTORE_SVC: "bookstore-v1"
-      run: |
-        touch .env  # it is ok keep this empty
-        echo "Ensure K8s namespace $K8S_NAMESPACE is clean from previous runs"
-        ./demo/clean-kubernetes.sh
-        echo "Creating Kubernetes namespace: $K8S_NAMESPACE"
-        mkdir -p ".kube"
-        echo "$KUBE_CONFIG" | base64 -d > "$KUBECONFIG"
-        echo "$DOCKER_PASS" | docker login "$ACR" -u "$DOCKER_USER" --password-stdin
-        ./demo/run-osm-demo.sh --disable-smi-access-control-policy
-        go run ./ci/cmd/maestro.go
+  integration-vault:
+    name: Integration Test with Hashi Vault and Allow-all traffic policy
+    runs-on: ubuntu-latest
+    needs: [info, docker-build]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: Restore Module Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-gomod2-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-gomod2-
+      - name: Restore Build Cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/go-build
+          key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}
+      - name: Setup Go 1.14
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.14
+        id: go
+      - env:
+          K8S_NAMESPACE: "ci-${{ github.run_id }}-${{ github.run_number}}-hashivault"
+          BOOKWAREHOUSE_NAMESPACE: "ci-bookwarehouse-${{ github.run_id }}-${{ github.run_number}}-hashivault"
+          BOOKBUYER_NAMESPACE: "ci-bookbuyer-${{ github.run_id }}-${{ github.run_number}}-hashivault"
+          BOOKSTORE_NAMESPACE: "ci-bookstore-${{ github.run_id }}-${{ github.run_number}}-hashivault"
+          BOOKTHIEF_NAMESPACE: "ci-bookthief-${{ github.run_id }}-${{ github.run_number}}-hashivault"
+          OSM_ID: "ci-${{ github.run_id }}-${{ github.run_number}}-hashivault" # Same as namespace
+          CERT_MANAGER: "vault" # enables Hashi Vault integration
+          VAULT_HOST: "vault.ci-${{ github.run_id }}-${{ github.run_number}}-hashivault.svc.cluster.local"
+          VAULT_PROTOCOL: "http"
+          VAULT_PORT: "8200"
+          VAULT_TOKEN: ${{ secrets.VAULT_TOKEN }}
+          VAULT_ROLE: "open-service-mesh"
+          BOOKTHIEF_EXPECTED_RESPONSE_CODE: "200"
+          BOOKSTORE_SVC: "bookstore-v1"
+        run: |
+          touch .env  # it is ok keep this empty
+          mkdir -p ".kube"
+          echo "$KUBE_CONFIG" | base64 -d > "$KUBECONFIG"
+          echo "Ensure K8s namespace $K8S_NAMESPACE is clean from previous runs"
+          ./demo/clean-kubernetes.sh
+          echo "Creating Kubernetes namespace: $K8S_NAMESPACE"
+          echo "$DOCKER_PASS" | docker login "$ACR" -u "$DOCKER_USER" --password-stdin
+          ./demo/run-osm-demo.sh --disable-smi-access-control-policy
+          go run ./ci/cmd/maestro.go
