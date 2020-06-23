@@ -45,6 +45,19 @@ const (
 	// EnvoyAdminCluster is the cluster name for Envoy's Admin
 	EnvoyAdminCluster = "envoy-admin-cluster"
 
+	// EnvoyZipkinCluster is the name of the Zipkin cluster.
+	EnvoyZipkinCluster = "envoy-zipkin-cluster"
+
+	// EnvoyZipkinEndpoint zipkin endpoint.
+	EnvoyZipkinEndpoint = "/api/v2/spans"
+
+	// EnvoyZipkinAddress is the address of the Zipkin server.
+	EnvoyZipkinAddress = "zipkin"
+
+	// EnvoyZipkinPort is the Zipkin port number.
+	// TODO(draychev): Move this to the Config CRD
+	EnvoyZipkinPort = 9411
+
 	// EnvoyPrometheusInboundListenerPort is Envoy's inbound listener port number for prometheus
 	EnvoyPrometheusInboundListenerPort = 15010
 

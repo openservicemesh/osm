@@ -8,6 +8,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
+	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 	"github.com/open-service-mesh/osm/pkg/service"
@@ -15,7 +16,7 @@ import (
 )
 
 // NewResponse creates a new Cluster Discovery Response.
-func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpec, proxy *envoy.Proxy, _ *xds.DiscoveryRequest) (*xds.DiscoveryResponse, error) {
+func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpec, proxy *envoy.Proxy, _ *xds.DiscoveryRequest, config *configurator.Config) (*xds.DiscoveryResponse, error) {
 	svc, err := catalog.GetServiceFromEnvoyCertificate(proxy.GetCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up Service for Envoy with CN=%q", proxy.GetCommonName())
@@ -73,13 +74,26 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpe
 		resp.Resources = append(resp.Resources, marshalledClusters)
 	}
 
-	prometheusCluster := getPrometheusCluster(constants.EnvoyAdminCluster)
-	marshalledCluster, err := ptypes.MarshalAny(&prometheusCluster)
-	if err != nil {
-		log.Error().Err(err).Msgf("Failed to marshal prometheus cluster for proxy %s", proxy.GetCommonName())
-		return nil, err
+	if config.EnablePrometheus {
+		prometheusCluster := getPrometheusCluster(constants.EnvoyAdminCluster)
+		marshalledCluster, err := ptypes.MarshalAny(&prometheusCluster)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to marshal prometheus cluster for proxy %s", proxy.GetCommonName())
+			return nil, err
+		}
+		resp.Resources = append(resp.Resources, marshalledCluster)
 	}
-	resp.Resources = append(resp.Resources, marshalledCluster)
+
+	if config.EnableTracing {
+		zipkinCluster := getZipkinCluster(fmt.Sprintf("%s.%s.svc.cluster.local", "zipkin", config.OSMNamespace))
+		marshalledCluster, err := ptypes.MarshalAny(&zipkinCluster)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to marshal zipkin cluster for proxy %s", proxy.GetCommonName())
+			return nil, err
+		}
+		resp.Resources = append(resp.Resources, marshalledCluster)
+	}
+
 	return resp, nil
 }
 

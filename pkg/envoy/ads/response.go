@@ -9,10 +9,11 @@ import (
 	envoy_service_discovery_v2 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
+	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 )
 
-func (s *Server) sendAllResponses(proxy *envoy.Proxy, server *envoy_service_discovery_v2.AggregatedDiscoveryService_StreamAggregatedResourcesServer) {
+func (s *Server) sendAllResponses(proxy *envoy.Proxy, server *envoy_service_discovery_v2.AggregatedDiscoveryService_StreamAggregatedResourcesServer, config *configurator.Config) {
 	log.Trace().Msgf("A change announcement triggered *DS update for proxy with CN=%s", proxy.GetCommonName())
 	// Order is important: CDS, EDS, LDS, RDS
 	// See: https://github.com/envoyproxy/go-control-plane/issues/59
@@ -31,7 +32,7 @@ func (s *Server) sendAllResponses(proxy *envoy.Proxy, server *envoy_service_disc
 			request = &envoy_api_v2.DiscoveryRequest{TypeUrl: string(typeURI)}
 		}
 
-		discoveryResponse, err := s.newAggregatedDiscoveryResponse(proxy, request)
+		discoveryResponse, err := s.newAggregatedDiscoveryResponse(proxy, request, config)
 		if err != nil {
 			log.Error().Err(err).Msgf("%s Failed to create %s discovery response for proxy with CN=%s", prefix, typeURI, proxy.GetCommonName())
 			continue
@@ -62,7 +63,7 @@ func makeRequestForAllSecrets(proxy *envoy.Proxy, catalog catalog.MeshCataloger)
 	}
 }
 
-func (s *Server) newAggregatedDiscoveryResponse(proxy *envoy.Proxy, request *envoy_api_v2.DiscoveryRequest) (*envoy_api_v2.DiscoveryResponse, error) {
+func (s *Server) newAggregatedDiscoveryResponse(proxy *envoy.Proxy, request *envoy_api_v2.DiscoveryRequest, config *configurator.Config) (*envoy_api_v2.DiscoveryResponse, error) {
 	typeURL := envoy.TypeURI(request.TypeUrl)
 	handler, ok := s.xdsHandlers[typeURL]
 	if !ok {
@@ -78,7 +79,7 @@ func (s *Server) newAggregatedDiscoveryResponse(proxy *envoy.Proxy, request *env
 	}
 
 	log.Trace().Msgf("Invoking handler for %s with request: %+v", typeURL, request)
-	response, err := handler(s.ctx, s.catalog, s.meshSpec, proxy, request)
+	response, err := handler(s.ctx, s.catalog, s.meshSpec, proxy, request, config)
 	if err != nil {
 		log.Error().Msgf("Responder for TypeUrl %s is not implemented", request.TypeUrl)
 		return nil, errCreatingResponse

@@ -27,5 +27,7 @@ OpenServiceMesh:
   serviceCertValidityMinutes: 1
   grafana:
     port: 3000
+  zipkin:
+    port: 9411
   enableDebugServer: false
   disableSMIAccessControlPolicy: false

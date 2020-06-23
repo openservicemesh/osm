@@ -13,6 +13,7 @@ import (
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
 	"github.com/open-service-mesh/osm/pkg/constants"
+	"github.com/open-service-mesh/osm/pkg/envoy"
 )
 
 func getEnvoyConfigYAML(config envoyBootstrapConfigMeta) ([]byte, error) {
@@ -99,6 +100,18 @@ func getEnvoyConfigYAML(config envoyBootstrapConfigMeta) ([]byte, error) {
 							},
 						},
 					},
+				},
+			},
+		},
+
+		"tracing": map[string]interface{}{
+			"http": map[string]interface{}{
+				"name": "envoy.zipkin",
+				"typed_config": map[string]interface{}{
+					"@type":                      envoy.TypeZipkinConfig,
+					"collector_cluster":          constants.EnvoyZipkinCluster,
+					"collector_endpoint":         constants.EnvoyZipkinEndpoint,
+					"collector_endpoint_version": "HTTP_JSON",
 				},
 			},
 		},

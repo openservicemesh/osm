@@ -9,6 +9,8 @@ import (
 	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/google/uuid"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	testclient "k8s.io/client-go/kubernetes/fake"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -16,13 +18,11 @@ import (
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/certificate"
 	"github.com/open-service-mesh/osm/pkg/certificate/providers/tresor"
+	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/constants"
+	"github.com/open-service-mesh/osm/pkg/envoy"
 	"github.com/open-service-mesh/osm/pkg/smi"
 	"github.com/open-service-mesh/osm/pkg/tests"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	testclient "k8s.io/client-go/kubernetes/fake"
-
-	"github.com/open-service-mesh/osm/pkg/envoy"
 )
 
 var _ = Describe("Test ADS response functions", func() {
@@ -82,6 +82,9 @@ var _ = Describe("Test ADS response functions", func() {
 		certPEM, _ := certManager.IssueCertificate(cn, nil)
 		cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())
 		server, actualResponses := tests.NewFakeXDSServer(cert, nil, nil)
+		config := &configurator.Config{
+			OSMNamespace: "-test-namespace-",
+		}
 
 		It("returns Aggregated Discovery Service response", func() {
 			s := Server{
@@ -91,7 +94,7 @@ var _ = Describe("Test ADS response functions", func() {
 				xdsHandlers: getHandlers(),
 			}
 
-			s.sendAllResponses(proxy, &server)
+			s.sendAllResponses(proxy, &server, config)
 
 			Expect(actualResponses).ToNot(BeNil())
 			Expect(len(*actualResponses)).To(Equal(5))

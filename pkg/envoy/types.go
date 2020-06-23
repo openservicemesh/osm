@@ -38,6 +38,9 @@ const (
 	// TypeUpstreamTLSContext is an Envoy type URI.
 	TypeUpstreamTLSContext TypeURI = "type.googleapis.com/envoy.api.v2.auth.UpstreamTlsContext"
 
+	// TypeZipkinConfig is an Envoy type URI.
+	TypeZipkinConfig TypeURI = "type.googleapis.com/envoy.config.trace.v2.ZipkinConfig"
+
 	// TransportSocketTLS is an Envoy string constant.
 	TransportSocketTLS = "envoy.transport_sockets.tls"
 
