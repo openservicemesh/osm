@@ -13,18 +13,15 @@ exit_error() {
     exit 1
 }
 
-wait_for_pod() {
-  # Wait for POD to be ready before deploying the apps.
-  app_label=$1
-  pods=$(kubectl get pods -n "$K8S_NAMESPACE" -l "app=$app_label")
-  if [ ! -z "$pods" ]; then
-    echo "$pods"
-    pod_name="$(kubectl get pods -n "$K8S_NAMESPACE" -l "app=$app_label" -o jsonpath="{.items[0].metadata.name}")"
-    if [ ! -z "$pod_name" ]; then
-      wait_for_pod_ready "$pod_name"
-    fi
+wait_for_osm_pods() {
+  # Wait for OSM pods to be ready before deploying the apps.
+  pods=$(kubectl get pods -n "$K8S_NAMESPACE" -o name | sed 's/^pod\///')
+  if [ -n "$pods" ]; then
+    for pod in $pods; do
+      wait_for_pod_ready "$pod"
+    done
   else
-    exit_error "No Pod found with label app=$app_label"
+    exit_error "No Pods found in namespace $K8S_NAMESPACE"
   fi
 }
 
@@ -142,10 +139,7 @@ else
       $optionalInstallArgs
 fi
 
-wait_for_pod "osm-controller"
-wait_for_pod "osm-prometheus"
-wait_for_pod "osm-grafana"
-wait_for_pod "zipkin"
+wait_for_osm_pods
 
 ./demo/deploy-apps.sh
 
