@@ -38,3 +38,8 @@ func (c Client) IsMonitoredNamespace(namespace string) bool {
 	}
 	return false
 }
+
+// GetOSMNamespace returns the namespace in which the OSM controller pod resides.
+func (c *Client) GetOSMNamespace() string {
+	return c.configCRDNamespace
+}

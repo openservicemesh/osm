@@ -22,7 +22,6 @@ type Config struct {
 	EnableTracing bool
 }
 
-
 // Client is the k8s client struct for the OSMConfig CRD.
 type Client struct {
 	configCRDName      string
@@ -35,5 +34,9 @@ type Client struct {
 
 // Configurator is the controller interface for K8s namespaces
 type Configurator interface {
+	// IsMonitoredNamespace answers the question is the given namespace observed by OSM or not.
 	IsMonitoredNamespace(string) bool
+
+	// GetOSMNamespace returns the namespace in which OSM controller pod resides.
+	GetOSMNamespace() string
 }

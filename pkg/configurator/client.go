@@ -42,7 +42,7 @@ func NewConfigurator(kubeConfig *rest.Config, stop chan struct{}, configCRDNames
 		return ns == configCRDNamespace && name == configCRDName
 	}
 	informer.AddEventHandler(k8s.GetKubernetesEventHandlers("Configurator", "ConfiguratorClient", client.announcements, shouldObserve))
-	return client
+	return &client
 }
 
 // run executes informer collection.

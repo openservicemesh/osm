@@ -2,7 +2,6 @@ package ads
 
 import (
 	"context"
-	"github.com/open-service-mesh/osm/pkg/configurator"
 	"time"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -28,7 +27,7 @@ func NewADSServer(ctx context.Context, meshCatalog catalog.MeshCataloger, meshSp
 		meshSpec:     meshSpec,
 		xdsHandlers:  getHandlers(),
 		enableDebug:  enableDebug,
-		osmNamespace: osmNamespace,
+		osmNamespace: configerator.GetOSMNamespace(),
 	}
 
 	if enableDebug {
