@@ -25,3 +25,22 @@ spec:
   ingresses:
     - "something"
 EOF
+
+
+cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: osm-config
+  namespace: $K8S_NAMESPACE
+data:
+  osm.conf: |
+        logVerbosity: trace
+        namespaces:
+          - "$BOOKWAREHOUSE_NAMESPACE"
+          - "$BOOKBUYER_NAMESPACE"
+          - "$BOOKSTORE_NAMESPACE"
+          - "$BOOKTHIEF_NAMESPACE"
+        ingresses:
+          - "something"
+EOF
