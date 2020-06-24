@@ -24,6 +24,7 @@ func NewIngressClient(kubeClient kubernetes.Interface, namespaceController names
 		cache:               informer.GetStore(),
 		cacheSynced:         make(chan interface{}),
 		announcements:       make(chan interface{}),
+		configurator:        cfg,
 		namespaceController: namespaceController,
 	}
 

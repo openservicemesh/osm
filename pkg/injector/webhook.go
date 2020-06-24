@@ -126,6 +126,7 @@ func (wh *webhook) healthReadyHandler(w http.ResponseWriter, req *http.Request) 
 func (wh *webhook) mutateHandler(w http.ResponseWriter, req *http.Request) {
 	log.Info().Msgf("Request received: Method=%v, URL=%v", req.Method, req.URL)
 
+	// TODO(draychev): move these strings to constants
 	if contentType := req.Header.Get("Content-Type"); contentType != "application/json" {
 		errmsg := fmt.Sprintf("Invalid Content-Type: %q", contentType)
 		http.Error(w, errmsg, http.StatusUnsupportedMediaType)
@@ -145,6 +146,7 @@ func (wh *webhook) mutateHandler(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if len(body) == 0 {
+		// TODO(draychev): explain why we error out
 		errmsg := "Empty request body"
 		http.Error(w, errmsg, http.StatusBadRequest)
 		log.Error().Msgf("Request error: error=%s, code=%v", errmsg, http.StatusBadRequest)
@@ -163,6 +165,7 @@ func (wh *webhook) mutateHandler(w http.ResponseWriter, req *http.Request) {
 	resp, err := json.Marshal(&admissionResp)
 	if err != nil {
 		errmsg := fmt.Sprintf("Error marshalling admission response: %s", err)
+		// TODO(draychev): add {error: explanation} to the body of this
 		http.Error(w, errmsg, http.StatusInternalServerError)
 		log.Error().Msgf("Request error, error=%s, code=%v", errmsg, http.StatusInternalServerError)
 		return
@@ -236,9 +239,9 @@ func (wh *webhook) isNamespaceAllowed(namespace string) bool {
 // The function returns an error when:
 // 1. The value of the POD level sidecar-injection annotation is invalid
 func (wh *webhook) mustInject(pod *corev1.Pod, namespace string) (bool, error) {
-	// If the request belongs to a namespace we are not monitoring, skip it
+	// If the request from a namespace we are not monitoring, skip it
 	if !wh.isNamespaceAllowed(namespace) {
-		log.Info().Msgf("Request belongs to namespace=%s not in the list of monitored namespaces", namespace)
+		log.Info().Msgf("Request from namespace=%s not in the list of monitored namespaces", namespace)
 		return false, nil
 	}
 
@@ -253,7 +256,8 @@ func (wh *webhook) mustInject(pod *corev1.Pod, namespace string) (bool, error) {
 		case "disabled", "no", "false":
 			return false, nil
 		default:
-			return false, fmt.Errorf("Invalid annotion value specified for annotation %q: %s", annotationInject, inject)
+			// TODO(draychev): move to errors.go
+			return false, fmt.Errorf("invalid annotion value specified for annotation %q: %s", annotationInject, inject)
 		}
 	}
 

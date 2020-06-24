@@ -1,11 +1,12 @@
 package kube
 
 import (
+	"github.com/open-service-mesh/osm/pkg/namespace"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/logger"
-	"github.com/open-service-mesh/osm/pkg/namespace"
 )
 
 var (
@@ -32,5 +33,6 @@ type Client struct {
 	kubeClient          kubernetes.Interface
 	informers           *InformerCollection
 	announcements       chan interface{}
+	configurator        configurator.Configurator
 	namespaceController namespace.Controller
 }

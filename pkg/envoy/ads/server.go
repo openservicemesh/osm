@@ -27,7 +27,7 @@ func NewADSServer(ctx context.Context, meshCatalog catalog.MeshCataloger, meshSp
 		meshSpec:     meshSpec,
 		xdsHandlers:  getHandlers(cfg),
 		enableDebug:  enableDebug,
-		osmNamespace: osmNamespace,
+		osmNamespace: cfg.GetOSMNamespace(),
 		cfg:          cfg,
 	}
 

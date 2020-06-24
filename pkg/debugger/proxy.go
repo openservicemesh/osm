@@ -10,7 +10,10 @@ import (
 	"github.com/open-service-mesh/osm/pkg/certificate"
 )
 
-const specificProxyQueryKey = "proxy"
+const (
+	specificProxyQueryKey = "proxy"
+	proxyConfigQueryKey   = "cfg"
+)
 
 func (ds debugServer) getProxies() http.Handler {
 	// This function is needed to convert the list of connected proxies to
@@ -24,12 +27,15 @@ func (ds debugServer) getProxies() http.Handler {
 	}
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if specificProxy, ok := r.URL.Query()[specificProxyQueryKey]; !ok {
+		w.Header().Set("Content-Type", "text/html")
+		if proxyConfigDump, ok := r.URL.Query()[proxyConfigQueryKey]; ok {
+			ds.getConfigDump(certificate.CommonName(proxyConfigDump[0]), w)
+		} else if specificProxy, ok := r.URL.Query()[specificProxyQueryKey]; ok {
+			ds.getProxy(certificate.CommonName(specificProxy[0]), w)
+		} else {
 			printProxies(w, listConnected(), "Connected")
 			printProxies(w, ds.meshCatalogDebugger.ListExpectedProxies(), "Expected")
 			printProxies(w, ds.meshCatalogDebugger.ListDisconnectedProxies(), "Disconnected")
-		} else {
-			ds.getProxy(certificate.CommonName(specificProxy[0]), w)
 		}
 	})
 }
@@ -42,12 +48,25 @@ func printProxies(w http.ResponseWriter, proxies map[certificate.CommonName]time
 
 	sort.Strings(commonNames)
 
-	_, _ = fmt.Fprintf(w, "---| %s Proxies (%d):\n", category, len(proxies))
+	_, _ = fmt.Fprintf(w, "<h1>%s Proxies (%d):</h1>", category, len(proxies))
+	_, _ = fmt.Fprint(w, `<table>`)
+	_, _ = fmt.Fprint(w, "<tr><td>#</td><td>Envoy's certificate CN</td><td>Connected At</td><td>How long ago</td><td>tools</td></tr>")
 	for idx, cn := range commonNames {
 		ts := proxies[certificate.CommonName(cn)]
-		_, _ = fmt.Fprintf(w, "\t%d: \t %s \t %+v \t(%+v ago)\n", idx, cn, ts, time.Since(ts))
+		_, _ = fmt.Fprintf(w, `<tr><td>%d:</td><td>%s</td><td>%+v</td><td>(%+v ago)</td><td><a href="/debug/proxy?%s=%s">certs</a></td><td><a href="/debug/proxy?%s=%s">cfg</a></td></tr>`,
+			idx, cn, ts, time.Since(ts), specificProxyQueryKey, cn, proxyConfigQueryKey, cn)
 	}
-	_, _ = fmt.Fprint(w, "\n")
+	_, _ = fmt.Fprint(w, `</table>`)
+}
+
+func (ds debugServer) getConfigDump(cn certificate.CommonName, w http.ResponseWriter) {
+	pod, err := catalog.GetPodFromCertificate(cn, ds.kubeClient)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error getting Pod from certificate with CN=%s", cn)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	envoyConfig := ds.getEnvoyConfig(pod, cn, "config_dump")
+	_, _ = fmt.Fprintf(w, "%s", envoyConfig)
 }
 
 func (ds debugServer) getProxy(cn certificate.CommonName, w http.ResponseWriter) {
@@ -55,6 +74,7 @@ func (ds debugServer) getProxy(cn certificate.CommonName, w http.ResponseWriter)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error getting Pod from certificate with CN=%s", cn)
 	}
-	envoyConfig := ds.getEnvoyConfig(pod, cn)
-	_, _ = fmt.Fprintf(w, "%s\n", envoyConfig)
+	w.Header().Set("Content-Type", "application/json")
+	envoyConfig := ds.getEnvoyConfig(pod, cn, "certs")
+	_, _ = fmt.Fprintf(w, "%s", envoyConfig)
 }

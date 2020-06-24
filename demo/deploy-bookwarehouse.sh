@@ -67,7 +67,7 @@ EOF
 
 kubectl get pods      --no-headers -o wide --selector app=bookwarehouse -n "$BOOKWAREHOUSE_NAMESPACE"
 kubectl get endpoints --no-headers -o wide --selector app=bookwarehouse -n "$BOOKWAREHOUSE_NAMESPACE"
-kubectl get service                -o wide                          -n "$BOOKWAREHOUSE_NAMESPACE"
+kubectl get service                -o wide                              -n "$BOOKWAREHOUSE_NAMESPACE"
 
 for x in $(kubectl get service -n "$BOOKWAREHOUSE_NAMESPACE" --selector app=bookwarehouse --no-headers | awk '{print $1}'); do
     kubectl get service "$x" -n "$BOOKWAREHOUSE_NAMESPACE" -o jsonpath='{.status.loadBalancer.ingress[*].ip}'

@@ -9,6 +9,7 @@ BOOKSTORE_SVC="${BOOKSTORE_SVC:-bookstore}"
 BOOKTHIEF_EXPECTED_RESPONSE_CODE="${BOOKTHIEF_EXPECTED_RESPONSE_CODE:-503}"
 CI_MAX_ITERATIONS_THRESHOLD="${CI_MAX_ITERATIONS_THRESHOLD:-0}"
 
+kubectl create namespace "$BOOKTHIEF_NAMESPACE" || true
 kubectl delete deployment bookthief -n "$BOOKTHIEF_NAMESPACE"  || true
 
 echo -e "Deploy BookThief demo service"
@@ -18,9 +19,10 @@ kind: ServiceAccount
 metadata:
   name: bookthief
   namespace: $BOOKTHIEF_NAMESPACE
+EOF
 
----
-
+echo -e "Deploy BookThief Service"
+cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: Service
 metadata:
@@ -30,15 +32,15 @@ metadata:
     app: bookthief
 spec:
   ports:
-
-  - port: 9999
-    name: dummy-unused-port
+  - port: 80
+    name: bookthief-port
 
   selector:
     app: bookthief
+EOF
 
----
-
+echo -e "Deploy BookThief Deployment"
+cat <<EOF | kubectl apply -f -
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -56,14 +58,15 @@ spec:
         version: v1
     spec:
       serviceAccountName: bookthief
-
       containers:
         # Main container with APP
         - name: bookthief
           image: "${CTR_REGISTRY}/bookthief:${CTR_TAG}"
           imagePullPolicy: Always
           command: ["/bookthief"]
-
+          ports:
+            - containerPort: 80
+              name: web
           env:
             - name: "BOOKSTORE_NAMESPACE"
               value: "$BOOKSTORE_NAMESPACE"

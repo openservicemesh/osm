@@ -4,6 +4,7 @@ import (
 	extensionsV1beta "k8s.io/api/extensions/v1beta1"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/logger"
 	"github.com/open-service-mesh/osm/pkg/namespace"
 	"github.com/open-service-mesh/osm/pkg/service"
@@ -19,6 +20,7 @@ type Client struct {
 	cache               cache.Store
 	cacheSynced         chan interface{}
 	announcements       chan interface{}
+	configurator        configurator.Configurator
 	namespaceController namespace.Controller
 }
 

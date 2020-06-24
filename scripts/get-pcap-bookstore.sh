@@ -12,7 +12,6 @@ source .env
 
 POD="$(kubectl get pods --selector app=bookstore-v1 -n "$BOOKSTORE_NAMESPACE" --no-headers | grep 'Running' | awk '{print $1}')"
 
-
 kubectl exec -it -n "$BOOKSTORE_NAMESPACE"  \
         "$POD" \
         -c "bookstore-v1" -- \

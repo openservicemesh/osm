@@ -6,9 +6,6 @@ import (
 	"strings"
 
 	mapset "github.com/deckarep/golang-set"
-	k8s "github.com/open-service-mesh/osm/pkg/kubernetes"
-	"github.com/open-service-mesh/osm/pkg/service"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/informers"
@@ -17,7 +14,9 @@ import (
 
 	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
+	k8s "github.com/open-service-mesh/osm/pkg/kubernetes"
 	"github.com/open-service-mesh/osm/pkg/namespace"
+	"github.com/open-service-mesh/osm/pkg/service"
 )
 
 const namespaceSelectorLabel = "app"
@@ -44,6 +43,7 @@ func NewProvider(kubeClient kubernetes.Interface, namespaceController namespace.
 		cacheSynced:         make(chan interface{}),
 		announcements:       make(chan interface{}),
 		namespaceController: namespaceController,
+		configurator:        cfg,
 	}
 
 	shouldObserve := func(obj interface{}) bool {

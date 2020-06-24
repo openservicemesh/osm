@@ -77,8 +77,8 @@ func (wh *webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 	envoySidecarData := EnvoySidecarData{
 		Name:           envoySidecarContainerName,
 		Image:          wh.config.SidecarImage,
-		EnvoyNodeID:    proxyUUID,
-		EnvoyClusterID: proxyUUID, // TODO(draychev)
+		EnvoyNodeID:    fmt.Sprintf("%s", pod.Spec.ServiceAccountName),
+		EnvoyClusterID: fmt.Sprintf("%s", pod.Spec.ServiceAccountName), // TODO(draychev): change this for multicluster
 	}
 	patches = append(patches, addContainer(
 		pod.Spec.Containers,

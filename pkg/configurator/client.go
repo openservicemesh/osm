@@ -14,10 +14,10 @@ import (
 )
 
 const (
-	permissiveTrafficPolicyModeKey = "permissive_traffic_policy_mode"
-	egressKey                      = "egress"
-	prometheusScrapingKey          = "prometheus_scraping"
-	zipkinTracingKey               = "zipkin_tracing"
+	PermissiveTrafficPolicyModeKey = "permissive_traffic_policy_mode"
+	EgressKey                      = "egress"
+	PrometheusScrapingKey          = "prometheus_scraping"
+	ZipkinTracingKey               = "zipkin_tracing"
 )
 
 // NewConfigurator implements configurator.Configurator and creates the Kubernetes client to manage namespaces.
@@ -103,30 +103,30 @@ func (c *Client) getConfigMap() *osmConfig {
 
 	var modeBool bool
 	// Parse PermissiveTrafficPolicyMode
-	modeBool, err = getBoolValueForKey(configMap, permissiveTrafficPolicyModeKey)
+	modeBool, err = getBoolValueForKey(configMap, PermissiveTrafficPolicyModeKey)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting value for key=%s", permissiveTrafficPolicyModeKey)
+		log.Error().Err(err).Msgf("Error getting value for key=%s", PermissiveTrafficPolicyModeKey)
 	}
 	cfg.PermissiveTrafficPolicyMode = modeBool
 
 	// Parse Egress
-	modeBool, err = getBoolValueForKey(configMap, egressKey)
+	modeBool, err = getBoolValueForKey(configMap, EgressKey)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting value for key=%s", egressKey)
+		log.Error().Err(err).Msgf("Error getting value for key=%s", EgressKey)
 	}
 	cfg.Egress = modeBool
 
 	// Parse PrometheusScraping
-	modeBool, err = getBoolValueForKey(configMap, prometheusScrapingKey)
+	modeBool, err = getBoolValueForKey(configMap, PrometheusScrapingKey)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting value for key=%s", prometheusScrapingKey)
+		log.Error().Err(err).Msgf("Error getting value for key=%s", PrometheusScrapingKey)
 	}
 	cfg.PrometheusScraping = modeBool
 
 	// Parse ZipkinTracing
-	modeBool, err = getBoolValueForKey(configMap, zipkinTracingKey)
+	modeBool, err = getBoolValueForKey(configMap, ZipkinTracingKey)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting value for key=%s", zipkinTracingKey)
+		log.Error().Err(err).Msgf("Error getting value for key=%s", ZipkinTracingKey)
 	}
 	cfg.ZipkinTracing = modeBool
 

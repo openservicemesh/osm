@@ -24,7 +24,7 @@ const (
 func NewClient(kubeClient kubernetes.Interface, azureResourceKubeConfig *rest.Config, namespaceController namespace.Controller, stop chan struct{}, cfg configurator.Configurator) *Client {
 	azureResourceClient := osmClient.NewForConfigOrDie(azureResourceKubeConfig)
 
-	k8sClient := newClient(kubeClient, azureResourceClient, namespaceController)
+	k8sClient := newClient(kubeClient, azureResourceClient, namespaceController, cfg)
 	if err := k8sClient.Run(stop); err != nil {
 		log.Fatal().Err(err).Msgf("Could not start %s client", kubernetesClientName)
 	}
@@ -32,7 +32,7 @@ func NewClient(kubeClient kubernetes.Interface, azureResourceKubeConfig *rest.Co
 }
 
 // newClient creates a provider based on a Kubernetes client instance.
-func newClient(kubeClient kubernetes.Interface, azureResourceClient *osmClient.Clientset, namespaceController namespace.Controller) *Client {
+func newClient(kubeClient kubernetes.Interface, azureResourceClient *osmClient.Clientset, namespaceController namespace.Controller, cfg configurator.Configurator) *Client {
 	azureResourceFactory := osmInformers.NewSharedInformerFactory(azureResourceClient, k8s.DefaultKubeEventResyncInterval)
 	informerCollection := InformerCollection{
 		AzureResource: azureResourceFactory.Osm().V1().AzureResources().Informer(),
@@ -49,6 +49,7 @@ func newClient(kubeClient kubernetes.Interface, azureResourceClient *osmClient.C
 		caches:              &cacheCollection,
 		cacheSynced:         make(chan interface{}),
 		announcements:       make(chan interface{}),
+		configurator:        cfg,
 		namespaceController: namespaceController,
 	}
 

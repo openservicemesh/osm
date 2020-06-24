@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	v1 "k8s.io/api/core/v1"
+
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
@@ -30,7 +32,26 @@ import (
 var _ = Describe("CDS Response", func() {
 	kubeClient := testclient.NewSimpleClientset()
 	catalog := catalog.NewFakeMeshCatalog(kubeClient)
-	cfg := configurator.NewFakeConfigurator()
+
+	stop := make(<-chan struct{})
+	osmNamespace := "-test-osm-namespace-"
+	osmConfigMapName := "-test-osm-config-map-"
+	configMap := v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: osmNamespace,
+			Name:      osmConfigMapName,
+		},
+		Data: map[string]string{
+			configurator.PermissiveTrafficPolicyModeKey: "false",
+			configurator.EgressKey:                      "true",
+			configurator.PrometheusScrapingKey:          "true",
+			configurator.ZipkinTracingKey:               "true",
+		},
+	}
+	_, _ = kubeClient.CoreV1().ConfigMaps(osmNamespace).Create(context.TODO(), &configMap, metav1.CreateOptions{})
+
+	cfg := configurator.NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
+
 	proxyServiceName := tests.BookbuyerServiceName
 	proxyServiceAccountName := tests.BookbuyerServiceAccountName
 	proxyService := tests.BookbuyerService
@@ -79,6 +100,7 @@ var _ = Describe("CDS Response", func() {
 			// 5. Passthrough cluster for egress
 			numExpectedClusters := 5 // source and destination clusters
 			Expect(len((*resp).Resources)).To(Equal(numExpectedClusters))
+			Expect(len((*resp).Resources)).To(Equal(numExpectedClusters), fmt.Sprintf("Expected %d items; Actual: %+v", numExpectedClusters, (*resp).Resources))
 		})
 	})
 

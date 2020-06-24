@@ -17,6 +17,7 @@ import (
 
 const (
 	connectionTimeout time.Duration = 1 * time.Second
+	backpressureFlag                = true // TODO use configurator when ConfigMap stuff is ready
 )
 
 func getServiceClusterLocal(catalog catalog.MeshCataloger, proxyServiceName service.NamespacedService, clusterName string) (*xds.Cluster, error) {

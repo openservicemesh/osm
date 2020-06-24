@@ -11,7 +11,7 @@ import (
 	"github.com/open-service-mesh/osm/pkg/certificate"
 )
 
-func (ds debugServer) getEnvoyConfig(pod *v1.Pod, cn certificate.CommonName) string {
+func (ds debugServer) getEnvoyConfig(pod *v1.Pod, cn certificate.CommonName, url string) string {
 	log.Info().Msgf("Getting Envoy config for CN=%s, podIP=%s", cn, pod.Status.PodIP)
 
 	minPort := 16000
@@ -28,7 +28,7 @@ func (ds debugServer) getEnvoyConfig(pod *v1.Pod, cn certificate.CommonName) str
 	<-portFwdRequest.Ready
 
 	client := &http.Client{}
-	resp, err := client.Get(fmt.Sprintf("http://%s:%d/certs", "localhost", portFwdRequest.LocalPort))
+	resp, err := client.Get(fmt.Sprintf("http://%s:%d/%s", "localhost", portFwdRequest.LocalPort, url))
 	if err != nil {
 		log.Error().Err(err).Msgf("Error getting pod with CN=%s and podIP=%s", cn, pod.Status.PodIP)
 		return fmt.Sprintf("Error: %s", err)

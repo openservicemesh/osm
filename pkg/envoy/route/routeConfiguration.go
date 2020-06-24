@@ -208,7 +208,7 @@ func getDistinctWeightedClusters(routePolicyWeightedClustersMap map[string]traff
 }
 
 func getTotalWeightForClusters(weightedClusters set.Set) int {
-	var totalWeight int
+	totalWeight := 0
 	for clusterInterface := range weightedClusters.Iter() {
 		cluster := clusterInterface.(service.WeightedCluster)
 		totalWeight += cluster.Weight
