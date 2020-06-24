@@ -145,6 +145,7 @@ fi
 wait_for_pod "osm-controller"
 wait_for_pod "osm-prometheus"
 wait_for_pod "osm-grafana"
+wait_for_pod "zipkin"
 
 ./demo/deploy-apps.sh
 
