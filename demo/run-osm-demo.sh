@@ -5,6 +5,8 @@ set -aueo pipefail
 # shellcheck disable=SC1091
 source .env
 IS_GITHUB="${IS_GITHUB:-false}"
+MESH_NAME="${MESH_NAME:-osm}"
+
 optionalInstallArgs=$*
 
 exit_error() {
@@ -89,6 +91,8 @@ bin/osm check --pre-install --namespace "$K8S_NAMESPACE"
 # The demo uses osm's namespace as defined by environment variables, K8S_NAMESPACE
 # to house the control plane components.
 kubectl create namespace "$K8S_NAMESPACE"
+
+./demo/deploy-osmconfig.sh
 
 echo "Certificate Manager in use: $CERT_MANAGER"
 if [ "$CERT_MANAGER" = "vault" ]; then

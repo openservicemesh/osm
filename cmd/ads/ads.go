@@ -16,6 +16,7 @@ import (
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/debugger"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
@@ -122,7 +123,9 @@ func main() {
 	stop := signals.RegisterExitHandlers()
 
 	namespaceController := namespace.NewNamespaceController(kubeConfig, meshName, stop)
-	meshSpec := smi.NewMeshSpecClient(kubeConfig, osmNamespace, namespaceController, stop)
+	cfg := configurator.NewConfigurator(stop, osmNamespace)
+
+	meshSpec := smi.NewMeshSpecClient(kubeConfig, namespaceController, cfg, stop)
 
 	certManager, certDebugger := certManagers[certificateManagerKind(*certManagerKind)](kubeConfig, enableDebugServer)
 
@@ -138,16 +141,16 @@ func main() {
 	}
 
 	endpointsProviders := []endpoint.Provider{
-		kube.NewProvider(kubeConfig, namespaceController, stop, constants.KubeProviderName),
+		kube.NewProvider(kubeConfig, namespaceController, cfg, stop, constants.KubeProviderName),
 	}
 
 	if azureAuthFile != "" {
-		azureResourceClient := azureResource.NewClient(kubeConfig, namespaceController, stop)
+		azureResourceClient := azureResource.NewClient(kubeConfig, namespaceController, cfg, stop)
 		endpointsProviders = append(endpointsProviders, azure.NewProvider(
 			*azureSubscriptionID, azureAuthFile, stop, meshSpec, azureResourceClient, constants.AzureProviderName))
 	}
 
-	ingressClient, err := ingress.NewIngressClient(kubeConfig, namespaceController, stop)
+	ingressClient, err := ingress.NewIngressClient(kubeConfig, namespaceController, cfg, stop)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to initialize ingress client")
 	}
@@ -158,15 +161,17 @@ func main() {
 		certManager,
 		ingressClient,
 		stop,
+		cfg,
 		endpointsProviders...)
 
 	// Create the sidecar-injector webhook
-	if err := injector.NewWebhook(injectorConfig, kubeConfig, certManager, meshCatalog, namespaceController, meshName, osmNamespace, webhookName, stop); err != nil {
+	if err := injector.NewWebhook(injectorConfig, kubeConfig, certManager, meshCatalog, namespaceController, cfg, meshName, webhookName, stop); err != nil {
+
 		log.Fatal().Err(err).Msg("Error creating mutating webhook")
 	}
 
 	// TODO(draychev): there should be no need to pass meshSpec to the ADS - it is already in meshCatalog
-	xdsServer := ads.NewADSServer(ctx, meshCatalog, meshSpec, enableDebugServer, osmNamespace)
+	xdsServer := ads.NewADSServer(ctx, meshCatalog, meshSpec, enableDebugServer, cfg)
 
 	// TODO(draychev): we need to pass this hard-coded string is a CLI argument (https://github.com/open-service-mesh/osm/issues/542)
 	validityPeriod := constants.XDSCertificateValidityPeriod
@@ -187,7 +192,7 @@ func main() {
 	// Expose /debug endpoints and data only if the enableDebugServer flag is enabled
 	var debugServer debugger.DebugServer
 	if enableDebugServer {
-		debugServer = debugger.NewDebugServer(certDebugger, xdsServer, meshCatalog, kubeConfig)
+		debugServer = debugger.NewDebugServer(certDebugger, xdsServer, meshCatalog, kubeConfig, cfg)
 	}
 	httpServer := httpserver.NewHTTPServer(xdsServer, metricsStore, constants.MetricsServerPort, debugServer)
 	httpServer.Start()

@@ -18,7 +18,6 @@ var _ = Describe("Test MutatingWebhookConfiguration patch", func() {
 		//cert := tresor.Certificate{}
 		cert := mockCertificate{}
 		meshName := "--meshName--"
-		osmNamespace := "--namespace--"
 		webhookName := "--webhookName--"
 		//TODO:seed a test webhook
 		testWebhookServiceNamespace := "test-namespace"
@@ -58,7 +57,7 @@ var _ = Describe("Test MutatingWebhookConfiguration patch", func() {
 		})
 
 		It("patches a webhook", func() {
-			err := patchMutatingWebhookConfiguration(cert, meshName, osmNamespace, webhookName, kubeClient)
+			err := patchMutatingWebhookConfiguration(cert, meshName, webhookName, kubeClient)
 			Expect(err).ToNot(HaveOccurred())
 
 		})

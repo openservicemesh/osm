@@ -8,6 +8,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/logger"
 	"github.com/open-service-mesh/osm/pkg/namespace"
 	"github.com/open-service-mesh/osm/pkg/service"
@@ -40,8 +41,8 @@ type Client struct {
 	providerIdent       string
 	informers           *InformerCollection
 	announcements       chan interface{}
-	osmNamespace        string
 	namespaceController namespace.Controller
+	configurator        configurator.Configurator
 }
 
 // ClientIdentity is the identity of an Envoy proxy connected to the Open Service Mesh.

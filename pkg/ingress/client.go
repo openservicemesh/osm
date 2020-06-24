@@ -9,13 +9,14 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/open-service-mesh/osm/pkg/configurator"
 	k8s "github.com/open-service-mesh/osm/pkg/kubernetes"
 	"github.com/open-service-mesh/osm/pkg/namespace"
 	"github.com/open-service-mesh/osm/pkg/service"
 )
 
 // NewIngressClient implements ingress.Monitor and creates the Kubernetes client to monitor Ingress resources.
-func NewIngressClient(kubeConfig *rest.Config, namespaceController namespace.Controller, stop chan struct{}) (Monitor, error) {
+func NewIngressClient(kubeConfig *rest.Config, namespaceController namespace.Controller, cfg configurator.Configurator, stop chan struct{}) (Monitor, error) {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 
 	informerFactory := informers.NewSharedInformerFactory(kubeClient, k8s.DefaultKubeEventResyncInterval)
@@ -27,6 +28,7 @@ func NewIngressClient(kubeConfig *rest.Config, namespaceController namespace.Con
 		cacheSynced:         make(chan interface{}),
 		announcements:       make(chan interface{}),
 		namespaceController: namespaceController,
+		configurator:        cfg,
 	}
 
 	shouldObserve := func(obj interface{}) bool {

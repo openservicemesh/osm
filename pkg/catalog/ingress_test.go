@@ -13,6 +13,7 @@ import (
 	testclient "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/open-service-mesh/osm/pkg/certificate/providers/tresor"
+	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/ingress"
@@ -42,7 +43,8 @@ func newFakeMeshCatalog() *MeshCatalog {
 	stop := make(<-chan struct{})
 	var endpointProviders []endpoint.Provider
 	kubeClient := testclient.NewSimpleClientset()
-	return NewMeshCatalog(kubeClient, meshSpec, certManager, ingressMonitor, stop, endpointProviders...)
+	cfg := configurator.NewFakeConfigurator()
+	return NewMeshCatalog(kubeClient, meshSpec, certManager, ingressMonitor, stop, cfg, endpointProviders...)
 }
 
 func getFakeIngresses() []*extensionsV1beta.Ingress {

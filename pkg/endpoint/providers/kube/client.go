@@ -6,9 +6,6 @@ import (
 	"strings"
 
 	mapset "github.com/deckarep/golang-set"
-	k8s "github.com/open-service-mesh/osm/pkg/kubernetes"
-	"github.com/open-service-mesh/osm/pkg/service"
-
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/informers"
@@ -16,15 +13,17 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
-
+	k8s "github.com/open-service-mesh/osm/pkg/kubernetes"
 	"github.com/open-service-mesh/osm/pkg/namespace"
+	"github.com/open-service-mesh/osm/pkg/service"
 )
 
 const namespaceSelectorLabel = "app"
 
 // NewProvider implements mesh.EndpointsProvider, which creates a new Kubernetes cluster/compute provider.
-func NewProvider(kubeConfig *rest.Config, namespaceController namespace.Controller, stop chan struct{}, providerIdent string) *Client {
+func NewProvider(kubeConfig *rest.Config, namespaceController namespace.Controller, cfg configurator.Configurator, stop chan struct{}, providerIdent string) *Client {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 	informerFactory := informers.NewSharedInformerFactory(kubeClient, k8s.DefaultKubeEventResyncInterval)
 
@@ -46,6 +45,7 @@ func NewProvider(kubeConfig *rest.Config, namespaceController namespace.Controll
 		cacheSynced:         make(chan interface{}),
 		announcements:       make(chan interface{}),
 		namespaceController: namespaceController,
+		configurator:        cfg,
 	}
 
 	shouldObserve := func(obj interface{}) bool {

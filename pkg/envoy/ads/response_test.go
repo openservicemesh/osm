@@ -88,10 +88,11 @@ var _ = Describe("Test ADS response functions", func() {
 
 		It("returns Aggregated Discovery Service response", func() {
 			s := Server{
-				ctx:         context.TODO(),
-				catalog:     mc,
-				meshSpec:    smi.NewFakeMeshSpecClient(),
-				xdsHandlers: getHandlers(),
+				ctx:          context.TODO(),
+				catalog:      mc,
+				meshSpec:     smi.NewFakeMeshSpecClient(),
+				xdsHandlers:  getHandlers(),
+				configurator: configurator.NewFakeConfigurator(),
 			}
 
 			s.sendAllResponses(proxy, &server, config)

@@ -4,6 +4,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/logger"
 	"github.com/open-service-mesh/osm/pkg/namespace"
 )
@@ -33,4 +34,5 @@ type Client struct {
 	informers           *InformerCollection
 	announcements       chan interface{}
 	namespaceController namespace.Controller
+	configurator        configurator.Configurator
 }

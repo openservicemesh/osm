@@ -1,6 +1,7 @@
 package rds
 
 import (
+	"github.com/open-service-mesh/osm/pkg/configurator"
 	"time"
 
 	set "github.com/deckarep/golang-set"
@@ -133,7 +134,8 @@ var _ = Describe("RDS Response", func() {
 	kubeClient := testclient.NewSimpleClientset()
 	cache := make(map[certificate.CommonName]certificate.Certificater)
 	certManager := tresor.NewFakeCertManager(&cache, 1*time.Hour)
-	meshCatalog := catalog.NewMeshCatalog(kubeClient, smi.NewFakeMeshSpecClient(), certManager, ingress.NewFakeIngressMonitor(), make(<-chan struct{}), endpointProviders...)
+	cfg := configurator.NewFakeConfigurator()
+	meshCatalog := catalog.NewMeshCatalog(kubeClient, smi.NewFakeMeshSpecClient(), certManager, ingress.NewFakeIngressMonitor(), make(<-chan struct{}), cfg, endpointProviders...)
 
 	Context("Test GetDomainsForService", func() {
 		It("returns domain for service from traffic split", func() {

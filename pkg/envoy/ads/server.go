@@ -20,14 +20,14 @@ import (
 )
 
 // NewADSServer creates a new Aggregated Discovery Service server
-func NewADSServer(ctx context.Context, meshCatalog catalog.MeshCataloger, meshSpec smi.MeshSpec, enableDebug bool, osmNamespace string) *Server {
+func NewADSServer(ctx context.Context, meshCatalog catalog.MeshCataloger, meshSpec smi.MeshSpec, enableDebug bool, cfg configurator.Configurator) *Server {
 	server := Server{
 		catalog:      meshCatalog,
 		ctx:          ctx,
 		meshSpec:     meshSpec,
 		xdsHandlers:  getHandlers(),
 		enableDebug:  enableDebug,
-		osmNamespace: osmNamespace,
+		configurator: cfg,
 	}
 
 	if enableDebug {

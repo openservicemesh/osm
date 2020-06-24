@@ -26,5 +26,5 @@ type Server struct {
 	xdsHandlers  map[envoy.TypeURI]func(context.Context, catalog.MeshCataloger, smi.MeshSpec, *envoy.Proxy, *xds.DiscoveryRequest, *configurator.Config) (*xds.DiscoveryResponse, error)
 	xdsLog       map[certificate.CommonName]map[envoy.TypeURI][]time.Time
 	enableDebug  bool
-	osmNamespace string
+	configurator configurator.Configurator
 }

@@ -59,6 +59,15 @@ spec:
               scheme: HTTPS
               path: /health/ready
               port: 9090
+
+          volumeMounts:
+          - name: config-volume
+            mountPath: /etc/config
+
+      volumes:
+        - name: config-volume
+          configMap:
+            name: osm-config
     {{- with .Values.OpenServiceMesh.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}

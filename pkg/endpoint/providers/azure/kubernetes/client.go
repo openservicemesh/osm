@@ -10,6 +10,7 @@ import (
 	osm "github.com/open-service-mesh/osm/pkg/apis/azureresource/v1"
 	k8s "github.com/open-service-mesh/osm/pkg/kubernetes"
 
+	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/namespace"
 	osmClient "github.com/open-service-mesh/osm/pkg/osm_client/clientset/versioned"
 	osmInformers "github.com/open-service-mesh/osm/pkg/osm_client/informers/externalversions"
@@ -20,11 +21,11 @@ const (
 )
 
 // NewClient creates the Kubernetes client, which retrieves the AzureResource CRD and Services resources.
-func NewClient(kubeConfig *rest.Config, namespaceController namespace.Controller, stop chan struct{}) *Client {
+func NewClient(kubeConfig *rest.Config, namespaceController namespace.Controller, cfg configurator.Configurator, stop chan struct{}) *Client {
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 	azureResourceClient := osmClient.NewForConfigOrDie(kubeConfig)
 
-	k8sClient := newClient(kubeClient, azureResourceClient, namespaceController)
+	k8sClient := newClient(kubeClient, azureResourceClient, namespaceController, cfg)
 	if err := k8sClient.Run(stop); err != nil {
 		log.Fatal().Err(err).Msgf("Could not start %s client", kubernetesClientName)
 	}
@@ -32,7 +33,7 @@ func NewClient(kubeConfig *rest.Config, namespaceController namespace.Controller
 }
 
 // newClient creates a provider based on a Kubernetes client instance.
-func newClient(kubeClient *kubernetes.Clientset, azureResourceClient *osmClient.Clientset, namespaceController namespace.Controller) *Client {
+func newClient(kubeClient *kubernetes.Clientset, azureResourceClient *osmClient.Clientset, namespaceController namespace.Controller, cfg configurator.Configurator) *Client {
 	azureResourceFactory := osmInformers.NewSharedInformerFactory(azureResourceClient, k8s.DefaultKubeEventResyncInterval)
 	informerCollection := InformerCollection{
 		AzureResource: azureResourceFactory.Osm().V1().AzureResources().Informer(),
@@ -50,6 +51,7 @@ func newClient(kubeClient *kubernetes.Clientset, azureResourceClient *osmClient.
 		cacheSynced:         make(chan interface{}),
 		announcements:       make(chan interface{}),
 		namespaceController: namespaceController,
+		configurator:        cfg,
 	}
 
 	shouldObserve := func(obj interface{}) bool {

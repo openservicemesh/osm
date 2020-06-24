@@ -2,8 +2,9 @@ package ads
 
 import (
 	"context"
-	"github.com/open-service-mesh/osm/pkg/configurator"
 	"strconv"
+
+	"github.com/open-service-mesh/osm/pkg/configurator"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
@@ -45,7 +46,7 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 
 	// TODO(draychev): create this struct with data from the OSM Config CRD when that is ready.
 	config := &configurator.Config{
-		OSMNamespace:     s.osmNamespace,
+		OSMNamespace:     s.configurator.GetOSMNamespace(),
 		EnablePrometheus: true,
 		EnableTracing:    true,
 	}

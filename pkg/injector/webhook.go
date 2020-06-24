@@ -21,6 +21,7 @@ import (
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/namespace"
 )
@@ -41,8 +42,8 @@ const (
 )
 
 // NewWebhook starts a new web server handling requests from the injector MutatingWebhookConfiguration
-func NewWebhook(config Config, kubeConfig *rest.Config, certManager certificate.Manager, meshCatalog catalog.MeshCataloger, namespaceController namespace.Controller, meshName, osmNamespace, webhookName string, stop <-chan struct{}) error {
-	cn := certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.OSMControllerName, osmNamespace))
+func NewWebhook(config Config, kubeConfig *rest.Config, certManager certificate.Manager, meshCatalog catalog.MeshCataloger, namespaceController namespace.Controller, cfg configurator.Configurator, meshName, webhookName string, stop <-chan struct{}) error {
+	cn := certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.OSMControllerName, cfg.GetOSMNamespace()))
 	validityPeriod := constants.XDSCertificateValidityPeriod
 	cert, err := certManager.IssueCertificate(cn, &validityPeriod)
 	if err != nil {
@@ -56,13 +57,13 @@ func NewWebhook(config Config, kubeConfig *rest.Config, certManager certificate.
 		certManager:         certManager,
 		meshCatalog:         meshCatalog,
 		namespaceController: namespaceController,
-		osmNamespace:        osmNamespace,
+		configurator:        cfg,
 		cert:                cert,
 	}
 
 	go wh.run(stop)
 
-	err = patchMutatingWebhookConfiguration(cert, meshName, osmNamespace, webhookName, wh.kubeClient)
+	err = patchMutatingWebhookConfiguration(cert, meshName, webhookName, wh.kubeClient)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error configuring MutatingWebhookConfiguration")
 	}
@@ -236,9 +237,9 @@ func (wh *webhook) isNamespaceAllowed(namespace string) bool {
 // The function returns an error when:
 // 1. The value of the POD level sidecar-injection annotation is invalid
 func (wh *webhook) mustInject(pod *corev1.Pod, namespace string) (bool, error) {
-	// If the request belongs to a namespace we are not monitoring, skip it
+	// If the request from a namespace we are not monitoring, skip it
 	if !wh.isNamespaceAllowed(namespace) {
-		log.Info().Msgf("Request belongs to namespace=%s not in the list of monitored namespaces", namespace)
+		log.Info().Msgf("Request from namespace=%s not in the list of monitored namespaces", namespace)
 		return false, nil
 	}
 
@@ -278,7 +279,7 @@ func patchAdmissionResponse(resp *v1beta1.AdmissionResponse, patchBytes []byte) 
 	}()
 }
 
-func patchMutatingWebhookConfiguration(cert certificate.Certificater, meshName, osmNamespace, webhookName string, clientSet kubernetes.Interface) error {
+func patchMutatingWebhookConfiguration(cert certificate.Certificater, meshName, webhookName string, clientSet kubernetes.Interface) error {
 	if err := hookExists(clientSet, webhookName); err != nil {
 		log.Error().Err(err).Msgf("Error getting webhook %s", webhookName)
 	}

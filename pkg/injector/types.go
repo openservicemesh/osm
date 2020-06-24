@@ -5,6 +5,7 @@ import (
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/logger"
 	"github.com/open-service-mesh/osm/pkg/namespace"
 )
@@ -25,7 +26,7 @@ type webhook struct {
 	certManager         certificate.Manager
 	meshCatalog         catalog.MeshCataloger
 	namespaceController namespace.Controller
-	osmNamespace        string
+	configurator        configurator.Configurator
 	cert                certificate.Certificater
 }
 
