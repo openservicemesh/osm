@@ -19,14 +19,11 @@ This command is equivalent to installing the osm control plane using the OSM CLI
 | certManager | string | `"tresor"` | Certificate manager to use (tresor or vault) |
 | disableSMIAccessControlPolicy | bool | `false` | Disable SMI access control policy |
 | enableDebugServer | bool | `false` | Enable the debug HTTP server |
-| features.ingressv1alpha1.enabled | bool | `true` | Ingress enabled |
 | grafana.port | int | `3000` | Grafana port |
 | image.pullPolicy | string | `"Always"` | osm-controller image pull policy |
 | image.registry | string | `"smctest.azurecr.io"` |  osm-controller image registry |
 | image.tag | string | `"latest"` | osm-controller image tag |
 | imagePullSecrets[0].name | string | `"acr-creds"` | osm-controller image pull secrets |
-| initContainer | string | `"smctest.azurecr.io/init"` | init container image |
-| name | string | `"ads"` |  osm-controller pod name |
 | prometheus.port | int | `7070` | Prometheus port |
 | prometheus.retention.time | string | `"15d"` | Prometheus retention time |
 | replicaCount | int | `1` | replica count |

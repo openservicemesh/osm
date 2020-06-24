@@ -6,11 +6,9 @@ rules:
   - apiGroups: ["apps"]
     resources: ["daemonsets", "deployments", "replicasets", "statefulsets"]
     verbs: ["list", "get", "watch"]
-{{- if .Values.OpenServiceMesh.features.ingressv1alpha1.enabled }}
   - apiGroups: ["extensions"]
     resources: ["ingresses"]
     verbs: ["list", "get", "watch"]
-{{- end }}
   - apiGroups: ["batch"]
     resources: ["jobs"]
     verbs: ["list", "get", "watch"]
