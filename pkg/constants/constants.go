@@ -43,7 +43,7 @@ const (
 	LocalhostIPAddress = "127.0.0.1"
 
 	// EnvoyMetricsCluster is the cluster name of the Prometheus metrics cluster
-	EnvoyMetricsCluster = "envoy-admin-cluster"
+	EnvoyMetricsCluster = "envoy-metrics-cluster"
 
 	// EnvoyZipkinCluster is the name of the Zipkin cluster.
 	EnvoyZipkinCluster = "envoy-zipkin-cluster"
