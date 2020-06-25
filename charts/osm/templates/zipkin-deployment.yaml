@@ -19,3 +19,10 @@ spec:
         image: openzipkin/zipkin:2.21.4
         ports:
         - containerPort: {{.Values.OpenServiceMesh.grafana.port}}
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512M
+          requests:
+            cpu: 100m
+            memory: 256M

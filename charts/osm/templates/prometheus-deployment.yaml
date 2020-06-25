@@ -25,6 +25,13 @@ spec:
         - --web.listen-address=:{{.Values.OpenServiceMesh.prometheus.port}}
         image: prom/prometheus:v2.18.1
         imagePullPolicy: Always
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512M
+          requests:
+            cpu: 100m
+            memory: 256M
         volumeMounts:
         - mountPath: /etc/prometheus/
           name: prometheus-config-volume

@@ -21,6 +21,13 @@ spec:
         - name: grafana
           image: "grafana/grafana:7.0.1"
           imagePullPolicy: Always
+          resources:
+            limits:
+              cpu: 500m
+              memory: 128M
+            requests:
+              cpu: 100m
+              memory: 64M
           volumeMounts:
             - name: osm-grafana-config
               mountPath: "/etc/grafana/grafana.ini"
