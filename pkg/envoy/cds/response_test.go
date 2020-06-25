@@ -139,7 +139,7 @@ var _ = Describe("CDS Response", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			expectedClusterLoadAssignment := &xds.ClusterLoadAssignment{
-				ClusterName: "envoy-admin-cluster",
+				ClusterName: constants.EnvoyMetricsCluster,
 				Endpoints: []*envoy_api_v2_endpoint.LocalityLbEndpoints{
 					{
 						Locality: nil,
@@ -272,8 +272,8 @@ var _ = Describe("CDS Response", func() {
 			}
 			expectedCluster := xds.Cluster{
 				TransportSocketMatches: nil,
-				Name:                   "envoy-admin-cluster",
-				AltStatName:            "envoy-admin-cluster",
+				Name:                   constants.EnvoyMetricsCluster,
+				AltStatName:            constants.EnvoyMetricsCluster,
 				ClusterDiscoveryType:   &xds.Cluster_Type{Type: xds.Cluster_STATIC},
 				EdsClusterConfig:       nil,
 				ConnectTimeout:         ptypes.DurationProto(1 * time.Second),
