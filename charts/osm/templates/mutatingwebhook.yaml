@@ -3,7 +3,7 @@ kind: MutatingWebhookConfiguration
 metadata:
   labels:
     app: osm-controller
-  name: osm-webhook-{{.Release.Name}}
+  name: osm-webhook-{{.Values.OpenServiceMesh.meshName}}
 webhooks:
 - name: osm-inject.k8s.io
   clientConfig:
@@ -16,4 +16,4 @@ webhooks:
   matchPolicy: Exact
   namespaceSelector:
     matchLabels:
-      openservicemesh.io/monitor: {{.Release.Name}}
+      openservicemesh.io/monitored-by: {{.Values.OpenServiceMesh.meshName}}

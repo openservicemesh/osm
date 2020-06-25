@@ -4,6 +4,7 @@ metadata:
   name: osm-controller
   labels:
     app: osm-controller
+    meshName: {{ .Values.OpenServiceMesh.meshName }}
 spec:
   replicas: {{ .Values.OpenServiceMesh.replicaCount }}
   selector:
@@ -28,10 +29,10 @@ spec:
           args: [
             "--verbosity", "trace",
             "--osmNamespace", "{{.Release.Namespace}}",
-            "--osmID", "{{.Release.Namespace}}",
+            "--meshName", "{{.Values.OpenServiceMesh.meshName}}",
             "--init-container-image", "{{.Values.OpenServiceMesh.image.registry}}/init:{{ .Values.OpenServiceMesh.image.tag }}",
             "--sidecar-image", "{{.Values.OpenServiceMesh.sidecarImage}}",
-            "--webhookName", "osm-webhook-{{.Release.Namespace}}",
+            "--webhookName", "osm-webhook-{{.Values.OpenServiceMesh.meshName}}",
             "--caBundleSecretName", "osm-ca-bundle",
             "--certmanager", "{{.Values.OpenServiceMesh.certManager}}",
             "--vaultHost", "{{.Values.OpenServiceMesh.vault.host}}",

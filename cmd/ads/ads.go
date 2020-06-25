@@ -45,7 +45,7 @@ const (
 
 var (
 	verbosity                  string
-	osmID                      string // An ID that uniquely identifies an OSM instance
+	meshName                   string // An ID that uniquely identifies an OSM instance
 	azureAuthFile              string
 	kubeConfigFile             string
 	osmNamespace               string
@@ -80,7 +80,7 @@ var (
 
 func init() {
 	flags.StringVar(&verbosity, "verbosity", "info", "Set log verbosity level")
-	flags.StringVar(&osmID, "osmID", "", "OSM instance ID")
+	flags.StringVar(&meshName, "meshName", "", "OSM mesh name")
 	flags.StringVar(&azureAuthFile, "azureAuthFile", "", "Path to Azure Auth File")
 	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file.")
 	flags.StringVar(&osmNamespace, "osmNamespace", "", "Namespace to which OSM belongs to.")
@@ -121,7 +121,7 @@ func main() {
 
 	stop := signals.RegisterExitHandlers()
 
-	namespaceController := namespace.NewNamespaceController(kubeConfig, osmID, stop)
+	namespaceController := namespace.NewNamespaceController(kubeConfig, meshName, stop)
 	meshSpec := smi.NewMeshSpecClient(kubeConfig, osmNamespace, namespaceController, stop)
 
 	certManager, certDebugger := certManagers[certificateManagerKind(*certManagerKind)](kubeConfig, enableDebugServer)
@@ -161,7 +161,7 @@ func main() {
 		endpointsProviders...)
 
 	// Create the sidecar-injector webhook
-	if err := injector.NewWebhook(injectorConfig, kubeConfig, certManager, meshCatalog, namespaceController, osmID, osmNamespace, webhookName, stop); err != nil {
+	if err := injector.NewWebhook(injectorConfig, kubeConfig, certManager, meshCatalog, namespaceController, meshName, osmNamespace, webhookName, stop); err != nil {
 		log.Fatal().Err(err).Msg("Error creating mutating webhook")
 	}
 
