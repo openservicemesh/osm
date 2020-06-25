@@ -42,8 +42,8 @@ const (
 	// LocalhostIPAddress is the local host address.
 	LocalhostIPAddress = "127.0.0.1"
 
-	// EnvoyAdminCluster is the cluster name for Envoy's Admin
-	EnvoyAdminCluster = "envoy-admin-cluster"
+	// EnvoyMetricsCluster is the cluster name of the Prometheus metrics cluster
+	EnvoyMetricsCluster = "envoy-admin-cluster"
 
 	// EnvoyZipkinCluster is the name of the Zipkin cluster.
 	EnvoyZipkinCluster = "envoy-zipkin-cluster"

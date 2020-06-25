@@ -9,7 +9,6 @@ import (
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/configurator"
-	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 	"github.com/open-service-mesh/osm/pkg/service"
 	"github.com/open-service-mesh/osm/pkg/smi"
@@ -75,7 +74,7 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpe
 	}
 
 	if config.EnablePrometheus {
-		prometheusCluster := getPrometheusCluster(constants.EnvoyAdminCluster)
+		prometheusCluster := getPrometheusCluster()
 		marshalledCluster, err := ptypes.MarshalAny(&prometheusCluster)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed to marshal prometheus cluster for proxy %s", proxy.GetCommonName())

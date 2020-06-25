@@ -101,7 +101,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	}
 
 	// Build Prometheus listener config
-	prometheusConnManager := getPrometheusConnectionManager(prometheusListenerName, constants.PrometheusScrapePath, constants.EnvoyAdminCluster)
+	prometheusConnManager := getPrometheusConnectionManager(prometheusListenerName, constants.PrometheusScrapePath, constants.EnvoyMetricsCluster)
 	prometheusListener, err := buildPrometheusListener(prometheusConnManager)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error building Prometheus listener config for proxy %s", proxyServiceName)
