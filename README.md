@@ -28,7 +28,7 @@ Read more about the high level goals, design and architecture [here](DESIGN.md).
 
 To on-board a service to the OSM managed service mesh, OSM first needs to be configured to monitor the namespace the service belongs to. This can be done by labeling the namespace with the mesh name as follows.
 ```
-$ kubectl label namespace <namespace> openservicemesh.io/monitor=<mesh-name>
+$ kubectl label namespace <namespace> openservicemesh.io/monitored-by=<mesh-name>
 ```
 The `mesh-name` is a unique ID for an OSM instance generated during OSM install.
 
@@ -46,7 +46,7 @@ Currently OSM only supports automatic sidecar injection for newly created PODs. 
 #### Un-managing namespaces
 To stop OSM from monitoring a namespace, remove the monitoring label from the namespace.
 ```
-$ kubectl label namespace <namespace> openservicemesh.io/monitor-
+$ kubectl label namespace <namespace> openservicemesh.io/monitored-by-
 ```
 
 [1]: https://en.wikipedia.org/wiki/Service_mesh

@@ -15,7 +15,7 @@ import (
 
 const (
 	// MonitorLabel is the annotation label used to indicate whether a namespace should be monitored by OSM.
-	MonitorLabel = "openservicemesh.io/monitor"
+	MonitorLabel = "openservicemesh.io/monitored-by"
 )
 
 var (

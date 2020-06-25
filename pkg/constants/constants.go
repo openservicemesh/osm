@@ -92,7 +92,7 @@ const (
 	WildcardHTTPMethod = "*"
 
 	// OSMKubeResourceMonitorAnnotation is the key of the annotation used to monitor a K8s resource
-	OSMKubeResourceMonitorAnnotation = "openservicemesh.io/monitor"
+	OSMKubeResourceMonitorAnnotation = "openservicemesh.io/monitored-by"
 
 	// KubernetesOpaqueSecretCAKey is the key which holds the CA bundle in a Kubernetes secret.
 	KubernetesOpaqueSecretCAKey = "ca.crt"

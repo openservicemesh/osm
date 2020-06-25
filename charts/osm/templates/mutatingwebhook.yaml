@@ -16,4 +16,4 @@ webhooks:
   matchPolicy: Exact
   namespaceSelector:
     matchLabels:
-      openservicemesh.io/monitor: {{.Values.OpenServiceMesh.meshName}}
+      openservicemesh.io/monitored-by: {{.Values.OpenServiceMesh.meshName}}

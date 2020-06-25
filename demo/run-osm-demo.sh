@@ -105,7 +105,7 @@ fi
 
 for ns in "$BOOKWAREHOUSE_NAMESPACE" "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE"; do
     kubectl create namespace "$ns"
-    kubectl label  namespaces "$ns" openservicemesh.io/monitor="$MESH_NAME"
+    kubectl label  namespaces "$ns" openservicemesh.io/monitored-by="$MESH_NAME"
 done
 
 # Apply SMI policies
