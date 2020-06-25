@@ -30,7 +30,7 @@ To on-board a service to the OSM managed service mesh, OSM first needs to be con
 ```
 $ kubectl label namespace <namespace> openservicemesh.io/monitored-by=<mesh-name>
 ```
-The `mesh-name` is a unique ID for an OSM instance generated during OSM install.
+The `mesh-name` is a unique identifier assigned to an osm-controller instance during install to identify and manage manage a mesh instance.
 
 After a namespace is labeled for monitoring, new services deployed in a monitored namespace will be a part of the service mesh and OSM will perform automatic sidecar injection for newly created PODs in that namespace.
 
