@@ -21,7 +21,7 @@ package externalversions
 import (
 	"fmt"
 
-	v1 "github.com/open-service-mesh/osm/experimental/pkg/apis/osmbackpressureconfig/v1"
+	v1alpha1 "github.com/open-service-mesh/osm/experimental/pkg/apis/policy/v1alpha1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -52,9 +52,9 @@ func (f *genericInformer) Lister() cache.GenericLister {
 // TODO extend this to unknown resources with a client pool
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
-	// Group=osmbackpressureconfig.openservicemesh.io, Version=v1
-	case v1.SchemeGroupVersion.WithResource("osmbackpressureconfigs"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Osmbackpressureconfig().V1().OSMBackpressureConfigs().Informer()}, nil
+	// Group=policy.openservicemesh.io, Version=v1alpha1
+	case v1alpha1.SchemeGroupVersion.WithResource("backpressures"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Policy().V1alpha1().Backpressures().Informer()}, nil
 
 	}
 

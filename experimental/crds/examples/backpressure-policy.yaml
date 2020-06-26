@@ -1,0 +1,7 @@
+apiVersion: policy.openservicemesh.io/v1alpha1
+kind: Backpressure
+metadata:
+  name: max-requests-per-second
+  namespace: test
+spec:
+  maxRequestsPerConnection: 5

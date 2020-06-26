@@ -20,8 +20,8 @@ package fake
 
 import (
 	clientset "github.com/open-service-mesh/osm/experimental/pkg/client/clientset/versioned"
-	osmbackpressureconfigv1 "github.com/open-service-mesh/osm/experimental/pkg/client/clientset/versioned/typed/osmbackpressureconfig/v1"
-	fakeosmbackpressureconfigv1 "github.com/open-service-mesh/osm/experimental/pkg/client/clientset/versioned/typed/osmbackpressureconfig/v1/fake"
+	policyv1alpha1 "github.com/open-service-mesh/osm/experimental/pkg/client/clientset/versioned/typed/policy/v1alpha1"
+	fakepolicyv1alpha1 "github.com/open-service-mesh/osm/experimental/pkg/client/clientset/versioned/typed/policy/v1alpha1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -76,7 +76,7 @@ func (c *Clientset) Tracker() testing.ObjectTracker {
 
 var _ clientset.Interface = &Clientset{}
 
-// OsmbackpressureconfigV1 retrieves the OsmbackpressureconfigV1Client
-func (c *Clientset) OsmbackpressureconfigV1() osmbackpressureconfigv1.OsmbackpressureconfigV1Interface {
-	return &fakeosmbackpressureconfigv1.FakeOsmbackpressureconfigV1{Fake: &c.Fake}
+// PolicyV1alpha1 retrieves the PolicyV1alpha1Client
+func (c *Clientset) PolicyV1alpha1() policyv1alpha1.PolicyV1alpha1Interface {
+	return &fakepolicyv1alpha1.FakePolicyV1alpha1{Fake: &c.Fake}
 }
