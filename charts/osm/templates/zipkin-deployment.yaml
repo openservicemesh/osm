@@ -18,7 +18,7 @@ spec:
       - name: zipkin
         image: openzipkin/zipkin:2.21.4
         ports:
-        - containerPort: {{.Values.OpenServiceMesh.grafana.port}}
+        - containerPort: {{.Values.OpenServiceMesh.zipkin.port}}
         resources:
           limits:
             cpu: 500m
