@@ -23,7 +23,7 @@ Features of OSM:
 1. Secure service to service communication by enabling mTLS
 1. Define and execute fine grained access control policies for services
 1. Observability and insights into application metrics for debugging and monitoring services
-1. Integrate with external external certificate management services/solutions with a pluggable interface.
+1. Integrate with external certificate management services/solutions with a pluggable interface.
 1. Onboard applications onto the mesh by enabling automatic sidecar injection of Envoy proxy.
 
 _Note: This project is a work in progress. See the [demo instructions](demo/README.md) to get a sense of what we've accomplished and are working on._
