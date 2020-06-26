@@ -23,6 +23,7 @@ type InformerCollection struct {
 	TrafficSplit  cache.SharedIndexInformer
 	TrafficSpec   cache.SharedIndexInformer
 	TrafficTarget cache.SharedIndexInformer
+	Backpressure  cache.SharedIndexInformer
 }
 
 // CacheCollection is a struct of the Kubernetes caches used in OSM
@@ -31,6 +32,7 @@ type CacheCollection struct {
 	TrafficSplit  cache.Store
 	TrafficSpec   cache.Store
 	TrafficTarget cache.Store
+	Backpressure  cache.Store
 }
 
 // Client is a struct for all components necessary to connect to and maintain state of a Kubernetes cluster.
