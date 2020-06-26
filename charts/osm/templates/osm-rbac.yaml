@@ -38,6 +38,9 @@ rules:
   - apiGroups: ["specs.smi-spec.io"]
     resources: ["httproutegroups"]
     verbs: ["list", "get", "watch"]
+  - apiGroups: ["policy.openservicemesh.io"]
+    resources: ["backpressures"]
+    verbs: ["list", "get", "watch"]
 ---
 apiVersion: v1
 kind: ServiceAccount
