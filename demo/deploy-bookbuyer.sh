@@ -5,6 +5,7 @@ set -auexo pipefail
 # shellcheck disable=SC1091
 source .env
 BOOKSTORE_SVC="${BOOKSTORE_SVC:-bookstore-mesh}"
+CI_MAX_ITERATIONS_THRESHOLD="${CI_MAX_ITERATIONS_THRESHOLD:-0}"
 
 kubectl create namespace "$BOOKBUYER_NAMESPACE" || true
 kubectl delete deployment bookbuyer -n "$BOOKBUYER_NAMESPACE"  || true
@@ -73,6 +74,8 @@ spec:
               value: "true"
             - name: "BOOKSTORE_SVC"
               value: "$BOOKSTORE_SVC"
+            - name: "CI_MAX_ITERATIONS_THRESHOLD"
+              value: "$CI_MAX_ITERATIONS_THRESHOLD"
 
       imagePullSecrets:
         - name: "$CTR_REGISTRY_CREDS_NAME"
