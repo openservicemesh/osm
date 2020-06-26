@@ -14,7 +14,7 @@ import (
 var (
 	sleepDurationBetweenRequestsSecondsStr = GetEnv("CI_SLEEP_BETWEEN_REQUESTS_SECONDS", "3")
 	minSuccessThresholdStr                 = GetEnv("CI_MIN_SUCCESS_THRESHOLD", "1")
-	maxIterationsStr                       = GetEnv("CI_MAX_ITERATIONS_THRESHOLD", "30")
+	maxIterationsStr                       = GetEnv("CI_MAX_ITERATIONS_THRESHOLD", "0") // 0 for unlimited
 	bookstoreServiceName                   = GetEnv("BOOKSTORE_SVC", "bookstore-mesh")
 	bookstoreNamespace                     = os.Getenv(BookstoreNamespaceEnvVar)
 	warehouseServiceName                   = "bookwarehouse"
@@ -101,6 +101,7 @@ func GetBooks(participantName string, expectedResponseCode int) {
 	previouslySucceeded := false
 
 	for {
+		timedOut := maxIterations > 0 && iteration >= maxIterations
 		iteration++
 
 		fmt.Printf("\n\n--- %s:[ %d ] -----------------------------------------\n", participantName, iteration)
@@ -121,7 +122,7 @@ func GetBooks(participantName string, expectedResponseCode int) {
 			if previouslySucceeded && allUrlsSucceeded(urlSuccessMap) {
 				successCount++
 				goalReached := successCount >= minSuccessThreshold
-				if goalReached {
+				if goalReached && !timedOut {
 					// Sending this string to STDOUT will inform the CI Maestro that this is a succeeded;
 					// Maestro will stop tailing logs.
 					fmt.Println(Success)
@@ -139,9 +140,9 @@ func GetBooks(participantName string, expectedResponseCode int) {
 			previouslySucceeded = allUrlsSucceeded(urlSuccessMap)
 		}
 
-		if iteration >= maxIterations {
+		if timedOut {
 			// We are over budget!
-			fmt.Printf("Did not get expected response (%d) in %d iterations (max allowed)\n\n", expectedResponseCode, iteration)
+			fmt.Printf("Threshold of %d iterations exceeded\n\n", maxIterations)
 			fmt.Print(Failure)
 		}
 
