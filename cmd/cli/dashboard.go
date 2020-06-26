@@ -44,13 +44,15 @@ type dashboardCmd struct {
 	localPort   uint16
 	remotePort  uint16
 	openBrowser bool
+	sigintChan  chan os.Signal // Allows interacting with the command from outside
 }
 
 func newDashboardCmd(config *action.Configuration, out io.Writer) *cobra.Command {
 
 	dash := &dashboardCmd{
-		out:    out,
-		config: config,
+		out:        out,
+		config:     config,
+		sigintChan: make(chan os.Signal, 1),
 	}
 	cmd := &cobra.Command{
 		Use:   "dashboard",
@@ -68,13 +70,13 @@ func newDashboardCmd(config *action.Configuration, out io.Writer) *cobra.Command
 }
 
 // Creates an spdy-upgraded http stream handler
-func createDialer(conf *rest.Config, clientSet v1.CoreV1Interface, podName string) httpstream.Dialer {
+func createDialer(conf *rest.Config, v1ClientSet v1.CoreV1Interface, podName string) httpstream.Dialer {
 	roundTripper, upgrader, err := spdy.RoundTripperFor(conf)
 	if err != nil {
 		panic(err)
 	}
 
-	serverURL := clientSet.RESTClient().Post().
+	serverURL := v1ClientSet.RESTClient().Post().
 		Resource("pods").
 		Namespace(settings.Namespace()).
 		Name(podName).
@@ -94,10 +96,10 @@ func (d *dashboardCmd) run() error {
 
 	// Get v1 interface to our cluster. Do or die trying
 	clientSet := kubernetes.NewForConfigOrDie(conf)
-	v1If := clientSet.CoreV1()
+	v1ClientSet := clientSet.CoreV1()
 
 	// Get Grafana service data
-	svc, err := v1If.Services(settings.Namespace()).
+	svc, err := v1ClientSet.Services(settings.Namespace()).
 		Get(context.TODO(), grafanaServiceName, metav1.GetOptions{})
 
 	if err != nil {
@@ -107,25 +109,29 @@ func (d *dashboardCmd) run() error {
 	// Select pod/s given the service data available
 	set := labels.Set(svc.Spec.Selector)
 	listOptions := metav1.ListOptions{LabelSelector: set.AsSelector().String()}
-	pods, err := v1If.Pods(settings.Namespace()).
+	pods, err := v1ClientSet.Pods(settings.Namespace()).
 		List(context.TODO(), listOptions)
 
-	// This is not accurate. There might be a better way to get
-	// exact number of running state pods
-	nPods := len(pods.Items)
-	if nPods < 1 {
-		log.Println("Could not find any Grafana running pod for OSM")
-		return nil
-	} else if nPods > 1 {
-		log.Println("More than one Grafana running pod detected. Arbitrarily picking first.")
+	// Will select first running Pod available
+	it := 0
+	for {
+		if pods.Items[it].Status.Phase == "Running" {
+			break
+		}
+
+		it++
+		if it == len(pods.Items) {
+			log.Fatalf("No running Grafana pod available.")
+		}
 	}
 
 	// Build http spdy-upgraded handler
-	dialer := createDialer(conf, v1If, pods.Items[0].GetName())
+	dialer := createDialer(conf, v1ClientSet, pods.Items[it].GetName())
 
 	// StopChan is used to understand the lifecycle of the forwarding blocking op
 	// ReadyChan signals when the connection has been established and forwarding is in place
-	stopChan, readyChan := make(chan struct{}, 1), make(chan struct{}, 1)
+	stopChan := make(chan struct{}, 1)
+	readyChan := make(chan struct{}, 1)
 	out, errOut := new(bytes.Buffer), new(bytes.Buffer)
 
 	forwardStr := fmt.Sprintf("%d:%d", d.localPort, d.remotePort)
@@ -142,15 +148,14 @@ func (d *dashboardCmd) run() error {
 	}
 
 	// Binding SIGINT & SIGTERM to trigger the closing routine
-	sigintCh := make(chan os.Signal, 1)
-	signal.Notify(sigintCh, syscall.SIGINT, syscall.SIGTERM)
+	signal.Notify(d.sigintChan, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
-		<-sigintCh // Blocking
+		<-d.sigintChan // Blocking
 		log.Println("[+] SIGINT/TERM recieved, closing")
 		close(stopChan)
 	}()
 
-	// This routine gets triggered when the forwarding is up and running
+	// This routine blocks on readyChan til forwarding is setup and ready.
 	go func() {
 		select {
 		case <-readyChan:
@@ -159,7 +164,7 @@ func (d *dashboardCmd) run() error {
 		log.Printf("[+] Port forwarding successful (localhost:%d)\n", d.localPort)
 		if d.openBrowser {
 			url := fmt.Sprintf("http://localhost:%d", d.localPort)
-			log.Printf("[+] Opening browser %s\n", url)
+			log.Printf("[+] Issuing open browser %s\n", url)
 			browser.OpenURL(url)
 		}
 	}()
