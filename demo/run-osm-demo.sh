@@ -103,10 +103,7 @@ else
     ./ci/create-osm-container-registry-creds.sh
 fi
 
-for ns in "$BOOKWAREHOUSE_NAMESPACE" "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE"; do
-    kubectl create namespace "$ns"
-    kubectl label  namespaces "$ns" openservicemesh.io/monitored-by="$MESH_NAME"
-done
+./demo/configure-app-namespaces.sh
 
 # Deploys Xds and Prometheus
 echo "Certificate Manager in use: $CERT_MANAGER"
