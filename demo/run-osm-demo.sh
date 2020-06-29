@@ -77,10 +77,10 @@ make build-osm
 
 if [[ "$IS_GITHUB" != "true" ]]; then
     # In Github CI we always use a new namespace - so this is not necessary
-    bin/osm admin delete-osm --namespace "$K8S_NAMESPACE" || true
+    bin/osm mesh delete "$MESH_NAME" --namespace "$K8S_NAMESPACE" || true
     ./demo/clean-kubernetes.sh
 else
-    bin/osm admin delete-osm --namespace "$K8S_NAMESPACE" || true
+    bin/osm mesh delete "$MESH_NAME" --namespace "$K8S_NAMESPACE" || true
 fi
 
 # Run pre-install checks to make sure OSM can be installed in the current kubectl context.
