@@ -3,9 +3,11 @@ on:
   push:
     branches:
       - master
+      - experimental
   pull_request:
     branches:
       - master
+      - experimental
 env:
   KUBE_CONFIG: ${{ secrets.KUBECONFIG }}
   AZURE_SUBSCRIPTION: ${{ secrets.AZURE_SUBSCRIPTION }}
