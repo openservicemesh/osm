@@ -173,7 +173,7 @@ func (i *installCmd) run(installClient *helm.Install, loadKubeconfig bool) error
 		return err
 	}
 
-	fmt.Fprintf(i.out, "OSM installed successfully in %s namespace\n", settings.Namespace())
+	fmt.Fprintf(i.out, "OSM installed successfully in namespace [%s] with mesh name [%s]\n", settings.Namespace(), i.meshName)
 	return nil
 }
 
