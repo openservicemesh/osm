@@ -108,11 +108,6 @@ for ns in "$BOOKWAREHOUSE_NAMESPACE" "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPAC
     kubectl label  namespaces "$ns" openservicemesh.io/monitored-by="$MESH_NAME"
 done
 
-# Apply SMI policies
-./demo/deploy-traffic-split.sh
-./demo/deploy-traffic-spec.sh
-./demo/deploy-traffic-target.sh
-
 # Deploys Xds and Prometheus
 echo "Certificate Manager in use: $CERT_MANAGER"
 if [ "$CERT_MANAGER" = "vault" ]; then
@@ -140,6 +135,12 @@ else
       --enable-debug-server \
       $optionalInstallArgs
 fi
+
+# Apply SMI policies
+./demo/deploy-traffic-split.sh
+./demo/deploy-traffic-spec.sh
+./demo/deploy-traffic-target.sh
+
 
 wait_for_osm_pods
 
