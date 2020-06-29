@@ -4,7 +4,7 @@ metadata:
   name: traffictargets.access.smi-spec.io
 spec:
   group: access.smi-spec.io
-  scope: Namespaced 
+  scope: Namespaced
   names:
     kind: TrafficTarget
     shortNames:
@@ -27,7 +27,6 @@ spec:
           required:
             - name
             - kind
-            - port
           properties:
             kind:
               description: Kind of the destination.

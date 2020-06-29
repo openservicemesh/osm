@@ -5,8 +5,6 @@ set -aueo pipefail
 # shellcheck disable=SC1091
 source .env
 
-kubectl apply -f https://raw.githubusercontent.com/deislabs/smi-sdk-go/v0.3.0/crds/specs.yaml
-
 echo "Create Bookstore HTTPRouteGroup"
 kubectl apply -f - <<EOF
 apiVersion: specs.smi-spec.io/v1alpha2
