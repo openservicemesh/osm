@@ -1,21 +1,21 @@
-package v1
+package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// OSMBackpressureConfig is ...
+// Backpressure is ...
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-type OSMBackpressureConfig struct {
+type Backpressure struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec OSMBackpressureConfigSpec `json:"spec"`
+	Spec BackpressureSpec `json:"spec"`
 }
 
-// OSMBackpressureConfigSpec is ...
-type OSMBackpressureConfigSpec struct {
+// BackpressureSpec is ...
+type BackpressureSpec struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
@@ -23,12 +23,12 @@ type OSMBackpressureConfigSpec struct {
 	MaxRequestsPerConnection int32 `json:"maxrequestsperconnection,omitempty"`
 }
 
-// OSMBackpressureConfigList is ...
+// BackpressureList is ...
 //+k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-type OSMBackpressureConfigList struct {
+type BackpressureList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata"`
 
-	// Items is the list of OSMBackpressureConfig
-	Items []OSMBackpressureConfig `json:"items"`
+	// Items is the list of Backpressure
+	Items []Backpressure `json:"items"`
 }

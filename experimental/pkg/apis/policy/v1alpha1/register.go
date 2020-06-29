@@ -1,8 +1,8 @@
 // +k8s:deepcopy-gen=package,register
-// +groupName=osmbackpressureconfig.openservicemesh.io
+// +groupName=policy.openservicemesh.io
 
-// Package v1 contains API Schema definitions for the OSMBackpressureConfig v1 API group
-package v1
+// Package v1alpha1 contains API Schema definitions for the policy.openservicemesh.io v1alpha1 API group
+package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -13,8 +13,8 @@ import (
 var (
 	// SchemeGroupVersion is group version used to register these objects
 	SchemeGroupVersion = schema.GroupVersion{
-		Group:   "openservicemesh.io",
-		Version: "v1",
+		Group:   "policy.openservicemesh.io",
+		Version: "v1alpha1",
 	}
 
 	// SchemeBuilder is used to add go types to the GroupVersionKind scheme
@@ -37,8 +37,8 @@ func Resource(resource string) schema.GroupResource {
 // Adds the list of known types to Scheme.
 func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
-		&OSMBackpressureConfig{},
-		&OSMBackpressureConfigList{},
+		&Backpressure{},
+		&BackpressureList{},
 	)
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
 	return nil
