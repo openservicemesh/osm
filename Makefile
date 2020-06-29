@@ -82,6 +82,14 @@ build-bookstore:
 	@mkdir -p $(shell pwd)/demo/bin
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ./demo/bin/bookstore ./demo/cmd/bookstore/bookstore.go
 
+.PHONY: run-bookstore
+run-bookstore:
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 OSM_ENABLE_DEBUG=true go run ./demo/cmd/bookstore/bookstore.go --path="./demo/"
+
+.PHONY: run-bookbuyer
+run-bookbuyer:
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 OSM_ENABLE_DEBUG=true go run ./demo/cmd/bookbuyer/bookbuyer.go --path="./demo/"
+
 .PHONY: build-bookwarehouse
 build-bookwarehouse:
 	@rm -rf $(shell pwd)/demo/bin
