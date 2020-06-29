@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bookthief
+  namespace: bookthief-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bookthief
+  template:
+    metadata:
+      labels:
+        app: bookthief
+        version: v1
+    spec:
+      serviceAccountName: bookthief-serviceaccount
+      automountServiceAccountToken: false
+
+      containers:
+        # Main container with APP
+        - name: bookthief
+          image: "smctest.azurecr.io/bookthief:latest"
+          imagePullPolicy: Always
+          command: ["/bookthief"]
+
+          env:
+            - name: "BOOKSTORE_NAMESPACE"
+              value: bookstore-ns
+            - name: "OSM_HUMAN_DEBUG_LOG"
+              value: "true"
+            - name: "BOOKSTORE_SVC"
+              value: bookstore-v1
+            - name: "BOOKTHIEF_EXPECTED_RESPONSE_CODE"
+              value: "404"
+            - name: "CI_MAX_ITERATIONS_THRESHOLD"
+              value: "1"
+
+      imagePullSecrets:
+        - name: acr-creds

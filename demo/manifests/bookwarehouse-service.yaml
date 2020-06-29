@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: bookwarehouse
+  namespace: bookwarehouse-ns-1
+  labels:
+    app: bookwarehouse
+spec:
+  ports:
+  - port: 8080
+    name: bookwarehouse-port
+  selector:
+    app: bookwarehouse

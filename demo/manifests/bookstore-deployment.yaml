@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bookstore-v1
+  namespace: bookstore-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bookstore-v1
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: bookstore-v1
+        version: v1
+      annotations:
+        "openservicemesh.io/sidecar-injection": "enabled" #TODO remove
+    spec:
+      serviceAccountName: "bookstore-v1-serviceaccount"
+      automountServiceAccountToken: false
+      containers:
+        - image: "smctest.azurecr.io/bookstore:latest"
+          imagePullPolicy: Always
+          name: bookstore-v1
+          ports:
+            - containerPort: 8080
+              name: web
+          command: ["/bookstore"]
+          args: ["--path", "./", "--port", "8080"]
+          env:
+            - name: IDENTITY
+              value: bookstore-v1-12345
+            - name: BOOKWAREHOUSE_NAMESPACE
+              value: bookwarehouse-ns-1
+            - name: "OSM_HUMAN_DEBUG_LOG"
+              value: "true"
+      imagePullSecrets:
+        - name: acr-creds

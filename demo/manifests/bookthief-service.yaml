@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: bookthief
+  namespace: bookthief-ns
+  labels:
+    app: bookthief
+spec:
+  ports:
+  - port: 9999
+    name: dummy-unused-port
+  selector:
+    app: bookthief

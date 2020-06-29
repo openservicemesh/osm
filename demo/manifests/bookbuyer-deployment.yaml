@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bookbuyer
+  namespace: bookbuyer-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bookbuyer
+  template:
+    metadata:
+      labels:
+        app: bookbuyer
+        version: v1
+    spec:
+      serviceAccountName: bookbuyer-serviceaccount
+      automountServiceAccountToken: false
+      containers:
+        # Main container with APP
+        - name: bookbuyer
+          image: "smctest.azurecr.io/bookbuyer:latest"
+          imagePullPolicy: Always
+          command: ["/bookbuyer"]
+          env:
+            - name: "BOOKSTORE_NAMESPACE"
+              value: bookstore-ns
+            - name: "OSM_HUMAN_DEBUG_LOG"
+              value: "true"
+            - name: "BOOKSTORE_SVC"
+              value: bookstore-mesh
+            - name: "CI_MAX_ITERATIONS_THRESHOLD"
+              value: "1"
+      imagePullSecrets:
+        - name: acr-creds

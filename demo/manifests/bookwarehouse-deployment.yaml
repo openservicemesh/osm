@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bookwarehouse
+  namespace: bookwarehouse-ns-1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bookwarehouse
+  template:
+    metadata:
+      labels:
+        app: bookwarehouse
+        version: v1
+    spec:
+      serviceAccountName: bookwarehouse-serviceaccount
+      automountServiceAccountToken: false
+      containers:
+        # Main container with APP
+        - name: bookwarehouse
+          image: "smctest.azurecr.io/bookwarehouse:latest"
+          imagePullPolicy: Always
+          command: ["/bookwarehouse"]
+          env:
+            - name: "OSM_HUMAN_DEBUG_LOG"
+              value: "true"
+      imagePullSecrets:
+        - name: acr-creds
