@@ -14,8 +14,8 @@ spec:
       labels:
         app: bookstore-v1
         version: v1
-      annotations:
-        "openservicemesh.io/sidecar-injection": "enabled" #TODO remove
+      #annotations:
+        #"openservicemesh.io/sidecar-injection": "enabled" #TODO remove
     spec:
       serviceAccountName: "bookstore-v1-serviceaccount"
       automountServiceAccountToken: false
