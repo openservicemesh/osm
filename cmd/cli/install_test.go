@@ -60,6 +60,7 @@ var _ = Describe("Running the install command", func() {
 				certManager:                "tresor",
 				serviceCertValidityMinutes: 1,
 				prometheusRetentionTime:    testRetentionTime,
+				meshName:                   "osm",
 			}
 
 			installClient := helm.NewInstall(config)
@@ -71,7 +72,7 @@ var _ = Describe("Running the install command", func() {
 		})
 
 		It("should give a message confirming the successful install", func() {
-			Expect(out.String()).To(Equal("OSM installed successfully in osm-system namespace\n"))
+			Expect(out.String()).To(Equal("OSM installed successfully in namespace [osm-system] with mesh name [osm]\n"))
 		})
 
 		Context("the Helm release", func() {
@@ -92,7 +93,7 @@ var _ = Describe("Running the install command", func() {
 				Expect(rel.Config).To(BeEquivalentTo(map[string]interface{}{
 					"OpenServiceMesh": map[string]interface{}{
 						"certManager": "tresor",
-						"meshName":    "",
+						"meshName":    "osm",
 						"image": map[string]interface{}{
 							"registry": testRegistry,
 							"tag":      testOsmImageTag,
@@ -156,6 +157,7 @@ var _ = Describe("Running the install command", func() {
 				certManager:                "tresor",
 				serviceCertValidityMinutes: 1,
 				prometheusRetentionTime:    testRetentionTime,
+				meshName:                   "osm",
 			}
 
 			installClient := helm.NewInstall(config)
@@ -167,7 +169,7 @@ var _ = Describe("Running the install command", func() {
 		})
 
 		It("should give a message confirming the successful install", func() {
-			Expect(out.String()).To(Equal("OSM installed successfully in osm-system namespace\n"))
+			Expect(out.String()).To(Equal("OSM installed successfully in namespace [osm-system] with mesh name [osm]\n"))
 		})
 
 		Context("the Helm release", func() {
@@ -188,7 +190,7 @@ var _ = Describe("Running the install command", func() {
 				Expect(rel.Config).To(BeEquivalentTo(map[string]interface{}{
 					"OpenServiceMesh": map[string]interface{}{
 						"certManager": "tresor",
-						"meshName":    "",
+						"meshName":    "osm",
 						"image": map[string]interface{}{
 							"registry": testRegistry,
 							"tag":      testOsmImageTag,
@@ -256,6 +258,7 @@ var _ = Describe("Running the install command", func() {
 				osmImageTag:                testOsmImageTag,
 				serviceCertValidityMinutes: 1,
 				prometheusRetentionTime:    testRetentionTime,
+				meshName:                   "osm",
 			}
 
 			installClient := helm.NewInstall(config)
@@ -267,7 +270,7 @@ var _ = Describe("Running the install command", func() {
 		})
 
 		It("should give a message confirming the successful install", func() {
-			Expect(out.String()).To(Equal("OSM installed successfully in osm-system namespace\n"))
+			Expect(out.String()).To(Equal("OSM installed successfully in namespace [osm-system] with mesh name [osm]\n"))
 		})
 
 		Context("the Helm release", func() {
@@ -288,7 +291,7 @@ var _ = Describe("Running the install command", func() {
 				Expect(rel.Config).To(BeEquivalentTo(map[string]interface{}{
 					"OpenServiceMesh": map[string]interface{}{
 						"certManager": "vault",
-						"meshName":    "",
+						"meshName":    "osm",
 						"image": map[string]interface{}{
 							"registry": testRegistry,
 							"tag":      testOsmImageTag,
