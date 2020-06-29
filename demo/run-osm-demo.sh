@@ -103,8 +103,6 @@ else
     ./ci/create-osm-container-registry-creds.sh
 fi
 
-./demo/configure-app-namespaces.sh
-
 # Deploys Xds and Prometheus
 echo "Certificate Manager in use: $CERT_MANAGER"
 if [ "$CERT_MANAGER" = "vault" ]; then
@@ -133,15 +131,15 @@ else
       $optionalInstallArgs
 fi
 
+wait_for_osm_pods
+
+./demo/deploy-apps.sh
+
 # Apply SMI policies
 ./demo/deploy-traffic-split.sh
 ./demo/deploy-traffic-spec.sh
 ./demo/deploy-traffic-target.sh
 
-
-wait_for_osm_pods
-
-./demo/deploy-apps.sh
 
 if [[ "$IS_GITHUB" != "true" ]]; then
     watch -n5 "printf \"Namespace ${K8S_NAMESPACE}:\n\"; kubectl get pods -n ${K8S_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKBUYER_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKBUYER_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKSTORE_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKSTORE_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKTHIEF_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKTHIEF_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKWAREHOUSE_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKWAREHOUSE_NAMESPACE} -o wide"
