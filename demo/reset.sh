@@ -5,8 +5,6 @@ set -aueo pipefail
 # shellcheck disable=SC1091
 source .env
 
-kubectl apply -f https://raw.githubusercontent.com/deislabs/smi-sdk-go/v0.2.0/crds/split.yaml
-
 cat <<EOF > ./demo/policies/TrafficSplit.yaml
 apiVersion: split.smi-spec.io/v1alpha2
 kind: TrafficSplit
@@ -26,8 +24,6 @@ EOF
 
 kubectl apply -f ./demo/policies/TrafficSplit.yaml
 
-
-kubectl apply -f https://raw.githubusercontent.com/deislabs/smi-sdk-go/v0.2.0/crds/access.yaml
 
 cat <<EOF > ./demo/policies/TrafficTarget.yaml
 kind: TrafficTarget
@@ -115,7 +111,10 @@ EOF
 
 kubectl apply -f ./demo/policies/TrafficTarget.yaml
 
-curl -I -X GET http://localhost:8080/reset
-curl -I -X GET http://localhost:8081/reset
-curl -I -X GET http://localhost:8082/reset
-curl -I -X GET http://localhost:8083/reset
+## This assumes that ./scripts/port-forward-all.sh has been evaluated
+## and we have Bookbuyer, Bookthief, Bookstore, and Bookwarehouse
+## port-forwarded on localhost.
+curl -I -X GET http://localhost:8080/reset&
+curl -I -X GET http://localhost:8081/reset&
+curl -I -X GET http://localhost:8082/reset&
+curl -I -X GET http://localhost:8083/reset&
