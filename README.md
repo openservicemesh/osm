@@ -61,3 +61,9 @@ $ kubectl label namespace <namespace> openservicemesh.io/monitored-by-
 
 [1]: https://en.wikipedia.org/wiki/Service_mesh
 [2]: https://github.com/servicemeshinterface/smi-spec/blob/master/SPEC.md
+
+## Code of Conduct
+
+This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
+
+For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
