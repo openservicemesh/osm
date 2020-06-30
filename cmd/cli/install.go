@@ -30,7 +30,7 @@ namespace does not exist, it will be created.
 Usage:
   $ osm install --namespace hello-world
 
-Each instance of the osm control plane installation is given a unqiue mesh
+Each instance of the osm control plane installation is given a unqiue mesh 
 name. A mesh name can be passed in via the --mesh-name flag or a default will
 be provided for you.
 The mesh name is used in various different ways by the control plane including
@@ -53,22 +53,21 @@ const (
 var chartTGZSource string
 
 type installCmd struct {
-	out                                 io.Writer
-	containerRegistry                   string
-	containerRegistrySecret             string
-	chartPath                           string
-	osmImageTag                         string
-	certManager                         string
-	vaultHost                           string
-	vaultProtocol                       string
-	vaultToken                          string
-	vaultRole                           string
-	serviceCertValidityMinutes          int
-	prometheusRetentionTime             string
-	enableDebugServer                   bool
-	disableSMIAccessControlPolicy       bool
-	meshName                            string
-	sidecarInjectorWebhookFailurePolicy string
+	out                           io.Writer
+	containerRegistry             string
+	containerRegistrySecret       string
+	chartPath                     string
+	osmImageTag                   string
+	certManager                   string
+	vaultHost                     string
+	vaultProtocol                 string
+	vaultToken                    string
+	vaultRole                     string
+	serviceCertValidityMinutes    int
+	prometheusRetentionTime       string
+	enableDebugServer             bool
+	disableSMIAccessControlPolicy bool
+	meshName                      string
 }
 
 func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
@@ -100,7 +99,6 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.BoolVar(&inst.enableDebugServer, "enable-debug-server", false, "Enable the debug HTTP server")
 	f.BoolVar(&inst.disableSMIAccessControlPolicy, "disable-smi-access-control-policy", false, "Disable SMI access control policy")
 	f.StringVar(&inst.meshName, "mesh-name", "osm", "Name of the service mesh")
-	f.StringVar(&inst.sidecarInjectorWebhookFailurePolicy, "sidecar-webhook-failure-policy", "Fail", "Failure policy for the sidecar injector webhook (Fail or Ignore)")
 
 	return cmd
 }
@@ -195,7 +193,6 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 		fmt.Sprintf("OpenServiceMesh.enableDebugServer=%t", i.enableDebugServer),
 		fmt.Sprintf("OpenServiceMesh.disableSMIAccessControlPolicy=%t", i.disableSMIAccessControlPolicy),
 		fmt.Sprintf("OpenServiceMesh.meshName=%s", i.meshName),
-		fmt.Sprintf("OpenServiceMesh.sidecarInjectorWebhook.failurePolicy=%s", i.sidecarInjectorWebhookFailurePolicy),
 	}
 
 	for _, val := range valuesConfig {
