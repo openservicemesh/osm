@@ -2,10 +2,10 @@ name: Go
 on:
   push:
     branches:
-      - master
+      - main
   pull_request:
     branches:
-      - master
+      - main
 env:
   KUBE_CONFIG: ${{ secrets.KUBECONFIG }}
   AZURE_SUBSCRIPTION: ${{ secrets.AZURE_SUBSCRIPTION }}
