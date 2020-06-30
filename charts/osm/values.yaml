@@ -28,5 +28,3 @@ OpenServiceMesh:
   enableDebugServer: false
   disableSMIAccessControlPolicy: false
   meshName: osm
-  sidecarInjectorWebhook:
-    failurePolicy: Fail
