@@ -2,7 +2,7 @@
 # shellcheck disable=SC1091
 source .env
 
-backend="${1:-bookstore-v2}"
+backend="v2"
 thisScript="$(dirname "$0")/$(basename "$0")"
 
 if [ -z "$backend" ]; then
