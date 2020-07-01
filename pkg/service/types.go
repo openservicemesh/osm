@@ -8,6 +8,12 @@ import (
 	"github.com/open-service-mesh/osm/pkg/certificate"
 )
 
+const (
+	// Separator used upon marshalling/unmarshalling Namespaced Service to a string
+	// or viceversa
+	Separator = "/"
+)
+
 // Name is a type for a service name
 type Name string
 
@@ -35,6 +41,27 @@ type Account string
 
 func (s Account) String() string {
 	return string(s)
+}
+
+// UnmarshalNamespacedService unmarshals a NamespaceService type from a string
+func UnmarshalNamespacedService(str string) (*NamespacedService, error) {
+	slices := strings.Split(str, Separator)
+	if len(slices) != 2 {
+		return nil, fmt.Errorf("Invalid split result upon unmarshal NamespacedService %s: %d",
+			str, len(slices))
+	}
+
+	// Make sure the slices are not empty. Split might actually leave empty slices.
+	for _, sep := range slices {
+		if len(sep) == 0 {
+			return nil, fmt.Errorf("Namespace formatting can't have empty fields (%s)", str)
+		}
+	}
+
+	return &NamespacedService{
+		Namespace: slices[0],
+		Service:   slices[1],
+	}, nil
 }
 
 // GetCommonName returns the Subject CN for the NamespacedService to be used for its certificate.
