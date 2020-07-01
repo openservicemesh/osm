@@ -47,14 +47,13 @@ func (s Account) String() string {
 func UnmarshalNamespacedService(str string) (*NamespacedService, error) {
 	slices := strings.Split(str, Separator)
 	if len(slices) != 2 {
-		return nil, fmt.Errorf("Invalid split result upon unmarshal NamespacedService %s: %d",
-			str, len(slices))
+		return nil, errInvalidNamespacedServiceFormat
 	}
 
 	// Make sure the slices are not empty. Split might actually leave empty slices.
 	for _, sep := range slices {
 		if len(sep) == 0 {
-			return nil, fmt.Errorf("Namespace formatting can't have empty fields (%s)", str)
+			return nil, errInvalidNamespacedServiceFormat
 		}
 	}
 

@@ -30,8 +30,8 @@ type SDSDirection bool
 // SDSCert is only used to interface the naming and related functions to Marshal/Unmarshal a resource name,
 // this avoids having sprintf/parsing logic all over the place
 type SDSCert struct {
-	// Svc is a namespaced service struct
-	Svc service.NamespacedService
+	// Service is a namespaced service struct
+	Service service.NamespacedService
 	// CertType is the certificate type
 	CertType SDSCertType
 }
@@ -44,20 +44,20 @@ const (
 	// ServiceCertType is the prefix for the service certificate resource name. Example: "service-cert:webservice"
 	ServiceCertType SDSCertType = "service-cert"
 
-	// RootCertTypeForMTLSUpstream is the prefix for the mTLS root certificate resource name for upstream connectivity. Example: "root-cert-for-mtls-downstream:webservice"
-	RootCertTypeForMTLSUpstream SDSCertType = "root-cert-for-mtls-upstream"
+	// RootCertTypeForMTLSOutbound is the prefix for the mTLS root certificate resource name for upstream connectivity. Example: "root-cert-for-mtls-outbound:webservice"
+	RootCertTypeForMTLSOutbound SDSCertType = "root-cert-for-mtls-outbound"
 
-	// RootCertTypeForMTLSDownstream is the prefix for the mTLS root certificate resource name for downstream connectivity. Example: "root-cert-for-mtls-downstream:webservice"
-	RootCertTypeForMTLSDownstream SDSCertType = "root-cert-for-mtls-downstream"
+	// RootCertTypeForMTLSInbound is the prefix for the mTLS root certificate resource name for downstream connectivity. Example: "root-cert-for-mtls-inbound:webservice"
+	RootCertTypeForMTLSInbound SDSCertType = "root-cert-for-mtls-inbound"
 
 	// RootCertTypeForHTTPS is the prefix for the HTTPS root certificate resource name. Example: "root-cert-https:webservice"
 	RootCertTypeForHTTPS SDSCertType = "root-cert-https"
 
-	// Upstream refers to Envoy upstream connectivity direction for TLS certs
-	Upstream SDSDirection = true
+	// Outbound refers to Envoy upstream connectivity direction for TLS certs
+	Outbound SDSDirection = true
 
-	// Downstream refers to Envoy downstream connectivity direction for TLS certs
-	Downstream SDSDirection = false
+	// Inbound refers to Envoy downstream connectivity direction for TLS certs
+	Inbound SDSDirection = false
 
 	// Separator is the separator between the prefix and the name of the certificate.
 	Separator = ":"
@@ -71,10 +71,10 @@ const (
 
 // Defines valid cert types
 var validCertTypes = map[SDSCertType]interface{}{
-	ServiceCertType:               nil,
-	RootCertTypeForMTLSUpstream:   nil,
-	RootCertTypeForMTLSDownstream: nil,
-	RootCertTypeForHTTPS:          nil,
+	ServiceCertType:             nil,
+	RootCertTypeForMTLSOutbound: nil,
+	RootCertTypeForMTLSInbound:  nil,
+	RootCertTypeForHTTPS:        nil,
 }
 
 // UnmarshalSDSCert parses and returns Certificate type and Namespaced Service name given a
@@ -86,20 +86,20 @@ func UnmarshalSDSCert(str string) (*SDSCert, error) {
 	// Check separators, ignore empty string fields
 	slices := strings.Split(str, Separator)
 	if len(slices) != 2 {
-		return nil, fmt.Errorf("Unexpected split len result to unmarshal cert Name: %d", len(slices))
+		return nil, errInvalidCertFormat
 	}
 
 	// Make sure the slices are not empty. Split might actually leave empty slices.
 	for _, sep := range slices {
 		if len(sep) == 0 {
-			return nil, fmt.Errorf("Cert formatting can't have empty fields (%s)", str)
+			return nil, errInvalidCertFormat
 		}
 	}
 
 	// Check valid certType
 	ret.CertType = SDSCertType(slices[0])
 	if _, ok := validCertTypes[ret.CertType]; !ok {
-		return nil, fmt.Errorf("Unknown cert type requested: %s", ret.CertType)
+		return nil, errInvalidCertFormat
 	}
 
 	// Check valid namespace'd service name
@@ -107,7 +107,7 @@ func UnmarshalSDSCert(str string) (*SDSCert, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = copier.Copy(&ret.Svc, &svc)
+	err = copier.Copy(&ret.Service, &svc)
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +122,7 @@ func (sdsc SDSCert) String() string {
 	return fmt.Sprintf("%s%s%s",
 		sdsc.CertType.String(),
 		Separator,
-		sdsc.Svc.String())
+		sdsc.Service.String())
 }
 
 // GetAddress creates an Envoy Address struct.
@@ -210,10 +210,10 @@ func getCommonTLSContext(serviceName service.NamespacedService, mTLS bool, dir S
 	// Define root cert type
 	if mTLS {
 		switch dir {
-		case Upstream:
-			certType = RootCertTypeForMTLSUpstream
-		case Downstream:
-			certType = RootCertTypeForMTLSDownstream
+		case Outbound:
+			certType = RootCertTypeForMTLSOutbound
+		case Inbound:
+			certType = RootCertTypeForMTLSInbound
 		}
 	} else {
 		certType = RootCertTypeForHTTPS
@@ -224,7 +224,7 @@ func getCommonTLSContext(serviceName service.NamespacedService, mTLS bool, dir S
 		TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
 			// Example ==> Name: "service-cert:NameSpaceHere/ServiceNameHere"
 			Name: SDSCert{
-				Svc:      serviceName,
+				Service:  serviceName,
 				CertType: ServiceCertType,
 			}.String(),
 			SdsConfig: GetADSConfigSource(),
@@ -233,7 +233,7 @@ func getCommonTLSContext(serviceName service.NamespacedService, mTLS bool, dir S
 			ValidationContextSdsSecretConfig: &auth.SdsSecretConfig{
 				// Example ==> Name: "root-cert<type>:NameSpaceHere/ServiceNameHere"
 				Name: SDSCert{
-					Svc:      serviceName,
+					Service:  serviceName,
 					CertType: certType,
 				}.String(),
 				SdsConfig: GetADSConfigSource(),
@@ -254,7 +254,7 @@ func MessageToAny(pb proto.Message) (*any.Any, error) {
 // GetDownstreamTLSContext creates a downstream Envoy TLS Context
 func GetDownstreamTLSContext(serviceName service.NamespacedService, mTLS bool) *auth.DownstreamTlsContext {
 	tlsConfig := &auth.DownstreamTlsContext{
-		CommonTlsContext: getCommonTLSContext(serviceName, mTLS, Downstream),
+		CommonTlsContext: getCommonTLSContext(serviceName, mTLS, Inbound),
 		// When RequireClientCertificate is enabled trusted CA certs must be provided via ValidationContextType
 		RequireClientCertificate: &wrappers.BoolValue{Value: mTLS},
 	}
@@ -264,7 +264,7 @@ func GetDownstreamTLSContext(serviceName service.NamespacedService, mTLS bool) *
 // GetUpstreamTLSContext creates an upstream Envoy TLS Context
 func GetUpstreamTLSContext(serviceName service.NamespacedService) *auth.UpstreamTlsContext {
 	tlsConfig := &auth.UpstreamTlsContext{
-		CommonTlsContext: getCommonTLSContext(serviceName, true /* mTLS */, Upstream),
+		CommonTlsContext: getCommonTLSContext(serviceName, true /* mTLS */, Outbound),
 
 		// The Sni field is going to be used to do FilterChainMatch in getInboundInMeshFilterChain()
 		// The "Sni" field below of an incoming request will be matched aganist a list of server names
