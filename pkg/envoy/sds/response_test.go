@@ -72,8 +72,8 @@ var _ = Describe("Test SDS response functions", func() {
 			}
 
 			sdsc := envoy.SDSCert{
-				Svc:      svc,
-				CertType: envoy.RootCertTypeForMTLSDownstream,
+				Service:  svc,
+				CertType: envoy.RootCertTypeForMTLSInbound,
 			}
 
 			resourceName := sdsc.String()
@@ -123,8 +123,8 @@ var _ = Describe("Test SDS response functions", func() {
 			}
 
 			sdsc := envoy.SDSCert{
-				Svc:      svc,
-				CertType: envoy.RootCertTypeForMTLSUpstream,
+				Service:  svc,
+				CertType: envoy.RootCertTypeForMTLSOutbound,
 			}
 			resourceNames := []string{sdsc.String()}
 			cert, proxy, mc := prep(resourceNames, namespace, serviceName)

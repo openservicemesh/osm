@@ -38,7 +38,7 @@ var _ = Describe("Test Envoy tools", func() {
 		It("Interface marshals and unmarshals preserving the exact same data", func() {
 			InitialObj := SDSCert{
 				CertType: ServiceCertType,
-				Svc: service.NamespacedService{
+				Service: service.NamespacedService{
 					Namespace: "test-namespace",
 					Service:   "test-service",
 				},
@@ -60,23 +60,23 @@ var _ = Describe("Test Envoy tools", func() {
 			actual, err := UnmarshalSDSCert("service-cert:namespace-test/blahBlahBlahCert")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(actual.CertType).To(Equal(ServiceCertType))
-			Expect(actual.Svc.Namespace).To(Equal("namespace-test"))
-			Expect(actual.Svc.Service).To(Equal("blahBlahBlahCert"))
+			Expect(actual.Service.Namespace).To(Equal("namespace-test"))
+			Expect(actual.Service.Service).To(Equal("blahBlahBlahCert"))
 		})
 		It("returns root cert for mTLS", func() {
-			actual, err := UnmarshalSDSCert("root-cert-for-mtls-upstream:namespace-test/blahBlahBlahCert")
+			actual, err := UnmarshalSDSCert("root-cert-for-mtls-outbound:namespace-test/blahBlahBlahCert")
 			Expect(err).ToNot(HaveOccurred())
-			Expect(actual.CertType).To(Equal(RootCertTypeForMTLSUpstream))
-			Expect(actual.Svc.Namespace).To(Equal("namespace-test"))
-			Expect(actual.Svc.Service).To(Equal("blahBlahBlahCert"))
+			Expect(actual.CertType).To(Equal(RootCertTypeForMTLSOutbound))
+			Expect(actual.Service.Namespace).To(Equal("namespace-test"))
+			Expect(actual.Service.Service).To(Equal("blahBlahBlahCert"))
 		})
 
 		It("returns root cert for non-mTLS", func() {
 			actual, err := UnmarshalSDSCert("root-cert-https:namespace-test/blahBlahBlahCert")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(actual.CertType).To(Equal(RootCertTypeForHTTPS))
-			Expect(actual.Svc.Namespace).To(Equal("namespace-test"))
-			Expect(actual.Svc.Service).To(Equal("blahBlahBlahCert"))
+			Expect(actual.Service.Namespace).To(Equal("namespace-test"))
+			Expect(actual.Service.Service).To(Equal("blahBlahBlahCert"))
 		})
 
 		It("returns an error (invalid formatting)", func() {
@@ -151,11 +151,11 @@ var _ = Describe("Test Envoy tools", func() {
 					ValidationContextType: &envoy_api_v2_auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 						ValidationContextSdsSecretConfig: &envoy_api_v2_auth.SdsSecretConfig{
 							Name: SDSCert{
-								Svc: service.NamespacedService{
+								Service: service.NamespacedService{
 									Namespace: "default",
 									Service:   "bookstore",
 								},
-								CertType: RootCertTypeForMTLSDownstream,
+								CertType: RootCertTypeForMTLSInbound,
 							}.String(),
 							SdsConfig: &envoy_api_v2_core.ConfigSource{
 								ConfigSourceSpecifier: &envoy_api_v2_core.ConfigSource_Ads{
@@ -212,11 +212,11 @@ var _ = Describe("Test Envoy tools", func() {
 					ValidationContextType: &envoy_api_v2_auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 						ValidationContextSdsSecretConfig: &envoy_api_v2_auth.SdsSecretConfig{
 							Name: SDSCert{
-								Svc: service.NamespacedService{
+								Service: service.NamespacedService{
 									Namespace: "default",
 									Service:   "bookstore",
 								},
-								CertType: RootCertTypeForMTLSUpstream,
+								CertType: RootCertTypeForMTLSOutbound,
 							}.String(),
 							SdsConfig: &envoy_api_v2_core.ConfigSource{
 								ConfigSourceSpecifier: &envoy_api_v2_core.ConfigSource_Ads{
@@ -259,15 +259,15 @@ var _ = Describe("Test Envoy tools", func() {
 				Namespace: "-namespace-",
 				Service:   "-service-",
 			}
-			actual := getCommonTLSContext(namespacedService, true /* mTLS */, Downstream)
+			actual := getCommonTLSContext(namespacedService, true /* mTLS */, Inbound)
 
 			expectedServiceCertName := SDSCert{
-				Svc:      namespacedService,
+				Service:  namespacedService,
 				CertType: ServiceCertType,
 			}.String()
 			expectedRootCertName := SDSCert{
-				Svc:      namespacedService,
-				CertType: RootCertTypeForMTLSDownstream,
+				Service:  namespacedService,
+				CertType: RootCertTypeForMTLSInbound,
 			}.String()
 
 			expected := &envoy_api_v2_auth.CommonTlsContext{
@@ -298,11 +298,11 @@ var _ = Describe("Test Envoy tools", func() {
 			actual := getCommonTLSContext(namespacedService, false, false /* Ignored in case of non-tls */)
 
 			expectedServiceCertName := SDSCert{
-				Svc:      namespacedService,
+				Service:  namespacedService,
 				CertType: ServiceCertType,
 			}.String()
 			expectedRootCertName := SDSCert{
-				Svc:      namespacedService,
+				Service:  namespacedService,
 				CertType: RootCertTypeForHTTPS,
 			}.String()
 

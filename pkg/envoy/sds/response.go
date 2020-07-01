@@ -20,8 +20,8 @@ import (
 
 // Used mainly for logging/translation purposes
 var directionMap = map[envoy.SDSCertType]string{
-	envoy.RootCertTypeForMTLSDownstream: "inbound",
-	envoy.RootCertTypeForMTLSUpstream:   "outbound",
+	envoy.RootCertTypeForMTLSInbound:  "inbound",
+	envoy.RootCertTypeForMTLSOutbound: "outbound",
 }
 
 // NewResponse creates a new Secrets Discovery Response.
@@ -84,8 +84,8 @@ func getEnvoySDSSecrets(cert certificate.Certificater, proxy *envoy.Proxy, reque
 			continue
 		}
 
-		if serviceForProxy != sdsCert.Svc {
-			log.Error().Msgf("Proxy %s (service %s) requested service certificate %s; this is not allowed", proxy.GetCommonName(), serviceForProxy, sdsCert.Svc)
+		if serviceForProxy != sdsCert.Service {
+			log.Error().Msgf("Proxy %s (service %s) requested service certificate %s; this is not allowed", proxy.GetCommonName(), serviceForProxy, sdsCert.Service)
 			continue
 		}
 
@@ -100,10 +100,9 @@ func getEnvoySDSSecrets(cert certificate.Certificater, proxy *envoy.Proxy, reque
 				}
 				envoySecrets = append(envoySecrets, envoySecret)
 			}
-			break
-		case envoy.RootCertTypeForMTLSDownstream:
+		case envoy.RootCertTypeForMTLSInbound:
 			fallthrough
-		case envoy.RootCertTypeForMTLSUpstream:
+		case envoy.RootCertTypeForMTLSOutbound:
 			fallthrough
 		case envoy.RootCertTypeForHTTPS:
 			{
@@ -115,7 +114,6 @@ func getEnvoySDSSecrets(cert certificate.Certificater, proxy *envoy.Proxy, reque
 				}
 				envoySecrets = append(envoySecrets, envoySecret)
 			}
-			break
 		}
 
 	}
@@ -146,10 +144,10 @@ func getServiceCertSecret(cert certificate.Certificater, name string) (*auth.Sec
 	return secret, nil
 }
 
-func getRootCert(cert certificate.Certificater, sdsc envoy.SDSCert, proxyServiceName service.NamespacedService, mc catalog.MeshCataloger) (*auth.Secret, error) {
+func getRootCert(cert certificate.Certificater, sdscert envoy.SDSCert, proxyServiceName service.NamespacedService, mc catalog.MeshCataloger) (*auth.Secret, error) {
 	secret := &auth.Secret{
 		// The Name field must match the tls_context.common_tls_context.tls_certificate_sds_secret_configs.name
-		Name: sdsc.String(),
+		Name: sdscert.String(),
 		Type: &auth.Secret_ValidationContext{
 			ValidationContext: &auth.CertificateValidationContext{
 				TrustedCa: &core.DataSource{
@@ -161,9 +159,10 @@ func getRootCert(cert certificate.Certificater, sdsc envoy.SDSCert, proxyService
 		},
 	}
 
-	switch sdsc.CertType {
-	case envoy.RootCertTypeForMTLSUpstream:
-	case envoy.RootCertTypeForMTLSDownstream:
+	switch sdscert.CertType {
+	case envoy.RootCertTypeForMTLSOutbound:
+		fallthrough
+	case envoy.RootCertTypeForMTLSInbound:
 		{
 			var matchSANs []*envoy_type_matcher.StringMatcher
 			var serverNames []service.NamespacedService
@@ -171,7 +170,7 @@ func getRootCert(cert certificate.Certificater, sdsc envoy.SDSCert, proxyService
 
 			// This block constructs a list of Server Names (peers) that are allowed to connect to the given service.
 			// The allowed list is derived from SMI's Traffic Policy.
-			if sdsc.CertType == envoy.RootCertTypeForMTLSUpstream {
+			if sdscert.CertType == envoy.RootCertTypeForMTLSOutbound {
 				// Outbound
 				serverNames, err = mc.ListAllowedOutboundServices(proxyServiceName)
 			} else {
@@ -180,7 +179,7 @@ func getRootCert(cert certificate.Certificater, sdsc envoy.SDSCert, proxyService
 			}
 
 			if err != nil {
-				log.Error().Err(err).Msgf("Error getting server names for %s allowed Services %s", directionMap[sdsc.CertType], proxyServiceName)
+				log.Error().Err(err).Msgf("Error getting server names for %s allowed Services %s", directionMap[sdscert.CertType], proxyServiceName)
 				return nil, err
 			}
 
@@ -195,16 +194,14 @@ func getRootCert(cert certificate.Certificater, sdsc envoy.SDSCert, proxyService
 				matchSANs = append(matchSANs, &match)
 			}
 
-			log.Trace().Msgf("Proxy for service %s will only allow %s SANs exactly matching: %+v", proxyServiceName, directionMap[sdsc.CertType], matchingCerts)
+			log.Trace().Msgf("Proxy for service %s will only allow %s SANs exactly matching: %+v", proxyServiceName, directionMap[sdscert.CertType], matchingCerts)
 
 			// Ensure the Subject Alternate Names (SAN) added by CertificateManager.IssueCertificate()
 			// matches what is allowed to connect to the downstream service as defined in TrafficPolicy.
 			secret.GetValidationContext().MatchSubjectAltNames = matchSANs
 		}
-		break
 	default:
 		// Nothing here
-		break
 	}
 
 	return secret, nil

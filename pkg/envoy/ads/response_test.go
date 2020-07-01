@@ -54,7 +54,7 @@ var _ = Describe("Test ADS response functions", func() {
 	cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s", envoyUID, serviceAccountName, namespace))
 	proxy := envoy.NewProxy(cn, nil)
 
-	v := service.NamespacedService{
+	nsService := service.NamespacedService{
 		Namespace: "default",
 		Service:   serviceName,
 	}
@@ -67,19 +67,19 @@ var _ = Describe("Test ADS response functions", func() {
 				TypeUrl: string(envoy.TypeSDS),
 				ResourceNames: []string{
 					envoy.SDSCert{
-						Svc:      v,
+						Service:  nsService,
 						CertType: envoy.ServiceCertType,
 					}.String(),
 					envoy.SDSCert{
-						Svc:      v,
-						CertType: envoy.RootCertTypeForMTLSUpstream,
+						Service:  nsService,
+						CertType: envoy.RootCertTypeForMTLSOutbound,
 					}.String(),
 					envoy.SDSCert{
-						Svc:      v,
-						CertType: envoy.RootCertTypeForMTLSDownstream,
+						Service:  nsService,
+						CertType: envoy.RootCertTypeForMTLSInbound,
 					}.String(),
 					envoy.SDSCert{
-						Svc:      v,
+						Service:  nsService,
 						CertType: envoy.RootCertTypeForHTTPS,
 					}.String(),
 				},
@@ -135,7 +135,7 @@ var _ = Describe("Test ADS response functions", func() {
 			firstSecret := (*actualResponses)[4].Resources[0]
 			err = ptypes.UnmarshalAny(firstSecret, &secretOne)
 			Expect(secretOne.Name).To(Equal(envoy.SDSCert{
-				Svc:      v,
+				Service:  nsService,
 				CertType: envoy.ServiceCertType,
 			}.String()))
 
@@ -143,23 +143,23 @@ var _ = Describe("Test ADS response functions", func() {
 			secondSecret := (*actualResponses)[4].Resources[1]
 			err = ptypes.UnmarshalAny(secondSecret, &secretTwo)
 			Expect(secretTwo.Name).To(Equal(envoy.SDSCert{
-				Svc:      v,
-				CertType: envoy.RootCertTypeForMTLSUpstream,
+				Service:  nsService,
+				CertType: envoy.RootCertTypeForMTLSOutbound,
 			}.String()))
 
 			secretThree := envoy_api_v2_auth.Secret{}
 			thirdSecret := (*actualResponses)[4].Resources[2]
 			err = ptypes.UnmarshalAny(thirdSecret, &secretThree)
 			Expect(secretThree.Name).To(Equal(envoy.SDSCert{
-				Svc:      v,
-				CertType: envoy.RootCertTypeForMTLSDownstream,
+				Service:  nsService,
+				CertType: envoy.RootCertTypeForMTLSInbound,
 			}.String()))
 
 			secretFour := envoy_api_v2_auth.Secret{}
 			forthSecret := (*actualResponses)[4].Resources[3]
 			err = ptypes.UnmarshalAny(forthSecret, &secretFour)
 			Expect(secretFour.Name).To(Equal(envoy.SDSCert{
-				Svc:      v,
+				Service:  nsService,
 				CertType: envoy.RootCertTypeForHTTPS,
 			}.String()))
 		})
