@@ -139,6 +139,7 @@ other development tools to use `goimports`. Formatting is checked during CI by
 the `bin/fmt` script.
 
 
+
 TODO
  - what about the golangci-lint ?
  - how to use the OSM cli
