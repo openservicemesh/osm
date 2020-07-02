@@ -23,7 +23,7 @@ const (
 )
 
 var (
-	staleIfOlderThan = 1 * time.Hour
+	staleIfOlderThan = 15 * time.Minute
 )
 
 func main() {
@@ -51,6 +51,8 @@ func main() {
 			if err = clientset.CoreV1().Namespaces().Delete(context.Background(), ns.Name, deleteOptions); err != nil {
 				log.Error().Err(err).Msgf("Error deleting namespace %s", ns.Name)
 			}
+		} else {
+			log.Info().Msgf("Keep namespace %s - it is not older than %+v", ns.Name, staleIfOlderThan)
 		}
 	}
 
@@ -62,6 +64,8 @@ func main() {
 			if err = clientset.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Delete(context.Background(), webhook.Name, deleteOptions); err != nil {
 				log.Error().Err(err).Msgf("Error deleting webhook %s", webhook.Name)
 			}
+		} else {
+			log.Info().Msgf("Keep webhook %s - it is not older than %+v", webhook.Name, staleIfOlderThan)
 		}
 	}
 }
