@@ -4,7 +4,20 @@ set -aueo pipefail
 
 # shellcheck disable=SC1091
 source .env
+
+# Set meaningful defaults for env vars we expect from .env
 IS_GITHUB="${IS_GITHUB:-false}"
+MESH_NAME="${MESH_NAME:-osm}"
+K8S_NAMESPACE="${K8S_NAMESPACE:-osm}"
+BOOKBUYER_NAMESPACE="${BOOKBUYER_NAMESPACE:-bookbuyer}"
+BOOKSTORE_NAMESPACE="${BOOKSTORE_NAMESPACE:-bookstore}"
+BOOKTHIEF_NAMESPACE="${BOOKTHIEF_NAMESPACE:-bookthief}"
+BOOKWAREHOUSE_NAMESPACE="${BOOKWAREHOUSE_NAMESPACE:-osm}"
+CERT_MANAGER="${CERT_MANAGER:-tresor}"
+CTR_REGISTRY="${CTR_REGISTRY:-osmci.azurecr.io/osm}"
+CTR_REGISTRY_CREDS_NAME="${CTR_REGISTRY_CREDS_NAME:-acr-creds}"
+CTR_TAG="${CTR_TAG:-latest}"
+
 optionalInstallArgs=$*
 
 exit_error() {
@@ -43,35 +56,6 @@ wait_for_pod_ready() {
     pod_status="$(kubectl get pods -n "$K8S_NAMESPACE" "${pod_name}" -o 'jsonpath={..status.phase}')"
     exit_error "Pod ${pod_name} status is ${pod_status} -- still not Ready"
 }
-
-# Check for required environment variables
-if [ -z "$K8S_NAMESPACE" ]; then
-    exit_error "Missing K8S_NAMESPACE env variable"
-fi
-if [ -z "$BOOKBUYER_NAMESPACE" ]; then
-    exit_error "Missing BOOKBUYER_NAMESPACE env variable"
-fi
-if [ -z "$BOOKSTORE_NAMESPACE" ]; then
-    exit_error "Missing BOOKSTORE_NAMESPACE env variable"
-fi
-if [ -z "$BOOKTHIEF_NAMESPACE" ]; then
-    exit_error "Missing BOOKTHIEF_NAMESPACE env variable"
-fi
-if [ -z "$BOOKWAREHOUSE_NAMESPACE" ]; then
-    exit_error "Missing BOOKWAREHOUSE_NAMESPACE env variable"
-fi
-if [ -z "$CERT_MANAGER" ]; then
-    exit_error "Missing CERT_MANAGER env variable"
-fi
-if [ -z "$CTR_REGISTRY" ]; then
-    exit_error "Missing CTR_REGISTRY env variable"
-fi
-if [ -z "$CTR_REGISTRY_CREDS_NAME" ]; then
-    exit_error "Missing CTR_REGISTRY_CREDS_NAME env variable"
-fi
-if [ -z "$CTR_TAG" ]; then
-    exit_error "Missing CTR_TAG env variable"
-fi
 
 make build-osm
 
