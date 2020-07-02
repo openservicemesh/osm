@@ -319,7 +319,6 @@ jobs:
           VAULT_PORT: "8200"
           VAULT_TOKEN: "something"
           VAULT_ROLE: "openservicemesh"
-          BOOKSTORE_SVC: "bookstore-v1"
           BOOKTHIEF_EXPECTED_RESPONSE_CODE: "200"
           EGRESS_EXPECTED_RESPONSE_CODE: "200" # egress is enabled
           DEPLOY_TRAFFIC_SPLIT: "true"

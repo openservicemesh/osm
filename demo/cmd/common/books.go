@@ -22,16 +22,20 @@ const (
 
 	// httpsEgressURL is the URL used to test HTTPS egress
 	httpsEgressURL = "https://github.com"
+
+	bookstoreServiceName = "bookstore"
+	warehouseServiceName = "bookwarehouse"
 )
 
 var (
+	log = logger.NewPretty("demo")
+
 	sleepDurationBetweenRequestsSecondsStr = GetEnv("CI_SLEEP_BETWEEN_REQUESTS_SECONDS", "1")
 	minSuccessThresholdStr                 = GetEnv("CI_MIN_SUCCESS_THRESHOLD", "1")
 	maxIterationsStr                       = GetEnv("CI_MAX_ITERATIONS_THRESHOLD", "0") // 0 for unlimited
-	bookstoreServiceName                   = GetEnv("BOOKSTORE_SVC", "bookstore")
-	bookstoreNamespace                     = os.Getenv(BookstoreNamespaceEnvVar)
-	warehouseServiceName                   = "bookwarehouse"
-	bookwarehouseNamespace                 = os.Getenv(BookwarehouseNamespaceEnvVar)
+
+	bookstoreNamespace     = os.Getenv(BookstoreNamespaceEnvVar)
+	bookwarehouseNamespace = os.Getenv(BookwarehouseNamespaceEnvVar)
 
 	bookstoreService = fmt.Sprintf("%s.%s", bookstoreServiceName, bookstoreNamespace)     // FQDN
 	warehouseService = fmt.Sprintf("%s.%s", warehouseServiceName, bookwarehouseNamespace) // FQDN
@@ -54,8 +58,6 @@ var (
 		buyBook: nil,
 	}
 )
-
-var log = logger.NewPretty("demo")
 
 // RestockBooks restocks the bookstore with certain amount of books from the warehouse.
 func RestockBooks(amount int) {

@@ -4,7 +4,7 @@ set -aueo pipefail
 
 # shellcheck disable=SC1091
 source .env
-BOOKSTORE_SVC="${BOOKSTORE_SVC:-bookstore}"
+
 CI_MAX_ITERATIONS_THRESHOLD="${CI_MAX_ITERATIONS_THRESHOLD:-0}"
 CI_CLIENT_CONCURRENT_CONNECTIONS="${CI_CLIENT_CONCURRENT_CONNECTIONS:-1}"
 EGRESS_EXPECTED_RESPONSE_CODE="${EGRESS_EXPECTED_RESPONSE_CODE:-200}"
@@ -69,8 +69,6 @@ spec:
           env:
             - name: "BOOKSTORE_NAMESPACE"
               value: "$BOOKSTORE_NAMESPACE"
-            - name: "BOOKSTORE_SVC"
-              value: "$BOOKSTORE_SVC"
             - name: "CI_MAX_ITERATIONS_THRESHOLD"
               value: "$CI_MAX_ITERATIONS_THRESHOLD"
             - name: "EGRESS_EXPECTED_RESPONSE_CODE"

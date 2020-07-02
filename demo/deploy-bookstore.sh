@@ -23,8 +23,11 @@ spec:
   ports:
   - port: 80
     name: bookstore-port
+
+  # Ensure this service is backed by the pods for Bookstore V1
   selector:
-    app: bookstore
+    app: bookstore-v1
+    version: v1
 EOF
 
 echo -e "Deploy $SVC Service Account"
