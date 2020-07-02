@@ -13,6 +13,7 @@ import (
 
 	"github.com/open-service-mesh/osm/pkg/cli"
 	"github.com/open-service-mesh/osm/pkg/constants"
+	"k8s.io/apimachinery/pkg/util/validation"
 )
 
 const installDesc = `
@@ -33,6 +34,15 @@ as the resource name for the MutatingWebhookConfiguration created by the control
 plane for sidecar injection of envoy proxies.
 
 By default, mesh-name will be configured to "osm."
+
+When configuring the mesh-name, it should adhere to the RFC 1123 DNS Label specification.
+
+This means it must:
+
+- contain at most 63 characters
+- contain only lowercase alphanumeric characters or '-'
+- start with an alphanumeric character
+- end with an alphanumeric character
 
 Usage:
   $ osm install --mesh-name "hello-osm"
@@ -108,6 +118,12 @@ func (i *installCmd) run(config *helm.Configuration) error {
 	}
 	if err != nil {
 		return err
+	}
+
+	meshNameErrs := validation.IsDNS1123Label(i.meshName)
+
+	if len(meshNameErrs) != 0 {
+		return fmt.Errorf("Invalid mesh-name: %v", meshNameErrs)
 	}
 
 	if strings.EqualFold(i.certManager, "vault") {
