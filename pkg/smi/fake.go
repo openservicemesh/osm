@@ -11,6 +11,7 @@ import (
 )
 
 type fakeMeshSpec struct {
+	trafficSplits    []*split.TrafficSplit
 	routeGroups      []*spec.HTTPRouteGroup
 	trafficTargets   []*target.TrafficTarget
 	weightedServices []service.WeightedService
@@ -21,6 +22,7 @@ type fakeMeshSpec struct {
 // NewFakeMeshSpecClient creates a fake Mesh Spec used for testing.
 func NewFakeMeshSpecClient() MeshSpec {
 	return fakeMeshSpec{
+		trafficSplits:    []*split.TrafficSplit{&tests.TrafficSplit},
 		routeGroups:      []*spec.HTTPRouteGroup{&tests.HTTPRouteGroup},
 		trafficTargets:   []*target.TrafficTarget{&tests.TrafficTarget},
 		weightedServices: []service.WeightedService{tests.WeightedService},
@@ -33,7 +35,7 @@ func NewFakeMeshSpecClient() MeshSpec {
 
 // ListTrafficSplits lists TrafficSplit SMI resources for the fake Mesh Spec.
 func (f fakeMeshSpec) ListTrafficSplits() []*split.TrafficSplit {
-	return nil
+	return f.trafficSplits
 }
 
 // ListTrafficSplitServices fetches all services declared with SMI Spec for the fake Mesh Spec.
