@@ -29,6 +29,3 @@ service:
     - port: 1
       targetPort: admin
       name: bookbuyer
-
-env:
-  BOOKSTORE_SVC: bookstore

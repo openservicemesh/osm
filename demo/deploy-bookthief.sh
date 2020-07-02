@@ -5,7 +5,6 @@ set -aueo pipefail
 # shellcheck disable=SC1091
 source .env
 
-BOOKSTORE_SVC="${BOOKSTORE_SVC:-bookstore}"
 BOOKTHIEF_EXPECTED_RESPONSE_CODE="${BOOKTHIEF_EXPECTED_RESPONSE_CODE:-404}"
 CI_MAX_ITERATIONS_THRESHOLD="${CI_MAX_ITERATIONS_THRESHOLD:-0}"
 EGRESS_EXPECTED_RESPONSE_CODE="${EGRESS_EXPECTED_RESPONSE_CODE:-200}"
@@ -68,8 +67,6 @@ spec:
           env:
             - name: "BOOKSTORE_NAMESPACE"
               value: "$BOOKSTORE_NAMESPACE"
-            - name: "BOOKSTORE_SVC"
-              value: "$BOOKSTORE_SVC"
             - name: "BOOKTHIEF_EXPECTED_RESPONSE_CODE"
               value: "$BOOKTHIEF_EXPECTED_RESPONSE_CODE"
             - name: "CI_MAX_ITERATIONS_THRESHOLD"
