@@ -166,6 +166,12 @@ var _ = Describe("CDS Response", func() {
 					},
 				},
 			}
+
+			// Checking for the value by generating the same value the same way is reduntant
+			// Nonetheless, as GetServiceCluster logic gets more complicated, this might just be ok to have
+			upstreamTLSProto, err := envoy.MessageToAny(envoy.GetUpstreamTLSContext(proxyService))
+			Expect(err).ToNot(HaveOccurred())
+
 			expectedCluster := xds.Cluster{
 				TransportSocketMatches: nil,
 				Name:                   "default/bookstore",
@@ -185,7 +191,7 @@ var _ = Describe("CDS Response", func() {
 					ConfigType: &envoy_api_v2_core.TransportSocket_TypedConfig{
 						TypedConfig: &any.Any{
 							TypeUrl: string(envoy.TypeUpstreamTLSContext),
-							Value:   []byte{},
+							Value:   upstreamTLSProto.Value,
 						},
 					},
 				},
@@ -195,9 +201,7 @@ var _ = Describe("CDS Response", func() {
 			Expect(cluster.ClusterDiscoveryType).To(Equal(expectedCluster.ClusterDiscoveryType))
 			Expect(cluster.EdsClusterConfig).To(Equal(expectedCluster.EdsClusterConfig))
 			Expect(cluster.ConnectTimeout).To(Equal(expectedCluster.ConnectTimeout))
-			// Not comparing the ever-chaning proto value, comparing rest of the struct though
-			Expect(cluster.TransportSocket.GetName()).To(Equal(expectedCluster.TransportSocket.GetName()))
-			Expect(cluster.TransportSocket.GetTypedConfig().GetTypeUrl()).To(Equal(expectedCluster.TransportSocket.GetTypedConfig().GetTypeUrl()))
+			Expect(cluster.TransportSocket).To(Equal(expectedCluster.TransportSocket))
 
 			// TODO(draychev): finish the rest
 			// Expect(cluster).To(Equal(expectedCluster))
