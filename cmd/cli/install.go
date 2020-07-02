@@ -35,6 +35,15 @@ plane for sidecar injection of envoy proxies.
 
 By default, mesh-name will be configured to "osm."
 
+When configuring the mesh-name, it should adhere to the RFC 1123 DNS Label specification.
+
+This means it must:
+
+- contain at most 63 characters
+- contain only lowercase alphanumeric characters or '-'
+- start with an alphanumeric character
+- end with an alphanumeric character
+
 Usage:
   $ osm install --mesh-name "hello-osm"
 
