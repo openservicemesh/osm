@@ -13,6 +13,7 @@ import (
 
 	"github.com/open-service-mesh/osm/pkg/cli"
 	"github.com/open-service-mesh/osm/pkg/constants"
+	"k8s.io/apimachinery/pkg/util/validation"
 )
 
 const installDesc = `
@@ -108,6 +109,12 @@ func (i *installCmd) run(config *helm.Configuration) error {
 	}
 	if err != nil {
 		return err
+	}
+
+	meshNameErrs := validation.IsDNS1123Label(i.meshName)
+
+	if len(meshNameErrs) != 0 {
+		return fmt.Errorf("Invalid mesh-name: %v", meshNameErrs)
 	}
 
 	if strings.EqualFold(i.certManager, "vault") {
