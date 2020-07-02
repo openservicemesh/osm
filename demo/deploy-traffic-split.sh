@@ -10,15 +10,16 @@ apiVersion: split.smi-spec.io/v1alpha2
 kind: TrafficSplit
 metadata:
   name: bookstore-split
-  namespace: "$BOOKSTORE_NAMESPACE"
+  namespace: $BOOKSTORE_NAMESPACE
 spec:
   service: "bookstore-mesh.$BOOKSTORE_NAMESPACE"
   backends:
 
   - service: bookstore-v1
-    weight: 1
+    weight: 50
+
   - service: bookstore-v2
-    weight: 99
+    weight: 50
 
 
 EOF
