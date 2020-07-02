@@ -195,7 +195,7 @@ jobs:
           go-version: 1.14
       - name: Cleanup stale CI namespaces
         run: |
-          touch .env  # it is ok keep this empty
+          touch .env  # it is for this file to be empty - needed by Makefile
           mkdir -p ".kube"
           echo "$KUBE_CONFIG" | base64 -d > "$KUBECONFIG"
           go run ./ci/cmd/cleanup/cleanup-namespaces.go
@@ -225,7 +225,7 @@ jobs:
           go-version: 1.14
       - name: Create Docker images
         run: |
-          touch .env  # it is ok keep this empty
+          touch .env  # it is for this file to be empty - needed by Makefile
           echo "Creating Kubernetes namespace: $K8S_NAMESPACE"
           mkdir -p ".kube"
           echo "$KUBE_CONFIG" | base64 -d > "$KUBECONFIG"
@@ -239,6 +239,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v1
+
       - name: Restore Module Cache
         uses: actions/cache@v2
         with:
@@ -246,17 +247,21 @@ jobs:
           key: ${{ runner.os }}-gomod2-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-gomod2-
+
       - name: Restore Build Cache
         uses: actions/cache@v2
         with:
           path: ~/.cache/go-build
           key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}
+
       - name: Setup Go 1.14
         uses: actions/setup-go@v1
         with:
           go-version: 1.14
         id: go
-      - env:
+
+      - name: Run Simulation w/ Tresor and SMI policies
+        env:
           K8S_NAMESPACE: "ci-${{ github.run_id }}-${{ github.run_number}}-tresor"
           BOOKWAREHOUSE_NAMESPACE: "ci-bookwarehouse-${{ github.run_id }}-${{ github.run_number}}-tresor"
           BOOKBUYER_NAMESPACE: "ci-bookbuyer-${{ github.run_id }}-${{ github.run_number}}-tresor"
@@ -284,6 +289,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v1
+
       - name: Restore Module Cache
         uses: actions/cache@v2
         with:
@@ -291,17 +297,21 @@ jobs:
           key: ${{ runner.os }}-gomod2-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-gomod2-
+
       - name: Restore Build Cache
         uses: actions/cache@v2
         with:
           path: ~/.cache/go-build
           key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}
+
       - name: Setup Go 1.14
         uses: actions/setup-go@v1
         with:
           go-version: 1.14
         id: go
-      - env:
+
+      - name: Run Simulation w/ Hashi Vault and allow-all
+        env:
           K8S_NAMESPACE: "ci-${{ github.run_id }}-${{ github.run_number}}-hashivault"
           BOOKWAREHOUSE_NAMESPACE: "ci-bookwarehouse-${{ github.run_id }}-${{ github.run_number}}-hashivault"
           BOOKBUYER_NAMESPACE: "ci-bookbuyer-${{ github.run_id }}-${{ github.run_number}}-hashivault"
