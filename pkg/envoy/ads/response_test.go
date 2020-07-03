@@ -21,6 +21,7 @@ import (
 	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/envoy"
+	"github.com/open-service-mesh/osm/pkg/service"
 	"github.com/open-service-mesh/osm/pkg/smi"
 	"github.com/open-service-mesh/osm/pkg/tests"
 )
@@ -45,17 +46,18 @@ var _ = Describe("Test ADS response functions", func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
 
-	service := tests.NewServiceFixture(serviceName, namespace, labels)
-	_, err = kubeClient.CoreV1().Services(namespace).Create(context.TODO(), service, metav1.CreateOptions{})
+	svc := tests.NewServiceFixture(serviceName, namespace, labels)
+	_, err = kubeClient.CoreV1().Services(namespace).Create(context.TODO(), svc, metav1.CreateOptions{})
 	It("should have created a service", func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
 	cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s", envoyUID, serviceAccountName, namespace))
 	proxy := envoy.NewProxy(cn, nil)
 
-	expectedSecretOneName := fmt.Sprintf("service-cert:default/%s", serviceName)
-	expectedSecretTwoName := fmt.Sprintf("root-cert-for-mtls:default/%s", serviceName)
-	expectedSecretThreeName := fmt.Sprintf("root-cert-https:default/%s", serviceName)
+	nsService := service.NamespacedService{
+		Namespace: "default",
+		Service:   serviceName,
+	}
 
 	Context("Test getRequestedCertType()", func() {
 		It("returns service cert", func() {
@@ -64,9 +66,22 @@ var _ = Describe("Test ADS response functions", func() {
 			expected := envoy_api_v2.DiscoveryRequest{
 				TypeUrl: string(envoy.TypeSDS),
 				ResourceNames: []string{
-					expectedSecretOneName,
-					expectedSecretTwoName,
-					expectedSecretThreeName,
+					envoy.SDSCert{
+						Service:  nsService,
+						CertType: envoy.ServiceCertType,
+					}.String(),
+					envoy.SDSCert{
+						Service:  nsService,
+						CertType: envoy.RootCertTypeForMTLSOutbound,
+					}.String(),
+					envoy.SDSCert{
+						Service:  nsService,
+						CertType: envoy.RootCertTypeForMTLSInbound,
+					}.String(),
+					envoy.SDSCert{
+						Service:  nsService,
+						CertType: envoy.RootCertTypeForHTTPS,
+					}.String(),
 				},
 			}
 			Expect(actual).ToNot(BeNil())
@@ -113,23 +128,40 @@ var _ = Describe("Test ADS response functions", func() {
 
 			Expect((*actualResponses)[4].VersionInfo).To(Equal("1"))
 			Expect((*actualResponses)[4].TypeUrl).To(Equal(string(envoy.TypeSDS)))
-			Expect(len((*actualResponses)[4].Resources)).To(Equal(3))
+			log.Printf("%v", len((*actualResponses)[4].Resources))
+			Expect(len((*actualResponses)[4].Resources)).To(Equal(4))
 
 			secretOne := envoy_api_v2_auth.Secret{}
 			firstSecret := (*actualResponses)[4].Resources[0]
 			err = ptypes.UnmarshalAny(firstSecret, &secretOne)
-			Expect(secretOne.Name).To(Equal(expectedSecretOneName))
+			Expect(secretOne.Name).To(Equal(envoy.SDSCert{
+				Service:  nsService,
+				CertType: envoy.ServiceCertType,
+			}.String()))
 
 			secretTwo := envoy_api_v2_auth.Secret{}
 			secondSecret := (*actualResponses)[4].Resources[1]
 			err = ptypes.UnmarshalAny(secondSecret, &secretTwo)
-			Expect(secretTwo.Name).To(Equal(expectedSecretTwoName))
+			Expect(secretTwo.Name).To(Equal(envoy.SDSCert{
+				Service:  nsService,
+				CertType: envoy.RootCertTypeForMTLSOutbound,
+			}.String()))
 
 			secretThree := envoy_api_v2_auth.Secret{}
 			thirdSecret := (*actualResponses)[4].Resources[2]
 			err = ptypes.UnmarshalAny(thirdSecret, &secretThree)
-			Expect(secretThree.Name).To(Equal(expectedSecretThreeName))
+			Expect(secretThree.Name).To(Equal(envoy.SDSCert{
+				Service:  nsService,
+				CertType: envoy.RootCertTypeForMTLSInbound,
+			}.String()))
 
+			secretFour := envoy_api_v2_auth.Secret{}
+			forthSecret := (*actualResponses)[4].Resources[3]
+			err = ptypes.UnmarshalAny(forthSecret, &secretFour)
+			Expect(secretFour.Name).To(Equal(envoy.SDSCert{
+				Service:  nsService,
+				CertType: envoy.RootCertTypeForHTTPS,
+			}.String()))
 		})
 	})
 })

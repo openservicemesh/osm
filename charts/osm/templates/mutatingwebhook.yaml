@@ -12,7 +12,7 @@ webhooks:
       namespace: {{.Release.Namespace}}
       path: /mutate
       port: 443
-  failurePolicy: {{.Values.OpenServiceMesh.sidecarInjectorWebhook.failurePolicy}}
+  failurePolicy: Fail
   matchPolicy: Exact
   namespaceSelector:
     matchLabels:
