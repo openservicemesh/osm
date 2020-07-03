@@ -156,10 +156,9 @@ func (c Client) GetServiceForServiceAccount(svcAccount service.NamespacedService
 		return service.NamespacedService{}, errMoreThanServiceForServiceAccount
 	}
 
+	log.Info().Msgf("[%s] Services %v observed on service account %s on Kubernetes", c.providerIdent, services, svcAccount)
 	service := services.Pop().(service.NamespacedService)
 	log.Trace().Msgf("Found service %s for serviceAccount %s in namespace %s", service.Service, svcAccount.ServiceAccount, svcAccount.Namespace)
-
-	log.Info().Msgf("[%s] Services %v observed on service account %s on Kubernetes", c.providerIdent, services, svcAccount)
 	return service, nil
 }
 
