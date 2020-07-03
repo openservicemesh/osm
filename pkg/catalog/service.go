@@ -12,7 +12,7 @@ func (mc *MeshCatalog) GetServiceForServiceAccount(sa service.NamespacedServiceA
 		if provider.GetID() != constants.AzureProviderName {
 			log.Trace().Msgf("[%s] Looking for Services for ServiceAccount=%s", provider.GetID(), sa)
 			service, err := provider.GetServiceForServiceAccount(sa)
-			log.Trace().Msgf("[%s] Found service %s for ServiceAccount=%s", service.String(), provider.GetID(), sa)
+			log.Trace().Msgf("[%s] Found service %s for ServiceAccount=%s", provider.GetID(), service.String(), sa)
 			return service, err
 		}
 	}

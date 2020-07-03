@@ -22,7 +22,7 @@ Open a [GitHub pull request] to make a contribution.
   - Each pull request must have at least one LGTM from a core maintainer.
   - Large pull requests must have two LGTMs from two core maintainers. It is at the descretion of the author to deem their the size of their PR as `large` or `small` via labels and to ensure that it has received a sufficient number of reviews.
   - If the person who opened the pull request is a core maintainer, then only that person is expected to merge once it has the necessary LGTMs/reviews.
-  - Commits should be squashed before merging or upon merging to master
+  - Commits should be squashed before merging or upon merging to main
   - Commits should follow the style guideline outlined below.
 
   ### Commit Style Guideline

@@ -55,9 +55,22 @@ func makeRequestForAllSecrets(proxy *envoy.Proxy, catalog catalog.MeshCataloger)
 
 	return &envoy_api_v2.DiscoveryRequest{
 		ResourceNames: []string{
-			fmt.Sprintf("%s%s%s", envoy.ServiceCertType, envoy.Separator, serviceForProxy),
-			fmt.Sprintf("%s%s%s", envoy.RootCertTypeForMTLS, envoy.Separator, serviceForProxy),
-			fmt.Sprintf("%s%s%s", envoy.RootCertTypeForHTTPS, envoy.Separator, serviceForProxy),
+			envoy.SDSCert{
+				Service:  *serviceForProxy,
+				CertType: envoy.ServiceCertType,
+			}.String(),
+			envoy.SDSCert{
+				Service:  *serviceForProxy,
+				CertType: envoy.RootCertTypeForMTLSOutbound,
+			}.String(),
+			envoy.SDSCert{
+				Service:  *serviceForProxy,
+				CertType: envoy.RootCertTypeForMTLSInbound,
+			}.String(),
+			envoy.SDSCert{
+				Service:  *serviceForProxy,
+				CertType: envoy.RootCertTypeForHTTPS,
+			}.String(),
 		},
 		TypeUrl: string(envoy.TypeSDS),
 	}

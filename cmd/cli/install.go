@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"strings"
@@ -11,13 +10,10 @@ import (
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/strvals"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/open-service-mesh/osm/pkg/cli"
 	"github.com/open-service-mesh/osm/pkg/constants"
+	"k8s.io/apimachinery/pkg/util/validation"
 )
 
 const installDesc = `
@@ -30,7 +26,7 @@ namespace does not exist, it will be created.
 Usage:
   $ osm install --namespace hello-world
 
-Each instance of the osm control plane installation is given a unqiue mesh
+Each instance of the osm control plane installation is given a unqiue mesh 
 name. A mesh name can be passed in via the --mesh-name flag or a default will
 be provided for you.
 The mesh name is used in various different ways by the control plane including
@@ -38,6 +34,15 @@ as the resource name for the MutatingWebhookConfiguration created by the control
 plane for sidecar injection of envoy proxies.
 
 By default, mesh-name will be configured to "osm."
+
+When configuring the mesh-name, it should adhere to the RFC 1123 DNS Label specification.
+
+This means it must:
+
+- contain at most 63 characters
+- contain only lowercase alphanumeric characters or '-'
+- start with an alphanumeric character
+- end with an alphanumeric character
 
 Usage:
   $ osm install --mesh-name "hello-osm"
@@ -53,22 +58,21 @@ const (
 var chartTGZSource string
 
 type installCmd struct {
-	out                                 io.Writer
-	containerRegistry                   string
-	containerRegistrySecret             string
-	chartPath                           string
-	osmImageTag                         string
-	certManager                         string
-	vaultHost                           string
-	vaultProtocol                       string
-	vaultToken                          string
-	vaultRole                           string
-	serviceCertValidityMinutes          int
-	prometheusRetentionTime             string
-	enableDebugServer                   bool
-	disableSMIAccessControlPolicy       bool
-	meshName                            string
-	sidecarInjectorWebhookFailurePolicy string
+	out                           io.Writer
+	containerRegistry             string
+	containerRegistrySecret       string
+	chartPath                     string
+	osmImageTag                   string
+	certManager                   string
+	vaultHost                     string
+	vaultProtocol                 string
+	vaultToken                    string
+	vaultRole                     string
+	serviceCertValidityMinutes    int
+	prometheusRetentionTime       string
+	enableDebugServer             bool
+	disableSMIAccessControlPolicy bool
+	meshName                      string
 }
 
 func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
@@ -81,7 +85,7 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 		Short: "install osm control plane",
 		Long:  installDesc,
 		RunE: func(_ *cobra.Command, args []string) error {
-			return inst.run(helm.NewInstall(config), true)
+			return inst.run(config)
 		},
 	}
 
@@ -100,16 +104,11 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.BoolVar(&inst.enableDebugServer, "enable-debug-server", false, "Enable the debug HTTP server")
 	f.BoolVar(&inst.disableSMIAccessControlPolicy, "disable-smi-access-control-policy", false, "Disable SMI access control policy")
 	f.StringVar(&inst.meshName, "mesh-name", "osm", "Name of the service mesh")
-	f.StringVar(&inst.sidecarInjectorWebhookFailurePolicy, "sidecar-webhook-failure-policy", "Fail", "Failure policy for the sidecar injector webhook (Fail or Ignore)")
 
 	return cmd
 }
 
-func (i *installCmd) run(installClient *helm.Install, loadKubeconfig bool) error {
-	installClient.ReleaseName = settings.Namespace()
-	installClient.Namespace = settings.Namespace()
-	installClient.CreateNamespace = true
-
+func (i *installCmd) run(config *helm.Configuration) error {
 	var chartRequested *chart.Chart
 	var err error
 	if i.chartPath != "" {
@@ -119,6 +118,12 @@ func (i *installCmd) run(installClient *helm.Install, loadKubeconfig bool) error
 	}
 	if err != nil {
 		return err
+	}
+
+	meshNameErrs := validation.IsDNS1123Label(i.meshName)
+
+	if len(meshNameErrs) != 0 {
+		return fmt.Errorf("Invalid mesh-name: %v", meshNameErrs)
 	}
 
 	if strings.EqualFold(i.certManager, "vault") {
@@ -134,43 +139,31 @@ func (i *installCmd) run(installClient *helm.Install, loadKubeconfig bool) error
 		}
 	}
 
-	// Wrapping this code with a check for unit testing
-	if loadKubeconfig {
-		loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
-		configOverrides := &clientcmd.ConfigOverrides{}
-		clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
-		config, err := clientConfig.ClientConfig()
-		if err != nil {
-			checkedPath := strings.Join(loadingRules.Precedence, ",")
-			return fmt.Errorf("Error fetching kubeconfig from %s", checkedPath)
-		}
-
-		clientset, err := kubernetes.NewForConfig(config)
-		if err != nil {
-			return fmt.Errorf("Could not access Kubernetes cluster. Check kubeconfig")
-		}
-		deploymentsClient := clientset.AppsV1().Deployments("") // Get deployments from all namespaces
-
-		labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"meshName": i.meshName}}
-
-		listOptions := metav1.ListOptions{
-			LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
-		}
-		list, err := deploymentsClient.List(context.TODO(), listOptions)
-		if err != nil {
-			return err
-		}
-
-		if len(list.Items) != 0 {
-			return fmt.Errorf("Mesh %s already exists in cluster. Please specify a new mesh name using --mesh-name", i.meshName)
-		}
-	}
-
 	values, err := i.resolveValues()
 	if err != nil {
 		return err
 	}
 
+	listClient := helm.NewList(config)
+	listClient.AllNamespaces = true
+	releases, err := listClient.Run()
+	if err != nil {
+		return err
+	}
+	for _, release := range releases {
+		if osmVals, exists := release.Config["OpenServiceMesh"]; exists {
+			if valsMap, ok := osmVals.(map[string]interface{}); ok {
+				if meshName, exists := valsMap["meshName"]; exists && meshName == i.meshName {
+					return errMeshAlreadyExists(i.meshName)
+				}
+			}
+		}
+	}
+
+	installClient := helm.NewInstall(config)
+	installClient.ReleaseName = settings.Namespace()
+	installClient.Namespace = settings.Namespace()
+	installClient.CreateNamespace = true
 	if _, err = installClient.Run(chartRequested, values); err != nil {
 		return err
 	}
@@ -195,7 +188,6 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 		fmt.Sprintf("OpenServiceMesh.enableDebugServer=%t", i.enableDebugServer),
 		fmt.Sprintf("OpenServiceMesh.disableSMIAccessControlPolicy=%t", i.disableSMIAccessControlPolicy),
 		fmt.Sprintf("OpenServiceMesh.meshName=%s", i.meshName),
-		fmt.Sprintf("OpenServiceMesh.sidecarInjectorWebhook.failurePolicy=%s", i.sidecarInjectorWebhookFailurePolicy),
 	}
 
 	for _, val := range valuesConfig {
@@ -204,4 +196,8 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 		}
 	}
 	return finalValues, nil
+}
+
+func errMeshAlreadyExists(name string) error {
+	return fmt.Errorf("Mesh %s already exists in cluster. Please specify a new mesh name using --mesh-name", name)
 }

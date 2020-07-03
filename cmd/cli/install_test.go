@@ -15,15 +15,14 @@ import (
 )
 
 var (
-	testRegistry                               = "test-registry"
-	testRegistrySecret                         = "test-registry-secret"
-	testOsmImageTag                            = "test-tag"
-	testVaultHost                              = "vault.osm.svc.cluster.local"
-	testVaultProtocol                          = "http"
-	testVaultToken                             = "token"
-	testVaultRole                              = "role"
-	testRetentionTime                          = "5d"
-	defaultSidecarInjectorWebhookFailurePolicy = "Fail"
+	testRegistry       = "test-registry"
+	testRegistrySecret = "test-registry-secret"
+	testOsmImageTag    = "test-tag"
+	testVaultHost      = "vault.osm.svc.cluster.local"
+	testVaultProtocol  = "http"
+	testVaultToken     = "token"
+	testVaultRole      = "role"
+	testRetentionTime  = "5d"
 )
 
 var _ = Describe("Running the install command", func() {
@@ -53,20 +52,18 @@ var _ = Describe("Running the install command", func() {
 			}
 
 			installCmd := &installCmd{
-				out:                                 out,
-				chartPath:                           "testdata/test-chart",
-				containerRegistry:                   testRegistry,
-				containerRegistrySecret:             testRegistrySecret,
-				osmImageTag:                         testOsmImageTag,
-				certManager:                         "tresor",
-				serviceCertValidityMinutes:          1,
-				prometheusRetentionTime:             testRetentionTime,
-				meshName:                            "osm",
-				sidecarInjectorWebhookFailurePolicy: defaultSidecarInjectorWebhookFailurePolicy,
+				out:                        out,
+				chartPath:                  "testdata/test-chart",
+				containerRegistry:          testRegistry,
+				containerRegistrySecret:    testRegistrySecret,
+				osmImageTag:                testOsmImageTag,
+				certManager:                "tresor",
+				serviceCertValidityMinutes: 1,
+				prometheusRetentionTime:    testRetentionTime,
+				meshName:                   "osm",
 			}
 
-			installClient := helm.NewInstall(config)
-			err = installCmd.run(installClient, false)
+			err = installCmd.run(config)
 		})
 
 		It("should not error", func() {
@@ -118,9 +115,6 @@ var _ = Describe("Running the install command", func() {
 							}},
 						"enableDebugServer":             false,
 						"disableSMIAccessControlPolicy": false,
-						"sidecarInjectorWebhook": map[string]interface{}{
-							"failurePolicy": defaultSidecarInjectorWebhookFailurePolicy,
-						},
 					}}))
 			})
 
@@ -155,19 +149,17 @@ var _ = Describe("Running the install command", func() {
 			}
 
 			installCmd := &installCmd{
-				out:                                 out,
-				containerRegistry:                   testRegistry,
-				containerRegistrySecret:             testRegistrySecret,
-				osmImageTag:                         testOsmImageTag,
-				certManager:                         "tresor",
-				serviceCertValidityMinutes:          1,
-				prometheusRetentionTime:             testRetentionTime,
-				meshName:                            "osm",
-				sidecarInjectorWebhookFailurePolicy: defaultSidecarInjectorWebhookFailurePolicy,
+				out:                        out,
+				containerRegistry:          testRegistry,
+				containerRegistrySecret:    testRegistrySecret,
+				osmImageTag:                testOsmImageTag,
+				certManager:                "tresor",
+				serviceCertValidityMinutes: 1,
+				prometheusRetentionTime:    testRetentionTime,
+				meshName:                   "osm",
 			}
 
-			installClient := helm.NewInstall(config)
-			err = installCmd.run(installClient, false)
+			err = installCmd.run(config)
 		})
 
 		It("should not error", func() {
@@ -219,9 +211,6 @@ var _ = Describe("Running the install command", func() {
 							}},
 						"enableDebugServer":             false,
 						"disableSMIAccessControlPolicy": false,
-						"sidecarInjectorWebhook": map[string]interface{}{
-							"failurePolicy": defaultSidecarInjectorWebhookFailurePolicy,
-						},
 					}}))
 			})
 
@@ -255,24 +244,22 @@ var _ = Describe("Running the install command", func() {
 			}
 
 			installCmd := &installCmd{
-				out:                                 out,
-				chartPath:                           "testdata/test-chart",
-				containerRegistry:                   testRegistry,
-				containerRegistrySecret:             testRegistrySecret,
-				certManager:                         "vault",
-				vaultHost:                           testVaultHost,
-				vaultToken:                          testVaultToken,
-				vaultRole:                           testVaultRole,
-				vaultProtocol:                       "http",
-				osmImageTag:                         testOsmImageTag,
-				serviceCertValidityMinutes:          1,
-				prometheusRetentionTime:             testRetentionTime,
-				meshName:                            "osm",
-				sidecarInjectorWebhookFailurePolicy: defaultSidecarInjectorWebhookFailurePolicy,
+				out:                        out,
+				chartPath:                  "testdata/test-chart",
+				containerRegistry:          testRegistry,
+				containerRegistrySecret:    testRegistrySecret,
+				certManager:                "vault",
+				vaultHost:                  testVaultHost,
+				vaultToken:                 testVaultToken,
+				vaultRole:                  testVaultRole,
+				vaultProtocol:              "http",
+				osmImageTag:                testOsmImageTag,
+				serviceCertValidityMinutes: 1,
+				prometheusRetentionTime:    testRetentionTime,
+				meshName:                   "osm",
 			}
 
-			installClient := helm.NewInstall(config)
-			err = installCmd.run(installClient, false)
+			err = installCmd.run(config)
 		})
 
 		It("should not error", func() {
@@ -325,9 +312,6 @@ var _ = Describe("Running the install command", func() {
 						},
 						"enableDebugServer":             false,
 						"disableSMIAccessControlPolicy": false,
-						"sidecarInjectorWebhook": map[string]interface{}{
-							"failurePolicy": defaultSidecarInjectorWebhookFailurePolicy,
-						},
 					}}))
 			})
 
@@ -366,14 +350,119 @@ var _ = Describe("Running the install command", func() {
 				containerRegistry:       testRegistry,
 				containerRegistrySecret: testRegistrySecret,
 				certManager:             "vault",
+				meshName:                "osm",
 			}
 
-			installClient := helm.NewInstall(config)
-			err = installCmd.run(installClient, false)
+			err = installCmd.run(config)
 		})
 
 		It("should error", func() {
 			Expect(err).To(MatchError("Missing arguments for cert-manager vault: [vault-host vault-token]"))
+		})
+	})
+
+	Describe("when a mesh with the given name already exists", func() {
+		var (
+			out     *bytes.Buffer
+			store   *storage.Storage
+			config  *helm.Configuration
+			install *installCmd
+			err     error
+		)
+
+		BeforeEach(func() {
+			out = new(bytes.Buffer)
+			store = storage.Init(driver.NewMemory())
+			if mem, ok := store.Driver.(*driver.Memory); ok {
+				mem.SetNamespace(settings.Namespace())
+			}
+
+			config = &helm.Configuration{
+				Releases: store,
+				KubeClient: &kubefake.PrintingKubeClient{
+					Out: ioutil.Discard,
+				},
+				Capabilities: chartutil.DefaultCapabilities,
+				Log:          func(format string, v ...interface{}) {},
+			}
+
+			install = &installCmd{
+				out:                        out,
+				chartPath:                  "testdata/test-chart",
+				containerRegistry:          testRegistry,
+				containerRegistrySecret:    testRegistrySecret,
+				osmImageTag:                testOsmImageTag,
+				certManager:                "tresor",
+				serviceCertValidityMinutes: 1,
+				prometheusRetentionTime:    testRetentionTime,
+				meshName:                   "osm",
+			}
+
+			err = config.Releases.Create(&release.Release{
+				Namespace: "not-" + settings.Namespace(), // should be found in any namespace
+				Config: map[string]interface{}{
+					"OpenServiceMesh": map[string]interface{}{
+						"meshName": install.meshName,
+					},
+				},
+				Info: &release.Info{
+					// helm list only shows deployed and failed releases by default
+					Status: release.StatusDeployed,
+				},
+			})
+			if err != nil {
+				panic(err)
+			}
+
+			err = install.run(config)
+		})
+
+		It("should error", func() {
+			Expect(err).To(MatchError(errMeshAlreadyExists(install.meshName)))
+		})
+	})
+
+	Describe("when a mesh name is invalid", func() {
+		var (
+			out     *bytes.Buffer
+			store   *storage.Storage
+			config  *helm.Configuration
+			install *installCmd
+			err     error
+		)
+
+		BeforeEach(func() {
+			out = new(bytes.Buffer)
+			store = storage.Init(driver.NewMemory())
+			if mem, ok := store.Driver.(*driver.Memory); ok {
+				mem.SetNamespace(settings.Namespace())
+			}
+
+			config = &helm.Configuration{
+				Releases: store,
+				KubeClient: &kubefake.PrintingKubeClient{
+					Out: ioutil.Discard},
+				Capabilities: chartutil.DefaultCapabilities,
+				Log:          func(format string, v ...interface{}) {},
+			}
+
+			install = &installCmd{
+				out:                        out,
+				chartPath:                  "testdata/test-chart",
+				containerRegistry:          testRegistry,
+				containerRegistrySecret:    testRegistrySecret,
+				osmImageTag:                testOsmImageTag,
+				certManager:                "tresor",
+				serviceCertValidityMinutes: 1,
+				prometheusRetentionTime:    testRetentionTime,
+				meshName:                   "osm!!123456789012345678901234567890123456789012345678901234567890", // >65 characters, contains !
+			}
+
+			err = install.run(config)
+		})
+
+		It("should error", func() {
+			Expect(err).To(MatchError("Invalid mesh-name: [must be no more than 63 characters a DNS-1123 label must consist of lower case alphanumeric characters or '-', and must start and end with an alphanumeric character (e.g. 'my-name',  or '123-abc', regex used for validation is '[a-z0-9]([-a-z0-9]*[a-z0-9])?')]"))
 		})
 	})
 })
@@ -386,17 +475,16 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 
 	BeforeEach(func() {
 		installCmd := &installCmd{
-			containerRegistry:                   testRegistry,
-			containerRegistrySecret:             testRegistrySecret,
-			certManager:                         "vault",
-			vaultHost:                           testVaultHost,
-			vaultProtocol:                       testVaultProtocol,
-			vaultToken:                          testVaultToken,
-			vaultRole:                           testVaultRole,
-			osmImageTag:                         testOsmImageTag,
-			serviceCertValidityMinutes:          1,
-			prometheusRetentionTime:             testRetentionTime,
-			sidecarInjectorWebhookFailurePolicy: defaultSidecarInjectorWebhookFailurePolicy,
+			containerRegistry:          testRegistry,
+			containerRegistrySecret:    testRegistrySecret,
+			certManager:                "vault",
+			vaultHost:                  testVaultHost,
+			vaultProtocol:              testVaultProtocol,
+			vaultToken:                 testVaultToken,
+			vaultRole:                  testVaultRole,
+			osmImageTag:                testOsmImageTag,
+			serviceCertValidityMinutes: 1,
+			prometheusRetentionTime:    testRetentionTime,
 		}
 
 		vals, err = installCmd.resolveValues()
@@ -434,67 +522,6 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 				},
 				"enableDebugServer":             false,
 				"disableSMIAccessControlPolicy": false,
-				"sidecarInjectorWebhook": map[string]interface{}{
-					"failurePolicy": defaultSidecarInjectorWebhookFailurePolicy,
-				},
-			}}))
-	})
-})
-
-var _ = Describe("Resolving values for install command with sidecar injector webhook parameters", func() {
-	var (
-		vals map[string]interface{}
-		err  error
-	)
-
-	BeforeEach(func() {
-		installCmd := &installCmd{
-			containerRegistry:                   testRegistry,
-			containerRegistrySecret:             testRegistrySecret,
-			certManager:                         "tresor",
-			osmImageTag:                         testOsmImageTag,
-			serviceCertValidityMinutes:          1,
-			prometheusRetentionTime:             testRetentionTime,
-			sidecarInjectorWebhookFailurePolicy: "Ignore",
-		}
-
-		vals, err = installCmd.resolveValues()
-	})
-
-	It("should not error", func() {
-		Expect(err).NotTo(HaveOccurred())
-	})
-
-	It("should resolve correctly", func() {
-		Expect(vals).To(BeEquivalentTo(map[string]interface{}{
-			"OpenServiceMesh": map[string]interface{}{
-				"certManager": "tresor",
-				"meshName":    "",
-				"image": map[string]interface{}{
-					"registry": testRegistry,
-					"tag":      testOsmImageTag,
-				},
-				"imagePullSecrets": []interface{}{
-					map[string]interface{}{
-						"name": testRegistrySecret,
-					},
-				},
-				"serviceCertValidityMinutes": int64(1),
-				"vault": map[string]interface{}{
-					"host":     "",
-					"protocol": "",
-					"token":    "",
-					"role":     "",
-				},
-				"prometheus": map[string]interface{}{
-					"retention": map[string]interface{}{
-						"time": "5d",
-					}},
-				"enableDebugServer":             false,
-				"disableSMIAccessControlPolicy": false,
-				"sidecarInjectorWebhook": map[string]interface{}{
-					"failurePolicy": "Ignore",
-				},
 			}}))
 	})
 })
