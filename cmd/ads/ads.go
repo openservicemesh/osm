@@ -45,7 +45,7 @@ const (
 
 var (
 	verbosity                  string
-	osmID                      string // An ID that uniquely identifies an OSM instance
+	meshName                   string // An ID that uniquely identifies an OSM instance
 	azureAuthFile              string
 	kubeConfigFile             string
 	osmNamespace               string
@@ -80,7 +80,7 @@ var (
 
 func init() {
 	flags.StringVar(&verbosity, "verbosity", "info", "Set log verbosity level")
-	flags.StringVar(&osmID, "osmID", "", "OSM instance ID")
+	flags.StringVar(&meshName, "meshName", "", "OSM mesh name")
 	flags.StringVar(&azureAuthFile, "azureAuthFile", "", "Path to Azure Auth File")
 	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file.")
 	flags.StringVar(&osmNamespace, "osmNamespace", "", "Namespace to which OSM belongs to.")
@@ -114,22 +114,14 @@ func main() {
 
 	var kubeConfig *rest.Config
 	var err error
-	if kubeConfigFile != "" {
-		kubeConfig, err = clientcmd.BuildConfigFromFlags("", kubeConfigFile)
-		if err != nil {
-			log.Fatal().Err(err).Msgf("[%s] Error fetching Kubernetes config. Ensure correctness of CLI argument 'kubeconfig=%s'", serverType, kubeConfigFile)
-		}
-	} else {
-		// creates the in-cluster config
-		kubeConfig, err = rest.InClusterConfig()
-		if err != nil {
-			log.Fatal().Err(err).Msg("Error generating Kubernetes config")
-		}
+	kubeConfig, err = clientcmd.BuildConfigFromFlags("", kubeConfigFile)
+	if err != nil {
+		log.Fatal().Err(err).Msgf("[%s] Failed to create kube config (kubeconfig=%s)", serverType, kubeConfigFile)
 	}
 
 	stop := signals.RegisterExitHandlers()
 
-	namespaceController := namespace.NewNamespaceController(kubeConfig, osmID, stop)
+	namespaceController := namespace.NewNamespaceController(kubeConfig, meshName, stop)
 	meshSpec := smi.NewMeshSpecClient(kubeConfig, osmNamespace, namespaceController, stop)
 
 	certManager, certDebugger := certManagers[certificateManagerKind(*certManagerKind)](kubeConfig, enableDebugServer)
@@ -169,12 +161,12 @@ func main() {
 		endpointsProviders...)
 
 	// Create the sidecar-injector webhook
-	if err := injector.NewWebhook(injectorConfig, kubeConfig, certManager, meshCatalog, namespaceController, osmID, osmNamespace, webhookName, stop); err != nil {
+	if err := injector.NewWebhook(injectorConfig, kubeConfig, certManager, meshCatalog, namespaceController, meshName, osmNamespace, webhookName, stop); err != nil {
 		log.Fatal().Err(err).Msg("Error creating mutating webhook")
 	}
 
 	// TODO(draychev): there should be no need to pass meshSpec to the ADS - it is already in meshCatalog
-	xdsServer := ads.NewADSServer(ctx, meshCatalog, meshSpec, enableDebugServer)
+	xdsServer := ads.NewADSServer(ctx, meshCatalog, meshSpec, enableDebugServer, osmNamespace)
 
 	// TODO(draychev): we need to pass this hard-coded string is a CLI argument (https://github.com/open-service-mesh/osm/issues/542)
 	validityPeriod := constants.XDSCertificateValidityPeriod

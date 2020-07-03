@@ -42,8 +42,21 @@ const (
 	// LocalhostIPAddress is the local host address.
 	LocalhostIPAddress = "127.0.0.1"
 
-	// EnvoyAdminCluster is the cluster name for Envoy's Admin
-	EnvoyAdminCluster = "envoy-admin-cluster"
+	// EnvoyMetricsCluster is the cluster name of the Prometheus metrics cluster
+	EnvoyMetricsCluster = "envoy-metrics-cluster"
+
+	// EnvoyZipkinCluster is the name of the Zipkin cluster.
+	EnvoyZipkinCluster = "envoy-zipkin-cluster"
+
+	// EnvoyZipkinEndpoint zipkin endpoint.
+	EnvoyZipkinEndpoint = "/api/v2/spans"
+
+	// EnvoyZipkinAddress is the address of the Zipkin server.
+	EnvoyZipkinAddress = "zipkin"
+
+	// EnvoyZipkinPort is the Zipkin port number.
+	// TODO(draychev): Move this to the Config CRD
+	EnvoyZipkinPort = 9411
 
 	// EnvoyPrometheusInboundListenerPort is Envoy's inbound listener port number for prometheus
 	EnvoyPrometheusInboundListenerPort = 15010
@@ -79,7 +92,7 @@ const (
 	WildcardHTTPMethod = "*"
 
 	// OSMKubeResourceMonitorAnnotation is the key of the annotation used to monitor a K8s resource
-	OSMKubeResourceMonitorAnnotation = "openservicemesh.io/monitor"
+	OSMKubeResourceMonitorAnnotation = "openservicemesh.io/monitored-by"
 
 	// KubernetesOpaqueSecretCAKey is the key which holds the CA bundle in a Kubernetes secret.
 	KubernetesOpaqueSecretCAKey = "ca.crt"
@@ -104,8 +117,8 @@ const (
 	// EnvVarHumanReadableLogMessages is an environment variable, which when set to "true" enables colorful human-readable log messages.
 	EnvVarHumanReadableLogMessages = "OSM_HUMAN_DEBUG_LOG"
 
-	// WildcardClusterWeight is the default wildcard cluster weight
-	WildcardClusterWeight = 100
+	// ClusterWeightAcceptAll is the weight for a cluster that accepts 100 percent of traffic sent to it
+	ClusterWeightAcceptAll = 100
 
 	// PrometheusDefaultRetentionTime is the default days for which data is retained in prometheus
 	PrometheusDefaultRetentionTime = "15d"

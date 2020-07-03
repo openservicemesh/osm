@@ -13,7 +13,8 @@ func NewFakeProvider() endpoint.Provider {
 
 	return &fakeClient{
 		endpoints: map[service.Name][]endpoint.Endpoint{
-			tests.NamespacedServiceName: {tests.Endpoint},
+			service.Name(tests.BookstoreService.String()): {tests.Endpoint},
+			service.Name(tests.BookbuyerService.String()): {tests.Endpoint},
 		},
 		services: map[service.NamespacedServiceAccount]service.NamespacedService{
 			tests.BookstoreServiceAccount: tests.BookstoreService,

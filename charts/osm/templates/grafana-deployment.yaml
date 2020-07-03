@@ -21,6 +21,13 @@ spec:
         - name: grafana
           image: "grafana/grafana:7.0.1"
           imagePullPolicy: Always
+          resources:
+            limits:
+              cpu: 500m
+              memory: 128M
+            requests:
+              cpu: 100m
+              memory: 64M
           volumeMounts:
             - name: osm-grafana-config
               mountPath: "/etc/grafana/grafana.ini"
@@ -40,7 +47,7 @@ spec:
               mountPath: /etc/grafana/provisioning/dashboards/dataplane
               readOnly: true
           ports:
-            - containerPort: {{.Values.grafana.port}}
+            - containerPort: {{.Values.OpenServiceMesh.grafana.port}}
       volumes:
         - name: osm-grafana-config
           configMap:

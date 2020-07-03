@@ -63,12 +63,15 @@ type EnvoySidecarData struct {
 	EnvoyClusterID string
 }
 
+// Context needed to compose the Envoy bootstrap YAML.
 type envoyBootstrapConfigMeta struct {
 	EnvoyAdminPort int
 	XDSClusterName string
 	RootCert       string
 	Cert           string
 	Key            string
-	XDSHost        string
-	XDSPort        int
+
+	// Host and port of the Envoy xDS server
+	XDSHost string
+	XDSPort int
 }

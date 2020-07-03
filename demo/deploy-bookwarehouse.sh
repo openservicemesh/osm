@@ -5,7 +5,6 @@ set -auexo pipefail
 # shellcheck disable=SC1091
 source .env
 
-kubectl create namespace "$BOOKWAREHOUSE_NAMESPACE" || true
 kubectl delete deployment bookwarehouse -n "$BOOKWAREHOUSE_NAMESPACE"  || true
 
 echo -e "Deploy Bookwarehouse Service Account"

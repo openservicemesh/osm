@@ -13,18 +13,15 @@ exit_error() {
     exit 1
 }
 
-wait_for_pod() {
-  # Wait for POD to be ready before deploying the apps.
-  app_label=$1
-  pods=$(kubectl get pods -n "$K8S_NAMESPACE" -l "app=$app_label")
-  if [ ! -z "$pods" ]; then
-    echo "$pods"
-    pod_name="$(kubectl get pods -n "$K8S_NAMESPACE" -l "app=$app_label" -o jsonpath="{.items[0].metadata.name}")"
-    if [ ! -z "$pod_name" ]; then
-      wait_for_pod_ready "$pod_name"
-    fi
+wait_for_osm_pods() {
+  # Wait for OSM pods to be ready before deploying the apps.
+  pods=$(kubectl get pods -n "$K8S_NAMESPACE" -o name | sed 's/^pod\///')
+  if [ -n "$pods" ]; then
+    for pod in $pods; do
+      wait_for_pod_ready "$pod"
+    done
   else
-    exit_error "No Pod found with label app=$app_label"
+    exit_error "No Pods found in namespace $K8S_NAMESPACE"
   fi
 }
 
@@ -48,9 +45,6 @@ wait_for_pod_ready() {
 }
 
 # Check for required environment variables
-if [ -z "$OSM_ID" ]; then
-    exit_error "Missing OSM_ID env variable"
-fi
 if [ -z "$K8S_NAMESPACE" ]; then
     exit_error "Missing K8S_NAMESPACE env variable"
 fi
@@ -89,6 +83,9 @@ else
     bin/osm admin delete-osm --namespace "$K8S_NAMESPACE" || true
 fi
 
+# Run pre-install checks to make sure OSM can be installed in the current kubectl context.
+bin/osm check --pre-install --namespace "$K8S_NAMESPACE"
+
 # The demo uses osm's namespace as defined by environment variables, K8S_NAMESPACE
 # to house the control plane components.
 kubectl create namespace "$K8S_NAMESPACE"
@@ -111,13 +108,8 @@ fi
 
 for ns in "$BOOKWAREHOUSE_NAMESPACE" "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE"; do
     kubectl create namespace "$ns"
-    kubectl label  namespaces "$ns" openservicemesh.io/monitor="$K8S_NAMESPACE"
+    kubectl label  namespaces "$ns" openservicemesh.io/monitored-by="$MESH_NAME"
 done
-
-# Apply SMI policies
-./demo/deploy-traffic-split.sh
-./demo/deploy-traffic-spec.sh
-./demo/deploy-traffic-target.sh
 
 # Deploys Xds and Prometheus
 echo "Certificate Manager in use: $CERT_MANAGER"
@@ -125,6 +117,7 @@ if [ "$CERT_MANAGER" = "vault" ]; then
   # shellcheck disable=SC2086
   bin/osm install \
       --namespace "$K8S_NAMESPACE" \
+      --mesh-name "$MESH_NAME" \
       --cert-manager="$CERT_MANAGER" \
       --vault-host="$VAULT_HOST" \
       --vault-token="$VAULT_TOKEN" \
@@ -138,6 +131,7 @@ else
   # shellcheck disable=SC2086
   bin/osm install \
       --namespace "$K8S_NAMESPACE" \
+      --mesh-name "$MESH_NAME" \
       --container-registry "$CTR_REGISTRY" \
       --container-registry-secret "$CTR_REGISTRY_CREDS_NAME" \
       --osm-image-tag "$CTR_TAG" \
@@ -145,11 +139,14 @@ else
       $optionalInstallArgs
 fi
 
-wait_for_pod "osm-controller"
-wait_for_pod "osm-prometheus"
-wait_for_pod "osm-grafana"
+wait_for_osm_pods
 
 ./demo/deploy-apps.sh
+
+# Apply SMI policies
+./demo/deploy-traffic-split.sh
+./demo/deploy-traffic-spec.sh
+./demo/deploy-traffic-target.sh
 
 if [[ "$IS_GITHUB" != "true" ]]; then
     watch -n5 "printf \"Namespace ${K8S_NAMESPACE}:\n\"; kubectl get pods -n ${K8S_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKBUYER_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKBUYER_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKSTORE_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKSTORE_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKTHIEF_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKTHIEF_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKWAREHOUSE_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKWAREHOUSE_NAMESPACE} -o wide"

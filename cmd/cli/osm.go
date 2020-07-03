@@ -12,8 +12,8 @@ import (
 	"github.com/open-service-mesh/osm/pkg/cli"
 )
 
-var globalUsage = `osm enables you to install and manage the 
-open service mesh in your Kubernetes cluster
+var globalUsage = `osm enables you to install and manage the
+Open Service Mesh in your Kubernetes cluster
 
 To install and configure open service mesh, run:
 
@@ -37,9 +37,9 @@ func newRootCmd(config *action.Configuration, out io.Writer, args []string) *cob
 	// Add subcommands here
 	cmd.AddCommand(
 		newAdminCmd(config, out),
-		newConfigCmd(config, out),
 		newEnvCmd(out),
 		newInstallCmd(config, out),
+		newCheckCmd(out),
 	)
 
 	flags.Parse(args)

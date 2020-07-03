@@ -21,6 +21,7 @@ var (
 	testVaultHost      = "vault.osm.svc.cluster.local"
 	testVaultProtocol  = "http"
 	testVaultToken     = "token"
+	testVaultRole      = "role"
 	testRetentionTime  = "5d"
 )
 
@@ -59,10 +60,10 @@ var _ = Describe("Running the install command", func() {
 				certManager:                "tresor",
 				serviceCertValidityMinutes: 1,
 				prometheusRetentionTime:    testRetentionTime,
+				meshName:                   "osm",
 			}
 
-			installClient := helm.NewInstall(config)
-			err = installCmd.run(installClient)
+			err = installCmd.run(config)
 		})
 
 		It("should not error", func() {
@@ -70,7 +71,7 @@ var _ = Describe("Running the install command", func() {
 		})
 
 		It("should give a message confirming the successful install", func() {
-			Expect(out.String()).To(Equal("OSM installed successfully in osm-system namespace\n"))
+			Expect(out.String()).To(Equal("OSM installed successfully in namespace [osm-system] with mesh name [osm]\n"))
 		})
 
 		Context("the Helm release", func() {
@@ -89,29 +90,32 @@ var _ = Describe("Running the install command", func() {
 
 			It("should have the correct values", func() {
 				Expect(rel.Config).To(BeEquivalentTo(map[string]interface{}{
-					"certManager": "tresor",
-					"image": map[string]interface{}{
-						"registry": testRegistry,
-						"tag":      testOsmImageTag,
-					},
-					"imagePullSecrets": []interface{}{
-						map[string]interface{}{
-							"name": testRegistrySecret,
+					"OpenServiceMesh": map[string]interface{}{
+						"certManager": "tresor",
+						"meshName":    "osm",
+						"image": map[string]interface{}{
+							"registry": testRegistry,
+							"tag":      testOsmImageTag,
 						},
-					},
-					"serviceCertValidityMinutes": int64(1),
-					"vault": map[string]interface{}{
-						"host":     "",
-						"protocol": "",
-						"token":    "",
-					},
-					"prometheus": map[string]interface{}{
-						"retention": map[string]interface{}{
-							"time": "5d",
-						}},
-					"enableDebugServer":             false,
-					"disableSMIAccessControlPolicy": false,
-				}))
+						"imagePullSecrets": []interface{}{
+							map[string]interface{}{
+								"name": testRegistrySecret,
+							},
+						},
+						"serviceCertValidityMinutes": int64(1),
+						"vault": map[string]interface{}{
+							"host":     "",
+							"protocol": "",
+							"token":    "",
+							"role":     "",
+						},
+						"prometheus": map[string]interface{}{
+							"retention": map[string]interface{}{
+								"time": "5d",
+							}},
+						"enableDebugServer":             false,
+						"disableSMIAccessControlPolicy": false,
+					}}))
 			})
 
 			It("should be installed in the correct namespace", func() {
@@ -152,10 +156,10 @@ var _ = Describe("Running the install command", func() {
 				certManager:                "tresor",
 				serviceCertValidityMinutes: 1,
 				prometheusRetentionTime:    testRetentionTime,
+				meshName:                   "osm",
 			}
 
-			installClient := helm.NewInstall(config)
-			err = installCmd.run(installClient)
+			err = installCmd.run(config)
 		})
 
 		It("should not error", func() {
@@ -163,7 +167,7 @@ var _ = Describe("Running the install command", func() {
 		})
 
 		It("should give a message confirming the successful install", func() {
-			Expect(out.String()).To(Equal("OSM installed successfully in osm-system namespace\n"))
+			Expect(out.String()).To(Equal("OSM installed successfully in namespace [osm-system] with mesh name [osm]\n"))
 		})
 
 		Context("the Helm release", func() {
@@ -182,29 +186,32 @@ var _ = Describe("Running the install command", func() {
 
 			It("should have the correct values", func() {
 				Expect(rel.Config).To(BeEquivalentTo(map[string]interface{}{
-					"certManager": "tresor",
-					"image": map[string]interface{}{
-						"registry": testRegistry,
-						"tag":      testOsmImageTag,
-					},
-					"imagePullSecrets": []interface{}{
-						map[string]interface{}{
-							"name": testRegistrySecret,
+					"OpenServiceMesh": map[string]interface{}{
+						"certManager": "tresor",
+						"meshName":    "osm",
+						"image": map[string]interface{}{
+							"registry": testRegistry,
+							"tag":      testOsmImageTag,
 						},
-					},
-					"serviceCertValidityMinutes": int64(1),
-					"vault": map[string]interface{}{
-						"host":     "",
-						"protocol": "",
-						"token":    "",
-					},
-					"prometheus": map[string]interface{}{
-						"retention": map[string]interface{}{
-							"time": "5d",
-						}},
-					"enableDebugServer":             false,
-					"disableSMIAccessControlPolicy": false,
-				}))
+						"imagePullSecrets": []interface{}{
+							map[string]interface{}{
+								"name": testRegistrySecret,
+							},
+						},
+						"serviceCertValidityMinutes": int64(1),
+						"vault": map[string]interface{}{
+							"host":     "",
+							"protocol": "",
+							"token":    "",
+							"role":     "",
+						},
+						"prometheus": map[string]interface{}{
+							"retention": map[string]interface{}{
+								"time": "5d",
+							}},
+						"enableDebugServer":             false,
+						"disableSMIAccessControlPolicy": false,
+					}}))
 			})
 
 			It("should be installed in the correct namespace", func() {
@@ -244,14 +251,15 @@ var _ = Describe("Running the install command", func() {
 				certManager:                "vault",
 				vaultHost:                  testVaultHost,
 				vaultToken:                 testVaultToken,
+				vaultRole:                  testVaultRole,
 				vaultProtocol:              "http",
 				osmImageTag:                testOsmImageTag,
 				serviceCertValidityMinutes: 1,
 				prometheusRetentionTime:    testRetentionTime,
+				meshName:                   "osm",
 			}
 
-			installClient := helm.NewInstall(config)
-			err = installCmd.run(installClient)
+			err = installCmd.run(config)
 		})
 
 		It("should not error", func() {
@@ -259,7 +267,7 @@ var _ = Describe("Running the install command", func() {
 		})
 
 		It("should give a message confirming the successful install", func() {
-			Expect(out.String()).To(Equal("OSM installed successfully in osm-system namespace\n"))
+			Expect(out.String()).To(Equal("OSM installed successfully in namespace [osm-system] with mesh name [osm]\n"))
 		})
 
 		Context("the Helm release", func() {
@@ -278,30 +286,33 @@ var _ = Describe("Running the install command", func() {
 
 			It("should have the correct values", func() {
 				Expect(rel.Config).To(BeEquivalentTo(map[string]interface{}{
-					"certManager": "vault",
-					"image": map[string]interface{}{
-						"registry": testRegistry,
-						"tag":      testOsmImageTag,
-					},
-					"imagePullSecrets": []interface{}{
-						map[string]interface{}{
-							"name": testRegistrySecret,
+					"OpenServiceMesh": map[string]interface{}{
+						"certManager": "vault",
+						"meshName":    "osm",
+						"image": map[string]interface{}{
+							"registry": testRegistry,
+							"tag":      testOsmImageTag,
 						},
-					},
-					"serviceCertValidityMinutes": int64(1),
-					"vault": map[string]interface{}{
-						"host":     testVaultHost,
-						"protocol": "http",
-						"token":    testVaultToken,
-					},
-					"prometheus": map[string]interface{}{
-						"retention": map[string]interface{}{
-							"time": "5d",
+						"imagePullSecrets": []interface{}{
+							map[string]interface{}{
+								"name": testRegistrySecret,
+							},
 						},
-					},
-					"enableDebugServer":             false,
-					"disableSMIAccessControlPolicy": false,
-				}))
+						"serviceCertValidityMinutes": int64(1),
+						"vault": map[string]interface{}{
+							"host":     testVaultHost,
+							"protocol": "http",
+							"token":    testVaultToken,
+							"role":     testVaultRole,
+						},
+						"prometheus": map[string]interface{}{
+							"retention": map[string]interface{}{
+								"time": "5d",
+							},
+						},
+						"enableDebugServer":             false,
+						"disableSMIAccessControlPolicy": false,
+					}}))
 			})
 
 			It("should be installed in the correct namespace", func() {
@@ -339,14 +350,119 @@ var _ = Describe("Running the install command", func() {
 				containerRegistry:       testRegistry,
 				containerRegistrySecret: testRegistrySecret,
 				certManager:             "vault",
+				meshName:                "osm",
 			}
 
-			installClient := helm.NewInstall(config)
-			err = installCmd.run(installClient)
+			err = installCmd.run(config)
 		})
 
 		It("should error", func() {
 			Expect(err).To(MatchError("Missing arguments for cert-manager vault: [vault-host vault-token]"))
+		})
+	})
+
+	Describe("when a mesh with the given name already exists", func() {
+		var (
+			out     *bytes.Buffer
+			store   *storage.Storage
+			config  *helm.Configuration
+			install *installCmd
+			err     error
+		)
+
+		BeforeEach(func() {
+			out = new(bytes.Buffer)
+			store = storage.Init(driver.NewMemory())
+			if mem, ok := store.Driver.(*driver.Memory); ok {
+				mem.SetNamespace(settings.Namespace())
+			}
+
+			config = &helm.Configuration{
+				Releases: store,
+				KubeClient: &kubefake.PrintingKubeClient{
+					Out: ioutil.Discard,
+				},
+				Capabilities: chartutil.DefaultCapabilities,
+				Log:          func(format string, v ...interface{}) {},
+			}
+
+			install = &installCmd{
+				out:                        out,
+				chartPath:                  "testdata/test-chart",
+				containerRegistry:          testRegistry,
+				containerRegistrySecret:    testRegistrySecret,
+				osmImageTag:                testOsmImageTag,
+				certManager:                "tresor",
+				serviceCertValidityMinutes: 1,
+				prometheusRetentionTime:    testRetentionTime,
+				meshName:                   "osm",
+			}
+
+			err = config.Releases.Create(&release.Release{
+				Namespace: "not-" + settings.Namespace(), // should be found in any namespace
+				Config: map[string]interface{}{
+					"OpenServiceMesh": map[string]interface{}{
+						"meshName": install.meshName,
+					},
+				},
+				Info: &release.Info{
+					// helm list only shows deployed and failed releases by default
+					Status: release.StatusDeployed,
+				},
+			})
+			if err != nil {
+				panic(err)
+			}
+
+			err = install.run(config)
+		})
+
+		It("should error", func() {
+			Expect(err).To(MatchError(errMeshAlreadyExists(install.meshName)))
+		})
+	})
+
+	Describe("when a mesh name is invalid", func() {
+		var (
+			out     *bytes.Buffer
+			store   *storage.Storage
+			config  *helm.Configuration
+			install *installCmd
+			err     error
+		)
+
+		BeforeEach(func() {
+			out = new(bytes.Buffer)
+			store = storage.Init(driver.NewMemory())
+			if mem, ok := store.Driver.(*driver.Memory); ok {
+				mem.SetNamespace(settings.Namespace())
+			}
+
+			config = &helm.Configuration{
+				Releases: store,
+				KubeClient: &kubefake.PrintingKubeClient{
+					Out: ioutil.Discard},
+				Capabilities: chartutil.DefaultCapabilities,
+				Log:          func(format string, v ...interface{}) {},
+			}
+
+			install = &installCmd{
+				out:                        out,
+				chartPath:                  "testdata/test-chart",
+				containerRegistry:          testRegistry,
+				containerRegistrySecret:    testRegistrySecret,
+				osmImageTag:                testOsmImageTag,
+				certManager:                "tresor",
+				serviceCertValidityMinutes: 1,
+				prometheusRetentionTime:    testRetentionTime,
+				meshName:                   "osm!!123456789012345678901234567890123456789012345678901234567890", // >65 characters, contains !
+			}
+
+			err = install.run(config)
+		})
+
+		It("should error", func() {
+			Expect(err).To(MatchError("Invalid mesh-name: [must be no more than 63 characters a DNS-1123 label must consist of lower case alphanumeric characters or '-', and must start and end with an alphanumeric character (e.g. 'my-name',  or '123-abc', regex used for validation is '[a-z0-9]([-a-z0-9]*[a-z0-9])?')]"))
 		})
 	})
 })
@@ -365,6 +481,7 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 			vaultHost:                  testVaultHost,
 			vaultProtocol:              testVaultProtocol,
 			vaultToken:                 testVaultToken,
+			vaultRole:                  testVaultRole,
 			osmImageTag:                testOsmImageTag,
 			serviceCertValidityMinutes: 1,
 			prometheusRetentionTime:    testRetentionTime,
@@ -379,29 +496,32 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 
 	It("should resolve correctly", func() {
 		Expect(vals).To(BeEquivalentTo(map[string]interface{}{
-			"certManager": "vault",
-			"image": map[string]interface{}{
-				"registry": testRegistry,
-				"tag":      testOsmImageTag,
-			},
-			"imagePullSecrets": []interface{}{
-				map[string]interface{}{
-					"name": testRegistrySecret,
+			"OpenServiceMesh": map[string]interface{}{
+				"certManager": "vault",
+				"meshName":    "",
+				"image": map[string]interface{}{
+					"registry": testRegistry,
+					"tag":      testOsmImageTag,
 				},
-			},
-			"serviceCertValidityMinutes": int64(1),
-			"vault": map[string]interface{}{
-				"host":     testVaultHost,
-				"protocol": "http",
-				"token":    testVaultToken,
-			},
-			"prometheus": map[string]interface{}{
-				"retention": map[string]interface{}{
-					"time": "5d",
+				"imagePullSecrets": []interface{}{
+					map[string]interface{}{
+						"name": testRegistrySecret,
+					},
 				},
-			},
-			"enableDebugServer":             false,
-			"disableSMIAccessControlPolicy": false,
-		}))
+				"serviceCertValidityMinutes": int64(1),
+				"vault": map[string]interface{}{
+					"host":     testVaultHost,
+					"protocol": "http",
+					"token":    testVaultToken,
+					"role":     testVaultRole,
+				},
+				"prometheus": map[string]interface{}{
+					"retention": map[string]interface{}{
+						"time": "5d",
+					},
+				},
+				"enableDebugServer":             false,
+				"disableSMIAccessControlPolicy": false,
+			}}))
 	})
 })

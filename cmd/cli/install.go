@@ -13,6 +13,7 @@ import (
 
 	"github.com/open-service-mesh/osm/pkg/cli"
 	"github.com/open-service-mesh/osm/pkg/constants"
+	"k8s.io/apimachinery/pkg/util/validation"
 )
 
 const installDesc = `
@@ -25,16 +26,26 @@ namespace does not exist, it will be created.
 Usage:
   $ osm install --namespace hello-world
 
-Each instance of the osm control plane installation is given a unqiue ID
-referred to as the OSM ID. An OSM ID can be passed in via the --osm-id flag.
-The osm ID is used in various different ways by the control plane including
-the resource name for the MutatingWebhookConfiguration created by the control
+Each instance of the osm control plane installation is given a unqiue mesh 
+name. A mesh name can be passed in via the --mesh-name flag or a default will
+be provided for you.
+The mesh name is used in various different ways by the control plane including
+as the resource name for the MutatingWebhookConfiguration created by the control
 plane for sidecar injection of envoy proxies.
 
-By default, OSM ID will be configured to "osm-cp-<namespace>" where namespace is the namespace where the control plane is being installed
+By default, mesh-name will be configured to "osm."
+
+When configuring the mesh-name, it should adhere to the RFC 1123 DNS Label specification.
+
+This means it must:
+
+- contain at most 63 characters
+- contain only lowercase alphanumeric characters or '-'
+- start with an alphanumeric character
+- end with an alphanumeric character
 
 Usage:
-  $ osm install --osm-id "hello-osm"
+  $ osm install --mesh-name "hello-osm"
 
 `
 const (
@@ -61,10 +72,10 @@ type installCmd struct {
 	prometheusRetentionTime       string
 	enableDebugServer             bool
 	disableSMIAccessControlPolicy bool
+	meshName                      string
 }
 
 func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
-
 	inst := &installCmd{
 		out: out,
 	}
@@ -74,7 +85,7 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 		Short: "install osm control plane",
 		Long:  installDesc,
 		RunE: func(_ *cobra.Command, args []string) error {
-			return inst.run(helm.NewInstall(config))
+			return inst.run(config)
 		},
 	}
 
@@ -92,15 +103,12 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.StringVar(&inst.prometheusRetentionTime, "prometheus-retention-time", constants.PrometheusDefaultRetentionTime, "Duration for which data will be retained in prometheus")
 	f.BoolVar(&inst.enableDebugServer, "enable-debug-server", false, "Enable the debug HTTP server")
 	f.BoolVar(&inst.disableSMIAccessControlPolicy, "disable-smi-access-control-policy", false, "Disable SMI access control policy")
+	f.StringVar(&inst.meshName, "mesh-name", "osm", "Name of the service mesh")
 
 	return cmd
 }
 
-func (i *installCmd) run(installClient *helm.Install) error {
-	installClient.ReleaseName = settings.Namespace()
-	installClient.Namespace = settings.Namespace()
-	installClient.CreateNamespace = true
-
+func (i *installCmd) run(config *helm.Configuration) error {
 	var chartRequested *chart.Chart
 	var err error
 	if i.chartPath != "" {
@@ -110,6 +118,12 @@ func (i *installCmd) run(installClient *helm.Install) error {
 	}
 	if err != nil {
 		return err
+	}
+
+	meshNameErrs := validation.IsDNS1123Label(i.meshName)
+
+	if len(meshNameErrs) != 0 {
+		return fmt.Errorf("Invalid mesh-name: %v", meshNameErrs)
 	}
 
 	if strings.EqualFold(i.certManager, "vault") {
@@ -124,33 +138,56 @@ func (i *installCmd) run(installClient *helm.Install) error {
 			return fmt.Errorf("Missing arguments for cert-manager vault: %v", missingFields)
 		}
 	}
+
 	values, err := i.resolveValues()
 	if err != nil {
 		return err
 	}
 
+	listClient := helm.NewList(config)
+	listClient.AllNamespaces = true
+	releases, err := listClient.Run()
+	if err != nil {
+		return err
+	}
+	for _, release := range releases {
+		if osmVals, exists := release.Config["OpenServiceMesh"]; exists {
+			if valsMap, ok := osmVals.(map[string]interface{}); ok {
+				if meshName, exists := valsMap["meshName"]; exists && meshName == i.meshName {
+					return errMeshAlreadyExists(i.meshName)
+				}
+			}
+		}
+	}
+
+	installClient := helm.NewInstall(config)
+	installClient.ReleaseName = settings.Namespace()
+	installClient.Namespace = settings.Namespace()
+	installClient.CreateNamespace = true
 	if _, err = installClient.Run(chartRequested, values); err != nil {
 		return err
 	}
 
-	fmt.Fprintf(i.out, "OSM installed successfully in %s namespace\n", settings.Namespace())
+	fmt.Fprintf(i.out, "OSM installed successfully in namespace [%s] with mesh name [%s]\n", settings.Namespace(), i.meshName)
 	return nil
 }
 
 func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 	finalValues := map[string]interface{}{}
 	valuesConfig := []string{
-		fmt.Sprintf("image.registry=%s", i.containerRegistry),
-		fmt.Sprintf("image.tag=%s", i.osmImageTag),
-		fmt.Sprintf("imagePullSecrets[0].name=%s", i.containerRegistrySecret),
-		fmt.Sprintf("certManager=%s", i.certManager),
-		fmt.Sprintf("vault.host=%s", i.vaultHost),
-		fmt.Sprintf("vault.protocol=%s", i.vaultProtocol),
-		fmt.Sprintf("vault.token=%s", i.vaultToken),
-		fmt.Sprintf("serviceCertValidityMinutes=%d", i.serviceCertValidityMinutes),
-		fmt.Sprintf("prometheus.retention.time=%s", i.prometheusRetentionTime),
-		fmt.Sprintf("enableDebugServer=%t", i.enableDebugServer),
-		fmt.Sprintf("disableSMIAccessControlPolicy=%t", i.disableSMIAccessControlPolicy),
+		fmt.Sprintf("OpenServiceMesh.image.registry=%s", i.containerRegistry),
+		fmt.Sprintf("OpenServiceMesh.image.tag=%s", i.osmImageTag),
+		fmt.Sprintf("OpenServiceMesh.imagePullSecrets[0].name=%s", i.containerRegistrySecret),
+		fmt.Sprintf("OpenServiceMesh.certManager=%s", i.certManager),
+		fmt.Sprintf("OpenServiceMesh.vault.host=%s", i.vaultHost),
+		fmt.Sprintf("OpenServiceMesh.vault.protocol=%s", i.vaultProtocol),
+		fmt.Sprintf("OpenServiceMesh.vault.token=%s", i.vaultToken),
+		fmt.Sprintf("OpenServiceMesh.vault.role=%s", i.vaultRole),
+		fmt.Sprintf("OpenServiceMesh.serviceCertValidityMinutes=%d", i.serviceCertValidityMinutes),
+		fmt.Sprintf("OpenServiceMesh.prometheus.retention.time=%s", i.prometheusRetentionTime),
+		fmt.Sprintf("OpenServiceMesh.enableDebugServer=%t", i.enableDebugServer),
+		fmt.Sprintf("OpenServiceMesh.disableSMIAccessControlPolicy=%t", i.disableSMIAccessControlPolicy),
+		fmt.Sprintf("OpenServiceMesh.meshName=%s", i.meshName),
 	}
 
 	for _, val := range valuesConfig {
@@ -159,4 +196,8 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 		}
 	}
 	return finalValues, nil
+}
+
+func errMeshAlreadyExists(name string) error {
+	return fmt.Errorf("Mesh %s already exists in cluster. Please specify a new mesh name using --mesh-name", name)
 }

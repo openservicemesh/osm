@@ -5,7 +5,7 @@ set -auexo pipefail
 # shellcheck disable=SC1091
 source .env
 
-if [[ "$IS_GITHUB" != "true" ]]; then
+if [[ "${IS_GITHUB:-}" != "true" ]]; then
   REGISTRY=$(echo "$CTR_REGISTRY" | awk -F'.' '{print $1}')
   REGISTRY_URL=$(echo "$CTR_REGISTRY" | awk -F'.' '{print $1 "." $2 "." $3}')
 

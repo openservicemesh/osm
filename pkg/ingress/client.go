@@ -2,7 +2,6 @@ package ingress
 
 import (
 	"reflect"
-	"strings"
 
 	extensionsV1beta "k8s.io/api/extensions/v1beta1"
 	"k8s.io/client-go/informers"
@@ -10,7 +9,6 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/open-service-mesh/osm/pkg/constants"
 	k8s "github.com/open-service-mesh/osm/pkg/kubernetes"
 	"github.com/open-service-mesh/osm/pkg/namespace"
 	"github.com/open-service-mesh/osm/pkg/service"
@@ -89,10 +87,6 @@ func (c Client) GetIngressResources(nsService service.NamespacedService) ([]*ext
 			// The ingress resource does not belong to the namespace of the service
 			continue
 		}
-		// Check if the ingress resources is annotated for monitor
-		if enabled, err := isMonitoredResource(ingress); !enabled || err != nil {
-			continue
-		}
 		if backend := ingress.Spec.Backend; backend != nil && backend.ServiceName == nsService.Service {
 			// Default backend service
 			ingressResources = append(ingressResources, ingress)
@@ -110,22 +104,4 @@ func (c Client) GetIngressResources(nsService service.NamespacedService) ([]*ext
 		}
 	}
 	return ingressResources, nil
-}
-
-func isMonitoredResource(ingress *extensionsV1beta.Ingress) (bool, error) {
-	monitor := strings.ToLower(ingress.ObjectMeta.Annotations[constants.OSMKubeResourceMonitorAnnotation])
-	if monitor != "" {
-		switch monitor {
-		case "enabled", "yes", "true":
-			return true, nil
-
-		case "disabled", "no", "false":
-			return false, nil
-
-		default:
-			log.Error().Err(errInvalidMonitorAnnotation).Msgf("Invalid annotation specified: %s", monitor)
-			return false, errInvalidMonitorAnnotation
-		}
-	}
-	return false, nil
 }
