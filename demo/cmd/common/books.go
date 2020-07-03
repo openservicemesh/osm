@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	sleepDurationBetweenRequestsSecondsStr = GetEnv("CI_SLEEP_BETWEEN_REQUESTS_SECONDS", "1")
+	sleepDurationBetweenRequestsSecondsStr = GetEnv("CI_SLEEP_BETWEEN_REQUESTS_SECONDS", "3")
 	minSuccessThresholdStr                 = GetEnv("CI_MIN_SUCCESS_THRESHOLD", "1")
 	maxIterationsStr                       = GetEnv("CI_MAX_ITERATIONS_THRESHOLD", "0") // 0 for unlimited
 	bookstoreServiceName                   = GetEnv("BOOKSTORE_SVC", "bookstore-mesh")
@@ -26,12 +26,7 @@ var (
 	buyBook          = fmt.Sprintf("http://%s/buy-a-book/new", bookstoreService)
 	chargeAccountURL = fmt.Sprintf("http://%s/%s", warehouseService, RestockWarehouseURL)
 
-	interestingHeaders = []string{
-		IdentityHeader,
-		BooksBoughtHeader,
-		"Server",
-		"Date",
-	}
+	interestingHeaders = []string{IdentityHeader, BooksBoughtHeader, "Server", "Date"}
 
 	urlHeadersMap = map[string]map[string]string{
 		booksBought: {
@@ -74,6 +69,7 @@ func RestockBooks(amount int) {
 		log.Info().Msgf("RestockBooks (%s) adding header {%s: %s}", chargeAccountURL, hdr, getHeader(resp.Header, hdr))
 	}
 	log.Info().Msgf("RestockBooks (%s) finished w/ status: %s %d ", chargeAccountURL, resp.Status, resp.StatusCode)
+
 }
 
 // GetEnv is much  like os.Getenv() but with a default value.
@@ -86,7 +82,7 @@ func GetEnv(envVar string, defaultValue string) string {
 }
 
 // GetBooks reaches out to the bookstore and buys/steals books. This is invoked by the bookbuyer and the bookthief.
-func GetBooks(participantName string, expectedResponseCode int, booksCount *int, booksCountV1 *int, booksCountV2 *int) {
+func GetBooks(participantName string, expectedResponseCode int) {
 	minSuccessThreshold, maxIterations, sleepDurationBetweenRequests := getEnvVars(participantName)
 
 	// The URLs this participant will attempt to query from the bookstore service
@@ -113,28 +109,14 @@ func GetBooks(participantName string, expectedResponseCode int, booksCount *int,
 		for url := range urlSuccessMap {
 
 			// We only care about the response code of the HTTP call for the given URL
-			responseCode, identity := fetch(url)
+			responseCode := fetch(url)
 
 			succeeded := responseCode == expectedResponseCode
 			if !succeeded {
 				fmt.Printf("ERROR: response code for %q is %d;  expected %d\n", url, responseCode, expectedResponseCode)
 			}
-			urlSuccessMap[url] = succeeded
 
-			// Regardless of what expect the response to be (depends on the policy) - in case of 200 OK - increase book counts.
-			if responseCode == http.StatusOK {
-				if url == buyBook {
-					if strings.HasPrefix(identity, "bookstore-v1") {
-						*booksCountV1++
-						*booksCount++
-						log.Info().Msgf("BooksCountV1=%d", booksCountV1)
-					} else if strings.HasPrefix(identity, "bookstore-v2") {
-						*booksCountV2++
-						*booksCount++
-						log.Info().Msgf("BooksCountV2=%d", booksCountV2)
-					}
-				}
-			}
+			urlSuccessMap[url] = succeeded
 
 			// We are looking for a certain number of sequential successful HTTP requests.
 			if previouslySucceeded && allUrlsSucceeded(urlSuccessMap) {
@@ -176,7 +158,7 @@ func allUrlsSucceeded(urlSucceeded map[string]bool) bool {
 	return success
 }
 
-func fetch(url string) (responseCode int, identity string) {
+func fetch(url string) (responseCode int) {
 	headersMap := urlHeadersMap[url]
 
 	client := &http.Client{}
@@ -202,12 +184,7 @@ func fetch(url string) (responseCode int, identity string) {
 		}
 		fmt.Printf("Status: %s\n", resp.Status)
 	}
-	identity = "unknown"
-	if resp != nil && resp.Header != nil {
-		identity = getHeader(resp.Header, IdentityHeader)
-	}
-
-	return responseCode, identity
+	return responseCode
 }
 
 func getHeader(headers map[string][]string, header string) string {
