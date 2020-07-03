@@ -1,5 +1,5 @@
 FROM alpine:3.10.1
-RUN apk add --update --no-cache tcpdump iproute2 lsof conntrack-tools tshark htop iftop curl iptables
+RUN apk add --no-cache iptables
 ADD ./demo/bin/bookwarehouse /
 WORKDIR /
 EXPOSE 8080
