@@ -42,6 +42,13 @@ $ kubectl label namespace <namespace> openservicemesh.io/monitored-by=<mesh-name
 ```
 The `mesh-name` is a unique identifier assigned to an osm-controller instance during install to identify and manage manage a mesh instance.
 
+The `mesh-name` should follow [RFC 1123](https://tools.ietf.org/html/rfc1123) DNS Label constraints. The `mesh-name` must:
+
+- contain at most 63 characters
+- contain only lowercase alphanumeric characters or '-'
+- start with an alphanumeric character
+- end with an alphanumeric character
+
 After a namespace is labeled for monitoring, new services deployed in a monitored namespace will be a part of the service mesh and OSM will perform automatic sidecar injection for newly created PODs in that namespace.
 
 #### Disabling automatic sidecar injection
