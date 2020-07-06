@@ -164,7 +164,7 @@ var _ = Describe("Test Envoy tools", func() {
 							},
 						},
 					},
-					AlpnProtocols: ALPNInMesh,
+					AlpnProtocols: nil,
 				},
 				RequireClientCertificate: &wrappers.BoolValue{Value: true},
 			}
@@ -282,7 +282,7 @@ var _ = Describe("Test Envoy tools", func() {
 						SdsConfig: GetADSConfigSource(),
 					},
 				},
-				AlpnProtocols: ALPNInMesh,
+				AlpnProtocols: nil,
 			}
 
 			Expect(len(actual.TlsCertificateSdsSecretConfigs)).To(Equal(1))
@@ -319,7 +319,7 @@ var _ = Describe("Test Envoy tools", func() {
 						SdsConfig: GetADSConfigSource(),
 					},
 				},
-				AlpnProtocols: ALPNInMesh,
+				AlpnProtocols: nil,
 			}
 
 			Expect(len(actual.TlsCertificateSdsSecretConfigs)).To(Equal(1))

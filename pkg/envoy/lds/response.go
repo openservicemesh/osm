@@ -141,7 +141,7 @@ func getInboundInMeshFilterChain(proxyServiceName service.NamespacedService, mc 
 		FilterChainMatch: &listener.FilterChainMatch{
 			ServerNames:          []string{proxyServiceName.GetCommonName().String()},
 			TransportProtocol:    envoy.TransportProtocolTLS,
-			ApplicationProtocols: envoy.ALPNInMesh,
+			ApplicationProtocols: envoy.ALPNInMesh, // in-mesh proxies will advertise this, set in UpstreamTlsContext
 		},
 
 		TransportSocket: &envoy_api_v2_core.TransportSocket{

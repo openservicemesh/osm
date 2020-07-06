@@ -224,7 +224,7 @@ func getCommonTLSContext(serviceName service.NamespacedService, mTLS bool, dir S
 	}
 
 	return &auth.CommonTlsContext{
-		AlpnProtocols: ALPNInMesh,
+		AlpnProtocols: nil,
 		TlsParams:     GetTLSParams(),
 		TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
 			// Example ==> Name: "service-cert:NameSpaceHere/ServiceNameHere"
@@ -268,8 +268,11 @@ func GetDownstreamTLSContext(serviceName service.NamespacedService, mTLS bool) *
 
 // GetUpstreamTLSContext creates an upstream Envoy TLS Context
 func GetUpstreamTLSContext(serviceName service.NamespacedService, sni string) *auth.UpstreamTlsContext {
+	commonTLSContext := getCommonTLSContext(serviceName, true /* mTLS */, Outbound)
+	// Advertise in-mesh using UpstreamTlsContext.CommonTlsContext.AlpnProtocols
+	commonTLSContext.AlpnProtocols = ALPNInMesh
 	tlsConfig := &auth.UpstreamTlsContext{
-		CommonTlsContext: getCommonTLSContext(serviceName, true /* mTLS */, Outbound),
+		CommonTlsContext: commonTLSContext,
 
 		// The Sni field is going to be used to do FilterChainMatch in getInboundInMeshFilterChain()
 		// The "Sni" field below of an incoming request will be matched aganist a list of server names
