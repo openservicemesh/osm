@@ -164,7 +164,7 @@ var _ = Describe("Test Envoy tools", func() {
 							},
 						},
 					},
-					AlpnProtocols: nil,
+					AlpnProtocols: ALPNInMesh,
 				},
 				RequireClientCertificate: &wrappers.BoolValue{Value: true},
 			}
@@ -192,7 +192,8 @@ var _ = Describe("Test Envoy tools", func() {
 
 	Context("Test GetUpstreamTLSContext()", func() {
 		It("should return TLS context", func() {
-			tlsContext := GetUpstreamTLSContext(tests.BookstoreService)
+			sni := "bookstore.default.svc.cluster.local"
+			tlsContext := GetUpstreamTLSContext(tests.BookstoreService, sni)
 
 			expectedTLSContext := envoy_api_v2_auth.UpstreamTlsContext{
 				CommonTlsContext: &envoy_api_v2_auth.CommonTlsContext{
@@ -225,9 +226,9 @@ var _ = Describe("Test Envoy tools", func() {
 							},
 						},
 					},
-					AlpnProtocols: nil,
+					AlpnProtocols: ALPNInMesh,
 				},
-				Sni:                tests.BookstoreService.GetCommonName().String(), // "bookstore.default.svc.cluster.local"
+				Sni:                sni, // "bookstore.default.svc.cluster.local"
 				AllowRenegotiation: false,
 			}
 
@@ -245,11 +246,10 @@ var _ = Describe("Test Envoy tools", func() {
 
 	Context("Test GetUpstreamTLSContext()", func() {
 		It("creates correct UpstreamTlsContext.Sni field", func() {
-			tlsContext := GetUpstreamTLSContext(tests.BookbuyerService)
-			// The Sni field here must match one of the strings in the ServerNames list created by lds.getInboundInMeshFilterChain()
-			Expect(tlsContext.Sni).To(Equal(tests.BookbuyerService.GetCommonName().String()))
+			sni := "test.default.svc.cluster.local"
+			tlsContext := GetUpstreamTLSContext(tests.BookbuyerService, sni)
 			// To show the actual string for human comprehension
-			Expect(tlsContext.Sni).To(Equal("bookbuyer.default.svc.cluster.local"))
+			Expect(tlsContext.Sni).To(Equal(sni))
 		})
 	})
 
@@ -282,6 +282,7 @@ var _ = Describe("Test Envoy tools", func() {
 						SdsConfig: GetADSConfigSource(),
 					},
 				},
+				AlpnProtocols: ALPNInMesh,
 			}
 
 			Expect(len(actual.TlsCertificateSdsSecretConfigs)).To(Equal(1))
@@ -318,6 +319,7 @@ var _ = Describe("Test Envoy tools", func() {
 						SdsConfig: GetADSConfigSource(),
 					},
 				},
+				AlpnProtocols: ALPNInMesh,
 			}
 
 			Expect(len(actual.TlsCertificateSdsSecretConfigs)).To(Equal(1))

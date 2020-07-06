@@ -77,6 +77,10 @@ var validCertTypes = map[SDSCertType]interface{}{
 	RootCertTypeForHTTPS:        nil,
 }
 
+// ALPNInMesh indicates that the proxy is connecting to an in-mesh destination.
+// It is set as a part of configuring the UpstreamTLSContext.
+var ALPNInMesh = []string{"osm-alpn"}
+
 // UnmarshalSDSCert parses and returns Certificate type and Namespaced Service name given a
 // correctly formatted string, otherwise returns error
 func UnmarshalSDSCert(str string) (*SDSCert, error) {
@@ -220,7 +224,8 @@ func getCommonTLSContext(serviceName service.NamespacedService, mTLS bool, dir S
 	}
 
 	return &auth.CommonTlsContext{
-		TlsParams: GetTLSParams(),
+		AlpnProtocols: ALPNInMesh,
+		TlsParams:     GetTLSParams(),
 		TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
 			// Example ==> Name: "service-cert:NameSpaceHere/ServiceNameHere"
 			Name: SDSCert{
@@ -262,21 +267,22 @@ func GetDownstreamTLSContext(serviceName service.NamespacedService, mTLS bool) *
 }
 
 // GetUpstreamTLSContext creates an upstream Envoy TLS Context
-func GetUpstreamTLSContext(serviceName service.NamespacedService) *auth.UpstreamTlsContext {
+func GetUpstreamTLSContext(serviceName service.NamespacedService, sni string) *auth.UpstreamTlsContext {
 	tlsConfig := &auth.UpstreamTlsContext{
 		CommonTlsContext: getCommonTLSContext(serviceName, true /* mTLS */, Outbound),
 
 		// The Sni field is going to be used to do FilterChainMatch in getInboundInMeshFilterChain()
 		// The "Sni" field below of an incoming request will be matched aganist a list of server names
 		// in FilterChainMatch.ServerNames
-		Sni: serviceName.GetCommonName().String(),
+		Sni: sni,
 	}
 	return tlsConfig
 }
 
 // GetServiceCluster creates an Envoy Cluster struct.
-func GetServiceCluster(clusterName string, serviceName service.NamespacedService) (*xds.Cluster, error) {
-	marshalledUpstreamTLSContext, err := MessageToAny(GetUpstreamTLSContext(serviceName))
+func GetServiceCluster(remoteService, localService service.NamespacedService) (*xds.Cluster, error) {
+	clusterName := remoteService.String()
+	marshalledUpstreamTLSContext, err := MessageToAny(GetUpstreamTLSContext(localService, remoteService.GetCommonName().String()))
 	if err != nil {
 		return nil, err
 	}

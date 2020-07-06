@@ -118,17 +118,6 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 }
 
 func getInboundInMeshFilterChain(proxyServiceName service.NamespacedService, mc catalog.MeshCataloger, filterConfig *any.Any) (*listener.FilterChain, error) {
-	serverNames, err := mc.ListAllowedInboundServices(proxyServiceName)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error getting server names for connected client proxy %s", proxyServiceName)
-		return nil, err
-	}
-
-	if len(serverNames) == 0 {
-		log.Debug().Msg("No mesh filter chain to apply")
-		return nil, nil
-	}
-
 	marshalledDownstreamTLSContext, err := envoy.MessageToAny(envoy.GetDownstreamTLSContext(proxyServiceName, true /* mTLS */))
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshalling DownstreamTLSContext object for proxy %s", proxyServiceName)
@@ -150,8 +139,9 @@ func getInboundInMeshFilterChain(proxyServiceName service.NamespacedService, mc 
 		// This field is configured by the GetDownstreamTLSContext() function.
 		// This is not a field obtained from the mTLS Certificate.
 		FilterChainMatch: &listener.FilterChainMatch{
-			ServerNames:       toCommonNamesList(serverNames),
-			TransportProtocol: envoy.TransportProtocolTLS,
+			ServerNames:          []string{proxyServiceName.GetCommonName().String()},
+			TransportProtocol:    envoy.TransportProtocolTLS,
+			ApplicationProtocols: envoy.ALPNInMesh,
 		},
 
 		TransportSocket: &envoy_api_v2_core.TransportSocket{
@@ -190,12 +180,4 @@ func getInboundIngressFilterChain(proxyServiceName service.NamespacedService, fi
 			},
 		},
 	}, nil
-}
-
-func toCommonNamesList(services []service.NamespacedService) []string {
-	var stringList []string
-	for _, svc := range services {
-		stringList = append(stringList, svc.GetCommonName().String())
-	}
-	return stringList
 }
