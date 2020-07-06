@@ -18,6 +18,7 @@ import (
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/certificate"
 	"github.com/open-service-mesh/osm/pkg/certificate/providers/tresor"
+	"github.com/open-service-mesh/osm/pkg/certresource"
 	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/envoy"
@@ -66,21 +67,21 @@ var _ = Describe("Test ADS response functions", func() {
 			expected := envoy_api_v2.DiscoveryRequest{
 				TypeUrl: string(envoy.TypeSDS),
 				ResourceNames: []string{
-					envoy.SDSCert{
+					certresource.CertResource{
 						Service:  nsService,
-						CertType: envoy.ServiceCertType,
+						CertType: certresource.ServiceCertType,
 					}.String(),
-					envoy.SDSCert{
+					certresource.CertResource{
 						Service:  nsService,
-						CertType: envoy.RootCertTypeForMTLSOutbound,
+						CertType: certresource.RootCertTypeForMTLSOutbound,
 					}.String(),
-					envoy.SDSCert{
+					certresource.CertResource{
 						Service:  nsService,
-						CertType: envoy.RootCertTypeForMTLSInbound,
+						CertType: certresource.RootCertTypeForMTLSInbound,
 					}.String(),
-					envoy.SDSCert{
+					certresource.CertResource{
 						Service:  nsService,
-						CertType: envoy.RootCertTypeForHTTPS,
+						CertType: certresource.RootCertTypeForHTTPS,
 					}.String(),
 				},
 			}
@@ -134,33 +135,33 @@ var _ = Describe("Test ADS response functions", func() {
 			secretOne := envoy_api_v2_auth.Secret{}
 			firstSecret := (*actualResponses)[4].Resources[0]
 			err = ptypes.UnmarshalAny(firstSecret, &secretOne)
-			Expect(secretOne.Name).To(Equal(envoy.SDSCert{
+			Expect(secretOne.Name).To(Equal(certresource.CertResource{
 				Service:  nsService,
-				CertType: envoy.ServiceCertType,
+				CertType: certresource.ServiceCertType,
 			}.String()))
 
 			secretTwo := envoy_api_v2_auth.Secret{}
 			secondSecret := (*actualResponses)[4].Resources[1]
 			err = ptypes.UnmarshalAny(secondSecret, &secretTwo)
-			Expect(secretTwo.Name).To(Equal(envoy.SDSCert{
+			Expect(secretTwo.Name).To(Equal(certresource.CertResource{
 				Service:  nsService,
-				CertType: envoy.RootCertTypeForMTLSOutbound,
+				CertType: certresource.RootCertTypeForMTLSOutbound,
 			}.String()))
 
 			secretThree := envoy_api_v2_auth.Secret{}
 			thirdSecret := (*actualResponses)[4].Resources[2]
 			err = ptypes.UnmarshalAny(thirdSecret, &secretThree)
-			Expect(secretThree.Name).To(Equal(envoy.SDSCert{
+			Expect(secretThree.Name).To(Equal(certresource.CertResource{
 				Service:  nsService,
-				CertType: envoy.RootCertTypeForMTLSInbound,
+				CertType: certresource.RootCertTypeForMTLSInbound,
 			}.String()))
 
 			secretFour := envoy_api_v2_auth.Secret{}
 			forthSecret := (*actualResponses)[4].Resources[3]
 			err = ptypes.UnmarshalAny(forthSecret, &secretFour)
-			Expect(secretFour.Name).To(Equal(envoy.SDSCert{
+			Expect(secretFour.Name).To(Equal(certresource.CertResource{
 				Service:  nsService,
-				CertType: envoy.RootCertTypeForHTTPS,
+				CertType: certresource.RootCertTypeForHTTPS,
 			}.String()))
 		})
 	})

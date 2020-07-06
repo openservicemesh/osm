@@ -9,6 +9,7 @@ import (
 	envoy_service_discovery_v2 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
+	"github.com/open-service-mesh/osm/pkg/certresource"
 	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 )
@@ -55,21 +56,21 @@ func makeRequestForAllSecrets(proxy *envoy.Proxy, catalog catalog.MeshCataloger)
 
 	return &envoy_api_v2.DiscoveryRequest{
 		ResourceNames: []string{
-			envoy.SDSCert{
+			certresource.CertResource{
 				Service:  *serviceForProxy,
-				CertType: envoy.ServiceCertType,
+				CertType: certresource.ServiceCertType,
 			}.String(),
-			envoy.SDSCert{
+			certresource.CertResource{
 				Service:  *serviceForProxy,
-				CertType: envoy.RootCertTypeForMTLSOutbound,
+				CertType: certresource.RootCertTypeForMTLSOutbound,
 			}.String(),
-			envoy.SDSCert{
+			certresource.CertResource{
 				Service:  *serviceForProxy,
-				CertType: envoy.RootCertTypeForMTLSInbound,
+				CertType: certresource.RootCertTypeForMTLSInbound,
 			}.String(),
-			envoy.SDSCert{
+			certresource.CertResource{
 				Service:  *serviceForProxy,
-				CertType: envoy.RootCertTypeForHTTPS,
+				CertType: certresource.RootCertTypeForHTTPS,
 			}.String(),
 		},
 		TypeUrl: string(envoy.TypeSDS),

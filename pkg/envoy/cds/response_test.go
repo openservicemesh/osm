@@ -20,9 +20,11 @@ import (
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/open-service-mesh/osm/pkg/certresource"
 	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/envoy"
+	"github.com/open-service-mesh/osm/pkg/service"
 	"github.com/open-service-mesh/osm/pkg/smi"
 	"github.com/open-service-mesh/osm/pkg/tests"
 )
@@ -223,7 +225,13 @@ var _ = Describe("CDS Response", func() {
 					}},
 					ValidationContextType: &envoy_api_v2_auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 						ValidationContextSdsSecretConfig: &envoy_api_v2_auth.SdsSecretConfig{
-							Name: fmt.Sprintf("%s%s%s", envoy.RootCertTypeForMTLSOutbound, envoy.Separator, "default/bookstore"),
+							Name: certresource.CertResource{
+								Service: service.NamespacedService{
+									Namespace: "default",
+									Service:   "bookstore",
+								},
+								CertType: certresource.RootCertTypeForMTLSOutbound,
+							}.String(),
 							SdsConfig: &envoy_api_v2_core.ConfigSource{
 								ConfigSourceSpecifier: &envoy_api_v2_core.ConfigSource_Ads{
 									Ads: &envoy_api_v2_core.AggregatedConfigSource{},

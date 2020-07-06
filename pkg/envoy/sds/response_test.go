@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/open-service-mesh/osm/pkg/certresource"
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/service"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -71,9 +72,9 @@ var _ = Describe("Test SDS response functions", func() {
 				Service:   "svc",
 			}
 
-			sdsc := envoy.SDSCert{
+			sdsc := certresource.CertResource{
 				Service:  svc,
-				CertType: envoy.RootCertTypeForMTLSInbound,
+				CertType: certresource.RootCertTypeForMTLSInbound,
 			}
 
 			resourceName := sdsc.String()
@@ -122,9 +123,9 @@ var _ = Describe("Test SDS response functions", func() {
 				Service:   serviceName,
 			}
 
-			sdsc := envoy.SDSCert{
+			sdsc := certresource.CertResource{
 				Service:  svc,
-				CertType: envoy.RootCertTypeForMTLSOutbound,
+				CertType: certresource.RootCertTypeForMTLSOutbound,
 			}
 			resourceNames := []string{sdsc.String()}
 			cert, proxy, mc := prep(resourceNames, namespace, serviceName)
