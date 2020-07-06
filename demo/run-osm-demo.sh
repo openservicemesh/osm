@@ -83,6 +83,9 @@ else
     bin/osm admin delete-osm --namespace "$K8S_NAMESPACE" || true
 fi
 
+# Run pre-install checks to make sure OSM can be installed in the current kubectl context.
+bin/osm check --pre-install --namespace "$K8S_NAMESPACE"
+
 # The demo uses osm's namespace as defined by environment variables, K8S_NAMESPACE
 # to house the control plane components.
 kubectl create namespace "$K8S_NAMESPACE"
@@ -136,15 +139,14 @@ else
       $optionalInstallArgs
 fi
 
+wait_for_osm_pods
+
+./demo/deploy-apps.sh
+
 # Apply SMI policies
 ./demo/deploy-traffic-split.sh
 ./demo/deploy-traffic-spec.sh
 ./demo/deploy-traffic-target.sh
-
-
-wait_for_osm_pods
-
-./demo/deploy-apps.sh
 
 if [[ "$IS_GITHUB" != "true" ]]; then
     watch -n5 "printf \"Namespace ${K8S_NAMESPACE}:\n\"; kubectl get pods -n ${K8S_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKBUYER_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKBUYER_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKSTORE_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKSTORE_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKTHIEF_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKTHIEF_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKWAREHOUSE_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKWAREHOUSE_NAMESPACE} -o wide"

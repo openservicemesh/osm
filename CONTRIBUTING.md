@@ -1,6 +1,10 @@
 # Contributing Guidlines
 The OSM project accepts contributions via GitHub pull requests. This document outlines the requirements for contributing to this project.
 
+## Contributor License Agreement
+
+This repository is governed under a [Contributor License Agreement](https://cla.opensource.microsoft.com/open-service-mesh/osm). All PR submitters must accept the CLA before their contributions can be merged.
+
 ## Roadmap
 We use [GitHub Project Boards](https://github.com/open-service-mesh/osm/projects) to help give a high level overview and track what work is going on and what stage it is in. If you want an idea of our roadmap and prioritization, this is the best place to find that information.
 
@@ -18,7 +22,7 @@ Open a [GitHub pull request] to make a contribution.
   - Each pull request must have at least one LGTM from a core maintainer.
   - Large pull requests must have two LGTMs from two core maintainers. It is at the descretion of the author to deem their the size of their PR as `large` or `small` via labels and to ensure that it has received a sufficient number of reviews.
   - If the person who opened the pull request is a core maintainer, then only that person is expected to merge once it has the necessary LGTMs/reviews.
-  - Commits should be squashed before merging or upon merging to master
+  - Commits should be squashed before merging or upon merging to main
   - Commits should follow the style guideline outlined below.
 
   ### Commit Style Guideline
