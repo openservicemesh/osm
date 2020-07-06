@@ -11,6 +11,7 @@ import (
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/envoy"
+	"github.com/open-service-mesh/osm/pkg/service"
 )
 
 func (s *Server) sendAllResponses(proxy *envoy.Proxy, server *envoy_service_discovery_v2.AggregatedDiscoveryService_StreamAggregatedResourcesServer, config *configurator.Config) {
@@ -55,21 +56,21 @@ func makeRequestForAllSecrets(proxy *envoy.Proxy, catalog catalog.MeshCataloger)
 
 	return &envoy_api_v2.DiscoveryRequest{
 		ResourceNames: []string{
-			envoy.SDSCert{
+			service.CertResource{
 				Service:  *serviceForProxy,
-				CertType: envoy.ServiceCertType,
+				CertType: service.ServiceCertType,
 			}.String(),
-			envoy.SDSCert{
+			service.CertResource{
 				Service:  *serviceForProxy,
-				CertType: envoy.RootCertTypeForMTLSOutbound,
+				CertType: service.RootCertTypeForMTLSOutbound,
 			}.String(),
-			envoy.SDSCert{
+			service.CertResource{
 				Service:  *serviceForProxy,
-				CertType: envoy.RootCertTypeForMTLSInbound,
+				CertType: service.RootCertTypeForMTLSInbound,
 			}.String(),
-			envoy.SDSCert{
+			service.CertResource{
 				Service:  *serviceForProxy,
-				CertType: envoy.RootCertTypeForHTTPS,
+				CertType: service.RootCertTypeForHTTPS,
 			}.String(),
 		},
 		TypeUrl: string(envoy.TypeSDS),

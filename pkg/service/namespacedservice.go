@@ -9,9 +9,9 @@ import (
 )
 
 const (
-	// separator used upon marshalling/unmarshalling Namespaced Service to a string
+	// nsSeparator used upon marshalling/unmarshalling Namespaced Service to a string
 	// or viceversa
-	separator = "/"
+	nsSeparator = "/"
 )
 
 // Name is a type for a service name
@@ -28,7 +28,7 @@ type NamespacedService struct {
 }
 
 func (ns NamespacedService) String() string {
-	return fmt.Sprintf("%s/%s", ns.Namespace, ns.Service)
+	return fmt.Sprintf("%s%s%s", ns.Namespace, nsSeparator, ns.Service)
 }
 
 //Equals checks if two namespaced services are equal
@@ -45,7 +45,7 @@ func (s Account) String() string {
 
 // UnmarshalNamespacedService unmarshals a NamespaceService type from a string
 func UnmarshalNamespacedService(str string) (*NamespacedService, error) {
-	slices := strings.Split(str, separator)
+	slices := strings.Split(str, nsSeparator)
 	if len(slices) != 2 {
 		return nil, errInvalidNamespacedServiceFormat
 	}
