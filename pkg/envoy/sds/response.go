@@ -195,7 +195,7 @@ func getRootCert(cert certificate.Certificater, sdscert envoy.SDSCert, proxyServ
 		// matches what is allowed to connect to the downstream service as defined in TrafficPolicy.
 		secret.GetValidationContext().MatchSubjectAltNames = matchSANs
 	default:
-		break
+		log.Debug().Msgf("SAN matching not needed for cert type %s", sdscert.CertType.String())
 	}
 
 	return secret, nil
