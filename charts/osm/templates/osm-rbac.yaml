@@ -13,7 +13,7 @@ rules:
     resources: ["jobs"]
     verbs: ["list", "get", "watch"]
   - apiGroups: [""]
-    resources: ["endpoints", "namespaces", "pods", "replicationcontrollers", "services", "secrets"]
+    resources: ["endpoints", "namespaces", "pods", "services", "secrets"]
     verbs: ["list", "get", "watch"]
 
   # Port forwarding is needed for the OSM pod to be able to connect
