@@ -77,9 +77,14 @@ var validCertTypes = map[SDSCertType]interface{}{
 	RootCertTypeForHTTPS:        nil,
 }
 
-// ALPNInMesh indicates that the proxy is connecting to an in-mesh destination.
-// It is set as a part of configuring the UpstreamTLSContext.
-var ALPNInMesh = []string{"osm-alpn"}
+var (
+	// ALPNInMesh indicates that the proxy is connecting to an in-mesh destination.
+	// The custom ALPN value 'osm' indicates in-mesh traffic.
+	ALPNInMesh = []string{"osm"}
+
+	// ALPNHttp indicates that the proxy is going to talk either HTTP/2 or HTTP/1.1
+	ALPNHttp = []string{"h2", "http/1.1"}
+)
 
 // UnmarshalSDSCert parses and returns Certificate type and Namespaced Service name given a
 // correctly formatted string, otherwise returns error
@@ -258,8 +263,10 @@ func MessageToAny(pb proto.Message) (*any.Any, error) {
 
 // GetDownstreamTLSContext creates a downstream Envoy TLS Context
 func GetDownstreamTLSContext(serviceName service.NamespacedService, mTLS bool) *auth.DownstreamTlsContext {
+	commonTLSContext := getCommonTLSContext(serviceName, mTLS, Inbound)
+	commonTLSContext.AlpnProtocols = ALPNHttp
 	tlsConfig := &auth.DownstreamTlsContext{
-		CommonTlsContext: getCommonTLSContext(serviceName, mTLS, Inbound),
+		CommonTlsContext: commonTLSContext,
 		// When RequireClientCertificate is enabled trusted CA certs must be provided via ValidationContextType
 		RequireClientCertificate: &wrappers.BoolValue{Value: mTLS},
 	}
