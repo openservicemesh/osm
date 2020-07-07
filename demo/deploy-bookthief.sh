@@ -17,7 +17,6 @@ kind: ServiceAccount
 metadata:
   name: bookthief-serviceaccount
   namespace: $BOOKTHIEF_NAMESPACE
-automountServiceAccountToken: false
 
 ---
 
@@ -56,7 +55,6 @@ spec:
         version: v1
     spec:
       serviceAccountName: bookthief-serviceaccount
-      automountServiceAccountToken: false
 
       containers:
         # Main container with APP

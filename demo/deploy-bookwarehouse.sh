@@ -14,7 +14,6 @@ kind: ServiceAccount
 metadata:
   name: bookwarehouse-serviceaccount
   namespace: $BOOKWAREHOUSE_NAMESPACE
-automountServiceAccountToken: false
 EOF
 
 echo -e "Deploy Bookwarehouse Service"
@@ -54,7 +53,6 @@ spec:
         version: v1
     spec:
       serviceAccountName: bookwarehouse-serviceaccount
-      automountServiceAccountToken: false
 
       containers:
         # Main container with APP
