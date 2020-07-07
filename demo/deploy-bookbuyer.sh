@@ -16,7 +16,6 @@ kind: ServiceAccount
 metadata:
   name: bookbuyer-serviceaccount
   namespace: $BOOKBUYER_NAMESPACE
-automountServiceAccountToken: false
 EOF
 
 echo -e "Deploy BookBuyer Service"
@@ -57,7 +56,6 @@ spec:
         version: v1
     spec:
       serviceAccountName: bookbuyer-serviceaccount
-      automountServiceAccountToken: false
 
       containers:
         # Main container with APP

@@ -36,7 +36,6 @@ kind: ServiceAccount
 metadata:
   name: "$SVC-serviceaccount"
   namespace: $BOOKSTORE_NAMESPACE
-automountServiceAccountToken: false
 EOF
 
 echo -e "Deploy $SVC Service"
@@ -79,7 +78,6 @@ spec:
         "openservicemesh.io/sidecar-injection": "enabled"
     spec:
       serviceAccountName: "$SVC-serviceaccount"
-      automountServiceAccountToken: false
       containers:
         - image: "${CTR_REGISTRY}/bookstore:${CTR_TAG}"
           imagePullPolicy: Always
