@@ -1,6 +1,7 @@
 package smi
 
 import (
+	pressure "github.com/open-service-mesh/osm/experimental/pkg/apis/policy/v1alpha1"
 	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha1"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha2"
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
@@ -68,6 +69,9 @@ type MeshSpec interface {
 
 	// ListTrafficTargets lists TrafficTarget SMI resources.
 	ListTrafficTargets() []*target.TrafficTarget
+
+	// ListBackpressures lists Backpressure CRD resources
+	ListBackpressures() []*pressure.Backpressure
 
 	// GetAnnouncementsChannel returns the channel on which SMI makes announcements
 	GetAnnouncementsChannel() <-chan interface{}

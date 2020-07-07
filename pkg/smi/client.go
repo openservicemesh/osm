@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"strings"
 
+	pressure "github.com/open-service-mesh/osm/experimental/pkg/apis/policy/v1alpha1"
 	backpressureClient "github.com/open-service-mesh/osm/experimental/pkg/client/clientset/versioned"
 	backpressureInformers "github.com/open-service-mesh/osm/experimental/pkg/client/informers/externalversions"
 	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha1"
@@ -182,6 +183,20 @@ func (c *Client) ListTrafficTargets() []*target.TrafficTarget {
 		trafficTarget = append(trafficTarget, target)
 	}
 	return trafficTarget
+}
+
+// ListBackpressures implements smi.MeshSpec by returning the list of backpressures
+func (c *Client) ListBackpressures() []*pressure.Backpressure {
+	var backpressures []*pressure.Backpressure
+	for _, pressureIface := range c.caches.Backpressure.List() {
+		pressure := pressureIface.(*pressure.Backpressure)
+		if !c.namespaceController.IsMonitoredNamespace(pressure.Namespace) {
+			continue
+		}
+		backpressures = append(backpressures, pressure)
+	}
+
+	return backpressures
 }
 
 // ListTrafficSplitServices implements mesh.MeshSpec by returning the services observed from the given compute provider
