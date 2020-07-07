@@ -15,7 +15,7 @@ import (
 
 var identity = flag.String("ident", "unidentified", "the identity of the container where this demo app is running (VM, K8s, etc)")
 
-var port = flag.Int("port", 8080, "port on which this app is listening for incoming HTTP")
+var port = flag.Int("port", 80, "port on which this app is listening for incoming HTTP")
 var log = logger.New("demo/bookwarehouse")
 var totalBooks = 0
 
