@@ -188,6 +188,15 @@ var _ = Describe("checks", func() {
 			err := k8sVersion.run(c)
 			Expect(err).NotTo(HaveOccurred())
 		})
+		It("passes for v1.16.0-beta.0", func() {
+			c := &Checker{
+				k8sVersion: &version.Info{
+					GitVersion: "v1.16.0-beta.0",
+				},
+			}
+			err := k8sVersion.run(c)
+			Expect(err).NotTo(HaveOccurred())
+		})
 		It("fails for v1.10.0", func() {
 			c := &Checker{
 				k8sVersion: &version.Info{
@@ -195,7 +204,7 @@ var _ = Describe("checks", func() {
 				},
 			}
 			err := k8sVersion.run(c)
-			Expect(err).To(MatchError("Kubernetes version v1.10.0 does not match supported versions ^1.15"))
+			Expect(err).To(MatchError("Kubernetes version v1.10.0 does not match supported versions ^1.15-0"))
 		})
 	})
 
