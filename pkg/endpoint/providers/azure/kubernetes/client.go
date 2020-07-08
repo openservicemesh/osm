@@ -86,7 +86,11 @@ func (c *Client) Run(stop <-chan struct{}) error {
 func (c *Client) ListAzureResources() []*osm.AzureResource {
 	var azureResources []*osm.AzureResource
 	for _, azureResourceInterface := range c.caches.AzureResource.List() {
-		azureResource := azureResourceInterface.(*osm.AzureResource)
+		azureResource, ok := azureResourceInterface.(*osm.AzureResource)
+		if !ok {
+			log.Error().Err(errInvalidObjectType).Msg("Failed type assertion for AzureResource in cache")
+			continue
+		}
 		if !c.namespaceController.IsMonitoredNamespace(azureResource.Namespace) {
 			// Doesn't belong to namespaces we are observing
 			continue
