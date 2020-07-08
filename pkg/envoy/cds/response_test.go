@@ -171,7 +171,7 @@ var _ = Describe("CDS Response", func() {
 
 			// Checking for the value by generating the same value the same way is reduntant
 			// Nonetheless, as GetServiceCluster logic gets more complicated, this might just be ok to have
-			upstreamTLSProto, err := envoy.MessageToAny(envoy.GetUpstreamTLSContext(proxyService))
+			upstreamTLSProto, err := envoy.MessageToAny(envoy.GetUpstreamTLSContext(proxyService, remoteService.GetCommonName().String()))
 			Expect(err).ToNot(HaveOccurred())
 
 			expectedCluster := xds.Cluster{
