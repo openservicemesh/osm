@@ -79,7 +79,7 @@ var validCertTypes = map[SDSCertType]interface{}{
 
 // ALPNInMesh indicates that the proxy is connecting to an in-mesh destination.
 // It is set as a part of configuring the UpstreamTLSContext.
-var ALPNInMesh = []string{"osm-alpn"}
+var ALPNInMesh = []string{"osm"}
 
 // UnmarshalSDSCert parses and returns Certificate type and Namespaced Service name given a
 // correctly formatted string, otherwise returns error
