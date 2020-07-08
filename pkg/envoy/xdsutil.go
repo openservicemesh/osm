@@ -224,8 +224,7 @@ func getCommonTLSContext(serviceName service.NamespacedService, mTLS bool, dir S
 	}
 
 	return &auth.CommonTlsContext{
-		AlpnProtocols: nil,
-		TlsParams:     GetTLSParams(),
+		TlsParams: GetTLSParams(),
 		TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
 			// Example ==> Name: "service-cert:NameSpaceHere/ServiceNameHere"
 			Name: SDSCert{
