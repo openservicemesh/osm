@@ -37,14 +37,9 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpe
 	for _, trafficPolicies := range allTrafficPolicies {
 		isSourceService := trafficPolicies.Source.Service.Equals(proxyServiceName)
 		//iterate through only destination services here since envoy is programmed by destination
-		service := trafficPolicies.Destination.Service
+		dstService := trafficPolicies.Destination.Service
 		if isSourceService {
-			cluster, err := catalog.GetWeightedClusterForService(service)
-			if err != nil {
-				log.Error().Err(err).Msgf("Failed to find cluster")
-				return nil, err
-			}
-			remoteCluster, err := envoy.GetServiceCluster(string(cluster.ClusterName), proxyServiceName)
+			remoteCluster, err := envoy.GetServiceCluster(dstService, proxyServiceName)
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed to construct service cluster for proxy %s", proxyServiceName)
 				return nil, err

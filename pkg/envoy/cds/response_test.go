@@ -135,7 +135,9 @@ var _ = Describe("CDS Response", func() {
 		})
 
 		It("Returns a remote cluster object", func() {
-			cluster, err := envoy.GetServiceCluster(proxyServiceName, proxyService)
+			localService := tests.BookbuyerService
+			remoteService := tests.BookstoreService
+			cluster, err := envoy.GetServiceCluster(remoteService, localService)
 			Expect(err).ToNot(HaveOccurred())
 
 			expectedClusterLoadAssignment := &xds.ClusterLoadAssignment{
@@ -235,12 +237,13 @@ var _ = Describe("CDS Response", func() {
 							},
 						},
 					},
-					AlpnProtocols: nil,
+					AlpnProtocols: envoy.ALPNInMesh,
 				},
-				Sni:                "default/bookstore",
+				Sni:                remoteService.GetCommonName().String(),
 				AllowRenegotiation: false,
 			}
 			Expect(upstreamTLSContext.CommonTlsContext.TlsParams).To(Equal(expectedTLSContext.CommonTlsContext.TlsParams))
+			Expect(upstreamTLSContext.Sni).To(Equal("bookstore.default.svc.cluster.local"))
 			// TODO(draychev): finish the rest
 			// Expect(upstreamTLSContext).To(Equal(expectedTLSContext)
 		})
