@@ -164,7 +164,7 @@ var _ = Describe("Test Envoy tools", func() {
 							},
 						},
 					},
-					AlpnProtocols: ALPNHttp,
+					AlpnProtocols: nil,
 				},
 				RequireClientCertificate: &wrappers.BoolValue{Value: true},
 			}
