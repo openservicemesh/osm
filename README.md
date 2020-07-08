@@ -40,6 +40,11 @@ To on-board a service to the OSM managed service mesh, OSM first needs to be con
 ```
 $ kubectl label namespace <namespace> openservicemesh.io/monitored-by=<mesh-name>
 ```
+The same can be done using the `osm cli` tool.
+```
+$ bin/osm namespace add --mesh-name <mesh-name> <namespace-name>
+```
+
 The `mesh-name` is a unique identifier assigned to an osm-controller instance during install to identify and manage manage a mesh instance.
 
 The `mesh-name` should follow [RFC 1123](https://tools.ietf.org/html/rfc1123) DNS Label constraints. The `mesh-name` must:
@@ -64,6 +69,10 @@ Currently OSM only supports automatic sidecar injection for newly created PODs. 
 To stop OSM from monitoring a namespace, remove the monitoring label from the namespace.
 ```
 $ kubectl label namespace <namespace> openservicemesh.io/monitored-by-
+```
+The same can be done using the `osm cli` tool.
+```
+$ bin/osm namespace remove --mesh-name <mesh-name> <namespace-name>
 ```
 
 [1]: https://en.wikipedia.org/wiki/Service_mesh
