@@ -96,6 +96,9 @@ func init() {
 	flags.IntVar(&injectorConfig.ListenPort, "webhook-port", constants.InjectorWebhookPort, "Webhook port for sidecar-injector")
 	flags.StringVar(&injectorConfig.InitContainerImage, "init-container-image", "", "InitContainer image")
 	flags.StringVar(&injectorConfig.SidecarImage, "sidecar-image", "", "Sidecar proxy Container image")
+
+	// feature flags
+	flags.BoolVar(&optionalFeatures.BackpressureEnabled, "enable-backpressure-experimental", false, "Enable experimental backpressure feature")
 }
 
 func main() {

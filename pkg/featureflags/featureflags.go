@@ -9,6 +9,7 @@ import (
 // OptionalFeatures is a struct to enable/disable optional features
 type OptionalFeatures struct {
 	// FeatureName bool
+	BackpressureEnabled      bool
 }
 
 var (
@@ -32,3 +33,8 @@ func IsFeatureNameEnabled() bool {
 	return Features.FeatureName
 }
 */
+
+// IsBackpressureEnabled returns a boolean indicating if the experimental backpressure feature is enabled
+func IsBackpressureEnabled() bool {
+	return Features.BackpressureEnabled
+}

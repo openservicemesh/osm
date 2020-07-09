@@ -45,6 +45,7 @@ type Client struct {
 	announcements       chan interface{}
 	osmNamespace        string
 	namespaceController namespace.Controller
+	backpressureEnabled bool
 }
 
 // ClientIdentity is the identity of an Envoy proxy connected to the Open Service Mesh.

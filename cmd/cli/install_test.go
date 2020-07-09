@@ -130,6 +130,7 @@ var _ = Describe("Running the install command", func() {
 							}},
 						"enableDebugServer":             false,
 						"enablePermissiveTrafficPolicy": false,
+						"enableBackpressureExperimental": false,
 					}}))
 			})
 
@@ -227,6 +228,7 @@ var _ = Describe("Running the install command", func() {
 							}},
 						"enableDebugServer":             false,
 						"enablePermissiveTrafficPolicy": false,
+						"enableBackpressureExperimental": false,
 					}}))
 			})
 
@@ -329,6 +331,7 @@ var _ = Describe("Running the install command", func() {
 						},
 						"enableDebugServer":             false,
 						"enablePermissiveTrafficPolicy": false,
+						"enableBackpressureExperimental": false,
 					}}))
 			})
 
@@ -588,6 +591,7 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 				},
 				"enableDebugServer":             false,
 				"enablePermissiveTrafficPolicy": false,
+				"enableBackpressureExperimental": false,
 			}}))
 	})
 })
