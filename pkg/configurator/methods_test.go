@@ -30,7 +30,7 @@ var _ = Describe("Test Envoy configuration creation", func() {
 		})
 
 		It("correctly identifies whether the service mesh is in allow_all mode", func() {
-			Expect(cfg.IsAllowAll()).To(BeFalse())
+			Expect(cfg.IsPermissiveTrafficPolicyMode()).To(BeFalse())
 			configMap := v1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: osmNamespace,
@@ -55,11 +55,11 @@ allow_all: true
 
 			expectedConfigMap := `{
     "ConfigVersion": 111,
-    "AllowAll": true
+    "PermissiveTrafficPolicyMode": true
 }`
 
 			Expect(string(configMapData)).To(Equal(expectedConfigMap))
-			Expect(cfg.IsAllowAll()).To(BeTrue())
+			Expect(cfg.IsPermissiveTrafficPolicyMode()).To(BeTrue())
 		})
 	})
 })

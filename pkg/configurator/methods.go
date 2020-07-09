@@ -21,12 +21,12 @@ func (c *Client) GetConfigMap() ([]byte, error) {
 	return cm, nil
 }
 
-// IsAllowAll tells us whether the OSM Control Plane is in permissive mode,
+// IsPermissiveTrafficPolicyMode tells us whether the OSM Control Plane is in permissive mode,
 // where all existing traffic is allowed to flow as it is,
 // or it is in SMI Spec mode, in which only traffic between source/destinations
 // referenced in SMI policies is allowed.
-func (c *Client) IsAllowAll() bool {
-	return c.getConfigMap().AllowAll
+func (c *Client) IsPermissiveTrafficPolicyMode() bool {
+	return c.getConfigMap().PermissiveTrafficPolicyMode
 }
 
 // GetAnnouncementsChannel returns a channel, which is used to announce when changes have been made to the OSM ConfigMap.
