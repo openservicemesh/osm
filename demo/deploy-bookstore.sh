@@ -23,7 +23,7 @@ metadata:
     app: bookstore-mesh
 spec:
   ports:
-  - port: 8080
+  - port: 80
     name: bookstore-port
   selector:
     app: bookstore-mesh
@@ -49,7 +49,7 @@ metadata:
     app: $SVC
 spec:
   ports:
-  - port: 8080
+  - port: 80
     name: bookstore-port
 
   selector:
@@ -83,10 +83,10 @@ spec:
           imagePullPolicy: Always
           name: $SVC
           ports:
-            - containerPort: 8080
+            - containerPort: 80
               name: web
           command: ["/bookstore"]
-          args: ["--path", "./", "--port", "8080"]
+          args: ["--path", "./", "--port", "80"]
           env:
             - name: IDENTITY
               value: ${SVC}--${GIT_HASH}
