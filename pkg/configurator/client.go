@@ -14,7 +14,7 @@ import (
 )
 
 // NewConfigurator implements configurator.Configurator and creates the Kubernetes client to manage namespaces.
-func NewConfigurator(kubeClient kubernetes.Interface, stop chan struct{}, osmNamespace, osmConfigMapName string) Configurator {
+func NewConfigurator(kubeClient kubernetes.Interface, stop <-chan struct{}, osmNamespace, osmConfigMapName string) Configurator {
 	informerFactory := informers.NewSharedInformerFactoryWithOptions(kubeClient, k8s.DefaultKubeEventResyncInterval, informers.WithNamespace(osmNamespace))
 	informer := informerFactory.Core().V1().ConfigMaps().Informer()
 	client := Client{

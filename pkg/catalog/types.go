@@ -12,6 +12,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 	"github.com/open-service-mesh/osm/pkg/ingress"
@@ -31,6 +32,7 @@ type MeshCatalog struct {
 	meshSpec           smi.MeshSpec
 	certManager        certificate.Manager
 	ingressMonitor     ingress.Monitor
+	configurator       configurator.Configurator
 
 	expectedProxies     map[certificate.CommonName]expectedProxy
 	expectedProxiesLock sync.Mutex
