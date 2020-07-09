@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"strings"
 
+	backpressure "github.com/open-service-mesh/osm/experimental/pkg/apis/policy/v1alpha1"
 	backpressureClient "github.com/open-service-mesh/osm/experimental/pkg/client/clientset/versioned"
 	backpressureInformers "github.com/open-service-mesh/osm/experimental/pkg/client/informers/externalversions"
 	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha1"
@@ -182,6 +183,27 @@ func (c *Client) ListTrafficTargets() []*target.TrafficTarget {
 		trafficTarget = append(trafficTarget, target)
 	}
 	return trafficTarget
+}
+
+// ListBackpressures implements smi.MeshSpec by returning the list of backpressures
+func (c *Client) ListBackpressures() []*backpressure.Backpressure {
+	var backpressureList []*backpressure.Backpressure
+	for _, pressureIface := range c.caches.Backpressure.List() {
+		backpressure := pressureIface.(*backpressure.Backpressure)
+		// TODO: Add type assertion check using renamed variable when merging with main
+		// backpressure, ok := pressureIface.(*backpressure.Backpressure)
+		// if !ok {
+		// 	log.Error().Err(errInvalidObjectType).Msgf("Failed type assertion for Backpressure in cache")
+		// 	continue
+		// }
+
+		if !c.namespaceController.IsMonitoredNamespace(backpressure.Namespace) {
+			continue
+		}
+		backpressureList = append(backpressureList, backpressure)
+	}
+
+	return backpressureList
 }
 
 // ListTrafficSplitServices implements mesh.MeshSpec by returning the services observed from the given compute provider
