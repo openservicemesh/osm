@@ -190,6 +190,13 @@ func (c *Client) ListBackpressures() []*backpressure.Backpressure {
 	var backpressureList []*backpressure.Backpressure
 	for _, pressureIface := range c.caches.Backpressure.List() {
 		backpressure := pressureIface.(*backpressure.Backpressure)
+		// TODO: Add type assertion check using renamed variable when merging with main
+		// backpressure, ok := pressureIface.(*backpressure.Backpressure)
+		// if !ok {
+		// 	log.Error().Err(errInvalidObjectType).Msgf("Failed type assertion for Backpressure in cache")
+		// 	continue
+		// }
+
 		if !c.namespaceController.IsMonitoredNamespace(backpressure.Namespace) {
 			continue
 		}
