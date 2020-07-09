@@ -16,6 +16,7 @@ import (
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/debugger"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
@@ -53,6 +54,7 @@ var (
 	serviceCertValidityMinutes int
 	caBundleSecretName         string
 	enableDebugServer          bool
+	osmConfigMapName           string
 
 	injectorConfig injector.Config
 
@@ -88,6 +90,7 @@ func init() {
 	flags.IntVar(&serviceCertValidityMinutes, "serviceCertValidityMinutes", defaultServiceCertValidityMinutes, "Certificate validityPeriod duration in minutes")
 	flags.StringVar(&caBundleSecretName, caBundleSecretNameCLIParam, "", "Name of the Kubernetes Secret for the OSM CA bundle")
 	flags.BoolVar(&enableDebugServer, "enableDebugServer", false, "Enable OSM debug HTTP server")
+	flags.StringVar(&osmConfigMapName, "osmConfigMapName", "osm-config", "Name of the OSM ConfigMap")
 
 	// sidecar injector options
 	flags.BoolVar(&injectorConfig.DefaultInjection, "default-injection", true, "Enable sidecar injection by default")
@@ -112,6 +115,7 @@ func main() {
 	// Side effects: This will log.Fatal on error resulting in os.Exit(255)
 	validateCLIParams()
 
+	// TODO(draychev): consolidate kubeConfig vs kubeClient
 	var kubeConfig *rest.Config
 	var err error
 	kubeConfig, err = clientcmd.BuildConfigFromFlags("", kubeConfigFile)
@@ -120,6 +124,17 @@ func main() {
 	}
 
 	stop := signals.RegisterExitHandlers()
+
+	// This component will be watching the OSM ConfigMap and will make it
+	// to the rest of the components.
+	cfg := configurator.NewConfigurator(kubernetes.NewForConfigOrDie(kubeConfig), stop, osmNamespace, osmConfigMapName)
+	configMap, err := cfg.GetConfigMap()
+	if err != nil {
+		log.Error().Err(err).Msgf("Error parsing ConfigMap %s", osmConfigMapName)
+	}
+	log.Info().Msgf("Initial ConfigMap %s: %+v", osmConfigMapName, configMap)
+
+	// TODO(draychev): propagate the Configurator objects to all components below.
 
 	namespaceController := namespace.NewNamespaceController(kubeConfig, meshName, stop)
 	meshSpec := smi.NewMeshSpecClient(kubeConfig, osmNamespace, namespaceController, stop)
