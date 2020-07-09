@@ -34,7 +34,7 @@ cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: "$SVC-serviceaccount"
+  name: "$SVC"
   namespace: $BOOKSTORE_NAMESPACE
 EOF
 
@@ -77,7 +77,7 @@ spec:
       annotations:
         "openservicemesh.io/sidecar-injection": "enabled"
     spec:
-      serviceAccountName: "$SVC-serviceaccount"
+      serviceAccountName: "$SVC"
       containers:
         - image: "${CTR_REGISTRY}/bookstore:${CTR_TAG}"
           imagePullPolicy: Always
