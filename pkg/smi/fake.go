@@ -1,7 +1,7 @@
 package smi
 
 import (
-	pressure "github.com/open-service-mesh/osm/experimental/pkg/apis/policy/v1alpha1"
+	backpressure "github.com/open-service-mesh/osm/experimental/pkg/apis/policy/v1alpha1"
 	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha1"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha2"
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
@@ -14,7 +14,7 @@ import (
 type fakeMeshSpec struct {
 	routeGroups      []*spec.HTTPRouteGroup
 	trafficTargets   []*target.TrafficTarget
-	backpressures    []*pressure.Backpressure
+	backpressures    []*backpressure.Backpressure
 	weightedServices []service.WeightedService
 	serviceAccounts  []service.NamespacedServiceAccount
 	services         []*corev1.Service
@@ -26,7 +26,7 @@ func NewFakeMeshSpecClient() MeshSpec {
 		routeGroups:    []*spec.HTTPRouteGroup{&tests.HTTPRouteGroup},
 		trafficTargets: []*target.TrafficTarget{&tests.TrafficTarget},
 		// TODO: Add backpressure in OSM package tests
-		// backpressures:    []*pressure.Backpressure{&tests.Backpressure},
+		// backpressures:    []*backpressure.Backpressure{&tests.Backpressure},
 		weightedServices: []service.WeightedService{tests.WeightedService},
 		serviceAccounts: []service.NamespacedServiceAccount{
 			tests.BookstoreServiceAccount,
@@ -66,7 +66,7 @@ func (f fakeMeshSpec) ListTrafficTargets() []*target.TrafficTarget {
 }
 
 // ListBackpressures lists Backpressure SMI resources for the fake Mesh Spec.
-func (f fakeMeshSpec) ListBackpressures() []*pressure.Backpressure {
+func (f fakeMeshSpec) ListBackpressures() []*backpressure.Backpressure {
 	return f.backpressures
 }
 
