@@ -96,8 +96,6 @@ metadata:
   namespace: $K8S_NAMESPACE
   labels:
     app: vault
-  annotations:
-    service.beta.kubernetes.io/azure-load-balancer-internal: "true"
 spec:
   type: LoadBalancer
   selector:
