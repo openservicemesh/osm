@@ -44,8 +44,16 @@ func NewConfigurator(kubeClient kubernetes.Interface, stop chan struct{}, osmNam
 // This struct must match the shape of the "osm-config" ConfigMap
 // which was created in the OSM namespace.
 type osmConfig struct {
-	ConfigVersion int  `yaml:"config_version"`
-	AllowAll      bool `yaml:"allow_all"`
+
+	// ConfigVersion is optional field, which shows the version of the config applied.
+	// This is used for debug purposes.
+	ConfigVersion int `yaml:"config_version"`
+
+	// PermissiveTrafficPolicyMode is a bool toggle, which when TRUE ignores SMI policies and
+	// allows existing Kubernetes services to communicate with each other uninterrupted.
+	// This is useful whet set TRUE in brownfield configurations, where we first want to observe
+	// existing traffic patterns.
+	PermissiveTrafficPolicyMode bool `yaml:"permissive_traffic_policy_mode"`
 }
 
 func (c *Client) run(stop <-chan struct{}) {

@@ -40,8 +40,8 @@ type Configurator interface {
 	// GetConfigMap returns the ConfigMap in pretty JSON (human readable).
 	GetConfigMap() ([]byte, error)
 
-	// IsAllowAll determines whether we are in "allow-all" mode or SMI policy (block by default) mode.
-	IsAllowAll() bool
+	// IsPermissiveTrafficPolicyMode determines whether we are in "allow-all" mode or SMI policy (block by default) mode.
+	IsPermissiveTrafficPolicyMode() bool
 
 	// GetAnnouncementsChannel returns a channel, which is used to announce when changes have been made to the OSM ConfigMap.
 	GetAnnouncementsChannel() <-chan interface{}
