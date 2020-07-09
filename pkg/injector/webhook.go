@@ -17,7 +17,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/certificate"
@@ -41,7 +40,7 @@ const (
 )
 
 // NewWebhook starts a new web server handling requests from the injector MutatingWebhookConfiguration
-func NewWebhook(config Config, kubeConfig *rest.Config, certManager certificate.Manager, meshCatalog catalog.MeshCataloger, namespaceController namespace.Controller, meshName, osmNamespace, webhookName string, stop <-chan struct{}) error {
+func NewWebhook(config Config, kubeClient kubernetes.Interface, certManager certificate.Manager, meshCatalog catalog.MeshCataloger, namespaceController namespace.Controller, meshName, osmNamespace, webhookName string, stop <-chan struct{}) error {
 	cn := certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.OSMControllerName, osmNamespace))
 	validityPeriod := constants.XDSCertificateValidityPeriod
 	cert, err := certManager.IssueCertificate(cn, &validityPeriod)
@@ -52,7 +51,7 @@ func NewWebhook(config Config, kubeConfig *rest.Config, certManager certificate.
 
 	wh := webhook{
 		config:              config,
-		kubeClient:          kubernetes.NewForConfigOrDie(kubeConfig),
+		kubeClient:          kubeClient,
 		certManager:         certManager,
 		meshCatalog:         meshCatalog,
 		namespaceController: namespaceController,
