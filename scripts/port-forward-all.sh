@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Requirement: Install GNU Parallel
+
 parallel bash ::: \
          ./scripts/port-forward-zipkin.sh \
          ./scripts/port-forward-bookbuyer-ui.sh \

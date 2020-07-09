@@ -10,14 +10,12 @@
 # shellcheck disable=SC1091
 source .env
 
-VERSION="bookstore-v1"
-
-POD="$(kubectl get pods --selector app=${VERSION} -n "$BOOKSTORE_NAMESPACE" --no-headers | grep 'Running' | awk '{print $1}')"
+POD="$(kubectl get pods --selector app=bookstore-v1 -n "$BOOKSTORE_NAMESPACE" --no-headers | grep 'Running' | awk '{print $1}')"
 
 
 kubectl exec -it -n "$BOOKSTORE_NAMESPACE"  \
         "$POD" \
-        -c "$VERSION" -- \
+        -c "bookstore-v1" -- \
         tcpdump -A -U -c 1024 -s 0 -w /tmp/pcap.pcap
 
 
