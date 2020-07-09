@@ -6,12 +6,12 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/open-service-mesh/osm/pkg/certificate"
 	extensionsV1beta "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
+	"github.com/open-service-mesh/osm/pkg/certificate"
 	"github.com/open-service-mesh/osm/pkg/certificate/providers/tresor"
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
@@ -47,7 +47,7 @@ func newFakeMeshCatalog() *MeshCatalog {
 
 func getFakeIngresses() []*extensionsV1beta.Ingress {
 	return []*extensionsV1beta.Ingress{
-		&extensionsV1beta.Ingress{
+		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "ingress-1",
 				Namespace: fakeIngressNamespace,
@@ -96,7 +96,8 @@ func getFakeIngresses() []*extensionsV1beta.Ingress {
 				},
 			},
 		},
-		&extensionsV1beta.Ingress{
+
+		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "ingress-2",
 				Namespace: fakeIngressNamespace,
@@ -154,9 +155,12 @@ var _ = Describe("Test ingress route policies", func() {
 				// The number of route policies per domain is the product of the number of rules and paths per rule
 				Expect(len(routePolicies)).To(Equal(len(fakeIngressPaths[domain])))
 				for _, routePolicy := range routePolicies {
+
 					// For each ingress path, all HTTP methods are allowed, which is a regex match all of '*'
 					Expect(len(routePolicy.Methods)).To(Equal(1))
+
 					Expect(routePolicy.Methods[0]).To(Equal(constants.RegexMatchAll))
+
 					// routePolicy.Path is the path specified in the ingress resource rule. Since the same service
 					// could be a backend for multiple ingress resources, we don't know which ingress resource
 					// this path corresponds to just from 'domainRoutesMap'. In order to not make assumptions
