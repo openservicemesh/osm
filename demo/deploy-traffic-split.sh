@@ -17,7 +17,6 @@ spec:
 
   - service: bookstore-v1
     weight: 1
-
   - service: bookstore-v2
     weight: 99
 
