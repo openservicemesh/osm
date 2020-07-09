@@ -7,7 +7,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault"
 	az "github.com/Azure/go-autorest/autorest/azure"
 
-	"github.com/open-service-mesh/osm/pkg/azure"
+	"github.com/open-service-mesh/osm/pkg/providers/azure"
 )
 
 const (
