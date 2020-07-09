@@ -15,7 +15,7 @@ import (
 
 // NewConfigurator implements configurator.Configurator and creates the Kubernetes client to manage namespaces.
 func NewConfigurator(kubeClient kubernetes.Interface, stop chan struct{}, osmNamespace, osmConfigMapName string) Configurator {
-	informerFactory := informers.NewSharedInformerFactory(kubeClient, k8s.DefaultKubeEventResyncInterval)
+	informerFactory := informers.NewSharedInformerFactoryWithOptions(kubeClient, k8s.DefaultKubeEventResyncInterval, informers.WithNamespace(osmNamespace))
 	informer := informerFactory.Core().V1().ConfigMaps().Informer()
 	client := Client{
 		informer:         informer,
@@ -26,10 +26,11 @@ func NewConfigurator(kubeClient kubernetes.Interface, stop chan struct{}, osmNam
 		osmConfigMapName: osmConfigMapName,
 	}
 
-	// Ensure this only watches the Namespace where OSM in installed
+	// Ensure this exclusively watches only the Namespace where OSM in installed and the particular ConfigMap we need.
 	shouldObserve := func(obj interface{}) bool {
 		ns := reflect.ValueOf(obj).Elem().FieldByName("ObjectMeta").FieldByName("Namespace").String()
-		return ns == osmNamespace
+		name := reflect.ValueOf(obj).Elem().FieldByName("ObjectMeta").FieldByName("Name").String()
+		return ns == osmNamespace && name == osmConfigMapName
 	}
 
 	informerName := "ConfigMap"
