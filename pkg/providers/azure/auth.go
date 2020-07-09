@@ -1,3 +1,7 @@
+// Package azure implements methods for working with Azure.
+//
+// This package contains common functionality for working with Azure
+// as a compute provider.
 package azure
 
 import (
