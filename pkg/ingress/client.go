@@ -6,7 +6,6 @@ import (
 	extensionsV1beta "k8s.io/api/extensions/v1beta1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
 	k8s "github.com/open-service-mesh/osm/pkg/kubernetes"
@@ -15,9 +14,7 @@ import (
 )
 
 // NewIngressClient implements ingress.Monitor and creates the Kubernetes client to monitor Ingress resources.
-func NewIngressClient(kubeConfig *rest.Config, namespaceController namespace.Controller, stop chan struct{}) (Monitor, error) {
-	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
-
+func NewIngressClient(kubeClient kubernetes.Interface, namespaceController namespace.Controller, stop chan struct{}) (Monitor, error) {
 	informerFactory := informers.NewSharedInformerFactory(kubeClient, k8s.DefaultKubeEventResyncInterval)
 	informer := informerFactory.Extensions().V1beta1().Ingresses().Informer()
 
