@@ -3,8 +3,8 @@ package configurator
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 
-	"gopkg.in/yaml.v2"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -14,7 +14,7 @@ import (
 )
 
 // NewConfigurator implements configurator.Configurator and creates the Kubernetes client to manage namespaces.
-func NewConfigurator(kubeClient kubernetes.Interface, stop chan struct{}, osmNamespace, osmConfigMapName string) Configurator {
+func NewConfigurator(kubeClient kubernetes.Interface, stop <-chan struct{}, osmNamespace, osmConfigMapName string) Configurator {
 	informerFactory := informers.NewSharedInformerFactoryWithOptions(kubeClient, k8s.DefaultKubeEventResyncInterval, informers.WithNamespace(osmNamespace))
 	informer := informerFactory.Core().V1().ConfigMaps().Informer()
 	client := Client{
@@ -45,11 +45,6 @@ func NewConfigurator(kubeClient kubernetes.Interface, stop chan struct{}, osmNam
 // This struct must match the shape of the "osm-config" ConfigMap
 // which was created in the OSM namespace.
 type osmConfig struct {
-
-	// ConfigVersion is optional field, which shows the version of the config applied.
-	// This is used for debug purposes.
-	ConfigVersion int `yaml:"config_version"`
-
 	// PermissiveTrafficPolicyMode is a bool toggle, which when TRUE ignores SMI policies and
 	// allows existing Kubernetes services to communicate with each other uninterrupted.
 	// This is useful whet set TRUE in brownfield configurations, where we first want to observe
@@ -88,21 +83,15 @@ func (c *Client) getConfigMap() *osmConfig {
 
 	configMap := item.(*v1.ConfigMap)
 
-	if len(configMap.Data) == 0 {
-		log.Error().Msgf("The ConfigMap %s does not contain any Data", configMapCacheKey)
-		return &osmConfig{}
+	cfg := &osmConfig{}
+
+	if modeString, ok := configMap.Data["permissive_traffic_policy_mode"]; ok {
+		if modeBool, err := strconv.ParseBool(modeString); err != nil {
+			log.Error().Err(err).Msgf("Error converting ConfigMap permissive_traffic_policy_mode=%+v to bool", modeString)
+		} else {
+			cfg.PermissiveTrafficPolicyMode = modeBool
+		}
 	}
 
-	var config []byte
-	for _, cfg := range configMap.Data {
-		config = []byte(cfg)
-	}
-
-	conf := osmConfig{}
-	err = yaml.Unmarshal(config, &conf)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error marshaling ConfigMap %s with content %s", c.osmConfigMapName, string(config))
-	}
-
-	return &conf
+	return cfg
 }

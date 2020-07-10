@@ -7,6 +7,7 @@ import (
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
 	"github.com/open-service-mesh/osm/pkg/certificate/providers/tresor"
+	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/endpoint/providers/kube"
 	"github.com/open-service-mesh/osm/pkg/ingress"
@@ -23,5 +24,10 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface) *MeshCatalog {
 	endpointProviders := []endpoint.Provider{
 		kube.NewFakeProvider(),
 	}
-	return NewMeshCatalog(kubeClient, meshSpec, certManager, ingressMonitor, stop, endpointProviders...)
+
+	osmNamespace := "-test-osm-namespace-"
+	osmConfigMapName := "-test-osm-config-map-"
+	cfg := configurator.NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
+
+	return NewMeshCatalog(kubeClient, meshSpec, certManager, ingressMonitor, stop, cfg, endpointProviders...)
 }

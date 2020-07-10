@@ -5,11 +5,14 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	testclient "k8s.io/client-go/kubernetes/fake"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
 	"github.com/open-service-mesh/osm/pkg/certificate/providers/tresor"
+	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/endpoint/providers/kube"
@@ -18,7 +21,6 @@ import (
 	"github.com/open-service-mesh/osm/pkg/smi"
 	"github.com/open-service-mesh/osm/pkg/tests"
 	"github.com/open-service-mesh/osm/pkg/trafficpolicy"
-	testclient "k8s.io/client-go/kubernetes/fake"
 )
 
 var _ = Describe("Catalog tests", func() {
@@ -26,7 +28,13 @@ var _ = Describe("Catalog tests", func() {
 	kubeClient := testclient.NewSimpleClientset()
 	cache := make(map[certificate.CommonName]certificate.Certificater)
 	certManager := tresor.NewFakeCertManager(&cache, 1*time.Hour)
-	meshCatalog := NewMeshCatalog(kubeClient, smi.NewFakeMeshSpecClient(), certManager, ingress.NewFakeIngressMonitor(), make(<-chan struct{}), endpointProviders...)
+
+	stop := make(<-chan struct{})
+	osmNamespace := "-test-osm-namespace-"
+	osmConfigMapName := "-test-osm-config-map-"
+	cfg := configurator.NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
+
+	meshCatalog := NewMeshCatalog(kubeClient, smi.NewFakeMeshSpecClient(), certManager, ingress.NewFakeIngressMonitor(), make(<-chan struct{}), cfg, endpointProviders...)
 
 	Context("Test ListTrafficPolicies", func() {
 		It("lists traffic policies", func() {

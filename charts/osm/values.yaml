@@ -26,5 +26,5 @@ OpenServiceMesh:
   zipkin:
     port: 9411
   enableDebugServer: false
-  disableSMIAccessControlPolicy: false
+  enablePermissiveTrafficPolicy: false
   meshName: osm

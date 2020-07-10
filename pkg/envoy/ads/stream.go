@@ -2,13 +2,13 @@ package ads
 
 import (
 	"context"
-	"github.com/open-service-mesh/osm/pkg/configurator"
 	"strconv"
 
 	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	"github.com/pkg/errors"
 
+	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 	"github.com/open-service-mesh/osm/pkg/utils"
 )

@@ -7,19 +7,21 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/ingress"
 	"github.com/open-service-mesh/osm/pkg/smi"
 )
 
 // NewMeshCatalog creates a new service catalog
-func NewMeshCatalog(kubeClient kubernetes.Interface, meshSpec smi.MeshSpec, certManager certificate.Manager, ingressMonitor ingress.Monitor, stop <-chan struct{}, endpointsProviders ...endpoint.Provider) *MeshCatalog {
+func NewMeshCatalog(kubeClient kubernetes.Interface, meshSpec smi.MeshSpec, certManager certificate.Manager, ingressMonitor ingress.Monitor, stop <-chan struct{}, cfg configurator.Configurator, endpointsProviders ...endpoint.Provider) *MeshCatalog {
 	log.Info().Msg("Create a new Service MeshCatalog.")
 	sc := MeshCatalog{
 		endpointsProviders: endpointsProviders,
 		meshSpec:           meshSpec,
 		certManager:        certManager,
 		ingressMonitor:     ingressMonitor,
+		configurator:       cfg,
 
 		expectedProxies:      make(map[certificate.CommonName]expectedProxy),
 		connectedProxies:     make(map[certificate.CommonName]connectedProxy),
