@@ -13,7 +13,9 @@ assignees: ''
 **Scope**
 - [ ] New Functionality
 - [ ] Install
-- [ ] SMI Traffic Policy
+- [ ] SMI Traffic Access Policy
+- [ ] SMI Traffic Specs Policy
+- [ ] SMI Traffic Split Policy
 - [ ] Permissive Traffic Policy
 - [ ] Ingress
 - [ ] Egress
