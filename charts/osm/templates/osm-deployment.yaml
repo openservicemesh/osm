@@ -42,7 +42,7 @@ spec:
             {{- if .Values.OpenServiceMesh.enableDebugServer }}
             "--enableDebugServer",
             {{- end }}
-            {{- if .Values.OpenServiceMesh.disableSMIAccessControlPolicy }}
+            {{- if .Values.OpenServiceMesh.permissiveTrafficPolicyMode }}
             "--disable-smi-access-control-policy",
             {{- end }}
           ]

@@ -61,21 +61,21 @@ const (
 var chartTGZSource string
 
 type installCmd struct {
-	out                           io.Writer
-	containerRegistry             string
-	containerRegistrySecret       string
-	chartPath                     string
-	osmImageTag                   string
-	certManager                   string
-	vaultHost                     string
-	vaultProtocol                 string
-	vaultToken                    string
-	vaultRole                     string
-	serviceCertValidityMinutes    int
-	prometheusRetentionTime       string
-	enableDebugServer             bool
-	disableSMIAccessControlPolicy bool
-	meshName                      string
+	out                         io.Writer
+	containerRegistry           string
+	containerRegistrySecret     string
+	chartPath                   string
+	osmImageTag                 string
+	certManager                 string
+	vaultHost                   string
+	vaultProtocol               string
+	vaultToken                  string
+	vaultRole                   string
+	serviceCertValidityMinutes  int
+	prometheusRetentionTime     string
+	enableDebugServer           bool
+	permissiveTrafficPolicyMode bool
+	meshName                    string
 
 	// checker runs checks before any installation is attempted. Its type is
 	// abstract here to make testing easy.
@@ -112,7 +112,7 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.IntVar(&inst.serviceCertValidityMinutes, "service-cert-validity-minutes", int(1), "Certificate TTL in minutes")
 	f.StringVar(&inst.prometheusRetentionTime, "prometheus-retention-time", constants.PrometheusDefaultRetentionTime, "Duration for which data will be retained in prometheus")
 	f.BoolVar(&inst.enableDebugServer, "enable-debug-server", false, "Enable the debug HTTP server")
-	f.BoolVar(&inst.disableSMIAccessControlPolicy, "disable-smi-access-control-policy", false, "Disable SMI access control policy")
+	f.BoolVar(&inst.permissiveTrafficPolicyMode, "disable-smi-access-control-policy", false, "Disable SMI access control policy")
 	f.StringVar(&inst.meshName, "mesh-name", defaultMeshName, "Name of the service mesh")
 
 	return cmd
@@ -205,7 +205,7 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 		fmt.Sprintf("OpenServiceMesh.serviceCertValidityMinutes=%d", i.serviceCertValidityMinutes),
 		fmt.Sprintf("OpenServiceMesh.prometheus.retention.time=%s", i.prometheusRetentionTime),
 		fmt.Sprintf("OpenServiceMesh.enableDebugServer=%t", i.enableDebugServer),
-		fmt.Sprintf("OpenServiceMesh.disableSMIAccessControlPolicy=%t", i.disableSMIAccessControlPolicy),
+		fmt.Sprintf("OpenServiceMesh.permissiveTrafficPolicyMode=%t", i.permissiveTrafficPolicyMode),
 		fmt.Sprintf("OpenServiceMesh.meshName=%s", i.meshName),
 	}
 
