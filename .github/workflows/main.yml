@@ -334,5 +334,5 @@ jobs:
           ./demo/clean-kubernetes.sh
           echo "Creating Kubernetes namespace: $K8S_NAMESPACE"
           echo "$DOCKER_PASS" | docker login "$ACR" -u "$DOCKER_USER" --password-stdin
-          ./demo/run-osm-demo.sh --disable-smi-access-control-policy
+          ./demo/run-osm-demo.sh --enable-permissive-traffic-policy
           go run ./ci/cmd/maestro.go

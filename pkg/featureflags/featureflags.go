@@ -8,7 +8,7 @@ import (
 
 // OptionalFeatures is a struct to enable/disable optional features
 type OptionalFeatures struct {
-	SMIAccessControlDisabled bool
+	// FeatureName bool
 }
 
 var (
@@ -26,7 +26,9 @@ func Initialize(optionalFeatures OptionalFeatures) {
 	})
 }
 
-// IsSMIAccessControlDisabled returns a boolean indicating if access control is disabled
-func IsSMIAccessControlDisabled() bool {
-	return Features.SMIAccessControlDisabled
+/* Feature flag stub
+// IsFeatureNameEnabled returns a boolean indicating if the feature `FeatureName` is enabled
+func IsFeatureNameEnabled() bool {
+	return Features.FeatureName
 }
+*/

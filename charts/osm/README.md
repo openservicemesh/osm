@@ -17,7 +17,7 @@ This command is equivalent to installing the osm control plane using the OSM CLI
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | certManager | string | `"tresor"` | Certificate manager to use (tresor or vault) |
-| disableSMIAccessControlPolicy | bool | `false` | Disable SMI access control policy |
+| enablePermissiveTrafficPolicy | bool | `false` | Enable permissive traffic policy mode |
 | enableDebugServer | bool | `false` | Enable the debug HTTP server |
 | grafana.port | int | `3000` | Grafana port |
 | image.pullPolicy | string | `"Always"` | osm-controller image pull policy |
