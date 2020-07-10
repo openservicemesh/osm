@@ -52,7 +52,6 @@ var _ = Describe("Test Envoy configuration creation", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			expectedConfigMap := `{
-    "ConfigVersion": 111,
     "PermissiveTrafficPolicyMode": true
 }`
 
