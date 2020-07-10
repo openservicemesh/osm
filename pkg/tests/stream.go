@@ -3,6 +3,7 @@ package tests
 import (
 	"context"
 	"crypto/x509"
+
 	"google.golang.org/grpc/peer"
 
 	envoy_service_discovery_v2 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
@@ -42,15 +43,12 @@ func (s *XDSServer) Send(r *v2.DiscoveryResponse) error {
 // Recv implements AggregatedDiscoveryService_StreamAggregatedResourcesServer
 func (s *XDSServer) Recv() (*v2.DiscoveryRequest, error) {
 	r := v2.DiscoveryRequest{
-		VersionInfo:          "",
-		Node:                 nil,
-		ResourceNames:        nil,
-		TypeUrl:              "",
-		ResponseNonce:        "",
-		ErrorDetail:          nil,
-		XXX_NoUnkeyedLiteral: struct{}{},
-		XXX_unrecognized:     nil,
-		XXX_sizecache:        0,
+		VersionInfo:   "",
+		Node:          nil,
+		ResourceNames: nil,
+		TypeUrl:       "",
+		ResponseNonce: "",
+		ErrorDetail:   nil,
 	}
 	return &r, nil
 }
