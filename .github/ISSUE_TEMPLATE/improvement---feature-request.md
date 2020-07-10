@@ -12,10 +12,19 @@ assignees: ''
 
 **Scope**
 - [ ] New Functionality
-- [ ] Traffic Access Control
-- [ ] Traffic Specs
-- [ ] Traffic Metrics
-- [ ] Traffic Split
+- [ ] Install
+- [ ] SMI Traffic Policy
+- [ ] Permissive Traffic Policy
+- [ ] Ingress
+- [ ] Egress
+- [ ] Envoy Control Plane
+- [ ] CLI Tool
+- [ ] Metrics
+- [ ] Certificate Management
+- [ ] Sidecar Injection
+- [ ] Logging
+- [ ] Debugging
+- [ ] CI System
 
 **Possible use cases**
 <!-- A clear and concise description of possible use cases for this proposal. -->
