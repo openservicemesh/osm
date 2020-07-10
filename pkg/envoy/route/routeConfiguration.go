@@ -48,7 +48,7 @@ var (
 )
 
 //UpdateRouteConfiguration consrtucts the Envoy construct necessary for TrafficTarget implementation
-func UpdateRouteConfiguration(domainRoutesMap map[string]map[string]trafficpolicy.RouteWeightedClusters, routeConfig v2.RouteConfiguration, isSourceConfig bool, isDestinationConfig bool) v2.RouteConfiguration {
+func UpdateRouteConfiguration(domainRoutesMap map[string]map[string]trafficpolicy.RouteWeightedClusters, routeConfig *v2.RouteConfiguration, isSourceConfig bool, isDestinationConfig bool) {
 	log.Trace().Msgf("[RDS] Updating Route Configuration")
 	var isLocalCluster bool
 	var virtualHostPrefix string
@@ -65,12 +65,11 @@ func UpdateRouteConfiguration(domainRoutesMap map[string]map[string]trafficpolic
 	for domain, routePolicyWeightedClustersMap := range domainRoutesMap {
 		virtualHost := createVirtualHostStub(virtualHostPrefix, domain)
 		virtualHost.Routes = createRoutes(routePolicyWeightedClustersMap, isLocalCluster)
-		routeConfig.VirtualHosts = append(routeConfig.VirtualHosts, &virtualHost)
+		routeConfig.VirtualHosts = append(routeConfig.VirtualHosts, virtualHost)
 	}
-	return routeConfig
 }
 
-func createVirtualHostStub(namePrefix string, domain string) v2route.VirtualHost {
+func createVirtualHostStub(namePrefix string, domain string) *v2route.VirtualHost {
 	// If domain consists a comma separated list of domains, it means multiple
 	// domains match against the same route config.
 	domains := strings.Split(domain, ",")
@@ -84,7 +83,7 @@ func createVirtualHostStub(namePrefix string, domain string) v2route.VirtualHost
 		Domains: domains,
 		Routes:  []*v2route.Route{},
 	}
-	return virtualHost
+	return &virtualHost
 }
 
 func createRoutes(routePolicyWeightedClustersMap map[string]trafficpolicy.RouteWeightedClusters, isLocalCluster bool) []*v2route.Route {
@@ -95,7 +94,7 @@ func createRoutes(routePolicyWeightedClustersMap map[string]trafficpolicy.RouteW
 		totalClustersWeight := getTotalWeightForClusters(weightedClusters)
 		emptyHeaders := make(map[string]string)
 		route := getRoute(constants.RegexMatchAll, constants.WildcardHTTPMethod, emptyHeaders, weightedClusters, totalClustersWeight, isLocalCluster)
-		routes = append(routes, &route)
+		routes = append(routes, route)
 		return routes
 	}
 	for _, routePolicyWeightedClusters := range routePolicyWeightedClustersMap {
@@ -104,13 +103,13 @@ func createRoutes(routePolicyWeightedClustersMap map[string]trafficpolicy.RouteW
 		allowedMethods := sanitizeHTTPMethods(routePolicyWeightedClusters.Route.Methods)
 		for _, method := range allowedMethods {
 			route := getRoute(routePolicyWeightedClusters.Route.PathRegex, method, routePolicyWeightedClusters.Route.Headers, routePolicyWeightedClusters.WeightedClusters, 100, isLocalCluster)
-			routes = append(routes, &route)
+			routes = append(routes, route)
 		}
 	}
 	return routes
 }
 
-func getRoute(pathRegex string, method string, headersMap map[string]string, weightedClusters set.Set, totalClustersWeight int, isLocalCluster bool) v2route.Route {
+func getRoute(pathRegex string, method string, headersMap map[string]string, weightedClusters set.Set, totalClustersWeight int, isLocalCluster bool) *v2route.Route {
 	route := v2route.Route{
 		Match: &v2route.RouteMatch{
 			PathSpecifier: &v2route.RouteMatch_SafeRegex{
@@ -129,7 +128,7 @@ func getRoute(pathRegex string, method string, headersMap map[string]string, wei
 			},
 		},
 	}
-	return route
+	return &route
 }
 
 func getHeadersForRoute(method string, headersMap map[string]string) []*v2route.HeaderMatcher {
@@ -246,13 +245,13 @@ func sanitizeHTTPMethods(allowedMethods []string) []string {
 }
 
 //NewRouteConfigurationStub creates the route configuration placeholder
-func NewRouteConfigurationStub(routeConfigName string) v2.RouteConfiguration {
+func NewRouteConfigurationStub(routeConfigName string) *v2.RouteConfiguration {
 	routeConfiguration := v2.RouteConfiguration{
 		Name:             routeConfigName,
 		VirtualHosts:     []*v2route.VirtualHost{},
 		ValidateClusters: &wrappers.BoolValue{Value: true},
 	}
-	return routeConfiguration
+	return &routeConfiguration
 }
 
 func getRegexForMethod(httpMethod string) string {

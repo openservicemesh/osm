@@ -63,7 +63,7 @@ var _ = Describe("Test ADS response functions", func() {
 		It("returns service cert", func() {
 
 			actual := makeRequestForAllSecrets(proxy, mc)
-			expected := envoy_api_v2.DiscoveryRequest{
+			expected := &envoy_api_v2.DiscoveryRequest{
 				TypeUrl: string(envoy.TypeSDS),
 				ResourceNames: []string{
 					envoy.SDSCert{
@@ -85,7 +85,7 @@ var _ = Describe("Test ADS response functions", func() {
 				},
 			}
 			Expect(actual).ToNot(BeNil())
-			Expect(*actual).To(Equal(expected))
+			Expect(actual).To(Equal(expected))
 		})
 	})
 
