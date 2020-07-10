@@ -37,7 +37,7 @@ spec:
           name: prometheus-config-volume
         - mountPath: /prometheus/
           name: prometheus-storage-volume
-      serviceAccountName: osm-prometheus-serviceaccount
+      serviceAccountName: osm-prometheus
       volumes:
       - name: prometheus-config-volume
         configMap:

@@ -20,9 +20,8 @@ const (
 )
 
 // NewClient creates the Kubernetes client, which retrieves the AzureResource CRD and Services resources.
-func NewClient(kubeConfig *rest.Config, namespaceController namespace.Controller, stop chan struct{}) *Client {
-	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
-	azureResourceClient := osmClient.NewForConfigOrDie(kubeConfig)
+func NewClient(kubeClient kubernetes.Interface, azureResourceKubeConfig *rest.Config, namespaceController namespace.Controller, stop chan struct{}) *Client {
+	azureResourceClient := osmClient.NewForConfigOrDie(azureResourceKubeConfig)
 
 	k8sClient := newClient(kubeClient, azureResourceClient, namespaceController)
 	if err := k8sClient.Run(stop); err != nil {
@@ -32,7 +31,7 @@ func NewClient(kubeConfig *rest.Config, namespaceController namespace.Controller
 }
 
 // newClient creates a provider based on a Kubernetes client instance.
-func newClient(kubeClient *kubernetes.Clientset, azureResourceClient *osmClient.Clientset, namespaceController namespace.Controller) *Client {
+func newClient(kubeClient kubernetes.Interface, azureResourceClient *osmClient.Clientset, namespaceController namespace.Controller) *Client {
 	azureResourceFactory := osmInformers.NewSharedInformerFactory(azureResourceClient, k8s.DefaultKubeEventResyncInterval)
 	informerCollection := InformerCollection{
 		AzureResource: azureResourceFactory.Osm().V1().AzureResources().Informer(),
@@ -86,7 +85,11 @@ func (c *Client) Run(stop <-chan struct{}) error {
 func (c *Client) ListAzureResources() []*osm.AzureResource {
 	var azureResources []*osm.AzureResource
 	for _, azureResourceInterface := range c.caches.AzureResource.List() {
-		azureResource := azureResourceInterface.(*osm.AzureResource)
+		azureResource, ok := azureResourceInterface.(*osm.AzureResource)
+		if !ok {
+			log.Error().Err(errInvalidObjectType).Msg("Failed type assertion for AzureResource in cache")
+			continue
+		}
 		if !c.namespaceController.IsMonitoredNamespace(azureResource.Namespace) {
 			// Doesn't belong to namespaces we are observing
 			continue

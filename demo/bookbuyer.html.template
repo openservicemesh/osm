@@ -1,9 +1,9 @@
 <!doctype html>
 <html itemscope="" itemtype="http://schema.org/WebPage" lang="en">
   <head>
-      <meta content="Bookstore" name="description">
+      <meta content="Bookbuyer" name="description">
       <meta content="text/html; charset=UTF-8" http-equiv="Content-Type">
-      <title>Bookstore</title>
+      <title>Bookbuyer</title>
       <style>
         #navbar {
             width: 100%;
@@ -34,11 +34,16 @@
   </head>
   <body bgcolor="#fff">
     <div id="navbar">
-      &#128218; {{.Identity}}
+      &#128214; {{.Identity}}
     </div>
     <div id="main">
       <ul>
-        <li>Books sold: <strong>{{.BooksSold}}</strong>
+        <li>Total books bought: <strong>{{.BooksBought}}</strong>
+          <ul>
+            <li>from bookstore V1: <strong>{{.BooksBoughtV1}}</strong>
+            <li>from bookstore V2: <strong>{{.BooksBoughtV2}}</strong>
+          </ul>
+        </li>
       </ul>
     </div>
 

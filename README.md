@@ -40,6 +40,11 @@ To on-board a service to the OSM managed service mesh, OSM first needs to be con
 ```
 $ kubectl label namespace <namespace> openservicemesh.io/monitored-by=<mesh-name>
 ```
+The same can be done using the `osm cli` tool.
+```
+$ bin/osm namespace add --mesh-name <mesh-name> <namespace-name>
+```
+
 The `mesh-name` is a unique identifier assigned to an osm-controller instance during install to identify and manage manage a mesh instance.
 
 The `mesh-name` should follow [RFC 1123](https://tools.ietf.org/html/rfc1123) DNS Label constraints. The `mesh-name` must:
@@ -65,15 +70,17 @@ To stop OSM from monitoring a namespace, remove the monitoring label from the na
 ```
 $ kubectl label namespace <namespace> openservicemesh.io/monitored-by-
 ```
+The same can be done using the `osm cli` tool.
+```
+$ bin/osm namespace remove --mesh-name <mesh-name> <namespace-name>
+```
 
 [1]: https://en.wikipedia.org/wiki/Service_mesh
 [2]: https://github.com/servicemeshinterface/smi-spec/blob/master/SPEC.md
 
 ## Code of Conduct
 
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
-
-For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). See [CODE_OF_CONDUCT.MD](CODE_OF_CONDUCT.MD) for further details.
 
 ## License
 

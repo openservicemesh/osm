@@ -4,7 +4,20 @@ set -aueo pipefail
 
 # shellcheck disable=SC1091
 source .env
+
+# Set meaningful defaults for env vars we expect from .env
 IS_GITHUB="${IS_GITHUB:-false}"
+MESH_NAME="${MESH_NAME:-osm}"
+K8S_NAMESPACE="${K8S_NAMESPACE:-osm-system}"
+BOOKBUYER_NAMESPACE="${BOOKBUYER_NAMESPACE:-bookbuyer}"
+BOOKSTORE_NAMESPACE="${BOOKSTORE_NAMESPACE:-bookstore}"
+BOOKTHIEF_NAMESPACE="${BOOKTHIEF_NAMESPACE:-bookthief}"
+BOOKWAREHOUSE_NAMESPACE="${BOOKWAREHOUSE_NAMESPACE:-bookwarehouse}"
+CERT_MANAGER="${CERT_MANAGER:-tresor}"
+CTR_REGISTRY="${CTR_REGISTRY:-osmci.azurecr.io/osm}"
+CTR_REGISTRY_CREDS_NAME="${CTR_REGISTRY_CREDS_NAME:-acr-creds}"
+CTR_TAG="${CTR_TAG:-latest}"
+
 optionalInstallArgs=$*
 
 exit_error() {
@@ -44,43 +57,14 @@ wait_for_pod_ready() {
     exit_error "Pod ${pod_name} status is ${pod_status} -- still not Ready"
 }
 
-# Check for required environment variables
-if [ -z "$K8S_NAMESPACE" ]; then
-    exit_error "Missing K8S_NAMESPACE env variable"
-fi
-if [ -z "$BOOKBUYER_NAMESPACE" ]; then
-    exit_error "Missing BOOKBUYER_NAMESPACE env variable"
-fi
-if [ -z "$BOOKSTORE_NAMESPACE" ]; then
-    exit_error "Missing BOOKSTORE_NAMESPACE env variable"
-fi
-if [ -z "$BOOKTHIEF_NAMESPACE" ]; then
-    exit_error "Missing BOOKTHIEF_NAMESPACE env variable"
-fi
-if [ -z "$BOOKWAREHOUSE_NAMESPACE" ]; then
-    exit_error "Missing BOOKWAREHOUSE_NAMESPACE env variable"
-fi
-if [ -z "$CERT_MANAGER" ]; then
-    exit_error "Missing CERT_MANAGER env variable"
-fi
-if [ -z "$CTR_REGISTRY" ]; then
-    exit_error "Missing CTR_REGISTRY env variable"
-fi
-if [ -z "$CTR_REGISTRY_CREDS_NAME" ]; then
-    exit_error "Missing CTR_REGISTRY_CREDS_NAME env variable"
-fi
-if [ -z "$CTR_TAG" ]; then
-    exit_error "Missing CTR_TAG env variable"
-fi
-
 make build-osm
 
 if [[ "$IS_GITHUB" != "true" ]]; then
     # In Github CI we always use a new namespace - so this is not necessary
-    bin/osm admin delete-osm --namespace "$K8S_NAMESPACE" || true
+    bin/osm mesh delete "$MESH_NAME" --namespace "$K8S_NAMESPACE" || true
     ./demo/clean-kubernetes.sh
 else
-    bin/osm admin delete-osm --namespace "$K8S_NAMESPACE" || true
+    bin/osm mesh delete "$MESH_NAME" --namespace "$K8S_NAMESPACE" || true
 fi
 
 # Run pre-install checks to make sure OSM can be installed in the current kubectl context.
@@ -108,7 +92,7 @@ fi
 
 for ns in "$BOOKWAREHOUSE_NAMESPACE" "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE"; do
     kubectl create namespace "$ns"
-    kubectl label  namespaces "$ns" openservicemesh.io/monitored-by="$MESH_NAME"
+    bin/osm namespace add --mesh-name "$MESH_NAME" "$ns"
 done
 
 # Deploys Xds and Prometheus

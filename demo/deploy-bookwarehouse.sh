@@ -12,7 +12,7 @@ cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: bookwarehouse-serviceaccount
+  name: bookwarehouse
   namespace: $BOOKWAREHOUSE_NAMESPACE
 EOF
 
@@ -27,7 +27,7 @@ metadata:
     app: bookwarehouse
 spec:
   ports:
-  - port: 8080
+  - port: 80
     name: bookwarehouse-port
 
   selector:
@@ -52,7 +52,7 @@ spec:
         app: bookwarehouse
         version: v1
     spec:
-      serviceAccountName: bookwarehouse-serviceaccount
+      serviceAccountName: bookwarehouse
 
       containers:
         # Main container with APP
