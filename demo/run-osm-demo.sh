@@ -8,7 +8,7 @@ source .env
 # Set meaningful defaults for env vars we expect from .env
 IS_GITHUB="${IS_GITHUB:-false}"
 MESH_NAME="${MESH_NAME:-osm}"
-K8S_NAMESPACE="${K8S_NAMESPACE:-osm}"
+K8S_NAMESPACE="${K8S_NAMESPACE:-osm-system}"
 BOOKBUYER_NAMESPACE="${BOOKBUYER_NAMESPACE:-bookbuyer}"
 BOOKSTORE_NAMESPACE="${BOOKSTORE_NAMESPACE:-bookstore}"
 BOOKTHIEF_NAMESPACE="${BOOKTHIEF_NAMESPACE:-bookthief}"
