@@ -23,7 +23,7 @@ const (
 
 var _ = Describe("VirtualHost cration", func() {
 	Context("Testing createVirtualHostStub", func() {
-		containsDomain := func(vhost v2route.VirtualHost, domain string) bool {
+		containsDomain := func(vhost *v2route.VirtualHost, domain string) bool {
 			for _, entry := range vhost.Domains {
 				if entry == domain {
 					return true
@@ -234,7 +234,7 @@ var _ = Describe("Route Configuration", func() {
 
 			//Validating the outbound clusters and routes
 			sourceRouteConfig := NewRouteConfigurationStub(OutboundRouteConfig)
-			sourceRouteConfig = UpdateRouteConfiguration(sourceDomainAggregatedData, sourceRouteConfig, true, false)
+			UpdateRouteConfiguration(sourceDomainAggregatedData, sourceRouteConfig, true, false)
 			Expect(sourceRouteConfig).NotTo(Equal(nil))
 			Expect(sourceRouteConfig.Name).To(Equal(OutboundRouteConfig))
 			Expect(len(sourceRouteConfig.VirtualHosts)).To(Equal(len(sourceDomainAggregatedData)))
@@ -275,7 +275,7 @@ var _ = Describe("Route Configuration", func() {
 
 			//Validating the inbound clusters and routes
 			destRouteConfig := NewRouteConfigurationStub(InboundRouteConfig)
-			destRouteConfig = UpdateRouteConfiguration(destDomainAggregatedData, destRouteConfig, false, true)
+			UpdateRouteConfiguration(destDomainAggregatedData, destRouteConfig, false, true)
 			Expect(destRouteConfig).NotTo(Equal(nil))
 			Expect(destRouteConfig.Name).To(Equal(InboundRouteConfig))
 			Expect(len(destRouteConfig.VirtualHosts)).To(Equal(len(destDomainAggregatedData)))

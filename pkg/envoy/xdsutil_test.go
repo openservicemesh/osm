@@ -133,7 +133,7 @@ var _ = Describe("Test Envoy tools", func() {
 		It("should return TLS context", func() {
 			tlsContext := GetDownstreamTLSContext(tests.BookstoreService, true)
 
-			expectedTLSContext := envoy_api_v2_auth.DownstreamTlsContext{
+			expectedTLSContext := &envoy_api_v2_auth.DownstreamTlsContext{
 				CommonTlsContext: &envoy_api_v2_auth.CommonTlsContext{
 					TlsParams: &envoy_api_v2_auth.TlsParameters{
 						TlsMinimumProtocolVersion: 3,
@@ -172,7 +172,7 @@ var _ = Describe("Test Envoy tools", func() {
 			Expect(tlsContext.CommonTlsContext.TlsCertificates).To(Equal(expectedTLSContext.CommonTlsContext.TlsCertificates))
 			Expect(tlsContext.CommonTlsContext.TlsCertificateSdsSecretConfigs).To(Equal(expectedTLSContext.CommonTlsContext.TlsCertificateSdsSecretConfigs))
 			Expect(tlsContext.CommonTlsContext.ValidationContextType).To(Equal(expectedTLSContext.CommonTlsContext.ValidationContextType))
-			Expect(*tlsContext).To(Equal(expectedTLSContext))
+			Expect(tlsContext).To(Equal(expectedTLSContext))
 		})
 	})
 
@@ -195,7 +195,7 @@ var _ = Describe("Test Envoy tools", func() {
 			sni := "bookstore.default.svc.cluster.local"
 			tlsContext := GetUpstreamTLSContext(tests.BookstoreService, sni)
 
-			expectedTLSContext := envoy_api_v2_auth.UpstreamTlsContext{
+			expectedTLSContext := &envoy_api_v2_auth.UpstreamTlsContext{
 				CommonTlsContext: &envoy_api_v2_auth.CommonTlsContext{
 					TlsParams: &envoy_api_v2_auth.TlsParameters{
 						TlsMinimumProtocolVersion: 3,
@@ -240,7 +240,7 @@ var _ = Describe("Test Envoy tools", func() {
 			Expect(tlsContext.CommonTlsContext.TlsCertificates).To(Equal(expectedTLSContext.CommonTlsContext.TlsCertificates))
 			Expect(tlsContext.CommonTlsContext.TlsCertificateSdsSecretConfigs).To(Equal(expectedTLSContext.CommonTlsContext.TlsCertificateSdsSecretConfigs))
 			Expect(tlsContext.CommonTlsContext.ValidationContextType).To(Equal(expectedTLSContext.CommonTlsContext.ValidationContextType))
-			Expect(*tlsContext).To(Equal(expectedTLSContext))
+			Expect(tlsContext).To(Equal(expectedTLSContext))
 		})
 	})
 
