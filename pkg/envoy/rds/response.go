@@ -36,7 +36,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 		TypeUrl: string(envoy.TypeRDS),
 	}
 
-	routeConfiguration := []xds.RouteConfiguration{}
+	routeConfiguration := []*xds.RouteConfiguration{}
 	sourceRouteConfig := route.NewRouteConfigurationStub(route.OutboundRouteConfig)
 	destinationRouteConfig := route.NewRouteConfigurationStub(route.InboundRouteConfig)
 	sourceAggregatedRoutesByDomain := make(map[string]map[string]trafficpolicy.RouteWeightedClusters)
@@ -69,13 +69,13 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 		return nil, err
 	}
 
-	sourceRouteConfig = route.UpdateRouteConfiguration(sourceAggregatedRoutesByDomain, sourceRouteConfig, true, false)
-	destinationRouteConfig = route.UpdateRouteConfiguration(destinationAggregatedRoutesByDomain, destinationRouteConfig, false, true)
+	route.UpdateRouteConfiguration(sourceAggregatedRoutesByDomain, sourceRouteConfig, true, false)
+	route.UpdateRouteConfiguration(destinationAggregatedRoutesByDomain, destinationRouteConfig, false, true)
 	routeConfiguration = append(routeConfiguration, sourceRouteConfig)
 	routeConfiguration = append(routeConfiguration, destinationRouteConfig)
 
 	for _, config := range routeConfiguration {
-		marshalledRouteConfig, err := ptypes.MarshalAny(&config)
+		marshalledRouteConfig, err := ptypes.MarshalAny(config)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed to marshal route config for proxy")
 			return nil, err
