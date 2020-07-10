@@ -16,7 +16,7 @@ spec:
       labels:
         app: osm-grafana
     spec:
-      serviceAccountName: osm-grafana-serviceaccount
+      serviceAccountName: osm-grafana
       containers:
         - name: grafana
           image: "grafana/grafana:7.0.1"
