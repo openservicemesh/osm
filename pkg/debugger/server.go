@@ -5,6 +5,8 @@ import (
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+
+	"github.com/open-service-mesh/osm/pkg/configurator"
 )
 
 // GetHandlers implements DebugServer interface and returns the rist of URLs and the handling functions.
@@ -23,7 +25,7 @@ func (ds debugServer) GetHandlers() map[string]http.Handler {
 }
 
 // NewDebugServer returns an implementation of DebugServer interface.
-func NewDebugServer(certDebugger CertificateManagerDebugger, xdsDebugger XDSDebugger, meshCatalogDebugger MeshCatalogDebugger, kubeConfig *rest.Config, kubeClient kubernetes.Interface) DebugServer {
+func NewDebugServer(certDebugger CertificateManagerDebugger, xdsDebugger XDSDebugger, meshCatalogDebugger MeshCatalogDebugger, kubeConfig *rest.Config, kubeClient kubernetes.Interface, cfg configurator.Configurator) DebugServer {
 	return debugServer{
 		certDebugger:        certDebugger,
 		xdsDebugger:         xdsDebugger,

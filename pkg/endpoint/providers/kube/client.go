@@ -15,15 +15,15 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
-
 	"github.com/open-service-mesh/osm/pkg/namespace"
 )
 
 const namespaceSelectorLabel = "app"
 
 // NewProvider implements mesh.EndpointsProvider, which creates a new Kubernetes cluster/compute provider.
-func NewProvider(kubeClient kubernetes.Interface, namespaceController namespace.Controller, stop chan struct{}, providerIdent string) *Client {
+func NewProvider(kubeClient kubernetes.Interface, namespaceController namespace.Controller, stop chan struct{}, providerIdent string, cfg configurator.Configurator) *Client {
 	informerFactory := informers.NewSharedInformerFactory(kubeClient, k8s.DefaultKubeEventResyncInterval)
 
 	informerCollection := InformerCollection{

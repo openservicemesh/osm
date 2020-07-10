@@ -12,6 +12,7 @@ import (
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/certificate"
 	"github.com/open-service-mesh/osm/pkg/certificate/providers/tresor"
+	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/endpoint/providers/kube"
@@ -133,7 +134,13 @@ var _ = Describe("RDS Response", func() {
 	kubeClient := testclient.NewSimpleClientset()
 	cache := make(map[certificate.CommonName]certificate.Certificater)
 	certManager := tresor.NewFakeCertManager(&cache, 1*time.Hour)
-	meshCatalog := catalog.NewMeshCatalog(kubeClient, smi.NewFakeMeshSpecClient(), certManager, ingress.NewFakeIngressMonitor(), make(<-chan struct{}), endpointProviders...)
+
+	stop := make(<-chan struct{})
+	osmNamespace := "-test-osm-namespace-"
+	osmConfigMapName := "-test-osm-config-map-"
+	cfg := configurator.NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
+
+	meshCatalog := catalog.NewMeshCatalog(kubeClient, smi.NewFakeMeshSpecClient(), certManager, ingress.NewFakeIngressMonitor(), make(<-chan struct{}), cfg, endpointProviders...)
 
 	Context("Test GetDomainsForService", func() {
 		It("returns domain for service from traffic split", func() {

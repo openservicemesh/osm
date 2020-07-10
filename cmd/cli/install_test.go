@@ -129,7 +129,7 @@ var _ = Describe("Running the install command", func() {
 								"time": "5d",
 							}},
 						"enableDebugServer":             false,
-						"disableSMIAccessControlPolicy": false,
+						"enablePermissiveTrafficPolicy": false,
 					}}))
 			})
 
@@ -226,7 +226,7 @@ var _ = Describe("Running the install command", func() {
 								"time": "5d",
 							}},
 						"enableDebugServer":             false,
-						"disableSMIAccessControlPolicy": false,
+						"enablePermissiveTrafficPolicy": false,
 					}}))
 			})
 
@@ -328,7 +328,7 @@ var _ = Describe("Running the install command", func() {
 							},
 						},
 						"enableDebugServer":             false,
-						"disableSMIAccessControlPolicy": false,
+						"enablePermissiveTrafficPolicy": false,
 					}}))
 			})
 
@@ -587,7 +587,7 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 					},
 				},
 				"enableDebugServer":             false,
-				"disableSMIAccessControlPolicy": false,
+				"enablePermissiveTrafficPolicy": false,
 			}}))
 	})
 })

@@ -10,6 +10,7 @@ import (
 	osm "github.com/open-service-mesh/osm/pkg/apis/azureresource/v1"
 	k8s "github.com/open-service-mesh/osm/pkg/kubernetes"
 
+	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/namespace"
 	osmClient "github.com/open-service-mesh/osm/pkg/osm_client/clientset/versioned"
 	osmInformers "github.com/open-service-mesh/osm/pkg/osm_client/informers/externalversions"
@@ -20,7 +21,7 @@ const (
 )
 
 // NewClient creates the Kubernetes client, which retrieves the AzureResource CRD and Services resources.
-func NewClient(kubeClient kubernetes.Interface, azureResourceKubeConfig *rest.Config, namespaceController namespace.Controller, stop chan struct{}) *Client {
+func NewClient(kubeClient kubernetes.Interface, azureResourceKubeConfig *rest.Config, namespaceController namespace.Controller, stop chan struct{}, cfg configurator.Configurator) *Client {
 	azureResourceClient := osmClient.NewForConfigOrDie(azureResourceKubeConfig)
 
 	k8sClient := newClient(kubeClient, azureResourceClient, namespaceController)
