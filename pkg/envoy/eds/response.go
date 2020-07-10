@@ -50,7 +50,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	for serviceName, serviceEndpoints := range allServicesEndpoints {
 		loadAssignment := cla.NewClusterLoadAssignment(serviceName, serviceEndpoints)
 
-		proto, err := ptypes.MarshalAny(&loadAssignment)
+		proto, err := ptypes.MarshalAny(loadAssignment)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error marshalling EDS payload %+v", loadAssignment)
 			continue

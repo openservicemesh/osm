@@ -279,7 +279,7 @@ var _ = Describe("CDS Response", func() {
 					},
 				},
 			}
-			expectedCluster := xds.Cluster{
+			expectedCluster := &xds.Cluster{
 				TransportSocketMatches: nil,
 				Name:                   constants.EnvoyMetricsCluster,
 				AltStatName:            constants.EnvoyMetricsCluster,
@@ -293,7 +293,7 @@ var _ = Describe("CDS Response", func() {
 			Expect(len(cluster.LoadAssignment.Endpoints)).To(Equal(len(expectedClusterLoadAssignment.Endpoints)))
 			Expect(cluster.LoadAssignment.Endpoints[0].LbEndpoints).To(Equal(expectedClusterLoadAssignment.Endpoints[0].LbEndpoints))
 			Expect(cluster.LoadAssignment).To(Equal(expectedClusterLoadAssignment))
-			Expect(cluster).To(Equal(expectedCluster))
+			Expect(&cluster).To(Equal(expectedCluster))
 		})
 	})
 })
