@@ -3,9 +3,5 @@ kind: ConfigMap
 metadata:
   name: osm-config
   namespace: {{ .Release.Namespace }}
-  labels:
-    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
-    heritage: {{ .Release.Service }}
-    release: {{ .Release.Name }}
 data:
   permissive_traffic_policy_mode: {{ .Values.OpenServiceMesh.enablePermissiveTrafficPolicy | quote | default "false" }}
