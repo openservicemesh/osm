@@ -2,6 +2,7 @@ package configurator
 
 import (
 	"context"
+	"fmt"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -37,10 +38,8 @@ var _ = Describe("Test Envoy configuration creation", func() {
 					Name:      osmConfigMapName,
 				},
 				Data: map[string]string{
-					"osm.conf": `
-config_version: 111
-permissive_traffic_policy_mode: true
-`,
+					"config_version":                 "111",
+					"permissive_traffic_policy_mode": "true",
 				},
 			}
 			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Create(context.TODO(), &configMap, metav1.CreateOptions{})
@@ -58,7 +57,7 @@ permissive_traffic_policy_mode: true
     "PermissiveTrafficPolicyMode": true
 }`
 
-			Expect(string(configMapData)).To(Equal(expectedConfigMap))
+			Expect(string(configMapData)).To(Equal(expectedConfigMap), fmt.Sprintf("actual: %+v", string(configMapData)))
 			Expect(cfg.IsPermissiveTrafficPolicyMode()).To(BeTrue())
 		})
 	})

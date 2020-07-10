@@ -3,8 +3,8 @@ package configurator
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 
-	"gopkg.in/yaml.v2"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -88,21 +88,23 @@ func (c *Client) getConfigMap() *osmConfig {
 
 	configMap := item.(*v1.ConfigMap)
 
-	if len(configMap.Data) == 0 {
-		log.Error().Msgf("The ConfigMap %s does not contain any Data", configMapCacheKey)
-		return &osmConfig{}
+	cfg := &osmConfig{}
+
+	if verString, ok := configMap.Data["config_version"]; ok {
+		if verInt, err := strconv.Atoi(verString); err != nil {
+			log.Error().Err(err).Msgf("Error converting ConfigMap config_version=%+v to integer", verString)
+		} else {
+			cfg.ConfigVersion = verInt
+		}
 	}
 
-	var config []byte
-	for _, cfg := range configMap.Data {
-		config = []byte(cfg)
+	if modeString, ok := configMap.Data["permissive_traffic_policy_mode"]; ok {
+		if modeBool, err := strconv.ParseBool(modeString); err != nil {
+			log.Error().Err(err).Msgf("Error converting ConfigMap config_version=%+v to integer", modeString)
+		} else {
+			cfg.PermissiveTrafficPolicyMode = modeBool
+		}
 	}
 
-	conf := osmConfig{}
-	err = yaml.Unmarshal(config, &conf)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error marshaling ConfigMap %s with content %s", c.osmConfigMapName, string(config))
-	}
-
-	return &conf
+	return cfg
 }
