@@ -45,11 +45,6 @@ func NewConfigurator(kubeClient kubernetes.Interface, stop <-chan struct{}, osmN
 // This struct must match the shape of the "osm-config" ConfigMap
 // which was created in the OSM namespace.
 type osmConfig struct {
-
-	// ConfigVersion is optional field, which shows the version of the config applied.
-	// This is used for debug purposes.
-	ConfigVersion int `yaml:"config_version"`
-
 	// PermissiveTrafficPolicyMode is a bool toggle, which when TRUE ignores SMI policies and
 	// allows existing Kubernetes services to communicate with each other uninterrupted.
 	// This is useful whet set TRUE in brownfield configurations, where we first want to observe
@@ -90,17 +85,9 @@ func (c *Client) getConfigMap() *osmConfig {
 
 	cfg := &osmConfig{}
 
-	if verString, ok := configMap.Data["config_version"]; ok {
-		if verInt, err := strconv.Atoi(verString); err != nil {
-			log.Error().Err(err).Msgf("Error converting ConfigMap config_version=%+v to integer", verString)
-		} else {
-			cfg.ConfigVersion = verInt
-		}
-	}
-
 	if modeString, ok := configMap.Data["permissive_traffic_policy_mode"]; ok {
 		if modeBool, err := strconv.ParseBool(modeString); err != nil {
-			log.Error().Err(err).Msgf("Error converting ConfigMap config_version=%+v to integer", modeString)
+			log.Error().Err(err).Msgf("Error converting ConfigMap permissive_traffic_policy_mode=%+v to bool", modeString)
 		} else {
 			cfg.PermissiveTrafficPolicyMode = modeBool
 		}

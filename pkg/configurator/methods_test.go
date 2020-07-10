@@ -38,7 +38,6 @@ var _ = Describe("Test Envoy configuration creation", func() {
 					Name:      osmConfigMapName,
 				},
 				Data: map[string]string{
-					"config_version":                 "111",
 					"permissive_traffic_policy_mode": "true",
 				},
 			}
