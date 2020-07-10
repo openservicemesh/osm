@@ -18,7 +18,7 @@ metadata:
   name: {{.Release.Name}}-prometheus
 subjects:
   - kind: ServiceAccount
-    name: osm-prometheus-serviceaccount
+    name: osm-prometheus
     namespace: {{ .Release.Namespace }}
 roleRef:
   kind: ClusterRole
@@ -28,4 +28,4 @@ roleRef:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: osm-prometheus-serviceaccount
+  name: osm-prometheus

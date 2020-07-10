@@ -29,9 +29,9 @@ const (
 	BookbuyerServiceName = "bookbuyer"
 
 	// BookstoreServiceAccountName is the name of the bookstore service account
-	BookstoreServiceAccountName = "bookstore-serviceaccount"
+	BookstoreServiceAccountName = "bookstore"
 	// BookbuyerServiceAccountName is the name of the bookbuyer service account
-	BookbuyerServiceAccountName = "bookbuyer-serviceaccount"
+	BookbuyerServiceAccountName = "bookbuyer"
 
 	// TrafficTargetName is the name of the traffic target SMI object.
 	TrafficTargetName = "bookbuyer-access-bookstore"
