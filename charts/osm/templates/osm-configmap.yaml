@@ -10,4 +10,4 @@ metadata:
 data:
   config_version: "1"
 
-  permissive_traffic_policy_mode: {{ .Values.OpenServiceMesh.enablePermissiveTrafficPolicy | quote | default "true" }}
+  permissive_traffic_policy_mode: {{ .Values.OpenServiceMesh.enablePermissiveTrafficPolicy | quote | default "false" }}
