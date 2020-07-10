@@ -2,12 +2,12 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: osm-config
+  namespace: {{ .Release.Namespace }}
   labels:
-    app: osm-controller
+    chart: {{ .Chart.Name }}-{{ .Chart.Version }}
+    heritage: {{ .Release.Service }}
+    release: {{ .Release.Name }}
 data:
-  osm-config.yaml: |
-    # config file version
-    config_version: 1
+  config_version: 1
 
-    # permissive traffic policy mode
-    permissive_traffic_policy_mode: {{.Values.OpenServiceMesh.enablePermissiveTrafficPolicy}}
+  permissive_traffic_policy_mode: {{ .Values.OpenServiceMesh.enablePermissiveTrafficPolicy | default "true" }}
