@@ -25,7 +25,7 @@ var directionMap = map[envoy.SDSCertType]string{
 }
 
 // NewResponse creates a new Secrets Discovery Response.
-func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpec, proxy *envoy.Proxy, request *xds.DiscoveryRequest, config *configurator.Config) (*xds.DiscoveryResponse, error) {
+func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpec, proxy *envoy.Proxy, request *xds.DiscoveryRequest, cfg configurator.Configurator) (*xds.DiscoveryResponse, error) {
 	log.Info().Msgf("Composing SDS Discovery Response for proxy: %s", proxy.GetCommonName())
 
 	serviceForProxy, err := catalog.GetServiceFromEnvoyCertificate(proxy.GetCommonName())
