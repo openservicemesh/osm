@@ -11,9 +11,13 @@ func (c *Client) GetOSMNamespace() string {
 	return c.osmNamespace
 }
 
+func marshalConfigToJSON(config *osmConfig) ([]byte, error) {
+	return json.MarshalIndent(config, "", "    ")
+}
+
 // GetConfigMap returns the ConfigMap in pretty JSON.
 func (c *Client) GetConfigMap() ([]byte, error) {
-	cm, err := json.MarshalIndent(c.getConfigMap(), "", "    ")
+	cm, err := marshalConfigToJSON(c.getConfigMap())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshaling ConfigMap %s: %+v", c.getConfigMapCacheKey(), c.getConfigMap())
 		return nil, err
@@ -27,6 +31,11 @@ func (c *Client) GetConfigMap() ([]byte, error) {
 // referenced in SMI policies is allowed.
 func (c *Client) IsPermissiveTrafficPolicyMode() bool {
 	return c.getConfigMap().PermissiveTrafficPolicyMode
+}
+
+// IsEgressEnabled determines whether egress is globally enabled in the mesh or not.
+func (c *Client) IsEgressEnabled() bool {
+	return c.getConfigMap().Egress
 }
 
 // GetAnnouncementsChannel returns a channel, which is used to announce when changes have been made to the OSM ConfigMap.
