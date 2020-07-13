@@ -8,7 +8,6 @@ import (
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
 	"github.com/open-service-mesh/osm/pkg/certificate/providers/tresor"
@@ -37,7 +36,7 @@ const (
 )
 
 // Functions we can call to create a Certificate Manager for each kind of supported certificate issuer
-var certManagers = map[certificateManagerKind]func(kubeConfig *rest.Config, enableDebugServer bool) (certificate.Manager, debugger.CertificateManagerDebugger){
+var certManagers = map[certificateManagerKind]func(kubeClient kubernetes.Interface, enableDebugServer bool) (certificate.Manager, debugger.CertificateManagerDebugger){
 	tresorKind:   getTresorCertificateManager,
 	keyVaultKind: getAzureKeyVaultCertManager,
 	vaultKind:    getHashiVaultCertManager,
@@ -52,9 +51,7 @@ func getPossibleCertManagers() []string {
 	return possible
 }
 
-func getTresorCertificateManager(kubeConfig *rest.Config, enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger) {
-	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
-
+func getTresorCertificateManager(kubeClient kubernetes.Interface, enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger) {
 	var err error
 	var rootCert certificate.Certificater
 
@@ -148,13 +145,13 @@ func getCertFromKubernetes(kubeClient kubernetes.Interface, namespace, secretNam
 	return rootCert
 }
 
-func getAzureKeyVaultCertManager(_ *rest.Config, enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger) {
+func getAzureKeyVaultCertManager(_ kubernetes.Interface, enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger) {
 	// TODO(draychev): implement: https://github.com/open-service-mesh/osm/issues/577
 	log.Fatal().Msg("Azure Key Vault certificate manager is not implemented")
 	return nil, nil
 }
 
-func getHashiVaultCertManager(_ *rest.Config, enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger) {
+func getHashiVaultCertManager(_ kubernetes.Interface, enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger) {
 	if _, ok := map[string]interface{}{"http": nil, "https": nil}[*vaultProtocol]; !ok {
 		log.Fatal().Msgf("Value %s is not a valid Hashi Vault protocol", *vaultProtocol)
 	}

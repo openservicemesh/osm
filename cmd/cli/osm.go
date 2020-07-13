@@ -36,10 +36,12 @@ func newRootCmd(config *action.Configuration, out io.Writer, args []string) *cob
 
 	// Add subcommands here
 	cmd.AddCommand(
-		newAdminCmd(config, out),
+		newMeshCmd(config, out),
 		newEnvCmd(out),
 		newInstallCmd(config, out),
 		newCheckCmd(out),
+		newDashboardCmd(config, out),
+		newNamespaceCmd(out),
 	)
 
 	flags.Parse(args)

@@ -15,9 +15,8 @@ cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: bookthief-serviceaccount
+  name: bookthief
   namespace: $BOOKTHIEF_NAMESPACE
-automountServiceAccountToken: false
 
 ---
 
@@ -55,8 +54,7 @@ spec:
         app: bookthief
         version: v1
     spec:
-      serviceAccountName: bookthief-serviceaccount
-      automountServiceAccountToken: false
+      serviceAccountName: bookthief
 
       containers:
         # Main container with APP

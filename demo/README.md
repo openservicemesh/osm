@@ -50,7 +50,7 @@ In the root directory of the repo create a `.env` file. It is already listed in 
    - a properly working service mesh will result in HTTP 200 OK with `./demo/tail-bookbuyer.sh` along with a monotonically increasing counter appearing in the response headers, while `./demo/tail-bookthief.sh` will result in HTTP 404 Not Found. This can be automatically checked with `go run ./ci/cmd/maestro.go`
 
 ## Onboarding VMs to a service mesh
-
+*_Note: This is an experimental feature and not currently fully supported*
 The following sections outline how to onboard VMs to participate in a service mesh comprising of services running in a Kubernetes cluster.
 
 

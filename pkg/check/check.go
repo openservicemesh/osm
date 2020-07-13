@@ -130,7 +130,7 @@ var (
 		name: "Kubernetes version",
 		run: func(c *Checker) (err error) {
 			v, _ := semver.NewVersion(c.k8sVersion.String())
-			minVer, _ := semver.NewConstraint("^1.15")
+			minVer, _ := semver.NewConstraint("^1.15-0")
 			if !minVer.Check(v) {
 				err = fmt.Errorf("Kubernetes version %s does not match supported versions %s", c.k8sVersion, minVer)
 			}

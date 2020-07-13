@@ -23,7 +23,7 @@ metadata:
     app: bookstore-mesh
 spec:
   ports:
-  - port: 8080
+  - port: 80
     name: bookstore-port
   selector:
     app: bookstore-mesh
@@ -34,9 +34,8 @@ cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: "$SVC-serviceaccount"
+  name: "$SVC"
   namespace: $BOOKSTORE_NAMESPACE
-automountServiceAccountToken: false
 EOF
 
 echo -e "Deploy $SVC Service"
@@ -50,7 +49,7 @@ metadata:
     app: $SVC
 spec:
   ports:
-  - port: 8080
+  - port: 80
     name: bookstore-port
 
   selector:
@@ -78,17 +77,16 @@ spec:
       annotations:
         "openservicemesh.io/sidecar-injection": "enabled"
     spec:
-      serviceAccountName: "$SVC-serviceaccount"
-      automountServiceAccountToken: false
+      serviceAccountName: "$SVC"
       containers:
         - image: "${CTR_REGISTRY}/bookstore:${CTR_TAG}"
           imagePullPolicy: Always
           name: $SVC
           ports:
-            - containerPort: 8080
+            - containerPort: 80
               name: web
           command: ["/bookstore"]
-          args: ["--path", "./", "--port", "8080"]
+          args: ["--path", "./", "--port", "80"]
           env:
             - name: IDENTITY
               value: ${SVC}--${GIT_HASH}

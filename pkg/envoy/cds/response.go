@@ -33,23 +33,18 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpe
 		TypeUrl: string(envoy.TypeCDS),
 	}
 
-	clusterFactories := make(map[string]xds.Cluster)
+	var clusterFactories []*xds.Cluster
 	for _, trafficPolicies := range allTrafficPolicies {
 		isSourceService := trafficPolicies.Source.Service.Equals(proxyServiceName)
 		//iterate through only destination services here since envoy is programmed by destination
-		service := trafficPolicies.Destination.Service
+		dstService := trafficPolicies.Destination.Service
 		if isSourceService {
-			cluster, err := catalog.GetWeightedClusterForService(service)
-			if err != nil {
-				log.Error().Err(err).Msgf("Failed to find cluster")
-				return nil, err
-			}
-			remoteCluster, err := envoy.GetServiceCluster(string(cluster.ClusterName), proxyServiceName)
+			remoteCluster, err := envoy.GetServiceCluster(dstService, proxyServiceName)
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed to construct service cluster for proxy %s", proxyServiceName)
 				return nil, err
 			}
-			clusterFactories[remoteCluster.Name] = *remoteCluster
+			clusterFactories = append(clusterFactories, remoteCluster)
 		}
 	}
 
@@ -61,11 +56,11 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpe
 		log.Error().Err(err).Msgf("Failed to get local cluster config for proxy %s", proxyServiceName)
 		return nil, err
 	}
-	clusterFactories[localClusterName] = *localCluster
+	clusterFactories = append(clusterFactories, localCluster)
 
 	for _, cluster := range clusterFactories {
 		log.Debug().Msgf("Proxy service %s constructed ClusterConfiguration: %+v ", proxyServiceName, cluster)
-		marshalledClusters, err := ptypes.MarshalAny(&cluster)
+		marshalledClusters, err := ptypes.MarshalAny(cluster)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed to marshal cluster for proxy %s", proxy.GetCommonName())
 			return nil, err

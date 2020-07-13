@@ -133,7 +133,7 @@ var _ = Describe("Test Envoy tools", func() {
 		It("should return TLS context", func() {
 			tlsContext := GetDownstreamTLSContext(tests.BookstoreService, true)
 
-			expectedTLSContext := envoy_api_v2_auth.DownstreamTlsContext{
+			expectedTLSContext := &envoy_api_v2_auth.DownstreamTlsContext{
 				CommonTlsContext: &envoy_api_v2_auth.CommonTlsContext{
 					TlsParams: &envoy_api_v2_auth.TlsParameters{
 						TlsMinimumProtocolVersion: 3,
@@ -172,29 +172,30 @@ var _ = Describe("Test Envoy tools", func() {
 			Expect(tlsContext.CommonTlsContext.TlsCertificates).To(Equal(expectedTLSContext.CommonTlsContext.TlsCertificates))
 			Expect(tlsContext.CommonTlsContext.TlsCertificateSdsSecretConfigs).To(Equal(expectedTLSContext.CommonTlsContext.TlsCertificateSdsSecretConfigs))
 			Expect(tlsContext.CommonTlsContext.ValidationContextType).To(Equal(expectedTLSContext.CommonTlsContext.ValidationContextType))
-			Expect(*tlsContext).To(Equal(expectedTLSContext))
+			Expect(tlsContext).To(Equal(expectedTLSContext))
 		})
 	})
 
 	Context("Test GetDownstreamTLSContext() for mTLS", func() {
 		It("should return TLS context with client certificate validation enabled", func() {
 			tlsContext := GetDownstreamTLSContext(tests.BookstoreService, true)
-			Expect(*tlsContext.RequireClientCertificate).To(Equal(wrappers.BoolValue{Value: true}))
+			Expect(tlsContext.RequireClientCertificate).To(Equal(&wrappers.BoolValue{Value: true}))
 		})
 	})
 
 	Context("Test GetDownstreamTLSContext() for TLS", func() {
 		It("should return TLS context with client certificate validation disabled", func() {
 			tlsContext := GetDownstreamTLSContext(tests.BookstoreService, false)
-			Expect(*tlsContext.RequireClientCertificate).To(Equal(wrappers.BoolValue{Value: false}))
+			Expect(tlsContext.RequireClientCertificate).To(Equal(&wrappers.BoolValue{Value: false}))
 		})
 	})
 
 	Context("Test GetUpstreamTLSContext()", func() {
 		It("should return TLS context", func() {
-			tlsContext := GetUpstreamTLSContext(tests.BookstoreService)
+			sni := "bookstore.default.svc.cluster.local"
+			tlsContext := GetUpstreamTLSContext(tests.BookstoreService, sni)
 
-			expectedTLSContext := envoy_api_v2_auth.UpstreamTlsContext{
+			expectedTLSContext := &envoy_api_v2_auth.UpstreamTlsContext{
 				CommonTlsContext: &envoy_api_v2_auth.CommonTlsContext{
 					TlsParams: &envoy_api_v2_auth.TlsParameters{
 						TlsMinimumProtocolVersion: 3,
@@ -225,9 +226,9 @@ var _ = Describe("Test Envoy tools", func() {
 							},
 						},
 					},
-					AlpnProtocols: nil,
+					AlpnProtocols: ALPNInMesh,
 				},
-				Sni:                tests.BookstoreService.GetCommonName().String(), // "bookstore.default.svc.cluster.local"
+				Sni:                sni, // "bookstore.default.svc.cluster.local"
 				AllowRenegotiation: false,
 			}
 
@@ -239,17 +240,16 @@ var _ = Describe("Test Envoy tools", func() {
 			Expect(tlsContext.CommonTlsContext.TlsCertificates).To(Equal(expectedTLSContext.CommonTlsContext.TlsCertificates))
 			Expect(tlsContext.CommonTlsContext.TlsCertificateSdsSecretConfigs).To(Equal(expectedTLSContext.CommonTlsContext.TlsCertificateSdsSecretConfigs))
 			Expect(tlsContext.CommonTlsContext.ValidationContextType).To(Equal(expectedTLSContext.CommonTlsContext.ValidationContextType))
-			Expect(*tlsContext).To(Equal(expectedTLSContext))
+			Expect(tlsContext).To(Equal(expectedTLSContext))
 		})
 	})
 
 	Context("Test GetUpstreamTLSContext()", func() {
 		It("creates correct UpstreamTlsContext.Sni field", func() {
-			tlsContext := GetUpstreamTLSContext(tests.BookbuyerService)
-			// The Sni field here must match one of the strings in the ServerNames list created by lds.getInboundInMeshFilterChain()
-			Expect(tlsContext.Sni).To(Equal(tests.BookbuyerService.GetCommonName().String()))
+			sni := "test.default.svc.cluster.local"
+			tlsContext := GetUpstreamTLSContext(tests.BookbuyerService, sni)
 			// To show the actual string for human comprehension
-			Expect(tlsContext.Sni).To(Equal("bookbuyer.default.svc.cluster.local"))
+			Expect(tlsContext.Sni).To(Equal(sni))
 		})
 	})
 
@@ -282,6 +282,7 @@ var _ = Describe("Test Envoy tools", func() {
 						SdsConfig: GetADSConfigSource(),
 					},
 				},
+				AlpnProtocols: nil,
 			}
 
 			Expect(len(actual.TlsCertificateSdsSecretConfigs)).To(Equal(1))
@@ -318,6 +319,7 @@ var _ = Describe("Test Envoy tools", func() {
 						SdsConfig: GetADSConfigSource(),
 					},
 				},
+				AlpnProtocols: nil,
 			}
 
 			Expect(len(actual.TlsCertificateSdsSecretConfigs)).To(Equal(1))

@@ -12,8 +12,8 @@ require (
 	github.com/Masterminds/semver/v3 v3.1.0
 	github.com/deckarep/golang-set v1.7.1
 	github.com/docker/go-connections v0.4.0
-	github.com/envoyproxy/go-control-plane v0.9.2
-	github.com/golang/protobuf v1.3.2
+	github.com/envoyproxy/go-control-plane v0.9.6
+	github.com/golang/protobuf v1.4.2
 	github.com/google/go-cmp v0.4.0
 	github.com/google/uuid v1.1.1
 	github.com/googleapis/gnostic v0.3.1 // indirect
@@ -21,9 +21,11 @@ require (
 	github.com/hashicorp/go-version v1.2.1 // indirect
 	github.com/hashicorp/vault/api v1.0.4
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
+	github.com/json-iterator/go v1.1.8
 	github.com/mitchellh/gox v1.0.1 // indirect
 	github.com/onsi/ginkgo v1.11.0
 	github.com/onsi/gomega v1.8.1
+	github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.0.0
 	github.com/rs/zerolog v1.18.0

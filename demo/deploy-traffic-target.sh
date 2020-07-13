@@ -13,7 +13,7 @@ metadata:
   namespace: "$BOOKSTORE_NAMESPACE"
 destination:
   kind: ServiceAccount
-  name: bookstore-v1-serviceaccount
+  name: bookstore-v1
   namespace: "$BOOKSTORE_NAMESPACE"
 specs:
 - kind: HTTPRouteGroup
@@ -23,7 +23,7 @@ specs:
   - books-bought
 sources:
 - kind: ServiceAccount
-  name: bookbuyer-serviceaccount
+  name: bookbuyer
   namespace: "$BOOKBUYER_NAMESPACE"
 
 ---
@@ -35,7 +35,7 @@ metadata:
   namespace: "$BOOKSTORE_NAMESPACE"
 destination:
   kind: ServiceAccount
-  name: bookstore-v2-serviceaccount
+  name: bookstore-v2
   namespace: "$BOOKSTORE_NAMESPACE"
 specs:
 - kind: HTTPRouteGroup
@@ -45,7 +45,7 @@ specs:
   - books-bought
 sources:
 - kind: ServiceAccount
-  name: bookbuyer-serviceaccount
+  name: bookbuyer
   namespace: "$BOOKBUYER_NAMESPACE"
 
 ---
@@ -57,7 +57,7 @@ metadata:
   namespace: "$BOOKWAREHOUSE_NAMESPACE"
 destination:
   kind: ServiceAccount
-  name: bookwarehouse-serviceaccount
+  name: bookwarehouse
   namespace: "$BOOKWAREHOUSE_NAMESPACE"
 specs:
 - kind: HTTPRouteGroup
@@ -66,10 +66,10 @@ specs:
   - restock-books
 sources:
 - kind: ServiceAccount
-  name: bookstore-v1-serviceaccount
+  name: bookstore-v1
   namespace: "$BOOKSTORE_NAMESPACE"
 - kind: ServiceAccount
-  name: bookstore-v2-serviceaccount
+  name: bookstore-v2
   namespace: "$BOOKSTORE_NAMESPACE"
 
 EOF

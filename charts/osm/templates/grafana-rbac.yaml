@@ -3,7 +3,7 @@ kind: ServiceAccount
 metadata:
   labels:
     app: osm-grafana
-  name: osm-grafana-serviceaccount
+  name: osm-grafana
 
 ---
 
@@ -25,7 +25,7 @@ metadata:
     app: osm-grafana
 subjects:
   - kind: ServiceAccount
-    name: osm-grafana-serviceaccount
+    name: osm-grafana
     namespace: {{.Release.Name}}
 roleRef:
   kind: ClusterRole

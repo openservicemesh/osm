@@ -14,9 +14,8 @@ cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: bookbuyer-serviceaccount
+  name: bookbuyer
   namespace: $BOOKBUYER_NAMESPACE
-automountServiceAccountToken: false
 EOF
 
 echo -e "Deploy BookBuyer Service"
@@ -56,8 +55,7 @@ spec:
         app: bookbuyer
         version: v1
     spec:
-      serviceAccountName: bookbuyer-serviceaccount
-      automountServiceAccountToken: false
+      serviceAccountName: bookbuyer
 
       containers:
         # Main container with APP

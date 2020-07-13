@@ -7,7 +7,6 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
 	k8s "github.com/open-service-mesh/osm/pkg/kubernetes"
@@ -23,9 +22,7 @@ var (
 )
 
 // NewNamespaceController implements namespace.Controller and creates the Kubernetes client to manage namespaces.
-func NewNamespaceController(kubeConfig *rest.Config, meshName string, stop chan struct{}) Controller {
-	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
-
+func NewNamespaceController(kubeClient kubernetes.Interface, meshName string, stop chan struct{}) Controller {
 	// Only monitor namespaces that are labeled with this OSM's mesh name
 	monitorNamespaceLabel := map[string]string{MonitorLabel: meshName}
 	labelSelector := fields.SelectorFromSet(monitorNamespaceLabel).String()

@@ -9,9 +9,9 @@ import (
 )
 
 const (
-	// Separator used upon marshalling/unmarshalling Namespaced Service to a string
+	// separator used upon marshalling/unmarshalling Namespaced Service to a string
 	// or viceversa
-	Separator = "/"
+	separator = "/"
 )
 
 // Name is a type for a service name
@@ -45,7 +45,7 @@ func (s Account) String() string {
 
 // UnmarshalNamespacedService unmarshals a NamespaceService type from a string
 func UnmarshalNamespacedService(str string) (*NamespacedService, error) {
-	slices := strings.Split(str, Separator)
+	slices := strings.Split(str, separator)
 	if len(slices) != 2 {
 		return nil, errInvalidNamespacedServiceFormat
 	}

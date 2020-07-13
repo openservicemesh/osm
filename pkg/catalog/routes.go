@@ -9,7 +9,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/open-service-mesh/osm/pkg/constants"
-	"github.com/open-service-mesh/osm/pkg/featureflags"
 	"github.com/open-service-mesh/osm/pkg/kubernetes"
 	"github.com/open-service-mesh/osm/pkg/service"
 	"github.com/open-service-mesh/osm/pkg/trafficpolicy"
@@ -27,7 +26,7 @@ const (
 func (mc *MeshCatalog) ListTrafficPolicies(service service.NamespacedService) ([]trafficpolicy.TrafficTarget, error) {
 	log.Info().Msgf("Listing traffic policies for service: %s", service)
 
-	if featureflags.IsSMIAccessControlDisabled() {
+	if mc.configurator.IsPermissiveTrafficPolicyMode() {
 		// Build traffic policies from service discovery for allow-all policy
 		trafficPolicies, err := mc.buildAllowAllTrafficPolicies(service)
 		if err != nil {
@@ -113,7 +112,7 @@ func (mc *MeshCatalog) GetWeightedClusterForService(nsService service.Namespaced
 	// TODO(draychev): split namespace from the service name -- for non-K8s services
 	log.Info().Msgf("Finding weighted cluster for service %s", nsService)
 
-	if featureflags.IsSMIAccessControlDisabled() {
+	if mc.configurator.IsPermissiveTrafficPolicyMode() {
 		return getDefaultWeightedClusterForService(nsService), nil
 	}
 
@@ -136,7 +135,7 @@ func (mc *MeshCatalog) GetWeightedClusterForService(nsService service.Namespaced
 func (mc *MeshCatalog) GetDomainForService(nsService service.NamespacedService, routeHeaders map[string]string) (string, error) {
 	log.Info().Msgf("Finding domain for service %s", nsService)
 
-	if featureflags.IsSMIAccessControlDisabled() {
+	if mc.configurator.IsPermissiveTrafficPolicyMode() {
 		return getHostHeaderFromRouteHeaders(routeHeaders)
 	}
 

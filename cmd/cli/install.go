@@ -5,12 +5,14 @@ import (
 	"io"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/strvals"
 
+	"github.com/open-service-mesh/osm/pkg/check"
 	"github.com/open-service-mesh/osm/pkg/cli"
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"k8s.io/apimachinery/pkg/util/validation"
@@ -26,7 +28,7 @@ namespace does not exist, it will be created.
 Usage:
   $ osm install --namespace hello-world
 
-Each instance of the osm control plane installation is given a unqiue mesh 
+Each instance of the osm control plane installation is given a unqiue mesh
 name. A mesh name can be passed in via the --mesh-name flag or a default will
 be provided for you.
 The mesh name is used in various different ways by the control plane including
@@ -51,6 +53,7 @@ Usage:
 const (
 	defaultCertManager   = "tresor"
 	defaultVaultProtocol = "http"
+	defaultMeshName      = "osm"
 )
 
 // chartTGZSource is a base64-encoded, gzipped tarball of the default Helm chart.
@@ -71,8 +74,14 @@ type installCmd struct {
 	serviceCertValidityMinutes    int
 	prometheusRetentionTime       string
 	enableDebugServer             bool
-	disableSMIAccessControlPolicy bool
+	enablePermissiveTrafficPolicy bool
 	meshName                      string
+
+	// checker runs checks before any installation is attempted. Its type is
+	// abstract here to make testing easy.
+	checker interface {
+		Run([]check.Check, func(*check.Result)) bool
+	}
 }
 
 func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
@@ -85,6 +94,7 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 		Short: "install osm control plane",
 		Long:  installDesc,
 		RunE: func(_ *cobra.Command, args []string) error {
+			inst.checker = check.NewChecker(settings)
 			return inst.run(config)
 		},
 	}
@@ -102,13 +112,22 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.IntVar(&inst.serviceCertValidityMinutes, "service-cert-validity-minutes", int(1), "Certificate TTL in minutes")
 	f.StringVar(&inst.prometheusRetentionTime, "prometheus-retention-time", constants.PrometheusDefaultRetentionTime, "Duration for which data will be retained in prometheus")
 	f.BoolVar(&inst.enableDebugServer, "enable-debug-server", false, "Enable the debug HTTP server")
-	f.BoolVar(&inst.disableSMIAccessControlPolicy, "disable-smi-access-control-policy", false, "Disable SMI access control policy")
-	f.StringVar(&inst.meshName, "mesh-name", "osm", "Name of the service mesh")
+	f.BoolVar(&inst.enablePermissiveTrafficPolicy, "enable-permissive-traffic-policy", false, "Enable permissive traffic policy mode")
+	f.StringVar(&inst.meshName, "mesh-name", defaultMeshName, "Name of the service mesh")
 
 	return cmd
 }
 
 func (i *installCmd) run(config *helm.Configuration) error {
+	pass := i.checker.Run(check.PreinstallChecks(), func(r *check.Result) {
+		if r.Err != nil {
+			fmt.Fprintln(i.out, "ERROR:", r.Err)
+		}
+	})
+	if !pass {
+		return errors.New("Pre-install checks failed")
+	}
+
 	var chartRequested *chart.Chart
 	var err error
 	if i.chartPath != "" {
@@ -161,7 +180,7 @@ func (i *installCmd) run(config *helm.Configuration) error {
 	}
 
 	installClient := helm.NewInstall(config)
-	installClient.ReleaseName = settings.Namespace()
+	installClient.ReleaseName = i.meshName
 	installClient.Namespace = settings.Namespace()
 	installClient.CreateNamespace = true
 	if _, err = installClient.Run(chartRequested, values); err != nil {
@@ -186,7 +205,7 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 		fmt.Sprintf("OpenServiceMesh.serviceCertValidityMinutes=%d", i.serviceCertValidityMinutes),
 		fmt.Sprintf("OpenServiceMesh.prometheus.retention.time=%s", i.prometheusRetentionTime),
 		fmt.Sprintf("OpenServiceMesh.enableDebugServer=%t", i.enableDebugServer),
-		fmt.Sprintf("OpenServiceMesh.disableSMIAccessControlPolicy=%t", i.disableSMIAccessControlPolicy),
+		fmt.Sprintf("OpenServiceMesh.enablePermissiveTrafficPolicy=%t", i.enablePermissiveTrafficPolicy),
 		fmt.Sprintf("OpenServiceMesh.meshName=%s", i.meshName),
 	}
 

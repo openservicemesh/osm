@@ -11,11 +11,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	clientset "k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/debugger"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
@@ -53,6 +53,7 @@ var (
 	serviceCertValidityMinutes int
 	caBundleSecretName         string
 	enableDebugServer          bool
+	osmConfigMapName           string
 
 	injectorConfig injector.Config
 
@@ -88,15 +89,13 @@ func init() {
 	flags.IntVar(&serviceCertValidityMinutes, "serviceCertValidityMinutes", defaultServiceCertValidityMinutes, "Certificate validityPeriod duration in minutes")
 	flags.StringVar(&caBundleSecretName, caBundleSecretNameCLIParam, "", "Name of the Kubernetes Secret for the OSM CA bundle")
 	flags.BoolVar(&enableDebugServer, "enableDebugServer", false, "Enable OSM debug HTTP server")
+	flags.StringVar(&osmConfigMapName, "osmConfigMapName", "osm-config", "Name of the OSM ConfigMap")
 
 	// sidecar injector options
 	flags.BoolVar(&injectorConfig.DefaultInjection, "default-injection", true, "Enable sidecar injection by default")
 	flags.IntVar(&injectorConfig.ListenPort, "webhook-port", constants.InjectorWebhookPort, "Webhook port for sidecar-injector")
 	flags.StringVar(&injectorConfig.InitContainerImage, "init-container-image", "", "InitContainer image")
 	flags.StringVar(&injectorConfig.SidecarImage, "sidecar-image", "", "Sidecar proxy Container image")
-
-	// feature flags
-	flags.BoolVar(&optionalFeatures.SMIAccessControlDisabled, "disable-smi-access-control-policy", false, "Disable SMI access control policies")
 }
 
 func main() {
@@ -112,61 +111,73 @@ func main() {
 	// Side effects: This will log.Fatal on error resulting in os.Exit(255)
 	validateCLIParams()
 
-	var kubeConfig *rest.Config
-	var err error
-	kubeConfig, err = clientcmd.BuildConfigFromFlags("", kubeConfigFile)
+	kubeConfig, err := clientcmd.BuildConfigFromFlags("", kubeConfigFile)
+
+	smiKubeConfig := &kubeConfig
+
 	if err != nil {
 		log.Fatal().Err(err).Msgf("[%s] Failed to create kube config (kubeconfig=%s)", serverType, kubeConfigFile)
 	}
+	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 
 	stop := signals.RegisterExitHandlers()
 
-	namespaceController := namespace.NewNamespaceController(kubeConfig, meshName, stop)
-	meshSpec := smi.NewMeshSpecClient(kubeConfig, osmNamespace, namespaceController, stop)
+	// This component will be watching the OSM ConfigMap and will make it
+	// to the rest of the components.
+	cfg := configurator.NewConfigurator(kubernetes.NewForConfigOrDie(kubeConfig), stop, osmNamespace, osmConfigMapName)
+	configMap, err := cfg.GetConfigMap()
+	if err != nil {
+		log.Error().Err(err).Msgf("Error parsing ConfigMap %s", osmConfigMapName)
+	}
+	log.Info().Msgf("Initial ConfigMap %s: %+v", osmConfigMapName, configMap)
 
-	certManager, certDebugger := certManagers[certificateManagerKind(*certManagerKind)](kubeConfig, enableDebugServer)
+	namespaceController := namespace.NewNamespaceController(kubeClient, meshName, stop)
+	meshSpec := smi.NewMeshSpecClient(*smiKubeConfig, kubeClient, osmNamespace, namespaceController, stop)
+
+	// Get the Certificate Manager based on the CLI argument passed to this module.
+	certManager, certDebugger := certManagers[certificateManagerKind(*certManagerKind)](kubeClient, enableDebugServer)
 
 	log.Info().Msgf("Service certificates will be valid for %+v", getServiceCertValidityPeriod())
 
 	if caBundleSecretName == "" {
 		log.Info().Msgf("CA bundle will not be exported to a k8s secret (no --%s provided)", caBundleSecretNameCLIParam)
 	} else {
-		kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 		if err := createCABundleKubernetesSecret(kubeClient, certManager, osmNamespace, caBundleSecretName); err != nil {
 			log.Error().Err(err).Msgf("Error exporting CA bundle into Kubernetes secret with name %s", caBundleSecretName)
 		}
 	}
 
 	endpointsProviders := []endpoint.Provider{
-		kube.NewProvider(kubeConfig, namespaceController, stop, constants.KubeProviderName),
+		kube.NewProvider(kubeClient, namespaceController, stop, constants.KubeProviderName, cfg),
 	}
 
 	if azureAuthFile != "" {
-		azureResourceClient := azureResource.NewClient(kubeConfig, namespaceController, stop)
+		azureResourceClient := azureResource.NewClient(kubeClient, kubeConfig, namespaceController, stop, cfg)
 		endpointsProviders = append(endpointsProviders, azure.NewProvider(
 			*azureSubscriptionID, azureAuthFile, stop, meshSpec, azureResourceClient, constants.AzureProviderName))
 	}
 
-	ingressClient, err := ingress.NewIngressClient(kubeConfig, namespaceController, stop)
+	ingressClient, err := ingress.NewIngressClient(kubeClient, namespaceController, stop, cfg)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to initialize ingress client")
 	}
 
 	meshCatalog := catalog.NewMeshCatalog(
-		kubernetes.NewForConfigOrDie(kubeConfig),
+		kubeClient,
 		meshSpec,
 		certManager,
 		ingressClient,
 		stop,
+		cfg,
 		endpointsProviders...)
 
 	// Create the sidecar-injector webhook
-	if err := injector.NewWebhook(injectorConfig, kubeConfig, certManager, meshCatalog, namespaceController, meshName, osmNamespace, webhookName, stop); err != nil {
+	if err := injector.NewWebhook(injectorConfig, kubeClient, certManager, meshCatalog, namespaceController, meshName, osmNamespace, webhookName, stop, cfg); err != nil {
 		log.Fatal().Err(err).Msg("Error creating mutating webhook")
 	}
 
 	// TODO(draychev): there should be no need to pass meshSpec to the ADS - it is already in meshCatalog
-	xdsServer := ads.NewADSServer(ctx, meshCatalog, meshSpec, enableDebugServer, osmNamespace)
+	xdsServer := ads.NewADSServer(ctx, meshCatalog, meshSpec, enableDebugServer, osmNamespace, cfg)
 
 	// TODO(draychev): we need to pass this hard-coded string is a CLI argument (https://github.com/open-service-mesh/osm/issues/542)
 	validityPeriod := constants.XDSCertificateValidityPeriod
@@ -187,7 +198,7 @@ func main() {
 	// Expose /debug endpoints and data only if the enableDebugServer flag is enabled
 	var debugServer debugger.DebugServer
 	if enableDebugServer {
-		debugServer = debugger.NewDebugServer(certDebugger, xdsServer, meshCatalog, kubeConfig)
+		debugServer = debugger.NewDebugServer(certDebugger, xdsServer, meshCatalog, kubeConfig, kubeClient, cfg)
 	}
 	httpServer := httpserver.NewHTTPServer(xdsServer, metricsStore, constants.MetricsServerPort, debugServer)
 	httpServer.Start()

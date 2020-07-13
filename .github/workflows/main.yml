@@ -11,19 +11,19 @@ on:
 env:
   KUBE_CONFIG: ${{ secrets.KUBECONFIG }}
   AZURE_SUBSCRIPTION: ${{ secrets.AZURE_SUBSCRIPTION }}
-  CTR_REGISTRY: ${{ secrets.CTR_REGISTRY }}
-  CTR_REGISTRY_CREDS_NAME: ${{ secrets.CTR_REGISTRY_CREDS_NAME }}
+  CTR_REGISTRY: "osmci.azurecr.io/osm"
+  CTR_REGISTRY_CREDS_NAME: "acr-creds"
   CTR_TAG: "${{ github.run_id }}-${{ github.run_number}}"
   KUBECONFIG: ".kube/config"
   DOCKER_USER: ${{ secrets.DOCKER_USER }}
   DOCKER_PASS: ${{ secrets.DOCKER_PASS }}
+  IS_GITHUB: true
   CI_WAIT_FOR_OK_SECONDS: 60
   CI_MAX_ITERATIONS_THRESHOLD: 30
-  IS_GITHUB: true
-  ACR: ${{ secrets.ACR }}
   CI_MAX_WAIT_FOR_POD_TIME_SECONDS: 60
   CI_MIN_SUCCESS_THRESHOLD: 1
-  OSM_HUMAN_DEBUG_LOG: ${{ secrets.OSM_HUMAN_DEBUG_LOG }}
+  ACR: ${{ secrets.ACR }}
+  OSM_HUMAN_DEBUG_LOG: true
 
 jobs:
   info:
@@ -197,7 +197,7 @@ jobs:
           go-version: 1.14
       - name: Cleanup stale CI namespaces
         run: |
-          touch .env  # it is ok keep this empty
+          touch .env  # it is OK for this file to be empty - needed by Makefile
           mkdir -p ".kube"
           echo "$KUBE_CONFIG" | base64 -d > "$KUBECONFIG"
           go run ./ci/cmd/cleanup/cleanup-namespaces.go
@@ -227,7 +227,7 @@ jobs:
           go-version: 1.14
       - name: Create Docker images
         run: |
-          touch .env  # it is ok keep this empty
+          touch .env  # it is OK for this file to be empty - needed by Makefile
           echo "Creating Kubernetes namespace: $K8S_NAMESPACE"
           mkdir -p ".kube"
           echo "$KUBE_CONFIG" | base64 -d > "$KUBECONFIG"
@@ -241,6 +241,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v1
+
       - name: Restore Module Cache
         uses: actions/cache@v2
         with:
@@ -248,17 +249,21 @@ jobs:
           key: ${{ runner.os }}-gomod2-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-gomod2-
+
       - name: Restore Build Cache
         uses: actions/cache@v2
         with:
           path: ~/.cache/go-build
           key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}
+
       - name: Setup Go 1.14
         uses: actions/setup-go@v1
         with:
           go-version: 1.14
         id: go
-      - env:
+
+      - name: Run Simulation w/ Tresor and SMI policies
+        env:
           K8S_NAMESPACE: "ci-${{ github.run_id }}-${{ github.run_number}}-tresor"
           BOOKWAREHOUSE_NAMESPACE: "ci-bookwarehouse-${{ github.run_id }}-${{ github.run_number}}-tresor"
           BOOKBUYER_NAMESPACE: "ci-bookbuyer-${{ github.run_id }}-${{ github.run_number}}-tresor"
@@ -269,7 +274,7 @@ jobs:
           BOOKTHIEF_EXPECTED_RESPONSE_CODE: "404"
           BOOKSTORE_SVC: "bookstore-mesh"
         run: |
-          touch .env  # it is ok keep this empty
+          touch .env  # it is OK for this file to be empty - needed by Makefile
           mkdir -p ".kube"
           echo "$KUBE_CONFIG" | base64 -d > "$KUBECONFIG"
           echo "Ensure K8s namespace $K8S_NAMESPACE is clean from previous runs"
@@ -286,6 +291,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v1
+
       - name: Restore Module Cache
         uses: actions/cache@v2
         with:
@@ -293,17 +299,21 @@ jobs:
           key: ${{ runner.os }}-gomod2-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-gomod2-
+
       - name: Restore Build Cache
         uses: actions/cache@v2
         with:
           path: ~/.cache/go-build
           key: ${{ runner.os }}-gobuild-${{ hashFiles('**/*.go') }}
+
       - name: Setup Go 1.14
         uses: actions/setup-go@v1
         with:
           go-version: 1.14
         id: go
-      - env:
+
+      - name: Run Simulation w/ Hashi Vault and allow-all
+        env:
           K8S_NAMESPACE: "ci-${{ github.run_id }}-${{ github.run_number}}-hashivault"
           BOOKWAREHOUSE_NAMESPACE: "ci-bookwarehouse-${{ github.run_id }}-${{ github.run_number}}-hashivault"
           BOOKBUYER_NAMESPACE: "ci-bookbuyer-${{ github.run_id }}-${{ github.run_number}}-hashivault"
@@ -314,17 +324,17 @@ jobs:
           VAULT_HOST: "vault.ci-${{ github.run_id }}-${{ github.run_number}}-hashivault.svc.cluster.local"
           VAULT_PROTOCOL: "http"
           VAULT_PORT: "8200"
-          VAULT_TOKEN: ${{ secrets.VAULT_TOKEN }}
+          VAULT_TOKEN: "something"
           VAULT_ROLE: "open-service-mesh"
           BOOKTHIEF_EXPECTED_RESPONSE_CODE: "200"
           BOOKSTORE_SVC: "bookstore-v1"
         run: |
-          touch .env  # it is ok keep this empty
+          touch .env  # it is OK for this file to be empty - needed by Makefile
           mkdir -p ".kube"
           echo "$KUBE_CONFIG" | base64 -d > "$KUBECONFIG"
           echo "Ensure K8s namespace $K8S_NAMESPACE is clean from previous runs"
           ./demo/clean-kubernetes.sh
           echo "Creating Kubernetes namespace: $K8S_NAMESPACE"
           echo "$DOCKER_PASS" | docker login "$ACR" -u "$DOCKER_USER" --password-stdin
-          ./demo/run-osm-demo.sh --disable-smi-access-control-policy
+          ./demo/run-osm-demo.sh --enable-permissive-traffic-policy
           go run ./ci/cmd/maestro.go

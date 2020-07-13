@@ -13,19 +13,17 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
-
 	"github.com/open-service-mesh/osm/pkg/namespace"
 )
 
 const namespaceSelectorLabel = "app"
 
 // NewProvider implements mesh.EndpointsProvider, which creates a new Kubernetes cluster/compute provider.
-func NewProvider(kubeConfig *rest.Config, namespaceController namespace.Controller, stop chan struct{}, providerIdent string) *Client {
-	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
+func NewProvider(kubeClient kubernetes.Interface, namespaceController namespace.Controller, stop chan struct{}, providerIdent string, cfg configurator.Configurator) *Client {
 	informerFactory := informers.NewSharedInformerFactory(kubeClient, k8s.DefaultKubeEventResyncInterval)
 
 	informerCollection := InformerCollection{
@@ -83,7 +81,12 @@ func (c Client) ListEndpointsForService(svc service.Name) []endpoint.Endpoint {
 		return endpoints
 	}
 
-	if kubernetesEndpoints := endpointsInterface.(*corev1.Endpoints); kubernetesEndpoints != nil {
+	kubernetesEndpoints, ok := endpointsInterface.(*corev1.Endpoints)
+	if !ok {
+		log.Error().Err(errInvalidObjectType).Msg("Failed type assertion for Endpoints in cache")
+		return endpoints
+	}
+	if kubernetesEndpoints != nil {
 		if !c.namespaceController.IsMonitoredNamespace(kubernetesEndpoints.Namespace) {
 			// Doesn't belong to namespaces we are observing
 			return endpoints
@@ -116,7 +119,12 @@ func (c Client) GetServiceForServiceAccount(svcAccount service.NamespacedService
 	deploymentsInterface := c.caches.Deployments.List()
 
 	for _, deployments := range deploymentsInterface {
-		if kubernetesDeployments := deployments.(*appsv1.Deployment); kubernetesDeployments != nil {
+		kubernetesDeployments, ok := deployments.(*appsv1.Deployment)
+		if !ok {
+			log.Error().Err(errInvalidObjectType).Msg("Failed type assertion for Deployment in cache")
+			continue
+		}
+		if kubernetesDeployments != nil {
 			if !c.namespaceController.IsMonitoredNamespace(kubernetesDeployments.Namespace) {
 				// Doesn't belong to namespaces we are observing
 				continue

@@ -12,6 +12,8 @@ import (
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/storage"
 	"helm.sh/helm/v3/pkg/storage/driver"
+
+	"github.com/open-service-mesh/osm/pkg/check"
 )
 
 var (
@@ -24,6 +26,18 @@ var (
 	testVaultRole      = "role"
 	testRetentionTime  = "5d"
 )
+
+type failingChecker struct{}
+
+func (f failingChecker) Run([]check.Check, func(*check.Result)) bool {
+	return false
+}
+
+type passingChecker struct{}
+
+func (p passingChecker) Run([]check.Check, func(*check.Result)) bool {
+	return true
+}
 
 var _ = Describe("Running the install command", func() {
 
@@ -60,7 +74,8 @@ var _ = Describe("Running the install command", func() {
 				certManager:                "tresor",
 				serviceCertValidityMinutes: 1,
 				prometheusRetentionTime:    testRetentionTime,
-				meshName:                   "osm",
+				checker:                    passingChecker{},
+				meshName:                   defaultMeshName,
 			}
 
 			err = installCmd.run(config)
@@ -81,7 +96,7 @@ var _ = Describe("Running the install command", func() {
 			)
 
 			BeforeEach(func() {
-				rel, err = config.Releases.Get(settings.Namespace(), 1)
+				rel, err = config.Releases.Get(defaultMeshName, 1)
 			})
 
 			It("should not error when retrieved", func() {
@@ -92,7 +107,7 @@ var _ = Describe("Running the install command", func() {
 				Expect(rel.Config).To(BeEquivalentTo(map[string]interface{}{
 					"OpenServiceMesh": map[string]interface{}{
 						"certManager": "tresor",
-						"meshName":    "osm",
+						"meshName":    defaultMeshName,
 						"image": map[string]interface{}{
 							"registry": testRegistry,
 							"tag":      testOsmImageTag,
@@ -114,7 +129,7 @@ var _ = Describe("Running the install command", func() {
 								"time": "5d",
 							}},
 						"enableDebugServer":             false,
-						"disableSMIAccessControlPolicy": false,
+						"enablePermissiveTrafficPolicy": false,
 					}}))
 			})
 
@@ -156,7 +171,8 @@ var _ = Describe("Running the install command", func() {
 				certManager:                "tresor",
 				serviceCertValidityMinutes: 1,
 				prometheusRetentionTime:    testRetentionTime,
-				meshName:                   "osm",
+				checker:                    passingChecker{},
+				meshName:                   defaultMeshName,
 			}
 
 			err = installCmd.run(config)
@@ -177,7 +193,7 @@ var _ = Describe("Running the install command", func() {
 			)
 
 			BeforeEach(func() {
-				rel, err = config.Releases.Get(settings.Namespace(), 1)
+				rel, err = config.Releases.Get(defaultMeshName, 1)
 			})
 
 			It("should not error when retrieved", func() {
@@ -188,7 +204,7 @@ var _ = Describe("Running the install command", func() {
 				Expect(rel.Config).To(BeEquivalentTo(map[string]interface{}{
 					"OpenServiceMesh": map[string]interface{}{
 						"certManager": "tresor",
-						"meshName":    "osm",
+						"meshName":    defaultMeshName,
 						"image": map[string]interface{}{
 							"registry": testRegistry,
 							"tag":      testOsmImageTag,
@@ -210,7 +226,7 @@ var _ = Describe("Running the install command", func() {
 								"time": "5d",
 							}},
 						"enableDebugServer":             false,
-						"disableSMIAccessControlPolicy": false,
+						"enablePermissiveTrafficPolicy": false,
 					}}))
 			})
 
@@ -256,7 +272,8 @@ var _ = Describe("Running the install command", func() {
 				osmImageTag:                testOsmImageTag,
 				serviceCertValidityMinutes: 1,
 				prometheusRetentionTime:    testRetentionTime,
-				meshName:                   "osm",
+				checker:                    passingChecker{},
+				meshName:                   defaultMeshName,
 			}
 
 			err = installCmd.run(config)
@@ -277,7 +294,7 @@ var _ = Describe("Running the install command", func() {
 			)
 
 			BeforeEach(func() {
-				rel, err = config.Releases.Get(settings.Namespace(), 1)
+				rel, err = config.Releases.Get(defaultMeshName, 1)
 			})
 
 			It("should not error when retrieved", func() {
@@ -288,7 +305,7 @@ var _ = Describe("Running the install command", func() {
 				Expect(rel.Config).To(BeEquivalentTo(map[string]interface{}{
 					"OpenServiceMesh": map[string]interface{}{
 						"certManager": "vault",
-						"meshName":    "osm",
+						"meshName":    defaultMeshName,
 						"image": map[string]interface{}{
 							"registry": testRegistry,
 							"tag":      testOsmImageTag,
@@ -311,7 +328,7 @@ var _ = Describe("Running the install command", func() {
 							},
 						},
 						"enableDebugServer":             false,
-						"disableSMIAccessControlPolicy": false,
+						"enablePermissiveTrafficPolicy": false,
 					}}))
 			})
 
@@ -350,7 +367,8 @@ var _ = Describe("Running the install command", func() {
 				containerRegistry:       testRegistry,
 				containerRegistrySecret: testRegistrySecret,
 				certManager:             "vault",
-				meshName:                "osm",
+				meshName:                defaultMeshName,
+				checker:                 passingChecker{},
 			}
 
 			err = installCmd.run(config)
@@ -395,7 +413,8 @@ var _ = Describe("Running the install command", func() {
 				certManager:                "tresor",
 				serviceCertValidityMinutes: 1,
 				prometheusRetentionTime:    testRetentionTime,
-				meshName:                   "osm",
+				meshName:                   defaultMeshName,
+				checker:                    passingChecker{},
 			}
 
 			err = config.Releases.Create(&release.Release{
@@ -456,6 +475,7 @@ var _ = Describe("Running the install command", func() {
 				serviceCertValidityMinutes: 1,
 				prometheusRetentionTime:    testRetentionTime,
 				meshName:                   "osm!!123456789012345678901234567890123456789012345678901234567890", // >65 characters, contains !
+				checker:                    passingChecker{},
 			}
 
 			err = install.run(config)
@@ -463,6 +483,51 @@ var _ = Describe("Running the install command", func() {
 
 		It("should error", func() {
 			Expect(err).To(MatchError("Invalid mesh-name: [must be no more than 63 characters a DNS-1123 label must consist of lower case alphanumeric characters or '-', and must start and end with an alphanumeric character (e.g. 'my-name',  or '123-abc', regex used for validation is '[a-z0-9]([-a-z0-9]*[a-z0-9])?')]"))
+		})
+	})
+
+	Describe("when pre-install checks fail", func() {
+		var (
+			out    *bytes.Buffer
+			store  *storage.Storage
+			config *helm.Configuration
+			err    error
+		)
+
+		BeforeEach(func() {
+			out = new(bytes.Buffer)
+			store = storage.Init(driver.NewMemory())
+			if mem, ok := store.Driver.(*driver.Memory); ok {
+				mem.SetNamespace(settings.Namespace())
+			}
+
+			config = &helm.Configuration{
+				Releases: store,
+				KubeClient: &kubefake.PrintingKubeClient{
+					Out: ioutil.Discard,
+				},
+				Capabilities: chartutil.DefaultCapabilities,
+				Log:          func(format string, v ...interface{}) {},
+			}
+
+			installCmd := &installCmd{
+				out:                        out,
+				chartPath:                  "testdata/test-chart",
+				containerRegistry:          testRegistry,
+				containerRegistrySecret:    testRegistrySecret,
+				osmImageTag:                testOsmImageTag,
+				certManager:                "tresor",
+				serviceCertValidityMinutes: 1,
+				prometheusRetentionTime:    testRetentionTime,
+				meshName:                   defaultMeshName,
+				checker:                    failingChecker{},
+			}
+
+			err = installCmd.run(config)
+		})
+
+		It("should error", func() {
+			Expect(err).To(MatchError("Pre-install checks failed"))
 		})
 	})
 })
@@ -485,6 +550,7 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 			osmImageTag:                testOsmImageTag,
 			serviceCertValidityMinutes: 1,
 			prometheusRetentionTime:    testRetentionTime,
+			meshName:                   defaultMeshName,
 		}
 
 		vals, err = installCmd.resolveValues()
@@ -498,7 +564,7 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 		Expect(vals).To(BeEquivalentTo(map[string]interface{}{
 			"OpenServiceMesh": map[string]interface{}{
 				"certManager": "vault",
-				"meshName":    "",
+				"meshName":    defaultMeshName,
 				"image": map[string]interface{}{
 					"registry": testRegistry,
 					"tag":      testOsmImageTag,
@@ -521,7 +587,7 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 					},
 				},
 				"enableDebugServer":             false,
-				"disableSMIAccessControlPolicy": false,
+				"enablePermissiveTrafficPolicy": false,
 			}}))
 	})
 })
