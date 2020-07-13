@@ -4,7 +4,7 @@ set -auexo pipefail
 
 # shellcheck disable=SC1091
 source .env
-BOOKSTORE_SVC="${BOOKSTORE_SVC:-bookstore-mesh}"
+BOOKSTORE_SVC="${BOOKSTORE_SVC:-bookstore}"
 CI_MAX_ITERATIONS_THRESHOLD="${CI_MAX_ITERATIONS_THRESHOLD:-0}"
 
 kubectl delete deployment bookbuyer -n "$BOOKBUYER_NAMESPACE"  || true

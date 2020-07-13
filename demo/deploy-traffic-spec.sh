@@ -18,7 +18,7 @@ matches:
   methods:
   - GET
   headers:
-  - host: "bookstore-mesh.$BOOKSTORE_NAMESPACE"
+  - host: "bookstore.$BOOKSTORE_NAMESPACE"
   - "user-agent": ".*-http-client/*.*"
   - "client-app": "bookbuyer"
 - name: buy-a-book
@@ -26,13 +26,13 @@ matches:
   methods:
   - GET
   headers:
-  - host: "bookstore-mesh.$BOOKSTORE_NAMESPACE"
+  - host: "bookstore.$BOOKSTORE_NAMESPACE"
 - name: update-books-bought
   pathRegex: /update-books-bought
   methods:
   - POST
   headers:
-  - host: "bookstore-mesh.$BOOKSTORE_NAMESPACE"
+  - host: "bookstore.$BOOKSTORE_NAMESPACE"
 EOF
 
 

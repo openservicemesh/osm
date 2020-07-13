@@ -37,16 +37,16 @@ In the root directory of the repo create a `.env` file. It is already listed in 
 1. From the root of this repository execute `./demo/run-osm-demo.sh`.
    This script will:
    - compile OSM's control plane (ADS), create separate a container image and push it to the workstation's default container registry (See `~/.docker/config.json`)
-   - create a `bookstore-mesh` service that provides the `bookstore-mesh` domain for the `bookstore` service backends
-   - create a `bookbuyer` service that curls `bookstore-mesh` domain for books (see `demo/cmd/bookbuyer/bookbuyer.go`); creates a container and uploads it to your contaner registry; creates a deployment for the `bookbuyer` service
-   - create a `bookthief` service that curls the `bookstore-mesh` domain for books (see `demo/cmd/bookthief/bookthief.go`); creates a container and uploads it to your contaner registry; creates a deployment for the `bookthief` service
-   - create 2 backends for `bookstore-mesh` service `bookstore-v1` and `bookstore-v2`, composed of a single binary, a web server, which increases a counter (books bought) on every GET request/response and returns that counter in a header; creates a container and uploats it to your contaner registry
+   - create a `bookstore` service that provides the `bookstore` domain for the `bookstore` service backends
+   - create a `bookbuyer` service that curls `bookstore` domain for books (see `demo/cmd/bookbuyer/bookbuyer.go`); creates a container and uploads it to your contaner registry; creates a deployment for the `bookbuyer` service
+   - create a `bookthief` service that curls the `bookstore` domain for books (see `demo/cmd/bookthief/bookthief.go`); creates a container and uploads it to your contaner registry; creates a deployment for the `bookthief` service
+   - create 2 backends for `bookstore` service `bookstore-v1` and `bookstore-v2`, composed of a single binary, a web server, which increases a counter (books bought) on every GET request/response and returns that counter in a header; creates a container and uploats it to your contaner registry
    - applies SMI traffic policies allowing `bookbuyer` to access `bookstore-v1` and `bookstore-v2`, while preventing `bookthief` from accessing the `bookstore` services
    - finally a command indefinitely watches the relevant pods within the Kubernetes cluster
 
 1. To see the results of deploying the services and the service mesh - run the tailing scripts:
    - the scripts will connect to the respecitve Kubernetes Pod and stream its logs
-   - the output will be the output of the curl command to the `bookstore-mesh` domain and the count of books sold
+   - the output will be the output of the curl command to the `bookstore` domain and the count of books sold
    - a properly working service mesh will result in HTTP 200 OK with `./demo/tail-bookbuyer.sh` along with a monotonically increasing counter appearing in the response headers, while `./demo/tail-bookthief.sh` will result in HTTP 404 Not Found. This can be automatically checked with `go run ./ci/cmd/maestro.go`
 
 ## Onboarding VMs to a service mesh
