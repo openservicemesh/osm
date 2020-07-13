@@ -81,3 +81,7 @@ $ bin/osm namespace remove --mesh-name <mesh-name> <namespace-name>
 ## Code of Conduct
 
 This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). See [CODE_OF_CONDUCT.MD](CODE_OF_CONDUCT.MD) for further details.
+
+## License
+
+This software is covered under the MIT license. You can read the license [here](LICENSE).
