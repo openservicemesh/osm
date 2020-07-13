@@ -36,6 +36,40 @@ var _ = Describe("Test Envoy configuration creation", func() {
 		osmConfigMapName := "-test-osm-config-map-"
 		cfg := NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
 
+		It("test GetConfigMap", func() {
+			Expect(cfg.IsPermissiveTrafficPolicyMode()).To(BeFalse())
+			configMap := v1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: osmNamespace,
+					Name:      osmConfigMapName,
+				},
+				Data: defaultConfigMap,
+			}
+			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Create(context.TODO(), &configMap, metav1.CreateOptions{})
+			Expect(err).ToNot(HaveOccurred())
+
+			<-cfg.GetAnnouncementsChannel()
+
+			expectedConfig := &osmConfig{
+				PermissiveTrafficPolicyMode: false,
+				Egress:                      true,
+			}
+			expectedConfigBytes, err := marshalConfigToJSON(expectedConfig)
+			Expect(err).ToNot(HaveOccurred())
+
+			configBytes, err := cfg.GetConfigMap()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(string(configBytes)).To(Equal(string(expectedConfigBytes)))
+		})
+	})
+
+	Context("create OSM config for permissive_traffic_policy_mode", func() {
+		kubeClient := testclient.NewSimpleClientset()
+		stop := make(chan struct{})
+		osmNamespace := "-test-osm-namespace-"
+		osmConfigMapName := "-test-osm-config-map-"
+		cfg := NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
+
 		It("correctly identifies that permissive_traffic_policy_mode is enabled", func() {
 			Expect(cfg.IsPermissiveTrafficPolicyMode()).To(BeFalse())
 			defaultConfigMap[permissiveTrafficPolicyModeKey] = "true"
