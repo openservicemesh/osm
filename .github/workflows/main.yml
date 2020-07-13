@@ -270,7 +270,7 @@ jobs:
           MESH_NAME: "ci-${{ github.run_id }}-${{ github.run_number}}-tresor" # Same as namespace
           CERT_MANAGER: "tresor"
           BOOKTHIEF_EXPECTED_RESPONSE_CODE: "404"
-          BOOKSTORE_SVC: "bookstore-mesh"
+          BOOKSTORE_SVC: "bookstore"
         run: |
           touch .env  # it is OK for this file to be empty - needed by Makefile
           mkdir -p ".kube"
