@@ -29,7 +29,7 @@ var _ = Describe("Test Envoy configuration creation", func() {
 		})
 	})
 
-	Context("create OSM config for permissive_traffic_policy_mode", func() {
+	Context("create OSM config with default values", func() {
 		kubeClient := testclient.NewSimpleClientset()
 		stop := make(chan struct{})
 		osmNamespace := "-test-osm-namespace-"
