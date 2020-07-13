@@ -128,8 +128,8 @@ var _ = Describe("Running the install command", func() {
 							"retention": map[string]interface{}{
 								"time": "5d",
 							}},
-						"enableDebugServer":             false,
-						"enablePermissiveTrafficPolicy": false,
+						"enableDebugServer":              false,
+						"enablePermissiveTrafficPolicy":  false,
 						"enableBackpressureExperimental": false,
 					}}))
 			})
@@ -226,8 +226,8 @@ var _ = Describe("Running the install command", func() {
 							"retention": map[string]interface{}{
 								"time": "5d",
 							}},
-						"enableDebugServer":             false,
-						"enablePermissiveTrafficPolicy": false,
+						"enableDebugServer":              false,
+						"enablePermissiveTrafficPolicy":  false,
 						"enableBackpressureExperimental": false,
 					}}))
 			})
@@ -329,8 +329,8 @@ var _ = Describe("Running the install command", func() {
 								"time": "5d",
 							},
 						},
-						"enableDebugServer":             false,
-						"enablePermissiveTrafficPolicy": false,
+						"enableDebugServer":              false,
+						"enablePermissiveTrafficPolicy":  false,
 						"enableBackpressureExperimental": false,
 					}}))
 			})
@@ -589,8 +589,8 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 						"time": "5d",
 					},
 				},
-				"enableDebugServer":             false,
-				"enablePermissiveTrafficPolicy": false,
+				"enableDebugServer":              false,
+				"enablePermissiveTrafficPolicy":  false,
 				"enableBackpressureExperimental": false,
 			}}))
 	})

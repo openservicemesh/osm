@@ -9,7 +9,7 @@ import (
 // OptionalFeatures is a struct to enable/disable optional features
 type OptionalFeatures struct {
 	// FeatureName bool
-	BackpressureEnabled      bool
+	BackpressureEnabled bool
 }
 
 var (
