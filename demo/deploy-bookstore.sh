@@ -12,21 +12,21 @@ kubectl delete deployment "$SVC" -n "$BOOKSTORE_NAMESPACE"  || true
 GIT_HASH=$(git rev-parse --short HEAD)
 
 # Create a top level service just for the bookstore.mesh domain
-echo -e "Deploy bookstore-mesh Service"
+echo -e "Deploy bookstore Service"
 cat <<EOF | kubectl apply -f -
 apiVersion: v1
 kind: Service
 metadata:
-  name: bookstore-mesh
+  name: bookstore
   namespace: $BOOKSTORE_NAMESPACE
   labels:
-    app: bookstore-mesh
+    app: bookstore
 spec:
   ports:
   - port: 80
     name: bookstore-port
   selector:
-    app: bookstore-mesh
+    app: bookstore
 EOF
 
 echo -e "Deploy $SVC Service Account"
