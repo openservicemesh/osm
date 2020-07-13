@@ -7,8 +7,6 @@ SHELL      := bash -o pipefail
 GOPATH = $(shell go env GOPATH)
 GOBIN  = $(GOPATH)/bin
 
-include .env
-
 .PHONY: clean-cert
 clean-cert:
 	@rm -rf bin/cert
