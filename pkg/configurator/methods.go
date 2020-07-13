@@ -29,6 +29,11 @@ func (c *Client) IsPermissiveTrafficPolicyMode() bool {
 	return c.getConfigMap().PermissiveTrafficPolicyMode
 }
 
+// IsEgressEnabled determines whether egress is globally enabled in the mesh or not.
+func (c *Client) IsEgressEnabled() bool {
+	return c.getConfigMap().Egress
+}
+
 // GetAnnouncementsChannel returns a channel, which is used to announce when changes have been made to the OSM ConfigMap.
 func (c *Client) GetAnnouncementsChannel() <-chan interface{} {
 	return c.announcements
