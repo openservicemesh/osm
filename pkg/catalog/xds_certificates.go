@@ -47,6 +47,8 @@ func (mc *MeshCatalog) GetServiceFromEnvoyCertificate(cn certificate.CommonName)
 	}, nil
 }
 
+// filterTrafficSplitServices takes a list of services and removes from it the ones
+// that have been split via an SMI TrafficSplit.
 func (mc *MeshCatalog) filterTrafficSplitServices(services []v1.Service) []v1.Service {
 	excludeTheseServices := make(map[service.NamespacedService]interface{})
 	for _, trafficSplit := range mc.meshSpec.ListTrafficSplits() {
@@ -56,6 +58,8 @@ func (mc *MeshCatalog) filterTrafficSplitServices(services []v1.Service) []v1.Se
 		}
 		excludeTheseServices[svc] = nil
 	}
+
+	log.Info().Msgf("Filtered out apex services (no pods can belong to these): %+v", excludeTheseServices)
 
 	// These are the services except ones that are a root of a TrafficSplit policy
 	var filteredServices []v1.Service

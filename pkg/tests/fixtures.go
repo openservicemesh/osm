@@ -26,6 +26,10 @@ const (
 
 	// BookstoreServiceName is the name of the bookstore service.
 	BookstoreServiceName = "bookstore"
+
+	// BookstoreApexServiceName that have been is the name of the bookstore service, which is then split into other services.
+	BookstoreApexServiceName = "bookstore-apex"
+
 	// BookbuyerServiceName is the name of the bookbuyer service
 	BookbuyerServiceName = "bookbuyer"
 
@@ -131,7 +135,7 @@ var (
 			Namespace: Namespace,
 		},
 		Spec: v1alpha2.TrafficSplitSpec{
-			Service: BookstoreServiceName,
+			Service: BookstoreApexServiceName,
 		},
 	}
 
