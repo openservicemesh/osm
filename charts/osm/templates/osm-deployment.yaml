@@ -56,6 +56,9 @@ spec:
               scheme: HTTPS
               path: /health/ready
               port: 9090
+          env:
+            - name: "OSM_HUMAN_DEBUG_LOG"
+              value: "true" ### TODO: GET THIS FROM TEMPLATE
     {{- with .Values.OpenServiceMesh.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
