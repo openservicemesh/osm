@@ -195,7 +195,6 @@ jobs:
           go-version: 1.14
       - name: Cleanup stale CI namespaces
         run: |
-          touch .env  # it is OK for this file to be empty - needed by Makefile
           mkdir -p ".kube"
           echo "$KUBE_CONFIG" | base64 -d > "$KUBECONFIG"
           go run ./ci/cmd/cleanup/cleanup-namespaces.go
@@ -225,7 +224,6 @@ jobs:
           go-version: 1.14
       - name: Create Docker images
         run: |
-          touch .env  # it is OK for this file to be empty - needed by Makefile
           echo "Creating Kubernetes namespace: $K8S_NAMESPACE"
           mkdir -p ".kube"
           echo "$KUBE_CONFIG" | base64 -d > "$KUBECONFIG"
@@ -272,11 +270,8 @@ jobs:
           BOOKTHIEF_EXPECTED_RESPONSE_CODE: "404"
           BOOKSTORE_SVC: "bookstore"
         run: |
-          touch .env  # it is OK for this file to be empty - needed by Makefile
           mkdir -p ".kube"
           echo "$KUBE_CONFIG" | base64 -d > "$KUBECONFIG"
-          echo "Ensure K8s namespace $K8S_NAMESPACE is clean from previous runs"
-          ./demo/clean-kubernetes.sh
           echo "Creating Kubernetes namespace: $K8S_NAMESPACE"
           echo "$DOCKER_PASS" | docker login "$ACR" -u "$DOCKER_USER" --password-stdin
           ./demo/run-osm-demo.sh
@@ -327,11 +322,8 @@ jobs:
           BOOKTHIEF_EXPECTED_RESPONSE_CODE: "200"
           BOOKSTORE_SVC: "bookstore-v1"
         run: |
-          touch .env  # it is OK for this file to be empty - needed by Makefile
           mkdir -p ".kube"
           echo "$KUBE_CONFIG" | base64 -d > "$KUBECONFIG"
-          echo "Ensure K8s namespace $K8S_NAMESPACE is clean from previous runs"
-          ./demo/clean-kubernetes.sh
           echo "Creating Kubernetes namespace: $K8S_NAMESPACE"
           echo "$DOCKER_PASS" | docker login "$ACR" -u "$DOCKER_USER" --password-stdin
           ./demo/run-osm-demo.sh --enable-permissive-traffic-policy
