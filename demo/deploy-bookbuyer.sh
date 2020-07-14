@@ -73,6 +73,8 @@ spec:
               value: "$BOOKSTORE_SVC"
             - name: "CI_MAX_ITERATIONS_THRESHOLD"
               value: "$CI_MAX_ITERATIONS_THRESHOLD"
+            - name: IS_GITHUB
+              value: "$IS_GITHUB"
 
       imagePullSecrets:
         - name: "$CTR_REGISTRY_CREDS_NAME"
