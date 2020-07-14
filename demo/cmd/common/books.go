@@ -16,6 +16,7 @@ var (
 	minSuccessThresholdStr                 = GetEnv("CI_MIN_SUCCESS_THRESHOLD", "1")
 	maxIterationsStr                       = GetEnv("CI_MAX_ITERATIONS_THRESHOLD", "0") // 0 for unlimited
 	bookstoreServiceName                   = GetEnv("BOOKSTORE_SVC", "bookstore")
+	isGithub                               = GetEnv(IsGithubEnvVar, "false") == "true"
 	bookstoreNamespace                     = os.Getenv(BookstoreNamespaceEnvVar)
 	warehouseServiceName                   = "bookwarehouse"
 	bookwarehouseNamespace                 = os.Getenv(BookwarehouseNamespaceEnvVar)
@@ -26,7 +27,12 @@ var (
 	buyBook          = fmt.Sprintf("http://%s/buy-a-book/new", bookstoreService)
 	chargeAccountURL = fmt.Sprintf("http://%s/%s", warehouseService, RestockWarehouseURL)
 
-	interestingHeaders = []string{IdentityHeader, BooksBoughtHeader, "Server", "Date"}
+	interestingHeaders = []string{
+		IdentityHeader,
+		BooksBoughtHeader,
+		"Server",
+		"Date",
+	}
 
 	urlHeadersMap = map[string]map[string]string{
 		booksBought: {
@@ -69,7 +75,6 @@ func RestockBooks(amount int) {
 		log.Info().Msgf("RestockBooks (%s) adding header {%s: %s}", chargeAccountURL, hdr, getHeader(resp.Header, hdr))
 	}
 	log.Info().Msgf("RestockBooks (%s) finished w/ status: %s %d ", chargeAccountURL, resp.Status, resp.StatusCode)
-
 }
 
 // GetEnv is much  like os.Getenv() but with a default value.
@@ -82,7 +87,7 @@ func GetEnv(envVar string, defaultValue string) string {
 }
 
 // GetBooks reaches out to the bookstore and buys/steals books. This is invoked by the bookbuyer and the bookthief.
-func GetBooks(participantName string, expectedResponseCode int) {
+func GetBooks(participantName string, expectedResponseCode int, booksCount *int, booksCountV1 *int, booksCountV2 *int) {
 	minSuccessThreshold, maxIterations, sleepDurationBetweenRequests := getEnvVars(participantName)
 
 	// The URLs this participant will attempt to query from the bookstore service
@@ -109,17 +114,31 @@ func GetBooks(participantName string, expectedResponseCode int) {
 		for url := range urlSuccessMap {
 
 			// We only care about the response code of the HTTP call for the given URL
-			responseCode := fetch(url)
+			responseCode, identity := fetch(url)
 
 			succeeded := responseCode == expectedResponseCode
 			if !succeeded {
 				fmt.Printf("ERROR: response code for %q is %d;  expected %d\n", url, responseCode, expectedResponseCode)
 			}
-
 			urlSuccessMap[url] = succeeded
 
+			// Regardless of what expect the response to be (depends on the policy) - in case of 200 OK - increase book counts.
+			if responseCode == http.StatusOK {
+				if url == buyBook {
+					if strings.HasPrefix(identity, "bookstore-v1") {
+						*booksCountV1++
+						*booksCount++
+						log.Info().Msgf("BooksCountV1=%d", booksCountV1)
+					} else if strings.HasPrefix(identity, "bookstore-v2") {
+						*booksCountV2++
+						*booksCount++
+						log.Info().Msgf("BooksCountV2=%d", booksCountV2)
+					}
+				}
+			}
+
 			// We are looking for a certain number of sequential successful HTTP requests.
-			if previouslySucceeded && allUrlsSucceeded(urlSuccessMap) {
+			if isGithub && previouslySucceeded && allUrlsSucceeded(urlSuccessMap) {
 				successCount++
 				goalReached := successCount >= minSuccessThreshold
 				if goalReached && !timedOut {
@@ -140,7 +159,7 @@ func GetBooks(participantName string, expectedResponseCode int) {
 			previouslySucceeded = allUrlsSucceeded(urlSuccessMap)
 		}
 
-		if timedOut {
+		if isGithub && timedOut {
 			// We are over budget!
 			fmt.Printf("Threshold of %d iterations exceeded\n\n", maxIterations)
 			fmt.Print(Failure)
@@ -158,7 +177,7 @@ func allUrlsSucceeded(urlSucceeded map[string]bool) bool {
 	return success
 }
 
-func fetch(url string) (responseCode int) {
+func fetch(url string) (responseCode int, identity string) {
 	headersMap := urlHeadersMap[url]
 
 	client := &http.Client{}
@@ -184,7 +203,12 @@ func fetch(url string) (responseCode int) {
 		}
 		fmt.Printf("Status: %s\n", resp.Status)
 	}
-	return responseCode
+	identity = "unknown"
+	if resp != nil && resp.Header != nil {
+		identity = getHeader(resp.Header, IdentityHeader)
+	}
+
+	return responseCode, identity
 }
 
 func getHeader(headers map[string][]string, header string) string {
