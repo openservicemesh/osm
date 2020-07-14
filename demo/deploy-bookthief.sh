@@ -29,6 +29,10 @@ metadata:
   labels:
     app: bookthief
 spec:
+  ports:
+   - port: 80
+     name: web
+
   selector:
     app: bookthief
 
@@ -58,7 +62,7 @@ spec:
           image: "${CTR_REGISTRY}/bookthief:${CTR_TAG}"
           imagePullPolicy: Always
           command: ["/bookthief"]
-           ports:
+          ports:
             # This port is used by the Web UI showing
             # how many books have been stolen
             - containerPort: 80

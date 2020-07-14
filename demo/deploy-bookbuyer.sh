@@ -28,6 +28,10 @@ metadata:
   labels:
     app: bookbuyer
 spec:
+  ports:
+    - port: 80
+      name: web
+
   selector:
     app: bookbuyer
 EOF
