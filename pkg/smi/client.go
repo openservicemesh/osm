@@ -137,7 +137,6 @@ func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient *smiTra
 		announcements:       make(chan interface{}),
 		osmNamespace:        osmNamespace,
 		namespaceController: namespaceController,
-		backpressureEnabled: featureflags.IsBackpressureEnabled(),
 	}
 
 	shouldObserve := func(obj interface{}) bool {
@@ -210,9 +209,9 @@ func (c *Client) ListTrafficTargets() []*target.TrafficTarget {
 func (c *Client) ListBackpressures() []*backpressure.Backpressure {
 	var backpressureList []*backpressure.Backpressure
 
-	if c.backpressureEnabled {
+	if !featureflags.IsBackpressureEnabled() {
 		log.Info().Msgf("Backpressure turned off!")
-		return backpressureList
+		return nil
 	}
 
 	for _, pressureIface := range c.caches.Backpressure.List() {
