@@ -98,7 +98,7 @@ func init() {
 	flags.StringVar(&injectorConfig.SidecarImage, "sidecar-image", "", "Sidecar proxy Container image")
 
 	// feature flags
-	flags.BoolVar(&optionalFeatures.BackpressureEnabled, "enable-backpressure-experimental", false, "Enable experimental backpressure feature")
+	flags.BoolVar(&optionalFeatures.Backpressure, "enable-backpressure-experimental", false, "Enable experimental backpressure feature")
 }
 
 func main() {
