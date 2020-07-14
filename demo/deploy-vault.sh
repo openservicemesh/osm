@@ -9,7 +9,7 @@ kubectl delete deployment vault -n "$K8S_NAMESPACE" || true
 kubectl delete pod vault -n "$K8S_NAMESPACE" || true
 kubectl delete service vault -n "$K8S_NAMESPACE" || true
 
-cat<<EOF | kubectl apply -f -
+kubectl apply -f - <<EOF
 apiVersion: apps/v1
 kind: Deployment
 metadata:
