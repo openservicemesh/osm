@@ -63,16 +63,28 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 
 			typeURL := envoy.TypeURI(discoveryRequest.TypeUrl)
 
-			ackVersion, err := strconv.ParseUint(discoveryRequest.VersionInfo, 10, 64)
-			if err != nil && discoveryRequest.VersionInfo != "" {
-				log.Error().Err(err).Msgf("Error parsing %s discovery request VersionInfo (%s) from proxy %s", typeURL, discoveryRequest.VersionInfo, proxy.GetCommonName())
-				ackVersion = 0
+			// It is possible for Envoy to return an empty VersionInfo.
+			// When that's the case - start with 0
+			ackVersion := uint64(0)
+			if discoveryRequest.VersionInfo != "" {
+				if ackVersion, err = strconv.ParseUint(discoveryRequest.VersionInfo, 10, 64); err != nil {
+					// It is probable that Envoy responded with a VersionInfo we did not understand
+					// We log this and continue. The ackVersion will be 0 in this state.
+					log.Error().Err(err).Msgf("Error parsing %s discovery request VersionInfo (%s) from proxy %s", typeURL, discoveryRequest.VersionInfo, proxy.GetCommonName())
+				}
 			}
 
 			log.Debug().Msgf("Incoming Discovery Request %s (nonce=%s; version=%d) from Envoy %s; last applied version: %d",
-				discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, ackVersion, proxy.GetCommonName(), proxy.GetLastAppliedVersion(typeURL))
+				discoveryRequest.TypeUrl,
+				discoveryRequest.ResponseNonce,
+				ackVersion,
+				proxy.GetCommonName(),
+				proxy.GetLastAppliedVersion(typeURL))
+
 			log.Debug().Msgf("Last sent nonce=%s; last sent version=%d for Envoy %s",
-				proxy.GetLastSentNonce(typeURL), proxy.GetLastSentVersion(typeURL), proxy.GetCommonName())
+				proxy.GetLastSentNonce(typeURL),
+				proxy.GetLastSentVersion(typeURL),
+				proxy.GetCommonName())
 
 			proxy.SetLastAppliedVersion(typeURL, ackVersion)
 
