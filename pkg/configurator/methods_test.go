@@ -15,6 +15,8 @@ var _ = Describe("Test Envoy configuration creation", func() {
 	defaultConfigMap := map[string]string{
 		permissiveTrafficPolicyModeKey: "false",
 		egressKey:                      "true",
+		prometheusScrapingKey:          "true",
+		zipkinTracingKey:               "true",
 	}
 
 	Context("create OSM configurator client", func() {
@@ -37,7 +39,6 @@ var _ = Describe("Test Envoy configuration creation", func() {
 		cfg := NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
 
 		It("test GetConfigMap", func() {
-			Expect(cfg.IsPermissiveTrafficPolicyMode()).To(BeFalse())
 			configMap := v1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: osmNamespace,
@@ -53,6 +54,8 @@ var _ = Describe("Test Envoy configuration creation", func() {
 			expectedConfig := &osmConfig{
 				PermissiveTrafficPolicyMode: false,
 				Egress:                      true,
+				PrometheusScraping:          true,
+				ZipkinTracing:               true,
 			}
 			expectedConfigBytes, err := marshalConfigToJSON(expectedConfig)
 			Expect(err).ToNot(HaveOccurred())
@@ -165,6 +168,110 @@ var _ = Describe("Test Envoy configuration creation", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(cfg.IsEgressEnabled()).To(BeFalse())
+		})
+	})
+
+	Context("create OSM config for Prometheus scraping", func() {
+		kubeClient := testclient.NewSimpleClientset()
+		stop := make(chan struct{})
+		osmNamespace := "-test-osm-namespace-"
+		osmConfigMapName := "-test-osm-config-map-"
+		cfg := NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
+
+		It("correctly identifies that the config is enabled", func() {
+			Expect(cfg.IsPrometheusScrapingEnabled()).To(BeFalse())
+			configMap := v1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: osmNamespace,
+					Name:      osmConfigMapName,
+				},
+				Data: defaultConfigMap,
+			}
+			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Create(context.TODO(), &configMap, metav1.CreateOptions{})
+			Expect(err).ToNot(HaveOccurred())
+
+			// Wait for the config map change to propagate to the cache.
+			log.Info().Msg("Waiting for announcement")
+			<-cfg.GetAnnouncementsChannel()
+
+			Expect(cfg.GetOSMNamespace()).To(Equal(osmNamespace))
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(cfg.IsPrometheusScrapingEnabled()).To(BeTrue())
+		})
+
+		It("correctly identifies that the config is disabled", func() {
+			defaultConfigMap[prometheusScrapingKey] = "false"
+			configMap := v1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: osmNamespace,
+					Name:      osmConfigMapName,
+				},
+				Data: defaultConfigMap,
+			}
+			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Update(context.TODO(), &configMap, metav1.UpdateOptions{})
+			Expect(err).ToNot(HaveOccurred())
+
+			// Wait for the config map change to propagate to the cache.
+			log.Info().Msg("Waiting for announcement")
+			<-cfg.GetAnnouncementsChannel()
+
+			Expect(cfg.GetOSMNamespace()).To(Equal(osmNamespace))
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(cfg.IsPrometheusScrapingEnabled()).To(BeFalse())
+		})
+	})
+
+	Context("create OSM config for Zipkin tracing", func() {
+		kubeClient := testclient.NewSimpleClientset()
+		stop := make(chan struct{})
+		osmNamespace := "-test-osm-namespace-"
+		osmConfigMapName := "-test-osm-config-map-"
+		cfg := NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
+
+		It("correctly identifies that the config is enabled", func() {
+			Expect(cfg.IsZipkinTracingEnabled()).To(BeFalse())
+			configMap := v1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: osmNamespace,
+					Name:      osmConfigMapName,
+				},
+				Data: defaultConfigMap,
+			}
+			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Create(context.TODO(), &configMap, metav1.CreateOptions{})
+			Expect(err).ToNot(HaveOccurred())
+
+			// Wait for the config map change to propagate to the cache.
+			log.Info().Msg("Waiting for announcement")
+			<-cfg.GetAnnouncementsChannel()
+
+			Expect(cfg.GetOSMNamespace()).To(Equal(osmNamespace))
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(cfg.IsZipkinTracingEnabled()).To(BeTrue())
+		})
+
+		It("correctly identifies that the config is disabled", func() {
+			defaultConfigMap[zipkinTracingKey] = "false"
+			configMap := v1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: osmNamespace,
+					Name:      osmConfigMapName,
+				},
+				Data: defaultConfigMap,
+			}
+			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Update(context.TODO(), &configMap, metav1.UpdateOptions{})
+			Expect(err).ToNot(HaveOccurred())
+
+			// Wait for the config map change to propagate to the cache.
+			log.Info().Msg("Waiting for announcement")
+			<-cfg.GetAnnouncementsChannel()
+
+			Expect(cfg.GetOSMNamespace()).To(Equal(osmNamespace))
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(cfg.IsZipkinTracingEnabled()).To(BeFalse())
 		})
 	})
 })

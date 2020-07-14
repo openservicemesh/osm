@@ -38,6 +38,16 @@ func (c *Client) IsEgressEnabled() bool {
 	return c.getConfigMap().Egress
 }
 
+// IsPrometheusScrapingEnabled determines whether Prometheus is enabled for scraping metrics
+func (c *Client) IsPrometheusScrapingEnabled() bool {
+	return c.getConfigMap().PrometheusScraping
+}
+
+// IsZipkinTracingEnabled determines whether Zipkin tracing is enabled
+func (c *Client) IsZipkinTracingEnabled() bool {
+	return c.getConfigMap().ZipkinTracing
+}
+
 // GetAnnouncementsChannel returns a channel, which is used to announce when changes have been made to the OSM ConfigMap.
 func (c *Client) GetAnnouncementsChannel() <-chan interface{} {
 	return c.announcements
