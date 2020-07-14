@@ -23,8 +23,11 @@ spec:
   ports:
   - port: 8080
     name: bookstore-port
+
   selector:
     app: bookstore
+    version: v1
+
 EOF
 
 echo -e "Deploy $SVC Service Account"
@@ -86,6 +89,8 @@ spec:
           command: ["/bookstore"]
           args: ["--path", "./", "--port", "8080"]
           env:
+            # This value will be sent back to the services
+            # purchasing books from this bookstore.
             - name: IDENTITY
               value: ${SVC}
             - name: BOOKWAREHOUSE_NAMESPACE

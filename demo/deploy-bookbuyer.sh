@@ -28,11 +28,6 @@ metadata:
   labels:
     app: bookbuyer
 spec:
-  ports:
-
-  - port: 9999
-    name: dummy-unused-port
-
   selector:
     app: bookbuyer
 EOF
@@ -63,6 +58,9 @@ spec:
           image: "${CTR_REGISTRY}/bookbuyer:${CTR_TAG}"
           imagePullPolicy: Always
           command: ["/bookbuyer"]
+          ports:
+            - containerPort: 80
+              name: web
 
           env:
             - name: "BOOKSTORE_NAMESPACE"
