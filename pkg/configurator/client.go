@@ -16,6 +16,8 @@ import (
 const (
 	permissiveTrafficPolicyModeKey = "permissive_traffic_policy_mode"
 	egressKey                      = "egress"
+	prometheusScrapingKey          = "prometheus_scraping"
+	zipkinTracingKey               = "zipkin_tracing"
 )
 
 // NewConfigurator implements configurator.Configurator and creates the Kubernetes client to manage namespaces.
@@ -56,8 +58,14 @@ type osmConfig struct {
 	// existing traffic patterns.
 	PermissiveTrafficPolicyMode bool `yaml:"permissive_traffic_policy_mode"`
 
-	// Egress is a bool toggle used to enable or disable egress globally within the mesh.
+	// Egress is a bool toggle used to enable or disable egress globally within the mesh
 	Egress bool `yaml:"egress"`
+
+	// PrometheusScraping is a bool toggle used to enable or disable metrics scraping by Prometheus
+	PrometheusScraping bool `yaml:"prometheus_scraping"`
+
+	// ZipkinTracing is a bool toggle used to enable ot disable Zipkin tracing
+	ZipkinTracing bool `yaml:"zipkin_tracing"`
 }
 
 func (c *Client) run(stop <-chan struct{}) {
@@ -107,6 +115,20 @@ func (c *Client) getConfigMap() *osmConfig {
 		log.Error().Err(err).Msgf("Error getting value for key=%s", egressKey)
 	}
 	cfg.Egress = modeBool
+
+	// Parse PrometheusScraping
+	modeBool, err = getBoolValueForKey(configMap, prometheusScrapingKey)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error getting value for key=%s", prometheusScrapingKey)
+	}
+	cfg.PrometheusScraping = modeBool
+
+	// Parse ZipkinTracing
+	modeBool, err = getBoolValueForKey(configMap, zipkinTracingKey)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error getting value for key=%s", zipkinTracingKey)
+	}
+	cfg.ZipkinTracing = modeBool
 
 	return cfg
 }

@@ -17,7 +17,7 @@ import (
 )
 
 // NewResponse creates a new Route Discovery Response.
-func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, request *xds.DiscoveryRequest, config *configurator.Config) (*xds.DiscoveryResponse, error) {
+func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, request *xds.DiscoveryRequest, cfg configurator.Configurator) (*xds.DiscoveryResponse, error) {
 	svc, err := catalog.GetServiceFromEnvoyCertificate(proxy.GetCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up Service for Envoy with CN=%q", proxy.GetCommonName())

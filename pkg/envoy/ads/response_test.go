@@ -97,19 +97,17 @@ var _ = Describe("Test ADS response functions", func() {
 		certPEM, _ := certManager.IssueCertificate(cn, nil)
 		cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())
 		server, actualResponses := tests.NewFakeXDSServer(cert, nil, nil)
-		config := &configurator.Config{
-			OSMNamespace: "-test-namespace-",
-		}
+		cfg := configurator.NewFakeConfigurator()
 
 		It("returns Aggregated Discovery Service response", func() {
 			s := Server{
 				ctx:         context.TODO(),
 				catalog:     mc,
 				meshSpec:    smi.NewFakeMeshSpecClient(),
-				xdsHandlers: getHandlers(),
+				xdsHandlers: getHandlers(cfg),
 			}
 
-			s.sendAllResponses(proxy, &server, config)
+			s.sendAllResponses(proxy, &server, cfg)
 
 			Expect(actualResponses).ToNot(BeNil())
 			Expect(len(*actualResponses)).To(Equal(5))

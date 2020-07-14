@@ -30,7 +30,7 @@ const (
 // 1. Inbound listener to handle incoming traffic
 // 2. Outbound listener to handle outgoing traffic
 // 3. Prometheus listener for metrics
-func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, request *xds.DiscoveryRequest, config *configurator.Config) (*xds.DiscoveryResponse, error) {
+func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, request *xds.DiscoveryRequest, cfg configurator.Configurator) (*xds.DiscoveryResponse, error) {
 	svc, err := catalog.GetServiceFromEnvoyCertificate(proxy.GetCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up Service for Envoy with CN=%q", proxy.GetCommonName())
@@ -100,19 +100,21 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 		resp.Resources = append(resp.Resources, marshalledInbound)
 	}
 
-	// Build Prometheus listener config
-	prometheusConnManager := getPrometheusConnectionManager(prometheusListenerName, constants.PrometheusScrapePath, constants.EnvoyMetricsCluster)
-	prometheusListener, err := buildPrometheusListener(prometheusConnManager)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error building Prometheus listener config for proxy %s", proxyServiceName)
-		return nil, err
+	if cfg.IsPrometheusScrapingEnabled() {
+		// Build Prometheus listener config
+		prometheusConnManager := getPrometheusConnectionManager(prometheusListenerName, constants.PrometheusScrapePath, constants.EnvoyMetricsCluster)
+		prometheusListener, err := buildPrometheusListener(prometheusConnManager)
+		if err != nil {
+			log.Error().Err(err).Msgf("Error building Prometheus listener config for proxy %s", proxyServiceName)
+			return nil, err
+		}
+		marshalledPrometheus, err := ptypes.MarshalAny(prometheusListener)
+		if err != nil {
+			log.Error().Err(err).Msgf("Error marshalling Prometheus listener config for proxy %s", proxyServiceName)
+			return nil, err
+		}
+		resp.Resources = append(resp.Resources, marshalledPrometheus)
 	}
-	marshalledPrometheus, err := ptypes.MarshalAny(prometheusListener)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error marshalling Prometheus listener config for proxy %s", proxyServiceName)
-		return nil, err
-	}
-	resp.Resources = append(resp.Resources, marshalledPrometheus)
 
 	return resp, nil
 }

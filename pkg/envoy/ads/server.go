@@ -25,9 +25,10 @@ func NewADSServer(ctx context.Context, meshCatalog catalog.MeshCataloger, meshSp
 		catalog:      meshCatalog,
 		ctx:          ctx,
 		meshSpec:     meshSpec,
-		xdsHandlers:  getHandlers(),
+		xdsHandlers:  getHandlers(cfg),
 		enableDebug:  enableDebug,
 		osmNamespace: osmNamespace,
+		cfg:          cfg,
 	}
 
 	if enableDebug {
@@ -37,8 +38,8 @@ func NewADSServer(ctx context.Context, meshCatalog catalog.MeshCataloger, meshSp
 	return &server
 }
 
-func getHandlers() map[envoy.TypeURI]func(context.Context, catalog.MeshCataloger, smi.MeshSpec, *envoy.Proxy, *xds.DiscoveryRequest, *configurator.Config) (*xds.DiscoveryResponse, error) {
-	return map[envoy.TypeURI]func(context.Context, catalog.MeshCataloger, smi.MeshSpec, *envoy.Proxy, *xds.DiscoveryRequest, *configurator.Config) (*xds.DiscoveryResponse, error){
+func getHandlers(cfg configurator.Configurator) map[envoy.TypeURI]func(context.Context, catalog.MeshCataloger, smi.MeshSpec, *envoy.Proxy, *xds.DiscoveryRequest, configurator.Configurator) (*xds.DiscoveryResponse, error) {
+	return map[envoy.TypeURI]func(context.Context, catalog.MeshCataloger, smi.MeshSpec, *envoy.Proxy, *xds.DiscoveryRequest, configurator.Configurator) (*xds.DiscoveryResponse, error){
 		envoy.TypeEDS: eds.NewResponse,
 		envoy.TypeCDS: cds.NewResponse,
 		envoy.TypeRDS: rds.NewResponse,

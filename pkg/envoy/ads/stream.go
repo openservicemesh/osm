@@ -8,7 +8,6 @@ import (
 	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	"github.com/pkg/errors"
 
-	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 	"github.com/open-service-mesh/osm/pkg/utils"
 )
@@ -42,13 +41,6 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 
 	requests := make(chan v2.DiscoveryRequest)
 	go receive(requests, &server, proxy)
-
-	// TODO(draychev): create this struct with data from the OSM Config CRD when that is ready.
-	config := &configurator.Config{
-		OSMNamespace:     s.osmNamespace,
-		EnablePrometheus: true,
-		EnableTracing:    true,
-	}
 
 	for {
 
@@ -115,7 +107,7 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 			}
 			log.Info().Msgf("Received discovery request <%s> from Envoy <%s> with Nonce=%s", discoveryRequest.TypeUrl, proxy, discoveryRequest.ResponseNonce)
 
-			resp, err := s.newAggregatedDiscoveryResponse(proxy, &discoveryRequest, config)
+			resp, err := s.newAggregatedDiscoveryResponse(proxy, &discoveryRequest, s.cfg)
 			if err != nil {
 				log.Error().Err(err).Msgf("Error composing a DiscoveryResponse")
 				continue
@@ -127,7 +119,7 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 
 		case <-proxy.GetAnnouncementsChannel():
 			log.Info().Msgf("Change detected - update all Envoys.")
-			s.sendAllResponses(proxy, &server, config)
+			s.sendAllResponses(proxy, &server, s.cfg)
 
 		}
 	}
