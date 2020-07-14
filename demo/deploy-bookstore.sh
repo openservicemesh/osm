@@ -13,7 +13,7 @@ GIT_HASH=$(git rev-parse --short HEAD)
 
 # Create a top level service just for the bookstore.mesh domain
 echo -e "Deploy bookstore Service"
-cat <<EOF | kubectl apply -f -
+kubectl apply -f - <<EOF
 apiVersion: v1
 kind: Service
 metadata:
@@ -30,7 +30,7 @@ spec:
 EOF
 
 echo -e "Deploy $SVC Service Account"
-cat <<EOF | kubectl apply -f -
+kubectl apply -f - <<EOF
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -39,7 +39,7 @@ metadata:
 EOF
 
 echo -e "Deploy $SVC Service"
-cat <<EOF | kubectl apply -f -
+kubectl apply -f - <<EOF
 apiVersion: v1
 kind: Service
 metadata:
@@ -57,7 +57,7 @@ spec:
 EOF
 
 echo -e "Deploy $SVC Deployment"
-cat <<EOF | kubectl apply -f -
+kubectl apply -f - <<EOF
 apiVersion: apps/v1
 kind: Deployment
 metadata:
