@@ -22,6 +22,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/open-service-mesh/osm/pkg/featureflags"
 	k8s "github.com/open-service-mesh/osm/pkg/kubernetes"
 	"github.com/open-service-mesh/osm/pkg/namespace"
 	"github.com/open-service-mesh/osm/pkg/service"
@@ -35,7 +36,10 @@ func NewMeshSpecClient(smiKubeConfig *rest.Config, kubeClient kubernetes.Interfa
 	smiTrafficSplitClientSet := smiTrafficSplitClient.NewForConfigOrDie(smiKubeConfig)
 	smiTrafficSpecClientSet := smiTrafficSpecClient.NewForConfigOrDie(smiKubeConfig)
 	smiTrafficTargetClientSet := smiTrafficTargetClient.NewForConfigOrDie(smiKubeConfig)
-	backpressureClientSet := backpressureClient.NewForConfigOrDie(smiKubeConfig)
+	var backpressureClientSet *backpressureClient.Clientset
+	if featureflags.IsBackpressureEnabled() {
+		backpressureClientSet = backpressureClient.NewForConfigOrDie(smiKubeConfig)
+	}
 
 	client := newSMIClient(kubeClient, smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet, backpressureClientSet, osmNamespace, namespaceController, kubernetesClientName)
 
@@ -111,7 +115,6 @@ func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient *smiTra
 		TrafficSplit:  smiTrafficSplitInformerFactory.Split().V1alpha2().TrafficSplits().Informer(),
 		TrafficSpec:   smiTrafficSpecInformerFactory.Specs().V1alpha2().HTTPRouteGroups().Informer(),
 		TrafficTarget: smiTrafficTargetInformerFactory.Access().V1alpha1().TrafficTargets().Informer(),
-		Backpressure:  backPressureInformerFactory.Policy().V1alpha1().Backpressures().Informer(),
 	}
 
 	cacheCollection := CacheCollection{
@@ -119,7 +122,11 @@ func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient *smiTra
 		TrafficSplit:  informerCollection.TrafficSplit.GetStore(),
 		TrafficSpec:   informerCollection.TrafficSpec.GetStore(),
 		TrafficTarget: informerCollection.TrafficTarget.GetStore(),
-		Backpressure:  informerCollection.Backpressure.GetStore(),
+	}
+
+	if featureflags.IsBackpressureEnabled() {
+		informerCollection.Backpressure = backPressureInformerFactory.Policy().V1alpha1().Backpressures().Informer()
+		cacheCollection.Backpressure = informerCollection.Backpressure.GetStore()
 	}
 
 	client := Client{
@@ -140,7 +147,9 @@ func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient *smiTra
 	informerCollection.TrafficSplit.AddEventHandler(k8s.GetKubernetesEventHandlers("TrafficSplit", "SMI", client.announcements, shouldObserve))
 	informerCollection.TrafficSpec.AddEventHandler(k8s.GetKubernetesEventHandlers("TrafficSpec", "SMI", client.announcements, shouldObserve))
 	informerCollection.TrafficTarget.AddEventHandler(k8s.GetKubernetesEventHandlers("TrafficTarget", "SMI", client.announcements, shouldObserve))
-	informerCollection.Backpressure.AddEventHandler(k8s.GetKubernetesEventHandlers("Backpressure", "SMI", client.announcements, shouldObserve))
+	if featureflags.IsBackpressureEnabled() {
+		informerCollection.Backpressure.AddEventHandler(k8s.GetKubernetesEventHandlers("Backpressure", "SMI", client.announcements, shouldObserve))
+	}
 
 	return &client
 }
@@ -199,6 +208,12 @@ func (c *Client) ListTrafficTargets() []*target.TrafficTarget {
 // ListBackpressures implements smi.MeshSpec by returning the list of backpressures
 func (c *Client) ListBackpressures() []*backpressure.Backpressure {
 	var backpressureList []*backpressure.Backpressure
+
+	if !featureflags.IsBackpressureEnabled() {
+		log.Info().Msgf("Backpressure turned off!")
+		return nil
+	}
+
 	for _, pressureIface := range c.caches.Backpressure.List() {
 		backpressure := pressureIface.(*backpressure.Backpressure)
 		// TODO: Add type assertion check using renamed variable when merging with main
