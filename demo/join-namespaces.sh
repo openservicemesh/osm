@@ -20,10 +20,11 @@ BOOKSTORE_NAMESPACE="${BOOKSTORE_NAMESPACE:-bookstore}"
 BOOKTHIEF_NAMESPACE="${BOOKTHIEF_NAMESPACE:-bookthief}"
 BOOKWAREHOUSE_NAMESPACE="${BOOKWAREHOUSE_NAMESPACE:-bookwarehouse}"
 
+MESH_NAME="${MESH_NAME:-osm}"
 
 
 for ns in "$BOOKWAREHOUSE_NAMESPACE" "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE"; do
-    kubectl label namespaces "$ns" openservicemesh.io/monitored-by=osm --overwrite="true"
+    kubectl label namespaces "$ns" openservicemesh.io/monitored-by="$MESH_NAME" --overwrite="true"
 done
 
 
