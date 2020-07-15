@@ -70,7 +70,9 @@ type MeshSpec interface {
 	// ListTrafficTargets lists TrafficTarget SMI resources.
 	ListTrafficTargets() []*target.TrafficTarget
 
-	// ListBackpressures lists Backpressure CRD resources
+	// ListBackpressures lists Backpressure CRD resources.
+	// This is an experimental feature, which will eventually
+	// in some shape or form make its way into SMI Spec.
 	ListBackpressures() []*backpressure.Backpressure
 
 	// GetAnnouncementsChannel returns the channel on which SMI makes announcements

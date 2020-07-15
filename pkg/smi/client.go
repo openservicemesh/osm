@@ -205,28 +205,26 @@ func (c *Client) ListTrafficTargets() []*target.TrafficTarget {
 	return trafficTarget
 }
 
-// ListBackpressures implements smi.MeshSpec by returning the list of backpressures
+// ListBackpressures implements smi.MeshSpec and returns a list of backpressure policies.
 func (c *Client) ListBackpressures() []*backpressure.Backpressure {
 	var backpressureList []*backpressure.Backpressure
 
 	if !featureflags.IsBackpressureEnabled() {
 		log.Info().Msgf("Backpressure turned off!")
-		return nil
+		return backpressureList
 	}
 
 	for _, pressureIface := range c.caches.Backpressure.List() {
-		backpressure := pressureIface.(*backpressure.Backpressure)
-		// TODO: Add type assertion check using renamed variable when merging with main
-		// backpressure, ok := pressureIface.(*backpressure.Backpressure)
-		// if !ok {
-		// 	log.Error().Err(errInvalidObjectType).Msgf("Failed type assertion for Backpressure in cache")
-		// 	continue
-		// }
-
-		if !c.namespaceController.IsMonitoredNamespace(backpressure.Namespace) {
+		bpressure, ok := pressureIface.(*backpressure.Backpressure)
+		if !ok {
+			log.Error().Err(errInvalidObjectType).Msgf("Object obtained from cache is not *Backpressure")
 			continue
 		}
-		backpressureList = append(backpressureList, backpressure)
+
+		if !c.namespaceController.IsMonitoredNamespace(bpressure.Namespace) {
+			continue
+		}
+		backpressureList = append(backpressureList, bpressure)
 	}
 
 	return backpressureList
