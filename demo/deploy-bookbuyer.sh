@@ -10,7 +10,7 @@ CI_MAX_ITERATIONS_THRESHOLD="${CI_MAX_ITERATIONS_THRESHOLD:-0}"
 kubectl delete deployment bookbuyer -n "$BOOKBUYER_NAMESPACE"  || true
 
 echo -e "Deploy BookBuyer Service Account"
-cat <<EOF | kubectl apply -f -
+kubectl apply -f - <<EOF
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -19,7 +19,7 @@ metadata:
 EOF
 
 echo -e "Deploy BookBuyer Service"
-cat <<EOF | kubectl apply -f -
+kubectl apply -f - <<EOF
 apiVersion: v1
 kind: Service
 metadata:
@@ -38,7 +38,7 @@ spec:
 EOF
 
 echo -e "Deploy BookBuyer Deployment"
-cat <<EOF | kubectl apply -f -
+kubectl apply -f - <<EOF
 apiVersion: apps/v1
 kind: Deployment
 metadata:

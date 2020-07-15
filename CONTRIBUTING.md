@@ -9,7 +9,7 @@ This repository is governed under a [Contributor License Agreement](https://cla.
 We use [GitHub Project Boards](https://github.com/open-service-mesh/osm/projects) to help give a high level overview and track what work is going on and what stage it is in. If you want an idea of our roadmap and prioritization, this is the best place to find that information.
 
 ## Issues
-If find a bug, need clarification, or want to propose a feature, submit an issue using [GitHub issues](https://github.com/open-service-mesh/osm/issues).
+If a bug is found, need clarification, or want to propose a feature, submit an issue using [GitHub issues](https://github.com/open-service-mesh/osm/issues).
 
 ## Milestones
 We use [GitHub Milestones] to track progress of releases. A milestone contains a set of GitHub issues we've agreed to complete for the release. A milestone will be given a semantic version and a soft `due date`. We will cut a [GitHub release](https://github.com/open-service-mesh/osm/releases) once all issues tagged in the milestone are closed or moved to the next milestone.
