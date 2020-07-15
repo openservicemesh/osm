@@ -82,11 +82,11 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	if isIngress {
 		log.Info().Msgf("Found an ingress resource for service %s, applying necessary filters", proxyServiceName)
 		// This proxy is fronting a service that is a backend for an ingress, add a FilterChain for it
-		ingressFilterChain, err := getInboundIngressFilterChain(proxyServiceName, marshalledInboundConnManager)
+		ingressFilterChains, err := getInboundIngressFilterChains(proxyServiceName, marshalledInboundConnManager)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed to construct ingress filter chain for proxy %s", proxyServiceName)
 		}
-		inboundListener.FilterChains = append(inboundListener.FilterChains, ingressFilterChain)
+		inboundListener.FilterChains = append(inboundListener.FilterChains, ingressFilterChains...)
 	}
 
 	if len(inboundListener.FilterChains) > 0 {
@@ -157,27 +157,51 @@ func getInboundInMeshFilterChain(proxyServiceName service.NamespacedService, mc 
 	return filterChain, nil
 }
 
-func getInboundIngressFilterChain(proxyServiceName service.NamespacedService, filterConfig *any.Any) (*listener.FilterChain, error) {
+func getInboundIngressFilterChains(proxyServiceName service.NamespacedService, filterConfig *any.Any) ([]*listener.FilterChain, error) {
 	marshalledDownstreamTLSContext, err := envoy.MessageToAny(envoy.GetDownstreamTLSContext(proxyServiceName, false /* TLS */))
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshalling DownstreamTLSContext object for proxy %s", proxyServiceName)
 		return nil, err
 	}
-	return &listener.FilterChain{
-		FilterChainMatch: &listener.FilterChainMatch{
-			TransportProtocol: envoy.TransportProtocolTLS,
-		},
-		TransportSocket: &envoy_api_v2_core.TransportSocket{
-			Name: envoy.TransportSocketTLS,
-			ConfigType: &envoy_api_v2_core.TransportSocket_TypedConfig{
-				TypedConfig: marshalledDownstreamTLSContext,
+	return []*listener.FilterChain{
+		{
+			// Filter chain with SNI matching enabled for clients that set the SNI
+			FilterChainMatch: &listener.FilterChainMatch{
+				TransportProtocol: envoy.TransportProtocolTLS,
+				ServerNames:       []string{proxyServiceName.GetCommonName().String()},
+			},
+			TransportSocket: &envoy_api_v2_core.TransportSocket{
+				Name: envoy.TransportSocketTLS,
+				ConfigType: &envoy_api_v2_core.TransportSocket_TypedConfig{
+					TypedConfig: marshalledDownstreamTLSContext,
+				},
+			},
+			Filters: []*listener.Filter{
+				{
+					Name: wellknown.HTTPConnectionManager,
+					ConfigType: &listener.Filter_TypedConfig{
+						TypedConfig: filterConfig,
+					},
+				},
 			},
 		},
-		Filters: []*listener.Filter{
-			{
-				Name: wellknown.HTTPConnectionManager,
-				ConfigType: &listener.Filter_TypedConfig{
-					TypedConfig: filterConfig,
+		{
+			// Filter chain without SNI matching enabled for clients that don't set the SNI
+			FilterChainMatch: &listener.FilterChainMatch{
+				TransportProtocol: envoy.TransportProtocolTLS,
+			},
+			TransportSocket: &envoy_api_v2_core.TransportSocket{
+				Name: envoy.TransportSocketTLS,
+				ConfigType: &envoy_api_v2_core.TransportSocket_TypedConfig{
+					TypedConfig: marshalledDownstreamTLSContext,
+				},
+			},
+			Filters: []*listener.Filter{
+				{
+					Name: wellknown.HTTPConnectionManager,
+					ConfigType: &listener.Filter_TypedConfig{
+						TypedConfig: filterConfig,
+					},
 				},
 			},
 		},
