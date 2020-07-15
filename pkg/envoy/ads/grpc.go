@@ -11,8 +11,9 @@ import (
 	"github.com/open-service-mesh/osm/pkg/envoy"
 )
 
-func receive(requests chan v2.DiscoveryRequest, server *xds.AggregatedDiscoveryService_StreamAggregatedResourcesServer, proxy *envoy.Proxy) {
+func receive(requests chan v2.DiscoveryRequest, server *xds.AggregatedDiscoveryService_StreamAggregatedResourcesServer, proxy *envoy.Proxy, quit chan struct{}) {
 	defer close(requests)
+	defer close(quit)
 	for {
 		var request *v2.DiscoveryRequest
 		request, recvErr := (*server).Recv()
