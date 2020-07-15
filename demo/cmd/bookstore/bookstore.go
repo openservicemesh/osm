@@ -14,6 +14,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/open-service-mesh/osm/demo/cmd/common"
+	"github.com/open-service-mesh/osm/pkg/featureflags"
 )
 
 var identity = flag.String("ident", "unidentified", "the identity of the container where this demo app is running (VM, K8s, etc)")
@@ -89,6 +90,11 @@ func buyBook(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	flag.Parse()
+
+	featureflags.Initialize(featureflags.OptionalFeatures{
+		EnableHumanReadableLog: true,
+	})
+
 	booksBought = 1
 
 	//initializing router

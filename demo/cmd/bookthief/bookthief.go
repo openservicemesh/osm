@@ -11,6 +11,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/open-service-mesh/osm/demo/cmd/common"
+	"github.com/open-service-mesh/osm/pkg/featureflags"
 	"github.com/open-service-mesh/osm/pkg/logger"
 )
 
@@ -88,6 +89,10 @@ func debugServer() {
 }
 
 func main() {
+
+	featureflags.Initialize(featureflags.OptionalFeatures{
+		EnableHumanReadableLog: true,
+	})
 
 	go debugServer()
 

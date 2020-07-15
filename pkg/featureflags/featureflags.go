@@ -40,6 +40,7 @@ func IsBackpressureEnabled() bool {
 	return Features.Backpressure
 }
 
+// EnableHumanReadalbeLog determines whether logging facility should emit pretty log messages or JSON lines.
 func EnableHumanReadalbeLog() bool {
 	return Features.EnableHumanReadableLog
 }

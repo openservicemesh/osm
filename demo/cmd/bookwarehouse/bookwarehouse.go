@@ -10,6 +10,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/open-service-mesh/osm/demo/cmd/common"
+	"github.com/open-service-mesh/osm/pkg/featureflags"
 	"github.com/open-service-mesh/osm/pkg/logger"
 )
 
@@ -47,6 +48,10 @@ func restockBooks(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	flag.Parse()
+
+	featureflags.Initialize(featureflags.OptionalFeatures{
+		EnableHumanReadableLog: true,
+	})
 
 	//initializing router
 	router := mux.NewRouter()

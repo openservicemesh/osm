@@ -218,7 +218,7 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 		fmt.Sprintf("OpenServiceMesh.enableDebugServer=%t", i.enableDebugServer),
 		fmt.Sprintf("OpenServiceMesh.enablePermissiveTrafficPolicy=%t", i.enablePermissiveTrafficPolicy),
 		fmt.Sprintf("OpenServiceMesh.enableBackpressureExperimental=%t", i.enableBackpressureExperimental),
-		fmt.Sprintf("OpenServiceMesh.enableHumanREadableLog=%t", i.enableHumanReadableLog),
+		fmt.Sprintf("OpenServiceMesh.enableHumanReadableLog=%t", i.enableHumanReadableLog),
 		fmt.Sprintf("OpenServiceMesh.meshName=%s", i.meshName),
 	}
 
