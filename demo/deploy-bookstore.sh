@@ -26,7 +26,7 @@ spec:
 
   selector:
     app: bookstore
-    version: v1
+    # version: v1
 
 EOF
 
