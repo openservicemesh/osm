@@ -96,18 +96,29 @@ func main() {
 		os.Exit(1)
 	}
 
+	bookWarehousePodName, err := maestro.GetPodName(kubeClient, bookWarehouseNS, bookWarehouseSelector)
+	if err != nil {
+		fmt.Println("Error getting bookWarehouse pod after pod being ready: ", err)
+		os.Exit(1)
+	}
+
 	// Tail the logs of the BookBuyer and BookThief pods concurrently and watch for success or failure.
 	bookBuyerCh := make(chan maestro.TestResult)
-	maestro.SearchLogsForSuccess(kubeClient, bookbuyerNS, bookBuyerPodName, bookBuyerLabel, maxWaitForOK(), bookBuyerCh)
-
 	bookThiefCh := make(chan maestro.TestResult)
-	maestro.SearchLogsForSuccess(kubeClient, bookthiefNS, bookThiefPodName, bookThiefLabel, maxWaitForOK(), bookThiefCh)
+
+	maestro.SearchLogsForSuccess(kubeClient, bookbuyerNS, bookBuyerPodName, bookBuyerLabel, maxWaitForOK(), bookBuyerCh, common.Success, common.Failure)
+	maestro.SearchLogsForSuccess(kubeClient, bookthiefNS, bookThiefPodName, bookThiefLabel, maxWaitForOK(), bookThiefCh, common.Success, common.Failure)
+
+	bookWarehouseCh := make(chan maestro.TestResult)
+	successToken := "Restocking bookstore with 1 new books; Total so far: 3 "
+	maestro.SearchLogsForSuccess(kubeClient, bookWarehouseNS, bookWarehousePodName, bookWarehouseLabel, maxWaitForOK(), bookWarehouseCh, successToken, common.Failure)
 
 	bookBuyerTestResult := <-bookBuyerCh
 	bookThiefTestResult := <-bookThiefCh
+	bookWarehouseTestResult := <-bookWarehouseCh
 
 	// When both pods return success - easy - we are good to go! CI passed!
-	if bookBuyerTestResult == maestro.TestsPassed && bookThiefTestResult == maestro.TestsPassed {
+	if bookBuyerTestResult == maestro.TestsPassed && bookThiefTestResult == maestro.TestsPassed && bookWarehouseTestResult == maestro.TestsPassed {
 		log.Info().Msg("Test succeeded")
 		maestro.DeleteNamespaces(kubeClient, namespaces...)
 		webhookName := fmt.Sprintf("osm-webhook-%s", meshName)
@@ -130,14 +141,23 @@ func main() {
 		log.Error().Msgf("BookThief test %s", humanize[bookThiefTestResult])
 	}
 
+	if bookWarehouseTestResult != maestro.TestsPassed {
+		log.Error().Msgf("BookWarehouse test %s", humanize[bookWarehouseTestResult])
+	}
+
 	fmt.Println("The integration test failed")
 
 	bookBuyerLogs := maestro.GetPodLogs(kubeClient, bookbuyerNS, bookBuyerPodName, bookBuyerLabel, maestro.FailureLogsFromTimeSince)
-	bookThiefLogs := maestro.GetPodLogs(kubeClient, bookthiefNS, bookThiefPodName, bookThiefLabel, maestro.FailureLogsFromTimeSince)
 	fmt.Println("-------- Bookbuyer LOGS --------\n", cutIt(bookBuyerLogs))
+
+	bookThiefLogs := maestro.GetPodLogs(kubeClient, bookthiefNS, bookThiefPodName, bookThiefLabel, maestro.FailureLogsFromTimeSince)
 	fmt.Println("-------- Bookthief LOGS --------\n", cutIt(bookThiefLogs))
 
+	bookWarehouseLogs := maestro.GetPodLogs(kubeClient, bookWarehouseNS, bookWarehousePodName, bookWarehouseLabel, maestro.FailureLogsFromTimeSince)
+	fmt.Println("-------- BookWarehouse LOGS --------\n", cutIt(bookWarehouseLogs))
+
 	osmPodName, err := maestro.GetPodName(kubeClient, osmNamespace, osmControllerPodSelector)
+
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Error getting ADS pods with selector %s in namespace %s", osmPodName, osmNamespace)
 	}
