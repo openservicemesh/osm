@@ -71,12 +71,22 @@ var _ = Describe("CDS Response", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			// There are to any.Any resources in the ClusterDiscoveryStruct (Clusters)
-			// There are 3 clusters we expect:
+			// There are 5 types of clusters that can exist based on the configuration:
 			// 1. Destination cluster
 			// 2. Source cluster
 			// 3. Prometheus cluster
 			// 4. Zipkin cluster
-			numExpectedClusters := 4
+			// 5. Passthrough cluster for egress
+			numExpectedClusters := 2 // source and destination clusters
+			if cfg.IsPrometheusScrapingEnabled() {
+				numExpectedClusters++
+			}
+			if cfg.IsZipkinTracingEnabled() {
+				numExpectedClusters++
+			}
+			if cfg.IsEgressEnabled() {
+				numExpectedClusters++
+			}
 			Expect(len((*resp).Resources)).To(Equal(numExpectedClusters))
 		})
 	})
