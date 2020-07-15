@@ -2,8 +2,9 @@ package tests
 
 import (
 	"fmt"
-	backpressure "github.com/open-service-mesh/osm/experimental/pkg/apis/policy/v1alpha1"
 	"net"
+
+	backpressure "github.com/open-service-mesh/osm/experimental/pkg/apis/policy/v1alpha1"
 
 	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha1"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha2"
@@ -215,6 +216,8 @@ var (
 		},
 	}
 
+	// Backpressure is an experimental Backpressure policy.
+	// This will be replaced by an SMI Spec when it is ready.
 	Backpressure = backpressure.Backpressure{
 		Spec: backpressure.BackpressureSpec{
 			MaxRequestsPerConnection: 123,
