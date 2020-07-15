@@ -11,7 +11,15 @@ source .env
 
 
 K8S_NAMESPACE="${K8S_NAMESPACE:-osm-system}"
+BOOKBUYER_NAMESPACE="${BOOKBUYER_NAMESPACE:-bookbuyer}"
 BOOKSTORE_NAMESPACE="${BOOKSTORE_NAMESPACE:-bookstore}"
+BOOKTHIEF_NAMESPACE="${BOOKTHIEF_NAMESPACE:-bookthief}"
+BOOKWAREHOUSE_NAMESPACE="${BOOKWAREHOUSE_NAMESPACE:-bookwarehouse}"
+
+
+for ns in "$BOOKWAREHOUSE_NAMESPACE" "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE"; do
+    kubectl label namespaces "$ns" openservicemesh.io/monitored-by=osm- || true
+done
 
 
 kubectl apply -f - <<EOF
@@ -29,7 +37,7 @@ data:
 EOF
 
 
-# Create a top level service just for the bookstore.mesh domain
+# Create a top level service
 echo -e "Deploy bookstore Service"
 kubectl apply -f - <<EOF
 apiVersion: v1
