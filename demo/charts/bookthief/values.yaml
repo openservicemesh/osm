@@ -29,6 +29,3 @@ service:
     - port: 1
       targetPort: admin
       name: bookthief
-
-env:
-  BOOKSTORE_SVC: bookstore
