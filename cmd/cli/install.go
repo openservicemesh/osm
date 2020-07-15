@@ -54,6 +54,8 @@ const (
 	defaultCertManager   = "tresor"
 	defaultVaultProtocol = "http"
 	defaultMeshName      = "osm"
+
+	defaultCertValidityMinutes = int(1440) // 24 hours
 )
 
 // chartTGZSource is a base64-encoded, gzipped tarball of the default Helm chart.
@@ -109,7 +111,7 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.StringVar(&inst.vaultProtocol, "vault-protocol", defaultVaultProtocol, "protocol to use to connect to Vault")
 	f.StringVar(&inst.vaultToken, "vault-token", "", "token that should be used to connect to Vault")
 	f.StringVar(&inst.vaultRole, "vault-role", "open-service-mesh", "Vault role to be used by Open Service Mesh")
-	f.IntVar(&inst.serviceCertValidityMinutes, "service-cert-validity-minutes", int(1), "Certificate TTL in minutes")
+	f.IntVar(&inst.serviceCertValidityMinutes, "service-cert-validity-minutes", defaultCertValidityMinutes, "Certificate TTL in minutes")
 	f.StringVar(&inst.prometheusRetentionTime, "prometheus-retention-time", constants.PrometheusDefaultRetentionTime, "Duration for which data will be retained in prometheus")
 	f.BoolVar(&inst.enableDebugServer, "enable-debug-server", false, "Enable the debug HTTP server")
 	f.BoolVar(&inst.enablePermissiveTrafficPolicy, "enable-permissive-traffic-policy", false, "Enable permissive traffic policy mode")
