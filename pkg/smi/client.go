@@ -4,9 +4,6 @@ import (
 	"reflect"
 	"strings"
 
-	backpressure "github.com/open-service-mesh/osm/experimental/pkg/apis/policy/v1alpha1"
-	backpressureClient "github.com/open-service-mesh/osm/experimental/pkg/client/clientset/versioned"
-	backpressureInformers "github.com/open-service-mesh/osm/experimental/pkg/client/informers/externalversions"
 	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha1"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha2"
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
@@ -22,6 +19,9 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
+	backpressure "github.com/open-service-mesh/osm/experimental/pkg/apis/policy/v1alpha1"
+	backpressureClient "github.com/open-service-mesh/osm/experimental/pkg/client/clientset/versioned"
+	backpressureInformers "github.com/open-service-mesh/osm/experimental/pkg/client/informers/externalversions"
 	"github.com/open-service-mesh/osm/pkg/featureflags"
 	k8s "github.com/open-service-mesh/osm/pkg/kubernetes"
 	"github.com/open-service-mesh/osm/pkg/namespace"
@@ -36,6 +36,7 @@ func NewMeshSpecClient(smiKubeConfig *rest.Config, kubeClient kubernetes.Interfa
 	smiTrafficSplitClientSet := smiTrafficSplitClient.NewForConfigOrDie(smiKubeConfig)
 	smiTrafficSpecClientSet := smiTrafficSpecClient.NewForConfigOrDie(smiKubeConfig)
 	smiTrafficTargetClientSet := smiTrafficTargetClient.NewForConfigOrDie(smiKubeConfig)
+
 	var backpressureClientSet *backpressureClient.Clientset
 	if featureflags.IsBackpressureEnabled() {
 		backpressureClientSet = backpressureClient.NewForConfigOrDie(smiKubeConfig)
@@ -64,7 +65,10 @@ func (c *Client) run(stop <-chan struct{}) error {
 		"Services":      c.informers.Services,
 		"TrafficSpec":   c.informers.TrafficSpec,
 		"TrafficTarget": c.informers.TrafficTarget,
-		"Backpressure":  c.informers.Backpressure,
+	}
+
+	if featureflags.IsBackpressureEnabled() {
+		sharedInformers["Backpressure"] = c.informers.Backpressure
 	}
 
 	var names []string
@@ -108,7 +112,6 @@ func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient *smiTra
 	smiTrafficSplitInformerFactory := smiTrafficSplitInformers.NewSharedInformerFactory(smiTrafficSplitClient, k8s.DefaultKubeEventResyncInterval)
 	smiTrafficSpecInformerFactory := smiTrafficSpecInformers.NewSharedInformerFactory(smiTrafficSpecClient, k8s.DefaultKubeEventResyncInterval)
 	smiTrafficTargetInformerFactory := smiTrafficTargetInformers.NewSharedInformerFactory(smiTrafficTargetClient, k8s.DefaultKubeEventResyncInterval)
-	backPressureInformerFactory := backpressureInformers.NewSharedInformerFactoryWithOptions(backpressureClient, k8s.DefaultKubeEventResyncInterval)
 
 	informerCollection := InformerCollection{
 		Services:      informerFactory.Core().V1().Services().Informer(),
@@ -125,6 +128,7 @@ func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient *smiTra
 	}
 
 	if featureflags.IsBackpressureEnabled() {
+		backPressureInformerFactory := backpressureInformers.NewSharedInformerFactoryWithOptions(backpressureClient, k8s.DefaultKubeEventResyncInterval)
 		informerCollection.Backpressure = backPressureInformerFactory.Policy().V1alpha1().Backpressures().Informer()
 		cacheCollection.Backpressure = informerCollection.Backpressure.GetStore()
 	}
@@ -147,6 +151,7 @@ func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient *smiTra
 	informerCollection.TrafficSplit.AddEventHandler(k8s.GetKubernetesEventHandlers("TrafficSplit", "SMI", client.announcements, shouldObserve))
 	informerCollection.TrafficSpec.AddEventHandler(k8s.GetKubernetesEventHandlers("TrafficSpec", "SMI", client.announcements, shouldObserve))
 	informerCollection.TrafficTarget.AddEventHandler(k8s.GetKubernetesEventHandlers("TrafficTarget", "SMI", client.announcements, shouldObserve))
+
 	if featureflags.IsBackpressureEnabled() {
 		informerCollection.Backpressure.AddEventHandler(k8s.GetKubernetesEventHandlers("Backpressure", "SMI", client.announcements, shouldObserve))
 	}
