@@ -2,6 +2,7 @@ package tests
 
 import (
 	"fmt"
+	backpressure "github.com/open-service-mesh/osm/experimental/pkg/apis/policy/v1alpha1"
 	"net"
 
 	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha1"
@@ -211,6 +212,12 @@ var (
 					"host": Domain,
 				},
 			},
+		},
+	}
+
+	Backpressure = backpressure.Backpressure{
+		Spec: backpressure.BackpressureSpec{
+			MaxRequestsPerConnection: 123,
 		},
 	}
 )
