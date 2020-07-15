@@ -96,6 +96,7 @@ func init() {
 	flags.IntVar(&injectorConfig.ListenPort, "webhook-port", constants.InjectorWebhookPort, "Webhook port for sidecar-injector")
 	flags.StringVar(&injectorConfig.InitContainerImage, "init-container-image", "", "InitContainer image")
 	flags.StringVar(&injectorConfig.SidecarImage, "sidecar-image", "", "Sidecar proxy Container image")
+	flags.StringVar(&injectorConfig.StatsWASMExtensionPath, "stats-wasm-extension-path", "", "Path to the Envoy stats WASM module")
 
 	// feature flags
 	flags.BoolVar(&optionalFeatures.Backpressure, "enable-backpressure-experimental", false, "Enable experimental backpressure feature")

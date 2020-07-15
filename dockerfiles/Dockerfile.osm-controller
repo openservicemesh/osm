@@ -1,4 +1,5 @@
 FROM alpine:3.10.1
 
 ADD bin/osm-controller /osm-controller
+ADD wasm/stats.wasm /
 RUN chmod +x /osm-controller

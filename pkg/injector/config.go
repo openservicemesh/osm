@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"io/ioutil"
 	"strconv"
 	"strings"
 
@@ -151,6 +152,15 @@ func (wh *webhook) createEnvoyBootstrapConfig(name, namespace, osmNamespace stri
 			envoyBootstrapConfigFile: yamlContent,
 		},
 	}
+
+	if len(wh.config.StatsWASMExtensionPath) > 0 {
+		statsWASM, err := ioutil.ReadFile(envoyStatsWASMExtension)
+		if err != nil {
+			return nil, err
+		}
+		secret.Data[envoyStatsWASMExtension] = statsWASM
+	}
+
 	if existing, err := wh.kubeClient.CoreV1().Secrets(namespace).Get(context.Background(), name, metav1.GetOptions{}); err == nil {
 		log.Info().Msgf("Updating bootstrap config Envoy: name=%s, namespace=%s", name, namespace)
 		existing.Data = secret.Data

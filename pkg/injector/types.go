@@ -40,6 +40,8 @@ type Config struct {
 	InitContainerImage string
 
 	SidecarImage string
+
+	StatsWASMExtensionPath string
 }
 
 // JSONPatchOperation is the type used to represenet a JSON Patch operation

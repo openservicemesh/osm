@@ -45,6 +45,7 @@ spec:
             {{- if .Values.OpenServiceMesh.enableBackpressureExperimental }}
             "--enable-backpressure-experimental",
             {{- end }}
+            "--stats-wasm-extension-path", "stats.wasm",
           ]
           resources:
             limits:
