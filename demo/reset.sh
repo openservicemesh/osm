@@ -25,4 +25,4 @@ kubectl rollout restart deployment -n osm-system osm-prometheus
 
 
 # Clean up any tcpdump files.
-rm -rf *.pcap
+rm -rf ./*.pcap
