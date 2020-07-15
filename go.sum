@@ -914,6 +914,8 @@ k8s.io/cli-runtime v0.18.0/go.mod h1:1eXfmBsIJosjn9LjEBUd2WVPoPAY9XGTqTFcPMIBsUQ
 k8s.io/client-go v0.17.4/go.mod h1:ouF6o5pz3is8qU0/qYL2RnoxOPqgfuidYLowytyLJmc=
 k8s.io/client-go v0.18.0 h1:yqKw4cTUQraZK3fcVCMeSa+lqKwcjZ5wtcOIPnxQno4=
 k8s.io/client-go v0.18.0/go.mod h1:uQSYDYs4WhVZ9i6AIoEZuwUggLVEF64HOD37boKAtF8=
+k8s.io/client-go v1.5.1 h1:XaX/lo2/u3/pmFau8HN+sB5C/b4dc4Dmm2eXjBH4p1E=
+k8s.io/client-go v11.0.0+incompatible h1:LBbX2+lOwY9flffWlJM7f1Ct8V2SRNiMRDFeiwnJo9o=
 k8s.io/code-generator v0.17.4/go.mod h1:l8BLVwASXQZTo2xamW5mQNFCe1XPiAesVq7Y1t7PiQQ=
 k8s.io/code-generator v0.18.0/go.mod h1:+UHX5rSbxmR8kzS+FAv7um6dtYrZokQvjHpDSYRVkTc=
 k8s.io/code-generator v0.18.3 h1:5H57pYEbkMMXCLKD16YQH3yDPAbVLweUsB1M3m70D1c=
