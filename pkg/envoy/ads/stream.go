@@ -39,8 +39,12 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	quit := make(chan struct{})
 	requests := make(chan v2.DiscoveryRequest)
-	go receive(requests, &server, proxy)
+
+	// This helper handles receiving messages from the connected Envoys
+	// and any gRPC error states.
+	go receive(requests, &server, proxy, quit)
 
 	for {
 
@@ -48,31 +52,48 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 		case <-ctx.Done():
 			return nil
 
+		case <-quit:
+			log.Info().Msg("Stream closed!")
+			return nil
+
 		case discoveryRequest, ok := <-requests:
 			log.Info().Msgf("Received %s (nonce=%s; version=%s) from Envoy %s", discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, proxy.GetCommonName())
 			log.Info().Msgf("Last sent for %s nonce=%s; last sent version=%s for Envoy %s", discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, proxy.GetCommonName())
 			if !ok {
-				log.Error().Msgf("Proxy %s closed GRPC", proxy)
+				log.Error().Msgf("Proxy %s closed GRPC!", proxy.GetCommonName())
 				return errGrpcClosed
 			}
 
 			if discoveryRequest.ErrorDetail != nil {
 				log.Error().Msgf("[NACK] Discovery request error from proxy %s: %s", proxy, discoveryRequest.ErrorDetail)
-				return errEnvoyError
+				// NOTE(draychev): We could also return errEnvoyError - but it seems appropriate to also ignore this request and continue on.
+				continue
 			}
 
 			typeURL := envoy.TypeURI(discoveryRequest.TypeUrl)
 
-			ackVersion, err := strconv.ParseUint(discoveryRequest.VersionInfo, 10, 64)
-			if err != nil && discoveryRequest.VersionInfo != "" {
-				log.Error().Err(err).Msgf("Error parsing %s discovery request VersionInfo (%s) from proxy %s", typeURL, discoveryRequest.VersionInfo, proxy.GetCommonName())
-				ackVersion = 0
+			// It is possible for Envoy to return an empty VersionInfo.
+			// When that's the case - start with 0
+			ackVersion := uint64(0)
+			if discoveryRequest.VersionInfo != "" {
+				if ackVersion, err = strconv.ParseUint(discoveryRequest.VersionInfo, 10, 64); err != nil {
+					// It is probable that Envoy responded with a VersionInfo we did not understand
+					// We log this and continue. The ackVersion will be 0 in this state.
+					log.Error().Err(err).Msgf("Error parsing %s discovery request VersionInfo (%s) from proxy %s", typeURL, discoveryRequest.VersionInfo, proxy.GetCommonName())
+				}
 			}
 
 			log.Debug().Msgf("Incoming Discovery Request %s (nonce=%s; version=%d) from Envoy %s; last applied version: %d",
-				discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, ackVersion, proxy.GetCommonName(), proxy.GetLastAppliedVersion(typeURL))
+				discoveryRequest.TypeUrl,
+				discoveryRequest.ResponseNonce,
+				ackVersion,
+				proxy.GetCommonName(),
+				proxy.GetLastAppliedVersion(typeURL))
+
 			log.Debug().Msgf("Last sent nonce=%s; last sent version=%d for Envoy %s",
-				proxy.GetLastSentNonce(typeURL), proxy.GetLastSentVersion(typeURL), proxy.GetCommonName())
+				proxy.GetLastSentNonce(typeURL),
+				proxy.GetLastSentVersion(typeURL),
+				proxy.GetCommonName())
 
 			proxy.SetLastAppliedVersion(typeURL, ackVersion)
 

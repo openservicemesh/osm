@@ -72,7 +72,6 @@ func updateBooksBought(w http.ResponseWriter, r *http.Request) {
 
 // buyBook increments the value of the booksBought
 func buyBook(w http.ResponseWriter, r *http.Request) {
-
 	booksBought++
 	setHeaders(w)
 	renderTemplate(w)
