@@ -39,8 +39,12 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	quit := make(chan struct{})
 	requests := make(chan v2.DiscoveryRequest)
-	go receive(requests, &server, proxy)
+
+	// This helper handles receiving messages from the connected Envoys
+	// and any gRPC error states.
+	go receive(requests, &server, proxy, quit)
 
 	for {
 
@@ -48,17 +52,22 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 		case <-ctx.Done():
 			return nil
 
+		case <-quit:
+			log.Info().Msg("Stream closed!")
+			return nil
+
 		case discoveryRequest, ok := <-requests:
 			log.Info().Msgf("Received %s (nonce=%s; version=%s) from Envoy %s", discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, proxy.GetCommonName())
 			log.Info().Msgf("Last sent for %s nonce=%s; last sent version=%s for Envoy %s", discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, proxy.GetCommonName())
 			if !ok {
-				log.Error().Msgf("Proxy %s closed GRPC", proxy)
+				log.Error().Msgf("Proxy %s closed GRPC!", proxy.GetCommonName())
 				return errGrpcClosed
 			}
 
 			if discoveryRequest.ErrorDetail != nil {
 				log.Error().Msgf("[NACK] Discovery request error from proxy %s: %s", proxy, discoveryRequest.ErrorDetail)
-				return errEnvoyError
+				// NOTE(draychev): We could also return errEnvoyError - but it seems appropriate to also ignore this request and continue on.
+				continue
 			}
 
 			typeURL := envoy.TypeURI(discoveryRequest.TypeUrl)
