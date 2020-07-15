@@ -23,15 +23,15 @@ type fakeMeshSpec struct {
 // NewFakeMeshSpecClient creates a fake Mesh Spec used for testing.
 func NewFakeMeshSpecClient() MeshSpec {
 	return fakeMeshSpec{
-		routeGroups:    []*spec.HTTPRouteGroup{&tests.HTTPRouteGroup},
-		trafficTargets: []*target.TrafficTarget{&tests.TrafficTarget},
-		// TODO: Add backpressure in OSM package tests
-		// backpressures:    []*backpressure.Backpressure{&tests.Backpressure},
+		routeGroups:      []*spec.HTTPRouteGroup{&tests.HTTPRouteGroup},
+		trafficTargets:   []*target.TrafficTarget{&tests.TrafficTarget},
 		weightedServices: []service.WeightedService{tests.WeightedService},
 		serviceAccounts: []service.NamespacedServiceAccount{
 			tests.BookstoreServiceAccount,
 			tests.BookbuyerServiceAccount,
 		},
+
+		backpressures: []*backpressure.Backpressure{&tests.Backpressure},
 	}
 }
 
