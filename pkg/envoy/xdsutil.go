@@ -67,6 +67,9 @@ const (
 
 	// TransportProtocolTLS is the TLS transport protocol used in Envoy configurations
 	TransportProtocolTLS = "tls"
+
+	// OutboundPassthroughCluster is the outbound passthrough cluster name
+	OutboundPassthroughCluster = "passthrough-outbound"
 )
 
 // Defines valid cert types
@@ -301,6 +304,18 @@ func GetServiceCluster(remoteService, localService service.NamespacedService) (*
 			},
 		},
 	}, nil
+}
+
+// GetOutboundPassthroughCluster returns an Envoy cluster that is used for outbound passthrough traffic
+func GetOutboundPassthroughCluster() *xds.Cluster {
+	return &xds.Cluster{
+		Name:           OutboundPassthroughCluster,
+		ConnectTimeout: ptypes.DurationProto(ConnectionTimeout),
+		ClusterDiscoveryType: &xds.Cluster_Type{
+			Type: xds.Cluster_ORIGINAL_DST,
+		},
+		LbPolicy: xds.Cluster_CLUSTER_PROVIDED,
+	}
 }
 
 // GetADSConfigSource creates an Envoy ConfigSource struct.

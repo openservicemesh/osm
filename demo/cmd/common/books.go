@@ -15,8 +15,10 @@ var (
 	sleepDurationBetweenRequestsSecondsStr = GetEnv("CI_SLEEP_BETWEEN_REQUESTS_SECONDS", "3")
 	minSuccessThresholdStr                 = GetEnv("CI_MIN_SUCCESS_THRESHOLD", "1")
 	maxIterationsStr                       = GetEnv("CI_MAX_ITERATIONS_THRESHOLD", "0") // 0 for unlimited
+	bookstoreServiceName                   = GetEnv("BOOKSTORE_SVC", "bookstore")
 	isGithub                               = GetEnv(IsGithubEnvVar, "false") == "true"
 	bookstoreNamespace                     = os.Getenv(BookstoreNamespaceEnvVar)
+	warehouseServiceName                   = "bookwarehouse"
 	bookwarehouseNamespace                 = os.Getenv(BookwarehouseNamespaceEnvVar)
 
 	bookstoreService = fmt.Sprintf("%s.%s", bookstoreServiceName, bookstoreNamespace)     // FQDN
@@ -44,9 +46,6 @@ var (
 const (
 	// RestockWarehouseURL is a header string constant.
 	RestockWarehouseURL = "restock-books"
-
-	bookstoreServiceName = "bookstore"
-	warehouseServiceName = "bookwarehouse"
 )
 
 var log = logger.New("demo")

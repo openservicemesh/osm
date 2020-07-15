@@ -4,7 +4,7 @@ set -auexo pipefail
 
 # shellcheck disable=SC1091
 source .env
-
+BOOKSTORE_SVC="${BOOKSTORE_SVC:-bookstore}"
 CI_MAX_ITERATIONS_THRESHOLD="${CI_MAX_ITERATIONS_THRESHOLD:-0}"
 
 kubectl delete deployment bookbuyer -n "$BOOKBUYER_NAMESPACE"  || true
@@ -69,6 +69,8 @@ spec:
               value: "$BOOKSTORE_NAMESPACE"
             - name: "OSM_HUMAN_DEBUG_LOG"
               value: "true"
+            - name: "BOOKSTORE_SVC"
+              value: "$BOOKSTORE_SVC"
             - name: "CI_MAX_ITERATIONS_THRESHOLD"
               value: "$CI_MAX_ITERATIONS_THRESHOLD"
             - name: IS_GITHUB

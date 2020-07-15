@@ -5,7 +5,8 @@ set -aueo pipefail
 # shellcheck disable=SC1091
 source .env
 
-BOOKTHIEF_EXPECTED_RESPONSE_CODE="${BOOKTHIEF_EXPECTED_RESPONSE_CODE:-404}"
+BOOKSTORE_SVC="${BOOKSTORE_SVC:-bookstore}"
+BOOKTHIEF_EXPECTED_RESPONSE_CODE="${BOOKTHIEF_EXPECTED_RESPONSE_CODE:-503}"
 CI_MAX_ITERATIONS_THRESHOLD="${CI_MAX_ITERATIONS_THRESHOLD:-0}"
 
 kubectl delete deployment bookthief -n "$BOOKTHIEF_NAMESPACE"  || true
@@ -68,6 +69,8 @@ spec:
               value: "$BOOKSTORE_NAMESPACE"
             - name: "OSM_HUMAN_DEBUG_LOG"
               value: "true"
+            - name: "BOOKSTORE_SVC"
+              value: "$BOOKSTORE_SVC"
             - name: "BOOKTHIEF_EXPECTED_RESPONSE_CODE"
               value: "$BOOKTHIEF_EXPECTED_RESPONSE_CODE"
             - name: "CI_MAX_ITERATIONS_THRESHOLD"
