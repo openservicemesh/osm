@@ -110,6 +110,7 @@ if [ "$CERT_MANAGER" = "vault" ]; then
       --container-registry-secret "$CTR_REGISTRY_CREDS_NAME" \
       --osm-image-tag "$CTR_TAG" \
       --enable-debug-server \
+      --enable-human-readable-log \
       $optionalInstallArgs
 else
   # shellcheck disable=SC2086
@@ -120,6 +121,7 @@ else
       --container-registry-secret "$CTR_REGISTRY_CREDS_NAME" \
       --osm-image-tag "$CTR_TAG" \
       --enable-debug-server \
+      --enable-human-readable-log \
       $optionalInstallArgs
 fi
 

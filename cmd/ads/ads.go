@@ -99,6 +99,7 @@ func init() {
 
 	// feature flags
 	flags.BoolVar(&optionalFeatures.Backpressure, "enable-backpressure-experimental", false, "Enable experimental backpressure feature")
+	flags.BoolVar(&optionalFeatures.EnableHumanReadableLog, "enable-human-readable-log", false, "Enables human readable logs, which makes each log line colorful and pretty (vs JSON blobs)")
 }
 
 func main() {

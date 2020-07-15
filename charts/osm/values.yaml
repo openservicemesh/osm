@@ -28,4 +28,5 @@ OpenServiceMesh:
   enableDebugServer: false
   enablePermissiveTrafficPolicy: false
   enableBackpressureExperimental: false
+  enableHumanReadableLog: false
   meshName: osm

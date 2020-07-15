@@ -45,6 +45,9 @@ spec:
             {{- if .Values.OpenServiceMesh.enableBackpressureExperimental }}
             "--enable-backpressure-experimental",
             {{- end }}
+            {{- if .Values.OpenServiceMesh.enableHumanReadableLog }}
+            "--enable-human-readable-log",
+            {{- end }}
           ]
           resources:
             limits:

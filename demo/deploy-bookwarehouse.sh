@@ -62,8 +62,6 @@ spec:
           command: ["/bookwarehouse"]
 
           env:
-            - name: "OSM_HUMAN_DEBUG_LOG"
-              value: "true"
             - name: IS_GITHUB
               value: "$IS_GITHUB"
 

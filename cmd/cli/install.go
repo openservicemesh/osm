@@ -83,6 +83,9 @@ type installCmd struct {
 	// become part of SMI Spec.
 	enableBackpressureExperimental bool
 
+	// Set this to true to enalbe colorful and pretty log lines, but at the cost of perhaps slightly lower performance.
+	enableHumanReadableLog bool
+
 	// checker runs checks before any installation is attempted. Its type is
 	// abstract here to make testing easy.
 	checker interface {
@@ -120,6 +123,7 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.BoolVar(&inst.enableDebugServer, "enable-debug-server", false, "Enable the debug HTTP server")
 	f.BoolVar(&inst.enablePermissiveTrafficPolicy, "enable-permissive-traffic-policy", false, "Enable permissive traffic policy mode")
 	f.BoolVar(&inst.enableBackpressureExperimental, "enable-backpressure-experimental", false, "Enable experimental backpressure feature")
+	f.BoolVar(&inst.enableHumanReadableLog, "enable-human-readable-log", false, "Enable human readable log, which makes log lines colorful and pretty")
 	f.StringVar(&inst.meshName, "mesh-name", defaultMeshName, "Name of the service mesh")
 
 	return cmd
@@ -214,6 +218,7 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 		fmt.Sprintf("OpenServiceMesh.enableDebugServer=%t", i.enableDebugServer),
 		fmt.Sprintf("OpenServiceMesh.enablePermissiveTrafficPolicy=%t", i.enablePermissiveTrafficPolicy),
 		fmt.Sprintf("OpenServiceMesh.enableBackpressureExperimental=%t", i.enableBackpressureExperimental),
+		fmt.Sprintf("OpenServiceMesh.enableHumanREadableLog=%t", i.enableHumanReadableLog),
 		fmt.Sprintf("OpenServiceMesh.meshName=%s", i.meshName),
 	}
 

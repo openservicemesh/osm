@@ -67,8 +67,6 @@ spec:
           env:
             - name: "BOOKSTORE_NAMESPACE"
               value: "$BOOKSTORE_NAMESPACE"
-            - name: "OSM_HUMAN_DEBUG_LOG"
-              value: "true"
             - name: "BOOKSTORE_SVC"
               value: "$BOOKSTORE_SVC"
             - name: "CI_MAX_ITERATIONS_THRESHOLD"

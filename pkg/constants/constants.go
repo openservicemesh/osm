@@ -114,9 +114,6 @@ const (
 	// EnvVarLogKubernetesEvents is the name of the env var instructing the event handlers whether to log at all (true/false)
 	EnvVarLogKubernetesEvents = "OSM_LOG_KUBERNETES_EVENTS"
 
-	// EnvVarHumanReadableLogMessages is an environment variable, which when set to "true" enables colorful human-readable log messages.
-	EnvVarHumanReadableLogMessages = "OSM_HUMAN_DEBUG_LOG"
-
 	// ClusterWeightAcceptAll is the weight for a cluster that accepts 100 percent of traffic sent to it
 	ClusterWeightAcceptAll = 100
 
