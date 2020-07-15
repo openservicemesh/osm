@@ -4,14 +4,15 @@ set -aueo pipefail
 
 # shellcheck disable=SC1091
 source .env
-BOOKSTORE_SVC="${BOOKSTORE_SVC:-bookstore-mesh}"
+
+BOOKSTORE_SVC="${BOOKSTORE_SVC:-bookstore}"
 BOOKTHIEF_EXPECTED_RESPONSE_CODE="${BOOKTHIEF_EXPECTED_RESPONSE_CODE:-404}"
 CI_MAX_ITERATIONS_THRESHOLD="${CI_MAX_ITERATIONS_THRESHOLD:-0}"
 
 kubectl delete deployment bookthief -n "$BOOKTHIEF_NAMESPACE"  || true
 
 echo -e "Deploy BookThief demo service"
-cat <<EOF | kubectl apply -f -
+kubectl apply -f - <<EOF
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -74,6 +75,8 @@ spec:
               value: "$BOOKTHIEF_EXPECTED_RESPONSE_CODE"
             - name: "CI_MAX_ITERATIONS_THRESHOLD"
               value: "$CI_MAX_ITERATIONS_THRESHOLD"
+            - name: IS_GITHUB
+              value: "$IS_GITHUB"
 
       imagePullSecrets:
         - name: "$CTR_REGISTRY_CREDS_NAME"

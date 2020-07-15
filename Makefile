@@ -6,17 +6,6 @@ SHELL      := bash -o pipefail
 
 GOPATH = $(shell go env GOPATH)
 GOBIN  = $(GOPATH)/bin
-GOX    = $(GOPATH)/bin/gox
-
-HAS_GOX := $(shell command -v gox)
-
-.PHONY: gox
-gox:
-ifndef HAS_GOX
-	 GOBIN=$(GOBIN) go get -u github.com/mitchellh/gox
-endif
-
-include .env
 
 .PHONY: clean-cert
 clean-cert:
@@ -29,19 +18,10 @@ clean-osm-controller:
 .PHONY: build
 build: build-osm-controller
 
-
 .PHONY: build-osm-controller
 build-osm-controller: clean-osm-controller
 	@mkdir -p $(shell pwd)/bin
-	CGO_ENABLED=0  go build -v -o ./bin/osm-controller ./cmd/ads
-
-.PHONY: build-cross
-build-cross: LDFLAGS += -extldflags "-static"
-build-cross: build-cross-osm-controller
-
-.PHONY: build-cross-osm-controller
-build-cross-osm-controller: gox
-	GO111MODULE=on CGO_ENABLED=0 $(GOX) -output="./bin/{{.OS}}-{{.Arch}}/osm-controller" -osarch='$(TARGETS)' -ldflags '$(LDFLAGS)' ./cmd/ads
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o ./bin/osm-controller ./cmd/ads
 
 .PHONY: build-osm
 build-osm:
@@ -49,7 +29,7 @@ build-osm:
 	go run scripts/generate_chart/generate_chart.go | CGO_ENABLED=0  go build -v -o ./bin/osm -ldflags "-X main.chartTGZSource=$$(cat -)" ./cmd/cli
 
 .PHONY: docker-build
-docker-build: build-cross docker-build-bookbuyer docker-build-bookstore docker-build-osm-controller docker-build-bookwarehouse
+docker-build: docker-build-osm-controller docker-build-bookbuyer docker-build-bookstore docker-build-bookwarehouse
 
 .PHONY: go-vet
 go-vet:
@@ -73,7 +53,7 @@ go-test-coverage:
 	./scripts/test-w-coverage.sh
 
 .PHONY: docker-build-osm-controller
-docker-build-osm-controller: build-cross-osm-controller
+docker-build-osm-controller: build-osm-controller
 	docker build --build-arg $(HOME)/go/ -t $(CTR_REGISTRY)/osm-controller:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-controller .
 
 .PHONY: build-bookstore

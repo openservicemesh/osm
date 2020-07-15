@@ -4,13 +4,13 @@ set -auexo pipefail
 
 # shellcheck disable=SC1091
 source .env
-BOOKSTORE_SVC="${BOOKSTORE_SVC:-bookstore-mesh}"
+BOOKSTORE_SVC="${BOOKSTORE_SVC:-bookstore}"
 CI_MAX_ITERATIONS_THRESHOLD="${CI_MAX_ITERATIONS_THRESHOLD:-0}"
 
 kubectl delete deployment bookbuyer -n "$BOOKBUYER_NAMESPACE"  || true
 
 echo -e "Deploy BookBuyer Service Account"
-cat <<EOF | kubectl apply -f -
+kubectl apply -f - <<EOF
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -19,7 +19,7 @@ metadata:
 EOF
 
 echo -e "Deploy BookBuyer Service"
-cat <<EOF | kubectl apply -f -
+kubectl apply -f - <<EOF
 apiVersion: v1
 kind: Service
 metadata:
@@ -38,7 +38,7 @@ spec:
 EOF
 
 echo -e "Deploy BookBuyer Deployment"
-cat <<EOF | kubectl apply -f -
+kubectl apply -f - <<EOF
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -73,6 +73,8 @@ spec:
               value: "$BOOKSTORE_SVC"
             - name: "CI_MAX_ITERATIONS_THRESHOLD"
               value: "$CI_MAX_ITERATIONS_THRESHOLD"
+            - name: IS_GITHUB
+              value: "$IS_GITHUB"
 
       imagePullSecrets:
         - name: "$CTR_REGISTRY_CREDS_NAME"

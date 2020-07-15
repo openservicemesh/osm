@@ -20,8 +20,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-
-	"github.com/open-service-mesh/osm/demo/cmd/common"
 )
 
 // We are going to wait for the Pod certain amount of time if it is in one of these statuses
@@ -113,7 +111,7 @@ func GetPodName(kubeClient kubernetes.Interface, namespace, selector string) (st
 
 // SearchLogsForSuccess tails logs until success enum is found.
 // The pod/container we are observing is responsible for sending the SUCCESS/FAIL token based on local heuristic.
-func SearchLogsForSuccess(kubeClient kubernetes.Interface, namespace string, podName string, containerName string, totalWait time.Duration, result chan TestResult) {
+func SearchLogsForSuccess(kubeClient kubernetes.Interface, namespace string, podName string, containerName string, totalWait time.Duration, result chan TestResult, successToken, failureToken string) {
 	sinceTime := metav1.NewTime(time.Now().Add(-PollLogsFromTimeSince))
 	options := &corev1.PodLogOptions{
 		Container: containerName,
@@ -160,14 +158,14 @@ func SearchLogsForSuccess(kubeClient kubernetes.Interface, namespace string, pod
 			// The container itself has the heuristic on when to emit these.
 			default:
 
-				if strings.Contains(line, common.Success) {
-					log.Info().Msgf("[%s] Found %s", containerName, common.Success)
+				if strings.Contains(line, successToken) {
+					log.Info().Msgf("[%s] Found %s", containerName, successToken)
 					result <- TestsPassed
 					return
 				}
 
-				if strings.Contains(line, common.Failure) {
-					log.Info().Msgf("[%s] Found %s", containerName, common.Failure)
+				if strings.Contains(line, failureToken) {
+					log.Info().Msgf("[%s] Found %s", containerName, failureToken)
 					result <- TestsFailed
 					return
 				}

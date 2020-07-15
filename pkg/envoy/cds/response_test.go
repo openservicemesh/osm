@@ -30,6 +30,7 @@ import (
 var _ = Describe("CDS Response", func() {
 	kubeClient := testclient.NewSimpleClientset()
 	catalog := catalog.NewFakeMeshCatalog(kubeClient)
+	cfg := configurator.NewFakeConfigurator()
 	proxyServiceName := tests.BookbuyerServiceName
 	proxyServiceAccountName := tests.BookbuyerServiceAccountName
 	proxyService := tests.BookbuyerService
@@ -66,12 +67,7 @@ var _ = Describe("CDS Response", func() {
 				Expect(err).ToNot(HaveOccurred())
 			}
 
-			config := &configurator.Config{
-				OSMNamespace:     "-test-namespace-",
-				EnablePrometheus: true,
-				EnableTracing:    true,
-			}
-			resp, err := NewResponse(context.Background(), catalog, smiClient, proxy, nil, config)
+			resp, err := NewResponse(context.Background(), catalog, smiClient, proxy, nil, cfg)
 			Expect(err).ToNot(HaveOccurred())
 
 			// There are to any.Any resources in the ClusterDiscoveryStruct (Clusters)

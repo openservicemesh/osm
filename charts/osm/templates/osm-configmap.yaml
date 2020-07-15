@@ -5,3 +5,6 @@ metadata:
   namespace: {{ .Release.Namespace }}
 data:
   permissive_traffic_policy_mode: {{ .Values.OpenServiceMesh.enablePermissiveTrafficPolicy | quote | default "false" }}
+  egress: "true"
+  prometheus_scraping: "true"
+  zipkin_tracing: "true"

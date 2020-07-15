@@ -12,25 +12,25 @@ kubectl delete deployment "$SVC" -n "$BOOKSTORE_NAMESPACE"  || true
 GIT_HASH=$(git rev-parse --short HEAD)
 
 # Create a top level service just for the bookstore.mesh domain
-echo -e "Deploy bookstore-mesh Service"
-cat <<EOF | kubectl apply -f -
+echo -e "Deploy bookstore Service"
+kubectl apply -f - <<EOF
 apiVersion: v1
 kind: Service
 metadata:
-  name: bookstore-mesh
+  name: bookstore
   namespace: $BOOKSTORE_NAMESPACE
   labels:
-    app: bookstore-mesh
+    app: bookstore
 spec:
   ports:
   - port: 80
     name: bookstore-port
   selector:
-    app: bookstore-mesh
+    app: bookstore
 EOF
 
 echo -e "Deploy $SVC Service Account"
-cat <<EOF | kubectl apply -f -
+kubectl apply -f - <<EOF
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -39,7 +39,7 @@ metadata:
 EOF
 
 echo -e "Deploy $SVC Service"
-cat <<EOF | kubectl apply -f -
+kubectl apply -f - <<EOF
 apiVersion: v1
 kind: Service
 metadata:
@@ -57,7 +57,7 @@ spec:
 EOF
 
 echo -e "Deploy $SVC Deployment"
-cat <<EOF | kubectl apply -f -
+kubectl apply -f - <<EOF
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -94,6 +94,8 @@ spec:
               value: ${BOOKWAREHOUSE_NAMESPACE}
             - name: "OSM_HUMAN_DEBUG_LOG"
               value: "true"
+            - name: IS_GITHUB
+              value: "$IS_GITHUB"
 
       imagePullSecrets:
         - name: $CTR_REGISTRY_CREDS_NAME

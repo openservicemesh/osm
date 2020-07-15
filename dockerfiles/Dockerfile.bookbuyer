@@ -1,6 +1,4 @@
 FROM alpine:3.10.1
-RUN apk --update --no-cache add curl
-RUN apk add --no-cache iptables
 ADD ./demo/bin/bookbuyer /
-WORKDIR /
-RUN chmod +x bookbuyer
+ADD ./demo/bookbuyer.html.template /
+RUN chmod +x /bookbuyer

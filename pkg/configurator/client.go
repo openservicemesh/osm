@@ -13,6 +13,13 @@ import (
 	k8s "github.com/open-service-mesh/osm/pkg/kubernetes"
 )
 
+const (
+	permissiveTrafficPolicyModeKey = "permissive_traffic_policy_mode"
+	egressKey                      = "egress"
+	prometheusScrapingKey          = "prometheus_scraping"
+	zipkinTracingKey               = "zipkin_tracing"
+)
+
 // NewConfigurator implements configurator.Configurator and creates the Kubernetes client to manage namespaces.
 func NewConfigurator(kubeClient kubernetes.Interface, stop <-chan struct{}, osmNamespace, osmConfigMapName string) Configurator {
 	informerFactory := informers.NewSharedInformerFactoryWithOptions(kubeClient, k8s.DefaultKubeEventResyncInterval, informers.WithNamespace(osmNamespace))
@@ -37,7 +44,7 @@ func NewConfigurator(kubeClient kubernetes.Interface, stop <-chan struct{}, osmN
 	providerName := "OSMConfigMap"
 	informer.AddEventHandler(k8s.GetKubernetesEventHandlers(informerName, providerName, client.announcements, shouldObserve))
 
-	go client.run(stop)
+	client.run(stop)
 
 	return &client
 }
@@ -50,6 +57,15 @@ type osmConfig struct {
 	// This is useful whet set TRUE in brownfield configurations, where we first want to observe
 	// existing traffic patterns.
 	PermissiveTrafficPolicyMode bool `yaml:"permissive_traffic_policy_mode"`
+
+	// Egress is a bool toggle used to enable or disable egress globally within the mesh
+	Egress bool `yaml:"egress"`
+
+	// PrometheusScraping is a bool toggle used to enable or disable metrics scraping by Prometheus
+	PrometheusScraping bool `yaml:"prometheus_scraping"`
+
+	// ZipkinTracing is a bool toggle used to enable ot disable Zipkin tracing
+	ZipkinTracing bool `yaml:"zipkin_tracing"`
 }
 
 func (c *Client) run(stop <-chan struct{}) {
@@ -85,13 +101,48 @@ func (c *Client) getConfigMap() *osmConfig {
 
 	cfg := &osmConfig{}
 
-	if modeString, ok := configMap.Data["permissive_traffic_policy_mode"]; ok {
-		if modeBool, err := strconv.ParseBool(modeString); err != nil {
-			log.Error().Err(err).Msgf("Error converting ConfigMap permissive_traffic_policy_mode=%+v to bool", modeString)
-		} else {
-			cfg.PermissiveTrafficPolicyMode = modeBool
-		}
+	var modeBool bool
+	// Parse PermissiveTrafficPolicyMode
+	modeBool, err = getBoolValueForKey(configMap, permissiveTrafficPolicyModeKey)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error getting value for key=%s", permissiveTrafficPolicyModeKey)
 	}
+	cfg.PermissiveTrafficPolicyMode = modeBool
+
+	// Parse Egress
+	modeBool, err = getBoolValueForKey(configMap, egressKey)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error getting value for key=%s", egressKey)
+	}
+	cfg.Egress = modeBool
+
+	// Parse PrometheusScraping
+	modeBool, err = getBoolValueForKey(configMap, prometheusScrapingKey)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error getting value for key=%s", prometheusScrapingKey)
+	}
+	cfg.PrometheusScraping = modeBool
+
+	// Parse ZipkinTracing
+	modeBool, err = getBoolValueForKey(configMap, zipkinTracingKey)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error getting value for key=%s", zipkinTracingKey)
+	}
+	cfg.ZipkinTracing = modeBool
 
 	return cfg
+}
+
+func getBoolValueForKey(configMap *v1.ConfigMap, key string) (bool, error) {
+	modeString, ok := configMap.Data[key]
+	if !ok {
+		return false, errInvalidKeyInConfigMap
+	}
+
+	modeBool, err := strconv.ParseBool(modeString)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error converting ConfigMap key %s=%+v to bool", key, modeString)
+		return false, err
+	}
+	return modeBool, nil
 }

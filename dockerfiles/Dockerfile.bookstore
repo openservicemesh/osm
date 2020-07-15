@@ -1,7 +1,4 @@
 FROM alpine:3.10.1
-RUN apk add --no-cache iptables
 ADD ./demo/bin/bookstore /
 ADD ./demo/bookstore.html.template /
-WORKDIR /
-EXPOSE 8080
-RUN chmod +x bookstore
+RUN chmod +x /bookstore

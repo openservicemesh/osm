@@ -8,7 +8,6 @@ import (
 	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	"github.com/pkg/errors"
 
-	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 	"github.com/open-service-mesh/osm/pkg/utils"
 )
@@ -40,15 +39,12 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	quit := make(chan struct{})
 	requests := make(chan v2.DiscoveryRequest)
-	go receive(requests, &server, proxy)
 
-	// TODO(draychev): create this struct with data from the OSM Config CRD when that is ready.
-	config := &configurator.Config{
-		OSMNamespace:     s.osmNamespace,
-		EnablePrometheus: true,
-		EnableTracing:    true,
-	}
+	// This helper handles receiving messages from the connected Envoys
+	// and any gRPC error states.
+	go receive(requests, &server, proxy, quit)
 
 	for {
 
@@ -56,17 +52,22 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 		case <-ctx.Done():
 			return nil
 
+		case <-quit:
+			log.Info().Msg("Stream closed!")
+			return nil
+
 		case discoveryRequest, ok := <-requests:
 			log.Info().Msgf("Received %s (nonce=%s; version=%s) from Envoy %s", discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, proxy.GetCommonName())
 			log.Info().Msgf("Last sent for %s nonce=%s; last sent version=%s for Envoy %s", discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, proxy.GetCommonName())
 			if !ok {
-				log.Error().Msgf("Proxy %s closed GRPC", proxy)
+				log.Error().Msgf("Proxy %s closed GRPC!", proxy.GetCommonName())
 				return errGrpcClosed
 			}
 
 			if discoveryRequest.ErrorDetail != nil {
 				log.Error().Msgf("[NACK] Discovery request error from proxy %s: %s", proxy, discoveryRequest.ErrorDetail)
-				return errEnvoyError
+				// NOTE(draychev): We could also return errEnvoyError - but it seems appropriate to also ignore this request and continue on.
+				continue
 			}
 
 			typeURL := envoy.TypeURI(discoveryRequest.TypeUrl)
@@ -115,7 +116,7 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 			}
 			log.Info().Msgf("Received discovery request <%s> from Envoy <%s> with Nonce=%s", discoveryRequest.TypeUrl, proxy, discoveryRequest.ResponseNonce)
 
-			resp, err := s.newAggregatedDiscoveryResponse(proxy, &discoveryRequest, config)
+			resp, err := s.newAggregatedDiscoveryResponse(proxy, &discoveryRequest, s.cfg)
 			if err != nil {
 				log.Error().Err(err).Msgf("Error composing a DiscoveryResponse")
 				continue
@@ -127,7 +128,7 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 
 		case <-proxy.GetAnnouncementsChannel():
 			log.Info().Msgf("Change detected - update all Envoys.")
-			s.sendAllResponses(proxy, &server, config)
+			s.sendAllResponses(proxy, &server, s.cfg)
 
 		}
 	}

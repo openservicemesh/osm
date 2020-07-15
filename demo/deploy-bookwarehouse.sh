@@ -8,7 +8,7 @@ source .env
 kubectl delete deployment bookwarehouse -n "$BOOKWAREHOUSE_NAMESPACE"  || true
 
 echo -e "Deploy Bookwarehouse Service Account"
-cat <<EOF | kubectl apply -f -
+kubectl apply -f - <<EOF
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -17,7 +17,7 @@ metadata:
 EOF
 
 echo -e "Deploy Bookwarehouse Service"
-cat <<EOF | kubectl apply -f -
+kubectl apply -f - <<EOF
 apiVersion: v1
 kind: Service
 metadata:
@@ -35,7 +35,7 @@ spec:
 EOF
 
 echo -e "Deploy Bookwarehouse Deployment"
-cat <<EOF | kubectl apply -f -
+kubectl apply -f - <<EOF
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -64,6 +64,8 @@ spec:
           env:
             - name: "OSM_HUMAN_DEBUG_LOG"
               value: "true"
+            - name: IS_GITHUB
+              value: "$IS_GITHUB"
 
       imagePullSecrets:
         - name: "$CTR_REGISTRY_CREDS_NAME"
