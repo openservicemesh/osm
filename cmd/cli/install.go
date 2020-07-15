@@ -61,22 +61,25 @@ const (
 var chartTGZSource string
 
 type installCmd struct {
-	out                            io.Writer
-	containerRegistry              string
-	containerRegistrySecret        string
-	chartPath                      string
-	osmImageTag                    string
-	certManager                    string
-	vaultHost                      string
-	vaultProtocol                  string
-	vaultToken                     string
-	vaultRole                      string
-	serviceCertValidityMinutes     int
-	prometheusRetentionTime        string
-	enableDebugServer              bool
-	enablePermissiveTrafficPolicy  bool
+	out                           io.Writer
+	containerRegistry             string
+	containerRegistrySecret       string
+	chartPath                     string
+	osmImageTag                   string
+	certManager                   string
+	vaultHost                     string
+	vaultProtocol                 string
+	vaultToken                    string
+	vaultRole                     string
+	serviceCertValidityMinutes    int
+	prometheusRetentionTime       string
+	enableDebugServer             bool
+	enablePermissiveTrafficPolicy bool
+	meshName                      string
+
+	// This is an experimental flag, which will eventually
+	// become part of SMI Spec.
 	enableBackpressureExperimental bool
-	meshName                       string
 
 	// checker runs checks before any installation is attempted. Its type is
 	// abstract here to make testing easy.
