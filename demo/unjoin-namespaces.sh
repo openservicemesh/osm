@@ -4,11 +4,14 @@
 # This script removes the list of namespaces from the OSM.
 # This is a helper script part of the OSM Brownfield Deployment Demo.
 
-
 set -aueo pipefail
 
 # shellcheck disable=SC1091
 source .env
+
+
+K8S_NAMESPACE="${K8S_NAMESPACE:-osm-system}"
+BOOKSTORE_NAMESPACE="${BOOKSTORE_NAMESPACE:-bookstore}"
 
 
 kubectl apply -f - <<EOF
@@ -20,6 +23,7 @@ metadata:
   namespace: $K8S_NAMESPACE
 
 data:
+
     permissive_traffic_policy_mode: true
 
 EOF
