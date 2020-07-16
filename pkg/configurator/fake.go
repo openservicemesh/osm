@@ -12,6 +12,7 @@ type FakeConfigurator struct {
 // NewFakeConfigurator create a new fake Configurator
 func NewFakeConfigurator() Configurator {
 	return FakeConfigurator{
+		Egress:             true,
 		PrometheusScraping: true,
 		ZipkinTracing:      true,
 	}
