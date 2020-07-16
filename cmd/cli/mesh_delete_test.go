@@ -53,7 +53,7 @@ var _ = Describe("Running the mesh delete command", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
 			It("should give a message confirming the successful install", func() {
-				Expect(out.String()).To(Equal("OSM [mesh name: testing] deleted"))
+				Expect(out.String()).To(Equal("OSM [mesh name: testing] deleted\n"))
 			})
 
 		})
