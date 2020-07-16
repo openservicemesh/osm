@@ -1,3 +1,4 @@
+{{- if .Values.OpenServiceMesh.grafana.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -66,3 +67,4 @@ spec:
             name: osm-grafana-dashboard-definition-dataplane
         - name: osm-grafana-storage
           emptyDir: {}
+{{- end }}

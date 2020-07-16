@@ -1,4 +1,4 @@
-{{- if .Values.prometheus.enabled }}
+{{- if .Values.OpenServiceMesh.prometheus.enabled }}
 apiVersion: v1
 kind: ConfigMap
 metadata:

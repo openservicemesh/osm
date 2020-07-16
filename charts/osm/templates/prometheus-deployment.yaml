@@ -1,4 +1,4 @@
-{{- if .Values.prometheus.enabled }}
+{{- if .Values.OpenServiceMesh.prometheus.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:

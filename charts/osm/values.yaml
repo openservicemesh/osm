@@ -11,6 +11,7 @@ OpenServiceMesh:
     - name: acr-creds
   sidecarImage: envoyproxy/envoy-alpine:v1.14.1
   prometheus:
+    enabled: true
     port: 7070
     retention:
       time: 15d
@@ -22,8 +23,10 @@ OpenServiceMesh:
     role: open-service-mesh
   serviceCertValidityMinutes: 1
   grafana:
+    enabled: true
     port: 3000
   zipkin:
+    enabled: true
     port: 9411
   enableDebugServer: false
   enablePermissiveTrafficPolicy: false
