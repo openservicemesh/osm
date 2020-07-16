@@ -84,7 +84,7 @@ if [[ "$IS_GITHUB" != "true" ]]; then
     # For Github CI we achieve these at a different time or different script
     # See .github/workflows/main.yml
     ./demo/build-push-images.sh
-    ./demo/create-container-registry-creds.sh
+    ./scripts/create-container-registry-creds.sh
 else
     # This script is specifically for CI
     ./ci/create-osm-container-registry-creds.sh

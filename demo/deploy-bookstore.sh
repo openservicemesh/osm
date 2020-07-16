@@ -9,8 +9,6 @@ SVC="bookstore-$VERSION"
 
 kubectl delete deployment "$SVC" -n "$BOOKSTORE_NAMESPACE"  || true
 
-GIT_HASH=$(git rev-parse --short HEAD)
-
 # Create a top level service just for the bookstore.mesh domain
 echo -e "Deploy bookstore Service"
 kubectl apply -f - <<EOF
@@ -89,7 +87,7 @@ spec:
           args: ["--path", "./", "--port", "8080"]
           env:
             - name: IDENTITY
-              value: ${SVC}--${GIT_HASH}
+              value: ${SVC}
             - name: BOOKWAREHOUSE_NAMESPACE
               value: ${BOOKWAREHOUSE_NAMESPACE}
             - name: "OSM_HUMAN_DEBUG_LOG"
