@@ -79,6 +79,11 @@ type installCmd struct {
 	enablePermissiveTrafficPolicy bool
 	meshName                      string
 
+	// Additional Pods supporting the service mesh
+	enableGrafanaDeployment    bool
+	enablePrometheusDeployment bool
+	enableZipkinDeployment     bool
+
 	// This is an experimental flag, which will eventually
 	// become part of SMI Spec.
 	enableBackpressureExperimental bool
@@ -121,6 +126,11 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.BoolVar(&inst.enablePermissiveTrafficPolicy, "enable-permissive-traffic-policy", false, "Enable permissive traffic policy mode")
 	f.BoolVar(&inst.enableBackpressureExperimental, "enable-backpressure-experimental", false, "Enable experimental backpressure feature")
 	f.StringVar(&inst.meshName, "mesh-name", defaultMeshName, "Name of the service mesh")
+
+	// Additonal pods supporting the service mesh
+	f.BoolVar(&inst.enableGrafanaDeployment, "enable-grafana-deployment", false, "Enable Grafana deployment")
+	f.BoolVar(&inst.enablePrometheusDeployment, "enable-prometheus-deployment", false, "Enable Prometheus deployment")
+	f.BoolVar(&inst.enableZipkinDeployment, "enable-zipkin-deployment", false, "Enable Zipkin deployment")
 
 	return cmd
 }
