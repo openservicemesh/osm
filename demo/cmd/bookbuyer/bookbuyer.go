@@ -23,7 +23,7 @@ var (
 	booksBoughtV1 = 0
 	booksBoughtV2 = 0
 	log           = logger.NewPretty(participantName)
-	port          = flag.Int("port", 80, "port on which this app is listening for incoming HTTP")
+	port          = flag.Int("port", 8080, "port on which this app is listening for incoming HTTP")
 	path          = flag.String("path", ".", "path to the HTML template")
 )
 

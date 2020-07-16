@@ -4,7 +4,7 @@
 # This script removes the list of namespaces from the OSM.
 # This is a helper script part of the OSM Brownfield Deployment Demo.
 
-set -auexo pipefail
+set -aueo pipefail
 
 # shellcheck disable=SC1091
 source .env

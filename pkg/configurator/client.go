@@ -14,10 +14,17 @@ import (
 )
 
 const (
+	// PermissiveTrafficPolicyModeKey is a ConfigMap key
 	PermissiveTrafficPolicyModeKey = "permissive_traffic_policy_mode"
-	EgressKey                      = "egress"
-	PrometheusScrapingKey          = "prometheus_scraping"
-	ZipkinTracingKey               = "zipkin_tracing"
+
+	// EgressKey is a ConfigMap key
+	EgressKey = "egress"
+
+	// PrometheusScrapingKey is a ConfigMap key
+	PrometheusScrapingKey = "prometheus_scraping"
+
+	// ZipkinTracingKey is a ConfigMap key
+	ZipkinTracingKey = "zipkin_tracing"
 )
 
 // NewConfigurator implements configurator.Configurator and creates the Kubernetes client to manage namespaces.

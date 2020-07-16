@@ -11,4 +11,4 @@ POD="$(kubectl get pods --selector app=bookthief -n "$BOOKTHIEF_NAMESPACE" --no-
 
 kubectl describe pod "$POD" -n "$BOOKTHIEF_NAMESPACE"
 
-kubectl port-forward "$POD" -n "$BOOKTHIEF_NAMESPACE" 8083:80
+kubectl port-forward "$POD" -n "$BOOKTHIEF_NAMESPACE" 8083:8080

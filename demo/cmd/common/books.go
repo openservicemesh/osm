@@ -19,9 +19,11 @@ var (
 	bookstoreNamespace                     = os.Getenv(BookstoreNamespaceEnvVar)
 	warehouseServiceName                   = "bookwarehouse"
 	bookwarehouseNamespace                 = os.Getenv(BookwarehouseNamespaceEnvVar)
+	bookstorePort                          = 8080
+	warehousePort                          = 8080
 
-	bookstoreService = fmt.Sprintf("%s.%s", bookstoreServiceName, bookstoreNamespace)     // FQDN
-	warehouseService = fmt.Sprintf("%s.%s", warehouseServiceName, bookwarehouseNamespace) // FQDN
+	bookstoreService = fmt.Sprintf("%s.%s:%d", bookstoreServiceName, bookstoreNamespace, bookstorePort)
+	warehouseService = fmt.Sprintf("%s.%s:%d", warehouseServiceName, bookwarehouseNamespace, warehousePort)
 	booksBought      = fmt.Sprintf("http://%s/books-bought", bookstoreService)
 	buyBook          = fmt.Sprintf("http://%s/buy-a-book/new", bookstoreService)
 	chargeAccountURL = fmt.Sprintf("http://%s/%s", warehouseService, RestockWarehouseURL)

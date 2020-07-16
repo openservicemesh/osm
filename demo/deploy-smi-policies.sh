@@ -20,6 +20,6 @@ metadata:
   namespace: $K8S_NAMESPACE
 
 data:
-  permissive_traffic_policy_mode: false
+  permissive_traffic_policy_mode: "false"
 
 EOF

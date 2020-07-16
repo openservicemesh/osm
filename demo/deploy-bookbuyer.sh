@@ -29,7 +29,7 @@ metadata:
     app: bookbuyer
 spec:
   ports:
-  - port: 80
+  - port: 8080
     name: bookbuyer-port
 
   selector:
@@ -63,7 +63,7 @@ spec:
           imagePullPolicy: Always
           command: ["/bookbuyer"]
           ports:
-            - containerPort: 80
+            - containerPort: 8080
               name: web
           env:
             - name: "BOOKSTORE_NAMESPACE"

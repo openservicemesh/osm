@@ -25,7 +25,7 @@ spec:
     name: bookstore-port
 
   selector:
-    app: bookstore
+    app: bookstore-v1
     version: v1
 EOF
 
@@ -86,7 +86,7 @@ spec:
             - containerPort: 8080
               name: web
           command: ["/bookstore"]
-          args: ["--path", "./", "--port", "8080"]
+          args: ["--path", "./"]
           env:
             - name: IDENTITY
               value: ${SVC}

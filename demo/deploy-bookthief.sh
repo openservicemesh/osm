@@ -32,7 +32,7 @@ metadata:
     app: bookthief
 spec:
   ports:
-  - port: 80
+  - port: 8080
     name: bookthief-port
 
   selector:
@@ -65,7 +65,7 @@ spec:
           imagePullPolicy: Always
           command: ["/bookthief"]
           ports:
-            - containerPort: 80
+            - containerPort: 8080
               name: web
           env:
             - name: "BOOKSTORE_NAMESPACE"

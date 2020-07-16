@@ -27,7 +27,7 @@ metadata:
     app: bookwarehouse
 spec:
   ports:
-  - port: 80
+  - port: 8080
     name: bookwarehouse-port
 
   selector:
