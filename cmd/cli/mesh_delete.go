@@ -52,7 +52,7 @@ func (d *meshDeleteCmd) run() error {
 		return errors.Errorf("No OSM control plane with mesh name [%s] found in namespace [%s]", d.name, settings.Namespace())
 	}
 
-	fmt.Fprintf(d.out, "OSM [mesh name: %s] deleted", d.name)
+	fmt.Fprintf(d.out, "OSM [mesh name: %s] deleted\n", d.name)
 
 	return err
 }
