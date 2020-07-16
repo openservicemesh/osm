@@ -37,7 +37,7 @@ $ export CTR_REGISTRY=<your registry>
 $ export CTR_REGISTRY_PASSWORD=<your password>
 
 # Create docker secret in Kubernetes Namespace using following script:
-$ ./demo/create-container-registry-creds.sh
+$ ./scripts/create-container-registry-creds.sh
 
 ```
 
