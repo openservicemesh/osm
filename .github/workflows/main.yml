@@ -279,6 +279,10 @@ jobs:
           ./demo/clean-kubernetes.sh
           echo "Creating Kubernetes namespace: $K8S_NAMESPACE"
           echo "$DOCKER_PASS" | docker login "$ACR" -u "$DOCKER_USER" --password-stdin
+          echo -e "Delete Helm charts we do not need in CI"
+          rm -rf ./charts/osm/templates/zipkin*
+          rm -rf ./charts/osm/templates/prometheus*
+          rm -rf ./charts/osm/grafana*
           ./demo/run-osm-demo.sh
           go run ./ci/cmd/maestro.go
 
@@ -334,5 +338,9 @@ jobs:
           ./demo/clean-kubernetes.sh
           echo "Creating Kubernetes namespace: $K8S_NAMESPACE"
           echo "$DOCKER_PASS" | docker login "$ACR" -u "$DOCKER_USER" --password-stdin
+          echo -e "Delete Helm charts we do not need in CI"
+          rm -rf ./charts/osm/templates/zipkin*
+          rm -rf ./charts/osm/templates/prometheus*
+          rm -rf ./charts/osm/grafana*
           ./demo/run-osm-demo.sh --enable-permissive-traffic-policy
           go run ./ci/cmd/maestro.go
