@@ -32,7 +32,7 @@ func New(component string) zerolog.Logger {
 	return l
 }
 
-// New creates a new zerolog.Logger
+// NewPretty creates a new zerolog.Logger, which emits human-readable log messages
 func NewPretty(component string) zerolog.Logger {
 	l := log.With().Str("component", component).Logger().Hook(CallerHook{})
 	return l.Output(zerolog.ConsoleWriter{Out: os.Stdout})
