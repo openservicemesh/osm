@@ -1,3 +1,4 @@
+{{- if .Values.prometheus.enabled }}
 apiVersion: v1
 kind: Service
 metadata:
@@ -12,3 +13,4 @@ spec:
     targetPort: {{.Values.OpenServiceMesh.prometheus.port}}
   selector:
     app: osm-prometheus
+{{- end }}

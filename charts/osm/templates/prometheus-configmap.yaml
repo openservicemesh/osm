@@ -1,3 +1,4 @@
+{{- if .Values.prometheus.enabled }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -18,7 +19,7 @@ data:
         scheme: https
         tls_config:
           ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-          # TODO need to remove this when the CA and SAN match 
+          # TODO need to remove this when the CA and SAN match
           insecure_skip_verify: true
         bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
         relabel_configs:
@@ -99,7 +100,7 @@ data:
           - __meta_kubernetes_pod_controller_name
           action: replace
           regex: ^ReplicaSet;(.*)-[^-]+$
-          target_label: source_workload_name       
+          target_label: source_workload_name
 
       - job_name: 'kubernetes-cadvisor'
         scheme: https
@@ -146,3 +147,4 @@ data:
         - source_labels: [__meta_kubernetes_service_name]
           action: replace
           target_label: kubernetes_name
+{{- end }}
