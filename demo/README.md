@@ -38,7 +38,7 @@ From the root of the repository:
 cp .env.example .env
 ```
 
-In the newly created `.env` file, update the two values `CTR_REGISTRY` and `CTR_REGISTRY_PASSWORD` with appropriate values.
+In the newly created `.env` file, update the two values `CTR_REGISTRY` and `CTR_REGISTRY_PASSWORD` with appropriate values. The optional environment variables only need to be set if the default values used in the demo need to be overridden.
 
 
 ## Run the Demo
