@@ -10,6 +10,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
+	backpressure "github.com/open-service-mesh/osm/experimental/pkg/apis/policy/v1alpha1"
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/service"
@@ -226,6 +227,14 @@ var (
 					"host": Domain,
 				},
 			},
+		},
+	}
+
+	// Backpressure is an experimental Backpressure policy.
+	// This will be replaced by an SMI Spec when it is ready.
+	Backpressure = backpressure.Backpressure{
+		Spec: backpressure.BackpressureSpec{
+			MaxRequestsPerConnection: 123,
 		},
 	}
 )

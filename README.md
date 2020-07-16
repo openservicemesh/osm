@@ -76,7 +76,7 @@ $ bin/osm namespace remove --mesh-name <mesh-name> <namespace-name>
 ```
 
 [1]: https://en.wikipedia.org/wiki/Service_mesh
-[2]: https://github.com/servicemeshinterface/smi-spec/blob/master/SPEC.md
+[2]: https://github.com/servicemeshinterface/smi-spec/blob/master/SPEC_LATEST_STABLE.md
 
 ## Code of Conduct
 

@@ -1,6 +1,7 @@
 package smi
 
 import (
+	backpressure "github.com/open-service-mesh/osm/experimental/pkg/apis/policy/v1alpha1"
 	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha1"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha2"
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
@@ -23,6 +24,7 @@ type InformerCollection struct {
 	TrafficSplit  cache.SharedIndexInformer
 	TrafficSpec   cache.SharedIndexInformer
 	TrafficTarget cache.SharedIndexInformer
+	Backpressure  cache.SharedIndexInformer
 }
 
 // CacheCollection is a struct of the Kubernetes caches used in OSM
@@ -31,6 +33,7 @@ type CacheCollection struct {
 	TrafficSplit  cache.Store
 	TrafficSpec   cache.Store
 	TrafficTarget cache.Store
+	Backpressure  cache.Store
 }
 
 // Client is a struct for all components necessary to connect to and maintain state of a Kubernetes cluster.
@@ -66,6 +69,11 @@ type MeshSpec interface {
 
 	// ListTrafficTargets lists TrafficTarget SMI resources.
 	ListTrafficTargets() []*target.TrafficTarget
+
+	// ListBackpressures lists Backpressure CRD resources.
+	// This is an experimental feature, which will eventually
+	// in some shape or form make its way into SMI Spec.
+	ListBackpressures() []*backpressure.Backpressure
 
 	// GetAnnouncementsChannel returns the channel on which SMI makes announcements
 	GetAnnouncementsChannel() <-chan interface{}

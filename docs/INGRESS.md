@@ -24,7 +24,7 @@ Other ingress controllers might also work as long as they allow provisioning a c
 ## Ingress configurations
 The following section describes sample ingress configurations used to expose services managed by OSM outside the cluster.  Different ingress controllers require different configurations.
 
-The example configurations describe how to expose HTTPS routes for the `bookstore-v1` HTTPS service running on port `80` in the `bookstore-ns` namespace, outside the cluster. The ingress configuration will expose the HTTPS path `/books-bought` on the `bookstore-v1` service.
+The example configurations describe how to expose HTTPS routes for the `bookstore-v1` HTTPS service running on port `8080` in the `bookstore-ns` namespace, outside the cluster. The ingress configuration will expose the HTTPS path `/books-bought` on the `bookstore-v1` service.
 
 Since OSM uses its own root certificate, the ingress controller must be provisioned with OSM's root certificate to be able to authenticate the certificate presented by backend servers. OSM stores the CA root certificate in a Kubernetes secret called `osm-ca-bundle` with the key `ca.crt` in the namespace OSM is deployed (`osm-system` by default).
 
@@ -35,6 +35,7 @@ An ingress configuration yaml with [Nginx Ingress Controller][2] for the `bookst
 - Specify the backend protocol as HTTPS using the annotation `nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"`.
 - Specify the hostname of the service using the annotation `nginx.ingress.kubernetes.io/configuration-snippet`.
 - Specify the secret corresponding to the root certificate using the annotation `nginx.ingress.kubernetes.io/proxy-ssl-secret`.
+- Specify the passing of TLS Server Name Indication (SNI) to proxied HTTPS backends using the annotation `nginx.ingress.kubernetes.io/proxy-ssl-server-name`. This is optional.
 - Enable SSL verification of backend service using the annotation `nginx.ingress.kubernetes.io/proxy-ssl-verify`.
 
 The host defined by `spec.rules.host` field is optional.
@@ -50,6 +51,7 @@ metadata:
     nginx.ingress.kubernetes.io/configuration-snippet: |
       proxy_ssl_name "bookstore-v1.bookstore-ns.svc.cluster.local";
     nginx.ingress.kubernetes.io/proxy-ssl-secret: "osm-system/osm-ca-bundle"
+    nginx.ingress.kubernetes.io/proxy-ssl-server-name: "on" # optional
     nginx.ingress.kubernetes.io/proxy-ssl-verify: "on"
 spec:
   rules:
@@ -59,7 +61,7 @@ spec:
       - path: /books-bought
         backend:
           serviceName: bookstore-v1
-          servicePort: 80
+          servicePort: 8080
 ```
 
 ### Using Azure Application Gateway Ingress Controller
@@ -90,7 +92,7 @@ spec:
       - path: /books-bought
         backend:
           serviceName: bookstore-v1
-          servicePort: 80
+          servicePort: 8080
 ```
 
 [1]: https://github.com/open-service-mesh/osm/blob/main/README.md
