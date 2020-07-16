@@ -32,6 +32,12 @@ func New(component string) zerolog.Logger {
 	return l
 }
 
+// New creates a new zerolog.Logger
+func NewPretty(component string) zerolog.Logger {
+	l := log.With().Str("component", component).Logger().Hook(CallerHook{})
+	return l.Output(zerolog.ConsoleWriter{Out: os.Stdout})
+}
+
 // SetLogLevel sets the global logging level
 func SetLogLevel(verbosity string) {
 	switch strings.ToLower(verbosity) {
