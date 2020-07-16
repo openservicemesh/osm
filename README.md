@@ -32,6 +32,20 @@ _Note: This project is a work in progress. See the [demo instructions](demo/READ
 
 Read more about the high level goals, design and architecture [here](DESIGN.md).
 
+## Getting Started
+
+### Prerequisites
+- Kubernetes cluster running Kubernetes v1.15.0 or greater
+- A private container registry (temporary requirement as this is currently a private repo)
+
+### Install
+
+The simplest way of installing open service mesh on a Kubernetes cluster is by using the `osm` CLI.
+
+Download the `osm` binary from the [Releases page](https://github.com/open-service-mesh/osm/releases).
+
+See the [installation guide](docs/installation_guide.md) for more detailed options.
+
 ## Managing Services Using OSM
 
 #### On-boarding services to the OSM managed service mesh
