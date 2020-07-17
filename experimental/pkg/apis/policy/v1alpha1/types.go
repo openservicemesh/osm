@@ -21,6 +21,7 @@ type BackpressureSpec struct {
 
 	// MaxRequestsPerConnection is the max number of requests a connection can make
 	MaxRequestsPerConnection int32 `json:"maxrequestsperconnection,omitempty"`
+	// TODO: Change MaxRequestsPerConnection type to uint32
 }
 
 // BackpressureList is ...

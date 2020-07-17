@@ -52,6 +52,8 @@ type MeshCatalog struct {
 
 // MeshCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
 type MeshCataloger interface {
+	// GetSMISpec returns the SMI spec
+	GetSMISpec() smi.MeshSpec
 
 	// ListTrafficPolicies returns all the traffic policies for a given service that Envoy proxy should be aware of.
 	ListTrafficPolicies(service.NamespacedService) ([]trafficpolicy.TrafficTarget, error)
