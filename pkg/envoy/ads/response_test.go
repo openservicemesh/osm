@@ -9,6 +9,7 @@ import (
 	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/google/uuid"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
@@ -29,6 +30,12 @@ import (
 var _ = Describe("Test ADS response functions", func() {
 
 	// --- setup
+	defaultConfigMap := map[string]string{
+		configurator.PermissiveTrafficPolicyModeKey: "false",
+		configurator.EgressKey:                      "true",
+		configurator.PrometheusScrapingKey:          "true",
+		configurator.ZipkinTracingKey:               "true",
+	}
 	kubeClient := testclient.NewSimpleClientset()
 	namespace := tests.Namespace
 	envoyUID := tests.EnvoyUID
@@ -97,9 +104,25 @@ var _ = Describe("Test ADS response functions", func() {
 		certPEM, _ := certManager.IssueCertificate(cn, nil)
 		cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())
 		server, actualResponses := tests.NewFakeXDSServer(cert, nil, nil)
-		cfg := configurator.NewFakeConfigurator()
+
+		osmNamespace := "-test-osm-namespace-"
+		osmConfigMapName := "-test-osm-config-map-"
+		stop := make(chan struct{})
+		cfg := configurator.NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
+		configMap := v1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: osmNamespace,
+				Name:      osmConfigMapName,
+			},
+			Data: defaultConfigMap,
+		}
 
 		It("returns Aggregated Discovery Service response", func() {
+			// Setup the ConfigMap and Configurator
+			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Create(context.TODO(), &configMap, metav1.CreateOptions{})
+			Expect(err).ToNot(HaveOccurred())
+			<-cfg.GetAnnouncementsChannel()
+
 			s := Server{
 				ctx:         context.TODO(),
 				catalog:     mc,

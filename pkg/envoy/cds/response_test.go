@@ -98,8 +98,8 @@ var _ = Describe("CDS Response", func() {
 			// 4. Zipkin cluster
 			// 5. Passthrough cluster for egress
 			numExpectedClusters := 5 // source and destination clusters
-			Expect(len((*resp).Resources)).To(Equal(numExpectedClusters))
-			Expect(len((*resp).Resources)).To(Equal(numExpectedClusters), fmt.Sprintf("Expected %d items; Actual: %+v", numExpectedClusters, (*resp).Resources))
+			Expect(len((*resp).Resources)).To(Equal(numExpectedClusters),
+				fmt.Sprintf("Expected %d items; Actual: %+v", numExpectedClusters, (*resp).Resources))
 		})
 	})
 

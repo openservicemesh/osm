@@ -14,10 +14,17 @@ import (
 )
 
 const (
+	// PermissiveTrafficPolicyModeKey is the string key for one of the OSM ConfigMap values.
 	PermissiveTrafficPolicyModeKey = "permissive_traffic_policy_mode"
-	EgressKey                      = "egress"
-	PrometheusScrapingKey          = "prometheus_scraping"
-	ZipkinTracingKey               = "zipkin_tracing"
+
+	// EgressKey is the string key for one of the OSM ConfigMap values.
+	EgressKey = "egress"
+
+	// PrometheusScrapingKey is the string key for one of the OSM ConfigMap values.
+	PrometheusScrapingKey = "prometheus_scraping"
+
+	// ZipkinTracingKey is the string key for one of the OSM ConfigMap values.
+	ZipkinTracingKey = "zipkin_tracing"
 )
 
 // NewConfigurator implements configurator.Configurator and creates the Kubernetes client to manage namespaces.
