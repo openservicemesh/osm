@@ -17,24 +17,19 @@ import (
 
 // GetServiceFromEnvoyCertificate returns the single service given Envoy is a member of based on the certificate provided, which is a cert issued to an Envoy for XDS communication (not Envoy-to-Envoy).
 func (mc *MeshCatalog) GetServiceFromEnvoyCertificate(cn certificate.CommonName) (*service.NamespacedService, error) {
-	svc, err := getServiceFromCertificate(cn, mc.kubeClient)
+	pod, err := GetPodFromCertificate(cn, mc.kubeClient)
 	if err != nil {
 		return nil, err
 	}
 
-	return svc, nil
-}
-
-func getServiceFromCertificate(cn certificate.CommonName, kubeClient kubernetes.Interface) (*service.NamespacedService, error) {
-	pod, err := GetPodFromCertificate(cn, kubeClient)
+	services, err := listServicesForPod(pod, mc.kubeClient)
 	if err != nil {
 		return nil, err
 	}
 
-	services, err := listServicesForPod(pod, kubeClient)
-	if err != nil {
-		return nil, err
-	}
+	// Remove services that have been split into other services.
+	// Filters out services referenced in TrafficSplit.spec.service
+	services = mc.filterTrafficSplitServices(services)
 
 	if len(services) == 0 {
 		log.Error().Msgf("No services found for connected proxy ID %s", cn)
@@ -50,6 +45,37 @@ func getServiceFromCertificate(cn certificate.CommonName, kubeClient kubernetes.
 		Namespace: cnMeta.Namespace,
 		Service:   services[0].Name,
 	}, nil
+}
+
+// filterTrafficSplitServices takes a list of services and removes from it the ones
+// that have been split via an SMI TrafficSplit.
+func (mc *MeshCatalog) filterTrafficSplitServices(services []v1.Service) []v1.Service {
+	excludeTheseServices := make(map[service.NamespacedService]interface{})
+	for _, trafficSplit := range mc.meshSpec.ListTrafficSplits() {
+		svc := service.NamespacedService{
+			Namespace: trafficSplit.Namespace,
+			Service:   trafficSplit.Spec.Service,
+		}
+		excludeTheseServices[svc] = nil
+	}
+
+	log.Debug().Msgf("Filtered out apex services (no pods can belong to these): %+v", excludeTheseServices)
+
+	// These are the services except ones that are a root of a TrafficSplit policy
+	var filteredServices []v1.Service
+
+	for _, svc := range services {
+		nsSvc := service.NamespacedService{
+			Namespace: svc.Namespace,
+			Service:   svc.Name,
+		}
+		if _, shouldSkip := excludeTheseServices[nsSvc]; shouldSkip {
+			continue
+		}
+		filteredServices = append(filteredServices, svc)
+	}
+
+	return filteredServices
 }
 
 // GetPodFromCertificate returns the Kubernetes Pod object for a given certificate.
