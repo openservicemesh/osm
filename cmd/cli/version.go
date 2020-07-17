@@ -17,11 +17,13 @@ var (
 	BuildDate string
 	// BuildVersion is the version of binary
 	BuildVersion string
+	// GitCommit is the commit hash when the binary was built
+	GitCommit string
 )
 
 // PrintCliVersion prints the version
 func PrintCliVersion(out io.Writer) {
-	fmt.Fprintf(out, "Version: %s; Date: %s\n", BuildVersion, BuildDate)
+	fmt.Fprintf(out, "Version: %s; Commit: %s; Date: %s\n", BuildVersion, GitCommit, BuildDate)
 }
 
 func newVersionCmd(out io.Writer) *cobra.Command {
