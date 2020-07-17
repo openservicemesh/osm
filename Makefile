@@ -11,10 +11,12 @@ GOX    = $(GOPATH)/bin/gox
 
 CLI_VERSION = 0.0.1
 BUILD_DATE=$$(date +%Y-%m-%d-%H:%M)
+GIT_SHA=$$(git rev-parse --short HEAD)
 BUILD_DATE_VAR := main.BuildDate
 BUILD_VERSION_VAR := main.BuildVersion
+BUILD_GITCOMMIT_VAR := main.GitCommit
 
-LDFLAGS ?= "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(CLI_VERSION) -X main.chartTGZSource=$$(cat -)"
+LDFLAGS ?= "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(CLI_VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -X main.chartTGZSource=$$(cat -)"
 
 .PHONY: gox
 gox:
