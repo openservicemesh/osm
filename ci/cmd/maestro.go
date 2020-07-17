@@ -14,7 +14,7 @@ import (
 	"github.com/open-service-mesh/osm/pkg/logger"
 )
 
-var log = logger.New("ci/maestro")
+var log = logger.NewPretty("ci/maestro")
 
 const (
 	bookBuyerLabel     = "bookbuyer"
@@ -33,11 +33,11 @@ var (
 	bookstoreV2Selector      = fmt.Sprintf("%s=%s", selectorKey, bookstoreV2Label)
 	bookWarehouseSelector    = fmt.Sprintf("%s=%s", selectorKey, bookWarehouseLabel)
 
-	osmNamespace    = os.Getenv(maestro.OSMNamespaceEnvVar)
-	bookbuyerNS     = os.Getenv(maestro.BookbuyerNamespaceEnvVar)
-	bookthiefNS     = os.Getenv(maestro.BookthiefNamespaceEnvVar)
-	bookstoreNS     = os.Getenv(maestro.BookstoreNamespaceEnvVar)
-	bookWarehouseNS = os.Getenv(common.BookwarehouseNamespaceEnvVar)
+	osmNamespace    = common.GetEnv(maestro.OSMNamespaceEnvVar, "osm-system")
+	bookbuyerNS     = common.GetEnv(maestro.BookbuyerNamespaceEnvVar, "bookbuyer")
+	bookthiefNS     = common.GetEnv(maestro.BookthiefNamespaceEnvVar, "bookthief")
+	bookstoreNS     = common.GetEnv(maestro.BookstoreNamespaceEnvVar, "bookstore")
+	bookWarehouseNS = common.GetEnv(common.BookwarehouseNamespaceEnvVar, "bookwarehouse")
 
 	maxPodWaitString = common.GetEnv(maestro.WaitForPodTimeSecondsEnvVar, "30")
 	maxOKWaitString  = common.GetEnv(maestro.WaitForOKSecondsEnvVar, "30")
@@ -53,11 +53,6 @@ var (
 )
 
 func main() {
-	if bookbuyerNS == "" || bookthiefNS == "" || bookstoreNS == "" || bookWarehouseNS == "" {
-		log.Error().Msgf("Namespace cannot be empty, bookbuyer=%s, bookthief=%s, bookstore=%s, bookwarehouse=%s", bookbuyerNS, bookthiefNS, bookstoreNS, bookWarehouseNS)
-		os.Exit(1)
-	}
-
 	log.Info().Msgf("Looking for: %s/%s, %s/%s, %s/%s, %s/%s, %s/%s", bookBuyerLabel, bookbuyerNS, bookThiefLabel, bookthiefNS, bookstoreV1Label, bookstoreNS, bookstoreV2Label, bookstoreNS, bookWarehouseLabel, bookWarehouseNS)
 
 	kubeClient := maestro.GetKubernetesClient()

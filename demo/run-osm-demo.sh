@@ -14,7 +14,7 @@ fi
 source .env
 
 # Set meaningful defaults for env vars we expect from .env
-IS_GITHUB="${IS_GITHUB:-false}"
+CI="${CI:-false}"  # This is set to true by Github Actions
 MESH_NAME="${MESH_NAME:-osm}"
 K8S_NAMESPACE="${K8S_NAMESPACE:-osm-system}"
 BOOKBUYER_NAMESPACE="${BOOKBUYER_NAMESPACE:-bookbuyer}"
@@ -67,7 +67,7 @@ wait_for_pod_ready() {
 
 make build-osm
 
-if [[ "$IS_GITHUB" != "true" ]]; then
+if [[ "$CI" != "true" ]]; then
     # In Github CI we always use a new namespace - so this is not necessary
     bin/osm mesh delete "$MESH_NAME" --namespace "$K8S_NAMESPACE" || true
     ./demo/clean-kubernetes.sh
@@ -88,7 +88,7 @@ if [ "$CERT_MANAGER" = "vault" ]; then
     ./demo/deploy-vault.sh
 fi
 
-if [[ "$IS_GITHUB" != "true" ]]; then
+if [[ "$CI" != "true" ]]; then
     # For Github CI we achieve these at a different time or different script
     # See .github/workflows/main.yml
     ./demo/build-push-images.sh
@@ -140,6 +140,6 @@ wait_for_osm_pods
 ./demo/deploy-traffic-spec.sh
 ./demo/deploy-traffic-target.sh
 
-if [[ "$IS_GITHUB" != "true" ]]; then
+if [[ "$CI" != "true" ]]; then
     watch -n5 "printf \"Namespace ${K8S_NAMESPACE}:\n\"; kubectl get pods -n ${K8S_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKBUYER_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKBUYER_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKSTORE_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKSTORE_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKTHIEF_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKTHIEF_NAMESPACE} -o wide; printf \"\n\n\"; printf \"Namespace ${BOOKWAREHOUSE_NAMESPACE}:\n\"; kubectl get pods -n ${BOOKWAREHOUSE_NAMESPACE} -o wide"
 fi

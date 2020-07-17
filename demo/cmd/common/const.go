@@ -13,9 +13,6 @@ const (
 	// KubeNamespaceEnvVar is the environment variable with the k8s namespace
 	KubeNamespaceEnvVar = "K8S_NAMESPACE"
 
-	// IsGithubEnvVar is the environment variable indicating whether this runs in Github CI.
-	IsGithubEnvVar = "IS_GITHUB"
-
 	// ContainerRegistryCredsEnvVar is the name of the environment variable storing the name of the container registry creds.
 	ContainerRegistryCredsEnvVar = "CTR_REGISTRY_CREDS_NAME"
 
