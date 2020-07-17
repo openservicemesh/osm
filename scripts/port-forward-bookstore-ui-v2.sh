@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-# This script forwards BOOKSTORE port 80 to local host port 8080
+# This script forwards BOOKSTORE port 80 to local host port 8082
 
 
 # shellcheck disable=SC1091
@@ -19,4 +19,4 @@ POD="$(kubectl get pods --selector app="$backend" -n "$BOOKSTORE_NAMESPACE" --no
 
 kubectl describe pod "$POD" -n "$BOOKSTORE_NAMESPACE"
 
-kubectl port-forward "$POD" -n "$BOOKSTORE_NAMESPACE" 8080:80
+kubectl port-forward "$POD" -n "$BOOKSTORE_NAMESPACE" 8082:8080

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-# This script port forwards from the BOOKBUYER pod to local port 8081
+# This script port forwards from the BOOKBUYER pod to local port 8080
 
 
 # shellcheck disable=SC1091
@@ -11,4 +11,4 @@ POD="$(kubectl get pods --selector app=bookbuyer -n "$BOOKBUYER_NAMESPACE" --no-
 
 kubectl describe pod "$POD" -n "$BOOKBUYER_NAMESPACE"
 
-kubectl port-forward "$POD" -n "$BOOKBUYER_NAMESPACE" 8081:80
+kubectl port-forward "$POD" -n "$BOOKBUYER_NAMESPACE" 8080:80

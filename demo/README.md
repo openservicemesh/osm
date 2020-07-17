@@ -58,6 +58,17 @@ In the newly created `.env` file, update the two values `CTR_REGISTRY` and `CTR_
    - the output will be the output of the curl command to the `bookstore` domain and the count of books sold
    - a properly working service mesh will result in HTTP 200 OK with `./demo/tail-bookbuyer.sh` along with a monotonically increasing counter appearing in the response headers, while `./demo/tail-bookthief.sh` will result in HTTP 404 Not Found. This can be automatically checked with `go run ./ci/cmd/maestro.go`
 
+## Demo Web UI
+The Bookstore, Bookbuyer, and Bookthief apps have simple web UI visualizing the number of requests made between the services.
+
+  - To see the UI for Bookbuyer run `./scripts/port-forward-bookbuyer-ui.sh` and open [http://localhost:8080/](http://localhost:8080/)
+  - To see the UI for Bookstore v1 run `./scripts/port-forward-bookstore-ui-v1.sh` and open [http://localhost:8081/](http://localhost:8081/)
+  - To see the UI for Bookstore v2 run `./scripts/port-forward-bookstore-ui-v2.sh` and open [http://localhost:8082/](http://localhost:8082/)
+  - To see the UI for BookThief run `./scripts/port-forward-bookthief-ui.sh` and open [http://localhost:8083/](http://localhost:8083/)
+  - To see Zipkin run `./scripts/port-forward-zipkin.sh` and open [http://localhost:9411/zipkin/](http://localhost:9411/zipkin/)
+  - To see Grafana run `./scripts/port-forward-grafana.sh` and open [http://localhost:3000/](http://localhost:3000/) - default username and password for Grafana is `admin`/`admin`
+  - OSM controller has a simple debugging web endpoint - run `./scripts/port-forward-osm-debug.sh` and open [http://localhost:9091/debug](http://localhost:9091/debug)
+
 ## Onboarding VMs to a service mesh
 *_Note: This is an experimental feature and not currently fully supported*
 The following sections outline how to onboard VMs to participate in a service mesh comprising of services running in a Kubernetes cluster.
