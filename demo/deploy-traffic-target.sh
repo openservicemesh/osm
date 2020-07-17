@@ -11,20 +11,29 @@ apiVersion: access.smi-spec.io/v1alpha1
 metadata:
   name: bookbuyer-access-bookstore-v1
   namespace: "$BOOKSTORE_NAMESPACE"
+
 destination:
   kind: ServiceAccount
   name: bookstore-v1
   namespace: "$BOOKSTORE_NAMESPACE"
+
 specs:
 - kind: HTTPRouteGroup
   name: bookstore-service-routes
   matches:
   - buy-a-book
   - books-bought
+
 sources:
+
 - kind: ServiceAccount
   name: bookbuyer
   namespace: "$BOOKBUYER_NAMESPACE"
+
+# - kind: ServiceAccount
+#   name: bookthief
+#   namespace: "$BOOKTHIEF_NAMESPACE"
+
 
 ---
 
@@ -43,10 +52,16 @@ specs:
   matches:
   - buy-a-book
   - books-bought
+
 sources:
+
 - kind: ServiceAccount
   name: bookbuyer
   namespace: "$BOOKBUYER_NAMESPACE"
+
+# - kind: ServiceAccount
+#   name: bookthief
+#   namespace: "$BOOKTHIEF_NAMESPACE"
 
 ---
 
