@@ -18,7 +18,7 @@ BOOKWAREHOUSE_NAMESPACE="${BOOKWAREHOUSE_NAMESPACE:-bookwarehouse}"
 
 
 for ns in "$BOOKWAREHOUSE_NAMESPACE" "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE"; do
-    kubectl label namespaces "$ns" openservicemesh.io/monitored-by=osm- || true
+    kubectl label namespaces "$ns" openservicemesh.io/monitored-by- || true
 done
 
 
@@ -32,7 +32,7 @@ metadata:
 
 data:
 
-    permissive_traffic_policy_mode: true
+  permissive_traffic_policy_mode: "true"
 
 EOF
 
