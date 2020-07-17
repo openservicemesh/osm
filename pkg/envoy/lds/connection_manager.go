@@ -48,9 +48,9 @@ func getHTTPConnectionManager(routeName string) *envoy_hcm.HttpConnectionManager
 	return &connManager
 }
 
-func getPrometheusConnectionManager(listenerName string, routeName string, clusterName string) *envoy_hcm.HttpConnectionManager {
+func getPrometheusConnectionManager() *envoy_hcm.HttpConnectionManager {
 	return &envoy_hcm.HttpConnectionManager{
-		StatPrefix: listenerName,
+		StatPrefix: prometheusListenerName,
 		CodecType:  envoy_hcm.HttpConnectionManager_AUTO,
 		HttpFilters: []*envoy_hcm.HttpFilter{{
 			Name: wellknown.Router,
@@ -58,18 +58,18 @@ func getPrometheusConnectionManager(listenerName string, routeName string, clust
 		RouteSpecifier: &envoy_hcm.HttpConnectionManager_RouteConfig{
 			RouteConfig: &v2.RouteConfiguration{
 				VirtualHosts: []*envoy_route.VirtualHost{{
-					Name:    "prometheus_envoy_admin",
+					Name:    constants.PrometheusVirtualHostName,
 					Domains: []string{"*"},
 					Routes: []*envoy_route.Route{{
 						Match: &envoy_route.RouteMatch{
 							PathSpecifier: &envoy_route.RouteMatch_Prefix{
-								Prefix: routeName,
+								Prefix: constants.PrometheusScrapePath,
 							},
 						},
 						Action: &envoy_route.Route_Route{
 							Route: &envoy_route.RouteAction{
 								ClusterSpecifier: &envoy_route.RouteAction_Cluster{
-									Cluster: clusterName,
+									Cluster: constants.EnvoyMetricsCluster,
 								},
 								PrefixRewrite: constants.PrometheusScrapePath,
 							},

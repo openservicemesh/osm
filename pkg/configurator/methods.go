@@ -52,3 +52,13 @@ func (c *Client) IsZipkinTracingEnabled() bool {
 func (c *Client) GetAnnouncementsChannel() <-chan interface{} {
 	return c.announcements
 }
+
+// GetPrometheusNamespace returns prometheus namespace
+func (c *Client) GetPrometheusNamespace() string {
+	return c.getConfigMap().PrometheusNamespace
+}
+
+// GetPrometheusServiceName returns prometheus service name
+func (c *Client) GetPrometheusServiceName() string {
+	return c.getConfigMap().PrometheusServiceName
+}

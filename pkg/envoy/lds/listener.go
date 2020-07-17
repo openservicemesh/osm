@@ -2,13 +2,16 @@ package lds
 
 import (
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	listener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	envoy_hcm "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
 	tcp_proxy "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/golang/protobuf/ptypes/wrappers"
 
+	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 )
@@ -69,14 +72,17 @@ func buildInboundListener() *xds.Listener {
 	}
 }
 
-func buildPrometheusListener(connManager *envoy_hcm.HttpConnectionManager) (*xds.Listener, error) {
-	marshalledConnManager, err := ptypes.MarshalAny(connManager)
+func buildPrometheusListener(cfg configurator.Configurator) (*xds.Listener, error) {
+
+	promConnMngr := getPrometheusConnectionManager()
+	marshalledConnManager, err := ptypes.MarshalAny(promConnMngr)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshalling HttpConnectionManager object")
 		return nil, err
 	}
 
-	listener := &xds.Listener{
+	// Create the Listener
+	prometheusListener := &xds.Listener{
 		Name:             prometheusListenerName,
 		TrafficDirection: envoy_api_v2_core.TrafficDirection_INBOUND,
 		Address:          envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyPrometheusInboundListenerPort),
@@ -92,8 +98,59 @@ func buildPrometheusListener(connManager *envoy_hcm.HttpConnectionManager) (*xds
 				},
 			},
 		},
+		ListenerFilters: []*listener.ListenerFilter{
+			{
+				Name: wellknown.TlsInspector,
+			},
+		},
 	}
-	return listener, nil
+
+	// Create the TLS context
+	downstreamTLSContext := &auth.DownstreamTlsContext{
+		CommonTlsContext: &auth.CommonTlsContext{
+			TlsParams: envoy.GetTLSParams(),
+			TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
+				Name: envoy.SDSCert{
+					Service:  envoy.GetPrometheusNamespacedService(cfg),
+					CertType: envoy.ServiceCertType,
+				}.String(),
+				SdsConfig: envoy.GetADSConfigSource(),
+			}},
+		},
+
+		// We do not authenticate client at this time
+		RequireClientCertificate: &wrappers.BoolValue{Value: false},
+	}
+	marshalledDownstreamTLSContext, err := envoy.MessageToAny(downstreamTLSContext)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error marshalling DownstreamTLSContext object for proxy %s", constants.EnvoyMetricsCluster)
+		return nil, err
+	}
+
+	// Create the filter chain, attach TLS context
+	prometheusFilterChain := &listener.FilterChain{
+		FilterChainMatch: &listener.FilterChainMatch{
+			// TODO: `ServerNames ?`
+			TransportProtocol: envoy.TransportProtocolTLS,
+		},
+		TransportSocket: &envoy_api_v2_core.TransportSocket{
+			Name: envoy.TransportSocketTLS,
+			ConfigType: &envoy_api_v2_core.TransportSocket_TypedConfig{
+				TypedConfig: marshalledDownstreamTLSContext,
+			},
+		},
+		Filters: []*listener.Filter{
+			{
+				Name: wellknown.HTTPConnectionManager,
+				ConfigType: &listener.Filter_TypedConfig{
+					TypedConfig: marshalledConnManager,
+				},
+			},
+		},
+	}
+
+	prometheusListener.FilterChains = append(prometheusListener.FilterChains, prometheusFilterChain)
+	return prometheusListener, nil
 }
 
 func buildEgressHTTPSFilterChain() (*listener.FilterChain, error) {

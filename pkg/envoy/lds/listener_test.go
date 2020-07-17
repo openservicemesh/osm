@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 )
@@ -64,12 +65,13 @@ var _ = Describe("Construct inbound and outbound listeners", func() {
 		})
 	})
 
-	Context("Test creation of Prometheus listener", func() {
-		It("Tests the Prometheus listener config", func() {
-			connManager := getHTTPConnectionManager("fake-prometheus")
-			listener, _ := buildPrometheusListener(connManager)
+	Context("Testing the creating of Prometheus listener", func() {
+		cfg := configurator.NewFakeConfigurator()
+
+		It("Returns Prometheus listener config", func() {
+			listener, _ := buildPrometheusListener(cfg)
 			Expect(listener.Address).To(Equal(envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyPrometheusInboundListenerPort)))
-			Expect(len(listener.ListenerFilters)).To(Equal(0)) //  no listener filters
+			Expect(len(listener.ListenerFilters)).To(Equal(1)) //  no listener filters
 			Expect(listener.TrafficDirection).To(Equal(envoy_api_v2_core.TrafficDirection_INBOUND))
 		})
 	})

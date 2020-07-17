@@ -22,6 +22,7 @@ import (
 	"github.com/open-service-mesh/osm/pkg/endpoint/providers/azure"
 	azureResource "github.com/open-service-mesh/osm/pkg/endpoint/providers/azure/kubernetes"
 	"github.com/open-service-mesh/osm/pkg/endpoint/providers/kube"
+	"github.com/open-service-mesh/osm/pkg/envoy"
 	"github.com/open-service-mesh/osm/pkg/envoy/ads"
 	"github.com/open-service-mesh/osm/pkg/featureflags"
 	"github.com/open-service-mesh/osm/pkg/httpserver"
@@ -209,6 +210,10 @@ func main() {
 	if err != nil {
 		log.Fatal().Err(err)
 	}
+
+	// Force generation of prometheus certificate.
+	// If scrapping is off, it will just not get used.
+	envoy.GetPrometheusCertificate(certManager, cfg)
 
 	grpcServer, lis := utils.NewGrpc(serverType, *port, adsCert.GetCertificateChain(), adsCert.GetPrivateKey(), adsCert.GetIssuingCA())
 	xds.RegisterAggregatedDiscoveryServiceServer(grpcServer, xdsServer)

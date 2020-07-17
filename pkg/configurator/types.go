@@ -37,6 +37,12 @@ type Configurator interface {
 	// IsPrometheusScrapingEnabled determines whether Prometheus is enabled for scraping metrics
 	IsPrometheusScrapingEnabled() bool
 
+	// GetPrometheusNamespace returns the namespace for the Prometheus instance
+	GetPrometheusNamespace() string
+
+	// GetPrometheusServiceName returns the name for the Prometheus service
+	GetPrometheusServiceName() string
+
 	// IsZipkinTracingEnabled determines whether Zipkin tracing is enabled
 	IsZipkinTracingEnabled() bool
 

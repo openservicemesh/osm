@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/service"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -116,6 +117,7 @@ var _ = Describe("Test SDS response functions", func() {
 		It("returns a list of root certificate issuance tasks for a mTLS root cert", func() {
 			namespace := uuid.New().String()
 			serviceName := uuid.New().String()
+			cfg := configurator.NewFakeConfigurator()
 
 			svc := service.NamespacedService{
 				Namespace: namespace,
@@ -129,7 +131,7 @@ var _ = Describe("Test SDS response functions", func() {
 			resourceNames := []string{sdsc.String()}
 			cert, proxy, mc := prep(resourceNames, namespace, serviceName)
 
-			actual := getEnvoySDSSecrets(cert, proxy, resourceNames, mc)
+			actual := getEnvoySDSSecrets(cert, proxy, resourceNames, mc, cfg)
 
 			Expect(len(actual)).To(Equal(1))
 			Expect(actual[0].Name).To(Equal(sdsc.String()))
@@ -143,8 +145,9 @@ var _ = Describe("Test SDS response functions", func() {
 			serviceName := uuid.New().String()
 			resourceNames := []string{fmt.Sprintf("root-cert-https:%s/%s", namespace, serviceName)}
 			cert, proxy, mc := prep(resourceNames, namespace, serviceName)
+			cfg := configurator.NewFakeConfigurator()
 
-			actual := getEnvoySDSSecrets(cert, proxy, resourceNames, mc)
+			actual := getEnvoySDSSecrets(cert, proxy, resourceNames, mc, cfg)
 
 			Expect(len(actual)).To(Equal(1))
 			Expect(actual[0].Name).To(Equal(fmt.Sprintf("root-cert-https:%s/%s", namespace, serviceName)))
@@ -158,8 +161,9 @@ var _ = Describe("Test SDS response functions", func() {
 			serviceName := uuid.New().String()
 			resourceNames := []string{fmt.Sprintf("service-cert:%s/%s", namespace, serviceName)}
 			cert, proxy, mc := prep(resourceNames, namespace, serviceName)
+			cfg := configurator.NewFakeConfigurator()
 
-			actual := getEnvoySDSSecrets(cert, proxy, resourceNames, mc)
+			actual := getEnvoySDSSecrets(cert, proxy, resourceNames, mc, cfg)
 
 			Expect(len(actual)).To(Equal(1))
 			Expect(actual[0].Name).To(Equal(fmt.Sprintf("service-cert:%s/%s", namespace, serviceName)))
@@ -173,8 +177,9 @@ var _ = Describe("Test SDS response functions", func() {
 			serviceName := uuid.New().String()
 			resourceNames := []string{"service-cert:SomeOtherNamespace/SomeOtherService"}
 			cert, proxy, mc := prep(resourceNames, namespace, serviceName)
+			cfg := configurator.NewFakeConfigurator()
 
-			actual := getEnvoySDSSecrets(cert, proxy, resourceNames, mc)
+			actual := getEnvoySDSSecrets(cert, proxy, resourceNames, mc, cfg)
 
 			Expect(len(actual)).To(Equal(0))
 		})

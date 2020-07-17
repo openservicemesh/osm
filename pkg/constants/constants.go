@@ -76,6 +76,12 @@ const (
 	// PrometheusScrapePath is the path for prometheus to scrap envoy metrics from
 	PrometheusScrapePath = "/stats/prometheus"
 
+	// PrometheusVirtualHostName is used to setup a remote endpoint for comms
+	PrometheusVirtualHostName = "prometheus_envoy_admin"
+
+	// PrometheusDefaultName when not given, is a default prometheus name given by the platform itself
+	PrometheusDefaultName = "osm-prometheus"
+
 	// CertificationAuthorityCommonName is the CN used for the root certificate for OSM.
 	CertificationAuthorityCommonName = "Open Service Mesh Certification Authority"
 

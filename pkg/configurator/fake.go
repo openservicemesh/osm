@@ -6,15 +6,19 @@ type FakeConfigurator struct {
 	PermissiveTrafficPolicyMode bool
 	Egress                      bool
 	PrometheusScraping          bool
+	PrometheusNamespace         string
+	PrometheusServiceName       string
 	ZipkinTracing               bool
 }
 
 // NewFakeConfigurator create a new fake Configurator
 func NewFakeConfigurator() Configurator {
 	return FakeConfigurator{
-		Egress:             true,
-		PrometheusScraping: true,
-		ZipkinTracing:      true,
+		Egress:                true,
+		PrometheusScraping:    true,
+		ZipkinTracing:         true,
+		PrometheusNamespace:   "osm-system",
+		PrometheusServiceName: "osm-prometheus",
 	}
 }
 
@@ -51,4 +55,14 @@ func (f FakeConfigurator) IsZipkinTracingEnabled() bool {
 // GetAnnouncementsChannel returns a fake announcement channel
 func (f FakeConfigurator) GetAnnouncementsChannel() <-chan interface{} {
 	return make(chan interface{})
+}
+
+// GetPrometheusNamespace returns prometheus namespace
+func (f FakeConfigurator) GetPrometheusNamespace() string {
+	return f.PrometheusNamespace
+}
+
+// GetPrometheusServiceName returns prometheus service name
+func (f FakeConfigurator) GetPrometheusServiceName() string {
+	return f.PrometheusServiceName
 }

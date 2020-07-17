@@ -48,7 +48,7 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpe
 	log.Trace().Msgf("Received SDS request for ResourceNames (certificates) %+v", requestedCerts)
 
 	// request.ResourceNames is expected to be a list of either "service-cert:namespace/service" or "root-cert:namespace/service"
-	for _, envoyProto := range getEnvoySDSSecrets(cert, proxy, requestedCerts, catalog) {
+	for _, envoyProto := range getEnvoySDSSecrets(cert, proxy, requestedCerts, catalog, cfg) {
 		marshalledSecret, err := ptypes.MarshalAny(envoyProto)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error marshaling Envoy secret %s for proxy %s for service %s", envoyProto.Name, proxy.GetCommonName(), serviceForProxy.String())
@@ -63,7 +63,11 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpe
 	}, nil
 }
 
-func getEnvoySDSSecrets(cert certificate.Certificater, proxy *envoy.Proxy, requestedCerts []string, catalog catalog.MeshCataloger) []*auth.Secret {
+func getEnvoySDSSecrets(cert certificate.Certificater,
+	proxy *envoy.Proxy,
+	requestedCerts []string,
+	catalog catalog.MeshCataloger,
+	cfg configurator.Configurator) []*auth.Secret {
 	// requestedCerts is expected to be a list of either "service-cert:namespace/service" or "root-cert:namespace/service"
 
 	var envoySecrets []*auth.Secret
@@ -84,8 +88,13 @@ func getEnvoySDSSecrets(cert certificate.Certificater, proxy *envoy.Proxy, reque
 			continue
 		}
 
-		if serviceForProxy != sdsCert.Service {
-			log.Error().Msgf("Proxy %s (service %s) requested service certificate %s; this is not allowed", proxy.GetCommonName(), serviceForProxy, sdsCert.Service)
+		switch sdsCert.Service {
+		case serviceForProxy:
+			log.Debug().Msgf("Proxy %s (service %s) sds-requesting for service %s (allowed)", proxy.GetCommonName(), serviceForProxy, sdsCert.Service)
+		case envoy.GetPrometheusNamespacedService(cfg):
+			log.Debug().Msgf("Proxy %s (service %s) sds-requesting for prometheus %s (allowed)", proxy.GetCommonName(), serviceForProxy, sdsCert.Service)
+		default:
+			log.Error().Msgf("Proxy %s (service %s) sds-requested service certificate %s; not allowed", proxy.GetCommonName(), serviceForProxy, sdsCert.Service)
 			continue
 		}
 

@@ -64,6 +64,14 @@ type osmConfig struct {
 	// PrometheusScraping is a bool toggle used to enable or disable metrics scraping by Prometheus
 	PrometheusScraping bool `yaml:"prometheus_scraping"`
 
+	// PrometheusNamespace is the namespace where Prometheus will be living in
+	// If not defined, system will pick from default values
+	PrometheusNamespace string `yaml:"prometheus_namespace"`
+
+	// PrometheusServiceName is the prometheus service name. If not defined, system will pick
+	// from default values
+	PrometheusServiceName string `yaml:"prometheus_service_name"`
+
 	// ZipkinTracing is a bool toggle used to enable ot disable Zipkin tracing
 	ZipkinTracing bool `yaml:"zipkin_tracing"`
 }
