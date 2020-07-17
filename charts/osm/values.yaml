@@ -5,7 +5,7 @@ OpenServiceMesh:
   replicaCount: 1
   image:
     registry: smctest.azurecr.io
-    pullPolicy: Always
+    pullPolicy: IfNotPresent
     tag: latest
   imagePullSecrets:
     - name: acr-creds
