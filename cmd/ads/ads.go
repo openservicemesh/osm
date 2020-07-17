@@ -103,8 +103,12 @@ func init() {
 
 func main() {
 	log.Trace().Msg("Starting ADS")
-	parseFlags()
-	logger.SetLogLevel(verbosity)
+	if err := parseFlags(); err != nil {
+		log.Fatal().Err(err).Msg("Error parsing cmd line arguments")
+	}
+	if err := logger.SetLogLevel(verbosity); err != nil {
+		log.Fatal().Err(err).Msg("Error setting log level")
+	}
 	featureflags.Initialize(optionalFeatures)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -112,7 +116,9 @@ func main() {
 
 	// This ensures CLI parameters (and dependent values) are correct.
 	// Side effects: This will log.Fatal on error resulting in os.Exit(255)
-	validateCLIParams()
+	if err := validateCLIParams(); err != nil {
+		log.Fatal().Err(err).Msg("Failed to validate CLI parameters")
+	}
 
 	kubeConfig, err := clientcmd.BuildConfigFromFlags("", kubeConfigFile)
 
@@ -135,10 +141,16 @@ func main() {
 	log.Info().Msgf("Initial ConfigMap %s: %s", osmConfigMapName, string(configMap))
 
 	namespaceController := namespace.NewNamespaceController(kubeClient, meshName, stop)
-	meshSpec := smi.NewMeshSpecClient(*smiKubeConfig, kubeClient, osmNamespace, namespaceController, stop)
+	meshSpec, err := smi.NewMeshSpecClient(*smiKubeConfig, kubeClient, osmNamespace, namespaceController, stop)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to create new mesh spec client")
+	}
 
 	// Get the Certificate Manager based on the CLI argument passed to this module.
-	certManager, certDebugger := certManagers[certificateManagerKind(*certManagerKind)](kubeClient, enableDebugServer)
+	certManager, certDebugger, err := certManagers[certificateManagerKind(*certManagerKind)](kubeClient, enableDebugServer)
+	if err != nil {
+		log.Fatal().Err(err).Msgf("Failed to get certificate manager based on CLI argument")
+	}
 
 	log.Info().Msgf("Service certificates will be valid for %+v", getServiceCertValidityPeriod())
 
@@ -150,14 +162,23 @@ func main() {
 		}
 	}
 
-	endpointsProviders := []endpoint.Provider{
-		kube.NewProvider(kubeClient, namespaceController, stop, constants.KubeProviderName, cfg),
+	provider, err := kube.NewProvider(kubeClient, namespaceController, stop, constants.KubeProviderName, cfg)
+	if err != nil {
+		log.Fatal().Err(err).Msgf("Failed to get endpoint provider")
 	}
 
+	endpointsProviders := []endpoint.Provider{provider}
+
 	if azureAuthFile != "" {
-		azureResourceClient := azureResource.NewClient(kubeClient, kubeConfig, namespaceController, stop, cfg)
-		endpointsProviders = append(endpointsProviders, azure.NewProvider(
-			*azureSubscriptionID, azureAuthFile, stop, meshSpec, azureResourceClient, constants.AzureProviderName))
+		azureResourceClient, err := azureResource.NewClient(kubeClient, kubeConfig, namespaceController, stop, cfg)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to initialize azure resource client")
+		}
+		azureProvider, err := azure.NewProvider(*azureSubscriptionID, azureAuthFile, stop, meshSpec, azureResourceClient, constants.AzureProviderName)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to initialize azure provider")
+		}
+		endpointsProviders = append(endpointsProviders, azureProvider)
 	}
 
 	ingressClient, err := ingress.NewIngressClient(kubeClient, namespaceController, stop, cfg)
@@ -212,12 +233,13 @@ func main() {
 	log.Info().Msgf("[%s] Goodbye!", serverType)
 }
 
-func parseFlags() {
+func parseFlags() error {
 	// TODO(draychev): consolidate parseFlags - shared between ads.go and eds.go
 	if err := flags.Parse(os.Args); err != nil {
-		log.Fatal().Err(err).Msg("Error parsing cmd line arguments")
+		return err
 	}
 	_ = flag.CommandLine.Parse([]string{})
+	return nil
 }
 
 func createCABundleKubernetesSecret(kubeClient clientset.Interface, certManager certificate.Manager, namespace, caBundleSecretName string) error {

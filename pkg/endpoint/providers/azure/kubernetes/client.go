@@ -1,6 +1,7 @@
 package azure
 
 import (
+	"fmt"
 	"reflect"
 
 	"k8s.io/client-go/kubernetes"
@@ -21,14 +22,14 @@ const (
 )
 
 // NewClient creates the Kubernetes client, which retrieves the AzureResource CRD and Services resources.
-func NewClient(kubeClient kubernetes.Interface, azureResourceKubeConfig *rest.Config, namespaceController namespace.Controller, stop chan struct{}, cfg configurator.Configurator) *Client {
+func NewClient(kubeClient kubernetes.Interface, azureResourceKubeConfig *rest.Config, namespaceController namespace.Controller, stop chan struct{}, cfg configurator.Configurator) (*Client, error) {
 	azureResourceClient := osmClient.NewForConfigOrDie(azureResourceKubeConfig)
 
 	k8sClient := newClient(kubeClient, azureResourceClient, namespaceController)
 	if err := k8sClient.Run(stop); err != nil {
-		log.Fatal().Err(err).Msgf("Could not start %s client", kubernetesClientName)
+		return nil, fmt.Errorf("Failed to start %s client: %+v", kubernetesClientName, err)
 	}
-	return k8sClient
+	return k8sClient, nil
 }
 
 // newClient creates a provider based on a Kubernetes client instance.

@@ -1,6 +1,7 @@
 package smi
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 
@@ -32,7 +33,7 @@ import (
 const kubernetesClientName = "MeshSpec"
 
 // NewMeshSpecClient implements mesh.MeshSpec and creates the Kubernetes client, which retrieves SMI specific CRDs.
-func NewMeshSpecClient(smiKubeConfig *rest.Config, kubeClient kubernetes.Interface, osmNamespace string, namespaceController namespace.Controller, stop chan struct{}) MeshSpec {
+func NewMeshSpecClient(smiKubeConfig *rest.Config, kubeClient kubernetes.Interface, osmNamespace string, namespaceController namespace.Controller, stop chan struct{}) (MeshSpec, error) {
 	smiTrafficSplitClientSet := smiTrafficSplitClient.NewForConfigOrDie(smiKubeConfig)
 	smiTrafficSpecClientSet := smiTrafficSpecClient.NewForConfigOrDie(smiKubeConfig)
 	smiTrafficTargetClientSet := smiTrafficTargetClient.NewForConfigOrDie(smiKubeConfig)
@@ -46,9 +47,9 @@ func NewMeshSpecClient(smiKubeConfig *rest.Config, kubeClient kubernetes.Interfa
 
 	err := client.run(stop)
 	if err != nil {
-		log.Fatal().Err(err).Msgf("Could not start %s client", kubernetesClientName)
+		return client, fmt.Errorf("Could not start %s client", kubernetesClientName)
 	}
-	return client
+	return client, nil
 }
 
 // run executes informer collection.

@@ -31,8 +31,13 @@ func NewGrpc(serverType string, port int, certPem, keyPem, rootCertPem []byte) (
 		grpc.KeepaliveParams(keepalive.ServerParameters{
 			Time: streamKeepAliveDuration,
 		}),
-		setupMutualTLS(false, serverType, certPem, keyPem, rootCertPem),
 	}
+
+	mutualTLS, err := setupMutualTLS(false, serverType, certPem, keyPem, rootCertPem)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to setup mutual tls for GRPC server")
+	}
+	grpcOptions = append(grpcOptions, mutualTLS)
 
 	return grpc.NewServer(grpcOptions...), lis
 }
