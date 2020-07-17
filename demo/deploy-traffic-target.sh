@@ -30,6 +30,12 @@ sources:
   name: bookbuyer
   namespace: "$BOOKBUYER_NAMESPACE"
 
+
+# TrafficTarget is deny-by-default policy: if traffic from source to destination is not
+# explicitly declared in this policy - it will be blocked.
+# Should we ever want to allow traffic from bookthief to bookstore the block below needs
+# uncommented.
+
 # - kind: ServiceAccount
 #   name: bookthief
 #   namespace: "$BOOKTHIEF_NAMESPACE"
@@ -58,6 +64,12 @@ sources:
 - kind: ServiceAccount
   name: bookbuyer
   namespace: "$BOOKBUYER_NAMESPACE"
+
+
+# TrafficTarget is deny-by-default policy: if traffic from source to destination is not
+# explicitly declared in this policy - it will be blocked.
+# Should we ever want to allow traffic from bookthief to bookstore the block below needs
+# uncommented.
 
 # - kind: ServiceAccount
 #   name: bookthief
