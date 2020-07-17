@@ -39,7 +39,7 @@ const (
 	// TODO(draychev): pass these via CLI param (https://github.com/open-service-mesh/osm/issues/542)
 	serverType                        = "ADS"
 	defaultServiceCertValidityMinutes = 60 // 1 hour
-	caBundleSecretNameCLIParam        = "caBundleSecretName"
+	caBundleSecretNameCLIParam        = "ca-bundle-secret-name"
 	xdsServerCertificateCommonName    = "ads"
 )
 
@@ -63,33 +63,33 @@ var (
 
 var (
 	flags               = pflag.NewFlagSet(`ads`, pflag.ExitOnError)
-	azureSubscriptionID = flags.String("azureSubscriptionID", "", "Azure Subscription ID")
+	azureSubscriptionID = flags.String("azure-subscription-id", "", "Azure Subscription ID")
 	port                = flags.Int("port", constants.OSMControllerPort, "Aggregated Discovery Service port number.")
 	log                 = logger.New("ads/main")
 
 	// What is the Certification Authority to be used
-	certManagerKind = flags.String("certmanager", "tresor", "Certificate manager")
+	certManagerKind = flags.String("cert-manager", "tresor", "Certificate manager")
 
 	// TODO(draychev): convert all these flags to spf13/cobra: https://github.com/open-service-mesh/osm/issues/576
 	// When certmanager == "vault"
-	vaultProtocol = flags.String("vaultProtocol", "http", "Host name of the Hashi Vault")
-	vaultHost     = flags.String("vaultHost", "vault.default.svc.cluster.local", "Host name of the Hashi Vault")
-	vaultPort     = flags.Int("vaultPort", 8200, "Port of the Hashi Vault")
-	vaultToken    = flags.String("vaultToken", "", "Secret token for the the Hashi Vault")
-	vaultRole     = flags.String("vaultRole", "open-service-mesh", "Name of the Vault role dedicated to Open Service Mesh")
+	vaultProtocol = flags.String("vault-protocol", "http", "Host name of the Hashi Vault")
+	vaultHost     = flags.String("vault-host", "vault.default.svc.cluster.local", "Host name of the Hashi Vault")
+	vaultPort     = flags.Int("vault-port", 8200, "Port of the Hashi Vault")
+	vaultToken    = flags.String("vault-token", "", "Secret token for the the Hashi Vault")
+	vaultRole     = flags.String("vault-role", "open-service-mesh", "Name of the Vault role dedicated to Open Service Mesh")
 )
 
 func init() {
-	flags.StringVar(&verbosity, "verbosity", "info", "Set log verbosity level")
-	flags.StringVar(&meshName, "meshName", "", "OSM mesh name")
-	flags.StringVar(&azureAuthFile, "azureAuthFile", "", "Path to Azure Auth File")
+	flags.StringVarP(&verbosity, "verbosity", "v", "info", "Set log verbosity level")
+	flags.StringVar(&meshName, "mesh-name", "", "OSM mesh name")
+	flags.StringVar(&azureAuthFile, "azure-auth-file", "", "Path to Azure Auth File")
 	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file.")
-	flags.StringVar(&osmNamespace, "osmNamespace", "", "Namespace to which OSM belongs to.")
-	flags.StringVar(&webhookName, "webhookName", "", "Name of the MutatingWebhookConfiguration to be configured by ADS")
-	flags.IntVar(&serviceCertValidityMinutes, "serviceCertValidityMinutes", defaultServiceCertValidityMinutes, "Certificate validityPeriod duration in minutes")
+	flags.StringVar(&osmNamespace, "osm-namespace", "", "Namespace to which OSM belongs to.")
+	flags.StringVar(&webhookName, "webhook-name", "", "Name of the MutatingWebhookConfiguration to be configured by ADS")
+	flags.IntVar(&serviceCertValidityMinutes, "service-cert-validity-minutes", defaultServiceCertValidityMinutes, "Certificate validityPeriod duration in minutes")
 	flags.StringVar(&caBundleSecretName, caBundleSecretNameCLIParam, "", "Name of the Kubernetes Secret for the OSM CA bundle")
-	flags.BoolVar(&enableDebugServer, "enableDebugServer", false, "Enable OSM debug HTTP server")
-	flags.StringVar(&osmConfigMapName, "osmConfigMapName", "osm-config", "Name of the OSM ConfigMap")
+	flags.BoolVar(&enableDebugServer, "enable-debug-server", false, "Enable OSM debug HTTP server")
+	flags.StringVar(&osmConfigMapName, "osm-configmap-name", "osm-config", "Name of the OSM ConfigMap")
 
 	// sidecar injector options
 	flags.BoolVar(&injectorConfig.DefaultInjection, "default-injection", true, "Enable sidecar injection by default")
