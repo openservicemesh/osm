@@ -16,6 +16,5 @@ metadata:
 
 spec:
   maxRequestsPerConnection: 5
-  maxrequestsperconnection: 9
 
 EOF

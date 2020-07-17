@@ -20,8 +20,7 @@ type BackpressureSpec struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// MaxRequestsPerConnection is the max number of requests a connection can make
-	MaxRequestsPerConnection int32 `json:"maxrequestsperconnection,omitempty"`
-	// TODO: Change MaxRequestsPerConnection type to uint32
+	MaxRequestsPerConnection uint32 `json:"maxRequestsPerConnection,omitempty"`
 }
 
 // BackpressureList is ...
