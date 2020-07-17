@@ -1,6 +1,7 @@
 package kube
 
 import (
+	"fmt"
 	"net"
 	"reflect"
 	"strings"
@@ -23,7 +24,7 @@ import (
 const namespaceSelectorLabel = "app"
 
 // NewProvider implements mesh.EndpointsProvider, which creates a new Kubernetes cluster/compute provider.
-func NewProvider(kubeClient kubernetes.Interface, namespaceController namespace.Controller, stop chan struct{}, providerIdent string, cfg configurator.Configurator) *Client {
+func NewProvider(kubeClient kubernetes.Interface, namespaceController namespace.Controller, stop chan struct{}, providerIdent string, cfg configurator.Configurator) (*Client, error) {
 	informerFactory := informers.NewSharedInformerFactory(kubeClient, k8s.DefaultKubeEventResyncInterval)
 
 	informerCollection := InformerCollection{
@@ -54,10 +55,10 @@ func NewProvider(kubeClient kubernetes.Interface, namespaceController namespace.
 	informerCollection.Deployments.AddEventHandler(k8s.GetKubernetesEventHandlers("Deployments", "Kubernetes", client.announcements, shouldObserve))
 
 	if err := client.run(stop); err != nil {
-		log.Fatal().Err(err).Msg("Could not start Kubernetes EndpointProvider client")
+		return nil, fmt.Errorf("Failed to start Kubernetes EndpointProvider client: %+v", err)
 	}
 
-	return &client
+	return &client, nil
 }
 
 // GetID returns a string descriptor / identifier of the compute provider.

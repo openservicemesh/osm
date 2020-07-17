@@ -1,6 +1,7 @@
 package vault
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/hashicorp/vault/api"
@@ -36,8 +37,7 @@ func NewCertManager(vaultAddr, token string, validityPeriod time.Duration, vault
 
 	var err error
 	if c.client, err = api.NewClient(config); err != nil {
-		log.Fatal().Err(err).Msgf("Error creating Vault CertManager without TLS at %s", vaultAddr)
-		return nil, err
+		return nil, fmt.Errorf("Error creating Vault CertManager without TLS at %s", vaultAddr)
 	}
 
 	log.Info().Msgf("Created Vault CertManager, with vaultRole=%q at %v", vaultRole, vaultAddr)

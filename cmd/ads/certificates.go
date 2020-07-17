@@ -36,7 +36,7 @@ const (
 )
 
 // Functions we can call to create a Certificate Manager for each kind of supported certificate issuer
-var certManagers = map[certificateManagerKind]func(kubeClient kubernetes.Interface, enableDebugServer bool) (certificate.Manager, debugger.CertificateManagerDebugger){
+var certManagers = map[certificateManagerKind]func(kubeClient kubernetes.Interface, enableDebugServer bool) (certificate.Manager, debugger.CertificateManagerDebugger, error){
 	tresorKind:   getTresorCertificateManager,
 	keyVaultKind: getAzureKeyVaultCertManager,
 	vaultKind:    getHashiVaultCertManager,
@@ -51,7 +51,7 @@ func getPossibleCertManagers() []string {
 	return possible
 }
 
-func getTresorCertificateManager(kubeClient kubernetes.Interface, enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger) {
+func getTresorCertificateManager(kubeClient kubernetes.Interface, enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
 	var err error
 	var rootCert certificate.Certificater
 
@@ -66,24 +66,24 @@ func getTresorCertificateManager(kubeClient kubernetes.Interface, enableDebug bo
 		rootCert, err = tresor.NewCA(constants.CertificationAuthorityCommonName, constants.CertificationAuthorityRootValidityPeriod, rootCertCountry, rootCertLocality, rootCertOrganization)
 
 		if err != nil {
-			log.Fatal().Err(err).Msgf("Failed to create new Certificate Authority with cert issuer %s", *certManagerKind)
+			return nil, nil, fmt.Errorf("Failed to create new Certificate Authority with cert issuer %s", *certManagerKind)
 		}
 
 		if rootCert == nil {
-			log.Fatal().Msgf("Invalid root certificate created by cert issuer %s", *certManagerKind)
+			return nil, nil, fmt.Errorf("Invalid root certificate created by cert issuer %s", *certManagerKind)
 		}
 
 		if rootCert.GetPrivateKey() == nil {
-			log.Fatal().Err(err).Msg("Root cert does not have a private key")
+			return nil, nil, fmt.Errorf("Root cert does not have a private key")
 		}
 	}
 
 	certManager, err := tresor.NewCertManager(rootCert, getServiceCertValidityPeriod(), rootCertOrganization)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to instantiate Azure Key Vault as a Certificate Manager")
+		return nil, nil, fmt.Errorf("Failed to instantiate Azure Key Vault as a Certificate Manager")
 	}
 
-	return certManager, certManager
+	return certManager, certManager, nil
 }
 
 func getCertFromKubernetes(kubeClient kubernetes.Interface, namespace, secretName string) certificate.Certificater {
@@ -145,25 +145,25 @@ func getCertFromKubernetes(kubeClient kubernetes.Interface, namespace, secretNam
 	return rootCert
 }
 
-func getAzureKeyVaultCertManager(_ kubernetes.Interface, enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger) {
+func getAzureKeyVaultCertManager(_ kubernetes.Interface, enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
 	// TODO(draychev): implement: https://github.com/open-service-mesh/osm/issues/577
 	log.Fatal().Msg("Azure Key Vault certificate manager is not implemented")
-	return nil, nil
+	return nil, nil, nil
 }
 
-func getHashiVaultCertManager(_ kubernetes.Interface, enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger) {
+func getHashiVaultCertManager(_ kubernetes.Interface, enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
 	if _, ok := map[string]interface{}{"http": nil, "https": nil}[*vaultProtocol]; !ok {
-		log.Fatal().Msgf("Value %s is not a valid Hashi Vault protocol", *vaultProtocol)
+		return nil, nil, fmt.Errorf("Value %s is not a valid Hashi Vault protocol", *vaultProtocol)
 	}
 
 	// A Vault address would have the following shape: "http://vault.default.svc.cluster.local:8200"
 	vaultAddr := fmt.Sprintf("%s://%s:%d", *vaultProtocol, *vaultHost, *vaultPort)
 	vaultCertManager, err := vault.NewCertManager(vaultAddr, *vaultToken, getServiceCertValidityPeriod(), *vaultRole)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Error instantiating Hashicorp Vault as a Certificate Manager")
+		return nil, nil, fmt.Errorf("Error instantiating Hashicorp Vault as a Certificate Manager: %+v", err)
 	}
 
-	return vaultCertManager, vaultCertManager
+	return vaultCertManager, vaultCertManager, nil
 }
 
 func getServiceCertValidityPeriod() time.Duration {

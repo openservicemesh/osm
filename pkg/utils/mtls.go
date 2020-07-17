@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -14,17 +15,17 @@ import (
 	"github.com/open-service-mesh/osm/pkg/certificate"
 )
 
-func setupMutualTLS(insecure bool, serverName string, certPem []byte, keyPem []byte, ca []byte) grpc.ServerOption {
+func setupMutualTLS(insecure bool, serverName string, certPem []byte, keyPem []byte, ca []byte) (grpc.ServerOption, error) {
 	certif, err := tls.X509KeyPair(certPem, keyPem)
 	if err != nil {
-		log.Fatal().Err(err).Msgf("[grpc][mTLS][%s] Failed loading Certificate (%+v) and Key (%+v) PEM files", serverName, certPem, keyPem)
+		return nil, fmt.Errorf("[grpc][mTLS][%s] Failed loading Certificate (%+v) and Key (%+v) PEM files", serverName, certPem, keyPem)
 	}
 
 	certPool := x509.NewCertPool()
 
 	// Load the set of Root CAs
 	if ok := certPool.AppendCertsFromPEM(ca); !ok {
-		log.Fatal().Msgf("[grpc][mTLS][%s] Filed to append client certs.", serverName)
+		return nil, fmt.Errorf("[grpc][mTLS][%s] Filed to append client certs", serverName)
 	}
 
 	tlsConfig := tls.Config{
@@ -34,7 +35,7 @@ func setupMutualTLS(insecure bool, serverName string, certPem []byte, keyPem []b
 		Certificates:       []tls.Certificate{certif},
 		ClientCAs:          certPool,
 	}
-	return grpc.Creds(credentials.NewTLS(&tlsConfig))
+	return grpc.Creds(credentials.NewTLS(&tlsConfig)), nil
 }
 
 // ValidateClient ensures that the connected client is authorized to connect to the gRPC server.
