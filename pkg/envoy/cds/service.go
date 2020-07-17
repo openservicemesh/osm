@@ -12,6 +12,7 @@ import (
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/envoy"
+	"github.com/open-service-mesh/osm/pkg/featureflags"
 	"github.com/open-service-mesh/osm/pkg/service"
 )
 
@@ -39,6 +40,16 @@ func getServiceClusterLocal(catalog catalog.MeshCataloger, proxyServiceName serv
 				// Filled based on discovered endpoints for the service
 			},
 		},
+	}
+
+	if featureflags.IsBackpressureEnabled() {
+		log.Info().Msgf("Enabling backpressure local service cluster")
+		// Backpressure CRD only has one backpressure obj as a global config
+		// TODO: Add specific backpressure settings for individual clients
+		backpressures := catalog.GetSMISpec().ListBackpressures()
+		xdsCluster.MaxRequestsPerConnection = &wrappers.UInt32Value{
+			Value: uint32(backpressures[0].Spec.MaxRequestsPerConnection),
+		}
 	}
 
 	endpoints, err := catalog.ListEndpointsForService(service.Name(proxyServiceName.String()))
