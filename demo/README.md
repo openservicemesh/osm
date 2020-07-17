@@ -32,6 +32,14 @@
 ## Configure Environment Variables
 In the root directory of the repo create a `.env` file. It is already listed in `.gitignore` so that anything you put in it would not accidentally leak into a public git repo. Refer to `.env.example` in the root of this repo for the mandatory and optional environment variables.
 
+From the root of the repository:
+
+```
+cp .env.example .env
+```
+
+In the newly created `.env` file, update the two values `CTR_REGISTRY` and `CTR_REGISTRY_PASSWORD` with appropriate values. The optional environment variables only need to be set if the default values used in the demo need to be overridden.
+
 
 ## Run the Demo
 1. From the root of this repository execute `./demo/run-osm-demo.sh`.

@@ -132,7 +132,7 @@ func main() {
 	if err != nil {
 		log.Error().Err(err).Msgf("Error parsing ConfigMap %s", osmConfigMapName)
 	}
-	log.Info().Msgf("Initial ConfigMap %s: %+v", osmConfigMapName, configMap)
+	log.Info().Msgf("Initial ConfigMap %s: %s", osmConfigMapName, string(configMap))
 
 	namespaceController := namespace.NewNamespaceController(kubeClient, meshName, stop)
 	meshSpec := smi.NewMeshSpecClient(*smiKubeConfig, kubeClient, osmNamespace, namespaceController, stop)
