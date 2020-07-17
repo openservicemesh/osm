@@ -15,6 +15,7 @@ import (
 	"github.com/open-service-mesh/osm/pkg/endpoint"
 	"github.com/open-service-mesh/osm/pkg/service"
 	"github.com/open-service-mesh/osm/pkg/trafficpolicy"
+	"github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 )
 
 const (
@@ -26,6 +27,10 @@ const (
 
 	// BookstoreServiceName is the name of the bookstore service.
 	BookstoreServiceName = "bookstore"
+
+	// BookstoreApexServiceName that have been is the name of the bookstore service, which is then split into other services.
+	BookstoreApexServiceName = "bookstore-apex"
+
 	// BookbuyerServiceName is the name of the bookbuyer service
 	BookbuyerServiceName = "bookbuyer"
 
@@ -122,6 +127,16 @@ var (
 			Headers: map[string]string{
 				"host": Domain,
 			},
+		},
+	}
+
+	// TrafficSplit is a traffic split SMI object.
+	TrafficSplit = v1alpha2.TrafficSplit{
+		ObjectMeta: v1.ObjectMeta{
+			Namespace: Namespace,
+		},
+		Spec: v1alpha2.TrafficSplitSpec{
+			Service: BookstoreApexServiceName,
 		},
 	}
 
