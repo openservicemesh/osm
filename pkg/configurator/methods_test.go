@@ -13,10 +13,10 @@ import (
 
 var _ = Describe("Test Envoy configuration creation", func() {
 	defaultConfigMap := map[string]string{
-		permissiveTrafficPolicyModeKey: "false",
-		egressKey:                      "true",
-		prometheusScrapingKey:          "true",
-		zipkinTracingKey:               "true",
+		PermissiveTrafficPolicyModeKey: "false",
+		EgressKey:                      "true",
+		PrometheusScrapingKey:          "true",
+		ZipkinTracingKey:               "true",
 	}
 
 	Context("create OSM configurator client", func() {
@@ -75,7 +75,7 @@ var _ = Describe("Test Envoy configuration creation", func() {
 
 		It("correctly identifies that permissive_traffic_policy_mode is enabled", func() {
 			Expect(cfg.IsPermissiveTrafficPolicyMode()).To(BeFalse())
-			defaultConfigMap[permissiveTrafficPolicyModeKey] = "true"
+			defaultConfigMap[PermissiveTrafficPolicyModeKey] = "true"
 			configMap := v1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: osmNamespace,
@@ -97,7 +97,7 @@ var _ = Describe("Test Envoy configuration creation", func() {
 		})
 
 		It("correctly identifies that permissive_traffic_policy_mode is disabled", func() {
-			defaultConfigMap[permissiveTrafficPolicyModeKey] = "false"
+			defaultConfigMap[PermissiveTrafficPolicyModeKey] = "false"
 			configMap := v1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: osmNamespace,
@@ -149,7 +149,7 @@ var _ = Describe("Test Envoy configuration creation", func() {
 		})
 
 		It("correctly identifies that egress is disabled", func() {
-			defaultConfigMap[egressKey] = "false"
+			defaultConfigMap[EgressKey] = "false"
 			configMap := v1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: osmNamespace,
@@ -201,7 +201,7 @@ var _ = Describe("Test Envoy configuration creation", func() {
 		})
 
 		It("correctly identifies that the config is disabled", func() {
-			defaultConfigMap[prometheusScrapingKey] = "false"
+			defaultConfigMap[PrometheusScrapingKey] = "false"
 			configMap := v1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: osmNamespace,
@@ -253,7 +253,7 @@ var _ = Describe("Test Envoy configuration creation", func() {
 		})
 
 		It("correctly identifies that the config is disabled", func() {
-			defaultConfigMap[zipkinTracingKey] = "false"
+			defaultConfigMap[ZipkinTracingKey] = "false"
 			configMap := v1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: osmNamespace,
