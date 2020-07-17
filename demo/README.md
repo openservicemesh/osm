@@ -21,6 +21,7 @@
 		- Login to your Azure account: `az login`
 		- Create an AKS cluster via [Azure Portal](https://portal.azure.com/)
 		- Using the Azure CLI download AKS credentials into `~/.kube/config`: `az aks get-credentials --resource-group your_Resource_Group --name your_AKS_name`
+		- Set `KUBECONFIG` environment variable: `export KUBECONFIG=~/.kube/config` (also add this command to your .bashrc)
 1. Authenticate with a container registry, which is accessible to both your workstation and your Kubernetes cluster. One such registry is the Azure Container Registry (ACR), which is used by the demo scripts in this repo:
    - [Install Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
    - Login to your Azure account: `az login`
