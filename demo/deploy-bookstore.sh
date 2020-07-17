@@ -90,10 +90,6 @@ spec:
               value: ${SVC}
             - name: BOOKWAREHOUSE_NAMESPACE
               value: ${BOOKWAREHOUSE_NAMESPACE}
-            - name: "OSM_HUMAN_DEBUG_LOG"
-              value: "true"
-            - name: IS_GITHUB
-              value: "$IS_GITHUB"
 
       imagePullSecrets:
         - name: $CTR_REGISTRY_CREDS_NAME

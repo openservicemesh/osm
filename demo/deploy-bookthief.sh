@@ -67,16 +67,12 @@ spec:
           env:
             - name: "BOOKSTORE_NAMESPACE"
               value: "$BOOKSTORE_NAMESPACE"
-            - name: "OSM_HUMAN_DEBUG_LOG"
-              value: "true"
             - name: "BOOKSTORE_SVC"
               value: "$BOOKSTORE_SVC"
             - name: "BOOKTHIEF_EXPECTED_RESPONSE_CODE"
               value: "$BOOKTHIEF_EXPECTED_RESPONSE_CODE"
             - name: "CI_MAX_ITERATIONS_THRESHOLD"
               value: "$CI_MAX_ITERATIONS_THRESHOLD"
-            - name: IS_GITHUB
-              value: "$IS_GITHUB"
 
       imagePullSecrets:
         - name: "$CTR_REGISTRY_CREDS_NAME"

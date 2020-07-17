@@ -16,7 +16,6 @@ import (
 
 const (
 	participantName              = "bookthief"
-	httpStatusNotFound           = "404"
 	httpStatusServiceUnavailable = "503"
 )
 
@@ -24,7 +23,7 @@ var (
 	booksStolen   = 0
 	booksStolenV1 = 0
 	booksStolenV2 = 0
-	log           = logger.New(participantName)
+	log           = logger.NewPretty(participantName)
 	port          = flag.Int("port", 80, "port on which this app is listening for incoming HTTP")
 	path          = flag.String("path", ".", "path to the HTML template")
 )

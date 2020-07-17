@@ -16,7 +16,6 @@ var (
 	minSuccessThresholdStr                 = GetEnv("CI_MIN_SUCCESS_THRESHOLD", "1")
 	maxIterationsStr                       = GetEnv("CI_MAX_ITERATIONS_THRESHOLD", "0") // 0 for unlimited
 	bookstoreServiceName                   = GetEnv("BOOKSTORE_SVC", "bookstore")
-	isGithub                               = GetEnv(IsGithubEnvVar, "false") == "true"
 	bookstoreNamespace                     = os.Getenv(BookstoreNamespaceEnvVar)
 	warehouseServiceName                   = "bookwarehouse"
 	bookwarehouseNamespace                 = os.Getenv(BookwarehouseNamespaceEnvVar)
@@ -48,7 +47,7 @@ const (
 	RestockWarehouseURL = "restock-books"
 )
 
-var log = logger.New("demo")
+var log = logger.NewPretty("demo")
 
 // RestockBooks restocks the bookstore with certain amount of books from the warehouse.
 func RestockBooks(amount int) {
@@ -138,7 +137,7 @@ func GetBooks(participantName string, expectedResponseCode int, booksCount *int,
 			}
 
 			// We are looking for a certain number of sequential successful HTTP requests.
-			if isGithub && previouslySucceeded && allUrlsSucceeded(urlSuccessMap) {
+			if previouslySucceeded && allUrlsSucceeded(urlSuccessMap) {
 				successCount++
 				goalReached := successCount >= minSuccessThreshold
 				if goalReached && !timedOut {
@@ -159,7 +158,7 @@ func GetBooks(participantName string, expectedResponseCode int, booksCount *int,
 			previouslySucceeded = allUrlsSucceeded(urlSuccessMap)
 		}
 
-		if isGithub && timedOut {
+		if timedOut {
 			// We are over budget!
 			fmt.Printf("Threshold of %d iterations exceeded\n\n", maxIterations)
 			fmt.Print(Failure)
