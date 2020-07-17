@@ -21,7 +21,7 @@ Open Service Mesh includes a package, [tresor](./pkg/certificate/providers/treso
   - To use this package in your Kubernetes cluster set the `CERT_MANAGER=tresor` variable in the Helm chart prior to deployment.
 
 Additionally:
-  - `--caBundleSecretName` - this string is the name of the Kubernetes secret, where the CA root certificate and private key will be saved.
+  - `--ca-bundle-secret-name` - this string is the name of the Kubernetes secret, where the CA root certificate and private key will be saved.
 
 
 ## Using Hashicorp Vault
@@ -34,15 +34,15 @@ The following configuration parameters will be required for OSM to integrate wit
   - Validity period for certificates
 
 CLI flags control how OSM integrates with Vault. The following OSM command line parameters must be configured to issue certificates with Vault:
-  - `--certmanager` - set this to `vault`
-  - `--vaultHost` - host name of the Vault server (example: `vault.contoso.com`)
-  - `--vaultProtocol` - protocol for Vault connection (`http` or `https`)
-  - `--vaultToken` - token to be used by OSM to connect to Vault (this is issued on the Vault server for the particular role)
-  - `--vaultRole` - role created on Vault server and dedicated to Open Service Mesh (example: `open-service-mesh`)
-  - `--serviceCertValidityMinutes` - number of minutes - period for which each new certificate issued for service-to-service communication will be valid
+  - `--cert-manager` - set this to `vault`
+  - `--vault-host` - host name of the Vault server (example: `vault.contoso.com`)
+  - `--vault-protocol` - protocol for Vault connection (`http` or `https`)
+  - `--vault-token` - token to be used by OSM to connect to Vault (this is issued on the Vault server for the particular role)
+  - `--vault-role` - role created on Vault server and dedicated to Open Service Mesh (example: `open-service-mesh`)
+  - `--service-cert-validity-minutes` - number of minutes - period for which each new certificate issued for service-to-service communication will be valid
 
 Additionally:
-  - `--caBundleSecretName` - this string is the name of the Kubernetes secret where the service mesh root certificate will be stored. When using Vault (unlike Tresor) the root key will **not** be exported to this secret.
+  - `--ca-bundle-secret-name` - this string is the name of the Kubernetes secret where the service mesh root certificate will be stored. When using Vault (unlike Tresor) the root key will **not** be exported to this secret.
 
 
 ### Installing Hashi Vault
@@ -110,18 +110,18 @@ VAULT_ROLE=open-service-mesh
 
 When running OSM on your local workstation, use the following CLI parameters:
 ```
---certmanager="vault"
---vaultHost="localhost"  # or the host where Vault is installed
---vaultProtocol="http"
---vaultToken="xyz"
---vaultRole="open-service-mesh'
---serviceCertValidityMinutes=60
+--cert-manager="vault"
+--vault-host="localhost"  # or the host where Vault is installed
+--vault-protocol="http"
+--vault-token="xyz"
+--vault-role="open-service-mesh'
+--service-cert-validity-minutes=60
 ```
 
 ### How OSM Integrates with Vault
 
 When the OSM control plane starts, a new certificate issuer is instantiated.
-The kind of cert issuer is determined by the `--certmanager` CLI parameter.
+The kind of cert issuer is determined by the `--cert-manager` CLI parameter.
 When this is set to `vault` OSM uses a Vault cert issuer.
 This is a Hasticorp Vault client, which satisfies the `certificate.Manager`
 interface. It provides the following methods:
