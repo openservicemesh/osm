@@ -16,22 +16,22 @@ func validateCLIParams() {
 	}
 
 	if meshName == "" {
-		log.Fatal().Msg("Please specify the mesh name using --meshName")
+		log.Fatal().Msg("Please specify the mesh name using --mesh-name")
 	}
 
 	if osmNamespace == "" {
-		log.Fatal().Msg("Please specify the OSM namespace using --osmNamespace")
+		log.Fatal().Msg("Please specify the OSM namespace using --osm-namespace")
 	}
 
 	if injectorConfig.InitContainerImage == "" {
-		log.Fatal().Msg("Please specify the init container image using --init-container-image ")
+		log.Fatal().Msg("Please specify the init container image using --init-container-image")
 	}
 
 	if injectorConfig.SidecarImage == "" {
-		log.Fatal().Msg("Please specify the sidecar image using --sidecar-image ")
+		log.Fatal().Msg("Please specify the sidecar image using --sidecar-image")
 	}
 
 	if webhookName == "" {
-		log.Fatal().Msgf("Invalid --webhookName value: '%s'", webhookName)
+		log.Fatal().Msgf("Invalid --webhook-name value: '%s'", webhookName)
 	}
 }
