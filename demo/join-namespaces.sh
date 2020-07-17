@@ -37,7 +37,7 @@ metadata:
   namespace: $K8S_NAMESPACE
 
 data:
-  allow_all: true
+  permissive_traffic_policy_mode: "true"
 
 EOF
 
