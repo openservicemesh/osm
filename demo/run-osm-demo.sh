@@ -2,6 +2,14 @@
 
 set -aueo pipefail
 
+if [ ! -f .env ]; then
+    echo -e "\nThere is no .env file in the root of this repository."
+    echo -e "Copy the values from .env.example into .env."
+    echo -e "Modify the values in .env to match your setup.\n"
+    echo -e "    cat .env.example > .env\n\n"
+    exit 1
+fi
+
 # shellcheck disable=SC1091
 source .env
 
