@@ -42,13 +42,17 @@ func getServiceClusterLocal(catalog catalog.MeshCataloger, proxyServiceName serv
 		},
 	}
 
-	if featureflags.IsBackpressureEnabled() {
+	log.Info().Msgf("Backpressure: %t", featureflags.IsBackpressureEnabled())
+
+	if featureflags.IsBackpressureEnabled() && len(catalog.GetSMISpec().ListBackpressures()) > 0 {
 		log.Info().Msgf("Enabling backpressure local service cluster")
 		// Backpressure CRD only has one backpressure obj as a global config
 		// TODO: Add specific backpressure settings for individual clients
-		backpressures := catalog.GetSMISpec().ListBackpressures()
+		log.Trace().Msgf("Backpressures: %+v", catalog.GetSMISpec().ListBackpressures())
+		backpressure := catalog.GetSMISpec().ListBackpressures()[0]
+		log.Trace().Msgf("Backpressure Spec: %+v", backpressure.Spec)
 		xdsCluster.MaxRequestsPerConnection = &wrappers.UInt32Value{
-			Value: uint32(backpressures[0].Spec.MaxRequestsPerConnection),
+			Value: uint32(backpressure.Spec.MaxRequestsPerConnection),
 		}
 	}
 
