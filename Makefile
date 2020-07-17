@@ -1,11 +1,20 @@
 #!make
 
-TARGETS    := linux/amd64
+TARGETS    := darwin/amd64 linux/amd64
 LDFLAGS    :=
 SHELL      := bash -o pipefail
+BINNAME    ?= osm
+DIST_DIRS  := find * -type d -exec
 
 GOPATH = $(shell go env GOPATH)
 GOBIN  = $(GOPATH)/bin
+GOX    = $(GOPATH)/bin/gox
+
+.PHONY: gox
+gox:
+ifndef HAS_GOX
+	 GOBIN=$(GOBIN) go get -u github.com/mitchellh/gox
+endif
 
 .PHONY: clean-cert
 clean-cert:
@@ -138,3 +147,25 @@ shellcheck:
 .PHONY: install-git-pre-push-hook
 install-git-pre-push-hook:
 	./scripts/install-git-pre-push-hook.sh
+
+# -------------------------------------------
+#  release targets below
+# -------------------------------------------
+
+.PHONY: build-cross
+build-cross: $(GOX)
+	@mkdir -p $(shell pwd)/_dist
+	go run scripts/generate_chart/generate_chart.go | GO111MODULE=on CGO_ENABLED=0 $(GOX) -ldflags "-X main.chartTGZSource=$$(cat -)" -parallel=3 -output="_dist/{{.OS}}-{{.Arch}}/$(BINNAME)" -osarch='$(TARGETS)' ./cmd/cli
+
+.PHONY: dist
+dist:
+	( \
+		cd _dist && \
+		$(DIST_DIRS) cp ../LICENSE {} \; && \
+		$(DIST_DIRS) cp ../README.md {} \; && \
+		$(DIST_DIRS) tar -zcf osm-${VERSION}-{}.tar.gz {} \; && \
+		$(DIST_DIRS) zip -r osm-${VERSION}-{}.zip {} \; \
+	)
+
+.PHONY: release-artifacts
+release-artifacts: build-cross dist
