@@ -46,8 +46,7 @@ func NewWebhook(config Config, kubeClient kubernetes.Interface, certManager cert
 	validityPeriod := constants.XDSCertificateValidityPeriod
 	cert, err := certManager.IssueCertificate(cn, &validityPeriod)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error issuing certificate for the mutating webhook")
-		return err
+		return fmt.Errorf("Error issuing certificate for the mutating webhook: %+v", err)
 	}
 
 	wh := webhook{
@@ -61,16 +60,13 @@ func NewWebhook(config Config, kubeClient kubernetes.Interface, certManager cert
 	}
 
 	go wh.run(stop)
-
-	err = patchMutatingWebhookConfiguration(cert, meshName, osmNamespace, webhookName, wh.kubeClient)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Error configuring MutatingWebhookConfiguration")
+	if err = patchMutatingWebhookConfiguration(cert, meshName, osmNamespace, webhookName, wh.kubeClient); err != nil {
+		return fmt.Errorf("Error configuring MutatingWebhookConfiguration: %+v", err)
 	}
-
 	return nil
 }
 
-func (wh *webhook) run(stop <-chan struct{}) {
+func (wh *webhook) run(stop <-chan struct{}) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -85,12 +81,11 @@ func (wh *webhook) run(stop <-chan struct{}) {
 	}
 
 	log.Info().Msgf("Starting sidecar-injection webhook server on :%v", wh.config.ListenPort)
-	go func() {
+	go func() error {
 		// Generate a key pair from your pem-encoded cert and key ([]byte).
 		cert, err := tls.X509KeyPair(wh.cert.GetCertificateChain(), wh.cert.GetPrivateKey())
 		if err != nil {
-			// TODO(draychev): bubble these up as errors instead of fataling here (https://github.com/open-service-mesh/osm/issues/534)
-			log.Fatal().Err(err).Msg("Error parsing webhook certificate")
+			return fmt.Errorf("Error parsing webhook certificate: %+v", err)
 		}
 
 		server.TLSConfig = &tls.Config{
@@ -98,9 +93,9 @@ func (wh *webhook) run(stop <-chan struct{}) {
 		}
 
 		if err := server.ListenAndServeTLS("", ""); err != nil {
-			// TODO(draychev): bubble these up as errors instead of fataling here (https://github.com/open-service-mesh/osm/issues/534)
-			log.Fatal().Err(err).Msgf("Sidecar-injection webhook HTTP server failed to start")
+			return fmt.Errorf("Sidecar-injection webhook HTTP server failed to start: %+v", err)
 		}
+		return nil
 	}()
 
 	// Wait on exit signals
@@ -112,6 +107,7 @@ func (wh *webhook) run(stop <-chan struct{}) {
 	} else {
 		log.Info().Msg("Done shutting down sidecar-injection webhook HTTP server")
 	}
+	return nil
 }
 
 func (wh *webhook) healthReadyHandler(w http.ResponseWriter, req *http.Request) {
