@@ -1,7 +1,6 @@
 #!make
 
 TARGETS    := darwin/amd64 linux/amd64
-LDFLAGS    :=
 SHELL      := bash -o pipefail
 BINNAME    ?= osm
 DIST_DIRS  := find * -type d -exec
@@ -9,6 +8,13 @@ DIST_DIRS  := find * -type d -exec
 GOPATH = $(shell go env GOPATH)
 GOBIN  = $(GOPATH)/bin
 GOX    = $(GOPATH)/bin/gox
+
+CLI_VERSION = 0.0.1
+BUILD_DATE=$$(date +%Y-%m-%d-%H:%M)
+BUILD_DATE_VAR := main.BuildDate
+BUILD_VERSION_VAR := main.BuildVersion
+
+LDFLAGS ?= "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(CLI_VERSION) -X main.chartTGZSource=$$(cat -)"
 
 .PHONY: gox
 gox:
@@ -43,7 +49,7 @@ build-osm-controller: clean-osm-controller
 .PHONY: build-osm
 build-osm:
 	@mkdir -p $(shell pwd)/bin
-	go run scripts/generate_chart/generate_chart.go | CGO_ENABLED=0  go build -v -o ./bin/osm -ldflags "-X main.chartTGZSource=$$(cat -)" ./cmd/cli
+	go run scripts/generate_chart/generate_chart.go | CGO_ENABLED=0  go build -v -o ./bin/osm -ldflags ${LDFLAGS} ./cmd/cli
 
 .PHONY: docker-build
 docker-build: docker-build-osm-controller docker-build-bookbuyer docker-build-bookstore docker-build-bookwarehouse
