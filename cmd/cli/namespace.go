@@ -22,6 +22,7 @@ func newNamespaceCmd(out io.Writer) *cobra.Command {
 	}
 	cmd.AddCommand(newNamespaceAdd(out))
 	cmd.AddCommand(newNamespaceRemove(out))
+	cmd.AddCommand(newNamespaceList(out))
 
 	return cmd
 }
