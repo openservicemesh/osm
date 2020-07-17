@@ -30,7 +30,7 @@ func (ds debugServer) getSMIPoliciesHandler() http.Handler {
 
 		jsonPolicies, err := json.Marshal(p)
 		if err != nil {
-			log.Error().Err(err).Msg("Error marshalling p")
+			log.Error().Err(err).Msgf("Error marshalling policy %+v", p)
 		}
 
 		_, _ = fmt.Fprint(w, string(jsonPolicies))
