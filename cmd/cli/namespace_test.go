@@ -34,7 +34,7 @@ var _ = Describe("Running the namespace add command", func() {
 			out = new(bytes.Buffer)
 			fakeClientSet = fake.NewSimpleClientset()
 
-			nsSpec := &v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespace}}
+			nsSpec := createNamespaceSpec(testNamespace, "")
 			fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
 
 			namespaceAddCmd := &namespaceAddCmd{
@@ -97,14 +97,7 @@ var _ = Describe("Running the namespace remove command", func() {
 			out = new(bytes.Buffer)
 			fakeClientSet = fake.NewSimpleClientset()
 
-			labelMap := make(map[string]string)
-			labelMap[constants.OSMKubeResourceMonitorAnnotation] = testMeshName
-			nsSpec := &v1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:   testNamespace,
-					Labels: labelMap,
-				},
-			}
+			nsSpec := createNamespaceSpec(testNamespace, testMeshName)
 			fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
 
 			namespaceRemoveCmd := &namespaceRemoveCmd{
@@ -137,14 +130,7 @@ var _ = Describe("Running the namespace remove command", func() {
 			out = new(bytes.Buffer)
 			fakeClientSet = fake.NewSimpleClientset()
 
-			labelMap := make(map[string]string)
-			labelMap[constants.OSMKubeResourceMonitorAnnotation] = testMeshName
-			nsSpec := &v1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:   testNamespace,
-					Labels: labelMap,
-				},
-			}
+			nsSpec := createNamespaceSpec(testNamespace, testMeshName)
 			fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
 
 			namespaceRemoveCmd := &namespaceRemoveCmd{
@@ -175,11 +161,7 @@ var _ = Describe("Running the namespace remove command", func() {
 			out = new(bytes.Buffer)
 			fakeClientSet = fake.NewSimpleClientset()
 
-			nsSpec := &v1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: testNamespace,
-				},
-			}
+			nsSpec := createNamespaceSpec(testNamespace, "")
 			fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
 
 			namespaceRemoveCmd := &namespaceRemoveCmd{
