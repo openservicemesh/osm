@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"helm.sh/helm/v3/cmd/helm/require"
 	"io"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"text/tabwriter"
@@ -59,22 +60,22 @@ func newNamespaceList(out io.Writer) *cobra.Command {
 }
 
 func (l *namespaceListCmd) run() error {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	selector := constants.OSMKubeResourceMonitorAnnotation
-	if l.meshName != "" {
-		selector = fmt.Sprintf("%s=%s", selector, l.meshName)
-	}
-
-	namespaces, err := l.clientSet.CoreV1().Namespaces().List(ctx, metav1.ListOptions{
-		LabelSelector: selector,
-	})
-
+	namespaces, err := l.selectNamespaces()
 	if err != nil {
 		return fmt.Errorf("Could not list namespaces related to osm [%s]: %v", l.meshName, err)
 	}
 
+	if len(namespaces.Items) == 0 {
+		if l.meshName != "" {
+			fmt.Fprintf(l.out, "No namespaces in mesh [%s]\n", l.meshName)
+			return nil
+		}
+
+		fmt.Fprintf(l.out, "No namespaces in any mesh\n")
+		return nil
+	}
+
+	//todo extract this to factory
 	w := tabwriter.NewWriter(l.out, 6, 4, 3, ' ', 0)
 	fmt.Fprintln(w, "NAMESPACE\tMESH\t")
 	for _, ns := range namespaces.Items {
@@ -84,4 +85,18 @@ func (l *namespaceListCmd) run() error {
 	w.Flush()
 
 	return nil
+}
+
+func (l *namespaceListCmd) selectNamespaces() (*v1.NamespaceList, error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	selector := constants.OSMKubeResourceMonitorAnnotation
+	if l.meshName != "" {
+		selector = fmt.Sprintf("%s=%s", selector, l.meshName)
+	}
+
+	return l.clientSet.CoreV1().Namespaces().List(ctx, metav1.ListOptions{
+		LabelSelector: selector,
+	})
 }
