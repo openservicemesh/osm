@@ -2,7 +2,6 @@
 
 ## System Requirements
 - Go version 1.14 or higher
-- OpenSSL/LibreSSL 2.8.3 or higher
 - Kubectl version 1.16 or higher
 - Docker CLI
    - on a Debian based GNU/Linux system: `sudo apt-get install docker`
