@@ -16,9 +16,9 @@ import (
 )
 
 var (
-	testNamespace      = "namespace"
-	testMeshName       = "mesh"
-	incorrectMeshName  = "incorrectMesh"
+	testNamespace     = "namespace"
+	testMeshName      = "mesh"
+	incorrectMeshName = "incorrectMesh"
 )
 
 var _ = Describe("Running the namespace add command", func() {
@@ -219,7 +219,7 @@ var _ = Describe("Running the namespace list command", func() {
 			fakeClientSet kubernetes.Interface
 			err           error
 			namespaces    *v1.NamespaceList
-			listCmd *namespaceListCmd
+			listCmd       *namespaceListCmd
 		)
 
 		// helper function that adds a name space to the clientset

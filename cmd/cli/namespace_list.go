@@ -10,7 +10,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"text/tabwriter"
 )
 
 const namespaceListDescription = `
@@ -75,8 +74,7 @@ func (l *namespaceListCmd) run() error {
 		return nil
 	}
 
-	//todo extract this to factory
-	w := tabwriter.NewWriter(l.out, 6, 4, 3, ' ', 0)
+	w := newTabWriter(l.out)
 	fmt.Fprintln(w, "NAMESPACE\tMESH\t")
 	for _, ns := range namespaces.Items {
 		osmName, _ := ns.ObjectMeta.Labels[constants.OSMKubeResourceMonitorAnnotation]
