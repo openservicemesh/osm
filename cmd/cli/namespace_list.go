@@ -13,7 +13,7 @@ import (
 )
 
 const namespaceListDescription = `
-This command will list namespace information for all meshes. It is possible to filter by given mesh.
+This command will list namespace information for all meshes. It is possible to filter by a given mesh.
 `
 
 type namespaceListCmd struct {
@@ -29,8 +29,8 @@ func newNamespaceList(out io.Writer) *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "list",
-		Short: "list namespaces for meshes",
-		Long:  namespaceAddDescription,
+		Short: "list namespaces enlisted in meshes",
+		Long:  namespaceListDescription,
 		Args:  require.MaximumNArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			if len(args) == 1 {
