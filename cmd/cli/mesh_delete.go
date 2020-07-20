@@ -52,21 +52,21 @@ func newMeshDelete(config *action.Configuration, in io.Reader, out io.Writer) *c
 }
 
 func (d *meshDeleteCmd) run() error {
-	if d.force {
-		_, _ = d.client.Run(d.meshName)
-		return nil
-	}
-	confirm, err := confirm(d.in, d.out, fmt.Sprintf("Delete OSM [mesh name: %s] ?", d.meshName), 3)
-	if !confirm || err != nil {
-		return err
+	if !d.force {
+		confirm, err := confirm(d.in, d.out, fmt.Sprintf("Delete OSM [mesh name: %s] ?", d.meshName), 3)
+		if !confirm || err != nil {
+			return err
+		}
 	}
 
-	_, err = d.client.Run(d.meshName)
-	if err != nil && errors.Cause(err) == helmStorage.ErrReleaseNotFound {
+	_, err := d.client.Run(d.meshName)
+	if err != nil && errors.Cause(err) == helmStorage.ErrReleaseNotFound && !d.force {
 		return errors.Errorf("No OSM control plane with mesh name [%s] found in namespace [%s]", d.meshName, settings.Namespace())
 	}
 
-	fmt.Fprintf(d.out, "OSM [mesh name: %s] deleted\n", d.meshName)
+	if err == nil {
+		fmt.Fprintf(d.out, "OSM [mesh name: %s] deleted\n", d.meshName)
+	}
 
 	return err
 }
