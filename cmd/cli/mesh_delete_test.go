@@ -73,7 +73,7 @@ var _ = Describe("Running the mesh delete command", func() {
 				mem.SetNamespace(settings.Namespace())
 			}
 
-			rel := release.Mock(&release.MockReleaseOptions{})
+			rel := release.Mock(&release.MockReleaseOptions{Name: "other-mesh"})
 			store.Create(rel)
 
 			testConfig := &helm.Configuration{
@@ -117,7 +117,7 @@ var _ = Describe("Running the mesh delete command", func() {
 				mem.SetNamespace(settings.Namespace())
 			}
 
-			rel := release.Mock(&release.MockReleaseOptions{})
+			rel := release.Mock(&release.MockReleaseOptions{Name: "other-mesh"})
 			store.Create(rel)
 
 			testConfig := &helm.Configuration{

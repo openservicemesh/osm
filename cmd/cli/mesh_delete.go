@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
+	"io"
+
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"helm.sh/helm/v3/cmd/helm/require"
 	"helm.sh/helm/v3/pkg/action"
 	helmStorage "helm.sh/helm/v3/pkg/storage/driver"
-	"io"
 )
 
 const meshDeleteDescription = `
@@ -33,7 +34,7 @@ func newMeshDelete(config *action.Configuration, in io.Reader, out io.Writer) *c
 	}
 
 	cmd := &cobra.Command{
-		Use:   "delete MESH_NAME",
+		Use:   "delete",
 		Short: "delete osm control plane instance",
 		Long:  meshDeleteDescription,
 		Args:  require.ExactArgs(0),
