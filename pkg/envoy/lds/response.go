@@ -44,7 +44,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 
 	// Build the outbound listener config
 	outboundConnManager := getHTTPConnectionManager(route.OutboundRouteConfig)
-	outboundListener, err := buildOutboundListener(outboundConnManager, cfg.IsEgressEnabled())
+	outboundListener, err := buildOutboundListener(outboundConnManager, cfg)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error building outbound listener config for proxy %s", proxyServiceName)
 		return nil, err
