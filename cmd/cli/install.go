@@ -71,6 +71,7 @@ type installCmd struct {
 	prometheusRetentionTime       string
 	enableDebugServer             bool
 	enablePermissiveTrafficPolicy bool
+	disableEgress                 bool
 	meshName                      string
 
 	// This is an experimental flag, which will eventually
@@ -113,6 +114,7 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.StringVar(&inst.prometheusRetentionTime, "prometheus-retention-time", constants.PrometheusDefaultRetentionTime, "Duration for which data will be retained in prometheus")
 	f.BoolVar(&inst.enableDebugServer, "enable-debug-server", false, "Enable the debug HTTP server")
 	f.BoolVar(&inst.enablePermissiveTrafficPolicy, "enable-permissive-traffic-policy", false, "Enable permissive traffic policy mode")
+	f.BoolVar(&inst.disableEgress, "disable-egress", false, "Disable egress in the mesh")
 	f.BoolVar(&inst.enableBackpressureExperimental, "enable-backpressure-experimental", false, "Enable experimental backpressure feature")
 	f.StringVar(&inst.meshName, "mesh-name", defaultMeshName, "name for the new control plane instance")
 
@@ -209,6 +211,7 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 		fmt.Sprintf("OpenServiceMesh.enablePermissiveTrafficPolicy=%t", i.enablePermissiveTrafficPolicy),
 		fmt.Sprintf("OpenServiceMesh.enableBackpressureExperimental=%t", i.enableBackpressureExperimental),
 		fmt.Sprintf("OpenServiceMesh.meshName=%s", i.meshName),
+		fmt.Sprintf("OpenServiceMesh.enableEgress=%t", !i.disableEgress),
 	}
 
 	for _, val := range valuesConfig {

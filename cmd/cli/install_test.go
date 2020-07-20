@@ -131,6 +131,7 @@ var _ = Describe("Running the install command", func() {
 						"enableDebugServer":              false,
 						"enablePermissiveTrafficPolicy":  false,
 						"enableBackpressureExperimental": false,
+						"enableEgress":                   true,
 					}}))
 			})
 
@@ -229,6 +230,7 @@ var _ = Describe("Running the install command", func() {
 						"enableDebugServer":              false,
 						"enablePermissiveTrafficPolicy":  false,
 						"enableBackpressureExperimental": false,
+						"enableEgress":                   true,
 					}}))
 			})
 
@@ -332,6 +334,7 @@ var _ = Describe("Running the install command", func() {
 						"enableDebugServer":              false,
 						"enablePermissiveTrafficPolicy":  false,
 						"enableBackpressureExperimental": false,
+						"enableEgress":                   true,
 					}}))
 			})
 
@@ -592,6 +595,35 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 				"enableDebugServer":              false,
 				"enablePermissiveTrafficPolicy":  false,
 				"enableBackpressureExperimental": false,
+				"enableEgress":                   true,
 			}}))
+	})
+})
+
+var _ = Describe("Resolving values for egress option", func() {
+	Context("Test enableEgress chart value with install cli option", func() {
+		It("Should disable egress in the Helm chart", func() {
+			installCmd := &installCmd{
+				disableEgress: true,
+			}
+
+			vals, err := installCmd.resolveValues()
+			Expect(err).NotTo(HaveOccurred())
+
+			enableEgressVal := vals["OpenServiceMesh"].(map[string]interface{})["enableEgress"]
+			Expect(enableEgressVal).To(BeFalse())
+		})
+
+		It("Should enable egress in the Helm chart", func() {
+			installCmd := &installCmd{
+				disableEgress: false,
+			}
+
+			vals, err := installCmd.resolveValues()
+			Expect(err).NotTo(HaveOccurred())
+
+			enableEgressVal := vals["OpenServiceMesh"].(map[string]interface{})["enableEgress"]
+			Expect(enableEgressVal).To(BeTrue())
+		})
 	})
 })
