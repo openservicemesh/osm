@@ -39,6 +39,7 @@ require (
 	gonum.org/v1/netlib v0.0.0-20190331212654-76723241ea4e // indirect
 	google.golang.org/genproto v0.0.0-20190911173649-1774047e7e51 // indirect
 	google.golang.org/grpc v1.27.0
+	google.golang.org/protobuf v1.23.0
 	gopkg.in/yaml.v2 v2.2.8
 	helm.sh/helm/v3 v3.2.0
 	k8s.io/api v0.18.0
