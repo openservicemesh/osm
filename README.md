@@ -92,6 +92,13 @@ $ bin/osm namespace remove --mesh-name <mesh-name> <namespace-name>
 [1]: https://en.wikipedia.org/wiki/Service_mesh
 [2]: https://github.com/servicemeshinterface/smi-spec/blob/master/SPEC_LATEST_STABLE.md
 
+## Community, discussion, contribution, and support
+
+You can reach the Open Service Mesh community and developers via the following channels:
+
+- OSM Slack (TBD)
+- Public Community Call (TBD)
+
 ## Code of Conduct
 
 This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
