@@ -14,8 +14,8 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/wrappers"
 
-	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/configurator"
+	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 )
 
@@ -46,7 +46,7 @@ func buildOutboundListener(connManager *envoy_hcm.HttpConnectionManager, cfg con
 
 	if cfg.IsEgressEnabled() {
 		// When egress, the in-mesh CIDR is used to distinguish in-mesh traffic
-		cidr := "10.20.0.0/16"
+		cidr := "10.2.0.0/16"
 		meshCIDRRange, err := getCIDRRange(cidr)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error parsing CIDR: %s", cidr)
@@ -157,7 +157,7 @@ func parseCIDR(cidr string) (string, uint32, error) {
 	if err != nil {
 		return addr, 0, err
 	}
-	chunks := strings.Split(addr, "/")
+	chunks := strings.Split(cidr, "/")
 	addr = chunks[0]
 	prefix, err := strconv.Atoi(chunks[1])
 	if err != nil {
