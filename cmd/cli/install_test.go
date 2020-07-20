@@ -76,6 +76,7 @@ var _ = Describe("Running the install command", func() {
 				prometheusRetentionTime:    testRetentionTime,
 				checker:                    passingChecker{},
 				meshName:                   defaultMeshName,
+				enableEgress:               true,
 			}
 
 			err = installCmd.run(config)
@@ -175,6 +176,7 @@ var _ = Describe("Running the install command", func() {
 				prometheusRetentionTime:    testRetentionTime,
 				checker:                    passingChecker{},
 				meshName:                   defaultMeshName,
+				enableEgress:               true,
 			}
 
 			err = installCmd.run(config)
@@ -278,6 +280,7 @@ var _ = Describe("Running the install command", func() {
 				prometheusRetentionTime:    testRetentionTime,
 				checker:                    passingChecker{},
 				meshName:                   defaultMeshName,
+				enableEgress:               true,
 			}
 
 			err = installCmd.run(config)
@@ -375,6 +378,7 @@ var _ = Describe("Running the install command", func() {
 				certManager:             "vault",
 				meshName:                defaultMeshName,
 				checker:                 passingChecker{},
+				enableEgress:            true,
 			}
 
 			err = installCmd.run(config)
@@ -421,6 +425,7 @@ var _ = Describe("Running the install command", func() {
 				prometheusRetentionTime:    testRetentionTime,
 				meshName:                   defaultMeshName,
 				checker:                    passingChecker{},
+				enableEgress:               true,
 			}
 
 			err = config.Releases.Create(&release.Release{
@@ -482,6 +487,7 @@ var _ = Describe("Running the install command", func() {
 				prometheusRetentionTime:    testRetentionTime,
 				meshName:                   "osm!!123456789012345678901234567890123456789012345678901234567890", // >65 characters, contains !
 				checker:                    passingChecker{},
+				enableEgress:               true,
 			}
 
 			err = install.run(config)
@@ -527,6 +533,7 @@ var _ = Describe("Running the install command", func() {
 				prometheusRetentionTime:    testRetentionTime,
 				meshName:                   defaultMeshName,
 				checker:                    failingChecker{},
+				enableEgress:               true,
 			}
 
 			err = installCmd.run(config)
@@ -557,6 +564,7 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 			serviceCertValidityMinutes: 1,
 			prometheusRetentionTime:    testRetentionTime,
 			meshName:                   defaultMeshName,
+			enableEgress:               true,
 		}
 
 		vals, err = installCmd.resolveValues()
@@ -604,7 +612,7 @@ var _ = Describe("Resolving values for egress option", func() {
 	Context("Test enableEgress chart value with install cli option", func() {
 		It("Should disable egress in the Helm chart", func() {
 			installCmd := &installCmd{
-				disableEgress: true,
+				enableEgress: false,
 			}
 
 			vals, err := installCmd.resolveValues()
@@ -616,7 +624,7 @@ var _ = Describe("Resolving values for egress option", func() {
 
 		It("Should enable egress in the Helm chart", func() {
 			installCmd := &installCmd{
-				disableEgress: false,
+				enableEgress: true,
 			}
 
 			vals, err := installCmd.resolveValues()
