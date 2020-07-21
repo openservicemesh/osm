@@ -3,19 +3,18 @@ package ads
 import (
 	"io"
 
-	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	xds "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
+	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"github.com/open-service-mesh/osm/pkg/envoy"
 )
 
-func receive(requests chan v2.DiscoveryRequest, server *xds.AggregatedDiscoveryService_StreamAggregatedResourcesServer, proxy *envoy.Proxy, quit chan struct{}) {
+func receive(requests chan discovery.DiscoveryRequest, server *discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer, proxy *envoy.Proxy, quit chan struct{}) {
 	defer close(requests)
 	defer close(quit)
 	for {
-		var request *v2.DiscoveryRequest
+		var request *discovery.DiscoveryRequest
 		request, recvErr := (*server).Recv()
 		if recvErr != nil {
 			if status.Code(recvErr) == codes.Canceled || recvErr == io.EOF {

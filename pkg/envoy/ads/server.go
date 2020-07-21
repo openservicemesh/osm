@@ -4,8 +4,7 @@ import (
 	"context"
 	"time"
 
-	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	envoy_service_discovery_v2 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
+	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/certificate"
@@ -38,8 +37,8 @@ func NewADSServer(ctx context.Context, meshCatalog catalog.MeshCataloger, meshSp
 	return &server
 }
 
-func getHandlers(cfg configurator.Configurator) map[envoy.TypeURI]func(context.Context, catalog.MeshCataloger, smi.MeshSpec, *envoy.Proxy, *xds.DiscoveryRequest, configurator.Configurator) (*xds.DiscoveryResponse, error) {
-	return map[envoy.TypeURI]func(context.Context, catalog.MeshCataloger, smi.MeshSpec, *envoy.Proxy, *xds.DiscoveryRequest, configurator.Configurator) (*xds.DiscoveryResponse, error){
+func getHandlers(cfg configurator.Configurator) map[envoy.TypeURI]func(context.Context, catalog.MeshCataloger, smi.MeshSpec, *envoy.Proxy, *discovery.DiscoveryRequest, configurator.Configurator) (*discovery.DiscoveryResponse, error) {
+	return map[envoy.TypeURI]func(context.Context, catalog.MeshCataloger, smi.MeshSpec, *envoy.Proxy, *discovery.DiscoveryRequest, configurator.Configurator) (*discovery.DiscoveryResponse, error){
 		envoy.TypeEDS: eds.NewResponse,
 		envoy.TypeCDS: cds.NewResponse,
 		envoy.TypeRDS: rds.NewResponse,
@@ -48,8 +47,8 @@ func getHandlers(cfg configurator.Configurator) map[envoy.TypeURI]func(context.C
 	}
 }
 
-// DeltaAggregatedResources implements envoy_service_discovery_v2.AggregatedDiscoveryServiceServer
-func (s *Server) DeltaAggregatedResources(server envoy_service_discovery_v2.AggregatedDiscoveryService_DeltaAggregatedResourcesServer) error {
+// DeltaAggregatedResources implements discovery.AggregatedDiscoveryServiceServer
+func (s *Server) DeltaAggregatedResources(server discovery.AggregatedDiscoveryService_DeltaAggregatedResourcesServer) error {
 	panic("NotImplemented")
 }
 

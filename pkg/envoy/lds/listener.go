@@ -1,11 +1,10 @@
 package lds
 
 import (
-	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	listener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
-	envoy_hcm "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
-	tcp_proxy "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2"
+	envoy_api_v3_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	envoy_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
+	tcp_proxy "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes"
 
@@ -13,17 +12,17 @@ import (
 	"github.com/open-service-mesh/osm/pkg/envoy"
 )
 
-func buildOutboundListener(connManager *envoy_hcm.HttpConnectionManager, withEgress bool) (*xds.Listener, error) {
+func buildOutboundListener(connManager *envoy_hcm.HttpConnectionManager, withEgress bool) (*listener.Listener, error) {
 	marshalledConnManager, err := ptypes.MarshalAny(connManager)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshalling HttpConnectionManager object")
 		return nil, err
 	}
 
-	listener := &xds.Listener{
+	listener := &listener.Listener{
 		Name:             outboundListenerName,
 		Address:          envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyOutboundListenerPort),
-		TrafficDirection: envoy_api_v2_core.TrafficDirection_OUTBOUND,
+		TrafficDirection: envoy_api_v3_core.TrafficDirection_OUTBOUND,
 		FilterChains: []*listener.FilterChain{
 			{
 				Filters: []*listener.Filter{
@@ -55,11 +54,11 @@ func buildOutboundListener(connManager *envoy_hcm.HttpConnectionManager, withEgr
 	return listener, nil
 }
 
-func buildInboundListener() *xds.Listener {
-	return &xds.Listener{
+func buildInboundListener() *listener.Listener {
+	return &listener.Listener{
 		Name:             inboundListenerName,
 		Address:          envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyInboundListenerPort),
-		TrafficDirection: envoy_api_v2_core.TrafficDirection_INBOUND,
+		TrafficDirection: envoy_api_v3_core.TrafficDirection_INBOUND,
 		FilterChains:     []*listener.FilterChain{},
 		ListenerFilters: []*listener.ListenerFilter{
 			{
@@ -69,16 +68,16 @@ func buildInboundListener() *xds.Listener {
 	}
 }
 
-func buildPrometheusListener(connManager *envoy_hcm.HttpConnectionManager) (*xds.Listener, error) {
+func buildPrometheusListener(connManager *envoy_hcm.HttpConnectionManager) (*listener.Listener, error) {
 	marshalledConnManager, err := ptypes.MarshalAny(connManager)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshalling HttpConnectionManager object")
 		return nil, err
 	}
 
-	listener := &xds.Listener{
+	listener := &listener.Listener{
 		Name:             prometheusListenerName,
-		TrafficDirection: envoy_api_v2_core.TrafficDirection_INBOUND,
+		TrafficDirection: envoy_api_v3_core.TrafficDirection_INBOUND,
 		Address:          envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyPrometheusInboundListenerPort),
 		FilterChains: []*listener.FilterChain{
 			{

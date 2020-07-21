@@ -1,8 +1,7 @@
 package cds
 
 import (
-	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	envoy_api_v2_cluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
+	xds "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	"github.com/open-service-mesh/osm/pkg/smi"
 )
 
@@ -19,7 +18,7 @@ func enableBackpressure(meshSpec smi.MeshSpec, remoteCluster *xds.Cluster) {
 	if len(backpressures) > 0 {
 		log.Trace().Msgf("Backpressure Spec: %+v", backpressures[0].Spec)
 
-		remoteCluster.CircuitBreakers = &envoy_api_v2_cluster.CircuitBreakers{
+		remoteCluster.CircuitBreakers = &xds.CircuitBreakers{
 			Thresholds: makeThresholds(&backpressures[0].Spec.MaxConnections),
 		}
 

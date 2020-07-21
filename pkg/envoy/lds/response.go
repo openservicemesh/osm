@@ -3,9 +3,9 @@ package lds
 import (
 	"context"
 
-	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	listener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
+	envoy_api_v3_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
@@ -30,7 +30,7 @@ const (
 // 1. Inbound listener to handle incoming traffic
 // 2. Outbound listener to handle outgoing traffic
 // 3. Prometheus listener for metrics
-func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, request *xds.DiscoveryRequest, cfg configurator.Configurator) (*xds.DiscoveryResponse, error) {
+func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, request *discovery.DiscoveryRequest, cfg configurator.Configurator) (*discovery.DiscoveryResponse, error) {
 	svc, err := catalog.GetServiceFromEnvoyCertificate(proxy.GetCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up Service for Envoy with CN=%q", proxy.GetCommonName())
@@ -38,7 +38,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	}
 	proxyServiceName := *svc
 
-	resp := &xds.DiscoveryResponse{
+	resp := &discovery.DiscoveryResponse{
 		TypeUrl: string(envoy.TypeLDS),
 	}
 
@@ -146,9 +146,9 @@ func getInboundInMeshFilterChain(proxyServiceName service.NamespacedService, mc 
 			ApplicationProtocols: envoy.ALPNInMesh, // in-mesh proxies will advertise this, set in UpstreamTlsContext
 		},
 
-		TransportSocket: &envoy_api_v2_core.TransportSocket{
+		TransportSocket: &envoy_api_v3_core.TransportSocket{
 			Name: wellknown.TransportSocketTls,
-			ConfigType: &envoy_api_v2_core.TransportSocket_TypedConfig{
+			ConfigType: &envoy_api_v3_core.TransportSocket_TypedConfig{
 				TypedConfig: marshalledDownstreamTLSContext,
 			},
 		},
@@ -170,9 +170,9 @@ func getInboundIngressFilterChains(proxyServiceName service.NamespacedService, f
 				TransportProtocol: envoy.TransportProtocolTLS,
 				ServerNames:       []string{proxyServiceName.GetCommonName().String()},
 			},
-			TransportSocket: &envoy_api_v2_core.TransportSocket{
+			TransportSocket: &envoy_api_v3_core.TransportSocket{
 				Name: wellknown.TransportSocketTls,
-				ConfigType: &envoy_api_v2_core.TransportSocket_TypedConfig{
+				ConfigType: &envoy_api_v3_core.TransportSocket_TypedConfig{
 					TypedConfig: marshalledDownstreamTLSContext,
 				},
 			},
@@ -190,9 +190,9 @@ func getInboundIngressFilterChains(proxyServiceName service.NamespacedService, f
 			FilterChainMatch: &listener.FilterChainMatch{
 				TransportProtocol: envoy.TransportProtocolTLS,
 			},
-			TransportSocket: &envoy_api_v2_core.TransportSocket{
+			TransportSocket: &envoy_api_v3_core.TransportSocket{
 				Name: wellknown.TransportSocketTls,
-				ConfigType: &envoy_api_v2_core.TransportSocket_TypedConfig{
+				ConfigType: &envoy_api_v3_core.TransportSocket_TypedConfig{
 					TypedConfig: marshalledDownstreamTLSContext,
 				},
 			},

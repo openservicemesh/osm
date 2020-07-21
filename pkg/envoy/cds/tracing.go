@@ -1,8 +1,8 @@
 package cds
 
 import (
-	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	envoyEndpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
+	xds "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	envoyEndpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	"github.com/golang/protobuf/ptypes"
 
 	"github.com/open-service-mesh/osm/pkg/constants"
@@ -18,7 +18,7 @@ func getZipkinCluster(zipkinHostname string) xds.Cluster {
 			Type: xds.Cluster_LOGICAL_DNS,
 		},
 		LbPolicy: xds.Cluster_ROUND_ROBIN,
-		LoadAssignment: &xds.ClusterLoadAssignment{
+		LoadAssignment: &envoyEndpoint.ClusterLoadAssignment{
 			ClusterName: constants.EnvoyZipkinCluster,
 			Endpoints: []*envoyEndpoint.LocalityLbEndpoints{
 				{

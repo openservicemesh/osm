@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	envoy_type_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
+	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -91,8 +91,8 @@ var _ = Describe("Test SDS response functions", func() {
 								InlineBytes: cert.GetIssuingCA(),
 							},
 						},
-						MatchSubjectAltNames: []*envoy_type_matcher.StringMatcher{{
-							MatchPattern: &envoy_type_matcher.StringMatcher_Exact{
+						MatchSubjectAltNames: []*matcher.StringMatcher{{
+							MatchPattern: &matcher.StringMatcher_Exact{
 								// The Certificates Subject Common Name will look like this: "bookbuyer.default.svc.cluster.local"
 								// BookbuyerService is an inbound service that is allowed.
 								Exact: tests.BookbuyerService.GetCommonName().String(),

@@ -1,9 +1,8 @@
 package cla
 
 import (
-	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
+	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	"github.com/golang/protobuf/ptypes/wrappers"
 
 	osmEndpoint "github.com/open-service-mesh/osm/pkg/endpoint"
@@ -16,8 +15,8 @@ const (
 )
 
 // NewClusterLoadAssignment constructs the Envoy struct necessary for TrafficSplit implementation.
-func NewClusterLoadAssignment(serviceName service.NamespacedService, serviceEndpoints []osmEndpoint.Endpoint) *v2.ClusterLoadAssignment {
-	cla := &v2.ClusterLoadAssignment{
+func NewClusterLoadAssignment(serviceName service.NamespacedService, serviceEndpoints []osmEndpoint.Endpoint) *endpoint.ClusterLoadAssignment {
+	cla := &endpoint.ClusterLoadAssignment{
 		ClusterName: serviceName.String(),
 		Endpoints: []*endpoint.LocalityLbEndpoints{
 			{

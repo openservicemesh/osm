@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	accesslog "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v2"
-	envoy_config_filter_accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
+	envoy_config_filter_accesslog_v3 "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
+	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	accesslog "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/file/v3"
+	auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
@@ -152,15 +152,15 @@ func GetTLSParams() *auth.TlsParameters {
 }
 
 // GetAccessLog creates an Envoy AccessLog struct.
-func GetAccessLog() []*envoy_config_filter_accesslog_v2.AccessLog {
+func GetAccessLog() []*envoy_config_filter_accesslog_v3.AccessLog {
 	accessLog, err := ptypes.MarshalAny(getFileAccessLog())
 	if err != nil {
 		log.Error().Err(err).Msg("Error marshalling AccessLog object")
 		return nil
 	}
-	return []*envoy_config_filter_accesslog_v2.AccessLog{{
+	return []*envoy_config_filter_accesslog_v3.AccessLog{{
 		Name: wellknown.FileAccessLog,
-		ConfigType: &envoy_config_filter_accesslog_v2.AccessLog_TypedConfig{
+		ConfigType: &envoy_config_filter_accesslog_v3.AccessLog_TypedConfig{
 			TypedConfig: accessLog,
 		}},
 	}

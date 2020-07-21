@@ -6,9 +6,8 @@ import (
 	"strings"
 
 	set "github.com/deckarep/golang-set"
-	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	v2route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
-	matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
+	routev3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"github.com/golang/protobuf/ptypes/wrappers"
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
@@ -51,7 +50,7 @@ var (
 )
 
 //UpdateRouteConfiguration consrtucts the Envoy construct necessary for TrafficTarget implementation
-func UpdateRouteConfiguration(domainRoutesMap map[string]map[string]trafficpolicy.RouteWeightedClusters, routeConfig *v2.RouteConfiguration, isSourceConfig bool, isDestinationConfig bool) {
+func UpdateRouteConfiguration(domainRoutesMap map[string]map[string]trafficpolicy.RouteWeightedClusters, routeConfig *routev3.RouteConfiguration, isSourceConfig bool, isDestinationConfig bool) {
 	log.Trace().Msgf("[RDS] Updating Route Configuration")
 	var isLocalCluster bool
 	var virtualHostPrefix string
@@ -72,7 +71,7 @@ func UpdateRouteConfiguration(domainRoutesMap map[string]map[string]trafficpolic
 	}
 }
 
-func createVirtualHostStub(namePrefix string, domain string) *v2route.VirtualHost {
+func createVirtualHostStub(namePrefix string, domain string) *routev3.VirtualHost {
 	// If domain consists a comma separated list of domains, it means multiple
 	// domains match against the same route config.
 	domains := strings.Split(domain, ",")
@@ -81,16 +80,16 @@ func createVirtualHostStub(namePrefix string, domain string) *v2route.VirtualHos
 	}
 
 	name := fmt.Sprintf("%s|%s", namePrefix, kubernetes.GetServiceNameFromDomain(domains[0]))
-	virtualHost := v2route.VirtualHost{
+	virtualHost := routev3.VirtualHost{
 		Name:    name,
 		Domains: domains,
-		Routes:  []*v2route.Route{},
+		Routes:  []*routev3.Route{},
 	}
 	return &virtualHost
 }
 
-func createRoutes(routePolicyWeightedClustersMap map[string]trafficpolicy.RouteWeightedClusters, isLocalCluster bool) []*v2route.Route {
-	var routes []*v2route.Route
+func createRoutes(routePolicyWeightedClustersMap map[string]trafficpolicy.RouteWeightedClusters, isLocalCluster bool) []*routev3.Route {
+	var routes []*routev3.Route
 	if !isLocalCluster {
 		// For a source service, configure a wildcard route match (without any headers) with weighted routes to upstream clusters based on traffic split policies
 		weightedClusters := getDistinctWeightedClusters(routePolicyWeightedClustersMap)
@@ -112,10 +111,10 @@ func createRoutes(routePolicyWeightedClustersMap map[string]trafficpolicy.RouteW
 	return routes
 }
 
-func getRoute(pathRegex string, method string, headersMap map[string]string, weightedClusters set.Set, totalClustersWeight int, isLocalCluster bool) *v2route.Route {
-	route := v2route.Route{
-		Match: &v2route.RouteMatch{
-			PathSpecifier: &v2route.RouteMatch_SafeRegex{
+func getRoute(pathRegex string, method string, headersMap map[string]string, weightedClusters set.Set, totalClustersWeight int, isLocalCluster bool) *routev3.Route {
+	route := routev3.Route{
+		Match: &routev3.RouteMatch{
+			PathSpecifier: &routev3.RouteMatch_SafeRegex{
 				SafeRegex: &matcher.RegexMatcher{
 					EngineType: regexEngine,
 					Regex:      pathRegex,
@@ -123,9 +122,9 @@ func getRoute(pathRegex string, method string, headersMap map[string]string, wei
 			},
 			Headers: getHeadersForRoute(method, headersMap),
 		},
-		Action: &v2route.Route_Route{
-			Route: &v2route.RouteAction{
-				ClusterSpecifier: &v2route.RouteAction_WeightedClusters{
+		Action: &routev3.Route_Route{
+			Route: &routev3.RouteAction{
+				ClusterSpecifier: &routev3.RouteAction_WeightedClusters{
 					WeightedClusters: getWeightedCluster(weightedClusters, totalClustersWeight, isLocalCluster),
 				},
 			},
@@ -134,13 +133,13 @@ func getRoute(pathRegex string, method string, headersMap map[string]string, wei
 	return &route
 }
 
-func getHeadersForRoute(method string, headersMap map[string]string) []*v2route.HeaderMatcher {
-	var headers []*v2route.HeaderMatcher
+func getHeadersForRoute(method string, headersMap map[string]string) []*routev3.HeaderMatcher {
+	var headers []*routev3.HeaderMatcher
 
 	// add methods header
-	methodsHeader := v2route.HeaderMatcher{
+	methodsHeader := routev3.HeaderMatcher{
 		Name: MethodHeaderKey,
-		HeaderMatchSpecifier: &v2route.HeaderMatcher_SafeRegexMatch{
+		HeaderMatchSpecifier: &routev3.HeaderMatcher_SafeRegexMatch{
 			SafeRegexMatch: &matcher.RegexMatcher{
 				EngineType: regexEngine,
 				Regex:      getRegexForMethod(method),
@@ -155,9 +154,9 @@ func getHeadersForRoute(method string, headersMap map[string]string) []*v2route.
 		if headerKey == catalog.HostHeaderKey {
 			continue
 		}
-		header := v2route.HeaderMatcher{
+		header := routev3.HeaderMatcher{
 			Name: headerKey,
-			HeaderMatchSpecifier: &v2route.HeaderMatcher_SafeRegexMatch{
+			HeaderMatchSpecifier: &routev3.HeaderMatcher_SafeRegexMatch{
 				SafeRegexMatch: &matcher.RegexMatcher{
 					EngineType: regexEngine,
 					Regex:      headerValue,
@@ -170,8 +169,8 @@ func getHeadersForRoute(method string, headersMap map[string]string) []*v2route.
 	return headers
 }
 
-func getWeightedCluster(weightedClusters set.Set, totalClustersWeight int, isLocalCluster bool) *v2route.WeightedCluster {
-	var wc v2route.WeightedCluster
+func getWeightedCluster(weightedClusters set.Set, totalClustersWeight int, isLocalCluster bool) *routev3.WeightedCluster {
+	var wc routev3.WeightedCluster
 	var total int
 	for clusterInterface := range weightedClusters.Iter() {
 		cluster := clusterInterface.(service.WeightedCluster)
@@ -180,7 +179,7 @@ func getWeightedCluster(weightedClusters set.Set, totalClustersWeight int, isLoc
 		if isLocalCluster {
 			clusterName += envoy.LocalClusterSuffix
 		}
-		wc.Clusters = append(wc.Clusters, &v2route.WeightedCluster_ClusterWeight{
+		wc.Clusters = append(wc.Clusters, &routev3.WeightedCluster_ClusterWeight{
 			Name:   clusterName,
 			Weight: &wrappers.UInt32Value{Value: uint32(cluster.Weight)},
 		})
@@ -216,7 +215,7 @@ func getTotalWeightForClusters(weightedClusters set.Set) int {
 	return totalWeight
 }
 
-type clusterWeightByName []*v2route.WeightedCluster_ClusterWeight
+type clusterWeightByName []*routev3.WeightedCluster_ClusterWeight
 
 func (c clusterWeightByName) Len() int      { return len(c) }
 func (c clusterWeightByName) Swap(i, j int) { c[i], c[j] = c[j], c[i] }
@@ -248,10 +247,10 @@ func sanitizeHTTPMethods(allowedMethods []string) []string {
 }
 
 //NewRouteConfigurationStub creates the route configuration placeholder
-func NewRouteConfigurationStub(routeConfigName string) *v2.RouteConfiguration {
-	routeConfiguration := v2.RouteConfiguration{
+func NewRouteConfigurationStub(routeConfigName string) *routev3.RouteConfiguration {
+	routeConfiguration := routev3.RouteConfiguration{
 		Name:             routeConfigName,
-		VirtualHosts:     []*v2route.VirtualHost{},
+		VirtualHosts:     []*routev3.VirtualHost{},
 		ValidateClusters: &wrappers.BoolValue{Value: true},
 	}
 	return &routeConfiguration
@@ -266,18 +265,18 @@ func getRegexForMethod(httpMethod string) string {
 }
 
 // AddOutboundPassthroughRoute adds an outbound passthrough route to the specified route configuration
-func AddOutboundPassthroughRoute(routeConfig *v2.RouteConfiguration) {
+func AddOutboundPassthroughRoute(routeConfig *routev3.RouteConfiguration) {
 	vhost := createVirtualHostStub("passthrough-outbound", constants.WildcardHTTPMethod)
-	vhost.Routes = []*v2route.Route{
+	vhost.Routes = []*routev3.Route{
 		{
-			Match: &v2route.RouteMatch{
-				PathSpecifier: &v2route.RouteMatch_Prefix{
+			Match: &routev3.RouteMatch{
+				PathSpecifier: &routev3.RouteMatch_Prefix{
 					Prefix: wildcardPathPrefix,
 				},
 			},
-			Action: &v2route.Route_Route{
-				Route: &v2route.RouteAction{
-					ClusterSpecifier: &v2route.RouteAction_Cluster{
+			Action: &routev3.Route_Route{
+				Route: &routev3.RouteAction{
+					ClusterSpecifier: &routev3.RouteAction_Cluster{
 						Cluster: envoy.OutboundPassthroughCluster,
 					},
 				},

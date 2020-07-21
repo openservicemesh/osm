@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"time"
 
-	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	envoy_api_v2_endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
+	xds "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	envoy_api_v3_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
+	envoy_api_v3_endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
+	envoy_api_v3_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
@@ -88,20 +89,20 @@ var _ = Describe("CDS Response", func() {
 			cluster, err := getLocalServiceCluster(catalog, proxyService, getLocalClusterName(proxyService))
 			Expect(err).ToNot(HaveOccurred())
 
-			expectedClusterLoadAssignment := &xds.ClusterLoadAssignment{
+			expectedClusterLoadAssignment := &endpoint.ClusterLoadAssignment{
 				ClusterName: getLocalClusterName(proxyService),
-				Endpoints: []*envoy_api_v2_endpoint.LocalityLbEndpoints{
+				Endpoints: []*envoy_api_v3_endpoint.LocalityLbEndpoints{
 					{
 						Locality: nil,
-						LbEndpoints: []*envoy_api_v2_endpoint.LbEndpoint{{
-							HostIdentifier: &envoy_api_v2_endpoint.LbEndpoint_Endpoint{
-								Endpoint: &envoy_api_v2_endpoint.Endpoint{
-									Address: &envoy_api_v2_core.Address{
-										Address: &envoy_api_v2_core.Address_SocketAddress{
-											SocketAddress: &envoy_api_v2_core.SocketAddress{
-												Protocol: envoy_api_v2_core.SocketAddress_TCP,
+						LbEndpoints: []*envoy_api_v3_endpoint.LbEndpoint{{
+							HostIdentifier: &envoy_api_v3_endpoint.LbEndpoint_Endpoint{
+								Endpoint: &envoy_api_v3_endpoint.Endpoint{
+									Address: &envoy_api_v3_core.Address{
+										Address: &envoy_api_v3_core.Address_SocketAddress{
+											SocketAddress: &envoy_api_v3_core.SocketAddress{
+												Protocol: envoy_api_v3_core.SocketAddress_TCP,
 												Address:  constants.WildcardIPAddr,
-												PortSpecifier: &envoy_api_v2_core.SocketAddress_PortValue{
+												PortSpecifier: &envoy_api_v3_core.SocketAddress_PortValue{
 													PortValue: uint32(proxyServicePort),
 												},
 											},
@@ -138,20 +139,20 @@ var _ = Describe("CDS Response", func() {
 			cluster, err := getRemoteServiceCluster(remoteService, localService)
 			Expect(err).ToNot(HaveOccurred())
 
-			expectedClusterLoadAssignment := &xds.ClusterLoadAssignment{
+			expectedClusterLoadAssignment := &endpoint.ClusterLoadAssignment{
 				ClusterName: constants.EnvoyMetricsCluster,
-				Endpoints: []*envoy_api_v2_endpoint.LocalityLbEndpoints{
+				Endpoints: []*envoy_api_v3_endpoint.LocalityLbEndpoints{
 					{
 						Locality: nil,
-						LbEndpoints: []*envoy_api_v2_endpoint.LbEndpoint{{
-							HostIdentifier: &envoy_api_v2_endpoint.LbEndpoint_Endpoint{
-								Endpoint: &envoy_api_v2_endpoint.Endpoint{
-									Address: &envoy_api_v2_core.Address{
-										Address: &envoy_api_v2_core.Address_SocketAddress{
-											SocketAddress: &envoy_api_v2_core.SocketAddress{
-												Protocol: envoy_api_v2_core.SocketAddress_TCP,
+						LbEndpoints: []*envoy_api_v3_endpoint.LbEndpoint{{
+							HostIdentifier: &envoy_api_v3_endpoint.LbEndpoint_Endpoint{
+								Endpoint: &envoy_api_v3_endpoint.Endpoint{
+									Address: &envoy_api_v3_core.Address{
+										Address: &envoy_api_v3_core.Address_SocketAddress{
+											SocketAddress: &envoy_api_v3_core.SocketAddress{
+												Protocol: envoy_api_v3_core.SocketAddress_TCP,
 												Address:  "127.0.0.1",
-												PortSpecifier: &envoy_api_v2_core.SocketAddress_PortValue{
+												PortSpecifier: &envoy_api_v3_core.SocketAddress_PortValue{
 													PortValue: uint32(15000),
 												},
 											},
@@ -178,17 +179,17 @@ var _ = Describe("CDS Response", func() {
 				AltStatName:            "",
 				ClusterDiscoveryType:   &xds.Cluster_Type{Type: xds.Cluster_EDS},
 				EdsClusterConfig: &xds.Cluster_EdsClusterConfig{
-					EdsConfig: &envoy_api_v2_core.ConfigSource{
-						ConfigSourceSpecifier: &envoy_api_v2_core.ConfigSource_Ads{
-							Ads: &envoy_api_v2_core.AggregatedConfigSource{},
+					EdsConfig: &envoy_api_v3_core.ConfigSource{
+						ConfigSourceSpecifier: &envoy_api_v3_core.ConfigSource_Ads{
+							Ads: &envoy_api_v3_core.AggregatedConfigSource{},
 						},
 					},
 					ServiceName: "",
 				},
 				ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
-				TransportSocket: &envoy_api_v2_core.TransportSocket{
+				TransportSocket: &envoy_api_v3_core.TransportSocket{
 					Name: wellknown.TransportSocketTls,
-					ConfigType: &envoy_api_v2_core.TransportSocket_TypedConfig{
+					ConfigType: &envoy_api_v3_core.TransportSocket_TypedConfig{
 						TypedConfig: &any.Any{
 							TypeUrl: string(envoy.TypeUpstreamTLSContext),
 							Value:   upstreamTLSProto.Value,
@@ -206,31 +207,31 @@ var _ = Describe("CDS Response", func() {
 			// TODO(draychev): finish the rest
 			// Expect(cluster).To(Equal(expectedCluster))
 
-			upstreamTLSContext := envoy_api_v2_auth.UpstreamTlsContext{}
+			upstreamTLSContext := envoy_api_v3_auth.UpstreamTlsContext{}
 			err = ptypes.UnmarshalAny(cluster.TransportSocket.GetTypedConfig(), &upstreamTLSContext)
 			Expect(err).ToNot(HaveOccurred())
 
-			expectedTLSContext := envoy_api_v2_auth.UpstreamTlsContext{
-				CommonTlsContext: &envoy_api_v2_auth.CommonTlsContext{
-					TlsParams: &envoy_api_v2_auth.TlsParameters{
+			expectedTLSContext := envoy_api_v3_auth.UpstreamTlsContext{
+				CommonTlsContext: &envoy_api_v3_auth.CommonTlsContext{
+					TlsParams: &envoy_api_v3_auth.TlsParameters{
 						TlsMinimumProtocolVersion: 3,
 						TlsMaximumProtocolVersion: 4,
 					},
 					TlsCertificates: nil,
-					TlsCertificateSdsSecretConfigs: []*envoy_api_v2_auth.SdsSecretConfig{{
+					TlsCertificateSdsSecretConfigs: []*envoy_api_v3_auth.SdsSecretConfig{{
 						Name: "service-cert:default/bookstore",
-						SdsConfig: &envoy_api_v2_core.ConfigSource{
-							ConfigSourceSpecifier: &envoy_api_v2_core.ConfigSource_Ads{
-								Ads: &envoy_api_v2_core.AggregatedConfigSource{},
+						SdsConfig: &envoy_api_v3_core.ConfigSource{
+							ConfigSourceSpecifier: &envoy_api_v3_core.ConfigSource_Ads{
+								Ads: &envoy_api_v3_core.AggregatedConfigSource{},
 							},
 						},
 					}},
-					ValidationContextType: &envoy_api_v2_auth.CommonTlsContext_ValidationContextSdsSecretConfig{
-						ValidationContextSdsSecretConfig: &envoy_api_v2_auth.SdsSecretConfig{
+					ValidationContextType: &envoy_api_v3_auth.CommonTlsContext_ValidationContextSdsSecretConfig{
+						ValidationContextSdsSecretConfig: &envoy_api_v3_auth.SdsSecretConfig{
 							Name: fmt.Sprintf("%s%s%s", envoy.RootCertTypeForMTLSOutbound, envoy.Separator, "default/bookstore"),
-							SdsConfig: &envoy_api_v2_core.ConfigSource{
-								ConfigSourceSpecifier: &envoy_api_v2_core.ConfigSource_Ads{
-									Ads: &envoy_api_v2_core.AggregatedConfigSource{},
+							SdsConfig: &envoy_api_v3_core.ConfigSource{
+								ConfigSourceSpecifier: &envoy_api_v3_core.ConfigSource_Ads{
+									Ads: &envoy_api_v3_core.AggregatedConfigSource{},
 								},
 							},
 						},
@@ -249,20 +250,20 @@ var _ = Describe("CDS Response", func() {
 		It("Returns a Prometheus cluster object", func() {
 			cluster := getPrometheusCluster()
 
-			expectedClusterLoadAssignment := &xds.ClusterLoadAssignment{
+			expectedClusterLoadAssignment := &endpoint.ClusterLoadAssignment{
 				ClusterName: constants.EnvoyMetricsCluster,
-				Endpoints: []*envoy_api_v2_endpoint.LocalityLbEndpoints{
+				Endpoints: []*envoy_api_v3_endpoint.LocalityLbEndpoints{
 					{
 						Locality: nil,
-						LbEndpoints: []*envoy_api_v2_endpoint.LbEndpoint{{
-							HostIdentifier: &envoy_api_v2_endpoint.LbEndpoint_Endpoint{
-								Endpoint: &envoy_api_v2_endpoint.Endpoint{
-									Address: &envoy_api_v2_core.Address{
-										Address: &envoy_api_v2_core.Address_SocketAddress{
-											SocketAddress: &envoy_api_v2_core.SocketAddress{
-												Protocol: envoy_api_v2_core.SocketAddress_TCP,
+						LbEndpoints: []*envoy_api_v3_endpoint.LbEndpoint{{
+							HostIdentifier: &envoy_api_v3_endpoint.LbEndpoint_Endpoint{
+								Endpoint: &envoy_api_v3_endpoint.Endpoint{
+									Address: &envoy_api_v3_core.Address{
+										Address: &envoy_api_v3_core.Address_SocketAddress{
+											SocketAddress: &envoy_api_v3_core.SocketAddress{
+												Protocol: envoy_api_v3_core.SocketAddress_TCP,
 												Address:  "127.0.0.1",
-												PortSpecifier: &envoy_api_v2_core.SocketAddress_PortValue{
+												PortSpecifier: &envoy_api_v3_core.SocketAddress_PortValue{
 													PortValue: uint32(15000),
 												},
 											},

@@ -3,9 +3,9 @@ package cds
 import (
 	"time"
 
-	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	envoyEndpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
+	xds "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	envoyEndpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -60,17 +60,16 @@ func getOutboundPassthroughCluster() *xds.Cluster {
 func getLocalServiceCluster(catalog catalog.MeshCataloger, proxyServiceName service.NamespacedService, clusterName string) (*xds.Cluster, error) {
 	xdsCluster := xds.Cluster{
 		// The name must match the domain being cURLed in the demo
-		Name:                          clusterName,
-		AltStatName:                   clusterName,
-		ConnectTimeout:                ptypes.DurationProto(clusterConnectTimeout),
-		LbPolicy:                      xds.Cluster_ROUND_ROBIN,
-		RespectDnsTtl:                 true,
-		DrainConnectionsOnHostRemoval: true,
+		Name:           clusterName,
+		AltStatName:    clusterName,
+		ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
+		LbPolicy:       xds.Cluster_ROUND_ROBIN,
+		RespectDnsTtl:  true,
 		ClusterDiscoveryType: &xds.Cluster_Type{
 			Type: xds.Cluster_STRICT_DNS,
 		},
 		DnsLookupFamily: xds.Cluster_V4_ONLY,
-		LoadAssignment: &xds.ClusterLoadAssignment{
+		LoadAssignment: &envoyEndpoint.ClusterLoadAssignment{
 			// NOTE: results.ServiceName is the top level service that is cURLed.
 			ClusterName: clusterName,
 			Endpoints:   []*envoyEndpoint.LocalityLbEndpoints{
@@ -118,7 +117,7 @@ func getPrometheusCluster() xds.Cluster {
 			Type: xds.Cluster_STATIC,
 		},
 		LbPolicy: xds.Cluster_ROUND_ROBIN,
-		LoadAssignment: &xds.ClusterLoadAssignment{
+		LoadAssignment: &envoyEndpoint.ClusterLoadAssignment{
 			// NOTE: results.ServiceName is the top level service that is cURLed.
 			ClusterName: constants.EnvoyMetricsCluster,
 			Endpoints: []*envoyEndpoint.LocalityLbEndpoints{

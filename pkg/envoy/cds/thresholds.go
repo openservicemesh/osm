@@ -1,17 +1,17 @@
 package cds
 
 import (
-	envoy_api_v2_cluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
+	xds "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	"github.com/golang/protobuf/ptypes/wrappers"
 )
 
-func makeThresholds(maxConnections *uint32) []*envoy_api_v2_cluster.CircuitBreakers_Thresholds {
+func makeThresholds(maxConnections *uint32) []*xds.CircuitBreakers_Thresholds {
 	// Use Envoy defaults if no limits have been defined
 	if maxConnections == nil {
 		return nil
 	}
 
-	threshold := &envoy_api_v2_cluster.CircuitBreakers_Thresholds{}
+	threshold := &xds.CircuitBreakers_Thresholds{}
 
 	if maxConnections != nil {
 		threshold.MaxConnections = &wrappers.UInt32Value{
@@ -19,7 +19,7 @@ func makeThresholds(maxConnections *uint32) []*envoy_api_v2_cluster.CircuitBreak
 		}
 	}
 
-	return []*envoy_api_v2_cluster.CircuitBreakers_Thresholds{
+	return []*xds.CircuitBreakers_Thresholds{
 		threshold,
 	}
 }

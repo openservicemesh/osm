@@ -5,15 +5,14 @@ import (
 	"strconv"
 	"time"
 
-	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	envoy_service_discovery_v2 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
+	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 )
 
-func (s *Server) sendAllResponses(proxy *envoy.Proxy, server *envoy_service_discovery_v2.AggregatedDiscoveryService_StreamAggregatedResourcesServer, cfg configurator.Configurator) {
+func (s *Server) sendAllResponses(proxy *envoy.Proxy, server *discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer, cfg configurator.Configurator) {
 	log.Trace().Msgf("A change announcement triggered *DS update for proxy with CN=%s", proxy.GetCommonName())
 	// Order is important: CDS, EDS, LDS, RDS
 	// See: https://github.com/envoyproxy/go-control-plane/issues/59
@@ -22,14 +21,14 @@ func (s *Server) sendAllResponses(proxy *envoy.Proxy, server *envoy_service_disc
 		log.Trace().Msgf("%s Creating %s response for proxy with CN=%s", prefix, typeURI, proxy.GetCommonName())
 
 		// For SDS we need to add ResourceNames
-		var request *envoy_api_v2.DiscoveryRequest
+		var request *discovery.DiscoveryRequest
 		if typeURI == envoy.TypeSDS {
 			request = makeRequestForAllSecrets(proxy, s.catalog)
 			if request == nil {
 				continue
 			}
 		} else {
-			request = &envoy_api_v2.DiscoveryRequest{TypeUrl: string(typeURI)}
+			request = &discovery.DiscoveryRequest{TypeUrl: string(typeURI)}
 		}
 
 		discoveryResponse, err := s.newAggregatedDiscoveryResponse(proxy, request, cfg)
@@ -46,14 +45,14 @@ func (s *Server) sendAllResponses(proxy *envoy.Proxy, server *envoy_service_disc
 // makeRequestForAllSecrets constructs an SDS request AS IF an Envoy proxy sent it.
 // This request will result in the rest of the system creating an SDS response with the certificates
 // required by this proxy. The proxy itself did not ask for these. We know it needs them - so we send them.
-func makeRequestForAllSecrets(proxy *envoy.Proxy, catalog catalog.MeshCataloger) *envoy_api_v2.DiscoveryRequest {
+func makeRequestForAllSecrets(proxy *envoy.Proxy, catalog catalog.MeshCataloger) *discovery.DiscoveryRequest {
 	serviceForProxy, err := catalog.GetServiceFromEnvoyCertificate(proxy.GetCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up Service for Envoy with CN=%q", proxy.GetCommonName())
 		return nil
 	}
 
-	return &envoy_api_v2.DiscoveryRequest{
+	return &discovery.DiscoveryRequest{
 		ResourceNames: []string{
 			envoy.SDSCert{
 				Service:  *serviceForProxy,
@@ -76,7 +75,7 @@ func makeRequestForAllSecrets(proxy *envoy.Proxy, catalog catalog.MeshCataloger)
 	}
 }
 
-func (s *Server) newAggregatedDiscoveryResponse(proxy *envoy.Proxy, request *envoy_api_v2.DiscoveryRequest, cfg configurator.Configurator) (*envoy_api_v2.DiscoveryResponse, error) {
+func (s *Server) newAggregatedDiscoveryResponse(proxy *envoy.Proxy, request *discovery.DiscoveryRequest, cfg configurator.Configurator) (*discovery.DiscoveryResponse, error) {
 	typeURL := envoy.TypeURI(request.TypeUrl)
 	handler, ok := s.xdsHandlers[typeURL]
 	if !ok {

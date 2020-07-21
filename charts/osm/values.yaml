@@ -9,7 +9,7 @@ OpenServiceMesh:
     tag: latest
   imagePullSecrets:
     - name: acr-creds
-  sidecarImage: johuhn.azurecr.io/envoy-debug:latest
+  sidecarImage: localhost:5000/envoy-wasm:latest
   prometheus:
     port: 7070
     retention:

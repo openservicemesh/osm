@@ -4,24 +4,21 @@ import (
 	"context"
 	"crypto/x509"
 
-	"google.golang.org/grpc/peer"
-
-	envoy_service_discovery_v2 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
-
-	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/peer"
 )
 
 // XDSServer implements AggregatedDiscoveryService_StreamAggregatedResourcesServer
 type XDSServer struct {
 	ctx         context.Context
-	responses   []*v2.DiscoveryResponse
-	requestsCh  chan v2.DiscoveryRequest
-	responsesCh chan v2.DiscoveryResponse
+	responses   []*discovery.DiscoveryResponse
+	requestsCh  chan discovery.DiscoveryRequest
+	responsesCh chan discovery.DiscoveryResponse
 }
 
 // NewFakeXDSServer returns a new XDSServer and implements AggregatedDiscoveryService_StreamAggregatedResourcesServer
-func NewFakeXDSServer(cert *x509.Certificate, requestsCh chan v2.DiscoveryRequest, responsesCh chan v2.DiscoveryResponse) (envoy_service_discovery_v2.AggregatedDiscoveryService_StreamAggregatedResourcesServer, *[]*v2.DiscoveryResponse) {
+func NewFakeXDSServer(cert *x509.Certificate, requestsCh chan discovery.DiscoveryRequest, responsesCh chan discovery.DiscoveryResponse) (discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer, *[]*discovery.DiscoveryResponse) {
 	peerKey := peer.Peer{
 		Addr:     NewMockAddress("9.8.7.6"),
 		AuthInfo: NewMockAuthInfo(cert),
@@ -35,14 +32,14 @@ func NewFakeXDSServer(cert *x509.Certificate, requestsCh chan v2.DiscoveryReques
 }
 
 // Send implements AggregatedDiscoveryService_StreamAggregatedResourcesServer
-func (s *XDSServer) Send(r *v2.DiscoveryResponse) error {
+func (s *XDSServer) Send(r *discovery.DiscoveryResponse) error {
 	s.responses = append(s.responses, r)
 	return nil
 }
 
 // Recv implements AggregatedDiscoveryService_StreamAggregatedResourcesServer
-func (s *XDSServer) Recv() (*v2.DiscoveryRequest, error) {
-	r := v2.DiscoveryRequest{
+func (s *XDSServer) Recv() (*discovery.DiscoveryRequest, error) {
+	r := discovery.DiscoveryRequest{
 		VersionInfo:   "",
 		Node:          nil,
 		ResourceNames: nil,

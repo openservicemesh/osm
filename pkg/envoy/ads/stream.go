@@ -4,8 +4,7 @@ import (
 	"context"
 	"strconv"
 
-	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
+	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/pkg/errors"
 
 	"github.com/open-service-mesh/osm/pkg/envoy"
@@ -40,7 +39,7 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 	defer cancel()
 
 	quit := make(chan struct{})
-	requests := make(chan v2.DiscoveryRequest)
+	requests := make(chan discovery.DiscoveryRequest)
 
 	// This helper handles receiving messages from the connected Envoys
 	// and any gRPC error states.

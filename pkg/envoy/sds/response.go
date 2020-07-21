@@ -3,10 +3,10 @@ package sds
 import (
 	"context"
 
-	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	envoy_type_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
+	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+	matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 
@@ -25,7 +25,7 @@ var directionMap = map[envoy.SDSCertType]string{
 }
 
 // NewResponse creates a new Secrets Discovery Response.
-func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpec, proxy *envoy.Proxy, request *xds.DiscoveryRequest, cfg configurator.Configurator) (*xds.DiscoveryResponse, error) {
+func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpec, proxy *envoy.Proxy, request *discovery.DiscoveryRequest, cfg configurator.Configurator) (*discovery.DiscoveryResponse, error) {
 	log.Info().Msgf("Composing SDS Discovery Response for proxy: %s", proxy.GetCommonName())
 
 	serviceForProxy, err := catalog.GetServiceFromEnvoyCertificate(proxy.GetCommonName())
@@ -57,7 +57,7 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpe
 
 		resources = append(resources, marshalledSecret)
 	}
-	return &xds.DiscoveryResponse{
+	return &discovery.DiscoveryResponse{
 		TypeUrl:   string(envoy.TypeSDS),
 		Resources: resources,
 	}, nil
@@ -159,7 +159,7 @@ func getRootCert(cert certificate.Certificater, sdscert envoy.SDSCert, proxyServ
 	case envoy.RootCertTypeForMTLSOutbound:
 		fallthrough
 	case envoy.RootCertTypeForMTLSInbound:
-		var matchSANs []*envoy_type_matcher.StringMatcher
+		var matchSANs []*matcher.StringMatcher
 		var serverNames []service.NamespacedService
 		var err error
 
@@ -181,8 +181,8 @@ func getRootCert(cert certificate.Certificater, sdscert envoy.SDSCert, proxyServ
 		var matchingCerts []string
 		for _, serverName := range serverNames {
 			matchingCerts = append(matchingCerts, serverName.GetCommonName().String())
-			match := envoy_type_matcher.StringMatcher{
-				MatchPattern: &envoy_type_matcher.StringMatcher_Exact{
+			match := matcher.StringMatcher{
+				MatchPattern: &matcher.StringMatcher_Exact{
 					Exact: serverName.GetCommonName().String(),
 				},
 			}

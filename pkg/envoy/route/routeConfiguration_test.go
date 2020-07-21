@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	set "github.com/deckarep/golang-set"
-	v2route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
+	routev3 "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -23,7 +23,7 @@ const (
 
 var _ = Describe("VirtualHost cration", func() {
 	Context("Testing createVirtualHostStub", func() {
-		containsDomain := func(vhost *v2route.VirtualHost, domain string) bool {
+		containsDomain := func(vhost *routev3.VirtualHost, domain string) bool {
 			for _, entry := range vhost.Domains {
 				if entry == domain {
 					return true
@@ -183,7 +183,7 @@ var _ = Describe("Routes with weighted clusters", func() {
 			rt := createRoutes(routeWeightedClustersMap, true)
 
 			Expect(len(rt)).To(Equal(httpMethodCount))
-			var newRoute *v2route.Route
+			var newRoute *routev3.Route
 			for _, route := range rt {
 				if route.Match.GetSafeRegex().Regex == routePolicy2.PathRegex {
 					newRoute = route
@@ -225,7 +225,7 @@ var _ = Describe("Route Configuration", func() {
 			}
 
 			sourceDomainRouteData := map[string]trafficpolicy.RouteWeightedClusters{
-				routePolicy.PathRegex: trafficpolicy.RouteWeightedClusters{Route: routePolicy, WeightedClusters: weightedClusters},
+				routePolicy.PathRegex: {Route: routePolicy, WeightedClusters: weightedClusters},
 			}
 
 			sourceDomainAggregatedData := map[string]map[string]trafficpolicy.RouteWeightedClusters{
@@ -266,7 +266,7 @@ var _ = Describe("Route Configuration", func() {
 			}
 
 			destDomainRouteData := map[string]trafficpolicy.RouteWeightedClusters{
-				routePolicy.PathRegex: trafficpolicy.RouteWeightedClusters{Route: routePolicy, WeightedClusters: weightedClusters},
+				routePolicy.PathRegex: {Route: routePolicy, WeightedClusters: weightedClusters},
 			}
 
 			destDomainAggregatedData := map[string]map[string]trafficpolicy.RouteWeightedClusters{
