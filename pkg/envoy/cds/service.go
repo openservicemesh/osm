@@ -4,6 +4,7 @@ import (
 	"time"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	envoy_api_v2_cluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	envoyEndpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
 	"github.com/golang/protobuf/ptypes"
@@ -53,9 +54,11 @@ func getServiceClusterLocal(catalog catalog.MeshCataloger, proxyServiceName serv
 
 		if len(backpressures) > 0 {
 			log.Trace().Msgf("Backpressure Spec: %+v", backpressures[0].Spec)
-			xdsCluster.MaxRequestsPerConnection = &wrappers.UInt32Value{
-				Value: backpressures[0].Spec.MaxRequestsPerConnection,
+
+			xdsCluster.CircuitBreakers = &envoy_api_v2_cluster.CircuitBreakers{
+				Thresholds: makeThresholds(&backpressures[0].Spec.MaxConnections),
 			}
+
 		}
 	}
 
