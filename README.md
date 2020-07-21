@@ -46,6 +46,8 @@ Download the `osm` binary from the [Releases page](https://github.com/open-servi
 
 See the [installation guide](docs/installation_guide.md) for more detailed options.
 
+For instructions on how to utilize [Azure Arc](https://azure.microsoft.com/en-us/services/azure-arc/) and the [Azure Arc-enabled Kubernetes](https://docs.microsoft.com/en-us/azure/azure-arc/kubernetes/overview) experience for deploying OSM and configuring policies, please visit the [OSM Azure Arc Installation Guide](docs/azure_arc_installation_guide.md).
+
 ## Managing Services Using OSM
 
 #### On-boarding services to the OSM managed service mesh
