@@ -268,7 +268,6 @@ jobs:
           BOOKTHIEF_NAMESPACE: "ci-bookthief-${{ github.run_id }}-${{ github.run_number}}-tresor"
           MESH_NAME: "ci-${{ github.run_id }}-${{ github.run_number}}-tresor" # Same as namespace
           CERT_MANAGER: "tresor"
-          BOOKTHIEF_EXPECTED_RESPONSE_CODE: "503" # egress is enabled by default
           BOOKSTORE_SVC: "bookstore"
         run: |
           touch .env  # it is OK for this file to be empty - needed by Makefile
@@ -323,7 +322,6 @@ jobs:
           VAULT_PORT: "8200"
           VAULT_TOKEN: "something"
           VAULT_ROLE: "open-service-mesh"
-          BOOKTHIEF_EXPECTED_RESPONSE_CODE: "200"
           BOOKSTORE_SVC: "bookstore-v1"
         run: |
           touch .env  # it is OK for this file to be empty - needed by Makefile

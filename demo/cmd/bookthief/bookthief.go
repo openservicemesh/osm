@@ -15,8 +15,7 @@ import (
 )
 
 const (
-	participantName              = "bookthief"
-	httpStatusServiceUnavailable = "503"
+	participantName = "bookthief"
 )
 
 var (
@@ -102,6 +101,6 @@ func main() {
 	//    When egress traffic is denied, policy enforcement for in-mesh traffic happens at both source and destination
 	//
 	// In the demo, egress is enabled by default, so we expect a response code of 503 in this case.
-	expectedResponseCode := common.GetExpectedResponseCodeFromEnvVar(common.BookthiefExpectedResponseCodeEnvVar, httpStatusServiceUnavailable)
+	expectedResponseCode := http.StatusNotFound
 	common.GetBooks(participantName, expectedResponseCode, &booksStolen, &booksStolenV1, &booksStolenV2)
 }

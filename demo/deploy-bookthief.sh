@@ -6,7 +6,6 @@ set -aueo pipefail
 source .env
 
 BOOKSTORE_SVC="${BOOKSTORE_SVC:-bookstore}"
-BOOKTHIEF_EXPECTED_RESPONSE_CODE="${BOOKTHIEF_EXPECTED_RESPONSE_CODE:-503}"
 CI_MAX_ITERATIONS_THRESHOLD="${CI_MAX_ITERATIONS_THRESHOLD:-0}"
 
 kubectl delete deployment bookthief -n "$BOOKTHIEF_NAMESPACE"  || true
@@ -69,8 +68,6 @@ spec:
               value: "$BOOKSTORE_NAMESPACE"
             - name: "BOOKSTORE_SVC"
               value: "$BOOKSTORE_SVC"
-            - name: "BOOKTHIEF_EXPECTED_RESPONSE_CODE"
-              value: "$BOOKTHIEF_EXPECTED_RESPONSE_CODE"
             - name: "CI_MAX_ITERATIONS_THRESHOLD"
               value: "$CI_MAX_ITERATIONS_THRESHOLD"
 

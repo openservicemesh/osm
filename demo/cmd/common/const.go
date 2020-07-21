@@ -36,7 +36,4 @@ const (
 
 	// BookwarehouseNamespaceEnvVar is the environment variable for the Bookwarehouse namespace.
 	BookwarehouseNamespaceEnvVar = "BOOKWAREHOUSE_NAMESPACE"
-
-	// BookthiefExpectedResponseCodeEnvVar is the environment variable for Bookthief's expected HTTP response code
-	BookthiefExpectedResponseCodeEnvVar = "BOOKTHIEF_EXPECTED_RESPONSE_CODE"
 )
