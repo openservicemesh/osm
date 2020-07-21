@@ -9,7 +9,7 @@ SVC="bookstore-$VERSION"
 
 kubectl delete deployment "$SVC" -n "$BOOKSTORE_NAMESPACE"  || true
 
-# Create a top level service just for the bookstore.mesh domain
+# Create a top level service just for the bookstore domain
 echo -e "Deploy bookstore Service"
 kubectl apply -f - <<EOF
 apiVersion: v1
@@ -72,8 +72,6 @@ spec:
       labels:
         app: $SVC
         version: $VERSION
-      annotations:
-        "openservicemesh.io/sidecar-injection": "enabled"
     spec:
       serviceAccountName: "$SVC"
       containers:
