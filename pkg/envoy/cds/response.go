@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	envoy_api_v2_cluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
 	"github.com/open-service-mesh/osm/pkg/featureflags"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
@@ -18,7 +17,7 @@ import (
 )
 
 // NewResponse creates a new Cluster Discovery Response.
-func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpec, proxy *envoy.Proxy, _ *xds.DiscoveryRequest, cfg configurator.Configurator) (*xds.DiscoveryResponse, error) {
+func NewResponse(_ context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, _ *xds.DiscoveryRequest, cfg configurator.Configurator) (*xds.DiscoveryResponse, error) {
 	svc, err := catalog.GetServiceFromEnvoyCertificate(proxy.GetCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up Service for Envoy with CN=%q", proxy.GetCommonName())
@@ -48,30 +47,10 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpe
 				return nil, err
 			}
 
-			// -----------------------------------------------------------------------------
-			// TODO: carve this out into a separate function
-			log.Trace().Msgf("Backpressure: %t", featureflags.IsBackpressureEnabled())
-
+			log.Trace().Msgf("Backpressure enabled: %t", featureflags.IsBackpressureEnabled())
 			if featureflags.IsBackpressureEnabled() {
-				log.Info().Msgf("Enabling backpressure in service cluster")
-				// Backpressure CRD only has one backpressure obj as a global config
-				// TODO: Add specific backpressure settings for individual clients
-				backpressures := catalog.GetSMISpec().ListBackpressures()
-
-				// TODO: filter backpressures on labels (backpressures[i].ObjectMeta.Labels) that match that of the destination service (trafficPolicies.Destination.Service)
-
-				log.Trace().Msgf("Backpressures (%d found): %+v", len(backpressures), backpressures)
-
-				if len(backpressures) > 0 {
-					log.Trace().Msgf("Backpressure Spec: %+v", backpressures[0].Spec)
-
-					remoteCluster.CircuitBreakers = &envoy_api_v2_cluster.CircuitBreakers{
-						Thresholds: makeThresholds(&backpressures[0].Spec.MaxConnections),
-					}
-
-				}
+				enableBackpressure(meshSpec, remoteCluster)
 			}
-			// -----------------------------------------------------------------------------
 
 			clusterFactories = append(clusterFactories, remoteCluster)
 		}

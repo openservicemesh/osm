@@ -11,7 +11,7 @@ apiVersion: policy.openservicemesh.io/v1alpha1
 kind: Backpressure
 
 metadata:
-  name: max-requests-per-second
+  name: max-connections
   namespace: "${BOOKSTORE_NAMESPACE}"
 
   labels:
