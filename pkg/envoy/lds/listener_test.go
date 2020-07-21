@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 )
@@ -22,13 +23,26 @@ var _ = Describe("Construct inbound and outbound listeners", func() {
 			return false
 		}
 		It("Tests the outbound listener config with egress enabled", func() {
-			withEgress := true
+			cidr1 := "10.0.0.0/16"
+			cidr2 := "10.2.0.0/16"
+			cfg := configurator.NewFakeConfiguratorWithOptions(configurator.FakeConfigurator{
+				Egress:         true,
+				MeshCIDRRanges: []string{cidr1, cidr2},
+			})
 			connManager := getHTTPConnectionManager("fake-outbound")
-			listener, _ := buildOutboundListener(connManager, withEgress)
+			listener, err := buildOutboundListener(connManager, cfg)
+			Expect(err).ToNot(HaveOccurred())
+
 			Expect(listener.Address).To(Equal(envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyOutboundListenerPort)))
 
 			// Test FilterChains
-			Expect(len(listener.FilterChains)).To(Equal(2)) // 1. HTTPS for egress, 2. HTTP traffic
+			Expect(len(listener.FilterChains)).To(Equal(2)) // 1. in-mesh, 2. egress
+			// Test mesh FilterChain
+			Expect(listener.FilterChains[0].Name).To(Equal(outboundMeshFilterChainName))
+			Expect(len(listener.FilterChains[0].FilterChainMatch.PrefixRanges)).To(Equal(2)) // 2 CIDRs
+			// Test egress FilterChain
+			Expect(listener.FilterChains[1].Name).To(Equal(outboundEgressFilterChainName))
+			Expect(listener.FilterChains[1].FilterChainMatch).Should(BeNil())
 
 			// Test ListenerFilters
 			expectedListenerFilters := []string{wellknown.OriginalDestination, wellknown.TlsInspector}
@@ -40,13 +54,18 @@ var _ = Describe("Construct inbound and outbound listeners", func() {
 		})
 
 		It("Tests the outbound listener config with egress disabled", func() {
-			withEgress := false
+			cfg := configurator.NewFakeConfiguratorWithOptions(configurator.FakeConfigurator{
+				Egress: false,
+			})
 			connManager := getHTTPConnectionManager("fake-outbound")
-			listener, _ := buildOutboundListener(connManager, withEgress)
+			listener, err := buildOutboundListener(connManager, cfg)
+			Expect(err).ToNot(HaveOccurred())
+
 			Expect(listener.Address).To(Equal(envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyOutboundListenerPort)))
 
 			// Test FilterChains
 			Expect(len(listener.FilterChains)).To(Equal(1)) // Filter chain for in-mesh
+			Expect(listener.FilterChains[0].FilterChainMatch).Should(BeNil())
 
 			// Test that the ListenerFilters for egress don't exist
 			Expect(len(listener.ListenerFilters)).To(Equal(0))

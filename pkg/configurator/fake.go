@@ -19,6 +19,18 @@ func NewFakeConfigurator() Configurator {
 	}
 }
 
+// NewFakeConfiguratorWithOptions create a new fake Configurator
+func NewFakeConfiguratorWithOptions(f FakeConfigurator) Configurator {
+	return FakeConfigurator{
+		OSMNamespace:                f.OSMNamespace,
+		PermissiveTrafficPolicyMode: f.PermissiveTrafficPolicyMode,
+		Egress:                      f.Egress,
+		PrometheusScraping:          f.PrometheusScraping,
+		ZipkinTracing:               f.ZipkinTracing,
+		MeshCIDRRanges:              f.MeshCIDRRanges,
+	}
+}
+
 // GetConfigMap returns the data stored in the configMap
 func (f FakeConfigurator) GetConfigMap() ([]byte, error) {
 	return nil, nil

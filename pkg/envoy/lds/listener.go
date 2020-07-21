@@ -19,6 +19,11 @@ import (
 	"github.com/open-service-mesh/osm/pkg/envoy"
 )
 
+const (
+	outboundMeshFilterChainName   = "outbound-mesh-filter-chain"
+	outboundEgressFilterChainName = "outbound-egress-filter-chain"
+)
+
 func buildOutboundListener(connManager *envoy_hcm.HttpConnectionManager, cfg configurator.Configurator) (*xds.Listener, error) {
 	marshalledConnManager, err := ptypes.MarshalAny(connManager)
 	if err != nil {
@@ -32,6 +37,7 @@ func buildOutboundListener(connManager *envoy_hcm.HttpConnectionManager, cfg con
 		TrafficDirection: envoy_api_v2_core.TrafficDirection_OUTBOUND,
 		FilterChains: []*listener.FilterChain{
 			{
+				Name: outboundMeshFilterChainName,
 				Filters: []*listener.Filter{
 					{
 						Name: wellknown.HTTPConnectionManager,
@@ -43,7 +49,6 @@ func buildOutboundListener(connManager *envoy_hcm.HttpConnectionManager, cfg con
 			},
 		},
 	}
-
 
 	if cfg.IsEgressEnabled() {
 		err := updateOutboundListenerForEgress(outboundListener, cfg)
@@ -82,7 +87,7 @@ func updateOutboundListenerForEgress(outboundListener *xds.Listener, cfg configu
 	// In-mesh traffic will always be HTTP so this filter chain will not match for in-mesh.
 	// HTTPS egress traffic will match this filter chain and will be proxied to its original
 	// destination.
-	egressFilterChain, err := buildEgressHTTPSFilterChain()
+	egressFilterChain, err := buildEgressFilterChain()
 	if err != nil {
 		return err
 	}
@@ -134,7 +139,7 @@ func buildPrometheusListener(connManager *envoy_hcm.HttpConnectionManager) (*xds
 	return listener, nil
 }
 
-func buildEgressHTTPSFilterChain() (*listener.FilterChain, error) {
+func buildEgressFilterChain() (*listener.FilterChain, error) {
 	tcpProxy := &tcp_proxy.TcpProxy{
 		StatPrefix:       envoy.OutboundPassthroughCluster,
 		ClusterSpecifier: &tcp_proxy.TcpProxy_Cluster{Cluster: envoy.OutboundPassthroughCluster},
@@ -146,6 +151,7 @@ func buildEgressHTTPSFilterChain() (*listener.FilterChain, error) {
 	}
 
 	return &listener.FilterChain{
+		Name: outboundEgressFilterChainName,
 		Filters: []*listener.Filter{
 			{
 				Name:       wellknown.TCPProxy,
