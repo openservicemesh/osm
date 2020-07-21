@@ -5,7 +5,7 @@ import (
 	"flag"
 	"os"
 
-	xds "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
+	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -211,7 +211,7 @@ func main() {
 	}
 
 	grpcServer, lis := utils.NewGrpc(serverType, *port, adsCert.GetCertificateChain(), adsCert.GetPrivateKey(), adsCert.GetIssuingCA())
-	xds.RegisterAggregatedDiscoveryServiceServer(grpcServer, xdsServer)
+	xds_discovery.RegisterAggregatedDiscoveryServiceServer(grpcServer, xdsServer)
 
 	go utils.GrpcServe(ctx, grpcServer, lis, cancel, serverType)
 

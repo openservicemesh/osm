@@ -1,8 +1,8 @@
 package envoy
 
 import (
-	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"github.com/golang/protobuf/ptypes/wrappers"
 
 	. "github.com/onsi/ginkgo"
@@ -18,12 +18,12 @@ var _ = Describe("Test Envoy tools", func() {
 			addr := "blah"
 			port := uint32(95346)
 			actual := GetAddress(addr, port)
-			expected := &envoy_api_v2_core.Address{
-				Address: &envoy_api_v2_core.Address_SocketAddress{
-					SocketAddress: &envoy_api_v2_core.SocketAddress{
-						Protocol: envoy_api_v2_core.SocketAddress_TCP,
+			expected := &core.Address{
+				Address: &core.Address_SocketAddress{
+					SocketAddress: &core.SocketAddress{
+						Protocol: core.SocketAddress_TCP,
 						Address:  addr,
-						PortSpecifier: &envoy_api_v2_core.SocketAddress_PortValue{
+						PortSpecifier: &core.SocketAddress_PortValue{
 							PortValue: port,
 						},
 					},
@@ -133,23 +133,23 @@ var _ = Describe("Test Envoy tools", func() {
 		It("should return TLS context", func() {
 			tlsContext := GetDownstreamTLSContext(tests.BookstoreService, true)
 
-			expectedTLSContext := &envoy_api_v2_auth.DownstreamTlsContext{
-				CommonTlsContext: &envoy_api_v2_auth.CommonTlsContext{
-					TlsParams: &envoy_api_v2_auth.TlsParameters{
+			expectedTLSContext := &auth.DownstreamTlsContext{
+				CommonTlsContext: &auth.CommonTlsContext{
+					TlsParams: &auth.TlsParameters{
 						TlsMinimumProtocolVersion: 3,
 						TlsMaximumProtocolVersion: 4,
 					},
 					TlsCertificates: nil,
-					TlsCertificateSdsSecretConfigs: []*envoy_api_v2_auth.SdsSecretConfig{{
+					TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
 						Name: "service-cert:default/bookstore",
-						SdsConfig: &envoy_api_v2_core.ConfigSource{
-							ConfigSourceSpecifier: &envoy_api_v2_core.ConfigSource_Ads{
-								Ads: &envoy_api_v2_core.AggregatedConfigSource{},
+						SdsConfig: &core.ConfigSource{
+							ConfigSourceSpecifier: &core.ConfigSource_Ads{
+								Ads: &core.AggregatedConfigSource{},
 							},
 						},
 					}},
-					ValidationContextType: &envoy_api_v2_auth.CommonTlsContext_ValidationContextSdsSecretConfig{
-						ValidationContextSdsSecretConfig: &envoy_api_v2_auth.SdsSecretConfig{
+					ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
+						ValidationContextSdsSecretConfig: &auth.SdsSecretConfig{
 							Name: SDSCert{
 								Service: service.NamespacedService{
 									Namespace: "default",
@@ -157,9 +157,9 @@ var _ = Describe("Test Envoy tools", func() {
 								},
 								CertType: RootCertTypeForMTLSInbound,
 							}.String(),
-							SdsConfig: &envoy_api_v2_core.ConfigSource{
-								ConfigSourceSpecifier: &envoy_api_v2_core.ConfigSource_Ads{
-									Ads: &envoy_api_v2_core.AggregatedConfigSource{},
+							SdsConfig: &core.ConfigSource{
+								ConfigSourceSpecifier: &core.ConfigSource_Ads{
+									Ads: &core.AggregatedConfigSource{},
 								},
 							},
 						},
@@ -195,23 +195,23 @@ var _ = Describe("Test Envoy tools", func() {
 			sni := "bookstore.default.svc.cluster.local"
 			tlsContext := GetUpstreamTLSContext(tests.BookstoreService, sni)
 
-			expectedTLSContext := &envoy_api_v2_auth.UpstreamTlsContext{
-				CommonTlsContext: &envoy_api_v2_auth.CommonTlsContext{
-					TlsParams: &envoy_api_v2_auth.TlsParameters{
+			expectedTLSContext := &auth.UpstreamTlsContext{
+				CommonTlsContext: &auth.CommonTlsContext{
+					TlsParams: &auth.TlsParameters{
 						TlsMinimumProtocolVersion: 3,
 						TlsMaximumProtocolVersion: 4,
 					},
 					TlsCertificates: nil,
-					TlsCertificateSdsSecretConfigs: []*envoy_api_v2_auth.SdsSecretConfig{{
+					TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
 						Name: "service-cert:default/bookstore",
-						SdsConfig: &envoy_api_v2_core.ConfigSource{
-							ConfigSourceSpecifier: &envoy_api_v2_core.ConfigSource_Ads{
-								Ads: &envoy_api_v2_core.AggregatedConfigSource{},
+						SdsConfig: &core.ConfigSource{
+							ConfigSourceSpecifier: &core.ConfigSource_Ads{
+								Ads: &core.AggregatedConfigSource{},
 							},
 						},
 					}},
-					ValidationContextType: &envoy_api_v2_auth.CommonTlsContext_ValidationContextSdsSecretConfig{
-						ValidationContextSdsSecretConfig: &envoy_api_v2_auth.SdsSecretConfig{
+					ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
+						ValidationContextSdsSecretConfig: &auth.SdsSecretConfig{
 							Name: SDSCert{
 								Service: service.NamespacedService{
 									Namespace: "default",
@@ -219,9 +219,9 @@ var _ = Describe("Test Envoy tools", func() {
 								},
 								CertType: RootCertTypeForMTLSOutbound,
 							}.String(),
-							SdsConfig: &envoy_api_v2_core.ConfigSource{
-								ConfigSourceSpecifier: &envoy_api_v2_core.ConfigSource_Ads{
-									Ads: &envoy_api_v2_core.AggregatedConfigSource{},
+							SdsConfig: &core.ConfigSource{
+								ConfigSourceSpecifier: &core.ConfigSource_Ads{
+									Ads: &core.AggregatedConfigSource{},
 								},
 							},
 						},
@@ -270,14 +270,14 @@ var _ = Describe("Test Envoy tools", func() {
 				CertType: RootCertTypeForMTLSInbound,
 			}.String()
 
-			expected := &envoy_api_v2_auth.CommonTlsContext{
+			expected := &auth.CommonTlsContext{
 				TlsParams: GetTLSParams(),
-				TlsCertificateSdsSecretConfigs: []*envoy_api_v2_auth.SdsSecretConfig{{
+				TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
 					Name:      expectedServiceCertName,
 					SdsConfig: GetADSConfigSource(),
 				}},
-				ValidationContextType: &envoy_api_v2_auth.CommonTlsContext_ValidationContextSdsSecretConfig{
-					ValidationContextSdsSecretConfig: &envoy_api_v2_auth.SdsSecretConfig{
+				ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
+					ValidationContextSdsSecretConfig: &auth.SdsSecretConfig{
 						Name:      expectedRootCertName,
 						SdsConfig: GetADSConfigSource(),
 					},
@@ -307,14 +307,14 @@ var _ = Describe("Test Envoy tools", func() {
 				CertType: RootCertTypeForHTTPS,
 			}.String()
 
-			expected := &envoy_api_v2_auth.CommonTlsContext{
+			expected := &auth.CommonTlsContext{
 				TlsParams: GetTLSParams(),
-				TlsCertificateSdsSecretConfigs: []*envoy_api_v2_auth.SdsSecretConfig{{
+				TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
 					Name:      expectedServiceCertName,
 					SdsConfig: GetADSConfigSource(),
 				}},
-				ValidationContextType: &envoy_api_v2_auth.CommonTlsContext_ValidationContextSdsSecretConfig{
-					ValidationContextSdsSecretConfig: &envoy_api_v2_auth.SdsSecretConfig{
+				ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
+					ValidationContextSdsSecretConfig: &auth.SdsSecretConfig{
 						Name:      expectedRootCertName,
 						SdsConfig: GetADSConfigSource(),
 					},

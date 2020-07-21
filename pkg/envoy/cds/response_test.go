@@ -5,14 +5,16 @@ import (
 	"fmt"
 	"time"
 
-	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	envoy_api_v2_endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
+	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	xds_endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
+	xds_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
+
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/wrappers"
+
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -85,23 +87,23 @@ var _ = Describe("CDS Response", func() {
 
 	Context("Test cds clusters", func() {
 		It("Returns a local cluster object", func() {
-			cluster, err := getLocalServiceCluster(catalog, proxyService, getLocalClusterName(proxyService))
+			clObj, err := getLocalServiceCluster(catalog, proxyService, getLocalClusterName(proxyService))
 			Expect(err).ToNot(HaveOccurred())
 
-			expectedClusterLoadAssignment := &xds.ClusterLoadAssignment{
+			expectedClusterLoadAssignment := &xds_endpoint.ClusterLoadAssignment{
 				ClusterName: getLocalClusterName(proxyService),
-				Endpoints: []*envoy_api_v2_endpoint.LocalityLbEndpoints{
+				Endpoints: []*xds_endpoint.LocalityLbEndpoints{
 					{
 						Locality: nil,
-						LbEndpoints: []*envoy_api_v2_endpoint.LbEndpoint{{
-							HostIdentifier: &envoy_api_v2_endpoint.LbEndpoint_Endpoint{
-								Endpoint: &envoy_api_v2_endpoint.Endpoint{
-									Address: &envoy_api_v2_core.Address{
-										Address: &envoy_api_v2_core.Address_SocketAddress{
-											SocketAddress: &envoy_api_v2_core.SocketAddress{
-												Protocol: envoy_api_v2_core.SocketAddress_TCP,
+						LbEndpoints: []*xds_endpoint.LbEndpoint{{
+							HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
+								Endpoint: &xds_endpoint.Endpoint{
+									Address: &xds_core.Address{
+										Address: &xds_core.Address_SocketAddress{
+											SocketAddress: &xds_core.SocketAddress{
+												Protocol: xds_core.SocketAddress_TCP,
 												Address:  constants.WildcardIPAddr,
-												PortSpecifier: &envoy_api_v2_core.SocketAddress_PortValue{
+												PortSpecifier: &xds_core.SocketAddress_PortValue{
 													PortValue: uint32(proxyServicePort),
 												},
 											},
@@ -116,42 +118,43 @@ var _ = Describe("CDS Response", func() {
 					},
 				},
 			}
-			expectedCluster := xds.Cluster{
+
+			expectedCluster := xds_cluster.Cluster{
 				TransportSocketMatches: nil,
 				Name:                   getLocalClusterName(proxyService),
 				AltStatName:            getLocalClusterName(proxyService),
-				ClusterDiscoveryType:   &xds.Cluster_Type{Type: xds.Cluster_STATIC},
+				ClusterDiscoveryType:   &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_STATIC},
 				EdsClusterConfig:       nil,
 				ConnectTimeout:         ptypes.DurationProto(1 * time.Second),
 				LoadAssignment:         expectedClusterLoadAssignment,
 			}
 
-			Expect(cluster.Name).To(Equal(expectedCluster.Name))
-			Expect(cluster.LoadAssignment.ClusterName).To(Equal(expectedClusterLoadAssignment.ClusterName))
-			Expect(len(cluster.LoadAssignment.Endpoints)).To(Equal(len(expectedClusterLoadAssignment.Endpoints)))
-			Expect(cluster.LoadAssignment.Endpoints[0].LbEndpoints).To(Equal(expectedClusterLoadAssignment.Endpoints[0].LbEndpoints))
+			Expect(clObj.Name).To(Equal(expectedCluster.Name))
+			Expect(clObj.LoadAssignment.ClusterName).To(Equal(expectedClusterLoadAssignment.ClusterName))
+			Expect(len(clObj.LoadAssignment.Endpoints)).To(Equal(len(expectedClusterLoadAssignment.Endpoints)))
+			Expect(clObj.LoadAssignment.Endpoints[0].LbEndpoints).To(Equal(expectedClusterLoadAssignment.Endpoints[0].LbEndpoints))
 		})
 
 		It("Returns a remote cluster object", func() {
 			localService := tests.BookbuyerService
 			remoteService := tests.BookstoreService
-			cluster, err := getRemoteServiceCluster(remoteService, localService)
+			clObj, err := getRemoteServiceCluster(remoteService, localService)
 			Expect(err).ToNot(HaveOccurred())
 
-			expectedClusterLoadAssignment := &xds.ClusterLoadAssignment{
+			expectedClusterLoadAssignment := &xds_endpoint.ClusterLoadAssignment{
 				ClusterName: constants.EnvoyMetricsCluster,
-				Endpoints: []*envoy_api_v2_endpoint.LocalityLbEndpoints{
+				Endpoints: []*xds_endpoint.LocalityLbEndpoints{
 					{
 						Locality: nil,
-						LbEndpoints: []*envoy_api_v2_endpoint.LbEndpoint{{
-							HostIdentifier: &envoy_api_v2_endpoint.LbEndpoint_Endpoint{
-								Endpoint: &envoy_api_v2_endpoint.Endpoint{
-									Address: &envoy_api_v2_core.Address{
-										Address: &envoy_api_v2_core.Address_SocketAddress{
-											SocketAddress: &envoy_api_v2_core.SocketAddress{
-												Protocol: envoy_api_v2_core.SocketAddress_TCP,
+						LbEndpoints: []*xds_endpoint.LbEndpoint{{
+							HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
+								Endpoint: &xds_endpoint.Endpoint{
+									Address: &xds_core.Address{
+										Address: &xds_core.Address_SocketAddress{
+											SocketAddress: &xds_core.SocketAddress{
+												Protocol: xds_core.SocketAddress_TCP,
 												Address:  "127.0.0.1",
-												PortSpecifier: &envoy_api_v2_core.SocketAddress_PortValue{
+												PortSpecifier: &xds_core.SocketAddress_PortValue{
 													PortValue: uint32(15000),
 												},
 											},
@@ -172,23 +175,23 @@ var _ = Describe("CDS Response", func() {
 			upstreamTLSProto, err := envoy.MessageToAny(envoy.GetUpstreamTLSContext(proxyService, remoteService.GetCommonName().String()))
 			Expect(err).ToNot(HaveOccurred())
 
-			expectedCluster := xds.Cluster{
+			expectedCluster := xds_cluster.Cluster{
 				TransportSocketMatches: nil,
 				Name:                   "default/bookstore",
 				AltStatName:            "",
-				ClusterDiscoveryType:   &xds.Cluster_Type{Type: xds.Cluster_EDS},
-				EdsClusterConfig: &xds.Cluster_EdsClusterConfig{
-					EdsConfig: &envoy_api_v2_core.ConfigSource{
-						ConfigSourceSpecifier: &envoy_api_v2_core.ConfigSource_Ads{
-							Ads: &envoy_api_v2_core.AggregatedConfigSource{},
+				ClusterDiscoveryType:   &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS},
+				EdsClusterConfig: &xds_cluster.Cluster_EdsClusterConfig{
+					EdsConfig: &xds_core.ConfigSource{
+						ConfigSourceSpecifier: &xds_core.ConfigSource_Ads{
+							Ads: &xds_core.AggregatedConfigSource{},
 						},
 					},
 					ServiceName: "",
 				},
 				ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
-				TransportSocket: &envoy_api_v2_core.TransportSocket{
+				TransportSocket: &xds_core.TransportSocket{
 					Name: wellknown.TransportSocketTls,
-					ConfigType: &envoy_api_v2_core.TransportSocket_TypedConfig{
+					ConfigType: &xds_core.TransportSocket_TypedConfig{
 						TypedConfig: &any.Any{
 							TypeUrl: string(envoy.TypeUpstreamTLSContext),
 							Value:   upstreamTLSProto.Value,
@@ -198,39 +201,39 @@ var _ = Describe("CDS Response", func() {
 				LoadAssignment: expectedClusterLoadAssignment,
 			}
 
-			Expect(cluster.ClusterDiscoveryType).To(Equal(expectedCluster.ClusterDiscoveryType))
-			Expect(cluster.EdsClusterConfig).To(Equal(expectedCluster.EdsClusterConfig))
-			Expect(cluster.ConnectTimeout).To(Equal(expectedCluster.ConnectTimeout))
-			Expect(cluster.TransportSocket).To(Equal(expectedCluster.TransportSocket))
+			Expect(clObj.ClusterDiscoveryType).To(Equal(expectedCluster.ClusterDiscoveryType))
+			Expect(clObj.EdsClusterConfig).To(Equal(expectedCluster.EdsClusterConfig))
+			Expect(clObj.ConnectTimeout).To(Equal(expectedCluster.ConnectTimeout))
+			Expect(clObj.TransportSocket).To(Equal(expectedCluster.TransportSocket))
 
 			// TODO(draychev): finish the rest
 			// Expect(cluster).To(Equal(expectedCluster))
 
-			upstreamTLSContext := envoy_api_v2_auth.UpstreamTlsContext{}
-			err = ptypes.UnmarshalAny(cluster.TransportSocket.GetTypedConfig(), &upstreamTLSContext)
+			upstreamTLSContext := xds_auth.UpstreamTlsContext{}
+			err = ptypes.UnmarshalAny(clObj.TransportSocket.GetTypedConfig(), &upstreamTLSContext)
 			Expect(err).ToNot(HaveOccurred())
 
-			expectedTLSContext := envoy_api_v2_auth.UpstreamTlsContext{
-				CommonTlsContext: &envoy_api_v2_auth.CommonTlsContext{
-					TlsParams: &envoy_api_v2_auth.TlsParameters{
+			expectedTLSContext := xds_auth.UpstreamTlsContext{
+				CommonTlsContext: &xds_auth.CommonTlsContext{
+					TlsParams: &xds_auth.TlsParameters{
 						TlsMinimumProtocolVersion: 3,
 						TlsMaximumProtocolVersion: 4,
 					},
 					TlsCertificates: nil,
-					TlsCertificateSdsSecretConfigs: []*envoy_api_v2_auth.SdsSecretConfig{{
+					TlsCertificateSdsSecretConfigs: []*xds_auth.SdsSecretConfig{{
 						Name: "service-cert:default/bookstore",
-						SdsConfig: &envoy_api_v2_core.ConfigSource{
-							ConfigSourceSpecifier: &envoy_api_v2_core.ConfigSource_Ads{
-								Ads: &envoy_api_v2_core.AggregatedConfigSource{},
+						SdsConfig: &xds_core.ConfigSource{
+							ConfigSourceSpecifier: &xds_core.ConfigSource_Ads{
+								Ads: &xds_core.AggregatedConfigSource{},
 							},
 						},
 					}},
-					ValidationContextType: &envoy_api_v2_auth.CommonTlsContext_ValidationContextSdsSecretConfig{
-						ValidationContextSdsSecretConfig: &envoy_api_v2_auth.SdsSecretConfig{
+					ValidationContextType: &xds_auth.CommonTlsContext_ValidationContextSdsSecretConfig{
+						ValidationContextSdsSecretConfig: &xds_auth.SdsSecretConfig{
 							Name: fmt.Sprintf("%s%s%s", envoy.RootCertTypeForMTLSOutbound, envoy.Separator, "default/bookstore"),
-							SdsConfig: &envoy_api_v2_core.ConfigSource{
-								ConfigSourceSpecifier: &envoy_api_v2_core.ConfigSource_Ads{
-									Ads: &envoy_api_v2_core.AggregatedConfigSource{},
+							SdsConfig: &xds_core.ConfigSource{
+								ConfigSourceSpecifier: &xds_core.ConfigSource_Ads{
+									Ads: &xds_core.AggregatedConfigSource{},
 								},
 							},
 						},
@@ -247,22 +250,22 @@ var _ = Describe("CDS Response", func() {
 		})
 
 		It("Returns a Prometheus cluster object", func() {
-			cluster := getPrometheusCluster()
+			clObj := getPrometheusCluster()
 
-			expectedClusterLoadAssignment := &xds.ClusterLoadAssignment{
+			expectedClusterLoadAssignment := &xds_endpoint.ClusterLoadAssignment{
 				ClusterName: constants.EnvoyMetricsCluster,
-				Endpoints: []*envoy_api_v2_endpoint.LocalityLbEndpoints{
+				Endpoints: []*xds_endpoint.LocalityLbEndpoints{
 					{
 						Locality: nil,
-						LbEndpoints: []*envoy_api_v2_endpoint.LbEndpoint{{
-							HostIdentifier: &envoy_api_v2_endpoint.LbEndpoint_Endpoint{
-								Endpoint: &envoy_api_v2_endpoint.Endpoint{
-									Address: &envoy_api_v2_core.Address{
-										Address: &envoy_api_v2_core.Address_SocketAddress{
-											SocketAddress: &envoy_api_v2_core.SocketAddress{
-												Protocol: envoy_api_v2_core.SocketAddress_TCP,
+						LbEndpoints: []*xds_endpoint.LbEndpoint{{
+							HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
+								Endpoint: &xds_endpoint.Endpoint{
+									Address: &xds_core.Address{
+										Address: &xds_core.Address_SocketAddress{
+											SocketAddress: &xds_core.SocketAddress{
+												Protocol: xds_core.SocketAddress_TCP,
 												Address:  "127.0.0.1",
-												PortSpecifier: &envoy_api_v2_core.SocketAddress_PortValue{
+												PortSpecifier: &xds_core.SocketAddress_PortValue{
 													PortValue: uint32(15000),
 												},
 											},
@@ -277,21 +280,21 @@ var _ = Describe("CDS Response", func() {
 					},
 				},
 			}
-			expectedCluster := &xds.Cluster{
+			expectedCluster := &xds_cluster.Cluster{
 				TransportSocketMatches: nil,
 				Name:                   constants.EnvoyMetricsCluster,
 				AltStatName:            constants.EnvoyMetricsCluster,
-				ClusterDiscoveryType:   &xds.Cluster_Type{Type: xds.Cluster_STATIC},
+				ClusterDiscoveryType:   &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_STATIC},
 				EdsClusterConfig:       nil,
 				ConnectTimeout:         ptypes.DurationProto(1 * time.Second),
 				LoadAssignment:         expectedClusterLoadAssignment,
 			}
 
-			Expect(cluster.LoadAssignment.ClusterName).To(Equal(expectedClusterLoadAssignment.ClusterName))
-			Expect(len(cluster.LoadAssignment.Endpoints)).To(Equal(len(expectedClusterLoadAssignment.Endpoints)))
-			Expect(cluster.LoadAssignment.Endpoints[0].LbEndpoints).To(Equal(expectedClusterLoadAssignment.Endpoints[0].LbEndpoints))
-			Expect(cluster.LoadAssignment).To(Equal(expectedClusterLoadAssignment))
-			Expect(&cluster).To(Equal(expectedCluster))
+			Expect(clObj.LoadAssignment.ClusterName).To(Equal(expectedClusterLoadAssignment.ClusterName))
+			Expect(len(clObj.LoadAssignment.Endpoints)).To(Equal(len(expectedClusterLoadAssignment.Endpoints)))
+			Expect(clObj.LoadAssignment.Endpoints[0].LbEndpoints).To(Equal(expectedClusterLoadAssignment.Endpoints[0].LbEndpoints))
+			Expect(clObj.LoadAssignment).To(Equal(expectedClusterLoadAssignment))
+			Expect(&clObj).To(Equal(expectedCluster))
 		})
 	})
 })

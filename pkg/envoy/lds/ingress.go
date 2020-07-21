@@ -1,11 +1,13 @@
 package lds
 
 import (
-	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	envoy_api_v2_listener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
+	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
+
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
+
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/route"
@@ -19,7 +21,7 @@ func getIngressTransportProtocol(cfg configurator.Configurator) string {
 	return ""
 }
 
-func newIngressFilterChain(cfg configurator.Configurator, svc service.NamespacedService) *envoy_api_v2_listener.FilterChain {
+func newIngressFilterChain(cfg configurator.Configurator, svc service.NamespacedService) *xds_listener.FilterChain {
 	marshalledDownstreamTLSContext, err := envoy.MessageToAny(envoy.GetDownstreamTLSContext(svc, false /* TLS */))
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshalling DownstreamTLSContext object for proxy %s", svc)
@@ -33,16 +35,16 @@ func newIngressFilterChain(cfg configurator.Configurator, svc service.Namespaced
 		return nil
 	}
 
-	return &envoy_api_v2_listener.FilterChain{
+	return &xds_listener.FilterChain{
 		// Filter chain with SNI matching enabled for clients that set the SNI
-		FilterChainMatch: &envoy_api_v2_listener.FilterChainMatch{
+		FilterChainMatch: &xds_listener.FilterChainMatch{
 			TransportProtocol: getIngressTransportProtocol(cfg),
 		},
 		TransportSocket: getIngressTransportSocket(cfg, marshalledDownstreamTLSContext),
-		Filters: []*envoy_api_v2_listener.Filter{
+		Filters: []*xds_listener.Filter{
 			{
 				Name: wellknown.HTTPConnectionManager,
-				ConfigType: &envoy_api_v2_listener.Filter_TypedConfig{
+				ConfigType: &xds_listener.Filter_TypedConfig{
 					TypedConfig: marshalledInboundConnManager,
 				},
 			},
@@ -50,8 +52,8 @@ func newIngressFilterChain(cfg configurator.Configurator, svc service.Namespaced
 	}
 }
 
-func getIngressFilterChains(svc service.NamespacedService, cfg configurator.Configurator) []*envoy_api_v2_listener.FilterChain {
-	var ingressFilterChains []*envoy_api_v2_listener.FilterChain
+func getIngressFilterChains(svc service.NamespacedService, cfg configurator.Configurator) []*xds_listener.FilterChain {
+	var ingressFilterChains []*xds_listener.FilterChain
 
 	if cfg.UseHTTPSIngress() {
 		// Filter chain with SNI matching enabled for HTTPS clients that set the SNI
@@ -67,11 +69,11 @@ func getIngressFilterChains(svc service.NamespacedService, cfg configurator.Conf
 	return ingressFilterChains
 }
 
-func getIngressTransportSocket(cfg configurator.Configurator, marshalledDownstreamTLSContext *any.Any) *envoy_api_v2_core.TransportSocket {
+func getIngressTransportSocket(cfg configurator.Configurator, marshalledDownstreamTLSContext *any.Any) *xds_core.TransportSocket {
 	if cfg.UseHTTPSIngress() {
-		return &envoy_api_v2_core.TransportSocket{
+		return &xds_core.TransportSocket{
 			Name: wellknown.TransportSocketTls,
-			ConfigType: &envoy_api_v2_core.TransportSocket_TypedConfig{
+			ConfigType: &xds_core.TransportSocket_TypedConfig{
 				TypedConfig: marshalledDownstreamTLSContext,
 			},
 		}

@@ -3,7 +3,8 @@ package lds
 import (
 	"context"
 
-	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+
 	"github.com/golang/protobuf/ptypes"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
@@ -24,7 +25,7 @@ const (
 // 1. Inbound listener to handle incoming traffic
 // 2. Outbound listener to handle outgoing traffic
 // 3. Prometheus listener for metrics
-func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, request *xds.DiscoveryRequest, cfg configurator.Configurator) (*xds.DiscoveryResponse, error) {
+func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, cfg configurator.Configurator) (*xds_discovery.DiscoveryResponse, error) {
 	svc, err := catalog.GetServiceFromEnvoyCertificate(proxy.GetCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up Service for Envoy with CN=%q", proxy.GetCommonName())
@@ -32,7 +33,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	}
 	proxyServiceName := *svc
 
-	resp := &xds.DiscoveryResponse{
+	resp := &xds_discovery.DiscoveryResponse{
 		TypeUrl: string(envoy.TypeLDS),
 	}
 

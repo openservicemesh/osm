@@ -1,12 +1,12 @@
 package cla
 
 import (
-	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
+	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	xds_endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
+
 	"github.com/golang/protobuf/ptypes/wrappers"
 
-	osmEndpoint "github.com/openservicemesh/osm/pkg/endpoint"
+	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/service"
 )
@@ -16,15 +16,15 @@ const (
 )
 
 // NewClusterLoadAssignment constructs the Envoy struct necessary for TrafficSplit implementation.
-func NewClusterLoadAssignment(serviceName service.NamespacedService, serviceEndpoints []osmEndpoint.Endpoint) *v2.ClusterLoadAssignment {
-	cla := &v2.ClusterLoadAssignment{
+func NewClusterLoadAssignment(serviceName service.NamespacedService, serviceEndpoints []endpoint.Endpoint) *xds_endpoint.ClusterLoadAssignment {
+	cla := &xds_endpoint.ClusterLoadAssignment{
 		ClusterName: serviceName.String(),
-		Endpoints: []*endpoint.LocalityLbEndpoints{
+		Endpoints: []*xds_endpoint.LocalityLbEndpoints{
 			{
-				Locality: &core.Locality{
+				Locality: &xds_core.Locality{
 					Zone: zone,
 				},
-				LbEndpoints: []*endpoint.LbEndpoint{},
+				LbEndpoints: []*xds_endpoint.LbEndpoint{},
 			},
 		},
 	}
@@ -37,9 +37,9 @@ func NewClusterLoadAssignment(serviceName service.NamespacedService, serviceEndp
 
 	for _, meshEndpoint := range serviceEndpoints {
 		log.Trace().Msgf("[EDS][ClusterLoadAssignment] Adding Endpoint: Cluster=%s, Services=%s, Endpoint=%+v, Weight=%d", serviceName.String(), serviceName.String(), meshEndpoint, weight)
-		lbEpt := endpoint.LbEndpoint{
-			HostIdentifier: &endpoint.LbEndpoint_Endpoint{
-				Endpoint: &endpoint.Endpoint{
+		lbEpt := xds_endpoint.LbEndpoint{
+			HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
+				Endpoint: &xds_endpoint.Endpoint{
 					Address: envoy.GetAddress(meshEndpoint.IP.String(), uint32(meshEndpoint.Port)),
 				},
 			},

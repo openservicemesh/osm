@@ -4,8 +4,7 @@ import (
 	"context"
 	"strconv"
 
-	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
+	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/pkg/errors"
 
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -13,7 +12,7 @@ import (
 )
 
 // StreamAggregatedResources handles streaming of the clusters to the connected Envoy proxies
-func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer) error {
+func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer) error {
 	// When a new Envoy proxy connects, ValidateClient would ensure that it has a valid certificate,
 	// and the Subject CN is in the allowedCommonNames set.
 	cn, err := utils.ValidateClient(server.Context(), nil)
@@ -40,7 +39,7 @@ func (s *Server) StreamAggregatedResources(server discovery.AggregatedDiscoveryS
 	defer cancel()
 
 	quit := make(chan struct{})
-	requests := make(chan v2.DiscoveryRequest)
+	requests := make(chan xds_discovery.DiscoveryRequest)
 
 	// This helper handles receiving messages from the connected Envoys
 	// and any gRPC error states.
