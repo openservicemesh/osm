@@ -3,6 +3,8 @@ package cds
 import (
 	"context"
 	"fmt"
+	envoy_api_v2_cluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
+	"github.com/open-service-mesh/osm/pkg/featureflags"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/protobuf/ptypes"
@@ -44,6 +46,26 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpe
 				log.Error().Err(err).Msgf("Failed to construct service cluster for proxy %s", proxyServiceName)
 				return nil, err
 			}
+
+			log.Trace().Msgf("Backpressure: %t", featureflags.IsBackpressureEnabled())
+
+			if featureflags.IsBackpressureEnabled() {
+				log.Info().Msgf("Enabling backpressure local service cluster")
+				// Backpressure CRD only has one backpressure obj as a global config
+				// TODO: Add specific backpressure settings for individual clients
+				backpressures := catalog.GetSMISpec().ListBackpressures()
+				log.Trace().Msgf("Backpressures (%d): %+v", len(backpressures), backpressures)
+
+				if len(backpressures) > 0 {
+					log.Trace().Msgf("Backpressure Spec: %+v", backpressures[0].Spec)
+
+					remoteCluster.CircuitBreakers = &envoy_api_v2_cluster.CircuitBreakers{
+						Thresholds: makeThresholds(&backpressures[0].Spec.MaxConnections),
+					}
+
+				}
+			}
+
 			clusterFactories = append(clusterFactories, remoteCluster)
 		}
 	}
