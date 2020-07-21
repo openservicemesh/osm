@@ -4,9 +4,109 @@ Open Service Mesh (OSM) generates detailed metrics for all services communicatin
 As of today OSM collects metrics directly from the sidecar proxies (Envoy). OSM provides rich metrics for incoming and outgoing traffic for all services in the mesh. With these metrics the user can get information about the overall volume of traffic, errors within traffic and the response time for requests.
 
 # Prometheus
-To facilitate consistent traffic metrics across all services in the mesh, OSM is deployed with full integration and support for [Prometheus][1].
+To facilitate gathering of consistent traffic metrics and statistics across all services in the mesh, OSM relies on [Prometheus][1]. Prometheus is an open-source monitoring and alerting toolking which is commonly used (but not limitted to) on Kubernetes and Service Mesh environments.
 
-Each service that is a part of the mesh has an Envoy sidecard and is capable of exposing metrics (proxy metrics) in the Prometheus format. Further every service that is a part of the mesh have Prometheus annotations, which make it possible for the Prometheus server (deployed as a part of OSM's control plane) to scrape the service dynamically. This mechanism automatically enables scraping of metrics whenever a new namespace/pod/service is added to the mesh.
+Each service that is part of the mesh has an Envoy sidecard and is capable of exposing metrics (proxy metrics) in Prometheus format. Further every service that is a part of the mesh have Prometheus annotations, which make it possible for the Prometheus server (deployed as a part of OSM's control plane) to scrape the service dynamically. This mechanism automatically enables scraping of metrics whenever a new namespace/pod/service is added to the mesh.
+
+## Deployment and Installation
+
+OSM is able to automatically provision Prometheus and Grafana instances to monitor the mesh, however the user can choose not to, in favour of an already existing deployment or service (we will refer to the latter as Bring-Your-Own, or BYO)
+
+### Automatic bring up
+
+By default, OSM installation will deploy Prometheus and Grafana stack (plus necessary rules for proper communication). OSM will annotate the pods joined in the mesh with necessary saections to later have Prometheus reach and scrap the pods, also by default.
+
+The automatic bring up can be overriden with the `cli install` option during install time: 
+```
+./cli install --help
+
+This command installs an osm control plane on the Kubernetes...
+...
+--enable-metrics-stack                Enable metrics (Prometheus and Grafana) deployment (default true)
+...
+```
+
+### BYO (Bring-your-own)
+
+The following section will document the additional steps needed to allow an already running instance poll the endpoints of an OSM mesh.
+
+#### List of Prerequisites
+
+- Already running and accessible Prometheus instance *outside* of the mesh. 
+- An OSM-enabled deployment, without metrics-stack deployment.
+   - OSM controls the Envoy's Prometheus listener aperture through `prometheus_scraping: "true"`, under OSM configmap. By default this is set to true, but do dobule check it has been enabled on the OSM configmap, or else Prometheus might not be able to reach the pods.
+- We will assume having Grafana reach Prometheus, exposing or forwarding Prometheus or Grafana web ports and configuring Prometheus to reach kubernetes API services is taken care or otherwise out of the scope of these steps. 
+
+#### Configuration
+
+- Make sure the Prometheus instance has appropriate RBAC rules to be able to reach both the pods and Kubernetes API - this might be dependant on specific requirements and situations for different deployments:
+
+```
+- apiGroups: [""]
+   resources: ["nodes", "nodes/proxy",  "nodes/metrics", "services", "endpoints", "pods", "ingresses", "configmaps"]
+   verbs: ["list", "get", "watch"]
+ - apiGroups: ["extensions"]
+   resources: ["ingresses", "ingresses/status"]
+   verbs: ["list", "get", "watch"]
+ - nonResourceURLs: ["/metrics"]
+   verbs: ["get"]
+```
+
+- If desired, use the Prometheus Service definition to allow prometheus to scrape itself:
+```
+annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '<API port for prometheus>' # Depends on deployment - OSM automatic deployment uses 7070 by default, controlled by `values.yaml`
+```
+
+- Ammend Prometheus' configmap to reach the pods/Envoy endpoints. OSM automatically appends the port annotations to the pods and takes care
+pushing the listener configuration to the pods for Prometheus to reach:
+```
+- job_name: 'kubernetes-pods'
+   kubernetes_sd_configs:
+   - role: pod
+   relabel_configs:
+   - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+      action: keep
+      regex: true
+   - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+      action: replace
+      target_label: __metrics_path__
+      regex: (.+)
+   - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+      action: replace
+      regex: ([^:]+)(?::\d+)?;(\d+)
+      replacement: $1:$2
+      target_label: __address__
+   - source_labels: [__meta_kubernetes_namespace]
+      action: replace
+      target_label: source_namespace
+   - source_labels: [__meta_kubernetes_pod_name]
+      action: replace
+      target_label: source_pod_name
+   - regex: '(__meta_kubernetes_pod_label_app)'
+      action: labelmap
+      replacement: source_service
+   - regex: '(__meta_kubernetes_pod_label_osm_envoy_uid|__meta_kubernetes_pod_label_pod_template_hash|__meta_kubernetes_pod_label_version)'
+      action: drop
+   - source_labels: [__meta_kubernetes_pod_controller_kind]
+      action: replace
+      target_label: source_workload_kind
+   - source_labels: [__meta_kubernetes_pod_controller_name]
+      action: replace
+      target_label: source_workload_name
+   - source_labels: [__meta_kubernetes_pod_controller_kind]
+      action: replace
+      regex: ^ReplicaSet$
+      target_label: source_workload_kind
+      replacement: Deployment
+   - source_labels:
+      - __meta_kubernetes_pod_controller_kind
+      - __meta_kubernetes_pod_controller_name
+      action: replace
+      regex: ^ReplicaSet;(.*)-[^-]+$
+      target_label: source_workload_name
+``` 
 
 ## Querying metrics from Prometheus
 
