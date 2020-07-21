@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/openservicemesh/osm/pkg/featureflags"
+	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 
-	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/protobuf/ptypes"
+	"github.com/openservicemesh/osm/pkg/featureflags"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -17,7 +18,7 @@ import (
 )
 
 // NewResponse creates a new Cluster Discovery Response.
-func NewResponse(_ context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, _ *xds.DiscoveryRequest, cfg configurator.Configurator) (*xds.DiscoveryResponse, error) {
+func NewResponse(_ context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator) (*xds_discovery.DiscoveryResponse, error) {
 	svc, err := catalog.GetServiceFromEnvoyCertificate(proxy.GetCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up Service for Envoy with CN=%q", proxy.GetCommonName())
@@ -31,12 +32,12 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, meshSpec smi.
 		return nil, err
 	}
 	log.Debug().Msgf("TrafficPolicies: %+v for proxy %q; service %q", allTrafficPolicies, proxy.CommonName, proxyServiceName)
-	resp := &xds.DiscoveryResponse{
+	resp := &xds_discovery.DiscoveryResponse{
 		TypeUrl: string(envoy.TypeCDS),
 	}
 
 	// The clusters have to be unique, so use a map to prevent duplicates. Keys correspond to the cluster name.
-	clusterFactories := make(map[string]*xds.Cluster)
+	clusterFactories := make(map[string]*xds_cluster.Cluster)
 
 	// Build remote clusters based on traffic policies. Remote clusters correspond to
 	// services for which the given service is a source service.

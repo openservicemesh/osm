@@ -5,21 +5,23 @@ import (
 	"fmt"
 	"time"
 
-	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	envoy_type_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
+	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	xds_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	xds_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
+
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/service"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
@@ -81,18 +83,18 @@ var _ = Describe("Test SDS response functions", func() {
 			actual, err := getRootCert(cert, sdsc, tests.BookstoreService, mc)
 			Expect(err).ToNot(HaveOccurred())
 
-			expected := &auth.Secret{
+			expected := &xds_auth.Secret{
 				// The Name field must match the tls_context.common_tls_context.tls_certificate_sds_secret_configs.name
 				Name: resourceName,
-				Type: &auth.Secret_ValidationContext{
-					ValidationContext: &auth.CertificateValidationContext{
-						TrustedCa: &core.DataSource{
-							Specifier: &core.DataSource_InlineBytes{
+				Type: &xds_auth.Secret_ValidationContext{
+					ValidationContext: &xds_auth.CertificateValidationContext{
+						TrustedCa: &xds_core.DataSource{
+							Specifier: &xds_core.DataSource_InlineBytes{
 								InlineBytes: cert.GetIssuingCA(),
 							},
 						},
-						MatchSubjectAltNames: []*envoy_type_matcher.StringMatcher{{
-							MatchPattern: &envoy_type_matcher.StringMatcher_Exact{
+						MatchSubjectAltNames: []*xds_matcher.StringMatcher{{
+							MatchPattern: &xds_matcher.StringMatcher_Exact{
 								// The Certificates Subject Common Name will look like this: "bookbuyer.default.svc.cluster.local"
 								// BookbuyerService is an inbound service that is allowed.
 								Exact: tests.BookbuyerService.GetCommonName().String(),

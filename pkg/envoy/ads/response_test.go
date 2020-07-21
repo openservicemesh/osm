@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"time"
 
-	envoy_api_v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-	"github.com/golang/protobuf/ptypes"
-	"github.com/google/uuid"
+	xds_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
+	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
+
+	"github.com/golang/protobuf/ptypes"
+	"github.com/google/uuid"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -63,7 +65,7 @@ var _ = Describe("Test ADS response functions", func() {
 		It("returns service cert", func() {
 
 			actual := makeRequestForAllSecrets(proxy, mc)
-			expected := &envoy_api_v2.DiscoveryRequest{
+			expected := &xds_discovery.DiscoveryRequest{
 				TypeUrl: string(envoy.TypeSDS),
 				ResourceNames: []string{
 					envoy.SDSCert{
@@ -129,7 +131,7 @@ var _ = Describe("Test ADS response functions", func() {
 			log.Printf("%v", len((*actualResponses)[4].Resources))
 			Expect(len((*actualResponses)[4].Resources)).To(Equal(4))
 
-			secretOne := envoy_api_v2_auth.Secret{}
+			secretOne := xds_auth.Secret{}
 			firstSecret := (*actualResponses)[4].Resources[0]
 			err = ptypes.UnmarshalAny(firstSecret, &secretOne)
 			Expect(secretOne.Name).To(Equal(envoy.SDSCert{
@@ -137,7 +139,7 @@ var _ = Describe("Test ADS response functions", func() {
 				CertType: envoy.ServiceCertType,
 			}.String()))
 
-			secretTwo := envoy_api_v2_auth.Secret{}
+			secretTwo := xds_auth.Secret{}
 			secondSecret := (*actualResponses)[4].Resources[1]
 			err = ptypes.UnmarshalAny(secondSecret, &secretTwo)
 			Expect(secretTwo.Name).To(Equal(envoy.SDSCert{
@@ -145,7 +147,7 @@ var _ = Describe("Test ADS response functions", func() {
 				CertType: envoy.RootCertTypeForMTLSOutbound,
 			}.String()))
 
-			secretThree := envoy_api_v2_auth.Secret{}
+			secretThree := xds_auth.Secret{}
 			thirdSecret := (*actualResponses)[4].Resources[2]
 			err = ptypes.UnmarshalAny(thirdSecret, &secretThree)
 			Expect(secretThree.Name).To(Equal(envoy.SDSCert{
@@ -153,7 +155,7 @@ var _ = Describe("Test ADS response functions", func() {
 				CertType: envoy.RootCertTypeForMTLSInbound,
 			}.String()))
 
-			secretFour := envoy_api_v2_auth.Secret{}
+			secretFour := xds_auth.Secret{}
 			forthSecret := (*actualResponses)[4].Resources[3]
 			err = ptypes.UnmarshalAny(forthSecret, &secretFour)
 			Expect(secretFour.Name).To(Equal(envoy.SDSCert{

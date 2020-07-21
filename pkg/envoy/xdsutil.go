@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"strings"
 
-	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
-	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	accesslog "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v2"
-	envoy_config_filter_accesslog_v2 "github.com/envoyproxy/go-control-plane/envoy/config/filter/accesslog/v2"
+	xds_accesslog_filter "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v3"
+	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	xds_accesslog "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/file/v3"
+	xds_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
@@ -128,14 +129,14 @@ func (sdsc SDSCert) String() string {
 }
 
 // GetAddress creates an Envoy Address struct.
-func GetAddress(address string, port uint32) *core.Address {
+func GetAddress(address string, port uint32) *xds_core.Address {
 	// TODO(draychev): figure this out from the service
-	return &core.Address{
-		Address: &core.Address_SocketAddress{
-			SocketAddress: &core.SocketAddress{
-				Protocol: core.SocketAddress_TCP,
+	return &xds_core.Address{
+		Address: &xds_core.Address_SocketAddress{
+			SocketAddress: &xds_core.SocketAddress{
+				Protocol: xds_core.SocketAddress_TCP,
 				Address:  address,
-				PortSpecifier: &core.SocketAddress_PortValue{
+				PortSpecifier: &xds_core.SocketAddress_PortValue{
 					PortValue: port,
 				},
 			},
@@ -144,32 +145,32 @@ func GetAddress(address string, port uint32) *core.Address {
 }
 
 // GetTLSParams creates Envoy TlsParameters struct.
-func GetTLSParams() *auth.TlsParameters {
-	return &auth.TlsParameters{
-		TlsMinimumProtocolVersion: auth.TlsParameters_TLSv1_2,
-		TlsMaximumProtocolVersion: auth.TlsParameters_TLSv1_3,
+func GetTLSParams() *xds_auth.TlsParameters {
+	return &xds_auth.TlsParameters{
+		TlsMinimumProtocolVersion: xds_auth.TlsParameters_TLSv1_2,
+		TlsMaximumProtocolVersion: xds_auth.TlsParameters_TLSv1_3,
 	}
 }
 
 // GetAccessLog creates an Envoy AccessLog struct.
-func GetAccessLog() []*envoy_config_filter_accesslog_v2.AccessLog {
+func GetAccessLog() []*xds_accesslog_filter.AccessLog {
 	accessLog, err := ptypes.MarshalAny(getFileAccessLog())
 	if err != nil {
 		log.Error().Err(err).Msg("Error marshalling AccessLog object")
 		return nil
 	}
-	return []*envoy_config_filter_accesslog_v2.AccessLog{{
+	return []*xds_accesslog_filter.AccessLog{{
 		Name: wellknown.FileAccessLog,
-		ConfigType: &envoy_config_filter_accesslog_v2.AccessLog_TypedConfig{
+		ConfigType: &xds_accesslog_filter.AccessLog_TypedConfig{
 			TypedConfig: accessLog,
 		}},
 	}
 }
 
-func getFileAccessLog() *accesslog.FileAccessLog {
-	accessLogger := &accesslog.FileAccessLog{
+func getFileAccessLog() *xds_accesslog.FileAccessLog {
+	accessLogger := &xds_accesslog.FileAccessLog{
 		Path: accessLogPath,
-		AccessLogFormat: &accesslog.FileAccessLog_JsonFormat{
+		AccessLogFormat: &xds_accesslog.FileAccessLog_JsonFormat{
 			JsonFormat: &structpb.Struct{
 				Fields: map[string]*structpb.Value{
 					"start_time":            pbStringValue(`%START_TIME%`),
@@ -206,7 +207,7 @@ func pbStringValue(v string) *structpb.Value {
 	}
 }
 
-func getCommonTLSContext(serviceName service.NamespacedService, mTLS bool, dir SDSDirection) *auth.CommonTlsContext {
+func getCommonTLSContext(serviceName service.NamespacedService, mTLS bool, dir SDSDirection) *xds_auth.CommonTlsContext {
 	var certType SDSCertType
 
 	// Define root cert type
@@ -221,9 +222,9 @@ func getCommonTLSContext(serviceName service.NamespacedService, mTLS bool, dir S
 		certType = RootCertTypeForHTTPS
 	}
 
-	return &auth.CommonTlsContext{
+	return &xds_auth.CommonTlsContext{
 		TlsParams: GetTLSParams(),
-		TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
+		TlsCertificateSdsSecretConfigs: []*xds_auth.SdsSecretConfig{{
 			// Example ==> Name: "service-cert:NameSpaceHere/ServiceNameHere"
 			Name: SDSCert{
 				Service:  serviceName,
@@ -231,8 +232,8 @@ func getCommonTLSContext(serviceName service.NamespacedService, mTLS bool, dir S
 			}.String(),
 			SdsConfig: GetADSConfigSource(),
 		}},
-		ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
-			ValidationContextSdsSecretConfig: &auth.SdsSecretConfig{
+		ValidationContextType: &xds_auth.CommonTlsContext_ValidationContextSdsSecretConfig{
+			ValidationContextSdsSecretConfig: &xds_auth.SdsSecretConfig{
 				// Example ==> Name: "root-cert<type>:NameSpaceHere/ServiceNameHere"
 				Name: SDSCert{
 					Service:  serviceName,
@@ -254,8 +255,8 @@ func MessageToAny(pb proto.Message) (*any.Any, error) {
 }
 
 // GetDownstreamTLSContext creates a downstream Envoy TLS Context
-func GetDownstreamTLSContext(serviceName service.NamespacedService, mTLS bool) *auth.DownstreamTlsContext {
-	tlsConfig := &auth.DownstreamTlsContext{
+func GetDownstreamTLSContext(serviceName service.NamespacedService, mTLS bool) *xds_auth.DownstreamTlsContext {
+	tlsConfig := &xds_auth.DownstreamTlsContext{
 		CommonTlsContext: getCommonTLSContext(serviceName, mTLS, Inbound),
 		// When RequireClientCertificate is enabled trusted CA certs must be provided via ValidationContextType
 		RequireClientCertificate: &wrappers.BoolValue{Value: mTLS},
@@ -264,11 +265,11 @@ func GetDownstreamTLSContext(serviceName service.NamespacedService, mTLS bool) *
 }
 
 // GetUpstreamTLSContext creates an upstream Envoy TLS Context
-func GetUpstreamTLSContext(serviceName service.NamespacedService, sni string) *auth.UpstreamTlsContext {
+func GetUpstreamTLSContext(serviceName service.NamespacedService, sni string) *xds_auth.UpstreamTlsContext {
 	commonTLSContext := getCommonTLSContext(serviceName, true /* mTLS */, Outbound)
 	// Advertise in-mesh using UpstreamTlsContext.CommonTlsContext.AlpnProtocols
 	commonTLSContext.AlpnProtocols = ALPNInMesh
-	tlsConfig := &auth.UpstreamTlsContext{
+	tlsConfig := &xds_auth.UpstreamTlsContext{
 		CommonTlsContext: commonTLSContext,
 
 		// The Sni field is going to be used to do FilterChainMatch in getInboundInMeshFilterChain()
@@ -280,10 +281,10 @@ func GetUpstreamTLSContext(serviceName service.NamespacedService, sni string) *a
 }
 
 // GetADSConfigSource creates an Envoy ConfigSource struct.
-func GetADSConfigSource() *core.ConfigSource {
-	return &core.ConfigSource{
-		ConfigSourceSpecifier: &core.ConfigSource_Ads{
-			Ads: &core.AggregatedConfigSource{},
+func GetADSConfigSource() *xds_core.ConfigSource {
+	return &xds_core.ConfigSource{
+		ConfigSourceSpecifier: &xds_core.ConfigSource_Ads{
+			Ads: &xds_core.AggregatedConfigSource{},
 		},
 	}
 }

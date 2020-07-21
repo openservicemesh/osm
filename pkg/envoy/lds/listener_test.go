@@ -1,9 +1,8 @@
 package lds
 
 import (
-	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	listener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
+	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 
 	. "github.com/onsi/ginkgo"
@@ -52,7 +51,7 @@ var _ = Describe("Construct inbound and outbound listeners", func() {
 			for _, filter := range listener.ListenerFilters {
 				Expect(containsListenerFilter(expectedListenerFilters, filter.Name)).To(BeTrue())
 			}
-			Expect(listener.TrafficDirection).To(Equal(envoy_api_v2_core.TrafficDirection_OUTBOUND))
+			Expect(listener.TrafficDirection).To(Equal(xds_core.TrafficDirection_OUTBOUND))
 		})
 
 		It("Tests the outbound listener config with egress disabled", func() {
@@ -71,7 +70,7 @@ var _ = Describe("Construct inbound and outbound listeners", func() {
 
 			// Test that the ListenerFilters for egress don't exist
 			Expect(len(listener.ListenerFilters)).To(Equal(0))
-			Expect(listener.TrafficDirection).To(Equal(envoy_api_v2_core.TrafficDirection_OUTBOUND))
+			Expect(listener.TrafficDirection).To(Equal(xds_core.TrafficDirection_OUTBOUND))
 		})
 	})
 
@@ -81,8 +80,8 @@ var _ = Describe("Construct inbound and outbound listeners", func() {
 				Egress:         false,
 				MeshCIDRRanges: []string{"10.0.0.0/16"},
 			})
-			outboundListener := xds.Listener{
-				FilterChains: []*listener.FilterChain{
+			outboundListener := xds_listener.Listener{
+				FilterChains: []*xds_listener.FilterChain{
 					{
 						Name: "test",
 					},
@@ -96,8 +95,8 @@ var _ = Describe("Construct inbound and outbound listeners", func() {
 				Egress:         false,
 				MeshCIDRRanges: []string{"10.0.0.0/100"},
 			})
-			outboundListener := xds.Listener{
-				FilterChains: []*listener.FilterChain{
+			outboundListener := xds_listener.Listener{
+				FilterChains: []*xds_listener.FilterChain{
 					{
 						Name: "test",
 					},
@@ -114,7 +113,7 @@ var _ = Describe("Construct inbound and outbound listeners", func() {
 			Expect(listener.Address).To(Equal(envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyInboundListenerPort)))
 			Expect(len(listener.ListenerFilters)).To(Equal(1)) // tls-inpsector listener filter
 			Expect(listener.ListenerFilters[0].Name).To(Equal(wellknown.TlsInspector))
-			Expect(listener.TrafficDirection).To(Equal(envoy_api_v2_core.TrafficDirection_INBOUND))
+			Expect(listener.TrafficDirection).To(Equal(xds_core.TrafficDirection_INBOUND))
 		})
 	})
 
@@ -125,7 +124,7 @@ var _ = Describe("Construct inbound and outbound listeners", func() {
 			listener, _ := buildPrometheusListener(connManager)
 			Expect(listener.Address).To(Equal(envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyPrometheusInboundListenerPort)))
 			Expect(len(listener.ListenerFilters)).To(Equal(0)) //  no listener filters
-			Expect(listener.TrafficDirection).To(Equal(envoy_api_v2_core.TrafficDirection_INBOUND))
+			Expect(listener.TrafficDirection).To(Equal(xds_core.TrafficDirection_INBOUND))
 		})
 	})
 
