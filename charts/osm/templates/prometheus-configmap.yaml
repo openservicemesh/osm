@@ -1,3 +1,4 @@
+{{- if .Values.OpenServiceMesh.enableMetricsStack }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -146,3 +147,4 @@ data:
         - source_labels: [__meta_kubernetes_service_name]
           action: replace
           target_label: kubernetes_name
+{{- end }}

@@ -29,4 +29,5 @@ OpenServiceMesh:
   enablePermissiveTrafficPolicy: false
   enableBackpressureExperimental: false
   enableEgress: true
+  enableMetricsStack: true
   meshName: osm

@@ -78,6 +78,9 @@ type installCmd struct {
 	// become part of SMI Spec.
 	enableBackpressureExperimental bool
 
+	// Toggle to deploy/not deploy metrics (Promethus+Grafana) stack
+	enableMetricsStack bool
+
 	// checker runs checks before any installation is attempted. Its type is
 	// abstract here to make testing easy.
 	checker interface {
@@ -116,6 +119,7 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.BoolVar(&inst.enablePermissiveTrafficPolicy, "enable-permissive-traffic-policy", false, "Enable permissive traffic policy mode")
 	f.BoolVar(&inst.enableEgress, "enable-egress", true, "Enable egress in the mesh")
 	f.BoolVar(&inst.enableBackpressureExperimental, "enable-backpressure-experimental", false, "Enable experimental backpressure feature")
+	f.BoolVar(&inst.enableMetricsStack, "enable-metrics-stack", true, "Enable metrics (Prometheus and Grafana) deployment")
 	f.StringVar(&inst.meshName, "mesh-name", defaultMeshName, "name for the new control plane instance")
 
 	return cmd
@@ -210,6 +214,7 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 		fmt.Sprintf("OpenServiceMesh.enableDebugServer=%t", i.enableDebugServer),
 		fmt.Sprintf("OpenServiceMesh.enablePermissiveTrafficPolicy=%t", i.enablePermissiveTrafficPolicy),
 		fmt.Sprintf("OpenServiceMesh.enableBackpressureExperimental=%t", i.enableBackpressureExperimental),
+		fmt.Sprintf("OpenServiceMesh.enableMetricsStack=%t", i.enableMetricsStack),
 		fmt.Sprintf("OpenServiceMesh.meshName=%s", i.meshName),
 		fmt.Sprintf("OpenServiceMesh.enableEgress=%t", i.enableEgress),
 	}
