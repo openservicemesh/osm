@@ -77,6 +77,7 @@ var _ = Describe("Running the install command", func() {
 				checker:                    passingChecker{},
 				meshName:                   defaultMeshName,
 				enableEgress:               true,
+				enableMetricsStack:         true,
 			}
 
 			err = installCmd.run(config)
@@ -133,6 +134,7 @@ var _ = Describe("Running the install command", func() {
 						"enablePermissiveTrafficPolicy":  false,
 						"enableBackpressureExperimental": false,
 						"enableEgress":                   true,
+						"enableMetricsStack":             true,
 					}}))
 			})
 
@@ -177,6 +179,7 @@ var _ = Describe("Running the install command", func() {
 				checker:                    passingChecker{},
 				meshName:                   defaultMeshName,
 				enableEgress:               true,
+				enableMetricsStack:         true,
 			}
 
 			err = installCmd.run(config)
@@ -233,6 +236,7 @@ var _ = Describe("Running the install command", func() {
 						"enablePermissiveTrafficPolicy":  false,
 						"enableBackpressureExperimental": false,
 						"enableEgress":                   true,
+						"enableMetricsStack":             true,
 					}}))
 			})
 
@@ -281,6 +285,7 @@ var _ = Describe("Running the install command", func() {
 				checker:                    passingChecker{},
 				meshName:                   defaultMeshName,
 				enableEgress:               true,
+				enableMetricsStack:         true,
 			}
 
 			err = installCmd.run(config)
@@ -338,6 +343,7 @@ var _ = Describe("Running the install command", func() {
 						"enablePermissiveTrafficPolicy":  false,
 						"enableBackpressureExperimental": false,
 						"enableEgress":                   true,
+						"enableMetricsStack":             true,
 					}}))
 			})
 
@@ -565,6 +571,7 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 			prometheusRetentionTime:    testRetentionTime,
 			meshName:                   defaultMeshName,
 			enableEgress:               true,
+			enableMetricsStack:         true,
 		}
 
 		vals, err = installCmd.resolveValues()
@@ -604,6 +611,7 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 				"enablePermissiveTrafficPolicy":  false,
 				"enableBackpressureExperimental": false,
 				"enableEgress":                   true,
+				"enableMetricsStack":             true,
 			}}))
 	})
 })
