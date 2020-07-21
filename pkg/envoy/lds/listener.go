@@ -44,42 +44,53 @@ func buildOutboundListener(connManager *envoy_hcm.HttpConnectionManager, cfg con
 		},
 	}
 
+
 	if cfg.IsEgressEnabled() {
-		// When egress, the in-mesh CIDR is used to distinguish in-mesh traffic
-		meshCIDRRanges := cfg.GetMeshCIDRRanges()
-		if len(meshCIDRRanges) == 0 {
-			log.Error().Err(errInvalidCIDRRange).Msg("Mesh CIDR ranges unspecified, required when egress is enabled")
-			return nil, errInvalidCIDRRange
-		}
-
-		var prefixRanges []*envoy_api_v2_core.CidrRange
-
-		for _, cidr := range meshCIDRRanges {
-			cidrRange, err := getCIDRRange(cidr)
-			if err != nil {
-				log.Error().Err(err).Msgf("Error parsing CIDR: %s", cidr)
-				return nil, err
-			}
-			prefixRanges = append(prefixRanges, cidrRange)
-		}
-		outboundListener.FilterChains[0].FilterChainMatch = &listener.FilterChainMatch{
-			PrefixRanges: prefixRanges,
-		}
-
-		// With egress, a filter chain to match TLS traffic is added to the outbound listener.
-		// In-mesh traffic will always be HTTP so this filter chain will not match for in-mesh.
-		// HTTPS egress traffic will match this filter chain and will be proxied to its original
-		// destination.
-		egressFilterChain, err := buildEgressHTTPSFilterChain()
+		err := updateOutboundListenerForEgress(outboundListener, cfg)
 		if err != nil {
-			return nil, err
+			log.Error().Err(err).Msgf("Error building egress config for outbound listener")
+			// An error in egress config should not disrupt in-mesh traffic, so only log an error
 		}
-		outboundListener.FilterChains = append(outboundListener.FilterChains, egressFilterChain)
-		listenerFilters := buildEgressListenerFilters()
-		outboundListener.ListenerFilters = append(outboundListener.ListenerFilters, listenerFilters...)
 	}
 
 	return outboundListener, nil
+}
+
+func updateOutboundListenerForEgress(outboundListener *xds.Listener, cfg configurator.Configurator) error {
+	// When egress, the in-mesh CIDR is used to distinguish in-mesh traffic
+	meshCIDRRanges := cfg.GetMeshCIDRRanges()
+	if len(meshCIDRRanges) == 0 {
+		log.Error().Err(errInvalidCIDRRange).Msg("Mesh CIDR ranges unspecified, required when egress is enabled")
+		return errInvalidCIDRRange
+	}
+
+	var prefixRanges []*envoy_api_v2_core.CidrRange
+
+	for _, cidr := range meshCIDRRanges {
+		cidrRange, err := getCIDRRange(cidr)
+		if err != nil {
+			log.Error().Err(err).Msgf("Error parsing CIDR: %s", cidr)
+			return err
+		}
+		prefixRanges = append(prefixRanges, cidrRange)
+	}
+	outboundListener.FilterChains[0].FilterChainMatch = &listener.FilterChainMatch{
+		PrefixRanges: prefixRanges,
+	}
+
+	// With egress, a filter chain to match TLS traffic is added to the outbound listener.
+	// In-mesh traffic will always be HTTP so this filter chain will not match for in-mesh.
+	// HTTPS egress traffic will match this filter chain and will be proxied to its original
+	// destination.
+	egressFilterChain, err := buildEgressHTTPSFilterChain()
+	if err != nil {
+		return err
+	}
+	outboundListener.FilterChains = append(outboundListener.FilterChains, egressFilterChain)
+	listenerFilters := buildEgressListenerFilters()
+	outboundListener.ListenerFilters = append(outboundListener.ListenerFilters, listenerFilters...)
+
+	return nil
 }
 
 func buildInboundListener() *xds.Listener {
