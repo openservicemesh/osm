@@ -14,7 +14,10 @@ metadata:
   name: max-requests-per-second
   namespace: "${BOOKSTORE_NAMESPACE}"
 
+  labels:
+    app: bookstore
+
 spec:
-  maxRequestsPerConnection: 5
+  maxConnections: 5
 
 EOF

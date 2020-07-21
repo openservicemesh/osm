@@ -47,6 +47,8 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpe
 				return nil, err
 			}
 
+			// -----------------------------------------------------------------------------
+			// TODO: carve this out into a separate function
 			log.Trace().Msgf("Backpressure: %t", featureflags.IsBackpressureEnabled())
 
 			if featureflags.IsBackpressureEnabled() {
@@ -54,6 +56,9 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpe
 				// Backpressure CRD only has one backpressure obj as a global config
 				// TODO: Add specific backpressure settings for individual clients
 				backpressures := catalog.GetSMISpec().ListBackpressures()
+
+				// TODO: filter backpressures on labels (backpressures[i].ObjectMeta.Labels) that match that of the destination service (trafficPolicies.Destination.Service)
+
 				log.Trace().Msgf("Backpressures (%d): %+v", len(backpressures), backpressures)
 
 				if len(backpressures) > 0 {
@@ -65,6 +70,7 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpe
 
 				}
 			}
+			// -----------------------------------------------------------------------------
 
 			clusterFactories = append(clusterFactories, remoteCluster)
 		}
