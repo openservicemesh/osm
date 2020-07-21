@@ -1,7 +1,9 @@
 package lds
 
 import (
+	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
+	listener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 
 	. "github.com/onsi/ginkgo"
@@ -70,6 +72,39 @@ var _ = Describe("Construct inbound and outbound listeners", func() {
 			// Test that the ListenerFilters for egress don't exist
 			Expect(len(listener.ListenerFilters)).To(Equal(0))
 			Expect(listener.TrafficDirection).To(Equal(envoy_api_v2_core.TrafficDirection_OUTBOUND))
+		})
+	})
+
+	Context("Tests building outbound egress listener", func() {
+		It("Tests that building the outbound egress filter chain succeeds with valid CIDRs", func() {
+			cfg := configurator.NewFakeConfiguratorWithOptions(configurator.FakeConfigurator{
+				Egress:         false,
+				MeshCIDRRanges: []string{"10.0.0.0/16"},
+			})
+			outboundListener := xds.Listener{
+				FilterChains: []*listener.FilterChain{
+					{
+						Name: "test",
+					},
+				},
+			}
+			err := updateOutboundListenerForEgress(&outboundListener, cfg)
+			Expect(err).ToNot(HaveOccurred())
+		})
+		It("Tests that building the outbound egress filter chain fails with invalid CIDRs", func() {
+			cfg := configurator.NewFakeConfiguratorWithOptions(configurator.FakeConfigurator{
+				Egress:         false,
+				MeshCIDRRanges: []string{"10.0.0.0/100"},
+			})
+			outboundListener := xds.Listener{
+				FilterChains: []*listener.FilterChain{
+					{
+						Name: "test",
+					},
+				},
+			}
+			err := updateOutboundListenerForEgress(&outboundListener, cfg)
+			Expect(err).To(HaveOccurred())
 		})
 	})
 
