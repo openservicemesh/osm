@@ -46,16 +46,24 @@ func buildOutboundListener(connManager *envoy_hcm.HttpConnectionManager, cfg con
 
 	if cfg.IsEgressEnabled() {
 		// When egress, the in-mesh CIDR is used to distinguish in-mesh traffic
-		cidr := "10.2.0.0/16"
-		meshCIDRRange, err := getCIDRRange(cidr)
-		if err != nil {
-			log.Error().Err(err).Msgf("Error parsing CIDR: %s", cidr)
-			return nil, err
+		meshCIDRRanges := cfg.GetMeshCIDRRanges()
+		if len(meshCIDRRanges) == 0 {
+			log.Error().Err(errInvalidCIDRRange).Msg("Mesh CIDR ranges unspecified, required when egress is enabled")
+			return nil, errInvalidCIDRRange
+		}
+
+		var prefixRanges []*envoy_api_v2_core.CidrRange
+
+		for _, cidr := range meshCIDRRanges {
+			cidrRange, err := getCIDRRange(cidr)
+			if err != nil {
+				log.Error().Err(err).Msgf("Error parsing CIDR: %s", cidr)
+				return nil, err
+			}
+			prefixRanges = append(prefixRanges, cidrRange)
 		}
 		outboundListener.FilterChains[0].FilterChainMatch = &listener.FilterChainMatch{
-			PrefixRanges: []*envoy_api_v2_core.CidrRange{
-				meshCIDRRange,
-			},
+			PrefixRanges: prefixRanges,
 		}
 
 		// With egress, a filter chain to match TLS traffic is added to the outbound listener.

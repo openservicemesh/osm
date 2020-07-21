@@ -18,6 +18,7 @@ const (
 	egressKey                      = "egress"
 	prometheusScrapingKey          = "prometheus_scraping"
 	zipkinTracingKey               = "zipkin_tracing"
+	meshCIDRRangesKey              = "mesh_cidr_ranges"
 )
 
 // NewConfigurator implements configurator.Configurator and creates the Kubernetes client to manage namespaces.
@@ -66,6 +67,8 @@ type osmConfig struct {
 
 	// ZipkinTracing is a bool toggle used to enable ot disable Zipkin tracing
 	ZipkinTracing bool `yaml:"zipkin_tracing"`
+
+	MeshCIDRRanges string `yaml:"mesh_cidr_ranges"`
 }
 
 func (c *Client) run(stop <-chan struct{}) {
@@ -129,6 +132,15 @@ func (c *Client) getConfigMap() *osmConfig {
 		log.Error().Err(err).Msgf("Error getting value for key=%s", zipkinTracingKey)
 	}
 	cfg.ZipkinTracing = modeBool
+
+	// Parse MeshCIDRRanges: only required if egress is enabled
+	cidr, ok := configMap.Data[meshCIDRRangesKey]
+	if !ok {
+		if cfg.Egress {
+			log.Error().Err(errMissingKeyInConfigMap).Msgf("Missing key=%s, required when egress is enabled", meshCIDRRangesKey)
+		}
+	}
+	cfg.MeshCIDRRanges = cidr
 
 	return cfg
 }

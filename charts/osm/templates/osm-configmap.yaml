@@ -8,3 +8,4 @@ data:
   egress: {{ .Values.OpenServiceMesh.enableEgress | quote | default "true" }}
   prometheus_scraping: "true"
   zipkin_tracing: "true"
+  mesh_cidr_ranges: "10.2.0.0/16,10.0.0.0/16"

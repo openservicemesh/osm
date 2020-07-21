@@ -7,6 +7,7 @@ type FakeConfigurator struct {
 	Egress                      bool
 	PrometheusScraping          bool
 	ZipkinTracing               bool
+	MeshCIDRRanges              []string
 }
 
 // NewFakeConfigurator create a new fake Configurator
@@ -46,6 +47,11 @@ func (f FakeConfigurator) IsPrometheusScrapingEnabled() bool {
 // IsZipkinTracingEnabled determines whether Zipkin tracing is enabled
 func (f FakeConfigurator) IsZipkinTracingEnabled() bool {
 	return f.ZipkinTracing
+}
+
+// GetMeshCIDRRanges returns a list of mesh CIDR ranges
+func (f FakeConfigurator) GetMeshCIDRRanges() []string {
+	return f.MeshCIDRRanges
 }
 
 // GetAnnouncementsChannel returns a fake announcement channel
