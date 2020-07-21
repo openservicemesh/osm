@@ -5,4 +5,4 @@
 Before you begin, please have all the necessary requirements installed and configured for your Kubernetes cluster. You can review the [Connect an Azure Arc-enabled Kubernetes cluster](https://docs.microsoft.com/en-us/azure/azure-arc/kubernetes/connect-cluster) article ensure you have everyting setup correctly before proceeding. Once your Kubernetes cluster is connected to Azure Arc, you are ready to begin.
 
 ## Connecting the OSM GitOps Repository
-<TODO>
+TODO
