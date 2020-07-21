@@ -12,10 +12,10 @@ import (
 	"github.com/open-service-mesh/osm/pkg/cli"
 )
 
-var globalUsage = `osm enables you to install and manage the
-Open Service Mesh in your Kubernetes cluster
+var globalUsage = `The osm cli enables you to install and manage the
+Open Service Mesh (OSM) in your Kubernetes cluster
 
-To install and configure open service mesh, run:
+To install and configure OSM, run:
 
    $ osm install
 `
@@ -25,7 +25,7 @@ var settings = cli.New()
 func newRootCmd(config *action.Configuration, out io.Writer, args []string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "osm",
-		Short:        "Install and manage open service mesh",
+		Short:        "Install and manage Open Service Mesh",
 		Long:         globalUsage,
 		SilenceUsage: true,
 	}
