@@ -2,7 +2,6 @@
 
 ## System Requirements
 - Go version 1.14 or higher
-- OpenSSL/LibreSSL 2.8.3 or higher
 - Kubectl version 1.16 or higher
 - Docker CLI
    - on a Debian based GNU/Linux system: `sudo apt-get install docker`
@@ -21,6 +20,7 @@
 		- Login to your Azure account: `az login`
 		- Create an AKS cluster via [Azure Portal](https://portal.azure.com/)
 		- Using the Azure CLI download AKS credentials into `~/.kube/config`: `az aks get-credentials --resource-group your_Resource_Group --name your_AKS_name`
+		- Set `KUBECONFIG` environment variable: `export KUBECONFIG=~/.kube/config` (also add this command to your .bashrc)
 1. Authenticate with a container registry, which is accessible to both your workstation and your Kubernetes cluster. One such registry is the Azure Container Registry (ACR), which is used by the demo scripts in this repo:
    - [Install Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
    - Login to your Azure account: `az login`
@@ -55,7 +55,18 @@ In the newly created `.env` file, update the two values `CTR_REGISTRY` and `CTR_
 1. To see the results of deploying the services and the service mesh - run the tailing scripts:
    - the scripts will connect to the respecitve Kubernetes Pod and stream its logs
    - the output will be the output of the curl command to the `bookstore` domain and the count of books sold
-   - a properly working service mesh will result in HTTP 200 OK with `./demo/tail-bookbuyer.sh` along with a monotonically increasing counter appearing in the response headers, while `./demo/tail-bookthief.sh` will result in HTTP 404 Not Found. This can be automatically checked with `go run ./ci/cmd/maestro.go`
+   - a properly working service mesh will result in HTTP 200 OK with `./demo/tail-bookbuyer.sh` along with a monotonically increasing counter appearing in the response headers, while `./demo/tail-bookthief.sh` will result in HTTP 404 Not Found. This can be automatically checked with `KUBECONFIG=$HOME/.kube/config go run ./ci/cmd/maestro.go`
+
+## Demo Web UI
+The Bookstore, Bookbuyer, and Bookthief apps have simple web UI visualizing the number of requests made between the services.
+
+  - To see the UI for Bookbuyer run `./scripts/port-forward-bookbuyer-ui.sh` and open [http://localhost:8080/](http://localhost:8080/)
+  - To see the UI for Bookstore v1 run `./scripts/port-forward-bookstore-ui-v1.sh` and open [http://localhost:8081/](http://localhost:8081/)
+  - To see the UI for Bookstore v2 run `./scripts/port-forward-bookstore-ui-v2.sh` and open [http://localhost:8082/](http://localhost:8082/)
+  - To see the UI for BookThief run `./scripts/port-forward-bookthief-ui.sh` and open [http://localhost:8083/](http://localhost:8083/)
+  - To see Zipkin run `./scripts/port-forward-zipkin.sh` and open [http://localhost:9411/zipkin/](http://localhost:9411/zipkin/)
+  - To see Grafana run `./scripts/port-forward-grafana.sh` and open [http://localhost:3000/](http://localhost:3000/) - default username and password for Grafana is `admin`/`admin`
+  - OSM controller has a simple debugging web endpoint - run `./scripts/port-forward-osm-debug.sh` and open [http://localhost:9091/debug](http://localhost:9091/debug)
 
 ## Onboarding VMs to a service mesh
 *_Note: This is an experimental feature and not currently fully supported*

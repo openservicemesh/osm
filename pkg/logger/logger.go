@@ -32,8 +32,14 @@ func New(component string) zerolog.Logger {
 	return l
 }
 
+// NewPretty creates a new zerolog.Logger, which emits human-readable log messages
+func NewPretty(component string) zerolog.Logger {
+	l := log.With().Str("component", component).Logger().Hook(CallerHook{})
+	return l.Output(zerolog.ConsoleWriter{Out: os.Stdout})
+}
+
 // SetLogLevel sets the global logging level
-func SetLogLevel(verbosity string) {
+func SetLogLevel(verbosity string) error {
 	switch strings.ToLower(verbosity) {
 	// DebugLevel defines debug log level.
 	case "debug":
@@ -62,6 +68,7 @@ func SetLogLevel(verbosity string) {
 
 	default:
 		allowedLevels := []string{"debug", "info", "warn", "error", "fatal", "panic", "disabled", "trace"}
-		log.Fatal().Msgf("Invalid log level '%s' specified. Please specify one of %v", verbosity, allowedLevels)
+		return fmt.Errorf("Invalid log level '%s' specified. Please specify one of %v", verbosity, allowedLevels)
 	}
+	return nil
 }

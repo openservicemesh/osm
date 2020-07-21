@@ -42,6 +42,7 @@ func newRootCmd(config *action.Configuration, out io.Writer, args []string) *cob
 		newCheckCmd(out),
 		newDashboardCmd(config, out),
 		newNamespaceCmd(out),
+		newVersionCmd(out),
 	)
 
 	flags.Parse(args)

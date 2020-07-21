@@ -39,7 +39,7 @@ const (
 	// TODO(draychev): pass these via CLI param (https://github.com/open-service-mesh/osm/issues/542)
 	serverType                        = "ADS"
 	defaultServiceCertValidityMinutes = 60 // 1 hour
-	caBundleSecretNameCLIParam        = "caBundleSecretName"
+	caBundleSecretNameCLIParam        = "ca-bundle-secret-name"
 	xdsServerCertificateCommonName    = "ads"
 )
 
@@ -63,33 +63,33 @@ var (
 
 var (
 	flags               = pflag.NewFlagSet(`ads`, pflag.ExitOnError)
-	azureSubscriptionID = flags.String("azureSubscriptionID", "", "Azure Subscription ID")
+	azureSubscriptionID = flags.String("azure-subscription-id", "", "Azure Subscription ID")
 	port                = flags.Int("port", constants.OSMControllerPort, "Aggregated Discovery Service port number.")
 	log                 = logger.New("ads/main")
 
 	// What is the Certification Authority to be used
-	certManagerKind = flags.String("certmanager", "tresor", "Certificate manager")
+	certManagerKind = flags.String("cert-manager", "tresor", "Certificate manager")
 
 	// TODO(draychev): convert all these flags to spf13/cobra: https://github.com/open-service-mesh/osm/issues/576
 	// When certmanager == "vault"
-	vaultProtocol = flags.String("vaultProtocol", "http", "Host name of the Hashi Vault")
-	vaultHost     = flags.String("vaultHost", "vault.default.svc.cluster.local", "Host name of the Hashi Vault")
-	vaultPort     = flags.Int("vaultPort", 8200, "Port of the Hashi Vault")
-	vaultToken    = flags.String("vaultToken", "", "Secret token for the the Hashi Vault")
-	vaultRole     = flags.String("vaultRole", "open-service-mesh", "Name of the Vault role dedicated to Open Service Mesh")
+	vaultProtocol = flags.String("vault-protocol", "http", "Host name of the Hashi Vault")
+	vaultHost     = flags.String("vault-host", "vault.default.svc.cluster.local", "Host name of the Hashi Vault")
+	vaultPort     = flags.Int("vault-port", 8200, "Port of the Hashi Vault")
+	vaultToken    = flags.String("vault-token", "", "Secret token for the the Hashi Vault")
+	vaultRole     = flags.String("vault-role", "open-service-mesh", "Name of the Vault role dedicated to Open Service Mesh")
 )
 
 func init() {
-	flags.StringVar(&verbosity, "verbosity", "info", "Set log verbosity level")
-	flags.StringVar(&meshName, "meshName", "", "OSM mesh name")
-	flags.StringVar(&azureAuthFile, "azureAuthFile", "", "Path to Azure Auth File")
+	flags.StringVarP(&verbosity, "verbosity", "v", "info", "Set log verbosity level")
+	flags.StringVar(&meshName, "mesh-name", "", "OSM mesh name")
+	flags.StringVar(&azureAuthFile, "azure-auth-file", "", "Path to Azure Auth File")
 	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file.")
-	flags.StringVar(&osmNamespace, "osmNamespace", "", "Namespace to which OSM belongs to.")
-	flags.StringVar(&webhookName, "webhookName", "", "Name of the MutatingWebhookConfiguration to be configured by ADS")
-	flags.IntVar(&serviceCertValidityMinutes, "serviceCertValidityMinutes", defaultServiceCertValidityMinutes, "Certificate validityPeriod duration in minutes")
+	flags.StringVar(&osmNamespace, "osm-namespace", "", "Namespace to which OSM belongs to.")
+	flags.StringVar(&webhookName, "webhook-name", "", "Name of the MutatingWebhookConfiguration to be configured by ADS")
+	flags.IntVar(&serviceCertValidityMinutes, "service-cert-validity-minutes", defaultServiceCertValidityMinutes, "Certificate validityPeriod duration in minutes")
 	flags.StringVar(&caBundleSecretName, caBundleSecretNameCLIParam, "", "Name of the Kubernetes Secret for the OSM CA bundle")
-	flags.BoolVar(&enableDebugServer, "enableDebugServer", false, "Enable OSM debug HTTP server")
-	flags.StringVar(&osmConfigMapName, "osmConfigMapName", "osm-config", "Name of the OSM ConfigMap")
+	flags.BoolVar(&enableDebugServer, "enable-debug-server", false, "Enable OSM debug HTTP server")
+	flags.StringVar(&osmConfigMapName, "osm-configmap-name", "osm-config", "Name of the OSM ConfigMap")
 
 	// sidecar injector options
 	flags.BoolVar(&injectorConfig.DefaultInjection, "default-injection", true, "Enable sidecar injection by default")
@@ -103,8 +103,12 @@ func init() {
 
 func main() {
 	log.Trace().Msg("Starting ADS")
-	parseFlags()
-	logger.SetLogLevel(verbosity)
+	if err := parseFlags(); err != nil {
+		log.Fatal().Err(err).Msg("Error parsing cmd line arguments")
+	}
+	if err := logger.SetLogLevel(verbosity); err != nil {
+		log.Fatal().Err(err).Msg("Error setting log level")
+	}
 	featureflags.Initialize(optionalFeatures)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -112,7 +116,9 @@ func main() {
 
 	// This ensures CLI parameters (and dependent values) are correct.
 	// Side effects: This will log.Fatal on error resulting in os.Exit(255)
-	validateCLIParams()
+	if err := validateCLIParams(); err != nil {
+		log.Fatal().Err(err).Msg("Failed to validate CLI parameters")
+	}
 
 	kubeConfig, err := clientcmd.BuildConfigFromFlags("", kubeConfigFile)
 
@@ -135,10 +141,16 @@ func main() {
 	log.Info().Msgf("Initial ConfigMap %s: %s", osmConfigMapName, string(configMap))
 
 	namespaceController := namespace.NewNamespaceController(kubeClient, meshName, stop)
-	meshSpec := smi.NewMeshSpecClient(*smiKubeConfig, kubeClient, osmNamespace, namespaceController, stop)
+	meshSpec, err := smi.NewMeshSpecClient(*smiKubeConfig, kubeClient, osmNamespace, namespaceController, stop)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to create new mesh spec client")
+	}
 
 	// Get the Certificate Manager based on the CLI argument passed to this module.
-	certManager, certDebugger := certManagers[certificateManagerKind(*certManagerKind)](kubeClient, enableDebugServer)
+	certManager, certDebugger, err := certManagers[certificateManagerKind(*certManagerKind)](kubeClient, enableDebugServer)
+	if err != nil {
+		log.Fatal().Err(err).Msgf("Failed to get certificate manager based on CLI argument")
+	}
 
 	log.Info().Msgf("Service certificates will be valid for %+v", getServiceCertValidityPeriod())
 
@@ -150,14 +162,23 @@ func main() {
 		}
 	}
 
-	endpointsProviders := []endpoint.Provider{
-		kube.NewProvider(kubeClient, namespaceController, stop, constants.KubeProviderName, cfg),
+	provider, err := kube.NewProvider(kubeClient, namespaceController, stop, constants.KubeProviderName, cfg)
+	if err != nil {
+		log.Fatal().Err(err).Msgf("Failed to get endpoint provider")
 	}
 
+	endpointsProviders := []endpoint.Provider{provider}
+
 	if azureAuthFile != "" {
-		azureResourceClient := azureResource.NewClient(kubeClient, kubeConfig, namespaceController, stop, cfg)
-		endpointsProviders = append(endpointsProviders, azure.NewProvider(
-			*azureSubscriptionID, azureAuthFile, stop, meshSpec, azureResourceClient, constants.AzureProviderName))
+		azureResourceClient, err := azureResource.NewClient(kubeClient, kubeConfig, namespaceController, stop, cfg)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to initialize azure resource client")
+		}
+		azureProvider, err := azure.NewProvider(*azureSubscriptionID, azureAuthFile, stop, meshSpec, azureResourceClient, constants.AzureProviderName)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to initialize azure provider")
+		}
+		endpointsProviders = append(endpointsProviders, azureProvider)
 	}
 
 	ingressClient, err := ingress.NewIngressClient(kubeClient, namespaceController, stop, cfg)
@@ -212,12 +233,13 @@ func main() {
 	log.Info().Msgf("[%s] Goodbye!", serverType)
 }
 
-func parseFlags() {
+func parseFlags() error {
 	// TODO(draychev): consolidate parseFlags - shared between ads.go and eds.go
 	if err := flags.Parse(os.Args); err != nil {
-		log.Fatal().Err(err).Msg("Error parsing cmd line arguments")
+		return err
 	}
 	_ = flag.CommandLine.Parse([]string{})
+	return nil
 }
 
 func createCABundleKubernetesSecret(kubeClient clientset.Interface, certManager certificate.Manager, namespace, caBundleSecretName string) error {

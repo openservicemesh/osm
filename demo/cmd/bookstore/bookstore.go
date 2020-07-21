@@ -9,18 +9,27 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/rs/zerolog/log"
 
 	"github.com/open-service-mesh/osm/demo/cmd/common"
+	"github.com/open-service-mesh/osm/pkg/logger"
 )
 
-var identity = flag.String("ident", "unidentified", "the identity of the container where this demo app is running (VM, K8s, etc)")
+var (
+	booksSold = 0
+	log       = logger.NewPretty("bookstore")
+	identity  = flag.String("ident", "unidentified", "the identity of the container where this demo app is running (VM, K8s, etc)")
+	port      = flag.Int("port", 8080, "port on which this app is listening for incoming HTTP")
+	path      = flag.String("path", ".", "path to the HTML template")
+)
 
-var port = flag.Int("port", 8080, "port on which this app is listening for incoming HTTP")
-var path = flag.String("path", ".", "path to the HTML template")
-var booksBought int
+type handler struct {
+	path   string
+	fn     func(http.ResponseWriter, *http.Request)
+	method string
+}
 
 func getIdentity() string {
 	ident := os.Getenv("IDENTITY")
@@ -33,7 +42,7 @@ func getIdentity() string {
 }
 
 func setHeaders(w http.ResponseWriter) {
-	w.Header().Set(common.BooksBoughtHeader, fmt.Sprintf("%d", booksBought))
+	w.Header().Set(common.BooksBoughtHeader, fmt.Sprintf("%d", booksSold))
 	w.Header().Set(common.IdentityHeader, getIdentity())
 }
 
@@ -43,39 +52,47 @@ func renderTemplate(w http.ResponseWriter) {
 		log.Fatal().Err(err).Msg("Failed to parse HTML template file")
 	}
 	err = tmpl.Execute(w, map[string]string{
-		common.IdentityHeader:    getIdentity(),
-		common.BooksBoughtHeader: fmt.Sprintf("%d", booksBought),
+		"Identity":  getIdentity(),
+		"BooksSold": fmt.Sprintf("%d", booksSold),
+		"Time":      time.Now().Format("Mon, 02 Jan 2006 15:04:05 MST"),
 	})
 	if err != nil {
 		log.Fatal().Err(err).Msg("Could not render template")
 	}
 }
 
-func getBooksBought(w http.ResponseWriter, r *http.Request) {
+func getBooksSold(w http.ResponseWriter, r *http.Request) {
 	setHeaders(w)
 	renderTemplate(w)
-	fmt.Printf("%s;  URL: %q;  Count: %d\n", getIdentity(), html.EscapeString(r.URL.Path), booksBought)
+	fmt.Printf("%s;  URL: %q;  Count: %d\n", getIdentity(), html.EscapeString(r.URL.Path), booksSold)
 }
 
-// updateBooksBought updates the booksBought value to the one specified by the user
-func updateBooksBought(w http.ResponseWriter, r *http.Request) {
-	var updatedBooksBought int
-	err := json.NewDecoder(r.Body).Decode(&updatedBooksBought)
+func getIndex(w http.ResponseWriter, r *http.Request) {
+	setHeaders(w)
+	renderTemplate(w)
+	fmt.Printf("%s;  URL: %q;  Count: %d\n", getIdentity(), html.EscapeString(r.URL.Path), booksSold)
+}
+
+// updateBooksSold updates the booksSold value to the one specified by the user
+func updateBooksSold(w http.ResponseWriter, r *http.Request) {
+	var updatedBooksSold int
+	err := json.NewDecoder(r.Body).Decode(&updatedBooksSold)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Could not decode request body")
 	}
-	booksBought = updatedBooksBought
+	booksSold = updatedBooksSold
 	setHeaders(w)
 	renderTemplate(w)
-	fmt.Printf("%s;  URL: %q;  %s: %d\n", getIdentity(), html.EscapeString(r.URL.Path), common.BooksBoughtHeader, booksBought)
+	fmt.Printf("%s;  URL: %q;  %s: %d\n", getIdentity(), html.EscapeString(r.URL.Path), common.BooksBoughtHeader, booksSold)
+	return
 }
 
-// buyBook increments the value of the booksBought
-func buyBook(w http.ResponseWriter, r *http.Request) {
-	booksBought++
+// sellBook increments the value of the booksSold
+func sellBook(w http.ResponseWriter, r *http.Request) {
+	booksSold++
 	setHeaders(w)
 	renderTemplate(w)
-	fmt.Printf("%s;  URL: %q;  Count: %d\n", getIdentity(), html.EscapeString(r.URL.Path), booksBought)
+	fmt.Printf("%s;  URL: %q;  Count: %d\n", getIdentity(), html.EscapeString(r.URL.Path), booksSold)
 	// Loop through headers
 	for name, headers := range r.Header {
 		name = strings.ToLower(name)
@@ -84,21 +101,35 @@ func buyBook(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	common.RestockBooks(1)
+	go common.RestockBooks(1) // make this async for a smoother demo
+}
+
+func getHandlers() []handler {
+	return []handler{
+		{"/", getIndex, "GET"},
+		{"/books-bought", getBooksSold, "GET"},
+		{"/books-bought", updateBooksSold, "POST"},
+		{"/buy-a-book/new", sellBook, "GET"},
+		{"/reset", reset, "GET"},
+	}
+}
+
+func reset(w http.ResponseWriter, r *http.Request) {
+	booksSold = 0
+	renderTemplate(w)
 }
 
 func main() {
 	flag.Parse()
-	booksBought = 1
 
-	//initializing router
 	router := mux.NewRouter()
 
-	//endpoints
-	router.HandleFunc("/books-bought", getBooksBought).Methods("GET")
-	router.HandleFunc("/books-bought", updateBooksBought).Methods("POST")
-	router.HandleFunc("/buy-a-book/new", buyBook).Methods("GET")
+	for _, h := range getHandlers() {
+		router.HandleFunc(h.path, h.fn).Methods(h.method)
+	}
 	http.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {})
+
+	log.Info().Msgf("Bookstore running on port %d", *port)
 	err := http.ListenAndServe(fmt.Sprintf(":%d", *port), router)
 	log.Fatal().Err(err).Msgf("Failed to start HTTP server on port %d", *port)
 }

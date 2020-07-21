@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-# This script forwards port 80 from the BOOKTHIEF pod to local port 8082
+# This script forwards port 80 from the BOOKTHIEF pod to local port 8083
 
 
 # shellcheck disable=SC1091
@@ -11,4 +11,4 @@ POD="$(kubectl get pods --selector app=bookthief -n "$BOOKTHIEF_NAMESPACE" --no-
 
 kubectl describe pod "$POD" -n "$BOOKTHIEF_NAMESPACE"
 
-kubectl port-forward "$POD" -n "$BOOKTHIEF_NAMESPACE" 8082:80
+kubectl port-forward "$POD" -n "$BOOKTHIEF_NAMESPACE" 8083:80

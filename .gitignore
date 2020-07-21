@@ -39,6 +39,7 @@ debug
 build/
 .dev/
 .env
+_dist/
 
 creds.json
 screenlog.*

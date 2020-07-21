@@ -110,7 +110,7 @@ func (mc *MeshCatalog) ListAllowedOutboundServices(sourceService service.Namespa
 //GetWeightedClusterForService returns the weighted cluster for a given service
 func (mc *MeshCatalog) GetWeightedClusterForService(nsService service.NamespacedService) (service.WeightedCluster, error) {
 	// TODO(draychev): split namespace from the service name -- for non-K8s services
-	log.Info().Msgf("Finding weighted cluster for service %s", nsService)
+	log.Trace().Msgf("Finding weighted cluster for service %s", nsService)
 
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
 		return getDefaultWeightedClusterForService(nsService), nil
@@ -133,7 +133,7 @@ func (mc *MeshCatalog) GetWeightedClusterForService(nsService service.Namespaced
 
 //GetDomainForService returns the domain name of a service
 func (mc *MeshCatalog) GetDomainForService(nsService service.NamespacedService, routeHeaders map[string]string) (string, error) {
-	log.Info().Msgf("Finding domain for service %s", nsService)
+	log.Trace().Msgf("Finding domain for service %s", nsService)
 
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
 		return getHostHeaderFromRouteHeaders(routeHeaders)

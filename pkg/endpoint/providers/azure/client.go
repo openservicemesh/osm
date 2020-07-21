@@ -1,6 +1,8 @@
 package azure
 
 import (
+	"fmt"
+
 	r "github.com/Azure/azure-sdk-for-go/profiles/latest/resources/mgmt/resources"
 	c "github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2018-04-01/compute"
 	n "github.com/Azure/azure-sdk-for-go/services/network/mgmt/2019-06-01/network"
@@ -11,16 +13,17 @@ import (
 )
 
 // NewProvider creates an Azure Client
-func NewProvider(subscriptionID string, azureAuthFile string, stop chan struct{}, meshSpec smi.MeshSpec, azureResourceClient ResourceClient, providerIdent string) Client {
+func NewProvider(subscriptionID string, azureAuthFile string, stop chan struct{}, meshSpec smi.MeshSpec, azureResourceClient ResourceClient, providerIdent string) (Client, error) {
 	var authorizer autorest.Authorizer
 	var err error
+	var az Client
 
 	if authorizer, err = azure.GetAuthorizerWithRetry(azureAuthFile, n.DefaultBaseURI); err != nil {
-		log.Fatal().Err(err).Msg("Failed obtaining authentication token for Azure Resource Manager")
+		return az, fmt.Errorf("Failed to obtain authentication token for Azure Resource Manager: %+v", err)
 	}
 
 	// TODO(draychev): The subscriptionID should be observed from the AzureResource (SMI)
-	az := Client{
+	az = Client{
 		azureClients: azureClients{
 			publicIPsClient: n.NewPublicIPAddressesClient(subscriptionID),
 			netClient:       n.NewInterfacesClient(subscriptionID),
@@ -60,8 +63,8 @@ func NewProvider(subscriptionID string, azureAuthFile string, stop chan struct{}
 	*/
 
 	if err := az.run(stop); err != nil {
-		log.Fatal().Err(err).Msg("Could not start Azure EndpointsProvider client")
+		return az, fmt.Errorf("Failed to start Azure EndpointsProvider client: %+v", err)
 	}
 
-	return az
+	return az, nil
 }

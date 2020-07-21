@@ -19,36 +19,30 @@ import (
 )
 
 const installDesc = `
-This command installs the osm control plane on the Kubernetes cluster.
+This command installs an osm control plane on the Kubernetes cluster.
 
-The osm control plane components get installed into the osm-system namespace
-by default. This can be overriden with the --namespace flag. If the give
-namespace does not exist, it will be created.
+An osm control plane is comprised of namespaced Kubernetes resources
+that get installed into the osm-system namespace as well as cluster
+wide Kubernetes resources.
 
-Usage:
+The default Kubernetes namespace that gets created on install is called
+osm-system. To create an install control plane components in a different
+namespace, use the --namespace flag.
+
+Example:
   $ osm install --namespace hello-world
 
-Each instance of the osm control plane installation is given a unqiue mesh
-name. A mesh name can be passed in via the --mesh-name flag or a default will
-be provided for you.
-The mesh name is used in various different ways by the control plane including
-as the resource name for the MutatingWebhookConfiguration created by the control
-plane for sidecar injection of envoy proxies.
+Multiple control plane installations can exist within a cluster. Each
+control plane is given a cluster-wide unqiue identifier called mesh name.
+A mesh name can be passed in via the --mesh-name flag. By default, the
+mesh-name name will be set to "osm."
 
-By default, mesh-name will be configured to "osm."
-
-When configuring the mesh-name, it should adhere to the RFC 1123 DNS Label specification.
-
-This means it must:
-
-- contain at most 63 characters
-- contain only lowercase alphanumeric characters or '-'
-- start with an alphanumeric character
-- end with an alphanumeric character
-
-Usage:
+Example:
   $ osm install --mesh-name "hello-osm"
 
+The mesh name is used in various ways like for naming Kubernetes resources as
+well as for adding a Kubernetes Namespace to the list of Namespaces a control
+plane should watch for sidecar injection of Envoy proxies.
 `
 const (
 	defaultCertManager   = "tresor"
@@ -77,6 +71,7 @@ type installCmd struct {
 	prometheusRetentionTime       string
 	enableDebugServer             bool
 	enablePermissiveTrafficPolicy bool
+	enableEgress                  bool
 	meshName                      string
 
 	// This is an experimental flag, which will eventually
@@ -119,8 +114,9 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.StringVar(&inst.prometheusRetentionTime, "prometheus-retention-time", constants.PrometheusDefaultRetentionTime, "Duration for which data will be retained in prometheus")
 	f.BoolVar(&inst.enableDebugServer, "enable-debug-server", false, "Enable the debug HTTP server")
 	f.BoolVar(&inst.enablePermissiveTrafficPolicy, "enable-permissive-traffic-policy", false, "Enable permissive traffic policy mode")
+	f.BoolVar(&inst.enableEgress, "enable-egress", true, "Enable egress in the mesh")
 	f.BoolVar(&inst.enableBackpressureExperimental, "enable-backpressure-experimental", false, "Enable experimental backpressure feature")
-	f.StringVar(&inst.meshName, "mesh-name", defaultMeshName, "Name of the service mesh")
+	f.StringVar(&inst.meshName, "mesh-name", defaultMeshName, "name for the new control plane instance")
 
 	return cmd
 }
@@ -215,6 +211,7 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 		fmt.Sprintf("OpenServiceMesh.enablePermissiveTrafficPolicy=%t", i.enablePermissiveTrafficPolicy),
 		fmt.Sprintf("OpenServiceMesh.enableBackpressureExperimental=%t", i.enableBackpressureExperimental),
 		fmt.Sprintf("OpenServiceMesh.meshName=%s", i.meshName),
+		fmt.Sprintf("OpenServiceMesh.enableEgress=%t", i.enableEgress),
 	}
 
 	for _, val := range valuesConfig {

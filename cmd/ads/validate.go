@@ -1,37 +1,40 @@
 package main
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+)
 
 // validateCLIParams contains all checks necessary that various permutations of the CLI flags are consistent
-// Side effects: uses log.Fatal() resulting in os.Exit(255)
-func validateCLIParams() {
+func validateCLIParams() error {
 	if _, ok := certManagers[certificateManagerKind(*certManagerKind)]; !ok {
-		log.Fatal().Msgf("Certificate manager %s is not one of possible options: %s", *certManagerKind, strings.Join(getPossibleCertManagers(), ", "))
+		return fmt.Errorf("Certificate manager %s is not one of possible options: %s", *certManagerKind, strings.Join(getPossibleCertManagers(), ", "))
 	}
 
 	if *certManagerKind == vaultKind {
 		if *vaultToken == "" {
-			log.Fatal().Msg("Empty Hashi Vault token.")
+			return fmt.Errorf("Empty Hashi Vault token")
 		}
 	}
 
 	if meshName == "" {
-		log.Fatal().Msg("Please specify the mesh name using --meshName")
+		return fmt.Errorf("Please specify the mesh name using --mesh-name")
 	}
 
 	if osmNamespace == "" {
-		log.Fatal().Msg("Please specify the OSM namespace using --osmNamespace")
+		return fmt.Errorf("Please specify the OSM namespace using --osm-namespace")
 	}
 
 	if injectorConfig.InitContainerImage == "" {
-		log.Fatal().Msg("Please specify the init container image using --init-container-image ")
+		return fmt.Errorf("Please specify the init container image using --init-container-image")
 	}
 
 	if injectorConfig.SidecarImage == "" {
-		log.Fatal().Msg("Please specify the sidecar image using --sidecar-image ")
+		return fmt.Errorf("Please specify the sidecar image using --sidecar-image")
 	}
 
 	if webhookName == "" {
-		log.Fatal().Msgf("Invalid --webhookName value: '%s'", webhookName)
+		return fmt.Errorf("Invalid --webhook-name value: '%s'", webhookName)
 	}
+	return nil
 }

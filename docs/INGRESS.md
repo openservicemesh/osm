@@ -70,6 +70,17 @@ An ingress configuration yaml with [Azure Application Gateway Ingress Controller
 - Specify the ingress controller as Azure Application Gateway using the annotation `kubernetes.io/ingress.class: azure/application-gateway`.
 - Specify the backend protocol as HTTPS using the annotation `appgw.ingress.kubernetes.io/backend-protocol: "https"`.
 - Specify the root certificate name added to Azure Application Gateway corresponding to OSM's root certificate using the annotation `appgw.ingress.kubernetes.io/appgw-trusted-root-certificate`. Refer to the document on [adding trusted root certificates to Azure Application Gateway][4].
+    ```bash
+    # Download "osm-ca-bundle" certificate bundle from the cluster
+    kubectl get secret -n osm-system osm-ca-bundle -o json | jq -r '.data["ca.crt"]' | base64 -d > osm-ca-bundle.pem
+
+    # Upload osm-ca-bundle to the Application Gateway
+    az network application-gateway root-cert create \
+    --gateway-name <gateway-name> \
+    -g <resource-group> \
+    -n osm-ca-bundle \
+    --cert-file osm-ca-bundle.pem
+    ```
 - Specify the hostname for the backend service using the annotation `appgw.ingress.kubernetes.io/backend-hostname`.
 
 The host defined by `spec.rules.host` field is optional and skipped in the example below.
