@@ -4,6 +4,7 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -13,10 +14,12 @@ var _ = Describe("Test LDS response", func() {
 	Context("Test getInboundIngressFilterChain()", func() {
 		It("constructs filter chain used for HTTPS ingress", func() {
 			expectedServerNames := []string{tests.BookstoreService.GetCommonName().String()}
+
 			cfg := configurator.NewFakeConfiguratorWithOptions(configurator.FakeConfigurator{
 				HTTPSIngress: true, // HTTPS
 			})
 			filterChains := getIngressFilterChains(tests.BookstoreService, cfg)
+
 			Expect(len(filterChains)).To(Equal(2))
 			for _, filterChain := range filterChains {
 				Expect(filterChain.FilterChainMatch.TransportProtocol).To(Equal(envoy.TransportProtocolTLS))

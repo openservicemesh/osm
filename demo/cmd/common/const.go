@@ -42,4 +42,11 @@ const (
 
 	// EgressExpectedResponseCodeEnvVar is the environment variable for the expected response code for egress HTTP requests
 	EgressExpectedResponseCodeEnvVar = "EGRESS_EXPECTED_RESPONSE_CODE"
+
+	// IngressIPEnvVar is an environment variable for the IP of the Ingress we use to test OSM + Ingress k8s resource.
+	// Set the value of this environment variable to a blank string to disable Ingress integration test.
+	IngressIPEnvVar = "INGRESS_IP"
+
+	// IngressHostnameEnvVar is an environment variable for the host of the Ingress we use to test OSM + Ingress k8s resource.
+	IngressHostnameEnvVar = "INGRESS_HOSTNAME"
 )

@@ -31,7 +31,7 @@ import (
 var _ = Describe("CDS Response", func() {
 	kubeClient := testclient.NewSimpleClientset()
 	catalog := catalog.NewFakeMeshCatalog(kubeClient)
-	cfg := configurator.NewFakeConfigurator()
+	cfg := configurator.NewFakeConfigurator(false)
 	proxyServiceName := tests.BookbuyerServiceName
 	proxyServiceAccountName := tests.BookbuyerServiceAccountName
 	proxyService := tests.BookbuyerService
@@ -160,7 +160,7 @@ var _ = Describe("CDS Response", func() {
 								},
 							},
 							LoadBalancingWeight: &wrappers.UInt32Value{
-								Value: 100,
+								Value: constants.ClusterWeightAcceptAll,
 							},
 						}},
 					},
@@ -271,7 +271,7 @@ var _ = Describe("CDS Response", func() {
 								},
 							},
 							LoadBalancingWeight: &wrappers.UInt32Value{
-								Value: 100,
+								Value: constants.ClusterWeightAcceptAll,
 							},
 						}},
 					},

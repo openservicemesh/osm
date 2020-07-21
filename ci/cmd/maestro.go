@@ -39,6 +39,11 @@ var (
 	bookstoreNS     = common.GetEnv(maestro.BookstoreNamespaceEnvVar, "bookstore")
 	bookWarehouseNS = common.GetEnv(common.BookwarehouseNamespaceEnvVar, "bookwarehouse")
 
+	// Set the value of the ingressIP environment variable to a blank string to disable Ingress integration test.
+	ingressIP       = common.GetEnv(common.IngressIPEnvVar, "")
+	defaultHost     = fmt.Sprintf("%s.contoso.com", bookstoreNS)
+	ingressHostname = common.GetEnv(common.IngressHostnameEnvVar, defaultHost)
+
 	maxPodWaitString = common.GetEnv(maestro.WaitForPodTimeSecondsEnvVar, "30")
 	maxOKWaitString  = common.GetEnv(maestro.WaitForOKSecondsEnvVar, "30")
 	meshName         = osmNamespace
@@ -108,12 +113,20 @@ func main() {
 	successToken := "Restocking bookstore with 1 new books; Total so far: 3 "
 	maestro.SearchLogsForSuccess(kubeClient, bookWarehouseNS, bookWarehousePodName, bookWarehouseLabel, maxWaitForOK(), bookWarehouseCh, successToken, common.Failure)
 
+	ingressTestCh := make(chan maestro.TestResult)
+	maestro.TestIngress(ingressIP, ingressHostname, ingressTestCh)
+
 	bookBuyerTestResult := <-bookBuyerCh
 	bookThiefTestResult := <-bookThiefCh
 	bookWarehouseTestResult := <-bookWarehouseCh
+	ingressTestResult := <-ingressTestCh
 
-	// When both pods return success - easy - we are good to go! CI passed!
-	if bookBuyerTestResult == maestro.TestsPassed && bookThiefTestResult == maestro.TestsPassed && bookWarehouseTestResult == maestro.TestsPassed {
+	allTestsPass := bookBuyerTestResult == maestro.TestsPassed &&
+		bookThiefTestResult == maestro.TestsPassed &&
+		bookWarehouseTestResult == maestro.TestsPassed &&
+		ingressTestResult == maestro.TestsPassed
+
+	if allTestsPass {
 		log.Info().Msg("Test succeeded")
 		maestro.DeleteNamespaces(kubeClient, namespaces...)
 		webhookName := fmt.Sprintf("osm-webhook-%s", meshName)
@@ -138,6 +151,10 @@ func main() {
 
 	if bookWarehouseTestResult != maestro.TestsPassed {
 		log.Error().Msgf("BookWarehouse test %s", humanize[bookWarehouseTestResult])
+	}
+
+	if ingressTestResult != maestro.TestsPassed {
+		log.Error().Msgf("IngressTest test %s", humanize[ingressTestResult])
 	}
 
 	fmt.Println("The integration test failed")

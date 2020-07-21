@@ -272,6 +272,12 @@ jobs:
           BOOKTHIEF_EXPECTED_RESPONSE_CODE: "404"
           EGRESS_EXPECTED_RESPONSE_CODE: "404" # egress is disabled
           CI_WAIT_FOR_OK_SECONDS: 75
+
+          # Setting INGRESS_IP to a blank string would DISABLE ingress integration test.
+          # The integration test also requires a valid INGRESS_HOSTNAME.
+          INGRESS_IP: ${{ secrets.INGRESS_IP }}
+          INGRESS_HOSTNAME: "ci-${{ github.run_id }}-${{ github.run_number}}.contoso.com"
+
         run: |
           touch .env  # it is OK for this file to be empty - needed by Makefile
           mkdir -p ".kube"

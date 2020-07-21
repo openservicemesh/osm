@@ -46,3 +46,34 @@ Set the variables in Github Secrets as `DOCKER_USER` and `DOCKER_PASS`
  - `VAULT_TOKEN` - (string) random string, which will be used as a Vault token in the CI Vault setup; example: `abcd`
  - `CI_MAX_WAIT_FOR_POD_TIME_SECONDS` - (integer) max number of seconds the CI system will wait for bookbuyer and bookthief pods to be ready / running; example: `15`
  - `CI_WAIT_FOR_OK_SECONDS` - (integer) number of seconds the CI system will wait for bookbuyer and bookthief pods to poll for a success once the pods are ready; example: `15`
+
+## Ingress Integration Test
+The CI system uses an [Application Gateway](https://azure.microsoft.com/en-us/services/application-gateway/) and [Application Gateway Ingress Controller (AGIC)](https://github.com/Azure/application-gateway-kubernetes-ingress) to test OSM's ingress capabilities. Both App Gateway and AGIC are already setup. Each new CI build creates an Ingress resource. AGIC observes the k8s Ingress resource and programs App Gateway. Each CI run is in a unique namespace. The namespace is used for a hostname on App Gateway. So that a CI run in a Kubernetes namespace ABCD would be exposed via App Gateway via hostname ABCD.contoso.com.
+
+Steps to reproduce the infrastructure:
+
+  -  Create App Gateway instance
+  - Install AGIC:
+    - Download helm-config with: `wget https://raw.githubusercontent.com/Azure/application-gateway-kubernetes-ingress/master/docs/examples/sample-helm-config.yaml -O helm-config.yaml`
+    - Modify `helm-config.yaml` ([detailed instructions](https://github.com/Azure/application-gateway-kubernetes-ingress/blob/master/docs/setup/install-existing.md#install-ingress-controller-as-a-helm-chart))
+    - Install AGIC: `helm repo add application-gateway-kubernetes-ingress https://appgwingress.blob.core.windows.net/ingress-azure-helm-package/ && helm repo update`
+    - `helm install ingress-azure -f helm-config.yaml application-gateway-kubernetes-ingress/ingress-azure`
+
+The AGIC `helm-config.yaml` file could be as simple as:
+```yaml
+appgw:
+    subscriptionId: aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa
+    resourceGroup: osm-ci-a
+    name: osm-ci
+    usePrivateIP: false
+    shared: false
+
+armAuth:
+    type: servicePrincipal
+    secretJSON: $(az ad sp create-for-rbac --sdk-auth | base64 -w0)  # Run this command once to generate credentials
+
+rbac:
+    enabled: true
+
+verbosityLevel: 3
+```

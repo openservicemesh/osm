@@ -55,6 +55,6 @@ var (
 	// FailureLogsFromTimeSince is the interval we go back in time to get pod logs
 	FailureLogsFromTimeSince = 10 * time.Minute
 
-	log            = logger.New("ci/maestro")
+	log            = logger.NewPretty("ci/maestro")
 	errNoPodsFound = errors.New("no pods found")
 )

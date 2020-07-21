@@ -91,6 +91,7 @@ var _ = Describe("AggregateRoutesByDomain", func() {
 				ClusterName: service.ClusterName("osm/bookstore-1"),
 				Weight:      constants.ClusterWeightAcceptAll,
 			}
+
 			routePolicy := trafficpolicy.Route{
 				PathRegex: "/update-books-bought",
 				Methods:   []string{"GET"},
@@ -118,6 +119,7 @@ var _ = Describe("AggregateRoutesByDomain", func() {
 				ClusterName: service.ClusterName("osm/bookstore-2"),
 				Weight:      constants.ClusterWeightAcceptAll,
 			}
+
 			routePolicy := trafficpolicy.Route{
 				PathRegex: "/update-books-bought",
 				Methods:   []string{"GET"},

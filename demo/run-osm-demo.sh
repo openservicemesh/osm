@@ -132,6 +132,8 @@ wait_for_osm_pods
 bin/osm namespace add --mesh-name "$MESH_NAME" "$BOOKWAREHOUSE_NAMESPACE" "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE"
 ./demo/deploy-apps.sh
 
+./demo/deploy-ingress-resource.sh
+
 # Apply SMI policies
 ./demo/deploy-traffic-split.sh
 ./demo/deploy-traffic-spec.sh
