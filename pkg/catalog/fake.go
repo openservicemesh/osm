@@ -12,6 +12,7 @@ import (
 	"github.com/open-service-mesh/osm/pkg/endpoint/providers/kube"
 	"github.com/open-service-mesh/osm/pkg/ingress"
 	"github.com/open-service-mesh/osm/pkg/smi"
+	"github.com/open-service-mesh/osm/pkg/namespace"
 )
 
 // NewFakeMeshCatalog creates a new struct implementing catalog.MeshCataloger interface used for testing.
@@ -28,6 +29,8 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface) *MeshCatalog {
 	osmNamespace := "-test-osm-namespace-"
 	osmConfigMapName := "-test-osm-config-map-"
 	cfg := configurator.NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
+	
+	namespaceCtrlr := namespace.NewFakeNamespaceController([]string{osmNamespace})
 
-	return NewMeshCatalog(kubeClient, meshSpec, certManager, ingressMonitor, stop, cfg, endpointProviders...)
+	return NewMeshCatalog(namespaceCtrlr, kubeClient, meshSpec, certManager, ingressMonitor, stop, cfg, endpointProviders...)
 }

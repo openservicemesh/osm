@@ -3,6 +3,7 @@ package namespace
 import (
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/informers"
@@ -74,4 +75,19 @@ func (c *Client) run(stop <-chan struct{}) error {
 func (c Client) IsMonitoredNamespace(namespace string) bool {
 	_, exists, _ := c.cache.GetByKey(namespace)
 	return exists
+}
+
+// Shashank's function for getting namespaces
+func (c Client) ListMonitoredNamespaces() []string {
+    var namespaces []string
+ 
+    for _, ns := range c.cache.List() {
+        namespace, ok := ns.(*corev1.Namespace)
+        if !ok {
+            // TODO: log an error
+            continue
+        }
+        namespaces = append(namespaces, namespace.Name)
+    }
+    return namespaces
 }

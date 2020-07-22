@@ -16,6 +16,7 @@ func (ds debugServer) GetHandlers() map[string]http.Handler {
 		"/debug/xds":      ds.getXDSHandler(),
 		"/debug/proxy":    ds.getProxies(),
 		"/debug/policies": ds.getSMIPoliciesHandler(),
+		"/debug/namespace": ds.getMonitoredNamespacesHandler(),
 	}
 
 	// provides an index of the available /debug endpoints

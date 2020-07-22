@@ -19,6 +19,7 @@ import (
 	"github.com/open-service-mesh/osm/pkg/ingress"
 	"github.com/open-service-mesh/osm/pkg/service"
 	"github.com/open-service-mesh/osm/pkg/smi"
+	"github.com/open-service-mesh/osm/pkg/namespace"
 )
 
 var (
@@ -48,7 +49,9 @@ func newFakeMeshCatalog() *MeshCatalog {
 	osmConfigMapName := "-test-osm-config-map-"
 	cfg := configurator.NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
 
-	return NewMeshCatalog(kubeClient, meshSpec, certManager, ingressMonitor, stop, cfg, endpointProviders...)
+	namespaceCtrlr := namespace.NewFakeNamespaceController([]string{osmNamespace})
+
+	return NewMeshCatalog(namespaceCtrlr, kubeClient, meshSpec, certManager, ingressMonitor, stop, cfg, endpointProviders...)
 }
 
 func getFakeIngresses() []*extensionsV1beta.Ingress {

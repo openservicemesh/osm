@@ -21,6 +21,7 @@ import (
 	"github.com/open-service-mesh/osm/pkg/smi"
 	"github.com/open-service-mesh/osm/pkg/tests"
 	"github.com/open-service-mesh/osm/pkg/trafficpolicy"
+	"github.com/open-service-mesh/osm/pkg/namespace"
 )
 
 var _ = Describe("Catalog tests", func() {
@@ -34,7 +35,9 @@ var _ = Describe("Catalog tests", func() {
 	osmConfigMapName := "-test-osm-config-map-"
 	cfg := configurator.NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
 
-	meshCatalog := NewMeshCatalog(kubeClient, smi.NewFakeMeshSpecClient(), certManager, ingress.NewFakeIngressMonitor(), make(<-chan struct{}), cfg, endpointProviders...)
+	namespaceCtrlr := namespace.NewFakeNamespaceController([]string{osmNamespace})
+
+	meshCatalog := NewMeshCatalog(namespaceCtrlr, kubeClient, smi.NewFakeMeshSpecClient(), certManager, ingress.NewFakeIngressMonitor(), make(<-chan struct{}), cfg, endpointProviders...)
 
 	Context("Test ListTrafficPolicies", func() {
 		It("lists traffic policies", func() {
