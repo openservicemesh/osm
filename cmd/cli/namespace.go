@@ -15,10 +15,11 @@ associated with osm installations.
 
 func newNamespaceCmd(out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "namespace",
-		Short: "manage osm namespaces",
-		Long:  namespaceDescription,
-		Args:  require.NoArgs,
+		Use:     "namespace",
+		Short:   "manage osm namespaces",
+		Aliases: []string{"ns"},
+		Long:    namespaceDescription,
+		Args:    require.NoArgs,
 	}
 	cmd.AddCommand(newNamespaceAdd(out))
 	cmd.AddCommand(newNamespaceRemove(out))
