@@ -55,27 +55,31 @@ func getEnvoyConfigYAML(config envoyBootstrapConfigMeta) ([]byte, error) {
 					"connect_timeout":        "0.25s",
 					"type":                   "LOGICAL_DNS",
 					"http2_protocol_options": map[string]string{},
-					"tls_context": map[string]interface{}{
-						"common_tls_context": map[string]interface{}{
-							"alpn_protocols": []string{
-								"h2",
-							},
-							"validation_context": map[string]interface{}{
-								"trusted_ca": map[string]interface{}{
-									"inline_bytes": config.RootCert,
+					"transport_socket": map[string]interface{}{
+						"name": "envoy.transport_sockets.tls",
+						"typed_config": map[string]interface{}{
+							"@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
+							"common_tls_context": map[string]interface{}{
+								"alpn_protocols": []string{
+									"h2",
 								},
-							},
-							"tls_params": map[string]interface{}{
-								"tls_minimum_protocol_version": "TLSv1_2",
-								"tls_maximum_protocol_version": "TLSv1_3",
-							},
-							"tls_certificates": []map[string]interface{}{
-								{
-									"certificate_chain": map[string]interface{}{
-										"inline_bytes": config.Cert,
+								"validation_context": map[string]interface{}{
+									"trusted_ca": map[string]interface{}{
+										"inline_bytes": config.RootCert,
 									},
-									"private_key": map[string]interface{}{
-										"inline_bytes": config.Key,
+								},
+								"tls_params": map[string]interface{}{
+									"tls_minimum_protocol_version": "TLSv1_2",
+									"tls_maximum_protocol_version": "TLSv1_3",
+								},
+								"tls_certificates": []map[string]interface{}{
+									{
+										"certificate_chain": map[string]interface{}{
+											"inline_bytes": config.Cert,
+										},
+										"private_key": map[string]interface{}{
+											"inline_bytes": config.Key,
+										},
 									},
 								},
 							},
