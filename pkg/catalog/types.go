@@ -100,9 +100,6 @@ type MeshCataloger interface {
 
 	// GetIngressRoutePoliciesPerDomain returns the route policies per domain associated with an ingress service
 	GetIngressRoutePoliciesPerDomain(service.NamespacedService) (map[string][]trafficpolicy.Route, error)
-
-	// GetIngressWeightedCluster returns the weighted cluster for an ingress service
-	GetIngressWeightedCluster(service.NamespacedService) (service.WeightedCluster, error)
 }
 
 type announcementChannel struct {

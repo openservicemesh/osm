@@ -126,11 +126,11 @@ func updateRoutesForIngress(proxyServiceName service.NamespacedService, catalog 
 		return nil
 	}
 
-	ingressWeightedCluster, err := catalog.GetIngressWeightedCluster(proxyServiceName)
-	if err != nil {
-		log.Error().Err(err).Msgf("Failed to get weighted ingress clusters for proxy %s", proxyServiceName)
-		return err
+	ingressWeightedCluster := service.WeightedCluster{
+		ClusterName: service.ClusterName(proxyServiceName.String()),
+		// Weight:      constants.ClusterWeightAcceptAll,
 	}
+
 	for domain, routePolicies := range domainRoutePoliciesMap {
 		for _, routePolicy := range routePolicies {
 			aggregateRoutesByDomain(domainRoutesMap, routePolicy, ingressWeightedCluster, domain)
