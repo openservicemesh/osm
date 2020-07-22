@@ -76,3 +76,6 @@ Under the hood, `osm` is using [Helm](https://helm.sh) libraries to create a Hel
 ```console
 $ helm get manifest osm --namespace osm-system
 ```
+
+## Next Steps
+Now that the OSM control plane is up and running, [add services](onboard_services.md) to the mesh.
