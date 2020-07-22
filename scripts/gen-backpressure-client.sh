@@ -15,5 +15,5 @@ fi
     all \
     github.com/open-service-mesh/osm/experimental/pkg/client \
     github.com/open-service-mesh/osm/experimental/pkg/apis \
-    "osmbackpressureconfig:v1" \
+    "policy:v1alpha1" \
     --go-header-file ../code-generator/hack/boilerplate.go.txt

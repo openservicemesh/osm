@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	connectionTimeout time.Duration = 1 * time.Second
+	connectionTimeout = 1 * time.Second
 )
 
 func getServiceClusterLocal(catalog catalog.MeshCataloger, proxyServiceName service.NamespacedService, clusterName string) (*xds.Cluster, error) {

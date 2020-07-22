@@ -19,8 +19,8 @@ type BackpressureSpec struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// MaxRequestsPerConnection is the max number of requests a connection can make
-	MaxRequestsPerConnection int32 `json:"maxrequestsperconnection,omitempty"`
+	// MaxConnections is the max number of connections a proxy will make to the remote service.
+	MaxConnections uint32 `json:"maxConnections,omitempty"`
 }
 
 // BackpressureList is ...

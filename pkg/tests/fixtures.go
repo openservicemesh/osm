@@ -234,7 +234,7 @@ var (
 	// This will be replaced by an SMI Spec when it is ready.
 	Backpressure = backpressure.Backpressure{
 		Spec: backpressure.BackpressureSpec{
-			MaxRequestsPerConnection: 123,
+			MaxConnections: 123,
 		},
 	}
 )
