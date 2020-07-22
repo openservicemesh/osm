@@ -26,6 +26,7 @@ var (
 	testVaultRole      = "role"
 	testRetentionTime  = "5d"
 	testMeshCIDR       = "10.20.0.0/16"
+	testMeshCIDRRanges = []string{testMeshCIDR}
 )
 
 type failingChecker struct{}
@@ -79,7 +80,7 @@ var _ = Describe("Running the install command", func() {
 				meshName:                   defaultMeshName,
 				enableEgress:               true,
 				enableMetricsStack:         true,
-				meshCIDRRanges:             testMeshCIDR,
+				meshCIDRRanges:             testMeshCIDRRanges,
 			}
 
 			err = installCmd.run(config)
@@ -182,7 +183,7 @@ var _ = Describe("Running the install command", func() {
 				checker:                    passingChecker{},
 				meshName:                   defaultMeshName,
 				enableEgress:               true,
-				meshCIDRRanges:             testMeshCIDR,
+				meshCIDRRanges:             testMeshCIDRRanges,
 				enableMetricsStack:         true,
 			}
 
@@ -290,7 +291,7 @@ var _ = Describe("Running the install command", func() {
 				checker:                    passingChecker{},
 				meshName:                   defaultMeshName,
 				enableEgress:               true,
-				meshCIDRRanges:             testMeshCIDR,
+				meshCIDRRanges:             testMeshCIDRRanges,
 				enableMetricsStack:         true,
 			}
 
@@ -392,7 +393,7 @@ var _ = Describe("Running the install command", func() {
 				meshName:                defaultMeshName,
 				checker:                 passingChecker{},
 				enableEgress:            true,
-				meshCIDRRanges:          testMeshCIDR,
+				meshCIDRRanges:          testMeshCIDRRanges,
 			}
 
 			err = installCmd.run(config)
@@ -440,7 +441,7 @@ var _ = Describe("Running the install command", func() {
 				meshName:                   defaultMeshName,
 				checker:                    passingChecker{},
 				enableEgress:               true,
-				meshCIDRRanges:             testMeshCIDR,
+				meshCIDRRanges:             testMeshCIDRRanges,
 			}
 
 			err = config.Releases.Create(&release.Release{
@@ -503,7 +504,7 @@ var _ = Describe("Running the install command", func() {
 				meshName:                   "osm!!123456789012345678901234567890123456789012345678901234567890", // >65 characters, contains !
 				checker:                    passingChecker{},
 				enableEgress:               true,
-				meshCIDRRanges:             testMeshCIDR,
+				meshCIDRRanges:             testMeshCIDRRanges,
 			}
 
 			err = install.run(config)
@@ -550,7 +551,7 @@ var _ = Describe("Running the install command", func() {
 				meshName:                   defaultMeshName,
 				checker:                    failingChecker{},
 				enableEgress:               true,
-				meshCIDRRanges:             testMeshCIDR,
+				meshCIDRRanges:             testMeshCIDRRanges,
 			}
 
 			err = installCmd.run(config)
@@ -582,7 +583,7 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 			prometheusRetentionTime:    testRetentionTime,
 			meshName:                   defaultMeshName,
 			enableEgress:               true,
-			meshCIDRRanges:             testMeshCIDR,
+			meshCIDRRanges:             testMeshCIDRRanges,
 			enableMetricsStack:         true,
 		}
 
@@ -646,7 +647,7 @@ var _ = Describe("Resolving values for egress option", func() {
 		It("Should enable egress in the Helm chart", func() {
 			installCmd := &installCmd{
 				enableEgress:   true,
-				meshCIDRRanges: testMeshCIDR,
+				meshCIDRRanges: testMeshCIDRRanges,
 			}
 
 			vals, err := installCmd.resolveValues()
@@ -663,7 +664,7 @@ var _ = Describe("Test mesh CIDR ranges", func() {
 		It("Should correctly resolve meshCIDRRanges when egress is enabled", func() {
 			installCmd := &installCmd{
 				enableEgress:   true,
-				meshCIDRRanges: testMeshCIDR,
+				meshCIDRRanges: testMeshCIDRRanges,
 			}
 
 			vals, err := installCmd.resolveValues()
@@ -676,21 +677,21 @@ var _ = Describe("Test mesh CIDR ranges", func() {
 
 	Context("Test validateCIDRs", func() {
 		It("Should correctly validate valid CIDR ranges", func() {
-			err := validateCIDRs("10.2.0.0/16")
+			err := validateCIDRs([]string{"10.2.0.0/16"})
 			Expect(err).NotTo(HaveOccurred())
 
-			err = validateCIDRs("10.0.0.0/16, 10.20.0.0/16")
+			err = validateCIDRs([]string{"10.0.0.0/16", "10.20.0.0/16"})
 			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("Should correctly error invalid CIDR ranges", func() {
-			err := validateCIDRs("10.0.0.0/16, 10.20.0.0/99")
+			err := validateCIDRs([]string{"10.0.0.0/16", "10.20.0.0/99"})
 			Expect(err).To(HaveOccurred())
 
-			err = validateCIDRs("300.0.0.0/16")
+			err = validateCIDRs([]string{"300.0.0.0/16"})
 			Expect(err).To(HaveOccurred())
 
-			err = validateCIDRs("10.2.0.0")
+			err = validateCIDRs([]string{"10.2.0.0"})
 			Expect(err).To(HaveOccurred())
 		})
 	})

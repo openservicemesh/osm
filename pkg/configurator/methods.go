@@ -52,10 +52,7 @@ func (c *Client) IsZipkinTracingEnabled() bool {
 // GetMeshCIDRRanges returns a list of mesh CIDR ranges
 func (c *Client) GetMeshCIDRRanges() []string {
 	cidrStr := c.getConfigMap().MeshCIDRRanges
-	cidrRanges := strings.Split(cidrStr, ",")
-	for i := range cidrRanges {
-		cidrRanges[i] = strings.TrimSpace(cidrRanges[i])
-	}
+	cidrRanges := strings.Fields(cidrStr)
 	return cidrRanges
 }
 
