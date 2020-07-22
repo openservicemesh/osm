@@ -11,6 +11,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 
+<<<<<<< HEAD
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -21,6 +22,18 @@ import (
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 	"github.com/openservicemesh/osm/pkg/namespace"
+=======
+	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/open-service-mesh/osm/pkg/configurator"
+	"github.com/open-service-mesh/osm/pkg/endpoint"
+	"github.com/open-service-mesh/osm/pkg/envoy"
+	"github.com/open-service-mesh/osm/pkg/ingress"
+	"github.com/open-service-mesh/osm/pkg/logger"
+	"github.com/open-service-mesh/osm/pkg/service"
+	"github.com/open-service-mesh/osm/pkg/smi"
+	"github.com/open-service-mesh/osm/pkg/trafficpolicy"
+	"github.com/open-service-mesh/osm/pkg/namespace"
+>>>>>>> namespace endpoint work
 )
 
 var (
@@ -101,6 +114,12 @@ type MeshCataloger interface {
 	// GetIngressRoutesPerHost returns the routes per host associated with an ingress service
 	GetIngressRoutesPerHost(service.NamespacedService) (map[string][]trafficpolicy.Route, error)
 
+<<<<<<< HEAD
+=======
+	// GetIngressWeightedCluster returns the weighted cluster for an ingress service
+	GetIngressWeightedCluster(service.NamespacedService) (service.WeightedCluster, error)
+
+>>>>>>> namespace endpoint work
 	// ListMonitoredNamespaces lists namespaces monitored by the control plane
 	ListMonitoredNamespaces() ([]string)
 }
