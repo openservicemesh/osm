@@ -8,7 +8,13 @@ The following guide describes how to onboard Kubernetes services to an OSM insta
 
     See [demo/deploy-traffic-spec.sh](/demo/deploy-traffic-spec.sh), [demo/deploy-traffic-split.sh](/demo/deploy-traffic-split.sh), and [demo/deploy-traffic-target.sh](/demo/deploy-traffic-target.sh) for examples.
 
-1. Add namespaces containing services to the mesh with the `osm namespace add` command. All new pods created in added namespaces will automatically have a proxy sidecar container injected. Specific pods can be labeled to prevent sidecar injection. See [SIDECAR-INJECTION](SIDECAR-INJECTION.md) for more details.
+1. Add namespaces containing services to the mesh with the `osm namespace add` command, which does the equivalent of the following:
+
+    ```console
+    $ kubectl label namespace <namespace> openservicemesh.io/monitored-by=<mesh-name>
+    ```
+
+    All new pods created in added namespaces will automatically have a proxy sidecar container injected. Specific pods can be labeled to prevent sidecar injection. See [SIDECAR-INJECTION](SIDECAR-INJECTION.md) for more details.
 
     See [demo/join-namespaces.sh](/demo/join-namespaces.sh) for an example.
 
@@ -24,4 +30,10 @@ The following guide describes how to onboard Kubernetes services to an OSM insta
 
 
 #### Note: Removing Namespaces
-Namespaces can be removed from a mesh with the `osm namespace remove` command. Note that this command only tells OSM to stop applying updates to proxy configurations in the namespace. It does not remove the proxy sidecars, so the existing proxy configuration will continue to be used, but it will not be updated by the OSM control plane. To remove the proxies from all pods, remove the pods' namespaces with the CLI and reinstall all the pod workloads.
+Namespaces can be removed from a mesh with the `osm namespace remove` command, which does the equivalent of the following:
+
+```console
+$ kubectl label namespace <namespace> openservicemesh.io/monitored-by-
+```
+
+Note that either command only tells OSM to stop applying updates to proxy configurations in the namespace. It does not remove the proxy sidecars, so the existing proxy configuration will continue to be used, but it will not be updated by the OSM control plane. To remove the proxies from all pods, remove the pods' namespaces with the CLI and reinstall all the pod workloads.
