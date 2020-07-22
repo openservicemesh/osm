@@ -6,7 +6,7 @@ As of today OSM collects metrics directly from the sidecar proxies (Envoy). OSM 
 # Prometheus
 To facilitate gathering of consistent traffic metrics and statistics across all services in the mesh, OSM relies on [Prometheus][1]. Prometheus is an open-source monitoring and alerting toolking which is commonly used (but not limitted to) on Kubernetes and Service Mesh environments.
 
-Each service that is part of the mesh has an Envoy sidecard and is capable of exposing metrics (proxy metrics) in Prometheus format. Further every service that is a part of the mesh have Prometheus annotations, which make it possible for the Prometheus server (deployed as a part of OSM's control plane) to scrape the service dynamically. This mechanism automatically enables scraping of metrics whenever a new namespace/pod/service is added to the mesh.
+Each service that is part of the mesh has an Envoy sidecard and is capable of exposing metrics (proxy metrics) in Prometheus format. Further every service that is a part of the mesh have Prometheus annotations, which make it possible for the Prometheus server to scrape the service dynamically. This mechanism automatically enables scraping of metrics whenever a new namespace/pod/service is added to the mesh.
 
 ## Deployment and Installation
 
@@ -14,7 +14,7 @@ OSM is able to automatically provision Prometheus and Grafana instances to monit
 
 ### Automatic bring up
 
-By default, OSM installation will deploy Prometheus and Grafana stack (plus necessary rules for proper communication). OSM will annotate the pods joined in the mesh with necessary saections to later have Prometheus reach and scrap the pods, also by default.
+By default, OSM installation will deploy Prometheus and Grafana stack (plus necessary rules for proper communication). OSM will annotate the pods joined in the mesh with necessary sections to later have Prometheus reach and scrap the pods, also by default.
 
 The automatic bring up can be overriden with the `cli install` option during install time: 
 ```
@@ -107,6 +107,13 @@ pushing the listener configuration to the pods for Prometheus to reach:
       regex: ^ReplicaSet;(.*)-[^-]+$
       target_label: source_workload_name
 ``` 
+
+### Grafana and OSM dashboards
+
+OSM provides some pre-cooked Grafana dashboards to display and track services related information captured by Prometheus. When the metrics stack is chosen to be included in the OSM installation, these are made automatically available on the Grafana instance deployed.
+
+For BYO however, the dashboards (if desired) have to be imported through some mechanism to the external Grafana instance.
+The dashboards are located under `osm/charts/osm/grafana/dashboards`, and can be imported through Grafana Web tools, copied or mounted on the instance itself through Kubernetes volume mounts.
 
 ## Querying metrics from Prometheus
 
