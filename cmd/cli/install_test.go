@@ -25,6 +25,7 @@ var (
 	testVaultToken     = "token"
 	testVaultRole      = "role"
 	testRetentionTime  = "5d"
+	testMeshCIDR       = "10.20.0.0/16"
 )
 
 type failingChecker struct{}
@@ -78,6 +79,7 @@ var _ = Describe("Running the install command", func() {
 				meshName:                   defaultMeshName,
 				enableEgress:               true,
 				enableMetricsStack:         true,
+				meshCIDRRanges:             testMeshCIDR,
 			}
 
 			err = installCmd.run(config)
@@ -134,6 +136,7 @@ var _ = Describe("Running the install command", func() {
 						"enablePermissiveTrafficPolicy":  false,
 						"enableBackpressureExperimental": false,
 						"enableEgress":                   true,
+						"meshCIDRRanges":                 testMeshCIDR,
 						"enableMetricsStack":             true,
 					}}))
 			})
@@ -179,6 +182,7 @@ var _ = Describe("Running the install command", func() {
 				checker:                    passingChecker{},
 				meshName:                   defaultMeshName,
 				enableEgress:               true,
+				meshCIDRRanges:             testMeshCIDR,
 				enableMetricsStack:         true,
 			}
 
@@ -236,6 +240,7 @@ var _ = Describe("Running the install command", func() {
 						"enablePermissiveTrafficPolicy":  false,
 						"enableBackpressureExperimental": false,
 						"enableEgress":                   true,
+						"meshCIDRRanges":                 testMeshCIDR,
 						"enableMetricsStack":             true,
 					}}))
 			})
@@ -285,6 +290,7 @@ var _ = Describe("Running the install command", func() {
 				checker:                    passingChecker{},
 				meshName:                   defaultMeshName,
 				enableEgress:               true,
+				meshCIDRRanges:             testMeshCIDR,
 				enableMetricsStack:         true,
 			}
 
@@ -343,6 +349,7 @@ var _ = Describe("Running the install command", func() {
 						"enablePermissiveTrafficPolicy":  false,
 						"enableBackpressureExperimental": false,
 						"enableEgress":                   true,
+						"meshCIDRRanges":                 testMeshCIDR,
 						"enableMetricsStack":             true,
 					}}))
 			})
@@ -385,6 +392,7 @@ var _ = Describe("Running the install command", func() {
 				meshName:                defaultMeshName,
 				checker:                 passingChecker{},
 				enableEgress:            true,
+				meshCIDRRanges:          testMeshCIDR,
 			}
 
 			err = installCmd.run(config)
@@ -432,6 +440,7 @@ var _ = Describe("Running the install command", func() {
 				meshName:                   defaultMeshName,
 				checker:                    passingChecker{},
 				enableEgress:               true,
+				meshCIDRRanges:             testMeshCIDR,
 			}
 
 			err = config.Releases.Create(&release.Release{
@@ -494,6 +503,7 @@ var _ = Describe("Running the install command", func() {
 				meshName:                   "osm!!123456789012345678901234567890123456789012345678901234567890", // >65 characters, contains !
 				checker:                    passingChecker{},
 				enableEgress:               true,
+				meshCIDRRanges:             testMeshCIDR,
 			}
 
 			err = install.run(config)
@@ -540,6 +550,7 @@ var _ = Describe("Running the install command", func() {
 				meshName:                   defaultMeshName,
 				checker:                    failingChecker{},
 				enableEgress:               true,
+				meshCIDRRanges:             testMeshCIDR,
 			}
 
 			err = installCmd.run(config)
@@ -571,6 +582,7 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 			prometheusRetentionTime:    testRetentionTime,
 			meshName:                   defaultMeshName,
 			enableEgress:               true,
+			meshCIDRRanges:             testMeshCIDR,
 			enableMetricsStack:         true,
 		}
 
@@ -611,6 +623,7 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 				"enablePermissiveTrafficPolicy":  false,
 				"enableBackpressureExperimental": false,
 				"enableEgress":                   true,
+				"meshCIDRRanges":                 testMeshCIDR,
 				"enableMetricsStack":             true,
 			}}))
 	})
@@ -632,7 +645,8 @@ var _ = Describe("Resolving values for egress option", func() {
 
 		It("Should enable egress in the Helm chart", func() {
 			installCmd := &installCmd{
-				enableEgress: true,
+				enableEgress:   true,
+				meshCIDRRanges: testMeshCIDR,
 			}
 
 			vals, err := installCmd.resolveValues()
@@ -640,6 +654,44 @@ var _ = Describe("Resolving values for egress option", func() {
 
 			enableEgressVal := vals["OpenServiceMesh"].(map[string]interface{})["enableEgress"]
 			Expect(enableEgressVal).To(BeTrue())
+		})
+	})
+})
+
+var _ = Describe("Test mesh CIDR ranges", func() {
+	Context("Test meshCIDRRanges chart value with install cli option", func() {
+		It("Should correctly resolve meshCIDRRanges when egress is enabled", func() {
+			installCmd := &installCmd{
+				enableEgress:   true,
+				meshCIDRRanges: testMeshCIDR,
+			}
+
+			vals, err := installCmd.resolveValues()
+			Expect(err).NotTo(HaveOccurred())
+
+			cidrRanges := vals["OpenServiceMesh"].(map[string]interface{})["meshCIDRRanges"]
+			Expect(cidrRanges).To(Equal(testMeshCIDR))
+		})
+	})
+
+	Context("Test validateCIDRs", func() {
+		It("Should correctly validate valid CIDR ranges", func() {
+			err := validateCIDRs("10.2.0.0/16")
+			Expect(err).NotTo(HaveOccurred())
+
+			err = validateCIDRs("10.0.0.0/16, 10.20.0.0/16")
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("Should correctly error invalid CIDR ranges", func() {
+			err := validateCIDRs("10.0.0.0/16, 10.20.0.0/99")
+			Expect(err).To(HaveOccurred())
+
+			err = validateCIDRs("300.0.0.0/16")
+			Expect(err).To(HaveOccurred())
+
+			err = validateCIDRs("10.2.0.0")
+			Expect(err).To(HaveOccurred())
 		})
 	})
 })
