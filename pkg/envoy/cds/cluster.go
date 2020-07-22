@@ -6,6 +6,7 @@ import (
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	envoyEndpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
+	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/wrappers"
 
@@ -16,15 +17,52 @@ import (
 )
 
 const (
-	connectionTimeout = 1 * time.Second
+	// clusterConnectTimeout is the timeout duration used by Envoy to timeout connections to the cluster
+	clusterConnectTimeout = 1 * time.Second
 )
 
-func getServiceClusterLocal(catalog catalog.MeshCataloger, proxyServiceName service.NamespacedService, clusterName string) (*xds.Cluster, error) {
+// getRemoteServiceCluster returns an Envoy Cluster corresponding to the remote service
+func getRemoteServiceCluster(remoteService, localService service.NamespacedService) (*xds.Cluster, error) {
+	clusterName := remoteService.String()
+	marshalledUpstreamTLSContext, err := envoy.MessageToAny(
+		envoy.GetUpstreamTLSContext(localService, remoteService.GetCommonName().String()))
+	if err != nil {
+		return nil, err
+	}
+	return &xds.Cluster{
+		Name:                 clusterName,
+		ConnectTimeout:       ptypes.DurationProto(clusterConnectTimeout),
+		LbPolicy:             xds.Cluster_ROUND_ROBIN,
+		ClusterDiscoveryType: &xds.Cluster_Type{Type: xds.Cluster_EDS},
+		EdsClusterConfig:     &xds.Cluster_EdsClusterConfig{EdsConfig: envoy.GetADSConfigSource()},
+		TransportSocket: &core.TransportSocket{
+			Name: wellknown.TransportSocketTls,
+			ConfigType: &core.TransportSocket_TypedConfig{
+				TypedConfig: marshalledUpstreamTLSContext,
+			},
+		},
+	}, nil
+}
+
+// getOutboundPassthroughCluster returns an Envoy cluster that is used for outbound passthrough traffic
+func getOutboundPassthroughCluster() *xds.Cluster {
+	return &xds.Cluster{
+		Name:           envoy.OutboundPassthroughCluster,
+		ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
+		ClusterDiscoveryType: &xds.Cluster_Type{
+			Type: xds.Cluster_ORIGINAL_DST,
+		},
+		LbPolicy: xds.Cluster_CLUSTER_PROVIDED,
+	}
+}
+
+// getLocalServiceCluster returns an Envoy Cluster corresponding to the local service
+func getLocalServiceCluster(catalog catalog.MeshCataloger, proxyServiceName service.NamespacedService, clusterName string) (*xds.Cluster, error) {
 	xdsCluster := xds.Cluster{
 		// The name must match the domain being cURLed in the demo
 		Name:                          clusterName,
 		AltStatName:                   clusterName,
-		ConnectTimeout:                ptypes.DurationProto(connectionTimeout),
+		ConnectTimeout:                ptypes.DurationProto(clusterConnectTimeout),
 		LbPolicy:                      xds.Cluster_ROUND_ROBIN,
 		RespectDnsTtl:                 true,
 		DrainConnectionsOnHostRemoval: true,
@@ -69,12 +107,13 @@ func getServiceClusterLocal(catalog catalog.MeshCataloger, proxyServiceName serv
 	return &xdsCluster, nil
 }
 
+// getPrometheusCluster returns an Envoy Cluster responsible for scraping metrics by Prometheus
 func getPrometheusCluster() xds.Cluster {
 	return xds.Cluster{
 		// The name must match the domain being cURLed in the demo
 		Name:           constants.EnvoyMetricsCluster,
 		AltStatName:    constants.EnvoyMetricsCluster,
-		ConnectTimeout: ptypes.DurationProto(connectionTimeout),
+		ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
 		ClusterDiscoveryType: &xds.Cluster_Type{
 			Type: xds.Cluster_STATIC,
 		},
