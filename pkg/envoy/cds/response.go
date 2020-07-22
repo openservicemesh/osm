@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/open-service-mesh/osm/pkg/featureflags"
+
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/protobuf/ptypes"
 
@@ -15,7 +17,7 @@ import (
 )
 
 // NewResponse creates a new Cluster Discovery Response.
-func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpec, proxy *envoy.Proxy, _ *xds.DiscoveryRequest, cfg configurator.Configurator) (*xds.DiscoveryResponse, error) {
+func NewResponse(_ context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, _ *xds.DiscoveryRequest, cfg configurator.Configurator) (*xds.DiscoveryResponse, error) {
 	svc, err := catalog.GetServiceFromEnvoyCertificate(proxy.GetCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up Service for Envoy with CN=%q", proxy.GetCommonName())
@@ -44,6 +46,12 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpe
 				log.Error().Err(err).Msgf("Failed to construct service cluster for proxy %s", proxyServiceName)
 				return nil, err
 			}
+
+			log.Trace().Msgf("Backpressure enabled: %t", featureflags.IsBackpressureEnabled())
+			if featureflags.IsBackpressureEnabled() {
+				enableBackpressure(meshSpec, remoteCluster)
+			}
+
 			clusterFactories = append(clusterFactories, remoteCluster)
 		}
 	}
