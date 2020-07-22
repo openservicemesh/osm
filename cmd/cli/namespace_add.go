@@ -14,16 +14,16 @@ import (
 )
 
 const namespaceAddDescription = `
-This command will join a namespace to the mesh. All services
-in this namespace will be part of the mesh.
-
+This command will join a namespace or a set of namespaces
+to the mesh. All services in joined namespaces will be part
+of the mesh.
 `
 
 type namespaceAddCmd struct {
-	out       io.Writer
-	namespace string
-	meshName  string
-	clientSet kubernetes.Interface
+	out        io.Writer
+	namespaces []string
+	meshName   string
+	clientSet  kubernetes.Interface
 }
 
 func newNamespaceAdd(out io.Writer) *cobra.Command {
@@ -32,12 +32,12 @@ func newNamespaceAdd(out io.Writer) *cobra.Command {
 	}
 
 	cmd := &cobra.Command{
-		Use:   "add <NAMESPACE>",
+		Use:   "add NAMESPACE ...",
 		Short: "add namespace to mesh",
 		Long:  namespaceAddDescription,
-		Args:  require.ExactArgs(1),
+		Args:  require.MinimumNArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
-			namespaceAdd.namespace = args[0]
+			namespaceAdd.namespaces = args
 			config, err := settings.RESTClientGetter().ToRESTConfig()
 			if err != nil {
 				return fmt.Errorf("Error fetching kubeconfig")
@@ -60,16 +60,18 @@ func newNamespaceAdd(out io.Writer) *cobra.Command {
 }
 
 func (a *namespaceAddCmd) run() error {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	for _, ns := range a.namespaces {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 
-	patch := `{"metadata":{"labels":{"` + constants.OSMKubeResourceMonitorAnnotation + `":"` + a.meshName + `"}}}`
-	_, err := a.clientSet.CoreV1().Namespaces().Patch(ctx, a.namespace, types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{}, "")
-	if err != nil {
-		return fmt.Errorf("Could not label namespace [%s]: %v", a.namespace, err)
+		patch := `{"metadata":{"labels":{"` + constants.OSMKubeResourceMonitorAnnotation + `":"` + a.meshName + `"}}}`
+		_, err := a.clientSet.CoreV1().Namespaces().Patch(ctx, ns, types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{}, "")
+		if err != nil {
+			return fmt.Errorf("Could not label namespace [%s]: %v", ns, err)
+		}
+
+		fmt.Fprintf(a.out, "Namespace [%s] succesfully added to mesh [%s]\n", ns, a.meshName)
 	}
-
-	fmt.Fprintf(a.out, "Namespace [%s] succesfully added to mesh [%s]\n", a.namespace, a.meshName)
 
 	return nil
 }

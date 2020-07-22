@@ -129,9 +129,7 @@ fi
 wait_for_osm_pods
 
 ./demo/configure-app-namespaces.sh
-for ns in "$BOOKWAREHOUSE_NAMESPACE" "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE"; do
-  bin/osm namespace add --mesh-name "$MESH_NAME" "$ns"
-done
+bin/osm namespace add --mesh-name "$MESH_NAME" "$BOOKWAREHOUSE_NAMESPACE" "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE"
 ./demo/deploy-apps.sh
 
 # Apply SMI policies

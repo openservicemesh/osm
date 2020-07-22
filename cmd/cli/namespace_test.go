@@ -30,29 +30,67 @@ var _ = Describe("Running the namespace add command", func() {
 			err           error
 		)
 
-		BeforeEach(func() {
-			out = new(bytes.Buffer)
-			fakeClientSet = fake.NewSimpleClientset()
+		Context("given one namespace as an arg", func() {
 
-			nsSpec := createNamespaceSpec(testNamespace, "")
-			fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
+			BeforeEach(func() {
+				out = new(bytes.Buffer)
+				fakeClientSet = fake.NewSimpleClientset()
 
-			namespaceAddCmd := &namespaceAddCmd{
-				out:       out,
-				meshName:  testMeshName,
-				namespace: testNamespace,
-				clientSet: fakeClientSet,
-			}
+				nsSpec := createNamespaceSpec(testNamespace, "")
+				fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
 
-			err = namespaceAddCmd.run()
+				namespaceAddCmd := &namespaceAddCmd{
+					out:        out,
+					meshName:   testMeshName,
+					namespaces: []string{testNamespace},
+					clientSet:  fakeClientSet,
+				}
+
+				err = namespaceAddCmd.run()
+			})
+
+			It("should not error", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("should give a message confirming the successful install", func() {
+				Expect(out.String()).To(Equal(fmt.Sprintf("Namespace [%s] succesfully added to mesh [%s]\n", testNamespace, testMeshName)))
+			})
 		})
+		Context("given two namespaces as args", func() {
 
-		It("should not error", func() {
-			Expect(err).NotTo(HaveOccurred())
-		})
+			var (
+				testNamespace2 string
+			)
 
-		It("should give a message confirming the successful install", func() {
-			Expect(out.String()).To(Equal(fmt.Sprintf("Namespace [%s] succesfully added to mesh [%s]\n", testNamespace, testMeshName)))
+			BeforeEach(func() {
+				out = new(bytes.Buffer)
+				fakeClientSet = fake.NewSimpleClientset()
+				testNamespace2 = "namespace2"
+
+				nsSpec := createNamespaceSpec(testNamespace, "")
+				fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
+
+				nsSpec2 := createNamespaceSpec(testNamespace2, "")
+				fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec2, metav1.CreateOptions{})
+
+				namespaceAddCmd := &namespaceAddCmd{
+					out:        out,
+					meshName:   testMeshName,
+					namespaces: []string{testNamespace, testNamespace2},
+					clientSet:  fakeClientSet,
+				}
+
+				err = namespaceAddCmd.run()
+			})
+
+			It("should not error", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("should give a message confirming the successful install", func() {
+				Expect(out.String()).To(Equal(fmt.Sprintf("Namespace [%s] succesfully added to mesh [%s]\nNamespace [%s] succesfully added to mesh [%s]\n", testNamespace, testMeshName, testNamespace2, testMeshName)))
+			})
 		})
 	})
 
@@ -68,10 +106,10 @@ var _ = Describe("Running the namespace add command", func() {
 			fakeClientSet = fake.NewSimpleClientset()
 
 			namespaceAddCmd := &namespaceAddCmd{
-				out:       out,
-				meshName:  testMeshName,
-				namespace: testNamespace,
-				clientSet: fakeClientSet,
+				out:        out,
+				meshName:   testMeshName,
+				namespaces: []string{testNamespace},
+				clientSet:  fakeClientSet,
 			}
 
 			err = namespaceAddCmd.run()
