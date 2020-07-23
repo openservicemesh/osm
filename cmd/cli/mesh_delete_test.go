@@ -109,7 +109,13 @@ var _ = Describe("Running the mesh delete command", func() {
 			})
 
 		})
-
+	})
+	Context("custom parameters", func() {
+		var (
+			deleteCmd *meshDeleteCmd
+			meshName  string
+			force     bool
+		)
 		When("force is true", func() {
 			meshName = "testing"
 			store := storage.Init(driver.NewMemory())

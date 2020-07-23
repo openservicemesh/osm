@@ -60,7 +60,10 @@ func (d *meshDeleteCmd) run() error {
 	}
 
 	_, err := d.client.Run(d.meshName)
-	if err != nil && errors.Cause(err) == helmStorage.ErrReleaseNotFound && !d.force {
+	if err != nil && errors.Cause(err) == helmStorage.ErrReleaseNotFound {
+		if d.force {
+			return nil
+		}
 		return errors.Errorf("No OSM control plane with mesh name [%s] found in namespace [%s]", d.meshName, settings.Namespace())
 	}
 
