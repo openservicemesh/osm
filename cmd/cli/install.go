@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"net"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -73,6 +74,7 @@ type installCmd struct {
 	enablePermissiveTrafficPolicy bool
 	enableEgress                  bool
 	meshName                      string
+	meshCIDRRanges                []string
 
 	// This is an experimental flag, which will eventually
 	// become part of SMI Spec.
@@ -118,6 +120,7 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.BoolVar(&inst.enableDebugServer, "enable-debug-server", false, "Enable the debug HTTP server")
 	f.BoolVar(&inst.enablePermissiveTrafficPolicy, "enable-permissive-traffic-policy", false, "Enable permissive traffic policy mode")
 	f.BoolVar(&inst.enableEgress, "enable-egress", true, "Enable egress in the mesh")
+	f.StringSliceVar(&inst.meshCIDRRanges, "mesh-cidr", []string{}, "mesh CIDR range, accepts multiple CIDRs, required if enable-egress option is true")
 	f.BoolVar(&inst.enableBackpressureExperimental, "enable-backpressure-experimental", false, "Enable experimental backpressure feature")
 	f.BoolVar(&inst.enableMetricsStack, "enable-metrics-stack", true, "Enable metrics (Prometheus and Grafana) deployment")
 	f.StringVar(&inst.meshName, "mesh-name", defaultMeshName, "name for the new control plane instance")
@@ -162,6 +165,13 @@ func (i *installCmd) run(config *helm.Configuration) error {
 		}
 		if len(missingFields) != 0 {
 			return fmt.Errorf("Missing arguments for cert-manager vault: %v", missingFields)
+		}
+	}
+
+	// Validate CIDR ranges if egress is enabled
+	if i.enableEgress {
+		if err := validateCIDRs(i.meshCIDRRanges); err != nil {
+			return fmt.Errorf("Invalid mesh-cidr-ranges: %q, error: %v", i.meshCIDRRanges, err)
 		}
 	}
 
@@ -217,6 +227,7 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 		fmt.Sprintf("OpenServiceMesh.enableMetricsStack=%t", i.enableMetricsStack),
 		fmt.Sprintf("OpenServiceMesh.meshName=%s", i.meshName),
 		fmt.Sprintf("OpenServiceMesh.enableEgress=%t", i.enableEgress),
+		fmt.Sprintf("OpenServiceMesh.meshCIDRRanges=%s", strings.Join(i.meshCIDRRanges, " ")),
 	}
 
 	for _, val := range valuesConfig {
@@ -229,4 +240,17 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 
 func errMeshAlreadyExists(name string) error {
 	return fmt.Errorf("Mesh %s already exists in cluster. Please specify a new mesh name using --mesh-name", name)
+}
+
+func validateCIDRs(cidrRanges []string) error {
+	if len(cidrRanges) == 0 {
+		return fmt.Errorf("CIDR ranges cannot be empty")
+	}
+	for _, cidr := range cidrRanges {
+		_, _, err := net.ParseCIDR(cidr)
+		if err != nil {
+			return fmt.Errorf("Error parsing CIDR %s", cidr)
+		}
+	}
+	return nil
 }

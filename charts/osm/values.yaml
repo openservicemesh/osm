@@ -31,3 +31,4 @@ OpenServiceMesh:
   enableEgress: true
   enableMetricsStack: true
   meshName: osm
+  meshCIDRRanges: 0.0.0.0/0

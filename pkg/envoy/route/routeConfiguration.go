@@ -264,25 +264,3 @@ func getRegexForMethod(httpMethod string) string {
 	}
 	return methodRegex
 }
-
-// AddOutboundPassthroughRoute adds an outbound passthrough route to the specified route configuration
-func AddOutboundPassthroughRoute(routeConfig *v2.RouteConfiguration) {
-	vhost := createVirtualHostStub("passthrough-outbound", constants.WildcardHTTPMethod)
-	vhost.Routes = []*v2route.Route{
-		{
-			Match: &v2route.RouteMatch{
-				PathSpecifier: &v2route.RouteMatch_Prefix{
-					Prefix: wildcardPathPrefix,
-				},
-			},
-			Action: &v2route.Route_Route{
-				Route: &v2route.RouteAction{
-					ClusterSpecifier: &v2route.RouteAction_Cluster{
-						Cluster: envoy.OutboundPassthroughCluster,
-					},
-				},
-			},
-		},
-	}
-	routeConfig.VirtualHosts = append(routeConfig.VirtualHosts, vhost)
-}
