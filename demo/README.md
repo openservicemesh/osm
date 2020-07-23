@@ -12,50 +12,48 @@
 
 ## Prerequisites
 1. Clone this repo on your workstation
-1. Provision access to a Kubernetes cluster - save the credentials in `~/.kube/config` or set the config path in `$KUBECONFIG` env variable:
-	- Option 1: Local [kind](https://kind.sigs.k8s.io/) cluster
-		- Provision a local cluster in Docker: `kind create cluster`
-   	- Option 2: Azure Kubernetes Service managed cluster
+2. Setup `.env` environment variable file
+   - From the root of the repository run `make .env`
+   - It is already listed in `.gitignore` so that anything you put in it would not accidentally leak into a public git repo. Refer to `.env.example` in the root of this repo for the mandatory and optional environment variables.
+2. Provision access to a Kubernetes cluster **(choose 1 option)**:
+	- **Option 1:** Local [kind](https://kind.sigs.k8s.io/) cluster
+	    - [Install kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation)
+	       - `brew install kind` on macOS
+	    - Provision a local cluster in Docker: `make kind-up`
+	- **Option 2:** Azure Kubernetes Service managed cluster - save the credentials in `~/.kube/config` or set the config path in `$KUBECONFIG` env variable:
 		- [Install Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
 		- Login to your Azure account: `az login`
 		- Create an AKS cluster via [Azure Portal](https://portal.azure.com/)
 		- Using the Azure CLI download AKS credentials into `~/.kube/config`: `az aks get-credentials --resource-group your_Resource_Group --name your_AKS_name`
 		- Set `KUBECONFIG` environment variable: `export KUBECONFIG=~/.kube/config` (also add this command to your .bashrc)
-1. Authenticate with a container registry, which is accessible to both your workstation and your Kubernetes cluster. One such registry is the Azure Container Registry (ACR), which is used by the demo scripts in this repo:
-   - [Install Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
-   - Login to your Azure account: `az login`
-   - Create an ACR via [Azure Portal](https://portal.azure.com/)
-   - Create local Docker credentials for your ACR: `az acr login --name name_of_your_Azure_Container_Registry`. This command will create new credentials in `~/.docker/config.json`, which will be used by the demo scripts below.
-1. Create [Azure authentication JSON](https://docs.microsoft.com/en-us/dotnet/api/overview/azure/containerinstance?view=azure-dotnet#authentication) file. These credentials will be used by OSM to connect to Azure and fetch IP addresses of virtual machines participating in the service mesh: `az ad sp create-for-rbac --sdk-auth > $HOME/.azure/azureAuth.json`
-
-
-## Configure Environment Variables
-In the root directory of the repo create a `.env` file. It is already listed in `.gitignore` so that anything you put in it would not accidentally leak into a public git repo. Refer to `.env.example` in the root of this repo for the mandatory and optional environment variables.
-
-From the root of the repository:
-
-```
-cp .env.example .env
-```
-
-In the newly created `.env` file, update the two values `CTR_REGISTRY` and `CTR_REGISTRY_PASSWORD` with appropriate values. The optional environment variables only need to be set if the default values used in the demo need to be overridden.
-
+        - Authenticate with a container registry, which is accessible to both your workstation and your Kubernetes cluster. One such registry is the Azure Container Registry (ACR), which is used by the demo scripts in this repo:
+           - [Install Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
+           - Login to your Azure account: `az login`
+           - Create an ACR via [Azure Portal](https://portal.azure.com/)
+           - Create local Docker credentials for your ACR: `az acr login --name name_of_your_Azure_Container_Registry`. This command will create new credentials in `~/.docker/config.json`, which will be used by the demo scripts below.
+        - Create [Azure authentication JSON](https://docs.microsoft.com/en-us/dotnet/api/overview/azure/containerinstance?view=azure-dotnet#authentication) file. These credentials will be used by OSM to connect to Azure and fetch IP addresses of virtual machines participating in the service mesh: `az ad sp create-for-rbac --sdk-auth > $HOME/.azure/azureAuth.json`
+        - Configure Environment Variables
+           - In the `.env` file, update the two values `CTR_REGISTRY` and `CTR_REGISTRY_PASSWORD` with appropriate values. The optional environment variables only need to be set if the default values used in the demo need to be overridden.
 
 ## Run the Demo
-1. From the root of this repository execute `./demo/run-osm-demo.sh`.
-   This script will:
-   - compile OSM's control plane (ADS), create separate a container image and push it to the workstation's default container registry (See `~/.docker/config.json`)
-   - create a `bookstore` service that provides the `bookstore` domain for the `bookstore` service backends
-   - create a `bookbuyer` service that curls `bookstore` domain for books (see `demo/cmd/bookbuyer/bookbuyer.go`); creates a container and uploads it to your contaner registry; creates a deployment for the `bookbuyer` service
-   - create a `bookthief` service that curls the `bookstore` domain for books (see `demo/cmd/bookthief/bookthief.go`); creates a container and uploads it to your contaner registry; creates a deployment for the `bookthief` service
-   - create 2 backends for `bookstore` service `bookstore-v1` and `bookstore-v2`, composed of a single binary, a web server, which increases a counter (books bought) on every GET request/response and returns that counter in a header; creates a container and uploats it to your contaner registry
-   - applies SMI traffic policies allowing `bookbuyer` to access `bookstore-v1` and `bookstore-v2`, while preventing `bookthief` from accessing the `bookstore` services
-   - finally a command indefinitely watches the relevant pods within the Kubernetes cluster
+From the root of this repository execute:
+```shell
+./demo/run-osm-demo.sh
+```
 
-1. To see the results of deploying the services and the service mesh - run the tailing scripts:
-   - the scripts will connect to the respecitve Kubernetes Pod and stream its logs
-   - the output will be the output of the curl command to the `bookstore` domain and the count of books sold
-   - a properly working service mesh will result in HTTP 200 OK with `./demo/tail-bookbuyer.sh` along with a monotonically increasing counter appearing in the response headers, while `./demo/tail-bookthief.sh` will result in HTTP 404 Not Found. This can be automatically checked with `KUBECONFIG=$HOME/.kube/config go run ./ci/cmd/maestro.go`
+### This script will:
+  - compile OSM's control plane (ADS), create a separate container image and push it to the workstation's default container registry (See `~/.docker/config.json`)
+  - create a `bookstore` service that provides the `bookstore` domain for the `bookstore` service backends
+  - create a `bookbuyer` service that curls `bookstore` domain for books (see `demo/cmd/bookbuyer/bookbuyer.go`); creates a container and uploads it to your contaner registry; creates a deployment for the `bookbuyer` service
+  - create a `bookthief` service that curls the `bookstore` domain for books (see `demo/cmd/bookthief/bookthief.go`); creates a container and uploads it to your contaner registry; creates a deployment for the `bookthief` service
+  - create 2 backends for `bookstore` service `bookstore-v1` and `bookstore-v2`, composed of a single binary, a web server, which increases a counter (books bought) on every GET request/response and returns that counter in a header; creates a container and uploats it to your contaner registry
+  - applies SMI traffic policies allowing `bookbuyer` to access `bookstore-v1` and `bookstore-v2`, while preventing `bookthief` from accessing the `bookstore` services
+  - finally, a command indefinitely watches the relevant pods within the Kubernetes cluster
+
+To see the results of deploying the services and the service mesh - run the tailing scripts:
+  - the scripts will connect to the respecitve Kubernetes Pod and stream its logs
+  - the output will be the output of the curl command to the `bookstore` domain and the count of books sold
+  - a properly working service mesh will result in HTTP 200 OK with `./demo/tail-bookbuyer.sh` along with a monotonically increasing counter appearing in the response headers, while `./demo/tail-bookthief.sh` will result in HTTP 404 Not Found. This can be automatically checked with `KUBECONFIG=$HOME/.kube/config go run ./ci/cmd/maestro.go`
 
 ## Demo Web UI
 The Bookstore, Bookbuyer, and Bookthief apps have simple web UI visualizing the number of requests made between the services.
@@ -127,3 +125,9 @@ The following sections outline how to onboard VMs to participate in a service me
 - Check `/var/log/syslog` if you encounter issues with Envoy
 
 - Copy and run the bookstore app `osm/demo/bin/bookstore` on the VM
+
+## Deleting the kind cluster
+When you are done with the demo and want to clean up your local kind cluster, just run the following.
+```shell
+make kind-reset
+```

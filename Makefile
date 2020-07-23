@@ -1,9 +1,11 @@
 #!make
 
-TARGETS    := darwin/amd64 linux/amd64
-SHELL      := bash -o pipefail
-BINNAME    ?= osm
-DIST_DIRS  := find * -type d -exec
+TARGETS         := darwin/amd64 linux/amd64
+SHELL           := bash -o pipefail
+BINNAME         ?= osm
+DIST_DIRS       := find * -type d -exec
+CTR_REGISTRY    ?= smctest.azurecr.io
+CTR_TAG         ?= latest
 
 GOPATH = $(shell go env GOPATH)
 GOBIN  = $(GOPATH)/bin
@@ -53,6 +55,10 @@ build-osm:
 	@mkdir -p $(shell pwd)/bin
 	go run scripts/generate_chart/generate_chart.go | CGO_ENABLED=0  go build -v -o ./bin/osm -ldflags ${LDFLAGS} ./cmd/cli
 
+.PHONY: clean-osm
+clean-osm:
+	@rm -rf bin/osm
+
 .PHONY: docker-build
 docker-build: docker-build-osm-controller docker-build-bookbuyer docker-build-bookstore docker-build-bookwarehouse
 
@@ -77,77 +83,51 @@ go-test:
 go-test-coverage:
 	./scripts/test-w-coverage.sh
 
-.PHONY: docker-build-osm-controller
-docker-build-osm-controller: check-env build-osm-controller
-	docker build --build-arg $(HOME)/go/ -t $(CTR_REGISTRY)/osm-controller:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-controller .
+.PHONY: kind-up
+kind-up:
+	./scripts/kind-with-registry.sh
 
-.PHONY: build-bookstore
-build-bookstore:
-	@rm -rf $(shell pwd)/demo/bin
+.PHONY: kind-reset
+kind-reset:
+	kind delete cluster --name osm
+
+.env:
+	cp .env.example .env
+
+.PHONY: kind-demo
+kind-demo: export CTR_REGISTRY=localhost:5000
+kind-demo: .env kind-up clean-osm
+	./demo/run-osm-demo.sh
+
+
+# build-bookbuyer, etc
+DEMO_TARGETS = bookbuyer bookthief bookstore bookwarehouse
+DEMO_BUILD_TARGETS = $(addprefix build-, $(DEMO_TARGETS))
+.PHONY: $(DEMO_BUILD_TARGETS)
+$(DEMO_BUILD_TARGETS): NAME=$(@:build-%=%)
+$(DEMO_BUILD_TARGETS):
 	@mkdir -p $(shell pwd)/demo/bin
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ./demo/bin/bookstore ./demo/cmd/bookstore/bookstore.go
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ./demo/bin/$(NAME) ./demo/cmd/$(NAME)/$(NAME).go
 
-.PHONY: build-bookwarehouse
-build-bookwarehouse:
-	@rm -rf $(shell pwd)/demo/bin
-	@mkdir -p $(shell pwd)/demo/bin
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ./demo/bin/bookwarehouse ./demo/cmd/bookwarehouse/bookwarehouse.go
+.PHONY: demo-build
+demo-build: $(DEMO_BUILD_TARGETS) build-osm-controller
 
-.PHONY: build-bookbuyer
-build-bookbuyer:
-	@rm -rf $(shell pwd)/demo/bin
-	@mkdir -p $(shell pwd)/demo/bin
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ./demo/bin/bookbuyer ./demo/cmd/bookbuyer/bookbuyer.go
+# docker-build-bookbuyer, etc
+DOCKER_TARGETS = bookbuyer bookthief bookstore bookwarehouse init osm-controller
+DOCKER_BUILD_TARGETS = $(addprefix docker-build-, $(DOCKER_TARGETS))
+.PHONY: $(DOCKER_BUILD_TARGETS)
+$(DOCKER_BUILD_TARGETS): NAME=$(@:docker-build-%=%)
+$(DOCKER_BUILD_TARGETS):
+	if [[ "$(NAME)" != "init" ]] ; then make build-$(NAME); fi
+	docker build -t $(CTR_REGISTRY)/$(NAME):$(CTR_TAG) -f dockerfiles/Dockerfile.$(NAME) .
 
-.PHONY: build-bookthief
-build-bookthief:
-	@rm -rf $(shell pwd)/demo/bin
-	@mkdir -p $(shell pwd)/demo/bin
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ./demo/bin/bookthief ./demo/cmd/bookthief/bookthief.go
-
-.PHONY: docker-build-bookbuyer
-docker-build-bookbuyer: check-env build-bookbuyer
-	docker build -t $(CTR_REGISTRY)/bookbuyer:$(CTR_TAG) -f dockerfiles/Dockerfile.bookbuyer .
-
-.PHONY: docker-build-bookthief
-docker-build-bookthief: check-env build-bookthief
-	docker build -t $(CTR_REGISTRY)/bookthief:$(CTR_TAG) -f dockerfiles/Dockerfile.bookthief .
-
-.PHONY: docker-build-bookstore
-docker-build-bookstore: check-env build-bookstore
-	docker build -t $(CTR_REGISTRY)/bookstore:$(CTR_TAG) -f dockerfiles/Dockerfile.bookstore .
-
-.PHONY: docker-build-bookwarehouse
-docker-build-bookwarehouse: check-env build-bookwarehouse
-	docker build -t $(CTR_REGISTRY)/bookwarehouse:$(CTR_TAG) -f dockerfiles/Dockerfile.bookwarehouse .
-
-.PHONY: docker-build-init
-docker-build-init: check-env
-	docker build -t $(CTR_REGISTRY)/init:$(CTR_TAG) -f dockerfiles/Dockerfile.init .
-
-.PHONY: docker-push-osm-controller
-docker-push-osm-controller: check-env docker-build-osm-controller
-	docker push "$(CTR_REGISTRY)/osm-controller:$(CTR_TAG)"
-
-.PHONY: docker-push-bookbuyer
-docker-push-bookbuyer: check-env docker-build-bookbuyer
-	docker push "$(CTR_REGISTRY)/bookbuyer:$(CTR_TAG)"
-
-.PHONY: docker-push-bookthief
-docker-push-bookthief: check-env docker-build-bookthief
-	docker push "$(CTR_REGISTRY)/bookthief:$(CTR_TAG)"
-
-.PHONY: docker-push-bookstore
-docker-push-bookstore: check-env docker-build-bookstore
-	docker push "$(CTR_REGISTRY)/bookstore:$(CTR_TAG)"
-
-.PHONY: docker-push-bookwarehouse
-docker-push-bookwarehouse: check-env docker-build-bookwarehouse
-	docker push "$(CTR_REGISTRY)/bookwarehouse:$(CTR_TAG)"
-
-.PHONY: docker-push-init
-docker-push-init: check-env docker-build-init
-	docker push "$(CTR_REGISTRY)/init:$(CTR_TAG)"
+# docker-push-bookbuyer, etc
+DOCKER_PUSH_TARGETS = $(addprefix docker-push-, $(DOCKER_TARGETS))
+.PHONY: $(DOCKER_PUSH_TARGETS)
+$(DOCKER_PUSH_TARGETS): NAME=$(@:docker-push-%=%)
+$(DOCKER_PUSH_TARGETS):
+	make docker-build-$(NAME)
+	docker push "$(CTR_REGISTRY)/$(NAME):$(CTR_TAG)"
 
 .PHONY: docker-push
 docker-push: docker-push-init docker-push-bookbuyer docker-push-bookthief docker-push-bookstore docker-push-osm-controller docker-push-bookwarehouse

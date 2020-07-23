@@ -47,7 +47,7 @@ wait_for_osm_pods() {
 }
 
 wait_for_pod_ready() {
-    max=12
+    max=15
     pod_name=$1
 
     for x in $(seq 1 $max); do
