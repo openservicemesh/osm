@@ -98,11 +98,6 @@ else
     ./ci/create-osm-container-registry-creds.sh
 fi
 
-for ns in "$BOOKWAREHOUSE_NAMESPACE" "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE"; do
-    kubectl create namespace "$ns"
-    bin/osm namespace add --mesh-name "$MESH_NAME" "$ns"
-done
-
 # Deploys Xds and Prometheus
 echo "Certificate Manager in use: $CERT_MANAGER"
 if [ "$CERT_MANAGER" = "vault" ]; then
@@ -133,6 +128,10 @@ fi
 
 wait_for_osm_pods
 
+./demo/configure-app-namespaces.sh
+for ns in "$BOOKWAREHOUSE_NAMESPACE" "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE"; do
+  bin/osm namespace add --mesh-name "$MESH_NAME" "$ns"
+done
 ./demo/deploy-apps.sh
 
 # Apply SMI policies
