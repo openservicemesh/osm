@@ -33,7 +33,7 @@ The following section will document the additional steps needed to allow an alre
 #### List of Prerequisites
 
 - Already running an accessible Prometheus instance *outside* of the mesh. 
-- An OSM-enabled deployment, without metrics-stack deployment.
+- A running OSM control plane instance, deployed without metrics stack.
    - OSM controls the Envoy's Prometheus listener aperture through `prometheus_scraping: "true"`, under OSM configmap. By default this is set to true, but do double check it has been enabled on the OSM configmap, or else Prometheus might not be able to reach the pods.
 - We will assume having Grafana reach Prometheus, exposing or forwarding Prometheus or Grafana web ports and configuring Prometheus to reach Kubernetes API services is taken care of or otherwise out of the scope of these steps. 
 
