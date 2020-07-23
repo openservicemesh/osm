@@ -286,5 +286,6 @@ func GetADSConfigSource() *xds_core.ConfigSource {
 		ConfigSourceSpecifier: &xds_core.ConfigSource_Ads{
 			Ads: &xds_core.AggregatedConfigSource{},
 		},
+		ResourceApiVersion: xds_core.ApiVersion_V3,
 	}
 }
