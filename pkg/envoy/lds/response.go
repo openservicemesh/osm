@@ -147,7 +147,7 @@ func getInboundInMeshFilterChain(proxyServiceName service.NamespacedService, mc 
 		},
 
 		TransportSocket: &envoy_api_v2_core.TransportSocket{
-			Name: envoy.TransportSocketTLS,
+			Name: wellknown.TransportSocketTls,
 			ConfigType: &envoy_api_v2_core.TransportSocket_TypedConfig{
 				TypedConfig: marshalledDownstreamTLSContext,
 			},
@@ -171,7 +171,7 @@ func getInboundIngressFilterChains(proxyServiceName service.NamespacedService, f
 				ServerNames:       []string{proxyServiceName.GetCommonName().String()},
 			},
 			TransportSocket: &envoy_api_v2_core.TransportSocket{
-				Name: envoy.TransportSocketTLS,
+				Name: wellknown.TransportSocketTls,
 				ConfigType: &envoy_api_v2_core.TransportSocket_TypedConfig{
 					TypedConfig: marshalledDownstreamTLSContext,
 				},
@@ -191,7 +191,7 @@ func getInboundIngressFilterChains(proxyServiceName service.NamespacedService, f
 				TransportProtocol: envoy.TransportProtocolTLS,
 			},
 			TransportSocket: &envoy_api_v2_core.TransportSocket{
-				Name: envoy.TransportSocketTLS,
+				Name: wellknown.TransportSocketTls,
 				ConfigType: &envoy_api_v2_core.TransportSocket_TypedConfig{
 					TypedConfig: marshalledDownstreamTLSContext,
 				},

@@ -3,9 +3,7 @@ package envoy
 import (
 	"fmt"
 	"strings"
-	"time"
 
-	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	accesslog "github.com/envoyproxy/go-control-plane/envoy/config/accesslog/v2"
@@ -61,9 +59,6 @@ const (
 
 	// Separator is the separator between the prefix and the name of the certificate.
 	Separator = ":"
-
-	// ConnectionTimeout is the timeout duration used by Envoy to timeout connections
-	ConnectionTimeout = 5 * time.Second
 
 	// TransportProtocolTLS is the TLS transport protocol used in Envoy configurations
 	TransportProtocolTLS = "tls"
@@ -282,40 +277,6 @@ func GetUpstreamTLSContext(serviceName service.NamespacedService, sni string) *a
 		Sni: sni,
 	}
 	return tlsConfig
-}
-
-// GetServiceCluster creates an Envoy Cluster struct.
-func GetServiceCluster(remoteService, localService service.NamespacedService) (*xds.Cluster, error) {
-	clusterName := remoteService.String()
-	marshalledUpstreamTLSContext, err := MessageToAny(GetUpstreamTLSContext(localService, remoteService.GetCommonName().String()))
-	if err != nil {
-		return nil, err
-	}
-	return &xds.Cluster{
-		Name:                 clusterName,
-		ConnectTimeout:       ptypes.DurationProto(ConnectionTimeout),
-		LbPolicy:             xds.Cluster_ROUND_ROBIN,
-		ClusterDiscoveryType: &xds.Cluster_Type{Type: xds.Cluster_EDS},
-		EdsClusterConfig:     &xds.Cluster_EdsClusterConfig{EdsConfig: GetADSConfigSource()},
-		TransportSocket: &core.TransportSocket{
-			Name: TransportSocketTLS,
-			ConfigType: &core.TransportSocket_TypedConfig{
-				TypedConfig: marshalledUpstreamTLSContext,
-			},
-		},
-	}, nil
-}
-
-// GetOutboundPassthroughCluster returns an Envoy cluster that is used for outbound passthrough traffic
-func GetOutboundPassthroughCluster() *xds.Cluster {
-	return &xds.Cluster{
-		Name:           OutboundPassthroughCluster,
-		ConnectTimeout: ptypes.DurationProto(ConnectionTimeout),
-		ClusterDiscoveryType: &xds.Cluster_Type{
-			Type: xds.Cluster_ORIGINAL_DST,
-		},
-		LbPolicy: xds.Cluster_CLUSTER_PROVIDED,
-	}
 }
 
 // GetADSConfigSource creates an Envoy ConfigSource struct.
