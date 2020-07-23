@@ -19,6 +19,17 @@ func (t TypeURI) String() string {
 	return string(t)
 }
 
+// ValidURI defines valid URIs
+var ValidURI = map[string]TypeURI{
+	string(TypeSDS):                TypeSDS,
+	string(TypeCDS):                TypeCDS,
+	string(TypeLDS):                TypeLDS,
+	string(TypeRDS):                TypeRDS,
+	string(TypeEDS):                TypeEDS,
+	string(TypeUpstreamTLSContext): TypeUpstreamTLSContext,
+	string(TypeZipkinConfig):       TypeZipkinConfig,
+}
+
 const (
 	// TypeSDS is the SDS type URI.
 	TypeSDS TypeURI = "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret"
