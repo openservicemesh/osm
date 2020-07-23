@@ -4,7 +4,7 @@ Open Service Mesh (OSM) generates detailed metrics for all services communicatin
 As of today OSM collects metrics directly from the sidecar proxies (Envoy). OSM provides rich metrics for incoming and outgoing traffic for all services in the mesh. With these metrics the user can get information about the overall volume of traffic, errors within traffic and the response time for requests.
 
 # Prometheus
-To facilitate gathering of consistent traffic metrics and statistics across all services in the mesh, OSM relies on [Prometheus][1]. Prometheus is an open-source monitoring and alerting toolking which is commonly used (but not limited to) on Kubernetes and Service Mesh environments.
+To facilitate gathering of consistent traffic metrics and statistics across all services in the mesh, OSM relies on [Prometheus][1]. Prometheus is an open-source monitoring and alerting toolkit which is commonly used (but not limited to) on Kubernetes and Service Mesh environments.
 
 Each service that is part of the mesh has an Envoy sidecar and is capable of exposing metrics (proxy metrics) in Prometheus format. Further every service that is a part of the mesh has Prometheus annotations, which makes it possible for the Prometheus server to scrape the service dynamically. This mechanism automatically enables scraping of metrics whenever a new namespace/pod/service is added to the mesh.
 
