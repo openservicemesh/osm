@@ -20,6 +20,13 @@ type Client struct {
 
 // Controller is the controller interface for K8s namespaces
 type Controller interface {
+	// IsMonitoredNamespace returns whether a namespace with the given name is being monitored
+	// by the mesh
 	IsMonitoredNamespace(string) bool
+
+	// ListMonitoredNamespaces returns the namespaces monitored by the mesh
 	ListMonitoredNamespaces() []string
+
+	// GetAnnouncementsChannel returns the channel on which SMI makes announcements
+	GetAnnouncementsChannel() <-chan interface{}
 }
