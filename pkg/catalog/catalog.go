@@ -59,7 +59,7 @@ func (mc *MeshCatalog) getAnnouncementChannels() []announcementChannel {
 		{"CertManager", mc.certManager.GetAnnouncementsChannel()},
 		{"IngressMonitor", mc.ingressMonitor.GetAnnouncementsChannel()},
 		{"Ticker", ticking},
-		// TODO ?
+		{"Namespace", mc.namespaceCtrlr.GetAnnouncementsChannel()},
 	}
 	for _, ep := range mc.endpointsProviders {
 		annCh := announcementChannel{ep.GetID(), ep.GetAnnouncementsChannel()}

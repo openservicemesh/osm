@@ -22,6 +22,11 @@ var (
 	resyncPeriod = 30 * time.Second
 )
 
+// GetAnnouncementsChannel returns the announcement channel for the SMI client.
+func (c *Client) GetAnnouncementsChannel() <-chan interface{} {
+	return c.announcements
+}
+
 // NewNamespaceController implements namespace.Controller and creates the Kubernetes client to manage namespaces.
 func NewNamespaceController(kubeClient kubernetes.Interface, meshName string, stop chan struct{}) Controller {
 	// Only monitor namespaces that are labeled with this OSM's mesh name
@@ -47,7 +52,7 @@ func NewNamespaceController(kubeClient kubernetes.Interface, meshName string, st
 	informer.AddEventHandler(k8s.GetKubernetesEventHandlers("Namespace", "NamespaceClient", client.announcements, nil))
 
 	log.Info().Msgf("Monitoring namespaces with the label: %s=%s", MonitorLabel, meshName)
-	return client
+	return &client
 }
 
 // run executes informer collection.
