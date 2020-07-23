@@ -1,4 +1,6 @@
 FROM alpine:3.10.1
 ADD ./demo/bin/bookbuyer /
 ADD ./demo/bookbuyer.html.template /
+ENV PACKAGES "curl openssl ca-certificates"
+RUN apk add --no-cache $PACKAGES
 RUN chmod +x /bookbuyer
