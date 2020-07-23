@@ -82,11 +82,7 @@ func (c Client) IsMonitoredNamespace(namespace string) bool {
 	return exists
 }
 
-<<<<<<< HEAD
 // ListMonitoredNamespaces returns all namespaces that the mesh is monitoring.
-=======
-// Shashank's function for getting namespaces
->>>>>>> fixed namespace imports with new openservicemesh label (removed dashes)
 func (c Client) ListMonitoredNamespaces() []string {
     var namespaces []string
  
