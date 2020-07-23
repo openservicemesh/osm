@@ -41,10 +41,12 @@ func getEnvoyConfigYAML(config envoyBootstrapConfigMeta) ([]byte, error) {
 				"set_node_on_first_message_only": true,
 			},
 			"cds_config": map[string]interface{}{
-				"ads": map[string]string{},
+				"ads":                  map[string]string{},
+				"resource_api_version": "V3",
 			},
 			"lds_config": map[string]interface{}{
-				"ads": map[string]string{},
+				"ads":                  map[string]string{},
+				"resource_api_version": "V3",
 			},
 		},
 
