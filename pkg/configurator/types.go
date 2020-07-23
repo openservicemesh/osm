@@ -40,6 +40,9 @@ type Configurator interface {
 	// IsZipkinTracingEnabled determines whether Zipkin tracing is enabled
 	IsZipkinTracingEnabled() bool
 
+	// GetMeshCIDRRanges returns a list of mesh CIDR ranges
+	GetMeshCIDRRanges() []string
+
 	// GetAnnouncementsChannel returns a channel, which is used to announce when changes have been made to the OSM ConfigMap
 	GetAnnouncementsChannel() <-chan interface{}
 }

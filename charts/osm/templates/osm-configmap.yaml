@@ -8,3 +8,6 @@ data:
   egress: {{ .Values.OpenServiceMesh.enableEgress | quote | default "true" }}
   prometheus_scraping: "true"
   zipkin_tracing: "true"
+{{- if .Values.OpenServiceMesh.enableEgress }}
+  mesh_cidr_ranges: {{ .Values.OpenServiceMesh.meshCIDRRanges | quote }}
+{{- end }}

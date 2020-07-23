@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	participantName              = "bookthief"
-	httpStatusServiceUnavailable = "503"
+	participantName    = "bookthief"
+	httpStatusNotFound = "404"
 )
 
 var (
@@ -92,16 +92,12 @@ func main() {
 
 	// The bookthief is not allowed to purchase books from the bookstore.
 	//
-	// Depending on client or server side enforcement of traffic policies, the HTTP
-	// response status code will differ. See #1085 for more details.
+	// Depending on  whether SMI policies or permissive traffic policy is enabled,
+	// the HTTP response status code will differ.
 	//
 	// Expected response code:
-	// 1. With egress enabled: 503
-	//    When egress traffic is allowed, policy enforcement for in-mesh traffic happens at the destination
-	// 2. With egress disabled: 404
-	//    When egress traffic is denied, policy enforcement for in-mesh traffic happens at both source and destination
-	//
-	// In the demo, egress is enabled by default, so we expect a response code of 503 in this case.
-	expectedResponseCode := common.GetExpectedResponseCodeFromEnvVar(common.BookthiefExpectedResponseCodeEnvVar, httpStatusServiceUnavailable)
+	// 1. With SMI policies: 404
+	// 2. With permissive traffic policy: 200
+	expectedResponseCode := common.GetExpectedResponseCodeFromEnvVar(common.BookthiefExpectedResponseCodeEnvVar, httpStatusNotFound)
 	common.GetBooks(participantName, expectedResponseCode, &booksStolen, &booksStolenV1, &booksStolenV2)
 }

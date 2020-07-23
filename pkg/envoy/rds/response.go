@@ -42,12 +42,6 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	sourceAggregatedRoutesByDomain := make(map[string]map[string]trafficpolicy.RouteWeightedClusters)
 	destinationAggregatedRoutesByDomain := make(map[string]map[string]trafficpolicy.RouteWeightedClusters)
 
-	if cfg.IsEgressEnabled() {
-		// Add a passthrough route config for the source to be able to passthrough routes to unknown
-		// destinations for egress.
-		route.AddOutboundPassthroughRoute(sourceRouteConfig)
-	}
-
 	for _, trafficPolicies := range allTrafficPolicies {
 		isSourceService := trafficPolicies.Source.Service.Equals(proxyServiceName)
 		isDestinationService := trafficPolicies.Destination.Service.Equals(proxyServiceName)
