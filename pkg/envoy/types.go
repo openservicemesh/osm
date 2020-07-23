@@ -41,9 +41,6 @@ const (
 	// TypeZipkinConfig is an Envoy type URI.
 	TypeZipkinConfig TypeURI = "type.googleapis.com/envoy.config.trace.v2.ZipkinConfig"
 
-	// TransportSocketTLS is an Envoy string constant.
-	TransportSocketTLS = "envoy.transport_sockets.tls"
-
 	accessLogPath = "/dev/stdout"
 
 	//LocalClusterSuffix is the tag to append to local clusters

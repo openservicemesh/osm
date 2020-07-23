@@ -9,6 +9,7 @@ import (
 	envoy_api_v2_auth "github.com/envoyproxy/go-control-plane/envoy/api/v2/auth"
 	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
 	envoy_api_v2_endpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
+	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -84,7 +85,7 @@ var _ = Describe("CDS Response", func() {
 
 	Context("Test cds clusters", func() {
 		It("Returns a local cluster object", func() {
-			cluster, err := getServiceClusterLocal(catalog, proxyService, getLocalClusterName(proxyService))
+			cluster, err := getLocalServiceCluster(catalog, proxyService, getLocalClusterName(proxyService))
 			Expect(err).ToNot(HaveOccurred())
 
 			expectedClusterLoadAssignment := &xds.ClusterLoadAssignment{
@@ -134,7 +135,7 @@ var _ = Describe("CDS Response", func() {
 		It("Returns a remote cluster object", func() {
 			localService := tests.BookbuyerService
 			remoteService := tests.BookstoreService
-			cluster, err := envoy.GetServiceCluster(remoteService, localService)
+			cluster, err := getRemoteServiceCluster(remoteService, localService)
 			Expect(err).ToNot(HaveOccurred())
 
 			expectedClusterLoadAssignment := &xds.ClusterLoadAssignment{
@@ -167,7 +168,7 @@ var _ = Describe("CDS Response", func() {
 			}
 
 			// Checking for the value by generating the same value the same way is reduntant
-			// Nonetheless, as GetServiceCluster logic gets more complicated, this might just be ok to have
+			// Nonetheless, as getRemoteServiceCluster logic gets more complicated, this might just be ok to have
 			upstreamTLSProto, err := envoy.MessageToAny(envoy.GetUpstreamTLSContext(proxyService, remoteService.GetCommonName().String()))
 			Expect(err).ToNot(HaveOccurred())
 
@@ -184,9 +185,9 @@ var _ = Describe("CDS Response", func() {
 					},
 					ServiceName: "",
 				},
-				ConnectTimeout: ptypes.DurationProto(5 * time.Second),
+				ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
 				TransportSocket: &envoy_api_v2_core.TransportSocket{
-					Name: envoy.TransportSocketTLS,
+					Name: wellknown.TransportSocketTls,
 					ConfigType: &envoy_api_v2_core.TransportSocket_TypedConfig{
 						TypedConfig: &any.Any{
 							TypeUrl: string(envoy.TypeUpstreamTLSContext),

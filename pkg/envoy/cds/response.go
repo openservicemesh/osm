@@ -41,7 +41,7 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, meshSpec smi.
 		//iterate through only destination services here since envoy is programmed by destination
 		dstService := trafficPolicies.Destination.Service
 		if isSourceService {
-			remoteCluster, err := envoy.GetServiceCluster(dstService, proxyServiceName)
+			remoteCluster, err := getRemoteServiceCluster(dstService, proxyServiceName)
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed to construct service cluster for proxy %s", proxyServiceName)
 				return nil, err
@@ -59,7 +59,7 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, meshSpec smi.
 	// Create a local cluster for the service.
 	// The local cluster will be used for incoming traffic.
 	localClusterName := getLocalClusterName(proxyServiceName)
-	localCluster, err := getServiceClusterLocal(catalog, proxyServiceName, localClusterName)
+	localCluster, err := getLocalServiceCluster(catalog, proxyServiceName, localClusterName)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to get local cluster config for proxy %s", proxyServiceName)
 		return nil, err
@@ -68,7 +68,7 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, meshSpec smi.
 
 	if cfg.IsEgressEnabled() {
 		// Add a passthrough cluster for egress
-		passthroughCluster := envoy.GetOutboundPassthroughCluster()
+		passthroughCluster := getOutboundPassthroughCluster()
 		clusterFactories = append(clusterFactories, passthroughCluster)
 	}
 
