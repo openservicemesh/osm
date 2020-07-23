@@ -21,12 +21,12 @@ const (
 )
 
 var (
-	booksStolen   = 0
-	booksStolenV1 = 0
-	booksStolenV2 = 0
-	log           = logger.NewPretty(participantName)
-	port          = flag.Int("port", 80, "port on which this app is listening for incoming HTTP")
-	path          = flag.String("path", ".", "path to the HTML template")
+	booksStolen   int64 = 0
+	booksStolenV1 int64 = 0
+	booksStolenV2 int64 = 0
+	log                 = logger.NewPretty(participantName)
+	port                = flag.Int("port", 80, "port on which this app is listening for incoming HTTP")
+	path                = flag.String("path", ".", "path to the HTML template")
 )
 
 func renderTemplate(w http.ResponseWriter) {

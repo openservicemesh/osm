@@ -6,6 +6,8 @@ import (
 	"html"
 	"html/template"
 	"net/http"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -17,15 +19,17 @@ import (
 const (
 	participantName = "bookbuyer"
 	httpStatusOK    = "200"
+	numConnections  = 15
 )
 
 var (
-	booksBought   = 0
-	booksBoughtV1 = 0
-	booksBoughtV2 = 0
-	log           = logger.NewPretty(participantName)
-	port          = flag.Int("port", 80, "port on which this app is listening for incoming HTTP")
-	path          = flag.String("path", ".", "path to the HTML template")
+	wg            sync.WaitGroup
+	booksBought   int64 = 0
+	booksBoughtV1 int64 = 0
+	booksBoughtV2 int64 = 0
+	log                 = logger.NewPretty(participantName)
+	port                = flag.Int("port", 80, "port on which this app is listening for incoming HTTP")
+	path                = flag.String("path", ".", "path to the HTML template")
 )
 
 type handler struct {
@@ -81,20 +85,31 @@ func getHandlers() []handler {
 }
 
 func reset(w http.ResponseWriter, r *http.Request) {
-	booksBought = 0
-	booksBoughtV1 = 0
-	booksBoughtV2 = 0
+	atomic.StoreInt64(&booksBought, 0)
+	atomic.StoreInt64(&booksBoughtV1, 0)
+	atomic.StoreInt64(&booksBoughtV2, 0)
 	renderTemplate(w)
+}
+
+func getBooksWrapper(wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	meshExpectedResponseCode := http.StatusOK
+	egressExpectedResponseCode := common.GetExpectedResponseCodeFromEnvVar(common.EgressExpectedResponseCodeEnvVar, httpStatusOK)
+
+	common.GetBooks(participantName, meshExpectedResponseCode, egressExpectedResponseCode, &booksBought, &booksBoughtV1, &booksBoughtV2)
 }
 
 func main() {
 
 	go debugServer()
 
-	// This is the bookbuyer.
-	// When it tries to buy books from the bookstore - we expect it to see 200 responses.
-	// When it tries to make an egress request, we expect a 200 response with egress enabled and a 404 response with egress disabled.
-	meshExpectedResponseCode := http.StatusOK
-	egressExpectedResponseCode := common.GetExpectedResponseCodeFromEnvVar(common.EgressExpectedResponseCodeEnvVar, httpStatusOK)
-	common.GetBooks(participantName, meshExpectedResponseCode, egressExpectedResponseCode, &booksBought, &booksBoughtV1, &booksBoughtV2)
+	// This is the bookbuyer.  When it tries to buy books from the bookstore - we expect it to see 200 responses.
+	for i := 0; i < numConnections; i++ {
+		wg.Add(1)
+		fmt.Printf("Backpressure: starting bookbuyer connection #%d", i)
+		go getBooksWrapper(&wg)
+	}
+
+	wg.Wait()
 }
