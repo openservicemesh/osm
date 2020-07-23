@@ -6,21 +6,12 @@ import (
 	set "github.com/deckarep/golang-set"
 	"k8s.io/client-go/kubernetes"
 
-<<<<<<< HEAD
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/ingress"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/namespace"
-=======
-	"github.com/open-service-mesh/osm/pkg/certificate"
-	"github.com/open-service-mesh/osm/pkg/configurator"
-	"github.com/open-service-mesh/osm/pkg/endpoint"
-	"github.com/open-service-mesh/osm/pkg/ingress"
-	"github.com/open-service-mesh/osm/pkg/smi"
-	"github.com/open-service-mesh/osm/pkg/namespace"
->>>>>>> namespace endpoint work
 )
 
 // NewMeshCatalog creates a new service catalog
@@ -73,11 +64,7 @@ func (mc *MeshCatalog) getAnnouncementChannels() []announcementChannel {
 		{"CertManager", mc.certManager.GetAnnouncementsChannel()},
 		{"IngressMonitor", mc.ingressMonitor.GetAnnouncementsChannel()},
 		{"Ticker", ticking},
-<<<<<<< HEAD
 		{"Namespace", mc.namespaceCtrlr.GetAnnouncementsChannel()},
-=======
-		// TODO ?
->>>>>>> namespace endpoint work
 	}
 	for _, ep := range mc.endpointsProviders {
 		annCh := announcementChannel{ep.GetID(), ep.GetAnnouncementsChannel()}
