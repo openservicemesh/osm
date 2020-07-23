@@ -123,7 +123,7 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.BoolVar(&inst.enableBackpressureExperimental, "enable-backpressure-experimental", false, "Enable experimental backpressure feature")
 	f.BoolVar(&inst.enableMetricsStack, "enable-metrics-stack", true, "Enable metrics (Prometheus and Grafana) deployment")
 	f.StringVar(&inst.meshName, "mesh-name", defaultMeshName, "name for the new control plane instance")
-	f.StringSliceVar(&inst.meshCIDRRanges, "mesh-cidr-range", []string{}, "mesh CIDR range, accepts multiple CIDRs, required if enable-egress option is true")
+	f.StringSliceVar(&inst.meshCIDRRanges, "mesh-cidr", []string{}, "mesh CIDR range, accepts multiple CIDRs, required if enable-egress option is true")
 
 	return cmd
 }

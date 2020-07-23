@@ -277,7 +277,7 @@ jobs:
           ./demo/clean-kubernetes.sh
           echo "Creating Kubernetes namespace: $K8S_NAMESPACE"
           echo "$DOCKER_PASS" | docker login "$ACR" -u "$DOCKER_USER" --password-stdin
-          ./demo/run-osm-demo.sh --mesh-cidr-range "10.244.0.0/16,10.0.0.0/16"
+          ./demo/run-osm-demo.sh --mesh-cidr "10.244.0.0/16,10.0.0.0/16"
           go run ./ci/cmd/maestro.go
 
   integration-vault:
@@ -331,5 +331,5 @@ jobs:
           ./demo/clean-kubernetes.sh
           echo "Creating Kubernetes namespace: $K8S_NAMESPACE"
           echo "$DOCKER_PASS" | docker login "$ACR" -u "$DOCKER_USER" --password-stdin
-          ./demo/run-osm-demo.sh --enable-permissive-traffic-policy --mesh-cidr-range 10.244.0.0/16 --mesh-cidr-range 10.0.0.0/16
+          ./demo/run-osm-demo.sh --enable-permissive-traffic-policy --mesh-cidr 10.244.0.0/16 --mesh-cidr 10.0.0.0/16
           go run ./ci/cmd/maestro.go
