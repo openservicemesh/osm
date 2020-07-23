@@ -53,6 +53,7 @@ func getEnvoySidecarContainerSpec(data *EnvoySidecarData) corev1.Container {
 			"--config-path", getEnvoyConfigPath(),
 			"--service-node", data.EnvoyNodeID,
 			"--service-cluster", data.EnvoyClusterID,
+			"--bootstrap-version 3",
 		},
 	}
 
