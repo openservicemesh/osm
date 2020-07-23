@@ -69,7 +69,12 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 				continue
 			}
 
-			typeURL := envoy.TypeURI(discoveryRequest.TypeUrl)
+			typeURL, ok := envoy.ValidURI[discoveryRequest.TypeUrl]
+			if !ok {
+				log.Error().Err(err).Msgf("Unknown/Unsupported URI: %s", discoveryRequest.TypeUrl)
+				// TODO: return errEnvoy
+				continue
+			}
 
 			// It is possible for Envoy to return an empty VersionInfo.
 			// When that's the case - start with 0
