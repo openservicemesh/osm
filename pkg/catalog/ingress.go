@@ -58,11 +58,3 @@ func (mc *MeshCatalog) GetIngressRoutePoliciesPerDomain(service service.Namespac
 	}
 	return domainRoutesMap, nil
 }
-
-// GetIngressWeightedCluster returns the weighted cluster for an ingress service
-func (mc *MeshCatalog) GetIngressWeightedCluster(svc service.NamespacedService) (service.WeightedCluster, error) {
-	return service.WeightedCluster{
-		ClusterName: service.ClusterName(svc.String()),
-		Weight:      constants.ClusterWeightAcceptAll,
-	}, nil
-}
