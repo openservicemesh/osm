@@ -61,7 +61,7 @@ OSM installed successfully in namespace [osm-system] with mesh name [osm]
 
 By default, the control plane components are installed into a Kubernetes Namespace called `osm-system` and the control plane is given a unique identifier attribute `mesh-name` defaulted to `osm`. Both the Namespace and mesh-name can be configured with flags to the `osm install` command.
 
-The `mesh-name` is a unique identifier assigned to an osm-controller instance during install to identify and manage manage a mesh instance.
+The `mesh-name` is a unique identifier assigned to an osm-controller instance during install to identify and manage a mesh instance.
 
 The `mesh-name` should follow [RFC 1123](https://tools.ietf.org/html/rfc1123) DNS Label constraints. The `mesh-name` must:
 
