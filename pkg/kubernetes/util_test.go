@@ -40,29 +40,3 @@ var _ = Describe("Domains for a kubernetes service", func() {
 		})
 	})
 })
-
-var _ = Describe("Service name for a service domain", func() {
-	service := "test-service"
-	Context("Testing GetServiceNameFromDomain", func() {
-		It("Returns the service name from its domain", func() {
-			domain := service
-			Expect(GetServiceNameFromDomain(domain)).To(Equal(service))
-		})
-		It("Returns the service name from its domain", func() {
-			domain := fmt.Sprintf("%s:%d", service, tests.ServicePort)
-			Expect(GetServiceNameFromDomain(domain)).To(Equal(fmt.Sprintf("%s:%d", service, tests.ServicePort)))
-		})
-		It("Returns the service name from its domain", func() {
-			domain := fmt.Sprintf("%s.namespace", service)
-			Expect(GetServiceNameFromDomain(domain)).To(Equal(service))
-		})
-		It("Returns the service name from its domain", func() {
-			domain := fmt.Sprintf("%s.namespace.svc", service)
-			Expect(GetServiceNameFromDomain(domain)).To(Equal(service))
-		})
-		It("Returns the service name from its domain", func() {
-			domain := fmt.Sprintf("%s.namespace.svc.cluster", service)
-			Expect(GetServiceNameFromDomain(domain)).To(Equal(service))
-		})
-	})
-})
