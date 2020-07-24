@@ -6,14 +6,8 @@ import (
 	"github.com/open-service-mesh/osm/pkg/trafficpolicy"
 )
 
-// IsIngressService returns a boolean indicating if the service is a backend for an ingress resource
-func (mc *MeshCatalog) IsIngressService(service service.NamespacedService) (bool, error) {
-	policies, err := mc.GetIngressRoutePoliciesPerDomain(service)
-	return len(policies) > 0, err
-}
-
-// GetIngressRoutePoliciesPerDomain returns the route policies per domain associated with an ingress service
-func (mc *MeshCatalog) GetIngressRoutePoliciesPerDomain(service service.NamespacedService) (map[string][]trafficpolicy.Route, error) {
+// GetIngressRoutesPerHost returns the route policies per domain associated with an ingress service
+func (mc *MeshCatalog) GetIngressRoutesPerHost(service service.NamespacedService) (map[string][]trafficpolicy.Route, error) {
 	domainRoutesMap := make(map[string][]trafficpolicy.Route)
 	ingresses, err := mc.ingressMonitor.GetIngressResources(service)
 	if err != nil {

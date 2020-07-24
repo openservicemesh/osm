@@ -95,11 +95,8 @@ type MeshCataloger interface {
 	//GetWeightedClusterForService returns the weighted cluster for a service
 	GetWeightedClusterForService(service service.NamespacedService) (service.WeightedCluster, error)
 
-	// IsIngressService returns a boolean indicating if the service is a backend for an ingress resource
-	IsIngressService(service.NamespacedService) (bool, error)
-
-	// GetIngressRoutePoliciesPerDomain returns the route policies per domain associated with an ingress service
-	GetIngressRoutePoliciesPerDomain(service.NamespacedService) (map[string][]trafficpolicy.Route, error)
+	// GetIngressRoutesPerHost returns the route policies per domain associated with an ingress service
+	GetIngressRoutesPerHost(service.NamespacedService) (map[string][]trafficpolicy.Route, error)
 }
 
 type announcementChannel struct {
