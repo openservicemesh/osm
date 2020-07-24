@@ -24,7 +24,7 @@ Other ingress controllers might also work as long as they allow provisioning a c
 ## Ingress configurations
 The following section describes sample ingress configurations used to expose services managed by OSM outside the cluster.  Different ingress controllers require different configurations.
 
-The example configurations describe how to expose HTTPS routes for the `bookstore-v1` HTTPS service running on port `8080` in the `bookstore-ns` namespace, outside the cluster. The ingress configuration will expose the HTTPS path `/books-bought` on the `bookstore-v1` service.
+The example configurations describe how to expose HTTPS routes for the `bookstore-v1` HTTPS service running on port `80` in the `bookstore-ns` namespace, outside the cluster. The ingress configuration will expose the HTTPS path `/books-bought` on the `bookstore-v1` service.
 
 Since OSM uses its own root certificate, the ingress controller must be provisioned with OSM's root certificate to be able to authenticate the certificate presented by backend servers. OSM stores the CA root certificate in a Kubernetes secret called `osm-ca-bundle` with the key `ca.crt` in the namespace OSM is deployed (`osm-system` by default).
 
@@ -61,7 +61,7 @@ spec:
       - path: /books-bought
         backend:
           serviceName: bookstore-v1
-          servicePort: 8080
+          servicePort: 80
 ```
 
 ### Using Azure Application Gateway Ingress Controller
@@ -103,7 +103,7 @@ spec:
       - path: /books-bought
         backend:
           serviceName: bookstore-v1
-          servicePort: 8080
+          servicePort: 80
 ```
 
 [1]: https://github.com/open-service-mesh/osm/blob/main/README.md
