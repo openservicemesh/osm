@@ -113,6 +113,7 @@ if [ "$CERT_MANAGER" = "vault" ]; then
       --container-registry-secret "$CTR_REGISTRY_CREDS_NAME" \
       --osm-image-tag "$CTR_TAG" \
       --enable-debug-server \
+      --mesh-cidr "10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16" \
       $optionalInstallArgs
 else
   # shellcheck disable=SC2086
@@ -123,6 +124,7 @@ else
       --container-registry-secret "$CTR_REGISTRY_CREDS_NAME" \
       --osm-image-tag "$CTR_TAG" \
       --enable-debug-server \
+      --mesh-cidr "10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16" \
       $optionalInstallArgs
 fi
 
