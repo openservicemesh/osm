@@ -13,7 +13,6 @@ set -aueo pipefail
 source .env
 
 
-./bin/osm namespace add "${K8S_NAMESPACE:-osm-system}"              --mesh-name "${MESH_NAME:-osm}"
 ./bin/osm namespace add "${BOOKBUYER_NAMESPACE:-bookbuyer}"         --mesh-name "${MESH_NAME:-osm}"
 ./bin/osm namespace add "${BOOKSTORE_NAMESPACE:-bookstore}"         --mesh-name "${MESH_NAME:-osm}"
 ./bin/osm namespace add "${BOOKTHIEF_NAMESPACE:-bookthief}"         --mesh-name "${MESH_NAME:-osm}"
