@@ -80,6 +80,7 @@ var _ = Describe("Running the install command", func() {
 				meshName:                   defaultMeshName,
 				enableEgress:               true,
 				enableMetricsStack:         true,
+				enableCertManager:          false,
 				meshCIDRRanges:             testMeshCIDRRanges,
 			}
 
@@ -139,6 +140,7 @@ var _ = Describe("Running the install command", func() {
 						"enableEgress":                   true,
 						"meshCIDRRanges":                 testMeshCIDR,
 						"enableMetricsStack":             true,
+						"enableCertManager":              false,
 					}}))
 			})
 
@@ -185,6 +187,7 @@ var _ = Describe("Running the install command", func() {
 				enableEgress:               true,
 				meshCIDRRanges:             testMeshCIDRRanges,
 				enableMetricsStack:         true,
+				enableCertManager:          false,
 			}
 
 			err = installCmd.run(config)
@@ -243,6 +246,7 @@ var _ = Describe("Running the install command", func() {
 						"enableEgress":                   true,
 						"meshCIDRRanges":                 testMeshCIDR,
 						"enableMetricsStack":             true,
+						"enableCertManager":              false,
 					}}))
 			})
 
@@ -293,6 +297,7 @@ var _ = Describe("Running the install command", func() {
 				enableEgress:               true,
 				meshCIDRRanges:             testMeshCIDRRanges,
 				enableMetricsStack:         true,
+				enableCertManager:          false,
 			}
 
 			err = installCmd.run(config)
@@ -352,6 +357,7 @@ var _ = Describe("Running the install command", func() {
 						"enableEgress":                   true,
 						"meshCIDRRanges":                 testMeshCIDR,
 						"enableMetricsStack":             true,
+						"enableCertManager":              false,
 					}}))
 			})
 
@@ -585,6 +591,7 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 			enableEgress:               true,
 			meshCIDRRanges:             testMeshCIDRRanges,
 			enableMetricsStack:         true,
+			enableCertManager:          false,
 		}
 
 		vals, err = installCmd.resolveValues()
@@ -626,6 +633,7 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 				"enableEgress":                   true,
 				"meshCIDRRanges":                 testMeshCIDR,
 				"enableMetricsStack":             true,
+				"enableCertManager":              false,
 			}}))
 	})
 })

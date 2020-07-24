@@ -30,5 +30,6 @@ OpenServiceMesh:
   enableBackpressureExperimental: false
   enableEgress: true
   enableMetricsStack: true
+  enableCertManager: false
   meshName: osm
   meshCIDRRanges: 0.0.0.0/0
