@@ -6,7 +6,6 @@ set -aueo pipefail
 source .env
 BOOKSTORE_SVC="${BOOKSTORE_SVC:-bookstore}"
 CI_MAX_ITERATIONS_THRESHOLD="${CI_MAX_ITERATIONS_THRESHOLD:-0}"
-CI_ENABLE_EGRESS="${CI_ENABLE_EGRESS:-true}"
 EGRESS_EXPECTED_RESPONSE_CODE="${EGRESS_EXPECTED_RESPONSE_CODE:-200}"
 
 kubectl delete deployment bookbuyer -n "$BOOKBUYER_NAMESPACE"  --ignore-not-found
@@ -73,8 +72,6 @@ spec:
               value: "$BOOKSTORE_SVC"
             - name: "CI_MAX_ITERATIONS_THRESHOLD"
               value: "$CI_MAX_ITERATIONS_THRESHOLD"
-            - name: "CI_ENABLE_EGRESS"
-              value: "$CI_ENABLE_EGRESS"
             - name: "EGRESS_EXPECTED_RESPONSE_CODE"
               value: "$EGRESS_EXPECTED_RESPONSE_CODE"
 
