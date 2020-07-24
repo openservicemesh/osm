@@ -64,13 +64,13 @@ func renderTemplate(w http.ResponseWriter) {
 func getBooksSold(w http.ResponseWriter, r *http.Request) {
 	setHeaders(w)
 	renderTemplate(w)
-	fmt.Printf("%s;  URL: %q;  Count: %d\n", getIdentity(), html.EscapeString(r.URL.Path), booksSold)
+	log.Info().Msgf("%s;  URL: %q;  Count: %d\n", getIdentity(), html.EscapeString(r.URL.Path), booksSold)
 }
 
 func getIndex(w http.ResponseWriter, r *http.Request) {
 	setHeaders(w)
 	renderTemplate(w)
-	fmt.Printf("%s;  URL: %q;  Count: %d\n", getIdentity(), html.EscapeString(r.URL.Path), booksSold)
+	log.Info().Msgf("%s;  URL: %q;  Count: %d\n", getIdentity(), html.EscapeString(r.URL.Path), booksSold)
 }
 
 // updateBooksSold updates the booksSold value to the one specified by the user
@@ -83,7 +83,7 @@ func updateBooksSold(w http.ResponseWriter, r *http.Request) {
 	booksSold = updatedBooksSold
 	setHeaders(w)
 	renderTemplate(w)
-	fmt.Printf("%s;  URL: %q;  %s: %d\n", getIdentity(), html.EscapeString(r.URL.Path), common.BooksBoughtHeader, booksSold)
+	log.Info().Msgf("%s;  URL: %q;  %s: %d\n", getIdentity(), html.EscapeString(r.URL.Path), common.BooksBoughtHeader, booksSold)
 	return
 }
 
@@ -92,12 +92,12 @@ func sellBook(w http.ResponseWriter, r *http.Request) {
 	booksSold++
 	setHeaders(w)
 	renderTemplate(w)
-	fmt.Printf("%s;  URL: %q;  Count: %d\n", getIdentity(), html.EscapeString(r.URL.Path), booksSold)
+	log.Info().Msgf("%s;  URL: %q;  Count: %d\n", getIdentity(), html.EscapeString(r.URL.Path), booksSold)
 	// Loop through headers
 	for name, headers := range r.Header {
 		name = strings.ToLower(name)
 		for _, h := range headers {
-			fmt.Printf("%v: %v", name, h)
+			log.Info().Msgf("%v: %v", name, h)
 		}
 	}
 
