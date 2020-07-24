@@ -92,11 +92,8 @@ if [[ "$CI" != "true" ]]; then
     # For Github CI we achieve these at a different time or different script
     # See .github/workflows/main.yml
     ./demo/build-push-images.sh
-    ./scripts/create-container-registry-creds.sh
-else
-    # This script is specifically for CI
-    ./ci/create-osm-container-registry-creds.sh
 fi
+./scripts/create-container-registry-creds.sh "$K8S_NAMESPACE"
 
 # Deploys Xds and Prometheus
 echo "Certificate Manager in use: $CERT_MANAGER"
