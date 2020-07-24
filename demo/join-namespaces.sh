@@ -13,19 +13,11 @@ set -aueo pipefail
 source .env
 
 
-
-K8S_NAMESPACE="${K8S_NAMESPACE:-osm-system}"
-BOOKBUYER_NAMESPACE="${BOOKBUYER_NAMESPACE:-bookbuyer}"
-BOOKSTORE_NAMESPACE="${BOOKSTORE_NAMESPACE:-bookstore}"
-BOOKTHIEF_NAMESPACE="${BOOKTHIEF_NAMESPACE:-bookthief}"
-BOOKWAREHOUSE_NAMESPACE="${BOOKWAREHOUSE_NAMESPACE:-bookwarehouse}"
-
-MESH_NAME="${MESH_NAME:-osm}"
-
-
-for ns in "$BOOKWAREHOUSE_NAMESPACE" "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE"; do
-    kubectl label namespaces "$ns" openservicemesh.io/monitored-by="$MESH_NAME" --overwrite="true"
-done
+./bin/osm namespace add "${K8S_NAMESPACE:-osm-system}"              --mesh-name "${MESH_NAME:-osm}"
+./bin/osm namespace add "${BOOKBUYER_NAMESPACE:-bookbuyer}"         --mesh-name "${MESH_NAME:-osm}"
+./bin/osm namespace add "${BOOKSTORE_NAMESPACE:-bookstore}"         --mesh-name "${MESH_NAME:-osm}"
+./bin/osm namespace add "${BOOKTHIEF_NAMESPACE:-bookthief}"         --mesh-name "${MESH_NAME:-osm}"
+./bin/osm namespace add "${BOOKWAREHOUSE_NAMESPACE:-bookwarehouse}" --mesh-name "${MESH_NAME:-osm}"
 
 
 kubectl apply -f - <<EOF
@@ -41,6 +33,8 @@ data:
 
 EOF
 
+
 sleep 3
+
 
 ./demo/rolling-restart.sh
