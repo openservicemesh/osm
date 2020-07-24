@@ -45,26 +45,27 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	for _, trafficPolicies := range allTrafficPolicies {
 		isSourceService := trafficPolicies.Source.Service.Equals(proxyServiceName)
 		isDestinationService := trafficPolicies.Destination.Service.Equals(proxyServiceName)
-		service := trafficPolicies.Destination.Service
-		domain, err := catalog.GetDomainForService(service, trafficPolicies.Route.Headers)
+		svc := trafficPolicies.Destination.Service
+		domain, err := catalog.GetDomainForService(svc, trafficPolicies.Route.Headers)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed listing domains")
 			return nil, err
 		}
-		weightedCluster, err := catalog.GetWeightedClusterForService(service)
+		weightedCluster, err := catalog.GetWeightedClusterForService(svc)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed listing clusters")
 			return nil, err
 		}
+
 		if isSourceService {
-			aggregateRoutesByDomain(sourceAggregatedRoutesByDomain, trafficPolicies.Route, weightedCluster, domain)
+			aggregateRoutesByHost(sourceAggregatedRoutesByDomain, trafficPolicies.Route, weightedCluster, domain)
 		}
+
 		if isDestinationService {
-			aggregateRoutesByDomain(destinationAggregatedRoutesByDomain, trafficPolicies.Route, weightedCluster, domain)
+			aggregateRoutesByHost(destinationAggregatedRoutesByDomain, trafficPolicies.Route, weightedCluster, domain)
 		}
 	}
 
-	// Process ingress policy if applicable
 	if err = updateRoutesForIngress(proxyServiceName, catalog, destinationAggregatedRoutesByDomain); err != nil {
 		return nil, err
 	}
@@ -85,7 +86,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	return resp, nil
 }
 
-func aggregateRoutesByDomain(domainRoutesMap map[string]map[string]trafficpolicy.RouteWeightedClusters, routePolicy trafficpolicy.Route, weightedCluster service.WeightedCluster, domain string) {
+func aggregateRoutesByHost(domainRoutesMap map[string]map[string]trafficpolicy.RouteWeightedClusters, routePolicy trafficpolicy.Route, weightedCluster service.WeightedCluster, domain string) {
 	_, exists := domainRoutesMap[domain]
 	if !exists {
 		// no domain found, create a new route map
@@ -117,12 +118,13 @@ func createRoutePolicyWeightedClusters(routePolicy trafficpolicy.Route, weighted
 }
 
 func updateRoutesForIngress(proxyServiceName service.NamespacedService, catalog catalog.MeshCataloger, domainRoutesMap map[string]map[string]trafficpolicy.RouteWeightedClusters) error {
-	domainRoutePoliciesMap, err := catalog.GetIngressRoutePoliciesPerDomain(proxyServiceName)
+	ingressRoutesPerHost, err := catalog.GetIngressRoutesPerHost(proxyServiceName)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to get ingress route configuration for proxy %s", proxyServiceName)
 		return err
 	}
-	if len(domainRoutePoliciesMap) == 0 {
+
+	if len(ingressRoutesPerHost) == 0 {
 		return nil
 	}
 
@@ -131,10 +133,11 @@ func updateRoutesForIngress(proxyServiceName service.NamespacedService, catalog 
 		Weight:      constants.ClusterWeightAcceptAll,
 	}
 
-	for domain, routePolicies := range domainRoutePoliciesMap {
-		for _, routePolicy := range routePolicies {
-			aggregateRoutesByDomain(domainRoutesMap, routePolicy, ingressWeightedCluster, domain)
+	for host, routes := range ingressRoutesPerHost {
+		for _, rt := range routes {
+			aggregateRoutesByHost(domainRoutesMap, rt, ingressWeightedCluster, host)
 		}
 	}
+
 	return nil
 }

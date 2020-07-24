@@ -73,13 +73,13 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 		inboundListener.FilterChains = append(inboundListener.FilterChains, meshFilterChain)
 	}
 
-	// Apply a filter chain for ingress if applicable
-	isIngress, err := catalog.IsIngressService(proxyServiceName)
+	// Apply an ingress filter chain if there are any ingress routes
+	ingressRoutesPerHost, err := catalog.GetIngressRoutesPerHost(proxyServiceName)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error checking service %s for ingress", proxyServiceName)
+		log.Error().Err(err).Msgf("Error getting ingress routes per host for service %s", proxyServiceName)
 		return nil, err
 	}
-	if isIngress {
+	if len(ingressRoutesPerHost) > 0 {
 		log.Info().Msgf("Found an ingress resource for service %s, applying necessary filters", proxyServiceName)
 		// This proxy is fronting a service that is a backend for an ingress, add a FilterChain for it
 		ingressFilterChains, err := getInboundIngressFilterChains(proxyServiceName, marshalledInboundConnManager)
