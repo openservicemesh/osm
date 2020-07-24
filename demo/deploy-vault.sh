@@ -5,9 +5,9 @@
 # shellcheck disable=SC1091
 source .env
 
-kubectl delete deployment vault -n "$K8S_NAMESPACE" || true
-kubectl delete pod vault -n "$K8S_NAMESPACE" || true
-kubectl delete service vault -n "$K8S_NAMESPACE" || true
+kubectl delete deployment vault -n "$K8S_NAMESPACE" --ignore-not-found
+kubectl delete pod vault -n "$K8S_NAMESPACE" --ignore-not-found
+kubectl delete service vault -n "$K8S_NAMESPACE" --ignore-not-found
 
 kubectl apply -f - <<EOF
 apiVersion: apps/v1

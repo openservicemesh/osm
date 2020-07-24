@@ -9,7 +9,7 @@ BOOKSTORE_SVC="${BOOKSTORE_SVC:-bookstore}"
 BOOKTHIEF_EXPECTED_RESPONSE_CODE="${BOOKTHIEF_EXPECTED_RESPONSE_CODE:-404}"
 CI_MAX_ITERATIONS_THRESHOLD="${CI_MAX_ITERATIONS_THRESHOLD:-0}"
 
-kubectl delete deployment bookthief -n "$BOOKTHIEF_NAMESPACE"  || true
+kubectl delete deployment bookthief -n "$BOOKTHIEF_NAMESPACE"  --ignore-not-found
 
 echo -e "Deploy BookThief demo service"
 kubectl apply -f - <<EOF

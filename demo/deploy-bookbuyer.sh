@@ -7,7 +7,7 @@ source .env
 BOOKSTORE_SVC="${BOOKSTORE_SVC:-bookstore}"
 CI_MAX_ITERATIONS_THRESHOLD="${CI_MAX_ITERATIONS_THRESHOLD:-0}"
 
-kubectl delete deployment bookbuyer -n "$BOOKBUYER_NAMESPACE"  || true
+kubectl delete deployment bookbuyer -n "$BOOKBUYER_NAMESPACE"  --ignore-not-found
 
 echo -e "Deploy BookBuyer Service Account"
 kubectl apply -f - <<EOF

@@ -20,7 +20,7 @@ REGISTRY_URL=$(echo "$CTR_REGISTRY" | awk -F'.' '{print $1 "." $2 "." $3}')
 
 echo "Creating container registry credentials ($CTR_REGISTRY_CREDS_NAME) for Kubernetes in namespace ($namespace) for the given Azure Container Registry ($REGISTRY_URL)"
 
-kubectl delete secrets "$CTR_REGISTRY_CREDS_NAME" -n "$namespace" || true
+kubectl delete secrets "$CTR_REGISTRY_CREDS_NAME" -n "$namespace" --ignore-not-found
 kubectl create secret docker-registry "$CTR_REGISTRY_CREDS_NAME" \
     -n "$namespace" \
     --docker-server="$REGISTRY_URL" \

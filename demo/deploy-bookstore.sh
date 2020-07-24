@@ -7,7 +7,7 @@ source .env
 VERSION=${1:-v1}
 SVC="bookstore-$VERSION"
 
-kubectl delete deployment "$SVC" -n "$BOOKSTORE_NAMESPACE"  || true
+kubectl delete deployment "$SVC" -n "$BOOKSTORE_NAMESPACE"  --ignore-not-found
 
 # Create a top level service just for the bookstore domain
 echo -e "Deploy bookstore Service"
