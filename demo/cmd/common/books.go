@@ -108,7 +108,7 @@ func GetBooks(participantName string, meshExpectedResponseCode int, egressExpect
 		booksBought:    meshExpectedResponseCode,
 		buyBook:        meshExpectedResponseCode,
 		httpEgressURL:  egressExpectedResponseCode,
-		httpsEgressURL: egressExpectedResponseCode,
+		httpsEgressURL: getHTTPSEgressExpectedResponseCode(egressExpectedResponseCode),
 	}
 
 	// Count how many times we have reached out to the bookstore
@@ -266,4 +266,17 @@ func GetExpectedResponseCodeFromEnvVar(envVar, defaultValue string) int {
 		log.Fatal().Err(err).Msgf("Could not convert environment variable %s='%s' to int", envVar, expectedRespCodeStr)
 	}
 	return int(expectedRespCode)
+}
+
+// getHTTPSEgressExpectedResponseCode returns the expected response code for HTTPS egress.
+// Since HTTPS egress depends on clients to originate TLS, when egress is disabled the
+// TLS negotiation will fail. As a result no HTTP response code will be returned
+// but rather the HTTP library will return 0 as the status code in such cases.
+// This function returns the expect HTTPS response code for egress based on the
+// expectations of the test.
+func getHTTPSEgressExpectedResponseCode(expectedEgressResponseCode int) int {
+	if expectedEgressResponseCode != http.StatusOK {
+		return 0
+	}
+	return expectedEgressResponseCode
 }
