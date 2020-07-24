@@ -110,6 +110,8 @@ func GetBooks(participantName string, expectedResponseCode int, booksCount *int,
 
 		fmt.Printf("\n\n--- %s:[ %d ] -----------------------------------------\n", participantName, iteration)
 
+		startTime := time.Now()
+
 		for url := range urlSuccessMap {
 
 			// We only care about the response code of the HTTP call for the given URL
@@ -164,7 +166,10 @@ func GetBooks(participantName string, expectedResponseCode int, booksCount *int,
 			fmt.Print(Failure)
 		}
 
-		time.Sleep(sleepDurationBetweenRequests)
+		fillerTime := sleepDurationBetweenRequests - time.Since(startTime)
+		if fillerTime > 0 {
+			time.Sleep(fillerTime)
+		}
 	}
 }
 
