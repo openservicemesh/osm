@@ -22,7 +22,7 @@ To install and configure OSM, run:
 
 var settings = cli.New()
 
-func newRootCmd(config *action.Configuration, out io.Writer, args []string) *cobra.Command {
+func newRootCmd(config *action.Configuration, in io.Reader, out io.Writer, args []string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "osm",
 		Short:        "Install and manage Open Service Mesh",
@@ -36,7 +36,7 @@ func newRootCmd(config *action.Configuration, out io.Writer, args []string) *cob
 
 	// Add subcommands here
 	cmd.AddCommand(
-		newMeshCmd(config, out),
+		newMeshCmd(config, in, out),
 		newEnvCmd(out),
 		newInstallCmd(config, out),
 		newCheckCmd(out),
@@ -52,7 +52,7 @@ func newRootCmd(config *action.Configuration, out io.Writer, args []string) *cob
 
 func main() {
 	actionConfig := new(action.Configuration)
-	cmd := newRootCmd(actionConfig, os.Stdout, os.Args[1:])
+	cmd := newRootCmd(actionConfig, os.Stdin, os.Stdout, os.Args[1:])
 	actionConfig.Init(settings.RESTClientGetter(), settings.Namespace(), "secret", debug)
 
 	// run when each command's execute method is called
