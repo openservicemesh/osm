@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -auexo pipefail
+set -aueo pipefail
 
 PROXY_ADMIN_PORT=${PROXY_ADMIN_PORT:-15000}
 PROXY_STATS_PORT=${PROXY_STATS_PORT:-15010}
