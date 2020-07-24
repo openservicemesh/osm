@@ -25,6 +25,7 @@ CERT_MANAGER="${CERT_MANAGER:-tresor}"
 CTR_REGISTRY="${CTR_REGISTRY:-osmci.azurecr.io/osm}"
 CTR_REGISTRY_CREDS_NAME="${CTR_REGISTRY_CREDS_NAME:-acr-creds}"
 CTR_TAG="${CTR_TAG:-latest}"
+MESH_CIDR="${MESH_CIDR:-10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16}"
 
 optionalInstallArgs=$*
 
@@ -110,6 +111,7 @@ if [ "$CERT_MANAGER" = "vault" ]; then
       --container-registry-secret "$CTR_REGISTRY_CREDS_NAME" \
       --osm-image-tag "$CTR_TAG" \
       --enable-debug-server \
+      --mesh-cidr "$MESH_CIDR" \
       $optionalInstallArgs
 else
   # shellcheck disable=SC2086
@@ -120,6 +122,7 @@ else
       --container-registry-secret "$CTR_REGISTRY_CREDS_NAME" \
       --osm-image-tag "$CTR_TAG" \
       --enable-debug-server \
+      --mesh-cidr "$MESH_CIDR" \
       $optionalInstallArgs
 fi
 

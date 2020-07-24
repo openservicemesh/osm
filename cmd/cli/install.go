@@ -247,7 +247,8 @@ func validateCIDRs(cidrRanges []string) error {
 		return fmt.Errorf("CIDR ranges cannot be empty")
 	}
 	for _, cidr := range cidrRanges {
-		_, _, err := net.ParseCIDR(cidr)
+		cidrNoSpaces := strings.Replace(cidr, " ", "", -1)
+		_, _, err := net.ParseCIDR(cidrNoSpaces)
 		if err != nil {
 			return fmt.Errorf("Error parsing CIDR %s", cidr)
 		}
