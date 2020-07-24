@@ -30,14 +30,16 @@ Create some necessary environment variables. This environment variable setup is 
 $ # K8S_NAMESPACE is the Namespace the control plane will be installed into
 $ export K8S_NAMESPACE=osm-system
 
-# CTR_REGISTRY is the URL of the container registry to use
+$ # CTR_REGISTRY is the URL of the container registry to use
 $ export CTR_REGISTRY=<your registry>
 
-# For Azure Container Registry (ACR), the following command may be used: az acr credential show -n <your_registry_name> --query "passwords[0].value" | tr -d '"'
+$ # If no authentication to push to the container registry is required, the following steps may be skipped.
+
+$ # For Azure Container Registry (ACR), the following command may be used: az acr credential show -n <your_registry_name> --query "passwords[0].value" | tr -d '"'
 $ export CTR_REGISTRY_PASSWORD=<your password>
 
-# Create docker secret in Kubernetes Namespace using following script:
-$ ./scripts/create-container-registry-creds.sh
+$ # Create docker secret in Kubernetes Namespace using following script:
+$ ./scripts/create-container-registry-creds.sh "$K8S_NAMESPACE"
 
 ```
 
