@@ -270,6 +270,8 @@ jobs:
           CERT_MANAGER: "tresor"
           BOOKSTORE_SVC: "bookstore"
           BOOKTHIEF_EXPECTED_RESPONSE_CODE: "404"
+          CI_ENABLE_EGRESS: "false"
+          EGRESS_EXPECTED_RESPONSE_CODE: "404" # egress is disabled
         run: |
           touch .env  # it is OK for this file to be empty - needed by Makefile
           mkdir -p ".kube"
@@ -325,6 +327,8 @@ jobs:
           VAULT_ROLE: "open-service-mesh"
           BOOKSTORE_SVC: "bookstore-v1"
           BOOKTHIEF_EXPECTED_RESPONSE_CODE: "200"
+          CI_ENABLE_EGRESS: "true"
+          EGRESS_EXPECTED_RESPONSE_CODE: "200" # egress is enabled
           MESH_CIDR: "10.244.0.0/16,10.0.0.0/16"
         run: |
           touch .env  # it is OK for this file to be empty - needed by Makefile

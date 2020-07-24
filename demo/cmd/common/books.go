@@ -11,6 +11,18 @@ import (
 	"github.com/open-service-mesh/osm/pkg/logger"
 )
 
+const (
+	// RestockWarehouseURL is a header string constant.
+	RestockWarehouseURL = "restock-books"
+
+	// httpEgressURL is the URL used to test HTTP egress.
+	// The HTTP request will result in an HTTPS redirect which will be handled by the HTTP client.
+	httpEgressURL = "http://github.com"
+
+	// httpsEgressURL is the URL used to test HTTPS egress
+	httpsEgressURL = "https://github.com"
+)
+
 var (
 	sleepDurationBetweenRequestsSecondsStr = GetEnv("CI_SLEEP_BETWEEN_REQUESTS_SECONDS", "1")
 	minSuccessThresholdStr                 = GetEnv("CI_MIN_SUCCESS_THRESHOLD", "1")
@@ -19,6 +31,7 @@ var (
 	bookstoreNamespace                     = os.Getenv(BookstoreNamespaceEnvVar)
 	warehouseServiceName                   = "bookwarehouse"
 	bookwarehouseNamespace                 = os.Getenv(BookwarehouseNamespaceEnvVar)
+	enableEgress                           = GetEnv("CI_ENABLE_EGRESS", "true") == "true"
 
 	bookstoreService = fmt.Sprintf("%s.%s", bookstoreServiceName, bookstoreNamespace)     // FQDN
 	warehouseService = fmt.Sprintf("%s.%s", warehouseServiceName, bookwarehouseNamespace) // FQDN
@@ -40,11 +53,6 @@ var (
 		},
 		buyBook: nil,
 	}
-)
-
-const (
-	// RestockWarehouseURL is a header string constant.
-	RestockWarehouseURL = "restock-books"
 )
 
 var log = logger.NewPretty("demo")
@@ -86,13 +94,24 @@ func GetEnv(envVar string, defaultValue string) string {
 }
 
 // GetBooks reaches out to the bookstore and buys/steals books. This is invoked by the bookbuyer and the bookthief.
-func GetBooks(participantName string, expectedResponseCode int, booksCount *int, booksCountV1 *int, booksCountV2 *int) {
+func GetBooks(participantName string, meshExpectedResponseCode int, egressExpectedResponseCode int, booksCount *int, booksCountV1 *int, booksCountV2 *int) {
 	minSuccessThreshold, maxIterations, sleepDurationBetweenRequests := getEnvVars(participantName)
 
 	// The URLs this participant will attempt to query from the bookstore service
 	urlSuccessMap := map[string]bool{
 		booksBought: false,
 		buyBook:     false,
+	}
+	if enableEgress {
+		urlSuccessMap[httpEgressURL] = false
+		urlSuccessMap[httpsEgressURL] = false
+	}
+
+	urlExpectedRespCode := map[string]int{
+		booksBought:    meshExpectedResponseCode,
+		buyBook:        meshExpectedResponseCode,
+		httpEgressURL:  egressExpectedResponseCode,
+		httpsEgressURL: egressExpectedResponseCode,
 	}
 
 	// Count how many times we have reached out to the bookstore
@@ -115,6 +134,7 @@ func GetBooks(participantName string, expectedResponseCode int, booksCount *int,
 			// We only care about the response code of the HTTP call for the given URL
 			responseCode, identity := fetch(url)
 
+			expectedResponseCode := urlExpectedRespCode[url]
 			succeeded := responseCode == expectedResponseCode
 			if !succeeded {
 				fmt.Printf("ERROR: response code for %q is %d;  expected %d\n", url, responseCode, expectedResponseCode)

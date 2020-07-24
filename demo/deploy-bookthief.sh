@@ -8,6 +8,8 @@ source .env
 BOOKSTORE_SVC="${BOOKSTORE_SVC:-bookstore}"
 BOOKTHIEF_EXPECTED_RESPONSE_CODE="${BOOKTHIEF_EXPECTED_RESPONSE_CODE:-404}"
 CI_MAX_ITERATIONS_THRESHOLD="${CI_MAX_ITERATIONS_THRESHOLD:-0}"
+CI_ENABLE_EGRESS="${CI_ENABLE_EGRESS:-true}"
+EGRESS_EXPECTED_RESPONSE_CODE="${EGRESS_EXPECTED_RESPONSE_CODE:-200}"
 
 kubectl delete deployment bookthief -n "$BOOKTHIEF_NAMESPACE"  --ignore-not-found
 
@@ -73,6 +75,10 @@ spec:
               value: "$BOOKTHIEF_EXPECTED_RESPONSE_CODE"
             - name: "CI_MAX_ITERATIONS_THRESHOLD"
               value: "$CI_MAX_ITERATIONS_THRESHOLD"
+            - name: "CI_ENABLE_EGRESS"
+              value: "$CI_ENABLE_EGRESS"
+            - name: "EGRESS_EXPECTED_RESPONSE_CODE"
+              value: "$EGRESS_EXPECTED_RESPONSE_CODE"
 
       imagePullSecrets:
         - name: "$CTR_REGISTRY_CREDS_NAME"

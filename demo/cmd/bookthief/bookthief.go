@@ -6,6 +6,7 @@ import (
 	"html"
 	"html/template"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -15,17 +16,18 @@ import (
 )
 
 const (
-	participantName    = "bookthief"
-	httpStatusNotFound = "404"
+	participantName = "bookthief"
 )
 
 var (
-	booksStolen   = 0
-	booksStolenV1 = 0
-	booksStolenV2 = 0
-	log           = logger.NewPretty(participantName)
-	port          = flag.Int("port", 80, "port on which this app is listening for incoming HTTP")
-	path          = flag.String("path", ".", "path to the HTML template")
+	httpStatusOK       = strconv.Itoa(http.StatusOK)
+	httpStatusNotFound = strconv.Itoa(http.StatusNotFound)
+	booksStolen        = 0
+	booksStolenV1      = 0
+	booksStolenV2      = 0
+	log                = logger.NewPretty(participantName)
+	port               = flag.Int("port", 80, "port on which this app is listening for incoming HTTP")
+	path               = flag.String("path", ".", "path to the HTML template")
 )
 
 func renderTemplate(w http.ResponseWriter) {
@@ -93,11 +95,14 @@ func main() {
 	// The bookthief is not allowed to purchase books from the bookstore.
 	//
 	// Depending on  whether SMI policies or permissive traffic policy is enabled,
-	// the HTTP response status code will differ.
+	// the HTTP response status code will differ for in-mesh requests.
 	//
-	// Expected response code:
+	// Expected response code when bookthief tries to buy books from the bookstore:
 	// 1. With SMI policies: 404
 	// 2. With permissive traffic policy: 200
-	expectedResponseCode := common.GetExpectedResponseCodeFromEnvVar(common.BookthiefExpectedResponseCodeEnvVar, httpStatusNotFound)
-	common.GetBooks(participantName, expectedResponseCode, &booksStolen, &booksStolenV1, &booksStolenV2)
+	//
+	// When it tries to make an egress request, we expect a 200 response with egress enabled and a 404 response with egress disabled.
+	meshExpectedResponseCode := common.GetExpectedResponseCodeFromEnvVar(common.BookthiefExpectedResponseCodeEnvVar, httpStatusNotFound)
+	egressExpectedResponseCode := common.GetExpectedResponseCodeFromEnvVar(common.EgressExpectedResponseCodeEnvVar, httpStatusOK)
+	common.GetBooks(participantName, meshExpectedResponseCode, egressExpectedResponseCode, &booksStolen, &booksStolenV1, &booksStolenV2)
 }

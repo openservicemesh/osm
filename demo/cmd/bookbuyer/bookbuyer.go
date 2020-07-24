@@ -6,6 +6,7 @@ import (
 	"html"
 	"html/template"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -19,6 +20,7 @@ const (
 )
 
 var (
+	httpStatusOK  = strconv.Itoa(http.StatusOK)
 	booksBought   = 0
 	booksBoughtV1 = 0
 	booksBoughtV2 = 0
@@ -90,7 +92,10 @@ func main() {
 
 	go debugServer()
 
-	// This is the bookbuyer.  When it tries to buy books from the bookstore - we expect it to see 200 responses.
-	expectedResponseCode := http.StatusOK
-	common.GetBooks(participantName, expectedResponseCode, &booksBought, &booksBoughtV1, &booksBoughtV2)
+	// This is the bookbuyer.
+	// When it tries to buy books from the bookstore - we expect it to see 200 responses.
+	// When it tries to make an egress request, we expect a 200 response with egress enabled and a 404 response with egress disabled.
+	meshExpectedResponseCode := http.StatusOK
+	egressExpectedResponseCode := common.GetExpectedResponseCodeFromEnvVar(common.EgressExpectedResponseCodeEnvVar, httpStatusOK)
+	common.GetBooks(participantName, meshExpectedResponseCode, egressExpectedResponseCode, &booksBought, &booksBoughtV1, &booksBoughtV2)
 }
