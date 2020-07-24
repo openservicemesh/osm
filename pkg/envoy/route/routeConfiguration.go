@@ -49,32 +49,32 @@ var (
 	}}
 )
 
-//UpdateRouteConfiguration consrtucts the Envoy construct necessary for TrafficTarget implementation
-func UpdateRouteConfiguration(domainRoutesMap map[string]map[string]trafficpolicy.RouteWeightedClusters, routeConfig *v2.RouteConfiguration, isSourceConfig bool, isDestinationConfig bool) {
-	log.Trace().Msgf("[RDS] Updating Route Configuration")
+// UpdateRouteConfiguration makes the Envoy struct needed for TrafficTarget implementation
+func UpdateRouteConfiguration(routesPerHost map[string]map[string]trafficpolicy.RouteWeightedClusters, routeConfig *v2.RouteConfiguration, isSourceConfig bool, isDestinationConfig bool) {
 	var isLocalCluster bool
 	var virtualHostPrefix string
 
 	if isSourceConfig {
-		log.Trace().Msgf("[RDS] Updating OutboundRouteConfiguration for policy %v", domainRoutesMap)
+		log.Trace().Msgf("[RDS] Updating OutboundRouteConfiguration for policy %v", routesPerHost)
 		isLocalCluster = false
 		virtualHostPrefix = outboundVirtualHost
 	} else if isDestinationConfig {
-		log.Trace().Msgf("[RDS] Updating InboundRouteConfiguration for policy %v", domainRoutesMap)
+		log.Trace().Msgf("[RDS] Updating InboundRouteConfiguration for policy %v", routesPerHost)
 		isLocalCluster = true
 		virtualHostPrefix = inboundVirtualHost
 	}
-	for domain, routePolicyWeightedClustersMap := range domainRoutesMap {
-		virtualHost := createVirtualHostStub(virtualHostPrefix, domain)
+	for host, routePolicyWeightedClustersMap := range routesPerHost {
+		virtualHost := createVirtualHostStub(virtualHostPrefix, host)
 		virtualHost.Routes = createRoutes(routePolicyWeightedClustersMap, isLocalCluster)
 		routeConfig.VirtualHosts = append(routeConfig.VirtualHosts, virtualHost)
 	}
+	log.Trace().Msgf("Updates routes to: %+v", routeConfig)
 }
 
-func createVirtualHostStub(namePrefix string, domain string) *v2route.VirtualHost {
-	// If domain consists a comma separated list of domains, it means multiple
+func createVirtualHostStub(namePrefix string, host string) *v2route.VirtualHost {
+	// If host consists a comma separated list of domains, it means multiple
 	// domains match against the same route config.
-	domains := strings.Split(domain, ",")
+	domains := strings.Split(host, ",")
 	for i := range domains {
 		domains[i] = strings.TrimSpace(domains[i])
 	}

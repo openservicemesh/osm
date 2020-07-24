@@ -208,8 +208,8 @@ var _ = Describe("Route Configuration", func() {
 		It("Returns outbound route configuration", func() {
 
 			weightedClusters := set.NewSet()
-			weightedClusters.Add(service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1"), Weight: 100})
-			weightedClusters.Add(service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-2"), Weight: 100})
+			weightedClusters.Add(service.WeightedCluster{ClusterName: "osm/bookstore-1", Weight: 100})
+			weightedClusters.Add(service.WeightedCluster{ClusterName: "osm/bookstore-2", Weight: 100})
 
 			totalClusterWeight := 0
 			for clusterInterface := range weightedClusters.Iter() {
