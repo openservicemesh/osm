@@ -8,7 +8,6 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/configurator"
-	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 	"github.com/open-service-mesh/osm/pkg/envoy/route"
 	"github.com/open-service-mesh/osm/pkg/service"
@@ -115,29 +114,4 @@ func createRoutePolicyWeightedClusters(routePolicy trafficpolicy.Route, weighted
 		Route:            routePolicy,
 		WeightedClusters: set.NewSet(weightedCluster),
 	}
-}
-
-func updateRoutesForIngress(proxyServiceName service.NamespacedService, catalog catalog.MeshCataloger, domainRoutesMap map[string]map[string]trafficpolicy.RouteWeightedClusters) error {
-	ingressRoutesPerHost, err := catalog.GetIngressRoutesPerHost(proxyServiceName)
-	if err != nil {
-		log.Error().Err(err).Msgf("Failed to get ingress route configuration for proxy %s", proxyServiceName)
-		return err
-	}
-
-	if len(ingressRoutesPerHost) == 0 {
-		return nil
-	}
-
-	ingressWeightedCluster := service.WeightedCluster{
-		ClusterName: service.ClusterName(proxyServiceName.String()),
-		Weight:      constants.ClusterWeightAcceptAll,
-	}
-
-	for host, routes := range ingressRoutesPerHost {
-		for _, rt := range routes {
-			aggregateRoutesByHost(domainRoutesMap, rt, ingressWeightedCluster, host)
-		}
-	}
-
-	return nil
 }
