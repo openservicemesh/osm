@@ -52,13 +52,16 @@ func getIngressFilterChain(cfg configurator.Configurator, svc service.Namespaced
 
 func getInboundIngressFilterChains(svc service.NamespacedService, cfg configurator.Configurator) ([]*envoy_api_v2_listener.FilterChain, error) {
 	// Filter chain without SNI matching enabled for clients that don't set the SNI
-	fcNoSNI := getIngressFilterChain(cfg, svc)
+	ingressFilterChainWithoutSNI := getIngressFilterChain(cfg, svc)
 
 	// Filter chain with SNI matching enabled for clients that set the SNI
-	fcWithSNI := getIngressFilterChain(cfg, svc)
-	fcWithSNI.FilterChainMatch.ServerNames = []string{svc.GetCommonName().String()}
+	ingressFilterChainWithSNI := getIngressFilterChain(cfg, svc)
+	ingressFilterChainWithSNI.FilterChainMatch.ServerNames = []string{svc.GetCommonName().String()}
 
-	return []*envoy_api_v2_listener.FilterChain{fcWithSNI, fcNoSNI}, nil
+	return []*envoy_api_v2_listener.FilterChain{
+		ingressFilterChainWithSNI,
+		ingressFilterChainWithoutSNI,
+	}, nil
 }
 
 func getTransportSocket(cfg configurator.Configurator, marshalledDownstreamTLSContext *any.Any) *envoy_api_v2_core.TransportSocket {
