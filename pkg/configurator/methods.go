@@ -56,6 +56,11 @@ func (c *Client) GetMeshCIDRRanges() []string {
 	return cidrRanges
 }
 
+// UseHTTPSIngress determines whether traffic between ingress and backend pods should use HTTPS protocol
+func (c *Client) UseHTTPSIngress() bool {
+	return c.getConfigMap().UseHTTPSIngress
+}
+
 // GetAnnouncementsChannel returns a channel, which is used to announce when changes have been made to the OSM ConfigMap.
 func (c *Client) GetAnnouncementsChannel() <-chan interface{} {
 	return c.announcements

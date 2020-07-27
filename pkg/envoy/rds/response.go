@@ -36,8 +36,8 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	}
 
 	routeConfiguration := []*xds.RouteConfiguration{}
-	sourceRouteConfig := route.NewRouteConfigurationStub(route.OutboundRouteConfig)
-	destinationRouteConfig := route.NewRouteConfigurationStub(route.InboundRouteConfig)
+	sourceRouteConfig := route.NewRouteConfigurationStub(route.OutboundRouteConfigName)
+	destinationRouteConfig := route.NewRouteConfigurationStub(route.InboundRouteConfigName)
 	sourceAggregatedRoutesByDomain := make(map[string]map[string]trafficpolicy.RouteWeightedClusters)
 	destinationAggregatedRoutesByDomain := make(map[string]map[string]trafficpolicy.RouteWeightedClusters)
 
