@@ -4,9 +4,10 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/open-service-mesh/osm/pkg/catalog"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
+	"github.com/open-service-mesh/osm/pkg/catalog"
+	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 	"github.com/open-service-mesh/osm/pkg/tests"
 )
@@ -15,7 +16,8 @@ var _ = Describe("Test LDS response", func() {
 	Context("Test getInboundIngressFilterChain()", func() {
 		It("constructs filter chain used for ingress", func() {
 			expectedServerNames := []string{tests.BookstoreService.GetCommonName().String()}
-			marshalledConnManager, err := envoy.MessageToAny(getHTTPConnectionManager("fake"))
+			cfg := configurator.NewFakeConfiguratorWithOptions(configurator.FakeConfigurator{})
+			marshalledConnManager, err := envoy.MessageToAny(getHTTPConnectionManager("fake", cfg))
 			Expect(err).ToNot(HaveOccurred())
 			filterChains, err := getInboundIngressFilterChains(tests.BookstoreService, marshalledConnManager)
 			Expect(err).ToNot(HaveOccurred())
