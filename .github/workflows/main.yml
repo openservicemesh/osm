@@ -271,6 +271,7 @@ jobs:
           BOOKSTORE_SVC: "bookstore"
           BOOKTHIEF_EXPECTED_RESPONSE_CODE: "404"
           EGRESS_EXPECTED_RESPONSE_CODE: "404" # egress is disabled
+          CI_WAIT_FOR_OK_SECONDS: 75
         run: |
           touch .env  # it is OK for this file to be empty - needed by Makefile
           mkdir -p ".kube"
