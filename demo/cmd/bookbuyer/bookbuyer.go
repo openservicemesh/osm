@@ -23,13 +23,14 @@ const (
 )
 
 var (
-	wg            sync.WaitGroup
-	booksBought   int64 = 0
-	booksBoughtV1 int64 = 0
-	booksBoughtV2 int64 = 0
-	log                 = logger.NewPretty(participantName)
-	port                = flag.Int("port", 80, "port on which this app is listening for incoming HTTP")
-	path                = flag.String("path", ".", "path to the HTML template")
+	wg                sync.WaitGroup
+	booksBought       int64 = 0
+	booksBoughtV1     int64 = 0
+	booksBoughtV2     int64 = 0
+	log                     = logger.NewPretty(participantName)
+	port                    = flag.Int("port", 80, "port on which this app is listening for incoming HTTP")
+	path                    = flag.String("path", ".", "path to the HTML template")
+	numConnectionsStr       = common.GetEnv("CI_CLIENT_CONCURRENT_CONNECTIONS", "1")
 )
 
 type handler struct {
@@ -104,9 +105,9 @@ func main() {
 
 	go debugServer()
 
-	numConnections, err := strconv.Atoi(common.GetEnv("NUM_BOOKBUYER_CONNECTIONS", "1"))
+	numConnections, err := strconv.Atoi(numConnectionsStr)
 	if err != nil {
-		fmt.Printf("Error: invalid value for number of bookstore connections")
+		fmt.Printf("Error: invalid value for number of bookstore connections: %s", numConnectionsStr)
 		numConnections = 1
 	}
 
