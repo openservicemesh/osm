@@ -7,6 +7,7 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes/wrappers"
 
+	"github.com/open-service-mesh/osm/pkg/configurator"
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 )
@@ -15,12 +16,7 @@ const (
 	statPrefix = "http"
 )
 
-// TODO(draychev): move to OSM Config CRD or CLI
-const (
-	enableTracing = true
-)
-
-func getHTTPConnectionManager(routeName string) *envoy_hcm.HttpConnectionManager {
+func getHTTPConnectionManager(routeName string, cfg configurator.Configurator) *envoy_hcm.HttpConnectionManager {
 	connManager := envoy_hcm.HttpConnectionManager{
 		StatPrefix: statPrefix,
 		CodecType:  envoy_hcm.HttpConnectionManager_AUTO,
@@ -36,7 +32,7 @@ func getHTTPConnectionManager(routeName string) *envoy_hcm.HttpConnectionManager
 		AccessLog: envoy.GetAccessLog(),
 	}
 
-	if enableTracing {
+	if cfg.IsZipkinTracingEnabled() {
 		connManager.GenerateRequestId = &wrappers.BoolValue{
 			Value: true,
 		}

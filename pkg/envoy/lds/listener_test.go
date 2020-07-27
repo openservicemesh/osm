@@ -31,7 +31,7 @@ var _ = Describe("Construct inbound and outbound listeners", func() {
 				Egress:         true,
 				MeshCIDRRanges: []string{cidr1, cidr2},
 			})
-			connManager := getHTTPConnectionManager("fake-outbound")
+			connManager := getHTTPConnectionManager("fake-outbound", cfg)
 			listener, err := buildOutboundListener(connManager, cfg)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -59,7 +59,7 @@ var _ = Describe("Construct inbound and outbound listeners", func() {
 			cfg := configurator.NewFakeConfiguratorWithOptions(configurator.FakeConfigurator{
 				Egress: false,
 			})
-			connManager := getHTTPConnectionManager("fake-outbound")
+			connManager := getHTTPConnectionManager("fake-outbound", cfg)
 			listener, err := buildOutboundListener(connManager, cfg)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -120,7 +120,8 @@ var _ = Describe("Construct inbound and outbound listeners", func() {
 
 	Context("Test creation of Prometheus listener", func() {
 		It("Tests the Prometheus listener config", func() {
-			connManager := getHTTPConnectionManager("fake-prometheus")
+			cfg := configurator.NewFakeConfiguratorWithOptions(configurator.FakeConfigurator{})
+			connManager := getHTTPConnectionManager("fake-prometheus", cfg)
 			listener, _ := buildPrometheusListener(connManager)
 			Expect(listener.Address).To(Equal(envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyPrometheusInboundListenerPort)))
 			Expect(len(listener.ListenerFilters)).To(Equal(0)) //  no listener filters
