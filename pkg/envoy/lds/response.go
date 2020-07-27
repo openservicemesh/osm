@@ -43,8 +43,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	}
 
 	// Build the outbound listener config
-	outboundConnManager := getHTTPConnectionManager(route.OutboundRouteConfig, cfg)
-	outboundListener, err := buildOutboundListener(outboundConnManager, cfg)
+	outboundListener, err := newOutboundListener(cfg)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error building outbound listener config for proxy %s", proxyServiceName)
 		return nil, err
@@ -64,7 +63,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 		return nil, err
 	}
 
-	inboundListener := buildInboundListener()
+	inboundListener := newInboundListener()
 	meshFilterChain, err := getInboundInMeshFilterChain(proxyServiceName, catalog, marshalledInboundConnManager)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to construct in-mesh filter chain for proxy %s", proxy.GetCommonName())
