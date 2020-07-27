@@ -6,6 +6,7 @@ import (
 	"html"
 	"html/template"
 	"net/http"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -19,7 +20,6 @@ import (
 const (
 	participantName = "bookbuyer"
 	httpStatusOK    = "200"
-	numConnections  = 15
 )
 
 var (
@@ -103,6 +103,12 @@ func getBooksWrapper(wg *sync.WaitGroup) {
 func main() {
 
 	go debugServer()
+
+	numConnections, err := strconv.Atoi(common.GetEnv("NUM_BOOKBUYER_CONNECTIONS", "1"))
+	if err != nil {
+		fmt.Printf("Error: invalid value for number of bookstore connections")
+		numConnections = 1
+	}
 
 	// This is the bookbuyer.  When it tries to buy books from the bookstore - we expect it to see 200 responses.
 	for i := 0; i < numConnections; i++ {
