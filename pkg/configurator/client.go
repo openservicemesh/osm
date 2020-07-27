@@ -19,7 +19,7 @@ const (
 	prometheusScrapingKey          = "prometheus_scraping"
 	zipkinTracingKey               = "zipkin_tracing"
 	meshCIDRRangesKey              = "mesh_cidr_ranges"
-	isHTTPSIngressKey              = "use_https_ingress"
+	useHTTPSIngressKey             = "use_https_ingress"
 )
 
 // NewConfigurator implements configurator.Configurator and creates the Kubernetes client to manage namespaces.
@@ -132,9 +132,9 @@ func (c *Client) getConfigMap() *osmConfig {
 	cfg.PrometheusScraping = modeBool
 
 	// Parse UseHTTPSIngress from ConfigMap
-	modeBool, err = getBoolValueForKey(configMap, isHTTPSIngressKey)
+	modeBool, err = getBoolValueForKey(configMap, useHTTPSIngressKey)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting value for key=%s", isHTTPSIngressKey)
+		log.Error().Err(err).Msgf("Error getting value for key=%s", useHTTPSIngressKey)
 	}
 	cfg.UseHTTPSIngress = modeBool
 
