@@ -31,8 +31,8 @@ var _ = Describe("Construct inbound and outbound listeners", func() {
 				Egress:         true,
 				MeshCIDRRanges: []string{cidr1, cidr2},
 			})
-			connManager := getHTTPConnectionManager("fake-outbound", cfg)
-			listener, err := buildOutboundListener(connManager, cfg)
+
+			listener, err := newOutboundListener(cfg)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(listener.Address).To(Equal(envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyOutboundListenerPort)))
@@ -59,8 +59,8 @@ var _ = Describe("Construct inbound and outbound listeners", func() {
 			cfg := configurator.NewFakeConfiguratorWithOptions(configurator.FakeConfigurator{
 				Egress: false,
 			})
-			connManager := getHTTPConnectionManager("fake-outbound", cfg)
-			listener, err := buildOutboundListener(connManager, cfg)
+
+			listener, err := newOutboundListener(cfg)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(listener.Address).To(Equal(envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyOutboundListenerPort)))
@@ -110,7 +110,7 @@ var _ = Describe("Construct inbound and outbound listeners", func() {
 
 	Context("Test creation of inbound listener", func() {
 		It("Tests the inbound listener config", func() {
-			listener := buildInboundListener()
+			listener := newInboundListener()
 			Expect(listener.Address).To(Equal(envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyInboundListenerPort)))
 			Expect(len(listener.ListenerFilters)).To(Equal(1)) // tls-inpsector listener filter
 			Expect(listener.ListenerFilters[0].Name).To(Equal(wellknown.TlsInspector))
