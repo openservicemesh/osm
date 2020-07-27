@@ -64,7 +64,7 @@ func RestockBooks(amount int) {
 	requestBody := strings.NewReader(strconv.Itoa(1))
 	req, err := http.NewRequest("POST", chargeAccountURL, requestBody)
 	if err != nil {
-		log.Info().Msgf("RestockBooks: error posting to %s: %s ", chargeAccountURL, err)
+		log.Error().Err(err).Msgf("RestockBooks: error posting to %s", chargeAccountURL)
 		return
 	}
 
@@ -72,7 +72,7 @@ func RestockBooks(amount int) {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Info().Msgf("RestockBooks: Error posting to %s: %s ", chargeAccountURL, err)
+		log.Error().Err(err).Msgf("RestockBooks: Error posting to %s", chargeAccountURL)
 		return
 	}
 
