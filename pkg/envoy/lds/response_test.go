@@ -14,8 +14,7 @@ var _ = Describe("Test LDS response", func() {
 		It("constructs filter chain used for ingress", func() {
 			expectedServerNames := []string{tests.BookstoreService.GetCommonName().String()}
 			cfg := configurator.NewFakeConfiguratorWithOptions(configurator.FakeConfigurator{})
-			filterChains, err := getInboundIngressFilterChains(tests.BookstoreService, cfg)
-			Expect(err).ToNot(HaveOccurred())
+			filterChains := getInboundIngressFilterChains(tests.BookstoreService, cfg)
 			Expect(len(filterChains)).To(Equal(2))
 			for _, filterChain := range filterChains {
 				// Expect(filterChain.FilterChainMatch.TransportProtocol).To(Equal(envoy.TransportProtocolTLS))
