@@ -22,7 +22,10 @@ const (
 	useHTTPSIngressKey             = "use_https_ingress"
 
 	// See https://tools.ietf.org/html/rfc1918
-	defaultInMeshCIDR = "10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16"
+	// A reasonable default could be: defaultInMeshCIDR = "10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16"
+	// TODO(draychev): come up with reasonable defaults
+	// GitHub Issue: https://github.com/open-service-mesh/osm/issues/1225
+	defaultInMeshCIDR = ""
 )
 
 // NewConfigurator implements configurator.Configurator and creates the Kubernetes client to manage namespaces.
