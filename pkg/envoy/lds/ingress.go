@@ -38,7 +38,7 @@ func getIngressFilterChain(cfg configurator.Configurator, svc service.Namespaced
 		FilterChainMatch: &envoy_api_v2_listener.FilterChainMatch{
 			TransportProtocol: getIngressTransportProtocol(cfg),
 		},
-		TransportSocket: getTransportSocket(cfg, marshalledDownstreamTLSContext),
+		TransportSocket: getIngressTransportSocket(cfg, marshalledDownstreamTLSContext),
 		Filters: []*envoy_api_v2_listener.Filter{
 			{
 				Name: wellknown.HTTPConnectionManager,
@@ -64,7 +64,7 @@ func getInboundIngressFilterChains(svc service.NamespacedService, cfg configurat
 	}
 }
 
-func getTransportSocket(cfg configurator.Configurator, marshalledDownstreamTLSContext *any.Any) *envoy_api_v2_core.TransportSocket {
+func getIngressTransportSocket(cfg configurator.Configurator, marshalledDownstreamTLSContext *any.Any) *envoy_api_v2_core.TransportSocket {
 	if cfg.UseHTTPSIngress() {
 		return &envoy_api_v2_core.TransportSocket{
 			Name: wellknown.TransportSocketTls,
