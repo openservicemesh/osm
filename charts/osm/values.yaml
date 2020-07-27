@@ -32,3 +32,4 @@ OpenServiceMesh:
   enableMetricsStack: true
   meshName: osm
   meshCIDRRanges: 0.0.0.0/0
+  useHTTPSIngress: false

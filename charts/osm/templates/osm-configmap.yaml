@@ -11,3 +11,4 @@ data:
 {{- if .Values.OpenServiceMesh.enableEgress }}
   mesh_cidr_ranges: {{ .Values.OpenServiceMesh.meshCIDRRanges | quote }}
 {{- end }}
+  use_https_ingress: {{ .Values.OpenServiceMesh.useHTTPSIngress | quote | default "false" }}
