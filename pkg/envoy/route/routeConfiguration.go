@@ -14,7 +14,6 @@ import (
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/envoy"
-	"github.com/open-service-mesh/osm/pkg/kubernetes"
 	"github.com/open-service-mesh/osm/pkg/service"
 	"github.com/open-service-mesh/osm/pkg/trafficpolicy"
 )
@@ -80,7 +79,7 @@ func createVirtualHostStub(namePrefix string, domain string) *v2route.VirtualHos
 		domains[i] = strings.TrimSpace(domains[i])
 	}
 
-	name := fmt.Sprintf("%s|%s", namePrefix, kubernetes.GetServiceNameFromDomain(domains[0]))
+	name := fmt.Sprintf("%s|%s", namePrefix, getServiceFromHost(domains[0]))
 	virtualHost := v2route.VirtualHost{
 		Name:    name,
 		Domains: domains,
@@ -263,4 +262,11 @@ func getRegexForMethod(httpMethod string) string {
 		methodRegex = constants.RegexMatchAll
 	}
 	return methodRegex
+}
+
+// getServiceFromHost returns the service name from its host
+func getServiceFromHost(host string) string {
+	// The service name is the first string in the host name for a service.
+	// Ex. service.namespace, service.namespace.cluster.local
+	return strings.Split(host, ".")[0]
 }

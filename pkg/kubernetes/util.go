@@ -2,11 +2,8 @@ package kubernetes
 
 import (
 	"fmt"
-	"strings"
 
 	corev1 "k8s.io/api/core/v1"
-
-	"github.com/open-service-mesh/osm/pkg/constants"
 )
 
 const (
@@ -38,11 +35,4 @@ func GetDomainsForService(service *corev1.Service) []string {
 		domains = append(domains, fmt.Sprintf("%s.%s.svc.%s:%d", serviceName, namespace, clusterDomain, port)) // service.namespace.svc.cluster.local:port
 	}
 	return domains
-}
-
-// GetServiceNameFromDomain returns the service name from its domain
-func GetServiceNameFromDomain(domain string) string {
-	// The service name is the first string in the domain name for a service.
-	// Ex. service.namespace, service.namespace.cluster.local
-	return strings.Split(domain, constants.DomainDelimiter)[0]
 }
