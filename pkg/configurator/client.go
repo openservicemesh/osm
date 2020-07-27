@@ -19,6 +19,7 @@ const (
 	prometheusScrapingKey          = "prometheus_scraping"
 	zipkinTracingKey               = "zipkin_tracing"
 	meshCIDRRangesKey              = "mesh_cidr_ranges"
+	isHTTPSIngressKey              = "use_https_ingress"
 )
 
 // NewConfigurator implements configurator.Configurator and creates the Kubernetes client to manage namespaces.
@@ -68,7 +69,11 @@ type osmConfig struct {
 	// ZipkinTracing is a bool toggle used to enable ot disable Zipkin tracing
 	ZipkinTracing bool `yaml:"zipkin_tracing"`
 
+	// MeshCIDRRanges is the list of CIDR ranges for in-mesh traffic
 	MeshCIDRRanges string `yaml:"mesh_cidr_ranges"`
+
+	// UseHTTPSIngress is a bool toggle enabling HTTPS protocol between ingress and backend pods
+	UseHTTPSIngress bool `yaml:"use_https_ingress"`
 }
 
 func (c *Client) run(stop <-chan struct{}) {
@@ -125,6 +130,13 @@ func (c *Client) getConfigMap() *osmConfig {
 		log.Error().Err(err).Msgf("Error getting value for key=%s", prometheusScrapingKey)
 	}
 	cfg.PrometheusScraping = modeBool
+
+	// Parse UseHTTPSIngress from ConfigMap
+	modeBool, err = getBoolValueForKey(configMap, isHTTPSIngressKey)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error getting value for key=%s", isHTTPSIngressKey)
+	}
+	cfg.UseHTTPSIngress = modeBool
 
 	// Parse ZipkinTracing
 	modeBool, err = getBoolValueForKey(configMap, zipkinTracingKey)
