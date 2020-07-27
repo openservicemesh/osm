@@ -44,53 +44,9 @@ The simplest way of installing open service mesh on a Kubernetes cluster is by u
 
 Download the `osm` binary from the [Releases page](https://github.com/open-service-mesh/osm/releases).
 
-See the [installation guide](docs/installation_guide.md) for more detailed options.
+See the [installation guide](docs/installation_guide.md) for more detailed options. After installing OSM, [onboard services](docs/onboard_services.md) to the mesh.
 
-## Managing Services Using OSM
-
-#### On-boarding services to the OSM managed service mesh
-
-To on-board a service to the OSM managed service mesh, OSM first needs to be configured to monitor the namespace the service belongs to. This can be done by labeling the namespace with the mesh name as follows.
-```
-$ kubectl label namespace <namespace> openservicemesh.io/monitored-by=<mesh-name>
-```
-The same can be done using the `osm cli` tool.
-```
-$ bin/osm namespace add --mesh-name <mesh-name> <namespace-name>
-```
-
-The `mesh-name` is a unique identifier assigned to an osm-controller instance during install to identify and manage manage a mesh instance.
-
-The `mesh-name` should follow [RFC 1123](https://tools.ietf.org/html/rfc1123) DNS Label constraints. The `mesh-name` must:
-
-- contain at most 63 characters
-- contain only lowercase alphanumeric characters or '-'
-- start with an alphanumeric character
-- end with an alphanumeric character
-
-After a namespace is labeled for monitoring, new services deployed in a monitored namespace will be a part of the service mesh and OSM will perform automatic sidecar injection for newly created PODs in that namespace.
-
-#### Disabling automatic sidecar injection
-Since the sidecar is automatically injected for PODs belonging to a monitored namespace, PODs that are not a part of the service mesh but belong to a monitored namespace should be configured to not have the sidecar injected. This can be achieved by any of the following ways.
-
-- Deploying PODs that are not a part of the service mesh in namespaces that are not monitored by OSM
-- Explicitly annotating PODs with sidecar injection as disabled: `"openservicemesh.io/sidecar-injection": "disabled"`
-
-#### Adding existing services to be managed by a new OSM instance
-Currently OSM only supports automatic sidecar injection for newly created PODs. Thus, existing services will need to be enabled for monitoring as described above, and then the PODs will need to be redeployed. This workflow will be simplified once OSM supports manual sidecar injection.
-
-#### Un-managing namespaces
-To stop OSM from monitoring a namespace, remove the monitoring label from the namespace.
-```
-$ kubectl label namespace <namespace> openservicemesh.io/monitored-by-
-```
-The same can be done using the `osm cli` tool.
-```
-$ bin/osm namespace remove --mesh-name <mesh-name> <namespace-name>
-```
-
-[1]: https://en.wikipedia.org/wiki/Service_mesh
-[2]: https://github.com/servicemeshinterface/smi-spec/blob/master/SPEC_LATEST_STABLE.md
+For instructions on how to utilize [Azure Arc](https://azure.microsoft.com/en-us/services/azure-arc/) and the [Azure Arc-enabled Kubernetes](https://docs.microsoft.com/en-us/azure/azure-arc/kubernetes/overview) experience for deploying OSM and configuring policies, please visit the [OSM Azure Arc Installation Guide](docs/azure_arc_installation_guide.md).
 
 ## Community, discussion, contribution, and support
 
@@ -106,3 +62,7 @@ This project has adopted the [Microsoft Open Source Code of Conduct](https://ope
 ## License
 
 This software is covered under the MIT license. You can read the license [here](LICENSE).
+
+
+[1]: https://en.wikipedia.org/wiki/Service_mesh
+[2]: https://github.com/servicemeshinterface/smi-spec/blob/master/SPEC_LATEST_STABLE.md

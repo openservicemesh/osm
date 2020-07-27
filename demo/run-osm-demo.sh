@@ -25,6 +25,7 @@ CERT_MANAGER="${CERT_MANAGER:-tresor}"
 CTR_REGISTRY="${CTR_REGISTRY:-osmci.azurecr.io/osm}"
 CTR_REGISTRY_CREDS_NAME="${CTR_REGISTRY_CREDS_NAME:-acr-creds}"
 CTR_TAG="${CTR_TAG:-latest}"
+MESH_CIDR="${MESH_CIDR:-10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16}"
 
 optionalInstallArgs=$*
 
@@ -47,7 +48,7 @@ wait_for_osm_pods() {
 }
 
 wait_for_pod_ready() {
-    max=12
+    max=15
     pod_name=$1
 
     for x in $(seq 1 $max); do
@@ -69,10 +70,10 @@ make build-osm
 
 if [[ "$CI" != "true" ]]; then
     # In Github CI we always use a new namespace - so this is not necessary
-    bin/osm mesh delete "$MESH_NAME" --namespace "$K8S_NAMESPACE" || true
+    bin/osm mesh delete -f --mesh-name "$MESH_NAME" --namespace "$K8S_NAMESPACE"
     ./demo/clean-kubernetes.sh
 else
-    bin/osm mesh delete "$MESH_NAME" --namespace "$K8S_NAMESPACE" || true
+    bin/osm mesh delete -f --mesh-name "$MESH_NAME" --namespace "$K8S_NAMESPACE"
 fi
 
 # Run pre-install checks to make sure OSM can be installed in the current kubectl context.
@@ -92,16 +93,8 @@ if [[ "$CI" != "true" ]]; then
     # For Github CI we achieve these at a different time or different script
     # See .github/workflows/main.yml
     ./demo/build-push-images.sh
-    ./scripts/create-container-registry-creds.sh
-else
-    # This script is specifically for CI
-    ./ci/create-osm-container-registry-creds.sh
 fi
-
-for ns in "$BOOKWAREHOUSE_NAMESPACE" "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE"; do
-    kubectl create namespace "$ns"
-    bin/osm namespace add --mesh-name "$MESH_NAME" "$ns"
-done
+./scripts/create-container-registry-creds.sh "$K8S_NAMESPACE"
 
 # Deploys Xds and Prometheus
 echo "Certificate Manager in use: $CERT_MANAGER"
@@ -118,6 +111,7 @@ if [ "$CERT_MANAGER" = "vault" ]; then
       --container-registry-secret "$CTR_REGISTRY_CREDS_NAME" \
       --osm-image-tag "$CTR_TAG" \
       --enable-debug-server \
+      --mesh-cidr "$MESH_CIDR" \
       $optionalInstallArgs
 else
   # shellcheck disable=SC2086
@@ -128,11 +122,14 @@ else
       --container-registry-secret "$CTR_REGISTRY_CREDS_NAME" \
       --osm-image-tag "$CTR_TAG" \
       --enable-debug-server \
+      --mesh-cidr "$MESH_CIDR" \
       $optionalInstallArgs
 fi
 
 wait_for_osm_pods
 
+./demo/configure-app-namespaces.sh
+bin/osm namespace add --mesh-name "$MESH_NAME" "$BOOKWAREHOUSE_NAMESPACE" "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE"
 ./demo/deploy-apps.sh
 
 # Apply SMI policies

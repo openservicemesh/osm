@@ -2,6 +2,7 @@ package configurator
 
 import (
 	"encoding/json"
+	"strings"
 )
 
 // The functions in this file implement the configurator.Configurator interface
@@ -46,6 +47,18 @@ func (c *Client) IsPrometheusScrapingEnabled() bool {
 // IsZipkinTracingEnabled determines whether Zipkin tracing is enabled
 func (c *Client) IsZipkinTracingEnabled() bool {
 	return c.getConfigMap().ZipkinTracing
+}
+
+// GetMeshCIDRRanges returns a list of mesh CIDR ranges
+func (c *Client) GetMeshCIDRRanges() []string {
+	cidrStr := c.getConfigMap().MeshCIDRRanges
+	cidrRanges := strings.Fields(cidrStr)
+	return cidrRanges
+}
+
+// UseHTTPSIngress determines whether traffic between ingress and backend pods should use HTTPS protocol
+func (c *Client) UseHTTPSIngress() bool {
+	return c.getConfigMap().UseHTTPSIngress
 }
 
 // GetAnnouncementsChannel returns a channel, which is used to announce when changes have been made to the OSM ConfigMap.

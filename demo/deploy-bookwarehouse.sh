@@ -1,11 +1,11 @@
 #!/bin/bash
 
-set -auexo pipefail
+set -aueo pipefail
 
 # shellcheck disable=SC1091
 source .env
 
-kubectl delete deployment bookwarehouse -n "$BOOKWAREHOUSE_NAMESPACE"  || true
+kubectl delete deployment bookwarehouse -n "$BOOKWAREHOUSE_NAMESPACE"  --ignore-not-found
 
 echo -e "Deploy Bookwarehouse Service Account"
 kubectl apply -f - <<EOF

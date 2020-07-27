@@ -1,15 +1,15 @@
 #!/bin/bash
 
-set -auexo pipefail
+set -aueo pipefail
 
 # shellcheck disable=SC1091
 source .env
 VERSION=${1:-v1}
 SVC="bookstore-$VERSION"
 
-kubectl delete deployment "$SVC" -n "$BOOKSTORE_NAMESPACE"  || true
+kubectl delete deployment "$SVC" -n "$BOOKSTORE_NAMESPACE"  --ignore-not-found
 
-# Create a top level service just for the bookstore.mesh domain
+# Create a top level service just for the bookstore domain
 echo -e "Deploy bookstore Service"
 kubectl apply -f - <<EOF
 apiVersion: v1
@@ -72,8 +72,6 @@ spec:
       labels:
         app: $SVC
         version: $VERSION
-      annotations:
-        "openservicemesh.io/sidecar-injection": "enabled"
     spec:
       serviceAccountName: "$SVC"
       containers:

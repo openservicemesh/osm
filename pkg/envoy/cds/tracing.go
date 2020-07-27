@@ -13,7 +13,7 @@ func getZipkinCluster(zipkinHostname string) xds.Cluster {
 	return xds.Cluster{
 		Name:           constants.EnvoyZipkinCluster,
 		AltStatName:    constants.EnvoyZipkinCluster,
-		ConnectTimeout: ptypes.DurationProto(connectionTimeout),
+		ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
 		ClusterDiscoveryType: &xds.Cluster_Type{
 			Type: xds.Cluster_LOGICAL_DNS,
 		},

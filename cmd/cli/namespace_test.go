@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/onsi/gomega/gstruct"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -29,29 +30,67 @@ var _ = Describe("Running the namespace add command", func() {
 			err           error
 		)
 
-		BeforeEach(func() {
-			out = new(bytes.Buffer)
-			fakeClientSet = fake.NewSimpleClientset()
+		Context("given one namespace as an arg", func() {
 
-			nsSpec := &v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testNamespace}}
-			fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
+			BeforeEach(func() {
+				out = new(bytes.Buffer)
+				fakeClientSet = fake.NewSimpleClientset()
 
-			namespaceAddCmd := &namespaceAddCmd{
-				out:       out,
-				meshName:  testMeshName,
-				namespace: testNamespace,
-				clientSet: fakeClientSet,
-			}
+				nsSpec := createNamespaceSpec(testNamespace, "")
+				fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
 
-			err = namespaceAddCmd.run()
+				namespaceAddCmd := &namespaceAddCmd{
+					out:        out,
+					meshName:   testMeshName,
+					namespaces: []string{testNamespace},
+					clientSet:  fakeClientSet,
+				}
+
+				err = namespaceAddCmd.run()
+			})
+
+			It("should not error", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("should give a message confirming the successful install", func() {
+				Expect(out.String()).To(Equal(fmt.Sprintf("Namespace [%s] succesfully added to mesh [%s]\n", testNamespace, testMeshName)))
+			})
 		})
+		Context("given two namespaces as args", func() {
 
-		It("should not error", func() {
-			Expect(err).NotTo(HaveOccurred())
-		})
+			var (
+				testNamespace2 string
+			)
 
-		It("should give a message confirming the successful install", func() {
-			Expect(out.String()).To(Equal(fmt.Sprintf("Namespace [%s] succesfully added to mesh [%s]\n", testNamespace, testMeshName)))
+			BeforeEach(func() {
+				out = new(bytes.Buffer)
+				fakeClientSet = fake.NewSimpleClientset()
+				testNamespace2 = "namespace2"
+
+				nsSpec := createNamespaceSpec(testNamespace, "")
+				fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
+
+				nsSpec2 := createNamespaceSpec(testNamespace2, "")
+				fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec2, metav1.CreateOptions{})
+
+				namespaceAddCmd := &namespaceAddCmd{
+					out:        out,
+					meshName:   testMeshName,
+					namespaces: []string{testNamespace, testNamespace2},
+					clientSet:  fakeClientSet,
+				}
+
+				err = namespaceAddCmd.run()
+			})
+
+			It("should not error", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("should give a message confirming the successful install", func() {
+				Expect(out.String()).To(Equal(fmt.Sprintf("Namespace [%s] succesfully added to mesh [%s]\nNamespace [%s] succesfully added to mesh [%s]\n", testNamespace, testMeshName, testNamespace2, testMeshName)))
+			})
 		})
 	})
 
@@ -67,10 +106,10 @@ var _ = Describe("Running the namespace add command", func() {
 			fakeClientSet = fake.NewSimpleClientset()
 
 			namespaceAddCmd := &namespaceAddCmd{
-				out:       out,
-				meshName:  testMeshName,
-				namespace: testNamespace,
-				clientSet: fakeClientSet,
+				out:        out,
+				meshName:   testMeshName,
+				namespaces: []string{testNamespace},
+				clientSet:  fakeClientSet,
 			}
 
 			err = namespaceAddCmd.run()
@@ -96,14 +135,7 @@ var _ = Describe("Running the namespace remove command", func() {
 			out = new(bytes.Buffer)
 			fakeClientSet = fake.NewSimpleClientset()
 
-			labelMap := make(map[string]string)
-			labelMap[constants.OSMKubeResourceMonitorAnnotation] = testMeshName
-			nsSpec := &v1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:   testNamespace,
-					Labels: labelMap,
-				},
-			}
+			nsSpec := createNamespaceSpec(testNamespace, testMeshName)
 			fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
 
 			namespaceRemoveCmd := &namespaceRemoveCmd{
@@ -136,14 +168,7 @@ var _ = Describe("Running the namespace remove command", func() {
 			out = new(bytes.Buffer)
 			fakeClientSet = fake.NewSimpleClientset()
 
-			labelMap := make(map[string]string)
-			labelMap[constants.OSMKubeResourceMonitorAnnotation] = testMeshName
-			nsSpec := &v1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:   testNamespace,
-					Labels: labelMap,
-				},
-			}
+			nsSpec := createNamespaceSpec(testNamespace, testMeshName)
 			fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
 
 			namespaceRemoveCmd := &namespaceRemoveCmd{
@@ -174,11 +199,7 @@ var _ = Describe("Running the namespace remove command", func() {
 			out = new(bytes.Buffer)
 			fakeClientSet = fake.NewSimpleClientset()
 
-			nsSpec := &v1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: testNamespace,
-				},
-			}
+			nsSpec := createNamespaceSpec(testNamespace, "")
 			fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
 
 			namespaceRemoveCmd := &namespaceRemoveCmd{
@@ -227,3 +248,131 @@ var _ = Describe("Running the namespace remove command", func() {
 		})
 	})
 })
+
+var _ = Describe("Running the namespace list command", func() {
+
+	Describe("with multiple namespaces enlisted", func() {
+		var (
+			out           *bytes.Buffer
+			fakeClientSet kubernetes.Interface
+			err           error
+			namespaces    *v1.NamespaceList
+			listCmd       *namespaceListCmd
+		)
+
+		// helper function that adds a name space to the clientset
+		addNamespace := func(name, mesh string) {
+			ns := createNamespaceSpec(name, mesh)
+			fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), ns, metav1.CreateOptions{})
+		}
+
+		// helper function that takes element from slice and returns the name for gomega struct
+		// https://onsi.github.io/gomega/#gstruct-testing-complex-data-types
+		idSelector := func(element interface{}) string {
+			return string(element.(v1.Namespace).ObjectMeta.Name)
+		}
+
+		BeforeEach(func() {
+			out = new(bytes.Buffer)
+			fakeClientSet = fake.NewSimpleClientset()
+
+			listCmd = &namespaceListCmd{
+				out:       out,
+				clientSet: fakeClientSet,
+			}
+		})
+
+		It("should only have namespaces enlisted", func() {
+			addNamespace("enlisted1", "mesh1")
+			addNamespace("enlisted2", "mesh2")
+			addNamespace("not-enlisted", "")
+
+			namespaces, err = listCmd.selectNamespaces()
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(namespaces.Items).To(gstruct.MatchAllElements(idSelector, gstruct.Elements{
+				"enlisted1": gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
+					"ObjectMeta": gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
+						"Labels": gstruct.MatchKeys(gstruct.IgnoreMissing, gstruct.Keys{
+							constants.OSMKubeResourceMonitorAnnotation: Equal("mesh1"),
+						}),
+					}),
+				}),
+				"enlisted2": gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
+					"ObjectMeta": gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
+						"Labels": gstruct.MatchKeys(gstruct.IgnoreMissing, gstruct.Keys{
+							constants.OSMKubeResourceMonitorAnnotation: Equal("mesh2"),
+						}),
+					}),
+				}),
+			}))
+		})
+
+		It("should only have namespaces from mesh requested", func() {
+			addNamespace("enlisted1", "mesh1")
+			addNamespace("enlisted2", "mesh2")
+			listCmd.meshName = "mesh2"
+
+			namespaces, err = listCmd.selectNamespaces()
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(namespaces.Items).To(gstruct.MatchAllElements(idSelector, gstruct.Elements{
+				"enlisted2": gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
+					"ObjectMeta": gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
+						"Labels": gstruct.MatchKeys(gstruct.IgnoreMissing, gstruct.Keys{
+							constants.OSMKubeResourceMonitorAnnotation: Equal("mesh2"),
+						}),
+					}),
+				}),
+			}))
+		})
+
+		It("should have empty list if mesh doesn't have any namespaces assigned", func() {
+			addNamespace("enlisted1", "mesh1")
+			addNamespace("enlisted2", "mesh2")
+
+			listCmd.meshName = "someothermesh"
+
+			namespaces, err = listCmd.selectNamespaces()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(namespaces.Items)).To(Equal(0))
+		})
+
+		It("should print no namespaces message if requested mesh doesn't have any namespaces assigned", func() {
+			addNamespace("enlisted1", "mesh1")
+			addNamespace("enlisted2", "mesh2")
+
+			listCmd.meshName = "someothermesh"
+			err = listCmd.run()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(out.String()).To(Equal(fmt.Sprintf("No namespaces in mesh [%s]\n", "someothermesh")))
+		})
+
+		It("should print no namespaces message if there are no namespaces assigned", func() {
+			addNamespace("not-enlisted", "")
+
+			err = listCmd.run()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(out.String()).To(Equal(fmt.Sprintf("No namespaces in any mesh\n")))
+		})
+
+		It("should print no namespaces message if there are no namespaces", func() {
+			err = listCmd.run()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(out.String()).To(Equal(fmt.Sprintf("No namespaces in any mesh\n")))
+		})
+	})
+})
+
+func createNamespaceSpec(namespace, meshName string) *v1.Namespace {
+	labelMap := make(map[string]string)
+	if meshName != "" {
+		labelMap[constants.OSMKubeResourceMonitorAnnotation] = meshName
+	}
+	return &v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   namespace,
+			Labels: labelMap,
+		},
+	}
+}

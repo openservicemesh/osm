@@ -151,14 +151,14 @@ func pathContains(allowed []string, path string) bool {
 }
 
 var _ = Describe("Test ingress route policies", func() {
-	Context("Testing GetIngressRoutePoliciesPerDomain", func() {
+	Context("Testing GetIngressRoutesPerHost", func() {
 		mc := newFakeMeshCatalog()
 		It("Gets the route policies per domain from multiple ingress resources corresponding to a service", func() {
 			fakeService := service.NamespacedService{
 				Namespace: fakeIngressNamespace,
 				Service:   fakeIngressService,
 			}
-			domainRoutesMap, _ := mc.GetIngressRoutePoliciesPerDomain(fakeService)
+			domainRoutesMap, _ := mc.GetIngressRoutesPerHost(fakeService)
 
 			for domain, routePolicies := range domainRoutesMap {
 				// The number of route policies per domain is the product of the number of rules and paths per rule
@@ -173,7 +173,7 @@ var _ = Describe("Test ingress route policies", func() {
 					// routePolicy.Path is the path specified in the ingress resource rule. Since the same service
 					// could be a backend for multiple ingress resources, we don't know which ingress resource
 					// this path corresponds to just from 'domainRoutesMap'. In order to not make assumptions
-					// on the implementation of 'GetIngressRoutePoliciesPerDomain()', we relax the check here
+					// on the implementation of 'GetIngressRoutesPerHost()', we relax the check here
 					// to match on any of the ingress paths corresponding to the domain.
 					Expect(pathContains(fakeIngressPaths[domain], routePolicy.PathRegex)).To(BeTrue())
 				}

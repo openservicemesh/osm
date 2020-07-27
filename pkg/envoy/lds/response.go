@@ -43,8 +43,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	}
 
 	// Build the outbound listener config
-	outboundConnManager := getHTTPConnectionManager(route.OutboundRouteConfig)
-	outboundListener, err := buildOutboundListener(outboundConnManager, cfg.IsEgressEnabled())
+	outboundListener, err := newOutboundListener(cfg)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error building outbound listener config for proxy %s", proxyServiceName)
 		return nil, err
@@ -57,14 +56,14 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	resp.Resources = append(resp.Resources, marshalledOutbound)
 
 	// Build the inbound listener config
-	inboundConnManager := getHTTPConnectionManager(route.InboundRouteConfig)
+	inboundConnManager := getHTTPConnectionManager(route.InboundRouteConfig, cfg)
 	marshalledInboundConnManager, err := ptypes.MarshalAny(inboundConnManager)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshalling inbound HttpConnectionManager object for proxy %s", proxyServiceName)
 		return nil, err
 	}
 
-	inboundListener := buildInboundListener()
+	inboundListener := newInboundListener()
 	meshFilterChain, err := getInboundInMeshFilterChain(proxyServiceName, catalog, marshalledInboundConnManager)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to construct in-mesh filter chain for proxy %s", proxy.GetCommonName())
@@ -73,13 +72,13 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 		inboundListener.FilterChains = append(inboundListener.FilterChains, meshFilterChain)
 	}
 
-	// Apply a filter chain for ingress if applicable
-	isIngress, err := catalog.IsIngressService(proxyServiceName)
+	// Apply an ingress filter chain if there are any ingress routes
+	ingressRoutesPerHost, err := catalog.GetIngressRoutesPerHost(proxyServiceName)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error checking service %s for ingress", proxyServiceName)
+		log.Error().Err(err).Msgf("Error getting ingress routes per host for service %s", proxyServiceName)
 		return nil, err
 	}
-	if isIngress {
+	if len(ingressRoutesPerHost) > 0 {
 		log.Info().Msgf("Found an ingress resource for service %s, applying necessary filters", proxyServiceName)
 		// This proxy is fronting a service that is a backend for an ingress, add a FilterChain for it
 		ingressFilterChains, err := getInboundIngressFilterChains(proxyServiceName, marshalledInboundConnManager)
@@ -147,7 +146,7 @@ func getInboundInMeshFilterChain(proxyServiceName service.NamespacedService, mc 
 		},
 
 		TransportSocket: &envoy_api_v2_core.TransportSocket{
-			Name: envoy.TransportSocketTLS,
+			Name: wellknown.TransportSocketTls,
 			ConfigType: &envoy_api_v2_core.TransportSocket_TypedConfig{
 				TypedConfig: marshalledDownstreamTLSContext,
 			},
@@ -171,7 +170,7 @@ func getInboundIngressFilterChains(proxyServiceName service.NamespacedService, f
 				ServerNames:       []string{proxyServiceName.GetCommonName().String()},
 			},
 			TransportSocket: &envoy_api_v2_core.TransportSocket{
-				Name: envoy.TransportSocketTLS,
+				Name: wellknown.TransportSocketTls,
 				ConfigType: &envoy_api_v2_core.TransportSocket_TypedConfig{
 					TypedConfig: marshalledDownstreamTLSContext,
 				},
@@ -191,7 +190,7 @@ func getInboundIngressFilterChains(proxyServiceName service.NamespacedService, f
 				TransportProtocol: envoy.TransportProtocolTLS,
 			},
 			TransportSocket: &envoy_api_v2_core.TransportSocket{
-				Name: envoy.TransportSocketTLS,
+				Name: wellknown.TransportSocketTls,
 				ConfigType: &envoy_api_v2_core.TransportSocket_TypedConfig{
 					TypedConfig: marshalledDownstreamTLSContext,
 				},

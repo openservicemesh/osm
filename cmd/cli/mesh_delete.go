@@ -20,39 +20,56 @@ Only use this in non-production and test environments.
 `
 
 type meshDeleteCmd struct {
-	out    io.Writer
-	name   string
-	client *action.Uninstall
+	out      io.Writer
+	in       io.Reader
+	meshName string
+	force    bool
+	client   *action.Uninstall
 }
 
-func newMeshDelete(config *action.Configuration, out io.Writer) *cobra.Command {
+func newMeshDelete(config *action.Configuration, in io.Reader, out io.Writer) *cobra.Command {
 	del := &meshDeleteCmd{
 		out: out,
+		in:  in,
 	}
 
 	cmd := &cobra.Command{
-		Use:   "delete MESH_NAME",
+		Use:   "delete",
 		Short: "delete osm control plane instance",
 		Long:  meshDeleteDescription,
-		Args:  require.ExactArgs(1),
+		Args:  require.ExactArgs(0),
 		RunE: func(_ *cobra.Command, args []string) error {
-			del.name = args[0]
 			del.client = action.NewUninstall(config)
 			return del.run()
 		},
 	}
 
+	f := cmd.Flags()
+	f.StringVar(&del.meshName, "mesh-name", defaultMeshName, "Name of the service mesh")
+	f.BoolVarP(&del.force, "force", "f", false, "Attempt to delete the osm control plane instance without prompting for confirmation.  If the control plane with specified mesh name does not exist, do not display a diagnostic message or modify the exit status to reflect an error.")
+
 	return cmd
 }
 
 func (d *meshDeleteCmd) run() error {
-
-	_, err := d.client.Run(d.name)
-	if err != nil && errors.Cause(err) == helmStorage.ErrReleaseNotFound {
-		return errors.Errorf("No OSM control plane with mesh name [%s] found in namespace [%s]", d.name, settings.Namespace())
+	if !d.force {
+		confirm, err := confirm(d.in, d.out, fmt.Sprintf("Delete OSM [mesh name: %s] ?", d.meshName), 3)
+		if !confirm || err != nil {
+			return err
+		}
 	}
 
-	fmt.Fprintf(d.out, "OSM [mesh name: %s] deleted\n", d.name)
+	_, err := d.client.Run(d.meshName)
+	if err != nil && errors.Cause(err) == helmStorage.ErrReleaseNotFound {
+		if d.force {
+			return nil
+		}
+		return errors.Errorf("No OSM control plane with mesh name [%s] found in namespace [%s]", d.meshName, settings.Namespace())
+	}
+
+	if err == nil {
+		fmt.Fprintf(d.out, "OSM [mesh name: %s] deleted\n", d.meshName)
+	}
 
 	return err
 }

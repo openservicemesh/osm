@@ -11,6 +11,18 @@ import (
 	"github.com/open-service-mesh/osm/pkg/logger"
 )
 
+const (
+	// RestockWarehouseURL is a header string constant.
+	RestockWarehouseURL = "restock-books"
+
+	// httpEgressURL is the URL used to test HTTP egress.
+	// The HTTP request will result in an HTTPS redirect which will be handled by the HTTP client.
+	httpEgressURL = "http://github.com"
+
+	// httpsEgressURL is the URL used to test HTTPS egress
+	httpsEgressURL = "https://github.com"
+)
+
 var (
 	sleepDurationBetweenRequestsSecondsStr = GetEnv("CI_SLEEP_BETWEEN_REQUESTS_SECONDS", "1")
 	minSuccessThresholdStr                 = GetEnv("CI_MIN_SUCCESS_THRESHOLD", "1")
@@ -42,11 +54,6 @@ var (
 	}
 )
 
-const (
-	// RestockWarehouseURL is a header string constant.
-	RestockWarehouseURL = "restock-books"
-)
-
 var log = logger.NewPretty("demo")
 
 // RestockBooks restocks the bookstore with certain amount of books from the warehouse.
@@ -57,7 +64,7 @@ func RestockBooks(amount int) {
 	requestBody := strings.NewReader(strconv.Itoa(1))
 	req, err := http.NewRequest("POST", chargeAccountURL, requestBody)
 	if err != nil {
-		log.Info().Msgf("RestockBooks: error posting to %s: %s ", chargeAccountURL, err)
+		log.Error().Err(err).Msgf("RestockBooks: error posting to %s", chargeAccountURL)
 		return
 	}
 
@@ -65,7 +72,7 @@ func RestockBooks(amount int) {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Info().Msgf("RestockBooks: Error posting to %s: %s ", chargeAccountURL, err)
+		log.Error().Err(err).Msgf("RestockBooks: Error posting to %s", chargeAccountURL)
 		return
 	}
 
@@ -86,13 +93,22 @@ func GetEnv(envVar string, defaultValue string) string {
 }
 
 // GetBooks reaches out to the bookstore and buys/steals books. This is invoked by the bookbuyer and the bookthief.
-func GetBooks(participantName string, expectedResponseCode int, booksCount *int, booksCountV1 *int, booksCountV2 *int) {
+func GetBooks(participantName string, meshExpectedResponseCode int, egressExpectedResponseCode int, booksCount *int, booksCountV1 *int, booksCountV2 *int) {
 	minSuccessThreshold, maxIterations, sleepDurationBetweenRequests := getEnvVars(participantName)
 
 	// The URLs this participant will attempt to query from the bookstore service
 	urlSuccessMap := map[string]bool{
-		booksBought: false,
-		buyBook:     false,
+		booksBought:    false,
+		buyBook:        false,
+		httpEgressURL:  false,
+		httpsEgressURL: false,
+	}
+
+	urlExpectedRespCode := map[string]int{
+		booksBought:    meshExpectedResponseCode,
+		buyBook:        meshExpectedResponseCode,
+		httpEgressURL:  egressExpectedResponseCode,
+		httpsEgressURL: getHTTPSEgressExpectedResponseCode(egressExpectedResponseCode),
 	}
 
 	// Count how many times we have reached out to the bookstore
@@ -115,6 +131,7 @@ func GetBooks(participantName string, expectedResponseCode int, booksCount *int,
 			// We only care about the response code of the HTTP call for the given URL
 			responseCode, identity := fetch(url)
 
+			expectedResponseCode := urlExpectedRespCode[url]
 			succeeded := responseCode == expectedResponseCode
 			if !succeeded {
 				fmt.Printf("ERROR: response code for %q is %d;  expected %d\n", url, responseCode, expectedResponseCode)
@@ -249,4 +266,17 @@ func GetExpectedResponseCodeFromEnvVar(envVar, defaultValue string) int {
 		log.Fatal().Err(err).Msgf("Could not convert environment variable %s='%s' to int", envVar, expectedRespCodeStr)
 	}
 	return int(expectedRespCode)
+}
+
+// getHTTPSEgressExpectedResponseCode returns the expected response code for HTTPS egress.
+// Since HTTPS egress depends on clients to originate TLS, when egress is disabled the
+// TLS negotiation will fail. As a result no HTTP response code will be returned
+// but rather the HTTP library will return 0 as the status code in such cases.
+// This function returns the expect HTTPS response code for egress based on the
+// expectations of the test.
+func getHTTPSEgressExpectedResponseCode(expectedEgressResponseCode int) int {
+	if expectedEgressResponseCode != http.StatusOK {
+		return 0
+	}
+	return expectedEgressResponseCode
 }

@@ -6,10 +6,11 @@ set -aueo pipefail
 source .env
 
 BOOKSTORE_SVC="${BOOKSTORE_SVC:-bookstore}"
-BOOKTHIEF_EXPECTED_RESPONSE_CODE="${BOOKTHIEF_EXPECTED_RESPONSE_CODE:-503}"
+BOOKTHIEF_EXPECTED_RESPONSE_CODE="${BOOKTHIEF_EXPECTED_RESPONSE_CODE:-404}"
 CI_MAX_ITERATIONS_THRESHOLD="${CI_MAX_ITERATIONS_THRESHOLD:-0}"
+EGRESS_EXPECTED_RESPONSE_CODE="${EGRESS_EXPECTED_RESPONSE_CODE:-200}"
 
-kubectl delete deployment bookthief -n "$BOOKTHIEF_NAMESPACE"  || true
+kubectl delete deployment bookthief -n "$BOOKTHIEF_NAMESPACE"  --ignore-not-found
 
 echo -e "Deploy BookThief demo service"
 kubectl apply -f - <<EOF
@@ -73,6 +74,8 @@ spec:
               value: "$BOOKTHIEF_EXPECTED_RESPONSE_CODE"
             - name: "CI_MAX_ITERATIONS_THRESHOLD"
               value: "$CI_MAX_ITERATIONS_THRESHOLD"
+            - name: "EGRESS_EXPECTED_RESPONSE_CODE"
+              value: "$EGRESS_EXPECTED_RESPONSE_CODE"
 
       imagePullSecrets:
         - name: "$CTR_REGISTRY_CREDS_NAME"

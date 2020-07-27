@@ -15,7 +15,7 @@ spec:
       properties:
         spec:
           properties:
-            maxRequestsPerConnection:
-              description: "Max number per connection"
+            maxConnections:
+              description: "Max number of connections"
               type: integer
               pattern: '^[1-9]{1}[0-9]*'

@@ -232,7 +232,7 @@ jobs:
           ./demo/build-push-images.sh
 
   integration-tresor:
-    name: Integration Test with Tresor and SMI traffic policies
+    name: Integration Test with Tresor, SMI traffic policies, and egress disabled
     runs-on: ubuntu-latest
     needs: [info, docker-build]
     steps:
@@ -259,7 +259,7 @@ jobs:
           go-version: 1.14
         id: go
 
-      - name: Run Simulation w/ Tresor and SMI policies
+      - name: Run Simulation w/ Tresor, SMI policies, and egress disabled
         env:
           K8S_NAMESPACE: "ci-${{ github.run_id }}-${{ github.run_number}}-tresor"
           BOOKWAREHOUSE_NAMESPACE: "ci-bookwarehouse-${{ github.run_id }}-${{ github.run_number}}-tresor"
@@ -268,8 +268,10 @@ jobs:
           BOOKTHIEF_NAMESPACE: "ci-bookthief-${{ github.run_id }}-${{ github.run_number}}-tresor"
           MESH_NAME: "ci-${{ github.run_id }}-${{ github.run_number}}-tresor" # Same as namespace
           CERT_MANAGER: "tresor"
-          BOOKTHIEF_EXPECTED_RESPONSE_CODE: "503" # egress is enabled by default
           BOOKSTORE_SVC: "bookstore"
+          BOOKTHIEF_EXPECTED_RESPONSE_CODE: "404"
+          EGRESS_EXPECTED_RESPONSE_CODE: "404" # egress is disabled
+          CI_WAIT_FOR_OK_SECONDS: 75
         run: |
           touch .env  # it is OK for this file to be empty - needed by Makefile
           mkdir -p ".kube"
@@ -278,11 +280,11 @@ jobs:
           ./demo/clean-kubernetes.sh
           echo "Creating Kubernetes namespace: $K8S_NAMESPACE"
           echo "$DOCKER_PASS" | docker login "$ACR" -u "$DOCKER_USER" --password-stdin
-          ./demo/run-osm-demo.sh
+          ./demo/run-osm-demo.sh --enable-egress=false
           go run ./ci/cmd/maestro.go
 
   integration-vault:
-    name: Integration Test with Hashi Vault and Allow-all traffic policy
+    name: Integration test with Hashi Vault, permissive traffic policy mode, and egress enabled
     runs-on: ubuntu-latest
     needs: [info, docker-build]
     steps:
@@ -309,7 +311,7 @@ jobs:
           go-version: 1.14
         id: go
 
-      - name: Run Simulation w/ Hashi Vault and allow-all
+      - name: Run Simulation w/ Hashi Vault, permissive traffic policy mode, and egress enabled
         env:
           K8S_NAMESPACE: "ci-${{ github.run_id }}-${{ github.run_number}}-hashivault"
           BOOKWAREHOUSE_NAMESPACE: "ci-bookwarehouse-${{ github.run_id }}-${{ github.run_number}}-hashivault"
@@ -323,8 +325,10 @@ jobs:
           VAULT_PORT: "8200"
           VAULT_TOKEN: "something"
           VAULT_ROLE: "open-service-mesh"
-          BOOKTHIEF_EXPECTED_RESPONSE_CODE: "200"
           BOOKSTORE_SVC: "bookstore-v1"
+          BOOKTHIEF_EXPECTED_RESPONSE_CODE: "200"
+          EGRESS_EXPECTED_RESPONSE_CODE: "200" # egress is enabled
+          MESH_CIDR: "10.244.0.0/16,10.0.0.0/16"
         run: |
           touch .env  # it is OK for this file to be empty - needed by Makefile
           mkdir -p ".kube"

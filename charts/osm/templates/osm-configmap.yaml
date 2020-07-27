@@ -5,6 +5,10 @@ metadata:
   namespace: {{ .Release.Namespace }}
 data:
   permissive_traffic_policy_mode: {{ .Values.OpenServiceMesh.enablePermissiveTrafficPolicy | quote | default "false" }}
-  egress: "true"
+  egress: {{ .Values.OpenServiceMesh.enableEgress | quote | default "true" }}
   prometheus_scraping: "true"
   zipkin_tracing: "true"
+{{- if .Values.OpenServiceMesh.enableEgress }}
+  mesh_cidr_ranges: {{ .Values.OpenServiceMesh.meshCIDRRanges | quote }}
+{{- end }}
+  use_https_ingress: {{ .Values.OpenServiceMesh.useHTTPSIngress | quote | default "false" }}

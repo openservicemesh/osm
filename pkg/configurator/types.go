@@ -40,6 +40,12 @@ type Configurator interface {
 	// IsZipkinTracingEnabled determines whether Zipkin tracing is enabled
 	IsZipkinTracingEnabled() bool
 
+	// GetMeshCIDRRanges returns a list of mesh CIDR ranges
+	GetMeshCIDRRanges() []string
+
+	// UseHTTPSIngress determines whether protocol used for traffic from ingress to backend pods should be HTTPS.
+	UseHTTPSIngress() bool
+
 	// GetAnnouncementsChannel returns a channel, which is used to announce when changes have been made to the OSM ConfigMap
 	GetAnnouncementsChannel() <-chan interface{}
 }

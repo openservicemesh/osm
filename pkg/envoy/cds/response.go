@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/open-service-mesh/osm/pkg/featureflags"
+
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/protobuf/ptypes"
 
@@ -15,7 +17,7 @@ import (
 )
 
 // NewResponse creates a new Cluster Discovery Response.
-func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpec, proxy *envoy.Proxy, _ *xds.DiscoveryRequest, cfg configurator.Configurator) (*xds.DiscoveryResponse, error) {
+func NewResponse(_ context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, _ *xds.DiscoveryRequest, cfg configurator.Configurator) (*xds.DiscoveryResponse, error) {
 	svc, err := catalog.GetServiceFromEnvoyCertificate(proxy.GetCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up Service for Envoy with CN=%q", proxy.GetCommonName())
@@ -33,35 +35,53 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpe
 		TypeUrl: string(envoy.TypeCDS),
 	}
 
-	var clusterFactories []*xds.Cluster
+	// The clusters have to be unique, so use a map to prevent duplicates. Keys correspond to the cluster name.
+	clusterFactories := make(map[string]*xds.Cluster)
+
+	// Build remote clusters based on traffic policies. Remote clusters correspond to
+	// services for which the given service is a source service.
 	for _, trafficPolicies := range allTrafficPolicies {
 		isSourceService := trafficPolicies.Source.Service.Equals(proxyServiceName)
-		//iterate through only destination services here since envoy is programmed by destination
-		dstService := trafficPolicies.Destination.Service
-		if isSourceService {
-			remoteCluster, err := envoy.GetServiceCluster(dstService, proxyServiceName)
-			if err != nil {
-				log.Error().Err(err).Msgf("Failed to construct service cluster for proxy %s", proxyServiceName)
-				return nil, err
-			}
-			clusterFactories = append(clusterFactories, remoteCluster)
+		if !isSourceService {
+			continue
 		}
+
+		dstService := trafficPolicies.Destination.Service
+		if _, found := clusterFactories[dstService.String()]; found {
+			// A remote cluster exists for `dstService`, skip adding it.
+			// This is possible because for a given source and destination service
+			// in the traffic policy if multiple routes exist, then each route is
+			// going to be part of a separate traffic policy object.
+			continue
+		}
+
+		remoteCluster, err := getRemoteServiceCluster(dstService, proxyServiceName)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to construct service cluster for proxy %s", proxyServiceName)
+			return nil, err
+		}
+
+		if featureflags.IsBackpressureEnabled() {
+			enableBackpressure(meshSpec, remoteCluster)
+		}
+
+		clusterFactories[remoteCluster.Name] = remoteCluster
 	}
 
 	// Create a local cluster for the service.
 	// The local cluster will be used for incoming traffic.
 	localClusterName := getLocalClusterName(proxyServiceName)
-	localCluster, err := getServiceClusterLocal(catalog, proxyServiceName, localClusterName)
+	localCluster, err := getLocalServiceCluster(catalog, proxyServiceName, localClusterName)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to get local cluster config for proxy %s", proxyServiceName)
 		return nil, err
 	}
-	clusterFactories = append(clusterFactories, localCluster)
+	clusterFactories[localCluster.Name] = localCluster
 
 	if cfg.IsEgressEnabled() {
 		// Add a passthrough cluster for egress
-		passthroughCluster := envoy.GetOutboundPassthroughCluster()
-		clusterFactories = append(clusterFactories, passthroughCluster)
+		passthroughCluster := getOutboundPassthroughCluster()
+		clusterFactories[passthroughCluster.Name] = passthroughCluster
 	}
 
 	for _, cluster := range clusterFactories {

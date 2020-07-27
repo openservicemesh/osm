@@ -15,14 +15,14 @@ receives a unqiue mesh name.
 
 `
 
-func newMeshCmd(config *action.Configuration, out io.Writer) *cobra.Command {
+func newMeshCmd(config *action.Configuration, in io.Reader, out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "mesh",
 		Short: "manage osm installations",
 		Long:  meshDescription,
 		Args:  require.NoArgs,
 	}
-	cmd.AddCommand(newMeshDelete(config, out))
+	cmd.AddCommand(newMeshDelete(config, in, out))
 
 	return cmd
 }
