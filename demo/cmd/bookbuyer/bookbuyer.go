@@ -6,7 +6,6 @@ import (
 	"html"
 	"html/template"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -17,10 +16,10 @@ import (
 
 const (
 	participantName = "bookbuyer"
+	httpStatusOK    = "200"
 )
 
 var (
-	httpStatusOK  = strconv.Itoa(http.StatusOK)
 	booksBought   = 0
 	booksBoughtV1 = 0
 	booksBoughtV2 = 0

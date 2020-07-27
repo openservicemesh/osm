@@ -6,7 +6,6 @@ import (
 	"html"
 	"html/template"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -16,18 +15,18 @@ import (
 )
 
 const (
-	participantName = "bookthief"
+	participantName    = "bookthief"
+	httpStatusOK       = "200"
+	httpStatusNotFound = "404"
 )
 
 var (
-	httpStatusOK       = strconv.Itoa(http.StatusOK)
-	httpStatusNotFound = strconv.Itoa(http.StatusNotFound)
-	booksStolen        = 0
-	booksStolenV1      = 0
-	booksStolenV2      = 0
-	log                = logger.NewPretty(participantName)
-	port               = flag.Int("port", 80, "port on which this app is listening for incoming HTTP")
-	path               = flag.String("path", ".", "path to the HTML template")
+	booksStolen   = 0
+	booksStolenV1 = 0
+	booksStolenV2 = 0
+	log           = logger.NewPretty(participantName)
+	port          = flag.Int("port", 80, "port on which this app is listening for incoming HTTP")
+	path          = flag.String("path", ".", "path to the HTML template")
 )
 
 func renderTemplate(w http.ResponseWriter) {
