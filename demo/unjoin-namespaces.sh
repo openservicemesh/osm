@@ -17,9 +17,10 @@ BOOKTHIEF_NAMESPACE="${BOOKTHIEF_NAMESPACE:-bookthief}"
 BOOKWAREHOUSE_NAMESPACE="${BOOKWAREHOUSE_NAMESPACE:-bookwarehouse}"
 
 
-for ns in "$BOOKWAREHOUSE_NAMESPACE" "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE"; do
-    kubectl label namespaces "$ns" openservicemesh.io/monitored-by- || true
-done
+./bin/osm namespace remove "${BOOKWAREHOUSE_NAMESPACE:-bookbuyer}" --mesh-name "${MESH_NAME:-osm}"
+./bin/osm namespace remove "${BOOKBUYER_NAMESPACE:-bookbuyer}"     --mesh-name "${MESH_NAME:-osm}"
+./bin/osm namespace remove "${BOOKSTORE_NAMESPACE:-bookbuyer}"     --mesh-name "${MESH_NAME:-osm}"
+./bin/osm namespace remove "${BOOKTHIEF_NAMESPACE:-bookbuyer}"     --mesh-name "${MESH_NAME:-osm}"
 
 
 kubectl apply -f - <<EOF
