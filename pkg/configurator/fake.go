@@ -12,12 +12,12 @@ type FakeConfigurator struct {
 }
 
 // NewFakeConfigurator create a new fake Configurator
-func NewFakeConfigurator(useHTTPSIngress bool) Configurator {
+func NewFakeConfigurator() Configurator {
 	return FakeConfigurator{
 		Egress:             true,
 		PrometheusScraping: true,
 		ZipkinTracing:      true,
-		useHTTPSIngress:    useHTTPSIngress,
+		useHTTPSIngress:    false,
 	}
 }
 
