@@ -35,25 +35,37 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, meshSpec smi.
 		TypeUrl: string(envoy.TypeCDS),
 	}
 
-	var clusterFactories []*xds.Cluster
+	// The clusters have to be unique, so use a map to prevent duplicates. Keys correspond to the cluster name.
+	clusterFactories := make(map[string]*xds.Cluster)
+
+	// Build remote clusters based on traffic policies. Remote clusters correspond to
+	// services for which the given service is a source service.
 	for _, trafficPolicies := range allTrafficPolicies {
 		isSourceService := trafficPolicies.Source.Service.Equals(proxyServiceName)
-		//iterate through only destination services here since envoy is programmed by destination
-		dstService := trafficPolicies.Destination.Service
-		if isSourceService {
-			remoteCluster, err := getRemoteServiceCluster(dstService, proxyServiceName)
-			if err != nil {
-				log.Error().Err(err).Msgf("Failed to construct service cluster for proxy %s", proxyServiceName)
-				return nil, err
-			}
-
-			log.Trace().Msgf("Backpressure enabled: %t", featureflags.IsBackpressureEnabled())
-			if featureflags.IsBackpressureEnabled() {
-				enableBackpressure(meshSpec, remoteCluster)
-			}
-
-			clusterFactories = append(clusterFactories, remoteCluster)
+		if !isSourceService {
+			continue
 		}
+
+		dstService := trafficPolicies.Destination.Service
+		if _, found := clusterFactories[dstService.String()]; found {
+			// A remote cluster exists for `dstService`, skip adding it.
+			// This is possible because for a given source and destination service
+			// in the traffic policy if multiple routes exist, then each route is
+			// going to be part of a separate traffic policy object.
+			continue
+		}
+
+		remoteCluster, err := getRemoteServiceCluster(dstService, proxyServiceName)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to construct service cluster for proxy %s", proxyServiceName)
+			return nil, err
+		}
+
+		if featureflags.IsBackpressureEnabled() {
+			enableBackpressure(meshSpec, remoteCluster)
+		}
+
+		clusterFactories[remoteCluster.Name] = remoteCluster
 	}
 
 	// Create a local cluster for the service.
@@ -64,12 +76,12 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, meshSpec smi.
 		log.Error().Err(err).Msgf("Failed to get local cluster config for proxy %s", proxyServiceName)
 		return nil, err
 	}
-	clusterFactories = append(clusterFactories, localCluster)
+	clusterFactories[localCluster.Name] = localCluster
 
 	if cfg.IsEgressEnabled() {
 		// Add a passthrough cluster for egress
 		passthroughCluster := getOutboundPassthroughCluster()
-		clusterFactories = append(clusterFactories, passthroughCluster)
+		clusterFactories[passthroughCluster.Name] = passthroughCluster
 	}
 
 	for _, cluster := range clusterFactories {
