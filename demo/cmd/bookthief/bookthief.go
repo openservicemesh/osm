@@ -16,6 +16,7 @@ import (
 
 const (
 	participantName    = "bookthief"
+	httpStatusOK       = "200"
 	httpStatusNotFound = "404"
 )
 
@@ -93,11 +94,14 @@ func main() {
 	// The bookthief is not allowed to purchase books from the bookstore.
 	//
 	// Depending on  whether SMI policies or permissive traffic policy is enabled,
-	// the HTTP response status code will differ.
+	// the HTTP response status code will differ for in-mesh requests.
 	//
-	// Expected response code:
+	// Expected response code when bookthief tries to buy books from the bookstore:
 	// 1. With SMI policies: 404
 	// 2. With permissive traffic policy: 200
-	expectedResponseCode := common.GetExpectedResponseCodeFromEnvVar(common.BookthiefExpectedResponseCodeEnvVar, httpStatusNotFound)
-	common.GetBooks(participantName, expectedResponseCode, &booksStolen, &booksStolenV1, &booksStolenV2)
+	//
+	// When it tries to make an egress request, we expect a 200 response with egress enabled and a 404 response with egress disabled.
+	meshExpectedResponseCode := common.GetExpectedResponseCodeFromEnvVar(common.BookthiefExpectedResponseCodeEnvVar, httpStatusNotFound)
+	egressExpectedResponseCode := common.GetExpectedResponseCodeFromEnvVar(common.EgressExpectedResponseCodeEnvVar, httpStatusOK)
+	common.GetBooks(participantName, meshExpectedResponseCode, egressExpectedResponseCode, &booksStolen, &booksStolenV1, &booksStolenV2)
 }
