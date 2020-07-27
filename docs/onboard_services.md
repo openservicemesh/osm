@@ -14,7 +14,7 @@ The following guide describes how to onboard Kubernetes services to an OSM insta
     $ kubectl label namespace <namespace> openservicemesh.io/monitored-by=<mesh-name>
     ```
 
-    All new pods created in added namespaces will automatically have a proxy sidecar container injected. Specific pods can be labeled to prevent sidecar injection. See [SIDECAR-INJECTION](SIDECAR-INJECTION.md) for more details.
+    All new pods created in added namespaces will automatically have a proxy sidecar container injected. Specific pods can be labeled to prevent sidecar injection. See the [Sidecar Injection](sidecar_injection.md) document for more details.
 
     See [demo/join-namespaces.sh](/demo/join-namespaces.sh) for an example.
 
@@ -26,7 +26,7 @@ The following guide describes how to onboard Kubernetes services to an OSM insta
 
 1. Verify the new behavior.
 
-    The OSM control plane installs Prometheus and Grafana instances by default that can be used to help make sure the application is working properly. More details can be found in [OBSERVABILITY.md](OBSERVABILITY.md).
+    The OSM control plane installs Prometheus and Grafana instances by default that can be used to help make sure the application is working properly. More details can be found in the [Obervability](observability.md) document.
 
 
 #### Note: Removing Namespaces
