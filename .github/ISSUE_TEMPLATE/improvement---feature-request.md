@@ -10,7 +10,7 @@ assignees: ''
 **Please describe the Improvement and/or Feature Request**
 <!-- A clear and concise description of the proposal. -->
 
-**Scope**
+**Scope (please mark with X where applicable)**
 - [ ] New Functionality
 - [ ] Install
 - [ ] SMI Traffic Access Policy
@@ -26,6 +26,7 @@ assignees: ''
 - [ ] Sidecar Injection
 - [ ] Logging
 - [ ] Debugging
+- [ ] Tests
 - [ ] CI System
 
 **Possible use cases**
