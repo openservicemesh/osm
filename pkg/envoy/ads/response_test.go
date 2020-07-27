@@ -97,7 +97,7 @@ var _ = Describe("Test ADS response functions", func() {
 		certPEM, _ := certManager.IssueCertificate(cn, nil)
 		cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())
 		server, actualResponses := tests.NewFakeXDSServer(cert, nil, nil)
-		cfg := configurator.NewFakeConfigurator(false)
+		cfg := configurator.NewFakeConfigurator()
 
 		It("returns Aggregated Discovery Service response", func() {
 			s := Server{

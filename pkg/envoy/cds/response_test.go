@@ -31,7 +31,7 @@ import (
 var _ = Describe("CDS Response", func() {
 	kubeClient := testclient.NewSimpleClientset()
 	catalog := catalog.NewFakeMeshCatalog(kubeClient)
-	cfg := configurator.NewFakeConfigurator(false)
+	cfg := configurator.NewFakeConfigurator()
 	proxyServiceName := tests.BookbuyerServiceName
 	proxyServiceAccountName := tests.BookbuyerServiceAccountName
 	proxyService := tests.BookbuyerService
