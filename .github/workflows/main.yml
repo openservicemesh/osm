@@ -270,6 +270,7 @@ jobs:
           CERT_MANAGER: "tresor"
           BOOKSTORE_SVC: "bookstore"
           BOOKTHIEF_EXPECTED_RESPONSE_CODE: "404"
+          CI_WAIT_FOR_OK_SECONDS: 75
         run: |
           touch .env  # it is OK for this file to be empty - needed by Makefile
           mkdir -p ".kube"
