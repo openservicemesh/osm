@@ -63,6 +63,15 @@ OSM installed successfully in namespace [osm-system] with mesh name [osm]
 
 By default, the control plane components are installed into a Kubernetes Namespace called `osm-system` and the control plane is given a unique identifier attribute `mesh-name` defaulted to `osm`. Both the Namespace and mesh-name can be configured with flags to the `osm install` command.
 
+The `mesh-name` is a unique identifier assigned to an osm-controller instance during install to identify and manage a mesh instance.
+
+The `mesh-name` should follow [RFC 1123](https://tools.ietf.org/html/rfc1123) DNS Label constraints. The `mesh-name` must:
+
+- contain at most 63 characters
+- contain only lowercase alphanumeric characters or '-'
+- start with an alphanumeric character
+- end with an alphanumeric character
+
 ## Inspect Control Plane Components
 A few components will be installed by defaut into the `osm-system` Namespace. Inspect them by using the following `kubectl` command:
 ```console
@@ -78,3 +87,6 @@ Under the hood, `osm` is using [Helm](https://helm.sh) libraries to create a Hel
 ```console
 $ helm get manifest osm --namespace osm-system
 ```
+
+## Next Steps
+Now that the OSM control plane is up and running, [add services](onboard_services.md) to the mesh.

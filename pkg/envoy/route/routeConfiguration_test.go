@@ -14,6 +14,7 @@ import (
 	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 	"github.com/open-service-mesh/osm/pkg/service"
+	"github.com/open-service-mesh/osm/pkg/tests"
 	"github.com/open-service-mesh/osm/pkg/trafficpolicy"
 )
 
@@ -347,6 +348,32 @@ var _ = Describe("Routes with headers", func() {
 			Expect(len(headers)).To(Equal(1))
 			Expect(headers[0].Name).To(Equal(MethodHeaderKey))
 			Expect(headers[0].GetSafeRegexMatch().Regex).To(Equal(routePolicy.Methods[0]))
+		})
+	})
+})
+
+var _ = Describe("Service name for a service domain", func() {
+	service := "test-service"
+	Context("Testing getServiceFromHost", func() {
+		It("Returns the service name from its domain", func() {
+			domain := service
+			Expect(getServiceFromHost(domain)).To(Equal(service))
+		})
+		It("Returns the service name from its domain", func() {
+			domain := fmt.Sprintf("%s:%d", service, tests.ServicePort)
+			Expect(getServiceFromHost(domain)).To(Equal(fmt.Sprintf("%s:%d", service, tests.ServicePort)))
+		})
+		It("Returns the service name from its domain", func() {
+			domain := fmt.Sprintf("%s.namespace", service)
+			Expect(getServiceFromHost(domain)).To(Equal(service))
+		})
+		It("Returns the service name from its domain", func() {
+			domain := fmt.Sprintf("%s.namespace.svc", service)
+			Expect(getServiceFromHost(domain)).To(Equal(service))
+		})
+		It("Returns the service name from its domain", func() {
+			domain := fmt.Sprintf("%s.namespace.svc.cluster", service)
+			Expect(getServiceFromHost(domain)).To(Equal(service))
 		})
 	})
 })

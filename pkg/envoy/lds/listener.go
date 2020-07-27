@@ -1,6 +1,7 @@
 package lds
 
 import (
+	"github.com/open-service-mesh/osm/pkg/envoy/route"
 	"net"
 	"strconv"
 	"strings"
@@ -24,7 +25,8 @@ const (
 	outboundEgressFilterChainName = "outbound-egress-filter-chain"
 )
 
-func buildOutboundListener(connManager *envoy_hcm.HttpConnectionManager, cfg configurator.Configurator) (*xds.Listener, error) {
+func newOutboundListener(cfg configurator.Configurator) (*xds.Listener, error) {
+	connManager := getHTTPConnectionManager(route.OutboundRouteConfig, cfg)
 	marshalledConnManager, err := ptypes.MarshalAny(connManager)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshalling HttpConnectionManager object")
@@ -98,7 +100,7 @@ func updateOutboundListenerForEgress(outboundListener *xds.Listener, cfg configu
 	return nil
 }
 
-func buildInboundListener() *xds.Listener {
+func newInboundListener() *xds.Listener {
 	return &xds.Listener{
 		Name:             inboundListenerName,
 		Address:          envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyInboundListenerPort),
@@ -119,7 +121,7 @@ func buildPrometheusListener(connManager *envoy_hcm.HttpConnectionManager) (*xds
 		return nil, err
 	}
 
-	listener := &xds.Listener{
+	return &xds.Listener{
 		Name:             prometheusListenerName,
 		TrafficDirection: envoy_api_v2_core.TrafficDirection_INBOUND,
 		Address:          envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyPrometheusInboundListenerPort),
@@ -135,8 +137,7 @@ func buildPrometheusListener(connManager *envoy_hcm.HttpConnectionManager) (*xds
 				},
 			},
 		},
-	}
-	return listener, nil
+	}, nil
 }
 
 func buildEgressFilterChain() (*listener.FilterChain, error) {

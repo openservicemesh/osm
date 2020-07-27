@@ -8,7 +8,6 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/open-service-mesh/osm/pkg/catalog"
 	"github.com/open-service-mesh/osm/pkg/configurator"
-	"github.com/open-service-mesh/osm/pkg/constants"
 	"github.com/open-service-mesh/osm/pkg/envoy"
 	"github.com/open-service-mesh/osm/pkg/envoy/route"
 	"github.com/open-service-mesh/osm/pkg/service"
@@ -86,13 +85,13 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	return resp, nil
 }
 
-func aggregateRoutesByHost(domainRoutesMap map[string]map[string]trafficpolicy.RouteWeightedClusters, routePolicy trafficpolicy.Route, weightedCluster service.WeightedCluster, domain string) {
-	_, exists := domainRoutesMap[domain]
+func aggregateRoutesByHost(routesPerHost map[string]map[string]trafficpolicy.RouteWeightedClusters, routePolicy trafficpolicy.Route, weightedCluster service.WeightedCluster, host string) {
+	_, exists := routesPerHost[host]
 	if !exists {
-		// no domain found, create a new route map
-		domainRoutesMap[domain] = make(map[string]trafficpolicy.RouteWeightedClusters)
+		// no host found, create a new route map
+		routesPerHost[host] = make(map[string]trafficpolicy.RouteWeightedClusters)
 	}
-	routePolicyWeightedCluster, routeFound := domainRoutesMap[domain][routePolicy.PathRegex]
+	routePolicyWeightedCluster, routeFound := routesPerHost[host][routePolicy.PathRegex]
 	if routeFound {
 		// add the cluster to the existing route
 		routePolicyWeightedCluster.WeightedClusters.Add(weightedCluster)
@@ -103,10 +102,10 @@ func aggregateRoutesByHost(domainRoutesMap map[string]map[string]trafficpolicy.R
 		for headerKey, headerValue := range routePolicy.Headers {
 			routePolicyWeightedCluster.Route.Headers[headerKey] = headerValue
 		}
-		domainRoutesMap[domain][routePolicy.PathRegex] = routePolicyWeightedCluster
+		routesPerHost[host][routePolicy.PathRegex] = routePolicyWeightedCluster
 	} else {
-		// no route found, create a new route and cluster mapping on domain
-		domainRoutesMap[domain][routePolicy.PathRegex] = createRoutePolicyWeightedClusters(routePolicy, weightedCluster)
+		// no route found, create a new route and cluster mapping on host
+		routesPerHost[host][routePolicy.PathRegex] = createRoutePolicyWeightedClusters(routePolicy, weightedCluster)
 	}
 }
 
@@ -115,29 +114,4 @@ func createRoutePolicyWeightedClusters(routePolicy trafficpolicy.Route, weighted
 		Route:            routePolicy,
 		WeightedClusters: set.NewSet(weightedCluster),
 	}
-}
-
-func updateRoutesForIngress(proxyServiceName service.NamespacedService, catalog catalog.MeshCataloger, domainRoutesMap map[string]map[string]trafficpolicy.RouteWeightedClusters) error {
-	ingressRoutesPerHost, err := catalog.GetIngressRoutesPerHost(proxyServiceName)
-	if err != nil {
-		log.Error().Err(err).Msgf("Failed to get ingress route configuration for proxy %s", proxyServiceName)
-		return err
-	}
-
-	if len(ingressRoutesPerHost) == 0 {
-		return nil
-	}
-
-	ingressWeightedCluster := service.WeightedCluster{
-		ClusterName: service.ClusterName(proxyServiceName.String()),
-		Weight:      constants.ClusterWeightAcceptAll,
-	}
-
-	for host, routes := range ingressRoutesPerHost {
-		for _, rt := range routes {
-			aggregateRoutesByHost(domainRoutesMap, rt, ingressWeightedCluster, host)
-		}
-	}
-
-	return nil
 }

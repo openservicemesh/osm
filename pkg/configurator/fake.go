@@ -8,6 +8,7 @@ type FakeConfigurator struct {
 	PrometheusScraping          bool
 	ZipkinTracing               bool
 	MeshCIDRRanges              []string
+	useHTTPSIngress             bool
 }
 
 // NewFakeConfigurator create a new fake Configurator
@@ -16,6 +17,7 @@ func NewFakeConfigurator() Configurator {
 		Egress:             true,
 		PrometheusScraping: true,
 		ZipkinTracing:      true,
+		useHTTPSIngress:    false,
 	}
 }
 
@@ -64,6 +66,11 @@ func (f FakeConfigurator) IsZipkinTracingEnabled() bool {
 // GetMeshCIDRRanges returns a list of mesh CIDR ranges
 func (f FakeConfigurator) GetMeshCIDRRanges() []string {
 	return f.MeshCIDRRanges
+}
+
+// UseHTTPSIngress determines whether we use HTTPS for ingress to backend pods traffic
+func (f FakeConfigurator) UseHTTPSIngress() bool {
+	return f.useHTTPSIngress
 }
 
 // GetAnnouncementsChannel returns a fake announcement channel
