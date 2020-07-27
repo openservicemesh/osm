@@ -86,13 +86,13 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	return resp, nil
 }
 
-func aggregateRoutesByHost(domainRoutesMap map[string]map[string]trafficpolicy.RouteWeightedClusters, routePolicy trafficpolicy.Route, weightedCluster service.WeightedCluster, domain string) {
-	_, exists := domainRoutesMap[domain]
+func aggregateRoutesByHost(routesPerHost map[string]map[string]trafficpolicy.RouteWeightedClusters, routePolicy trafficpolicy.Route, weightedCluster service.WeightedCluster, host string) {
+	_, exists := routesPerHost[host]
 	if !exists {
-		// no domain found, create a new route map
-		domainRoutesMap[domain] = make(map[string]trafficpolicy.RouteWeightedClusters)
+		// no host found, create a new route map
+		routesPerHost[host] = make(map[string]trafficpolicy.RouteWeightedClusters)
 	}
-	routePolicyWeightedCluster, routeFound := domainRoutesMap[domain][routePolicy.PathRegex]
+	routePolicyWeightedCluster, routeFound := routesPerHost[host][routePolicy.PathRegex]
 	if routeFound {
 		// add the cluster to the existing route
 		routePolicyWeightedCluster.WeightedClusters.Add(weightedCluster)
@@ -103,10 +103,10 @@ func aggregateRoutesByHost(domainRoutesMap map[string]map[string]trafficpolicy.R
 		for headerKey, headerValue := range routePolicy.Headers {
 			routePolicyWeightedCluster.Route.Headers[headerKey] = headerValue
 		}
-		domainRoutesMap[domain][routePolicy.PathRegex] = routePolicyWeightedCluster
+		routesPerHost[host][routePolicy.PathRegex] = routePolicyWeightedCluster
 	} else {
-		// no route found, create a new route and cluster mapping on domain
-		domainRoutesMap[domain][routePolicy.PathRegex] = createRoutePolicyWeightedClusters(routePolicy, weightedCluster)
+		// no route found, create a new route and cluster mapping on host
+		routesPerHost[host][routePolicy.PathRegex] = createRoutePolicyWeightedClusters(routePolicy, weightedCluster)
 	}
 }
 
