@@ -114,7 +114,7 @@ func (c Client) ListEndpointsForService(svc service.Name) []endpoint.Endpoint {
 }
 
 // GetServiceForServiceAccount retrieves the service for the given service account
-func (c Client) GetServiceForServiceAccount(svcAccount service.NamespacedServiceAccount) (service.NamespacedService, error) {
+func (c Client) GetServiceForServiceAccount(svcAccount service.ServiceAccount) (service.NamespacedService, error) {
 	log.Info().Msgf("[%s] Getting Services for service account %s on Kubernetes", c.providerIdent, svcAccount)
 	services := mapset.NewSet()
 	deploymentsInterface := c.caches.Deployments.List()
@@ -131,9 +131,9 @@ func (c Client) GetServiceForServiceAccount(svcAccount service.NamespacedService
 				continue
 			}
 			spec := kubernetesDeployments.Spec
-			namespacedSvcAccount := service.NamespacedServiceAccount{
-				Namespace:      kubernetesDeployments.Namespace,
-				ServiceAccount: spec.Template.Spec.ServiceAccountName,
+			namespacedSvcAccount := service.ServiceAccount{
+				Namespace: kubernetesDeployments.Namespace,
+				Name:      spec.Template.Spec.ServiceAccountName,
 			}
 			if svcAccount == namespacedSvcAccount {
 				var selectorLabel map[string]string
@@ -152,7 +152,7 @@ func (c Client) GetServiceForServiceAccount(svcAccount service.NamespacedService
 	}
 
 	if services.Cardinality() == 0 {
-		log.Error().Msgf("Did not find any service with serviceAccount = %s in namespace %s", svcAccount.ServiceAccount, svcAccount.Namespace)
+		log.Error().Msgf("Did not find any service with serviceAccount = %s in namespace %s", svcAccount.Name, svcAccount.Namespace)
 		return service.NamespacedService{}, errDidNotFindServiceForServiceAccount
 	}
 
@@ -161,13 +161,13 @@ func (c Client) GetServiceForServiceAccount(svcAccount service.NamespacedService
 	// This is a limitation we set in place in order to make the mesh easy to understand and reason about.
 	// When a servcie account has more than one service XDS will not apply any SMI policy for that service, leaving it out of the mesh.
 	if services.Cardinality() > 1 {
-		log.Error().Msgf("Found more than one service for serviceAccount %s in namespace %s; There should be only one!", svcAccount.ServiceAccount, svcAccount.Namespace)
+		log.Error().Msgf("Found more than one service for serviceAccount %s in namespace %s; There should be only one!", svcAccount.Name, svcAccount.Namespace)
 		return service.NamespacedService{}, errMoreThanServiceForServiceAccount
 	}
 
 	log.Info().Msgf("[%s] Services %v observed on service account %s on Kubernetes", c.providerIdent, services, svcAccount)
 	service := services.Pop().(service.NamespacedService)
-	log.Trace().Msgf("Found service %s for serviceAccount %s in namespace %s", service.Service, svcAccount.ServiceAccount, svcAccount.Namespace)
+	log.Trace().Msgf("Found service %s for serviceAccount %s in namespace %s", service.Service, svcAccount.Name, svcAccount.Namespace)
 	return service, nil
 }
 

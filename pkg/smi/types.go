@@ -59,7 +59,7 @@ type MeshSpec interface {
 	ListTrafficSplitServices() []service.WeightedService
 
 	// ListServiceAccounts fetches all service accounts declared with SMI Spec.
-	ListServiceAccounts() []service.NamespacedServiceAccount
+	ListServiceAccounts() []service.ServiceAccount
 
 	// GetService fetches a specific service declared in SMI.
 	GetService(service.Name) (service *corev1.Service, exists bool, err error)

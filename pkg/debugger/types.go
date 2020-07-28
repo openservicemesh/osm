@@ -46,7 +46,7 @@ type MeshCatalogDebugger interface {
 	ListDisconnectedProxies() map[certificate.CommonName]time.Time
 
 	// ListSMIPolicies lists the SMI policies detected by OSM.
-	ListSMIPolicies() ([]*split.TrafficSplit, []service.WeightedService, []service.NamespacedServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget, []*corev1.Service)
+	ListSMIPolicies() ([]*split.TrafficSplit, []service.WeightedService, []service.ServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget, []*corev1.Service)
 }
 
 // XDSDebugger is an interface providing debugging server with methods introspecting XDS.

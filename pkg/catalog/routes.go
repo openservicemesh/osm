@@ -198,9 +198,9 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[trafficpolicy.T
 			continue
 		}
 
-		dstNamespacedServiceAcc := service.NamespacedServiceAccount{
-			Namespace:      trafficTargets.Destination.Namespace,
-			ServiceAccount: trafficTargets.Destination.Name,
+		dstNamespacedServiceAcc := service.ServiceAccount{
+			Namespace: trafficTargets.Destination.Namespace,
+			Name:      trafficTargets.Destination.Name,
 		}
 		destService, destErr := mc.GetServiceForServiceAccount(dstNamespacedServiceAcc)
 		if destErr != nil {
@@ -209,9 +209,9 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[trafficpolicy.T
 		}
 
 		for _, trafficSources := range trafficTargets.Sources {
-			namespacedServiceAccount := service.NamespacedServiceAccount{
-				Namespace:      trafficSources.Namespace,
-				ServiceAccount: trafficSources.Name,
+			namespacedServiceAccount := service.ServiceAccount{
+				Namespace: trafficSources.Namespace,
+				Name:      trafficSources.Name,
 			}
 
 			srcServices, srcErr := mc.GetServiceForServiceAccount(namespacedServiceAccount)

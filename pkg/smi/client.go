@@ -262,9 +262,9 @@ func (c *Client) ListTrafficSplitServices() []service.WeightedService {
 }
 
 // ListServiceAccounts implements mesh.MeshSpec by returning the service accounts observed from the given compute provider
-func (c *Client) ListServiceAccounts() []service.NamespacedServiceAccount {
+func (c *Client) ListServiceAccounts() []service.ServiceAccount {
 	// TODO(draychev): split the namespace and the service kubernetesClientName -- for non-kubernetes services we won't have namespace
-	var serviceAccounts []service.NamespacedServiceAccount
+	var serviceAccounts []service.ServiceAccount
 	for _, targetIface := range c.caches.TrafficTarget.List() {
 		target, ok := targetIface.(*target.TrafficTarget)
 		if !ok {
@@ -277,9 +277,9 @@ func (c *Client) ListServiceAccounts() []service.NamespacedServiceAccount {
 				// Doesn't belong to namespaces we are observing
 				continue
 			}
-			namespacedServiceAccount := service.NamespacedServiceAccount{
-				Namespace:      sources.Namespace,
-				ServiceAccount: sources.Name,
+			namespacedServiceAccount := service.ServiceAccount{
+				Namespace: sources.Namespace,
+				Name:      sources.Name,
 			}
 			serviceAccounts = append(serviceAccounts, namespacedServiceAccount)
 		}
@@ -290,9 +290,9 @@ func (c *Client) ListServiceAccounts() []service.NamespacedServiceAccount {
 			// Doesn't belong to namespaces we are observing
 			continue
 		}
-		namespacedServiceAccount := service.NamespacedServiceAccount{
-			Namespace:      destination.Namespace,
-			ServiceAccount: destination.Name,
+		namespacedServiceAccount := service.ServiceAccount{
+			Namespace: destination.Namespace,
+			Name:      destination.Name,
 		}
 		serviceAccounts = append(serviceAccounts, namespacedServiceAccount)
 	}
