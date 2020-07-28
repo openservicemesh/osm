@@ -18,6 +18,6 @@ metadata:
     app: bookstore
 
 spec:
-  maxConnections: 0.01
+  maxConnections: 10
 
 EOF
