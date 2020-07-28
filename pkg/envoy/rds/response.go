@@ -6,13 +6,13 @@ import (
 	set "github.com/deckarep/golang-set"
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	"github.com/golang/protobuf/ptypes"
-	"github.com/open-service-mesh/osm/pkg/catalog"
-	"github.com/open-service-mesh/osm/pkg/configurator"
-	"github.com/open-service-mesh/osm/pkg/envoy"
-	"github.com/open-service-mesh/osm/pkg/envoy/route"
-	"github.com/open-service-mesh/osm/pkg/service"
-	"github.com/open-service-mesh/osm/pkg/smi"
-	"github.com/open-service-mesh/osm/pkg/trafficpolicy"
+	"github.com/openservicemesh/osm/pkg/catalog"
+	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/envoy/route"
+	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/smi"
+	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
 // NewResponse creates a new Route Discovery Response.

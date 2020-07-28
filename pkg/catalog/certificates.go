@@ -1,8 +1,8 @@
 package catalog
 
 import (
-	"github.com/open-service-mesh/osm/pkg/certificate"
-	"github.com/open-service-mesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/service"
 )
 
 // GetCertificateForService returns the certificate the given proxy uses for mTLS to the XDS server.

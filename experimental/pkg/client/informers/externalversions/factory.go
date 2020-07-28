@@ -23,9 +23,9 @@ import (
 	sync "sync"
 	time "time"
 
-	versioned "github.com/open-service-mesh/osm/experimental/pkg/client/clientset/versioned"
-	internalinterfaces "github.com/open-service-mesh/osm/experimental/pkg/client/informers/externalversions/internalinterfaces"
-	policy "github.com/open-service-mesh/osm/experimental/pkg/client/informers/externalversions/policy"
+	versioned "github.com/openservicemesh/osm/experimental/pkg/client/clientset/versioned"
+	internalinterfaces "github.com/openservicemesh/osm/experimental/pkg/client/informers/externalversions/internalinterfaces"
+	policy "github.com/openservicemesh/osm/experimental/pkg/client/informers/externalversions/policy"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

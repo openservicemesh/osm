@@ -16,7 +16,7 @@ OSM is able to automatically provision Prometheus and Grafana instances to monit
 
 By default, OSM installation will deploy a Prometheus and Grafana stack (plus necessary rules for proper communication). OSM will annotate the pods joined in the mesh with necessary sections to later have Prometheus reach and scrape the pods, also by default.
 
-The automatic bring up can be overridden with the `osm install` option during install time: 
+The automatic bring up can be overridden with the `osm install` option during install time:
 ```
 osm install --help
 
@@ -32,10 +32,10 @@ The following section will document the additional steps needed to allow an alre
 
 #### List of Prerequisites
 
-- Already running an accessible Prometheus instance *outside* of the mesh. 
+- Already running an accessible Prometheus instance *outside* of the mesh.
 - A running OSM control plane instance, deployed without metrics stack.
    - OSM controls the Envoy's Prometheus listener aperture through `prometheus_scraping: "true"`, under OSM configmap. By default this is set to true, but do double check it has been enabled on the OSM configmap, or else Prometheus might not be able to reach the pods.
-- We will assume having Grafana reach Prometheus, exposing or forwarding Prometheus or Grafana web ports and configuring Prometheus to reach Kubernetes API services is taken care of or otherwise out of the scope of these steps. 
+- We will assume having Grafana reach Prometheus, exposing or forwarding Prometheus or Grafana web ports and configuring Prometheus to reach Kubernetes API services is taken care of or otherwise out of the scope of these steps.
 
 #### Configuration
 
@@ -106,7 +106,7 @@ pushing the listener configuration to the pods for Prometheus to reach:
       action: replace
       regex: ^ReplicaSet;(.*)-[^-]+$
       target_label: source_workload_name
-``` 
+```
 
 ### Grafana and OSM dashboards
 
@@ -117,7 +117,7 @@ The dashboards are located under `osm/charts/osm/grafana/dashboards`, and can be
 
 ## Querying metrics from Prometheus
 
-### Before you begin 
+### Before you begin
 Ensure that you have followed the steps to run [OSM Demo][2]
 
 ### Querying proxy metrics for request count
@@ -151,7 +151,7 @@ The 4  grafana dahsboards that come pre-installed with OSM are as follows:
 
 ## Visualizing Metrics with Grafana
 
-### Before you begin 
+### Before you begin
 Ensure that you have followed the steps to run [OSM Demo][2]
 
 ### Viewing a Grafana dashboard for service to service metrics
@@ -168,14 +168,14 @@ Ensure that you have followed the steps to run [OSM Demo][2]
    - username: admin
    - password: admin
 5. Viewing Grafana dashboard for service to service metrics
-   - From the Grafana's dashboards left hand corner navigation menu you can navigate to the OSM Service to Service Dashboard in the folder OSM Data Palne  
+   - From the Grafana's dashboards left hand corner navigation menu you can navigate to the OSM Service to Service Dashboard in the folder OSM Data Palne
    - Or visit the following url [http://localhost:3000/d/OSMs2sMetrics/osm-service-to-service-metrics?orgId=1][6] in your web browser
 
 OSM Service to Service Metrics dashboard will look like:
 ![image](https://user-images.githubusercontent.com/59101963/85907233-a604e380-b7c5-11ea-95b5-9190fbc7967f.png)
 
 [1]:https://prometheus.io/docs/introduction/overview/
-[2]:https://github.com/open-service-mesh/osm/blob/main/demo/README.md
+[2]:https://github.com/openservicemesh/osm/blob/main/demo/README.md
 [3]: https://grafana.com/docs/grafana/latest/getting-started/what-is-grafana/
 [4]: http://localhost:3000
 [5]: http://localhost:7070

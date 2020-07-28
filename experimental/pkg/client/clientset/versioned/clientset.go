@@ -21,7 +21,7 @@ package versioned
 import (
 	"fmt"
 
-	policyv1alpha1 "github.com/open-service-mesh/osm/experimental/pkg/client/clientset/versioned/typed/policy/v1alpha1"
+	policyv1alpha1 "github.com/openservicemesh/osm/experimental/pkg/client/clientset/versioned/typed/policy/v1alpha1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"

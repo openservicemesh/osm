@@ -8,9 +8,9 @@ import (
 	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2019-06-01/network"
 	"github.com/Azure/go-autorest/autorest"
 
-	osm "github.com/open-service-mesh/osm/pkg/apis/azureresource/v1"
-	"github.com/open-service-mesh/osm/pkg/logger"
-	"github.com/open-service-mesh/osm/pkg/smi"
+	osm "github.com/openservicemesh/osm/pkg/apis/azureresource/v1"
+	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/smi"
 )
 
 type resourceGroup string

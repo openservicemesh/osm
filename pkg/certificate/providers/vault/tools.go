@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/certificate"
 )
 
 func getDurationInMinutes(validityPeriod time.Duration) string {

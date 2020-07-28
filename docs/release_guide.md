@@ -16,7 +16,7 @@ $ git push origin "$RELEASE_VERSION"
 ```
 
 ## Draft a GitHub Release
-Visit the [releases page](https://github.com/open-service-mesh/osm/releases)
+Visit the [releases page](https://github.com/openservicemesh/osm/releases)
 to `Draft a new release` using the tag you just created and pushed.
 
 ## Add release notes

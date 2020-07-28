@@ -21,7 +21,7 @@ package versioned
 import (
 	"fmt"
 
-	osmv1 "github.com/open-service-mesh/osm/pkg/osm_client/clientset/versioned/typed/azureresource/v1"
+	osmv1 "github.com/openservicemesh/osm/pkg/osm_client/clientset/versioned/typed/azureresource/v1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"

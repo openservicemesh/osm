@@ -3,7 +3,7 @@ package namespace
 import (
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/open-service-mesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/logger"
 )
 
 var (

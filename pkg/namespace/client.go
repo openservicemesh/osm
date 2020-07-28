@@ -9,7 +9,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
-	k8s "github.com/open-service-mesh/osm/pkg/kubernetes"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 )
 
 const (

@@ -18,11 +18,11 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/open-service-mesh/osm/pkg/catalog"
-	"github.com/open-service-mesh/osm/pkg/certificate"
-	"github.com/open-service-mesh/osm/pkg/configurator"
-	"github.com/open-service-mesh/osm/pkg/constants"
-	"github.com/open-service-mesh/osm/pkg/namespace"
+	"github.com/openservicemesh/osm/pkg/catalog"
+	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/namespace"
 )
 
 var (

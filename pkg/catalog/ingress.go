@@ -1,9 +1,9 @@
 package catalog
 
 import (
-	"github.com/open-service-mesh/osm/pkg/constants"
-	"github.com/open-service-mesh/osm/pkg/service"
-	"github.com/open-service-mesh/osm/pkg/trafficpolicy"
+	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
 // GetIngressRoutesPerHost returns routes per host as defined in observed ingress k8s resources.

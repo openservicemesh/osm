@@ -11,10 +11,10 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
-	"github.com/open-service-mesh/osm/pkg/certificate"
-	"github.com/open-service-mesh/osm/pkg/envoy"
-	"github.com/open-service-mesh/osm/pkg/logger"
-	"github.com/open-service-mesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/service"
 )
 
 var log = logger.New("debugger")

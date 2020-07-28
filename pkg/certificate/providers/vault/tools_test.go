@@ -7,11 +7,11 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/certificate"
 )
 
 var _ = Describe("Test tools", func() {
-	vaultRole := "open-service-mesh"
+	vaultRole := "openservicemesh"
 
 	Context("Test converting duration into Vault recognizable string", func() {
 		It("converts 36 hours into correct string representation", func() {

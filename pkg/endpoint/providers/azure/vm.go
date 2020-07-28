@@ -5,7 +5,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/open-service-mesh/osm/pkg/utils"
+	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 func (az *Client) getVM(rg resourceGroup, vmID azureID) ([]net.IP, error) {

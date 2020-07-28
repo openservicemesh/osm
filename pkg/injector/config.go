@@ -11,9 +11,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/open-service-mesh/osm/pkg/certificate"
-	"github.com/open-service-mesh/osm/pkg/constants"
-	"github.com/open-service-mesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/envoy"
 )
 
 func getEnvoyConfigYAML(config envoyBootstrapConfigMeta) ([]byte, error) {

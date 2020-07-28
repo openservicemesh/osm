@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	mapset "github.com/deckarep/golang-set"
-	k8s "github.com/open-service-mesh/osm/pkg/kubernetes"
-	"github.com/open-service-mesh/osm/pkg/service"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
+	"github.com/openservicemesh/osm/pkg/service"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -16,9 +16,9 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/open-service-mesh/osm/pkg/configurator"
-	"github.com/open-service-mesh/osm/pkg/endpoint"
-	"github.com/open-service-mesh/osm/pkg/namespace"
+	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/endpoint"
+	"github.com/openservicemesh/osm/pkg/namespace"
 )
 
 const namespaceSelectorLabel = "app"

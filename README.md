@@ -1,10 +1,10 @@
 # Open Service Mesh (OSM)
 
-[![build](https://github.com/open-service-mesh/osm/workflows/Go/badge.svg)](https://github.com/open-service-mesh/osm/actions?query=workflow%3AGo)
-[![report](https://goreportcard.com/badge/github.com/open-service-mesh/osm)](https://goreportcard.com/report/github.com/open-service-mesh/osm)
-[![codecov](https://codecov.io/gh/open-service-mesh/osm/branch/main/graph/badge.svg)](https://codecov.io/gh/open-service-mesh/osm)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/open-service-mesh/osm/blob/main/LICENSE)
-[![release](https://img.shields.io/github/release/open-service-mesh/osm/all.svg)](https://github.com/open-service-mesh/osm/releases)
+[![build](https://github.com/openservicemesh/osm/workflows/Go/badge.svg)](https://github.com/openservicemesh/osm/actions?query=workflow%3AGo)
+[![report](https://goreportcard.com/badge/github.com/openservicemesh/osm)](https://goreportcard.com/report/github.com/openservicemesh/osm)
+[![codecov](https://codecov.io/gh/openservicemesh/osm/branch/main/graph/badge.svg)](https://codecov.io/gh/openservicemesh/osm)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/openservicemesh/osm/blob/main/LICENSE)
+[![release](https://img.shields.io/github/release/openservicemesh/osm/all.svg)](https://github.com/openservicemesh/osm/releases)
 
 Open Service Mesh (OSM) is a lightweight, extensible, Cloud Native [service mesh][1] that allows users to uniformly manage, secure, and get out-of-the-box observability features for highly dynamic microservice environments.
 
@@ -42,7 +42,7 @@ Read more about the high level goals, design and architecture [here](DESIGN.md).
 
 The simplest way of installing open service mesh on a Kubernetes cluster is by using the `osm` CLI.
 
-Download the `osm` binary from the [Releases page](https://github.com/open-service-mesh/osm/releases).
+Download the `osm` binary from the [Releases page](https://github.com/openservicemesh/osm/releases).
 
 See the [installation guide](docs/installation_guide.md) for more detailed options. After installing OSM, [onboard services](docs/onboard_services.md) to the mesh.
 

@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/certificate"
 )
 
 const (

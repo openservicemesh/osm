@@ -23,9 +23,9 @@ import (
 	sync "sync"
 	time "time"
 
-	versioned "github.com/open-service-mesh/osm/pkg/osm_client/clientset/versioned"
-	azureresource "github.com/open-service-mesh/osm/pkg/osm_client/informers/externalversions/azureresource"
-	internalinterfaces "github.com/open-service-mesh/osm/pkg/osm_client/informers/externalversions/internalinterfaces"
+	versioned "github.com/openservicemesh/osm/pkg/osm_client/clientset/versioned"
+	azureresource "github.com/openservicemesh/osm/pkg/osm_client/informers/externalversions/azureresource"
+	internalinterfaces "github.com/openservicemesh/osm/pkg/osm_client/informers/externalversions/internalinterfaces"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

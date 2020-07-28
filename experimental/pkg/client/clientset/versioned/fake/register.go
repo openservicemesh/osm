@@ -19,7 +19,7 @@ limitations under the License.
 package fake
 
 import (
-	policyv1alpha1 "github.com/open-service-mesh/osm/experimental/pkg/apis/policy/v1alpha1"
+	policyv1alpha1 "github.com/openservicemesh/osm/experimental/pkg/apis/policy/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

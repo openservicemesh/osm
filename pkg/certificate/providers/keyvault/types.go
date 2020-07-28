@@ -2,7 +2,7 @@ package keyvault
 
 import (
 	"github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault"
-	"github.com/open-service-mesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/logger"
 )
 
 var (

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-ORG_PATH="github.com/open-service-mesh"
+ORG_PATH="github.com/openservicemesh"
 PROJECT_NAME="osm"
 REPO_PATH="${ORG_PATH}/${PROJECT_NAME}"
 

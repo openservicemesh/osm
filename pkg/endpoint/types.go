@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/open-service-mesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/service"
 )
 
 // Provider is an interface to be implemented by components abstracting Kubernetes, Azure, and other compute/cluster providers

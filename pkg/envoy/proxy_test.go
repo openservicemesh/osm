@@ -6,7 +6,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/certificate"
 )
 
 const (

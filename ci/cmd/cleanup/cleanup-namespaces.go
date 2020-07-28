@@ -12,7 +12,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/open-service-mesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/logger"
 )
 
 var log = logger.New("ci/maestro")

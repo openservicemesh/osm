@@ -9,8 +9,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/open-service-mesh/osm/pkg/certificate"
-	"github.com/open-service-mesh/osm/pkg/certificate/rotor"
+	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/certificate/rotor"
 )
 
 func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod *time.Duration) (certificate.Certificater, error) {

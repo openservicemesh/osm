@@ -10,7 +10,7 @@ import (
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/open-service-mesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/service"
 )
 
 type policies struct {

@@ -7,16 +7,16 @@ import (
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_service_discovery_v2 "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 
-	"github.com/open-service-mesh/osm/pkg/catalog"
-	"github.com/open-service-mesh/osm/pkg/certificate"
-	"github.com/open-service-mesh/osm/pkg/configurator"
-	"github.com/open-service-mesh/osm/pkg/envoy"
-	"github.com/open-service-mesh/osm/pkg/envoy/cds"
-	"github.com/open-service-mesh/osm/pkg/envoy/eds"
-	"github.com/open-service-mesh/osm/pkg/envoy/lds"
-	"github.com/open-service-mesh/osm/pkg/envoy/rds"
-	"github.com/open-service-mesh/osm/pkg/envoy/sds"
-	"github.com/open-service-mesh/osm/pkg/smi"
+	"github.com/openservicemesh/osm/pkg/catalog"
+	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/envoy/cds"
+	"github.com/openservicemesh/osm/pkg/envoy/eds"
+	"github.com/openservicemesh/osm/pkg/envoy/lds"
+	"github.com/openservicemesh/osm/pkg/envoy/rds"
+	"github.com/openservicemesh/osm/pkg/envoy/sds"
+	"github.com/openservicemesh/osm/pkg/smi"
 )
 
 // NewADSServer creates a new Aggregated Discovery Service server

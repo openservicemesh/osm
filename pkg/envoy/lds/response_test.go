@@ -4,9 +4,9 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/open-service-mesh/osm/pkg/configurator"
-	"github.com/open-service-mesh/osm/pkg/envoy"
-	"github.com/open-service-mesh/osm/pkg/tests"
+	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/tests"
 )
 
 var _ = Describe("Test LDS response", func() {
