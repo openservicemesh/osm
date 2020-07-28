@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/vault/api"
-	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/certificate"
 )
 
 // CertManager implements certificate.Manager and contains a Hashi Vault client instance.

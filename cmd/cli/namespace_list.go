@@ -3,10 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/open-service-mesh/osm/pkg/constants"
+	"io"
+
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/spf13/cobra"
 	"helm.sh/helm/v3/cmd/helm/require"
-	"io"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"

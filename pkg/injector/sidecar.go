@@ -3,7 +3,7 @@ package injector
 import (
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/open-service-mesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/constants"
 )
 
 const (

@@ -1,8 +1,8 @@
 package catalog
 
 import (
-	"github.com/open-service-mesh/osm/pkg/constants"
-	"github.com/open-service-mesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/service"
 )
 
 // GetServiceForServiceAccount returns a service corresponding to a service account

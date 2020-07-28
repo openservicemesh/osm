@@ -9,7 +9,7 @@ This guide describes how to install Open Service Mesh (OSM) on a Kubernetes clus
 ## Set up the OSM CLI
 
 ### From the Binary Releases
-Download platform specific compressed package from the [Releases page](https://github.com/open-service-mesh/osm/releases).
+Download platform specific compressed package from the [Releases page](https://github.com/openservicemesh/osm/releases).
 Unpack the `osm` binary and add it to `$PATH` to get started.
 
 ### From Source (Linux, MacOS)
@@ -18,7 +18,7 @@ Building OSM from source requires more steps but is the best way to test the lat
 You must have a working [Go](https://golang.org/doc/install) environment.
 
 ```console
-$ git clone git@github.com:open-service-mesh/osm.git
+$ git clone git@github.com:openservicemesh/osm.git
 $ cd osm
 $ make build-osm
 ```

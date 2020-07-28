@@ -11,7 +11,7 @@ in detail in [DESIGN.md](DESIGN.md).
 ## Table of contents
 
 - [Repo Layout](#repo-layout)
-- [Open Service Mesh Components](#open-service-mesh-components)
+- [Open Service Mesh Components](#openservicemesh-components)
 - [Development Configurations](#development-configurations)
 - [Helm Chart](#helm-chart)
 - [Build Architecture](#build-architecture)

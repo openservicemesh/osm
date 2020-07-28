@@ -1,6 +1,6 @@
 package tresor
 
-import "github.com/open-service-mesh/osm/pkg/certificate"
+import "github.com/openservicemesh/osm/pkg/certificate"
 
 // ListIssuedCertificates implements CertificateDebugger interface and returns the list of issued certificates.
 func (cm *CertManager) ListIssuedCertificates() []certificate.Certificater {

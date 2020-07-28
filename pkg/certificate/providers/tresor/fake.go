@@ -3,7 +3,7 @@ package tresor
 import (
 	"time"
 
-	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/certificate"
 )
 
 // NewFakeCertManager creates a fake CertManager used for testing.

@@ -8,7 +8,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/open-service-mesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/envoy"
 )
 
 func receive(requests chan v2.DiscoveryRequest, server *xds.AggregatedDiscoveryService_StreamAggregatedResourcesServer, proxy *envoy.Proxy, quit chan struct{}) {

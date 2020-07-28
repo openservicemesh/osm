@@ -3,10 +3,10 @@ package injector
 import (
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/open-service-mesh/osm/pkg/catalog"
-	"github.com/open-service-mesh/osm/pkg/certificate"
-	"github.com/open-service-mesh/osm/pkg/logger"
-	"github.com/open-service-mesh/osm/pkg/namespace"
+	"github.com/openservicemesh/osm/pkg/catalog"
+	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/namespace"
 )
 
 const (

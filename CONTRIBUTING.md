@@ -3,16 +3,16 @@ The OSM project accepts contributions via GitHub pull requests. This document ou
 
 ## Contributor License Agreement
 
-This repository is governed under a [Contributor License Agreement](https://cla.opensource.microsoft.com/open-service-mesh/osm). All PR submitters must accept the CLA before their contributions can be merged.
+This repository is governed under a [Contributor License Agreement](https://cla.opensource.microsoft.com/openservicemesh/osm). All PR submitters must accept the CLA before their contributions can be merged.
 
 ## Roadmap
-We use [GitHub Project Boards](https://github.com/open-service-mesh/osm/projects) to help give a high level overview and track what work is going on and what stage it is in. If you want an idea of our roadmap and prioritization, this is the best place to find that information.
+We use [GitHub Project Boards](https://github.com/openservicemesh/osm/projects) to help give a high level overview and track what work is going on and what stage it is in. If you want an idea of our roadmap and prioritization, this is the best place to find that information.
 
 ## Issues
-If a bug is found, need clarification, or want to propose a feature, submit an issue using [GitHub issues](https://github.com/open-service-mesh/osm/issues).
+If a bug is found, need clarification, or want to propose a feature, submit an issue using [GitHub issues](https://github.com/openservicemesh/osm/issues).
 
 ## Milestones
-We use [GitHub Milestones] to track progress of releases. A milestone contains a set of GitHub issues we've agreed to complete for the release. A milestone will be given a semantic version and a soft `due date`. We will cut a [GitHub release](https://github.com/open-service-mesh/osm/releases) once all issues tagged in the milestone are closed or moved to the next milestone.
+We use [GitHub Milestones] to track progress of releases. A milestone contains a set of GitHub issues we've agreed to complete for the release. A milestone will be given a semantic version and a soft `due date`. We will cut a [GitHub release](https://github.com/openservicemesh/osm/releases) once all issues tagged in the milestone are closed or moved to the next milestone.
 
 ## Semantic Versioning
 This project's releases will follow [semantic versioning](https://semver.org/) for labeling releases to maintain backwards compatibility. Features and functionality may be added in major (x.0.0) and minor (0.x.0) releases. Bug fixes may be added in patch releases (0.0.x). We will follow semantic versioning to guarantee features, flags, functionality, public APIs will be backwards compatible as the versioning scheme suggests.

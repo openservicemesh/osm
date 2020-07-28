@@ -13,30 +13,30 @@ import (
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/open-service-mesh/osm/pkg/catalog"
-	"github.com/open-service-mesh/osm/pkg/certificate"
-	"github.com/open-service-mesh/osm/pkg/configurator"
-	"github.com/open-service-mesh/osm/pkg/constants"
-	"github.com/open-service-mesh/osm/pkg/debugger"
-	"github.com/open-service-mesh/osm/pkg/endpoint"
-	"github.com/open-service-mesh/osm/pkg/endpoint/providers/azure"
-	azureResource "github.com/open-service-mesh/osm/pkg/endpoint/providers/azure/kubernetes"
-	"github.com/open-service-mesh/osm/pkg/endpoint/providers/kube"
-	"github.com/open-service-mesh/osm/pkg/envoy/ads"
-	"github.com/open-service-mesh/osm/pkg/featureflags"
-	"github.com/open-service-mesh/osm/pkg/httpserver"
-	"github.com/open-service-mesh/osm/pkg/ingress"
-	"github.com/open-service-mesh/osm/pkg/injector"
-	"github.com/open-service-mesh/osm/pkg/logger"
-	"github.com/open-service-mesh/osm/pkg/metricsstore"
-	"github.com/open-service-mesh/osm/pkg/namespace"
-	"github.com/open-service-mesh/osm/pkg/signals"
-	"github.com/open-service-mesh/osm/pkg/smi"
-	"github.com/open-service-mesh/osm/pkg/utils"
+	"github.com/openservicemesh/osm/pkg/catalog"
+	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/debugger"
+	"github.com/openservicemesh/osm/pkg/endpoint"
+	"github.com/openservicemesh/osm/pkg/endpoint/providers/azure"
+	azureResource "github.com/openservicemesh/osm/pkg/endpoint/providers/azure/kubernetes"
+	"github.com/openservicemesh/osm/pkg/endpoint/providers/kube"
+	"github.com/openservicemesh/osm/pkg/envoy/ads"
+	"github.com/openservicemesh/osm/pkg/featureflags"
+	"github.com/openservicemesh/osm/pkg/httpserver"
+	"github.com/openservicemesh/osm/pkg/ingress"
+	"github.com/openservicemesh/osm/pkg/injector"
+	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/metricsstore"
+	"github.com/openservicemesh/osm/pkg/namespace"
+	"github.com/openservicemesh/osm/pkg/signals"
+	"github.com/openservicemesh/osm/pkg/smi"
+	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 const (
-	// TODO(draychev): pass these via CLI param (https://github.com/open-service-mesh/osm/issues/542)
+	// TODO(draychev): pass these via CLI param (https://github.com/openservicemesh/osm/issues/542)
 	serverType                        = "ADS"
 	defaultServiceCertValidityMinutes = 60 // 1 hour
 	caBundleSecretNameCLIParam        = "ca-bundle-secret-name"
@@ -70,13 +70,13 @@ var (
 	// What is the Certification Authority to be used
 	certManagerKind = flags.String("cert-manager", "tresor", "Certificate manager")
 
-	// TODO(draychev): convert all these flags to spf13/cobra: https://github.com/open-service-mesh/osm/issues/576
+	// TODO(draychev): convert all these flags to spf13/cobra: https://github.com/openservicemesh/osm/issues/576
 	// When certmanager == "vault"
 	vaultProtocol = flags.String("vault-protocol", "http", "Host name of the Hashi Vault")
 	vaultHost     = flags.String("vault-host", "vault.default.svc.cluster.local", "Host name of the Hashi Vault")
 	vaultPort     = flags.Int("vault-port", 8200, "Port of the Hashi Vault")
 	vaultToken    = flags.String("vault-token", "", "Secret token for the the Hashi Vault")
-	vaultRole     = flags.String("vault-role", "open-service-mesh", "Name of the Vault role dedicated to Open Service Mesh")
+	vaultRole     = flags.String("vault-role", "openservicemesh", "Name of the Vault role dedicated to Open Service Mesh")
 )
 
 func init() {
@@ -203,7 +203,7 @@ func main() {
 	// TODO(draychev): there should be no need to pass meshSpec to the ADS - it is already in meshCatalog
 	xdsServer := ads.NewADSServer(ctx, meshCatalog, meshSpec, enableDebugServer, osmNamespace, cfg)
 
-	// TODO(draychev): we need to pass this hard-coded string is a CLI argument (https://github.com/open-service-mesh/osm/issues/542)
+	// TODO(draychev): we need to pass this hard-coded string is a CLI argument (https://github.com/openservicemesh/osm/issues/542)
 	validityPeriod := constants.XDSCertificateValidityPeriod
 	adsCert, err := certManager.IssueCertificate(xdsServerCertificateCommonName, &validityPeriod)
 	if err != nil {

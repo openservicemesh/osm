@@ -6,7 +6,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
-	"github.com/open-service-mesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/configurator"
 )
 
 // GetHandlers implements DebugServer interface and returns the rist of URLs and the handling functions.

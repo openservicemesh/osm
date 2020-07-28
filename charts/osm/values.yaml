@@ -19,7 +19,7 @@ OpenServiceMesh:
     host:
     protocol: http
     token:
-    role: open-service-mesh
+    role: openservicemesh
   serviceCertValidityMinutes: 1
   grafana:
     port: 3000

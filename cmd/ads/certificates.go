@@ -9,11 +9,11 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/open-service-mesh/osm/pkg/certificate"
-	"github.com/open-service-mesh/osm/pkg/certificate/providers/tresor"
-	"github.com/open-service-mesh/osm/pkg/certificate/providers/vault"
-	"github.com/open-service-mesh/osm/pkg/constants"
-	"github.com/open-service-mesh/osm/pkg/debugger"
+	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
+	"github.com/openservicemesh/osm/pkg/certificate/providers/vault"
+	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/debugger"
 )
 
 type certificateManagerKind string
@@ -146,7 +146,7 @@ func getCertFromKubernetes(kubeClient kubernetes.Interface, namespace, secretNam
 }
 
 func getAzureKeyVaultCertManager(_ kubernetes.Interface, enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
-	// TODO(draychev): implement: https://github.com/open-service-mesh/osm/issues/577
+	// TODO(draychev): implement: https://github.com/openservicemesh/osm/issues/577
 	log.Fatal().Msg("Azure Key Vault certificate manager is not implemented")
 	return nil, nil, nil
 }

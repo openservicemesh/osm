@@ -22,8 +22,8 @@ import (
 	"context"
 	"time"
 
-	v1 "github.com/open-service-mesh/osm/pkg/apis/azureresource/v1"
-	scheme "github.com/open-service-mesh/osm/pkg/osm_client/clientset/versioned/scheme"
+	v1 "github.com/openservicemesh/osm/pkg/apis/azureresource/v1"
+	scheme "github.com/openservicemesh/osm/pkg/osm_client/clientset/versioned/scheme"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"

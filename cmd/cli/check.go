@@ -7,7 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/open-service-mesh/osm/pkg/check"
+	"github.com/openservicemesh/osm/pkg/check"
 )
 
 const checkDescription = `

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/open-service-mesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/spf13/cobra"
 	"helm.sh/helm/v3/cmd/helm/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

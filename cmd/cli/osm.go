@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	"helm.sh/helm/v3/pkg/action"
 
-	"github.com/open-service-mesh/osm/pkg/cli"
+	"github.com/openservicemesh/osm/pkg/cli"
 )
 
 var globalUsage = `The osm cli enables you to install and manage the

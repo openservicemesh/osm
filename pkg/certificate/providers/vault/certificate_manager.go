@@ -6,11 +6,11 @@ import (
 
 	"github.com/hashicorp/vault/api"
 
-	"github.com/open-service-mesh/osm/pkg/certificate"
-	"github.com/open-service-mesh/osm/pkg/certificate/pem"
-	"github.com/open-service-mesh/osm/pkg/certificate/rotor"
-	"github.com/open-service-mesh/osm/pkg/constants"
-	"github.com/open-service-mesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/certificate/pem"
+	"github.com/openservicemesh/osm/pkg/certificate/rotor"
+	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/logger"
 )
 
 var log = logger.New("vault")

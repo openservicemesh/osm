@@ -3,9 +3,9 @@ package kube
 import (
 	"fmt"
 
-	"github.com/open-service-mesh/osm/pkg/endpoint"
-	"github.com/open-service-mesh/osm/pkg/service"
-	"github.com/open-service-mesh/osm/pkg/tests"
+	"github.com/openservicemesh/osm/pkg/endpoint"
+	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/tests"
 )
 
 // NewFakeProvider implements mesh.EndpointsProvider, which creates a test Kubernetes cluster/compute provider.

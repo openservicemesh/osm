@@ -8,8 +8,8 @@ import (
 	discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
 	"github.com/pkg/errors"
 
-	"github.com/open-service-mesh/osm/pkg/envoy"
-	"github.com/open-service-mesh/osm/pkg/utils"
+	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 // StreamAggregatedResources handles streaming of the clusters to the connected Envoy proxies

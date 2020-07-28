@@ -10,11 +10,11 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	backpressure "github.com/open-service-mesh/osm/experimental/pkg/apis/policy/v1alpha1"
-	"github.com/open-service-mesh/osm/pkg/constants"
-	"github.com/open-service-mesh/osm/pkg/endpoint"
-	"github.com/open-service-mesh/osm/pkg/service"
-	"github.com/open-service-mesh/osm/pkg/trafficpolicy"
+	backpressure "github.com/openservicemesh/osm/experimental/pkg/apis/policy/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/endpoint"
+	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 	"github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 )
 

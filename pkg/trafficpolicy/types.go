@@ -2,7 +2,7 @@ package trafficpolicy
 
 import (
 	set "github.com/deckarep/golang-set"
-	"github.com/open-service-mesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/service"
 )
 
 // TrafficSpecName is the namespaced name of the SMI TrafficSpec

@@ -6,7 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	tresorPem "github.com/open-service-mesh/osm/pkg/certificate/pem"
+	tresorPem "github.com/openservicemesh/osm/pkg/certificate/pem"
 )
 
 // LoadCertificateFromFile loads a certificate from a PEM file.

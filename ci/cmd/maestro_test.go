@@ -6,7 +6,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/open-service-mesh/osm/demo/cmd/common"
+	"github.com/openservicemesh/osm/demo/cmd/common"
 )
 
 var _ = Describe("Test maestro", func() {

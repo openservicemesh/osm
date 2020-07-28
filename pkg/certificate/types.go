@@ -3,7 +3,7 @@ package certificate
 import (
 	"time"
 
-	"github.com/open-service-mesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/logger"
 )
 
 const (

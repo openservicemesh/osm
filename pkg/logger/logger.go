@@ -10,7 +10,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
-	"github.com/open-service-mesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/constants"
 )
 
 // CallerHook implements zerolog.Hook interface.

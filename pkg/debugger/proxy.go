@@ -6,8 +6,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/open-service-mesh/osm/pkg/catalog"
-	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/catalog"
+	"github.com/openservicemesh/osm/pkg/certificate"
 )
 
 const specificProxyQueryKey = "proxy"
