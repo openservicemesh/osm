@@ -5,7 +5,7 @@ set -aueo pipefail
 # shellcheck disable=SC1091
 source .env
 
-for ns in "$BOOKWAREHOUSE_NAMESPACE" "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE" "$K8S_NAMESPACE"; do
+for ns in "$BOOKWAREHOUSE_NAMESPACE" "$BOOKBUYER_NAMESPACE" "${BOOKSTORE_NAMESPACE}-v1" "${BOOKSTORE_NAMESPACE}-v2" "$BOOKTHIEF_NAMESPACE" "$K8S_NAMESPACE"; do
     kubectl delete namespace "$ns" --ignore-not-found
 done
 

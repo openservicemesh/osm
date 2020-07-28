@@ -6,8 +6,9 @@ set -aueo pipefail
 source .env
 VERSION=${1:-v1}
 SVC="bookstore-$VERSION"
+NS="${BOOKSTORE_NAMESPACE}-${VERSION}"
 
-kubectl delete deployment "$SVC" -n "$BOOKSTORE_NAMESPACE"  --ignore-not-found
+kubectl delete deployment "$SVC" -n "$NS" --ignore-not-found
 
 # Create a top level service just for the bookstore domain
 echo -e "Deploy bookstore Service"
@@ -16,7 +17,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: bookstore
-  namespace: $BOOKSTORE_NAMESPACE
+  namespace: $NS
   labels:
     app: bookstore
 spec:
@@ -33,7 +34,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: "$SVC"
-  namespace: $BOOKSTORE_NAMESPACE
+  namespace: $NS
 EOF
 
 echo -e "Deploy $SVC Service"
@@ -42,7 +43,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: $SVC
-  namespace: $BOOKSTORE_NAMESPACE
+  namespace: $NS
   labels:
     app: $SVC
 spec:
@@ -60,7 +61,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: $SVC
-  namespace: $BOOKSTORE_NAMESPACE
+  namespace: $NS
 spec:
   replicas: 1
   selector:
@@ -93,10 +94,10 @@ spec:
         - name: $CTR_REGISTRY_CREDS_NAME
 EOF
 
-kubectl get pods      --no-headers -o wide --selector app="$SVC" -n "$BOOKSTORE_NAMESPACE"
-kubectl get endpoints --no-headers -o wide --selector app="$SVC" -n "$BOOKSTORE_NAMESPACE"
-kubectl get service                -o wide                       -n "$BOOKSTORE_NAMESPACE"
+kubectl get pods      --no-headers -o wide --selector app="$SVC" -n "$NS"
+kubectl get endpoints --no-headers -o wide --selector app="$SVC" -n "$NS"
+kubectl get service                -o wide                       -n "$NS"
 
-for x in $(kubectl get service -n "$BOOKSTORE_NAMESPACE" --selector app="$SVC" --no-headers | awk '{print $1}'); do
-    kubectl get service "$x" -n "$BOOKSTORE_NAMESPACE" -o jsonpath='{.status.loadBalancer.ingress[*].ip}'
+for x in $(kubectl get service -n "$NS" --selector app="$SVC" --no-headers | awk '{print $1}'); do
+    kubectl get service "$x" -n "$NS" -o jsonpath='{.status.loadBalancer.ingress[*].ip}'
 done

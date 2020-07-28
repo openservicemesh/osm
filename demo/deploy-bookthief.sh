@@ -66,8 +66,6 @@ spec:
           command: ["/bookthief"]
 
           env:
-            - name: "BOOKSTORE_NAMESPACE"
-              value: "$BOOKSTORE_NAMESPACE"
             - name: "BOOKSTORE_SVC"
               value: "$BOOKSTORE_SVC"
             - name: "BOOKTHIEF_EXPECTED_RESPONSE_CODE"
