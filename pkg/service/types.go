@@ -36,13 +36,6 @@ func (ns NamespacedService) Equals(service NamespacedService) bool {
 	return reflect.DeepEqual(ns, service)
 }
 
-// Account is a type for a service account
-type Account string
-
-func (s Account) String() string {
-	return string(s)
-}
-
 // UnmarshalNamespacedService unmarshals a NamespaceService type from a string
 func UnmarshalNamespacedService(str string) (*NamespacedService, error) {
 	slices := strings.Split(str, separator)
@@ -68,14 +61,14 @@ func (ns NamespacedService) GetCommonName() certificate.CommonName {
 	return certificate.CommonName(strings.Join([]string{ns.Service, ns.Namespace, "svc", "cluster", "local"}, "."))
 }
 
-// NamespacedServiceAccount is a type for a namespaced service account
-type NamespacedServiceAccount struct {
-	Namespace      string
-	ServiceAccount string
+// K8sServiceAccount is a type for a namespaced service account
+type K8sServiceAccount struct {
+	Namespace string
+	Name      string
 }
 
-func (ns NamespacedServiceAccount) String() string {
-	return fmt.Sprintf("%s/%s", ns.Namespace, ns.ServiceAccount)
+func (ns K8sServiceAccount) String() string {
+	return fmt.Sprintf("%s/%s", ns.Namespace, ns.Name)
 }
 
 // ClusterName is a type for a service name

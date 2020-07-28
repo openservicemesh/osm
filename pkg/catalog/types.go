@@ -65,7 +65,7 @@ type MeshCataloger interface {
 	ListAllowedOutboundServices(service.NamespacedService) ([]service.NamespacedService, error)
 
 	// ListSMIPolicies lists SMI policies.
-	ListSMIPolicies() ([]*split.TrafficSplit, []service.WeightedService, []service.NamespacedServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget, []*corev1.Service)
+	ListSMIPolicies() ([]*split.TrafficSplit, []service.WeightedService, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget, []*corev1.Service)
 
 	// ListEndpointsForService returns the list of provider endpoints corresponding to a service
 	ListEndpointsForService(service.Name) ([]endpoint.Endpoint, error)
@@ -87,7 +87,7 @@ type MeshCataloger interface {
 	UnregisterProxy(*envoy.Proxy)
 
 	// GetServiceForServiceAccount returns the service corresponding to a service account
-	GetServiceForServiceAccount(service.NamespacedServiceAccount) (service.NamespacedService, error)
+	GetServiceForServiceAccount(service.K8sServiceAccount) (service.NamespacedService, error)
 
 	//GetDomainForService returns the domain name of a service
 	GetDomainForService(service service.NamespacedService, routeHeaders map[string]string) (string, error)

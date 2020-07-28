@@ -17,7 +17,7 @@ type fakeMeshSpec struct {
 	trafficTargets   []*target.TrafficTarget
 	backpressures    []*backpressure.Backpressure
 	weightedServices []service.WeightedService
-	serviceAccounts  []service.NamespacedServiceAccount
+	serviceAccounts  []service.K8sServiceAccount
 	services         []*corev1.Service
 }
 
@@ -28,7 +28,7 @@ func NewFakeMeshSpecClient() MeshSpec {
 		routeGroups:      []*spec.HTTPRouteGroup{&tests.HTTPRouteGroup},
 		trafficTargets:   []*target.TrafficTarget{&tests.TrafficTarget},
 		weightedServices: []service.WeightedService{tests.WeightedService},
-		serviceAccounts: []service.NamespacedServiceAccount{
+		serviceAccounts: []service.K8sServiceAccount{
 			tests.BookstoreServiceAccount,
 			tests.BookbuyerServiceAccount,
 		},
@@ -48,7 +48,7 @@ func (f fakeMeshSpec) ListTrafficSplitServices() []service.WeightedService {
 }
 
 // ListServiceAccounts fetches all service accounts declared with SMI Spec for the fake Mesh Spec.
-func (f fakeMeshSpec) ListServiceAccounts() []service.NamespacedServiceAccount {
+func (f fakeMeshSpec) ListServiceAccounts() []service.K8sServiceAccount {
 	return f.serviceAccounts
 }
 
