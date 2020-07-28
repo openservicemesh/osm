@@ -15,16 +15,36 @@ Be sure to not include any sensitive information. Sensitive information should _
 
 -->
 
-**What happened**:
+**Bug description**:
 
-**What you expected to happen**:
+**Affected area (please mark with X where applicable)**:
+- [ ] Install
+- [ ] SMI Traffic Access Policy
+- [ ] SMI Traffic Specs Policy
+- [ ] SMI Traffic Split Policy
+- [ ] Permissive Traffic Policy
+- [ ] Ingress
+- [ ] Egress
+- [ ] Envoy Control Plane
+- [ ] CLI Tool
+- [ ] Metrics
+- [ ] Certificate Management
+- [ ] Sidecar Injection
+- [ ] Logging
+- [ ] Debugging
+- [ ] Tests
+- [ ] CI System
 
-**How to reproduce it (as minimally and precisely as possible)**:
+**Expected behavior**:
+
+**Steps to reproduce the bug (as precisely as possible)**:
+
+**How was OSM installed?**:
 
 **Anything else we need to know?**:
 
 **Environment**:
-- OSM version
+- OSM version (use `osm version`):
 - Kubernetes version (use `kubectl version`):
-- Size of cluster (how many worker nodes are in the cluster?)
+- Size of cluster (number of worker nodes in the cluster):
 - Others:
