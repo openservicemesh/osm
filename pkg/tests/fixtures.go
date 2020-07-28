@@ -151,12 +151,12 @@ var (
 			Namespace: "default",
 		},
 		Destination: target.IdentityBindingSubject{
-			Kind:      "ServiceAccount",
+			Kind:      "Name",
 			Name:      BookstoreServiceAccountName,
 			Namespace: "default",
 		},
 		Sources: []target.IdentityBindingSubject{{
-			Kind:      "ServiceAccount",
+			Kind:      "Name",
 			Name:      BookbuyerServiceAccountName,
 			Namespace: "default",
 		}},
@@ -176,15 +176,15 @@ var (
 	NamespacedServiceName = service.Name(fmt.Sprintf("%s/%s", BookstoreService.Namespace, BookstoreService.Service))
 
 	// BookstoreServiceAccount is a namespaced service account.
-	BookstoreServiceAccount = service.NamespacedServiceAccount{
-		Namespace:      Namespace,
-		ServiceAccount: BookstoreServiceAccountName,
+	BookstoreServiceAccount = service.K8sServiceAccount{
+		Namespace: Namespace,
+		Name:      BookstoreServiceAccountName,
 	}
 
 	// BookbuyerServiceAccount is a namespaced bookbuyer account.
-	BookbuyerServiceAccount = service.NamespacedServiceAccount{
-		Namespace:      Namespace,
-		ServiceAccount: BookbuyerServiceAccountName,
+	BookbuyerServiceAccount = service.K8sServiceAccount{
+		Namespace: Namespace,
+		Name:      BookbuyerServiceAccountName,
 	}
 
 	// WeightedService is a service with a weight used for traffic split.
