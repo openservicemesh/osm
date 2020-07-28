@@ -234,10 +234,10 @@ var _ = Describe("Route Configuration", func() {
 			}
 
 			//Validating the outbound clusters and routes
-			sourceRouteConfig := NewRouteConfigurationStub(OutboundRouteConfig)
+			sourceRouteConfig := NewRouteConfigurationStub(OutboundRouteConfigName)
 			UpdateRouteConfiguration(sourceDomainAggregatedData, sourceRouteConfig, true, false)
 			Expect(sourceRouteConfig).NotTo(Equal(nil))
-			Expect(sourceRouteConfig.Name).To(Equal(OutboundRouteConfig))
+			Expect(sourceRouteConfig.Name).To(Equal(OutboundRouteConfigName))
 			Expect(len(sourceRouteConfig.VirtualHosts)).To(Equal(len(sourceDomainAggregatedData)))
 			Expect(len(sourceRouteConfig.VirtualHosts[0].Routes)).To(Equal(1))
 			Expect(len(sourceRouteConfig.VirtualHosts[0].Routes[0].Match.Headers)).To(Equal(1))
@@ -275,10 +275,10 @@ var _ = Describe("Route Configuration", func() {
 			}
 
 			//Validating the inbound clusters and routes
-			destRouteConfig := NewRouteConfigurationStub(InboundRouteConfig)
+			destRouteConfig := NewRouteConfigurationStub(InboundRouteConfigName)
 			UpdateRouteConfiguration(destDomainAggregatedData, destRouteConfig, false, true)
 			Expect(destRouteConfig).NotTo(Equal(nil))
-			Expect(destRouteConfig.Name).To(Equal(InboundRouteConfig))
+			Expect(destRouteConfig.Name).To(Equal(InboundRouteConfigName))
 			Expect(len(destRouteConfig.VirtualHosts)).To(Equal(len(destDomainAggregatedData)))
 			Expect(len(destRouteConfig.VirtualHosts[0].Routes)).To(Equal(1))
 			Expect(len(destRouteConfig.VirtualHosts[0].Routes[0].Match.Headers)).To(Equal(2))
