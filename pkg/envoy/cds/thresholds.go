@@ -17,6 +17,24 @@ func makeThresholds(maxConnections *uint32) []*xds_cluster.CircuitBreakers_Thres
 		threshold.MaxConnections = &wrappers.UInt32Value{
 			Value: *maxConnections,
 		}
+
+		// The maximum number of parallel requests that Envoy will make to the upstream cluster. If not specified, the default is 1024.
+		threshold.MaxRequests = &wrappers.UInt32Value{
+			Value: *maxConnections,
+		}
+
+		threshold.MaxPendingRequests = &wrappers.UInt32Value{
+			Value: *maxConnections,
+		}
+
+		threshold.MaxRetries = &wrappers.UInt32Value{
+			Value: *maxConnections,
+		}
+
+		threshold.MaxConnectionPools = &wrappers.UInt32Value{
+			Value: *maxConnections,
+		}
+
 	}
 
 	return []*xds_cluster.CircuitBreakers_Thresholds{
