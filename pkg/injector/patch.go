@@ -73,16 +73,9 @@ func (wh *webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 		initContainersBasePath)...,
 	)
 
-	// Add the Envoy sidecar
-	envoySidecarData := EnvoySidecarData{
-		Name:           envoySidecarContainerName,
-		Image:          wh.config.SidecarImage,
-		EnvoyNodeID:    proxyUUID,
-		EnvoyClusterID: proxyUUID, // TODO(draychev)
-	}
 	patches = append(patches, addContainer(
 		pod.Spec.Containers,
-		[]corev1.Container{getEnvoySidecarContainerSpec(&envoySidecarData)},
+		getEnvoySidecarContainerSpec(envoyContainerName, wh.config.SidecarImage, proxyUUID, proxyUUID),
 		"/spec/containers")...,
 	)
 
