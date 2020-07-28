@@ -19,11 +19,11 @@ import (
 )
 
 const (
-	//InboundRouteConfig is the name of the route config that the envoy will identify
-	InboundRouteConfig = "RDS_Inbound"
+	//InboundRouteConfigName is the name of the route config that the envoy will identify
+	InboundRouteConfigName = "RDS_Inbound"
 
-	//OutboundRouteConfig is the name of the route config that the envoy will identify
-	OutboundRouteConfig = "RDS_Outbound"
+	//OutboundRouteConfigName is the name of the route config that the envoy will identify
+	OutboundRouteConfigName = "RDS_Outbound"
 
 	// maxRegexProgramSize is the max supported regex complexity
 	maxRegexProgramSize = 1024

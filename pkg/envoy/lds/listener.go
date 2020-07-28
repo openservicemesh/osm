@@ -1,10 +1,11 @@
 package lds
 
 import (
-	"github.com/open-service-mesh/osm/pkg/envoy/route"
 	"net"
 	"strconv"
 	"strings"
+
+	"github.com/open-service-mesh/osm/pkg/envoy/route"
 
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
@@ -26,7 +27,7 @@ const (
 )
 
 func newOutboundListener(cfg configurator.Configurator) (*xds.Listener, error) {
-	connManager := getHTTPConnectionManager(route.OutboundRouteConfig, cfg)
+	connManager := getHTTPConnectionManager(route.OutboundRouteConfigName, cfg)
 	marshalledConnManager, err := ptypes.MarshalAny(connManager)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshalling HttpConnectionManager object")
