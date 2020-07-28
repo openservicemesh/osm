@@ -67,7 +67,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	if len(ingressRoutesPerHost) > 0 {
 		log.Info().Msgf("Found an ingress resource for service %s, applying necessary filters", proxyServiceName)
 		// This proxy is fronting a service that is a backend for an ingress, add a FilterChain for it
-		ingressFilterChains := getInboundIngressFilterChains(proxyServiceName, cfg)
+		ingressFilterChains := getIngressFilterChains(proxyServiceName, cfg)
 		inboundListener.FilterChains = append(inboundListener.FilterChains, ingressFilterChains...)
 	}
 
