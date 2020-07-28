@@ -5,6 +5,9 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	"github.com/open-service-mesh/osm/pkg/constants"
+	corev1 "k8s.io/api/core/v1"
 )
 
 const expectedEnvoyConfig = `
@@ -87,10 +90,54 @@ var _ = Describe("Test Envoy configuration creation", func() {
 	})
 })
 
-var _ = Describe("Test Envoy config path creation function", func() {
-	Context("create envoy config path", func() {
-		It("creates envoy config path", func() {
-			Expect(getEnvoyConfigPath()).To(Equal("/etc/envoy/bootstrap.yaml"))
+var _ = Describe("Test Envoy sidecar", func() {
+	Context("create Envoy sidecar", func() {
+		It("creates correct Envoy sidecar spec", func() {
+			actual := getEnvoySidecarContainerSpec("a", "b", "c", "d")
+			Expect(len(actual)).To(Equal(1))
+
+			expected := corev1.Container{
+				Name:            "a",
+				Image:           "b",
+				ImagePullPolicy: corev1.PullAlways,
+				SecurityContext: &corev1.SecurityContext{
+					RunAsUser: func() *int64 {
+						uid := constants.EnvoyUID
+						return &uid
+					}(),
+				},
+				Ports: []corev1.ContainerPort{
+					{
+						Name:          constants.EnvoyAdminPortName,
+						ContainerPort: constants.EnvoyAdminPort,
+					},
+					{
+						Name:          constants.EnvoyInboundListenerPortName,
+						ContainerPort: constants.EnvoyInboundListenerPort,
+					},
+					{
+						Name:          constants.EnvoyInboundPrometheusListenerPortName,
+						ContainerPort: constants.EnvoyPrometheusInboundListenerPort,
+					},
+				},
+				VolumeMounts: []corev1.VolumeMount{
+					{
+						Name:      envoyBootstrapConfigVolume,
+						ReadOnly:  true,
+						MountPath: envoyProxyConfigPath,
+					},
+				},
+				Command: []string{
+					"envoy",
+				},
+				Args: []string{
+					"--log-level", "debug",
+					"--config-path", "/etc/envoy/bootstrap.yaml",
+					"--service-node", "c",
+					"--service-cluster", "d",
+				},
+			}
+			Expect(actual[0]).To(Equal(expected))
 		})
 	})
 })

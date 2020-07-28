@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"strconv"
-	"strings"
 
 	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
@@ -159,8 +158,4 @@ func (wh *webhook) createEnvoyBootstrapConfig(name, namespace, osmNamespace stri
 
 	log.Info().Msgf("Creating bootstrap config for Envoy: name=%s, namespace=%s", name, namespace)
 	return wh.kubeClient.CoreV1().Secrets(namespace).Create(context.Background(), secret, metav1.CreateOptions{})
-}
-
-func getEnvoyConfigPath() string {
-	return strings.Join([]string{envoyProxyConfigPath, envoyBootstrapConfigFile}, "/")
 }
