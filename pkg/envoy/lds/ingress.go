@@ -51,17 +51,20 @@ func newIngressFilterChain(cfg configurator.Configurator, svc service.Namespaced
 }
 
 func getIngressFilterChains(svc service.NamespacedService, cfg configurator.Configurator) []*envoy_api_v2_listener.FilterChain {
-	// Filter chain without SNI matching enabled for clients that don't set the SNI
-	ingressFilterChainWithoutSNI := newIngressFilterChain(cfg, svc)
+	var ingressFilterChains []*envoy_api_v2_listener.FilterChain
 
-	// Filter chain with SNI matching enabled for clients that set the SNI
-	ingressFilterChainWithSNI := newIngressFilterChain(cfg, svc)
-	ingressFilterChainWithSNI.FilterChainMatch.ServerNames = []string{svc.GetCommonName().String()}
-
-	return []*envoy_api_v2_listener.FilterChain{
-		ingressFilterChainWithSNI,
-		ingressFilterChainWithoutSNI,
+	if cfg.UseHTTPSIngress() {
+		// Filter chain with SNI matching enabled for HTTPS clients that set the SNI
+		ingressFilterChainWithSNI := newIngressFilterChain(cfg, svc)
+		ingressFilterChainWithSNI.FilterChainMatch.ServerNames = []string{svc.GetCommonName().String()}
+		ingressFilterChains = append(ingressFilterChains, ingressFilterChainWithSNI)
 	}
+
+	// Filter chain without SNI matching enabled for HTTP clients and HTTPS clients that don't set the SNI
+	ingressFilterChainWithoutSNI := newIngressFilterChain(cfg, svc)
+	ingressFilterChains = append(ingressFilterChains, ingressFilterChainWithoutSNI)
+
+	return ingressFilterChains
 }
 
 func getIngressTransportSocket(cfg configurator.Configurator, marshalledDownstreamTLSContext *any.Any) *envoy_api_v2_core.TransportSocket {
