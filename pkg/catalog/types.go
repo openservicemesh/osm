@@ -95,7 +95,7 @@ type MeshCataloger interface {
 	//GetWeightedClusterForService returns the weighted cluster for a service
 	GetWeightedClusterForService(service service.NamespacedService) (service.WeightedCluster, error)
 
-	// GetIngressRoutesPerHost returns the route policies per domain associated with an ingress service
+	// GetIngressRoutesPerHost returns the routes per host associated with an ingress service
 	GetIngressRoutesPerHost(service.NamespacedService) (map[string][]trafficpolicy.Route, error)
 }
 
