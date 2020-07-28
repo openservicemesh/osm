@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/open-service-mesh/osm/pkg/cli"
+	"github.com/openservicemesh/osm/pkg/cli"
 )
 
 func main() {

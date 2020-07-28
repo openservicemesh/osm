@@ -51,7 +51,7 @@ steps:
     go version
 
     # set version
-    ORG_PATH="github.com/open-service-mesh"
+    ORG_PATH="github.com/openservicemesh"
     PROJECT_NAME="osm"
     REPO_PATH="${ORG_PATH}/${PROJECT_NAME}"
     VERSION_VAR="${REPO_PATH}/pkg/version.Version"

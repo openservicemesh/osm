@@ -4,9 +4,9 @@ import (
 	extensionsV1beta "k8s.io/api/extensions/v1beta1"
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/open-service-mesh/osm/pkg/logger"
-	"github.com/open-service-mesh/osm/pkg/namespace"
-	"github.com/open-service-mesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/namespace"
+	"github.com/openservicemesh/osm/pkg/service"
 )
 
 var (

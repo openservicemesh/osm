@@ -1,8 +1,8 @@
 package catalog
 
 import (
-	"github.com/open-service-mesh/osm/pkg/endpoint"
-	"github.com/open-service-mesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/endpoint"
+	"github.com/openservicemesh/osm/pkg/service"
 )
 
 // ListEndpointsForService returns the list of provider endpoints corresponding to a service

@@ -3,7 +3,7 @@ package cds
 import (
 	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
 	envoy_api_v2_cluster "github.com/envoyproxy/go-control-plane/envoy/api/v2/cluster"
-	"github.com/open-service-mesh/osm/pkg/smi"
+	"github.com/openservicemesh/osm/pkg/smi"
 )
 
 func enableBackpressure(meshSpec smi.MeshSpec, remoteCluster *xds.Cluster) {

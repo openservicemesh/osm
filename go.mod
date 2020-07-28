@@ -1,4 +1,4 @@
-module github.com/open-service-mesh/osm
+module github.com/openservicemesh/osm
 
 go 1.14
 

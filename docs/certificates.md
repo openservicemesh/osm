@@ -38,7 +38,7 @@ CLI flags control how OSM integrates with Vault. The following OSM command line 
   - `--vault-host` - host name of the Vault server (example: `vault.contoso.com`)
   - `--vault-protocol` - protocol for Vault connection (`http` or `https`)
   - `--vault-token` - token to be used by OSM to connect to Vault (this is issued on the Vault server for the particular role)
-  - `--vault-role` - role created on Vault server and dedicated to Open Service Mesh (example: `open-service-mesh`)
+  - `--vault-role` - role created on Vault server and dedicated to Open Service Mesh (example: `openservicemesh`)
   - `--service-cert-validity-minutes` - number of minutes - period for which each new certificate issued for service-to-service communication will be valid
 
 Additionally:
@@ -105,7 +105,7 @@ CERT_MANAGER=vault
 VAULT_HOST="vault.${K8S_NAMESPACE}.svc.cluster.local"
 VAULT_PROTOCOL=http
 VAULT_TOKEN=xyz
-VAULT_ROLE=open-service-mesh
+VAULT_ROLE=openservicemesh
 ```
 
 When running OSM on your local workstation, use the following CLI parameters:
@@ -114,7 +114,7 @@ When running OSM on your local workstation, use the following CLI parameters:
 --vault-host="localhost"  # or the host where Vault is installed
 --vault-protocol="http"
 --vault-token="xyz"
---vault-role="open-service-mesh'
+--vault-role="openservicemesh'
 --service-cert-validity-minutes=60
 ```
 
@@ -133,7 +133,7 @@ interface. It provides the following methods:
 ```
 
 OSM assumes that a CA has already been created on the Vault server.
-OSM also requires a dedicated Vault role (for instance `pki/roles/open-service-mesh`).
+OSM also requires a dedicated Vault role (for instance `pki/roles/openservicemesh`).
 The Vault role created by the `./demo/deploy-vault.sh` script applies the following configuration, which is only appropriate for development purposes:
 
   - `allow_any_name`: `true`
@@ -149,7 +149,7 @@ following commands to setup the dev environment:
 
     export VAULT_TOKEN="xyz"
     export VAULT_ADDR="http://localhost:8200"
-    export VAULT_ROLE="open-service-mesh
+    export VAULT_ROLE="openservicemesh
 
     # Launch the Vault server in dev mode
     vault server -dev -dev-listen-address=0.0.0.0:8200 -dev-root-token-id=${VAULT_TOKEN}
@@ -166,7 +166,7 @@ following commands to setup the dev environment:
     # Set URL configuration (See: https://www.vaultproject.io/docs/secrets/pki#set-url-configuration)
     vault write pki/config/urls issuing_certificates='http://127.0.0.1:8200/v1/pki/ca' crl_distribution_points='http://127.0.0.1:8200/v1/pki/crl';
 
-    # Configure a role named "open-service-mesh" (See: https://www.vaultproject.io/docs/secrets/pki#configure-a-role)
+    # Configure a role named "openservicemesh" (See: https://www.vaultproject.io/docs/secrets/pki#configure-a-role)
     vault write pki/roles/${VAULT_ROLE} allow_any_name=true allow_subdomains=true;
 
     # Create a root certificate named "osm.root" (See: https://www.vaultproject.io/docs/secrets/pki#setup)

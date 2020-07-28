@@ -1,10 +1,10 @@
 package rds
 
 import (
-	"github.com/open-service-mesh/osm/pkg/catalog"
-	"github.com/open-service-mesh/osm/pkg/constants"
-	"github.com/open-service-mesh/osm/pkg/service"
-	"github.com/open-service-mesh/osm/pkg/trafficpolicy"
+	"github.com/openservicemesh/osm/pkg/catalog"
+	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
 func updateRoutesForIngress(svc service.NamespacedService, catalog catalog.MeshCataloger, routesPerHost map[string]map[string]trafficpolicy.RouteWeightedClusters) error {

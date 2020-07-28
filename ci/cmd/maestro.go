@@ -8,10 +8,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/open-service-mesh/osm/ci/cmd/maestro"
-	"github.com/open-service-mesh/osm/demo/cmd/common"
-	"github.com/open-service-mesh/osm/pkg/constants"
-	"github.com/open-service-mesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/ci/cmd/maestro"
+	"github.com/openservicemesh/osm/demo/cmd/common"
+	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/logger"
 )
 
 var log = logger.NewPretty("ci/maestro")

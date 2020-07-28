@@ -22,8 +22,8 @@ import (
 	"context"
 	"time"
 
-	v1alpha1 "github.com/open-service-mesh/osm/experimental/pkg/apis/policy/v1alpha1"
-	scheme "github.com/open-service-mesh/osm/experimental/pkg/client/clientset/versioned/scheme"
+	v1alpha1 "github.com/openservicemesh/osm/experimental/pkg/apis/policy/v1alpha1"
+	scheme "github.com/openservicemesh/osm/experimental/pkg/client/clientset/versioned/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"

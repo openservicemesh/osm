@@ -1,7 +1,7 @@
 package ingress
 
 import (
-	"github.com/open-service-mesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/service"
 	extensionsV1beta "k8s.io/api/extensions/v1beta1"
 )
 

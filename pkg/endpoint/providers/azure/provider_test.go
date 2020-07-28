@@ -6,7 +6,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	v12 "github.com/open-service-mesh/osm/pkg/apis/azureresource/v1"
+	v12 "github.com/openservicemesh/osm/pkg/apis/azureresource/v1"
 )
 
 var _ = Describe("Testing Azure Compute Provider", func() {

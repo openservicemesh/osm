@@ -16,7 +16,7 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/jinzhu/copier"
 
-	"github.com/open-service-mesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/service"
 )
 
 // SDSCertType is a type of a certificate requested by an Envoy proxy via SDS.

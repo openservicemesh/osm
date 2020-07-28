@@ -20,13 +20,13 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
-	backpressure "github.com/open-service-mesh/osm/experimental/pkg/apis/policy/v1alpha1"
-	backpressureClient "github.com/open-service-mesh/osm/experimental/pkg/client/clientset/versioned"
-	backpressureInformers "github.com/open-service-mesh/osm/experimental/pkg/client/informers/externalversions"
-	"github.com/open-service-mesh/osm/pkg/featureflags"
-	k8s "github.com/open-service-mesh/osm/pkg/kubernetes"
-	"github.com/open-service-mesh/osm/pkg/namespace"
-	"github.com/open-service-mesh/osm/pkg/service"
+	backpressure "github.com/openservicemesh/osm/experimental/pkg/apis/policy/v1alpha1"
+	backpressureClient "github.com/openservicemesh/osm/experimental/pkg/client/clientset/versioned"
+	backpressureInformers "github.com/openservicemesh/osm/experimental/pkg/client/informers/externalversions"
+	"github.com/openservicemesh/osm/pkg/featureflags"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
+	"github.com/openservicemesh/osm/pkg/namespace"
+	"github.com/openservicemesh/osm/pkg/service"
 )
 
 // We have a few different k8s clients. This identifies these in logs.

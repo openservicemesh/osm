@@ -106,7 +106,7 @@ spec:
           servicePort: 80
 ```
 
-[1]: https://github.com/open-service-mesh/osm/blob/main/README.md
+[1]: https://github.com/openservicemesh/osm/blob/main/README.md
 [2]: https://kubernetes.github.io/ingress-nginx/
 [3]: https://azure.github.io/application-gateway-kubernetes-ingress/
 [4]: https://github.com/Azure/application-gateway-kubernetes-ingress/blob/master/docs/annotations.md#appgw-trusted-root-certificate

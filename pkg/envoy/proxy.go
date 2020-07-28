@@ -5,8 +5,8 @@ import (
 	"net"
 	"time"
 
-	"github.com/open-service-mesh/osm/pkg/certificate"
-	"github.com/open-service-mesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/service"
 )
 
 // Proxy is a representation of an Envoy proxy connected to the xDS server.

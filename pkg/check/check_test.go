@@ -17,7 +17,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/testing"
 
-	"github.com/open-service-mesh/osm/pkg/cli"
+	"github.com/openservicemesh/osm/pkg/cli"
 )
 
 var passing = Check{

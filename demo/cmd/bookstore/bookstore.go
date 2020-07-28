@@ -13,8 +13,8 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/open-service-mesh/osm/demo/cmd/common"
-	"github.com/open-service-mesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/demo/cmd/common"
+	"github.com/openservicemesh/osm/pkg/logger"
 )
 
 var (
