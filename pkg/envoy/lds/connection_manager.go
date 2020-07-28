@@ -54,7 +54,9 @@ func getHTTPConnectionManager(routeName string) *envoy_hcm.HttpConnectionManager
 																		Fields: map[string]*structpb.Value{
 																			"filename": {
 																				Kind: &structpb.Value_StringValue{
-																					StringValue: "/etc/envoy/stats.wasm",
+																					// TODO: prob use configmap, right now the wasm filename comes in
+																					// injector config, which is not easilly available in this scope
+																					StringValue: constants.EnvoyWasmFileloc + "/" + "stats.wasm",
 																				},
 																			},
 																		},

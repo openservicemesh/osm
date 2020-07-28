@@ -15,5 +15,15 @@ func getVolumeSpec(envoyBootstrapConfigName string) []corev1.Volume {
 				},
 			},
 		},
+		{
+			Name: envoyWasmVolume,
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: envoyWasmConfigMapName,
+					},
+				},
+			},
+		},
 	}
 }

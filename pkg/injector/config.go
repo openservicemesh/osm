@@ -10,6 +10,7 @@ import (
 
 	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/open-service-mesh/osm/pkg/certificate"
@@ -151,6 +152,13 @@ func (wh *webhook) createEnvoyBootstrapConfig(name, namespace, osmNamespace stri
 		return nil, err
 	}
 
+	if len(wh.config.StatsWASMExtensionPath) > 0 {
+		_, err := createOrUpdateWasmConfigMap(wh, namespace, osmNamespace)
+		if err != nil {
+			log.Error().Msgf("Error Creating/updating config map : %s", err)
+		}
+	}
+
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
@@ -158,14 +166,6 @@ func (wh *webhook) createEnvoyBootstrapConfig(name, namespace, osmNamespace stri
 		Data: map[string][]byte{
 			envoyBootstrapConfigFile: yamlContent,
 		},
-	}
-
-	if len(wh.config.StatsWASMExtensionPath) > 0 {
-		statsWASM, err := ioutil.ReadFile(envoyStatsWASMExtension)
-		if err != nil {
-			return nil, err
-		}
-		secret.Data[envoyStatsWASMExtension] = statsWASM
 	}
 
 	if existing, err := wh.kubeClient.CoreV1().Secrets(namespace).Get(context.Background(), name, metav1.GetOptions{}); err == nil {
@@ -176,6 +176,36 @@ func (wh *webhook) createEnvoyBootstrapConfig(name, namespace, osmNamespace stri
 
 	log.Info().Msgf("Creating bootstrap config for Envoy: name=%s, namespace=%s", name, namespace)
 	return wh.kubeClient.CoreV1().Secrets(namespace).Create(context.Background(), secret, metav1.CreateOptions{})
+}
+
+func createOrUpdateWasmConfigMap(wh *webhook, namespace, osmNamespace string) (*corev1.ConfigMap, error) {
+
+	// Read WASM module to attach.
+	statsWASM, err := ioutil.ReadFile(wh.config.StatsWASMExtensionPath)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Info().Msgf("Creating Configmap to hold WASM module")
+	wasmConfigMap := &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ConfigMap",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: envoyWasmConfigMapName,
+		},
+		BinaryData: make(map[string][]byte),
+	}
+	wasmConfigMap.BinaryData[wh.config.StatsWASMExtensionPath] = statsWASM
+
+	ret, err := wh.kubeClient.CoreV1().ConfigMaps(namespace).Get(context.Background(), envoyWasmConfigMapName, metav1.GetOptions{})
+	if errors.IsNotFound(err) {
+		ret, err = wh.kubeClient.CoreV1().ConfigMaps(namespace).Create(context.Background(), wasmConfigMap, metav1.CreateOptions{})
+	} else {
+		ret, err = wh.kubeClient.CoreV1().ConfigMaps(namespace).Update(context.Background(), wasmConfigMap, metav1.UpdateOptions{})
+	}
+	return ret, err
 }
 
 func getEnvoyConfigPath() string {

@@ -8,7 +8,6 @@ import (
 
 const (
 	envoyBootstrapConfigFile  = "bootstrap.yaml"
-	envoyStatsWASMExtension   = "stats.wasm"
 	envoyProxyConfigPath      = "/etc/envoy"
 	envoySidecarContainerName = "envoyproxy"
 )
@@ -43,6 +42,11 @@ func getEnvoySidecarContainerSpec(data *EnvoySidecarData) corev1.Container {
 				Name:      envoyBootstrapConfigVolume,
 				ReadOnly:  true,
 				MountPath: envoyProxyConfigPath,
+			},
+			{
+				Name:      envoyWasmVolume,
+				ReadOnly:  true,
+				MountPath: constants.EnvoyWasmFileloc,
 			},
 		},
 		Command: []string{

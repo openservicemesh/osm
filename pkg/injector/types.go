@@ -14,6 +14,11 @@ const (
 	annotationInject = "openservicemesh.io/sidecar-injection"
 
 	envoyBootstrapConfigVolume = "envoy-bootstrap-config-volume"
+
+	// Names for the mount and the configmap definitions, which will hold
+	// the WASM filters later in the envoy containers, respectively
+	envoyWasmVolume        = "envoy-wasm-volume"
+	envoyWasmConfigMapName = "envoy-wasm-configmap-name"
 )
 
 var log = logger.New("sidecar-injector")

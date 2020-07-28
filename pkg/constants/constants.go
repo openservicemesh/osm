@@ -109,6 +109,9 @@ const (
 	// TimeDateLayout is the layout for time.Parse used in this repo
 	TimeDateLayout = "2006-01-02T15:04:05.000Z"
 
+	// EnvoyWasmFileloc is the default path for the WASM filter volume mountpoint (in the pod mount namespace)
+	EnvoyWasmFileloc = "/var/wasm"
+
 	// ----- Environment Variables
 
 	// EnvVarLogKubernetesEvents is the name of the env var instructing the event handlers whether to log at all (true/false)
