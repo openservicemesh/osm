@@ -1,8 +1,9 @@
 package injector
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	"strings"
+
+	corev1 "k8s.io/api/core/v1"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 )
@@ -41,7 +42,7 @@ func getEnvoySidecarContainerSpec(containerName, envoyImage, nodeID, clusterID s
 		}},
 		Command: []string{"envoy"},
 		Args: []string{
-			"--log-level", "debug", // TODO(draychev): Move to ConfigMap: Github Issue https://github.com/open-service-mesh/osm/issues/1232
+			"--log-level", "debug", // TODO(draychev): Move to ConfigMap: Github Issue https://github.com/openservicemesh/osm/issues/1232
 			"--config-path", strings.Join([]string{envoyProxyConfigPath, envoyBootstrapConfigFile}, "/"),
 			"--service-node", nodeID,
 			"--service-cluster", clusterID,
