@@ -1,0 +1,46 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: calculator-front-end
+  namespace: calculator
+  labels:
+    app: calculator-front-end
+spec:
+  selector:
+    app: calculator-front-end
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 8080
+  type: LoadBalancer
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: calculator-front-end
+  namespace: calculator
+  labels:
+    app: calculator-front-end
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: calculator-front-end
+  template:
+    metadata:
+      labels:
+        app: calculator-front-end
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/id: "calculator-front-end"
+        dapr.io/port: "8080"
+        dapr.io/config: "appconfig"
+    spec:
+      containers:
+      - name: calculator-front-end
+        image: dapriosamples/distributed-calculator-react-calculator:edge
+        ports:
+        - containerPort: 8080
+        imagePullPolicy: Always

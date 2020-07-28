@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: subtractapp
+  namespace: calculator
+  labels:
+    app: subtract
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: subtract
+  template:
+    metadata:
+      labels:
+        app: subtract
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/id: "subtractapp"
+        dapr.io/port: "80"
+        dapr.io/config: "appconfig"
+    spec:
+      containers:
+      - name: subtract
+        image: dapriosamples/distributed-calculator-csharp:edge
+        ports:
+        - containerPort: 80
+        imagePullPolicy: Always
