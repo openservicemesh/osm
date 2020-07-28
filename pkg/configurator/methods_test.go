@@ -2,8 +2,6 @@ package configurator
 
 import (
 	"context"
-	"strings"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -302,8 +300,8 @@ var _ = Describe("Test Envoy configuration creation", func() {
 			log.Info().Msg("Waiting for announcement")
 			<-cfg.GetAnnouncementsChannel()
 
-			expectecMeshCIDRRanges := strings.Fields(testCIDRRanges)
-			Expect(cfg.GetMeshCIDRRanges()).To(Equal(expectecMeshCIDRRanges))
+			expectedMeshCIDRRanges := []string{"10.0.0.0/16", "10.2.0.0/16"}
+			Expect(cfg.GetMeshCIDRRanges()).To(Equal(expectedMeshCIDRRanges))
 		})
 	})
 })
