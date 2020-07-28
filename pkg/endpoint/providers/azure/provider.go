@@ -53,7 +53,7 @@ func (az Client) ListEndpointsForService(svc service.Name) []endpoint.Endpoint {
 }
 
 // GetServiceForServiceAccount retrieves the service for the given service account
-func (az Client) GetServiceForServiceAccount(svcAccount service.ServiceAccount) (service.NamespacedService, error) {
+func (az Client) GetServiceForServiceAccount(svcAccount service.K8sServiceAccount) (service.NamespacedService, error) {
 	//TODO (snchh) : need to figure out the service account equivalnent for azure
 	panic("NotImplemented")
 }

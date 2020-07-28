@@ -61,7 +61,7 @@ func (f fakeMeshCatalogDebuger) ListDisconnectedProxies() map[certificate.Common
 }
 
 // ListSMIPolicies implements MeshCatalogDebugger
-func (f fakeMeshCatalogDebuger) ListSMIPolicies() ([]*split.TrafficSplit, []service.WeightedService, []service.ServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget, []*corev1.Service) {
+func (f fakeMeshCatalogDebuger) ListSMIPolicies() ([]*split.TrafficSplit, []service.WeightedService, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget, []*corev1.Service) {
 	return []*split.TrafficSplit{{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: "foo",
@@ -71,7 +71,7 @@ func (f fakeMeshCatalogDebuger) ListSMIPolicies() ([]*split.TrafficSplit, []serv
 		[]service.WeightedService{
 			tests.WeightedService,
 		},
-		[]service.ServiceAccount{
+		[]service.K8sServiceAccount{
 			tests.BookbuyerServiceAccount,
 		},
 		[]*spec.HTTPRouteGroup{

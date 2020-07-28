@@ -61,13 +61,13 @@ func (ns NamespacedService) GetCommonName() certificate.CommonName {
 	return certificate.CommonName(strings.Join([]string{ns.Service, ns.Namespace, "svc", "cluster", "local"}, "."))
 }
 
-// ServiceAccount is a type for a namespaced service account
-type ServiceAccount struct {
+// K8sServiceAccount is a type for a namespaced service account
+type K8sServiceAccount struct {
 	Namespace string
 	Name      string
 }
 
-func (ns ServiceAccount) String() string {
+func (ns K8sServiceAccount) String() string {
 	return fmt.Sprintf("%s/%s", ns.Namespace, ns.Name)
 }
 

@@ -6,7 +6,7 @@ import (
 )
 
 // GetServiceForServiceAccount returns a service corresponding to a service account
-func (mc *MeshCatalog) GetServiceForServiceAccount(sa service.ServiceAccount) (service.NamespacedService, error) {
+func (mc *MeshCatalog) GetServiceForServiceAccount(sa service.K8sServiceAccount) (service.NamespacedService, error) {
 	for _, provider := range mc.endpointsProviders {
 		// TODO (#88) : remove this provider check once we have figured out the service account story for azure vms
 		if provider.GetID() != constants.AzureProviderName {

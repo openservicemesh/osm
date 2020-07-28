@@ -176,13 +176,13 @@ var (
 	NamespacedServiceName = service.Name(fmt.Sprintf("%s/%s", BookstoreService.Namespace, BookstoreService.Service))
 
 	// BookstoreServiceAccount is a namespaced service account.
-	BookstoreServiceAccount = service.ServiceAccount{
+	BookstoreServiceAccount = service.K8sServiceAccount{
 		Namespace: Namespace,
 		Name:      BookstoreServiceAccountName,
 	}
 
 	// BookbuyerServiceAccount is a namespaced bookbuyer account.
-	BookbuyerServiceAccount = service.ServiceAccount{
+	BookbuyerServiceAccount = service.K8sServiceAccount{
 		Namespace: Namespace,
 		Name:      BookbuyerServiceAccountName,
 	}

@@ -198,7 +198,7 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[trafficpolicy.T
 			continue
 		}
 
-		dstNamespacedServiceAcc := service.ServiceAccount{
+		dstNamespacedServiceAcc := service.K8sServiceAccount{
 			Namespace: trafficTargets.Destination.Namespace,
 			Name:      trafficTargets.Destination.Name,
 		}
@@ -209,7 +209,7 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[trafficpolicy.T
 		}
 
 		for _, trafficSources := range trafficTargets.Sources {
-			namespacedServiceAccount := service.ServiceAccount{
+			namespacedServiceAccount := service.K8sServiceAccount{
 				Namespace: trafficSources.Namespace,
 				Name:      trafficSources.Name,
 			}

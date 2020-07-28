@@ -14,12 +14,12 @@ import (
 )
 
 type policies struct {
-	TrafficSplits    []*split.TrafficSplit     `json:"traffic_splits"`
-	WeightedServices []service.WeightedService `json:"weighted_services"`
-	ServiceAccounts  []service.ServiceAccount  `json:"service_accounts"`
-	RouteGroups      []*spec.HTTPRouteGroup    `json:"route_groups"`
-	TrafficTargets   []*target.TrafficTarget   `json:"traffic_targets"`
-	Services         []*corev1.Service         `json:"services"`
+	TrafficSplits    []*split.TrafficSplit       `json:"traffic_splits"`
+	WeightedServices []service.WeightedService   `json:"weighted_services"`
+	ServiceAccounts  []service.K8sServiceAccount `json:"service_accounts"`
+	RouteGroups      []*spec.HTTPRouteGroup      `json:"route_groups"`
+	TrafficTargets   []*target.TrafficTarget     `json:"traffic_targets"`
+	Services         []*corev1.Service           `json:"services"`
 }
 
 func (ds debugServer) getSMIPoliciesHandler() http.Handler {

@@ -114,7 +114,7 @@ func (c Client) ListEndpointsForService(svc service.Name) []endpoint.Endpoint {
 }
 
 // GetServiceForServiceAccount retrieves the service for the given service account
-func (c Client) GetServiceForServiceAccount(svcAccount service.ServiceAccount) (service.NamespacedService, error) {
+func (c Client) GetServiceForServiceAccount(svcAccount service.K8sServiceAccount) (service.NamespacedService, error) {
 	log.Info().Msgf("[%s] Getting Services for service account %s on Kubernetes", c.providerIdent, svcAccount)
 	services := mapset.NewSet()
 	deploymentsInterface := c.caches.Deployments.List()
@@ -131,7 +131,7 @@ func (c Client) GetServiceForServiceAccount(svcAccount service.ServiceAccount) (
 				continue
 			}
 			spec := kubernetesDeployments.Spec
-			namespacedSvcAccount := service.ServiceAccount{
+			namespacedSvcAccount := service.K8sServiceAccount{
 				Namespace: kubernetesDeployments.Namespace,
 				Name:      spec.Template.Spec.ServiceAccountName,
 			}
