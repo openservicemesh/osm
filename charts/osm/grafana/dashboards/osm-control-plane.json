@@ -142,8 +142,8 @@
         "steppedLine": false,
         "targets": [
           {
-            "expr": "envoy_cluster_upstream_rq_xx{envoy_response_code_class=\"2\",source_service=\"$source_service\",source_namespace=\"$source_namespace\",envoy_cluster_name=\"osm-controller\"}",
-            "legendFormat": "Time",
+            "expr": "irate(envoy_cluster_upstream_rq_xx{envoy_response_code_class=\"2\",source_service=\"$source_service\",source_namespace=\"$source_namespace\",envoy_cluster_name=\"osm-controller\"}[1m])",
+            "legendFormat": "per minute",
             "refId": "A"
           }
         ],
@@ -248,9 +248,9 @@
         "steppedLine": false,
         "targets": [
           {
-            "expr": "envoy_cluster_upstream_rq_xx{envoy_response_code_class!=\"2\",source_service=\"$source_service\",source_namespace=\"$source_namespace\",envoy_cluster_name=\"osm-controller\"}",
+            "expr": "irate(envoy_cluster_upstream_rq_xx{envoy_response_code_class!=\"2\",source_service=\"$source_service\",source_namespace=\"$source_namespace\",envoy_cluster_name=\"osm-controller\"}[1m])",
             "interval": "",
-            "legendFormat": "Time",
+            "legendFormat": "per minute",
             "refId": "A"
           }
         ],
@@ -349,7 +349,7 @@
           }
         ],
         "title": "Active Connections to Control Plane",
-        "type": "graph",       
+        "type": "graph",
         "timeFrom": null,
         "timeShift": null,
         "renderer": "flot",

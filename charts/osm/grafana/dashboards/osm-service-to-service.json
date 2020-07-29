@@ -143,7 +143,7 @@
         "targets": [
           {
             "expr": "irate(envoy_cluster_upstream_rq_xx{envoy_response_code_class=\"2\",source_service=\"$source_service\",source_namespace=\"$source_namespace\",envoy_cluster_name=\"$destination_service\"}[1m])",
-            "legendFormat": "Time",
+            "legendFormat": "per minute",
             "refId": "A"
           }
         ],
@@ -250,7 +250,7 @@
           {
             "expr": "irate(envoy_cluster_upstream_rq_xx{envoy_response_code_class!=\"2\",source_service=\"$source_service\",source_namespace=\"$source_namespace\",envoy_cluster_name=\"$destination_service\"}[1m])",
             "interval": "",
-            "legendFormat": "Time",
+            "legendFormat": "per minute",
             "refId": "A"
           }
         ],
@@ -358,7 +358,7 @@
         "targets": [
           {
             "expr": "max(histogram_quantile(0.99, irate(envoy_cluster_upstream_rq_time_bucket{source_service=\"$source_service\",source_namespace=\"$source_namespace\",envoy_cluster_name=\"$destination_service\"}[1m])))",
-            "legendFormat": "Time",
+            "legendFormat": "per minute",
             "refId": "A"
           }
         ],
