@@ -28,7 +28,8 @@ metadata:
     kubernetes.io/ingress.class: azure/application-gateway
 spec:
   rules:
-  - http:
+  - host: "${INGRESS_HOSTNAME}"
+    http:
       paths:
       - path: /
         backend:
