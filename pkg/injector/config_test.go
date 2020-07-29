@@ -24,10 +24,13 @@ dynamic_resources:
     - envoy_grpc:
         cluster_name: XDSClusterName
     set_node_on_first_message_only: true
+    transport_api_version: V3
   cds_config:
     ads: {}
+    resource_api_version: V3
   lds_config:
     ads: {}
+    resource_api_version: V3
 static_resources:
   clusters:
   - connect_timeout: 0.25s
@@ -42,21 +45,24 @@ static_resources:
                 address: XDSHost
                 port_value: 2345
     name: XDSClusterName
-    tls_context:
-      common_tls_context:
-        alpn_protocols:
-        - h2
-        tls_certificates:
-        - certificate_chain:
-            inline_bytes: Cert
-          private_key:
-            inline_bytes: Key
-        tls_params:
-          tls_maximum_protocol_version: TLSv1_3
-          tls_minimum_protocol_version: TLSv1_2
-        validation_context:
-          trusted_ca:
-            inline_bytes: RootCert
+    transport_socket:
+      name: envoy.transport_sockets.tls
+      typed_config:
+        '@type': type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+        common_tls_context:
+          alpn_protocols:
+          - h2
+          tls_certificates:
+          - certificate_chain:
+              inline_bytes: Cert
+            private_key:
+              inline_bytes: Key
+          tls_params:
+            tls_maximum_protocol_version: TLSv1_3
+            tls_minimum_protocol_version: TLSv1_2
+          validation_context:
+            trusted_ca:
+              inline_bytes: RootCert
     type: LOGICAL_DNS
 tracing:
   http:
@@ -135,6 +141,7 @@ var _ = Describe("Test Envoy sidecar", func() {
 					"--config-path", "/etc/envoy/bootstrap.yaml",
 					"--service-node", "c",
 					"--service-cluster", "d",
+					"--bootstrap-version 3",
 				},
 			}
 			Expect(actual[0]).To(Equal(expected))
