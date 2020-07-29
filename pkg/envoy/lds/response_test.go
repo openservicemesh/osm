@@ -27,8 +27,8 @@ var _ = Describe("Test LDS response", func() {
 			// filter chain with SNI matching
 			Expect(filterChains[0].FilterChainMatch.ServerNames).To(Equal(expectedServerNames))
 
-			// filter chain with SNI matching
-			Expect(len(filterChains[1].FilterChainMatch.ServerNames)).To(Equal(0))
+			// filter chain without SNI matching
+			Expect(filterChains[1].FilterChainMatch.ServerNames).To(BeNil())
 		})
 
 		It("constructs filter chain used for HTTP ingress", func() {

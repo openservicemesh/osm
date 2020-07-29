@@ -28,8 +28,23 @@ metadata:
     kubernetes.io/ingress.class: azure/application-gateway
 spec:
   rules:
-  - host: "${INGRESS_HOSTNAME}"
+  - host: "v1.${INGRESS_HOSTNAME}"
     http:
+      paths:
+      - path: /
+        backend:
+          serviceName: bookstore-v1
+          servicePort: 80
+
+  - host: "v2.${INGRESS_HOSTNAME}"
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: bookstore-v2
+          servicePort: 80
+
+  - http:
       paths:
       - path: /
         backend:
