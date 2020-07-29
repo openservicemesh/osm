@@ -16,6 +16,22 @@ spec:
         spec:
           properties:
             maxConnections:
-              description: "Max number of connections"
+              description: "Maximum number of connections"
+              type: integer
+              pattern: '^[1-9]{1}[0-9]*'
+            maxRequests:
+              description: "Maximum number of parallel requests"
+              type: integer
+              pattern: '^[1-9]{1}[0-9]*'
+            maxPendingRequests:
+              description: "Max number of pending requests"
+              type: integer
+              pattern: '^[1-9]{1}[0-9]*'
+            maxRetries:
+              description: "Max number of parallel retries"
+              type: integer
+              pattern: '^[1-9]{1}[0-9]*'
+            maxConnectionPools:
+              description: "Maximum number of connection pools per cluster"
               type: integer
               pattern: '^[1-9]{1}[0-9]*'

@@ -19,6 +19,6 @@ func enableBackpressure(catalog catalog.MeshCataloger, remoteCluster *xds_cluste
 
 	log.Trace().Msgf("Backpressure Spec: %+v", backpressure.Spec)
 	remoteCluster.CircuitBreakers = &xds_cluster.CircuitBreakers{
-		Thresholds: makeThresholds(&backpressure.Spec.MaxConnections),
+		Thresholds: makeThresholds(backpressure.Spec),
 	}
 }
