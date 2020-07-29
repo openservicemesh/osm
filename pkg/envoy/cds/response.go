@@ -26,33 +26,22 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, meshSpec smi.
 	}
 	proxyServiceName := *svc
 
-	allTrafficPolicies, err := catalog.ListTrafficPolicies(proxyServiceName)
-	if err != nil {
-		log.Error().Err(err).Msgf("Failed listing traffic routes for proxy for service name %q", proxyServiceName)
-		return nil, err
-	}
-	log.Debug().Msgf("TrafficPolicies: %+v for proxy %q; service %q", allTrafficPolicies, proxy.CommonName, proxyServiceName)
 	resp := &xds_discovery.DiscoveryResponse{
 		TypeUrl: string(envoy.TypeCDS),
 	}
-
 	// The clusters have to be unique, so use a map to prevent duplicates. Keys correspond to the cluster name.
 	clusterFactories := make(map[string]*xds_cluster.Cluster)
 
-	// Build remote clusters based on traffic policies. Remote clusters correspond to
-	// services for which the given service is a source service.
-	for _, trafficPolicies := range allTrafficPolicies {
-		isSourceService := trafficPolicies.Source.Service.Equals(proxyServiceName)
-		if !isSourceService {
-			continue
-		}
+	outboundServices, err := catalog.ListAllowedOutboundServices(proxyServiceName)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error listing outbound services for proxy %q", proxyServiceName)
+		return nil, err
+	}
 
-		dstService := trafficPolicies.Destination.Service
+	// Build remote clusters based on allowed outbound services
+	for _, dstService := range outboundServices {
 		if _, found := clusterFactories[dstService.String()]; found {
-			// A remote cluster exists for `dstService`, skip adding it.
-			// This is possible because for a given source and destination service
-			// in the traffic policy if multiple routes exist, then each route is
-			// going to be part of a separate traffic policy object.
+			// Guard against duplicates
 			continue
 		}
 
