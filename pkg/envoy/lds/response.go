@@ -36,66 +36,65 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 		TypeUrl: string(envoy.TypeLDS),
 	}
 
-	// Build the outbound listener config
-	outboundListener, err := newOutboundListener(cfg)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error building outbound listener config for proxy %s", proxyServiceName)
-		return nil, err
+	// --- OUTBOUND -------------------
+	if outboundListener, err := newOutboundListener(cfg); err != nil {
+		log.Error().Err(err).Msgf("Error making outbound listener config for proxy %s", proxyServiceName)
+	} else {
+		if marshalledOutbound, err := ptypes.MarshalAny(outboundListener); err != nil {
+			log.Error().Err(err).Msgf("Failed to marshal outbound listener config for proxy %s", proxyServiceName)
+		} else {
+			resp.Resources = append(resp.Resources, marshalledOutbound)
+		}
 	}
-	marshalledOutbound, err := ptypes.MarshalAny(outboundListener)
-	if err != nil {
-		log.Error().Err(err).Msgf("Failed to marshal outbound listener config for proxy %s", proxyServiceName)
-		return nil, err
-	}
-	resp.Resources = append(resp.Resources, marshalledOutbound)
 
+	// --- INBOUND -------------------
 	inboundListener := newInboundListener()
-	meshFilterChain, err := getInboundInMeshFilterChain(proxyServiceName, cfg)
-	if err != nil {
-		log.Error().Err(err).Msgf("Failed to construct in-mesh filter chain for proxy %s", proxy.GetCommonName())
-	}
-	if meshFilterChain != nil {
+	if meshFilterChain, err := getInboundInMeshFilterChain(proxyServiceName, cfg); err != nil {
+		log.Error().Err(err).Msgf("Error making in-mesh filter chain for proxy %s", proxy.GetCommonName())
+	} else if meshFilterChain != nil {
 		inboundListener.FilterChains = append(inboundListener.FilterChains, meshFilterChain)
 	}
 
+	// --- INGRESS -------------------
 	// Apply an ingress filter chain if there are any ingress routes
-	ingressRoutesPerHost, err := catalog.GetIngressRoutesPerHost(proxyServiceName)
-	if err != nil {
+	if ingressRoutesPerHost, err := catalog.GetIngressRoutesPerHost(proxyServiceName); err != nil {
 		log.Error().Err(err).Msgf("Error getting ingress routes per host for service %s", proxyServiceName)
-		return nil, err
-	}
-	if len(ingressRoutesPerHost) > 0 {
-		log.Info().Msgf("Found an ingress resource for service %s, applying necessary filters", proxyServiceName)
-		// This proxy is fronting a service that is a backend for an ingress, add a FilterChain for it
-		ingressFilterChains := getIngressFilterChains(proxyServiceName, cfg)
-		inboundListener.FilterChains = append(inboundListener.FilterChains, ingressFilterChains...)
+	} else {
+		thereAreIngressRoutes := len(ingressRoutesPerHost) > 0
+
+		if thereAreIngressRoutes {
+			log.Info().Msgf("Found k8s Ingress for Service %s, applying necessary filters", proxyServiceName)
+			// This proxy is fronting a service that is a backend for an ingress, add a FilterChain for it
+			ingressFilterChains := getIngressFilterChains(proxyServiceName, cfg)
+			inboundListener.FilterChains = append(inboundListener.FilterChains, ingressFilterChains...)
+
+		} else {
+			log.Trace().Msgf("There is no k8s Ingress for service %s", proxyServiceName)
+		}
 	}
 
 	if len(inboundListener.FilterChains) > 0 {
 		// Inbound filter chains can be empty if the there both ingress and in-mesh policies are not configued.
 		// Configuring a listener without a filter chain is an error.
-		marshalledInbound, err := ptypes.MarshalAny(inboundListener)
-		if err != nil {
+		if marshalledInbound, err := ptypes.MarshalAny(inboundListener); err != nil {
 			log.Error().Err(err).Msgf("Error marshalling inbound listener config for proxy %s", proxyServiceName)
-			return nil, err
+		} else {
+			resp.Resources = append(resp.Resources, marshalledInbound)
 		}
-		resp.Resources = append(resp.Resources, marshalledInbound)
 	}
 
 	if cfg.IsPrometheusScrapingEnabled() {
 		// Build Prometheus listener config
 		prometheusConnManager := getPrometheusConnectionManager(prometheusListenerName, constants.PrometheusScrapePath, constants.EnvoyMetricsCluster)
-		prometheusListener, err := buildPrometheusListener(prometheusConnManager)
-		if err != nil {
+		if prometheusListener, err := buildPrometheusListener(prometheusConnManager); err != nil {
 			log.Error().Err(err).Msgf("Error building Prometheus listener config for proxy %s", proxyServiceName)
-			return nil, err
+		} else {
+			if marshalledPrometheus, err := ptypes.MarshalAny(prometheusListener); err != nil {
+				log.Error().Err(err).Msgf("Error marshalling Prometheus listener config for proxy %s", proxyServiceName)
+			} else {
+				resp.Resources = append(resp.Resources, marshalledPrometheus)
+			}
 		}
-		marshalledPrometheus, err := ptypes.MarshalAny(prometheusListener)
-		if err != nil {
-			log.Error().Err(err).Msgf("Error marshalling Prometheus listener config for proxy %s", proxyServiceName)
-			return nil, err
-		}
-		resp.Resources = append(resp.Resources, marshalledPrometheus)
 	}
 
 	return resp, nil
