@@ -87,7 +87,7 @@ var _ = Describe("CDS Response", func() {
 
 	Context("Test cds clusters", func() {
 		It("Returns a local cluster object", func() {
-			clObj, err := getLocalServiceCluster(catalog, proxyService, getLocalClusterName(proxyService))
+			remoteCluster, err := getLocalServiceCluster(catalog, proxyService, getLocalClusterName(proxyService))
 			Expect(err).ToNot(HaveOccurred())
 
 			expectedClusterLoadAssignment := &xds_endpoint.ClusterLoadAssignment{
@@ -129,16 +129,16 @@ var _ = Describe("CDS Response", func() {
 				LoadAssignment:         expectedClusterLoadAssignment,
 			}
 
-			Expect(clObj.Name).To(Equal(expectedCluster.Name))
-			Expect(clObj.LoadAssignment.ClusterName).To(Equal(expectedClusterLoadAssignment.ClusterName))
-			Expect(len(clObj.LoadAssignment.Endpoints)).To(Equal(len(expectedClusterLoadAssignment.Endpoints)))
-			Expect(clObj.LoadAssignment.Endpoints[0].LbEndpoints).To(Equal(expectedClusterLoadAssignment.Endpoints[0].LbEndpoints))
+			Expect(remoteCluster.Name).To(Equal(expectedCluster.Name))
+			Expect(remoteCluster.LoadAssignment.ClusterName).To(Equal(expectedClusterLoadAssignment.ClusterName))
+			Expect(len(remoteCluster.LoadAssignment.Endpoints)).To(Equal(len(expectedClusterLoadAssignment.Endpoints)))
+			Expect(remoteCluster.LoadAssignment.Endpoints[0].LbEndpoints).To(Equal(expectedClusterLoadAssignment.Endpoints[0].LbEndpoints))
 		})
 
 		It("Returns a remote cluster object", func() {
 			localService := tests.BookbuyerService
 			remoteService := tests.BookstoreService
-			clObj, err := getRemoteServiceCluster(remoteService, localService)
+			remoteCluster, err := getRemoteServiceCluster(remoteService, localService)
 			Expect(err).ToNot(HaveOccurred())
 
 			expectedClusterLoadAssignment := &xds_endpoint.ClusterLoadAssignment{
@@ -202,16 +202,16 @@ var _ = Describe("CDS Response", func() {
 				LoadAssignment: expectedClusterLoadAssignment,
 			}
 
-			Expect(clObj.ClusterDiscoveryType).To(Equal(expectedCluster.ClusterDiscoveryType))
-			Expect(clObj.EdsClusterConfig).To(Equal(expectedCluster.EdsClusterConfig))
-			Expect(clObj.ConnectTimeout).To(Equal(expectedCluster.ConnectTimeout))
-			Expect(clObj.TransportSocket).To(Equal(expectedCluster.TransportSocket))
+			Expect(remoteCluster.ClusterDiscoveryType).To(Equal(expectedCluster.ClusterDiscoveryType))
+			Expect(remoteCluster.EdsClusterConfig).To(Equal(expectedCluster.EdsClusterConfig))
+			Expect(remoteCluster.ConnectTimeout).To(Equal(expectedCluster.ConnectTimeout))
+			Expect(remoteCluster.TransportSocket).To(Equal(expectedCluster.TransportSocket))
 
 			// TODO(draychev): finish the rest
 			// Expect(cluster).To(Equal(expectedCluster))
 
 			upstreamTLSContext := xds_auth.UpstreamTlsContext{}
-			err = ptypes.UnmarshalAny(clObj.TransportSocket.GetTypedConfig(), &upstreamTLSContext)
+			err = ptypes.UnmarshalAny(remoteCluster.TransportSocket.GetTypedConfig(), &upstreamTLSContext)
 			Expect(err).ToNot(HaveOccurred())
 
 			expectedTLSContext := xds_auth.UpstreamTlsContext{
@@ -251,7 +251,7 @@ var _ = Describe("CDS Response", func() {
 		})
 
 		It("Returns a Prometheus cluster object", func() {
-			clObj := getPrometheusCluster()
+			remoteCluster := getPrometheusCluster()
 
 			expectedClusterLoadAssignment := &xds_endpoint.ClusterLoadAssignment{
 				ClusterName: constants.EnvoyMetricsCluster,
@@ -291,11 +291,11 @@ var _ = Describe("CDS Response", func() {
 				LoadAssignment:         expectedClusterLoadAssignment,
 			}
 
-			Expect(clObj.LoadAssignment.ClusterName).To(Equal(expectedClusterLoadAssignment.ClusterName))
-			Expect(len(clObj.LoadAssignment.Endpoints)).To(Equal(len(expectedClusterLoadAssignment.Endpoints)))
-			Expect(clObj.LoadAssignment.Endpoints[0].LbEndpoints).To(Equal(expectedClusterLoadAssignment.Endpoints[0].LbEndpoints))
-			Expect(clObj.LoadAssignment).To(Equal(expectedClusterLoadAssignment))
-			Expect(&clObj).To(Equal(expectedCluster))
+			Expect(remoteCluster.LoadAssignment.ClusterName).To(Equal(expectedClusterLoadAssignment.ClusterName))
+			Expect(len(remoteCluster.LoadAssignment.Endpoints)).To(Equal(len(expectedClusterLoadAssignment.Endpoints)))
+			Expect(remoteCluster.LoadAssignment.Endpoints[0].LbEndpoints).To(Equal(expectedClusterLoadAssignment.Endpoints[0].LbEndpoints))
+			Expect(remoteCluster.LoadAssignment).To(Equal(expectedClusterLoadAssignment))
+			Expect(&remoteCluster).To(Equal(expectedCluster))
 		})
 	})
 })
