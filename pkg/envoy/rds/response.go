@@ -3,8 +3,11 @@ package rds
 import (
 	"context"
 
+	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+
 	set "github.com/deckarep/golang-set"
-	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+
 	"github.com/golang/protobuf/ptypes"
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -16,7 +19,7 @@ import (
 )
 
 // NewResponse creates a new Route Discovery Response.
-func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, request *xds.DiscoveryRequest, cfg configurator.Configurator) (*xds.DiscoveryResponse, error) {
+func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, cfg configurator.Configurator) (*xds_discovery.DiscoveryResponse, error) {
 	svc, err := catalog.GetServiceFromEnvoyCertificate(proxy.GetCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up Service for Envoy with CN=%q", proxy.GetCommonName())
@@ -31,11 +34,11 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	}
 	log.Debug().Msgf("trafficPolicies: %+v", allTrafficPolicies)
 
-	resp := &xds.DiscoveryResponse{
+	resp := &xds_discovery.DiscoveryResponse{
 		TypeUrl: string(envoy.TypeRDS),
 	}
 
-	routeConfiguration := []*xds.RouteConfiguration{}
+	routeConfiguration := []*xds_route.RouteConfiguration{}
 	sourceRouteConfig := route.NewRouteConfigurationStub(route.OutboundRouteConfigName)
 	destinationRouteConfig := route.NewRouteConfigurationStub(route.InboundRouteConfigName)
 	sourceAggregatedRoutesByDomain := make(map[string]map[string]trafficpolicy.RouteWeightedClusters)
