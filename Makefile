@@ -4,14 +4,16 @@ TARGETS         := darwin/amd64 linux/amd64
 SHELL           := bash -o pipefail
 BINNAME         ?= osm
 DIST_DIRS       := find * -type d -exec
-CTR_REGISTRY    ?= smctest.azurecr.io
+CTR_REGISTRY    ?= openservicemesh
 CTR_TAG         ?= latest
 
 GOPATH = $(shell go env GOPATH)
 GOBIN  = $(GOPATH)/bin
 GOX    = $(GOPATH)/bin/gox
 
-CLI_VERSION = 0.0.1
+HAS_GOX := $(shell command -v gox)
+
+CLI_VERSION ?= dev
 BUILD_DATE=$$(date +%Y-%m-%d-%H:%M)
 GIT_SHA=$$(git rev-parse --short HEAD)
 BUILD_DATE_VAR := main.BuildDate
@@ -20,8 +22,7 @@ BUILD_GITCOMMIT_VAR := main.GitCommit
 
 LDFLAGS ?= "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(CLI_VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -X main.chartTGZSource=$$(cat -)"
 
-.PHONY: gox
-gox:
+$(GOX):
 ifndef HAS_GOX
 	 GOBIN=$(GOBIN) go get -u github.com/mitchellh/gox
 endif
@@ -151,7 +152,7 @@ install-git-pre-push-hook:
 .PHONY: build-cross
 build-cross: $(GOX)
 	@mkdir -p $(shell pwd)/_dist
-	go run scripts/generate_chart/generate_chart.go | GO111MODULE=on CGO_ENABLED=0 $(GOX) -ldflags "-X main.chartTGZSource=$$(cat -)" -parallel=3 -output="_dist/{{.OS}}-{{.Arch}}/$(BINNAME)" -osarch='$(TARGETS)' ./cmd/cli
+	go run scripts/generate_chart/generate_chart.go | GO111MODULE=on CGO_ENABLED=0 $(GOX) -ldflags $(LDFLAGS) -parallel=3 -output="_dist/{{.OS}}-{{.Arch}}/$(BINNAME)" -osarch='$(TARGETS)' ./cmd/cli
 
 .PHONY: dist
 dist:
@@ -159,8 +160,9 @@ dist:
 		cd _dist && \
 		$(DIST_DIRS) cp ../LICENSE {} \; && \
 		$(DIST_DIRS) cp ../README.md {} \; && \
-		$(DIST_DIRS) tar -zcf osm-${VERSION}-{}.tar.gz {} \; && \
-		$(DIST_DIRS) zip -r osm-${VERSION}-{}.zip {} \; \
+		$(DIST_DIRS) tar -zcf osm-${CLI_VERSION}-{}.tar.gz {} \; && \
+		$(DIST_DIRS) zip -r osm-${CLI_VERSION}-{}.zip {} \; && \
+		sha256sum osm-* > sha256sums.txt \
 	)
 
 .PHONY: release-artifacts
