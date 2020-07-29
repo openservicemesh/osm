@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"helm.sh/helm/v3/cmd/helm/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,12 +41,12 @@ func newNamespaceRemove(out io.Writer) *cobra.Command {
 			namespaceRemove.namespace = args[0]
 			config, err := settings.RESTClientGetter().ToRESTConfig()
 			if err != nil {
-				return fmt.Errorf("Error fetching kubeconfig")
+				return errors.Errorf("Error fetching kubeconfig")
 			}
 
 			clientset, err := kubernetes.NewForConfig(config)
 			if err != nil {
-				return fmt.Errorf("Could not access Kubernetes cluster. Check kubeconfig")
+				return errors.Errorf("Could not access Kubernetes cluster. Check kubeconfig")
 			}
 			namespaceRemove.clientSet = clientset
 			return namespaceRemove.run()
@@ -66,7 +67,7 @@ func (r *namespaceRemoveCmd) run() error {
 	namespace, err := r.clientSet.CoreV1().Namespaces().Get(ctx, r.namespace, metav1.GetOptions{})
 
 	if err != nil {
-		return fmt.Errorf("Could not get namespace [%s]: %v", r.namespace, err)
+		return errors.Errorf("Could not get namespace [%s]: %v", r.namespace, err)
 	}
 
 	val, exists := namespace.ObjectMeta.Labels[constants.OSMKubeResourceMonitorAnnotation]
@@ -77,12 +78,12 @@ func (r *namespaceRemoveCmd) run() error {
 			_, err = r.clientSet.CoreV1().Namespaces().Patch(ctx, r.namespace, types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{}, "")
 
 			if err != nil {
-				return fmt.Errorf("Could not remove label from namespace %s: %v", r.namespace, err)
+				return errors.Errorf("Could not remove label from namespace %s: %v", r.namespace, err)
 			}
 
 			fmt.Fprintf(r.out, "Namespace [%s] succesfully removed from mesh [%s]\n", r.namespace, r.meshName)
 		} else {
-			return fmt.Errorf("Namespace belongs to mesh [%s], not mesh [%s]. Please specify the correct mesh", val, r.meshName)
+			return errors.Errorf("Namespace belongs to mesh [%s], not mesh [%s]. Please specify the correct mesh", val, r.meshName)
 		}
 	} else {
 		fmt.Fprintf(r.out, "Namespace [%s] already does not belong to any mesh\n", r.namespace)

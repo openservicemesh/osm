@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/pkg/errors"
 	"k8s.io/api/admission/v1beta1"
 	admissionv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -46,7 +47,7 @@ func NewWebhook(config Config, kubeClient kubernetes.Interface, certManager cert
 	validityPeriod := constants.XDSCertificateValidityPeriod
 	cert, err := certManager.IssueCertificate(cn, &validityPeriod)
 	if err != nil {
-		return fmt.Errorf("Error issuing certificate for the mutating webhook: %+v", err)
+		return errors.Errorf("Error issuing certificate for the mutating webhook: %+v", err)
 	}
 
 	wh := webhook{
@@ -61,7 +62,7 @@ func NewWebhook(config Config, kubeClient kubernetes.Interface, certManager cert
 
 	go wh.run(stop)
 	if err = patchMutatingWebhookConfiguration(cert, meshName, osmNamespace, webhookName, wh.kubeClient); err != nil {
-		return fmt.Errorf("Error configuring MutatingWebhookConfiguration: %+v", err)
+		return errors.Errorf("Error configuring MutatingWebhookConfiguration: %+v", err)
 	}
 	return nil
 }
@@ -85,7 +86,7 @@ func (wh *webhook) run(stop <-chan struct{}) error {
 		// Generate a key pair from your pem-encoded cert and key ([]byte).
 		cert, err := tls.X509KeyPair(wh.cert.GetCertificateChain(), wh.cert.GetPrivateKey())
 		if err != nil {
-			return fmt.Errorf("Error parsing webhook certificate: %+v", err)
+			return errors.Errorf("Error parsing webhook certificate: %+v", err)
 		}
 
 		server.TLSConfig = &tls.Config{
@@ -93,7 +94,7 @@ func (wh *webhook) run(stop <-chan struct{}) error {
 		}
 
 		if err := server.ListenAndServeTLS("", ""); err != nil {
-			return fmt.Errorf("Sidecar-injection webhook HTTP server failed to start: %+v", err)
+			return errors.Errorf("Sidecar-injection webhook HTTP server failed to start: %+v", err)
 		}
 		return nil
 	}()
@@ -249,7 +250,7 @@ func (wh *webhook) mustInject(pod *corev1.Pod, namespace string) (bool, error) {
 		case "disabled", "no", "false":
 			return false, nil
 		default:
-			return false, fmt.Errorf("Invalid annotion value specified for annotation %q: %s", annotationInject, inject)
+			return false, errors.Errorf("Invalid annotion value specified for annotation %q: %s", annotationInject, inject)
 		}
 	}
 

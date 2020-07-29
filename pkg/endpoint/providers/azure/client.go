@@ -1,12 +1,11 @@
 package azure
 
 import (
-	"fmt"
-
 	r "github.com/Azure/azure-sdk-for-go/profiles/latest/resources/mgmt/resources"
 	c "github.com/Azure/azure-sdk-for-go/services/compute/mgmt/2018-04-01/compute"
 	n "github.com/Azure/azure-sdk-for-go/services/network/mgmt/2019-06-01/network"
 	"github.com/Azure/go-autorest/autorest"
+	"github.com/pkg/errors"
 
 	"github.com/openservicemesh/osm/pkg/providers/azure"
 	"github.com/openservicemesh/osm/pkg/smi"
@@ -19,7 +18,7 @@ func NewProvider(subscriptionID string, azureAuthFile string, stop chan struct{}
 	var az Client
 
 	if authorizer, err = azure.GetAuthorizerWithRetry(azureAuthFile, n.DefaultBaseURI); err != nil {
-		return az, fmt.Errorf("Failed to obtain authentication token for Azure Resource Manager: %+v", err)
+		return az, errors.Errorf("Failed to obtain authentication token for Azure Resource Manager: %+v", err)
 	}
 
 	// TODO(draychev): The subscriptionID should be observed from the AzureResource (SMI)
@@ -63,7 +62,7 @@ func NewProvider(subscriptionID string, azureAuthFile string, stop chan struct{}
 	*/
 
 	if err := az.run(stop); err != nil {
-		return az, fmt.Errorf("Failed to start Azure EndpointsProvider client: %+v", err)
+		return az, errors.Errorf("Failed to start Azure EndpointsProvider client: %+v", err)
 	}
 
 	return az, nil

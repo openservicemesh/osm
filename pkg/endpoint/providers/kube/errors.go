@@ -1,6 +1,6 @@
 package kube
 
-import "errors"
+import "github.com/pkg/errors"
 
 var (
 	errSyncingCaches                      = errors.New("failed initial sync of resources required for ingress")
