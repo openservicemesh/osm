@@ -1,10 +1,10 @@
 package smi
 
 import (
-	"fmt"
 	"reflect"
 	"strings"
 
+	"github.com/pkg/errors"
 	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha1"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha2"
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
@@ -47,7 +47,7 @@ func NewMeshSpecClient(smiKubeConfig *rest.Config, kubeClient kubernetes.Interfa
 
 	err := client.run(stop)
 	if err != nil {
-		return client, fmt.Errorf("Could not start %s client", kubernetesClientName)
+		return client, errors.Errorf("Could not start %s client", kubernetesClientName)
 	}
 	return client, nil
 }

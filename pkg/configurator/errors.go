@@ -1,6 +1,6 @@
 package configurator
 
-import "errors"
+import "github.com/pkg/errors"
 
 var (
 	errInvalidKeyInConfigMap = errors.New("invalid key in ConfigMap")

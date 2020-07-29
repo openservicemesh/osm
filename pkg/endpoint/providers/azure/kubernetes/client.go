@@ -1,9 +1,9 @@
 package azure
 
 import (
-	"fmt"
 	"reflect"
 
+	"github.com/pkg/errors"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
@@ -27,7 +27,7 @@ func NewClient(kubeClient kubernetes.Interface, azureResourceKubeConfig *rest.Co
 
 	k8sClient := newClient(kubeClient, azureResourceClient, namespaceController)
 	if err := k8sClient.Run(stop); err != nil {
-		return nil, fmt.Errorf("Failed to start %s client: %+v", kubernetesClientName, err)
+		return nil, errors.Errorf("Failed to start %s client: %+v", kubernetesClientName, err)
 	}
 	return k8sClient, nil
 }

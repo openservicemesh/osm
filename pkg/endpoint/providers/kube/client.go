@@ -1,7 +1,6 @@
 package kube
 
 import (
-	"fmt"
 	"net"
 	"reflect"
 	"strings"
@@ -10,6 +9,7 @@ import (
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 
+	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/informers"
@@ -55,7 +55,7 @@ func NewProvider(kubeClient kubernetes.Interface, namespaceController namespace.
 	informerCollection.Deployments.AddEventHandler(k8s.GetKubernetesEventHandlers("Deployments", "Kubernetes", client.announcements, shouldObserve))
 
 	if err := client.run(stop); err != nil {
-		return nil, fmt.Errorf("Failed to start Kubernetes EndpointProvider client: %+v", err)
+		return nil, errors.Errorf("Failed to start Kubernetes EndpointProvider client: %+v", err)
 	}
 
 	return &client, nil

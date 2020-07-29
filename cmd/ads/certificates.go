@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/pkg/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
@@ -66,21 +67,21 @@ func getTresorCertificateManager(kubeClient kubernetes.Interface, enableDebug bo
 		rootCert, err = tresor.NewCA(constants.CertificationAuthorityCommonName, constants.CertificationAuthorityRootValidityPeriod, rootCertCountry, rootCertLocality, rootCertOrganization)
 
 		if err != nil {
-			return nil, nil, fmt.Errorf("Failed to create new Certificate Authority with cert issuer %s", *certManagerKind)
+			return nil, nil, errors.Errorf("Failed to create new Certificate Authority with cert issuer %s", *certManagerKind)
 		}
 
 		if rootCert == nil {
-			return nil, nil, fmt.Errorf("Invalid root certificate created by cert issuer %s", *certManagerKind)
+			return nil, nil, errors.Errorf("Invalid root certificate created by cert issuer %s", *certManagerKind)
 		}
 
 		if rootCert.GetPrivateKey() == nil {
-			return nil, nil, fmt.Errorf("Root cert does not have a private key")
+			return nil, nil, errors.Errorf("Root cert does not have a private key")
 		}
 	}
 
 	certManager, err := tresor.NewCertManager(rootCert, getServiceCertValidityPeriod(), rootCertOrganization)
 	if err != nil {
-		return nil, nil, fmt.Errorf("Failed to instantiate Azure Key Vault as a Certificate Manager")
+		return nil, nil, errors.Errorf("Failed to instantiate Azure Key Vault as a Certificate Manager")
 	}
 
 	return certManager, certManager, nil
@@ -153,14 +154,14 @@ func getAzureKeyVaultCertManager(_ kubernetes.Interface, enableDebug bool) (cert
 
 func getHashiVaultCertManager(_ kubernetes.Interface, enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
 	if _, ok := map[string]interface{}{"http": nil, "https": nil}[*vaultProtocol]; !ok {
-		return nil, nil, fmt.Errorf("Value %s is not a valid Hashi Vault protocol", *vaultProtocol)
+		return nil, nil, errors.Errorf("Value %s is not a valid Hashi Vault protocol", *vaultProtocol)
 	}
 
 	// A Vault address would have the following shape: "http://vault.default.svc.cluster.local:8200"
 	vaultAddr := fmt.Sprintf("%s://%s:%d", *vaultProtocol, *vaultHost, *vaultPort)
 	vaultCertManager, err := vault.NewCertManager(vaultAddr, *vaultToken, getServiceCertValidityPeriod(), *vaultRole)
 	if err != nil {
-		return nil, nil, fmt.Errorf("Error instantiating Hashicorp Vault as a Certificate Manager: %+v", err)
+		return nil, nil, errors.Errorf("Error instantiating Hashicorp Vault as a Certificate Manager: %+v", err)
 	}
 
 	return vaultCertManager, vaultCertManager, nil

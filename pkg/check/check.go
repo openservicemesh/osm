@@ -6,6 +6,7 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/openservicemesh/osm/pkg/cli"
+	"github.com/pkg/errors"
 	authv1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -89,7 +90,7 @@ func (c *Checker) checkAuthz(verb, group, version, resource, name string) error 
 	}
 
 	if !result.Status.Allowed {
-		return fmt.Errorf("cannot %s %s", verb, resource)
+		return errors.Errorf("cannot %s %s", verb, resource)
 	}
 	return nil
 }
@@ -132,7 +133,7 @@ var (
 			v, _ := semver.NewVersion(c.k8sVersion.String())
 			minVer, _ := semver.NewConstraint("^1.15-0")
 			if !minVer.Check(v) {
-				err = fmt.Errorf("Kubernetes version %s does not match supported versions %s", c.k8sVersion, minVer)
+				err = errors.Errorf("Kubernetes version %s does not match supported versions %s", c.k8sVersion, minVer)
 			}
 			return
 		},
@@ -175,7 +176,7 @@ var (
 					}
 				}
 			}
-			return fmt.Errorf("No PodSecurityPolicies found providing the capabilities %q, sidecar injection will fail if the PSP admission controller is running", requiredCaps)
+			return errors.Errorf("No PodSecurityPolicies found providing the capabilities %q, sidecar injection will fail if the PSP admission controller is running", requiredCaps)
 		},
 	}
 )

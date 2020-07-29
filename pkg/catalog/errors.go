@@ -1,6 +1,6 @@
 package catalog
 
-import "errors"
+import "github.com/pkg/errors"
 
 var (
 	errInvalidCertificateCN                  = errors.New("invalid cn")
