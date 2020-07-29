@@ -32,6 +32,10 @@ func NewFakeMeshSpecClient() MeshSpec {
 			tests.BookstoreServiceAccount,
 			tests.BookbuyerServiceAccount,
 		},
+		services: []*corev1.Service{
+			tests.NewServiceFixture(tests.BookstoreService.Service, tests.BookstoreService.Namespace, nil),
+			tests.NewServiceFixture(tests.BookbuyerService.Service, tests.BookbuyerService.Namespace, nil),
+		},
 
 		backpressures: []*backpressure.Backpressure{&tests.Backpressure},
 	}
