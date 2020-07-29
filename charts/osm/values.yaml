@@ -9,7 +9,7 @@ OpenServiceMesh:
     tag: latest
   imagePullSecrets:
     - name: acr-creds
-  sidecarImage: envoyproxy/envoy-alpine:v1.14.1
+  sidecarImage: mcr.microsoft.com/oss/envoyproxy/envoy:v1.16.0-alpha.1
   prometheus:
     port: 7070
     retention:
