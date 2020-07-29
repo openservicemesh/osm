@@ -8,7 +8,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/open-service-mesh/osm/pkg/certificate/pem"
+	"github.com/openservicemesh/osm/pkg/certificate/pem"
 )
 
 // EncodeCertDERtoPEM encodes the certificate provided in DER format into PEM format

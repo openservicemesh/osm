@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/open-service-mesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/logger"
 )
 
 const (
@@ -126,6 +126,8 @@ func GetBooks(participantName string, meshExpectedResponseCode int, egressExpect
 
 		fmt.Printf("\n\n--- %s:[ %d ] -----------------------------------------\n", participantName, iteration)
 
+		startTime := time.Now()
+
 		for url := range urlSuccessMap {
 
 			// We only care about the response code of the HTTP call for the given URL
@@ -181,7 +183,10 @@ func GetBooks(participantName string, meshExpectedResponseCode int, egressExpect
 			fmt.Print(Failure)
 		}
 
-		time.Sleep(sleepDurationBetweenRequests)
+		fillerTime := sleepDurationBetweenRequests - time.Since(startTime)
+		if fillerTime > 0 {
+			time.Sleep(fillerTime)
+		}
 	}
 }
 

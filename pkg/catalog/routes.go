@@ -8,10 +8,10 @@ import (
 	mapset "github.com/deckarep/golang-set"
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/open-service-mesh/osm/pkg/constants"
-	"github.com/open-service-mesh/osm/pkg/kubernetes"
-	"github.com/open-service-mesh/osm/pkg/service"
-	"github.com/open-service-mesh/osm/pkg/trafficpolicy"
+	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/kubernetes"
+	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
 const (
@@ -198,9 +198,9 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[trafficpolicy.T
 			continue
 		}
 
-		dstNamespacedServiceAcc := service.NamespacedServiceAccount{
-			Namespace:      trafficTargets.Destination.Namespace,
-			ServiceAccount: trafficTargets.Destination.Name,
+		dstNamespacedServiceAcc := service.K8sServiceAccount{
+			Namespace: trafficTargets.Destination.Namespace,
+			Name:      trafficTargets.Destination.Name,
 		}
 		destService, destErr := mc.GetServiceForServiceAccount(dstNamespacedServiceAcc)
 		if destErr != nil {
@@ -209,9 +209,9 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[trafficpolicy.T
 		}
 
 		for _, trafficSources := range trafficTargets.Sources {
-			namespacedServiceAccount := service.NamespacedServiceAccount{
-				Namespace:      trafficSources.Namespace,
-				ServiceAccount: trafficSources.Name,
+			namespacedServiceAccount := service.K8sServiceAccount{
+				Namespace: trafficSources.Namespace,
+				Name:      trafficSources.Name,
 			}
 
 			srcServices, srcErr := mc.GetServiceForServiceAccount(namespacedServiceAccount)

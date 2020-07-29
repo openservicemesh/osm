@@ -13,7 +13,7 @@ import (
 	"helm.sh/helm/v3/pkg/storage"
 	"helm.sh/helm/v3/pkg/storage/driver"
 
-	"github.com/open-service-mesh/osm/pkg/check"
+	"github.com/openservicemesh/osm/pkg/check"
 )
 
 var (

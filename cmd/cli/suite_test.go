@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/open-service-mesh/osm/pkg/cli"
+	"github.com/openservicemesh/osm/pkg/cli"
 )
 
 func TestCLI(t *testing.T) {

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html"
 	"html/template"
+	"math/rand"
 	"net/http"
 	"os"
 	"strings"
@@ -13,8 +14,8 @@ import (
 
 	"github.com/gorilla/mux"
 
-	"github.com/open-service-mesh/osm/demo/cmd/common"
-	"github.com/open-service-mesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/demo/cmd/common"
+	"github.com/openservicemesh/osm/pkg/logger"
 )
 
 var (
@@ -102,6 +103,14 @@ func sellBook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	go common.RestockBooks(1) // make this async for a smoother demo
+
+	// Slow down the responses artificially.
+	maxNoiseMilliseconds := 750
+	minNoiseMilliseconds := 150
+	intNoise := rand.Intn(maxNoiseMilliseconds-minNoiseMilliseconds) + minNoiseMilliseconds
+	pretendToBeBusy := time.Duration(intNoise) * time.Millisecond
+	log.Info().Msgf("Sleeping %+v", pretendToBeBusy)
+	time.Sleep(pretendToBeBusy)
 }
 
 func getHandlers() []handler {

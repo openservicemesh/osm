@@ -8,13 +8,13 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
-	osm "github.com/open-service-mesh/osm/pkg/apis/azureresource/v1"
-	k8s "github.com/open-service-mesh/osm/pkg/kubernetes"
+	osm "github.com/openservicemesh/osm/pkg/apis/azureresource/v1"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 
-	"github.com/open-service-mesh/osm/pkg/configurator"
-	"github.com/open-service-mesh/osm/pkg/namespace"
-	osmClient "github.com/open-service-mesh/osm/pkg/osm_client/clientset/versioned"
-	osmInformers "github.com/open-service-mesh/osm/pkg/osm_client/informers/externalversions"
+	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/namespace"
+	osmClient "github.com/openservicemesh/osm/pkg/osm_client/clientset/versioned"
+	osmInformers "github.com/openservicemesh/osm/pkg/osm_client/informers/externalversions"
 )
 
 const (

@@ -13,7 +13,7 @@ fi
 
 ../code-generator/generate-groups.sh \
     all \
-    github.com/open-service-mesh/osm/experimental/pkg/client \
-    github.com/open-service-mesh/osm/experimental/pkg/apis \
+    github.com/openservicemesh/osm/experimental/pkg/client \
+    github.com/openservicemesh/osm/experimental/pkg/apis \
     "policy:v1alpha1" \
     --go-header-file ../code-generator/hack/boilerplate.go.txt

@@ -6,8 +6,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/open-service-mesh/osm/pkg/certificate"
-	"github.com/open-service-mesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/envoy"
 )
 
 func (ds debugServer) getXDSHandler() http.Handler {

@@ -3,8 +3,8 @@ package cla
 import (
 	"net"
 
-	"github.com/open-service-mesh/osm/pkg/endpoint"
-	"github.com/open-service-mesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/endpoint"
+	"github.com/openservicemesh/osm/pkg/service"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

@@ -6,7 +6,7 @@ import (
 
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/open-service-mesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/constants"
 )
 
 const (

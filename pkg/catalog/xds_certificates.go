@@ -10,9 +10,9 @@ import (
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/open-service-mesh/osm/pkg/certificate"
-	"github.com/open-service-mesh/osm/pkg/constants"
-	"github.com/open-service-mesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/service"
 )
 
 // GetServiceFromEnvoyCertificate returns the single service given Envoy is a member of based on the certificate provided, which is a cert issued to an Envoy for XDS communication (not Envoy-to-Envoy).
@@ -125,10 +125,10 @@ func GetPodFromCertificate(cn certificate.CommonName, kubeClient kubernetes.Inte
 		return nil, errNamespaceDoesNotMatchCertificate
 	}
 
-	// Ensure the ServiceAccount encoded in the certificate matches that of the Pod
+	// Ensure the Name encoded in the certificate matches that of the Pod
 	if pod.Spec.ServiceAccountName != cnMeta.ServiceAccount {
 		// Since we search for the pod in the namespace we obtain from the certificate -- these namespaces will always matech.
-		log.Warn().Msgf("Pod %s/%s belongs to ServiceAccount %q while the pod's cert was issued for ServiceAccount %q", pod.Namespace, pod.Name, pod.Spec.ServiceAccountName, cnMeta.ServiceAccount)
+		log.Warn().Msgf("Pod %s/%s belongs to Name %q while the pod's cert was issued for Name %q", pod.Namespace, pod.Name, pod.Spec.ServiceAccountName, cnMeta.ServiceAccount)
 		return nil, errServiceAccountDoesNotMatchCertificate
 	}
 

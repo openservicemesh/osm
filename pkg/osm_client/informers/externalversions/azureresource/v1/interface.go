@@ -19,7 +19,7 @@ limitations under the License.
 package v1
 
 import (
-	internalinterfaces "github.com/open-service-mesh/osm/pkg/osm_client/informers/externalversions/internalinterfaces"
+	internalinterfaces "github.com/openservicemesh/osm/pkg/osm_client/informers/externalversions/internalinterfaces"
 )
 
 // Interface provides access to all the informers in this group version.

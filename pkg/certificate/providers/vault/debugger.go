@@ -1,7 +1,7 @@
 package vault
 
 import (
-	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/certificate"
 )
 
 // ListIssuedCertificates implements CertificateDebugger interface and returns the list of issued certificates.

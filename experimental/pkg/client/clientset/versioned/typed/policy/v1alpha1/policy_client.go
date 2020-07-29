@@ -19,8 +19,8 @@ limitations under the License.
 package v1alpha1
 
 import (
-	v1alpha1 "github.com/open-service-mesh/osm/experimental/pkg/apis/policy/v1alpha1"
-	"github.com/open-service-mesh/osm/experimental/pkg/client/clientset/versioned/scheme"
+	v1alpha1 "github.com/openservicemesh/osm/experimental/pkg/apis/policy/v1alpha1"
+	"github.com/openservicemesh/osm/experimental/pkg/client/clientset/versioned/scheme"
 	rest "k8s.io/client-go/rest"
 )
 

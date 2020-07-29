@@ -1,14 +1,14 @@
 package smi
 
 import (
-	backpressure "github.com/open-service-mesh/osm/experimental/pkg/apis/policy/v1alpha1"
+	backpressure "github.com/openservicemesh/osm/experimental/pkg/apis/policy/v1alpha1"
 	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha1"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha2"
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/open-service-mesh/osm/pkg/service"
-	"github.com/open-service-mesh/osm/pkg/tests"
+	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/tests"
 )
 
 type fakeMeshSpec struct {
@@ -17,7 +17,7 @@ type fakeMeshSpec struct {
 	trafficTargets   []*target.TrafficTarget
 	backpressures    []*backpressure.Backpressure
 	weightedServices []service.WeightedService
-	serviceAccounts  []service.NamespacedServiceAccount
+	serviceAccounts  []service.K8sServiceAccount
 	services         []*corev1.Service
 }
 
@@ -28,7 +28,7 @@ func NewFakeMeshSpecClient() MeshSpec {
 		routeGroups:      []*spec.HTTPRouteGroup{&tests.HTTPRouteGroup},
 		trafficTargets:   []*target.TrafficTarget{&tests.TrafficTarget},
 		weightedServices: []service.WeightedService{tests.WeightedService},
-		serviceAccounts: []service.NamespacedServiceAccount{
+		serviceAccounts: []service.K8sServiceAccount{
 			tests.BookstoreServiceAccount,
 			tests.BookbuyerServiceAccount,
 		},
@@ -48,7 +48,7 @@ func (f fakeMeshSpec) ListTrafficSplitServices() []service.WeightedService {
 }
 
 // ListServiceAccounts fetches all service accounts declared with SMI Spec for the fake Mesh Spec.
-func (f fakeMeshSpec) ListServiceAccounts() []service.NamespacedServiceAccount {
+func (f fakeMeshSpec) ListServiceAccounts() []service.K8sServiceAccount {
 	return f.serviceAccounts
 }
 

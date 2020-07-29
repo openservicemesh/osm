@@ -19,7 +19,7 @@ limitations under the License.
 package v1
 
 import (
-	v1 "github.com/open-service-mesh/osm/pkg/apis/azureresource/v1"
+	v1 "github.com/openservicemesh/osm/pkg/apis/azureresource/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"

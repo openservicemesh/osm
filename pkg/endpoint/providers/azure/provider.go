@@ -7,10 +7,10 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
-	osm "github.com/open-service-mesh/osm/pkg/apis/azureresource/v1"
-	"github.com/open-service-mesh/osm/pkg/constants"
-	"github.com/open-service-mesh/osm/pkg/endpoint"
-	"github.com/open-service-mesh/osm/pkg/service"
+	osm "github.com/openservicemesh/osm/pkg/apis/azureresource/v1"
+	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/endpoint"
+	"github.com/openservicemesh/osm/pkg/service"
 )
 
 // ListEndpointsForService implements endpoints.Provider interface and returns the IP addresses and Ports for the given ServiceName Name.
@@ -53,7 +53,7 @@ func (az Client) ListEndpointsForService(svc service.Name) []endpoint.Endpoint {
 }
 
 // GetServiceForServiceAccount retrieves the service for the given service account
-func (az Client) GetServiceForServiceAccount(svcAccount service.NamespacedServiceAccount) (service.NamespacedService, error) {
+func (az Client) GetServiceForServiceAccount(svcAccount service.K8sServiceAccount) (service.NamespacedService, error) {
 	//TODO (snchh) : need to figure out the service account equivalnent for azure
 	panic("NotImplemented")
 }

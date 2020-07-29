@@ -19,8 +19,8 @@ limitations under the License.
 package policy
 
 import (
-	internalinterfaces "github.com/open-service-mesh/osm/experimental/pkg/client/informers/externalversions/internalinterfaces"
-	v1alpha1 "github.com/open-service-mesh/osm/experimental/pkg/client/informers/externalversions/policy/v1alpha1"
+	internalinterfaces "github.com/openservicemesh/osm/experimental/pkg/client/informers/externalversions/internalinterfaces"
+	v1alpha1 "github.com/openservicemesh/osm/experimental/pkg/client/informers/externalversions/policy/v1alpha1"
 )
 
 // Interface provides access to each of this group's versions.

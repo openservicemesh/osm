@@ -10,7 +10,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
-	k8s "github.com/open-service-mesh/osm/pkg/kubernetes"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 )
 
 const (
@@ -20,10 +20,20 @@ const (
 	zipkinTracingKey               = "zipkin_tracing"
 	meshCIDRRangesKey              = "mesh_cidr_ranges"
 	useHTTPSIngressKey             = "use_https_ingress"
+
+	// See https://tools.ietf.org/html/rfc1918
+	// A reasonable default could be: defaultInMeshCIDR = "10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16"
+	// TODO(draychev): come up with reasonable defaults
+	// GitHub Issue: https://github.com/openservicemesh/osm/issues/1225
+	defaultInMeshCIDR = ""
 )
 
 // NewConfigurator implements configurator.Configurator and creates the Kubernetes client to manage namespaces.
 func NewConfigurator(kubeClient kubernetes.Interface, stop <-chan struct{}, osmNamespace, osmConfigMapName string) Configurator {
+	return newConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
+}
+
+func newConfigurator(kubeClient kubernetes.Interface, stop <-chan struct{}, osmNamespace, osmConfigMapName string) *Client {
 	informerFactory := informers.NewSharedInformerFactoryWithOptions(kubeClient, k8s.DefaultKubeEventResyncInterval, informers.WithNamespace(osmNamespace))
 	informer := informerFactory.Core().V1().ConfigMaps().Informer()
 	client := Client{
@@ -98,75 +108,51 @@ func (c *Client) getConfigMap() *osmConfig {
 	configMapCacheKey := c.getConfigMapCacheKey()
 	item, exists, err := c.cache.GetByKey(configMapCacheKey)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting ConfigMap by key=%s from cache", configMapCacheKey)
+		log.Error().Err(err).Msgf("Error getting ConfigMap from cache with key %s", configMapCacheKey)
+		return &osmConfig{}
 	}
 
 	if !exists {
+		log.Error().Msgf("ConfigMap %s does not exist in cache", configMapCacheKey)
 		return &osmConfig{}
 	}
 
 	configMap := item.(*v1.ConfigMap)
 
-	cfg := &osmConfig{}
-
-	var modeBool bool
-	// Parse PermissiveTrafficPolicyMode
-	modeBool, err = getBoolValueForKey(configMap, permissiveTrafficPolicyModeKey)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error getting value for key=%s", permissiveTrafficPolicyModeKey)
+	return &osmConfig{
+		PermissiveTrafficPolicyMode: getBoolValueForKey(configMap, permissiveTrafficPolicyModeKey),
+		Egress:                      getBoolValueForKey(configMap, egressKey),
+		PrometheusScraping:          getBoolValueForKey(configMap, prometheusScrapingKey),
+		ZipkinTracing:               getBoolValueForKey(configMap, zipkinTracingKey),
+		MeshCIDRRanges:              getEgressCIDR(configMap),
+		UseHTTPSIngress:             getBoolValueForKey(configMap, useHTTPSIngressKey),
 	}
-	cfg.PermissiveTrafficPolicyMode = modeBool
-
-	// Parse Egress
-	modeBool, err = getBoolValueForKey(configMap, egressKey)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error getting value for key=%s", egressKey)
-	}
-	cfg.Egress = modeBool
-
-	// Parse PrometheusScraping
-	modeBool, err = getBoolValueForKey(configMap, prometheusScrapingKey)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error getting value for key=%s", prometheusScrapingKey)
-	}
-	cfg.PrometheusScraping = modeBool
-
-	// Parse UseHTTPSIngress from ConfigMap
-	modeBool, err = getBoolValueForKey(configMap, useHTTPSIngressKey)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error getting value for key=%s", useHTTPSIngressKey)
-	}
-	cfg.UseHTTPSIngress = modeBool
-
-	// Parse ZipkinTracing
-	modeBool, err = getBoolValueForKey(configMap, zipkinTracingKey)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error getting value for key=%s", zipkinTracingKey)
-	}
-	cfg.ZipkinTracing = modeBool
-
-	// Parse MeshCIDRRanges: only required if egress is enabled
-	cidr, ok := configMap.Data[meshCIDRRangesKey]
-	if !ok {
-		if cfg.Egress {
-			log.Error().Err(errMissingKeyInConfigMap).Msgf("Missing key=%s, required when egress is enabled", meshCIDRRangesKey)
-		}
-	}
-	cfg.MeshCIDRRanges = cidr
-
-	return cfg
 }
 
-func getBoolValueForKey(configMap *v1.ConfigMap, key string) (bool, error) {
-	modeString, ok := configMap.Data[key]
+func getEgressCIDR(configMap *v1.ConfigMap) string {
+	cidr, ok := configMap.Data[meshCIDRRangesKey]
 	if !ok {
-		return false, errInvalidKeyInConfigMap
+		if getBoolValueForKey(configMap, egressKey) {
+			log.Error().Err(errMissingKeyInConfigMap).Msgf("Missing ConfigMap %s/%s key %s, required when egress is enabled; Defaulting to %+v", configMap.Namespace, configMap.Name, meshCIDRRangesKey, defaultInMeshCIDR)
+		}
+		return defaultInMeshCIDR
 	}
 
-	modeBool, err := strconv.ParseBool(modeString)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error converting ConfigMap key %s=%+v to bool", key, modeString)
-		return false, err
+	return cidr
+}
+
+func getBoolValueForKey(configMap *v1.ConfigMap, key string) bool {
+	configMapStringValue, ok := configMap.Data[key]
+	if !ok {
+		log.Error().Err(errInvalidKeyInConfigMap).Msgf("Key %s does not exist in ConfigMap %s/%s (%s)", key, configMap.Namespace, configMap.Name, configMap.Data)
+		return false
 	}
-	return modeBool, nil
+
+	configMapBoolValue, err := strconv.ParseBool(configMapStringValue)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error converting ConfigMap %s/%s key %s with value %+v to bool", configMap.Namespace, configMap.Name, key, configMapStringValue)
+		return false
+	}
+
+	return configMapBoolValue
 }

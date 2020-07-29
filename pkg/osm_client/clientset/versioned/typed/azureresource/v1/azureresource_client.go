@@ -19,8 +19,8 @@ limitations under the License.
 package v1
 
 import (
-	v1 "github.com/open-service-mesh/osm/pkg/apis/azureresource/v1"
-	"github.com/open-service-mesh/osm/pkg/osm_client/clientset/versioned/scheme"
+	v1 "github.com/openservicemesh/osm/pkg/apis/azureresource/v1"
+	"github.com/openservicemesh/osm/pkg/osm_client/clientset/versioned/scheme"
 	rest "k8s.io/client-go/rest"
 )
 

@@ -10,11 +10,11 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	backpressure "github.com/open-service-mesh/osm/experimental/pkg/apis/policy/v1alpha1"
-	"github.com/open-service-mesh/osm/pkg/constants"
-	"github.com/open-service-mesh/osm/pkg/endpoint"
-	"github.com/open-service-mesh/osm/pkg/service"
-	"github.com/open-service-mesh/osm/pkg/trafficpolicy"
+	backpressure "github.com/openservicemesh/osm/experimental/pkg/apis/policy/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/endpoint"
+	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 	"github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 )
 
@@ -151,12 +151,12 @@ var (
 			Namespace: "default",
 		},
 		Destination: target.IdentityBindingSubject{
-			Kind:      "ServiceAccount",
+			Kind:      "Name",
 			Name:      BookstoreServiceAccountName,
 			Namespace: "default",
 		},
 		Sources: []target.IdentityBindingSubject{{
-			Kind:      "ServiceAccount",
+			Kind:      "Name",
 			Name:      BookbuyerServiceAccountName,
 			Namespace: "default",
 		}},
@@ -176,15 +176,15 @@ var (
 	NamespacedServiceName = service.Name(fmt.Sprintf("%s/%s", BookstoreService.Namespace, BookstoreService.Service))
 
 	// BookstoreServiceAccount is a namespaced service account.
-	BookstoreServiceAccount = service.NamespacedServiceAccount{
-		Namespace:      Namespace,
-		ServiceAccount: BookstoreServiceAccountName,
+	BookstoreServiceAccount = service.K8sServiceAccount{
+		Namespace: Namespace,
+		Name:      BookstoreServiceAccountName,
 	}
 
 	// BookbuyerServiceAccount is a namespaced bookbuyer account.
-	BookbuyerServiceAccount = service.NamespacedServiceAccount{
-		Namespace:      Namespace,
-		ServiceAccount: BookbuyerServiceAccountName,
+	BookbuyerServiceAccount = service.K8sServiceAccount{
+		Namespace: Namespace,
+		Name:      BookbuyerServiceAccountName,
 	}
 
 	// WeightedService is a service with a weight used for traffic split.

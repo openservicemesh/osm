@@ -10,8 +10,8 @@ import (
 	"github.com/google/uuid"
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/open-service-mesh/osm/pkg/catalog"
-	"github.com/open-service-mesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/catalog"
+	"github.com/openservicemesh/osm/pkg/constants"
 )
 
 const (
@@ -73,16 +73,15 @@ func (wh *webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 		initContainersBasePath)...,
 	)
 
-	// Add the Envoy sidecar
-	envoySidecarData := EnvoySidecarData{
-		Name:           envoySidecarContainerName,
-		Image:          wh.config.SidecarImage,
-		EnvoyNodeID:    proxyUUID,
-		EnvoyClusterID: proxyUUID, // TODO(draychev)
-	}
+	// envoyNodeID and envoyClusterID are required for Envoy proxy to start.
+	envoyNodeID := pod.Spec.ServiceAccountName
+
+	// envoyCluster ID will be used as an identifier to the tracing sink (will be used in Zipkin for example).
+	envoyClusterID := fmt.Sprintf("%s.%s", pod.Spec.ServiceAccountName, namespace)
+
 	patches = append(patches, addContainer(
 		pod.Spec.Containers,
-		[]corev1.Container{getEnvoySidecarContainerSpec(&envoySidecarData)},
+		getEnvoySidecarContainerSpec(envoyContainerName, wh.config.SidecarImage, envoyNodeID, envoyClusterID),
 		"/spec/containers")...,
 	)
 

@@ -7,7 +7,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/certificate"
 )
 
 func (ds debugServer) getCertHandler() http.Handler {

@@ -8,9 +8,9 @@ import (
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/open-service-mesh/osm/pkg/certificate"
-	"github.com/open-service-mesh/osm/pkg/envoy"
-	"github.com/open-service-mesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/service"
 )
 
 // ListExpectedProxies lists the Envoy proxies yet to connect and the time their XDS certificate was issued.
@@ -62,7 +62,7 @@ func (mc *MeshCatalog) ListDisconnectedProxies() map[certificate.CommonName]time
 }
 
 // ListSMIPolicies returns all policies OSM is aware of.
-func (mc *MeshCatalog) ListSMIPolicies() ([]*split.TrafficSplit, []service.WeightedService, []service.NamespacedServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget, []*corev1.Service) {
+func (mc *MeshCatalog) ListSMIPolicies() ([]*split.TrafficSplit, []service.WeightedService, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget, []*corev1.Service) {
 	trafficSplits := mc.meshSpec.ListTrafficSplits()
 	splitServices := mc.meshSpec.ListTrafficSplitServices()
 	serviceAccouns := mc.meshSpec.ListServiceAccounts()

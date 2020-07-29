@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/open-service-mesh/osm/pkg/debugger"
-	"github.com/open-service-mesh/osm/pkg/health"
-	"github.com/open-service-mesh/osm/pkg/metricsstore"
+	"github.com/openservicemesh/osm/pkg/debugger"
+	"github.com/openservicemesh/osm/pkg/health"
+	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
 
 const (

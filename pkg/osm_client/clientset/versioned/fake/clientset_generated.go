@@ -19,9 +19,9 @@ limitations under the License.
 package fake
 
 import (
-	clientset "github.com/open-service-mesh/osm/pkg/osm_client/clientset/versioned"
-	osmv1 "github.com/open-service-mesh/osm/pkg/osm_client/clientset/versioned/typed/azureresource/v1"
-	fakeosmv1 "github.com/open-service-mesh/osm/pkg/osm_client/clientset/versioned/typed/azureresource/v1/fake"
+	clientset "github.com/openservicemesh/osm/pkg/osm_client/clientset/versioned"
+	osmv1 "github.com/openservicemesh/osm/pkg/osm_client/clientset/versioned/typed/azureresource/v1"
+	fakeosmv1 "github.com/openservicemesh/osm/pkg/osm_client/clientset/versioned/typed/azureresource/v1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"

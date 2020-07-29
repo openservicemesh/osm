@@ -3,7 +3,7 @@ package featureflags
 import (
 	"sync"
 
-	"github.com/open-service-mesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/logger"
 )
 
 // OptionalFeatures is a struct to enable/disable optional features
