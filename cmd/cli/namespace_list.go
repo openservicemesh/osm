@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"helm.sh/helm/v3/cmd/helm/require"
 	v1 "k8s.io/api/core/v1"
@@ -40,12 +41,12 @@ func newNamespaceList(out io.Writer) *cobra.Command {
 
 			config, err := settings.RESTClientGetter().ToRESTConfig()
 			if err != nil {
-				return fmt.Errorf("Error fetching kubeconfig")
+				return errors.Errorf("Error fetching kubeconfig")
 			}
 
 			clientset, err := kubernetes.NewForConfig(config)
 			if err != nil {
-				return fmt.Errorf("Could not access Kubernetes cluster. Check kubeconfig")
+				return errors.Errorf("Could not access Kubernetes cluster. Check kubeconfig")
 			}
 			namespaceList.clientSet = clientset
 			return namespaceList.run()
@@ -62,7 +63,7 @@ func newNamespaceList(out io.Writer) *cobra.Command {
 func (l *namespaceListCmd) run() error {
 	namespaces, err := l.selectNamespaces()
 	if err != nil {
-		return fmt.Errorf("Could not list namespaces related to osm [%s]: %v", l.meshName, err)
+		return errors.Errorf("Could not list namespaces related to osm [%s]: %v", l.meshName, err)
 	}
 
 	if len(namespaces.Items) == 0 {
