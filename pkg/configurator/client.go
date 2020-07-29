@@ -24,7 +24,7 @@ const (
 	// See https://tools.ietf.org/html/rfc1918
 	// A reasonable default could be: defaultInMeshCIDR = "10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16"
 	// TODO(draychev): come up with reasonable defaults
-	// GitHub Issue: https://github.com/open-service-mesh/osm/issues/1225
+	// GitHub Issue: https://github.com/openservicemesh/osm/issues/1225
 	defaultInMeshCIDR = ""
 )
 
