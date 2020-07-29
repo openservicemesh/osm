@@ -54,6 +54,7 @@ You can reach the Open Service Mesh community and developers via the following c
 
 - OSM Slack (TBD)
 - Public Community Call (TBD)
+- [Mailing list](https://groups.google.com/g/openservicemesh)
 
 ## Code of Conduct
 
