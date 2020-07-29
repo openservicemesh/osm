@@ -10,7 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
-	"github.com/open-service-mesh/osm/pkg/kubernetes"
+	"github.com/openservicemesh/osm/pkg/kubernetes"
 )
 
 var _ = Describe("Test OSM ConfigMap parsing", func() {
