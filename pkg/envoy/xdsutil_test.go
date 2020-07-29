@@ -146,6 +146,7 @@ var _ = Describe("Test Envoy tools", func() {
 							ConfigSourceSpecifier: &core.ConfigSource_Ads{
 								Ads: &core.AggregatedConfigSource{},
 							},
+							ResourceApiVersion: core.ApiVersion_V3,
 						},
 					}},
 					ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
@@ -161,6 +162,7 @@ var _ = Describe("Test Envoy tools", func() {
 								ConfigSourceSpecifier: &core.ConfigSource_Ads{
 									Ads: &core.AggregatedConfigSource{},
 								},
+								ResourceApiVersion: core.ApiVersion_V3,
 							},
 						},
 					},
@@ -208,6 +210,7 @@ var _ = Describe("Test Envoy tools", func() {
 							ConfigSourceSpecifier: &core.ConfigSource_Ads{
 								Ads: &core.AggregatedConfigSource{},
 							},
+							ResourceApiVersion: core.ApiVersion_V3,
 						},
 					}},
 					ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
@@ -223,6 +226,7 @@ var _ = Describe("Test Envoy tools", func() {
 								ConfigSourceSpecifier: &core.ConfigSource_Ads{
 									Ads: &core.AggregatedConfigSource{},
 								},
+								ResourceApiVersion: core.ApiVersion_V3,
 							},
 						},
 					},
