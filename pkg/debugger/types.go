@@ -12,6 +12,7 @@ import (
 	"k8s.io/client-go/rest"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -26,6 +27,7 @@ type debugServer struct {
 	meshCatalogDebugger MeshCatalogDebugger
 	kubeConfig          *rest.Config
 	kubeClient          kubernetes.Interface
+	configurator        configurator.Configurator
 }
 
 // CertificateManagerDebugger is an interface with methods for debugging certificate issuance.
