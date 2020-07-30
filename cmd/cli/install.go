@@ -171,7 +171,7 @@ func (i *installCmd) run(config *helm.Configuration) error {
 	// Validate CIDR ranges if egress is enabled
 	if i.enableEgress {
 		if err := validateCIDRs(i.meshCIDRRanges); err != nil {
-			return errors.Errorf("Invalid mesh-cidr-ranges: %q, error: %v", i.meshCIDRRanges, err)
+			return errors.Errorf("Invalid mesh-cidr-ranges: %q, error: %v. Valid mesh CIDR ranges must be specified with egress enabled.", i.meshCIDRRanges, err)
 		}
 	}
 
@@ -244,7 +244,7 @@ func errMeshAlreadyExists(name string) error {
 
 func validateCIDRs(cidrRanges []string) error {
 	if len(cidrRanges) == 0 {
-		return errors.Errorf("CIDR ranges cannot be empty")
+		return errors.Errorf("CIDR ranges cannot be empty when `enable-egress` option is true`")
 	}
 	for _, cidr := range cidrRanges {
 		cidrNoSpaces := strings.Replace(cidr, " ", "", -1)
