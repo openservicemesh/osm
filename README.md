@@ -34,30 +34,44 @@ Read more about the high level goals, design and architecture [here](DESIGN.md).
 
 ### Prerequisites
 - Kubernetes cluster running Kubernetes v1.15.0 or greater
-- A private container registry (temporary requirement as this is currently a private repo)
 
-### Install
+### OSM CLI Install
 
-The simplest way of installing open service mesh on a Kubernetes cluster is by using the `osm` CLI.
+The simplest way of installing Open Service Mesh on a Kubernetes cluster is by using the `osm` CLI.
 
-Download the `osm` binary from the [Releases page](https://github.com/openservicemesh/osm/releases).
+Download the `osm` binary from the [Releases page](https://github.com/openservicemesh/osm/releases). Unpack the `osm` binary and add it to `$PATH` to get started.
 
-See the [installation guide](docs/installation_guide.md) for more detailed options. After installing OSM, [onboard services](docs/onboard_services.md) to the mesh.
+Install OSM
+```shell
+$ osm install
+```
 
-For instructions on how to utilize [Azure Arc](https://azure.microsoft.com/en-us/services/azure-arc/) and the [Azure Arc-enabled Kubernetes](https://docs.microsoft.com/en-us/azure/azure-arc/kubernetes/overview) experience for deploying OSM and configuring policies, please visit the [OSM Azure Arc Installation Guide](docs/azure_arc_installation_guide.md).
+See the [installation guide](docs/installation_guide.md) for more detailed options.
+
+### Using OSM
+
+After installing OSM, [add an application](docs/onboard_services.md) to the service mesh.
+
+### OSM Usage patterns
+
+Refer to [docs/patterns](docs/patterns) for OSM usage patterns.
 
 ## Demo and deployment sample
 
 The repository contains tools and scripts to compile and deploy the OSM control plane and a demo to show how OSM can manage, secure and provide observability for microservice environments; all on a user-provisioned Kubernetes cluster.
 See the [demo instructions](demo/README.md) to get a sense of what we've accomplished and are working on.
 
-## Community, discussion, contribution, and support
+## Community
 
 You can reach the Open Service Mesh community and developers via the following channels:
 
 - OSM Slack (TBD)
 - Public Community Call (TBD)
 - [Mailing list](https://groups.google.com/g/openservicemesh)
+
+## Development Guide
+
+If you would like to contribute to OSM, check out the [development guide](docs/development_guide.md)
 
 ## Code of Conduct
 
