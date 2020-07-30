@@ -7,7 +7,7 @@
 # shellcheck disable=SC1091
 source .env
 
-backend="${1:-bookstore-v1}"
+backend="${1:-v1}"
 thisScript="$(dirname "$0")/$(basename "$0")"
 
 if [ -z "$backend" ]; then
@@ -15,7 +15,7 @@ if [ -z "$backend" ]; then
     exit 1
 fi
 
-POD="$(kubectl get pods --selector app="$backend" -n "$BOOKSTORE_NAMESPACE" --no-headers | grep 'Running' | awk '{print $1}')"
+POD="$(kubectl get pods --selector app=bookstore,version="$backend" -n "$BOOKSTORE_NAMESPACE" --no-headers | grep 'Running' | awk '{print $1}')"
 
 kubectl describe pod "$POD" -n "$BOOKSTORE_NAMESPACE"
 
