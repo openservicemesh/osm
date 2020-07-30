@@ -21,4 +21,5 @@ type Client struct {
 // Controller is the controller interface for K8s namespaces
 type Controller interface {
 	IsMonitoredNamespace(string) bool
+	ListMonitoredNamespaces() []string
 }
