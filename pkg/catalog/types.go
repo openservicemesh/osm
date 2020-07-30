@@ -11,6 +11,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 
+<<<<<<< HEAD
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -20,6 +21,18 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
+=======
+	"github.com/open-service-mesh/osm/pkg/certificate"
+	"github.com/open-service-mesh/osm/pkg/configurator"
+	"github.com/open-service-mesh/osm/pkg/endpoint"
+	"github.com/open-service-mesh/osm/pkg/envoy"
+	"github.com/open-service-mesh/osm/pkg/ingress"
+	"github.com/open-service-mesh/osm/pkg/logger"
+	"github.com/open-service-mesh/osm/pkg/service"
+	"github.com/open-service-mesh/osm/pkg/smi"
+	"github.com/open-service-mesh/osm/pkg/trafficpolicy"
+	"github.com/open-service-mesh/osm/pkg/namespace"
+>>>>>>> namespace endpoint work
 )
 
 var (
@@ -48,6 +61,8 @@ type MeshCatalog struct {
 	// Current assumption is that OSM is working with a single Kubernetes cluster.
 	// This here is the client to that cluster.
 	kubeClient kubernetes.Interface
+
+	namespaceCtrlr		namespace.Controller
 }
 
 // MeshCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
@@ -97,6 +112,9 @@ type MeshCataloger interface {
 
 	// GetIngressRoutesPerHost returns the routes per host associated with an ingress service
 	GetIngressRoutesPerHost(service.NamespacedService) (map[string][]trafficpolicy.Route, error)
+
+	// ListMonitoredNamespaces lists namespaces monitored by the control plane
+	ListMonitoredNamespaces() ([]string)
 }
 
 type announcementChannel struct {
