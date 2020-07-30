@@ -95,7 +95,7 @@ func (c *Client) run(stop <-chan struct{}) error {
 	return nil
 }
 
-// GetID implements EndpointsProvider interface and returns a string descriptor / identifier of the compute provider.
+// GetID implements endpoints.Provider interface and returns a string descriptor / identifier of the compute provider.
 func (c *Client) GetID() string {
 	return c.providerIdent
 }
