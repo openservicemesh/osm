@@ -11,6 +11,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 
+<<<<<<< HEAD
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -55,7 +56,7 @@ type MeshCatalog struct {
 
 // MeshCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
 type MeshCataloger interface {
-	// GetSMISpec returns the SMI spec
+		// GetSMISpec returns the SMI spec
 	GetSMISpec() smi.MeshSpec
 
 	// ListTrafficPolicies returns all the traffic policies for a given service that Envoy proxy should be aware of.
