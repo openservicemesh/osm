@@ -128,6 +128,32 @@ More notable:
   - `make go-fmt` - same as `go fmt ./...`
   - `make go-vet` - same as `go vet ./...`
 
+## Create Environment Variables
+Create some necessary environment variables. This environment variable setup is a temporary step because OSM is currently a private project and there are no public container images available.
+```console
+$ # K8S_NAMESPACE is the Namespace the control plane will be installed into
+$ export K8S_NAMESPACE=osm-system
+
+$ # CTR_REGISTRY is the URL of the container registry to use
+$ export CTR_REGISTRY=<your registry>
+
+$ # If no authentication to push to the container registry is required, the following steps may be skipped.
+
+$ # For Azure Container Registry (ACR), the following command may be used: az acr credential show -n <your_registry_name> --query "passwords[0].value" | tr -d '"'
+$ export CTR_REGISTRY_PASSWORD=<your password>
+
+$ # Create docker secret in Kubernetes Namespace using following script:
+$ ./scripts/create-container-registry-creds.sh "$K8S_NAMESPACE"
+
+```
+
+## Build and push OSM images
+Build and push images necessary to install OSM. This is also a temporary step because OSM is currently a private project and there are no public container images available.
+
+```console
+$ make docker-push-osm-controller
+$ make docker-push-init
+```
 
 #### Formatting
 
@@ -152,7 +178,7 @@ TODO: Explain how the git commit hash is embedded in the binary.
 
 TODO:
   - what docker images are there - what they are
-  - how we bulid and push to a public repository
+  - how we build and push to a public repository
 
 ## Helm chart
 
