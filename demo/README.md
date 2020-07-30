@@ -42,7 +42,7 @@ From the root of this repository execute:
 ```
 
 ### This script will:
-  - compile OSM's control plane (ADS), create a separate container image and push it to the workstation's default container registry (See `~/.docker/config.json`)
+  - compile OSM's control plane (`cmd/ads`), create a separate container image and push it to the workstation's default container registry (See `~/.docker/config.json`)
   - create a `bookstore` service that provides the `bookstore` domain for the `bookstore` service backends
   - create a `bookbuyer` service that curls `bookstore` domain for books (see `demo/cmd/bookbuyer/bookbuyer.go`); creates a container and uploads it to your contaner registry; creates a deployment for the `bookbuyer` service
   - create a `bookthief` service that curls the `bookstore` domain for books (see `demo/cmd/bookthief/bookthief.go`); creates a container and uploads it to your contaner registry; creates a deployment for the `bookthief` service
