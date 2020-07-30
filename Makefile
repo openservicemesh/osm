@@ -49,7 +49,7 @@ build: build-osm-controller
 .PHONY: build-osm-controller
 build-osm-controller: clean-osm-controller
 	@mkdir -p $(shell pwd)/bin
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o ./bin/osm-controller ./cmd/ads
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o ./bin/osm-controller ./cmd/osm
 
 .PHONY: build-osm
 build-osm:

@@ -234,7 +234,6 @@ func main() {
 }
 
 func parseFlags() error {
-	// TODO(draychev): consolidate parseFlags - shared between ads.go and eds.go
 	if err := flags.Parse(os.Args); err != nil {
 		return err
 	}

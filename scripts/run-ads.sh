@@ -5,7 +5,7 @@ set -aueo pipefail
 rm -rf ./bin/osm-controller
 
 NAME="osm-controller"
-CGO_ENABLED=0 go build -v -o ./bin/osm-controller ./cmd/ads
+CGO_ENABLED=0 go build -v -o ./bin/osm-controller ./cmd/osm
 
 # GRPC_TRACE=all GRPC_VERBOSITY=DEBUG GODEBUG='http2debug=2,gctrace=1,netdns=go+1'
 
