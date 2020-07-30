@@ -52,7 +52,6 @@ func NewMeshSpecClient(smiKubeConfig *rest.Config, kubeClient kubernetes.Interfa
 	return client, nil
 }
 
-// run executes informer collection.
 func (c *Client) run(stop <-chan struct{}) error {
 	log.Info().Msg("SMI Client started")
 	var hasSynced []cache.InformerSynced
@@ -96,8 +95,7 @@ func (c *Client) run(stop <-chan struct{}) error {
 	return nil
 }
 
-// GetID returns a string descriptor / identifier of the compute provider.
-// Required by interface: EndpointsProvider
+// GetID implements EndpointsProvider interface and returns a string descriptor / identifier of the compute provider.
 func (c *Client) GetID() string {
 	return c.providerIdent
 }
@@ -164,15 +162,15 @@ func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient *smiTra
 func (c *Client) ListTrafficSplits() []*split.TrafficSplit {
 	var trafficSplits []*split.TrafficSplit
 	for _, splitIface := range c.caches.TrafficSplit.List() {
-		split, ok := splitIface.(*split.TrafficSplit)
+		trafficSplit, ok := splitIface.(*split.TrafficSplit)
 		if !ok {
 			log.Error().Err(errInvalidObjectType).Msgf("Failed type assertion for TrafficSplit in cache")
 			continue
 		}
-		if !c.namespaceController.IsMonitoredNamespace(split.Namespace) {
+		if !c.namespaceController.IsMonitoredNamespace(trafficSplit.Namespace) {
 			continue
 		}
-		trafficSplits = append(trafficSplits, split)
+		trafficSplits = append(trafficSplits, trafficSplit)
 	}
 	return trafficSplits
 }
@@ -181,34 +179,34 @@ func (c *Client) ListTrafficSplits() []*split.TrafficSplit {
 func (c *Client) ListHTTPTrafficSpecs() []*spec.HTTPRouteGroup {
 	var httpTrafficSpec []*spec.HTTPRouteGroup
 	for _, specIface := range c.caches.TrafficSpec.List() {
-		spec, ok := specIface.(*spec.HTTPRouteGroup)
+		routeGroup, ok := specIface.(*spec.HTTPRouteGroup)
 		if !ok {
 			log.Error().Err(errInvalidObjectType).Msgf("Failed type assertion for HTTPRouteGroup in cache")
 			continue
 		}
-		if !c.namespaceController.IsMonitoredNamespace(spec.Namespace) {
+		if !c.namespaceController.IsMonitoredNamespace(routeGroup.Namespace) {
 			continue
 		}
-		httpTrafficSpec = append(httpTrafficSpec, spec)
+		httpTrafficSpec = append(httpTrafficSpec, routeGroup)
 	}
 	return httpTrafficSpec
 }
 
 // ListTrafficTargets implements mesh.Topology by returning the list of traffic targets.
 func (c *Client) ListTrafficTargets() []*target.TrafficTarget {
-	var trafficTarget []*target.TrafficTarget
+	var trafficTargets []*target.TrafficTarget
 	for _, targetIface := range c.caches.TrafficTarget.List() {
-		target, ok := targetIface.(*target.TrafficTarget)
+		trafficTarget, ok := targetIface.(*target.TrafficTarget)
 		if !ok {
 			log.Error().Err(errInvalidObjectType).Msgf("Failed type assertion for TrafficTarget in cache")
 			continue
 		}
-		if !c.namespaceController.IsMonitoredNamespace(target.Namespace) {
+		if !c.namespaceController.IsMonitoredNamespace(trafficTarget.Namespace) {
 			continue
 		}
-		trafficTarget = append(trafficTarget, target)
+		trafficTargets = append(trafficTargets, trafficTarget)
 	}
-	return trafficTarget
+	return trafficTargets
 }
 
 // ListBackpressures implements smi.MeshSpec and returns a list of backpressure policies.
@@ -238,21 +236,20 @@ func (c *Client) ListBackpressures() []*backpressure.Backpressure {
 
 // ListTrafficSplitServices implements mesh.MeshSpec by returning the services observed from the given compute provider
 func (c *Client) ListTrafficSplitServices() []service.WeightedService {
-	// TODO(draychev): split the namespace and the service kubernetesClientName -- for non-kubernetes services we won't have namespace
 	var services []service.WeightedService
 	for _, splitIface := range c.caches.TrafficSplit.List() {
-		split, ok := splitIface.(*split.TrafficSplit)
+		trafficSplit, ok := splitIface.(*split.TrafficSplit)
 		if !ok {
 			log.Error().Err(errInvalidObjectType).Msgf("Failed type assertion for TrafficSplit in cache")
 			continue
 		}
-		domain := split.Spec.Service
-		for _, backend := range split.Spec.Backends {
+		domain := trafficSplit.Spec.Service
+		for _, backend := range trafficSplit.Spec.Backends {
 			// The TrafficSplit SMI Spec does not allow providing a namespace for the backends,
 			// so we assume that the top level namespace for the TrafficSplit is the namespace
 			// the backends belong to.
 			namespacedServiceName := service.NamespacedService{
-				Namespace: split.Namespace,
+				Namespace: trafficSplit.Namespace,
 				Service:   backend.Service,
 			}
 			services = append(services, service.WeightedService{NamespacedService: namespacedServiceName, Weight: backend.Weight, Domain: domain})
@@ -263,15 +260,14 @@ func (c *Client) ListTrafficSplitServices() []service.WeightedService {
 
 // ListServiceAccounts implements mesh.MeshSpec by returning the service accounts observed from the given compute provider
 func (c *Client) ListServiceAccounts() []service.K8sServiceAccount {
-	// TODO(draychev): split the namespace and the service kubernetesClientName -- for non-kubernetes services we won't have namespace
 	var serviceAccounts []service.K8sServiceAccount
 	for _, targetIface := range c.caches.TrafficTarget.List() {
-		target, ok := targetIface.(*target.TrafficTarget)
+		trafficTarget, ok := targetIface.(*target.TrafficTarget)
 		if !ok {
 			log.Error().Err(errInvalidObjectType).Msgf("Failed type assertion for TrafficTarget in cache")
 			continue
 		}
-		for _, sources := range target.Sources {
+		for _, sources := range trafficTarget.Sources {
 			// Only monitor sources in namespaces OSM is observing
 			if !c.namespaceController.IsMonitoredNamespace(sources.Namespace) {
 				// Doesn't belong to namespaces we are observing
@@ -284,15 +280,14 @@ func (c *Client) ListServiceAccounts() []service.K8sServiceAccount {
 			serviceAccounts = append(serviceAccounts, namespacedServiceAccount)
 		}
 
-		destination := target.Destination
 		// Only monitor destination in namespaces OSM is observing
-		if !c.namespaceController.IsMonitoredNamespace(destination.Namespace) {
+		if !c.namespaceController.IsMonitoredNamespace(trafficTarget.Destination.Namespace) {
 			// Doesn't belong to namespaces we are observing
 			continue
 		}
 		namespacedServiceAccount := service.K8sServiceAccount{
-			Namespace: destination.Namespace,
-			Name:      destination.Name,
+			Namespace: trafficTarget.Destination.Namespace,
+			Name:      trafficTarget.Destination.Name,
 		}
 		serviceAccounts = append(serviceAccounts, namespacedServiceAccount)
 	}
