@@ -48,7 +48,7 @@ For instructions on how to utilize [Azure Arc](https://azure.microsoft.com/en-us
 
 ## Demo and deployment sample
 
-OSM team has created and automated a series of tools and scripts to seamlessly compile and deploy OSM and run some sample applications on the mesh itself; all on a user-provisioned Kubernetes cluster. 
+The repository contains tools and scripts to compile and deploy the OSM control plane and a demo to show how OSM can manage, secure and provide observability for microservice environments; all on a user-provisioned Kubernetes cluster.
 See the [demo instructions](demo/README.md) to get a sense of what we've accomplished and are working on.
 
 ## Community, discussion, contribution, and support
