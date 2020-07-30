@@ -75,3 +75,14 @@ func (mc *MeshCatalog) ListSMIPolicies() ([]*split.TrafficSplit, []service.Weigh
 
 	return trafficSplits, splitServices, serviceAccouns, trafficSpecs, trafficTargets, services
 }
+
+// ListMonitoredNamespaces returns all namespaces that the mesh is monitoring.
+func (mc *MeshCatalog) ListMonitoredNamespaces() []string {
+	namespaces, err := mc.namespaceController.ListMonitoredNamespaces()
+
+	if err != nil {
+		return nil
+	}
+
+	return namespaces
+}

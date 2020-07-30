@@ -42,6 +42,4 @@ require (
 	rsc.io/letsencrypt v0.0.3 // indirect
 )
 
-replace (
-	github.com/Azure/go-autorest => github.com/Azure/go-autorest v13.3.2+incompatible
-)
+replace github.com/Azure/go-autorest => github.com/Azure/go-autorest v13.3.2+incompatible
