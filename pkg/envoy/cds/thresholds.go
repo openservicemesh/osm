@@ -6,7 +6,7 @@ import (
 	backpressure "github.com/openservicemesh/osm/experimental/pkg/apis/policy/v1alpha1"
 )
 
-func makeThresholds(spec backpressure.BackpressureSpec) []*envoy_api_v2_cluster.CircuitBreakers_Thresholds {
+func makeThresholds(spec backpressure.BackpressureSpec) []*xds_cluster.CircuitBreakers_Thresholds {
 
 	threshold := &xds_cluster.CircuitBreakers_Thresholds{}
 
