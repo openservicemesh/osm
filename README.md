@@ -26,8 +26,6 @@ Features of OSM:
 1. Integrate with external certificate management services/solutions with a pluggable interface.
 1. Onboard applications onto the mesh by enabling automatic sidecar injection of Envoy proxy.
 
-_Note: This project is a work in progress. See the [demo instructions](demo/README.md) to get a sense of what we've accomplished and are working on._
-
 ## OSM Design
 
 Read more about the high level goals, design and architecture [here](DESIGN.md).
@@ -57,6 +55,11 @@ After installing OSM, [add an application](docs/onboard_services.md) to the serv
 ### OSM Usage patterns
 
 Refer to [docs/patterns](docs/patterns) for OSM usage patterns.
+
+## Demo and deployment sample
+
+The repository contains tools and scripts to compile and deploy the OSM control plane and a demo to show how OSM can manage, secure and provide observability for microservice environments; all on a user-provisioned Kubernetes cluster.
+See the [demo instructions](demo/README.md) to get a sense of what we've accomplished and are working on.
 
 ## Community
 
