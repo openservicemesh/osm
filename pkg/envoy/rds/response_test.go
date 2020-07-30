@@ -1,6 +1,8 @@
 package rds
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
 	set "github.com/deckarep/golang-set"
@@ -151,7 +153,15 @@ var _ = Describe("RDS Response", func() {
 
 	meshCatalog := catalog.NewMeshCatalog(kubeClient, smi.NewFakeMeshSpecClient(), certManager, ingress.NewFakeIngressMonitor(), make(<-chan struct{}), cfg, endpointProviders...)
 
-	Context("Test GetDomainsForService", func() {
+	Context("Test GetDomainForService", func() {
+		contains := func(domains []string, expected string) bool {
+			for _, entry := range domains {
+				if entry == expected {
+					return true
+				}
+			}
+			return false
+		}
 		It("returns domain for service from traffic split", func() {
 
 			actual, err := meshCatalog.GetDomainForService(tests.BookstoreService, tests.HTTPRouteGroup.Matches[0].Headers)
@@ -163,12 +173,25 @@ var _ = Describe("RDS Response", func() {
 
 			actual, err := meshCatalog.GetDomainForService(tests.BookbuyerService, tests.HTTPRouteGroup.Matches[0].Headers)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(actual).To(Equal(tests.Domain))
+
+			domainList := strings.Split(actual, ",")
+			Expect(len(domainList)).To(Equal(10))
+
+			Expect(contains(domainList, tests.BookbuyerServiceName)).To(BeTrue())
+			Expect(contains(domainList, fmt.Sprintf("%s:%d", tests.BookbuyerServiceName, tests.ServicePort))).To(BeTrue())
+			Expect(contains(domainList, fmt.Sprintf("%s.%s", tests.BookbuyerServiceName, tests.Namespace))).To(BeTrue())
+			Expect(contains(domainList, fmt.Sprintf("%s.%s:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort))).To(BeTrue())
+			Expect(contains(domainList, fmt.Sprintf("%s.%s.svc", tests.BookbuyerServiceName, tests.Namespace))).To(BeTrue())
+			Expect(contains(domainList, fmt.Sprintf("%s.%s.svc:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort))).To(BeTrue())
+			Expect(contains(domainList, fmt.Sprintf("%s.%s.svc.cluster", tests.BookbuyerServiceName, tests.Namespace))).To(BeTrue())
+			Expect(contains(domainList, fmt.Sprintf("%s.%s.svc.cluster:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort))).To(BeTrue())
+			Expect(contains(domainList, fmt.Sprintf("%s.%s.svc.cluster.local", tests.BookbuyerServiceName, tests.Namespace))).To(BeTrue())
+			Expect(contains(domainList, fmt.Sprintf("%s.%s.svc.cluster.local:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort))).To(BeTrue())
 		})
 
-		It("no domain found for service", func() {
+		It("No service found when mesh does not have service", func() {
 
-			_, err := meshCatalog.GetDomainForService(tests.BookbuyerService, tests.HTTPRouteGroup.Matches[1].Headers)
+			_, err := meshCatalog.GetDomainForService(tests.BookwarehouseService, tests.HTTPRouteGroup.Matches[0].Headers)
 			Expect(err).To(HaveOccurred())
 		})
 	})

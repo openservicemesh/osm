@@ -147,8 +147,34 @@ func (mc *MeshCatalog) GetDomainForService(nsService service.NamespacedService, 
 		}
 	}
 
-	// Use the host header as an SMI TrafficSplit policy is not defined for the service
-	return getHostHeaderFromRouteHeaders(routeHeaders)
+	// Use the augmented domains from k8s service since an
+	// SMI TrafficSplit policy is not defined for the service
+
+	hostHeader, err := getHostHeaderFromRouteHeaders(routeHeaders)
+	if err != nil {
+		log.Warn().Msgf("Found host header %s, but using service hostnames instead", hostHeader)
+	}
+	services, err := mc.meshSpec.ListServices()
+	if err != nil {
+		return "", err
+	}
+	var currentService *corev1.Service
+	for _, service := range services {
+		if service.Name == nsService.Service && service.Namespace == nsService.Namespace {
+			currentService = service
+			break
+		}
+	}
+
+	if currentService == nil {
+		log.Error().Err(errServiceNotFound).Msgf("Could not find %s", nsService)
+		return "", errServiceNotFound
+	}
+
+	hostList := kubernetes.GetDomainsForService(currentService)
+	host := strings.Join(hostList, ",")
+
+	return host, nil
 }
 
 func (mc *MeshCatalog) getHTTPPathsPerRoute() (map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.Route, error) {
