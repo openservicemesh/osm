@@ -18,10 +18,10 @@ metadata:
     app: bookstore
 
 spec:
-  maxConnections: 5
-  maxRequests: 6
-  maxPendingRequests: 7
-  maxRetries: 8
-  maxConnectionPools: 9
-
+  maxConnections: 10
+  maxRequests: 11
+  maxPendingRequests: 12
+  maxRetries: 13
+  maxConnectionPools: 14
+  
 EOF
