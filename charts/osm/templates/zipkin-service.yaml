@@ -1,3 +1,4 @@
+{{- if .Values.OpenServiceMesh.deployZipkin }}
 kind: Service
 apiVersion: v1
 metadata:
@@ -9,6 +10,7 @@ spec:
     app: zipkin
   ports:
   - protocol: TCP
-    port: {{.Values.OpenServiceMesh.zipkin.port}}
-    targetPort: {{.Values.OpenServiceMesh.zipkin.port}}
+    port: {{ .Values.OpenServiceMesh.zipkin.port | default 9411 }}
+    targetPort: {{ .Values.OpenServiceMesh.zipkin.port | default 9411 }}
   type: ClusterIP
+{{- end }}

@@ -23,8 +23,7 @@ OpenServiceMesh:
   serviceCertValidityMinutes: 1
   grafana:
     port: 3000
-  zipkin:
-    port: 9411
+
   enableDebugServer: false
   enablePermissiveTrafficPolicy: false
   enableBackpressureExperimental: false
@@ -33,3 +32,27 @@ OpenServiceMesh:
   meshName: osm
   meshCIDRRanges: 0.0.0.0/0
   useHTTPSIngress: false
+
+  # Set deployZipkin to true to deploy a Zipkin cluster in the
+  # namespace where OSM resides. Set this to false if Zipkin
+  # has already been installed or is not needed.
+  deployZipkin: true
+
+  # The following section configures Zipkin tracing for the Envoys
+  # connected to the OSM control plane.
+  # Leaving the values below blank will default to the Zipkin
+  # installed with the OSM controller.
+  zipkin:
+
+    ## Toggles Envoy's tracing functionality on/off
+    ## for all proxies in the mesh.
+    enable: true
+
+    ## Informs Envoys where the Zipkin spans should be sent
+    # address: "zipkin.default.svc.cluster.local"
+
+    ## Port of the Zipkin cluster
+    # port: 9411
+
+    ## Endpoint for the Zipkin cluster
+    # endpoint: "/api/v2/spans"

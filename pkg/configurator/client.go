@@ -17,15 +17,13 @@ const (
 	permissiveTrafficPolicyModeKey = "permissive_traffic_policy_mode"
 	egressKey                      = "egress"
 	prometheusScrapingKey          = "prometheus_scraping"
-	zipkinTracingKey               = "zipkin_tracing"
 	meshCIDRRangesKey              = "mesh_cidr_ranges"
 	useHTTPSIngressKey             = "use_https_ingress"
-
-	// See https://tools.ietf.org/html/rfc1918
-	// A reasonable default could be: defaultInMeshCIDR = "10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16"
-	// TODO(draychev): come up with reasonable defaults
-	// GitHub Issue: https://github.com/openservicemesh/osm/issues/1225
-	defaultInMeshCIDR = ""
+	zipkinTracingKey               = "zipkin_tracing"
+	zipkinAddressKey               = "zipkin_address"
+	zipkinPortKey                  = "zipkin_port"
+	zipkinEndpointKey              = "zipkin_endpoint"
+	defaultInMeshCIDR              = ""
 )
 
 // NewConfigurator implements configurator.Configurator and creates the Kubernetes client to manage namespaces.
@@ -79,6 +77,15 @@ type osmConfig struct {
 	// ZipkinTracing is a bool toggle used to enable ot disable Zipkin tracing
 	ZipkinTracing bool `yaml:"zipkin_tracing"`
 
+	// ZipkinAddress is the address of the Zipkin cluster
+	ZipkinAddress string `yaml:"zipkin_address"`
+
+	// ZipkinPort is the port of the Zipkin cluster
+	ZipkinPort int `yaml:"zipkin_port"`
+
+	// ZipkinEndpoint is the endpoint of the Zipkin cluster
+	ZipkinEndpoint string `yaml:"zipkin_endpoint"`
+
 	// MeshCIDRRanges is the list of CIDR ranges for in-mesh traffic
 	MeshCIDRRanges string `yaml:"mesh_cidr_ranges"`
 
@@ -123,9 +130,13 @@ func (c *Client) getConfigMap() *osmConfig {
 		PermissiveTrafficPolicyMode: getBoolValueForKey(configMap, permissiveTrafficPolicyModeKey),
 		Egress:                      getBoolValueForKey(configMap, egressKey),
 		PrometheusScraping:          getBoolValueForKey(configMap, prometheusScrapingKey),
-		ZipkinTracing:               getBoolValueForKey(configMap, zipkinTracingKey),
 		MeshCIDRRanges:              getEgressCIDR(configMap),
 		UseHTTPSIngress:             getBoolValueForKey(configMap, useHTTPSIngressKey),
+
+		ZipkinTracing:  getBoolValueForKey(configMap, zipkinTracingKey),
+		ZipkinAddress:  getStringValueForKey(configMap, zipkinAddressKey),
+		ZipkinPort:     getIntValueForKey(configMap, zipkinPortKey),
+		ZipkinEndpoint: getStringValueForKey(configMap, zipkinEndpointKey),
 	}
 }
 
@@ -155,4 +166,29 @@ func getBoolValueForKey(configMap *v1.ConfigMap, key string) bool {
 	}
 
 	return configMapBoolValue
+}
+
+func getIntValueForKey(configMap *v1.ConfigMap, key string) int {
+	configMapStringValue, ok := configMap.Data[key]
+	if !ok {
+		log.Error().Err(errInvalidKeyInConfigMap).Msgf("Key %s does not exist in ConfigMap %s/%s (%s)", key, configMap.Namespace, configMap.Name, configMap.Data)
+		return 0
+	}
+
+	configMapIntValue, err := strconv.ParseInt(configMapStringValue, 10, 32)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error converting ConfigMap %s/%s key %s with value %+v to integer", configMap.Namespace, configMap.Name, key, configMapStringValue)
+		return 0
+	}
+
+	return int(configMapIntValue)
+}
+
+func getStringValueForKey(configMap *v1.ConfigMap, key string) string {
+	configMapStringValue, ok := configMap.Data[key]
+	if !ok {
+		log.Error().Err(errInvalidKeyInConfigMap).Msgf("Key %s does not exist in ConfigMap %s/%s (%s)", key, configMap.Namespace, configMap.Name, configMap.Data)
+		return ""
+	}
+	return configMapStringValue
 }

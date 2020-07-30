@@ -112,6 +112,7 @@ if [ "$CERT_MANAGER" = "vault" ]; then
       --osm-image-tag "$CTR_TAG" \
       --enable-debug-server \
       --mesh-cidr "$MESH_CIDR" \
+      --deploy-zipkin \
       $optionalInstallArgs
 else
   # shellcheck disable=SC2086
@@ -123,6 +124,7 @@ else
       --osm-image-tag "$CTR_TAG" \
       --enable-debug-server \
       --mesh-cidr "$MESH_CIDR" \
+      --deploy-zipkin \
       $optionalInstallArgs
 fi
 

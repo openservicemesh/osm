@@ -6,13 +6,12 @@ import (
 
 	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-
 	"github.com/golang/protobuf/ptypes"
-	"github.com/openservicemesh/osm/pkg/featureflags"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/featureflags"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 )
@@ -69,7 +68,7 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, meshSpec smi.
 	clusterFactories[localCluster.Name] = localCluster
 
 	if cfg.IsEgressEnabled() {
-		// Add a passthrough cluster for egress
+		// Add a pass-through cluster for egress
 		passthroughCluster := getOutboundPassthroughCluster()
 		clusterFactories[passthroughCluster.Name] = passthroughCluster
 	}
@@ -88,17 +87,17 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, meshSpec smi.
 		prometheusCluster := getPrometheusCluster()
 		marshalledCluster, err := ptypes.MarshalAny(&prometheusCluster)
 		if err != nil {
-			log.Error().Err(err).Msgf("Failed to marshal prometheus cluster for proxy %s", proxy.GetCommonName())
+			log.Error().Err(err).Msgf("Error marshaling Prometheus cluster for proxy with CN=%s", proxy.GetCommonName())
 			return nil, err
 		}
 		resp.Resources = append(resp.Resources, marshalledCluster)
 	}
 
 	if cfg.IsZipkinTracingEnabled() {
-		zipkinCluster := getZipkinCluster(fmt.Sprintf("%s.%s.svc.cluster.local", "zipkin", cfg.GetOSMNamespace()))
+		zipkinCluster := getZipkinCluster(cfg)
 		marshalledCluster, err := ptypes.MarshalAny(&zipkinCluster)
 		if err != nil {
-			log.Error().Err(err).Msgf("Failed to marshal zipkin cluster for proxy %s", proxy.GetCommonName())
+			log.Error().Err(err).Msgf("Error marshaling Zipkin cluster for proxy with CN=%s", proxy.GetCommonName())
 			return nil, err
 		}
 		resp.Resources = append(resp.Resources, marshalledCluster)

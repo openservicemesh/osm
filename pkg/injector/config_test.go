@@ -2,6 +2,7 @@ package injector
 
 import (
 	"fmt"
+	"github.com/openservicemesh/osm/pkg/configurator"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -87,7 +88,8 @@ var _ = Describe("Test Envoy configuration creation", func() {
 				XDSPort:        2345,
 			}
 
-			actual, err := getEnvoyConfigYAML(config)
+			cfg := configurator.NewFakeConfigurator()
+			actual, err := getEnvoyConfigYAML(config, cfg)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(string(actual)).To(Equal(expectedEnvoyConfig[1:]),

@@ -2,6 +2,8 @@ package configurator
 
 import (
 	"context"
+	"fmt"
+	"reflect"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -94,6 +96,57 @@ var _ = Describe("Test OSM ConfigMap parsing", func() {
 
 			expectedCIDR := []string{"1.1.0.0/8", "8.8.8.8/24"}
 			Expect(cfg.GetMeshCIDRRanges()).To(Equal(expectedCIDR))
+		})
+
+		It("Tag matches const key for all fields of OSM ConfigMap struct", func() {
+			fieldNameTag := map[string]string{
+				"PermissiveTrafficPolicyMode": permissiveTrafficPolicyModeKey,
+				"Egress":                      egressKey,
+				"PrometheusScraping":          prometheusScrapingKey,
+				"ZipkinTracing":               zipkinTracingKey,
+				"ZipkinAddress":               zipkinAddressKey,
+				"ZipkinPort":                  zipkinPortKey,
+				"ZipkinEndpoint":              zipkinEndpointKey,
+				"MeshCIDRRanges":              meshCIDRRangesKey,
+				"UseHTTPSIngress":             useHTTPSIngressKey,
+			}
+			t := reflect.TypeOf(osmConfig{})
+
+			actualNumberOfFields := t.NumField()
+			expectedNumberOfFields := 9
+			Expect(actualNumberOfFields).To(
+				Equal(expectedNumberOfFields),
+				fmt.Sprintf("Fields have been added or removed from the osmConfig struct -- expected %d, actual %d; please correct this unit test", expectedNumberOfFields, actualNumberOfFields))
+
+			for fieldName, expectedTag := range fieldNameTag {
+				f, _ := t.FieldByName("PermissiveTrafficPolicyMode")
+				actualtag := f.Tag.Get("yaml")
+				Expect(actualtag).To(
+					Equal(permissiveTrafficPolicyModeKey),
+					fmt.Sprintf("Field %s expected to have tag %s; fuond %s instead", fieldName, expectedTag, actualtag))
+			}
+		})
+
+		It("Test getBoolValueForKey()", func() {
+			cm := &v1.ConfigMap{Data: map[string]string{zipkinTracingKey: "true"}}
+			Expect(getBoolValueForKey(cm, zipkinTracingKey)).To(BeTrue())
+			Expect(getBoolValueForKey(cm, egressKey)).To(BeFalse())
+		})
+
+		It("Test getIntValueForKey()", func() {
+			cm := &v1.ConfigMap{Data: map[string]string{zipkinPortKey: "12345"}}
+			Expect(getIntValueForKey(cm, zipkinPortKey)).To(Equal(12345))
+
+			cm0 := &v1.ConfigMap{Data: map[string]string{}}
+			Expect(getIntValueForKey(cm0, egressKey)).To(Equal(0))
+		})
+
+		It("Test getStringValueForKey()", func() {
+			cm := &v1.ConfigMap{Data: map[string]string{zipkinEndpointKey: "foo"}}
+			Expect(getStringValueForKey(cm, zipkinEndpointKey)).To(Equal("foo"))
+
+			cm0 := &v1.ConfigMap{Data: map[string]string{}}
+			Expect(getStringValueForKey(cm0, zipkinEndpointKey)).To(Equal(""))
 		})
 	})
 })

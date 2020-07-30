@@ -3,14 +3,14 @@ package cds
 import (
 	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	xds_endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
-
 	"github.com/golang/protobuf/ptypes"
 
+	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 )
 
-func getZipkinCluster(zipkinHostname string) xds_cluster.Cluster {
+func getZipkinCluster(cfg configurator.Configurator) xds_cluster.Cluster {
 	return xds_cluster.Cluster{
 		Name:           constants.EnvoyZipkinCluster,
 		AltStatName:    constants.EnvoyZipkinCluster,
@@ -26,7 +26,7 @@ func getZipkinCluster(zipkinHostname string) xds_cluster.Cluster {
 					LbEndpoints: []*xds_endpoint.LbEndpoint{{
 						HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
 							Endpoint: &xds_endpoint.Endpoint{
-								Address: envoy.GetAddress(zipkinHostname, constants.EnvoyZipkinPort),
+								Address: envoy.GetAddress(cfg.GetZipkinHost(), cfg.GetZipkinPort()),
 							},
 						},
 					}},

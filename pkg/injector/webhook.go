@@ -58,6 +58,7 @@ func NewWebhook(config Config, kubeClient kubernetes.Interface, certManager cert
 		namespaceController: namespaceController,
 		osmNamespace:        osmNamespace,
 		cert:                cert,
+		configurator:        cfg,
 	}
 
 	go wh.run(stop)
@@ -67,7 +68,7 @@ func NewWebhook(config Config, kubeClient kubernetes.Interface, certManager cert
 	return nil
 }
 
-func (wh *webhook) run(stop <-chan struct{}) error {
+func (wh *webhook) run(stop <-chan struct{}) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -82,11 +83,12 @@ func (wh *webhook) run(stop <-chan struct{}) error {
 	}
 
 	log.Info().Msgf("Starting sidecar-injection webhook server on :%v", wh.config.ListenPort)
-	go func() error {
+	go func() {
 		// Generate a key pair from your pem-encoded cert and key ([]byte).
 		cert, err := tls.X509KeyPair(wh.cert.GetCertificateChain(), wh.cert.GetPrivateKey())
 		if err != nil {
-			return errors.Errorf("Error parsing webhook certificate: %+v", err)
+			log.Error().Err(err).Msgf("Error parsing webhook certificate: %+v", err)
+			return
 		}
 
 		server.TLSConfig = &tls.Config{
@@ -94,9 +96,9 @@ func (wh *webhook) run(stop <-chan struct{}) error {
 		}
 
 		if err := server.ListenAndServeTLS("", ""); err != nil {
-			return errors.Errorf("Sidecar-injection webhook HTTP server failed to start: %+v", err)
+			log.Error().Err(err).Msgf("Sidecar-injection webhook HTTP server failed to start: %+v", err)
+			return
 		}
-		return nil
 	}()
 
 	// Wait on exit signals
@@ -108,7 +110,6 @@ func (wh *webhook) run(stop <-chan struct{}) error {
 	} else {
 		log.Info().Msg("Done shutting down sidecar-injection webhook HTTP server")
 	}
-	return nil
 }
 
 func (wh *webhook) healthReadyHandler(w http.ResponseWriter, req *http.Request) {

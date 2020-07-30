@@ -4,11 +4,22 @@ metadata:
   name: osm-config
   namespace: {{ .Release.Namespace }}
 data:
-  permissive_traffic_policy_mode: {{ .Values.OpenServiceMesh.enablePermissiveTrafficPolicy | quote | default "false" }}
-  egress: {{ .Values.OpenServiceMesh.enableEgress | quote | default "true" }}
+  permissive_traffic_policy_mode: {{ .Values.OpenServiceMesh.enablePermissiveTrafficPolicy | default "false" | quote }}
+  egress: {{ .Values.OpenServiceMesh.enableEgress | default "true" | quote }}
   prometheus_scraping: "true"
-  zipkin_tracing: "true"
+
+  zipkin_tracing: {{ .Values.OpenServiceMesh.zipkin.enable | default "true" | quote }}
+{{ if .Values.OpenServiceMesh.zipkin.enable }}
+{{ if .Values.OpenServiceMesh.zipkin.address }}
+  zipkin_address: {{ .Values.OpenServiceMesh.zipkin.address | quote }}
+{{- else }}
+  zipkin_address: "zipkin.{{ .Release.Namespace }}.svc.cluster.local"
+{{- end }}
+  zipkin_port: {{ .Values.OpenServiceMesh.zipkin.port | quote | default "9411" | quote }}
+  zipkin_endpoint: {{ .Values.OpenServiceMesh.zipkin.endpoint | default "/api/v2/spans" | quote }}
+{{- end }}
+
 {{- if .Values.OpenServiceMesh.enableEgress }}
   mesh_cidr_ranges: {{ .Values.OpenServiceMesh.meshCIDRRanges | quote }}
 {{- end }}
-  use_https_ingress: {{ .Values.OpenServiceMesh.useHTTPSIngress | quote | default "false" }}
+  use_https_ingress: {{ .Values.OpenServiceMesh.useHTTPSIngress | default "false" | quote }}
