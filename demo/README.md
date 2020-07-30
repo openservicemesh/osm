@@ -52,8 +52,9 @@ From the root of this repository execute:
 
 To see the results of deploying the services and the service mesh - run the tailing scripts:
   - the scripts will connect to the respecitve Kubernetes Pod and stream its logs
-  - the output will be the output of the curl command to the `bookstore` domain and the count of books sold
-  - a properly working service mesh will result in HTTP 200 OK with `./demo/tail-bookbuyer.sh` along with a monotonically increasing counter appearing in the response headers, while `./demo/tail-bookthief.sh` will result in HTTP 404 Not Found. This can be automatically checked with `KUBECONFIG=$HOME/.kube/config go run ./ci/cmd/maestro.go`
+  - the output will be the output of the curl command to the `bookstore` domain and the count of books sold, and the output of the curl command to `github.com` to demonstrate access to an external service
+  - a properly working service mesh will result in HTTP 200 OK response code for the `bookstore` domain with `./demo/tail-bookbuyer.sh` along with a monotonically increasing counter appearing in the response headers, while `./demo/tail-bookthief.sh` will result in HTTP 404 Not Found response code for the `bookstore` domain. With egress enabled by default, HTTP requests to `github.com` should result in HTTP 200 OK response code for both the `bookbuyer` and `bookthief` services.
+  This can be automatically checked with `KUBECONFIG=$HOME/.kube/config go run ./ci/cmd/maestro.go`
 
 ## Demo Web UI
 The Bookstore, Bookbuyer, and Bookthief apps have simple web UI visualizing the number of requests made between the services.
