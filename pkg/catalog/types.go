@@ -32,7 +32,10 @@ import (
 	"github.com/open-service-mesh/osm/pkg/smi"
 	"github.com/open-service-mesh/osm/pkg/trafficpolicy"
 	"github.com/open-service-mesh/osm/pkg/namespace"
+<<<<<<< HEAD
 >>>>>>> namespace endpoint work
+=======
+>>>>>>> 4f080b4d259df49f6a6d2a823c29c0448da12a66
 )
 
 var (
@@ -67,7 +70,7 @@ type MeshCatalog struct {
 
 // MeshCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
 type MeshCataloger interface {
-	// GetSMISpec returns the SMI spec
+		// GetSMISpec returns the SMI spec
 	GetSMISpec() smi.MeshSpec
 
 	// ListTrafficPolicies returns all the traffic policies for a given service that Envoy proxy should be aware of.
@@ -112,7 +115,7 @@ type MeshCataloger interface {
 
 	// GetIngressRoutesPerHost returns the routes per host associated with an ingress service
 	GetIngressRoutesPerHost(service.NamespacedService) (map[string][]trafficpolicy.Route, error)
-
+	
 	// ListMonitoredNamespaces lists namespaces monitored by the control plane
 	ListMonitoredNamespaces() ([]string)
 }
