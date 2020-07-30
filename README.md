@@ -26,8 +26,6 @@ Features of OSM:
 1. Integrate with external certificate management services/solutions with a pluggable interface.
 1. Onboard applications onto the mesh by enabling automatic sidecar injection of Envoy proxy.
 
-_Note: This project is a work in progress. See the [demo instructions](demo/README.md) to get a sense of what we've accomplished and are working on._
-
 ## OSM Design
 
 Read more about the high level goals, design and architecture [here](DESIGN.md).
@@ -47,6 +45,11 @@ Download the `osm` binary from the [Releases page](https://github.com/openservic
 See the [installation guide](docs/installation_guide.md) for more detailed options. After installing OSM, [onboard services](docs/onboard_services.md) to the mesh.
 
 For instructions on how to utilize [Azure Arc](https://azure.microsoft.com/en-us/services/azure-arc/) and the [Azure Arc-enabled Kubernetes](https://docs.microsoft.com/en-us/azure/azure-arc/kubernetes/overview) experience for deploying OSM and configuring policies, please visit the [OSM Azure Arc Installation Guide](docs/azure_arc_installation_guide.md).
+
+## Demo and deployment sample
+
+OSM team has created and automated a series of tools and scripts to seamlessly compile and deploy OSM and run some sample applications on the mesh itself; all on a user-provisioned Kubernetes cluster. 
+See the [demo instructions](demo/README.md) to get a sense of what we've accomplished and are working on.
 
 ## Community, discussion, contribution, and support
 
