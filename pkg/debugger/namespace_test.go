@@ -30,7 +30,7 @@ var _ = Describe("Test debugger methods", func() {
 			responseRecorder := httptest.NewRecorder()
 			monitoredNamespacesHandler.ServeHTTP(responseRecorder, nil)
 			actualResponseBody := responseRecorder.Body.String()
-			expectedResponseBody := `{Namespace}`
+			expectedResponseBody := `{default}`
 			Expect(actualResponseBody).To(Equal(expectedResponseBody), fmt.Sprintf("Actual value did not match expectations:\n%s", actualResponseBody))
 		})
 	})
