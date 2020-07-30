@@ -44,14 +44,16 @@ metadata:
   name: $SVC
   namespace: $BOOKSTORE_NAMESPACE
   labels:
-    app: $SVC
+    app: bookstore
+    version: $VERSION
 spec:
   ports:
   - port: 80
     name: bookstore-port
 
   selector:
-    app: $SVC
+    app: bookstore
+    version: $VERSION
 EOF
 
 echo -e "Deploy $SVC Deployment"
@@ -65,19 +67,19 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: $SVC
+      app: bookstore
       version: $VERSION
   template:
     metadata:
       labels:
-        app: $SVC
+        app: bookstore
         version: $VERSION
     spec:
       serviceAccountName: "$SVC"
       containers:
         - image: "${CTR_REGISTRY}/bookstore:${CTR_TAG}"
           imagePullPolicy: Always
-          name: $SVC
+          name: bookstore
           ports:
             - containerPort: 80
               name: web
@@ -85,7 +87,9 @@ spec:
           args: ["--path", "./", "--port", "80"]
           env:
             - name: IDENTITY
-              value: ${SVC}
+              value: bookstore
+            - name: VERSION
+              value: $VERSION
             - name: BOOKWAREHOUSE_NAMESPACE
               value: ${BOOKWAREHOUSE_NAMESPACE}
 
@@ -93,10 +97,10 @@ spec:
         - name: $CTR_REGISTRY_CREDS_NAME
 EOF
 
-kubectl get pods      --no-headers -o wide --selector app="$SVC" -n "$BOOKSTORE_NAMESPACE"
-kubectl get endpoints --no-headers -o wide --selector app="$SVC" -n "$BOOKSTORE_NAMESPACE"
+kubectl get pods      --no-headers -o wide --selector app=bookstore,version="$VERSION" -n "$BOOKSTORE_NAMESPACE"
+kubectl get endpoints --no-headers -o wide --selector app=bookstore,version="$VERSION" -n "$BOOKSTORE_NAMESPACE"
 kubectl get service                -o wide                       -n "$BOOKSTORE_NAMESPACE"
 
-for x in $(kubectl get service -n "$BOOKSTORE_NAMESPACE" --selector app="$SVC" --no-headers | awk '{print $1}'); do
+for x in $(kubectl get service -n "$BOOKSTORE_NAMESPACE" --selector app=bookstore,version="$VERSION" --no-headers | awk '{print $1}'); do
     kubectl get service "$x" -n "$BOOKSTORE_NAMESPACE" -o jsonpath='{.status.loadBalancer.ingress[*].ip}'
 done
