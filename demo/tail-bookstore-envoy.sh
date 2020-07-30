@@ -11,6 +11,6 @@ if [ -z "$backend" ]; then
     exit 1
 fi
 
-POD="$(kubectl get pods -n "$BOOKSTORE_NAMESPACE" --show-labels --selector app="$backend" --no-headers | grep -v 'Terminating' | awk '{print $1}' | head -n1)"
+POD="$(kubectl get pods -n "$BOOKSTORE_NAMESPACE" --show-labels --selector app=bookstore,version="$backend" --no-headers | grep -v 'Terminating' | awk '{print $1}' | head -n1)"
 
 kubectl logs "$POD" -n "$BOOKSTORE_NAMESPACE" -c envoy --tail=100 -f

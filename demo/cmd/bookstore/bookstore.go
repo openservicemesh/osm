@@ -22,6 +22,7 @@ var (
 	booksSold = 0
 	log       = logger.NewPretty("bookstore")
 	identity  = flag.String("ident", "unidentified", "the identity of the container where this demo app is running (VM, K8s, etc)")
+	version   = flag.String("version", "unknown", "version of this app")
 	port      = flag.Int("port", 80, "port on which this app is listening for incoming HTTP")
 	path      = flag.String("path", ".", "path to the HTML template")
 )
@@ -39,7 +40,13 @@ func getIdentity() string {
 			ident = *identity
 		}
 	}
-	return ident
+	vers := os.Getenv("VERSION")
+	if vers == "" {
+		if version != nil {
+			vers = *version
+		}
+	}
+	return fmt.Sprintf("%s-%s", ident, vers)
 }
 
 func setHeaders(w http.ResponseWriter) {

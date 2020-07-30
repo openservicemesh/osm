@@ -17,20 +17,22 @@ import (
 var log = logger.NewPretty("ci/maestro")
 
 const (
-	bookBuyerLabel     = "bookbuyer"
-	bookThiefLabel     = "bookthief"
-	bookstoreV1Label   = "bookstore-v1"
-	bookstoreV2Label   = "bookstore-v2"
-	bookWarehouseLabel = "bookwarehouse"
-	selectorKey        = "app"
+	bookBuyerLabel      = "bookbuyer"
+	bookThiefLabel      = "bookthief"
+	bookstoreLabel      = "bookstore"
+	bookstoreV1Label    = "v1"
+	bookstoreV2Label    = "v2"
+	bookWarehouseLabel  = "bookwarehouse"
+	selectorKey         = "app"
+	bookstoreVersionKey = "version"
 )
 
 var (
 	osmControllerPodSelector = fmt.Sprintf("%s=%s", selectorKey, constants.OSMControllerName)
 	bookThiefSelector        = fmt.Sprintf("%s=%s", selectorKey, bookThiefLabel)
 	bookBuyerSelector        = fmt.Sprintf("%s=%s", selectorKey, bookBuyerLabel)
-	bookstoreV1Selector      = fmt.Sprintf("%s=%s", selectorKey, bookstoreV1Label)
-	bookstoreV2Selector      = fmt.Sprintf("%s=%s", selectorKey, bookstoreV2Label)
+	bookstoreV1Selector      = fmt.Sprintf("%s=%s,%s=%s", selectorKey, bookstoreLabel, bookstoreVersionKey, bookstoreV1Label)
+	bookstoreV2Selector      = fmt.Sprintf("%s=%s,%s=%s", selectorKey, bookstoreLabel, bookstoreVersionKey, bookstoreV2Label)
 	bookWarehouseSelector    = fmt.Sprintf("%s=%s", selectorKey, bookWarehouseLabel)
 
 	osmNamespace    = common.GetEnv(maestro.OSMNamespaceEnvVar, "osm-system")
