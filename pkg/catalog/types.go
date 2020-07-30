@@ -99,13 +99,13 @@ type MeshCataloger interface {
 	GetWeightedClusterForService(service service.NamespacedService) (service.WeightedCluster, error)
 
 	// IsIngressService returns a boolean indicating if the service is a backend for an ingress resource
-	IsIngressService(service.NamespacedService) (bool, error)
+	//IsIngressService(service.NamespacedService) (bool, error)
 
 	// GetIngressRoutePoliciesPerDomain returns the route policies per domain associated with an ingress service
-	GetIngressRoutePoliciesPerDomain(service.NamespacedService) (map[string][]trafficpolicy.Route, error)
+	//GetIngressRoutePoliciesPerDomain(service.NamespacedService) (map[string][]trafficpolicy.Route, error)
 
 	// GetIngressWeightedCluster returns the weighted cluster for an ingress service
-	GetIngressWeightedCluster(service.NamespacedService) (service.WeightedCluster, error)
+	//GetIngressWeightedCluster(service.NamespacedService) (service.WeightedCluster, error)
 
 	// ListMonitoredNamespaces lists namespaces monitored by the control plane
 	ListMonitoredNamespaces() ([]string)
