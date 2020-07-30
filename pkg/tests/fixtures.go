@@ -34,6 +34,9 @@ const (
 	// BookbuyerServiceName is the name of the bookbuyer service
 	BookbuyerServiceName = "bookbuyer"
 
+	// BookwarehouseServiceName is the name of the bookwarehouse service
+	BookwarehouseServiceName = "bookwarehouse"
+
 	// BookstoreServiceAccountName is the name of the bookstore service account
 	BookstoreServiceAccountName = "bookstore"
 	// BookbuyerServiceAccountName is the name of the bookbuyer service account
@@ -93,6 +96,12 @@ var (
 	BookbuyerService = service.NamespacedService{
 		Namespace: Namespace,
 		Service:   BookbuyerServiceName,
+	}
+
+	// BookwarehouseService is the bookwarehouse service.
+	BookwarehouseService = service.NamespacedService{
+		Namespace: Namespace,
+		Service:   BookwarehouseServiceName,
 	}
 
 	// RoutePolicy is a route policy.
