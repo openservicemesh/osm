@@ -33,7 +33,7 @@ const (
 	// Additional values for the root certificate
 	rootCertCountry      = "US"
 	rootCertLocality     = "CA"
-	rootCertOrganization = "Open MeshService Mesh"
+	rootCertOrganization = "Open NamespacedService Mesh"
 )
 
 // Functions we can call to create a Certificate Manager for each kind of supported certificate issuer

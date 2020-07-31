@@ -15,7 +15,7 @@ import (
 
 // NewMeshCatalog creates a new service catalog
 func NewMeshCatalog(kubeClient kubernetes.Interface, meshSpec smi.MeshSpec, certManager certificate.Manager, ingressMonitor ingress.Monitor, stop <-chan struct{}, cfg configurator.Configurator, endpointsProviders ...endpoint.Provider) *MeshCatalog {
-	log.Info().Msg("Create a new MeshService MeshCatalog.")
+	log.Info().Msg("Create a new NamespacedService MeshCatalog.")
 	sc := MeshCatalog{
 		endpointsProviders: endpointsProviders,
 		meshSpec:           meshSpec,

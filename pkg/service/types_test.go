@@ -11,7 +11,7 @@ var _ = Describe("Test types helpers", func() {
 		serviceName := "randomServiceName"
 
 		It("Interface marshals and unmarshals preserving the exact same data", func() {
-			svn := MeshService{
+			svn := NamespacedService{
 				Namespace: namespace,
 				Name:      serviceName,
 			}

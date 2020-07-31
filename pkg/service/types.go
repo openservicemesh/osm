@@ -1,7 +1,6 @@
 package service
 
 import (
-	"fmt"
 	"reflect"
 	"strings"
 
@@ -9,13 +8,13 @@ import (
 )
 
 const (
-	// separator used upon marshalling/unmarshalling Namespaced MeshService to a string
+	// namespaceNameSeparator used upon marshalling/unmarshalling NamespacedService to a string
 	// or viceversa
-	separator = "/"
+	namespaceNameSeparator = "/"
 )
 
-// MeshService is the struct defining a service (Kubernetes or otherwise) within a service mesh.
-type MeshService struct {
+// NamespacedService is the struct defining a service (Kubernetes or otherwise) within a service mesh.
+type NamespacedService struct {
 	// If the service resides on a Kubernetes service, this would be the Kubernetes namespace.
 	Namespace string
 
@@ -23,18 +22,18 @@ type MeshService struct {
 	Name string
 }
 
-func (ms MeshService) String() string {
-	return fmt.Sprintf("%s/%s", ms.Namespace, ms.Name)
+func (ms NamespacedService) String() string {
+	return strings.Join([]string{ms.Namespace, namespaceNameSeparator, ms.Name}, "")
 }
 
 //Equals checks if two namespaced services are equal
-func (ms MeshService) Equals(service MeshService) bool {
+func (ms NamespacedService) Equals(service NamespacedService) bool {
 	return reflect.DeepEqual(ms, service)
 }
 
 // UnmarshalNamespacedService unmarshals a NamespaceService type from a string
-func UnmarshalNamespacedService(str string) (*MeshService, error) {
-	slices := strings.Split(str, separator)
+func UnmarshalNamespacedService(str string) (*NamespacedService, error) {
+	slices := strings.Split(str, namespaceNameSeparator)
 	if len(slices) != 2 {
 		return nil, errInvalidNamespacedServiceFormat
 	}
@@ -46,14 +45,14 @@ func UnmarshalNamespacedService(str string) (*MeshService, error) {
 		}
 	}
 
-	return &MeshService{
+	return &NamespacedService{
 		Namespace: slices[0],
 		Name:      slices[1],
 	}, nil
 }
 
-// GetCommonName returns the Subject CN for the MeshService to be used for its certificate.
-func (ms MeshService) GetCommonName() certificate.CommonName {
+// GetCommonName returns the Subject CN for the NamespacedService to be used for its certificate.
+func (ms NamespacedService) GetCommonName() certificate.CommonName {
 	return certificate.CommonName(strings.Join([]string{ms.Name, ms.Namespace, "svc", "cluster", "local"}, "."))
 }
 
@@ -64,7 +63,7 @@ type K8sServiceAccount struct {
 }
 
 func (ns K8sServiceAccount) String() string {
-	return fmt.Sprintf("%s/%s", ns.Namespace, ns.Name)
+	return strings.Join([]string{ns.Namespace, namespaceNameSeparator, ns.Name}, "")
 }
 
 // ClusterName is a type for a service name
@@ -72,7 +71,7 @@ type ClusterName string
 
 //WeightedService is a struct of a service name, its weight and domain
 type WeightedService struct {
-	MeshService MeshService `json:"service_name:omitempty"`
+	NamespacedService NamespacedService `json:"service_name:omitempty"`
 	Weight      int         `json:"weight:omitempty"`
 	Domain      string      `json:"domain:omitempty"`
 }

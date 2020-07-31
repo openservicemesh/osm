@@ -151,7 +151,7 @@ var _ = Describe("Test ingress route policies", func() {
 	Context("Testing GetIngressRoutesPerHost", func() {
 		mc := newFakeMeshCatalog()
 		It("Gets the route policies per domain from multiple ingress resources corresponding to a service", func() {
-			fakeService := service.MeshService{
+			fakeService := service.NamespacedService{
 				Namespace: fakeIngressNamespace,
 				Name:      fakeIngressService,
 			}

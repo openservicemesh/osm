@@ -25,7 +25,7 @@ type Client struct {
 // Monitor is the client interface for K8s Ingress resource
 type Monitor interface {
 	// GetIngressResources returns the ingress resources whose backends correspond to the service
-	GetIngressResources(service.MeshService) ([]*extensionsV1beta.Ingress, error)
+	GetIngressResources(service.NamespacedService) ([]*extensionsV1beta.Ingress, error)
 
 	// GetAnnouncementsChannel returns the channel on which Ingress Monitor makes annoucements
 	GetAnnouncementsChannel() <-chan interface{}

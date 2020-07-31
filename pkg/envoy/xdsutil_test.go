@@ -38,7 +38,7 @@ var _ = Describe("Test Envoy tools", func() {
 		It("Interface marshals and unmarshals preserving the exact same data", func() {
 			InitialObj := SDSCert{
 				CertType: ServiceCertType,
-				MeshService: service.MeshService{
+				NamespacedService: service.NamespacedService{
 					Namespace: "test-namespace",
 					Name:      "test-service",
 				},
@@ -60,23 +60,23 @@ var _ = Describe("Test Envoy tools", func() {
 			actual, err := UnmarshalSDSCert("service-cert:namespace-test/blahBlahBlahCert")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(actual.CertType).To(Equal(ServiceCertType))
-			Expect(actual.MeshService.Namespace).To(Equal("namespace-test"))
-			Expect(actual.MeshService.Name).To(Equal("blahBlahBlahCert"))
+			Expect(actual.NamespacedService.Namespace).To(Equal("namespace-test"))
+			Expect(actual.NamespacedService.Name).To(Equal("blahBlahBlahCert"))
 		})
 		It("returns root cert for mTLS", func() {
 			actual, err := UnmarshalSDSCert("root-cert-for-mtls-outbound:namespace-test/blahBlahBlahCert")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(actual.CertType).To(Equal(RootCertTypeForMTLSOutbound))
-			Expect(actual.MeshService.Namespace).To(Equal("namespace-test"))
-			Expect(actual.MeshService.Name).To(Equal("blahBlahBlahCert"))
+			Expect(actual.NamespacedService.Namespace).To(Equal("namespace-test"))
+			Expect(actual.NamespacedService.Name).To(Equal("blahBlahBlahCert"))
 		})
 
 		It("returns root cert for non-mTLS", func() {
 			actual, err := UnmarshalSDSCert("root-cert-https:namespace-test/blahBlahBlahCert")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(actual.CertType).To(Equal(RootCertTypeForHTTPS))
-			Expect(actual.MeshService.Namespace).To(Equal("namespace-test"))
-			Expect(actual.MeshService.Name).To(Equal("blahBlahBlahCert"))
+			Expect(actual.NamespacedService.Namespace).To(Equal("namespace-test"))
+			Expect(actual.NamespacedService.Name).To(Equal("blahBlahBlahCert"))
 		})
 
 		It("returns an error (invalid formatting)", func() {
@@ -152,7 +152,7 @@ var _ = Describe("Test Envoy tools", func() {
 					ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 						ValidationContextSdsSecretConfig: &auth.SdsSecretConfig{
 							Name: SDSCert{
-								MeshService: service.MeshService{
+								NamespacedService: service.NamespacedService{
 									Namespace: "default",
 									Name:      "bookstore",
 								},
@@ -216,7 +216,7 @@ var _ = Describe("Test Envoy tools", func() {
 					ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 						ValidationContextSdsSecretConfig: &auth.SdsSecretConfig{
 							Name: SDSCert{
-								MeshService: service.MeshService{
+								NamespacedService: service.NamespacedService{
 									Namespace: "default",
 									Name:      "bookstore",
 								},
@@ -259,18 +259,18 @@ var _ = Describe("Test Envoy tools", func() {
 
 	Context("Test getCommonTLSContext()", func() {
 		It("returns proper auth.CommonTlsContext for mTLS", func() {
-			namespacedService := service.MeshService{
+			namespacedService := service.NamespacedService{
 				Namespace: "-namespace-",
 				Name:      "-service-",
 			}
 			actual := getCommonTLSContext(namespacedService, true /* mTLS */, Inbound)
 
 			expectedServiceCertName := SDSCert{
-				MeshService: namespacedService,
+				NamespacedService: namespacedService,
 				CertType:    ServiceCertType,
 			}.String()
 			expectedRootCertName := SDSCert{
-				MeshService: namespacedService,
+				NamespacedService: namespacedService,
 				CertType:    RootCertTypeForMTLSInbound,
 			}.String()
 
@@ -296,18 +296,18 @@ var _ = Describe("Test Envoy tools", func() {
 		})
 
 		It("returns proper auth.CommonTlsContext for non-mTLS", func() {
-			namespacedService := service.MeshService{
+			namespacedService := service.NamespacedService{
 				Namespace: "-namespace-",
 				Name:      "-service-",
 			}
 			actual := getCommonTLSContext(namespacedService, false, false /* Ignored in case of non-tls */)
 
 			expectedServiceCertName := SDSCert{
-				MeshService: namespacedService,
+				NamespacedService: namespacedService,
 				CertType:    ServiceCertType,
 			}.String()
 			expectedRootCertName := SDSCert{
-				MeshService: namespacedService,
+				NamespacedService: namespacedService,
 				CertType:    RootCertTypeForHTTPS,
 			}.String()
 

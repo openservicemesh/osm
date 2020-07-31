@@ -50,35 +50,35 @@ type MeshCatalog struct {
 	kubeClient kubernetes.Interface
 }
 
-// MeshCataloger is the mechanism by which the MeshService Mesh controller discovers all Envoy proxies connected to the catalog.
+// MeshCataloger is the mechanism by which the NamespacedService Mesh controller discovers all Envoy proxies connected to the catalog.
 type MeshCataloger interface {
 	// GetSMISpec returns the SMI spec
 	GetSMISpec() smi.MeshSpec
 
 	// ListTrafficPolicies returns all the traffic policies for a given service that Envoy proxy should be aware of.
-	ListTrafficPolicies(service.MeshService) ([]trafficpolicy.TrafficTarget, error)
+	ListTrafficPolicies(service.NamespacedService) ([]trafficpolicy.TrafficTarget, error)
 
 	// ListAllowedInboundServices lists the inbound services allowed to connect to the given service.
-	ListAllowedInboundServices(service.MeshService) ([]service.MeshService, error)
+	ListAllowedInboundServices(service.NamespacedService) ([]service.NamespacedService, error)
 
 	// ListAllowedOutboundServices lists the services the given service is allowed outbound connections to.
-	ListAllowedOutboundServices(service.MeshService) ([]service.MeshService, error)
+	ListAllowedOutboundServices(service.NamespacedService) ([]service.NamespacedService, error)
 
 	// ListSMIPolicies lists SMI policies.
 	ListSMIPolicies() ([]*split.TrafficSplit, []service.WeightedService, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget, []*corev1.Service)
 
 	// ListEndpointsForService returns the list of provider endpoints corresponding to a service
-	ListEndpointsForService(service.MeshService) ([]endpoint.Endpoint, error)
+	ListEndpointsForService(service.NamespacedService) ([]endpoint.Endpoint, error)
 
 	// GetCertificateForService returns the SSL Certificate for the given service.
 	// This certificate will be used for service-to-service mTLS.
-	GetCertificateForService(service.MeshService) (certificate.Certificater, error)
+	GetCertificateForService(service.NamespacedService) (certificate.Certificater, error)
 
 	// ExpectProxy catalogs the fact that a certificate was issued for an Envoy proxy and this is expected to connect to XDS.
 	ExpectProxy(certificate.CommonName)
 
 	// GetServiceFromEnvoyCertificate returns the single service given Envoy is a member of based on the certificate provided, which is a cert issued to an Envoy for XDS communication (not Envoy-to-Envoy).
-	GetServiceFromEnvoyCertificate(certificate.CommonName) (*service.MeshService, error)
+	GetServiceFromEnvoyCertificate(certificate.CommonName) (*service.NamespacedService, error)
 
 	// RegisterProxy registers a newly connected proxy with the service mesh catalog.
 	RegisterProxy(*envoy.Proxy)
@@ -87,16 +87,16 @@ type MeshCataloger interface {
 	UnregisterProxy(*envoy.Proxy)
 
 	// GetServiceForServiceAccount returns the service corresponding to a service account
-	GetServiceForServiceAccount(service.K8sServiceAccount) (service.MeshService, error)
+	GetServiceForServiceAccount(service.K8sServiceAccount) (service.NamespacedService, error)
 
 	//GetDomainForService returns the domain name of a service
-	GetDomainForService(service service.MeshService, routeHeaders map[string]string) (string, error)
+	GetDomainForService(service service.NamespacedService, routeHeaders map[string]string) (string, error)
 
 	//GetWeightedClusterForService returns the weighted cluster for a service
-	GetWeightedClusterForService(service service.MeshService) (service.WeightedCluster, error)
+	GetWeightedClusterForService(service service.NamespacedService) (service.WeightedCluster, error)
 
 	// GetIngressRoutesPerHost returns the routes per host associated with an ingress service
-	GetIngressRoutesPerHost(service.MeshService) (map[string][]trafficpolicy.Route, error)
+	GetIngressRoutesPerHost(service.NamespacedService) (map[string][]trafficpolicy.Route, error)
 }
 
 type announcementChannel struct {

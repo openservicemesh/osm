@@ -248,11 +248,11 @@ func (c *Client) ListTrafficSplitServices() []service.WeightedService {
 			// The TrafficSplit SMI Spec does not allow providing a namespace for the backends,
 			// so we assume that the top level namespace for the TrafficSplit is the namespace
 			// the backends belong to.
-			meshService := service.MeshService{
+			meshService := service.NamespacedService{
 				Namespace: trafficSplit.Namespace,
 				Name:      backend.Service,
 			}
-			services = append(services, service.WeightedService{MeshService: meshService, Weight: backend.Weight, Domain: domain})
+			services = append(services, service.WeightedService{NamespacedService: meshService, Weight: backend.Weight, Domain: domain})
 		}
 	}
 	return services
@@ -294,13 +294,13 @@ func (c *Client) ListServiceAccounts() []service.K8sServiceAccount {
 	return serviceAccounts
 }
 
-// GetService retrieves the Kubernetes Services resource for the given MeshService.
-func (c *Client) GetService(svc service.MeshService) (service *corev1.Service, exists bool, err error) {
+// GetService retrieves the Kubernetes Services resource for the given NamespacedService.
+func (c *Client) GetService(svc service.NamespacedService) (service *corev1.Service, exists bool, err error) {
 	svcIf, exists, err := c.caches.Services.GetByKey(svc.String())
 	if exists && err == nil {
 		svc, ok := svcIf.(*corev1.Service)
 		if !ok {
-			log.Error().Err(errInvalidObjectType).Msgf("Failed type assertion for MeshService in cache")
+			log.Error().Err(errInvalidObjectType).Msgf("Failed type assertion for NamespacedService in cache")
 			return nil, false, err
 		}
 		return svc, true, err
@@ -315,7 +315,7 @@ func (c Client) ListServices() ([]*corev1.Service, error) {
 	for _, serviceInterface := range c.caches.Services.List() {
 		svc, ok := serviceInterface.(*corev1.Service)
 		if !ok {
-			log.Error().Err(errInvalidObjectType).Msg("Failed type assertion for MeshService in cache")
+			log.Error().Err(errInvalidObjectType).Msg("Failed type assertion for NamespacedService in cache")
 			continue
 		}
 		if !c.namespaceController.IsMonitoredNamespace(svc.Namespace) {

@@ -21,7 +21,7 @@ func getIngressTransportProtocol(cfg configurator.Configurator) string {
 	return ""
 }
 
-func newIngressFilterChain(cfg configurator.Configurator, svc service.MeshService) *xds_listener.FilterChain {
+func newIngressFilterChain(cfg configurator.Configurator, svc service.NamespacedService) *xds_listener.FilterChain {
 	marshalledDownstreamTLSContext, err := envoy.MessageToAny(envoy.GetDownstreamTLSContext(svc, false /* TLS */))
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshalling DownstreamTLSContext object for proxy %s", svc)
@@ -52,7 +52,7 @@ func newIngressFilterChain(cfg configurator.Configurator, svc service.MeshServic
 	}
 }
 
-func getIngressFilterChains(svc service.MeshService, cfg configurator.Configurator) []*xds_listener.FilterChain {
+func getIngressFilterChains(svc service.NamespacedService, cfg configurator.Configurator) []*xds_listener.FilterChain {
 	var ingressFilterChains []*xds_listener.FilterChain
 
 	if cfg.UseHTTPSIngress() {

@@ -68,13 +68,13 @@ var _ = Describe("Test SDS response functions", func() {
 			cert, err := certManager.IssueCertificate("blah", nil)
 			Expect(err).ToNot(HaveOccurred())
 
-			svc := service.MeshService{
+			svc := service.NamespacedService{
 				Namespace: "ns",
 				Name:      "svc",
 			}
 
 			sdsc := envoy.SDSCert{
-				MeshService: svc,
+				NamespacedService: svc,
 				CertType:    envoy.RootCertTypeForMTLSInbound,
 			}
 
@@ -119,13 +119,13 @@ var _ = Describe("Test SDS response functions", func() {
 			namespace := uuid.New().String()
 			serviceName := uuid.New().String()
 
-			svc := service.MeshService{
+			svc := service.NamespacedService{
 				Namespace: namespace,
 				Name:      serviceName,
 			}
 
 			sdsc := envoy.SDSCert{
-				MeshService: svc,
+				NamespacedService: svc,
 				CertType:    envoy.RootCertTypeForMTLSOutbound,
 			}
 			resourceNames := []string{sdsc.String()}

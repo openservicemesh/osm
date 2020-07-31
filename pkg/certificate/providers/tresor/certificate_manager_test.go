@@ -62,7 +62,7 @@ var _ = Describe("Test Certificate Manager", func() {
 		cn := certificate.CommonName("Test CA")
 		rootCertCountry := "US"
 		rootCertLocality := "CA"
-		rootCertOrganization := "Open MeshService Mesh Tresor"
+		rootCertOrganization := "Open NamespacedService Mesh Tresor"
 		rootCert, err := NewCA(cn, 1*time.Hour, rootCertCountry, rootCertLocality, rootCertOrganization)
 		if err != nil {
 			log.Fatal().Err(err).Msgf("Error loading CA from files %s and %s", rootCertPem, rootKeyPem)
@@ -100,7 +100,7 @@ var _ = Describe("Test Certificate Manager", func() {
 		cn := certificate.CommonName("Test CA")
 		rootCertCountry := "US"
 		rootCertLocality := "CA"
-		rootCertOrganization := "Open MeshService Mesh Tresor"
+		rootCertOrganization := "Open NamespacedService Mesh Tresor"
 		rootCert, err := NewCA(cn, validity, rootCertCountry, rootCertLocality, rootCertOrganization)
 		if err != nil {
 			log.Fatal().Err(err).Msgf("Error loading CA from files %s and %s", rootCertPem, rootKeyPem)

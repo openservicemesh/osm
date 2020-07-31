@@ -17,7 +17,7 @@ func NewFakeIngressMonitor() FakeIngressMonitor {
 }
 
 // GetIngressResources returns the ingress resources whose backends correspond to the service
-func (f FakeIngressMonitor) GetIngressResources(service.MeshService) ([]*extensionsV1beta.Ingress, error) {
+func (f FakeIngressMonitor) GetIngressResources(service.NamespacedService) ([]*extensionsV1beta.Ingress, error) {
 	return f.FakeIngresses, nil
 }
 

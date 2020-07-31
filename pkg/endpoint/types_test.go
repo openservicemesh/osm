@@ -8,10 +8,10 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
-var _ = Describe("Test MeshService methods", func() {
+var _ = Describe("Test NamespacedService methods", func() {
 	Context("Testing GetCommonName", func() {
-		It("should return DNS-1123 of the MeshService struct", func() {
-			namespacedService := service.MeshService{
+		It("should return DNS-1123 of the NamespacedService struct", func() {
+			namespacedService := service.NamespacedService{
 				Namespace: "namespace-here",
 				Name:      "service-name-here",
 			}

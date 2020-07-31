@@ -6,7 +6,7 @@ import (
 )
 
 // GetCertificateForService returns the certificate the given proxy uses for mTLS to the XDS server.
-func (mc *MeshCatalog) GetCertificateForService(meshService service.MeshService) (certificate.Certificater, error) {
+func (mc *MeshCatalog) GetCertificateForService(meshService service.NamespacedService) (certificate.Certificater, error) {
 	cn := meshService.GetCommonName()
 
 	cert, err := mc.certManager.GetCertificate(cn)

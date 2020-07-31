@@ -21,8 +21,8 @@ type Route struct {
 // TrafficTarget is a struct of the allowed RoutePaths from sources to a destination
 type TrafficTarget struct {
 	Name        string              `json:"name:omitempty"`
-	Destination service.MeshService `json:"destination:omitempty"`
-	Source      service.MeshService `json:"source:omitempty"`
+	Destination service.NamespacedService `json:"destination:omitempty"`
+	Source      service.NamespacedService `json:"source:omitempty"`
 	Route       Route               `json:"route:omitempty"`
 }
 

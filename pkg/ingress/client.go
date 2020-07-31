@@ -68,7 +68,7 @@ func (c Client) GetAnnouncementsChannel() <-chan interface{} {
 }
 
 // GetIngressResources returns the ingress resources whose backends correspond to the service
-func (c Client) GetIngressResources(meshService service.MeshService) ([]*extensionsV1beta.Ingress, error) {
+func (c Client) GetIngressResources(meshService service.NamespacedService) ([]*extensionsV1beta.Ingress, error) {
 	var ingressResources []*extensionsV1beta.Ingress
 	for _, ingressInterface := range c.cache.List() {
 		ingress, ok := ingressInterface.(*extensionsV1beta.Ingress)

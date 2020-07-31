@@ -10,10 +10,10 @@ import (
 // Provider is an interface to be implemented by components abstracting Kubernetes, Azure, and other compute/cluster providers
 type Provider interface {
 	// Retrieve the IP addresses comprising the given service.
-	ListEndpointsForService(service.MeshService) []Endpoint
+	ListEndpointsForService(service.NamespacedService) []Endpoint
 
 	// Retrieve the namespaced service for a given service account
-	GetServiceForServiceAccount(service.K8sServiceAccount) (service.MeshService, error)
+	GetServiceForServiceAccount(service.K8sServiceAccount) (service.NamespacedService, error)
 
 	// GetID returns the unique identifier of the EndpointsProvider.
 	GetID() string
