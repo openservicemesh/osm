@@ -24,34 +24,7 @@ $ make build-osm
 ```
 `make build-osm` will fetch any required dependencies, compile `osm` and place it in `bin/osm`. Add `bin/osm` to `$PATH` so you can easily use `osm`.
 
-## Create Environment Variables
-Create some necessary environment variables. This environment variable setup is a temporary step because OSM is currently a private project and there are no public container images available.
-```console
-$ # K8S_NAMESPACE is the Namespace the control plane will be installed into
-$ export K8S_NAMESPACE=osm-system
-
-$ # CTR_REGISTRY is the URL of the container registry to use
-$ export CTR_REGISTRY=<your registry>
-
-$ # If no authentication to push to the container registry is required, the following steps may be skipped.
-
-$ # For Azure Container Registry (ACR), the following command may be used: az acr credential show -n <your_registry_name> --query "passwords[0].value" | tr -d '"'
-$ export CTR_REGISTRY_PASSWORD=<your password>
-
-$ # Create docker secret in Kubernetes Namespace using following script:
-$ ./scripts/create-container-registry-creds.sh "$K8S_NAMESPACE"
-
-```
-
-## Build and push OSM images
-Build and push images necessary to install OSM. This is also a temporary step because OSM is currently a private project and there are no public container images available.
-
-```console
-$ make docker-push-osm-controller
-$ make docker-push-init
-```
-
-## Install OSM Control Plane
+## Install OSM
 Use the `osm` CLI to install the OSM control plane on to a Kubernetes cluster.
 
 Run `osm install`.
@@ -72,7 +45,7 @@ The `mesh-name` should follow [RFC 1123](https://tools.ietf.org/html/rfc1123) DN
 - start with an alphanumeric character
 - end with an alphanumeric character
 
-## Inspect Control Plane Components
+## Inspect OSM Components
 A few components will be installed by defaut into the `osm-system` Namespace. Inspect them by using the following `kubectl` command:
 ```console
 $ kubectl get pods,svc,secrets,configmaps,serviceaccount --namespace osm-system
@@ -83,7 +56,7 @@ A few cluster wide (non Namespaced components) will also be installed. Inspect t
 kubectl get clusterrolebinding,clusterrole,mutatingwebhookconfiguration
 ```
 
-Under the hood, `osm` is using [Helm](https://helm.sh) libraries to create a Helm `release` object in the control plane Namespace. The Helm `release` name is the mesh-name. The `helm` CLI can also be used to inspect Kubernetes manifests installed in more detail.
+Under the hood, `osm` is using [Helm](https://helm.sh) libraries to create a Helm `release` object in the control plane Namespace. The Helm `release` name is the mesh-name. The `helm` CLI can also be used to inspect Kubernetes manifests installed in more detail. Goto https://helm.sh for instructions to install Helm 
 ```console
 $ helm get manifest osm --namespace osm-system
 ```

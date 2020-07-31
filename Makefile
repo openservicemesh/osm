@@ -1,6 +1,6 @@
 #!make
 
-TARGETS         := darwin/amd64 linux/amd64
+TARGETS         := darwin/amd64 linux/amd64 windows/amd64
 SHELL           := bash -o pipefail
 BINNAME         ?= osm
 DIST_DIRS       := find * -type d -exec
@@ -49,7 +49,7 @@ build: build-osm-controller
 .PHONY: build-osm-controller
 build-osm-controller: clean-osm-controller
 	@mkdir -p $(shell pwd)/bin
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o ./bin/osm-controller ./cmd/ads
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o ./bin/osm-controller ./cmd/osm-controller
 
 .PHONY: build-osm
 build-osm:
