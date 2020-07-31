@@ -88,6 +88,11 @@ func (f fakeMeshCatalogDebuger) ListSMIPolicies() ([]*split.TrafficSplit, []serv
 		}}
 }
 
+// ListMonitoredNamespaces implements MeshCatalogDebugger
+func (f fakeMeshCatalogDebuger) ListMonitoredNamespaces() []string {
+	return []string{tests.Namespace}
+}
+
 // NewFakeMeshCatalogDebugger implements and creates a new MeshCatalogDebugger
 func NewFakeMeshCatalogDebugger() MeshCatalogDebugger {
 	return fakeMeshCatalogDebuger{}

@@ -51,7 +51,7 @@ type MeshCatalogDebugger interface {
 	ListSMIPolicies() ([]*split.TrafficSplit, []service.WeightedService, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget, []*corev1.Service)
 
 	// ListMonitoredNamespaces lists the namespaces that the control plan knows about.
-	ListMonitoredNamespaces() ([]string, error)
+	ListMonitoredNamespaces() []string
 }
 
 // XDSDebugger is an interface providing debugging server with methods introspecting XDS.
