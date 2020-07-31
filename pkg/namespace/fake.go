@@ -30,6 +30,6 @@ func (f FakeNamespaceController) ListMonitoredNamespaces() ([]string, error) {
 }
 
 // GetAnnouncementsChannel returns the channel on which namespace makes announcements
-func () GetAnnouncementsChannel() <-chan interface{} {
+func (f FakeNamespaceController) GetAnnouncementsChannel() <-chan interface{} {
 	return make(chan interface{})
 }
