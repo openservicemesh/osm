@@ -48,7 +48,7 @@ From the root of this repository execute:
 
 	![Graph](graph.svg)
 
-	- `bookbuyer` and `bookthief` continuously issue HTTP `GET` requests against `bookstore` to buy books.
+	- `bookbuyer` and `bookthief` continuously issue HTTP `GET` requests against `bookstore` to buy books and github.com to verify egress traffic.
 	- `bookstore` is a service backed by two servers: `bookstore-v1` and `bookstore-v2`. Whenever either sells a book, it issues an HTTP `POST` request to the `bookwarehouse` to restock.
 
   - applies SMI traffic policies allowing `bookbuyer` to access `bookstore-v1` and `bookstore-v2`, while preventing `bookthief` from accessing the `bookstore` services
