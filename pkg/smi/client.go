@@ -295,8 +295,8 @@ func (c *Client) ListServiceAccounts() []service.K8sServiceAccount {
 }
 
 // GetService retrieves the Kubernetes Services resource for the given ServiceName.
-func (c *Client) GetService(svc service.Name) (service *corev1.Service, exists bool, err error) {
-	svcIf, exists, err := c.caches.Services.GetByKey(string(svc))
+func (c *Client) GetService(svc service.NamespacedService) (service *corev1.Service, exists bool, err error) {
+	svcIf, exists, err := c.caches.Services.GetByKey(svc.String())
 	if exists && err == nil {
 		svc, ok := svcIf.(*corev1.Service)
 		if !ok {

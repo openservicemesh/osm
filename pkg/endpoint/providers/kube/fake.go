@@ -12,9 +12,9 @@ import (
 func NewFakeProvider() endpoint.Provider {
 
 	return &fakeClient{
-		endpoints: map[service.Name][]endpoint.Endpoint{
-			service.Name(tests.BookstoreService.String()): {tests.Endpoint},
-			service.Name(tests.BookbuyerService.String()): {tests.Endpoint},
+		endpoints: map[string][]endpoint.Endpoint{
+			tests.BookstoreService.String(): {tests.Endpoint},
+			tests.BookbuyerService.String(): {tests.Endpoint},
 		},
 		services: map[service.K8sServiceAccount]service.NamespacedService{
 			tests.BookstoreServiceAccount: tests.BookstoreService,
@@ -24,16 +24,16 @@ func NewFakeProvider() endpoint.Provider {
 }
 
 type fakeClient struct {
-	endpoints map[service.Name][]endpoint.Endpoint
+	endpoints map[string][]endpoint.Endpoint
 	services  map[service.K8sServiceAccount]service.NamespacedService
 }
 
 // Retrieve the IP addresses comprising the given service.
-func (f fakeClient) ListEndpointsForService(name service.Name) []endpoint.Endpoint {
-	if svc, ok := f.endpoints[name]; ok {
+func (f fakeClient) ListEndpointsForService(svc service.NamespacedService) []endpoint.Endpoint {
+	if svc, ok := f.endpoints[svc.String()]; ok {
 		return svc
 	}
-	panic(fmt.Sprintf("You are asking for ServiceName=%s but the fake Kubernetes client has not been initialized with this. What we have is: %+v", name, f.endpoints))
+	panic(fmt.Sprintf("You are asking for ServiceName=%s but the fake Kubernetes client has not been initialized with this. What we have is: %+v", svc.String(), f.endpoints))
 }
 
 func (f fakeClient) GetServiceForServiceAccount(svcAccount service.K8sServiceAccount) (service.NamespacedService, error) {

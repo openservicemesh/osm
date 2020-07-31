@@ -57,7 +57,7 @@ func (f fakeMeshSpec) ListServiceAccounts() []service.K8sServiceAccount {
 }
 
 // GetService fetches a specific service declared in SMI for the fake Mesh Spec.
-func (f fakeMeshSpec) GetService(service.Name) (service *corev1.Service, exists bool, err error) {
+func (f fakeMeshSpec) GetService(service.NamespacedService) (service *corev1.Service, exists bool, err error) {
 	return nil, false, nil
 }
 

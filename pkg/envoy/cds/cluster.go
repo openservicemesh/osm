@@ -80,7 +80,7 @@ func getLocalServiceCluster(catalog catalog.MeshCataloger, proxyServiceName serv
 		},
 	}
 
-	endpoints, err := catalog.ListEndpointsForService(service.Name(proxyServiceName.String()))
+	endpoints, err := catalog.ListEndpointsForService(proxyServiceName)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to get endpoints for service %s", proxyServiceName)
 		return nil, err

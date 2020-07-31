@@ -14,13 +14,6 @@ const (
 	separator = "/"
 )
 
-// Name is a type for a service name
-type Name string
-
-func (s Name) String() string {
-	return string(s)
-}
-
 // NamespacedService is a type for a namespaced service
 type NamespacedService struct {
 	Namespace string
