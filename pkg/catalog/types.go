@@ -102,7 +102,7 @@ type MeshCataloger interface {
 	GetIngressRoutesPerHost(service.NamespacedService) (map[string][]trafficpolicy.Route, error)
 
 	// ListMonitoredNamespaces lists namespaces monitored by the control plane
-	ListMonitoredNamespaces() ([]string)
+	ListMonitoredNamespaces() ([]string, error)
 }
 
 type announcementChannel struct {

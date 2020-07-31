@@ -25,8 +25,8 @@ type Controller interface {
 	IsMonitoredNamespace(string) bool
 
 	// ListMonitoredNamespaces returns the namespaces monitored by the mesh
-	ListMonitoredNamespaces() []string
+	ListMonitoredNamespaces() ([]string, error)
 
-	// GetAnnouncementsChannel returns the channel on which SMI makes announcements
+	// GetAnnouncementsChannel returns the channel on which namespace makes announcements
 	GetAnnouncementsChannel() <-chan interface{}
 }

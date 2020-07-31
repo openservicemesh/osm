@@ -23,3 +23,13 @@ func (f FakeNamespaceController) IsMonitoredNamespace(namespace string) bool {
 	}
 	return false
 }
+
+// ListMonitoredNamespaces returns the namespaces monitored by the mesh
+func (f FakeNamespaceController) ListMonitoredNamespaces() ([]string, error) {
+	return f.monitoredNamespaces, nil
+}
+
+// GetAnnouncementsChannel returns the channel on which namespace makes announcements
+func () GetAnnouncementsChannel() <-chan interface{} {
+	return make(chan interface{})
+}
