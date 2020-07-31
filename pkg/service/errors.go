@@ -5,5 +5,5 @@ import (
 )
 
 var (
-	errInvalidNamespacedServiceFormat = errors.New("invalid namespaced service string format")
+	errInvalidMeshServiceFormat = errors.New("invalid namespaced service string format")
 )

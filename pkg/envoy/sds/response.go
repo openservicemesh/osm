@@ -31,7 +31,7 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpe
 
 	serviceForProxy, err := catalog.GetServiceFromEnvoyCertificate(proxy.GetCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up NamespacedService for Envoy with CN=%q", proxy.GetCommonName())
+		log.Error().Err(err).Msgf("Error looking up service for Envoy with CN=%q", proxy.GetCommonName())
 		return nil, err
 	}
 
@@ -71,7 +71,7 @@ func getEnvoySDSSecrets(cert certificate.Certificater, proxy *envoy.Proxy, reque
 
 	svc, err := catalog.GetServiceFromEnvoyCertificate(proxy.GetCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up NamespacedService for Envoy with CN=%q", proxy.GetCommonName())
+		log.Error().Err(err).Msgf("Error looking up service for Envoy with CN=%q", proxy.GetCommonName())
 		return nil
 	}
 	serviceForProxy := *svc
@@ -85,8 +85,8 @@ func getEnvoySDSSecrets(cert certificate.Certificater, proxy *envoy.Proxy, reque
 			continue
 		}
 
-		if serviceForProxy != sdsCert.NamespacedService {
-			log.Error().Msgf("Proxy %s (service %s) requested service certificate %s; this is not allowed", proxy.GetCommonName(), serviceForProxy, sdsCert.NamespacedService)
+		if serviceForProxy != sdsCert.MeshService {
+			log.Error().Msgf("Proxy %s (service %s) requested service certificate %s; this is not allowed", proxy.GetCommonName(), serviceForProxy, sdsCert.MeshService)
 			continue
 		}
 
@@ -141,7 +141,7 @@ func getServiceCertSecret(cert certificate.Certificater, name string) (*xds_auth
 	return secret, nil
 }
 
-func getRootCert(cert certificate.Certificater, sdscert envoy.SDSCert, proxyServiceName service.NamespacedService, mc catalog.MeshCataloger) (*xds_auth.Secret, error) {
+func getRootCert(cert certificate.Certificater, sdscert envoy.SDSCert, proxyServiceName service.MeshService, mc catalog.MeshCataloger) (*xds_auth.Secret, error) {
 	secret := &xds_auth.Secret{
 		// The Name field must match the tls_context.common_tls_context.tls_certificate_sds_secret_configs.name
 		Name: sdscert.String(),
@@ -161,7 +161,7 @@ func getRootCert(cert certificate.Certificater, sdscert envoy.SDSCert, proxyServ
 		fallthrough
 	case envoy.RootCertTypeForMTLSInbound:
 		var matchSANs []*xds_matcher.StringMatcher
-		var serverNames []service.NamespacedService
+		var serverNames []service.MeshService
 		var err error
 
 		// This block constructs a list of Server Names (peers) that are allowed to connect to the given service.

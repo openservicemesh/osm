@@ -41,7 +41,7 @@ var _ = Describe("Test XDS certificate tooling", func() {
 
 			meshService, err := mc.GetServiceFromEnvoyCertificate(cn)
 			Expect(err).ToNot(HaveOccurred())
-			expected := service.NamespacedService{
+			expected := service.MeshService{
 				Namespace: tests.Namespace,
 				Name:      svcName,
 			}
@@ -80,7 +80,7 @@ var _ = Describe("Test XDS certificate tooling", func() {
 			meshService, err := mc.GetServiceFromEnvoyCertificate(podCN)
 			Expect(err).ToNot(HaveOccurred())
 
-			expected := service.NamespacedService{
+			expected := service.MeshService{
 				Namespace: namespace,
 				Name:      svcName,
 			}

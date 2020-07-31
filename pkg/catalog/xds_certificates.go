@@ -16,7 +16,7 @@ import (
 )
 
 // GetServiceFromEnvoyCertificate returns the single service given Envoy is a member of based on the certificate provided, which is a cert issued to an Envoy for XDS communication (not Envoy-to-Envoy).
-func (mc *MeshCatalog) GetServiceFromEnvoyCertificate(cn certificate.CommonName) (*service.NamespacedService, error) {
+func (mc *MeshCatalog) GetServiceFromEnvoyCertificate(cn certificate.CommonName) (*service.MeshService, error) {
 	pod, err := GetPodFromCertificate(cn, mc.kubeClient)
 	if err != nil {
 		return nil, err
@@ -41,7 +41,7 @@ func (mc *MeshCatalog) GetServiceFromEnvoyCertificate(cn certificate.CommonName)
 		return nil, err
 	}
 
-	return &service.NamespacedService{
+	return &service.MeshService{
 		Namespace: cnMeta.Namespace,
 		Name:      services[0].Name,
 	}, nil
@@ -50,9 +50,9 @@ func (mc *MeshCatalog) GetServiceFromEnvoyCertificate(cn certificate.CommonName)
 // filterTrafficSplitServices takes a list of services and removes from it the ones
 // that have been split via an SMI TrafficSplit.
 func (mc *MeshCatalog) filterTrafficSplitServices(services []v1.Service) []v1.Service {
-	excludeTheseServices := make(map[service.NamespacedService]interface{})
+	excludeTheseServices := make(map[service.MeshService]interface{})
 	for _, trafficSplit := range mc.meshSpec.ListTrafficSplits() {
-		svc := service.NamespacedService{
+		svc := service.MeshService{
 			Namespace: trafficSplit.Namespace,
 			Name:      trafficSplit.Spec.Service,
 		}
@@ -65,7 +65,7 @@ func (mc *MeshCatalog) filterTrafficSplitServices(services []v1.Service) []v1.Se
 	var filteredServices []v1.Service
 
 	for _, svc := range services {
-		nsSvc := service.NamespacedService{
+		nsSvc := service.MeshService{
 			Namespace: svc.Namespace,
 			Name:      svc.Name,
 		}
@@ -108,7 +108,7 @@ func GetPodFromCertificate(cn certificate.CommonName, kubeClient kubernetes.Inte
 	}
 
 	// --- CONVENTION ---
-	// By Open NamespacedService Mesh convention the number of services a pod can belong to is 1
+	// By Open Service Mesh convention the number of services a pod can belong to is 1
 	// This is a limitation we set in place in order to make the mesh easy to understand and reason about.
 	// When a pod belongs to more than one service XDS will not program the Envoy proxy, leaving it out of the mesh.
 	if len(pods) > 1 {

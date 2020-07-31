@@ -7,7 +7,7 @@ import (
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// AzureResource is an object describing Azure specific compute, which will be included in the NamespacedService Mesh.
+// AzureResource is an object describing Azure specific compute, which will be included in the Service Mesh.
 type AzureResource struct {
 	metav1.TypeMeta `json:",inline"`
 

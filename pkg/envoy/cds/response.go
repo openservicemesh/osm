@@ -21,7 +21,7 @@ import (
 func NewResponse(_ context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator) (*xds_discovery.DiscoveryResponse, error) {
 	svc, err := catalog.GetServiceFromEnvoyCertificate(proxy.GetCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up NamespacedService for Envoy with CN=%q", proxy.GetCommonName())
+		log.Error().Err(err).Msgf("Error looking up MeshService for Envoy with CN=%q", proxy.GetCommonName())
 		return nil, err
 	}
 	proxyServiceName := *svc
@@ -107,6 +107,6 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, meshSpec smi.
 	return resp, nil
 }
 
-func getLocalClusterName(proxyServiceName service.NamespacedService) string {
+func getLocalClusterName(proxyServiceName service.MeshService) string {
 	return fmt.Sprintf("%s%s", proxyServiceName, envoy.LocalClusterSuffix)
 }

@@ -7,7 +7,7 @@ import (
 )
 
 // GetIngressRoutesPerHost returns routes per host as defined in observed ingress k8s resources.
-func (mc *MeshCatalog) GetIngressRoutesPerHost(service service.NamespacedService) (map[string][]trafficpolicy.Route, error) {
+func (mc *MeshCatalog) GetIngressRoutesPerHost(service service.MeshService) (map[string][]trafficpolicy.Route, error) {
 	domainRoutesMap := make(map[string][]trafficpolicy.Route)
 	ingresses, err := mc.ingressMonitor.GetIngressResources(service)
 	if err != nil {

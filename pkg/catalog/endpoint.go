@@ -6,7 +6,7 @@ import (
 )
 
 // ListEndpointsForService returns the list of provider endpoints corresponding to a service
-func (mc *MeshCatalog) ListEndpointsForService(svc service.NamespacedService) ([]endpoint.Endpoint, error) {
+func (mc *MeshCatalog) ListEndpointsForService(svc service.MeshService) ([]endpoint.Endpoint, error) {
 	var endpoints []endpoint.Endpoint
 	for _, provider := range mc.endpointsProviders {
 		ep := provider.ListEndpointsForService(svc)

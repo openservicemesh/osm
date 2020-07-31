@@ -14,7 +14,7 @@ import (
 
 var _ = Describe("Test certificate tooling", func() {
 	Context("Testing DecodePEMCertificate along with GetCommonName and IssueCertificate", func() {
-		namespacedService := service.NamespacedService{
+		namespacedService := service.MeshService{
 			Namespace: "namespace-here",
 			Name:      "service-name-here",
 		}
@@ -39,7 +39,7 @@ var _ = Describe("Test certificate tooling", func() {
 	})
 
 	Context("Testing GetCertificateForService for issuance and retrieval of cached certificates", func() {
-		namespacedService := service.NamespacedService{
+		namespacedService := service.MeshService{
 			Namespace: "namespace-here",
 			Name:      "service-name-here",
 		}

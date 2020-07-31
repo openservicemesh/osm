@@ -114,7 +114,7 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.StringVar(&inst.vaultHost, "vault-host", "", "Hashicorp Vault host/service - where Vault is installed")
 	f.StringVar(&inst.vaultProtocol, "vault-protocol", defaultVaultProtocol, "protocol to use to connect to Vault")
 	f.StringVar(&inst.vaultToken, "vault-token", "", "token that should be used to connect to Vault")
-	f.StringVar(&inst.vaultRole, "vault-role", "openservicemesh", "Vault role to be used by Open NamespacedService Mesh")
+	f.StringVar(&inst.vaultRole, "vault-role", "openservicemesh", "Vault role to be used by Open Service Mesh")
 	f.IntVar(&inst.serviceCertValidityMinutes, "service-cert-validity-minutes", defaultCertValidityMinutes, "Certificate TTL in minutes")
 	f.StringVar(&inst.prometheusRetentionTime, "prometheus-retention-time", constants.PrometheusDefaultRetentionTime, "Duration for which data will be retained in prometheus")
 	f.BoolVar(&inst.enableDebugServer, "enable-debug-server", false, "Enable the debug HTTP server")

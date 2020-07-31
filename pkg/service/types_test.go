@@ -11,45 +11,45 @@ var _ = Describe("Test types helpers", func() {
 		serviceName := "randomServiceName"
 
 		It("Interface marshals and unmarshals preserving the exact same data", func() {
-			svn := NamespacedService{
+			svn := MeshService{
 				Namespace: namespace,
 				Name:      serviceName,
 			}
 
 			str := svn.String()
-			svn2, err := UnmarshalNamespacedService(str)
+			svn2, err := UnmarshalMeshService(str)
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(*svn2).To(Equal(svn))
 		})
 
 		It("should fail for incomplete names", func() {
-			_, err := UnmarshalNamespacedService("/svnc")
+			_, err := UnmarshalMeshService("/svnc")
 			Expect(err).To(HaveOccurred())
 
 		})
 		It("should fail for incomplete names", func() {
-			_, err := UnmarshalNamespacedService("svnc/")
+			_, err := UnmarshalMeshService("svnc/")
 			Expect(err).To(HaveOccurred())
 
 		})
 		It("should fail for incomplete names", func() {
-			_, err := UnmarshalNamespacedService("/svnc/")
+			_, err := UnmarshalMeshService("/svnc/")
 			Expect(err).To(HaveOccurred())
 
 		})
 		It("should fail for incomplete names", func() {
-			_, err := UnmarshalNamespacedService("/")
+			_, err := UnmarshalMeshService("/")
 			Expect(err).To(HaveOccurred())
 
 		})
 		It("should fail for incomplete names", func() {
-			_, err := UnmarshalNamespacedService("")
+			_, err := UnmarshalMeshService("")
 			Expect(err).To(HaveOccurred())
 
 		})
 		It("should fail for incomplete names", func() {
-			_, err := UnmarshalNamespacedService("test")
+			_, err := UnmarshalMeshService("test")
 			Expect(err).To(HaveOccurred())
 		})
 

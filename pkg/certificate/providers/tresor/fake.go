@@ -10,7 +10,7 @@ import (
 func NewFakeCertManager(cache *map[certificate.CommonName]certificate.Certificater, validityPeriod time.Duration) *CertManager {
 	rootCertCountry := "US"
 	rootCertLocality := "CA"
-	rootCertOrganization := "Open NamespacedService Mesh Tresor"
+	rootCertOrganization := "Open Service Mesh Tresor"
 	ca, err := NewCA("Fake Tresor CN", 1*time.Hour, rootCertCountry, rootCertLocality, rootCertOrganization)
 	if err != nil {
 		log.Error().Err(err).Msg("Error creating CA for fake cert manager")

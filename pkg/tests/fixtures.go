@@ -87,19 +87,19 @@ const (
 
 var (
 	// BookstoreService is the bookstore service.
-	BookstoreService = service.NamespacedService{
+	BookstoreService = service.MeshService{
 		Namespace: Namespace,
 		Name:      BookstoreServiceName,
 	}
 
 	// BookbuyerService is the bookbuyer service.
-	BookbuyerService = service.NamespacedService{
+	BookbuyerService = service.MeshService{
 		Namespace: Namespace,
 		Name:      BookbuyerServiceName,
 	}
 
 	// BookwarehouseService is the bookwarehouse service.
-	BookwarehouseService = service.NamespacedService{
+	BookwarehouseService = service.MeshService{
 		Namespace: Namespace,
 		Name:      BookwarehouseServiceName,
 	}
@@ -189,7 +189,7 @@ var (
 
 	// WeightedService is a service with a weight used for traffic split.
 	WeightedService = service.WeightedService{
-		NamespacedService: service.NamespacedService{
+		Service: service.MeshService{
 			Namespace: Namespace,
 			Name:      BookstoreServiceName,
 		},
@@ -273,7 +273,7 @@ func NewPodTestFixtureWithOptions(namespace string, podName string, serviceAccou
 	}
 }
 
-// NewServiceFixture creates a new NamespacedService
+// NewServiceFixture creates a new MeshService
 func NewServiceFixture(serviceName, namespace string, selectors map[string]string) *corev1.Service {
 	return &corev1.Service{
 		ObjectMeta: v1.ObjectMeta{

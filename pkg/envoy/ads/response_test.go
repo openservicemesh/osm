@@ -54,7 +54,7 @@ var _ = Describe("Test ADS response functions", func() {
 	cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s", envoyUID, serviceAccountName, namespace))
 	proxy := envoy.NewProxy(cn, nil)
 
-	meshService := service.NamespacedService{
+	meshService := service.MeshService{
 		Namespace: "default",
 		Name:      serviceName,
 	}
@@ -67,19 +67,19 @@ var _ = Describe("Test ADS response functions", func() {
 				TypeUrl: string(envoy.TypeSDS),
 				ResourceNames: []string{
 					envoy.SDSCert{
-						NamespacedService: meshService,
+						MeshService: meshService,
 						CertType:    envoy.ServiceCertType,
 					}.String(),
 					envoy.SDSCert{
-						NamespacedService: meshService,
+						MeshService: meshService,
 						CertType:    envoy.RootCertTypeForMTLSOutbound,
 					}.String(),
 					envoy.SDSCert{
-						NamespacedService: meshService,
+						MeshService: meshService,
 						CertType:    envoy.RootCertTypeForMTLSInbound,
 					}.String(),
 					envoy.SDSCert{
-						NamespacedService: meshService,
+						MeshService: meshService,
 						CertType:    envoy.RootCertTypeForHTTPS,
 					}.String(),
 				},
@@ -99,7 +99,7 @@ var _ = Describe("Test ADS response functions", func() {
 		server, actualResponses := tests.NewFakeXDSServer(cert, nil, nil)
 		cfg := configurator.NewFakeConfigurator()
 
-		It("returns Aggregated Discovery NamespacedService response", func() {
+		It("returns Aggregated Discovery Service response", func() {
 			s := Server{
 				ctx:         context.TODO(),
 				catalog:     mc,
@@ -133,7 +133,7 @@ var _ = Describe("Test ADS response functions", func() {
 			firstSecret := (*actualResponses)[4].Resources[0]
 			err = ptypes.UnmarshalAny(firstSecret, &secretOne)
 			Expect(secretOne.Name).To(Equal(envoy.SDSCert{
-				NamespacedService: meshService,
+				MeshService: meshService,
 				CertType:    envoy.ServiceCertType,
 			}.String()))
 
@@ -141,7 +141,7 @@ var _ = Describe("Test ADS response functions", func() {
 			secondSecret := (*actualResponses)[4].Resources[1]
 			err = ptypes.UnmarshalAny(secondSecret, &secretTwo)
 			Expect(secretTwo.Name).To(Equal(envoy.SDSCert{
-				NamespacedService: meshService,
+				MeshService: meshService,
 				CertType:    envoy.RootCertTypeForMTLSOutbound,
 			}.String()))
 
@@ -149,7 +149,7 @@ var _ = Describe("Test ADS response functions", func() {
 			thirdSecret := (*actualResponses)[4].Resources[2]
 			err = ptypes.UnmarshalAny(thirdSecret, &secretThree)
 			Expect(secretThree.Name).To(Equal(envoy.SDSCert{
-				NamespacedService: meshService,
+				MeshService: meshService,
 				CertType:    envoy.RootCertTypeForMTLSInbound,
 			}.String()))
 
@@ -157,7 +157,7 @@ var _ = Describe("Test ADS response functions", func() {
 			forthSecret := (*actualResponses)[4].Resources[3]
 			err = ptypes.UnmarshalAny(forthSecret, &secretFour)
 			Expect(secretFour.Name).To(Equal(envoy.SDSCert{
-				NamespacedService: meshService,
+				MeshService: meshService,
 				CertType:    envoy.RootCertTypeForHTTPS,
 			}.String()))
 		})

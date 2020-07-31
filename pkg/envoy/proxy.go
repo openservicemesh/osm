@@ -14,7 +14,7 @@ import (
 type Proxy struct {
 	certificate.CommonName
 	net.Addr
-	NamespacedService   service.NamespacedService
+	MeshService   service.MeshService
 	announcements chan interface{}
 
 	// The time this Proxy connected to the OSM control plane
@@ -74,8 +74,8 @@ func (p Proxy) String() string {
 
 // GetService determines the meshed service this endpoint should support based on the mTLS certificate.
 // From "a.b.c" returns "b.c". By convention "a" is the ID of the proxy. Remaining "b.c" is the name of the service.
-func (p Proxy) GetService() service.NamespacedService {
-	return p.NamespacedService
+func (p Proxy) GetService() service.MeshService {
+	return p.MeshService
 }
 
 // GetCommonName returns the Subject Common Name from the mTLS certificate of the Envoy proxy connected to xDS.

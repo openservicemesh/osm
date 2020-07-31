@@ -354,7 +354,7 @@ var _ = Describe("Routes with headers", func() {
 	})
 })
 
-var _ = Describe("NamespacedService name for a service domain", func() {
+var _ = Describe("Service name for a service domain", func() {
 	service := "test-service"
 	Context("Testing getServiceFromHost", func() {
 		It("Returns the service name from its domain", func() {

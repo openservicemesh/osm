@@ -108,7 +108,7 @@ var _ = Describe("Catalog tests", func() {
 			mc := NewFakeMeshCatalog(testclient.NewSimpleClientset())
 			actualList, err := mc.ListAllowedInboundServices(tests.BookstoreService)
 			Expect(err).ToNot(HaveOccurred())
-			expectedList := []service.NamespacedService{tests.BookbuyerService}
+			expectedList := []service.MeshService{tests.BookbuyerService}
 			Expect(actualList).To(Equal(expectedList))
 		})
 	})
@@ -119,12 +119,12 @@ var _ = Describe("Catalog tests", func() {
 				tests.SelectorKey: tests.SelectorValue,
 			}
 			source := tests.NewServiceFixture(tests.BookbuyerServiceName, tests.Namespace, selectors)
-			expectedSourceTrafficResource := service.NamespacedService{
+			expectedSourceTrafficResource := service.MeshService{
 				Namespace: source.Namespace,
 				Name:      source.Name,
 			}
 			destination := tests.NewServiceFixture(tests.BookstoreServiceName, tests.Namespace, selectors)
-			expectedDestinationTrafficResource := service.NamespacedService{
+			expectedDestinationTrafficResource := service.MeshService{
 				Namespace: destination.Namespace,
 				Name:      destination.Name,
 			}
@@ -149,7 +149,7 @@ var _ = Describe("Catalog tests", func() {
 			mc := NewFakeMeshCatalog(testclient.NewSimpleClientset())
 			actualList, err := mc.ListAllowedOutboundServices(tests.BookbuyerService)
 			Expect(err).ToNot(HaveOccurred())
-			expectedList := []service.NamespacedService{tests.BookstoreService}
+			expectedList := []service.MeshService{tests.BookstoreService}
 			Expect(actualList).To(Equal(expectedList))
 
 		})
