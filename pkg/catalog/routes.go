@@ -108,18 +108,17 @@ func (mc *MeshCatalog) ListAllowedOutboundServices(sourceService service.Namespa
 }
 
 //GetWeightedClusterForService returns the weighted cluster for a given service
-func (mc *MeshCatalog) GetWeightedClusterForService(nsService service.NamespacedService) (service.WeightedCluster, error) {
-	// TODO(draychev): split namespace from the service name -- for non-K8s services
-	log.Trace().Msgf("Finding weighted cluster for service %s", nsService)
+func (mc *MeshCatalog) GetWeightedClusterForService(svc service.NamespacedService) (service.WeightedCluster, error) {
+	log.Trace().Msgf("Finding weighted cluster for service %s", svc)
 
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
-		return getDefaultWeightedClusterForService(nsService), nil
+		return getDefaultWeightedClusterForService(svc), nil
 	}
 
 	// Retrieve the weighted clusters from traffic split
 	servicesList := mc.meshSpec.ListTrafficSplitServices()
 	for _, activeService := range servicesList {
-		if activeService.NamespacedService == nsService {
+		if activeService.NamespacedService == svc {
 			return service.WeightedCluster{
 				ClusterName: service.ClusterName(activeService.NamespacedService.String()),
 				Weight:      activeService.Weight,
@@ -128,7 +127,7 @@ func (mc *MeshCatalog) GetWeightedClusterForService(nsService service.Namespaced
 	}
 
 	// Use a default weighted cluster as an SMI TrafficSplit policy is not defined for the service
-	return getDefaultWeightedClusterForService(nsService), nil
+	return getDefaultWeightedClusterForService(svc), nil
 }
 
 //GetDomainForService returns the domain name of a service
