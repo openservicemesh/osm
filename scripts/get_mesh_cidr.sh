@@ -1,6 +1,6 @@
 #!/bin/bash
 
-POD_CIDR=$(kubectl cluster-info dump | grep -m 1 -Po '(?<=--cluster-cidr=)[0-9.\/]+')
+POD_CIDR=$(kubectl cluster-info dump | grep -m 1 -Eo -- '--cluster-cidr=[0-9./]+' | cut -d= -f2)
 
 # Apply a spec with invalid IP to figure out the valid IP range
 SERVICE_CIDR=$(kubectl apply -f - <<EOF 2>&1 | sed 's/.*valid IPs is //'
