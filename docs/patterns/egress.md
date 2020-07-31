@@ -1,6 +1,6 @@
 # Allowing access to the Internet and out-of-mesh services (egress)
 
-This document describes the steps required to enable access to the Internet and services external to the service mesh. Sometimes referred to as `egress` traffic.
+This document describes the steps required to enable access to the Internet and services external to the service mesh, sometimes referred to as `egress` traffic.
 
 OSM redirects all outbound traffic from a pod within the mesh to its sidecar proxy. Outbound traffic can be classified into two categories:
 
