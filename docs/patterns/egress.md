@@ -15,9 +15,9 @@ While in-mesh traffic is routed based on L7 traffic policies, egress traffic is 
 Enabling egress is done via a global setting. The setting is toggled on or off and affects all services in the mesh. Egress is enabled by default when OSM controller is first installed.
 
 ### Enabling egress
-Egress can be enabled during OSM install or post install. When egress is enabled, OSM requires the mesh [CIDR][2] ranges to be specified. The mesh CIDR ranges are the list of CIDR ranges corresponding to the pod and service CIDRs configured in the cluster. The mesh CIDR ranges are required with egress to prevent any traffic destined within the cluster from escaping out as egress traffic, to be able to enforce mesh traffic policies.
+Egress can be enabled during OSM install or post install. When egress is enabled, OSM requires the mesh [CIDR](https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing) ranges to be specified. The mesh CIDR ranges are the list of CIDR ranges corresponding to the pod and service CIDRs configured in the cluster. The mesh CIDR ranges are required with egress to prevent any traffic destined within the cluster from escaping out as egress traffic, to be able to enforce mesh traffic policies.
 
-A [convenience script][1] to retrieve the mesh CIDR ranges can be used if the user is not aware of the pod and service CIDR ranges for their cluster.
+A [convenience script](https://github.com/openservicemesh/osm/blob/main/scripts/get_mesh_cidr.sh) to retrieve the mesh CIDR ranges can be used if the user is not aware of the pod and service CIDR ranges for their cluster.
 ```bash
 $ ./scripts/get_mesh_cidr.sh
 10.0.0.0/16,10.2.0.0/16
@@ -91,6 +91,3 @@ Similar to enabling egress, egress can be disabled during OSM install or post in
 	```
 
 With egress disabled, traffic from pods within the mesh will not be able to access external services outside the mesh CIDR ranges.
-
-[1]: https://github.com/openservicemesh/osm/blob/main/scripts/get_mesh_cidr.sh
-[2]: https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing
