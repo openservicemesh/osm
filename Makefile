@@ -1,6 +1,6 @@
 #!make
 
-TARGETS         := darwin/amd64 linux/amd64
+TARGETS         := darwin/amd64 linux/amd64 windows/amd64
 SHELL           := bash -o pipefail
 BINNAME         ?= osm
 DIST_DIRS       := find * -type d -exec
