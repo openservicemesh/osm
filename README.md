@@ -41,7 +41,27 @@ The simplest way of installing Open Service Mesh on a Kubernetes cluster is by u
 
 Download the `osm` binary from the [Releases page](https://github.com/openservicemesh/osm/releases). Unpack the `osm` binary and add it to `$PATH` to get started.
 
-Install OSM
+#### Run install pre-flight checks
+```shell
+$ osm check --pre-install
+ok: initialize Kubernetes client
+ok: query Kubernetes API
+ok: Kubernetes version
+ok: can create namespaces
+ok: can create customresourcedefinitions
+ok: can create clusterroles
+ok: can create clusterrolebindings
+ok: can create mutatingwebhookconfigurations
+ok: can create serviceaccounts
+ok: can create services
+ok: can create deployments
+ok: can create configmaps
+ok: can read secrets
+ok: can modify iptables
+All checks successful!
+```
+
+#### Install OSM
 ```shell
 $ osm install
 ```
