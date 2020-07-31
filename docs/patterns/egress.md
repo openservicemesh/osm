@@ -1,4 +1,3 @@
-
 # Accessing External Services
 
 This document describes the workflow to access services external to the service mesh cluster.
