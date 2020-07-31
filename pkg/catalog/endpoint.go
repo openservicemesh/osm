@@ -6,10 +6,10 @@ import (
 )
 
 // ListEndpointsForService returns the list of provider endpoints corresponding to a service
-func (mc *MeshCatalog) ListEndpointsForService(svc service.Name) ([]endpoint.Endpoint, error) {
+func (mc *MeshCatalog) ListEndpointsForService(svc service.NamespacedService) ([]endpoint.Endpoint, error) {
 	var endpoints []endpoint.Endpoint
 	for _, provider := range mc.endpointsProviders {
-		ep := provider.ListEndpointsForService(service.Name(svc.String()))
+		ep := provider.ListEndpointsForService(svc)
 		if len(ep) == 0 {
 			log.Trace().Msgf("[%s] No endpoints found for service=%s", provider.GetID(), svc)
 			continue

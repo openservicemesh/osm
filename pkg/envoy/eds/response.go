@@ -37,7 +37,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 		isSourceService := trafficPolicy.Source.Service.Equals(proxyServiceName)
 		if isSourceService {
 			destService := trafficPolicy.Destination.Service
-			serviceEndpoints, err := catalog.ListEndpointsForService(service.Name(destService.String()))
+			serviceEndpoints, err := catalog.ListEndpointsForService(destService)
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed listing endpoints")
 				return nil, err

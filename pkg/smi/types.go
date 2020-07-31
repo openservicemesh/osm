@@ -62,7 +62,7 @@ type MeshSpec interface {
 	ListServiceAccounts() []service.K8sServiceAccount
 
 	// GetService fetches a specific service declared in SMI.
-	GetService(service.Name) (service *corev1.Service, exists bool, err error)
+	GetService(service.NamespacedService) (service *corev1.Service, exists bool, err error)
 
 	// ListHTTPTrafficSpecs lists TrafficSpec SMI resources.
 	ListHTTPTrafficSpecs() []*spec.HTTPRouteGroup

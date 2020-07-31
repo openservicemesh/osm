@@ -68,7 +68,7 @@ type MeshCataloger interface {
 	ListSMIPolicies() ([]*split.TrafficSplit, []service.WeightedService, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget, []*corev1.Service)
 
 	// ListEndpointsForService returns the list of provider endpoints corresponding to a service
-	ListEndpointsForService(service.Name) ([]endpoint.Endpoint, error)
+	ListEndpointsForService(service.NamespacedService) ([]endpoint.Endpoint, error)
 
 	// GetCertificateForService returns the SSL Certificate for the given service.
 	// This certificate will be used for service-to-service mTLS.

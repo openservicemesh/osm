@@ -68,10 +68,10 @@ func (c *Client) GetID() string {
 }
 
 // ListEndpointsForService retrieves the list of IP addresses for the given service
-func (c Client) ListEndpointsForService(svc service.Name) []endpoint.Endpoint {
+func (c Client) ListEndpointsForService(svc service.NamespacedService) []endpoint.Endpoint {
 	log.Info().Msgf("[%s] Getting Endpoints for service %s on Kubernetes", c.providerIdent, svc)
 	var endpoints []endpoint.Endpoint
-	endpointsInterface, exist, err := c.caches.Endpoints.GetByKey(string(svc))
+	endpointsInterface, exist, err := c.caches.Endpoints.GetByKey(svc.String())
 	if err != nil {
 		log.Error().Err(err).Msgf("[%s] Error fetching Kubernetes Endpoints from cache", c.providerIdent)
 		return endpoints
@@ -166,9 +166,9 @@ func (c Client) GetServiceForServiceAccount(svcAccount service.K8sServiceAccount
 	}
 
 	log.Info().Msgf("[%s] Services %v observed on service account %s on Kubernetes", c.providerIdent, services, svcAccount)
-	service := services.Pop().(service.NamespacedService)
-	log.Trace().Msgf("Found service %s for serviceAccount %s in namespace %s", service.Service, svcAccount.Name, svcAccount.Namespace)
-	return service, nil
+	svc := services.Pop().(service.NamespacedService)
+	log.Trace().Msgf("Found service %s for serviceAccount %s in namespace %s", svc.Service, svcAccount.Name, svcAccount.Namespace)
+	return svc, nil
 }
 
 // GetAnnouncementsChannel returns the announcement channel for the Kubernetes endpoints provider.
