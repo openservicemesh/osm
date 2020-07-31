@@ -6,7 +6,9 @@ import (
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 
+	mapset "github.com/deckarep/golang-set"
 	set "github.com/deckarep/golang-set"
+	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha2"
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/openservicemesh/osm/pkg/catalog"
@@ -68,6 +70,51 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 		}
 	}
 
+	allTrafficSplits := meshSpec.ListTrafficSplits()
+
+	for _, trafficSplit := range allTrafficSplits {
+		domain := trafficSplit.Spec.Service
+		matches := trafficSplit.Spec.Matches
+		for _, match := range matches {
+			httpTrafficSpecList := meshSpec.ListHTTPTrafficSpecs()
+			var httpTrafficSpec *spec.HTTPRouteGroup
+			for _, trafficSpec := range httpTrafficSpecList {
+				if trafficSpec.Name == match.Name {
+					httpTrafficSpec = trafficSpec
+					break
+				}
+			}
+			if httpTrafficSpec == nil {
+				log.Error().Msg("Failed to find TrafficSpec")
+			}
+
+			for _, httpMatch := range httpTrafficSpec.Matches {
+				routePolicy := trafficpolicy.Route{
+					PathRegex: httpMatch.PathRegex,
+					Methods:   httpMatch.Methods,
+					Headers:   httpMatch.Headers,
+				}
+
+				for _, backend := range trafficSplit.Spec.Backends {
+					// The TrafficSplit SMI Spec does not allow providing a namespace for the backends,
+					// so we assume that the top level namespace for the TrafficSplit is the namespace
+					// the backends belong to.
+					svc := service.MeshService{
+						Namespace: trafficSplit.Namespace,
+						Name:      backend.Service,
+					}
+					weightedCluster, err := catalog.GetWeightedClusterForService(svc)
+					if err != nil {
+						log.Error().Err(err).Msg("Failed listing clusters")
+						return nil, err
+					}
+
+					updateRoutesForTrafficSplit(destinationAggregatedRoutesByDomain, routePolicy, weightedCluster, domain)
+				}
+			}
+		}
+	}
+
 	if err = updateRoutesForIngress(proxyServiceName, catalog, destinationAggregatedRoutesByDomain); err != nil {
 		return nil, err
 	}
@@ -111,7 +158,45 @@ func aggregateRoutesByHost(routesPerHost map[string]map[string]trafficpolicy.Rou
 		routesPerHost[host][routePolicy.PathRegex] = createRoutePolicyWeightedClusters(routePolicy, weightedCluster)
 	}
 }
+func updateRoutesForTrafficSplit(routesPerHost map[string]map[string]trafficpolicy.RouteWeightedClusters, routePolicy trafficpolicy.Route, weightedCluster service.WeightedCluster, host string) {
+	_, exists := routesPerHost[host]
+	if !exists {
+		// no host found, do nothing
+		//TODO log warn
 
+		return
+	}
+	routePolicyWeightedCluster, routeFound := routesPerHost[host][routePolicy.PathRegex]
+	if routeFound {
+		weightedClusterExists := routePolicyWeightedCluster.WeightedClusters.Contains(weightedCluster)
+		if !weightedClusterExists {
+			//TODO log warn
+			return
+		}
+
+		methodSet := mapset.NewSet()
+		for _, method := range routePolicyWeightedCluster.Route.Methods {
+			methodSet.Add(method)
+		}
+
+		for _, method := range routePolicy.Methods {
+			if methodSet.Contains(method) {
+				for headerKey, headerValue := range routePolicy.Headers {
+					_, exists := routePolicyWeightedCluster.Route.Headers[headerKey]
+					if !exists {
+						routePolicyWeightedCluster.Route.Headers[headerKey] = headerValue
+					}
+				}
+			}
+		}
+
+		routesPerHost[host][routePolicy.PathRegex] = routePolicyWeightedCluster
+	} else {
+		// no route found, do nothing
+		//TODO log warn
+		return
+	}
+}
 func createRoutePolicyWeightedClusters(routePolicy trafficpolicy.Route, weightedCluster service.WeightedCluster) trafficpolicy.RouteWeightedClusters {
 	return trafficpolicy.RouteWeightedClusters{
 		Route:            routePolicy,

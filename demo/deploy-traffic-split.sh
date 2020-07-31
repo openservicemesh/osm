@@ -6,7 +6,7 @@ set -aueo pipefail
 source .env
 
 kubectl apply -f - <<EOF
-apiVersion: split.smi-spec.io/v1alpha2
+apiVersion: specs.smi-spec.io/v1alpha3
 kind: TrafficSplit
 metadata:
   name: bookstore-split
@@ -14,7 +14,6 @@ metadata:
 spec:
   service: "bookstore.$BOOKSTORE_NAMESPACE"
   backends:
-
   - service: bookstore-v1
     weight: 50
   - service: bookstore-v2

@@ -607,6 +607,8 @@ github.com/servicemeshinterface/smi-sdk-go v0.3.0 h1:tJ2D0u5KnbtmbZLfJNJtMZg4Eqo
 github.com/servicemeshinterface/smi-sdk-go v0.3.0/go.mod h1:/jM1BV6xy7OgcmHuZ5cyMO4IC4dG2+ska2KsL1/8MLE=
 github.com/servicemeshinterface/smi-sdk-go v0.3.1-0.20200415150537-c8c381cb495f h1:bZO6tUNA4ahirezlihXzkiOqRdDLiVJebcl6zQoXwZY=
 github.com/servicemeshinterface/smi-sdk-go v0.3.1-0.20200415150537-c8c381cb495f/go.mod h1:9rsLPBNcqfDNmEgyYwpopn93aE9yz46d2EHFBNOYj/w=
+github.com/servicemeshinterface/smi-sdk-go v0.4.0 h1:VLZxaMVQS2ctImsp6CntTWizCwiwm+h8OU7R/3zSe5Q=
+github.com/servicemeshinterface/smi-sdk-go v0.4.0/go.mod h1:9rsLPBNcqfDNmEgyYwpopn93aE9yz46d2EHFBNOYj/w=
 github.com/shurcooL/sanitized_anchor_name v1.0.0/go.mod h1:1NzhyTcUVG4SuEtjjoZeVRXNmyL/1OwPU0+IJeTBvfc=
 github.com/sirupsen/logrus v1.0.4-0.20170822132746-89742aefa4b2/go.mod h1:pMByvHTf9Beacp5x1UXfOR9xyW/9antXMhjMPG0dEzc=
 github.com/sirupsen/logrus v1.2.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPxbbu5VWo=

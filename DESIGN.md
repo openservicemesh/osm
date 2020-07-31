@@ -277,7 +277,7 @@ type MeshCataloger interface {
 	ListEndpointsForService(endpoint.ServiceName) ([]endpoint.Endpoint, error)
 
 	// ListTrafficPolicies constructs a list of all the traffic policies /routes the given Envoy proxy should be aware of.
-	ListTrafficPolicies(service.MeshService) ([]endpoint.TrafficPolicy, error)
+	ListTrafficPolicies(service.MeshService) ([]trafficpolicy.TrafficTarget, error)
 
 	// ListAllowedInboundServices lists the inbound services allowed to connect to the given service.
 	ListAllowedInboundServices(service.MeshService) ([]service.MeshService, error)
