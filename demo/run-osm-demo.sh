@@ -133,7 +133,7 @@ bin/osm namespace add --mesh-name "$MESH_NAME" "$BOOKWAREHOUSE_NAMESPACE" "$BOOK
 ./demo/deploy-apps.sh
 
 # Apply SMI policies
-if [ "$DEPLOY_TRAFFIC_SPLIT" = "true" ]; then
+if [ "${DEPLOY_TRAFFIC_SPLIT:-true}" = "true" ]; then
     ./demo/deploy-traffic-split.sh
 fi
 
