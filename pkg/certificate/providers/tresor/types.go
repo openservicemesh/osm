@@ -49,7 +49,6 @@ type Certificate struct {
 	// The commonName of the certificate
 	commonName certificate.CommonName
 
-	// TODO(draychev): implement!
 	// When the cert expires
 	expiration time.Time
 
