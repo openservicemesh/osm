@@ -2,7 +2,7 @@
 
 This document describes the steps required to enable access to the Internet and services external to the service mesh, sometimes referred to as `egress` traffic.
 
-OSM redirects all outbound traffic from a pod within the mesh to its sidecar proxy. Outbound traffic can be classified into two categories:
+OSM redirects all outbound traffic from a pod within the mesh to the pod's sidecar proxy. Outbound traffic can be classified into two categories:
 
 1. Traffic to services within the mesh cluster, referred to as in-mesh traffic
 2. Traffic to services external to the mesh cluster, referred to as egress traffic
@@ -12,7 +12,7 @@ While in-mesh traffic is routed based on L7 traffic policies, egress traffic is 
 
 ## Configuring Egress
 
-Enabling egress is done via a global setting. The setting is toggled on or off and affects all services in the mesh. Egress is enabled by default when OSM controller is first installed.
+Enabling egress is done via a global setting. The setting is toggled on or off and affects all services in the mesh. Egress is enabled by default when OSM is installed.
 
 ### Enabling egress
 Egress can be enabled during OSM install or post install. When egress is enabled, OSM requires the mesh [CIDR](https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing) ranges to be specified. The mesh CIDR ranges are the list of CIDR ranges corresponding to the pod and service CIDRs configured in the cluster. The mesh CIDR ranges are required with egress to prevent any traffic destined within the cluster from escaping out as egress traffic, to be able to enforce mesh traffic policies.
