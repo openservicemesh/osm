@@ -59,7 +59,7 @@ type Client struct {
 
 	// The AzureResource CRD client.
 	// TODO(draychev): At this point we are deliberately making the choice to expose the SMI + Extensions storage mechanism
-	// to the provider. At a later point we need to come up with an abstract mechanism, by which the Azure EndpointsProvider
+	// to the provider. At a later point we need to find an abstract mechanism, by which the Azure EndpointsProvider
 	// will convert a service name to an Azure resource URI.
 	azureResourceClient ResourceClient
 
