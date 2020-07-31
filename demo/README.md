@@ -2,7 +2,7 @@
 
 ## System Requirements
 - Go version 1.14 or higher
-- Kubectl version 1.16 or higher
+- Kubectl version 1.15 or higher
 - Docker CLI
    - on a Debian based GNU/Linux system: `sudo apt-get install docker`
    - on a macOS use `brew install docker` or alternatively visit [Docker for Mac](https://docs.docker.com/docker-for-mac/install/)
