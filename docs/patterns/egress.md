@@ -40,27 +40,27 @@ Egress can be configured using either of the following ways.
 	$ kubectl edit configmap -n osm-system osm-config
 	```
 	The value for `mesh_cidr_ranges` can either be space or comma separated.
-	```yaml
-	apiVersion: v1
-	kind: ConfigMap
-	metadata:
-	  name: osm-config
-	  namespace: osm-system
-	data:
-	  egress: "true"
-	  mesh_cidr_ranges: 10.0.0.0/16 10.2.0.0/16
-	...
-	```
-	```yaml
-	apiVersion: v1
-	kind: ConfigMap
-	metadata:
-	  name: osm-config
-	  namespace: osm-system
-	data:
-	  egress: "true"
-	  mesh_cidr_ranges: 10.0.0.0/16,10.2.0.0/16
-	...
+    ```yaml
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+        name: osm-config
+        namespace: osm-system
+    data:
+        egress: "true"
+        mesh_cidr_ranges: 10.0.0.0/16 10.2.0.0/16
+    ...
+    ```
+    ```yaml
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+        name: osm-config
+        namespace: osm-system
+    data:
+        egress: "true"
+        mesh_cidr_ranges: 10.0.0.0/16,10.2.0.0/16
+    ...
 	```
 
 With egress enabled, traffic from pods within the mesh will be allowed to access external services outside the mesh CIDR ranges.
@@ -78,16 +78,16 @@ Similar to enabling egress, egress can be disabled during OSM install or post in
 	Edit the `osm-config` ConfigMap and set `egress: "false"`.
 	```shell
 	$ kubectl edit configmap -n osm-system osm-config
-	```
-	```yaml
-	apiVersion: v1
-	kind: ConfigMap
-	metadata:
-	  name: osm-config
-	  namespace: osm-system
-	data:
-	  egress: "false"
-	...
-	```
+    ```
+    ```yaml
+    apiVersion: v1
+    kind: ConfigMap
+    metadata:
+        name: osm-config
+        namespace: osm-system
+    data:
+        egress: "false"
+    ...
+    ```
 
 With egress disabled, traffic from pods within the mesh will not be able to access external services outside the mesh CIDR ranges.
