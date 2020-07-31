@@ -30,8 +30,8 @@ func Start(checkInterval time.Duration, certManager certificate.Manager, certifi
 		certManager:  certManager,
 	}
 
-	// TODO(draychev): current implementation is the naive one - we iterate over a list of certificates we are given
-	// and if something needs to be rotated - we call the RotateCertificate function.
+	// iterate over the list of certificates
+	// when a cert needs to be rotated - call RotateCertificate()
 	ticker := time.NewTicker(checkInterval)
 	go func() {
 		for {
