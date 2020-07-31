@@ -1,0 +1,18 @@
+// dot -o graph.svg -T svg graph.svg
+digraph G {
+    compound=true;
+    ranksep="0";
+    edge [minlen=2];
+
+    bookbuyer -> b1 [lhead=cluster0];
+    bookthief -> b1 [lhead=cluster0];
+
+    subgraph cluster0 {
+        label="bookstore";
+        b1[label="bookstore-v1"];
+        b2[label="bookstore-v2"];
+        b1 -> b2 [style=invis];
+    }
+
+    b2 -> bookwarehouse [ltail=cluster0];
+}
