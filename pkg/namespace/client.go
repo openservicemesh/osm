@@ -23,7 +23,7 @@ var (
 )
 
 // GetAnnouncementsChannel returns the announcement channel for the SMI client.
-func (c *Client) GetAnnouncementsChannel() <-chan interface{} {
+func (c Client) GetAnnouncementsChannel() <-chan interface{} {
 	return c.announcements
 }
 
@@ -52,7 +52,7 @@ func NewNamespaceController(kubeClient kubernetes.Interface, meshName string, st
 	informer.AddEventHandler(k8s.GetKubernetesEventHandlers("Namespace", "NamespaceClient", client.announcements, nil))
 
 	log.Info().Msgf("Monitoring namespaces with the label: %s=%s", MonitorLabel, meshName)
-	return &client
+	return client
 }
 
 // run executes informer collection.

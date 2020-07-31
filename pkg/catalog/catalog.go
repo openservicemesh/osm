@@ -15,7 +15,7 @@ import (
 )
 
 // NewMeshCatalog creates a new service catalog
-func NewMeshCatalog(namespaceCtrlr namespace.Controller, kubeClient kubernetes.Interface, meshSpec smi.MeshSpec, certManager certificate.Manager, ingressMonitor ingress.Monitor, stop <-chan struct{}, cfg configurator.Configurator, endpointsProviders ...endpoint.Provider) *MeshCatalog {
+func NewMeshCatalog(namespaceController namespace.Controller, kubeClient kubernetes.Interface, meshSpec smi.MeshSpec, certManager certificate.Manager, ingressMonitor ingress.Monitor, stop <-chan struct{}, cfg configurator.Configurator, endpointsProviders ...endpoint.Provider) *MeshCatalog {
 	log.Info().Msg("Create a new Service MeshCatalog.")
 	sc := MeshCatalog{
 		endpointsProviders: endpointsProviders,
@@ -34,7 +34,7 @@ func NewMeshCatalog(namespaceCtrlr namespace.Controller, kubeClient kubernetes.I
 		// The certificate itself would contain the cluster ID making it easy to lookup the client in this map.
 		kubeClient: kubeClient,
 
-		namespaceCtrlr: 	namespaceCtrlr,
+		namespaceController: 	namespaceController,
 	}
 
 	for _, announcementChannel := range sc.getAnnouncementChannels() {
@@ -64,7 +64,7 @@ func (mc *MeshCatalog) getAnnouncementChannels() []announcementChannel {
 		{"CertManager", mc.certManager.GetAnnouncementsChannel()},
 		{"IngressMonitor", mc.ingressMonitor.GetAnnouncementsChannel()},
 		{"Ticker", ticking},
-		{"Namespace", mc.namespaceCtrlr.GetAnnouncementsChannel()},
+		{"Namespace", mc.namespaceController.GetAnnouncementsChannel()},
 	}
 	for _, ep := range mc.endpointsProviders {
 		annCh := announcementChannel{ep.GetID(), ep.GetAnnouncementsChannel()}

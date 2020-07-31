@@ -50,7 +50,7 @@ type MeshCatalog struct {
 	// This here is the client to that cluster.
 	kubeClient kubernetes.Interface
 
-	namespaceCtrlr		namespace.Controller
+	namespaceController		namespace.Controller
 }
 
 // MeshCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.

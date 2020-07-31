@@ -35,9 +35,9 @@ var _ = Describe("Catalog tests", func() {
 	osmConfigMapName := "-test-osm-config-map-"
 	cfg := configurator.NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
 
-	namespaceCtrlr := namespace.NewFakeNamespaceController([]string{osmNamespace})
+	namespaceController := namespace.NewFakeNamespaceController([]string{osmNamespace})
 
-	meshCatalog := NewMeshCatalog(namespaceCtrlr, kubeClient, smi.NewFakeMeshSpecClient(), certManager, ingress.NewFakeIngressMonitor(), make(<-chan struct{}), cfg, endpointProviders...)
+	meshCatalog := NewMeshCatalog(namespaceController, kubeClient, smi.NewFakeMeshSpecClient(), certManager, ingress.NewFakeIngressMonitor(), make(<-chan struct{}), cfg, endpointProviders...)
 
 	Context("Test ListTrafficPolicies", func() {
 		It("lists traffic policies", func() {
