@@ -5,7 +5,7 @@ import (
 	"flag"
 	"os"
 
-	xds "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v2"
+	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -36,7 +36,6 @@ import (
 )
 
 const (
-	// TODO(draychev): pass these via CLI param (https://github.com/openservicemesh/osm/issues/542)
 	serverType                        = "ADS"
 	defaultServiceCertValidityMinutes = 60 // 1 hour
 	caBundleSecretNameCLIParam        = "ca-bundle-secret-name"
@@ -123,9 +122,8 @@ func main() {
 	kubeConfig, err := clientcmd.BuildConfigFromFlags("", kubeConfigFile)
 
 	smiKubeConfig := &kubeConfig
-
 	if err != nil {
-		log.Fatal().Err(err).Msgf("[%s] Failed to create kube config (kubeconfig=%s)", serverType, kubeConfigFile)
+		log.Fatal().Err(err).Msgf("Error creating kube config (kubeconfig=%s)", kubeConfigFile)
 	}
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 
@@ -211,7 +209,7 @@ func main() {
 	}
 
 	grpcServer, lis := utils.NewGrpc(serverType, *port, adsCert.GetCertificateChain(), adsCert.GetPrivateKey(), adsCert.GetIssuingCA())
-	xds.RegisterAggregatedDiscoveryServiceServer(grpcServer, xdsServer)
+	xds_discovery.RegisterAggregatedDiscoveryServiceServer(grpcServer, xdsServer)
 
 	go utils.GrpcServe(ctx, grpcServer, lis, cancel, serverType)
 

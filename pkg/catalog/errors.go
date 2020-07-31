@@ -1,6 +1,6 @@
 package catalog
 
-import "errors"
+import "github.com/pkg/errors"
 
 var (
 	errInvalidCertificateCN                  = errors.New("invalid cn")
@@ -12,4 +12,5 @@ var (
 	errServiceNotFoundForAnyProvider         = errors.New("no service found for service account with any of the mesh supported providers")
 	errDomainNotFoundForService              = errors.New("no host/domain found to configure service")
 	errNoTrafficSpecFoundForTrafficPolicy    = errors.New("no traffic spec found for the traffic policy")
+	errServiceNotFound                       = errors.New("service not found")
 )

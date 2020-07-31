@@ -5,10 +5,10 @@ import (
 	"sort"
 	"strings"
 
+	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	xds_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
+
 	set "github.com/deckarep/golang-set"
-	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	v2route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
-	matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher"
 	"github.com/golang/protobuf/ptypes/wrappers"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
@@ -42,7 +42,7 @@ const (
 )
 
 var (
-	regexEngine = &matcher.RegexMatcher_GoogleRe2{GoogleRe2: &matcher.RegexMatcher_GoogleRE2{
+	regexEngine = &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{
 		MaxProgramSize: &wrappers.UInt32Value{
 			Value: uint32(maxRegexProgramSize),
 		},
@@ -50,7 +50,7 @@ var (
 )
 
 //UpdateRouteConfiguration consrtucts the Envoy construct necessary for TrafficTarget implementation
-func UpdateRouteConfiguration(domainRoutesMap map[string]map[string]trafficpolicy.RouteWeightedClusters, routeConfig *v2.RouteConfiguration, isSourceConfig bool, isDestinationConfig bool) {
+func UpdateRouteConfiguration(domainRoutesMap map[string]map[string]trafficpolicy.RouteWeightedClusters, routeConfig *xds_route.RouteConfiguration, isSourceConfig bool, isDestinationConfig bool) {
 	log.Trace().Msgf("[RDS] Updating Route Configuration")
 	var isLocalCluster bool
 	var virtualHostPrefix string
@@ -71,7 +71,7 @@ func UpdateRouteConfiguration(domainRoutesMap map[string]map[string]trafficpolic
 	}
 }
 
-func createVirtualHostStub(namePrefix string, domain string) *v2route.VirtualHost {
+func createVirtualHostStub(namePrefix string, domain string) *xds_route.VirtualHost {
 	// If domain consists a comma separated list of domains, it means multiple
 	// domains match against the same route config.
 	domains := strings.Split(domain, ",")
@@ -80,16 +80,16 @@ func createVirtualHostStub(namePrefix string, domain string) *v2route.VirtualHos
 	}
 
 	name := fmt.Sprintf("%s|%s", namePrefix, getServiceFromHost(domains[0]))
-	virtualHost := v2route.VirtualHost{
+	virtualHost := xds_route.VirtualHost{
 		Name:    name,
 		Domains: domains,
-		Routes:  []*v2route.Route{},
+		Routes:  []*xds_route.Route{},
 	}
 	return &virtualHost
 }
 
-func createRoutes(routePolicyWeightedClustersMap map[string]trafficpolicy.RouteWeightedClusters, isLocalCluster bool) []*v2route.Route {
-	var routes []*v2route.Route
+func createRoutes(routePolicyWeightedClustersMap map[string]trafficpolicy.RouteWeightedClusters, isLocalCluster bool) []*xds_route.Route {
+	var routes []*xds_route.Route
 	if !isLocalCluster {
 		// For a source service, configure a wildcard route match (without any headers) with weighted routes to upstream clusters based on traffic split policies
 		weightedClusters := getDistinctWeightedClusters(routePolicyWeightedClustersMap)
@@ -111,20 +111,20 @@ func createRoutes(routePolicyWeightedClustersMap map[string]trafficpolicy.RouteW
 	return routes
 }
 
-func getRoute(pathRegex string, method string, headersMap map[string]string, weightedClusters set.Set, totalClustersWeight int, isLocalCluster bool) *v2route.Route {
-	route := v2route.Route{
-		Match: &v2route.RouteMatch{
-			PathSpecifier: &v2route.RouteMatch_SafeRegex{
-				SafeRegex: &matcher.RegexMatcher{
+func getRoute(pathRegex string, method string, headersMap map[string]string, weightedClusters set.Set, totalClustersWeight int, isLocalCluster bool) *xds_route.Route {
+	route := xds_route.Route{
+		Match: &xds_route.RouteMatch{
+			PathSpecifier: &xds_route.RouteMatch_SafeRegex{
+				SafeRegex: &xds_matcher.RegexMatcher{
 					EngineType: regexEngine,
 					Regex:      pathRegex,
 				},
 			},
 			Headers: getHeadersForRoute(method, headersMap),
 		},
-		Action: &v2route.Route_Route{
-			Route: &v2route.RouteAction{
-				ClusterSpecifier: &v2route.RouteAction_WeightedClusters{
+		Action: &xds_route.Route_Route{
+			Route: &xds_route.RouteAction{
+				ClusterSpecifier: &xds_route.RouteAction_WeightedClusters{
 					WeightedClusters: getWeightedCluster(weightedClusters, totalClustersWeight, isLocalCluster),
 				},
 			},
@@ -133,14 +133,14 @@ func getRoute(pathRegex string, method string, headersMap map[string]string, wei
 	return &route
 }
 
-func getHeadersForRoute(method string, headersMap map[string]string) []*v2route.HeaderMatcher {
-	var headers []*v2route.HeaderMatcher
+func getHeadersForRoute(method string, headersMap map[string]string) []*xds_route.HeaderMatcher {
+	var headers []*xds_route.HeaderMatcher
 
 	// add methods header
-	methodsHeader := v2route.HeaderMatcher{
+	methodsHeader := xds_route.HeaderMatcher{
 		Name: MethodHeaderKey,
-		HeaderMatchSpecifier: &v2route.HeaderMatcher_SafeRegexMatch{
-			SafeRegexMatch: &matcher.RegexMatcher{
+		HeaderMatchSpecifier: &xds_route.HeaderMatcher_SafeRegexMatch{
+			SafeRegexMatch: &xds_matcher.RegexMatcher{
 				EngineType: regexEngine,
 				Regex:      getRegexForMethod(method),
 			},
@@ -154,10 +154,10 @@ func getHeadersForRoute(method string, headersMap map[string]string) []*v2route.
 		if headerKey == catalog.HostHeaderKey {
 			continue
 		}
-		header := v2route.HeaderMatcher{
+		header := xds_route.HeaderMatcher{
 			Name: headerKey,
-			HeaderMatchSpecifier: &v2route.HeaderMatcher_SafeRegexMatch{
-				SafeRegexMatch: &matcher.RegexMatcher{
+			HeaderMatchSpecifier: &xds_route.HeaderMatcher_SafeRegexMatch{
+				SafeRegexMatch: &xds_matcher.RegexMatcher{
 					EngineType: regexEngine,
 					Regex:      headerValue,
 				},
@@ -169,8 +169,8 @@ func getHeadersForRoute(method string, headersMap map[string]string) []*v2route.
 	return headers
 }
 
-func getWeightedCluster(weightedClusters set.Set, totalClustersWeight int, isLocalCluster bool) *v2route.WeightedCluster {
-	var wc v2route.WeightedCluster
+func getWeightedCluster(weightedClusters set.Set, totalClustersWeight int, isLocalCluster bool) *xds_route.WeightedCluster {
+	var wc xds_route.WeightedCluster
 	var total int
 	for clusterInterface := range weightedClusters.Iter() {
 		cluster := clusterInterface.(service.WeightedCluster)
@@ -179,7 +179,7 @@ func getWeightedCluster(weightedClusters set.Set, totalClustersWeight int, isLoc
 		if isLocalCluster {
 			clusterName += envoy.LocalClusterSuffix
 		}
-		wc.Clusters = append(wc.Clusters, &v2route.WeightedCluster_ClusterWeight{
+		wc.Clusters = append(wc.Clusters, &xds_route.WeightedCluster_ClusterWeight{
 			Name:   clusterName,
 			Weight: &wrappers.UInt32Value{Value: uint32(cluster.Weight)},
 		})
@@ -215,7 +215,7 @@ func getTotalWeightForClusters(weightedClusters set.Set) int {
 	return totalWeight
 }
 
-type clusterWeightByName []*v2route.WeightedCluster_ClusterWeight
+type clusterWeightByName []*xds_route.WeightedCluster_ClusterWeight
 
 func (c clusterWeightByName) Len() int      { return len(c) }
 func (c clusterWeightByName) Swap(i, j int) { c[i], c[j] = c[j], c[i] }
@@ -247,10 +247,10 @@ func sanitizeHTTPMethods(allowedMethods []string) []string {
 }
 
 //NewRouteConfigurationStub creates the route configuration placeholder
-func NewRouteConfigurationStub(routeConfigName string) *v2.RouteConfiguration {
-	routeConfiguration := v2.RouteConfiguration{
+func NewRouteConfigurationStub(routeConfigName string) *xds_route.RouteConfiguration {
+	routeConfiguration := xds_route.RouteConfiguration{
 		Name:             routeConfigName,
-		VirtualHosts:     []*v2route.VirtualHost{},
+		VirtualHosts:     []*xds_route.VirtualHost{},
 		ValidateClusters: &wrappers.BoolValue{Value: true},
 	}
 	return &routeConfiguration

@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"helm.sh/helm/v3/cmd/helm/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,12 +41,12 @@ func newNamespaceAdd(out io.Writer) *cobra.Command {
 			namespaceAdd.namespaces = args
 			config, err := settings.RESTClientGetter().ToRESTConfig()
 			if err != nil {
-				return fmt.Errorf("Error fetching kubeconfig")
+				return errors.Errorf("Error fetching kubeconfig")
 			}
 
 			clientset, err := kubernetes.NewForConfig(config)
 			if err != nil {
-				return fmt.Errorf("Could not access Kubernetes cluster. Check kubeconfig")
+				return errors.Errorf("Could not access Kubernetes cluster. Check kubeconfig")
 			}
 			namespaceAdd.clientSet = clientset
 			return namespaceAdd.run()
@@ -67,7 +68,7 @@ func (a *namespaceAddCmd) run() error {
 		patch := `{"metadata":{"labels":{"` + constants.OSMKubeResourceMonitorAnnotation + `":"` + a.meshName + `"}}}`
 		_, err := a.clientSet.CoreV1().Namespaces().Patch(ctx, ns, types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{}, "")
 		if err != nil {
-			return fmt.Errorf("Could not label namespace [%s]: %v", ns, err)
+			return errors.Errorf("Could not label namespace [%s]: %v", ns, err)
 		}
 
 		fmt.Fprintf(a.out, "Namespace [%s] succesfully added to mesh [%s]\n", ns, a.meshName)

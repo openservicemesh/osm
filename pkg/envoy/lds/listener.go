@@ -5,20 +5,19 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/openservicemesh/osm/pkg/envoy/route"
-
-	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	envoy_api_v2_core "github.com/envoyproxy/go-control-plane/envoy/api/v2/core"
-	listener "github.com/envoyproxy/go-control-plane/envoy/api/v2/listener"
-	envoy_hcm "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
-	tcp_proxy "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/tcp_proxy/v2"
+	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	xds_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
+	xds_tcp_proxy "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
+
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/wrappers"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/envoy/route"
 )
 
 const (
@@ -26,25 +25,26 @@ const (
 	outboundEgressFilterChainName = "outbound-egress-filter-chain"
 )
 
-func newOutboundListener(cfg configurator.Configurator) (*xds.Listener, error) {
+func newOutboundListener(cfg configurator.Configurator) (*xds_listener.Listener, error) {
 	connManager := getHTTPConnectionManager(route.OutboundRouteConfigName, cfg)
+
 	marshalledConnManager, err := ptypes.MarshalAny(connManager)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshalling HttpConnectionManager object")
 		return nil, err
 	}
 
-	outboundListener := &xds.Listener{
+	outboundListener := &xds_listener.Listener{
 		Name:             outboundListenerName,
 		Address:          envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyOutboundListenerPort),
-		TrafficDirection: envoy_api_v2_core.TrafficDirection_OUTBOUND,
-		FilterChains: []*listener.FilterChain{
+		TrafficDirection: xds_core.TrafficDirection_OUTBOUND,
+		FilterChains: []*xds_listener.FilterChain{
 			{
 				Name: outboundMeshFilterChainName,
-				Filters: []*listener.Filter{
+				Filters: []*xds_listener.Filter{
 					{
 						Name: wellknown.HTTPConnectionManager,
-						ConfigType: &listener.Filter_TypedConfig{
+						ConfigType: &xds_listener.Filter_TypedConfig{
 							TypedConfig: marshalledConnManager,
 						},
 					},
@@ -64,7 +64,7 @@ func newOutboundListener(cfg configurator.Configurator) (*xds.Listener, error) {
 	return outboundListener, nil
 }
 
-func updateOutboundListenerForEgress(outboundListener *xds.Listener, cfg configurator.Configurator) error {
+func updateOutboundListenerForEgress(outboundListener *xds_listener.Listener, cfg configurator.Configurator) error {
 	// When egress, the in-mesh CIDR is used to distinguish in-mesh traffic
 	meshCIDRRanges := cfg.GetMeshCIDRRanges()
 	if len(meshCIDRRanges) == 0 {
@@ -72,7 +72,7 @@ func updateOutboundListenerForEgress(outboundListener *xds.Listener, cfg configu
 		return errInvalidCIDRRange
 	}
 
-	var prefixRanges []*envoy_api_v2_core.CidrRange
+	var prefixRanges []*xds_core.CidrRange
 
 	for _, cidr := range meshCIDRRanges {
 		cidrRange, err := getCIDRRange(cidr)
@@ -82,7 +82,7 @@ func updateOutboundListenerForEgress(outboundListener *xds.Listener, cfg configu
 		}
 		prefixRanges = append(prefixRanges, cidrRange)
 	}
-	outboundListener.FilterChains[0].FilterChainMatch = &listener.FilterChainMatch{
+	outboundListener.FilterChains[0].FilterChainMatch = &xds_listener.FilterChainMatch{
 		PrefixRanges: prefixRanges,
 	}
 
@@ -101,13 +101,13 @@ func updateOutboundListenerForEgress(outboundListener *xds.Listener, cfg configu
 	return nil
 }
 
-func newInboundListener() *xds.Listener {
-	return &xds.Listener{
+func newInboundListener() *xds_listener.Listener {
+	return &xds_listener.Listener{
 		Name:             inboundListenerName,
 		Address:          envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyInboundListenerPort),
-		TrafficDirection: envoy_api_v2_core.TrafficDirection_INBOUND,
-		FilterChains:     []*listener.FilterChain{},
-		ListenerFilters: []*listener.ListenerFilter{
+		TrafficDirection: xds_core.TrafficDirection_INBOUND,
+		FilterChains:     []*xds_listener.FilterChain{},
+		ListenerFilters: []*xds_listener.ListenerFilter{
 			{
 				Name: wellknown.TlsInspector,
 			},
@@ -115,23 +115,23 @@ func newInboundListener() *xds.Listener {
 	}
 }
 
-func buildPrometheusListener(connManager *envoy_hcm.HttpConnectionManager) (*xds.Listener, error) {
+func buildPrometheusListener(connManager *xds_hcm.HttpConnectionManager) (*xds_listener.Listener, error) {
 	marshalledConnManager, err := ptypes.MarshalAny(connManager)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshalling HttpConnectionManager object")
 		return nil, err
 	}
 
-	return &xds.Listener{
+	return &xds_listener.Listener{
 		Name:             prometheusListenerName,
-		TrafficDirection: envoy_api_v2_core.TrafficDirection_INBOUND,
+		TrafficDirection: xds_core.TrafficDirection_INBOUND,
 		Address:          envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyPrometheusInboundListenerPort),
-		FilterChains: []*listener.FilterChain{
+		FilterChains: []*xds_listener.FilterChain{
 			{
-				Filters: []*listener.Filter{
+				Filters: []*xds_listener.Filter{
 					{
 						Name: wellknown.HTTPConnectionManager,
-						ConfigType: &listener.Filter_TypedConfig{
+						ConfigType: &xds_listener.Filter_TypedConfig{
 							TypedConfig: marshalledConnManager,
 						},
 					},
@@ -141,10 +141,10 @@ func buildPrometheusListener(connManager *envoy_hcm.HttpConnectionManager) (*xds
 	}, nil
 }
 
-func buildEgressFilterChain() (*listener.FilterChain, error) {
-	tcpProxy := &tcp_proxy.TcpProxy{
+func buildEgressFilterChain() (*xds_listener.FilterChain, error) {
+	tcpProxy := &xds_tcp_proxy.TcpProxy{
 		StatPrefix:       envoy.OutboundPassthroughCluster,
-		ClusterSpecifier: &tcp_proxy.TcpProxy_Cluster{Cluster: envoy.OutboundPassthroughCluster},
+		ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{Cluster: envoy.OutboundPassthroughCluster},
 	}
 	marshalledTCPProxy, err := envoy.MessageToAny(tcpProxy)
 	if err != nil {
@@ -152,19 +152,19 @@ func buildEgressFilterChain() (*listener.FilterChain, error) {
 		return nil, err
 	}
 
-	return &listener.FilterChain{
+	return &xds_listener.FilterChain{
 		Name: outboundEgressFilterChainName,
-		Filters: []*listener.Filter{
+		Filters: []*xds_listener.Filter{
 			{
 				Name:       wellknown.TCPProxy,
-				ConfigType: &listener.Filter_TypedConfig{TypedConfig: marshalledTCPProxy},
+				ConfigType: &xds_listener.Filter_TypedConfig{TypedConfig: marshalledTCPProxy},
 			},
 		},
 	}, nil
 }
 
-func buildEgressListenerFilters() []*listener.ListenerFilter {
-	return []*listener.ListenerFilter{
+func buildEgressListenerFilters() []*xds_listener.ListenerFilter {
+	return []*xds_listener.ListenerFilter{
 		{
 			// The OriginalDestination ListenerFilter is used to redirect traffic
 			// to its original destination.
@@ -194,13 +194,13 @@ func parseCIDR(cidr string) (string, uint32, error) {
 	return addr, uint32(prefix), nil
 }
 
-func getCIDRRange(cidr string) (*envoy_api_v2_core.CidrRange, error) {
+func getCIDRRange(cidr string) (*xds_core.CidrRange, error) {
 	addr, prefix, err := parseCIDR(cidr)
 	if err != nil {
 		return nil, err
 	}
 
-	cidrRange := &envoy_api_v2_core.CidrRange{
+	cidrRange := &xds_core.CidrRange{
 		AddressPrefix: addr,
 		PrefixLen: &wrappers.UInt32Value{
 			Value: prefix,

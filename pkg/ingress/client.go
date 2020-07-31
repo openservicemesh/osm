@@ -76,10 +76,12 @@ func (c Client) GetIngressResources(nsService service.NamespacedService) ([]*ext
 			log.Error().Msg("Failed type assertion for Ingress in ingress cache")
 			continue
 		}
-		// TODO(check if needed): Check if the ingress resource belongs to the overall list of monitored namespaces
+
+		// Extra safety - make sure we do not pay attention to Ingresses outside of observed namespaces
 		if !c.namespaceController.IsMonitoredNamespace(ingress.Namespace) {
 			continue
 		}
+
 		// Check if the ingress resource belongs to the same namespace as the service
 		if ingress.Namespace != nsService.Namespace {
 			// The ingress resource does not belong to the namespace of the service

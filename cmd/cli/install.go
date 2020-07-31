@@ -152,7 +152,7 @@ func (i *installCmd) run(config *helm.Configuration) error {
 	meshNameErrs := validation.IsDNS1123Label(i.meshName)
 
 	if len(meshNameErrs) != 0 {
-		return fmt.Errorf("Invalid mesh-name: %v", meshNameErrs)
+		return errors.Errorf("Invalid mesh-name: %v", meshNameErrs)
 	}
 
 	if strings.EqualFold(i.certManager, "vault") {
@@ -164,14 +164,14 @@ func (i *installCmd) run(config *helm.Configuration) error {
 			missingFields = append(missingFields, "vault-token")
 		}
 		if len(missingFields) != 0 {
-			return fmt.Errorf("Missing arguments for cert-manager vault: %v", missingFields)
+			return errors.Errorf("Missing arguments for cert-manager vault: %v", missingFields)
 		}
 	}
 
 	// Validate CIDR ranges if egress is enabled
 	if i.enableEgress {
 		if err := validateCIDRs(i.meshCIDRRanges); err != nil {
-			return fmt.Errorf("Invalid mesh-cidr-ranges: %q, error: %v", i.meshCIDRRanges, err)
+			return errors.Errorf("Invalid mesh-cidr-ranges: %q, error: %v. Valid mesh CIDR ranges must be specified with egress enabled.", i.meshCIDRRanges, err)
 		}
 	}
 
@@ -239,18 +239,18 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 }
 
 func errMeshAlreadyExists(name string) error {
-	return fmt.Errorf("Mesh %s already exists in cluster. Please specify a new mesh name using --mesh-name", name)
+	return errors.Errorf("Mesh %s already exists in cluster. Please specify a new mesh name using --mesh-name", name)
 }
 
 func validateCIDRs(cidrRanges []string) error {
 	if len(cidrRanges) == 0 {
-		return fmt.Errorf("CIDR ranges cannot be empty")
+		return errors.Errorf("CIDR ranges cannot be empty when `enable-egress` option is true`")
 	}
 	for _, cidr := range cidrRanges {
 		cidrNoSpaces := strings.Replace(cidr, " ", "", -1)
 		_, _, err := net.ParseCIDR(cidrNoSpaces)
 		if err != nil {
-			return fmt.Errorf("Error parsing CIDR %s", cidr)
+			return errors.Errorf("Error parsing CIDR %s", cidr)
 		}
 	}
 	return nil

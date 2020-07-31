@@ -1,30 +1,31 @@
 package cds
 
 import (
-	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	envoyEndpoint "github.com/envoyproxy/go-control-plane/envoy/api/v2/endpoint"
+	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
+	xds_endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
+
 	"github.com/golang/protobuf/ptypes"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 )
 
-func getZipkinCluster(zipkinHostname string) xds.Cluster {
-	return xds.Cluster{
+func getZipkinCluster(zipkinHostname string) xds_cluster.Cluster {
+	return xds_cluster.Cluster{
 		Name:           constants.EnvoyZipkinCluster,
 		AltStatName:    constants.EnvoyZipkinCluster,
 		ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
-		ClusterDiscoveryType: &xds.Cluster_Type{
-			Type: xds.Cluster_LOGICAL_DNS,
+		ClusterDiscoveryType: &xds_cluster.Cluster_Type{
+			Type: xds_cluster.Cluster_LOGICAL_DNS,
 		},
-		LbPolicy: xds.Cluster_ROUND_ROBIN,
-		LoadAssignment: &xds.ClusterLoadAssignment{
+		LbPolicy: xds_cluster.Cluster_ROUND_ROBIN,
+		LoadAssignment: &xds_endpoint.ClusterLoadAssignment{
 			ClusterName: constants.EnvoyZipkinCluster,
-			Endpoints: []*envoyEndpoint.LocalityLbEndpoints{
+			Endpoints: []*xds_endpoint.LocalityLbEndpoints{
 				{
-					LbEndpoints: []*envoyEndpoint.LbEndpoint{{
-						HostIdentifier: &envoyEndpoint.LbEndpoint_Endpoint{
-							Endpoint: &envoyEndpoint.Endpoint{
+					LbEndpoints: []*xds_endpoint.LbEndpoint{{
+						HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
+							Endpoint: &xds_endpoint.Endpoint{
 								Address: envoy.GetAddress(zipkinHostname, constants.EnvoyZipkinPort),
 							},
 						},

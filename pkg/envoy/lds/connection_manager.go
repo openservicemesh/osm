@@ -1,10 +1,10 @@
 package lds
 
 import (
-	v2 "github.com/envoyproxy/go-control-plane/envoy/api/v2"
-	envoy_route "github.com/envoyproxy/go-control-plane/envoy/api/v2/route"
-	envoy_hcm "github.com/envoyproxy/go-control-plane/envoy/config/filter/network/http_connection_manager/v2"
+	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	xds_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
+
 	"github.com/golang/protobuf/ptypes/wrappers"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -16,15 +16,16 @@ const (
 	statPrefix = "http"
 )
 
-func getHTTPConnectionManager(routeName string, cfg configurator.Configurator) *envoy_hcm.HttpConnectionManager {
-	connManager := envoy_hcm.HttpConnectionManager{
+func getHTTPConnectionManager(routeName string, cfg configurator.Configurator) *xds_hcm.HttpConnectionManager {
+	connManager := xds_hcm.HttpConnectionManager{
 		StatPrefix: statPrefix,
-		CodecType:  envoy_hcm.HttpConnectionManager_AUTO,
-		HttpFilters: []*envoy_hcm.HttpFilter{{
+		CodecType:  xds_hcm.HttpConnectionManager_AUTO,
+		HttpFilters: []*xds_hcm.HttpFilter{{
 			Name: wellknown.Router,
 		}},
-		RouteSpecifier: &envoy_hcm.HttpConnectionManager_Rds{
-			Rds: &envoy_hcm.Rds{
+
+		RouteSpecifier: &xds_hcm.HttpConnectionManager_Rds{
+			Rds: &xds_hcm.Rds{
 				ConfigSource:    envoy.GetADSConfigSource(),
 				RouteConfigName: routeName,
 			},
@@ -36,7 +37,7 @@ func getHTTPConnectionManager(routeName string, cfg configurator.Configurator) *
 		connManager.GenerateRequestId = &wrappers.BoolValue{
 			Value: true,
 		}
-		connManager.Tracing = &envoy_hcm.HttpConnectionManager_Tracing{
+		connManager.Tracing = &xds_hcm.HttpConnectionManager_Tracing{
 			Verbose: true,
 		}
 	}
@@ -44,27 +45,27 @@ func getHTTPConnectionManager(routeName string, cfg configurator.Configurator) *
 	return &connManager
 }
 
-func getPrometheusConnectionManager(listenerName string, routeName string, clusterName string) *envoy_hcm.HttpConnectionManager {
-	return &envoy_hcm.HttpConnectionManager{
+func getPrometheusConnectionManager(listenerName string, routeName string, clusterName string) *xds_hcm.HttpConnectionManager {
+	return &xds_hcm.HttpConnectionManager{
 		StatPrefix: listenerName,
-		CodecType:  envoy_hcm.HttpConnectionManager_AUTO,
-		HttpFilters: []*envoy_hcm.HttpFilter{{
+		CodecType:  xds_hcm.HttpConnectionManager_AUTO,
+		HttpFilters: []*xds_hcm.HttpFilter{{
 			Name: wellknown.Router,
 		}},
-		RouteSpecifier: &envoy_hcm.HttpConnectionManager_RouteConfig{
-			RouteConfig: &v2.RouteConfiguration{
-				VirtualHosts: []*envoy_route.VirtualHost{{
+		RouteSpecifier: &xds_hcm.HttpConnectionManager_RouteConfig{
+			RouteConfig: &xds_route.RouteConfiguration{
+				VirtualHosts: []*xds_route.VirtualHost{{
 					Name:    "prometheus_envoy_admin",
 					Domains: []string{"*"},
-					Routes: []*envoy_route.Route{{
-						Match: &envoy_route.RouteMatch{
-							PathSpecifier: &envoy_route.RouteMatch_Prefix{
+					Routes: []*xds_route.Route{{
+						Match: &xds_route.RouteMatch{
+							PathSpecifier: &xds_route.RouteMatch_Prefix{
 								Prefix: routeName,
 							},
 						},
-						Action: &envoy_route.Route_Route{
-							Route: &envoy_route.RouteAction{
-								ClusterSpecifier: &envoy_route.RouteAction_Cluster{
+						Action: &xds_route.Route_Route{
+							Route: &xds_route.RouteAction{
+								ClusterSpecifier: &xds_route.RouteAction_Cluster{
 									Cluster: clusterName,
 								},
 								PrefixRewrite: constants.PrometheusScrapePath,

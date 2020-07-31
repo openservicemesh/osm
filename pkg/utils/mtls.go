@@ -4,8 +4,8 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"fmt"
 
+	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
@@ -18,14 +18,14 @@ import (
 func setupMutualTLS(insecure bool, serverName string, certPem []byte, keyPem []byte, ca []byte) (grpc.ServerOption, error) {
 	certif, err := tls.X509KeyPair(certPem, keyPem)
 	if err != nil {
-		return nil, fmt.Errorf("[grpc][mTLS][%s] Failed loading Certificate (%+v) and Key (%+v) PEM files", serverName, certPem, keyPem)
+		return nil, errors.Errorf("[grpc][mTLS][%s] Failed loading Certificate (%+v) and Key (%+v) PEM files", serverName, certPem, keyPem)
 	}
 
 	certPool := x509.NewCertPool()
 
 	// Load the set of Root CAs
 	if ok := certPool.AppendCertsFromPEM(ca); !ok {
-		return nil, fmt.Errorf("[grpc][mTLS][%s] Filed to append client certs", serverName)
+		return nil, errors.Errorf("[grpc][mTLS][%s] Filed to append client certs", serverName)
 	}
 
 	tlsConfig := tls.Config{

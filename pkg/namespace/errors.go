@@ -1,6 +1,6 @@
 package namespace
 
-import "errors"
+import "github.com/pkg/errors"
 
 var (
 	errSyncingCaches = errors.New("Failed initial cache sync for Namespace informers")

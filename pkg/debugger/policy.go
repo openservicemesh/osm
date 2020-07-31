@@ -22,6 +22,17 @@ type policies struct {
 	Services         []*corev1.Service           `json:"services"`
 }
 
+func (ds debugServer) getOSMConfigHandler() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		confJSON, err := ds.configurator.GetConfigMap()
+		if err != nil {
+			log.Error().Err(err)
+			return
+		}
+		_, _ = fmt.Fprint(w, string(confJSON))
+	})
+}
+
 func (ds debugServer) getSMIPoliciesHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 

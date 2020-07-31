@@ -108,18 +108,17 @@ func (mc *MeshCatalog) ListAllowedOutboundServices(sourceService service.Namespa
 }
 
 //GetWeightedClusterForService returns the weighted cluster for a given service
-func (mc *MeshCatalog) GetWeightedClusterForService(nsService service.NamespacedService) (service.WeightedCluster, error) {
-	// TODO(draychev): split namespace from the service name -- for non-K8s services
-	log.Trace().Msgf("Finding weighted cluster for service %s", nsService)
+func (mc *MeshCatalog) GetWeightedClusterForService(svc service.NamespacedService) (service.WeightedCluster, error) {
+	log.Trace().Msgf("Finding weighted cluster for service %s", svc)
 
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
-		return getDefaultWeightedClusterForService(nsService), nil
+		return getDefaultWeightedClusterForService(svc), nil
 	}
 
 	// Retrieve the weighted clusters from traffic split
 	servicesList := mc.meshSpec.ListTrafficSplitServices()
 	for _, activeService := range servicesList {
-		if activeService.NamespacedService == nsService {
+		if activeService.NamespacedService == svc {
 			return service.WeightedCluster{
 				ClusterName: service.ClusterName(activeService.NamespacedService.String()),
 				Weight:      activeService.Weight,
@@ -128,7 +127,7 @@ func (mc *MeshCatalog) GetWeightedClusterForService(nsService service.Namespaced
 	}
 
 	// Use a default weighted cluster as an SMI TrafficSplit policy is not defined for the service
-	return getDefaultWeightedClusterForService(nsService), nil
+	return getDefaultWeightedClusterForService(svc), nil
 }
 
 //GetDomainForService returns the domain name of a service
@@ -147,8 +146,33 @@ func (mc *MeshCatalog) GetDomainForService(nsService service.NamespacedService, 
 		}
 	}
 
-	// Use the host header as an SMI TrafficSplit policy is not defined for the service
-	return getHostHeaderFromRouteHeaders(routeHeaders)
+	// Use the augmented domains from k8s service since an
+	// SMI TrafficSplit policy is not defined for the service
+	hostHeader, err := getHostHeaderFromRouteHeaders(routeHeaders)
+	if err != nil {
+		log.Warn().Msgf("Found host header %s, but using service hostnames instead", hostHeader)
+	}
+	services, err := mc.meshSpec.ListServices()
+	if err != nil {
+		return "", err
+	}
+	var currentService *corev1.Service
+	for _, service := range services {
+		if service.Name == nsService.Service && service.Namespace == nsService.Namespace {
+			currentService = service
+			break
+		}
+	}
+
+	if currentService == nil {
+		log.Error().Err(errServiceNotFound).Msgf("Could not find %s", nsService)
+		return "", errServiceNotFound
+	}
+
+	hostList := kubernetes.GetDomainsForService(currentService)
+	host := strings.Join(hostList, ",")
+
+	return host, nil
 }
 
 func (mc *MeshCatalog) getHTTPPathsPerRoute() (map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.Route, error) {

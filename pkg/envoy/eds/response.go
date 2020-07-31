@@ -3,7 +3,8 @@ package eds
 import (
 	"context"
 
-	xds "github.com/envoyproxy/go-control-plane/envoy/api/v2"
+	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 
@@ -17,7 +18,7 @@ import (
 )
 
 // NewResponse creates a new Endpoint Discovery Response.
-func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, request *xds.DiscoveryRequest, cfg configurator.Configurator) (*xds.DiscoveryResponse, error) {
+func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, cfg configurator.Configurator) (*xds_discovery.DiscoveryResponse, error) {
 	svc, err := catalog.GetServiceFromEnvoyCertificate(proxy.GetCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up Service for Envoy with CN=%q", proxy.GetCommonName())
@@ -58,7 +59,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 		protos = append(protos, proto)
 	}
 
-	resp := &xds.DiscoveryResponse{
+	resp := &xds_discovery.DiscoveryResponse{
 		Resources: protos,
 		TypeUrl:   string(envoy.TypeEDS),
 	}
