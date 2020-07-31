@@ -4,8 +4,8 @@ digraph G {
     ranksep="0";
     edge [minlen=2];
 
-    gh [label="github.com"]
-    {bookbuyer bookthief} -> gh
+    gh [label="github.com" shape=rect];
+    {bookbuyer bookthief} -> gh;
     {bookbuyer bookthief} -> b1 [lhead=cluster0];
 
     subgraph cluster0 {
