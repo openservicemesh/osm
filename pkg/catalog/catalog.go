@@ -48,12 +48,6 @@ func (mc *MeshCatalog) GetSMISpec() smi.MeshSpec {
 	return mc.meshSpec
 }
 
-// RegisterNewEndpoint adds a newly connected Envoy proxy to the list of self-announced endpoints for a service.
-func (mc *MeshCatalog) RegisterNewEndpoint(smi.ClientIdentity) {
-	// TODO(draychev): implement
-	panic("NotImplemented")
-}
-
 func (mc *MeshCatalog) getAnnouncementChannels() []announcementChannel {
 	ticking := make(chan interface{})
 	announcementChannels := []announcementChannel{
