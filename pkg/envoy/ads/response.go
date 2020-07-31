@@ -48,27 +48,27 @@ func (s *Server) sendAllResponses(proxy *envoy.Proxy, server *xds_discovery.Aggr
 func makeRequestForAllSecrets(proxy *envoy.Proxy, catalog catalog.MeshCataloger) *xds_discovery.DiscoveryRequest {
 	serviceForProxy, err := catalog.GetServiceFromEnvoyCertificate(proxy.GetCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up Service for Envoy with CN=%q", proxy.GetCommonName())
+		log.Error().Err(err).Msgf("Error looking up MeshService for Envoy with CN=%q", proxy.GetCommonName())
 		return nil
 	}
 
 	return &xds_discovery.DiscoveryRequest{
 		ResourceNames: []string{
 			envoy.SDSCert{
-				Service:  *serviceForProxy,
-				CertType: envoy.ServiceCertType,
+				MeshService: *serviceForProxy,
+				CertType:    envoy.ServiceCertType,
 			}.String(),
 			envoy.SDSCert{
-				Service:  *serviceForProxy,
-				CertType: envoy.RootCertTypeForMTLSOutbound,
+				MeshService: *serviceForProxy,
+				CertType:    envoy.RootCertTypeForMTLSOutbound,
 			}.String(),
 			envoy.SDSCert{
-				Service:  *serviceForProxy,
-				CertType: envoy.RootCertTypeForMTLSInbound,
+				MeshService: *serviceForProxy,
+				CertType:    envoy.RootCertTypeForMTLSInbound,
 			}.String(),
 			envoy.SDSCert{
-				Service:  *serviceForProxy,
-				CertType: envoy.RootCertTypeForHTTPS,
+				MeshService: *serviceForProxy,
+				CertType:    envoy.RootCertTypeForHTTPS,
 			}.String(),
 		},
 		TypeUrl: string(envoy.TypeSDS),

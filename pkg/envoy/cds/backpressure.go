@@ -11,7 +11,7 @@ func enableBackpressure(meshSpec smi.MeshSpec, remoteCluster *xds_cluster.Cluste
 	// TODO: Add specific backpressure settings for individual clients
 	backpressures := meshSpec.ListBackpressures()
 
-	// TODO: filter backpressures on labels (backpressures[i].ObjectMeta.Labels) that match that of the destination service (trafficPolicies.Destination.Service)
+	// TODO: filter backpressures on labels (backpressures[i].ObjectMeta.Labels) that match that of the destination service (trafficPolicies.Destination.MeshService)
 
 	log.Trace().Msgf("Backpressures (%d found): %+v", len(backpressures), backpressures)
 

@@ -68,7 +68,7 @@ func (c Client) GetAnnouncementsChannel() <-chan interface{} {
 }
 
 // GetIngressResources returns the ingress resources whose backends correspond to the service
-func (c Client) GetIngressResources(nsService service.NamespacedService) ([]*extensionsV1beta.Ingress, error) {
+func (c Client) GetIngressResources(meshService service.MeshService) ([]*extensionsV1beta.Ingress, error) {
 	var ingressResources []*extensionsV1beta.Ingress
 	for _, ingressInterface := range c.cache.List() {
 		ingress, ok := ingressInterface.(*extensionsV1beta.Ingress)
@@ -83,11 +83,11 @@ func (c Client) GetIngressResources(nsService service.NamespacedService) ([]*ext
 		}
 
 		// Check if the ingress resource belongs to the same namespace as the service
-		if ingress.Namespace != nsService.Namespace {
+		if ingress.Namespace != meshService.Namespace {
 			// The ingress resource does not belong to the namespace of the service
 			continue
 		}
-		if backend := ingress.Spec.Backend; backend != nil && backend.ServiceName == nsService.Service {
+		if backend := ingress.Spec.Backend; backend != nil && backend.ServiceName == meshService.Name {
 			// Default backend service
 			ingressResources = append(ingressResources, ingress)
 			continue
@@ -96,7 +96,7 @@ func (c Client) GetIngressResources(nsService service.NamespacedService) ([]*ext
 	ingressRule:
 		for _, rule := range ingress.Spec.Rules {
 			for _, path := range rule.HTTP.Paths {
-				if path.Backend.ServiceName == nsService.Service {
+				if path.Backend.ServiceName == meshService.Name {
 					ingressResources = append(ingressResources, ingress)
 					break ingressRule
 				}

@@ -63,7 +63,7 @@ var (
 var (
 	flags               = pflag.NewFlagSet(`ads`, pflag.ExitOnError)
 	azureSubscriptionID = flags.String("azure-subscription-id", "", "Azure Subscription ID")
-	port                = flags.Int("port", constants.OSMControllerPort, "Aggregated Discovery Service port number.")
+	port                = flags.Int("port", constants.OSMControllerPort, "Aggregated Discovery MeshService port number.")
 	log                 = logger.New("ads/main")
 
 	// What is the Certification Authority to be used
@@ -75,7 +75,7 @@ var (
 	vaultHost     = flags.String("vault-host", "vault.default.svc.cluster.local", "Host name of the Hashi Vault")
 	vaultPort     = flags.Int("vault-port", 8200, "Port of the Hashi Vault")
 	vaultToken    = flags.String("vault-token", "", "Secret token for the the Hashi Vault")
-	vaultRole     = flags.String("vault-role", "openservicemesh", "Name of the Vault role dedicated to Open Service Mesh")
+	vaultRole     = flags.String("vault-role", "openservicemesh", "Name of the Vault role dedicated to Open MeshService Mesh")
 )
 
 func init() {
@@ -150,7 +150,7 @@ func main() {
 		log.Fatal().Err(err).Msgf("Failed to get certificate manager based on CLI argument")
 	}
 
-	log.Info().Msgf("Service certificates will be valid for %+v", getServiceCertValidityPeriod())
+	log.Info().Msgf("MeshService certificates will be valid for %+v", getServiceCertValidityPeriod())
 
 	if caBundleSecretName == "" {
 		log.Info().Msgf("CA bundle will not be exported to a k8s secret (no --%s provided)", caBundleSecretNameCLIParam)

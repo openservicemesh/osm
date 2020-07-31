@@ -40,7 +40,7 @@ func NewProvider(subscriptionID string, azureAuthFile string, stop chan struct{}
 		meshSpec:       meshSpec,
 		providerID:     providerIdent,
 
-		// AzureResource Client is needed here so the Azure EndpointsProvider can resolve a Kubernetes ServiceName
+		// AzureResource Client is needed here so the Azure EndpointsProvider can resolve a Kubernetes MeshService
 		// into an Azure URI. (Example: resolve "webService" to an IP of a VM.)
 		azureResourceClient: azureResourceClient,
 

@@ -77,7 +77,7 @@ const (
 	PrometheusScrapePath = "/stats/prometheus"
 
 	// CertificationAuthorityCommonName is the CN used for the root certificate for OSM.
-	CertificationAuthorityCommonName = "Open Service Mesh Certification Authority"
+	CertificationAuthorityCommonName = "Open MeshService Mesh Certification Authority"
 
 	// CertificationAuthorityRootValidityPeriod is when the root certificate expires
 	CertificationAuthorityRootValidityPeriod = 87600 * time.Hour // a decade

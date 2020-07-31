@@ -15,8 +15,8 @@ var _ = Describe("Test Kubernetes Provider", func() {
 	Context("Testing ListServicesForServiceAccount", func() {
 		It("returns empty list", func() {
 			c := NewFakeProvider()
-			svc := service.NamespacedService{
-				Service: "blah",
+			svc := service.MeshService{
+				Name: "blah",
 			}
 			Ω(func() { c.ListEndpointsForService(svc) }).Should(Panic())
 

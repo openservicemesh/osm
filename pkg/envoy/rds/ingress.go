@@ -7,7 +7,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
-func updateRoutesForIngress(svc service.NamespacedService, catalog catalog.MeshCataloger, routesPerHost map[string]map[string]trafficpolicy.RouteWeightedClusters) error {
+func updateRoutesForIngress(svc service.MeshService, catalog catalog.MeshCataloger, routesPerHost map[string]map[string]trafficpolicy.RouteWeightedClusters) error {
 	ingressRoutesPerHost, err := catalog.GetIngressRoutesPerHost(svc)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to get ingress route configuration for proxy %s", svc)

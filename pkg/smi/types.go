@@ -47,7 +47,7 @@ type Client struct {
 	namespaceController namespace.Controller
 }
 
-// ClientIdentity is the identity of an Envoy proxy connected to the Open Service Mesh.
+// ClientIdentity is the identity of an Envoy proxy connected to the Open MeshService Mesh.
 type ClientIdentity string
 
 // MeshSpec is an interface declaring functions, which provide the specs for a service mesh declared with SMI.
@@ -62,7 +62,7 @@ type MeshSpec interface {
 	ListServiceAccounts() []service.K8sServiceAccount
 
 	// GetService fetches a specific service declared in SMI.
-	GetService(service.NamespacedService) (service *corev1.Service, exists bool, err error)
+	GetService(service.MeshService) (service *corev1.Service, exists bool, err error)
 
 	// ListHTTPTrafficSpecs lists TrafficSpec SMI resources.
 	ListHTTPTrafficSpecs() []*spec.HTTPRouteGroup

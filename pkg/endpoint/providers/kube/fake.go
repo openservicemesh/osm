@@ -16,7 +16,7 @@ func NewFakeProvider() endpoint.Provider {
 			tests.BookstoreService.String(): {tests.Endpoint},
 			tests.BookbuyerService.String(): {tests.Endpoint},
 		},
-		services: map[service.K8sServiceAccount]service.NamespacedService{
+		services: map[service.K8sServiceAccount]service.MeshService{
 			tests.BookstoreServiceAccount: tests.BookstoreService,
 			tests.BookbuyerServiceAccount: tests.BookbuyerService,
 		},
@@ -25,18 +25,18 @@ func NewFakeProvider() endpoint.Provider {
 
 type fakeClient struct {
 	endpoints map[string][]endpoint.Endpoint
-	services  map[service.K8sServiceAccount]service.NamespacedService
+	services  map[service.K8sServiceAccount]service.MeshService
 }
 
 // Retrieve the IP addresses comprising the given service.
-func (f fakeClient) ListEndpointsForService(svc service.NamespacedService) []endpoint.Endpoint {
+func (f fakeClient) ListEndpointsForService(svc service.MeshService) []endpoint.Endpoint {
 	if svc, ok := f.endpoints[svc.String()]; ok {
 		return svc
 	}
-	panic(fmt.Sprintf("You are asking for ServiceName=%s but the fake Kubernetes client has not been initialized with this. What we have is: %+v", svc.String(), f.endpoints))
+	panic(fmt.Sprintf("You are asking for MeshService=%s but the fake Kubernetes client has not been initialized with this. What we have is: %+v", svc.String(), f.endpoints))
 }
 
-func (f fakeClient) GetServiceForServiceAccount(svcAccount service.K8sServiceAccount) (service.NamespacedService, error) {
+func (f fakeClient) GetServiceForServiceAccount(svcAccount service.K8sServiceAccount) (service.MeshService, error) {
 	services, ok := f.services[svcAccount]
 	if !ok {
 		panic(fmt.Sprintf("You asked fake k8s provider's GetServiceForServiceAccount for a Name=%s, but that's not in cache: %+v", svcAccount, f.services))

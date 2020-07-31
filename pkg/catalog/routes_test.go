@@ -52,15 +52,9 @@ var _ = Describe("Catalog tests", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			expected := []trafficpolicy.TrafficTarget{{
-				Name: tests.TrafficTargetName,
-				Destination: trafficpolicy.TrafficResource{
-					Namespace: tests.Namespace,
-					Service:   tests.BookstoreService,
-				},
-				Source: trafficpolicy.TrafficResource{
-					Namespace: tests.Namespace,
-					Service:   tests.BookbuyerService,
-				},
+				Name:        tests.TrafficTargetName,
+				Destination: tests.BookstoreService,
+				Source:      tests.BookbuyerService,
 				Route: trafficpolicy.Route{PathRegex: tests.BookstoreBuyPath, Methods: []string{"GET"}, Headers: map[string]string{
 					"host": tests.Domain,
 				}},
@@ -114,7 +108,7 @@ var _ = Describe("Catalog tests", func() {
 			mc := NewFakeMeshCatalog(testclient.NewSimpleClientset())
 			actualList, err := mc.ListAllowedInboundServices(tests.BookstoreService)
 			Expect(err).ToNot(HaveOccurred())
-			expectedList := []service.NamespacedService{tests.BookbuyerService}
+			expectedList := []service.MeshService{tests.BookbuyerService}
 			Expect(actualList).To(Equal(expectedList))
 		})
 	})
@@ -125,20 +119,14 @@ var _ = Describe("Catalog tests", func() {
 				tests.SelectorKey: tests.SelectorValue,
 			}
 			source := tests.NewServiceFixture(tests.BookbuyerServiceName, tests.Namespace, selectors)
-			expectedSourceTrafficResource := trafficpolicy.TrafficResource{
+			expectedSourceTrafficResource := service.MeshService{
 				Namespace: source.Namespace,
-				Service: service.NamespacedService{
-					Namespace: source.Namespace,
-					Service:   source.Name,
-				},
+				Name:      source.Name,
 			}
 			destination := tests.NewServiceFixture(tests.BookstoreServiceName, tests.Namespace, selectors)
-			expectedDestinationTrafficResource := trafficpolicy.TrafficResource{
+			expectedDestinationTrafficResource := service.MeshService{
 				Namespace: destination.Namespace,
-				Service: service.NamespacedService{
-					Namespace: destination.Namespace,
-					Service:   destination.Name,
-				},
+				Name:      destination.Name,
 			}
 
 			expectedHostHeaders := map[string]string{HostHeaderKey: tests.BookstoreServiceName}
@@ -161,7 +149,7 @@ var _ = Describe("Catalog tests", func() {
 			mc := NewFakeMeshCatalog(testclient.NewSimpleClientset())
 			actualList, err := mc.ListAllowedOutboundServices(tests.BookbuyerService)
 			Expect(err).ToNot(HaveOccurred())
-			expectedList := []service.NamespacedService{tests.BookstoreService}
+			expectedList := []service.MeshService{tests.BookstoreService}
 			Expect(actualList).To(Equal(expectedList))
 
 		})

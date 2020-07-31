@@ -18,7 +18,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/smi"
 )
 
-// NewADSServer creates a new Aggregated Discovery Service server
+// NewADSServer creates a new Aggregated Discovery MeshService server
 func NewADSServer(ctx context.Context, meshCatalog catalog.MeshCataloger, meshSpec smi.MeshSpec, enableDebug bool, osmNamespace string, cfg configurator.Configurator) *Server {
 	server := Server{
 		catalog:      meshCatalog,

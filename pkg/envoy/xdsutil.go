@@ -29,8 +29,8 @@ type SDSDirection bool
 // SDSCert is only used to interface the naming and related functions to Marshal/Unmarshal a resource name,
 // this avoids having sprintf/parsing logic all over the place
 type SDSCert struct {
-	// Service is a namespaced service struct
-	Service service.NamespacedService
+	// MeshService is a namespaced service struct
+	MeshService service.MeshService
 	// CertType is the certificate type
 	CertType SDSCertType
 }
@@ -80,10 +80,10 @@ var validCertTypes = map[SDSCertType]interface{}{
 // It is set as a part of configuring the UpstreamTLSContext.
 var ALPNInMesh = []string{"osm"}
 
-// UnmarshalSDSCert parses and returns Certificate type and Namespaced Service name given a
+// UnmarshalSDSCert parses and returns Certificate type and Namespaced MeshService name given a
 // correctly formatted string, otherwise returns error
 func UnmarshalSDSCert(str string) (*SDSCert, error) {
-	var svc *service.NamespacedService
+	var svc *service.MeshService
 	var ret SDSCert
 
 	// Check separators, ignore empty string fields
@@ -110,7 +110,7 @@ func UnmarshalSDSCert(str string) (*SDSCert, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = copier.Copy(&ret.Service, &svc)
+	err = copier.Copy(&ret.MeshService, &svc)
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +125,7 @@ func (sdsc SDSCert) String() string {
 	return fmt.Sprintf("%s%s%s",
 		sdsc.CertType.String(),
 		Separator,
-		sdsc.Service.String())
+		sdsc.MeshService.String())
 }
 
 // GetAddress creates an Envoy Address struct.
@@ -207,7 +207,7 @@ func pbStringValue(v string) *structpb.Value {
 	}
 }
 
-func getCommonTLSContext(serviceName service.NamespacedService, mTLS bool, dir SDSDirection) *xds_auth.CommonTlsContext {
+func getCommonTLSContext(serviceName service.MeshService, mTLS bool, dir SDSDirection) *xds_auth.CommonTlsContext {
 	var certType SDSCertType
 
 	// Define root cert type
@@ -227,8 +227,8 @@ func getCommonTLSContext(serviceName service.NamespacedService, mTLS bool, dir S
 		TlsCertificateSdsSecretConfigs: []*xds_auth.SdsSecretConfig{{
 			// Example ==> Name: "service-cert:NameSpaceHere/ServiceNameHere"
 			Name: SDSCert{
-				Service:  serviceName,
-				CertType: ServiceCertType,
+				MeshService: serviceName,
+				CertType:    ServiceCertType,
 			}.String(),
 			SdsConfig: GetADSConfigSource(),
 		}},
@@ -236,8 +236,8 @@ func getCommonTLSContext(serviceName service.NamespacedService, mTLS bool, dir S
 			ValidationContextSdsSecretConfig: &xds_auth.SdsSecretConfig{
 				// Example ==> Name: "root-cert<type>:NameSpaceHere/ServiceNameHere"
 				Name: SDSCert{
-					Service:  serviceName,
-					CertType: certType,
+					MeshService: serviceName,
+					CertType:    certType,
 				}.String(),
 				SdsConfig: GetADSConfigSource(),
 			},
@@ -255,7 +255,7 @@ func MessageToAny(pb proto.Message) (*any.Any, error) {
 }
 
 // GetDownstreamTLSContext creates a downstream Envoy TLS Context
-func GetDownstreamTLSContext(serviceName service.NamespacedService, mTLS bool) *xds_auth.DownstreamTlsContext {
+func GetDownstreamTLSContext(serviceName service.MeshService, mTLS bool) *xds_auth.DownstreamTlsContext {
 	tlsConfig := &xds_auth.DownstreamTlsContext{
 		CommonTlsContext: getCommonTLSContext(serviceName, mTLS, Inbound),
 		// When RequireClientCertificate is enabled trusted CA certs must be provided via ValidationContextType
@@ -265,7 +265,7 @@ func GetDownstreamTLSContext(serviceName service.NamespacedService, mTLS bool) *
 }
 
 // GetUpstreamTLSContext creates an upstream Envoy TLS Context
-func GetUpstreamTLSContext(serviceName service.NamespacedService, sni string) *xds_auth.UpstreamTlsContext {
+func GetUpstreamTLSContext(serviceName service.MeshService, sni string) *xds_auth.UpstreamTlsContext {
 	commonTLSContext := getCommonTLSContext(serviceName, true /* mTLS */, Outbound)
 	// Advertise in-mesh using UpstreamTlsContext.CommonTlsContext.AlpnProtocols
 	commonTLSContext.AlpnProtocols = ALPNInMesh

@@ -29,7 +29,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 		log.Error().Err(err).Msgf("Error fetching service for Envoy %s with CN %s", ip, cn)
 		return err
 	}
-	log.Info().Msgf("Client %s connected: Subject CN=%s; Service=%s", ip, cn, namespacedService)
+	log.Info().Msgf("Client %s connected: Subject CN=%s; MeshService=%s", ip, cn, namespacedService)
 
 	proxy := envoy.NewProxy(cn, ip)
 	s.catalog.RegisterProxy(proxy)

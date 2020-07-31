@@ -87,21 +87,21 @@ const (
 
 var (
 	// BookstoreService is the bookstore service.
-	BookstoreService = service.NamespacedService{
+	BookstoreService = service.MeshService{
 		Namespace: Namespace,
-		Service:   BookstoreServiceName,
+		Name:      BookstoreServiceName,
 	}
 
 	// BookbuyerService is the bookbuyer service.
-	BookbuyerService = service.NamespacedService{
+	BookbuyerService = service.MeshService{
 		Namespace: Namespace,
-		Service:   BookbuyerServiceName,
+		Name:      BookbuyerServiceName,
 	}
 
 	// BookwarehouseService is the bookwarehouse service.
-	BookwarehouseService = service.NamespacedService{
+	BookwarehouseService = service.MeshService{
 		Namespace: Namespace,
-		Service:   BookwarehouseServiceName,
+		Name:      BookwarehouseServiceName,
 	}
 
 	// RoutePolicy is a route policy.
@@ -121,15 +121,9 @@ var (
 
 	// TrafficPolicy is a traffic policy SMI object.
 	TrafficPolicy = trafficpolicy.TrafficTarget{
-		Name: TrafficTargetName,
-		Destination: trafficpolicy.TrafficResource{
-			Namespace: Namespace,
-			Service:   BookstoreService,
-		},
-		Source: trafficpolicy.TrafficResource{
-			Namespace: Namespace,
-			Service:   BookbuyerService,
-		},
+		Name:        TrafficTargetName,
+		Destination: BookstoreService,
+		Source:      BookbuyerService,
 		Route: trafficpolicy.Route{
 			PathRegex: BookstoreBuyPath,
 			Methods:   []string{"GET"},
@@ -195,9 +189,9 @@ var (
 
 	// WeightedService is a service with a weight used for traffic split.
 	WeightedService = service.WeightedService{
-		NamespacedService: service.NamespacedService{
+		MeshService: service.MeshService{
 			Namespace: Namespace,
-			Service:   BookstoreServiceName,
+			Name:      BookstoreServiceName,
 		},
 		Weight: Weight,
 		Domain: Domain,
@@ -279,7 +273,7 @@ func NewPodTestFixtureWithOptions(namespace string, podName string, serviceAccou
 	}
 }
 
-// NewServiceFixture creates a new Service
+// NewServiceFixture creates a new MeshService
 func NewServiceFixture(serviceName, namespace string, selectors map[string]string) *corev1.Service {
 	return &corev1.Service{
 		ObjectMeta: v1.ObjectMeta{
