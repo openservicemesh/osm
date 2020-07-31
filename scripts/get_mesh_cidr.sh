@@ -8,6 +8,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: fake
+  namespace: default
 spec:
   clusterIP: 1.1.1.1
   ports:
