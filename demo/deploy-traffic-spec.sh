@@ -18,21 +18,16 @@ matches:
   methods:
   - GET
   headers:
-  - host: "bookstore.$BOOKSTORE_NAMESPACE"
   - "user-agent": ".*-http-client/*.*"
   - "client-app": "bookbuyer"
 - name: buy-a-book
   pathRegex: ".*a-book.*new"
   methods:
   - GET
-  headers:
-  - host: "bookstore.$BOOKSTORE_NAMESPACE"
 - name: update-books-bought
   pathRegex: /update-books-bought
   methods:
   - POST
-  headers:
-  - host: "bookstore.$BOOKSTORE_NAMESPACE"
 EOF
 
 
@@ -44,7 +39,6 @@ metadata:
   name: bookwarehouse-service-routes
   namespace: "$BOOKWAREHOUSE_NAMESPACE"
 matches:
-
 - name: restock-books
   methods:
   - POST

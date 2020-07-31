@@ -148,7 +148,6 @@ func (mc *MeshCatalog) GetDomainForService(meshService service.MeshService, rout
 
 	// Use the augmented domains from k8s service since an
 	// SMI TrafficSplit policy is not defined for the service
-
 	hostHeader, err := getHostHeaderFromRouteHeaders(routeHeaders)
 	if err != nil {
 		log.Warn().Msgf("Found host header %s, but using service hostnames instead", hostHeader)

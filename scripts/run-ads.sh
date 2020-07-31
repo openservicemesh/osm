@@ -5,7 +5,7 @@ set -aueo pipefail
 rm -rf ./bin/osm-controller
 
 NAME="osm-controller"
-CGO_ENABLED=0 go build -v -o ./bin/osm-controller ./cmd/ads
+CGO_ENABLED=0 go build -v -o ./bin/osm-controller ./cmd/osm-controller
 
 # GRPC_TRACE=all GRPC_VERBOSITY=DEBUG GODEBUG='http2debug=2,gctrace=1,netdns=go+1'
 
@@ -24,7 +24,7 @@ mkdir -p "./certificates/$NAME"
            --keyout "./certificates/$NAME/key.pem" \
            --out "./certificates/$NAME/cert.pem"
 
-./bin/ads \
+./bin/osm-controller \
     --kubeconfig="$HOME/.kube/config" \
     --certpem="./certificates/ads/cert.pem" \
     --keypem="./certificates/ads/key.pem" \
