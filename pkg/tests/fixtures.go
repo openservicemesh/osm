@@ -181,9 +181,6 @@ var (
 		trafficpolicy.TrafficSpecName(fmt.Sprintf("HTTPRouteGroup/%s/%s", Namespace, RouteGroupName)): {
 			trafficpolicy.TrafficSpecMatchName(BuyBooksMatchName): RoutePolicy}}
 
-	// NamespacedServiceName is a namespaced service.
-	NamespacedServiceName = service.Name(fmt.Sprintf("%s/%s", BookstoreService.Namespace, BookstoreService.Service))
-
 	// BookstoreServiceAccount is a namespaced service account.
 	BookstoreServiceAccount = service.K8sServiceAccount{
 		Namespace: Namespace,
