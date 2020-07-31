@@ -39,7 +39,7 @@ var _ = Describe("Test debugger methods", func() {
 type fakeMeshCatalogDebuger struct{}
 
 // ListMonitoredNamespaces implements MeshCatalogDebugger
-func (f fakeMeshCatalogDebuger) ListMonitoredNamespaces() ([]string) {
+func (f fakeMeshCatalogDebuger) ListMonitoredNamespaces() []string {
 	return []string{tests.Namespace}
 }
 
