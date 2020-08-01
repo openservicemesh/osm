@@ -185,7 +185,7 @@ func main() {
 	}
 
 	meshCatalog := catalog.NewMeshCatalog(
-		namespaceController, 
+		namespaceController,
 		kubeClient,
 		meshSpec,
 		certManager,
