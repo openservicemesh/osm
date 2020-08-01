@@ -10,8 +10,8 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/ingress"
-	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/namespace"
+	"github.com/openservicemesh/osm/pkg/smi"
 )
 
 // NewMeshCatalog creates a new service catalog
@@ -34,7 +34,7 @@ func NewMeshCatalog(namespaceController namespace.Controller, kubeClient kuberne
 		// The certificate itself would contain the cluster ID making it easy to lookup the client in this map.
 		kubeClient: kubeClient,
 
-		namespaceController: 	namespaceController,
+		namespaceController: namespaceController,
 	}
 
 	for _, announcementChannel := range sc.getAnnouncementChannels() {

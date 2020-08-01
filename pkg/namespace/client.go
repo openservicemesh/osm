@@ -85,14 +85,14 @@ func (c Client) IsMonitoredNamespace(namespace string) bool {
 // ListMonitoredNamespaces returns all namespaces that the mesh is monitoring.
 func (c Client) ListMonitoredNamespaces() ([]string, error) {
 	var namespaces []string
- 
-    for _, ns := range c.cache.List() {
-        namespace, ok := ns.(*corev1.Namespace)
-        if !ok {
+
+	for _, ns := range c.cache.List() {
+		namespace, ok := ns.(*corev1.Namespace)
+		if !ok {
 			log.Error().Err(errListingNamespaces).Msg("Failed to list monitored namespaces")
-            continue
-        }
-        namespaces = append(namespaces, namespace.Name)
-    }
-    return namespaces, nil
+			continue
+		}
+		namespaces = append(namespaces, namespace.Name)
+	}
+	return namespaces, nil
 }

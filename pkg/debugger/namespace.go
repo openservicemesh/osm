@@ -7,7 +7,7 @@ import (
 )
 
 type namespaces struct {
-	Namespaces    []string            `json:"namespaces"`
+	Namespaces []string `json:"namespaces"`
 }
 
 func (ds debugServer) getMonitoredNamespacesHandler() http.Handler {
