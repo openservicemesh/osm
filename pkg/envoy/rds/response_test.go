@@ -151,9 +151,7 @@ var _ = Describe("RDS Response", func() {
 	osmNamespace := "-test-osm-namespace-"
 	osmConfigMapName := "-test-osm-config-map-"
 	cfg := configurator.NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
-
 	namespaceController := namespace.NewFakeNamespaceController([]string{osmNamespace})
-
 	meshCatalog := catalog.NewMeshCatalog(namespaceController, kubeClient, smi.NewFakeMeshSpecClient(), certManager, ingress.NewFakeIngressMonitor(), make(<-chan struct{}), cfg, endpointProviders...)
 
 	Context("Test GetDomainForService", func() {
