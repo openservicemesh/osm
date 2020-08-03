@@ -152,24 +152,14 @@ func (mc *MeshCatalog) GetDomainForService(meshService service.MeshService, rout
 	if err != nil {
 		log.Warn().Msgf("Found host header %s, but using service hostnames instead", hostHeader)
 	}
-	services, err := mc.meshSpec.ListServices()
+
+	svc, err := mc.meshSpec.GetService(meshService)
 	if err != nil {
+		log.Error().Err(err).Msgf("Error finding service %q", meshService)
 		return "", err
 	}
-	var currentService *corev1.Service
-	for _, svc := range services {
-		if svc.Name == meshService.Name && svc.Namespace == meshService.Namespace {
-			currentService = svc
-			break
-		}
-	}
 
-	if currentService == nil {
-		log.Error().Err(errServiceNotFound).Msgf("Could not find %s", meshService)
-		return "", errServiceNotFound
-	}
-
-	hostList := kubernetes.GetDomainsForService(currentService)
+	hostList := kubernetes.GetDomainsForService(svc)
 	host := strings.Join(hostList, ",")
 
 	return host, nil
