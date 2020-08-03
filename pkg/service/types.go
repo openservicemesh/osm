@@ -1,7 +1,6 @@
 package service
 
 import (
-	"fmt"
 	"reflect"
 	"strings"
 
@@ -9,56 +8,52 @@ import (
 )
 
 const (
-	// separator used upon marshalling/unmarshalling Namespaced Service to a string
+	// namespaceNameSeparator used upon marshalling/unmarshalling MeshService to a string
 	// or viceversa
-	separator = "/"
+	namespaceNameSeparator = "/"
 )
 
-// Name is a type for a service name
-type Name string
-
-func (s Name) String() string {
-	return string(s)
-}
-
-// NamespacedService is a type for a namespaced service
-type NamespacedService struct {
+// MeshService is the struct defining a service (Kubernetes or otherwise) within a service mesh.
+type MeshService struct {
+	// If the service resides on a Kubernetes service, this would be the Kubernetes namespace.
 	Namespace string
-	Service   string
+
+	// The name of the service
+	Name string
 }
 
-func (ns NamespacedService) String() string {
-	return fmt.Sprintf("%s/%s", ns.Namespace, ns.Service)
+func (ms MeshService) String() string {
+	return strings.Join([]string{ms.Namespace, namespaceNameSeparator, ms.Name}, "")
 }
 
-//Equals checks if two namespaced services are equal
-func (ns NamespacedService) Equals(service NamespacedService) bool {
-	return reflect.DeepEqual(ns, service)
+// Equals checks if two namespaced services are equal
+func (ms MeshService) Equals(service MeshService) bool {
+	return reflect.DeepEqual(ms, service)
 }
 
-// UnmarshalNamespacedService unmarshals a NamespaceService type from a string
-func UnmarshalNamespacedService(str string) (*NamespacedService, error) {
-	slices := strings.Split(str, separator)
+// UnmarshalMeshService unmarshals a NamespaceService type from a string
+func UnmarshalMeshService(str string) (*MeshService, error) {
+	slices := strings.Split(str, namespaceNameSeparator)
 	if len(slices) != 2 {
-		return nil, errInvalidNamespacedServiceFormat
+		return nil, errInvalidMeshServiceFormat
 	}
 
 	// Make sure the slices are not empty. Split might actually leave empty slices.
 	for _, sep := range slices {
 		if len(sep) == 0 {
-			return nil, errInvalidNamespacedServiceFormat
+			return nil, errInvalidMeshServiceFormat
 		}
 	}
 
-	return &NamespacedService{
+	return &MeshService{
 		Namespace: slices[0],
-		Service:   slices[1],
+		Name:      slices[1],
 	}, nil
 }
 
-// GetCommonName returns the Subject CN for the NamespacedService to be used for its certificate.
-func (ns NamespacedService) GetCommonName() certificate.CommonName {
-	return certificate.CommonName(strings.Join([]string{ns.Service, ns.Namespace, "svc", "cluster", "local"}, "."))
+// GetCommonName returns the Subject CN for the MeshService to be used for its certificate.
+func (ms MeshService) GetCommonName() certificate.CommonName {
+	return certificate.CommonName(strings.Join([]string{ms.Name, ms.Namespace, "svc", "cluster", "local"}, "."))
 }
 
 // K8sServiceAccount is a type for a namespaced service account
@@ -68,7 +63,7 @@ type K8sServiceAccount struct {
 }
 
 func (ns K8sServiceAccount) String() string {
-	return fmt.Sprintf("%s/%s", ns.Namespace, ns.Name)
+	return strings.Join([]string{ns.Namespace, namespaceNameSeparator, ns.Name}, "")
 }
 
 // ClusterName is a type for a service name
@@ -76,9 +71,9 @@ type ClusterName string
 
 //WeightedService is a struct of a service name, its weight and domain
 type WeightedService struct {
-	NamespacedService NamespacedService `json:"service_name:omitempty"`
-	Weight            int               `json:"weight:omitempty"`
-	Domain            string            `json:"domain:omitempty"`
+	Service MeshService `json:"service_name:omitempty"`
+	Weight  int         `json:"weight:omitempty"`
+	Domain  string      `json:"domain:omitempty"`
 }
 
 // WeightedCluster is a struct of a cluster and is weight that is backing a service

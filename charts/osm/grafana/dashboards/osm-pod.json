@@ -142,7 +142,7 @@
         "steppedLine": false,
         "targets": [
           {
-            "expr": "envoy_cluster_upstream_rq_xx{envoy_response_code_class=\"2\",source_pod_name=\"$source_pod\",source_namespace=\"$source_namespace\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-zipkin-cluster|passthrough-outbound\"}",
+            "expr": "irate(envoy_cluster_upstream_rq_xx{envoy_response_code_class=\"2\",source_pod_name=\"$source_pod\",source_namespace=\"$source_namespace\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-zipkin-cluster|passthrough-outbound\"}[1m])",
             "legendFormat": "{{envoy_cluster_name}}",
             "refId": "A"
           }
@@ -248,7 +248,7 @@
         "steppedLine": false,
         "targets": [
           {
-            "expr": "envoy_cluster_upstream_rq_xx{envoy_response_code_class!=\"2\",source_pod_name=\"$source_pod\",source_namespace=\"$source_namespace\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-zipkin-cluster|passthrough-outbound\"}",
+            "expr": "irate(envoy_cluster_upstream_rq_xx{envoy_response_code_class!=\"2\",source_pod_name=\"$source_pod\",source_namespace=\"$source_namespace\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-zipkin-cluster|passthrough-outbound\"}[1m])",
             "interval": "",
             "legendFormat": "{{envoy_cluster_name}}",
             "refId": "A"
@@ -642,7 +642,7 @@
         "pluginVersion": "7.0.1",
         "targets": [
           {
-            "expr": "envoy_cluster_upstream_cx_active{source_pod_name=\"$source_pod\",source_namespace=\"$source_namespace\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-zipkin-cluster|passthrough-outbound\"}",
+            "expr": "irate(envoy_cluster_upstream_cx_active{source_pod_name=\"$source_pod\",source_namespace=\"$source_namespace\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-zipkin-cluster|passthrough-outbound\"}[1m])",
             "legendFormat": "{{envoy_cluster_name}}",
             "refId": "A"
           }

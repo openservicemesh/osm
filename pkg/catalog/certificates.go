@@ -6,15 +6,15 @@ import (
 )
 
 // GetCertificateForService returns the certificate the given proxy uses for mTLS to the XDS server.
-func (mc *MeshCatalog) GetCertificateForService(nsService service.NamespacedService) (certificate.Certificater, error) {
-	cn := nsService.GetCommonName()
+func (mc *MeshCatalog) GetCertificateForService(meshService service.MeshService) (certificate.Certificater, error) {
+	cn := meshService.GetCommonName()
 
 	cert, err := mc.certManager.GetCertificate(cn)
 	if err != nil {
 		// Certificate was not found in CertManager's cache, issue one
 		newCert, err := mc.certManager.IssueCertificate(cn, nil)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error issuing a new certificate for service:%s, CN: %s", nsService, cn)
+			log.Error().Err(err).Msgf("Error issuing a new certificate for service:%s, CN: %s", meshService, cn)
 			return nil, err
 		}
 		return newCert, nil

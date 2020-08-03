@@ -14,9 +14,9 @@ import (
 
 var _ = Describe("Test certificate tooling", func() {
 	Context("Testing DecodePEMCertificate along with GetCommonName and IssueCertificate", func() {
-		namespacedService := service.NamespacedService{
+		namespacedService := service.MeshService{
 			Namespace: "namespace-here",
-			Service:   "service-name-here",
+			Name:      "service-name-here",
 		}
 		mc := NewFakeMeshCatalog(testclient.NewSimpleClientset())
 		It("issues a PEM certificate with the correct CN", func() {
@@ -39,9 +39,9 @@ var _ = Describe("Test certificate tooling", func() {
 	})
 
 	Context("Testing GetCertificateForService for issuance and retrieval of cached certificates", func() {
-		namespacedService := service.NamespacedService{
+		namespacedService := service.MeshService{
 			Namespace: "namespace-here",
-			Service:   "service-name-here",
+			Name:      "service-name-here",
 		}
 		mc := NewFakeMeshCatalog(testclient.NewSimpleClientset())
 		It("issues a PEM certificate with the correct CN", func() {

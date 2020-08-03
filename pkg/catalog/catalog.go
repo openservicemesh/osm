@@ -15,7 +15,6 @@ import (
 
 // NewMeshCatalog creates a new service catalog
 func NewMeshCatalog(kubeClient kubernetes.Interface, meshSpec smi.MeshSpec, certManager certificate.Manager, ingressMonitor ingress.Monitor, stop <-chan struct{}, cfg configurator.Configurator, endpointsProviders ...endpoint.Provider) *MeshCatalog {
-	log.Info().Msg("Create a new Service MeshCatalog.")
 	sc := MeshCatalog{
 		endpointsProviders: endpointsProviders,
 		meshSpec:           meshSpec,
@@ -46,12 +45,6 @@ func NewMeshCatalog(kubeClient kubernetes.Interface, meshSpec smi.MeshSpec, cert
 // GetSMISpec returns a MeshCatalog's SMI Spec
 func (mc *MeshCatalog) GetSMISpec() smi.MeshSpec {
 	return mc.meshSpec
-}
-
-// RegisterNewEndpoint adds a newly connected Envoy proxy to the list of self-announced endpoints for a service.
-func (mc *MeshCatalog) RegisterNewEndpoint(smi.ClientIdentity) {
-	// TODO(draychev): implement
-	panic("NotImplemented")
 }
 
 func (mc *MeshCatalog) getAnnouncementChannels() []announcementChannel {

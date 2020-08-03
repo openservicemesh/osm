@@ -14,12 +14,12 @@ var _ = Describe("Testing Cluster Load Assignment", func() {
 	Context("Testing NewClusterLoadAssignemnt", func() {
 		It("Returns cluster load assignment", func() {
 
-			namespacedServices := []service.NamespacedService{
-				{Namespace: "osm", Service: "bookstore-1"},
-				{Namespace: "osm", Service: "bookstore-2"},
+			namespacedServices := []service.MeshService{
+				{Namespace: "osm", Name: "bookstore-1"},
+				{Namespace: "osm", Name: "bookstore-2"},
 			}
 
-			allServiceEndpoints := map[service.NamespacedService][]endpoint.Endpoint{
+			allServiceEndpoints := map[service.MeshService][]endpoint.Endpoint{
 				namespacedServices[0]: {
 					{IP: net.IP("0.0.0.0")},
 				},

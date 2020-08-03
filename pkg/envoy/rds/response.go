@@ -22,7 +22,7 @@ import (
 func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, cfg configurator.Configurator) (*xds_discovery.DiscoveryResponse, error) {
 	svc, err := catalog.GetServiceFromEnvoyCertificate(proxy.GetCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up Service for Envoy with CN=%q", proxy.GetCommonName())
+		log.Error().Err(err).Msgf("Error looking up MeshService for Envoy with CN=%q", proxy.GetCommonName())
 		return nil, err
 	}
 	proxyServiceName := *svc
@@ -45,9 +45,9 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	destinationAggregatedRoutesByDomain := make(map[string]map[string]trafficpolicy.RouteWeightedClusters)
 
 	for _, trafficPolicies := range allTrafficPolicies {
-		isSourceService := trafficPolicies.Source.Service.Equals(proxyServiceName)
-		isDestinationService := trafficPolicies.Destination.Service.Equals(proxyServiceName)
-		svc := trafficPolicies.Destination.Service
+		isSourceService := trafficPolicies.Source.Equals(proxyServiceName)
+		isDestinationService := trafficPolicies.Destination.Equals(proxyServiceName)
+		svc := trafficPolicies.Destination
 		domain, err := catalog.GetDomainForService(svc, trafficPolicies.Route.Headers)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed listing domains")

@@ -25,7 +25,8 @@ CERT_MANAGER="${CERT_MANAGER:-tresor}"
 CTR_REGISTRY="${CTR_REGISTRY:-osmci.azurecr.io/osm}"
 CTR_REGISTRY_CREDS_NAME="${CTR_REGISTRY_CREDS_NAME:-acr-creds}"
 CTR_TAG="${CTR_TAG:-latest}"
-MESH_CIDR="${MESH_CIDR:-10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16}"
+DEPLOY_TRAFFIC_SPLIT="${DEPLOY_TRAFFIC_SPLIT:-true}"
+MESH_CIDR=$(./scripts/get_mesh_cidr.sh)
 
 optionalInstallArgs=$*
 
@@ -135,7 +136,10 @@ bin/osm namespace add --mesh-name "$MESH_NAME" "$BOOKWAREHOUSE_NAMESPACE" "$BOOK
 ./demo/deploy-apps.sh
 
 # Apply SMI policies
-./demo/deploy-traffic-split.sh
+if [ "$DEPLOY_TRAFFIC_SPLIT" = "true" ]; then
+    ./demo/deploy-traffic-split.sh
+fi
+
 ./demo/deploy-traffic-spec.sh
 ./demo/deploy-traffic-target.sh
 

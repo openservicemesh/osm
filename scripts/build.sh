@@ -13,5 +13,5 @@ BUILD_DATE=$(date +%Y-%m-%d-%H:%MT%z)
 COMMIT_VAR="${REPO_PATH}/pkg/version.GitCommit"
 GIT_HASH=$(git rev-parse --short HEAD)
 
-GOOS=linux GOBIN="$(pwd)/bin" go install -ldflags "-s -X ${VERSION_VAR}=${VERSION} -X ${DATE_VAR}=${BUILD_DATE} -X ${COMMIT_VAR}=${GIT_HASH}" -v ./cmd/ads
+GOOS=linux GOBIN="$(pwd)/bin" go install -ldflags "-s -X ${VERSION_VAR}=${VERSION} -X ${DATE_VAR}=${BUILD_DATE} -X ${COMMIT_VAR}=${GIT_HASH}" -v ./cmd/osm-controller
 

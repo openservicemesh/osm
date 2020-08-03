@@ -2,7 +2,7 @@
 
 ## System Requirements
 - Go version 1.14 or higher
-- Kubectl version 1.16 or higher
+- Kubectl version 1.15 or higher
 - Docker CLI
    - on a Debian based GNU/Linux system: `sudo apt-get install docker`
    - on a macOS use `brew install docker` or alternatively visit [Docker for Mac](https://docs.docker.com/docker-for-mac/install/)
@@ -15,11 +15,11 @@
 2. Setup `.env` environment variable file
    - From the root of the repository run `make .env`
    - It is already listed in `.gitignore` so that anything you put in it would not accidentally leak into a public git repo. Refer to `.env.example` in the root of this repo for the mandatory and optional environment variables.
-2. Provision access to a Kubernetes cluster **(choose 1 option)**:
+2. Provision access to a Kubernetes cluster and Docker container registry. Any cluster and registry provider can be used. Here are a couple of options:
 	- **Option 1:** Local [kind](https://kind.sigs.k8s.io/) cluster
 	    - [Install kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation)
 	       - `brew install kind` on macOS
-	    - Provision a local cluster in Docker: `make kind-up`
+	    - Provision a local cluster and registry in Docker: `make kind-up`
 	- **Option 2:** Azure Kubernetes Service managed cluster - save the credentials in `~/.kube/config` or set the config path in `$KUBECONFIG` env variable:
 		- [Install Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
 		- Login to your Azure account: `az login`
@@ -42,19 +42,25 @@ From the root of this repository execute:
 ```
 
 ### This script will:
-  - compile OSM's control plane (ADS), create a separate container image and push it to the workstation's default container registry (See `~/.docker/config.json`)
-  - create a `bookstore` service that provides the `bookstore` domain for the `bookstore` service backends
-  - create a `bookbuyer` service that curls `bookstore` domain for books (see `demo/cmd/bookbuyer/bookbuyer.go`); creates a container and uploads it to your contaner registry; creates a deployment for the `bookbuyer` service
-  - create a `bookthief` service that curls the `bookstore` domain for books (see `demo/cmd/bookthief/bookthief.go`); creates a container and uploads it to your contaner registry; creates a deployment for the `bookthief` service
-  - create 2 backends for `bookstore` service `bookstore-v1` and `bookstore-v2`, composed of a single binary, a web server, which increases a counter (books bought) on every GET request/response and returns that counter in a header; creates a container and uploats it to your contaner registry
+  - compile OSM's control plane (`cmd/osm-controller`), create a separate container image and push it to the workstation's default container registry (See `~/.docker/config.json`)
+  - build and push demo application images described below
+  - create the following topology in Kubernetes:
+
+	![Graph](graph.svg)
+
+	- `bookbuyer` and `bookthief` continuously issue HTTP `GET` requests against `bookstore` to buy books and github.com to verify egress traffic.
+	- `bookstore` is a service backed by two servers: `bookstore-v1` and `bookstore-v2`. Whenever either sells a book, it issues an HTTP `POST` request to the `bookwarehouse` to restock.
+
   - applies SMI traffic policies allowing `bookbuyer` to access `bookstore-v1` and `bookstore-v2`, while preventing `bookthief` from accessing the `bookstore` services
   - installs Zipkin and points all Envoy pods to it
   - finally, a command indefinitely watches the relevant pods within the Kubernetes cluster
 
+
 To see the results of deploying the services and the service mesh - run the tailing scripts:
   - the scripts will connect to the respecitve Kubernetes Pod and stream its logs
-  - the output will be the output of the curl command to the `bookstore` domain and the count of books sold
-  - a properly working service mesh will result in HTTP 200 OK with `./demo/tail-bookbuyer.sh` along with a monotonically increasing counter appearing in the response headers, while `./demo/tail-bookthief.sh` will result in HTTP 404 Not Found. This can be automatically checked with `KUBECONFIG=$HOME/.kube/config go run ./ci/cmd/maestro.go`
+  - the output will be the output of the curl command to the `bookstore` domain and the count of books sold, and the output of the curl command to `github.com` to demonstrate access to an external service
+  - a properly working service mesh will result in HTTP 200 OK response code for the `bookstore` domain with `./demo/tail-bookbuyer.sh` along with a monotonically increasing counter appearing in the response headers, while `./demo/tail-bookthief.sh` will result in HTTP 404 Not Found response code for the `bookstore` domain. With egress enabled by default, HTTP requests to `github.com` should result in HTTP 200 OK response code for both the `bookbuyer` and `bookthief` services.
+  This can be automatically checked with `KUBECONFIG=$HOME/.kube/config go run ./ci/cmd/maestro.go`
 
 ## View Mesh Topology with Zipkin
 The OSM demo will install a Zipkin pod, and configure all participating Envoys to send spans to it. Zipkin's UI is running on port 9411. To view the web UI, forward port 9411 from the Zipkin pod to the local workstation and navigate to http://localhost:9411/zipkin/dependency. In the `./scripts` directory we have included a helper script to find the Zipkin pod and forward the port: `./scripts/port-forward-zipkin.sh`

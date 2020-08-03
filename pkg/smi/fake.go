@@ -33,8 +33,8 @@ func NewFakeMeshSpecClient() MeshSpec {
 			tests.BookbuyerServiceAccount,
 		},
 		services: []*corev1.Service{
-			tests.NewServiceFixture(tests.BookstoreService.Service, tests.BookstoreService.Namespace, nil),
-			tests.NewServiceFixture(tests.BookbuyerService.Service, tests.BookbuyerService.Namespace, nil),
+			tests.NewServiceFixture(tests.BookstoreService.Name, tests.BookstoreService.Namespace, nil),
+			tests.NewServiceFixture(tests.BookbuyerService.Name, tests.BookbuyerService.Namespace, nil),
 		},
 
 		backpressures: []*backpressure.Backpressure{&tests.Backpressure},
@@ -57,7 +57,7 @@ func (f fakeMeshSpec) ListServiceAccounts() []service.K8sServiceAccount {
 }
 
 // GetService fetches a specific service declared in SMI for the fake Mesh Spec.
-func (f fakeMeshSpec) GetService(service.Name) (service *corev1.Service, exists bool, err error) {
+func (f fakeMeshSpec) GetService(service.MeshService) (service *corev1.Service, exists bool, err error) {
 	return nil, false, nil
 }
 

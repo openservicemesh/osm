@@ -36,7 +36,11 @@ Example:
 Multiple control plane installations can exist within a cluster. Each
 control plane is given a cluster-wide unqiue identifier called mesh name.
 A mesh name can be passed in via the --mesh-name flag. By default, the
-mesh-name name will be set to "osm."
+mesh-name name will be set to "osm." The mesh name must conform to same
+guidlines as a valid Kubernetes label value. Must be 63 characters or
+less and must be empty or begin and end with an alphanumeric character
+([a-z0-9A-Z]) with dashes (-), underscores (_), dots (.), and
+alphanumerics between.
 
 Example:
   $ osm install --mesh-name "hello-osm"
@@ -153,10 +157,10 @@ func (i *installCmd) run(config *helm.Configuration) error {
 		return err
 	}
 
-	meshNameErrs := validation.IsDNS1123Label(i.meshName)
+	meshNameErrs := validation.IsValidLabelValue(i.meshName)
 
 	if len(meshNameErrs) != 0 {
-		return errors.Errorf("Invalid mesh-name: %v", meshNameErrs)
+		return errors.Errorf("Invalid mesh-name.\nValid mesh-name:\n- must be no longer than 63 characters\n- must consist of alphanumeric characters, '-', '_' or '.'\n- must start and end with an alphanumeric character\nregex used for validation is '(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?'")
 	}
 
 	if strings.EqualFold(i.certManager, "vault") {
@@ -175,7 +179,7 @@ func (i *installCmd) run(config *helm.Configuration) error {
 	// Validate CIDR ranges if egress is enabled
 	if i.enableEgress {
 		if err := validateCIDRs(i.meshCIDRRanges); err != nil {
-			return errors.Errorf("Invalid mesh-cidr-ranges: %q, error: %v", i.meshCIDRRanges, err)
+			return errors.Errorf("Invalid mesh-cidr-ranges: %q, error: %v. Valid mesh CIDR ranges must be specified with egress enabled.", i.meshCIDRRanges, err)
 		}
 	}
 
@@ -249,7 +253,7 @@ func errMeshAlreadyExists(name string) error {
 
 func validateCIDRs(cidrRanges []string) error {
 	if len(cidrRanges) == 0 {
-		return errors.Errorf("CIDR ranges cannot be empty")
+		return errors.Errorf("CIDR ranges cannot be empty when `enable-egress` option is true`")
 	}
 	for _, cidr := range cidrRanges {
 		cidrNoSpaces := strings.Replace(cidr, " ", "", -1)

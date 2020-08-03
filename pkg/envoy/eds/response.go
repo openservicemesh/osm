@@ -21,7 +21,7 @@ import (
 func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, cfg configurator.Configurator) (*xds_discovery.DiscoveryResponse, error) {
 	svc, err := catalog.GetServiceFromEnvoyCertificate(proxy.GetCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up Service for Envoy with CN=%q", proxy.GetCommonName())
+		log.Error().Err(err).Msgf("Error looking up MeshService for Envoy with CN=%q", proxy.GetCommonName())
 		return nil, err
 	}
 	proxyServiceName := *svc
@@ -32,12 +32,12 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 		return nil, err
 	}
 
-	allServicesEndpoints := make(map[service.NamespacedService][]endpoint.Endpoint)
+	allServicesEndpoints := make(map[service.MeshService][]endpoint.Endpoint)
 	for _, trafficPolicy := range allTrafficPolicies {
-		isSourceService := trafficPolicy.Source.Service.Equals(proxyServiceName)
+		isSourceService := trafficPolicy.Source.Equals(proxyServiceName)
 		if isSourceService {
-			destService := trafficPolicy.Destination.Service
-			serviceEndpoints, err := catalog.ListEndpointsForService(service.Name(destService.String()))
+			destService := trafficPolicy.Destination
+			serviceEndpoints, err := catalog.ListEndpointsForService(destService)
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed listing endpoints")
 				return nil, err
