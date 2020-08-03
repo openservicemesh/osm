@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha1"
+	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha2"
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	smiTrafficTargetClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/clientset/versioned"
@@ -43,7 +43,16 @@ func NewMeshSpecClient(smiKubeConfig *rest.Config, kubeClient kubernetes.Interfa
 		backpressureClientSet = backpressureClient.NewForConfigOrDie(smiKubeConfig)
 	}
 
-	client := newSMIClient(kubeClient, smiTrafficSplitClientSet, smiTrafficSpecClientSet, smiTrafficTargetClientSet, backpressureClientSet, osmNamespace, namespaceController, kubernetesClientName)
+	client := newSMIClient(
+		kubeClient,
+		smiTrafficSplitClientSet,
+		smiTrafficSpecClientSet,
+		smiTrafficTargetClientSet,
+		backpressureClientSet,
+		osmNamespace,
+		namespaceController,
+		kubernetesClientName,
+	)
 
 	err := client.run(stop)
 	if err != nil {
@@ -116,7 +125,7 @@ func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient *smiTra
 		Services:      informerFactory.Core().V1().Services().Informer(),
 		TrafficSplit:  smiTrafficSplitInformerFactory.Split().V1alpha2().TrafficSplits().Informer(),
 		TrafficSpec:   smiTrafficSpecInformerFactory.Specs().V1alpha2().HTTPRouteGroups().Informer(),
-		TrafficTarget: smiTrafficTargetInformerFactory.Access().V1alpha1().TrafficTargets().Informer(),
+		TrafficTarget: smiTrafficTargetInformerFactory.Access().V1alpha2().TrafficTargets().Informer(),
 	}
 
 	cacheCollection := CacheCollection{
@@ -267,7 +276,7 @@ func (c *Client) ListServiceAccounts() []service.K8sServiceAccount {
 			log.Error().Err(errInvalidObjectType).Msgf("Failed type assertion for TrafficTarget in cache")
 			continue
 		}
-		for _, sources := range trafficTarget.Sources {
+		for _, sources := range trafficTarget.Spec.Sources {
 			// Only monitor sources in namespaces OSM is observing
 			if !c.namespaceController.IsMonitoredNamespace(sources.Namespace) {
 				// Doesn't belong to namespaces we are observing
@@ -281,13 +290,13 @@ func (c *Client) ListServiceAccounts() []service.K8sServiceAccount {
 		}
 
 		// Only monitor destination in namespaces OSM is observing
-		if !c.namespaceController.IsMonitoredNamespace(trafficTarget.Destination.Namespace) {
+		if !c.namespaceController.IsMonitoredNamespace(trafficTarget.Spec.Destination.Namespace) {
 			// Doesn't belong to namespaces we are observing
 			continue
 		}
 		namespacedServiceAccount := service.K8sServiceAccount{
-			Namespace: trafficTarget.Destination.Namespace,
-			Name:      trafficTarget.Destination.Name,
+			Namespace: trafficTarget.Spec.Destination.Namespace,
+			Name:      trafficTarget.Spec.Destination.Name,
 		}
 		serviceAccounts = append(serviceAccounts, namespacedServiceAccount)
 	}
