@@ -305,7 +305,7 @@ Additional types needed for this interface:
 // MeshService is a type for a namespaced service
 type MeshService struct {
 	Namespace string
-	Service   string
+	Name      string
 }
 ```
 
@@ -408,13 +408,13 @@ type MeshSpec interface {
 	ListTrafficSplits() []*split.TrafficSplit
 
 	// ListTrafficSplitServices fetches all services declared with SMI Spec.
-	ListTrafficSplitServices() []endpoint.WeightedService
+	ListTrafficSplitServices() []service.WeightedService
 
 	// ListServiceAccounts fetches all service accounts declared with SMI Spec.
-	ListServiceAccounts() []endpoint.NamespacedServiceAccount
+	ListServiceAccounts() []service.K8sServiceAccount
 
 	// GetService fetches a specific service declared in SMI.
-	GetService(endpoint.ServiceName) (service *corev1.Service, exists bool, err error)
+	GetService(service.MeshService) (service *corev1.Service, err error)
 
 	// ListHTTPTrafficSpecs lists TrafficSpec SMI resources.
 	ListHTTPTrafficSpecs() []*spec.HTTPRouteGroup
