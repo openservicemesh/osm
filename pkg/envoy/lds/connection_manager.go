@@ -2,11 +2,9 @@ package lds
 
 import (
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
-	xds_tracing "github.com/envoyproxy/go-control-plane/envoy/config/trace/v3"
 	xds_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 
-	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/wrappers"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -40,27 +38,10 @@ func getHTTPConnectionManager(routeName string, cfg configurator.Configurator) *
 			Value: true,
 		}
 
-		zipkinConf := &xds_tracing.ZipkinConfig{
-			CollectorCluster:         constants.EnvoyZipkinCluster,
-			CollectorEndpoint:        cfg.GetZipkinEndpoint(),
-			CollectorEndpointVersion: xds_tracing.ZipkinConfig_HTTP_JSON,
-		}
-
-		zipkinConfMarshalled, err := ptypes.MarshalAny(zipkinConf)
+		tracing, err := GetZipkinTracingConfig(cfg)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error marshalling zipkinConf config %s", err)
+			log.Error().Err(err).Msgf("Error getting zipkin tracing config %s", err)
 			return connManager
-		}
-
-		tracing := &xds_hcm.HttpConnectionManager_Tracing{
-			Verbose: true,
-			Provider: &xds_tracing.Tracing_Http{
-				// Name must refer to an instantiatable tracing driver
-				Name: "envoy.tracers.zipkin",
-				ConfigType: &xds_tracing.Tracing_Http_TypedConfig{
-					TypedConfig: zipkinConfMarshalled,
-				},
-			},
 		}
 
 		connManager.Tracing = tracing
