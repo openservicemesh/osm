@@ -171,28 +171,32 @@ func GetAccessLog() []*xds_accesslog_filter.AccessLog {
 func getFileAccessLog() *xds_accesslog.FileAccessLog {
 	accessLogger := &xds_accesslog.FileAccessLog{
 		Path: accessLogPath,
-		AccessLogFormat: &xds_accesslog.FileAccessLog_JsonFormat{
-			JsonFormat: &structpb.Struct{
-				Fields: map[string]*structpb.Value{
-					"start_time":            pbStringValue(`%START_TIME%`),
-					"method":                pbStringValue(`%REQ(:METHOD)%`),
-					"path":                  pbStringValue(`%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%`),
-					"protocol":              pbStringValue(`%PROTOCOL%`),
-					"response_code":         pbStringValue(`%RESPONSE_CODE%`),
-					"response_code_details": pbStringValue(`%RESPONSE_CODE_DETAILS%`),
-					"time_to_first_byte":    pbStringValue(`%RESPONSE_DURATION%`),
-					"upstream_cluster":      pbStringValue(`%UPSTREAM_CLUSTER%`),
-					"response_flags":        pbStringValue(`%RESPONSE_FLAGS%`),
-					"bytes_received":        pbStringValue(`%BYTES_RECEIVED%`),
-					"bytes_sent":            pbStringValue(`%BYTES_SENT%`),
-					"duration":              pbStringValue(`%DURATION%`),
-					"upstream_service_time": pbStringValue(`%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%`),
-					"x_forwarded_for":       pbStringValue(`%REQ(X-FORWARDED-FOR)%`),
-					"user_agent":            pbStringValue(`%REQ(USER-AGENT)%`),
-					"request_id":            pbStringValue(`%REQ(X-REQUEST-ID)%`),
-					"requested_server_name": pbStringValue("%REQUESTED_SERVER_NAME%"),
-					"authority":             pbStringValue(`%REQ(:AUTHORITY)%`),
-					"upstream_host":         pbStringValue(`%UPSTREAM_HOST%`),
+		AccessLogFormat: &xds_accesslog.FileAccessLog_LogFormat{
+			LogFormat: &xds_core.SubstitutionFormatString{
+				Format: &xds_core.SubstitutionFormatString_JsonFormat{
+					JsonFormat: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							"start_time":            pbStringValue(`%START_TIME%`),
+							"method":                pbStringValue(`%REQ(:METHOD)%`),
+							"path":                  pbStringValue(`%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%`),
+							"protocol":              pbStringValue(`%PROTOCOL%`),
+							"response_code":         pbStringValue(`%RESPONSE_CODE%`),
+							"response_code_details": pbStringValue(`%RESPONSE_CODE_DETAILS%`),
+							"time_to_first_byte":    pbStringValue(`%RESPONSE_DURATION%`),
+							"upstream_cluster":      pbStringValue(`%UPSTREAM_CLUSTER%`),
+							"response_flags":        pbStringValue(`%RESPONSE_FLAGS%`),
+							"bytes_received":        pbStringValue(`%BYTES_RECEIVED%`),
+							"bytes_sent":            pbStringValue(`%BYTES_SENT%`),
+							"duration":              pbStringValue(`%DURATION%`),
+							"upstream_service_time": pbStringValue(`%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%`),
+							"x_forwarded_for":       pbStringValue(`%REQ(X-FORWARDED-FOR)%`),
+							"user_agent":            pbStringValue(`%REQ(USER-AGENT)%`),
+							"request_id":            pbStringValue(`%REQ(X-REQUEST-ID)%`),
+							"requested_server_name": pbStringValue("%REQUESTED_SERVER_NAME%"),
+							"authority":             pbStringValue(`%REQ(:AUTHORITY)%`),
+							"upstream_host":         pbStringValue(`%UPSTREAM_HOST%`),
+						},
+					},
 				},
 			},
 		},
