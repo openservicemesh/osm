@@ -15,7 +15,7 @@ data:
 {{- else }}
   zipkin_address: "zipkin.{{ .Release.Namespace }}.svc.cluster.local"
 {{- end }}
-  zipkin_port: {{ .Values.OpenServiceMesh.zipkin.port | quote | default "9411" | quote }}
+  zipkin_port: {{ .Values.OpenServiceMesh.zipkin.port | default "9411" | quote}}
   zipkin_endpoint: {{ .Values.OpenServiceMesh.zipkin.endpoint | default "/api/v2/spans" | quote }}
 {{- end }}
 
