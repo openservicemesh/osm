@@ -140,6 +140,12 @@ var (
 		},
 		Spec: v1alpha2.TrafficSplitSpec{
 			Service: BookstoreApexServiceName,
+			Backends: []v1alpha2.TrafficSplitBackend{
+				{
+					Service: BookstoreServiceName,
+					Weight:  Weight,
+				},
+			},
 		},
 	}
 
