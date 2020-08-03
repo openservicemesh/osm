@@ -40,6 +40,15 @@ type Configurator interface {
 	// IsZipkinTracingEnabled determines whether Zipkin tracing is enabled
 	IsZipkinTracingEnabled() bool
 
+	// GetZipkinHost is the host to which we send Zipkin spans
+	GetZipkinHost() string
+
+	// GetZipkinPort returns the Zipkin port
+	GetZipkinPort() uint32
+
+	// GetZipkinEndpoint returns the Zipkin endpoint
+	GetZipkinEndpoint() string
+
 	// GetMeshCIDRRanges returns a list of mesh CIDR ranges
 	GetMeshCIDRRanges() []string
 

@@ -87,6 +87,9 @@ type installCmd struct {
 	// Toggle to deploy/not deploy metrics (Promethus+Grafana) stack
 	enableMetricsStack bool
 
+	// Toggle this to enable/disable the automatic deployment of Zipkin
+	deployZipkin bool
+
 	// checker runs checks before any installation is attempted. Its type is
 	// abstract here to make testing easy.
 	checker interface {
@@ -128,6 +131,7 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.BoolVar(&inst.enableBackpressureExperimental, "enable-backpressure-experimental", false, "Enable experimental backpressure feature")
 	f.BoolVar(&inst.enableMetricsStack, "enable-metrics-stack", true, "Enable metrics (Prometheus and Grafana) deployment")
 	f.StringVar(&inst.meshName, "mesh-name", defaultMeshName, "name for the new control plane instance")
+	f.BoolVar(&inst.deployZipkin, "deploy-zipkin", true, "Deploy Zipkin in the namespace of the OSM controller")
 
 	return cmd
 }
@@ -232,6 +236,7 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 		fmt.Sprintf("OpenServiceMesh.meshName=%s", i.meshName),
 		fmt.Sprintf("OpenServiceMesh.enableEgress=%t", i.enableEgress),
 		fmt.Sprintf("OpenServiceMesh.meshCIDRRanges=%s", strings.Join(i.meshCIDRRanges, " ")),
+		fmt.Sprintf("OpenServiceMesh.deployZipkin=%t", i.deployZipkin),
 	}
 
 	for _, val := range valuesConfig {

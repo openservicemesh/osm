@@ -1,6 +1,7 @@
 package injector
 
 import (
+	"github.com/openservicemesh/osm/pkg/configurator"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
@@ -27,6 +28,7 @@ type webhook struct {
 	namespaceController namespace.Controller
 	osmNamespace        string
 	cert                certificate.Certificater
+	configurator        configurator.Configurator
 }
 
 // Config is the type used to represent the config options for the sidecar injection

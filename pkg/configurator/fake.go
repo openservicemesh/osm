@@ -1,5 +1,9 @@
 package configurator
 
+import (
+	"github.com/openservicemesh/osm/pkg/constants"
+)
+
 // FakeConfigurator is the fake type for the Configurator client
 type FakeConfigurator struct {
 	OSMNamespace                string
@@ -77,4 +81,19 @@ func (f FakeConfigurator) UseHTTPSIngress() bool {
 // GetAnnouncementsChannel returns a fake announcement channel
 func (f FakeConfigurator) GetAnnouncementsChannel() <-chan interface{} {
 	return make(chan interface{})
+}
+
+// GetZipkinHost is the host to which we send Zipkin spanspkg/envoy/cds/response.go
+func (f FakeConfigurator) GetZipkinHost() string {
+	return constants.DefaultZipkinAddress
+}
+
+// GetZipkinPort returns the Zipkin port
+func (f FakeConfigurator) GetZipkinPort() uint32 {
+	return constants.DefaultZipkinPort
+}
+
+// GetZipkinEndpoint returns the Zipkin endpoint
+func (f FakeConfigurator) GetZipkinEndpoint() string {
+	return constants.DefaultZipkinEndpoint
 }

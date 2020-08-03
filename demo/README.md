@@ -52,6 +52,7 @@ From the root of this repository execute:
 	- `bookstore` is a service backed by two servers: `bookstore-v1` and `bookstore-v2`. Whenever either sells a book, it issues an HTTP `POST` request to the `bookwarehouse` to restock.
 
   - applies SMI traffic policies allowing `bookbuyer` to access `bookstore-v1` and `bookstore-v2`, while preventing `bookthief` from accessing the `bookstore` services
+  - installs Zipkin and points all Envoy pods to it
   - finally, a command indefinitely watches the relevant pods within the Kubernetes cluster
 
 
@@ -60,6 +61,9 @@ To see the results of deploying the services and the service mesh - run the tail
   - the output will be the output of the curl command to the `bookstore` domain and the count of books sold, and the output of the curl command to `github.com` to demonstrate access to an external service
   - a properly working service mesh will result in HTTP 200 OK response code for the `bookstore` domain with `./demo/tail-bookbuyer.sh` along with a monotonically increasing counter appearing in the response headers, while `./demo/tail-bookthief.sh` will result in HTTP 404 Not Found response code for the `bookstore` domain. With egress enabled by default, HTTP requests to `github.com` should result in HTTP 200 OK response code for both the `bookbuyer` and `bookthief` services.
   This can be automatically checked with `KUBECONFIG=$HOME/.kube/config go run ./ci/cmd/maestro.go`
+
+## View Mesh Topology with Zipkin
+The OSM demo will install a Zipkin pod, and configure all participating Envoys to send spans to it. Zipkin's UI is running on port 9411. To view the web UI, forward port 9411 from the Zipkin pod to the local workstation and navigate to http://localhost:9411/zipkin/dependency. In the `./scripts` directory we have included a helper script to find the Zipkin pod and forward the port: `./scripts/port-forward-zipkin.sh`
 
 ## Demo Web UI
 The Bookstore, Bookbuyer, and Bookthief apps have simple web UI visualizing the number of requests made between the services.
@@ -71,6 +75,8 @@ The Bookstore, Bookbuyer, and Bookthief apps have simple web UI visualizing the 
   - To see Zipkin run `./scripts/port-forward-zipkin.sh` and open [http://localhost:9411/zipkin/](http://localhost:9411/zipkin/)
   - To see Grafana run `./scripts/port-forward-grafana.sh` and open [http://localhost:3000/](http://localhost:3000/) - default username and password for Grafana is `admin`/`admin`
   - OSM controller has a simple debugging web endpoint - run `./scripts/port-forward-osm-debug.sh` and open [http://localhost:9091/debug](http://localhost:9091/debug)
+
+To expose web UI ports of all components of the service mesh the local workstation use the following helper script: `/scripts/port-forward-all.sh`
 
 ## Onboarding VMs to a service mesh
 *_Note: This is an experimental feature and not currently fully supported*

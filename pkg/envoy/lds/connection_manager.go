@@ -42,7 +42,7 @@ func getHTTPConnectionManager(routeName string, cfg configurator.Configurator) *
 
 		zipkinConf := &xds_tracing.ZipkinConfig{
 			CollectorCluster:         constants.EnvoyZipkinCluster,
-			CollectorEndpoint:        constants.EnvoyZipkinEndpoint,
+			CollectorEndpoint:        cfg.GetZipkinEndpoint(),
 			CollectorEndpointVersion: xds_tracing.ZipkinConfig_HTTP_JSON,
 		}
 

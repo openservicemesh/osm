@@ -11,10 +11,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/envoy"
 )
 
-func getEnvoyConfigYAML(config envoyBootstrapConfigMeta) ([]byte, error) {
+func getEnvoyConfigYAML(config envoyBootstrapConfigMeta, cfg configurator.Configurator) ([]byte, error) {
 	m := map[interface{}]interface{}{
 		"admin": map[string]interface{}{
 			"access_log_path": "/dev/stdout",
@@ -110,6 +112,20 @@ func getEnvoyConfigYAML(config envoyBootstrapConfigMeta) ([]byte, error) {
 		},
 	}
 
+	if cfg.IsZipkinTracingEnabled() {
+		m["tracing"] = map[string]interface{}{
+			"http": map[string]interface{}{
+				"name": "envoy.zipkin",
+				"typed_config": map[string]interface{}{
+					"@type":                      envoy.TypeZipkinConfig,
+					"collector_cluster":          constants.EnvoyZipkinCluster,
+					"collector_endpoint":         cfg.GetZipkinEndpoint(),
+					"collector_endpoint_version": "HTTP_JSON",
+				},
+			},
+		}
+	}
+
 	configYAML, err := yaml.Marshal(&m)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshaling Envoy config struct into YAML")
@@ -130,7 +146,7 @@ func (wh *webhook) createEnvoyBootstrapConfig(name, namespace, osmNamespace stri
 		XDSHost: fmt.Sprintf("%s.%s.svc.cluster.local", constants.OSMControllerName, osmNamespace),
 		XDSPort: constants.OSMControllerPort,
 	}
-	yamlContent, err := getEnvoyConfigYAML(configMeta)
+	yamlContent, err := getEnvoyConfigYAML(configMeta, wh.configurator)
 	if err != nil {
 		log.Error().Err(err).Msg("Error creating Envoy bootstrap YAML")
 		return nil, err

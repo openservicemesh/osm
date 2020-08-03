@@ -6,6 +6,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
 	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chartutil"
 	kubefake "helm.sh/helm/v3/pkg/kube/fake"
@@ -139,6 +140,7 @@ var _ = Describe("Running the install command", func() {
 						"enableEgress":                   true,
 						"meshCIDRRanges":                 testMeshCIDR,
 						"enableMetricsStack":             true,
+						"deployZipkin":                   false,
 					}}))
 			})
 
@@ -243,6 +245,7 @@ var _ = Describe("Running the install command", func() {
 						"enableEgress":                   true,
 						"meshCIDRRanges":                 testMeshCIDR,
 						"enableMetricsStack":             true,
+						"deployZipkin":                   false,
 					}}))
 			})
 
@@ -352,6 +355,7 @@ var _ = Describe("Running the install command", func() {
 						"enableEgress":                   true,
 						"meshCIDRRanges":                 testMeshCIDR,
 						"enableMetricsStack":             true,
+						"deployZipkin":                   false,
 					}}))
 			})
 
@@ -626,6 +630,7 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 				"enableEgress":                   true,
 				"meshCIDRRanges":                 testMeshCIDR,
 				"enableMetricsStack":             true,
+				"deployZipkin":                   false,
 			}}))
 	})
 })

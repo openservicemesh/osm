@@ -2,6 +2,8 @@ package configurator
 
 import (
 	"encoding/json"
+	"fmt"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"net"
 	"sort"
 	"strings"
@@ -49,6 +51,33 @@ func (c *Client) IsPrometheusScrapingEnabled() bool {
 // IsZipkinTracingEnabled determines whether Zipkin tracing is enabled
 func (c *Client) IsZipkinTracingEnabled() bool {
 	return c.getConfigMap().ZipkinTracing
+}
+
+// GetZipkinHost is the host to which we send Zipkin spans
+func (c *Client) GetZipkinHost() string {
+	zipkinAddress := c.getConfigMap().ZipkinAddress
+	if zipkinAddress != "" {
+		return zipkinAddress
+	}
+	return fmt.Sprintf("%s.%s.svc.cluster.local", constants.DefaultZipkinAddress, c.GetOSMNamespace())
+}
+
+// GetZipkinPort returns the Zipkin port
+func (c *Client) GetZipkinPort() uint32 {
+	zipkinPort := c.getConfigMap().ZipkinPort
+	if zipkinPort != 0 {
+		return uint32(zipkinPort)
+	}
+	return constants.DefaultZipkinPort
+}
+
+// GetZipkinEndpoint returns the Zipkin endpoint
+func (c *Client) GetZipkinEndpoint() string {
+	zipkinEndpoint := c.getConfigMap().ZipkinEndpoint
+	if zipkinEndpoint != "" {
+		return zipkinEndpoint
+	}
+	return constants.DefaultZipkinEndpoint
 }
 
 // GetMeshCIDRRanges returns a list of mesh CIDR ranges
