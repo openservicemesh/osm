@@ -68,6 +68,6 @@ type Client struct {
 
 // ResourceClient is an interface defining necessary functions to list the AzureResources.
 type ResourceClient interface {
-	// ListAzureResources lists the AzureResources, which will become mapping of a Service to an Azure URI.
+	// ListAzureResources lists the AzureResources, which will become mapping of a service to an Azure URI.
 	ListAzureResources() []*osm.AzureResource
 }

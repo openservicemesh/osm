@@ -23,7 +23,7 @@ const (
 )
 
 // getRemoteServiceCluster returns an Envoy Cluster corresponding to the remote service
-func getRemoteServiceCluster(remoteService, localService service.NamespacedService) (*xds_cluster.Cluster, error) {
+func getRemoteServiceCluster(remoteService, localService service.MeshService) (*xds_cluster.Cluster, error) {
 	clusterName := remoteService.String()
 	marshalledUpstreamTLSContext, err := envoy.MessageToAny(
 		envoy.GetUpstreamTLSContext(localService, remoteService.GetCommonName().String()))
@@ -59,7 +59,7 @@ func getOutboundPassthroughCluster() *xds_cluster.Cluster {
 }
 
 // getLocalServiceCluster returns an Envoy Cluster corresponding to the local service
-func getLocalServiceCluster(catalog catalog.MeshCataloger, proxyServiceName service.NamespacedService, clusterName string) (*xds_cluster.Cluster, error) {
+func getLocalServiceCluster(catalog catalog.MeshCataloger, proxyServiceName service.MeshService, clusterName string) (*xds_cluster.Cluster, error) {
 	xdsCluster := xds_cluster.Cluster{
 		// The name must match the domain being cURLed in the demo
 		Name:           clusterName,
@@ -72,7 +72,7 @@ func getLocalServiceCluster(catalog catalog.MeshCataloger, proxyServiceName serv
 		},
 		DnsLookupFamily: xds_cluster.Cluster_V4_ONLY,
 		LoadAssignment: &xds_endpoint.ClusterLoadAssignment{
-			// NOTE: results.ServiceName is the top level service that is cURLed.
+			// NOTE: results.MeshService is the top level service that is cURLed.
 			ClusterName: clusterName,
 			Endpoints:   []*xds_endpoint.LocalityLbEndpoints{
 				// Filled based on discovered endpoints for the service
@@ -120,7 +120,7 @@ func getPrometheusCluster() xds_cluster.Cluster {
 		},
 		LbPolicy: xds_cluster.Cluster_ROUND_ROBIN,
 		LoadAssignment: &xds_endpoint.ClusterLoadAssignment{
-			// NOTE: results.ServiceName is the top level service that is cURLed.
+			// NOTE: results.MeshService is the top level service that is cURLed.
 			ClusterName: constants.EnvoyMetricsCluster,
 			Endpoints: []*xds_endpoint.LocalityLbEndpoints{
 				{

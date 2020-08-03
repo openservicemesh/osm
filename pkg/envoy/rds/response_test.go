@@ -203,7 +203,7 @@ var _ = Describe("RDS Response", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			expected := service.WeightedCluster{
-				ClusterName: service.ClusterName(tests.WeightedService.NamespacedService.String()),
+				ClusterName: service.ClusterName(tests.WeightedService.Service.String()),
 				Weight:      tests.WeightedService.Weight,
 			}
 			Expect(actual).To(Equal(expected))

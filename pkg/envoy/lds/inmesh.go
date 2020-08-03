@@ -13,7 +13,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
-func getInboundInMeshFilterChain(proxyServiceName service.NamespacedService, cfg configurator.Configurator) (*xds_listener.FilterChain, error) {
+func getInboundInMeshFilterChain(proxyServiceName service.MeshService, cfg configurator.Configurator) (*xds_listener.FilterChain, error) {
 	marshalledDownstreamTLSContext, err := envoy.MessageToAny(envoy.GetDownstreamTLSContext(proxyServiceName, true /* mTLS */))
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshalling DownstreamTLSContext object for proxy %s", proxyServiceName)

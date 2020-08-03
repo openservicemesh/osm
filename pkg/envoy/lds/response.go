@@ -28,7 +28,7 @@ const (
 func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, cfg configurator.Configurator) (*xds_discovery.DiscoveryResponse, error) {
 	svc, err := catalog.GetServiceFromEnvoyCertificate(proxy.GetCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up Service for Envoy with CN=%q", proxy.GetCommonName())
+		log.Error().Err(err).Msgf("Error looking up MeshService for Envoy with CN=%q", proxy.GetCommonName())
 		return nil, err
 	}
 	proxyServiceName := *svc
@@ -64,7 +64,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 		thereAreIngressRoutes := len(ingressRoutesPerHost) > 0
 
 		if thereAreIngressRoutes {
-			log.Info().Msgf("Found k8s Ingress for Service %s, applying necessary filters", proxyServiceName)
+			log.Info().Msgf("Found k8s Ingress for MeshService %s, applying necessary filters", proxyServiceName)
 			// This proxy is fronting a service that is a backend for an ingress, add a FilterChain for it
 			ingressFilterChains := getIngressFilterChains(proxyServiceName, cfg)
 			inboundListener.FilterChains = append(inboundListener.FilterChains, ingressFilterChains...)

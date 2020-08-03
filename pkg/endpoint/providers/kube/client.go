@@ -68,7 +68,7 @@ func (c *Client) GetID() string {
 }
 
 // ListEndpointsForService retrieves the list of IP addresses for the given service
-func (c Client) ListEndpointsForService(svc service.NamespacedService) []endpoint.Endpoint {
+func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endpoint {
 	log.Info().Msgf("[%s] Getting Endpoints for service %s on Kubernetes", c.providerIdent, svc)
 	var endpoints []endpoint.Endpoint
 	endpointsInterface, exist, err := c.caches.Endpoints.GetByKey(svc.String())
@@ -78,7 +78,7 @@ func (c Client) ListEndpointsForService(svc service.NamespacedService) []endpoin
 	}
 
 	if !exist {
-		log.Error().Msgf("[%s] Error fetching Kubernetes Endpoints from cache: ServiceName %s does not exist", c.providerIdent, svc)
+		log.Error().Msgf("[%s] Error fetching Kubernetes Endpoints from cache: MeshService %s does not exist", c.providerIdent, svc)
 		return endpoints
 	}
 
@@ -114,7 +114,7 @@ func (c Client) ListEndpointsForService(svc service.NamespacedService) []endpoin
 }
 
 // GetServiceForServiceAccount retrieves the service for the given service account
-func (c Client) GetServiceForServiceAccount(svcAccount service.K8sServiceAccount) (service.NamespacedService, error) {
+func (c Client) GetServiceForServiceAccount(svcAccount service.K8sServiceAccount) (service.MeshService, error) {
 	log.Info().Msgf("[%s] Getting Services for service account %s on Kubernetes", c.providerIdent, svcAccount)
 	services := mapset.NewSet()
 	deploymentsInterface := c.caches.Deployments.List()
@@ -142,9 +142,9 @@ func (c Client) GetServiceForServiceAccount(svcAccount service.K8sServiceAccount
 				} else {
 					selectorLabel = spec.Template.Labels
 				}
-				namespacedService := service.NamespacedService{
+				namespacedService := service.MeshService{
 					Namespace: kubernetesDeployments.Namespace,
-					Service:   selectorLabel[namespaceSelectorLabel],
+					Name:      selectorLabel[namespaceSelectorLabel],
 				}
 				services.Add(namespacedService)
 			}
@@ -153,21 +153,21 @@ func (c Client) GetServiceForServiceAccount(svcAccount service.K8sServiceAccount
 
 	if services.Cardinality() == 0 {
 		log.Error().Msgf("Did not find any service with serviceAccount = %s in namespace %s", svcAccount.Name, svcAccount.Namespace)
-		return service.NamespacedService{}, errDidNotFindServiceForServiceAccount
+		return service.MeshService{}, errDidNotFindServiceForServiceAccount
 	}
 
 	// --- CONVENTION ---
 	// By Open Service Mesh convention the number of services for a service account is 1
 	// This is a limitation we set in place in order to make the mesh easy to understand and reason about.
-	// When a servcie account has more than one service XDS will not apply any SMI policy for that service, leaving it out of the mesh.
+	// When a service account has more than one service XDS will not apply any SMI policy for that service, leaving it out of the mesh.
 	if services.Cardinality() > 1 {
 		log.Error().Msgf("Found more than one service for serviceAccount %s in namespace %s; There should be only one!", svcAccount.Name, svcAccount.Namespace)
-		return service.NamespacedService{}, errMoreThanServiceForServiceAccount
+		return service.MeshService{}, errMoreThanServiceForServiceAccount
 	}
 
 	log.Info().Msgf("[%s] Services %v observed on service account %s on Kubernetes", c.providerIdent, services, svcAccount)
-	svc := services.Pop().(service.NamespacedService)
-	log.Trace().Msgf("Found service %s for serviceAccount %s in namespace %s", svc.Service, svcAccount.Name, svcAccount.Namespace)
+	svc := services.Pop().(service.MeshService)
+	log.Trace().Msgf("Found service %s for serviceAccount %s in namespace %s", svc.Name, svcAccount.Name, svcAccount.Namespace)
 	return svc, nil
 }
 
