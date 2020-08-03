@@ -41,14 +41,14 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 	routeConfiguration := []*xds_route.RouteConfiguration{}
 	sourceRouteConfig := route.NewRouteConfigurationStub(route.OutboundRouteConfigName)
 	destinationRouteConfig := route.NewRouteConfigurationStub(route.InboundRouteConfigName)
-	sourceAggregatedRoutesByDomain := make(map[string]map[string]trafficpolicy.RouteWeightedClusters)
-	destinationAggregatedRoutesByDomain := make(map[string]map[string]trafficpolicy.RouteWeightedClusters)
+	sourceAggregatedRoutesByHostnames := make(map[string]map[string]trafficpolicy.RouteWeightedClusters)
+	destinationAggregatedRoutesByHostnames := make(map[string]map[string]trafficpolicy.RouteWeightedClusters)
 
 	for _, trafficPolicies := range allTrafficPolicies {
 		isSourceService := trafficPolicies.Source.Equals(proxyServiceName)
 		isDestinationService := trafficPolicies.Destination.Equals(proxyServiceName)
 		svc := trafficPolicies.Destination
-		domain, err := catalog.GetDomainForService(svc, trafficPolicies.Route.Headers)
+		hostnames, err := catalog.GetHostnamesForService(svc)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed listing domains")
 			return nil, err
@@ -60,20 +60,20 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, meshSpec sm
 		}
 
 		if isSourceService {
-			aggregateRoutesByHost(sourceAggregatedRoutesByDomain, trafficPolicies.Route, weightedCluster, domain)
+			aggregateRoutesByHost(sourceAggregatedRoutesByHostnames, trafficPolicies.Route, weightedCluster, hostnames)
 		}
 
 		if isDestinationService {
-			aggregateRoutesByHost(destinationAggregatedRoutesByDomain, trafficPolicies.Route, weightedCluster, domain)
+			aggregateRoutesByHost(destinationAggregatedRoutesByHostnames, trafficPolicies.Route, weightedCluster, hostnames)
 		}
 	}
 
-	if err = updateRoutesForIngress(proxyServiceName, catalog, destinationAggregatedRoutesByDomain); err != nil {
+	if err = updateRoutesForIngress(proxyServiceName, catalog, destinationAggregatedRoutesByHostnames); err != nil {
 		return nil, err
 	}
 
-	route.UpdateRouteConfiguration(sourceAggregatedRoutesByDomain, sourceRouteConfig, true, false)
-	route.UpdateRouteConfiguration(destinationAggregatedRoutesByDomain, destinationRouteConfig, false, true)
+	route.UpdateRouteConfiguration(sourceAggregatedRoutesByHostnames, sourceRouteConfig, true, false)
+	route.UpdateRouteConfiguration(destinationAggregatedRoutesByHostnames, destinationRouteConfig, false, true)
 	routeConfiguration = append(routeConfiguration, sourceRouteConfig)
 	routeConfiguration = append(routeConfiguration, destinationRouteConfig)
 
