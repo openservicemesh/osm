@@ -2,13 +2,14 @@ package injector
 
 import (
 	"fmt"
-	"github.com/openservicemesh/osm/pkg/configurator"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	corev1 "k8s.io/api/core/v1"
+
+	"github.com/openservicemesh/osm/pkg/configurator"
 )
 
 const expectedEnvoyConfig = `
@@ -65,6 +66,14 @@ static_resources:
             trusted_ca:
               inline_bytes: RootCert
     type: LOGICAL_DNS
+tracing:
+  http:
+    name: envoy.zipkin
+    typed_config:
+      '@type': type.googleapis.com/envoy.config.trace.v3.ZipkinConfig
+      collector_cluster: envoy-zipkin-cluster
+      collector_endpoint: /api/v2/spans
+      collector_endpoint_version: HTTP_JSON
 `
 
 var _ = Describe("Test Envoy configuration creation", func() {
