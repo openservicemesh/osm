@@ -40,19 +40,17 @@ OpenServiceMesh:
 
   # The following section configures Zipkin tracing for the Envoys
   # connected to the OSM control plane.
-  # Leaving the values below blank will default to the Zipkin
-  # installed with the OSM controller.
   zipkin:
 
     ## Toggles Envoy's tracing functionality on/off
     ## for all proxies in the mesh.
     enable: true
 
-    ## Informs Envoys where the Zipkin spans should be sent
-    # address: "zipkin.default.svc.cluster.local"
+    # Informs Envoys where the Zipkin spans should be sent
+    address: "zipkin.osm-system.svc.cluster.local"
 
-    ## Port of the Zipkin cluster
-    # port: 9411
+    # Port of the Zipkin cluster
+    port: 9411
 
-    ## Endpoint for the Zipkin cluster
-    # endpoint: "/api/v2/spans"
+    # Endpoint for the Zipkin cluster
+    endpoint: "/api/v2/spans"
