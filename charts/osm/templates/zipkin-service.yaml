@@ -10,7 +10,7 @@ spec:
     app: zipkin
   ports:
   - protocol: TCP
-    port: {{ .Values.OpenServiceMesh.zipkin.port | default 9411 }}
-    targetPort: {{ .Values.OpenServiceMesh.zipkin.port | default 9411 }}
+    port: {{ .Values.OpenServiceMesh.zipkin.port }}
+    targetPort: {{ .Values.OpenServiceMesh.zipkin.port }}
   type: ClusterIP
 {{- end }}
