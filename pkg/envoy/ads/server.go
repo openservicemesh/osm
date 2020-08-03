@@ -15,16 +15,14 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy/lds"
 	"github.com/openservicemesh/osm/pkg/envoy/rds"
 	"github.com/openservicemesh/osm/pkg/envoy/sds"
-	"github.com/openservicemesh/osm/pkg/smi"
 )
 
 // NewADSServer creates a new Aggregated Discovery Service server
-func NewADSServer(ctx context.Context, meshCatalog catalog.MeshCataloger, meshSpec smi.MeshSpec, enableDebug bool, osmNamespace string, cfg configurator.Configurator) *Server {
+func NewADSServer(ctx context.Context, meshCatalog catalog.MeshCataloger, enableDebug bool, osmNamespace string, cfg configurator.Configurator) *Server {
 	server := Server{
 		catalog:      meshCatalog,
 		ctx:          ctx,
-		meshSpec:     meshSpec,
-		xdsHandlers:  getHandlers(cfg),
+		xdsHandlers:  getHandlers(),
 		enableDebug:  enableDebug,
 		osmNamespace: osmNamespace,
 		cfg:          cfg,
@@ -37,8 +35,8 @@ func NewADSServer(ctx context.Context, meshCatalog catalog.MeshCataloger, meshSp
 	return &server
 }
 
-func getHandlers(cfg configurator.Configurator) map[envoy.TypeURI]func(context.Context, catalog.MeshCataloger, smi.MeshSpec, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator) (*xds_discovery.DiscoveryResponse, error) {
-	return map[envoy.TypeURI]func(context.Context, catalog.MeshCataloger, smi.MeshSpec, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator) (*xds_discovery.DiscoveryResponse, error){
+func getHandlers() map[envoy.TypeURI]func(context.Context, catalog.MeshCataloger, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator) (*xds_discovery.DiscoveryResponse, error) {
+	return map[envoy.TypeURI]func(context.Context, catalog.MeshCataloger, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator) (*xds_discovery.DiscoveryResponse, error){
 		envoy.TypeEDS: eds.NewResponse,
 		envoy.TypeCDS: cds.NewResponse,
 		envoy.TypeRDS: rds.NewResponse,
