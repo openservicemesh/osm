@@ -15,11 +15,11 @@
 2. Setup `.env` environment variable file
    - From the root of the repository run `make .env`
    - It is already listed in `.gitignore` so that anything you put in it would not accidentally leak into a public git repo. Refer to `.env.example` in the root of this repo for the mandatory and optional environment variables.
-2. Provision access to a Kubernetes cluster **(choose 1 option)**:
+2. Provision access to a Kubernetes cluster and Docker container registry. Any cluster and registry provider can be used. Here are a couple of options:
 	- **Option 1:** Local [kind](https://kind.sigs.k8s.io/) cluster
 	    - [Install kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation)
 	       - `brew install kind` on macOS
-	    - Provision a local cluster in Docker: `make kind-up`
+	    - Provision a local cluster and registry in Docker: `make kind-up`
 	- **Option 2:** Azure Kubernetes Service managed cluster - save the credentials in `~/.kube/config` or set the config path in `$KUBECONFIG` env variable:
 		- [Install Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
 		- Login to your Azure account: `az login`
