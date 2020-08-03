@@ -24,7 +24,7 @@ func NewADSServer(ctx context.Context, meshCatalog catalog.MeshCataloger, meshSp
 		catalog:      meshCatalog,
 		ctx:          ctx,
 		meshSpec:     meshSpec,
-		xdsHandlers:  getHandlers(cfg),
+		xdsHandlers:  getHandlers(),
 		enableDebug:  enableDebug,
 		osmNamespace: osmNamespace,
 		cfg:          cfg,
@@ -37,7 +37,7 @@ func NewADSServer(ctx context.Context, meshCatalog catalog.MeshCataloger, meshSp
 	return &server
 }
 
-func getHandlers(cfg configurator.Configurator) map[envoy.TypeURI]func(context.Context, catalog.MeshCataloger, smi.MeshSpec, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator) (*xds_discovery.DiscoveryResponse, error) {
+func getHandlers() map[envoy.TypeURI]func(context.Context, catalog.MeshCataloger, smi.MeshSpec, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator) (*xds_discovery.DiscoveryResponse, error) {
 	return map[envoy.TypeURI]func(context.Context, catalog.MeshCataloger, smi.MeshSpec, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator) (*xds_discovery.DiscoveryResponse, error){
 		envoy.TypeEDS: eds.NewResponse,
 		envoy.TypeCDS: cds.NewResponse,
@@ -48,18 +48,6 @@ func getHandlers(cfg configurator.Configurator) map[envoy.TypeURI]func(context.C
 }
 
 // DeltaAggregatedResources implements discovery.AggregatedDiscoveryServiceServer
-func (s *Server) DeltaAggregatedResources(server xds_discovery.AggregatedDiscoveryService_DeltaAggregatedResourcesServer) error {
+func (s *Server) DeltaAggregatedResources(xds_discovery.AggregatedDiscoveryService_DeltaAggregatedResourcesServer) error {
 	panic("NotImplemented")
-}
-
-// Liveness is the Kubernetes liveness probe handler.
-func (s *Server) Liveness() bool {
-	// TODO(draychev): implement
-	return true
-}
-
-// Readiness is the Kubernetes readiness probe handler.
-func (s *Server) Readiness() bool {
-	// TODO(draychev): implement
-	return true
 }

@@ -104,7 +104,7 @@ var _ = Describe("Test ADS response functions", func() {
 				ctx:         context.TODO(),
 				catalog:     mc,
 				meshSpec:    smi.NewFakeMeshSpecClient(),
-				xdsHandlers: getHandlers(cfg),
+				xdsHandlers: getHandlers(),
 			}
 
 			s.sendAllResponses(proxy, &server, cfg)
