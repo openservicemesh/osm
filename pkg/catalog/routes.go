@@ -218,14 +218,14 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[trafficpolicy.T
 	var trafficPolicies []trafficpolicy.TrafficTarget
 	for _, trafficTargets := range mc.meshSpec.ListTrafficTargets() {
 		log.Debug().Msgf("Discovered TrafficTarget resource: %s/%s", trafficTargets.Namespace, trafficTargets.Name)
-		if trafficTargets.Specs == nil || len(trafficTargets.Specs) == 0 {
+		if trafficTargets.Spec.Rules == nil || len(trafficTargets.Spec.Rules) == 0 {
 			log.Error().Msgf("TrafficTarget %s/%s has no spec routes; Skipping...", trafficTargets.Namespace, trafficTargets.Name)
 			continue
 		}
 
 		dstNamespacedServiceAcc := service.K8sServiceAccount{
-			Namespace: trafficTargets.Destination.Namespace,
-			Name:      trafficTargets.Destination.Name,
+			Namespace: trafficTargets.Spec.Destination.Namespace,
+			Name:      trafficTargets.Spec.Destination.Name,
 		}
 		destService, destErr := mc.GetServiceForServiceAccount(dstNamespacedServiceAcc)
 		if destErr != nil {
@@ -233,7 +233,7 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[trafficpolicy.T
 			return nil, destErr
 		}
 
-		for _, trafficSources := range trafficTargets.Sources {
+		for _, trafficSources := range trafficTargets.Spec.Sources {
 			namespacedServiceAccount := service.K8sServiceAccount{
 				Namespace: trafficSources.Namespace,
 				Name:      trafficSources.Name,
@@ -251,7 +251,7 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[trafficpolicy.T
 				Source:      srcServices,
 			}
 
-			for _, trafficTargetSpecs := range trafficTargets.Specs {
+			for _, trafficTargetSpecs := range trafficTargets.Spec.Rules {
 				if trafficTargetSpecs.Kind != HTTPTraffic {
 					log.Error().Msgf("TrafficTarget %s/%s has Spec Kind %s which isn't supported for now; Skipping...", trafficTargets.Namespace, trafficTargets.Name, trafficTargetSpecs.Kind)
 					continue
