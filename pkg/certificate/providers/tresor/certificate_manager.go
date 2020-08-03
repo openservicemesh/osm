@@ -158,6 +158,17 @@ func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate
 	return cert, nil
 }
 
+// ListCertificates lists all certificates issued
+func (cm *CertManager) ListCertificates() ([]certificate.Certificater, error) {
+	var certs []certificate.Certificater
+	cm.cacheLock.Lock()
+	for _, cert := range *cm.cache {
+		certs = append(certs, cert)
+	}
+	cm.cacheLock.Unlock()
+	return certs, nil
+}
+
 // GetRootCertificate returns the root certificate.
 func (cm *CertManager) GetRootCertificate() (certificate.Certificater, error) {
 	return cm.ca, nil

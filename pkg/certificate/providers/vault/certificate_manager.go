@@ -57,7 +57,7 @@ func NewCertManager(vaultAddr, token string, validityPeriod time.Duration, vault
 	}
 
 	// Instantiating a new certificate rotation mechanism will start a goroutine for certificate rotation.
-	rotor.Start(checkCertificateExpirationInterval, c, &cache)
+	rotor.New(c).Start(checkCertificateExpirationInterval)
 
 	return c, nil
 }
@@ -112,6 +112,17 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 	log.Info().Msgf("Issuing new certificate for CN=%s took %+v", cn, time.Since(start))
 
 	return cert, nil
+}
+
+// ListCertificates lists all certificates issued
+func (cm *CertManager) ListCertificates() ([]certificate.Certificater, error) {
+	var certs []certificate.Certificater
+	cm.cacheLock.Lock()
+	for _, cert := range *cm.cache {
+		certs = append(certs, cert)
+	}
+	cm.cacheLock.Unlock()
+	return certs, nil
 }
 
 // GetCertificate returns a certificate given its Common Name (CN)
