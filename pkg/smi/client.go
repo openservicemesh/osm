@@ -294,18 +294,18 @@ func (c *Client) ListServiceAccounts() []service.K8sServiceAccount {
 	return serviceAccounts
 }
 
-// GetService retrieves the Kubernetes Services resource for the given MeshService.
-func (c *Client) GetService(svc service.MeshService) (service *corev1.Service, exists bool, err error) {
+// GetService retrieves the Kubernetes Services resource for the given MeshService
+func (c *Client) GetService(svc service.MeshService) (service *corev1.Service, err error) {
 	svcIf, exists, err := c.caches.Services.GetByKey(svc.String())
 	if exists && err == nil {
 		svc, ok := svcIf.(*corev1.Service)
 		if !ok {
 			log.Error().Err(errInvalidObjectType).Msgf("Failed type assertion for MeshService in cache")
-			return nil, false, err
+			return nil, errInvalidObjectType
 		}
-		return svc, true, err
+		return svc, nil
 	}
-	return nil, exists, err
+	return nil, err
 }
 
 // ListServices returns a list of services that are part of monitored namespaces

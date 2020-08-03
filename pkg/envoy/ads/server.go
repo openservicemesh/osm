@@ -46,18 +46,6 @@ func getHandlers() map[envoy.TypeURI]func(context.Context, catalog.MeshCataloger
 }
 
 // DeltaAggregatedResources implements discovery.AggregatedDiscoveryServiceServer
-func (s *Server) DeltaAggregatedResources(server xds_discovery.AggregatedDiscoveryService_DeltaAggregatedResourcesServer) error {
+func (s *Server) DeltaAggregatedResources(xds_discovery.AggregatedDiscoveryService_DeltaAggregatedResourcesServer) error {
 	panic("NotImplemented")
-}
-
-// Liveness is the Kubernetes liveness probe handler.
-func (s *Server) Liveness() bool {
-	// TODO(draychev): implement
-	return true
-}
-
-// Readiness is the Kubernetes readiness probe handler.
-func (s *Server) Readiness() bool {
-	// TODO(draychev): implement
-	return true
 }

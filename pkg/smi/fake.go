@@ -9,6 +9,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
+	"github.com/pkg/errors"
 )
 
 type fakeMeshSpec struct {
@@ -57,8 +58,13 @@ func (f fakeMeshSpec) ListServiceAccounts() []service.K8sServiceAccount {
 }
 
 // GetService fetches a specific service declared in SMI for the fake Mesh Spec.
-func (f fakeMeshSpec) GetService(service.MeshService) (service *corev1.Service, exists bool, err error) {
-	return nil, false, nil
+func (f fakeMeshSpec) GetService(svc service.MeshService) (service *corev1.Service, err error) {
+	for _, service := range f.services {
+		if service.Name == svc.Name && service.Namespace == svc.Namespace {
+			return service, nil
+		}
+	}
+	return nil, errors.Errorf("Service %s not found", svc)
 }
 
 // ListHTTPTrafficSpecs lists TrafficSpec SMI resources for the fake Mesh Spec.

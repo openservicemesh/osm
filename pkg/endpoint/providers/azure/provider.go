@@ -91,13 +91,9 @@ func parseAzureID(id azureID) (resourceGroup, computeKind, computeName, error) {
 func (az *Client) resolveService(svc service.MeshService) []azureID {
 	log.Trace().Msgf("Resolving service %s to an Azure URI", svc)
 	var azureIDs []azureID
-	k8sService, exists, err := az.meshSpec.GetService(svc)
+	k8sService, err := az.meshSpec.GetService(svc)
 	if err != nil {
 		log.Error().Err(err).Msg("Error fetching Kubernetes Endpoints from cache")
-		return azureIDs
-	}
-	if !exists {
-		log.Error().Msgf("Error fetching Kubernetes Endpoints from cache: service %s does not exist", svc)
 		return azureIDs
 	}
 	log.Trace().Msgf("Got the service: %+v", k8sService)
