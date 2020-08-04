@@ -112,6 +112,7 @@ if [ "$CERT_MANAGER" = "vault" ]; then
       --container-registry-secret "$CTR_REGISTRY_CREDS_NAME" \
       --osm-image-tag "$CTR_TAG" \
       --enable-debug-server \
+      --enable-egress \
       --mesh-cidr "$MESH_CIDR" \
       --deploy-zipkin \
       $optionalInstallArgs
@@ -124,6 +125,7 @@ else
       --container-registry-secret "$CTR_REGISTRY_CREDS_NAME" \
       --osm-image-tag "$CTR_TAG" \
       --enable-debug-server \
+      --enable-egress \
       --mesh-cidr "$MESH_CIDR" \
       --deploy-zipkin \
       $optionalInstallArgs
