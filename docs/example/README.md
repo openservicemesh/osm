@@ -26,7 +26,7 @@ The `Bookstore`, `Bookbuyer`, `Bookthief`, `Bookwarehouse` demo applications wil
 
 ```bash
 $ kubectl create ns bookstore
-$ kubect create ns bookbuyer
+$ kubectl create ns bookbuyer
 $ kubectl create ns bookthief
 $ kubectl create ns bookwarehouse
 $ osm namespace add bookstore bookbuyer bookthief bookwarehouse
