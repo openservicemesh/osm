@@ -51,7 +51,7 @@ spec:
               cpu: 1.5
               memory: 128M
             requests:
-              cpu: 0.5
+              cpu: 0.2
               memory: 32M
           readinessProbe:
             initialDelaySeconds: 1
