@@ -6,7 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
-	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha2"
+	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha3"
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	smiTrafficTargetClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/clientset/versioned"
 	smiTrafficTargetInformers "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/informers/externalversions"
@@ -124,7 +124,7 @@ func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient *smiTra
 	informerCollection := InformerCollection{
 		Services:      informerFactory.Core().V1().Services().Informer(),
 		TrafficSplit:  smiTrafficSplitInformerFactory.Split().V1alpha2().TrafficSplits().Informer(),
-		TrafficSpec:   smiTrafficSpecInformerFactory.Specs().V1alpha2().HTTPRouteGroups().Informer(),
+		TrafficSpec:   smiTrafficSpecInformerFactory.Specs().V1alpha3().HTTPRouteGroups().Informer(),
 		TrafficTarget: smiTrafficTargetInformerFactory.Access().V1alpha2().TrafficTargets().Informer(),
 	}
 

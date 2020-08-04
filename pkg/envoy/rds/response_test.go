@@ -164,7 +164,7 @@ var _ = Describe("RDS Response", func() {
 		}
 		It("returns the domain for a service when traffic split is specified for the given service", func() {
 
-			actual, err := meshCatalog.GetDomainForService(tests.BookstoreService, tests.HTTPRouteGroup.Matches[0].Headers)
+			actual, err := meshCatalog.GetDomainForService(tests.BookstoreService, tests.HTTPRouteGroup.Spec.Matches[0].Headers)
 			Expect(err).ToNot(HaveOccurred())
 
 			domainList := strings.Split(actual, ",")
@@ -194,7 +194,7 @@ var _ = Describe("RDS Response", func() {
 
 		It("No service found when mesh does not have service", func() {
 
-			_, err := meshCatalog.GetDomainForService(tests.BookwarehouseService, tests.HTTPRouteGroup.Matches[0].Headers)
+			_, err := meshCatalog.GetDomainForService(tests.BookwarehouseService, tests.HTTPRouteGroup.Spec.Matches[0].Headers)
 			Expect(err).To(HaveOccurred())
 		})
 	})
