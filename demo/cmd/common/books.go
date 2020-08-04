@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/openservicemesh/osm/pkg/logger"
@@ -93,7 +94,7 @@ func GetEnv(envVar string, defaultValue string) string {
 }
 
 // GetBooks reaches out to the bookstore and buys/steals books. This is invoked by the bookbuyer and the bookthief.
-func GetBooks(participantName string, meshExpectedResponseCode int, egressExpectedResponseCode int, booksCount *int, booksCountV1 *int, booksCountV2 *int) {
+func GetBooks(participantName string, meshExpectedResponseCode int, egressExpectedResponseCode int, booksCount *int64, booksCountV1 *int64, booksCountV2 *int64) {
 	minSuccessThreshold, maxIterations, sleepDurationBetweenRequests := getEnvVars(participantName)
 
 	// The URLs this participant will attempt to query from the bookstore service
@@ -144,12 +145,12 @@ func GetBooks(participantName string, meshExpectedResponseCode int, egressExpect
 			if responseCode == http.StatusOK {
 				if url == buyBook {
 					if strings.HasPrefix(identity, "bookstore-v1") {
-						*booksCountV1++
-						*booksCount++
+						atomic.AddInt64(booksCountV1, 1)
+						atomic.AddInt64(booksCount, 1)
 						log.Info().Msgf("BooksCountV1=%d", booksCountV1)
 					} else if strings.HasPrefix(identity, "bookstore-v2") {
-						*booksCountV2++
-						*booksCount++
+						atomic.AddInt64(booksCountV2, 1)
+						atomic.AddInt64(booksCount, 1)
 						log.Info().Msgf("BooksCountV2=%d", booksCountV2)
 					}
 				}

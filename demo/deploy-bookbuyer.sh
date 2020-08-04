@@ -6,6 +6,7 @@ set -aueo pipefail
 source .env
 BOOKSTORE_SVC="${BOOKSTORE_SVC:-bookstore}"
 CI_MAX_ITERATIONS_THRESHOLD="${CI_MAX_ITERATIONS_THRESHOLD:-0}"
+CI_CLIENT_CONCURRENT_CONNECTIONS="${CI_CLIENT_CONCURRENT_CONNECTIONS:-1}"
 EGRESS_EXPECTED_RESPONSE_CODE="${EGRESS_EXPECTED_RESPONSE_CODE:-200}"
 
 kubectl delete deployment bookbuyer -n "$BOOKBUYER_NAMESPACE"  --ignore-not-found
@@ -74,6 +75,8 @@ spec:
               value: "$CI_MAX_ITERATIONS_THRESHOLD"
             - name: "EGRESS_EXPECTED_RESPONSE_CODE"
               value: "$EGRESS_EXPECTED_RESPONSE_CODE"
+            - name: "CI_CLIENT_CONCURRENT_CONNECTIONS"
+              value: "$CI_CLIENT_CONCURRENT_CONNECTIONS"
 
       imagePullSecrets:
         - name: "$CTR_REGISTRY_CREDS_NAME"

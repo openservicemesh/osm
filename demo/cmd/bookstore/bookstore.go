@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -19,11 +20,11 @@ import (
 )
 
 var (
-	booksSold = 0
-	log       = logger.NewPretty("bookstore")
-	identity  = flag.String("ident", "unidentified", "the identity of the container where this demo app is running (VM, K8s, etc)")
-	port      = flag.Int("port", 80, "port on which this app is listening for incoming HTTP")
-	path      = flag.String("path", ".", "path to the HTML template")
+	booksSold int64 = 0
+	log             = logger.NewPretty("bookstore")
+	identity        = flag.String("ident", "unidentified", "the identity of the container where this demo app is running (VM, K8s, etc)")
+	port            = flag.Int("port", 80, "port on which this app is listening for incoming HTTP")
+	path            = flag.String("path", ".", "path to the HTML template")
 )
 
 type handler struct {
@@ -76,12 +77,12 @@ func getIndex(w http.ResponseWriter, r *http.Request) {
 
 // updateBooksSold updates the booksSold value to the one specified by the user
 func updateBooksSold(w http.ResponseWriter, r *http.Request) {
-	var updatedBooksSold int
+	var updatedBooksSold int64
 	err := json.NewDecoder(r.Body).Decode(&updatedBooksSold)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Could not decode request body")
 	}
-	booksSold = updatedBooksSold
+	atomic.StoreInt64(&booksSold, updatedBooksSold)
 	setHeaders(w)
 	renderTemplate(w)
 	log.Info().Msgf("%s;  URL: %q;  %s: %d\n", getIdentity(), html.EscapeString(r.URL.Path), common.BooksBoughtHeader, booksSold)
@@ -90,7 +91,8 @@ func updateBooksSold(w http.ResponseWriter, r *http.Request) {
 
 // sellBook increments the value of the booksSold
 func sellBook(w http.ResponseWriter, r *http.Request) {
-	booksSold++
+	fmt.Println("Selling a book!")
+	atomic.AddInt64(&booksSold, 1)
 	setHeaders(w)
 	renderTemplate(w)
 	log.Info().Msgf("%s;  URL: %q;  Count: %d\n", getIdentity(), html.EscapeString(r.URL.Path), booksSold)
