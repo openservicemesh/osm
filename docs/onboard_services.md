@@ -28,7 +28,7 @@ The following guide describes how to onboard a Kubernetes microservice to an OSM
 
     At the moment to onboard your Kubernetes services to OSM, a restart of the pods backing the services is needed. In the near future, manual sidecar injection will be supported no longer requiring this step.
 
-    For an example on how to invoke a rolling restart of your services pods, please see the following example:
+    For an example on how to invoke a rolling restart of your services' pods, please see the following example:
     - [demo/rolling-restart.sh](/demo/rolling-restart.sh)
 
 1. Verify the new behavior
