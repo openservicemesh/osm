@@ -16,12 +16,14 @@ var (
 type InformerCollection struct {
 	Endpoints   cache.SharedIndexInformer
 	Deployments cache.SharedIndexInformer
+	Services    cache.SharedIndexInformer
 }
 
 // CacheCollection is a struct of the Kubernetes caches used in OSM
 type CacheCollection struct {
 	Endpoints   cache.Store
 	Deployments cache.Store
+	Services    cache.Store
 }
 
 // Client is a struct for all components necessary to connect to and maintain state of a Kubernetes cluster.

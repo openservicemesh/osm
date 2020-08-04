@@ -30,11 +30,13 @@ func NewProvider(kubeClient kubernetes.Interface, namespaceController namespace.
 	informerCollection := InformerCollection{
 		Endpoints:   informerFactory.Core().V1().Endpoints().Informer(),
 		Deployments: informerFactory.Apps().V1().Deployments().Informer(),
+		Services:    informerFactory.Core().V1().Services().Informer(),
 	}
 
 	cacheCollection := CacheCollection{
 		Endpoints:   informerCollection.Endpoints.GetStore(),
 		Deployments: informerCollection.Deployments.GetStore(),
+		Services:    informerCollection.Services.GetStore(),
 	}
 
 	client := Client{
@@ -53,6 +55,7 @@ func NewProvider(kubeClient kubernetes.Interface, namespaceController namespace.
 	}
 	informerCollection.Endpoints.AddEventHandler(k8s.GetKubernetesEventHandlers("Endpoints", "Kubernetes", client.announcements, shouldObserve))
 	informerCollection.Deployments.AddEventHandler(k8s.GetKubernetesEventHandlers("Deployments", "Kubernetes", client.announcements, shouldObserve))
+	informerCollection.Services.AddEventHandler(k8s.GetKubernetesEventHandlers("Services", "Kubernetes", client.announcements, shouldObserve))
 
 	if err := client.run(stop); err != nil {
 		return nil, errors.Errorf("Failed to start Kubernetes EndpointProvider client: %+v", err)
@@ -142,17 +145,22 @@ func (c Client) GetServiceForServiceAccount(svcAccount service.K8sServiceAccount
 				} else {
 					selectorLabel = spec.Template.Labels
 				}
-				namespacedService := service.MeshService{
-					Namespace: kubernetesDeployments.Namespace,
-					Name:      selectorLabel[namespaceSelectorLabel],
+
+				meshServices, err := getServicesFromLabelSelector(c, selectorLabel, svcAccount.Namespace)
+				if err != nil {
+					log.Error().Msgf("TEST Did not find any service with serviceAccount = %s in namespace %s", svcAccount.Name, svcAccount.Namespace)
+					return service.MeshService{}, errDidNotFindServiceForServiceAccount
 				}
-				services.Add(namespacedService)
+				for meshSvcInterface := range meshServices.Iter() {
+					meshService := meshSvcInterface.(service.MeshService)
+					services.Add(meshService)
+				}
 			}
 		}
 	}
 
 	if services.Cardinality() == 0 {
-		log.Error().Msgf("Did not find any service with serviceAccount = %s in namespace %s", svcAccount.Name, svcAccount.Namespace)
+		log.Error().Msgf("TEST Did not find any service with serviceAccount = %s in namespace %s", svcAccount.Name, svcAccount.Namespace)
 		return service.MeshService{}, errDidNotFindServiceForServiceAccount
 	}
 
@@ -161,14 +169,56 @@ func (c Client) GetServiceForServiceAccount(svcAccount service.K8sServiceAccount
 	// This is a limitation we set in place in order to make the mesh easy to understand and reason about.
 	// When a service account has more than one service XDS will not apply any SMI policy for that service, leaving it out of the mesh.
 	if services.Cardinality() > 1 {
-		log.Error().Msgf("Found more than one service for serviceAccount %s in namespace %s; There should be only one!", svcAccount.Name, svcAccount.Namespace)
+		log.Error().Msgf("TEST Found more than one service for serviceAccount %s in namespace %s; There should be only one!", svcAccount.Name, svcAccount.Namespace)
 		return service.MeshService{}, errMoreThanServiceForServiceAccount
 	}
 
-	log.Info().Msgf("[%s] Services %v observed on service account %s on Kubernetes", c.providerIdent, services, svcAccount)
+	log.Info().Msgf("[%s] TEST Services %v observed on service account %s on Kubernetes", c.providerIdent, services, svcAccount)
 	svc := services.Pop().(service.MeshService)
-	log.Trace().Msgf("Found service %s for serviceAccount %s in namespace %s", svc.Name, svcAccount.Name, svcAccount.Namespace)
+	log.Trace().Msgf("TEST Found service %s for serviceAccount %s in namespace %s", svc.Name, svcAccount.Name, svcAccount.Namespace)
 	return svc, nil
+}
+
+// getServiceFromLabelSelector retrieves the service for a given set of selector labels
+func getServicesFromLabelSelector(client Client, selectorLabels map[string]string, namespace string) (mapset.Set, error) {
+	log.Info().Msgf("[%s] TEST Getting Services for selectorLabels %v on Kubernetes", client.providerIdent, selectorLabels)
+	services := mapset.NewSet()
+	servicesInterface := client.caches.Services.List()
+
+	for _, svc := range servicesInterface {
+		kubernetesService, ok := svc.(*corev1.Service)
+		if !ok {
+			log.Error().Err(errInvalidObjectType).Msg("Failed type assertion for Service in cache")
+			continue
+		}
+
+		if kubernetesService != nil {
+			if !client.namespaceController.IsMonitoredNamespace(kubernetesService.Namespace) {
+				// Doesn't belong to namespaces we are observing
+				continue
+			}
+
+			svcSelectorLabels := kubernetesService.Labels
+			log.Info().Msgf("[%s] TEST Getting Service %s selectorLabels %v on Kubernetes to match %v", client.providerIdent, kubernetesService.Name, svcSelectorLabels, selectorLabels)
+			if reflect.DeepEqual(selectorLabels, svcSelectorLabels) && namespace == kubernetesService.Namespace {
+				namespacedService := service.MeshService{
+					Namespace: kubernetesService.Namespace,
+					Name:      kubernetesService.Name,
+				}
+				log.Info().Msgf("[%s] TEST Getting Service %s selectorLabels %v matches selector labels %v", client.providerIdent, kubernetesService.Name, svcSelectorLabels, selectorLabels)
+				services.Add(namespacedService)
+			}
+		}
+
+	}
+
+	if services.Cardinality() == 0 {
+		log.Error().Msgf("TEST Did not find any service with selectorLabels = %v in namespace %s", selectorLabels, namespace)
+		return services, errDidNotFindServiceForSelectorLabels
+	}
+
+	log.Info().Msgf("[%s] TEST Services %v observed on selectorLabels %v on Kubernetes", client.providerIdent, services, selectorLabels)
+	return services, nil
 }
 
 // GetAnnouncementsChannel returns the announcement channel for the Kubernetes endpoints provider.
