@@ -13,11 +13,10 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/featureflags"
 	"github.com/openservicemesh/osm/pkg/service"
-	"github.com/openservicemesh/osm/pkg/smi"
 )
 
 // NewResponse creates a new Cluster Discovery Response.
-func NewResponse(_ context.Context, catalog catalog.MeshCataloger, meshSpec smi.MeshSpec, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator) (*xds_discovery.DiscoveryResponse, error) {
+func NewResponse(_ context.Context, catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator) (*xds_discovery.DiscoveryResponse, error) {
 	svc, err := catalog.GetServiceFromEnvoyCertificate(proxy.GetCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up MeshService for Envoy with CN=%q", proxy.GetCommonName())
@@ -51,7 +50,7 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, meshSpec smi.
 		}
 
 		if featureflags.IsBackpressureEnabled() {
-			enableBackpressure(meshSpec, remoteCluster)
+			enableBackpressure(catalog, remoteCluster)
 		}
 
 		clusterFactories[remoteCluster.Name] = remoteCluster

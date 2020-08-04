@@ -22,7 +22,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/service"
-	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
@@ -103,7 +102,6 @@ var _ = Describe("Test ADS response functions", func() {
 			s := Server{
 				ctx:         context.TODO(),
 				catalog:     mc,
-				meshSpec:    smi.NewFakeMeshSpecClient(),
 				xdsHandlers: getHandlers(),
 			}
 
