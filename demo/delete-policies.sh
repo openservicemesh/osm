@@ -31,10 +31,10 @@ metadata:
   namespace: $K8S_NAMESPACE
 
 data:
-  permissive_traffic_policy_mode: true
-  egress: false
-  prometheus_scraping: false
-  zipkin_tracing: false
+  permissive_traffic_policy_mode: "true"
+  egress: "false"
+  prometheus_scraping: "false"
+  zipkin_tracing: "false"
 
 EOF
 
