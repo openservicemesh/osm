@@ -39,8 +39,6 @@ var _ = Describe("Test OSM ConfigMap parsing", func() {
 		It("Parsed blank in-mesh CIDR", func() {
 			Expect(cfg.getConfigMap().Egress).To(BeFalse())
 			actual := cfg.getConfigMap().MeshCIDRRanges
-			// TODO(draychev): once we have reasonable CIDR in-mesh defaults this could look like:
-			// expected := "10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16"
 			expected := ""
 			Expect(actual).To(Equal(expected))
 		})
