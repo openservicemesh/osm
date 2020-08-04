@@ -102,22 +102,7 @@ enabled by default since Go version 1.11.
 If you are using this repo from within the `GOPATH`,
 activate module support with: `export GO111MODULE=on`
 
-Fetch everything needed by this repo with:
-
-```bash
-  go get -v -t -d ./...
-```
-
 #### Makefile
-
-Install the following prerequisites needed by the Makefile targets:
-  - `go get -u github.com/golangci/golangci-lint`
-  - `go get -u golang.org/x/lint/golint`
-  - `go get -u github.com/jstemmer/go-junit-report` - used for showing test coverage
-  - `go get -u github.com/axw/gocov/gocov` - used for showing test coverage
-  - `go get -u github.com/AlekSi/gocov-xml` - used for showing test coverage
-  - `go get -u github.com/matm/gocov-html` - used for showing test coverage
-
 
 Many of the operations within the repo have GNU Makefile targets.
 More notable:

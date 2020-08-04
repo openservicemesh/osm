@@ -24,7 +24,7 @@ then
 fi
 
 # run golint
-golint -set_exit_status ./... >commit_logs/linter.log 2>&1
+go run golang.org/x/lint/golint -set_exit_status ./... >commit_logs/linter.log 2>&1
 if [ $? -ne 0 ]
 then
     echo "'golint': has detected potential issues in the project."

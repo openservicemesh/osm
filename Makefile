@@ -9,9 +9,7 @@ CTR_TAG         ?= latest
 
 GOPATH = $(shell go env GOPATH)
 GOBIN  = $(GOPATH)/bin
-GOX    = $(GOPATH)/bin/gox
-
-HAS_GOX := $(shell command -v gox)
+GOX    = go run github.com/mitchellh/gox
 
 CLI_VERSION ?= dev
 BUILD_DATE=$$(date +%Y-%m-%d-%H:%M)
@@ -21,11 +19,6 @@ BUILD_VERSION_VAR := main.BuildVersion
 BUILD_GITCOMMIT_VAR := main.GitCommit
 
 LDFLAGS ?= "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(CLI_VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -X main.chartTGZSource=$$(cat -)"
-
-$(GOX):
-ifndef HAS_GOX
-	 GOBIN=$(GOBIN) go get -u github.com/mitchellh/gox
-endif
 
 check-env:
 ifndef CTR_REGISTRY
@@ -63,10 +56,6 @@ clean-osm:
 .PHONY: docker-build
 docker-build: docker-build-osm-controller docker-build-bookbuyer docker-build-bookstore docker-build-bookwarehouse
 
-.PHONY: go-tools
-go-tools:
-	./scripts/go-tools.sh
-
 .PHONY: go-checks
 go-checks: go-vet go-lint go-fmt
 
@@ -76,9 +65,8 @@ go-vet:
 
 .PHONY: go-lint
 go-lint:
-	golint ./cmd/...
-	golint ./pkg/...
-	golangci-lint run --tests --enable-all # --disable gochecknoglobals --disable gochecknoinit
+	go run golang.org/x/lint/golint ./cmd/... ./pkg/...
+	go run github.com/golangci/golangci-lint/cmd/golangci-lint run --tests --enable-all # --disable gochecknoglobals --disable gochecknoinit
 
 .PHONY: go-fmt
 go-fmt:
@@ -158,7 +146,7 @@ install-git-pre-push-hook:
 # -------------------------------------------
 
 .PHONY: build-cross
-build-cross: $(GOX)
+build-cross:
 	@mkdir -p $(shell pwd)/_dist
 	go run scripts/generate_chart/generate_chart.go | GO111MODULE=on CGO_ENABLED=0 $(GOX) -ldflags $(LDFLAGS) -parallel=3 -output="_dist/{{.OS}}-{{.Arch}}/$(BINNAME)" -osarch='$(TARGETS)' ./cmd/cli
 
