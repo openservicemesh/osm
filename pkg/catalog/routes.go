@@ -130,12 +130,18 @@ func (mc *MeshCatalog) GetWeightedClusterForService(svc service.MeshService) (se
 	return getDefaultWeightedClusterForService(svc), nil
 }
 
-//GetDomainForService returns the domain name of a service
-func (mc *MeshCatalog) GetDomainForService(meshService service.MeshService, routeHeaders map[string]string) (string, error) {
+//GetHostnamesForService returns the domain name of a service
+func (mc *MeshCatalog) GetHostnamesForService(meshService service.MeshService) (string, error) {
 	log.Trace().Msgf("Finding domain for service %s", meshService)
 
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
-		return getHostHeaderFromRouteHeaders(routeHeaders)
+		hostnames, err := mc.getServiceHostnames(meshService)
+		if err != nil {
+			log.Error().Err(err).Msgf("Error getting service hostnames for MeshService %s", meshService)
+			return "", err
+		}
+		hostnamesStr := strings.Join(hostnames, ",")
+		return hostnamesStr, nil
 	}
 
 	// Retrieve the domain name from traffic split
@@ -146,23 +152,28 @@ func (mc *MeshCatalog) GetDomainForService(meshService service.MeshService, rout
 		}
 	}
 
-	// Use the augmented domains from k8s service since an
-	// SMI TrafficSplit policy is not defined for the service
-	hostHeader, err := getHostHeaderFromRouteHeaders(routeHeaders)
+	// This service is not a backend for a traffic split policy.
+	// The hostnames for this service are the Kubernetes service DNS names.
+	hostnames, err := mc.getServiceHostnames(meshService)
 	if err != nil {
-		log.Warn().Msgf("Found host header %s, but using service hostnames instead", hostHeader)
+		log.Error().Err(err).Msgf("Error getting service hostnames for MeshService %s", meshService)
+		return "", err
 	}
+	hostnamesStr := strings.Join(hostnames, ",")
 
+	return hostnamesStr, nil
+}
+
+// getServiceHostnames returns a list of hostnames corresponding to the service
+func (mc *MeshCatalog) getServiceHostnames(meshService service.MeshService) ([]string, error) {
 	svc, err := mc.meshSpec.GetService(meshService)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error finding service %q", meshService)
-		return "", err
+		return nil, err
 	}
 
-	hostList := kubernetes.GetDomainsForService(svc)
-	host := strings.Join(hostList, ",")
-
-	return host, nil
+	hostnames := kubernetes.GetDomainsForService(svc)
+	return hostnames, nil
 }
 
 func (mc *MeshCatalog) getHTTPPathsPerRoute() (map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.Route, error) {
@@ -314,12 +325,9 @@ func k8sSvcToMeshSvc(svc *corev1.Service) service.MeshService {
 }
 
 func (mc *MeshCatalog) buildAllowPolicyForSourceToDest(source *corev1.Service, destination *corev1.Service) trafficpolicy.TrafficTarget {
-	serviceDomains := kubernetes.GetDomainsForService(destination)
-	hostHeader := map[string]string{HostHeaderKey: strings.Join(serviceDomains[:], ",")}
 	allowAllRoute := trafficpolicy.Route{
 		PathRegex: constants.RegexMatchAll,
 		Methods:   []string{constants.WildcardHTTPMethod},
-		Headers:   hostHeader,
 	}
 	return trafficpolicy.TrafficTarget{
 		Name:        fmt.Sprintf("%s->%s", source, destination),
