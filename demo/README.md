@@ -78,65 +78,6 @@ The Bookstore, Bookbuyer, and Bookthief apps have simple web UI visualizing the 
 
 To expose web UI ports of all components of the service mesh the local workstation use the following helper script: `/scripts/port-forward-all.sh`
 
-## Onboarding VMs to a service mesh
-*_Note: This is an experimental feature and not currently fully supported*
-The following sections outline how to onboard VMs to participate in a service mesh comprising of services running in a Kubernetes cluster.
-
-
-### Requirements
-- Ubuntu VM on Azure
-- AKS cluster with advanced networking enabled - required for direct connectivity between K8s pods and services within the Azure VNET
-
-### Bootstrapping the VM with Envoy proxy
-
-#### Install and set up Envoy proxy
-- Install the Envoy proxy package
-	```
-	$ curl -sL https://getenvoy.io/gpg | sudo apt-key add -
-	$ sudo add-apt-repository "deb [arch=amd64] https://dl.bintray.com/tetrate/getenvoy-deb $(lsb_release -cs) stable"
-	$ sudo apt-get update
-	$ sudo apt-get install -y getenvoy-envoy
-	```
-- Verify Envoy is installed
-	```
-	$ envoy --version
-	```
-- Copy the Envoy boostrap configuration file `osm/config/bootstrap.yaml`  to `/etc/envoy/bootstrap.yaml`
-	Refer to [Envoy - Getting Started guide](https://www.envoyproxy.io/docs/envoy/latest/start/start#https://www.envoyproxy.io/docs/envoy/latest/start/start#) for setting up the bootstrap configuration.
-
-- Add the hostname to IP address mapping for the xDS services in `/etc/hosts` file on the VM so that the envoy proxy can connect to the xDS services using their hostname specified in the bootstrap config file.
-
-- Configure the Envoy service by creating `envoy.service` file under `/etc/systemd/system` and register it as a service
-	```
-	[Unit]
-	Description=Envoy
-
-	[Service]
-	ExecStart=/usr/bin/envoy -c /etc/envoy/bootstrap.yaml
-	Restart=always
-	RestartSec=5
-	KillMode=mixed
-	SyslogIdentifier=envoy
-	LimitNOFILE=640000
-
-	[Install]
-	WantedBy=multi-user.target
-	```
-	```
-	$ systemctl daemon-reload
-	```
-- Set up the certificates required for mTLS between Envoy proxies and for Envoy proxy to OSM control plane communication
-	- Copy `osm/demo/certificates/*` to `/etc/certs/` on the VM
-	- Copy `osm/bin/cert.pem`, `osm/bin/key.pem` to `/etc/ssl/certs/` on the VM
-
-- Start Envoy proxy
-	```
-	$ systemctl start envoy
-	```
-
-- Check `/var/log/syslog` if you encounter issues with Envoy
-
-- Copy and run the bookstore app `osm/demo/bin/bookstore` on the VM
 
 ## Deleting the kind cluster
 When you are done with the demo and want to clean up your local kind cluster, just run the following.
