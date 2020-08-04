@@ -1,5 +1,5 @@
 kind: TrafficTarget
-apiVersion: access.smi-spec.io/v1alpha1
+apiVersion: access.smi-spec.io/v1alpha2
 metadata:
   name: bookstore-v1
   namespace: bookstore
@@ -22,7 +22,7 @@ spec:
     name: bookthief
     namespace: bookthief
 ---
-apiVersion: specs.smi-spec.io/v1alpha2
+apiVersion: specs.smi-spec.io/v1alpha3
 kind: HTTPRouteGroup
 metadata:
   name: bookstore-service-routes
