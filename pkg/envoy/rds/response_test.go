@@ -193,7 +193,6 @@ var _ = Describe("RDS Response", func() {
 		})
 
 		It("No service found when mesh does not have service", func() {
-
 			_, err := meshCatalog.GetHostnamesForService(tests.BookwarehouseService)
 			Expect(err).To(HaveOccurred())
 		})

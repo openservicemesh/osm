@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net"
 
-	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha1"
-	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha2"
+	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
+	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha3"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -152,28 +152,30 @@ var (
 	// TrafficTarget is a traffic target SMI object.
 	TrafficTarget = target.TrafficTarget{
 		TypeMeta: v1.TypeMeta{
-			APIVersion: "access.smi-spec.io/v1alpha1",
+			APIVersion: "access.smi-spec.io/v1alpha2",
 			Kind:       "TrafficTarget",
 		},
 		ObjectMeta: v1.ObjectMeta{
 			Name:      TrafficTargetName,
 			Namespace: "default",
 		},
-		Destination: target.IdentityBindingSubject{
-			Kind:      "Name",
-			Name:      BookstoreServiceAccountName,
-			Namespace: "default",
+		Spec: target.TrafficTargetSpec{
+			Destination: target.IdentityBindingSubject{
+				Kind:      "Name",
+				Name:      BookstoreServiceAccountName,
+				Namespace: "default",
+			},
+			Sources: []target.IdentityBindingSubject{{
+				Kind:      "Name",
+				Name:      BookbuyerServiceAccountName,
+				Namespace: "default",
+			}},
+			Rules: []target.TrafficTargetRule{{
+				Kind:    "HTTPRouteGroup",
+				Name:    RouteGroupName,
+				Matches: []string{BuyBooksMatchName},
+			}},
 		},
-		Sources: []target.IdentityBindingSubject{{
-			Kind:      "Name",
-			Name:      BookbuyerServiceAccountName,
-			Namespace: "default",
-		}},
-		Specs: []target.TrafficTargetSpec{{
-			Kind:    "HTTPRouteGroup",
-			Name:    RouteGroupName,
-			Matches: []string{BuyBooksMatchName},
-		}},
 	}
 
 	// RoutePolicyMap is a map of a key to a route policy SMI object.
@@ -213,24 +215,27 @@ var (
 			Namespace: "default",
 			Name:      RouteGroupName,
 		},
-		Matches: []spec.HTTPMatch{
-			{
-				Name:      BuyBooksMatchName,
-				PathRegex: BookstoreBuyPath,
-				Methods:   []string{"GET"},
-				Headers: map[string]string{
-					"host": Domain,
+
+		Spec: spec.HTTPRouteGroupSpec{
+			Matches: []spec.HTTPMatch{
+				{
+					Name:      BuyBooksMatchName,
+					PathRegex: BookstoreBuyPath,
+					Methods:   []string{"GET"},
+					Headers: map[string]string{
+						"host": Domain,
+					},
 				},
-			},
-			{
-				Name:      SellBooksMatchName,
-				PathRegex: BookstoreSellPath,
-				Methods:   []string{"GET"},
-			},
-			{
-				Name: WildcardWithHeadersMatchName,
-				Headers: map[string]string{
-					"host": Domain,
+				{
+					Name:      SellBooksMatchName,
+					PathRegex: BookstoreSellPath,
+					Methods:   []string{"GET"},
+				},
+				{
+					Name: WildcardWithHeadersMatchName,
+					Headers: map[string]string{
+						"host": Domain,
+					},
 				},
 			},
 		},
