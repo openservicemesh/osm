@@ -36,6 +36,7 @@ Below are quick getting started instructions. For a more detailed example usage 
 
 ### Prerequisites
 - Kubernetes cluster running Kubernetes v1.15.0 or greater
+- kubectl current context is configured for the target cluster install
 
 ### OSM CLI Install
 
