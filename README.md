@@ -32,10 +32,12 @@ Read more about the high level goals, design and architecture [here](DESIGN.md).
 
 ## Getting Started
 
-Below are quick getting started instructions. For a more detailed example usage guide and demo walkthrough, see [this document](/docs/example/README.md).
+Below are quick getting started instructions. For a more detailed example usage guide and demo walkthrough, see the [OSM Example Usage Guide](/docs/example/README.md).
 
 ### Prerequisites
 - Kubernetes cluster running Kubernetes v1.15.0 or greater
+- kubectl current context is configured for the target cluster install
+  - ```kubectl config current-context```
 
 ### OSM CLI Install
 
@@ -75,7 +77,7 @@ See the [installation guide](docs/installation_guide.md) for more detailed optio
 
 ### Using OSM
 
-After installing OSM, [add an application](docs/onboard_services.md) to the service mesh.
+After installing OSM, [onboard a microservice application](docs/onboard_services.md) to the service mesh.
 
 ### OSM Usage patterns
 
