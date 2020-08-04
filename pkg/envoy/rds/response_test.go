@@ -169,8 +169,17 @@ var _ = Describe("RDS Response", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			domainList := strings.Split(actual, ",")
-			expectedDomains := []string{tests.Domain}
-			Expect(domainList).To(Equal(expectedDomains))
+			Expect(len(domainList)).To(Equal(10))
+			Expect(contains(domainList, tests.BookstoreApexServiceName)).To(BeTrue())
+			Expect(contains(domainList, fmt.Sprintf("%s:%d", tests.BookstoreApexServiceName, tests.ServicePort))).To(BeTrue())
+			Expect(contains(domainList, fmt.Sprintf("%s.%s", tests.BookstoreApexServiceName, tests.Namespace))).To(BeTrue())
+			Expect(contains(domainList, fmt.Sprintf("%s.%s:%d", tests.BookstoreApexServiceName, tests.Namespace, tests.ServicePort))).To(BeTrue())
+			Expect(contains(domainList, fmt.Sprintf("%s.%s.svc", tests.BookstoreApexServiceName, tests.Namespace))).To(BeTrue())
+			Expect(contains(domainList, fmt.Sprintf("%s.%s.svc:%d", tests.BookstoreApexServiceName, tests.Namespace, tests.ServicePort))).To(BeTrue())
+			Expect(contains(domainList, fmt.Sprintf("%s.%s.svc.cluster", tests.BookstoreApexServiceName, tests.Namespace))).To(BeTrue())
+			Expect(contains(domainList, fmt.Sprintf("%s.%s.svc.cluster:%d", tests.BookstoreApexServiceName, tests.Namespace, tests.ServicePort))).To(BeTrue())
+			Expect(contains(domainList, fmt.Sprintf("%s.%s.svc.cluster.local", tests.BookstoreApexServiceName, tests.Namespace))).To(BeTrue())
+			Expect(contains(domainList, fmt.Sprintf("%s.%s.svc.cluster.local:%d", tests.BookstoreApexServiceName, tests.Namespace, tests.ServicePort))).To(BeTrue())
 		})
 
 		It("returns a list of domains for a service when traffic split is not specified for the given service", func() {

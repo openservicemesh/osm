@@ -252,7 +252,7 @@ func (c *Client) ListTrafficSplitServices() []service.WeightedService {
 			log.Error().Err(errInvalidObjectType).Msgf("Failed type assertion for TrafficSplit in cache")
 			continue
 		}
-		domain := trafficSplit.Spec.Service
+		rootService := trafficSplit.Spec.Service
 		for _, backend := range trafficSplit.Spec.Backends {
 			// The TrafficSplit SMI Spec does not allow providing a namespace for the backends,
 			// so we assume that the top level namespace for the TrafficSplit is the namespace
@@ -261,7 +261,7 @@ func (c *Client) ListTrafficSplitServices() []service.WeightedService {
 				Namespace: trafficSplit.Namespace,
 				Name:      backend.Service,
 			}
-			services = append(services, service.WeightedService{Service: meshService, Weight: backend.Weight, Domain: domain})
+			services = append(services, service.WeightedService{Service: meshService, Weight: backend.Weight, RootService: rootService})
 		}
 	}
 	return services

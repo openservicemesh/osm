@@ -11,9 +11,9 @@ import (
 	set "github.com/deckarep/golang-set"
 	"github.com/golang/protobuf/ptypes/wrappers"
 
-	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
@@ -39,6 +39,9 @@ const (
 
 	// wildcardPathPrefix is the wildcard path prefix for HTTP paths
 	wildcardPathPrefix = "/"
+
+	// httpHostHeader is the name of the HTTP host header
+	httpHostHeader = "host"
 )
 
 var (
@@ -79,7 +82,7 @@ func createVirtualHostStub(namePrefix string, domain string) *xds_route.VirtualH
 		domains[i] = strings.TrimSpace(domains[i])
 	}
 
-	name := fmt.Sprintf("%s|%s", namePrefix, getServiceFromHost(domains[0]))
+	name := fmt.Sprintf("%s|%s", namePrefix, kubernetes.GetServiceFromHostname(domains[0]))
 	virtualHost := xds_route.VirtualHost{
 		Name:    name,
 		Domains: domains,
@@ -150,8 +153,8 @@ func getHeadersForRoute(method string, headersMap map[string]string) []*xds_rout
 
 	// add all other custom headers
 	for headerKey, headerValue := range headersMap {
-		// omit the host header as we have already configured this for the domain
-		if headerKey == catalog.HostHeaderKey {
+		// omit the host header as we have already configured this
+		if headerKey == httpHostHeader {
 			continue
 		}
 		header := xds_route.HeaderMatcher{
@@ -262,11 +265,4 @@ func getRegexForMethod(httpMethod string) string {
 		methodRegex = constants.RegexMatchAll
 	}
 	return methodRegex
-}
-
-// getServiceFromHost returns the service name from its host
-func getServiceFromHost(host string) string {
-	// The service name is the first string in the host name for a service.
-	// Ex. service.namespace, service.namespace.cluster.local
-	return strings.Split(host, ".")[0]
 }
