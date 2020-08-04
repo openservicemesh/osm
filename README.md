@@ -76,7 +76,7 @@ See the [installation guide](docs/installation_guide.md) for more detailed optio
 
 ### Using OSM
 
-After installing OSM, [onboard Kubernetes services](docs/onboard_services.md) to the service mesh.
+After installing OSM, [add an application](docs/onboard_services.md) to the service mesh.
 
 ### OSM Usage patterns
 
