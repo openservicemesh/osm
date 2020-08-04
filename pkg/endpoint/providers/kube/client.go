@@ -148,7 +148,7 @@ func (c Client) GetServiceForServiceAccount(svcAccount service.K8sServiceAccount
 
 				meshServices, err := getServicesFromLabelSelector(c, selectorLabel, svcAccount.Namespace)
 				if err != nil {
-					log.Error().Msgf("Did not find any service with serviceAccount = %s in namespace %s", svcAccount.Name, svcAccount.Namespace)
+					log.Error().Msgf("Did not find any service with serviceAccount = %s and selectorLabels = %v in namespace %s", selectorLabel, svcAccount.Name, svcAccount.Namespace)
 					return service.MeshService{}, errDidNotFindServiceForServiceAccount
 				}
 				for meshSvcInterface := range meshServices.Iter() {
@@ -206,7 +206,6 @@ func getServicesFromLabelSelector(client Client, selectorLabels map[string]strin
 				services.Add(namespacedService)
 			}
 		}
-
 	}
 
 	if services.Cardinality() == 0 {
