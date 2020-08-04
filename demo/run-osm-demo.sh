@@ -140,7 +140,7 @@ if [ "$DEPLOY_TRAFFIC_SPLIT" = "true" ]; then
     ./demo/deploy-traffic-split.sh
 fi
 
-./demo/deploy-traffic-spec.sh
+./demo/deploy-traffic-specs.sh
 ./demo/deploy-traffic-target.sh
 
 if [[ "$CI" != "true" ]]; then
