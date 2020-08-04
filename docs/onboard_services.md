@@ -21,7 +21,8 @@ The following guide describes how to onboard a Kubernetes microservice to an OSM
 
     All newly created pods in the added namespace(s) will automatically have a proxy sidecar container injected. To prevent specific pods from participating in the mesh, they can easily be labeled to prevent the sidecar injection. See the [Sidecar Injection](sidecar_injection.md) document for more details.
 
-    See [demo/join-namespaces.sh](/demo/join-namespaces.sh) for an example.
+    For an example on how to onboard and join namespaces to the OSM mesh, please see the following example:
+    - [demo/join-namespaces.sh](/demo/join-namespaces.sh)
 
 1.  Inject the Proxy Sidecars
 
