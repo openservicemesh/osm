@@ -4,14 +4,14 @@ on:
     branches:
       - main
     paths-ignore:
-      - 'docs/**'
-      - '**.md'
+      - "docs/**"
+      - "**.md"
   pull_request:
     branches:
       - main
     paths-ignore:
-      - 'docs/**'
-      - '**.md'
+      - "docs/**"
+      - "**.md"
 env:
   KUBE_CONFIG: ${{ secrets.KUBECONFIG }}
   AZURE_SUBSCRIPTION: ${{ secrets.AZURE_SUBSCRIPTION }}
@@ -82,10 +82,7 @@ jobs:
         with:
           go-version: 1.14
       - name: Go Lint
-        run: |
-          export PATH=$PATH:$(go env GOPATH)/bin
-          go get golang.org/x/lint/golint
-          golint -set_exit_status ./...
+        run: go run golang.org/x/lint/golint -set_exit_status ./...
 
   build:
     name: Go build
@@ -162,18 +159,7 @@ jobs:
         with:
           go-version: 1.14
       - name: Test
-        run: |
-          export PATH=$PATH:$(go env GOPATH)/bin
-          go get -u github.com/jstemmer/go-junit-report
-          go get -u github.com/axw/gocov/gocov
-          go get -u github.com/AlekSi/gocov-xml
-          go get -u github.com/matm/gocov-html
-          go test -timeout 80s -v -coverprofile=coverage.txt -covermode count ./... | tee testoutput.txt; test ${PIPESTATUS[0]} -eq 0 || { echo "go test returned non-zero exit code"; exit 1; }
-          cat testoutput.txt | go-junit-report > report.xml
-          gocov convert coverage.txt > coverage.json
-          gocov-xml < coverage.json > coverage.xml
-          mkdir coverage
-          gocov-html < coverage.json > coverage/index.html
+        run: make go-test-coverage
 
   cleanup:
     name: Cleanup stale CI namespaces
