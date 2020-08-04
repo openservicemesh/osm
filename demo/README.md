@@ -43,7 +43,6 @@ From the root of this repository execute:
 
 ### This script will:
   - compile OSM's control plane (`cmd/osm-controller`), create a separate container image and push it to the workstation's default container registry (See `~/.docker/config.json`)
-
   - build and push demo application images described below
   - create the following topology in Kubernetes:
 
