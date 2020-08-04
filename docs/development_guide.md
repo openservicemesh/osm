@@ -4,9 +4,9 @@ Welcome to the Open Service Mesh development guide!
 
 This document will help you build and run Open Service Mesh from source.
 More information about running the demo included in this repo is
-in [demo/README.md](demo/README.md).
+in [/demo/README.md](demo/README.md).
 The OSM software design is discussed
-in detail in [DESIGN.md](DESIGN.md).
+in detail in [DESIGN.md](/DESIGN.md).
 
 ## Table of contents
 
