@@ -26,7 +26,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
@@ -41,8 +40,6 @@ var _ = Describe("CDS Response", func() {
 
 	Context("Test cds.NewResponse", func() {
 		It("Returns unique list of clusters for CDS", func() {
-			smiClient := smi.NewFakeMeshSpecClient()
-
 			proxyUUID := fmt.Sprintf("proxy-0-%s", uuid.New())
 			podName := fmt.Sprintf("pod-0-%s", uuid.New())
 
@@ -70,7 +67,7 @@ var _ = Describe("CDS Response", func() {
 				Expect(err).ToNot(HaveOccurred())
 			}
 
-			resp, err := NewResponse(context.Background(), catalog, smiClient, proxy, nil, cfg)
+			resp, err := NewResponse(context.Background(), catalog, proxy, nil, cfg)
 			Expect(err).ToNot(HaveOccurred())
 
 			// There are to any.Any resources in the ClusterDiscoveryStruct (Clusters)
