@@ -5,7 +5,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
 data:
   permissive_traffic_policy_mode: {{ .Values.OpenServiceMesh.enablePermissiveTrafficPolicy | default "false" | quote }}
-  egress: {{ .Values.OpenServiceMesh.enableEgress | default "true" | quote }}
+  egress: {{ .Values.OpenServiceMesh.enableEgress | quote }}
   prometheus_scraping: "true"
 
   zipkin_tracing: {{ .Values.OpenServiceMesh.zipkin.enable | quote }}
