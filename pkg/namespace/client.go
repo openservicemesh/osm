@@ -3,6 +3,7 @@ package namespace
 import (
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/informers"
@@ -20,6 +21,11 @@ const (
 var (
 	resyncPeriod = 30 * time.Second
 )
+
+// GetAnnouncementsChannel returns the announcement channel for the SMI client.
+func (c Client) GetAnnouncementsChannel() <-chan interface{} {
+	return c.announcements
+}
 
 // NewNamespaceController implements namespace.Controller and creates the Kubernetes client to manage namespaces.
 func NewNamespaceController(kubeClient kubernetes.Interface, meshName string, stop chan struct{}) Controller {
@@ -74,4 +80,19 @@ func (c *Client) run(stop <-chan struct{}) error {
 func (c Client) IsMonitoredNamespace(namespace string) bool {
 	_, exists, _ := c.cache.GetByKey(namespace)
 	return exists
+}
+
+// ListMonitoredNamespaces returns all namespaces that the mesh is monitoring.
+func (c Client) ListMonitoredNamespaces() ([]string, error) {
+	var namespaces []string
+
+	for _, ns := range c.cache.List() {
+		namespace, ok := ns.(*corev1.Namespace)
+		if !ok {
+			log.Error().Err(errListingNamespaces).Msg("Failed to list monitored namespaces")
+			continue
+		}
+		namespaces = append(namespaces, namespace.Name)
+	}
+	return namespaces, nil
 }
