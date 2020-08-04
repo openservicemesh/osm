@@ -2,6 +2,8 @@ package configurator
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -9,6 +11,8 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
+
+	"github.com/openservicemesh/osm/pkg/constants"
 )
 
 var _ = Describe("Test Envoy configuration creation", func() {
@@ -19,6 +23,8 @@ var _ = Describe("Test Envoy configuration creation", func() {
 		meshCIDRRangesKey:              testCIDRRanges,
 		prometheusScrapingKey:          "true",
 		zipkinTracingKey:               "true",
+
+		controlPlaneCertValidityPeriodMinutesKey: "567",
 	}
 
 	Context("create OSM configurator client", func() {
@@ -59,13 +65,16 @@ var _ = Describe("Test Envoy configuration creation", func() {
 				PrometheusScraping:          true,
 				ZipkinTracing:               true,
 				MeshCIDRRanges:              testCIDRRanges,
+
+				GetControlPlaneCertValidityPeriod: time.Duration(34020000000000),
 			}
 			expectedConfigBytes, err := marshalConfigToJSON(expectedConfig)
 			Expect(err).ToNot(HaveOccurred())
 
 			configBytes, err := cfg.GetConfigMap()
 			Expect(err).ToNot(HaveOccurred())
-			Expect(string(configBytes)).To(Equal(string(expectedConfigBytes)))
+			Expect(string(configBytes)).To(Equal(string(expectedConfigBytes)),
+				fmt.Sprintf("Actual: %s; Expected: %s", string(configBytes), string(expectedConfigBytes)))
 		})
 	})
 
@@ -303,6 +312,34 @@ var _ = Describe("Test Envoy configuration creation", func() {
 
 			expectedMeshCIDRRanges := []string{"10.0.0.0/16", "10.2.0.0/16"}
 			Expect(cfg.GetMeshCIDRRanges()).To(Equal(expectedMeshCIDRRanges))
+		})
+	})
+
+	Context("test getting Envoy to Control Plane certificate validity", func() {
+		kubeClient := testclient.NewSimpleClientset()
+		stop := make(chan struct{})
+		osmNamespace := "-test-osm-namespace-"
+		osmConfigMapName := "-test-osm-config-map-"
+		cfg := NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
+
+		It("correctly retrieves the Envoy to OSM Control Plane cert validity period", func() {
+			Expect(cfg.GetGetControlPlaneCertValidityPeriod()).To(Equal(constants.ControlPlaneCertificateValidityPeriod))
+			configMap := v1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: osmNamespace,
+					Name:      osmConfigMapName,
+				},
+				Data: defaultConfigMap,
+			}
+			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Create(context.TODO(), &configMap, metav1.CreateOptions{})
+			Expect(err).ToNot(HaveOccurred())
+
+			// Wait for the config map change to propagate to the cache.
+			log.Info().Msg("Waiting for announcement")
+			<-cfg.GetAnnouncementsChannel()
+
+			expectedValidityPeriod := time.Duration(567) * time.Minute
+			Expect(cfg.GetGetControlPlaneCertValidityPeriod()).To(Equal(expectedValidityPeriod))
 		})
 	})
 })

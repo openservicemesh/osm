@@ -34,7 +34,7 @@ func (wh *webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 	// Issue a certificate for the proxy sidecar - used for Envoy to connect to XDS (not Envoy-to-Envoy connections)
 	cn := catalog.NewCertCommonNameWithProxyID(proxyUUID, pod.Spec.ServiceAccountName, namespace)
 	log.Info().Msgf("Patching POD spec: service-account=%s, namespace=%s with certificate CN=%s", pod.Spec.ServiceAccountName, namespace, cn)
-	validityPeriod := constants.XDSCertificateValidityPeriod
+	validityPeriod := wh.configurator.GetGetControlPlaneCertValidityPeriod()
 	bootstrapCertificate, err := wh.certManager.IssueCertificate(cn, &validityPeriod)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error issuing bootstrap certificate for Envoy with CN=%s", cn)

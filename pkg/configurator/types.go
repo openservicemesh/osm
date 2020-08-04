@@ -2,6 +2,7 @@ package configurator
 
 import (
 	"k8s.io/client-go/tools/cache"
+	"time"
 
 	"github.com/openservicemesh/osm/pkg/logger"
 )
@@ -54,6 +55,9 @@ type Configurator interface {
 
 	// UseHTTPSIngress determines whether protocol used for traffic from ingress to backend pods should be HTTPS.
 	UseHTTPSIngress() bool
+
+	// GetGetControlPlaneCertValidityPeriod returns the duration of validity for the Envoy to XDS certificate
+	GetGetControlPlaneCertValidityPeriod() time.Duration
 
 	// GetAnnouncementsChannel returns a channel, which is used to announce when changes have been made to the OSM ConfigMap
 	GetAnnouncementsChannel() <-chan interface{}

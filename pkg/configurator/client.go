@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"time"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/informers"
@@ -24,6 +25,8 @@ const (
 	zipkinPortKey                  = "zipkin_port"
 	zipkinEndpointKey              = "zipkin_endpoint"
 	defaultInMeshCIDR              = ""
+
+	controlPlaneCertValidityPeriodMinutesKey = "control_plane_cert_validity_period_minutes"
 )
 
 // NewConfigurator implements configurator.Configurator and creates the Kubernetes client to manage namespaces.
@@ -91,6 +94,9 @@ type osmConfig struct {
 
 	// UseHTTPSIngress is a bool toggle enabling HTTPS protocol between ingress and backend pods
 	UseHTTPSIngress bool `yaml:"use_https_ingress"`
+
+	// GetControlPlaneCertValidityPeriod is the duration of the validity of the certificate used for Envoy to XDS mTLS
+	GetControlPlaneCertValidityPeriod time.Duration `yaml:"control_plane_cert_validity_period_minutes"`
 }
 
 func (c *Client) run(stop <-chan struct{}) {
@@ -132,6 +138,8 @@ func (c *Client) getConfigMap() *osmConfig {
 		PrometheusScraping:          getBoolValueForKey(configMap, prometheusScrapingKey),
 		MeshCIDRRanges:              getEgressCIDR(configMap),
 		UseHTTPSIngress:             getBoolValueForKey(configMap, useHTTPSIngressKey),
+
+		GetControlPlaneCertValidityPeriod: getDuration(configMap, controlPlaneCertValidityPeriodMinutesKey),
 
 		ZipkinTracing:  getBoolValueForKey(configMap, zipkinTracingKey),
 		ZipkinAddress:  getStringValueForKey(configMap, zipkinAddressKey),
@@ -191,4 +199,20 @@ func getStringValueForKey(configMap *v1.ConfigMap, key string) string {
 		return ""
 	}
 	return configMapStringValue
+}
+
+func getDuration(configMap *v1.ConfigMap, key string) time.Duration {
+	configMapStringValue, ok := configMap.Data[key]
+	if !ok {
+		log.Error().Err(errInvalidKeyInConfigMap).Msgf("Key %s does not exist in ConfigMap %s/%s (%s)", key, configMap.Namespace, configMap.Name, configMap.Data)
+		return 0
+	}
+
+	intValue, err := strconv.ParseInt(configMapStringValue, 10, 32)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error converting ConfigMap  %s/%s key %s with value %s to integer", configMap.Namespace, configMap.Name, key, configMapStringValue)
+		return 0
+	}
+
+	return time.Duration(intValue) * time.Minute
 }
