@@ -69,11 +69,11 @@ func (ns K8sServiceAccount) String() string {
 // ClusterName is a type for a service name
 type ClusterName string
 
-//WeightedService is a struct of a service name, its weight and domain
+//WeightedService is a struct of a service name, its weight and its root service
 type WeightedService struct {
-	Service MeshService `json:"service_name:omitempty"`
-	Weight  int         `json:"weight:omitempty"`
-	Domain  string      `json:"domain:omitempty"`
+	Service     MeshService `json:"service_name:omitempty"`
+	Weight      int         `json:"weight:omitempty"`
+	RootService string      `json:"root_service:omitempty"`
 }
 
 // WeightedCluster is a struct of a cluster and is weight that is backing a service

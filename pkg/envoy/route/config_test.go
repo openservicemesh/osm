@@ -12,7 +12,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -21,7 +20,7 @@ import (
 )
 
 const (
-	testHeaderKey = "test-header"
+	userAgentHeader = "user-agent"
 )
 
 var _ = Describe("VirtualHost cration", func() {
@@ -222,8 +221,7 @@ var _ = Describe("Route Configuration", func() {
 				PathRegex: "/books-bought",
 				Methods:   []string{"GET"},
 				Headers: map[string]string{
-					testHeaderKey:         "This is a test header",
-					catalog.HostHeaderKey: "bookstore.mesh",
+					"user-agent": tests.HTTPUserAgent,
 				},
 			}
 
@@ -263,8 +261,7 @@ var _ = Describe("Route Configuration", func() {
 				PathRegex: "/books-bought",
 				Methods:   []string{"GET"},
 				Headers: map[string]string{
-					testHeaderKey:         "This is a test header",
-					catalog.HostHeaderKey: "bookstore.mesh",
+					"user-agent": tests.HTTPUserAgent,
 				},
 			}
 
@@ -286,8 +283,8 @@ var _ = Describe("Route Configuration", func() {
 			Expect(len(destRouteConfig.VirtualHosts[0].Routes[0].Match.Headers)).To(Equal(2))
 			Expect(destRouteConfig.VirtualHosts[0].Routes[0].Match.GetHeaders()[0].Name).To(Equal(MethodHeaderKey))
 			Expect(destRouteConfig.VirtualHosts[0].Routes[0].Match.GetHeaders()[0].GetSafeRegexMatch().Regex).To(Equal(routePolicy.Methods[0]))
-			Expect(destRouteConfig.VirtualHosts[0].Routes[0].Match.GetHeaders()[1].Name).To(Equal(testHeaderKey))
-			Expect(destRouteConfig.VirtualHosts[0].Routes[0].Match.GetHeaders()[1].GetSafeRegexMatch().Regex).To(Equal(routePolicy.Headers[testHeaderKey]))
+			Expect(destRouteConfig.VirtualHosts[0].Routes[0].Match.GetHeaders()[1].Name).To(Equal(userAgentHeader))
+			Expect(destRouteConfig.VirtualHosts[0].Routes[0].Match.GetHeaders()[1].GetSafeRegexMatch().Regex).To(Equal(routePolicy.Headers[userAgentHeader]))
 			Expect(len(destRouteConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters().GetClusters())).To(Equal(weightedClusters.Cardinality()))
 			Expect(destRouteConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters().TotalWeight).To(Equal(&wrappers.UInt32Value{Value: uint32(totalClusterWeight)}))
 		})
@@ -314,7 +311,7 @@ var _ = Describe("Routes with headers", func() {
 				PathRegex: "/books-bought",
 				Methods:   []string{"GET", "POST"},
 				Headers: map[string]string{
-					testHeaderKey: "This is a test header",
+					userAgentHeader: "This is a test header",
 				},
 			}
 			headers := getHeadersForRoute(routePolicy.Methods[0], routePolicy.Headers)
@@ -322,8 +319,8 @@ var _ = Describe("Routes with headers", func() {
 			Expect(len(headers)).To(Equal(noOfHeaders))
 			Expect(headers[0].Name).To(Equal(MethodHeaderKey))
 			Expect(headers[0].GetSafeRegexMatch().Regex).To(Equal(routePolicy.Methods[0]))
-			Expect(headers[1].Name).To(Equal(testHeaderKey))
-			Expect(headers[1].GetSafeRegexMatch().Regex).To(Equal(routePolicy.Headers[testHeaderKey]))
+			Expect(headers[1].Name).To(Equal(userAgentHeader))
+			Expect(headers[1].GetSafeRegexMatch().Regex).To(Equal(routePolicy.Headers[userAgentHeader]))
 		})
 
 		It("Returns only one HeaderMatcher for a route", func() {
@@ -343,39 +340,13 @@ var _ = Describe("Routes with headers", func() {
 				PathRegex: "/books-bought",
 				Methods:   []string{"GET", "POST"},
 				Headers: map[string]string{
-					catalog.HostHeaderKey: "bookstore.mesh",
+					"user-agent": tests.HTTPUserAgent,
 				},
 			}
 			headers := getHeadersForRoute(routePolicy.Methods[0], routePolicy.Headers)
-			Expect(len(headers)).To(Equal(1))
+			Expect(len(headers)).To(Equal(2))
 			Expect(headers[0].Name).To(Equal(MethodHeaderKey))
 			Expect(headers[0].GetSafeRegexMatch().Regex).To(Equal(routePolicy.Methods[0]))
-		})
-	})
-})
-
-var _ = Describe("Service name for a service domain", func() {
-	service := "test-service"
-	Context("Testing getServiceFromHost", func() {
-		It("Returns the service name from its domain", func() {
-			domain := service
-			Expect(getServiceFromHost(domain)).To(Equal(service))
-		})
-		It("Returns the service name from its domain", func() {
-			domain := fmt.Sprintf("%s:%d", service, tests.ServicePort)
-			Expect(getServiceFromHost(domain)).To(Equal(fmt.Sprintf("%s:%d", service, tests.ServicePort)))
-		})
-		It("Returns the service name from its domain", func() {
-			domain := fmt.Sprintf("%s.namespace", service)
-			Expect(getServiceFromHost(domain)).To(Equal(service))
-		})
-		It("Returns the service name from its domain", func() {
-			domain := fmt.Sprintf("%s.namespace.svc", service)
-			Expect(getServiceFromHost(domain)).To(Equal(service))
-		})
-		It("Returns the service name from its domain", func() {
-			domain := fmt.Sprintf("%s.namespace.svc.cluster", service)
-			Expect(getServiceFromHost(domain)).To(Equal(service))
 		})
 	})
 })

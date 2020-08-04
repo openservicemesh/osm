@@ -17,9 +17,6 @@ import (
 const (
 	//HTTPTraffic specifies HTTP Traffic Policy
 	HTTPTraffic = "HTTPRouteGroup"
-
-	//HostHeaderKey specifies the host header key
-	HostHeaderKey = "host"
 )
 
 // ListTrafficPolicies returns all the traffic policies for a given service that Envoy proxy should be aware of.
@@ -130,6 +127,11 @@ func (mc *MeshCatalog) GetWeightedClusterForService(svc service.MeshService) (se
 	return getDefaultWeightedClusterForService(svc), nil
 }
 
+// hostnamesTostr returns a comma separated string of hostnames from the list
+func hostnamesTostr(hostnames []string) string {
+	return strings.Join(hostnames, ",")
+}
+
 // GetHostnamesForService returns the hostnames for a service
 func (mc *MeshCatalog) GetHostnamesForService(meshService service.MeshService) (string, error) {
 	log.Trace().Msgf("Finding domain for service %s", meshService)
@@ -140,15 +142,26 @@ func (mc *MeshCatalog) GetHostnamesForService(meshService service.MeshService) (
 			log.Error().Err(err).Msgf("Error getting service hostnames for MeshService %s", meshService)
 			return "", err
 		}
-		hostnamesStr := strings.Join(hostnames, ",")
-		return hostnamesStr, nil
+		return hostnamesTostr(hostnames), nil
 	}
 
 	// Retrieve the domain name from traffic split
 	servicesList := mc.meshSpec.ListTrafficSplitServices()
 	for _, activeService := range servicesList {
 		if activeService.Service == meshService {
-			return activeService.Domain, nil
+			log.Trace().Msgf("Getting hostnames for service %s", meshService)
+			rootServiceName := kubernetes.GetServiceFromHostname(activeService.RootService)
+			rootMeshService := service.MeshService{
+				Namespace: meshService.Namespace,
+				Name:      rootServiceName,
+			}
+			hostnames, err := mc.getServiceHostnames(rootMeshService)
+			log.Trace().Msgf("hostnames for service %s: %v", meshService, hostnames)
+			if err != nil {
+				log.Error().Err(err).Msgf("Error getting service hostnames for MeshService %s", meshService)
+				return "", err
+			}
+			return hostnamesTostr(hostnames), nil
 		}
 	}
 
@@ -159,9 +172,8 @@ func (mc *MeshCatalog) GetHostnamesForService(meshService service.MeshService) (
 		log.Error().Err(err).Msgf("Error getting service hostnames for MeshService %s", meshService)
 		return "", err
 	}
-	hostnamesStr := strings.Join(hostnames, ",")
 
-	return hostnamesStr, nil
+	return hostnamesTostr(hostnames), nil
 }
 
 // getServiceHostnames returns a list of hostnames corresponding to the service
@@ -172,7 +184,7 @@ func (mc *MeshCatalog) getServiceHostnames(meshService service.MeshService) ([]s
 		return nil, err
 	}
 
-	hostnames := kubernetes.GetDomainsForService(svc)
+	hostnames := kubernetes.GetHostnamesForService(svc)
 	return hostnames, nil
 }
 
@@ -335,14 +347,6 @@ func (mc *MeshCatalog) buildAllowPolicyForSourceToDest(source *corev1.Service, d
 		Source:      k8sSvcToMeshSvc(source),
 		Route:       allowAllRoute,
 	}
-}
-
-func getHostHeaderFromRouteHeaders(routeHeaders map[string]string) (string, error) {
-	hostName, hostExists := routeHeaders[HostHeaderKey]
-	if hostExists {
-		return hostName, nil
-	}
-	return "", errDomainNotFoundForService
 }
 
 func getDefaultWeightedClusterForService(meshService service.MeshService) service.WeightedCluster {
