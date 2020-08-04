@@ -131,7 +131,6 @@ func (sdsc SDSCert) String() string {
 
 // GetAddress creates an Envoy Address struct.
 func GetAddress(address string, port uint32) *xds_core.Address {
-	// TODO(draychev): figure this out from the service
 	return &xds_core.Address{
 		Address: &xds_core.Address_SocketAddress{
 			SocketAddress: &xds_core.SocketAddress{
