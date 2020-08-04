@@ -130,7 +130,7 @@ func (mc *MeshCatalog) GetWeightedClusterForService(svc service.MeshService) (se
 	return getDefaultWeightedClusterForService(svc), nil
 }
 
-//GetHostnamesForService returns the domain name of a service
+// GetHostnamesForService returns the hostnames for a service
 func (mc *MeshCatalog) GetHostnamesForService(meshService service.MeshService) (string, error) {
 	log.Trace().Msgf("Finding domain for service %s", meshService)
 
