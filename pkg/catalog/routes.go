@@ -180,7 +180,7 @@ func (mc *MeshCatalog) getHTTPPathsPerRoute() (map[trafficpolicy.TrafficSpecName
 	routePolicies := make(map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.Route)
 	for _, trafficSpecs := range mc.meshSpec.ListHTTPTrafficSpecs() {
 		log.Debug().Msgf("Discovered TrafficSpec resource: %s/%s", trafficSpecs.Namespace, trafficSpecs.Name)
-		if trafficSpecs.Matches == nil {
+		if trafficSpecs.Spec.Matches == nil {
 			log.Error().Msgf("TrafficSpec %s/%s has no matches in route; Skipping...", trafficSpecs.Namespace, trafficSpecs.Name)
 			continue
 		}
@@ -188,7 +188,7 @@ func (mc *MeshCatalog) getHTTPPathsPerRoute() (map[trafficpolicy.TrafficSpecName
 		// since this method gets only specs related to HTTPRouteGroups added HTTPTraffic to the specKey by default
 		specKey := mc.getTrafficSpecName(HTTPTraffic, trafficSpecs.Namespace, trafficSpecs.Name)
 		routePolicies[specKey] = make(map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.Route)
-		for _, trafficSpecsMatches := range trafficSpecs.Matches {
+		for _, trafficSpecsMatches := range trafficSpecs.Spec.Matches {
 			serviceRoute := trafficpolicy.Route{}
 			serviceRoute.PathRegex = trafficSpecsMatches.PathRegex
 			serviceRoute.Methods = trafficSpecsMatches.Methods
