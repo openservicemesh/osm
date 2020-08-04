@@ -6,9 +6,10 @@ import (
 )
 
 var (
-	log = logger.New("certificate/rotor")
+	log = logger.New("certificate/CertRotor")
 )
 
-type rotor struct {
+// CertRotor is a simple facility, which rotates expired certificates.
+type CertRotor struct {
 	certManager certificate.Manager
 }

@@ -19,14 +19,14 @@ const (
 )
 
 // New creates and starts a new facility for automatic certificate rotation.
-func New(certManager certificate.Manager) *rotor {
-	return &rotor{
+func New(certManager certificate.Manager) *CertRotor {
+	return &CertRotor{
 		certManager: certManager,
 	}
 }
 
 // Start starts a new facility for automatic certificate rotation.
-func (r rotor) Start(checkInterval time.Duration) {
+func (r CertRotor) Start(checkInterval time.Duration) {
 	// iterate over the list of certificates
 	// when a cert needs to be rotated - call RotateCertificate()
 	ticker := time.NewTicker(checkInterval)
@@ -38,7 +38,7 @@ func (r rotor) Start(checkInterval time.Duration) {
 	}()
 }
 
-func (r *rotor) checkAndRotate() {
+func (r *CertRotor) checkAndRotate() {
 	certs, err := r.certManager.ListCertificates()
 	if err != nil {
 		log.Error().Err(err).Msgf("Error listing all certificates")

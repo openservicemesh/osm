@@ -450,6 +450,9 @@ type Manager interface {
 	// GetRootCertificate returns the root certificate.
 	GetRootCertificate() (Certificater, error)
 
+	// ListCertificates lists all certificates issued
+	ListCertificates() ([]Certificater, error)
+
 	// GetAnnouncementsChannel returns a channel, which is used to announce when changes have been made to the issued certificates.
 	GetAnnouncementsChannel() <-chan interface{}
 }
