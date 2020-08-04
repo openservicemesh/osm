@@ -273,11 +273,11 @@ The Mesh Catalog will have access to the `MeshSpec`, `CertificateManager`, and t
 ```go
 // MeshCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
 type MeshCataloger interface {
-	// ListEndpointsForService returns the list of provider endpoints corresponding to a service
-	ListEndpointsForService(endpoint.ServiceName) ([]endpoint.Endpoint, error)
+	// GetSMISpec returns the SMI spec
+	GetSMISpec() smi.MeshSpec
 
-	// ListTrafficPolicies constructs a list of all the traffic policies /routes the given Envoy proxy should be aware of.
-	ListTrafficPolicies(service.MeshService) ([]endpoint.TrafficPolicy, error)
+	// ListTrafficPolicies returns all the traffic policies for a given service that Envoy proxy should be aware of.
+	ListTrafficPolicies(service.MeshService) ([]trafficpolicy.TrafficTarget, error)
 
 	// ListAllowedInboundServices lists the inbound services allowed to connect to the given service.
 	ListAllowedInboundServices(service.MeshService) ([]service.MeshService, error)
@@ -285,9 +285,21 @@ type MeshCataloger interface {
 	// ListAllowedOutboundServices lists the services the given service is allowed outbound connections to.
 	ListAllowedOutboundServices(service.MeshService) ([]service.MeshService, error)
 
+	// ListSMIPolicies lists SMI policies.
+	ListSMIPolicies() ([]*split.TrafficSplit, []service.WeightedService, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget, []*corev1.Service)
+
+	// ListEndpointsForService returns the list of provider endpoints corresponding to a service
+	ListEndpointsForService(service.MeshService) ([]endpoint.Endpoint, error)
+
 	// GetCertificateForService returns the SSL Certificate for the given service.
 	// This certificate will be used for service-to-service mTLS.
 	GetCertificateForService(service.MeshService) (certificate.Certificater, error)
+
+	// ExpectProxy catalogs the fact that a certificate was issued for an Envoy proxy and this is expected to connect to XDS.
+	ExpectProxy(certificate.CommonName)
+
+	// GetServiceFromEnvoyCertificate returns the single service given Envoy is a member of based on the certificate provided, which is a cert issued to an Envoy for XDS communication (not Envoy-to-Envoy).
+	GetServiceFromEnvoyCertificate(certificate.CommonName) (*service.MeshService, error)
 
 	// RegisterProxy registers a newly connected proxy with the service mesh catalog.
 	RegisterProxy(*envoy.Proxy)
@@ -295,8 +307,17 @@ type MeshCataloger interface {
 	// UnregisterProxy unregisters an existing proxy from the service mesh catalog
 	UnregisterProxy(*envoy.Proxy)
 
-	// GetServicesByServiceAccountName returns a list of services corresponding to a service account, and refreshes the cache if requested
-	GetServicesByServiceAccountName(endpoint.NamespacedServiceAccount, bool) []service.MeshService
+	// GetServiceForServiceAccount returns the service corresponding to a service account
+	GetServiceForServiceAccount(service.K8sServiceAccount) (service.MeshService, error)
+
+	// GetHostnamesForService returns the hostnames for a service
+	GetHostnamesForService(service service.MeshService) (string, error)
+
+	//GetWeightedClusterForService returns the weighted cluster for a service
+	GetWeightedClusterForService(service service.MeshService) (service.WeightedCluster, error)
+
+	// GetIngressRoutesPerHost returns the routes per host associated with an ingress service
+	GetIngressRoutesPerHost(service.MeshService) (map[string][]trafficpolicy.Route, error)
 }
 ```
 

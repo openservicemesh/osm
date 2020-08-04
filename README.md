@@ -32,6 +32,8 @@ Read more about the high level goals, design and architecture [here](DESIGN.md).
 
 ## Getting Started
 
+Below are quick getting started instructions. For a more detailed example usage guide and demo walkthrough, see [this document](/docs/example/README.md).
+
 ### Prerequisites
 - Kubernetes cluster running Kubernetes v1.15.0 or greater
 
@@ -40,8 +42,31 @@ Read more about the high level goals, design and architecture [here](DESIGN.md).
 The simplest way of installing Open Service Mesh on a Kubernetes cluster is by using the `osm` CLI.
 
 Download the `osm` binary from the [Releases page](https://github.com/openservicemesh/osm/releases). Unpack the `osm` binary and add it to `$PATH` to get started.
+```shell
+sudo mv ./osm /usr/local/bin/osm
+```
 
-Install OSM
+#### Run install pre-flight checks
+```shell
+$ osm check --pre-install
+ok: initialize Kubernetes client
+ok: query Kubernetes API
+ok: Kubernetes version
+ok: can create namespaces
+ok: can create customresourcedefinitions
+ok: can create clusterroles
+ok: can create clusterrolebindings
+ok: can create mutatingwebhookconfigurations
+ok: can create serviceaccounts
+ok: can create services
+ok: can create deployments
+ok: can create configmaps
+ok: can read secrets
+ok: can modify iptables
+All checks successful!
+```
+
+#### Install OSM
 ```shell
 $ osm install
 ```
@@ -58,8 +83,10 @@ Refer to [docs/patterns](docs/patterns) for OSM usage patterns.
 
 ## Demo and deployment sample
 
-The repository contains tools and scripts to compile and deploy the OSM control plane and a demo to show how OSM can manage, secure and provide observability for microservice environments; all on a user-provisioned Kubernetes cluster.
+The repository contains tools and scripts to compile and deploy the OSM control plane and an automated demo to show how OSM can manage, secure and provide observability for microservice environments; all on a user-provisioned Kubernetes cluster.
 See the [demo instructions](demo/README.md) to get a sense of what we've accomplished and are working on.
+
+For a more manual walkthrough of the same demo, see this [example usage guide](/docs/example/README.md)
 
 ## Community
 

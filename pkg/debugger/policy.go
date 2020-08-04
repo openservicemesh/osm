@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha1"
-	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha2"
+	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
+	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha3"
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 

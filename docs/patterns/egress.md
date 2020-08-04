@@ -24,13 +24,13 @@ $ ./scripts/get_mesh_cidr.sh
 ```
 
 Egress can be configured using either of the following ways.
-1. During OSM install (default `--enable-egress=true`)
+1. During OSM install (default `--enable-egress=false`)
 	```shell
-	$ osm install --mesh-cidr "10.0.0.0/16,10.2.0.0/16"
+	$ osm install --enable-egress --mesh-cidr "10.0.0.0/16,10.2.0.0/16"
 	```
 	or
 	```shell
-	$ osm install --mesh-cidr 10.0.0.0/16 --mesh-cidr 10.2.0.0/16
+	$ osm install --enable-egress --mesh-cidr 10.0.0.0/16 --mesh-cidr 10.2.0.0/16
 	```
 
 2. Post OSM install

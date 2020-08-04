@@ -4,7 +4,6 @@ This guide describes how to install Open Service Mesh (OSM) on a Kubernetes clus
 
 ## Prerequisites
 - Kubernetes cluster running Kubernetes v1.15.0 or greater
-- A private container registry (temporary requirement as this is currently a private repo)
 
 ## Set up the OSM CLI
 
@@ -56,7 +55,7 @@ A few cluster wide (non Namespaced components) will also be installed. Inspect t
 kubectl get clusterrolebinding,clusterrole,mutatingwebhookconfiguration
 ```
 
-Under the hood, `osm` is using [Helm](https://helm.sh) libraries to create a Helm `release` object in the control plane Namespace. The Helm `release` name is the mesh-name. The `helm` CLI can also be used to inspect Kubernetes manifests installed in more detail. Goto https://helm.sh for instructions to install Helm 
+Under the hood, `osm` is using [Helm](https://helm.sh) libraries to create a Helm `release` object in the control plane Namespace. The Helm `release` name is the mesh-name. The `helm` CLI can also be used to inspect Kubernetes manifests installed in more detail. Goto https://helm.sh for instructions to install Helm.
 ```console
 $ helm get manifest osm --namespace osm-system
 ```

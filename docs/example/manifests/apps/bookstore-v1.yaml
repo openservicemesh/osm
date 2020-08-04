@@ -1,0 +1,59 @@
+# Deploy bookstore Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: bookstore
+---
+# Create a top level service just for the bookstore domain
+apiVersion: v1
+kind: Service
+metadata:
+  name: bookstore
+  namespace: bookstore
+  labels:
+    app: bookstore
+spec:
+  ports:
+  - port: 8080
+    name: bookstore-port
+  selector:
+    app: bookstore
+---
+# Deploy bookstore-v1 Service Account
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: bookstore-v1
+  namespace: bookstore
+---
+# Deploy bookstore-v1 Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bookstore-v1
+  namespace: bookstore
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bookstore
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: bookstore
+        version: v1
+    spec:
+      serviceAccountName: bookstore-v1
+      containers:
+        - name: bookstore
+          image: michellenoorali/bookstore:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              name: web
+          command: ["/bookstore"]
+          args: ["--path", "./", "--port", "8080"]
+          env:
+            - name: BOOKWAREHOUSE_NAMESPACE
+              value: bookwarehouse

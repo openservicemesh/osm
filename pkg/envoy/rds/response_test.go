@@ -153,7 +153,7 @@ var _ = Describe("RDS Response", func() {
 
 	meshCatalog := catalog.NewMeshCatalog(kubeClient, smi.NewFakeMeshSpecClient(), certManager, ingress.NewFakeIngressMonitor(), make(<-chan struct{}), cfg, endpointProviders...)
 
-	Context("Test GetDomainForService", func() {
+	Context("Test GetHostnamesForService", func() {
 		contains := func(domains []string, expected string) bool {
 			for _, entry := range domains {
 				if entry == expected {
@@ -164,7 +164,7 @@ var _ = Describe("RDS Response", func() {
 		}
 		It("returns the domain for a service when traffic split is specified for the given service", func() {
 
-			actual, err := meshCatalog.GetDomainForService(tests.BookstoreService, tests.HTTPRouteGroup.Matches[0].Headers)
+			actual, err := meshCatalog.GetHostnamesForService(tests.BookstoreService)
 			Expect(err).ToNot(HaveOccurred())
 
 			domainList := strings.Split(actual, ",")
@@ -174,7 +174,7 @@ var _ = Describe("RDS Response", func() {
 
 		It("returns a list of domains for a service when traffic split is not specified for the given service", func() {
 
-			actual, err := meshCatalog.GetDomainForService(tests.BookbuyerService, nil)
+			actual, err := meshCatalog.GetHostnamesForService(tests.BookbuyerService)
 			Expect(err).ToNot(HaveOccurred())
 
 			domainList := strings.Split(actual, ",")
@@ -193,8 +193,7 @@ var _ = Describe("RDS Response", func() {
 		})
 
 		It("No service found when mesh does not have service", func() {
-
-			_, err := meshCatalog.GetDomainForService(tests.BookwarehouseService, tests.HTTPRouteGroup.Matches[0].Headers)
+			_, err := meshCatalog.GetHostnamesForService(tests.BookwarehouseService)
 			Expect(err).To(HaveOccurred())
 		})
 	})

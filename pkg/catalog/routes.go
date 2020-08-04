@@ -130,12 +130,18 @@ func (mc *MeshCatalog) GetWeightedClusterForService(svc service.MeshService) (se
 	return getDefaultWeightedClusterForService(svc), nil
 }
 
-//GetDomainForService returns the domain name of a service
-func (mc *MeshCatalog) GetDomainForService(meshService service.MeshService, routeHeaders map[string]string) (string, error) {
+// GetHostnamesForService returns the hostnames for a service
+func (mc *MeshCatalog) GetHostnamesForService(meshService service.MeshService) (string, error) {
 	log.Trace().Msgf("Finding domain for service %s", meshService)
 
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
-		return getHostHeaderFromRouteHeaders(routeHeaders)
+		hostnames, err := mc.getServiceHostnames(meshService)
+		if err != nil {
+			log.Error().Err(err).Msgf("Error getting service hostnames for MeshService %s", meshService)
+			return "", err
+		}
+		hostnamesStr := strings.Join(hostnames, ",")
+		return hostnamesStr, nil
 	}
 
 	// Retrieve the domain name from traffic split
@@ -146,30 +152,35 @@ func (mc *MeshCatalog) GetDomainForService(meshService service.MeshService, rout
 		}
 	}
 
-	// Use the augmented domains from k8s service since an
-	// SMI TrafficSplit policy is not defined for the service
-	hostHeader, err := getHostHeaderFromRouteHeaders(routeHeaders)
+	// This service is not a backend for a traffic split policy.
+	// The hostnames for this service are the Kubernetes service DNS names.
+	hostnames, err := mc.getServiceHostnames(meshService)
 	if err != nil {
-		log.Warn().Msgf("Found host header %s, but using service hostnames instead", hostHeader)
+		log.Error().Err(err).Msgf("Error getting service hostnames for MeshService %s", meshService)
+		return "", err
 	}
+	hostnamesStr := strings.Join(hostnames, ",")
 
+	return hostnamesStr, nil
+}
+
+// getServiceHostnames returns a list of hostnames corresponding to the service
+func (mc *MeshCatalog) getServiceHostnames(meshService service.MeshService) ([]string, error) {
 	svc, err := mc.meshSpec.GetService(meshService)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error finding service %q", meshService)
-		return "", err
+		return nil, err
 	}
 
-	hostList := kubernetes.GetDomainsForService(svc)
-	host := strings.Join(hostList, ",")
-
-	return host, nil
+	hostnames := kubernetes.GetDomainsForService(svc)
+	return hostnames, nil
 }
 
 func (mc *MeshCatalog) getHTTPPathsPerRoute() (map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.Route, error) {
 	routePolicies := make(map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.Route)
 	for _, trafficSpecs := range mc.meshSpec.ListHTTPTrafficSpecs() {
 		log.Debug().Msgf("Discovered TrafficSpec resource: %s/%s", trafficSpecs.Namespace, trafficSpecs.Name)
-		if trafficSpecs.Matches == nil {
+		if trafficSpecs.Spec.Matches == nil {
 			log.Error().Msgf("TrafficSpec %s/%s has no matches in route; Skipping...", trafficSpecs.Namespace, trafficSpecs.Name)
 			continue
 		}
@@ -177,7 +188,7 @@ func (mc *MeshCatalog) getHTTPPathsPerRoute() (map[trafficpolicy.TrafficSpecName
 		// since this method gets only specs related to HTTPRouteGroups added HTTPTraffic to the specKey by default
 		specKey := mc.getTrafficSpecName(HTTPTraffic, trafficSpecs.Namespace, trafficSpecs.Name)
 		routePolicies[specKey] = make(map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.Route)
-		for _, trafficSpecsMatches := range trafficSpecs.Matches {
+		for _, trafficSpecsMatches := range trafficSpecs.Spec.Matches {
 			serviceRoute := trafficpolicy.Route{}
 			serviceRoute.PathRegex = trafficSpecsMatches.PathRegex
 			serviceRoute.Methods = trafficSpecsMatches.Methods
@@ -207,14 +218,14 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[trafficpolicy.T
 	var trafficPolicies []trafficpolicy.TrafficTarget
 	for _, trafficTargets := range mc.meshSpec.ListTrafficTargets() {
 		log.Debug().Msgf("Discovered TrafficTarget resource: %s/%s", trafficTargets.Namespace, trafficTargets.Name)
-		if trafficTargets.Specs == nil || len(trafficTargets.Specs) == 0 {
+		if trafficTargets.Spec.Rules == nil || len(trafficTargets.Spec.Rules) == 0 {
 			log.Error().Msgf("TrafficTarget %s/%s has no spec routes; Skipping...", trafficTargets.Namespace, trafficTargets.Name)
 			continue
 		}
 
 		dstNamespacedServiceAcc := service.K8sServiceAccount{
-			Namespace: trafficTargets.Destination.Namespace,
-			Name:      trafficTargets.Destination.Name,
+			Namespace: trafficTargets.Spec.Destination.Namespace,
+			Name:      trafficTargets.Spec.Destination.Name,
 		}
 		destService, destErr := mc.GetServiceForServiceAccount(dstNamespacedServiceAcc)
 		if destErr != nil {
@@ -222,7 +233,7 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[trafficpolicy.T
 			return nil, destErr
 		}
 
-		for _, trafficSources := range trafficTargets.Sources {
+		for _, trafficSources := range trafficTargets.Spec.Sources {
 			namespacedServiceAccount := service.K8sServiceAccount{
 				Namespace: trafficSources.Namespace,
 				Name:      trafficSources.Name,
@@ -240,7 +251,7 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[trafficpolicy.T
 				Source:      srcServices,
 			}
 
-			for _, trafficTargetSpecs := range trafficTargets.Specs {
+			for _, trafficTargetSpecs := range trafficTargets.Spec.Rules {
 				if trafficTargetSpecs.Kind != HTTPTraffic {
 					log.Error().Msgf("TrafficTarget %s/%s has Spec Kind %s which isn't supported for now; Skipping...", trafficTargets.Namespace, trafficTargets.Name, trafficTargetSpecs.Kind)
 					continue
@@ -314,12 +325,9 @@ func k8sSvcToMeshSvc(svc *corev1.Service) service.MeshService {
 }
 
 func (mc *MeshCatalog) buildAllowPolicyForSourceToDest(source *corev1.Service, destination *corev1.Service) trafficpolicy.TrafficTarget {
-	serviceDomains := kubernetes.GetDomainsForService(destination)
-	hostHeader := map[string]string{HostHeaderKey: strings.Join(serviceDomains[:], ",")}
 	allowAllRoute := trafficpolicy.Route{
 		PathRegex: constants.RegexMatchAll,
 		Methods:   []string{constants.WildcardHTTPMethod},
-		Headers:   hostHeader,
 	}
 	return trafficpolicy.TrafficTarget{
 		Name:        fmt.Sprintf("%s->%s", source, destination),
