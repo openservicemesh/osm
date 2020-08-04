@@ -94,7 +94,7 @@ func NewCertManager(ca certificate.Certificater, validityPeriod time.Duration, c
 	}
 
 	// Instantiating a new certificate rotation mechanism will start a goroutine for certificate rotation.
-	rotor.Start(checkCertificateExpirationInterval, &certManager, &cache)
+	rotor.New(&certManager).Start(checkCertificateExpirationInterval)
 
 	return &certManager, nil
 }

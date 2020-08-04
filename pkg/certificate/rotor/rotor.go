@@ -18,41 +18,47 @@ const (
 	maxNoiseSeconds = 5
 )
 
-type rotor struct {
-	certificates *map[certificate.CommonName]certificate.Certificater
-	certManager  certificate.Manager
+// New creates and starts a new facility for automatic certificate rotation.
+func New(certManager certificate.Manager) *CertRotor {
+	return &CertRotor{
+		certManager: certManager,
+	}
 }
 
-// Start creates and starts a new facility for automatic certificate rotation.
-func Start(checkInterval time.Duration, certManager certificate.Manager, certificates *map[certificate.CommonName]certificate.Certificater) {
-	rtr := rotor{
-		certificates: certificates,
-		certManager:  certManager,
-	}
-
+// Start starts a new facility for automatic certificate rotation.
+func (r CertRotor) Start(checkInterval time.Duration) {
 	// iterate over the list of certificates
 	// when a cert needs to be rotated - call RotateCertificate()
 	ticker := time.NewTicker(checkInterval)
 	go func() {
 		for {
-			rtr.checkAndRotate()
+			r.checkAndRotate()
 			<-ticker.C
 		}
 	}()
 }
 
-func (r *rotor) checkAndRotate() {
-	for cn, cert := range *(r.certificates) {
+func (r *CertRotor) checkAndRotate() {
+	certs, err := r.certManager.ListCertificates()
+	if err != nil {
+		log.Error().Err(err).Msgf("Error listing all certificates")
+	}
+
+	for _, cert := range certs {
 		shouldRotate := ShouldRotate(cert)
 
 		word := map[bool]string{true: "will", false: "will not"}[shouldRotate]
-		log.Trace().Msgf("Cert %s %s be rotated; expires in %+v; renewBeforeCertExpires is %+v", cn, word, time.Until(cert.GetExpiration()), renewBeforeCertExpires)
+		log.Trace().Msgf("Cert %s %s be rotated; expires in %+v; renewBeforeCertExpires is %+v",
+			cert.GetCommonName(),
+			word,
+			time.Until(cert.GetExpiration()),
+			renewBeforeCertExpires)
 
 		if shouldRotate {
 			// Remove the certificate from the cache of the certificate manager
-			newCert, err := r.certManager.RotateCertificate(cn)
+			newCert, err := r.certManager.RotateCertificate(cert.GetCommonName())
 			if err != nil {
-				log.Error().Err(err).Msgf("Error rotating cert CN=%s", cn)
+				log.Error().Err(err).Msgf("Error rotating cert CN=%s", cert.GetCommonName())
 				continue
 			}
 			log.Trace().Msgf("Rotated cert CN=%s", newCert.GetCommonName())
