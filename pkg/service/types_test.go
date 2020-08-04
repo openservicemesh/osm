@@ -56,3 +56,17 @@ var _ = Describe("Test types helpers", func() {
 	})
 
 })
+
+var _ = Describe("Test MeshService methods", func() {
+	Context("Testing GetCommonName", func() {
+		It("should return DNS-1123 of the MeshService struct", func() {
+			meshService := MeshService{
+				Namespace: "namespace-here",
+				Name:      "service-name-here",
+			}
+			actual := meshService.GetCommonName()
+			expected := "service-name-here.namespace-here.svc.cluster.local"
+			Expect(actual.String()).To(Equal(expected))
+		})
+	})
+})
