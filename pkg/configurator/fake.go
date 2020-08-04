@@ -1,6 +1,8 @@
 package configurator
 
 import (
+	"time"
+
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
@@ -96,4 +98,9 @@ func (f FakeConfigurator) GetZipkinPort() uint32 {
 // GetZipkinEndpoint returns the Zipkin endpoint
 func (f FakeConfigurator) GetZipkinEndpoint() string {
 	return constants.DefaultZipkinEndpoint
+}
+
+// GetGetControlPlaneCertValidityPeriod determines the validity period of the certificate used for Envoy to XDS mTLS.
+func (f FakeConfigurator) GetGetControlPlaneCertValidityPeriod() time.Duration {
+	return constants.ControlPlaneCertificateValidityPeriod
 }

@@ -7,6 +7,7 @@ import (
 	"net"
 	"sort"
 	"strings"
+	"time"
 )
 
 // The functions in this file implement the configurator.Configurator interface
@@ -114,6 +115,15 @@ func (c *Client) GetMeshCIDRRanges() []string {
 // UseHTTPSIngress determines whether traffic between ingress and backend pods should use HTTPS protocol
 func (c *Client) UseHTTPSIngress() bool {
 	return c.getConfigMap().UseHTTPSIngress
+}
+
+// GetGetControlPlaneCertValidityPeriod determines the validity period of the certificate used for Envoy to XDS mTLS.
+func (c *Client) GetGetControlPlaneCertValidityPeriod() time.Duration {
+	validityPeriod := c.getConfigMap().GetControlPlaneCertValidityPeriod
+	if validityPeriod != 0 {
+		return validityPeriod
+	}
+	return constants.ControlPlaneCertificateValidityPeriod
 }
 
 // GetAnnouncementsChannel returns a channel, which is used to announce when changes have been made to the OSM ConfigMap.

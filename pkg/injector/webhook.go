@@ -44,8 +44,8 @@ const (
 // NewWebhook starts a new web server handling requests from the injector MutatingWebhookConfiguration
 func NewWebhook(config Config, kubeClient kubernetes.Interface, certManager certificate.Manager, meshCatalog catalog.MeshCataloger, namespaceController namespace.Controller, meshName, osmNamespace, webhookName string, stop <-chan struct{}, cfg configurator.Configurator) error {
 	cn := certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.OSMControllerName, osmNamespace))
-	validityPeriod := constants.XDSCertificateValidityPeriod
-	cert, err := certManager.IssueCertificate(cn, &validityPeriod)
+	validityPeriod := cfg.GetGetControlPlaneCertValidityPeriod()
+	webhookCertificate, err := certManager.IssueCertificate(cn, &validityPeriod)
 	if err != nil {
 		return errors.Errorf("Error issuing certificate for the mutating webhook: %+v", err)
 	}
@@ -57,12 +57,12 @@ func NewWebhook(config Config, kubeClient kubernetes.Interface, certManager cert
 		meshCatalog:         meshCatalog,
 		namespaceController: namespaceController,
 		osmNamespace:        osmNamespace,
-		cert:                cert,
+		cert:                webhookCertificate,
 		configurator:        cfg,
 	}
 
 	go wh.run(stop)
-	if err = patchMutatingWebhookConfiguration(cert, meshName, osmNamespace, webhookName, wh.kubeClient); err != nil {
+	if err = patchMutatingWebhookConfiguration(webhookCertificate, meshName, osmNamespace, webhookName, wh.kubeClient); err != nil {
 		return errors.Errorf("Error configuring MutatingWebhookConfiguration: %+v", err)
 	}
 	return nil
