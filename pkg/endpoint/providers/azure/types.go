@@ -59,7 +59,7 @@ type Client struct {
 
 	// The AzureResource CRD client.
 	// TODO(draychev): At this point we are deliberately making the choice to expose the SMI + Extensions storage mechanism
-	// to the provider. At a later point we need to come up with an abstract mechanism, by which the Azure EndpointsProvider
+	// to the provider. At a later point we need to find an abstract mechanism, by which the Azure EndpointsProvider
 	// will convert a service name to an Azure resource URI.
 	azureResourceClient ResourceClient
 
@@ -68,6 +68,6 @@ type Client struct {
 
 // ResourceClient is an interface defining necessary functions to list the AzureResources.
 type ResourceClient interface {
-	// ListAzureResources lists the AzureResources, which will become mapping of a Service to an Azure URI.
+	// ListAzureResources lists the AzureResources, which will become mapping of a service to an Azure URI.
 	ListAzureResources() []*osm.AzureResource
 }

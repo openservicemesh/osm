@@ -6,6 +6,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
 	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chartutil"
 	kubefake "helm.sh/helm/v3/pkg/kube/fake"
@@ -139,6 +140,7 @@ var _ = Describe("Running the install command", func() {
 						"enableEgress":                   true,
 						"meshCIDRRanges":                 testMeshCIDR,
 						"enableMetricsStack":             true,
+						"deployZipkin":                   false,
 					}}))
 			})
 
@@ -243,6 +245,7 @@ var _ = Describe("Running the install command", func() {
 						"enableEgress":                   true,
 						"meshCIDRRanges":                 testMeshCIDR,
 						"enableMetricsStack":             true,
+						"deployZipkin":                   false,
 					}}))
 			})
 
@@ -352,6 +355,7 @@ var _ = Describe("Running the install command", func() {
 						"enableEgress":                   true,
 						"meshCIDRRanges":                 testMeshCIDR,
 						"enableMetricsStack":             true,
+						"deployZipkin":                   false,
 					}}))
 			})
 
@@ -511,7 +515,7 @@ var _ = Describe("Running the install command", func() {
 		})
 
 		It("should error", func() {
-			Expect(err).To(MatchError("Invalid mesh-name: [must be no more than 63 characters a DNS-1123 label must consist of lower case alphanumeric characters or '-', and must start and end with an alphanumeric character (e.g. 'my-name',  or '123-abc', regex used for validation is '[a-z0-9]([-a-z0-9]*[a-z0-9])?')]"))
+			Expect(err).To(MatchError("Invalid mesh-name.\nValid mesh-name:\n- must be no longer than 63 characters\n- must consist of alphanumeric characters, '-', '_' or '.'\n- must start and end with an alphanumeric character\nregex used for validation is '(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?'"))
 		})
 	})
 
@@ -626,6 +630,7 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 				"enableEgress":                   true,
 				"meshCIDRRanges":                 testMeshCIDR,
 				"enableMetricsStack":             true,
+				"deployZipkin":                   false,
 			}}))
 	})
 })

@@ -1,3 +1,4 @@
+{{- if .Values.OpenServiceMesh.deployZipkin }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -18,7 +19,7 @@ spec:
       - name: zipkin
         image: openzipkin/zipkin:2.21.4
         ports:
-        - containerPort: {{.Values.OpenServiceMesh.zipkin.port}}
+        - containerPort: {{ .Values.OpenServiceMesh.zipkin.port | default 9411 }}
         resources:
           limits:
             cpu: 500m
@@ -26,3 +27,4 @@ spec:
           requests:
             cpu: 100m
             memory: 256M
+{{- end }}

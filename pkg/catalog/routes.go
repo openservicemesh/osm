@@ -23,7 +23,7 @@ const (
 )
 
 // ListTrafficPolicies returns all the traffic policies for a given service that Envoy proxy should be aware of.
-func (mc *MeshCatalog) ListTrafficPolicies(service service.NamespacedService) ([]trafficpolicy.TrafficTarget, error) {
+func (mc *MeshCatalog) ListTrafficPolicies(service service.MeshService) ([]trafficpolicy.TrafficTarget, error) {
 	log.Info().Msgf("Listing traffic policies for service: %s", service)
 
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
@@ -55,7 +55,7 @@ func (mc *MeshCatalog) ListTrafficPolicies(service service.NamespacedService) ([
 // This is a bimodal function:
 //   - it could list services that are allowed to connect to the given service (inbound)
 //   - it could list services that the given service can connect to (outbound)
-func (mc *MeshCatalog) getAllowedDirectionalServices(svc service.NamespacedService, directn direction) ([]service.NamespacedService, error) {
+func (mc *MeshCatalog) getAllowedDirectionalServices(svc service.MeshService, directn direction) ([]service.MeshService, error) {
 	allTrafficPolicies, err := mc.ListTrafficPolicies(svc)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed listing traffic routes")
@@ -67,23 +67,23 @@ func (mc *MeshCatalog) getAllowedDirectionalServices(svc service.NamespacedServi
 	for _, policy := range allTrafficPolicies {
 		if directn == inbound {
 			// we are looking for services that can connect to the given service
-			if policy.Destination.Service.Equals(svc) {
-				allowedServicesSet.Add(policy.Source.Service)
+			if policy.Destination.Equals(svc) {
+				allowedServicesSet.Add(policy.Source)
 			}
 		}
 
 		if directn == outbound {
 			// we are looking for services the given svc can connect to
-			if policy.Source.Service.Equals(svc) {
-				allowedServicesSet.Add(policy.Destination.Service)
+			if policy.Source.Equals(svc) {
+				allowedServicesSet.Add(policy.Destination)
 			}
 		}
 	}
 
 	// Convert the set of interfaces to a list of namespaced services
-	var allowedServices []service.NamespacedService
+	var allowedServices []service.MeshService
 	for svc := range allowedServicesSet.Iter() {
-		allowedServices = append(allowedServices, svc.(service.NamespacedService))
+		allowedServices = append(allowedServices, svc.(service.MeshService))
 	}
 
 	msg := map[direction]string{
@@ -97,43 +97,42 @@ func (mc *MeshCatalog) getAllowedDirectionalServices(svc service.NamespacedServi
 }
 
 // ListAllowedInboundServices lists the inbound services allowed to connect to the given service.
-func (mc *MeshCatalog) ListAllowedInboundServices(destinationService service.NamespacedService) ([]service.NamespacedService, error) {
+func (mc *MeshCatalog) ListAllowedInboundServices(destinationService service.MeshService) ([]service.MeshService, error) {
 	return mc.getAllowedDirectionalServices(destinationService, inbound)
 
 }
 
 // ListAllowedOutboundServices lists the services the given service is allowed outbound connections to.
-func (mc *MeshCatalog) ListAllowedOutboundServices(sourceService service.NamespacedService) ([]service.NamespacedService, error) {
+func (mc *MeshCatalog) ListAllowedOutboundServices(sourceService service.MeshService) ([]service.MeshService, error) {
 	return mc.getAllowedDirectionalServices(sourceService, outbound)
 }
 
 //GetWeightedClusterForService returns the weighted cluster for a given service
-func (mc *MeshCatalog) GetWeightedClusterForService(nsService service.NamespacedService) (service.WeightedCluster, error) {
-	// TODO(draychev): split namespace from the service name -- for non-K8s services
-	log.Trace().Msgf("Finding weighted cluster for service %s", nsService)
+func (mc *MeshCatalog) GetWeightedClusterForService(svc service.MeshService) (service.WeightedCluster, error) {
+	log.Trace().Msgf("Finding weighted cluster for service %s", svc)
 
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
-		return getDefaultWeightedClusterForService(nsService), nil
+		return getDefaultWeightedClusterForService(svc), nil
 	}
 
 	// Retrieve the weighted clusters from traffic split
 	servicesList := mc.meshSpec.ListTrafficSplitServices()
 	for _, activeService := range servicesList {
-		if activeService.NamespacedService == nsService {
+		if activeService.Service == svc {
 			return service.WeightedCluster{
-				ClusterName: service.ClusterName(activeService.NamespacedService.String()),
+				ClusterName: service.ClusterName(activeService.Service.String()),
 				Weight:      activeService.Weight,
 			}, nil
 		}
 	}
 
 	// Use a default weighted cluster as an SMI TrafficSplit policy is not defined for the service
-	return getDefaultWeightedClusterForService(nsService), nil
+	return getDefaultWeightedClusterForService(svc), nil
 }
 
 //GetDomainForService returns the domain name of a service
-func (mc *MeshCatalog) GetDomainForService(nsService service.NamespacedService, routeHeaders map[string]string) (string, error) {
-	log.Trace().Msgf("Finding domain for service %s", nsService)
+func (mc *MeshCatalog) GetDomainForService(meshService service.MeshService, routeHeaders map[string]string) (string, error) {
+	log.Trace().Msgf("Finding domain for service %s", meshService)
 
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
 		return getHostHeaderFromRouteHeaders(routeHeaders)
@@ -142,36 +141,25 @@ func (mc *MeshCatalog) GetDomainForService(nsService service.NamespacedService, 
 	// Retrieve the domain name from traffic split
 	servicesList := mc.meshSpec.ListTrafficSplitServices()
 	for _, activeService := range servicesList {
-		if activeService.NamespacedService == nsService {
+		if activeService.Service == meshService {
 			return activeService.Domain, nil
 		}
 	}
 
 	// Use the augmented domains from k8s service since an
 	// SMI TrafficSplit policy is not defined for the service
-
 	hostHeader, err := getHostHeaderFromRouteHeaders(routeHeaders)
 	if err != nil {
 		log.Warn().Msgf("Found host header %s, but using service hostnames instead", hostHeader)
 	}
-	services, err := mc.meshSpec.ListServices()
+
+	svc, err := mc.meshSpec.GetService(meshService)
 	if err != nil {
+		log.Error().Err(err).Msgf("Error finding service %q", meshService)
 		return "", err
 	}
-	var currentService *corev1.Service
-	for _, service := range services {
-		if service.Name == nsService.Service && service.Namespace == nsService.Namespace {
-			currentService = service
-			break
-		}
-	}
 
-	if currentService == nil {
-		log.Error().Err(errServiceNotFound).Msgf("Could not find %s", nsService)
-		return "", errServiceNotFound
-	}
-
-	hostList := kubernetes.GetDomainsForService(currentService)
+	hostList := kubernetes.GetDomainsForService(svc)
 	host := strings.Join(hostList, ",")
 
 	return host, nil
@@ -215,7 +203,7 @@ func (mc *MeshCatalog) getTrafficSpecName(trafficSpecKind string, trafficSpecNam
 	return trafficpolicy.TrafficSpecName(specKey)
 }
 
-func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.Route, nsService service.NamespacedService) ([]trafficpolicy.TrafficTarget, error) {
+func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.Route, meshService service.MeshService) ([]trafficpolicy.TrafficTarget, error) {
 	var trafficPolicies []trafficpolicy.TrafficTarget
 	for _, trafficTargets := range mc.meshSpec.ListTrafficTargets() {
 		log.Debug().Msgf("Discovered TrafficTarget resource: %s/%s", trafficTargets.Namespace, trafficTargets.Name)
@@ -245,14 +233,12 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[trafficpolicy.T
 				log.Error().Msgf("TrafficTarget %s/%s could not get source services for service account %s", trafficTargets.Namespace, trafficTargets.Name, fmt.Sprintf("%s/%s", trafficSources.Namespace, trafficSources.Name))
 				return nil, srcErr
 			}
-			policy := trafficpolicy.TrafficTarget{}
-			policy.Name = trafficTargets.Name
-			policy.Destination = trafficpolicy.TrafficResource{
-				Namespace: trafficTargets.Destination.Namespace,
-				Service:   destService}
-			policy.Source = trafficpolicy.TrafficResource{
-				Namespace: trafficSources.Namespace,
-				Service:   srcServices}
+
+			trafficTarget := trafficpolicy.TrafficTarget{
+				Name:        trafficTargets.Name,
+				Destination: destService,
+				Source:      srcServices,
+			}
 
 			for _, trafficTargetSpecs := range trafficTargets.Specs {
 				if trafficTargetSpecs.Kind != HTTPTraffic {
@@ -270,24 +256,24 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[trafficpolicy.T
 				if len(trafficTargetSpecs.Matches) == 0 {
 					// no match name provided, so routes are build for all matches in traffic spec
 					for _, routePolicy := range routePoliciesMatched {
-						policy.Route = routePolicy
-						// append a traffic policy only if it corresponds to the service
-						if policy.Source.Service.Equals(nsService) || policy.Destination.Service.Equals(nsService) {
-							trafficPolicies = append(trafficPolicies, policy)
+						trafficTarget.Route = routePolicy
+						// append a traffic trafficTarget only if it corresponds to the service
+						if trafficTarget.Source.Equals(meshService) || trafficTarget.Destination.Equals(meshService) {
+							trafficPolicies = append(trafficPolicies, trafficTarget)
 						}
 					}
 				} else {
-					// route is built only for the matche name specified in the policy
+					// route is built only for the matche name specified in the trafficTarget
 					for _, specMatchesName := range trafficTargetSpecs.Matches {
 						routePolicy, matchFound := routePoliciesMatched[trafficpolicy.TrafficSpecMatchName(specMatchesName)]
 						if !matchFound {
 							log.Error().Msgf("TrafficTarget %s/%s could not find a TrafficSpec %s with match name %s", trafficTargets.Namespace, trafficTargets.Name, specKey, specMatchesName)
 							return nil, errNoTrafficSpecFoundForTrafficPolicy
 						}
-						policy.Route = routePolicy
-						// append a traffic policy only if it corresponds to the service
-						if policy.Source.Service.Equals(nsService) || policy.Destination.Service.Equals(nsService) {
-							trafficPolicies = append(trafficPolicies, policy)
+						trafficTarget.Route = routePolicy
+						// append a traffic trafficTarget only if it corresponds to the service
+						if trafficTarget.Source.Equals(meshService) || trafficTarget.Destination.Equals(meshService) {
+							trafficPolicies = append(trafficPolicies, trafficTarget)
 						}
 					}
 				}
@@ -299,7 +285,7 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[trafficpolicy.T
 	return trafficPolicies, nil
 }
 
-func (mc *MeshCatalog) buildAllowAllTrafficPolicies(service service.NamespacedService) ([]trafficpolicy.TrafficTarget, error) {
+func (mc *MeshCatalog) buildAllowAllTrafficPolicies(service service.MeshService) ([]trafficpolicy.TrafficTarget, error) {
 	services, err := mc.meshSpec.ListServices()
 	if err != nil {
 		log.Error().Err(err).Msgf("Error building traffic policies for service %s", service)
@@ -320,22 +306,14 @@ func (mc *MeshCatalog) buildAllowAllTrafficPolicies(service service.NamespacedSe
 	return trafficTargets, nil
 }
 
-func (mc *MeshCatalog) buildAllowPolicyForSourceToDest(source *corev1.Service, destination *corev1.Service) trafficpolicy.TrafficTarget {
-	sourceTrafficResource := trafficpolicy.TrafficResource{
-		Namespace: source.Namespace,
-		Service: service.NamespacedService{
-			Namespace: source.Namespace,
-			Service:   source.Name,
-		},
+func k8sSvcToMeshSvc(svc *corev1.Service) service.MeshService {
+	return service.MeshService{
+		Namespace: svc.Namespace,
+		Name:      svc.Name,
 	}
-	destinationTrafficResource := trafficpolicy.TrafficResource{
-		Namespace: destination.Namespace,
-		Service: service.NamespacedService{
-			Namespace: destination.Namespace,
-			Service:   destination.Name,
-		},
-	}
+}
 
+func (mc *MeshCatalog) buildAllowPolicyForSourceToDest(source *corev1.Service, destination *corev1.Service) trafficpolicy.TrafficTarget {
 	serviceDomains := kubernetes.GetDomainsForService(destination)
 	hostHeader := map[string]string{HostHeaderKey: strings.Join(serviceDomains[:], ",")}
 	allowAllRoute := trafficpolicy.Route{
@@ -345,8 +323,8 @@ func (mc *MeshCatalog) buildAllowPolicyForSourceToDest(source *corev1.Service, d
 	}
 	return trafficpolicy.TrafficTarget{
 		Name:        fmt.Sprintf("%s->%s", source, destination),
-		Destination: destinationTrafficResource,
-		Source:      sourceTrafficResource,
+		Destination: k8sSvcToMeshSvc(destination),
+		Source:      k8sSvcToMeshSvc(source),
 		Route:       allowAllRoute,
 	}
 }
@@ -359,9 +337,9 @@ func getHostHeaderFromRouteHeaders(routeHeaders map[string]string) (string, erro
 	return "", errDomainNotFoundForService
 }
 
-func getDefaultWeightedClusterForService(nsService service.NamespacedService) service.WeightedCluster {
+func getDefaultWeightedClusterForService(meshService service.MeshService) service.WeightedCluster {
 	return service.WeightedCluster{
-		ClusterName: service.ClusterName(nsService.String()),
+		ClusterName: service.ClusterName(meshService.String()),
 		Weight:      constants.ClusterWeightAcceptAll,
 	}
 }

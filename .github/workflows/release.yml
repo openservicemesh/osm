@@ -77,6 +77,20 @@ jobs:
           asset_path: "_dist/osm-${{ env.CLI_VERSION }}-linux-amd64.tar.gz"
           asset_name: "osm-${{ env.CLI_VERSION }}-linux-amd64.tar.gz"
           asset_content_type: application/gzip
+      - name: Upload Windows .zip
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: "_dist/osm-${{ env.CLI_VERSION }}-windows-amd64.zip"
+          asset_name: "osm-${{ env.CLI_VERSION }}-windows-amd64.zip"
+          asset_content_type: application/zip
+      - name: Upload Windows .tar.gz
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: "_dist/osm-${{ env.CLI_VERSION }}-windows-amd64.tar.gz"
+          asset_name: "osm-${{ env.CLI_VERSION }}-windows-amd64.tar.gz"
+          asset_content_type: application/gzip
       - name: Upload Checksums
         uses: actions/upload-release-asset@v1
         with:

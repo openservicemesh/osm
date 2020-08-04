@@ -248,11 +248,11 @@ func (c *Client) ListTrafficSplitServices() []service.WeightedService {
 			// The TrafficSplit SMI Spec does not allow providing a namespace for the backends,
 			// so we assume that the top level namespace for the TrafficSplit is the namespace
 			// the backends belong to.
-			namespacedServiceName := service.NamespacedService{
+			meshService := service.MeshService{
 				Namespace: trafficSplit.Namespace,
-				Service:   backend.Service,
+				Name:      backend.Service,
 			}
-			services = append(services, service.WeightedService{NamespacedService: namespacedServiceName, Weight: backend.Weight, Domain: domain})
+			services = append(services, service.WeightedService{Service: meshService, Weight: backend.Weight, Domain: domain})
 		}
 	}
 	return services
@@ -294,18 +294,19 @@ func (c *Client) ListServiceAccounts() []service.K8sServiceAccount {
 	return serviceAccounts
 }
 
-// GetService retrieves the Kubernetes Services resource for the given ServiceName.
-func (c *Client) GetService(svc service.Name) (service *corev1.Service, exists bool, err error) {
-	svcIf, exists, err := c.caches.Services.GetByKey(string(svc))
+// GetService retrieves the Kubernetes Services resource for the given MeshService
+func (c *Client) GetService(svc service.MeshService) (service *corev1.Service, err error) {
+	// client-go cache uses <namespace>/<name> as key
+	svcIf, exists, err := c.caches.Services.GetByKey(svc.String())
 	if exists && err == nil {
 		svc, ok := svcIf.(*corev1.Service)
 		if !ok {
-			log.Error().Err(errInvalidObjectType).Msgf("Failed type assertion for Service in cache")
-			return nil, false, err
+			log.Error().Err(errInvalidObjectType).Msgf("Failed type assertion for MeshService in cache")
+			return nil, errInvalidObjectType
 		}
-		return svc, true, err
+		return svc, nil
 	}
-	return nil, exists, err
+	return nil, err
 }
 
 // ListServices returns a list of services that are part of monitored namespaces
@@ -315,7 +316,7 @@ func (c Client) ListServices() ([]*corev1.Service, error) {
 	for _, serviceInterface := range c.caches.Services.List() {
 		svc, ok := serviceInterface.(*corev1.Service)
 		if !ok {
-			log.Error().Err(errInvalidObjectType).Msg("Failed type assertion for Service in cache")
+			log.Error().Err(errInvalidObjectType).Msg("Failed type assertion for MeshService in cache")
 			continue
 		}
 		if !c.namespaceController.IsMonitoredNamespace(svc.Namespace) {

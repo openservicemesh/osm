@@ -8,12 +8,12 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
-var _ = Describe("Test NamespacedService methods", func() {
+var _ = Describe("Test MeshService methods", func() {
 	Context("Testing GetCommonName", func() {
-		It("should return DNS-1123 of the NamespacedService struct", func() {
-			namespacedService := service.NamespacedService{
+		It("should return DNS-1123 of the MeshService struct", func() {
+			namespacedService := service.MeshService{
 				Namespace: "namespace-here",
-				Service:   "service-name-here",
+				Name:      "service-name-here",
 			}
 			actual := namespacedService.GetCommonName()
 			expected := certificate.CommonName("service-name-here.namespace-here.svc.cluster.local")

@@ -3,6 +3,7 @@ package lds
 import (
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
+	xds_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 
 	. "github.com/onsi/ginkgo"
@@ -11,6 +12,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/envoy/route"
 )
 
 var _ = Describe("Construct inbound and outbound listeners", func() {
@@ -117,10 +119,25 @@ var _ = Describe("Construct inbound and outbound listeners", func() {
 		})
 	})
 
+	Context("Test creation of HTTP connection manager", func() {
+		It("Returns proper Zipkin config given a cfg", func() {
+			cfg := configurator.NewFakeConfiguratorWithOptions(configurator.FakeConfigurator{})
+			connManager := getHTTPConnectionManager(route.InboundRouteConfigName, cfg)
+			var nilHcmTrace *xds_hcm.HttpConnectionManager_Tracing = nil
+
+			if cfg.IsZipkinTracingEnabled() {
+				Expect(connManager.Tracing).NotTo(Equal(nilHcmTrace))
+				Expect(connManager.Tracing.Verbose).To(Equal(true))
+				Expect(connManager.Tracing.Provider.Name).To(Equal("envoy.tracers.zipkin"))
+			} else {
+				Expect(connManager.Tracing).To(Equal(nilHcmTrace))
+			}
+		})
+	})
+
 	Context("Test creation of Prometheus listener", func() {
 		It("Tests the Prometheus listener config", func() {
-			cfg := configurator.NewFakeConfiguratorWithOptions(configurator.FakeConfigurator{})
-			connManager := getHTTPConnectionManager("fake-prometheus", cfg)
+			connManager := getPrometheusConnectionManager("fake-prometheus", constants.PrometheusScrapePath, constants.EnvoyMetricsCluster)
 			listener, _ := buildPrometheusListener(connManager)
 			Expect(listener.Address).To(Equal(envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyPrometheusInboundListenerPort)))
 			Expect(len(listener.ListenerFilters)).To(Equal(0)) //  no listener filters

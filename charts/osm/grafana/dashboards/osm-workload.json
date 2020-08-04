@@ -142,7 +142,7 @@
         "steppedLine": false,
         "targets": [
           {
-            "expr": "envoy_cluster_upstream_rq_xx{envoy_response_code_class=\"2\",source_namespace=\"$source_namespace\",source_workload_kind=\"$source_workload_kind\",source_workload_name=\"$source_workload_name\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-zipkin-cluster|passthrough-outbound\"}",
+            "expr": "irate(envoy_cluster_upstream_rq_xx{envoy_response_code_class=\"2\",source_namespace=\"$source_namespace\",source_workload_kind=\"$source_workload_kind\",source_workload_name=\"$source_workload_name\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-zipkin-cluster|passthrough-outbound\"}[1m])",
             "legendFormat": "{{envoy_cluster_name}}",
             "refId": "A"
           }
@@ -248,7 +248,7 @@
         "steppedLine": false,
         "targets": [
           {
-            "expr": "envoy_cluster_upstream_rq_xx{envoy_response_code_class!=\"2\",source_namespace=\"$source_namespace\",source_workload_kind=\"$source_workload_kind\",source_workload_name=\"$source_workload_name\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-zipkin-cluster|passthrough-outbound\"}",
+            "expr": "irate(envoy_cluster_upstream_rq_xx{envoy_response_code_class!=\"2\",source_namespace=\"$source_namespace\",source_workload_kind=\"$source_workload_kind\",source_workload_name=\"$source_workload_name\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-zipkin-cluster|passthrough-outbound\"}[1m])",
             "interval": "",
             "legendFormat": "{{envoy_cluster_name}}",
             "refId": "A"

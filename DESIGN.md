@@ -277,17 +277,17 @@ type MeshCataloger interface {
 	ListEndpointsForService(endpoint.ServiceName) ([]endpoint.Endpoint, error)
 
 	// ListTrafficPolicies constructs a list of all the traffic policies /routes the given Envoy proxy should be aware of.
-	ListTrafficPolicies(endpoint.NamespacedService) ([]endpoint.TrafficPolicy, error)
+	ListTrafficPolicies(service.MeshService) ([]endpoint.TrafficPolicy, error)
 
 	// ListAllowedInboundServices lists the inbound services allowed to connect to the given service.
-	ListAllowedInboundServices(service.NamespacedService) ([]service.NamespacedService, error)
+	ListAllowedInboundServices(service.MeshService) ([]service.MeshService, error)
 
 	// ListAllowedOutboundServices lists the services the given service is allowed outbound connections to.
-	ListAllowedOutboundServices(service.NamespacedService) ([]service.NamespacedService, error)
+	ListAllowedOutboundServices(service.MeshService) ([]service.MeshService, error)
 
 	// GetCertificateForService returns the SSL Certificate for the given service.
 	// This certificate will be used for service-to-service mTLS.
-	GetCertificateForService(endpoint.NamespacedService) (certificate.Certificater, error)
+	GetCertificateForService(service.MeshService) (certificate.Certificater, error)
 
 	// RegisterProxy registers a newly connected proxy with the service mesh catalog.
 	RegisterProxy(*envoy.Proxy)
@@ -296,16 +296,16 @@ type MeshCataloger interface {
 	UnregisterProxy(*envoy.Proxy)
 
 	// GetServicesByServiceAccountName returns a list of services corresponding to a service account, and refreshes the cache if requested
-	GetServicesByServiceAccountName(endpoint.NamespacedServiceAccount, bool) []endpoint.NamespacedService
+	GetServicesByServiceAccountName(endpoint.NamespacedServiceAccount, bool) []service.MeshService
 }
 ```
 
 Additional types needed for this interface:
 ```go
-// NamespacedService is a type for a namespaced service
-type NamespacedService struct {
+// MeshService is a type for a namespaced service
+type MeshService struct {
 	Namespace string
-	Service   string
+	Name      string
 }
 ```
 
@@ -333,7 +333,7 @@ type TrafficPolicy struct {
 type Proxy struct {
 	certificate.CommonName
 	net.IP
-	ServiceName   endpoint.NamespacedService
+	ServiceName   service.MeshService
 	announcements chan interface{}
 
 	lastSentVersion    map[TypeURI]uint64
@@ -408,13 +408,13 @@ type MeshSpec interface {
 	ListTrafficSplits() []*split.TrafficSplit
 
 	// ListTrafficSplitServices fetches all services declared with SMI Spec.
-	ListTrafficSplitServices() []endpoint.WeightedService
+	ListTrafficSplitServices() []service.WeightedService
 
 	// ListServiceAccounts fetches all service accounts declared with SMI Spec.
-	ListServiceAccounts() []endpoint.NamespacedServiceAccount
+	ListServiceAccounts() []service.K8sServiceAccount
 
 	// GetService fetches a specific service declared in SMI.
-	GetService(endpoint.ServiceName) (service *corev1.Service, exists bool, err error)
+	GetService(service.MeshService) (service *corev1.Service, err error)
 
 	// ListHTTPTrafficSpecs lists TrafficSpec SMI resources.
 	ListHTTPTrafficSpecs() []*spec.HTTPRouteGroup
@@ -520,7 +520,7 @@ The following types are referenced in the interfaces proposed in this document:
       ```go
       //WeightedService is a struct of a service name and its weight
       type WeightedService struct {
-	   ServiceName NamespacedService `json:"service_name:omitempty"`
+	   ServiceName MeshService `json:"service_name:omitempty"`
 	   Weight      int               `json:"weight:omitempty"`
       }
       ```
@@ -548,7 +548,7 @@ The following types are referenced in the interfaces proposed in this document:
 	type TrafficResource struct {
 	     ServiceAccount ServiceAccount      `json:"service_account:omitempty"`
 	     Namespace      string              `json:"namespace:omitempty"`
-	     Services       []NamespacedService `json:"services:omitempty"`
+	     Services       []MeshService `json:"services:omitempty"`
 	     Clusters       []WeightedCluster   `json:"clusters:omitempty"`
         }
       ```

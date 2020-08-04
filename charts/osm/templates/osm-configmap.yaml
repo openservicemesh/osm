@@ -4,11 +4,16 @@ metadata:
   name: osm-config
   namespace: {{ .Release.Namespace }}
 data:
-  permissive_traffic_policy_mode: {{ .Values.OpenServiceMesh.enablePermissiveTrafficPolicy | quote | default "false" }}
-  egress: {{ .Values.OpenServiceMesh.enableEgress | quote | default "true" }}
+  permissive_traffic_policy_mode: {{ .Values.OpenServiceMesh.enablePermissiveTrafficPolicy | default "false" | quote }}
+  egress: {{ .Values.OpenServiceMesh.enableEgress | default "true" | quote }}
   prometheus_scraping: "true"
-  zipkin_tracing: "true"
+
+  zipkin_tracing: {{ .Values.OpenServiceMesh.zipkin.enable | quote }}
+  zipkin_address: {{ .Values.OpenServiceMesh.zipkin.address | quote }}
+  zipkin_port: {{ .Values.OpenServiceMesh.zipkin.port | quote }}
+  zipkin_endpoint: {{ .Values.OpenServiceMesh.zipkin.endpoint | quote }}
+
 {{- if .Values.OpenServiceMesh.enableEgress }}
   mesh_cidr_ranges: {{ .Values.OpenServiceMesh.meshCIDRRanges | quote }}
 {{- end }}
-  use_https_ingress: {{ .Values.OpenServiceMesh.useHTTPSIngress | quote | default "false" }}
+  use_https_ingress: {{ .Values.OpenServiceMesh.useHTTPSIngress | default "false" | quote }}

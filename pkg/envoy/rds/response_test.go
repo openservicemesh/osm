@@ -162,16 +162,19 @@ var _ = Describe("RDS Response", func() {
 			}
 			return false
 		}
-		It("returns domain for service from traffic split", func() {
+		It("returns the domain for a service when traffic split is specified for the given service", func() {
 
 			actual, err := meshCatalog.GetDomainForService(tests.BookstoreService, tests.HTTPRouteGroup.Matches[0].Headers)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(actual).To(Equal(tests.Domain))
+
+			domainList := strings.Split(actual, ",")
+			expectedDomains := []string{tests.Domain}
+			Expect(domainList).To(Equal(expectedDomains))
 		})
 
-		It("returns domain for service from traffic spec http header host", func() {
+		It("returns a list of domains for a service when traffic split is not specified for the given service", func() {
 
-			actual, err := meshCatalog.GetDomainForService(tests.BookbuyerService, tests.HTTPRouteGroup.Matches[0].Headers)
+			actual, err := meshCatalog.GetDomainForService(tests.BookbuyerService, nil)
 			Expect(err).ToNot(HaveOccurred())
 
 			domainList := strings.Split(actual, ",")
@@ -203,7 +206,7 @@ var _ = Describe("RDS Response", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			expected := service.WeightedCluster{
-				ClusterName: service.ClusterName(tests.WeightedService.NamespacedService.String()),
+				ClusterName: service.ClusterName(tests.WeightedService.Service.String()),
 				Weight:      tests.WeightedService.Weight,
 			}
 			Expect(actual).To(Equal(expected))

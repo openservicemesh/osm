@@ -13,8 +13,8 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
-// ListEndpointsForService implements endpoints.Provider interface and returns the IP addresses and Ports for the given ServiceName Name.
-func (az Client) ListEndpointsForService(svc service.Name) []endpoint.Endpoint {
+// ListEndpointsForService implements endpoints.Provider interface and returns the IP addresses and Ports for the given mesh service.
+func (az Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endpoint {
 	var endpoints []endpoint.Endpoint
 
 	// TODO(draychev): resolve the actual port number of this service
@@ -53,7 +53,7 @@ func (az Client) ListEndpointsForService(svc service.Name) []endpoint.Endpoint {
 }
 
 // GetServiceForServiceAccount retrieves the service for the given service account
-func (az Client) GetServiceForServiceAccount(svcAccount service.K8sServiceAccount) (service.NamespacedService, error) {
+func (az Client) GetServiceForServiceAccount(svcAccount service.K8sServiceAccount) (service.MeshService, error) {
 	//TODO (snchh) : need to figure out the service account equivalnent for azure
 	panic("NotImplemented")
 }
@@ -88,20 +88,16 @@ func parseAzureID(id azureID) (resourceGroup, computeKind, computeName, error) {
 	return resGroup, kind, name, nil
 }
 
-func (az *Client) resolveService(svc service.Name) []azureID {
+func (az *Client) resolveService(svc service.MeshService) []azureID {
 	log.Trace().Msgf("Resolving service %s to an Azure URI", svc)
 	var azureIDs []azureID
-	service, exists, err := az.meshSpec.GetService(svc)
+	k8sService, err := az.meshSpec.GetService(svc)
 	if err != nil {
 		log.Error().Err(err).Msg("Error fetching Kubernetes Endpoints from cache")
 		return azureIDs
 	}
-	if !exists {
-		log.Error().Msgf("Error fetching Kubernetes Endpoints from cache: service %s does not exist", svc)
-		return azureIDs
-	}
-	log.Trace().Msgf("Got the service: %+v", service)
-	return matchServiceAzureResource(service, az.azureResourceClient.ListAzureResources())
+	log.Trace().Msgf("Got the service: %+v", k8sService)
+	return matchServiceAzureResource(k8sService, az.azureResourceClient.ListAzureResources())
 }
 
 type kv struct {

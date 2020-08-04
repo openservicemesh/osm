@@ -21,7 +21,6 @@ func NewProvider(subscriptionID string, azureAuthFile string, stop chan struct{}
 		return az, errors.Errorf("Failed to obtain authentication token for Azure Resource Manager: %+v", err)
 	}
 
-	// TODO(draychev): The subscriptionID should be observed from the AzureResource (SMI)
 	az = Client{
 		azureClients: azureClients{
 			publicIPsClient: n.NewPublicIPAddressesClient(subscriptionID),
@@ -40,7 +39,7 @@ func NewProvider(subscriptionID string, azureAuthFile string, stop chan struct{}
 		meshSpec:       meshSpec,
 		providerID:     providerIdent,
 
-		// AzureResource Client is needed here so the Azure EndpointsProvider can resolve a Kubernetes ServiceName
+		// AzureResource Client is needed here so the Azure EndpointsProvider can resolve a Kubernetes service
 		// into an Azure URI. (Example: resolve "webService" to an IP of a VM.)
 		azureResourceClient: azureResourceClient,
 
@@ -55,7 +54,7 @@ func NewProvider(subscriptionID string, azureAuthFile string, stop chan struct{}
 	az.netClient.Authorizer = az.authorizer
 
 	/*
-		// TODO(draychev): enable this when you come up with a way to probe ARM w/ minimal context
+		// TODO(draychev): enable this when you find a way to probe ARM w/ minimal context
 			if err = waitForAzureAuth(az, maxAuthRetryCount, retryPause); err != nil {
 				log.Fatal().Err(err).Msg("Failed authenticating with Azure Resource Manager")
 			}

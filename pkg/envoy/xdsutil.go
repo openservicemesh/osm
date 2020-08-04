@@ -29,8 +29,9 @@ type SDSDirection bool
 // SDSCert is only used to interface the naming and related functions to Marshal/Unmarshal a resource name,
 // this avoids having sprintf/parsing logic all over the place
 type SDSCert struct {
-	// Service is a namespaced service struct
-	Service service.NamespacedService
+	// MeshService is a service within the mesh
+	MeshService service.MeshService
+
 	// CertType is the certificate type
 	CertType SDSCertType
 }
@@ -80,10 +81,10 @@ var validCertTypes = map[SDSCertType]interface{}{
 // It is set as a part of configuring the UpstreamTLSContext.
 var ALPNInMesh = []string{"osm"}
 
-// UnmarshalSDSCert parses and returns Certificate type and Namespaced Service name given a
+// UnmarshalSDSCert parses and returns Certificate type and a service given a
 // correctly formatted string, otherwise returns error
 func UnmarshalSDSCert(str string) (*SDSCert, error) {
-	var svc *service.NamespacedService
+	var svc *service.MeshService
 	var ret SDSCert
 
 	// Check separators, ignore empty string fields
@@ -106,11 +107,11 @@ func UnmarshalSDSCert(str string) (*SDSCert, error) {
 	}
 
 	// Check valid namespace'd service name
-	svc, err := service.UnmarshalNamespacedService(slices[1])
+	svc, err := service.UnmarshalMeshService(slices[1])
 	if err != nil {
 		return nil, err
 	}
-	err = copier.Copy(&ret.Service, &svc)
+	err = copier.Copy(&ret.MeshService, &svc)
 	if err != nil {
 		return nil, err
 	}
@@ -125,12 +126,11 @@ func (sdsc SDSCert) String() string {
 	return fmt.Sprintf("%s%s%s",
 		sdsc.CertType.String(),
 		Separator,
-		sdsc.Service.String())
+		sdsc.MeshService.String())
 }
 
 // GetAddress creates an Envoy Address struct.
 func GetAddress(address string, port uint32) *xds_core.Address {
-	// TODO(draychev): figure this out from the service
 	return &xds_core.Address{
 		Address: &xds_core.Address_SocketAddress{
 			SocketAddress: &xds_core.SocketAddress{
@@ -170,28 +170,32 @@ func GetAccessLog() []*xds_accesslog_filter.AccessLog {
 func getFileAccessLog() *xds_accesslog.FileAccessLog {
 	accessLogger := &xds_accesslog.FileAccessLog{
 		Path: accessLogPath,
-		AccessLogFormat: &xds_accesslog.FileAccessLog_JsonFormat{
-			JsonFormat: &structpb.Struct{
-				Fields: map[string]*structpb.Value{
-					"start_time":            pbStringValue(`%START_TIME%`),
-					"method":                pbStringValue(`%REQ(:METHOD)%`),
-					"path":                  pbStringValue(`%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%`),
-					"protocol":              pbStringValue(`%PROTOCOL%`),
-					"response_code":         pbStringValue(`%RESPONSE_CODE%`),
-					"response_code_details": pbStringValue(`%RESPONSE_CODE_DETAILS%`),
-					"time_to_first_byte":    pbStringValue(`%RESPONSE_DURATION%`),
-					"upstream_cluster":      pbStringValue(`%UPSTREAM_CLUSTER%`),
-					"response_flags":        pbStringValue(`%RESPONSE_FLAGS%`),
-					"bytes_received":        pbStringValue(`%BYTES_RECEIVED%`),
-					"bytes_sent":            pbStringValue(`%BYTES_SENT%`),
-					"duration":              pbStringValue(`%DURATION%`),
-					"upstream_service_time": pbStringValue(`%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%`),
-					"x_forwarded_for":       pbStringValue(`%REQ(X-FORWARDED-FOR)%`),
-					"user_agent":            pbStringValue(`%REQ(USER-AGENT)%`),
-					"request_id":            pbStringValue(`%REQ(X-REQUEST-ID)%`),
-					"requested_server_name": pbStringValue("%REQUESTED_SERVER_NAME%"),
-					"authority":             pbStringValue(`%REQ(:AUTHORITY)%`),
-					"upstream_host":         pbStringValue(`%UPSTREAM_HOST%`),
+		AccessLogFormat: &xds_accesslog.FileAccessLog_LogFormat{
+			LogFormat: &xds_core.SubstitutionFormatString{
+				Format: &xds_core.SubstitutionFormatString_JsonFormat{
+					JsonFormat: &structpb.Struct{
+						Fields: map[string]*structpb.Value{
+							"start_time":            pbStringValue(`%START_TIME%`),
+							"method":                pbStringValue(`%REQ(:METHOD)%`),
+							"path":                  pbStringValue(`%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%`),
+							"protocol":              pbStringValue(`%PROTOCOL%`),
+							"response_code":         pbStringValue(`%RESPONSE_CODE%`),
+							"response_code_details": pbStringValue(`%RESPONSE_CODE_DETAILS%`),
+							"time_to_first_byte":    pbStringValue(`%RESPONSE_DURATION%`),
+							"upstream_cluster":      pbStringValue(`%UPSTREAM_CLUSTER%`),
+							"response_flags":        pbStringValue(`%RESPONSE_FLAGS%`),
+							"bytes_received":        pbStringValue(`%BYTES_RECEIVED%`),
+							"bytes_sent":            pbStringValue(`%BYTES_SENT%`),
+							"duration":              pbStringValue(`%DURATION%`),
+							"upstream_service_time": pbStringValue(`%RESP(X-ENVOY-UPSTREAM-SERVICE-TIME)%`),
+							"x_forwarded_for":       pbStringValue(`%REQ(X-FORWARDED-FOR)%`),
+							"user_agent":            pbStringValue(`%REQ(USER-AGENT)%`),
+							"request_id":            pbStringValue(`%REQ(X-REQUEST-ID)%`),
+							"requested_server_name": pbStringValue("%REQUESTED_SERVER_NAME%"),
+							"authority":             pbStringValue(`%REQ(:AUTHORITY)%`),
+							"upstream_host":         pbStringValue(`%UPSTREAM_HOST%`),
+						},
+					},
 				},
 			},
 		},
@@ -207,7 +211,7 @@ func pbStringValue(v string) *structpb.Value {
 	}
 }
 
-func getCommonTLSContext(serviceName service.NamespacedService, mTLS bool, dir SDSDirection) *xds_auth.CommonTlsContext {
+func getCommonTLSContext(serviceName service.MeshService, mTLS bool, dir SDSDirection) *xds_auth.CommonTlsContext {
 	var certType SDSCertType
 
 	// Define root cert type
@@ -227,8 +231,8 @@ func getCommonTLSContext(serviceName service.NamespacedService, mTLS bool, dir S
 		TlsCertificateSdsSecretConfigs: []*xds_auth.SdsSecretConfig{{
 			// Example ==> Name: "service-cert:NameSpaceHere/ServiceNameHere"
 			Name: SDSCert{
-				Service:  serviceName,
-				CertType: ServiceCertType,
+				MeshService: serviceName,
+				CertType:    ServiceCertType,
 			}.String(),
 			SdsConfig: GetADSConfigSource(),
 		}},
@@ -236,8 +240,8 @@ func getCommonTLSContext(serviceName service.NamespacedService, mTLS bool, dir S
 			ValidationContextSdsSecretConfig: &xds_auth.SdsSecretConfig{
 				// Example ==> Name: "root-cert<type>:NameSpaceHere/ServiceNameHere"
 				Name: SDSCert{
-					Service:  serviceName,
-					CertType: certType,
+					MeshService: serviceName,
+					CertType:    certType,
 				}.String(),
 				SdsConfig: GetADSConfigSource(),
 			},
@@ -255,7 +259,7 @@ func MessageToAny(pb proto.Message) (*any.Any, error) {
 }
 
 // GetDownstreamTLSContext creates a downstream Envoy TLS Context
-func GetDownstreamTLSContext(serviceName service.NamespacedService, mTLS bool) *xds_auth.DownstreamTlsContext {
+func GetDownstreamTLSContext(serviceName service.MeshService, mTLS bool) *xds_auth.DownstreamTlsContext {
 	tlsConfig := &xds_auth.DownstreamTlsContext{
 		CommonTlsContext: getCommonTLSContext(serviceName, mTLS, Inbound),
 		// When RequireClientCertificate is enabled trusted CA certs must be provided via ValidationContextType
@@ -265,7 +269,7 @@ func GetDownstreamTLSContext(serviceName service.NamespacedService, mTLS bool) *
 }
 
 // GetUpstreamTLSContext creates an upstream Envoy TLS Context
-func GetUpstreamTLSContext(serviceName service.NamespacedService, sni string) *xds_auth.UpstreamTlsContext {
+func GetUpstreamTLSContext(serviceName service.MeshService, sni string) *xds_auth.UpstreamTlsContext {
 	commonTLSContext := getCommonTLSContext(serviceName, true /* mTLS */, Outbound)
 	// Advertise in-mesh using UpstreamTlsContext.CommonTlsContext.AlpnProtocols
 	commonTLSContext.AlpnProtocols = ALPNInMesh

@@ -16,7 +16,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/service"
-	"github.com/openservicemesh/osm/pkg/smi"
 )
 
 // Used mainly for logging/translation purposes
@@ -26,12 +25,12 @@ var directionMap = map[envoy.SDSCertType]string{
 }
 
 // NewResponse creates a new Secrets Discovery Response.
-func NewResponse(_ context.Context, catalog catalog.MeshCataloger, _ smi.MeshSpec, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, cfg configurator.Configurator) (*xds_discovery.DiscoveryResponse, error) {
+func NewResponse(_ context.Context, catalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, cfg configurator.Configurator) (*xds_discovery.DiscoveryResponse, error) {
 	log.Info().Msgf("Composing SDS Discovery Response for proxy: %s", proxy.GetCommonName())
 
 	serviceForProxy, err := catalog.GetServiceFromEnvoyCertificate(proxy.GetCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up Service for Envoy with CN=%q", proxy.GetCommonName())
+		log.Error().Err(err).Msgf("Error looking up service for Envoy with CN=%q", proxy.GetCommonName())
 		return nil, err
 	}
 
@@ -71,7 +70,7 @@ func getEnvoySDSSecrets(cert certificate.Certificater, proxy *envoy.Proxy, reque
 
 	svc, err := catalog.GetServiceFromEnvoyCertificate(proxy.GetCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up Service for Envoy with CN=%q", proxy.GetCommonName())
+		log.Error().Err(err).Msgf("Error looking up service for Envoy with CN=%q", proxy.GetCommonName())
 		return nil
 	}
 	serviceForProxy := *svc
@@ -85,8 +84,8 @@ func getEnvoySDSSecrets(cert certificate.Certificater, proxy *envoy.Proxy, reque
 			continue
 		}
 
-		if serviceForProxy != sdsCert.Service {
-			log.Error().Msgf("Proxy %s (service %s) requested service certificate %s; this is not allowed", proxy.GetCommonName(), serviceForProxy, sdsCert.Service)
+		if serviceForProxy != sdsCert.MeshService {
+			log.Error().Msgf("Proxy %s (service %s) requested service certificate %s; this is not allowed", proxy.GetCommonName(), serviceForProxy, sdsCert.MeshService)
 			continue
 		}
 
@@ -141,7 +140,7 @@ func getServiceCertSecret(cert certificate.Certificater, name string) (*xds_auth
 	return secret, nil
 }
 
-func getRootCert(cert certificate.Certificater, sdscert envoy.SDSCert, proxyServiceName service.NamespacedService, mc catalog.MeshCataloger) (*xds_auth.Secret, error) {
+func getRootCert(cert certificate.Certificater, sdscert envoy.SDSCert, proxyServiceName service.MeshService, mc catalog.MeshCataloger) (*xds_auth.Secret, error) {
 	secret := &xds_auth.Secret{
 		// The Name field must match the tls_context.common_tls_context.tls_certificate_sds_secret_configs.name
 		Name: sdscert.String(),
@@ -161,7 +160,7 @@ func getRootCert(cert certificate.Certificater, sdscert envoy.SDSCert, proxyServ
 		fallthrough
 	case envoy.RootCertTypeForMTLSInbound:
 		var matchSANs []*xds_matcher.StringMatcher
-		var serverNames []service.NamespacedService
+		var serverNames []service.MeshService
 		var err error
 
 		// This block constructs a list of Server Names (peers) that are allowed to connect to the given service.

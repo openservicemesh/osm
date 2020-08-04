@@ -7,12 +7,10 @@ import (
 
 	xds_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	testclient "k8s.io/client-go/kubernetes/fake"
-
 	"github.com/golang/protobuf/ptypes"
 	"github.com/google/uuid"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	testclient "k8s.io/client-go/kubernetes/fake"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -24,7 +22,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/service"
-	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
@@ -56,9 +53,9 @@ var _ = Describe("Test ADS response functions", func() {
 	cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s", envoyUID, serviceAccountName, namespace))
 	proxy := envoy.NewProxy(cn, nil)
 
-	nsService := service.NamespacedService{
+	meshService := service.MeshService{
 		Namespace: "default",
-		Service:   serviceName,
+		Name:      serviceName,
 	}
 
 	Context("Test getRequestedCertType()", func() {
@@ -69,20 +66,20 @@ var _ = Describe("Test ADS response functions", func() {
 				TypeUrl: string(envoy.TypeSDS),
 				ResourceNames: []string{
 					envoy.SDSCert{
-						Service:  nsService,
-						CertType: envoy.ServiceCertType,
+						MeshService: meshService,
+						CertType:    envoy.ServiceCertType,
 					}.String(),
 					envoy.SDSCert{
-						Service:  nsService,
-						CertType: envoy.RootCertTypeForMTLSOutbound,
+						MeshService: meshService,
+						CertType:    envoy.RootCertTypeForMTLSOutbound,
 					}.String(),
 					envoy.SDSCert{
-						Service:  nsService,
-						CertType: envoy.RootCertTypeForMTLSInbound,
+						MeshService: meshService,
+						CertType:    envoy.RootCertTypeForMTLSInbound,
 					}.String(),
 					envoy.SDSCert{
-						Service:  nsService,
-						CertType: envoy.RootCertTypeForHTTPS,
+						MeshService: meshService,
+						CertType:    envoy.RootCertTypeForHTTPS,
 					}.String(),
 				},
 			}
@@ -105,8 +102,7 @@ var _ = Describe("Test ADS response functions", func() {
 			s := Server{
 				ctx:         context.TODO(),
 				catalog:     mc,
-				meshSpec:    smi.NewFakeMeshSpecClient(),
-				xdsHandlers: getHandlers(cfg),
+				xdsHandlers: getHandlers(),
 			}
 
 			s.sendAllResponses(proxy, &server, cfg)
@@ -135,32 +131,32 @@ var _ = Describe("Test ADS response functions", func() {
 			firstSecret := (*actualResponses)[4].Resources[0]
 			err = ptypes.UnmarshalAny(firstSecret, &secretOne)
 			Expect(secretOne.Name).To(Equal(envoy.SDSCert{
-				Service:  nsService,
-				CertType: envoy.ServiceCertType,
+				MeshService: meshService,
+				CertType:    envoy.ServiceCertType,
 			}.String()))
 
 			secretTwo := xds_auth.Secret{}
 			secondSecret := (*actualResponses)[4].Resources[1]
 			err = ptypes.UnmarshalAny(secondSecret, &secretTwo)
 			Expect(secretTwo.Name).To(Equal(envoy.SDSCert{
-				Service:  nsService,
-				CertType: envoy.RootCertTypeForMTLSOutbound,
+				MeshService: meshService,
+				CertType:    envoy.RootCertTypeForMTLSOutbound,
 			}.String()))
 
 			secretThree := xds_auth.Secret{}
 			thirdSecret := (*actualResponses)[4].Resources[2]
 			err = ptypes.UnmarshalAny(thirdSecret, &secretThree)
 			Expect(secretThree.Name).To(Equal(envoy.SDSCert{
-				Service:  nsService,
-				CertType: envoy.RootCertTypeForMTLSInbound,
+				MeshService: meshService,
+				CertType:    envoy.RootCertTypeForMTLSInbound,
 			}.String()))
 
 			secretFour := xds_auth.Secret{}
 			forthSecret := (*actualResponses)[4].Resources[3]
 			err = ptypes.UnmarshalAny(forthSecret, &secretFour)
 			Expect(secretFour.Name).To(Equal(envoy.SDSCert{
-				Service:  nsService,
-				CertType: envoy.RootCertTypeForHTTPS,
+				MeshService: meshService,
+				CertType:    envoy.RootCertTypeForHTTPS,
 			}.String()))
 		})
 	})

@@ -8,6 +8,8 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	corev1 "k8s.io/api/core/v1"
+
+	"github.com/openservicemesh/osm/pkg/configurator"
 )
 
 const expectedEnvoyConfig = `
@@ -87,7 +89,8 @@ var _ = Describe("Test Envoy configuration creation", func() {
 				XDSPort:        2345,
 			}
 
-			actual, err := getEnvoyConfigYAML(config)
+			cfg := configurator.NewFakeConfigurator()
+			actual, err := getEnvoyConfigYAML(config, cfg)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(string(actual)).To(Equal(expectedEnvoyConfig[1:]),
