@@ -37,7 +37,7 @@ for i in bookstore bookbuyer bookthief bookwarehouse; do kubectl create ns $i; d
 ```
 ### 2. Onboard the Namespaces to the OSM Mesh
 ```bash
-osm namespace add bookstore bookbuyer bookthief bookwarehouse
+for i in bookstore bookbuyer bookthief bookwarehouse; do osm namespace add $i; done
 ```
 
 Install `Bookstore`, `Bookbuyer`, `Bookthief`, `Bookwarehouse`.
