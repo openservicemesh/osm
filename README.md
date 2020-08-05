@@ -16,7 +16,7 @@ Guided by 4 core principles:
 
 ## Table of Contents
 - [Overview](#overview)
-- [OSM Design](#osm-design
+- [OSM Design](#osm-design)
 - [Getting Started](#getting-started)
 - [Prerequisites](#prerequisites)
 - [Installation Demo](#installation-demo)
