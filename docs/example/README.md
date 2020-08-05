@@ -17,14 +17,14 @@
 Use the [installation guide](/docs/installation_guide.md) to install the `osm` cli.
 
 ## Install OSM Control Plane
-```bash
+```console
 $ osm install
 ```
 
 ## Install Applications
 The `Bookstore`, `Bookbuyer`, `Bookthief`, `Bookwarehouse` demo applications will be installed in their respective Kubernetes Namespaces. In order for these applications to be injected with a Envoy sidecar automatically, we must add the Namespaces to be monitored by the mesh.
 
-```bash
+```console
 $ kubectl create ns bookstore
 $ kubectl create ns bookbuyer
 $ kubectl create ns bookthief
@@ -33,7 +33,7 @@ $ osm namespace add bookstore bookbuyer bookthief bookwarehouse
 ```
 
 Install `Bookstore`, `Bookbuyer`, `Bookthief`, `Bookwarehouse`.
-```bash
+```console
 $ kubectl apply -f docs/example/manifests/apps/
 ```
 
@@ -41,7 +41,7 @@ $ kubectl apply -f docs/example/manifests/apps/
 The manifests include the Kubernetes Deployment, Kubernetes Service, and Kubernetes ServiceAccount for each application.
 
 ### View Application UIs
-```bash
+```console
 $ ./scripts/port-forward-all.sh
 ```
 
@@ -55,14 +55,14 @@ Postion the windows so that you can see all four at the same time. The header at
 
 ## Access Control Policies
 At this point, no applications have access to each other because no access control policies have been applied. Confirm this by confirming that none of the counters in the UI are incrementing. Apply the [SMI Traffic Target][1] and [SMI Traffic Specs][2] resources to define access control policies below:
-```bash
+```console
 kubectl apply -f docs/example/manifests/access/
 ```
 The counters should now be incrementing for the windows with headers: `Bookbuyer`, `Bookthief`, and `Bookstore-v1`.
 
 ### Going Further
 Comment out the lines in the TrafficTarget yaml that allows `Bookthief` to communicate with `Bookstore`. Then, re-apply the manifest and watch the change in policy propogate.
-```bash
+```console
 kubectl apply -f example/docs/manifests/access/
 ```
 The counter in the `Bookthief` window should stop incrementing.
@@ -77,13 +77,13 @@ Deploy v2 of the `Bookstore` app and use [SMI TrafficSplit][3] to define what pe
 
 ### Set up Kubernetes Services
 Create a Kubernetes Service for each version of `Bookstore`. One Service to send traffic to v1 Pods and another Service to send traffic to v2 Pods.
-```bash
+```console
 $ kubectl apply -f docs/example/manifests/bookstore-services/
 ```
 
 ### Apply Traffic Split
 Apply a traffic split configuration that sends 100% of the traffic to v1 and 0% to v2. The Kubernetes Service that was originally created with the `Bookstore` v1 deployment will now serve as a *root* or *apex* service. All traffic from any application can be directed to the *root* service and will be managed by this `TrafficSplit` resource.
-```bash
+```console
 $ kubectl apply -f docs/example/manifests/split/traffic-split.yaml
 ```
 
@@ -95,14 +95,14 @@ Refresh all browser windows. Observe that the `bookstore-v1` application is now 
 
 ### Update Traffic Split
 Modify the `weight` fields in `traffic-split.yaml` so that each service gets 50% of the traffic and re-apply `traffic-split.yaml`
-```bash
+```console
 $ kubectl apply -f docs/example/manifests/split/traffic-split.yaml
 ```
 Wait for changes to propogate and observe that the counter in the `bookstore-v2` window is incrementing.
 
 ## Inspect Dashboards
 OSM ships with a set of pre-configured Grafana dashboards which can be viewed with the following command:
-```bash
+```console
 $ osm dashboard
 ```
 
