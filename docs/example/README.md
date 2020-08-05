@@ -54,7 +54,8 @@ The following are the key components of the demo application:
 
 *Note: At the moment, you must configure a TrafficSplit object to get your applications set up correctly for inbound traffic because it helps us properly configure the dataplane. We're working on removing the need for this entirely.* [#1370](https://github.com/openservicemesh/osm/issues/1370)
 
-### View Application UIs
+### 4. View the Application UIs
+
 ```bash
 ./scripts/port-forward-all.sh
 ```
