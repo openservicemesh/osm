@@ -15,19 +15,14 @@
 2. Setup `.env` environment variable file
    - From the root of the repository run `make .env`
    - It is already listed in `.gitignore` so that anything you put in it would not accidentally leak into a public git repo. Refer to `.env.example` in the root of this repo for the mandatory and optional environment variables.
-2. Provision access to a Kubernetes cluster and Docker container registry. Any cluster and registry provider can be used. Here are a couple of options:
+2. Provision access to a Kubernetes cluster. Any cluster can be used. Here are a couple of options:
 	- **Option 1:** Local [kind](https://kind.sigs.k8s.io/) cluster
 	    - [Install kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation)
 	       - `brew install kind` on macOS
 	    - Provision a local cluster and registry in Docker: `make kind-up`
-	- **Option 2:** A Kubernetes cluster (version 1.15 or higher) - save the credentials in `~/.kube/config` or set the config path in `$KUBECONFIG` env variable:
-        - Authenticate with a container registry, which is accessible to both your workstation and your Kubernetes cluster. One such registry is the Azure Container Registry (ACR), which is used by the demo scripts in this repo:
-           - [Install Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
-           - Login to your Azure account: `az login`
-           - Create an ACR via [Azure Portal](https://portal.azure.com/)
-           - Create local Docker credentials for your ACR: `az acr login --name name_of_your_Azure_Container_Registry`. This command will create new credentials in `~/.docker/config.json`, which will be used by the demo scripts below.
-        - Configure Environment Variables
-           - In the `.env` file, update the two values `CTR_REGISTRY` and `CTR_REGISTRY_PASSWORD` with appropriate values. The optional environment variables only need to be set if the default values used in the demo need to be overridden.
+	- **Option 2:** A Kubernetes cluster (version 1.15 or higher) - save the credentials in `~/.kube/config` or set the config path in `$KUBECONFIG` env variable.
+
+    We will use images from [Docker Hub](https://hub.docker.com/r/openservicemesh/osm-controller). Ensure you can pull these containers using: `docker pull openservicemesh/osm-controller`
 
 ## Run the Demo
 From the root of this repository execute:
