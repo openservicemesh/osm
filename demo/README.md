@@ -1,6 +1,8 @@
 # How to run a Demo of OSM
 
 ## System Requirements
+- Linux or WSL2 on Windows
+  - running on WSL2 additionally requires gcc
 - Go version 1.14 or higher
 - Kubectl version 1.15 or higher
 - Docker CLI
@@ -65,7 +67,7 @@ The Bookstore, Bookbuyer, and Bookthief apps have simple web UI visualizing the 
   - To see Grafana run `./scripts/port-forward-grafana.sh` and open [http://localhost:3000/](http://localhost:3000/) - default username and password for Grafana is `admin`/`admin`
   - OSM controller has a simple debugging web endpoint - run `./scripts/port-forward-osm-debug.sh` and open [http://localhost:9091/debug](http://localhost:9091/debug)
 
-To expose web UI ports of all components of the service mesh the local workstation use the following helper script: `/scripts/port-forward-all.sh`
+To expose web UI ports of all components of the service mesh the local workstation use the following helper script: `/scripts/port-forward-all.sh`  [Note: this script requires GNU parallel]
 
 
 ## Deleting the kind cluster
