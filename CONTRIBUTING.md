@@ -19,11 +19,13 @@ This project's releases will follow [semantic versioning](https://semver.org/) f
 
 ## Pull Requests and Commit Messages
 Open a [GitHub pull request] to make a contribution.
-  - Each pull request must have at least one LGTM from a core maintainer.
-  - Large pull requests must have two LGTMs from two core maintainers. It is at the discretion of the author to deem their the size of their PR as `large` or `small` via labels and to ensure that it has received a sufficient number of reviews.
-  - If the person who opened the pull request is a core maintainer, then only that person is expected to merge once it has the necessary LGTMs/reviews.
-  - Commits should be squashed before merging or upon merging to main
+  - Each pull request must have at least two LGTM from a core maintainer.
+  - If the person who opened the pull request is a core maintainer, then only that person is expected to merge once it has the necessary LGTMs/reviews. Another maintainer can merge the pull request at their discretion if they feel the pull request must be merged urgently.
+  - Commits should be squashed before merging to main.
   - Commits should follow the style guideline outlined below.
+  - Pull requests not ready for review should be created as drafts.
+  - Pull requests that are a work in progress should be labeled with the `wip` label.
+  - Pull requests that shouldn't be merged should be labeled with the `do-not-merge/hold` label.
 
   ### Commit Style Guideline
   We follow a rough convention for commit messages borrowed from [Deis](https://github.com/deis/deis/blob/master/CONTRIBUTING.md#commit-style-guideline). This is an example of a commit:
