@@ -99,10 +99,8 @@ func GetBooks(participantName string, meshExpectedResponseCode int, egressExpect
 
 	// The URLs this participant will attempt to query from the bookstore service
 	urlSuccessMap := map[string]bool{
-		booksBought:    false,
-		buyBook:        false,
-		httpEgressURL:  false,
-		httpsEgressURL: false,
+		booksBought: false,
+		buyBook:     false,
 	}
 
 	urlExpectedRespCode := map[string]int{
@@ -110,6 +108,11 @@ func GetBooks(participantName string, meshExpectedResponseCode int, egressExpect
 		buyBook:        meshExpectedResponseCode,
 		httpEgressURL:  egressExpectedResponseCode,
 		httpsEgressURL: getHTTPSEgressExpectedResponseCode(egressExpectedResponseCode),
+	}
+
+	if os.Getenv("CI_ENABLE_EGRESS_TEST") == "true" {
+		urlSuccessMap[httpEgressURL] = false
+		urlSuccessMap[httpsEgressURL] = false
 	}
 
 	// Count how many times we have reached out to the bookstore
