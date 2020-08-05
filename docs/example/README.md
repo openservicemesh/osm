@@ -75,10 +75,8 @@ All traffic is encrypted via mTLS regardless of whether you're using access cont
 ## Traffic Split Configuration
 Deploy v2 of the `Bookstore` app and use [SMI TrafficSplit][3] to define what percentage of traffic should be applied to each version of `Bookstore`
 
-### Set up Kubernetes Services
-Create a Kubernetes Service for each version of `Bookstore`. One Service to send traffic to v1 Pods and another Service to send traffic to v2 Pods.
 ```bash
-$ kubectl apply -f docs/example/manifests/bookstore-services/
+kubectl apply -f docs/example/manifests/bookstore-v2/
 ```
 
 ### Apply Traffic Split
