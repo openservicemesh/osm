@@ -65,7 +65,7 @@ The counters should now be incrementing for the windows with headers: `Bookbuyer
 ### Going Further
 Uncomment out the lines in the docs/example/manifests/access/traffic-access.yaml to allow `Bookthief` to communicate with `Bookstore`. Then, re-apply the manifest and watch the change in policy propogate.
 ```bash
-kubectl apply -f example/docs/manifests/access/
+kubectl apply -f docs/example/manifests/access/
 ```
 The counter in the `Bookthief` window should start incrementing.
 
