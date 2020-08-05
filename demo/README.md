@@ -20,7 +20,7 @@
 	    - [Install kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation)
 	       - `brew install kind` on macOS
 	    - Provision a local cluster and registry in Docker: `make kind-up`
-	- **Option 2:** A Kubernetes cluster - save or use an available cluster config, either in the default location or referenced to by the $KUBECONFIG environment variable.
+	- **Option 2:** A Kubernetes cluster - use an already provisioned cluster config, either in the default location ($HOME/.kube/config) or referenced by the $KUBECONFIG environment variable.
 
     We will use images from [Docker Hub](https://hub.docker.com/r/openservicemesh/osm-controller). Ensure you can pull these containers using: `docker pull openservicemesh/osm-controller`
 
