@@ -45,7 +45,9 @@ Install `Bookstore`, `Bookbuyer`, `Bookthief`, `Bookwarehouse`.
 kubectl create -f docs/example/manifests/apps/
 ```
 
-### What Got Installed
+## What Got Installed
+The following are the key components of the demo application:
+
 - A Kubernetes Deployment, Kubernetes Service, and Kubernetes ServiceAccount for each application.
 - A *root service* called `bookstore` which other applications will use to direct traffic to the Bookbuyer application.
 - An [SMI TrafficSplit][3] resource which specifies how much traffic should to each version of `Bookstore`.
