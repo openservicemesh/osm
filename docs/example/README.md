@@ -1,4 +1,4 @@
-# OSM Example Usage Guide
+# OSM Demo Guide
 
 ## Table of Contents
 - [Configure Prerequisites](#configure-prerequisites)
