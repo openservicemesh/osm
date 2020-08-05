@@ -32,10 +32,7 @@ osm install
 The `Bookstore`, `Bookbuyer`, `Bookthief`, `Bookwarehouse` demo applications will be installed in their respective Kubernetes Namespaces. In order for these applications to be injected with a Envoy sidecar automatically, we must add the Namespaces to be monitored by the mesh.
 
 ```bash
-kubectl create ns bookstore
-kubectl create ns bookbuyer
-kubectl create ns bookthief
-kubectl create ns bookwarehouse
+for i in bookstore bookbuyer bookthief bookwarehouse; do kubectl create ns $i; done
 osm namespace add bookstore bookbuyer bookthief bookwarehouse
 ```
 
