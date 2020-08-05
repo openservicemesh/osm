@@ -15,7 +15,7 @@ Guided by 4 core principles:
 1. Easy to configure via [SMI][2]
 
 ## Table of Contents
--[Overview](#overview)
+- [Overview](#overview)
 
 
 ## Overview
