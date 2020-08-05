@@ -137,13 +137,13 @@ Sample result will be:
 # Grafana
 By default OSM is deployed with 4 [Grafana][3] dashboards, providing users the ability to understand various metrics related to traffic from a service, pod or workload to another service or the OSM control plane
 
-The 4  grafana dahsboards that come pre-installed with OSM are as follows:
+The 4  grafana dashboards that come pre-installed with OSM are as follows:
 1. OSM Data Plane
    - **OSM Service to Service Metrics**: This dashboard lets you view the traffic metrics from a given source service to a given destination service
    ![image](https://user-images.githubusercontent.com/59101963/85907233-a604e380-b7c5-11ea-95b5-9190fbc7967f.png)
    - **OSM Pod to Service Metrics**: This dashboard lets you investigate the traffic metrics from a pod to all the services it connects/talks to
    ![image](https://user-images.githubusercontent.com/59101963/85907338-03993000-b7c6-11ea-9e63-a4c189bb3080.png)
-   - **OSM Workload to Service Metrics**: This dashboard prvides the traffic metrics from a workload (deployment, replicaSet) to all the services it connects/talks to
+   - **OSM Workload to Service Metrics**: This dashboard provides the traffic metrics from a workload (deployment, replicaSet) to all the services it connects/talks to
    ![image](https://user-images.githubusercontent.com/59101963/85907390-26c3df80-b7c6-11ea-98b8-5be96fc954c1.png)
 2. OSM Control Plane
    - **OSM Control Plane Metrics**: This dashboard provides traffic metrics from the given service to OSM's control plane

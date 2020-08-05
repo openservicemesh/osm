@@ -20,10 +20,10 @@ in detail in [DESIGN.md](/DESIGN.md).
 ## Repo Layout
 
 This in a non-exhaustive list of the directories in this repo. It is provided
-as a birds-eye view of where the different componens are located.
+as a birds-eye view of where the different components are located.
 
   - `charts/` - contains OSM Helm chart
-  - `ci/` - tools and scripts for the continous integration system
+  - `ci/` - tools and scripts for the continuos integration system
   - `cmd/` - OSM command line tools
   - `crd/` - Custom Resource Definitions needed by OSM
   - `demo/` - scripts and Kubernetes resources needed to run the Bookstore demonstration of Open Service Mesh
@@ -41,8 +41,8 @@ as a birds-eye view of where the different componens are located.
         - `azure/` - integrates with Azure
         - `kube/` - Kubernetes tools and informers integrations
     - `envoy/` - packages needed to translate SMI into xDS
-      - `ads/` - Aggregated Discovery Service realted tools
-      - `cds/` - Cluster Discovery Service realated tools
+      - `ads/` - Aggregated Discovery Service related tools
+      - `cds/` - Cluster Discovery Service related tools
       - `cla/` - Cluster Load Assignment components
       - `eds/` - Endpoint Discovery Service tools
       - `lds/` - Listener Discovery Service tools
