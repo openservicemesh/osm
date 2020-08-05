@@ -18,7 +18,7 @@ Use the [installation guide](/docs/installation_guide.md) to install the `osm` c
 
 ## Install OSM Control Plane
 ```bash
-$ osm install
+$ osm install --container-registry "openservicemesh" --osm-image-tag "v0.1.0-rc.1"
 ```
 
 ## Install Applications
