@@ -1,7 +1,7 @@
 # mTLS and Certificate Issuance
 Open Service Mesh uses mTLS for encryption of data between pods as well as Envoy and service identity. Certificates are created and distributed to each Envoy proxy via the SDS protocol by the OSM control plane.
 
-There exist 2 kinds of certificates in the OSM ecosystem:
+There are two kinds of certificates in the OSM ecosystem:
 
 1. Certificates used for Envoy proxies to connect to xDS control plane - identifies the proxy and pod connecting to xDS.
 2. Certificates used for service to service communication (one Envoy connects to another) - identifies the services connecting to each other.
