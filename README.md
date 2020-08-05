@@ -139,11 +139,11 @@ Connect with the Open Service Mesh community:
 
 ## Development Guide
 
-If you would like to contribute to OSM, check out the [development guide](docs/development_guide.md)
+If you would like to contribute to OSM, check out the [development guide](docs/development_guide.md).
 
 ## Code of Conduct
 
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). See [CODE_OF_CONDUCT.MD](CODE_OF_CONDUCT.MD) for further details.
+This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for further details.
 
 ## License
 
