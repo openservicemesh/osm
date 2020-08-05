@@ -168,7 +168,7 @@ TODO:
 ## Helm chart
 
 The Open Service Mesh control plane charts are located in the
-[`charts/osm`](../charts/osm) folder.
+[`charts/osm`](/charts/osm) folder.
 
 The [`charts/osm/values.yaml`](../charts/osm/values.yaml) file defines the default value for properties
 referenced by the different chart templates.
