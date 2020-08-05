@@ -7,6 +7,6 @@ spec:
   service: bookstore.bookstore # <root-service>.<namespace>
   backends:
   - service: bookstore-v1
-    weight: 0
+    weight: 50
   - service: bookstore-v2
-    weight: 100
+    weight: 50
