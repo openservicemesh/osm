@@ -4,7 +4,7 @@ Welcome to the Open Service Mesh development guide!
 
 This document will help you build and run Open Service Mesh from source.
 More information about running the demo included in this repo is
-in [/demo/README.md](demo/README.md).
+in [/demo/README.md](../demo/README.md).
 The OSM software design is discussed
 in detail in [DESIGN.md](/DESIGN.md).
 
@@ -33,7 +33,7 @@ as a birds-eye view of where the different components are located.
     - `certificate/` - contains multiple implementations of 1st and 3rd party certificate issuers, as well as PEM and x509 certificate management tools
         - `providers/` -
           - `keyvault/` - implements integration with Azure Key Vault
-          - `vault/` - implements integration with Hashcorp Vault
+          - `vault/` - implements integration with Hashicorp Vault
           - `tresor/` - OSM native certificate issuer
     - `debugger/` - web server and tools used to debug the service mesh and the controller
     - `endpoint/` - Endpoints are components capable of introspecting the participating compute platforms; these retrieve the IP addresses of the compute backing the services in the mesh. This directory contains integrations with supported compute providers.
@@ -71,21 +71,21 @@ OSM uses Envoy's [go-control-plane (XDS)](https://github.com/envoyproxy/go-contr
 
 ## Open Service Mesh components
 
-- [`cli`](cli): Command-line `osm` utility, view and drive the control
+- cli Command-line `osm` utility, view and drive the control
   plane.
-- ['Helm chart'](helm-chart)
-- [`controller`](controller)
+- Helm chart
+- controller
 
 
 ## Development Configurations
 
 Depending on use case, there are several configurations with which to develop
 and run Open Service Mesh.
-The root of the repository contains a file named `.env.example`. Copy the contens of this file into `.env`: `cat .env.example > .env` and modify the contents of `.env` to suite your environment.
+The root of the repository contains a file named `.env.example`. Copy the contents of this file into `.env`: `cat .env.example > .env` and modify the contents of `.env` to suite your environment.
 
 TODO:
  - Describe all the environment variables.
- - how to enalbe various levels of debugging - mostly tracing.
+ - how to enable various levels of debugging - mostly tracing.
  - Describe the format of the debug messages.
  - How to enable the debug server & how it could be useful.
 
@@ -168,12 +168,9 @@ TODO:
 ## Helm chart
 
 The Open Service Mesh control plane chart is located in the
-[`charts/openservicemesh`](charts/openservicemesh) folder. The [`charts/patch`](charts/patch)
-chart consists of the Open Service Mesh proxy specification, which is used by the proxy
-injector to inject the proxy container. Both charts depend on the partials
-subchart which can be found in the [`charts/partials`](charts/partials) folder.
+[`charts/openservicemesh`](../charts/osm) folder.
 
 
 ## Build & CI Architecture
 
-...
+[TODO]
