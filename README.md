@@ -52,9 +52,9 @@ OSM runs an Envoy based control plane on Kubernetes, can be configured with SMI 
 
 |   Specification Component    |         Supported Release          |
 | :---------------------------- | :--------------------------------: |
-| Traffic Access Control  |  [v1alpha2](/apis/traffic-access/v1alpha2/traffic-access.md)  |
-| Traffic Specs  |  [v1alpha3](/apis/traffic-specs/v1alpha3/traffic-specs.md)  |
-| Traffic Split  |  [v1alpha2](/apis/traffic-split/v1alpha2/traffic-split.md) |
+| Traffic Access Control  |  [v1alpha2](https://github.com/servicemeshinterface/smi-spec/blob/master/apis/traffic-access/v1alpha2/traffic-access.md)  |
+| Traffic Specs  |  [v1alpha3](https://github.com/servicemeshinterface/smi-spec/blob/master/apis/traffic-specs/v1alpha3/traffic-specs.md)  |
+| Traffic Split  |  [v1alpha2](https://github.com/servicemeshinterface/smi-spec/blob/master/apis/traffic-split/v1alpha2/traffic-split.md) |
 
 ## OSM Design
 
