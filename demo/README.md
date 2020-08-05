@@ -20,7 +20,7 @@
 	    - [Install kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation)
 	       - `brew install kind` on macOS
 	    - Provision a local cluster and registry in Docker: `make kind-up`
-	- **Option 2:** A Kubernetes cluster - save the credentials in `~/.kube/config` or set the config path in `$KUBECONFIG` env variable:
+	- **Option 2:** A Kubernetes cluster (version 1.15 or higher) - save the credentials in `~/.kube/config` or set the config path in `$KUBECONFIG` env variable:
         - Authenticate with a container registry, which is accessible to both your workstation and your Kubernetes cluster. One such registry is the Azure Container Registry (ACR), which is used by the demo scripts in this repo:
            - [Install Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
            - Login to your Azure account: `az login`
