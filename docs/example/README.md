@@ -55,7 +55,7 @@ In a browser, open up the following urls:
 - http://localhost:8082
 - http://localhost:8083
 
-Postion the windows so that you can see all four at the same time. The header at the top of the webpage indicates the application and version. The window for `bookstore-v2` should not be working. Keep it open anyway for the Traffic Split Configuration section later in this document.
+Position the windows so that you can see all four at the same time. The header at the top of the webpage indicates the application and version. The window for `bookstore-v2` should not be working. Keep it open anyway for the Traffic Split Configuration section later in this document.
 
 ## Access Control Policies
 At this point, no applications have access to each other because no access control policies have been applied. Confirm this by confirming that none of the counters in the UI are incrementing. Apply the [SMI Traffic Target][1] and [SMI Traffic Specs][2] resources to define access control policies below:
