@@ -33,8 +33,8 @@ metadata:
 spec:
   ports:
 
-  - port: 9999
-    name: dummy-unused-port
+  - port: 80
+    name: web
 
   selector:
     app: bookthief
