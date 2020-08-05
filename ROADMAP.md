@@ -6,7 +6,7 @@ The OSM team uses [GitHub Milestones](https://github.com/openservicemesh/osm/mil
 At a high level, these are some of the scenarios and features we plan on working toward supporting and iterating on:
 
 - Hardening of the project with a rigorous testing environment.
-- Implement SMI Metrics and build tooling to leverage it.
+- Implement SMI Traffic Metrics and build tooling to leverage it.
 - Iterate on the current Ingress/Egress functionality, experience, workflow.
 - Iterating on existing tools for debugging the OSM control plane and data plane.
 - Leverage xDS v2 protocol when limited by SMI to provide a "no cliffs" design
