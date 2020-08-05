@@ -28,11 +28,15 @@ Use the [installation guide](/docs/installation_guide.md) to install the `osm` c
 osm install
 ```
 
-## Install Applications
+## Deploy the Bookstore  Applications
 The `Bookstore`, `Bookbuyer`, `Bookthief`, `Bookwarehouse` demo applications will be installed in their respective Kubernetes Namespaces. In order for these applications to be injected with a Envoy sidecar automatically, we must add the Namespaces to be monitored by the mesh.
 
+### 1. Create the Bookstore Application Namespaces
 ```bash
 for i in bookstore bookbuyer bookthief bookwarehouse; do kubectl create ns $i; done
+```
+### 1. Onboard the Namespaces to the OSM Mesh
+```bash
 osm namespace add bookstore bookbuyer bookthief bookwarehouse
 ```
 
