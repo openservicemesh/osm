@@ -12,6 +12,7 @@
 ## Configure Prerequisites
 - Have running Kubernetes cluster
 - Have `kubectl` CLI installed
+- GNU Parallel
 
 ## Install OSM CLI
 Use the [installation guide](/docs/installation_guide.md) to install the `osm` cli.
@@ -65,7 +66,7 @@ kubectl apply -f docs/example/manifests/access/
 The counters should now be incrementing for the windows with headers: `Bookbuyer`, and `Bookstore-v1`.
 
 ### Going Further
-Uncomment out the lines in the docs/example/manifests/access/traffic-access.yaml to allow `Bookthief` to communicate with `Bookstore`. Then, re-apply the manifest and watch the change in policy propogate.
+Uncomment out the lines in the [manifests/access/traffic-access.yaml](manifests/access/traffic-access.yaml) to allow `Bookthief` to communicate with `Bookstore`. Then, re-apply the manifest and watch the change in policy propagate.
 ```bash
 kubectl apply -f docs/example/manifests/access/
 ```
@@ -88,7 +89,7 @@ A Kubernetes Service, ServiceAccount, and Deployment and SMI TrafficTarget for b
 kubectl apply -f docs/example/manifests/bookstore-v2/
 ```
 
-Browse to http://localhost:8082. You should see the `bookstore-v2` heading in your browser window.
+Browse to http://localhost:8082. You should see the `bookstore-v2` heading in your browser window. **NOTE** Please exit and restart the `./scripts/port-forward-all.sh` script in order to access v2 of Bookstore.
 
 ### Update Traffic Split
 
@@ -97,13 +98,14 @@ An updated SMI TrafficSplit policy for `bookstore` Service configuring all traff
 kubectl apply -f docs/example/manifests/split-v2/
 ```
 
-Wait for the changes to propagate and observe the counters increment for bookstore-v2 in your browser windows. Modify the `weight` fields in docs/example/manifests/split-v2/traffic-split-v2.yaml and re-apply changes to experiment.
+Wait for the changes to propagate and observe the counters increment for bookstore-v2 in your browser windows. Modify the `weight` fields in [manifests/split-v2/traffic-split-v2.yaml](manifests/split-v2/traffic-split-v2.yaml) and re-apply changes to experiment.
 
 ## Inspect Dashboards
 OSM ships with a set of pre-configured Grafana dashboards which can be viewed with the following command:
 ```bash
 $ osm dashboard
 ```
+**NOTE** If the `./scripts/port-forward-all.sh` script is still running the `osm dashboard` command will return an error and you can simply navigate to http://localhost:3000 to access the Grafana dashboards.
 
 [1]: https://github.com/servicemeshinterface/smi-spec/blob/v0.5.0/apis/traffic-access/v1alpha2/traffic-access.md
 [2]: https://github.com/servicemeshinterface/smi-spec/blob/v0.5.0/apis/traffic-specs/v1alpha3/traffic-specs.md
