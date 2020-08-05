@@ -105,7 +105,7 @@ OSM ships with a set of pre-configured Grafana dashboards which can be viewed wi
 ```bash
 $ osm dashboard
 ```
-**NOTE** If the `./scripts/port-forward-all.sh` is still running the `osm dashboard` command will return an error and you can simply navigate to http://localhost:3000 to access the Grafana dashboards.
+**NOTE** If the `./scripts/port-forward-all.sh` script is still running the `osm dashboard` command will return an error and you can simply navigate to http://localhost:3000 to access the Grafana dashboards.
 
 [1]: https://github.com/servicemeshinterface/smi-spec/blob/v0.5.0/apis/traffic-access/v1alpha2/traffic-access.md
 [2]: https://github.com/servicemeshinterface/smi-spec/blob/v0.5.0/apis/traffic-specs/v1alpha3/traffic-specs.md
