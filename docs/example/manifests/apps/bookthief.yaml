@@ -3,14 +3,18 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: bookthief
+
 ---
+
 # Deploy bookthief ServiceAccount
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: bookthief
   namespace: bookthief
+
 ---
+
 # Deploy bookthief Service
 apiVersion: v1
 kind: Service
@@ -25,7 +29,9 @@ spec:
     name: web
   selector:
     app: bookthief
+
 ---
+
 # Deploy bookthief Deployment
 apiVersion: apps/v1
 kind: Deployment
