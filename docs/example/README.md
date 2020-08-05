@@ -35,7 +35,7 @@ The `Bookstore`, `Bookbuyer`, `Bookthief`, `Bookwarehouse` demo applications wil
 ```bash
 for i in bookstore bookbuyer bookthief bookwarehouse; do kubectl create ns $i; done
 ```
-### 1. Onboard the Namespaces to the OSM Mesh
+### 2. Onboard the Namespaces to the OSM Mesh
 ```bash
 osm namespace add bookstore bookbuyer bookthief bookwarehouse
 ```
