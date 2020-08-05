@@ -33,8 +33,7 @@ spec:
   - port: 80
     name: bookstore-port
   selector:
-    app: bookstore
-    version: v1
+    app: bookstore-v1
 ---
 # Deploy bookstore-v1 Service Account
 apiVersion: v1
@@ -53,13 +52,11 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: bookstore
-      version: v1
+      app: bookstore-v1
   template:
     metadata:
       labels:
-        app: bookstore
-        version: v1
+        app: bookstore-v1
     spec:
       serviceAccountName: bookstore-v1
       containers:
