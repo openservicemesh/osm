@@ -42,7 +42,7 @@ for i in bookstore bookbuyer bookthief bookwarehouse; do osm namespace add $i; d
 ### 3. Deploy the Bookstore Application
 Install `Bookstore`, `Bookbuyer`, `Bookthief`, `Bookwarehouse`.
 ```bash
-kubectl apply -f docs/example/manifests/apps/
+kubectl create -f docs/example/manifests/apps/
 ```
 
 ### What Got Installed
