@@ -7,8 +7,8 @@
 # shellcheck disable=SC1091
 source .env
 
-POD="$(kubectl get pods --selector app=bookbuyer -n "$BOOKBUYER_NAMESPACE" --no-headers | grep 'Running' | awk '{print $1}')"
+BOOKBUYER_NAMESPACE="${BOOKBUYER_NAMESPACE:-bookbuyer}"
 
-kubectl describe pod "$POD" -n "$BOOKBUYER_NAMESPACE"
+POD="$(kubectl get pods --selector app=bookbuyer,version=v1 -n "$BOOKBUYER_NAMESPACE" --no-headers | grep 'Running' | awk '{print $1}')"
 
 kubectl port-forward "$POD" -n "$BOOKBUYER_NAMESPACE" 8080:80
