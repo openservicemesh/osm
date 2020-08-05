@@ -50,7 +50,7 @@ The following are the key components of the demo application:
 
 - A Kubernetes Deployment, Kubernetes Service, and Kubernetes ServiceAccount for each application.
 - A *root service* called `bookstore` which other applications will use to direct traffic to the Bookbuyer application.
-- An [SMI TrafficSplit][3] resource which specifies how much traffic should to each version of `Bookstore`.
+- An [SMI TrafficSplit][3] resource which specifies how much traffic should go to each version of `Bookstore`.
 
 *Note: At the moment, you must configure a TrafficSplit object to get your applications set up correctly for inbound traffic because it helps us properly configure the dataplane. We're working on removing the need for this entirely.* [#1370](https://github.com/openservicemesh/osm/issues/1370)
 
