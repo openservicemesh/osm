@@ -168,7 +168,7 @@ TODO:
 ## Helm chart
 
 The Open Service Mesh control plane chart is located in the
-[`charts/openservicemesh`](../charts/osm) folder.
+[`charts/osm`](../charts/osm) folder.
 
 
 ## Build & CI Architecture
