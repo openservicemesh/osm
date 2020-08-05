@@ -15,25 +15,14 @@
 2. Setup `.env` environment variable file
    - From the root of the repository run `make .env`
    - It is already listed in `.gitignore` so that anything you put in it would not accidentally leak into a public git repo. Refer to `.env.example` in the root of this repo for the mandatory and optional environment variables.
-2. Provision access to a Kubernetes cluster and Docker container registry. Any cluster and registry provider can be used. Here are a couple of options:
+2. Provision access to a Kubernetes cluster. Any certified conformant Kubernetes cluster (version 1.15 or higher) can be used. Here are a couple of options:
 	- **Option 1:** Local [kind](https://kind.sigs.k8s.io/) cluster
 	    - [Install kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation)
 	       - `brew install kind` on macOS
 	    - Provision a local cluster and registry in Docker: `make kind-up`
-	- **Option 2:** Azure Kubernetes Service managed cluster - save the credentials in `~/.kube/config` or set the config path in `$KUBECONFIG` env variable:
-		- [Install Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
-		- Login to your Azure account: `az login`
-		- Create an AKS cluster via [Azure Portal](https://portal.azure.com/)
-		- Using the Azure CLI download AKS credentials into `~/.kube/config`: `az aks get-credentials --resource-group your_Resource_Group --name your_AKS_name`
-		- Set `KUBECONFIG` environment variable: `export KUBECONFIG=~/.kube/config` (also add this command to your .bashrc)
-        - Authenticate with a container registry, which is accessible to both your workstation and your Kubernetes cluster. One such registry is the Azure Container Registry (ACR), which is used by the demo scripts in this repo:
-           - [Install Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
-           - Login to your Azure account: `az login`
-           - Create an ACR via [Azure Portal](https://portal.azure.com/)
-           - Create local Docker credentials for your ACR: `az acr login --name name_of_your_Azure_Container_Registry`. This command will create new credentials in `~/.docker/config.json`, which will be used by the demo scripts below.
-        - Create [Azure authentication JSON](https://docs.microsoft.com/en-us/dotnet/api/overview/azure/containerinstance?view=azure-dotnet#authentication) file. These credentials will be used by OSM to connect to Azure and fetch IP addresses of virtual machines participating in the service mesh: `az ad sp create-for-rbac --sdk-auth > $HOME/.azure/azureAuth.json`
-        - Configure Environment Variables
-           - In the `.env` file, update the two values `CTR_REGISTRY` and `CTR_REGISTRY_PASSWORD` with appropriate values. The optional environment variables only need to be set if the default values used in the demo need to be overridden.
+	- **Option 2:** A Kubernetes cluster - save or use an available cluster config, either in the default location or referenced to by the $KUBECONFIG environment variable.
+
+    We will use images from [Docker Hub](https://hub.docker.com/r/openservicemesh/osm-controller). Ensure you can pull these containers using: `docker pull openservicemesh/osm-controller`
 
 ## Run the Demo
 From the root of this repository execute:
