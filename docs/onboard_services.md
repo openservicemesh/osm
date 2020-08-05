@@ -19,7 +19,7 @@ The following guide describes how to onboard a Kubernetes microservice to an OSM
     $ kubectl label namespace <namespace> openservicemesh.io/monitored-by=<mesh-name>
     ```
 
-    All newly created pods in the added namespace(s) will automatically have a proxy sidecar container injected. To prevent specific pods from participating in the mesh, they can easily be labeled to prevent the sidecar injection. See the [Sidecar Injection](sidecar_injection.md) document for more details.
+    All newly created pods in the added namespace(s) will automatically have a proxy sidecar container injected. To prevent specific pods from participating in the mesh, they can easily be labeled to prevent the sidecar injection. See the [Sidecar Injection](patterns/sidecar_injection.md) document for more details.
 
     For an example on how to onboard and join namespaces to the OSM mesh, please see the following example:
     - [demo/join-namespaces.sh](/demo/join-namespaces.sh)
@@ -33,7 +33,7 @@ The following guide describes how to onboard a Kubernetes microservice to an OSM
 
 1. Verify the new behavior
 
-    The OSM control plane installs Prometheus and Grafana instances by default that can be used to help make sure the application is working properly. More details can be found in the [Obervability](observability.md) document.
+    The OSM control plane installs Prometheus and Grafana instances by default that can be used to help make sure the application is working properly. More details can be found in the [Observability](patterns/observability.md) document.
 
 
 #### Note: Removing Namespaces

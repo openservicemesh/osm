@@ -168,7 +168,7 @@ Ensure that you have followed the steps to run [OSM Demo][2]
    - username: admin
    - password: admin
 5. Viewing Grafana dashboard for service to service metrics
-   - From the Grafana's dashboards left hand corner navigation menu you can navigate to the OSM Service to Service Dashboard in the folder OSM Data Palne
+   - From the Grafana's dashboards left hand corner navigation menu you can navigate to the OSM Service to Service Dashboard in the folder OSM Data Plane
    - Or visit the following url [http://localhost:3000/d/OSMs2sMetrics/osm-service-to-service-metrics?orgId=1][6] in your web browser
 
 OSM Service to Service Metrics dashboard will look like:
