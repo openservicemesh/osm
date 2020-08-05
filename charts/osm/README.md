@@ -21,7 +21,7 @@ This command is equivalent to installing the osm control plane using the OSM CLI
 | enableDebugServer | bool | `false` | Enable the debug HTTP server |
 | grafana.port | int | `3000` | Grafana port |
 | image.pullPolicy | string | `"Always"` | osm-controller image pull policy |
-| image.registry | string | `"smctest.azurecr.io"` |  osm-controller image registry |
+| image.registry | string | `"openservicemesh"` |  osm-controller image registry |
 | image.tag | string | `"latest"` | osm-controller image tag |
 | imagePullSecrets[0].name | string | `"acr-creds"` | osm-controller image pull secrets |
 | prometheus.port | int | `7070` | Prometheus port |
