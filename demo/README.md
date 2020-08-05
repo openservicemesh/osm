@@ -15,7 +15,7 @@
 2. Setup `.env` environment variable file
    - From the root of the repository run `make .env`
    - It is already listed in `.gitignore` so that anything you put in it would not accidentally leak into a public git repo. Refer to `.env.example` in the root of this repo for the mandatory and optional environment variables.
-2. Provision access to a Kubernetes cluster. Any cluster can be used. Here are a couple of options:
+2. Provision access to a Kubernetes cluster. Any certified conformant Kubernetes cluster (version 1.15 or higher) can be used. Here are a couple of options:
 	- **Option 1:** Local [kind](https://kind.sigs.k8s.io/) cluster
 	    - [Install kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation)
 	       - `brew install kind` on macOS
