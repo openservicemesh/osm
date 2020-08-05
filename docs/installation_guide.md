@@ -44,8 +44,6 @@ The `mesh-name` should follow [RFC 1123](https://tools.ietf.org/html/rfc1123) DN
 - start with an alphanumeric character
 - end with an alphanumeric character
 
-
-
 ## Inspect OSM Components
 A few components will be installed by defaut into the `osm-system` Namespace. Inspect them by using the following `kubectl` command:
 ```console
