@@ -67,7 +67,7 @@ Uncomment out the lines in the docs/example/manifests/access/traffic-access.yaml
 ```bash
 kubectl apply -f docs/example/manifests/access/
 ```
-The counter in the `Bookthief` window should start incrementing.
+The counter in the `Bookthief` window will start incrementing.
 
 *Note: Bypass setting up and using access control policies entirely by enabling permissive traffic policy mode when installing a control plane: `osm install --enable-permissive-traffic-policy`*
 
