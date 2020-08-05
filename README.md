@@ -16,7 +16,7 @@ Guided by 4 core principles:
 
 ## Overview
 
-OSM runs an Envoy based control plane on Kubernetes, can be configured with SMI APIs and works by injecting an Envoy proxy as a sidecar container next to each instance of your application. The proxy contains and executes rules around access control policies, implements routing configuration, and captures metrics. The control plane continually configures proxies to ensure policies and routing rules are up to date and ensures proxies are healthy.
+OSM runs an Envoy based control plane on Kubernetes, can be configured with SMI APIs, and works by injecting an Envoy proxy as a sidecar container next to each instance of your application. The proxy contains and executes rules around access control policies, implements routing configuration, and captures metrics. The control plane continually configures proxies to ensure policies and routing rules are up to date and ensures proxies are healthy.
 
 Features of OSM:
 1. More easily and transparently configure traffic shifting for deployments
@@ -28,7 +28,7 @@ Features of OSM:
 
 ## OSM Design
 
-Read more about the high level goals, design and architecture [here](DESIGN.md).
+Read more about [OSM's high level goals, design, and architecture](DESIGN.md).
 
 ## Getting Started
 
@@ -81,21 +81,25 @@ After installing OSM, [onboard a microservice application](docs/onboard_services
 
 ### OSM Usage patterns
 
-Refer to [docs/patterns](docs/patterns) for OSM usage patterns.
+1. [Ingress](docs/patterns/ingress.md) and [Egress](docs/patterns/egress.md)
+1. [Observability](docs/patterns/observability.md)
+1. [Certificates](docs/patterns/certificates.md)
+1. [Sidecar Injection](docs/patterns/sidecar_injection.md)
 
-## Demo and deployment sample
 
-The repository contains tools and scripts to compile and deploy the OSM control plane and an automated demo to show how OSM can manage, secure and provide observability for microservice environments; all on a user-provisioned Kubernetes cluster.
-See the [demo instructions](demo/README.md) to get a sense of what we've accomplished and are working on.
+## Demo and examples
 
-For a more manual walkthrough of the same demo, see this [example usage guide](/docs/example/README.md)
+The [automated demo](demo/README.md) shows how OSM can manage, secure and provide observability for microservice environments.
+
+To explore the same demo step by step, see the [example usage guide](/docs/example/README.md).
 
 ## Community
 
-You can reach the Open Service Mesh community and developers via the following channels:
+Connect with the Open Service Mesh community:
 
-- OSM Slack (TBD)
-- Public Community Call (TBD)
+- GitHub [issues](https://github.com/openservicemesh/osm/issues) and [pull requests](https://github.com/openservicemesh/osm/pulls) in this repo
+- OSM Slack (coming soon)
+- Public Community Call (coming soon)
 - [Mailing list](https://groups.google.com/g/openservicemesh)
 
 ## Development Guide
