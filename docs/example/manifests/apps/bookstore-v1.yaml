@@ -3,7 +3,9 @@ apiVersion: v1
 kind: Namespace
 metadata:
   name: bookstore
+
 ---
+
 # Create a top level service just for the bookstore domain
 apiVersion: v1
 kind: Service
@@ -18,19 +20,23 @@ spec:
     name: bookstore-port
   selector:
     app: bookstore
+
 ---
-# Deploy bookstore-v1 Service Account
+
+# Deploy bookstore Service Account
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: bookstore-v1
+  name: bookstore
   namespace: bookstore
+
 ---
-# Deploy bookstore-v1 Deployment
+
+# Deploy bookstore Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: bookstore-v1
+  name: bookstore
   namespace: bookstore
 spec:
   replicas: 1
@@ -44,7 +50,7 @@ spec:
         app: bookstore
         version: v1
     spec:
-      serviceAccountName: bookstore-v1
+      serviceAccountName: bookstore
       containers:
         - name: bookstore
           image: openservicemesh/bookstore:v0.1.0-rc.1
