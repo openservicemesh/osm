@@ -7,7 +7,7 @@ There are two kinds of certificates in the OSM ecosystem:
 2. Certificates used for service to service communication (one Envoy connects to another) - identifies the services connecting to each other.
 
 Open Service Mesh supports 3 methods of issuing certificates:
-  - using an internal OSM package, called [Tresor](./pkg/certificate/providers/tresor/). This is the defualt for a first time installation.
+  - using an internal OSM package, called [Tresor](./pkg/certificate/providers/tresor/). This is the default for a first time installation.
   - using [Hashicorp Vault](https://www.vaultproject.io/)
   - using [Azure Key Vault](https://azure.microsoft.com/en-us/services/key-vault/)
 
@@ -123,7 +123,7 @@ When running OSM on your local workstation, use the following CLI parameters:
 When the OSM control plane starts, a new certificate issuer is instantiated.
 The kind of cert issuer is determined by the `--cert-manager` CLI parameter.
 When this is set to `vault` OSM uses a Vault cert issuer.
-This is a Hasticorp Vault client, which satisfies the `certificate.Manager`
+This is a Hashicorp Vault client, which satisfies the `certificate.Manager`
 interface. It provides the following methods:
 ```
   - IssueCertificate - issues new certificates
@@ -144,7 +144,7 @@ The Vault role created by the `./demo/deploy-vault.sh` script applies the follow
 
 
 Hashi Vault's site has excellent [documentation](https://learn.hashicorp.com/vault/secrets-management/sm-pki-engine)
-on how to create a new CA. The `./demo/deplay-vault.sh` script uses the
+on how to create a new CA. The `./demo/deploy-vault.sh` script uses the
 following commands to setup the dev environment:
 
     export VAULT_TOKEN="xyz"
