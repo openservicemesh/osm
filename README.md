@@ -14,6 +14,24 @@ Guided by 4 core principles:
 1. Painless to troubleshoot
 1. Easy to configure via [SMI][2]
 
+## Table of Contents
+- [Overview](#overview)
+- [OSM Design](#osm-design)
+  - [Getting Started](#getting-started)
+    - [Prerequisites](#prerequisites)
+    - [Installation Demo](#installation-demo)
+    - [OSM CLI Install](#osm-cli-install)
+      - [Run Install Pre-flight Checks](#run-install-pre-flight-checks)
+      - [Install OSM](#install-osm)
+    - [Using OSM](#using-osm)
+    - [OSM Usage Patterns](#osm-usage-patterns)
+- [Demo and Examples](#emo-and-examples)
+- [Community](#community)
+- [Development Guide](#development-guide)
+- [Code of Conduct](#code-of-conduct)
+- [License](#license)
+
+
 ## Overview
 
 OSM runs an Envoy based control plane on Kubernetes, can be configured with SMI APIs, and works by injecting an Envoy proxy as a sidecar container next to each instance of your application. The proxy contains and executes rules around access control policies, implements routing configuration, and captures metrics. The control plane continually configures proxies to ensure policies and routing rules are up to date and ensures proxies are healthy.
@@ -39,6 +57,10 @@ Below are quick getting started instructions. For a more detailed example usage 
 - kubectl current context is configured for the target cluster install
   - ```kubectl config current-context```
 
+### Installation Demo
+
+![OSM Demo](img/osm-demo.gif "OSM Demo")
+
 ### OSM CLI Install
 
 The simplest way of installing Open Service Mesh on a Kubernetes cluster is by using the `osm` CLI.
@@ -48,7 +70,7 @@ Download the `osm` binary from the [Releases page](https://github.com/openservic
 sudo mv ./osm /usr/local/bin/osm
 ```
 
-#### Run install pre-flight checks
+#### Run Install Pre-flight Checks
 ```shell
 $ osm check --pre-install
 ok: initialize Kubernetes client
@@ -79,7 +101,7 @@ See the [installation guide](docs/installation_guide.md) for more detailed optio
 
 After installing OSM, [onboard a microservice application](docs/onboard_services.md) to the service mesh.
 
-### OSM Usage patterns
+### OSM Usage Patterns
 
 1. [Ingress](docs/patterns/ingress.md) and [Egress](docs/patterns/egress.md)
 1. [Observability](docs/patterns/observability.md)
@@ -87,7 +109,7 @@ After installing OSM, [onboard a microservice application](docs/onboard_services
 1. [Sidecar Injection](docs/patterns/sidecar_injection.md)
 
 
-## Demo and examples
+## Demo and Examples
 
 The [automated demo](demo/README.md) shows how OSM can manage, secure and provide observability for microservice environments.
 
