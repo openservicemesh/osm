@@ -187,24 +187,33 @@ func getServicesFromLabelSelector(client Client, selectorLabels map[string]strin
 
 	for _, svc := range servicesInterface {
 		kubernetesService, ok := svc.(*corev1.Service)
+
 		if !ok {
 			log.Error().Err(errInvalidObjectType).Msg("Failed type assertion for Service in cache")
 			continue
 		}
 		if kubernetesService != nil {
 			if !client.namespaceController.IsMonitoredNamespace(kubernetesService.Namespace) {
-				// Doesn't belong to namespaces we are observing
+				log.Trace().Msgf("Service %s/%s is in cache, but doesn't belong to an observed namespace", kubernetesService.Namespace, kubernetesService.Name)
 				continue
 			}
 
-			svcSelectorLabels := kubernetesService.Labels
-			if reflect.DeepEqual(selectorLabels, svcSelectorLabels) && namespace == kubernetesService.Namespace {
-				namespacedService := service.MeshService{
-					Namespace: kubernetesService.Namespace,
-					Name:      kubernetesService.Name,
-				}
-				services.Add(namespacedService)
+			svcSelectorLabels := kubernetesService.Spec.Selector
+			if !reflect.DeepEqual(selectorLabels, svcSelectorLabels) {
+				log.Trace().Msgf("Ignore Service %s/%s - Service selector (%+v) does not match expected (%+v)", kubernetesService.Namespace, kubernetesService.Name, svcSelectorLabels, selectorLabels)
+				continue
 			}
+
+			if namespace != kubernetesService.Namespace {
+				log.Trace().Msgf("Ignore Service %s/%s - namespace does not match", kubernetesService.Namespace, kubernetesService.Name)
+				continue
+
+			}
+
+			services.Add(service.MeshService{
+				Namespace: kubernetesService.Namespace,
+				Name:      kubernetesService.Name,
+			})
 		}
 	}
 
