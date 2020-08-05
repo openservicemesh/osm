@@ -18,7 +18,7 @@
 ## Configure Prerequisites
 - Have running Kubernetes cluster
 - Have `kubectl` CLI installed
-- GNU Parallel
+- [GNU Parallel](https://www.gnu.org/software/parallel/) is needed for the `./scripts/port-forward-all.sh` script. Install it with `apt install parallel` or `brew install parallel`
 
 ## Install OSM CLI
 Use the [installation guide](/docs/installation_guide.md) to install the `osm` cli.
@@ -29,6 +29,14 @@ osm install
 ```
 
 ## Install Applications
+To demonstrate Open Service Mesh we will install a few applications on a Kubernetes cluster. We will simulate a world in which 3 actors transact:
+  - a book buyer will be continously purchasing books from a bookstore (GET http://bookstore.bookstore/buy-a-book/new)
+  - the bookstore will be restocking inventory from a book warehouse (GET http://bookwarehouse.bookwarehouse/restock-books)
+  - the bookstore will have 2 different versions, but to the book buyer they look like one bookstore (demonstrating traffic split)
+
+![BookBuyer - Bookstore - BookWarehouse Diagram](osm-demo-apps-diagram.png)
+
+
 The `Bookstore`, `Bookbuyer`, `Bookthief`, `Bookwarehouse` demo applications will be installed in their respective Kubernetes Namespaces. In order for these applications to be injected with a Envoy sidecar automatically, we must add the Namespaces to be monitored by the mesh.
 
 ```bash
