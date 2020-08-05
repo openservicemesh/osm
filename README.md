@@ -50,11 +50,12 @@ OSM runs an Envoy based control plane on Kubernetes, can be configured with SMI 
 
 ### SMI Specification support
 
-|   Specification Component    |         Supported Release          |
-| :---------------------------- | :--------------------------------: |
-| Traffic Access Control  |  [v1alpha2](https://github.com/servicemeshinterface/smi-spec/blob/master/apis/traffic-access/v1alpha2/traffic-access.md)  |
-| Traffic Specs  |  [v1alpha3](https://github.com/servicemeshinterface/smi-spec/blob/master/apis/traffic-specs/v1alpha3/traffic-specs.md)  |
-| Traffic Split  |  [v1alpha2](https://github.com/servicemeshinterface/smi-spec/blob/master/apis/traffic-split/v1alpha2/traffic-split.md) |
+|   Specification Component    |         Supported Release          |          Comments          |
+| :---------------------------- | :--------------------------------: |  :--------------------------------: |
+| Traffic Access Control  |  [v1alpha2](https://github.com/servicemeshinterface/smi-spec/blob/master/apis/traffic-access/v1alpha2/traffic-access.md)  | |
+| Traffic Specs  |  [v1alpha3](https://github.com/servicemeshinterface/smi-spec/blob/master/apis/traffic-specs/v1alpha3/traffic-specs.md)  | |
+| Traffic Split  |  [v1alpha2](https://github.com/servicemeshinterface/smi-spec/blob/master/apis/traffic-split/v1alpha2/traffic-split.md) | |
+| Traffic Metrics  | [v1alpha1](https://github.com/servicemeshinterface/smi-spec/blob/master/apis/traffic-metrics/v1alpha1/traffic-metrics.md) | 🚧 **In Progress** [#379](https://github.com/openservicemesh/osm/issues/379) 🚧 |
 
 ## OSM Design
 
