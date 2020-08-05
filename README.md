@@ -12,6 +12,7 @@ Open Service Mesh (OSM) is a lightweight, extensible, Cloud Native [service mesh
 - [Overview](#overview)
   - [Core Principles](#core-principles)
   - [Features](#features)
+  - [SMI Specification Support](#smi-specification-support)
 - [OSM Design](#osm-design)
 - [Getting Started](#getting-started)
     - [Prerequisites](#prerequisites)
@@ -46,6 +47,14 @@ OSM runs an Envoy based control plane on Kubernetes, can be configured with SMI 
 1. [Observability](docs/patterns/observability.md) and insights into application metrics for debugging and monitoring services
 1. Integrate with [external certificate management](docs/patterns/certificates.md) services/solutions with a pluggable interface
 1. Onboard applications onto the mesh by enabling [automatic sidecar injection](docs/patterns/sidecar_injection.md) of Envoy proxy
+
+### SMI Specification support
+
+|   Specification Component    |         Supported Release          |
+| :---------------------------- | :--------------------------------: |
+| Traffic Access Control  |  [v1alpha2](/apis/traffic-access/v1alpha2/traffic-access.md)  |
+| Traffic Specs  |  [v1alpha3](/apis/traffic-specs/v1alpha3/traffic-specs.md)  |
+| Traffic Split  |  [v1alpha2](/apis/traffic-split/v1alpha2/traffic-split.md) |
 
 ## OSM Design
 
