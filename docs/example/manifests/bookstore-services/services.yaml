@@ -9,7 +9,7 @@ metadata:
     version: v1
 spec:
   ports:
-  - port: 8080
+  - port: 80
     name: bookstore-port
   selector:
     app: bookstore
@@ -26,7 +26,7 @@ metadata:
     version: v2
 spec:
   ports:
-  - port: 8080
+  - port: 80
     name: bookstore-port
   selector:
     app: bookstore

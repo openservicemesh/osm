@@ -61,5 +61,7 @@ spec:
           command: ["/bookstore"]
           args: ["--path", "./", "--port", "80"]
           env:
+            - name: IDENTITY
+              value: bookstore-v1
             - name: BOOKWAREHOUSE_NAMESPACE
               value: bookwarehouse
