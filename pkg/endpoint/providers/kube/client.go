@@ -194,7 +194,6 @@ func getServicesFromLabelSelector(client Client, selectorLabels map[string]strin
 		}
 		if kubernetesService != nil {
 			if !client.namespaceController.IsMonitoredNamespace(kubernetesService.Namespace) {
-				log.Trace().Msgf("Service %s/%s is in cache, but doesn't belong to an observed namespace", kubernetesService.Namespace, kubernetesService.Name)
 				continue
 			}
 
