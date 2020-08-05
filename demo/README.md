@@ -20,7 +20,7 @@
 	    - [Install kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation)
 	       - `brew install kind` on macOS
 	    - Provision a local cluster and registry in Docker: `make kind-up`
-	- **Option 2:** A Kubernetes cluster (version 1.15 or higher) - save the credentials in `~/.kube/config` or set the config path in `$KUBECONFIG` env variable.
+	- **Option 2:** A Kubernetes cluster (version 1.15 or higher) - save or use an available cluster config, pointed by the $KUBECONFIG env variable.
 
     We will use images from [Docker Hub](https://hub.docker.com/r/openservicemesh/osm-controller). Ensure you can pull these containers using: `docker pull openservicemesh/osm-controller`
 
