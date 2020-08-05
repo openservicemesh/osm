@@ -168,7 +168,22 @@ TODO:
 ## Helm chart
 
 The Open Service Mesh control plane chart is located in the
-[`charts/osm`](../charts/osm) folder.
+[`charts/osm`](/charts/osm) folder.
+
+The [`charts/osm/values.yaml`](/charts/osm/values.yaml) file defines the default value for properties
+referenced by the different chart templates.
+
+The [`charts/osm/templates/`](/charts/osm/templates/) folder contains the chart templates
+for the different Kubernetes resources that are deployed as a part of the Open Service control plane installation.
+The different chart templates are used as follows:
+- `osm-*.yaml` chart templates are directly consumed by the `osm-controller` service.
+- `mutatingwebhook.yaml` is used to deploy a `MutatingWebhookConfiguration` kubernetes resource that enables automatic sidecar injection
+-  `grafana-*.yaml` chart templates are used to deploy a Grafana instance when the metrics stack is enabled
+- `prometheus-*.yaml` chart templates are used to deploy a Prometheus instance when the metrics stack is enabled
+- `zipkin-*.yaml` chart templates are used to deploy a Zipkin instance when Zipkin tracing is enabled
+
+The [`charts/osm/crds/`](/charts/osm/crds/) folder contains the charts corresponding to the SMI CRDs.
+Experimental CRDs can be found under [`charts/osm/crds/experimental/`](/charts/osm/crds/experimental/).
 
 
 ## Build & CI Architecture
