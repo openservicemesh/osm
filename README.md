@@ -123,7 +123,7 @@ After installing OSM, [onboard a microservice application](docs/onboard_services
 
 ## Demo and Examples
 
-The [automated demo](demo/README.md) shows how OSM can manage, secure and provide observability for microservice environments.
+The [automated demo](demo/README.md) is a set of scripts anyone can run and shows how OSM can manage, secure and provide observability for microservice environments.
 
 To explore the same demo step by step, see the [example usage guide](/docs/example/README.md).
 
