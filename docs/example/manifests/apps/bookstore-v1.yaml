@@ -14,12 +14,14 @@ metadata:
   namespace: bookstore
   labels:
     app: bookstore
+    version: v1
 spec:
   ports:
   - port: 80
     name: bookstore-port
   selector:
     app: bookstore
+    version: v1
 
 ---
 

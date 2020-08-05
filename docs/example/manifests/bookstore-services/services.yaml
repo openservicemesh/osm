@@ -14,7 +14,9 @@ spec:
   selector:
     app: bookstore
     version: v1
+
 ---
+
 # Deploy bookstore-v2 Service
 apiVersion: v1
 kind: Service
