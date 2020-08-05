@@ -1,12 +1,18 @@
 # OSM Example Usage Guide
 
+## Table of Contents
 - [Configure Prerequisites](#configure-prerequisites)
 - [Install OSM CLI](#install-osm-cli)
 - [Install OSM Control Plane](#install-osm-control-plane)
 - [Install Applications](#install-applications)
+  - [What Got Installed](#what-got-installed)
+  - [View Application UIs](#view-application-uis)
 - [Access Control Policies](#access-control-policies)
+  - [Going Further](#going-further)
 - [Traffic Encryption](#traffic-encryption)
 - [Traffic Split](#traffic-split-configuration)
+  - [Deploy v2 of Bookstore](#deploy-v2-of-bookstore)
+  - [Update Traffic Split](#update-traffic-split)
 - [Inspect Dashboards](#inspect-dashboards)
 
 ## Configure Prerequisites
