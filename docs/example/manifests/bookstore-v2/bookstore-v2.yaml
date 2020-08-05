@@ -36,6 +36,8 @@ spec:
           env:
             - name: BOOKWAREHOUSE_NAMESPACE
               value: bookwarehouse
+            - name: IDENTITY
+              value: bookstore-v2
 ---
 kind: TrafficTarget
 apiVersion: access.smi-spec.io/v1alpha2

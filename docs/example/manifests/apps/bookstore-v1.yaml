@@ -74,3 +74,5 @@ spec:
           env:
             - name: BOOKWAREHOUSE_NAMESPACE
               value: bookwarehouse
+            - name: IDENTITY
+              value: bookstore-v1
