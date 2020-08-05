@@ -18,9 +18,9 @@ spec:
   - kind: ServiceAccount
     name: bookbuyer
     namespace: bookbuyer
-  - kind: ServiceAccount
-    name: bookthief
-    namespace: bookthief
+  #- kind: ServiceAccount
+    #name: bookthief
+    #namespace: bookthief
 ---
 apiVersion: specs.smi-spec.io/v1alpha3
 kind: HTTPRouteGroup
