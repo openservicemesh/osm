@@ -17,7 +17,7 @@ Guided by 4 core principles:
 ## Table of Contents
 - [Overview](#overview)
 - [OSM Design](#osm-design)
-  - [Getting Started](#getting-started)
+- [Getting Started](#getting-started)
     - [Prerequisites](#prerequisites)
     - [Installation Demo](#installation-demo)
     - [OSM CLI Install](#osm-cli-install)
