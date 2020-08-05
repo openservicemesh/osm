@@ -45,7 +45,7 @@ Install `Bookstore`, `Bookbuyer`, `Bookthief`, `Bookwarehouse`.
 kubectl create -f docs/example/manifests/apps/
 ```
 
-## What Got Installed
+## Checkpoint: What Got Installed
 The following are the key components of the demo application:
 
 - A Kubernetes Deployment, Kubernetes Service, and Kubernetes ServiceAccount for each application.
