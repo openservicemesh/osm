@@ -14,7 +14,7 @@ metadata:
     app: bookstore
 spec:
   ports:
-  - port: 8080
+  - port: 80
     name: bookstore-port
   selector:
     app: bookstore
@@ -50,10 +50,10 @@ spec:
           image: openservicemesh/bookstore:v0.1.0-rc.1
           imagePullPolicy: Always
           ports:
-            - containerPort: 8080
+            - containerPort: 80
               name: web
           command: ["/bookstore"]
-          args: ["--path", "./", "--port", "8080"]
+          args: ["--path", "./", "--port", "80"]
           env:
             - name: BOOKWAREHOUSE_NAMESPACE
               value: bookwarehouse
