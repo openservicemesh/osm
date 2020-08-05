@@ -75,7 +75,7 @@ The counter in the `Bookthief` window will start incrementing.
 
 ## Traffic Encryption
 
-All traffic is encrypted via mTLS regardless of whether you're using access control policies or have enabled premissive traffic policy mode.
+All traffic is encrypted via mTLS regardless of whether you're using access control policies or have enabled permissive traffic policy mode.
 
 ## Traffic Split Configuration
 
@@ -88,7 +88,7 @@ A Kubernetes Service, ServiceAccount, and Deployment and SMI TrafficTarget for b
 kubectl apply -f docs/example/manifests/bookstore-v2/
 ```
 
-Browse to http://localhost:8082. You should see the `bookstore-v2` heading in your broswer window.
+Browse to http://localhost:8082. You should see the `bookstore-v2` heading in your browser window.
 
 ### Update Traffic Split
 
@@ -97,7 +97,7 @@ An updated SMI TrafficSplit policy for `bookstore` Service configuring all traff
 kubectl apply -f docs/example/manifests/split-v2/
 ```
 
-Wait for the changes to propogate and observe the counters increment for bookstore-v2 in your browser windows. Modify the `weight` fields in docs/example/manifests/split-v2/traffic-split-v2.yaml and re-apply changes to experiment.
+Wait for the changes to propagate and observe the counters increment for bookstore-v2 in your browser windows. Modify the `weight` fields in docs/example/manifests/split-v2/traffic-split-v2.yaml and re-apply changes to experiment.
 
 ## Inspect Dashboards
 OSM ships with a set of pre-configured Grafana dashboards which can be viewed with the following command:
