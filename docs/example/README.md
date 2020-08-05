@@ -63,7 +63,7 @@ The counters should now be incrementing for the windows with headers: `Bookbuyer
 ### Going Further
 Comment out the lines in the TrafficTarget yaml that allows `Bookthief` to communicate with `Bookstore`. Then, re-apply the manifest and watch the change in policy propogate.
 ```bash
-kubectl apply -f example/docs/manifests/access/
+kubectl apply -f docs/example/manifests/access/
 ```
 The counter in the `Bookthief` window should stop incrementing.
 
