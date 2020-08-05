@@ -28,6 +28,7 @@ CTR_TAG="${CTR_TAG:-latest}"
 DEPLOY_TRAFFIC_SPLIT="${DEPLOY_TRAFFIC_SPLIT:-true}"
 MESH_CIDR=$(./scripts/get_mesh_cidr.sh)
 
+# For any additional installation arguments. Used heavily in CI.
 optionalInstallArgs=$*
 
 exit_error() {
