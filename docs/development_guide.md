@@ -177,7 +177,7 @@ The [`charts/osm/templates/`](/charts/osm/templates/) folder contains the chart 
 for the different Kubernetes resources that are deployed as a part of the Open Service control plane installation.
 The different chart templates are used as follows:
 - `osm-*.yaml` chart templates are directly consumed by the `osm-controller` service.
-- `mutatingwebhook.yaml` is used to deploy the `MutatingWebhookConfiguration` kubernetes resource that enables automatic sidecar injection
+- `mutatingwebhook.yaml` is used to deploy a `MutatingWebhookConfiguration` kubernetes resource that enables automatic sidecar injection
 -  `grafana-*.yaml` chart templates are used to deploy a Grafana instance when the metrics stack is enabled
 - `prometheus-*.yaml` chart templates are used to deploy a Prometheus instance when the metrics stack is enabled
 - `zipkin-*.yaml` chart templates are used to deploy a Zipkin instance when Zipkin tracing is enabled
