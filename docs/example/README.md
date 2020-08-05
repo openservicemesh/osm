@@ -19,7 +19,7 @@
 - Kubernetes cluster running Kubernetes v1.15.0 or greater
 - Have `kubectl` CLI installed - [Install and Set Up Kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 - kubectl current context is configured for the target cluster install
- - ```kubectl config current-context```
+  - ```kubectl config current-context```
 - GNU Parallel
 
 ## Install OSM CLI
