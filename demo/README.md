@@ -20,18 +20,12 @@
 	    - [Install kind](https://kind.sigs.k8s.io/docs/user/quick-start/#installation)
 	       - `brew install kind` on macOS
 	    - Provision a local cluster and registry in Docker: `make kind-up`
-	- **Option 2:** Azure Kubernetes Service managed cluster - save the credentials in `~/.kube/config` or set the config path in `$KUBECONFIG` env variable:
-		- [Install Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
-		- Login to your Azure account: `az login`
-		- Create an AKS cluster via [Azure Portal](https://portal.azure.com/)
-		- Using the Azure CLI download AKS credentials into `~/.kube/config`: `az aks get-credentials --resource-group your_Resource_Group --name your_AKS_name`
-		- Set `KUBECONFIG` environment variable: `export KUBECONFIG=~/.kube/config` (also add this command to your .bashrc)
+	- **Option 2:** A Kubernetes cluster - save the credentials in `~/.kube/config` or set the config path in `$KUBECONFIG` env variable:
         - Authenticate with a container registry, which is accessible to both your workstation and your Kubernetes cluster. One such registry is the Azure Container Registry (ACR), which is used by the demo scripts in this repo:
            - [Install Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
            - Login to your Azure account: `az login`
            - Create an ACR via [Azure Portal](https://portal.azure.com/)
            - Create local Docker credentials for your ACR: `az acr login --name name_of_your_Azure_Container_Registry`. This command will create new credentials in `~/.docker/config.json`, which will be used by the demo scripts below.
-        - Create [Azure authentication JSON](https://docs.microsoft.com/en-us/dotnet/api/overview/azure/containerinstance?view=azure-dotnet#authentication) file. These credentials will be used by OSM to connect to Azure and fetch IP addresses of virtual machines participating in the service mesh: `az ad sp create-for-rbac --sdk-auth > $HOME/.azure/azureAuth.json`
         - Configure Environment Variables
            - In the `.env` file, update the two values `CTR_REGISTRY` and `CTR_REGISTRY_PASSWORD` with appropriate values. The optional environment variables only need to be set if the default values used in the demo need to be overridden.
 
