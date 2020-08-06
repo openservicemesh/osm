@@ -1,4 +1,4 @@
-# OSM Demo Guide
+# OSM Manual Demo Guide
 
 ## Table of Contents
 - [Overview](#overview)
