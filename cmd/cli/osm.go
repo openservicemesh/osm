@@ -39,7 +39,6 @@ func newRootCmd(config *action.Configuration, in io.Reader, out io.Writer, args 
 		newMeshCmd(config, in, out),
 		newEnvCmd(out),
 		newInstallCmd(config, out),
-		newCheckCmd(out),
 		newDashboardCmd(config, out),
 		newNamespaceCmd(out),
 		newVersionCmd(out),

@@ -108,13 +108,6 @@ pushing the listener configuration to the pods for Prometheus to reach:
       target_label: source_workload_name
 ```
 
-### Grafana and OSM dashboards
-
-OSM provides some pre-cooked Grafana dashboards to display and track services related information captured by Prometheus. When the metrics stack is chosen to be included in the OSM installation, these are made automatically available on the Grafana instance deployed.
-
-For BYO however, the dashboards (if desired) have to be imported through some mechanism to the external Grafana instance.
-The dashboards are located under `osm/charts/osm/grafana/dashboards`, and can be imported through Grafana Web tools, copied or mounted on the instance itself through Kubernetes volume mounts.
-
 ## Querying metrics from Prometheus
 
 ### Before you begin
@@ -135,9 +128,13 @@ Sample result will be:
 ![image](https://user-images.githubusercontent.com/59101963/85906690-f24f2400-b7c3-11ea-89b2-a3c42041c7a0.png)
 
 # Grafana
-By default OSM is deployed with 4 [Grafana][3] dashboards, providing users the ability to understand various metrics related to traffic from a service, pod or workload to another service or the OSM control plane
+[Grafana][3] is an open source visualization and analytics software. It allows you to query, visualize, alert on, and explore your metrics. 
 
-The 4  grafana dashboards that come pre-installed with OSM are as follows:
+![Grafana Demo](/img/grafana.gif "Grafana Demo")
+
+Grafana uses Prometheus as backend timeseries database. If Grafana and Prometheus are chosen to be deployed through OSM installation, necessary rules will be set upon deployment for them to interact. Conversely, on a BYO model this will have to be taken care of by the user.
+
+OSM provides some pre-cooked Grafana dashboards to display and track services related information captured by Prometheus:
 1. OSM Data Plane
    - **OSM Service to Service Metrics**: This dashboard lets you view the traffic metrics from a given source service to a given destination service
    ![image](https://user-images.githubusercontent.com/59101963/85907233-a604e380-b7c5-11ea-95b5-9190fbc7967f.png)
@@ -148,6 +145,11 @@ The 4  grafana dashboards that come pre-installed with OSM are as follows:
 2. OSM Control Plane
    - **OSM Control Plane Metrics**: This dashboard provides traffic metrics from the given service to OSM's control plane
    ![image](https://user-images.githubusercontent.com/59101963/85907465-71455c00-b7c6-11ea-9dea-f6258a1ea8d9.png)
+
+## Importing Dashboards on a BYO Grafana instance
+
+The dashboards (if desired) can be imported through several mechanism to the external Grafana instance.
+The dashboards are located under `osm/charts/osm/grafana/dashboards` in OSM's repo, and can be imported through Grafana web json load, or either copied or mounted on the instance itself through Kubernetes volume mounts.
 
 ## Visualizing Metrics with Grafana
 

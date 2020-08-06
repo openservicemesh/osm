@@ -13,7 +13,6 @@ import (
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/strvals"
 
-	"github.com/openservicemesh/osm/pkg/check"
 	"github.com/openservicemesh/osm/pkg/cli"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"k8s.io/apimachinery/pkg/util/validation"
@@ -89,12 +88,6 @@ type installCmd struct {
 
 	// Toggle this to enable/disable the automatic deployment of Zipkin
 	deployZipkin bool
-
-	// checker runs checks before any installation is attempted. Its type is
-	// abstract here to make testing easy.
-	checker interface {
-		Run([]check.Check, func(*check.Result)) bool
-	}
 }
 
 func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
@@ -107,14 +100,13 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 		Short: "install osm control plane",
 		Long:  installDesc,
 		RunE: func(_ *cobra.Command, args []string) error {
-			inst.checker = check.NewChecker(settings)
 			return inst.run(config)
 		},
 	}
 
 	f := cmd.Flags()
 	f.StringVar(&inst.containerRegistry, "container-registry", "openservicemesh", "container registry that hosts control plane component images")
-	f.StringVar(&inst.osmImageTag, "osm-image-tag", "v0.1.0", "osm image tag")
+	f.StringVar(&inst.osmImageTag, "osm-image-tag", "v0.2.0", "osm image tag")
 	f.StringVar(&inst.containerRegistrySecret, "container-registry-secret", "acr-creds", "name of Kubernetes secret for container registry credentials to be created if it doesn't already exist")
 	f.StringVar(&inst.chartPath, "osm-chart-path", "", "path to osm chart to override default chart")
 	f.StringVar(&inst.certManager, "cert-manager", defaultCertManager, "certificate manager to use (tresor or vault)")
@@ -137,15 +129,6 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 }
 
 func (i *installCmd) run(config *helm.Configuration) error {
-	pass := i.checker.Run(check.PreinstallChecks(), func(r *check.Result) {
-		if r.Err != nil {
-			fmt.Fprintln(i.out, "ERROR:", r.Err)
-		}
-	})
-	if !pass {
-		return errors.New("Pre-install checks failed")
-	}
-
 	var chartRequested *chart.Chart
 	var err error
 	if i.chartPath != "" {

@@ -28,6 +28,7 @@ The OSM Manual Install Demo Guide is designed to quickly allow you to demo and e
 - kubectl current context is configured for the target cluster install
   - ```kubectl config current-context```
 
+
 ## Install OSM CLI
 Use the [installation guide](/docs/installation_guide.md) to install the `osm` cli.
 

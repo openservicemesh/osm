@@ -18,7 +18,6 @@ Open Service Mesh (OSM) is a lightweight, extensible, Cloud Native [service mesh
     - [Prerequisites](#prerequisites)
     - [Installation Demo](#installation-demo)
     - [OSM CLI Install](#osm-cli-install)
-      - [Run Install Pre-flight Checks](#run-install-pre-flight-checks)
       - [Install OSM](#install-osm)
     - [Using OSM](#using-osm)
     - [OSM Usage Patterns](#osm-usage-patterns)
@@ -81,26 +80,6 @@ The simplest way of installing Open Service Mesh on a Kubernetes cluster is by u
 Download the `osm` binary from the [Releases page](https://github.com/openservicemesh/osm/releases). Unpack the `osm` binary and add it to `$PATH` to get started.
 ```shell
 sudo mv ./osm /usr/local/bin/osm
-```
-
-#### Run Install Pre-flight Checks
-```shell
-$ osm check --pre-install
-ok: initialize Kubernetes client
-ok: query Kubernetes API
-ok: Kubernetes version
-ok: can create namespaces
-ok: can create customresourcedefinitions
-ok: can create clusterroles
-ok: can create clusterrolebindings
-ok: can create mutatingwebhookconfigurations
-ok: can create serviceaccounts
-ok: can create services
-ok: can create deployments
-ok: can create configmaps
-ok: can read secrets
-ok: can modify iptables
-All checks successful!
 ```
 
 #### Install OSM
