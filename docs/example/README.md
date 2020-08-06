@@ -20,7 +20,7 @@
 - [Inspect Dashbaords](#inspect-dashboards)
 
 ## Overview
-The OSM Demo Guide is designed to quickly allow you to demo and experience the OSM mesh. 
+The OSM Manual Install Demo Guide is designed to quickly allow you to demo and experience the OSM mesh. 
 
 ## Configure Prerequisites
 - Kubernetes cluster running Kubernetes v1.15.0 or greater
