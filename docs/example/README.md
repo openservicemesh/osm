@@ -17,7 +17,7 @@
 - [Configure Traffic Split between Two Services](#configure-traffic-split-between-two-services)
   - [Deploy v2 of Bookstore](#deploy-v2-of-bookstore)
   - [Update Traffic Split](#update-traffic-split)
-- [Inspect Dashbaords(#inspect-dashboards)
+- [Inspect Dashbaords](#inspect-dashboards)
 
 ## Overview
 The OSM Demo Guide is designed to quickly allow you to demo and experience the OSM mesh. 
