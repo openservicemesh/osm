@@ -135,7 +135,7 @@ var _ = Describe("CDS Response", func() {
 		It("Returns a remote cluster object", func() {
 			localService := tests.BookbuyerService
 			remoteService := tests.BookstoreService
-			remoteCluster, err := getRemoteServiceCluster(remoteService, localService)
+			remoteCluster, err := getRemoteServiceCluster(remoteService, localService, cfg)
 			Expect(err).ToNot(HaveOccurred())
 
 			expectedClusterLoadAssignment := &xds_endpoint.ClusterLoadAssignment{
