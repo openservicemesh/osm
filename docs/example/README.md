@@ -101,8 +101,10 @@ The counters should now be incrementing for the `Bookbuyer`, and `Bookstore-v1` 
 - http://localhost:8080 - **Bookbuyer**
 - http://localhost:8081 - **bookstore-v1**
 
-### Going Further
-Uncomment out the lines in the [manifests/access/traffic-access.yaml](manifests/access/traffic-access.yaml) to allow `Bookthief` to communicate with `Bookstore`. Then, re-apply the manifest and watch the change in policy propagate.
+### Allowing the Bookthief Application to access the Mesh
+Currently the Bookthief application has not been authorized to participate in the service mesh communication. We will now uncomment out the lines in the [manifests/access/traffic-access.yaml](manifests/access/traffic-access.yaml) to allow `Bookthief` to communicate with `Bookstore`. Then, re-apply the manifest and watch the change in policy propagate.
+
+
 ```bash
 kubectl apply -f docs/example/manifests/access/
 ```
