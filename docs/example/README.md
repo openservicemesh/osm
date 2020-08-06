@@ -198,12 +198,14 @@ kubectl apply -f docs/example/manifests/split-v2/
 
 Wait for the changes to propagate and observe the counters increment for bookstore-v2 in your browser windows. Modify the `weight` fields in [manifests/split-v2/traffic-split-v2.yaml](manifests/split-v2/traffic-split-v2.yaml) and re-apply changes to experiment.
 
+- http://localhost:8082 - **bookstore-v2**
+
 ## Inspect Dashboards
-OSM ships with a set of pre-configured Grafana dashboards which can be viewed with the following command:
+OSM ships with a set of pre-configured Grafana dashboards. **NOTE** If you still have the additional terminal still running the `./scripts/port-forward-all.sh` script, go ahead and `CTRL+C` to terminate the port forwarding. the `osm dashboard` port redirection will not work simultaneously with the port forwarding script still running. The `osm dashboard` can be viewed with the following command:
 ```bash
 $ osm dashboard
 ```
-**NOTE** If the `./scripts/port-forward-all.sh` script is still running the `osm dashboard` command will return an error and you can simply navigate to http://localhost:3000 to access the Grafana dashboards.
+Simply navigate to http://localhost:3000 to access the Grafana dashboards. On the Grafana homepage click on the **Home** icon, you will see a folders containing dashboards for both OSM Control Plan and OSM Data Plane.
 
 [1]: https://github.com/servicemeshinterface/smi-spec/blob/v0.5.0/apis/traffic-access/v1alpha2/traffic-access.md
 [2]: https://github.com/servicemeshinterface/smi-spec/blob/v0.5.0/apis/traffic-specs/v1alpha3/traffic-specs.md
