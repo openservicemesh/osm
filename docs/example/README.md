@@ -62,6 +62,13 @@ The following are the key components of the demo application:
 - A *root service* called `bookstore` which other applications will use to direct traffic to the Bookbuyer application.
 - An [SMI TrafficSplit][3] resource which specifies how much traffic should go to each version of `Bookstore`.
 
+To view these resources on your cluster, run the following commands:
+```
+kubectl get svc
+kubectl get deploy --all-namespaces
+kubectl get trafficsplit -n bookstore
+```
+
 A simple toplogy view of the Bookstore application looks like the following:
 ![Bookstore Application Topology](/img/book-thief-app-topology.jpg "Bookstore Application Topology")
 
