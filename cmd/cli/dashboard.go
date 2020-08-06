@@ -151,7 +151,7 @@ func (d *dashboardCmd) run() error {
 	signal.Notify(d.sigintChan, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-d.sigintChan // Blocking
-		log.Println("[+] SIGINT/TERM recieved, closing")
+		log.Println("[+] SIGINT/TERM received, closing")
 		close(stopChan)
 	}()
 
