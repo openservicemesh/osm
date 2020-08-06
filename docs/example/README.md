@@ -163,6 +163,7 @@ Re-apply the access manifest with the updates.
 kubectl apply -f docs/example/manifests/access/
 ```
 The counter in the `Bookthief` window will start incrementing.
+- http://localhost:8083 - **bookthief**
 
 *Note: Bypass setting up and using access control policies entirely by enabling permissive traffic policy mode when installing a control plane: `osm install --enable-permissive-traffic-policy`*
 
