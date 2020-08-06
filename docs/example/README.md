@@ -171,9 +171,9 @@ The counter in the `Bookthief` window will start incrementing.
 
 All traffic is encrypted via mTLS regardless of whether you're using access control policies or have enabled permissive traffic policy mode.
 
-## Traffic Split Configuration
+## Configure Traffic Split between Two Services
 
-Deploy v2 of the `Bookstore` app. Then, apply the updated `TrafficSplit` configuration.
+We will now demonstrate how to balance traffic between two Kubernetes services, commonly known as a traffic split. We will be splitting the traffic between the bookstore-v1 service and the bookstore-v2 service. The bookstore-v1 service is currently deployed. We will deploy the bookstore-v2 service of the `Bookstore` app. Once the bookstore-v2 service is deployed we will then apply the updated `TrafficSplit` configuration between the two services.
 
 ### Deploy v2 of Bookstore
 
@@ -183,6 +183,11 @@ kubectl apply -f docs/example/manifests/bookstore-v2/
 ```
 
 Browse to http://localhost:8082. You should see the `bookstore-v2` heading in your browser window. **NOTE** Please exit and restart the `./scripts/port-forward-all.sh` script in order to access v2 of Bookstore.
+
+After restarting the port forwarding script, you should now be able to access the `bookstore-v2` application at http://localhost:8082. The count for the books sold should remain at 0, this is because the current traffic split policy is currently weighted 100% for `bookstore-v2`. You can verify the traffic split policy by running the following and viewing the **Backends** properties:
+```
+kubectl describe trafficsplit bookstore-split -n bookstore
+```
 
 ### Update Traffic Split
 
