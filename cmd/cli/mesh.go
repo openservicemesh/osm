@@ -11,7 +11,7 @@ import (
 const meshDescription = `
 This command consists of multiple subcommands related to managing instances of
 osm installations. Each osm installation results in a mesh. Each installation
-receives a unqiue mesh name.
+receives a unique mesh name.
 
 `
 
