@@ -205,7 +205,7 @@ Wait for the changes to propagate and observe the counters increment for booksto
 - http://localhost:8082 - **bookstore-v2**
 
 ## Inspect Dashboards
-OSM ships with a set of pre-configured Grafana dashboards. **NOTE** If you still have the additional terminal still running the `./scripts/port-forward-all.sh` script, go ahead and `CTRL+C` to terminate the port forwarding. the `osm dashboard` port redirection will not work simultaneously with the port forwarding script still running. The `osm dashboard` can be viewed with the following command:
+OSM ships with a set of pre-configured Grafana dashboards. **NOTE** If you still have the additional terminal still running the `./scripts/port-forward-all.sh` script, go ahead and `CTRL+C` to terminate the port forwarding. The `osm dashboard` port redirection will not work simultaneously with the port forwarding script still running. The `osm dashboard` can be viewed with the following command:
 ```bash
 $ osm dashboard
 ```
