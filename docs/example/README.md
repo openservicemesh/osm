@@ -24,7 +24,7 @@ The OSM Demo Guide is designed to quickly allow you to demo and experience the O
 - kubectl current context is configured for the target cluster install
   - ```kubectl config current-context```
 - Have GNU Parallel installed
-  - ```wget http://ftp.gnu.org/gnu/parallel/parallel-latest.tar.bz2
+  - ```wget http://ftp.gnu.org/gnu/parallel/parallel-latest.tar.bz2```
   - ```tar xjf parallel-latest.tar.bz2```
   - ```cd parallel-20200722```
   - ```./configure && make```
