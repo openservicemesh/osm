@@ -102,7 +102,7 @@ The counters should now be incrementing for the `Bookbuyer`, and `Bookstore-v1` 
 - http://localhost:8081 - **bookstore-v1**
 
 ### Allowing the Bookthief Application to access the Mesh
-Currently the Bookthief application has not been authorized to participate in the service mesh communication. We will now uncomment out the lines in the [manifests/access/traffic-access.yaml](manifests/access/traffic-access.yaml) to allow `Bookthief` to communicate with `Bookstore`. Then, re-apply the manifest and watch the change in policy propagate.
+Currently the Bookthief application has not been authorized to participate in the service mesh communication. We will now uncomment out the lines in the [docs/example/manifests/access/traffic-access.yaml](docs/example/manifests/access/traffic-access.yaml) to allow `Bookthief` to communicate with `Bookstore`. Then, re-apply the manifest and watch the change in policy propagate.
 
 Current TrafficTarget spec with commented `Bookthief` kind:
 ```
