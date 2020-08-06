@@ -15,6 +15,9 @@
   - [Update Traffic Split](#update-traffic-split)
 - [Inspect Dashboards](#inspect-dashboards)
 
+## Overview
+The OSM Demo Guide is designed to quickly allow you to demo and experience the OSM mesh. 
+
 ## Configure Prerequisites
 - Kubernetes cluster running Kubernetes v1.15.0 or greater
 - Have `kubectl` CLI installed - [Install and Set Up Kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
@@ -53,6 +56,9 @@ The following are the key components of the demo application:
 - A Kubernetes Deployment, Kubernetes Service, and Kubernetes ServiceAccount for each application.
 - A *root service* called `bookstore` which other applications will use to direct traffic to the Bookbuyer application.
 - An [SMI TrafficSplit][3] resource which specifies how much traffic should go to each version of `Bookstore`.
+
+A simple toplogy view of the Bookstore application looks like the following:
+
 
 *Note: At the moment, you must configure a TrafficSplit object to get your applications set up correctly for inbound traffic because it helps us properly configure the dataplane. We're working on removing the need for this entirely.* [#1370](https://github.com/openservicemesh/osm/issues/1370)
 
