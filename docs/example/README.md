@@ -1,19 +1,23 @@
 # OSM Demo Guide
 
 ## Table of Contents
+- [Overview](#overview)
 - [Configure Prerequisites](#configure-prerequisites)
 - [Install OSM CLI](#install-osm-cli)
 - [Install OSM Control Plane](#install-osm-control-plane)
-- [Install Applications](#install-applications)
-  - [What Got Installed](#what-got-installed)
-  - [View Application UIs](#view-application-uis)
-- [Access Control Policies](#access-control-policies)
-  - [Going Further](#going-further)
+- [Deploying the Bookstore Demo Applications](#install-applications)
+  - [Create the Bookstore Applications Namespaces](#create-the-bookstore-applications-namespaces)
+  - [Onboard the Namespaces to the OSM Mesh](#onboard-the-namespaces-to-the-osm-mesh)
+  - [Deploy the Bookstore Application](#deploy-the-bookstore-application)
+  - [Checkpoint: What got installed?](#checkpoint-what-got-installed)
+  - [View the Applications UIs](#view-the-application-uis)
+- [Deploy SMI Access Control Policies for OSM](#deploy-smi-access-control-policies-for-osm)
+  - [Allowing the Bookthief Application to access the Mesh](#allowing-the-bookthief-application-to-access-the-mesh)
 - [Traffic Encryption](#traffic-encryption)
-- [Traffic Split](#traffic-split-configuration)
+- [Configure Traffic Split between two Services](#configure-traffic-split-between-two-services)
   - [Deploy v2 of Bookstore](#deploy-v2-of-bookstore)
   - [Update Traffic Split](#update-traffic-split)
-- [Inspect Dashboards](#inspect-dashboards)
+- [Inspect Dashbaords(#inspect-dashboards)
 
 ## Overview
 The OSM Demo Guide is designed to quickly allow you to demo and experience the OSM mesh. 
