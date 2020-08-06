@@ -11,7 +11,7 @@
   - [Deploy the Bookstore Application](#deploy-the-bookstore-application)
   - [Checkpoint: What got installed?](#checkpoint-what-got-installed)
   - [View the Applications UIs](#view-the-application-uis)
-- [Deploy SMI Access Control Policies for OSM](#deploy-smi-access-control-policies-for-osm)
+- [Deploy SMI Access Control Policies](#deploy-smi-access-control-policies)
   - [Allowing the Bookthief Application to access the Mesh](#allowing-the-bookthief-application-to-access-the-mesh)
 - [Traffic Encryption](#traffic-encryption)
 - [Configure Traffic Split between Two Services](#configure-traffic-split-between-two-services)
@@ -96,7 +96,7 @@ In a browser, open up the following urls:
 
 Position the windows so that you can see all four at the same time. The header at the top of the webpage indicates the application and version. 
 
-## Deploy SMI Access Control Policies for OSM
+## Deploy SMI Access Control Policies
 At this point, no applications have access to each other because no access control policies have been applied. Confirm this by confirming that none of the counters in the UI are incrementing. Apply the [SMI Traffic Target][1] and [SMI Traffic Specs][2] resources to define access control policies below:
 ```bash
 kubectl create -f docs/example/manifests/access/
