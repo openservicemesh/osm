@@ -41,15 +41,15 @@ osm install
 ## Deploying the Bookstore Demo Applications
 The `Bookstore`, `Bookbuyer`, `Bookthief`, `Bookwarehouse` demo applications will be installed in their respective Kubernetes Namespaces. In order for these applications to be injected with a Envoy sidecar automatically, we must add the Namespaces to be monitored by the mesh.
 
-### 1. Create the Bookstore Application Namespaces
+### Create the Bookstore Application Namespaces
 ```bash
 for i in bookstore bookbuyer bookthief bookwarehouse; do kubectl create ns $i; done
 ```
-### 2. Onboard the Namespaces to the OSM Mesh
+### Onboard the Namespaces to the OSM Mesh
 ```bash
 for i in bookstore bookbuyer bookthief bookwarehouse; do osm namespace add $i; done
 ```
-### 3. Deploy the Bookstore Application
+### Deploy the Bookstore Application
 Install `Bookstore`, `Bookbuyer`, `Bookthief`, `Bookwarehouse`.
 ```bash
 kubectl create -f docs/example/manifests/apps/
@@ -74,8 +74,8 @@ A simple toplogy view of the Bookstore application looks like the following:
 
 *Note: At the moment, you must configure a TrafficSplit object to get your applications set up correctly for inbound traffic because it helps us properly configure the dataplane. We're working on removing the need for this entirely.* [#1370](https://github.com/openservicemesh/osm/issues/1370)
 
-### 4. View the Application UIs
-We will now setup client port forwarding, so we can access the services in the Kubernetes cluster. It is best to start a new terminal session for running the port forwarding script. The port-forward-all.sh script will look for a ".env" file for variables. We will use the reference .env.examples file and then run the port forwarding script. 
+### View the Application UIs
+We will now setup client port forwarding, so we can access the services in the Kubernetes cluster. It is best to start a new terminal session for running the port forwarding script to maintain the port forwarding session, while using the original terminal to continue to issue commands. The port-forward-all.sh script will look for a ".env" file for variables. We will use the reference .env.examples file and then run the port forwarding script. 
 
 In a new terminal session, run the following commands to enable port forwarding into the Kubernetes cluster.
 ```bash
@@ -92,12 +92,14 @@ In a browser, open up the following urls:
 
 Position the windows so that you can see all four at the same time. The header at the top of the webpage indicates the application and version. 
 
-## Access Control Policies
+## Deploy SMI Access Control Policies for OSM
 At this point, no applications have access to each other because no access control policies have been applied. Confirm this by confirming that none of the counters in the UI are incrementing. Apply the [SMI Traffic Target][1] and [SMI Traffic Specs][2] resources to define access control policies below:
 ```bash
-kubectl apply -f docs/example/manifests/access/
+kubectl create -f docs/example/manifests/access/
 ```
-The counters should now be incrementing for the windows with headers: `Bookbuyer`, and `Bookstore-v1`.
+The counters should now be incrementing for the `Bookbuyer`, and `Bookstore-v1` applications:
+- http://localhost:8080 - **Bookbuyer**
+- http://localhost:8081 - **bookstore-v1**
 
 ### Going Further
 Uncomment out the lines in the [manifests/access/traffic-access.yaml](manifests/access/traffic-access.yaml) to allow `Bookthief` to communicate with `Bookstore`. Then, re-apply the manifest and watch the change in policy propagate.
