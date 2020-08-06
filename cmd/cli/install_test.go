@@ -13,8 +13,6 @@ import (
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/storage"
 	"helm.sh/helm/v3/pkg/storage/driver"
-
-	"github.com/openservicemesh/osm/pkg/check"
 )
 
 var (
@@ -29,18 +27,6 @@ var (
 	testMeshCIDR       = "10.20.0.0/16"
 	testMeshCIDRRanges = []string{testMeshCIDR}
 )
-
-type failingChecker struct{}
-
-func (f failingChecker) Run([]check.Check, func(*check.Result)) bool {
-	return false
-}
-
-type passingChecker struct{}
-
-func (p passingChecker) Run([]check.Check, func(*check.Result)) bool {
-	return true
-}
 
 var _ = Describe("Running the install command", func() {
 
@@ -77,7 +63,6 @@ var _ = Describe("Running the install command", func() {
 				certManager:                "tresor",
 				serviceCertValidityMinutes: 1,
 				prometheusRetentionTime:    testRetentionTime,
-				checker:                    passingChecker{},
 				meshName:                   defaultMeshName,
 				enableEgress:               true,
 				enableMetricsStack:         true,
@@ -182,7 +167,6 @@ var _ = Describe("Running the install command", func() {
 				certManager:                "tresor",
 				serviceCertValidityMinutes: 1,
 				prometheusRetentionTime:    testRetentionTime,
-				checker:                    passingChecker{},
 				meshName:                   defaultMeshName,
 				enableEgress:               true,
 				meshCIDRRanges:             testMeshCIDRRanges,
@@ -291,7 +275,6 @@ var _ = Describe("Running the install command", func() {
 				osmImageTag:                testOsmImageTag,
 				serviceCertValidityMinutes: 1,
 				prometheusRetentionTime:    testRetentionTime,
-				checker:                    passingChecker{},
 				meshName:                   defaultMeshName,
 				enableEgress:               true,
 				meshCIDRRanges:             testMeshCIDRRanges,
@@ -395,7 +378,6 @@ var _ = Describe("Running the install command", func() {
 				containerRegistrySecret: testRegistrySecret,
 				certManager:             "vault",
 				meshName:                defaultMeshName,
-				checker:                 passingChecker{},
 				enableEgress:            true,
 				meshCIDRRanges:          testMeshCIDRRanges,
 			}
@@ -443,7 +425,6 @@ var _ = Describe("Running the install command", func() {
 				serviceCertValidityMinutes: 1,
 				prometheusRetentionTime:    testRetentionTime,
 				meshName:                   defaultMeshName,
-				checker:                    passingChecker{},
 				enableEgress:               true,
 				meshCIDRRanges:             testMeshCIDRRanges,
 			}
@@ -506,7 +487,6 @@ var _ = Describe("Running the install command", func() {
 				serviceCertValidityMinutes: 1,
 				prometheusRetentionTime:    testRetentionTime,
 				meshName:                   "osm!!123456789012345678901234567890123456789012345678901234567890", // >65 characters, contains !
-				checker:                    passingChecker{},
 				enableEgress:               true,
 				meshCIDRRanges:             testMeshCIDRRanges,
 			}
@@ -519,52 +499,6 @@ var _ = Describe("Running the install command", func() {
 		})
 	})
 
-	Describe("when pre-install checks fail", func() {
-		var (
-			out    *bytes.Buffer
-			store  *storage.Storage
-			config *helm.Configuration
-			err    error
-		)
-
-		BeforeEach(func() {
-			out = new(bytes.Buffer)
-			store = storage.Init(driver.NewMemory())
-			if mem, ok := store.Driver.(*driver.Memory); ok {
-				mem.SetNamespace(settings.Namespace())
-			}
-
-			config = &helm.Configuration{
-				Releases: store,
-				KubeClient: &kubefake.PrintingKubeClient{
-					Out: ioutil.Discard,
-				},
-				Capabilities: chartutil.DefaultCapabilities,
-				Log:          func(format string, v ...interface{}) {},
-			}
-
-			installCmd := &installCmd{
-				out:                        out,
-				chartPath:                  "testdata/test-chart",
-				containerRegistry:          testRegistry,
-				containerRegistrySecret:    testRegistrySecret,
-				osmImageTag:                testOsmImageTag,
-				certManager:                "tresor",
-				serviceCertValidityMinutes: 1,
-				prometheusRetentionTime:    testRetentionTime,
-				meshName:                   defaultMeshName,
-				checker:                    failingChecker{},
-				enableEgress:               true,
-				meshCIDRRanges:             testMeshCIDRRanges,
-			}
-
-			err = installCmd.run(config)
-		})
-
-		It("should error", func() {
-			Expect(err).To(MatchError("Pre-install checks failed"))
-		})
-	})
 })
 
 var _ = Describe("Resolving values for install command with vault parameters", func() {
