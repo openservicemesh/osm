@@ -18,7 +18,6 @@
 ## Configure Prerequisites
 - Have running Kubernetes cluster
 - Have `kubectl` CLI installed
-- GNU Parallel
 
 ## Install OSM CLI
 Use the [installation guide](/docs/installation_guide.md) to install the `osm` cli.
