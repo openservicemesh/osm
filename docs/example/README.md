@@ -104,7 +104,61 @@ The counters should now be incrementing for the `Bookbuyer`, and `Bookstore-v1` 
 ### Allowing the Bookthief Application to access the Mesh
 Currently the Bookthief application has not been authorized to participate in the service mesh communication. We will now uncomment out the lines in the [manifests/access/traffic-access.yaml](manifests/access/traffic-access.yaml) to allow `Bookthief` to communicate with `Bookstore`. Then, re-apply the manifest and watch the change in policy propagate.
 
+Current TrafficTarget spec with commented `Bookthief` kind:
+```
+kind: TrafficTarget
+apiVersion: access.smi-spec.io/v1alpha2
+metadata:
+  name: bookstore-v1
+  namespace: bookstore
+spec:
+  destination:
+    kind: ServiceAccount
+    name: bookstore-v1
+    namespace: bookstore
+  rules:
+  - kind: HTTPRouteGroup
+    name: bookstore-service-routes
+    matches:
+    - buy-a-book
+    - books-bought
+  sources:
+  - kind: ServiceAccount
+    name: bookbuyer
+    namespace: bookbuyer
+  #- kind: ServiceAccount
+    #name: bookthief
+    #namespace: bookthief
+ ```
+ 
+ Updated TrafficTarget spec with uncommented `Bookthief` kind:
+ ```
+ kind: TrafficTarget
+apiVersion: access.smi-spec.io/v1alpha2
+metadata:
+  name: bookstore-v1
+  namespace: bookstore
+spec:
+  destination:
+    kind: ServiceAccount
+    name: bookstore-v1
+    namespace: bookstore
+  rules:
+  - kind: HTTPRouteGroup
+    name: bookstore-service-routes
+    matches:
+    - buy-a-book
+    - books-bought
+  sources:
+  - kind: ServiceAccount
+    name: bookbuyer
+    namespace: bookbuyer
+  - kind: ServiceAccount
+    name: bookthief
+    namespace: bookthief
+ ```
 
+Re-apply the access manifest with the updates.
 ```bash
 kubectl apply -f docs/example/manifests/access/
 ```
