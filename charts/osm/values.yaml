@@ -6,7 +6,7 @@ OpenServiceMesh:
   image:
     registry: openservicemesh
     pullPolicy: Always
-    tag: v0.2.0
+    tag: latest
   imagePullSecrets:
     - name: acr-creds
   sidecarImage: envoyproxy/envoy-alpine:v1.15.0
