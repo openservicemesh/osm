@@ -58,7 +58,7 @@ The following are the key components of the demo application:
 - An [SMI TrafficSplit][3] resource which specifies how much traffic should go to each version of `Bookstore`.
 
 A simple toplogy view of the Bookstore application looks like the following:
-![Bookstore Application Topology](img/book-thief-app-topology.gif "Bookstore Application Topology")
+![Bookstore Application Topology](img/book-thief-app-topology.jpg "Bookstore Application Topology")
 
 *Note: At the moment, you must configure a TrafficSplit object to get your applications set up correctly for inbound traffic because it helps us properly configure the dataplane. We're working on removing the need for this entirely.* [#1370](https://github.com/openservicemesh/osm/issues/1370)
 
