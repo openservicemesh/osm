@@ -73,7 +73,7 @@ Below are quick getting started instructions. For a more detailed example usage 
 
 ### Installation Demo
 
-![OSM Install Demo](img/osm-install-demo.gif "OSM Install Demo")
+![OSM Install Demo](img/osm-install-demo-v0.2.0.gif "OSM Install Demo")
 
 ### OSM CLI Install
 
