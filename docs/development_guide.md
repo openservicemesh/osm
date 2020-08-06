@@ -114,7 +114,9 @@ More notable:
   - `make go-vet` - same as `go vet ./...`
 
 ## Create Environment Variables
-Create some necessary environment variables. This environment variable setup is a temporary step because OSM is currently a private project and there are no public container images available.
+Some of the scripts and build targets available expect an accessible container registry where to push the `osm-controller` and `init` docker images once compiled. The location and credential options for the container registry can be specified as environment variables declared in `.env`, as well as the target namespace where `osm-controller` will be installed on.
+
+Additionally, if using `demo/` scripts to deploy OSM's provided demo on your own K8s cluster, the same container registry configured in `.env` will be used to pull OSM images on your K8s cluster.
 ```console
 $ # K8S_NAMESPACE is the Namespace the control plane will be installed into
 $ export K8S_NAMESPACE=osm-system
@@ -131,9 +133,10 @@ $ # Create docker secret in Kubernetes Namespace using following script:
 $ ./scripts/create-container-registry-creds.sh "$K8S_NAMESPACE"
 
 ```
+(NOTE: these requirements are true for automatic demo deployment using the available demo scripts, #1416 tracks an improvement to not strictly require these and use upstream images from official dockerhub registry if a user does not want/need changes on the code)
 
 ## Build and push OSM images
-Build and push images necessary to install OSM. This is also a temporary step because OSM is currently a private project and there are no public container images available.
+For development an/or testing locally compiled builds, pushing the local image to a container registry is still required. The following build targets will do so automatically against the configured container registry.
 
 ```console
 $ make docker-push-osm-controller
