@@ -27,12 +27,6 @@ The OSM Manual Install Demo Guide is designed to quickly allow you to demo and e
 - Have `kubectl` CLI installed - [Install and Set Up Kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 - kubectl current context is configured for the target cluster install
   - ```kubectl config current-context```
-- Have GNU Parallel installed
-  - ```wget http://ftp.gnu.org/gnu/parallel/parallel-latest.tar.bz2```
-  - ```tar xjf parallel-latest.tar.bz2```
-  - ```cd parallel-20200722```
-  - ```./configure && make```
-  - ```sudo make install```
 
 ## Install OSM CLI
 Use the [installation guide](/docs/installation_guide.md) to install the `osm` cli.
