@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - main
-      - ci*
     paths-ignore:
       - "docs/**"
       - "**.md"
@@ -174,6 +173,7 @@ jobs:
           CI_WAIT_FOR_OK_SECONDS: 75
           DEPLOY_TRAFFIC_SPLIT: "true"
         run: |
+          touch .env
           make kind-up
           ./demo/run-osm-demo.sh --enable-egress=false
           go run ./ci/cmd/maestro.go
@@ -218,6 +218,7 @@ jobs:
           EGRESS_EXPECTED_RESPONSE_CODE: "200" # egress is enabled
           DEPLOY_TRAFFIC_SPLIT: "true"
         run: |
+          touch .env
           make kind-up
           ./demo/run-osm-demo.sh --enable-permissive-traffic-policy
           go run ./ci/cmd/maestro.go
@@ -258,6 +259,7 @@ jobs:
           CI_WAIT_FOR_OK_SECONDS: 75
           DEPLOY_TRAFFIC_SPLIT: "false"
         run: |
+          touch .env
           make kind-up
           ./demo/run-osm-demo.sh --enable-egress=false
           go run ./ci/cmd/maestro.go
