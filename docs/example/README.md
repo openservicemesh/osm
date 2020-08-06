@@ -79,7 +79,7 @@ A simple toplogy view of the Bookstore application looks like the following:
 *Note: At the moment, you must configure a TrafficSplit object to get your applications set up correctly for inbound traffic because it helps us properly configure the dataplane. We're working on removing the need for this entirely.* [#1370](https://github.com/openservicemesh/osm/issues/1370)
 
 ### View the Application UIs
-We will now setup client port forwarding, so we can access the services in the Kubernetes cluster. It is best to start a new terminal session for running the port forwarding script to maintain the port forwarding session, while using the original terminal to continue to issue commands. The port-forward-all.sh script will look for a ".env" file for variables. We will use the reference .env.examples file and then run the port forwarding script. 
+We will now setup client port forwarding, so we can access the services in the Kubernetes cluster. It is best to start a new terminal session for running the port forwarding script to maintain the port forwarding session, while using the original terminal to continue to issue commands. The port-forward-all.sh script will look for a ```".env"``` file for variables. The ```".env"``` creates the necessary variables that target the previously created namespaces. The We will use the reference .env.examples file and then run the port forwarding script. 
 
 In a new terminal session, run the following commands to enable port forwarding into the Kubernetes cluster.
 ```bash
