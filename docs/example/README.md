@@ -14,7 +14,7 @@
 - [Deploy SMI Access Control Policies](#deploy-smi-access-control-policies)
   - [Allowing the Bookthief Application to access the Mesh](#allowing-the-bookthief-application-to-access-the-mesh)
 - [Traffic Encryption](#traffic-encryption)
-- [Configure Traffic Split between Two Services](#configure-traffic-split-between-two-services)
+- [Configure Traffic Split between Services](#configure-traffic-split-between-two-services)
   - [Deploy v2 of Bookstore](#deploy-v2-of-bookstore)
   - [Update Traffic Split](#update-traffic-split)
 - [Inspect Dashbaords](#inspect-dashboards)
