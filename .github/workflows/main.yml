@@ -141,7 +141,6 @@ jobs:
   integration-tresor:
     name: Integration Test with Tresor, SMI traffic policies, and egress disabled
     runs-on: ubuntu-latest
-    needs: [info, docker-build]
     steps:
       - name: Checkout
         uses: actions/checkout@v1
@@ -182,7 +181,6 @@ jobs:
   integration-vault:
     name: Integration test with Hashi Vault, permissive traffic policy mode, and egress enabled
     runs-on: ubuntu-latest
-    needs: [info, docker-build]
     steps:
       - name: Checkout
         uses: actions/checkout@v1
@@ -227,7 +225,6 @@ jobs:
   integration-nosplit:
     name: Integration Test with Tresor, SMI traffic policies (no Traffic Split), and egress disabled
     runs-on: ubuntu-latest
-    needs: [info, docker-build]
     steps:
       - name: Checkout
         uses: actions/checkout@v1
