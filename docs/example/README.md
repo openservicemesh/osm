@@ -5,7 +5,7 @@
 - [Configure Prerequisites](#configure-prerequisites)
 - [Install OSM CLI](#install-osm-cli)
 - [Install OSM Control Plane](#install-osm-control-plane)
-- [Deploying the Bookstore Demo Applications](#install-applications)
+- [Deploying the Bookstore Demo Applications](#deploying-the-bookstore-demo-applications)
   - [Create the Bookstore Applications Namespaces](#create-the-bookstore-applications-namespaces)
   - [Onboard the Namespaces to the OSM Mesh](#onboard-the-namespaces-to-the-osm-mesh)
   - [Deploy the Bookstore Application](#deploy-the-bookstore-application)
