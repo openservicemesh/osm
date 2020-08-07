@@ -54,9 +54,6 @@ const (
 	// WildcardWithHeadersMatchName is the name of the match object.
 	WildcardWithHeadersMatchName = "allow-everything-on-header"
 
-	// Domain is a domain
-	Domain = "contoso.com"
-
 	// Weight is the percentage of the traffic to be sent this way in a traffic split scenario.
 	Weight = 100
 
@@ -83,6 +80,9 @@ const (
 
 	// ServiceIP is the IP used by a service
 	ServiceIP = "8.8.8.8"
+
+	// HTTPUserAgent is the User Agent in the HTTP header
+	HTTPUserAgent = "test-UA"
 )
 
 var (
@@ -98,6 +98,12 @@ var (
 		Name:      BookbuyerServiceName,
 	}
 
+	// BookstoreApexService is the bookstore-apex service
+	BookstoreApexService = service.MeshService{
+		Namespace: Namespace,
+		Name:      BookstoreApexServiceName,
+	}
+
 	// BookwarehouseService is the bookwarehouse service.
 	BookwarehouseService = service.MeshService{
 		Namespace: Namespace,
@@ -109,7 +115,7 @@ var (
 		PathRegex: BookstoreBuyPath,
 		Methods:   []string{"GET"},
 		Headers: map[string]string{
-			"host": Domain,
+			"user-agent": HTTPUserAgent,
 		},
 	}
 
@@ -128,7 +134,7 @@ var (
 			PathRegex: BookstoreBuyPath,
 			Methods:   []string{"GET"},
 			Headers: map[string]string{
-				"host": Domain,
+				"user-agent": HTTPUserAgent,
 			},
 		},
 	}
@@ -201,8 +207,8 @@ var (
 			Namespace: Namespace,
 			Name:      BookstoreServiceName,
 		},
-		Weight: Weight,
-		Domain: Domain,
+		Weight:      Weight,
+		RootService: BookstoreApexServiceName,
 	}
 
 	// HTTPRouteGroup is the HTTP route group SMI object.
@@ -223,7 +229,7 @@ var (
 					PathRegex: BookstoreBuyPath,
 					Methods:   []string{"GET"},
 					Headers: map[string]string{
-						"host": Domain,
+						"user-agent": HTTPUserAgent,
 					},
 				},
 				{
@@ -234,7 +240,7 @@ var (
 				{
 					Name: WildcardWithHeadersMatchName,
 					Headers: map[string]string{
-						"host": Domain,
+						"user-agent": HTTPUserAgent,
 					},
 				},
 			},

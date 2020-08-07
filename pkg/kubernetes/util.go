@@ -2,6 +2,7 @@ package kubernetes
 
 import (
 	"fmt"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 )
@@ -10,9 +11,9 @@ const (
 	clusterDomain = "cluster.local"
 )
 
-// GetDomainsForService returns a list of domains over which the service
+// GetHostnamesForService returns a list of hostnames over which the service
 // can be accessed within the local cluster.
-func GetDomainsForService(service *corev1.Service) []string {
+func GetHostnamesForService(service *corev1.Service) []string {
 	var domains []string
 	if service == nil {
 		return domains
@@ -35,4 +36,11 @@ func GetDomainsForService(service *corev1.Service) []string {
 		domains = append(domains, fmt.Sprintf("%s.%s.svc.%s:%d", serviceName, namespace, clusterDomain, port)) // service.namespace.svc.cluster.local:port
 	}
 	return domains
+}
+
+// GetServiceFromHostname returns the service name from its hostname
+func GetServiceFromHostname(host string) string {
+	// The service name is the first string in the host name for a service.
+	// Ex. service.namespace, service.namespace.cluster.local
+	return strings.Split(host, ".")[0]
 }
