@@ -18,10 +18,7 @@ Open Service Mesh (OSM) is a lightweight, extensible, Cloud Native [service mesh
     - [Prerequisites](#prerequisites)
     - [Get the OSM CLI](#get-the-osm-cli)
     - [Install OSM](#install-osm)
-    - [Installation Demo](#installation-demo)
-    - [OSM CLI Install](#osm-cli-install)
-      - [Install OSM](#install-osm)
-    - [Using OSM](#using-osm)
+- [Using OSM](#using-osm)
     - [OSM Usage Patterns](#osm-usage-patterns)
 - [Demo and Examples](#demo-and-examples)
 - [Community](#community)
@@ -78,7 +75,7 @@ Download the `osm` binary from the [Releases page](https://github.com/openservic
 sudo mv ./osm /usr/local/bin/osm
 ```
 
-#### Install OSM
+### Install OSM
 ```shell
 $ osm install
 ```
@@ -86,7 +83,7 @@ $ osm install
 
 See the [installation guide](docs/installation_guide.md) for more detailed options.
 
-### Using OSM
+## Using OSM
 
 After installing OSM, [onboard a microservice application](docs/onboard_services.md) to the service mesh.
 
