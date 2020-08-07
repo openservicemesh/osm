@@ -1,6 +1,8 @@
 # How to run a Demo of OSM
 
 ## System Requirements
+- MacOS, Linux or WSL2 on Windows
+- GCC
 - Go version 1.14 or higher
 - Kubectl version 1.15 or higher
 - Docker CLI
