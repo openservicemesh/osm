@@ -18,3 +18,6 @@ Please mark with X for applicable areas.
 Please answer the following questions with yes/no.
 
 - Is there code borrowed from external sources (provide references if yes):
+
+- [ ] No
+- [ ] Yes
