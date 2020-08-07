@@ -23,7 +23,7 @@ This in a non-exhaustive list of the directories in this repo. It is provided
 as a birds-eye view of where the different components are located.
 
   - `charts/` - contains OSM Helm chart
-  - `ci/` - tools and scripts for the continuos integration system
+  - `ci/` - tools and scripts for the continuous integration system
   - `cmd/` - OSM command line tools
   - `crd/` - Custom Resource Definitions needed by OSM
   - `demo/` - scripts and Kubernetes resources needed to run the Bookstore demonstration of Open Service Mesh
