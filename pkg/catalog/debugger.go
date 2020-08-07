@@ -81,6 +81,7 @@ func (mc *MeshCatalog) ListMonitoredNamespaces() []string {
 	namespaces, err := mc.namespaceController.ListMonitoredNamespaces()
 
 	if err != nil {
+		log.Error().Err(errListingNamespaces).Msg("Failed to list monitored namespaces")
 		return nil
 	}
 

@@ -13,4 +13,6 @@ var (
 	errDomainNotFoundForService              = errors.New("no host/domain found to configure service")
 	errNoTrafficSpecFoundForTrafficPolicy    = errors.New("no traffic spec found for the traffic policy")
 	errServiceNotFound                       = errors.New("service not found")
+	errListingNamespaces                     = errors.New("Failed to list monitored namespaces")
+
 )
