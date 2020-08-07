@@ -170,13 +170,14 @@ jobs:
           CERT_MANAGER: "tresor"
           BOOKSTORE_SVC: "bookstore"
           BOOKTHIEF_EXPECTED_RESPONSE_CODE: "404"
+          ENABLE_EGRESS: "false"
           EGRESS_EXPECTED_RESPONSE_CODE: "404" # egress is disabled
           CI_WAIT_FOR_OK_SECONDS: 75
           DEPLOY_TRAFFIC_SPLIT: "true"
         run: |
           touch .env
           make kind-up
-          ./demo/run-osm-demo.sh --enable-egress=false
+          ./demo/run-osm-demo.sh
           go run ./ci/cmd/maestro.go
 
   integration-vault:
@@ -217,6 +218,7 @@ jobs:
           VAULT_ROLE: "openservicemesh"
           BOOKSTORE_SVC: "bookstore-v1"
           BOOKTHIEF_EXPECTED_RESPONSE_CODE: "200"
+          ENABLE_EGRESS: "true"
           EGRESS_EXPECTED_RESPONSE_CODE: "200" # egress is enabled
           DEPLOY_TRAFFIC_SPLIT: "true"
         run: |
@@ -258,11 +260,12 @@ jobs:
           CERT_MANAGER: "tresor"
           BOOKSTORE_SVC: "bookstore-v1"
           BOOKTHIEF_EXPECTED_RESPONSE_CODE: "404"
+          ENABLE_EGRESS: "false"
           EGRESS_EXPECTED_RESPONSE_CODE: "404" # egress is disabled
           CI_WAIT_FOR_OK_SECONDS: 75
           DEPLOY_TRAFFIC_SPLIT: "false"
         run: |
           touch .env
           make kind-up
-          ./demo/run-osm-demo.sh --enable-egress=false
+          ./demo/run-osm-demo.sh
           go run ./ci/cmd/maestro.go

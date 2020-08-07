@@ -26,6 +26,7 @@ CTR_REGISTRY="${CTR_REGISTRY:-localhost:5000}"
 CTR_REGISTRY_CREDS_NAME="${CTR_REGISTRY_CREDS_NAME:-acr-creds}"
 CTR_TAG="${CTR_TAG:-latest}"
 DEPLOY_TRAFFIC_SPLIT="${DEPLOY_TRAFFIC_SPLIT:-true}"
+ENABLE_EGRESS="${ENABLE_EGRESS:-false}"
 MESH_CIDR=$(./scripts/get_mesh_cidr.sh)
 
 # For any additional installation arguments. Used heavily in CI.
@@ -102,7 +103,7 @@ if [ "$CERT_MANAGER" = "vault" ]; then
       --container-registry-secret "$CTR_REGISTRY_CREDS_NAME" \
       --osm-image-tag "$CTR_TAG" \
       --enable-debug-server \
-      --enable-egress \
+      --enable-egress="$ENABLE_EGRESS" \
       --mesh-cidr "$MESH_CIDR" \
       --deploy-zipkin \
       $optionalInstallArgs
@@ -115,7 +116,7 @@ else
       --container-registry-secret "$CTR_REGISTRY_CREDS_NAME" \
       --osm-image-tag "$CTR_TAG" \
       --enable-debug-server \
-      --enable-egress \
+      --enable-egress="$ENABLE_EGRESS" \
       --mesh-cidr "$MESH_CIDR" \
       --deploy-zipkin \
       $optionalInstallArgs

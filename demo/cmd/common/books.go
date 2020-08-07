@@ -35,6 +35,7 @@ var (
 	bookstoreNamespace                     = os.Getenv(BookstoreNamespaceEnvVar)
 	warehouseServiceName                   = "bookwarehouse"
 	bookwarehouseNamespace                 = os.Getenv(BookwarehouseNamespaceEnvVar)
+	enableEgress                           = os.Getenv(EnableEgressEnvVar) == "true"
 
 	bookstoreService = fmt.Sprintf("%s.%s:%d", bookstoreServiceName, bookstoreNamespace, bookstorePort) // FQDN
 	warehouseService = fmt.Sprintf("%s.%s", warehouseServiceName, bookwarehouseNamespace)               // FQDN
@@ -102,10 +103,13 @@ func GetBooks(participantName string, meshExpectedResponseCode int, egressExpect
 
 	// The URLs this participant will attempt to query from the bookstore service
 	urlSuccessMap := map[string]bool{
-		booksBought:    false,
-		buyBook:        false,
-		httpEgressURL:  false,
-		httpsEgressURL: false,
+		booksBought: false,
+		buyBook:     false,
+	}
+
+	if enableEgress {
+		urlSuccessMap[httpEgressURL] = false
+		urlSuccessMap[httpsEgressURL] = false
 	}
 
 	urlExpectedRespCode := map[string]int{
