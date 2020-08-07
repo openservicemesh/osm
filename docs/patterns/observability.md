@@ -130,7 +130,7 @@ Sample result will be:
 # Grafana
 [Grafana][3] is an open source visualization and analytics software. It allows you to query, visualize, alert on, and explore your metrics. 
 
-![Grafana Demo](img/grafana.gif "Grafana Demo")
+![Grafana Demo](/img/grafana.gif "Grafana Demo")
 
 Grafana uses Prometheus as backend timeseries database. If Grafana and Prometheus are chosen to be deployed through OSM installation, necessary rules will be set upon deployment for them to interact. Conversely, on a BYO model this will have to be taken care of by the user.
 

@@ -51,6 +51,13 @@ func newOutboundListener(cfg configurator.Configurator) (*xds_listener.Listener,
 				},
 			},
 		},
+		ListenerFilters: []*xds_listener.ListenerFilter{
+			{
+				// The OriginalDestination ListenerFilter is used to redirect traffic
+				// to its original destination.
+				Name: wellknown.OriginalDestination,
+			},
+		},
 	}
 
 	if cfg.IsEgressEnabled() {
@@ -95,8 +102,6 @@ func updateOutboundListenerForEgress(outboundListener *xds_listener.Listener, cf
 		return err
 	}
 	outboundListener.FilterChains = append(outboundListener.FilterChains, egressFilterChain)
-	listenerFilters := buildEgressListenerFilters()
-	outboundListener.ListenerFilters = append(outboundListener.ListenerFilters, listenerFilters...)
 
 	return nil
 }
@@ -161,20 +166,6 @@ func buildEgressFilterChain() (*xds_listener.FilterChain, error) {
 			},
 		},
 	}, nil
-}
-
-func buildEgressListenerFilters() []*xds_listener.ListenerFilter {
-	return []*xds_listener.ListenerFilter{
-		{
-			// The OriginalDestination ListenerFilter is used to redirect traffic
-			// to its original destination.
-			Name: wellknown.OriginalDestination,
-		},
-		{
-			// The TlsInspector ListenerFilter is used to examine the transport protocol
-			Name: wellknown.TlsInspector,
-		},
-	}
 }
 
 func parseCIDR(cidr string) (string, uint32, error) {

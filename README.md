@@ -8,20 +8,21 @@
 
 Open Service Mesh (OSM) is a lightweight, extensible, Cloud Native [service mesh][1] that allows users to uniformly manage, secure, and get out-of-the-box observability features for highly dynamic microservice environments.
 
+The OSM project builds on the ideas and implementations of many cloud native ecosystem projects including [Linkerd](https://github.com/linkerd/linkerd), [Istio](https://github.com/istio/istio), [Consul](https://github.com/hashicorp/consul), [Envoy](https://github.com/envoyproxy/envoy), [Helm](https://github.com/helm/helm), and the [SMI](https://github.com/servicemeshinterface/smi-spec) specification.
+
 ## Table of Contents
 - [Overview](#overview)
   - [Core Principles](#core-principles)
   - [Features](#features)
   - [SMI Specification Support](#smi-specification-support)
 - [OSM Design](#osm-design)
-- [Getting Started](#getting-started)
+- [Install](#install)
     - [Prerequisites](#prerequisites)
-    - [Installation Demo](#installation-demo)
-    - [OSM CLI Install](#osm-cli-install)
-      - [Install OSM](#install-osm)
-    - [Using OSM](#using-osm)
+    - [Get the OSM CLI](#get-the-osm-cli)
+    - [Install OSM](#install-osm)
+- [Demos](#demos)
+- [Using OSM](#using-osm)
     - [OSM Usage Patterns](#osm-usage-patterns)
-- [Demo and Examples](#demo-and-examples)
 - [Community](#community)
 - [Development Guide](#development-guide)
 - [Code of Conduct](#code-of-conduct)
@@ -60,20 +61,14 @@ OSM runs an Envoy based control plane on Kubernetes, can be configured with SMI 
 
 Read more about [OSM's high level goals, design, and architecture](DESIGN.md).
 
-## Getting Started
-
-Below are quick getting started instructions. For a more detailed example usage guide and demo walkthrough, see the [OSM Example Usage Guide](/docs/example/README.md).
+## Install
 
 ### Prerequisites
 - Kubernetes cluster running Kubernetes v1.15.0 or greater
 - kubectl current context is configured for the target cluster install
   - ```kubectl config current-context```
 
-### Installation Demo
-
-![OSM Install Demo](img/osm-install-demo.gif "OSM Install Demo")
-
-### OSM CLI Install
+### Get the OSM CLI
 
 The simplest way of installing Open Service Mesh on a Kubernetes cluster is by using the `osm` CLI.
 
@@ -82,14 +77,21 @@ Download the `osm` binary from the [Releases page](https://github.com/openservic
 sudo mv ./osm /usr/local/bin/osm
 ```
 
-#### Install OSM
+### Install OSM
 ```shell
 $ osm install
 ```
+![OSM Install Demo](img/osm-install-demo-v0.2.0.gif "OSM Install Demo")
 
 See the [installation guide](docs/installation_guide.md) for more detailed options.
 
-### Using OSM
+## Demos
+We have provided two demos for you to experience OSM. 
+
+- The [automated demo](demo/README.md) is a set of scripts anyone can run and shows how OSM can manage, secure and provide observability for microservice environments.
+- The [manual demo](docs/example/README.md) is a step-by-step walkthrough set of instruction of the automated demo.
+
+## Using OSM
 
 After installing OSM, [onboard a microservice application](docs/onboard_services.md) to the service mesh.
 
@@ -99,13 +101,6 @@ After installing OSM, [onboard a microservice application](docs/onboard_services
 1. [Observability](docs/patterns/observability.md)
 1. [Certificates](docs/patterns/certificates.md)
 1. [Sidecar Injection](docs/patterns/sidecar_injection.md)
-
-
-## Demo and Examples
-
-The [automated demo](demo/README.md) is a set of scripts anyone can run and shows how OSM can manage, secure and provide observability for microservice environments.
-
-To explore the same demo step by step, see the [example usage guide](/docs/example/README.md).
 
 ## Community
 
