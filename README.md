@@ -14,7 +14,7 @@ Open Service Mesh (OSM) is a lightweight, extensible, Cloud Native [service mesh
   - [Features](#features)
   - [SMI Specification Support](#smi-specification-support)
 - [OSM Design](#osm-design)
-- [Install](#getting-started)
+- [Install](#install)
     - [Prerequisites](#prerequisites)
     - [Get the OSM CLI](#get-the-osm-cli)
     - [Install OSM](#install-osm)
