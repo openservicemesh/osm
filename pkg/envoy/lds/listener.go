@@ -57,10 +57,6 @@ func newOutboundListener(cfg configurator.Configurator) (*xds_listener.Listener,
 				// to its original destination.
 				Name: wellknown.OriginalDestination,
 			},
-			{
-				// The TlsInspector ListenerFilter is used to examine the transport protocol
-				Name: wellknown.TlsInspector,
-			},
 		},
 	}
 
