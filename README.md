@@ -81,7 +81,7 @@ sudo mv ./osm /usr/local/bin/osm
 ```shell
 $ osm install
 ```
-![OSM Install Demo](img/osm-install-demo.gif "OSM Install Demo")
+![OSM Install Demo](img/osm-install-v0.2.0.gif "OSM Install Demo")
 
 See the [installation guide](docs/installation_guide.md) for more detailed options.
 
