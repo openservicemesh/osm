@@ -18,9 +18,9 @@ Open Service Mesh (OSM) is a lightweight, extensible, Cloud Native [service mesh
     - [Prerequisites](#prerequisites)
     - [Get the OSM CLI](#get-the-osm-cli)
     - [Install OSM](#install-osm)
+- [Demos](#demos)
 - [Using OSM](#using-osm)
     - [OSM Usage Patterns](#osm-usage-patterns)
-- [Demo and Examples](#demo-and-examples)
 - [Community](#community)
 - [Development Guide](#development-guide)
 - [Code of Conduct](#code-of-conduct)
@@ -101,9 +101,6 @@ After installing OSM, [onboard a microservice application](docs/onboard_services
 1. [Observability](docs/patterns/observability.md)
 1. [Certificates](docs/patterns/certificates.md)
 1. [Sidecar Injection](docs/patterns/sidecar_injection.md)
-
-
-
 
 ## Community
 
