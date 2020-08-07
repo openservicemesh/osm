@@ -64,14 +64,12 @@ Read more about [OSM's high level goals, design, and architecture](DESIGN.md).
 
 Below are quick getting started instructions. For a more detailed example usage guide and demo walkthrough, see the [OSM Example Usage Guide](/docs/example/README.md).
 
+## Install
+
 ### Prerequisites
 - Kubernetes cluster running Kubernetes v1.15.0 or greater
 - kubectl current context is configured for the target cluster install
   - ```kubectl config current-context```
-
-### Installation Demo
-
-![OSM Install Demo](img/osm-install-demo.gif "OSM Install Demo")
 
 ### OSM CLI Install
 
@@ -86,6 +84,7 @@ sudo mv ./osm /usr/local/bin/osm
 ```shell
 $ osm install
 ```
+![OSM Install Demo](img/osm-install-demo.gif "OSM Install Demo")
 
 See the [installation guide](docs/installation_guide.md) for more detailed options.
 
