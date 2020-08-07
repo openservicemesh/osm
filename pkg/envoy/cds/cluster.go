@@ -12,10 +12,10 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
+	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/service"
-	"github.com/openservicemesh/osm/pkg/configurator"
 )
 
 const (
@@ -33,8 +33,8 @@ func getRemoteServiceCluster(remoteService, localService service.MeshService, cf
 	}
 
 	remoteCluster := &xds_cluster.Cluster{
-		Name:                 clusterName,
-		ConnectTimeout:       ptypes.DurationProto(clusterConnectTimeout),
+		Name:           clusterName,
+		ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
 		TransportSocket: &xds_core.TransportSocket{
 			Name: wellknown.TransportSocketTls,
 			ConfigType: &xds_core.TransportSocket_TypedConfig{
@@ -45,13 +45,13 @@ func getRemoteServiceCluster(remoteService, localService service.MeshService, cf
 
 	if cfg.IsPermissiveTrafficPolicyMode() {
 		// Since no traffic policies exist with permissive mode, rely on cluster provided service discovery.
-		remoteCluster.ClusterDiscoveryType =  &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_ORIGINAL_DST}
+		remoteCluster.ClusterDiscoveryType = &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_ORIGINAL_DST}
 		remoteCluster.LbPolicy = xds_cluster.Cluster_CLUSTER_PROVIDED
 	} else {
 		// Configure service discovery based on traffic policies
 		remoteCluster.ClusterDiscoveryType = &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS}
 		remoteCluster.EdsClusterConfig = &xds_cluster.Cluster_EdsClusterConfig{EdsConfig: envoy.GetADSConfigSource()}
-		remoteCluster.LbPolicy =  xds_cluster.Cluster_ROUND_ROBIN
+		remoteCluster.LbPolicy = xds_cluster.Cluster_ROUND_ROBIN
 	}
 
 	return remoteCluster, nil
