@@ -1,4 +1,4 @@
-# How to run a Demo of OSM
+# How to Run the OSM Automated Demo
 
 ## System Requirements
 - Go version 1.14 or higher
