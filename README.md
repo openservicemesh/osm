@@ -14,7 +14,7 @@ Open Service Mesh (OSM) is a lightweight, extensible, Cloud Native [service mesh
   - [Features](#features)
   - [SMI Specification Support](#smi-specification-support)
 - [OSM Design](#osm-design)
-- [Getting Started](#getting-started)
+- [Install](#getting-started)
     - [Prerequisites](#prerequisites)
     - [Get the OSM CLI](#get-the-osm-cli)
     - [Install OSM](#install-osm)
@@ -61,10 +61,6 @@ OSM runs an Envoy based control plane on Kubernetes, can be configured with SMI 
 ## OSM Design
 
 Read more about [OSM's high level goals, design, and architecture](DESIGN.md).
-
-## Getting Started
-
-Below are quick getting started instructions. For a more detailed example usage guide and demo walkthrough, see the [OSM Example Usage Guide](/docs/example/README.md).
 
 ## Install
 
