@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net"
@@ -13,10 +14,12 @@ import (
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/strvals"
 
-	"github.com/openservicemesh/osm/pkg/check"
 	"github.com/openservicemesh/osm/pkg/cli"
 	"github.com/openservicemesh/osm/pkg/constants"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/validation"
+	"k8s.io/client-go/kubernetes"
 )
 
 const installDesc = `
@@ -79,6 +82,7 @@ type installCmd struct {
 	enableEgress                  bool
 	meshName                      string
 	meshCIDRRanges                []string
+	clientSet                     kubernetes.Interface
 
 	// This is an experimental flag, which will eventually
 	// become part of SMI Spec.
@@ -89,12 +93,6 @@ type installCmd struct {
 
 	// Toggle this to enable/disable the automatic deployment of Zipkin
 	deployZipkin bool
-
-	// checker runs checks before any installation is attempted. Its type is
-	// abstract here to make testing easy.
-	checker interface {
-		Run([]check.Check, func(*check.Result)) bool
-	}
 }
 
 func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
@@ -107,14 +105,23 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 		Short: "install osm control plane",
 		Long:  installDesc,
 		RunE: func(_ *cobra.Command, args []string) error {
-			inst.checker = check.NewChecker(settings)
+			kubeconfig, err := settings.RESTClientGetter().ToRESTConfig()
+			if err != nil {
+				return errors.Errorf("Error fetching kubeconfig")
+			}
+
+			clientset, err := kubernetes.NewForConfig(kubeconfig)
+			if err != nil {
+				return errors.Errorf("Could not access Kubernetes cluster. Check kubeconfig")
+			}
+			inst.clientSet = clientset
 			return inst.run(config)
 		},
 	}
 
 	f := cmd.Flags()
 	f.StringVar(&inst.containerRegistry, "container-registry", "openservicemesh", "container registry that hosts control plane component images")
-	f.StringVar(&inst.osmImageTag, "osm-image-tag", "v0.1.0", "osm image tag")
+	f.StringVar(&inst.osmImageTag, "osm-image-tag", "v0.2.0", "osm image tag")
 	f.StringVar(&inst.containerRegistrySecret, "container-registry-secret", "acr-creds", "name of Kubernetes secret for container registry credentials to be created if it doesn't already exist")
 	f.StringVar(&inst.chartPath, "osm-chart-path", "", "path to osm chart to override default chart")
 	f.StringVar(&inst.certManager, "cert-manager", defaultCertManager, "certificate manager to use (tresor or vault)")
@@ -137,15 +144,6 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 }
 
 func (i *installCmd) run(config *helm.Configuration) error {
-	pass := i.checker.Run(check.PreinstallChecks(), func(r *check.Result) {
-		if r.Err != nil {
-			fmt.Fprintln(i.out, "ERROR:", r.Err)
-		}
-	})
-	if !pass {
-		return errors.New("Pre-install checks failed")
-	}
-
 	var chartRequested *chart.Chart
 	var err error
 	if i.chartPath != "" {
@@ -188,20 +186,31 @@ func (i *installCmd) run(config *helm.Configuration) error {
 		return err
 	}
 
-	listClient := helm.NewList(config)
-	listClient.AllNamespaces = true
-	releases, err := listClient.Run()
+	deploymentsClient := i.clientSet.AppsV1().Deployments("") // Get deployments from all namespaces
+
+	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"meshName": i.meshName}}
+
+	listOptions := metav1.ListOptions{
+		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
+	}
+	list, err := deploymentsClient.List(context.TODO(), listOptions)
 	if err != nil {
 		return err
 	}
-	for _, release := range releases {
-		if osmVals, exists := release.Config["OpenServiceMesh"]; exists {
-			if valsMap, ok := osmVals.(map[string]interface{}); ok {
-				if meshName, exists := valsMap["meshName"]; exists && meshName == i.meshName {
-					return errMeshAlreadyExists(i.meshName)
-				}
-			}
-		}
+
+	if len(list.Items) != 0 {
+		return errMeshAlreadyExists(i.meshName)
+	}
+
+	deploymentsClient = i.clientSet.AppsV1().Deployments(settings.Namespace()) // Get deployments for specified namespace
+	labelSelector = metav1.LabelSelector{MatchLabels: map[string]string{"app": "osm-controller"}}
+
+	listOptions = metav1.ListOptions{
+		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
+	}
+	list, err = deploymentsClient.List(context.TODO(), listOptions)
+	if len(list.Items) != 0 {
+		return errNamespaceAlreadyHasController(settings.Namespace())
 	}
 
 	installClient := helm.NewInstall(config)
@@ -249,6 +258,10 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 
 func errMeshAlreadyExists(name string) error {
 	return errors.Errorf("Mesh %s already exists in cluster. Please specify a new mesh name using --mesh-name", name)
+}
+
+func errNamespaceAlreadyHasController(namespace string) error {
+	return errors.Errorf("Namespace %s has an osm controller. Please specify a new namespace using --namespace", namespace)
 }
 
 func validateCIDRs(cidrRanges []string) error {

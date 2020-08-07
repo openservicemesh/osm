@@ -22,7 +22,7 @@ BOOKSTORE_NAMESPACE="${BOOKSTORE_NAMESPACE:-bookstore}"
 BOOKTHIEF_NAMESPACE="${BOOKTHIEF_NAMESPACE:-bookthief}"
 BOOKWAREHOUSE_NAMESPACE="${BOOKWAREHOUSE_NAMESPACE:-bookwarehouse}"
 CERT_MANAGER="${CERT_MANAGER:-tresor}"
-CTR_REGISTRY="${CTR_REGISTRY:-osmci.azurecr.io/osm}"
+CTR_REGISTRY="${CTR_REGISTRY:-localhost:5000}"
 CTR_REGISTRY_CREDS_NAME="${CTR_REGISTRY_CREDS_NAME:-acr-creds}"
 CTR_TAG="${CTR_TAG:-latest}"
 DEPLOY_TRAFFIC_SPLIT="${DEPLOY_TRAFFIC_SPLIT:-true}"
@@ -70,16 +70,9 @@ wait_for_pod_ready() {
 
 make build-osm
 
-if [[ "$CI" != "true" ]]; then
-    # In Github CI we always use a new namespace - so this is not necessary
-    bin/osm mesh delete -f --mesh-name "$MESH_NAME" --namespace "$K8S_NAMESPACE"
-    ./demo/clean-kubernetes.sh
-else
-    bin/osm mesh delete -f --mesh-name "$MESH_NAME" --namespace "$K8S_NAMESPACE"
-fi
-
-# Run pre-install checks to make sure OSM can be installed in the current kubectl context.
-bin/osm check --pre-install --namespace "$K8S_NAMESPACE"
+# cleanup stale resources from previous runs
+bin/osm mesh delete -f --mesh-name "$MESH_NAME" --namespace "$K8S_NAMESPACE"
+./demo/clean-kubernetes.sh
 
 # The demo uses osm's namespace as defined by environment variables, K8S_NAMESPACE
 # to house the control plane components.
@@ -91,11 +84,7 @@ if [ "$CERT_MANAGER" = "vault" ]; then
     ./demo/deploy-vault.sh
 fi
 
-if [[ "$CI" != "true" ]]; then
-    # For Github CI we achieve these at a different time or different script
-    # See .github/workflows/main.yml
-    ./demo/build-push-images.sh
-fi
+./demo/build-push-images.sh
 ./scripts/create-container-registry-creds.sh "$K8S_NAMESPACE"
 
 # Deploys Xds and Prometheus

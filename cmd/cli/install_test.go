@@ -2,10 +2,14 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"io/ioutil"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
+	fake "k8s.io/client-go/kubernetes/fake"
 
 	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chartutil"
@@ -13,8 +17,7 @@ import (
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/storage"
 	"helm.sh/helm/v3/pkg/storage/driver"
-
-	"github.com/openservicemesh/osm/pkg/check"
+	v1 "k8s.io/api/apps/v1"
 )
 
 var (
@@ -30,26 +33,15 @@ var (
 	testMeshCIDRRanges = []string{testMeshCIDR}
 )
 
-type failingChecker struct{}
-
-func (f failingChecker) Run([]check.Check, func(*check.Result)) bool {
-	return false
-}
-
-type passingChecker struct{}
-
-func (p passingChecker) Run([]check.Check, func(*check.Result)) bool {
-	return true
-}
-
 var _ = Describe("Running the install command", func() {
 
 	Describe("with default parameters", func() {
 		var (
-			out    *bytes.Buffer
-			store  *storage.Storage
-			config *helm.Configuration
-			err    error
+			out           *bytes.Buffer
+			store         *storage.Storage
+			config        *helm.Configuration
+			err           error
+			fakeClientSet kubernetes.Interface
 		)
 
 		BeforeEach(func() {
@@ -68,6 +60,8 @@ var _ = Describe("Running the install command", func() {
 				Log:          func(format string, v ...interface{}) {},
 			}
 
+			fakeClientSet = fake.NewSimpleClientset()
+
 			installCmd := &installCmd{
 				out:                        out,
 				chartPath:                  "testdata/test-chart",
@@ -77,11 +71,11 @@ var _ = Describe("Running the install command", func() {
 				certManager:                "tresor",
 				serviceCertValidityMinutes: 1,
 				prometheusRetentionTime:    testRetentionTime,
-				checker:                    passingChecker{},
 				meshName:                   defaultMeshName,
 				enableEgress:               true,
 				enableMetricsStack:         true,
 				meshCIDRRanges:             testMeshCIDRRanges,
+				clientSet:                  fakeClientSet,
 			}
 
 			err = installCmd.run(config)
@@ -152,10 +146,11 @@ var _ = Describe("Running the install command", func() {
 
 	Describe("with the default chart from source", func() {
 		var (
-			out    *bytes.Buffer
-			store  *storage.Storage
-			config *helm.Configuration
-			err    error
+			out           *bytes.Buffer
+			store         *storage.Storage
+			config        *helm.Configuration
+			err           error
+			fakeClientSet kubernetes.Interface
 		)
 
 		BeforeEach(func() {
@@ -174,6 +169,8 @@ var _ = Describe("Running the install command", func() {
 				Log:          func(format string, v ...interface{}) {},
 			}
 
+			fakeClientSet = fake.NewSimpleClientset()
+
 			installCmd := &installCmd{
 				out:                        out,
 				containerRegistry:          testRegistry,
@@ -182,11 +179,11 @@ var _ = Describe("Running the install command", func() {
 				certManager:                "tresor",
 				serviceCertValidityMinutes: 1,
 				prometheusRetentionTime:    testRetentionTime,
-				checker:                    passingChecker{},
 				meshName:                   defaultMeshName,
 				enableEgress:               true,
 				meshCIDRRanges:             testMeshCIDRRanges,
 				enableMetricsStack:         true,
+				clientSet:                  fakeClientSet,
 			}
 
 			err = installCmd.run(config)
@@ -257,10 +254,11 @@ var _ = Describe("Running the install command", func() {
 
 	Describe("with the vault cert manager", func() {
 		var (
-			out    *bytes.Buffer
-			store  *storage.Storage
-			config *helm.Configuration
-			err    error
+			out           *bytes.Buffer
+			store         *storage.Storage
+			config        *helm.Configuration
+			err           error
+			fakeClientSet kubernetes.Interface
 		)
 
 		BeforeEach(func() {
@@ -278,6 +276,8 @@ var _ = Describe("Running the install command", func() {
 				Log:          func(format string, v ...interface{}) {},
 			}
 
+			fakeClientSet = fake.NewSimpleClientset()
+
 			installCmd := &installCmd{
 				out:                        out,
 				chartPath:                  "testdata/test-chart",
@@ -291,11 +291,11 @@ var _ = Describe("Running the install command", func() {
 				osmImageTag:                testOsmImageTag,
 				serviceCertValidityMinutes: 1,
 				prometheusRetentionTime:    testRetentionTime,
-				checker:                    passingChecker{},
 				meshName:                   defaultMeshName,
 				enableEgress:               true,
 				meshCIDRRanges:             testMeshCIDRRanges,
 				enableMetricsStack:         true,
+				clientSet:                  fakeClientSet,
 			}
 
 			err = installCmd.run(config)
@@ -395,7 +395,6 @@ var _ = Describe("Running the install command", func() {
 				containerRegistrySecret: testRegistrySecret,
 				certManager:             "vault",
 				meshName:                defaultMeshName,
-				checker:                 passingChecker{},
 				enableEgress:            true,
 				meshCIDRRanges:          testMeshCIDRRanges,
 			}
@@ -410,11 +409,12 @@ var _ = Describe("Running the install command", func() {
 
 	Describe("when a mesh with the given name already exists", func() {
 		var (
-			out     *bytes.Buffer
-			store   *storage.Storage
-			config  *helm.Configuration
-			install *installCmd
-			err     error
+			out           *bytes.Buffer
+			store         *storage.Storage
+			config        *helm.Configuration
+			install       *installCmd
+			err           error
+			fakeClientSet kubernetes.Interface
 		)
 
 		BeforeEach(func() {
@@ -433,6 +433,10 @@ var _ = Describe("Running the install command", func() {
 				Log:          func(format string, v ...interface{}) {},
 			}
 
+			fakeClientSet = fake.NewSimpleClientset()
+			deploymentSpec := createDeploymentSpec(settings.Namespace(), defaultMeshName)
+			fakeClientSet.AppsV1().Deployments(settings.Namespace()).Create(context.TODO(), deploymentSpec, metav1.CreateOptions{})
+
 			install = &installCmd{
 				out:                        out,
 				chartPath:                  "testdata/test-chart",
@@ -443,13 +447,13 @@ var _ = Describe("Running the install command", func() {
 				serviceCertValidityMinutes: 1,
 				prometheusRetentionTime:    testRetentionTime,
 				meshName:                   defaultMeshName,
-				checker:                    passingChecker{},
 				enableEgress:               true,
 				meshCIDRRanges:             testMeshCIDRRanges,
+				clientSet:                  fakeClientSet,
 			}
 
 			err = config.Releases.Create(&release.Release{
-				Namespace: "not-" + settings.Namespace(), // should be found in any namespace
+				Namespace: settings.Namespace(), // should be found in any namespace
 				Config: map[string]interface{}{
 					"OpenServiceMesh": map[string]interface{}{
 						"meshName": install.meshName,
@@ -469,6 +473,75 @@ var _ = Describe("Running the install command", func() {
 
 		It("should error", func() {
 			Expect(err.Error()).To(Equal(errMeshAlreadyExists(install.meshName).Error()))
+		})
+	})
+
+	Describe("when a mesh already exists in the given namespace", func() {
+		var (
+			out           *bytes.Buffer
+			store         *storage.Storage
+			config        *helm.Configuration
+			install       *installCmd
+			err           error
+			fakeClientSet kubernetes.Interface
+		)
+
+		BeforeEach(func() {
+			out = new(bytes.Buffer)
+			store = storage.Init(driver.NewMemory())
+			if mem, ok := store.Driver.(*driver.Memory); ok {
+				mem.SetNamespace(settings.Namespace())
+			}
+
+			config = &helm.Configuration{
+				Releases: store,
+				KubeClient: &kubefake.PrintingKubeClient{
+					Out: ioutil.Discard,
+				},
+				Capabilities: chartutil.DefaultCapabilities,
+				Log:          func(format string, v ...interface{}) {},
+			}
+
+			fakeClientSet = fake.NewSimpleClientset()
+			deploymentSpec := createDeploymentSpec(settings.Namespace(), defaultMeshName)
+			fakeClientSet.AppsV1().Deployments(settings.Namespace()).Create(context.TODO(), deploymentSpec, metav1.CreateOptions{})
+
+			install = &installCmd{
+				out:                        out,
+				chartPath:                  "testdata/test-chart",
+				containerRegistry:          testRegistry,
+				containerRegistrySecret:    testRegistrySecret,
+				osmImageTag:                testOsmImageTag,
+				certManager:                "tresor",
+				serviceCertValidityMinutes: 1,
+				prometheusRetentionTime:    testRetentionTime,
+				meshName:                   defaultMeshName + "-2",
+				enableEgress:               true,
+				meshCIDRRanges:             testMeshCIDRRanges,
+				clientSet:                  fakeClientSet,
+			}
+
+			err = config.Releases.Create(&release.Release{
+				Namespace: settings.Namespace(), // should be found in any namespace
+				Config: map[string]interface{}{
+					"OpenServiceMesh": map[string]interface{}{
+						"meshName": install.meshName,
+					},
+				},
+				Info: &release.Info{
+					// helm list only shows deployed and failed releases by default
+					Status: release.StatusDeployed,
+				},
+			})
+			if err != nil {
+				panic(err)
+			}
+
+			err = install.run(config)
+		})
+
+		It("should error", func() {
+			Expect(err.Error()).To(Equal(errNamespaceAlreadyHasController(settings.Namespace()).Error()))
 		})
 	})
 
@@ -506,7 +579,6 @@ var _ = Describe("Running the install command", func() {
 				serviceCertValidityMinutes: 1,
 				prometheusRetentionTime:    testRetentionTime,
 				meshName:                   "osm!!123456789012345678901234567890123456789012345678901234567890", // >65 characters, contains !
-				checker:                    passingChecker{},
 				enableEgress:               true,
 				meshCIDRRanges:             testMeshCIDRRanges,
 			}
@@ -519,52 +591,6 @@ var _ = Describe("Running the install command", func() {
 		})
 	})
 
-	Describe("when pre-install checks fail", func() {
-		var (
-			out    *bytes.Buffer
-			store  *storage.Storage
-			config *helm.Configuration
-			err    error
-		)
-
-		BeforeEach(func() {
-			out = new(bytes.Buffer)
-			store = storage.Init(driver.NewMemory())
-			if mem, ok := store.Driver.(*driver.Memory); ok {
-				mem.SetNamespace(settings.Namespace())
-			}
-
-			config = &helm.Configuration{
-				Releases: store,
-				KubeClient: &kubefake.PrintingKubeClient{
-					Out: ioutil.Discard,
-				},
-				Capabilities: chartutil.DefaultCapabilities,
-				Log:          func(format string, v ...interface{}) {},
-			}
-
-			installCmd := &installCmd{
-				out:                        out,
-				chartPath:                  "testdata/test-chart",
-				containerRegistry:          testRegistry,
-				containerRegistrySecret:    testRegistrySecret,
-				osmImageTag:                testOsmImageTag,
-				certManager:                "tresor",
-				serviceCertValidityMinutes: 1,
-				prometheusRetentionTime:    testRetentionTime,
-				meshName:                   defaultMeshName,
-				checker:                    failingChecker{},
-				enableEgress:               true,
-				meshCIDRRanges:             testMeshCIDRRanges,
-			}
-
-			err = installCmd.run(config)
-		})
-
-		It("should error", func() {
-			Expect(err).To(MatchError("Pre-install checks failed"))
-		})
-	})
 })
 
 var _ = Describe("Resolving values for install command with vault parameters", func() {
@@ -701,3 +727,18 @@ var _ = Describe("Test mesh CIDR ranges", func() {
 		})
 	})
 })
+
+func createDeploymentSpec(namespace, meshName string) *v1.Deployment {
+	labelMap := make(map[string]string)
+	if meshName != "" {
+		labelMap["meshName"] = meshName
+		labelMap["app"] = "osm-controller"
+	}
+	return &v1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "osm-controller",
+			Namespace: namespace,
+			Labels:    labelMap,
+		},
+	}
+}

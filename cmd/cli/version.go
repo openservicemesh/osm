@@ -5,7 +5,6 @@ import (
 	"io"
 
 	"github.com/spf13/cobra"
-	"helm.sh/helm/v3/cmd/helm/require"
 )
 
 const versionHelp = `
@@ -31,7 +30,7 @@ func newVersionCmd(out io.Writer) *cobra.Command {
 		Use:   "version",
 		Short: "osm cli version",
 		Long:  versionHelp,
-		Args:  require.NoArgs,
+		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			PrintCliVersion(out)
 		},

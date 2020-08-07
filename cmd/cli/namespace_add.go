@@ -8,7 +8,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"helm.sh/helm/v3/cmd/helm/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
@@ -36,7 +35,7 @@ func newNamespaceAdd(out io.Writer) *cobra.Command {
 		Use:   "add NAMESPACE ...",
 		Short: "add namespace to mesh",
 		Long:  namespaceAddDescription,
-		Args:  require.MinimumNArgs(1),
+		Args:  cobra.MinimumNArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			namespaceAdd.namespaces = args
 			config, err := settings.RESTClientGetter().ToRESTConfig()

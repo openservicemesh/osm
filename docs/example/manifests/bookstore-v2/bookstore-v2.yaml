@@ -40,7 +40,7 @@ spec:
       serviceAccountName: bookstore-v2
       containers:
         - name: bookstore
-          image: openservicemesh/bookstore:v0.1.0-rc.1
+          image: openservicemesh/bookstore:v0.2.0
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
