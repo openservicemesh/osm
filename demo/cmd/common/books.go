@@ -22,6 +22,9 @@ const (
 
 	// httpsEgressURL is the URL used to test HTTPS egress
 	httpsEgressURL = "https://github.com"
+
+	// bookstorePort is the bookstore service's port
+	bookstorePort = 80
 )
 
 var (
@@ -33,7 +36,7 @@ var (
 	warehouseServiceName                   = "bookwarehouse"
 	bookwarehouseNamespace                 = os.Getenv(BookwarehouseNamespaceEnvVar)
 
-	bookstoreService = fmt.Sprintf("%s.%s", bookstoreServiceName, bookstoreNamespace)     // FQDN
+	bookstoreService = fmt.Sprintf("%s.%s:%d", bookstoreServiceName, bookstoreNamespace, bookstorePort)     // FQDN
 	warehouseService = fmt.Sprintf("%s.%s", warehouseServiceName, bookwarehouseNamespace) // FQDN
 	booksBought      = fmt.Sprintf("http://%s/books-bought", bookstoreService)
 	buyBook          = fmt.Sprintf("http://%s/buy-a-book/new", bookstoreService)

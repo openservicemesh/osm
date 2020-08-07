@@ -132,7 +132,9 @@ func hostnamesTostr(hostnames []string) string {
 	return strings.Join(hostnames, ",")
 }
 
-// GetHostnamesForService returns the hostnames for a service
+// GetHostnamesForService returns the hostnames for a service.
+// The hostname can be the FQDN for the service, and can include ports as well.
+// Ex. bookstore.default, bookstore.default:80, bookstore.default.svc, bookstore.default.svc:80 etc.
 func (mc *MeshCatalog) GetHostnamesForService(meshService service.MeshService) (string, error) {
 	log.Trace().Msgf("Finding domain for service %s", meshService)
 
