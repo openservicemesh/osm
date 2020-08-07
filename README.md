@@ -89,8 +89,6 @@ We have provided two demos for you to experience OSM.
 - The [automated demo](demo/README.md) is a set of scripts anyone can run and shows how OSM can manage, secure and provide observability for microservice environments.
 - The [manual demo](docs/example/README.md) is a step-by-step walkthrough set of instruction of the automated demo.
 
-To explore the same demo step by step, see the [example usage guide](/docs/example/README.md).
-
 ## Using OSM
 
 After installing OSM, [onboard a microservice application](docs/onboard_services.md) to the service mesh.
