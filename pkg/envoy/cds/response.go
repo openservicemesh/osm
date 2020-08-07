@@ -43,7 +43,7 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, proxy *envoy.
 			continue
 		}
 
-		remoteCluster, err := getRemoteServiceCluster(dstService, proxyServiceName)
+		remoteCluster, err := getRemoteServiceCluster(dstService, proxyServiceName, cfg)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed to construct service cluster for proxy %s", proxyServiceName)
 			return nil, err

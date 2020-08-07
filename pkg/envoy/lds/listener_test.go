@@ -48,7 +48,7 @@ var _ = Describe("Construct inbound and outbound listeners", func() {
 			Expect(listener.FilterChains[1].FilterChainMatch).Should(BeNil())
 
 			// Test ListenerFilters
-			expectedListenerFilters := []string{wellknown.OriginalDestination, wellknown.TlsInspector}
+			expectedListenerFilters := []string{wellknown.OriginalDestination}
 			Expect(len(listener.ListenerFilters)).To(Equal(len(expectedListenerFilters)))
 			for _, filter := range listener.ListenerFilters {
 				Expect(containsListenerFilter(expectedListenerFilters, filter.Name)).To(BeTrue())
@@ -70,8 +70,12 @@ var _ = Describe("Construct inbound and outbound listeners", func() {
 			Expect(len(listener.FilterChains)).To(Equal(1)) // Filter chain for in-mesh
 			Expect(listener.FilterChains[0].FilterChainMatch).Should(BeNil())
 
-			// Test that the ListenerFilters for egress don't exist
-			Expect(len(listener.ListenerFilters)).To(Equal(0))
+			// Test ListenerFilters
+			expectedListenerFilters := []string{wellknown.OriginalDestination}
+			Expect(len(listener.ListenerFilters)).To(Equal(len(expectedListenerFilters)))
+			for _, filter := range listener.ListenerFilters {
+				Expect(containsListenerFilter(expectedListenerFilters, filter.Name)).To(BeTrue())
+			}
 			Expect(listener.TrafficDirection).To(Equal(xds_core.TrafficDirection_OUTBOUND))
 		})
 	})
