@@ -11,6 +11,7 @@ Please mark with X for applicable areas.
 - [ ] Certificate Management
 - [ ] Networking
 - [ ] Metrics
+- [ ] SMI Policy
 - [ ] Security
 - [ ] Tests / CI System
 - [ ] Other
