@@ -17,4 +17,4 @@ Please mark with X for applicable areas.
 
 Please answer the following questions with yes/no.
 
-- Is there code borrowed from external sources (provide references if yes):
+- Does this change contain code from or inspired by another project? If so, did you notify the maintainers and provide attribution?
