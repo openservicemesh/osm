@@ -8,7 +8,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"helm.sh/helm/v3/cmd/helm/require"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -33,7 +32,7 @@ func newNamespaceList(out io.Writer) *cobra.Command {
 		Use:   "list",
 		Short: "list namespaces enlisted in meshes",
 		Long:  namespaceListDescription,
-		Args:  require.MaximumNArgs(1),
+		Args:  cobra.MaximumNArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			if len(args) == 1 {
 				namespaceList.meshName = args[0]
