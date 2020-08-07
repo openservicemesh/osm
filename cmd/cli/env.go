@@ -45,7 +45,6 @@ import (
 	"sort"
 
 	"github.com/spf13/cobra"
-	"helm.sh/helm/v3/cmd/helm/require"
 )
 
 const envHelp = `
@@ -57,7 +56,7 @@ func newEnvCmd(out io.Writer) *cobra.Command {
 		Use:   "env",
 		Short: "osm client environment information",
 		Long:  envHelp,
-		Args:  require.NoArgs,
+		Args:  cobra.NoArgs,
 		Run: func(cmd *cobra.Command, args []string) {
 			envVars := settings.EnvVars()
 

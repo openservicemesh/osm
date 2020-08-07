@@ -4,7 +4,6 @@ import (
 	"io"
 
 	"github.com/spf13/cobra"
-	"helm.sh/helm/v3/cmd/helm/require"
 )
 
 const namespaceDescription = `
@@ -19,7 +18,7 @@ func newNamespaceCmd(out io.Writer) *cobra.Command {
 		Short:   "manage osm namespaces",
 		Aliases: []string{"ns"},
 		Long:    namespaceDescription,
-		Args:    require.NoArgs,
+		Args:    cobra.NoArgs,
 	}
 	cmd.AddCommand(newNamespaceAdd(out))
 	cmd.AddCommand(newNamespaceRemove(out))
