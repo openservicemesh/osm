@@ -147,7 +147,7 @@ The different chart templates are used as follows:
 - `prometheus-*.yaml` chart templates are used to deploy a Prometheus instance when the metrics stack is enabled
 - `zipkin-*.yaml` chart templates are used to deploy a Zipkin instance when Zipkin tracing is enabled
 
-## Custom Resource Definitions
+### Custom Resource Definitions
 
 The [`charts/osm/crds/`](/charts/osm/crds/) folder contains the charts corresponding to the SMI CRDs.
 Experimental CRDs can be found under [`charts/osm/crds/experimental/`](/charts/osm/crds/experimental/).
