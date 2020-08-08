@@ -1,9 +1,4 @@
-# Deploy bookstore Namespace
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: bookstore
----
+
 # Create a top level service just for the bookstore domain
 apiVersion: v1
 kind: Service
