@@ -69,7 +69,7 @@ This repository uses [Go v1.14](https://golang.org/). If you are not familiar wi
 
 The OSM packages rely on many external Go libraries.
 
-Take a peek at the [go.mod](../go.mod) file to see all dependencies.
+Take a peek at the [go.mod](/go.mod) file to see all dependencies.
 
 Run `go get -d ./...` to download all required Go packages.
 
