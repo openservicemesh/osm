@@ -97,3 +97,8 @@ func (f FakeConfigurator) GetZipkinPort() uint32 {
 func (f FakeConfigurator) GetZipkinEndpoint() string {
 	return constants.DefaultZipkinEndpoint
 }
+
+// GetEnvoyLogLevel returns the Zipkin endpoint
+func (f FakeConfigurator) GetEnvoyLogLevel() string {
+	return constants.DefaultEnvoyLogLevel
+}

@@ -6,6 +6,7 @@ metadata:
 data:
   permissive_traffic_policy_mode: {{ .Values.OpenServiceMesh.enablePermissiveTrafficPolicy | default "false" | quote }}
   egress: {{ .Values.OpenServiceMesh.enableEgress | quote }}
+  envoy_log_level: {{ .Values.OpenServiceMesh.envoyLogLevel | quote }}
   prometheus_scraping: "true"
 
   zipkin_tracing: {{ .Values.OpenServiceMesh.zipkin.enable | quote }}

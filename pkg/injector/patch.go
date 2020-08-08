@@ -81,7 +81,7 @@ func (wh *webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 
 	patches = append(patches, addContainer(
 		pod.Spec.Containers,
-		getEnvoySidecarContainerSpec(envoyContainerName, wh.config.SidecarImage, envoyNodeID, envoyClusterID),
+		getEnvoySidecarContainerSpec(envoyContainerName, wh.config.SidecarImage, envoyNodeID, envoyClusterID, wh.configurator),
 		"/spec/containers")...,
 	)
 
