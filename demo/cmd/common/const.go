@@ -42,4 +42,7 @@ const (
 
 	// EgressExpectedResponseCodeEnvVar is the environment variable for the expected response code for egress HTTP requests
 	EgressExpectedResponseCodeEnvVar = "EGRESS_EXPECTED_RESPONSE_CODE"
+
+	// EnableEgressEnvVar is the envorinment variable to enable egress requests in the demo
+	EnableEgressEnvVar = "ENABLE_EGRESS"
 )
