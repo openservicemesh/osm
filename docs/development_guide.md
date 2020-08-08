@@ -5,7 +5,7 @@ Thank you for joining us on a journey to build an SMI-native lightweight service
 
 To understand *what* Open Service Mesh does - take it for a spin and kick the tires. Install it on your Kubernetes cluster by following [this guide](./example/README.md).
 
-To get a deeper understanding of how OSM does what it does - take a look at the detailed [software design](/DESIGN.md).
+To get a deeper understanding of how OSM functions - take a look at the detailed [software design](/DESIGN.md).
 
 When you are ready to jump in - [fork the repo](https://docs.github.com/en/github/getting-started-with-github/fork-a-repo) and then [clone it](https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/cloning-a-repository) on your workstation.
 
