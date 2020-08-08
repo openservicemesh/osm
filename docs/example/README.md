@@ -37,6 +37,13 @@ Use the [installation guide](/docs/installation_guide.md) to install the `osm` c
 osm install
 ```
 
+## Clone the GitHub repo locally
+To access the files used throughout the demo, clone the GitHub repository locally and navigate into the osm directory:
+```bash
+git clone https://github.com/openservicemesh/osm.git
+cd osm
+```
+
 ## Deploying the Bookstore Demo Applications
 The `Bookstore`, `Bookbuyer`, `Bookthief`, `Bookwarehouse` demo applications will be installed in their respective Kubernetes Namespaces. In order for these applications to be injected with a Envoy sidecar automatically, we must add the Namespaces to be monitored by the mesh.
 
