@@ -58,7 +58,7 @@ as a birds-eye view of where the different components are located.
 
 The Open Service Mesh controller is written in Go.
 It relies on the [SMI Spec](https://github.com/servicemeshinterface/smi-spec/).
-OSM leverages [Envoy proxy](https://github.com/envoyproxy/envoy) as a data plane and Envoy's [XDS v3](https://github.com/envoyproxy/go-control-plane) protocol.
+OSM leverages [Envoy proxy](https://github.com/envoyproxy/envoy) as a data plane and Envoy's [XDS v3](https://www.envoyproxy.io/docs/envoy/latest/api-v3/api) protocol, which is offered in Go by [go-control-plane](https://github.com/envoyproxy/go-control-plane).
 
 
 ## Get Go-ing
