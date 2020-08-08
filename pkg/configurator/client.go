@@ -75,6 +75,9 @@ type osmConfig struct {
 	// PrometheusScraping is a bool toggle used to enable or disable metrics scraping by Prometheus
 	PrometheusScraping bool `yaml:"prometheus_scraping"`
 
+	// UseHTTPSIngress is a bool toggle enabling HTTPS protocol between ingress and backend pods
+	UseHTTPSIngress bool `yaml:"use_https_ingress"`
+
 	// ZipkinTracing is a bool toggle used to enable ot disable Zipkin tracing
 	ZipkinTracing bool `yaml:"zipkin_tracing"`
 
@@ -90,9 +93,7 @@ type osmConfig struct {
 	// MeshCIDRRanges is the list of CIDR ranges for in-mesh traffic
 	MeshCIDRRanges string `yaml:"mesh_cidr_ranges"`
 
-	// UseHTTPSIngress is a bool toggle enabling HTTPS protocol between ingress and backend pods
-	UseHTTPSIngress bool `yaml:"use_https_ingress"`
-
+	// EnvoyLogLevel is a string that defines the log level for envoy proxies
 	EnvoyLogLevel string `yaml:"envoy_log_level"`
 }
 
