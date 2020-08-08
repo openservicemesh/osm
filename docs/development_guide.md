@@ -78,7 +78,7 @@ Run `go get -d ./...` to download all required Go packages.
 Many of the operations within the repo have GNU Makefile targets.
 More notable:
   - `make build` builds the project
-  - `make go-tests` to run unit tests
+  - `make go-test` to run unit tests
   - `make go-test-coverage` - run unit tests and output unit test coverage
   - `make go-lint` runs golint and golangci-lint
   - `make go-fmt` - same as `go fmt ./...`
