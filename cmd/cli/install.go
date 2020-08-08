@@ -124,7 +124,7 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.StringVar(&inst.osmImageTag, "osm-image-tag", "v0.2.0", "osm image tag")
 	f.StringVar(&inst.containerRegistrySecret, "container-registry-secret", "acr-creds", "name of Kubernetes secret for container registry credentials to be created if it doesn't already exist")
 	f.StringVar(&inst.chartPath, "osm-chart-path", "", "path to osm chart to override default chart")
-	f.StringVar(&inst.certManager, "cert-manager", defaultCertManager, "certificate manager to use (tresor or vault)")
+	f.StringVar(&inst.certManager, "certificate-manager", defaultCertManager, "certificate manager to use (tresor or vault)")
 	f.StringVar(&inst.vaultHost, "vault-host", "", "Hashicorp Vault host/service - where Vault is installed")
 	f.StringVar(&inst.vaultProtocol, "vault-protocol", defaultVaultProtocol, "protocol to use to connect to Vault")
 	f.StringVar(&inst.vaultToken, "vault-token", "", "token that should be used to connect to Vault")
@@ -170,7 +170,7 @@ func (i *installCmd) run(config *helm.Configuration) error {
 			missingFields = append(missingFields, "vault-token")
 		}
 		if len(missingFields) != 0 {
-			return errors.Errorf("Missing arguments for cert-manager vault: %v", missingFields)
+			return errors.Errorf("Missing arguments for certificate-manager vault: %v", missingFields)
 		}
 	}
 

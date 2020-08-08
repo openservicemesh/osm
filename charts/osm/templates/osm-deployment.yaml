@@ -34,7 +34,7 @@ spec:
             "--sidecar-image", "{{.Values.OpenServiceMesh.sidecarImage}}",
             "--webhook-name", "osm-webhook-{{.Values.OpenServiceMesh.meshName}}",
             "--ca-bundle-secret-name", "osm-ca-bundle",
-            "--cert-manager", "{{.Values.OpenServiceMesh.certManager}}",
+            "--certificate-manager", "{{.Values.OpenServiceMesh.certManager}}",
             "--vault-host", "{{.Values.OpenServiceMesh.vault.host}}",
             "--vault-protocol", "{{.Values.OpenServiceMesh.vault.protocol}}",
             "--vault-token", "{{.Values.OpenServiceMesh.vault.token}}",
