@@ -95,7 +95,7 @@ if [ "$CERT_MANAGER" = "vault" ]; then
   bin/osm install \
       --namespace "$K8S_NAMESPACE" \
       --mesh-name "$MESH_NAME" \
-      --cert-manager="$CERT_MANAGER" \
+      --certificate-manager="$CERT_MANAGER" \
       --vault-host="$VAULT_HOST" \
       --vault-token="$VAULT_TOKEN" \
       --vault-protocol="$VAULT_PROTOCOL" \

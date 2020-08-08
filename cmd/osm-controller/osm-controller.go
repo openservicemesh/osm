@@ -67,7 +67,7 @@ var (
 	log                 = logger.New("ads/main")
 
 	// What is the Certification Authority to be used
-	certManagerKind = flags.String("cert-manager", "tresor", "Certificate manager")
+	certManagerKind = flags.String("certificate-manager", "tresor", "Certificate manager")
 
 	// TODO(draychev): convert all these flags to spf13/cobra: https://github.com/openservicemesh/osm/issues/576
 	// When certmanager == "vault"

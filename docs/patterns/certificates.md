@@ -34,7 +34,7 @@ The following configuration parameters will be required for OSM to integrate wit
   - Validity period for certificates
 
 CLI flags control how OSM integrates with Vault. The following OSM command line parameters must be configured to issue certificates with Vault:
-  - `--cert-manager` - set this to `vault`
+  - `--certificate-manager` - set this to `vault`
   - `--vault-host` - host name of the Vault server (example: `vault.contoso.com`)
   - `--vault-protocol` - protocol for Vault connection (`http` or `https`)
   - `--vault-token` - token to be used by OSM to connect to Vault (this is issued on the Vault server for the particular role)
@@ -110,7 +110,7 @@ VAULT_ROLE=openservicemesh
 
 When running OSM on your local workstation, use the following CLI parameters:
 ```
---cert-manager="vault"
+--certificate-manager="vault"
 --vault-host="localhost"  # or the host where Vault is installed
 --vault-protocol="http"
 --vault-token="xyz"
@@ -121,7 +121,7 @@ When running OSM on your local workstation, use the following CLI parameters:
 ### How OSM Integrates with Vault
 
 When the OSM control plane starts, a new certificate issuer is instantiated.
-The kind of cert issuer is determined by the `--cert-manager` CLI parameter.
+The kind of cert issuer is determined by the `--certificate-manager` CLI parameter.
 When this is set to `vault` OSM uses a Vault cert issuer.
 This is a Hashicorp Vault client, which satisfies the `certificate.Manager`
 interface. It provides the following methods:

@@ -403,7 +403,7 @@ var _ = Describe("Running the install command", func() {
 		})
 
 		It("should error", func() {
-			Expect(err).To(MatchError("Missing arguments for cert-manager vault: [vault-host vault-token]"))
+			Expect(err).To(MatchError("Missing arguments for certificate-manager vault: [vault-host vault-token]"))
 		})
 	})
 
