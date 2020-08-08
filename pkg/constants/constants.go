@@ -57,6 +57,9 @@ const (
 	// DefaultZipkinPort is the Zipkin port number.
 	DefaultZipkinPort = uint32(9411)
 
+	// DefaultEnvoyLogLevel is the default envoy log level if not defined in the osm configmap
+	DefaultEnvoyLogLevel = "debug"
+
 	// EnvoyPrometheusInboundListenerPort is Envoy's inbound listener port number for prometheus
 	EnvoyPrometheusInboundListenerPort = 15010
 

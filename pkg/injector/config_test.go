@@ -94,7 +94,8 @@ var _ = Describe("Test Envoy configuration creation", func() {
 var _ = Describe("Test Envoy sidecar", func() {
 	Context("create Envoy sidecar", func() {
 		It("creates correct Envoy sidecar spec", func() {
-			actual := getEnvoySidecarContainerSpec("a", "b", "c", "d")
+			cfg := configurator.NewFakeConfigurator()
+			actual := getEnvoySidecarContainerSpec("a", "b", "c", "d", cfg)
 			Expect(len(actual)).To(Equal(1))
 
 			expected := corev1.Container{
@@ -132,7 +133,7 @@ var _ = Describe("Test Envoy sidecar", func() {
 					"envoy",
 				},
 				Args: []string{
-					"--log-level", "debug",
+					"--log-level", cfg.GetEnvoyLogLevel(),
 					"--config-path", "/etc/envoy/bootstrap.yaml",
 					"--service-node", "c",
 					"--service-cluster", "d",

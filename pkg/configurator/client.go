@@ -24,6 +24,7 @@ const (
 	zipkinPortKey                  = "zipkin_port"
 	zipkinEndpointKey              = "zipkin_endpoint"
 	defaultInMeshCIDR              = ""
+	envoyLogLevel                  = "envoy_log_level"
 )
 
 // NewConfigurator implements configurator.Configurator and creates the Kubernetes client to manage namespaces.
@@ -91,6 +92,8 @@ type osmConfig struct {
 
 	// UseHTTPSIngress is a bool toggle enabling HTTPS protocol between ingress and backend pods
 	UseHTTPSIngress bool `yaml:"use_https_ingress"`
+
+	EnvoyLogLevel string `yaml:"envoy_log_level"`
 }
 
 func (c *Client) run(stop <-chan struct{}) {
@@ -137,6 +140,7 @@ func (c *Client) getConfigMap() *osmConfig {
 		ZipkinAddress:  getStringValueForKey(configMap, zipkinAddressKey),
 		ZipkinPort:     getIntValueForKey(configMap, zipkinPortKey),
 		ZipkinEndpoint: getStringValueForKey(configMap, zipkinEndpointKey),
+		EnvoyLogLevel:  getStringValueForKey(configMap, envoyLogLevel),
 	}
 }
 
