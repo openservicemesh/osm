@@ -28,6 +28,7 @@ assignees: ''
 - [ ] Debugging
 - [ ] Tests
 - [ ] CI System
+- [ ] Project Release
 
 **Possible use cases**
 <!-- A clear and concise description of possible use cases for this proposal. -->

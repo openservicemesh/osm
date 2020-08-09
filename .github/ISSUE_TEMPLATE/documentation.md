@@ -1,7 +1,7 @@
 name: Documentation
 about: Suggest an improvement for documentation
 title: ''
-labels: documentation story
+labels: documentation
 assignees: ''
 
 ---
