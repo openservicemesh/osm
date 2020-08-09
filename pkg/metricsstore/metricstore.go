@@ -74,7 +74,7 @@ func (ms *OSMMetricsStore) SetUpdateLatencySec(duration time.Duration) {
 	ms.updateLatency.Set(duration.Seconds())
 }
 
-// IncK8sAPIEventCounter increases the counter after recieving a k8s Event
+// IncK8sAPIEventCounter increases the counter after receiving a k8s Event
 func (ms *OSMMetricsStore) IncK8sAPIEventCounter() {
 	ms.k8sAPIEventCounter.Inc()
 }

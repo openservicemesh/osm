@@ -58,7 +58,7 @@ var _ = Describe("CDS Response", func() {
 			{
 				// Create a service for the pod created above
 				selectors := map[string]string{
-					// These need to match teh POD created above
+					// These need to match the POD created above
 					tests.SelectorKey: tests.SelectorValue,
 				}
 				// The serviceName must match the SMI

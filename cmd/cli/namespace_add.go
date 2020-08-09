@@ -70,7 +70,7 @@ func (a *namespaceAddCmd) run() error {
 			return errors.Errorf("Could not label namespace [%s]: %v", ns, err)
 		}
 
-		fmt.Fprintf(a.out, "Namespace [%s] succesfully added to mesh [%s]\n", ns, a.meshName)
+		fmt.Fprintf(a.out, "Namespace [%s] successfully added to mesh [%s]\n", ns, a.meshName)
 	}
 
 	return nil
