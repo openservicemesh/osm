@@ -55,7 +55,7 @@ var _ = Describe("Running the namespace add command", func() {
 			})
 
 			It("should give a message confirming the successful install", func() {
-				Expect(out.String()).To(Equal(fmt.Sprintf("Namespace [%s] succesfully added to mesh [%s]\n", testNamespace, testMeshName)))
+				Expect(out.String()).To(Equal(fmt.Sprintf("Namespace [%s] successfully added to mesh [%s]\n", testNamespace, testMeshName)))
 			})
 		})
 		Context("given two namespaces as args", func() {
@@ -90,7 +90,7 @@ var _ = Describe("Running the namespace add command", func() {
 			})
 
 			It("should give a message confirming the successful install", func() {
-				Expect(out.String()).To(Equal(fmt.Sprintf("Namespace [%s] succesfully added to mesh [%s]\nNamespace [%s] succesfully added to mesh [%s]\n", testNamespace, testMeshName, testNamespace2, testMeshName)))
+				Expect(out.String()).To(Equal(fmt.Sprintf("Namespace [%s] successfully added to mesh [%s]\nNamespace [%s] successfully added to mesh [%s]\n", testNamespace, testMeshName, testNamespace2, testMeshName)))
 			})
 		})
 	})
@@ -154,7 +154,7 @@ var _ = Describe("Running the namespace remove command", func() {
 		})
 
 		It("should give a message confirming the successful install", func() {
-			Expect(out.String()).To(Equal(fmt.Sprintf("Namespace [%s] succesfully removed from mesh [%s]\n", testNamespace, testMeshName)))
+			Expect(out.String()).To(Equal(fmt.Sprintf("Namespace [%s] successfully removed from mesh [%s]\n", testNamespace, testMeshName)))
 		})
 	})
 

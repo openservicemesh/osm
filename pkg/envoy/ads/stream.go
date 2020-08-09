@@ -102,7 +102,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 
 			// In the DiscoveryRequest we have a VersionInfo field.
 			// When this is smaller or equal to what we last sent to this proxy - it is
-			// interpreted as an acknoweldgement of a previously sent request.
+			// interpreted as an acknowledgement of a previously sent request.
 			// Such DiscoveryRequest requires no further action.
 			if ackVersion > 0 && ackVersion <= proxy.GetLastSentVersion(typeURL) {
 				log.Debug().Msgf("Request %s VersionInfo (%d) <= last sent VersionInfo (%d); ACK", typeURL, ackVersion, proxy.GetLastSentVersion(typeURL))

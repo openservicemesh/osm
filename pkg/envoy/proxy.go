@@ -30,7 +30,7 @@ func (p *Proxy) SetLastAppliedVersion(typeURI TypeURI, version uint64) {
 	p.lastAppliedVersion[typeURI] = version
 }
 
-// GetLastAppliedVersion returns the last version sucessfully applied to the given Envoy proxy.
+// GetLastAppliedVersion returns the last version successfully applied to the given Envoy proxy.
 func (p Proxy) GetLastAppliedVersion(typeURI TypeURI) uint64 {
 	return p.lastAppliedVersion[typeURI]
 }

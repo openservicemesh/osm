@@ -27,8 +27,8 @@ var _ = Describe("Test Vault Debugger", func() {
 		}
 		It("lists all issued certificets", func() {
 			actual := cm.ListIssuedCertificates()
-			expeced := []certificate.Certificater{cert}
-			Expect(actual).To(Equal(expeced))
+			expected := []certificate.Certificater{cert}
+			Expect(actual).To(Equal(expected))
 		})
 	})
 })
