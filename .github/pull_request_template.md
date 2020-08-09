@@ -3,18 +3,18 @@ information so that others can review it.
 
 Please mark with X for applicable areas.
 
-- [ ] New Functionality
-- [ ] Documentation
-- [ ] Install
-- [ ] Control Plane
-- [ ] CLI Tool
-- [ ] Certificate Management
-- [ ] Networking
-- [ ] Metrics
-- [ ] SMI Policy
-- [ ] Security
-- [ ] Tests / CI System
-- [ ] Other
+- New Functionality      [ ]
+- Documentation          [ ]
+- Install                [ ]
+- Control Plane          [ ]
+- CLI Tool               [ ]
+- Certificate Management [ ]
+- Networking             [ ]
+- Metrics                [ ]
+- SMI Policy             [ ]
+- Security               [ ]
+- Tests / CI System      [ ]
+- Other                  [ ]
 
 Please answer the following questions with yes/no.
 
