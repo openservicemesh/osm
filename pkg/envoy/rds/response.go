@@ -38,10 +38,10 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, proxy *envo
 	}
 
 	routeConfiguration := []*xds_route.RouteConfiguration{}
-	sourceRouteConfig := route.NewRouteConfigurationStub(route.OutboundRouteConfigName)
-	destinationRouteConfig := route.NewRouteConfigurationStub(route.InboundRouteConfigName)
-	sourceAggregatedRoutesByHostnames := make(map[string]map[string]trafficpolicy.RouteWeightedClusters)
-	destinationAggregatedRoutesByHostnames := make(map[string]map[string]trafficpolicy.RouteWeightedClusters)
+	outboundRouteConfig := route.NewRouteConfigurationStub(route.OutboundRouteConfigName)
+	inboundRouteConfig := route.NewRouteConfigurationStub(route.InboundRouteConfigName)
+	outboundAggregatedRoutesByHostnames := make(map[string]map[string]trafficpolicy.RouteWeightedClusters)
+	inboundAggregatedRoutesByHostnames := make(map[string]map[string]trafficpolicy.RouteWeightedClusters)
 
 	for _, trafficPolicies := range allTrafficPolicies {
 		isSourceService := trafficPolicies.Source.Equals(proxyServiceName)
@@ -59,22 +59,22 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, proxy *envo
 		}
 
 		if isSourceService {
-			aggregateRoutesByHost(sourceAggregatedRoutesByHostnames, trafficPolicies.Route, weightedCluster, hostnames)
+			aggregateRoutesByHost(outboundAggregatedRoutesByHostnames, trafficPolicies.Route, weightedCluster, hostnames)
 		}
 
 		if isDestinationService {
-			aggregateRoutesByHost(destinationAggregatedRoutesByHostnames, trafficPolicies.Route, weightedCluster, hostnames)
+			aggregateRoutesByHost(inboundAggregatedRoutesByHostnames, trafficPolicies.Route, weightedCluster, hostnames)
 		}
 	}
 
-	if err = updateRoutesForIngress(proxyServiceName, catalog, destinationAggregatedRoutesByHostnames); err != nil {
+	if err = updateRoutesForIngress(proxyServiceName, catalog, inboundAggregatedRoutesByHostnames); err != nil {
 		return nil, err
 	}
 
-	route.UpdateRouteConfiguration(sourceAggregatedRoutesByHostnames, sourceRouteConfig, true, false)
-	route.UpdateRouteConfiguration(destinationAggregatedRoutesByHostnames, destinationRouteConfig, false, true)
-	routeConfiguration = append(routeConfiguration, sourceRouteConfig)
-	routeConfiguration = append(routeConfiguration, destinationRouteConfig)
+	route.UpdateRouteConfiguration(outboundAggregatedRoutesByHostnames, outboundRouteConfig, route.OutboundRoute)
+	route.UpdateRouteConfiguration(inboundAggregatedRoutesByHostnames, inboundRouteConfig, route.InboundRoute)
+	routeConfiguration = append(routeConfiguration, outboundRouteConfig)
+	routeConfiguration = append(routeConfiguration, inboundRouteConfig)
 
 	for _, config := range routeConfiguration {
 		marshalledRouteConfig, err := ptypes.MarshalAny(config)
