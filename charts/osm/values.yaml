@@ -20,6 +20,11 @@ OpenServiceMesh:
     protocol: http
     token:
     role: openservicemesh
+  certmanager:
+    issuerName: osm-ca
+    issuerKind: Issuer
+    issuerGroup: cert-manager
+    caSecret: osm-ca
   serviceCertValidityMinutes: 1
   grafana:
     port: 3000
