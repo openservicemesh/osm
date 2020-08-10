@@ -75,6 +75,10 @@ type installCmd struct {
 	vaultProtocol                 string
 	vaultToken                    string
 	vaultRole                     string
+	certmanagerCASecret           string
+	certmanagerIssuerName         string
+	certmanagerIssuerKind         string
+	certmanagerIssuerGroup        string
 	serviceCertValidityMinutes    int
 	prometheusRetentionTime       string
 	enableDebugServer             bool
@@ -129,6 +133,10 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.StringVar(&inst.vaultProtocol, "vault-protocol", defaultVaultProtocol, "protocol to use to connect to Vault")
 	f.StringVar(&inst.vaultToken, "vault-token", "", "token that should be used to connect to Vault")
 	f.StringVar(&inst.vaultRole, "vault-role", "openservicemesh", "Vault role to be used by Open Service Mesh")
+	f.StringVar(&inst.certmanagerCASecret, "cert-manager-ca-secret", "osm-ca", "Kubernetes Secret containing cert-manager's CA certificate")
+	f.StringVar(&inst.certmanagerIssuerName, "cert-manager-issuer-name", "osm-ca", "cert-manager issuer name")
+	f.StringVar(&inst.certmanagerIssuerKind, "cert-manager-issuer-kind", "Issuer", "cert-manager issuer kind")
+	f.StringVar(&inst.certmanagerIssuerGroup, "cert-manager-issuer-group", "cert-manager.io", "cert-manager issuer group")
 	f.IntVar(&inst.serviceCertValidityMinutes, "service-cert-validity-minutes", defaultCertValidityMinutes, "Certificate TTL in minutes")
 	f.StringVar(&inst.prometheusRetentionTime, "prometheus-retention-time", constants.PrometheusDefaultRetentionTime, "Duration for which data will be retained in prometheus")
 	f.BoolVar(&inst.enableDebugServer, "enable-debug-server", false, "Enable the debug HTTP server")
@@ -236,6 +244,10 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 		fmt.Sprintf("OpenServiceMesh.vault.protocol=%s", i.vaultProtocol),
 		fmt.Sprintf("OpenServiceMesh.vault.token=%s", i.vaultToken),
 		fmt.Sprintf("OpenServiceMesh.vault.role=%s", i.vaultRole),
+		fmt.Sprintf("OpenServiceMesh.certmanager.caSecret=%s", i.certmanagerCASecret),
+		fmt.Sprintf("OpenServiceMesh.certmanager.issuerName=%s", i.certmanagerIssuerName),
+		fmt.Sprintf("OpenServiceMesh.certmanager.issuerKind=%s", i.certmanagerIssuerKind),
+		fmt.Sprintf("OpenServiceMesh.certmanager.issuerGroup=%s", i.certmanagerIssuerGroup),
 		fmt.Sprintf("OpenServiceMesh.serviceCertValidityMinutes=%d", i.serviceCertValidityMinutes),
 		fmt.Sprintf("OpenServiceMesh.prometheus.retention.time=%s", i.prometheusRetentionTime),
 		fmt.Sprintf("OpenServiceMesh.enableDebugServer=%t", i.enableDebugServer),

@@ -18,6 +18,12 @@ func validateCLIParams() error {
 		}
 	}
 
+	if *certManagerKind == certmanagerKind {
+		if len(*certmanagerIssuerName) == 0 {
+			return errors.Errorf("Empty cert-manager issuer name")
+		}
+	}
+
 	if meshName == "" {
 		return errors.Errorf("Please specify the mesh name using --mesh-name")
 	}

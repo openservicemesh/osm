@@ -6,11 +6,15 @@ import (
 	"fmt"
 	"time"
 
+	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
+	cmversionedclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
 	"github.com/pkg/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/certificate/providers/certmanager"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/vault"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -30,6 +34,10 @@ const (
 	// Hashi Vault integration; OSM is pointed to an external Vault; signing of certs happens on Vault
 	vaultKind = "vault"
 
+	// cert-manager integration; certificates are requested using cert-manager
+	// CertificateRequest resources, signed by the configured issuer.
+	certmanagerKind = "cert-manager"
+
 	// Additional values for the root certificate
 	rootCertCountry      = "US"
 	rootCertLocality     = "CA"
@@ -37,10 +45,11 @@ const (
 )
 
 // Functions we can call to create a Certificate Manager for each kind of supported certificate issuer
-var certManagers = map[certificateManagerKind]func(kubeClient kubernetes.Interface, enableDebugServer bool) (certificate.Manager, debugger.CertificateManagerDebugger, error){
-	tresorKind:   getTresorCertificateManager,
-	keyVaultKind: getAzureKeyVaultCertManager,
-	vaultKind:    getHashiVaultCertManager,
+var certManagers = map[certificateManagerKind]func(kubeClient kubernetes.Interface, kubeConfig *rest.Config, enableDebugServer bool) (certificate.Manager, debugger.CertificateManagerDebugger, error){
+	tresorKind:      getTresorCertificateManager,
+	keyVaultKind:    getAzureKeyVaultCertManager,
+	vaultKind:       getHashiVaultCertManager,
+	certmanagerKind: getJetstackCertManagerCertManager,
 }
 
 // Get a list of the supported certificate issuers
@@ -52,7 +61,7 @@ func getPossibleCertManagers() []string {
 	return possible
 }
 
-func getTresorCertificateManager(kubeClient kubernetes.Interface, enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
+func getTresorCertificateManager(kubeClient kubernetes.Interface, _ *rest.Config, enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
 	var err error
 	var rootCert certificate.Certificater
 
@@ -88,7 +97,7 @@ func getTresorCertificateManager(kubeClient kubernetes.Interface, enableDebug bo
 }
 
 func getCertFromKubernetes(kubeClient kubernetes.Interface, namespace, secretName string) certificate.Certificater {
-	secrets, err := kubeClient.CoreV1().Secrets(namespace).List(context.Background(), v1.ListOptions{})
+	secrets, err := kubeClient.CoreV1().Secrets(namespace).List(context.Background(), metav1.ListOptions{})
 	if err != nil {
 		log.Error().Err(err).Msgf("Error listing secrets in namespace %q", namespace)
 	}
@@ -104,7 +113,7 @@ func getCertFromKubernetes(kubeClient kubernetes.Interface, namespace, secretNam
 		return nil
 	}
 
-	rootCertSecret, err := kubeClient.CoreV1().Secrets(namespace).Get(context.Background(), secretName, v1.GetOptions{})
+	rootCertSecret, err := kubeClient.CoreV1().Secrets(namespace).Get(context.Background(), secretName, metav1.GetOptions{})
 	if err != nil {
 		log.Warn().Msgf("Error retrieving root certificate rootCertSecret %q from namespace %q; Will create a new one", secretName, osmNamespace)
 		return nil
@@ -146,13 +155,13 @@ func getCertFromKubernetes(kubeClient kubernetes.Interface, namespace, secretNam
 	return rootCert
 }
 
-func getAzureKeyVaultCertManager(_ kubernetes.Interface, enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
+func getAzureKeyVaultCertManager(_ kubernetes.Interface, _ *rest.Config, enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
 	// TODO(draychev): implement: https://github.com/openservicemesh/osm/issues/577
 	log.Fatal().Msg("Azure Key Vault certificate manager is not implemented")
 	return nil, nil, nil
 }
 
-func getHashiVaultCertManager(_ kubernetes.Interface, enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
+func getHashiVaultCertManager(_ kubernetes.Interface, _ *rest.Config, enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
 	if _, ok := map[string]interface{}{"http": nil, "https": nil}[*vaultProtocol]; !ok {
 		return nil, nil, errors.Errorf("Value %s is not a valid Hashi Vault protocol", *vaultProtocol)
 	}
@@ -165,6 +174,39 @@ func getHashiVaultCertManager(_ kubernetes.Interface, enableDebug bool) (certifi
 	}
 
 	return vaultCertManager, vaultCertManager, nil
+}
+
+func getJetstackCertManagerCertManager(kubeClient kubernetes.Interface, kubeConfig *rest.Config, enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
+	rootCertSecret, err := kubeClient.CoreV1().Secrets(osmNamespace).Get(context.TODO(), *certmanagerSecretCA, metav1.GetOptions{})
+	if err != nil {
+		return nil, nil, fmt.Errorf("Failed to get cert-manager CA secret %s/%s: %s", osmNamespace, *certmanagerSecretCA, err)
+	}
+
+	pemCert, ok := rootCertSecret.Data[constants.KubernetesOpaqueSecretCAKey]
+	if !ok {
+		return nil, nil, fmt.Errorf("Opaque k8s secret %s/%s does not have required field %q", osmNamespace, *certmanagerSecretCA, constants.KubernetesOpaqueSecretCAKey)
+	}
+
+	rootCert, err := certmanager.NewRootCertificateFromPEM(pemCert)
+	if err != nil {
+		return nil, nil, fmt.Errorf("Failed to decode cert-manager CA certificate from secret %s/%s: %s", osmNamespace, *certmanagerSecretCA, err)
+	}
+
+	client, err := cmversionedclient.NewForConfig(kubeConfig)
+	if err != nil {
+		return nil, nil, fmt.Errorf("Failed to build cert-manager client set: %s", err)
+	}
+
+	certmanagerCertManager, err := certmanager.NewCertManager(rootCert, client, osmNamespace, getServiceCertValidityPeriod(), cmmeta.ObjectReference{
+		Name:  *certmanagerIssuerName,
+		Kind:  *certmanagerIssuerKind,
+		Group: *certmanagerIssuerGroup,
+	})
+	if err != nil {
+		return nil, nil, errors.Errorf("Error instantiating Jetstack cert-manager as a Certificate Manager: %+v", err)
+	}
+
+	return certmanagerCertManager, certmanagerCertManager, nil
 }
 
 func getServiceCertValidityPeriod() time.Duration {

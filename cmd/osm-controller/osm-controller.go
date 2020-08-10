@@ -76,6 +76,11 @@ var (
 	vaultPort     = flags.Int("vault-port", 8200, "Port of the Hashi Vault")
 	vaultToken    = flags.String("vault-token", "", "Secret token for the the Hashi Vault")
 	vaultRole     = flags.String("vault-role", "openservicemesh", "Name of the Vault role dedicated to Open Service Mesh")
+
+	certmanagerSecretCA    = flags.String("cert-manager-ca-secret", "cert-manager-ca", "Kubernetes Secret containing cert-manager's CA certificate")
+	certmanagerIssuerName  = flags.String("cert-manager-issuer-name", "osm-ca", "cert-manager issuer name")
+	certmanagerIssuerKind  = flags.String("cert-manager-issuer-kind", "Issuer", "cert-manager issuer kind")
+	certmanagerIssuerGroup = flags.String("cert-manager-issuer-group", "cert-manager.io", "cert-manager issuer group")
 )
 
 func init() {
@@ -145,7 +150,7 @@ func main() {
 	}
 
 	// Get the Certificate Manager based on the CLI argument passed to this module.
-	certManager, certDebugger, err := certManagers[certificateManagerKind(*certManagerKind)](kubeClient, enableDebugServer)
+	certManager, certDebugger, err := certManagers[certificateManagerKind(*certManagerKind)](kubeClient, kubeConfig, enableDebugServer)
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Failed to get certificate manager based on CLI argument")
 	}
