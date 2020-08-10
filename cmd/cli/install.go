@@ -127,6 +127,11 @@ func (i *installCmd) run(config *helm.Configuration) error {
 		return err
 	}
 
+	err = i.cfg.validate()
+	if err != nil {
+		return err
+	}
+
 	deploymentsClient := i.clientSet.AppsV1().Deployments("") // Get deployments from all namespaces
 
 	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"meshName": i.cfg.meshName}}
@@ -150,7 +155,7 @@ func (i *installCmd) run(config *helm.Configuration) error {
 		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
 	}
 	list, err = deploymentsClient.List(context.TODO(), listOptions)
-	if list != nil && len(list.Items) != 0 {
+	if len(list.Items) != 0 {
 		return errNamespaceAlreadyHasController(settings.Namespace())
 	}
 
