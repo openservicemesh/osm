@@ -57,6 +57,7 @@ type CertManager struct {
 	crLister cmlisters.CertificateRequestNamespaceLister
 }
 
+// Certificate implements certificate.Certificater
 type Certificate struct {
 	// The commonName of the certificate
 	commonName certificate.CommonName
