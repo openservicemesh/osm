@@ -27,6 +27,10 @@ The OSM Manual Install Demo Guide is designed to quickly allow you to demo and e
 - Have `kubectl` CLI installed - [Install and Set Up Kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 - kubectl current context is configured for the target cluster install
   - ```kubectl config current-context```
+- Have a local clone of the OSM GitHub Repo
+  - ```git clone https://github.com/openservicemesh/osm.git```
+  - ```cd osm```
+
 
 
 ## Install OSM CLI
