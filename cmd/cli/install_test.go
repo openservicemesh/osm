@@ -63,19 +63,21 @@ var _ = Describe("Running the install command", func() {
 			fakeClientSet = fake.NewSimpleClientset()
 
 			installCmd := &installCmd{
-				out:                        out,
-				chartPath:                  "testdata/test-chart",
-				containerRegistry:          testRegistry,
-				containerRegistrySecret:    testRegistrySecret,
-				osmImageTag:                testOsmImageTag,
-				certManager:                "tresor",
-				serviceCertValidityMinutes: 1,
-				prometheusRetentionTime:    testRetentionTime,
-				meshName:                   defaultMeshName,
-				enableEgress:               true,
-				enableMetricsStack:         true,
-				meshCIDRRanges:             testMeshCIDRRanges,
-				clientSet:                  fakeClientSet,
+				out: out,
+				cfg: actionConfig{
+					chartPath:                  "testdata/test-chart",
+					containerRegistry:          testRegistry,
+					containerRegistrySecret:    testRegistrySecret,
+					osmImageTag:                testOsmImageTag,
+					certManager:                "tresor",
+					serviceCertValidityMinutes: 1,
+					prometheusRetentionTime:    testRetentionTime,
+					meshName:                   defaultMeshName,
+					enableEgress:               true,
+					enableMetricsStack:         true,
+					meshCIDRRanges:             testMeshCIDRRanges,
+				},
+				clientSet: fakeClientSet,
 			}
 
 			err = installCmd.run(config)
@@ -172,18 +174,20 @@ var _ = Describe("Running the install command", func() {
 			fakeClientSet = fake.NewSimpleClientset()
 
 			installCmd := &installCmd{
-				out:                        out,
-				containerRegistry:          testRegistry,
-				containerRegistrySecret:    testRegistrySecret,
-				osmImageTag:                testOsmImageTag,
-				certManager:                "tresor",
-				serviceCertValidityMinutes: 1,
-				prometheusRetentionTime:    testRetentionTime,
-				meshName:                   defaultMeshName,
-				enableEgress:               true,
-				meshCIDRRanges:             testMeshCIDRRanges,
-				enableMetricsStack:         true,
-				clientSet:                  fakeClientSet,
+				out: out,
+				cfg: actionConfig{
+					containerRegistry:          testRegistry,
+					containerRegistrySecret:    testRegistrySecret,
+					osmImageTag:                testOsmImageTag,
+					certManager:                "tresor",
+					serviceCertValidityMinutes: 1,
+					prometheusRetentionTime:    testRetentionTime,
+					meshName:                   defaultMeshName,
+					enableEgress:               true,
+					meshCIDRRanges:             testMeshCIDRRanges,
+					enableMetricsStack:         true,
+				},
+				clientSet: fakeClientSet,
 			}
 
 			err = installCmd.run(config)
@@ -279,23 +283,25 @@ var _ = Describe("Running the install command", func() {
 			fakeClientSet = fake.NewSimpleClientset()
 
 			installCmd := &installCmd{
-				out:                        out,
-				chartPath:                  "testdata/test-chart",
-				containerRegistry:          testRegistry,
-				containerRegistrySecret:    testRegistrySecret,
-				certManager:                "vault",
-				vaultHost:                  testVaultHost,
-				vaultToken:                 testVaultToken,
-				vaultRole:                  testVaultRole,
-				vaultProtocol:              "http",
-				osmImageTag:                testOsmImageTag,
-				serviceCertValidityMinutes: 1,
-				prometheusRetentionTime:    testRetentionTime,
-				meshName:                   defaultMeshName,
-				enableEgress:               true,
-				meshCIDRRanges:             testMeshCIDRRanges,
-				enableMetricsStack:         true,
-				clientSet:                  fakeClientSet,
+				out: out,
+				cfg: actionConfig{
+					chartPath:                  "testdata/test-chart",
+					containerRegistry:          testRegistry,
+					containerRegistrySecret:    testRegistrySecret,
+					certManager:                "vault",
+					vaultHost:                  testVaultHost,
+					vaultToken:                 testVaultToken,
+					vaultRole:                  testVaultRole,
+					vaultProtocol:              "http",
+					osmImageTag:                testOsmImageTag,
+					serviceCertValidityMinutes: 1,
+					prometheusRetentionTime:    testRetentionTime,
+					meshName:                   defaultMeshName,
+					enableEgress:               true,
+					meshCIDRRanges:             testMeshCIDRRanges,
+					enableMetricsStack:         true,
+				},
+				clientSet: fakeClientSet,
 			}
 
 			err = installCmd.run(config)
@@ -389,14 +395,16 @@ var _ = Describe("Running the install command", func() {
 			}
 
 			installCmd := &installCmd{
-				out:                     out,
-				chartPath:               "testdata/test-chart",
-				containerRegistry:       testRegistry,
-				containerRegistrySecret: testRegistrySecret,
-				certManager:             "vault",
-				meshName:                defaultMeshName,
-				enableEgress:            true,
-				meshCIDRRanges:          testMeshCIDRRanges,
+				out: out,
+				cfg: actionConfig{
+					chartPath:               "testdata/test-chart",
+					containerRegistry:       testRegistry,
+					containerRegistrySecret: testRegistrySecret,
+					certManager:             "vault",
+					meshName:                defaultMeshName,
+					enableEgress:            true,
+					meshCIDRRanges:          testMeshCIDRRanges,
+				},
 			}
 
 			err = installCmd.run(config)
@@ -438,25 +446,27 @@ var _ = Describe("Running the install command", func() {
 			fakeClientSet.AppsV1().Deployments(settings.Namespace()).Create(context.TODO(), deploymentSpec, metav1.CreateOptions{})
 
 			install = &installCmd{
-				out:                        out,
-				chartPath:                  "testdata/test-chart",
-				containerRegistry:          testRegistry,
-				containerRegistrySecret:    testRegistrySecret,
-				osmImageTag:                testOsmImageTag,
-				certManager:                "tresor",
-				serviceCertValidityMinutes: 1,
-				prometheusRetentionTime:    testRetentionTime,
-				meshName:                   defaultMeshName,
-				enableEgress:               true,
-				meshCIDRRanges:             testMeshCIDRRanges,
-				clientSet:                  fakeClientSet,
+				out: out,
+				cfg: actionConfig{
+					chartPath:                  "testdata/test-chart",
+					containerRegistry:          testRegistry,
+					containerRegistrySecret:    testRegistrySecret,
+					osmImageTag:                testOsmImageTag,
+					certManager:                "tresor",
+					serviceCertValidityMinutes: 1,
+					prometheusRetentionTime:    testRetentionTime,
+					meshName:                   defaultMeshName,
+					enableEgress:               true,
+					meshCIDRRanges:             testMeshCIDRRanges,
+				},
+				clientSet: fakeClientSet,
 			}
 
 			err = config.Releases.Create(&release.Release{
 				Namespace: settings.Namespace(), // should be found in any namespace
 				Config: map[string]interface{}{
 					"OpenServiceMesh": map[string]interface{}{
-						"meshName": install.meshName,
+						"meshName": install.cfg.meshName,
 					},
 				},
 				Info: &release.Info{
@@ -472,7 +482,7 @@ var _ = Describe("Running the install command", func() {
 		})
 
 		It("should error", func() {
-			Expect(err.Error()).To(Equal(errMeshAlreadyExists(install.meshName).Error()))
+			Expect(err.Error()).To(Equal(errMeshAlreadyExists(install.cfg.meshName).Error()))
 		})
 	})
 
@@ -507,25 +517,27 @@ var _ = Describe("Running the install command", func() {
 			fakeClientSet.AppsV1().Deployments(settings.Namespace()).Create(context.TODO(), deploymentSpec, metav1.CreateOptions{})
 
 			install = &installCmd{
-				out:                        out,
-				chartPath:                  "testdata/test-chart",
-				containerRegistry:          testRegistry,
-				containerRegistrySecret:    testRegistrySecret,
-				osmImageTag:                testOsmImageTag,
-				certManager:                "tresor",
-				serviceCertValidityMinutes: 1,
-				prometheusRetentionTime:    testRetentionTime,
-				meshName:                   defaultMeshName + "-2",
-				enableEgress:               true,
-				meshCIDRRanges:             testMeshCIDRRanges,
-				clientSet:                  fakeClientSet,
+				out: out,
+				cfg: actionConfig{
+					chartPath:                  "testdata/test-chart",
+					containerRegistry:          testRegistry,
+					containerRegistrySecret:    testRegistrySecret,
+					osmImageTag:                testOsmImageTag,
+					certManager:                "tresor",
+					serviceCertValidityMinutes: 1,
+					prometheusRetentionTime:    testRetentionTime,
+					meshName:                   defaultMeshName + "-2",
+					enableEgress:               true,
+					meshCIDRRanges:             testMeshCIDRRanges,
+				},
+				clientSet: fakeClientSet,
 			}
 
 			err = config.Releases.Create(&release.Release{
 				Namespace: settings.Namespace(), // should be found in any namespace
 				Config: map[string]interface{}{
 					"OpenServiceMesh": map[string]interface{}{
-						"meshName": install.meshName,
+						"meshName": install.cfg.meshName,
 					},
 				},
 				Info: &release.Info{
@@ -570,17 +582,19 @@ var _ = Describe("Running the install command", func() {
 			}
 
 			install = &installCmd{
-				out:                        out,
-				chartPath:                  "testdata/test-chart",
-				containerRegistry:          testRegistry,
-				containerRegistrySecret:    testRegistrySecret,
-				osmImageTag:                testOsmImageTag,
-				certManager:                "tresor",
-				serviceCertValidityMinutes: 1,
-				prometheusRetentionTime:    testRetentionTime,
-				meshName:                   "osm!!123456789012345678901234567890123456789012345678901234567890", // >65 characters, contains !
-				enableEgress:               true,
-				meshCIDRRanges:             testMeshCIDRRanges,
+				out: out,
+				cfg: actionConfig{
+					chartPath:                  "testdata/test-chart",
+					containerRegistry:          testRegistry,
+					containerRegistrySecret:    testRegistrySecret,
+					osmImageTag:                testOsmImageTag,
+					certManager:                "tresor",
+					serviceCertValidityMinutes: 1,
+					prometheusRetentionTime:    testRetentionTime,
+					meshName:                   "osm!!123456789012345678901234567890123456789012345678901234567890", // >65 characters, contains !
+					enableEgress:               true,
+					meshCIDRRanges:             testMeshCIDRRanges,
+				},
 			}
 
 			err = install.run(config)
@@ -601,23 +615,25 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 
 	BeforeEach(func() {
 		installCmd := &installCmd{
-			containerRegistry:          testRegistry,
-			containerRegistrySecret:    testRegistrySecret,
-			certManager:                "vault",
-			vaultHost:                  testVaultHost,
-			vaultProtocol:              testVaultProtocol,
-			vaultToken:                 testVaultToken,
-			vaultRole:                  testVaultRole,
-			osmImageTag:                testOsmImageTag,
-			serviceCertValidityMinutes: 1,
-			prometheusRetentionTime:    testRetentionTime,
-			meshName:                   defaultMeshName,
-			enableEgress:               true,
-			meshCIDRRanges:             testMeshCIDRRanges,
-			enableMetricsStack:         true,
+			cfg: actionConfig{
+				containerRegistry:          testRegistry,
+				containerRegistrySecret:    testRegistrySecret,
+				certManager:                "vault",
+				vaultHost:                  testVaultHost,
+				vaultProtocol:              testVaultProtocol,
+				vaultToken:                 testVaultToken,
+				vaultRole:                  testVaultRole,
+				osmImageTag:                testOsmImageTag,
+				serviceCertValidityMinutes: 1,
+				prometheusRetentionTime:    testRetentionTime,
+				meshName:                   defaultMeshName,
+				enableEgress:               true,
+				meshCIDRRanges:             testMeshCIDRRanges,
+				enableMetricsStack:         true,
+			},
 		}
 
-		vals, err = installCmd.resolveValues()
+		vals, err = installCmd.cfg.resolveValues()
 	})
 
 	It("should not error", func() {
@@ -665,10 +681,12 @@ var _ = Describe("Resolving values for egress option", func() {
 	Context("Test enableEgress chart value with install cli option", func() {
 		It("Should disable egress in the Helm chart", func() {
 			installCmd := &installCmd{
-				enableEgress: false,
+				cfg: actionConfig{
+					enableEgress: false,
+				},
 			}
 
-			vals, err := installCmd.resolveValues()
+			vals, err := installCmd.cfg.resolveValues()
 			Expect(err).NotTo(HaveOccurred())
 
 			enableEgressVal := vals["OpenServiceMesh"].(map[string]interface{})["enableEgress"]
@@ -677,11 +695,13 @@ var _ = Describe("Resolving values for egress option", func() {
 
 		It("Should enable egress in the Helm chart", func() {
 			installCmd := &installCmd{
-				enableEgress:   true,
-				meshCIDRRanges: testMeshCIDRRanges,
+				cfg: actionConfig{
+					enableEgress:   true,
+					meshCIDRRanges: testMeshCIDRRanges,
+				},
 			}
 
-			vals, err := installCmd.resolveValues()
+			vals, err := installCmd.cfg.resolveValues()
 			Expect(err).NotTo(HaveOccurred())
 
 			enableEgressVal := vals["OpenServiceMesh"].(map[string]interface{})["enableEgress"]
@@ -694,11 +714,13 @@ var _ = Describe("Test mesh CIDR ranges", func() {
 	Context("Test meshCIDRRanges chart value with install cli option", func() {
 		It("Should correctly resolve meshCIDRRanges when egress is enabled", func() {
 			installCmd := &installCmd{
-				enableEgress:   true,
-				meshCIDRRanges: testMeshCIDRRanges,
+				cfg: actionConfig{
+					enableEgress:   true,
+					meshCIDRRanges: testMeshCIDRRanges,
+				},
 			}
 
-			vals, err := installCmd.resolveValues()
+			vals, err := installCmd.cfg.resolveValues()
 			Expect(err).NotTo(HaveOccurred())
 
 			cidrRanges := vals["OpenServiceMesh"].(map[string]interface{})["meshCIDRRanges"]
