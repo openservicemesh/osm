@@ -77,7 +77,7 @@ var (
 	vaultToken    = flags.String("vault-token", "", "Secret token for the the Hashi Vault")
 	vaultRole     = flags.String("vault-role", "openservicemesh", "Name of the Vault role dedicated to Open Service Mesh")
 
-	certmanagerSecretCA    = flags.String("cert-manager-ca-secret", "cert-manager-ca", "Kubernetes Secret containing cert-manager's CA certificate")
+	certmanagerSecretCA    = flags.String("cert-manager-ca-secret", "osm-ca", "Kubernetes Secret containing cert-manager's CA certificate")
 	certmanagerIssuerName  = flags.String("cert-manager-issuer-name", "osm-ca", "cert-manager issuer name")
 	certmanagerIssuerKind  = flags.String("cert-manager-issuer-kind", "Issuer", "cert-manager issuer kind")
 	certmanagerIssuerGroup = flags.String("cert-manager-issuer-group", "cert-manager.io", "cert-manager issuer group")
