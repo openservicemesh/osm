@@ -17,7 +17,7 @@ import (
 )
 
 // NewResponse creates a new Endpoint Discovery Response.
-func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, cfg configurator.Configurator) (*xds_discovery.DiscoveryResponse, error) {
+func NewResponse(_ context.Context, catalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, cfg configurator.Configurator) (*xds_discovery.DiscoveryResponse, error) {
 	svc, err := catalog.GetServiceFromEnvoyCertificate(proxy.GetCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up MeshService for Envoy with CN=%q", proxy.GetCommonName())
@@ -38,21 +38,21 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, proxy *envo
 			destService := trafficPolicy.Destination
 			serviceEndpoints, err := catalog.ListEndpointsForService(destService)
 			if err != nil {
-				log.Error().Err(err).Msgf("Failed listing endpoints")
+				log.Error().Err(err).Msgf("Failed listing endpoints for proxy %s", proxyServiceName)
 				return nil, err
 			}
 			allServicesEndpoints[destService] = serviceEndpoints
 		}
 	}
 
-	log.Debug().Msgf("allServicesEndpoints: %+v", allServicesEndpoints)
+	log.Debug().Msgf("Computed endpoints for proxy %s: %+v", proxyServiceName, allServicesEndpoints)
 	var protos []*any.Any
 	for serviceName, serviceEndpoints := range allServicesEndpoints {
 		loadAssignment := cla.NewClusterLoadAssignment(serviceName, serviceEndpoints)
 
 		proto, err := ptypes.MarshalAny(loadAssignment)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error marshalling EDS payload %+v", loadAssignment)
+			log.Error().Err(err).Msgf("Error marshalling EDS payload for proxy %s: %+v", proxyServiceName, loadAssignment)
 			continue
 		}
 		protos = append(protos, proto)
