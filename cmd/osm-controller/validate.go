@@ -8,17 +8,17 @@ import (
 
 // validateCLIParams contains all checks necessary that various permutations of the CLI flags are consistent
 func validateCLIParams() error {
-	if _, ok := certManagers[certificateManagerKind(*certManagerKind)]; !ok {
-		return errors.Errorf("Certificate manager %s is not one of possible options: %s", *certManagerKind, strings.Join(getPossibleCertManagers(), ", "))
+	if _, ok := certManagers[certificateManagerKind(*osmCertificateManagerKind)]; !ok {
+		return errors.Errorf("Certificate manager %s is not one of possible options: %s", *osmCertificateManagerKind, strings.Join(getPossibleCertManagers(), ", "))
 	}
 
-	if *certManagerKind == vaultKind {
+	if *osmCertificateManagerKind == vaultKind {
 		if *vaultToken == "" {
 			return errors.Errorf("Empty Hashi Vault token")
 		}
 	}
 
-	if *certManagerKind == certmanagerKind {
+	if *osmCertificateManagerKind == certmanagerKind {
 		if len(*certmanagerIssuerName) == 0 {
 			return errors.Errorf("Empty cert-manager issuer name")
 		}

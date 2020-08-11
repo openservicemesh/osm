@@ -76,11 +76,11 @@ func getTresorCertificateManager(kubeClient kubernetes.Interface, _ *rest.Config
 		rootCert, err = tresor.NewCA(constants.CertificationAuthorityCommonName, constants.CertificationAuthorityRootValidityPeriod, rootCertCountry, rootCertLocality, rootCertOrganization)
 
 		if err != nil {
-			return nil, nil, errors.Errorf("Failed to create new Certificate Authority with cert issuer %s", *certManagerKind)
+			return nil, nil, errors.Errorf("Failed to create new Certificate Authority with cert issuer %s", *osmCertificateManagerKind)
 		}
 
 		if rootCert == nil {
-			return nil, nil, errors.Errorf("Invalid root certificate created by cert issuer %s", *certManagerKind)
+			return nil, nil, errors.Errorf("Invalid root certificate created by cert issuer %s", *osmCertificateManagerKind)
 		}
 
 		if rootCert.GetPrivateKey() == nil {
@@ -150,7 +150,7 @@ func getCertFromKubernetes(kubeClient kubernetes.Interface, namespace, secretNam
 
 	rootCert, err := tresor.NewCertificateFromPEM(pemCert, pemKey, expiration)
 	if err != nil {
-		log.Fatal().Err(err).Msgf("Failed to create new Certificate Authority with cert issuer %s", *certManagerKind)
+		log.Fatal().Err(err).Msgf("Failed to create new Certificate Authority with cert issuer %s", *osmCertificateManagerKind)
 	}
 	return rootCert
 }
