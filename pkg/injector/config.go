@@ -41,11 +41,11 @@ func getEnvoyConfigYAML(config envoyBootstrapConfigMeta, cfg configurator.Config
 				"set_node_on_first_message_only": true,
 			},
 			"cds_config": map[string]interface{}{
-				"ads":                  map[string]string{},
+				"ads": map[string]string{},
 				"resource_api_version": "V3",
 			},
 			"lds_config": map[string]interface{}{
-				"ads":                  map[string]string{},
+				"ads": map[string]string{},
 				"resource_api_version": "V3",
 			},
 		},
@@ -53,9 +53,9 @@ func getEnvoyConfigYAML(config envoyBootstrapConfigMeta, cfg configurator.Config
 		"static_resources": map[string]interface{}{
 			"clusters": []map[string]interface{}{
 				{
-					"name":                   config.XDSClusterName,
-					"connect_timeout":        "0.25s",
-					"type":                   "LOGICAL_DNS",
+					"name":            config.XDSClusterName,
+					"connect_timeout": "0.25s",
+					"type":            "LOGICAL_DNS",
 					"http2_protocol_options": map[string]string{},
 					"transport_socket": map[string]interface{}{
 						"name": "envoy.transport_sockets.tls",

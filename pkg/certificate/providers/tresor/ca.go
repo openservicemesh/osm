@@ -33,7 +33,7 @@ func NewCA(cn certificate.CommonName, validityPeriod time.Duration, rootCertCoun
 		NotAfter:              now.Add(validityPeriod),
 		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
 		BasicConstraintsValid: true,
-		IsCA:                  true,
+		IsCA: true,
 	}
 
 	rsaKey, err := rsa.GenerateKey(rand.Reader, rsaBits)

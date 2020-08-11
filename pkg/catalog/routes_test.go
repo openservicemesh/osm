@@ -75,7 +75,7 @@ var _ = Describe("Catalog tests", func() {
 
 			specKey := mc.getTrafficSpecName("HTTPRouteGroup", tests.Namespace, tests.RouteGroupName)
 			expected := map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.Route{
-				specKey: map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.Route{
+				specKey: {
 					trafficpolicy.TrafficSpecMatchName(tests.BuyBooksMatchName): {
 						PathRegex: tests.BookstoreBuyPath,
 						Methods:   []string{"GET"},

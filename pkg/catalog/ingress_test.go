@@ -29,9 +29,9 @@ var (
 
 	// fakeIngressPaths is a mapping of the fake ingress resource domains to its paths
 	fakeIngressPaths = map[string][]string{
-		"fake1.com": []string{"/fake1-path1", "/fake1-path2"},
-		"fake2.com": []string{"/fake2-path1"},
-		"*":         []string{".*"},
+		"fake1.com": {"/fake1-path1", "/fake1-path2"},
+		"fake2.com": {"/fake2-path1"},
+		"*":         {".*"},
 	}
 )
 

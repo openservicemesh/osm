@@ -118,12 +118,12 @@ var _ = Describe("CDS Response", func() {
 
 			expectedCluster := xds_cluster.Cluster{
 				TransportSocketMatches: nil,
-				Name:                   getLocalClusterName(proxyService),
-				AltStatName:            getLocalClusterName(proxyService),
-				ClusterDiscoveryType:   &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_STATIC},
-				EdsClusterConfig:       nil,
-				ConnectTimeout:         ptypes.DurationProto(1 * time.Second),
-				LoadAssignment:         expectedClusterLoadAssignment,
+				Name:                 getLocalClusterName(proxyService),
+				AltStatName:          getLocalClusterName(proxyService),
+				ClusterDiscoveryType: &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_STATIC},
+				EdsClusterConfig:     nil,
+				ConnectTimeout:       ptypes.DurationProto(1 * time.Second),
+				LoadAssignment:       expectedClusterLoadAssignment,
 			}
 
 			Expect(remoteCluster.Name).To(Equal(expectedCluster.Name))
@@ -174,9 +174,9 @@ var _ = Describe("CDS Response", func() {
 
 			expectedCluster := xds_cluster.Cluster{
 				TransportSocketMatches: nil,
-				Name:                   "default/bookstore",
-				AltStatName:            "",
-				ClusterDiscoveryType:   &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS},
+				Name:                 "default/bookstore",
+				AltStatName:          "",
+				ClusterDiscoveryType: &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS},
 				EdsClusterConfig: &xds_cluster.Cluster_EdsClusterConfig{
 					EdsConfig: &xds_core.ConfigSource{
 						ConfigSourceSpecifier: &xds_core.ConfigSource_Ads{
@@ -280,12 +280,12 @@ var _ = Describe("CDS Response", func() {
 			}
 			expectedCluster := &xds_cluster.Cluster{
 				TransportSocketMatches: nil,
-				Name:                   constants.EnvoyMetricsCluster,
-				AltStatName:            constants.EnvoyMetricsCluster,
-				ClusterDiscoveryType:   &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_STATIC},
-				EdsClusterConfig:       nil,
-				ConnectTimeout:         ptypes.DurationProto(1 * time.Second),
-				LoadAssignment:         expectedClusterLoadAssignment,
+				Name:                 constants.EnvoyMetricsCluster,
+				AltStatName:          constants.EnvoyMetricsCluster,
+				ClusterDiscoveryType: &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_STATIC},
+				EdsClusterConfig:     nil,
+				ConnectTimeout:       ptypes.DurationProto(1 * time.Second),
+				LoadAssignment:       expectedClusterLoadAssignment,
 			}
 
 			Expect(remoteCluster.LoadAssignment.ClusterName).To(Equal(expectedClusterLoadAssignment.ClusterName))

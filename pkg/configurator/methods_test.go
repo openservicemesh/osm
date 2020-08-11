@@ -57,11 +57,11 @@ var _ = Describe("Test Envoy configuration creation", func() {
 
 			expectedConfig := &osmConfig{
 				PermissiveTrafficPolicyMode: false,
-				Egress:                      true,
-				PrometheusScraping:          true,
-				ZipkinTracing:               true,
-				MeshCIDRRanges:              testCIDRRanges,
-				EnvoyLogLevel:               testDebugEnvoyLogLevel,
+				Egress:             true,
+				PrometheusScraping: true,
+				ZipkinTracing:      true,
+				MeshCIDRRanges:     testCIDRRanges,
+				EnvoyLogLevel:      testDebugEnvoyLogLevel,
 			}
 			expectedConfigBytes, err := marshalConfigToJSON(expectedConfig)
 			Expect(err).ToNot(HaveOccurred())

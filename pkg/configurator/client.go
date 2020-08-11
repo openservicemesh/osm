@@ -132,10 +132,10 @@ func (c *Client) getConfigMap() *osmConfig {
 
 	return &osmConfig{
 		PermissiveTrafficPolicyMode: getBoolValueForKey(configMap, permissiveTrafficPolicyModeKey),
-		Egress:                      getBoolValueForKey(configMap, egressKey),
-		PrometheusScraping:          getBoolValueForKey(configMap, prometheusScrapingKey),
-		MeshCIDRRanges:              getEgressCIDR(configMap),
-		UseHTTPSIngress:             getBoolValueForKey(configMap, useHTTPSIngressKey),
+		Egress:             getBoolValueForKey(configMap, egressKey),
+		PrometheusScraping: getBoolValueForKey(configMap, prometheusScrapingKey),
+		MeshCIDRRanges:     getEgressCIDR(configMap),
+		UseHTTPSIngress:    getBoolValueForKey(configMap, useHTTPSIngressKey),
 
 		ZipkinTracing:  getBoolValueForKey(configMap, zipkinTracingKey),
 		ZipkinAddress:  getStringValueForKey(configMap, zipkinAddressKey),
