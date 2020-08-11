@@ -65,6 +65,9 @@ func (mc *MeshCatalog) getAnnouncementChannels() []announcementChannel {
 		announcementChannels = append(announcementChannels, annCh)
 	}
 
+	// TODO(draychev): Ticker Announcement channel should be made optional
+	// with osm-config configurable interval
+	// See Github Issue: https://github.com/openservicemesh/osm/issues/1501
 	go func() {
 		ticker := time.NewTicker(updateAtLeastEvery)
 		ticking <- ticker.C
