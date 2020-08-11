@@ -116,8 +116,7 @@ var _ = Describe("Running the install command", func() {
 							"issuerGroup": "",
 							"issuerName":  "",
 						},
-						"meshName":           defaultMeshName,
-						"caBundleSecretName": "",
+						"meshName": defaultMeshName,
 						"image": map[string]interface{}{
 							"registry": testRegistry,
 							"tag":      testOsmImageTag,
@@ -230,8 +229,7 @@ var _ = Describe("Running the install command", func() {
 							"issuerGroup": "",
 							"issuerName":  "",
 						},
-						"meshName":           defaultMeshName,
-						"caBundleSecretName": "",
+						"meshName": defaultMeshName,
 						"image": map[string]interface{}{
 							"registry": testRegistry,
 							"tag":      testOsmImageTag,
@@ -351,8 +349,7 @@ var _ = Describe("Running the install command", func() {
 							"issuerGroup": "example.co.uk",
 							"issuerName":  "my-osm-ca",
 						},
-						"meshName":           defaultMeshName,
-						"caBundleSecretName": "",
+						"meshName": defaultMeshName,
 						"image": map[string]interface{}{
 							"registry": testRegistry,
 							"tag":      testOsmImageTag,
@@ -471,7 +468,6 @@ var _ = Describe("Running the install command", func() {
 				certmanagerIssuerName:      testCertManagerIssuerName,
 				certmanagerIssuerKind:      testCertManagerIssuerKind,
 				certmanagerIssuerGroup:     testCertManagerIssuerGroup,
-				caBundleSecretName:         testCABundleSecretName,
 				osmImageTag:                testOsmImageTag,
 				serviceCertValidityMinutes: 1,
 				prometheusRetentionTime:    testRetentionTime,
@@ -516,8 +512,7 @@ var _ = Describe("Running the install command", func() {
 							"issuerGroup": "example.co.uk",
 							"issuerName":  "my-osm-ca",
 						},
-						"meshName":           defaultMeshName,
-						"caBundleSecretName": testCABundleSecretName,
+						"meshName": defaultMeshName,
 						"image": map[string]interface{}{
 							"registry": testRegistry,
 							"tag":      testOsmImageTag,
@@ -585,7 +580,6 @@ var _ = Describe("Running the install command", func() {
 				containerRegistrySecret: testRegistrySecret,
 				certificateManager:      "cert-manager",
 				certmanagerIssuerName:   "",
-				caBundleSecretName:      "",
 				meshName:                defaultMeshName,
 				enableEgress:            true,
 				meshCIDRRanges:          testMeshCIDRRanges,
@@ -595,7 +589,7 @@ var _ = Describe("Running the install command", func() {
 		})
 
 		It("should error", func() {
-			Expect(err).To(MatchError("Missing arguments for certificate-manager cert-manager: [cert-manager-issuer-name ca-bundle-secret-name]"))
+			Expect(err).To(MatchError("Missing arguments for certificate-manager cert-manager: [cert-manager-issuer-name]"))
 		})
 	})
 
@@ -828,8 +822,7 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 					"issuerGroup": "example.co.uk",
 					"issuerName":  "my-osm-ca",
 				},
-				"meshName":           defaultMeshName,
-				"caBundleSecretName": "",
+				"meshName": defaultMeshName,
 				"image": map[string]interface{}{
 					"registry": testRegistry,
 					"tag":      testOsmImageTag,
@@ -905,8 +898,7 @@ var _ = Describe("Resolving values for install command with cert-manager paramet
 					"issuerGroup": "example.co.uk",
 					"issuerName":  "my-osm-ca",
 				},
-				"meshName":           defaultMeshName,
-				"caBundleSecretName": "",
+				"meshName": defaultMeshName,
 				"image": map[string]interface{}{
 					"registry": testRegistry,
 					"tag":      testOsmImageTag,
