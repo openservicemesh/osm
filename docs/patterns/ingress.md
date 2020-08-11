@@ -9,10 +9,11 @@ This document describes how to expose HTTP and HTTPS routes outside the cluster 
 - An ingress controller must be running in the cluster.
 
 ## Exposing an HTTP or HTTPS service using Ingress
-A service can expose HTTP or HTTPS routes outside the cluster using Kubernetes Ingress along with an ingress controller. Once an ingress resource is configured to expose HTTP routes outside the cluster to a service within the cluster, OSM will configure the sidecar proxy on pods to allow ingress traffic to the service based on the ingress routing rules defined by the Kubernetes Ingress resource.
+A service can expose HTTP or HTTPS routes outside the cluster using Kubernetes Ingress along with an ingress controller. Once an ingress resource is configured to expose HTTP routes outside the cluster to a service within the cluster, OSM will configure the sidecar proxy on pods to allow ingress traffic to the service based on the ingress routing rules defined by the Kubernetes Ingress resource. Keep in mind, this behavior opens up HTTP-based access to any service, not just ingress. 
+
 For HTTPS ingress, OSM supports one way TLS authentication to backend services.
 
-By default, OSM configures HTTP as the backend protocol for services when an ingress resource is applied with a backend service that belongs to the mesh. A mesh wide configuration setting in OSM's `osm-config` ConfigMap enables configuring ingress with the backend protocol to be HTTPS. HTTPS ingress can be enabled by updating the `osm-config` ConfigMap in `osm-controller`'s namespace (`osm-system` by default).
+By default, OSM configures HTTP as the backend protocol for services when an ingress resource is applied with a backend service that belongs to the mesh. A mesh-wide configuration setting in OSM's `osm-config` ConfigMap enables configuring ingress with the backend protocol to be HTTPS. HTTPS ingress can be enabled by updating the `osm-config` ConfigMap in `osm-controller`'s namespace (`osm-system` by default).
 
 Edit the ConfigMap by setting `use_https_ingress: "true"`.
 
@@ -34,6 +35,7 @@ data:
 Ingress in OSM is compatible with the following ingress controllers.
 - [Nginx Ingress Controller][2]
 - [Azure Application Gateway Ingress Controller][3]
+- [Gloo API Gateway][5]
 
 Other ingress controllers might also work as long as they use Kubernetes Ingress resource and allow provisioning a custom root certificate for HTTPS backend server certificate validation.
 
@@ -167,8 +169,78 @@ spec:
           serviceName: bookstore-v1
           servicePort: 8080 # Note: port 80 cannot be used for HTTPS ingress with Azure Application Gateway ingress
 ```
+### Using Gloo API Gateway
+
+[Gloo API Gateway][5] is an Envoy-powered API gateway that can run in `Ingress` mode or full-blow `Gateway` mode. In this document, we show the `Ingress` approach, but you can refer to the [Gloo documentation][5] for more in depth functionality enabled by Gloo. 
+
+Install Gloo in `Ingress` mode:
+
+```bash
+glooctl install ingress
+```
+
+For Gloo's ingress, we don't need any additional annotations, however, the `kubernetes.io/ingress.class: gloo` annotation is recommended. With Gloo, we configure the `Upstream` objects with the appropriate trust authority. In Gloo, the `Upstream` object represents a routable target (Kubernetes Service, Consul Service, Cloud Function, etc). 
+
+To prepare the root certifciate, we must do something similar to what we do for the Azure Application Gateway.
+
+```bash
+kubectl get secret/osm-ca-bundle -n osm-system -o jsonpath="{.data['ca\.crt']}" | base64 -d > osm-c-bundlea.pem
+
+glooctl create secret tls --name osm-ca-bundle --rootca osm-c-bundlea.pem 
+```
+
+Next we could use an Ingress file like this:
+
+```yaml
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: bookstore-v1
+  namespace: bookstore-ns
+  annotations:
+    kubernetes.io/ingress.class: gloo
+spec:
+  rules:
+  - host: bookstore-v1.bookstore-ns.svc.cluster.local
+    http:
+      paths:
+      - path: /books-bought
+        backend:
+          serviceName: bookstore-v1
+          servicePort: 80
+```
+
+Lastly, we configure the `Upstream` object to use OSM's root ca bundle:
+
+```yaml
+apiVersion: gloo.solo.io/v1
+kind: Upstream
+metadata:
+  name: bookstore-bookstore-80
+  namespace: gloo-system
+spec:
+  sslConfig:
+    sni: "bookstore-v1.bookstore-ns.svc.cluster.local"
+    secretRef:
+      name: osm-ca-bundle
+      namespace: gloo-system
+  kube:
+    selector:
+      app: bookstore
+    serviceName: bookstore
+    serviceNamespace: bookstore
+    servicePort: 80
+
+```
+
+At this point you can call your Ingress endpoint and get HTTPS traffic from the edge to your OSM service. As a convenience, you can run the following to get your ingress hostname/IP:
+
+```bash
+glooctl proxy url --name ingress-proxy
+```
 
 [1]: https://github.com/openservicemesh/osm/blob/main/README.md
 [2]: https://kubernetes.github.io/ingress-nginx/
 [3]: https://azure.github.io/application-gateway-kubernetes-ingress/
 [4]: https://github.com/Azure/application-gateway-kubernetes-ingress/blob/master/docs/annotations.md#appgw-trusted-root-certificate
+[5]: https://docs.solo.io/gloo/latest/
