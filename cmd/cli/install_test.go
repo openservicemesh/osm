@@ -107,7 +107,13 @@ var _ = Describe("Running the install command", func() {
 				Expect(rel.Config).To(BeEquivalentTo(map[string]interface{}{
 					"OpenServiceMesh": map[string]interface{}{
 						"certManager": "tresor",
-						"meshName":    defaultMeshName,
+						"certmanager": map[string]interface{}{
+							"issuerKind":  "",
+							"issuerGroup": "",
+							"caSecret":    "",
+							"issuerName":  "",
+						},
+						"meshName": defaultMeshName,
 						"image": map[string]interface{}{
 							"registry": testRegistry,
 							"tag":      testOsmImageTag,
@@ -215,7 +221,13 @@ var _ = Describe("Running the install command", func() {
 				Expect(rel.Config).To(BeEquivalentTo(map[string]interface{}{
 					"OpenServiceMesh": map[string]interface{}{
 						"certManager": "tresor",
-						"meshName":    defaultMeshName,
+						"certmanager": map[string]interface{}{
+							"issuerKind":  "",
+							"issuerGroup": "",
+							"caSecret":    "",
+							"issuerName":  "",
+						},
+						"meshName": defaultMeshName,
 						"image": map[string]interface{}{
 							"registry": testRegistry,
 							"tag":      testOsmImageTag,
@@ -327,7 +339,13 @@ var _ = Describe("Running the install command", func() {
 				Expect(rel.Config).To(BeEquivalentTo(map[string]interface{}{
 					"OpenServiceMesh": map[string]interface{}{
 						"certManager": "vault",
-						"meshName":    defaultMeshName,
+						"certmanager": map[string]interface{}{
+							"issuerKind":  "",
+							"issuerGroup": "",
+							"caSecret":    "",
+							"issuerName":  "",
+						},
+						"meshName": defaultMeshName,
 						"image": map[string]interface{}{
 							"registry": testRegistry,
 							"tag":      testOsmImageTag,
@@ -628,7 +646,13 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 		Expect(vals).To(BeEquivalentTo(map[string]interface{}{
 			"OpenServiceMesh": map[string]interface{}{
 				"certManager": "vault",
-				"meshName":    defaultMeshName,
+				"certmanager": map[string]interface{}{
+					"issuerKind":  "",
+					"issuerGroup": "",
+					"caSecret":    "",
+					"issuerName":  "",
+				},
+				"meshName": defaultMeshName,
 				"image": map[string]interface{}{
 					"registry": testRegistry,
 					"tag":      testOsmImageTag,
