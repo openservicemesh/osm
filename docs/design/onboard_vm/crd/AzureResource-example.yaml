@@ -1,6 +1,0 @@
-apiVersion: osm.osm.k8s.io/v1
-kind: AzureResource
-metadata:
-  name: some-virtual-machine-scale-set
-spec:
-  resourceid: /resource/subscriptions/e3f0/resourceGroups/mesh-rg/providers/Microsoft.Compute/virtualMachineScaleSets/baz

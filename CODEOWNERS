@@ -1,3 +1,0 @@
-# ref: https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/about-code-owners
-# CODEOWNERS are members of the osm-maintainers team - https://github.com/orgs/openservicemesh/teams/osm-maintainers/members
-* @openservicemesh/osm-maintainers
