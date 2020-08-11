@@ -344,7 +344,11 @@ func (mc *MeshCatalog) buildAllowPolicyForSourceToDest(source *corev1.Service, d
 		Methods:   []string{constants.WildcardHTTPMethod},
 	}
 	return trafficpolicy.TrafficTarget{
-		Name:        fmt.Sprintf("%s->%s", source, destination),
+
+		// TODO(draychev): we need to improve the naming convention for allow-all routes
+		// See Github Issue: https://github.com/openservicemesh/osm/issues/1503
+		Name: fmt.Sprintf("%s->%s", source, destination),
+
 		Destination: k8sSvcToMeshSvc(destination),
 		Source:      k8sSvcToMeshSvc(source),
 		Route:       allowAllRoute,

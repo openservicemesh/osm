@@ -2,6 +2,7 @@ package catalog
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
@@ -157,4 +158,101 @@ var _ = Describe("Catalog tests", func() {
 
 		})
 	})
+
+	Context("Test GetWeightedClusterForService()", func() {
+		It("returns weighted clusters for a given service", func() {
+			mc := newFakeMeshCatalog()
+			weightedCluster, err := mc.GetWeightedClusterForService(tests.BookstoreService)
+			Expect(err).ToNot(HaveOccurred())
+			expected := service.WeightedCluster{
+				ClusterName: "default/bookstore",
+				Weight:      100,
+			}
+			Expect(weightedCluster).To(Equal(expected))
+
+		})
+	})
+
+	Context("Test catalog functions", func() {
+		It("getServiceHostnames list of service hostnames", func() {
+			mc := newFakeMeshCatalog()
+			actual, err := mc.getServiceHostnames(tests.BookstoreService)
+			Expect(err).ToNot(HaveOccurred())
+			expected := []string{
+				"bookstore",
+				"bookstore.default",
+				"bookstore.default.svc",
+				"bookstore.default.svc.cluster",
+				"bookstore.default.svc.cluster.local",
+				"bookstore:8888",
+				"bookstore.default:8888",
+				"bookstore.default.svc:8888",
+				"bookstore.default.svc.cluster:8888",
+				"bookstore.default.svc.cluster.local:8888",
+			}
+			Expect(actual).To(Equal(expected))
+		})
+
+		It("hostnamesTostr returns CSV of hostnames", func() {
+			actual := hostnamesTostr([]string{"foo", "bar", "baz"})
+			expected := "foo,bar,baz"
+			Expect(actual).To(Equal(expected))
+		})
+
+		It("getDefaultWeightedClusterForService returns correct WeightedCluster struct", func() {
+			actual := getDefaultWeightedClusterForService(tests.BookstoreService)
+			expected := service.WeightedCluster{
+				ClusterName: "default/bookstore",
+				Weight:      100,
+			}
+			Expect(actual).To(Equal(expected))
+		})
+	})
+
+	Context("Test GetHostnamesForService()", func() {
+		It("lists available SMI Spec policies in SMI mode", func() {
+			mc := newFakeMeshCatalog()
+			actual, err := mc.GetHostnamesForService(tests.BookstoreService)
+			Expect(err).ToNot(HaveOccurred())
+			expected := strings.Join(
+				[]string{
+					"bookstore-apex",
+					"bookstore-apex.default",
+					"bookstore-apex.default.svc",
+					"bookstore-apex.default.svc.cluster",
+					"bookstore-apex.default.svc.cluster.local",
+					"bookstore-apex:8888",
+					"bookstore-apex.default:8888",
+					"bookstore-apex.default.svc:8888",
+					"bookstore-apex.default.svc.cluster:8888",
+					"bookstore-apex.default.svc.cluster.local:8888",
+				},
+				",")
+			Expect(actual).To(Equal(expected))
+		})
+	})
+
+	Context("Test buildAllowAllTrafficPolicies", func() {
+		It("lists traffic targets for the given service", func() {
+			mc := newFakeMeshCatalog()
+			actual, err := mc.buildAllowAllTrafficPolicies(tests.BookstoreService)
+			Expect(err).ToNot(HaveOccurred())
+			var actualTargetNames []string
+			for _, target := range actual {
+				actualTargetNames = append(actualTargetNames, target.Name)
+			}
+			// TODO(draychev): we need to improve the naming convention for allow-all routes
+			// See Github Issue: https://github.com/openservicemesh/osm/issues/1503
+			expected := []string{
+				"&Service{ObjectMeta:{bookstore  default    0 0001-01-01 00:00:00 +0000 UTC <nil> <nil> map[] map[] [] []  []},Spec:ServiceSpec{Ports:[]ServicePort{ServicePort{Name:servicePort,Protocol:TCP,Port:8888,TargetPort:{1 0 backendName},NodePort:0,AppProtocol:nil,},},Selector:map[string]string{},ClusterIP:,Type:,ExternalIPs:[],SessionAffinity:,LoadBalancerIP:,LoadBalancerSourceRanges:[],ExternalName:,ExternalTrafficPolicy:,HealthCheckNodePort:0,PublishNotReadyAddresses:false,SessionAffinityConfig:nil,IPFamily:nil,TopologyKeys:[],},Status:ServiceStatus{LoadBalancer:LoadBalancerStatus{Ingress:[]LoadBalancerIngress{},},},}->&Service{ObjectMeta:{bookbuyer  default    0 0001-01-01 00:00:00 +0000 UTC <nil> <nil> map[] map[] [] []  []},Spec:ServiceSpec{Ports:[]ServicePort{ServicePort{Name:servicePort,Protocol:TCP,Port:8888,TargetPort:{1 0 backendName},NodePort:0,AppProtocol:nil,},},Selector:map[string]string{},ClusterIP:,Type:,ExternalIPs:[],SessionAffinity:,LoadBalancerIP:,LoadBalancerSourceRanges:[],ExternalName:,ExternalTrafficPolicy:,HealthCheckNodePort:0,PublishNotReadyAddresses:false,SessionAffinityConfig:nil,IPFamily:nil,TopologyKeys:[],},Status:ServiceStatus{LoadBalancer:LoadBalancerStatus{Ingress:[]LoadBalancerIngress{},},},}",
+				"&Service{ObjectMeta:{bookstore  default    0 0001-01-01 00:00:00 +0000 UTC <nil> <nil> map[] map[] [] []  []},Spec:ServiceSpec{Ports:[]ServicePort{ServicePort{Name:servicePort,Protocol:TCP,Port:8888,TargetPort:{1 0 backendName},NodePort:0,AppProtocol:nil,},},Selector:map[string]string{},ClusterIP:,Type:,ExternalIPs:[],SessionAffinity:,LoadBalancerIP:,LoadBalancerSourceRanges:[],ExternalName:,ExternalTrafficPolicy:,HealthCheckNodePort:0,PublishNotReadyAddresses:false,SessionAffinityConfig:nil,IPFamily:nil,TopologyKeys:[],},Status:ServiceStatus{LoadBalancer:LoadBalancerStatus{Ingress:[]LoadBalancerIngress{},},},}->&Service{ObjectMeta:{bookstore-apex  default    0 0001-01-01 00:00:00 +0000 UTC <nil> <nil> map[] map[] [] []  []},Spec:ServiceSpec{Ports:[]ServicePort{ServicePort{Name:servicePort,Protocol:TCP,Port:8888,TargetPort:{1 0 backendName},NodePort:0,AppProtocol:nil,},},Selector:map[string]string{},ClusterIP:,Type:,ExternalIPs:[],SessionAffinity:,LoadBalancerIP:,LoadBalancerSourceRanges:[],ExternalName:,ExternalTrafficPolicy:,HealthCheckNodePort:0,PublishNotReadyAddresses:false,SessionAffinityConfig:nil,IPFamily:nil,TopologyKeys:[],},Status:ServiceStatus{LoadBalancer:LoadBalancerStatus{Ingress:[]LoadBalancerIngress{},},},}",
+				"&Service{ObjectMeta:{bookbuyer  default    0 0001-01-01 00:00:00 +0000 UTC <nil> <nil> map[] map[] [] []  []},Spec:ServiceSpec{Ports:[]ServicePort{ServicePort{Name:servicePort,Protocol:TCP,Port:8888,TargetPort:{1 0 backendName},NodePort:0,AppProtocol:nil,},},Selector:map[string]string{},ClusterIP:,Type:,ExternalIPs:[],SessionAffinity:,LoadBalancerIP:,LoadBalancerSourceRanges:[],ExternalName:,ExternalTrafficPolicy:,HealthCheckNodePort:0,PublishNotReadyAddresses:false,SessionAffinityConfig:nil,IPFamily:nil,TopologyKeys:[],},Status:ServiceStatus{LoadBalancer:LoadBalancerStatus{Ingress:[]LoadBalancerIngress{},},},}->&Service{ObjectMeta:{bookstore  default    0 0001-01-01 00:00:00 +0000 UTC <nil> <nil> map[] map[] [] []  []},Spec:ServiceSpec{Ports:[]ServicePort{ServicePort{Name:servicePort,Protocol:TCP,Port:8888,TargetPort:{1 0 backendName},NodePort:0,AppProtocol:nil,},},Selector:map[string]string{},ClusterIP:,Type:,ExternalIPs:[],SessionAffinity:,LoadBalancerIP:,LoadBalancerSourceRanges:[],ExternalName:,ExternalTrafficPolicy:,HealthCheckNodePort:0,PublishNotReadyAddresses:false,SessionAffinityConfig:nil,IPFamily:nil,TopologyKeys:[],},Status:ServiceStatus{LoadBalancer:LoadBalancerStatus{Ingress:[]LoadBalancerIngress{},},},}",
+				"&Service{ObjectMeta:{bookbuyer  default    0 0001-01-01 00:00:00 +0000 UTC <nil> <nil> map[] map[] [] []  []},Spec:ServiceSpec{Ports:[]ServicePort{ServicePort{Name:servicePort,Protocol:TCP,Port:8888,TargetPort:{1 0 backendName},NodePort:0,AppProtocol:nil,},},Selector:map[string]string{},ClusterIP:,Type:,ExternalIPs:[],SessionAffinity:,LoadBalancerIP:,LoadBalancerSourceRanges:[],ExternalName:,ExternalTrafficPolicy:,HealthCheckNodePort:0,PublishNotReadyAddresses:false,SessionAffinityConfig:nil,IPFamily:nil,TopologyKeys:[],},Status:ServiceStatus{LoadBalancer:LoadBalancerStatus{Ingress:[]LoadBalancerIngress{},},},}->&Service{ObjectMeta:{bookstore-apex  default    0 0001-01-01 00:00:00 +0000 UTC <nil> <nil> map[] map[] [] []  []},Spec:ServiceSpec{Ports:[]ServicePort{ServicePort{Name:servicePort,Protocol:TCP,Port:8888,TargetPort:{1 0 backendName},NodePort:0,AppProtocol:nil,},},Selector:map[string]string{},ClusterIP:,Type:,ExternalIPs:[],SessionAffinity:,LoadBalancerIP:,LoadBalancerSourceRanges:[],ExternalName:,ExternalTrafficPolicy:,HealthCheckNodePort:0,PublishNotReadyAddresses:false,SessionAffinityConfig:nil,IPFamily:nil,TopologyKeys:[],},Status:ServiceStatus{LoadBalancer:LoadBalancerStatus{Ingress:[]LoadBalancerIngress{},},},}",
+				"&Service{ObjectMeta:{bookstore-apex  default    0 0001-01-01 00:00:00 +0000 UTC <nil> <nil> map[] map[] [] []  []},Spec:ServiceSpec{Ports:[]ServicePort{ServicePort{Name:servicePort,Protocol:TCP,Port:8888,TargetPort:{1 0 backendName},NodePort:0,AppProtocol:nil,},},Selector:map[string]string{},ClusterIP:,Type:,ExternalIPs:[],SessionAffinity:,LoadBalancerIP:,LoadBalancerSourceRanges:[],ExternalName:,ExternalTrafficPolicy:,HealthCheckNodePort:0,PublishNotReadyAddresses:false,SessionAffinityConfig:nil,IPFamily:nil,TopologyKeys:[],},Status:ServiceStatus{LoadBalancer:LoadBalancerStatus{Ingress:[]LoadBalancerIngress{},},},}->&Service{ObjectMeta:{bookstore  default    0 0001-01-01 00:00:00 +0000 UTC <nil> <nil> map[] map[] [] []  []},Spec:ServiceSpec{Ports:[]ServicePort{ServicePort{Name:servicePort,Protocol:TCP,Port:8888,TargetPort:{1 0 backendName},NodePort:0,AppProtocol:nil,},},Selector:map[string]string{},ClusterIP:,Type:,ExternalIPs:[],SessionAffinity:,LoadBalancerIP:,LoadBalancerSourceRanges:[],ExternalName:,ExternalTrafficPolicy:,HealthCheckNodePort:0,PublishNotReadyAddresses:false,SessionAffinityConfig:nil,IPFamily:nil,TopologyKeys:[],},Status:ServiceStatus{LoadBalancer:LoadBalancerStatus{Ingress:[]LoadBalancerIngress{},},},}",
+				"&Service{ObjectMeta:{bookstore-apex  default    0 0001-01-01 00:00:00 +0000 UTC <nil> <nil> map[] map[] [] []  []},Spec:ServiceSpec{Ports:[]ServicePort{ServicePort{Name:servicePort,Protocol:TCP,Port:8888,TargetPort:{1 0 backendName},NodePort:0,AppProtocol:nil,},},Selector:map[string]string{},ClusterIP:,Type:,ExternalIPs:[],SessionAffinity:,LoadBalancerIP:,LoadBalancerSourceRanges:[],ExternalName:,ExternalTrafficPolicy:,HealthCheckNodePort:0,PublishNotReadyAddresses:false,SessionAffinityConfig:nil,IPFamily:nil,TopologyKeys:[],},Status:ServiceStatus{LoadBalancer:LoadBalancerStatus{Ingress:[]LoadBalancerIngress{},},},}->&Service{ObjectMeta:{bookbuyer  default    0 0001-01-01 00:00:00 +0000 UTC <nil> <nil> map[] map[] [] []  []},Spec:ServiceSpec{Ports:[]ServicePort{ServicePort{Name:servicePort,Protocol:TCP,Port:8888,TargetPort:{1 0 backendName},NodePort:0,AppProtocol:nil,},},Selector:map[string]string{},ClusterIP:,Type:,ExternalIPs:[],SessionAffinity:,LoadBalancerIP:,LoadBalancerSourceRanges:[],ExternalName:,ExternalTrafficPolicy:,HealthCheckNodePort:0,PublishNotReadyAddresses:false,SessionAffinityConfig:nil,IPFamily:nil,TopologyKeys:[],},Status:ServiceStatus{LoadBalancer:LoadBalancerStatus{Ingress:[]LoadBalancerIngress{},},},}",
+			}
+			Expect(actualTargetNames).To(Equal(expected))
+		})
+	})
+
 })

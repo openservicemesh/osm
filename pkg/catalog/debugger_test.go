@@ -8,6 +8,8 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/tests"
 )
 
 var _ = Describe("Test catalog proxy register/unregister", func() {
@@ -74,6 +76,36 @@ var _ = Describe("Test catalog proxy register/unregister", func() {
 
 			_, ok := disconnectedProxies[cn]
 			Expect(ok).To(BeTrue())
+		})
+	})
+
+	Context("Test ListMonitoredNamespaces", func() {
+		It("lists monitored namespaces", func() {
+			mc := newFakeMeshCatalog()
+			actual := mc.ListMonitoredNamespaces()
+			expected := []string{
+				"-test-osm-namespace-",
+				"default",
+			}
+			Expect(actual).To(Equal(expected))
+		})
+	})
+
+	Context("Test ListSMIPolicies", func() {
+		It("lists available SMI Spec policies", func() {
+			mc := newFakeMeshCatalog()
+			trafficSplits, weightedServices, serviceAccounts, routeGroups, trafficTargets, services := mc.ListSMIPolicies()
+
+			Expect(trafficSplits[0].Spec.Service).To(Equal("bookstore-apex"))
+			Expect(weightedServices[0]).To(Equal(service.WeightedService{
+				Service:     tests.BookstoreService,
+				Weight:      100,
+				RootService: "bookstore-apex"}))
+			Expect(serviceAccounts[0].String()).To(Equal("default/bookstore"))
+			Expect(routeGroups[0].Name).To(Equal("bookstore-service-routes"))
+			Expect(trafficTargets[0].Name).To(Equal("bookbuyer-access-bookstore"))
+			Expect(services[0].Name).To(Equal(tests.BookstoreServiceName))
+
 		})
 	})
 })
