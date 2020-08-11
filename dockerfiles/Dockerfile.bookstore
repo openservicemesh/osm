@@ -1,4 +1,0 @@
-FROM alpine:3.10.1
-ADD ./demo/bin/bookstore /
-ADD ./demo/bookstore.html.template /
-RUN chmod +x /bookstore
