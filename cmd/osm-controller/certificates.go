@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"time"
 
@@ -49,7 +48,7 @@ var certManagers = map[certificateManagerKind]func(kubeClient kubernetes.Interfa
 	tresorKind:      getTresorCertificateManager,
 	keyVaultKind:    getAzureKeyVaultCertManager,
 	vaultKind:       getHashiVaultCertManager,
-	certmanagerKind: getJetstackCertManagerCertManager,
+	certmanagerKind: getCertManagerCertManager,
 }
 
 // Get a list of the supported certificate issuers
@@ -137,15 +136,9 @@ func getCertFromKubernetes(kubeClient kubernetes.Interface, namespace, secretNam
 		return nil
 	}
 
-	decoded, err := base64.StdEncoding.DecodeString(string(expirationBytes))
+	expiration, err := time.Parse(constants.TimeDateLayout, string(expirationBytes))
 	if err != nil {
-		log.Error().Err(err).Msgf("Error decoding base64 encoded CA expiration %q from Kubernetes rootCertSecret %q from namespace %q", expirationBytes, secretName, osmNamespace)
-	}
-
-	expirationString := string(decoded)
-	expiration, err := time.Parse(constants.TimeDateLayout, expirationString)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error parsing CA expiration %q from Kubernetes rootCertSecret %q from namespace %q", expirationString, secretName, osmNamespace)
+		log.Error().Err(err).Msgf("Error parsing CA expiration %q from Kubernetes rootCertSecret %q from namespace %q", string(expirationBytes), secretName, osmNamespace)
 	}
 
 	rootCert, err := tresor.NewCertificateFromPEM(pemCert, pemKey, expiration)
@@ -176,20 +169,20 @@ func getHashiVaultCertManager(_ kubernetes.Interface, _ *rest.Config, enableDebu
 	return vaultCertManager, vaultCertManager, nil
 }
 
-func getJetstackCertManagerCertManager(kubeClient kubernetes.Interface, kubeConfig *rest.Config, enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
-	rootCertSecret, err := kubeClient.CoreV1().Secrets(osmNamespace).Get(context.TODO(), *certmanagerSecretCA, metav1.GetOptions{})
+func getCertManagerCertManager(kubeClient kubernetes.Interface, kubeConfig *rest.Config, enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
+	rootCertSecret, err := kubeClient.CoreV1().Secrets(osmNamespace).Get(context.TODO(), caBundleSecretName, metav1.GetOptions{})
 	if err != nil {
-		return nil, nil, fmt.Errorf("Failed to get cert-manager CA secret %s/%s: %s", osmNamespace, *certmanagerSecretCA, err)
+		return nil, nil, fmt.Errorf("Failed to get cert-manager CA secret %s/%s: %s", osmNamespace, caBundleSecretName, err)
 	}
 
 	pemCert, ok := rootCertSecret.Data[constants.KubernetesOpaqueSecretCAKey]
 	if !ok {
-		return nil, nil, fmt.Errorf("Opaque k8s secret %s/%s does not have required field %q", osmNamespace, *certmanagerSecretCA, constants.KubernetesOpaqueSecretCAKey)
+		return nil, nil, fmt.Errorf("Opaque k8s secret %s/%s does not have required field %q", osmNamespace, caBundleSecretName, constants.KubernetesOpaqueSecretCAKey)
 	}
 
 	rootCert, err := certmanager.NewRootCertificateFromPEM(pemCert)
 	if err != nil {
-		return nil, nil, fmt.Errorf("Failed to decode cert-manager CA certificate from secret %s/%s: %s", osmNamespace, *certmanagerSecretCA, err)
+		return nil, nil, fmt.Errorf("Failed to decode cert-manager CA certificate from secret %s/%s: %s", osmNamespace, caBundleSecretName, err)
 	}
 
 	client, err := cmversionedclient.NewForConfig(kubeConfig)
@@ -211,12 +204,4 @@ func getJetstackCertManagerCertManager(kubeClient kubernetes.Interface, kubeConf
 
 func getServiceCertValidityPeriod() time.Duration {
 	return time.Duration(serviceCertValidityMinutes) * time.Minute
-}
-
-func encodeExpiration(expiration time.Time) []byte {
-	// Serialize CA expiration
-	expirationString := expiration.Format(constants.TimeDateLayout)
-	b64Encoded := make([]byte, base64.StdEncoding.EncodedLen(len(expirationString)))
-	base64.StdEncoding.Encode(b64Encoded, []byte(expirationString))
-	return b64Encoded
 }

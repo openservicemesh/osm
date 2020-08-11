@@ -70,16 +70,16 @@ type installCmd struct {
 	containerRegistrySecret       string
 	chartPath                     string
 	osmImageTag                   string
-	certManager                   string
+	certificateManager            string
 	vaultHost                     string
 	vaultProtocol                 string
 	vaultToken                    string
 	vaultRole                     string
-	certmanagerCASecret           string
 	certmanagerIssuerName         string
 	certmanagerIssuerKind         string
 	certmanagerIssuerGroup        string
 	serviceCertValidityMinutes    int
+	caBundleSecretName            string
 	prometheusRetentionTime       string
 	enableDebugServer             bool
 	enablePermissiveTrafficPolicy bool
@@ -128,16 +128,16 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.StringVar(&inst.osmImageTag, "osm-image-tag", "v0.2.0", "osm image tag")
 	f.StringVar(&inst.containerRegistrySecret, "container-registry-secret", "acr-creds", "name of Kubernetes secret for container registry credentials to be created if it doesn't already exist")
 	f.StringVar(&inst.chartPath, "osm-chart-path", "", "path to osm chart to override default chart")
-	f.StringVar(&inst.certManager, "certificate-manager", defaultCertManager, "certificate manager to use (tresor or vault)")
+	f.StringVar(&inst.certificateManager, "certificate-manager", defaultCertManager, "certificate manager to use (tresor or vault)")
 	f.StringVar(&inst.vaultHost, "vault-host", "", "Hashicorp Vault host/service - where Vault is installed")
 	f.StringVar(&inst.vaultProtocol, "vault-protocol", defaultVaultProtocol, "protocol to use to connect to Vault")
 	f.StringVar(&inst.vaultToken, "vault-token", "", "token that should be used to connect to Vault")
 	f.StringVar(&inst.vaultRole, "vault-role", "openservicemesh", "Vault role to be used by Open Service Mesh")
-	f.StringVar(&inst.certmanagerCASecret, "cert-manager-ca-secret", "osm-ca", "Kubernetes Secret containing cert-manager's CA certificate")
 	f.StringVar(&inst.certmanagerIssuerName, "cert-manager-issuer-name", "osm-ca", "cert-manager issuer name")
 	f.StringVar(&inst.certmanagerIssuerKind, "cert-manager-issuer-kind", "Issuer", "cert-manager issuer kind")
 	f.StringVar(&inst.certmanagerIssuerGroup, "cert-manager-issuer-group", "cert-manager.io", "cert-manager issuer group")
 	f.IntVar(&inst.serviceCertValidityMinutes, "service-cert-validity-minutes", defaultCertValidityMinutes, "Certificate TTL in minutes")
+	f.StringVar(&inst.caBundleSecretName, "ca-bundle-secret-name", "osm-ca-bundle", "Name of the Kubernetes Secret for the OSM CA bundle")
 	f.StringVar(&inst.prometheusRetentionTime, "prometheus-retention-time", constants.PrometheusDefaultRetentionTime, "Duration for which data will be retained in prometheus")
 	f.BoolVar(&inst.enableDebugServer, "enable-debug-server", false, "Enable the debug HTTP server")
 	f.BoolVar(&inst.enablePermissiveTrafficPolicy, "enable-permissive-traffic-policy", false, "Enable permissive traffic policy mode")
@@ -169,7 +169,7 @@ func (i *installCmd) run(config *helm.Configuration) error {
 		return errors.Errorf("Invalid mesh-name.\nValid mesh-name:\n- must be no longer than 63 characters\n- must consist of alphanumeric characters, '-', '_' or '.'\n- must start and end with an alphanumeric character\nregex used for validation is '(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?'")
 	}
 
-	if strings.EqualFold(i.certManager, "vault") {
+	if strings.EqualFold(i.certificateManager, "vault") {
 		var missingFields []string
 		if i.vaultHost == "" {
 			missingFields = append(missingFields, "vault-host")
@@ -179,6 +179,19 @@ func (i *installCmd) run(config *helm.Configuration) error {
 		}
 		if len(missingFields) != 0 {
 			return errors.Errorf("Missing arguments for certificate-manager vault: %v", missingFields)
+		}
+	}
+
+	if strings.EqualFold(i.certificateManager, "cert-manager") {
+		var missingFields []string
+		if i.certmanagerIssuerName == "" {
+			missingFields = append(missingFields, "cert-manager-issuer-name")
+		}
+		if i.caBundleSecretName == "" {
+			missingFields = append(missingFields, "ca-bundle-secret-name")
+		}
+		if len(missingFields) != 0 {
+			return errors.Errorf("Missing arguments for certificate-manager cert-manager: %v", missingFields)
 		}
 	}
 
@@ -239,16 +252,16 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 		fmt.Sprintf("OpenServiceMesh.image.registry=%s", i.containerRegistry),
 		fmt.Sprintf("OpenServiceMesh.image.tag=%s", i.osmImageTag),
 		fmt.Sprintf("OpenServiceMesh.imagePullSecrets[0].name=%s", i.containerRegistrySecret),
-		fmt.Sprintf("OpenServiceMesh.certManager=%s", i.certManager),
+		fmt.Sprintf("OpenServiceMesh.certificateManager=%s", i.certificateManager),
 		fmt.Sprintf("OpenServiceMesh.vault.host=%s", i.vaultHost),
 		fmt.Sprintf("OpenServiceMesh.vault.protocol=%s", i.vaultProtocol),
 		fmt.Sprintf("OpenServiceMesh.vault.token=%s", i.vaultToken),
 		fmt.Sprintf("OpenServiceMesh.vault.role=%s", i.vaultRole),
-		fmt.Sprintf("OpenServiceMesh.certmanager.caSecret=%s", i.certmanagerCASecret),
 		fmt.Sprintf("OpenServiceMesh.certmanager.issuerName=%s", i.certmanagerIssuerName),
 		fmt.Sprintf("OpenServiceMesh.certmanager.issuerKind=%s", i.certmanagerIssuerKind),
 		fmt.Sprintf("OpenServiceMesh.certmanager.issuerGroup=%s", i.certmanagerIssuerGroup),
 		fmt.Sprintf("OpenServiceMesh.serviceCertValidityMinutes=%d", i.serviceCertValidityMinutes),
+		fmt.Sprintf("OpenServiceMesh.caBundleSecretName=%s", i.caBundleSecretName),
 		fmt.Sprintf("OpenServiceMesh.prometheus.retention.time=%s", i.prometheusRetentionTime),
 		fmt.Sprintf("OpenServiceMesh.enableDebugServer=%t", i.enableDebugServer),
 		fmt.Sprintf("OpenServiceMesh.enablePermissiveTrafficPolicy=%t", i.enablePermissiveTrafficPolicy),

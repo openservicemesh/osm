@@ -24,7 +24,7 @@ var _ = Describe("Test creation of CA bundle k8s secret", func() {
 			namespace := "--namespace--"
 			k8sClient := testclient.NewSimpleClientset()
 
-			err := createCABundleKubernetesSecret(k8sClient, certManager, namespace, secretName)
+			err := createOrUpdateCABundleKubernetesSecret(k8sClient, certManager, namespace, secretName)
 			Expect(err).ToNot(HaveOccurred())
 
 			actual, err := k8sClient.CoreV1().Secrets(namespace).Get(context.Background(), secretName, v1.GetOptions{})

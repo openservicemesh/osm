@@ -19,8 +19,11 @@ func validateCLIParams() error {
 	}
 
 	if *osmCertificateManagerKind == certmanagerKind {
+		if len(caBundleSecretName) == 0 {
+			return errors.Errorf("Please specify --%s as the Secret name containing the cert-manager CA at 'ca.crt'", caBundleSecretNameCLIParam)
+		}
 		if len(*certmanagerIssuerName) == 0 {
-			return errors.Errorf("Empty cert-manager issuer name")
+			return errors.Errorf("Please specify --cert-manager-issuer-name when using cert-manager certificate manager")
 		}
 	}
 
