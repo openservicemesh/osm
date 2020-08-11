@@ -19,4 +19,13 @@ POD="$(kubectl get pods --selector app="$backend" -n "$BOOKSTORE_NAMESPACE" --no
 
 kubectl describe pod "$POD" -n "$BOOKSTORE_NAMESPACE"
 
-kubectl port-forward "$POD" -n "$BOOKSTORE_NAMESPACE" 8082:80
+# Check if run as standalone or from scripts/port-forward-all.sh
+if [ $# -eq 0 ]; then
+  # Prompt for a port number
+  read -p "Enter BOOKSTORE pod local port:" -i "8082" -e PORT
+else
+  # Port number read from scripts/port-forward-all.sh
+  PORT=$2
+fi
+
+kubectl port-forward "$POD" -n "$BOOKSTORE_NAMESPACE" $PORT:80
