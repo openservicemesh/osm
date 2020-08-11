@@ -83,6 +83,19 @@ func (f fakeMeshSpec) ListBackpressures() []*backpressure.Backpressure {
 	return f.backpressures
 }
 
+func (f fakeMeshSpec) GetBackpressurePolicy(svc service.MeshService) *backpressure.Backpressure {
+	for _, backpressure := range f.backpressures {
+		app, ok := backpressure.Labels["app"]
+		if !ok {
+			continue
+		}
+		if svc.Namespace == backpressure.Namespace && svc.Name == app {
+			return backpressure
+		}
+	}
+	return nil
+}
+
 // GetAnnouncementsChannel returns the channel on which SMI makes announcements for the fake Mesh Spec.
 func (f fakeMeshSpec) GetAnnouncementsChannel() <-chan interface{} {
 	return make(chan interface{})

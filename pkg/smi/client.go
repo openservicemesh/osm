@@ -230,7 +230,7 @@ func (c *Client) ListBackpressures() []*backpressure.Backpressure {
 	for _, pressureIface := range c.caches.Backpressure.List() {
 		bpressure, ok := pressureIface.(*backpressure.Backpressure)
 		if !ok {
-			log.Error().Err(errInvalidObjectType).Msgf("Object obtained from cache is not *Backpressure")
+			log.Error().Err(errInvalidObjectType).Msgf("Failed type assertion for Backpressure in cache")
 			continue
 		}
 
@@ -241,6 +241,37 @@ func (c *Client) ListBackpressures() []*backpressure.Backpressure {
 	}
 
 	return backpressureList
+}
+
+// GetBackpressurePolicy gets the Backpressure policy corresponding to the MeshService
+func (c *Client) GetBackpressurePolicy(svc service.MeshService) *backpressure.Backpressure {
+	if !featureflags.IsBackpressureEnabled() {
+		log.Info().Msgf("Backpressure turned off!")
+		return nil
+	}
+
+	for _, iface := range c.caches.Backpressure.List() {
+		backpressure, ok := iface.(*backpressure.Backpressure)
+		if !ok {
+			log.Error().Err(errInvalidObjectType).Msgf("Failed type assertion for Backpressure in cache")
+			continue
+		}
+
+		if !c.namespaceController.IsMonitoredNamespace(backpressure.Namespace) {
+			continue
+		}
+
+		app, ok := backpressure.Labels["app"]
+		if !ok {
+			continue
+		}
+
+		if svc.Namespace == backpressure.Namespace && svc.Name == app {
+			return backpressure
+		}
+	}
+
+	return nil
 }
 
 // ListTrafficSplitServices implements mesh.MeshSpec by returning the services observed from the given compute provider

@@ -50,7 +50,7 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, proxy *envoy.
 		}
 
 		if featureflags.IsBackpressureEnabled() {
-			enableBackpressure(catalog, remoteCluster)
+			enableBackpressure(catalog, remoteCluster, dstService)
 		}
 
 		clusterFactories[remoteCluster.Name] = remoteCluster
