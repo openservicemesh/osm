@@ -14,7 +14,7 @@ OpenServiceMesh:
     port: 7070
     retention:
       time: 15d
-  certManager: tresor
+  certficateManager: tresor
   vault:
     host:
     protocol: http
@@ -24,8 +24,8 @@ OpenServiceMesh:
     issuerName: osm-ca
     issuerKind: Issuer
     issuerGroup: cert-manager
-    caSecret: osm-ca
   serviceCertValidityMinutes: 1
+  caBundleSecretName: osm-ca-bundle
   grafana:
     port: 3000
 
