@@ -9,26 +9,15 @@ This document describes how to expose HTTP and HTTPS routes outside the cluster 
 - An ingress controller must be running in the cluster.
 
 ## Exposing an HTTP or HTTPS service using Ingress
-A service can expose HTTP or HTTPS routes outside the cluster using Kubernetes Ingress along with an ingress controller. Once an ingress resource is configured to expose HTTP routes outside the cluster to a service within the cluster, OSM will configure the sidecar proxy on pods to allow ingress traffic to the service based on the ingress routing rules defined by the Kubernetes Ingress resource. Keep in mind, this behavior opens up HTTP-based access to any service, not just ingress. 
+A service can expose HTTP or HTTPS routes outside the cluster using Kubernetes Ingress along with an ingress controller. Once an ingress resource is configured to expose HTTP routes outside the cluster to a service within the cluster, OSM will configure the sidecar proxy on pods to allow ingress traffic to the service based on the ingress routing rules defined by the Kubernetes Ingress resource. Keep in mind, this behavior opens up HTTP-based access to any service, not just ingress.
 
 For HTTPS ingress, OSM supports one way TLS authentication to backend services.
 
 By default, OSM configures HTTP as the backend protocol for services when an ingress resource is applied with a backend service that belongs to the mesh. A mesh-wide configuration setting in OSM's `osm-config` ConfigMap enables configuring ingress with the backend protocol to be HTTPS. HTTPS ingress can be enabled by updating the `osm-config` ConfigMap in `osm-controller`'s namespace (`osm-system` by default).
 
-Edit the ConfigMap by setting `use_https_ingress: "true"`.
-
-```shell
-kubectl edit configmap -n osm-system osm-config
-```
-```yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-    name: osm-config
-    namespace: osm-system
-data:
-    use_https_ingress: "true"
-...
+Patch the ConfigMap by setting `use_https_ingress: "true"`.
+```bash
+kubectl patch ConfigMap osm-config -n osm-system -p '{"data":{"use_https_ingress":"true"}}' --type=merge
 ```
 
 ## Ingress controller compatibility
@@ -171,7 +160,7 @@ spec:
 ```
 ### Using Gloo API Gateway
 
-[Gloo API Gateway][5] is an Envoy-powered API gateway that can run in `Ingress` mode or full-blow `Gateway` mode. In this document, we show the `Ingress` approach, but you can refer to the [Gloo documentation][5] for more in depth functionality enabled by Gloo. 
+[Gloo API Gateway][5] is an Envoy-powered API gateway that can run in `Ingress` mode or full-blow `Gateway` mode. In this document, we show the `Ingress` approach, but you can refer to the [Gloo documentation][5] for more in depth functionality enabled by Gloo.
 
 Install Gloo in `Ingress` mode:
 
@@ -179,14 +168,14 @@ Install Gloo in `Ingress` mode:
 glooctl install ingress
 ```
 
-For Gloo's ingress, we don't need any additional annotations, however, the `kubernetes.io/ingress.class: gloo` annotation is recommended. With Gloo, we configure the `Upstream` objects with the appropriate trust authority. In Gloo, the `Upstream` object represents a routable target (Kubernetes Service, Consul Service, Cloud Function, etc). 
+For Gloo's ingress, we don't need any additional annotations, however, the `kubernetes.io/ingress.class: gloo` annotation is recommended. With Gloo, we configure the `Upstream` objects with the appropriate trust authority. In Gloo, the `Upstream` object represents a routable target (Kubernetes Service, Consul Service, Cloud Function, etc).
 
 To prepare the root certifciate, we must do something similar to what we do for the Azure Application Gateway.
 
 ```bash
 kubectl get secret/osm-ca-bundle -n osm-system -o jsonpath="{.data['ca\.crt']}" | base64 -d > osm-c-bundlea.pem
 
-glooctl create secret tls --name osm-ca-bundle --rootca osm-c-bundlea.pem 
+glooctl create secret tls --name osm-ca-bundle --rootca osm-c-bundlea.pem
 ```
 
 Next we could use an Ingress file like this:
