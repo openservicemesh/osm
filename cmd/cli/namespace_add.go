@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 )
@@ -64,13 +65,26 @@ func (a *namespaceAddCmd) run() error {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		patch := `{"metadata":{"labels":{"` + constants.OSMKubeResourceMonitorAnnotation + `":"` + a.meshName + `"}}}`
-		_, err := a.clientSet.CoreV1().Namespaces().Patch(ctx, ns, types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{}, "")
-		if err != nil {
-			return errors.Errorf("Could not label namespace [%s]: %v", ns, err)
-		}
+		deploymentsClient := a.clientSet.AppsV1().Deployments(ns)
+		labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"app": "osm-controller"}}
 
-		fmt.Fprintf(a.out, "Namespace [%s] successfully added to mesh [%s]\n", ns, a.meshName)
+		listOptions := metav1.ListOptions{
+			LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
+		}
+		list, _ := deploymentsClient.List(context.TODO(), listOptions)
+
+		// if osm-controller is installed in that namespace then don't add that to mesh
+		if len(list.Items) != 0 {
+			fmt.Fprintf(a.out, "Namespace [%s] already has osm-controller installed and cannot be added to mesh [%s]\n", ns, a.meshName)
+		} else {
+			patch := `{"metadata":{"labels":{"` + constants.OSMKubeResourceMonitorAnnotation + `":"` + a.meshName + `"}}}`
+			_, err := a.clientSet.CoreV1().Namespaces().Patch(ctx, ns, types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{}, "")
+			if err != nil {
+				return errors.Errorf("Could not label namespace [%s]: %v", ns, err)
+			}
+
+			fmt.Fprintf(a.out, "Namespace [%s] successfully added to mesh [%s]\n", ns, a.meshName)
+		}
 	}
 
 	return nil
