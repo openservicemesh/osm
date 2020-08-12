@@ -7,12 +7,12 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	fake "k8s.io/client-go/kubernetes/fake"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	fake "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -22,26 +22,24 @@ import (
 )
 
 var _ = Describe("Test Kube Client Provider", func() {
-	Context("Testing ListServicesForServiceAccount", func() {
-		f := fake.NewSimpleClientset()
-		stop := make(chan struct{})
-		namespaceController := namespace.NewFakeNamespaceController([]string{tests.BookbuyerService.Namespace})
+	Context("Test kube endpoint provider APIs", func() {
+		fakeClientSet := fake.NewSimpleClientset()
+		stopChann := make(chan struct{})
+		nsCtrl := namespace.NewFakeNamespaceController([]string{tests.BookbuyerService.Namespace})
 		cfg := configurator.NewFakeConfigurator()
-		provider := "provider"
+		providerID := "provider"
 
-		cli, err := NewProvider(f, namespaceController, stop, provider, cfg)
+		cli, err := NewProvider(fakeClientSet, nsCtrl, stopChann, providerID, cfg)
 
-		It("Check global provider creation succeeded", func() {
+		It("verifies new Provider at context scope succeeded", func() {
 			Expect(err).To(BeNil())
 		})
 
-		It("Test Provider APIs", func() {
-			// New provider, no errs
-			id := cli.GetID()
-			Expect(id).To(Equal(provider))
+		It("tests GetID", func() {
+			Expect(cli.GetID()).To(Equal(providerID))
 		})
 
-		It("Test ListEndpointsForService", func() {
+		It("tests ListEndpointsForService", func() {
 			// Should be empty for now
 			Expect(cli.ListEndpointsForService(tests.BookbuyerService)).To(Equal([]endpoint.Endpoint{}))
 
@@ -72,10 +70,10 @@ var _ = Describe("Test Kube Client Provider", func() {
 				},
 			}
 
-			f.CoreV1().Endpoints(tests.BookbuyerService.Namespace).
+			fakeClientSet.CoreV1().Endpoints(tests.BookbuyerService.Namespace).
 				Create(context.TODO(), endp, metav1.CreateOptions{})
 
-			// Expect bookbuyer endpoint, async/event listening in provider makes inmediate calls fail
+			// Expect bookbuyer endpoint, async/event listening in Provider makes inmediate calls fail
 			Eventually(func() []endpoint.Endpoint {
 				return cli.ListEndpointsForService(tests.BookbuyerService)
 			}, 2*time.Second).Should(Equal([]endpoint.Endpoint{
@@ -86,10 +84,9 @@ var _ = Describe("Test Kube Client Provider", func() {
 			}))
 		})
 
-		It("Test GetServiceForServiceAccount", func() {
+		It("tests GetServiceForServiceAccount", func() {
+			// No deployments set, this returns err & empty svcMesh
 			svcMesh, err := cli.GetServiceForServiceAccount(tests.BookbuyerServiceAccount)
-
-			// Expect err to be thrown as the Service Account does not exist, empty results
 			Expect(svcMesh).To(Equal(service.MeshService{}))
 			Expect(err).ToNot(BeNil())
 
@@ -102,13 +99,13 @@ var _ = Describe("Test Kube Client Provider", func() {
 				Spec: appsv1.DeploymentSpec{
 					Selector: &metav1.LabelSelector{
 						MatchLabels: map[string]string{
-							"app": "bookbuyer",
+							"app": tests.BookbuyerService.Name,
 						},
 					},
 					Template: corev1.PodTemplateSpec{
 						ObjectMeta: metav1.ObjectMeta{
 							Labels: map[string]string{
-								"app": "bookbuyer",
+								"app": tests.BookbuyerService.Name,
 							},
 						},
 						Spec: corev1.PodSpec{
@@ -132,7 +129,7 @@ var _ = Describe("Test Kube Client Provider", func() {
 			}
 
 			// Add deployment
-			_, err = f.AppsV1().Deployments(tests.BookbuyerService.Namespace).
+			_, err = fakeClientSet.AppsV1().Deployments(tests.BookbuyerService.Namespace).
 				Create(context.Background(), deployment, metav1.CreateOptions{})
 
 			Expect(err).To(BeNil())
@@ -145,7 +142,7 @@ var _ = Describe("Test Kube Client Provider", func() {
 
 		})
 
-		It("Test GetAnnouncementChannel", func() {
+		It("tests GetAnnouncementChannel", func() {
 			ch := cli.GetAnnouncementsChannel()
 
 			// Can only expect to not be null
