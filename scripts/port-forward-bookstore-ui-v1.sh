@@ -15,17 +15,9 @@ if [ -z "$backend" ]; then
     exit 1
 fi
 
+BOOKSTOREv1_LOCAL_PORT="${BOOKSTOREv1_LOCAL_PORT:-8081}"
 POD="$(kubectl get pods --selector app="$backend" -n "$BOOKSTORE_NAMESPACE" --no-headers | grep 'Running' | awk '{print $1}')"
 
 kubectl describe pod "$POD" -n "$BOOKSTORE_NAMESPACE"
 
-# Check if run as standalone or from scripts/port-forward-all.sh
-if [ $# -eq 0 ]; then
-  # Prompt for a port number
-  read -p "Enter BOOKSTORE pod local port:" -i "8081" -e PORT
-else
-  # Port number read from scripts/port-forward-all.sh
-  PORT=$2
-fi
-
-kubectl port-forward "$POD" -n "$BOOKSTORE_NAMESPACE" $PORT:80
+kubectl port-forward "$POD" -n "$BOOKSTORE_NAMESPACE" "$BOOKSTOREv1_LOCAL_PORT":80
