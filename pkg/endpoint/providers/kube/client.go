@@ -70,7 +70,7 @@ func (c *Client) GetID() string {
 // ListEndpointsForService retrieves the list of IP addresses for the given service
 func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endpoint {
 	log.Info().Msgf("[%s] Getting Endpoints for service %s on Kubernetes", c.providerIdent, svc)
-	var endpoints []endpoint.Endpoint
+	var endpoints []endpoint.Endpoint = []endpoint.Endpoint{}
 	endpointsInterface, exist, err := c.caches.Endpoints.GetByKey(svc.String())
 	if err != nil {
 		log.Error().Err(err).Msgf("[%s] Error fetching Kubernetes Endpoints from cache", c.providerIdent)
