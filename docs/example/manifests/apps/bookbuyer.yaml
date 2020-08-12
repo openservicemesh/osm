@@ -1,4 +1,9 @@
-
+# Deploy bookbuyer Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: bookbuyer
+---
 # Deploy bookbuyer Service Account
 apiVersion: v1
 kind: ServiceAccount

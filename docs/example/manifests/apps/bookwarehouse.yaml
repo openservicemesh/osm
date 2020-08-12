@@ -1,3 +1,9 @@
+# Deploy bookwarehouse Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: bookwarehouse
+---
 # Deploy bookwarehouse Service Account
 apiVersion: v1
 kind: ServiceAccount
