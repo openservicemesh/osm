@@ -5,75 +5,26 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/envoy"
 )
 
-var _ = Describe("Test catalog proxy register/unregister", func() {
-	Context("Test register/unregister proxies", func() {
-		mc := NewFakeMeshCatalog(testclient.NewSimpleClientset())
-		cn := certificate.CommonName("foo")
-		proxy := envoy.NewProxy(cn, nil)
+var _ = Describe("Test catalog functions", func() {
+	mc := NewFakeMeshCatalog(testclient.NewSimpleClientset())
 
-		It("no proxies expected, connected or disconnected", func() {
-			expectedProxies := mc.ListExpectedProxies()
-			Expect(len(expectedProxies)).To(Equal(0))
-
-			connectedProxies := mc.ListConnectedProxies()
-			Expect(len(connectedProxies)).To(Equal(0))
-
-			disconnectedProxies := mc.ListDisconnectedProxies()
-			Expect(len(disconnectedProxies)).To(Equal(0))
+	Context("Test GetSMISpec()", func() {
+		It("provides the SMI Spec component via Mesh Catalog", func() {
+			smiSpec := mc.GetSMISpec()
+			Expect(smiSpec).ToNot(BeNil())
 		})
+	})
 
-		It("expect one proxy to connect", func() {
-			// mc.RegisterProxy(proxy)
-			mc.ExpectProxy(cn)
+	Context("Test getAnnouncementChannels()", func() {
+		It("provides the SMI Spec component via Mesh Catalog", func() {
+			chans := mc.getAnnouncementChannels()
 
-			expectedProxies := mc.ListExpectedProxies()
-			Expect(len(expectedProxies)).To(Equal(1))
-
-			connectedProxies := mc.ListConnectedProxies()
-			Expect(len(connectedProxies)).To(Equal(0))
-
-			disconnectedProxies := mc.ListDisconnectedProxies()
-			Expect(len(disconnectedProxies)).To(Equal(0))
-
-			_, ok := expectedProxies[cn]
-			Expect(ok).To(BeTrue())
-		})
-
-		It("one proxy connected to OSM", func() {
-			mc.RegisterProxy(proxy)
-
-			expectedProxies := mc.ListExpectedProxies()
-			Expect(len(expectedProxies)).To(Equal(0))
-
-			connectedProxies := mc.ListConnectedProxies()
-			Expect(len(connectedProxies)).To(Equal(1))
-
-			disconnectedProxies := mc.ListDisconnectedProxies()
-			Expect(len(disconnectedProxies)).To(Equal(0))
-
-			_, ok := connectedProxies[cn]
-			Expect(ok).To(BeTrue())
-		})
-
-		It("one proxy disconnected from OSM", func() {
-			mc.UnregisterProxy(proxy)
-
-			expectedProxies := mc.ListExpectedProxies()
-			Expect(len(expectedProxies)).To(Equal(0))
-
-			connectedProxies := mc.ListConnectedProxies()
-			Expect(len(connectedProxies)).To(Equal(0))
-
-			disconnectedProxies := mc.ListDisconnectedProxies()
-			Expect(len(disconnectedProxies)).To(Equal(1))
-
-			_, ok := disconnectedProxies[cn]
-			Expect(ok).To(BeTrue())
+			// Why exactly 6 channels?
+			// Because - 1 for MeshSpec changes + 1 for Cert changes + 1 for Ingress + 1 for a Ticker + 1 Namespace + an endpoint provider
+			expectedNumberOfChannels := 6
+			Expect(len(chans)).To(Equal(expectedNumberOfChannels))
 		})
 	})
 })

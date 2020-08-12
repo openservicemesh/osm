@@ -1,6 +1,7 @@
 package catalog
 
 import (
+	"context"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -16,10 +17,12 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
+	"github.com/openservicemesh/osm/pkg/endpoint/providers/kube"
 	"github.com/openservicemesh/osm/pkg/ingress"
 	"github.com/openservicemesh/osm/pkg/namespace"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
+	"github.com/openservicemesh/osm/pkg/tests"
 )
 
 var (
@@ -41,15 +44,29 @@ func newFakeMeshCatalog() *MeshCatalog {
 	certManager := tresor.NewFakeCertManager(&cache, 1*time.Hour)
 	ingressMonitor := ingress.NewFakeIngressMonitor()
 	ingressMonitor.FakeIngresses = getFakeIngresses()
-	stop := make(<-chan struct{})
-	var endpointProviders []endpoint.Provider
+	stop := make(chan struct{})
+	endpointProviders := []endpoint.Provider{
+		kube.NewFakeProvider(),
+	}
 	kubeClient := testclient.NewSimpleClientset()
+
+	// Create a pod
+	pod := tests.NewPodTestFixtureWithOptions(tests.Namespace, "pod-name", tests.BookstoreServiceAccountName)
+	if _, err := kubeClient.CoreV1().Pods(tests.Namespace).Create(context.TODO(), &pod, metav1.CreateOptions{}); err != nil {
+		log.Fatal().Err(err).Msgf("Error creating new fake Mesh Catalog")
+	}
+
+	selector := map[string]string{tests.SelectorKey: tests.SelectorValue}
+	svc := tests.NewServiceFixture(tests.BookstoreServiceName, tests.Namespace, selector)
+	if _, err := kubeClient.CoreV1().Services(tests.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{}); err != nil {
+		log.Fatal().Err(err).Msgf("Error creating new fake Mesh Catalog")
+	}
 
 	osmNamespace := "-test-osm-namespace-"
 	osmConfigMapName := "-test-osm-config-map-"
 	cfg := configurator.NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
 
-	namespaceController := namespace.NewFakeNamespaceController([]string{osmNamespace})
+	namespaceController := namespace.NewFakeNamespaceController([]string{osmNamespace, tests.Namespace})
 
 	return NewMeshCatalog(namespaceController, kubeClient, meshSpec, certManager, ingressMonitor, stop, cfg, endpointProviders...)
 }
