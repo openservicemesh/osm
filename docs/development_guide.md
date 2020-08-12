@@ -156,7 +156,7 @@ The most rudimentary tests are the unit tests. We strive for test coverage above
 this is pragmatic and possible.
 Each newly added function should be accompanied by a unit test. Ideally, while working
 on this repository, we practice
-[test-driven development](https://en.wikipedia.org/wiki/Test-driven_development), 
+[test-driven development](https://en.wikipedia.org/wiki/Test-driven_development),
 and each change would be accompanied by a unit test.
 
 To run all unit tests you can use the following `Makefile` target:
@@ -176,7 +176,7 @@ You can check the unit test coverage by using the `-cover` option:
 go test -cover ./pkg/certificate/providers/vault/...
 ```
 
-We have a dedicated tool for in-depth analysis of the unit-test code coverage: 
+We have a dedicated tool for in-depth analysis of the unit-test code coverage:
 ```bash
 ./scripts/test-w-coverage.sh
 ```
@@ -190,18 +190,18 @@ open ./coverage/index.html
 
 Once the file loads in your browser, scroll to the package you worked on to see current test coverage:
 
-![package coverage](unit-test-coverage-1.png)
+![package coverage](./images/unit-test-coverage-1.png)
 
 Our overall guiding principle is to maintain unit-test coverage at or above 80%.
 
 To understand which particular functions need more testing - scroll further in the report:
 
-![per function](unit-test-coverage-2.png)
+![per function](./images/unit-test-coverage-2.png)
 
 And if you are wondering why a function, which we have written a test for, is not 100% covered,
 you will find the per-function analysis useful. This will show you code paths that are not tested.
 
-![per function](unit-test-coverage-3.png)
+![per function](./images/unit-test-coverage-3.png)
 
 #### Integration Tests
 
@@ -214,7 +214,7 @@ Take a look at [the following test](https://github.com/openservicemesh/osm/blob/
 which tests the functionality of multiple functions together. In this particular example, the test:
   - uses a mock Kubernetes client via `testclient.NewSimpleClientset()` from the `k8s.io/client-go/kubernetes/fake` library
   - [creates a ConfigMap](https://github.com/openservicemesh/osm/blob/release-v0.2/pkg/configurator/client_test.go#L32)
-  - [tests whether](https://github.com/openservicemesh/osm/blob/release-v0.2/pkg/configurator/client_test.go#L95-L96) the underlying functions compose correctly by fetching the results of the top-level function `GetMeshCIDRRanges()` 
+  - [tests whether](https://github.com/openservicemesh/osm/blob/release-v0.2/pkg/configurator/client_test.go#L95-L96) the underlying functions compose correctly by fetching the results of the top-level function `GetMeshCIDRRanges()`
 
 
 #### Simulation / Demo
