@@ -218,7 +218,7 @@ $ kubectl create secret -n osm-system generic osm-ca-bundle --from-file ca.tls
 ### Configure OSM with cert-manager
 
 In order for OSM to use cert-manager with the configured issuer, set the
-following CLI arguments:
+following CLI arguments on the `osm install` command:
 
   - `--certificate-manager="cert-manager"` - Required to use cert-manager as the
       provider.
