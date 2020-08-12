@@ -7,10 +7,10 @@ import (
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	cmclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1beta1"
 	cmlisters "github.com/jetstack/cert-manager/pkg/client/listers/certmanager/v1beta1"
-	"github.com/rs/zerolog"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
+	"github.com/openservicemesh/osm/pkg/logger"
 )
 
 const (
@@ -22,10 +22,12 @@ const (
 	checkCertificateExpirationInterval = 5 * time.Second
 )
 
+var (
+	log = logger.New("cert-manager")
+)
+
 // CertManager implements certificate.Manager
 type CertManager struct {
-	log zerolog.Logger
-
 	// How long will newly issued certificates be valid for.
 	validityPeriod time.Duration
 

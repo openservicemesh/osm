@@ -41,7 +41,7 @@ func (cm *CertManager) waitForCertificateReady(name string, timeout time.Duratio
 		func() (bool, error) {
 			cr, err = cm.crLister.Get(name)
 			if apierrors.IsNotFound(err) {
-				cm.log.Info().Msgf("Failed to find CertificateRequest %s/%s", cm.namespace, name)
+				log.Info().Msgf("Failed to find CertificateRequest %s/%s", cm.namespace, name)
 				return false, nil
 			}
 
@@ -54,7 +54,7 @@ func (cm *CertManager) waitForCertificateReady(name string, timeout time.Duratio
 				Status: cmmeta.ConditionTrue,
 			})
 			if !isReady {
-				cm.log.Info().Msgf("CertificateRequest not ready %s/%s: %+v",
+				log.Info().Msgf("CertificateRequest not ready %s/%s: %+v",
 					cm.namespace, name, cr.Status.Conditions)
 			}
 

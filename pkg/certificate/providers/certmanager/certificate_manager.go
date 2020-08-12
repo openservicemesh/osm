@@ -17,7 +17,6 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/rotor"
-	"github.com/openservicemesh/osm/pkg/logger"
 )
 
 // IssueCertificate implements certificate.Manager and returns a newly issued certificate.
@@ -35,7 +34,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 		return nil, err
 	}
 
-	cm.log.Info().Msgf("It took %+v to issue certificate with CN=%s", time.Since(start), cn)
+	log.Info().Msgf("It took %+v to issue certificate with CN=%s", time.Since(start), cn)
 
 	return cert, nil
 }
@@ -52,9 +51,9 @@ func (cm *CertManager) getFromCache(cn certificate.CommonName) certificate.Certi
 	cm.cacheLock.RLock()
 	defer cm.cacheLock.RUnlock()
 	if cert, exists := cm.cache[cn]; exists {
-		cm.log.Trace().Msgf("Certificate found in cache CN=%s", cn)
+		log.Trace().Msgf("Certificate found in cache CN=%s", cn)
 		if rotor.ShouldRotate(cert) {
-			cm.log.Trace().Msgf("Certificate found in cache but has expired CN=%s", cn)
+			log.Trace().Msgf("Certificate found in cache but has expired CN=%s", cn)
 			return nil
 		}
 		return cert
@@ -66,7 +65,7 @@ func (cm *CertManager) getFromCache(cn certificate.CommonName) certificate.Certi
 // certificate. When a certificate is successfully created, garbage collect
 // old CertificateRequests.
 func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate.Certificater, error) {
-	cm.log.Info().Msgf("Rotating certificate for CN=%s", cn)
+	log.Info().Msgf("Rotating certificate for CN=%s", cn)
 
 	start := time.Now()
 
@@ -80,7 +79,7 @@ func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate
 	cm.cacheLock.Unlock()
 	cm.announcements <- nil
 
-	cm.log.Info().Msgf("Rotating certificate CN=%s took %+v", cn, time.Since(start))
+	log.Info().Msgf("Rotating certificate CN=%s took %+v", cn, time.Since(start))
 
 	return cert, nil
 }
@@ -140,14 +139,14 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod *time.Dur
 
 	certPrivKey, err := rsa.GenerateKey(rand.Reader, rsaBits)
 	if err != nil {
-		cm.log.Error().Err(err).Msgf("Error generating private key for certificate with CN=%s", cn)
+		log.Error().Err(err).Msgf("Error generating private key for certificate with CN=%s", cn)
 		return nil, fmt.Errorf("failed to generate private key for certificate with CN=%s: %s",
 			cn, err)
 	}
 
 	privKeyPEM, err := certificate.EncodeKeyDERtoPEM(certPrivKey)
 	if err != nil {
-		cm.log.Error().Err(err).Msgf("Error encoding private key for certificate with CN=%s", cn)
+		log.Error().Err(err).Msgf("Error encoding private key for certificate with CN=%s", cn)
 		return nil, err
 	}
 
@@ -193,7 +192,7 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod *time.Dur
 		return nil, err
 	}
 
-	cm.log.Info().Msgf("Created CertificateRequest %s/%s for CN=%s", cm.namespace, cr.Name, cn)
+	log.Info().Msgf("Created CertificateRequest %s/%s for CN=%s", cm.namespace, cr.Name, cn)
 
 	// TODO: add timeout option instead of 60s hard coded.
 	cr, err = cm.waitForCertificateReady(cr.Name, time.Second*60)
@@ -208,7 +207,7 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod *time.Dur
 
 	defer func() {
 		if err := cm.client.Delete(context.TODO(), cr.Name, metav1.DeleteOptions{}); err != nil {
-			cm.log.Error().Err(err).Msgf("failed to delete CertificateRequest %s/%s", cm.namespace, cr.Name)
+			log.Error().Err(err).Msgf("failed to delete CertificateRequest %s/%s", cm.namespace, cr.Name)
 		}
 	}()
 
@@ -243,7 +242,6 @@ func NewCertManager(
 		issuerRef:      issuerRef,
 		crLister:       crLister,
 		validityPeriod: validityPeriod,
-		log:            logger.New("cert-manager"),
 	}
 
 	// Instantiating a new certificate rotation mechanism will start a goroutine for certificate rotation.
