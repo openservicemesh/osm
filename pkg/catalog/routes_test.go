@@ -209,8 +209,7 @@ var _ = Describe("Catalog tests", func() {
 
 	Context("Test buildAllowAllTrafficPolicies", func() {
 		It("lists traffic targets for the given service", func() {
-			actual, err := mc.buildAllowAllTrafficPolicies(tests.BookstoreService)
-			Expect(err).ToNot(HaveOccurred())
+			actual := mc.buildAllowAllTrafficPolicies(tests.BookstoreService)
 			var actualTargetNames []string
 			for _, target := range actual {
 				actualTargetNames = append(actualTargetNames, target.Name)

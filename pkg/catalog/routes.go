@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	mapset "github.com/deckarep/golang-set"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -25,11 +26,7 @@ func (mc *MeshCatalog) ListTrafficPolicies(service service.MeshService) ([]traff
 
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
 		// Build traffic policies from service discovery for allow-all policy
-		trafficPolicies, err := mc.buildAllowAllTrafficPolicies(service)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to build allow-all traffic policy for service %s", service)
-			return nil, err
-		}
+		trafficPolicies := mc.buildAllowAllTrafficPolicies(service)
 		return trafficPolicies, nil
 	}
 
@@ -180,10 +177,9 @@ func (mc *MeshCatalog) GetHostnamesForService(meshService service.MeshService) (
 
 // getServiceHostnames returns a list of hostnames corresponding to the service
 func (mc *MeshCatalog) getServiceHostnames(meshService service.MeshService) ([]string, error) {
-	svc, err := mc.meshSpec.GetService(meshService)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error finding service %q", meshService)
-		return nil, err
+	svc := mc.meshSpec.GetService(meshService)
+	if svc == nil {
+		return nil, errors.Errorf("Error fetching service %q", meshService)
 	}
 
 	hostnames := kubernetes.GetHostnamesForService(svc)
@@ -310,12 +306,8 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[trafficpolicy.T
 	return trafficPolicies, nil
 }
 
-func (mc *MeshCatalog) buildAllowAllTrafficPolicies(service service.MeshService) ([]trafficpolicy.TrafficTarget, error) {
-	services, err := mc.meshSpec.ListServices()
-	if err != nil {
-		log.Error().Err(err).Msgf("Error building traffic policies for service %s", service)
-		return nil, err
-	}
+func (mc *MeshCatalog) buildAllowAllTrafficPolicies(service service.MeshService) []trafficpolicy.TrafficTarget {
+	services := mc.meshSpec.ListServices()
 
 	var trafficTargets []trafficpolicy.TrafficTarget
 	for _, source := range services {
@@ -328,7 +320,7 @@ func (mc *MeshCatalog) buildAllowAllTrafficPolicies(service service.MeshService)
 		}
 	}
 	log.Trace().Msgf("all traffic policies: %v", trafficTargets)
-	return trafficTargets, nil
+	return trafficTargets
 }
 
 func k8sSvcToMeshSvc(svc *corev1.Service) service.MeshService {

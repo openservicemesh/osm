@@ -62,7 +62,7 @@ type MeshSpec interface {
 	ListServiceAccounts() []service.K8sServiceAccount
 
 	// GetService fetches a specific service declared in SMI.
-	GetService(service.MeshService) (service *corev1.Service, err error)
+	GetService(service.MeshService) *corev1.Service
 
 	// ListHTTPTrafficSpecs lists TrafficSpec SMI resources.
 	ListHTTPTrafficSpecs() []*spec.HTTPRouteGroup
@@ -82,5 +82,5 @@ type MeshSpec interface {
 	GetAnnouncementsChannel() <-chan interface{}
 
 	// ListServices returns a list of services that are part of monitored namespaces
-	ListServices() ([]*corev1.Service, error)
+	ListServices() []*corev1.Service
 }
