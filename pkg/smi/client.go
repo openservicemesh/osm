@@ -43,7 +43,7 @@ func NewMeshSpecClient(smiKubeConfig *rest.Config, kubeClient kubernetes.Interfa
 		backpressureClientSet = backpressureClient.NewForConfigOrDie(smiKubeConfig)
 	}
 
-	client := newSMIClient(
+	client, err := newSMIClient(
 		kubeClient,
 		smiTrafficSplitClientSet,
 		smiTrafficSpecClientSet,
@@ -52,13 +52,10 @@ func NewMeshSpecClient(smiKubeConfig *rest.Config, kubeClient kubernetes.Interfa
 		osmNamespace,
 		namespaceController,
 		kubernetesClientName,
+		stop,
 	)
 
-	err := client.run(stop)
-	if err != nil {
-		return client, errors.Errorf("Could not start %s client", kubernetesClientName)
-	}
-	return client, nil
+	return client, err
 }
 
 func (c *Client) run(stop <-chan struct{}) error {
@@ -104,18 +101,13 @@ func (c *Client) run(stop <-chan struct{}) error {
 	return nil
 }
 
-// GetID implements endpoints.Provider interface and returns a string descriptor / identifier of the compute provider.
-func (c *Client) GetID() string {
-	return c.providerIdent
-}
-
 // GetAnnouncementsChannel returns the announcement channel for the SMI client.
 func (c *Client) GetAnnouncementsChannel() <-chan interface{} {
 	return c.announcements
 }
 
 // newClient creates a provider based on a Kubernetes client instance.
-func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient *smiTrafficSplitClient.Clientset, smiTrafficSpecClient *smiTrafficSpecClient.Clientset, smiTrafficTargetClient *smiTrafficTargetClient.Clientset, backpressureClient *backpressureClient.Clientset, osmNamespace string, namespaceController namespace.Controller, providerIdent string) *Client {
+func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient smiTrafficSplitClient.Interface, smiTrafficSpecClient smiTrafficSpecClient.Interface, smiTrafficTargetClient smiTrafficTargetClient.Interface, backpressureClient backpressureClient.Interface, osmNamespace string, namespaceController namespace.Controller, providerIdent string, stop chan struct{}) (*Client, error) {
 	informerFactory := informers.NewSharedInformerFactory(kubeClient, k8s.DefaultKubeEventResyncInterval)
 	smiTrafficSplitInformerFactory := smiTrafficSplitInformers.NewSharedInformerFactory(smiTrafficSplitClient, k8s.DefaultKubeEventResyncInterval)
 	smiTrafficSpecInformerFactory := smiTrafficSpecInformers.NewSharedInformerFactory(smiTrafficSpecClient, k8s.DefaultKubeEventResyncInterval)
@@ -164,7 +156,12 @@ func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient *smiTra
 		informerCollection.Backpressure.AddEventHandler(k8s.GetKubernetesEventHandlers("Backpressure", "SMI", client.announcements, shouldObserve))
 	}
 
-	return &client
+	err := client.run(stop)
+	if err != nil {
+		return &client, errors.Errorf("Could not start %s client", kubernetesClientName)
+	}
+
+	return &client, err
 }
 
 // ListTrafficSplits implements mesh.MeshSpec by returning the list of traffic splits.
@@ -181,7 +178,7 @@ func (c *Client) ListTrafficSplits() []*split.TrafficSplit {
 	return trafficSplits
 }
 
-// ListHTTPTrafficSpecs implements mesh.Topology by returning the list of traffic specs.
+// ListHTTPTrafficSpecs lists SMI HTTPRouteGroup resources
 func (c *Client) ListHTTPTrafficSpecs() []*spec.HTTPRouteGroup {
 	var httpTrafficSpec []*spec.HTTPRouteGroup
 	for _, specIface := range c.caches.TrafficSpec.List() {
@@ -207,27 +204,6 @@ func (c *Client) ListTrafficTargets() []*target.TrafficTarget {
 		trafficTargets = append(trafficTargets, trafficTarget)
 	}
 	return trafficTargets
-}
-
-// ListBackpressures implements smi.MeshSpec and returns a list of backpressure policies.
-func (c *Client) ListBackpressures() []*backpressure.Backpressure {
-	var backpressureList []*backpressure.Backpressure
-
-	if !featureflags.IsBackpressureEnabled() {
-		log.Info().Msgf("Backpressure turned off!")
-		return backpressureList
-	}
-
-	for _, pressureIface := range c.caches.Backpressure.List() {
-		bpressure := pressureIface.(*backpressure.Backpressure)
-
-		if !c.namespaceController.IsMonitoredNamespace(bpressure.Namespace) {
-			continue
-		}
-		backpressureList = append(backpressureList, bpressure)
-	}
-
-	return backpressureList
 }
 
 // GetBackpressurePolicy gets the Backpressure policy corresponding to the MeshService
@@ -278,7 +254,7 @@ func (c *Client) ListTrafficSplitServices() []service.WeightedService {
 	return services
 }
 
-// ListServiceAccounts implements mesh.MeshSpec by returning the service accounts observed from the given compute provider
+// ListServiceAccounts lists ServiceAccounts specified in SMI TrafficTarget resources
 func (c *Client) ListServiceAccounts() []service.K8sServiceAccount {
 	var serviceAccounts []service.K8sServiceAccount
 	for _, targetIface := range c.caches.TrafficTarget.List() {
