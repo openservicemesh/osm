@@ -24,6 +24,7 @@ const (
 	zipkinPortKey                  = "zipkin_port"
 	zipkinEndpointKey              = "zipkin_endpoint"
 	defaultInMeshCIDR              = ""
+	envoyLogLevel                  = "envoy_log_level"
 )
 
 // NewConfigurator implements configurator.Configurator and creates the Kubernetes client to manage namespaces.
@@ -74,6 +75,9 @@ type osmConfig struct {
 	// PrometheusScraping is a bool toggle used to enable or disable metrics scraping by Prometheus
 	PrometheusScraping bool `yaml:"prometheus_scraping"`
 
+	// UseHTTPSIngress is a bool toggle enabling HTTPS protocol between ingress and backend pods
+	UseHTTPSIngress bool `yaml:"use_https_ingress"`
+
 	// ZipkinTracing is a bool toggle used to enable ot disable Zipkin tracing
 	ZipkinTracing bool `yaml:"zipkin_tracing"`
 
@@ -89,8 +93,8 @@ type osmConfig struct {
 	// MeshCIDRRanges is the list of CIDR ranges for in-mesh traffic
 	MeshCIDRRanges string `yaml:"mesh_cidr_ranges"`
 
-	// UseHTTPSIngress is a bool toggle enabling HTTPS protocol between ingress and backend pods
-	UseHTTPSIngress bool `yaml:"use_https_ingress"`
+	// EnvoyLogLevel is a string that defines the log level for envoy proxies
+	EnvoyLogLevel string `yaml:"envoy_log_level"`
 }
 
 func (c *Client) run(stop <-chan struct{}) {
@@ -137,6 +141,7 @@ func (c *Client) getConfigMap() *osmConfig {
 		ZipkinAddress:  getStringValueForKey(configMap, zipkinAddressKey),
 		ZipkinPort:     getIntValueForKey(configMap, zipkinPortKey),
 		ZipkinEndpoint: getStringValueForKey(configMap, zipkinEndpointKey),
+		EnvoyLogLevel:  getStringValueForKey(configMap, envoyLogLevel),
 	}
 }
 

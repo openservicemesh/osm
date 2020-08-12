@@ -80,7 +80,7 @@ func (r *namespaceRemoveCmd) run() error {
 				return errors.Errorf("Could not remove label from namespace %s: %v", r.namespace, err)
 			}
 
-			fmt.Fprintf(r.out, "Namespace [%s] succesfully removed from mesh [%s]\n", r.namespace, r.meshName)
+			fmt.Fprintf(r.out, "Namespace [%s] successfully removed from mesh [%s]\n", r.namespace, r.meshName)
 		} else {
 			return errors.Errorf("Namespace belongs to mesh [%s], not mesh [%s]. Please specify the correct mesh", val, r.meshName)
 		}

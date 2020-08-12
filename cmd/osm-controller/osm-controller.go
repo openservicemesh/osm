@@ -36,7 +36,7 @@ import (
 )
 
 const (
-	serverType                        = "ADS"
+	xdsServerType                     = "ADS"
 	defaultServiceCertValidityMinutes = 60 // 1 hour
 	caBundleSecretNameCLIParam        = "ca-bundle-secret-name"
 	xdsServerCertificateCommonName    = "ads"
@@ -61,10 +61,10 @@ var (
 )
 
 var (
-	flags               = pflag.NewFlagSet(`ads`, pflag.ExitOnError)
+	flags               = pflag.NewFlagSet(`osm-controller`, pflag.ExitOnError)
 	azureSubscriptionID = flags.String("azure-subscription-id", "", "Azure Subscription ID")
 	port                = flags.Int("port", constants.OSMControllerPort, "Aggregated Discovery Service port number.")
-	log                 = logger.New("ads/main")
+	log                 = logger.New("osm-controller/main")
 
 	// What is the Certification Authority to be used
 	certManagerKind = flags.String("certificate-manager", "tresor", "Certificate manager")
@@ -84,7 +84,7 @@ func init() {
 	flags.StringVar(&azureAuthFile, "azure-auth-file", "", "Path to Azure Auth File")
 	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file.")
 	flags.StringVar(&osmNamespace, "osm-namespace", "", "Namespace to which OSM belongs to.")
-	flags.StringVar(&webhookName, "webhook-name", "", "Name of the MutatingWebhookConfiguration to be configured by ADS")
+	flags.StringVar(&webhookName, "webhook-name", "", "Name of the MutatingWebhookConfiguration to be configured by osm-controller")
 	flags.IntVar(&serviceCertValidityMinutes, "service-cert-validity-minutes", defaultServiceCertValidityMinutes, "Certificate validityPeriod duration in minutes")
 	flags.StringVar(&caBundleSecretName, caBundleSecretNameCLIParam, "", "Name of the Kubernetes Secret for the OSM CA bundle")
 	flags.BoolVar(&enableDebugServer, "enable-debug-server", false, "Enable OSM debug HTTP server")
@@ -101,7 +101,7 @@ func init() {
 }
 
 func main() {
-	log.Trace().Msg("Starting ADS")
+	log.Trace().Msg("Starting osm-controller")
 	if err := parseFlags(); err != nil {
 		log.Fatal().Err(err).Msg("Error parsing cmd line arguments")
 	}
@@ -208,10 +208,10 @@ func main() {
 		log.Fatal().Err(err)
 	}
 
-	grpcServer, lis := utils.NewGrpc(serverType, *port, adsCert.GetCertificateChain(), adsCert.GetPrivateKey(), adsCert.GetIssuingCA())
+	grpcServer, lis := utils.NewGrpc(xdsServerType, *port, adsCert.GetCertificateChain(), adsCert.GetPrivateKey(), adsCert.GetIssuingCA())
 	xds_discovery.RegisterAggregatedDiscoveryServiceServer(grpcServer, xdsServer)
 
-	go utils.GrpcServe(ctx, grpcServer, lis, cancel, serverType)
+	go utils.GrpcServe(ctx, grpcServer, lis, cancel, xdsServerType)
 
 	// initialize the http server and start it
 	// TODO(draychev): figure out the NS and POD
@@ -228,11 +228,10 @@ func main() {
 	// Wait for exit handler signal
 	<-stop
 
-	log.Info().Msgf("[%s] Goodbye!", serverType)
+	log.Info().Msg("Goodbye!")
 }
 
 func parseFlags() error {
-	// TODO(draychev): consolidate parseFlags - shared between ads.go and eds.go
 	if err := flags.Parse(os.Args); err != nil {
 		return err
 	}

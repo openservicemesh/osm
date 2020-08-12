@@ -55,6 +55,9 @@ type Configurator interface {
 	// UseHTTPSIngress determines whether protocol used for traffic from ingress to backend pods should be HTTPS.
 	UseHTTPSIngress() bool
 
+	// GetEnvoyLogLevel returns the envoy log level
+	GetEnvoyLogLevel() string
+
 	// GetAnnouncementsChannel returns a channel, which is used to announce when changes have been made to the OSM ConfigMap
 	GetAnnouncementsChannel() <-chan interface{}
 }
