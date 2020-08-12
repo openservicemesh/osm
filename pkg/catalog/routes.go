@@ -343,10 +343,12 @@ func (mc *MeshCatalog) buildAllowPolicyForSourceToDest(source *corev1.Service, d
 		PathRegex: constants.RegexMatchAll,
 		Methods:   []string{constants.WildcardHTTPMethod},
 	}
+	srcMeshSvc := k8sSvcToMeshSvc(source)
+	dstMeshSvc := k8sSvcToMeshSvc(destination)
 	return trafficpolicy.TrafficTarget{
-		Name:        fmt.Sprintf("%s->%s", source, destination),
-		Destination: k8sSvcToMeshSvc(destination),
-		Source:      k8sSvcToMeshSvc(source),
+		Name:        fmt.Sprintf("%s->%s", srcMeshSvc, dstMeshSvc),
+		Destination: dstMeshSvc,
+		Source:      srcMeshSvc,
 		Route:       allowAllRoute,
 	}
 }
