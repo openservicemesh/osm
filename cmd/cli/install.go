@@ -180,16 +180,6 @@ func (i *installCmd) run(config *helm.Configuration) error {
 		}
 	}
 
-	if strings.EqualFold(i.certificateManager, "cert-manager") {
-		var missingFields []string
-		if i.certmanagerIssuerName == "" {
-			missingFields = append(missingFields, "cert-manager-issuer-name")
-		}
-		if len(missingFields) != 0 {
-			return errors.Errorf("Missing arguments for certificate-manager cert-manager: %v", missingFields)
-		}
-	}
-
 	// Validate CIDR ranges if egress is enabled
 	if i.enableEgress {
 		if err := validateCIDRs(i.meshCIDRRanges); err != nil {

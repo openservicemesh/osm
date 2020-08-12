@@ -45,10 +45,10 @@ const (
 
 // Functions we can call to create a Certificate Manager for each kind of supported certificate issuer
 var certManagers = map[certificateManagerKind]func(kubeClient kubernetes.Interface, kubeConfig *rest.Config, enableDebugServer bool) (certificate.Manager, debugger.CertificateManagerDebugger, error){
-	tresorKind:      getTresorCertificateManager,
-	keyVaultKind:    getAzureKeyVaultCertManager,
-	vaultKind:       getHashiVaultCertManager,
-	certmanagerKind: getCertManagerCertManager,
+	tresorKind:      getTresorOSMCertificateManager,
+	keyVaultKind:    getAzureKeyVaultOSMCertificateManager,
+	vaultKind:       getHashiVaultOSMCertificateManager,
+	certmanagerKind: getCertManagerOSMCertificateManager,
 }
 
 // Get a list of the supported certificate issuers
@@ -60,7 +60,7 @@ func getPossibleCertManagers() []string {
 	return possible
 }
 
-func getTresorCertificateManager(kubeClient kubernetes.Interface, _ *rest.Config, enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
+func getTresorOSMCertificateManager(kubeClient kubernetes.Interface, _ *rest.Config, enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
 	var err error
 	var rootCert certificate.Certificater
 
@@ -148,13 +148,13 @@ func getCertFromKubernetes(kubeClient kubernetes.Interface, namespace, secretNam
 	return rootCert
 }
 
-func getAzureKeyVaultCertManager(_ kubernetes.Interface, _ *rest.Config, enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
+func getAzureKeyVaultOSMCertificateManager(_ kubernetes.Interface, _ *rest.Config, enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
 	// TODO(draychev): implement: https://github.com/openservicemesh/osm/issues/577
 	log.Fatal().Msg("Azure Key Vault certificate manager is not implemented")
 	return nil, nil, nil
 }
 
-func getHashiVaultCertManager(_ kubernetes.Interface, _ *rest.Config, enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
+func getHashiVaultOSMCertificateManager(_ kubernetes.Interface, _ *rest.Config, enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
 	if _, ok := map[string]interface{}{"http": nil, "https": nil}[*vaultProtocol]; !ok {
 		return nil, nil, errors.Errorf("Value %s is not a valid Hashi Vault protocol", *vaultProtocol)
 	}
@@ -169,7 +169,7 @@ func getHashiVaultCertManager(_ kubernetes.Interface, _ *rest.Config, enableDebu
 	return vaultCertManager, vaultCertManager, nil
 }
 
-func getCertManagerCertManager(kubeClient kubernetes.Interface, kubeConfig *rest.Config, enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
+func getCertManagerOSMCertificateManager(kubeClient kubernetes.Interface, kubeConfig *rest.Config, enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
 	rootCertSecret, err := kubeClient.CoreV1().Secrets(osmNamespace).Get(context.TODO(), caBundleSecretName, metav1.GetOptions{})
 	if err != nil {
 		return nil, nil, fmt.Errorf("Failed to get cert-manager CA secret %s/%s: %s", osmNamespace, caBundleSecretName, err)

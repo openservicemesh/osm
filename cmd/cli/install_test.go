@@ -550,49 +550,6 @@ var _ = Describe("Running the install command", func() {
 		})
 	})
 
-	Describe("without required cert-manager parameters", func() {
-		var (
-			out    *bytes.Buffer
-			store  *storage.Storage
-			config *helm.Configuration
-			err    error
-		)
-
-		BeforeEach(func() {
-			out = new(bytes.Buffer)
-			store = storage.Init(driver.NewMemory())
-			if mem, ok := store.Driver.(*driver.Memory); ok {
-				mem.SetNamespace(settings.Namespace())
-			}
-
-			config = &helm.Configuration{
-				Releases: store,
-				KubeClient: &kubefake.PrintingKubeClient{
-					Out: ioutil.Discard},
-				Capabilities: chartutil.DefaultCapabilities,
-				Log:          func(format string, v ...interface{}) {},
-			}
-
-			installCmd := &installCmd{
-				out:                     out,
-				chartPath:               "testdata/test-chart",
-				containerRegistry:       testRegistry,
-				containerRegistrySecret: testRegistrySecret,
-				certificateManager:      "cert-manager",
-				certmanagerIssuerName:   "",
-				meshName:                defaultMeshName,
-				enableEgress:            true,
-				meshCIDRRanges:          testMeshCIDRRanges,
-			}
-
-			err = installCmd.run(config)
-		})
-
-		It("should error", func() {
-			Expect(err).To(MatchError("Missing arguments for certificate-manager cert-manager: [cert-manager-issuer-name]"))
-		})
-	})
-
 	Describe("when a mesh with the given name already exists", func() {
 		var (
 			out           *bytes.Buffer
