@@ -3,22 +3,13 @@ package catalog
 import (
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
-	testclient "k8s.io/client-go/kubernetes/fake"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/endpoint"
-	"github.com/openservicemesh/osm/pkg/endpoint/providers/kube"
-	"github.com/openservicemesh/osm/pkg/ingress"
-	"github.com/openservicemesh/osm/pkg/namespace"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -26,23 +17,11 @@ import (
 )
 
 var _ = Describe("Catalog tests", func() {
-	endpointProviders := []endpoint.Provider{kube.NewFakeProvider()}
-	kubeClient := testclient.NewSimpleClientset()
-	cache := make(map[certificate.CommonName]certificate.Certificater)
-	certManager := tresor.NewFakeCertManager(&cache, 1*time.Hour)
-
-	stop := make(<-chan struct{})
-	osmNamespace := "-test-osm-namespace-"
-	osmConfigMapName := "-test-osm-config-map-"
-	cfg := configurator.NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
-
-	namespaceController := namespace.NewFakeNamespaceController([]string{osmNamespace})
-
-	meshCatalog := NewMeshCatalog(namespaceController, kubeClient, smi.NewFakeMeshSpecClient(), certManager, ingress.NewFakeIngressMonitor(), make(<-chan struct{}), cfg, endpointProviders...)
+	mc := newFakeMeshCatalog()
 
 	Context("Test ListTrafficPolicies", func() {
 		It("lists traffic policies", func() {
-			actual, err := meshCatalog.ListTrafficPolicies(tests.BookstoreService)
+			actual, err := mc.ListTrafficPolicies(tests.BookstoreService)
 			Expect(err).ToNot(HaveOccurred())
 
 			expected := []trafficpolicy.TrafficTarget{tests.TrafficPolicy}
@@ -52,7 +31,7 @@ var _ = Describe("Catalog tests", func() {
 
 	Context("Test getTrafficPolicyPerRoute", func() {
 		It("lists traffic policies", func() {
-			allTrafficPolicies, err := getTrafficPolicyPerRoute(meshCatalog, tests.RoutePolicyMap, tests.BookstoreService)
+			allTrafficPolicies, err := getTrafficPolicyPerRoute(mc, tests.RoutePolicyMap, tests.BookstoreService)
 			Expect(err).ToNot(HaveOccurred())
 
 			expected := []trafficpolicy.TrafficTarget{{
@@ -109,7 +88,6 @@ var _ = Describe("Catalog tests", func() {
 
 	Context("Test ListAllowedInboundServices()", func() {
 		It("returns the list of server names allowed to communicate with the hosted service", func() {
-			mc := NewFakeMeshCatalog(testclient.NewSimpleClientset())
 			actualList, err := mc.ListAllowedInboundServices(tests.BookstoreService)
 			Expect(err).ToNot(HaveOccurred())
 			expectedList := []service.MeshService{tests.BookbuyerService}
@@ -140,7 +118,7 @@ var _ = Describe("Catalog tests", func() {
 				Headers:   expectedHostHeaders,
 			}
 
-			trafficTarget := meshCatalog.buildAllowPolicyForSourceToDest(source, destination)
+			trafficTarget := mc.buildAllowPolicyForSourceToDest(source, destination)
 			Expect(cmp.Equal(trafficTarget.Source, expectedSourceTrafficResource)).To(BeTrue())
 			Expect(cmp.Equal(trafficTarget.Destination, expectedDestinationTrafficResource)).To(BeTrue())
 			Expect(cmp.Equal(trafficTarget.Route.PathRegex, expectedRoute.PathRegex)).To(BeTrue())
@@ -150,7 +128,7 @@ var _ = Describe("Catalog tests", func() {
 
 	Context("Test ListAllowedOutboundServices()", func() {
 		It("returns the list of server names the given service is allowed to communicate with", func() {
-			mc := NewFakeMeshCatalog(testclient.NewSimpleClientset())
+			// mc := NewFakemc(testclient.NewSimpleClientset())
 			actualList, err := mc.ListAllowedOutboundServices(tests.BookbuyerService)
 			Expect(err).ToNot(HaveOccurred())
 			expectedList := []service.MeshService{tests.BookstoreService}
@@ -161,7 +139,6 @@ var _ = Describe("Catalog tests", func() {
 
 	Context("Test GetWeightedClusterForService()", func() {
 		It("returns weighted clusters for a given service", func() {
-			mc := newFakeMeshCatalog()
 			weightedCluster, err := mc.GetWeightedClusterForService(tests.BookstoreService)
 			Expect(err).ToNot(HaveOccurred())
 			expected := service.WeightedCluster{
@@ -175,7 +152,6 @@ var _ = Describe("Catalog tests", func() {
 
 	Context("Test catalog functions", func() {
 		It("getServiceHostnames list of service hostnames", func() {
-			mc := newFakeMeshCatalog()
 			actual, err := mc.getServiceHostnames(tests.BookstoreService)
 			Expect(err).ToNot(HaveOccurred())
 			expected := []string{
@@ -211,7 +187,6 @@ var _ = Describe("Catalog tests", func() {
 
 	Context("Test GetHostnamesForService()", func() {
 		It("lists available SMI Spec policies in SMI mode", func() {
-			mc := newFakeMeshCatalog()
 			actual, err := mc.GetHostnamesForService(tests.BookstoreService)
 			Expect(err).ToNot(HaveOccurred())
 			expected := strings.Join(
@@ -234,7 +209,6 @@ var _ = Describe("Catalog tests", func() {
 
 	Context("Test buildAllowAllTrafficPolicies", func() {
 		It("lists traffic targets for the given service", func() {
-			mc := newFakeMeshCatalog()
 			actual, err := mc.buildAllowAllTrafficPolicies(tests.BookstoreService)
 			Expect(err).ToNot(HaveOccurred())
 			var actualTargetNames []string

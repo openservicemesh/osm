@@ -9,8 +9,8 @@ import (
 )
 
 var _ = Describe("Test catalog functions", func() {
+	mc := newFakeMeshCatalog()
 	Context("Testing ListEndpointsForService()", func() {
-		mc := newFakeMeshCatalog()
 		It("lists endpoints for a given service", func() {
 			actual, err := mc.ListEndpointsForService(tests.BookstoreService)
 			Expect(err).ToNot(HaveOccurred())

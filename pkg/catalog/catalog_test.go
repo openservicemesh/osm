@@ -8,8 +8,9 @@ import (
 )
 
 var _ = Describe("Test catalog functions", func() {
+	mc := NewFakeMeshCatalog(testclient.NewSimpleClientset())
+
 	Context("Test GetSMISpec()", func() {
-		mc := NewFakeMeshCatalog(testclient.NewSimpleClientset())
 		It("provides the SMI Spec component via Mesh Catalog", func() {
 			smiSpec := mc.GetSMISpec()
 			Expect(smiSpec).ToNot(BeNil())
@@ -17,7 +18,6 @@ var _ = Describe("Test catalog functions", func() {
 	})
 
 	Context("Test getAnnouncementChannels()", func() {
-		mc := NewFakeMeshCatalog(testclient.NewSimpleClientset())
 		It("provides the SMI Spec component via Mesh Catalog", func() {
 			chans := mc.getAnnouncementChannels()
 

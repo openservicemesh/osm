@@ -1,8 +1,6 @@
 package catalog
 
 import (
-	testclient "k8s.io/client-go/kubernetes/fake"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -13,11 +11,11 @@ import (
 )
 
 var _ = Describe("Test catalog proxy register/unregister", func() {
-	Context("Test register/unregister proxies", func() {
-		mc := NewFakeMeshCatalog(testclient.NewSimpleClientset())
-		cn := certificate.CommonName("foo")
-		proxy := envoy.NewProxy(cn, nil)
+	mc := newFakeMeshCatalog()
+	cn := certificate.CommonName("foo")
+	proxy := envoy.NewProxy(cn, nil)
 
+	Context("Test register/unregister proxies", func() {
 		It("no proxies expected, connected or disconnected", func() {
 			expectedProxies := mc.ListExpectedProxies()
 			Expect(len(expectedProxies)).To(Equal(0))
@@ -81,7 +79,6 @@ var _ = Describe("Test catalog proxy register/unregister", func() {
 
 	Context("Test ListMonitoredNamespaces", func() {
 		It("lists monitored namespaces", func() {
-			mc := newFakeMeshCatalog()
 			actual := mc.ListMonitoredNamespaces()
 			expected := []string{
 				"-test-osm-namespace-",
@@ -93,7 +90,6 @@ var _ = Describe("Test catalog proxy register/unregister", func() {
 
 	Context("Test ListSMIPolicies", func() {
 		It("lists available SMI Spec policies", func() {
-			mc := newFakeMeshCatalog()
 			trafficSplits, weightedServices, serviceAccounts, routeGroups, trafficTargets, services := mc.ListSMIPolicies()
 
 			Expect(trafficSplits[0].Spec.Service).To(Equal("bookstore-apex"))
