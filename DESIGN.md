@@ -224,7 +224,7 @@ the development of the OSM in [this repository](https://github.com/openserviceme
 
 
 This section adopts the following assumptions:
-  - [1:1 relationship](https://en.wikipedia.org/wiki/One-to-one_(data_model)) between an [proxy](https://www.envoyproxy.io/docs/envoy/latest/intro/what_is_envoy) and an instance of a service. (No more than one service fronted by the same proxy.)
+  - [1:1 relationship](https://en.wikipedia.org/wiki/One-to-one_(data_model)) between a [proxy](https://www.envoyproxy.io/docs/envoy/latest/intro/what_is_envoy) and an instance of a service. (No more than one service fronted by the same proxy.)
   - [1:1 relationship](https://en.wikipedia.org/wiki/One-to-one_(data_model)) between an [endpoint](#fgh-endpoint) (port and IP) and a [proxy](#a-proxy)
 
 
