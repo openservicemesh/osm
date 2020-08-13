@@ -47,40 +47,32 @@ type Client struct {
 	namespaceController namespace.Controller
 }
 
-// ClientIdentity is the identity of an Envoy proxy connected to the Open Service Mesh.
-type ClientIdentity string
-
 // MeshSpec is an interface declaring functions, which provide the specs for a service mesh declared with SMI.
 type MeshSpec interface {
-	// ListTrafficSplits lists TrafficSplit SMI resources.
+	// ListTrafficSplits lists SMI TrafficSplit resources
 	ListTrafficSplits() []*split.TrafficSplit
 
-	// ListTrafficSplitServices fetches all services declared with SMI Spec.
+	// ListTrafficSplitServices lists WeightedServices for the services specified in TrafficSplit SMI resources
 	ListTrafficSplitServices() []service.WeightedService
 
-	// ListServiceAccounts fetches all service accounts declared with SMI Spec.
+	// ListServiceAccounts lists ServiceAccount resources specified in SMI TrafficTarget resources
 	ListServiceAccounts() []service.K8sServiceAccount
 
-	// GetService fetches a specific service declared in SMI.
+	// GetService fetches a Kubernetes Service resource for the given MeshService
 	GetService(service.MeshService) *corev1.Service
 
-	// ListHTTPTrafficSpecs lists TrafficSpec SMI resources.
+	// ListServices Lists Kubernets Service resources that are part of monitored namespaces
+	ListServices() []*corev1.Service
+
+	// ListHTTPTrafficSpecs lists SMI HTTPRouteGroup resources
 	ListHTTPTrafficSpecs() []*spec.HTTPRouteGroup
 
-	// ListTrafficTargets lists TrafficTarget SMI resources.
+	// ListTrafficTargets lists SMI TrafficTarget resources
 	ListTrafficTargets() []*target.TrafficTarget
 
-	// ListBackpressures lists Backpressure resources.
-	// This is an experimental feature, which will eventually
-	// in some shape or form make its way into SMI Spec.
-	ListBackpressures() []*backpressure.Backpressure
-
-	// GetBackpressurePolicy gets the Backpressure policy corresponding to the MeshService
+	// GetBackpressurePolicy fetches the Backpressure policy for the MeshService
 	GetBackpressurePolicy(service.MeshService) *backpressure.Backpressure
 
-	// GetAnnouncementsChannel returns the channel on which SMI makes announcements
+	// GetAnnouncementsChannel returns the channel on which SMI client makes announcements
 	GetAnnouncementsChannel() <-chan interface{}
-
-	// ListServices returns a list of services that are part of monitored namespaces
-	ListServices() []*corev1.Service
 }

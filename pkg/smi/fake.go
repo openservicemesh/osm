@@ -67,7 +67,7 @@ func (f fakeMeshSpec) GetService(svc service.MeshService) *corev1.Service {
 	return nil
 }
 
-// ListHTTPTrafficSpecs lists TrafficSpec SMI resources for the fake Mesh Spec.
+// ListHTTPTrafficSpecs lists SMI HTTPRouteGroup resources
 func (f fakeMeshSpec) ListHTTPTrafficSpecs() []*spec.HTTPRouteGroup {
 	return f.routeGroups
 }
@@ -77,21 +77,7 @@ func (f fakeMeshSpec) ListTrafficTargets() []*target.TrafficTarget {
 	return f.trafficTargets
 }
 
-// ListBackpressures lists Backpressure SMI resources for the fake Mesh Spec.
-func (f fakeMeshSpec) ListBackpressures() []*backpressure.Backpressure {
-	return f.backpressures
-}
-
 func (f fakeMeshSpec) GetBackpressurePolicy(svc service.MeshService) *backpressure.Backpressure {
-	for _, backpressure := range f.backpressures {
-		app, ok := backpressure.Labels["app"]
-		if !ok {
-			continue
-		}
-		if svc.Namespace == backpressure.Namespace && svc.Name == app {
-			return backpressure
-		}
-	}
 	return nil
 }
 
