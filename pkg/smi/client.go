@@ -171,11 +171,8 @@ func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient *smiTra
 func (c *Client) ListTrafficSplits() []*split.TrafficSplit {
 	var trafficSplits []*split.TrafficSplit
 	for _, splitIface := range c.caches.TrafficSplit.List() {
-		trafficSplit, ok := splitIface.(*split.TrafficSplit)
-		if !ok {
-			log.Error().Err(errInvalidObjectType).Msgf("Failed type assertion for TrafficSplit in cache")
-			continue
-		}
+		trafficSplit := splitIface.(*split.TrafficSplit)
+
 		if !c.namespaceController.IsMonitoredNamespace(trafficSplit.Namespace) {
 			continue
 		}
@@ -188,11 +185,8 @@ func (c *Client) ListTrafficSplits() []*split.TrafficSplit {
 func (c *Client) ListHTTPTrafficSpecs() []*spec.HTTPRouteGroup {
 	var httpTrafficSpec []*spec.HTTPRouteGroup
 	for _, specIface := range c.caches.TrafficSpec.List() {
-		routeGroup, ok := specIface.(*spec.HTTPRouteGroup)
-		if !ok {
-			log.Error().Err(errInvalidObjectType).Msgf("Failed type assertion for HTTPRouteGroup in cache")
-			continue
-		}
+		routeGroup := specIface.(*spec.HTTPRouteGroup)
+
 		if !c.namespaceController.IsMonitoredNamespace(routeGroup.Namespace) {
 			continue
 		}
@@ -205,11 +199,8 @@ func (c *Client) ListHTTPTrafficSpecs() []*spec.HTTPRouteGroup {
 func (c *Client) ListTrafficTargets() []*target.TrafficTarget {
 	var trafficTargets []*target.TrafficTarget
 	for _, targetIface := range c.caches.TrafficTarget.List() {
-		trafficTarget, ok := targetIface.(*target.TrafficTarget)
-		if !ok {
-			log.Error().Err(errInvalidObjectType).Msgf("Failed type assertion for TrafficTarget in cache")
-			continue
-		}
+		trafficTarget := targetIface.(*target.TrafficTarget)
+
 		if !c.namespaceController.IsMonitoredNamespace(trafficTarget.Namespace) {
 			continue
 		}
@@ -228,11 +219,7 @@ func (c *Client) ListBackpressures() []*backpressure.Backpressure {
 	}
 
 	for _, pressureIface := range c.caches.Backpressure.List() {
-		bpressure, ok := pressureIface.(*backpressure.Backpressure)
-		if !ok {
-			log.Error().Err(errInvalidObjectType).Msgf("Failed type assertion for Backpressure in cache")
-			continue
-		}
+		bpressure := pressureIface.(*backpressure.Backpressure)
 
 		if !c.namespaceController.IsMonitoredNamespace(bpressure.Namespace) {
 			continue
@@ -251,11 +238,7 @@ func (c *Client) GetBackpressurePolicy(svc service.MeshService) *backpressure.Ba
 	}
 
 	for _, iface := range c.caches.Backpressure.List() {
-		backpressure, ok := iface.(*backpressure.Backpressure)
-		if !ok {
-			log.Error().Err(errInvalidObjectType).Msgf("Failed type assertion for Backpressure in cache")
-			continue
-		}
+		backpressure := iface.(*backpressure.Backpressure)
 
 		if !c.namespaceController.IsMonitoredNamespace(backpressure.Namespace) {
 			continue
@@ -278,12 +261,9 @@ func (c *Client) GetBackpressurePolicy(svc service.MeshService) *backpressure.Ba
 func (c *Client) ListTrafficSplitServices() []service.WeightedService {
 	var services []service.WeightedService
 	for _, splitIface := range c.caches.TrafficSplit.List() {
-		trafficSplit, ok := splitIface.(*split.TrafficSplit)
-		if !ok {
-			log.Error().Err(errInvalidObjectType).Msgf("Failed type assertion for TrafficSplit in cache")
-			continue
-		}
+		trafficSplit := splitIface.(*split.TrafficSplit)
 		rootService := trafficSplit.Spec.Service
+
 		for _, backend := range trafficSplit.Spec.Backends {
 			// The TrafficSplit SMI Spec does not allow providing a namespace for the backends,
 			// so we assume that the top level namespace for the TrafficSplit is the namespace
@@ -302,11 +282,8 @@ func (c *Client) ListTrafficSplitServices() []service.WeightedService {
 func (c *Client) ListServiceAccounts() []service.K8sServiceAccount {
 	var serviceAccounts []service.K8sServiceAccount
 	for _, targetIface := range c.caches.TrafficTarget.List() {
-		trafficTarget, ok := targetIface.(*target.TrafficTarget)
-		if !ok {
-			log.Error().Err(errInvalidObjectType).Msgf("Failed type assertion for TrafficTarget in cache")
-			continue
-		}
+		trafficTarget := targetIface.(*target.TrafficTarget)
+
 		for _, sources := range trafficTarget.Spec.Sources {
 			// Only monitor sources in namespaces OSM is observing
 			if !c.namespaceController.IsMonitoredNamespace(sources.Namespace) {
@@ -335,34 +312,27 @@ func (c *Client) ListServiceAccounts() []service.K8sServiceAccount {
 }
 
 // GetService retrieves the Kubernetes Services resource for the given MeshService
-func (c *Client) GetService(svc service.MeshService) (service *corev1.Service, err error) {
+func (c *Client) GetService(svc service.MeshService) *corev1.Service {
 	// client-go cache uses <namespace>/<name> as key
 	svcIf, exists, err := c.caches.Services.GetByKey(svc.String())
 	if exists && err == nil {
-		svc, ok := svcIf.(*corev1.Service)
-		if !ok {
-			log.Error().Err(errInvalidObjectType).Msgf("Failed type assertion for MeshService in cache")
-			return nil, errInvalidObjectType
-		}
-		return svc, nil
+		svc := svcIf.(*corev1.Service)
+		return svc
 	}
-	return nil, err
+	return nil
 }
 
 // ListServices returns a list of services that are part of monitored namespaces
-func (c Client) ListServices() ([]*corev1.Service, error) {
+func (c Client) ListServices() []*corev1.Service {
 	var services []*corev1.Service
 
 	for _, serviceInterface := range c.caches.Services.List() {
-		svc, ok := serviceInterface.(*corev1.Service)
-		if !ok {
-			log.Error().Err(errInvalidObjectType).Msg("Failed type assertion for MeshService in cache")
-			continue
-		}
+		svc := serviceInterface.(*corev1.Service)
+
 		if !c.namespaceController.IsMonitoredNamespace(svc.Namespace) {
 			continue
 		}
 		services = append(services, svc)
 	}
-	return services, nil
+	return services
 }

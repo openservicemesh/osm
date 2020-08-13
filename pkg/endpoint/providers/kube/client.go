@@ -82,11 +82,7 @@ func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endp
 		return endpoints
 	}
 
-	kubernetesEndpoints, ok := endpointsInterface.(*corev1.Endpoints)
-	if !ok {
-		log.Error().Err(errInvalidObjectType).Msg("Failed type assertion for Endpoints in cache")
-		return endpoints
-	}
+	kubernetesEndpoints := endpointsInterface.(*corev1.Endpoints)
 	if kubernetesEndpoints != nil {
 		if !c.namespaceController.IsMonitoredNamespace(kubernetesEndpoints.Namespace) {
 			// Doesn't belong to namespaces we are observing
@@ -120,11 +116,7 @@ func (c Client) GetServiceForServiceAccount(svcAccount service.K8sServiceAccount
 	deploymentsInterface := c.caches.Deployments.List()
 
 	for _, deployments := range deploymentsInterface {
-		kubernetesDeployments, ok := deployments.(*appsv1.Deployment)
-		if !ok {
-			log.Error().Err(errInvalidObjectType).Msg("Failed type assertion for Deployment in cache")
-			continue
-		}
+		kubernetesDeployments := deployments.(*appsv1.Deployment)
 		if kubernetesDeployments != nil {
 			if !c.namespaceController.IsMonitoredNamespace(kubernetesDeployments.Namespace) {
 				// Doesn't belong to namespaces we are observing

@@ -68,10 +68,7 @@ func (mc *MeshCatalog) ListSMIPolicies() ([]*split.TrafficSplit, []service.Weigh
 	serviceAccouns := mc.meshSpec.ListServiceAccounts()
 	trafficSpecs := mc.meshSpec.ListHTTPTrafficSpecs()
 	trafficTargets := mc.meshSpec.ListTrafficTargets()
-	services, err := mc.meshSpec.ListServices()
-	if err != nil {
-		services = nil
-	}
+	services := mc.meshSpec.ListServices()
 
 	return trafficSplits, splitServices, serviceAccouns, trafficSpecs, trafficTargets, services
 }

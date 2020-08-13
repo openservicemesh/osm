@@ -435,7 +435,7 @@ type MeshSpec interface {
 	ListServiceAccounts() []service.K8sServiceAccount
 
 	// GetService fetches a specific service declared in SMI.
-	GetService(service.MeshService) (service *corev1.Service, err error)
+	GetService(service.MeshService) *corev1.Service
 
 	// ListHTTPTrafficSpecs lists TrafficSpec SMI resources.
 	ListHTTPTrafficSpecs() []*spec.HTTPRouteGroup
@@ -443,11 +443,19 @@ type MeshSpec interface {
 	// ListTrafficTargets lists TrafficTarget SMI resources.
 	ListTrafficTargets() []*target.TrafficTarget
 
+	// ListBackpressures lists Backpressure resources.
+	// This is an experimental feature, which will eventually
+	// in some shape or form make its way into SMI Spec.
+	ListBackpressures() []*backpressure.Backpressure
+
+	// GetBackpressurePolicy gets the Backpressure policy corresponding to the MeshService
+	GetBackpressurePolicy(service.MeshService) *backpressure.Backpressure
+
 	// GetAnnouncementsChannel returns the channel on which SMI makes announcements
 	GetAnnouncementsChannel() <-chan interface{}
 
 	// ListServices returns a list of services that are part of monitored namespaces
-	ListServices() ([]*corev1.Service, error)
+	ListServices() []*corev1.Service
 }
 ```
 
