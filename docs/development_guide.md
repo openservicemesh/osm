@@ -90,7 +90,7 @@ The OSM repo relies on environment variables to make it usable on your localhost
 ```bash
 cat .env.example > .env
 ```
-The various envirnoment variables are documented in the `.env.example` file itself. Modify the variables in `.env` to suite your environment.
+The various environment variables are documented in the `.env.example` file itself. Modify the variables in `.env` to suite your environment.
 
 Some of the scripts and build targets available expect an accessible container registry where to push the `osm-controller` and `init` docker images once compiled. The location and credential options for the container registry can be specified as environment variables declared in `.env`, as well as the target namespace where `osm-controller` will be installed on.
 
