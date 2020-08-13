@@ -170,7 +170,7 @@ glooctl install ingress
 
 For Gloo's ingress, we don't need any additional annotations, however, the `kubernetes.io/ingress.class: gloo` annotation is recommended. With Gloo, we configure the `Upstream` objects with the appropriate trust authority. In Gloo, the `Upstream` object represents a routable target (Kubernetes Service, Consul Service, Cloud Function, etc).
 
-To prepare the root certifciate, we must do something similar to what we do for the Azure Application Gateway.
+To prepare the root certificate, we must do something similar to what we do for the Azure Application Gateway.
 
 ```bash
 kubectl get secret/osm-ca-bundle -n osm-system -o jsonpath="{.data['ca\.crt']}" | base64 -d > osm-c-bundlea.pem
