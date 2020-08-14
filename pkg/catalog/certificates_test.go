@@ -13,12 +13,13 @@ import (
 )
 
 var _ = Describe("Test certificate tooling", func() {
+	namespacedService := service.MeshService{
+		Namespace: "namespace-here",
+		Name:      "service-name-here",
+	}
+	mc := NewFakeMeshCatalog(testclient.NewSimpleClientset())
+
 	Context("Testing DecodePEMCertificate along with GetCommonName and IssueCertificate", func() {
-		namespacedService := service.MeshService{
-			Namespace: "namespace-here",
-			Name:      "service-name-here",
-		}
-		mc := NewFakeMeshCatalog(testclient.NewSimpleClientset())
 		It("issues a PEM certificate with the correct CN", func() {
 			cert, err := mc.GetCertificateForService(namespacedService)
 			Expect(err).ToNot(HaveOccurred())
@@ -43,7 +44,6 @@ var _ = Describe("Test certificate tooling", func() {
 			Namespace: "namespace-here",
 			Name:      "service-name-here",
 		}
-		mc := NewFakeMeshCatalog(testclient.NewSimpleClientset())
 		It("issues a PEM certificate with the correct CN", func() {
 			cert, err := mc.GetCertificateForService(namespacedService)
 			Expect(err).ToNot(HaveOccurred())

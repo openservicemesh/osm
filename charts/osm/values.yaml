@@ -6,7 +6,7 @@ OpenServiceMesh:
   image:
     registry: openservicemesh
     pullPolicy: Always
-    tag: latest
+    tag: v0.3.0
   imagePullSecrets:
     - name: acr-creds
   sidecarImage: envoyproxy/envoy-alpine:v1.15.0
@@ -37,6 +37,7 @@ OpenServiceMesh:
   meshName: osm
   meshCIDRRanges: 0.0.0.0/0
   useHTTPSIngress: false
+  envoyLogLevel: debug
 
   # Set deployZipkin to true to deploy a Zipkin cluster in the
   # namespace where OSM resides. Set this to false if Zipkin

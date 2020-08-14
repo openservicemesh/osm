@@ -3,10 +3,11 @@ package configurator
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/openservicemesh/osm/pkg/constants"
 	"net"
 	"sort"
 	"strings"
+
+	"github.com/openservicemesh/osm/pkg/constants"
 )
 
 // The functions in this file implement the configurator.Configurator interface
@@ -114,6 +115,15 @@ func (c *Client) GetMeshCIDRRanges() []string {
 // UseHTTPSIngress determines whether traffic between ingress and backend pods should use HTTPS protocol
 func (c *Client) UseHTTPSIngress() bool {
 	return c.getConfigMap().UseHTTPSIngress
+}
+
+// GetEnvoyLogLevel returns the envoy log level
+func (c *Client) GetEnvoyLogLevel() string {
+	logLevel := c.getConfigMap().EnvoyLogLevel
+	if logLevel != "" {
+		return logLevel
+	}
+	return constants.DefaultEnvoyLogLevel
 }
 
 // GetAnnouncementsChannel returns a channel, which is used to announce when changes have been made to the OSM ConfigMap.

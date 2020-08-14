@@ -13,12 +13,14 @@ import (
 
 var _ = Describe("Test Envoy configuration creation", func() {
 	testCIDRRanges := "10.2.0.0/16 10.0.0.0/16"
+	testDebugEnvoyLogLevel := "debug"
 	defaultConfigMap := map[string]string{
 		permissiveTrafficPolicyModeKey: "false",
 		egressKey:                      "true",
 		meshCIDRRangesKey:              testCIDRRanges,
 		prometheusScrapingKey:          "true",
 		zipkinTracingKey:               "true",
+		envoyLogLevel:                  testDebugEnvoyLogLevel,
 	}
 
 	Context("create OSM configurator client", func() {
@@ -59,6 +61,7 @@ var _ = Describe("Test Envoy configuration creation", func() {
 				PrometheusScraping:          true,
 				ZipkinTracing:               true,
 				MeshCIDRRanges:              testCIDRRanges,
+				EnvoyLogLevel:               testDebugEnvoyLogLevel,
 			}
 			expectedConfigBytes, err := marshalConfigToJSON(expectedConfig)
 			Expect(err).ToNot(HaveOccurred())
@@ -286,7 +289,7 @@ var _ = Describe("Test Envoy configuration creation", func() {
 		cfg := NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
 
 		It("correctly retrieves the mesh CIDR ranges", func() {
-			Expect(cfg.IsZipkinTracingEnabled()).To(BeFalse())
+			Expect(cfg.GetMeshCIDRRanges()).To(BeEmpty())
 			configMap := v1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: osmNamespace,
@@ -303,6 +306,82 @@ var _ = Describe("Test Envoy configuration creation", func() {
 
 			expectedMeshCIDRRanges := []string{"10.0.0.0/16", "10.2.0.0/16"}
 			Expect(cfg.GetMeshCIDRRanges()).To(Equal(expectedMeshCIDRRanges))
+		})
+	})
+
+	Context("create OSM config for the Envoy proxy log level", func() {
+		kubeClient := testclient.NewSimpleClientset()
+		stop := make(chan struct{})
+		osmNamespace := "-test-osm-namespace-"
+		osmConfigMapName := "-test-osm-config-map-"
+		testInfoEnvoyLogLevel := "info"
+		testErrorEnvoyLogLevel := "error"
+		cfg := NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
+
+		It("correctly identifies that the Envoy log level is debug", func() {
+			Expect(cfg.GetEnvoyLogLevel()).To(Equal(testDebugEnvoyLogLevel))
+			configMap := v1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: osmNamespace,
+					Name:      osmConfigMapName,
+				},
+				Data: defaultConfigMap,
+			}
+			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Create(context.TODO(), &configMap, metav1.CreateOptions{})
+			Expect(err).ToNot(HaveOccurred())
+
+			// Wait for the config map change to propagate to the cache.
+			log.Info().Msg("Waiting for announcement")
+			<-cfg.GetAnnouncementsChannel()
+
+			Expect(cfg.GetOSMNamespace()).To(Equal(osmNamespace))
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(cfg.GetEnvoyLogLevel()).To(Equal(testDebugEnvoyLogLevel))
+		})
+
+		It("correctly identifies that Envoy log level is info", func() {
+			defaultConfigMap[envoyLogLevel] = testInfoEnvoyLogLevel
+			configMap := v1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: osmNamespace,
+					Name:      osmConfigMapName,
+				},
+				Data: defaultConfigMap,
+			}
+			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Update(context.TODO(), &configMap, metav1.UpdateOptions{})
+			Expect(err).ToNot(HaveOccurred())
+
+			// Wait for the config map change to propagate to the cache.
+			log.Info().Msg("Waiting for announcement")
+			<-cfg.GetAnnouncementsChannel()
+
+			Expect(cfg.GetOSMNamespace()).To(Equal(osmNamespace))
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(cfg.GetEnvoyLogLevel()).To(Equal(testInfoEnvoyLogLevel))
+		})
+
+		It("correctly identifies that Envoy log level is error", func() {
+			defaultConfigMap[envoyLogLevel] = testErrorEnvoyLogLevel
+			configMap := v1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: osmNamespace,
+					Name:      osmConfigMapName,
+				},
+				Data: defaultConfigMap,
+			}
+			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Update(context.TODO(), &configMap, metav1.UpdateOptions{})
+			Expect(err).ToNot(HaveOccurred())
+
+			// Wait for the config map change to propagate to the cache.
+			log.Info().Msg("Waiting for announcement")
+			<-cfg.GetAnnouncementsChannel()
+
+			Expect(cfg.GetOSMNamespace()).To(Equal(osmNamespace))
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(cfg.GetEnvoyLogLevel()).To(Equal(testErrorEnvoyLogLevel))
 		})
 	})
 })

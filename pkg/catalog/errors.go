@@ -10,7 +10,5 @@ var (
 	errServiceAccountDoesNotMatchCertificate = errors.New("service account does not match certificate")
 	errNamespaceDoesNotMatchCertificate      = errors.New("namespace does not match certificate")
 	errServiceNotFoundForAnyProvider         = errors.New("no service found for service account with any of the mesh supported providers")
-	errDomainNotFoundForService              = errors.New("no host/domain found to configure service")
 	errNoTrafficSpecFoundForTrafficPolicy    = errors.New("no traffic spec found for the traffic policy")
-	errServiceNotFound                       = errors.New("service not found")
 )

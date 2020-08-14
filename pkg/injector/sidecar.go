@@ -5,6 +5,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
+	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
@@ -14,7 +15,7 @@ const (
 	envoyContainerName       = "envoy"
 )
 
-func getEnvoySidecarContainerSpec(containerName, envoyImage, nodeID, clusterID string) []corev1.Container {
+func getEnvoySidecarContainerSpec(containerName, envoyImage, nodeID, clusterID string, cfg configurator.Configurator) []corev1.Container {
 	container := corev1.Container{
 		Name:            containerName,
 		Image:           envoyImage,
@@ -42,7 +43,7 @@ func getEnvoySidecarContainerSpec(containerName, envoyImage, nodeID, clusterID s
 		}},
 		Command: []string{"envoy"},
 		Args: []string{
-			"--log-level", "debug", // TODO(draychev): Move to ConfigMap: Github Issue https://github.com/openservicemesh/osm/issues/1232
+			"--log-level", cfg.GetEnvoyLogLevel(),
 			"--config-path", strings.Join([]string{envoyProxyConfigPath, envoyBootstrapConfigFile}, "/"),
 			"--service-node", nodeID,
 			"--service-cluster", clusterID,

@@ -9,7 +9,6 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
-	"github.com/pkg/errors"
 )
 
 type fakeMeshSpec struct {
@@ -59,16 +58,16 @@ func (f fakeMeshSpec) ListServiceAccounts() []service.K8sServiceAccount {
 }
 
 // GetService fetches a specific service declared in SMI for the fake Mesh Spec.
-func (f fakeMeshSpec) GetService(svc service.MeshService) (service *corev1.Service, err error) {
+func (f fakeMeshSpec) GetService(svc service.MeshService) *corev1.Service {
 	for _, service := range f.services {
 		if service.Name == svc.Name && service.Namespace == svc.Namespace {
-			return service, nil
+			return service
 		}
 	}
-	return nil, errors.Errorf("Service %s not found", svc)
+	return nil
 }
 
-// ListHTTPTrafficSpecs lists TrafficSpec SMI resources for the fake Mesh Spec.
+// ListHTTPTrafficSpecs lists SMI HTTPRouteGroup resources
 func (f fakeMeshSpec) ListHTTPTrafficSpecs() []*spec.HTTPRouteGroup {
 	return f.routeGroups
 }
@@ -78,9 +77,8 @@ func (f fakeMeshSpec) ListTrafficTargets() []*target.TrafficTarget {
 	return f.trafficTargets
 }
 
-// ListBackpressures lists Backpressure SMI resources for the fake Mesh Spec.
-func (f fakeMeshSpec) ListBackpressures() []*backpressure.Backpressure {
-	return f.backpressures
+func (f fakeMeshSpec) GetBackpressurePolicy(svc service.MeshService) *backpressure.Backpressure {
+	return nil
 }
 
 // GetAnnouncementsChannel returns the channel on which SMI makes announcements for the fake Mesh Spec.
@@ -89,6 +87,6 @@ func (f fakeMeshSpec) GetAnnouncementsChannel() <-chan interface{} {
 }
 
 // ListServices returns a list of services that are part of monitored namespaces
-func (f fakeMeshSpec) ListServices() ([]*corev1.Service, error) {
-	return f.services, nil
+func (f fakeMeshSpec) ListServices() []*corev1.Service {
+	return f.services
 }

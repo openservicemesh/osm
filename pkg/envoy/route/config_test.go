@@ -106,7 +106,7 @@ var _ = Describe("Weighted clusters", func() {
 				totalClusterWeight += cluster.Weight
 			}
 
-			routeWeightedClusters := getWeightedCluster(weightedClusters, totalClusterWeight, true)
+			routeWeightedClusters := getWeightedCluster(weightedClusters, totalClusterWeight, InboundRoute)
 			Expect(routeWeightedClusters.TotalWeight).To(Equal(&wrappers.UInt32Value{Value: uint32(totalClusterWeight)}))
 			Expect(len(routeWeightedClusters.GetClusters())).To(Equal(weightedClusters.Cardinality()))
 
@@ -155,7 +155,7 @@ var _ = Describe("Routes with weighted clusters", func() {
 			}
 
 			routeWeightedClustersMap[routePolicy.PathRegex] = trafficpolicy.RouteWeightedClusters{Route: routePolicy, WeightedClusters: weightedClusters}
-			rt := createRoutes(routeWeightedClustersMap, true)
+			rt := createRoutes(routeWeightedClustersMap, InboundRoute)
 			Expect(len(rt)).To(Equal(len(routePolicy.Methods)))
 
 			for i, route := range rt {
@@ -182,7 +182,7 @@ var _ = Describe("Routes with weighted clusters", func() {
 
 			httpMethodCount := 3 // 2 from previously added routes + 1 append
 
-			rt := createRoutes(routeWeightedClustersMap, true)
+			rt := createRoutes(routeWeightedClustersMap, InboundRoute)
 
 			Expect(len(rt)).To(Equal(httpMethodCount))
 			var newRoute *envoy_route.Route
@@ -234,17 +234,17 @@ var _ = Describe("Route Configuration", func() {
 			}
 
 			//Validating the outbound clusters and routes
-			sourceRouteConfig := NewRouteConfigurationStub(OutboundRouteConfigName)
-			UpdateRouteConfiguration(sourceDomainAggregatedData, sourceRouteConfig, true, false)
-			Expect(sourceRouteConfig).NotTo(Equal(nil))
-			Expect(sourceRouteConfig.Name).To(Equal(OutboundRouteConfigName))
-			Expect(len(sourceRouteConfig.VirtualHosts)).To(Equal(len(sourceDomainAggregatedData)))
-			Expect(len(sourceRouteConfig.VirtualHosts[0].Routes)).To(Equal(1))
-			Expect(len(sourceRouteConfig.VirtualHosts[0].Routes[0].Match.Headers)).To(Equal(1))
-			Expect(sourceRouteConfig.VirtualHosts[0].Routes[0].Match.GetSafeRegex().Regex).To(Equal(constants.RegexMatchAll))
-			Expect(sourceRouteConfig.VirtualHosts[0].Routes[0].Match.GetHeaders()[0].GetSafeRegexMatch().Regex).To(Equal(constants.RegexMatchAll))
-			Expect(len(sourceRouteConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters().GetClusters())).To(Equal(weightedClusters.Cardinality()))
-			Expect(sourceRouteConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters().TotalWeight).To(Equal(&wrappers.UInt32Value{Value: uint32(totalClusterWeight)}))
+			outboundRouteConfig := NewRouteConfigurationStub(OutboundRouteConfigName)
+			UpdateRouteConfiguration(sourceDomainAggregatedData, outboundRouteConfig, OutboundRoute)
+			Expect(outboundRouteConfig).NotTo(Equal(nil))
+			Expect(outboundRouteConfig.Name).To(Equal(OutboundRouteConfigName))
+			Expect(len(outboundRouteConfig.VirtualHosts)).To(Equal(len(sourceDomainAggregatedData)))
+			Expect(len(outboundRouteConfig.VirtualHosts[0].Routes)).To(Equal(1))
+			Expect(len(outboundRouteConfig.VirtualHosts[0].Routes[0].Match.Headers)).To(Equal(1))
+			Expect(outboundRouteConfig.VirtualHosts[0].Routes[0].Match.GetSafeRegex().Regex).To(Equal(constants.RegexMatchAll))
+			Expect(outboundRouteConfig.VirtualHosts[0].Routes[0].Match.GetHeaders()[0].GetSafeRegexMatch().Regex).To(Equal(constants.RegexMatchAll))
+			Expect(len(outboundRouteConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters().GetClusters())).To(Equal(weightedClusters.Cardinality()))
+			Expect(outboundRouteConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters().TotalWeight).To(Equal(&wrappers.UInt32Value{Value: uint32(totalClusterWeight)}))
 		})
 
 		It("Returns inbound route configuration", func() {
@@ -275,7 +275,7 @@ var _ = Describe("Route Configuration", func() {
 
 			//Validating the inbound clusters and routes
 			destRouteConfig := NewRouteConfigurationStub(InboundRouteConfigName)
-			UpdateRouteConfiguration(destDomainAggregatedData, destRouteConfig, false, true)
+			UpdateRouteConfiguration(destDomainAggregatedData, destRouteConfig, InboundRoute)
 			Expect(destRouteConfig).NotTo(Equal(nil))
 			Expect(destRouteConfig.Name).To(Equal(InboundRouteConfigName))
 			Expect(len(destRouteConfig.VirtualHosts)).To(Equal(len(destDomainAggregatedData)))

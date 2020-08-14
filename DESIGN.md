@@ -224,7 +224,7 @@ the development of the OSM in [this repository](https://github.com/openserviceme
 
 
 This section adopts the following assumptions:
-  - [1:1 relationship](https://en.wikipedia.org/wiki/One-to-one_(data_model)) between an [proxy](https://www.envoyproxy.io/docs/envoy/latest/intro/what_is_envoy) and an instance of a service. (No more than one service fronted by the same proxy.)
+  - [1:1 relationship](https://en.wikipedia.org/wiki/One-to-one_(data_model)) between a [proxy](https://www.envoyproxy.io/docs/envoy/latest/intro/what_is_envoy) and an instance of a service. (No more than one service fronted by the same proxy.)
   - [1:1 relationship](https://en.wikipedia.org/wiki/One-to-one_(data_model)) between an [endpoint](#fgh-endpoint) (port and IP) and a [proxy](#a-proxy)
 
 
@@ -425,29 +425,32 @@ The `MeshSpec` implementation **has no awareness** of:
 ```go
 // MeshSpec is an interface declaring functions, which provide the specs for a service mesh declared with SMI.
 type MeshSpec interface {
-	// ListTrafficSplits lists TrafficSplit SMI resources.
+	// ListTrafficSplits lists SMI TrafficSplit resources
 	ListTrafficSplits() []*split.TrafficSplit
 
-	// ListTrafficSplitServices fetches all services declared with SMI Spec.
+	// ListTrafficSplitServices lists WeightedServices for the services specified in TrafficSplit SMI resources
 	ListTrafficSplitServices() []service.WeightedService
 
-	// ListServiceAccounts fetches all service accounts declared with SMI Spec.
+	// ListServiceAccounts lists ServiceAccount resources specified in SMI TrafficTarget resources
 	ListServiceAccounts() []service.K8sServiceAccount
 
-	// GetService fetches a specific service declared in SMI.
-	GetService(service.MeshService) (service *corev1.Service, err error)
+	// GetService fetches a Kubernetes Service resource for the given MeshService
+	GetService(service.MeshService) *corev1.Service
 
-	// ListHTTPTrafficSpecs lists TrafficSpec SMI resources.
+	// ListServices Lists Kubernets Service resources that are part of monitored namespaces
+	ListServices() []*corev1.Service
+
+	// ListHTTPTrafficSpecs lists SMI HTTPRouteGroup resources
 	ListHTTPTrafficSpecs() []*spec.HTTPRouteGroup
 
-	// ListTrafficTargets lists TrafficTarget SMI resources.
+	// ListTrafficTargets lists SMI TrafficTarget resources
 	ListTrafficTargets() []*target.TrafficTarget
 
-	// GetAnnouncementsChannel returns the channel on which SMI makes announcements
-	GetAnnouncementsChannel() <-chan interface{}
+	// GetBackpressurePolicy fetches the Backpressure policy for the MeshService
+	GetBackpressurePolicy(service.MeshService) *backpressure.Backpressure
 
-	// ListServices returns a list of services that are part of monitored namespaces
-	ListServices() ([]*corev1.Service, error)
+	// GetAnnouncementsChannel returns the channel on which SMI client makes announcements
+	GetAnnouncementsChannel() <-chan interface{}
 }
 ```
 

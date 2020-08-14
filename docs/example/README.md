@@ -27,6 +27,10 @@ The OSM Manual Install Demo Guide is designed to quickly allow you to demo and e
 - Have `kubectl` CLI installed - [Install and Set Up Kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 - kubectl current context is configured for the target cluster install
   - ```kubectl config current-context```
+- Have a local clone of the OSM GitHub Repo
+  - ```git clone https://github.com/openservicemesh/osm.git```
+  - ```cd osm```
+
 
 
 ## Install OSM CLI
@@ -51,7 +55,7 @@ for i in bookstore bookbuyer bookthief bookwarehouse; do osm namespace add $i; d
 ### Deploy the Bookstore Application
 Install `Bookstore`, `Bookbuyer`, `Bookthief`, `Bookwarehouse`.
 ```bash
-kubectl create -f docs/example/manifests/apps/
+kubectl apply -f docs/example/manifests/apps/
 ```
 
 ### Checkpoint: What Got Installed?
@@ -68,7 +72,7 @@ kubectl get deploy --all-namespaces
 kubectl get trafficsplit -n bookstore
 ```
 
-A simple toplogy view of the Bookstore application looks like the following:
+A simple topology view of the Bookstore application looks like the following:
 ![Bookstore Application Topology](/img/book-thief-app-topology.jpg "Bookstore Application Topology")
 
 *Note: At the moment, you must configure a TrafficSplit object to get your applications set up correctly for inbound traffic because it helps us properly configure the dataplane. We're working on removing the need for this entirely.* [#1370](https://github.com/openservicemesh/osm/issues/1370)
