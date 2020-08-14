@@ -67,7 +67,7 @@ The following are the key components of the demo application:
 
 To view these resources on your cluster, run the following commands:
 ```
-kubectl get svc
+kubectl get svc --all-namespaces
 kubectl get deploy --all-namespaces
 kubectl get trafficsplit -n bookstore
 ```
