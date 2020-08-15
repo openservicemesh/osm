@@ -187,7 +187,7 @@ kubectl apply -f docs/example/manifests/bookstore-v2/
 
 Browse to http://localhost:8082. You should see the `bookstore-v2` heading in your browser window. **NOTE** Please exit and restart the `./scripts/port-forward-all.sh` script in order to access v2 of Bookstore.
 
-After restarting the port forwarding script, you should now be able to access the `bookstore-v2` application at http://localhost:8082. The count for the books sold should remain at 0, this is because the current traffic split policy is currently weighted 100% for `bookstore-v2`. You can verify the traffic split policy by running the following and viewing the **Backends** properties:
+After restarting the port forwarding script, you should now be able to access the `bookstore-v2` application at http://localhost:8082. The count for the books sold should remain at 0, this is because the current traffic split policy is currently weighted 100% for `bookstore-v1`. You can verify the traffic split policy by running the following and viewing the **Backends** properties:
 ```
 kubectl describe trafficsplit bookstore-split -n bookstore
 ```
