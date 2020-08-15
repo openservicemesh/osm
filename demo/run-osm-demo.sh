@@ -105,7 +105,6 @@ if [ "$CERT_MANAGER" = "vault" ]; then
       --enable-debug-server \
       --enable-egress="$ENABLE_EGRESS" \
       --mesh-cidr "$MESH_CIDR" \
-      --deploy-zipkin \
       $optionalInstallArgs
 else
   # shellcheck disable=SC2086
@@ -118,7 +117,6 @@ else
       --enable-debug-server \
       --enable-egress="$ENABLE_EGRESS" \
       --mesh-cidr "$MESH_CIDR" \
-      --deploy-zipkin \
       $optionalInstallArgs
 fi
 
