@@ -118,7 +118,7 @@ var _ = Describe("Running the namespace add command", func() {
 			})
 
 			It("should give a warning message", func() {
-				Expect(out.String()).To(Equal(fmt.Sprintf("Namespace [%s] already has osm-controller installed and cannot be added to mesh [%s]\n", testNamespace, testMeshName)))
+				Expect(out.String()).To(Equal(fmt.Sprintf("Namespace [%s] already has [%s] installed and cannot be added to mesh [%s]\n", testNamespace, osmControllerLabel, testMeshName)))
 			})
 		})
 	})

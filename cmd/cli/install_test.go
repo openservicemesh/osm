@@ -732,11 +732,11 @@ func createDeploymentSpec(namespace, meshName string) *v1.Deployment {
 	labelMap := make(map[string]string)
 	if meshName != "" {
 		labelMap["meshName"] = meshName
-		labelMap["app"] = "osm-controller"
+		labelMap["app"] = osmControllerLabel
 	}
 	return &v1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "osm-controller",
+			Name:      osmControllerLabel,
 			Namespace: namespace,
 			Labels:    labelMap,
 		},

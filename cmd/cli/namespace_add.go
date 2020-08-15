@@ -66,16 +66,16 @@ func (a *namespaceAddCmd) run() error {
 		defer cancel()
 
 		deploymentsClient := a.clientSet.AppsV1().Deployments(ns)
-		labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"app": "osm-controller"}}
+		labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"app": osmControllerLabel}}
 
 		listOptions := metav1.ListOptions{
 			LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
 		}
 		list, _ := deploymentsClient.List(context.TODO(), listOptions)
 
-		// if osm-controller is installed in that namespace then don't add that to mesh
+		// if osm-controller is installed in this namespace then don't add that to mesh
 		if len(list.Items) != 0 {
-			fmt.Fprintf(a.out, "Namespace [%s] already has osm-controller installed and cannot be added to mesh [%s]\n", ns, a.meshName)
+			fmt.Fprintf(a.out, "Namespace [%s] already has [%s] installed and cannot be added to mesh [%s]\n", ns, osmControllerLabel, a.meshName)
 		} else {
 			patch := `{"metadata":{"labels":{"` + constants.OSMKubeResourceMonitorAnnotation + `":"` + a.meshName + `"}}}`
 			_, err := a.clientSet.CoreV1().Namespaces().Patch(ctx, ns, types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{}, "")

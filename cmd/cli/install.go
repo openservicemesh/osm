@@ -53,10 +53,10 @@ well as for adding a Kubernetes Namespace to the list of Namespaces a control
 plane should watch for sidecar injection of Envoy proxies.
 `
 const (
-	defaultCertManager   = "tresor"
-	defaultVaultProtocol = "http"
-	defaultMeshName      = "osm"
-
+	defaultCertManager         = "tresor"
+	defaultVaultProtocol       = "http"
+	defaultMeshName            = "osm"
+	osmControllerLabel         = "osm-controller"
 	defaultCertValidityMinutes = int(1440) // 24 hours
 )
 
@@ -203,7 +203,7 @@ func (i *installCmd) run(config *helm.Configuration) error {
 	}
 
 	deploymentsClient = i.clientSet.AppsV1().Deployments(settings.Namespace()) // Get deployments for specified namespace
-	labelSelector = metav1.LabelSelector{MatchLabels: map[string]string{"app": "osm-controller"}}
+	labelSelector = metav1.LabelSelector{MatchLabels: map[string]string{"app": osmControllerLabel}}
 
 	listOptions = metav1.ListOptions{
 		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
