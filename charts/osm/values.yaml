@@ -37,7 +37,7 @@ OpenServiceMesh:
   # Set deployZipkin to true to deploy a Zipkin cluster in the
   # namespace where OSM resides. Set this to false if Zipkin
   # has already been installed or is not needed.
-  deployZipkin: true
+  deployZipkin: false
 
   # The following section configures Zipkin tracing for the Envoys
   # connected to the OSM control plane.
@@ -45,7 +45,7 @@ OpenServiceMesh:
 
     ## Toggles Envoy's tracing functionality on/off
     ## for all proxies in the mesh.
-    enable: true
+    enable: false
 
     # Informs Envoys where the Zipkin spans should be sent
     address: "zipkin.osm-system.svc.cluster.local"

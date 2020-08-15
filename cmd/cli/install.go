@@ -138,7 +138,7 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.BoolVar(&inst.enableBackpressureExperimental, "enable-backpressure-experimental", false, "Enable experimental backpressure feature")
 	f.BoolVar(&inst.enableMetricsStack, "enable-metrics-stack", true, "Enable metrics (Prometheus and Grafana) deployment")
 	f.StringVar(&inst.meshName, "mesh-name", defaultMeshName, "name for the new control plane instance")
-	f.BoolVar(&inst.deployZipkin, "deploy-zipkin", true, "Deploy Zipkin in the namespace of the OSM controller")
+	f.BoolVar(&inst.deployZipkin, "deploy-zipkin", false, "Deploy Zipkin in the namespace of the OSM controller")
 
 	return cmd
 }
