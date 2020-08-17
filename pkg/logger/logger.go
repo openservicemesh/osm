@@ -24,19 +24,21 @@ func (h CallerHook) Run(e *zerolog.Event, level zerolog.Level, msg string) {
 	}
 }
 
+func newLogger(component string) zerolog.Logger {
+	return log.With().Str("component", component).Logger().Hook(CallerHook{})
+}
+
 // New creates a new zerolog.Logger
 func New(component string) zerolog.Logger {
-	l := log.With().Str("component", component).Logger().Hook(CallerHook{})
 	if os.Getenv(constants.EnvVarHumanReadableLogMessages) == "true" {
-		return l.Output(zerolog.ConsoleWriter{Out: os.Stdout})
+		NewPretty(component)
 	}
-	return l
+	return newLogger(component)
 }
 
 // NewPretty creates a new zerolog.Logger, which emits human-readable log messages
 func NewPretty(component string) zerolog.Logger {
-	l := log.With().Str("component", component).Logger().Hook(CallerHook{})
-	return l.Output(zerolog.ConsoleWriter{Out: os.Stdout})
+	return newLogger(component).Output(zerolog.ConsoleWriter{Out: os.Stdout})
 }
 
 // SetLogLevel sets the global logging level
