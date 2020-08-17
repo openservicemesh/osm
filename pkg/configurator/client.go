@@ -130,19 +130,24 @@ func (c *Client) getConfigMap() *osmConfig {
 
 	configMap := item.(*v1.ConfigMap)
 
-	return &osmConfig{
+	osmConfigMap := osmConfig{
 		PermissiveTrafficPolicyMode: getBoolValueForKey(configMap, permissiveTrafficPolicyModeKey),
 		Egress:                      getBoolValueForKey(configMap, egressKey),
 		PrometheusScraping:          getBoolValueForKey(configMap, prometheusScrapingKey),
 		MeshCIDRRanges:              getEgressCIDR(configMap),
 		UseHTTPSIngress:             getBoolValueForKey(configMap, useHTTPSIngressKey),
 
-		ZipkinTracing:  getBoolValueForKey(configMap, zipkinTracingKey),
-		ZipkinAddress:  getStringValueForKey(configMap, zipkinAddressKey),
-		ZipkinPort:     getIntValueForKey(configMap, zipkinPortKey),
-		ZipkinEndpoint: getStringValueForKey(configMap, zipkinEndpointKey),
-		EnvoyLogLevel:  getStringValueForKey(configMap, envoyLogLevel),
+		ZipkinTracing: getBoolValueForKey(configMap, zipkinTracingKey),
+		EnvoyLogLevel: getStringValueForKey(configMap, envoyLogLevel),
 	}
+
+	if osmConfigMap.ZipkinTracing {
+		osmConfigMap.ZipkinAddress = getStringValueForKey(configMap, zipkinAddressKey)
+		osmConfigMap.ZipkinPort = getIntValueForKey(configMap, zipkinPortKey)
+		osmConfigMap.ZipkinEndpoint = getStringValueForKey(configMap, zipkinEndpointKey)
+	}
+
+	return &osmConfigMap
 }
 
 func getEgressCIDR(configMap *v1.ConfigMap) string {
