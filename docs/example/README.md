@@ -85,7 +85,11 @@ In a new terminal session, run the following commands to enable port forwarding 
 cp .env.example .env
 ./scripts/port-forward-all.sh
 ```
+*Note: To override the default ports, prefix the `BOOKBUYER_LOCAL_PORT`, `BOOKSTOREv1_LOCAL_PORT`, `BOOKSTOREv2_LOCAL_PORT`, and/or `BOOKTHIEF_LOCAL_PORT` variable assignments to the `port-forward` scripts. For example:*
 
+```bash
+BOOKBUYER_LOCAL_PORT=7070 BOOKSTOREv1_LOCAL_PORT=7071 BOOKSTOREv2_LOCAL_PORT=7072 BOOKTHIEF_LOCAL_PORT=7073 ./scripts/port-forward-all.sh
+```
 In a browser, open up the following urls:
 - http://localhost:8080 - **Bookbuyer**
 - http://localhost:8081 - **bookstore-v1**
