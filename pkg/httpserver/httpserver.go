@@ -56,10 +56,12 @@ func (s *httpServer) Start() {
 	}()
 }
 
-func (s *httpServer) Stop() {
+func (s *httpServer) Stop() error {
 	ctx, cancel := context.WithTimeout(context.Background(), contextTimeoutDuration)
 	defer cancel()
 	if err := s.server.Shutdown(ctx); err != nil {
 		log.Error().Err(err).Msg("Unable to shutdown API server gracefully")
+		return err
 	}
+	return nil
 }
