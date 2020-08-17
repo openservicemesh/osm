@@ -62,7 +62,7 @@ spec:
               scheme: HTTPS
               path: /health/ready
               port: 9090
-    {{- with .Values.OpenServiceMesh.imagePullSecrets }}
+    {{- if .Values.OpenServiceMesh.imagePullSecrets }}
       imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
+{{ toYaml .Values.OpenServiceMesh.imagePullSecrets | indent 8 }}
     {{- end }}
