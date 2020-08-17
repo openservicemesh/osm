@@ -1,6 +1,12 @@
 package health
 
-import "net/http"
+import (
+	"encoding/json"
+	"fmt"
+	"github.com/openservicemesh/osm/pkg/version"
+	"github.com/rs/zerolog/log"
+	"net/http"
+)
 
 // Probe is a type alias for a function.
 type Probe func() bool
@@ -17,6 +23,18 @@ func makeHandler(probe Probe) http.Handler {
 			true:  http.StatusOK,
 			false: http.StatusServiceUnavailable,
 		}[probe()])
+
+		versionInfo := version.VersionInfo{
+			Version:   version.Version,
+			BuildDate: version.BuildDate,
+			GitCommit: version.GitCommit,
+		}
+
+		if jsonVersionInfo, err := json.Marshal(versionInfo); err != nil {
+			log.Error().Err(err).Msgf("Error marshaling VersionInfo struct: %+v", versionInfo)
+		} else {
+			_, _ = fmt.Fprint(w, string(jsonVersionInfo))
+		}
 	})
 }
 
