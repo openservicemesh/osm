@@ -130,19 +130,24 @@ func (c *Client) getConfigMap() *osmConfig {
 
 	configMap := item.(*v1.ConfigMap)
 
-	return &osmConfig{
+	osmConfigMap := osmConfig{
 		PermissiveTrafficPolicyMode: getBoolValueForKey(configMap, permissiveTrafficPolicyModeKey),
 		Egress:                      getBoolValueForKey(configMap, egressKey),
 		PrometheusScraping:          getBoolValueForKey(configMap, prometheusScrapingKey),
 		MeshCIDRRanges:              getEgressCIDR(configMap),
 		UseHTTPSIngress:             getBoolValueForKey(configMap, useHTTPSIngressKey),
 
-		ZipkinTracing:  getBoolValueForKey(configMap, zipkinTracingKey),
-		ZipkinAddress:  getStringValueForKey(configMap, zipkinAddressKey),
-		ZipkinPort:     getIntValueForKey(configMap, zipkinPortKey),
-		ZipkinEndpoint: getStringValueForKey(configMap, zipkinEndpointKey),
-		EnvoyLogLevel:  getStringValueForKey(configMap, envoyLogLevel),
+		ZipkinTracing: getBoolValueForKey(configMap, zipkinTracingKey),
+		EnvoyLogLevel: getStringValueForKey(configMap, envoyLogLevel),
 	}
+
+	if osmConfigMap.ZipkinTracing {
+		osmConfigMap.ZipkinAddress = getStringValueForKey(configMap, zipkinAddressKey)
+		osmConfigMap.ZipkinPort = getIntValueForKey(configMap, zipkinPortKey)
+		osmConfigMap.ZipkinEndpoint = getStringValueForKey(configMap, zipkinEndpointKey)
+	}
+
+	return &osmConfigMap
 }
 
 func getEgressCIDR(configMap *v1.ConfigMap) string {
@@ -160,7 +165,7 @@ func getEgressCIDR(configMap *v1.ConfigMap) string {
 func getBoolValueForKey(configMap *v1.ConfigMap, key string) bool {
 	configMapStringValue, ok := configMap.Data[key]
 	if !ok {
-		log.Error().Err(errInvalidKeyInConfigMap).Msgf("Key %s does not exist in ConfigMap %s/%s (%s)", key, configMap.Namespace, configMap.Name, configMap.Data)
+		log.Debug().Err(errInvalidKeyInConfigMap).Msgf("Key %s does not exist in ConfigMap %s/%s (%s)", key, configMap.Namespace, configMap.Name, configMap.Data)
 		return false
 	}
 
@@ -176,7 +181,7 @@ func getBoolValueForKey(configMap *v1.ConfigMap, key string) bool {
 func getIntValueForKey(configMap *v1.ConfigMap, key string) int {
 	configMapStringValue, ok := configMap.Data[key]
 	if !ok {
-		log.Error().Err(errInvalidKeyInConfigMap).Msgf("Key %s does not exist in ConfigMap %s/%s (%s)", key, configMap.Namespace, configMap.Name, configMap.Data)
+		log.Debug().Err(errInvalidKeyInConfigMap).Msgf("Key %s does not exist in ConfigMap %s/%s (%s)", key, configMap.Namespace, configMap.Name, configMap.Data)
 		return 0
 	}
 
@@ -192,7 +197,7 @@ func getIntValueForKey(configMap *v1.ConfigMap, key string) int {
 func getStringValueForKey(configMap *v1.ConfigMap, key string) string {
 	configMapStringValue, ok := configMap.Data[key]
 	if !ok {
-		log.Error().Err(errInvalidKeyInConfigMap).Msgf("Key %s does not exist in ConfigMap %s/%s (%s)", key, configMap.Namespace, configMap.Name, configMap.Data)
+		log.Debug().Err(errInvalidKeyInConfigMap).Msgf("Key %s does not exist in ConfigMap %s/%s (%s)", key, configMap.Namespace, configMap.Name, configMap.Data)
 		return ""
 	}
 	return configMapStringValue
