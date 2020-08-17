@@ -18,6 +18,7 @@ spec:
       containers:
       - name: zipkin
         image: openzipkin/zipkin:2.21.4
+        imagePullPolicy: IfNotPresent
         ports:
         - containerPort: {{ .Values.OpenServiceMesh.zipkin.port | default 9411 }}
         resources:
