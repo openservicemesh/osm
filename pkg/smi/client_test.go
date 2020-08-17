@@ -347,7 +347,7 @@ var _ = Describe("When listing Services", func() {
 
 	It("should return an empty list when no services are found", func() {
 		services := meshSpec.ListServices()
-		Expect(len(services)).To(Equal(0)) // fixme cache sync not done yet
+		Expect(len(services)).To(Equal(0))
 	})
 
 	It("should return a list of Services", func() {
