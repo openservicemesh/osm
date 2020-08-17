@@ -237,11 +237,12 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[trafficpolicy.T
 			Namespace: trafficTargets.Spec.Destination.Namespace,
 			Name:      trafficTargets.Spec.Destination.Name,
 		}
-		destService, destErr := mc.GetServiceForServiceAccount(dstNamespacedServiceAcc)
+		destServiceList, destErr := mc.GetServicesForServiceAccount(dstNamespacedServiceAcc)
 		if destErr != nil {
 			log.Error().Msgf("TrafficTarget %s/%s could not get destination services for service account %s", trafficTargets.Namespace, trafficTargets.Name, dstNamespacedServiceAcc.String())
 			return nil, destErr
 		}
+		destService := destServiceList[0]
 
 		for _, trafficSources := range trafficTargets.Spec.Sources {
 			namespacedServiceAccount := service.K8sServiceAccount{
@@ -249,16 +250,17 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[trafficpolicy.T
 				Name:      trafficSources.Name,
 			}
 
-			srcServices, srcErr := mc.GetServiceForServiceAccount(namespacedServiceAccount)
+			srcServiceList, srcErr := mc.GetServicesForServiceAccount(namespacedServiceAccount)
 			if srcErr != nil {
 				log.Error().Msgf("TrafficTarget %s/%s could not get source services for service account %s", trafficTargets.Namespace, trafficTargets.Name, fmt.Sprintf("%s/%s", trafficSources.Namespace, trafficSources.Name))
 				return nil, srcErr
 			}
+			srcService := srcServiceList[0]
 
 			trafficTarget := trafficpolicy.TrafficTarget{
 				Name:        trafficTargets.Name,
 				Destination: destService,
-				Source:      srcServices,
+				Source:      srcService,
 			}
 
 			for _, trafficTargetSpecs := range trafficTargets.Spec.Rules {

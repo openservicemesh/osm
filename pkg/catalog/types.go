@@ -89,8 +89,8 @@ type MeshCataloger interface {
 	// UnregisterProxy unregisters an existing proxy from the service mesh catalog
 	UnregisterProxy(*envoy.Proxy)
 
-	// GetServiceForServiceAccount returns the service corresponding to a service account
-	GetServiceForServiceAccount(service.K8sServiceAccount) (service.MeshService, error)
+	// GetServicesForServiceAccount returns a list of services corresponding to a service account
+	GetServicesForServiceAccount(service.K8sServiceAccount) ([]service.MeshService, error)
 
 	// GetHostnamesForService returns the hostnames for a service
 	// TODO(ref: PR #1316): return a list of strings
