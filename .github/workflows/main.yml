@@ -14,10 +14,10 @@ on:
       - "**.md"
 env:
   KUBECONFIG: ".kube/config"
-  CI_WAIT_FOR_OK_SECONDS: 60
+  CI_WAIT_FOR_OK_SECONDS: 90
   CI_MAX_ITERATIONS_THRESHOLD: 90
   CI_CLIENT_CONCURRENT_CONNECTIONS: 1
-  CI_MAX_WAIT_FOR_POD_TIME_SECONDS: 60
+  CI_MAX_WAIT_FOR_POD_TIME_SECONDS: 90
   CI_MIN_SUCCESS_THRESHOLD: 1
   OSM_HUMAN_DEBUG_LOG: true
 
@@ -172,7 +172,6 @@ jobs:
           BOOKTHIEF_EXPECTED_RESPONSE_CODE: "404"
           ENABLE_EGRESS: "false"
           EGRESS_EXPECTED_RESPONSE_CODE: "404" # egress is disabled
-          CI_WAIT_FOR_OK_SECONDS: 75
           DEPLOY_TRAFFIC_SPLIT: "true"
         run: |
           touch .env
@@ -262,7 +261,6 @@ jobs:
           BOOKTHIEF_EXPECTED_RESPONSE_CODE: "404"
           ENABLE_EGRESS: "false"
           EGRESS_EXPECTED_RESPONSE_CODE: "404" # egress is disabled
-          CI_WAIT_FOR_OK_SECONDS: 75
           DEPLOY_TRAFFIC_SPLIT: "false"
         run: |
           touch .env
