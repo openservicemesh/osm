@@ -70,7 +70,6 @@ var _ = Describe("Running the install command", func() {
 				out:                        out,
 				chartPath:                  "testdata/test-chart",
 				containerRegistry:          testRegistry,
-				containerRegistrySecret:    testRegistrySecret,
 				osmImageTag:                testOsmImageTag,
 				certificateManager:         "tresor",
 				serviceCertValidityMinutes: 1,
@@ -120,11 +119,6 @@ var _ = Describe("Running the install command", func() {
 						"image": map[string]interface{}{
 							"registry": testRegistry,
 							"tag":      testOsmImageTag,
-						},
-						"imagePullSecrets": []interface{}{
-							map[string]interface{}{
-								"name": testRegistrySecret,
-							},
 						},
 						"serviceCertValidityMinutes": int64(1),
 						"vault": map[string]interface{}{
