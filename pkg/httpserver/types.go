@@ -13,7 +13,7 @@ var (
 // HTTPServer serving probes and metrics
 type HTTPServer interface {
 	Start()
-	Stop()
+	Stop() error
 }
 
 type httpServer struct {
