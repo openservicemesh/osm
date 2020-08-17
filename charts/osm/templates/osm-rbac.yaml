@@ -45,6 +45,10 @@ rules:
     resources: ["backpressures"]
     verbs: ["list", "get", "watch"]
 
+  # Used for interacting with cert-manager CertificateRequest resources.
+  - apiGroups: ["cert-manager.io"]
+    resources: ["certificaterequests"]
+    verbs: ["list", "get", "watch", "create", "delete"]
 ---
 
 apiVersion: v1

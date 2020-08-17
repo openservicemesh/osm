@@ -12,6 +12,10 @@ const (
 
 	// TypePrivateKey is a string constant to be used in the generation of a private key for a certificate.
 	TypePrivateKey = "PRIVATE KEY"
+
+	// TypeCertificateRequest is a string constant to be used in the generation
+	// of a certificate requests.
+	TypeCertificateRequest = "CERTIFICATE REQUEST"
 )
 
 // CommonName is the Subject Common Name from a given SSL certificate.

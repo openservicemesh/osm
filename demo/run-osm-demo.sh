@@ -85,6 +85,11 @@ if [ "$CERT_MANAGER" = "vault" ]; then
     ./demo/deploy-vault.sh
 fi
 
+if [ "$CERT_MANAGER" = "cert-manager" ]; then
+    echo "Installing cert-manager"
+    ./demo/deploy-cert-manager.sh
+fi
+
 ./demo/build-push-images.sh
 ./scripts/create-container-registry-creds.sh "$K8S_NAMESPACE"
 
@@ -111,6 +116,7 @@ else
   bin/osm install \
       --namespace "$K8S_NAMESPACE" \
       --mesh-name "$MESH_NAME" \
+      --certificate-manager="$CERT_MANAGER" \
       --container-registry "$CTR_REGISTRY" \
       --container-registry-secret "$CTR_REGISTRY_CREDS_NAME" \
       --osm-image-tag "$CTR_TAG" \

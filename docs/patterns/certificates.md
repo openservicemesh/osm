@@ -6,10 +6,11 @@ There are two kinds of certificates in the OSM ecosystem:
 1. Certificates used for Envoy proxies to connect to xDS control plane - identifies the proxy and pod connecting to xDS.
 2. Certificates used for service to service communication (one Envoy connects to another) - identifies the services connecting to each other.
 
-Open Service Mesh supports 3 methods of issuing certificates:
+Open Service Mesh supports 4 methods of issuing certificates:
   - using an internal OSM package, called [Tresor](/pkg/certificate/providers/tresor/). This is the default for a first time installation.
   - using [Hashicorp Vault](https://www.vaultproject.io/)
   - using [Azure Key Vault](https://azure.microsoft.com/en-us/services/key-vault/)
+  - using [cert-manager](https://cert-manager.io)
 
 
 ## Using OSM's Tresor certificate issuer
@@ -174,3 +175,56 @@ following commands to setup the dev environment:
 
 
 The OSM control plane provides verbose logs on operations done with the Vault installations.
+
+
+## Using cert-manager
+
+[cert-manager](https://cert-manager.io) is another provider for issuing signed
+certificates to the OSM service mesh, without the need for storing private keys
+in Kubernetes. cert-manager has support for multiple issuer backends
+[core](https://cert-manager.io/docs/configuration/) to cert-manager, as well as
+pluggable [external](https://cert-manager.io/docs/configuration/external/)
+issuers.
+
+Note that [ACME certificates](https://cert-manager.io/docs/configuration/acme/)
+are not supported as an issuer for service mesh certificates.
+
+When OSM requests certificates, it will create cert-manager
+[`CertificateRequest`](https://cert-manager.io/docs/concepts/certificaterequest/)
+resources that are signed by the configured issuer.
+
+### Configure cert-manger for OSM signing
+
+cert-manager must first be installed, with an issuer ready, before OSM can be
+installed using cert-manager as the certificate provider. You can find the
+installation documentation for cert-manager
+[here](https://cert-manager.io/docs/installation/).
+
+Once cert-manager is installed, configure an [issuer
+resource](https://cert-manager.io/docs/installation/) to serve certificate
+requests. It is recommended to use an `Issuer` resource kind (rather than a
+`ClusterIssuer`) which should live in the OSM namespace (`osm-system` by
+default).
+
+Once ready, it is **required** to store the root CA certificate of your issuer
+as a Kubernetes secret in the OSM namespace (`osm-system` by default) at the
+`ca.crt` key. The target CA secret name can be configured on OSM with the flag
+`--ca-bundle-secret-name` (typically `osm-ca-bundle`).
+
+```bash
+$ kubectl create secret -n osm-system generic osm-ca-bundle --from-file ca.tls
+```
+
+### Configure OSM with cert-manager
+
+In order for OSM to use cert-manager with the configured issuer, set the
+following CLI arguments on the `osm install` command:
+
+  - `--certificate-manager="cert-manager"` - Required to use cert-manager as the
+      provider.
+  - `--cert-manager-issuer-name` - The name of the [Cluster]Issuer resource
+      (defaulted to `osm-ca`).
+  - `--cert-manager-issuer-kind` - The kind of issuer (either `Issuer` or
+      `ClusterIssuer`, defaulted to `Issuer`).
+  - `--cert-manager-issuer-group` - The group that the issuer belongs to
+      (defaulted to `cert-manager.io` which is all core issuer types).
