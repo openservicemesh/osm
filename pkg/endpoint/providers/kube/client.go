@@ -1,6 +1,7 @@
 package kube
 
 import (
+	"context"
 	"net"
 	"reflect"
 	"strings"
@@ -12,6 +13,8 @@ import (
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
@@ -21,10 +24,8 @@ import (
 	"github.com/openservicemesh/osm/pkg/namespace"
 )
 
-const namespaceSelectorLabel = "app"
-
 // NewProvider implements mesh.EndpointsProvider, which creates a new Kubernetes cluster/compute provider.
-func NewProvider(kubeClient kubernetes.Interface, namespaceController namespace.Controller, stop chan struct{}, providerIdent string, cfg configurator.Configurator) (*Client, error) {
+func NewProvider(kubeClient kubernetes.Interface, namespaceController namespace.Controller, stop chan struct{}, providerIdent string, cfg configurator.Configurator) (endpoint.Provider, error) {
 	informerFactory := informers.NewSharedInformerFactory(kubeClient, k8s.DefaultKubeEventResyncInterval)
 
 	informerCollection := InformerCollection{
@@ -134,11 +135,20 @@ func (c Client) GetServiceForServiceAccount(svcAccount service.K8sServiceAccount
 				} else {
 					selectorLabel = spec.Template.Labels
 				}
-				namespacedService := service.MeshService{
-					Namespace: kubernetesDeployments.Namespace,
-					Name:      selectorLabel[namespaceSelectorLabel],
+
+				appNamspace := kubernetesDeployments.Namespace
+				k8sServices, err := c.getServicesByLabels(selectorLabel, appNamspace)
+				if err != nil {
+					log.Error().Err(err).Msgf("Error retrieving service with label %v in namespace %s", selectorLabel, appNamspace)
+					return service.MeshService{}, errDidNotFindServiceForServiceAccount
 				}
-				services.Add(namespacedService)
+				for _, svc := range k8sServices {
+					meshService := service.MeshService{
+						Namespace: appNamspace,
+						Name:      svc.Name,
+					}
+					services.Add(meshService)
+				}
 			}
 		}
 	}
@@ -202,4 +212,24 @@ func (c *Client) run(stop <-chan struct{}) error {
 
 	log.Info().Msgf("Cache sync finished for %+v", names)
 	return nil
+}
+
+// getServicesByLabels gets Kubernetes services whose selectors match the given labels
+func (c *Client) getServicesByLabels(matchLabels map[string]string, namespace string) ([]corev1.Service, error) {
+	var serviceList []corev1.Service
+	svcList, err := c.kubeClient.CoreV1().Services(namespace).List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		log.Error().Err(err).Msgf("Error listing Services in namespace %s", namespace)
+		return nil, err
+	}
+
+	for _, svc := range svcList.Items {
+		svcRawSelector := svc.Spec.Selector
+		selector := labels.Set(svcRawSelector).AsSelector()
+		if selector.Matches(labels.Set(matchLabels)) {
+			serviceList = append(serviceList, svc)
+		}
+	}
+
+	return serviceList, nil
 }
