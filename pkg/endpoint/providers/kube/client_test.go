@@ -3,7 +3,6 @@ package kube
 import (
 	"context"
 	"net"
-	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -73,10 +72,8 @@ var _ = Describe("Test Kube Client Provider", func() {
 			fakeClientSet.CoreV1().Endpoints(tests.BookbuyerService.Namespace).
 				Create(context.TODO(), endp, metav1.CreateOptions{})
 
-			// Expect bookbuyer endpoint, async/event listening in Provider makes inmediate calls fail
-			Eventually(func() []endpoint.Endpoint {
-				return cli.ListEndpointsForService(tests.BookbuyerService)
-			}, 2*time.Second).Should(Equal([]endpoint.Endpoint{
+			<-cli.GetAnnouncementsChannel()
+			Expect(cli.ListEndpointsForService(tests.BookbuyerService)).To(Equal([]endpoint.Endpoint{
 				{
 					IP:   net.IPv4(8, 8, 8, 8),
 					Port: 88,
@@ -134,12 +131,9 @@ var _ = Describe("Test Kube Client Provider", func() {
 
 			Expect(err).To(BeNil())
 
-			// Expect bookbuyer endpoint, async/event listening in provider makes inmediate calls fail
-			Eventually(func() service.MeshService {
-				svcMesh, _ := cli.GetServiceForServiceAccount(tests.BookbuyerServiceAccount)
-				return svcMesh
-			}, 2*time.Second).Should(Equal(tests.BookbuyerService))
+			<-cli.GetAnnouncementsChannel()
 
+			Expect(cli.GetServiceForServiceAccount(tests.BookbuyerServiceAccount)).To(Equal(tests.BookbuyerService))
 		})
 
 		It("tests GetAnnouncementChannel", func() {
