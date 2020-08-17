@@ -2,8 +2,6 @@ osm
 ===
 A Helm chart for to install the OSM control plane on Kubernetes
 
-Current chart version is `0.1.0`
-
 The OSM Command Line Interface (CLI) installs the OSM control plan into Kubernetes using this Helm chart. Alternatively, one can install the OSM control plane using this chart with the [Helm](https://helm.sh/docs/intro/install/) CLI with the following command:
 ```console
 $ helm install osm . --namespace osm-system
