@@ -9,8 +9,8 @@ var GitCommit string
 // Version is the version of the compiled software
 var Version string
 
-// VersionInfo is a struct helpful for JSON serialization of the OSM Controller version information.
-type VersionInfo struct {
+// Info is a struct helpful for JSON serialization of the OSM Controller version information.
+type Info struct {
 	// Version is the version of the OSM Controller.
 	Version string `json:"version,omitempty"`
 
