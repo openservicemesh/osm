@@ -2,12 +2,11 @@ package catalog
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
-	mapset "github.com/deckarep/golang-set"
 	v1 "k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -135,14 +134,7 @@ func GetPodFromCertificate(cn certificate.CommonName, kubeClient kubernetes.Inte
 	return &pod, nil
 }
 
-func mapStringStringToSet(m map[string]string) mapset.Set {
-	stringSet := mapset.NewSet()
-	for k, v := range m {
-		stringSet.Add(fmt.Sprintf("%s:%s", k, v))
-	}
-	return stringSet
-}
-
+// listServicesForPod lists Kubernetes services whose selectors match pod labels
 func listServicesForPod(pod *v1.Pod, kubeClient kubernetes.Interface) ([]v1.Service, error) {
 	var serviceList []v1.Service
 	svcList, err := kubeClient.CoreV1().Services(pod.Namespace).List(context.Background(), v12.ListOptions{})
@@ -151,11 +143,10 @@ func listServicesForPod(pod *v1.Pod, kubeClient kubernetes.Interface) ([]v1.Serv
 		return nil, err
 	}
 
-	podLabels := mapStringStringToSet(pod.Labels)
-
 	for _, svc := range svcList.Items {
-		serviceLabelSet := mapStringStringToSet(svc.Spec.Selector)
-		if serviceLabelSet.Intersect(podLabels).Cardinality() > 0 {
+		svcRawSelector := svc.Spec.Selector
+		selector := labels.Set(svcRawSelector).AsSelector()
+		if selector.Matches(labels.Set(pod.Labels)) {
 			serviceList = append(serviceList, svc)
 		}
 	}

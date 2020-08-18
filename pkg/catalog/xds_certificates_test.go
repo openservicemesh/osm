@@ -224,25 +224,17 @@ var _ = Describe("Test XDS certificate tooling", func() {
 		})
 	})
 
-	Context("Test mapStringStringToSet()", func() {
-		It("lists services for pod", func() {
-			labels := map[string]string{constants.EnvoyUniqueIDLabelName: tests.EnvoyUID}
-			stringSet := mapStringStringToSet(labels)
-			Expect(stringSet.Cardinality()).To(Equal(1))
-			Expect(stringSet.ToSlice()[0]).To(Equal("osm-envoy-uid:A-B-C-D"))
-		})
-	})
-
 	Context("Test listServicesForPod()", func() {
 		It("lists services for pod", func() {
 			namespace := uuid.New().String()
-			labels := map[string]string{constants.EnvoyUniqueIDLabelName: tests.EnvoyUID}
+			selectors := map[string]string{tests.SelectorKey: tests.SelectorValue}
 
 			var serviceNames []string
-			const serviceName = "svc-name-1"
+
 			{
-				// Create a second service
-				service := tests.NewServiceFixture(serviceName, namespace, labels)
+				// Create a service
+				serviceName := "svc-name-1"
+				service := tests.NewServiceFixture(serviceName, namespace, selectors)
 				_, err := kubeClient.CoreV1().Services(namespace).Create(context.TODO(), service, metav1.CreateOptions{})
 				Expect(err).ToNot(HaveOccurred())
 				serviceNames = append(serviceNames, service.Name)
@@ -250,7 +242,8 @@ var _ = Describe("Test XDS certificate tooling", func() {
 
 			{
 				// Create a second service
-				service := tests.NewServiceFixture(uuid.New().String(), namespace, labels)
+				serviceName := "svc-name-2"
+				service := tests.NewServiceFixture(serviceName, namespace, selectors)
 				_, err := kubeClient.CoreV1().Services(namespace).Create(context.TODO(), service, metav1.CreateOptions{})
 				Expect(err).ToNot(HaveOccurred())
 				serviceNames = append(serviceNames, service.Name)
@@ -263,6 +256,48 @@ var _ = Describe("Test XDS certificate tooling", func() {
 
 			actualNames := []string{actualSvcs[0].Name, actualSvcs[1].Name}
 			Expect(actualNames).To(Equal(serviceNames))
+		})
+
+		It("should correctly not list services for pod that don't match the service's selectors", func() {
+			namespace := uuid.New().String()
+			selectors := map[string]string{"some-key": "some-value"}
+
+			{
+				// Create a service
+				serviceName := "svc-name-1"
+				service := tests.NewServiceFixture(serviceName, namespace, selectors)
+				_, err := kubeClient.CoreV1().Services(namespace).Create(context.TODO(), service, metav1.CreateOptions{})
+				Expect(err).ToNot(HaveOccurred())
+			}
+
+			pod := tests.NewPodTestFixture(namespace, "pod-name")
+			actualSvcs, err := listServicesForPod(&pod, kubeClient)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(actualSvcs)).To(Equal(0))
+		})
+
+		It("should correctly not list services for pod that don't match the service's selectors", func() {
+			namespace := uuid.New().String()
+			// The selector below has an additional label which the pod does not have.
+			// Even though the first selector label matches the label on the pod, the
+			// second selector label invalidates k8s selector matching criteria.
+			selectors := map[string]string{
+				tests.SelectorKey: tests.SelectorValue,
+				"some-key":        "some-value",
+			}
+
+			{
+				// Create a service
+				serviceName := "svc-name-1"
+				service := tests.NewServiceFixture(serviceName, namespace, selectors)
+				_, err := kubeClient.CoreV1().Services(namespace).Create(context.TODO(), service, metav1.CreateOptions{})
+				Expect(err).ToNot(HaveOccurred())
+			}
+
+			pod := tests.NewPodTestFixture(namespace, "pod-name")
+			actualSvcs, err := listServicesForPod(&pod, kubeClient)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(actualSvcs)).To(Equal(0))
 		})
 	})
 
