@@ -14,8 +14,9 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
-// GetServiceFromEnvoyCertificate returns the single service given Envoy is a member of based on the certificate provided, which is a cert issued to an Envoy for XDS communication (not Envoy-to-Envoy).
-func (mc *MeshCatalog) GetServiceFromEnvoyCertificate(cn certificate.CommonName) (*service.MeshService, error) {
+// GetServicesFromEnvoyCertificate returns a list of services the given Envoy is a member of based on the certificate provided, which is a cert issued to an Envoy for XDS communication (not Envoy-to-Envoy).
+func (mc *MeshCatalog) GetServicesFromEnvoyCertificate(cn certificate.CommonName) ([]service.MeshService, error) {
+	var serviceList []service.MeshService
 	pod, err := GetPodFromCertificate(cn, mc.kubeClient)
 	if err != nil {
 		return nil, err
@@ -40,10 +41,15 @@ func (mc *MeshCatalog) GetServiceFromEnvoyCertificate(cn certificate.CommonName)
 		return nil, err
 	}
 
-	return &service.MeshService{
-		Namespace: cnMeta.Namespace,
-		Name:      services[0].Name,
-	}, nil
+	for _, svc := range services {
+		meshService := service.MeshService{
+			Namespace: cnMeta.Namespace,
+			Name:      svc.Name,
+		}
+		serviceList = append(serviceList, meshService)
+
+	}
+	return serviceList, nil
 }
 
 // filterTrafficSplitServices takes a list of services and removes from it the ones
