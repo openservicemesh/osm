@@ -50,7 +50,7 @@ func NewHTTPServer(probes health.Probes, metricStore metricsstore.MetricStore, a
 func (s *httpServer) Start() {
 	go func() {
 		log.Info().Msgf("Starting API Server on %s", s.server.Addr)
-		if err := s.server.ListenAndServe(); err != nil {
+		if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatal().Err(err).Msg("Failed to start API server")
 		}
 	}()
