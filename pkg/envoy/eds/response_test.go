@@ -55,7 +55,7 @@ var _ = Describe("Test EDS response", func() {
 				Expect(err).ToNot(HaveOccurred())
 			}
 
-			_, err := NewResponse(context.Background(), catalog, proxy, nil, cfg)
+			_, err := NewResponse(catalog, proxy, nil, cfg)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -71,7 +71,7 @@ var _ = Describe("Test EDS response", func() {
 			// Don't create a pod/service for this proxy, this should result in an error when the
 			// service is being looked up based on the proxy's certificate
 
-			_, err := NewResponse(context.Background(), catalog, proxy, nil, cfg)
+			_, err := NewResponse(catalog, proxy, nil, cfg)
 			Expect(err).To(HaveOccurred())
 		})
 	})

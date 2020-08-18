@@ -205,7 +205,7 @@ func main() {
 		log.Fatal().Err(err).Msg("Error creating mutating webhook")
 	}
 
-	xdsServer := ads.NewADSServer(ctx, meshCatalog, enableDebugServer, osmNamespace, cfg)
+	xdsServer := ads.NewADSServer(meshCatalog, enableDebugServer, osmNamespace, cfg)
 
 	// TODO(draychev): we need to pass this hard-coded string is a CLI argument (https://github.com/openservicemesh/osm/issues/542)
 	validityPeriod := constants.XDSCertificateValidityPeriod

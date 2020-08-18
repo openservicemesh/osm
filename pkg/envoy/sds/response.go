@@ -1,8 +1,6 @@
 package sds
 
 import (
-	"context"
-
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
@@ -25,7 +23,7 @@ var directionMap = map[envoy.SDSCertType]string{
 }
 
 // NewResponse creates a new Secrets Discovery Response.
-func NewResponse(_ context.Context, catalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, cfg configurator.Configurator) (*xds_discovery.DiscoveryResponse, error) {
+func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, _ configurator.Configurator) (*xds_discovery.DiscoveryResponse, error) {
 	log.Info().Msgf("Composing SDS Discovery Response for proxy: %s", proxy.GetCommonName())
 
 	serviceForProxy, err := catalog.GetServiceFromEnvoyCertificate(proxy.GetCommonName())
