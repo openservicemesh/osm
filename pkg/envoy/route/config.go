@@ -99,7 +99,6 @@ func createVirtualHostStub(namePrefix string, domain string) *xds_route.VirtualH
 	virtualHost := xds_route.VirtualHost{
 		Name:    name,
 		Domains: domains,
-		Routes:  []*xds_route.Route{},
 	}
 	return &virtualHost
 }
@@ -249,7 +248,7 @@ func (c clusterWeightByName) Less(i, j int) bool {
 // sanitizeHTTPMethods takes in a list of HTTP methods including a wildcard (*) and returns a wildcard if any of
 // the methods is a wildcard or sanitizes the input list to avoid duplicates.
 func sanitizeHTTPMethods(allowedMethods []string) []string {
-	newAllowedMethods := []string{}
+	var newAllowedMethods []string
 	keys := make(map[string]interface{})
 	for _, method := range allowedMethods {
 		if method != "" {
@@ -270,7 +269,6 @@ func sanitizeHTTPMethods(allowedMethods []string) []string {
 func NewRouteConfigurationStub(routeConfigName string) *xds_route.RouteConfiguration {
 	routeConfiguration := xds_route.RouteConfiguration{
 		Name:             routeConfigName,
-		VirtualHosts:     []*xds_route.VirtualHost{},
 		ValidateClusters: &wrappers.BoolValue{Value: true},
 	}
 	return &routeConfiguration
