@@ -20,9 +20,15 @@ import (
 // NewADSServer creates a new Aggregated Discovery Service server
 func NewADSServer(ctx context.Context, meshCatalog catalog.MeshCataloger, enableDebug bool, osmNamespace string, cfg configurator.Configurator) *Server {
 	server := Server{
-		catalog:      meshCatalog,
-		ctx:          ctx,
-		xdsHandlers:  getHandlers(),
+		catalog: meshCatalog,
+		ctx:     ctx,
+		xdsHandlers: map[envoy.TypeURI]func(context.Context, catalog.MeshCataloger, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator) (*xds_discovery.DiscoveryResponse, error){
+			envoy.TypeEDS: eds.NewResponse,
+			envoy.TypeCDS: cds.NewResponse,
+			envoy.TypeRDS: rds.NewResponse,
+			envoy.TypeLDS: lds.NewResponse,
+			envoy.TypeSDS: sds.NewResponse,
+		},
 		enableDebug:  enableDebug,
 		osmNamespace: osmNamespace,
 		cfg:          cfg,
@@ -33,16 +39,6 @@ func NewADSServer(ctx context.Context, meshCatalog catalog.MeshCataloger, enable
 	}
 
 	return &server
-}
-
-func getHandlers() map[envoy.TypeURI]func(context.Context, catalog.MeshCataloger, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator) (*xds_discovery.DiscoveryResponse, error) {
-	return map[envoy.TypeURI]func(context.Context, catalog.MeshCataloger, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator) (*xds_discovery.DiscoveryResponse, error){
-		envoy.TypeEDS: eds.NewResponse,
-		envoy.TypeCDS: cds.NewResponse,
-		envoy.TypeRDS: rds.NewResponse,
-		envoy.TypeLDS: lds.NewResponse,
-		envoy.TypeSDS: sds.NewResponse,
-	}
 }
 
 // DeltaAggregatedResources implements discovery.AggregatedDiscoveryServiceServer

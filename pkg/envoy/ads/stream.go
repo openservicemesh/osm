@@ -31,6 +31,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 	}
 	log.Info().Msgf("Client %s connected: Subject CN=%s; Service=%s", ip, cn, namespacedService)
 
+	// This is the Envoy proxy that just connected to the control plane.
 	proxy := envoy.NewProxy(cn, ip)
 	s.catalog.RegisterProxy(proxy)
 	defer s.catalog.UnregisterProxy(proxy)
