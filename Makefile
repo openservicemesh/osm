@@ -58,7 +58,7 @@ clean-osm:
 docker-build: docker-build-osm-controller docker-build-bookbuyer docker-build-bookstore docker-build-bookwarehouse
 
 .PHONY: go-checks
-go-checks: go-vet go-lint go-fmt
+go-checks: go-lint go-fmt
 
 .PHONY: go-vet
 go-vet:
@@ -66,8 +66,7 @@ go-vet:
 
 .PHONY: go-lint
 go-lint:
-	go run golang.org/x/lint/golint ./cmd/... ./pkg/...
-	go run github.com/golangci/golangci-lint/cmd/golangci-lint run --tests --enable-all # --disable gochecknoglobals --disable gochecknoinit
+	go run github.com/golangci/golangci-lint/cmd/golangci-lint run
 
 .PHONY: go-fmt
 go-fmt:
