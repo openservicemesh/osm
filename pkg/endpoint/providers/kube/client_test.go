@@ -116,16 +116,18 @@ var _ = Describe("Test Kube Client Provider", func() {
 			}}
 			Expect(actual).To(Equal(expected))
 		})
-		It("Testing GetServiceForServiceAccount", func() {
+		It("Testing GetServicesForServiceAccount", func() {
 			c := NewFakeProvider()
 
-			sMesh, err := c.GetServiceForServiceAccount(tests.BookstoreServiceAccount)
+			sMesh, err := c.GetServicesForServiceAccount(tests.BookstoreServiceAccount)
 			Expect(err).To(BeNil())
-			Expect(sMesh).To(Equal(tests.BookstoreService))
+			expectedServices := []service.MeshService{tests.BookstoreService}
+			Expect(sMesh).To(Equal(expectedServices))
 
-			sMesh2, err := c.GetServiceForServiceAccount(tests.BookbuyerServiceAccount)
+			sMesh2, err := c.GetServicesForServiceAccount(tests.BookbuyerServiceAccount)
 			Expect(err).To(BeNil())
-			Expect(sMesh2).To(Equal(tests.BookbuyerService))
+			expectedServices2 := []service.MeshService{tests.BookbuyerService}
+			Expect(sMesh2).To(Equal(expectedServices2))
 		})
 	})
 })
@@ -179,7 +181,7 @@ var _ = Describe("When getting a Service associated with a ServiceAccount", func
 		Expect(err).ToNot(HaveOccurred())
 
 		Eventually(func() error {
-			_, err := provider.GetServiceForServiceAccount(tests.BookbuyerServiceAccount)
+			_, err := provider.GetServicesForServiceAccount(tests.BookbuyerServiceAccount)
 			return err
 		}, 2*time.Second).Should(HaveOccurred())
 
@@ -264,9 +266,10 @@ var _ = Describe("When getting a Service associated with a ServiceAccount", func
 			Name:      svc.Name,
 		}
 
-		meshSvc, err := provider.GetServiceForServiceAccount(givenSvcAccount)
+		meshSvcs, err := provider.GetServicesForServiceAccount(givenSvcAccount)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(meshSvc).To(Equal(expectedMeshSvc))
+		expectedMeshSvcs := []service.MeshService{expectedMeshSvc}
+		Expect(meshSvcs).To(Equal(expectedMeshSvcs))
 
 		err = fakeClientSet.AppsV1().Deployments(testNamespace).Delete(context.Background(), deployment.Name, metav1.DeleteOptions{})
 		Expect(err).ToNot(HaveOccurred())
@@ -344,7 +347,7 @@ var _ = Describe("When getting a Service associated with a ServiceAccount", func
 		}
 
 		// Expect a MeshService that corresponds to a Service that matches the Deployment spec labels
-		_, err = provider.GetServiceForServiceAccount(givenSvcAccount)
+		_, err = provider.GetServicesForServiceAccount(givenSvcAccount)
 		Expect(err).To(HaveOccurred())
 		Expect(err).To(MatchError(errDidNotFindServiceForServiceAccount))
 
@@ -353,8 +356,8 @@ var _ = Describe("When getting a Service associated with a ServiceAccount", func
 		<-provider.GetAnnouncementsChannel()
 	})
 
-	It("should error when multiple services match the same deployment", func() {
-		// This is a current limitation in OSM, this test is meant to ensure the
+	It("should return all services when multiple services match the same deployment", func() {
+		// This test is meant to ensure the
 		// service selector logic works as expected when multiple services
 		// have the same selector match.
 
@@ -434,9 +437,13 @@ var _ = Describe("When getting a Service associated with a ServiceAccount", func
 			Name:      "test-service-account", // Should match the service account in the Deployment spec above
 		}
 
-		_, err = provider.GetServiceForServiceAccount(givenSvcAccount)
-		Expect(err).To(HaveOccurred())
-		Expect(err).To(MatchError(errMoreThanServiceForServiceAccount))
+		meshServices, err := provider.GetServicesForServiceAccount(givenSvcAccount)
+		Expect(err).ToNot(HaveOccurred())
+		expectedServices := []service.MeshService{
+			{Name: "test-1", Namespace: testNamespace},
+			{Name: "test-2", Namespace: testNamespace},
+		}
+		Expect(meshServices).To(Equal(expectedServices))
 
 		err = fakeClientSet.AppsV1().Deployments(testNamespace).Delete(context.Background(), deployment.Name, metav1.DeleteOptions{})
 		Expect(err).ToNot(HaveOccurred())
