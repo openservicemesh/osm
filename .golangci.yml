@@ -6,8 +6,15 @@ issues:
 
 linters:
   enable:
+    - goconst
+    - gocyclo
     - gofmt
+    - goimports
     - golint
+    - govet
+    - misspell
+    - unused
+    - whitespace
 
 linters-settings:
   goimports:
