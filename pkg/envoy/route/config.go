@@ -55,14 +55,6 @@ const (
 	httpHostHeader = "host"
 )
 
-var (
-	regexEngine = &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{
-		MaxProgramSize: &wrappers.UInt32Value{
-			Value: uint32(maxRegexProgramSize),
-		},
-	}}
-)
-
 //UpdateRouteConfiguration consrtucts the Envoy construct necessary for TrafficTarget implementation
 func UpdateRouteConfiguration(domainRoutesMap map[string]map[string]trafficpolicy.RouteWeightedClusters, routeConfig *xds_route.RouteConfiguration, direction Direction) {
 	log.Trace().Msgf("[RDS] Updating Route Configuration")
@@ -131,7 +123,7 @@ func getRoute(pathRegex string, method string, headersMap map[string]string, wei
 		Match: &xds_route.RouteMatch{
 			PathSpecifier: &xds_route.RouteMatch_SafeRegex{
 				SafeRegex: &xds_matcher.RegexMatcher{
-					EngineType: regexEngine,
+					EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
 					Regex:      pathRegex,
 				},
 			},
@@ -156,7 +148,7 @@ func getHeadersForRoute(method string, headersMap map[string]string) []*xds_rout
 		Name: MethodHeaderKey,
 		HeaderMatchSpecifier: &xds_route.HeaderMatcher_SafeRegexMatch{
 			SafeRegexMatch: &xds_matcher.RegexMatcher{
-				EngineType: regexEngine,
+				EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
 				Regex:      getRegexForMethod(method),
 			},
 		},
@@ -173,7 +165,7 @@ func getHeadersForRoute(method string, headersMap map[string]string) []*xds_rout
 			Name: headerKey,
 			HeaderMatchSpecifier: &xds_route.HeaderMatcher_SafeRegexMatch{
 				SafeRegexMatch: &xds_matcher.RegexMatcher{
-					EngineType: regexEngine,
+					EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
 					Regex:      headerValue,
 				},
 			},
