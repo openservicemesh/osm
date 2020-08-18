@@ -56,7 +56,6 @@ const (
 	defaultCertManager         = "tresor"
 	defaultVaultProtocol       = "http"
 	defaultMeshName            = "osm"
-	osmControllerLabel         = "osm-controller"
 	defaultCertValidityMinutes = int(1440) // 24 hours
 )
 
@@ -203,7 +202,7 @@ func (i *installCmd) run(config *helm.Configuration) error {
 	}
 
 	deploymentsClient = i.clientSet.AppsV1().Deployments(settings.Namespace()) // Get deployments for specified namespace
-	labelSelector = metav1.LabelSelector{MatchLabels: map[string]string{"app": osmControllerLabel}}
+	labelSelector = metav1.LabelSelector{MatchLabels: map[string]string{"app": OSMControllerName}}
 
 	listOptions = metav1.ListOptions{
 		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
