@@ -5,6 +5,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -22,14 +23,21 @@ import (
 )
 
 var _ = Describe("Test Kube Client Provider", func() {
+	var (
+		mockCtrl         *gomock.Controller
+		mockNsController *namespace.MockController
+	)
+	mockCtrl = gomock.NewController(GinkgoT())
+	mockNsController = namespace.NewMockController(mockCtrl)
+
 	fakeClientSet := fake.NewSimpleClientset()
 	stopChann := make(chan struct{})
-	nsCtrl := namespace.NewFakeNamespaceController([]string{tests.BookbuyerService.Namespace})
 	cfg := configurator.NewFakeConfigurator()
 	providerID := "provider"
 
-	cli, err := NewProvider(fakeClientSet, nsCtrl, stopChann, providerID, cfg)
+	cli, err := NewProvider(fakeClientSet, mockNsController, stopChann, providerID, cfg)
 
+	mockNsController.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).AnyTimes()
 	Context("when testing ListEndpointsForService", func() {
 		It("verifies new Provider at context scope succeeded", func() {
 			Expect(err).To(BeNil())
@@ -124,6 +132,13 @@ var _ = Describe("Test Kube Client Provider", func() {
 
 var _ = Describe("When getting a Service associated with a ServiceAccount", func() {
 	var (
+		mockCtrl         *gomock.Controller
+		mockNsController *namespace.MockController
+	)
+	mockCtrl = gomock.NewController(GinkgoT())
+	mockNsController = namespace.NewMockController(mockCtrl)
+
+	var (
 		fakeClientSet *fake.Clientset
 		provider      endpoint.Provider
 		err           error
@@ -131,14 +146,14 @@ var _ = Describe("When getting a Service associated with a ServiceAccount", func
 
 	providerID := "test-provider"
 	testNamespace := "test"
-	nsCtrl := namespace.NewFakeNamespaceController([]string{testNamespace})
 	cfg := configurator.NewFakeConfigurator()
-
 	stop := make(chan struct{})
+
+	mockNsController.EXPECT().IsMonitoredNamespace(testNamespace).Return(true).AnyTimes()
 
 	BeforeEach(func() {
 		fakeClientSet = fake.NewSimpleClientset()
-		provider, err = NewProvider(fakeClientSet, nsCtrl, stop, providerID, cfg)
+		provider, err = NewProvider(fakeClientSet, mockNsController, stop, providerID, cfg)
 		Expect(err).ToNot(HaveOccurred())
 	})
 

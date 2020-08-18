@@ -81,8 +81,9 @@ var _ = Describe("Test catalog proxy register/unregister", func() {
 		It("lists monitored namespaces", func() {
 			actual := mc.ListMonitoredNamespaces()
 			expected := []string{
-				"-test-osm-namespace-",
-				"default",
+				tests.BookstoreService.Namespace,
+				tests.BookbuyerService.Namespace,
+				tests.BookwarehouseService.Namespace,
 			}
 			Expect(actual).To(Equal(expected))
 		})

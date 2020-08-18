@@ -8,6 +8,7 @@ import (
 	set "github.com/deckarep/golang-set"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -142,6 +143,13 @@ var _ = Describe("AggregateRoutesByDomain", func() {
 })
 
 var _ = Describe("RDS Response", func() {
+	var (
+		mockCtrl         *gomock.Controller
+		mockNsController *namespace.MockController
+	)
+	mockCtrl = gomock.NewController(GinkgoT())
+	mockNsController = namespace.NewMockController(mockCtrl)
+
 	endpointProviders := []endpoint.Provider{kube.NewFakeProvider()}
 	kubeClient := testclient.NewSimpleClientset()
 	cache := make(map[certificate.CommonName]certificate.Certificater)
@@ -151,8 +159,21 @@ var _ = Describe("RDS Response", func() {
 	osmNamespace := "-test-osm-namespace-"
 	osmConfigMapName := "-test-osm-config-map-"
 	cfg := configurator.NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
-	namespaceController := namespace.NewFakeNamespaceController([]string{osmNamespace})
-	meshCatalog := catalog.NewMeshCatalog(namespaceController, kubeClient, smi.NewFakeMeshSpecClient(), certManager, ingress.NewFakeIngressMonitor(), make(<-chan struct{}), cfg, endpointProviders...)
+
+	testChan := make(chan interface{})
+	monitoredNamespace := []string{
+		tests.BookstoreService.Namespace,
+		tests.BookbuyerService.Namespace,
+		tests.BookwarehouseService.Namespace,
+	}
+	mockNsController.EXPECT().IsMonitoredNamespace(tests.BookstoreService.Namespace).Return(true).AnyTimes()
+	mockNsController.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).AnyTimes()
+	mockNsController.EXPECT().IsMonitoredNamespace(tests.BookwarehouseService.Namespace).Return(true).AnyTimes()
+	mockNsController.EXPECT().GetAnnouncementsChannel().Return(testChan).AnyTimes()
+	mockNsController.EXPECT().ListMonitoredNamespaces().Return(monitoredNamespace, nil).AnyTimes()
+
+	meshCatalog := catalog.NewMeshCatalog(mockNsController, kubeClient, smi.NewFakeMeshSpecClient(), certManager,
+		ingress.NewFakeIngressMonitor(), make(<-chan struct{}), cfg, endpointProviders...)
 
 	Context("Test GetHostnamesForService", func() {
 		contains := func(domains []string, expected string) bool {
