@@ -66,9 +66,10 @@ func newFakeMeshCatalog() *MeshCatalog {
 	osmConfigMapName := "-test-osm-config-map-"
 	cfg := configurator.NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
 
-	namespaceController := namespace.NewFakeNamespaceController([]string{osmNamespace, tests.Namespace})
+	namespaceController := namespace.NewFakeNamespaceController([]string{osmNamespace})
+	broadcaster := NewBroadcaster(cfg, stop)
 
-	return NewMeshCatalog(namespaceController, kubeClient, meshSpec, certManager, ingressMonitor, stop, cfg, endpointProviders...)
+	return NewMeshCatalog(namespaceController, kubeClient, meshSpec, certManager, ingressMonitor, broadcaster, stop, cfg, endpointProviders...)
 }
 
 func getFakeIngresses() []*extensionsV1beta.Ingress {

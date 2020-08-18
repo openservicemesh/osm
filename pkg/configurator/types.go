@@ -58,6 +58,9 @@ type Configurator interface {
 	// GetEnvoyLogLevel returns the envoy log level
 	GetEnvoyLogLevel() string
 
+	// BroadcastEvery sets the period the repeater rebroadcasts announcements to the proxies
+	BroadcastEvery() int
+
 	// GetAnnouncementsChannel returns a channel, which is used to announce when changes have been made to the OSM ConfigMap
 	GetAnnouncementsChannel() <-chan interface{}
 }

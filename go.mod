@@ -3,6 +3,7 @@ module github.com/openservicemesh/osm
 go 1.14
 
 require (
+	fortio.org/fortio v1.6.7
 	github.com/AlekSi/gocov-xml v0.0.0-20190121064608-3a14fb1c4737
 	github.com/Azure/azure-sdk-for-go v34.0.0+incompatible
 	github.com/Azure/go-autorest/autorest v0.10.0
@@ -33,7 +34,7 @@ require (
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/pflag v1.0.5
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b
-	google.golang.org/grpc v1.27.0
+	google.golang.org/grpc v1.29.1
 	gopkg.in/yaml.v2 v2.3.0
 	helm.sh/helm/v3 v3.2.0
 	k8s.io/api v0.18.5

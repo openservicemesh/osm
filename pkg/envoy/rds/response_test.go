@@ -152,7 +152,9 @@ var _ = Describe("RDS Response", func() {
 	osmConfigMapName := "-test-osm-config-map-"
 	cfg := configurator.NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
 	namespaceController := namespace.NewFakeNamespaceController([]string{osmNamespace})
-	meshCatalog := catalog.NewMeshCatalog(namespaceController, kubeClient, smi.NewFakeMeshSpecClient(), certManager, ingress.NewFakeIngressMonitor(), make(<-chan struct{}), cfg, endpointProviders...)
+	broadcaster := catalog.NewBroadcaster(cfg, stop)
+
+	meshCatalog := catalog.NewMeshCatalog(namespaceController, kubeClient, smi.NewFakeMeshSpecClient(), certManager, ingress.NewFakeIngressMonitor(), broadcaster, make(<-chan struct{}), cfg, endpointProviders...)
 
 	Context("Test GetHostnamesForService", func() {
 		contains := func(domains []string, expected string) bool {

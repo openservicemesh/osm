@@ -23,6 +23,7 @@ const (
 	zipkinAddressKey               = "zipkin_address"
 	zipkinPortKey                  = "zipkin_port"
 	zipkinEndpointKey              = "zipkin_endpoint"
+	broadcastEveryKey              = "broadcast_every"
 	defaultInMeshCIDR              = ""
 	envoyLogLevel                  = "envoy_log_level"
 )
@@ -95,6 +96,9 @@ type osmConfig struct {
 
 	// EnvoyLogLevel is a string that defines the log level for envoy proxies
 	EnvoyLogLevel string `yaml:"envoy_log_level"`
+
+	// BroadcastEvery is the period (in minutes) the repeater rebroadcasts announcements to the proxies
+	BroadcastEvery int `yaml:"broadcast_every"`
 }
 
 func (c *Client) run(stop <-chan struct{}) {
@@ -139,6 +143,8 @@ func (c *Client) getConfigMap() *osmConfig {
 
 		ZipkinTracing: getBoolValueForKey(configMap, zipkinTracingKey),
 		EnvoyLogLevel: getStringValueForKey(configMap, envoyLogLevel),
+
+		BroadcastEvery: getIntValueForKey(configMap, broadcastEveryKey),
 	}
 
 	if osmConfigMap.ZipkinTracing {

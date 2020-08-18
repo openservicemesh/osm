@@ -190,12 +190,15 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to initialize ingress client")
 	}
 
+	broadcaster := catalog.NewBroadcaster(cfg, stop)
+
 	meshCatalog := catalog.NewMeshCatalog(
 		namespaceController,
 		kubeClient,
 		meshSpec,
 		certManager,
 		ingressClient,
+		broadcaster,
 		stop,
 		cfg,
 		endpointsProviders...)

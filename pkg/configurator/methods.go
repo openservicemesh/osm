@@ -126,6 +126,11 @@ func (c *Client) GetEnvoyLogLevel() string {
 	return constants.DefaultEnvoyLogLevel
 }
 
+// BroadcastEvery sets the period (in minutes) the repeater rebroadcasts announcements to the proxies
+func (c *Client) BroadcastEvery() int {
+	return c.getConfigMap().BroadcastEvery
+}
+
 // GetAnnouncementsChannel returns a channel, which is used to announce when changes have been made to the OSM ConfigMap.
 func (c *Client) GetAnnouncementsChannel() <-chan interface{} {
 	return c.announcements

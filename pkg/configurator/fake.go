@@ -102,3 +102,8 @@ func (f FakeConfigurator) GetZipkinEndpoint() string {
 func (f FakeConfigurator) GetEnvoyLogLevel() string {
 	return constants.DefaultEnvoyLogLevel
 }
+
+// BroadcastEvery is the period (in minutes) the repeater rebroadcasts announcements to the proxies
+func (f FakeConfigurator) BroadcastEvery() int {
+	return constants.BroadcastEvery
+}
