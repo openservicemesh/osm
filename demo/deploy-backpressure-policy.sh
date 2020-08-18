@@ -19,6 +19,10 @@ metadata:
 
 spec:
   maxConnections: 5
+  maxRequests: 6
+  maxPendingRequests: 7
+  maxRetries: 8
+  maxConnectionPools: 9
 EOF
 
 echo "Apply backpressure policy for the bookstore-v2 service"
@@ -34,5 +38,9 @@ metadata:
     app: bookstore-v2
 
 spec:
-  maxConnections: 5
+  maxConnections: 10
+  maxRequests: 11
+  maxPendingRequests: 12
+  maxRetries: 13
+  maxConnectionPools: 14
 EOF
