@@ -5,7 +5,16 @@ issues:
   new: true
 
 linters:
-  enable-all: true
+  enable:
+    - goconst
+    - gocyclo
+    - gofmt
+    - goimports
+    - golint
+    - govet
+    - misspell
+    - unused
+    - whitespace
 
 linters-settings:
   goimports:
