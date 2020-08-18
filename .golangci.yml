@@ -5,7 +5,9 @@ issues:
   new: true
 
 linters:
-  enable-all: true
+  enable:
+    - gofmt
+    - golint
 
 linters-settings:
   goimports:
