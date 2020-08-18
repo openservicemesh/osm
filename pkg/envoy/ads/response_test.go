@@ -105,9 +105,8 @@ var _ = Describe("Test ADS response functions", func() {
 
 		It("returns Aggregated Discovery Service response", func() {
 			s := Server{
-				ctx:     context.TODO(),
 				catalog: mc,
-				xdsHandlers: map[envoy.TypeURI]func(context.Context, catalog.MeshCataloger, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator) (*xds_discovery.DiscoveryResponse, error){
+				xdsHandlers: map[envoy.TypeURI]func(catalog.MeshCataloger, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator) (*xds_discovery.DiscoveryResponse, error){
 					envoy.TypeEDS: eds.NewResponse,
 					envoy.TypeCDS: cds.NewResponse,
 					envoy.TypeRDS: rds.NewResponse,

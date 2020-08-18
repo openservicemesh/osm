@@ -67,7 +67,7 @@ var _ = Describe("CDS Response", func() {
 				Expect(err).ToNot(HaveOccurred())
 			}
 
-			resp, err := NewResponse(context.Background(), catalog, proxy, nil, cfg)
+			resp, err := NewResponse(catalog, proxy, nil, cfg)
 			Expect(err).ToNot(HaveOccurred())
 
 			// There are to any.Any resources in the ClusterDiscoveryStruct (Clusters)
