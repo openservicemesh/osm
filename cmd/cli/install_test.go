@@ -7,6 +7,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openservicemesh/osm/pkg/constants"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	fake "k8s.io/client-go/kubernetes/fake"
@@ -732,11 +733,11 @@ func createDeploymentSpec(namespace, meshName string) *v1.Deployment {
 	labelMap := make(map[string]string)
 	if meshName != "" {
 		labelMap["meshName"] = meshName
-		labelMap["app"] = OSMControllerName
+		labelMap["app"] = constants.OSMControllerName
 	}
 	return &v1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      OSMControllerName,
+			Name:      constants.OSMControllerName,
 			Namespace: namespace,
 			Labels:    labelMap,
 		},
