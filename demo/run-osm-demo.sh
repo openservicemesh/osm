@@ -25,9 +25,7 @@ CERT_MANAGER="${CERT_MANAGER:-tresor}"
 CTR_REGISTRY="${CTR_REGISTRY:-localhost:5000}"
 CTR_REGISTRY_CREDS_NAME="${CTR_REGISTRY_CREDS_NAME:-acr-creds}"
 DEPLOY_TRAFFIC_SPLIT="${DEPLOY_TRAFFIC_SPLIT:-true}"
-if [ -z "${CTR_TAG}" ]; then
-  CTR_TAG="$(git rev-parse HEAD)"
-fi
+CTR_TAG="${CTR_TAG:-$(git rev-parse HEAD)}"
 ENABLE_EGRESS="${ENABLE_EGRESS:-false}"
 MESH_CIDR=$(./scripts/get_mesh_cidr.sh)
 
