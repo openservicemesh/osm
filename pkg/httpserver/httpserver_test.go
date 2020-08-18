@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/http/httptest"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -36,6 +37,17 @@ var (
 	}
 )
 
+// For Probes, verifies and expects StatusCode to match mapped expectedResult
+func checkResult(ts *httptest.Server, path string, expectedResult bool) {
+	req := httptest.NewRequest("GET", path, nil)
+
+	w := httptest.NewRecorder()
+	ts.Config.Handler.ServeHTTP(w, req)
+	resp := w.Result()
+
+	Expect(resp.StatusCode).To(Equal(boolToRESTMapper[expectedResult]))
+}
+
 var _ = Describe("Test httpserver", func() {
 	Context("HTTP OSM debug server", func() {
 		metricsStore := metricsstore.NewMetricStore("TBD_NameSpace", "TBD_PodName")
@@ -60,69 +72,56 @@ var _ = Describe("Test httpserver", func() {
 		}
 
 		httpServ := NewHTTPServer(testProbe, metricsStore, testPort, fakeDebugServer)
-		httpServ.Start()
+
+		testServer := httptest.Server{
+			Config: httpServ.server,
+		}
 
 		It("should return 404 for a non-existant debug url", func() {
-			resp, err := http.Get(fmt.Sprintf("%s:%d%s", url, testPort, invalidRoutePath))
+			req := httptest.NewRequest("GET", fmt.Sprintf("%s%s", url, invalidRoutePath), nil)
 
-			Expect(err).To(BeNil())
+			w := httptest.NewRecorder()
+			testServer.Config.Handler.ServeHTTP(w, req)
+
+			resp := w.Result()
 			Expect(resp.StatusCode).To(Equal(http.StatusNotFound))
 		})
 
 		It("should return 200 for an existing debug url - body should match", func() {
-			resp, err := http.Get(fmt.Sprintf("%s:%d%s", url, testPort, validRoutePath))
+			req := httptest.NewRequest("GET", fmt.Sprintf("%s%s", url, validRoutePath), nil)
 
-			Expect(err).To(BeNil())
+			w := httptest.NewRecorder()
+			testServer.Config.Handler.ServeHTTP(w, req)
+
+			resp := w.Result()
+			bodyBytes, _ := ioutil.ReadAll(resp.Body)
+
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
-
-			bodyBytes, err := ioutil.ReadAll(resp.Body)
-			defer resp.Body.Close()
-
-			Expect(err).To(BeNil())
 			Expect(string(bodyBytes)).To(Equal(responseBody))
 		})
 
 		It("should hit proper liveness results", func() {
-			resp, err := http.Get(fmt.Sprintf("%s:%d%s", url, testPort, alivePath))
-
-			Expect(err).To(BeNil())
-			Expect(resp.StatusCode).To(Equal(boolToRESTMapper[aliveResult]))
-
-			// Swap result
+			checkResult(&testServer, fmt.Sprintf("%s%s", url, alivePath), aliveResult)
+			// Swap query/expected result and test again
 			aliveResult = !aliveResult
-
-			resp, err = http.Get(fmt.Sprintf("%s:%d%s", url, testPort, alivePath))
-
-			Expect(err).To(BeNil())
-			Expect(resp.StatusCode).To(Equal(boolToRESTMapper[aliveResult]))
+			checkResult(&testServer, fmt.Sprintf("%s%s", url, alivePath), aliveResult)
 		})
 
 		It("should hit proper readiness results", func() {
-			resp, err := http.Get(fmt.Sprintf("%s:%d%s", url, testPort, readyPath))
-
-			Expect(err).To(BeNil())
-			Expect(resp.StatusCode).To(Equal(boolToRESTMapper[readyResult]))
-
-			// Swap result
+			checkResult(&testServer, fmt.Sprintf("%s%s", url, readyPath), readyResult)
+			// Swap query/expected result and test again
 			readyResult = !readyResult
-
-			resp, err = http.Get(fmt.Sprintf("%s:%d%s", url, testPort, readyPath))
-
-			Expect(err).To(BeNil())
-			Expect(resp.StatusCode).To(Equal(boolToRESTMapper[readyResult]))
+			checkResult(&testServer, fmt.Sprintf("%s%s", url, readyPath), readyResult)
 		})
 
 		It("Should hit and read metrics path", func() {
-			resp, err := http.Get(fmt.Sprintf("%s:%d%s", url, testPort, metricsPath))
+			req := httptest.NewRequest("GET", fmt.Sprintf("%s%s", url, metricsPath), nil)
 
-			Expect(err).To(BeNil())
+			w := httptest.NewRecorder()
+			testServer.Config.Handler.ServeHTTP(w, req)
+
+			resp := w.Result()
 			Expect(resp.StatusCode).To(Equal(http.StatusOK))
 		})
-
-		It("should stop with no errors", func() {
-			err := httpServ.Stop()
-			Expect(err).To(BeNil())
-		})
-
 	})
 })
