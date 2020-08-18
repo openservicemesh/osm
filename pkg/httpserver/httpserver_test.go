@@ -27,12 +27,14 @@ const (
 )
 
 // Dynamic variables for extended testing
-var readyResult bool = true
-var aliveResult bool = true
-var boolToRESTMapper map[bool]int = map[bool]int{
-	true:  http.StatusOK,
-	false: http.StatusServiceUnavailable,
-}
+var (
+	readyResult      bool
+	aliveResult      bool
+	boolToRESTMapper = map[bool]int{
+		true:  http.StatusOK,
+		false: http.StatusServiceUnavailable,
+	}
+)
 
 var _ = Describe("Test httpserver", func() {
 	Context("HTTP OSM debug server", func() {
