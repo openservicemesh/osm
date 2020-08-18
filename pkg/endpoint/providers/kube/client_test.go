@@ -172,7 +172,7 @@ var _ = Describe("When getting a Service associated with a ServiceAccount", func
 		Expect(err).ToNot(HaveOccurred())
 	})
 
-	It("should return a servce that matches the ServiceAccount associated with the Deployment", func() {
+	It("should return a service that matches the ServiceAccount associated with the Deployment", func() {
 		// Create a Service
 		svc := &corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
