@@ -35,7 +35,7 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 		TypeUrl: string(envoy.TypeRDS),
 	}
 
-	routeConfiguration := []*xds_route.RouteConfiguration{}
+	var routeConfiguration []*xds_route.RouteConfiguration
 	outboundRouteConfig := route.NewRouteConfigurationStub(route.OutboundRouteConfigName)
 	inboundRouteConfig := route.NewRouteConfigurationStub(route.InboundRouteConfigName)
 	outboundAggregatedRoutesByHostnames := make(map[string]map[string]trafficpolicy.RouteWeightedClusters)
