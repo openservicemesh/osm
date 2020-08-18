@@ -82,6 +82,7 @@ func getLocalServiceCluster(catalog catalog.MeshCataloger, proxyServiceName serv
 			Type: xds_cluster.Cluster_STRICT_DNS,
 		},
 		DnsLookupFamily: xds_cluster.Cluster_V4_ONLY,
+		Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
 		LoadAssignment: &xds_endpoint.ClusterLoadAssignment{
 			// NOTE: results.MeshService is the top level service that is cURLed.
 			ClusterName: clusterName,
