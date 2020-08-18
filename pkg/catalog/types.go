@@ -80,8 +80,8 @@ type MeshCataloger interface {
 	// ExpectProxy catalogs the fact that a certificate was issued for an Envoy proxy and this is expected to connect to XDS.
 	ExpectProxy(certificate.CommonName)
 
-	// GetServiceFromEnvoyCertificate returns the single service given Envoy is a member of based on the certificate provided, which is a cert issued to an Envoy for XDS communication (not Envoy-to-Envoy).
-	GetServiceFromEnvoyCertificate(certificate.CommonName) (*service.MeshService, error)
+	// GetServicesFromEnvoyCertificate returns a list of services the given Envoy is a member of based on the certificate provided, which is a cert issued to an Envoy for XDS communication (not Envoy-to-Envoy).
+	GetServicesFromEnvoyCertificate(certificate.CommonName) ([]service.MeshService, error)
 
 	// RegisterProxy registers a newly connected proxy with the service mesh catalog.
 	RegisterProxy(*envoy.Proxy)

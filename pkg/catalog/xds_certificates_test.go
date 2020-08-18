@@ -25,7 +25,7 @@ var _ = Describe("Test XDS certificate tooling", func() {
 	mc := NewFakeMeshCatalog(kubeClient)
 	cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s", tests.EnvoyUID, tests.BookstoreServiceAccountName, tests.Namespace))
 
-	Context("Test GetServiceFromEnvoyCertificate()", func() {
+	Context("Test GetServicesFromEnvoyCertificate()", func() {
 		It("works as expected", func() {
 			pod := tests.NewPodTestFixtureWithOptions(tests.Namespace, "pod-name", tests.BookstoreServiceAccountName)
 			_, err := kubeClient.CoreV1().Pods(tests.Namespace).Create(context.TODO(), &pod, metav1.CreateOptions{})
@@ -39,17 +39,29 @@ var _ = Describe("Test XDS certificate tooling", func() {
 			_, err = kubeClient.CoreV1().Services(tests.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{})
 			Expect(err).ToNot(HaveOccurred())
 
-			meshService, err := mc.GetServiceFromEnvoyCertificate(cn)
+			svcName2 := uuid.New().String()
+			svc2 := tests.NewServiceFixture(svcName2, tests.Namespace, selector)
+			_, err = kubeClient.CoreV1().Services(tests.Namespace).Create(context.TODO(), svc2, metav1.CreateOptions{})
 			Expect(err).ToNot(HaveOccurred())
-			expected := service.MeshService{
+
+			meshServices, err := mc.GetServicesFromEnvoyCertificate(cn)
+			Expect(err).ToNot(HaveOccurred())
+			expectedSvc := service.MeshService{
 				Namespace: tests.Namespace,
 				Name:      svcName,
 			}
-			Expect(meshService).To(Equal(&expected))
+
+			expectedSvc2 := service.MeshService{
+				Namespace: tests.Namespace,
+				Name:      svcName2,
+			}
+			expectedList := []service.MeshService{expectedSvc, expectedSvc2}
+
+			Expect(meshServices).To(Equal(expectedList))
 		})
 
 		It("returns an error with an invalid CN", func() {
-			service, err := mc.GetServiceFromEnvoyCertificate("getAllowedDirectionalServices")
+			service, err := mc.GetServicesFromEnvoyCertificate("getAllowedDirectionalServices")
 			Expect(err).To(HaveOccurred())
 			Expect(service).To(BeNil())
 		})
@@ -77,14 +89,16 @@ var _ = Describe("Test XDS certificate tooling", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			podCN := certificate.CommonName(fmt.Sprintf("%s.%s.%s", envoyUID, tests.BookstoreServiceAccountName, namespace))
-			meshService, err := mc.GetServiceFromEnvoyCertificate(podCN)
+			meshServices, err := mc.GetServicesFromEnvoyCertificate(podCN)
 			Expect(err).ToNot(HaveOccurred())
 
 			expected := service.MeshService{
 				Namespace: namespace,
 				Name:      svcName,
 			}
-			Expect(meshService).To(Equal(&expected))
+			expectedList := []service.MeshService{expected}
+
+			Expect(meshServices).To(Equal(expectedList))
 		})
 	})
 
