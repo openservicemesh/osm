@@ -6,10 +6,9 @@ import (
 	"io"
 	"os"
 
+	"github.com/openservicemesh/osm/pkg/cli"
 	"github.com/spf13/cobra"
 	"helm.sh/helm/v3/pkg/action"
-
-	"github.com/openservicemesh/osm/pkg/cli"
 )
 
 var globalUsage = `The osm cli enables you to install and manage the

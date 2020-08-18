@@ -7,11 +7,10 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-
-	"github.com/openservicemesh/osm/pkg/constants"
 )
 
 // CallerHook implements zerolog.Hook interface.

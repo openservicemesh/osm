@@ -7,10 +7,9 @@ import (
 	"crypto/x509/pkix"
 	"time"
 
-	"github.com/pkg/errors"
-
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/rotor"
+	"github.com/pkg/errors"
 )
 
 func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod *time.Duration) (certificate.Certificater, error) {

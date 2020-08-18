@@ -6,11 +6,10 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openservicemesh/osm/pkg/certificate"
 	admissionv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
-
-	"github.com/openservicemesh/osm/pkg/certificate"
 )
 
 var _ = Describe("Test MutatingWebhookConfiguration patch", func() {

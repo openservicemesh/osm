@@ -3,7 +3,6 @@ package lds
 import (
 	xds_tracing "github.com/envoyproxy/go-control-plane/envoy/config/trace/v3"
 	xds_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
-
 	"github.com/golang/protobuf/ptypes"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"

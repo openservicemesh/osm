@@ -8,10 +8,9 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	corev1 "k8s.io/api/core/v1"
-
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/constants"
+	corev1 "k8s.io/api/core/v1"
 )
 
 const (

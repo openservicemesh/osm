@@ -6,9 +6,8 @@ import (
 	"crypto/x509"
 	pemEnc "encoding/pem"
 
-	"github.com/pkg/errors"
-
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
+	"github.com/pkg/errors"
 )
 
 // EncodeCertDERtoPEM encodes the certificate provided in DER format into PEM format

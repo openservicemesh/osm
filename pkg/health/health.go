@@ -3,9 +3,10 @@ package health
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
+
 	"github.com/openservicemesh/osm/pkg/version"
 	"github.com/rs/zerolog/log"
-	"net/http"
 )
 
 // Probe is a type alias for a function.

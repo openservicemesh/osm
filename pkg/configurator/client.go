@@ -5,12 +5,11 @@ import (
 	"reflect"
 	"strconv"
 
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
-
-	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 )
 
 const (

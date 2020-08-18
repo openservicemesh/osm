@@ -6,13 +6,12 @@ import (
 	"strings"
 
 	mapset "github.com/deckarep/golang-set"
-	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
-
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
+	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 )
 
 const (

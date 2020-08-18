@@ -5,12 +5,11 @@ import (
 	"net"
 	"strings"
 
-	corev1 "k8s.io/api/core/v1"
-
 	osm "github.com/openservicemesh/osm/pkg/apis/azureresource/v1"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/service"
+	corev1 "k8s.io/api/core/v1"
 )
 
 // ListEndpointsForService implements endpoints.Provider interface and returns the IP addresses and Ports for the given mesh service.

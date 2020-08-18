@@ -5,14 +5,13 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 
+	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
-
-	"github.com/openservicemesh/osm/pkg/certificate"
 )
 
 func setupMutualTLS(insecure bool, serverName string, certPem []byte, keyPem []byte, ca []byte) (grpc.ServerOption, error) {

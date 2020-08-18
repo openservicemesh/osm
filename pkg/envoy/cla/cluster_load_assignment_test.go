@@ -3,11 +3,10 @@ package cla
 import (
 	"net"
 
-	"github.com/openservicemesh/osm/pkg/endpoint"
-	"github.com/openservicemesh/osm/pkg/service"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openservicemesh/osm/pkg/endpoint"
+	"github.com/openservicemesh/osm/pkg/service"
 )
 
 var _ = Describe("Testing Cluster Load Assignment", func() {

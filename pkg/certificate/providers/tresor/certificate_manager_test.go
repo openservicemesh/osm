@@ -3,10 +3,9 @@ package tresor
 import (
 	"time"
 
-	"github.com/openservicemesh/osm/pkg/certificate"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openservicemesh/osm/pkg/certificate"
 )
 
 var _ = Describe("Test Certificate Manager", func() {

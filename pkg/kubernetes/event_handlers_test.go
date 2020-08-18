@@ -4,12 +4,10 @@ import (
 	"reflect"
 
 	"github.com/google/uuid"
-	corev1 "k8s.io/api/core/v1"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
 	"github.com/openservicemesh/osm/pkg/tests"
+	corev1 "k8s.io/api/core/v1"
 )
 
 const (

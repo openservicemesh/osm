@@ -4,14 +4,13 @@ import (
 	"time"
 
 	set "github.com/deckarep/golang-set"
-	"k8s.io/client-go/kubernetes"
-
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/ingress"
 	"github.com/openservicemesh/osm/pkg/namespace"
 	"github.com/openservicemesh/osm/pkg/smi"
+	"k8s.io/client-go/kubernetes"
 )
 
 // NewMeshCatalog creates a new service catalog

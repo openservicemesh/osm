@@ -5,10 +5,9 @@ import (
 	"strconv"
 
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-	"github.com/pkg/errors"
-
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/utils"
+	"github.com/pkg/errors"
 )
 
 // StreamAggregatedResources handles streaming of the clusters to the connected Envoy proxies

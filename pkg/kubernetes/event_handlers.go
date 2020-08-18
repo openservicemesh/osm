@@ -4,9 +4,8 @@ import (
 	"os"
 	"reflect"
 
-	"k8s.io/client-go/tools/cache"
-
 	"github.com/openservicemesh/osm/pkg/constants"
+	"k8s.io/client-go/tools/cache"
 )
 
 const (

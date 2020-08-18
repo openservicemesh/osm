@@ -7,6 +7,10 @@ import (
 	. "github.com/onsi/gomega"
 	osmPolicy "github.com/openservicemesh/osm/experimental/pkg/apis/policy/v1alpha1"
 	osmPolicyClient "github.com/openservicemesh/osm/experimental/pkg/client/clientset/versioned/fake"
+	"github.com/openservicemesh/osm/pkg/featureflags"
+	"github.com/openservicemesh/osm/pkg/namespace"
+	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/tests"
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
 	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha3"
 	smiSplit "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
@@ -16,11 +20,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
-
-	"github.com/openservicemesh/osm/pkg/featureflags"
-	"github.com/openservicemesh/osm/pkg/namespace"
-	"github.com/openservicemesh/osm/pkg/service"
-	"github.com/openservicemesh/osm/pkg/tests"
 )
 
 const (

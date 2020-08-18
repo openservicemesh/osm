@@ -3,18 +3,16 @@ package azure
 import (
 	"reflect"
 
+	osm "github.com/openservicemesh/osm/pkg/apis/azureresource/v1"
+	"github.com/openservicemesh/osm/pkg/configurator"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
+	"github.com/openservicemesh/osm/pkg/namespace"
+	osmClient "github.com/openservicemesh/osm/pkg/osm_client/clientset/versioned"
+	osmInformers "github.com/openservicemesh/osm/pkg/osm_client/informers/externalversions"
 	"github.com/pkg/errors"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
-
-	osm "github.com/openservicemesh/osm/pkg/apis/azureresource/v1"
-	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
-
-	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/namespace"
-	osmClient "github.com/openservicemesh/osm/pkg/osm_client/clientset/versioned"
-	osmInformers "github.com/openservicemesh/osm/pkg/osm_client/informers/externalversions"
 )
 
 const (

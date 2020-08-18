@@ -7,12 +7,10 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
+	"github.com/openservicemesh/osm/pkg/kubernetes"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
-
-	"github.com/openservicemesh/osm/pkg/kubernetes"
 )
 
 var _ = Describe("Test OSM ConfigMap parsing", func() {

@@ -1,9 +1,8 @@
 package namespace
 
 import (
-	"k8s.io/client-go/tools/cache"
-
 	"github.com/openservicemesh/osm/pkg/logger"
+	"k8s.io/client-go/tools/cache"
 )
 
 var (

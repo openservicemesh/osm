@@ -6,9 +6,8 @@ import (
 	"math/rand"
 	"net/http"
 
-	v1 "k8s.io/api/core/v1"
-
 	"github.com/openservicemesh/osm/pkg/certificate"
+	v1 "k8s.io/api/core/v1"
 )
 
 func (ds debugServer) getEnvoyConfig(pod *v1.Pod, cn certificate.CommonName, url string) string {

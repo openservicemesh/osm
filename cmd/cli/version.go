@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/spf13/cobra"
-
 	"github.com/openservicemesh/osm/pkg/version"
+	"github.com/spf13/cobra"
 )
 
 const versionHelp = `

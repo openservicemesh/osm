@@ -2,7 +2,6 @@ package cds
 
 import (
 	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
-
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/service"
 )

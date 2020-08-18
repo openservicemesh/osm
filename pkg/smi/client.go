@@ -4,6 +4,13 @@ import (
 	"reflect"
 	"strings"
 
+	backpressure "github.com/openservicemesh/osm/experimental/pkg/apis/policy/v1alpha1"
+	backpressureClient "github.com/openservicemesh/osm/experimental/pkg/client/clientset/versioned"
+	backpressureInformers "github.com/openservicemesh/osm/experimental/pkg/client/informers/externalversions"
+	"github.com/openservicemesh/osm/pkg/featureflags"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
+	"github.com/openservicemesh/osm/pkg/namespace"
+	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/pkg/errors"
 	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha3"
@@ -19,14 +26,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
-
-	backpressure "github.com/openservicemesh/osm/experimental/pkg/apis/policy/v1alpha1"
-	backpressureClient "github.com/openservicemesh/osm/experimental/pkg/client/clientset/versioned"
-	backpressureInformers "github.com/openservicemesh/osm/experimental/pkg/client/informers/externalversions"
-	"github.com/openservicemesh/osm/pkg/featureflags"
-	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
-	"github.com/openservicemesh/osm/pkg/namespace"
-	"github.com/openservicemesh/osm/pkg/service"
 )
 
 // We have a few different k8s clients. This identifies these in logs.

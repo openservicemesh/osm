@@ -4,9 +4,8 @@ import (
 	"encoding/pem"
 	"io/ioutil"
 
-	"github.com/pkg/errors"
-
 	tresorPem "github.com/openservicemesh/osm/pkg/certificate/pem"
+	"github.com/pkg/errors"
 )
 
 // LoadCertificateFromFile loads a certificate from a PEM file.

@@ -4,14 +4,11 @@ import (
 	"fmt"
 	"strings"
 
-	envoy_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
-
 	set "github.com/deckarep/golang-set"
+	envoy_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"github.com/golang/protobuf/ptypes/wrappers"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/service"

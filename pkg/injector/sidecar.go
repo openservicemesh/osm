@@ -3,10 +3,9 @@ package injector
 import (
 	"strings"
 
-	corev1 "k8s.io/api/core/v1"
-
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
+	corev1 "k8s.io/api/core/v1"
 )
 
 const (

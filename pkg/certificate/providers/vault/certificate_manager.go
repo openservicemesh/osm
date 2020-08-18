@@ -4,13 +4,12 @@ import (
 	"time"
 
 	"github.com/hashicorp/vault/api"
-	"github.com/pkg/errors"
-
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/certificate/rotor"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/pkg/errors"
 )
 
 var log = logger.New("vault")

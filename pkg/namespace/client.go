@@ -3,14 +3,13 @@ package namespace
 import (
 	"time"
 
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
-
-	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 )
 
 const (

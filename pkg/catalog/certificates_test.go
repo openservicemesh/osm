@@ -3,13 +3,11 @@ package catalog
 import (
 	"time"
 
-	testclient "k8s.io/client-go/kubernetes/fake"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/service"
+	testclient "k8s.io/client-go/kubernetes/fake"
 )
 
 var _ = Describe("Test certificate tooling", func() {

@@ -3,10 +3,9 @@ package debugger
 import (
 	"net/http"
 
+	"github.com/openservicemesh/osm/pkg/configurator"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-
-	"github.com/openservicemesh/osm/pkg/configurator"
 )
 
 // GetHandlers implements DebugServer interface and returns the rest of URLs and the handling functions.

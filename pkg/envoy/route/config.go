@@ -5,12 +5,10 @@ import (
 	"sort"
 	"strings"
 
+	set "github.com/deckarep/golang-set"
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	xds_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
-
-	set "github.com/deckarep/golang-set"
 	"github.com/golang/protobuf/ptypes/wrappers"
-
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/kubernetes"

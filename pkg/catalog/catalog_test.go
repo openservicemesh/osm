@@ -1,10 +1,9 @@
 package catalog
 
 import (
-	testclient "k8s.io/client-go/kubernetes/fake"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	testclient "k8s.io/client-go/kubernetes/fake"
 )
 
 var _ = Describe("Test catalog functions", func() {
