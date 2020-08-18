@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -39,6 +40,13 @@ var (
 )
 
 func newFakeMeshCatalog() *MeshCatalog {
+	var (
+		mockCtrl         *gomock.Controller
+		mockNsController *namespace.MockController
+	)
+
+	mockCtrl = gomock.NewController(GinkgoT())
+	mockNsController = namespace.NewMockController(mockCtrl)
 	meshSpec := smi.NewFakeMeshSpecClient()
 	cache := make(map[certificate.CommonName]certificate.Certificater)
 	certManager := tresor.NewFakeCertManager(&cache, 1*time.Hour)
@@ -66,9 +74,21 @@ func newFakeMeshCatalog() *MeshCatalog {
 	osmConfigMapName := "-test-osm-config-map-"
 	cfg := configurator.NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
 
-	namespaceController := namespace.NewFakeNamespaceController([]string{osmNamespace, tests.Namespace})
+	testChan := make(chan interface{})
+	monitoredNamespace := []string{
+		tests.BookstoreService.Namespace,
+		tests.BookbuyerService.Namespace,
+		tests.BookwarehouseService.Namespace,
+	}
 
-	return NewMeshCatalog(namespaceController, kubeClient, meshSpec, certManager, ingressMonitor, stop, cfg, endpointProviders...)
+	mockNsController.EXPECT().IsMonitoredNamespace(tests.BookstoreService.Namespace).Return(true).AnyTimes()
+	mockNsController.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).AnyTimes()
+	mockNsController.EXPECT().IsMonitoredNamespace(tests.BookwarehouseService.Namespace).Return(true).AnyTimes()
+	mockNsController.EXPECT().GetAnnouncementsChannel().Return(testChan).AnyTimes()
+	mockNsController.EXPECT().ListMonitoredNamespaces().Return(monitoredNamespace, nil).AnyTimes()
+
+	return NewMeshCatalog(mockNsController, kubeClient, meshSpec, certManager,
+		ingressMonitor, stop, cfg, endpointProviders...)
 }
 
 func getFakeIngresses() []*extensionsV1beta.Ingress {

@@ -12,6 +12,7 @@ require (
 	github.com/cncf/udpa/go v0.0.0-20200629203442-efcf912fb354 // indirect
 	github.com/deckarep/golang-set v1.7.1
 	github.com/envoyproxy/go-control-plane v0.9.6
+	github.com/golang/mock v1.3.1
 	github.com/golang/protobuf v1.4.2
 	github.com/golangci/golangci-lint v1.30.0
 	github.com/google/go-cmp v0.5.0
