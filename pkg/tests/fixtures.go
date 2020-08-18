@@ -43,7 +43,7 @@ const (
 	BookbuyerServiceAccountName = "bookbuyer"
 
 	// TrafficTargetName is the name of the traffic target SMI object.
-	TrafficTargetName = "bookbuyer-access-bookstore"
+	TrafficTargetName = "default/bookbuyer->default/bookstore"
 
 	// BuyBooksMatchName is the name of the match object.
 	BuyBooksMatchName = "buy-books"

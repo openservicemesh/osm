@@ -20,4 +20,11 @@ var _ = Describe("Testing utils helpers", func() {
 			Expect(meshSvc).To(Equal(expectedMeshSvc))
 		})
 	})
+
+	Context("Test GetTrafficTargetName", func() {
+		It("works as expected", func() {
+			trafficTargetName := GetTrafficTargetName(tests.BookbuyerService, tests.BookstoreService)
+			Expect(trafficTargetName).To(Equal("default/bookbuyer->default/bookstore"))
+		})
+	})
 })

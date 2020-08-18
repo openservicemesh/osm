@@ -72,12 +72,12 @@ var _ = Describe("CDS Response", func() {
 
 			// There are to any.Any resources in the ClusterDiscoveryStruct (Clusters)
 			// There are 5 types of clusters that can exist based on the configuration:
-			// 1. Destination cluster
-			// 2. Source cluster
+			// 1. Destination cluster (Bookstore and BookstoreApex)
+			// 2. Source cluster (Bookbuyer)
 			// 3. Prometheus cluster
 			// 4. Tracing cluster
 			// 5. Passthrough cluster for egress
-			numExpectedClusters := 5 // source and destination clusters
+			numExpectedClusters := 6 // source and destination clusters
 			Expect(len((*resp).Resources)).To(Equal(numExpectedClusters))
 		})
 	})

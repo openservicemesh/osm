@@ -122,7 +122,7 @@ var _ = Describe("Test Kube Client Provider", func() {
 
 			sMesh, err := c.GetServicesForServiceAccount(tests.BookstoreServiceAccount)
 			Expect(err).To(BeNil())
-			expectedServices := []service.MeshService{tests.BookstoreService}
+			expectedServices := []service.MeshService{tests.BookstoreService, tests.BookstoreApexService}
 			Expect(sMesh).To(Equal(expectedServices))
 
 			sMesh2, err := c.GetServicesForServiceAccount(tests.BookbuyerServiceAccount)
