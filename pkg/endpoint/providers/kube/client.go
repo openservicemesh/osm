@@ -110,8 +110,8 @@ func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endp
 	return endpoints
 }
 
-// GetServiceForServiceAccount retrieves the service for the given service account
-func (c Client) GetServiceForServiceAccount(svcAccount service.K8sServiceAccount) (service.MeshService, error) {
+// GetServicesForServiceAccount retrieves a list of services for the given service account.
+func (c Client) GetServicesForServiceAccount(svcAccount service.K8sServiceAccount) ([]service.MeshService, error) {
 	log.Info().Msgf("[%s] Getting Services for service account %s on Kubernetes", c.providerIdent, svcAccount)
 	services := mapset.NewSet()
 	deploymentsInterface := c.caches.Deployments.List()
@@ -140,7 +140,8 @@ func (c Client) GetServiceForServiceAccount(svcAccount service.K8sServiceAccount
 				k8sServices, err := c.getServicesByLabels(selectorLabel, appNamspace)
 				if err != nil {
 					log.Error().Err(err).Msgf("Error retrieving service with label %v in namespace %s", selectorLabel, appNamspace)
-					return service.MeshService{}, errDidNotFindServiceForServiceAccount
+
+					return nil, errDidNotFindServiceForServiceAccount
 				}
 				for _, svc := range k8sServices {
 					meshService := service.MeshService{
@@ -155,22 +156,18 @@ func (c Client) GetServiceForServiceAccount(svcAccount service.K8sServiceAccount
 
 	if services.Cardinality() == 0 {
 		log.Error().Msgf("Did not find any service with serviceAccount = %s in namespace %s", svcAccount.Name, svcAccount.Namespace)
-		return service.MeshService{}, errDidNotFindServiceForServiceAccount
-	}
 
-	// --- CONVENTION ---
-	// By Open Service Mesh convention the number of services for a service account is 1
-	// This is a limitation we set in place in order to make the mesh easy to understand and reason about.
-	// When a service account has more than one service XDS will not apply any SMI policy for that service, leaving it out of the mesh.
-	if services.Cardinality() > 1 {
-		log.Error().Msgf("Found more than one service for serviceAccount %s in namespace %s; There should be only one!", svcAccount.Name, svcAccount.Namespace)
-		return service.MeshService{}, errMoreThanServiceForServiceAccount
+		return nil, errDidNotFindServiceForServiceAccount
 	}
 
 	log.Info().Msgf("[%s] Services %v observed on service account %s on Kubernetes", c.providerIdent, services, svcAccount)
-	svc := services.Pop().(service.MeshService)
-	log.Trace().Msgf("Found service %s for serviceAccount %s in namespace %s", svc.Name, svcAccount.Name, svcAccount.Namespace)
-	return svc, nil
+
+	servicesSlice := make([]service.MeshService, 0, services.Cardinality())
+	for svc := range services.Iterator().C {
+		servicesSlice = append(servicesSlice, svc.(service.MeshService))
+	}
+
+	return servicesSlice, nil
 }
 
 // GetAnnouncementsChannel returns the announcement channel for the Kubernetes endpoints provider.

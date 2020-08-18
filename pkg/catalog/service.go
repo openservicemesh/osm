@@ -12,12 +12,12 @@ func (mc *MeshCatalog) GetServicesForServiceAccount(sa service.K8sServiceAccount
 		// TODO (#88) : remove this provider check once we have figured out the service account story for azure vms
 		if provider.GetID() != constants.AzureProviderName {
 			log.Trace().Msgf("[%s] Looking for Services for Name=%s", provider.GetID(), sa)
-			service, err := provider.GetServiceForServiceAccount(sa)
+			providerServices, err := provider.GetServicesForServiceAccount(sa)
 			if err != nil {
 				log.Warn().Msgf("Error getting services from provider %s: %s", provider.GetID(), err)
 			} else {
-				log.Trace().Msgf("[%s] Found service %s for Name=%s", provider.GetID(), service.String(), sa)
-				services = append(services, service)
+				log.Trace().Msgf("[%s] Found services %v for Name=%s", provider.GetID(), services, sa)
+				services = append(services, providerServices...)
 			}
 		}
 	}
