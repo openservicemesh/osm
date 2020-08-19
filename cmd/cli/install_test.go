@@ -7,6 +7,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openservicemesh/osm/pkg/constants"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	fake "k8s.io/client-go/kubernetes/fake"
@@ -70,7 +71,6 @@ var _ = Describe("Running the install command", func() {
 				out:                        out,
 				chartPath:                  "testdata/test-chart",
 				containerRegistry:          testRegistry,
-				containerRegistrySecret:    testRegistrySecret,
 				osmImageTag:                testOsmImageTag,
 				certificateManager:         "tresor",
 				serviceCertValidityMinutes: 1,
@@ -120,11 +120,6 @@ var _ = Describe("Running the install command", func() {
 						"image": map[string]interface{}{
 							"registry": testRegistry,
 							"tag":      testOsmImageTag,
-						},
-						"imagePullSecrets": []interface{}{
-							map[string]interface{}{
-								"name": testRegistrySecret,
-							},
 						},
 						"serviceCertValidityMinutes": int64(1),
 						"vault": map[string]interface{}{
@@ -959,11 +954,11 @@ func createDeploymentSpec(namespace, meshName string) *v1.Deployment {
 	labelMap := make(map[string]string)
 	if meshName != "" {
 		labelMap["meshName"] = meshName
-		labelMap["app"] = "osm-controller"
+		labelMap["app"] = constants.OSMControllerName
 	}
 	return &v1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "osm-controller",
+			Name:      constants.OSMControllerName,
 			Namespace: namespace,
 			Labels:    labelMap,
 		},

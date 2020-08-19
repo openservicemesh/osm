@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	"fmt"
-	//"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

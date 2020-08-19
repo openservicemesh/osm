@@ -9,5 +9,4 @@ import (
 	_ "github.com/jstemmer/go-junit-report"
 	_ "github.com/matm/gocov-html"
 	_ "github.com/mitchellh/gox"
-	_ "golang.org/x/lint/golint"
 )

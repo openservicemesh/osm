@@ -55,14 +55,6 @@ const (
 	httpHostHeader = "host"
 )
 
-var (
-	regexEngine = &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{
-		MaxProgramSize: &wrappers.UInt32Value{
-			Value: uint32(maxRegexProgramSize),
-		},
-	}}
-)
-
 //UpdateRouteConfiguration consrtucts the Envoy construct necessary for TrafficTarget implementation
 func UpdateRouteConfiguration(domainRoutesMap map[string]map[string]trafficpolicy.RouteWeightedClusters, routeConfig *xds_route.RouteConfiguration, direction Direction) {
 	log.Trace().Msgf("[RDS] Updating Route Configuration")
@@ -99,7 +91,6 @@ func createVirtualHostStub(namePrefix string, domain string) *xds_route.VirtualH
 	virtualHost := xds_route.VirtualHost{
 		Name:    name,
 		Domains: domains,
-		Routes:  []*xds_route.Route{},
 	}
 	return &virtualHost
 }
@@ -132,7 +123,7 @@ func getRoute(pathRegex string, method string, headersMap map[string]string, wei
 		Match: &xds_route.RouteMatch{
 			PathSpecifier: &xds_route.RouteMatch_SafeRegex{
 				SafeRegex: &xds_matcher.RegexMatcher{
-					EngineType: regexEngine,
+					EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
 					Regex:      pathRegex,
 				},
 			},
@@ -157,7 +148,7 @@ func getHeadersForRoute(method string, headersMap map[string]string) []*xds_rout
 		Name: MethodHeaderKey,
 		HeaderMatchSpecifier: &xds_route.HeaderMatcher_SafeRegexMatch{
 			SafeRegexMatch: &xds_matcher.RegexMatcher{
-				EngineType: regexEngine,
+				EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
 				Regex:      getRegexForMethod(method),
 			},
 		},
@@ -174,7 +165,7 @@ func getHeadersForRoute(method string, headersMap map[string]string) []*xds_rout
 			Name: headerKey,
 			HeaderMatchSpecifier: &xds_route.HeaderMatcher_SafeRegexMatch{
 				SafeRegexMatch: &xds_matcher.RegexMatcher{
-					EngineType: regexEngine,
+					EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
 					Regex:      headerValue,
 				},
 			},
@@ -249,7 +240,7 @@ func (c clusterWeightByName) Less(i, j int) bool {
 // sanitizeHTTPMethods takes in a list of HTTP methods including a wildcard (*) and returns a wildcard if any of
 // the methods is a wildcard or sanitizes the input list to avoid duplicates.
 func sanitizeHTTPMethods(allowedMethods []string) []string {
-	newAllowedMethods := []string{}
+	var newAllowedMethods []string
 	keys := make(map[string]interface{})
 	for _, method := range allowedMethods {
 		if method != "" {
@@ -270,7 +261,6 @@ func sanitizeHTTPMethods(allowedMethods []string) []string {
 func NewRouteConfigurationStub(routeConfigName string) *xds_route.RouteConfiguration {
 	routeConfiguration := xds_route.RouteConfiguration{
 		Name:             routeConfigName,
-		VirtualHosts:     []*xds_route.VirtualHost{},
 		ValidateClusters: &wrappers.BoolValue{Value: true},
 	}
 	return &routeConfiguration

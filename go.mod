@@ -12,6 +12,7 @@ require (
 	github.com/cncf/udpa/go v0.0.0-20200629203442-efcf912fb354 // indirect
 	github.com/deckarep/golang-set v1.7.1
 	github.com/envoyproxy/go-control-plane v0.9.6
+	github.com/golang/mock v1.3.1
 	github.com/golang/protobuf v1.4.2
 	github.com/golangci/golangci-lint v1.30.0
 	github.com/google/go-cmp v0.5.0
@@ -32,7 +33,6 @@ require (
 	github.com/servicemeshinterface/smi-sdk-go v0.4.1
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/pflag v1.0.5
-	golang.org/x/lint v0.0.0-20200302205851-738671d3881b
 	google.golang.org/grpc v1.27.0
 	gopkg.in/yaml.v2 v2.3.0
 	helm.sh/helm/v3 v3.2.0

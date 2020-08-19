@@ -21,6 +21,11 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/envoy/cds"
+	"github.com/openservicemesh/osm/pkg/envoy/eds"
+	"github.com/openservicemesh/osm/pkg/envoy/lds"
+	"github.com/openservicemesh/osm/pkg/envoy/rds"
+	"github.com/openservicemesh/osm/pkg/envoy/sds"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
@@ -100,9 +105,14 @@ var _ = Describe("Test ADS response functions", func() {
 
 		It("returns Aggregated Discovery Service response", func() {
 			s := Server{
-				ctx:         context.TODO(),
-				catalog:     mc,
-				xdsHandlers: getHandlers(),
+				catalog: mc,
+				xdsHandlers: map[envoy.TypeURI]func(catalog.MeshCataloger, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator) (*xds_discovery.DiscoveryResponse, error){
+					envoy.TypeEDS: eds.NewResponse,
+					envoy.TypeCDS: cds.NewResponse,
+					envoy.TypeRDS: rds.NewResponse,
+					envoy.TypeLDS: lds.NewResponse,
+					envoy.TypeSDS: sds.NewResponse,
+				},
 			}
 
 			s.sendAllResponses(proxy, &server, cfg)

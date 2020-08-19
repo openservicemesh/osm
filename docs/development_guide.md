@@ -80,7 +80,7 @@ More notable:
   - `make build` builds the project
   - `make go-test` to run unit tests
   - `make go-test-coverage` - run unit tests and output unit test coverage
-  - `make go-lint` runs golint and golangci-lint
+  - `make go-lint` runs golangci-lint
   - `make go-fmt` - same as `go fmt ./...`
   - `make go-vet` - same as `go vet ./...`
 

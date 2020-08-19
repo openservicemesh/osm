@@ -93,6 +93,34 @@ var _ = Describe("Running the namespace add command", func() {
 				Expect(out.String()).To(Equal(fmt.Sprintf("Namespace [%s] successfully added to mesh [%s]\nNamespace [%s] successfully added to mesh [%s]\n", testNamespace, testMeshName, testNamespace2, testMeshName)))
 			})
 		})
+		Context("given one namespace with osm-controller installed in it as an arg", func() {
+			BeforeEach(func() {
+				out = new(bytes.Buffer)
+				fakeClientSet = fake.NewSimpleClientset()
+				// mimic osm controller deployment in testNamespace
+				deploymentSpec := createDeploymentSpec(testNamespace, defaultMeshName)
+				fakeClientSet.AppsV1().Deployments(testNamespace).Create(context.TODO(), deploymentSpec, metav1.CreateOptions{})
+
+				nsSpec := createNamespaceSpec(testNamespace, "")
+				fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
+
+				namespaceAddCmd := &namespaceAddCmd{
+					out:        out,
+					meshName:   testMeshName,
+					namespaces: []string{testNamespace},
+					clientSet:  fakeClientSet,
+				}
+
+				err = namespaceAddCmd.run()
+			})
+			It("should not error", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("should give a warning message", func() {
+				Expect(out.String()).To(Equal(fmt.Sprintf("Namespace [%s] already has [%s] installed and cannot be added to mesh [%s]\n", testNamespace, constants.OSMControllerName, testMeshName)))
+			})
+		})
 	})
 
 	Describe("with non-existent namespace", func() {

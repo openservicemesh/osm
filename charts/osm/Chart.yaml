@@ -1,6 +1,6 @@
 apiVersion: v2
 name: osm
-description: A Helm chart for to install the OSM control plane on Kubernetes
+description: A Helm chart to install the OSM control plane on Kubernetes
 
 # A chart can be either an 'application' or a 'library' chart.
 #

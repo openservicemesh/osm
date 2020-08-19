@@ -53,10 +53,9 @@ well as for adding a Kubernetes Namespace to the list of Namespaces a control
 plane should watch for sidecar injection of Envoy proxies.
 `
 const (
-	defaultCertManager   = "tresor"
-	defaultVaultProtocol = "http"
-	defaultMeshName      = "osm"
-
+	defaultCertManager         = "tresor"
+	defaultVaultProtocol       = "http"
+	defaultMeshName            = "osm"
 	defaultCertValidityMinutes = int(1440) // 24 hours
 )
 
@@ -125,7 +124,7 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f := cmd.Flags()
 	f.StringVar(&inst.containerRegistry, "container-registry", "openservicemesh", "container registry that hosts control plane component images")
 	f.StringVar(&inst.osmImageTag, "osm-image-tag", "v0.3.0", "osm image tag")
-	f.StringVar(&inst.containerRegistrySecret, "container-registry-secret", "acr-creds", "name of Kubernetes secret for container registry credentials to be created if it doesn't already exist")
+	f.StringVar(&inst.containerRegistrySecret, "container-registry-secret", "", "name of Kubernetes secret for container registry credentials to be created if it doesn't already exist")
 	f.StringVar(&inst.chartPath, "osm-chart-path", "", "path to osm chart to override default chart")
 	f.StringVar(&inst.certificateManager, "certificate-manager", defaultCertManager, "certificate manager to use one of (tresor, vault, cert-manager)")
 	f.StringVar(&inst.vaultHost, "vault-host", "", "Hashicorp Vault host/service - where Vault is installed")
@@ -209,7 +208,7 @@ func (i *installCmd) run(config *helm.Configuration) error {
 	}
 
 	deploymentsClient = i.clientSet.AppsV1().Deployments(settings.Namespace()) // Get deployments for specified namespace
-	labelSelector = metav1.LabelSelector{MatchLabels: map[string]string{"app": "osm-controller"}}
+	labelSelector = metav1.LabelSelector{MatchLabels: map[string]string{"app": constants.OSMControllerName}}
 
 	listOptions = metav1.ListOptions{
 		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
@@ -236,7 +235,6 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 	valuesConfig := []string{
 		fmt.Sprintf("OpenServiceMesh.image.registry=%s", i.containerRegistry),
 		fmt.Sprintf("OpenServiceMesh.image.tag=%s", i.osmImageTag),
-		fmt.Sprintf("OpenServiceMesh.imagePullSecrets[0].name=%s", i.containerRegistrySecret),
 		fmt.Sprintf("OpenServiceMesh.certificateManager=%s", i.certificateManager),
 		fmt.Sprintf("OpenServiceMesh.vault.host=%s", i.vaultHost),
 		fmt.Sprintf("OpenServiceMesh.vault.protocol=%s", i.vaultProtocol),
@@ -255,6 +253,10 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 		fmt.Sprintf("OpenServiceMesh.enableEgress=%t", i.enableEgress),
 		fmt.Sprintf("OpenServiceMesh.meshCIDRRanges=%s", strings.Join(i.meshCIDRRanges, " ")),
 		fmt.Sprintf("OpenServiceMesh.deployZipkin=%t", i.deployZipkin),
+	}
+
+	if i.containerRegistrySecret != "" {
+		valuesConfig = append(valuesConfig, fmt.Sprintf("OpenServiceMesh.imagePullSecrets[0].name=%s", i.containerRegistrySecret))
 	}
 
 	for _, val := range valuesConfig {

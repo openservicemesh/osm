@@ -12,11 +12,12 @@ GOBIN  = $(GOPATH)/bin
 GOX    = go run github.com/mitchellh/gox
 
 CLI_VERSION ?= dev
+CONTROLLER_VERSION = $$(git describe --abbrev=0 --tags)
 BUILD_DATE=$$(date +%Y-%m-%d-%H:%M)
 GIT_SHA=$$(git rev-parse --short HEAD)
-BUILD_DATE_VAR := main.BuildDate
-BUILD_VERSION_VAR := main.BuildVersion
-BUILD_GITCOMMIT_VAR := main.GitCommit
+BUILD_DATE_VAR := github.com/openservicemesh/osm/pkg/version.BuildDate
+BUILD_VERSION_VAR := github.com/openservicemesh/osm/pkg/version.Version
+BUILD_GITCOMMIT_VAR := github.com/openservicemesh/osm/pkg/version.GitCommit
 
 LDFLAGS ?= "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(CLI_VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -X main.chartTGZSource=$$(cat -)"
 
@@ -42,7 +43,7 @@ build: build-osm-controller
 .PHONY: build-osm-controller
 build-osm-controller: clean-osm-controller
 	@mkdir -p $(shell pwd)/bin
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o ./bin/osm-controller ./cmd/osm-controller
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o ./bin/osm-controller -ldflags "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(CONTROLLER_VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA)" ./cmd/osm-controller
 
 .PHONY: build-osm
 build-osm:
@@ -57,7 +58,7 @@ clean-osm:
 docker-build: docker-build-osm-controller docker-build-bookbuyer docker-build-bookstore docker-build-bookwarehouse
 
 .PHONY: go-checks
-go-checks: go-vet go-lint go-fmt
+go-checks: go-lint go-fmt
 
 .PHONY: go-vet
 go-vet:
@@ -65,8 +66,7 @@ go-vet:
 
 .PHONY: go-lint
 go-lint:
-	go run golang.org/x/lint/golint ./cmd/... ./pkg/...
-	go run github.com/golangci/golangci-lint/cmd/golangci-lint run --tests --enable-all # --disable gochecknoglobals --disable gochecknoinit
+	go run github.com/golangci/golangci-lint/cmd/golangci-lint run
 
 .PHONY: go-fmt
 go-fmt:

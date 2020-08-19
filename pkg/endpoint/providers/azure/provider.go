@@ -52,8 +52,8 @@ func (az Client) ListEndpointsForService(svc service.MeshService) []endpoint.End
 	return endpoints
 }
 
-// GetServiceForServiceAccount retrieves the service for the given service account
-func (az Client) GetServiceForServiceAccount(svcAccount service.K8sServiceAccount) (service.MeshService, error) {
+// GetServicesForServiceAccount retrieves a list of services for the given service account.
+func (az Client) GetServicesForServiceAccount(svcAccount service.K8sServiceAccount) ([]service.MeshService, error) {
 	//TODO (snchh) : need to figure out the service account equivalnent for azure
 	panic("NotImplemented")
 }

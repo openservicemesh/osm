@@ -1,8 +1,6 @@
 package sds
 
 import (
-	"context"
-
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
@@ -25,16 +23,18 @@ var directionMap = map[envoy.SDSCertType]string{
 }
 
 // NewResponse creates a new Secrets Discovery Response.
-func NewResponse(_ context.Context, catalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, cfg configurator.Configurator) (*xds_discovery.DiscoveryResponse, error) {
+func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, _ configurator.Configurator) (*xds_discovery.DiscoveryResponse, error) {
 	log.Info().Msgf("Composing SDS Discovery Response for proxy: %s", proxy.GetCommonName())
 
-	serviceForProxy, err := catalog.GetServiceFromEnvoyCertificate(proxy.GetCommonName())
+	svcList, err := catalog.GetServicesFromEnvoyCertificate(proxy.GetCommonName())
+	// Github Issue #1575
+	serviceForProxy := svcList[0]
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up service for Envoy with CN=%q", proxy.GetCommonName())
 		return nil, err
 	}
 
-	cert, err := catalog.GetCertificateForService(*serviceForProxy)
+	cert, err := catalog.GetCertificateForService(serviceForProxy)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error obtaining a certificate for client %s", proxy.GetCommonName())
 		return nil, err
@@ -68,12 +68,13 @@ func getEnvoySDSSecrets(cert certificate.Certificater, proxy *envoy.Proxy, reque
 
 	var envoySecrets []*xds_auth.Secret
 
-	svc, err := catalog.GetServiceFromEnvoyCertificate(proxy.GetCommonName())
+	svcList, err := catalog.GetServicesFromEnvoyCertificate(proxy.GetCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up service for Envoy with CN=%q", proxy.GetCommonName())
 		return nil
 	}
-	serviceForProxy := *svc
+	// Github Issue #1575
+	serviceForProxy := svcList[0]
 
 	// The Envoy makes a request for a list of resources (aka certificates), which we will send as a response to the SDS request.
 	for _, requestedCertificate := range requestedCerts {

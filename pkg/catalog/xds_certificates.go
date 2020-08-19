@@ -2,12 +2,11 @@ package catalog
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
-	mapset "github.com/deckarep/golang-set"
 	v1 "k8s.io/api/core/v1"
 	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -15,8 +14,9 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
-// GetServiceFromEnvoyCertificate returns the single service given Envoy is a member of based on the certificate provided, which is a cert issued to an Envoy for XDS communication (not Envoy-to-Envoy).
-func (mc *MeshCatalog) GetServiceFromEnvoyCertificate(cn certificate.CommonName) (*service.MeshService, error) {
+// GetServicesFromEnvoyCertificate returns a list of services the given Envoy is a member of based on the certificate provided, which is a cert issued to an Envoy for XDS communication (not Envoy-to-Envoy).
+func (mc *MeshCatalog) GetServicesFromEnvoyCertificate(cn certificate.CommonName) ([]service.MeshService, error) {
+	var serviceList []service.MeshService
 	pod, err := GetPodFromCertificate(cn, mc.kubeClient)
 	if err != nil {
 		return nil, err
@@ -41,10 +41,15 @@ func (mc *MeshCatalog) GetServiceFromEnvoyCertificate(cn certificate.CommonName)
 		return nil, err
 	}
 
-	return &service.MeshService{
-		Namespace: cnMeta.Namespace,
-		Name:      services[0].Name,
-	}, nil
+	for _, svc := range services {
+		meshService := service.MeshService{
+			Namespace: cnMeta.Namespace,
+			Name:      svc.Name,
+		}
+		serviceList = append(serviceList, meshService)
+
+	}
+	return serviceList, nil
 }
 
 // filterTrafficSplitServices takes a list of services and removes from it the ones
@@ -135,14 +140,7 @@ func GetPodFromCertificate(cn certificate.CommonName, kubeClient kubernetes.Inte
 	return &pod, nil
 }
 
-func mapStringStringToSet(m map[string]string) mapset.Set {
-	stringSet := mapset.NewSet()
-	for k, v := range m {
-		stringSet.Add(fmt.Sprintf("%s:%s", k, v))
-	}
-	return stringSet
-}
-
+// listServicesForPod lists Kubernetes services whose selectors match pod labels
 func listServicesForPod(pod *v1.Pod, kubeClient kubernetes.Interface) ([]v1.Service, error) {
 	var serviceList []v1.Service
 	svcList, err := kubeClient.CoreV1().Services(pod.Namespace).List(context.Background(), v12.ListOptions{})
@@ -151,11 +149,10 @@ func listServicesForPod(pod *v1.Pod, kubeClient kubernetes.Interface) ([]v1.Serv
 		return nil, err
 	}
 
-	podLabels := mapStringStringToSet(pod.Labels)
-
 	for _, svc := range svcList.Items {
-		serviceLabelSet := mapStringStringToSet(svc.Spec.Selector)
-		if serviceLabelSet.Intersect(podLabels).Cardinality() > 0 {
+		svcRawSelector := svc.Spec.Selector
+		selector := labels.Set(svcRawSelector).AsSelector()
+		if selector.Matches(labels.Set(pod.Labels)) {
 			serviceList = append(serviceList, svc)
 		}
 	}

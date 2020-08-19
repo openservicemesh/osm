@@ -3,6 +3,7 @@ package catalog
 import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/service"
+	"strings"
 )
 
 // GetServicesForServiceAccount returns a list of services corresponding to a service account
@@ -15,11 +16,16 @@ func (mc *MeshCatalog) GetServicesForServiceAccount(serviceAccount service.K8sSe
 			continue
 		}
 
-		if svc, err := provider.GetServiceForServiceAccount(serviceAccount); err != nil {
+		if providerServices, err := provider.GetServicesForServiceAccount(serviceAccount); err != nil {
 			log.Warn().Msgf("Error getting K8s Services linked to Service Account %s from provider %s: %s", provider.GetID(), serviceAccount, err)
 		} else {
-			log.Trace().Msgf("Found K8s Service %s linked to Service Account %s from endpoint provider %s", svc, serviceAccount, provider.GetID())
-			services = append(services, svc)
+			var svcs []string
+			for _, svc := range providerServices {
+				svcs = append(svcs, svc.String())
+			}
+
+			log.Trace().Msgf("Found K8s Services %s linked to Service Account %s from endpoint provider %s", strings.Join(svcs, ","), serviceAccount, provider.GetID())
+			services = append(services, providerServices...)
 		}
 	}
 

@@ -7,7 +7,7 @@ OpenServiceMesh:
     registry: openservicemesh
     pullPolicy: IfNotPresent
     tag: v0.3.0
-  imagePullSecrets: {}
+  imagePullSecrets: []
   sidecarImage: envoyproxy/envoy-alpine:v1.15.0
   prometheus:
     port: 7070
