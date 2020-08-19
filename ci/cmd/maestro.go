@@ -116,7 +116,7 @@ func main() {
 	bookWarehouseTestResult := <-bookWarehouseCh
 
 	// When both pods return success - easy - we are good to go! CI passed!
-	if bookBuyerTestResult == maestro.TestsPassed && bookThiefTestResult == maestro.TestsPassed && bookWarehouseTestResult == maestro.TestsPassed && false {
+	if bookBuyerTestResult == maestro.TestsPassed && bookThiefTestResult == maestro.TestsPassed && bookWarehouseTestResult == maestro.TestsPassed {
 		log.Info().Msg("Test succeeded")
 		maestro.DeleteNamespaces(kubeClient, append(namespaces, osmNamespace)...)
 		webhookName := fmt.Sprintf("osm-webhook-%s", meshName)
