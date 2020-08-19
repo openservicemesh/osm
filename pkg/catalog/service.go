@@ -6,7 +6,7 @@ import (
 )
 
 // GetServicesForServiceAccount returns a list of services corresponding to a service account
-func (mc *MeshCatalog) GetServicesForServiceAccount(sa service.K8sServiceAccount) ([]service.MeshService, error) {
+func (mc *MeshCatalog) GetServicesForServiceAccount(serviceAccount service.K8sServiceAccount) ([]service.MeshService, error) {
 	var services []service.MeshService
 	for _, provider := range mc.endpointsProviders {
 
@@ -15,15 +15,12 @@ func (mc *MeshCatalog) GetServicesForServiceAccount(sa service.K8sServiceAccount
 			continue
 		}
 
-		log.Trace().Msgf("[%s] Looking for Services for Name=%s", provider.GetID(), sa)
-		svc, err := provider.GetServiceForServiceAccount(sa)
-		if err != nil {
-			log.Warn().Msgf("Error getting services from provider %s: %s", provider.GetID(), err)
+		if svc, err := provider.GetServiceForServiceAccount(serviceAccount); err != nil {
+			log.Warn().Msgf("Error getting K8s Services linked to Service Account %s from provider %s: %s", provider.GetID(), serviceAccount, err)
 		} else {
-			log.Trace().Msgf("[%s] Found service %s for Name=%s", provider.GetID(), svc, sa)
+			log.Trace().Msgf("Found K8s Service %s linked to Service Account %s from endpoint provider %s", svc, serviceAccount, provider.GetID())
 			services = append(services, svc)
 		}
-
 	}
 
 	if len(services) == 0 {
