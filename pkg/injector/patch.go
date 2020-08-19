@@ -60,7 +60,7 @@ func (wh *webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 
 	// Add the Init Container
 	initContainerData := InitContainerData{
-		Name:  InitContainerName,
+		Name:  constants.InitContainerName,
 		Image: wh.config.InitContainerImage,
 	}
 	initContainerSpec, err := getInitContainerSpec(pod, &initContainerData)
@@ -81,7 +81,7 @@ func (wh *webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 
 	patches = append(patches, addContainer(
 		pod.Spec.Containers,
-		getEnvoySidecarContainerSpec(envoyContainerName, wh.config.SidecarImage, envoyNodeID, envoyClusterID, wh.configurator),
+		getEnvoySidecarContainerSpec(constants.EnvoyContainerName, wh.config.SidecarImage, envoyNodeID, envoyClusterID, wh.configurator),
 		"/spec/containers")...,
 	)
 

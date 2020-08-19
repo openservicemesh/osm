@@ -12,7 +12,6 @@ import (
 const (
 	envoyBootstrapConfigFile = "bootstrap.yaml"
 	envoyProxyConfigPath     = "/etc/envoy"
-	envoyContainerName       = "envoy"
 )
 
 func getEnvoySidecarContainerSpec(containerName, envoyImage, nodeID, clusterID string, cfg configurator.Configurator) []corev1.Container {

@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/ci/cmd/maestro"
 	"github.com/openservicemesh/osm/demo/cmd/common"
@@ -43,12 +46,12 @@ var (
 	maxOKWaitString  = common.GetEnv(maestro.WaitForOKSecondsEnvVar, "30")
 	meshName         = osmNamespace
 
+	// Mesh namespaces
 	namespaces = []string{
 		bookbuyerNS,
 		bookthiefNS,
 		bookstoreNS,
 		bookWarehouseNS,
-		osmNamespace,
 	}
 )
 
@@ -115,7 +118,7 @@ func main() {
 	// When both pods return success - easy - we are good to go! CI passed!
 	if bookBuyerTestResult == maestro.TestsPassed && bookThiefTestResult == maestro.TestsPassed && bookWarehouseTestResult == maestro.TestsPassed {
 		log.Info().Msg("Test succeeded")
-		maestro.DeleteNamespaces(kubeClient, namespaces...)
+		maestro.DeleteNamespaces(kubeClient, append(namespaces, osmNamespace)...)
 		webhookName := fmt.Sprintf("osm-webhook-%s", meshName)
 		maestro.DeleteWebhook(kubeClient, webhookName)
 		os.Exit(0)
@@ -140,24 +143,46 @@ func main() {
 		log.Error().Msgf("BookWarehouse test %s", humanize[bookWarehouseTestResult])
 	}
 
-	fmt.Println("The integration test failed")
+	fmt.Println("The integration test failed -- Getting Logs")
 
-	bookBuyerLogs := maestro.GetPodLogs(kubeClient, bookbuyerNS, bookBuyerPodName, bookBuyerLabel, maestro.FailureLogsFromTimeSince)
-	fmt.Println("-------- Bookbuyer LOGS --------\n", cutIt(bookBuyerLogs))
+	// Walk mesh-participant namespaces
+	for _, ns := range namespaces {
+		pods, err := kubeClient.CoreV1().Pods(ns).List(context.Background(), metav1.ListOptions{})
+		if err != nil {
+			log.Error().Msgf("Could not get Pods for Namespace %s", ns)
+			continue
+		}
 
-	bookThiefLogs := maestro.GetPodLogs(kubeClient, bookthiefNS, bookThiefPodName, bookThiefLabel, maestro.FailureLogsFromTimeSince)
-	fmt.Println("-------- Bookthief LOGS --------\n", cutIt(bookThiefLogs))
+		for _, podObj := range pods.Items {
+			for _, initContainer := range podObj.Spec.InitContainers {
+				initLogs := maestro.GetPodLogs(kubeClient, ns, podObj.Name, initContainer.Name, maestro.FailureLogsFromTimeSince)
+				fmt.Println(fmt.Sprintf("---- NS: %s  Pod: %s  InitContainer: %s --------\n",
+					ns, podObj.Name, initContainer.Name), cutIt(initLogs))
+			}
 
-	bookWarehouseLogs := maestro.GetPodLogs(kubeClient, bookWarehouseNS, bookWarehousePodName, bookWarehouseLabel, maestro.FailureLogsFromTimeSince)
-	fmt.Println("-------- BookWarehouse LOGS --------\n", cutIt(bookWarehouseLogs))
+			for _, containerObj := range podObj.Spec.Containers {
+				initLogs := maestro.GetPodLogs(kubeClient, ns, podObj.Name, containerObj.Name, maestro.FailureLogsFromTimeSince)
+				switch containerObj.Name {
+				case constants.EnvoyContainerName:
+					fmt.Println(fmt.Sprintf("---- NS: %s  Pod: %s  Envoy Logs: --------\n",
+						ns, podObj.Name), initLogs)
+				default:
+					fmt.Println(fmt.Sprintf("---- NS: %s  Pod: %s  Container: %s --------\n",
+						ns, podObj.Name, containerObj.Name), cutIt(initLogs))
+				}
+			}
+		}
 
+	}
+
+	// Targeting osm-controller specifically might be ok for now
 	osmPodName, err := maestro.GetPodName(kubeClient, osmNamespace, osmControllerPodSelector)
 
 	if err != nil {
-		log.Fatal().Err(err).Msgf("Error getting ADS pods with selector %s in namespace %s", osmPodName, osmNamespace)
+		log.Fatal().Err(err).Msgf("Error getting OSM-Controller pods with selector %s in namespace %s", osmPodName, osmNamespace)
 	}
 
-	fmt.Println("-------- ADS LOGS --------\n", maestro.GetPodLogs(kubeClient, osmNamespace, osmPodName, "", maestro.FailureLogsFromTimeSince))
+	fmt.Println("-------- OSM-Controller LOGS --------\n", maestro.GetPodLogs(kubeClient, osmNamespace, osmPodName, "", maestro.FailureLogsFromTimeSince))
 
 	os.Exit(1)
 }
