@@ -12,6 +12,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 // GetServicesFromEnvoyCertificate returns a list of services the given Envoy is a member of based on the certificate provided, which is a cert issued to an Envoy for XDS communication (not Envoy-to-Envoy).
@@ -70,10 +71,7 @@ func (mc *MeshCatalog) filterTrafficSplitServices(services []v1.Service) []v1.Se
 	var filteredServices []v1.Service
 
 	for _, svc := range services {
-		nsSvc := service.MeshService{
-			Namespace: svc.Namespace,
-			Name:      svc.Name,
-		}
+		nsSvc := utils.K8sSvcToMeshSvc(&svc)
 		if _, shouldSkip := excludeTheseServices[nsSvc]; shouldSkip {
 			continue
 		}
