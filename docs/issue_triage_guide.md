@@ -26,7 +26,7 @@ This guide describes how to triage GitHub issues on the [issue queue](https://gi
     - Tag it with the `question` label
     - Respond to the question
 
-- Feature request 
+- If it's a feature request 
     - Ask/understand the use cases
     - Tag it with the `Improvement/Feature Request` label and add other appropriate labels
 
