@@ -43,7 +43,7 @@ const (
 	BookbuyerServiceAccountName = "bookbuyer"
 
 	// TrafficTargetName is the name of the traffic target SMI object.
-	TrafficTargetName = "default/bookbuyer->default/bookstore"
+	TrafficTargetName = "bookbuyer-access-bookstore"
 
 	// BuyBooksMatchName is the name of the match object.
 	BuyBooksMatchName = "buy-books"
@@ -127,7 +127,7 @@ var (
 
 	// TrafficPolicy is a traffic policy SMI object.
 	TrafficPolicy = trafficpolicy.TrafficTarget{
-		Name:        TrafficTargetName,
+		Name:        fmt.Sprintf("%s:default/bookbuyer->default/bookstore", TrafficTargetName),
 		Destination: BookstoreService,
 		Source:      BookbuyerService,
 		Route: trafficpolicy.Route{

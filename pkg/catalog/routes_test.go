@@ -37,7 +37,7 @@ var _ = Describe("Catalog tests", func() {
 
 			expected := []trafficpolicy.TrafficTarget{
 				{
-					Name:        utils.GetTrafficTargetName(tests.BookbuyerService, tests.BookstoreService),
+					Name:        utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreService),
 					Destination: tests.BookstoreService,
 					Source:      tests.BookbuyerService,
 					Route: trafficpolicy.Route{PathRegex: tests.BookstoreBuyPath, Methods: []string{"GET"}, Headers: map[string]string{
@@ -45,7 +45,7 @@ var _ = Describe("Catalog tests", func() {
 					}},
 				},
 				{
-					Name:        utils.GetTrafficTargetName(tests.BookbuyerService, tests.BookstoreApexService),
+					Name:        utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreApexService),
 					Destination: tests.BookstoreApexService,
 					Source:      tests.BookbuyerService,
 					Route: trafficpolicy.Route{PathRegex: tests.BookstoreBuyPath, Methods: []string{"GET"}, Headers: map[string]string{
@@ -102,7 +102,7 @@ var _ = Describe("Catalog tests", func() {
 			actualList, err := mc.ListAllowedInboundServices(tests.BookstoreService)
 			Expect(err).ToNot(HaveOccurred())
 			expectedList := []service.MeshService{tests.BookbuyerService}
-			Expect(cmp.Equal(actualList, expectedList)).To(BeTrue())
+			Expect(actualList).To(Equal(expectedList))
 		})
 	})
 
@@ -137,7 +137,7 @@ var _ = Describe("Catalog tests", func() {
 			actualList, err := mc.ListAllowedOutboundServices(tests.BookbuyerService)
 			Expect(err).ToNot(HaveOccurred())
 			expectedList := []service.MeshService{tests.BookstoreService, tests.BookstoreApexService}
-			Expect(cmp.Equal(actualList, expectedList)).To(BeTrue())
+			Expect(actualList).To(Equal(expectedList))
 		})
 	})
 
@@ -235,7 +235,7 @@ var _ = Describe("Catalog tests", func() {
 		It("lists n*m list of traffic targets for the given services", func() {
 			destList := []service.MeshService{tests.BookstoreService, tests.BookstoreApexService}
 			srcList := []service.MeshService{tests.BookbuyerService, tests.BookwarehouseService}
-			trafficTargets := listTrafficTargetPermutations(srcList, destList)
+			trafficTargets := listTrafficTargetPermutations(tests.TrafficTargetName, srcList, destList)
 
 			Expect(len(trafficTargets)).To(Equal(len(destList) * len(srcList)))
 		})

@@ -23,7 +23,10 @@ var _ = Describe("Testing utils helpers", func() {
 
 	Context("Test GetTrafficTargetName", func() {
 		It("works as expected", func() {
-			trafficTargetName := GetTrafficTargetName(tests.BookbuyerService, tests.BookstoreService)
+			trafficTargetName := GetTrafficTargetName("TrafficTarget", tests.BookbuyerService, tests.BookstoreService)
+			Expect(trafficTargetName).To(Equal("TrafficTarget:default/bookbuyer->default/bookstore"))
+
+			trafficTargetName = GetTrafficTargetName("", tests.BookbuyerService, tests.BookstoreService)
 			Expect(trafficTargetName).To(Equal("default/bookbuyer->default/bookstore"))
 		})
 	})

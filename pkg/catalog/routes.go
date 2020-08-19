@@ -255,7 +255,7 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[trafficpolicy.T
 				return nil, srcErr
 			}
 
-			trafficTargetPermutations := listTrafficTargetPermutations(srcServiceList, destServiceList)
+			trafficTargetPermutations := listTrafficTargetPermutations(trafficTargets.Name, srcServiceList, destServiceList)
 
 			for _, trafficTarget := range trafficTargetPermutations {
 				for _, trafficTargetSpecs := range trafficTargets.Spec.Rules {
@@ -264,29 +264,11 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[trafficpolicy.T
 						continue
 					}
 
-<<<<<<< HEAD
-				specKey := mc.getTrafficSpecName(trafficTargetSpecs.Kind, trafficTargets.Namespace, trafficTargetSpecs.Name)
-				routePoliciesMatched, matchFound := routePolicies[specKey]
-				if !matchFound {
-					log.Error().Msgf("TrafficTarget %s/%s could not find a TrafficSpec %s", trafficTargets.Namespace, trafficTargets.Name, specKey)
-					return nil, errNoTrafficSpecFoundForTrafficPolicy
-				}
-				if len(trafficTargetSpecs.Matches) == 0 {
-					// no match name provided, so routes are build for all matches in traffic spec
-					for _, routePolicy := range routePoliciesMatched {
-						trafficTarget.Route = routePolicy
-						// append a traffic trafficTarget only if it corresponds to the service
-						if trafficTarget.Source.Equals(meshService) || trafficTarget.Destination.Equals(meshService) {
-							trafficPolicies = append(trafficPolicies, trafficTarget)
-						}
-=======
 					specKey := mc.getTrafficSpecName(trafficTargetSpecs.Kind, trafficTargets.Namespace, trafficTargetSpecs.Name)
 					routePoliciesMatched, matchFound := routePolicies[specKey]
 					if !matchFound {
 						log.Error().Msgf("TrafficTarget %s/%s could not find a TrafficSpec %s", trafficTargets.Namespace, trafficTargets.Name, specKey)
 						return nil, errNoTrafficSpecFoundForTrafficPolicy
-
->>>>>>> feat(routes): Use service lists when creating traffic policies
 					}
 					if len(trafficTargetSpecs.Matches) == 0 {
 						// no match name provided, so routes are build for all matches in traffic spec
@@ -346,7 +328,7 @@ func (mc *MeshCatalog) buildAllowPolicyForSourceToDest(source *corev1.Service, d
 	srcMeshSvc := utils.K8sSvcToMeshSvc(source)
 	dstMeshSvc := utils.K8sSvcToMeshSvc(destination)
 	return trafficpolicy.TrafficTarget{
-		Name:        utils.GetTrafficTargetName(srcMeshSvc, dstMeshSvc),
+		Name:        utils.GetTrafficTargetName("", srcMeshSvc, dstMeshSvc),
 		Destination: dstMeshSvc,
 		Source:      srcMeshSvc,
 		Route:       allowAllRoute,
@@ -361,13 +343,13 @@ func getDefaultWeightedClusterForService(meshService service.MeshService) servic
 }
 
 // listTrafficTargetPermutations creates a list of TrafficTargets for each source and destination pair.
-func listTrafficTargetPermutations(srcServiceList []service.MeshService, destServiceList []service.MeshService) []trafficpolicy.TrafficTarget {
+func listTrafficTargetPermutations(name string, srcServiceList []service.MeshService, destServiceList []service.MeshService) []trafficpolicy.TrafficTarget {
 	trafficPolicies := make([]trafficpolicy.TrafficTarget, 0, len(srcServiceList)*len(destServiceList))
 
 	for _, destService := range destServiceList {
 		for _, srcService := range srcServiceList {
 			trafficTarget := trafficpolicy.TrafficTarget{
-				Name:        utils.GetTrafficTargetName(srcService, destService),
+				Name:        utils.GetTrafficTargetName(name, srcService, destService),
 				Destination: destService,
 				Source:      srcService,
 			}
