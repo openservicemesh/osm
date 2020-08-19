@@ -84,7 +84,7 @@ var _ = Describe("CDS Response", func() {
 
 	Context("Test cds clusters", func() {
 		It("Returns a local cluster object", func() {
-			remoteCluster, err := getLocalServiceCluster(catalog, proxyService, getLocalClusterName(proxyService))
+			localCluster, err := getLocalServiceCluster(catalog, proxyService, getLocalClusterName(proxyService))
 			Expect(err).ToNot(HaveOccurred())
 
 			expectedClusterLoadAssignment := &xds_endpoint.ClusterLoadAssignment{
@@ -126,10 +126,11 @@ var _ = Describe("CDS Response", func() {
 				LoadAssignment:         expectedClusterLoadAssignment,
 			}
 
-			Expect(remoteCluster.Name).To(Equal(expectedCluster.Name))
-			Expect(remoteCluster.LoadAssignment.ClusterName).To(Equal(expectedClusterLoadAssignment.ClusterName))
-			Expect(len(remoteCluster.LoadAssignment.Endpoints)).To(Equal(len(expectedClusterLoadAssignment.Endpoints)))
-			Expect(remoteCluster.LoadAssignment.Endpoints[0].LbEndpoints).To(Equal(expectedClusterLoadAssignment.Endpoints[0].LbEndpoints))
+			Expect(localCluster.Name).To(Equal(expectedCluster.Name))
+			Expect(localCluster.LoadAssignment.ClusterName).To(Equal(expectedClusterLoadAssignment.ClusterName))
+			Expect(len(localCluster.LoadAssignment.Endpoints)).To(Equal(len(expectedClusterLoadAssignment.Endpoints)))
+			Expect(localCluster.LoadAssignment.Endpoints[0].LbEndpoints).To(Equal(expectedClusterLoadAssignment.Endpoints[0].LbEndpoints))
+			Expect(localCluster.ProtocolSelection).To(Equal(xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL))
 		})
 
 		It("Returns a remote cluster object", func() {

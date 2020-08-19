@@ -26,6 +26,7 @@ var _ = Describe("Cluster configurations", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(remoteCluster.GetType()).To(Equal(xds_cluster.Cluster_EDS))
 			Expect(remoteCluster.LbPolicy).To(Equal(xds_cluster.Cluster_ROUND_ROBIN))
+			Expect(remoteCluster.ProtocolSelection).To(Equal(xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL))
 		})
 
 		It("Returns an Original Destination based cluster when permissive mode is enabled", func() {
@@ -39,6 +40,7 @@ var _ = Describe("Cluster configurations", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(remoteCluster.GetType()).To(Equal(xds_cluster.Cluster_ORIGINAL_DST))
 			Expect(remoteCluster.LbPolicy).To(Equal(xds_cluster.Cluster_CLUSTER_PROVIDED))
+			Expect(remoteCluster.ProtocolSelection).To(Equal(xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL))
 		})
 	})
 })
