@@ -15,7 +15,7 @@ const (
 	rootCertificateName = "root-certificate"
 
 	// How many bits to use for the RSA key
-	rsaBits = 4096
+	rsaBits = 2048
 
 	// How many bits in the certificate serial number
 	certSerialNumberBits = 128

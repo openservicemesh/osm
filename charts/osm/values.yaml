@@ -5,7 +5,7 @@ OpenServiceMesh:
   replicaCount: 1
   image:
     registry: openservicemesh
-    pullPolicy: IfNotPresent
+    pullPolicy: always
     tag: v0.3.0
   imagePullSecrets: []
   sidecarImage: envoyproxy/envoy-alpine:v1.15.0
