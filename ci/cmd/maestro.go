@@ -153,7 +153,6 @@ func main() {
 		}
 
 		for _, podObj := range pods.Items {
-
 			for _, initContainer := range podObj.Spec.InitContainers {
 				initLogs := maestro.GetPodLogs(kubeClient, ns, podObj.Name, initContainer.Name, maestro.FailureLogsFromTimeSince)
 				fmt.Println(fmt.Sprintf("---- NS: %s  Pod: %s  InitContainer: %s --------\n",
@@ -170,12 +169,12 @@ func main() {
 					fmt.Println(fmt.Sprintf("---- NS: %s  Pod: %s  Container: %s --------\n",
 						ns, podObj.Name, containerObj.Name), cutIt(initLogs))
 				}
-
 			}
 		}
 
 	}
 
+	// Targetting osm-controller specifically might be ok for now
 	osmPodName, err := maestro.GetPodName(kubeClient, osmNamespace, osmControllerPodSelector)
 
 	if err != nil {
