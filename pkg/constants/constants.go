@@ -127,4 +127,10 @@ const (
 
 	// DomainDelimiter is a delimiter used in representing domains
 	DomainDelimiter = "."
+
+	// EnvoyContainerName is the name used to identify the envoy sidecard container added on mesh-enabled deployments
+	EnvoyContainerName = "envoy"
+
+	// InitContainerName is the name of the init container
+	InitContainerName = "osm-init"
 )
