@@ -13,7 +13,7 @@ import (
 func GetZipkinTracingConfig(cfg configurator.Configurator) (*xds_hcm.HttpConnectionManager_Tracing, error) {
 
 	zipkinConf := &xds_tracing.ZipkinConfig{
-		CollectorCluster:         constants.EnvoyZipkinCluster,
+		CollectorCluster:         constants.EnvoyTracingCluster,
 		CollectorEndpoint:        cfg.GetZipkinEndpoint(),
 		CollectorEndpointVersion: xds_tracing.ZipkinConfig_HTTP_JSON,
 	}

@@ -19,7 +19,7 @@ source .env
 
 
 # Restart these pods to reset their data stores.
-kubectl rollout restart deployment -n osm-system zipkin
+kubectl rollout restart deployment -n osm-system jaeger
 kubectl rollout restart deployment -n osm-system osm-grafana
 kubectl rollout restart deployment -n osm-system osm-prometheus
 

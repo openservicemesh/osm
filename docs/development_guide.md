@@ -239,7 +239,7 @@ The different chart templates are used as follows:
 - `mutatingwebhook.yaml` is used to deploy a `MutatingWebhookConfiguration` kubernetes resource that enables automatic sidecar injection
 -  `grafana-*.yaml` chart templates are used to deploy a Grafana instance when the metrics stack is enabled
 - `prometheus-*.yaml` chart templates are used to deploy a Prometheus instance when the metrics stack is enabled
-- `zipkin-*.yaml` chart templates are used to deploy a Zipkin instance when Zipkin tracing is enabled
+- `jaeger-*.yaml` chart templates are used to deploy a Jaeger instance when tracing is enabled
 
 ### Custom Resource Definitions
 

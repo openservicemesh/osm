@@ -12,9 +12,9 @@ var _ = Describe("Test CDS Zipkin Configuration", func() {
 	Context("Test getZipkinCluster()", func() {
 		It("Returns Zipkin cluster config", func() {
 			cfg := configurator.NewFakeConfigurator()
-			actual := getZipkinCluster(cfg)
-			Expect(actual.Name).To(Equal(constants.EnvoyZipkinCluster))
-			Expect(actual.AltStatName).To(Equal(constants.EnvoyZipkinCluster))
+			actual := getTracingCluster(cfg)
+			Expect(actual.Name).To(Equal(constants.EnvoyTracingCluster))
+			Expect(actual.AltStatName).To(Equal(constants.EnvoyTracingCluster))
 			Expect(len(actual.GetLoadAssignment().GetEndpoints())).To(Equal(1))
 		})
 	})

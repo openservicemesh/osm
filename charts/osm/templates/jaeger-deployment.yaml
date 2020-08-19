@@ -1,26 +1,28 @@
-{{- if .Values.OpenServiceMesh.deployZipkin }}
+{{- if .Values.OpenServiceMesh.deployJaeger }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: zipkin
+  name: jaeger
   labels:
-    app: zipkin
+    app: jaeger
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: zipkin
+      app: jaeger
   template:
     metadata:
       labels:
-        app: zipkin
+        app: jaeger
     spec:
       containers:
-      - name: zipkin
-        image: openzipkin/zipkin:2.21.4
+      - name: jaeger
+        image: jaegertracing/all-in-one
+        args:
+          - --collector.zipkin.host-port={{ .Values.OpenServiceMesh.zipkinEndpoint.port }}
         imagePullPolicy: IfNotPresent
         ports:
-        - containerPort: {{ .Values.OpenServiceMesh.zipkin.port | default 9411 }}
+        - containerPort: {{ .Values.OpenServiceMesh.zipkinEndpoint.port }}
         resources:
           limits:
             cpu: 500m

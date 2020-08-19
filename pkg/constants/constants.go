@@ -45,8 +45,8 @@ const (
 	// EnvoyMetricsCluster is the cluster name of the Prometheus metrics cluster
 	EnvoyMetricsCluster = "envoy-metrics-cluster"
 
-	// EnvoyZipkinCluster is the name of the Zipkin cluster.
-	EnvoyZipkinCluster = "envoy-zipkin-cluster"
+	// EnvoyTracingCluster is the default name to refer to the tracing cluster.
+	EnvoyTracingCluster = "envoy-tracing-cluster"
 
 	// DefaultZipkinEndpoint is the Zipkin endpoint.
 	DefaultZipkinEndpoint = "/api/v2/spans"

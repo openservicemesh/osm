@@ -78,16 +78,16 @@ type osmConfig struct {
 	// UseHTTPSIngress is a bool toggle enabling HTTPS protocol between ingress and backend pods
 	UseHTTPSIngress bool `yaml:"use_https_ingress"`
 
-	// ZipkinTracing is a bool toggle used to enable ot disable Zipkin tracing
+	// ZipkinTracing is a bool toggle used to enable or disable zipkin-based tracing
 	ZipkinTracing bool `yaml:"zipkin_tracing"`
 
-	// ZipkinAddress is the address of the Zipkin cluster
+	// ZipkinAddress is the address of the zipkin-based listener cluster
 	ZipkinAddress string `yaml:"zipkin_address"`
 
-	// ZipkinPort is the port of the Zipkin cluster
+	// ZipkinPort remote port for the zipkin-based listener
 	ZipkinPort int `yaml:"zipkin_port"`
 
-	// ZipkinEndpoint is the endpoint of the Zipkin cluster
+	// ZipkinEndpoint is the protocol endpoint for the zipkin-based listener
 	ZipkinEndpoint string `yaml:"zipkin_endpoint"`
 
 	// MeshCIDRRanges is the list of CIDR ranges for in-mesh traffic

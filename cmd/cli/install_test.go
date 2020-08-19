@@ -138,7 +138,7 @@ var _ = Describe("Running the install command", func() {
 						"enableEgress":                   true,
 						"meshCIDRRanges":                 testMeshCIDR,
 						"enableMetricsStack":             true,
-						"deployZipkin":                   false,
+						"deployJaeger":                   false,
 					}}))
 			})
 
@@ -251,7 +251,7 @@ var _ = Describe("Running the install command", func() {
 						"enableEgress":                   true,
 						"meshCIDRRanges":                 testMeshCIDR,
 						"enableMetricsStack":             true,
-						"deployZipkin":                   false,
+						"deployJaeger":                   false,
 					}}))
 			})
 
@@ -372,7 +372,7 @@ var _ = Describe("Running the install command", func() {
 						"enableEgress":                   true,
 						"meshCIDRRanges":                 testMeshCIDR,
 						"enableMetricsStack":             true,
-						"deployZipkin":                   false,
+						"deployJaeger":                   false,
 					}}))
 			})
 
@@ -535,7 +535,7 @@ var _ = Describe("Running the install command", func() {
 						"enableEgress":                   true,
 						"meshCIDRRanges":                 testMeshCIDR,
 						"enableMetricsStack":             true,
-						"deployZipkin":                   false,
+						"deployJaeger":                   false,
 					}}))
 			})
 
@@ -802,7 +802,7 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 				"enableEgress":                   true,
 				"meshCIDRRanges":                 testMeshCIDR,
 				"enableMetricsStack":             true,
-				"deployZipkin":                   false,
+				"deployJaeger":                   false,
 			}}))
 	})
 })
@@ -878,7 +878,7 @@ var _ = Describe("Resolving values for install command with cert-manager paramet
 				"enableEgress":                   true,
 				"meshCIDRRanges":                 testMeshCIDR,
 				"enableMetricsStack":             true,
-				"deployZipkin":                   false,
+				"deployJaeger":                   false,
 			}}))
 	})
 })

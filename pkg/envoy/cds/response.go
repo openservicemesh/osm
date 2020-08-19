@@ -93,8 +93,8 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 	}
 
 	if cfg.IsZipkinTracingEnabled() {
-		zipkinCluster := getZipkinCluster(cfg)
-		marshalledCluster, err := ptypes.MarshalAny(&zipkinCluster)
+		tracingCluster := getTracingCluster(cfg)
+		marshalledCluster, err := ptypes.MarshalAny(&tracingCluster)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error marshaling Zipkin cluster for proxy with CN=%s", proxy.GetCommonName())
 			return nil, err

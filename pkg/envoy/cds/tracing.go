@@ -10,17 +10,17 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy"
 )
 
-func getZipkinCluster(cfg configurator.Configurator) xds_cluster.Cluster {
+func getTracingCluster(cfg configurator.Configurator) xds_cluster.Cluster {
 	return xds_cluster.Cluster{
-		Name:           constants.EnvoyZipkinCluster,
-		AltStatName:    constants.EnvoyZipkinCluster,
+		Name:           constants.EnvoyTracingCluster,
+		AltStatName:    constants.EnvoyTracingCluster,
 		ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
 		ClusterDiscoveryType: &xds_cluster.Cluster_Type{
 			Type: xds_cluster.Cluster_LOGICAL_DNS,
 		},
 		LbPolicy: xds_cluster.Cluster_ROUND_ROBIN,
 		LoadAssignment: &xds_endpoint.ClusterLoadAssignment{
-			ClusterName: constants.EnvoyZipkinCluster,
+			ClusterName: constants.EnvoyTracingCluster,
 			Endpoints: []*xds_endpoint.LocalityLbEndpoints{
 				{
 					LbEndpoints: []*xds_endpoint.LbEndpoint{{
