@@ -2,7 +2,7 @@
 
 This guide describes how to triage GitHub issues on the [issue queue](https://github.com/openservicemesh/osm/issues) for Open Service Mesh (OSM).
 
-## Steps for Traige
+## Steps for Triage
 1. Identify the cause of the issue as explained below
 2. Tag the issue with relevant tags
 3. Assign the issue
@@ -34,5 +34,4 @@ This guide describes how to triage GitHub issues on the [issue queue](https://gi
  
 ## Size and Milestone Assignment
 [WIP]
-
 
