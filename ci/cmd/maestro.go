@@ -9,11 +9,12 @@ import (
 	"sync"
 	"time"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	"github.com/openservicemesh/osm/ci/cmd/maestro"
 	"github.com/openservicemesh/osm/demo/cmd/common"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/logger"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var log = logger.NewPretty("ci/maestro")
@@ -174,7 +175,7 @@ func main() {
 
 	}
 
-	// Targetting osm-controller specifically might be ok for now
+	// Targeting osm-controller specifically might be ok for now
 	osmPodName, err := maestro.GetPodName(kubeClient, osmNamespace, osmControllerPodSelector)
 
 	if err != nil {
