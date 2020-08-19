@@ -20,6 +20,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/namespace"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
+	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 var _ = Describe("Test Kube Client Provider", func() {
@@ -261,10 +262,7 @@ var _ = Describe("When getting a Service associated with a ServiceAccount", func
 		}
 
 		// Expect a MeshService that corresponds to a Service that matches the Deployment spec labels
-		expectedMeshSvc := service.MeshService{
-			Namespace: svc.Namespace,
-			Name:      svc.Name,
-		}
+		expectedMeshSvc := utils.K8sSvcToMeshSvc(svc)
 
 		meshSvcs, err := provider.GetServicesForServiceAccount(givenSvcAccount)
 		Expect(err).ToNot(HaveOccurred())

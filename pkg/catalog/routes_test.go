@@ -14,6 +14,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
+	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 var _ = Describe("Catalog tests", func() {
@@ -101,15 +102,9 @@ var _ = Describe("Catalog tests", func() {
 				tests.SelectorKey: tests.SelectorValue,
 			}
 			source := tests.NewServiceFixture(tests.BookbuyerServiceName, tests.Namespace, selectors)
-			expectedSourceTrafficResource := service.MeshService{
-				Namespace: source.Namespace,
-				Name:      source.Name,
-			}
+			expectedSourceTrafficResource := utils.K8sSvcToMeshSvc(source)
 			destination := tests.NewServiceFixture(tests.BookstoreServiceName, tests.Namespace, selectors)
-			expectedDestinationTrafficResource := service.MeshService{
-				Namespace: destination.Namespace,
-				Name:      destination.Name,
-			}
+			expectedDestinationTrafficResource := utils.K8sSvcToMeshSvc(destination)
 
 			expectedHostHeaders := map[string]string{"user-agent": tests.HTTPUserAgent}
 			expectedRoute := trafficpolicy.Route{

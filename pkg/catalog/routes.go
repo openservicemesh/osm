@@ -13,6 +13,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
+	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 const (
@@ -325,20 +326,13 @@ func (mc *MeshCatalog) buildAllowAllTrafficPolicies(service service.MeshService)
 	return trafficTargets
 }
 
-func k8sSvcToMeshSvc(svc *corev1.Service) service.MeshService {
-	return service.MeshService{
-		Namespace: svc.Namespace,
-		Name:      svc.Name,
-	}
-}
-
 func (mc *MeshCatalog) buildAllowPolicyForSourceToDest(source *corev1.Service, destination *corev1.Service) trafficpolicy.TrafficTarget {
 	allowAllRoute := trafficpolicy.Route{
 		PathRegex: constants.RegexMatchAll,
 		Methods:   []string{constants.WildcardHTTPMethod},
 	}
-	srcMeshSvc := k8sSvcToMeshSvc(source)
-	dstMeshSvc := k8sSvcToMeshSvc(destination)
+	srcMeshSvc := utils.K8sSvcToMeshSvc(source)
+	dstMeshSvc := utils.K8sSvcToMeshSvc(destination)
 	return trafficpolicy.TrafficTarget{
 		Name:        fmt.Sprintf("%s->%s", srcMeshSvc, dstMeshSvc),
 		Destination: dstMeshSvc,
