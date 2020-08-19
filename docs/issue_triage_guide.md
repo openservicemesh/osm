@@ -3,7 +3,7 @@
 This guide describes how to triage GitHub issues on the [issue queue](https://github.com/openservicemesh/osm/issues) for Open Service Mesh (OSM).
 
 ## Steps for Triage
-1. Identify the cause of the issue as explained below
+1. Identify the cause of the issue as explained [below](#identifying-the-cause-of-the-issue)
 2. Tag the issue with relevant tags
 3. Assign the issue
 4. Prioritize the issue with a P1, P2 or P3 label where:
@@ -34,4 +34,3 @@ This guide describes how to triage GitHub issues on the [issue queue](https://gi
  
 ## Size and Milestone Assignment
 [WIP]
-
