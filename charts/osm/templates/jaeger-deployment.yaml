@@ -19,10 +19,10 @@ spec:
       - name: jaeger
         image: jaegertracing/all-in-one
         args:
-          - --collector.zipkin.host-port={{ .Values.OpenServiceMesh.zipkinEndpoint.port }}
+          - --collector.zipkin.host-port={{ .Values.OpenServiceMesh.tracing.port }}
         imagePullPolicy: IfNotPresent
         ports:
-        - containerPort: {{ .Values.OpenServiceMesh.zipkinEndpoint.port }}
+        - containerPort: {{ .Values.OpenServiceMesh.tracing.port }}
         resources:
           limits:
             cpu: 500m

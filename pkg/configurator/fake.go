@@ -10,7 +10,7 @@ type FakeConfigurator struct {
 	PermissiveTrafficPolicyMode bool
 	Egress                      bool
 	PrometheusScraping          bool
-	ZipkinTracing               bool
+	TracingEnable               bool
 	MeshCIDRRanges              []string
 	HTTPSIngress                bool
 }
@@ -20,7 +20,7 @@ func NewFakeConfigurator() Configurator {
 	return FakeConfigurator{
 		Egress:             true,
 		PrometheusScraping: true,
-		ZipkinTracing:      true,
+		TracingEnable:      true,
 		HTTPSIngress:       false,
 	}
 }
@@ -32,7 +32,7 @@ func NewFakeConfiguratorWithOptions(f FakeConfigurator) Configurator {
 		PermissiveTrafficPolicyMode: f.PermissiveTrafficPolicyMode,
 		Egress:                      f.Egress,
 		PrometheusScraping:          f.PrometheusScraping,
-		ZipkinTracing:               f.ZipkinTracing,
+		TracingEnable:               f.TracingEnable,
 		MeshCIDRRanges:              f.MeshCIDRRanges,
 		HTTPSIngress:                f.HTTPSIngress,
 	}
@@ -63,9 +63,9 @@ func (f FakeConfigurator) IsPrometheusScrapingEnabled() bool {
 	return f.PrometheusScraping
 }
 
-// IsZipkinTracingEnabled determines whether Zipkin tracing is enabled
-func (f FakeConfigurator) IsZipkinTracingEnabled() bool {
-	return f.ZipkinTracing
+// IsTracingEnabled determines whether tracing is enabled
+func (f FakeConfigurator) IsTracingEnabled() bool {
+	return f.TracingEnable
 }
 
 // GetMeshCIDRRanges returns a list of mesh CIDR ranges
@@ -83,22 +83,22 @@ func (f FakeConfigurator) GetAnnouncementsChannel() <-chan interface{} {
 	return make(chan interface{})
 }
 
-// GetZipkinHost is the host to which we send Zipkin spanspkg/envoy/cds/response.go
-func (f FakeConfigurator) GetZipkinHost() string {
-	return constants.DefaultZipkinAddress
+// GetTracingHost is the host to which we send tracing spans
+func (f FakeConfigurator) GetTracingHost() string {
+	return constants.DefaultTracingHost
 }
 
-// GetZipkinPort returns the Zipkin port
-func (f FakeConfigurator) GetZipkinPort() uint32 {
-	return constants.DefaultZipkinPort
+// GetTracingPort returns the listener port
+func (f FakeConfigurator) GetTracingPort() uint32 {
+	return constants.DefaultTracingPort
 }
 
-// GetZipkinEndpoint returns the Zipkin endpoint
-func (f FakeConfigurator) GetZipkinEndpoint() string {
-	return constants.DefaultZipkinEndpoint
+// GetTracingEndpoint returns the tracing endpoint route
+func (f FakeConfigurator) GetTracingEndpoint() string {
+	return constants.DefaultTracingEndpoint
 }
 
-// GetEnvoyLogLevel returns the Zipkin endpoint
+// GetEnvoyLogLevel returns the OSM log level
 func (f FakeConfigurator) GetEnvoyLogLevel() string {
 	return constants.DefaultEnvoyLogLevel
 }

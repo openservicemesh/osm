@@ -19,10 +19,10 @@ const (
 	prometheusScrapingKey          = "prometheus_scraping"
 	meshCIDRRangesKey              = "mesh_cidr_ranges"
 	useHTTPSIngressKey             = "use_https_ingress"
-	zipkinTracingKey               = "zipkin_tracing"
-	zipkinAddressKey               = "zipkin_address"
-	zipkinPortKey                  = "zipkin_port"
-	zipkinEndpointKey              = "zipkin_endpoint"
+	tracingEnableKey               = "tracing_enable"
+	tracingAddressKey              = "tracing_address"
+	tracingPortKey                 = "tracing_port"
+	tracingEndpointKey             = "tracing_endpoint"
 	defaultInMeshCIDR              = ""
 	envoyLogLevel                  = "envoy_log_level"
 )
@@ -78,17 +78,17 @@ type osmConfig struct {
 	// UseHTTPSIngress is a bool toggle enabling HTTPS protocol between ingress and backend pods
 	UseHTTPSIngress bool `yaml:"use_https_ingress"`
 
-	// ZipkinTracing is a bool toggle used to enable or disable zipkin-based tracing
-	ZipkinTracing bool `yaml:"zipkin_tracing"`
+	// TracingEnabled is a bool toggle used to enable or disable tracing
+	TracingEnable bool `yaml:"tracing_enable"`
 
-	// ZipkinAddress is the address of the zipkin-based listener cluster
-	ZipkinAddress string `yaml:"zipkin_address"`
+	// TracingAddress is the address of the listener cluster
+	TracingAddress string `yaml:"tracing_address"`
 
-	// ZipkinPort remote port for the zipkin-based listener
-	ZipkinPort int `yaml:"zipkin_port"`
+	// TracingPort remote port for the listener
+	TracingPort int `yaml:"tracing_port"`
 
-	// ZipkinEndpoint is the protocol endpoint for the zipkin-based listener
-	ZipkinEndpoint string `yaml:"zipkin_endpoint"`
+	// TracingEndpoint is the protocol path endpoint for the listener
+	TracingEndpoint string `yaml:"tracing_endpoint"`
 
 	// MeshCIDRRanges is the list of CIDR ranges for in-mesh traffic
 	MeshCIDRRanges string `yaml:"mesh_cidr_ranges"`
@@ -137,14 +137,14 @@ func (c *Client) getConfigMap() *osmConfig {
 		MeshCIDRRanges:              getEgressCIDR(configMap),
 		UseHTTPSIngress:             getBoolValueForKey(configMap, useHTTPSIngressKey),
 
-		ZipkinTracing: getBoolValueForKey(configMap, zipkinTracingKey),
+		TracingEnable: getBoolValueForKey(configMap, tracingEnableKey),
 		EnvoyLogLevel: getStringValueForKey(configMap, envoyLogLevel),
 	}
 
-	if osmConfigMap.ZipkinTracing {
-		osmConfigMap.ZipkinAddress = getStringValueForKey(configMap, zipkinAddressKey)
-		osmConfigMap.ZipkinPort = getIntValueForKey(configMap, zipkinPortKey)
-		osmConfigMap.ZipkinEndpoint = getStringValueForKey(configMap, zipkinEndpointKey)
+	if osmConfigMap.TracingEnable {
+		osmConfigMap.TracingAddress = getStringValueForKey(configMap, tracingAddressKey)
+		osmConfigMap.TracingPort = getIntValueForKey(configMap, tracingPortKey)
+		osmConfigMap.TracingEndpoint = getStringValueForKey(configMap, tracingEndpointKey)
 	}
 
 	return &osmConfigMap

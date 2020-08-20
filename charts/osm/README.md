@@ -13,7 +13,7 @@ A Helm chart to install the OSM control plane on Kubernetes
 | OpenServiceMesh.certmanager.issuerGroup | string | `"cert-manager"` |  |
 | OpenServiceMesh.certmanager.issuerKind | string | `"Issuer"` |  |
 | OpenServiceMesh.certmanager.issuerName | string | `"osm-ca"` |  |
-| OpenServiceMesh.deployZipkin | bool | `false` |  |
+| OpenServiceMesh.deployJaeger | bool | `true` |  |
 | OpenServiceMesh.enableBackpressureExperimental | bool | `false` |  |
 | OpenServiceMesh.enableDebugServer | bool | `false` |  |
 | OpenServiceMesh.enableEgress | bool | `false` |  |
@@ -37,7 +37,7 @@ A Helm chart to install the OSM control plane on Kubernetes
 | OpenServiceMesh.vault.protocol | string | `"http"` |  |
 | OpenServiceMesh.vault.role | string | `"openservicemesh"` |  |
 | OpenServiceMesh.vault.token | string | `nil` |  |
-| OpenServiceMesh.zipkin.address | string | `"zipkin.osm-system.svc.cluster.local"` |  |
-| OpenServiceMesh.zipkin.enable | bool | `false` |  |
-| OpenServiceMesh.zipkin.endpoint | string | `"/api/v2/spans"` |  |
-| OpenServiceMesh.zipkin.port | int | `9411` |  |
+| OpenServiceMesh.tracing.address | string | `"jaeger.osm-system.svc.cluster.local"` |  |
+| OpenServiceMesh.tracing.enable | bool | `false` |  |
+| OpenServiceMesh.tracing.endpoint | string | `"/api/v2/spans"` |  |
+| OpenServiceMesh.tracing.port | int | `9411` |  |

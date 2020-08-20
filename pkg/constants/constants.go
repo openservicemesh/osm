@@ -48,14 +48,14 @@ const (
 	// EnvoyTracingCluster is the default name to refer to the tracing cluster.
 	EnvoyTracingCluster = "envoy-tracing-cluster"
 
-	// DefaultZipkinEndpoint is the Zipkin endpoint.
-	DefaultZipkinEndpoint = "/api/v2/spans"
+	// DefaultTracingEndpoint is the default endpoint route.
+	DefaultTracingEndpoint = "/api/v2/spans"
 
-	// DefaultZipkinAddress is the address of the Zipkin server.
-	DefaultZipkinAddress = "zipkin"
+	// DefaultTracingHost is the default tracing server name.
+	DefaultTracingHost = "jaeger"
 
-	// DefaultZipkinPort is the Zipkin port number.
-	DefaultZipkinPort = uint32(9411)
+	// DefaultTracingPort is the tracing listener port.
+	DefaultTracingPort = uint32(9411)
 
 	// DefaultEnvoyLogLevel is the default envoy log level if not defined in the osm configmap
 	DefaultEnvoyLogLevel = "debug"

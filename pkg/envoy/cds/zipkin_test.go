@@ -8,9 +8,9 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
-var _ = Describe("Test CDS Zipkin Configuration", func() {
-	Context("Test getZipkinCluster()", func() {
-		It("Returns Zipkin cluster config", func() {
+var _ = Describe("Test CDS Tracing Configuration", func() {
+	Context("Test getTracingCluster()", func() {
+		It("Returns Tracing cluster config", func() {
 			cfg := configurator.NewFakeConfigurator()
 			actual := getTracingCluster(cfg)
 			Expect(actual.Name).To(Equal(constants.EnvoyTracingCluster))

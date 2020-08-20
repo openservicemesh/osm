@@ -42,9 +42,10 @@ OpenServiceMesh:
   # namespace where OSM resides.
   deployJaeger: true
 
-  # The following section configures a zipkin-protocol based
-  # destination where to send tracing data in zipkin format
-  zipkinEndpoint:
+  # The following section configures a destination where to send
+  # tracing. Current implementation supports only Zipkin format
+  # backends (https://github.com/openservicemesh/osm/issues/1596)
+  tracing:
 
     ## Toggles Envoy's tracing functionality on/off
     ## for all proxies in the mesh.
@@ -53,8 +54,8 @@ OpenServiceMesh:
     # Tracing destination cluster
     address: "jaeger.osm-system.svc.cluster.local"
 
-    # Destination port for the Zipkin protocol listener
+    # Destination port for the protocol listener
     port: 9411
 
-    # Destination endpoint for the zipkin listener
+    # Destination endpoint route
     endpoint: "/api/v2/spans"

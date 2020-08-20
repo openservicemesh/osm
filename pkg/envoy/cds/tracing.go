@@ -26,7 +26,7 @@ func getTracingCluster(cfg configurator.Configurator) xds_cluster.Cluster {
 					LbEndpoints: []*xds_endpoint.LbEndpoint{{
 						HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
 							Endpoint: &xds_endpoint.Endpoint{
-								Address: envoy.GetAddress(cfg.GetZipkinHost(), cfg.GetZipkinPort()),
+								Address: envoy.GetAddress(cfg.GetTracingHost(), cfg.GetTracingPort()),
 							},
 						},
 					}},

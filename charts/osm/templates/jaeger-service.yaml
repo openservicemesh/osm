@@ -11,6 +11,6 @@ spec:
   ports:
   - protocol: TCP
     # Service port and target port are the same
-    port: {{ .Values.OpenServiceMesh.zipkinEndpoint.port }}
+    port: {{ .Values.OpenServiceMesh.tracing.port }}
   type: ClusterIP
 {{- end }}

@@ -37,17 +37,17 @@ type Configurator interface {
 	// IsPrometheusScrapingEnabled determines whether Prometheus is enabled for scraping metrics
 	IsPrometheusScrapingEnabled() bool
 
-	// IsZipkinTracingEnabled determines whether Zipkin tracing is enabled
-	IsZipkinTracingEnabled() bool
+	// IsTracingEnabled returns whether tracing is enabled
+	IsTracingEnabled() bool
 
-	// GetZipkinHost is the host to which we send Zipkin spans
-	GetZipkinHost() string
+	// GetTracingHost is the host to which we send tracing spans
+	GetTracingHost() string
 
-	// GetZipkinPort returns the Zipkin port
-	GetZipkinPort() uint32
+	// GetTracingPort returns the tracing listener port
+	GetTracingPort() uint32
 
-	// GetZipkinEndpoint returns the Zipkin endpoint
-	GetZipkinEndpoint() string
+	// GetTracingEndpoint returns the tracing endpoint route
+	GetTracingEndpoint() string
 
 	// GetMeshCIDRRanges returns a list of mesh CIDR ranges
 	GetMeshCIDRRanges() []string

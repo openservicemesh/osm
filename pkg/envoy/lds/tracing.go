@@ -9,16 +9,16 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
-// GetZipkinTracingConfig returns a configuration tracing struct for a connection manager to use
-func GetZipkinTracingConfig(cfg configurator.Configurator) (*xds_hcm.HttpConnectionManager_Tracing, error) {
+// GetTracingConfig returns a configuration tracing struct for a connection manager to use
+func GetTracingConfig(cfg configurator.Configurator) (*xds_hcm.HttpConnectionManager_Tracing, error) {
 
-	zipkinConf := &xds_tracing.ZipkinConfig{
+	zipkinTracingConf := &xds_tracing.ZipkinConfig{
 		CollectorCluster:         constants.EnvoyTracingCluster,
-		CollectorEndpoint:        cfg.GetZipkinEndpoint(),
+		CollectorEndpoint:        cfg.GetTracingEndpoint(),
 		CollectorEndpointVersion: xds_tracing.ZipkinConfig_HTTP_JSON,
 	}
 
-	zipkinConfMarshalled, err := ptypes.MarshalAny(zipkinConf)
+	zipkinConfMarshalled, err := ptypes.MarshalAny(zipkinTracingConf)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshalling zipkinConf config %s", err)
 		return nil, err

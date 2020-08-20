@@ -101,10 +101,10 @@ var _ = Describe("Test OSM ConfigMap parsing", func() {
 				"PermissiveTrafficPolicyMode": permissiveTrafficPolicyModeKey,
 				"Egress":                      egressKey,
 				"PrometheusScraping":          prometheusScrapingKey,
-				"ZipkinTracing":               zipkinTracingKey,
-				"ZipkinAddress":               zipkinAddressKey,
-				"ZipkinPort":                  zipkinPortKey,
-				"ZipkinEndpoint":              zipkinEndpointKey,
+				"TracingEnable":               tracingEnableKey,
+				"TracingAddress":              tracingAddressKey,
+				"TracingPort":                 tracingPortKey,
+				"TracingEndpoint":             tracingEndpointKey,
 				"MeshCIDRRanges":              meshCIDRRangesKey,
 				"UseHTTPSIngress":             useHTTPSIngressKey,
 				"EnvoyLogLevel":               envoyLogLevel,
@@ -127,25 +127,25 @@ var _ = Describe("Test OSM ConfigMap parsing", func() {
 		})
 
 		It("Test getBoolValueForKey()", func() {
-			cm := &v1.ConfigMap{Data: map[string]string{zipkinTracingKey: "true"}}
-			Expect(getBoolValueForKey(cm, zipkinTracingKey)).To(BeTrue())
+			cm := &v1.ConfigMap{Data: map[string]string{tracingEnableKey: "true"}}
+			Expect(getBoolValueForKey(cm, tracingEnableKey)).To(BeTrue())
 			Expect(getBoolValueForKey(cm, egressKey)).To(BeFalse())
 		})
 
 		It("Test getIntValueForKey()", func() {
-			cm := &v1.ConfigMap{Data: map[string]string{zipkinPortKey: "12345"}}
-			Expect(getIntValueForKey(cm, zipkinPortKey)).To(Equal(12345))
+			cm := &v1.ConfigMap{Data: map[string]string{tracingPortKey: "12345"}}
+			Expect(getIntValueForKey(cm, tracingPortKey)).To(Equal(12345))
 
 			cm0 := &v1.ConfigMap{Data: map[string]string{}}
 			Expect(getIntValueForKey(cm0, egressKey)).To(Equal(0))
 		})
 
 		It("Test getStringValueForKey()", func() {
-			cm := &v1.ConfigMap{Data: map[string]string{zipkinEndpointKey: "foo"}}
-			Expect(getStringValueForKey(cm, zipkinEndpointKey)).To(Equal("foo"))
+			cm := &v1.ConfigMap{Data: map[string]string{tracingEndpointKey: "foo"}}
+			Expect(getStringValueForKey(cm, tracingEndpointKey)).To(Equal("foo"))
 
 			cm0 := &v1.ConfigMap{Data: map[string]string{}}
-			Expect(getStringValueForKey(cm0, zipkinEndpointKey)).To(Equal(""))
+			Expect(getStringValueForKey(cm0, tracingEndpointKey)).To(Equal(""))
 		})
 	})
 })
