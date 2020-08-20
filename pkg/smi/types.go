@@ -20,20 +20,20 @@ var (
 
 // InformerCollection is a struct of the Kubernetes informers used in OSM
 type InformerCollection struct {
-	Services      cache.SharedIndexInformer
-	TrafficSplit  cache.SharedIndexInformer
-	TrafficSpec   cache.SharedIndexInformer
-	TrafficTarget cache.SharedIndexInformer
-	Backpressure  cache.SharedIndexInformer
+	Services       cache.SharedIndexInformer
+	TrafficSplit   cache.SharedIndexInformer
+	HTTPRouteGroup cache.SharedIndexInformer
+	TrafficTarget  cache.SharedIndexInformer
+	Backpressure   cache.SharedIndexInformer
 }
 
 // CacheCollection is a struct of the Kubernetes caches used in OSM
 type CacheCollection struct {
-	Services      cache.Store
-	TrafficSplit  cache.Store
-	TrafficSpec   cache.Store
-	TrafficTarget cache.Store
-	Backpressure  cache.Store
+	Services       cache.Store
+	TrafficSplit   cache.Store
+	HTTPRouteGroup cache.Store
+	TrafficTarget  cache.Store
+	Backpressure   cache.Store
 }
 
 // Client is a struct for all components necessary to connect to and maintain state of a Kubernetes cluster.

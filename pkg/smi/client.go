@@ -5,11 +5,11 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
-	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha3"
-	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
-	smiTrafficTargetClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/clientset/versioned"
-	smiTrafficTargetInformers "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/informers/externalversions"
+	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
+	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha3"
+	smiSplit "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
+	smiAccessClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/clientset/versioned"
+	smiAccessInformers "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/informers/externalversions"
 	smiTrafficSpecClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/specs/clientset/versioned"
 	smiTrafficSpecInformers "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/specs/informers/externalversions"
 	smiTrafficSplitClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/clientset/versioned"
@@ -20,8 +20,8 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
-	backpressure "github.com/openservicemesh/osm/experimental/pkg/apis/policy/v1alpha1"
-	backpressureClient "github.com/openservicemesh/osm/experimental/pkg/client/clientset/versioned"
+	osmPolicy "github.com/openservicemesh/osm/experimental/pkg/apis/policy/v1alpha1"
+	osmPolicyClient "github.com/openservicemesh/osm/experimental/pkg/client/clientset/versioned"
 	backpressureInformers "github.com/openservicemesh/osm/experimental/pkg/client/informers/externalversions"
 	"github.com/openservicemesh/osm/pkg/featureflags"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
@@ -36,11 +36,11 @@ const kubernetesClientName = "MeshSpec"
 func NewMeshSpecClient(smiKubeConfig *rest.Config, kubeClient kubernetes.Interface, osmNamespace string, namespaceController namespace.Controller, stop chan struct{}) (MeshSpec, error) {
 	smiTrafficSplitClientSet := smiTrafficSplitClient.NewForConfigOrDie(smiKubeConfig)
 	smiTrafficSpecClientSet := smiTrafficSpecClient.NewForConfigOrDie(smiKubeConfig)
-	smiTrafficTargetClientSet := smiTrafficTargetClient.NewForConfigOrDie(smiKubeConfig)
+	smiTrafficTargetClientSet := smiAccessClient.NewForConfigOrDie(smiKubeConfig)
 
-	var backpressureClientSet *backpressureClient.Clientset
+	var backpressureClientSet *osmPolicyClient.Clientset
 	if featureflags.IsBackpressureEnabled() {
-		backpressureClientSet = backpressureClient.NewForConfigOrDie(smiKubeConfig)
+		backpressureClientSet = osmPolicyClient.NewForConfigOrDie(smiKubeConfig)
 	}
 
 	client, err := newSMIClient(
@@ -67,10 +67,10 @@ func (c *Client) run(stop <-chan struct{}) error {
 	}
 
 	sharedInformers := map[string]cache.SharedInformer{
-		"TrafficSplit":  c.informers.TrafficSplit,
-		"Services":      c.informers.Services,
-		"TrafficSpec":   c.informers.TrafficSpec,
-		"TrafficTarget": c.informers.TrafficTarget,
+		"TrafficSplit":   c.informers.TrafficSplit,
+		"Services":       c.informers.Services,
+		"HTTPRouteGroup": c.informers.HTTPRouteGroup,
+		"TrafficTarget":  c.informers.TrafficTarget,
 	}
 
 	if featureflags.IsBackpressureEnabled() {
@@ -107,24 +107,24 @@ func (c *Client) GetAnnouncementsChannel() <-chan interface{} {
 }
 
 // newClient creates a provider based on a Kubernetes client instance.
-func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient smiTrafficSplitClient.Interface, smiTrafficSpecClient smiTrafficSpecClient.Interface, smiTrafficTargetClient smiTrafficTargetClient.Interface, backpressureClient backpressureClient.Interface, osmNamespace string, namespaceController namespace.Controller, providerIdent string, stop chan struct{}) (*Client, error) {
+func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient smiTrafficSplitClient.Interface, smiTrafficSpecClient smiTrafficSpecClient.Interface, smiAccessClient smiAccessClient.Interface, backpressureClient osmPolicyClient.Interface, osmNamespace string, namespaceController namespace.Controller, providerIdent string, stop chan struct{}) (*Client, error) {
 	informerFactory := informers.NewSharedInformerFactory(kubeClient, k8s.DefaultKubeEventResyncInterval)
 	smiTrafficSplitInformerFactory := smiTrafficSplitInformers.NewSharedInformerFactory(smiTrafficSplitClient, k8s.DefaultKubeEventResyncInterval)
 	smiTrafficSpecInformerFactory := smiTrafficSpecInformers.NewSharedInformerFactory(smiTrafficSpecClient, k8s.DefaultKubeEventResyncInterval)
-	smiTrafficTargetInformerFactory := smiTrafficTargetInformers.NewSharedInformerFactory(smiTrafficTargetClient, k8s.DefaultKubeEventResyncInterval)
+	smiTrafficTargetInformerFactory := smiAccessInformers.NewSharedInformerFactory(smiAccessClient, k8s.DefaultKubeEventResyncInterval)
 
 	informerCollection := InformerCollection{
-		Services:      informerFactory.Core().V1().Services().Informer(),
-		TrafficSplit:  smiTrafficSplitInformerFactory.Split().V1alpha2().TrafficSplits().Informer(),
-		TrafficSpec:   smiTrafficSpecInformerFactory.Specs().V1alpha3().HTTPRouteGroups().Informer(),
-		TrafficTarget: smiTrafficTargetInformerFactory.Access().V1alpha2().TrafficTargets().Informer(),
+		Services:       informerFactory.Core().V1().Services().Informer(),
+		TrafficSplit:   smiTrafficSplitInformerFactory.Split().V1alpha2().TrafficSplits().Informer(),
+		HTTPRouteGroup: smiTrafficSpecInformerFactory.Specs().V1alpha3().HTTPRouteGroups().Informer(),
+		TrafficTarget:  smiTrafficTargetInformerFactory.Access().V1alpha2().TrafficTargets().Informer(),
 	}
 
 	cacheCollection := CacheCollection{
-		Services:      informerCollection.Services.GetStore(),
-		TrafficSplit:  informerCollection.TrafficSplit.GetStore(),
-		TrafficSpec:   informerCollection.TrafficSpec.GetStore(),
-		TrafficTarget: informerCollection.TrafficTarget.GetStore(),
+		Services:       informerCollection.Services.GetStore(),
+		TrafficSplit:   informerCollection.TrafficSplit.GetStore(),
+		HTTPRouteGroup: informerCollection.HTTPRouteGroup.GetStore(),
+		TrafficTarget:  informerCollection.TrafficTarget.GetStore(),
 	}
 
 	if featureflags.IsBackpressureEnabled() {
@@ -149,7 +149,7 @@ func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient smiTraf
 	}
 	informerCollection.Services.AddEventHandler(k8s.GetKubernetesEventHandlers("Services", "SMI", client.announcements, shouldObserve))
 	informerCollection.TrafficSplit.AddEventHandler(k8s.GetKubernetesEventHandlers("TrafficSplit", "SMI", client.announcements, shouldObserve))
-	informerCollection.TrafficSpec.AddEventHandler(k8s.GetKubernetesEventHandlers("TrafficSpec", "SMI", client.announcements, shouldObserve))
+	informerCollection.HTTPRouteGroup.AddEventHandler(k8s.GetKubernetesEventHandlers("HTTPRouteGroup", "SMI", client.announcements, shouldObserve))
 	informerCollection.TrafficTarget.AddEventHandler(k8s.GetKubernetesEventHandlers("TrafficTarget", "SMI", client.announcements, shouldObserve))
 
 	if featureflags.IsBackpressureEnabled() {
@@ -165,10 +165,10 @@ func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient smiTraf
 }
 
 // ListTrafficSplits implements mesh.MeshSpec by returning the list of traffic splits.
-func (c *Client) ListTrafficSplits() []*split.TrafficSplit {
-	var trafficSplits []*split.TrafficSplit
+func (c *Client) ListTrafficSplits() []*smiSplit.TrafficSplit {
+	var trafficSplits []*smiSplit.TrafficSplit
 	for _, splitIface := range c.caches.TrafficSplit.List() {
-		trafficSplit := splitIface.(*split.TrafficSplit)
+		trafficSplit := splitIface.(*smiSplit.TrafficSplit)
 
 		if !c.namespaceController.IsMonitoredNamespace(trafficSplit.Namespace) {
 			continue
@@ -179,10 +179,10 @@ func (c *Client) ListTrafficSplits() []*split.TrafficSplit {
 }
 
 // ListHTTPTrafficSpecs lists SMI HTTPRouteGroup resources
-func (c *Client) ListHTTPTrafficSpecs() []*spec.HTTPRouteGroup {
-	var httpTrafficSpec []*spec.HTTPRouteGroup
-	for _, specIface := range c.caches.TrafficSpec.List() {
-		routeGroup := specIface.(*spec.HTTPRouteGroup)
+func (c *Client) ListHTTPTrafficSpecs() []*smiSpecs.HTTPRouteGroup {
+	var httpTrafficSpec []*smiSpecs.HTTPRouteGroup
+	for _, specIface := range c.caches.HTTPRouteGroup.List() {
+		routeGroup := specIface.(*smiSpecs.HTTPRouteGroup)
 
 		if !c.namespaceController.IsMonitoredNamespace(routeGroup.Namespace) {
 			continue
@@ -193,10 +193,10 @@ func (c *Client) ListHTTPTrafficSpecs() []*spec.HTTPRouteGroup {
 }
 
 // ListTrafficTargets implements mesh.Topology by returning the list of traffic targets.
-func (c *Client) ListTrafficTargets() []*target.TrafficTarget {
-	var trafficTargets []*target.TrafficTarget
+func (c *Client) ListTrafficTargets() []*smiAccess.TrafficTarget {
+	var trafficTargets []*smiAccess.TrafficTarget
 	for _, targetIface := range c.caches.TrafficTarget.List() {
-		trafficTarget := targetIface.(*target.TrafficTarget)
+		trafficTarget := targetIface.(*smiAccess.TrafficTarget)
 
 		if !c.namespaceController.IsMonitoredNamespace(trafficTarget.Namespace) {
 			continue
@@ -207,14 +207,14 @@ func (c *Client) ListTrafficTargets() []*target.TrafficTarget {
 }
 
 // GetBackpressurePolicy gets the Backpressure policy corresponding to the MeshService
-func (c *Client) GetBackpressurePolicy(svc service.MeshService) *backpressure.Backpressure {
+func (c *Client) GetBackpressurePolicy(svc service.MeshService) *osmPolicy.Backpressure {
 	if !featureflags.IsBackpressureEnabled() {
 		log.Info().Msgf("Backpressure turned off!")
 		return nil
 	}
 
 	for _, iface := range c.caches.Backpressure.List() {
-		backpressure := iface.(*backpressure.Backpressure)
+		backpressure := iface.(*osmPolicy.Backpressure)
 
 		if !c.namespaceController.IsMonitoredNamespace(backpressure.Namespace) {
 			continue
@@ -237,7 +237,7 @@ func (c *Client) GetBackpressurePolicy(svc service.MeshService) *backpressure.Ba
 func (c *Client) ListTrafficSplitServices() []service.WeightedService {
 	var services []service.WeightedService
 	for _, splitIface := range c.caches.TrafficSplit.List() {
-		trafficSplit := splitIface.(*split.TrafficSplit)
+		trafficSplit := splitIface.(*smiSplit.TrafficSplit)
 		rootService := trafficSplit.Spec.Service
 
 		for _, backend := range trafficSplit.Spec.Backends {
@@ -258,7 +258,7 @@ func (c *Client) ListTrafficSplitServices() []service.WeightedService {
 func (c *Client) ListServiceAccounts() []service.K8sServiceAccount {
 	var serviceAccounts []service.K8sServiceAccount
 	for _, targetIface := range c.caches.TrafficTarget.List() {
-		trafficTarget := targetIface.(*target.TrafficTarget)
+		trafficTarget := targetIface.(*smiAccess.TrafficTarget)
 
 		for _, sources := range trafficTarget.Spec.Sources {
 			// Only monitor sources in namespaces OSM is observing
