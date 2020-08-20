@@ -46,7 +46,7 @@ type Configurator interface {
 	// GetTracingPort returns the tracing listener port
 	GetTracingPort() uint32
 
-	// GetTracingEndpoint returns the tracing endpoint route
+	// GetTracingEndpoint returns the collector endpoint
 	GetTracingEndpoint() string
 
 	// GetMeshCIDRRanges returns a list of mesh CIDR ranges

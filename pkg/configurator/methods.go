@@ -72,7 +72,7 @@ func (c *Client) GetTracingPort() uint32 {
 	return constants.DefaultTracingPort
 }
 
-// GetTracingEndpoint returns the endpoint route
+// GetTracingEndpoint returns the listener's collector endpoint
 func (c *Client) GetTracingEndpoint() string {
 	tracingEndpoint := c.getConfigMap().TracingEndpoint
 	if tracingEndpoint != "" {

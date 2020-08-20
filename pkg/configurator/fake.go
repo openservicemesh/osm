@@ -93,7 +93,7 @@ func (f FakeConfigurator) GetTracingPort() uint32 {
 	return constants.DefaultTracingPort
 }
 
-// GetTracingEndpoint returns the tracing endpoint route
+// GetTracingEndpoint returns the listener's collector endpoint
 func (f FakeConfigurator) GetTracingEndpoint() string {
 	return constants.DefaultTracingEndpoint
 }

@@ -87,7 +87,7 @@ type osmConfig struct {
 	// TracingPort remote port for the listener
 	TracingPort int `yaml:"tracing_port"`
 
-	// TracingEndpoint is the protocol path endpoint for the listener
+	// TracingEndpoint is the collector endpoint on the listener
 	TracingEndpoint string `yaml:"tracing_endpoint"`
 
 	// MeshCIDRRanges is the list of CIDR ranges for in-mesh traffic

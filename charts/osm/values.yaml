@@ -43,7 +43,7 @@ OpenServiceMesh:
   deployJaeger: true
 
   # The following section configures a destination where to send
-  # tracing. Current implementation supports only Zipkin format
+  # tracing data. Current implementation supports only Zipkin format
   # backends (https://github.com/openservicemesh/osm/issues/1596)
   tracing:
 
@@ -54,8 +54,9 @@ OpenServiceMesh:
     # Tracing destination cluster
     address: "jaeger.osm-system.svc.cluster.local"
 
-    # Destination port for the protocol listener
+    # Destination port for the listener
     port: 9411
 
-    # Destination endpoint route
+    # Destination's API or collector endpoint where the spans will 
+    # be sent to
     endpoint: "/api/v2/spans"
