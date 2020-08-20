@@ -15,6 +15,9 @@ iptables -t nat -N PROXY_REDIRECT
 #DB traffic let through
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "5432" -j ACCEPT
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "8200" -j ACCEPT
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "5556" -j ACCEPT
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "5557" -j ACCEPT
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "32443" -j ACCEPT
 
 iptables -t nat -A PROXY_REDIRECT -p tcp -j REDIRECT --to-port "${PROXY_PORT}"
 
@@ -38,6 +41,9 @@ iptables -t nat -A PROXY_INBOUND -p tcp --dport "${PROXY_STATS_PORT}" -j RETURN
 
 iptables -t nat -A PROXY_INBOUND -p tcp --sport "5432" -j RETURN
 iptables -t nat -A PROXY_INBOUND -p tcp --sport "8200" -j RETURN
+iptables -t nat -A PROXY_INBOUND -p tcp --sport "5556" -j RETURN
+iptables -t nat -A PROXY_INBOUND -p tcp --sport "5557" -j RETURN
+iptables -t nat -A PROXY_INBOUND -p tcp --sport "32443" -j RETURN
 
 # Redirect remaining inbound traffic to PROXY_INBOUND_PORT
 iptables -t nat -A PROXY_INBOUND -p tcp -j PROXY_IN_REDIRECT
