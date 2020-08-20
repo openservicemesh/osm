@@ -10,7 +10,6 @@ import (
 
 // NewFakeProvider implements mesh.EndpointsProvider, which creates a test Kubernetes cluster/compute provider.
 func NewFakeProvider() endpoint.Provider {
-
 	return &fakeClient{
 		endpoints: map[string][]endpoint.Endpoint{
 			tests.BookstoreService.String(): {tests.Endpoint},

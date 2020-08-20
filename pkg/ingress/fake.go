@@ -1,8 +1,9 @@
 package ingress
 
 import (
-	"github.com/openservicemesh/osm/pkg/service"
 	extensionsV1beta "k8s.io/api/extensions/v1beta1"
+
+	"github.com/openservicemesh/osm/pkg/service"
 )
 
 // FakeIngressMonitor returns a fake ingress monitor object

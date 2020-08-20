@@ -48,7 +48,6 @@ func (mc *MeshCatalog) GetServicesFromEnvoyCertificate(cn certificate.CommonName
 			Name:      svc.Name,
 		}
 		serviceList = append(serviceList, meshService)
-
 	}
 	return serviceList, nil
 }

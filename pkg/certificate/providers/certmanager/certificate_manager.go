@@ -218,7 +218,7 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod *time.Dur
 	return cert, nil
 }
 
-// NewCertManager will contruct a new certificate.Certificater implemented
+// NewCertManager will construct a new certificate.Certificater implemented
 // using Jetstack's cert-manager,
 func NewCertManager(
 	ca certificate.Certificater,

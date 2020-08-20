@@ -244,7 +244,6 @@ func (wh *webhook) mustInject(pod *corev1.Pod, namespace string) (bool, error) {
 	inject := strings.ToLower(pod.ObjectMeta.Annotations[annotationInject])
 	log.Debug().Msgf("Sidecar injection annotation: '%s:%s'", annotationInject, inject)
 	if inject != "" {
-
 		switch inject {
 		case "enabled", "yes", "true":
 			return true, nil

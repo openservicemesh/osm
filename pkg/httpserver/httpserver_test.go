@@ -77,7 +77,7 @@ var _ = Describe("Test httpserver", func() {
 			Config: httpServ.server,
 		}
 
-		It("should return 404 for a non-existant debug url", func() {
+		It("should return 404 for a non-existent debug url", func() {
 			req := httptest.NewRequest("GET", fmt.Sprintf("%s%s", url, invalidRoutePath), nil)
 
 			w := httptest.NewRecorder()

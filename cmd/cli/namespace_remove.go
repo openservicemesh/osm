@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
+
+	"github.com/openservicemesh/osm/pkg/constants"
 )
 
 const namespaceRemoveDescription = `
