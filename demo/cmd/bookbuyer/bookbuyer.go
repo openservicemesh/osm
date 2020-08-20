@@ -102,7 +102,6 @@ func getBooksWrapper(wg *sync.WaitGroup) {
 }
 
 func main() {
-
 	go debugServer()
 
 	numConnections, err := strconv.Atoi(numConnectionsStr)

@@ -2,6 +2,7 @@ package trafficpolicy
 
 import (
 	set "github.com/deckarep/golang-set"
+
 	"github.com/openservicemesh/osm/pkg/service"
 )
 

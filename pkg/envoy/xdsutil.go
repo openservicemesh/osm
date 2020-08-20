@@ -117,7 +117,6 @@ func UnmarshalSDSCert(str string) (*SDSCert, error) {
 	}
 
 	return &ret, nil
-
 }
 
 // String is a common facility/interface to generate a string resource name out of a SDSCert

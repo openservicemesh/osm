@@ -441,7 +441,8 @@ var _ = Describe("When getting a Service associated with a ServiceAccount", func
 			{Name: "test-1", Namespace: testNamespace},
 			{Name: "test-2", Namespace: testNamespace},
 		}
-		Expect(meshServices).To(Equal(expectedServices))
+		Expect(meshServices[0]).To(BeElementOf(expectedServices))
+		Expect(meshServices[1]).To(BeElementOf(expectedServices))
 
 		err = fakeClientSet.AppsV1().Deployments(testNamespace).Delete(context.Background(), deployment.Name, metav1.DeleteOptions{})
 		Expect(err).ToNot(HaveOccurred())

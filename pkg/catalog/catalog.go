@@ -39,7 +39,6 @@ func NewMeshCatalog(namespaceController namespace.Controller, kubeClient kuberne
 
 	for _, announcementChannel := range sc.getAnnouncementChannels() {
 		sc.announcementChannels.Add(announcementChannel)
-
 	}
 
 	go sc.repeater()

@@ -7,9 +7,6 @@ import (
 	"strings"
 
 	mapset "github.com/deckarep/golang-set"
-	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
-	"github.com/openservicemesh/osm/pkg/service"
-
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -21,7 +18,9 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/namespace"
+	"github.com/openservicemesh/osm/pkg/service"
 )
 
 // NewProvider implements mesh.EndpointsProvider, which creates a new Kubernetes cluster/compute provider.
@@ -103,7 +102,6 @@ func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endp
 					}
 					endpoints = append(endpoints, ept)
 				}
-
 			}
 		}
 	}

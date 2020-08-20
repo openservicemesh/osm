@@ -137,7 +137,6 @@ func GetBooks(participantName string, meshExpectedResponseCode int, egressExpect
 		startTime := time.Now()
 
 		for url := range urlSuccessMap {
-
 			// We only care about the response code of the HTTP call for the given URL
 			responseCode, identity := fetch(url)
 
@@ -172,7 +171,6 @@ func GetBooks(participantName string, meshExpectedResponseCode int, egressExpect
 					// Maestro will stop tailing logs.
 					fmt.Println(Success)
 				}
-
 			}
 
 			if previouslySucceeded && !succeeded {
