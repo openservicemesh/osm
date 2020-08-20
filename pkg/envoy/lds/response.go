@@ -66,7 +66,6 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 			// This proxy is fronting a service that is a backend for an ingress, add a FilterChain for it
 			ingressFilterChains := getIngressFilterChains(proxyServiceName, cfg)
 			inboundListener.FilterChains = append(inboundListener.FilterChains, ingressFilterChains...)
-
 		} else {
 			log.Trace().Msgf("There is no k8s Ingress for service %s", proxyServiceName)
 		}

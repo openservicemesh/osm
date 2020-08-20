@@ -94,7 +94,6 @@ func (mc *MeshCatalog) getAllowedDirectionalServices(svc service.MeshService, di
 // ListAllowedInboundServices lists the inbound services allowed to connect to the given service.
 func (mc *MeshCatalog) ListAllowedInboundServices(destinationService service.MeshService) ([]service.MeshService, error) {
 	return mc.getAllowedDirectionalServices(destinationService, inbound)
-
 }
 
 // ListAllowedOutboundServices lists the services the given service is allowed outbound connections to.
@@ -275,7 +274,6 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[trafficpolicy.T
 				if !matchFound {
 					log.Error().Msgf("TrafficTarget %s/%s could not find a TrafficSpec %s", trafficTargets.Namespace, trafficTargets.Name, specKey)
 					return nil, errNoTrafficSpecFoundForTrafficPolicy
-
 				}
 				if len(trafficTargetSpecs.Matches) == 0 {
 					// no match name provided, so routes are build for all matches in traffic spec

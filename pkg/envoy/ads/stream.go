@@ -50,7 +50,6 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 	go receive(requests, &server, proxy, quit)
 
 	for {
-
 		select {
 		case <-ctx.Done():
 			return nil
@@ -148,7 +147,6 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 		case <-proxy.GetAnnouncementsChannel():
 			log.Info().Msgf("Change detected - update all Envoys.")
 			s.sendAllResponses(proxy, &server, s.cfg)
-
 		}
 	}
 }

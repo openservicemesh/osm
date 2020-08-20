@@ -58,7 +58,6 @@ type handler struct {
 func getIndex(w http.ResponseWriter, r *http.Request) {
 	renderTemplate(w)
 	fmt.Printf("%s;  URL: %q;  Count: %d\n", getIdentity(), html.EscapeString(r.URL.Path), booksStolen)
-
 }
 
 func getHandlers() []handler {
@@ -88,7 +87,6 @@ func debugServer() {
 }
 
 func main() {
-
 	go debugServer()
 
 	// The bookthief is not allowed to purchase books from the bookstore.

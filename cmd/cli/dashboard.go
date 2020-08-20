@@ -48,7 +48,6 @@ type dashboardCmd struct {
 }
 
 func newDashboardCmd(config *action.Configuration, out io.Writer) *cobra.Command {
-
 	dash := &dashboardCmd{
 		out:        out,
 		config:     config,

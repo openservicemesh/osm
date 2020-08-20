@@ -172,7 +172,6 @@ func main() {
 				}
 			}
 		}
-
 	}
 
 	// Targeting osm-controller specifically might be ok for now

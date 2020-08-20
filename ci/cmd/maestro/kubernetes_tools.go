@@ -133,11 +133,9 @@ func SearchLogsForSuccess(kubeClient kubernetes.Interface, namespace string, pod
 		defer logStream.Close()
 		r := bufio.NewReader(logStream)
 		for {
-
 			line, err := r.ReadString('\n')
 
 			switch {
-
 			// Make sure we don't wait too long for success/failure
 			case time.Since(startedWaiting) >= totalWait:
 				result <- TestsTimedOut

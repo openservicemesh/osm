@@ -58,5 +58,4 @@ func (ds debugServer) forwardPort(req portForward) {
 	if err = fw.ForwardPorts(); err != nil {
 		log.Error().Err(err)
 	}
-
 }
