@@ -85,7 +85,7 @@ var (
 func init() {
 	flags.StringVarP(&verbosity, "verbosity", "v", "info", "Set log verbosity level")
 	flags.StringVar(&meshName, "mesh-name", "", "OSM mesh name")
-	// Disabled, pending Identity + VM representation in SMI (#88)
+	// TODO (#88): Azure Auth file disabled, pending on Identity + VM representation in SMI
 	//flags.StringVar(&azureAuthFile, "azure-auth-file", "", "Path to Azure Auth File")
 	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file.")
 	flags.StringVar(&osmNamespace, "osm-namespace", "", "Namespace to which OSM belongs to.")
@@ -171,6 +171,8 @@ func main() {
 	}
 
 	endpointsProviders := []endpoint.Provider{provider}
+
+	// TODO (#88): Add Azure Endpoint provider to list of providers when supported
 
 	ingressClient, err := ingress.NewIngressClient(kubeClient, namespaceController, stop, cfg)
 	if err != nil {
