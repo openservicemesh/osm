@@ -76,7 +76,7 @@ func (wh *webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 	// envoyNodeID and envoyClusterID are required for Envoy proxy to start.
 	envoyNodeID := pod.Spec.ServiceAccountName
 
-	// envoyCluster ID will be used as an identifier to the tracing sink (will be used in Zipkin for example).
+	// envoyCluster ID will be used as an identifier to the tracing sink
 	envoyClusterID := fmt.Sprintf("%s.%s", pod.Spec.ServiceAccountName, namespace)
 
 	patches = append(patches, addContainer(

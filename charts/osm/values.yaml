@@ -38,24 +38,25 @@ OpenServiceMesh:
   useHTTPSIngress: false
   envoyLogLevel: debug
 
-  # Set deployZipkin to true to deploy a Zipkin cluster in the
-  # namespace where OSM resides. Set this to false if Zipkin
-  # has already been installed or is not needed.
-  deployZipkin: false
+  # Set deployJaeger to true to deploy a Jaeger cluster in the
+  # namespace where OSM resides.
+  deployJaeger: true
 
-  # The following section configures Zipkin tracing for the Envoys
-  # connected to the OSM control plane.
-  zipkin:
+  # The following section configures a destination where to send
+  # tracing data. Current implementation supports only Zipkin format
+  # backends (https://github.com/openservicemesh/osm/issues/1596)
+  tracing:
 
     ## Toggles Envoy's tracing functionality on/off
     ## for all proxies in the mesh.
-    enable: false
+    enable: true
 
-    # Informs Envoys where the Zipkin spans should be sent
-    address: "zipkin.osm-system.svc.cluster.local"
+    # Tracing destination cluster
+    address: "jaeger.osm-system.svc.cluster.local"
 
-    # Port of the Zipkin cluster
+    # Destination port for the listener
     port: 9411
 
-    # Endpoint for the Zipkin cluster
+    # Destination's API or collector endpoint where the spans will 
+    # be sent to
     endpoint: "/api/v2/spans"

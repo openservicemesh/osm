@@ -49,36 +49,36 @@ func (c *Client) IsPrometheusScrapingEnabled() bool {
 	return c.getConfigMap().PrometheusScraping
 }
 
-// IsZipkinTracingEnabled determines whether Zipkin tracing is enabled
-func (c *Client) IsZipkinTracingEnabled() bool {
-	return c.getConfigMap().ZipkinTracing
+// IsTracingEnabled returns whether tracing is enabled
+func (c *Client) IsTracingEnabled() bool {
+	return c.getConfigMap().TracingEnable
 }
 
-// GetZipkinHost is the host to which we send Zipkin spans
-func (c *Client) GetZipkinHost() string {
-	zipkinAddress := c.getConfigMap().ZipkinAddress
-	if zipkinAddress != "" {
-		return zipkinAddress
+// GetTracingHost is the host to which we send tracing spans
+func (c *Client) GetTracingHost() string {
+	tracingAddress := c.getConfigMap().TracingAddress
+	if tracingAddress != "" {
+		return tracingAddress
 	}
-	return fmt.Sprintf("%s.%s.svc.cluster.local", constants.DefaultZipkinAddress, c.GetOSMNamespace())
+	return fmt.Sprintf("%s.%s.svc.cluster.local", constants.DefaultTracingHost, c.GetOSMNamespace())
 }
 
-// GetZipkinPort returns the Zipkin port
-func (c *Client) GetZipkinPort() uint32 {
-	zipkinPort := c.getConfigMap().ZipkinPort
-	if zipkinPort != 0 {
-		return uint32(zipkinPort)
+// GetTracingPort returns the tracing listener port
+func (c *Client) GetTracingPort() uint32 {
+	tracingPort := c.getConfigMap().TracingPort
+	if tracingPort != 0 {
+		return uint32(tracingPort)
 	}
-	return constants.DefaultZipkinPort
+	return constants.DefaultTracingPort
 }
 
-// GetZipkinEndpoint returns the Zipkin endpoint
-func (c *Client) GetZipkinEndpoint() string {
-	zipkinEndpoint := c.getConfigMap().ZipkinEndpoint
-	if zipkinEndpoint != "" {
-		return zipkinEndpoint
+// GetTracingEndpoint returns the listener's collector endpoint
+func (c *Client) GetTracingEndpoint() string {
+	tracingEndpoint := c.getConfigMap().TracingEndpoint
+	if tracingEndpoint != "" {
+		return tracingEndpoint
 	}
-	return constants.DefaultZipkinEndpoint
+	return constants.DefaultTracingEndpoint
 }
 
 // GetMeshCIDRRanges returns a list of mesh CIDR ranges

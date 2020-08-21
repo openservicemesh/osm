@@ -19,7 +19,7 @@ var _ = Describe("Test Envoy configuration creation", func() {
 		egressKey:                      "true",
 		meshCIDRRangesKey:              testCIDRRanges,
 		prometheusScrapingKey:          "true",
-		zipkinTracingKey:               "true",
+		tracingEnableKey:               "true",
 		envoyLogLevel:                  testDebugEnvoyLogLevel,
 	}
 
@@ -59,7 +59,7 @@ var _ = Describe("Test Envoy configuration creation", func() {
 				PermissiveTrafficPolicyMode: false,
 				Egress:                      true,
 				PrometheusScraping:          true,
-				ZipkinTracing:               true,
+				TracingEnable:               true,
 				MeshCIDRRanges:              testCIDRRanges,
 				EnvoyLogLevel:               testDebugEnvoyLogLevel,
 			}
@@ -229,7 +229,7 @@ var _ = Describe("Test Envoy configuration creation", func() {
 		})
 	})
 
-	Context("create OSM config for Zipkin tracing", func() {
+	Context("create OSM config for tracing", func() {
 		kubeClient := testclient.NewSimpleClientset()
 		stop := make(chan struct{})
 		osmNamespace := "-test-osm-namespace-"
@@ -237,7 +237,7 @@ var _ = Describe("Test Envoy configuration creation", func() {
 		cfg := NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
 
 		It("correctly identifies that the config is enabled", func() {
-			Expect(cfg.IsZipkinTracingEnabled()).To(BeFalse())
+			Expect(cfg.IsTracingEnabled()).To(BeFalse())
 			configMap := v1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: osmNamespace,
@@ -255,11 +255,11 @@ var _ = Describe("Test Envoy configuration creation", func() {
 			Expect(cfg.GetOSMNamespace()).To(Equal(osmNamespace))
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(cfg.IsZipkinTracingEnabled()).To(BeTrue())
+			Expect(cfg.IsTracingEnabled()).To(BeTrue())
 		})
 
 		It("correctly identifies that the config is disabled", func() {
-			defaultConfigMap[zipkinTracingKey] = "false"
+			defaultConfigMap[tracingEnableKey] = "false"
 			configMap := v1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: osmNamespace,
@@ -277,7 +277,7 @@ var _ = Describe("Test Envoy configuration creation", func() {
 			Expect(cfg.GetOSMNamespace()).To(Equal(osmNamespace))
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(cfg.IsZipkinTracingEnabled()).To(BeFalse())
+			Expect(cfg.IsTracingEnabled()).To(BeFalse())
 		})
 	})
 

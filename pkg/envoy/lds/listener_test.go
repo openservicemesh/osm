@@ -129,7 +129,7 @@ var _ = Describe("Construct inbound and outbound listeners", func() {
 			connManager := getHTTPConnectionManager(route.InboundRouteConfigName, cfg)
 			var nilHcmTrace *xds_hcm.HttpConnectionManager_Tracing = nil
 
-			if cfg.IsZipkinTracingEnabled() {
+			if cfg.IsTracingEnabled() {
 				Expect(connManager.Tracing).NotTo(Equal(nilHcmTrace))
 				Expect(connManager.Tracing.Verbose).To(Equal(true))
 				Expect(connManager.Tracing.Provider.Name).To(Equal("envoy.tracers.zipkin"))

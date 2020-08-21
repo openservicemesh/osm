@@ -75,7 +75,7 @@ var _ = Describe("CDS Response", func() {
 			// 1. Destination cluster
 			// 2. Source cluster
 			// 3. Prometheus cluster
-			// 4. Zipkin cluster
+			// 4. Tracing cluster
 			// 5. Passthrough cluster for egress
 			numExpectedClusters := 5 // source and destination clusters
 			Expect(len((*resp).Resources)).To(Equal(numExpectedClusters))

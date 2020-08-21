@@ -9,11 +9,11 @@ data:
   envoy_log_level: {{ .Values.OpenServiceMesh.envoyLogLevel | quote }}
   prometheus_scraping: "true"
 
-{{- if .Values.OpenServiceMesh.zipkin.enable }}
-  zipkin_tracing: {{ .Values.OpenServiceMesh.zipkin.enable | quote }}
-  zipkin_address: {{ .Values.OpenServiceMesh.zipkin.address | quote }}
-  zipkin_port: {{ .Values.OpenServiceMesh.zipkin.port | quote }}
-  zipkin_endpoint: {{ .Values.OpenServiceMesh.zipkin.endpoint | quote }}
+{{- if .Values.OpenServiceMesh.tracing.enable }}
+  tracing_enable: {{ .Values.OpenServiceMesh.tracing.enable | quote }}
+  tracing_address: {{ .Values.OpenServiceMesh.tracing.address | quote }}
+  tracing_port: {{ .Values.OpenServiceMesh.tracing.port | quote }}
+  tracing_endpoint: {{ .Values.OpenServiceMesh.tracing.endpoint | quote }}
 {{- end }}
 
 {{- if .Values.OpenServiceMesh.enableEgress }}

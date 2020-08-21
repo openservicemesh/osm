@@ -34,7 +34,7 @@ data:
   permissive_traffic_policy_mode: "true"
   egress: "false"
   prometheus_scraping: "false"
-  zipkin_tracing: "false"
+  tracing_enable: "false"
 
 EOF
 
