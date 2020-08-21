@@ -79,20 +79,14 @@ func (b *Broadcaster) Reset(newInterval time.Duration) {
 }
 
 func (b *Broadcaster) configWatcher() {
-	t := durationInMinutes(b.cfg.BroadcastEvery())
-	// b.Reset(t)
+	var t time.Duration
 
-	lastCheckedAt := time.Now().Add(-1 * updateAtMostEvery)
 	for {
-		delta := time.Since(lastCheckedAt)
-		if delta >= updateAtMostEvery {
-			newT := durationInMinutes(b.cfg.BroadcastEvery())
-			if newT != t {
-				b.Reset(newT)
-			}
-			t = newT
+		newT := durationInMinutes(b.cfg.BroadcastEvery())
+		if newT != t {
+			b.Reset(newT)
 		}
-		lastCheckedAt = time.Now()
+		t = newT
 	}
 }
 
