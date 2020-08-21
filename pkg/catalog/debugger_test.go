@@ -100,7 +100,7 @@ var _ = Describe("Test catalog proxy register/unregister", func() {
 				RootService: "bookstore-apex"}))
 			Expect(serviceAccounts[0].String()).To(Equal("default/bookstore"))
 			Expect(routeGroups[0].Name).To(Equal("bookstore-service-routes"))
-			Expect(trafficTargets[0].Name).To(Equal("bookbuyer-access-bookstore"))
+			Expect(trafficTargets[0].Name).To(Equal(tests.TrafficTargetName))
 			Expect(services[0].Name).To(Equal(tests.BookstoreServiceName))
 
 		})

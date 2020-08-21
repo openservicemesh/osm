@@ -32,17 +32,27 @@ var _ = Describe("Catalog tests", func() {
 
 	Context("Test getTrafficPolicyPerRoute", func() {
 		It("lists traffic policies", func() {
-			allTrafficPolicies, err := getTrafficPolicyPerRoute(mc, tests.RoutePolicyMap, tests.BookstoreService)
+			allTrafficPolicies, err := getTrafficPolicyPerRoute(mc, tests.RoutePolicyMap, tests.BookbuyerService)
 			Expect(err).ToNot(HaveOccurred())
 
-			expected := []trafficpolicy.TrafficTarget{{
-				Name:        tests.TrafficTargetName,
-				Destination: tests.BookstoreService,
-				Source:      tests.BookbuyerService,
-				Route: trafficpolicy.Route{PathRegex: tests.BookstoreBuyPath, Methods: []string{"GET"}, Headers: map[string]string{
-					"user-agent": tests.HTTPUserAgent,
-				}},
-			}}
+			expected := []trafficpolicy.TrafficTarget{
+				{
+					Name:        utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreService),
+					Destination: tests.BookstoreService,
+					Source:      tests.BookbuyerService,
+					Route: trafficpolicy.Route{PathRegex: tests.BookstoreBuyPath, Methods: []string{"GET"}, Headers: map[string]string{
+						"user-agent": tests.HTTPUserAgent,
+					}},
+				},
+				{
+					Name:        utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreApexService),
+					Destination: tests.BookstoreApexService,
+					Source:      tests.BookbuyerService,
+					Route: trafficpolicy.Route{PathRegex: tests.BookstoreBuyPath, Methods: []string{"GET"}, Headers: map[string]string{
+						"user-agent": tests.HTTPUserAgent,
+					}},
+				},
+			}
 
 			Expect(allTrafficPolicies).To(Equal(expected))
 		})
@@ -126,9 +136,8 @@ var _ = Describe("Catalog tests", func() {
 			// mc := NewFakemc(testclient.NewSimpleClientset())
 			actualList, err := mc.ListAllowedOutboundServices(tests.BookbuyerService)
 			Expect(err).ToNot(HaveOccurred())
-			expectedList := []service.MeshService{tests.BookstoreService}
+			expectedList := []service.MeshService{tests.BookstoreService, tests.BookstoreApexService}
 			Expect(actualList).To(Equal(expectedList))
-
 		})
 	})
 
@@ -219,6 +228,16 @@ var _ = Describe("Catalog tests", func() {
 				"default/bookstore-apex->default/bookbuyer",
 			}
 			Expect(actualTargetNames).To(Equal(expected))
+		})
+	})
+
+	Context("Test listTrafficTargetPermutations", func() {
+		It("lists n*m list of traffic targets for the given services", func() {
+			destList := []service.MeshService{tests.BookstoreService, tests.BookstoreApexService}
+			srcList := []service.MeshService{tests.BookbuyerService, tests.BookwarehouseService}
+			trafficTargets := listTrafficTargetPermutations(tests.TrafficTargetName, srcList, destList)
+
+			Expect(len(trafficTargets)).To(Equal(len(destList) * len(srcList)))
 		})
 	})
 

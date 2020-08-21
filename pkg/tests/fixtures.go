@@ -127,7 +127,7 @@ var (
 
 	// TrafficPolicy is a traffic policy SMI object.
 	TrafficPolicy = trafficpolicy.TrafficTarget{
-		Name:        TrafficTargetName,
+		Name:        fmt.Sprintf("%s:default/bookbuyer->default/bookstore", TrafficTargetName),
 		Destination: BookstoreService,
 		Source:      BookbuyerService,
 		Route: trafficpolicy.Route{
