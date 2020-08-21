@@ -3,7 +3,6 @@ package catalog
 import (
 	"strings"
 
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -11,11 +10,6 @@ import (
 func (mc *MeshCatalog) GetServicesForServiceAccount(sa service.K8sServiceAccount) ([]service.MeshService, error) {
 	var services []service.MeshService
 	for _, provider := range mc.endpointsProviders {
-		// TODO (#88) : remove this provider check once we have figured out the service account story for azure vms
-		if provider.GetID() == constants.AzureProviderName {
-			continue
-		}
-
 		if providerServices, err := provider.GetServicesForServiceAccount(sa); err != nil {
 			log.Warn().Msgf("Error getting K8s Services linked to Service Account %s from provider %s: %s", provider.GetID(), sa, err)
 		} else {
