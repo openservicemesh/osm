@@ -45,6 +45,11 @@ iptables -t nat -A PROXY_INBOUND -p tcp --sport "5556" -j RETURN
 iptables -t nat -A PROXY_INBOUND -p tcp --sport "5557" -j RETURN
 iptables -t nat -A PROXY_INBOUND -p tcp --sport "32443" -j RETURN
 
+iptables -t nat -A PROXY_INBOUND -p tcp --dport "9073" -j RETURN
+iptables -t nat -A PROXY_INBOUND -p tcp --dport "8443" -j RETURN
+iptables -t nat -A PROXY_INBOUND -p tcp --dport "8081" -j RETURN
+iptables -t nat -A PROXY_INBOUND -p tcp --dport "2579" -j RETURN
+
 # Redirect remaining inbound traffic to PROXY_INBOUND_PORT
 iptables -t nat -A PROXY_INBOUND -p tcp -j PROXY_IN_REDIRECT
 
@@ -62,6 +67,11 @@ iptables -t nat -A PROXY_OUTPUT -m owner --uid-owner "${PROXY_UID}" -j RETURN
 
 # Skip localhost traffic
 iptables -t nat -A PROXY_OUTPUT -d 127.0.0.1/32 -j RETURN
+
+iptables -t nat -A PROXY_OUTPUT -p tcp --sport "9073" -j RETURN
+iptables -t nat -A PROXY_OUTPUT -p tcp --sport "8443" -j RETURN
+iptables -t nat -A PROXY_OUTPUT -p tcp --sport "8081" -j RETURN
+iptables -t nat -A PROXY_OUTPUT -p tcp --sport "2579" -j RETURN
 
 # Redirect remaining outbound traffic to Envoy
 iptables -t nat -A PROXY_OUTPUT -j PROXY_REDIRECT
