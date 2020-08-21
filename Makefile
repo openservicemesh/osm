@@ -14,7 +14,7 @@ GOX    = go run github.com/mitchellh/gox
 CLI_VERSION ?= dev
 CONTROLLER_VERSION = $$(git describe --abbrev=0 --tags)
 BUILD_DATE=$$(date +%Y-%m-%d-%H:%M)
-GIT_SHA=$$(git rev-parse --short HEAD)
+GIT_SHA=$$(git rev-parse HEAD)
 BUILD_DATE_VAR := github.com/openservicemesh/osm/pkg/version.BuildDate
 BUILD_VERSION_VAR := github.com/openservicemesh/osm/pkg/version.Version
 BUILD_GITCOMMIT_VAR := github.com/openservicemesh/osm/pkg/version.GitCommit
