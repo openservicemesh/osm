@@ -20,8 +20,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/debugger"
 	"github.com/openservicemesh/osm/pkg/endpoint"
-	"github.com/openservicemesh/osm/pkg/endpoint/providers/azure"
-	azureResource "github.com/openservicemesh/osm/pkg/endpoint/providers/azure/kubernetes"
 	"github.com/openservicemesh/osm/pkg/endpoint/providers/kube"
 	"github.com/openservicemesh/osm/pkg/envoy/ads"
 	"github.com/openservicemesh/osm/pkg/featureflags"
@@ -87,7 +85,8 @@ var (
 func init() {
 	flags.StringVarP(&verbosity, "verbosity", "v", "info", "Set log verbosity level")
 	flags.StringVar(&meshName, "mesh-name", "", "OSM mesh name")
-	flags.StringVar(&azureAuthFile, "azure-auth-file", "", "Path to Azure Auth File")
+	// TODO (#88): Azure Auth file disabled, pending on Identity + VM representation in SMI
+	//flags.StringVar(&azureAuthFile, "azure-auth-file", "", "Path to Azure Auth File")
 	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file.")
 	flags.StringVar(&osmNamespace, "osm-namespace", "", "Namespace to which OSM belongs to.")
 	flags.StringVar(&webhookName, "webhook-name", "", "Name of the MutatingWebhookConfiguration to be configured by osm-controller")
@@ -173,17 +172,7 @@ func main() {
 
 	endpointsProviders := []endpoint.Provider{provider}
 
-	if azureAuthFile != "" {
-		azureResourceClient, err := azureResource.NewClient(kubeClient, kubeConfig, namespaceController, stop, cfg)
-		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to initialize azure resource client")
-		}
-		azureProvider, err := azure.NewProvider(*azureSubscriptionID, azureAuthFile, stop, meshSpec, azureResourceClient, constants.AzureProviderName)
-		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to initialize azure provider")
-		}
-		endpointsProviders = append(endpointsProviders, azureProvider)
-	}
+	// TODO (#88): Add Azure Endpoint provider to list of providers when supported
 
 	ingressClient, err := ingress.NewIngressClient(kubeClient, namespaceController, stop, cfg)
 	if err != nil {
