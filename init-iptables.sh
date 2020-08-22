@@ -19,6 +19,12 @@ iptables -t nat -A PROXY_REDIRECT -p tcp --dport "5556" -j ACCEPT
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "5557" -j ACCEPT
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "32443" -j ACCEPT
 
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9073" -j ACCEPT
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "8443" -j ACCEPT
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "8081" -j ACCEPT
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "2579" -j ACCEPT
+
+
 iptables -t nat -A PROXY_REDIRECT -p tcp -j REDIRECT --to-port "${PROXY_PORT}"
 
 # Traffic to the Proxy Admin port flows to the Proxy -- not redirected
@@ -68,10 +74,10 @@ iptables -t nat -A PROXY_OUTPUT -m owner --uid-owner "${PROXY_UID}" -j RETURN
 # Skip localhost traffic
 iptables -t nat -A PROXY_OUTPUT -d 127.0.0.1/32 -j RETURN
 
-iptables -t nat -A PROXY_OUTPUT -p tcp --sport "9073" -j RETURN
-iptables -t nat -A PROXY_OUTPUT -p tcp --sport "8443" -j RETURN
-iptables -t nat -A PROXY_OUTPUT -p tcp --sport "8081" -j RETURN
-iptables -t nat -A PROXY_OUTPUT -p tcp --sport "2579" -j RETURN
+#iptables -t nat -A PROXY_OUTPUT -p tcp --sport "9073" -j RETURN
+#iptables -t nat -A PROXY_OUTPUT -p tcp --sport "8443" -j RETURN
+#iptables -t nat -A PROXY_OUTPUT -p tcp --sport "8081" -j RETURN
+#iptables -t nat -A PROXY_OUTPUT -p tcp --sport "2579" -j RETURN
 
 # Redirect remaining outbound traffic to Envoy
 iptables -t nat -A PROXY_OUTPUT -j PROXY_REDIRECT
