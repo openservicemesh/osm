@@ -66,7 +66,7 @@ func newFakeMeshCatalog() *MeshCatalog {
 	osmConfigMapName := "-test-osm-config-map-"
 	cfg := configurator.NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
 
-	namespaceController := namespace.NewFakeNamespaceController([]string{osmNamespace})
+	namespaceController := namespace.NewFakeNamespaceController([]string{osmNamespace, tests.Namespace})
 
 	return NewMeshCatalog(namespaceController, kubeClient, meshSpec, certManager, ingressMonitor, stop, cfg, endpointProviders...)
 }

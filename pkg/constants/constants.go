@@ -128,5 +128,5 @@ const (
 	// DomainDelimiter is a delimiter used in representing domains
 	DomainDelimiter = "."
 
-	BroadcastEvery = 0
+	BroadcastEvery = 1
 )

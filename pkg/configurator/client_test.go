@@ -108,11 +108,12 @@ var _ = Describe("Test OSM ConfigMap parsing", func() {
 				"MeshCIDRRanges":              meshCIDRRangesKey,
 				"UseHTTPSIngress":             useHTTPSIngressKey,
 				"EnvoyLogLevel":               envoyLogLevel,
+				"BroadcastEvery":              broadcastEveryKey,
 			}
 			t := reflect.TypeOf(osmConfig{})
 
 			actualNumberOfFields := t.NumField()
-			expectedNumberOfFields := 10
+			expectedNumberOfFields := 11
 			Expect(actualNumberOfFields).To(
 				Equal(expectedNumberOfFields),
 				fmt.Sprintf("Fields have been added or removed from the osmConfig struct -- expected %d, actual %d; please correct this unit test", expectedNumberOfFields, actualNumberOfFields))
