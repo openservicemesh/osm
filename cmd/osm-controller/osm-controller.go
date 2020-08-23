@@ -190,7 +190,6 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to initialize ingress client")
 	}
 
-	broadcaster := catalog.NewBroadcaster(cfg, stop)
 
 	meshCatalog := catalog.NewMeshCatalog(
 		namespaceController,
@@ -198,7 +197,6 @@ func main() {
 		meshSpec,
 		certManager,
 		ingressClient,
-		broadcaster,
 		stop,
 		cfg,
 		endpointsProviders...)

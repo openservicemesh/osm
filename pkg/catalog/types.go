@@ -33,7 +33,7 @@ type MeshCatalog struct {
 	meshSpec           smi.MeshSpec
 	certManager        certificate.Manager
 	ingressMonitor     ingress.Monitor
-	broadcaster        *Broadcaster
+	ticker *ticker
 	configurator       configurator.Configurator
 
 	expectedProxies     map[certificate.CommonName]expectedProxy

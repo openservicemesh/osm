@@ -8,7 +8,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 )
 
-type Broadcaster struct {
+type ticker struct {
 	tm            *time.Ticker
 	lock          *sync.Mutex
 	localStop     chan struct{}
@@ -19,8 +19,8 @@ type Broadcaster struct {
 	stop           <-chan struct{}
 }
 
-func NewBroadcaster(cfg configurator.Configurator, stop <-chan struct{}) *Broadcaster {
-	b := &Broadcaster{
+func NewTicker(cfg configurator.Configurator, stop <-chan struct{}) *ticker {
+	b := &ticker{
 		lock:          &sync.Mutex{},
 		localStop:     make(chan struct{}),
 		currentTicker: 0,
@@ -35,12 +35,12 @@ func NewBroadcaster(cfg configurator.Configurator, stop <-chan struct{}) *Broadc
 	return b
 }
 
-// GetAnnouncementsChannel returns the channel on which the broadcaster makes announcements
-func (b *Broadcaster) GetAnnouncementsChannel() <-chan interface{} {
+// GetAnnouncementsChannel returns the channel on which the ticker makes announcements
+func (b *ticker) GetAnnouncementsChannel() <-chan interface{} {
 	return b.announcementCh
 }
 
-func (b *Broadcaster) Reset(newInterval time.Duration) {
+func (b *ticker) reset(newInterval time.Duration) {
 	b.lock.Lock()
 
 	if b.tm != nil {
@@ -72,19 +72,19 @@ func (b *Broadcaster) Reset(newInterval time.Duration) {
 					return
 				}
 
-				b.announcementCh <- "[broadcast] periodic announcement"
+				b.announcementCh <- "[ticker] periodic announcement"
 			}
 		}
 	}()
 }
 
-func (b *Broadcaster) configWatcher() {
+func (b *ticker) configWatcher() {
 	var t time.Duration
 
 	for {
 		newT := durationInMinutes(b.cfg.BroadcastEvery())
 		if newT != t {
-			b.Reset(newT)
+			b.reset(newT)
 		}
 		t = newT
 	}

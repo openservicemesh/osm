@@ -21,6 +21,7 @@ var _ = Describe("Test Envoy configuration creation", func() {
 		prometheusScrapingKey:          "true",
 		zipkinTracingKey:               "true",
 		envoyLogLevel:                  testDebugEnvoyLogLevel,
+		broadcastEveryKey:              "1",
 	}
 
 	Context("create OSM configurator client", func() {

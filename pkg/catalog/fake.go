@@ -31,7 +31,6 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface) *MeshCatalog {
 	cfg := configurator.NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
 
 	namespaceController := namespace.NewFakeNamespaceController([]string{osmNamespace})
-	broadcaster := NewBroadcaster(cfg, stop)
 
-	return NewMeshCatalog(namespaceController, kubeClient, meshSpec, certManager, ingressMonitor, broadcaster, stop, cfg, endpointProviders...)
+	return NewMeshCatalog(namespaceController, kubeClient, meshSpec, certManager, ingressMonitor, stop, cfg, endpointProviders...)
 }
