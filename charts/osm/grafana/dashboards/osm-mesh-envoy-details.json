@@ -72,7 +72,7 @@
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "Num NS on the Mesh",
+      "title": "Number of Namespaces",
       "type": "stat"
     },
     {
@@ -127,7 +127,7 @@
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "NS on the Mesh",
+      "title": "Namespaces",
       "transformations": [
         {
           "id": "filterFieldsByName",
