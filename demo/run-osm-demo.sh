@@ -26,6 +26,7 @@ CTR_REGISTRY="${CTR_REGISTRY:-localhost:5000}"
 CTR_REGISTRY_CREDS_NAME="${CTR_REGISTRY_CREDS_NAME:-acr-creds}"
 DEPLOY_TRAFFIC_SPLIT="${DEPLOY_TRAFFIC_SPLIT:-true}"
 CTR_TAG="${CTR_TAG:-$(git rev-parse HEAD)}"
+IMAGE_PULL_POLICY="${IMAGE_PULL_POLICY:-Always}"
 ENABLE_EGRESS="${ENABLE_EGRESS:-false}"
 MESH_CIDR=$(./scripts/get_mesh_cidr.sh)
 
@@ -107,6 +108,7 @@ if [ "$CERT_MANAGER" = "vault" ]; then
       --container-registry "$CTR_REGISTRY" \
       --container-registry-secret "$CTR_REGISTRY_CREDS_NAME" \
       --osm-image-tag "$CTR_TAG" \
+      --osm-image-pull-policy "$IMAGE_PULL_POLICY" \
       --enable-debug-server \
       --enable-egress="$ENABLE_EGRESS" \
       --mesh-cidr "$MESH_CIDR" \
@@ -120,6 +122,7 @@ else
       --container-registry "$CTR_REGISTRY" \
       --container-registry-secret "$CTR_REGISTRY_CREDS_NAME" \
       --osm-image-tag "$CTR_TAG" \
+      --osm-image-pull-policy "$IMAGE_PULL_POLICY" \
       --enable-debug-server \
       --enable-egress="$ENABLE_EGRESS" \
       --mesh-cidr "$MESH_CIDR" \

@@ -72,6 +72,7 @@ var _ = Describe("Running the install command", func() {
 				chartPath:                  "testdata/test-chart",
 				containerRegistry:          testRegistry,
 				osmImageTag:                testOsmImageTag,
+				osmImagePullPolicy:         defaultOsmImagePullPolicy,
 				certificateManager:         "tresor",
 				serviceCertValidityMinutes: 1,
 				prometheusRetentionTime:    testRetentionTime,
@@ -118,8 +119,9 @@ var _ = Describe("Running the install command", func() {
 						},
 						"meshName": defaultMeshName,
 						"image": map[string]interface{}{
-							"registry": testRegistry,
-							"tag":      testOsmImageTag,
+							"registry":   testRegistry,
+							"tag":        testOsmImageTag,
+							"pullPolicy": defaultOsmImagePullPolicy,
 						},
 						"serviceCertValidityMinutes": int64(1),
 						"vault": map[string]interface{}{
@@ -180,6 +182,7 @@ var _ = Describe("Running the install command", func() {
 				containerRegistry:          testRegistry,
 				containerRegistrySecret:    testRegistrySecret,
 				osmImageTag:                testOsmImageTag,
+				osmImagePullPolicy:         defaultOsmImagePullPolicy,
 				certificateManager:         "tresor",
 				serviceCertValidityMinutes: 1,
 				prometheusRetentionTime:    testRetentionTime,
@@ -226,8 +229,9 @@ var _ = Describe("Running the install command", func() {
 						},
 						"meshName": defaultMeshName,
 						"image": map[string]interface{}{
-							"registry": testRegistry,
-							"tag":      testOsmImageTag,
+							"registry":   testRegistry,
+							"tag":        testOsmImageTag,
+							"pullPolicy": defaultOsmImagePullPolicy,
 						},
 						"imagePullSecrets": []interface{}{
 							map[string]interface{}{
@@ -301,6 +305,7 @@ var _ = Describe("Running the install command", func() {
 				certmanagerIssuerKind:      testCertManagerIssuerKind,
 				certmanagerIssuerGroup:     testCertManagerIssuerGroup,
 				osmImageTag:                testOsmImageTag,
+				osmImagePullPolicy:         defaultOsmImagePullPolicy,
 				serviceCertValidityMinutes: 1,
 				prometheusRetentionTime:    testRetentionTime,
 				meshName:                   defaultMeshName,
@@ -346,8 +351,9 @@ var _ = Describe("Running the install command", func() {
 						},
 						"meshName": defaultMeshName,
 						"image": map[string]interface{}{
-							"registry": testRegistry,
-							"tag":      testOsmImageTag,
+							"registry":   testRegistry,
+							"tag":        testOsmImageTag,
+							"pullPolicy": defaultOsmImagePullPolicy,
 						},
 						"imagePullSecrets": []interface{}{
 							map[string]interface{}{
@@ -464,6 +470,7 @@ var _ = Describe("Running the install command", func() {
 				certmanagerIssuerKind:      testCertManagerIssuerKind,
 				certmanagerIssuerGroup:     testCertManagerIssuerGroup,
 				osmImageTag:                testOsmImageTag,
+				osmImagePullPolicy:         defaultOsmImagePullPolicy,
 				serviceCertValidityMinutes: 1,
 				prometheusRetentionTime:    testRetentionTime,
 				meshName:                   defaultMeshName,
@@ -509,8 +516,9 @@ var _ = Describe("Running the install command", func() {
 						},
 						"meshName": defaultMeshName,
 						"image": map[string]interface{}{
-							"registry": testRegistry,
-							"tag":      testOsmImageTag,
+							"registry":   testRegistry,
+							"tag":        testOsmImageTag,
+							"pullPolicy": defaultOsmImagePullPolicy,
 						},
 						"imagePullSecrets": []interface{}{
 							map[string]interface{}{
@@ -750,6 +758,7 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 			vaultToken:                 testVaultToken,
 			vaultRole:                  testVaultRole,
 			osmImageTag:                testOsmImageTag,
+			osmImagePullPolicy:         defaultOsmImagePullPolicy,
 			serviceCertValidityMinutes: 1,
 			prometheusRetentionTime:    testRetentionTime,
 			meshName:                   defaultMeshName,
@@ -776,8 +785,9 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 				},
 				"meshName": defaultMeshName,
 				"image": map[string]interface{}{
-					"registry": testRegistry,
-					"tag":      testOsmImageTag,
+					"registry":   testRegistry,
+					"tag":        testOsmImageTag,
+					"pullPolicy": defaultOsmImagePullPolicy,
 				},
 				"imagePullSecrets": []interface{}{
 					map[string]interface{}{
@@ -826,6 +836,7 @@ var _ = Describe("Resolving values for install command with cert-manager paramet
 			vaultToken:                 testVaultToken,
 			vaultRole:                  testVaultRole,
 			osmImageTag:                testOsmImageTag,
+			osmImagePullPolicy:         defaultOsmImagePullPolicy,
 			serviceCertValidityMinutes: 1,
 			prometheusRetentionTime:    testRetentionTime,
 			meshName:                   defaultMeshName,
@@ -852,8 +863,9 @@ var _ = Describe("Resolving values for install command with cert-manager paramet
 				},
 				"meshName": defaultMeshName,
 				"image": map[string]interface{}{
-					"registry": testRegistry,
-					"tag":      testOsmImageTag,
+					"registry":   testRegistry,
+					"tag":        testOsmImageTag,
+					"pullPolicy": defaultOsmImagePullPolicy,
 				},
 				"imagePullSecrets": []interface{}{
 					map[string]interface{}{
@@ -947,6 +959,32 @@ var _ = Describe("Test mesh CIDR ranges", func() {
 			err = validateCIDRs([]string{"10.2.0.0"})
 			Expect(err).To(HaveOccurred())
 		})
+	})
+})
+
+var _ = Describe("Test osm image pull policy cli option", func() {
+	It("Should correctly resolve the pull policy option to chart values", func() {
+		installCmd := &installCmd{
+			osmImagePullPolicy: "IfNotPresent",
+		}
+
+		vals, err := installCmd.resolveValues()
+		Expect(err).NotTo(HaveOccurred())
+
+		pullPolicy := vals["OpenServiceMesh"].(map[string]interface{})["image"].(map[string]interface{})["pullPolicy"]
+		Expect(pullPolicy).To(Equal("IfNotPresent"))
+	})
+
+	It("Should correctly resolve the pull policy option to chart values", func() {
+		installCmd := &installCmd{
+			osmImagePullPolicy: "Always",
+		}
+
+		vals, err := installCmd.resolveValues()
+		Expect(err).NotTo(HaveOccurred())
+
+		pullPolicy := vals["OpenServiceMesh"].(map[string]interface{})["image"].(map[string]interface{})["pullPolicy"]
+		Expect(pullPolicy).To(Equal("Always"))
 	})
 })
 

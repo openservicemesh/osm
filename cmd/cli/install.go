@@ -57,6 +57,7 @@ const (
 	defaultVaultProtocol       = "http"
 	defaultMeshName            = "osm"
 	defaultCertValidityMinutes = int(1440) // 24 hours
+	defaultOsmImagePullPolicy  = "IfNotPresent"
 )
 
 // chartTGZSource is a base64-encoded, gzipped tarball of the default Helm chart.
@@ -69,6 +70,7 @@ type installCmd struct {
 	containerRegistrySecret       string
 	chartPath                     string
 	osmImageTag                   string
+	osmImagePullPolicy            string
 	certificateManager            string
 	vaultHost                     string
 	vaultProtocol                 string
@@ -124,6 +126,7 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f := cmd.Flags()
 	f.StringVar(&inst.containerRegistry, "container-registry", "openservicemesh", "container registry that hosts control plane component images")
 	f.StringVar(&inst.osmImageTag, "osm-image-tag", "v0.3.0", "osm image tag")
+	f.StringVar(&inst.osmImagePullPolicy, "osm-image-pull-policy", defaultOsmImagePullPolicy, "osm image pull policy")
 	f.StringVar(&inst.containerRegistrySecret, "container-registry-secret", "", "name of Kubernetes secret for container registry credentials to be created if it doesn't already exist")
 	f.StringVar(&inst.chartPath, "osm-chart-path", "", "path to osm chart to override default chart")
 	f.StringVar(&inst.certificateManager, "certificate-manager", defaultCertManager, "certificate manager to use one of (tresor, vault, cert-manager)")
@@ -235,6 +238,7 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 	valuesConfig := []string{
 		fmt.Sprintf("OpenServiceMesh.image.registry=%s", i.containerRegistry),
 		fmt.Sprintf("OpenServiceMesh.image.tag=%s", i.osmImageTag),
+		fmt.Sprintf("OpenServiceMesh.image.pullPolicy=%s", i.osmImagePullPolicy),
 		fmt.Sprintf("OpenServiceMesh.certificateManager=%s", i.certificateManager),
 		fmt.Sprintf("OpenServiceMesh.vault.host=%s", i.vaultHost),
 		fmt.Sprintf("OpenServiceMesh.vault.protocol=%s", i.vaultProtocol),
