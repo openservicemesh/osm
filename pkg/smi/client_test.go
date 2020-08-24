@@ -389,6 +389,7 @@ var _ = Describe("When listing Services", func() {
 		Expect(len(services)).To(Equal(2))
 
 		expectedServices := []string{"test-1", "test-2"}
+		Expect(len(services)).To(Equal(len(expectedServices)))
 		Expect(services[0].Name).To(BeElementOf(expectedServices))
 		Expect(services[1].Name).To(BeElementOf(expectedServices))
 
