@@ -298,7 +298,7 @@ type MeshCataloger interface {
 	// ExpectProxy catalogs the fact that a certificate was issued for an Envoy proxy and this is expected to connect to XDS.
 	ExpectProxy(certificate.CommonName)
 
-    // GetServicesFromEnvoyCertificate returns a list of services the given Envoy is a member of based on the certificate provided, 
+    // GetServicesFromEnvoyCertificate returns a list of services the given Envoy is a member of based on the certificate provided,
     // which is a cert issued to an Envoy for XDS communication (not Envoy-to-Envoy).
 	GetServicesFromEnvoyCertificate(certificate.CommonName) ([]service.MeshService, error)
 
@@ -317,8 +317,8 @@ type MeshCataloger interface {
 	//GetWeightedClusterForService returns the weighted cluster for a service
 	GetWeightedClusterForService(service service.MeshService) (service.WeightedCluster, error)
 
-	// GetIngressRoutesPerHost returns the routes per host associated with an ingress service
-	GetIngressRoutesPerHost(service.MeshService) (map[string][]trafficpolicy.Route, error)
+	// GetIngressRoutesPerHost returns the HTTP routes per host associated with an ingress service
+	GetIngressRoutesPerHost(service.MeshService) (map[string][]trafficpolicy.HTTPRoute, error)
 }
 ```
 

@@ -186,8 +186,8 @@ func (mc *MeshCatalog) getServiceHostnames(meshService service.MeshService) ([]s
 	return hostnames, nil
 }
 
-func (mc *MeshCatalog) getHTTPPathsPerRoute() (map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.Route, error) {
-	routePolicies := make(map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.Route)
+func (mc *MeshCatalog) getHTTPPathsPerRoute() (map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.HTTPRoute, error) {
+	routePolicies := make(map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.HTTPRoute)
 	for _, trafficSpecs := range mc.meshSpec.ListHTTPTrafficSpecs() {
 		log.Debug().Msgf("Discovered TrafficSpec resource: %s/%s", trafficSpecs.Namespace, trafficSpecs.Name)
 		if trafficSpecs.Spec.Matches == nil {
@@ -197,9 +197,9 @@ func (mc *MeshCatalog) getHTTPPathsPerRoute() (map[trafficpolicy.TrafficSpecName
 
 		// since this method gets only specs related to HTTPRouteGroups added HTTPTraffic to the specKey by default
 		specKey := mc.getTrafficSpecName(HTTPTraffic, trafficSpecs.Namespace, trafficSpecs.Name)
-		routePolicies[specKey] = make(map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.Route)
+		routePolicies[specKey] = make(map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.HTTPRoute)
 		for _, trafficSpecsMatches := range trafficSpecs.Spec.Matches {
-			serviceRoute := trafficpolicy.Route{}
+			serviceRoute := trafficpolicy.HTTPRoute{}
 			serviceRoute.PathRegex = trafficSpecsMatches.PathRegex
 			serviceRoute.Methods = trafficSpecsMatches.Methods
 			serviceRoute.Headers = trafficSpecsMatches.Headers
@@ -224,7 +224,7 @@ func (mc *MeshCatalog) getTrafficSpecName(trafficSpecKind string, trafficSpecNam
 	return trafficpolicy.TrafficSpecName(specKey)
 }
 
-func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.Route, meshService service.MeshService) ([]trafficpolicy.TrafficTarget, error) {
+func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.HTTPRoute, meshService service.MeshService) ([]trafficpolicy.TrafficTarget, error) {
 	var trafficPolicies []trafficpolicy.TrafficTarget
 	for _, trafficTargets := range mc.meshSpec.ListTrafficTargets() {
 		log.Debug().Msgf("Discovered TrafficTarget resource: %s/%s", trafficTargets.Namespace, trafficTargets.Name)
@@ -273,7 +273,7 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[trafficpolicy.T
 					if len(trafficTargetSpecs.Matches) == 0 {
 						// no match name provided, so routes are build for all matches in traffic spec
 						for _, routePolicy := range routePoliciesMatched {
-							trafficTarget.Route = routePolicy
+							trafficTarget.HTTPRoute = routePolicy
 							// append a traffic trafficTarget only if it corresponds to the service
 							if trafficTarget.Source.Equals(meshService) || trafficTarget.Destination.Equals(meshService) {
 								trafficPolicies = append(trafficPolicies, trafficTarget)
@@ -287,7 +287,7 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[trafficpolicy.T
 								log.Error().Msgf("TrafficTarget %s/%s could not find a TrafficSpec %s with match name %s", trafficTargets.Namespace, trafficTargets.Name, specKey, specMatchesName)
 								return nil, errNoTrafficSpecFoundForTrafficPolicy
 							}
-							trafficTarget.Route = routePolicy
+							trafficTarget.HTTPRoute = routePolicy
 							// append a traffic trafficTarget only if it corresponds to the service
 							if trafficTarget.Source.Equals(meshService) || trafficTarget.Destination.Equals(meshService) {
 								trafficPolicies = append(trafficPolicies, trafficTarget)
@@ -321,7 +321,7 @@ func (mc *MeshCatalog) buildAllowAllTrafficPolicies(service service.MeshService)
 }
 
 func (mc *MeshCatalog) buildAllowPolicyForSourceToDest(source *corev1.Service, destination *corev1.Service) trafficpolicy.TrafficTarget {
-	allowAllRoute := trafficpolicy.Route{
+	allowAllRoute := trafficpolicy.HTTPRoute{
 		PathRegex: constants.RegexMatchAll,
 		Methods:   []string{constants.WildcardHTTPMethod},
 	}
@@ -331,7 +331,7 @@ func (mc *MeshCatalog) buildAllowPolicyForSourceToDest(source *corev1.Service, d
 		Name:        utils.GetTrafficTargetName("", srcMeshSvc, dstMeshSvc),
 		Destination: dstMeshSvc,
 		Source:      srcMeshSvc,
-		Route:       allowAllRoute,
+		HTTPRoute:   allowAllRoute,
 	}
 }
 

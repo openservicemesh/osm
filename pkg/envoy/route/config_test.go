@@ -149,12 +149,12 @@ var _ = Describe("Routes with weighted clusters", func() {
 
 		It("Adds a new route", func() {
 
-			routePolicy := trafficpolicy.Route{
+			routePolicy := trafficpolicy.HTTPRoute{
 				PathRegex: "/books-bought",
 				Methods:   []string{"GET", "POST"},
 			}
 
-			routeWeightedClustersMap[routePolicy.PathRegex] = trafficpolicy.RouteWeightedClusters{Route: routePolicy, WeightedClusters: weightedClusters}
+			routeWeightedClustersMap[routePolicy.PathRegex] = trafficpolicy.RouteWeightedClusters{HTTPRoute: routePolicy, WeightedClusters: weightedClusters}
 			rt := createRoutes(routeWeightedClustersMap, InboundRoute)
 			Expect(len(rt)).To(Equal(len(routePolicy.Methods)))
 
@@ -174,11 +174,11 @@ var _ = Describe("Routes with weighted clusters", func() {
 
 		It("Appends another route", func() {
 
-			routePolicy2 := trafficpolicy.Route{
+			routePolicy2 := trafficpolicy.HTTPRoute{
 				PathRegex: "/buy-a-book",
 				Methods:   []string{"GET"},
 			}
-			routeWeightedClustersMap[routePolicy2.PathRegex] = trafficpolicy.RouteWeightedClusters{Route: routePolicy2, WeightedClusters: weightedClusters}
+			routeWeightedClustersMap[routePolicy2.PathRegex] = trafficpolicy.RouteWeightedClusters{HTTPRoute: routePolicy2, WeightedClusters: weightedClusters}
 
 			httpMethodCount := 3 // 2 from previously added routes + 1 append
 
@@ -217,7 +217,7 @@ var _ = Describe("Route Configuration", func() {
 				cluster := clusterInterface.(service.WeightedCluster)
 				totalClusterWeight += cluster.Weight
 			}
-			routePolicy := trafficpolicy.Route{
+			routePolicy := trafficpolicy.HTTPRoute{
 				PathRegex: "/books-bought",
 				Methods:   []string{"GET"},
 				Headers: map[string]string{
@@ -226,7 +226,7 @@ var _ = Describe("Route Configuration", func() {
 			}
 
 			sourceDomainRouteData := map[string]trafficpolicy.RouteWeightedClusters{
-				routePolicy.PathRegex: {Route: routePolicy, WeightedClusters: weightedClusters},
+				routePolicy.PathRegex: {HTTPRoute: routePolicy, WeightedClusters: weightedClusters},
 			}
 
 			sourceDomainAggregatedData := map[string]map[string]trafficpolicy.RouteWeightedClusters{
@@ -257,7 +257,7 @@ var _ = Describe("Route Configuration", func() {
 				cluster := clusterInterface.(service.WeightedCluster)
 				totalClusterWeight += cluster.Weight
 			}
-			routePolicy := trafficpolicy.Route{
+			routePolicy := trafficpolicy.HTTPRoute{
 				PathRegex: "/books-bought",
 				Methods:   []string{"GET"},
 				Headers: map[string]string{
@@ -266,7 +266,7 @@ var _ = Describe("Route Configuration", func() {
 			}
 
 			destDomainRouteData := map[string]trafficpolicy.RouteWeightedClusters{
-				routePolicy.PathRegex: {Route: routePolicy, WeightedClusters: weightedClusters},
+				routePolicy.PathRegex: {HTTPRoute: routePolicy, WeightedClusters: weightedClusters},
 			}
 
 			destDomainAggregatedData := map[string]map[string]trafficpolicy.RouteWeightedClusters{
@@ -307,7 +307,7 @@ var _ = Describe("Route Configuration", func() {
 var _ = Describe("Routes with headers", func() {
 	Context("Testing getHeadersForRoute", func() {
 		It("Returns a list of HeaderMatcher for a route", func() {
-			routePolicy := trafficpolicy.Route{
+			routePolicy := trafficpolicy.HTTPRoute{
 				PathRegex: "/books-bought",
 				Methods:   []string{"GET", "POST"},
 				Headers: map[string]string{
@@ -324,7 +324,7 @@ var _ = Describe("Routes with headers", func() {
 		})
 
 		It("Returns only one HeaderMatcher for a route", func() {
-			routePolicy := trafficpolicy.Route{
+			routePolicy := trafficpolicy.HTTPRoute{
 				PathRegex: "/books-bought",
 				Methods:   []string{"GET", "POST"},
 			}
@@ -336,7 +336,7 @@ var _ = Describe("Routes with headers", func() {
 		})
 
 		It("Returns only one HeaderMatcher for a route ignoring the host", func() {
-			routePolicy := trafficpolicy.Route{
+			routePolicy := trafficpolicy.HTTPRoute{
 				PathRegex: "/books-bought",
 				Methods:   []string{"GET", "POST"},
 				Headers: map[string]string{

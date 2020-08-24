@@ -57,11 +57,11 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 		}
 
 		if isSourceService {
-			aggregateRoutesByHost(outboundAggregatedRoutesByHostnames, trafficPolicies.Route, weightedCluster, hostnames)
+			aggregateRoutesByHost(outboundAggregatedRoutesByHostnames, trafficPolicies.HTTPRoute, weightedCluster, hostnames)
 		}
 
 		if isDestinationService {
-			aggregateRoutesByHost(inboundAggregatedRoutesByHostnames, trafficPolicies.Route, weightedCluster, hostnames)
+			aggregateRoutesByHost(inboundAggregatedRoutesByHostnames, trafficPolicies.HTTPRoute, weightedCluster, hostnames)
 		}
 	}
 
@@ -85,7 +85,7 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 	return resp, nil
 }
 
-func aggregateRoutesByHost(routesPerHost map[string]map[string]trafficpolicy.RouteWeightedClusters, routePolicy trafficpolicy.Route, weightedCluster service.WeightedCluster, host string) {
+func aggregateRoutesByHost(routesPerHost map[string]map[string]trafficpolicy.RouteWeightedClusters, routePolicy trafficpolicy.HTTPRoute, weightedCluster service.WeightedCluster, host string) {
 	_, exists := routesPerHost[host]
 	if !exists {
 		// no host found, create a new route map
@@ -95,12 +95,12 @@ func aggregateRoutesByHost(routesPerHost map[string]map[string]trafficpolicy.Rou
 	if routeFound {
 		// add the cluster to the existing route
 		routePolicyWeightedCluster.WeightedClusters.Add(weightedCluster)
-		routePolicyWeightedCluster.Route.Methods = append(routePolicyWeightedCluster.Route.Methods, routePolicy.Methods...)
-		if routePolicyWeightedCluster.Route.Headers == nil {
-			routePolicyWeightedCluster.Route.Headers = make(map[string]string)
+		routePolicyWeightedCluster.HTTPRoute.Methods = append(routePolicyWeightedCluster.HTTPRoute.Methods, routePolicy.Methods...)
+		if routePolicyWeightedCluster.HTTPRoute.Headers == nil {
+			routePolicyWeightedCluster.HTTPRoute.Headers = make(map[string]string)
 		}
 		for headerKey, headerValue := range routePolicy.Headers {
-			routePolicyWeightedCluster.Route.Headers[headerKey] = headerValue
+			routePolicyWeightedCluster.HTTPRoute.Headers[headerKey] = headerValue
 		}
 		routesPerHost[host][routePolicy.PathRegex] = routePolicyWeightedCluster
 	} else {
@@ -109,9 +109,9 @@ func aggregateRoutesByHost(routesPerHost map[string]map[string]trafficpolicy.Rou
 	}
 }
 
-func createRoutePolicyWeightedClusters(routePolicy trafficpolicy.Route, weightedCluster service.WeightedCluster) trafficpolicy.RouteWeightedClusters {
+func createRoutePolicyWeightedClusters(routePolicy trafficpolicy.HTTPRoute, weightedCluster service.WeightedCluster) trafficpolicy.RouteWeightedClusters {
 	return trafficpolicy.RouteWeightedClusters{
-		Route:            routePolicy,
+		HTTPRoute:        routePolicy,
 		WeightedClusters: set.NewSet(weightedCluster),
 	}
 }
