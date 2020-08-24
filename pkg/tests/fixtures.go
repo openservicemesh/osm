@@ -111,7 +111,7 @@ var (
 	}
 
 	// RoutePolicy is a route policy.
-	RoutePolicy = trafficpolicy.Route{
+	RoutePolicy = trafficpolicy.HTTPRoute{
 		PathRegex: BookstoreBuyPath,
 		Methods:   []string{"GET"},
 		Headers: map[string]string{
@@ -130,7 +130,7 @@ var (
 		Name:        fmt.Sprintf("%s:default/bookbuyer->default/bookstore", TrafficTargetName),
 		Destination: BookstoreService,
 		Source:      BookbuyerService,
-		Route: trafficpolicy.Route{
+		HTTPRoute: trafficpolicy.HTTPRoute{
 			PathRegex: BookstoreBuyPath,
 			Methods:   []string{"GET"},
 			Headers: map[string]string{
@@ -185,7 +185,7 @@ var (
 	}
 
 	// RoutePolicyMap is a map of a key to a route policy SMI object.
-	RoutePolicyMap = map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.Route{
+	RoutePolicyMap = map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.HTTPRoute{
 		trafficpolicy.TrafficSpecName(fmt.Sprintf("HTTPRouteGroup/%s/%s", Namespace, RouteGroupName)): {
 			trafficpolicy.TrafficSpecMatchName(BuyBooksMatchName): RoutePolicy}}
 

@@ -40,7 +40,7 @@ var _ = Describe("Catalog tests", func() {
 					Name:        utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreService),
 					Destination: tests.BookstoreService,
 					Source:      tests.BookbuyerService,
-					Route: trafficpolicy.Route{PathRegex: tests.BookstoreBuyPath, Methods: []string{"GET"}, Headers: map[string]string{
+					HTTPRoute: trafficpolicy.HTTPRoute{PathRegex: tests.BookstoreBuyPath, Methods: []string{"GET"}, Headers: map[string]string{
 						"user-agent": tests.HTTPUserAgent,
 					}},
 				},
@@ -48,7 +48,7 @@ var _ = Describe("Catalog tests", func() {
 					Name:        utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreApexService),
 					Destination: tests.BookstoreApexService,
 					Source:      tests.BookbuyerService,
-					Route: trafficpolicy.Route{PathRegex: tests.BookstoreBuyPath, Methods: []string{"GET"}, Headers: map[string]string{
+					HTTPRoute: trafficpolicy.HTTPRoute{PathRegex: tests.BookstoreBuyPath, Methods: []string{"GET"}, Headers: map[string]string{
 						"user-agent": tests.HTTPUserAgent,
 					}},
 				},
@@ -65,7 +65,7 @@ var _ = Describe("Catalog tests", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			specKey := mc.getTrafficSpecName("HTTPRouteGroup", tests.Namespace, tests.RouteGroupName)
-			expected := map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.Route{
+			expected := map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.HTTPRoute{
 				specKey: {
 					trafficpolicy.TrafficSpecMatchName(tests.BuyBooksMatchName): {
 						PathRegex: tests.BookstoreBuyPath,
@@ -117,7 +117,7 @@ var _ = Describe("Catalog tests", func() {
 			expectedDestinationTrafficResource := utils.K8sSvcToMeshSvc(destination)
 
 			expectedHostHeaders := map[string]string{"user-agent": tests.HTTPUserAgent}
-			expectedRoute := trafficpolicy.Route{
+			expectedRoute := trafficpolicy.HTTPRoute{
 				PathRegex: constants.RegexMatchAll,
 				Methods:   []string{constants.WildcardHTTPMethod},
 				Headers:   expectedHostHeaders,
@@ -126,8 +126,8 @@ var _ = Describe("Catalog tests", func() {
 			trafficTarget := mc.buildAllowPolicyForSourceToDest(source, destination)
 			Expect(cmp.Equal(trafficTarget.Source, expectedSourceTrafficResource)).To(BeTrue())
 			Expect(cmp.Equal(trafficTarget.Destination, expectedDestinationTrafficResource)).To(BeTrue())
-			Expect(cmp.Equal(trafficTarget.Route.PathRegex, expectedRoute.PathRegex)).To(BeTrue())
-			Expect(cmp.Equal(trafficTarget.Route.Methods, expectedRoute.Methods)).To(BeTrue())
+			Expect(cmp.Equal(trafficTarget.HTTPRoute.PathRegex, expectedRoute.PathRegex)).To(BeTrue())
+			Expect(cmp.Equal(trafficTarget.HTTPRoute.Methods, expectedRoute.Methods)).To(BeTrue())
 		})
 	})
 
