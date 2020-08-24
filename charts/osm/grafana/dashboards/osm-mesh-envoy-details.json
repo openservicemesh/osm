@@ -624,7 +624,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Envoy Phys Mem footprint",
+      "title": "Envoy Physical Memory footprint",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -787,5 +787,5 @@
   "timezone": "",
   "title": "Mesh and Envoy Details",
   "uid": "PLyKJcHGz",
-  "version": 2
+  "version": 1
 }
