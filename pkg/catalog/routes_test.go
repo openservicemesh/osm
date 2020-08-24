@@ -137,7 +137,9 @@ var _ = Describe("Catalog tests", func() {
 			actualList, err := mc.ListAllowedOutboundServices(tests.BookbuyerService)
 			Expect(err).ToNot(HaveOccurred())
 			expectedList := []service.MeshService{tests.BookstoreService, tests.BookstoreApexService}
-			Expect(actualList).To(Equal(expectedList))
+			Expect(len(actualList)).To(Equal(len(expectedList)))
+			Expect(actualList[0]).To(BeElementOf(expectedList))
+			Expect(actualList[1]).To(BeElementOf(expectedList))
 		})
 	})
 

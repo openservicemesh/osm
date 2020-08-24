@@ -441,6 +441,7 @@ var _ = Describe("When getting a Service associated with a ServiceAccount", func
 			{Name: "test-1", Namespace: testNamespace},
 			{Name: "test-2", Namespace: testNamespace},
 		}
+		Expect(len(meshServices)).To(Equal(len(expectedServices)))
 		Expect(meshServices[0]).To(BeElementOf(expectedServices))
 		Expect(meshServices[1]).To(BeElementOf(expectedServices))
 
