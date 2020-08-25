@@ -10,12 +10,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/openservicemesh/osm/pkg/constants"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
-)
-
-const (
-	// MonitorLabel is the annotation label used to indicate whether a namespace should be monitored by OSM.
-	MonitorLabel = "openservicemesh.io/monitored-by"
 )
 
 var (
@@ -30,7 +26,7 @@ func (c Client) GetAnnouncementsChannel() <-chan interface{} {
 // NewNamespaceController implements namespace.Controller and creates the Kubernetes client to manage namespaces.
 func NewNamespaceController(kubeClient kubernetes.Interface, meshName string, stop chan struct{}) Controller {
 	// Only monitor namespaces that are labeled with this OSM's mesh name
-	monitorNamespaceLabel := map[string]string{MonitorLabel: meshName}
+	monitorNamespaceLabel := map[string]string{constants.OSMKubeResourceMonitorAnnotation: meshName}
 	labelSelector := fields.SelectorFromSet(monitorNamespaceLabel).String()
 	option := informers.WithTweakListOptions(func(opt *metav1.ListOptions) {
 		opt.LabelSelector = labelSelector
@@ -51,7 +47,7 @@ func NewNamespaceController(kubeClient kubernetes.Interface, meshName string, st
 
 	informer.AddEventHandler(k8s.GetKubernetesEventHandlers("Namespace", "NamespaceClient", client.announcements, nil))
 
-	log.Info().Msgf("Monitoring namespaces with the label: %s=%s", MonitorLabel, meshName)
+	log.Info().Msgf("Monitoring namespaces with the label: %s=%s", constants.OSMKubeResourceMonitorAnnotation, meshName)
 	return client
 }
 
