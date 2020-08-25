@@ -17,10 +17,14 @@ Building OSM from source requires more steps but is the best way to test the lat
 You must have a working [Go](https://golang.org/doc/install) environment.
 
 ```console
-$ git clone git@github.com:openservicemesh/osm.git
+$ cd $GOPATH
+$ mkdir -p src/github.com/openservicemesh
+$ cd src/github.com/openservicemesh
+$ git clone https://github.com/openservicemesh/osm.git
 $ cd osm
 $ make build-osm
 ```
+
 `make build-osm` will fetch any required dependencies, compile `osm` and place it in `bin/osm`. Add `bin/osm` to `$PATH` so you can easily use `osm`.
 
 ## Install OSM
