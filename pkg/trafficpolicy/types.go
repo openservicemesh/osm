@@ -24,7 +24,7 @@ type TrafficTarget struct {
 	Name        string              `json:"name:omitempty"`
 	Destination service.MeshService `json:"destination:omitempty"`
 	Source      service.MeshService `json:"source:omitempty"`
-	HTTPRoute   HTTPRoute           `json:"http_route:omitempty"`
+	HTTPRoutes  []HTTPRoute         `json:"http_route:omitempty"`
 }
 
 // RouteWeightedClusters is a struct of an HTTPRoute and associated weighted clusters

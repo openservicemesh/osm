@@ -130,11 +130,13 @@ var (
 		Name:        fmt.Sprintf("%s:default/bookbuyer->default/bookstore", TrafficTargetName),
 		Destination: BookstoreService,
 		Source:      BookbuyerService,
-		HTTPRoute: trafficpolicy.HTTPRoute{
-			PathRegex: BookstoreBuyPath,
-			Methods:   []string{"GET"},
-			Headers: map[string]string{
-				"user-agent": HTTPUserAgent,
+		HTTPRoutes: []trafficpolicy.HTTPRoute{
+			{
+				PathRegex: BookstoreBuyPath,
+				Methods:   []string{"GET"},
+				Headers: map[string]string{
+					"user-agent": HTTPUserAgent,
+				},
 			},
 		},
 	}

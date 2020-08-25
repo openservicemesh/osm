@@ -56,12 +56,14 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 			return nil, err
 		}
 
-		if isSourceService {
-			aggregateRoutesByHost(outboundAggregatedRoutesByHostnames, trafficPolicies.HTTPRoute, weightedCluster, hostnames)
-		}
+		for _, httpRoute := range trafficPolicies.HTTPRoutes {
+			if isSourceService {
+				aggregateRoutesByHost(outboundAggregatedRoutesByHostnames, httpRoute, weightedCluster, hostnames)
+			}
 
-		if isDestinationService {
-			aggregateRoutesByHost(inboundAggregatedRoutesByHostnames, trafficPolicies.HTTPRoute, weightedCluster, hostnames)
+			if isDestinationService {
+				aggregateRoutesByHost(inboundAggregatedRoutesByHostnames, httpRoute, weightedCluster, hostnames)
+			}
 		}
 	}
 
