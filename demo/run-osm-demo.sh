@@ -91,7 +91,7 @@ if [ "$CERT_MANAGER" = "cert-manager" ]; then
     ./demo/deploy-cert-manager.sh
 fi
 
-./demo/build-push-images.sh
+make docker-push
 ./scripts/create-container-registry-creds.sh "$K8S_NAMESPACE"
 
 # Deploys Xds and Prometheus
