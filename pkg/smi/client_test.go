@@ -17,6 +17,7 @@ import (
 
 	osmPolicy "github.com/openservicemesh/osm/experimental/pkg/apis/policy/v1alpha1"
 	osmPolicyClient "github.com/openservicemesh/osm/experimental/pkg/client/clientset/versioned/fake"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/featureflags"
 	"github.com/openservicemesh/osm/pkg/namespace"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -58,7 +59,7 @@ func bootstrapClient() (MeshSpec, *fakeKubeClientSet, error) {
 	testNamespace := corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   testNamespaceName,
-			Labels: map[string]string{namespace.MonitorLabel: meshName}, // Label selectors don't work with fake clients, only here to signify its importance
+			Labels: map[string]string{constants.OSMKubeResourceMonitorAnnotation: meshName}, // Label selectors don't work with fake clients, only here to signify its importance
 		},
 	}
 	if _, err := kubeClient.CoreV1().Namespaces().Create(context.TODO(), &testNamespace, metav1.CreateOptions{}); err != nil {
