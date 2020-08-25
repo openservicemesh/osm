@@ -66,27 +66,28 @@ var chartTGZSource string
 
 type installCmd struct {
 	out                           io.Writer
+	certificateManager            string
+	certmanagerIssuerGroup        string
+	certmanagerIssuerKind         string
+	certmanagerIssuerName         string
+	chartPath                     string
 	containerRegistry             string
 	containerRegistrySecret       string
-	chartPath                     string
-	osmImageTag                   string
+	meshName                      string
 	osmImagePullPolicy            string
-	certificateManager            string
+	osmImageTag                   string
+	prometheusRetentionTime       string
 	vaultHost                     string
 	vaultProtocol                 string
 	vaultToken                    string
 	vaultRole                     string
-	certmanagerIssuerName         string
-	certmanagerIssuerKind         string
-	certmanagerIssuerGroup        string
 	serviceCertValidityMinutes    int
-	prometheusRetentionTime       string
 	enableDebugServer             bool
-	enablePermissiveTrafficPolicy bool
 	enableEgress                  bool
-	meshName                      string
+	enablePermissiveTrafficPolicy bool
 	meshCIDRRanges                []string
 	clientSet                     kubernetes.Interface
+	chartRequested                *chart.Chart
 
 	// This is an experimental flag, which will eventually
 	// become part of SMI Spec.
@@ -125,11 +126,11 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 
 	f := cmd.Flags()
 	f.StringVar(&inst.containerRegistry, "container-registry", "openservicemesh", "container registry that hosts control plane component images")
+	f.StringVar(&inst.chartPath, "osm-chart-path", "", "path to osm chart to override default chart")
+	f.StringVar(&inst.certificateManager, "certificate-manager", defaultCertManager, "certificate manager to use one of (tresor, vault, cert-manager)")
 	f.StringVar(&inst.osmImageTag, "osm-image-tag", "v0.3.0", "osm image tag")
 	f.StringVar(&inst.osmImagePullPolicy, "osm-image-pull-policy", defaultOsmImagePullPolicy, "osm image pull policy")
 	f.StringVar(&inst.containerRegistrySecret, "container-registry-secret", "", "name of Kubernetes secret for container registry credentials to be created if it doesn't already exist")
-	f.StringVar(&inst.chartPath, "osm-chart-path", "", "path to osm chart to override default chart")
-	f.StringVar(&inst.certificateManager, "certificate-manager", defaultCertManager, "certificate manager to use one of (tresor, vault, cert-manager)")
 	f.StringVar(&inst.vaultHost, "vault-host", "", "Hashicorp Vault host/service - where Vault is installed")
 	f.StringVar(&inst.vaultProtocol, "vault-protocol", defaultVaultProtocol, "protocol to use to connect to Vault")
 	f.StringVar(&inst.vaultToken, "vault-token", "", "token that should be used to connect to Vault")
@@ -152,84 +153,39 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 }
 
 func (i *installCmd) run(config *helm.Configuration) error {
-	var chartRequested *chart.Chart
-	var err error
-	if i.chartPath != "" {
-		chartRequested, err = loader.Load(i.chartPath)
-	} else {
-		chartRequested, err = cli.LoadChart(chartTGZSource)
-	}
-	if err != nil {
+	if err := i.validateOptions(); err != nil {
 		return err
 	}
 
-	meshNameErrs := validation.IsValidLabelValue(i.meshName)
-
-	if len(meshNameErrs) != 0 {
-		return errors.Errorf("Invalid mesh-name.\nValid mesh-name:\n- must be no longer than 63 characters\n- must consist of alphanumeric characters, '-', '_' or '.'\n- must start and end with an alphanumeric character\nregex used for validation is '(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?'")
-	}
-
-	if strings.EqualFold(i.certificateManager, "vault") {
-		var missingFields []string
-		if i.vaultHost == "" {
-			missingFields = append(missingFields, "vault-host")
-		}
-		if i.vaultToken == "" {
-			missingFields = append(missingFields, "vault-token")
-		}
-		if len(missingFields) != 0 {
-			return errors.Errorf("Missing arguments for certificate-manager vault: %v", missingFields)
-		}
-	}
-
-	// Validate CIDR ranges if egress is enabled
-	if i.enableEgress {
-		if err := validateCIDRs(i.meshCIDRRanges); err != nil {
-			return errors.Errorf("Invalid mesh-cidr-ranges: %q, error: %v. Valid mesh CIDR ranges must be specified with egress enabled.", i.meshCIDRRanges, err)
-		}
-	}
-
+	// values represents the overrides for the OSM chart's values.yaml file
 	values, err := i.resolveValues()
 	if err != nil {
 		return err
-	}
-
-	deploymentsClient := i.clientSet.AppsV1().Deployments("") // Get deployments from all namespaces
-
-	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"meshName": i.meshName}}
-
-	listOptions := metav1.ListOptions{
-		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
-	}
-	list, err := deploymentsClient.List(context.TODO(), listOptions)
-	if err != nil {
-		return err
-	}
-
-	if len(list.Items) != 0 {
-		return errMeshAlreadyExists(i.meshName)
-	}
-
-	deploymentsClient = i.clientSet.AppsV1().Deployments(settings.Namespace()) // Get deployments for specified namespace
-	labelSelector = metav1.LabelSelector{MatchLabels: map[string]string{"app": constants.OSMControllerName}}
-
-	listOptions = metav1.ListOptions{
-		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
-	}
-	list, err = deploymentsClient.List(context.TODO(), listOptions)
-	if len(list.Items) != 0 {
-		return errNamespaceAlreadyHasController(settings.Namespace())
 	}
 
 	installClient := helm.NewInstall(config)
 	installClient.ReleaseName = i.meshName
 	installClient.Namespace = settings.Namespace()
 	installClient.CreateNamespace = true
-	if _, err = installClient.Run(chartRequested, values); err != nil {
+	if _, err = installClient.Run(i.chartRequested, values); err != nil {
 		return err
 	}
 
 	fmt.Fprintf(i.out, "OSM installed successfully in namespace [%s] with mesh name [%s]\n", settings.Namespace(), i.meshName)
+	return nil
+}
+func (i *installCmd) loadOSMChart() error {
+	var err error
+	if i.chartPath != "" {
+		i.chartRequested, err = loader.Load(i.chartPath)
+	} else {
+		i.chartRequested, err = cli.LoadChart(chartTGZSource)
+	}
+
+	if err != nil {
+		return fmt.Errorf("Error loading chart for installation: %s", err)
+	}
+
 	return nil
 }
 
@@ -264,19 +220,80 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 	}
 
 	for _, val := range valuesConfig {
+		// parses Helm strvals line and merges into a map for the final overrides for values.yaml
 		if err := strvals.ParseInto(val, finalValues); err != nil {
-			return finalValues, err
+			return nil, err
 		}
 	}
 	return finalValues, nil
 }
 
-func errMeshAlreadyExists(name string) error {
-	return errors.Errorf("Mesh %s already exists in cluster. Please specify a new mesh name using --mesh-name", name)
+func (i *installCmd) validateOptions() error {
+	if err := i.loadOSMChart(); err != nil {
+		return err
+	}
+
+	if err := isValidMeshName(i.meshName); err != nil {
+		return err
+	}
+
+	// if certificateManager is vault, ensure all relevant information (vault-host, vault-token) is available
+	if strings.EqualFold(i.certificateManager, "vault") {
+		var missingFields []string
+		if i.vaultHost == "" {
+			missingFields = append(missingFields, "vault-host")
+		}
+		if i.vaultToken == "" {
+			missingFields = append(missingFields, "vault-token")
+		}
+		if len(missingFields) != 0 {
+			return errors.Errorf("Missing arguments for certificate-manager vault: %v", missingFields)
+		}
+	}
+
+	// ensure no control plane exists in cluster with the same meshName
+	deploymentsClient := i.clientSet.AppsV1().Deployments("") // Get deployments from all namespaces
+	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"meshName": i.meshName}}
+	listOptions := metav1.ListOptions{
+		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
+	}
+	list, err := deploymentsClient.List(context.TODO(), listOptions)
+	if err != nil {
+		return err
+	}
+	if len(list.Items) != 0 {
+		return errMeshAlreadyExists(i.meshName)
+	}
+
+	// ensure no osm-controller is running in the same namespace
+	deploymentsClient = i.clientSet.AppsV1().Deployments(settings.Namespace()) // Get deployments for specified namespace
+	labelSelector = metav1.LabelSelector{MatchLabels: map[string]string{"app": constants.OSMControllerName}}
+	listOptions = metav1.ListOptions{
+		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
+	}
+	list, err = deploymentsClient.List(context.TODO(), listOptions)
+	if len(list.Items) != 0 {
+		return errNamespaceAlreadyHasController(settings.Namespace())
+	} else if err != nil {
+		return fmt.Errorf("Error ensuring no osm-controller running in namespace %s:%s", settings.Namespace(), err)
+	}
+
+	// validate CIDR ranges if egress is enabled
+	if i.enableEgress {
+		if err := validateCIDRs(i.meshCIDRRanges); err != nil {
+			return errors.Errorf("Invalid mesh-cidr-ranges: %q, error: %v. Valid mesh CIDR ranges must be specified with egress enabled.", i.meshCIDRRanges, err)
+		}
+	}
+
+	return nil
 }
 
-func errNamespaceAlreadyHasController(namespace string) error {
-	return errors.Errorf("Namespace %s has an osm controller. Please specify a new namespace using --namespace", namespace)
+func isValidMeshName(meshName string) error {
+	meshNameErrs := validation.IsValidLabelValue(meshName)
+	if len(meshNameErrs) != 0 {
+		return errors.Errorf("Invalid mesh-name.\nValid mesh-name:\n- must be no longer than 63 characters\n- must consist of alphanumeric characters, '-', '_' or '.'\n- must start and end with an alphanumeric character\nregex used for validation is '(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?'")
+	}
+	return nil
 }
 
 func validateCIDRs(cidrRanges []string) error {
@@ -291,4 +308,12 @@ func validateCIDRs(cidrRanges []string) error {
 		}
 	}
 	return nil
+}
+
+func errMeshAlreadyExists(name string) error {
+	return errors.Errorf("Mesh %s already exists in cluster. Please specify a new mesh name using --mesh-name", name)
+}
+
+func errNamespaceAlreadyHasController(namespace string) error {
+	return errors.Errorf("Namespace %s has an osm controller. Please specify a new namespace using --namespace", namespace)
 }
