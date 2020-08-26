@@ -45,6 +45,7 @@ build-osm-controller: clean-osm-controller
 	@mkdir -p $(shell pwd)/bin
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o ./bin/osm-controller -ldflags "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(CONTROLLER_VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA)" ./cmd/osm-controller
 
+# builds the osm cli
 .PHONY: build-osm
 build-osm:
 	@mkdir -p $(shell pwd)/bin

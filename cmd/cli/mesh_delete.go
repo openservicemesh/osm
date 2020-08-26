@@ -24,6 +24,7 @@ type meshDeleteCmd struct {
 	meshName string
 	force    bool
 	client   *action.Uninstall
+	verbose  bool
 }
 
 func newMeshDelete(config *action.Configuration, in io.Reader, out io.Writer) *cobra.Command {
@@ -45,6 +46,7 @@ func newMeshDelete(config *action.Configuration, in io.Reader, out io.Writer) *c
 
 	f := cmd.Flags()
 	f.StringVar(&del.meshName, "mesh-name", defaultMeshName, "Name of the service mesh")
+	f.BoolVarP(&del.verbose, "verbose", "v", false, "verbose output")
 	f.BoolVarP(&del.force, "force", "f", false, "Attempt to delete the osm control plane instance without prompting for confirmation.  If the control plane with specified mesh name does not exist, do not display a diagnostic message or modify the exit status to reflect an error.")
 
 	return cmd
