@@ -16,16 +16,18 @@ import (
 )
 
 const namespaceAddDescription = `
-This command will join a namespace or a set of namespaces
-to the mesh. All services in joined namespaces will be part
-of the mesh.
+This command will add a namespace or a set of namespaces
+to the mesh. Optionally, the namespaces can be configured
+for automatic sidecar injection which enables pods in the
+added namespaces to be injected with a sidecar upon creation.
 `
 
 type namespaceAddCmd struct {
-	out        io.Writer
-	namespaces []string
-	meshName   string
-	clientSet  kubernetes.Interface
+	out                    io.Writer
+	namespaces             []string
+	meshName               string
+	enableSidecarInjection bool
+	clientSet              kubernetes.Interface
 }
 
 func newNamespaceAdd(out io.Writer) *cobra.Command {
@@ -57,6 +59,7 @@ func newNamespaceAdd(out io.Writer) *cobra.Command {
 	//add mesh name flag
 	f := cmd.Flags()
 	f.StringVar(&namespaceAdd.meshName, "mesh-name", "osm", "Name of the service mesh")
+	f.BoolVar(&namespaceAdd.enableSidecarInjection, "enable-sidecar-injection", false, "Enable automatic sidecar injection")
 
 	return cmd
 }
@@ -78,10 +81,35 @@ func (a *namespaceAddCmd) run() error {
 		if len(list.Items) != 0 {
 			fmt.Fprintf(a.out, "Namespace [%s] already has [%s] installed and cannot be added to mesh [%s]\n", ns, constants.OSMControllerName, a.meshName)
 		} else {
-			patch := `{"metadata":{"labels":{"` + constants.OSMKubeResourceMonitorAnnotation + `":"` + a.meshName + `"}}}`
+			var patch string
+			if a.enableSidecarInjection {
+				// Patch the namespace with the monitoring label and sidecar injection annotation
+				patch = fmt.Sprintf(`
+{
+	"metadata": {
+		"labels": {
+			"%s": "%s"
+		},
+		"annotations": {
+			"%s": "enabled"
+		}
+	}
+}`, constants.OSMKubeResourceMonitorAnnotation, a.meshName, constants.SidecarInjectionAnnotation)
+			} else {
+				// Patch the namespace with monitoring label
+				patch = fmt.Sprintf(`
+{
+	"metadata": {
+		"labels": {
+			"%s": "%s"
+		}
+	}
+}`, constants.OSMKubeResourceMonitorAnnotation, a.meshName)
+			}
+
 			_, err := a.clientSet.CoreV1().Namespaces().Patch(ctx, ns, types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{}, "")
 			if err != nil {
-				return errors.Errorf("Could not label namespace [%s]: %v", ns, err)
+				return errors.Errorf("Could not add namespace [%s] to mesh [%s]: %v", ns, a.meshName, err)
 			}
 
 			fmt.Fprintf(a.out, "Namespace [%s] successfully added to mesh [%s]\n", ns, a.meshName)

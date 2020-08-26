@@ -132,7 +132,7 @@ fi
 wait_for_osm_pods
 
 ./demo/configure-app-namespaces.sh
-bin/osm namespace add --mesh-name "$MESH_NAME" "$BOOKWAREHOUSE_NAMESPACE" "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE"
+bin/osm namespace add --mesh-name "$MESH_NAME" "$BOOKWAREHOUSE_NAMESPACE" "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE" --enable-sidecar-injection
 ./demo/deploy-apps.sh
 
 # Apply SMI policies
