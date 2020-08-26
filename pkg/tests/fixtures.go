@@ -110,9 +110,18 @@ var (
 		Name:      BookwarehouseServiceName,
 	}
 
-	// RoutePolicy is a route policy.
-	RoutePolicy = trafficpolicy.HTTPRoute{
+	// BookstoreBuyHTTPRoute is an HTTP route to buy books
+	BookstoreBuyHTTPRoute = trafficpolicy.HTTPRoute{
 		PathRegex: BookstoreBuyPath,
+		Methods:   []string{"GET"},
+		Headers: map[string]string{
+			"user-agent": HTTPUserAgent,
+		},
+	}
+
+	// BookstoreSellHTTPRoute is an HTTP route to sell books
+	BookstoreSellHTTPRoute = trafficpolicy.HTTPRoute{
+		PathRegex: BookstoreSellPath,
 		Methods:   []string{"GET"},
 		Headers: map[string]string{
 			"user-agent": HTTPUserAgent,
@@ -133,6 +142,13 @@ var (
 		HTTPRoutes: []trafficpolicy.HTTPRoute{
 			{
 				PathRegex: BookstoreBuyPath,
+				Methods:   []string{"GET"},
+				Headers: map[string]string{
+					"user-agent": HTTPUserAgent,
+				},
+			},
+			{
+				PathRegex: BookstoreSellPath,
 				Methods:   []string{"GET"},
 				Headers: map[string]string{
 					"user-agent": HTTPUserAgent,
@@ -181,7 +197,7 @@ var (
 			Rules: []target.TrafficTargetRule{{
 				Kind:    "HTTPRouteGroup",
 				Name:    RouteGroupName,
-				Matches: []string{BuyBooksMatchName},
+				Matches: []string{BuyBooksMatchName, SellBooksMatchName},
 			}},
 		},
 	}
@@ -189,7 +205,10 @@ var (
 	// RoutePolicyMap is a map of a key to a route policy SMI object.
 	RoutePolicyMap = map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.HTTPRoute{
 		trafficpolicy.TrafficSpecName(fmt.Sprintf("HTTPRouteGroup/%s/%s", Namespace, RouteGroupName)): {
-			trafficpolicy.TrafficSpecMatchName(BuyBooksMatchName): RoutePolicy}}
+			trafficpolicy.TrafficSpecMatchName(BuyBooksMatchName):  BookstoreBuyHTTPRoute,
+			trafficpolicy.TrafficSpecMatchName(SellBooksMatchName): BookstoreSellHTTPRoute,
+		},
+	}
 
 	// BookstoreServiceAccount is a namespaced service account.
 	BookstoreServiceAccount = service.K8sServiceAccount{
@@ -238,6 +257,9 @@ var (
 					Name:      SellBooksMatchName,
 					PathRegex: BookstoreSellPath,
 					Methods:   []string{"GET"},
+					Headers: map[string]string{
+						"user-agent": HTTPUserAgent,
+					},
 				},
 				{
 					Name: WildcardWithHeadersMatchName,

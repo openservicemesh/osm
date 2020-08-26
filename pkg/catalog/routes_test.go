@@ -48,6 +48,13 @@ var _ = Describe("Catalog tests", func() {
 								"user-agent": tests.HTTPUserAgent,
 							},
 						},
+						{
+							PathRegex: tests.BookstoreSellPath,
+							Methods:   []string{"GET"},
+							Headers: map[string]string{
+								"user-agent": tests.HTTPUserAgent,
+							},
+						},
 					},
 				},
 				{
@@ -57,6 +64,13 @@ var _ = Describe("Catalog tests", func() {
 					HTTPRoutes: []trafficpolicy.HTTPRoute{
 						{
 							PathRegex: tests.BookstoreBuyPath,
+							Methods:   []string{"GET"},
+							Headers: map[string]string{
+								"user-agent": tests.HTTPUserAgent,
+							},
+						},
+						{
+							PathRegex: tests.BookstoreSellPath,
 							Methods:   []string{"GET"},
 							Headers: map[string]string{
 								"user-agent": tests.HTTPUserAgent,
@@ -84,17 +98,23 @@ var _ = Describe("Catalog tests", func() {
 						Methods:   []string{"GET"},
 						Headers: map[string]string{
 							"user-agent": tests.HTTPUserAgent,
-						}},
+						},
+					},
 					trafficpolicy.TrafficSpecMatchName(tests.SellBooksMatchName): {
 						PathRegex: tests.BookstoreSellPath,
 						Methods:   []string{"GET"},
+						Headers: map[string]string{
+							"user-agent": tests.HTTPUserAgent,
+						},
 					},
 					trafficpolicy.TrafficSpecMatchName(tests.WildcardWithHeadersMatchName): {
 						PathRegex: ".*",
 						Methods:   []string{"*"},
 						Headers: map[string]string{
 							"user-agent": tests.HTTPUserAgent,
-						}}},
+						},
+					},
+				},
 			}
 			Expect(actual).To(Equal(expected))
 		})
