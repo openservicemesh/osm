@@ -41,10 +41,10 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 	outboundAggregatedRoutesByHostnames := make(map[string]map[string]trafficpolicy.RouteWeightedClusters)
 	inboundAggregatedRoutesByHostnames := make(map[string]map[string]trafficpolicy.RouteWeightedClusters)
 
-	for _, trafficPolicies := range allTrafficPolicies {
-		isSourceService := trafficPolicies.Source.Equals(proxyServiceName)
-		isDestinationService := trafficPolicies.Destination.Equals(proxyServiceName)
-		svc := trafficPolicies.Destination
+	for _, trafficPolicy := range allTrafficPolicies {
+		isSourceService := trafficPolicy.Source.Equals(proxyServiceName)
+		isDestinationService := trafficPolicy.Destination.Equals(proxyServiceName)
+		svc := trafficPolicy.Destination
 		hostnames, err := catalog.GetHostnamesForService(svc)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed listing domains")
@@ -56,12 +56,15 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 			return nil, err
 		}
 
-		if isSourceService {
-			aggregateRoutesByHost(outboundAggregatedRoutesByHostnames, trafficPolicies.HTTPRoute, weightedCluster, hostnames)
-		}
+		// All routes from a given source to destination are part of 1 traffic policy between the source and destination.
+		for _, httpRoute := range trafficPolicy.HTTPRoutes {
+			if isSourceService {
+				aggregateRoutesByHost(outboundAggregatedRoutesByHostnames, httpRoute, weightedCluster, hostnames)
+			}
 
-		if isDestinationService {
-			aggregateRoutesByHost(inboundAggregatedRoutesByHostnames, trafficPolicies.HTTPRoute, weightedCluster, hostnames)
+			if isDestinationService {
+				aggregateRoutesByHost(inboundAggregatedRoutesByHostnames, httpRoute, weightedCluster, hostnames)
+			}
 		}
 	}
 

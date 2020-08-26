@@ -30,9 +30,9 @@ var _ = Describe("Catalog tests", func() {
 		})
 	})
 
-	Context("Test getTrafficPolicyPerRoute", func() {
-		It("lists traffic policies", func() {
-			allTrafficPolicies, err := getTrafficPolicyPerRoute(mc, tests.RoutePolicyMap, tests.BookbuyerService)
+	Context("Test getTrafficPoliciesForService", func() {
+		It("should return all the traffic policies associated with a service", func() {
+			allTrafficPolicies, err := getTrafficPoliciesForService(mc, tests.RoutePolicyMap, tests.BookbuyerService)
 			Expect(err).ToNot(HaveOccurred())
 
 			expected := []trafficpolicy.TrafficTarget{
@@ -40,17 +40,43 @@ var _ = Describe("Catalog tests", func() {
 					Name:        utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreService),
 					Destination: tests.BookstoreService,
 					Source:      tests.BookbuyerService,
-					HTTPRoute: trafficpolicy.HTTPRoute{PathRegex: tests.BookstoreBuyPath, Methods: []string{"GET"}, Headers: map[string]string{
-						"user-agent": tests.HTTPUserAgent,
-					}},
+					HTTPRoutes: []trafficpolicy.HTTPRoute{
+						{
+							PathRegex: tests.BookstoreBuyPath,
+							Methods:   []string{"GET"},
+							Headers: map[string]string{
+								"user-agent": tests.HTTPUserAgent,
+							},
+						},
+						{
+							PathRegex: tests.BookstoreSellPath,
+							Methods:   []string{"GET"},
+							Headers: map[string]string{
+								"user-agent": tests.HTTPUserAgent,
+							},
+						},
+					},
 				},
 				{
 					Name:        utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreApexService),
 					Destination: tests.BookstoreApexService,
 					Source:      tests.BookbuyerService,
-					HTTPRoute: trafficpolicy.HTTPRoute{PathRegex: tests.BookstoreBuyPath, Methods: []string{"GET"}, Headers: map[string]string{
-						"user-agent": tests.HTTPUserAgent,
-					}},
+					HTTPRoutes: []trafficpolicy.HTTPRoute{
+						{
+							PathRegex: tests.BookstoreBuyPath,
+							Methods:   []string{"GET"},
+							Headers: map[string]string{
+								"user-agent": tests.HTTPUserAgent,
+							},
+						},
+						{
+							PathRegex: tests.BookstoreSellPath,
+							Methods:   []string{"GET"},
+							Headers: map[string]string{
+								"user-agent": tests.HTTPUserAgent,
+							},
+						},
+					},
 				},
 			}
 
@@ -72,17 +98,23 @@ var _ = Describe("Catalog tests", func() {
 						Methods:   []string{"GET"},
 						Headers: map[string]string{
 							"user-agent": tests.HTTPUserAgent,
-						}},
+						},
+					},
 					trafficpolicy.TrafficSpecMatchName(tests.SellBooksMatchName): {
 						PathRegex: tests.BookstoreSellPath,
 						Methods:   []string{"GET"},
+						Headers: map[string]string{
+							"user-agent": tests.HTTPUserAgent,
+						},
 					},
 					trafficpolicy.TrafficSpecMatchName(tests.WildcardWithHeadersMatchName): {
 						PathRegex: ".*",
 						Methods:   []string{"*"},
 						Headers: map[string]string{
 							"user-agent": tests.HTTPUserAgent,
-						}}},
+						},
+					},
+				},
 			}
 			Expect(actual).To(Equal(expected))
 		})
@@ -126,8 +158,8 @@ var _ = Describe("Catalog tests", func() {
 			trafficTarget := mc.buildAllowPolicyForSourceToDest(source, destination)
 			Expect(cmp.Equal(trafficTarget.Source, expectedSourceTrafficResource)).To(BeTrue())
 			Expect(cmp.Equal(trafficTarget.Destination, expectedDestinationTrafficResource)).To(BeTrue())
-			Expect(cmp.Equal(trafficTarget.HTTPRoute.PathRegex, expectedRoute.PathRegex)).To(BeTrue())
-			Expect(cmp.Equal(trafficTarget.HTTPRoute.Methods, expectedRoute.Methods)).To(BeTrue())
+			Expect(cmp.Equal(trafficTarget.HTTPRoutes[0].PathRegex, expectedRoute.PathRegex)).To(BeTrue())
+			Expect(cmp.Equal(trafficTarget.HTTPRoutes[0].Methods, expectedRoute.Methods)).To(BeTrue())
 		})
 	})
 
@@ -243,4 +275,55 @@ var _ = Describe("Catalog tests", func() {
 		})
 	})
 
+	Context("Test hashSrcDstService", func() {
+		It("Should correctly hash a source and destination service to its key", func() {
+			src := service.MeshService{
+				Namespace: "src-ns",
+				Name:      "source",
+			}
+			dst := service.MeshService{
+				Namespace: "dst-ns",
+				Name:      "destination",
+			}
+
+			srcDstServiceHash := hashSrcDstService(src, dst)
+			Expect(srcDstServiceHash).To(Equal("src-ns/source:dst-ns/destination"))
+		})
+	})
+
+	Context("Test getTrafficTargetFromSrcDstHash", func() {
+
+		It("Should correctly return a traffic target from its hash key", func() {
+			src := service.MeshService{
+				Namespace: "src-ns",
+				Name:      "source",
+			}
+			dst := service.MeshService{
+				Namespace: "dst-ns",
+				Name:      "destination",
+			}
+			srcDstServiceHash := "src-ns/source:dst-ns/destination"
+
+			targetName := "test"
+			httpRoutes := []trafficpolicy.HTTPRoute{
+				{
+					PathRegex: tests.BookstoreBuyPath,
+					Methods:   []string{"GET"},
+					Headers: map[string]string{
+						"user-agent": tests.HTTPUserAgent,
+					},
+				},
+			}
+
+			trafficTarget := getTrafficTargetFromSrcDstHash(srcDstServiceHash, targetName, httpRoutes)
+
+			expectedTrafficTarget := trafficpolicy.TrafficTarget{
+				Source:      src,
+				Destination: dst,
+				Name:        targetName,
+				HTTPRoutes:  httpRoutes,
+			}
+			Expect(trafficTarget).To(Equal(expectedTrafficTarget))
+		})
+	})
 })
