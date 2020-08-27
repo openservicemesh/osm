@@ -45,7 +45,6 @@ const (
 var (
 	verbosity                  string
 	meshName                   string // An ID that uniquely identifies an OSM instance
-	azureAuthFile              string
 	kubeConfigFile             string
 	osmNamespace               string
 	webhookName                string
@@ -61,15 +60,13 @@ var (
 )
 
 var (
-	flags               = pflag.NewFlagSet(`osm-controller`, pflag.ExitOnError)
-	azureSubscriptionID = flags.String("azure-subscription-id", "", "Azure Subscription ID")
-	port                = flags.Int("port", constants.OSMControllerPort, "Aggregated Discovery Service port number.")
-	log                 = logger.New("osm-controller/main")
+	flags = pflag.NewFlagSet(`osm-controller`, pflag.ExitOnError)
+	port  = flags.Int("port", constants.OSMControllerPort, "Aggregated Discovery Service port number.")
+	log   = logger.New("osm-controller/main")
 
 	// What is the Certification Authority to be used
 	osmCertificateManagerKind = flags.String("certificate-manager", "tresor", "Certificate manager")
 
-	// TODO(draychev): convert all these flags to spf13/cobra: https://github.com/openservicemesh/osm/issues/576
 	// When certmanager == "vault"
 	vaultProtocol = flags.String("vault-protocol", "http", "Host name of the Hashi Vault")
 	vaultHost     = flags.String("vault-host", "vault.default.svc.cluster.local", "Host name of the Hashi Vault")
@@ -171,8 +168,6 @@ func main() {
 	}
 
 	endpointsProviders := []endpoint.Provider{provider}
-
-	// TODO (#88): Add Azure Endpoint provider to list of providers when supported
 
 	ingressClient, err := ingress.NewIngressClient(kubeClient, namespaceController, stop, cfg)
 	if err != nil {
