@@ -42,20 +42,15 @@ build: build-osm-controller
 
 .PHONY: build-osm-controller
 build-osm-controller: clean-osm-controller
-	@mkdir -p $(shell pwd)/bin
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o ./bin/osm-controller -ldflags "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(CONTROLLER_VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA)" ./cmd/osm-controller
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o ./bin/osm-controller/osm-controller -ldflags "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(CONTROLLER_VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA)" ./cmd/osm-controller
 
 .PHONY: build-osm
 build-osm:
-	@mkdir -p $(shell pwd)/bin
 	go run scripts/generate_chart/generate_chart.go | CGO_ENABLED=0  go build -v -o ./bin/osm -ldflags ${LDFLAGS} ./cmd/cli
 
 .PHONY: clean-osm
 clean-osm:
 	@rm -rf bin/osm
-
-.PHONY: docker-build
-docker-build: docker-build-osm-controller docker-build-bookbuyer docker-build-bookstore docker-build-bookwarehouse
 
 .PHONY: go-checks
 go-checks: go-lint go-fmt
@@ -96,30 +91,37 @@ kind-demo: export CTR_REGISTRY=localhost:5000
 kind-demo: .env kind-up clean-osm
 	./demo/run-osm-demo.sh
 
-
 # build-bookbuyer, etc
 DEMO_TARGETS = bookbuyer bookthief bookstore bookwarehouse
 DEMO_BUILD_TARGETS = $(addprefix build-, $(DEMO_TARGETS))
 .PHONY: $(DEMO_BUILD_TARGETS)
 $(DEMO_BUILD_TARGETS): NAME=$(@:build-%=%)
 $(DEMO_BUILD_TARGETS):
-	@mkdir -p $(shell pwd)/demo/bin
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ./demo/bin/$(NAME) ./demo/cmd/$(NAME)/$(NAME).go
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ./demo/bin/$(NAME)/$(NAME) ./demo/cmd/$(NAME)
+	@if [ -f demo/$(NAME).html.template ]; then cp demo/$(NAME).html.template demo/bin/$(NAME); fi
 
 .PHONY: demo-build
 demo-build: $(DEMO_BUILD_TARGETS) build-osm-controller
 
 # docker-build-bookbuyer, etc
-DOCKER_TARGETS = bookbuyer bookthief bookstore bookwarehouse init osm-controller
-DOCKER_BUILD_TARGETS = $(addprefix docker-build-, $(DOCKER_TARGETS))
-.PHONY: $(DOCKER_BUILD_TARGETS)
-$(DOCKER_BUILD_TARGETS): NAME=$(@:docker-build-%=%)
-$(DOCKER_BUILD_TARGETS):
-	if [[ "$(NAME)" != "init" ]] ; then make build-$(NAME); fi
-	docker build -t $(CTR_REGISTRY)/$(NAME):$(CTR_TAG) -f dockerfiles/Dockerfile.$(NAME) .
+DOCKER_DEMO_TARGETS = $(addprefix docker-build-, $(DEMO_TARGETS))
+.PHONY: $(DOCKER_DEMO_TARGETS)
+$(DOCKER_DEMO_TARGETS): NAME=$(@:docker-build-%=%)
+$(DOCKER_DEMO_TARGETS):
+	make build-$(NAME)
+	docker build -t $(CTR_REGISTRY)/$(NAME):$(CTR_TAG) -f dockerfiles/Dockerfile.$(NAME) demo/bin/$(NAME)
+
+docker-build-init:
+	docker build -t $(CTR_REGISTRY)/init:$(CTR_TAG) -f dockerfiles/Dockerfile.init init
+
+docker-build-osm-controller: build-osm-controller
+	docker build -t $(CTR_REGISTRY)/osm-controller:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-controller bin/osm-controller
+
+.PHONY: docker-build
+docker-build: $(DOCKER_DEMO_TARGETS) docker-build-init docker-build-osm-controller
 
 # docker-push-bookbuyer, etc
-DOCKER_PUSH_TARGETS = $(addprefix docker-push-, $(DOCKER_TARGETS))
+DOCKER_PUSH_TARGETS = $(addprefix docker-push-, $(DEMO_TARGETS) init osm-controller)
 .PHONY: $(DOCKER_PUSH_TARGETS)
 $(DOCKER_PUSH_TARGETS): NAME=$(@:docker-push-%=%)
 $(DOCKER_PUSH_TARGETS):
@@ -127,7 +129,7 @@ $(DOCKER_PUSH_TARGETS):
 	docker push "$(CTR_REGISTRY)/$(NAME):$(CTR_TAG)"
 
 .PHONY: docker-push
-docker-push: docker-push-init docker-push-bookbuyer docker-push-bookthief docker-push-bookstore docker-push-osm-controller docker-push-bookwarehouse
+docker-push: $(DOCKER_PUSH_TARGETS)
 
 .PHONY: generate-crds
 generate-crds:
@@ -147,7 +149,6 @@ install-git-pre-push-hook:
 
 .PHONY: build-cross
 build-cross:
-	@mkdir -p $(shell pwd)/_dist
 	go run scripts/generate_chart/generate_chart.go | GO111MODULE=on CGO_ENABLED=0 $(GOX) -ldflags $(LDFLAGS) -parallel=3 -output="_dist/{{.OS}}-{{.Arch}}/$(BINNAME)" -osarch='$(TARGETS)' ./cmd/cli
 
 .PHONY: dist
