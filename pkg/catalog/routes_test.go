@@ -80,7 +80,10 @@ var _ = Describe("Catalog tests", func() {
 				},
 			}
 
-			Expect(allTrafficPolicies).To(Equal(expected))
+			Expect(len(allTrafficPolicies)).To(Equal(len(expected)))
+			for _, actual := range allTrafficPolicies {
+				Expect(actual).To(BeElementOf(expected))
+			}
 		})
 	})
 
