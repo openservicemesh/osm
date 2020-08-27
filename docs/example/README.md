@@ -20,7 +20,7 @@
 - [Inspect Dashbaords](#inspect-dashboards)
 
 ## Overview
-The OSM Manual Install Demo Guide is designed to quickly allow you to demo and experience the OSM mesh. 
+The OSM Manual Install Demo Guide is designed to quickly allow you to demo and experience the OSM mesh.
 
 ## Configure Prerequisites
 - Kubernetes cluster running Kubernetes v1.15.0 or greater
@@ -48,9 +48,9 @@ The `Bookstore`, `Bookbuyer`, `Bookthief`, `Bookwarehouse` demo applications wil
 ```bash
 for i in bookstore bookbuyer bookthief bookwarehouse; do kubectl create ns $i; done
 ```
-### Onboard the Namespaces to the OSM Mesh
+### Onboard the Namespaces to the OSM Mesh and enable sidecar injection on the namespaces
 ```bash
-for i in bookstore bookbuyer bookthief bookwarehouse; do osm namespace add $i; done
+osm namespace add bookstore bookbuyer bookthief bookwarehouse --enable-sidecar-injection
 ```
 ### Deploy the Bookstore Application
 Install `Bookstore`, `Bookbuyer`, `Bookthief`, `Bookwarehouse`.
@@ -78,7 +78,7 @@ A simple topology view of the Bookstore application looks like the following:
 *Note: At the moment, you must configure a TrafficSplit object to get your applications set up correctly for inbound traffic because it helps us properly configure the dataplane. We're working on removing the need for this entirely.* [#1370](https://github.com/openservicemesh/osm/issues/1370)
 
 ### View the Application UIs
-We will now setup client port forwarding, so we can access the services in the Kubernetes cluster. It is best to start a new terminal session for running the port forwarding script to maintain the port forwarding session, while using the original terminal to continue to issue commands. The port-forward-all.sh script will look for a ```".env"``` file for variables. The ```".env"``` creates the necessary variables that target the previously created namespaces. We will use the reference .env.examples file and then run the port forwarding script. 
+We will now setup client port forwarding, so we can access the services in the Kubernetes cluster. It is best to start a new terminal session for running the port forwarding script to maintain the port forwarding session, while using the original terminal to continue to issue commands. The port-forward-all.sh script will look for a ```".env"``` file for variables. The ```".env"``` creates the necessary variables that target the previously created namespaces. We will use the reference .env.examples file and then run the port forwarding script.
 
 In a new terminal session, run the following commands to enable port forwarding into the Kubernetes cluster.
 ```bash
@@ -93,11 +93,11 @@ BOOKBUYER_LOCAL_PORT=7070 BOOKSTOREv1_LOCAL_PORT=7071 BOOKSTOREv2_LOCAL_PORT=707
 In a browser, open up the following urls:
 - http://localhost:8080 - **Bookbuyer**
 - http://localhost:8081 - **bookstore-v1**
-- http://localhost:8082 - **bookstore-v2** 
+- http://localhost:8082 - **bookstore-v2**
   - *Note: This page will not be available at this time in the demo. This will become available during the Traffic Split Configuration*
 - http://localhost:8083 - **bookthief**
 
-Position the windows so that you can see all four at the same time. The header at the top of the webpage indicates the application and version. 
+Position the windows so that you can see all four at the same time. The header at the top of the webpage indicates the application and version.
 
 ## Deploy SMI Access Control Policies
 At this point, no applications have access to each other because no access control policies have been applied. Confirm this by confirming that none of the counters in the UI are incrementing. Apply the [SMI Traffic Target][1] and [SMI Traffic Specs][2] resources to define access control policies below:
@@ -137,7 +137,7 @@ spec:
     #name: bookthief
     #namespace: bookthief
  ```
- 
+
  Updated TrafficTarget spec with uncommented `Bookthief` kind:
  ```
  kind: TrafficTarget

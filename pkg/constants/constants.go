@@ -133,4 +133,7 @@ const (
 
 	// InitContainerName is the name of the init container
 	InitContainerName = "osm-init"
+
+	// SidecarInjectionAnnotation is the annotation used for sidecar injection
+	SidecarInjectionAnnotation = "openservicemesh.io/sidecar-injection"
 )

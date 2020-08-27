@@ -223,40 +223,67 @@ func (wh *webhook) isNamespaceAllowed(namespace string) bool {
 
 // mustInject determines whether the sidecar must be injected.
 //
-// The sidecar injection is performed when:
-// 1. The namespace is annotated for OSM monitoring, and
-// 2. The POD is not annotated with sidecar-injection or is set to enabled/yes/true
+// The sidecar injection is performed when the namespace is labeled for monitoring and either of the following is true:
+// 1. The pod is explicitly annotated with enabled/yes/true for sidecar injection, or
+// 2. The namespace is annotated for sidecar injection and the pod is not explicitly annotated with disabled/no/false
 //
-// The sidecar injection is not performed when:
-// 1. The namespace is not annotated for OSM monitoring, or
-// 2. The POD is annotated with sidecar-injection set to disabled/no/false
-//
-// The function returns an error when:
-// 1. The value of the POD level sidecar-injection annotation is invalid
+// The function returns an error when it is unable to determine whether to perform sidecar injection.
 func (wh *webhook) mustInject(pod *corev1.Pod, namespace string) (bool, error) {
 	// If the request belongs to a namespace we are not monitoring, skip it
 	if !wh.isNamespaceAllowed(namespace) {
-		log.Info().Msgf("Request belongs to namespace=%s not in the list of monitored namespaces", namespace)
+		log.Info().Msgf("Request belongs to namespace=%s, not in the list of monitored namespaces", namespace)
 		return false, nil
 	}
 
-	// Check if the POD is annotated for injection
-	inject := strings.ToLower(pod.ObjectMeta.Annotations[annotationInject])
-	log.Debug().Msgf("Sidecar injection annotation: '%s:%s'", annotationInject, inject)
-	if inject != "" {
-		switch inject {
-		case "enabled", "yes", "true":
+	// Check if the pod is annotated for injection
+	podInjectAnnotationExists, podInject, err := isAnnotatedForInjection(pod.Annotations)
+	if err != nil {
+		log.Error().Err(err).Msg("Error determining if the pod is enabled for sidecar injection")
+		return false, err
+	}
+
+	// Check if the namespace is annotated for injection
+	ns, err := wh.kubeClient.CoreV1().Namespaces().Get(context.Background(), namespace, metav1.GetOptions{})
+	if err != nil {
+		log.Error().Err(err).Msgf("Error retrieving namespace %s", namespace)
+		return false, err
+	}
+	nsInjectAnnotationExists, nsInject, err := isAnnotatedForInjection(ns.Annotations)
+	if err != nil {
+		log.Error().Err(err).Msg("Error determining if namespace %s is enabled for sidecar injection")
+		return false, err
+	}
+
+	if podInjectAnnotationExists && podInject {
+		// Pod is explicitly annotated to enable sidecar injection
+		return true, nil
+	} else if nsInjectAnnotationExists && nsInject {
+		// Namespace is annotated to enable sidecar injection
+		if !podInjectAnnotationExists || podInject {
+			// If pod annotation doesn't exist or if an annotation exists to enable injection, enable it
 			return true, nil
-		case "disabled", "no", "false":
-			return false, nil
-		default:
-			return false, errors.Errorf("Invalid annotion value specified for annotation %q: %s", annotationInject, inject)
 		}
 	}
 
-	// If we reached here, it means the namespace was annotated for OSM to monitor
-	// and no POD level sidecar injection overrides are present.
-	return true, nil
+	// Conditions to inject the sidecar are not met
+	return false, nil
+}
+
+func isAnnotatedForInjection(annotations map[string]string) (exists bool, enabled bool, err error) {
+	inject := strings.ToLower(annotations[constants.SidecarInjectionAnnotation])
+	log.Trace().Msgf("Sidecar injection annotation: '%s:%s'", constants.SidecarInjectionAnnotation, inject)
+	if inject != "" {
+		exists = true
+		switch inject {
+		case "enabled", "yes", "true":
+			enabled = true
+		case "disabled", "no", "false":
+			enabled = false
+		default:
+			err = errors.Errorf("Invalid annotion value specified for annotation %q: %s", constants.SidecarInjectionAnnotation, inject)
+		}
+	}
+	return
 }
 
 func toAdmissionError(err error) *v1beta1.AdmissionResponse {

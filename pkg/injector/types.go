@@ -11,9 +11,6 @@ import (
 )
 
 const (
-	// OSM Annotations
-	annotationInject = "openservicemesh.io/sidecar-injection"
-
 	envoyBootstrapConfigVolume = "envoy-bootstrap-config-volume"
 )
 
