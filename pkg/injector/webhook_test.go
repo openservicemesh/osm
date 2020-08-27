@@ -154,8 +154,10 @@ var _ = Describe("Testing isAnnotatedForInjection", func() {
 	Context("when the inject annotation does not exist", func() {
 		It("should return false to indicate the annotation does not exist", func() {
 			annotation := map[string]string{}
-			exists, _, _ := isAnnotatedForInjection(annotation)
+			exists, enabled, err := isAnnotatedForInjection(annotation)
 			Expect(exists).To(BeFalse())
+			Expect(enabled).To(BeFalse())
+			Expect(err).To(BeNil())
 		})
 	})
 

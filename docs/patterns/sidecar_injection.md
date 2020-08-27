@@ -8,6 +8,9 @@ Automatic sidecar injection can be configured per namespace as a part of enrolli
 
 ### Enabling Automatic Sidecar Injection
 
+Prerequisites:
+- The namespace to which the pods belong must be a monitored namespace that is added to the mesh using the `osm namespace add` command.
+
 Automatic Sidecar injection can be enabled in the following ways:
 
 - While enrolling a namespace into the mesh using `osm` cli: `osm namespace add <namespace> --enable-sidecar-injection`
