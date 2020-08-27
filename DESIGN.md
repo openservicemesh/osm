@@ -57,7 +57,7 @@ The init container requires [NET_ADMIN Kernel capability](https://github.com/ope
 [iptables](https://en.wikipedia.org/wiki/Iptables) changes to be applied.
 OSM uses `iptables` to ensure that all inbound and outbound traffic flows through the Envoy sidecar.
 The [init container Docker image](https://hub.docker.com/r/openservicemesh/init)
-is passed as a string pointing to a container registry. This is passed via the `--init-container-image` CLI param to the OSM controller on startup. The default value defined in the [OSM Deployment chart](https://github.com/openservicemesh/osm/blob/release-v0.3/charts/osm/templates/osm-deployment.yaml#L33).
+is passed as a string pointing to a container registry. This is passed via the `--init-container-image` CLI param to the OSM controller on startup. The default value is defined in the [OSM Deployment chart](https://github.com/openservicemesh/osm/blob/release-v0.3/charts/osm/templates/osm-deployment.yaml#L33).
 
 ## High-level software architecture
 
