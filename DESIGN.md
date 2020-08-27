@@ -49,7 +49,7 @@ and forwards these API calls to the
 [OSM control plane](https://github.com/openservicemesh/osm/blob/release-v0.3/charts/osm/templates/mutatingwebhook.yaml#L11).
 OSM control plane augments ([patches](https://github.com/openservicemesh/osm/blob/release-v0.3/pkg/injector/webhook.go#L202-L208))
 the Pod spec with 2 new containers.
-One is the [Envoy side car](https://github.com/openservicemesh/osm/blob/release-v0.3/pkg/injector/patch.go#L82-L86),
+One is the [Envoy sidecar](https://github.com/openservicemesh/osm/blob/release-v0.3/pkg/injector/patch.go#L82-L86),
 the other is an [init container](https://github.com/openservicemesh/osm/blob/release-v0.3/pkg/injector/patch.go#L61-L74).
 The init container is ephemeral. It executes the [init-iptables.sh bash script](https://github.com/openservicemesh/osm/blob/release-v0.3/init-iptables.sh)
 and terminates.
