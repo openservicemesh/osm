@@ -35,20 +35,14 @@ const (
 	//OutboundRouteConfigName is the name of the route config that the envoy will identify
 	OutboundRouteConfigName = "RDS_Outbound"
 
-	// maxRegexProgramSize is the max supported regex complexity
-	maxRegexProgramSize = 1024
-
-	//InboundVirtualHost is the name of the virtual host on the inbound route configuration
+	// inboundVirtualHost is the name of the virtual host on the inbound route configuration
 	inboundVirtualHost = "inbound_virtualHost"
 
-	//OutboundVirtualHost is the name of the virtual host on the outbound route configuration
+	// outboundVirtualHost is the name of the virtual host on the outbound route configuration
 	outboundVirtualHost = "outbound_virtualHost"
 
 	// MethodHeaderKey is the key of the header for HTTP methods
 	MethodHeaderKey = ":method"
-
-	// wildcardPathPrefix is the wildcard path prefix for HTTP paths
-	wildcardPathPrefix = "/"
 
 	// httpHostHeader is the name of the HTTP host header
 	httpHostHeader = "host"
