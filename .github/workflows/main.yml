@@ -189,7 +189,7 @@ jobs:
           go run ./ci/cmd/maestro.go
 
   integration-nosplit:
-    name: Integration Test with jetstack/cert-manager, SMI traffic policies (no Traffic Split), and egress disabled
+    name: Integration Test with jetstack/cert-manager, SMI traffic policies (no Traffic Split), egress disabled, 1:N Service-ServiceAccount mapping
     runs-on: ubuntu-latest
     needs: [build]
     steps:
@@ -216,7 +216,7 @@ jobs:
           go-version: 1.15
         id: go
 
-      - name: Run Simulation w/ jetstack/cert-manager, SMI policies (no Traffic Split), and egress disabled
+      - name: Run Simulation w/ jetstack/cert-manager, SMI policies (no Traffic Split), egress disabled, 1:N Service-ServiceAccount mapping
         env:
           CERT_MANAGER: "cert-manager" # enables jetstack/cert-manager integration
           BOOKSTORE_SVC: "bookstore-v1"
@@ -224,6 +224,7 @@ jobs:
           ENABLE_EGRESS: "false"
           EGRESS_EXPECTED_RESPONSE_CODE: "404" # egress is disabled
           DEPLOY_TRAFFIC_SPLIT: "false"
+          DEPLOY_WITH_SAME_SA: "true"
           CTR_TAG: ${{ github.sha }}
         run: |
           touch .env
