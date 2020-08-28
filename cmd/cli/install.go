@@ -96,6 +96,9 @@ type installCmd struct {
 	// Toggle to deploy/not deploy metrics (Promethus+Grafana) stack
 	enableMetricsStack bool
 
+	// Toggle to enable/disable grafana installation
+	enableGrafana bool
+
 	// Toggle this to enable/disable the automatic deployment of Jaeger
 	deployJaeger bool
 }
@@ -146,6 +149,7 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.StringSliceVar(&inst.meshCIDRRanges, "mesh-cidr", []string{}, "mesh CIDR range, accepts multiple CIDRs, required if enable-egress option is true")
 	f.BoolVar(&inst.enableBackpressureExperimental, "enable-backpressure-experimental", false, "Enable experimental backpressure feature")
 	f.BoolVar(&inst.enableMetricsStack, "enable-metrics-stack", true, "Enable metrics (Prometheus and Grafana) deployment")
+	f.BoolVar(&inst.enableGrafana, "enable-grafana", true, "Enable Grafana installation")
 	f.StringVar(&inst.meshName, "mesh-name", defaultMeshName, "name for the new control plane instance")
 	f.BoolVar(&inst.deployJaeger, "deploy-jaeger", true, "Deploy Jaeger in the namespace of the OSM controller")
 
@@ -209,6 +213,7 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 		fmt.Sprintf("OpenServiceMesh.enablePermissiveTrafficPolicy=%t", i.enablePermissiveTrafficPolicy),
 		fmt.Sprintf("OpenServiceMesh.enableBackpressureExperimental=%t", i.enableBackpressureExperimental),
 		fmt.Sprintf("OpenServiceMesh.enableMetricsStack=%t", i.enableMetricsStack),
+		fmt.Sprintf("OpenServiceMesh.enableGrafana=%t", i.enableGrafana),
 		fmt.Sprintf("OpenServiceMesh.meshName=%s", i.meshName),
 		fmt.Sprintf("OpenServiceMesh.enableEgress=%t", i.enableEgress),
 		fmt.Sprintf("OpenServiceMesh.meshCIDRRanges=%s", strings.Join(i.meshCIDRRanges, " ")),

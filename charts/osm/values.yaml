@@ -33,6 +33,7 @@ OpenServiceMesh:
   enableBackpressureExperimental: false
   enableEgress: false
   enableMetricsStack: true
+  enableGrafana: true
   meshName: osm
   meshCIDRRanges: 0.0.0.0/0
   useHTTPSIngress: false
