@@ -14,11 +14,13 @@ OpenServiceMesh:
     retention:
       time: 15d
   certficateManager: tresor
+  enableVault: false
   vault:
     host:
     protocol: http
     token:
     role: openservicemesh
+  enableCertManager: false
   certmanager:
     issuerName: osm-ca
     issuerKind: Issuer

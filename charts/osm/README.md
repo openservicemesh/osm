@@ -10,6 +10,7 @@ A Helm chart to install the OSM control plane on Kubernetes
 |-----|------|---------|-------------|
 | OpenServiceMesh.caBundleSecretName | string | `"osm-ca-bundle"` |  |
 | OpenServiceMesh.certficateManager | string | `"tresor"` |  |
+| OpenServiceMesh.enableCertManager | string | `false` |  |
 | OpenServiceMesh.certmanager.issuerGroup | string | `"cert-manager"` |  |
 | OpenServiceMesh.certmanager.issuerKind | string | `"Issuer"` |  |
 | OpenServiceMesh.certmanager.issuerName | string | `"osm-ca"` |  |
@@ -33,6 +34,7 @@ A Helm chart to install the OSM control plane on Kubernetes
 | OpenServiceMesh.serviceCertValidityMinutes | int | `1` |  |
 | OpenServiceMesh.sidecarImage | string | `"envoyproxy/envoy-alpine:v1.15.0"` |  |
 | OpenServiceMesh.useHTTPSIngress | bool | `false` |  |
+| OpenServiceMesh.enableVault | string | `false` |  |
 | OpenServiceMesh.vault.host | string | `nil` |  |
 | OpenServiceMesh.vault.protocol | string | `"http"` |  |
 | OpenServiceMesh.vault.role | string | `"openservicemesh"` |  |
