@@ -1,6 +1,7 @@
 package cds
 
 import (
+	"fmt"
 	"time"
 
 	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
@@ -24,10 +25,10 @@ const (
 )
 
 // getRemoteServiceCluster returns an Envoy Cluster corresponding to the remote service
-func getRemoteServiceCluster(remoteService, localService service.MeshService, cfg configurator.Configurator) (*xds_cluster.Cluster, error) {
+func getRemoteServiceCluster(remoteService, localService service.MeshServicePort, cfg configurator.Configurator) (*xds_cluster.Cluster, error) {
 	clusterName := remoteService.String()
 	marshalledUpstreamTLSContext, err := envoy.MessageToAny(
-		envoy.GetUpstreamTLSContext(localService, remoteService.GetCommonName().String()))
+		envoy.GetUpstreamTLSContext(localService.GetMeshService(), remoteService.GetMeshService().GetCommonName().String()))
 	if err != nil {
 		return nil, err
 	}
@@ -74,29 +75,8 @@ func getOutboundPassthroughCluster() *xds_cluster.Cluster {
 }
 
 // getLocalServiceCluster returns an Envoy Cluster corresponding to the local service
-func getLocalServiceCluster(catalog catalog.MeshCataloger, proxyServiceName service.MeshService, clusterName string) (*xds_cluster.Cluster, error) {
-	xdsCluster := xds_cluster.Cluster{
-		// The name must match the domain being cURLed in the demo
-		Name:           clusterName,
-		AltStatName:    clusterName,
-		ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
-		LbPolicy:       xds_cluster.Cluster_ROUND_ROBIN,
-		RespectDnsTtl:  true,
-		ClusterDiscoveryType: &xds_cluster.Cluster_Type{
-			Type: xds_cluster.Cluster_STRICT_DNS,
-		},
-		DnsLookupFamily: xds_cluster.Cluster_V4_ONLY,
-		LoadAssignment: &xds_endpoint.ClusterLoadAssignment{
-			// NOTE: results.MeshService is the top level service that is cURLed.
-			ClusterName: clusterName,
-			Endpoints:   []*xds_endpoint.LocalityLbEndpoints{
-				// Filled based on discovered endpoints for the service
-			},
-		},
-		ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
-		Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
-	}
-
+func getLocalServiceCluster(catalog catalog.MeshCataloger, proxyServiceName service.MeshService) ([]*xds_cluster.Cluster, error) {
+	xdsClusters := make([]*xds_cluster.Cluster, 0)
 	endpoints, err := catalog.ListEndpointsForService(proxyServiceName)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to get endpoints for service %s", proxyServiceName)
@@ -104,6 +84,31 @@ func getLocalServiceCluster(catalog catalog.MeshCataloger, proxyServiceName serv
 	}
 
 	for _, ep := range endpoints {
+		// final newClusterName shuould be something like "bookstore/bookstore-v1/80-local"
+		newClusterName := fmt.Sprintf("%s/%d%s", proxyServiceName, ep.Port, envoy.LocalClusterSuffix)
+		log.Debug().Msgf("clusterName:%s newClusterName", proxyServiceName, newClusterName)
+		xdsCluster := &xds_cluster.Cluster{
+			// The name must match the domain being cURLed in the demo
+			Name:           newClusterName,
+			AltStatName:    newClusterName,
+			ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
+			LbPolicy:       xds_cluster.Cluster_ROUND_ROBIN,
+			RespectDnsTtl:  true,
+			ClusterDiscoveryType: &xds_cluster.Cluster_Type{
+				Type: xds_cluster.Cluster_STRICT_DNS,
+			},
+			DnsLookupFamily: xds_cluster.Cluster_V4_ONLY,
+			LoadAssignment: &xds_endpoint.ClusterLoadAssignment{
+				// NOTE: results.MeshService is the top level service that is cURLed.
+				ClusterName: newClusterName,
+				Endpoints:   []*xds_endpoint.LocalityLbEndpoints{
+					// Filled based on discovered endpoints for the service
+				},
+			},
+			ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
+			Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
+		}
+
 		localityEndpoint := &xds_endpoint.LocalityLbEndpoints{
 			Locality: &xds_core.Locality{
 				Zone: "zone",
@@ -120,9 +125,12 @@ func getLocalServiceCluster(catalog catalog.MeshCataloger, proxyServiceName serv
 			}},
 		}
 		xdsCluster.LoadAssignment.Endpoints = append(xdsCluster.LoadAssignment.Endpoints, localityEndpoint)
+		xdsClusters = append(xdsClusters, xdsCluster)
 	}
 
-	return &xdsCluster, nil
+	log.Debug().Msgf("count %d xdsClusters:%+v", len(xdsClusters), xdsClusters)
+
+	return xdsClusters, nil
 }
 
 // getPrometheusCluster returns an Envoy Cluster responsible for scraping metrics by Prometheus
@@ -154,5 +162,7 @@ func getPrometheusCluster() xds_cluster.Cluster {
 				},
 			},
 		},
+		ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
+		Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
 	}
 }

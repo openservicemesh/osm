@@ -26,22 +26,37 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, proxy *envoy.
 	proxyServiceName := *svc
 
 	allTrafficPolicies, err := catalog.ListTrafficPolicies(proxyServiceName)
+	log.Debug().Msgf("EDS svc %s allTrafficPolicies %+v", proxyServiceName, allTrafficPolicies)
+
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to list traffic policies for proxy service %q", proxyServiceName)
 		return nil, err
 	}
 
-	allServicesEndpoints := make(map[service.MeshService][]endpoint.Endpoint)
+	allServicesEndpoints := make(map[service.MeshServicePort][]endpoint.Endpoint)
 	for _, trafficPolicy := range allTrafficPolicies {
 		isSourceService := trafficPolicy.Source.Equals(proxyServiceName)
 		if isSourceService {
-			destService := trafficPolicy.Destination
+			destService := trafficPolicy.Destination.GetMeshService()
 			serviceEndpoints, err := catalog.ListEndpointsForService(destService)
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed listing endpoints for proxy %s", proxyServiceName)
 				return nil, err
 			}
-			allServicesEndpoints[destService] = serviceEndpoints
+			destServicePort := trafficPolicy.Destination
+			if destServicePort.Port == 0  {
+				allServicesEndpoints[destServicePort] = serviceEndpoints
+				continue
+			}
+			// if port specified, filter based on port
+			filteredEndpoints := make([]endpoint.Endpoint, 0)
+			for _, endpoint := range serviceEndpoints {
+				if int(endpoint.Port) != destServicePort.Port {
+					continue
+				}
+				filteredEndpoints = append(filteredEndpoints, endpoint)
+			}
+			allServicesEndpoints[destServicePort] = filteredEndpoints
 		}
 	}
 
@@ -58,6 +73,7 @@ func NewResponse(_ context.Context, catalog catalog.MeshCataloger, proxy *envoy.
 		protos = append(protos, proto)
 	}
 
+	log.Debug().Msgf("EDS url:%s protos: %+v", string(envoy.TypeEDS), protos)
 	resp := &xds_discovery.DiscoveryResponse{
 		Resources: protos,
 		TypeUrl:   string(envoy.TypeEDS),

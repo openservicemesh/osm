@@ -49,28 +49,53 @@ func (mc *MeshCatalog) ListTrafficPolicies(service service.MeshService) ([]traff
 // This is a bimodal function:
 //   - it could list services that are allowed to connect to the given service (inbound)
 //   - it could list services that the given service can connect to (outbound)
-func (mc *MeshCatalog) getAllowedDirectionalServices(svc service.MeshService, directn direction) ([]service.MeshService, error) {
+// ListAllowedOutboundServices lists the services the given service is allowed outbound connections to.
+func (mc *MeshCatalog) ListAllowedOutboundServices(svc service.MeshService) ([]service.MeshServicePort, error) {
 	allTrafficPolicies, err := mc.ListTrafficPolicies(svc)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed listing traffic routes")
 		return nil, err
 	}
 
+	log.Debug().Msgf("ListAllowedOutboundServices svc:%s trafficpolicies:%+v", svc, allTrafficPolicies)
+
 	allowedServicesSet := mapset.NewSet()
 
 	for _, policy := range allTrafficPolicies {
-		if directn == inbound {
-			// we are looking for services that can connect to the given service
-			if policy.Destination.Equals(svc) {
-				allowedServicesSet.Add(policy.Source)
-			}
+		// we are looking for services the given svc can connect to
+		if policy.Source.Equals(svc) {
+			allowedServicesSet.Add(policy.Destination)
 		}
+	}
 
-		if directn == outbound {
-			// we are looking for services the given svc can connect to
-			if policy.Source.Equals(svc) {
-				allowedServicesSet.Add(policy.Destination)
-			}
+	// Convert the set of interfaces to a list of namespaced services
+	var allowedServices []service.MeshServicePort
+	for svc := range allowedServicesSet.Iter() {
+		allowedServices = append(allowedServices, svc.(service.MeshServicePort))
+	}
+
+	log.Trace().Msgf("Allowed outbound services from source %q: %+v", svc, allowedServices)
+
+	return allowedServices, nil
+}
+
+// ListAllowedInboundServices lists the inbound services allowed to connect to the given service.
+func (mc *MeshCatalog) ListAllowedInboundServices(destinationService service.MeshServicePort) ([]service.MeshService, error) {
+	svc := destinationService.GetMeshService()
+	allTrafficPolicies, err := mc.ListTrafficPolicies(svc)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed listing traffic routes")
+		return nil, err
+	}
+
+	log.Debug().Msgf("ListAllowedInboundServices svc:%s trafficpolicies:%+v", destinationService, allTrafficPolicies)
+
+	allowedServicesSet := mapset.NewSet()
+
+	for _, policy := range allTrafficPolicies {
+		// we are looking for services that can connect to the given service
+		if policy.Destination.Equals(destinationService) {
+			allowedServicesSet.Add(policy.Source)
 		}
 	}
 
@@ -80,25 +105,9 @@ func (mc *MeshCatalog) getAllowedDirectionalServices(svc service.MeshService, di
 		allowedServices = append(allowedServices, svc.(service.MeshService))
 	}
 
-	msg := map[direction]string{
-		inbound:  "Allowed inbound services for destination service %q: %+v",
-		outbound: "Allowed outbound services from source %q: %+v",
-	}[directn]
-
-	log.Trace().Msgf(msg, svc, allowedServices)
+	log.Trace().Msgf("Allowed inbound services for destination %q: %+v", svc, allowedServices)
 
 	return allowedServices, nil
-}
-
-// ListAllowedInboundServices lists the inbound services allowed to connect to the given service.
-func (mc *MeshCatalog) ListAllowedInboundServices(destinationService service.MeshService) ([]service.MeshService, error) {
-	return mc.getAllowedDirectionalServices(destinationService, inbound)
-
-}
-
-// ListAllowedOutboundServices lists the services the given service is allowed outbound connections to.
-func (mc *MeshCatalog) ListAllowedOutboundServices(sourceService service.MeshService) ([]service.MeshService, error) {
-	return mc.getAllowedDirectionalServices(sourceService, outbound)
 }
 
 //GetWeightedClusterForService returns the weighted cluster for a given service
@@ -122,6 +131,17 @@ func (mc *MeshCatalog) GetWeightedClusterForService(svc service.MeshService) (se
 
 	// Use a default weighted cluster as an SMI TrafficSplit policy is not defined for the service
 	return getDefaultWeightedClusterForService(svc), nil
+}
+
+//GetWeightedClusterForService returns the weighted cluster for a given service
+func (mc *MeshCatalog) GetWeightedClusterForServicePort(svcPort service.MeshServicePort) (service.WeightedCluster, error) {
+	log.Trace().Msgf("Finding weighted cluster for servicePort %+v", svcPort)
+
+	// for now, only return a default. Ignore trafficSplit
+	return service.WeightedCluster{
+		ClusterName: service.ClusterName(svcPort.String()),
+		Weight:      constants.ClusterWeightAcceptAll,
+	}, nil
 }
 
 // hostnamesTostr returns a comma separated string of hostnames from the list
@@ -227,7 +247,7 @@ func (mc *MeshCatalog) getTrafficSpecName(trafficSpecKind string, trafficSpecNam
 func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.Route, meshService service.MeshService) ([]trafficpolicy.TrafficTarget, error) {
 	var trafficPolicies []trafficpolicy.TrafficTarget
 	for _, trafficTargets := range mc.meshSpec.ListTrafficTargets() {
-		log.Debug().Msgf("Discovered TrafficTarget resource: %s/%s", trafficTargets.Namespace, trafficTargets.Name)
+		log.Debug().Msgf("Discovered TrafficTarget resource: %s/%s/%d", trafficTargets.Namespace, trafficTargets.Name, *trafficTargets.Spec.Destination.Port)
 		if trafficTargets.Spec.Rules == nil || len(trafficTargets.Spec.Rules) == 0 {
 			log.Error().Msgf("TrafficTarget %s/%s has no spec routes; Skipping...", trafficTargets.Namespace, trafficTargets.Name)
 			continue
@@ -257,9 +277,16 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[trafficpolicy.T
 			}
 			srcService := srcServiceList[0]
 
+			destServicePort := service.MeshServicePort{
+				Namespace: destService.Namespace,
+				Name:      destService.Name,
+				Port:      *trafficTargets.Spec.Destination.Port,
+			}
+
+
 			trafficTarget := trafficpolicy.TrafficTarget{
 				Name:        trafficTargets.Name,
-				Destination: destService,
+				Destination: destServicePort,
 				Source:      srcService,
 			}
 
@@ -281,7 +308,7 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[trafficpolicy.T
 					for _, routePolicy := range routePoliciesMatched {
 						trafficTarget.Route = routePolicy
 						// append a traffic trafficTarget only if it corresponds to the service
-						if trafficTarget.Source.Equals(meshService) || trafficTarget.Destination.Equals(meshService) {
+						if trafficTarget.Source.Equals(meshService) || trafficTarget.Destination.GetMeshService().Equals(meshService) {
 							trafficPolicies = append(trafficPolicies, trafficTarget)
 						}
 					}
@@ -295,7 +322,7 @@ func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[trafficpolicy.T
 						}
 						trafficTarget.Route = routePolicy
 						// append a traffic trafficTarget only if it corresponds to the service
-						if trafficTarget.Source.Equals(meshService) || trafficTarget.Destination.Equals(meshService) {
+						if trafficTarget.Source.Equals(meshService) || trafficTarget.Destination.GetMeshService().Equals(meshService) {
 							trafficPolicies = append(trafficPolicies, trafficTarget)
 						}
 					}
@@ -338,7 +365,7 @@ func (mc *MeshCatalog) buildAllowPolicyForSourceToDest(source *corev1.Service, d
 		Methods:   []string{constants.WildcardHTTPMethod},
 	}
 	srcMeshSvc := k8sSvcToMeshSvc(source)
-	dstMeshSvc := k8sSvcToMeshSvc(destination)
+	dstMeshSvc := k8sSvcToMeshSvc(destination).GetMeshServicePort()
 	return trafficpolicy.TrafficTarget{
 		Name:        fmt.Sprintf("%s->%s", srcMeshSvc, dstMeshSvc),
 		Destination: dstMeshSvc,

@@ -128,7 +128,7 @@ var (
 	// TrafficPolicy is a traffic policy SMI object.
 	TrafficPolicy = trafficpolicy.TrafficTarget{
 		Name:        TrafficTargetName,
-		Destination: BookstoreService,
+		//Destination: BookstoreService,
 		Source:      BookbuyerService,
 		Route: trafficpolicy.Route{
 			PathRegex: BookstoreBuyPath,

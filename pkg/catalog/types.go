@@ -62,10 +62,10 @@ type MeshCataloger interface {
 	ListTrafficPolicies(service.MeshService) ([]trafficpolicy.TrafficTarget, error)
 
 	// ListAllowedInboundServices lists the inbound services allowed to connect to the given service.
-	ListAllowedInboundServices(service.MeshService) ([]service.MeshService, error)
+	ListAllowedInboundServices(service.MeshServicePort) ([]service.MeshService, error)
 
 	// ListAllowedOutboundServices lists the services the given service is allowed outbound connections to.
-	ListAllowedOutboundServices(service.MeshService) ([]service.MeshService, error)
+	ListAllowedOutboundServices(service.MeshService) ([]service.MeshServicePort, error)
 
 	// ListSMIPolicies lists SMI policies.
 	ListSMIPolicies() ([]*split.TrafficSplit, []service.WeightedService, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget, []*corev1.Service)
@@ -98,6 +98,9 @@ type MeshCataloger interface {
 
 	//GetWeightedClusterForService returns the weighted cluster for a service
 	GetWeightedClusterForService(service service.MeshService) (service.WeightedCluster, error)
+
+	//GetWeightedClusterForServicePort returns the weighted cluster for a ServicePort
+	GetWeightedClusterForServicePort(service service.MeshServicePort) (service.WeightedCluster, error)
 
 	// GetIngressRoutesPerHost returns the routes per host associated with an ingress service
 	GetIngressRoutesPerHost(service.MeshService) (map[string][]trafficpolicy.Route, error)
