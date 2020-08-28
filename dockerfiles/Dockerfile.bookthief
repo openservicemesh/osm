@@ -1,4 +1,4 @@
-FROM alpine:3.10.1
+FROM alpine:3.12
 ADD bookthief /
 ADD bookthief.html.template /
 RUN apk add --no-cache curl openssl ca-certificates

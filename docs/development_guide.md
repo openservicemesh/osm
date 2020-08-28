@@ -63,7 +63,7 @@ OSM leverages [Envoy proxy](https://github.com/envoyproxy/envoy) as a data plane
 
 ## Get Go-ing
 
-This repository uses [Go v1.14](https://golang.org/). If you are not familiar with Go, spend some time with the excellent [Tour of Go](https://tour.golang.org/).
+This repository uses [Go v1.15](https://golang.org/). If you are not familiar with Go, spend some time with the excellent [Tour of Go](https://tour.golang.org/).
 
 ## Get the dependencies
 

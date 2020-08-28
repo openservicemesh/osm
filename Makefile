@@ -19,7 +19,7 @@ BUILD_DATE_VAR := github.com/openservicemesh/osm/pkg/version.BuildDate
 BUILD_VERSION_VAR := github.com/openservicemesh/osm/pkg/version.Version
 BUILD_GITCOMMIT_VAR := github.com/openservicemesh/osm/pkg/version.GitCommit
 
-LDFLAGS ?= "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(CLI_VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -X main.chartTGZSource=$$(cat -)"
+LDFLAGS ?= "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(CLI_VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -X main.chartTGZSource=$$(cat -) -s -w"
 
 check-env:
 ifndef CTR_REGISTRY
@@ -42,7 +42,7 @@ build: build-osm-controller
 
 .PHONY: build-osm-controller
 build-osm-controller: clean-osm-controller
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o ./bin/osm-controller/osm-controller -ldflags "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(CONTROLLER_VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA)" ./cmd/osm-controller
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o ./bin/osm-controller/osm-controller -ldflags "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(CONTROLLER_VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -s -w" ./cmd/osm-controller
 
 .PHONY: build-osm
 build-osm:
