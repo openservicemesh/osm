@@ -50,7 +50,7 @@ for i in bookstore bookbuyer bookthief bookwarehouse; do kubectl create ns $i; d
 ```
 ### Onboard the Namespaces to the OSM Mesh and enable sidecar injection on the namespaces
 ```bash
-osm namespace add bookstore bookbuyer bookthief bookwarehouse
+osm namespace add bookstore bookbuyer bookthief bookwarehouse --enable-sidecar-injection
 ```
 ### Deploy the Bookstore Application
 Install `Bookstore`, `Bookbuyer`, `Bookthief`, `Bookwarehouse`.
