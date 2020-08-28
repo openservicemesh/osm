@@ -21,4 +21,17 @@ var _ = Describe("Test catalog functions", func() {
 			Expect(actual).To(Equal(expected))
 		})
 	})
+
+	Context("Testing GetServiceEndpoints()", func() {
+		It("returns the endpoint for the service", func() {
+			actual, err := mc.GetServiceEndpoints(tests.BookstoreService)
+			Expect(err).ToNot(HaveOccurred())
+
+			expected := []endpoint.Endpoint{
+				tests.Endpoint,
+			}
+			Expect(actual).To(Equal(expected))
+		})
+	})
+
 })
