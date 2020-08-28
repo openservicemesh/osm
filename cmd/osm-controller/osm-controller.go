@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"os"
+	"strings"
 
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/spf13/pflag"
@@ -12,6 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
@@ -65,7 +68,7 @@ var (
 	log   = logger.New("osm-controller/main")
 
 	// What is the Certification Authority to be used
-	osmCertificateManagerKind = flags.String("certificate-manager", "tresor", "Certificate manager")
+	osmCertificateManagerKind = flags.String("certificate-manager", "tresor", fmt.Sprintf("Certificate manager [%v]", strings.Join(validCertificateManagerOptions, "|")))
 
 	// When certmanager == "vault"
 	vaultProtocol = flags.String("vault-protocol", "http", "Host name of the Hashi Vault")
@@ -146,10 +149,9 @@ func main() {
 		log.Fatal().Err(err).Msg("Failed to create new mesh spec client")
 	}
 
-	// Get the Certificate Manager based on the CLI argument passed to this module.
-	certManager, certDebugger, err := certManagers[certificateManagerKind(*osmCertificateManagerKind)](kubeClient, kubeConfig, enableDebugServer)
+	certManager, certDebugger, err := getCertificateManager(kubeClient, kubeConfig)
 	if err != nil {
-		log.Fatal().Err(err).Msgf("Failed to get certificate manager based on CLI argument")
+		log.Fatal().Err(err).Msgf("Failed to get certificate manager based on CLI argument: %s", *osmCertificateManagerKind)
 	}
 
 	log.Info().Msgf("Service certificates will be valid for %+v", getServiceCertValidityPeriod())
@@ -295,4 +297,17 @@ func saveOrUpdateSecretToKubernetes(kubeClient clientset.Interface, ca certifica
 	}
 
 	return nil
+}
+
+func getCertificateManager(kubeClient kubernetes.Interface, kubeConfig *rest.Config) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
+	switch *osmCertificateManagerKind {
+	case tresorKind:
+		return getTresorOSMCertificateManager(kubeClient, enableDebugServer)
+	case vaultKind:
+		return getHashiVaultOSMCertificateManager(enableDebugServer)
+	case certmanagerKind:
+		return getCertManagerOSMCertificateManager(kubeClient, kubeConfig, enableDebugServer)
+	default:
+		return nil, nil, fmt.Errorf("Unsupported Certificate Manager %s", *osmCertificateManagerKind)
+	}
 }
