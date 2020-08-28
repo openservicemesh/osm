@@ -21,25 +21,28 @@ func (mc *MeshCatalog) ListEndpointsForService(svc service.MeshService) ([]endpo
 	return endpoints, nil
 }
 
-// GetServiceEndpoints returns the highest abstract set of endpoint destinations where the service is made available at.
-// If no LB/virtual IPs are assigned to the service, GetServiceEndpoints will return ListEndpointsForService
-func (mc *MeshCatalog) GetServiceEndpoints(svc service.MeshService) ([]endpoint.Endpoint, error) {
+// GetResolvableServiceEndpoints returns the resolvable set of endpoint destinations where the service is made available at.
+func (mc *MeshCatalog) GetResolvableServiceEndpoints(svc service.MeshService) ([]endpoint.Endpoint, error) {
+	// TODO: Move the implmentation of this function to be provider-specific. Currently, the providers might
+	// not have access to some common structures in order to perform these operations in an optimal way
 	var endpoints []endpoint.Endpoint
 	var err error
 
 	// Check if the service has been given Cluster IP
-	// TODO: push this in providers. Providers currently do not have services cache.
 	service := mc.GetSMISpec().GetService(svc)
 	if service == nil {
 		log.Error().Msgf("Could not find service %s", svc.String())
-		return []endpoint.Endpoint{}, errServiceNotFound
+		return nil, errServiceNotFound
 	}
 
-	if len(service.Spec.ClusterIP) > 0 {
+	if len(service.Spec.ClusterIP) == 0 {
+		// If no cluster IP, use final endpoint as resolvable destinations
+		endpoints, err = mc.ListEndpointsForService(svc)
+	} else {
 		ip := net.ParseIP(service.Spec.ClusterIP)
 		if ip == nil {
-			log.Error().Msgf("Could not parse IP %s", service.Spec.ClusterIP)
-			return []endpoint.Endpoint{}, errParseClusterIP
+			log.Error().Msgf("Could not parse Cluster IP %s", service.Spec.ClusterIP)
+			return nil, errParseClusterIP
 		}
 
 		for _, svcPort := range service.Spec.Ports {
@@ -48,8 +51,6 @@ func (mc *MeshCatalog) GetServiceEndpoints(svc service.MeshService) ([]endpoint.
 				Port: endpoint.Port(svcPort.Port),
 			})
 		}
-	} else {
-		endpoints, err = mc.ListEndpointsForService(svc)
 	}
 
 	return endpoints, err

@@ -73,9 +73,11 @@ type MeshCataloger interface {
 	// ListEndpointsForService returns the list of individual instance endpoint destinations that comprise the backed service
 	ListEndpointsForService(service.MeshService) ([]endpoint.Endpoint, error)
 
-	// GetServiceEndpoint returns the highest abstract set of endpoint destinations where the service is made available at.
-	// If no LB/virtual IPs are assigned to the service, GetServiceEndpoints will return ListEndpointsForService
-	GetServiceEndpoints(service.MeshService) ([]endpoint.Endpoint, error)
+	// GetResolvableServiceEndpoints returns the resolvable set of endpoint destinations where the service is made available at.
+	// These are the endpoint destinations we'd expect client applications sends the traffic towards to, when attemtpting to
+	// reach a specific service.
+	// If no LB/virtual IPs are assigned to the service, GetResolvableServiceEndpoints will return ListEndpointsForService
+	GetResolvableServiceEndpoints(service.MeshService) ([]endpoint.Endpoint, error)
 
 	// GetCertificateForService returns the SSL Certificate for the given service.
 	// This certificate will be used for service-to-service mTLS.

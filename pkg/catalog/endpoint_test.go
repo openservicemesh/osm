@@ -22,9 +22,9 @@ var _ = Describe("Test catalog functions", func() {
 		})
 	})
 
-	Context("Testing GetServiceEndpoints()", func() {
+	Context("Testing GetResolvableServiceEndpoints()", func() {
 		It("returns the endpoint for the service", func() {
-			actual, err := mc.GetServiceEndpoints(tests.BookstoreService)
+			actual, err := mc.GetResolvableServiceEndpoints(tests.BookstoreService)
 			Expect(err).ToNot(HaveOccurred())
 
 			expected := []endpoint.Endpoint{
