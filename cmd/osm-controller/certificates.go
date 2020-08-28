@@ -20,15 +20,10 @@ import (
 	"github.com/openservicemesh/osm/pkg/debugger"
 )
 
-type certificateManagerKind string
-
 // These are the supported certificate issuers.
 const (
 	// Tresor is an internal package, which leverages Kubernetes secrets and signs certs on the OSM pod
 	tresorKind string = "tresor"
-
-	// Azure Key Vault integration; uses AKV for certificate storage only; certs are signed on the OSM pod
-	keyVaultKind = "keyvault"
 
 	// Hashi Vault integration; OSM is pointed to an external Vault; signing of certs happens on Vault
 	vaultKind = "vault"
@@ -131,12 +126,6 @@ func getCertFromKubernetes(kubeClient kubernetes.Interface, namespace, secretNam
 		log.Fatal().Err(err).Msgf("Failed to create new Certificate Authority with cert issuer %s", *osmCertificateManagerKind)
 	}
 	return rootCert
-}
-
-func getAzureKeyVaultOSMCertificateManager(_ kubernetes.Interface, _ *rest.Config, enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
-	// TODO(draychev): implement: https://github.com/openservicemesh/osm/issues/577
-	log.Fatal().Msg("Azure Key Vault certificate manager is not implemented")
-	return nil, nil, nil
 }
 
 func getHashiVaultOSMCertificateManager(enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
