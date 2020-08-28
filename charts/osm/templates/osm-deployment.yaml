@@ -35,6 +35,7 @@ spec:
             "--webhook-name", "osm-webhook-{{.Values.OpenServiceMesh.meshName}}",
             "--ca-bundle-secret-name", "{{.Values.OpenServiceMesh.caBundleSecretName}}",
             "--certificate-manager", "{{.Values.OpenServiceMesh.certficateManager}}",
+            "--service-cert-validity-minutes", "{{.Values.OpenServiceMesh.serviceCertValidityMinutes}}",
             {{- if .Values.OpenServiceMesh.enableVault}}
             "--vault-host", "{{.Values.OpenServiceMesh.vault.host}}",
             "--vault-protocol", "{{.Values.OpenServiceMesh.vault.protocol}}",
@@ -44,7 +45,6 @@ spec:
             "--certificate-manager-issuer-name", "{{.Values.OpenServiceMesh.certmanager.issuerName}}",
             "--certificate-manager-issuer-kind", "{{.Values.OpenServiceMesh.certmanager.issuerKind}}",
             "--certificate-manager-issuer-group", "{{.Values.OpenServiceMesh.certmanager.issuerGroup}}",
-            "--service-cert-validity-minutes", "{{.Values.OpenServiceMesh.serviceCertValidityMinutes}}",
             {{- end }}
             {{- if .Values.OpenServiceMesh.enableDebugServer }}
             "--enable-debug-server",
