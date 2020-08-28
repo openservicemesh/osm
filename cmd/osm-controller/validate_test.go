@@ -86,15 +86,6 @@ var _ = Describe("Test validateCertificateManagerOptions", func() {
 			Expect(err).To(HaveOccurred())
 		})
 	})
-	Context("azure key vault is not implemented", func() {
-		*osmCertificateManagerKind = keyVaultKind
-
-		err := validateCertificateManagerOptions()
-
-		It("should error", func() {
-			Expect(err).To(HaveOccurred())
-		})
-	})
 	Context("invalid kind is passed in", func() {
 		*osmCertificateManagerKind = "invalidkind"
 
