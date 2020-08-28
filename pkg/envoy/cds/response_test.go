@@ -10,16 +10,16 @@ import (
 	xds_endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	xds_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/wrappers"
-
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
+
+	"github.com/golang/mock/gomock"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -30,9 +30,16 @@ import (
 )
 
 var _ = Describe("CDS Response", func() {
+	var (
+		mockCtrl         *gomock.Controller
+		mockConfigurator *configurator.MockConfigurator
+	)
+
+	mockCtrl = gomock.NewController(GinkgoT())
+	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
+
 	kubeClient := testclient.NewSimpleClientset()
 	catalog := catalog.NewFakeMeshCatalog(kubeClient)
-	cfg := configurator.NewFakeConfigurator()
 	proxyServiceName := tests.BookbuyerServiceName
 	proxyServiceAccountName := tests.BookbuyerServiceAccountName
 	proxyService := tests.BookbuyerService
@@ -67,7 +74,14 @@ var _ = Describe("CDS Response", func() {
 				Expect(err).ToNot(HaveOccurred())
 			}
 
-			resp, err := NewResponse(catalog, proxy, nil, cfg)
+			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
+			mockConfigurator.EXPECT().IsPrometheusScrapingEnabled().Return(true).AnyTimes()
+			mockConfigurator.EXPECT().IsTracingEnabled().Return(true).AnyTimes()
+			mockConfigurator.EXPECT().IsEgressEnabled().Return(true).AnyTimes()
+			mockConfigurator.EXPECT().GetTracingHost().Return(constants.DefaultTracingHost).AnyTimes()
+			mockConfigurator.EXPECT().GetTracingPort().Return(constants.DefaultTracingPort).AnyTimes()
+
+			resp, err := NewResponse(catalog, proxy, nil, mockConfigurator)
 			Expect(err).ToNot(HaveOccurred())
 
 			// There are to any.Any resources in the ClusterDiscoveryStruct (Clusters)
@@ -136,11 +150,14 @@ var _ = Describe("CDS Response", func() {
 		It("Returns a remote cluster object", func() {
 			localService := tests.BookbuyerService
 			remoteService := tests.BookstoreService
-			remoteCluster, err := getRemoteServiceCluster(remoteService, localService, cfg)
+
+			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).Times(1)
+
+			remoteCluster, err := getRemoteServiceCluster(remoteService, localService, mockConfigurator)
 			Expect(err).ToNot(HaveOccurred())
 
 			expectedClusterLoadAssignment := &xds_endpoint.ClusterLoadAssignment{
-				ClusterName: constants.EnvoyMetricsCluster,
+				ClusterName: "test",
 				Endpoints: []*xds_endpoint.LocalityLbEndpoints{
 					{
 						Locality: nil,

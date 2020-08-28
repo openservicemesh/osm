@@ -27,16 +27,17 @@ var _ = Describe("Test Kube Client Provider", func() {
 	var (
 		mockCtrl         *gomock.Controller
 		mockNsController *namespace.MockController
+		mockConfigurator *configurator.MockConfigurator
 	)
 	mockCtrl = gomock.NewController(GinkgoT())
 	mockNsController = namespace.NewMockController(mockCtrl)
+	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
 
 	fakeClientSet := fake.NewSimpleClientset()
 	stopChann := make(chan struct{})
-	cfg := configurator.NewFakeConfigurator()
 	providerID := "provider"
 
-	cli, err := NewProvider(fakeClientSet, mockNsController, stopChann, providerID, cfg)
+	cli, err := NewProvider(fakeClientSet, mockNsController, stopChann, providerID, mockConfigurator)
 
 	mockNsController.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).AnyTimes()
 	Context("when testing ListEndpointsForService", func() {
@@ -137,9 +138,11 @@ var _ = Describe("When getting a Service associated with a ServiceAccount", func
 	var (
 		mockCtrl         *gomock.Controller
 		mockNsController *namespace.MockController
+		mockConfigurator *configurator.MockConfigurator
 	)
 	mockCtrl = gomock.NewController(GinkgoT())
 	mockNsController = namespace.NewMockController(mockCtrl)
+	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
 
 	var (
 		fakeClientSet *fake.Clientset
@@ -149,14 +152,13 @@ var _ = Describe("When getting a Service associated with a ServiceAccount", func
 
 	providerID := "test-provider"
 	testNamespace := "test"
-	cfg := configurator.NewFakeConfigurator()
 	stop := make(chan struct{})
 
 	mockNsController.EXPECT().IsMonitoredNamespace(testNamespace).Return(true).AnyTimes()
 
 	BeforeEach(func() {
 		fakeClientSet = fake.NewSimpleClientset()
-		provider, err = NewProvider(fakeClientSet, mockNsController, stop, providerID, cfg)
+		provider, err = NewProvider(fakeClientSet, mockNsController, stop, providerID, mockConfigurator)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
