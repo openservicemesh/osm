@@ -20,10 +20,10 @@ type Route struct {
 
 // TrafficTarget is a struct of the allowed RoutePaths from sources to a destination
 type TrafficTarget struct {
-	Name        string              `json:"name:omitempty"`
-	Destination service.MeshService `json:"destination:omitempty"`
-	Source      service.MeshService `json:"source:omitempty"`
-	Route       Route               `json:"route:omitempty"`
+	Name        string                  `json:"name:omitempty"`
+	Destination service.MeshServicePort `json:"destination:omitempty"`
+	Source      service.MeshService     `json:"source:omitempty"`
+	Route       Route                   `json:"route:omitempty"`
 }
 
 //RouteWeightedClusters is a struct of a route and the weighted clusters on that route

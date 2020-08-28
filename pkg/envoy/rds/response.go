@@ -2,6 +2,8 @@ package rds
 
 import (
 	"context"
+	"strings"
+	"fmt"
 
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
@@ -26,6 +28,8 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, proxy *envo
 	}
 	proxyServiceName := *svc
 
+	log.Debug().Msgf("RDS proxyServiceName:%s proxy:%+v", proxyServiceName, proxy)
+
 	allTrafficPolicies, err := catalog.ListTrafficPolicies(proxyServiceName)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed listing routes")
@@ -45,18 +49,35 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, proxy *envo
 
 	for _, trafficPolicies := range allTrafficPolicies {
 		isSourceService := trafficPolicies.Source.Equals(proxyServiceName)
-		isDestinationService := trafficPolicies.Destination.Equals(proxyServiceName)
-		svc := trafficPolicies.Destination
+		isDestinationService := trafficPolicies.Destination.GetMeshService().Equals(proxyServiceName)
+		svc := trafficPolicies.Destination.GetMeshService()
 		hostnames, err := catalog.GetHostnamesForService(svc)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed listing domains")
 			return nil, err
 		}
-		weightedCluster, err := catalog.GetWeightedClusterForService(svc)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed listing clusters")
-			return nil, err
+		log.Debug().Msgf("RDS hostnames: %+v", hostnames)
+
+		// multiple targets exist per service
+		var weightedCluster service.WeightedCluster
+		target := trafficPolicies.Destination
+		if target.Port != 0 {
+			hostnames = filterOnTargetPort(hostnames, target.Port)
+			log.Debug().Msgf("RDS filtered hostnames: %+v", hostnames)
+			weightedCluster, err = catalog.GetWeightedClusterForServicePort(target)
+			if err != nil {
+				log.Error().Err(err).Msg("Failed listing clusters")
+				return nil, err
+			}
+		} else {
+
+			weightedCluster, err = catalog.GetWeightedClusterForService(svc)
+			if err != nil {
+				log.Error().Err(err).Msg("Failed listing clusters")
+				return nil, err
+			}
 		}
+		log.Debug().Msgf("RDS weightedCluster: %+v", weightedCluster)
 
 		if isSourceService {
 			aggregateRoutesByHost(outboundAggregatedRoutesByHostnames, trafficPolicies.Route, weightedCluster, hostnames)
@@ -76,6 +97,8 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, proxy *envo
 	routeConfiguration = append(routeConfiguration, outboundRouteConfig)
 	routeConfiguration = append(routeConfiguration, inboundRouteConfig)
 
+	log.Debug().Msgf("RDS routeConfiguration: %+v", routeConfiguration)
+
 	for _, config := range routeConfiguration {
 		marshalledRouteConfig, err := ptypes.MarshalAny(config)
 		if err != nil {
@@ -94,6 +117,7 @@ func aggregateRoutesByHost(routesPerHost map[string]map[string]trafficpolicy.Rou
 		routesPerHost[host] = make(map[string]trafficpolicy.RouteWeightedClusters)
 	}
 	routePolicyWeightedCluster, routeFound := routesPerHost[host][routePolicy.PathRegex]
+	log.Debug().Msgf("RDS aggregateRoutesByHost: routeFound:%t pathregex:%+v", routeFound, routePolicy.PathRegex)
 	if routeFound {
 		// add the cluster to the existing route
 		routePolicyWeightedCluster.WeightedClusters.Add(weightedCluster)
@@ -116,4 +140,17 @@ func createRoutePolicyWeightedClusters(routePolicy trafficpolicy.Route, weighted
 		Route:            routePolicy,
 		WeightedClusters: set.NewSet(weightedCluster),
 	}
+}
+
+// return only those hostnames whose name ends with ":<port>"
+func filterOnTargetPort(hostnames string, port int) string {
+	newHostnames := make([]string, 0)
+	strs := strings.Split(hostnames, ",")
+	toMatch := fmt.Sprintf(":%d", port)
+	for _, name := range strs {
+		if strings.HasSuffix(name, toMatch) {
+			newHostnames = append(newHostnames, name)
+		}
+	}
+	return strings.Join(newHostnames, ",")
 }

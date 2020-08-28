@@ -161,16 +161,21 @@ func getRootCert(cert certificate.Certificater, sdscert envoy.SDSCert, proxyServ
 	case envoy.RootCertTypeForMTLSInbound:
 		var matchSANs []*xds_matcher.StringMatcher
 		var serverNames []service.MeshService
+		var serverPortNames []service.MeshServicePort
 		var err error
 
 		// This block constructs a list of Server Names (peers) that are allowed to connect to the given service.
 		// The allowed list is derived from SMI's Traffic Policy.
 		if sdscert.CertType == envoy.RootCertTypeForMTLSOutbound {
 			// Outbound
-			serverNames, err = mc.ListAllowedOutboundServices(proxyServiceName)
+			serverPortNames, err = mc.ListAllowedOutboundServices(proxyServiceName)
+			for _, sp := range serverPortNames {
+				serverNames = append(serverNames, sp.GetMeshService())
+			}
+
 		} else {
 			// Inbound
-			serverNames, err = mc.ListAllowedInboundServices(proxyServiceName)
+			serverNames, err = mc.ListAllowedInboundServices(proxyServiceName.GetMeshServicePort())
 		}
 
 		if err != nil {
