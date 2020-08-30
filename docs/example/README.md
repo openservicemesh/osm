@@ -91,11 +91,11 @@ cp .env.example .env
 BOOKBUYER_LOCAL_PORT=7070 BOOKSTOREv1_LOCAL_PORT=7071 BOOKSTOREv2_LOCAL_PORT=7072 BOOKTHIEF_LOCAL_PORT=7073 ./scripts/port-forward-all.sh
 ```
 In a browser, open up the following urls:
-- http://localhost:8080 - **Bookbuyer**
-- http://localhost:8081 - **bookstore-v1**
-- http://localhost:8082 - **bookstore-v2**
+- http://localhost:7070 - **Bookbuyer**
+- http://localhost:7071 - **bookstore-v1**
+- http://localhost:7072 - **bookstore-v2**
   - *Note: This page will not be available at this time in the demo. This will become available during the Traffic Split Configuration*
-- http://localhost:8083 - **bookthief**
+- http://localhost:7073 - **bookthief**
 
 Position the windows so that you can see all four at the same time. The header at the top of the webpage indicates the application and version.
 
@@ -105,8 +105,8 @@ At this point, no applications have access to each other because no access contr
 kubectl create -f docs/example/manifests/access/
 ```
 The counters should now be incrementing for the `Bookbuyer`, and `Bookstore-v1` applications:
-- http://localhost:8080 - **Bookbuyer**
-- http://localhost:8081 - **bookstore-v1**
+- http://localhost:7070 - **Bookbuyer**
+- http://localhost:7071 - **bookstore-v1**
 
 ### Allowing the Bookthief Application to access the Mesh
 Currently the Bookthief application has not been authorized to participate in the service mesh communication. We will now uncomment out the lines in the [docs/example/manifests/access/traffic-access.yaml](manifests/access/traffic-access.yaml) to allow `Bookthief` to communicate with `Bookstore`. Then, re-apply the manifest and watch the change in policy propagate.
@@ -170,7 +170,7 @@ Re-apply the access manifest with the updates.
 kubectl apply -f docs/example/manifests/access/
 ```
 The counter in the `Bookthief` window will start incrementing.
-- http://localhost:8083 - **bookthief**
+- http://localhost:7073 - **bookthief**
 
 *Note: Bypass setting up and using access control policies entirely by enabling permissive traffic policy mode when installing a control plane: `osm install --enable-permissive-traffic-policy`*
 
@@ -189,9 +189,9 @@ A Kubernetes Service, ServiceAccount, and Deployment and SMI TrafficTarget for b
 kubectl apply -f docs/example/manifests/bookstore-v2/
 ```
 
-Browse to http://localhost:8082. You should see the `bookstore-v2` heading in your browser window. **NOTE** Please exit and restart the `./scripts/port-forward-all.sh` script in order to access v2 of Bookstore.
+Browse to http://localhost:7072. You should see the `bookstore-v2` heading in your browser window. **NOTE** Please exit and restart the `./scripts/port-forward-all.sh` script in order to access v2 of Bookstore.
 
-After restarting the port forwarding script, you should now be able to access the `bookstore-v2` application at http://localhost:8082. The count for the books sold should remain at 0, this is because the current traffic split policy is currently weighted 100% for `bookstore-v1`. You can verify the traffic split policy by running the following and viewing the **Backends** properties:
+After restarting the port forwarding script, you should now be able to access the `bookstore-v2` application at http://localhost:7072. The count for the books sold should remain at 0, this is because the current traffic split policy is currently weighted 100% for `bookstore-v1`. You can verify the traffic split policy by running the following and viewing the **Backends** properties:
 ```
 kubectl describe trafficsplit bookstore-split -n bookstore
 ```
@@ -205,7 +205,7 @@ kubectl apply -f docs/example/manifests/split-v2/
 
 Wait for the changes to propagate and observe the counters increment for bookstore-v2 in your browser windows. Modify the `weight` fields in [manifests/split-v2/traffic-split-v2.yaml](manifests/split-v2/traffic-split-v2.yaml) and re-apply changes to experiment.
 
-- http://localhost:8082 - **bookstore-v2**
+- http://localhost:7072 - **bookstore-v2**
 
 ## Inspect Dashboards
 OSM ships with a set of pre-configured Grafana dashboards. **NOTE** If you still have the additional terminal still running the `./scripts/port-forward-all.sh` script, go ahead and `CTRL+C` to terminate the port forwarding. The `osm dashboard` port redirection will not work simultaneously with the port forwarding script still running. The `osm dashboard` can be viewed with the following command:
