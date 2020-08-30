@@ -88,9 +88,11 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, proxy *envo
 		}
 	}
 
+	/* do not include ingress routes for now as iptables should take care of it
 	if err = updateRoutesForIngress(proxyServiceName, catalog, inboundAggregatedRoutesByHostnames); err != nil {
 		return nil, err
 	}
+	*/
 
 	route.UpdateRouteConfiguration(outboundAggregatedRoutesByHostnames, outboundRouteConfig, route.OutboundRoute)
 	route.UpdateRouteConfiguration(inboundAggregatedRoutesByHostnames, inboundRouteConfig, route.InboundRoute)
