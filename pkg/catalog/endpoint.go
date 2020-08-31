@@ -21,7 +21,7 @@ func (mc *MeshCatalog) ListEndpointsForService(svc service.MeshService) ([]endpo
 	return endpoints, nil
 }
 
-// GetResolvableServiceEndpoints returns the resolvable set of endpoint destinations where the service is made available at.
+// GetResolvableServiceEndpoints returns the resolvable set of endpoint over which a service is accessible using its FQDN
 func (mc *MeshCatalog) GetResolvableServiceEndpoints(svc service.MeshService) ([]endpoint.Endpoint, error) {
 	// TODO: Move the implmentation of this function to be provider-specific. Currently, the providers might
 	// not have access to some common structures in order to perform these operations in an optimal way
@@ -38,19 +38,20 @@ func (mc *MeshCatalog) GetResolvableServiceEndpoints(svc service.MeshService) ([
 	if len(service.Spec.ClusterIP) == 0 {
 		// If no cluster IP, use final endpoint as resolvable destinations
 		endpoints, err = mc.ListEndpointsForService(svc)
-	} else {
-		ip := net.ParseIP(service.Spec.ClusterIP)
-		if ip == nil {
-			log.Error().Msgf("Could not parse Cluster IP %s", service.Spec.ClusterIP)
-			return nil, errParseClusterIP
-		}
+	}
 
-		for _, svcPort := range service.Spec.Ports {
-			endpoints = append(endpoints, endpoint.Endpoint{
-				IP:   ip,
-				Port: endpoint.Port(svcPort.Port),
-			})
-		}
+	// Cluster IP is present
+	ip := net.ParseIP(service.Spec.ClusterIP)
+	if ip == nil {
+		log.Error().Msgf("Could not parse Cluster IP %s", service.Spec.ClusterIP)
+		return nil, errParseClusterIP
+	}
+
+	for _, svcPort := range service.Spec.Ports {
+		endpoints = append(endpoints, endpoint.Endpoint{
+			IP:   ip,
+			Port: endpoint.Port(svcPort.Port),
+		})
 	}
 
 	return endpoints, err
