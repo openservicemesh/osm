@@ -853,7 +853,7 @@ var _ = Describe("Resolving values for install command with cert-manager paramet
 			enableEgress:               true,
 			meshCIDRRanges:             testMeshCIDRRanges,
 			enableMetricsStack:         true,
-			enableGrafana: 				true
+			enableGrafana: 				true,
 		}
 
 		vals, err = installCmd.resolveValues()
