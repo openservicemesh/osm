@@ -13,7 +13,6 @@ on:
       - "docs/**"
       - "**.md"
 env:
-  KUBECONFIG: ".kube/config"
   CI_WAIT_FOR_OK_SECONDS: 120
   CI_MAX_ITERATIONS_THRESHOLD: 120
   CI_CLIENT_CONCURRENT_CONNECTIONS: 1

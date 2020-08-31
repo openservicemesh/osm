@@ -51,7 +51,7 @@ To see the results of deploying the services and the service mesh - run the tail
   - the scripts will connect to the respective Kubernetes Pod and stream its logs
   - the output will be the output of the curl command to the `bookstore` service and the count of books sold, and the output of the curl command to `github.com` to demonstrate access to an external service
   - a properly working service mesh will result in HTTP 200 OK response code for the `bookstore` service with `./demo/tail-bookbuyer.sh` along with a monotonically increasing counter appearing in the response headers, while `./demo/tail-bookthief.sh` will result in HTTP 404 Not Found response code for the `bookstore` service. When egress is enabled, HTTP requests to an out-of-mesh host will result in a HTTP `200 OK` response code for both the `bookbuyer` and `bookthief` services.
-  This can be automatically checked with `KUBECONFIG=$HOME/.kube/config go run ./ci/cmd/maestro.go`
+  This can be automatically checked with `go run ./ci/cmd/maestro.go`
 
 ## View Mesh Topology with Jaeger
 The OSM demo will install a Jaeger pod, and configure all participating Envoys to send spans to it. Jaeger's UI is running on port 16686. To view the web UI, forward port 16686 from the Jaeger pod to the local workstation and navigate to http://localhost:16686/. In the `./scripts` directory we have included a helper script to find the Jaeger pod and forward the port: `./scripts/port-forward-jaeger.sh`
