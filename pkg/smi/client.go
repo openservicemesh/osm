@@ -70,6 +70,7 @@ func (c *Client) run(stop <-chan struct{}) error {
 		"TrafficSplit":   c.informers.TrafficSplit,
 		"Services":       c.informers.Services,
 		"HTTPRouteGroup": c.informers.HTTPRouteGroup,
+		"TCPRoute":       c.informers.TCPRoute,
 		"TrafficTarget":  c.informers.TrafficTarget,
 	}
 
@@ -117,6 +118,7 @@ func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient smiTraf
 		Services:       informerFactory.Core().V1().Services().Informer(),
 		TrafficSplit:   smiTrafficSplitInformerFactory.Split().V1alpha2().TrafficSplits().Informer(),
 		HTTPRouteGroup: smiTrafficSpecInformerFactory.Specs().V1alpha3().HTTPRouteGroups().Informer(),
+		TCPRoute:       smiTrafficSpecInformerFactory.Specs().V1alpha3().TCPRoutes().Informer(),
 		TrafficTarget:  smiTrafficTargetInformerFactory.Access().V1alpha2().TrafficTargets().Informer(),
 	}
 
@@ -124,6 +126,7 @@ func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient smiTraf
 		Services:       informerCollection.Services.GetStore(),
 		TrafficSplit:   informerCollection.TrafficSplit.GetStore(),
 		HTTPRouteGroup: informerCollection.HTTPRouteGroup.GetStore(),
+		TCPRoute:       informerCollection.TCPRoute.GetStore(),
 		TrafficTarget:  informerCollection.TrafficTarget.GetStore(),
 	}
 
@@ -150,6 +153,7 @@ func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient smiTraf
 	informerCollection.Services.AddEventHandler(k8s.GetKubernetesEventHandlers("Services", "SMI", client.announcements, shouldObserve))
 	informerCollection.TrafficSplit.AddEventHandler(k8s.GetKubernetesEventHandlers("TrafficSplit", "SMI", client.announcements, shouldObserve))
 	informerCollection.HTTPRouteGroup.AddEventHandler(k8s.GetKubernetesEventHandlers("HTTPRouteGroup", "SMI", client.announcements, shouldObserve))
+	informerCollection.TCPRoute.AddEventHandler(k8s.GetKubernetesEventHandlers("TCPRoute", "SMI", client.announcements, shouldObserve))
 	informerCollection.TrafficTarget.AddEventHandler(k8s.GetKubernetesEventHandlers("TrafficTarget", "SMI", client.announcements, shouldObserve))
 
 	if featureflags.IsBackpressureEnabled() {
@@ -190,6 +194,20 @@ func (c *Client) ListHTTPTrafficSpecs() []*smiSpecs.HTTPRouteGroup {
 		httpTrafficSpec = append(httpTrafficSpec, routeGroup)
 	}
 	return httpTrafficSpec
+}
+
+// ListTCPTrafficSpecs lists SMI TCPRoute resources
+func (c *Client) ListTCPTrafficSpecs() []*smiSpecs.TCPRoute {
+	var tcpRouteSpec []*smiSpecs.TCPRoute
+	for _, specIface := range c.caches.TCPRoute.List() {
+		tcpRoute := specIface.(*smiSpecs.TCPRoute)
+
+		if !c.namespaceController.IsMonitoredNamespace(tcpRoute.Namespace) {
+			continue
+		}
+		tcpRouteSpec = append(tcpRouteSpec, tcpRoute)
+	}
+	return tcpRouteSpec
 }
 
 // ListTrafficTargets implements mesh.Topology by returning the list of traffic targets.

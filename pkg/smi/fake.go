@@ -13,7 +13,8 @@ import (
 
 type fakeMeshSpec struct {
 	trafficSplits    []*split.TrafficSplit
-	routeGroups      []*spec.HTTPRouteGroup
+	httpRouteGroups  []*spec.HTTPRouteGroup
+	tcpRoutes        []*spec.TCPRoute
 	trafficTargets   []*target.TrafficTarget
 	backpressures    []*backpressure.Backpressure
 	weightedServices []service.WeightedService
@@ -25,7 +26,8 @@ type fakeMeshSpec struct {
 func NewFakeMeshSpecClient() MeshSpec {
 	return fakeMeshSpec{
 		trafficSplits:    []*split.TrafficSplit{&tests.TrafficSplit},
-		routeGroups:      []*spec.HTTPRouteGroup{&tests.HTTPRouteGroup},
+		httpRouteGroups:  []*spec.HTTPRouteGroup{&tests.HTTPRouteGroup},
+		tcpRoutes:        []*spec.TCPRoute{&tests.TCPRoute},
 		trafficTargets:   []*target.TrafficTarget{&tests.TrafficTarget},
 		weightedServices: []service.WeightedService{tests.WeightedService},
 		serviceAccounts: []service.K8sServiceAccount{
@@ -69,7 +71,12 @@ func (f fakeMeshSpec) GetService(svc service.MeshService) *corev1.Service {
 
 // ListHTTPTrafficSpecs lists SMI HTTPRouteGroup resources
 func (f fakeMeshSpec) ListHTTPTrafficSpecs() []*spec.HTTPRouteGroup {
-	return f.routeGroups
+	return f.httpRouteGroups
+}
+
+// ListTCPTrafficSpecs lists SMI TCPRoute resources
+func (f fakeMeshSpec) ListTCPTrafficSpecs() []*spec.TCPRoute {
+	return f.tcpRoutes
 }
 
 // ListTrafficTargets lists TrafficTarget SMI resources for the fake Mesh Spec.
