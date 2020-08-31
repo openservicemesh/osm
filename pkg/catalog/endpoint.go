@@ -37,7 +37,7 @@ func (mc *MeshCatalog) GetResolvableServiceEndpoints(svc service.MeshService) ([
 
 	if len(service.Spec.ClusterIP) == 0 {
 		// If no cluster IP, use final endpoint as resolvable destinations
-		endpoints, err = mc.ListEndpointsForService(svc)
+		return mc.ListEndpointsForService(svc)
 	}
 
 	// Cluster IP is present
