@@ -3,10 +3,11 @@ package injector
 import (
 	"fmt"
 
+	corev1 "k8s.io/api/core/v1"
+
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	corev1 "k8s.io/api/core/v1"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -69,6 +70,14 @@ static_resources:
 `
 
 var _ = Describe("Test Envoy configuration creation", func() {
+	var (
+		mockCtrl         *gomock.Controller
+		mockConfigurator *configurator.MockConfigurator
+	)
+
+	mockCtrl = gomock.NewController(GinkgoT())
+	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
+
 	Context("create envoy config", func() {
 		It("creates envoy config", func() {
 			config := envoyBootstrapConfigMeta{
@@ -81,8 +90,7 @@ var _ = Describe("Test Envoy configuration creation", func() {
 				XDSPort:        2345,
 			}
 
-			cfg := configurator.NewFakeConfigurator()
-			actual, err := getEnvoyConfigYAML(config, cfg)
+			actual, err := getEnvoyConfigYAML(config, mockConfigurator)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(string(actual)).To(Equal(expectedEnvoyConfig[1:]),
@@ -92,10 +100,19 @@ var _ = Describe("Test Envoy configuration creation", func() {
 })
 
 var _ = Describe("Test Envoy sidecar", func() {
+	var (
+		mockCtrl         *gomock.Controller
+		mockConfigurator *configurator.MockConfigurator
+	)
+
+	mockCtrl = gomock.NewController(GinkgoT())
+	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
+
 	Context("create Envoy sidecar", func() {
 		It("creates correct Envoy sidecar spec", func() {
-			cfg := configurator.NewFakeConfigurator()
-			actual := getEnvoySidecarContainerSpec("a", "b", "c", "d", cfg)
+			mockConfigurator.EXPECT().GetEnvoyLogLevel().Return("debug").Times(1)
+
+			actual := getEnvoySidecarContainerSpec("a", "b", "c", "d", mockConfigurator)
 			Expect(len(actual)).To(Equal(1))
 
 			expected := corev1.Container{
@@ -133,7 +150,7 @@ var _ = Describe("Test Envoy sidecar", func() {
 					"envoy",
 				},
 				Args: []string{
-					"--log-level", cfg.GetEnvoyLogLevel(),
+					"--log-level", "debug",
 					"--config-path", "/etc/envoy/bootstrap.yaml",
 					"--service-node", "c",
 					"--service-cluster", "d",

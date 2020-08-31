@@ -2,22 +2,40 @@ package lds
 
 import (
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
+
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
 var _ = Describe("Test LDS response", func() {
+	var (
+		mockCtrl         *gomock.Controller
+		mockConfigurator *configurator.MockConfigurator
+	)
+
+	mockCtrl = gomock.NewController(GinkgoT())
+
 	Context("Test getInboundIngressFilterChain()", func() {
+		BeforeEach(func() {
+			mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
+
+			mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
+			mockConfigurator.EXPECT().GetTracingHost().Return(constants.DefaultTracingHost).AnyTimes()
+			mockConfigurator.EXPECT().GetTracingPort().Return(constants.DefaultTracingPort).AnyTimes()
+		})
+
 		It("constructs filter chain used for HTTPS ingress", func() {
 			expectedServerNames := []string{tests.BookstoreService.GetCommonName().String()}
-			cfg := configurator.NewFakeConfiguratorWithOptions(configurator.FakeConfigurator{
-				HTTPSIngress: true, // HTTPS
-			})
-			filterChains := getIngressFilterChains(tests.BookstoreService, cfg)
+
+			mockConfigurator.EXPECT().UseHTTPSIngress().Return(true).AnyTimes()
+
+			filterChains := getIngressFilterChains(tests.BookstoreService, mockConfigurator)
 			Expect(len(filterChains)).To(Equal(2))
 			for _, filterChain := range filterChains {
 				Expect(filterChain.FilterChainMatch.TransportProtocol).To(Equal(envoy.TransportProtocolTLS))
@@ -33,10 +51,9 @@ var _ = Describe("Test LDS response", func() {
 		})
 
 		It("constructs filter chain used for HTTP ingress", func() {
-			cfg := configurator.NewFakeConfiguratorWithOptions(configurator.FakeConfigurator{
-				HTTPSIngress: false, // HTTP
-			})
-			filterChains := getIngressFilterChains(tests.BookstoreService, cfg)
+			mockConfigurator.EXPECT().UseHTTPSIngress().Return(false).AnyTimes()
+
+			filterChains := getIngressFilterChains(tests.BookstoreService, mockConfigurator)
 			Expect(len(filterChains)).To(Equal(1))
 			for _, filterChain := range filterChains {
 				Expect(filterChain.FilterChainMatch.TransportProtocol).To(Equal(""))
@@ -47,8 +64,7 @@ var _ = Describe("Test LDS response", func() {
 		})
 
 		It("constructs in-mesh filter chain", func() {
-			cfg := configurator.NewFakeConfiguratorWithOptions(configurator.FakeConfigurator{})
-			filterChain, err := getInboundInMeshFilterChain(tests.BookstoreService, cfg)
+			filterChain, err := getInboundInMeshFilterChain(tests.BookstoreService, mockConfigurator)
 			Expect(err).ToNot(HaveOccurred())
 
 			expectedServerNames := []string{tests.BookstoreService.GetCommonName().String()}

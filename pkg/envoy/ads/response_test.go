@@ -12,6 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -26,6 +27,13 @@ import (
 )
 
 var _ = Describe("Test ADS response functions", func() {
+	var (
+		mockCtrl         *gomock.Controller
+		mockConfigurator *configurator.MockConfigurator
+	)
+
+	mockCtrl = gomock.NewController(GinkgoT())
+	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
 
 	// --- setup
 	kubeClient := testclient.NewSimpleClientset()
@@ -96,14 +104,17 @@ var _ = Describe("Test ADS response functions", func() {
 		certPEM, _ := certManager.IssueCertificate(cn, nil)
 		cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())
 		server, actualResponses := tests.NewFakeXDSServer(cert, nil, nil)
-		cfg := configurator.NewFakeConfigurator()
+
+		mockConfigurator.EXPECT().IsEgressEnabled().Return(false).AnyTimes()
+		mockConfigurator.EXPECT().IsPrometheusScrapingEnabled().Return(false).AnyTimes()
+		mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
 
 		It("returns Aggregated Discovery Service response", func() {
-			s := NewADSServer(mc, true, tests.Namespace, cfg)
+			s := NewADSServer(mc, true, tests.Namespace, mockConfigurator)
 
 			Expect(s).ToNot(BeNil())
 
-			s.sendAllResponses(proxy, &server, cfg)
+			s.sendAllResponses(proxy, &server, mockConfigurator)
 
 			Expect(actualResponses).ToNot(BeNil())
 			Expect(len(*actualResponses)).To(Equal(5))
