@@ -79,7 +79,7 @@ var _ = Describe("Running the install command", func() {
 				meshName:                   defaultMeshName,
 				enableEgress:               true,
 				enableMetricsStack:         true,
-				enableGrafana: 				true,
+				enableGrafana:              true,
 				meshCIDRRanges:             testMeshCIDRRanges,
 				clientSet:                  fakeClientSet,
 			}
@@ -141,7 +141,7 @@ var _ = Describe("Running the install command", func() {
 						"enableEgress":                   true,
 						"meshCIDRRanges":                 testMeshCIDR,
 						"enableMetricsStack":             true,
-						"enableGrafana": 				  true,
+						"enableGrafana":                  true,
 						"deployJaeger":                   false,
 					}}))
 			})
@@ -192,7 +192,7 @@ var _ = Describe("Running the install command", func() {
 				enableEgress:               true,
 				meshCIDRRanges:             testMeshCIDRRanges,
 				enableMetricsStack:         true,
-				enableGrafana: 				true,
+				enableGrafana:              true,
 				clientSet:                  fakeClientSet,
 			}
 
@@ -258,7 +258,7 @@ var _ = Describe("Running the install command", func() {
 						"enableEgress":                   true,
 						"meshCIDRRanges":                 testMeshCIDR,
 						"enableMetricsStack":             true,
-						"enableGrafana": 				  true,
+						"enableGrafana":                  true,
 						"deployJaeger":                   false,
 					}}))
 			})
@@ -316,7 +316,7 @@ var _ = Describe("Running the install command", func() {
 				enableEgress:               true,
 				meshCIDRRanges:             testMeshCIDRRanges,
 				enableMetricsStack:         true,
-				enableGrafana: 			    true,
+				enableGrafana:              true,
 				clientSet:                  fakeClientSet,
 			}
 
@@ -383,7 +383,7 @@ var _ = Describe("Running the install command", func() {
 						"enableEgress":                   true,
 						"meshCIDRRanges":                 testMeshCIDR,
 						"enableMetricsStack":             true,
-						"enableGrafana": 				  true,
+						"enableGrafana":                  true,
 						"deployJaeger":                   false,
 					}}))
 			})
@@ -483,7 +483,7 @@ var _ = Describe("Running the install command", func() {
 				enableEgress:               true,
 				meshCIDRRanges:             testMeshCIDRRanges,
 				enableMetricsStack:         true,
-				enableGrafana: 				true,
+				enableGrafana:              true,
 				clientSet:                  fakeClientSet,
 			}
 
@@ -550,7 +550,7 @@ var _ = Describe("Running the install command", func() {
 						"enableEgress":                   true,
 						"meshCIDRRanges":                 testMeshCIDR,
 						"enableMetricsStack":             true,
-						"enableGrafana": 				  true,
+						"enableGrafana":                  true,
 						"deployJaeger":                   false,
 					}}))
 			})
@@ -773,7 +773,7 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 			enableEgress:               true,
 			meshCIDRRanges:             testMeshCIDRRanges,
 			enableMetricsStack:         true,
-			enableGrafana: 				true,
+			enableGrafana:              true,
 		}
 
 		vals, err = installCmd.resolveValues()
@@ -821,7 +821,7 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 				"enableEgress":                   true,
 				"meshCIDRRanges":                 testMeshCIDR,
 				"enableMetricsStack":             true,
-				"enableGrafana": 				  true,
+				"enableGrafana":                  true,
 				"deployJaeger":                   false,
 			}}))
 	})
@@ -853,7 +853,7 @@ var _ = Describe("Resolving values for install command with cert-manager paramet
 			enableEgress:               true,
 			meshCIDRRanges:             testMeshCIDRRanges,
 			enableMetricsStack:         true,
-			enableGrafana: 				true,
+			enableGrafana:              true,
 		}
 
 		vals, err = installCmd.resolveValues()
@@ -901,7 +901,7 @@ var _ = Describe("Resolving values for install command with cert-manager paramet
 				"enableEgress":                   true,
 				"meshCIDRRanges":                 testMeshCIDR,
 				"enableMetricsStack":             true,
-				"enableGrafana": 				  true,
+				"enableGrafana":                  true,
 				"deployJaeger":                   false,
 			}}))
 	})
