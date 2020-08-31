@@ -23,6 +23,7 @@ type InformerCollection struct {
 	Services       cache.SharedIndexInformer
 	TrafficSplit   cache.SharedIndexInformer
 	HTTPRouteGroup cache.SharedIndexInformer
+	TCPRoute       cache.SharedIndexInformer
 	TrafficTarget  cache.SharedIndexInformer
 	Backpressure   cache.SharedIndexInformer
 }
@@ -32,6 +33,7 @@ type CacheCollection struct {
 	Services       cache.Store
 	TrafficSplit   cache.Store
 	HTTPRouteGroup cache.Store
+	TCPRoute       cache.Store
 	TrafficTarget  cache.Store
 	Backpressure   cache.Store
 }
@@ -66,6 +68,9 @@ type MeshSpec interface {
 
 	// ListHTTPTrafficSpecs lists SMI HTTPRouteGroup resources
 	ListHTTPTrafficSpecs() []*spec.HTTPRouteGroup
+
+	// ListTCPTrafficSpecs lists SMI TCPRoute resources
+	ListTCPTrafficSpecs() []*spec.TCPRoute
 
 	// ListTrafficTargets lists SMI TrafficTarget resources
 	ListTrafficTargets() []*target.TrafficTarget

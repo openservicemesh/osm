@@ -468,6 +468,49 @@ var _ = Describe("When listing ListHTTPTrafficSpecs", func() {
 	})
 })
 
+var _ = Describe("When listing TCP routes", func() {
+	var (
+		meshSpec      MeshSpec
+		fakeClientSet *fakeKubeClientSet
+		err           error
+	)
+	BeforeEach(func() {
+		meshSpec, fakeClientSet, err = bootstrapClient()
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("Returns an empty list when no TCPRoute resources are found", func() {
+		services := meshSpec.ListTCPTrafficSpecs()
+		Expect(len(services)).To(Equal(0))
+	})
+
+	It("should return a list of TCPRoute resources", func() {
+		routeSpec := &smiSpecs.TCPRoute{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: "specs.smi-spec.io/v1alpha2",
+				Kind:       "TCPRoute",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: testNamespaceName,
+				Name:      "tcp-route",
+			},
+			Spec: smiSpecs.TCPRouteSpec{},
+		}
+
+		_, err := fakeClientSet.smiTrafficSpecClientSet.SpecsV1alpha3().TCPRoutes(testNamespaceName).Create(context.TODO(), routeSpec, metav1.CreateOptions{})
+		Expect(err).ToNot(HaveOccurred())
+		<-meshSpec.GetAnnouncementsChannel()
+
+		tcpRoutes := meshSpec.ListTCPTrafficSpecs()
+		Expect(len(tcpRoutes)).To(Equal(1))
+		Expect(tcpRoutes[0].Name).To(Equal(routeSpec.Name))
+
+		err = fakeClientSet.smiTrafficSpecClientSet.SpecsV1alpha3().TCPRoutes(testNamespaceName).Delete(context.TODO(), routeSpec.Name, metav1.DeleteOptions{})
+		Expect(err).ToNot(HaveOccurred())
+		<-meshSpec.GetAnnouncementsChannel()
+	})
+})
+
 var _ = Describe("When fetching BackpressurePolicy for the given MeshService", func() {
 	var (
 		meshSpec      MeshSpec

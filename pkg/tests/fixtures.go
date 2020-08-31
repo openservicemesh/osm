@@ -271,6 +271,19 @@ var (
 		},
 	}
 
+	// TCPRoute is a TCPRoute SMI resource
+	TCPRoute = spec.TCPRoute{
+		TypeMeta: v1.TypeMeta{
+			APIVersion: "specs.smi-spec.io/v1alpha2",
+			Kind:       "TCPRoute",
+		},
+		ObjectMeta: v1.ObjectMeta{
+			Namespace: "default",
+			Name:      "tcp-route",
+		},
+		Spec: spec.TCPRouteSpec{},
+	}
+
 	// Backpressure is an experimental Backpressure policy.
 	// This will be replaced by an SMI Spec when it is ready.
 	Backpressure = backpressure.Backpressure{
