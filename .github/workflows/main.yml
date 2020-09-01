@@ -130,7 +130,6 @@ jobs:
           BOOKSTORE_SVC: "bookstore"
           BOOKTHIEF_EXPECTED_RESPONSE_CODE: "404"
           ENABLE_EGRESS: "false"
-          EGRESS_EXPECTED_RESPONSE_CODE: "404" # egress is disabled
           DEPLOY_TRAFFIC_SPLIT: "true"
           CTR_TAG: ${{ github.sha }}
         run: |
@@ -178,7 +177,6 @@ jobs:
           BOOKSTORE_SVC: "bookstore-v1"
           BOOKTHIEF_EXPECTED_RESPONSE_CODE: "200"
           ENABLE_EGRESS: "true"
-          EGRESS_EXPECTED_RESPONSE_CODE: "200" # egress is enabled
           DEPLOY_TRAFFIC_SPLIT: "true"
           CTR_TAG: ${{ github.sha }}
         run: |
@@ -221,7 +219,6 @@ jobs:
           BOOKSTORE_SVC: "bookstore-v1"
           BOOKTHIEF_EXPECTED_RESPONSE_CODE: "404"
           ENABLE_EGRESS: "false"
-          EGRESS_EXPECTED_RESPONSE_CODE: "404" # egress is disabled
           DEPLOY_TRAFFIC_SPLIT: "false"
           DEPLOY_WITH_SAME_SA: "true"
           CTR_TAG: ${{ github.sha }}
