@@ -70,8 +70,14 @@ type MeshCataloger interface {
 	// ListSMIPolicies lists SMI policies.
 	ListSMIPolicies() ([]*split.TrafficSplit, []service.WeightedService, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget, []*corev1.Service)
 
-	// ListEndpointsForService returns the list of provider endpoints corresponding to a service
+	// ListEndpointsForService returns the list of individual instance endpoint backing a service
 	ListEndpointsForService(service.MeshService) ([]endpoint.Endpoint, error)
+
+	// GetResolvableServiceEndpoints returns the resolvable set of endpoint over which a service is accessible using its FQDN.
+	// These are the endpoint destinations we'd expect client applications sends the traffic towards to, when attemtpting to
+	// reach a specific service.
+	// If no LB/virtual IPs are assigned to the service, GetResolvableServiceEndpoints will return ListEndpointsForService
+	GetResolvableServiceEndpoints(service.MeshService) ([]endpoint.Endpoint, error)
 
 	// GetCertificateForService returns the SSL Certificate for the given service.
 	// This certificate will be used for service-to-service mTLS.
