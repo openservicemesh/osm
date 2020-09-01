@@ -1,4 +1,4 @@
-{{- if and .Values.OpenServiceMesh.enableMetricsStack .Values.OpenServiceMesh.enableGrafana}}
+{{- if .Values.OpenServiceMesh.enableGrafana}}
 apiVersion: v1
 kind: ServiceAccount
 metadata:
