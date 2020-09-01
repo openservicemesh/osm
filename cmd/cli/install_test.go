@@ -36,6 +36,8 @@ var (
 	testRetentionTime          = "5d"
 	testMeshCIDR               = "10.20.0.0/16"
 	testMeshCIDRRanges         = []string{testMeshCIDR}
+	testKey1                   = "key1=val1"
+	testSetOptions             = []string{testKey1}
 )
 
 var _ = Describe("Running the install command", func() {
@@ -741,8 +743,10 @@ var _ = Describe("Running the install command", func() {
 
 var _ = Describe("Resolving values for install command with vault parameters", func() {
 	var (
-		vals map[string]interface{}
-		err  error
+		vals             map[string]interface{}
+		parsedSetOptions []string
+		err              error
+		parseErr         error
 	)
 
 	BeforeEach(func() {
@@ -765,17 +769,24 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 			enableEgress:               true,
 			meshCIDRRanges:             testMeshCIDRRanges,
 			enableMetricsStack:         true,
+			setOptions:                 testSetOptions,
 		}
 
-		vals, err = installCmd.resolveValues()
+		parsedSetOptions, parseErr = installCmd.parseSetOptions()
+		vals, err = installCmd.resolveValues(parsedSetOptions)
 	})
 
 	It("should not error", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
+	It("should not error", func() {
+		Expect(parseErr).NotTo(HaveOccurred())
+	})
+
 	It("should resolve correctly", func() {
 		Expect(vals).To(BeEquivalentTo(map[string]interface{}{
+			"key1": "val1",
 			"OpenServiceMesh": map[string]interface{}{
 				"certificateManager": "vault",
 				"certmanager": map[string]interface{}{
@@ -817,10 +828,98 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 	})
 })
 
+var _ = Describe("Resolving values for overriding set options command with vault parameters", func() {
+	var (
+		vals             map[string]interface{}
+		parsedSetOptions []string
+		err              error
+		parseErr         error
+	)
+
+	BeforeEach(func() {
+		installCmd := &installCmd{
+			containerRegistry:          testRegistry,
+			containerRegistrySecret:    testRegistrySecret,
+			certificateManager:         "vault",
+			vaultHost:                  testVaultHost,
+			vaultProtocol:              testVaultProtocol,
+			certmanagerIssuerName:      testCertManagerIssuerName,
+			certmanagerIssuerKind:      testCertManagerIssuerKind,
+			certmanagerIssuerGroup:     testCertManagerIssuerGroup,
+			vaultToken:                 testVaultToken,
+			vaultRole:                  testVaultRole,
+			osmImageTag:                testOsmImageTag,
+			osmImagePullPolicy:         defaultOsmImagePullPolicy,
+			serviceCertValidityMinutes: 1,
+			prometheusRetentionTime:    testRetentionTime,
+			meshName:                   defaultMeshName,
+			enableEgress:               true,
+			meshCIDRRanges:             testMeshCIDRRanges,
+			enableMetricsStack:         true,
+			setOptions:                 []string{"OpenServiceMesh.certificateManager=overridingVaultName"},
+		}
+
+		parsedSetOptions, parseErr = installCmd.parseSetOptions()
+		vals, err = installCmd.resolveValues(parsedSetOptions)
+	})
+
+	It("should not error", func() {
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("should not error", func() {
+		Expect(parseErr).NotTo(HaveOccurred())
+	})
+
+	It("should resolve correctly", func() {
+		Expect(vals).To(BeEquivalentTo(map[string]interface{}{
+			"OpenServiceMesh": map[string]interface{}{
+				"certificateManager": "overridingVaultName",
+				"certmanager": map[string]interface{}{
+					"issuerKind":  "ClusterIssuer",
+					"issuerGroup": "example.co.uk",
+					"issuerName":  "my-osm-ca",
+				},
+				"meshName": defaultMeshName,
+				"image": map[string]interface{}{
+					"registry":   testRegistry,
+					"tag":        testOsmImageTag,
+					"pullPolicy": defaultOsmImagePullPolicy,
+				},
+				"imagePullSecrets": []interface{}{
+					map[string]interface{}{
+						"name": testRegistrySecret,
+					},
+				},
+				"serviceCertValidityMinutes": int64(1),
+				"vault": map[string]interface{}{
+					"host":     testVaultHost,
+					"protocol": "http",
+					"token":    testVaultToken,
+					"role":     testVaultRole,
+				},
+				"prometheus": map[string]interface{}{
+					"retention": map[string]interface{}{
+						"time": "5d",
+					},
+				},
+				"enableDebugServer":              false,
+				"enablePermissiveTrafficPolicy":  false,
+				"enableBackpressureExperimental": false,
+				"enableEgress":                   true,
+				"meshCIDRRanges":                 testMeshCIDR,
+				"enableMetricsStack":             true,
+				"deployJaeger":                   false,
+			}}))
+	})
+})
+
 var _ = Describe("Resolving values for install command with cert-manager parameters", func() {
 	var (
-		vals map[string]interface{}
-		err  error
+		vals             map[string]interface{}
+		parsedSetOptions []string
+		err              error
+		parseErr         error
 	)
 
 	BeforeEach(func() {
@@ -843,17 +942,24 @@ var _ = Describe("Resolving values for install command with cert-manager paramet
 			enableEgress:               true,
 			meshCIDRRanges:             testMeshCIDRRanges,
 			enableMetricsStack:         true,
+			setOptions:                 testSetOptions,
 		}
 
-		vals, err = installCmd.resolveValues()
+		parsedSetOptions, parseErr = installCmd.parseSetOptions()
+		vals, err = installCmd.resolveValues(parsedSetOptions)
 	})
 
 	It("should not error", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
+	It("should not error", func() {
+		Expect(parseErr).NotTo(HaveOccurred())
+	})
+
 	It("should resolve correctly", func() {
 		Expect(vals).To(BeEquivalentTo(map[string]interface{}{
+			"key1": "val1",
 			"OpenServiceMesh": map[string]interface{}{
 				"certificateManager": "cert-manager",
 				"certmanager": map[string]interface{}{
@@ -901,9 +1007,10 @@ var _ = Describe("Resolving values for egress option", func() {
 			installCmd := &installCmd{
 				enableEgress: false,
 			}
-
-			vals, err := installCmd.resolveValues()
+			parsedSetOptions, parseErr := installCmd.parseSetOptions()
+			vals, err := installCmd.resolveValues(parsedSetOptions)
 			Expect(err).NotTo(HaveOccurred())
+			Expect(parseErr).NotTo(HaveOccurred())
 
 			enableEgressVal := vals["OpenServiceMesh"].(map[string]interface{})["enableEgress"]
 			Expect(enableEgressVal).To(BeFalse())
@@ -915,8 +1022,10 @@ var _ = Describe("Resolving values for egress option", func() {
 				meshCIDRRanges: testMeshCIDRRanges,
 			}
 
-			vals, err := installCmd.resolveValues()
+			parsedSetOptions, parseErr := installCmd.parseSetOptions()
+			vals, err := installCmd.resolveValues(parsedSetOptions)
 			Expect(err).NotTo(HaveOccurred())
+			Expect(parseErr).NotTo(HaveOccurred())
 
 			enableEgressVal := vals["OpenServiceMesh"].(map[string]interface{})["enableEgress"]
 			Expect(enableEgressVal).To(BeTrue())
@@ -932,7 +1041,9 @@ var _ = Describe("Test mesh CIDR ranges", func() {
 				meshCIDRRanges: testMeshCIDRRanges,
 			}
 
-			vals, err := installCmd.resolveValues()
+			parsedSetOptions, parseErr := installCmd.parseSetOptions()
+			vals, err := installCmd.resolveValues(parsedSetOptions)
+			Expect(parseErr).NotTo(HaveOccurred())
 			Expect(err).NotTo(HaveOccurred())
 
 			cidrRanges := vals["OpenServiceMesh"].(map[string]interface{})["meshCIDRRanges"]
@@ -967,9 +1078,10 @@ var _ = Describe("Test osm image pull policy cli option", func() {
 		installCmd := &installCmd{
 			osmImagePullPolicy: "IfNotPresent",
 		}
-
-		vals, err := installCmd.resolveValues()
+		parsedSetOptions, parseErr := installCmd.parseSetOptions()
+		vals, err := installCmd.resolveValues(parsedSetOptions)
 		Expect(err).NotTo(HaveOccurred())
+		Expect(parseErr).NotTo(HaveOccurred())
 
 		pullPolicy := vals["OpenServiceMesh"].(map[string]interface{})["image"].(map[string]interface{})["pullPolicy"]
 		Expect(pullPolicy).To(Equal("IfNotPresent"))
@@ -979,9 +1091,10 @@ var _ = Describe("Test osm image pull policy cli option", func() {
 		installCmd := &installCmd{
 			osmImagePullPolicy: "Always",
 		}
-
-		vals, err := installCmd.resolveValues()
+		parsedSetOptions, parseErr := installCmd.parseSetOptions()
+		vals, err := installCmd.resolveValues(parsedSetOptions)
 		Expect(err).NotTo(HaveOccurred())
+		Expect(parseErr).NotTo(HaveOccurred())
 
 		pullPolicy := vals["OpenServiceMesh"].(map[string]interface{})["image"].(map[string]interface{})["pullPolicy"]
 		Expect(pullPolicy).To(Equal("Always"))
