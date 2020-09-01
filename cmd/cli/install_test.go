@@ -78,7 +78,7 @@ var _ = Describe("Running the install command", func() {
 				prometheusRetentionTime:    testRetentionTime,
 				meshName:                   defaultMeshName,
 				enableEgress:               true,
-				enableMetricsStack:         true,
+				enablePrometheus:           true,
 				enableGrafana:              true,
 				meshCIDRRanges:             testMeshCIDRRanges,
 				clientSet:                  fakeClientSet,
@@ -140,7 +140,7 @@ var _ = Describe("Running the install command", func() {
 						"enableBackpressureExperimental": false,
 						"enableEgress":                   true,
 						"meshCIDRRanges":                 testMeshCIDR,
-						"enableMetricsStack":             true,
+						"enablePrometheus":               true,
 						"enableGrafana":                  true,
 						"deployJaeger":                   false,
 					}}))
@@ -191,7 +191,7 @@ var _ = Describe("Running the install command", func() {
 				meshName:                   defaultMeshName,
 				enableEgress:               true,
 				meshCIDRRanges:             testMeshCIDRRanges,
-				enableMetricsStack:         true,
+				enablePrometheus:           true,
 				enableGrafana:              true,
 				clientSet:                  fakeClientSet,
 			}
@@ -257,7 +257,7 @@ var _ = Describe("Running the install command", func() {
 						"enableBackpressureExperimental": false,
 						"enableEgress":                   true,
 						"meshCIDRRanges":                 testMeshCIDR,
-						"enableMetricsStack":             true,
+						"enablePrometheus":               true,
 						"enableGrafana":                  true,
 						"deployJaeger":                   false,
 					}}))
@@ -315,7 +315,7 @@ var _ = Describe("Running the install command", func() {
 				meshName:                   defaultMeshName,
 				enableEgress:               true,
 				meshCIDRRanges:             testMeshCIDRRanges,
-				enableMetricsStack:         true,
+				enablePrometheus:           true,
 				enableGrafana:              true,
 				clientSet:                  fakeClientSet,
 			}
@@ -382,7 +382,7 @@ var _ = Describe("Running the install command", func() {
 						"enableBackpressureExperimental": false,
 						"enableEgress":                   true,
 						"meshCIDRRanges":                 testMeshCIDR,
-						"enableMetricsStack":             true,
+						"enablePrometheus":               true,
 						"enableGrafana":                  true,
 						"deployJaeger":                   false,
 					}}))
@@ -482,7 +482,7 @@ var _ = Describe("Running the install command", func() {
 				meshName:                   defaultMeshName,
 				enableEgress:               true,
 				meshCIDRRanges:             testMeshCIDRRanges,
-				enableMetricsStack:         true,
+				enablePrometheus:           true,
 				enableGrafana:              true,
 				clientSet:                  fakeClientSet,
 			}
@@ -549,7 +549,7 @@ var _ = Describe("Running the install command", func() {
 						"enableBackpressureExperimental": false,
 						"enableEgress":                   true,
 						"meshCIDRRanges":                 testMeshCIDR,
-						"enableMetricsStack":             true,
+						"enablePrometheus":               true,
 						"enableGrafana":                  true,
 						"deployJaeger":                   false,
 					}}))
@@ -772,7 +772,7 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 			meshName:                   defaultMeshName,
 			enableEgress:               true,
 			meshCIDRRanges:             testMeshCIDRRanges,
-			enableMetricsStack:         true,
+			enablePrometheus:           true,
 			enableGrafana:              true,
 		}
 
@@ -820,7 +820,7 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 				"enableBackpressureExperimental": false,
 				"enableEgress":                   true,
 				"meshCIDRRanges":                 testMeshCIDR,
-				"enableMetricsStack":             true,
+				"enablePrometheus":               true,
 				"enableGrafana":                  true,
 				"deployJaeger":                   false,
 			}}))
@@ -852,7 +852,7 @@ var _ = Describe("Resolving values for install command with cert-manager paramet
 			meshName:                   defaultMeshName,
 			enableEgress:               true,
 			meshCIDRRanges:             testMeshCIDRRanges,
-			enableMetricsStack:         true,
+			enablePrometheus:           true,
 			enableGrafana:              true,
 		}
 
@@ -900,7 +900,7 @@ var _ = Describe("Resolving values for install command with cert-manager paramet
 				"enableBackpressureExperimental": false,
 				"enableEgress":                   true,
 				"meshCIDRRanges":                 testMeshCIDR,
-				"enableMetricsStack":             true,
+				"enablePrometheus":               true,
 				"enableGrafana":                  true,
 				"deployJaeger":                   false,
 			}}))
