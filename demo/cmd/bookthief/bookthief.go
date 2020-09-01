@@ -21,12 +21,12 @@ const (
 )
 
 var (
-	booksStolen   int64 = 0
-	booksStolenV1 int64 = 0
-	booksStolenV2 int64 = 0
-	log                 = logger.NewPretty(participantName)
-	port                = flag.Int("port", 80, "port on which this app is listening for incoming HTTP")
-	path                = flag.String("path", ".", "path to the HTML template")
+	booksStolen   int64
+	booksStolenV1 int64
+	booksStolenV2 int64
+	log           = logger.NewPretty(participantName)
+	port          = flag.Int("port", 80, "port on which this app is listening for incoming HTTP")
+	path          = flag.String("path", ".", "path to the HTML template")
 )
 
 func renderTemplate(w http.ResponseWriter) {
@@ -100,6 +100,5 @@ func main() {
 	//
 	// When it tries to make an egress request, we expect a 200 response with egress enabled and a 404 response with egress disabled.
 	meshExpectedResponseCode := common.GetExpectedResponseCodeFromEnvVar(common.BookthiefExpectedResponseCodeEnvVar, httpStatusNotFound)
-	egressExpectedResponseCode := common.GetExpectedResponseCodeFromEnvVar(common.EgressExpectedResponseCodeEnvVar, httpStatusOK)
-	common.GetBooks(participantName, meshExpectedResponseCode, egressExpectedResponseCode, &booksStolen, &booksStolenV1, &booksStolenV2)
+	common.GetBooks(participantName, meshExpectedResponseCode, &booksStolen, &booksStolenV1, &booksStolenV2)
 }
