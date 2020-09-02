@@ -7,7 +7,6 @@ import (
 	"os"
 	"strings"
 
-	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -26,6 +25,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/endpoint/providers/kube"
 	"github.com/openservicemesh/osm/pkg/envoy/ads"
 	"github.com/openservicemesh/osm/pkg/featureflags"
+	"github.com/openservicemesh/osm/pkg/health"
 	"github.com/openservicemesh/osm/pkg/httpserver"
 	"github.com/openservicemesh/osm/pkg/ingress"
 	"github.com/openservicemesh/osm/pkg/injector"
@@ -34,12 +34,10 @@ import (
 	"github.com/openservicemesh/osm/pkg/namespace"
 	"github.com/openservicemesh/osm/pkg/signals"
 	"github.com/openservicemesh/osm/pkg/smi"
-	"github.com/openservicemesh/osm/pkg/utils"
 	"github.com/openservicemesh/osm/pkg/version"
 )
 
 const (
-	xdsServerType                     = "ADS"
 	defaultServiceCertValidityMinutes = 60 // 1 hour
 	caBundleSecretNameCLIParam        = "ca-bundle-secret-name"
 	xdsServerCertificateCommonName    = "ads"
@@ -189,8 +187,6 @@ func main() {
 		log.Fatal().Err(err).Msg("Error creating mutating webhook")
 	}
 
-	xdsServer := ads.NewADSServer(meshCatalog, enableDebugServer, osmNamespace, cfg)
-
 	// TODO(draychev): we need to pass this hard-coded string is a CLI argument (https://github.com/openservicemesh/osm/issues/542)
 	validityPeriod := constants.XDSCertificateValidityPeriod
 	adsCert, err := certManager.IssueCertificate(xdsServerCertificateCommonName, &validityPeriod)
@@ -198,10 +194,9 @@ func main() {
 		log.Fatal().Err(err)
 	}
 
-	grpcServer, lis := utils.NewGrpc(xdsServerType, *port, adsCert.GetCertificateChain(), adsCert.GetPrivateKey(), adsCert.GetIssuingCA())
-	xds_discovery.RegisterAggregatedDiscoveryServiceServer(grpcServer, xdsServer)
-
-	go utils.GrpcServe(ctx, grpcServer, lis, cancel, xdsServerType)
+	// Create and start the ADS gRPC service
+	xdsServer := ads.NewADSServer(meshCatalog, enableDebugServer, osmNamespace, cfg)
+	xdsServer.Start(ctx, cancel, *port, adsCert)
 
 	// initialize the http server and start it
 	// TODO(draychev): figure out the NS and POD
@@ -212,13 +207,25 @@ func main() {
 	if enableDebugServer {
 		debugServer = debugger.NewDebugServer(certDebugger, xdsServer, meshCatalog, kubeConfig, kubeClient, cfg)
 	}
-	httpServer := httpserver.NewHTTPServer(xdsServer, metricsStore, constants.MetricsServerPort, debugServer)
+
+	funcProbes := []health.Probes{xdsServer}
+	httpProbes := getHTTPHealthProbes()
+	httpServer := httpserver.NewHTTPServer(funcProbes, httpProbes, metricsStore, constants.MetricsServerPort, debugServer)
 	httpServer.Start()
 
 	// Wait for exit handler signal
 	<-stop
 
 	log.Info().Msg("Goodbye!")
+}
+
+func getHTTPHealthProbes() []health.HTTPProbe {
+	return []health.HTTPProbe{
+		{
+			URL:      fmt.Sprintf("https://%s:%d/healthz", constants.LocalhostIPAddress, injectorConfig.ListenPort),
+			Protocol: health.ProtocolHTTPS,
+		},
+	}
 }
 
 func parseFlags() error {

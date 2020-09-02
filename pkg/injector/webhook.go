@@ -74,7 +74,7 @@ func (wh *webhook) run(stop <-chan struct{}) {
 
 	mux := http.DefaultServeMux
 	// HTTP handlers
-	mux.HandleFunc("/health/ready", wh.healthReadyHandler)
+	mux.HandleFunc("/healthz", wh.healthHandler)
 	mux.HandleFunc(osmWebhookMutatePath, wh.mutateHandler)
 
 	server := &http.Server{
@@ -112,8 +112,7 @@ func (wh *webhook) run(stop <-chan struct{}) {
 	}
 }
 
-func (wh *webhook) healthReadyHandler(w http.ResponseWriter, req *http.Request) {
-	// TODO(shashank): If TLS certificate is not present, mark as not ready
+func (wh *webhook) healthHandler(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_, err := w.Write([]byte("Health OK"))
 	if err != nil {
