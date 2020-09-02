@@ -224,7 +224,7 @@ func getHTTPHealthProbes() []health.HTTPProbe {
 	return []health.HTTPProbe{
 		{
 			// HTTP probe on the sidecar injector webhook's port
-			URL: path.Join(fmt.Sprintf("https://%s:%d", constants.LocalhostIPAddress, injectorConfig.ListenPort),
+			URL: joinURL(fmt.Sprintf("https://%s:%d", constants.LocalhostIPAddress, injectorConfig.ListenPort),
 				injector.WebhookHealthPath),
 			Protocol: health.ProtocolHTTPS,
 		},
@@ -318,4 +318,9 @@ func getCertificateManager(kubeClient kubernetes.Interface, kubeConfig *rest.Con
 	default:
 		return nil, nil, fmt.Errorf("Unsupported Certificate Manager %s", *osmCertificateManagerKind)
 	}
+}
+
+func joinURL(baseURL string, paths ...string) string {
+	p := path.Join(paths...)
+	return fmt.Sprintf("%s/%s", strings.TrimRight(baseURL, "/"), strings.TrimLeft(p, "/"))
 }
