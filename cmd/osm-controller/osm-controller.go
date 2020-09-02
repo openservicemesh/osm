@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path"
 	"strings"
 
 	"github.com/spf13/pflag"
@@ -222,7 +223,9 @@ func main() {
 func getHTTPHealthProbes() []health.HTTPProbe {
 	return []health.HTTPProbe{
 		{
-			URL:      fmt.Sprintf("https://%s:%d/healthz", constants.LocalhostIPAddress, injectorConfig.ListenPort),
+			// HTTP probe on the sidecar injector webhook's port
+			URL: path.Join(fmt.Sprintf("https://%s:%d", constants.LocalhostIPAddress, injectorConfig.ListenPort),
+				injector.WebhookHealthPath),
 			Protocol: health.ProtocolHTTPS,
 		},
 	}

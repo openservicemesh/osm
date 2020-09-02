@@ -34,7 +34,7 @@ var _ = Describe("Test MutatingWebhookConfiguration patch", func() {
 			},
 			Webhooks: []admissionv1beta1.MutatingWebhook{
 				{
-					Name: osmWebhookName,
+					Name: mutatingWebhookName,
 					ClientConfig: admissionv1beta1.WebhookClientConfig{
 						Service: &admissionv1beta1.ServiceReference{
 							Namespace: testWebhookServiceNamespace,
