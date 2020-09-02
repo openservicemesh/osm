@@ -53,8 +53,6 @@ var _ = Describe("Test httpserver", func() {
 				Handler: router,
 			},
 		}
-
-		Expect(testServer).ToNot(BeNil())
 	})
 
 	It("should result in a successful readiness probe", func() {

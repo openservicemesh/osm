@@ -64,7 +64,6 @@ var _ = Describe("Test httpserver", func() {
 		testServer = &httptest.Server{
 			Config: httpServ.server,
 		}
-		Expect(testServer).ToNot(BeNil())
 	})
 
 	It("should return 404 for a non-existent debug url", func() {
