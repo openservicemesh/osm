@@ -12,17 +12,22 @@ SSH_PORT=${SSH_PORT:-22}
 # Create a new chain for redirecting outbound traffic to PROXY_PORT
 iptables -t nat -N PROXY_REDIRECT
 
-#DB traffic let through
-iptables -t nat -A PROXY_REDIRECT -p tcp --dport "5432" -j ACCEPT
-iptables -t nat -A PROXY_REDIRECT -p tcp --dport "8200" -j ACCEPT
-iptables -t nat -A PROXY_REDIRECT -p tcp --dport "5556" -j ACCEPT
-iptables -t nat -A PROXY_REDIRECT -p tcp --dport "5557" -j ACCEPT
-iptables -t nat -A PROXY_REDIRECT -p tcp --dport "32443" -j ACCEPT
-
-iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9073" -j ACCEPT
-iptables -t nat -A PROXY_REDIRECT -p tcp --dport "8443" -j ACCEPT
-iptables -t nat -A PROXY_REDIRECT -p tcp --dport "8081" -j ACCEPT
-iptables -t nat -A PROXY_REDIRECT -p tcp --dport "2579" -j ACCEPT
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "2579" -j ACCEPT # kine
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "5432" -j ACCEPT # postgres
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "5556" -j ACCEPT # wsdex
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "5557" -j ACCEPT # wsdex
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "6000" -j ACCEPT # deviced
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "6001" -j ACCEPT # deviced
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "8081" -j ACCEPT # apiserver
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "8100:8110" -j ACCEPT # proxyd
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "8200" -j ACCEPT # valult
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "8443" -j ACCEPT # apiserver
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9073" -j ACCEPT # identityd
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9085" -j ACCEPT # filed
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9097" -j ACCEPT # endpointd
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9122" -j ACCEPT # metrics
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "10000" -j ACCEPT # radiusconfd
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "32443" -j ACCEPT # sslport/apiserver
 
 
 iptables -t nat -A PROXY_REDIRECT -p tcp -j REDIRECT --to-port "${PROXY_PORT}"
@@ -45,16 +50,22 @@ iptables -t nat -A PROXY_INBOUND -p tcp --dport "${SSH_PORT}" -j RETURN
 # Skip inbound stats query redirection
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "${PROXY_STATS_PORT}" -j RETURN
 
-iptables -t nat -A PROXY_INBOUND -p tcp --sport "5432" -j RETURN
-iptables -t nat -A PROXY_INBOUND -p tcp --sport "8200" -j RETURN
-iptables -t nat -A PROXY_INBOUND -p tcp --sport "5556" -j RETURN
-iptables -t nat -A PROXY_INBOUND -p tcp --sport "5557" -j RETURN
-iptables -t nat -A PROXY_INBOUND -p tcp --sport "32443" -j RETURN
-
-iptables -t nat -A PROXY_INBOUND -p tcp --dport "9073" -j RETURN
-iptables -t nat -A PROXY_INBOUND -p tcp --dport "8443" -j RETURN
-iptables -t nat -A PROXY_INBOUND -p tcp --dport "8081" -j RETURN
-iptables -t nat -A PROXY_INBOUND -p tcp --dport "2579" -j RETURN
+iptables -t nat -A PROXY_INBOUND -p tcp --dport "2579" -j RETURN  # kine
+iptables -t nat -A PROXY_INBOUND -p tcp --dport "5432" -j RETURN  # postgres
+iptables -t nat -A PROXY_INBOUND -p tcp --dport "5556" -j RETURN  # wsdex
+iptables -t nat -A PROXY_INBOUND -p tcp --dport "5557" -j RETURN  # wsdex
+iptables -t nat -A PROXY_INBOUND -p tcp --dport "6000" -j RETURN  # deviced
+iptables -t nat -A PROXY_INBOUND -p tcp --dport "6001" -j RETURN  # deviced
+iptables -t nat -A PROXY_INBOUND -p tcp --dport "8081" -j RETURN  # apiserver
+iptables -t nat -A PROXY_INBOUND -p tcp --dport "8100:8110" -j RETURN  # proxyd
+iptables -t nat -A PROXY_INBOUND -p tcp --dport "8200" -j RETURN  # valult
+iptables -t nat -A PROXY_INBOUND -p tcp --dport "8443" -j RETURN  # apiserver
+iptables -t nat -A PROXY_INBOUND -p tcp --dport "9073" -j RETURN  # identityd
+iptables -t nat -A PROXY_INBOUND -p tcp --dport "9085" -j RETURN  # filed
+iptables -t nat -A PROXY_INBOUND -p tcp --dport "9097" -j RETURN  # endpointd
+iptables -t nat -A PROXY_INBOUND -p tcp --dport "9122" -j RETURN  # metricsd
+iptables -t nat -A PROXY_INBOUND -p tcp --dport "10000" -j RETURN # radiusconfd
+iptables -t nat -A PROXY_INBOUND -p tcp --dport "32443" -j RETURN # sslpoort/apiserver
 
 # Redirect remaining inbound traffic to PROXY_INBOUND_PORT
 iptables -t nat -A PROXY_INBOUND -p tcp -j PROXY_IN_REDIRECT
