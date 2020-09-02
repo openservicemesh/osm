@@ -150,24 +150,15 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.BoolVar(&inst.enableMetricsStack, "enable-metrics-stack", true, "Enable metrics (Prometheus and Grafana) deployment")
 	f.StringVar(&inst.meshName, "mesh-name", defaultMeshName, "name for the new control plane instance")
 	f.BoolVar(&inst.deployJaeger, "deploy-jaeger", true, "Deploy Jaeger in the namespace of the OSM controller")
-	f.StringArrayVar(&inst.setOptions, "set", []string{}, "set values on the command line (can specify multiple or separate values with commas: key1=val1, key2=val2)")
+	f.StringArrayVar(&inst.setOptions, "set", []string{}, "set values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
 
 	return cmd
 }
 
 func (i *installCmd) run(config *helm.Configuration) error {
 
-	parsedArgs, err := i.parseSetOptions()
-	if err != nil {
-		return err
-	}
-
-	if err := i.validateOptions(); err != nil {
-		return err
-	}
-
 	// values represents the overrides for the OSM chart's values.yaml file
-	values, err := i.resolveValues(parsedArgs)
+	values, err := i.resolveValues()
 	if err != nil {
 		return err
 	}
@@ -198,7 +189,16 @@ func (i *installCmd) loadOSMChart() error {
 	return nil
 }
 
-func (i *installCmd) resolveValues(parsedArgs []string) (map[string]interface{}, error) {
+func (i *installCmd) resolveValues() (map[string]interface{}, error) {
+	parsedArgs, err := i.parseSetOptions()
+	if err != nil {
+		return nil, err
+	}
+
+	if err := i.validateOptions(); err != nil {
+		return nil, err
+	}
+
 	finalValues := map[string]interface{}{}
 	valuesConfig := []string{
 		fmt.Sprintf("OpenServiceMesh.image.registry=%s", i.containerRegistry),

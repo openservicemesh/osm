@@ -743,13 +743,14 @@ var _ = Describe("Running the install command", func() {
 
 var _ = Describe("Resolving values for install command with vault parameters", func() {
 	var (
-		vals             map[string]interface{}
-		parsedSetOptions []string
-		err              error
-		parseErr         error
+		vals          map[string]interface{}
+		err           error
+		fakeClientSet kubernetes.Interface
 	)
 
 	BeforeEach(func() {
+		fakeClientSet = fake.NewSimpleClientset()
+
 		installCmd := &installCmd{
 			containerRegistry:          testRegistry,
 			containerRegistrySecret:    testRegistrySecret,
@@ -770,18 +771,14 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 			meshCIDRRanges:             testMeshCIDRRanges,
 			enableMetricsStack:         true,
 			setOptions:                 testSetOptions,
+			clientSet:                  fakeClientSet,
 		}
 
-		parsedSetOptions, parseErr = installCmd.parseSetOptions()
-		vals, err = installCmd.resolveValues(parsedSetOptions)
+		vals, err = installCmd.resolveValues()
 	})
 
 	It("should not error", func() {
 		Expect(err).NotTo(HaveOccurred())
-	})
-
-	It("should not error", func() {
-		Expect(parseErr).NotTo(HaveOccurred())
 	})
 
 	It("should resolve correctly", func() {
@@ -830,13 +827,13 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 
 var _ = Describe("Resolving values for overriding set options command with vault parameters", func() {
 	var (
-		vals             map[string]interface{}
-		parsedSetOptions []string
-		err              error
-		parseErr         error
+		vals          map[string]interface{}
+		err           error
+		fakeClientSet kubernetes.Interface
 	)
 
 	BeforeEach(func() {
+		fakeClientSet = fake.NewSimpleClientset()
 		installCmd := &installCmd{
 			containerRegistry:          testRegistry,
 			containerRegistrySecret:    testRegistrySecret,
@@ -857,18 +854,14 @@ var _ = Describe("Resolving values for overriding set options command with vault
 			meshCIDRRanges:             testMeshCIDRRanges,
 			enableMetricsStack:         true,
 			setOptions:                 []string{"OpenServiceMesh.certificateManager=overridingVaultName"},
+			clientSet:                  fakeClientSet,
 		}
 
-		parsedSetOptions, parseErr = installCmd.parseSetOptions()
-		vals, err = installCmd.resolveValues(parsedSetOptions)
+		vals, err = installCmd.resolveValues()
 	})
 
 	It("should not error", func() {
 		Expect(err).NotTo(HaveOccurred())
-	})
-
-	It("should not error", func() {
-		Expect(parseErr).NotTo(HaveOccurred())
 	})
 
 	It("should resolve correctly", func() {
@@ -914,13 +907,14 @@ var _ = Describe("Resolving values for overriding set options command with vault
 	})
 })
 
-var _ = Describe("Resolving values for install command with cert-manager parameters", func() {
+var _ = Describe("Resolving values for install command with --set options cert-manager parameter and a brand new dynamically passed in parameter", func() {
 	var (
-		vals             map[string]interface{}
-		parsedSetOptions []string
-		err              error
-		parseErr         error
+		vals          map[string]interface{}
+		err           error
+		fakeClientSet kubernetes.Interface
 	)
+
+	fakeClientSet = fake.NewSimpleClientset()
 
 	BeforeEach(func() {
 		installCmd := &installCmd{
@@ -942,19 +936,98 @@ var _ = Describe("Resolving values for install command with cert-manager paramet
 			enableEgress:               true,
 			meshCIDRRanges:             testMeshCIDRRanges,
 			enableMetricsStack:         true,
-			setOptions:                 testSetOptions,
+			setOptions:                 []string{"OpenServiceMesh.certificateManager=overridingCertManager", "key1=val1"},
+			clientSet:                  fakeClientSet,
 		}
 
-		parsedSetOptions, parseErr = installCmd.parseSetOptions()
-		vals, err = installCmd.resolveValues(parsedSetOptions)
+		vals, err = installCmd.resolveValues()
 	})
 
 	It("should not error", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
+	It("should resolve correctly", func() {
+		Expect(vals).To(BeEquivalentTo(map[string]interface{}{
+			"key1": "val1",
+			"OpenServiceMesh": map[string]interface{}{
+				"certificateManager": "overridingCertManager",
+				"certmanager": map[string]interface{}{
+					"issuerKind":  "ClusterIssuer",
+					"issuerGroup": "example.co.uk",
+					"issuerName":  "my-osm-ca",
+				},
+				"meshName": defaultMeshName,
+				"image": map[string]interface{}{
+					"registry":   testRegistry,
+					"tag":        testOsmImageTag,
+					"pullPolicy": defaultOsmImagePullPolicy,
+				},
+				"imagePullSecrets": []interface{}{
+					map[string]interface{}{
+						"name": testRegistrySecret,
+					},
+				},
+				"serviceCertValidityMinutes": int64(1),
+				"vault": map[string]interface{}{
+					"host":     testVaultHost,
+					"protocol": "http",
+					"token":    testVaultToken,
+					"role":     testVaultRole,
+				},
+				"prometheus": map[string]interface{}{
+					"retention": map[string]interface{}{
+						"time": "5d",
+					},
+				},
+				"enableDebugServer":              false,
+				"enablePermissiveTrafficPolicy":  false,
+				"enableBackpressureExperimental": false,
+				"enableEgress":                   true,
+				"meshCIDRRanges":                 testMeshCIDR,
+				"enableMetricsStack":             true,
+				"deployJaeger":                   false,
+			}}))
+	})
+})
+
+var _ = Describe("Resolving values for install command with cert-manager parameters", func() {
+	var (
+		vals          map[string]interface{}
+		err           error
+		fakeClientSet kubernetes.Interface
+	)
+
+	BeforeEach(func() {
+		fakeClientSet = fake.NewSimpleClientset()
+		installCmd := &installCmd{
+			containerRegistry:          testRegistry,
+			containerRegistrySecret:    testRegistrySecret,
+			certificateManager:         "cert-manager",
+			vaultHost:                  testVaultHost,
+			vaultProtocol:              testVaultProtocol,
+			certmanagerIssuerName:      testCertManagerIssuerName,
+			certmanagerIssuerKind:      testCertManagerIssuerKind,
+			certmanagerIssuerGroup:     testCertManagerIssuerGroup,
+			vaultToken:                 testVaultToken,
+			vaultRole:                  testVaultRole,
+			osmImageTag:                testOsmImageTag,
+			osmImagePullPolicy:         defaultOsmImagePullPolicy,
+			serviceCertValidityMinutes: 1,
+			prometheusRetentionTime:    testRetentionTime,
+			meshName:                   defaultMeshName,
+			enableEgress:               true,
+			meshCIDRRanges:             testMeshCIDRRanges,
+			enableMetricsStack:         true,
+			setOptions:                 testSetOptions,
+			clientSet:                  fakeClientSet,
+		}
+
+		vals, err = installCmd.resolveValues()
+	})
+
 	It("should not error", func() {
-		Expect(parseErr).NotTo(HaveOccurred())
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	It("should resolve correctly", func() {
@@ -1003,14 +1076,21 @@ var _ = Describe("Resolving values for install command with cert-manager paramet
 
 var _ = Describe("Resolving values for egress option", func() {
 	Context("Test enableEgress chart value with install cli option", func() {
+		var (
+			fakeClientSet kubernetes.Interface
+		)
+
+		BeforeEach(func() {
+			fakeClientSet = fake.NewSimpleClientset()
+		})
+
 		It("Should disable egress in the Helm chart", func() {
 			installCmd := &installCmd{
 				enableEgress: false,
+				clientSet:    fakeClientSet,
 			}
-			parsedSetOptions, parseErr := installCmd.parseSetOptions()
-			vals, err := installCmd.resolveValues(parsedSetOptions)
+			vals, err := installCmd.resolveValues()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(parseErr).NotTo(HaveOccurred())
 
 			enableEgressVal := vals["OpenServiceMesh"].(map[string]interface{})["enableEgress"]
 			Expect(enableEgressVal).To(BeFalse())
@@ -1020,12 +1100,11 @@ var _ = Describe("Resolving values for egress option", func() {
 			installCmd := &installCmd{
 				enableEgress:   true,
 				meshCIDRRanges: testMeshCIDRRanges,
+				clientSet:      fakeClientSet,
 			}
 
-			parsedSetOptions, parseErr := installCmd.parseSetOptions()
-			vals, err := installCmd.resolveValues(parsedSetOptions)
+			vals, err := installCmd.resolveValues()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(parseErr).NotTo(HaveOccurred())
 
 			enableEgressVal := vals["OpenServiceMesh"].(map[string]interface{})["enableEgress"]
 			Expect(enableEgressVal).To(BeTrue())
@@ -1034,16 +1113,23 @@ var _ = Describe("Resolving values for egress option", func() {
 })
 
 var _ = Describe("Test mesh CIDR ranges", func() {
+	var (
+		fakeClientSet kubernetes.Interface
+	)
+
+	BeforeEach(func() {
+		fakeClientSet = fake.NewSimpleClientset()
+	})
+
 	Context("Test meshCIDRRanges chart value with install cli option", func() {
 		It("Should correctly resolve meshCIDRRanges when egress is enabled", func() {
 			installCmd := &installCmd{
 				enableEgress:   true,
 				meshCIDRRanges: testMeshCIDRRanges,
+				clientSet:      fakeClientSet,
 			}
 
-			parsedSetOptions, parseErr := installCmd.parseSetOptions()
-			vals, err := installCmd.resolveValues(parsedSetOptions)
-			Expect(parseErr).NotTo(HaveOccurred())
+			vals, err := installCmd.resolveValues()
 			Expect(err).NotTo(HaveOccurred())
 
 			cidrRanges := vals["OpenServiceMesh"].(map[string]interface{})["meshCIDRRanges"]
@@ -1074,14 +1160,21 @@ var _ = Describe("Test mesh CIDR ranges", func() {
 })
 
 var _ = Describe("Test osm image pull policy cli option", func() {
+	var (
+		fakeClientSet kubernetes.Interface
+	)
+
+	BeforeEach(func() {
+		fakeClientSet = fake.NewSimpleClientset()
+	})
+
 	It("Should correctly resolve the pull policy option to chart values", func() {
 		installCmd := &installCmd{
 			osmImagePullPolicy: "IfNotPresent",
+			clientSet:          fakeClientSet,
 		}
-		parsedSetOptions, parseErr := installCmd.parseSetOptions()
-		vals, err := installCmd.resolveValues(parsedSetOptions)
+		vals, err := installCmd.resolveValues()
 		Expect(err).NotTo(HaveOccurred())
-		Expect(parseErr).NotTo(HaveOccurred())
 
 		pullPolicy := vals["OpenServiceMesh"].(map[string]interface{})["image"].(map[string]interface{})["pullPolicy"]
 		Expect(pullPolicy).To(Equal("IfNotPresent"))
@@ -1090,11 +1183,10 @@ var _ = Describe("Test osm image pull policy cli option", func() {
 	It("Should correctly resolve the pull policy option to chart values", func() {
 		installCmd := &installCmd{
 			osmImagePullPolicy: "Always",
+			clientSet:          fakeClientSet,
 		}
-		parsedSetOptions, parseErr := installCmd.parseSetOptions()
-		vals, err := installCmd.resolveValues(parsedSetOptions)
+		vals, err := installCmd.resolveValues()
 		Expect(err).NotTo(HaveOccurred())
-		Expect(parseErr).NotTo(HaveOccurred())
 
 		pullPolicy := vals["OpenServiceMesh"].(map[string]interface{})["image"].(map[string]interface{})["pullPolicy"]
 		Expect(pullPolicy).To(Equal("Always"))
