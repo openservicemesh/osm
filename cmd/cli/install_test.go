@@ -936,7 +936,7 @@ var _ = Describe("Resolving values for install command with --set options cert-m
 			enableEgress:               true,
 			meshCIDRRanges:             testMeshCIDRRanges,
 			enableMetricsStack:         true,
-			setOptions:                 []string{"OpenServiceMesh.certificateManager=overridingCertManager", "key1=val1"},
+			setOptions:                 []string{"OpenServiceMesh.certificateManager=overridingCertManager", "key1=val1,key2=val2"},
 			clientSet:                  fakeClientSet,
 		}
 
@@ -950,6 +950,7 @@ var _ = Describe("Resolving values for install command with --set options cert-m
 	It("should resolve correctly", func() {
 		Expect(vals).To(BeEquivalentTo(map[string]interface{}{
 			"key1": "val1",
+			"key2": "val2",
 			"OpenServiceMesh": map[string]interface{}{
 				"certificateManager": "overridingCertManager",
 				"certmanager": map[string]interface{}{

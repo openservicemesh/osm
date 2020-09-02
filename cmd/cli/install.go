@@ -250,7 +250,7 @@ func (i *installCmd) parseSetOptions() ([]string, error) {
 	// override individual arguments with set overrides
 	for _, option := range i.setOptions {
 		s := strings.Split(option, "=")
-		if len(s) != 2 {
+		if len(s) < 2 {
 			return nil, errors.Errorf("Invalid set argument: %s", option)
 		}
 		key := s[0]
