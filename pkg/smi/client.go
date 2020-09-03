@@ -162,7 +162,7 @@ func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient smiTraf
 
 	err := client.run(stop)
 	if err != nil {
-		return &client, errors.Errorf("Could not start %s client", kubernetesClientName)
+		return &client, errors.Errorf("Could not start %s client: %s", kubernetesClientName, err)
 	}
 
 	return &client, err
