@@ -30,9 +30,9 @@ import (
 	"github.com/openservicemesh/osm/pkg/httpserver"
 	"github.com/openservicemesh/osm/pkg/ingress"
 	"github.com/openservicemesh/osm/pkg/injector"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
-	"github.com/openservicemesh/osm/pkg/namespace"
 	"github.com/openservicemesh/osm/pkg/signals"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/version"
@@ -140,8 +140,8 @@ func main() {
 	}
 	log.Info().Msgf("Initial ConfigMap %s: %s", osmConfigMapName, string(configMap))
 
-	namespaceController := namespace.NewNamespaceController(kubeClient, meshName, stop)
-	meshSpec, err := smi.NewMeshSpecClient(*smiKubeConfig, kubeClient, osmNamespace, namespaceController, stop)
+	k8sclient := k8s.NewK8sClient(kubeClient, meshName, stop)
+	meshSpec, err := smi.NewMeshSpecClient(*smiKubeConfig, kubeClient, osmNamespace, k8sclient, stop)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to create new mesh spec client")
 	}
@@ -161,20 +161,20 @@ func main() {
 		}
 	}
 
-	provider, err := kube.NewProvider(kubeClient, namespaceController, stop, constants.KubeProviderName, cfg)
+	provider, err := kube.NewProvider(kubeClient, k8sclient, stop, constants.KubeProviderName, cfg)
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Failed to get endpoint provider")
 	}
 
 	endpointsProviders := []endpoint.Provider{provider}
 
-	ingressClient, err := ingress.NewIngressClient(kubeClient, namespaceController, stop, cfg)
+	ingressClient, err := ingress.NewIngressClient(kubeClient, k8sclient, stop, cfg)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to initialize ingress client")
 	}
 
 	meshCatalog := catalog.NewMeshCatalog(
-		namespaceController,
+		k8sclient,
 		kubeClient,
 		meshSpec,
 		certManager,
@@ -184,7 +184,7 @@ func main() {
 		endpointsProviders...)
 
 	// Create the sidecar-injector webhook
-	if err := injector.NewWebhook(injectorConfig, kubeClient, certManager, meshCatalog, namespaceController, meshName, osmNamespace, webhookName, stop, cfg); err != nil {
+	if err := injector.NewWebhook(injectorConfig, kubeClient, certManager, meshCatalog, k8sclient, meshName, osmNamespace, webhookName, stop, cfg); err != nil {
 		log.Fatal().Err(err).Msg("Error creating mutating webhook")
 	}
 
