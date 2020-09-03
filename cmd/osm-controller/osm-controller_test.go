@@ -39,3 +39,25 @@ var _ = Describe("Test creation of CA bundle k8s secret", func() {
 		})
 	})
 })
+
+var _ = Describe("Test joining of URL paths", func() {
+	It("should correctly join URL paths", func() {
+		final := joinURL("http://foo", "/bar")
+		Expect(final).To(Equal("http://foo/bar"))
+	})
+
+	It("should correctly join URL paths", func() {
+		final := joinURL("http://foo/", "/bar")
+		Expect(final).To(Equal("http://foo/bar"))
+	})
+
+	It("should correctly join URL paths", func() {
+		final := joinURL("http://foo/", "bar")
+		Expect(final).To(Equal("http://foo/bar"))
+	})
+
+	It("should correctly join URL paths", func() {
+		final := joinURL("http://foo", "bar")
+		Expect(final).To(Equal("http://foo/bar"))
+	})
+})
