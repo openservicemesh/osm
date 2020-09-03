@@ -24,31 +24,27 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 	// Github Issue #1575
 	proxyServiceName := svcList[0]
 
-	allTrafficPolicies, err := catalog.ListTrafficPolicies(proxyServiceName)
+	outboundServices, err := catalog.ListAllowedOutboundServices(proxyServiceName)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed to list traffic policies for proxy service %q", proxyServiceName)
+		log.Error().Err(err).Msgf("Error listing outbound services for proxy %q", proxyServiceName)
 		return nil, err
 	}
 
-	allServicesEndpoints := make(map[service.MeshService][]endpoint.Endpoint)
-	for _, trafficPolicy := range allTrafficPolicies {
-		isSourceService := trafficPolicy.Source.Equals(proxyServiceName)
-		if isSourceService {
-			destService := trafficPolicy.Destination
-			serviceEndpoints, err := catalog.ListEndpointsForService(destService)
-			if err != nil {
-				log.Error().Err(err).Msgf("Failed listing endpoints for proxy %s", proxyServiceName)
-				return nil, err
-			}
-			allServicesEndpoints[destService] = serviceEndpoints
+	outboundServicesEndpoints := make(map[service.MeshService][]endpoint.Endpoint)
+	for _, dstSvc := range outboundServices {
+		endpoints, err := catalog.ListEndpointsForService(dstSvc)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed listing endpoints for service %s", dstSvc)
+			continue
 		}
+		outboundServicesEndpoints[dstSvc] = endpoints
 	}
 
-	log.Debug().Msgf("Computed endpoints for proxy %s: %+v", proxyServiceName, allServicesEndpoints)
-	var protos []*any.Any
-	for serviceName, serviceEndpoints := range allServicesEndpoints {
-		loadAssignment := cla.NewClusterLoadAssignment(serviceName, serviceEndpoints)
+	log.Trace().Msgf("Outbound service endpoints for proxy %s: %v", proxyServiceName, outboundServicesEndpoints)
 
+	var protos []*any.Any
+	for svc, endpoints := range outboundServicesEndpoints {
+		loadAssignment := cla.NewClusterLoadAssignment(svc, endpoints)
 		proto, err := ptypes.MarshalAny(loadAssignment)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error marshalling EDS payload for proxy %s: %+v", proxyServiceName, loadAssignment)
