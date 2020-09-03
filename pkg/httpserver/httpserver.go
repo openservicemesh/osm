@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/http/pprof"
 	"time"
 
 	"github.com/openservicemesh/osm/pkg/debugger"
@@ -41,6 +42,13 @@ func NewHTTPServer(probes health.Probes, metricStore metricsstore.MetricStore, a
 		"/health/ready": health.ReadinessHandler(probes),
 		"/health/alive": health.LivenessHandler(probes),
 		"/metrics":      metricStore.Handler(),
+
+		// Pprof handlers
+		"/debug/pprof/":        http.HandlerFunc(pprof.Index),
+		"/debug/pprof/cmdline": http.HandlerFunc(pprof.Cmdline),
+		"/debug/pprof/profile": http.HandlerFunc(pprof.Profile),
+		"/debug/pprof/symbol":  http.HandlerFunc(pprof.Symbol),
+		"/debug/pprof/trace":   http.HandlerFunc(pprof.Trace),
 	}
 
 	if debugServer != nil {
