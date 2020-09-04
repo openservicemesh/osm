@@ -14,10 +14,10 @@ import (
 	"helm.sh/helm/v3/pkg/storage/driver"
 )
 
-var _ = Describe("Running the mesh delete command", func() {
+var _ = Describe("Running the mesh uninstall command", func() {
 	Context("default parameters", func() {
 		var (
-			deleteCmd *meshDeleteCmd
+			uninstallCmd *meshUninstallCmd
 			meshName  string
 			force     bool
 		)
@@ -44,7 +44,7 @@ var _ = Describe("Running the mesh delete command", func() {
 			in := new(bytes.Buffer)
 			in.Write([]byte("y\n"))
 			force = false
-			deleteCmd = &meshDeleteCmd{
+			uninstallCmd = &meshUninstallCmd{
 				out:      out,
 				in:       in,
 				client:   helm.NewUninstall(testConfig),
@@ -52,16 +52,16 @@ var _ = Describe("Running the mesh delete command", func() {
 				force:    force,
 			}
 
-			err := deleteCmd.run()
+			err := uninstallCmd.run()
 
 			It("should prompt for confirmation", func() {
-				Expect(out.String()).To(ContainSubstring("Delete OSM [mesh name: testing] ? [y/n]: "))
+				Expect(out.String()).To(ContainSubstring("Uninstall OSM [mesh name: testing] ? [y/n]: "))
 			})
 			It("should not error", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
-			It("should give a message confirming the successful delete", func() {
-				Expect(out.String()).To(ContainSubstring("OSM [mesh name: testing] deleted\n"))
+			It("should give a message confirming the successful uninstall", func() {
+				Expect(out.String()).To(ContainSubstring("OSM [mesh name: testing] uninstalled\n"))
 			})
 
 		})
@@ -88,7 +88,7 @@ var _ = Describe("Running the mesh delete command", func() {
 			in := new(bytes.Buffer)
 			in.Write([]byte("y\n"))
 			force = false
-			deleteCmd = &meshDeleteCmd{
+			uninstallCmd = &meshUninstallCmd{
 				out:      out,
 				in:       in,
 				client:   helm.NewUninstall(testConfig),
@@ -96,23 +96,23 @@ var _ = Describe("Running the mesh delete command", func() {
 				force:    force,
 			}
 
-			err := deleteCmd.run()
+			err := uninstallCmd.run()
 
 			It("should prompt for confirmation", func() {
-				Expect(out.String()).To(ContainSubstring("Delete OSM [mesh name: testing] ? [y/n]: "))
+				Expect(out.String()).To(ContainSubstring("Uninstall OSM [mesh name: testing] ? [y/n]: "))
 			})
 			It("should error", func() {
 				Expect(err).To(MatchError("No OSM control plane with mesh name [testing] found in namespace [osm-system]"))
 			})
-			It("should not give a message confirming the successful delete", func() {
-				Expect(out.String()).ToNot(ContainSubstring("OSM [mesh name: testing] deleted\n"))
+			It("should not give a message confirming the successful uninstall", func() {
+				Expect(out.String()).ToNot(ContainSubstring("OSM [mesh name: testing] uninstalled\n"))
 			})
 
 		})
 	})
 	Context("custom parameters", func() {
 		var (
-			deleteCmd *meshDeleteCmd
+			uninstallCmd *meshUninstallCmd
 			meshName  string
 			force     bool
 		)
@@ -137,7 +137,7 @@ var _ = Describe("Running the mesh delete command", func() {
 			out := new(bytes.Buffer)
 			in := new(bytes.Buffer)
 			force = true
-			deleteCmd = &meshDeleteCmd{
+			uninstallCmd = &meshUninstallCmd{
 				out:      out,
 				in:       in,
 				client:   helm.NewUninstall(testConfig),
@@ -145,16 +145,16 @@ var _ = Describe("Running the mesh delete command", func() {
 				force:    force,
 			}
 
-			err := deleteCmd.run()
+			err := uninstallCmd.run()
 
 			It("should not prompt for confirmation", func() {
-				Expect(out.String()).NotTo(ContainSubstring("Delete OSM [mesh name: testing] ? [y/n]: "))
+				Expect(out.String()).NotTo(ContainSubstring("Uninstall OSM [mesh name: testing] ? [y/n]: "))
 			})
 			It("should not error", func() {
 				Expect(err).NotTo(HaveOccurred())
 			})
-			It("should not give a message confirming the delete", func() {
-				Expect(out.String()).ToNot(ContainSubstring("OSM [mesh name: testing] deleted\n"))
+			It("should not give a message confirming the uninstall", func() {
+				Expect(out.String()).ToNot(ContainSubstring("OSM [mesh name: testing] uninstalled\n"))
 			})
 
 		})
