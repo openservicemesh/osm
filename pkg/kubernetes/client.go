@@ -11,10 +11,10 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
-// NewK8sClient returns a new Client which means to provide access to locally-cached k8s resources
-func NewK8sClient(kubeClient kubernetes.Interface, meshName string, stop chan struct{}) Client {
+// NewKubernetesClient returns a new Client which means to provide access to locally-cached k8s resources
+func NewKubernetesClient(kubeClient kubernetes.Interface, meshName string, stop chan struct{}) Client {
 	// Initialize client object
-	cl := Client{
+	client := Client{
 		kubeClient:    kubeClient,
 		meshName:      meshName,
 		informers:     InformerCollection{},
@@ -23,17 +23,17 @@ func NewK8sClient(kubeClient kubernetes.Interface, meshName string, stop chan st
 	}
 
 	// Initialize resources here
-	initNamespaceMonitor(&cl)
+	client.initNamespaceMonitor()
 
-	if err := cl.run(stop); err != nil {
+	if err := client.run(stop); err != nil {
 		log.Fatal().Err(err).Msg("Could not start Kubernetes Namespaces client")
 	}
 
-	return cl
+	return client
 }
 
 // Initializes Namespace monitoring
-func initNamespaceMonitor(c *Client) {
+func (c *Client) initNamespaceMonitor() {
 	monitorNamespaceLabel := map[string]string{constants.OSMKubeResourceMonitorAnnotation: c.meshName}
 
 	labelSelector := fields.SelectorFromSet(monitorNamespaceLabel).String()
@@ -47,7 +47,7 @@ func initNamespaceMonitor(c *Client) {
 	c.informers[Namespaces] = informerFactory.Core().V1().Namespaces().Informer()
 
 	// Add event handler to informer
-	c.informers[Namespaces].AddEventHandler(GetKubernetesEventHandlers(Namespaces, ProviderName, c.announcements, nil))
+	c.informers[Namespaces].AddEventHandler(GetKubernetesEventHandlers((string)(Namespaces), ProviderName, c.announcements, nil))
 }
 
 func (c *Client) run(stop <-chan struct{}) error {
@@ -59,15 +59,15 @@ func (c *Client) run(stop <-chan struct{}) error {
 		return errInitInformers
 	}
 
-	for k, v := range c.informers {
-		if v == nil {
+	for name, informer := range c.informers {
+		if informer == nil {
 			continue
 		}
 
-		go v.Run(stop)
-		names = append(names, k)
-		log.Info().Msgf("Waiting informer for %s cache sync...", k)
-		hasSynced = append(hasSynced, v.HasSynced)
+		go informer.Run(stop)
+		names = append(names, (string)(name))
+		log.Info().Msgf("Waiting informer for %s cache sync...", name)
+		hasSynced = append(hasSynced, informer.HasSynced)
 	}
 
 	if !cache.WaitForCacheSync(stop, hasSynced...) {

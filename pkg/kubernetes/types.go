@@ -32,9 +32,6 @@ const (
 
 	// ProviderName is used for provider logging
 	ProviderName = "Kubernetes"
-
-	// Namespaces is a simple string to identify namespace resources
-	Namespaces = "Namespaces"
 )
 
 // Event is the combined type and actual object we received from Kubernetes
@@ -43,8 +40,16 @@ type Event struct {
 	Value interface{}
 }
 
-// InformerCollection stores the different Informers we keep for K8s resources
-type InformerCollection map[string]cache.SharedIndexInformer
+// InformerKey stores the different Informers we keep for K8s resources
+type InformerKey string
+
+const (
+	// Namespaces lookup identifier
+	Namespaces InformerKey = "Namespaces"
+)
+
+// InformerCollection is the type holding the collection of informers we keep
+type InformerCollection map[InformerKey]cache.SharedIndexInformer
 
 // Client is a struct for all components necessary to connect to and maintain state of a Kubernetes cluster.
 type Client struct {

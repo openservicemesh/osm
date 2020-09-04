@@ -11,7 +11,7 @@ import (
 	testclient "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/kubernetes"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
@@ -24,7 +24,7 @@ var _ = Describe("Test Namespace Controller Methods", func() {
 		It("should return a new namespace controller", func() {
 			kubeClient := testclient.NewSimpleClientset()
 			stop := make(chan struct{})
-			namespaceController := kubernetes.NewK8sClient(kubeClient, testMeshName, stop)
+			namespaceController := k8s.NewKubernetesClient(kubeClient, testMeshName, stop)
 			Expect(namespaceController).ToNot(BeNil())
 		})
 	})
@@ -34,7 +34,7 @@ var _ = Describe("Test Namespace Controller Methods", func() {
 			// Create namespace controller
 			kubeClient := testclient.NewSimpleClientset()
 			stop := make(chan struct{})
-			namespaceController := kubernetes.NewK8sClient(kubeClient, testMeshName, stop)
+			namespaceController := k8s.NewKubernetesClient(kubeClient, testMeshName, stop)
 
 			// Create a test namespace that is monitored
 			testNamespaceName := fmt.Sprintf("%s-1", tests.Namespace)
@@ -61,7 +61,7 @@ var _ = Describe("Test Namespace Controller Methods", func() {
 			// Create namespace controller
 			kubeClient := testclient.NewSimpleClientset()
 			stop := make(chan struct{})
-			namespaceController := kubernetes.NewK8sClient(kubeClient, testMeshName, stop)
+			namespaceController := k8s.NewKubernetesClient(kubeClient, testMeshName, stop)
 
 			// Create a test namespace that is monitored
 			testNamespaceName := fmt.Sprintf("%s-1", tests.Namespace)

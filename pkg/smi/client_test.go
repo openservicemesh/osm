@@ -45,7 +45,7 @@ func bootstrapClient() (MeshSpec, *fakeKubeClientSet, error) {
 	smiTrafficSpecClientSet := testTrafficSpecClient.NewSimpleClientset()
 	smiTrafficTargetClientSet := testTrafficTargetClient.NewSimpleClientset()
 	osmPolicyClientSet := osmPolicyClient.NewSimpleClientset()
-	k8sclient := k8s.NewK8sClient(kubeClient, meshName, stop)
+	kubernetesClient := k8s.NewKubernetesClient(kubeClient, meshName, stop)
 
 	fakeClientSet := &fakeKubeClientSet{
 		kubeClient:                kubeClient,
@@ -65,7 +65,7 @@ func bootstrapClient() (MeshSpec, *fakeKubeClientSet, error) {
 	if _, err := kubeClient.CoreV1().Namespaces().Create(context.TODO(), &testNamespace, metav1.CreateOptions{}); err != nil {
 		log.Fatal().Err(err).Msgf("Error creating Namespace %v", testNamespace)
 	}
-	<-k8sclient.GetAnnouncementsChannel()
+	<-kubernetesClient.GetAnnouncementsChannel()
 
 	meshSpec, err := newSMIClient(
 		kubeClient,
@@ -74,7 +74,7 @@ func bootstrapClient() (MeshSpec, *fakeKubeClientSet, error) {
 		smiTrafficTargetClientSet,
 		osmPolicyClientSet,
 		osmNamespace,
-		k8sclient,
+		kubernetesClient,
 		kubernetesClientName,
 		stop,
 	)
