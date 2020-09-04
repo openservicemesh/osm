@@ -58,10 +58,18 @@ spec:
               memory: 32M
           readinessProbe:
             initialDelaySeconds: 1
+            timeoutSeconds: 5
             httpGet:
-              scheme: HTTPS
+              scheme: HTTP
               path: /health/ready
-              port: 9090
+              port: 9091
+          livenessProbe:
+            initialDelaySeconds: 1
+            timeoutSeconds: 5
+            httpGet:
+              scheme: HTTP
+              path: /health/alive
+              port: 9091
     {{- if .Values.OpenServiceMesh.imagePullSecrets }}
       imagePullSecrets:
 {{ toYaml .Values.OpenServiceMesh.imagePullSecrets | indent 8 }}

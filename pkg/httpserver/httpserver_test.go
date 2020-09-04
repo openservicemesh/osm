@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -27,40 +28,28 @@ const (
 	metricsPath = "/metrics"
 )
 
-// Dynamic variables for extended testing
-var (
-	readyResult      bool
-	aliveResult      bool
-	boolToRESTMapper = map[bool]int{
-		true:  http.StatusOK,
-		false: http.StatusServiceUnavailable,
-	}
-)
-
-// For Probes, verifies and expects StatusCode to match mapped expectedResult
-func checkResult(ts *httptest.Server, path string, expectedResult bool) {
+// Records an HTTP request and returns a response
+func recordCall(ts *httptest.Server, path string) *http.Response {
 	req := httptest.NewRequest("GET", path, nil)
-
 	w := httptest.NewRecorder()
-	ts.Config.Handler.ServeHTTP(w, req)
-	resp := w.Result()
 
-	Expect(resp.StatusCode).To(Equal(boolToRESTMapper[expectedResult]))
+	ts.Config.Handler.ServeHTTP(w, req)
+
+	return w.Result()
 }
 
 var _ = Describe("Test httpserver", func() {
-	Context("HTTP OSM debug server", func() {
-		metricsStore := metricsstore.NewMetricStore("TBD_NameSpace", "TBD_PodName")
+	var (
+		mockCtrl   *gomock.Controller
+		mockProbe  *health.MockProbes
+		testServer *httptest.Server
+	)
+	mockCtrl = gomock.NewController(GinkgoT())
 
-		// Fake probes
-		testProbe := health.FakeProbe{
-			LivenessRet: func() bool {
-				return aliveResult
-			},
-			ReadinessRet: func() bool {
-				return readyResult
-			},
-		}
+	BeforeEach(func() {
+		mockProbe = health.NewMockProbes(mockCtrl)
+		testProbes := []health.Probes{mockProbe}
+		metricsStore := metricsstore.NewMetricStore("TBD_NameSpace", "TBD_PodName")
 
 		// Fake debug server
 		var fakeDebugServer debugger.FakeDebugServer = debugger.FakeDebugServer{
@@ -71,57 +60,88 @@ var _ = Describe("Test httpserver", func() {
 			},
 		}
 
-		httpServ := NewHTTPServer(testProbe, metricsStore, testPort, fakeDebugServer)
-
-		testServer := httptest.Server{
+		httpServ := NewHTTPServer(testProbes, nil, metricsStore, testPort, fakeDebugServer)
+		testServer = &httptest.Server{
 			Config: httpServ.server,
 		}
+	})
 
-		It("should return 404 for a non-existent debug url", func() {
-			req := httptest.NewRequest("GET", fmt.Sprintf("%s%s", url, invalidRoutePath), nil)
+	It("should return 404 for a non-existent debug url", func() {
+		req := httptest.NewRequest("GET", fmt.Sprintf("%s%s", url, invalidRoutePath), nil)
 
-			w := httptest.NewRecorder()
-			testServer.Config.Handler.ServeHTTP(w, req)
+		w := httptest.NewRecorder()
+		testServer.Config.Handler.ServeHTTP(w, req)
 
-			resp := w.Result()
-			Expect(resp.StatusCode).To(Equal(http.StatusNotFound))
-		})
+		resp := w.Result()
+		Expect(resp.StatusCode).To(Equal(http.StatusNotFound))
+	})
 
-		It("should return 200 for an existing debug url - body should match", func() {
-			req := httptest.NewRequest("GET", fmt.Sprintf("%s%s", url, validRoutePath), nil)
+	It("should return 200 for an existing debug url - body should match", func() {
+		req := httptest.NewRequest("GET", fmt.Sprintf("%s%s", url, validRoutePath), nil)
 
-			w := httptest.NewRecorder()
-			testServer.Config.Handler.ServeHTTP(w, req)
+		w := httptest.NewRecorder()
+		testServer.Config.Handler.ServeHTTP(w, req)
 
-			resp := w.Result()
-			bodyBytes, _ := ioutil.ReadAll(resp.Body)
+		resp := w.Result()
+		bodyBytes, _ := ioutil.ReadAll(resp.Body)
 
-			Expect(resp.StatusCode).To(Equal(http.StatusOK))
-			Expect(string(bodyBytes)).To(Equal(responseBody))
-		})
+		Expect(resp.StatusCode).To(Equal(http.StatusOK))
+		Expect(string(bodyBytes)).To(Equal(responseBody))
+	})
 
-		It("should hit proper liveness results", func() {
-			checkResult(&testServer, fmt.Sprintf("%s%s", url, alivePath), aliveResult)
-			// Swap query/expected result and test again
-			aliveResult = !aliveResult
-			checkResult(&testServer, fmt.Sprintf("%s%s", url, alivePath), aliveResult)
-		})
+	It("should result in a successful readiness probe", func() {
+		mockProbe.EXPECT().Readiness().Return(true).Times(1)
+		mockProbe.EXPECT().GetID().Return("test").Times(1)
 
-		It("should hit proper readiness results", func() {
-			checkResult(&testServer, fmt.Sprintf("%s%s", url, readyPath), readyResult)
-			// Swap query/expected result and test again
-			readyResult = !readyResult
-			checkResult(&testServer, fmt.Sprintf("%s%s", url, readyPath), readyResult)
-		})
+		resp := recordCall(testServer, fmt.Sprintf("%s%s", url, readyPath))
 
-		It("Should hit and read metrics path", func() {
-			req := httptest.NewRequest("GET", fmt.Sprintf("%s%s", url, metricsPath), nil)
+		Expect(resp.StatusCode).To(Equal(http.StatusOK))
+	})
 
-			w := httptest.NewRecorder()
-			testServer.Config.Handler.ServeHTTP(w, req)
+	It("should result in an unsuccessful readiness probe", func() {
+		mockProbe.EXPECT().Readiness().Return(false).Times(1)
+		mockProbe.EXPECT().GetID().Return("test").Times(1)
 
-			resp := w.Result()
-			Expect(resp.StatusCode).To(Equal(http.StatusOK))
-		})
+		resp := recordCall(testServer, fmt.Sprintf("%s%s", url, readyPath))
+
+		Expect(resp.StatusCode).To(Equal(http.StatusServiceUnavailable))
+	})
+
+	It("should result in a successful liveness probe", func() {
+		mockProbe.EXPECT().Liveness().Return(true).Times(1)
+		mockProbe.EXPECT().GetID().Return("test").Times(1)
+
+		resp := recordCall(testServer, fmt.Sprintf("%s%s", url, alivePath))
+
+		Expect(resp.StatusCode).To(Equal(http.StatusOK))
+	})
+
+	It("should result in an unsuccessful liveness probe", func() {
+		mockProbe.EXPECT().Liveness().Return(false).Times(1)
+		mockProbe.EXPECT().GetID().Return("test").Times(1)
+
+		resp := recordCall(testServer, fmt.Sprintf("%s%s", url, alivePath))
+
+		Expect(resp.StatusCode).To(Equal(http.StatusServiceUnavailable))
+	})
+
+	It("should result in an unsuccessful probe when the probe path is incorrect", func() {
+		mockProbe.EXPECT().Liveness().Times(0)
+		mockProbe.EXPECT().Liveness().Times(0)
+		mockProbe.EXPECT().GetID().Times(0)
+
+		resp := recordCall(testServer, fmt.Sprintf("%s%s", url, invalidRoutePath))
+
+		Expect(resp.StatusCode).To(Equal(http.StatusNotFound))
+	})
+
+	It("Should hit and read metrics path", func() {
+		req := httptest.NewRequest("GET", fmt.Sprintf("%s%s", url, metricsPath), nil)
+
+		w := httptest.NewRecorder()
+		testServer.Config.Handler.ServeHTTP(w, req)
+
+		resp := w.Result()
+		Expect(resp.StatusCode).To(Equal(http.StatusOK))
 	})
 })
