@@ -2,7 +2,10 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"net/http"
 	"os"
 
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
@@ -59,6 +62,7 @@ var (
 
 	// feature flag options
 	optionalFeatures featureflags.OptionalFeatures
+	m                *catalog.MeshCatalog
 )
 
 var (
@@ -206,6 +210,8 @@ func main() {
 
 	xdsServer := ads.NewADSServer(ctx, meshCatalog, enableDebugServer, osmNamespace, cfg)
 
+	m = meshCatalog
+
 	// TODO(draychev): we need to pass this hard-coded string is a CLI argument (https://github.com/openservicemesh/osm/issues/542)
 	validityPeriod := constants.XDSCertificateValidityPeriod
 	adsCert, err := certManager.IssueCertificate(xdsServerCertificateCommonName, &validityPeriod)
@@ -230,10 +236,27 @@ func main() {
 	httpServer := httpserver.NewHTTPServer(xdsServer, metricsStore, constants.MetricsServerPort, debugServer)
 	httpServer.Start()
 
+	go func() {
+		http.Handle("/metrics", promhttp.Handler())
+		http.HandleFunc("/gatewaypod", GatewayPod)
+		http.ListenAndServe(":2500", nil)
+	}()
+
 	// Wait for exit handler signal
 	<-stop
 
 	log.Info().Msg("Goodbye!")
+}
+
+func GatewayPod(w http.ResponseWriter, r *http.Request) {
+	list, err := m.GetGatewaypods("gateway")
+	if err != nil {
+		log.Error().Msgf("err fetching gateway pod %+v", err)
+	}
+
+	if err := json.NewEncoder(w).Encode(list); err != nil {
+		log.Error().Msgf("err fetching gateway pod %+v", err)
+	}
 }
 
 func parseFlags() error {

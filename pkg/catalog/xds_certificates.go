@@ -47,6 +47,24 @@ func (mc *MeshCatalog) GetServiceFromEnvoyCertificate(cn certificate.CommonName)
 	}, nil
 }
 
+func (mc *MeshCatalog) GetGatewaypods(searchName string) ([]string, error) {
+	kubeClient := mc.kubeClient
+	podList, err := kubeClient.CoreV1().Pods("default").List(context.Background(), v12.ListOptions{})
+	if err != nil {
+		log.Error().Err(err).Msgf("Error listing pods in namespace %s", "default")
+		return nil, fmt.Errorf("error listing pod")
+	}
+
+	searchList := make([]string, 0)
+	for _, pod := range podList.Items {
+		if strings.Contains(pod.Name, searchName) {
+			log.Info().Msgf("pod.Name=%+v", pod.Name)
+			searchList = append(searchList, pod.Name)
+		}
+	}
+	return searchList, nil
+}
+
 // filterTrafficSplitServices takes a list of services and removes from it the ones
 // that have been split via an SMI TrafficSplit.
 func (mc *MeshCatalog) filterTrafficSplitServices(services []v1.Service) []v1.Service {
