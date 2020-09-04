@@ -17,13 +17,6 @@ const (
 	// RestockWarehouseURL is a header string constant.
 	RestockWarehouseURL = "restock-books"
 
-	// httpEgressURL is the URL used to test HTTP egress.
-	// The HTTP request will result in an HTTPS redirect which will be handled by the HTTP client.
-	//httpEgressURL = "http://github.com"
-
-	// httpsEgressURL is the URL used to test HTTPS egress
-	//httpsEgressURL = "https://github.com"
-
 	// bookstorePort is the bookstore service's port
 	bookstorePort = 80
 
