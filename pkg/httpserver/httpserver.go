@@ -51,7 +51,6 @@ func NewHTTPServer(probes []health.Probes, httpProbes []health.HTTPProbe, metric
 		"/debug/pprof/profile": http.HandlerFunc(pprof.Profile),
 		"/debug/pprof/symbol":  http.HandlerFunc(pprof.Symbol),
 		"/debug/pprof/trace":   http.HandlerFunc(pprof.Trace),
-
 	}
 
 	if debugServer != nil {
