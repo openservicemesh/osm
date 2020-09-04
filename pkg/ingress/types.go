@@ -4,8 +4,8 @@ import (
 	extensionsV1beta "k8s.io/api/extensions/v1beta1"
 	"k8s.io/client-go/tools/cache"
 
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/logger"
-	"github.com/openservicemesh/osm/pkg/namespace"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -19,7 +19,7 @@ type Client struct {
 	cache               cache.Store
 	cacheSynced         chan interface{}
 	announcements       chan interface{}
-	namespaceController namespace.Controller
+	namespaceController k8s.NamespaceController
 }
 
 // Monitor is the client interface for K8s Ingress resource

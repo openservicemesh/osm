@@ -20,7 +20,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/endpoint/providers/kube"
 	"github.com/openservicemesh/osm/pkg/ingress"
-	"github.com/openservicemesh/osm/pkg/namespace"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -42,12 +42,12 @@ var (
 func newFakeMeshCatalog() *MeshCatalog {
 	var (
 		mockCtrl           *gomock.Controller
-		mockNsController   *namespace.MockController
+		mockNsController   *k8s.MockNamespaceController
 		mockIngressMonitor *ingress.MockMonitor
 	)
 
 	mockCtrl = gomock.NewController(GinkgoT())
-	mockNsController = namespace.NewMockController(mockCtrl)
+	mockNsController = k8s.NewMockNamespaceController(mockCtrl)
 	mockIngressMonitor = ingress.NewMockMonitor(mockCtrl)
 
 	meshSpec := smi.NewFakeMeshSpecClient()

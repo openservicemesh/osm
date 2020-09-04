@@ -17,7 +17,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
-	"github.com/openservicemesh/osm/pkg/namespace"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 	"github.com/openservicemesh/osm/pkg/utils"
@@ -26,11 +26,11 @@ import (
 var _ = Describe("Test Kube Client Provider", func() {
 	var (
 		mockCtrl         *gomock.Controller
-		mockNsController *namespace.MockController
+		mockNsController *k8s.MockNamespaceController
 		mockConfigurator *configurator.MockConfigurator
 	)
 	mockCtrl = gomock.NewController(GinkgoT())
-	mockNsController = namespace.NewMockController(mockCtrl)
+	mockNsController = k8s.NewMockNamespaceController(mockCtrl)
 	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
 
 	fakeClientSet := fake.NewSimpleClientset()
@@ -137,11 +137,11 @@ var _ = Describe("Test Kube Client Provider", func() {
 var _ = Describe("When getting a Service associated with a ServiceAccount", func() {
 	var (
 		mockCtrl         *gomock.Controller
-		mockNsController *namespace.MockController
+		mockNsController *k8s.MockNamespaceController
 		mockConfigurator *configurator.MockConfigurator
 	)
 	mockCtrl = gomock.NewController(GinkgoT())
-	mockNsController = namespace.NewMockController(mockCtrl)
+	mockNsController = k8s.NewMockNamespaceController(mockCtrl)
 	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
 
 	var (

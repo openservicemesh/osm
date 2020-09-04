@@ -14,7 +14,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/namespace"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 )
 
 var _ = Describe("Test MutatingWebhookConfiguration patch", func() {
@@ -173,13 +173,13 @@ var _ = Describe("Testing isAnnotatedForInjection", func() {
 var _ = Describe("Testing mustInject", func() {
 	var (
 		mockCtrl         *gomock.Controller
-		mockNsController *namespace.MockController
+		mockNsController *k8s.MockNamespaceController
 		fakeClientSet    *fake.Clientset
 		wh               *webhook
 	)
 
 	mockCtrl = gomock.NewController(GinkgoT())
-	mockNsController = namespace.NewMockController(mockCtrl)
+	mockNsController = k8s.NewMockNamespaceController(mockCtrl)
 	fakeClientSet = fake.NewSimpleClientset()
 	namespace := "test"
 

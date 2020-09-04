@@ -9,8 +9,8 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	backpressure "github.com/openservicemesh/osm/experimental/pkg/apis/policy/v1alpha1"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/logger"
-	"github.com/openservicemesh/osm/pkg/namespace"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -46,7 +46,7 @@ type Client struct {
 	informers           *InformerCollection
 	announcements       chan interface{}
 	osmNamespace        string
-	namespaceController namespace.Controller
+	namespaceController k8s.NamespaceController
 }
 
 // MeshSpec is an interface declaring functions, which provide the specs for a service mesh declared with SMI.
