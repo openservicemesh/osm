@@ -19,7 +19,7 @@ import (
 	osmPolicyClient "github.com/openservicemesh/osm/experimental/pkg/client/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/featureflags"
-	"github.com/openservicemesh/osm/pkg/namespace"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
@@ -45,7 +45,7 @@ func bootstrapClient() (MeshSpec, *fakeKubeClientSet, error) {
 	smiTrafficSpecClientSet := testTrafficSpecClient.NewSimpleClientset()
 	smiTrafficTargetClientSet := testTrafficTargetClient.NewSimpleClientset()
 	osmPolicyClientSet := osmPolicyClient.NewSimpleClientset()
-	namespaceController := namespace.NewNamespaceController(kubeClient, meshName, stop)
+	kubernetesClient := k8s.NewKubernetesClient(kubeClient, meshName, stop)
 
 	fakeClientSet := &fakeKubeClientSet{
 		kubeClient:                kubeClient,
@@ -65,7 +65,7 @@ func bootstrapClient() (MeshSpec, *fakeKubeClientSet, error) {
 	if _, err := kubeClient.CoreV1().Namespaces().Create(context.TODO(), &testNamespace, metav1.CreateOptions{}); err != nil {
 		log.Fatal().Err(err).Msgf("Error creating Namespace %v", testNamespace)
 	}
-	<-namespaceController.GetAnnouncementsChannel()
+	<-kubernetesClient.GetAnnouncementsChannel()
 
 	meshSpec, err := newSMIClient(
 		kubeClient,
@@ -74,7 +74,7 @@ func bootstrapClient() (MeshSpec, *fakeKubeClientSet, error) {
 		smiTrafficTargetClientSet,
 		osmPolicyClientSet,
 		osmNamespace,
-		namespaceController,
+		kubernetesClient,
 		kubernetesClientName,
 		stop,
 	)
