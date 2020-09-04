@@ -144,11 +144,13 @@ var _ = Describe("AggregateRoutesByDomain", func() {
 
 var _ = Describe("RDS Response", func() {
 	var (
-		mockCtrl         *gomock.Controller
-		mockNsController *namespace.MockController
+		mockCtrl           *gomock.Controller
+		mockNsController   *namespace.MockController
+		mockIngressMonitor *ingress.MockMonitor
 	)
 	mockCtrl = gomock.NewController(GinkgoT())
 	mockNsController = namespace.NewMockController(mockCtrl)
+	mockIngressMonitor = ingress.NewMockMonitor(mockCtrl)
 
 	endpointProviders := []endpoint.Provider{kube.NewFakeProvider()}
 	kubeClient := testclient.NewSimpleClientset()
@@ -161,6 +163,10 @@ var _ = Describe("RDS Response", func() {
 	cfg := configurator.NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
 
 	testChan := make(chan interface{})
+
+	mockIngressMonitor.EXPECT().GetIngressResources(gomock.Any()).Return(nil, nil).AnyTimes()
+	mockIngressMonitor.EXPECT().GetAnnouncementsChannel().Return(testChan).AnyTimes()
+
 	monitoredNamespace := []string{
 		tests.BookstoreService.Namespace,
 		tests.BookbuyerService.Namespace,
@@ -173,7 +179,7 @@ var _ = Describe("RDS Response", func() {
 	mockNsController.EXPECT().ListMonitoredNamespaces().Return(monitoredNamespace, nil).AnyTimes()
 
 	meshCatalog := catalog.NewMeshCatalog(mockNsController, kubeClient, smi.NewFakeMeshSpecClient(), certManager,
-		ingress.NewFakeIngressMonitor(), make(<-chan struct{}), cfg, endpointProviders...)
+		mockIngressMonitor, make(<-chan struct{}), cfg, endpointProviders...)
 
 	Context("Test GetHostnamesForService", func() {
 		contains := func(domains []string, expected string) bool {
