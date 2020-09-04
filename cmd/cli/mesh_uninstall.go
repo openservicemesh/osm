@@ -10,15 +10,15 @@ import (
 	helmStorage "helm.sh/helm/v3/pkg/storage/driver"
 )
 
-const meshDeleteDescription = `
-This command will delete an instance of the osm control plane
-given the mesh name and namespace. It will not delete the namespace
+const meshUninstallDescription = `
+This command will uninstall an instance of the osm control plane
+given the mesh name and namespace. It will not uninstall the namespace
 the mesh was installed in.
 
 Only use this in non-production and test environments.
 `
 
-type meshDeleteCmd struct {
+type meshUninstallCmd struct {
 	out      io.Writer
 	in       io.Reader
 	meshName string
@@ -26,33 +26,34 @@ type meshDeleteCmd struct {
 	client   *action.Uninstall
 }
 
-func newMeshDelete(config *action.Configuration, in io.Reader, out io.Writer) *cobra.Command {
-	del := &meshDeleteCmd{
+func newMeshUninstall(config *action.Configuration, in io.Reader, out io.Writer) *cobra.Command {
+	uninstall := &meshUninstallCmd{
 		out: out,
 		in:  in,
 	}
 
 	cmd := &cobra.Command{
-		Use:   "delete",
-		Short: "delete osm control plane instance",
-		Long:  meshDeleteDescription,
-		Args:  cobra.ExactArgs(0),
+		Use:     "uninstall",
+		Aliases: []string{"delete", "del"},
+		Short:   "uninstall osm control plane instance",
+		Long:    meshUninstallDescription,
+		Args:    cobra.ExactArgs(0),
 		RunE: func(_ *cobra.Command, args []string) error {
-			del.client = action.NewUninstall(config)
-			return del.run()
+			uninstall.client = action.NewUninstall(config)
+			return uninstall.run()
 		},
 	}
 
 	f := cmd.Flags()
-	f.StringVar(&del.meshName, "mesh-name", defaultMeshName, "Name of the service mesh")
-	f.BoolVarP(&del.force, "force", "f", false, "Attempt to delete the osm control plane instance without prompting for confirmation.  If the control plane with specified mesh name does not exist, do not display a diagnostic message or modify the exit status to reflect an error.")
+	f.StringVar(&uninstall.meshName, "mesh-name", defaultMeshName, "Name of the service mesh")
+	f.BoolVarP(&uninstall.force, "force", "f", false, "Attempt to uninstall the osm control plane instance without prompting for confirmation.  If the control plane with specified mesh name does not exist, do not display a diagnostic message or modify the exit status to reflect an error.")
 
 	return cmd
 }
 
-func (d *meshDeleteCmd) run() error {
+func (d *meshUninstallCmd) run() error {
 	if !d.force {
-		confirm, err := confirm(d.in, d.out, fmt.Sprintf("Delete OSM [mesh name: %s] ?", d.meshName), 3)
+		confirm, err := confirm(d.in, d.out, fmt.Sprintf("Uninstall OSM [mesh name: %s] ?", d.meshName), 3)
 		if !confirm || err != nil {
 			return err
 		}
@@ -67,7 +68,7 @@ func (d *meshDeleteCmd) run() error {
 	}
 
 	if err == nil {
-		fmt.Fprintf(d.out, "OSM [mesh name: %s] deleted\n", d.meshName)
+		fmt.Fprintf(d.out, "OSM [mesh name: %s] uninstalled\n", d.meshName)
 	}
 
 	return err
