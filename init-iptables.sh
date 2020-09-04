@@ -92,11 +92,7 @@ iptables -t nat -A PROXY_OUTPUT -m owner --uid-owner "${PROXY_UID}" -j RETURN
 
 # Skip localhost traffic
 iptables -t nat -A PROXY_OUTPUT -d 127.0.0.1/32 -j RETURN
-
-#iptables -t nat -A PROXY_OUTPUT -p tcp --sport "9073" -j RETURN
-#iptables -t nat -A PROXY_OUTPUT -p tcp --sport "8443" -j RETURN
-#iptables -t nat -A PROXY_OUTPUT -p tcp --sport "8081" -j RETURN
-#iptables -t nat -A PROXY_OUTPUT -p tcp --sport "2579" -j RETURN
+iptables -t nat -A PROXY_OUTPUT -d 172.19.0.0/16 -j RETURN  # allow sim traffic
 
 # Redirect remaining outbound traffic to Envoy
 iptables -t nat -A PROXY_OUTPUT -j PROXY_REDIRECT
