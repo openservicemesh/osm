@@ -3,9 +3,10 @@ package kubernetes
 import (
 	"time"
 
-	"github.com/openservicemesh/osm/pkg/logger"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
+
+	"github.com/openservicemesh/osm/pkg/logger"
 )
 
 var (
