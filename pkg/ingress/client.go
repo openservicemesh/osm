@@ -10,12 +10,11 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
-	"github.com/openservicemesh/osm/pkg/namespace"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
 // NewIngressClient implements ingress.Monitor and creates the Kubernetes client to monitor Ingress resources.
-func NewIngressClient(kubeClient kubernetes.Interface, namespaceController namespace.Controller, stop chan struct{}, cfg configurator.Configurator) (Monitor, error) {
+func NewIngressClient(kubeClient kubernetes.Interface, namespaceController k8s.NamespaceController, stop chan struct{}, cfg configurator.Configurator) (Monitor, error) {
 	informerFactory := informers.NewSharedInformerFactory(kubeClient, k8s.DefaultKubeEventResyncInterval)
 	informer := informerFactory.Extensions().V1beta1().Ingresses().Informer()
 

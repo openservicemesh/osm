@@ -12,7 +12,6 @@ import (
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/namespace"
 	osmClient "github.com/openservicemesh/osm/pkg/osm_client/clientset/versioned"
 	osmInformers "github.com/openservicemesh/osm/pkg/osm_client/informers/externalversions"
 )
@@ -22,7 +21,7 @@ const (
 )
 
 // NewClient creates the Kubernetes client, which retrieves the AzureResource CRD and Services resources.
-func NewClient(kubeClient kubernetes.Interface, azureResourceKubeConfig *rest.Config, namespaceController namespace.Controller, stop chan struct{}, cfg configurator.Configurator) (*Client, error) {
+func NewClient(kubeClient kubernetes.Interface, azureResourceKubeConfig *rest.Config, namespaceController k8s.NamespaceController, stop chan struct{}, cfg configurator.Configurator) (*Client, error) {
 	azureResourceClient := osmClient.NewForConfigOrDie(azureResourceKubeConfig)
 
 	k8sClient := newClient(kubeClient, azureResourceClient, namespaceController)
@@ -33,7 +32,7 @@ func NewClient(kubeClient kubernetes.Interface, azureResourceKubeConfig *rest.Co
 }
 
 // newClient creates a provider based on a Kubernetes client instance.
-func newClient(kubeClient kubernetes.Interface, azureResourceClient *osmClient.Clientset, namespaceController namespace.Controller) *Client {
+func newClient(kubeClient kubernetes.Interface, azureResourceClient *osmClient.Clientset, namespaceController k8s.NamespaceController) *Client {
 	azureResourceFactory := osmInformers.NewSharedInformerFactory(azureResourceClient, k8s.DefaultKubeEventResyncInterval)
 	informerCollection := InformerCollection{
 		AzureResource: azureResourceFactory.Osm().V1().AzureResources().Informer(),
