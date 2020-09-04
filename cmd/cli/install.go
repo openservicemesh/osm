@@ -93,10 +93,10 @@ type installCmd struct {
 	// become part of SMI Spec.
 	enableBackpressureExperimental bool
 
-	// Toggle to deploy/not deploy metrics (Promethus+Grafana) stack
+	// Toggle to enable/disable Prometheus installation
 	enablePrometheus bool
 
-	// Toggle to enable/disable grafana installation
+	// Toggle to enable/disable Grafana installation
 	enableGrafana bool
 
 	// Toggle this to enable/disable the automatic deployment of Jaeger

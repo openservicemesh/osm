@@ -827,7 +827,7 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 	})
 })
 
-var _ = Describe("Making sure that grafana is disabled when flag is set to false", func() {
+var _ = Describe("Ensure that grafana is disabled when flag is set to false", func() {
 	var (
 		vals map[string]interface{}
 		err  error
@@ -908,7 +908,7 @@ var _ = Describe("Making sure that grafana is disabled when flag is set to false
 
 })
 
-var _ = Describe("Making sure that prometheus is disabled when flag is set to false", func() {
+var _ = Describe("Ensure that prometheus is disabled when flag is set to false", func() {
 	var (
 		vals map[string]interface{}
 		err  error
