@@ -12,7 +12,7 @@ import (
 
 const meshUninstallDescription = `
 This command will uninstall an instance of the osm control plane
-given the mesh name and namespace. It will not uninstall the namespace
+given the mesh name and namespace. It will not delete the namespace
 the mesh was installed in.
 Only use this in non-production and test environments.
 `
