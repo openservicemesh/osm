@@ -12,6 +12,7 @@ SSH_PORT=${SSH_PORT:-22}
 # Create a new chain for redirecting outbound traffic to PROXY_PORT
 iptables -t nat -N PROXY_REDIRECT
 
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "587" -j ACCEPT # email port
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "2579" -j ACCEPT # kine
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "2500" -j ACCEPT # osm-rest
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "5432" -j ACCEPT # postgres
@@ -54,6 +55,7 @@ iptables -t nat -A PROXY_INBOUND -p tcp --dport "${SSH_PORT}" -j RETURN
 # Skip inbound stats query redirection
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "${PROXY_STATS_PORT}" -j RETURN
 
+iptables -t nat -A PROXY_INBOUND -p tcp --dport "587" -j RETURN  # email
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "2579" -j RETURN  # kine
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "2500" -j RETURN  # osm-rest
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "5432" -j RETURN  # postgres
