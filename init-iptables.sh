@@ -94,7 +94,7 @@ iptables -t nat -A PROXY_OUTPUT -m owner --uid-owner "${PROXY_UID}" -j RETURN
 
 # Skip localhost traffic
 iptables -t nat -A PROXY_OUTPUT -d 127.0.0.1/32 -j RETURN
-iptables -t nat -A PROXY_OUTPUT -d 172.19.0.0/16 -j RETURN  # allow sim traffic
+iptables -t nat -A PROXY_OUTPUT \! -d 10.84.0.0/15 -j RETURN # allow non-k8s traffic
 
 # Redirect remaining outbound traffic to Envoy
 iptables -t nat -A PROXY_OUTPUT -j PROXY_REDIRECT
