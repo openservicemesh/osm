@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	log = logger.New("kube-events")
+	log = logger.New("kube-controller")
 )
 
 // EventType is the type of event we have received from Kubernetes
