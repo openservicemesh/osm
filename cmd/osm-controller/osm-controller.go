@@ -3,15 +3,18 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"os"
+	"path"
+	"strings"
 
-	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	clientset "k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
@@ -23,20 +26,19 @@ import (
 	"github.com/openservicemesh/osm/pkg/endpoint/providers/kube"
 	"github.com/openservicemesh/osm/pkg/envoy/ads"
 	"github.com/openservicemesh/osm/pkg/featureflags"
+	"github.com/openservicemesh/osm/pkg/health"
 	"github.com/openservicemesh/osm/pkg/httpserver"
 	"github.com/openservicemesh/osm/pkg/ingress"
 	"github.com/openservicemesh/osm/pkg/injector"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
-	"github.com/openservicemesh/osm/pkg/namespace"
 	"github.com/openservicemesh/osm/pkg/signals"
 	"github.com/openservicemesh/osm/pkg/smi"
-	"github.com/openservicemesh/osm/pkg/utils"
 	"github.com/openservicemesh/osm/pkg/version"
 )
 
 const (
-	xdsServerType                     = "ADS"
 	defaultServiceCertValidityMinutes = 60 // 1 hour
 	caBundleSecretNameCLIParam        = "ca-bundle-secret-name"
 	xdsServerCertificateCommonName    = "ads"
@@ -65,7 +67,7 @@ var (
 	log   = logger.New("osm-controller/main")
 
 	// What is the Certification Authority to be used
-	osmCertificateManagerKind = flags.String("certificate-manager", "tresor", "Certificate manager")
+	osmCertificateManagerKind = flags.String("certificate-manager", "tresor", fmt.Sprintf("Certificate manager [%v]", strings.Join(validCertificateManagerOptions, "|")))
 
 	// When certmanager == "vault"
 	vaultProtocol = flags.String("vault-protocol", "http", "Host name of the Hashi Vault")
@@ -82,8 +84,6 @@ var (
 func init() {
 	flags.StringVarP(&verbosity, "verbosity", "v", "info", "Set log verbosity level")
 	flags.StringVar(&meshName, "mesh-name", "", "OSM mesh name")
-	// TODO (#88): Azure Auth file disabled, pending on Identity + VM representation in SMI
-	//flags.StringVar(&azureAuthFile, "azure-auth-file", "", "Path to Azure Auth File")
 	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file.")
 	flags.StringVar(&osmNamespace, "osm-namespace", "", "Namespace to which OSM belongs to.")
 	flags.StringVar(&webhookName, "webhook-name", "", "Name of the MutatingWebhookConfiguration to be configured by osm-controller")
@@ -140,16 +140,15 @@ func main() {
 	}
 	log.Info().Msgf("Initial ConfigMap %s: %s", osmConfigMapName, string(configMap))
 
-	namespaceController := namespace.NewNamespaceController(kubeClient, meshName, stop)
-	meshSpec, err := smi.NewMeshSpecClient(*smiKubeConfig, kubeClient, osmNamespace, namespaceController, stop)
+	kubernetesClient := k8s.NewKubernetesClient(kubeClient, meshName, stop)
+	meshSpec, err := smi.NewMeshSpecClient(*smiKubeConfig, kubeClient, osmNamespace, kubernetesClient, stop)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to create new mesh spec client")
 	}
 
-	// Get the Certificate Manager based on the CLI argument passed to this module.
-	certManager, certDebugger, err := certManagers[certificateManagerKind(*osmCertificateManagerKind)](kubeClient, kubeConfig, enableDebugServer)
+	certManager, certDebugger, err := getCertificateManager(kubeClient, kubeConfig)
 	if err != nil {
-		log.Fatal().Err(err).Msgf("Failed to get certificate manager based on CLI argument")
+		log.Fatal().Err(err).Msgf("Failed to get certificate manager based on CLI argument: %s", *osmCertificateManagerKind)
 	}
 
 	log.Info().Msgf("Service certificates will be valid for %+v", getServiceCertValidityPeriod())
@@ -162,20 +161,20 @@ func main() {
 		}
 	}
 
-	provider, err := kube.NewProvider(kubeClient, namespaceController, stop, constants.KubeProviderName, cfg)
+	provider, err := kube.NewProvider(kubeClient, kubernetesClient, stop, constants.KubeProviderName, cfg)
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Failed to get endpoint provider")
 	}
 
 	endpointsProviders := []endpoint.Provider{provider}
 
-	ingressClient, err := ingress.NewIngressClient(kubeClient, namespaceController, stop, cfg)
+	ingressClient, err := ingress.NewIngressClient(kubeClient, kubernetesClient, stop, cfg)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to initialize ingress client")
 	}
 
 	meshCatalog := catalog.NewMeshCatalog(
-		namespaceController,
+		kubernetesClient,
 		kubeClient,
 		meshSpec,
 		certManager,
@@ -185,11 +184,9 @@ func main() {
 		endpointsProviders...)
 
 	// Create the sidecar-injector webhook
-	if err := injector.NewWebhook(injectorConfig, kubeClient, certManager, meshCatalog, namespaceController, meshName, osmNamespace, webhookName, stop, cfg); err != nil {
+	if err := injector.NewWebhook(injectorConfig, kubeClient, certManager, meshCatalog, kubernetesClient, meshName, osmNamespace, webhookName, stop, cfg); err != nil {
 		log.Fatal().Err(err).Msg("Error creating mutating webhook")
 	}
-
-	xdsServer := ads.NewADSServer(meshCatalog, enableDebugServer, osmNamespace, cfg)
 
 	// TODO(draychev): we need to pass this hard-coded string is a CLI argument (https://github.com/openservicemesh/osm/issues/542)
 	validityPeriod := constants.XDSCertificateValidityPeriod
@@ -198,10 +195,9 @@ func main() {
 		log.Fatal().Err(err)
 	}
 
-	grpcServer, lis := utils.NewGrpc(xdsServerType, *port, adsCert.GetCertificateChain(), adsCert.GetPrivateKey(), adsCert.GetIssuingCA())
-	xds_discovery.RegisterAggregatedDiscoveryServiceServer(grpcServer, xdsServer)
-
-	go utils.GrpcServe(ctx, grpcServer, lis, cancel, xdsServerType)
+	// Create and start the ADS gRPC service
+	xdsServer := ads.NewADSServer(meshCatalog, enableDebugServer, osmNamespace, cfg)
+	xdsServer.Start(ctx, cancel, *port, adsCert)
 
 	// initialize the http server and start it
 	// TODO(draychev): figure out the NS and POD
@@ -212,13 +208,27 @@ func main() {
 	if enableDebugServer {
 		debugServer = debugger.NewDebugServer(certDebugger, xdsServer, meshCatalog, kubeConfig, kubeClient, cfg)
 	}
-	httpServer := httpserver.NewHTTPServer(xdsServer, metricsStore, constants.MetricsServerPort, debugServer)
+
+	funcProbes := []health.Probes{xdsServer}
+	httpProbes := getHTTPHealthProbes()
+	httpServer := httpserver.NewHTTPServer(funcProbes, httpProbes, metricsStore, constants.MetricsServerPort, debugServer)
 	httpServer.Start()
 
 	// Wait for exit handler signal
 	<-stop
 
 	log.Info().Msg("Goodbye!")
+}
+
+func getHTTPHealthProbes() []health.HTTPProbe {
+	return []health.HTTPProbe{
+		{
+			// HTTP probe on the sidecar injector webhook's port
+			URL: joinURL(fmt.Sprintf("https://%s:%d", constants.LocalhostIPAddress, injectorConfig.ListenPort),
+				injector.WebhookHealthPath),
+			Protocol: health.ProtocolHTTPS,
+		},
+	}
 }
 
 func parseFlags() error {
@@ -295,4 +305,22 @@ func saveOrUpdateSecretToKubernetes(kubeClient clientset.Interface, ca certifica
 	}
 
 	return nil
+}
+
+func getCertificateManager(kubeClient kubernetes.Interface, kubeConfig *rest.Config) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
+	switch *osmCertificateManagerKind {
+	case tresorKind:
+		return getTresorOSMCertificateManager(kubeClient, enableDebugServer)
+	case vaultKind:
+		return getHashiVaultOSMCertificateManager(enableDebugServer)
+	case certmanagerKind:
+		return getCertManagerOSMCertificateManager(kubeClient, kubeConfig, enableDebugServer)
+	default:
+		return nil, nil, fmt.Errorf("Unsupported Certificate Manager %s", *osmCertificateManagerKind)
+	}
+}
+
+func joinURL(baseURL string, paths ...string) string {
+	p := path.Join(paths...)
+	return fmt.Sprintf("%s/%s", strings.TrimRight(baseURL, "/"), strings.TrimLeft(p, "/"))
 }

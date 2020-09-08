@@ -1,6 +1,7 @@
 package ads
 
 import (
+	"context"
 	"time"
 
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
@@ -14,7 +15,11 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy/lds"
 	"github.com/openservicemesh/osm/pkg/envoy/rds"
 	"github.com/openservicemesh/osm/pkg/envoy/sds"
+	"github.com/openservicemesh/osm/pkg/utils"
 )
+
+// ServerType is the type identifier for the ADS server
+const ServerType = "ADS"
 
 // NewADSServer creates a new Aggregated Discovery Service server
 func NewADSServer(meshCatalog catalog.MeshCataloger, enableDebug bool, osmNamespace string, cfg configurator.Configurator) *Server {
@@ -37,6 +42,16 @@ func NewADSServer(meshCatalog catalog.MeshCataloger, enableDebug bool, osmNamesp
 	}
 
 	return &server
+}
+
+// Start starts the ADS server
+func (s *Server) Start(ctx context.Context, cancel context.CancelFunc, port int, adsCert certificate.Certificater) {
+	grpcServer, lis := utils.NewGrpc(ServerType, port, adsCert.GetCertificateChain(), adsCert.GetPrivateKey(), adsCert.GetIssuingCA())
+	xds_discovery.RegisterAggregatedDiscoveryServiceServer(grpcServer, s)
+
+	go utils.GrpcServe(ctx, grpcServer, lis, cancel, ServerType)
+
+	s.ready = true
 }
 
 // DeltaAggregatedResources implements discovery.AggregatedDiscoveryServiceServer

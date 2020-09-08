@@ -6,8 +6,8 @@ import (
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/logger"
-	"github.com/openservicemesh/osm/pkg/namespace"
 )
 
 const (
@@ -22,7 +22,7 @@ type webhook struct {
 	kubeClient          kubernetes.Interface
 	certManager         certificate.Manager
 	meshCatalog         catalog.MeshCataloger
-	namespaceController namespace.Controller
+	namespaceController k8s.NamespaceController
 	osmNamespace        string
 	cert                certificate.Certificater
 	configurator        configurator.Configurator

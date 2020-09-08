@@ -24,4 +24,5 @@ type Server struct {
 	enableDebug  bool
 	osmNamespace string
 	cfg          configurator.Configurator
+	ready        bool
 }

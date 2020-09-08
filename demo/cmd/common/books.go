@@ -28,6 +28,9 @@ const (
 )
 
 var (
+	// enableEgress determines whether egress is enabled
+	enableEgress = os.Getenv(EnableEgressEnvVar) == "true"
+
 	sleepDurationBetweenRequestsSecondsStr = GetEnv("CI_SLEEP_BETWEEN_REQUESTS_SECONDS", "1")
 	minSuccessThresholdStr                 = GetEnv("CI_MIN_SUCCESS_THRESHOLD", "1")
 	maxIterationsStr                       = GetEnv("CI_MAX_ITERATIONS_THRESHOLD", "0") // 0 for unlimited
@@ -35,7 +38,6 @@ var (
 	bookstoreNamespace                     = os.Getenv(BookstoreNamespaceEnvVar)
 	warehouseServiceName                   = "bookwarehouse"
 	bookwarehouseNamespace                 = os.Getenv(BookwarehouseNamespaceEnvVar)
-	enableEgress                           = os.Getenv(EnableEgressEnvVar) == "true"
 
 	bookstoreService = fmt.Sprintf("%s.%s:%d", bookstoreServiceName, bookstoreNamespace, bookstorePort) // FQDN
 	warehouseService = fmt.Sprintf("%s.%s", warehouseServiceName, bookwarehouseNamespace)               // FQDN
@@ -98,7 +100,7 @@ func GetEnv(envVar string, defaultValue string) string {
 }
 
 // GetBooks reaches out to the bookstore and buys/steals books. This is invoked by the bookbuyer and the bookthief.
-func GetBooks(participantName string, meshExpectedResponseCode int, egressExpectedResponseCode int, booksCount *int64, booksCountV1 *int64, booksCountV2 *int64) {
+func GetBooks(participantName string, meshExpectedResponseCode int, booksCount *int64, booksCountV1 *int64, booksCountV2 *int64) {
 	minSuccessThreshold, maxIterations, sleepDurationBetweenRequests := getEnvVars(participantName)
 
 	// The URLs this participant will attempt to query from the bookstore service
@@ -115,8 +117,8 @@ func GetBooks(participantName string, meshExpectedResponseCode int, egressExpect
 	urlExpectedRespCode := map[string]int{
 		booksBought:    meshExpectedResponseCode,
 		buyBook:        meshExpectedResponseCode,
-		httpEgressURL:  egressExpectedResponseCode,
-		httpsEgressURL: getHTTPSEgressExpectedResponseCode(egressExpectedResponseCode),
+		httpEgressURL:  getHTTPEgressExpectedResponseCode(),
+		httpsEgressURL: getHTTPSEgressExpectedResponseCode(),
 	}
 
 	// Count how many times we have reached out to the bookstore
@@ -283,11 +285,19 @@ func GetExpectedResponseCodeFromEnvVar(envVar, defaultValue string) int {
 // Since HTTPS egress depends on clients to originate TLS, when egress is disabled the
 // TLS negotiation will fail. As a result no HTTP response code will be returned
 // but rather the HTTP library will return 0 as the status code in such cases.
-// This function returns the expect HTTPS response code for egress based on the
-// expectations of the test.
-func getHTTPSEgressExpectedResponseCode(expectedEgressResponseCode int) int {
-	if expectedEgressResponseCode != http.StatusOK {
-		return 0
+func getHTTPSEgressExpectedResponseCode() int {
+	if enableEgress {
+		return http.StatusOK
 	}
-	return expectedEgressResponseCode
+
+	return 0
+}
+
+// getHTTPEgressExpectedResponseCode returns the expected response code for HTTP egress
+func getHTTPEgressExpectedResponseCode() int {
+	if enableEgress {
+		return http.StatusOK
+	}
+
+	return http.StatusNotFound
 }

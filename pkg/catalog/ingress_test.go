@@ -20,7 +20,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/endpoint/providers/kube"
 	"github.com/openservicemesh/osm/pkg/ingress"
-	"github.com/openservicemesh/osm/pkg/namespace"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -41,17 +41,18 @@ var (
 
 func newFakeMeshCatalog() *MeshCatalog {
 	var (
-		mockCtrl         *gomock.Controller
-		mockNsController *namespace.MockController
+		mockCtrl           *gomock.Controller
+		mockNsController   *k8s.MockNamespaceController
+		mockIngressMonitor *ingress.MockMonitor
 	)
 
 	mockCtrl = gomock.NewController(GinkgoT())
-	mockNsController = namespace.NewMockController(mockCtrl)
+	mockNsController = k8s.NewMockNamespaceController(mockCtrl)
+	mockIngressMonitor = ingress.NewMockMonitor(mockCtrl)
+
 	meshSpec := smi.NewFakeMeshSpecClient()
 	cache := make(map[certificate.CommonName]certificate.Certificater)
 	certManager := tresor.NewFakeCertManager(&cache, 1*time.Hour)
-	ingressMonitor := ingress.NewFakeIngressMonitor()
-	ingressMonitor.FakeIngresses = getFakeIngresses()
 	stop := make(chan struct{})
 	endpointProviders := []endpoint.Provider{
 		kube.NewFakeProvider(),
@@ -75,6 +76,10 @@ func newFakeMeshCatalog() *MeshCatalog {
 	cfg := configurator.NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
 
 	testChan := make(chan interface{})
+
+	mockIngressMonitor.EXPECT().GetAnnouncementsChannel().Return(testChan).AnyTimes()
+	mockIngressMonitor.EXPECT().GetIngressResources(gomock.Any()).Return(getFakeIngresses(), nil).AnyTimes()
+
 	monitoredNamespace := []string{
 		tests.BookstoreService.Namespace,
 		tests.BookbuyerService.Namespace,
@@ -88,7 +93,7 @@ func newFakeMeshCatalog() *MeshCatalog {
 	mockNsController.EXPECT().ListMonitoredNamespaces().Return(monitoredNamespace, nil).AnyTimes()
 
 	return NewMeshCatalog(mockNsController, kubeClient, meshSpec, certManager,
-		ingressMonitor, stop, cfg, endpointProviders...)
+		mockIngressMonitor, stop, cfg, endpointProviders...)
 }
 
 func getFakeIngresses() []*extensionsV1beta.Ingress {
@@ -195,6 +200,7 @@ var _ = Describe("Test ingress route policies", func() {
 				Namespace: fakeIngressNamespace,
 				Name:      fakeIngressService,
 			}
+
 			domainRoutesMap, _ := mc.GetIngressRoutesPerHost(fakeService)
 
 			for domain, routePolicies := range domainRoutesMap {

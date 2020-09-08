@@ -23,7 +23,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/namespace"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 )
 
 var (
@@ -37,12 +37,18 @@ var (
 )
 
 const (
-	osmWebhookName       = "osm-inject.k8s.io"
-	osmWebhookMutatePath = "/mutate"
+	// mutatingWebhookName is the name of the mutating webhook used for sidecar injection
+	mutatingWebhookName = "osm-inject.k8s.io"
+
+	// webhookMutatePath is the HTTP path at which the webhook exptects to receive mutation requests
+	webhookMutatePath = "/mutate"
+
+	// WebhookHealthPath is the HTTP path at which the health of the webhook can be queried
+	WebhookHealthPath = "/healthz"
 )
 
 // NewWebhook starts a new web server handling requests from the injector MutatingWebhookConfiguration
-func NewWebhook(config Config, kubeClient kubernetes.Interface, certManager certificate.Manager, meshCatalog catalog.MeshCataloger, namespaceController namespace.Controller, meshName, osmNamespace, webhookName string, stop <-chan struct{}, cfg configurator.Configurator) error {
+func NewWebhook(config Config, kubeClient kubernetes.Interface, certManager certificate.Manager, meshCatalog catalog.MeshCataloger, namespaceController k8s.NamespaceController, meshName, osmNamespace, webhookName string, stop <-chan struct{}, cfg configurator.Configurator) error {
 	cn := certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.OSMControllerName, osmNamespace))
 	validityPeriod := constants.XDSCertificateValidityPeriod
 	cert, err := certManager.IssueCertificate(cn, &validityPeriod)
@@ -74,8 +80,8 @@ func (wh *webhook) run(stop <-chan struct{}) {
 
 	mux := http.DefaultServeMux
 	// HTTP handlers
-	mux.HandleFunc("/health/ready", wh.healthReadyHandler)
-	mux.HandleFunc(osmWebhookMutatePath, wh.mutateHandler)
+	mux.HandleFunc(WebhookHealthPath, wh.healthHandler)
+	mux.HandleFunc(webhookMutatePath, wh.mutateHandler)
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", wh.config.ListenPort),
@@ -112,8 +118,7 @@ func (wh *webhook) run(stop <-chan struct{}) {
 	}
 }
 
-func (wh *webhook) healthReadyHandler(w http.ResponseWriter, req *http.Request) {
-	// TODO(shashank): If TLS certificate is not present, mark as not ready
+func (wh *webhook) healthHandler(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_, err := w.Write([]byte("Health OK"))
 	if err != nil {
@@ -312,7 +317,7 @@ func patchMutatingWebhookConfiguration(cert certificate.Certificater, meshName, 
 		},
 		Webhooks: []admissionv1beta1.MutatingWebhook{
 			{
-				Name: osmWebhookName,
+				Name: mutatingWebhookName,
 				ClientConfig: admissionv1beta1.WebhookClientConfig{
 					CABundle: cert.GetCertificateChain(),
 				},

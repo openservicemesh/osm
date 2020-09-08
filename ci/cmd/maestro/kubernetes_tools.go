@@ -18,7 +18,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -174,22 +173,14 @@ func SearchLogsForSuccess(kubeClient kubernetes.Interface, namespace string, pod
 
 // GetKubernetesClient returns a k8s client.
 func GetKubernetesClient() *kubernetes.Clientset {
-	var kubeConfig *rest.Config
-	var err error
-	kubeConfigFile := os.Getenv(KubeConfigEnvVar)
-	if kubeConfigFile != "" {
-		kubeConfig, err = clientcmd.BuildConfigFromFlags("", kubeConfigFile)
-		if err != nil {
-			fmt.Printf("Error fetching Kubernetes config. Ensure correctness of CLI argument 'kubeconfig=%s': %s", kubeConfigFile, err)
-			os.Exit(1)
-		}
-	} else {
-		// creates the in-cluster config
-		kubeConfig, err = rest.InClusterConfig()
-		if err != nil {
-			fmt.Printf("Error generating Kubernetes config: %s", err)
-			os.Exit(1)
-		}
+	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+		clientcmd.NewDefaultClientConfigLoadingRules(),
+		&clientcmd.ConfigOverrides{},
+	)
+	kubeConfig, err := clientConfig.ClientConfig()
+	if err != nil {
+		fmt.Println("error loading kube config:", err)
+		os.Exit(1)
 	}
 
 	clientset, err := kubernetes.NewForConfig(kubeConfig)

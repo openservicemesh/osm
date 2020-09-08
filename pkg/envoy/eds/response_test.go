@@ -5,10 +5,12 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
+
+	"github.com/golang/mock/gomock"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -19,9 +21,16 @@ import (
 )
 
 var _ = Describe("Test EDS response", func() {
+	var (
+		mockCtrl         *gomock.Controller
+		mockConfigurator *configurator.MockConfigurator
+	)
+
+	mockCtrl = gomock.NewController(GinkgoT())
+	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
+
 	kubeClient := testclient.NewSimpleClientset()
 	catalog := catalog.NewFakeMeshCatalog(kubeClient)
-	cfg := configurator.NewFakeConfigurator()
 
 	Context("Test eds.NewResponse", func() {
 		It("Correctly returns an response for endpoints when the certificate and service are valid", func() {
@@ -55,7 +64,7 @@ var _ = Describe("Test EDS response", func() {
 				Expect(err).ToNot(HaveOccurred())
 			}
 
-			_, err := NewResponse(catalog, proxy, nil, cfg)
+			_, err := NewResponse(catalog, proxy, nil, mockConfigurator)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -71,7 +80,7 @@ var _ = Describe("Test EDS response", func() {
 			// Don't create a pod/service for this proxy, this should result in an error when the
 			// service is being looked up based on the proxy's certificate
 
-			_, err := NewResponse(catalog, proxy, nil, cfg)
+			_, err := NewResponse(catalog, proxy, nil, mockConfigurator)
 			Expect(err).To(HaveOccurred())
 		})
 	})

@@ -20,15 +20,10 @@ import (
 	"github.com/openservicemesh/osm/pkg/debugger"
 )
 
-type certificateManagerKind string
-
 // These are the supported certificate issuers.
 const (
 	// Tresor is an internal package, which leverages Kubernetes secrets and signs certs on the OSM pod
-	tresorKind certificateManagerKind = "tresor"
-
-	// Azure Key Vault integration; uses AKV for certificate storage only; certs are signed on the OSM pod
-	keyVaultKind = "keyvault"
+	tresorKind string = "tresor"
 
 	// Hashi Vault integration; OSM is pointed to an external Vault; signing of certs happens on Vault
 	vaultKind = "vault"
@@ -43,24 +38,9 @@ const (
 	rootCertOrganization = "Open Service Mesh"
 )
 
-// Functions we can call to create a Certificate Manager for each kind of supported certificate issuer
-var certManagers = map[certificateManagerKind]func(kubeClient kubernetes.Interface, kubeConfig *rest.Config, enableDebugServer bool) (certificate.Manager, debugger.CertificateManagerDebugger, error){
-	tresorKind:      getTresorOSMCertificateManager,
-	keyVaultKind:    getAzureKeyVaultOSMCertificateManager,
-	vaultKind:       getHashiVaultOSMCertificateManager,
-	certmanagerKind: getCertManagerOSMCertificateManager,
-}
+var validCertificateManagerOptions = []string{tresorKind, vaultKind, certmanagerKind}
 
-// Get a list of the supported certificate issuers
-func getPossibleCertManagers() []string {
-	var possible []string
-	for kind := range certManagers {
-		possible = append(possible, string(kind))
-	}
-	return possible
-}
-
-func getTresorOSMCertificateManager(kubeClient kubernetes.Interface, _ *rest.Config, enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
+func getTresorOSMCertificateManager(kubeClient kubernetes.Interface, enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
 	var err error
 	var rootCert certificate.Certificater
 
@@ -148,13 +128,7 @@ func getCertFromKubernetes(kubeClient kubernetes.Interface, namespace, secretNam
 	return rootCert
 }
 
-func getAzureKeyVaultOSMCertificateManager(_ kubernetes.Interface, _ *rest.Config, enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
-	// TODO(draychev): implement: https://github.com/openservicemesh/osm/issues/577
-	log.Fatal().Msg("Azure Key Vault certificate manager is not implemented")
-	return nil, nil, nil
-}
-
-func getHashiVaultOSMCertificateManager(_ kubernetes.Interface, _ *rest.Config, enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
+func getHashiVaultOSMCertificateManager(enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
 	if _, ok := map[string]interface{}{"http": nil, "https": nil}[*vaultProtocol]; !ok {
 		return nil, nil, errors.Errorf("Value %s is not a valid Hashi Vault protocol", *vaultProtocol)
 	}

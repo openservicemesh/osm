@@ -13,7 +13,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/endpoint/providers/kube"
 	"github.com/openservicemesh/osm/pkg/ingress"
-	"github.com/openservicemesh/osm/pkg/namespace"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
@@ -21,16 +21,18 @@ import (
 // NewFakeMeshCatalog creates a new struct implementing catalog.MeshCataloger interface used for testing.
 func NewFakeMeshCatalog(kubeClient kubernetes.Interface) *MeshCatalog {
 	var (
-		mockCtrl         *gomock.Controller
-		mockNsController *namespace.MockController
+		mockCtrl           *gomock.Controller
+		mockNsController   *k8s.MockNamespaceController
+		mockIngressMonitor *ingress.MockMonitor
 	)
 
 	mockCtrl = gomock.NewController(ginkgo.GinkgoT())
-	mockNsController = namespace.NewMockController(mockCtrl)
+	mockNsController = k8s.NewMockNamespaceController(mockCtrl)
+	mockIngressMonitor = ingress.NewMockMonitor(mockCtrl)
+
 	meshSpec := smi.NewFakeMeshSpecClient()
 	cache := make(map[certificate.CommonName]certificate.Certificater)
 	certManager := tresor.NewFakeCertManager(&cache, 1*time.Hour)
-	ingressMonitor := ingress.NewFakeIngressMonitor()
 	stop := make(<-chan struct{})
 	endpointProviders := []endpoint.Provider{
 		kube.NewFakeProvider(),
@@ -42,11 +44,14 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface) *MeshCatalog {
 
 	testChan := make(chan interface{})
 
+	mockIngressMonitor.EXPECT().GetIngressResources(gomock.Any()).Return(nil, nil).AnyTimes()
+	mockIngressMonitor.EXPECT().GetAnnouncementsChannel().Return(testChan).AnyTimes()
+
 	mockNsController.EXPECT().IsMonitoredNamespace(tests.BookstoreService.Namespace).Return(true).AnyTimes()
 	mockNsController.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).AnyTimes()
 	mockNsController.EXPECT().IsMonitoredNamespace(tests.BookwarehouseService.Namespace).Return(true).AnyTimes()
 	mockNsController.EXPECT().GetAnnouncementsChannel().Return(testChan).AnyTimes()
 
 	return NewMeshCatalog(mockNsController, kubeClient, meshSpec, certManager,
-		ingressMonitor, stop, cfg, endpointProviders...)
+		mockIngressMonitor, stop, cfg, endpointProviders...)
 }
