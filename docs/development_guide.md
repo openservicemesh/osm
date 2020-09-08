@@ -229,13 +229,26 @@ which tests the functionality of multiple functions together. In this particular
   - [creates a ConfigMap](https://github.com/openservicemesh/osm/blob/release-v0.2/pkg/configurator/client_test.go#L32)
   - [tests whether](https://github.com/openservicemesh/osm/blob/release-v0.2/pkg/configurator/client_test.go#L95-L96) the underlying functions compose correctly by fetching the results of the top-level function `GetMeshCIDRRanges()`
 
-
 #### Simulation / Demo
 When we want to ensure that the entire system works correctly over time and
 transitions state as expected - we run
 [the demo included in the docs](https://github.com/openservicemesh/osm/blob/main/docs/example/README.md).
 This type of test is the slowest, but also most comprehensive. This test will ensure that your changes
 work with a real Kubernetes cluster, with real SMI policy, and real functions - no mocked or fake Go objects.
+
+#### Profiling
+OSM control plane exposes an HTTP server able to serve a number of resources.
+
+For mesh visibility and debugabbility, one can refer to the endpoints provided under [pkg/debugger](https://github.com/openservicemesh/osm/tree/main/pkg/debugger) which contains a number of endpoints able to inspect and list most of the common structures used by the control plane at runtime.
+
+Additionally, OSM imports and hooks [pprof endpoints](https://golang.org/pkg/net/http/pprof/). Pprof is a golang package able to provide profiling information at runtime through HTTP protocol to a connecting client.
+
+Example usage:
+```
+scripts/port-forward-osm-debug.sh &
+go tool pprof http://localhost:9091/debug/pprof/heap
+```
+From pprof tool, it is possible to extract a large variety of profiling information, from heap and cpu profiling, to goroutine blocking, mutex profiling or execution tracing. We suggest to refer to their [original documentation](https://golang.org/pkg/net/http/pprof/) for more information.
 
 ## Helm charts
 
