@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/http/pprof"
 	"time"
 
 	"github.com/openservicemesh/osm/pkg/debugger"
@@ -44,6 +45,12 @@ func NewHTTPServer(probes []health.Probes, httpProbes []health.HTTPProbe, metric
 		"/health/alive": health.LivenessHandler(probes, httpProbes),
 		"/metrics":      metricStore.Handler(),
 		"/version":      getVersionHandler(),
+		// Pprof handlers
+		"/debug/pprof/":        http.HandlerFunc(pprof.Index),
+		"/debug/pprof/cmdline": http.HandlerFunc(pprof.Cmdline),
+		"/debug/pprof/profile": http.HandlerFunc(pprof.Profile),
+		"/debug/pprof/symbol":  http.HandlerFunc(pprof.Symbol),
+		"/debug/pprof/trace":   http.HandlerFunc(pprof.Trace),
 	}
 
 	if debugServer != nil {
