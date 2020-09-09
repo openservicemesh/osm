@@ -11,10 +11,10 @@ SSH_PORT=${SSH_PORT:-22}
 
 #clean old chain
 iptables -t nat -F
-iptables -t nat -X PROXY_REDIRECT
-iptables -t nat -X PROXY_OUTPUT
-iptables -t nat -X PROXY_IN_REDIRECT
-iptables -t nat -X PROXY_INBOUND
+#iptables -t nat -X PROXY_REDIRECT
+#iptables -t nat -X PROXY_OUTPUT
+#iptables -t nat -X PROXY_IN_REDIRECT
+#iptables -t nat -X PROXY_INBOUND
 
 # Create a new chain for redirecting outbound traffic to PROXY_PORT
 iptables -t nat -N PROXY_REDIRECT
