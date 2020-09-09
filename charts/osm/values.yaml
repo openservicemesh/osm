@@ -32,7 +32,8 @@ OpenServiceMesh:
   enablePermissiveTrafficPolicy: false
   enableBackpressureExperimental: false
   enableEgress: false
-  enableMetricsStack: true
+  enablePrometheus: true
+  enableGrafana: true
   meshName: osm
   meshCIDRRanges: 0.0.0.0/0
   useHTTPSIngress: false
