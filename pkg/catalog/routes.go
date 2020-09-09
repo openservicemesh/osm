@@ -155,9 +155,8 @@ func (mc *MeshCatalog) GetHostnamesForService(meshService service.MeshService) (
 				Name:      rootServiceName,
 			}
 			hostnames, err := mc.getServiceHostnames(rootMeshService)
-			log.Trace().Msgf("hostnames for service %s: %v", meshService, hostnames)
 			if err != nil {
-				log.Error().Err(err).Msgf("Error getting service hostnames for MeshService %s", meshService)
+				log.Error().Err(err).Msgf("Error getting service hostnames for Apex service %s", rootMeshService)
 				return "", err
 			}
 			return hostnamesTostr(hostnames), nil
@@ -177,7 +176,7 @@ func (mc *MeshCatalog) GetHostnamesForService(meshService service.MeshService) (
 
 // getServiceHostnames returns a list of hostnames corresponding to the service
 func (mc *MeshCatalog) getServiceHostnames(meshService service.MeshService) ([]string, error) {
-	svc := mc.meshSpec.GetService(meshService)
+	svc := mc.kubernetesController.GetService(meshService)
 	if svc == nil {
 		return nil, errors.Errorf("Error fetching service %q", meshService)
 	}
@@ -343,7 +342,7 @@ func getTrafficPoliciesForService(mc *MeshCatalog, routePolicies map[trafficpoli
 }
 
 func (mc *MeshCatalog) buildAllowAllTrafficPolicies(service service.MeshService) []trafficpolicy.TrafficTarget {
-	services := mc.meshSpec.ListServices()
+	services := mc.kubernetesController.ListServices()
 
 	var trafficTargets []trafficpolicy.TrafficTarget
 	for _, source := range services {

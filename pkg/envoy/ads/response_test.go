@@ -58,6 +58,14 @@ var _ = Describe("Test ADS response functions", func() {
 	It("should have created a service", func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
+
+	// Create Bookstore apex Service, since the fake catalog has a traffic split applied, needs to be
+	// able to be looked up
+	svc = tests.NewServiceFixture(tests.BookstoreApexService.Name, tests.BookstoreApexService.Namespace, nil)
+	if _, err := kubeClient.CoreV1().Services(tests.BookstoreApexService.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{}); err != nil {
+		log.Fatal().Err(err).Msgf("Error creating new Bookstire Apex service")
+	}
+
 	cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s", envoyUID, serviceAccountName, namespace))
 	proxy := envoy.NewProxy(cn, nil)
 

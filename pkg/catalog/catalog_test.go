@@ -21,9 +21,8 @@ var _ = Describe("Test catalog functions", func() {
 		It("provides the SMI Spec component via Mesh Catalog", func() {
 			chans := mc.getAnnouncementChannels()
 
-			// Why exactly 6 channels?
-			// Because - 1 for MeshSpec changes + 1 for Cert changes + 1 for Ingress + 1 for a Ticker + 1 Namespace + an endpoint provider
-			expectedNumberOfChannels := 6
+			// Currently returns len(Channels), see getAnnouncementChannels implementation for details.
+			expectedNumberOfChannels := 7
 			Expect(len(chans)).To(Equal(expectedNumberOfChannels))
 		})
 	})

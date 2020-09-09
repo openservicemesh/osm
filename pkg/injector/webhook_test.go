@@ -173,21 +173,21 @@ var _ = Describe("Testing isAnnotatedForInjection", func() {
 var _ = Describe("Testing mustInject", func() {
 	var (
 		mockCtrl         *gomock.Controller
-		mockNsController *k8s.MockNamespaceController
+		mockNsController *k8s.MockController
 		fakeClientSet    *fake.Clientset
 		wh               *webhook
 	)
 
 	mockCtrl = gomock.NewController(GinkgoT())
-	mockNsController = k8s.NewMockNamespaceController(mockCtrl)
+	mockNsController = k8s.NewMockController(mockCtrl)
 	fakeClientSet = fake.NewSimpleClientset()
 	namespace := "test"
 
 	BeforeEach(func() {
 		fakeClientSet = fake.NewSimpleClientset()
 		wh = &webhook{
-			kubeClient:          fakeClientSet,
-			namespaceController: mockNsController,
+			kubeClient: fakeClientSet,
+			Controller: mockNsController,
 		}
 	})
 	AfterEach(func() {

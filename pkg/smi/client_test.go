@@ -65,7 +65,7 @@ func bootstrapClient() (MeshSpec, *fakeKubeClientSet, error) {
 	if _, err := kubeClient.CoreV1().Namespaces().Create(context.TODO(), &testNamespace, metav1.CreateOptions{}); err != nil {
 		log.Fatal().Err(err).Msgf("Error creating Namespace %v", testNamespace)
 	}
-	<-kubernetesClient.GetAnnouncementsChannel()
+	<-kubernetesClient.GetAnnouncementsChannel(k8s.Namespaces)
 
 	meshSpec, err := newSMIClient(
 		kubeClient,
@@ -277,127 +277,6 @@ var _ = Describe("When listing TrafficTargets", func() {
 		Expect(len(targets)).To(Equal(1))
 
 		err = fakeClientSet.smiTrafficTargetClientSet.AccessV1alpha2().TrafficTargets(testNamespaceName).Delete(context.TODO(), trafficTarget.Name, metav1.DeleteOptions{})
-		Expect(err).ToNot(HaveOccurred())
-		<-meshSpec.GetAnnouncementsChannel()
-	})
-})
-
-var _ = Describe("When fetching a Service corresponding to a Meshservice", func() {
-	var (
-		meshSpec      MeshSpec
-		fakeClientSet *fakeKubeClientSet
-		err           error
-	)
-	BeforeEach(func() {
-		meshSpec, fakeClientSet, err = bootstrapClient()
-		Expect(err).ToNot(HaveOccurred())
-	})
-
-	It("should return a Service resource corresponding to the given service", func() {
-		meshSvc := service.MeshService{
-			Namespace: testNamespaceName,
-			Name:      "test-GetService",
-		}
-		svc := &corev1.Service{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      meshSvc.Name,
-				Namespace: meshSvc.Namespace,
-			},
-			Spec: corev1.ServiceSpec{
-				Ports: []corev1.ServicePort{{
-					Name:     "servicePort",
-					Protocol: corev1.ProtocolTCP,
-					Port:     tests.ServicePort,
-				}},
-			},
-		}
-
-		_, err := fakeClientSet.kubeClient.CoreV1().Services(testNamespaceName).Create(context.TODO(), svc, metav1.CreateOptions{})
-		Expect(err).ToNot(HaveOccurred())
-		<-meshSpec.GetAnnouncementsChannel()
-
-		svcIncache := meshSpec.GetService(meshSvc)
-		Expect(svcIncache).To(Equal(svc))
-
-		err = fakeClientSet.kubeClient.CoreV1().Services(testNamespaceName).Delete(context.TODO(), svc.Name, metav1.DeleteOptions{})
-		Expect(err).ToNot(HaveOccurred())
-		<-meshSpec.GetAnnouncementsChannel()
-	})
-
-	It("should return nil when the given MeshService is not found", func() {
-		meshSvc := service.MeshService{
-			Namespace: testNamespaceName,
-			Name:      "test-GetService",
-		}
-
-		svcIncache := meshSpec.GetService(meshSvc)
-		Expect(svcIncache).To(BeNil())
-	})
-})
-
-var _ = Describe("When listing Services", func() {
-	var (
-		meshSpec      MeshSpec
-		fakeClientSet *fakeKubeClientSet
-		err           error
-	)
-	BeforeEach(func() {
-		meshSpec, fakeClientSet, err = bootstrapClient()
-		Expect(err).ToNot(HaveOccurred())
-	})
-
-	It("should return an empty list when no services are found", func() {
-		services := meshSpec.ListServices()
-		Expect(len(services)).To(Equal(0))
-	})
-
-	It("should return a list of Services", func() {
-		svc1 := &corev1.Service{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-1",
-				Namespace: testNamespaceName,
-			},
-			Spec: corev1.ServiceSpec{
-				Ports: []corev1.ServicePort{{
-					Name:     "servicePort",
-					Protocol: corev1.ProtocolTCP,
-					Port:     tests.ServicePort,
-				}},
-			},
-		}
-		svc2 := &corev1.Service{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-2",
-				Namespace: testNamespaceName,
-			},
-			Spec: corev1.ServiceSpec{
-				Ports: []corev1.ServicePort{{
-					Name:     "servicePort",
-					Protocol: corev1.ProtocolTCP,
-					Port:     tests.ServicePort,
-				}},
-			},
-		}
-
-		_, err := fakeClientSet.kubeClient.CoreV1().Services(testNamespaceName).Create(context.TODO(), svc1, metav1.CreateOptions{})
-		Expect(err).ToNot(HaveOccurred())
-		<-meshSpec.GetAnnouncementsChannel()
-		_, err = fakeClientSet.kubeClient.CoreV1().Services(testNamespaceName).Create(context.TODO(), svc2, metav1.CreateOptions{})
-		Expect(err).ToNot(HaveOccurred())
-		<-meshSpec.GetAnnouncementsChannel()
-
-		services := meshSpec.ListServices()
-		Expect(len(services)).To(Equal(2))
-
-		expectedServices := []string{"test-1", "test-2"}
-		Expect(len(services)).To(Equal(len(expectedServices)))
-		Expect(services[0].Name).To(BeElementOf(expectedServices))
-		Expect(services[1].Name).To(BeElementOf(expectedServices))
-
-		err = fakeClientSet.kubeClient.CoreV1().Services(testNamespaceName).Delete(context.TODO(), svc1.Name, metav1.DeleteOptions{})
-		Expect(err).ToNot(HaveOccurred())
-		<-meshSpec.GetAnnouncementsChannel()
-		err = fakeClientSet.kubeClient.CoreV1().Services(testNamespaceName).Delete(context.TODO(), svc2.Name, metav1.DeleteOptions{})
 		Expect(err).ToNot(HaveOccurred())
 		<-meshSpec.GetAnnouncementsChannel()
 	})

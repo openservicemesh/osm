@@ -26,11 +26,11 @@ import (
 var _ = Describe("Test Kube Client Provider", func() {
 	var (
 		mockCtrl         *gomock.Controller
-		mockNsController *k8s.MockNamespaceController
+		mockNsController *k8s.MockController
 		mockConfigurator *configurator.MockConfigurator
 	)
 	mockCtrl = gomock.NewController(GinkgoT())
-	mockNsController = k8s.NewMockNamespaceController(mockCtrl)
+	mockNsController = k8s.NewMockController(mockCtrl)
 	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
 
 	fakeClientSet := fake.NewSimpleClientset()
@@ -137,11 +137,11 @@ var _ = Describe("Test Kube Client Provider", func() {
 var _ = Describe("When getting a Service associated with a ServiceAccount", func() {
 	var (
 		mockCtrl         *gomock.Controller
-		mockNsController *k8s.MockNamespaceController
+		mockNsController *k8s.MockController
 		mockConfigurator *configurator.MockConfigurator
 	)
 	mockCtrl = gomock.NewController(GinkgoT())
-	mockNsController = k8s.NewMockNamespaceController(mockCtrl)
+	mockNsController = k8s.NewMockController(mockCtrl)
 	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
 
 	var (
@@ -153,6 +153,34 @@ var _ = Describe("When getting a Service associated with a ServiceAccount", func
 	providerID := "test-provider"
 	testNamespace := "test"
 	stop := make(chan struct{})
+
+	// Configure the controller
+	listMonitoredNs := []string{
+		testNamespace,
+	}
+	mockNsController.EXPECT().ListServices().DoAndReturn(func() []*corev1.Service {
+		var services []*corev1.Service
+
+		for _, ns := range listMonitoredNs {
+			// simulate lookup on controller cache
+			svcList, _ := fakeClientSet.CoreV1().Services(ns).List(context.TODO(), metav1.ListOptions{})
+			for serviceIdx := range svcList.Items {
+				services = append(services, &svcList.Items[serviceIdx])
+			}
+		}
+
+		return services
+	}).AnyTimes()
+	mockNsController.EXPECT().GetService(gomock.Any()).DoAndReturn(func(msh service.MeshService) *v1.Service {
+		// simulate lookup on controller cache
+		vv, err := fakeClientSet.CoreV1().Services(msh.Namespace).Get(context.TODO(), msh.Name, metav1.GetOptions{})
+
+		if err != nil {
+			return nil
+		}
+
+		return vv
+	}).AnyTimes()
 
 	mockNsController.EXPECT().IsMonitoredNamespace(testNamespace).Return(true).AnyTimes()
 

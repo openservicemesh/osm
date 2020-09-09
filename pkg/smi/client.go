@@ -14,8 +14,6 @@ import (
 	smiTrafficSpecInformers "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/specs/informers/externalversions"
 	smiTrafficSplitClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/clientset/versioned"
 	smiTrafficSplitInformers "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/informers/externalversions"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
@@ -32,7 +30,7 @@ import (
 const kubernetesClientName = "MeshSpec"
 
 // NewMeshSpecClient implements mesh.MeshSpec and creates the Kubernetes client, which retrieves SMI specific CRDs.
-func NewMeshSpecClient(smiKubeConfig *rest.Config, kubeClient kubernetes.Interface, osmNamespace string, namespaceController k8s.NamespaceController, stop chan struct{}) (MeshSpec, error) {
+func NewMeshSpecClient(smiKubeConfig *rest.Config, kubeClient kubernetes.Interface, osmNamespace string, kubernetesClient k8s.Client, stop chan struct{}) (MeshSpec, error) {
 	smiTrafficSplitClientSet := smiTrafficSplitClient.NewForConfigOrDie(smiKubeConfig)
 	smiTrafficSpecClientSet := smiTrafficSpecClient.NewForConfigOrDie(smiKubeConfig)
 	smiTrafficTargetClientSet := smiAccessClient.NewForConfigOrDie(smiKubeConfig)
@@ -49,7 +47,7 @@ func NewMeshSpecClient(smiKubeConfig *rest.Config, kubeClient kubernetes.Interfa
 		smiTrafficTargetClientSet,
 		backpressureClientSet,
 		osmNamespace,
-		namespaceController,
+		kubernetesClient,
 		kubernetesClientName,
 		stop,
 	)
@@ -67,7 +65,6 @@ func (c *Client) run(stop <-chan struct{}) error {
 
 	sharedInformers := map[string]cache.SharedInformer{
 		"TrafficSplit":   c.informers.TrafficSplit,
-		"Services":       c.informers.Services,
 		"HTTPRouteGroup": c.informers.HTTPRouteGroup,
 		"TCPRoute":       c.informers.TCPRoute,
 		"TrafficTarget":  c.informers.TrafficTarget,
@@ -107,14 +104,12 @@ func (c *Client) GetAnnouncementsChannel() <-chan interface{} {
 }
 
 // newClient creates a provider based on a Kubernetes client instance.
-func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient smiTrafficSplitClient.Interface, smiTrafficSpecClient smiTrafficSpecClient.Interface, smiAccessClient smiAccessClient.Interface, backpressureClient osmPolicyClient.Interface, osmNamespace string, namespaceController k8s.NamespaceController, providerIdent string, stop chan struct{}) (*Client, error) {
-	informerFactory := informers.NewSharedInformerFactory(kubeClient, k8s.DefaultKubeEventResyncInterval)
+func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient smiTrafficSplitClient.Interface, smiTrafficSpecClient smiTrafficSpecClient.Interface, smiAccessClient smiAccessClient.Interface, backpressureClient osmPolicyClient.Interface, osmNamespace string, kubernetesClient k8s.Client, providerIdent string, stop chan struct{}) (*Client, error) {
 	smiTrafficSplitInformerFactory := smiTrafficSplitInformers.NewSharedInformerFactory(smiTrafficSplitClient, k8s.DefaultKubeEventResyncInterval)
 	smiTrafficSpecInformerFactory := smiTrafficSpecInformers.NewSharedInformerFactory(smiTrafficSpecClient, k8s.DefaultKubeEventResyncInterval)
 	smiTrafficTargetInformerFactory := smiAccessInformers.NewSharedInformerFactory(smiAccessClient, k8s.DefaultKubeEventResyncInterval)
 
 	informerCollection := InformerCollection{
-		Services:       informerFactory.Core().V1().Services().Informer(),
 		TrafficSplit:   smiTrafficSplitInformerFactory.Split().V1alpha2().TrafficSplits().Informer(),
 		HTTPRouteGroup: smiTrafficSpecInformerFactory.Specs().V1alpha3().HTTPRouteGroups().Informer(),
 		TCPRoute:       smiTrafficSpecInformerFactory.Specs().V1alpha3().TCPRoutes().Informer(),
@@ -122,7 +117,6 @@ func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient smiTraf
 	}
 
 	cacheCollection := CacheCollection{
-		Services:       informerCollection.Services.GetStore(),
 		TrafficSplit:   informerCollection.TrafficSplit.GetStore(),
 		HTTPRouteGroup: informerCollection.HTTPRouteGroup.GetStore(),
 		TCPRoute:       informerCollection.TCPRoute.GetStore(),
@@ -136,20 +130,19 @@ func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient smiTraf
 	}
 
 	client := Client{
-		providerIdent:       providerIdent,
-		informers:           &informerCollection,
-		caches:              &cacheCollection,
-		cacheSynced:         make(chan interface{}),
-		announcements:       make(chan interface{}),
-		osmNamespace:        osmNamespace,
-		namespaceController: namespaceController,
+		providerIdent:    providerIdent,
+		informers:        &informerCollection,
+		caches:           &cacheCollection,
+		cacheSynced:      make(chan interface{}),
+		announcements:    make(chan interface{}),
+		osmNamespace:     osmNamespace,
+		kubernetesClient: kubernetesClient,
 	}
 
 	shouldObserve := func(obj interface{}) bool {
 		ns := reflect.ValueOf(obj).Elem().FieldByName("ObjectMeta").FieldByName("Namespace").String()
-		return namespaceController.IsMonitoredNamespace(ns)
+		return kubernetesClient.IsMonitoredNamespace(ns)
 	}
-	informerCollection.Services.AddEventHandler(k8s.GetKubernetesEventHandlers("Services", "SMI", client.announcements, shouldObserve))
 	informerCollection.TrafficSplit.AddEventHandler(k8s.GetKubernetesEventHandlers("TrafficSplit", "SMI", client.announcements, shouldObserve))
 	informerCollection.HTTPRouteGroup.AddEventHandler(k8s.GetKubernetesEventHandlers("HTTPRouteGroup", "SMI", client.announcements, shouldObserve))
 	informerCollection.TCPRoute.AddEventHandler(k8s.GetKubernetesEventHandlers("TCPRoute", "SMI", client.announcements, shouldObserve))
@@ -173,7 +166,7 @@ func (c *Client) ListTrafficSplits() []*smiSplit.TrafficSplit {
 	for _, splitIface := range c.caches.TrafficSplit.List() {
 		trafficSplit := splitIface.(*smiSplit.TrafficSplit)
 
-		if !c.namespaceController.IsMonitoredNamespace(trafficSplit.Namespace) {
+		if !c.kubernetesClient.IsMonitoredNamespace(trafficSplit.Namespace) {
 			continue
 		}
 		trafficSplits = append(trafficSplits, trafficSplit)
@@ -187,7 +180,7 @@ func (c *Client) ListHTTPTrafficSpecs() []*smiSpecs.HTTPRouteGroup {
 	for _, specIface := range c.caches.HTTPRouteGroup.List() {
 		routeGroup := specIface.(*smiSpecs.HTTPRouteGroup)
 
-		if !c.namespaceController.IsMonitoredNamespace(routeGroup.Namespace) {
+		if !c.kubernetesClient.IsMonitoredNamespace(routeGroup.Namespace) {
 			continue
 		}
 		httpTrafficSpec = append(httpTrafficSpec, routeGroup)
@@ -201,7 +194,7 @@ func (c *Client) ListTCPTrafficSpecs() []*smiSpecs.TCPRoute {
 	for _, specIface := range c.caches.TCPRoute.List() {
 		tcpRoute := specIface.(*smiSpecs.TCPRoute)
 
-		if !c.namespaceController.IsMonitoredNamespace(tcpRoute.Namespace) {
+		if !c.kubernetesClient.IsMonitoredNamespace(tcpRoute.Namespace) {
 			continue
 		}
 		tcpRouteSpec = append(tcpRouteSpec, tcpRoute)
@@ -215,7 +208,7 @@ func (c *Client) ListTrafficTargets() []*smiAccess.TrafficTarget {
 	for _, targetIface := range c.caches.TrafficTarget.List() {
 		trafficTarget := targetIface.(*smiAccess.TrafficTarget)
 
-		if !c.namespaceController.IsMonitoredNamespace(trafficTarget.Namespace) {
+		if !c.kubernetesClient.IsMonitoredNamespace(trafficTarget.Namespace) {
 			continue
 		}
 		trafficTargets = append(trafficTargets, trafficTarget)
@@ -233,7 +226,7 @@ func (c *Client) GetBackpressurePolicy(svc service.MeshService) *osmPolicy.Backp
 	for _, iface := range c.caches.Backpressure.List() {
 		backpressure := iface.(*osmPolicy.Backpressure)
 
-		if !c.namespaceController.IsMonitoredNamespace(backpressure.Namespace) {
+		if !c.kubernetesClient.IsMonitoredNamespace(backpressure.Namespace) {
 			continue
 		}
 
@@ -279,7 +272,7 @@ func (c *Client) ListServiceAccounts() []service.K8sServiceAccount {
 
 		for _, sources := range trafficTarget.Spec.Sources {
 			// Only monitor sources in namespaces OSM is observing
-			if !c.namespaceController.IsMonitoredNamespace(sources.Namespace) {
+			if !c.kubernetesClient.IsMonitoredNamespace(sources.Namespace) {
 				// Doesn't belong to namespaces we are observing
 				continue
 			}
@@ -291,7 +284,7 @@ func (c *Client) ListServiceAccounts() []service.K8sServiceAccount {
 		}
 
 		// Only monitor destination in namespaces OSM is observing
-		if !c.namespaceController.IsMonitoredNamespace(trafficTarget.Spec.Destination.Namespace) {
+		if !c.kubernetesClient.IsMonitoredNamespace(trafficTarget.Spec.Destination.Namespace) {
 			// Doesn't belong to namespaces we are observing
 			continue
 		}
@@ -302,30 +295,4 @@ func (c *Client) ListServiceAccounts() []service.K8sServiceAccount {
 		serviceAccounts = append(serviceAccounts, namespacedServiceAccount)
 	}
 	return serviceAccounts
-}
-
-// GetService retrieves the Kubernetes Services resource for the given MeshService
-func (c *Client) GetService(svc service.MeshService) *corev1.Service {
-	// client-go cache uses <namespace>/<name> as key
-	svcIf, exists, err := c.caches.Services.GetByKey(svc.String())
-	if exists && err == nil {
-		svc := svcIf.(*corev1.Service)
-		return svc
-	}
-	return nil
-}
-
-// ListServices returns a list of services that are part of monitored namespaces
-func (c Client) ListServices() []*corev1.Service {
-	var services []*corev1.Service
-
-	for _, serviceInterface := range c.caches.Services.List() {
-		svc := serviceInterface.(*corev1.Service)
-
-		if !c.namespaceController.IsMonitoredNamespace(svc.Namespace) {
-			continue
-		}
-		services = append(services, svc)
-	}
-	return services
 }

@@ -18,14 +18,14 @@ var log = logger.New("sidecar-injector")
 
 // webhook is the type used to represent the webhook for sidecar injection
 type webhook struct {
-	config              Config
-	kubeClient          kubernetes.Interface
-	certManager         certificate.Manager
-	meshCatalog         catalog.MeshCataloger
-	namespaceController k8s.NamespaceController
-	osmNamespace        string
-	cert                certificate.Certificater
-	configurator        configurator.Configurator
+	config       Config
+	kubeClient   kubernetes.Interface
+	certManager  certificate.Manager
+	meshCatalog  catalog.MeshCataloger
+	Controller   k8s.Controller
+	osmNamespace string
+	cert         certificate.Certificater
+	configurator configurator.Configurator
 }
 
 // Config is the type used to represent the config options for the sidecar injection

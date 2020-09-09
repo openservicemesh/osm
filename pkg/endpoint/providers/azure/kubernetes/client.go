@@ -21,10 +21,10 @@ const (
 )
 
 // NewClient creates the Kubernetes client, which retrieves the AzureResource CRD and Services resources.
-func NewClient(kubeClient kubernetes.Interface, azureResourceKubeConfig *rest.Config, namespaceController k8s.NamespaceController, stop chan struct{}, cfg configurator.Configurator) (*Client, error) {
+func NewClient(kubeClient kubernetes.Interface, azureResourceKubeConfig *rest.Config, Controller k8s.Controller, stop chan struct{}, cfg configurator.Configurator) (*Client, error) {
 	azureResourceClient := osmClient.NewForConfigOrDie(azureResourceKubeConfig)
 
-	k8sClient := newClient(kubeClient, azureResourceClient, namespaceController)
+	k8sClient := newClient(kubeClient, azureResourceClient, Controller)
 	if err := k8sClient.Run(stop); err != nil {
 		return nil, errors.Errorf("Failed to start %s client: %+v", kubernetesClientName, err)
 	}
@@ -32,7 +32,7 @@ func NewClient(kubeClient kubernetes.Interface, azureResourceKubeConfig *rest.Co
 }
 
 // newClient creates a provider based on a Kubernetes client instance.
-func newClient(kubeClient kubernetes.Interface, azureResourceClient *osmClient.Clientset, namespaceController k8s.NamespaceController) *Client {
+func newClient(kubeClient kubernetes.Interface, azureResourceClient *osmClient.Clientset, kubeController k8s.Controller) *Client {
 	azureResourceFactory := osmInformers.NewSharedInformerFactory(azureResourceClient, k8s.DefaultKubeEventResyncInterval)
 	informerCollection := InformerCollection{
 		AzureResource: azureResourceFactory.Osm().V1().AzureResources().Informer(),
@@ -43,18 +43,18 @@ func newClient(kubeClient kubernetes.Interface, azureResourceClient *osmClient.C
 	}
 
 	client := Client{
-		providerIdent:       kubernetesClientName,
-		kubeClient:          kubeClient,
-		informers:           &informerCollection,
-		caches:              &cacheCollection,
-		cacheSynced:         make(chan interface{}),
-		announcements:       make(chan interface{}),
-		namespaceController: namespaceController,
+		providerIdent:  kubernetesClientName,
+		kubeClient:     kubeClient,
+		informers:      &informerCollection,
+		caches:         &cacheCollection,
+		cacheSynced:    make(chan interface{}),
+		announcements:  make(chan interface{}),
+		kubeController: kubeController,
 	}
 
 	shouldObserve := func(obj interface{}) bool {
 		ns := reflect.ValueOf(obj).Elem().FieldByName("ObjectMeta").FieldByName("Namespace").String()
-		return namespaceController.IsMonitoredNamespace(ns)
+		return kubeController.IsMonitoredNamespace(ns)
 	}
 	informerCollection.AzureResource.AddEventHandler(k8s.GetKubernetesEventHandlers("AzureResource", "Azure", client.announcements, shouldObserve))
 
@@ -88,7 +88,7 @@ func (c *Client) ListAzureResources() []*osm.AzureResource {
 	for _, azureResourceInterface := range c.caches.AzureResource.List() {
 		azureResource := azureResourceInterface.(*osm.AzureResource)
 
-		if !c.namespaceController.IsMonitoredNamespace(azureResource.Namespace) {
+		if !c.kubeController.IsMonitoredNamespace(azureResource.Namespace) {
 			// Doesn't belong to namespaces we are observing
 			continue
 		}
