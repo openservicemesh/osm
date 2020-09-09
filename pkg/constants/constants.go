@@ -58,7 +58,7 @@ const (
 	DefaultTracingPort = uint32(9411)
 
 	// DefaultEnvoyLogLevel is the default envoy log level if not defined in the osm configmap
-	DefaultEnvoyLogLevel = "debug"
+	DefaultEnvoyLogLevel = "error"
 
 	// EnvoyPrometheusInboundListenerPort is Envoy's inbound listener port number for prometheus
 	EnvoyPrometheusInboundListenerPort = 15010

@@ -13,14 +13,14 @@ import (
 
 var _ = Describe("Test Envoy configuration creation", func() {
 	testCIDRRanges := "10.2.0.0/16 10.0.0.0/16"
-	testDebugEnvoyLogLevel := "debug"
+	testErrorEnvoyLogLevel := "error"
 	defaultConfigMap := map[string]string{
 		permissiveTrafficPolicyModeKey: "false",
 		egressKey:                      "true",
 		meshCIDRRangesKey:              testCIDRRanges,
 		prometheusScrapingKey:          "true",
 		tracingEnableKey:               "true",
-		envoyLogLevel:                  testDebugEnvoyLogLevel,
+		envoyLogLevel:                  testErrorEnvoyLogLevel,
 	}
 
 	Context("create OSM configurator client", func() {
@@ -61,7 +61,7 @@ var _ = Describe("Test Envoy configuration creation", func() {
 				PrometheusScraping:          true,
 				TracingEnable:               true,
 				MeshCIDRRanges:              testCIDRRanges,
-				EnvoyLogLevel:               testDebugEnvoyLogLevel,
+				EnvoyLogLevel:               testErrorEnvoyLogLevel,
 			}
 			expectedConfigBytes, err := marshalConfigToJSON(expectedConfig)
 			Expect(err).ToNot(HaveOccurred())
@@ -315,11 +315,11 @@ var _ = Describe("Test Envoy configuration creation", func() {
 		osmNamespace := "-test-osm-namespace-"
 		osmConfigMapName := "-test-osm-config-map-"
 		testInfoEnvoyLogLevel := "info"
-		testErrorEnvoyLogLevel := "error"
+		testDebugEnvoyLogLevel := "debug"
 		cfg := NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
 
-		It("correctly identifies that the Envoy log level is debug", func() {
-			Expect(cfg.GetEnvoyLogLevel()).To(Equal(testDebugEnvoyLogLevel))
+		It("correctly identifies that the Envoy log level is error", func() {
+			Expect(cfg.GetEnvoyLogLevel()).To(Equal(testErrorEnvoyLogLevel))
 			configMap := v1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: osmNamespace,
@@ -337,7 +337,7 @@ var _ = Describe("Test Envoy configuration creation", func() {
 			Expect(cfg.GetOSMNamespace()).To(Equal(osmNamespace))
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(cfg.GetEnvoyLogLevel()).To(Equal(testDebugEnvoyLogLevel))
+			Expect(cfg.GetEnvoyLogLevel()).To(Equal(testErrorEnvoyLogLevel))
 		})
 
 		It("correctly identifies that Envoy log level is info", func() {
@@ -362,8 +362,8 @@ var _ = Describe("Test Envoy configuration creation", func() {
 			Expect(cfg.GetEnvoyLogLevel()).To(Equal(testInfoEnvoyLogLevel))
 		})
 
-		It("correctly identifies that Envoy log level is error", func() {
-			defaultConfigMap[envoyLogLevel] = testErrorEnvoyLogLevel
+		It("correctly identifies that Envoy log level is debug", func() {
+			defaultConfigMap[envoyLogLevel] = testDebugEnvoyLogLevel
 			configMap := v1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: osmNamespace,
@@ -381,7 +381,7 @@ var _ = Describe("Test Envoy configuration creation", func() {
 			Expect(cfg.GetOSMNamespace()).To(Equal(osmNamespace))
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(cfg.GetEnvoyLogLevel()).To(Equal(testErrorEnvoyLogLevel))
+			Expect(cfg.GetEnvoyLogLevel()).To(Equal(testDebugEnvoyLogLevel))
 		})
 	})
 })

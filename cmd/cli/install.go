@@ -81,6 +81,7 @@ type installCmd struct {
 	vaultProtocol                 string
 	vaultToken                    string
 	vaultRole                     string
+	envoyLogLevel                 string
 	serviceCertValidityMinutes    int
 	enableDebugServer             bool
 	enableEgress                  bool
@@ -152,6 +153,7 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.BoolVar(&inst.enableGrafana, "enable-grafana", false, "Enable Grafana installation and deployment")
 	f.StringVar(&inst.meshName, "mesh-name", defaultMeshName, "name for the new control plane instance")
 	f.BoolVar(&inst.deployJaeger, "deploy-jaeger", true, "Deploy Jaeger in the namespace of the OSM controller")
+	f.StringVar(&inst.envoyLogLevel, "envoy-log-level", "error", "Envoy log level is used to specify the level of logs collected from envoy")
 
 	return cmd
 }
@@ -218,6 +220,7 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 		fmt.Sprintf("OpenServiceMesh.enableEgress=%t", i.enableEgress),
 		fmt.Sprintf("OpenServiceMesh.meshCIDRRanges=%s", strings.Join(i.meshCIDRRanges, " ")),
 		fmt.Sprintf("OpenServiceMesh.deployJaeger=%t", i.deployJaeger),
+		fmt.Sprintf("OpenServiceMesh.envoyLogLevel=%s", i.envoyLogLevel),
 	}
 
 	if i.containerRegistrySecret != "" {

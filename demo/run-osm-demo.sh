@@ -31,6 +31,7 @@ ENABLE_EGRESS="${ENABLE_EGRESS:-false}"
 ENABLE_GRAFANA="${ENABLE_GRAFANA:-false}"
 MESH_CIDR=$(./scripts/get_mesh_cidr.sh)
 DEPLOY_WITH_SAME_SA="${DEPLOY_WITH_SAME_SA:-false}"
+ENVOY_LOG_LEVEL="${ENVOY_LOG_LEVEL:-debug}"
 
 # For any additional installation arguments. Used heavily in CI.
 optionalInstallArgs=$*
@@ -115,6 +116,7 @@ if [ "$CERT_MANAGER" = "vault" ]; then
       --enable-egress="$ENABLE_EGRESS" \
       --enable-grafana="$ENABLE_GRAFANA" \
       --mesh-cidr "$MESH_CIDR" \
+      --envoy-log-level "$ENVOY_LOG_LEVEL" \
       $optionalInstallArgs
 else
   # shellcheck disable=SC2086
@@ -130,6 +132,7 @@ else
       --enable-egress="$ENABLE_EGRESS" \
       --enable-grafana="$ENABLE_GRAFANA" \
       --mesh-cidr "$MESH_CIDR" \
+      --envoy-log-level "$ENVOY_LOG_LEVEL" \
       $optionalInstallArgs
 fi
 
