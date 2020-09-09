@@ -20,6 +20,8 @@ iptables -t nat -F
 iptables -t nat -N PROXY_REDIRECT
 
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "22" -j ACCEPT # ssh port
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "49" -j ACCEPT # tacacs
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "389" -j ACCEPT # radius port
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "587" -j ACCEPT # email port
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "2579" -j ACCEPT # kine
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "2500" -j ACCEPT # osm-rest
@@ -41,6 +43,7 @@ iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9085" -j ACCEPT # filed
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9097" -j ACCEPT # endpointd
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9122" -j ACCEPT # metrics
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "10000" -j ACCEPT # radiusconfd
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "10080" -j ACCEPT # byod
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "32443" -j ACCEPT # sslport/apiserver
 
 
@@ -65,7 +68,9 @@ iptables -t nat -A PROXY_INBOUND -p tcp --dport "${SSH_PORT}" -j RETURN
 # Skip inbound stats query redirection
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "${PROXY_STATS_PORT}" -j RETURN
 
+iptables -t nat -A PROXY_INBOUND -p tcp --dport "49" -j RETURN  # tacacs
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "587" -j RETURN  # email
+iptables -t nat -A PROXY_INBOUND -p tcp --dport "389" -j RETURN  # radius
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "2579" -j RETURN  # kine
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "2500" -j RETURN  # osm-rest
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "5000" -j RETURN  # devicedb
@@ -86,6 +91,7 @@ iptables -t nat -A PROXY_INBOUND -p tcp --dport "9085" -j RETURN  # filed
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "9097" -j RETURN  # endpointd
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "9122" -j RETURN  # metricsd
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "10000" -j RETURN # radiusconfd
+iptables -t nat -A PROXY_INBOUND -p tcp --dport "10080" -j RETURN # byod
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "32443" -j RETURN # sslpoort/apiserver
 
 # Redirect remaining inbound traffic to PROXY_INBOUND_PORT
