@@ -9,12 +9,21 @@ PROXY_INBOUND_PORT=${PROXY_INBOUND_PORT:-15003}
 PROXY_UID=${PROXY_UID:-1337}
 SSH_PORT=${SSH_PORT:-22}
 
+#clean old chain
+iptables -t nat -F
+iptables -t nat -X PROXY_REDIRECT
+iptables -t nat -X PROXY_OUTPUT
+iptables -t nat -X PROXY_IN_REDIRECT
+iptables -t nat -X PROXY_INBOUND
+
 # Create a new chain for redirecting outbound traffic to PROXY_PORT
 iptables -t nat -N PROXY_REDIRECT
 
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "22" -j ACCEPT # ssh port
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "587" -j ACCEPT # email port
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "2579" -j ACCEPT # kine
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "2500" -j ACCEPT # osm-rest
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "5000" -j ACCEPT # devicedb
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "5432" -j ACCEPT # postgres
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "5556" -j ACCEPT # wsdex
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "5557" -j ACCEPT # wsdex
@@ -33,6 +42,7 @@ iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9097" -j ACCEPT # endpointd
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9122" -j ACCEPT # metrics
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "10000" -j ACCEPT # radiusconfd
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "32443" -j ACCEPT # sslport/apiserver
+
 
 
 iptables -t nat -A PROXY_REDIRECT -p tcp -j REDIRECT --to-port "${PROXY_PORT}"
@@ -58,6 +68,7 @@ iptables -t nat -A PROXY_INBOUND -p tcp --dport "${PROXY_STATS_PORT}" -j RETURN
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "587" -j RETURN  # email
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "2579" -j RETURN  # kine
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "2500" -j RETURN  # osm-rest
+iptables -t nat -A PROXY_INBOUND -p tcp --dport "5000" -j RETURN  # devicedb
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "5432" -j RETURN  # postgres
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "5556" -j RETURN  # wsdex
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "5557" -j RETURN  # wsdex
@@ -94,7 +105,7 @@ iptables -t nat -A PROXY_OUTPUT -m owner --uid-owner "${PROXY_UID}" -j RETURN
 
 # Skip localhost traffic
 iptables -t nat -A PROXY_OUTPUT -d 127.0.0.1/32 -j RETURN
-iptables -t nat -A PROXY_OUTPUT \! -d 10.84.0.0/15 -j RETURN # allow non-k8s traffic
+#iptables -t nat -A PROXY_OUTPUT \! -d 10.84.0.0/15 -j RETURN # allow non-k8s traffic
 
 # Redirect remaining outbound traffic to Envoy
 iptables -t nat -A PROXY_OUTPUT -j PROXY_REDIRECT
