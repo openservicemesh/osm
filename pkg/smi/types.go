@@ -43,7 +43,7 @@ type Client struct {
 	informers      *InformerCollection
 	announcements  chan interface{}
 	osmNamespace   string
-	kubeController k8s.KubeController
+	kubeController k8s.Controller
 }
 
 // MeshSpec is an interface declaring functions, which provide the specs for a service mesh declared with SMI.

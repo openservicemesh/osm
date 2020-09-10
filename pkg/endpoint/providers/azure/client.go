@@ -12,7 +12,7 @@ import (
 )
 
 // NewProvider creates an Azure Client
-func NewProvider(subscriptionID string, azureAuthFile string, stop chan struct{}, kubeController k8s.KubeController, azureResourceClient ResourceClient, providerIdent string) (Client, error) {
+func NewProvider(subscriptionID string, azureAuthFile string, stop chan struct{}, kubeController k8s.Controller, azureResourceClient ResourceClient, providerIdent string) (Client, error) {
 	var authorizer autorest.Authorizer
 	var err error
 	var az Client

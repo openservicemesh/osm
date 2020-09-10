@@ -21,7 +21,7 @@ const (
 )
 
 // NewClient creates the Kubernetes client, which retrieves the AzureResource CRD and Services resources.
-func NewClient(kubeClient kubernetes.Interface, azureResourceKubeConfig *rest.Config, kubeController k8s.KubeController, stop chan struct{}, cfg configurator.Configurator) (*Client, error) {
+func NewClient(kubeClient kubernetes.Interface, azureResourceKubeConfig *rest.Config, kubeController k8s.Controller, stop chan struct{}, cfg configurator.Configurator) (*Client, error) {
 	azureResourceClient := osmClient.NewForConfigOrDie(azureResourceKubeConfig)
 
 	k8sClient := newClient(kubeClient, azureResourceClient, kubeController)
@@ -32,7 +32,7 @@ func NewClient(kubeClient kubernetes.Interface, azureResourceKubeConfig *rest.Co
 }
 
 // newClient creates a provider based on a Kubernetes client instance.
-func newClient(kubeClient kubernetes.Interface, azureResourceClient *osmClient.Clientset, kubeController k8s.KubeController) *Client {
+func newClient(kubeClient kubernetes.Interface, azureResourceClient *osmClient.Clientset, kubeController k8s.Controller) *Client {
 	azureResourceFactory := osmInformers.NewSharedInformerFactory(azureResourceClient, k8s.DefaultKubeEventResyncInterval)
 	informerCollection := InformerCollection{
 		AzureResource: azureResourceFactory.Osm().V1().AzureResources().Informer(),

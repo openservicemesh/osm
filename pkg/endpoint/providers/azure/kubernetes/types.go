@@ -30,5 +30,5 @@ type Client struct {
 	informers      *InformerCollection
 	providerIdent  string
 	announcements  chan interface{}
-	kubeController k8s.KubeController
+	kubeController k8s.Controller
 }

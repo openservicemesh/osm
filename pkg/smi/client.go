@@ -30,7 +30,7 @@ import (
 const kubernetesClientName = "MeshSpec"
 
 // NewMeshSpecClient implements mesh.MeshSpec and creates the Kubernetes client, which retrieves SMI specific CRDs.
-func NewMeshSpecClient(smiKubeConfig *rest.Config, kubeClient kubernetes.Interface, osmNamespace string, kubeController k8s.KubeController, stop chan struct{}) (MeshSpec, error) {
+func NewMeshSpecClient(smiKubeConfig *rest.Config, kubeClient kubernetes.Interface, osmNamespace string, kubeController k8s.Controller, stop chan struct{}) (MeshSpec, error) {
 	smiTrafficSplitClientSet := smiTrafficSplitClient.NewForConfigOrDie(smiKubeConfig)
 	smiTrafficSpecClientSet := smiTrafficSpecClient.NewForConfigOrDie(smiKubeConfig)
 	smiTrafficTargetClientSet := smiAccessClient.NewForConfigOrDie(smiKubeConfig)
@@ -104,7 +104,7 @@ func (c *Client) GetAnnouncementsChannel() <-chan interface{} {
 }
 
 // newClient creates a provider based on a Kubernetes client instance.
-func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient smiTrafficSplitClient.Interface, smiTrafficSpecClient smiTrafficSpecClient.Interface, smiAccessClient smiAccessClient.Interface, backpressureClient osmPolicyClient.Interface, osmNamespace string, kubeController k8s.KubeController, providerIdent string, stop chan struct{}) (*Client, error) {
+func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient smiTrafficSplitClient.Interface, smiTrafficSpecClient smiTrafficSpecClient.Interface, smiAccessClient smiAccessClient.Interface, backpressureClient osmPolicyClient.Interface, osmNamespace string, kubeController k8s.Controller, providerIdent string, stop chan struct{}) (*Client, error) {
 	smiTrafficSplitInformerFactory := smiTrafficSplitInformers.NewSharedInformerFactory(smiTrafficSplitClient, k8s.DefaultKubeEventResyncInterval)
 	smiTrafficSpecInformerFactory := smiTrafficSpecInformers.NewSharedInformerFactory(smiTrafficSpecClient, k8s.DefaultKubeEventResyncInterval)
 	smiTrafficTargetInformerFactory := smiAccessInformers.NewSharedInformerFactory(smiAccessClient, k8s.DefaultKubeEventResyncInterval)

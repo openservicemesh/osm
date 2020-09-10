@@ -87,7 +87,7 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 
 	Context("service controller", func() {
 		var kubeClient *testclient.Clientset
-		var kubeController KubeController
+		var kubeController Controller
 
 		BeforeEach(func() {
 			kubeClient = testclient.NewSimpleClientset()

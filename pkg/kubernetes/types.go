@@ -65,8 +65,8 @@ type Client struct {
 	announcements map[InformerKey]chan interface{}
 }
 
-// KubeController is the controller interface for K8s services
-type KubeController interface {
+// Controller is the controller interface for K8s services
+type Controller interface {
 	// ListServices returns a list of all (monitored-namespace filtered) services in the mesh
 	ListServices() []*corev1.Service
 

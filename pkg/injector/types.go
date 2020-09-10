@@ -22,7 +22,7 @@ type webhook struct {
 	kubeClient     kubernetes.Interface
 	certManager    certificate.Manager
 	meshCatalog    catalog.MeshCataloger
-	kubeController k8s.KubeController
+	kubeController k8s.Controller
 	osmNamespace   string
 	cert           certificate.Certificater
 	configurator   configurator.Configurator

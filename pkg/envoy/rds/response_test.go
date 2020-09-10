@@ -149,11 +149,11 @@ var _ = Describe("AggregateRoutesByDomain", func() {
 var _ = Describe("RDS Response", func() {
 	var (
 		mockCtrl           *gomock.Controller
-		mockKubeController *k8s.MockKubeController
+		mockKubeController *k8s.MockController
 		mockIngressMonitor *ingress.MockMonitor
 	)
 	mockCtrl = gomock.NewController(GinkgoT())
-	mockKubeController = k8s.NewMockKubeController(mockCtrl)
+	mockKubeController = k8s.NewMockController(mockCtrl)
 	mockIngressMonitor = ingress.NewMockMonitor(mockCtrl)
 
 	endpointProviders := []endpoint.Provider{kube.NewFakeProvider()}

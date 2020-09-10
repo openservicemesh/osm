@@ -173,13 +173,13 @@ var _ = Describe("Testing isAnnotatedForInjection", func() {
 var _ = Describe("Testing mustInject", func() {
 	var (
 		mockCtrl           *gomock.Controller
-		mockKubeController *k8s.MockKubeController
+		mockKubeController *k8s.MockController
 		fakeClientSet      *fake.Clientset
 		wh                 *webhook
 	)
 
 	mockCtrl = gomock.NewController(GinkgoT())
-	mockKubeController = k8s.NewMockKubeController(mockCtrl)
+	mockKubeController = k8s.NewMockController(mockCtrl)
 	fakeClientSet = fake.NewSimpleClientset()
 	namespace := "test"
 

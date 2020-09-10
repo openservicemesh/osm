@@ -21,7 +21,7 @@ import (
 )
 
 // NewProvider implements mesh.EndpointsProvider, which creates a new Kubernetes cluster/compute provider.
-func NewProvider(kubeClient kubernetes.Interface, kubeController k8s.KubeController, stop chan struct{}, providerIdent string, cfg configurator.Configurator) (endpoint.Provider, error) {
+func NewProvider(kubeClient kubernetes.Interface, kubeController k8s.Controller, stop chan struct{}, providerIdent string, cfg configurator.Configurator) (endpoint.Provider, error) {
 	informerFactory := informers.NewSharedInformerFactory(kubeClient, k8s.DefaultKubeEventResyncInterval)
 
 	informerCollection := InformerCollection{
@@ -208,19 +208,16 @@ func (c *Client) run(stop <-chan struct{}) error {
 
 // getServicesByLabels gets Kubernetes services whose selectors match the given labels
 func (c *Client) getServicesByLabels(matchLabels map[string]string, namespace string) ([]corev1.Service, error) {
-	var namespacedServiceList []*corev1.Service
 	var finalList []corev1.Service
-
 	serviceList := c.kubeController.ListServices()
-	// TODO: #1684 Introduce APIs to dynamically allow applying selectors, instead of callers implementing
-	// filtering themselves
-	for _, svc := range serviceList {
-		if svc.Namespace == namespace {
-			namespacedServiceList = append(namespacedServiceList, svc)
-		}
-	}
 
-	for _, svc := range namespacedServiceList {
+	for _, svc := range serviceList {
+		// TODO: #1684 Introduce APIs to dynamically allow applying selectors, instead of callers implementing
+		// filtering themselves
+		if svc.Namespace != namespace {
+			continue
+		}
+
 		svcRawSelector := svc.Spec.Selector
 		selector := labels.Set(svcRawSelector).AsSelector()
 		if selector.Matches(labels.Set(matchLabels)) {

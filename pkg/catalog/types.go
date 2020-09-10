@@ -52,7 +52,7 @@ type MeshCatalog struct {
 	// This is the kubernetes client that operates async caches to avoid issuing synchronous
 	// calls through kubeClient and instead relies on background cache synchronization and local
 	// lookups
-	kubeController k8s.KubeController
+	kubeController k8s.Controller
 }
 
 // MeshCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.

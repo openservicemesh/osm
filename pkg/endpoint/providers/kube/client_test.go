@@ -26,11 +26,11 @@ import (
 var _ = Describe("Test Kube Client Provider", func() {
 	var (
 		mockCtrl           *gomock.Controller
-		mockKubeController *k8s.MockKubeController
+		mockKubeController *k8s.MockController
 		mockConfigurator   *configurator.MockConfigurator
 	)
 	mockCtrl = gomock.NewController(GinkgoT())
-	mockKubeController = k8s.NewMockKubeController(mockCtrl)
+	mockKubeController = k8s.NewMockController(mockCtrl)
 	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
 
 	fakeClientSet := fake.NewSimpleClientset()
@@ -137,11 +137,11 @@ var _ = Describe("Test Kube Client Provider", func() {
 var _ = Describe("When getting a Service associated with a ServiceAccount", func() {
 	var (
 		mockCtrl           *gomock.Controller
-		mockKubeController *k8s.MockKubeController
+		mockKubeController *k8s.MockController
 		mockConfigurator   *configurator.MockConfigurator
 	)
 	mockCtrl = gomock.NewController(GinkgoT())
-	mockKubeController = k8s.NewMockKubeController(mockCtrl)
+	mockKubeController = k8s.NewMockController(mockCtrl)
 	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
 
 	var (

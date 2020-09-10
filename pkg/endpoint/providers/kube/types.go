@@ -32,5 +32,5 @@ type Client struct {
 	kubeClient     kubernetes.Interface
 	informers      *InformerCollection
 	announcements  chan interface{}
-	kubeController k8s.KubeController
+	kubeController k8s.Controller
 }

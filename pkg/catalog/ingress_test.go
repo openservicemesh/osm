@@ -44,12 +44,12 @@ var (
 func newFakeMeshCatalog() *MeshCatalog {
 	var (
 		mockCtrl           *gomock.Controller
-		mockKubeController *k8s.MockKubeController
+		mockKubeController *k8s.MockController
 		mockIngressMonitor *ingress.MockMonitor
 	)
 
 	mockCtrl = gomock.NewController(GinkgoT())
-	mockKubeController = k8s.NewMockKubeController(mockCtrl)
+	mockKubeController = k8s.NewMockController(mockCtrl)
 	mockIngressMonitor = ingress.NewMockMonitor(mockCtrl)
 
 	meshSpec := smi.NewFakeMeshSpecClient()
