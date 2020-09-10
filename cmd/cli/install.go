@@ -302,6 +302,7 @@ func (i *installCmd) validateOptions() error {
 }
 
 func isValidEnvoyLogLevel(envoyLogLevel string) error {
+	// allowedLogLevels referenced from : https://github.com/envoyproxy/envoy/blob/release/v1.15/test/server/options_impl_test.cc#L373
 	allowedLogLevels := []string{"trace", "debug", "info", "warning", "warn", "error", "critical", "off"}
 	for _, logLevel := range allowedLogLevels {
 		if strings.EqualFold(envoyLogLevel, logLevel) {
