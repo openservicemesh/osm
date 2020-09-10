@@ -12,6 +12,7 @@ import (
 	"syscall"
 
 	"github.com/pkg/browser"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"helm.sh/helm/v3/pkg/action"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -45,6 +46,7 @@ type dashboardCmd struct {
 	remotePort  uint16
 	openBrowser bool
 	sigintChan  chan os.Signal // Allows interacting with the command from outside
+	clientSet   kubernetes.Interface
 }
 
 func newDashboardCmd(config *action.Configuration, out io.Writer) *cobra.Command {
@@ -58,6 +60,16 @@ func newDashboardCmd(config *action.Configuration, out io.Writer) *cobra.Command
 		Short: "open grafana dashboard through ssh redirection",
 		Long:  openGrafanaDashboardDesc,
 		RunE: func(_ *cobra.Command, args []string) error {
+			kubeconfig, err := settings.RESTClientGetter().ToRESTConfig()
+			if err != nil {
+				return errors.Errorf("Error fetching kubeconfig")
+			}
+
+			clientset, err := kubernetes.NewForConfig(kubeconfig)
+			if err != nil {
+				return errors.Errorf("Could not access Kubernetes cluster. Check kubeconfig")
+			}
+			dash.clientSet = clientset
 			return dash.run()
 		},
 	}
@@ -75,6 +87,8 @@ func createDialer(conf *rest.Config, v1ClientSet v1.CoreV1Interface, podName str
 		panic(err)
 	}
 
+	fmt.Println(v1ClientSet.RESTClient())
+	fmt.Println(v1ClientSet.RESTClient().Post())
 	serverURL := v1ClientSet.RESTClient().Post().
 		Resource("pods").
 		Namespace(settings.Namespace()).
@@ -88,16 +102,23 @@ func (d *dashboardCmd) run() error {
 	var err error
 	log.Printf("[+] Starting Dashboard forwarding\n")
 
-	conf, err := d.config.RESTClientGetter.ToRESTConfig()
+	conf, err := settings.RESTClientGetter().ToRESTConfig()
+
 	if err != nil {
 		log.Fatalf("Failed to get REST config from Helm %s\n", err)
 	}
 
-	// Get v1 interface to our cluster. Do or die trying
-	clientSet := kubernetes.NewForConfigOrDie(conf)
-	v1ClientSet := clientSet.CoreV1()
+	/*
+
+
+		// Get v1 interface to our cluster. Do or die trying
+		clientSet := kubernetes.NewForConfigOrDie(conf)
+		v1ClientSet := clientSet.CoreV1() */
 
 	// Get Grafana service data
+
+	v1ClientSet := d.clientSet.CoreV1()
+
 	svc, err := v1ClientSet.Services(settings.Namespace()).
 		Get(context.TODO(), grafanaServiceName, metav1.GetOptions{})
 
