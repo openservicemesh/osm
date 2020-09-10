@@ -36,6 +36,7 @@ var (
 	testRetentionTime          = "5d"
 	testMeshCIDR               = "10.20.0.0/16"
 	testMeshCIDRRanges         = []string{testMeshCIDR}
+	testEnvoyLogLevel          = "error"
 )
 
 var _ = Describe("Running the install command", func() {
@@ -82,6 +83,7 @@ var _ = Describe("Running the install command", func() {
 				enableGrafana:              true,
 				meshCIDRRanges:             testMeshCIDRRanges,
 				clientSet:                  fakeClientSet,
+				envoyLogLevel:              testEnvoyLogLevel,
 			}
 
 			err = installCmd.run(config)
@@ -143,6 +145,7 @@ var _ = Describe("Running the install command", func() {
 						"enablePrometheus":               true,
 						"enableGrafana":                  true,
 						"deployJaeger":                   false,
+						"envoyLogLevel":                  testEnvoyLogLevel,
 					}}))
 			})
 
@@ -194,6 +197,7 @@ var _ = Describe("Running the install command", func() {
 				enablePrometheus:           true,
 				enableGrafana:              true,
 				clientSet:                  fakeClientSet,
+				envoyLogLevel:              testEnvoyLogLevel,
 			}
 
 			err = installCmd.run(config)
@@ -260,6 +264,7 @@ var _ = Describe("Running the install command", func() {
 						"enablePrometheus":               true,
 						"enableGrafana":                  true,
 						"deployJaeger":                   false,
+						"envoyLogLevel":                  testEnvoyLogLevel,
 					}}))
 			})
 
@@ -318,6 +323,7 @@ var _ = Describe("Running the install command", func() {
 				enablePrometheus:           true,
 				enableGrafana:              true,
 				clientSet:                  fakeClientSet,
+				envoyLogLevel:              testEnvoyLogLevel,
 			}
 
 			err = installCmd.run(config)
@@ -385,6 +391,7 @@ var _ = Describe("Running the install command", func() {
 						"enablePrometheus":               true,
 						"enableGrafana":                  true,
 						"deployJaeger":                   false,
+						"envoyLogLevel":                  testEnvoyLogLevel,
 					}}))
 			})
 
@@ -485,6 +492,7 @@ var _ = Describe("Running the install command", func() {
 				enablePrometheus:           true,
 				enableGrafana:              true,
 				clientSet:                  fakeClientSet,
+				envoyLogLevel:              testEnvoyLogLevel,
 			}
 
 			err = installCmd.run(config)
@@ -552,6 +560,7 @@ var _ = Describe("Running the install command", func() {
 						"enablePrometheus":               true,
 						"enableGrafana":                  true,
 						"deployJaeger":                   false,
+						"envoyLogLevel":                  testEnvoyLogLevel,
 					}}))
 			})
 
@@ -774,6 +783,7 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 			meshCIDRRanges:             testMeshCIDRRanges,
 			enablePrometheus:           true,
 			enableGrafana:              true,
+			envoyLogLevel:              testEnvoyLogLevel,
 		}
 
 		vals, err = installCmd.resolveValues()
@@ -823,6 +833,7 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 				"enablePrometheus":               true,
 				"enableGrafana":                  true,
 				"deployJaeger":                   false,
+				"envoyLogLevel":                  testEnvoyLogLevel,
 			}}))
 	})
 })
@@ -854,6 +865,7 @@ var _ = Describe("Ensure that grafana is disabled when flag is set to false", fu
 			meshCIDRRanges:             testMeshCIDRRanges,
 			enablePrometheus:           true,
 			enableGrafana:              false,
+			envoyLogLevel:              testEnvoyLogLevel,
 		}
 
 		vals, err = installCmd.resolveValues()
@@ -903,6 +915,7 @@ var _ = Describe("Ensure that grafana is disabled when flag is set to false", fu
 				"enablePrometheus":               true,
 				"enableGrafana":                  false,
 				"deployJaeger":                   false,
+				"envoyLogLevel":                  testEnvoyLogLevel,
 			}}))
 	})
 
@@ -935,6 +948,7 @@ var _ = Describe("Ensure that grafana is enabled when flag is set to true", func
 			meshCIDRRanges:             testMeshCIDRRanges,
 			enablePrometheus:           true,
 			enableGrafana:              true,
+			envoyLogLevel:              testEnvoyLogLevel,
 		}
 
 		vals, err = installCmd.resolveValues()
@@ -984,6 +998,7 @@ var _ = Describe("Ensure that grafana is enabled when flag is set to true", func
 				"enablePrometheus":               true,
 				"enableGrafana":                  true,
 				"deployJaeger":                   false,
+				"envoyLogLevel":                  testEnvoyLogLevel,
 			}}))
 	})
 
@@ -1016,6 +1031,7 @@ var _ = Describe("Ensure that prometheus is disabled when flag is set to false",
 			meshCIDRRanges:             testMeshCIDRRanges,
 			enablePrometheus:           false,
 			enableGrafana:              true,
+			envoyLogLevel:              testEnvoyLogLevel,
 		}
 
 		vals, err = installCmd.resolveValues()
@@ -1065,6 +1081,7 @@ var _ = Describe("Ensure that prometheus is disabled when flag is set to false",
 				"enablePrometheus":               false,
 				"enableGrafana":                  true,
 				"deployJaeger":                   false,
+				"envoyLogLevel":                  testEnvoyLogLevel,
 			}}))
 	})
 })
@@ -1096,6 +1113,7 @@ var _ = Describe("Resolving values for install command with cert-manager paramet
 			meshCIDRRanges:             testMeshCIDRRanges,
 			enablePrometheus:           true,
 			enableGrafana:              true,
+			envoyLogLevel:              testEnvoyLogLevel,
 		}
 
 		vals, err = installCmd.resolveValues()
@@ -1145,6 +1163,7 @@ var _ = Describe("Resolving values for install command with cert-manager paramet
 				"enablePrometheus":               true,
 				"enableGrafana":                  true,
 				"deployJaeger":                   false,
+				"envoyLogLevel":                  testEnvoyLogLevel,
 			}}))
 	})
 })
@@ -1211,6 +1230,43 @@ var _ = Describe("Test mesh CIDR ranges", func() {
 			Expect(err).To(HaveOccurred())
 
 			err = validateCIDRs([]string{"10.2.0.0"})
+			Expect(err).To(HaveOccurred())
+		})
+	})
+})
+
+var _ = Describe("Test envoy log level types", func() {
+	Context("Test envoyLogLevel chart value with install cli option", func() {
+		It("Should correctly resolve envoyLogLevel when specified", func() {
+			installCmd := &installCmd{
+				envoyLogLevel: testEnvoyLogLevel,
+			}
+
+			vals, err := installCmd.resolveValues()
+			Expect(err).NotTo(HaveOccurred())
+
+			logLevel := vals["OpenServiceMesh"].(map[string]interface{})["envoyLogLevel"]
+			Expect(logLevel).To(Equal(testEnvoyLogLevel))
+		})
+	})
+
+	Context("Test isValidEnvoyLogLevel", func() {
+		It("Should validate if the specified envoy log level is supported", func() {
+			err := isValidEnvoyLogLevel("error")
+			Expect(err).NotTo(HaveOccurred())
+
+			err = isValidEnvoyLogLevel("off")
+			Expect(err).NotTo(HaveOccurred())
+
+			err = isValidEnvoyLogLevel("warn")
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("Should correctly error for invalid envoy log level", func() {
+			err := isValidEnvoyLogLevel("tracing")
+			Expect(err).To(HaveOccurred())
+
+			err = isValidEnvoyLogLevel("warns")
 			Expect(err).To(HaveOccurred())
 		})
 	})
