@@ -15,7 +15,7 @@ import (
 )
 
 // NewMeshCatalog creates a new service catalog
-func NewMeshCatalog(kubernetesController k8s.Controller, kubeClient kubernetes.Interface, meshSpec smi.MeshSpec, certManager certificate.Manager, ingressMonitor ingress.Monitor, stop <-chan struct{}, cfg configurator.Configurator, endpointsProviders ...endpoint.Provider) *MeshCatalog {
+func NewMeshCatalog(kubeController k8s.KubeController, kubeClient kubernetes.Interface, meshSpec smi.MeshSpec, certManager certificate.Manager, ingressMonitor ingress.Monitor, stop <-chan struct{}, cfg configurator.Configurator, endpointsProviders ...endpoint.Provider) *MeshCatalog {
 	log.Info().Msg("Create a new Service MeshCatalog.")
 	sc := MeshCatalog{
 		endpointsProviders: endpointsProviders,
@@ -32,8 +32,8 @@ func NewMeshCatalog(kubernetesController k8s.Controller, kubeClient kubernetes.I
 		// Kubernetes needed to determine what Services a pod that connects to XDS belongs to.
 		// In multicluster scenarios this would be a map of cluster ID to Kubernetes client.
 		// The certificate itself would contain the cluster ID making it easy to lookup the client in this map.
-		kubeClient:           kubeClient,
-		kubernetesController: kubernetesController,
+		kubeClient:     kubeClient,
+		kubeController: kubeController,
 	}
 
 	for _, announcementChannel := range sc.getAnnouncementChannels() {
@@ -56,8 +56,8 @@ func (mc *MeshCatalog) getAnnouncementChannels() []announcementChannel {
 		{"CertManager", mc.certManager.GetAnnouncementsChannel()},
 		{"IngressMonitor", mc.ingressMonitor.GetAnnouncementsChannel()},
 		{"Ticker", ticking},
-		{"Namespace", mc.kubernetesController.GetAnnouncementsChannel(k8s.Namespaces)},
-		{"Services", mc.kubernetesController.GetAnnouncementsChannel(k8s.Services)},
+		{"Namespace", mc.kubeController.GetAnnouncementsChannel(k8s.Namespaces)},
+		{"Services", mc.kubeController.GetAnnouncementsChannel(k8s.Services)},
 	}
 	for _, ep := range mc.endpointsProviders {
 		annCh := announcementChannel{ep.GetID(), ep.GetAnnouncementsChannel()}

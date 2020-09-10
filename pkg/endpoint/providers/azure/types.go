@@ -50,8 +50,8 @@ type azureClients struct {
 type Client struct {
 	azureClients
 
-	subscriptionID       string
-	kubernetesController k8s.Controller
+	subscriptionID string
+	kubeController k8s.KubeController
 
 	// Free-form string identifying the compute provider: Azure, Kubernetes etc.
 	// This is used in logs

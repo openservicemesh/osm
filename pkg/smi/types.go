@@ -37,13 +37,13 @@ type CacheCollection struct {
 
 // Client is a struct for all components necessary to connect to and maintain state of a Kubernetes cluster.
 type Client struct {
-	caches           *CacheCollection
-	cacheSynced      chan interface{}
-	providerIdent    string
-	informers        *InformerCollection
-	announcements    chan interface{}
-	osmNamespace     string
-	kubernetesClient k8s.Client
+	caches         *CacheCollection
+	cacheSynced    chan interface{}
+	providerIdent  string
+	informers      *InformerCollection
+	announcements  chan interface{}
+	osmNamespace   string
+	kubeController k8s.KubeController
 }
 
 // MeshSpec is an interface declaring functions, which provide the specs for a service mesh declared with SMI.

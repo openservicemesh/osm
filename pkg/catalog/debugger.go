@@ -73,7 +73,7 @@ func (mc *MeshCatalog) ListSMIPolicies() ([]*split.TrafficSplit, []service.Weigh
 
 // ListMonitoredNamespaces returns all namespaces that the mesh is monitoring.
 func (mc *MeshCatalog) ListMonitoredNamespaces() []string {
-	namespaces, err := mc.kubernetesController.ListMonitoredNamespaces()
+	namespaces, err := mc.kubeController.ListMonitoredNamespaces()
 
 	if err != nil {
 		return nil

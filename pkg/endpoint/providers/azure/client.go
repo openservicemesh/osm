@@ -12,7 +12,7 @@ import (
 )
 
 // NewProvider creates an Azure Client
-func NewProvider(subscriptionID string, azureAuthFile string, stop chan struct{}, kubernetesController k8s.Controller, azureResourceClient ResourceClient, providerIdent string) (Client, error) {
+func NewProvider(subscriptionID string, azureAuthFile string, stop chan struct{}, kubeController k8s.KubeController, azureResourceClient ResourceClient, providerIdent string) (Client, error) {
 	var authorizer autorest.Authorizer
 	var err error
 	var az Client
@@ -35,9 +35,9 @@ func NewProvider(subscriptionID string, azureAuthFile string, stop chan struct{}
 			authorizer: authorizer,
 		},
 
-		subscriptionID:       subscriptionID,
-		kubernetesController: kubernetesController,
-		providerID:           providerIdent,
+		subscriptionID: subscriptionID,
+		kubeController: kubeController,
+		providerID:     providerIdent,
 
 		// AzureResource Client is needed here so the Azure EndpointsProvider can resolve a Kubernetes service
 		// into an Azure URI. (Example: resolve "webService" to an IP of a VM.)

@@ -44,12 +44,12 @@ var (
 func newFakeMeshCatalog() *MeshCatalog {
 	var (
 		mockCtrl           *gomock.Controller
-		mockNsController   *k8s.MockController
+		mockKubeController *k8s.MockKubeController
 		mockIngressMonitor *ingress.MockMonitor
 	)
 
 	mockCtrl = gomock.NewController(GinkgoT())
-	mockNsController = k8s.NewMockController(mockCtrl)
+	mockKubeController = k8s.NewMockKubeController(mockCtrl)
 	mockIngressMonitor = ingress.NewMockMonitor(mockCtrl)
 
 	meshSpec := smi.NewFakeMeshSpecClient()
@@ -96,28 +96,18 @@ func newFakeMeshCatalog() *MeshCatalog {
 	mockIngressMonitor.EXPECT().GetIngressResources(gomock.Any()).Return(getFakeIngresses(), nil).AnyTimes()
 
 	// Monitored namespaces is made a set to make sure we don't repeat namespaces on mock
-	listExpected := []string{
+	listExpectedNs := tests.GetUnique([]string{
 		tests.BookstoreService.Namespace,
 		tests.BookbuyerService.Namespace,
 		tests.BookstoreApexService.Namespace,
-	}
+	})
 
-	nsUniqueMap := make(map[string]struct{})
-	for _, ns := range listExpected {
-		nsUniqueMap[ns] = struct{}{}
-	}
-
-	// This slice is originally only needed for the mock return of ListMonitoredNamespaces
-	uniqueNsList := []string{}
-	for nsKey := range nsUniqueMap {
-		uniqueNsList = append(uniqueNsList, nsKey)
-	}
-
-	mockNsController.EXPECT().ListServices().DoAndReturn(func() []*corev1.Service {
+	// #1683 tracks potential improvements to the following dynamic mocks
+	mockKubeController.EXPECT().ListServices().DoAndReturn(func() []*corev1.Service {
 		// play pretend this call queries a controller cache
 		var services []*corev1.Service
 
-		for _, ns := range uniqueNsList {
+		for _, ns := range listExpectedNs {
 			// simulate lookup on controller cache
 			svcList, _ := kubeClient.CoreV1().Services(ns).List(context.TODO(), metav1.ListOptions{})
 			for serviceIdx := range svcList.Items {
@@ -127,11 +117,7 @@ func newFakeMeshCatalog() *MeshCatalog {
 
 		return services
 	}).AnyTimes()
-	mockNsController.EXPECT().GetService(gomock.Any()).DoAndReturn(func(msh service.MeshService) *v1.Service {
-		if _, ok := nsUniqueMap[msh.Namespace]; !ok {
-			return nil
-		}
-
+	mockKubeController.EXPECT().GetService(gomock.Any()).DoAndReturn(func(msh service.MeshService) *v1.Service {
 		// simulate lookup on controller cache
 		vv, err := kubeClient.CoreV1().Services(msh.Namespace).Get(context.TODO(), msh.Name, metav1.GetOptions{})
 
@@ -141,14 +127,14 @@ func newFakeMeshCatalog() *MeshCatalog {
 
 		return vv
 	}).AnyTimes()
-	mockNsController.EXPECT().GetAnnouncementsChannel(k8s.Namespaces).Return(testChan).AnyTimes()
-	mockNsController.EXPECT().GetAnnouncementsChannel(k8s.Services).Return(testChan).AnyTimes()
-	mockNsController.EXPECT().IsMonitoredNamespace(tests.BookstoreService.Namespace).Return(true).AnyTimes()
-	mockNsController.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).AnyTimes()
-	mockNsController.EXPECT().IsMonitoredNamespace(tests.BookwarehouseService.Namespace).Return(true).AnyTimes()
-	mockNsController.EXPECT().ListMonitoredNamespaces().Return(uniqueNsList, nil).AnyTimes()
+	mockKubeController.EXPECT().GetAnnouncementsChannel(k8s.Namespaces).Return(testChan).AnyTimes()
+	mockKubeController.EXPECT().GetAnnouncementsChannel(k8s.Services).Return(testChan).AnyTimes()
+	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookstoreService.Namespace).Return(true).AnyTimes()
+	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).AnyTimes()
+	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookwarehouseService.Namespace).Return(true).AnyTimes()
+	mockKubeController.EXPECT().ListMonitoredNamespaces().Return(listExpectedNs, nil).AnyTimes()
 
-	return NewMeshCatalog(mockNsController, kubeClient, meshSpec, certManager,
+	return NewMeshCatalog(mockKubeController, kubeClient, meshSpec, certManager,
 		mockIngressMonitor, stop, cfg, endpointProviders...)
 }
 

@@ -19,7 +19,7 @@ type Client struct {
 	cache          cache.Store
 	cacheSynced    chan interface{}
 	announcements  chan interface{}
-	kubeController k8s.Controller
+	kubeController k8s.KubeController
 }
 
 // Monitor is the client interface for K8s Ingress resource

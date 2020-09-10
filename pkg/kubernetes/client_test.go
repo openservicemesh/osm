@@ -19,13 +19,13 @@ var (
 	testMeshName = "mesh"
 )
 
-var _ = Describe("Test Namespace Controller Methods", func() {
+var _ = Describe("Test Namespace KubeController Methods", func() {
 	Context("Testing namespace controller", func() {
 		It("should return a new namespace controller", func() {
 			kubeClient := testclient.NewSimpleClientset()
 			stop := make(chan struct{})
-			Controller := NewKubernetesClient(kubeClient, testMeshName, stop)
-			Expect(Controller).ToNot(BeNil())
+			kubeController := NewKubernetesClient(kubeClient, testMeshName, stop)
+			Expect(kubeController).ToNot(BeNil())
 		})
 	})
 
@@ -34,7 +34,7 @@ var _ = Describe("Test Namespace Controller Methods", func() {
 			// Create namespace controller
 			kubeClient := testclient.NewSimpleClientset()
 			stop := make(chan struct{})
-			Controller := NewKubernetesClient(kubeClient, testMeshName, stop)
+			kubeController := NewKubernetesClient(kubeClient, testMeshName, stop)
 
 			// Create a test namespace that is monitored
 			testNamespaceName := fmt.Sprintf("%s-1", tests.Namespace)
@@ -47,9 +47,9 @@ var _ = Describe("Test Namespace Controller Methods", func() {
 			if _, err := kubeClient.CoreV1().Namespaces().Create(context.TODO(), &testNamespace, metav1.CreateOptions{}); err != nil {
 				log.Fatal().Err(err).Msgf("Error creating Namespace %v", testNamespace)
 			}
-			<-Controller.GetAnnouncementsChannel(Namespaces)
+			<-kubeController.GetAnnouncementsChannel(Namespaces)
 
-			monitoredNamespaces, err := Controller.ListMonitoredNamespaces()
+			monitoredNamespaces, err := kubeController.ListMonitoredNamespaces()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(monitoredNamespaces)).To(Equal(1))
 			Expect(testNamespaceName).To(BeElementOf(monitoredNamespaces))
@@ -61,7 +61,7 @@ var _ = Describe("Test Namespace Controller Methods", func() {
 			// Create namespace controller
 			kubeClient := testclient.NewSimpleClientset()
 			stop := make(chan struct{})
-			Controller := NewKubernetesClient(kubeClient, testMeshName, stop)
+			kubeController := NewKubernetesClient(kubeClient, testMeshName, stop)
 
 			// Create a test namespace that is monitored
 			testNamespaceName := fmt.Sprintf("%s-1", tests.Namespace)
@@ -75,19 +75,19 @@ var _ = Describe("Test Namespace Controller Methods", func() {
 			if _, err := kubeClient.CoreV1().Namespaces().Create(context.TODO(), &testNamespace, metav1.CreateOptions{}); err != nil {
 				log.Fatal().Err(err).Msgf("Error creating Namespace %v", testNamespace)
 			}
-			<-Controller.GetAnnouncementsChannel(Namespaces)
+			<-kubeController.GetAnnouncementsChannel(Namespaces)
 
-			namespaceIsMonitored := Controller.IsMonitoredNamespace(testNamespaceName)
+			namespaceIsMonitored := kubeController.IsMonitoredNamespace(testNamespaceName)
 			Expect(namespaceIsMonitored).To(BeTrue())
 
-			fakeNamespaceIsMonitored := Controller.IsMonitoredNamespace("fake")
+			fakeNamespaceIsMonitored := kubeController.IsMonitoredNamespace("fake")
 			Expect(fakeNamespaceIsMonitored).ToNot(BeTrue())
 		})
 	})
 
 	Context("service controller", func() {
 		var kubeClient *testclient.Clientset
-		var kubeController Controller
+		var kubeController KubeController
 
 		BeforeEach(func() {
 			kubeClient = testclient.NewSimpleClientset()

@@ -176,7 +176,7 @@ func (mc *MeshCatalog) GetHostnamesForService(meshService service.MeshService) (
 
 // getServiceHostnames returns a list of hostnames corresponding to the service
 func (mc *MeshCatalog) getServiceHostnames(meshService service.MeshService) ([]string, error) {
-	svc := mc.kubernetesController.GetService(meshService)
+	svc := mc.kubeController.GetService(meshService)
 	if svc == nil {
 		return nil, errors.Errorf("Error fetching service %q", meshService)
 	}
@@ -342,7 +342,7 @@ func getTrafficPoliciesForService(mc *MeshCatalog, routePolicies map[trafficpoli
 }
 
 func (mc *MeshCatalog) buildAllowAllTrafficPolicies(service service.MeshService) []trafficpolicy.TrafficTarget {
-	services := mc.kubernetesController.ListServices()
+	services := mc.kubeController.ListServices()
 
 	var trafficTargets []trafficpolicy.TrafficTarget
 	for _, source := range services {

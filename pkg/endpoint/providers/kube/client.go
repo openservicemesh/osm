@@ -21,7 +21,7 @@ import (
 )
 
 // NewProvider implements mesh.EndpointsProvider, which creates a new Kubernetes cluster/compute provider.
-func NewProvider(kubeClient kubernetes.Interface, Controller k8s.Controller, stop chan struct{}, providerIdent string, cfg configurator.Configurator) (endpoint.Provider, error) {
+func NewProvider(kubeClient kubernetes.Interface, kubeController k8s.KubeController, stop chan struct{}, providerIdent string, cfg configurator.Configurator) (endpoint.Provider, error) {
 	informerFactory := informers.NewSharedInformerFactory(kubeClient, k8s.DefaultKubeEventResyncInterval)
 
 	informerCollection := InformerCollection{
@@ -35,18 +35,18 @@ func NewProvider(kubeClient kubernetes.Interface, Controller k8s.Controller, sto
 	}
 
 	client := Client{
-		providerIdent: providerIdent,
-		kubeClient:    kubeClient,
-		informers:     &informerCollection,
-		caches:        &cacheCollection,
-		cacheSynced:   make(chan interface{}),
-		announcements: make(chan interface{}),
-		Controller:    Controller,
+		providerIdent:  providerIdent,
+		kubeClient:     kubeClient,
+		informers:      &informerCollection,
+		caches:         &cacheCollection,
+		cacheSynced:    make(chan interface{}),
+		announcements:  make(chan interface{}),
+		kubeController: kubeController,
 	}
 
 	shouldObserve := func(obj interface{}) bool {
 		ns := reflect.ValueOf(obj).Elem().FieldByName("ObjectMeta").FieldByName("Namespace").String()
-		return Controller.IsMonitoredNamespace(ns)
+		return kubeController.IsMonitoredNamespace(ns)
 	}
 	informerCollection.Endpoints.AddEventHandler(k8s.GetKubernetesEventHandlers("Endpoints", "Kubernetes", client.announcements, shouldObserve))
 	informerCollection.Deployments.AddEventHandler(k8s.GetKubernetesEventHandlers("Deployments", "Kubernetes", client.announcements, shouldObserve))
@@ -81,7 +81,7 @@ func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endp
 
 	kubernetesEndpoints := endpointsInterface.(*corev1.Endpoints)
 	if kubernetesEndpoints != nil {
-		if !c.Controller.IsMonitoredNamespace(kubernetesEndpoints.Namespace) {
+		if !c.kubeController.IsMonitoredNamespace(kubernetesEndpoints.Namespace) {
 			// Doesn't belong to namespaces we are observing
 			return endpoints
 		}
@@ -114,7 +114,7 @@ func (c Client) GetServicesForServiceAccount(svcAccount service.K8sServiceAccoun
 	for _, deployments := range deploymentsInterface {
 		kubernetesDeployments := deployments.(*appsv1.Deployment)
 		if kubernetesDeployments != nil {
-			if !c.Controller.IsMonitoredNamespace(kubernetesDeployments.Namespace) {
+			if !c.kubeController.IsMonitoredNamespace(kubernetesDeployments.Namespace) {
 				// Doesn't belong to namespaces we are observing
 				continue
 			}
@@ -211,9 +211,9 @@ func (c *Client) getServicesByLabels(matchLabels map[string]string, namespace st
 	var namespacedServiceList []*corev1.Service
 	var finalList []corev1.Service
 
-	serviceList := c.Controller.ListServices()
-	// TODO: This needs to be reworked to not have to walk all services. Proper
-	// API accessor should be put in place to avoid walking all services
+	serviceList := c.kubeController.ListServices()
+	// TODO: #1684 Introduce APIs to dynamically allow applying selectors, instead of callers implementing
+	// filtering themselves
 	for _, svc := range serviceList {
 		if svc.Namespace == namespace {
 			namespacedServiceList = append(namespacedServiceList, svc)

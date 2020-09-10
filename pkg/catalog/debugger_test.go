@@ -80,23 +80,13 @@ var _ = Describe("Test catalog proxy register/unregister", func() {
 	Context("Test ListMonitoredNamespaces", func() {
 		It("lists monitored namespaces", func() {
 			actual := mc.ListMonitoredNamespaces()
-			listExpected := []string{
+			listExpectedNs := tests.GetUnique([]string{
 				tests.BookstoreService.Namespace,
 				tests.BookbuyerService.Namespace,
 				tests.BookwarehouseService.Namespace,
-			}
+			})
 
-			nsUniqueMap := make(map[string]struct{})
-			for _, ns := range listExpected {
-				nsUniqueMap[ns] = struct{}{}
-			}
-
-			uniqueList := []string{}
-			for nsKey := range nsUniqueMap {
-				uniqueList = append(uniqueList, nsKey)
-			}
-
-			Expect(actual).To(Equal(uniqueList))
+			Expect(actual).To(Equal(listExpectedNs))
 		})
 	})
 
