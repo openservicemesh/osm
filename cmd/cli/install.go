@@ -308,7 +308,7 @@ func isValidEnvoyLogLevel(envoyLogLevel string) error {
 			return nil
 		}
 	}
-	return errors.Errorf("Invalid envoy log level.\n A valid envoy log level must be one from the following : trace, debug, info, warning, warn, error, critical, off")
+	return errors.Errorf("Invalid envoy log level.\n A valid envoy log level must be one from the following : %v", allowedLogLevels)
 }
 
 func isValidMeshName(meshName string) error {
