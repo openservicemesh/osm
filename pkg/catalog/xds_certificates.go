@@ -57,8 +57,8 @@ func (mc *MeshCatalog) GetGatewaypods(searchName string) ([]string, error) {
 
 	searchList := make([]string, 0)
 	for _, pod := range podList.Items {
-		if strings.Contains(pod.Name, searchName) {
-			log.Info().Msgf("pod.Name=%+v", pod.Name)
+		if strings.Contains(pod.Name, searchName) && pod.Status.Phase == "Running" {
+			log.Info().Msgf("pod.Name=%+v, pod.status=%+v \n", pod.Name, pod.Status.Phase)
 			searchList = append(searchList, pod.Name)
 		}
 	}
