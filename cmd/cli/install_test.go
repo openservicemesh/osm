@@ -948,6 +948,7 @@ var _ = Describe("Ensure that grafana is enabled when flag is set to true", func
 			meshCIDRRanges:             testMeshCIDRRanges,
 			enablePrometheus:           true,
 			enableGrafana:              true,
+			envoyLogLevel:              testEnvoyLogLevel,
 		}
 
 		vals, err = installCmd.resolveValues()
@@ -997,6 +998,7 @@ var _ = Describe("Ensure that grafana is enabled when flag is set to true", func
 				"enablePrometheus":               true,
 				"enableGrafana":                  true,
 				"deployJaeger":                   false,
+				"envoyLogLevel":                  testEnvoyLogLevel,
 			}}))
 	})
 
