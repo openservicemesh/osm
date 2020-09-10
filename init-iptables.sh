@@ -41,7 +41,8 @@ iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9000:9004" -j ACCEPT # m3db/me
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9073" -j ACCEPT # identityd
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9085" -j ACCEPT # filed
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9097" -j ACCEPT # endpointd
-iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9122" -j ACCEPT # metrics
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9122" -j ACCEPT # metricsd
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9128" -j ACCEPT # historyd
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "10000" -j ACCEPT # radiusconfd
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "10080" -j ACCEPT # byod
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "32443" -j ACCEPT # sslport/apiserver
@@ -90,6 +91,7 @@ iptables -t nat -A PROXY_INBOUND -p tcp --dport "9073" -j RETURN  # identityd
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "9085" -j RETURN  # filed
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "9097" -j RETURN  # endpointd
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "9122" -j RETURN  # metricsd
+iptables -t nat -A PROXY_INBOUND -p tcp --dport "9128" -j RETURN  # historyd
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "10000" -j RETURN # radiusconfd
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "10080" -j RETURN # byod
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "32443" -j RETURN # sslpoort/apiserver
