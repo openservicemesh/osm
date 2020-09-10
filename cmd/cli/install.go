@@ -153,7 +153,7 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.BoolVar(&inst.enableGrafana, "enable-grafana", false, "Enable Grafana installation and deployment")
 	f.StringVar(&inst.meshName, "mesh-name", defaultMeshName, "name for the new control plane instance")
 	f.BoolVar(&inst.deployJaeger, "deploy-jaeger", true, "Deploy Jaeger in the namespace of the OSM controller")
-	f.StringVar(&inst.envoyLogLevel, "envoy-log-level", "error", "Envoy log level is used to specify the level of logs collected from envoy")
+	f.StringVar(&inst.envoyLogLevel, "envoy-log-level", "error", "Envoy log level is used to specify the level of logs collected from envoy and needs to be one of these (trace, debug, info, warning, warn, error, critical, off)")
 
 	return cmd
 }
@@ -220,7 +220,7 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 		fmt.Sprintf("OpenServiceMesh.enableEgress=%t", i.enableEgress),
 		fmt.Sprintf("OpenServiceMesh.meshCIDRRanges=%s", strings.Join(i.meshCIDRRanges, " ")),
 		fmt.Sprintf("OpenServiceMesh.deployJaeger=%t", i.deployJaeger),
-		fmt.Sprintf("OpenServiceMesh.envoyLogLevel=%s", i.envoyLogLevel),
+		fmt.Sprintf("OpenServiceMesh.envoyLogLevel=%s", strings.ToLower(i.envoyLogLevel)),
 	}
 
 	if i.containerRegistrySecret != "" {
@@ -293,7 +293,22 @@ func (i *installCmd) validateOptions() error {
 		}
 	}
 
+	//validate the envoy log level type
+	if err := isValidEnvoyLogLevel(i.envoyLogLevel); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+func isValidEnvoyLogLevel(envoyLogLevel string) error {
+	allowedLogLevels := []string{"trace", "debug", "info", "warning", "warn", "error", "critical", "off"}
+	for _, logLevel := range allowedLogLevels {
+		if strings.EqualFold(envoyLogLevel, logLevel) {
+			return nil
+		}
+	}
+	return errors.Errorf("Invalid envoy log level.\n A valid envoy log level must be one from the following : trace, debug, info, warning, warn, error, critical, off")
 }
 
 func isValidMeshName(meshName string) error {

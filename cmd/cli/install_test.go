@@ -1233,6 +1233,43 @@ var _ = Describe("Test mesh CIDR ranges", func() {
 	})
 })
 
+var _ = Describe("Test envoy log level types", func() {
+	Context("Test envoyLogLevel chart value with install cli option", func() {
+		It("Should correctly resolve envoyLogLevel when specified", func() {
+			installCmd := &installCmd{
+				envoyLogLevel: testEnvoyLogLevel,
+			}
+
+			vals, err := installCmd.resolveValues()
+			Expect(err).NotTo(HaveOccurred())
+
+			logLevel := vals["OpenServiceMesh"].(map[string]interface{})["envoyLogLevel"]
+			Expect(logLevel).To(Equal(testEnvoyLogLevel))
+		})
+	})
+
+	Context("Test isValidEnvoyLogLevel", func() {
+		It("Should validate if the specified envoy log level is supported", func() {
+			err := isValidEnvoyLogLevel("error")
+			Expect(err).NotTo(HaveOccurred())
+
+			err = isValidEnvoyLogLevel("off")
+			Expect(err).NotTo(HaveOccurred())
+
+			err = isValidEnvoyLogLevel("warn")
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("Should correctly error for invalid envoy log level", func() {
+			err := isValidEnvoyLogLevel("tracing")
+			Expect(err).To(HaveOccurred())
+
+			err = isValidEnvoyLogLevel("warns")
+			Expect(err).To(HaveOccurred())
+		})
+	})
+})
+
 var _ = Describe("Test osm image pull policy cli option", func() {
 	It("Should correctly resolve the pull policy option to chart values", func() {
 		installCmd := &installCmd{
