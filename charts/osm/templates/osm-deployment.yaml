@@ -32,7 +32,7 @@ spec:
             "--mesh-name", "{{.Values.OpenServiceMesh.meshName}}",
             "--init-container-image", "{{.Values.OpenServiceMesh.image.registry}}/init:{{ .Values.OpenServiceMesh.image.tag }}",
             "--sidecar-image", "{{.Values.OpenServiceMesh.sidecarImage}}",
-            "--webhook-name", "osm-webhook-{{.Values.OpenServiceMesh.meshName}}",
+            "--webhook-config-name", "osm-webhook-{{.Values.OpenServiceMesh.meshName}}",
             "--ca-bundle-secret-name", "{{.Values.OpenServiceMesh.caBundleSecretName}}",
             "--certificate-manager", "{{.Values.OpenServiceMesh.certificateManager}}",
             "--vault-host", "{{.Values.OpenServiceMesh.vault.host}}",

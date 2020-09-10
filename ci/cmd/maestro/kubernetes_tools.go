@@ -14,7 +14,6 @@ import (
 
 	"github.com/Azure/go-autorest/autorest/to"
 	mapset "github.com/deckarep/golang-set"
-	"k8s.io/api/admissionregistration/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -64,26 +63,22 @@ func DeleteNamespaces(client *kubernetes.Clientset, namespaces ...string) {
 	}
 }
 
-// DeleteWebhook deletes the webhook by name.
-func DeleteWebhook(client *kubernetes.Clientset, webhookName string) {
+// DeleteWebhookConfiguration deletes the mutatingwebhookconfiguration by name
+func DeleteWebhookConfiguration(client *kubernetes.Clientset, webhookConfigName string) {
 	deleteOptions := metav1.DeleteOptions{
 		GracePeriodSeconds: to.Int64Ptr(0),
 	}
 
-	var webhooks *v1beta1.MutatingWebhookConfigurationList
-	var err error
-	webhooks, err = client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().List(context.Background(), metav1.ListOptions{})
+	_, err := client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Get(context.Background(), webhookConfigName, metav1.GetOptions{})
 	if err != nil {
-		log.Error().Err(err).Msg("Error listing webhooks")
+		log.Error().Err(err).Msgf("Error getting mutatingwebhookconfiguration %s", webhookConfigName)
+		return
 	}
 
-	for _, webhook := range webhooks.Items {
-		if webhook.Name == webhookName {
-			if err := client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Delete(context.Background(), webhook.Name, deleteOptions); err != nil {
-				log.Error().Err(err).Msgf("Error deleting webhook %s", webhook.Name)
-			}
-			log.Info().Msgf("Deleted mutating webhook: %s", webhook.Name)
-		}
+	if err := client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Delete(context.Background(), webhookConfigName, deleteOptions); err != nil {
+		log.Error().Err(err).Msgf("Error deleting mutatingwebhookconfiguration %s", webhookConfigName)
+	} else {
+		log.Info().Msgf("Deleted mutatingwebhookconfiguration: %s", webhookConfigName)
 	}
 }
 

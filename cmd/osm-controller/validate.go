@@ -28,8 +28,8 @@ func validateCLIParams() error {
 		return errors.Errorf("Please specify the sidecar image using --sidecar-image")
 	}
 
-	if webhookName == "" {
-		return errors.Errorf("Invalid --webhook-name value: '%s'", webhookName)
+	if webhookConfigName == "" {
+		return errors.Errorf("Invalid --webhook-config-name value: '%s'", webhookConfigName)
 	}
 
 	return nil

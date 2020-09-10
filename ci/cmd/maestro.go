@@ -119,8 +119,8 @@ func main() {
 	if bookBuyerTestResult == maestro.TestsPassed && bookThiefTestResult == maestro.TestsPassed && bookWarehouseTestResult == maestro.TestsPassed {
 		log.Info().Msg("Test succeeded")
 		maestro.DeleteNamespaces(kubeClient, append(namespaces, osmNamespace)...)
-		webhookName := fmt.Sprintf("osm-webhook-%s", meshName)
-		maestro.DeleteWebhook(kubeClient, webhookName)
+		webhookConfigName := fmt.Sprintf("osm-webhook-%s", meshName)
+		maestro.DeleteWebhookConfiguration(kubeClient, webhookConfigName)
 		os.Exit(0)
 	}
 
