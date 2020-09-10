@@ -6,7 +6,6 @@ import (
 	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha3"
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
-	corev1 "k8s.io/api/core/v1"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -62,20 +61,19 @@ func (mc *MeshCatalog) ListDisconnectedProxies() map[certificate.CommonName]time
 }
 
 // ListSMIPolicies returns all policies OSM is aware of.
-func (mc *MeshCatalog) ListSMIPolicies() ([]*split.TrafficSplit, []service.WeightedService, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget, []*corev1.Service) {
+func (mc *MeshCatalog) ListSMIPolicies() ([]*split.TrafficSplit, []service.WeightedService, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget) {
 	trafficSplits := mc.meshSpec.ListTrafficSplits()
 	splitServices := mc.meshSpec.ListTrafficSplitServices()
 	serviceAccouns := mc.meshSpec.ListServiceAccounts()
 	trafficSpecs := mc.meshSpec.ListHTTPTrafficSpecs()
 	trafficTargets := mc.meshSpec.ListTrafficTargets()
-	services := mc.meshSpec.ListServices()
 
-	return trafficSplits, splitServices, serviceAccouns, trafficSpecs, trafficTargets, services
+	return trafficSplits, splitServices, serviceAccouns, trafficSpecs, trafficTargets
 }
 
 // ListMonitoredNamespaces returns all namespaces that the mesh is monitoring.
 func (mc *MeshCatalog) ListMonitoredNamespaces() []string {
-	namespaces, err := mc.namespaceController.ListMonitoredNamespaces()
+	namespaces, err := mc.kubeController.ListMonitoredNamespaces()
 
 	if err != nil {
 		return nil

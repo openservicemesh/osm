@@ -48,7 +48,7 @@ const (
 )
 
 // NewWebhook starts a new web server handling requests from the injector MutatingWebhookConfiguration
-func NewWebhook(config Config, kubeClient kubernetes.Interface, certManager certificate.Manager, meshCatalog catalog.MeshCataloger, namespaceController k8s.NamespaceController, meshName, osmNamespace, webhookName string, stop <-chan struct{}, cfg configurator.Configurator) error {
+func NewWebhook(config Config, kubeClient kubernetes.Interface, certManager certificate.Manager, meshCatalog catalog.MeshCataloger, kubeController k8s.Controller, meshName, osmNamespace, webhookName string, stop <-chan struct{}, cfg configurator.Configurator) error {
 	cn := certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.OSMControllerName, osmNamespace))
 	validityPeriod := constants.XDSCertificateValidityPeriod
 	cert, err := certManager.IssueCertificate(cn, &validityPeriod)
@@ -57,14 +57,14 @@ func NewWebhook(config Config, kubeClient kubernetes.Interface, certManager cert
 	}
 
 	wh := webhook{
-		config:              config,
-		kubeClient:          kubeClient,
-		certManager:         certManager,
-		meshCatalog:         meshCatalog,
-		namespaceController: namespaceController,
-		osmNamespace:        osmNamespace,
-		cert:                cert,
-		configurator:        cfg,
+		config:         config,
+		kubeClient:     kubeClient,
+		certManager:    certManager,
+		meshCatalog:    meshCatalog,
+		kubeController: kubeController,
+		osmNamespace:   osmNamespace,
+		cert:           cert,
+		configurator:   cfg,
 	}
 
 	go wh.run(stop)
@@ -223,7 +223,7 @@ func (wh *webhook) isNamespaceAllowed(namespace string) bool {
 		}
 	}
 	// Skip namespaces not being observed
-	return wh.namespaceController.IsMonitoredNamespace(namespace)
+	return wh.kubeController.IsMonitoredNamespace(namespace)
 }
 
 // mustInject determines whether the sidecar must be injected.

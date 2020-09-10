@@ -25,21 +25,21 @@ import (
 
 var _ = Describe("Test Kube Client Provider", func() {
 	var (
-		mockCtrl         *gomock.Controller
-		mockNsController *k8s.MockNamespaceController
-		mockConfigurator *configurator.MockConfigurator
+		mockCtrl           *gomock.Controller
+		mockKubeController *k8s.MockController
+		mockConfigurator   *configurator.MockConfigurator
 	)
 	mockCtrl = gomock.NewController(GinkgoT())
-	mockNsController = k8s.NewMockNamespaceController(mockCtrl)
+	mockKubeController = k8s.NewMockController(mockCtrl)
 	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
 
 	fakeClientSet := fake.NewSimpleClientset()
 	stopChann := make(chan struct{})
 	providerID := "provider"
 
-	cli, err := NewProvider(fakeClientSet, mockNsController, stopChann, providerID, mockConfigurator)
+	cli, err := NewProvider(fakeClientSet, mockKubeController, stopChann, providerID, mockConfigurator)
 
-	mockNsController.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).AnyTimes()
+	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).AnyTimes()
 	Context("when testing ListEndpointsForService", func() {
 		It("verifies new Provider at context scope succeeded", func() {
 			Expect(err).To(BeNil())
@@ -136,12 +136,12 @@ var _ = Describe("Test Kube Client Provider", func() {
 
 var _ = Describe("When getting a Service associated with a ServiceAccount", func() {
 	var (
-		mockCtrl         *gomock.Controller
-		mockNsController *k8s.MockNamespaceController
-		mockConfigurator *configurator.MockConfigurator
+		mockCtrl           *gomock.Controller
+		mockKubeController *k8s.MockController
+		mockConfigurator   *configurator.MockConfigurator
 	)
 	mockCtrl = gomock.NewController(GinkgoT())
-	mockNsController = k8s.NewMockNamespaceController(mockCtrl)
+	mockKubeController = k8s.NewMockController(mockCtrl)
 	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
 
 	var (
@@ -154,11 +154,39 @@ var _ = Describe("When getting a Service associated with a ServiceAccount", func
 	testNamespace := "test"
 	stop := make(chan struct{})
 
-	mockNsController.EXPECT().IsMonitoredNamespace(testNamespace).Return(true).AnyTimes()
+	// Configure the controller
+	listMonitoredNs := []string{
+		testNamespace,
+	}
+	mockKubeController.EXPECT().ListServices().DoAndReturn(func() []*corev1.Service {
+		var services []*corev1.Service
+
+		for _, ns := range listMonitoredNs {
+			// simulate lookup on controller cache
+			svcList, _ := fakeClientSet.CoreV1().Services(ns).List(context.TODO(), metav1.ListOptions{})
+			for serviceIdx := range svcList.Items {
+				services = append(services, &svcList.Items[serviceIdx])
+			}
+		}
+
+		return services
+	}).AnyTimes()
+	mockKubeController.EXPECT().GetService(gomock.Any()).DoAndReturn(func(msh service.MeshService) *v1.Service {
+		// simulate lookup on controller cache
+		vv, err := fakeClientSet.CoreV1().Services(msh.Namespace).Get(context.TODO(), msh.Name, metav1.GetOptions{})
+
+		if err != nil {
+			return nil
+		}
+
+		return vv
+	}).AnyTimes()
+
+	mockKubeController.EXPECT().IsMonitoredNamespace(testNamespace).Return(true).AnyTimes()
 
 	BeforeEach(func() {
 		fakeClientSet = fake.NewSimpleClientset()
-		provider, err = NewProvider(fakeClientSet, mockNsController, stop, providerID, mockConfigurator)
+		provider, err = NewProvider(fakeClientSet, mockKubeController, stop, providerID, mockConfigurator)
 		Expect(err).ToNot(HaveOccurred())
 	})
 

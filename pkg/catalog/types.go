@@ -8,7 +8,6 @@ import (
 	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha3"
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -47,10 +46,13 @@ type MeshCatalog struct {
 	announcementChannels mapset.Set
 
 	// Current assumption is that OSM is working with a single Kubernetes cluster.
-	// This here is the client to that cluster.
+	// This is the API/REST interface to the cluster
 	kubeClient kubernetes.Interface
 
-	namespaceController k8s.NamespaceController
+	// This is the kubernetes client that operates async caches to avoid issuing synchronous
+	// calls through kubeClient and instead relies on background cache synchronization and local
+	// lookups
+	kubeController k8s.Controller
 }
 
 // MeshCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
@@ -68,7 +70,7 @@ type MeshCataloger interface {
 	ListAllowedOutboundServices(service.MeshService) ([]service.MeshService, error)
 
 	// ListSMIPolicies lists SMI policies.
-	ListSMIPolicies() ([]*split.TrafficSplit, []service.WeightedService, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget, []*corev1.Service)
+	ListSMIPolicies() ([]*split.TrafficSplit, []service.WeightedService, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget)
 
 	// ListEndpointsForService returns the list of individual instance endpoint backing a service
 	ListEndpointsForService(service.MeshService) ([]endpoint.Endpoint, error)

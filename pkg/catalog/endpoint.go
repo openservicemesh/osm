@@ -29,7 +29,7 @@ func (mc *MeshCatalog) GetResolvableServiceEndpoints(svc service.MeshService) ([
 	var err error
 
 	// Check if the service has been given Cluster IP
-	service := mc.GetSMISpec().GetService(svc)
+	service := mc.kubeController.GetService(svc)
 	if service == nil {
 		log.Error().Msgf("Could not find service %s", svc.String())
 		return nil, errServiceNotFound

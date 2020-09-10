@@ -3,10 +3,12 @@ package kubernetes
 import (
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/service"
 )
 
 var (
@@ -47,6 +49,8 @@ type InformerKey string
 const (
 	// Namespaces lookup identifier
 	Namespaces InformerKey = "Namespaces"
+	// Services lookup identifier
+	Services InformerKey = "Services"
 )
 
 // InformerCollection is the type holding the collection of informers we keep
@@ -58,11 +62,17 @@ type Client struct {
 	kubeClient    kubernetes.Interface
 	informers     InformerCollection
 	cacheSynced   chan interface{}
-	announcements chan interface{}
+	announcements map[InformerKey]chan interface{}
 }
 
-// NamespaceController Controller is the controller interface for K8s namespaces
-type NamespaceController interface {
+// Controller is the controller interface for K8s services
+type Controller interface {
+	// ListServices returns a list of all (monitored-namespace filtered) services in the mesh
+	ListServices() []*corev1.Service
+
+	// Returns a corev1 Service representation if the MeshService exists in cache, otherwise nil
+	GetService(svc service.MeshService) *corev1.Service
+
 	// IsMonitoredNamespace returns whether a namespace with the given name is being monitored
 	// by the mesh
 	IsMonitoredNamespace(string) bool
@@ -70,6 +80,6 @@ type NamespaceController interface {
 	// ListMonitoredNamespaces returns the namespaces monitored by the mesh
 	ListMonitoredNamespaces() ([]string, error)
 
-	// GetAnnouncementsChannel returns the channel on which namespace makes announcements
-	GetAnnouncementsChannel() <-chan interface{}
+	// Returns the announcement channel for a certain Informer ID
+	GetAnnouncementsChannel(informerID InformerKey) <-chan interface{}
 }

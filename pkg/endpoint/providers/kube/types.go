@@ -26,11 +26,11 @@ type CacheCollection struct {
 
 // Client is a struct for all components necessary to connect to and maintain state of a Kubernetes cluster.
 type Client struct {
-	caches              *CacheCollection
-	cacheSynced         chan interface{}
-	providerIdent       string
-	kubeClient          kubernetes.Interface
-	informers           *InformerCollection
-	announcements       chan interface{}
-	namespaceController k8s.NamespaceController
+	caches         *CacheCollection
+	cacheSynced    chan interface{}
+	providerIdent  string
+	kubeClient     kubernetes.Interface
+	informers      *InformerCollection
+	announcements  chan interface{}
+	kubeController k8s.Controller
 }
