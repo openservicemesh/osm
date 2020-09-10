@@ -908,6 +908,87 @@ var _ = Describe("Ensure that grafana is disabled when flag is set to false", fu
 
 })
 
+var _ = Describe("Ensure that grafana is enabled when flag is set to true", func() {
+	var (
+		vals map[string]interface{}
+		err  error
+	)
+
+	BeforeEach(func() {
+		installCmd := &installCmd{
+			containerRegistry:          testRegistry,
+			containerRegistrySecret:    testRegistrySecret,
+			certificateManager:         "vault",
+			vaultHost:                  testVaultHost,
+			vaultProtocol:              testVaultProtocol,
+			certmanagerIssuerName:      testCertManagerIssuerName,
+			certmanagerIssuerKind:      testCertManagerIssuerKind,
+			certmanagerIssuerGroup:     testCertManagerIssuerGroup,
+			vaultToken:                 testVaultToken,
+			vaultRole:                  testVaultRole,
+			osmImageTag:                testOsmImageTag,
+			osmImagePullPolicy:         defaultOsmImagePullPolicy,
+			serviceCertValidityMinutes: 1,
+			prometheusRetentionTime:    testRetentionTime,
+			meshName:                   defaultMeshName,
+			enableEgress:               true,
+			meshCIDRRanges:             testMeshCIDRRanges,
+			enablePrometheus:           true,
+			enableGrafana:              true,
+		}
+
+		vals, err = installCmd.resolveValues()
+	})
+
+	It("should not error", func() {
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("should resolve correctly", func() {
+		Expect(vals).To(BeEquivalentTo(map[string]interface{}{
+			"OpenServiceMesh": map[string]interface{}{
+				"certificateManager": "vault",
+				"certmanager": map[string]interface{}{
+					"issuerKind":  "ClusterIssuer",
+					"issuerGroup": "example.co.uk",
+					"issuerName":  "my-osm-ca",
+				},
+				"meshName": defaultMeshName,
+				"image": map[string]interface{}{
+					"registry":   testRegistry,
+					"tag":        testOsmImageTag,
+					"pullPolicy": defaultOsmImagePullPolicy,
+				},
+				"imagePullSecrets": []interface{}{
+					map[string]interface{}{
+						"name": testRegistrySecret,
+					},
+				},
+				"serviceCertValidityMinutes": int64(1),
+				"vault": map[string]interface{}{
+					"host":     testVaultHost,
+					"protocol": "http",
+					"token":    testVaultToken,
+					"role":     testVaultRole,
+				},
+				"prometheus": map[string]interface{}{
+					"retention": map[string]interface{}{
+						"time": "5d",
+					},
+				},
+				"enableDebugServer":              false,
+				"enablePermissiveTrafficPolicy":  false,
+				"enableBackpressureExperimental": false,
+				"enableEgress":                   true,
+				"meshCIDRRanges":                 testMeshCIDR,
+				"enablePrometheus":               true,
+				"enableGrafana":                  true,
+				"deployJaeger":                   false,
+			}}))
+	})
+
+})
+
 var _ = Describe("Ensure that prometheus is disabled when flag is set to false", func() {
 	var (
 		vals map[string]interface{}

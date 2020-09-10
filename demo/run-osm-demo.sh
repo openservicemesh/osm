@@ -28,6 +28,7 @@ DEPLOY_TRAFFIC_SPLIT="${DEPLOY_TRAFFIC_SPLIT:-true}"
 CTR_TAG="${CTR_TAG:-$(git rev-parse HEAD)}"
 IMAGE_PULL_POLICY="${IMAGE_PULL_POLICY:-Always}"
 ENABLE_EGRESS="${ENABLE_EGRESS:-false}"
+ENABLE_GRAFANA="${ENABLE_GRAFANA:-false}"
 MESH_CIDR=$(./scripts/get_mesh_cidr.sh)
 DEPLOY_WITH_SAME_SA="${DEPLOY_WITH_SAME_SA:-false}"
 
@@ -112,6 +113,7 @@ if [ "$CERT_MANAGER" = "vault" ]; then
       --osm-image-pull-policy "$IMAGE_PULL_POLICY" \
       --enable-debug-server \
       --enable-egress="$ENABLE_EGRESS" \
+      --enable-grafana="$ENABLE_GRAFANA" \
       --mesh-cidr "$MESH_CIDR" \
       $optionalInstallArgs
 else
@@ -126,6 +128,7 @@ else
       --osm-image-pull-policy "$IMAGE_PULL_POLICY" \
       --enable-debug-server \
       --enable-egress="$ENABLE_EGRESS" \
+      --enable-grafana="$ENABLE_GRAFANA" \
       --mesh-cidr "$MESH_CIDR" \
       $optionalInstallArgs
 fi
