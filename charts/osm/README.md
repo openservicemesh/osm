@@ -17,7 +17,8 @@ A Helm chart to install the OSM control plane on Kubernetes
 | OpenServiceMesh.enableBackpressureExperimental | bool | `false` |  |
 | OpenServiceMesh.enableDebugServer | bool | `false` |  |
 | OpenServiceMesh.enableEgress | bool | `false` |  |
-| OpenServiceMesh.enableMetricsStack | bool | `true` |  |
+| OpenServiceMesh.enableGrafana | bool | `false` |  |
+| OpenServiceMesh.enablePrometheus | bool | `true` |  |
 | OpenServiceMesh.enablePermissiveTrafficPolicy | bool | `false` |  |
 | OpenServiceMesh.envoyLogLevel | string | `"debug"` |  |
 | OpenServiceMesh.grafana.port | int | `3000` |  |

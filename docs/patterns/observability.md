@@ -14,7 +14,7 @@ OSM is able to automatically provision Prometheus and Grafana instances to monit
 
 ### Automatic bring up
 
-By default, OSM installation will deploy a Prometheus and Grafana stack (plus necessary rules for proper communication). OSM will annotate the pods joined in the mesh with necessary sections to later have Prometheus reach and scrape the pods, also by default.
+By default, OSM installation will deploy a Prometheus stack (plus necessary rules for proper communication). OSM will annotate the pods joined in the mesh with necessary sections to later have Prometheus reach and scrape the pods, also by default. To install a Grafana stack, set the enable-grafana flag to true when doing OSM install. 
 
 The automatic bring up can be overridden with the `osm install` option during install time:
 ```
@@ -22,7 +22,8 @@ osm install --help
 
 This command installs an osm control plane on the Kubernetes...
 ...
---enable-metrics-stack                Enable metrics (Prometheus and Grafana) deployment (default true)
+--enable-prometheus               Enable Prometheus deployment (default true)
+--enable-grafana                  Enable Grafana deployment (default false)
 ...
 ```
 
