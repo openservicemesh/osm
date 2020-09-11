@@ -241,7 +241,10 @@ OSM control plane exposes an HTTP server able to serve a number of resources.
 
 For mesh visibility and debugabbility, one can refer to the endpoints provided under [pkg/debugger](https://github.com/openservicemesh/osm/tree/main/pkg/debugger) which contains a number of endpoints able to inspect and list most of the common structures used by the control plane at runtime.
 
-Additionally, OSM imports and hooks [pprof endpoints](https://golang.org/pkg/net/http/pprof/). Pprof is a golang package able to provide profiling information at runtime through HTTP protocol to a connecting client.
+Additionally, the current implementation of the debugger imports and hooks [pprof endpoints](https://golang.org/pkg/net/http/pprof/).
+Pprof is a golang package able to provide profiling information at runtime through HTTP protocol to a connecting client.
+
+Debugging endpoints can be turned on or off through the runtime argument `enable-debug-server`, normally set on the deployment at install time through the CLI.
 
 Example usage:
 ```
