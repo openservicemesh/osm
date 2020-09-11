@@ -40,9 +40,10 @@ func recordCall(ts *httptest.Server, path string) *http.Response {
 
 var _ = Describe("Test httpserver", func() {
 	var (
-		mockCtrl   *gomock.Controller
-		mockProbe  *health.MockProbes
-		testServer *httptest.Server
+		mockCtrl        *gomock.Controller
+		mockProbe       *health.MockProbes
+		testServer      *httptest.Server
+		mockDebugServer *debugger.MockDebugServer
 	)
 	mockCtrl = gomock.NewController(GinkgoT())
 
@@ -51,16 +52,14 @@ var _ = Describe("Test httpserver", func() {
 		testProbes := []health.Probes{mockProbe}
 		metricsStore := metricsstore.NewMetricStore("TBD_NameSpace", "TBD_PodName")
 
-		// Fake debug server
-		var fakeDebugServer debugger.FakeDebugServer = debugger.FakeDebugServer{
-			Mappings: map[string]http.Handler{
-				validRoutePath: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					_, _ = fmt.Fprintf(w, responseBody)
-				}),
-			},
-		}
+		mockDebugServer = debugger.NewMockDebugServer(mockCtrl)
+		mockDebugServer.EXPECT().GetHandlers().Return(map[string]http.Handler{
+			validRoutePath: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				_, _ = fmt.Fprintf(w, responseBody)
+			}),
+		})
 
-		httpServ := NewHTTPServer(testProbes, nil, metricsStore, testPort, fakeDebugServer)
+		httpServ := NewHTTPServer(testProbes, nil, metricsStore, testPort, mockDebugServer)
 		testServer = &httptest.Server{
 			Config: httpServ.server,
 		}

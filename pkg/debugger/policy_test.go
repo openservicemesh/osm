@@ -3,9 +3,8 @@ package debugger
 import (
 	"fmt"
 	"net/http/httptest"
-	"testing"
-	"time"
 
+	gomock "github.com/golang/mock/gomock"
 	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha3"
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
@@ -14,24 +13,51 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
-func TestEndpoints(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Test Suite")
-}
-
 var _ = Describe("Test debugger methods", func() {
 	Context("Testing getSMIPoliciesHandler()", func() {
+		var (
+			mockCtrl *gomock.Controller
+			mock     *MockMeshCatalogDebugger
+		)
+
+		mockCtrl = gomock.NewController(GinkgoT())
+
+		BeforeEach(func() {
+
+			mock = NewMockMeshCatalogDebugger(mockCtrl)
+		})
+
 		It("returns JSON serialized SMI policies", func() {
-			mc := NewFakeMeshCatalogDebugger()
 			ds := debugServer{
-				meshCatalogDebugger: mc,
+				meshCatalogDebugger: mock,
 			}
+
+			mock.EXPECT().ListSMIPolicies().Return(
+				[]*split.TrafficSplit{
+					{
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace: "foo",
+							Name:      "bar",
+						}},
+				},
+				[]service.WeightedService{
+					tests.WeightedService,
+				},
+				[]service.K8sServiceAccount{
+					tests.BookbuyerServiceAccount,
+				},
+				[]*spec.HTTPRouteGroup{
+					&tests.HTTPRouteGroup,
+				},
+				[]*target.TrafficTarget{
+					&tests.TrafficTarget,
+				},
+			)
+
 			smiPoliciesHandler := ds.getSMIPoliciesHandler()
 			responseRecorder := httptest.NewRecorder()
 			smiPoliciesHandler.ServeHTTP(responseRecorder, nil)
@@ -41,52 +67,3 @@ var _ = Describe("Test debugger methods", func() {
 		})
 	})
 })
-
-type fakeMeshCatalogDebuger struct{}
-
-// ListExpectedProxies implements MeshCatalogDebugger
-func (f fakeMeshCatalogDebuger) ListExpectedProxies() map[certificate.CommonName]time.Time {
-	panic("implement me")
-}
-
-// ListConnectedProxies implements MeshCatalogDebugger
-func (f fakeMeshCatalogDebuger) ListConnectedProxies() map[certificate.CommonName]*envoy.Proxy {
-	panic("implement me")
-}
-
-// ListDisconnectedProxies implements MeshCatalogDebugger
-func (f fakeMeshCatalogDebuger) ListDisconnectedProxies() map[certificate.CommonName]time.Time {
-	panic("implement me")
-}
-
-// ListSMIPolicies implements MeshCatalogDebugger
-func (f fakeMeshCatalogDebuger) ListSMIPolicies() ([]*split.TrafficSplit, []service.WeightedService, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget) {
-	return []*split.TrafficSplit{{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "foo",
-				Name:      "bar",
-			}},
-		},
-		[]service.WeightedService{
-			tests.WeightedService,
-		},
-		[]service.K8sServiceAccount{
-			tests.BookbuyerServiceAccount,
-		},
-		[]*spec.HTTPRouteGroup{
-			&tests.HTTPRouteGroup,
-		},
-		[]*target.TrafficTarget{
-			&tests.TrafficTarget,
-		}
-}
-
-// ListMonitoredNamespaces implements MeshCatalogDebugger
-func (f fakeMeshCatalogDebuger) ListMonitoredNamespaces() []string {
-	return []string{tests.Namespace}
-}
-
-// NewFakeMeshCatalogDebugger implements and creates a new MeshCatalogDebugger
-func NewFakeMeshCatalogDebugger() MeshCatalogDebugger {
-	return fakeMeshCatalogDebuger{}
-}
