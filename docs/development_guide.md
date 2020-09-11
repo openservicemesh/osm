@@ -266,8 +266,8 @@ for the different Kubernetes resources that are deployed as a part of the Open S
 The different chart templates are used as follows:
 - `osm-*.yaml` chart templates are directly consumed by the `osm-controller` service.
 - `mutatingwebhook.yaml` is used to deploy a `MutatingWebhookConfiguration` kubernetes resource that enables automatic sidecar injection
--  `grafana-*.yaml` chart templates are used to deploy a Grafana instance when the metrics stack is enabled
-- `prometheus-*.yaml` chart templates are used to deploy a Prometheus instance when the metrics stack is enabled
+-  `grafana-*.yaml` chart templates are used to deploy a Grafana instance when grafana installation is enabled
+- `prometheus-*.yaml` chart templates are used to deploy a Prometheus instance when prometheus installation is enabled
 - `jaeger-*.yaml` chart templates are used to deploy a Jaeger instance when tracing is enabled
 
 ### Custom Resource Definitions
