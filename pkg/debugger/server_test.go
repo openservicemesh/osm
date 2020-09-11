@@ -8,7 +8,7 @@ import (
 	testclient "k8s.io/client-go/kubernetes/fake"
 )
 
-var _ = Describe("Test debugger/server methods", func() {
+var _ = Describe("Test server methods", func() {
 	var (
 		mockCtrl            *gomock.Controller
 		mockCatalogDebugger *MockMeshCatalogDebugger

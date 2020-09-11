@@ -11,7 +11,7 @@ import (
 )
 
 // Tests if namespace handler returns default namespace correctly
-var _ = Describe("Test debugger methods", func() {
+var _ = Describe("Test debugger namespace methods", func() {
 	var (
 		mockCtrl *gomock.Controller
 		mock     *MockMeshCatalogDebugger

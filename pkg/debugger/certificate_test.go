@@ -13,7 +13,7 @@ import (
 )
 
 // Tests if namespace handler returns default namespace correctly
-var _ = Describe("Test debugger methods", func() {
+var _ = Describe("Test debugger certificate methods", func() {
 	var (
 		mockCtrl *gomock.Controller
 		mock     *MockCertificateManagerDebugger
@@ -26,7 +26,7 @@ var _ = Describe("Test debugger methods", func() {
 		Expect(err).To(BeNil())
 	})
 
-	It("returns JSON serialized monitored namespaces", func() {
+	It("returns stringyfied list of certificates", func() {
 		ds := debugServer{
 			certDebugger: mock,
 		}
