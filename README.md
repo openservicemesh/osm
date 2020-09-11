@@ -9,7 +9,7 @@ In case of OSM, REST service will bypass envoy. We add iptables rules to bypass 
     Similarly, add another inbound rule like below along with other PROXY_INBOUND rules
         iptables -t nat -A PROXY_INBOUND -p tcp --dport "49" -j RETURN  # tacacs
     change port # to the new REST port #.
-2. Edit .env file to change the following line
+2. Edit ws/build.sh file to change the following line
         export CTR_TAG=osmlatest3
    Bump up the version to something like "osmlatest4" or whatever would be latest.
 3. Run ws/build.sh
