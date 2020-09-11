@@ -4,8 +4,9 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	testclient "k8s.io/client-go/kubernetes/fake"
+
+	"github.com/openservicemesh/osm/pkg/configurator"
 )
 
 var _ = Describe("Test server methods", func() {
