@@ -2,6 +2,7 @@ package debugger
 
 import (
 	"net/http"
+	"net/http/pprof"
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -18,6 +19,12 @@ func (ds debugServer) GetHandlers() map[string]http.Handler {
 		"/debug/policies":   ds.getSMIPoliciesHandler(),
 		"/debug/config":     ds.getOSMConfigHandler(),
 		"/debug/namespaces": ds.getMonitoredNamespacesHandler(),
+		// Pprof handlers
+		"/debug/pprof/":        http.HandlerFunc(pprof.Index),
+		"/debug/pprof/cmdline": http.HandlerFunc(pprof.Cmdline),
+		"/debug/pprof/profile": http.HandlerFunc(pprof.Profile),
+		"/debug/pprof/symbol":  http.HandlerFunc(pprof.Symbol),
+		"/debug/pprof/trace":   http.HandlerFunc(pprof.Trace),
 	}
 
 	// provides an index of the available /debug endpoints
