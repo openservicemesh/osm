@@ -1,5 +1,6 @@
 #!/bin/bash
 
+set -x
 set -aueo pipefail
 
 PROXY_ADMIN_PORT=${PROXY_ADMIN_PORT:-15000}
@@ -11,6 +12,7 @@ SSH_PORT=${SSH_PORT:-22}
 
 #clean old chain
 iptables -t nat -F
+iptables -t nat -X
 #iptables -t nat -X PROXY_REDIRECT
 #iptables -t nat -X PROXY_OUTPUT
 #iptables -t nat -X PROXY_IN_REDIRECT
