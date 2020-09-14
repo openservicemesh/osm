@@ -23,8 +23,10 @@ iptables -t nat -N PROXY_REDIRECT
 
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "22" -j ACCEPT # ssh port
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "49" -j ACCEPT # tacacs
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "69" -j ACCEPT # tftp
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "389" -j ACCEPT # radius port
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "587" -j ACCEPT # email port
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "636" -j ACCEPT # ldaps
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "830" -j ACCEPT # netconf 
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "2579" -j ACCEPT # kine
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "2500" -j ACCEPT # osm-rest
@@ -41,6 +43,7 @@ iptables -t nat -A PROXY_REDIRECT -p tcp --dport "8100:8110" -j ACCEPT # proxyd
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "8200" -j ACCEPT # valult
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "8443" -j ACCEPT # apiserver
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9000:9004" -j ACCEPT # m3db/metricsd
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9063:9064" -j ACCEPT # alertdispatch
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9073" -j ACCEPT # identityd
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9085" -j ACCEPT # filed
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9097" -j ACCEPT # endpointd
@@ -73,8 +76,10 @@ iptables -t nat -A PROXY_INBOUND -p tcp --dport "${SSH_PORT}" -j RETURN
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "${PROXY_STATS_PORT}" -j RETURN
 
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "49" -j RETURN  # tacacs
+iptables -t nat -A PROXY_INBOUND -p tcp --dport "69" -j RETURN  # tftp
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "389" -j RETURN  # radius
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "587" -j RETURN  # email
+iptables -t nat -A PROXY_INBOUND -p tcp --dport "636" -j RETURN  # ldaps
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "830" -j RETURN  # netconf
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "2579" -j RETURN  # kine
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "2500" -j RETURN  # osm-rest
@@ -91,6 +96,7 @@ iptables -t nat -A PROXY_INBOUND -p tcp --dport "8100:8110" -j RETURN  # proxyd
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "8200" -j RETURN  # valult
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "8443" -j RETURN  # apiserver
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "9000:9004" -j RETURN  # m3db/metricsd
+iptables -t nat -A PROXY_INBOUND -p tcp --dport "9063:9064" -j RETURN  # alertdispatch
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "9073" -j RETURN  # identityd
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "9085" -j RETURN  # filed
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "9097" -j RETURN  # endpointd
