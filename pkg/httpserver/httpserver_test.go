@@ -55,7 +55,7 @@ var _ = Describe("Test httpserver", func() {
 		mockDebugServer = debugger.NewMockDebugServer(mockCtrl)
 		mockDebugServer.EXPECT().GetHandlers().Return(map[string]http.Handler{
 			validRoutePath: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				_, _ = fmt.Fprintf(w, responseBody)
+				_, _ = fmt.Fprint(w, responseBody)
 			}),
 		})
 
