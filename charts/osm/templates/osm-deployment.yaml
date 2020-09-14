@@ -71,6 +71,7 @@ spec:
               path: /health/alive
               port: 9091
           env:
+            # The CONTROLLER_POD_NAME env variable sets pod name dynamically, used by osm-controller to register events
             - name: CONTROLLER_POD_NAME
               valueFrom:
                 fieldRef:
