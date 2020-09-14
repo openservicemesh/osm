@@ -127,7 +127,9 @@ func main() {
 		log.Fatal().Msg("Error fetching osm-controller pod")
 	}
 	eventRecorder := events.GenericEventRecorder()
-	eventRecorder.Initialize(controllerPod, kubeClient, osmNamespace)
+	if err := eventRecorder.Initialize(controllerPod, kubeClient, osmNamespace); err != nil {
+		log.Fatal().Msg("Error initializing generic event recorder")
+	}
 
 	// This ensures CLI parameters (and dependent values) are correct.
 	if err := validateCLIParams(); err != nil {

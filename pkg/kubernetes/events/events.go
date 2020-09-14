@@ -39,14 +39,21 @@ const (
 	fatalEventWaitTimeout = 10 * time.Second
 )
 
-// NewEventRecorder returns a new EventRecorder object
-func NewEventRecorder(object runtime.Object, kubeClient kubernetes.Interface, namespace string) *EventRecorder {
-	recorder, watcher := eventRecorder(kubeClient, namespace)
+// NewEventRecorder returns a new EventRecorder object and an error in case of errors
+func NewEventRecorder(object runtime.Object, kubeClient kubernetes.Interface, namespace string) (*EventRecorder, error) {
+	recorder := eventRecorder(kubeClient, namespace)
+	watcher, err := eventWatcher(kubeClient, namespace)
+
+	if err != nil {
+		log.Error().Err(err).Msg("Error initializing event watcher")
+		return nil, err
+	}
+
 	return &EventRecorder{
 		recorder: recorder,
 		watcher:  watcher,
 		object:   object,
-	}
+	}, nil
 }
 
 // GenericEventRecorder is a singleton that returns a generic EventRecorder type.
@@ -59,8 +66,8 @@ func GenericEventRecorder() *EventRecorder {
 	return genericEventRecorder
 }
 
-// eventRecorder returns an EventRecorder that can be used to post Kubernetes events, and its watcher
-func eventRecorder(kubeClient kubernetes.Interface, namespace string) (record.EventRecorder, watch.Interface) {
+// eventRecorder returns an EventRecorder that can be used to post Kubernetes events
+func eventRecorder(kubeClient kubernetes.Interface, namespace string) record.EventRecorder {
 	eventBroadcaster := record.NewBroadcaster()
 	eventBroadcaster.StartLogging(log.Trace().Msgf)
 	eventBroadcaster.StartRecordingToSink(
@@ -69,17 +76,28 @@ func eventRecorder(kubeClient kubernetes.Interface, namespace string) (record.Ev
 	recorder := eventBroadcaster.NewRecorder(
 		scheme.Scheme,
 		corev1.EventSource{Component: eventSource})
+
+	return recorder
+}
+
+// eventWatcher returns a Kubernetes watch interface to watch events, and an error in case of errors
+func eventWatcher(kubeClient kubernetes.Interface, namespace string) (watch.Interface, error) {
 	watcher, err := kubeClient.CoreV1().Events(namespace).Watch(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		log.Error().Err(err).Msg("error getting watcher")
+		log.Error().Err(err).Msg("Error getting watcher for Events resource")
+		return nil, err
 	}
-	return recorder, watcher
+	return watcher, nil
 }
 
 // Initialize intitializes an uninitialized EventRecorder object
-func (e *EventRecorder) Initialize(object runtime.Object, kubeClient kubernetes.Interface, namespace string) {
+func (e *EventRecorder) Initialize(object runtime.Object, kubeClient kubernetes.Interface, namespace string) error {
+	var err error
 	e.object = object
-	e.recorder, e.watcher = eventRecorder(kubeClient, namespace)
+	e.recorder = eventRecorder(kubeClient, namespace)
+	e.watcher, err = eventWatcher(kubeClient, namespace)
+
+	return err
 }
 
 // recordEvent records a Kubernetes event. Kubernetes events are non-blocking.

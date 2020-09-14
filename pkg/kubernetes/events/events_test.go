@@ -65,8 +65,9 @@ func TestSpecificEventRecording(t *testing.T) {
 		},
 	}
 
-	eventRecorder := NewEventRecorder(pod, kubeClient, "test")
+	eventRecorder, err := NewEventRecorder(pod, kubeClient, "test")
 
+	assert.Nil(err)
 	assert.NotNil(eventRecorder.object)
 	assert.NotNil(eventRecorder.recorder)
 	assert.NotNil(eventRecorder.watcher)
