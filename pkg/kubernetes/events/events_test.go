@@ -30,7 +30,9 @@ func setup() {
 	}
 
 	eventRecorder := GenericEventRecorder()
-	eventRecorder.Initialize(pod, kubeClient, "test")
+	if err := eventRecorder.Initialize(pod, kubeClient, "test"); err != nil {
+		log.Fatal().Err(err).Msg("Error initializing event recorder")
+	}
 }
 
 func TestGenericEventRecording(t *testing.T) {
