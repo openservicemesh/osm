@@ -10,6 +10,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 )
 
+// Tests GetHandlers returns the expected debug endpoints and non-nil handlers
 func TestGetHandlers(t *testing.T) {
 	assert := assert.New(t)
 	mockCtrl := gomock.NewController(t)

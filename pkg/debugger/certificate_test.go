@@ -12,7 +12,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 )
 
-// Tests if getCertificateHandler through HTTP handler
+// Tests getCertificateHandler through HTTP handler returns a certificate stringified
 func TestGetCertHandler(t *testing.T) {
 	assert := assert.New(t)
 	mockCtrl := gomock.NewController(t)

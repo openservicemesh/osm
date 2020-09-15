@@ -15,6 +15,8 @@ import (
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
+// Tests TestGetSMIPolicies through HTTP handler returns the list of SMI policies extracted from MeshCatalog
+// in string format
 func TestGetSMIPolicies(t *testing.T) {
 	assert := assert.New(t)
 	mockCtrl := gomock.NewController(t)

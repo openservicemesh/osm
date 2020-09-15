@@ -10,6 +10,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
+// Tests getMonitoredNamespaces through HTTP handler returns a the list of monitored namespaces
 func TestMonitoredNamespaceHandler(t *testing.T) {
 	assert := assert.New(t)
 	mockCtrl := gomock.NewController(t)
