@@ -70,6 +70,12 @@ spec:
               scheme: HTTP
               path: /health/alive
               port: 9091
+          env:
+            # The CONTROLLER_POD_NAME env variable sets pod name dynamically, used by osm-controller to register events
+            - name: CONTROLLER_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
     {{- if .Values.OpenServiceMesh.imagePullSecrets }}
       imagePullSecrets:
 {{ toYaml .Values.OpenServiceMesh.imagePullSecrets | indent 8 }}
