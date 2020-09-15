@@ -18,7 +18,7 @@ var _ = Describe("Test Tresor Debugger", func() {
 			expiration: time.Now(),
 			commonName: "foo.bar.co.uk",
 		}
-		cert.issuingCA = cert
+		cert.issuingCA = cert.GetCertificateChain()
 		cache := map[certificate.CommonName]certificate.Certificater{
 			"foo": cert,
 		}

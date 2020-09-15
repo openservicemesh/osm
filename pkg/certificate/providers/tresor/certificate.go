@@ -28,12 +28,7 @@ func (c Certificate) GetPrivateKey() []byte {
 
 // GetIssuingCA implements certificate.Certificater and returns the root certificate for the given cert.
 func (c Certificate) GetIssuingCA() []byte {
-	if c.issuingCA == nil {
-		log.Fatal().Msgf("No issuing CA available for cert %s", c.commonName)
-		return nil
-	}
-
-	return c.issuingCA.GetCertificateChain()
+	return c.issuingCA
 }
 
 // GetExpiration implements certificate.Certificater and returns the time the given certificate expires.
