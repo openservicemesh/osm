@@ -48,7 +48,11 @@ func getTresorOSMCertificateManager(kubeClient kubernetes.Interface, enableDebug
 	// load the CA from the given k8s secret within the namespace where OSM is install.d
 	// An empty string or nil value would not load or save/load CA.
 	if caBundleSecretName != "" {
-		rootCert = getCertFromKubernetes(kubeClient, osmNamespace, caBundleSecretName)
+		rootCert, err = getCertFromKubernetes(kubeClient, osmNamespace, caBundleSecretName)
+		if err != nil {
+			log.Error().Err(err).Msgf("Error retrieving root certificate from secret %s/%s", osmNamespace, caBundleSecretName)
+			return nil, nil, err
+		}
 	}
 
 	if rootCert == nil {
@@ -75,57 +79,47 @@ func getTresorOSMCertificateManager(kubeClient kubernetes.Interface, enableDebug
 	return certManager, certManager, nil
 }
 
-func getCertFromKubernetes(kubeClient kubernetes.Interface, namespace, secretName string) certificate.Certificater {
-	secrets, err := kubeClient.CoreV1().Secrets(namespace).List(context.Background(), metav1.ListOptions{})
-	if err != nil {
-		log.Error().Err(err).Msgf("Error listing secrets in namespace %q", namespace)
-	}
-	found := false
-	for _, secret := range secrets.Items {
-		if secret.Name == secretName {
-			found = true
-			break
-		}
-	}
-
-	if !found {
-		return nil
-	}
-
+// getCertFromKubernetes returns a Certificater type corresponding to the root certificate.
+// The function returns an error only if a secret is found with invalid data.
+func getCertFromKubernetes(kubeClient kubernetes.Interface, namespace, secretName string) (certificate.Certificater, error) {
 	rootCertSecret, err := kubeClient.CoreV1().Secrets(namespace).Get(context.Background(), secretName, metav1.GetOptions{})
 	if err != nil {
-		log.Warn().Msgf("Error retrieving root certificate rootCertSecret %q from namespace %q; Will create a new one", secretName, osmNamespace)
-		return nil
+		// It is okay for this secret to be missing, in which case a new CA will be created along with a k8s secret
+		log.Debug().Msgf("Could not retrieve root certificate secret %q from namespace %q", secretName, osmNamespace)
+		return nil, nil
 	}
 
 	pemCert, ok := rootCertSecret.Data[constants.KubernetesOpaqueSecretCAKey]
 	if !ok {
-		log.Error().Msgf("Opaque k8s secret %s/%s does not have required field %q", osmNamespace, secretName, constants.KubernetesOpaqueSecretCAKey)
-		return nil
+		log.Error().Err(errInvalidCertSecret).Msgf("Opaque k8s secret %s/%s does not have required field %q", osmNamespace, secretName, constants.KubernetesOpaqueSecretCAKey)
+		return nil, errInvalidCertSecret
 	}
 
 	pemKey, ok := rootCertSecret.Data[constants.KubernetesOpaqueSecretRootPrivateKeyKey]
 	if !ok {
-		log.Error().Msgf("Opaque k8s secret %s/%s does not have required field %q", osmNamespace, secretName, constants.KubernetesOpaqueSecretRootPrivateKeyKey)
-		return nil
+		log.Error().Err(errInvalidCertSecret).Msgf("Opaque k8s secret %s/%s does not have required field %q", osmNamespace, secretName, constants.KubernetesOpaqueSecretRootPrivateKeyKey)
+		return nil, errInvalidCertSecret
 	}
 
 	expirationBytes, ok := rootCertSecret.Data[constants.KubernetesOpaqueSecretCAExpiration]
 	if !ok {
-		log.Error().Msgf("Opaque k8s secret %s/%s does not have required field %q", osmNamespace, secretName, constants.KubernetesOpaqueSecretCAExpiration)
-		return nil
+		log.Error().Err(errInvalidCertSecret).Msgf("Opaque k8s secret %s/%s does not have required field %q", osmNamespace, secretName, constants.KubernetesOpaqueSecretCAExpiration)
+		return nil, errInvalidCertSecret
 	}
 
 	expiration, err := time.Parse(constants.TimeDateLayout, string(expirationBytes))
 	if err != nil {
 		log.Error().Err(err).Msgf("Error parsing CA expiration %q from Kubernetes rootCertSecret %q from namespace %q", string(expirationBytes), secretName, osmNamespace)
+		return nil, err
 	}
 
 	rootCert, err := tresor.NewCertificateFromPEM(pemCert, pemKey, expiration)
 	if err != nil {
-		log.Fatal().Err(err).Msgf("Failed to create new Certificate Authority with cert issuer %s", *osmCertificateManagerKind)
+		log.Error().Err(err).Msgf("Failed to create new Certificate Authority with cert issuer %s", *osmCertificateManagerKind)
+		return nil, err
 	}
-	return rootCert
+
+	return rootCert, nil
 }
 
 func getHashiVaultOSMCertificateManager(enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
