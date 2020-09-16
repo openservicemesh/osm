@@ -14,8 +14,8 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
-// NewKubernetesClient returns a new Client which means to provide access to locally-cached k8s resources
-func NewKubernetesClient(kubeClient kubernetes.Interface, meshName string, stop chan struct{}) Client {
+// NewKubernetesClient returns a new kubernetes.Controller which means to provide access to locally-cached k8s resources
+func NewKubernetesClient(kubeClient kubernetes.Interface, meshName string, stop chan struct{}) (Controller, error) {
 	// Initialize client object
 	client := Client{
 		kubeClient:    kubeClient,
@@ -30,10 +30,11 @@ func NewKubernetesClient(kubeClient kubernetes.Interface, meshName string, stop 
 	client.initServicesMonitor()
 
 	if err := client.run(stop); err != nil {
-		log.Fatal().Err(err).Msg("Could not start Kubernetes Namespaces client")
+		log.Error().Err(err).Msg("Could not start Kubernetes Namespaces client")
+		return nil, err
 	}
 
-	return client
+	return client, nil
 }
 
 // Initializes Namespace monitoring

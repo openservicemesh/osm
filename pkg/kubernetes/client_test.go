@@ -24,7 +24,8 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 		It("should return a new namespace controller", func() {
 			kubeClient := testclient.NewSimpleClientset()
 			stop := make(chan struct{})
-			kubeController := NewKubernetesClient(kubeClient, testMeshName, stop)
+			kubeController, err := NewKubernetesClient(kubeClient, testMeshName, stop)
+			Expect(err).ToNot(HaveOccurred())
 			Expect(kubeController).ToNot(BeNil())
 		})
 	})
@@ -34,7 +35,9 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 			// Create namespace controller
 			kubeClient := testclient.NewSimpleClientset()
 			stop := make(chan struct{})
-			kubeController := NewKubernetesClient(kubeClient, testMeshName, stop)
+			kubeController, err := NewKubernetesClient(kubeClient, testMeshName, stop)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(kubeController).ToNot(BeNil())
 
 			// Create a test namespace that is monitored
 			testNamespaceName := fmt.Sprintf("%s-1", tests.Namespace)
@@ -61,7 +64,9 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 			// Create namespace controller
 			kubeClient := testclient.NewSimpleClientset()
 			stop := make(chan struct{})
-			kubeController := NewKubernetesClient(kubeClient, testMeshName, stop)
+			kubeController, err := NewKubernetesClient(kubeClient, testMeshName, stop)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(kubeController).ToNot(BeNil())
 
 			// Create a test namespace that is monitored
 			testNamespaceName := fmt.Sprintf("%s-1", tests.Namespace)
@@ -88,10 +93,13 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 	Context("service controller", func() {
 		var kubeClient *testclient.Clientset
 		var kubeController Controller
+		var err error
 
 		BeforeEach(func() {
 			kubeClient = testclient.NewSimpleClientset()
-			kubeController = NewKubernetesClient(kubeClient, testMeshName, make(chan struct{}))
+			kubeController, err = NewKubernetesClient(kubeClient, testMeshName, make(chan struct{}))
+			Expect(err).ToNot(HaveOccurred())
+			Expect(kubeController).ToNot(BeNil())
 		})
 
 		It("should create and delete services, and be detected if NS is monitored", func() {
