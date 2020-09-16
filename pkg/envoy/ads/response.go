@@ -43,7 +43,7 @@ func (s *Server) sendAllResponses(proxy *envoy.Proxy, server *xds_discovery.Aggr
 				log.Error().Err(err).Msgf("%s Error sending %s to proxy with CN=%s", prefix, typeURI, proxy.GetCommonName())
 			}
 		}
-		log.Debug().Msgf("%s (%s) prox:%s took %s",
+		log.Debug().Msgf("%s (%s) proxy %s took %s",
 			prefix,
 			typeURI.String()[strings.LastIndex(typeURI.String(), ".")+1:], // Last word of typeUri
 			proxy.GetCommonName(),
