@@ -149,7 +149,11 @@ func main() {
 	}
 	log.Info().Msgf("Initial ConfigMap %s: %s", osmConfigMapName, string(configMap))
 
-	kubernetesClient := k8s.NewKubernetesClient(kubeClient, meshName, stop)
+	kubernetesClient, err := k8s.NewKubernetesClient(kubeClient, meshName, stop)
+	if err != nil {
+		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Kubernetes Controller")
+	}
+
 	meshSpec, err := smi.NewMeshSpecClient(kubeConfig, kubeClient, osmNamespace, kubernetesClient, stop)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating MeshSpec")
