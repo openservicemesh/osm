@@ -14,8 +14,8 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
-// NewKubernetesClient returns a new kubernetes.Controller which means to provide access to locally-cached k8s resources
-func NewKubernetesClient(kubeClient kubernetes.Interface, meshName string, stop chan struct{}) (Controller, error) {
+// NewKubernetesController returns a new kubernetes.Controller which means to provide access to locally-cached k8s resources
+func NewKubernetesController(kubeClient kubernetes.Interface, meshName string, stop chan struct{}) (Controller, error) {
 	// Initialize client object
 	client := Client{
 		kubeClient:    kubeClient,

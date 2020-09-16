@@ -45,7 +45,7 @@ func bootstrapClient() (MeshSpec, *fakeKubeClientSet, error) {
 	smiTrafficSpecClientSet := testTrafficSpecClient.NewSimpleClientset()
 	smiTrafficTargetClientSet := testTrafficTargetClient.NewSimpleClientset()
 	osmPolicyClientSet := osmPolicyClient.NewSimpleClientset()
-	kubernetesClient, err := k8s.NewKubernetesClient(kubeClient, meshName, stop)
+	kubernetesClient, err := k8s.NewKubernetesController(kubeClient, meshName, stop)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error initializing kubernetes controller")
 	}
