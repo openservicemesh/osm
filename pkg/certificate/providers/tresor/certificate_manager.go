@@ -84,7 +84,7 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod *time.Dur
 		commonName: cn,
 		certChain:  certPEM,
 		privateKey: privKeyPEM,
-		issuingCA:  cm.ca,
+		issuingCA:  cm.ca.GetCertificateChain(),
 		expiration: template.NotAfter,
 	}
 

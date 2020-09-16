@@ -56,7 +56,6 @@ type Certificate struct {
 	certChain  pem.Certificate
 	privateKey pem.PrivateKey
 
-	// The CA issuing this certificate.
-	// If the certificate itself is a root certificate this would be nil.
-	issuingCA certificate.Certificater
+	// Certificate authority signing this certificate
+	issuingCA pem.RootCertificate
 }
