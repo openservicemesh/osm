@@ -211,7 +211,9 @@ func main() {
 
 	// Create and start the ADS gRPC service
 	xdsServer := ads.NewADSServer(meshCatalog, enableDebugServer, osmNamespace, cfg)
-	xdsServer.Start(ctx, cancel, *port, adsCert)
+	if err := xdsServer.Start(ctx, cancel, *port, adsCert); err != nil {
+		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error initializing ADS server")
+	}
 
 	// initialize the http server and start it
 	// TODO(draychev): figure out the NS and POD
