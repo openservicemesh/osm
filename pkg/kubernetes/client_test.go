@@ -24,7 +24,7 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 		It("should return a new namespace controller", func() {
 			kubeClient := testclient.NewSimpleClientset()
 			stop := make(chan struct{})
-			kubeController, err := NewKubernetesClient(kubeClient, testMeshName, stop)
+			kubeController, err := NewKubernetesController(kubeClient, testMeshName, stop)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(kubeController).ToNot(BeNil())
 		})
@@ -35,7 +35,7 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 			// Create namespace controller
 			kubeClient := testclient.NewSimpleClientset()
 			stop := make(chan struct{})
-			kubeController, err := NewKubernetesClient(kubeClient, testMeshName, stop)
+			kubeController, err := NewKubernetesController(kubeClient, testMeshName, stop)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(kubeController).ToNot(BeNil())
 
@@ -64,7 +64,7 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 			// Create namespace controller
 			kubeClient := testclient.NewSimpleClientset()
 			stop := make(chan struct{})
-			kubeController, err := NewKubernetesClient(kubeClient, testMeshName, stop)
+			kubeController, err := NewKubernetesController(kubeClient, testMeshName, stop)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(kubeController).ToNot(BeNil())
 
@@ -97,7 +97,7 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 
 		BeforeEach(func() {
 			kubeClient = testclient.NewSimpleClientset()
-			kubeController, err = NewKubernetesClient(kubeClient, testMeshName, make(chan struct{}))
+			kubeController, err = NewKubernetesController(kubeClient, testMeshName, make(chan struct{}))
 			Expect(err).ToNot(HaveOccurred())
 			Expect(kubeController).ToNot(BeNil())
 		})
