@@ -16,15 +16,16 @@ const (
 )
 
 // NewGrpc creates a new gRPC server
-func NewGrpc(serverType string, port int, certPem, keyPem, rootCertPem []byte) (*grpc.Server, net.Listener) {
+func NewGrpc(serverType string, port int, certPem, keyPem, rootCertPem []byte) (*grpc.Server, net.Listener, error) {
 	log.Info().Msgf("Setting up %s gRPC server...", serverType)
 	addr := fmt.Sprintf(":%d", port)
 	lis, err := net.Listen("tcp", addr)
 	if err != nil {
-		log.Fatal().Err(err).Msgf("Could not start %s gRPC server on %s", serverType, addr)
+		log.Error().Err(err).Msgf("Error starting %s gRPC server on %s", serverType, addr)
+		return nil, nil, err
 	}
 
-	log.Info().Msgf("Parameters for %s gRPC server: MaxConcurrentStreams=%d;  KeepAlive=%+v", serverType, maxStreams, streamKeepAliveDuration)
+	log.Debug().Msgf("Parameters for %s gRPC server: MaxConcurrentStreams=%d;  KeepAlive=%+v", serverType, maxStreams, streamKeepAliveDuration)
 
 	grpcOptions := []grpc.ServerOption{
 		grpc.MaxConcurrentStreams(maxStreams),
@@ -35,11 +36,12 @@ func NewGrpc(serverType string, port int, certPem, keyPem, rootCertPem []byte) (
 
 	mutualTLS, err := setupMutualTLS(false, serverType, certPem, keyPem, rootCertPem)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to setup mutual tls for GRPC server")
+		log.Error().Err(err).Msg("Error setting up mutual tls for GRPC server")
+		return nil, nil, err
 	}
 	grpcOptions = append(grpcOptions, mutualTLS)
 
-	return grpc.NewServer(grpcOptions...), lis
+	return grpc.NewServer(grpcOptions...), lis, nil
 }
 
 // GrpcServe starts the gRPC server passed.

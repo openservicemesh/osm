@@ -16,7 +16,7 @@ const (
 	InvalidCLIParameters = "FatalInvalidCLIParameters"
 
 	// InitializationError signifies an error during initialization
-	InitializationError = "FatalInnitializationError"
+	InitializationError = "FatalInitializationError"
 
 	// InvalidCertificateManager signifies that the certificate manager is invalid
 	InvalidCertificateManager = "FatalInvalidCertificateManager"

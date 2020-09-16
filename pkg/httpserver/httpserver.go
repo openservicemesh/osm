@@ -9,6 +9,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/debugger"
 	"github.com/openservicemesh/osm/pkg/health"
+	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 	"github.com/openservicemesh/osm/pkg/version"
@@ -65,7 +66,8 @@ func (s *HTTPServer) Start() {
 	go func() {
 		log.Info().Msgf("Starting API Server on %s", s.server.Addr)
 		if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatal().Err(err).Msg("Failed to start API server")
+			events.GenericEventRecorder().FatalEvent(err, events.InitializationError,
+				"Error starting HTTP server")
 		}
 	}()
 }
