@@ -15,10 +15,6 @@ import (
 )
 
 const (
-	prometheusScrapeAnnotation = "prometheus.io/scrape"
-	prometheusPortAnnotation   = "prometheus.io/port"
-	prometheusPathAnnotation   = "prometheus.io/path"
-
 	volumesBasePath        = "/spec/volumes"
 	initContainersBasePath = "/spec/initContainers"
 	labelsPath             = "/metadata/labels"
@@ -85,17 +81,24 @@ func (wh *webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 		"/spec/containers")...,
 	)
 
-	// Patch annotations
-	prometheusAnnotations := map[string]string{
-		prometheusScrapeAnnotation: strconv.FormatBool(true),
-		prometheusPortAnnotation:   strconv.Itoa(constants.EnvoyPrometheusInboundListenerPort),
-		prometheusPathAnnotation:   constants.PrometheusScrapePath,
+	enableMetrics, err := wh.isMetricsEnabled(namespace)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error checking if namespace %s is enabled for metrics", namespace)
+		return nil, err
 	}
-	patches = append(patches, updateAnnotation(
-		pod.Annotations,
-		prometheusAnnotations,
-		"/metadata/annotations")...,
-	)
+	if enableMetrics {
+		// Patch annotations
+		prometheusAnnotations := map[string]string{
+			constants.PrometheusScrapeAnnotation: strconv.FormatBool(true),
+			constants.PrometheusPortAnnotation:   strconv.Itoa(constants.EnvoyPrometheusInboundListenerPort),
+			constants.PrometheusPathAnnotation:   constants.PrometheusScrapePath,
+		}
+		patches = append(patches, updateAnnotation(
+			pod.Annotations,
+			prometheusAnnotations,
+			"/metadata/annotations")...,
+		)
+	}
 
 	patches = append(patches, *updateLabels(pod, proxyUUID))
 

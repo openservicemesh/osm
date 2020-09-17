@@ -133,7 +133,25 @@ const (
 
 	// InitContainerName is the name of the init container
 	InitContainerName = "osm-init"
+)
 
+// Annotations used by the controller
+const (
 	// SidecarInjectionAnnotation is the annotation used for sidecar injection
 	SidecarInjectionAnnotation = "openservicemesh.io/sidecar-injection"
+
+	// MetricsAnnotation is the annotation used for enabling/disabling metrics
+	MetricsAnnotation = "openservicemesh.io/metrics"
+)
+
+// Annotations used for Metrics
+const (
+	// PrometheusScrapeAnnotation is the annotation used to configure prometheus scraping
+	PrometheusScrapeAnnotation = "prometheus.io/scrape"
+
+	// PrometheusPortAnnotation is the anontation used to configure the port to scrape on
+	PrometheusPortAnnotation = "prometheus.io/port"
+
+	// PrometheusPathAnnotation is the annotation used to configure the path to scrape on
+	PrometheusPathAnnotation = "prometheus.io/path"
 )
