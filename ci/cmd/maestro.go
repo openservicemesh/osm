@@ -108,8 +108,7 @@ func main() {
 	maestro.SearchLogsForSuccess(kubeClient, bookthiefNS, bookThiefPodName, bookThiefLabel, maxWaitForOK(), bookThiefCh, common.Success, common.Failure)
 
 	bookWarehouseCh := make(chan maestro.TestResult)
-	successToken := "Restocking bookstore with 1 new books; Total so far: 3 "
-	maestro.SearchLogsForSuccess(kubeClient, bookWarehouseNS, bookWarehousePodName, bookWarehouseLabel, maxWaitForOK(), bookWarehouseCh, successToken, common.Failure)
+	maestro.SearchLogsForSuccess(kubeClient, bookWarehouseNS, bookWarehousePodName, bookWarehouseLabel, maxWaitForOK(), bookWarehouseCh, common.Success, common.Failure)
 
 	bookBuyerTestResult := <-bookBuyerCh
 	bookThiefTestResult := <-bookThiefCh

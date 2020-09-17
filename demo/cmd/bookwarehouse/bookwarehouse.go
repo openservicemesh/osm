@@ -44,6 +44,9 @@ func restockBooks(w http.ResponseWriter, r *http.Request) {
 	totalBooks = totalBooks + numberOfBooks
 
 	log.Info().Msgf("Restocking bookstore with %d new books; Total so far: %d", numberOfBooks, totalBooks)
+	if totalBooks >= 3 {
+		fmt.Println(common.Success)
+	}
 }
 
 func main() {
