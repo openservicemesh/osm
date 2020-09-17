@@ -116,6 +116,7 @@ var _ = Describe("Test ADS response functions", func() {
 		mockConfigurator.EXPECT().IsEgressEnabled().Return(false).AnyTimes()
 		mockConfigurator.EXPECT().IsPrometheusScrapingEnabled().Return(false).AnyTimes()
 		mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
+		mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
 
 		It("returns Aggregated Discovery Service response", func() {
 			s := NewADSServer(mc, true, tests.Namespace, mockConfigurator)

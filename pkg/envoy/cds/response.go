@@ -66,8 +66,8 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 	}
 	clusterFactories[localCluster.Name] = localCluster
 
-	if cfg.IsEgressEnabled() {
-		// Add a pass-through cluster for egress
+	if cfg.IsEgressEnabled() || cfg.IsPermissiveTrafficPolicyMode() {
+		// Add a pass-through cluster for egress or permissive
 		passthroughCluster := getOutboundPassthroughCluster()
 		clusterFactories[passthroughCluster.Name] = passthroughCluster
 	}
