@@ -190,7 +190,7 @@ func getFilterForService(meshSvc service.MeshService, cfg configurator.Configura
 }
 
 // getFilterChainMatchForService builds a filter chain to match the destination traffic.
-// Filter Chain matches currently match on destination IP for possible service endpoint leafs
+// Filter Chain currently match on destination IP for possible service endpoints
 func getFilterChainMatchForService(meshSvc service.MeshService, catalog catalog.MeshCataloger, cfg configurator.Configurator) (*xds_listener.FilterChainMatch, error) {
 	ret := &xds_listener.FilterChainMatch{}
 
