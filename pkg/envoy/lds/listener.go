@@ -171,17 +171,17 @@ func getFilterForService(dstSvc service.MeshService, cfg configurator.Configurat
 
 // getFilterChainMatchForService builds a filter chain to match the destination traffic.
 // Filter Chain currently match on destination IP for possible service endpoints
-func getFilterChainMatchForService(meshSvc service.MeshService, catalog catalog.MeshCataloger, cfg configurator.Configurator) (*xds_listener.FilterChainMatch, error) {
+func getFilterChainMatchForService(dstSvc service.MeshService, catalog catalog.MeshCataloger, cfg configurator.Configurator) (*xds_listener.FilterChainMatch, error) {
 	ret := &xds_listener.FilterChainMatch{}
 
-	endpoints, err := catalog.GetResolvableServiceEndpoints(meshSvc)
+	endpoints, err := catalog.GetResolvableServiceEndpoints(dstSvc)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting GetResolvableServiceEndpoints for %s", meshSvc.String())
+		log.Error().Err(err).Msgf("Error getting GetResolvableServiceEndpoints for %s", dstSvc.String())
 		return nil, err
 	}
 
 	if len(endpoints) == 0 {
-		log.Error().Err(err).Msgf("No resolvable addresses retured for service %s", meshSvc.String())
+		log.Error().Err(err).Msgf("No resolvable addresses retured for service %s", dstSvc.String())
 		return nil, errNoValidTargetEndpoints
 	}
 
