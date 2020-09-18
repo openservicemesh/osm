@@ -51,7 +51,6 @@ func newMetricsDisable(out io.Writer) *cobra.Command {
 		},
 	}
 
-	//add mesh name flag
 	f := cmd.Flags()
 	f.StringSliceVar(&disableCmd.namespaces, "namespace", []string{}, "One or more namespaces to disable metrics on")
 
