@@ -33,18 +33,20 @@ func TestGetFilterForService(t *testing.T) {
 	mockConfigurator.EXPECT().IsTracingEnabled().Return(true)
 	mockConfigurator.EXPECT().GetTracingEndpoint().Return("test-endpoint")
 
-	// Check now we get a TCP proxy with permissive
-	wlknFilterName, _, err := getFilterForService(tests.BookbuyerService, mockConfigurator)
+	// Check we get HTTP connection manager filter without Permissive mode
+	filter, err := getFilterForService(tests.BookbuyerService, mockConfigurator)
 
 	assert.NoError(err)
-	assert.Equal(wlknFilterName, wellknown.HTTPConnectionManager)
+	assert.Equal(filter.Name, wellknown.HTTPConnectionManager)
 
-	// Check now we get a TCP proxy with permissive
+	// Check we get HTTP connection manager filter with Permissive mode
 	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(true)
+	mockConfigurator.EXPECT().IsTracingEnabled().Return(true)
+	mockConfigurator.EXPECT().GetTracingEndpoint().Return("test-endpoint")
 
-	wlknFilterName, _, err = getFilterForService(tests.BookbuyerService, mockConfigurator)
+	filter, err = getFilterForService(tests.BookbuyerService, mockConfigurator)
 	assert.NoError(err)
-	assert.Equal(wlknFilterName, wellknown.TCPProxy)
+	assert.Equal(filter.Name, wellknown.HTTPConnectionManager)
 }
 
 // Tests TestGetFilterChainMatchForService checks that a proper filter chain match is returned

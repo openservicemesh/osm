@@ -152,41 +152,21 @@ func getCIDRRange(cidr string) (*xds_core.CidrRange, error) {
 }
 
 // getFilterForService builds a network filter action for traffic destined to a specific service
-func getFilterForService(meshSvc service.MeshService, cfg configurator.Configurator) (string, *any.Any, error) {
+func getFilterForService(dstSvc service.MeshService, cfg configurator.Configurator) (*xds_listener.Filter, error) {
 	var marshalledFilter *any.Any
-	var wellknownFilterName string
 	var err error
 
-	if cfg.IsPermissiveTrafficPolicyMode() {
-		// Stright TCP proxy
-		wellknownFilterName = wellknown.TCPProxy
-
-		tcpProxy := &xds_tcp_proxy.TcpProxy{
-			StatPrefix: meshSvc.String(),
-			ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{
-				// TODO: Move this to get Cluster name based on MeshService
-				Cluster: meshSvc.String(),
-			},
-		}
-
-		marshalledFilter, err = envoy.MessageToAny(tcpProxy)
-		if err != nil {
-			log.Error().Err(err).Msgf("Error marshalling TcpProxy object")
-			return "", nil, err
-		}
-	} else {
-		// Have HTTP Connection Manager (and later RDS) do the policying
-		wellknownFilterName = wellknown.HTTPConnectionManager
-
-		marshalledFilter, err = envoy.MessageToAny(
-			getHTTPConnectionManager(route.OutboundRouteConfigName, cfg))
-		if err != nil {
-			log.Error().Err(err).Msgf("Error marshalling HTTPConnManager object")
-			return "", nil, err
-		}
+	marshalledFilter, err = envoy.MessageToAny(
+		getHTTPConnectionManager(route.OutboundRouteConfigName, cfg))
+	if err != nil {
+		log.Error().Err(err).Msgf("Error marshalling HTTPConnManager object")
+		return nil, err
 	}
 
-	return wellknownFilterName, marshalledFilter, nil
+	return &xds_listener.Filter{
+		Name:       wellknown.HTTPConnectionManager,
+		ConfigType: &xds_listener.Filter_TypedConfig{TypedConfig: marshalledFilter},
+	}, nil
 }
 
 // getFilterChainMatchForService builds a filter chain to match the destination traffic.
@@ -251,7 +231,6 @@ func getFilterChains(catalog catalog.MeshCataloger, cfg configurator.Configurato
 
 	// Iterate all destination services
 	for keyService := range dstServicesSet {
-
 		// Filterchain for current dest
 		filterChain := xds_listener.FilterChain{
 			Name:             keyService.String(),
@@ -260,15 +239,12 @@ func getFilterChains(catalog catalog.MeshCataloger, cfg configurator.Configurato
 		}
 
 		// Get filter for service
-		filterName, filterProto, err := getFilterForService(keyService, cfg)
+		filter, err := getFilterForService(keyService, cfg)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error getting filter for dst service %s", keyService.String())
 			return nil, err
 		}
-		filterChain.Filters = append(filterChain.Filters, &xds_listener.Filter{
-			Name:       filterName,
-			ConfigType: &xds_listener.Filter_TypedConfig{TypedConfig: filterProto},
-		})
+		filterChain.Filters = append(filterChain.Filters, filter)
 
 		// Get filter match criteria for destination service
 		filterChainMatch, err := getFilterChainMatchForService(keyService, catalog, cfg)
@@ -276,14 +252,13 @@ func getFilterChains(catalog catalog.MeshCataloger, cfg configurator.Configurato
 			log.Error().Err(err).Msgf("Error getting Chain Match for service %s", keyService.String())
 			return nil, err
 		}
-
 		filterChain.FilterChainMatch = filterChainMatch
+
 		ret = append(ret, &filterChain)
 	}
 
-	// This filterchain represents connectivity to any cluster not explicitely part of the mesh,
-	// and can be used by both permissive and egress
-	if cfg.IsEgressEnabled() || cfg.IsPermissiveTrafficPolicyMode() {
+	// This filterchain represents connectivity to any destination
+	if cfg.IsEgressEnabled() {
 		egressFilterChgain, err := buildEgressFilterChain()
 		if err != nil {
 			log.Error().Err(err).Msgf("Error getting filter chain for Egress")
