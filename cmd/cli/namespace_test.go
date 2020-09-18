@@ -409,8 +409,8 @@ var _ = Describe("Running the namespace list command", func() {
 		)
 
 		// helper function that adds a name space to the clientset
-		addNamespace := func(name, mesh string) {
-			ns := createNamespaceSpec(name, mesh, false)
+		addNamespace := func(name, mesh string, enableSideCarInjection bool) {
+			ns := createNamespaceSpec(name, mesh, enableSideCarInjection)
 			fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), ns, metav1.CreateOptions{})
 		}
 
@@ -431,9 +431,9 @@ var _ = Describe("Running the namespace list command", func() {
 		})
 
 		It("should only have namespaces enlisted", func() {
-			addNamespace("enlisted1", "mesh1")
-			addNamespace("enlisted2", "mesh2")
-			addNamespace("not-enlisted", "")
+			addNamespace("enlisted1", "mesh1", false)
+			addNamespace("enlisted2", "mesh2", false)
+			addNamespace("not-enlisted", "", false)
 
 			namespaces, err = listCmd.selectNamespaces()
 
@@ -457,8 +457,8 @@ var _ = Describe("Running the namespace list command", func() {
 		})
 
 		It("should only have namespaces from mesh requested", func() {
-			addNamespace("enlisted1", "mesh1")
-			addNamespace("enlisted2", "mesh2")
+			addNamespace("enlisted1", "mesh1", false)
+			addNamespace("enlisted2", "mesh2", false)
 			listCmd.meshName = "mesh2"
 
 			namespaces, err = listCmd.selectNamespaces()
@@ -475,9 +475,34 @@ var _ = Describe("Running the namespace list command", func() {
 			}))
 		})
 
+		It("Should only enlisted1 namespace be enabled sidecar injection", func() {
+			addNamespace("enlisted1", "mesh1", true)
+			addNamespace("enlisted2", "mesh2", false)
+
+			namespaces, err = listCmd.selectNamespaces()
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(namespaces.Items).To(gstruct.MatchAllElements(idSelector, gstruct.Elements{
+				"enlisted1": gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
+					"ObjectMeta": gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
+						"Annotations": gstruct.MatchKeys(gstruct.IgnoreMissing, gstruct.Keys{
+							constants.SidecarInjectionAnnotation: Equal("enabled"),
+						}),
+					}),
+				}),
+				"enlisted2": gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
+					"ObjectMeta": gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
+						"Annotations": gstruct.MatchKeys(gstruct.IgnoreMissing, gstruct.Keys{
+							constants.SidecarInjectionAnnotation: Equal(""),
+						}),
+					}),
+				}),
+			}))
+		})
+
 		It("should have empty list if mesh doesn't have any namespaces assigned", func() {
-			addNamespace("enlisted1", "mesh1")
-			addNamespace("enlisted2", "mesh2")
+			addNamespace("enlisted1", "mesh1", false)
+			addNamespace("enlisted2", "mesh2", false)
 
 			listCmd.meshName = "someothermesh"
 
@@ -487,8 +512,8 @@ var _ = Describe("Running the namespace list command", func() {
 		})
 
 		It("should print no namespaces message if requested mesh doesn't have any namespaces assigned", func() {
-			addNamespace("enlisted1", "mesh1")
-			addNamespace("enlisted2", "mesh2")
+			addNamespace("enlisted1", "mesh1", false)
+			addNamespace("enlisted2", "mesh2", false)
 
 			listCmd.meshName = "someothermesh"
 			err = listCmd.run()
@@ -497,7 +522,7 @@ var _ = Describe("Running the namespace list command", func() {
 		})
 
 		It("should print no namespaces message if there are no namespaces assigned", func() {
-			addNamespace("not-enlisted", "")
+			addNamespace("not-enlisted", "", false)
 
 			err = listCmd.run()
 			Expect(err).NotTo(HaveOccurred())
