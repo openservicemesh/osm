@@ -102,9 +102,12 @@ func (a *namespaceAddCmd) run() error {
 	"metadata": {
 		"labels": {
 			"%s": "%s"
+		},
+		"annotations": {
+			"%s": null
 		}
 	}
-}`, constants.OSMKubeResourceMonitorAnnotation, a.meshName)
+}`, constants.OSMKubeResourceMonitorAnnotation, a.meshName, constants.SidecarInjectionAnnotation)
 			}
 
 			_, err := a.clientSet.CoreV1().Namespaces().Patch(ctx, ns, types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{}, "")
