@@ -257,7 +257,8 @@ func getFilterChains(catalog catalog.MeshCataloger, cfg configurator.Configurato
 		ret = append(ret, &filterChain)
 	}
 
-	// This filterchain represents connectivity to any destination
+	// This filterchain matches any traffic not filtered by allow rules, it will be treated as egress
+	// traffic when enabled
 	if cfg.IsEgressEnabled() {
 		egressFilterChgain, err := buildEgressFilterChain()
 		if err != nil {

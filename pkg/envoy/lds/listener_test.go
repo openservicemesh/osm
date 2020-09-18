@@ -76,7 +76,6 @@ func TestGetFilterChainMatchForService(t *testing.T) {
 	assert.Equal(filterChainMatch.PrefixRanges[0].GetPrefixLen().GetValue(), uint32(32))
 	assert.Equal(filterChainMatch.PrefixRanges[1].GetAddressPrefix(), net.IPv4(192, 168, 0, 1).String())
 	assert.Equal(filterChainMatch.PrefixRanges[1].GetPrefixLen().GetValue(), uint32(32))
-
 }
 
 var _ = Describe("Construct inbound listeners", func() {
