@@ -16,7 +16,7 @@ import (
 )
 
 const metricsDisableDescription = `
-This command will disable metrics on all pods belonging to the given
+This command will disable metrics scraping on all pods belonging to the given
 namespace or set of namespaces.
 `
 

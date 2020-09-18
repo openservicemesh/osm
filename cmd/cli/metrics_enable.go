@@ -16,8 +16,8 @@ import (
 )
 
 const metricsEnableDescription = `
-This command will enable metrics on all pods belonging to the given namespace
-or set of namespaces. Newly created pods belonging to namespaces that
+This command will enable metrics scraping on all pods belonging to the given
+namespace or set of namespaces. Newly created pods belonging to namespaces that
 are enabled for metrics will be automatically enabled with metrics.
 
 The command does not deploy a metrics collection service such as Prometheus.
