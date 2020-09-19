@@ -34,6 +34,7 @@ OpenServiceMesh:
   enableEgress: false
   enablePrometheus: true
   enableGrafana: false
+  enableFluentbit: false
   meshName: osm
   useHTTPSIngress: false
   envoyLogLevel: error
