@@ -99,7 +99,6 @@ func (a *namespaceAddCmd) run() error {
 		}
 	}
 }`, constants.OSMKubeResourceMonitorAnnotation, a.meshName)
-
 		} else if a.enableSidecarInjection {
 			// Patch the namespace with the monitoring label.
 			// Enable sidecar injection.
