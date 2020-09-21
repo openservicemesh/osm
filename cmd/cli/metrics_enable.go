@@ -65,11 +65,23 @@ func (cmd *metricsEnableCmd) run() error {
 	// Add metrics annotation on namepaces
 	for _, ns := range cmd.namespaces {
 		ns = strings.TrimSpace(ns)
+
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		if _, err := cmd.clientSet.CoreV1().Namespaces().Get(ctx, ns, metav1.GetOptions{}); err != nil {
+		namespace, err := cmd.clientSet.CoreV1().Namespaces().Get(ctx, ns, metav1.GetOptions{})
+		if err != nil {
 			return errors.Errorf("Failed to retrieve namespace [%s]: %v", ns, err)
+		}
+
+		// Check if the namespace belongs to a mesh, if not return an error
+		monitored, err := isMonitoredNamespace(*namespace, getMeshNames(cmd.clientSet))
+		if err != nil {
+			return err
+		}
+		if !monitored {
+			return errors.Errorf("Namespace [%s] does not belong to a mesh, missing annotation %q",
+				ns, constants.OSMKubeResourceMonitorAnnotation)
 		}
 
 		// Patch the namespace with metrics annotation.
@@ -83,7 +95,7 @@ func (cmd *metricsEnableCmd) run() error {
 	}
 }`, constants.MetricsAnnotation)
 
-		_, err := cmd.clientSet.CoreV1().Namespaces().Patch(ctx, ns, types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{}, "")
+		_, err = cmd.clientSet.CoreV1().Namespaces().Patch(ctx, ns, types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{}, "")
 		if err != nil {
 			return errors.Errorf("Failed to enable metrics in namespace [%s]: %v", ns, err)
 		}

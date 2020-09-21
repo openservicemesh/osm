@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 
+	mapset "github.com/deckarep/golang-set"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	v1 "k8s.io/api/apps/v1"
@@ -51,7 +52,7 @@ func newMeshList(out io.Writer) *cobra.Command {
 }
 
 func (l *meshListCmd) run() error {
-	list, err := l.selectMeshes()
+	list, err := getControllerDeployments(l.clientSet)
 	if err != nil {
 		return errors.Errorf("Could not list deployments %v", err)
 	}
@@ -72,11 +73,24 @@ func (l *meshListCmd) run() error {
 	return nil
 }
 
-func (l *meshListCmd) selectMeshes() (*v1.DeploymentList, error) {
-	deploymentsClient := l.clientSet.AppsV1().Deployments("") // Get deployments from all namespaces
+// getControllerDeployments returns a list of Deployments corresponding to osm-controller
+func getControllerDeployments(clientSet kubernetes.Interface) (*v1.DeploymentList, error) {
+	deploymentsClient := clientSet.AppsV1().Deployments("") // Get deployments from all namespaces
 	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"app": constants.OSMControllerName}}
 	listOptions := metav1.ListOptions{
 		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
 	}
 	return deploymentsClient.List(context.TODO(), listOptions)
+}
+
+// getMeshNames returns a set of mesh names corresponding to meshes within the cluster
+func getMeshNames(clientSet kubernetes.Interface) mapset.Set {
+	meshList := mapset.NewSet()
+
+	deploymentList, _ := getControllerDeployments(clientSet)
+	for _, elem := range deploymentList.Items {
+		meshList.Add(elem.ObjectMeta.Labels["meshName"])
+	}
+
+	return meshList
 }
