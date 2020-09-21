@@ -51,7 +51,7 @@ var _ = Describe("Running the mesh list command", func() {
 			addDeployment("osm-controller-2", "testMesh2", "testNs2", true)
 			addDeployment("not-osm-controller", "", "testNs3", false)
 
-			deployments, err = listCmd.selectMeshes()
+			deployments, err = getControllerDeployments(listCmd.clientSet)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(deployments.Items).To(gstruct.MatchAllElements(idSelector, gstruct.Elements{
 				"osm-controller-1/testNs1": gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{

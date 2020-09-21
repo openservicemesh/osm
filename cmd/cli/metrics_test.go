@@ -3,20 +3,27 @@ package main
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
+const (
+	testMesh = "osm"
+)
+
 func newNamespace(name string, annotations map[string]string) *corev1.Namespace {
 	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
+			Name:   name,
+			Labels: map[string]string{constants.OSMKubeResourceMonitorAnnotation: testMesh},
 		},
 	}
 
@@ -27,9 +34,31 @@ func newNamespace(name string, annotations map[string]string) *corev1.Namespace 
 	return ns
 }
 
+func createFakeController(fakeClient kubernetes.Interface) error {
+	controllerNs := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "osm-system",
+		},
+	}
+
+	if _, err := fakeClient.CoreV1().Namespaces().Create(context.TODO(), controllerNs, metav1.CreateOptions{}); err != nil {
+		return err
+	}
+
+	controllerDep := createDeployment("test-controller", testMesh, true)
+	if _, err := fakeClient.AppsV1().Deployments(controllerNs.Name).Create(context.TODO(), controllerDep, metav1.CreateOptions{}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func TestRun_MetricsEnable(t *testing.T) {
 	assert := assert.New(t)
 	fakeClient := fake.NewSimpleClientset()
+
+	err := createFakeController(fakeClient)
+	assert.Nil(err)
 
 	type test struct {
 		cmd           *metricsEnableCmd
@@ -79,6 +108,9 @@ func TestRun_MetricsDisable(t *testing.T) {
 	assert := assert.New(t)
 	fakeClient := fake.NewSimpleClientset()
 
+	err := createFakeController(fakeClient)
+	assert.Nil(err)
+
 	type test struct {
 		cmd           *metricsDisableCmd
 		nsAnnotations map[string]string
@@ -120,5 +152,78 @@ func TestRun_MetricsDisable(t *testing.T) {
 			assert.NotNil(nsWithMetrics)
 			assert.NotContains(nsWithMetrics.Annotations, constants.MetricsAnnotation)
 		}
+	}
+}
+
+func TestMeshExists(t *testing.T) {
+	assert := assert.New(t)
+
+	testCases := []struct {
+		meshName string
+		meshList []string
+		exists   bool
+	}{
+		{"foo", []string{"foo", "bar"}, true},
+		{"foo", []string{"bar"}, false},
+		{"foo", []string{}, false},
+	}
+
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("Testing if %s exists in %v", tc.meshName, tc.meshList), func(t *testing.T) {
+			exists := meshExists(tc.meshName, tc.meshList)
+			assert.Equal(exists, tc.exists)
+		})
+	}
+}
+
+func TestIsMonitoredNamespace(t *testing.T) {
+	assert := assert.New(t)
+
+	meshList := []string{testMesh}
+
+	nsMonitored := corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "ns-1",
+			Labels: map[string]string{constants.OSMKubeResourceMonitorAnnotation: testMesh},
+		},
+	}
+
+	nsUnmonitored := corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "ns-3",
+		},
+	}
+
+	nsInvalidMonitorLabel := corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "ns-4",
+			Labels: map[string]string{constants.OSMKubeResourceMonitorAnnotation: ""},
+		},
+	}
+
+	nsWrongMeshName := corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   "ns-2",
+			Labels: map[string]string{constants.OSMKubeResourceMonitorAnnotation: "some-mesh"},
+		},
+	}
+
+	testCases := []struct {
+		ns        corev1.Namespace
+		exists    bool
+		expectErr bool
+	}{
+		{nsMonitored, true, false},
+		{nsUnmonitored, false, false},
+		{nsInvalidMonitorLabel, false, true},
+		{nsWrongMeshName, false, true},
+	}
+
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("Testing if %s exists is monitored", tc.ns.Name), func(t *testing.T) {
+			monitored, err := isMonitoredNamespace(tc.ns, meshList)
+			assert.Equal(monitored, tc.exists)
+			assert.Equal(err != nil, tc.expectErr)
+		})
 	}
 }

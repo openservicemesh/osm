@@ -3,7 +3,11 @@ package main
 import (
 	"io"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	corev1 "k8s.io/api/core/v1"
+
+	"github.com/openservicemesh/osm/pkg/constants"
 )
 
 const metricsDescription = `
@@ -22,4 +26,33 @@ func newMetricsCmd(out io.Writer) *cobra.Command {
 	cmd.AddCommand(newMetricsDisable(out))
 
 	return cmd
+}
+
+// isMonitoredNamespace returns true if the Namepspace is correctly annotated for monitoring given a list of existing meshes
+func isMonitoredNamespace(ns corev1.Namespace, meshList []string) (bool, error) {
+	// Check if the namespace has the resource monitor annotation
+	meshName, monitored := ns.Labels[constants.OSMKubeResourceMonitorAnnotation]
+	if !monitored {
+		return false, nil
+	}
+	if meshName == "" {
+		return false, errors.Errorf("Label %q on namespace %q cannot be empty",
+			constants.OSMKubeResourceMonitorAnnotation, ns.Name)
+	}
+	if !meshExists(meshName, meshList) {
+		return false, errors.Errorf("Invalid mesh name %q used with label %q on namespace %q, must be one of %v",
+			meshName, constants.OSMKubeResourceMonitorAnnotation, ns.Name, meshList)
+	}
+
+	return true, nil
+}
+
+// meshExists returns true if a mesh with the given name exists in the list of meshes
+func meshExists(meshName string, meshList []string) bool {
+	for _, name := range meshList {
+		if meshName == name {
+			return true
+		}
+	}
+	return false
 }
