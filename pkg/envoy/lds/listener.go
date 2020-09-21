@@ -46,9 +46,9 @@ func newOutboundListener(catalog catalog.MeshCataloger, cfg configurator.Configu
 		},
 	}
 
-	serviceFilterChains, err := getFilterChains(catalog, cfg, localSvc)
+	serviceFilterChains, err := getOutboundFilterChains(catalog, cfg, localSvc)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting filter chain for Egress")
+		log.Error().Err(err).Msgf("Error getting filter chains for outbound listener")
 		return nil, err
 	}
 
@@ -151,8 +151,8 @@ func getCIDRRange(cidr string) (*xds_core.CidrRange, error) {
 	return cidrRange, nil
 }
 
-// getFilterForService builds a network filter action for traffic destined to a specific service
-func getFilterForService(dstSvc service.MeshService, cfg configurator.Configurator) (*xds_listener.Filter, error) {
+// getOutboundFilterForService builds a network filter action for traffic destined to a specific service
+func getOutboundFilterForService(dstSvc service.MeshService, cfg configurator.Configurator) (*xds_listener.Filter, error) {
 	var marshalledFilter *any.Any
 	var err error
 
@@ -169,10 +169,10 @@ func getFilterForService(dstSvc service.MeshService, cfg configurator.Configurat
 	}, nil
 }
 
-// getFilterChainMatchForService builds a filter chain to match the destination traffic.
+// getOutboundFilterChainMatchForService builds a filter chain to match the destination traffic.
 // Filter Chain currently match on destination IP for possible service endpoints
-func getFilterChainMatchForService(dstSvc service.MeshService, catalog catalog.MeshCataloger, cfg configurator.Configurator) (*xds_listener.FilterChainMatch, error) {
-	ret := &xds_listener.FilterChainMatch{}
+func getOutboundFilterChainMatchForService(dstSvc service.MeshService, catalog catalog.MeshCataloger, cfg configurator.Configurator) (*xds_listener.FilterChainMatch, error) {
+	filterMatch := &xds_listener.FilterChainMatch{}
 
 	endpoints, err := catalog.GetResolvableServiceEndpoints(dstSvc)
 	if err != nil {
@@ -186,7 +186,7 @@ func getFilterChainMatchForService(dstSvc service.MeshService, catalog catalog.M
 	}
 
 	for _, endp := range endpoints {
-		ret.PrefixRanges = append(ret.PrefixRanges, &xds_core.CidrRange{
+		filterMatch.PrefixRanges = append(filterMatch.PrefixRanges, &xds_core.CidrRange{
 			AddressPrefix: endp.IP.String(),
 			PrefixLen: &wrapperspb.UInt32Value{
 				Value: singleIpv4Mask,
@@ -194,13 +194,14 @@ func getFilterChainMatchForService(dstSvc service.MeshService, catalog catalog.M
 		})
 	}
 
-	return ret, nil
+	return filterMatch, nil
 }
 
-func getFilterChains(catalog catalog.MeshCataloger, cfg configurator.Configurator, localSvc []service.MeshService) ([]*xds_listener.FilterChain, error) {
-	var ret []*xds_listener.FilterChain
+func getOutboundFilterChains(catalog catalog.MeshCataloger, cfg configurator.Configurator, localSvc []service.MeshService) ([]*xds_listener.FilterChain, error) {
+	var filterChains []*xds_listener.FilterChain
 	var dstServicesSet map[service.MeshService]struct{} = make(map[service.MeshService]struct{}) // Set, avoid dups
 
+	// Assuming single service in pod til #1682, #1575 get addressed
 	outboundSvc, err := catalog.ListAllowedOutboundServices(localSvc[0])
 	if err != nil {
 		log.Error().Err(err).Msgf("Error getting allowed outbound services for %s", localSvc[0].String())
@@ -213,6 +214,8 @@ func getFilterChains(catalog catalog.MeshCataloger, cfg configurator.Configurato
 	}
 
 	// Getting apex services referring to the outbound services
+	// We get possible apexes which could traffic split to any of the possible
+	// outbound services
 	splitServices := catalog.GetSMISpec().ListTrafficSplitServices()
 	for _, svc := range splitServices {
 		for _, outSvc := range outboundSvc {
@@ -239,7 +242,7 @@ func getFilterChains(catalog catalog.MeshCataloger, cfg configurator.Configurato
 		}
 
 		// Get filter for service
-		filter, err := getFilterForService(keyService, cfg)
+		filter, err := getOutboundFilterForService(keyService, cfg)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error getting filter for dst service %s", keyService.String())
 			return nil, err
@@ -247,14 +250,14 @@ func getFilterChains(catalog catalog.MeshCataloger, cfg configurator.Configurato
 		filterChain.Filters = append(filterChain.Filters, filter)
 
 		// Get filter match criteria for destination service
-		filterChainMatch, err := getFilterChainMatchForService(keyService, catalog, cfg)
+		filterChainMatch, err := getOutboundFilterChainMatchForService(keyService, catalog, cfg)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error getting Chain Match for service %s", keyService.String())
 			return nil, err
 		}
 		filterChain.FilterChainMatch = filterChainMatch
 
-		ret = append(ret, &filterChain)
+		filterChains = append(filterChains, &filterChain)
 	}
 
 	// This filterchain matches any traffic not filtered by allow rules, it will be treated as egress
@@ -266,8 +269,8 @@ func getFilterChains(catalog catalog.MeshCataloger, cfg configurator.Configurato
 			return nil, err
 		}
 
-		ret = append(ret, egressFilterChgain)
+		filterChains = append(filterChains, egressFilterChgain)
 	}
 
-	return ret, nil
+	return filterChains, nil
 }
