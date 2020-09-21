@@ -110,7 +110,7 @@ pushing the listener configuration to the pods for Prometheus to reach:
 ```
 
 ## Configuring Prometheus metrics scraping
-Metrics scraping can be configured using the `osm metrics` command. By default, OSM does not configure metrics scraping for pods in the mesh. Metrics scraping can be enabled or disabled at namespace scope such that pods belonging to configured namespaces can be enabled or disabled for scraping metrics.
+Metrics scraping can be configured using the `osm metrics` command. By default, OSM **does not** configure metrics scraping for pods in the mesh. Metrics scraping can be enabled or disabled at namespace scope such that pods belonging to configured namespaces can be enabled or disabled for scraping metrics.
 
 For metrics to be scraped, the following prerequisites must be met:
 - A Prometheus instance must be deployed either using [automatic bringup of Prometheus](#automatic-bring-up) or using the [bring your own Prometheus guide](#byo-bring-your-own).
