@@ -14,7 +14,7 @@ OSM is able to automatically provision Prometheus and Grafana instances to monit
 
 ### Automatic bring up
 
-By default, OSM installation will deploy a Prometheus instance to scrape the sidecar metrics' endpoints. OSM will annotate the pods joined in the mesh with necessary sections to later have Prometheus reach and scrape the pods, also by default. To install a Grafana stack, set the enable-grafana flag to true when doing OSM install. 
+By default, OSM installation will deploy a Prometheus instance to scrape the sidecar's metrics endpoints. Based on the metrics scraping configuration set by the user, OSM will annotate pods part of the mesh with necessary metrics annotations to have Prometheus reach and scrape the pods to collect relevant metrics. To install Grafana for metrics visualization, set the `enable-grafana` flag to true when installing OSM using the `osm install` command.
 
 The automatic bring up can be overridden with the `osm install` option during install time:
 ```
@@ -109,6 +109,26 @@ pushing the listener configuration to the pods for Prometheus to reach:
       target_label: source_workload_name
 ```
 
+## Configuring Prometheus metrics scraping
+Metrics scraping can be configured using the `osm metrics` command. By default, OSM **does not** configure metrics scraping for pods in the mesh. Metrics scraping can be enabled or disabled at namespace scope such that pods belonging to configured namespaces can be enabled or disabled for scraping metrics.
+
+For metrics to be scraped, the following prerequisites must be met:
+- A running service able to scrap Prometheus endpoints. OSM provides configuration for an [automatic bringup of Prometheus](#automatic-bring-up); alternatively users can [bring their own Prometheus](#byo-bring-your-own).
+- The `prometheus_scraping` config key in osm-controller's `osm-config` ConfigMap must be set to `"true"`, which is the default configuration.
+
+
+To enable one or more namespaces for metrics scraping:
+```bash
+osm metrics enable --namespace test
+osm metrics enable --namespace "test1, test2"
+```
+
+To disable one or more namespaces for metrics scraping:
+```bash
+osm metrics disable --namespace test
+osm metrics disable --namespace "test1, test2"
+```
+
 ## Querying metrics from Prometheus
 
 ### Before you begin
@@ -129,7 +149,7 @@ Sample result will be:
 ![image](https://user-images.githubusercontent.com/59101963/85906690-f24f2400-b7c3-11ea-89b2-a3c42041c7a0.png)
 
 # Grafana
-[Grafana][3] is an open source visualization and analytics software. It allows you to query, visualize, alert on, and explore your metrics. 
+[Grafana][3] is an open source visualization and analytics software. It allows you to query, visualize, alert on, and explore your metrics.
 
 ![Grafana Demo](/img/grafana.gif "Grafana Demo")
 
