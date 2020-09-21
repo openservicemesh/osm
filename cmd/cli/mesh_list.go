@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 
+	mapset "github.com/deckarep/golang-set"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	v1 "k8s.io/api/apps/v1"
@@ -82,13 +83,13 @@ func getControllerDeployments(clientSet kubernetes.Interface) (*v1.DeploymentLis
 	return deploymentsClient.List(context.TODO(), listOptions)
 }
 
-// getMeshNames returns a list of mesh names corresponding to meshes within the cluster
-func getMeshNames(clientSet kubernetes.Interface) []string {
-	var meshList []string
+// getMeshNames returns a set of mesh names corresponding to meshes within the cluster
+func getMeshNames(clientSet kubernetes.Interface) mapset.Set {
+	meshList := mapset.NewSet()
 
 	deploymentList, _ := getControllerDeployments(clientSet)
 	for _, elem := range deploymentList.Items {
-		meshList = append(meshList, elem.ObjectMeta.Labels["meshName"])
+		meshList.Add(elem.ObjectMeta.Labels["meshName"])
 	}
 
 	return meshList

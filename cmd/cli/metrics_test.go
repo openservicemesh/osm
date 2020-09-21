@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"testing"
 
+	mapset "github.com/deckarep/golang-set"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -155,31 +156,10 @@ func TestRun_MetricsDisable(t *testing.T) {
 	}
 }
 
-func TestMeshExists(t *testing.T) {
-	assert := assert.New(t)
-
-	testCases := []struct {
-		meshName string
-		meshList []string
-		exists   bool
-	}{
-		{"foo", []string{"foo", "bar"}, true},
-		{"foo", []string{"bar"}, false},
-		{"foo", []string{}, false},
-	}
-
-	for _, tc := range testCases {
-		t.Run(fmt.Sprintf("Testing if %s exists in %v", tc.meshName, tc.meshList), func(t *testing.T) {
-			exists := meshExists(tc.meshName, tc.meshList)
-			assert.Equal(exists, tc.exists)
-		})
-	}
-}
-
 func TestIsMonitoredNamespace(t *testing.T) {
 	assert := assert.New(t)
 
-	meshList := []string{testMesh}
+	meshList := mapset.NewSet(testMesh)
 
 	nsMonitored := corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{

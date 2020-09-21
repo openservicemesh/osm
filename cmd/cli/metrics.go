@@ -3,6 +3,7 @@ package main
 import (
 	"io"
 
+	mapset "github.com/deckarep/golang-set"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
@@ -28,8 +29,8 @@ func newMetricsCmd(out io.Writer) *cobra.Command {
 	return cmd
 }
 
-// isMonitoredNamespace returns true if the Namepspace is correctly annotated for monitoring given a list of existing meshes
-func isMonitoredNamespace(ns corev1.Namespace, meshList []string) (bool, error) {
+// isMonitoredNamespace returns true if the Namepspace is correctly annotated for monitoring given a set of existing meshes
+func isMonitoredNamespace(ns corev1.Namespace, meshList mapset.Set) (bool, error) {
 	// Check if the namespace has the resource monitor annotation
 	meshName, monitored := ns.Labels[constants.OSMKubeResourceMonitorAnnotation]
 	if !monitored {
@@ -39,20 +40,10 @@ func isMonitoredNamespace(ns corev1.Namespace, meshList []string) (bool, error) 
 		return false, errors.Errorf("Label %q on namespace %q cannot be empty",
 			constants.OSMKubeResourceMonitorAnnotation, ns.Name)
 	}
-	if !meshExists(meshName, meshList) {
+	if !meshList.Contains(meshName) {
 		return false, errors.Errorf("Invalid mesh name %q used with label %q on namespace %q, must be one of %v",
-			meshName, constants.OSMKubeResourceMonitorAnnotation, ns.Name, meshList)
+			meshName, constants.OSMKubeResourceMonitorAnnotation, ns.Name, meshList.ToSlice())
 	}
 
 	return true, nil
-}
-
-// meshExists returns true if a mesh with the given name exists in the list of meshes
-func meshExists(meshName string, meshList []string) bool {
-	for _, name := range meshList {
-		if meshName == name {
-			return true
-		}
-	}
-	return false
 }
