@@ -227,3 +227,38 @@ func (c *Client) getServicesByLabels(matchLabels map[string]string, namespace st
 
 	return finalList, nil
 }
+
+// GetResolvableEndpointsForService returns the expected endpoints that are to be reached when the service
+// FQDN is resolved
+func (c *Client) GetResolvableEndpointsForService(svc service.MeshService) ([]endpoint.Endpoint, error) {
+	var endpoints []endpoint.Endpoint
+	var err error
+
+	// Check if the service has been given Cluster IP
+	service := c.kubeController.GetService(svc)
+	if service == nil {
+		log.Error().Msgf("Could not find service %s", svc.String())
+		return nil, errServiceNotFound
+	}
+
+	if len(service.Spec.ClusterIP) == 0 {
+		// If service has no cluster IP, use final endpoint as resolvable destinations
+		return c.ListEndpointsForService(svc), nil
+	}
+
+	// Cluster IP is present
+	ip := net.ParseIP(service.Spec.ClusterIP)
+	if ip == nil {
+		log.Error().Msgf("Could not parse Cluster IP %s", service.Spec.ClusterIP)
+		return nil, errParseClusterIP
+	}
+
+	for _, svcPort := range service.Spec.Ports {
+		endpoints = append(endpoints, endpoint.Endpoint{
+			IP:   ip,
+			Port: endpoint.Port(svcPort.Port),
+		})
+	}
+
+	return endpoints, err
+}
