@@ -201,7 +201,7 @@ func getOutboundFilterChains(catalog catalog.MeshCataloger, cfg configurator.Con
 	var filterChains []*xds_listener.FilterChain
 	var dstServicesSet map[service.MeshService]struct{} = make(map[service.MeshService]struct{}) // Set, avoid dups
 
-	// Assuming single service in pod til #1682, #1575 get addressed
+	// Assuming single service in pod till #1682, #1575 get addressed
 	outboundSvc, err := catalog.ListAllowedOutboundServices(localSvc[0])
 	if err != nil {
 		log.Error().Err(err).Msgf("Error getting allowed outbound services for %s", localSvc[0].String())
