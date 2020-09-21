@@ -34,7 +34,7 @@ func TestGetFilterForService(t *testing.T) {
 	mockConfigurator.EXPECT().GetTracingEndpoint().Return("test-endpoint")
 
 	// Check we get HTTP connection manager filter without Permissive mode
-	filter, err := getFilterForService(tests.BookbuyerService, mockConfigurator)
+	filter, err := getOutboundFilterForService(tests.BookbuyerService, mockConfigurator)
 
 	assert.NoError(err)
 	assert.Equal(filter.Name, wellknown.HTTPConnectionManager)
@@ -44,7 +44,7 @@ func TestGetFilterForService(t *testing.T) {
 	mockConfigurator.EXPECT().IsTracingEnabled().Return(true)
 	mockConfigurator.EXPECT().GetTracingEndpoint().Return("test-endpoint")
 
-	filter, err = getFilterForService(tests.BookbuyerService, mockConfigurator)
+	filter, err = getOutboundFilterForService(tests.BookbuyerService, mockConfigurator)
 	assert.NoError(err)
 	assert.Equal(filter.Name, wellknown.HTTPConnectionManager)
 }
@@ -69,7 +69,7 @@ func TestGetFilterChainMatchForService(t *testing.T) {
 		nil,
 	)
 
-	filterChainMatch, err := getFilterChainMatchForService(tests.BookbuyerService, mockCatalog, mockConfigurator)
+	filterChainMatch, err := getOutboundFilterChainMatchForService(tests.BookbuyerService, mockCatalog, mockConfigurator)
 
 	assert.NoError(err)
 	assert.Equal(filterChainMatch.PrefixRanges[0].GetAddressPrefix(), tests.Endpoint.IP.String())
