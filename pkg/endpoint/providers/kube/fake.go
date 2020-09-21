@@ -53,3 +53,11 @@ func (f fakeClient) GetID() string {
 func (f fakeClient) GetAnnouncementsChannel() <-chan interface{} {
 	return make(chan interface{})
 }
+
+func (f fakeClient) GetResolvableEndpointsForService(svc service.MeshService) ([]endpoint.Endpoint, error) {
+	endpoints, found := f.endpoints[svc.String()]
+	if !found {
+		return nil, errServiceNotFound
+	}
+	return endpoints, nil
+}

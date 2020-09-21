@@ -91,6 +91,61 @@ var _ = Describe("Test Kube Client Provider", func() {
 				},
 			}))
 		})
+
+		It("GetResolvableEndpoints should properly return Cluster IP or Endpoints when present or not", func() {
+			// Should be empty for now
+
+			// If the service has cluster IP, expect the cluster IP + port
+			mockKubeController.EXPECT().GetService(tests.BookbuyerService).Return(&corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      tests.BookbuyerService.Name,
+					Namespace: tests.BookbuyerService.Namespace,
+				},
+				Spec: corev1.ServiceSpec{
+					ClusterIP: "192.168.0.1",
+					Ports: []corev1.ServicePort{{
+						Name:     "servicePort",
+						Protocol: corev1.ProtocolTCP,
+						Port:     tests.ServicePort,
+					}},
+					Selector: map[string]string{
+						"some-label": "test",
+					},
+				},
+			})
+
+			Expect(cli.GetResolvableEndpointsForService(tests.BookbuyerService)).To(Equal([]endpoint.Endpoint{
+				{
+					IP:   net.IPv4(192, 168, 0, 1),
+					Port: tests.ServicePort,
+				},
+			}))
+
+			// Expect the individual pod endpoints, when no cluster IP is assigned to the service
+			mockKubeController.EXPECT().GetService(tests.BookbuyerService).Return(&corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      tests.BookbuyerService.Name,
+					Namespace: tests.BookbuyerService.Namespace,
+				},
+				Spec: corev1.ServiceSpec{
+					Ports: []corev1.ServicePort{{
+						Name:     "servicePort",
+						Protocol: corev1.ProtocolTCP,
+						Port:     tests.ServicePort,
+					}},
+					Selector: map[string]string{
+						"some-label": "test",
+					},
+				},
+			})
+
+			Expect(cli.GetResolvableEndpointsForService(tests.BookbuyerService)).To(Equal([]endpoint.Endpoint{
+				{
+					IP:   net.IPv4(8, 8, 8, 8),
+					Port: 88,
+				},
+			}))
+		})
 	})
 
 	It("tests GetAnnouncementChannel", func() {
