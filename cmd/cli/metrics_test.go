@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"strconv"
 	"testing"
 
 	mapset "github.com/deckarep/golang-set"
@@ -35,6 +36,25 @@ func newNamespace(name string, annotations map[string]string) *corev1.Namespace 
 	return ns
 }
 
+func newMeshPod(name string, scrapingEnabled bool) *corev1.Pod {
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   name,
+			Labels: map[string]string{constants.EnvoyUniqueIDLabelName: "test"},
+		},
+	}
+
+	if scrapingEnabled {
+		pod.Annotations = map[string]string{
+			constants.PrometheusScrapeAnnotation: "true",
+			constants.PrometheusPortAnnotation:   strconv.Itoa(constants.EnvoyPrometheusInboundListenerPort),
+			constants.PrometheusPathAnnotation:   constants.PrometheusScrapePath,
+		}
+	}
+
+	return pod
+}
+
 func createFakeController(fakeClient kubernetes.Interface) error {
 	controllerNs := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
@@ -64,6 +84,7 @@ func TestRun_MetricsEnable(t *testing.T) {
 	type test struct {
 		cmd           *metricsEnableCmd
 		nsAnnotations map[string]string
+		pods          []string
 	}
 
 	testScenarios := []test{
@@ -74,6 +95,7 @@ func TestRun_MetricsEnable(t *testing.T) {
 				clientSet:  fakeClient,
 			},
 			nsAnnotations: nil,
+			pods:          []string{"test-1"},
 		},
 		{
 			cmd: &metricsEnableCmd{
@@ -82,6 +104,7 @@ func TestRun_MetricsEnable(t *testing.T) {
 				clientSet:  fakeClient,
 			},
 			nsAnnotations: map[string]string{constants.MetricsAnnotation: "enabled"},
+			pods:          []string{"test-2", "test-3"},
 		},
 	}
 
@@ -91,6 +114,13 @@ func TestRun_MetricsEnable(t *testing.T) {
 			newNs := newNamespace(ns, scenario.nsAnnotations)
 			ns, _ := fakeClient.CoreV1().Namespaces().Create(context.TODO(), newNs, metav1.CreateOptions{})
 			assert.NotNil(ns)
+
+			// Create pods in the namespace which do not have metrics enabled yet
+			for _, pod := range scenario.pods {
+				newMeshPod := newMeshPod(pod, false)
+				pod, _ := fakeClient.CoreV1().Pods(ns.Name).Create(context.TODO(), newMeshPod, metav1.CreateOptions{})
+				assert.NotNil(pod)
+			}
 		}
 
 		err := scenario.cmd.run()
@@ -101,6 +131,15 @@ func TestRun_MetricsEnable(t *testing.T) {
 			nsWithMetrics, _ := fakeClient.CoreV1().Namespaces().Get(context.TODO(), ns, metav1.GetOptions{})
 			assert.NotNil(nsWithMetrics)
 			assert.Equal(nsWithMetrics.Annotations[constants.MetricsAnnotation], "enabled")
+
+			podList, err := fakeClient.CoreV1().Pods(ns).List(context.TODO(), metav1.ListOptions{})
+			assert.Nil(err)
+			assert.NotEmpty(podList.Items)
+			for _, pod := range podList.Items {
+				assert.Equal(pod.Annotations[constants.PrometheusScrapeAnnotation], "true")
+				assert.Equal(pod.Annotations[constants.PrometheusPortAnnotation], strconv.Itoa(constants.EnvoyPrometheusInboundListenerPort))
+				assert.Equal(pod.Annotations[constants.PrometheusPathAnnotation], constants.PrometheusScrapePath)
+			}
 		}
 	}
 }
@@ -115,6 +154,7 @@ func TestRun_MetricsDisable(t *testing.T) {
 	type test struct {
 		cmd           *metricsDisableCmd
 		nsAnnotations map[string]string
+		pods          []string
 	}
 
 	testScenarios := []test{
@@ -125,6 +165,7 @@ func TestRun_MetricsDisable(t *testing.T) {
 				clientSet:  fakeClient,
 			},
 			nsAnnotations: map[string]string{constants.MetricsAnnotation: "enabled"},
+			pods:          []string{"pod-1"},
 		},
 		{
 			cmd: &metricsDisableCmd{
@@ -133,6 +174,7 @@ func TestRun_MetricsDisable(t *testing.T) {
 				clientSet:  fakeClient,
 			},
 			nsAnnotations: map[string]string{constants.MetricsAnnotation: "enabled"},
+			pods:          []string{"pod-1", "pod-2"},
 		},
 	}
 
@@ -142,6 +184,13 @@ func TestRun_MetricsDisable(t *testing.T) {
 			newNs := newNamespace(ns, scenario.nsAnnotations)
 			ns, _ := fakeClient.CoreV1().Namespaces().Create(context.TODO(), newNs, metav1.CreateOptions{})
 			assert.NotNil(ns)
+
+			// Create pods in the namespace which already have metrics enabled
+			for _, pod := range scenario.pods {
+				newMeshPod := newMeshPod(pod, true)
+				pod, _ := fakeClient.CoreV1().Pods(ns.Name).Create(context.TODO(), newMeshPod, metav1.CreateOptions{})
+				assert.NotNil(pod)
+			}
 		}
 
 		err := scenario.cmd.run()
@@ -152,6 +201,15 @@ func TestRun_MetricsDisable(t *testing.T) {
 			nsWithMetrics, _ := fakeClient.CoreV1().Namespaces().Get(context.TODO(), ns, metav1.GetOptions{})
 			assert.NotNil(nsWithMetrics)
 			assert.NotContains(nsWithMetrics.Annotations, constants.MetricsAnnotation)
+
+			podList, err := fakeClient.CoreV1().Pods(ns).List(context.TODO(), metav1.ListOptions{})
+			assert.Nil(err)
+			assert.NotEmpty(podList.Items)
+			for _, pod := range podList.Items {
+				assert.NotContains(pod.Annotations, constants.PrometheusScrapeAnnotation)
+				assert.NotContains(pod.Annotations, constants.PrometheusPortAnnotation)
+				assert.NotContains(pod.Annotations, constants.PrometheusPathAnnotation)
+			}
 		}
 	}
 }
