@@ -83,11 +83,12 @@ var _ = Describe("Running the namespace add command", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				namespaceAddCmd := &namespaceAddCmd{
-					out:                    out,
-					meshName:               testMeshName,
-					namespaces:             []string{testNamespace},
-					enableSidecarInjection: true,
-					clientSet:              fakeClientSet,
+					out:                     out,
+					meshName:                testMeshName,
+					namespaces:              []string{testNamespace},
+					sidecarInjectionFlagSet: true,
+					enableSidecarInjection:  true,
+					clientSet:               fakeClientSet,
 				}
 
 				err = namespaceAddCmd.run()
@@ -111,6 +112,49 @@ var _ = Describe("Running the namespace add command", func() {
 				ns, err := fakeClientSet.CoreV1().Namespaces().Get(context.TODO(), testNamespace, metav1.GetOptions{})
 				Expect(err).ToNot(HaveOccurred())
 				Expect(ns.Annotations[constants.SidecarInjectionAnnotation]).To(Equal("enabled"))
+			})
+		})
+
+		Context("Given one namespace as an arg with sidecar injection explicitly set to false", func() {
+
+			BeforeEach(func() {
+				out = new(bytes.Buffer)
+				fakeClientSet = fake.NewSimpleClientset()
+
+				nsSpec := createNamespaceSpec(testNamespace, "", true)
+				_, err = fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
+				Expect(err).ToNot(HaveOccurred())
+
+				namespaceAddCmd := &namespaceAddCmd{
+					out:                     out,
+					meshName:                testMeshName,
+					namespaces:              []string{testNamespace},
+					sidecarInjectionFlagSet: true,
+					enableSidecarInjection:  false,
+					clientSet:               fakeClientSet,
+				}
+
+				err = namespaceAddCmd.run()
+			})
+
+			It("should not error", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("should give a message confirming the successful install", func() {
+				Expect(out.String()).To(Equal(fmt.Sprintf("Namespace [%s] successfully added to mesh [%s]\n", testNamespace, testMeshName)))
+			})
+
+			It("should correctly add a monitor label to the namespace", func() {
+				ns, err := fakeClientSet.CoreV1().Namespaces().Get(context.TODO(), testNamespace, metav1.GetOptions{})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(ns.Labels[constants.OSMKubeResourceMonitorAnnotation]).To(Equal(testMeshName))
+			})
+
+			It("should not add an inject label to the namespace", func() {
+				ns, err := fakeClientSet.CoreV1().Namespaces().Get(context.TODO(), testNamespace, metav1.GetOptions{})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(ns.Annotations[constants.SidecarInjectionAnnotation]).To(Equal(""))
 			})
 		})
 
