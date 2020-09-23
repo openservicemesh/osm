@@ -175,11 +175,26 @@ func (mr *MockConfiguratorMockRecorder) IsPermissiveTrafficPolicyMode() *gomock.
 }
 
 // IsPrometheusScrapingEnabled mocks base method
+func (m *MockConfigurator) IsDebugServerEnabled() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsDebugServerEnabled")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsPrometheusScrapingEnabled mocks base method
 func (m *MockConfigurator) IsPrometheusScrapingEnabled() bool {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IsPrometheusScrapingEnabled")
 	ret0, _ := ret[0].(bool)
 	return ret0
+}
+
+// IsDebugServerEnabled determines whether osm debug HTTP server is enabled
+func (mr *MockConfiguratorMockRecorder) IsDebugServerEnabled() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsDebugServerEnabled", reflect.TypeOf((*MockConfigurator)(nil).IsDebugServerEnabled))
+
 }
 
 // IsPrometheusScrapingEnabled indicates an expected call of IsPrometheusScrapingEnabled
