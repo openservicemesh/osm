@@ -20,6 +20,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/cli"
 	"github.com/openservicemesh/osm/pkg/constants"
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
 const installDesc = `
@@ -121,7 +122,7 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 
 			clientset, err := kubernetes.NewForConfig(kubeconfig)
 			if err != nil {
-				return errors.Errorf("Could not access Kubernetes cluster. Check kubeconfig")
+				return errors.Errorf("Could not access Kubernetes cluster. Check kubeconfig, %s", err)
 			}
 			inst.clientSet = clientset
 			return inst.run(config)
