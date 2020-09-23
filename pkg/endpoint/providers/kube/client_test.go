@@ -9,7 +9,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -245,7 +244,7 @@ var _ = Describe("When getting a Service associated with a ServiceAccount", func
 		Expect(err).ToNot(HaveOccurred())
 	})
 
-	It("should return not return a service when a Deployment matching the selector doesn't exist", func() {
+	It("should return not return a service when a pod matching the selector doesn't exist", func() {
 		svc := &corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-1",
@@ -275,7 +274,7 @@ var _ = Describe("When getting a Service associated with a ServiceAccount", func
 		Expect(err).ToNot(HaveOccurred())
 	})
 
-	It("should return a service that matches the ServiceAccount associated with the Deployment", func() {
+	It("should return a service that matches the ServiceAccount associated with the Pod", func() {
 		// Create a Service
 		svc := &corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
@@ -297,39 +296,25 @@ var _ = Describe("When getting a Service associated with a ServiceAccount", func
 		_, err := fakeClientSet.CoreV1().Services(testNamespace).Create(context.TODO(), svc, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 
-		// Create a Deployment with labels that match the service selector
-		deployment := &appsv1.Deployment{
+		// Create a pod with labels that match the service selector
+		pod := &corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test",
-				Namespace: testNamespace,
-			},
-			Spec: appsv1.DeploymentSpec{
-				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{
-						"some-label": "test",
-						"version":    "v1",
-					},
+				Labels: map[string]string{
+					"some-label": "test",
+					"version":    "v1",
 				},
-				Template: corev1.PodTemplateSpec{
-					ObjectMeta: metav1.ObjectMeta{
-						Labels: map[string]string{
-							"some-label": "test",
-							"version":    "v1",
-						},
-					},
-					Spec: corev1.PodSpec{
-						ServiceAccountName: "test-service-account",
-						Containers: []corev1.Container{
+			},
+			Spec: corev1.PodSpec{
+				ServiceAccountName: "test-service-account",
+				Containers: []corev1.Container{
+					{
+						Name:  "BookbuyerContainerA",
+						Image: "random",
+						Ports: []corev1.ContainerPort{
 							{
-								Name:  "BookbuyerContainerA",
-								Image: "random",
-								Ports: []corev1.ContainerPort{
-									{
-										Name:          "http",
-										Protocol:      corev1.ProtocolTCP,
-										ContainerPort: 80,
-									},
-								},
+								Name:          "http",
+								Protocol:      corev1.ProtocolTCP,
+								ContainerPort: 80,
 							},
 						},
 					},
@@ -337,16 +322,16 @@ var _ = Describe("When getting a Service associated with a ServiceAccount", func
 			},
 		}
 
-		_, err = fakeClientSet.AppsV1().Deployments(testNamespace).Create(context.Background(), deployment, metav1.CreateOptions{})
+		_, err = fakeClientSet.CoreV1().Pods(testNamespace).Create(context.Background(), pod, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 		<-provider.GetAnnouncementsChannel()
 
 		givenSvcAccount := service.K8sServiceAccount{
 			Namespace: testNamespace,
-			Name:      "test-service-account", // Should match the service account in the Deployment spec above
+			Name:      "test-service-account", // Should match the service account in the Pod spec above
 		}
 
-		// Expect a MeshService that corresponds to a Service that matches the Deployment spec labels
+		// Expect a MeshService that corresponds to a Service that matches the Pod spec labels
 		expectedMeshSvc := utils.K8sSvcToMeshSvc(svc)
 
 		meshSvcs, err := provider.GetServicesForServiceAccount(givenSvcAccount)
@@ -354,12 +339,12 @@ var _ = Describe("When getting a Service associated with a ServiceAccount", func
 		expectedMeshSvcs := []service.MeshService{expectedMeshSvc}
 		Expect(meshSvcs).To(Equal(expectedMeshSvcs))
 
-		err = fakeClientSet.AppsV1().Deployments(testNamespace).Delete(context.Background(), deployment.Name, metav1.DeleteOptions{})
+		err = fakeClientSet.CoreV1().Pods(testNamespace).Delete(context.Background(), pod.Name, metav1.DeleteOptions{})
 		Expect(err).ToNot(HaveOccurred())
 		<-provider.GetAnnouncementsChannel()
 	})
 
-	It("should return an error when the Service selector doesn't match the deployment", func() {
+	It("should return an error when the Service selector doesn't match the pod", func() {
 		// Create a Service
 		svc := &corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
@@ -382,37 +367,24 @@ var _ = Describe("When getting a Service associated with a ServiceAccount", func
 		_, err := fakeClientSet.CoreV1().Services(testNamespace).Create(context.TODO(), svc, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 
-		// Create a Deployment with labels that match the service selector
-		deployment := &appsv1.Deployment{
+		// Create a Pod with labels that match the service selector
+		pod := &corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test",
-				Namespace: testNamespace,
-			},
-			Spec: appsv1.DeploymentSpec{
-				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{
-						"app": "test",
-					},
+				Labels: map[string]string{
+					"app": "test",
 				},
-				Template: corev1.PodTemplateSpec{
-					ObjectMeta: metav1.ObjectMeta{
-						Labels: map[string]string{
-							"app": "test",
-						},
-					},
-					Spec: corev1.PodSpec{
-						ServiceAccountName: "test-service-account",
-						Containers: []corev1.Container{
+			},
+			Spec: corev1.PodSpec{
+				ServiceAccountName: "test-service-account",
+				Containers: []corev1.Container{
+					{
+						Name:  "BookbuyerContainerA",
+						Image: "random",
+						Ports: []corev1.ContainerPort{
 							{
-								Name:  "BookbuyerContainerA",
-								Image: "random",
-								Ports: []corev1.ContainerPort{
-									{
-										Name:          "http",
-										Protocol:      corev1.ProtocolTCP,
-										ContainerPort: 80,
-									},
-								},
+								Name:          "http",
+								Protocol:      corev1.ProtocolTCP,
+								ContainerPort: 80,
 							},
 						},
 					},
@@ -420,7 +392,7 @@ var _ = Describe("When getting a Service associated with a ServiceAccount", func
 			},
 		}
 
-		_, err = fakeClientSet.AppsV1().Deployments(testNamespace).Create(context.Background(), deployment, metav1.CreateOptions{})
+		_, err = fakeClientSet.CoreV1().Pods(testNamespace).Create(context.Background(), pod, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 		<-provider.GetAnnouncementsChannel()
 
@@ -434,12 +406,12 @@ var _ = Describe("When getting a Service associated with a ServiceAccount", func
 		Expect(err).To(HaveOccurred())
 		Expect(err).To(MatchError(errDidNotFindServiceForServiceAccount))
 
-		err = fakeClientSet.AppsV1().Deployments(testNamespace).Delete(context.Background(), deployment.Name, metav1.DeleteOptions{})
+		err = fakeClientSet.CoreV1().Pods(testNamespace).Delete(context.Background(), pod.Name, metav1.DeleteOptions{})
 		Expect(err).ToNot(HaveOccurred())
 		<-provider.GetAnnouncementsChannel()
 	})
 
-	It("should return all services when multiple services match the same deployment", func() {
+	It("should return all services when multiple services match the same Pod", func() {
 		// This test is meant to ensure the
 		// service selector logic works as expected when multiple services
 		// have the same selector match.
@@ -471,39 +443,25 @@ var _ = Describe("When getting a Service associated with a ServiceAccount", func
 		_, err = fakeClientSet.CoreV1().Services(testNamespace).Create(context.TODO(), &svc2, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 
-		// Create a Deployment with labels that match the service selector
-		deployment := &appsv1.Deployment{
+		// Create a Pod with labels that match the service selector
+		pod := &corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test",
-				Namespace: testNamespace,
-			},
-			Spec: appsv1.DeploymentSpec{
-				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{
-						"some-label": "test",
-						"version":    "v1",
-					},
+				Labels: map[string]string{
+					"some-label": "test",
+					"version":    "v1",
 				},
-				Template: corev1.PodTemplateSpec{
-					ObjectMeta: metav1.ObjectMeta{
-						Labels: map[string]string{
-							"some-label": "test",
-							"version":    "v1",
-						},
-					},
-					Spec: corev1.PodSpec{
-						ServiceAccountName: "test-service-account",
-						Containers: []corev1.Container{
+			},
+			Spec: corev1.PodSpec{
+				ServiceAccountName: "test-service-account",
+				Containers: []corev1.Container{
+					{
+						Name:  "BookbuyerContainerA",
+						Image: "random",
+						Ports: []corev1.ContainerPort{
 							{
-								Name:  "BookbuyerContainerA",
-								Image: "random",
-								Ports: []corev1.ContainerPort{
-									{
-										Name:          "http",
-										Protocol:      corev1.ProtocolTCP,
-										ContainerPort: 80,
-									},
-								},
+								Name:          "http",
+								Protocol:      corev1.ProtocolTCP,
+								ContainerPort: 80,
 							},
 						},
 					},
@@ -511,7 +469,7 @@ var _ = Describe("When getting a Service associated with a ServiceAccount", func
 			},
 		}
 
-		_, err = fakeClientSet.AppsV1().Deployments(testNamespace).Create(context.Background(), deployment, metav1.CreateOptions{})
+		_, err = fakeClientSet.CoreV1().Pods(testNamespace).Create(context.Background(), pod, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 		<-provider.GetAnnouncementsChannel()
 
@@ -530,7 +488,7 @@ var _ = Describe("When getting a Service associated with a ServiceAccount", func
 		Expect(meshServices[0]).To(BeElementOf(expectedServices))
 		Expect(meshServices[1]).To(BeElementOf(expectedServices))
 
-		err = fakeClientSet.AppsV1().Deployments(testNamespace).Delete(context.Background(), deployment.Name, metav1.DeleteOptions{})
+		err = fakeClientSet.CoreV1().Pods(testNamespace).Delete(context.Background(), pod.Name, metav1.DeleteOptions{})
 		Expect(err).ToNot(HaveOccurred())
 		<-provider.GetAnnouncementsChannel()
 	})
