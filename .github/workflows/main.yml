@@ -128,7 +128,7 @@ jobs:
         env:
           CERT_MANAGER: "tresor"
           BOOKSTORE_SVC: "bookstore"
-          BOOKTHIEF_EXPECTED_RESPONSE_CODE: "404"
+          BOOKTHIEF_EXPECTED_RESPONSE_CODE: "0"
           ENABLE_EGRESS: "false"
           DEPLOY_TRAFFIC_SPLIT: "true"
           CTR_TAG: ${{ github.sha }}
@@ -217,7 +217,7 @@ jobs:
         env:
           CERT_MANAGER: "cert-manager" # enables jetstack/cert-manager integration
           BOOKSTORE_SVC: "bookstore-v1"
-          BOOKTHIEF_EXPECTED_RESPONSE_CODE: "404"
+          BOOKTHIEF_EXPECTED_RESPONSE_CODE: "0"
           ENABLE_EGRESS: "false"
           DEPLOY_TRAFFIC_SPLIT: "false"
           DEPLOY_WITH_SAME_SA: "true"
