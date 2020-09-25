@@ -38,6 +38,7 @@ iptables -t nat -A PROXY_REDIRECT -p tcp --dport "6000" -j ACCEPT # deviced
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "6001" -j ACCEPT # deviced
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "7201" -j ACCEPT # m3db/metricsd
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "7301" -j ACCEPT # m3db/metricsd
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "8080" -j ACCEPT # presto
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "8081" -j ACCEPT # apiserver
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "8100:8110" -j ACCEPT # proxyd
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "8200" -j ACCEPT # valult
@@ -45,6 +46,7 @@ iptables -t nat -A PROXY_REDIRECT -p tcp --dport "8443" -j ACCEPT # apiserver
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9000:9004" -j ACCEPT # m3db/metricsd
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9063:9064" -j ACCEPT # alertdispatch
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9073" -j ACCEPT # identityd
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9083" -j ACCEPT # hive
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9085" -j ACCEPT # filed
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9097" -j ACCEPT # endpointd
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9122" -j ACCEPT # metricsd
@@ -92,6 +94,7 @@ iptables -t nat -A PROXY_INBOUND -p tcp --dport "6000" -j RETURN  # deviced
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "6001" -j RETURN  # deviced
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "7201" -j RETURN  # m3db/metricsd
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "7301" -j RETURN  # m3db/metricsd
+iptables -t nat -A PROXY_INBOUND -p tcp --dport "8080" -j RETURN  # presto
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "8081" -j RETURN  # apiserver
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "8100:8110" -j RETURN  # proxyd
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "8200" -j RETURN  # valult
@@ -99,6 +102,7 @@ iptables -t nat -A PROXY_INBOUND -p tcp --dport "8443" -j RETURN  # apiserver
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "9000:9004" -j RETURN  # m3db/metricsd
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "9063:9064" -j RETURN  # alertdispatch
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "9073" -j RETURN  # identityd
+iptables -t nat -A PROXY_INBOUND -p tcp --dport "9083" -j RETURN  # hive
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "9085" -j RETURN  # filed
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "9097" -j RETURN  # endpointd
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "9122" -j RETURN  # metricsd
