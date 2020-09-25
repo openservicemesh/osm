@@ -45,10 +45,11 @@ func NewGrpc(serverType string, port int, certPem, keyPem, rootCertPem []byte) (
 }
 
 // GrpcServe starts the gRPC server passed.
-func GrpcServe(ctx context.Context, grpcServer *grpc.Server, lis net.Listener, cancel context.CancelFunc, serverType string) {
+func GrpcServe(ctx context.Context, grpcServer *grpc.Server, lis net.Listener, cancel context.CancelFunc, serverType string, successFailCh chan interface{}) {
 	go func() {
 		if err := grpcServer.Serve(lis); err != nil {
 			log.Error().Err(err).Msgf("[grpc][%s] Error serving gRPC request", serverType)
+			successFailCh <- err
 		}
 		cancel()
 	}()
