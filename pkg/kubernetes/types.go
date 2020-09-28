@@ -80,6 +80,9 @@ type Controller interface {
 	// ListMonitoredNamespaces returns the namespaces monitored by the mesh
 	ListMonitoredNamespaces() ([]string, error)
 
+	// GetNamespace returns k8s namespace present in cache
+	GetNamespace(ns string) *corev1.Namespace
+
 	// Returns the announcement channel for a certain Informer ID
 	GetAnnouncementsChannel(informerID InformerKey) <-chan interface{}
 }
