@@ -4,9 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/openservicemesh/osm/pkg/tests"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/peer"
+
+	"github.com/openservicemesh/osm/pkg/tests"
 )
 
 func TestGetIPFromContext(t *testing.T) {

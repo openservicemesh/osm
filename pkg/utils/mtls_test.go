@@ -7,15 +7,16 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
-	"github.com/openservicemesh/osm/pkg/tests"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
+
+	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
+	"github.com/openservicemesh/osm/pkg/tests"
 )
 
 func TestSetupMutualTLS(t *testing.T) {
@@ -53,7 +54,6 @@ func TestSetupMutualTLS(t *testing.T) {
 			assert.NotNil(result)
 			assert.Nil(err)
 		}
-
 	}
 }
 
@@ -84,7 +84,6 @@ func TestValidateClient(t *testing.T) {
 	}
 
 	for _, vct := range validateClientTests {
-
 		result, err := ValidateClient(vct.ctx, vct.commonNames)
 		if err != nil {
 			assert.Equal(result, certificate.CommonName(""))

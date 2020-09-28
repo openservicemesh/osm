@@ -5,11 +5,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/spf13/pflag"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/spf13/pflag"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestNewGrpc(t *testing.T) {
@@ -48,7 +49,6 @@ func TestNewGrpc(t *testing.T) {
 			assert.Nil(err)
 		}
 	}
-
 }
 
 func TestGrpcServe(t *testing.T) {
@@ -62,17 +62,14 @@ func TestGrpcServe(t *testing.T) {
 	serverType := "ADS"
 	flags := pflag.NewFlagSet(`osm-controller`, pflag.ExitOnError)
 	port := flags.Int("port", constants.OSMControllerPort, "Aggregated Discovery Service port number.")
-
 	grpcServer, lis, err := NewGrpc(serverType, *port, adsCert.GetCertificateChain(), adsCert.GetPrivateKey(), adsCert.GetIssuingCA())
 	assert.Nil(err)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	errorCh := make(chan interface{}, 1)
-
 	go GrpcServe(ctx, grpcServer, lis, cancel, serverType, errorCh)
 	defer cancel()
 	time.Sleep(50 * time.Millisecond)
 
 	assert.Len(errorCh, 0)
-
 }
