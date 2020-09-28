@@ -1,20 +1,18 @@
 package injector
 
 import (
-	"context"
 	"strings"
 
 	"github.com/pkg/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
 func (wh *webhook) isMetricsEnabled(namespace string) (bool, error) {
-	ns, err := wh.kubeClient.CoreV1().Namespaces().Get(context.Background(), namespace, metav1.GetOptions{})
-	if err != nil {
-		log.Error().Err(err).Msgf("Error retrieving namespace %s", namespace)
-		return false, err
+	ns := wh.kubeController.GetNamespace(namespace)
+	if ns == nil {
+		log.Error().Err(errNamespaceNotFound).Msgf("Error retrieving namespace %s", namespace)
+		return false, errNamespaceNotFound
 	}
 
 	enabled, err := isAnnotatedForMetrics(ns.Annotations)
