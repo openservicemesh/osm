@@ -64,6 +64,8 @@ func TestGrpcServe(t *testing.T) {
 	port := flags.Int("port", constants.OSMControllerPort, "Aggregated Discovery Service port number.")
 
 	grpcServer, lis, err := NewGrpc(serverType, *port, adsCert.GetCertificateChain(), adsCert.GetPrivateKey(), adsCert.GetIssuingCA())
+	assert.Nil(err)
+
 	ctx, cancel := context.WithCancel(context.Background())
 	errorCh := make(chan interface{}, 1)
 
