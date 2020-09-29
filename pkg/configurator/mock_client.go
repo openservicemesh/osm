@@ -76,20 +76,6 @@ func (mr *MockConfiguratorMockRecorder) GetEnvoyLogLevel() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEnvoyLogLevel", reflect.TypeOf((*MockConfigurator)(nil).GetEnvoyLogLevel))
 }
 
-// GetMeshCIDRRanges mocks base method
-func (m *MockConfigurator) GetMeshCIDRRanges() []string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetMeshCIDRRanges")
-	ret0, _ := ret[0].([]string)
-	return ret0
-}
-
-// GetMeshCIDRRanges indicates an expected call of GetMeshCIDRRanges
-func (mr *MockConfiguratorMockRecorder) GetMeshCIDRRanges() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMeshCIDRRanges", reflect.TypeOf((*MockConfigurator)(nil).GetMeshCIDRRanges))
-}
-
 // GetOSMNamespace mocks base method
 func (m *MockConfigurator) GetOSMNamespace() string {
 	m.ctrl.T.Helper()
