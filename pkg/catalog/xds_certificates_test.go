@@ -22,11 +22,7 @@ import (
 )
 
 var _ = Describe("Test XDS certificate tooling", func() {
-
-	var (
-		mockCtrl *gomock.Controller
-	)
-	mockCtrl = gomock.NewController(ginkgo.GinkgoT())
+	mockCtrl := gomock.NewController(ginkgo.GinkgoT())
 	kubeClient := testclient.NewSimpleClientset()
 
 	mc := NewFakeMeshCatalog(kubeClient)
