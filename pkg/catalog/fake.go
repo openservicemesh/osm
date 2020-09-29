@@ -57,9 +57,7 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface) *MeshCatalog {
 		// play pretend this call queries a controller cache
 		var services []*corev1.Service
 
-		// Things worked before because internally, the APIs were calling kubeClient APIs with "namespace"
-		// parametre. Some tests have been using catalog APIs bypassing the namespace monitoring altogether.
-		// For now, this assumes that catalog tests use monitored namespaces at all times
+		// This assumes that catalog tests use monitored namespaces at all times
 		svcList, _ := kubeClient.CoreV1().Services("").List(context.Background(), metav1.ListOptions{})
 		for idx := range svcList.Items {
 			services = append(services, &svcList.Items[idx])
@@ -76,7 +74,6 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface) *MeshCatalog {
 
 		return vv
 	}).AnyTimes()
-
 	mockKubeController.EXPECT().ListPods().DoAndReturn(func() []*v1.Pod {
 		vv, err := kubeClient.CoreV1().Pods("").List(context.Background(), metav1.ListOptions{})
 		if err != nil {
