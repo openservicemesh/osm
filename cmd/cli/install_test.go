@@ -35,7 +35,6 @@ var (
 	testCABundleSecretName     = "osm-ca-bundle"
 	testRetentionTime          = "5d"
 	testMeshCIDR               = "10.20.0.0/16"
-	testMeshCIDRRanges         = []string{testMeshCIDR}
 	testEnvoyLogLevel          = "error"
 )
 
@@ -81,7 +80,6 @@ var _ = Describe("Running the install command", func() {
 				enableEgress:               true,
 				enablePrometheus:           true,
 				enableGrafana:              true,
-				meshCIDRRanges:             testMeshCIDRRanges,
 				clientSet:                  fakeClientSet,
 				envoyLogLevel:              testEnvoyLogLevel,
 			}
@@ -141,7 +139,6 @@ var _ = Describe("Running the install command", func() {
 						"enablePermissiveTrafficPolicy":  false,
 						"enableBackpressureExperimental": false,
 						"enableEgress":                   true,
-						"meshCIDRRanges":                 testMeshCIDR,
 						"enablePrometheus":               true,
 						"enableGrafana":                  true,
 						"deployJaeger":                   false,
@@ -193,7 +190,6 @@ var _ = Describe("Running the install command", func() {
 				prometheusRetentionTime:    testRetentionTime,
 				meshName:                   defaultMeshName,
 				enableEgress:               true,
-				meshCIDRRanges:             testMeshCIDRRanges,
 				enablePrometheus:           true,
 				enableGrafana:              true,
 				clientSet:                  fakeClientSet,
@@ -260,7 +256,6 @@ var _ = Describe("Running the install command", func() {
 						"enablePermissiveTrafficPolicy":  false,
 						"enableBackpressureExperimental": false,
 						"enableEgress":                   true,
-						"meshCIDRRanges":                 testMeshCIDR,
 						"enablePrometheus":               true,
 						"enableGrafana":                  true,
 						"deployJaeger":                   false,
@@ -319,7 +314,6 @@ var _ = Describe("Running the install command", func() {
 				prometheusRetentionTime:    testRetentionTime,
 				meshName:                   defaultMeshName,
 				enableEgress:               true,
-				meshCIDRRanges:             testMeshCIDRRanges,
 				enablePrometheus:           true,
 				enableGrafana:              true,
 				clientSet:                  fakeClientSet,
@@ -387,7 +381,6 @@ var _ = Describe("Running the install command", func() {
 						"enablePermissiveTrafficPolicy":  false,
 						"enableBackpressureExperimental": false,
 						"enableEgress":                   true,
-						"meshCIDRRanges":                 testMeshCIDR,
 						"enablePrometheus":               true,
 						"enableGrafana":                  true,
 						"deployJaeger":                   false,
@@ -432,7 +425,6 @@ var _ = Describe("Running the install command", func() {
 				certificateManager:      "vault",
 				meshName:                defaultMeshName,
 				enableEgress:            true,
-				meshCIDRRanges:          testMeshCIDRRanges,
 			}
 
 			err = installCmd.run(config)
@@ -488,7 +480,6 @@ var _ = Describe("Running the install command", func() {
 				prometheusRetentionTime:    testRetentionTime,
 				meshName:                   defaultMeshName,
 				enableEgress:               true,
-				meshCIDRRanges:             testMeshCIDRRanges,
 				enablePrometheus:           true,
 				enableGrafana:              true,
 				clientSet:                  fakeClientSet,
@@ -556,7 +547,6 @@ var _ = Describe("Running the install command", func() {
 						"enablePermissiveTrafficPolicy":  false,
 						"enableBackpressureExperimental": false,
 						"enableEgress":                   true,
-						"meshCIDRRanges":                 testMeshCIDR,
 						"enablePrometheus":               true,
 						"enableGrafana":                  true,
 						"deployJaeger":                   false,
@@ -611,7 +601,6 @@ var _ = Describe("Running the install command", func() {
 				prometheusRetentionTime:    testRetentionTime,
 				meshName:                   defaultMeshName,
 				enableEgress:               true,
-				meshCIDRRanges:             testMeshCIDRRanges,
 				clientSet:                  fakeClientSet,
 			}
 
@@ -680,7 +669,6 @@ var _ = Describe("Running the install command", func() {
 				prometheusRetentionTime:    testRetentionTime,
 				meshName:                   defaultMeshName + "-2",
 				enableEgress:               true,
-				meshCIDRRanges:             testMeshCIDRRanges,
 				clientSet:                  fakeClientSet,
 			}
 
@@ -743,7 +731,6 @@ var _ = Describe("Running the install command", func() {
 				prometheusRetentionTime:    testRetentionTime,
 				meshName:                   "osm!!123456789012345678901234567890123456789012345678901234567890", // >65 characters, contains !
 				enableEgress:               true,
-				meshCIDRRanges:             testMeshCIDRRanges,
 			}
 
 			err = install.run(config)
@@ -780,7 +767,6 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 			prometheusRetentionTime:    testRetentionTime,
 			meshName:                   defaultMeshName,
 			enableEgress:               true,
-			meshCIDRRanges:             testMeshCIDRRanges,
 			enablePrometheus:           true,
 			enableGrafana:              true,
 			envoyLogLevel:              testEnvoyLogLevel,
@@ -829,7 +815,6 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 				"enablePermissiveTrafficPolicy":  false,
 				"enableBackpressureExperimental": false,
 				"enableEgress":                   true,
-				"meshCIDRRanges":                 testMeshCIDR,
 				"enablePrometheus":               true,
 				"enableGrafana":                  true,
 				"deployJaeger":                   false,
@@ -862,7 +847,6 @@ var _ = Describe("Ensure that grafana is disabled when flag is set to false", fu
 			prometheusRetentionTime:    testRetentionTime,
 			meshName:                   defaultMeshName,
 			enableEgress:               true,
-			meshCIDRRanges:             testMeshCIDRRanges,
 			enablePrometheus:           true,
 			enableGrafana:              false,
 			envoyLogLevel:              testEnvoyLogLevel,
@@ -911,7 +895,6 @@ var _ = Describe("Ensure that grafana is disabled when flag is set to false", fu
 				"enablePermissiveTrafficPolicy":  false,
 				"enableBackpressureExperimental": false,
 				"enableEgress":                   true,
-				"meshCIDRRanges":                 testMeshCIDR,
 				"enablePrometheus":               true,
 				"enableGrafana":                  false,
 				"deployJaeger":                   false,
@@ -945,7 +928,6 @@ var _ = Describe("Ensure that grafana is enabled when flag is set to true", func
 			prometheusRetentionTime:    testRetentionTime,
 			meshName:                   defaultMeshName,
 			enableEgress:               true,
-			meshCIDRRanges:             testMeshCIDRRanges,
 			enablePrometheus:           true,
 			enableGrafana:              true,
 			envoyLogLevel:              testEnvoyLogLevel,
@@ -994,7 +976,6 @@ var _ = Describe("Ensure that grafana is enabled when flag is set to true", func
 				"enablePermissiveTrafficPolicy":  false,
 				"enableBackpressureExperimental": false,
 				"enableEgress":                   true,
-				"meshCIDRRanges":                 testMeshCIDR,
 				"enablePrometheus":               true,
 				"enableGrafana":                  true,
 				"deployJaeger":                   false,
@@ -1028,7 +1009,6 @@ var _ = Describe("Ensure that prometheus is disabled when flag is set to false",
 			prometheusRetentionTime:    testRetentionTime,
 			meshName:                   defaultMeshName,
 			enableEgress:               true,
-			meshCIDRRanges:             testMeshCIDRRanges,
 			enablePrometheus:           false,
 			enableGrafana:              true,
 			envoyLogLevel:              testEnvoyLogLevel,
@@ -1077,7 +1057,6 @@ var _ = Describe("Ensure that prometheus is disabled when flag is set to false",
 				"enablePermissiveTrafficPolicy":  false,
 				"enableBackpressureExperimental": false,
 				"enableEgress":                   true,
-				"meshCIDRRanges":                 testMeshCIDR,
 				"enablePrometheus":               false,
 				"enableGrafana":                  true,
 				"deployJaeger":                   false,
@@ -1110,7 +1089,6 @@ var _ = Describe("Resolving values for install command with cert-manager paramet
 			prometheusRetentionTime:    testRetentionTime,
 			meshName:                   defaultMeshName,
 			enableEgress:               true,
-			meshCIDRRanges:             testMeshCIDRRanges,
 			enablePrometheus:           true,
 			enableGrafana:              true,
 			envoyLogLevel:              testEnvoyLogLevel,
@@ -1159,7 +1137,6 @@ var _ = Describe("Resolving values for install command with cert-manager paramet
 				"enablePermissiveTrafficPolicy":  false,
 				"enableBackpressureExperimental": false,
 				"enableEgress":                   true,
-				"meshCIDRRanges":                 testMeshCIDR,
 				"enablePrometheus":               true,
 				"enableGrafana":                  true,
 				"deployJaeger":                   false,
@@ -1184,8 +1161,7 @@ var _ = Describe("Resolving values for egress option", func() {
 
 		It("Should enable egress in the Helm chart", func() {
 			installCmd := &installCmd{
-				enableEgress:   true,
-				meshCIDRRanges: testMeshCIDRRanges,
+				enableEgress: true,
 			}
 
 			vals, err := installCmd.resolveValues()
@@ -1193,44 +1169,6 @@ var _ = Describe("Resolving values for egress option", func() {
 
 			enableEgressVal := vals["OpenServiceMesh"].(map[string]interface{})["enableEgress"]
 			Expect(enableEgressVal).To(BeTrue())
-		})
-	})
-})
-
-var _ = Describe("Test mesh CIDR ranges", func() {
-	Context("Test meshCIDRRanges chart value with install cli option", func() {
-		It("Should correctly resolve meshCIDRRanges when egress is enabled", func() {
-			installCmd := &installCmd{
-				enableEgress:   true,
-				meshCIDRRanges: testMeshCIDRRanges,
-			}
-
-			vals, err := installCmd.resolveValues()
-			Expect(err).NotTo(HaveOccurred())
-
-			cidrRanges := vals["OpenServiceMesh"].(map[string]interface{})["meshCIDRRanges"]
-			Expect(cidrRanges).To(Equal(testMeshCIDR))
-		})
-	})
-
-	Context("Test validateCIDRs", func() {
-		It("Should correctly validate valid CIDR ranges", func() {
-			err := validateCIDRs([]string{"10.2.0.0/16"})
-			Expect(err).NotTo(HaveOccurred())
-
-			err = validateCIDRs([]string{"10.0.0.0/16", "10.20.0.0/16"})
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		It("Should correctly error invalid CIDR ranges", func() {
-			err := validateCIDRs([]string{"10.0.0.0/16", "10.20.0.0/99"})
-			Expect(err).To(HaveOccurred())
-
-			err = validateCIDRs([]string{"300.0.0.0/16"})
-			Expect(err).To(HaveOccurred())
-
-			err = validateCIDRs([]string{"10.2.0.0"})
-			Expect(err).To(HaveOccurred())
 		})
 	})
 })

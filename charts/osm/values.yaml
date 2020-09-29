@@ -35,7 +35,6 @@ OpenServiceMesh:
   enablePrometheus: true
   enableGrafana: false
   meshName: osm
-  meshCIDRRanges: 0.0.0.0/0
   useHTTPSIngress: false
   envoyLogLevel: error
 

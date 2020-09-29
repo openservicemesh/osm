@@ -26,7 +26,6 @@ A Helm chart to install the OSM control plane on Kubernetes
 | OpenServiceMesh.image.registry | string | `"openservicemesh"` |  |
 | OpenServiceMesh.image.tag | string | `"v0.3.0"` |  |
 | OpenServiceMesh.imagePullSecrets | object | `{}` |  |
-| OpenServiceMesh.meshCIDRRanges | string | `"0.0.0.0/0"` |  |
 | OpenServiceMesh.meshName | string | `"osm"` |  |
 | OpenServiceMesh.prometheus.port | int | `7070` |  |
 | OpenServiceMesh.prometheus.retention.time | string | `"15d"` |  |

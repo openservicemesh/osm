@@ -17,7 +17,6 @@ const (
 	permissiveTrafficPolicyModeKey = "permissive_traffic_policy_mode"
 	egressKey                      = "egress"
 	prometheusScrapingKey          = "prometheus_scraping"
-	meshCIDRRangesKey              = "mesh_cidr_ranges"
 	useHTTPSIngressKey             = "use_https_ingress"
 	tracingEnableKey               = "tracing_enable"
 	tracingAddressKey              = "tracing_address"
@@ -90,9 +89,6 @@ type osmConfig struct {
 	// TracingEndpoint is the collector endpoint on the listener
 	TracingEndpoint string `yaml:"tracing_endpoint"`
 
-	// MeshCIDRRanges is the list of CIDR ranges for in-mesh traffic
-	MeshCIDRRanges string `yaml:"mesh_cidr_ranges"`
-
 	// EnvoyLogLevel is a string that defines the log level for envoy proxies
 	EnvoyLogLevel string `yaml:"envoy_log_level"`
 }
@@ -134,7 +130,6 @@ func (c *Client) getConfigMap() *osmConfig {
 		PermissiveTrafficPolicyMode: getBoolValueForKey(configMap, permissiveTrafficPolicyModeKey),
 		Egress:                      getBoolValueForKey(configMap, egressKey),
 		PrometheusScraping:          getBoolValueForKey(configMap, prometheusScrapingKey),
-		MeshCIDRRanges:              getEgressCIDR(configMap),
 		UseHTTPSIngress:             getBoolValueForKey(configMap, useHTTPSIngressKey),
 
 		TracingEnable: getBoolValueForKey(configMap, tracingEnableKey),
@@ -148,18 +143,6 @@ func (c *Client) getConfigMap() *osmConfig {
 	}
 
 	return &osmConfigMap
-}
-
-func getEgressCIDR(configMap *v1.ConfigMap) string {
-	cidr, ok := configMap.Data[meshCIDRRangesKey]
-	if !ok {
-		if getBoolValueForKey(configMap, egressKey) {
-			log.Error().Err(errMissingKeyInConfigMap).Msgf("Missing ConfigMap %s/%s key %s, required when egress is enabled; Defaulting to %+v", configMap.Namespace, configMap.Name, meshCIDRRangesKey, defaultInMeshCIDR)
-		}
-		return defaultInMeshCIDR
-	}
-
-	return cidr
 }
 
 func getBoolValueForKey(configMap *v1.ConfigMap, key string) bool {

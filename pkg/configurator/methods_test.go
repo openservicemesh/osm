@@ -12,12 +12,10 @@ import (
 )
 
 var _ = Describe("Test Envoy configuration creation", func() {
-	testCIDRRanges := "10.2.0.0/16 10.0.0.0/16"
 	testErrorEnvoyLogLevel := "error"
 	defaultConfigMap := map[string]string{
 		permissiveTrafficPolicyModeKey: "false",
 		egressKey:                      "true",
-		meshCIDRRangesKey:              testCIDRRanges,
 		prometheusScrapingKey:          "true",
 		tracingEnableKey:               "true",
 		envoyLogLevel:                  testErrorEnvoyLogLevel,
@@ -60,7 +58,6 @@ var _ = Describe("Test Envoy configuration creation", func() {
 				Egress:                      true,
 				PrometheusScraping:          true,
 				TracingEnable:               true,
-				MeshCIDRRanges:              testCIDRRanges,
 				EnvoyLogLevel:               testErrorEnvoyLogLevel,
 			}
 			expectedConfigBytes, err := marshalConfigToJSON(expectedConfig)
@@ -278,34 +275,6 @@ var _ = Describe("Test Envoy configuration creation", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(cfg.IsTracingEnabled()).To(BeFalse())
-		})
-	})
-
-	Context("create OSM config for mesh CIDR ranges", func() {
-		kubeClient := testclient.NewSimpleClientset()
-		stop := make(chan struct{})
-		osmNamespace := "-test-osm-namespace-"
-		osmConfigMapName := "-test-osm-config-map-"
-		cfg := NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
-
-		It("correctly retrieves the mesh CIDR ranges", func() {
-			Expect(cfg.GetMeshCIDRRanges()).To(BeEmpty())
-			configMap := v1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: osmNamespace,
-					Name:      osmConfigMapName,
-				},
-				Data: defaultConfigMap,
-			}
-			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Create(context.TODO(), &configMap, metav1.CreateOptions{})
-			Expect(err).ToNot(HaveOccurred())
-
-			// Wait for the config map change to propagate to the cache.
-			log.Info().Msg("Waiting for announcement")
-			<-cfg.GetAnnouncementsChannel()
-
-			expectedMeshCIDRRanges := []string{"10.0.0.0/16", "10.2.0.0/16"}
-			Expect(cfg.GetMeshCIDRRanges()).To(Equal(expectedMeshCIDRRanges))
 		})
 	})
 
