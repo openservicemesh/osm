@@ -31,7 +31,7 @@ osm namespace add test --enable-sidecar-injection
 osm namespace add test --enable-sidecar-injection=true
 
 # Add namespace 'test' to the mesh while disabling automatic sidecar injection. If sidecar injection was previously enabled, it will be disabled by this command.
-osm namespace add test --enable-sidecar-injection=false
+osm namespace add test --enable-sidecar-injection=false`
 
 type namespaceAddCmd struct {
 	out                     io.Writer
