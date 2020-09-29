@@ -49,9 +49,6 @@ type Configurator interface {
 	// GetTracingEndpoint returns the collector endpoint
 	GetTracingEndpoint() string
 
-	// GetMeshCIDRRanges returns a list of mesh CIDR ranges
-	GetMeshCIDRRanges() []string
-
 	// UseHTTPSIngress determines whether protocol used for traffic from ingress to backend pods should be HTTPS.
 	UseHTTPSIngress() bool
 

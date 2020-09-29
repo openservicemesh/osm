@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -87,7 +86,6 @@ type installCmd struct {
 	enableDebugServer             bool
 	enableEgress                  bool
 	enablePermissiveTrafficPolicy bool
-	meshCIDRRanges                []string
 	clientSet                     kubernetes.Interface
 	chartRequested                *chart.Chart
 
@@ -148,7 +146,6 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.BoolVar(&inst.enableDebugServer, "enable-debug-server", false, "Enable the debug HTTP server")
 	f.BoolVar(&inst.enablePermissiveTrafficPolicy, "enable-permissive-traffic-policy", false, "Enable permissive traffic policy mode")
 	f.BoolVar(&inst.enableEgress, "enable-egress", false, "Enable egress in the mesh")
-	f.StringSliceVar(&inst.meshCIDRRanges, "mesh-cidr", []string{}, "mesh CIDR range, accepts multiple CIDRs, required if enable-egress option is true")
 	f.BoolVar(&inst.enableBackpressureExperimental, "enable-backpressure-experimental", false, "Enable experimental backpressure feature")
 	f.BoolVar(&inst.enablePrometheus, "enable-prometheus", true, "Enable Prometheus installation and deployment")
 	f.BoolVar(&inst.enableGrafana, "enable-grafana", false, "Enable Grafana installation and deployment")
@@ -219,7 +216,6 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 		fmt.Sprintf("OpenServiceMesh.enableGrafana=%t", i.enableGrafana),
 		fmt.Sprintf("OpenServiceMesh.meshName=%s", i.meshName),
 		fmt.Sprintf("OpenServiceMesh.enableEgress=%t", i.enableEgress),
-		fmt.Sprintf("OpenServiceMesh.meshCIDRRanges=%s", strings.Join(i.meshCIDRRanges, " ")),
 		fmt.Sprintf("OpenServiceMesh.deployJaeger=%t", i.deployJaeger),
 		fmt.Sprintf("OpenServiceMesh.envoyLogLevel=%s", strings.ToLower(i.envoyLogLevel)),
 	}
@@ -287,13 +283,6 @@ func (i *installCmd) validateOptions() error {
 		return fmt.Errorf("Error ensuring no osm-controller running in namespace %s:%s", settings.Namespace(), err)
 	}
 
-	// validate CIDR ranges if egress is enabled
-	if i.enableEgress {
-		if err := validateCIDRs(i.meshCIDRRanges); err != nil {
-			return errors.Errorf("Invalid mesh-cidr-ranges: %q, error: %v. Valid mesh CIDR ranges must be specified with egress enabled.", i.meshCIDRRanges, err)
-		}
-	}
-
 	//validate the envoy log level type
 	if err := isValidEnvoyLogLevel(i.envoyLogLevel); err != nil {
 		return err
@@ -317,20 +306,6 @@ func isValidMeshName(meshName string) error {
 	meshNameErrs := validation.IsValidLabelValue(meshName)
 	if len(meshNameErrs) != 0 {
 		return errors.Errorf("Invalid mesh-name.\nValid mesh-name:\n- must be no longer than 63 characters\n- must consist of alphanumeric characters, '-', '_' or '.'\n- must start and end with an alphanumeric character\nregex used for validation is '(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?'")
-	}
-	return nil
-}
-
-func validateCIDRs(cidrRanges []string) error {
-	if len(cidrRanges) == 0 {
-		return errors.Errorf("CIDR ranges cannot be empty when `enable-egress` option is true`")
-	}
-	for _, cidr := range cidrRanges {
-		cidrNoSpaces := strings.Replace(cidr, " ", "", -1)
-		_, _, err := net.ParseCIDR(cidrNoSpaces)
-		if err != nil {
-			return errors.Errorf("Error parsing CIDR %s", cidr)
-		}
 	}
 	return nil
 }
