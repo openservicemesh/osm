@@ -581,6 +581,81 @@ var _ = Describe("Running the namespace list command", func() {
 	})
 })
 
+var _ = Describe("Running the namespace ignore command", func() {
+
+	var (
+		out           *bytes.Buffer
+		fakeClientSet kubernetes.Interface
+		err           error
+	)
+
+	Context("given one namespace as an arg", func() {
+
+		BeforeEach(func() {
+			out = new(bytes.Buffer)
+			fakeClientSet = fake.NewSimpleClientset()
+
+			nsSpec := createNamespaceSpec(testNamespace, "", false)
+			_, err = fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
+			Expect(err).NotTo(HaveOccurred())
+
+			namespaceIgnoreCmd := &namespaceIgnoreCmd{
+				out:        out,
+				namespaces: []string{testNamespace},
+				clientSet:  fakeClientSet,
+			}
+
+			err = namespaceIgnoreCmd.run()
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("should correctly add an ignore label to the namespace", func() {
+			ns, err := fakeClientSet.CoreV1().Namespaces().Get(context.TODO(), testNamespace, metav1.GetOptions{})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(ns.Labels[ignoreLabel]).To(Equal("true"))
+		})
+	})
+
+	Context("given multiple namespaces as an arg", func() {
+
+		var (
+			testNamespace2 = "test2"
+		)
+
+		BeforeEach(func() {
+			out = new(bytes.Buffer)
+			fakeClientSet = fake.NewSimpleClientset()
+
+			nsSpec := createNamespaceSpec(testNamespace, "", false)
+			_, err = fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec, metav1.CreateOptions{})
+			Expect(err).NotTo(HaveOccurred())
+
+			nsSpec2 := createNamespaceSpec(testNamespace2, "", false)
+			_, err = fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), nsSpec2, metav1.CreateOptions{})
+			Expect(err).NotTo(HaveOccurred())
+
+			namespaceIgnoreCmd := &namespaceIgnoreCmd{
+				out:        out,
+				namespaces: []string{testNamespace, testNamespace2},
+				clientSet:  fakeClientSet,
+			}
+
+			err = namespaceIgnoreCmd.run()
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("should correctly add an ignore label to the namespaces", func() {
+			ns, err := fakeClientSet.CoreV1().Namespaces().Get(context.TODO(), testNamespace, metav1.GetOptions{})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(ns.Labels[ignoreLabel]).To(Equal("true"))
+
+			ns2, err := fakeClientSet.CoreV1().Namespaces().Get(context.TODO(), testNamespace2, metav1.GetOptions{})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(ns2.Labels[ignoreLabel]).To(Equal("true"))
+		})
+	})
+})
+
 func createNamespaceSpec(namespace, meshName string, enableSideCarInjection bool) *v1.Namespace {
 	labelMap := make(map[string]string)
 	if meshName != "" {
