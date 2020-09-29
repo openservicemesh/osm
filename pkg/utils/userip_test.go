@@ -2,6 +2,7 @@ package utils
 
 import (
 	"context"
+	"net"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,19 +14,14 @@ import (
 func TestGetIPFromContext(t *testing.T) {
 	assert := assert.New(t)
 
-	ctxs := []context.Context{
-		context.Background(),
-		peer.NewContext(context.TODO(), &peer.Peer{Addr: tests.NewMockAddress("9.8.7.6")}),
+	ctxList := map[context.Context]net.Addr{
+		context.Background(): nil,
+		peer.NewContext(context.TODO(), &peer.Peer{Addr: tests.NewMockAddress("9.8.7.6")}): tests.NewMockAddress("9.8.7.6"),
 	}
 
-	for _, ctx := range ctxs {
+	for ctx, expectedRes := range ctxList {
 		result := GetIPFromContext(ctx)
 
-		if result == nil {
-			assert.Nil(result)
-		} else {
-			pk, _ := peer.FromContext(ctx)
-			assert.Equal(result, pk.Addr)
-		}
+		assert.Equal(expectedRes, result)
 	}
 }

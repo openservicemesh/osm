@@ -23,9 +23,10 @@ func TestSetupMutualTLS(t *testing.T) {
 	assert := assert.New(t)
 
 	type setupMutualTLStest struct {
-		certPem []byte
-		keyPem  []byte
-		ca      []byte
+		certPem       []byte
+		keyPem        []byte
+		ca            []byte
+		expectedError string
 	}
 
 	cache := make(map[certificate.CommonName]certificate.Certificater)
@@ -40,19 +41,18 @@ func TestSetupMutualTLS(t *testing.T) {
 	emptyByteArray := []byte{}
 
 	setupMutualTLStests := []setupMutualTLStest{
-		{emptyByteArray, goodKeyPem, goodCA},
-		{goodCertPem, goodKeyPem, emptyByteArray},
-		{goodCertPem, goodKeyPem, goodCA},
+		{emptyByteArray, goodKeyPem, goodCA, "[grpc][mTLS][ADS] Failed loading Certificate ([]) and Key "},
+		{goodCertPem, goodKeyPem, emptyByteArray, "[grpc][mTLS][ADS] Failed to append client certs"},
+		{goodCertPem, goodKeyPem, goodCA, ""},
 	}
 
 	for _, smt := range setupMutualTLStests {
 		result, err := setupMutualTLS(true, serverType, smt.certPem, smt.keyPem, smt.ca)
 		if err != nil {
 			assert.Nil(result)
-			assert.NotNil(err)
+			assert.Contains(err.Error(), smt.expectedError)
 		} else {
 			assert.NotNil(result)
-			assert.Nil(err)
 		}
 	}
 }
@@ -90,7 +90,6 @@ func TestValidateClient(t *testing.T) {
 			assert.True(errors.Is(err, vct.expectedError))
 		} else {
 			assert.NotNil(result)
-			assert.Nil(err)
 		}
 	}
 }

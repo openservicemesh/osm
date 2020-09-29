@@ -13,6 +13,7 @@ func TestPrettyJson(t *testing.T) {
 		input              []byte
 		prefix             string
 		expectedPrettyJSON []byte
+		expectedError      string
 	}
 
 	prettyJSONtests := []prettyJSONtest{{
@@ -20,21 +21,21 @@ func TestPrettyJson(t *testing.T) {
 		"--prefix--",
 		[]byte(`{
 --prefix--    "name": "baba yaga"
---prefix--}`)},
+--prefix--}`),
+		""},
 		{[]byte("should error"),
 			"",
-			nil},
+			nil,
+			"Could not Unmarshal a byte array"},
 	}
 
 	for _, pjt := range prettyJSONtests {
 		prettyJSON, err := PrettyJSON(pjt.input, pjt.prefix)
-
 		if err != nil {
+			assert.Contains(err.Error(), pjt.expectedError)
 			assert.Nil(prettyJSON)
-			assert.NotNil(err)
 		} else {
-			assert.Equal(prettyJSON, pjt.expectedPrettyJSON)
-			assert.Nil(err)
+			assert.Equal(pjt.expectedPrettyJSON, prettyJSON)
 		}
 	}
 }

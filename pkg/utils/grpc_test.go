@@ -26,15 +26,16 @@ func TestNewGrpc(t *testing.T) {
 	emptyByteArray := []byte{}
 
 	type newGrpcTest struct {
-		serverType string
-		port       int
-		certPem    []byte
+		serverType    string
+		port          int
+		certPem       []byte
+		expectedError string
 	}
 
 	newGrpcTests := []newGrpcTest{
-		{"abc", 123, emptyByteArray},
-		{"ADS", 8081, emptyByteArray},
-		{"ADS", 8080, certPem},
+		{"abc", 123, emptyByteArray, "listen tcp :123: bind: permission denied"},
+		{"ADS", 8081, emptyByteArray, "[grpc][mTLS][ADS] Failed loading Certificate ([]) and Key"},
+		{"ADS", 8080, certPem, ""},
 	}
 
 	for _, gt := range newGrpcTests {
@@ -42,11 +43,10 @@ func TestNewGrpc(t *testing.T) {
 		if err != nil {
 			assert.Nil(resServer)
 			assert.Nil(resListener)
-			assert.NotNil(err)
+			assert.Contains(err.Error(), gt.expectedError)
 		} else {
 			assert.NotNil(resServer)
 			assert.NotNil(resListener)
-			assert.Nil(err)
 		}
 	}
 }

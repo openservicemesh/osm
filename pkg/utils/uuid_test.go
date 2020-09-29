@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/google/uuid"
@@ -12,26 +11,20 @@ func TestNewUUIDStr(t *testing.T) {
 	assert := assert.New(t)
 
 	output := NewUUIDStr()
-	outputType := reflect.TypeOf(output)
-	stringType := reflect.TypeOf("")
-
-	assert.IsType(stringType, outputType)
+	assert.NotEmpty(output)
 }
 
 func TestIsValidUUID(t *testing.T) {
 	assert := assert.New(t)
 
-	listUUID := []string{
-		uuid.New().String(),
-		uuid.New().String() + "!xyz"}
+	listUUID := map[string]bool{
+		uuid.New().String():          true,
+		uuid.New().String() + "!xyz": false,
+	}
 
-	for _, uuid := range listUUID {
+	for uuid, expectedBool := range listUUID {
 		result := IsValidUUID(uuid)
 
-		if result == false {
-			assert.False(result)
-		} else {
-			assert.True(result)
-		}
+		assert.Equal(expectedBool, result)
 	}
 }
