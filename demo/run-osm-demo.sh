@@ -29,7 +29,6 @@ CTR_TAG="${CTR_TAG:-$(git rev-parse HEAD)}"
 IMAGE_PULL_POLICY="${IMAGE_PULL_POLICY:-Always}"
 ENABLE_EGRESS="${ENABLE_EGRESS:-false}"
 ENABLE_GRAFANA="${ENABLE_GRAFANA:-false}"
-MESH_CIDR=$(./scripts/get_mesh_cidr.sh)
 DEPLOY_WITH_SAME_SA="${DEPLOY_WITH_SAME_SA:-false}"
 ENVOY_LOG_LEVEL="${ENVOY_LOG_LEVEL:-debug}"
 
@@ -115,7 +114,6 @@ if [ "$CERT_MANAGER" = "vault" ]; then
       --enable-debug-server \
       --enable-egress="$ENABLE_EGRESS" \
       --enable-grafana="$ENABLE_GRAFANA" \
-      --mesh-cidr "$MESH_CIDR" \
       --envoy-log-level "$ENVOY_LOG_LEVEL" \
       $optionalInstallArgs
 else
@@ -131,7 +129,6 @@ else
       --enable-debug-server \
       --enable-egress="$ENABLE_EGRESS" \
       --enable-grafana="$ENABLE_GRAFANA" \
-      --mesh-cidr "$MESH_CIDR" \
       --envoy-log-level "$ENVOY_LOG_LEVEL" \
       $optionalInstallArgs
 fi

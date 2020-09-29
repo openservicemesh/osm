@@ -248,9 +248,9 @@ func (wh *webhook) mustInject(pod *corev1.Pod, namespace string) (bool, error) {
 	}
 
 	// Check if the namespace is annotated for injection
-	ns, err := wh.kubeClient.CoreV1().Namespaces().Get(context.Background(), namespace, metav1.GetOptions{})
-	if err != nil {
-		log.Error().Err(err).Msgf("Error retrieving namespace %s", namespace)
+	ns := wh.kubeController.GetNamespace(namespace)
+	if ns == nil {
+		log.Error().Err(errNamespaceNotFound).Msgf("Error retrieving namespace %s", namespace)
 		return false, err
 	}
 	nsInjectAnnotationExists, nsInject, err := isAnnotatedForInjection(ns.Annotations)

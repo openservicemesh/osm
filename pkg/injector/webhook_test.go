@@ -201,7 +201,7 @@ var _ = Describe("Testing mustInject", func() {
 				Name: namespace,
 			},
 		}
-		_, err := fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), testNamespace, metav1.CreateOptions{})
+		retNs, err := fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), testNamespace, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 
 		podWithInjectAnnotationEnabled := &corev1.Pod{
@@ -219,6 +219,7 @@ var _ = Describe("Testing mustInject", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		mockKubeController.EXPECT().IsMonitoredNamespace(namespace).Return(true).Times(1)
+		mockKubeController.EXPECT().GetNamespace(namespace).Return(retNs)
 
 		inject, err := wh.mustInject(podWithInjectAnnotationEnabled, namespace)
 
@@ -232,7 +233,7 @@ var _ = Describe("Testing mustInject", func() {
 				Name: namespace,
 			},
 		}
-		_, err := fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), testNamespace, metav1.CreateOptions{})
+		retNs, err := fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), testNamespace, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 
 		podWithInjectAnnotationEnabled := &corev1.Pod{
@@ -250,6 +251,7 @@ var _ = Describe("Testing mustInject", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		mockKubeController.EXPECT().IsMonitoredNamespace(namespace).Return(true).Times(1)
+		mockKubeController.EXPECT().GetNamespace(namespace).Return(retNs)
 
 		inject, err := wh.mustInject(podWithInjectAnnotationEnabled, namespace)
 
@@ -266,7 +268,7 @@ var _ = Describe("Testing mustInject", func() {
 				},
 			},
 		}
-		_, err := fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), testNamespace, metav1.CreateOptions{})
+		retNs, err := fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), testNamespace, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 
 		podWithInjectAnnotationEnabled := &corev1.Pod{
@@ -281,6 +283,7 @@ var _ = Describe("Testing mustInject", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		mockKubeController.EXPECT().IsMonitoredNamespace(namespace).Return(true).Times(1)
+		mockKubeController.EXPECT().GetNamespace(namespace).Return(retNs)
 
 		inject, err := wh.mustInject(podWithInjectAnnotationEnabled, namespace)
 
@@ -297,7 +300,7 @@ var _ = Describe("Testing mustInject", func() {
 				},
 			},
 		}
-		_, err := fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), testNamespace, metav1.CreateOptions{})
+		retNs, err := fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), testNamespace, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 
 		podWithInjectAnnotationEnabled := &corev1.Pod{
@@ -315,6 +318,7 @@ var _ = Describe("Testing mustInject", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		mockKubeController.EXPECT().IsMonitoredNamespace(namespace).Return(true).Times(1)
+		mockKubeController.EXPECT().GetNamespace(namespace).Return(retNs)
 
 		inject, err := wh.mustInject(podWithInjectAnnotationEnabled, namespace)
 

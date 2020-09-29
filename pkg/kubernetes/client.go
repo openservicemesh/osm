@@ -157,3 +157,13 @@ func (c Client) ListServices() []*corev1.Service {
 func (c Client) GetAnnouncementsChannel(informerID InformerKey) <-chan interface{} {
 	return c.announcements[informerID]
 }
+
+// GetNamespace returns a Namespace resource if found, nil otherwise.
+func (c Client) GetNamespace(ns string) *corev1.Namespace {
+	nsIf, exists, err := c.informers[Namespaces].GetStore().GetByKey(ns)
+	if exists && err == nil {
+		ns := nsIf.(*corev1.Namespace)
+		return ns
+	}
+	return nil
+}
