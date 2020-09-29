@@ -23,15 +23,15 @@ automatic sidecar injection which enables pods in the
 added namespaces to be injected with a sidecar upon creation.
 `
 const namespaceAddExample = `
-# Add bookstore to the mesh,disabled automatic sidecar injection.If it has been enabled, it will not be disabled.
-osm namespace add bookstore
+# Add namespace 'test' to the mesh without enabling automatic sidecar injection. If sidecar injection was previously enabled, it will not be disabled by this command.
+osm namespace add test
 
-# Enable automatic sidecar injection
-osm namespace add bookstore --enable-sidecar-injection 
-osm namespace add bookstore --enable-sidecar-injection=true
+# Add namespace 'test' to the mesh while enabling automatic sidecar injection
+osm namespace add test --enable-sidecar-injection 
+osm namespace add test --enable-sidecar-injection=true
 
-# Disable automatic  sidecar injection
-osm namespace add bookstore --enable-sidecar-injection=false`
+# Add namespace 'test' to the mesh while disabling automatic sidecar injection. If sidecar injection was previously enabled, it will be disabled by this command.
+osm namespace add test --enable-sidecar-injection=false
 
 type namespaceAddCmd struct {
 	out                     io.Writer
