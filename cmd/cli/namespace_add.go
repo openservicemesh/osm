@@ -18,7 +18,7 @@ import (
 const namespaceAddDescription = `
 This command will add a namespace or a set of namespaces 
 to the mesh, automatic sidecar injection is disabled by 
-default.Optionally, the namespaces can be configured for 
+default. Optionally, the namespaces can be configured for 
 automatic sidecar injection which enables pods in the 
 added namespaces to be injected with a sidecar upon creation.
 `
