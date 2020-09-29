@@ -13,7 +13,7 @@ OpenServiceMesh:
     port: 7070
     retention:
       time: 15d
-  certficateManager: tresor
+  certificateManager: tresor
   vault:
     host:
     protocol: http
