@@ -88,11 +88,9 @@ func TestValidateClient(t *testing.T) {
 		if err != nil {
 			assert.Equal(result, certificate.CommonName(""))
 			assert.True(errors.Is(err, vct.expectedError))
-
 		} else {
 			assert.NotNil(result)
 			assert.Nil(err)
 		}
 	}
-
 }

@@ -34,5 +34,4 @@ func TestIsValidUUID(t *testing.T) {
 			assert.True(result)
 		}
 	}
-
 }

@@ -20,7 +20,6 @@ func TestK8sSvcToMeshSvc(t *testing.T) {
 	}
 
 	assert.Equal(meshSvc, expectedMeshSvc)
-
 }
 
 func TestGetTrafficTargetName(t *testing.T) {
