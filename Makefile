@@ -53,7 +53,7 @@ clean-osm:
 	@rm -rf bin/osm
 
 .PHONY: go-checks
-go-checks: go-lint go-fmt
+go-checks: go-lint go-fmt go-mod-tidy
 
 .PHONY: go-vet
 go-vet:
@@ -66,6 +66,10 @@ go-lint:
 .PHONY: go-fmt
 go-fmt:
 	go fmt ./...
+
+.PHONY: go-mod-tidy
+go-mod-tidy:
+	./scripts/go-mod-tidy.sh
 
 .PHONY: go-test
 go-test:
