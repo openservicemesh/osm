@@ -55,11 +55,11 @@ func (wh *webhook) createPatch(pod *corev1.Pod, namespace string) ([]byte, error
 	)
 
 	// Add the Init Container
-	initContainerData := InitContainerData{
+	initContainerData := InitContainer{
 		Name:  constants.InitContainerName,
 		Image: wh.config.InitContainerImage,
 	}
-	initContainerSpec, err := getInitContainerSpec(pod, &initContainerData)
+	initContainerSpec, err := getInitContainerSpec(&initContainerData)
 	if err != nil {
 		return nil, err
 	}
