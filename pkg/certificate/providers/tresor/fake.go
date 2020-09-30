@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/certificate/pem"
 )
 
 // NewFakeCertManager creates a fake CertManager used for testing.
@@ -22,4 +23,20 @@ func NewFakeCertManager(cache *map[certificate.CommonName]certificate.Certificat
 		announcements:  make(chan interface{}),
 		cache:          cache,
 	}
+}
+
+// NewFakeCertificate is a helper creating Certificates for unit tests.
+func NewFakeCertificate() *Certificate {
+	cert := Certificate{
+		privateKey: pem.PrivateKey("yy"),
+		certChain:  pem.Certificate("xx"),
+		expiration: time.Now(),
+		commonName: "foo.bar.co.uk",
+	}
+
+	// It is acceptable in the context of a unit test (so far) for
+	// the Issuing CA to be the same as the certificate itself.
+	cert.issuingCA = pem.RootCertificate(cert.certChain)
+
+	return &cert
 }
