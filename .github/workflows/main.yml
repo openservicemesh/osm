@@ -50,12 +50,7 @@ jobs:
         uses: actions/checkout@v1
       - name: go mod tidy
         run: |
-          go mod tidy
-          if ! git diff --exit-code ;
-          then
-            echo "Please run go mod tidy to clean up dependencies"
-            exit 1
-          fi
+          make go-mod-tidy
 
   build:
     name: Go build
