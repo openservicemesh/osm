@@ -48,8 +48,8 @@ type JSONPatchOperation struct {
 	Value interface{} `json:"value,omitempty"`
 }
 
-// InitContainerData is the type used to represent information about the init container
-type InitContainerData struct {
+// InitContainer is the type used to represent information about the init container
+type InitContainer struct {
 	Name  string
 	Image string
 }

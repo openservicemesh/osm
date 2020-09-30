@@ -8,7 +8,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
-func getInitContainerSpec(pod *corev1.Pod, data *InitContainerData) (corev1.Container, error) {
+func getInitContainerSpec(data *InitContainer) (corev1.Container, error) {
 	return corev1.Container{
 		Name:  data.Name,
 		Image: data.Image,
