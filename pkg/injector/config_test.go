@@ -1,6 +1,7 @@
 package injector
 
 import (
+	"encoding/base64"
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
@@ -9,23 +10,34 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
-const expectedEnvoyConfig = `
-admin:
+var _ = Describe("Test Envoy configuration creation", func() {
+	var (
+		mockCtrl         *gomock.Controller
+		mockConfigurator *configurator.MockConfigurator
+	)
+
+	// This is the Bootstrap YAML generated for the Envoy proxies.
+	// This is provisioned by the MutatingWebhook during the addition of a sidecar
+	// to every new Pod that is being created in a namespace participating in the service mesh.
+	// We deliberately leave this entire string literal here to document and visualize what the
+	// generated YAML looks like!
+	const expectedEnvoyConfig = `admin:
   access_log_path: /dev/stdout
   address:
     socket_address:
       address: 0.0.0.0
-      port_value: "3465"
+      port_value: "15000"
 dynamic_resources:
   ads_config:
     api_type: GRPC
     grpc_services:
     - envoy_grpc:
-        cluster_name: XDSClusterName
+        cluster_name: osm-controller
     set_node_on_first_message_only: true
     transport_api_version: V3
   cds_config:
@@ -39,15 +51,15 @@ static_resources:
   - connect_timeout: 0.25s
     http2_protocol_options: {}
     load_assignment:
-      cluster_name: XDSClusterName
+      cluster_name: osm-controller
       endpoints:
       - lb_endpoints:
         - endpoint:
             address:
               socket_address:
-                address: XDSHost
-                port_value: 2345
-    name: XDSClusterName
+                address: osm-controller.b.svc.cluster.local
+                port_value: 15128
+    name: osm-controller
     transport_socket:
       name: envoy.transport_sockets.tls
       typed_config:
@@ -57,23 +69,19 @@ static_resources:
           - h2
           tls_certificates:
           - certificate_chain:
-              inline_bytes: Cert
+              inline_bytes: eHg=
             private_key:
-              inline_bytes: Key
+              inline_bytes: eXk=
           tls_params:
             tls_maximum_protocol_version: TLSv1_3
             tls_minimum_protocol_version: TLSv1_2
           validation_context:
             trusted_ca:
-              inline_bytes: RootCert
+              inline_bytes: eHg=
     type: LOGICAL_DNS
 `
 
-var _ = Describe("Test Envoy configuration creation", func() {
-	var (
-		mockCtrl         *gomock.Controller
-		mockConfigurator *configurator.MockConfigurator
-	)
+	cert := tresor.NewFakeCertificate()
 
 	mockCtrl = gomock.NewController(GinkgoT())
 	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
@@ -81,19 +89,21 @@ var _ = Describe("Test Envoy configuration creation", func() {
 	Context("create envoy config", func() {
 		It("creates envoy config", func() {
 			config := envoyBootstrapConfigMeta{
-				EnvoyAdminPort: 3465,
-				XDSClusterName: "XDSClusterName",
-				RootCert:       "RootCert",
-				Cert:           "Cert",
-				Key:            "Key",
-				XDSHost:        "XDSHost",
-				XDSPort:        2345,
+				RootCert: base64.StdEncoding.EncodeToString(cert.GetIssuingCA()),
+				Cert:     base64.StdEncoding.EncodeToString(cert.GetCertificateChain()),
+				Key:      base64.StdEncoding.EncodeToString(cert.GetPrivateKey()),
+
+				EnvoyAdminPort: 15000,
+
+				XDSClusterName: "osm-controller",
+				XDSHost:        "osm-controller.b.svc.cluster.local",
+				XDSPort:        15128,
 			}
 
 			actual, err := getEnvoyConfigYAML(config, mockConfigurator)
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(string(actual)).To(Equal(expectedEnvoyConfig[1:]),
+			Expect(string(actual)).To(Equal(expectedEnvoyConfig),
 				fmt.Sprintf("Expected:\n%s\nActual:\n%s\n", expectedEnvoyConfig, string(actual)))
 		})
 	})
