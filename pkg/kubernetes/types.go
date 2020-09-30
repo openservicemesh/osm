@@ -51,6 +51,8 @@ const (
 	Namespaces InformerKey = "Namespaces"
 	// Services lookup identifier
 	Services InformerKey = "Services"
+	// Pods lookup identifier
+	Pods InformerKey = "Pods"
 )
 
 // InformerCollection is the type holding the collection of informers we keep
@@ -85,4 +87,7 @@ type Controller interface {
 
 	// Returns the announcement channel for a certain Informer ID
 	GetAnnouncementsChannel(informerID InformerKey) <-chan interface{}
+
+	// ListPods returns a list of pods part of the mesh
+	ListPods() []*corev1.Pod
 }

@@ -105,6 +105,20 @@ func (mr *MockControllerMockRecorder) ListMonitoredNamespaces() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListMonitoredNamespaces", reflect.TypeOf((*MockController)(nil).ListMonitoredNamespaces))
 }
 
+// ListPods mocks base method
+func (m *MockController) ListPods() []*v1.Pod {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListPods")
+	ret0, _ := ret[0].([]*v1.Pod)
+	return ret0
+}
+
+// ListPods indicates an expected call of ListPods
+func (mr *MockControllerMockRecorder) ListPods() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPods", reflect.TypeOf((*MockController)(nil).ListPods))
+}
+
 // ListServices mocks base method
 func (m *MockController) ListServices() []*v1.Service {
 	m.ctrl.T.Helper()

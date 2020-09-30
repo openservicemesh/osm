@@ -8,6 +8,7 @@ import (
 	"k8s.io/client-go/rest"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 )
 
 // GetHandlers implements DebugServer interface and returns the rest of URLs and the handling functions.
@@ -34,12 +35,13 @@ func (ds debugServer) GetHandlers() map[string]http.Handler {
 }
 
 // NewDebugServer returns an implementation of DebugServer interface.
-func NewDebugServer(certDebugger CertificateManagerDebugger, xdsDebugger XDSDebugger, meshCatalogDebugger MeshCatalogDebugger, kubeConfig *rest.Config, kubeClient kubernetes.Interface, cfg configurator.Configurator) DebugServer {
+func NewDebugServer(certDebugger CertificateManagerDebugger, xdsDebugger XDSDebugger, meshCatalogDebugger MeshCatalogDebugger, kubeConfig *rest.Config, kubeClient kubernetes.Interface, cfg configurator.Configurator, kubeController k8s.Controller) DebugServer {
 	return debugServer{
 		certDebugger:        certDebugger,
 		xdsDebugger:         xdsDebugger,
 		meshCatalogDebugger: meshCatalogDebugger,
 		kubeClient:          kubeClient,
+		kubeController:      kubeController,
 
 		// We need the Kubernetes config to be able to establish port forwarding to the Envoy pod we want to debug.
 		kubeConfig: kubeConfig,
