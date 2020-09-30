@@ -5,7 +5,7 @@ set -aueo pipefail
 # shellcheck disable=SC1091
 source .env
 
-./demo/deploy-traffic-spec.sh
+./demo/deploy-traffic-specs.sh
 ./demo/deploy-traffic-target.sh
 ./demo/deploy-traffic-split.sh
 
