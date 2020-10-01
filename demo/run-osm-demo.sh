@@ -32,9 +32,6 @@ ENABLE_GRAFANA="${ENABLE_GRAFANA:-false}"
 DEPLOY_WITH_SAME_SA="${DEPLOY_WITH_SAME_SA:-false}"
 ENVOY_LOG_LEVEL="${ENVOY_LOG_LEVEL:-debug}"
 
-# Check if Docker daemon is running
-pgrep -f docker > /dev/null || { echo "Docker daemon is not running"; exit 1; }
-
 # For any additional installation arguments. Used heavily in CI.
 optionalInstallArgs=$*
 
