@@ -72,6 +72,9 @@ wait_for_pod_ready() {
     exit_error "Pod ${pod_name} status is ${pod_status} -- still not Ready"
 }
 
+# Check if Docker daemon is running
+docker info > /dev/null || { echo "Docker daemon is not running"; exit 1; }
+
 make build-osm
 
 # cleanup stale resources from previous runs
