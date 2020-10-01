@@ -14,7 +14,7 @@ import (
 )
 
 const namespaceIgnoreDescription = `
-This command will configure a namespace or a set of namespaces from
+This command will prevent a namespace or a set of namespaces from
 participating in the mesh. Automatic sidecar injection on pods
 belonging to the given namespace or set of namespaces will be prevented.
 The command will not remove previously injected sidecars on pods belonging
