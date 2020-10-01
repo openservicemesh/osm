@@ -25,7 +25,15 @@ var _ = Describe("Catalog tests", func() {
 			actual, err := mc.ListTrafficPolicies(tests.BookstoreService)
 			Expect(err).ToNot(HaveOccurred())
 
-			expected := []trafficpolicy.TrafficTarget{tests.TrafficPolicy}
+			expected := []trafficpolicy.TrafficTarget{tests.BookstoreTrafficPolicy}
+			Expect(actual).To(Equal(expected))
+		})
+
+		It("lists traffic policies for all services associated with the service account", func() {
+			actual, err := mc.ListTrafficPolicies(tests.BookbuyerService)
+			Expect(err).ToNot(HaveOccurred())
+
+			expected := []trafficpolicy.TrafficTarget{tests.BookstoreTrafficPolicy, tests.BookstoreApexTrafficPolicy}
 			Expect(actual).To(Equal(expected))
 		})
 	})
