@@ -76,7 +76,7 @@ func newNamespaceAdd(out io.Writer) *cobra.Command {
 	f.StringVar(&namespaceAdd.meshName, "mesh-name", "osm", "Name of the service mesh")
 
 	//add sidecar injection flag
-	f.BoolVar(&namespaceAdd.enableSidecarInjection, "enable-sidecar-injection", true, "Enable or disable automatic sidecar injection, disabling requires explicitly setting this flag.")
+	f.BoolVar(&namespaceAdd.enableSidecarInjection, "enable-sidecar-injection", true, "Enable or disable automatic sidecar injection, disabling requires explicitly setting this flag to false.")
 
 	return cmd
 }
