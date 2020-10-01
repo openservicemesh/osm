@@ -8,6 +8,7 @@ import (
 	testclient "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 )
 
 // Tests GetHandlers returns the expected debug endpoints and non-nil handlers
@@ -20,13 +21,15 @@ func TestGetHandlers(t *testing.T) {
 	mockCatalogDebugger := NewMockMeshCatalogDebugger(mockCtrl)
 	mockConfig := configurator.NewMockConfigurator(mockCtrl)
 	client := testclient.NewSimpleClientset()
+	mockKubeController := k8s.NewMockController(mockCtrl)
 
 	ds := NewDebugServer(mockCertDebugger,
 		mockXdsDebugger,
 		mockCatalogDebugger,
 		nil,
 		client,
-		mockConfig)
+		mockConfig,
+		mockKubeController)
 
 	handlers := ds.GetHandlers()
 

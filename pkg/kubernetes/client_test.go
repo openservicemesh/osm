@@ -47,15 +47,53 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 					Labels: map[string]string{constants.OSMKubeResourceMonitorAnnotation: testMeshName},
 				},
 			}
-			if _, err := kubeClient.CoreV1().Namespaces().Create(context.TODO(), &testNamespace, metav1.CreateOptions{}); err != nil {
-				log.Fatal().Err(err).Msgf("Error creating Namespace %v", testNamespace)
-			}
+			_, err = kubeClient.CoreV1().Namespaces().Create(context.TODO(), &testNamespace, metav1.CreateOptions{})
+			Expect(err).To(BeNil())
 			<-kubeController.GetAnnouncementsChannel(Namespaces)
 
 			monitoredNamespaces, err := kubeController.ListMonitoredNamespaces()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(monitoredNamespaces)).To(Equal(1))
 			Expect(testNamespaceName).To(BeElementOf(monitoredNamespaces))
+		})
+	})
+
+	Context("Testing GetNamespace", func() {
+		It("should return existing namespace if it exists", func() {
+			// Create namespace controller
+			kubeClient := testclient.NewSimpleClientset()
+			stop := make(chan struct{})
+			kubeController, err := NewKubernetesController(kubeClient, testMeshName, stop)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(kubeController).ToNot(BeNil())
+
+			// Create a test namespace that is monitored
+			testNamespaceName := fmt.Sprintf("%s-1", tests.Namespace)
+			testNamespace := corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:   testNamespaceName,
+					Labels: map[string]string{constants.OSMKubeResourceMonitorAnnotation: testMeshName},
+				},
+			}
+
+			// Create it
+			nsCreate, err := kubeClient.CoreV1().Namespaces().Create(context.TODO(), &testNamespace, metav1.CreateOptions{})
+			Expect(err).To(BeNil())
+			<-kubeController.GetAnnouncementsChannel(Namespaces)
+
+			// Check it is present
+			ns := kubeController.GetNamespace(testNamespaceName)
+			Expect(ns).ToNot(BeNil())
+			Expect(*ns).To(Equal(*nsCreate))
+
+			// Delete it
+			err = kubeClient.CoreV1().Namespaces().Delete(context.TODO(), testNamespaceName, metav1.DeleteOptions{})
+			Expect(err).To(BeNil())
+			<-kubeController.GetAnnouncementsChannel(Namespaces)
+
+			// Check it is gone
+			ns = kubeController.GetNamespace(testNamespaceName)
+			Expect(ns).To(BeNil())
 		})
 	})
 
@@ -77,9 +115,8 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 				},
 			}
 
-			if _, err := kubeClient.CoreV1().Namespaces().Create(context.TODO(), &testNamespace, metav1.CreateOptions{}); err != nil {
-				log.Fatal().Err(err).Msgf("Error creating Namespace %v", testNamespace)
-			}
+			_, err = kubeClient.CoreV1().Namespaces().Create(context.TODO(), &testNamespace, metav1.CreateOptions{})
+			Expect(err).To(BeNil())
 			<-kubeController.GetAnnouncementsChannel(Namespaces)
 
 			namespaceIsMonitored := kubeController.IsMonitoredNamespace(testNamespaceName)
@@ -112,13 +149,12 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 					Labels: map[string]string{constants.OSMKubeResourceMonitorAnnotation: testMeshName},
 				},
 			}
-			if _, err := kubeClient.CoreV1().Namespaces().Create(context.TODO(), &testNamespace, metav1.CreateOptions{}); err != nil {
-				log.Fatal().Err(err).Msgf("Error creating Namespace %v", testNamespace)
-			}
+			_, err := kubeClient.CoreV1().Namespaces().Create(context.TODO(), &testNamespace, metav1.CreateOptions{})
+			Expect(err).To(BeNil())
 			<-kubeController.GetAnnouncementsChannel(Namespaces)
 
 			svc := tests.NewServiceFixture(meshSvc.Name, meshSvc.Namespace, nil)
-			_, err := kubeClient.CoreV1().Services(meshSvc.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{})
+			_, err = kubeClient.CoreV1().Services(meshSvc.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{})
 			Expect(err).ToNot(HaveOccurred())
 			<-kubeController.GetAnnouncementsChannel(Services)
 
@@ -165,9 +201,8 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 						Labels: map[string]string{constants.OSMKubeResourceMonitorAnnotation: testMeshName},
 					},
 				}
-				if _, err := kubeClient.CoreV1().Namespaces().Create(context.TODO(), &testNamespace, metav1.CreateOptions{}); err != nil {
-					log.Fatal().Err(err).Msgf("Error creating Namespace %v", testNamespace)
-				}
+				_, err = kubeClient.CoreV1().Namespaces().Create(context.TODO(), &testNamespace, metav1.CreateOptions{})
+				Expect(err).To(BeNil())
 				<-kubeController.GetAnnouncementsChannel(Namespaces)
 			}
 

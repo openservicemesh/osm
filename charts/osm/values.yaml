@@ -6,14 +6,14 @@ OpenServiceMesh:
   image:
     registry: openservicemesh
     pullPolicy: IfNotPresent
-    tag: v0.3.0
+    tag: v0.4.0
   imagePullSecrets: []
   sidecarImage: envoyproxy/envoy-alpine:v1.15.0
   prometheus:
     port: 7070
     retention:
       time: 15d
-  certficateManager: tresor
+  certificateManager: tresor
   vault:
     host:
     protocol: http
@@ -35,7 +35,6 @@ OpenServiceMesh:
   enablePrometheus: true
   enableGrafana: false
   meshName: osm
-  meshCIDRRanges: 0.0.0.0/0
   useHTTPSIngress: false
   envoyLogLevel: error
 
@@ -58,6 +57,6 @@ OpenServiceMesh:
     # Destination port for the listener
     port: 9411
 
-    # Destination's API or collector endpoint where the spans will 
+    # Destination's API or collector endpoint where the spans will
     # be sent to
     endpoint: "/api/v2/spans"

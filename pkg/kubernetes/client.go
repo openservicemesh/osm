@@ -28,6 +28,7 @@ func NewKubernetesController(kubeClient kubernetes.Interface, meshName string, s
 	// Initialize resources here
 	client.initNamespaceMonitor()
 	client.initServicesMonitor()
+	client.initPodMonitor()
 
 	if err := client.run(stop); err != nil {
 		log.Error().Err(err).Msg("Could not start Kubernetes Namespaces client")
@@ -73,6 +74,22 @@ func (c *Client) initServicesMonitor() {
 	c.announcements[Services] = make(chan interface{})
 
 	c.informers[Services].AddEventHandler(GetKubernetesEventHandlers((string)(Services), ProviderName, c.announcements[Services], shouldObserve))
+}
+
+func (c *Client) initPodMonitor() {
+	informerFactory := informers.NewSharedInformerFactory(c.kubeClient, DefaultKubeEventResyncInterval)
+	c.informers[Pods] = informerFactory.Core().V1().Pods().Informer()
+
+	// Function to filter Pods by Namespace
+	shouldObserve := func(obj interface{}) bool {
+		ns := reflect.ValueOf(obj).Elem().FieldByName("ObjectMeta").FieldByName("Namespace").String()
+		return c.IsMonitoredNamespace(ns)
+	}
+
+	// Announcement channel for Pods
+	c.announcements[Pods] = make(chan interface{})
+
+	c.informers[Pods].AddEventHandler(GetKubernetesEventHandlers((string)(Pods), ProviderName, c.announcements[Services], shouldObserve))
 }
 
 func (c *Client) run(stop <-chan struct{}) error {
@@ -156,4 +173,30 @@ func (c Client) ListServices() []*corev1.Service {
 // GetAnnouncementsChannel gets the Announcements channel back
 func (c Client) GetAnnouncementsChannel(informerID InformerKey) <-chan interface{} {
 	return c.announcements[informerID]
+}
+
+// GetNamespace returns a Namespace resource if found, nil otherwise.
+func (c Client) GetNamespace(ns string) *corev1.Namespace {
+	nsIf, exists, err := c.informers[Namespaces].GetStore().GetByKey(ns)
+	if exists && err == nil {
+		ns := nsIf.(*corev1.Namespace)
+		return ns
+	}
+	return nil
+}
+
+// ListPods returns a list of pods part of the mesh
+// Kubecontroller does not currently segment pod notifications, hence it receives notifications
+// for all k8s Pods.
+func (c Client) ListPods() []*corev1.Pod {
+	var pods []*corev1.Pod
+
+	for _, podInterface := range c.informers[Pods].GetStore().List() {
+		pod := podInterface.(*corev1.Pod)
+		if !c.IsMonitoredNamespace(pod.Namespace) {
+			continue
+		}
+		pods = append(pods, pod)
+	}
+	return pods
 }

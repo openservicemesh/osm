@@ -13,7 +13,7 @@ set -aueo pipefail
 source .env
 
 
-./demo/deploy-policies.sh     # Add SMI policies
+./demo/deploy-smi-policies.sh # Add SMI policies
 ./demo/unjoin-namespaces.sh   # Remove namespaces from OSM.
 ./demo/reset-counters.sh      # Reset counters
 

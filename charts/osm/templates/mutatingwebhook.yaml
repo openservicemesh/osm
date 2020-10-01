@@ -17,3 +17,14 @@ webhooks:
   namespaceSelector:
     matchLabels:
       openservicemesh.io/monitored-by: {{.Values.OpenServiceMesh.meshName}}
+    matchExpressions:
+      # This label is explicitly set to ignore a namespace
+      - key: "openservicemesh.io/ignore"
+        operator: DoesNotExist
+
+      # This label is set by Helm when it creates a namespace (https://github.com/helm/helm/blob/release-3.2/pkg/action/install.go#L292)
+      # It ensures that pods in the control plane namespace are never injected with a sidecar
+      - key: "name"
+        operator: NotIn
+        values:
+        - {{.Release.Namespace}}

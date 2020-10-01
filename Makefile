@@ -53,7 +53,7 @@ clean-osm:
 	@rm -rf bin/osm
 
 .PHONY: go-checks
-go-checks: go-lint go-fmt
+go-checks: go-lint go-fmt go-mod-tidy
 
 .PHONY: go-vet
 go-vet:
@@ -66,6 +66,10 @@ go-lint:
 .PHONY: go-fmt
 go-fmt:
 	go fmt ./...
+
+.PHONY: go-mod-tidy
+go-mod-tidy:
+	./scripts/go-mod-tidy.sh
 
 .PHONY: go-test
 go-test:
@@ -126,7 +130,7 @@ DOCKER_PUSH_TARGETS = $(addprefix docker-push-, $(DEMO_TARGETS) init osm-control
 $(DOCKER_PUSH_TARGETS): NAME=$(@:docker-push-%=%)
 $(DOCKER_PUSH_TARGETS):
 	make docker-build-$(NAME)
-	docker push "$(CTR_REGISTRY)/$(NAME):$(CTR_TAG)"
+	docker push "$(CTR_REGISTRY)/$(NAME):$(CTR_TAG)" || { echo "Error pushing images to container registry $(CTR_REGISTRY)/$(NAME):$(CTR_TAG)"; exit 1; }
 
 .PHONY: docker-push
 docker-push: $(DOCKER_PUSH_TARGETS)
