@@ -16,11 +16,23 @@ import (
 )
 
 const namespaceAddDescription = `
-This command will add a namespace or a set of namespaces
-to the mesh. Optionally, the namespaces can be configured
-for automatic sidecar injection which enables pods in the
+This command will add a namespace or a set of namespaces 
+to the mesh so that osm-controller can observe resources belonging
+to mesh namespaces, automatic sidecar injection is disabled by 
+default. Optionally, the namespaces can be configured for 
+automatic sidecar injection which enables pods in the 
 added namespaces to be injected with a sidecar upon creation.
 `
+const namespaceAddExample = `
+# Add namespace 'test' to the mesh without enabling automatic sidecar injection. If sidecar injection was previously enabled, it will not be disabled by this command.
+osm namespace add test
+
+# Add namespace 'test' to the mesh while enabling automatic sidecar injection
+osm namespace add test --enable-sidecar-injection 
+osm namespace add test --enable-sidecar-injection=true
+
+# Add namespace 'test' to the mesh while disabling automatic sidecar injection. If sidecar injection was previously enabled, it will be disabled by this command.
+osm namespace add test --enable-sidecar-injection=false`
 
 type namespaceAddCmd struct {
 	out                     io.Writer
@@ -56,6 +68,7 @@ func newNamespaceAdd(out io.Writer) *cobra.Command {
 			namespaceAdd.clientSet = clientset
 			return namespaceAdd.run()
 		},
+		Example: namespaceAddExample,
 	}
 
 	//add mesh name flag
@@ -63,7 +76,7 @@ func newNamespaceAdd(out io.Writer) *cobra.Command {
 	f.StringVar(&namespaceAdd.meshName, "mesh-name", "osm", "Name of the service mesh")
 
 	//add sidecar injection flag
-	f.BoolVar(&namespaceAdd.enableSidecarInjection, "enable-sidecar-injection", true, "Enable automatic sidecar injection")
+	f.BoolVar(&namespaceAdd.enableSidecarInjection, "enable-sidecar-injection", true, "Enable or disable automatic sidecar injection, disabling requires explicitly setting this flag to false.")
 
 	return cmd
 }
@@ -83,7 +96,7 @@ func (a *namespaceAddCmd) run() error {
 
 		// if osm-controller is installed in this namespace then don't add that to mesh
 		if len(list.Items) != 0 {
-			fmt.Fprintf(a.out, "Namespace [%s] already has [%s] installed and cannot be added to mesh [%s]\n", ns, constants.OSMControllerName, a.meshName)
+			_, _ = fmt.Fprintf(a.out, "Namespace [%s] already has [%s] installed and cannot be added to mesh [%s]\n", ns, constants.OSMControllerName, a.meshName)
 			continue
 		}
 
@@ -133,7 +146,7 @@ func (a *namespaceAddCmd) run() error {
 			return errors.Errorf("Could not add namespace [%s] to mesh [%s]: %v", ns, a.meshName, err)
 		}
 
-		fmt.Fprintf(a.out, "Namespace [%s] successfully added to mesh [%s]\n", ns, a.meshName)
+		_, _ = fmt.Fprintf(a.out, "Namespace [%s] successfully added to mesh [%s]\n", ns, a.meshName)
 	}
 
 	return nil
