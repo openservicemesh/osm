@@ -14,7 +14,7 @@ This guide describes the process to create a GitHub Release for this project.
 
 Identify the base commit in the `main` branch for the release and cut a release branch off `main`.
 ```console
-$ git checkout -b release-<version> <commit-id> # ex: git checkout -b 0d05587 release-v0.4
+$ git checkout -b release-<version> <commit-id> # ex: git checkout -b release-v0.4 0d05587
 ```
 
 Push the release branch to origin.
