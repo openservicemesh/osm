@@ -47,6 +47,7 @@ func TestNewGrpc(t *testing.T) {
 		} else {
 			assert.NotNil(resServer)
 			assert.NotNil(resListener)
+			assert.Empty(gt.expectedError)
 		}
 	}
 }

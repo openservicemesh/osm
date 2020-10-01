@@ -53,6 +53,7 @@ func TestSetupMutualTLS(t *testing.T) {
 			assert.Contains(err.Error(), smt.expectedError)
 		} else {
 			assert.NotNil(result)
+			assert.Empty(smt.expectedError)
 		}
 	}
 }
@@ -90,6 +91,7 @@ func TestValidateClient(t *testing.T) {
 			assert.True(errors.Is(err, vct.expectedError))
 		} else {
 			assert.NotNil(result)
+			assert.Empty(vct.expectedError)
 		}
 	}
 }

@@ -36,6 +36,7 @@ func TestPrettyJson(t *testing.T) {
 			assert.Nil(prettyJSON)
 		} else {
 			assert.Equal(pjt.expectedPrettyJSON, prettyJSON)
+			assert.Empty(pjt.expectedError)
 		}
 	}
 }
