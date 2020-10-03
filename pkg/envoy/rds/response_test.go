@@ -148,6 +148,7 @@ var _ = Describe("AggregateRoutesByDomain", func() {
 
 var _ = Describe("RDS Response", func() {
 	defer GinkgoRecover()
+
 	var (
 		mockCtrl           *gomock.Controller
 		mockKubeController *k8s.MockController

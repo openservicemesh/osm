@@ -19,8 +19,9 @@ import (
 )
 
 var _ = Describe("Test cert-manager Certificate Manager", func() {
+	defer GinkgoRecover()
+
 	Context("Test Getting a certificate from the cache", func() {
-		defer GinkgoRecover()
 		validity := 1 * time.Hour
 		rootCertFilePEM := "../../sample_certificate.pem"
 		rootKeyFilePEM := "../../sample_private_key.pem"

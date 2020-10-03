@@ -28,6 +28,7 @@ import (
 
 var _ = Describe("Test ADS response functions", func() {
 	defer GinkgoRecover()
+
 	var (
 		mockCtrl         *gomock.Controller
 		mockConfigurator *configurator.MockConfigurator

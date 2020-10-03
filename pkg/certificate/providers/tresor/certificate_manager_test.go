@@ -11,6 +11,7 @@ import (
 
 var _ = Describe("Test Certificate Manager", func() {
 	defer GinkgoRecover()
+
 	const (
 		serviceFQDN = "a.b.c"
 		rootFQDN    = "bookbuyer.azure.mesh"

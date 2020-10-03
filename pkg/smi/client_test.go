@@ -38,6 +38,7 @@ type fakeKubeClientSet struct {
 
 func bootstrapClient() (MeshSpec, *fakeKubeClientSet, error) {
 	defer GinkgoRecover()
+
 	osmNamespace := "osm-system"
 	meshName := "osm"
 	stop := make(chan struct{})

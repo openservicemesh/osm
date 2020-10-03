@@ -15,6 +15,7 @@ import (
 
 var _ = Describe("Test OSM ConfigMap parsing", func() {
 	defer GinkgoRecover()
+
 	kubeClient := testclient.NewSimpleClientset()
 
 	osmNamespace := "-test-osm-namespace-"
