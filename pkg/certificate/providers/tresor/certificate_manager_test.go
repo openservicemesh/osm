@@ -10,7 +10,7 @@ import (
 )
 
 var _ = Describe("Test Certificate Manager", func() {
-
+	defer GinkgoRecover()
 	const (
 		serviceFQDN = "a.b.c"
 		rootFQDN    = "bookbuyer.azure.mesh"
@@ -65,7 +65,7 @@ var _ = Describe("Test Certificate Manager", func() {
 		rootCertOrganization := "Open Service Mesh Tresor"
 		rootCert, err := NewCA(cn, 1*time.Hour, rootCertCountry, rootCertLocality, rootCertOrganization)
 		if err != nil {
-			log.Fatal().Err(err).Msgf("Error loading CA from files %s and %s", rootCertPem, rootKeyPem)
+			GinkgoT().Fatalf("Error loading CA from files %s and %s: %s", rootCertPem, rootKeyPem, err.Error())
 		}
 		m, newCertError := NewCertManager(rootCert, validity, "org")
 		It("should issue a certificate", func() {
@@ -103,7 +103,7 @@ var _ = Describe("Test Certificate Manager", func() {
 		rootCertOrganization := "Open Service Mesh Tresor"
 		rootCert, err := NewCA(cn, validity, rootCertCountry, rootCertLocality, rootCertOrganization)
 		if err != nil {
-			log.Fatal().Err(err).Msgf("Error loading CA from files %s and %s", rootCertPem, rootKeyPem)
+			GinkgoT().Fatalf("Error loading CA from files %s and %s: %s", rootCertPem, rootKeyPem, err.Error())
 		}
 		m, newCertError := NewCertManager(rootCert, validity, "org")
 		It("should get an issued certificate from the cache", func() {

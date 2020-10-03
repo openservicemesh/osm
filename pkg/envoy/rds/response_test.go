@@ -147,6 +147,7 @@ var _ = Describe("AggregateRoutesByDomain", func() {
 })
 
 var _ = Describe("RDS Response", func() {
+	defer GinkgoRecover()
 	var (
 		mockCtrl           *gomock.Controller
 		mockKubeController *k8s.MockController
@@ -172,19 +173,19 @@ var _ = Describe("RDS Response", func() {
 	selector := map[string]string{tests.SelectorKey: tests.SelectorValue}
 	svc := tests.NewServiceFixture(tests.BookstoreService.Name, tests.BookstoreService.Namespace, selector)
 	if _, err := kubeClient.CoreV1().Services(tests.BookstoreService.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{}); err != nil {
-		log.Fatal().Err(err).Msgf("Error creating new Bookstore service")
+		GinkgoT().Fatalf("Error creating new Bookstore service: %s", err.Error())
 	}
 
 	// Create Bookbuyer Service
 	svc = tests.NewServiceFixture(tests.BookbuyerService.Name, tests.BookbuyerService.Namespace, nil)
 	if _, err := kubeClient.CoreV1().Services(tests.BookbuyerService.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{}); err != nil {
-		log.Fatal().Err(err).Msgf("Error creating new Bookbuyer service")
+		GinkgoT().Fatalf("Error creating new Bookbuyer service: %s", err.Error())
 	}
 
 	// Create Bookstore apex Service
 	svc = tests.NewServiceFixture(tests.BookstoreApexService.Name, tests.BookstoreApexService.Namespace, nil)
 	if _, err := kubeClient.CoreV1().Services(tests.BookstoreApexService.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{}); err != nil {
-		log.Fatal().Err(err).Msgf("Error creating new Bookstire Apex service")
+		GinkgoT().Fatalf("Error creating new Bookstire Apex service: %s", err.Error())
 	}
 
 	mockIngressMonitor.EXPECT().GetIngressResources(gomock.Any()).Return(nil, nil).AnyTimes()

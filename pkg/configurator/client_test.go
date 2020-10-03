@@ -14,6 +14,7 @@ import (
 )
 
 var _ = Describe("Test OSM ConfigMap parsing", func() {
+	defer GinkgoRecover()
 	kubeClient := testclient.NewSimpleClientset()
 
 	osmNamespace := "-test-osm-namespace-"
@@ -28,7 +29,7 @@ var _ = Describe("Test OSM ConfigMap parsing", func() {
 		},
 	}
 	if _, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Create(context.TODO(), &configMap, metav1.CreateOptions{}); err != nil {
-		log.Fatal().Err(err).Msgf("[TEST] Error creating ConfigMap %s/%s/", configMap.Namespace, configMap.Name)
+		GinkgoT().Fatalf("[TEST] Error creating ConfigMap %s/%s/: %s", configMap.Namespace, configMap.Name, err.Error())
 	}
 	<-cfg.GetAnnouncementsChannel()
 

@@ -37,6 +37,7 @@ type fakeKubeClientSet struct {
 }
 
 func bootstrapClient() (MeshSpec, *fakeKubeClientSet, error) {
+	defer GinkgoRecover()
 	osmNamespace := "osm-system"
 	meshName := "osm"
 	stop := make(chan struct{})
@@ -47,7 +48,7 @@ func bootstrapClient() (MeshSpec, *fakeKubeClientSet, error) {
 	osmPolicyClientSet := osmPolicyClient.NewSimpleClientset()
 	kubernetesClient, err := k8s.NewKubernetesController(kubeClient, meshName, stop)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Error initializing kubernetes controller")
+		GinkgoT().Fatalf("Error initializing kubernetes controller: %s", err.Error())
 	}
 
 	fakeClientSet := &fakeKubeClientSet{
@@ -66,7 +67,7 @@ func bootstrapClient() (MeshSpec, *fakeKubeClientSet, error) {
 		},
 	}
 	if _, err := kubeClient.CoreV1().Namespaces().Create(context.TODO(), &testNamespace, metav1.CreateOptions{}); err != nil {
-		log.Fatal().Err(err).Msgf("Error creating Namespace %v", testNamespace)
+		GinkgoT().Fatalf("Error creating Namespace %v: %s", testNamespace, err.Error())
 	}
 	<-kubernetesClient.GetAnnouncementsChannel(k8s.Namespaces)
 
