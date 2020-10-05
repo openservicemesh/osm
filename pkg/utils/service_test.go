@@ -1,33 +1,43 @@
 package utils
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
-var _ = Describe("Testing utils helpers", func() {
-	Context("Test K8sSvcToMeshSvc", func() {
-		It("works as expected", func() {
-			v1Service := tests.NewServiceFixture(tests.BookstoreServiceName, tests.Namespace, nil)
-			meshSvc := K8sSvcToMeshSvc(v1Service)
-			expectedMeshSvc := service.MeshService{
-				Name:      tests.BookstoreServiceName,
-				Namespace: tests.Namespace,
-			}
-			Expect(meshSvc).To(Equal(expectedMeshSvc))
-		})
-	})
+func TestK8sSvcToMeshSvc(t *testing.T) {
+	assert := assert.New(t)
 
-	Context("Test GetTrafficTargetName", func() {
-		It("works as expected", func() {
-			trafficTargetName := GetTrafficTargetName("TrafficTarget", tests.BookbuyerService, tests.BookstoreService)
-			Expect(trafficTargetName).To(Equal("TrafficTarget:default/bookbuyer->default/bookstore"))
+	v1Service := tests.NewServiceFixture(tests.BookstoreServiceName, tests.Namespace, nil)
+	meshSvc := K8sSvcToMeshSvc(v1Service)
+	expectedMeshSvc := service.MeshService{
+		Name:      tests.BookstoreServiceName,
+		Namespace: tests.Namespace,
+	}
 
-			trafficTargetName = GetTrafficTargetName("", tests.BookbuyerService, tests.BookstoreService)
-			Expect(trafficTargetName).To(Equal("default/bookbuyer->default/bookstore"))
-		})
-	})
-})
+	assert.Equal(meshSvc, expectedMeshSvc)
+}
+
+func TestGetTrafficTargetName(t *testing.T) {
+	assert := assert.New(t)
+
+	type getTrafficTargetNameTest struct {
+		input              string
+		expectedTargetName string
+	}
+
+	getTrafficTargetNameTests := []getTrafficTargetNameTest{
+		{"TrafficTarget", "TrafficTarget:default/bookbuyer->default/bookstore"},
+		{"", "default/bookbuyer->default/bookstore"},
+	}
+
+	for _, tn := range getTrafficTargetNameTests {
+		trafficTargetName := GetTrafficTargetName(tn.input, tests.BookbuyerService, tests.BookstoreService)
+
+		assert.Equal(trafficTargetName, tn.expectedTargetName)
+	}
+}
