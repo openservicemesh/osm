@@ -33,8 +33,9 @@ var _ = Describe("Catalog tests", func() {
 			actual, err := mc.ListTrafficPolicies(tests.BookbuyerService)
 			Expect(err).ToNot(HaveOccurred())
 
-			expected := []trafficpolicy.TrafficTarget{tests.BookstoreTrafficPolicy, tests.BookstoreApexTrafficPolicy}
-			Expect(actual).To(Equal(expected))
+			Expect(len(actual)).To(Equal(2)) // bookstore and bookstore-apex traffic policies
+			Expect(tests.BookstoreTrafficPolicy).To(BeElementOf(actual))
+			Expect(tests.BookstoreApexTrafficPolicy).To(BeElementOf(actual))
 		})
 	})
 
