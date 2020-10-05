@@ -27,6 +27,8 @@ import (
 )
 
 var _ = Describe("Test ADS response functions", func() {
+	defer GinkgoRecover()
+
 	var (
 		mockCtrl         *gomock.Controller
 		mockConfigurator *configurator.MockConfigurator
@@ -63,7 +65,7 @@ var _ = Describe("Test ADS response functions", func() {
 	// able to be looked up
 	svc = tests.NewServiceFixture(tests.BookstoreApexService.Name, tests.BookstoreApexService.Namespace, nil)
 	if _, err := kubeClient.CoreV1().Services(tests.BookstoreApexService.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{}); err != nil {
-		log.Fatal().Err(err).Msgf("Error creating new Bookstire Apex service")
+		GinkgoT().Fatalf("Error creating new Bookstire Apex service: %s", err.Error())
 	}
 
 	cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s", envoyUID, serviceAccountName, namespace))
