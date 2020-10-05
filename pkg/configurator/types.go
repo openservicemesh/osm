@@ -1,6 +1,8 @@
 package configurator
 
 import (
+	"time"
+
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/openservicemesh/osm/pkg/logger"
@@ -57,4 +59,7 @@ type Configurator interface {
 
 	// GetAnnouncementsChannel returns a channel, which is used to announce when changes have been made to the OSM ConfigMap
 	GetAnnouncementsChannel() <-chan interface{}
+
+	// GetServiceCertValidityPeriod returns the validity duration for service certificates
+	GetServiceCertValidityPeriod() time.Duration
 }
