@@ -1,18 +1,27 @@
 package utils
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
-var _ = Describe("Testing utils helpers", func() {
-	Context("Test GetLastChunkOfSlashed", func() {
-		It("Should return the last slice of a string split on a slash.", func() {
-			Expect(GetLastChunkOfSlashed("a/b/c")).To(Equal("c"))
-		})
+func TestGetLastChunkOfSlashed(t *testing.T) {
+	assert := assert.New(t)
 
-		It("Should return the full string when there are no slashes.", func() {
-			Expect(GetLastChunkOfSlashed("abc")).To(Equal("abc"))
-		})
-	})
-})
+	type getLastChunkOfSlashedTest struct {
+		input             string
+		expectedLastChunk string
+	}
+
+	getLastChunkOfSlashedTests := []getLastChunkOfSlashedTest{
+		{"a/b/c", "c"},
+		{"abc", "abc"},
+	}
+
+	for _, lcst := range getLastChunkOfSlashedTests {
+		result := GetLastChunkOfSlashed(lcst.input)
+
+		assert.Equal(result, lcst.expectedLastChunk)
+	}
+}

@@ -53,7 +53,7 @@ func (s *Server) Start(ctx context.Context, cancel context.CancelFunc, port int,
 	}
 
 	xds_discovery.RegisterAggregatedDiscoveryServiceServer(grpcServer, s)
-	go utils.GrpcServe(ctx, grpcServer, lis, cancel, ServerType)
+	go utils.GrpcServe(ctx, grpcServer, lis, cancel, ServerType, nil)
 	s.ready = true
 
 	return nil

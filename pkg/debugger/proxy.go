@@ -60,7 +60,7 @@ func printProxies(w http.ResponseWriter, proxies map[certificate.CommonName]time
 }
 
 func (ds debugServer) getConfigDump(cn certificate.CommonName, w http.ResponseWriter) {
-	pod, err := catalog.GetPodFromCertificate(cn, ds.kubeClient)
+	pod, err := catalog.GetPodFromCertificate(cn, ds.kubeController)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error getting Pod from certificate with CN=%s", cn)
 	}
@@ -70,7 +70,7 @@ func (ds debugServer) getConfigDump(cn certificate.CommonName, w http.ResponseWr
 }
 
 func (ds debugServer) getProxy(cn certificate.CommonName, w http.ResponseWriter) {
-	pod, err := catalog.GetPodFromCertificate(cn, ds.kubeClient)
+	pod, err := catalog.GetPodFromCertificate(cn, ds.kubeController)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error getting Pod from certificate with CN=%s", cn)
 	}

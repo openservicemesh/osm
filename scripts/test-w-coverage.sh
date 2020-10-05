@@ -3,6 +3,7 @@
 set -aueo pipefail
 
 go test -timeout 80s \
+   -failfast \
    -v \
    -coverprofile=coverage.txt \
    -covermode count ./... | tee testoutput.txt || { echo "go test returned non-zero"; exit 1; }
