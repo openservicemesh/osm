@@ -25,11 +25,13 @@ iptables -t nat -A PROXY_REDIRECT -p tcp --dport "22" -j ACCEPT # ssh port
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "49" -j ACCEPT # tacacs
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "69" -j ACCEPT # tftp
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "389" -j ACCEPT # radius port
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "443" -j ACCEPT # aruba
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "587" -j ACCEPT # email port
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "636" -j ACCEPT # ldaps
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "830" -j ACCEPT # netconf 
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "2579" -j ACCEPT # kine
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "2500" -j ACCEPT # osm-rest
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "4343" -j ACCEPT # aruba
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "5000" -j ACCEPT # devicedb
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "5432" -j ACCEPT # postgres
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "5556" -j ACCEPT # wsdex
@@ -81,11 +83,13 @@ iptables -t nat -A PROXY_INBOUND -p tcp --dport "${PROXY_STATS_PORT}" -j RETURN
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "49" -j RETURN  # tacacs
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "69" -j RETURN  # tftp
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "389" -j RETURN  # radius
+iptables -t nat -A PROXY_INBOUND -p tcp --dport "443" -j RETURN  # aruba
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "587" -j RETURN  # email
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "636" -j RETURN  # ldaps
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "830" -j RETURN  # netconf
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "2579" -j RETURN  # kine
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "2500" -j RETURN  # osm-rest
+iptables -t nat -A PROXY_INBOUND -p tcp --dport "4343" -j RETURN  # aruba
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "5000" -j RETURN  # devicedb
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "5432" -j RETURN  # postgres
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "5556" -j RETURN  # wsdex
