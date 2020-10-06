@@ -6,6 +6,7 @@ package configurator
 
 import (
 	reflect "reflect"
+	time "time"
 
 	gomock "github.com/golang/mock/gomock"
 )
@@ -88,6 +89,20 @@ func (m *MockConfigurator) GetOSMNamespace() string {
 func (mr *MockConfiguratorMockRecorder) GetOSMNamespace() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOSMNamespace", reflect.TypeOf((*MockConfigurator)(nil).GetOSMNamespace))
+}
+
+// GetServiceCertValidityPeriod mocks base method
+func (m *MockConfigurator) GetServiceCertValidityPeriod() time.Duration {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetServiceCertValidityPeriod")
+	ret0, _ := ret[0].(time.Duration)
+	return ret0
+}
+
+// GetServiceCertValidityPeriod indicates an expected call of GetServiceCertValidityPeriod
+func (mr *MockConfiguratorMockRecorder) GetServiceCertValidityPeriod() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetServiceCertValidityPeriod", reflect.TypeOf((*MockConfigurator)(nil).GetServiceCertValidityPeriod))
 }
 
 // GetTracingEndpoint mocks base method
