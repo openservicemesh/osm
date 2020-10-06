@@ -30,7 +30,7 @@ func TestSetupMutualTLS(t *testing.T) {
 	}
 
 	cache := make(map[certificate.CommonName]certificate.Certificater)
-	certManager := tresor.NewFakeCertManager(&cache, 1*time.Hour)
+	certManager := tresor.NewFakeCertManager(&cache, nil)
 	adsCert, err := certManager.GetRootCertificate()
 	assert.Nil(err)
 
@@ -68,9 +68,9 @@ func TestValidateClient(t *testing.T) {
 	}
 
 	cache := make(map[certificate.CommonName]certificate.Certificater)
-	certManager := tresor.NewFakeCertManager(&cache, 1*time.Hour)
+	certManager := tresor.NewFakeCertManager(&cache, nil)
 	cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s", uuid.New(), tests.BookstoreServiceAccountName, tests.Namespace))
-	certPEM, _ := certManager.IssueCertificate(cn, nil)
+	certPEM, _ := certManager.IssueCertificate(cn, 1*time.Hour)
 	cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())
 
 	goodCommonNameMapping := map[string]interface{}{string(cn): cn}

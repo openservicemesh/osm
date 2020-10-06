@@ -17,10 +17,11 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/rotor"
+	"github.com/openservicemesh/osm/pkg/configurator"
 )
 
 // IssueCertificate implements certificate.Manager and returns a newly issued certificate.
-func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPeriod *time.Duration) (certificate.Certificater, error) {
+func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPeriod time.Duration) (certificate.Certificater, error) {
 	start := time.Now()
 
 	// Attempt to grab certificate from cache.
@@ -69,7 +70,7 @@ func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate
 
 	start := time.Now()
 
-	cert, err := cm.issue(cn, &cm.validityPeriod)
+	cert, err := cm.issue(cn, cm.cfg.GetServiceCertValidityPeriod())
 	if err != nil {
 		return cert, err
 	}
@@ -129,12 +130,9 @@ func (cm *CertManager) certificaterFromCertificateRequest(cr *cmapi.CertificateR
 
 // issue will request a new signed certificate from the configured cert-manager
 // issuer.
-func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod *time.Duration) (certificate.Certificater, error) {
-	var duration *metav1.Duration
-	if validityPeriod != nil {
-		duration = &metav1.Duration{
-			Duration: *validityPeriod,
-		}
+func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Duration) (certificate.Certificater, error) {
+	duration := &metav1.Duration{
+		Duration: validityPeriod,
 	}
 
 	certPrivKey, err := rsa.GenerateKey(rand.Reader, rsaBits)
@@ -224,8 +222,8 @@ func NewCertManager(
 	ca certificate.Certificater,
 	client cmversionedclient.Interface,
 	namespace string,
-	validityPeriod time.Duration,
 	issuerRef cmmeta.ObjectReference,
+	cfg configurator.Configurator,
 ) (*CertManager, error) {
 	informerFactory := cminformers.NewSharedInformerFactory(client, time.Second*30)
 	crLister := informerFactory.Certmanager().V1beta1().CertificateRequests().Lister().CertificateRequests(namespace)
@@ -234,14 +232,14 @@ func NewCertManager(
 	informerFactory.Start(make(chan struct{}))
 
 	cm := &CertManager{
-		ca:             ca,
-		cache:          make(map[certificate.CommonName]certificate.Certificater),
-		announcements:  make(chan interface{}),
-		namespace:      namespace,
-		client:         client.CertmanagerV1beta1().CertificateRequests(namespace),
-		issuerRef:      issuerRef,
-		crLister:       crLister,
-		validityPeriod: validityPeriod,
+		ca:            ca,
+		cache:         make(map[certificate.CommonName]certificate.Certificater),
+		announcements: make(chan interface{}),
+		namespace:     namespace,
+		client:        client.CertmanagerV1beta1().CertificateRequests(namespace),
+		issuerRef:     issuerRef,
+		crLister:      crLister,
+		cfg:           cfg,
 	}
 
 	// Instantiating a new certificate rotation mechanism will start a goroutine for certificate rotation.

@@ -4,22 +4,34 @@ import (
 	"context"
 	"time"
 
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
+	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
 var _ = Describe("Test creation of CA bundle k8s secret", func() {
+	var (
+		mockCtrl         *gomock.Controller
+		mockConfigurator *configurator.MockConfigurator
+	)
+	mockCtrl = gomock.NewController(GinkgoT())
+
 	Context("Testing createCABundleKubernetesSecret", func() {
+		mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
+		mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(1 * time.Hour).AnyTimes()
+
 		It("creates a k8s secret", func() {
 
 			cache := make(map[certificate.CommonName]certificate.Certificater)
-			certManager := tresor.NewFakeCertManager(&cache, 1*time.Hour)
+			certManager := tresor.NewFakeCertManager(&cache, mockConfigurator)
 			secretName := "--secret--name--"
 			namespace := "--namespace--"
 			k8sClient := testclient.NewSimpleClientset()

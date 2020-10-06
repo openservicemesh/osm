@@ -18,3 +18,4 @@ data:
 {{- end }}
 
   use_https_ingress: {{ .Values.OpenServiceMesh.useHTTPSIngress | default "false" | quote }}
+  service_cert_validity_duration: {{ .Values.OpenServiceMesh.serviceCertValidityDuration | quote }}
