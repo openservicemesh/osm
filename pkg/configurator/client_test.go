@@ -47,6 +47,7 @@ var _ = Describe("Test OSM ConfigMap parsing", func() {
 				"TracingEndpoint":             tracingEndpointKey,
 				"UseHTTPSIngress":             useHTTPSIngressKey,
 				"EnvoyLogLevel":               envoyLogLevel,
+				"ServiceCertValidityDuration": serviceCertValidityDurationKey,
 			}
 			t := reflect.TypeOf(osmConfig{})
 
