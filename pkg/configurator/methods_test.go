@@ -18,7 +18,7 @@ var _ = Describe("Test Envoy configuration creation", func() {
 		permissiveTrafficPolicyModeKey: "false",
 		egressKey:                      "true",
 		meshCIDRRangesKey:              testCIDRRanges,
-		debugServer:                    "true",
+		enableDebugServer:              "true",
 		prometheusScrapingKey:          "true",
 		tracingEnableKey:               "true",
 		envoyLogLevel:                  testErrorEnvoyLogLevel,
