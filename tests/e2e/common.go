@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -21,6 +22,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
@@ -169,6 +171,8 @@ type InstallOSMOpts struct {
 	vaultProtocol string
 	vaultToken    string
 	vaultRole     string
+
+	egressEnabled bool
 }
 
 // GetOSMInstallOpts initializes install options for OSM
@@ -246,6 +250,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		"--osm-image-tag="+instOpts.osmImagetag,
 		"--namespace="+instOpts.controlPlaneNS,
 		"--certificate-manager="+instOpts.certManager,
+		"--enable-egress="+strconv.FormatBool(instOpts.egressEnabled),
 		"--enable-debug-server",
 	)
 
@@ -450,6 +455,12 @@ func (td *OsmTestData) AddNsToMesh(sidecardInject bool, ns ...string) error {
 		}
 	}
 	return nil
+}
+
+func (td *OsmTestData) UpdateOSMConfig(key, value string) error {
+	patch := []byte(fmt.Sprintf(`{"data": {%q: %q}}`, key, value))
+	_, err := td.client.CoreV1().ConfigMaps(td.osmNamespace).Patch(context.TODO(), "osm-config", types.StrategicMergePatchType, patch, metav1.PatchOptions{})
+	return err
 }
 
 // CreateMultipleNs simple CreateNs for multiple NS creation
