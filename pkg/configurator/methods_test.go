@@ -59,7 +59,7 @@ var _ = Describe("Test Envoy configuration creation", func() {
 			expectedConfig := &osmConfig{
 				PermissiveTrafficPolicyMode: false,
 				Egress:                      true,
-				DebugServer:                 true,
+				EnableDebugServer:           true,
 				PrometheusScraping:          true,
 				TracingEnable:               true,
 				MeshCIDRRanges:              testCIDRRanges,
