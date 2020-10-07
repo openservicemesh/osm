@@ -137,7 +137,7 @@ func (c *Client) getConfigMap() *osmConfig {
 	osmConfigMap := osmConfig{
 		PermissiveTrafficPolicyMode: getBoolValueForKey(configMap, permissiveTrafficPolicyModeKey),
 		Egress:                      getBoolValueForKey(configMap, egressKey),
-		DebugServer:                 getBoolValueForKey(configMap, debugServer),
+		EnableDebugServer:                 getBoolValueForKey(configMap, enableDebugServer),
 		PrometheusScraping:          getBoolValueForKey(configMap, prometheusScrapingKey),
 		MeshCIDRRanges:              getEgressCIDR(configMap),
 		UseHTTPSIngress:             getBoolValueForKey(configMap, useHTTPSIngressKey),
