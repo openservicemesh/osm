@@ -321,7 +321,7 @@ func saveOrUpdateSecretToKubernetes(kubeClient clientset.Interface, ca certifica
 	return nil
 }
 
-func getCertificateManager(kubeClient clientset.Interface, kubeConfig *rest.Config, enableDebugServer bool) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
+func getCertificateManager(kubeClient kubernetes.Interface, kubeConfig *rest.Config, enableDebugServer bool) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
 	switch *osmCertificateManagerKind {
 	case tresorKind:
 		return getTresorOSMCertificateManager(kubeClient, enableDebugServer)
