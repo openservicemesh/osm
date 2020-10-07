@@ -186,7 +186,7 @@ var _ = Describe("Test Envoy configuration creation", func() {
 		osmConfigMapName := "-test-osm-config-map-"
 		cfg := NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
 
-		It("correctly identifies that the config is enabled", func() {
+		It("correctly identifies that the debug server is enabled", func() {
 			Expect(cfg.IsDebugServerEnabled()).To(BeFalse())
 			configMap := v1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
