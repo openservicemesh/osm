@@ -1,3 +1,9 @@
+---
+title: "Uninstall OSM"
+description: "This document describes the steps to uninstall."
+weight: 3
+---
+
 # Uninstall OSM Control Plane from Cluster
 
 - **Revision:** 1
