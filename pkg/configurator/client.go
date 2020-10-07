@@ -16,7 +16,7 @@ import (
 const (
 	permissiveTrafficPolicyModeKey = "permissive_traffic_policy_mode"
 	egressKey                      = "egress"
-	debugServer                    = "debug_server"
+	enableDebugServer              = "enable_debug_server"
 	prometheusScrapingKey          = "prometheus_scraping"
 	meshCIDRRangesKey              = "mesh_cidr_ranges"
 	useHTTPSIngressKey             = "use_https_ingress"
