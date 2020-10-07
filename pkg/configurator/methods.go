@@ -46,7 +46,7 @@ func (c *Client) IsEgressEnabled() bool {
 
 // IsDebugServerEnabled determines whether osm debug HTTP server is enabled
 func (c *Client) IsDebugServerEnabled() bool {
-	return c.getConfigMap().DebugServer
+	return c.getConfigMap().EnableDebugServer
 }
 
 // IsPrometheusScrapingEnabled determines whether Prometheus is enabled for scraping metrics
