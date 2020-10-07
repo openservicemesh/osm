@@ -74,7 +74,7 @@ type osmConfig struct {
 	Egress bool `yaml:"egress"`
 
 	// Egress is a bool toggle used to enable or disable osm debug HTTP server
-	DebugServer bool `yaml:"debug_server"`
+	EnableDebugServer bool `yaml:"enable_debug_server"`
 
 	// PrometheusScraping is a bool toggle used to enable or disable metrics scraping by Prometheus
 	PrometheusScraping bool `yaml:"prometheus_scraping"`
