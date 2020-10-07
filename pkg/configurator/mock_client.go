@@ -174,7 +174,7 @@ func (mr *MockConfiguratorMockRecorder) IsPermissiveTrafficPolicyMode() *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsPermissiveTrafficPolicyMode", reflect.TypeOf((*MockConfigurator)(nil).IsPermissiveTrafficPolicyMode))
 }
 
-// IsPrometheusScrapingEnabled mocks base method
+// IsDebugServerEnabled mocks base method
 func (m *MockConfigurator) IsDebugServerEnabled() bool {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IsDebugServerEnabled")
