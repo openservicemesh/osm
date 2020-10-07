@@ -17,7 +17,6 @@ var _ = Describe("Test Envoy configuration creation", func() {
 	defaultConfigMap := map[string]string{
 		permissiveTrafficPolicyModeKey: "false",
 		egressKey:                      "true",
-		meshCIDRRangesKey:              testCIDRRanges,
 		enableDebugServer:              "true",
 		prometheusScrapingKey:          "true",
 		tracingEnableKey:               "true",
