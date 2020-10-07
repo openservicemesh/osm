@@ -52,7 +52,7 @@ var _ = Describe("Test OSM ConfigMap parsing", func() {
 			t := reflect.TypeOf(osmConfig{})
 
 			actualNumberOfFields := t.NumField()
-			expectedNumberOfFields := 11
+			expectedNumberOfFields := len(fieldNameTag)
 
 			Expect(actualNumberOfFields).To(
 				Equal(expectedNumberOfFields),
