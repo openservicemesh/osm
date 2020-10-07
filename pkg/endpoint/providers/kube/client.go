@@ -7,7 +7,6 @@ import (
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/pkg/errors"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/informers"
@@ -25,13 +24,13 @@ func NewProvider(kubeClient kubernetes.Interface, kubeController k8s.Controller,
 	informerFactory := informers.NewSharedInformerFactory(kubeClient, k8s.DefaultKubeEventResyncInterval)
 
 	informerCollection := InformerCollection{
-		Endpoints:   informerFactory.Core().V1().Endpoints().Informer(),
-		Deployments: informerFactory.Apps().V1().Deployments().Informer(),
+		Endpoints: informerFactory.Core().V1().Endpoints().Informer(),
+		Pods:      informerFactory.Core().V1().Pods().Informer(),
 	}
 
 	cacheCollection := CacheCollection{
-		Endpoints:   informerCollection.Endpoints.GetStore(),
-		Deployments: informerCollection.Deployments.GetStore(),
+		Endpoints: informerCollection.Endpoints.GetStore(),
+		Pods:      informerCollection.Pods.GetStore(),
 	}
 
 	client := Client{
@@ -49,7 +48,7 @@ func NewProvider(kubeClient kubernetes.Interface, kubeController k8s.Controller,
 		return kubeController.IsMonitoredNamespace(ns)
 	}
 	informerCollection.Endpoints.AddEventHandler(k8s.GetKubernetesEventHandlers("Endpoints", "Kubernetes", client.announcements, shouldObserve))
-	informerCollection.Deployments.AddEventHandler(k8s.GetKubernetesEventHandlers("Deployments", "Kubernetes", client.announcements, shouldObserve))
+	informerCollection.Pods.AddEventHandler(k8s.GetKubernetesEventHandlers("Pods", "Kubernetes", client.announcements, shouldObserve))
 
 	if err := client.run(stop); err != nil {
 		return nil, errors.Errorf("Failed to start Kubernetes EndpointProvider client: %+v", err)
@@ -109,43 +108,36 @@ func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endp
 func (c Client) GetServicesForServiceAccount(svcAccount service.K8sServiceAccount) ([]service.MeshService, error) {
 	log.Info().Msgf("[%s] Getting Services for service account %s on Kubernetes", c.providerIdent, svcAccount)
 	services := mapset.NewSet()
-	deploymentsInterface := c.caches.Deployments.List()
+	podsInterface := c.caches.Pods.List()
 
-	for _, deployments := range deploymentsInterface {
-		kubernetesDeployments := deployments.(*appsv1.Deployment)
-		if kubernetesDeployments != nil {
-			if !c.kubeController.IsMonitoredNamespace(kubernetesDeployments.Namespace) {
-				// Doesn't belong to namespaces we are observing
-				continue
-			}
-			spec := kubernetesDeployments.Spec
-			namespacedSvcAccount := service.K8sServiceAccount{
-				Namespace: kubernetesDeployments.Namespace,
-				Name:      spec.Template.Spec.ServiceAccountName,
-			}
-			if svcAccount == namespacedSvcAccount {
-				var selectorLabel map[string]string
-				if spec.Selector != nil {
-					selectorLabel = spec.Selector.MatchLabels
-				} else {
-					selectorLabel = spec.Template.Labels
-				}
+	for _, pods := range podsInterface {
+		kubernetesPods := pods.(*corev1.Pod)
+		if kubernetesPods == nil || !c.kubeController.IsMonitoredNamespace(kubernetesPods.Namespace) {
+			// Doesn't belong to namespaces we are observing
+			continue
+		}
+		spec := kubernetesPods.Spec
+		namespacedSvcAccount := service.K8sServiceAccount{
+			Namespace: kubernetesPods.Namespace,
+			Name:      spec.ServiceAccountName,
+		}
+		if svcAccount != namespacedSvcAccount {
+			continue
+		}
+		podLabels := kubernetesPods.ObjectMeta.Labels
 
-				appNamspace := kubernetesDeployments.Namespace
-				k8sServices, err := c.getServicesByLabels(selectorLabel, appNamspace)
-				if err != nil {
-					log.Error().Err(err).Msgf("Error retrieving service with label %v in namespace %s", selectorLabel, appNamspace)
-
-					return nil, errDidNotFindServiceForServiceAccount
-				}
-				for _, svc := range k8sServices {
-					meshService := service.MeshService{
-						Namespace: appNamspace,
-						Name:      svc.Name,
-					}
-					services.Add(meshService)
-				}
+		appNamspace := kubernetesPods.Namespace
+		k8sServices, err := c.getServicesByLabels(podLabels, appNamspace)
+		if err != nil {
+			log.Error().Err(err).Msgf("Error retrieving service matching labels %v in namespace %s", podLabels, appNamspace)
+			return nil, errDidNotFindServiceForServiceAccount
+		}
+		for _, svc := range k8sServices {
+			meshService := service.MeshService{
+				Namespace: appNamspace,
+				Name:      svc.Name,
 			}
+			services.Add(meshService)
 		}
 	}
 
@@ -178,8 +170,8 @@ func (c *Client) run(stop <-chan struct{}) error {
 	}
 
 	sharedInformers := map[string]cache.SharedInformer{
-		"Endpoints":   c.informers.Endpoints,
-		"Deployments": c.informers.Deployments,
+		"Endpoints": c.informers.Endpoints,
+		"Pods":      c.informers.Pods,
 	}
 
 	var names []string
@@ -207,7 +199,7 @@ func (c *Client) run(stop <-chan struct{}) error {
 }
 
 // getServicesByLabels gets Kubernetes services whose selectors match the given labels
-func (c *Client) getServicesByLabels(matchLabels map[string]string, namespace string) ([]corev1.Service, error) {
+func (c *Client) getServicesByLabels(podLabels map[string]string, namespace string) ([]corev1.Service, error) {
 	var finalList []corev1.Service
 	serviceList := c.kubeController.ListServices()
 
@@ -220,7 +212,7 @@ func (c *Client) getServicesByLabels(matchLabels map[string]string, namespace st
 
 		svcRawSelector := svc.Spec.Selector
 		selector := labels.Set(svcRawSelector).AsSelector()
-		if selector.Matches(labels.Set(matchLabels)) {
+		if selector.Matches(labels.Set(podLabels)) {
 			finalList = append(finalList, *svc)
 		}
 	}

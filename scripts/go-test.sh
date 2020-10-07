@@ -1,3 +1,3 @@
 #!/bin/bash
 
-go test -race -v ./...; echo $?
+go test -failfast -race -v ./...; echo $?

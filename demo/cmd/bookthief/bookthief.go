@@ -95,7 +95,7 @@ func main() {
 	// the HTTP response status code will differ for in-mesh requests.
 	//
 	// Expected response code when bookthief tries to buy books from the bookstore:
-	// 1. With SMI policies: 404
+	// 1. With SMI policies: 0
 	// 2. With permissive traffic policy: 200
 	//
 	// When it tries to make an egress request, we expect a 200 response with egress enabled and a 404 response with egress disabled.

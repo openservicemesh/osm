@@ -17,7 +17,4 @@ data:
   tracing_endpoint: {{ .Values.OpenServiceMesh.tracing.endpoint | quote }}
 {{- end }}
 
-{{- if .Values.OpenServiceMesh.enableEgress }}
-  mesh_cidr_ranges: {{ .Values.OpenServiceMesh.meshCIDRRanges | quote }}
-{{- end }}
   use_https_ingress: {{ .Values.OpenServiceMesh.useHTTPSIngress | default "false" | quote }}

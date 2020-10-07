@@ -2,6 +2,7 @@ package configurator
 
 import (
 	"context"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -12,7 +13,6 @@ import (
 )
 
 var _ = Describe("Test Envoy configuration creation", func() {
-	testCIDRRanges := "10.2.0.0/16 10.0.0.0/16"
 	testErrorEnvoyLogLevel := "error"
 	defaultConfigMap := map[string]string{
 		permissiveTrafficPolicyModeKey: "false",
@@ -22,6 +22,7 @@ var _ = Describe("Test Envoy configuration creation", func() {
 		prometheusScrapingKey:          "true",
 		tracingEnableKey:               "true",
 		envoyLogLevel:                  testErrorEnvoyLogLevel,
+		serviceCertValidityDurationKey: "24h",
 	}
 
 	Context("create OSM configurator client", func() {
@@ -62,8 +63,8 @@ var _ = Describe("Test Envoy configuration creation", func() {
 				EnableDebugServer:           true,
 				PrometheusScraping:          true,
 				TracingEnable:               true,
-				MeshCIDRRanges:              testCIDRRanges,
 				EnvoyLogLevel:               testErrorEnvoyLogLevel,
+				ServiceCertValidityDuration: "24h",
 			}
 			expectedConfigBytes, err := marshalConfigToJSON(expectedConfig)
 			Expect(err).ToNot(HaveOccurred())
@@ -313,34 +314,6 @@ var _ = Describe("Test Envoy configuration creation", func() {
 		})
 	})
 
-	Context("create OSM config for mesh CIDR ranges", func() {
-		kubeClient := testclient.NewSimpleClientset()
-		stop := make(chan struct{})
-		osmNamespace := "-test-osm-namespace-"
-		osmConfigMapName := "-test-osm-config-map-"
-		cfg := NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
-
-		It("correctly retrieves the mesh CIDR ranges", func() {
-			Expect(cfg.GetMeshCIDRRanges()).To(BeEmpty())
-			configMap := v1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: osmNamespace,
-					Name:      osmConfigMapName,
-				},
-				Data: defaultConfigMap,
-			}
-			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Create(context.TODO(), &configMap, metav1.CreateOptions{})
-			Expect(err).ToNot(HaveOccurred())
-
-			// Wait for the config map change to propagate to the cache.
-			log.Info().Msg("Waiting for announcement")
-			<-cfg.GetAnnouncementsChannel()
-
-			expectedMeshCIDRRanges := []string{"10.0.0.0/16", "10.2.0.0/16"}
-			Expect(cfg.GetMeshCIDRRanges()).To(Equal(expectedMeshCIDRRanges))
-		})
-	})
-
 	Context("create OSM config for the Envoy proxy log level", func() {
 		kubeClient := testclient.NewSimpleClientset()
 		stop := make(chan struct{})
@@ -414,6 +387,48 @@ var _ = Describe("Test Envoy configuration creation", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(cfg.GetEnvoyLogLevel()).To(Equal(testDebugEnvoyLogLevel))
+		})
+	})
+
+	Context("create OSM config service cert validity period", func() {
+		kubeClient := testclient.NewSimpleClientset()
+		stop := make(chan struct{})
+		osmNamespace := "-test-osm-namespace-"
+		osmConfigMapName := "-test-osm-config-map-"
+		cfg := NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
+
+		It("correctly retrieves the default service cert validity duration when an invalid value is specified", func() {
+			defaultConfigMap[serviceCertValidityDurationKey] = "5" // no units, so invalid
+			configMap := v1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: osmNamespace,
+					Name:      osmConfigMapName,
+				},
+				Data: defaultConfigMap,
+			}
+			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Create(context.TODO(), &configMap, metav1.CreateOptions{})
+			Expect(err).ToNot(HaveOccurred())
+
+			<-cfg.GetAnnouncementsChannel()
+
+			Expect(cfg.GetServiceCertValidityPeriod()).To(Equal(time.Duration(24 * time.Hour)))
+		})
+
+		It("correctly retrieves the service cert validity duration", func() {
+			defaultConfigMap[serviceCertValidityDurationKey] = "1h"
+			configMap := v1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: osmNamespace,
+					Name:      osmConfigMapName,
+				},
+				Data: defaultConfigMap,
+			}
+			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Update(context.TODO(), &configMap, metav1.UpdateOptions{})
+			Expect(err).ToNot(HaveOccurred())
+
+			<-cfg.GetAnnouncementsChannel()
+
+			Expect(cfg.GetServiceCertValidityPeriod()).To(Equal(time.Duration(1 * time.Hour)))
 		})
 	})
 })

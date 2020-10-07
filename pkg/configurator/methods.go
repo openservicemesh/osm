@@ -3,11 +3,14 @@ package configurator
 import (
 	"encoding/json"
 	"fmt"
-	"net"
-	"sort"
-	"strings"
+	"time"
 
 	"github.com/openservicemesh/osm/pkg/constants"
+)
+
+const (
+	// defaultServiceCertValidityDuration is the default validity duration for service certificates
+	defaultServiceCertValidityDuration = 24 * time.Hour
 )
 
 // The functions in this file implement the configurator.Configurator interface
@@ -86,37 +89,6 @@ func (c *Client) GetTracingEndpoint() string {
 	return constants.DefaultTracingEndpoint
 }
 
-// GetMeshCIDRRanges returns a list of mesh CIDR ranges
-func (c *Client) GetMeshCIDRRanges() []string {
-	noSpaces := strings.ReplaceAll(c.getConfigMap().MeshCIDRRanges, " ", ",")
-	commaSeparatedCIDRs := strings.Split(noSpaces, ",")
-
-	cidrSet := make(map[string]interface{})
-	for _, cidr := range commaSeparatedCIDRs {
-		trimmedCIDR := strings.Trim(cidr, " ")
-		if len(trimmedCIDR) == 0 {
-			continue
-		}
-
-		_, _, err := net.ParseCIDR(trimmedCIDR)
-		if err != nil {
-			log.Error().Err(err).Msgf("Found incorrectly formatted in-mesh CIDR %s from ConfigMap %s/%s; Skipping CIDR", trimmedCIDR, c.osmNamespace, c.osmConfigMapName)
-			continue
-		}
-
-		cidrSet[trimmedCIDR] = nil
-	}
-
-	var cidrs []string
-	for cidr := range cidrSet {
-		cidrs = append(cidrs, cidr)
-	}
-
-	sort.Strings(cidrs)
-
-	return cidrs
-}
-
 // UseHTTPSIngress determines whether traffic between ingress and backend pods should use HTTPS protocol
 func (c *Client) UseHTTPSIngress() bool {
 	return c.getConfigMap().UseHTTPSIngress
@@ -134,4 +106,16 @@ func (c *Client) GetEnvoyLogLevel() string {
 // GetAnnouncementsChannel returns a channel, which is used to announce when changes have been made to the OSM ConfigMap.
 func (c *Client) GetAnnouncementsChannel() <-chan interface{} {
 	return c.announcements
+}
+
+// GetServiceCertValidityPeriod returns the validity duration for service certificates, and a default in case of invalid duration
+func (c *Client) GetServiceCertValidityPeriod() time.Duration {
+	durationStr := c.getConfigMap().ServiceCertValidityDuration
+	validityDuration, err := time.ParseDuration(durationStr)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error parsing service certificate validity duration %s=%s", serviceCertValidityDurationKey, durationStr)
+		return defaultServiceCertValidityDuration
+	}
+
+	return validityDuration
 }

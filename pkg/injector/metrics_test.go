@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/constants"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 )
 
 func newNamespace(name string, annotations map[string]string) *corev1.Namespace {
@@ -63,9 +65,16 @@ func TestIsMetricsEnabled(t *testing.T) {
 		{nsWithInvalidAnnotation.Name, false, true},
 	}
 
+	mockController := k8s.NewMockController(gomock.NewController(t))
 	wh := &webhook{
-		kubeClient: fakeClient,
+		kubeClient:     fakeClient,
+		kubeController: mockController,
 	}
+
+	mockController.EXPECT().GetNamespace("ns-1").Return(nsWithMetrics)
+	mockController.EXPECT().GetNamespace("ns-2").Return(nsWithMetricsDisabled)
+	mockController.EXPECT().GetNamespace("ns-3").Return(nsWithoutMetricsAnnotation)
+	mockController.EXPECT().GetNamespace("ns-4").Return(nsWithInvalidAnnotation)
 
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf("Namespace %s", tc.namespace), func(t *testing.T) {

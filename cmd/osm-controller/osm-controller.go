@@ -220,7 +220,7 @@ func main() {
 	// Expose /debug endpoints and data only if the enableDebugServer flag is enabled
 	var debugServer debugger.DebugServer
 	if cfg.IsDebugServerEnabled() {
-		debugServer = debugger.NewDebugServer(certDebugger, xdsServer, meshCatalog, kubeConfig, kubeClient, cfg)
+		debugServer = debugger.NewDebugServer(certDebugger, xdsServer, meshCatalog, kubeConfig, kubeClient, cfg, kubernetesClient)
 	}
 
 	funcProbes := []health.Probes{xdsServer}

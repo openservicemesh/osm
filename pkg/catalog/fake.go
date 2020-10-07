@@ -52,23 +52,15 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface) *MeshCatalog {
 	mockIngressMonitor.EXPECT().GetIngressResources(gomock.Any()).Return(nil, nil).AnyTimes()
 	mockIngressMonitor.EXPECT().GetAnnouncementsChannel().Return(testChan).AnyTimes()
 
-	// Monitored namespaces is made a set to make sure we don't repeat namespaces on mock
-	listExpectedNs := tests.GetUnique([]string{
-		tests.BookstoreService.Namespace,
-		tests.BookbuyerService.Namespace,
-		tests.BookstoreApexService.Namespace,
-	})
-
 	// #1683 tracks potential improvements to the following dynamic mocks
 	mockKubeController.EXPECT().ListServices().DoAndReturn(func() []*corev1.Service {
 		// play pretend this call queries a controller cache
 		var services []*corev1.Service
 
-		for _, ns := range listExpectedNs {
-			svcList, _ := kubeClient.CoreV1().Services(ns).List(context.Background(), metav1.ListOptions{})
-			for _, svcItem := range svcList.Items {
-				services = append(services, &svcItem)
-			}
+		// This assumes that catalog tests use monitored namespaces at all times
+		svcList, _ := kubeClient.CoreV1().Services("").List(context.Background(), metav1.ListOptions{})
+		for idx := range svcList.Items {
+			services = append(services, &svcList.Items[idx])
 		}
 
 		return services
@@ -82,6 +74,19 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface) *MeshCatalog {
 
 		return vv
 	}).AnyTimes()
+	mockKubeController.EXPECT().ListPods().DoAndReturn(func() []*v1.Pod {
+		vv, err := kubeClient.CoreV1().Pods("").List(context.Background(), metav1.ListOptions{})
+		if err != nil {
+			return nil
+		}
+
+		var podRet []*v1.Pod = []*v1.Pod{}
+		for idx := range vv.Items {
+			podRet = append(podRet, &vv.Items[idx])
+		}
+		return podRet
+	}).AnyTimes()
+
 	mockKubeController.EXPECT().GetAnnouncementsChannel(k8s.Namespaces).Return(testChan).AnyTimes()
 	mockKubeController.EXPECT().GetAnnouncementsChannel(k8s.Services).Return(testChan).AnyTimes()
 	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookstoreService.Namespace).Return(true).AnyTimes()

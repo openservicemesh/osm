@@ -36,13 +36,18 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 	}
 
 	// --- OUTBOUND -------------------
-	if outboundListener, err := newOutboundListener(cfg); err != nil {
+	outboundListener, err := newOutboundListener(catalog, cfg, svcList)
+	if err != nil {
 		log.Error().Err(err).Msgf("Error making outbound listener config for proxy %s", proxyServiceName)
 	} else {
-		if marshalledOutbound, err := ptypes.MarshalAny(outboundListener); err != nil {
-			log.Error().Err(err).Msgf("Failed to marshal outbound listener config for proxy %s", proxyServiceName)
+		if outboundListener == nil {
+			log.Debug().Msgf("Not programming Outbound listener for proxy %s", proxyServiceName)
 		} else {
-			resp.Resources = append(resp.Resources, marshalledOutbound)
+			if marshalledOutbound, err := ptypes.MarshalAny(outboundListener); err != nil {
+				log.Error().Err(err).Msgf("Failed to marshal outbound listener config for proxy %s", proxyServiceName)
+			} else {
+				resp.Resources = append(resp.Resources, marshalledOutbound)
+			}
 		}
 	}
 
