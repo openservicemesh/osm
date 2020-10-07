@@ -1,3 +1,9 @@
+---
+title: "Onboarding VMs"
+description: "This document describes the steps to onboard a VM to the service mesh."
+weight: 1
+---
+
 # Design Documents
 
 Use this directory to place proposals for features with detailed design explanation and any associated artifacts.
