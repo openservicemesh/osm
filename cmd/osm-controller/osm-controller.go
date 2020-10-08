@@ -54,7 +54,6 @@ var (
 	webhookConfigName          string
 	serviceCertValidityMinutes int
 	caBundleSecretName         string
-	enableDebugServer          bool
 	osmConfigMapName           string
 
 	injectorConfig injector.Config
@@ -91,7 +90,6 @@ func init() {
 	flags.StringVar(&webhookConfigName, "webhook-config-name", "", "Name of the MutatingWebhookConfiguration to be configured by osm-controller")
 	flags.IntVar(&serviceCertValidityMinutes, "service-cert-validity-minutes", defaultServiceCertValidityMinutes, "Certificate validityPeriod duration in minutes")
 	flags.StringVar(&caBundleSecretName, caBundleSecretNameCLIParam, "", "Name of the Kubernetes Secret for the OSM CA bundle")
-	flags.BoolVar(&enableDebugServer, "enable-debug-server", false, "Enable OSM debug HTTP server")
 	flags.StringVar(&osmConfigMapName, "osm-configmap-name", "osm-config", "Name of the OSM ConfigMap")
 
 	// sidecar injector options
@@ -159,7 +157,7 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating MeshSpec")
 	}
 
-	certManager, certDebugger, err := getCertificateManager(kubeClient, kubeConfig)
+	certManager, certDebugger, err := getCertificateManager(kubeClient, kubeConfig, cfg.IsDebugServerEnabled())
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
 			"Error fetching certificate manager of kind %s", *osmCertificateManagerKind)
@@ -210,7 +208,7 @@ func main() {
 	}
 
 	// Create and start the ADS gRPC service
-	xdsServer := ads.NewADSServer(meshCatalog, enableDebugServer, osmNamespace, cfg)
+	xdsServer := ads.NewADSServer(meshCatalog, cfg.IsDebugServerEnabled(), osmNamespace, cfg)
 	if err := xdsServer.Start(ctx, cancel, *port, adsCert); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error initializing ADS server")
 	}
@@ -221,7 +219,7 @@ func main() {
 
 	// Expose /debug endpoints and data only if the enableDebugServer flag is enabled
 	var debugServer debugger.DebugServer
-	if enableDebugServer {
+	if cfg.IsDebugServerEnabled() {
 		debugServer = debugger.NewDebugServer(certDebugger, xdsServer, meshCatalog, kubeConfig, kubeClient, cfg, kubernetesClient)
 	}
 
@@ -323,7 +321,7 @@ func saveOrUpdateSecretToKubernetes(kubeClient clientset.Interface, ca certifica
 	return nil
 }
 
-func getCertificateManager(kubeClient kubernetes.Interface, kubeConfig *rest.Config) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
+func getCertificateManager(kubeClient kubernetes.Interface, kubeConfig *rest.Config, enableDebugServer bool) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
 	switch *osmCertificateManagerKind {
 	case tresorKind:
 		return getTresorOSMCertificateManager(kubeClient, enableDebugServer)
