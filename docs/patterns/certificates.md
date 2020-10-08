@@ -40,7 +40,7 @@ CLI flags control how OSM integrates with Vault. The following OSM command line 
   - `--vault-protocol` - protocol for Vault connection (`http` or `https`)
   - `--vault-token` - token to be used by OSM to connect to Vault (this is issued on the Vault server for the particular role)
   - `--vault-role` - role created on Vault server and dedicated to Open Service Mesh (example: `openservicemesh`)
-  - `--service-cert-validity-minutes` - number of minutes - period for which each new certificate issued for service-to-service communication will be valid
+  - `--service-cert-validity-duration` - period for which each new certificate issued for service-to-service communication will be valid. It is represented as a sequence of decimal numbers each with optional fraction and a unit suffix, ex: 1h to represent 1 hour, 30m to represent 30 minutes, 1.5h or 1h30m to represent 1 hour and 30 minutes.
 
 Additionally:
   - `--ca-bundle-secret-name` - this string is the name of the Kubernetes secret where the service mesh root certificate will be stored. When using Vault (unlike Tresor) the root key will **not** be exported to this secret.
@@ -116,7 +116,7 @@ When running OSM on your local workstation, use the following CLI parameters:
 --vault-protocol="http"
 --vault-token="xyz"
 --vault-role="openservicemesh'
---service-cert-validity-minutes=60
+--service-cert-validity-duration=24h
 ```
 
 ### How OSM Integrates with Vault

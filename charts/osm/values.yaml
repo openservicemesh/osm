@@ -23,7 +23,7 @@ OpenServiceMesh:
     issuerName: osm-ca
     issuerKind: Issuer
     issuerGroup: cert-manager
-  serviceCertValidityMinutes: 1
+    serviceCertValidityDuration: 24h
   caBundleSecretName: osm-ca-bundle
   grafana:
     port: 3000

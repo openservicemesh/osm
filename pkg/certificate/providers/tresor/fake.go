@@ -5,10 +5,11 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
+	"github.com/openservicemesh/osm/pkg/configurator"
 )
 
 // NewFakeCertManager creates a fake CertManager used for testing.
-func NewFakeCertManager(cache *map[certificate.CommonName]certificate.Certificater, validityPeriod time.Duration) *CertManager {
+func NewFakeCertManager(cache *map[certificate.CommonName]certificate.Certificater, cfg configurator.Configurator) *CertManager {
 	rootCertCountry := "US"
 	rootCertLocality := "CA"
 	rootCertOrganization := "Open Service Mesh Tresor"
@@ -18,10 +19,10 @@ func NewFakeCertManager(cache *map[certificate.CommonName]certificate.Certificat
 	}
 
 	return &CertManager{
-		ca:             ca.(*Certificate),
-		validityPeriod: validityPeriod,
-		announcements:  make(chan interface{}),
-		cache:          cache,
+		ca:            ca.(*Certificate),
+		announcements: make(chan interface{}),
+		cache:         cache,
+		cfg:           cfg,
 	}
 }
 

@@ -41,20 +41,18 @@ import (
 )
 
 const (
-	defaultServiceCertValidityMinutes = 60 // 1 hour
-	caBundleSecretNameCLIParam        = "ca-bundle-secret-name"
-	xdsServerCertificateCommonName    = "ads"
+	caBundleSecretNameCLIParam     = "ca-bundle-secret-name"
+	xdsServerCertificateCommonName = "ads"
 )
 
 var (
-	verbosity                  string
-	meshName                   string // An ID that uniquely identifies an OSM instance
-	kubeConfigFile             string
-	osmNamespace               string
-	webhookConfigName          string
-	serviceCertValidityMinutes int
-	caBundleSecretName         string
-	osmConfigMapName           string
+	verbosity          string
+	meshName           string // An ID that uniquely identifies an OSM instance
+	kubeConfigFile     string
+	osmNamespace       string
+	webhookConfigName  string
+	caBundleSecretName string
+	osmConfigMapName   string
 
 	injectorConfig injector.Config
 
@@ -88,7 +86,6 @@ func init() {
 	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file.")
 	flags.StringVar(&osmNamespace, "osm-namespace", "", "Namespace to which OSM belongs to.")
 	flags.StringVar(&webhookConfigName, "webhook-config-name", "", "Name of the MutatingWebhookConfiguration to be configured by osm-controller")
-	flags.IntVar(&serviceCertValidityMinutes, "service-cert-validity-minutes", defaultServiceCertValidityMinutes, "Certificate validityPeriod duration in minutes")
 	flags.StringVar(&caBundleSecretName, caBundleSecretNameCLIParam, "", "Name of the Kubernetes Secret for the OSM CA bundle")
 	flags.StringVar(&osmConfigMapName, "osm-configmap-name", "osm-config", "Name of the OSM ConfigMap")
 
@@ -157,13 +154,11 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating MeshSpec")
 	}
 
-	certManager, certDebugger, err := getCertificateManager(kubeClient, kubeConfig, cfg.IsDebugServerEnabled())
+	certManager, certDebugger, err := getCertificateManager(kubeClient, kubeConfig, cfg)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
 			"Error fetching certificate manager of kind %s", *osmCertificateManagerKind)
 	}
-
-	log.Info().Msgf("Service certificates will be valid for %+v", getServiceCertValidityPeriod())
 
 	if caBundleSecretName == "" {
 		log.Info().Msgf("CA bundle will not be exported to a k8s secret (no --%s provided)", caBundleSecretNameCLIParam)
@@ -200,9 +195,7 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating sidecar injector webhook")
 	}
 
-	// TODO(draychev): we need to pass this hard-coded string is a CLI argument (https://github.com/openservicemesh/osm/issues/542)
-	validityPeriod := constants.XDSCertificateValidityPeriod
-	adsCert, err := certManager.IssueCertificate(xdsServerCertificateCommonName, &validityPeriod)
+	adsCert, err := certManager.IssueCertificate(xdsServerCertificateCommonName, constants.XDSCertificateValidityPeriod)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.CertificateIssuanceFailure, "Error issuing XDS certificate to ADS server")
 	}
@@ -321,14 +314,14 @@ func saveOrUpdateSecretToKubernetes(kubeClient clientset.Interface, ca certifica
 	return nil
 }
 
-func getCertificateManager(kubeClient kubernetes.Interface, kubeConfig *rest.Config, enableDebugServer bool) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
+func getCertificateManager(kubeClient kubernetes.Interface, kubeConfig *rest.Config, cfg configurator.Configurator) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
 	switch *osmCertificateManagerKind {
 	case tresorKind:
-		return getTresorOSMCertificateManager(kubeClient, enableDebugServer)
+		return getTresorOSMCertificateManager(kubeClient, cfg)
 	case vaultKind:
-		return getHashiVaultOSMCertificateManager(enableDebugServer)
+		return getHashiVaultOSMCertificateManager(cfg)
 	case certmanagerKind:
-		return getCertManagerOSMCertificateManager(kubeClient, kubeConfig, enableDebugServer)
+		return getCertManagerOSMCertificateManager(kubeClient, kubeConfig, cfg)
 	default:
 		return nil, nil, fmt.Errorf("Unsupported Certificate Manager %s", *osmCertificateManagerKind)
 	}
