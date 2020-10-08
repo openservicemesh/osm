@@ -16,6 +16,7 @@ import (
 const (
 	permissiveTrafficPolicyModeKey = "permissive_traffic_policy_mode"
 	egressKey                      = "egress"
+	enableDebugServer              = "enable_debug_server"
 	prometheusScrapingKey          = "prometheus_scraping"
 	useHTTPSIngressKey             = "use_https_ingress"
 	tracingEnableKey               = "tracing_enable"
@@ -70,6 +71,9 @@ type osmConfig struct {
 
 	// Egress is a bool toggle used to enable or disable egress globally within the mesh
 	Egress bool `yaml:"egress"`
+
+	// EnableDebugServer is a bool toggle, which enables/disables the debug server within the OSM Controller
+	EnableDebugServer bool `yaml:"enable_debug_server"`
 
 	// PrometheusScraping is a bool toggle used to enable or disable metrics scraping by Prometheus
 	PrometheusScraping bool `yaml:"prometheus_scraping"`
@@ -134,6 +138,7 @@ func (c *Client) getConfigMap() *osmConfig {
 	osmConfigMap := osmConfig{
 		PermissiveTrafficPolicyMode: getBoolValueForKey(configMap, permissiveTrafficPolicyModeKey),
 		Egress:                      getBoolValueForKey(configMap, egressKey),
+		EnableDebugServer:           getBoolValueForKey(configMap, enableDebugServer),
 		PrometheusScraping:          getBoolValueForKey(configMap, prometheusScrapingKey),
 		UseHTTPSIngress:             getBoolValueForKey(configMap, useHTTPSIngressKey),
 

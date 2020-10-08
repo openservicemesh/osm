@@ -36,6 +36,9 @@ type Configurator interface {
 	// IsEgressEnabled determines whether egress is globally enabled in the mesh or not
 	IsEgressEnabled() bool
 
+	// IsDebugServerEnabled determines whether osm debug HTTP server is enabled
+	IsDebugServerEnabled() bool
+
 	// IsPrometheusScrapingEnabled determines whether Prometheus is enabled for scraping metrics
 	IsPrometheusScrapingEnabled() bool
 
