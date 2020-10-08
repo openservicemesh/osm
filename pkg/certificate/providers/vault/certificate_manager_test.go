@@ -4,6 +4,7 @@ import (
 	"net/url"
 	"time"
 
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -11,9 +12,16 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
+	"github.com/openservicemesh/osm/pkg/configurator"
 )
 
 var _ = Describe("Test client helpers", func() {
+	var (
+		mockCtrl         *gomock.Controller
+		mockConfigurator *configurator.MockConfigurator
+	)
+	mockCtrl = gomock.NewController(GinkgoT())
+
 	issuingCA := pem.RootCertificate("zz")
 
 	expiredCertCN := certificate.CommonName("this.has.expired")
@@ -49,7 +57,10 @@ var _ = Describe("Test client helpers", func() {
 			vaultToken := "bar"
 			validityPeriod := 1 * time.Second
 			vaultRole := "baz"
-			_, err := NewCertManager(vaultAddr, vaultToken, validityPeriod, vaultRole)
+			mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
+			mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(validityPeriod).AnyTimes()
+
+			_, err := NewCertManager(vaultAddr, vaultToken, vaultRole, mockConfigurator)
 			Expect(err).To(HaveOccurred())
 			vaultError := err.(*url.Error)
 			expected := `unsupported protocol scheme "foo"`
