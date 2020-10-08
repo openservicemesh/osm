@@ -5,10 +5,12 @@
 package kubernetes
 
 import (
-	gomock "github.com/golang/mock/gomock"
-	service "github.com/openservicemesh/osm/pkg/service"
-	v1 "k8s.io/api/core/v1"
 	reflect "reflect"
+
+	gomock "github.com/golang/mock/gomock"
+	v1 "k8s.io/api/core/v1"
+
+	service "github.com/openservicemesh/osm/pkg/service"
 )
 
 // MockController is a mock of Controller interface
