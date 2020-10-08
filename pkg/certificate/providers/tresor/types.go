@@ -41,7 +41,6 @@ type CertManager struct {
 
 	certificatesOrganization string
 
-	// Dynamic config retrieval
 	cfg configurator.Configurator
 }
 

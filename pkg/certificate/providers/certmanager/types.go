@@ -56,7 +56,6 @@ type CertManager struct {
 	// crLister is used to list CertificateRequests in the given namespace.
 	crLister cmlisters.CertificateRequestNamespaceLister
 
-	// dynamic config retrieval
 	cfg configurator.Configurator
 }
 

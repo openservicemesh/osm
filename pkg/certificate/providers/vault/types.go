@@ -27,6 +27,5 @@ type CertManager struct {
 	// The Vault role configured for OSM and passed as a CLI.
 	vaultRole string
 
-	// Dynamic config retrieval
 	cfg configurator.Configurator
 }
