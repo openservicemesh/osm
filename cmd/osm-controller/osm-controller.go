@@ -315,15 +315,13 @@ func saveOrUpdateSecretToKubernetes(kubeClient clientset.Interface, ca certifica
 }
 
 func getCertificateManager(kubeClient kubernetes.Interface, kubeConfig *rest.Config, cfg configurator.Configurator) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
-	enableDebugServer := cfg.IsDebugServerEnabled()
-
 	switch *osmCertificateManagerKind {
 	case tresorKind:
-		return getTresorOSMCertificateManager(kubeClient, enableDebugServer, cfg)
+		return getTresorOSMCertificateManager(kubeClient, cfg)
 	case vaultKind:
-		return getHashiVaultOSMCertificateManager(enableDebugServer, cfg)
+		return getHashiVaultOSMCertificateManager(cfg)
 	case certmanagerKind:
-		return getCertManagerOSMCertificateManager(kubeClient, kubeConfig, enableDebugServer, cfg)
+		return getCertManagerOSMCertificateManager(kubeClient, kubeConfig, cfg)
 	default:
 		return nil, nil, fmt.Errorf("Unsupported Certificate Manager %s", *osmCertificateManagerKind)
 	}

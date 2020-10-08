@@ -41,7 +41,7 @@ const (
 
 var validCertificateManagerOptions = []string{tresorKind, vaultKind, certmanagerKind}
 
-func getTresorOSMCertificateManager(kubeClient kubernetes.Interface, enableDebug bool, cfg configurator.Configurator) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
+func getTresorOSMCertificateManager(kubeClient kubernetes.Interface, cfg configurator.Configurator) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
 	var err error
 	var rootCert certificate.Certificater
 
@@ -123,7 +123,7 @@ func getCertFromKubernetes(kubeClient kubernetes.Interface, namespace, secretNam
 	return rootCert, nil
 }
 
-func getHashiVaultOSMCertificateManager(enableDebug bool, cfg configurator.Configurator) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
+func getHashiVaultOSMCertificateManager(cfg configurator.Configurator) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
 	if _, ok := map[string]interface{}{"http": nil, "https": nil}[*vaultProtocol]; !ok {
 		return nil, nil, errors.Errorf("Value %s is not a valid Hashi Vault protocol", *vaultProtocol)
 	}
@@ -138,7 +138,7 @@ func getHashiVaultOSMCertificateManager(enableDebug bool, cfg configurator.Confi
 	return vaultCertManager, vaultCertManager, nil
 }
 
-func getCertManagerOSMCertificateManager(kubeClient kubernetes.Interface, kubeConfig *rest.Config, enableDebug bool, cfg configurator.Configurator) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
+func getCertManagerOSMCertificateManager(kubeClient kubernetes.Interface, kubeConfig *rest.Config, cfg configurator.Configurator) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
 	rootCertSecret, err := kubeClient.CoreV1().Secrets(osmNamespace).Get(context.TODO(), caBundleSecretName, metav1.GetOptions{})
 	if err != nil {
 		return nil, nil, fmt.Errorf("Failed to get cert-manager CA secret %s/%s: %s", osmNamespace, caBundleSecretName, err)
