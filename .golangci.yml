@@ -1,9 +1,6 @@
 run:
   tests: true
 
-issues:
-  new: true
-
 linters:
   enable:
     - goconst
@@ -21,6 +18,7 @@ linters-settings:
     local-prefixes: github.com/openservicemesh/osm
 
 issues:
+  new: true
   exclude-rules:
     - linters:
         - golint
