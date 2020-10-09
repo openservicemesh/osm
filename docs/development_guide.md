@@ -237,7 +237,7 @@ OSM's e2e tests are located in tests/e2e. The tests can be run using the `test-e
 
 In addition to the flags provided by `go test` and Ginkgo, there are several custom command line flags that may be used for e2e tests to configure global parameters like container image locations and cleanup behavior. The full list of custom flags can be found in [tests/e2e/common.go](/tests/e2e/common.go).
 
-For more information, please refer to [tests/e2e/README.md](OSM's E2E Readme).
+For more information, please refer to [OSM's E2E Readme](/tests/e2e/README.md).
 
 #### Simulation / Demo
 When we want to ensure that the entire system works correctly over time and
