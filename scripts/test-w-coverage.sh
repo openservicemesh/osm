@@ -2,7 +2,7 @@
 
 set -aueo pipefail
 
-go test -timeout 80s \
+go test -timeout 120s \
    -failfast \
    -v \
    -coverprofile=coverage.txt \
