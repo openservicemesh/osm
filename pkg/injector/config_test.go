@@ -4,15 +4,19 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	corev1 "k8s.io/api/core/v1"
-
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	"github.com/golang/mock/gomock"
+	"github.com/google/uuid"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 )
 
 var _ = Describe("Test Envoy configuration creation", func() {
@@ -106,28 +110,61 @@ static_resources:
 			Expect(string(actual)).To(Equal(expectedEnvoyConfig),
 				fmt.Sprintf("Expected:\n%s\nActual:\n%s\n", expectedEnvoyConfig, string(actual)))
 		})
+
+		It("Creates bootstrap config for the Envoy proxy", func() {
+			wh := &webhook{
+				kubeClient:     fake.NewSimpleClientset(),
+				kubeController: k8s.NewMockController(gomock.NewController(GinkgoT())),
+			}
+			name := uuid.New().String()
+			namespace := "a"
+			osmNamespace := "b"
+
+			secret, err := wh.createEnvoyBootstrapConfig(name, namespace, osmNamespace, cert)
+			Expect(err).ToNot(HaveOccurred())
+
+			expected := corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      name,
+					Namespace: namespace,
+				},
+				Data: map[string][]byte{
+					envoyBootstrapConfigFile: []byte(expectedEnvoyConfig),
+				},
+			}
+
+			// Contains only the "bootstrap.yaml" key
+			Expect(len(secret.Data)).To(Equal(1))
+
+			Expect(secret.Data[envoyBootstrapConfigFile]).To(Equal(expected.Data[envoyBootstrapConfigFile]),
+				fmt.Sprintf("Expected YAML: %s;\nActual YAML: %s\n", expected.Data, secret.Data))
+
+			// Now check the entire struct
+			Expect(*secret).To(Equal(expected))
+		})
 	})
 })
 
 var _ = Describe("Test Envoy sidecar", func() {
-	var (
-		mockCtrl         *gomock.Controller
-		mockConfigurator *configurator.MockConfigurator
+	const (
+		containerName = "-container-name-"
+		envoyImage    = "-envoy-image-"
+		nodeID        = "-node-id-"
+		clusterID     = "-cluster-id-"
 	)
 
-	mockCtrl = gomock.NewController(GinkgoT())
-	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
+	mockCtrl := gomock.NewController(GinkgoT())
+	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 
 	Context("create Envoy sidecar", func() {
 		It("creates correct Envoy sidecar spec", func() {
 			mockConfigurator.EXPECT().GetEnvoyLogLevel().Return("debug").Times(1)
-
-			actual := getEnvoySidecarContainerSpec("a", "b", "c", "d", mockConfigurator)
+			actual := getEnvoySidecarContainerSpec(containerName, envoyImage, nodeID, clusterID, mockConfigurator)
 			Expect(len(actual)).To(Equal(1))
 
 			expected := corev1.Container{
-				Name:            "a",
-				Image:           "b",
+				Name:            containerName,
+				Image:           envoyImage,
 				ImagePullPolicy: corev1.PullAlways,
 				SecurityContext: &corev1.SecurityContext{
 					RunAsUser: func() *int64 {
@@ -162,8 +199,8 @@ var _ = Describe("Test Envoy sidecar", func() {
 				Args: []string{
 					"--log-level", "debug",
 					"--config-path", "/etc/envoy/bootstrap.yaml",
-					"--service-node", "c",
-					"--service-cluster", "d",
+					"--service-node", nodeID,
+					"--service-cluster", clusterID,
 					"--bootstrap-version 3",
 				},
 			}
