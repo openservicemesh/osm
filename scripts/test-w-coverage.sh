@@ -6,7 +6,7 @@ go test -timeout 80s \
    -failfast \
    -v \
    -coverprofile=coverage.txt \
-   -covermode count ./... | tee testoutput.txt || { echo "go test returned non-zero"; exit 1; }
+   -covermode count `go list ./... | grep -v tests/e2e` | tee testoutput.txt || { echo "go test returned non-zero"; exit 1; }
 
 # shellcheck disable=SC2002
 cat testoutput.txt | go run github.com/jstemmer/go-junit-report > report.xml
