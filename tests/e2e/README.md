@@ -8,7 +8,7 @@ Tests have been written under Ginkgo framework, and most of the helpers, wrapper
 
 The framework exposes an OSM test data structure or handle, which is in effect the interaction mechanism for the test itself.  The test framework takes care to collect and initialize most of the common functionalities a test would expect when deploying on K8s, including but not limited to Kubernetes and SMI clientsets, flag parsing, container registry values, cleanup hooks, etc., and provides accessibility functions through the handle for the test to use at its own discretion.
 
-The hooks for initialization and cleanup are set at Ginkgo's `BeforeEach` at the top level of test execution (between  Ginkgo `Describes`); we hencforce recommend keeping every test in its own `Describe` section, as well as on a separate file for clarity. You can refer to `suite_test.go` for more details.
+The hooks for initialization and cleanup are set at Ginkgo's `BeforeEach` at the top level of test execution (between  Ginkgo `Describes`); we henceforth recommend keeping every test in its own `Describe` section, as well as on a separate file for clarity. You can refer to `suite_test.go` for more details.
 
 ## Quick Start
 ### Kind cluster
