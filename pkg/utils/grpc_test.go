@@ -14,7 +14,7 @@ import (
 func TestNewGrpc(t *testing.T) {
 	assert := assert.New(t)
 	cache := make(map[certificate.CommonName]certificate.Certificater)
-	certManager := tresor.NewFakeCertManager(&cache, 1*time.Hour)
+	certManager := tresor.NewFakeCertManager(&cache, nil)
 	adsCert, err := certManager.GetRootCertificate()
 	assert.Nil(err)
 
@@ -54,7 +54,7 @@ func TestGrpcServe(t *testing.T) {
 	assert := assert.New(t)
 
 	cache := make(map[certificate.CommonName]certificate.Certificater)
-	certManager := tresor.NewFakeCertManager(&cache, 1*time.Hour)
+	certManager := tresor.NewFakeCertManager(&cache, nil)
 	adsCert, err := certManager.GetRootCertificate()
 	assert.Nil(err)
 

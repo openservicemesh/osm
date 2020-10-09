@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/google/uuid"
+
 	"github.com/pkg/errors"
 	"k8s.io/api/admission/v1beta1"
 	admissionv1beta1 "k8s.io/api/admissionregistration/v1beta1"
@@ -50,8 +52,7 @@ const (
 // NewWebhook starts a new web server handling requests from the injector MutatingWebhookConfiguration
 func NewWebhook(config Config, kubeClient kubernetes.Interface, certManager certificate.Manager, meshCatalog catalog.MeshCataloger, kubeController k8s.Controller, meshName, osmNamespace, webhookConfigName string, stop <-chan struct{}, cfg configurator.Configurator) error {
 	cn := certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.OSMControllerName, osmNamespace))
-	validityPeriod := constants.XDSCertificateValidityPeriod
-	cert, err := certManager.IssueCertificate(cn, &validityPeriod)
+	cert, err := certManager.IssueCertificate(cn, constants.XDSCertificateValidityPeriod)
 	if err != nil {
 		return errors.Errorf("Error issuing certificate for the mutating webhook: %+v", err)
 	}
@@ -179,6 +180,11 @@ func (wh *webhook) mutateHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func (wh *webhook) mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
+	if req == nil {
+		log.Error().Msg("Nil AdmissionRequest")
+		return toAdmissionError(errors.New("nil admission request"))
+	}
+
 	// Decode the Pod spec from the request
 	var pod corev1.Pod
 	if err := json.Unmarshal(req.Object.Raw, &pod); err != nil {
@@ -204,7 +210,9 @@ func (wh *webhook) mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespo
 
 	// Create the patches for the spec
 	// We use req.Namespace because pod.Namespace is "" at this point
-	patchBytes, err := wh.createPatch(&pod, req.Namespace)
+	// This string uniquely identifies the pod. Ideally this would be the pod.UID, but this is not available at this point.
+	proxyUUID := uuid.New().String()
+	patchBytes, err := wh.createPatch(&pod, req.Namespace, proxyUUID)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create patch")
 		return toAdmissionError(err)
@@ -301,10 +309,8 @@ func toAdmissionError(err error) *v1beta1.AdmissionResponse {
 
 func patchAdmissionResponse(resp *v1beta1.AdmissionResponse, patchBytes []byte) {
 	resp.Patch = patchBytes
-	resp.PatchType = func() *v1beta1.PatchType {
-		pt := v1beta1.PatchTypeJSONPatch
-		return &pt
-	}()
+	pt := v1beta1.PatchTypeJSONPatch
+	resp.PatchType = &pt
 }
 
 func patchMutatingWebhookConfiguration(cert certificate.Certificater, meshName, osmNamespace, webhookConfigName string, clientSet kubernetes.Interface) error {

@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"time"
 
+	"github.com/golang/mock/gomock"
 	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1beta1"
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	cmfakeclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/fake"
@@ -16,10 +17,19 @@ import (
 	"k8s.io/client-go/testing"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/configurator"
 )
 
 var _ = Describe("Test cert-manager Certificate Manager", func() {
 	defer GinkgoRecover()
+
+	var (
+		mockCtrl         *gomock.Controller
+		mockConfigurator *configurator.MockConfigurator
+	)
+
+	mockCtrl = gomock.NewController(GinkgoT())
+	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
 
 	Context("Test Getting a certificate from the cache", func() {
 		validity := 1 * time.Hour
@@ -96,10 +106,10 @@ var _ = Describe("Test cert-manager Certificate Manager", func() {
 			}
 		})
 
-		cm, newCertError := NewCertManager(rootCertificator, fakeClient, "osm-system", validity, cmmeta.ObjectReference{Name: "osm-ca"})
+		cm, newCertError := NewCertManager(rootCertificator, fakeClient, "osm-system", cmmeta.ObjectReference{Name: "osm-ca"}, mockConfigurator)
 		It("should get an issued certificate from the cache", func() {
 			Expect(newCertError).ToNot(HaveOccurred())
-			cert, issueCertificateError := cm.IssueCertificate(cn, &validity)
+			cert, issueCertificateError := cm.IssueCertificate(cn, validity)
 			Expect(issueCertificateError).ToNot(HaveOccurred())
 			Expect(cert.GetCommonName()).To(Equal(cn))
 

@@ -16,6 +16,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate/providers/certmanager"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/vault"
+	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/debugger"
 )
@@ -40,7 +41,7 @@ const (
 
 var validCertificateManagerOptions = []string{tresorKind, vaultKind, certmanagerKind}
 
-func getTresorOSMCertificateManager(kubeClient kubernetes.Interface, enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
+func getTresorOSMCertificateManager(kubeClient kubernetes.Interface, cfg configurator.Configurator) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
 	var err error
 	var rootCert certificate.Certificater
 
@@ -71,7 +72,7 @@ func getTresorOSMCertificateManager(kubeClient kubernetes.Interface, enableDebug
 		}
 	}
 
-	certManager, err := tresor.NewCertManager(rootCert, getServiceCertValidityPeriod(), rootCertOrganization)
+	certManager, err := tresor.NewCertManager(rootCert, rootCertOrganization, cfg)
 	if err != nil {
 		return nil, nil, errors.Errorf("Failed to instantiate Azure Key Vault as a Certificate Manager")
 	}
@@ -122,14 +123,14 @@ func getCertFromKubernetes(kubeClient kubernetes.Interface, namespace, secretNam
 	return rootCert, nil
 }
 
-func getHashiVaultOSMCertificateManager(enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
+func getHashiVaultOSMCertificateManager(cfg configurator.Configurator) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
 	if _, ok := map[string]interface{}{"http": nil, "https": nil}[*vaultProtocol]; !ok {
 		return nil, nil, errors.Errorf("Value %s is not a valid Hashi Vault protocol", *vaultProtocol)
 	}
 
 	// A Vault address would have the following shape: "http://vault.default.svc.cluster.local:8200"
 	vaultAddr := fmt.Sprintf("%s://%s:%d", *vaultProtocol, *vaultHost, *vaultPort)
-	vaultCertManager, err := vault.NewCertManager(vaultAddr, *vaultToken, getServiceCertValidityPeriod(), *vaultRole)
+	vaultCertManager, err := vault.NewCertManager(vaultAddr, *vaultToken, *vaultRole, cfg)
 	if err != nil {
 		return nil, nil, errors.Errorf("Error instantiating Hashicorp Vault as a Certificate Manager: %+v", err)
 	}
@@ -137,7 +138,7 @@ func getHashiVaultOSMCertificateManager(enableDebug bool) (certificate.Manager, 
 	return vaultCertManager, vaultCertManager, nil
 }
 
-func getCertManagerOSMCertificateManager(kubeClient kubernetes.Interface, kubeConfig *rest.Config, enableDebug bool) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
+func getCertManagerOSMCertificateManager(kubeClient kubernetes.Interface, kubeConfig *rest.Config, cfg configurator.Configurator) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
 	rootCertSecret, err := kubeClient.CoreV1().Secrets(osmNamespace).Get(context.TODO(), caBundleSecretName, metav1.GetOptions{})
 	if err != nil {
 		return nil, nil, fmt.Errorf("Failed to get cert-manager CA secret %s/%s: %s", osmNamespace, caBundleSecretName, err)
@@ -158,18 +159,14 @@ func getCertManagerOSMCertificateManager(kubeClient kubernetes.Interface, kubeCo
 		return nil, nil, fmt.Errorf("Failed to build cert-manager client set: %s", err)
 	}
 
-	certmanagerCertManager, err := certmanager.NewCertManager(rootCert, client, osmNamespace, getServiceCertValidityPeriod(), cmmeta.ObjectReference{
+	certmanagerCertManager, err := certmanager.NewCertManager(rootCert, client, osmNamespace, cmmeta.ObjectReference{
 		Name:  *certmanagerIssuerName,
 		Kind:  *certmanagerIssuerKind,
 		Group: *certmanagerIssuerGroup,
-	})
+	}, cfg)
 	if err != nil {
 		return nil, nil, errors.Errorf("Error instantiating Jetstack cert-manager as a Certificate Manager: %+v", err)
 	}
 
 	return certmanagerCertManager, certmanagerCertManager, nil
-}
-
-func getServiceCertValidityPeriod() time.Duration {
-	return time.Duration(serviceCertValidityMinutes) * time.Minute
 }

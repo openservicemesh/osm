@@ -4,7 +4,7 @@ set -aueo pipefail
 
 readarray -t modules < <(go list ./... | grep -v tests/e2e)
 
-go test -timeout 80s \
+go test -timeout 120s \
    -failfast \
    -v \
    -coverprofile=coverage.txt \
