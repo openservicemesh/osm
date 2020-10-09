@@ -1,18 +1,16 @@
 # E2E OSM Testing
-This folder contains End-to-End (E2E) OSM tests.
-
-E2E testing is mostly motivated by use-case driven scenarios, starting from a blank or empty cluster (or not even a cluster if Kind is backing the test, see details below), installing OSM from scratch, deploying applications and policies and ultimately testing traffic between specific cluster members to verify policy enforcement and proper mesh functioning. 
+End-to-end tests verify the behavior of the entire system. For OSM, e2e tests will install a control plane, install test workloads and SMI policies, and check that the workload is behaving as expected. 
 
 ## Files and structure
-Tests have been written under Ginkgo framework, and most of the helpers, wrappers and accessibility functions are provided in respective `common_*.go`, based on their areas of effect.
+OSM's e2e tests are located in tests/e2e. The tests can be run using the `test-e2e` Makefile target. The Makefile target will also build the necessary container images and `osm` CLI binary before running the tests. The tests are written using Ginkgo and Gomega so they may also be directly invoked using `go test`. Be sure to build the `osm-controller` and `init` container images and `osm` CLI before directly invoking the tests. With either option, it is suggested to explicitly set the container registry location and tag to ensure up-to-date images are used by setting the `CTR_REGISTRY` and `CTR_TAG` environment variables.
 
-The framework exposes an OSM test data structure or handle, which is in effect the interaction mechanism for the test itself.  The test framework takes care to collect and initialize most of the common functionalities a test would expect when deploying on K8s, including but not limited to Kubernetes and SMI clientsets, flag parsing, container registry values, cleanup hooks, etc., and provides accessibility functions through the handle for the test to use at its own discretion.
+In addition to the flags provided by `go test` and Ginkgo, there are several custom command line flags that may be used for e2e tests to configure global parameters like container image locations and cleanup behavior. You can see the list of flags and explanatory use down below this document.
 
 The hooks for initialization and cleanup are set at Ginkgo's `BeforeEach` at the top level of test execution (between  Ginkgo `Describes`); we henceforth recommend keeping every test in its own `Describe` section, as well as on a separate file for clarity. You can refer to `suite_test.go` for more details.
 
 ## Quick Start
 ### Kind cluster
-The following `make` target will create local containers for the OSM components, tagging them with `CTR_TAG`, and will launch the tests using Kind cluster. A kind cluster is created at test start, and requires a docker interface to be available on the host running the test.
+The following `make` target will create local containers for the OSM components, tagging them with `CTR_TAG`, and will launch the tests using Kind cluster. A Kind cluster is created at test start, and requires a docker interface to be available on the host running the test.
 When using Kind, we load the images onto the Kind nodes directly (instead of providing a registry).
 ```
 CTR_TAG=not-latest make test-e2e
@@ -21,7 +19,7 @@ Note: If you use `latest` tag, K8s will try to pull the image by default. If the
 
 ### Any other K8s deployment
 Have your `Kubeconf` pointing to your testing cluster of choice.
-The following code uses `latest` tag by default.
+The following code uses `latest` tag by default. Non-Kind deployments do not push the images on the nodes, so make sure to set the registry accordingly.
 ```
 export CTR_REGISTRY=<myacr>.dockerhub.io # if needed, set CTR_REGISTRY_USER and CTR_REGISTRY_PASSWORD 
 make build-osm
@@ -34,8 +32,8 @@ go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress
 Currently, test init will load a `Kubeconf` based on Defalut Kubeconf Loading rules. 
 If Kind is used, the kubeconf is temporarily replaced and Kind's kubeconf is used instead.
 
-### Container registry (required)
-A container registry where to load the images from (OSM, init container, etc.) is necessary. Can be set by flag or env value:
+### Container registry
+A container registry where to load the images from (OSM, init container, etc.). Credentials are optional if the container registry allows pulling the images publicly:
 ```
 -ctrRegistry string
 		Container registry
@@ -45,7 +43,7 @@ A container registry where to load the images from (OSM, init container, etc.) i
 		Container registry username
 ```
 If CR user and password are provided, the test framework will take care to add those as Docker secret credentials for the given container registry whenever appropriate (tenant namespaces for `init` containers, OSM intallation, etc).
-You can also set them through env:
+Container registry related flags can also be set through env:
 ```
 export CTR_REGISTRY=<your_cr>.dockerhub.io
 export CTR_REGISTRY_USER=<uername>             # opt
