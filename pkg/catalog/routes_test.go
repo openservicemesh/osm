@@ -40,7 +40,7 @@ func TestListTrafficPolicies(t *testing.T) {
 	for _, test := range listTrafficPoliciesTests {
 		trafficTargets, err := mc.ListTrafficPolicies(test.input)
 		assert.Nil(err)
-		assert.Equal(trafficTargets, test.output)
+		assert.ElementsMatch(trafficTargets, test.output)
 	}
 }
 
