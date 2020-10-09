@@ -18,7 +18,7 @@ CTR_TAG=not-latest make test-e2e
 Note: If you use `latest` tag, K8s will try to pull the image by default. If the images are not pushed to a registry accessible by the kind cluster, image pull errors will occur. Or, if an image with the same name is available, like `openservicemesh/init:latest`, then that publicly available image will be pulled and started instead, which may not be as up-to-date as the local image already loaded onto the cluster.
 
 ### Any other K8s deployment
-Have your `Kubeconf` pointing to your testing cluster of choice.
+Have your Kubeconfig file point to your testing cluster of choice.
 The following code uses `latest` tag by default. Non-Kind deployments do not push the images on the nodes, so make sure to set the registry accordingly.
 ```
 export CTR_REGISTRY=<myacr>.dockerhub.io # if needed, set CTR_REGISTRY_USER and CTR_REGISTRY_PASSWORD 
@@ -42,7 +42,7 @@ A container registry where to load the images from (OSM, init container, etc.). 
 -ctrRegistryUser string
 		Container registry username
 ```
-If CR user and password are provided, the test framework will take care to add those as Docker secret credentials for the given container registry whenever appropriate (tenant namespaces for `init` containers, OSM intallation, etc).
+If container registry user and password are provided, the test framework will take care to add those as Docker secret credentials for the given container registry whenever appropriate (tenant namespaces for `init` containers, OSM intallation, etc).
 Container registry related flags can also be set through env:
 ```
 export CTR_REGISTRY=<your_cr>.dockerhub.io
