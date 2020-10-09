@@ -69,7 +69,6 @@ func GenericEventRecorder() *EventRecorder {
 // eventRecorder returns an EventRecorder that can be used to post Kubernetes events
 func eventRecorder(kubeClient kubernetes.Interface, namespace string) record.EventRecorder {
 	eventBroadcaster := record.NewBroadcaster()
-	eventBroadcaster.StartLogging(log.Trace().Msgf)
 	eventBroadcaster.StartRecordingToSink(
 		&typedcorev1.EventSinkImpl{
 			Interface: kubeClient.CoreV1().Events(namespace)})
