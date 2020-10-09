@@ -13,11 +13,11 @@ The hooks for initialization and cleanup are set at Ginkgo's `BeforeEach` at the
 ## Quick Start
 ### Kind cluster
 The following `make` target will create local containers for the OSM components, tagging them with `CTR_TAG`, and will launch the tests using Kind cluster. A kind cluster is created at test start, and requires a docker interface to be available on the host running the test.
-When using Kind, we push the `CTR_TAG` images to the Kind nodes (instead of providing a registry).
+When using Kind, we load the images onto the Kind nodes directly (instead of providing a registry).
 ```
 CTR_TAG=not-latest make test-e2e
 ```
-Note: If you use `latest` tag, and have not defined a registry, K8s will, by default, check the images on dockerhub, pulling and overriding the locally pushed images on the node.
+Note: If you use `latest` tag, K8s will try to pull the image by default. If the images are not pushed to a registry accessible by the kind cluster, image pull errors will occur. Or, if an image with the same name is available, like `openservicemesh/init:latest`, then that publicly available image will be pulled and started instead, which may not be as up-to-date as the local image already loaded onto the cluster.
 
 ### Any other K8s deployment
 Have your `Kubeconf` pointing to your testing cluster of choice.
@@ -53,16 +53,16 @@ export CTR_REGISTRY_PASSWORD=<password>        # opt
 ```
 
 ### OSM Tag
-It will refer to the version of the OSM platform containers (OSM and init) for test to use:
+The following flag will refer to the version of the OSM platform containers (OSM and init) for test to use:
 ```
 -osmImageTag string
 		OSM image tag (default "latest")
 ```
-Make sure you have compiled the images and pushed them on your registry first:
+Make sure you have compiled the images and pushed them on your registry first if you are not using a kind cluster:
 ```
 export CTR_REGISTRY=myacr.dockerhub.io
 export CTR_TAG=mytag               # Optional, 'latest' used by default
-make docker-push
+make docker-push-init docker-push-osm-controller.    # Use docker-build-* targets instead when using kind
 ```
 
 ### Use Kind for testing 
@@ -80,7 +80,7 @@ Testing implements support for Kind. If `kindCluster` is enabled, a new Kind clu
 
 ### Test specific flags
 
-Worth mentioning `cleanupTest` is specially useful for debugging or leaving the test in a certain state at test-exit.
+Worth mentioning `cleanupTest` is especially useful for debugging or leaving the test in a certain state at test-exit.
 When using Kind, you need to use `cleanupKindCluster` and `cleanupKindClusterBetweenTests` in conjunction, or else the cluster
 will anyway be destroyed.
 ```
