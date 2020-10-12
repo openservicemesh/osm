@@ -20,6 +20,7 @@ linters-settings:
 issues:
   new: true
   exclude-rules:
+    # Ignore error for ginkgo and gomega dot imports
     - linters:
         - golint
       source: ". \"github.com/onsi/(ginkgo|gomega)\""
