@@ -74,7 +74,7 @@ func getTresorOSMCertificateManager(kubeClient kubernetes.Interface, cfg configu
 
 	certManager, err := tresor.NewCertManager(rootCert, rootCertOrganization, cfg)
 	if err != nil {
-		return nil, nil, errors.Errorf("Failed to instantiate Azure Key Vault as a Certificate Manager")
+		return nil, nil, errors.Errorf("Failed to instantiate Tresor as a Certificate Manager")
 	}
 
 	return certManager, certManager, nil
