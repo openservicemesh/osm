@@ -46,8 +46,8 @@ type OsmTestData struct {
 	waitForCleanup bool // Forces test to wait for effective deletion of resources upon cleanup
 
 	// OSM install-time variables
-	osmMeshName string
-	osmImageTag string
+	osmNamespace string
+	osmImageTag  string
 
 	// Container registry related vars
 	ctrRegistryUser     string // registry login
@@ -87,7 +87,7 @@ func registerFlags(td *OsmTestData) {
 
 	flag.StringVar(&td.osmImageTag, "osmImageTag", "latest", "OSM image tag")
 
-	flag.StringVar(&td.osmMeshName, "meshName", func() string {
+	flag.StringVar(&td.osmNamespace, "meshName", func() string {
 		tmp := os.Getenv("K8S_NAMESPACE")
 		if len(tmp) != 0 {
 			return tmp
@@ -174,7 +174,7 @@ type InstallOSMOpts struct {
 // GetOSMInstallOpts initializes install options for OSM
 func (td *OsmTestData) GetOSMInstallOpts() InstallOSMOpts {
 	return InstallOSMOpts{
-		controlPlaneNS:          td.osmMeshName,
+		controlPlaneNS:          td.osmNamespace,
 		certManager:             "tresor",
 		containerRegistryLoc:    td.ctrRegistryServer,
 		containerRegistrySecret: td.ctrRegistryPassword,
@@ -183,7 +183,7 @@ func (td *OsmTestData) GetOSMInstallOpts() InstallOSMOpts {
 		deployPrometheus:        false,
 		deployJaeger:            false,
 
-		vaultHost:     "vault." + td.osmMeshName + ".svc.cluster.local",
+		vaultHost:     "vault." + td.osmNamespace + ".svc.cluster.local",
 		vaultProtocol: "http",
 		vaultRole:     "openservicemesh",
 		vaultToken:    "token",
@@ -436,7 +436,7 @@ func (td *OsmTestData) AddNsToMesh(sidecardInject bool, ns ...string) error {
 			args = append(args, "--enable-sidecar-injection")
 		}
 
-		args = append(args, "--namespace="+td.osmMeshName)
+		args = append(args, "--namespace="+td.osmNamespace)
 		stdout, stderr, err := td.RunLocal(filepath.FromSlash("../../bin/osm"), args)
 		if err != nil {
 			td.T.Logf("error running osm namespace add")

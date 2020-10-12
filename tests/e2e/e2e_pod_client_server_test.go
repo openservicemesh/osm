@@ -11,7 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = Describe("1 Client pod -> 1 Server pod test", func() {
+var _ = Describe("Test HTTP traffic from 1 pod client -> 1 pod server", func() {
 	Context("SimpleClientServer", func() {
 		sourceName := "client"
 		destName := "server"
@@ -20,7 +20,7 @@ var _ = Describe("1 Client pod -> 1 Server pod test", func() {
 		It("Tests HTTP traffic for client pod -> server pod", func() {
 			// Install OSM
 			Expect(td.InstallOSM(td.GetOSMInstallOpts())).To(Succeed())
-			Expect(td.WaitForPodsRunningReady(td.osmMeshName, 60*time.Second, 1)).To(Succeed())
+			Expect(td.WaitForPodsRunningReady(td.osmNamespace, 60*time.Second, 1)).To(Succeed())
 
 			// Create Test NS
 			for _, n := range ns {
