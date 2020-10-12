@@ -20,6 +20,7 @@ func TestMain(m *testing.M) {
 }
 
 func setup() {
+	defer GinkgoRecover()
 	kubeClient := fake.NewSimpleClientset()
 
 	pod := &corev1.Pod{
