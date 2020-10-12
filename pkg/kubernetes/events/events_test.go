@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	. "github.com/onsi/ginkgo"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,7 +32,7 @@ func setup() {
 
 	eventRecorder := GenericEventRecorder()
 	if err := eventRecorder.Initialize(pod, kubeClient, "test"); err != nil {
-		log.Fatal().Err(err).Msg("Error initializing event recorder")
+		GinkgoT().Fatal("Error initializing event recorder")
 	}
 }
 
