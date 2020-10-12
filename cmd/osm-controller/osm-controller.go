@@ -258,17 +258,14 @@ func createOrUpdateCABundleKubernetesSecret(kubeClient clientset.Interface, cert
 		return nil
 	}
 
-	return saveOrUpdateSecretToKubernetes(kubeClient, ca, namespace, caBundleSecretName, nil)
+	return saveOrUpdateSecretToKubernetes(kubeClient, ca, namespace, caBundleSecretName)
 }
 
-func saveOrUpdateSecretToKubernetes(kubeClient clientset.Interface, ca certificate.Certificater, namespace, caBundleSecretName string, privKey []byte) error {
+func saveOrUpdateSecretToKubernetes(kubeClient clientset.Interface, ca certificate.Certificater, namespace, caBundleSecretName string) error {
 	secretData := map[string][]byte{
-		constants.KubernetesOpaqueSecretCAKey:        ca.GetCertificateChain(),
-		constants.KubernetesOpaqueSecretCAExpiration: []byte(ca.GetExpiration().Format(constants.TimeDateLayout)),
-	}
-
-	if privKey != nil {
-		secretData[constants.KubernetesOpaqueSecretRootPrivateKeyKey] = privKey
+		constants.KubernetesOpaqueSecretCAKey:             ca.GetCertificateChain(),
+		constants.KubernetesOpaqueSecretCAExpiration:      []byte(ca.GetExpiration().Format(constants.TimeDateLayout)),
+		constants.KubernetesOpaqueSecretRootPrivateKeyKey: ca.GetPrivateKey(),
 	}
 
 	existingSecret, getErr := kubeClient.CoreV1().Secrets(namespace).Get(context.TODO(), caBundleSecretName, metav1.GetOptions{})

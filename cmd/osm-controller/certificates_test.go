@@ -181,7 +181,7 @@ var _ = Describe("Test CMD tools", func() {
 			cert, err := tresor.NewCertificateFromPEM(expectedCert, expectedKey, expiration)
 			Expect(err).ToNot(HaveOccurred())
 
-			err = saveOrUpdateSecretToKubernetes(kubeClient, cert, ns, secretName, keyPEM)
+			err = saveOrUpdateSecretToKubernetes(kubeClient, cert, ns, secretName)
 			Expect(err).ToNot(HaveOccurred())
 
 			actual, err := kubeClient.CoreV1().Secrets(ns).Get(context.Background(), secretName, v1.GetOptions{})
@@ -232,7 +232,7 @@ var _ = Describe("Test CMD tools", func() {
 			cert, err := tresor.NewCertificateFromPEM(expectedCert, expectedKey, expiration)
 			Expect(err).ToNot(HaveOccurred())
 
-			err = saveOrUpdateSecretToKubernetes(kubeClient, cert, ns, secretName, keyPEM)
+			err = saveOrUpdateSecretToKubernetes(kubeClient, cert, ns, secretName)
 			Expect(err).ToNot(HaveOccurred())
 
 			actual, err := kubeClient.CoreV1().Secrets(ns).Get(context.Background(), secretName, v1.GetOptions{})
