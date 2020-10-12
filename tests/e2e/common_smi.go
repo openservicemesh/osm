@@ -32,7 +32,7 @@ func (td *OsmTestData) InitSMIClients() error {
 
 	td.smiClients.AccessClient, err = smiTrafficAccessClient.NewForConfig(td.restConfig)
 	if err != nil {
-		return errors.Wrap(err, "failed to create traffic acces client")
+		return errors.Wrap(err, "failed to create traffic access client")
 	}
 
 	td.smiClients.SplitClient, err = smiTrafficSplitClient.NewForConfig(td.restConfig)
@@ -132,8 +132,8 @@ func (td *OsmTestData) CreateSimpleAllowPolicy(def SimpleAllowPolicy) (smiSpecs.
 	return routeGroup, trafficTarget
 }
 
-// TrafficSplitBakend is a simple define to refer to a TrafficSplit backend
-type TrafficSplitBakend struct {
+// TrafficSplitBackend is a simple define to refer to a TrafficSplit backend
+type TrafficSplitBackend struct {
 	Name   string
 	Weight int
 }
@@ -144,7 +144,7 @@ type TrafficSplitDef struct {
 	Namespace string
 
 	TrafficSplitServiceName string
-	Backends                []TrafficSplitBakend
+	Backends                []TrafficSplitBackend
 }
 
 // CreateSimpleTrafficSplit Creates an SMI TrafficTarget

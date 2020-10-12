@@ -98,14 +98,19 @@ var _ = Describe("Test HTTP traffic from 1 pod client -> 1 pod server", func() {
 				Port:        80,
 			}
 
-			cond := WaitForRepeatedSuccess(func() bool {
+			srcToDestStr := fmt.Sprintf("%s -> %s",
+				fmt.Sprintf("%s/%s", sourceName, srcPod.Name),
+				fmt.Sprintf("%s:%d%s", clientToServer.Destination, clientToServer.Port, clientToServer.HTTPUrl))
+
+			cond := td.WaitForRepeatedSuccess(func() bool {
 				result := td.HTTPRequest(clientToServer)
 
 				if result.Err != nil || result.StatusCode != 200 {
-					td.T.Logf("> REST req failed (status: %d) %v", result.StatusCode, result.Err)
+					td.T.Logf("> (%s) HTTP Req failed %d %v",
+						srcToDestStr, result.StatusCode, result.Err)
 					return false
 				}
-				td.T.Logf("> REST req succeeded: %d", result.StatusCode)
+				td.T.Logf("> (%s) HTTP Req succeeded: %d", srcToDestStr, result.StatusCode)
 				return true
 			}, 5, 60*time.Second)
 			Expect(cond).To(BeTrue())
@@ -115,15 +120,15 @@ var _ = Describe("Test HTTP traffic from 1 pod client -> 1 pod server", func() {
 			Expect(td.smiClients.SpecClient.SpecsV1alpha3().HTTPRouteGroups(sourceName).Delete(context.TODO(), httpRG.Name, metav1.DeleteOptions{})).To(Succeed())
 
 			// Expect client not to reach server
-			cond = WaitForRepeatedSuccess(func() bool {
+			cond = td.WaitForRepeatedSuccess(func() bool {
 				result := td.HTTPRequest(clientToServer)
 
 				// Curl exit code 7 == Conn refused
 				if result.Err == nil || !strings.Contains(result.Err.Error(), "command terminated with exit code 7 ") {
-					td.T.Logf("> REST req failed incorrectly (status: %d) %v", result.StatusCode, result.Err)
+					td.T.Logf("> (%s) HTTP Req failed, incorrect expected result: %d, %v", srcToDestStr, result.StatusCode, result.Err)
 					return false
 				}
-				td.T.Logf("> REST req failed correctly: %v", result.Err)
+				td.T.Logf("> (%s) HTTP Req failed correctly: %v", srcToDestStr, result.Err)
 				return true
 			}, 5, 60*time.Second)
 			Expect(cond).To(BeTrue())

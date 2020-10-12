@@ -628,10 +628,11 @@ type SuccessFunction func() bool
 
 // WaitForRepeatedSuccess runs and expects a certain result for a certain operation a set number of consecutive times
 // over a set amount of time.
-func WaitForRepeatedSuccess(f SuccessFunction, minItForSuccess int, maxWaitTime time.Duration) bool {
+func (td *OsmTestData) WaitForRepeatedSuccess(f SuccessFunction, minItForSuccess int, maxWaitTime time.Duration) bool {
 	iterations := 0
 	startTime := time.Now()
 
+	By(fmt.Sprintf("[WaitForRepeatedSuccess] waiting %v for %d iterations to succeed", maxWaitTime, minItForSuccess))
 	for time.Since(startTime) < maxWaitTime {
 		if f() {
 			iterations++
@@ -663,7 +664,9 @@ func (td *OsmTestData) Cleanup(ct CleanupType) {
 		var nsList []string
 		for ns := range td.cleanupNamespaces {
 			err := td.DeleteNs(ns)
-			td.T.Logf("Delete for %s: %v", ns, err)
+			if err != nil {
+				td.T.Logf("(warn) delete ns %s err: %v", ns, err)
+			}
 			nsList = append(nsList, ns)
 		}
 
