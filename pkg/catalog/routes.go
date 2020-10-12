@@ -39,12 +39,18 @@ func (mc *MeshCatalog) ListTrafficPolicies(service service.MeshService) ([]traff
 		return nil, err
 	}
 
-	allTrafficPolicies, err := getTrafficPoliciesForService(mc, allRoutes, service)
+	trafficTargetsMap, err := getTrafficPoliciesForService(mc, allRoutes, service)
 	if err != nil {
 		log.Error().Err(err).Msgf("Could not get all traffic policies")
 		return nil, err
 	}
-	return allTrafficPolicies, nil
+
+	var matchedTrafficTargets []trafficpolicy.TrafficTarget
+	for _, trafficTarget := range trafficTargetsMap {
+		matchedTrafficTargets = append(matchedTrafficTargets, trafficTarget)
+	}
+
+	return matchedTrafficTargets, nil
 }
 
 // This function returns the list of connected services.
@@ -245,15 +251,11 @@ func getTrafficTargetFromSrcDstHash(hash string, name string, httpRoutes []traff
 
 // getTrafficPoliciesForService returns a list of TrafficTarget policies associated with a given MeshService.
 // The function consolidates all the routes between a source and destination in a single TrafficTarget object.
-func getTrafficPoliciesForService(mc *MeshCatalog, routePolicies map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.HTTPRoute, meshService service.MeshService) ([]trafficpolicy.TrafficTarget, error) {
+func getTrafficPoliciesForService(mc *MeshCatalog, routePolicies map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.HTTPRoute, meshService service.MeshService) (map[string]trafficpolicy.TrafficTarget, error) {
 	// 'srcDstTrafficTargetMap' is used to consolidate all routes from a source to a destination service.
 	// For the same source to destination if multiple routes are specified, all the routes are
 	// a part of a single TrafficTarget associated with that source and destination.
 	srcDstTrafficTargetMap := make(map[string]trafficpolicy.TrafficTarget)
-
-	// 'matchedTrafficTargets' is the list of all computed TrafficTarget policies that the given 'meshService`
-	// is a part of.
-	var matchedTrafficTargets []trafficpolicy.TrafficTarget
 
 	for _, trafficTargets := range mc.meshSpec.ListTrafficTargets() {
 		log.Debug().Msgf("Discovered TrafficTarget resource: %s/%s", trafficTargets.Namespace, trafficTargets.Name)
@@ -316,12 +318,31 @@ func getTrafficPoliciesForService(mc *MeshCatalog, routePolicies map[trafficpoli
 		}
 	}
 
-	for _, trafficTarget := range srcDstTrafficTargetMap {
+	/*for _, trafficTarget := range srcDstTrafficTargetMap {
 		matchedTrafficTargets = append(matchedTrafficTargets, trafficTarget)
 	}
 
 	log.Debug().Msgf("Traffic policies for service %s: %+v", meshService, matchedTrafficTargets)
-	return matchedTrafficTargets, nil
+	return matchedTrafficTargets, nil*/
+
+	return srcDstTrafficTargetMap, nil
+}
+
+func (mc *MeshCatalog) getTrafficRoutesForService(svc service.MeshService, trafficTargets map[string]trafficpolicy.TrafficTarget) []trafficpolicy.TrafficRoutes {
+	trafficRoutes := []trafficpolicy.TrafficRoutes{}
+
+	for _, target := range trafficTargets {
+		trafficRoute := trafficpolicy.TrafficRoutes{
+			//Name:                  target.Name,
+			Source:                target.Source,
+			Destination:           target.Destination,
+			RouteWeightedServices: mc.getRouteWeightedServices(target.Source, target.Destination, trafficTargets),
+		}
+		trafficRoutes = append(trafficRoutes, trafficRoute)
+	}
+
+	//TODO: Add roots of traffic splits (will need some slight testing changes)
+	return trafficRoutes
 }
 
 func (mc *MeshCatalog) buildAllowAllTrafficPolicies(service service.MeshService) []trafficpolicy.TrafficTarget {
@@ -400,4 +421,76 @@ func (mc *MeshCatalog) listTrafficTargetPermutations(trafficTarget target.Traffi
 	}
 
 	return trafficPolicies, nil
+}
+
+func (mc *MeshCatalog) getWeightedBackendsForService(svc service.MeshService) []service.WeightedService {
+	weightedSvcs := []service.WeightedService{}
+
+	// Retrieve the weighted clusters from traffic split
+	// Assumes no nested splits for now
+	// Assumes service would only be root once (not sure if this is validated)
+	servicesList := mc.meshSpec.ListTrafficSplitServices()
+	for _, activeService := range servicesList {
+		if activeService.RootService == svc.Name {
+			weightedSvcs = append(weightedSvcs, activeService)
+		}
+	}
+
+	if len(weightedSvcs) == 0 {
+		svc := service.WeightedService{
+			Service: svc,
+			Weight:  constants.ClusterWeightAcceptAll,
+		}
+		weightedSvcs = append(weightedSvcs, svc)
+	}
+	return weightedSvcs
+}
+
+func (mc *MeshCatalog) getRouteWeightedServices(src service.MeshService, dest service.MeshService, trafficTargets map[string]trafficpolicy.TrafficTarget) []trafficpolicy.RouteWeightedServices {
+	routeWeightedSvcs := []trafficpolicy.RouteWeightedServices{}
+
+	weightedBackends := mc.getWeightedBackendsForService(dest)
+
+	routeServicesMap := make(map[*trafficpolicy.HTTPRoute][]service.WeightedService)
+
+	for _, backend := range weightedBackends {
+		hash := hashSrcDstService(src, backend.Service)
+		routes := trafficTargets[hash].HTTPRoutes
+
+		for i, r := range routes {
+			key := getRouteKey(r, routeServicesMap)
+			if key == nil {
+				servicesValue := []service.WeightedService{backend}
+				key = &routes[i]
+				routeServicesMap[key] = servicesValue
+			} else {
+				servicesValue := routeServicesMap[key]
+				servicesValue = append(servicesValue, backend)
+				routeServicesMap[key] = servicesValue
+			}
+		}
+	}
+
+	for route, services := range routeServicesMap {
+		rWS := trafficpolicy.RouteWeightedServices{
+			HTTPRoute:        *route,
+			WeightedServices: services,
+		}
+		routeWeightedSvcs = append(routeWeightedSvcs, rWS)
+	}
+
+	return routeWeightedSvcs
+}
+
+func getRouteKey(route trafficpolicy.HTTPRoute, routeMap map[*trafficpolicy.HTTPRoute][]service.WeightedService) *trafficpolicy.HTTPRoute {
+	var matchingKey *trafficpolicy.HTTPRoute
+
+	for key := range routeMap {
+		keyRoute := *key
+		if keyRoute.Equal(route) {
+			matchingKey = key
+			break
+		}
+	}
+	return matchingKey
 }

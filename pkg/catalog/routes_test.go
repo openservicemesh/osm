@@ -49,27 +49,27 @@ func TestGetTrafficPoliciesForService(t *testing.T) {
 
 	type getTrafficPoliciesForServiceTest struct {
 		input  service.MeshService
-		output []trafficpolicy.TrafficTarget
+		output map[string]trafficpolicy.TrafficTarget
 	}
 
 	getTrafficPoliciesForServiceTests := []getTrafficPoliciesForServiceTest{
 		{
 			input: tests.BookbuyerService,
-			output: []trafficpolicy.TrafficTarget{
-				{
-					Name:        utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreV1Service),
+			output: map[string]trafficpolicy.TrafficTarget{
+				hashSrcDstService(tests.BookbuyerService, tests.BookstoreV1Service): {
+					Name:        utils.GetTrafficTargetName(tests.BookstoreTrafficTargetName, tests.BookbuyerService, tests.BookstoreV1Service),
 					Destination: tests.BookstoreV1Service,
 					Source:      tests.BookbuyerService,
 					HTTPRoutes:  tests.BookstoreV1TrafficPolicy.HTTPRoutes,
 				},
-				{
-					Name:        utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreV2Service),
+				hashSrcDstService(tests.BookbuyerService, tests.BookstoreV2Service): {
+					Name:        utils.GetTrafficTargetName(tests.BookstoreV2TrafficTargetName, tests.BookbuyerService, tests.BookstoreV2Service),
 					Destination: tests.BookstoreV2Service,
 					Source:      tests.BookbuyerService,
 					HTTPRoutes:  tests.BookstoreV2TrafficPolicy.HTTPRoutes,
 				},
-				{
-					Name:        utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreApexService),
+				hashSrcDstService(tests.BookbuyerService, tests.BookstoreApexService): {
+					Name:        utils.GetTrafficTargetName(tests.BookstoreTrafficTargetName, tests.BookbuyerService, tests.BookstoreApexService),
 					Destination: tests.BookstoreApexService,
 					Source:      tests.BookbuyerService,
 					HTTPRoutes:  tests.BookstoreApexTrafficPolicy.HTTPRoutes,
@@ -83,7 +83,7 @@ func TestGetTrafficPoliciesForService(t *testing.T) {
 	for _, test := range getTrafficPoliciesForServiceTests {
 		allTrafficPolicies, err := getTrafficPoliciesForService(mc, tests.RoutePolicyMap, test.input)
 		assert.Nil(err)
-		assert.ElementsMatch(allTrafficPolicies, test.output)
+		assert.True(reflect.DeepEqual(allTrafficPolicies, test.output))
 	}
 }
 
@@ -362,4 +362,188 @@ func TestGetTrafficTargetFromSrcDstHash(t *testing.T) {
 	}
 
 	assert.Equal(trafficTarget, expectedTrafficTarget)
+}
+
+func TestGetWeightedBackendsForService(t *testing.T) {
+	assert := assert.New(t)
+	mc := MeshCatalog{meshSpec: smi.NewFakeMeshSpecClient()}
+
+	type getWeightedBackendsForServiceTest struct {
+		input  service.MeshService
+		output []service.WeightedService
+	}
+
+	getWeightedBackendsForServiceTests := []getWeightedBackendsForServiceTest{
+		{
+			input:  tests.BookstoreApexService,
+			output: []service.WeightedService{tests.BookstoreV1WeightedService, tests.BookstoreV2WeightedService},
+		},
+		{
+			input: tests.BookbuyerService,
+			output: []service.WeightedService{
+				{
+					Service: tests.BookbuyerService,
+					Weight:  constants.ClusterWeightAcceptAll,
+				},
+			},
+		},
+	}
+
+	for _, test := range getWeightedBackendsForServiceTests {
+		backendServices := mc.getWeightedBackendsForService(test.input)
+		assert.ElementsMatch(backendServices, test.output)
+	}
+}
+
+func TestGetRouteKey(t *testing.T) {
+	assert := assert.New(t)
+
+	type getRouteKeyTest struct {
+		inputRoute trafficpolicy.HTTPRoute
+		inputMap   map[*trafficpolicy.HTTPRoute][]service.WeightedService
+		output     *trafficpolicy.HTTPRoute
+	}
+
+	getRouteKeyTests := []getRouteKeyTest{
+		{
+			inputRoute: tests.BookstoreV2TrafficPolicy.HTTPRoutes[0],
+			inputMap: map[*trafficpolicy.HTTPRoute][]service.WeightedService{
+				&tests.BookstoreV1TrafficPolicy.HTTPRoutes[0]: {{Service: tests.BookstoreV1Service, Weight: constants.ClusterWeightAcceptAll}},
+			},
+			output: &tests.BookstoreV1TrafficPolicy.HTTPRoutes[0],
+		},
+		{
+			inputRoute: tests.BookstoreV1TrafficPolicy.HTTPRoutes[1],
+			inputMap: map[*trafficpolicy.HTTPRoute][]service.WeightedService{
+				&tests.BookstoreV1TrafficPolicy.HTTPRoutes[0]: {{Service: tests.BookstoreV1Service, Weight: constants.ClusterWeightAcceptAll}},
+			},
+			output: nil,
+		},
+	}
+
+	for _, test := range getRouteKeyTests {
+		key := getRouteKey(test.inputRoute, test.inputMap)
+		assert.Equal(key, test.output)
+	}
+}
+
+func TestGetRouteWeightedServices(t *testing.T) {
+	assert := assert.New(t)
+
+	mc := MeshCatalog{meshSpec: smi.NewFakeMeshSpecClient()}
+
+	src := tests.BookbuyerService
+	dst := tests.BookstoreApexService
+
+	trafficTargets := map[string]trafficpolicy.TrafficTarget{
+		hashSrcDstService(tests.BookbuyerService, tests.BookstoreV1Service): tests.BookstoreV1TrafficPolicy,
+		hashSrcDstService(tests.BookbuyerService, tests.BookstoreV2Service): tests.BookstoreV2TrafficPolicy,
+	}
+
+	expectedRouteWeightedSvcs := []trafficpolicy.RouteWeightedServices{
+		{
+			HTTPRoute:        tests.BookstoreV1TrafficPolicy.HTTPRoutes[0],
+			WeightedServices: []service.WeightedService{tests.BookstoreV1WeightedService, tests.BookstoreV2WeightedService},
+		},
+		{
+			HTTPRoute:        tests.BookstoreV1TrafficPolicy.HTTPRoutes[1],
+			WeightedServices: []service.WeightedService{tests.BookstoreV1WeightedService},
+		},
+	}
+
+	actual := mc.getRouteWeightedServices(src, dst, trafficTargets)
+
+	assert.ElementsMatch(expectedRouteWeightedSvcs, actual)
+}
+
+func TestGetTrafficRoutesForService(t *testing.T) {
+	assert := assert.New(t)
+
+	mc := MeshCatalog{meshSpec: smi.NewFakeMeshSpecClient()}
+
+	//TODO: Test names
+	trafficTargets := map[string]trafficpolicy.TrafficTarget{
+		hashSrcDstService(tests.BookbuyerService, tests.BookstoreV1Service): {
+			Name:        utils.GetTrafficTargetName(tests.BookstoreTrafficTargetName, tests.BookbuyerService, tests.BookstoreV1Service),
+			Destination: tests.BookstoreV1Service,
+			Source:      tests.BookbuyerService,
+			HTTPRoutes:  tests.BookstoreV1TrafficPolicy.HTTPRoutes,
+		},
+		hashSrcDstService(tests.BookbuyerService, tests.BookstoreV2Service): {
+			Name:        utils.GetTrafficTargetName(tests.BookstoreV2TrafficTargetName, tests.BookbuyerService, tests.BookstoreV2Service),
+			Destination: tests.BookstoreV2Service,
+			Source:      tests.BookbuyerService,
+			HTTPRoutes:  tests.BookstoreV2TrafficPolicy.HTTPRoutes,
+		},
+		hashSrcDstService(tests.BookbuyerService, tests.BookstoreApexService): {
+			Name:        utils.GetTrafficTargetName(tests.BookstoreTrafficTargetName, tests.BookbuyerService, tests.BookstoreApexService),
+			Destination: tests.BookstoreApexService,
+			Source:      tests.BookbuyerService,
+			HTTPRoutes:  tests.BookstoreApexTrafficPolicy.HTTPRoutes,
+		},
+	}
+
+	actualTrafficRoutes := mc.getTrafficRoutesForService(tests.BookbuyerService, trafficTargets)
+
+	bookstoreV1DefaultWeightedService := service.WeightedService{Service: tests.BookstoreV1Service, Weight: constants.ClusterWeightAcceptAll}
+	bookstoreV2DefaultWeightedService := service.WeightedService{Service: tests.BookstoreV2Service, Weight: constants.ClusterWeightAcceptAll}
+
+	expectedTrafficRoutes := []trafficpolicy.TrafficRoutes{
+		{
+			//Name:        utils.GetTrafficTargetName(tests.BookstoreTrafficTargetName, tests.BookbuyerService, tests.BookstoreV1Service),
+			Destination: tests.BookstoreV1Service,
+			Source:      tests.BookbuyerService,
+			RouteWeightedServices: []trafficpolicy.RouteWeightedServices{
+				{
+					HTTPRoute:        tests.BookstoreV1TrafficPolicy.HTTPRoutes[0],
+					WeightedServices: []service.WeightedService{bookstoreV1DefaultWeightedService},
+				},
+				{
+					HTTPRoute:        tests.BookstoreV1TrafficPolicy.HTTPRoutes[1],
+					WeightedServices: []service.WeightedService{bookstoreV1DefaultWeightedService},
+				},
+			},
+		},
+		{
+			//Name:        utils.GetTrafficTargetName(tests.BookstoreTrafficTargetName, tests.BookbuyerService, tests.BookstoreV2Service),
+			Destination: tests.BookstoreV2Service,
+			Source:      tests.BookbuyerService,
+			RouteWeightedServices: []trafficpolicy.RouteWeightedServices{
+				{
+					HTTPRoute:        tests.BookstoreV2TrafficPolicy.HTTPRoutes[0],
+					WeightedServices: []service.WeightedService{bookstoreV2DefaultWeightedService},
+				},
+			},
+		},
+		{
+			//Name:        utils.GetTrafficTargetName(tests.BookstoreTrafficTargetName, tests.BookbuyerService, tests.BookstoreApexService),
+			Destination: tests.BookstoreApexService,
+			Source:      tests.BookbuyerService,
+			RouteWeightedServices: []trafficpolicy.RouteWeightedServices{
+				{
+					HTTPRoute:        tests.BookstoreV1TrafficPolicy.HTTPRoutes[0],
+					WeightedServices: []service.WeightedService{tests.BookstoreV1WeightedService, tests.BookstoreV2WeightedService},
+				},
+				{
+					HTTPRoute:        tests.BookstoreV1TrafficPolicy.HTTPRoutes[1],
+					WeightedServices: []service.WeightedService{tests.BookstoreV1WeightedService},
+				},
+			},
+		},
+	}
+	assert.Equal(len(actualTrafficRoutes), len(expectedTrafficRoutes))
+	numChecked := 0
+	for _, actual := range actualTrafficRoutes {
+		for _, expected := range expectedTrafficRoutes {
+			if actual.Destination == expected.Destination {
+				numChecked++
+				assert.Equal(actual.Source, expected.Source)
+				assert.ElementsMatch(actual.RouteWeightedServices, expected.RouteWeightedServices)
+			}
+		}
+	}
+
+	assert.Equal(3, numChecked)
+	// Cannot use with list of structs with nested list
+	//assert.ElementsMatch(actualTrafficRoutes, expectedTrafficRoutes)
 }

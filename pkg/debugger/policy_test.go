@@ -45,7 +45,7 @@ func TestGetSMIPolicies(t *testing.T) {
 			&tests.HTTPRouteGroup,
 		},
 		[]*target.TrafficTarget{
-			&tests.TrafficTarget,
+			&tests.BookstoreTrafficTarget,
 		},
 	)
 

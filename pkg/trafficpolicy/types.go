@@ -19,16 +19,30 @@ type HTTPRoute struct {
 	Headers   map[string]string `json:"headers:omitempty"`
 }
 
-// TrafficTarget is a struct to represent a traffic policy between a source and destination along with its routes
-type TrafficTarget struct {
-	Name        string              `json:"name:omitempty"`
-	Destination service.MeshService `json:"destination:omitempty"`
-	Source      service.MeshService `json:"source:omitempty"`
-	HTTPRoutes  []HTTPRoute         `json:"http_route:omitempty"`
+// TrafficRoutes is a struct to represent a traffic policy between a source and destination along with its routes
+type TrafficRoutes struct {
+	Name                  string                  `json:"name:omitempty"`
+	Destination           service.MeshService     `json:"destination:omitempty"`
+	Source                service.MeshService     `json:"source:omitempty"`
+	RouteWeightedServices []RouteWeightedServices `json:"route_weighted_services:omitempty"`
 }
 
 // RouteWeightedClusters is a struct of an HTTPRoute and associated weighted clusters
 type RouteWeightedClusters struct {
 	HTTPRoute        HTTPRoute `json:"http_route:omitempty"`
 	WeightedClusters set.Set   `json:"weighted_clusters:omitempty"`
+}
+
+// RouteWeightedServices is a struct of an HTTPRoute and associated weighted services
+type RouteWeightedServices struct {
+	HTTPRoute        HTTPRoute                 `json:"http_route:omitempty"`
+	WeightedServices []service.WeightedService `json:"weighted_clusters:omitempty"`
+}
+
+// TrafficTarget contains all of the routes that go from the Source to the Destination
+type TrafficTarget struct {
+	Name        string              `json:"name:omitempty"`
+	Destination service.MeshService `json:"destination:omitempty"`
+	Source      service.MeshService `json:"source:omitempty"`
+	HTTPRoutes  []HTTPRoute         `json:"http_route:omitempty"`
 }

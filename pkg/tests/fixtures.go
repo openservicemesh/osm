@@ -42,11 +42,18 @@ const (
 
 	// BookstoreServiceAccountName is the name of the bookstore service account
 	BookstoreServiceAccountName = "bookstore"
+
+	// BookstoreV2ServiceAccountName is the name of the bookstore service account
+	BookstoreV2ServiceAccountName = "bookstore-v2"
+
 	// BookbuyerServiceAccountName is the name of the bookbuyer service account
 	BookbuyerServiceAccountName = "bookbuyer"
 
-	// TrafficTargetName is the name of the traffic target SMI object.
-	TrafficTargetName = "bookbuyer-access-bookstore"
+	// BookstoreTrafficTargetName is the name of the traffic target SMI object.
+	BookstoreTrafficTargetName = "bookbuyer-access-bookstore"
+
+	// BookstoreV2TrafficTargetName is the name of the traffic target SMI object.
+	BookstoreV2TrafficTargetName = "bookbuyer-access-bookstore-v2"
 
 	// BuyBooksMatchName is the name of the match object.
 	BuyBooksMatchName = "buy-books"
@@ -148,7 +155,7 @@ var (
 
 	// BookstoreV1TrafficPolicy is a traffic policy SMI object.
 	BookstoreV1TrafficPolicy = trafficpolicy.TrafficTarget{
-		Name:        fmt.Sprintf("%s:default/bookbuyer->default/bookstore-v1", TrafficTargetName),
+		Name:        fmt.Sprintf("%s:default/bookbuyer->default/bookstore-v1", BookstoreTrafficTargetName),
 		Destination: BookstoreV1Service,
 		Source:      BookbuyerService,
 		HTTPRoutes: []trafficpolicy.HTTPRoute{
@@ -171,7 +178,7 @@ var (
 
 	// BookstoreV2TrafficPolicy is a traffic policy SMI object.
 	BookstoreV2TrafficPolicy = trafficpolicy.TrafficTarget{
-		Name:        fmt.Sprintf("%s:default/bookbuyer->default/bookstore-v2", TrafficTargetName),
+		Name:        fmt.Sprintf("%s:default/bookbuyer->default/bookstore-v2", BookstoreV2TrafficTargetName),
 		Destination: BookstoreV2Service,
 		Source:      BookbuyerService,
 		HTTPRoutes: []trafficpolicy.HTTPRoute{
@@ -182,19 +189,12 @@ var (
 					"user-agent": HTTPUserAgent,
 				},
 			},
-			{
-				PathRegex: BookstoreSellPath,
-				Methods:   []string{"GET"},
-				Headers: map[string]string{
-					"user-agent": HTTPUserAgent,
-				},
-			},
 		},
 	}
 
 	// BookstoreApexTrafficPolicy is a traffic policy SMI object.
 	BookstoreApexTrafficPolicy = trafficpolicy.TrafficTarget{
-		Name:        fmt.Sprintf("%s:default/bookbuyer->default/bookstore-apex", TrafficTargetName),
+		Name:        fmt.Sprintf("%s:default/bookbuyer->default/bookstore-apex", BookstoreTrafficTargetName),
 		Destination: BookstoreApexService,
 		Source:      BookbuyerService,
 		HTTPRoutes: []trafficpolicy.HTTPRoute{
@@ -235,14 +235,14 @@ var (
 		},
 	}
 
-	// TrafficTarget is a traffic target SMI object.
-	TrafficTarget = target.TrafficTarget{
+	// BookstoreTrafficTarget is a traffic target SMI object.
+	BookstoreTrafficTarget = target.TrafficTarget{
 		TypeMeta: v1.TypeMeta{
 			APIVersion: "access.smi-spec.io/v1alpha2",
 			Kind:       "TrafficTarget",
 		},
 		ObjectMeta: v1.ObjectMeta{
-			Name:      TrafficTargetName,
+			Name:      BookstoreTrafficTargetName,
 			Namespace: "default",
 		},
 		Spec: target.TrafficTargetSpec{
@@ -264,6 +264,35 @@ var (
 		},
 	}
 
+	// BookstoreV2TrafficTarget is a traffic target SMI object.
+	BookstoreV2TrafficTarget = target.TrafficTarget{
+		TypeMeta: v1.TypeMeta{
+			APIVersion: "access.smi-spec.io/v1alpha2",
+			Kind:       "TrafficTarget",
+		},
+		ObjectMeta: v1.ObjectMeta{
+			Name:      BookstoreV2TrafficTargetName,
+			Namespace: "default",
+		},
+		Spec: target.TrafficTargetSpec{
+			Destination: target.IdentityBindingSubject{
+				Kind:      "Name",
+				Name:      BookstoreV2ServiceAccountName,
+				Namespace: "default",
+			},
+			Sources: []target.IdentityBindingSubject{{
+				Kind:      "Name",
+				Name:      BookbuyerServiceAccountName,
+				Namespace: "default",
+			}},
+			Rules: []target.TrafficTargetRule{{
+				Kind:    "HTTPRouteGroup",
+				Name:    RouteGroupName,
+				Matches: []string{BuyBooksMatchName},
+			}},
+		},
+	}
+
 	// RoutePolicyMap is a map of a key to a route policy SMI object.
 	RoutePolicyMap = map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.HTTPRoute{
 		trafficpolicy.TrafficSpecName(fmt.Sprintf("HTTPRouteGroup/%s/%s", Namespace, RouteGroupName)): {
@@ -276,6 +305,12 @@ var (
 	BookstoreServiceAccount = service.K8sServiceAccount{
 		Namespace: Namespace,
 		Name:      BookstoreServiceAccountName,
+	}
+
+	// BookstoreV2ServiceAccount is a namespaced service account.
+	BookstoreV2ServiceAccount = service.K8sServiceAccount{
+		Namespace: Namespace,
+		Name:      BookstoreV2ServiceAccountName,
 	}
 
 	// BookbuyerServiceAccount is a namespaced bookbuyer account.
