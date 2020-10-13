@@ -106,7 +106,7 @@ var _ = Describe("1 Client pod -> 1 Server pod test using Vault", func() {
 				}
 				td.T.Logf("> REST req succeeded: %d", result.StatusCode)
 				return true
-			}, 5, 60*time.Second)
+			}, 5 /*consecutive success threshold*/, 60*time.Second /*timeout*/)
 			Expect(cond).To(BeTrue())
 		})
 	})
