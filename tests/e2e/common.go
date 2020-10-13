@@ -312,6 +312,10 @@ func (td *OsmTestData) installVault(instOpts InstallOSMOpts) error {
 							Command:         []string{"/bin/sh", "-c"},
 							Args: []string{
 								fmt.Sprintf(`
+# The TTL for the expiration of CA certificate must be beyond that of the longest
+# TTL for a certificate issued by OSM. The longest TTL for a certificate issued
+# within OSM is 87600h.
+
 # Start the Vault Server
 vault server -dev -dev-listen-address=0.0.0.0:8200 -dev-root-token-id=%s & sleep 1;
 
@@ -322,16 +326,16 @@ echo %s>~/.vault-token;
 vault secrets enable pki;
 
 # Set the max allowed lease for a certificate to a decade
-vault secrets tune -max-lease-ttl=87600h pki;
+vault secrets tune -max-lease-ttl=87700h pki;
 
 # Set the URLs (See: https://www.vaultproject.io/docs/secrets/pki#set-url-configuration)
 vault write pki/config/urls issuing_certificates='http://127.0.0.1:8200/v1/pki/ca' crl_distribution_points='http://127.0.0.1:8200/v1/pki/crl';
 
 # Configure a role for OSM (See: https://www.vaultproject.io/docs/secrets/pki#configure-a-role)
-vault write pki/roles/%s allow_any_name=true allow_subdomains=true;
+vault write pki/roles/%s allow_any_name=true allow_subdomains=true max_ttl=87700h;
 
 # Create the root certificate (See: https://www.vaultproject.io/docs/secrets/pki#setup)
-vault write pki/root/generate/internal common_name='osm.root' ttl='8765h';
+vault write pki/root/generate/internal common_name='osm.root' ttl='87700h';
 tail /dev/random;
 `, instOpts.vaultToken, instOpts.vaultToken, instOpts.vaultRole),
 							},
