@@ -108,7 +108,11 @@ var _ = Describe("When listing TrafficSplit", func() {
 				Service: tests.BookstoreApexServiceName,
 				Backends: []smiSplit.TrafficSplitBackend{
 					{
-						Service: tests.BookstoreServiceName,
+						Service: tests.BookstoreV1ServiceName,
+						Weight:  tests.Weight,
+					},
+					{
+						Service: tests.BookstoreV2ServiceName,
 						Weight:  tests.Weight,
 					},
 				},

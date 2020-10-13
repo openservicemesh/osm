@@ -12,10 +12,10 @@ import (
 func TestK8sSvcToMeshSvc(t *testing.T) {
 	assert := assert.New(t)
 
-	v1Service := tests.NewServiceFixture(tests.BookstoreServiceName, tests.Namespace, nil)
+	v1Service := tests.NewServiceFixture(tests.BookstoreV1ServiceName, tests.Namespace, nil)
 	meshSvc := K8sSvcToMeshSvc(v1Service)
 	expectedMeshSvc := service.MeshService{
-		Name:      tests.BookstoreServiceName,
+		Name:      tests.BookstoreV1ServiceName,
 		Namespace: tests.Namespace,
 	}
 
@@ -31,12 +31,12 @@ func TestGetTrafficTargetName(t *testing.T) {
 	}
 
 	getTrafficTargetNameTests := []getTrafficTargetNameTest{
-		{"TrafficTarget", "TrafficTarget:default/bookbuyer->default/bookstore"},
-		{"", "default/bookbuyer->default/bookstore"},
+		{"TrafficTarget", "TrafficTarget:default/bookbuyer->default/bookstore-v1"},
+		{"", "default/bookbuyer->default/bookstore-v1"},
 	}
 
 	for _, tn := range getTrafficTargetNameTests {
-		trafficTargetName := GetTrafficTargetName(tn.input, tests.BookbuyerService, tests.BookstoreService)
+		trafficTargetName := GetTrafficTargetName(tn.input, tests.BookbuyerService, tests.BookstoreV1Service)
 
 		assert.Equal(trafficTargetName, tn.expectedTargetName)
 	}

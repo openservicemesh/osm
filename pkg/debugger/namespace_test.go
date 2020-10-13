@@ -22,8 +22,8 @@ func TestMonitoredNamespaceHandler(t *testing.T) {
 	monitoredNamespacesHandler := ds.getMonitoredNamespacesHandler()
 
 	uniqueNs := tests.GetUnique([]string{
-		tests.BookbuyerService.Namespace, // default
-		tests.BookstoreService.Namespace, // default
+		tests.BookbuyerService.Namespace,   // default
+		tests.BookstoreV1Service.Namespace, // default
 	})
 
 	mock.EXPECT().ListMonitoredNamespaces().Return(uniqueNs)

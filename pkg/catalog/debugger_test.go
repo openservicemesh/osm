@@ -81,7 +81,7 @@ var _ = Describe("Test catalog proxy register/unregister", func() {
 		It("lists monitored namespaces", func() {
 			actual := mc.ListMonitoredNamespaces()
 			listExpectedNs := tests.GetUnique([]string{
-				tests.BookstoreService.Namespace,
+				tests.BookstoreV1Service.Namespace,
 				tests.BookbuyerService.Namespace,
 				tests.BookwarehouseService.Namespace,
 			})
@@ -96,7 +96,7 @@ var _ = Describe("Test catalog proxy register/unregister", func() {
 
 			Expect(trafficSplits[0].Spec.Service).To(Equal("bookstore-apex"))
 			Expect(weightedServices[0]).To(Equal(service.WeightedService{
-				Service:     tests.BookstoreService,
+				Service:     tests.BookstoreV1Service,
 				Weight:      100,
 				RootService: "bookstore-apex"}))
 			Expect(serviceAccounts[0].String()).To(Equal("default/bookstore"))
