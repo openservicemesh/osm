@@ -85,7 +85,13 @@ func registerFlags(td *OsmTestData) {
 	flag.StringVar(&td.ctrRegistryUser, "ctrRegistryUser", os.Getenv("CTR_REGISTRY_USER"), "Container registry")
 	flag.StringVar(&td.ctrRegistryPassword, "ctrRegistrySecret", os.Getenv("CTR_REGISTRY_PASSWORD"), "Container registry secret")
 
-	flag.StringVar(&td.osmImageTag, "osmImageTag", "latest", "OSM image tag")
+	flag.StringVar(&td.osmImageTag, "osmImageTag", func() string {
+		tmp := os.Getenv("CTR_TAG")
+		if len(tmp) != 0 {
+			return tmp
+		}
+		return "latest"
+	}(), "OSM image tag")
 
 	flag.StringVar(&td.osmNamespace, "meshName", func() string {
 		tmp := os.Getenv("K8S_NAMESPACE")
