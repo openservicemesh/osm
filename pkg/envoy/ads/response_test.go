@@ -41,7 +41,7 @@ var _ = Describe("Test ADS response functions", func() {
 	kubeClient := testclient.NewSimpleClientset()
 	namespace := tests.Namespace
 	envoyUID := tests.EnvoyUID
-	serviceName := tests.BookstoreServiceName
+	serviceName := tests.BookstoreV1ServiceName
 	serviceAccountName := tests.BookstoreServiceAccountName
 
 	labels := map[string]string{constants.EnvoyUniqueIDLabelName: tests.EnvoyUID}

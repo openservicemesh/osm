@@ -90,7 +90,7 @@ var _ = Describe("Test SDS response functions", func() {
 
 			resourceName := sdsc.String()
 			mc := catalog.NewFakeMeshCatalog(testclient.NewSimpleClientset())
-			actual, err := getRootCert(cert, sdsc, tests.BookstoreService, mc)
+			actual, err := getRootCert(cert, sdsc, tests.BookstoreV1Service, mc)
 			Expect(err).ToNot(HaveOccurred())
 
 			expected := &xds_auth.Secret{

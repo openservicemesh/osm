@@ -12,12 +12,13 @@ import (
 func NewFakeProvider() endpoint.Provider {
 	return &fakeClient{
 		endpoints: map[string][]endpoint.Endpoint{
-			tests.BookstoreService.String():     {tests.Endpoint},
+			tests.BookstoreV1Service.String():   {tests.Endpoint},
+			tests.BookstoreV2Service.String():   {tests.Endpoint},
 			tests.BookbuyerService.String():     {tests.Endpoint},
 			tests.BookstoreApexService.String(): {tests.Endpoint},
 		},
 		services: map[service.K8sServiceAccount][]service.MeshService{
-			tests.BookstoreServiceAccount: {tests.BookstoreService, tests.BookstoreApexService},
+			tests.BookstoreServiceAccount: {tests.BookstoreV1Service, tests.BookstoreV2Service, tests.BookstoreApexService},
 			tests.BookbuyerServiceAccount: {tests.BookbuyerService},
 		},
 	}

@@ -21,7 +21,7 @@ var _ = Describe("Cluster configurations", func() {
 	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
 
 	localService := tests.BookbuyerService
-	remoteService := tests.BookstoreService
+	remoteService := tests.BookstoreV1Service
 	Context("Test getRemoteServiceCluster", func() {
 		It("Returns an EDS based cluster when permissive mode is disabled", func() {
 			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).Times(1)

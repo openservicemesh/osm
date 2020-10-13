@@ -170,10 +170,16 @@ var _ = Describe("RDS Response", func() {
 
 	testChan := make(chan interface{})
 
-	// Create Bookstore Service
+	// Create Bookstore-v1 Service
 	selector := map[string]string{tests.SelectorKey: tests.SelectorValue}
-	svc := tests.NewServiceFixture(tests.BookstoreService.Name, tests.BookstoreService.Namespace, selector)
-	if _, err := kubeClient.CoreV1().Services(tests.BookstoreService.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{}); err != nil {
+	svc := tests.NewServiceFixture(tests.BookstoreV1Service.Name, tests.BookstoreV1Service.Namespace, selector)
+	if _, err := kubeClient.CoreV1().Services(tests.BookstoreV1Service.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{}); err != nil {
+		GinkgoT().Fatalf("Error creating new Bookstore service: %s", err.Error())
+	}
+
+	// Create Bookstore-v2 Service
+	svc = tests.NewServiceFixture(tests.BookstoreV2Service.Name, tests.BookstoreV2Service.Namespace, selector)
+	if _, err := kubeClient.CoreV1().Services(tests.BookstoreV2Service.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{}); err != nil {
 		GinkgoT().Fatalf("Error creating new Bookstore service: %s", err.Error())
 	}
 
@@ -194,7 +200,7 @@ var _ = Describe("RDS Response", func() {
 
 	// Monitored namespaces is made a set to make sure we don't repeat namespaces on mock
 	listExpectedNs := tests.GetUnique([]string{
-		tests.BookstoreService.Namespace,
+		tests.BookstoreV1Service.Namespace,
 		tests.BookbuyerService.Namespace,
 		tests.BookstoreApexService.Namespace,
 	})
@@ -222,7 +228,8 @@ var _ = Describe("RDS Response", func() {
 
 		return vv
 	}).AnyTimes()
-	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookstoreService.Namespace).Return(true).AnyTimes()
+	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookstoreV1Service.Namespace).Return(true).AnyTimes()
+	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookstoreV2Service.Namespace).Return(true).AnyTimes()
 	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).AnyTimes()
 	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookwarehouseService.Namespace).Return(true).AnyTimes()
 	mockKubeController.EXPECT().GetAnnouncementsChannel(k8s.Namespaces).Return(testChan).AnyTimes()
@@ -243,7 +250,7 @@ var _ = Describe("RDS Response", func() {
 		}
 		It("returns the domain for a service when traffic split is specified for the given service", func() {
 
-			actual, err := meshCatalog.GetHostnamesForService(tests.BookstoreService)
+			actual, err := meshCatalog.GetHostnamesForService(tests.BookstoreV1Service)
 			Expect(err).ToNot(HaveOccurred())
 
 			domainList := strings.Split(actual, ",")
@@ -289,12 +296,12 @@ var _ = Describe("RDS Response", func() {
 	Context("GetWeightedClusterForService", func() {
 		It("returns weighted cluster for service from traffic split", func() {
 
-			actual, err := meshCatalog.GetWeightedClusterForService(tests.BookstoreService)
+			actual, err := meshCatalog.GetWeightedClusterForService(tests.BookstoreV1Service)
 			Expect(err).ToNot(HaveOccurred())
 
 			expected := service.WeightedCluster{
-				ClusterName: service.ClusterName(tests.WeightedService.Service.String()),
-				Weight:      tests.WeightedService.Weight,
+				ClusterName: service.ClusterName(tests.BookstoreV1WeightedService.Service.String()),
+				Weight:      tests.BookstoreV1WeightedService.Weight,
 			}
 			Expect(actual).To(Equal(expected))
 		})

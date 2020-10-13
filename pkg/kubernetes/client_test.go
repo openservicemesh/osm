@@ -185,7 +185,8 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 			// Define services to test with
 			testSvcs := []service.MeshService{
 				tests.BookbuyerService,
-				tests.BookstoreService,
+				tests.BookstoreV1Service,
+				tests.BookstoreV2Service,
 				tests.BookwarehouseService,
 			}
 
