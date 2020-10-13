@@ -165,7 +165,7 @@ var _ = Describe("Test Kube Client Provider", func() {
 
 		It("returns the services for a given service account", func() {
 			c := NewFakeProvider()
-			actual := c.ListEndpointsForService(tests.BookstoreService)
+			actual := c.ListEndpointsForService(tests.BookstoreV1Service)
 			expected := []endpoint.Endpoint{{
 				IP:   net.ParseIP("8.8.8.8"),
 				Port: 8888,
@@ -177,7 +177,7 @@ var _ = Describe("Test Kube Client Provider", func() {
 
 			sMesh, err := c.GetServicesForServiceAccount(tests.BookstoreServiceAccount)
 			Expect(err).To(BeNil())
-			expectedServices := []service.MeshService{tests.BookstoreService, tests.BookstoreApexService}
+			expectedServices := []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service, tests.BookstoreApexService}
 			Expect(sMesh).To(Equal(expectedServices))
 
 			sMesh2, err := c.GetServicesForServiceAccount(tests.BookbuyerServiceAccount)

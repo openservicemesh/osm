@@ -27,7 +27,7 @@ func NewFakeMeshSpecClient() MeshSpec {
 		httpRouteGroups:  []*spec.HTTPRouteGroup{&tests.HTTPRouteGroup},
 		tcpRoutes:        []*spec.TCPRoute{&tests.TCPRoute},
 		trafficTargets:   []*target.TrafficTarget{&tests.TrafficTarget},
-		weightedServices: []service.WeightedService{tests.WeightedService},
+		weightedServices: []service.WeightedService{tests.BookstoreV1WeightedService, tests.BookstoreV2WeightedService},
 		serviceAccounts: []service.K8sServiceAccount{
 			tests.BookstoreServiceAccount,
 			tests.BookbuyerServiceAccount,

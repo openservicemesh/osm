@@ -86,12 +86,12 @@ var _ = Describe("CDS Response", func() {
 
 			// There are to any.Any resources in the ClusterDiscoveryStruct (Clusters)
 			// There are 5 types of clusters that can exist based on the configuration:
-			// 1. Destination cluster (Bookstore and BookstoreApex)
+			// 1. Destination cluster (Bookstore-v1, Bookstore-v2, and BookstoreApex)
 			// 2. Source cluster (Bookbuyer)
 			// 3. Prometheus cluster
 			// 4. Tracing cluster
 			// 5. Passthrough cluster for egress
-			numExpectedClusters := 6 // source and destination clusters
+			numExpectedClusters := 7 // source and destination clusters
 			Expect(len((*resp).Resources)).To(Equal(numExpectedClusters))
 		})
 	})
@@ -149,7 +149,7 @@ var _ = Describe("CDS Response", func() {
 
 		It("Returns a remote cluster object", func() {
 			localService := tests.BookbuyerService
-			remoteService := tests.BookstoreService
+			remoteService := tests.BookstoreV1Service
 
 			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).Times(1)
 
@@ -260,7 +260,7 @@ var _ = Describe("CDS Response", func() {
 				AllowRenegotiation: false,
 			}
 			Expect(upstreamTLSContext.CommonTlsContext.TlsParams).To(Equal(expectedTLSContext.CommonTlsContext.TlsParams))
-			Expect(upstreamTLSContext.Sni).To(Equal("bookstore.default.svc.cluster.local"))
+			Expect(upstreamTLSContext.Sni).To(Equal("bookstore-v1.default.svc.cluster.local"))
 			// TODO(draychev): finish the rest
 			// Expect(upstreamTLSContext).To(Equal(expectedTLSContext)
 		})

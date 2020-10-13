@@ -75,10 +75,16 @@ func newFakeMeshCatalog() *MeshCatalog {
 		GinkgoT().Fatalf("Error creating new fake Mesh Catalog: %s", err.Error())
 	}
 
-	// Create Bookstore Service
+	// Create Bookstore-v1 Service
 	selector := map[string]string{tests.SelectorKey: tests.SelectorValue}
-	svc := tests.NewServiceFixture(tests.BookstoreService.Name, tests.BookstoreService.Namespace, selector)
-	if _, err := kubeClient.CoreV1().Services(tests.BookstoreService.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{}); err != nil {
+	svc := tests.NewServiceFixture(tests.BookstoreV1Service.Name, tests.BookstoreV1Service.Namespace, selector)
+	if _, err := kubeClient.CoreV1().Services(tests.BookstoreV1Service.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{}); err != nil {
+		GinkgoT().Fatalf("Error creating new Bookstore service: %s", err.Error())
+	}
+
+	// Create Bookstore-v2 Service
+	svc = tests.NewServiceFixture(tests.BookstoreV2Service.Name, tests.BookstoreV2Service.Namespace, selector)
+	if _, err := kubeClient.CoreV1().Services(tests.BookstoreV2Service.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{}); err != nil {
 		GinkgoT().Fatalf("Error creating new Bookstore service: %s", err.Error())
 	}
 
@@ -101,7 +107,7 @@ func newFakeMeshCatalog() *MeshCatalog {
 
 	// Monitored namespaces is made a set to make sure we don't repeat namespaces on mock
 	listExpectedNs := tests.GetUnique([]string{
-		tests.BookstoreService.Namespace,
+		tests.BookstoreV1Service.Namespace,
 		tests.BookbuyerService.Namespace,
 		tests.BookstoreApexService.Namespace,
 	})
@@ -133,7 +139,8 @@ func newFakeMeshCatalog() *MeshCatalog {
 	}).AnyTimes()
 	mockKubeController.EXPECT().GetAnnouncementsChannel(k8s.Namespaces).Return(testChan).AnyTimes()
 	mockKubeController.EXPECT().GetAnnouncementsChannel(k8s.Services).Return(testChan).AnyTimes()
-	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookstoreService.Namespace).Return(true).AnyTimes()
+	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookstoreV1Service.Namespace).Return(true).AnyTimes()
+	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookstoreV2Service.Namespace).Return(true).AnyTimes()
 	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).AnyTimes()
 	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookwarehouseService.Namespace).Return(true).AnyTimes()
 	mockKubeController.EXPECT().ListMonitoredNamespaces().Return(listExpectedNs, nil).AnyTimes()
