@@ -136,7 +136,9 @@ jobs:
         env:
           CTR_TAG: "testing"
           CTR_REGISTRY: "localhost:5000"   # unused for kind, but required for testing
-        run: make test-e2e
+        run: 
+          make docker-build-osm-controller docker-build-init build-osm
+          go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -ctrRegistry $(CTR_REGISTRY) -osmImageTag $(CTR_TAG) -kindCluster -test.timeout 0
 
   integration-tresor:
     name: Integration Test with Tresor, SMI traffic policies, and egress disabled
