@@ -146,7 +146,7 @@ func (td *OsmTestData) InitTestData(t GinkgoTInterface) error {
 	// After client creations, do a wait for kind cluster just in case it's not done yet coming up
 	// Ballparking pod number. kind has a large number of containers to run by default
 	if td.kindCluster && td.clusterProvider != nil {
-		if err := td.WaitForPodsRunningReady("kube-system", 60*time.Second, 5); err != nil {
+		if err := td.WaitForPodsRunningReady("kube-system", 120*time.Second, 5); err != nil {
 			return errors.Wrap(err, "failed to wait for kube-system pods")
 		}
 	}
