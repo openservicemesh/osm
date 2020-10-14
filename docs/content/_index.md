@@ -1,6 +1,8 @@
 ---
 title: "Docs Home"
+linkTitle: "Home"
 description: "OSM Docs Home"
+weight: 1
 type: docs
 ---
 

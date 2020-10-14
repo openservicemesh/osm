@@ -1,3 +1,8 @@
+---
+title: "Release Guide"
+description: "This guide describes the process to create a GitHub Release for this project."
+---
+
 # Release Guide
 
 This guide describes the process to create a GitHub Release for this project.

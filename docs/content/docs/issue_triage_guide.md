@@ -1,3 +1,8 @@
+---
+title: "Issue Triage Guide"
+description: "Open Service Mesh Issue Triage Guide"
+---
+
 # Issue Triage Guide
 
 This guide describes how to triage GitHub issues on the [issue queue](https://github.com/openservicemesh/osm/issues) for Open Service Mesh (OSM).
@@ -27,4 +32,3 @@ This guide describes how to triage GitHub issues on the [issue queue](https://gi
 - If it's a feature request 
     - Ask/understand the use cases
     - Label it with the `Improvement/Feature Request` label and add other appropriate labels
-

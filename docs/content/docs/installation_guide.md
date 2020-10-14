@@ -1,3 +1,10 @@
+---
+title: "Installation Guide"
+linkTitle: "Installation"
+description: "Open Service Mesh Installation Guide"
+weight: 2
+---
+
 # Installation Guide
 
 This guide describes how to install Open Service Mesh (OSM) on a Kubernetes cluster using the `osm` CLI.

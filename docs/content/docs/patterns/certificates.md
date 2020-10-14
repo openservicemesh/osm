@@ -1,3 +1,9 @@
+---
+title: "mTLS and Certificate Issuance"
+description: "Open Service Mesh uses mTLS for encryption of data between pods as well as Envoy and service identity."
+linkTitle: "Certificates"
+---
+
 # mTLS and Certificate Issuance
 Open Service Mesh uses mTLS for encryption of data between pods as well as Envoy and service identity. Certificates are created and distributed to each Envoy proxy via the SDS protocol by the OSM control plane.
 

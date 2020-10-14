@@ -1,3 +1,8 @@
+---
+title: "Onboard Services"
+description: "How to onboard a Kubernetes microservice to an OSM instance."
+---
+
 # Onboard Services
 The following guide describes how to onboard a Kubernetes microservice to an OSM instance.
 
