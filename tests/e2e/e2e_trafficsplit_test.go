@@ -205,9 +205,6 @@ var _ = Describe("Test HTTP from N Clients deployments to 1 Server deployment ba
 
 						// Targeting the trafficsplit FQDN
 						Destination: fmt.Sprintf("%s.%s", trafficSplitName, serverNamespace),
-
-						HTTPUrl: "/",
-						Port:    80,
 					})
 				}
 			}

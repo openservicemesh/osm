@@ -95,9 +95,6 @@ var _ = Describe("1 Client pod -> 1 Server pod test using Vault", func() {
 						SourceContainer: "client", // We can do better
 
 						Destination: fmt.Sprintf("%s.%s", dstPod.Name, dstPod.Namespace),
-
-						HTTPUrl: "/",
-						Port:    80,
 					})
 
 				if result.Err != nil || result.StatusCode != 200 {
