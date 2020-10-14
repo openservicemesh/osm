@@ -1,9 +1,6 @@
 run:
   tests: true
 
-issues:
-  new: true
-
 linters:
   enable:
     - goconst
@@ -19,3 +16,13 @@ linters:
 linters-settings:
   goimports:
     local-prefixes: github.com/openservicemesh/osm
+
+issues:
+  new: true
+  exclude-rules:
+    # Ignore error for ginkgo and gomega dot imports
+    - linters:
+        - golint
+      source: ". \"github.com/onsi/(ginkgo|gomega)\""
+      text: "dot imports"
+

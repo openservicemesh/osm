@@ -41,7 +41,7 @@ var _ = Describe("Test ADS response functions", func() {
 	kubeClient := testclient.NewSimpleClientset()
 	namespace := tests.Namespace
 	envoyUID := tests.EnvoyUID
-	serviceName := tests.BookstoreServiceName
+	serviceName := tests.BookstoreV1ServiceName
 	serviceAccountName := tests.BookstoreServiceAccountName
 
 	labels := map[string]string{constants.EnvoyUniqueIDLabelName: tests.EnvoyUID}
@@ -109,9 +109,9 @@ var _ = Describe("Test ADS response functions", func() {
 	Context("Test sendAllResponses()", func() {
 
 		cache := make(map[certificate.CommonName]certificate.Certificater)
-		certManager := tresor.NewFakeCertManager(&cache, 1*time.Hour)
+		certManager := tresor.NewFakeCertManager(&cache, mockConfigurator)
 		cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s", uuid.New(), serviceAccountName, tests.Namespace))
-		certPEM, _ := certManager.IssueCertificate(cn, nil)
+		certPEM, _ := certManager.IssueCertificate(cn, 1*time.Hour)
 		cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())
 		server, actualResponses := tests.NewFakeXDSServer(cert, nil, nil)
 

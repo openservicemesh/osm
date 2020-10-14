@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -53,11 +54,10 @@ well as for adding a Kubernetes Namespace to the list of Namespaces a control
 plane should watch for sidecar injection of Envoy proxies.
 `
 const (
-	defaultCertManager         = "tresor"
-	defaultVaultProtocol       = "http"
-	defaultMeshName            = "osm"
-	defaultCertValidityMinutes = int(1440) // 24 hours
-	defaultOsmImagePullPolicy  = "IfNotPresent"
+	defaultCertManager        = "tresor"
+	defaultVaultProtocol      = "http"
+	defaultMeshName           = "osm"
+	defaultOsmImagePullPolicy = "IfNotPresent"
 )
 
 // chartTGZSource is a base64-encoded, gzipped tarball of the default Helm chart.
@@ -82,7 +82,7 @@ type installCmd struct {
 	vaultToken                    string
 	vaultRole                     string
 	envoyLogLevel                 string
-	serviceCertValidityMinutes    int
+	serviceCertValidityDuration   string
 	enableDebugServer             bool
 	enableEgress                  bool
 	enablePermissiveTrafficPolicy bool
@@ -141,7 +141,7 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.StringVar(&inst.certmanagerIssuerName, "cert-manager-issuer-name", "osm-ca", "cert-manager issuer name")
 	f.StringVar(&inst.certmanagerIssuerKind, "cert-manager-issuer-kind", "Issuer", "cert-manager issuer kind")
 	f.StringVar(&inst.certmanagerIssuerGroup, "cert-manager-issuer-group", "cert-manager.io", "cert-manager issuer group")
-	f.IntVar(&inst.serviceCertValidityMinutes, "service-cert-validity-minutes", defaultCertValidityMinutes, "Certificate TTL in minutes")
+	f.StringVar(&inst.serviceCertValidityDuration, "service-cert-validity-duration", "24h", "Service certificate validity duration, represented as a sequence of decimal numbers each with optional fraction and a unit suffix")
 	f.StringVar(&inst.prometheusRetentionTime, "prometheus-retention-time", constants.PrometheusDefaultRetentionTime, "Duration for which data will be retained in prometheus")
 	f.BoolVar(&inst.enableDebugServer, "enable-debug-server", false, "Enable the debug HTTP server")
 	f.BoolVar(&inst.enablePermissiveTrafficPolicy, "enable-permissive-traffic-policy", false, "Enable permissive traffic policy mode")
@@ -207,7 +207,7 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 		fmt.Sprintf("OpenServiceMesh.certmanager.issuerName=%s", i.certmanagerIssuerName),
 		fmt.Sprintf("OpenServiceMesh.certmanager.issuerKind=%s", i.certmanagerIssuerKind),
 		fmt.Sprintf("OpenServiceMesh.certmanager.issuerGroup=%s", i.certmanagerIssuerGroup),
-		fmt.Sprintf("OpenServiceMesh.serviceCertValidityMinutes=%d", i.serviceCertValidityMinutes),
+		fmt.Sprintf("OpenServiceMesh.serviceCertValidityDuration=%s", i.serviceCertValidityDuration),
 		fmt.Sprintf("OpenServiceMesh.prometheus.retention.time=%s", i.prometheusRetentionTime),
 		fmt.Sprintf("OpenServiceMesh.enableDebugServer=%t", i.enableDebugServer),
 		fmt.Sprintf("OpenServiceMesh.enablePermissiveTrafficPolicy=%t", i.enablePermissiveTrafficPolicy),
@@ -283,8 +283,13 @@ func (i *installCmd) validateOptions() error {
 		return fmt.Errorf("Error ensuring no osm-controller running in namespace %s:%s", settings.Namespace(), err)
 	}
 
-	//validate the envoy log level type
+	// validate the envoy log level type
 	if err := isValidEnvoyLogLevel(i.envoyLogLevel); err != nil {
+		return err
+	}
+
+	// validate certificate validity duration
+	if _, err := time.ParseDuration(i.serviceCertValidityDuration); err != nil {
 		return err
 	}
 

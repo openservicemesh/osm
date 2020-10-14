@@ -16,14 +16,15 @@ import (
 const (
 	permissiveTrafficPolicyModeKey = "permissive_traffic_policy_mode"
 	egressKey                      = "egress"
+	enableDebugServer              = "enable_debug_server"
 	prometheusScrapingKey          = "prometheus_scraping"
 	useHTTPSIngressKey             = "use_https_ingress"
 	tracingEnableKey               = "tracing_enable"
 	tracingAddressKey              = "tracing_address"
 	tracingPortKey                 = "tracing_port"
 	tracingEndpointKey             = "tracing_endpoint"
-	defaultInMeshCIDR              = ""
 	envoyLogLevel                  = "envoy_log_level"
+	serviceCertValidityDurationKey = "service_cert_validity_duration"
 )
 
 // NewConfigurator implements configurator.Configurator and creates the Kubernetes client to manage namespaces.
@@ -71,6 +72,9 @@ type osmConfig struct {
 	// Egress is a bool toggle used to enable or disable egress globally within the mesh
 	Egress bool `yaml:"egress"`
 
+	// EnableDebugServer is a bool toggle, which enables/disables the debug server within the OSM Controller
+	EnableDebugServer bool `yaml:"enable_debug_server"`
+
 	// PrometheusScraping is a bool toggle used to enable or disable metrics scraping by Prometheus
 	PrometheusScraping bool `yaml:"prometheus_scraping"`
 
@@ -91,6 +95,11 @@ type osmConfig struct {
 
 	// EnvoyLogLevel is a string that defines the log level for envoy proxies
 	EnvoyLogLevel string `yaml:"envoy_log_level"`
+
+	// ServiceCertValidityDuration is a string that defines the validity duration of service certificates
+	// It is represented as a sequence of decimal numbers each with optional fraction and a unit suffix.
+	// Ex: 1h to represent 1 hour, 30m to represent 30 minutes, 1.5h or 1h30m to represent 1 hour and 30 minutes.
+	ServiceCertValidityDuration string `yaml:"service_cert_validity_duration"`
 }
 
 func (c *Client) run(stop <-chan struct{}) {
@@ -129,11 +138,13 @@ func (c *Client) getConfigMap() *osmConfig {
 	osmConfigMap := osmConfig{
 		PermissiveTrafficPolicyMode: getBoolValueForKey(configMap, permissiveTrafficPolicyModeKey),
 		Egress:                      getBoolValueForKey(configMap, egressKey),
+		EnableDebugServer:           getBoolValueForKey(configMap, enableDebugServer),
 		PrometheusScraping:          getBoolValueForKey(configMap, prometheusScrapingKey),
 		UseHTTPSIngress:             getBoolValueForKey(configMap, useHTTPSIngressKey),
 
-		TracingEnable: getBoolValueForKey(configMap, tracingEnableKey),
-		EnvoyLogLevel: getStringValueForKey(configMap, envoyLogLevel),
+		TracingEnable:               getBoolValueForKey(configMap, tracingEnableKey),
+		EnvoyLogLevel:               getStringValueForKey(configMap, envoyLogLevel),
+		ServiceCertValidityDuration: getStringValueForKey(configMap, serviceCertValidityDurationKey),
 	}
 
 	if osmConfigMap.TracingEnable {

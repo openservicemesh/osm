@@ -1,6 +1,8 @@
 package configurator
 
 import (
+	"time"
+
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/openservicemesh/osm/pkg/logger"
@@ -34,6 +36,9 @@ type Configurator interface {
 	// IsEgressEnabled determines whether egress is globally enabled in the mesh or not
 	IsEgressEnabled() bool
 
+	// IsDebugServerEnabled determines whether osm debug HTTP server is enabled
+	IsDebugServerEnabled() bool
+
 	// IsPrometheusScrapingEnabled determines whether Prometheus is enabled for scraping metrics
 	IsPrometheusScrapingEnabled() bool
 
@@ -57,4 +62,7 @@ type Configurator interface {
 
 	// GetAnnouncementsChannel returns a channel, which is used to announce when changes have been made to the OSM ConfigMap
 	GetAnnouncementsChannel() <-chan interface{}
+
+	// GetServiceCertValidityPeriod returns the validity duration for service certificates
+	GetServiceCertValidityPeriod() time.Duration
 }

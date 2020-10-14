@@ -11,11 +11,12 @@ require (
 	github.com/axw/gocov v1.0.0
 	github.com/cncf/udpa/go v0.0.0-20200629203442-efcf912fb354 // indirect
 	github.com/deckarep/golang-set v1.7.1
+	github.com/docker/docker v1.4.2-0.20200203170920-46ec8731fbce
 	github.com/envoyproxy/go-control-plane v0.9.6
+	github.com/fatih/color v1.9.0
 	github.com/golang/mock v1.3.1
 	github.com/golang/protobuf v1.4.2
 	github.com/golangci/golangci-lint v1.30.0
-	github.com/google/go-cmp v0.5.0
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/mux v1.7.3
 	github.com/hashicorp/vault/api v1.0.4
@@ -40,10 +41,11 @@ require (
 	gopkg.in/yaml.v2 v2.3.0
 	helm.sh/helm/v3 v3.2.0
 	k8s.io/api v0.18.5
-	k8s.io/apimachinery v0.18.5
+	k8s.io/apimachinery v0.18.8
 	k8s.io/cli-runtime v0.18.5
 	k8s.io/client-go v0.18.5
 	rsc.io/letsencrypt v0.0.3 // indirect
+	sigs.k8s.io/kind v0.9.0
 )
 
 replace github.com/Azure/go-autorest => github.com/Azure/go-autorest v13.3.2+incompatible

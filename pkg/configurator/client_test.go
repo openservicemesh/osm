@@ -40,6 +40,7 @@ var _ = Describe("Test OSM ConfigMap parsing", func() {
 			fieldNameTag := map[string]string{
 				"PermissiveTrafficPolicyMode": permissiveTrafficPolicyModeKey,
 				"Egress":                      egressKey,
+				"EnableDebugServer":           enableDebugServer,
 				"PrometheusScraping":          prometheusScrapingKey,
 				"TracingEnable":               tracingEnableKey,
 				"TracingAddress":              tracingAddressKey,
@@ -47,13 +48,15 @@ var _ = Describe("Test OSM ConfigMap parsing", func() {
 				"TracingEndpoint":             tracingEndpointKey,
 				"UseHTTPSIngress":             useHTTPSIngressKey,
 				"EnvoyLogLevel":               envoyLogLevel,
+				"ServiceCertValidityDuration": serviceCertValidityDurationKey,
 			}
 			t := reflect.TypeOf(osmConfig{})
 
-			actualNumberOfFields := t.NumField()
-			expectedNumberOfFields := len(fieldNameTag)
-			Expect(actualNumberOfFields).To(
-				Equal(expectedNumberOfFields),
+			expectedNumberOfFields := t.NumField()
+			actualNumberOfFields := len(fieldNameTag)
+
+			Expect(expectedNumberOfFields).To(
+				Equal(actualNumberOfFields),
 				fmt.Sprintf("Fields have been added or removed from the osmConfig struct -- expected %d, actual %d; please correct this unit test", expectedNumberOfFields, actualNumberOfFields))
 
 			for fieldName, expectedTag := range fieldNameTag {

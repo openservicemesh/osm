@@ -488,7 +488,7 @@ package certificate
 // Manager is the interface declaring the methods for the Certificate Manager.
 type Manager interface {
 	// IssueCertificate issues a new certificate.
-	IssueCertificate(CommonName, *time.Duration) (Certificater, error)
+	IssueCertificate(CommonName, time.Duration) (Certificater, error)
 
 	// GetCertificate returns a certificate given its Common Name (CN)
 	GetCertificate(CommonName) (Certificater, error)

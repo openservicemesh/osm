@@ -32,11 +32,22 @@ const (
 )
 
 func newOutboundListener(catalog catalog.MeshCataloger, cfg configurator.Configurator, localSvc []service.MeshService) (*xds_listener.Listener, error) {
-	outboundListener := &xds_listener.Listener{
+	serviceFilterChains, err := getOutboundFilterChains(catalog, cfg, localSvc)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error getting filter chains for outbound listener")
+		return nil, err
+	}
+
+	if len(serviceFilterChains) == 0 {
+		log.Info().Msgf("No filterchains for outbound services. Not programming Outbound listener.")
+		return nil, nil
+	}
+
+	return &xds_listener.Listener{
 		Name:             outboundListenerName,
 		Address:          envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyOutboundListenerPort),
 		TrafficDirection: xds_core.TrafficDirection_OUTBOUND,
-		FilterChains:     []*xds_listener.FilterChain{},
+		FilterChains:     serviceFilterChains,
 		ListenerFilters: []*xds_listener.ListenerFilter{
 			{
 				// The OriginalDestination ListenerFilter is used to redirect traffic
@@ -44,16 +55,7 @@ func newOutboundListener(catalog catalog.MeshCataloger, cfg configurator.Configu
 				Name: wellknown.OriginalDestination,
 			},
 		},
-	}
-
-	serviceFilterChains, err := getOutboundFilterChains(catalog, cfg, localSvc)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error getting filter chains for outbound listener")
-		return nil, err
-	}
-
-	outboundListener.FilterChains = append(outboundListener.FilterChains, serviceFilterChains...)
-	return outboundListener, nil
+	}, nil
 }
 
 func newInboundListener() *xds_listener.Listener {
@@ -181,8 +183,8 @@ func getOutboundFilterChainMatchForService(dstSvc service.MeshService, catalog c
 	}
 
 	if len(endpoints) == 0 {
-		log.Error().Err(err).Msgf("No resolvable addresses retured for service %s", dstSvc.String())
-		return nil, errNoValidTargetEndpoints
+		log.Info().Msgf("No resolvable endpoints retured for service %s", dstSvc.String())
+		return nil, nil
 	}
 
 	for _, endp := range endpoints {
@@ -234,20 +236,12 @@ func getOutboundFilterChains(catalog catalog.MeshCataloger, cfg configurator.Con
 
 	// Iterate all destination services
 	for keyService := range dstServicesSet {
-		// Filterchain for current dest
-		filterChain := xds_listener.FilterChain{
-			Name:             keyService.String(),
-			Filters:          []*xds_listener.Filter{},
-			FilterChainMatch: &xds_listener.FilterChainMatch{},
-		}
-
 		// Get filter for service
 		filter, err := getOutboundFilterForService(keyService, cfg)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error getting filter for dst service %s", keyService.String())
 			return nil, err
 		}
-		filterChain.Filters = append(filterChain.Filters, filter)
 
 		// Get filter match criteria for destination service
 		filterChainMatch, err := getOutboundFilterChainMatchForService(keyService, catalog, cfg)
@@ -255,9 +249,16 @@ func getOutboundFilterChains(catalog catalog.MeshCataloger, cfg configurator.Con
 			log.Error().Err(err).Msgf("Error getting Chain Match for service %s", keyService.String())
 			return nil, err
 		}
-		filterChain.FilterChainMatch = filterChainMatch
+		if filterChainMatch == nil {
+			log.Info().Msgf("No endpoints found for dst service %s. Not adding filterchain.", keyService)
+			continue
+		}
 
-		filterChains = append(filterChains, &filterChain)
+		filterChains = append(filterChains, &xds_listener.FilterChain{
+			Name:             keyService.String(),
+			Filters:          []*xds_listener.Filter{filter},
+			FilterChainMatch: filterChainMatch,
+		})
 	}
 
 	// This filterchain matches any traffic not filtered by allow rules, it will be treated as egress

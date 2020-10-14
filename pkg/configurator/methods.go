@@ -3,8 +3,14 @@ package configurator
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/openservicemesh/osm/pkg/constants"
+)
+
+const (
+	// defaultServiceCertValidityDuration is the default validity duration for service certificates
+	defaultServiceCertValidityDuration = 24 * time.Hour
 )
 
 // The functions in this file implement the configurator.Configurator interface
@@ -39,6 +45,11 @@ func (c *Client) IsPermissiveTrafficPolicyMode() bool {
 // IsEgressEnabled determines whether egress is globally enabled in the mesh or not.
 func (c *Client) IsEgressEnabled() bool {
 	return c.getConfigMap().Egress
+}
+
+// IsDebugServerEnabled determines whether osm debug HTTP server is enabled
+func (c *Client) IsDebugServerEnabled() bool {
+	return c.getConfigMap().EnableDebugServer
 }
 
 // IsPrometheusScrapingEnabled determines whether Prometheus is enabled for scraping metrics
@@ -95,4 +106,16 @@ func (c *Client) GetEnvoyLogLevel() string {
 // GetAnnouncementsChannel returns a channel, which is used to announce when changes have been made to the OSM ConfigMap.
 func (c *Client) GetAnnouncementsChannel() <-chan interface{} {
 	return c.announcements
+}
+
+// GetServiceCertValidityPeriod returns the validity duration for service certificates, and a default in case of invalid duration
+func (c *Client) GetServiceCertValidityPeriod() time.Duration {
+	durationStr := c.getConfigMap().ServiceCertValidityDuration
+	validityDuration, err := time.ParseDuration(durationStr)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error parsing service certificate validity duration %s=%s", serviceCertValidityDurationKey, durationStr)
+		return defaultServiceCertValidityDuration
+	}
+
+	return validityDuration
 }
