@@ -98,6 +98,7 @@ func (wh *webhook) run(stop <-chan struct{}) {
 			return
 		}
 
+		// #nosec G402
 		server.TLSConfig = &tls.Config{
 			Certificates: []tls.Certificate{cert},
 		}
