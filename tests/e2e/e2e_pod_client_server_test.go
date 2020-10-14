@@ -130,7 +130,7 @@ var _ = Describe("Test HTTP traffic from 1 pod client -> 1 pod server", func() {
 				}
 				td.T.Logf("> (%s) HTTP Req failed correctly: %v", srcToDestStr, result.Err)
 				return true
-			}, 5, 60*time.Second)
+			}, 5, 150*time.Second)
 			Expect(cond).To(BeTrue())
 		})
 	})
