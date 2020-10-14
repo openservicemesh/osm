@@ -72,7 +72,6 @@ bootstrap.yaml
 .publish/
 public/*
 docs/public/*
-docs/resources/*
 node_modules/
 vendor/
 rootfs/
