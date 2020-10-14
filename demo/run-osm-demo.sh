@@ -78,7 +78,6 @@ docker info > /dev/null || { echo "Docker daemon is not running"; exit 1; }
 make build-osm
 
 # cleanup stale resources from previous runs
-bin/osm mesh uninstall -f --mesh-name "$MESH_NAME" --namespace "$K8S_NAMESPACE"
 ./demo/clean-kubernetes.sh
 
 # The demo uses osm's namespace as defined by environment variables, K8S_NAMESPACE
