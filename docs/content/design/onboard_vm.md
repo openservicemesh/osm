@@ -1,9 +1,3 @@
----
-title: "Onboarding VMs"
-description: "This document describes the steps to onboard a VM to the service mesh."
-weight: 2
----
-
 # Onboarding VMs to the service mesh
 **Status: WIP**
 

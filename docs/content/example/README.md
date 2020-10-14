@@ -1,9 +1,3 @@
----
-title: "OSM Example Demo"
-description: "The OSM Manual Install Demo Guide is designed to quickly allow you to demo and experience the OSM mesh."
-weight: 1
----
-
 # OSM Manual Demo Guide
 
 ## Table of Contents
