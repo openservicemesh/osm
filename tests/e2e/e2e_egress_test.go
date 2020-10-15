@@ -8,7 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Egress", func() {
+var _ = Describe("HTTP and HTTPS Egress", func() {
 	Context("Egress", func() {
 		sourceNs := "client"
 
@@ -43,12 +43,22 @@ var _ = Describe("Egress", func() {
 			// Expect it to be up and running in it's receiver namespace
 			Expect(td.WaitForPodsRunningReady(sourceNs, 60*time.Second, 1)).To(Succeed())
 
-			egressURLs := []string{
+			protocols := []string{
+				"http://",
+				"https://",
+			}
+			egressTests := []string{
 				"edition.cnn.com",
 				"github.com",
 			}
+			var urls []string
+			for _, protocol := range protocols {
+				for _, test := range egressTests {
+					urls = append(urls, protocol+test)
+				}
+			}
 
-			for _, url := range egressURLs {
+			for _, url := range urls {
 				cond := td.WaitForRepeatedSuccess(func() bool {
 					result := td.HTTPRequest(HTTPRequestDef{
 						SourceNs:        srcPod.Namespace,
@@ -62,10 +72,10 @@ var _ = Describe("Egress", func() {
 					})
 
 					if result.Err != nil || result.StatusCode != 200 {
-						td.T.Logf("> REST req failed (status: %d) %v", result.StatusCode, result.Err)
+						td.T.Logf("%s > REST req failed (status: %d) %v", url, result.StatusCode, result.Err)
 						return false
 					}
-					td.T.Logf("> REST req succeeded: %d", result.StatusCode)
+					td.T.Logf("%s > REST req succeeded: %d", url, result.StatusCode)
 					return true
 				}, 5, 60*time.Second)
 				Expect(cond).To(BeTrue())
@@ -76,7 +86,7 @@ var _ = Describe("Egress", func() {
 			err = td.UpdateOSMConfig("egress", "false")
 			Expect(err).NotTo(HaveOccurred())
 
-			for _, url := range egressURLs {
+			for _, url := range urls {
 				cond := td.WaitForRepeatedSuccess(func() bool {
 					result := td.HTTPRequest(HTTPRequestDef{
 						SourceNs:        srcPod.Namespace,
