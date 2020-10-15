@@ -66,9 +66,6 @@ var _ = Describe("HTTP and HTTPS Egress", func() {
 						SourceContainer: "client", // We can do better
 
 						Destination: url,
-
-						HTTPUrl: "/",
-						Port:    80,
 					})
 
 					if result.Err != nil || result.StatusCode != 200 {
@@ -94,9 +91,6 @@ var _ = Describe("HTTP and HTTPS Egress", func() {
 						SourceContainer: "client", // We can do better
 
 						Destination: url,
-
-						HTTPUrl: "/",
-						Port:    80,
 					})
 
 					if result.Err == nil || !strings.Contains(result.Err.Error(), "command terminated with exit code 7 ") {

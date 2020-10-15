@@ -40,7 +40,7 @@ var _ = Describe("Test HTTP traffic from N deployment client -> 1 deployment ser
 
 			// Install OSM
 			Expect(td.InstallOSM(td.GetOSMInstallOpts())).To(Succeed())
-			Expect(td.WaitForPodsRunningReady(td.osmNamespace, 60*time.Second, 1)).To(Succeed())
+			Expect(td.WaitForPodsRunningReady(td.osmNamespace, 90*time.Second, 1)).To(Succeed())
 
 			// Server NS
 			Expect(td.CreateNs(destApp, nil)).To(Succeed())
@@ -139,9 +139,6 @@ var _ = Describe("Test HTTP traffic from N deployment client -> 1 deployment ser
 						SourceContainer: ns, // container_name == NS for this test
 
 						Destination: fmt.Sprintf("%s.%s", destApp, destApp),
-
-						HTTPUrl: "/",
-						Port:    80,
 					})
 				}
 			}

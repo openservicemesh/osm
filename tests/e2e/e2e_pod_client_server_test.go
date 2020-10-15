@@ -20,7 +20,7 @@ var _ = Describe("Test HTTP traffic from 1 pod client -> 1 pod server", func() {
 		It("Tests HTTP traffic for client pod -> server pod", func() {
 			// Install OSM
 			Expect(td.InstallOSM(td.GetOSMInstallOpts())).To(Succeed())
-			Expect(td.WaitForPodsRunningReady(td.osmNamespace, 60*time.Second, 1)).To(Succeed())
+			Expect(td.WaitForPodsRunningReady(td.osmNamespace, 90*time.Second, 1)).To(Succeed())
 
 			// Create Test NS
 			for _, n := range ns {
@@ -45,7 +45,7 @@ var _ = Describe("Test HTTP traffic from 1 pod client -> 1 pod server", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			// Expect it to be up and running in it's receiver namespace
-			Expect(td.WaitForPodsRunningReady(destName, 60*time.Second, 1)).To(Succeed())
+			Expect(td.WaitForPodsRunningReady(destName, 90*time.Second, 1)).To(Succeed())
 
 			// Get simple Pod definitions for the client
 			svcAccDef, podDef, svcDef = td.SimplePodApp(SimplePodAppDef{
@@ -65,7 +65,7 @@ var _ = Describe("Test HTTP traffic from 1 pod client -> 1 pod server", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			// Expect it to be up and running in it's receiver namespace
-			Expect(td.WaitForPodsRunningReady(sourceName, 60*time.Second, 1)).To(Succeed())
+			Expect(td.WaitForPodsRunningReady(sourceName, 90*time.Second, 1)).To(Succeed())
 
 			By("Creating SMI policies")
 			// Deploy allow rule client->server
@@ -94,13 +94,11 @@ var _ = Describe("Test HTTP traffic from 1 pod client -> 1 pod server", func() {
 				SourceContainer: sourceName,
 
 				Destination: fmt.Sprintf("%s.%s", dstPod.Name, dstPod.Namespace),
-				HTTPUrl:     "/",
-				Port:        80,
 			}
 
 			srcToDestStr := fmt.Sprintf("%s -> %s",
 				fmt.Sprintf("%s/%s", sourceName, srcPod.Name),
-				fmt.Sprintf("%s:%d%s", clientToServer.Destination, clientToServer.Port, clientToServer.HTTPUrl))
+				clientToServer.Destination)
 
 			cond := td.WaitForRepeatedSuccess(func() bool {
 				result := td.HTTPRequest(clientToServer)
@@ -112,7 +110,7 @@ var _ = Describe("Test HTTP traffic from 1 pod client -> 1 pod server", func() {
 				}
 				td.T.Logf("> (%s) HTTP Req succeeded: %d", srcToDestStr, result.StatusCode)
 				return true
-			}, 5, 60*time.Second)
+			}, 5, 90*time.Second)
 			Expect(cond).To(BeTrue())
 
 			By("Deleting SMI policies")
@@ -130,7 +128,7 @@ var _ = Describe("Test HTTP traffic from 1 pod client -> 1 pod server", func() {
 				}
 				td.T.Logf("> (%s) HTTP Req failed correctly: %v", srcToDestStr, result.Err)
 				return true
-			}, 5, 60*time.Second)
+			}, 5, 150*time.Second)
 			Expect(cond).To(BeTrue())
 		})
 	})

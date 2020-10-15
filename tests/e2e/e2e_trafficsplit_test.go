@@ -57,7 +57,7 @@ var _ = Describe("Test HTTP from N Clients deployments to 1 Server deployment ba
 
 			// Install OSM
 			Expect(td.InstallOSM(td.GetOSMInstallOpts())).To(Succeed())
-			Expect(td.WaitForPodsRunningReady(td.osmNamespace, 60*time.Second, 1)).To(Succeed())
+			Expect(td.WaitForPodsRunningReady(td.osmNamespace, 90*time.Second, 1)).To(Succeed())
 
 			// Create NSs
 			Expect(td.CreateMultipleNs(allNamespaces...)).To(Succeed())
@@ -205,9 +205,6 @@ var _ = Describe("Test HTTP from N Clients deployments to 1 Server deployment ba
 
 						// Targeting the trafficsplit FQDN
 						Destination: fmt.Sprintf("%s.%s", trafficSplitName, serverNamespace),
-
-						HTTPUrl: "/",
-						Port:    80,
 					})
 				}
 			}

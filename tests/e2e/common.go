@@ -81,13 +81,19 @@ func registerFlags(td *OsmTestData) {
 	flag.BoolVar(&td.kindCluster, "kindCluster", false, "Creates kind cluster")
 	flag.StringVar(&td.clusterName, "kindClusterName", "osm-e2e", "Name of the Kind cluster to be created")
 	flag.BoolVar(&td.cleanupKindCluster, "cleanupKindCluster", true, "Cleanup kind cluster upon exit")
-	flag.BoolVar(&td.cleanupKindClusterBetweenTests, "cleanupKindClusterBetweenTests", true, "Cleanup kind cluster between tests")
+	flag.BoolVar(&td.cleanupKindClusterBetweenTests, "cleanupKindClusterBetweenTests", false, "Cleanup kind cluster between tests")
 
 	flag.StringVar(&td.ctrRegistryServer, "ctrRegistry", os.Getenv("CTR_REGISTRY"), "Container registry")
 	flag.StringVar(&td.ctrRegistryUser, "ctrRegistryUser", os.Getenv("CTR_REGISTRY_USER"), "Container registry")
 	flag.StringVar(&td.ctrRegistryPassword, "ctrRegistrySecret", os.Getenv("CTR_REGISTRY_PASSWORD"), "Container registry secret")
 
-	flag.StringVar(&td.osmImageTag, "osmImageTag", "latest", "OSM image tag")
+	flag.StringVar(&td.osmImageTag, "osmImageTag", func() string {
+		tmp := os.Getenv("CTR_TAG")
+		if len(tmp) != 0 {
+			return tmp
+		}
+		return "latest"
+	}(), "OSM image tag")
 
 	flag.StringVar(&td.osmNamespace, "meshName", func() string {
 		tmp := os.Getenv("K8S_NAMESPACE")
@@ -148,7 +154,7 @@ func (td *OsmTestData) InitTestData(t GinkgoTInterface) error {
 	// After client creations, do a wait for kind cluster just in case it's not done yet coming up
 	// Ballparking pod number. kind has a large number of containers to run by default
 	if td.kindCluster && td.clusterProvider != nil {
-		if err := td.WaitForPodsRunningReady("kube-system", 60*time.Second, 5); err != nil {
+		if err := td.WaitForPodsRunningReady("kube-system", 120*time.Second, 5); err != nil {
 			return errors.Wrap(err, "failed to wait for kube-system pods")
 		}
 	}
