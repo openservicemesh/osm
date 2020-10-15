@@ -101,6 +101,9 @@ type installCmd struct {
 
 	// Toggle this to enable/disable the automatic deployment of Jaeger
 	deployJaeger bool
+
+	// Toggle this to enforce only one mesh in this cluster
+	enforceSingleMesh bool
 }
 
 func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
@@ -152,6 +155,7 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.StringVar(&inst.meshName, "mesh-name", defaultMeshName, "name for the new control plane instance")
 	f.BoolVar(&inst.deployJaeger, "deploy-jaeger", true, "Deploy Jaeger in the namespace of the OSM controller")
 	f.StringVar(&inst.envoyLogLevel, "envoy-log-level", "error", "Envoy log level is used to specify the level of logs collected from envoy and needs to be one of these (trace, debug, info, warning, warn, error, critical, off)")
+	f.BoolVar(&inst.enforceSingleMesh, "enforce-single-mesh", false, "Enforce only deploying one mesh in the cluster")
 
 	return cmd
 }
@@ -218,6 +222,7 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 		fmt.Sprintf("OpenServiceMesh.enableEgress=%t", i.enableEgress),
 		fmt.Sprintf("OpenServiceMesh.deployJaeger=%t", i.deployJaeger),
 		fmt.Sprintf("OpenServiceMesh.envoyLogLevel=%s", strings.ToLower(i.envoyLogLevel)),
+		fmt.Sprintf("OpenServiceMesh.enforceSingleMesh=%t", i.enforceSingleMesh),
 	}
 
 	if i.containerRegistrySecret != "" {
@@ -291,6 +296,27 @@ func (i *installCmd) validateOptions() error {
 	// validate certificate validity duration
 	if _, err := time.ParseDuration(i.serviceCertValidityDuration); err != nil {
 		return err
+	}
+
+	list, err = getControllerDeployments(i.clientSet)
+	if err != nil {
+		return err
+	}
+
+	// Check if single mesh cluster is already specified
+	for _, mesh := range list.Items {
+		singleMeshEnforced := mesh.ObjectMeta.Labels["enforceSingleMesh"] == "true"
+		name := mesh.ObjectMeta.Labels["meshName"]
+		if singleMeshEnforced {
+			return errors.Errorf("Cannot install mesh [%s]. Existing mesh [%s] enforces single mesh cluster.", i.meshName, name)
+		}
+	}
+
+	// Enforce single mesh cluster if needed
+	if i.enforceSingleMesh {
+		if len(list.Items) != 0 {
+			return errors.Errorf("Meshes already exist in cluster. Cannot enforce single mesh cluster. ")
+		}
 	}
 
 	return nil

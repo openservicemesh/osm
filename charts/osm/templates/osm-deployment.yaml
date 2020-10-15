@@ -5,6 +5,7 @@ metadata:
   labels:
     app: osm-controller
     meshName: {{ .Values.OpenServiceMesh.meshName }}
+    {{ if .Values.OpenServiceMesh.enforceSingleMesh }}enforceSingleMesh: "true"{{ end }}
 spec:
   replicas: {{ .Values.OpenServiceMesh.replicaCount }}
   selector:

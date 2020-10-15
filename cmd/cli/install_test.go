@@ -4,9 +4,12 @@ import (
 	"bytes"
 	"context"
 	"io/ioutil"
+	"strings"
+	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/stretchr/testify/assert"
 	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chartutil"
 	kubefake "helm.sh/helm/v3/pkg/kube/fake"
@@ -143,6 +146,7 @@ var _ = Describe("Running the install command", func() {
 						"enableGrafana":                  true,
 						"deployJaeger":                   false,
 						"envoyLogLevel":                  testEnvoyLogLevel,
+						"enforceSingleMesh":              false,
 					}}))
 			})
 
@@ -260,6 +264,7 @@ var _ = Describe("Running the install command", func() {
 						"enableGrafana":                  true,
 						"deployJaeger":                   false,
 						"envoyLogLevel":                  testEnvoyLogLevel,
+						"enforceSingleMesh":              false,
 					}}))
 			})
 
@@ -385,6 +390,7 @@ var _ = Describe("Running the install command", func() {
 						"enableGrafana":                  true,
 						"deployJaeger":                   false,
 						"envoyLogLevel":                  testEnvoyLogLevel,
+						"enforceSingleMesh":              false,
 					}}))
 			})
 
@@ -551,6 +557,7 @@ var _ = Describe("Running the install command", func() {
 						"enableGrafana":                  true,
 						"deployJaeger":                   false,
 						"envoyLogLevel":                  testEnvoyLogLevel,
+						"enforceSingleMesh":              false,
 					}}))
 			})
 
@@ -819,6 +826,7 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 				"enableGrafana":                  true,
 				"deployJaeger":                   false,
 				"envoyLogLevel":                  testEnvoyLogLevel,
+				"enforceSingleMesh":              false,
 			}}))
 	})
 })
@@ -899,6 +907,7 @@ var _ = Describe("Ensure that grafana is disabled when flag is set to false", fu
 				"enableGrafana":                  false,
 				"deployJaeger":                   false,
 				"envoyLogLevel":                  testEnvoyLogLevel,
+				"enforceSingleMesh":              false,
 			}}))
 	})
 
@@ -980,6 +989,7 @@ var _ = Describe("Ensure that grafana is enabled when flag is set to true", func
 				"enableGrafana":                  true,
 				"deployJaeger":                   false,
 				"envoyLogLevel":                  testEnvoyLogLevel,
+				"enforceSingleMesh":              false,
 			}}))
 	})
 
@@ -1061,6 +1071,7 @@ var _ = Describe("Ensure that prometheus is disabled when flag is set to false",
 				"enableGrafana":                  true,
 				"deployJaeger":                   false,
 				"envoyLogLevel":                  testEnvoyLogLevel,
+				"enforceSingleMesh":              false,
 			}}))
 	})
 })
@@ -1141,6 +1152,7 @@ var _ = Describe("Resolving values for install command with cert-manager paramet
 				"enableGrafana":                  true,
 				"deployJaeger":                   false,
 				"envoyLogLevel":                  testEnvoyLogLevel,
+				"enforceSingleMesh":              false,
 			}}))
 	})
 })
@@ -1261,6 +1273,153 @@ var _ = Describe("Resolving values for service cert validity duration", func() {
 		Expect(actual).To(Equal("1h30m"))
 	})
 })
+
+func TestEnforceSingleMesh(t *testing.T) {
+	assert := assert.New(t)
+
+	out := new(bytes.Buffer)
+	store := storage.Init(driver.NewMemory())
+	if mem, ok := store.Driver.(*driver.Memory); ok {
+		mem.SetNamespace(settings.Namespace())
+	}
+
+	config := &helm.Configuration{
+		Releases: store,
+		KubeClient: &kubefake.PrintingKubeClient{
+			Out: ioutil.Discard,
+		},
+		Capabilities: chartutil.DefaultCapabilities,
+		Log:          func(format string, v ...interface{}) {},
+	}
+
+	fakeClientSet := fake.NewSimpleClientset()
+
+	install := &installCmd{
+		out:                         out,
+		chartPath:                   "testdata/test-chart",
+		containerRegistry:           testRegistry,
+		osmImageTag:                 testOsmImageTag,
+		osmImagePullPolicy:          defaultOsmImagePullPolicy,
+		certificateManager:          "tresor",
+		serviceCertValidityDuration: "24h",
+		prometheusRetentionTime:     testRetentionTime,
+		meshName:                    defaultMeshName,
+		enableEgress:                true,
+		enablePrometheus:            true,
+		enableGrafana:               true,
+		clientSet:                   fakeClientSet,
+		envoyLogLevel:               testEnvoyLogLevel,
+		enforceSingleMesh:           true,
+	}
+
+	err := install.run(config)
+	assert.Nil(err)
+	assert.Equal(out.String(), "OSM installed successfully in namespace [osm-system] with mesh name [osm]\n")
+}
+
+func TestEnforceSingleMeshRejectsNewMesh(t *testing.T) {
+	assert := assert.New(t)
+
+	out := new(bytes.Buffer)
+	store := storage.Init(driver.NewMemory())
+	if mem, ok := store.Driver.(*driver.Memory); ok {
+		mem.SetNamespace(settings.Namespace())
+	}
+
+	config := &helm.Configuration{
+		Releases: store,
+		KubeClient: &kubefake.PrintingKubeClient{
+			Out: ioutil.Discard,
+		},
+		Capabilities: chartutil.DefaultCapabilities,
+		Log:          func(format string, v ...interface{}) {},
+	}
+
+	fakeClientSet := fake.NewSimpleClientset()
+
+	labelMap := make(map[string]string)
+	labelMap["meshName"] = defaultMeshName
+	labelMap["app"] = constants.OSMControllerName
+	labelMap["enforceSingleMesh"] = "true"
+
+	deploymentSpec := &v1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constants.OSMControllerName,
+			Namespace: settings.Namespace() + "-existing",
+			Labels:    labelMap,
+		},
+	}
+	_, err := fakeClientSet.AppsV1().Deployments(settings.Namespace()+"-existing").Create(context.TODO(), deploymentSpec, metav1.CreateOptions{})
+	assert.Nil(err)
+
+	install := &installCmd{
+		out:                         out,
+		chartPath:                   "testdata/test-chart",
+		containerRegistry:           testRegistry,
+		osmImageTag:                 testOsmImageTag,
+		osmImagePullPolicy:          defaultOsmImagePullPolicy,
+		certificateManager:          "tresor",
+		serviceCertValidityDuration: "24h",
+		prometheusRetentionTime:     testRetentionTime,
+		meshName:                    defaultMeshName + "-2",
+		enableEgress:                true,
+		enablePrometheus:            true,
+		enableGrafana:               true,
+		clientSet:                   fakeClientSet,
+		envoyLogLevel:               testEnvoyLogLevel,
+	}
+
+	err = install.run(config)
+	assert.NotNil(err)
+	assert.True(strings.Contains(err.Error(), "Cannot install mesh [osm-2]. Existing mesh [osm] enforces single mesh cluster"))
+}
+
+func TestEnforceSingleMeshWithExistingMesh(t *testing.T) {
+	assert := assert.New(t)
+
+	out := new(bytes.Buffer)
+	store := storage.Init(driver.NewMemory())
+	if mem, ok := store.Driver.(*driver.Memory); ok {
+		mem.SetNamespace(settings.Namespace())
+	}
+
+	config := &helm.Configuration{
+		Releases: store,
+		KubeClient: &kubefake.PrintingKubeClient{
+			Out: ioutil.Discard,
+		},
+		Capabilities: chartutil.DefaultCapabilities,
+		Log:          func(format string, v ...interface{}) {},
+	}
+
+	fakeClientSet := fake.NewSimpleClientset()
+
+	deploymentSpec := createDeploymentSpec(settings.Namespace()+"-existing", defaultMeshName)
+	_, err := fakeClientSet.AppsV1().Deployments(settings.Namespace()+"-existing").Create(context.TODO(), deploymentSpec, metav1.CreateOptions{})
+	assert.Nil(err)
+
+	install := &installCmd{
+		out:                         out,
+		chartPath:                   "testdata/test-chart",
+		containerRegistry:           testRegistry,
+		osmImageTag:                 testOsmImageTag,
+		osmImagePullPolicy:          defaultOsmImagePullPolicy,
+		certificateManager:          "tresor",
+		serviceCertValidityDuration: "24h",
+		prometheusRetentionTime:     testRetentionTime,
+		meshName:                    defaultMeshName + "-2",
+		enableEgress:                true,
+		enablePrometheus:            true,
+		enableGrafana:               true,
+		clientSet:                   fakeClientSet,
+		envoyLogLevel:               testEnvoyLogLevel,
+		enforceSingleMesh:           true,
+	}
+
+	err = install.run(config)
+	assert.NotNil(err)
+	assert.True(strings.Contains(err.Error(), "Meshes already exist in cluster. Cannot enforce single mesh cluster"))
+}
 
 func createDeploymentSpec(namespace, meshName string) *v1.Deployment {
 	labelMap := make(map[string]string)

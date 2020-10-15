@@ -37,6 +37,7 @@ OpenServiceMesh:
   meshName: osm
   useHTTPSIngress: false
   envoyLogLevel: error
+  enforceSingleMesh: false
 
   # Set deployJaeger to true to deploy a Jaeger cluster in the
   # namespace where OSM resides.
