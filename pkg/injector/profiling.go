@@ -22,7 +22,7 @@ func readTimeout(req *http.Request) (*time.Duration, error) {
 }
 
 // Time tracking function for webhook processing.
-// Gompares duration and prints timeout values
+// Will calculate elapsed time since start and log debug how much time spent executing
 func webhookTimeTrack(start time.Time, timeout time.Duration) {
 	elapsed := time.Since(start)
 	percentOfTimeout := float64(elapsed.Microseconds()) / float64(timeout.Microseconds())

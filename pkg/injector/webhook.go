@@ -139,11 +139,11 @@ func (wh *webhook) mutateHandler(w http.ResponseWriter, req *http.Request) {
 	// For debug/profiling purposes
 	if log.GetLevel() == zerolog.DebugLevel {
 		// Read timeout from request
-		timeoutValue, err := readTimeout(req)
+		reqTimeout, err := readTimeout(req)
 		if err != nil {
 			log.Error().Msgf("Could not read timeout from request url: %v", err)
 		} else {
-			defer webhookTimeTrack(time.Now(), *timeoutValue)
+			defer webhookTimeTrack(time.Now(), *reqTimeout)
 		}
 	}
 
