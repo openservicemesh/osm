@@ -14,11 +14,15 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/onsi/ginkgo"
-	"github.com/openservicemesh/osm/pkg/utils"
-
 	"github.com/docker/docker/client"
+	"github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
+	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
+	certman "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
+	. "github.com/onsi/ginkgo"
 	"github.com/pkg/errors"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/chart/loader"
+	helmcli "helm.sh/helm/v3/pkg/cli"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,6 +36,9 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 	"sigs.k8s.io/kind/pkg/cluster"
 	"sigs.k8s.io/kind/pkg/cluster/nodeutils"
+
+	"github.com/openservicemesh/osm/pkg/cli"
+	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 const (
@@ -66,6 +73,7 @@ type OsmTestData struct {
 	cleanupKindCluster             bool   // Cleanup kind cluster upon test finish
 
 	// Cluster handles and rest config
+	env             *cli.EnvSettings
 	restConfig      *rest.Config
 	client          *kubernetes.Clientset
 	smiClients      *smiClients
@@ -136,6 +144,7 @@ func (td *OsmTestData) InitTestData(t GinkgoTInterface) error {
 
 	td.restConfig = kubeConfig
 	td.client = clientset
+	td.env = cli.New()
 
 	if err := td.InitSMIClients(); err != nil {
 		return errors.Wrap(err, "failed to initialize SMI clients")
@@ -168,6 +177,10 @@ type InstallOSMOpts struct {
 	vaultToken    string
 	vaultRole     string
 
+	certmanagerIssuerGroup string
+	certmanagerIssuerKind  string
+	certmanagerIssuerName  string
+
 	egressEnabled bool
 }
 
@@ -187,6 +200,10 @@ func (td *OsmTestData) GetOSMInstallOpts() InstallOSMOpts {
 		vaultProtocol: "http",
 		vaultRole:     "openservicemesh",
 		vaultToken:    "token",
+
+		certmanagerIssuerGroup: "cert-manager.io",
+		certmanagerIssuerKind:  "Issuer",
+		certmanagerIssuerName:  "osm-ca",
 	}
 }
 
@@ -229,13 +246,6 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		return errors.Wrap(err, "failed to create namespace "+instOpts.controlPlaneNS)
 	}
 
-	if instOpts.certManager == "vault" {
-		if err := td.installVault(instOpts); err != nil {
-			return err
-		}
-	}
-
-	td.T.Log("Installing OSM")
 	var args []string
 
 	// Add OSM namespace to cleanup namespaces, in case the test can't init
@@ -252,11 +262,23 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 
 	switch instOpts.certManager {
 	case "vault":
+		if err := td.installVault(instOpts); err != nil {
+			return err
+		}
 		args = append(args,
 			"--vault-host="+instOpts.vaultHost,
 			"--vault-token="+instOpts.vaultToken,
 			"--vault-protocol="+instOpts.vaultProtocol,
 			"--vault-role="+instOpts.vaultRole,
+		)
+	case "cert-manager":
+		if err := td.installCertManager(instOpts); err != nil {
+			return err
+		}
+		args = append(args,
+			"--cert-manager-issuer-name="+instOpts.certmanagerIssuerName,
+			"--cert-manager-issuer-kind="+instOpts.certmanagerIssuerKind,
+			"--cert-manager-issuer-group="+instOpts.certmanagerIssuerGroup,
 		)
 	}
 
@@ -273,6 +295,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 	args = append(args, fmt.Sprintf("--enable-grafana=%v", instOpts.deployGrafana))
 	args = append(args, fmt.Sprintf("--deploy-jaeger=%v", instOpts.deployJaeger))
 
+	td.T.Log("Installing OSM")
 	stdout, stderr, err := td.RunLocal(filepath.FromSlash("../../bin/osm"), args)
 	if err != nil {
 		td.T.Logf("error running osm install")
@@ -434,6 +457,103 @@ tail /dev/random;
 	if err != nil {
 		return errors.Wrap(err, "failed to create vault service")
 	}
+	return nil
+}
+
+func (td *OsmTestData) installCertManager(instOpts InstallOSMOpts) error {
+	By("Installing cert-manager")
+	helm := &action.Configuration{}
+	if err := helm.Init(td.env.RESTClientGetter(), td.osmNamespace, "secret", td.T.Logf); err != nil {
+		return errors.Wrap(err, "failed to initialize helm config")
+	}
+	install := action.NewInstall(helm)
+	install.RepoURL = "https://charts.jetstack.io"
+	install.Namespace = td.osmNamespace
+	install.ReleaseName = "cert-manager"
+	install.Version = "v0.16.1"
+
+	chartPath, err := install.LocateChart("cert-manager", helmcli.New())
+	if err != nil {
+		return errors.Wrap(err, "failed to get cert-manager-chart")
+	}
+
+	chart, err := loader.Load(chartPath)
+	if err != nil {
+		return errors.Wrap(err, "failed to load cert-manager chart")
+	}
+
+	_, err = install.Run(chart, map[string]interface{}{
+		"installCRDs": true,
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed to install cert-manager chart")
+	}
+
+	selfsigned := &v1alpha2.Issuer{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "selfsigned",
+		},
+		Spec: v1alpha2.IssuerSpec{
+			IssuerConfig: v1alpha2.IssuerConfig{
+				SelfSigned: &v1alpha2.SelfSignedIssuer{},
+			},
+		},
+	}
+
+	cert := &v1alpha2.Certificate{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "osm-ca",
+		},
+		Spec: v1alpha2.CertificateSpec{
+			IsCA:       true,
+			Duration:   &metav1.Duration{Duration: 90 * 24 * time.Hour},
+			SecretName: "osm-ca-bundle",
+			CommonName: "osm-system",
+			IssuerRef: cmmeta.ObjectReference{
+				Name:  selfsigned.Name,
+				Kind:  "Issuer",
+				Group: "cert-manager.io",
+			},
+		},
+	}
+
+	ca := &v1alpha2.Issuer{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "osm-ca",
+		},
+		Spec: v1alpha2.IssuerSpec{
+			IssuerConfig: v1alpha2.IssuerConfig{
+				CA: &v1alpha2.CAIssuer{
+					SecretName: "osm-ca-bundle",
+				},
+			},
+		},
+	}
+
+	if err := td.WaitForPodsRunningReady(install.Namespace, 60*time.Second, 3); err != nil {
+		return errors.Wrap(err, "failed to wait for cert-manager pods ready")
+	}
+
+	cmClient, err := certman.NewForConfig(td.restConfig)
+	if err != nil {
+		return errors.Wrap(err, "failed to create cert-manager config")
+	}
+
+	_, err = cmClient.CertmanagerV1alpha2().Certificates(td.osmNamespace).Create(context.TODO(), cert, metav1.CreateOptions{})
+	if err != nil {
+		return errors.Wrap(err, "failed to create Certificate "+cert.Name)
+	}
+
+	_, err = cmClient.CertmanagerV1alpha2().Issuers(td.osmNamespace).Create(context.TODO(), selfsigned, metav1.CreateOptions{})
+	if err != nil {
+		return errors.Wrap(err, "failed to create Issuer "+selfsigned.Name)
+	}
+
+	_, err = cmClient.CertmanagerV1alpha2().Issuers(td.osmNamespace).Create(context.TODO(), ca, metav1.CreateOptions{})
+	if err != nil {
+		return errors.Wrap(err, "failed to create Issuer "+ca.Name)
+	}
+
 	return nil
 }
 
