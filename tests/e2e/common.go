@@ -14,6 +14,7 @@ import (
 	"time"
 
 	. "github.com/onsi/ginkgo"
+	"github.com/openservicemesh/osm/pkg/utils"
 
 	"github.com/docker/docker/client"
 	"github.com/pkg/errors"
@@ -72,15 +73,6 @@ type OsmTestData struct {
 	cleanupNamespaces map[string]bool
 }
 
-// GetEnv is a wrapper for Getenv, that returns a default value instead of empty when `envVar` is not defined
-func GetEnv(envVar string, defaultValue string) string {
-	val := os.Getenv(envVar)
-	if val == "" {
-		return defaultValue
-	}
-	return val
-}
-
 // Function to run at init before Ginkgo has called parseFlags
 // See suite_test.go for details on how Ginko calls parseFlags
 func registerFlags(td *OsmTestData) {
@@ -96,8 +88,8 @@ func registerFlags(td *OsmTestData) {
 	flag.StringVar(&td.ctrRegistryUser, "ctrRegistryUser", os.Getenv("CTR_REGISTRY_USER"), "Container registry")
 	flag.StringVar(&td.ctrRegistryPassword, "ctrRegistrySecret", os.Getenv("CTR_REGISTRY_PASSWORD"), "Container registry secret")
 
-	flag.StringVar(&td.osmImageTag, "osmImageTag", GetEnv("CTR_TAG", defaultImageTag), "OSM image tag")
-	flag.StringVar(&td.osmNamespace, "osmNamespace", GetEnv("K8S_NAMESPACE", defaultMeshName), "OSM mesh name")
+	flag.StringVar(&td.osmImageTag, "osmImageTag", utils.GetEnv("CTR_TAG", defaultImageTag), "OSM image tag")
+	flag.StringVar(&td.osmNamespace, "osmNamespace", utils.GetEnv("K8S_NAMESPACE", defaultMeshName), "OSM mesh name")
 }
 
 // AreRegistryCredsPresent checks if Registry Credentials are present
