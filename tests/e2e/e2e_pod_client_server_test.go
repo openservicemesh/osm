@@ -94,13 +94,11 @@ var _ = Describe("Test HTTP traffic from 1 pod client -> 1 pod server", func() {
 				SourceContainer: sourceName,
 
 				Destination: fmt.Sprintf("%s.%s", dstPod.Name, dstPod.Namespace),
-				HTTPUrl:     "/",
-				Port:        80,
 			}
 
 			srcToDestStr := fmt.Sprintf("%s -> %s",
 				fmt.Sprintf("%s/%s", sourceName, srcPod.Name),
-				fmt.Sprintf("%s:%d%s", clientToServer.Destination, clientToServer.Port, clientToServer.HTTPUrl))
+				clientToServer.Destination)
 
 			cond := td.WaitForRepeatedSuccess(func() bool {
 				result := td.HTTPRequest(clientToServer)

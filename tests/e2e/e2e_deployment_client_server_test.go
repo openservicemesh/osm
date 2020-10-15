@@ -139,9 +139,6 @@ var _ = Describe("Test HTTP traffic from N deployment client -> 1 deployment ser
 						SourceContainer: ns, // container_name == NS for this test
 
 						Destination: fmt.Sprintf("%s.%s", destApp, destApp),
-
-						HTTPUrl: "/",
-						Port:    80,
 					})
 				}
 			}

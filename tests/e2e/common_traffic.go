@@ -23,12 +23,9 @@ type HTTPRequestDef struct {
 	SourcePod       string
 	SourceContainer string
 
-	// Either host or IP, ie. "server", "server1.server", "192.168.0.1"
+	// The entire destination URL processed by curl, including host name and
+	// optionally protocol, port, and path
 	Destination string
-	// HTTP path on url, ie. "/index.html"
-	HTTPUrl string
-	// TCP port on request
-	Port int
 }
 
 // HTTPRequestResult represents results of an HTTPRequest call
@@ -42,7 +39,7 @@ type HTTPRequestResult struct {
 func (td *OsmTestData) HTTPRequest(ht HTTPRequestDef) HTTPRequestResult {
 	// -s silent progress, -o output to devnull, '-D -' dump headers to "-" (stdout), -i Status code
 	// -I skip body download, '-w StatusCode:%{http_code}' prints Status code label-like for easy parsing
-	command := fmt.Sprintf("/usr/bin/curl -s -o /dev/null -D - -I -w %s:%%{http_code} http://%s:%d%s", StatusCodeWord, ht.Destination, ht.Port, ht.HTTPUrl)
+	command := fmt.Sprintf("/usr/bin/curl -s -o /dev/null -D - -I -w %s:%%{http_code} %s", StatusCodeWord, ht.Destination)
 
 	stdout, stderr, err := td.RunRemote(ht.SourceNs, ht.SourcePod, ht.SourceContainer, command)
 	if err != nil {
