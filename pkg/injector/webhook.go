@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 
 	"github.com/pkg/errors"
 	"k8s.io/api/admission/v1beta1"
@@ -135,12 +136,15 @@ func (wh *webhook) healthHandler(w http.ResponseWriter, req *http.Request) {
 func (wh *webhook) mutateHandler(w http.ResponseWriter, req *http.Request) {
 	log.Info().Msgf("Request received: Method=%v, URL=%v", req.Method, req.URL)
 
-	// Read timeout from request
-	timeoutValue, err := readTimeout(req)
-	if err != nil {
-		log.Error().Msgf("Could not read timeout from request url: %v", err)
-	} else {
-		defer webhookTimeTrack(time.Now(), *timeoutValue)
+	// For debug/profiling purposes
+	if log.GetLevel() == zerolog.DebugLevel {
+		// Read timeout from request
+		timeoutValue, err := readTimeout(req)
+		if err != nil {
+			log.Error().Msgf("Could not read timeout from request url: %v", err)
+		} else {
+			defer webhookTimeTrack(time.Now(), *timeoutValue)
+		}
 	}
 
 	if contentType := req.Header.Get("Content-Type"); contentType != "application/json" {
