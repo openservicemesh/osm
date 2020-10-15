@@ -94,10 +94,10 @@ var _ = Describe("HTTP and HTTPS Egress", func() {
 					})
 
 					if result.Err == nil || !strings.Contains(result.Err.Error(), "command terminated with exit code 7 ") {
-						td.T.Logf("> REST req failed incorrectly (status: %d) %v", result.StatusCode, result.Err)
+						td.T.Logf("%s > REST req failed incorrectly (status: %d) %v", url, result.StatusCode, result.Err)
 						return false
 					}
-					td.T.Logf("> REST req failed correctly: %v", result.Err)
+					td.T.Logf("%s > REST req failed correctly: %v", url, result.Err)
 					return true
 				}, 5 /*success count threshold*/, 60*time.Second /*timeout*/)
 				Expect(cond).To(BeTrue())
