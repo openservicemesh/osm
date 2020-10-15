@@ -28,7 +28,7 @@ const (
 	// BookstoreV1ServiceName is the name of the bookstore-v1 service.
 	BookstoreV1ServiceName = "bookstore-v1"
 
-	// BookstoreV2ServiceName is the name of the bookstore-v1 service.
+	// BookstoreV2ServiceName is the name of the bookstore-v2 service.
 	BookstoreV2ServiceName = "bookstore-v2"
 
 	// BookstoreApexServiceName that have been is the name of the bookstore service, which is then split into other services.
