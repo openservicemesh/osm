@@ -265,6 +265,11 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		)
 	}
 
+	if !td.kindCluster {
+		// Making sure the image is always pulled in registry-based testing
+		args = append(args, "--osm-image-pull-policy=Always")
+	}
+
 	if len(instOpts.containerRegistrySecret) != 0 {
 		args = append(args, "--container-registry-secret="+registrySecretName)
 	}
