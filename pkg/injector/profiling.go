@@ -7,7 +7,7 @@ import (
 
 // Helper to parse timeout variable from webhook URL
 func readTimeout(req *http.Request) (*time.Duration, error) {
-	durationValue, found := req.URL.Query()[webhookTimeoutStr]
+	durationValue, found := req.URL.Query()[webhookMutateTimeoutKey]
 	if !found || len(durationValue) != 1 {
 		log.Error().Msgf("Webhook timeout value not found in request")
 		return nil, errParseWebhookTimeout

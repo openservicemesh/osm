@@ -51,7 +51,7 @@ const (
 	WebhookHealthPath = "/healthz"
 
 	// webhookTimeoutStr is the url variable name for timeout
-	webhookTimeoutStr = "timeout"
+	webhookMutateTimeoutKey = "timeout"
 )
 
 // NewWebhook starts a new web server handling requests from the injector MutatingWebhookConfiguration
