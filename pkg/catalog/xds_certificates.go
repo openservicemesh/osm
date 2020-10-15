@@ -67,8 +67,8 @@ func (mc *MeshCatalog) filterTrafficSplitServices(services []v1.Service) []v1.Se
 	// These are the services except ones that are a root of a TrafficSplit policy
 	var filteredServices []v1.Service
 
-	for _, svc := range services {
-		nsSvc := utils.K8sSvcToMeshSvc(&svc)
+	for i, svc := range services {
+		nsSvc := utils.K8sSvcToMeshSvc(&services[i])
 		if _, shouldSkip := excludeTheseServices[nsSvc]; shouldSkip {
 			continue
 		}

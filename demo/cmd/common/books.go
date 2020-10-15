@@ -147,7 +147,7 @@ func GetBooks(participantName string, meshExpectedResponseCode int, booksCount *
 
 			// Create random URLs to test egress
 			if fetchURL == httpPrefix || fetchURL == httpsPrefix {
-				index := rand.Intn(len(egressURLs))
+				index := rand.Intn(len(egressURLs)) // #nosec G404
 				fetchURL = fmt.Sprintf("%s%s", url, egressURLs[index])
 			}
 

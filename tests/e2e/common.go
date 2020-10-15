@@ -542,7 +542,7 @@ func (td *OsmTestData) WaitForNamespacesDeleted(namespaces []string, timeout tim
 
 // RunLocal Executes command on local
 func (td *OsmTestData) RunLocal(path string, args []string) (*bytes.Buffer, *bytes.Buffer, error) {
-	cmd := exec.Command(path, args...)
+	cmd := exec.Command(path, args...) // #nosec G204
 	stdout := bytes.NewBuffer(nil)
 	stderr := bytes.NewBuffer(nil)
 	cmd.Stdout = stdout

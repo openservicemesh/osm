@@ -72,7 +72,8 @@ func ShouldRotate(cert certificate.Certificater) bool {
 	// We want to renew earlier. How much earlier is defined in renewBeforeCertExpires.
 	// We add a few seconds noise to the early renew period so that certificates that may have been
 	// created at the same time are not renewed at the exact same time.
-	intNoise := rand.Intn(maxNoiseSeconds-minNoiseSeconds) + minNoiseSeconds
+
+	intNoise := rand.Intn(maxNoiseSeconds-minNoiseSeconds) + minNoiseSeconds /* #nosec G404 */
 	secondsNoise := time.Duration(intNoise) * time.Second
 	return time.Until(cert.GetExpiration()) <= (renewBeforeCertExpires + secondsNoise)
 }
