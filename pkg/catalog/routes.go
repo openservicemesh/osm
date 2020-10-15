@@ -427,12 +427,24 @@ func (mc *MeshCatalog) getWeightedBackendsForService(svc service.MeshService) []
 	weightedSvcs := []service.WeightedService{}
 
 	// Retrieve the weighted clusters from traffic split
-	// Assumes no nested splits for now
+	// Assumes no nested splits
 	// Assumes service would only be root once (not sure if this is validated)
-	servicesList := mc.meshSpec.ListTrafficSplitServices()
-	for _, activeService := range servicesList {
-		if activeService.RootService == svc.Name {
-			weightedSvcs = append(weightedSvcs, activeService)
+	for _, trafficSplit := range mc.meshSpec.ListTrafficSplits() {
+		rootSvc := service.MeshService{
+			Namespace: trafficSplit.Namespace,
+			Name:      trafficSplit.Spec.Service,
+		}
+		if svc == rootSvc {
+			for _, backend := range trafficSplit.Spec.Backends {
+				// The TrafficSplit SMI Spec does not allow providing a namespace for the backends,
+				// so we assume that the top level namespace for the TrafficSplit is the namespace
+				// the backends belong to.
+				meshService := service.MeshService{
+					Namespace: trafficSplit.Namespace,
+					Name:      backend.Service,
+				}
+				weightedSvcs = append(weightedSvcs, service.WeightedService{Service: meshService, Weight: backend.Weight, RootService: rootSvc.Name})
+			}
 		}
 	}
 
