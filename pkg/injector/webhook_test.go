@@ -574,7 +574,7 @@ var _ = Describe("Testing Injector Functions", func() {
 		}
 
 		// Action !!
-		actual, _ := wh.mutate(nil)
+		actual := wh.mutate(nil)
 
 		expected := v1beta1.AdmissionResponse{
 			Result: &metav1.Status{

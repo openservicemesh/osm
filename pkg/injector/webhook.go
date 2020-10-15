@@ -13,7 +13,6 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog"
 	"k8s.io/api/admission/v1beta1"
 	admissionv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -133,52 +132,15 @@ func (wh *webhook) healthHandler(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-// Helper to parse timeout variable from webhook URL
-func readTimeout(req *http.Request) (*time.Duration, error) {
-	durationValue, found := req.URL.Query()[webhookTimeoutStr]
-	if !found || len(durationValue) != 1 {
-		log.Error().Msgf("Webhook timeout value not found in request")
-		return nil, errParseWebhookTimeout
-	}
-
-	val, err := time.ParseDuration(durationValue[0])
-	if err != nil {
-		log.Error().Msgf("Error parsing timeout value as duration: %v", err)
-		return nil, errParseWebhookTimeout
-	}
-	return &val, nil
-}
-
-// Time tracking function for webhook processing.
-func webhookTimeTrack(resourceName *string, start time.Time, timeout time.Duration) {
-	elapsed := time.Since(start)
-	var logEv *zerolog.Event
-	percentOfTimeout := float64(elapsed.Microseconds()) / float64(timeout.Microseconds())
-
-	if percentOfTimeout < 0.75 {
-		logEv = log.Debug()
-	} else if percentOfTimeout < 1 {
-		logEv = log.Warn()
-	} else {
-		// Error logging when going beyond timeout value to process a webhook
-		logEv = log.Error()
-	}
-	logEv.Msgf("Mutate Webhook for %s took %v to execute (%.2f of it's timeout, %v)",
-		(*resourceName), elapsed, percentOfTimeout, timeout)
-}
-
 func (wh *webhook) mutateHandler(w http.ResponseWriter, req *http.Request) {
 	log.Info().Msgf("Request received: Method=%v, URL=%v", req.Method, req.URL)
 
-	// Til we parse resource name, we will set it to something generic in case
-	// we are done with the webhook before we even get to parse it
-	webhookResourceName := "<unparsed>"
 	// Read timeout from request
 	timeoutValue, err := readTimeout(req)
 	if err != nil {
 		log.Error().Msgf("Could not read timeout from request url: %v", err)
 	} else {
-		defer webhookTimeTrack(&webhookResourceName, time.Now(), *timeoutValue)
+		defer webhookTimeTrack(time.Now(), *timeoutValue)
 	}
 
 	if contentType := req.Header.Get("Content-Type"); contentType != "application/json" {
@@ -212,7 +174,7 @@ func (wh *webhook) mutateHandler(w http.ResponseWriter, req *http.Request) {
 		log.Error().Err(err).Msg("Error decoding admission request")
 		admissionResp.Response = toAdmissionError(err)
 	} else {
-		admissionResp.Response, webhookResourceName = wh.mutate(admissionReq.Request)
+		admissionResp.Response = wh.mutate(admissionReq.Request)
 	}
 
 	resp, err := json.Marshal(&admissionResp)
@@ -230,29 +192,19 @@ func (wh *webhook) mutateHandler(w http.ResponseWriter, req *http.Request) {
 	log.Debug().Msg("Done responding to admission request")
 }
 
-func (wh *webhook) mutate(req *v1beta1.AdmissionRequest) (*v1beta1.AdmissionResponse, string) {
-	var outResourceName string
+func (wh *webhook) mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
 	if req == nil {
 		log.Error().Msg("Nil AdmissionRequest")
-		return toAdmissionError(errors.New("nil admission request")), ""
+		return toAdmissionError(errors.New("nil admission request"))
 	}
 
 	// Decode the Pod spec from the request
 	var pod corev1.Pod
 	if err := json.Unmarshal(req.Object.Raw, &pod); err != nil {
 		log.Error().Err(err).Msg("Error unmarshaling request to Pod")
-		return toAdmissionError(err), ""
+		return toAdmissionError(err)
 	}
 	log.Info().Msgf("Mutation request: (new object: %v) (old object: %v)", string(req.Object.Raw), string(req.OldObject.Raw))
-
-	// Gather a meaningful resource name for this request
-	var pName string
-	if len(pod.Name) != 0 {
-		pName = pod.Name
-	} else {
-		pName = pod.GenerateName
-	}
-	outResourceName = fmt.Sprintf("%s/%s", req.Namespace, pName)
 
 	// Start building the response
 	resp := &v1beta1.AdmissionResponse{
@@ -263,10 +215,10 @@ func (wh *webhook) mutate(req *v1beta1.AdmissionRequest) (*v1beta1.AdmissionResp
 	// Check if we must inject the sidecar
 	if inject, err := wh.mustInject(&pod, req.Namespace); err != nil {
 		log.Error().Err(err).Msg("Error checking if sidecar must be injected")
-		return toAdmissionError(err), ""
+		return toAdmissionError(err)
 	} else if !inject {
 		log.Info().Msg("Skipping sidecar injection")
-		return resp, outResourceName
+		return resp
 	}
 
 	// Create the patches for the spec
@@ -276,12 +228,12 @@ func (wh *webhook) mutate(req *v1beta1.AdmissionRequest) (*v1beta1.AdmissionResp
 	patchBytes, err := wh.createPatch(&pod, req.Namespace, proxyUUID)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create patch")
-		return toAdmissionError(err), outResourceName
+		return toAdmissionError(err)
 	}
 
 	patchAdmissionResponse(resp, patchBytes)
 	log.Info().Msg("Done patching admission response")
-	return resp, outResourceName
+	return resp
 }
 
 func (wh *webhook) isNamespaceAllowed(namespace string) bool {
