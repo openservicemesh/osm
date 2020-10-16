@@ -131,7 +131,7 @@ var _ = Describe("Test Envoy tools", func() {
 
 	Context("Test GetDownstreamTLSContext()", func() {
 		It("should return TLS context", func() {
-			tlsContext := GetDownstreamTLSContext(tests.BookstoreService, true)
+			tlsContext := GetDownstreamTLSContext(tests.BookstoreV1Service, true)
 
 			expectedTLSContext := &auth.DownstreamTlsContext{
 				CommonTlsContext: &auth.CommonTlsContext{
@@ -141,7 +141,7 @@ var _ = Describe("Test Envoy tools", func() {
 					},
 					TlsCertificates: nil,
 					TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
-						Name: "service-cert:default/bookstore",
+						Name: "service-cert:default/bookstore-v1",
 						SdsConfig: &core.ConfigSource{
 							ConfigSourceSpecifier: &core.ConfigSource_Ads{
 								Ads: &core.AggregatedConfigSource{},
@@ -154,7 +154,7 @@ var _ = Describe("Test Envoy tools", func() {
 							Name: SDSCert{
 								MeshService: service.MeshService{
 									Namespace: "default",
-									Name:      "bookstore",
+									Name:      "bookstore-v1",
 								},
 								CertType: RootCertTypeForMTLSInbound,
 							}.String(),
@@ -180,22 +180,22 @@ var _ = Describe("Test Envoy tools", func() {
 
 	Context("Test GetDownstreamTLSContext() for mTLS", func() {
 		It("should return TLS context with client certificate validation enabled", func() {
-			tlsContext := GetDownstreamTLSContext(tests.BookstoreService, true)
+			tlsContext := GetDownstreamTLSContext(tests.BookstoreV1Service, true)
 			Expect(tlsContext.RequireClientCertificate).To(Equal(&wrappers.BoolValue{Value: true}))
 		})
 	})
 
 	Context("Test GetDownstreamTLSContext() for TLS", func() {
 		It("should return TLS context with client certificate validation disabled", func() {
-			tlsContext := GetDownstreamTLSContext(tests.BookstoreService, false)
+			tlsContext := GetDownstreamTLSContext(tests.BookstoreV1Service, false)
 			Expect(tlsContext.RequireClientCertificate).To(Equal(&wrappers.BoolValue{Value: false}))
 		})
 	})
 
 	Context("Test GetUpstreamTLSContext()", func() {
 		It("should return TLS context", func() {
-			sni := "bookstore.default.svc.cluster.local"
-			tlsContext := GetUpstreamTLSContext(tests.BookstoreService, sni)
+			sni := "bookstore-v1.default.svc.cluster.local"
+			tlsContext := GetUpstreamTLSContext(tests.BookstoreV1Service, sni)
 
 			expectedTLSContext := &auth.UpstreamTlsContext{
 				CommonTlsContext: &auth.CommonTlsContext{
@@ -205,7 +205,7 @@ var _ = Describe("Test Envoy tools", func() {
 					},
 					TlsCertificates: nil,
 					TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
-						Name: "service-cert:default/bookstore",
+						Name: "service-cert:default/bookstore-v1",
 						SdsConfig: &core.ConfigSource{
 							ConfigSourceSpecifier: &core.ConfigSource_Ads{
 								Ads: &core.AggregatedConfigSource{},
@@ -218,7 +218,7 @@ var _ = Describe("Test Envoy tools", func() {
 							Name: SDSCert{
 								MeshService: service.MeshService{
 									Namespace: "default",
-									Name:      "bookstore",
+									Name:      "bookstore-v1",
 								},
 								CertType: RootCertTypeForMTLSOutbound,
 							}.String(),
@@ -237,8 +237,8 @@ var _ = Describe("Test Envoy tools", func() {
 			}
 
 			// Ensure the SNI is in the expected format!
-			Expect(tlsContext.Sni).To(Equal(tests.BookstoreService.GetCommonName().String()))
-			Expect(tlsContext.Sni).To(Equal("bookstore.default.svc.cluster.local"))
+			Expect(tlsContext.Sni).To(Equal(tests.BookstoreV1Service.GetCommonName().String()))
+			Expect(tlsContext.Sni).To(Equal("bookstore-v1.default.svc.cluster.local"))
 
 			Expect(tlsContext.CommonTlsContext.TlsParams).To(Equal(expectedTLSContext.CommonTlsContext.TlsParams))
 			Expect(tlsContext.CommonTlsContext.TlsCertificates).To(Equal(expectedTLSContext.CommonTlsContext.TlsCertificates))

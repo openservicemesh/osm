@@ -3,10 +3,14 @@ package configurator
 import (
 	"encoding/json"
 	"fmt"
+	"time"
+
 	"github.com/openservicemesh/osm/pkg/constants"
-	"net"
-	"sort"
-	"strings"
+)
+
+const (
+	// defaultServiceCertValidityDuration is the default validity duration for service certificates
+	defaultServiceCertValidityDuration = 24 * time.Hour
 )
 
 // The functions in this file implement the configurator.Configurator interface
@@ -43,72 +47,46 @@ func (c *Client) IsEgressEnabled() bool {
 	return c.getConfigMap().Egress
 }
 
+// IsDebugServerEnabled determines whether osm debug HTTP server is enabled
+func (c *Client) IsDebugServerEnabled() bool {
+	return c.getConfigMap().EnableDebugServer
+}
+
 // IsPrometheusScrapingEnabled determines whether Prometheus is enabled for scraping metrics
 func (c *Client) IsPrometheusScrapingEnabled() bool {
 	return c.getConfigMap().PrometheusScraping
 }
 
-// IsZipkinTracingEnabled determines whether Zipkin tracing is enabled
-func (c *Client) IsZipkinTracingEnabled() bool {
-	return c.getConfigMap().ZipkinTracing
+// IsTracingEnabled returns whether tracing is enabled
+func (c *Client) IsTracingEnabled() bool {
+	return c.getConfigMap().TracingEnable
 }
 
-// GetZipkinHost is the host to which we send Zipkin spans
-func (c *Client) GetZipkinHost() string {
-	zipkinAddress := c.getConfigMap().ZipkinAddress
-	if zipkinAddress != "" {
-		return zipkinAddress
+// GetTracingHost is the host to which we send tracing spans
+func (c *Client) GetTracingHost() string {
+	tracingAddress := c.getConfigMap().TracingAddress
+	if tracingAddress != "" {
+		return tracingAddress
 	}
-	return fmt.Sprintf("%s.%s.svc.cluster.local", constants.DefaultZipkinAddress, c.GetOSMNamespace())
+	return fmt.Sprintf("%s.%s.svc.cluster.local", constants.DefaultTracingHost, c.GetOSMNamespace())
 }
 
-// GetZipkinPort returns the Zipkin port
-func (c *Client) GetZipkinPort() uint32 {
-	zipkinPort := c.getConfigMap().ZipkinPort
-	if zipkinPort != 0 {
-		return uint32(zipkinPort)
+// GetTracingPort returns the tracing listener port
+func (c *Client) GetTracingPort() uint32 {
+	tracingPort := c.getConfigMap().TracingPort
+	if tracingPort != 0 {
+		return uint32(tracingPort)
 	}
-	return constants.DefaultZipkinPort
+	return constants.DefaultTracingPort
 }
 
-// GetZipkinEndpoint returns the Zipkin endpoint
-func (c *Client) GetZipkinEndpoint() string {
-	zipkinEndpoint := c.getConfigMap().ZipkinEndpoint
-	if zipkinEndpoint != "" {
-		return zipkinEndpoint
+// GetTracingEndpoint returns the listener's collector endpoint
+func (c *Client) GetTracingEndpoint() string {
+	tracingEndpoint := c.getConfigMap().TracingEndpoint
+	if tracingEndpoint != "" {
+		return tracingEndpoint
 	}
-	return constants.DefaultZipkinEndpoint
-}
-
-// GetMeshCIDRRanges returns a list of mesh CIDR ranges
-func (c *Client) GetMeshCIDRRanges() []string {
-	noSpaces := strings.ReplaceAll(c.getConfigMap().MeshCIDRRanges, " ", ",")
-	commaSeparatedCIDRs := strings.Split(noSpaces, ",")
-
-	cidrSet := make(map[string]interface{})
-	for _, cidr := range commaSeparatedCIDRs {
-		trimmedCIDR := strings.Trim(cidr, " ")
-		if len(trimmedCIDR) == 0 {
-			continue
-		}
-
-		_, _, err := net.ParseCIDR(trimmedCIDR)
-		if err != nil {
-			log.Error().Err(err).Msgf("Found incorrectly formatted in-mesh CIDR %s from ConfigMap %s/%s; Skipping CIDR", trimmedCIDR, c.osmNamespace, c.osmConfigMapName)
-			continue
-		}
-
-		cidrSet[trimmedCIDR] = nil
-	}
-
-	var cidrs []string
-	for cidr := range cidrSet {
-		cidrs = append(cidrs, cidr)
-	}
-
-	sort.Strings(cidrs)
-
-	return cidrs
+	return constants.DefaultTracingEndpoint
 }
 
 // UseHTTPSIngress determines whether traffic between ingress and backend pods should use HTTPS protocol
@@ -116,7 +94,28 @@ func (c *Client) UseHTTPSIngress() bool {
 	return c.getConfigMap().UseHTTPSIngress
 }
 
+// GetEnvoyLogLevel returns the envoy log level
+func (c *Client) GetEnvoyLogLevel() string {
+	logLevel := c.getConfigMap().EnvoyLogLevel
+	if logLevel != "" {
+		return logLevel
+	}
+	return constants.DefaultEnvoyLogLevel
+}
+
 // GetAnnouncementsChannel returns a channel, which is used to announce when changes have been made to the OSM ConfigMap.
 func (c *Client) GetAnnouncementsChannel() <-chan interface{} {
 	return c.announcements
+}
+
+// GetServiceCertValidityPeriod returns the validity duration for service certificates, and a default in case of invalid duration
+func (c *Client) GetServiceCertValidityPeriod() time.Duration {
+	durationStr := c.getConfigMap().ServiceCertValidityDuration
+	validityDuration, err := time.ParseDuration(durationStr)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error parsing service certificate validity duration %s=%s", serviceCertValidityDurationKey, durationStr)
+		return defaultServiceCertValidityDuration
+	}
+
+	return validityDuration
 }

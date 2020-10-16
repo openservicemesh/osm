@@ -12,6 +12,10 @@ const (
 
 	// TypePrivateKey is a string constant to be used in the generation of a private key for a certificate.
 	TypePrivateKey = "PRIVATE KEY"
+
+	// TypeCertificateRequest is a string constant to be used in the generation
+	// of a certificate requests.
+	TypeCertificateRequest = "CERTIFICATE REQUEST"
 )
 
 // CommonName is the Subject Common Name from a given SSL certificate.
@@ -43,7 +47,7 @@ type Certificater interface {
 // Manager is the interface declaring the methods for the Certificate Manager.
 type Manager interface {
 	// IssueCertificate issues a new certificate.
-	IssueCertificate(CommonName, *time.Duration) (Certificater, error)
+	IssueCertificate(CommonName, time.Duration) (Certificater, error)
 
 	// GetCertificate returns a certificate given its Common Name (CN)
 	GetCertificate(CommonName) (Certificater, error)

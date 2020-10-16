@@ -45,17 +45,20 @@ const (
 	// EnvoyMetricsCluster is the cluster name of the Prometheus metrics cluster
 	EnvoyMetricsCluster = "envoy-metrics-cluster"
 
-	// EnvoyZipkinCluster is the name of the Zipkin cluster.
-	EnvoyZipkinCluster = "envoy-zipkin-cluster"
+	// EnvoyTracingCluster is the default name to refer to the tracing cluster.
+	EnvoyTracingCluster = "envoy-tracing-cluster"
 
-	// DefaultZipkinEndpoint is the Zipkin endpoint.
-	DefaultZipkinEndpoint = "/api/v2/spans"
+	// DefaultTracingEndpoint is the default endpoint route.
+	DefaultTracingEndpoint = "/api/v2/spans"
 
-	// DefaultZipkinAddress is the address of the Zipkin server.
-	DefaultZipkinAddress = "zipkin"
+	// DefaultTracingHost is the default tracing server name.
+	DefaultTracingHost = "jaeger"
 
-	// DefaultZipkinPort is the Zipkin port number.
-	DefaultZipkinPort = uint32(9411)
+	// DefaultTracingPort is the tracing listener port.
+	DefaultTracingPort = uint32(9411)
+
+	// DefaultEnvoyLogLevel is the default envoy log level if not defined in the osm configmap
+	DefaultEnvoyLogLevel = "error"
 
 	// EnvoyPrometheusInboundListenerPort is Envoy's inbound listener port number for prometheus
 	EnvoyPrometheusInboundListenerPort = 15010
@@ -124,4 +127,31 @@ const (
 
 	// DomainDelimiter is a delimiter used in representing domains
 	DomainDelimiter = "."
+
+	// EnvoyContainerName is the name used to identify the envoy sidecard container added on mesh-enabled deployments
+	EnvoyContainerName = "envoy"
+
+	// InitContainerName is the name of the init container
+	InitContainerName = "osm-init"
+)
+
+// Annotations used by the controller
+const (
+	// SidecarInjectionAnnotation is the annotation used for sidecar injection
+	SidecarInjectionAnnotation = "openservicemesh.io/sidecar-injection"
+
+	// MetricsAnnotation is the annotation used for enabling/disabling metrics
+	MetricsAnnotation = "openservicemesh.io/metrics"
+)
+
+// Annotations used for Metrics
+const (
+	// PrometheusScrapeAnnotation is the annotation used to configure prometheus scraping
+	PrometheusScrapeAnnotation = "prometheus.io/scrape"
+
+	// PrometheusPortAnnotation is the anontation used to configure the port to scrape on
+	PrometheusPortAnnotation = "prometheus.io/port"
+
+	// PrometheusPathAnnotation is the annotation used to configure the path to scrape on
+	PrometheusPathAnnotation = "prometheus.io/path"
 )

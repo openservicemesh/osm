@@ -1,3 +1,3 @@
-FROM alpine:3.10.1
-ADD ./demo/bin/bookwarehouse /
+FROM alpine:3.12
+ADD bookwarehouse /
 RUN chmod +x /bookwarehouse

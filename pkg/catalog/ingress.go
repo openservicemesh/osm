@@ -7,8 +7,8 @@ import (
 )
 
 // GetIngressRoutesPerHost returns routes per host as defined in observed ingress k8s resources.
-func (mc *MeshCatalog) GetIngressRoutesPerHost(service service.MeshService) (map[string][]trafficpolicy.Route, error) {
-	domainRoutesMap := make(map[string][]trafficpolicy.Route)
+func (mc *MeshCatalog) GetIngressRoutesPerHost(service service.MeshService) (map[string][]trafficpolicy.HTTPRoute, error) {
+	domainRoutesMap := make(map[string][]trafficpolicy.HTTPRoute)
 	ingresses, err := mc.ingressMonitor.GetIngressResources(service)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to get ingress resources with backend %s", service)
@@ -18,14 +18,14 @@ func (mc *MeshCatalog) GetIngressRoutesPerHost(service service.MeshService) (map
 		return domainRoutesMap, err
 	}
 
-	defaultRoute := trafficpolicy.Route{
+	defaultRoute := trafficpolicy.HTTPRoute{
 		PathRegex: constants.RegexMatchAll,
 		Methods:   []string{constants.RegexMatchAll},
 	}
 
 	for _, ingress := range ingresses {
 		if ingress.Spec.Backend != nil && ingress.Spec.Backend.ServiceName == service.Name {
-			domainRoutesMap[constants.WildcardHTTPMethod] = []trafficpolicy.Route{defaultRoute}
+			domainRoutesMap[constants.WildcardHTTPMethod] = []trafficpolicy.HTTPRoute{defaultRoute}
 		}
 
 		for _, rule := range ingress.Spec.Rules {

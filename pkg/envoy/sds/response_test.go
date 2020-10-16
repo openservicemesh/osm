@@ -13,12 +13,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
+	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -26,6 +28,14 @@ import (
 )
 
 var _ = Describe("Test SDS response functions", func() {
+
+	var (
+		mockCtrl         *gomock.Controller
+		mockConfigurator *configurator.MockConfigurator
+	)
+
+	mockCtrl = gomock.NewController(GinkgoT())
+	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
 
 	prep := func(resourceNames []string, namespace, svcName string) (certificate.Certificater, *envoy.Proxy, catalog.MeshCataloger) {
 		serviceAccount := tests.BookstoreServiceAccountName
@@ -50,9 +60,9 @@ var _ = Describe("Test SDS response functions", func() {
 		proxy := envoy.NewProxy(cn, nil)
 		cache := make(map[certificate.CommonName]certificate.Certificater)
 		validityPeriod := 1 * time.Hour
-		certManager := tresor.NewFakeCertManager(&cache, validityPeriod)
+		certManager := tresor.NewFakeCertManager(&cache, mockConfigurator)
 
-		cert, err := certManager.IssueCertificate(cn, nil)
+		cert, err := certManager.IssueCertificate(cn, validityPeriod)
 		Expect(err).ToNot(HaveOccurred())
 
 		mc := catalog.NewFakeMeshCatalog(kubeClient)
@@ -63,9 +73,9 @@ var _ = Describe("Test SDS response functions", func() {
 	Context("Test getRootCert()", func() {
 		It("returns a properly formatted struct", func() {
 			cache := make(map[certificate.CommonName]certificate.Certificater)
-			certManager := tresor.NewFakeCertManager(&cache, 1*time.Hour)
+			certManager := tresor.NewFakeCertManager(&cache, mockConfigurator)
 
-			cert, err := certManager.IssueCertificate("blah", nil)
+			cert, err := certManager.IssueCertificate("blah", 1*time.Hour)
 			Expect(err).ToNot(HaveOccurred())
 
 			svc := service.MeshService{
@@ -80,7 +90,7 @@ var _ = Describe("Test SDS response functions", func() {
 
 			resourceName := sdsc.String()
 			mc := catalog.NewFakeMeshCatalog(testclient.NewSimpleClientset())
-			actual, err := getRootCert(cert, sdsc, tests.BookstoreService, mc)
+			actual, err := getRootCert(cert, sdsc, tests.BookstoreV1Service, mc)
 			Expect(err).ToNot(HaveOccurred())
 
 			expected := &xds_auth.Secret{

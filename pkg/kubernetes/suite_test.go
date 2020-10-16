@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestCatalog(t *testing.T) {
+func TestKubernetes(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Kubernetes Test Suite")
+	RunSpecs(t, "Kubernetes test suite")
 }

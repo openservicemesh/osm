@@ -32,16 +32,15 @@ spec:
             "--mesh-name", "{{.Values.OpenServiceMesh.meshName}}",
             "--init-container-image", "{{.Values.OpenServiceMesh.image.registry}}/init:{{ .Values.OpenServiceMesh.image.tag }}",
             "--sidecar-image", "{{.Values.OpenServiceMesh.sidecarImage}}",
-            "--webhook-name", "osm-webhook-{{.Values.OpenServiceMesh.meshName}}",
-            "--ca-bundle-secret-name", "osm-ca-bundle",
-            "--cert-manager", "{{.Values.OpenServiceMesh.certManager}}",
+            "--webhook-config-name", "osm-webhook-{{.Values.OpenServiceMesh.meshName}}",
+            "--ca-bundle-secret-name", "{{.Values.OpenServiceMesh.caBundleSecretName}}",
+            "--certificate-manager", "{{.Values.OpenServiceMesh.certificateManager}}",
             "--vault-host", "{{.Values.OpenServiceMesh.vault.host}}",
             "--vault-protocol", "{{.Values.OpenServiceMesh.vault.protocol}}",
             "--vault-token", "{{.Values.OpenServiceMesh.vault.token}}",
-            "--service-cert-validity-minutes", "{{.Values.OpenServiceMesh.serviceCertValidityMinutes}}",
-            {{- if .Values.OpenServiceMesh.enableDebugServer }}
-            "--enable-debug-server",
-            {{- end }}
+            "--cert-manager-issuer-name", "{{.Values.OpenServiceMesh.certmanager.issuerName}}",
+            "--cert-manager-issuer-kind", "{{.Values.OpenServiceMesh.certmanager.issuerKind}}",
+            "--cert-manager-issuer-group", "{{.Values.OpenServiceMesh.certmanager.issuerGroup}}",
             {{- if .Values.OpenServiceMesh.enableBackpressureExperimental }}
             "--enable-backpressure-experimental",
             {{- end }}
@@ -55,11 +54,25 @@ spec:
               memory: 32M
           readinessProbe:
             initialDelaySeconds: 1
+            timeoutSeconds: 5
             httpGet:
-              scheme: HTTPS
+              scheme: HTTP
               path: /health/ready
-              port: 9090
-    {{- with .Values.OpenServiceMesh.imagePullSecrets }}
+              port: 9091
+          livenessProbe:
+            initialDelaySeconds: 1
+            timeoutSeconds: 5
+            httpGet:
+              scheme: HTTP
+              path: /health/alive
+              port: 9091
+          env:
+            # The CONTROLLER_POD_NAME env variable sets pod name dynamically, used by osm-controller to register events
+            - name: CONTROLLER_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+    {{- if .Values.OpenServiceMesh.imagePullSecrets }}
       imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
+{{ toYaml .Values.OpenServiceMesh.imagePullSecrets | indent 8 }}
     {{- end }}

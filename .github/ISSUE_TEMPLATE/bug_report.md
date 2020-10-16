@@ -18,22 +18,22 @@ Be sure to not include any sensitive information. Sensitive information should _
 **Bug description**:
 
 **Affected area (please mark with X where applicable)**:
-- [ ] Install
-- [ ] SMI Traffic Access Policy
-- [ ] SMI Traffic Specs Policy
-- [ ] SMI Traffic Split Policy
-- [ ] Permissive Traffic Policy
-- [ ] Ingress
-- [ ] Egress
-- [ ] Envoy Control Plane
-- [ ] CLI Tool
-- [ ] Metrics
-- [ ] Certificate Management
-- [ ] Sidecar Injection
-- [ ] Logging
-- [ ] Debugging
-- [ ] Tests
-- [ ] CI System
+- Install                    [ ]
+- SMI Traffic Access Policy  [ ]
+- SMI Traffic Specs Policy   [ ]
+- SMI Traffic Split Policy   [ ]
+- Permissive Traffic Policy  [ ]
+- Ingress                    [ ]
+- Egress                     [ ]
+- Envoy Control Plane        [ ]
+- CLI Tool                   [ ]
+- Metrics                    [ ]
+- Certificate Management     [ ]
+- Sidecar Injection          [ ]
+- Logging                    [ ]
+- Debugging                  [ ]
+- Tests                      [ ]
+- CI System                  [ ]
 
 **Expected behavior**:
 

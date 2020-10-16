@@ -15,6 +15,7 @@ import (
 
 	"github.com/openservicemesh/osm/demo/cmd/common"
 	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 const (
@@ -24,13 +25,13 @@ const (
 
 var (
 	wg                sync.WaitGroup
-	booksBought       int64 = 0
-	booksBoughtV1     int64 = 0
-	booksBoughtV2     int64 = 0
-	log                     = logger.NewPretty(participantName)
-	port                    = flag.Int("port", 80, "port on which this app is listening for incoming HTTP")
-	path                    = flag.String("path", ".", "path to the HTML template")
-	numConnectionsStr       = common.GetEnv("CI_CLIENT_CONCURRENT_CONNECTIONS", "1")
+	booksBought       int64
+	booksBoughtV1     int64
+	booksBoughtV2     int64
+	log               = logger.NewPretty(participantName)
+	port              = flag.Int("port", 80, "port on which this app is listening for incoming HTTP")
+	path              = flag.String("path", ".", "path to the HTML template")
+	numConnectionsStr = utils.GetEnv("CI_CLIENT_CONCURRENT_CONNECTIONS", "1")
 )
 
 type handler struct {
@@ -40,7 +41,7 @@ type handler struct {
 }
 
 func getIdentity() string {
-	return common.GetEnv("IDENTITY", "Bookbuyer")
+	return utils.GetEnv("IDENTITY", "Bookbuyer")
 }
 
 func renderTemplate(w http.ResponseWriter) {
@@ -96,13 +97,10 @@ func getBooksWrapper(wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	meshExpectedResponseCode := http.StatusOK
-	egressExpectedResponseCode := common.GetExpectedResponseCodeFromEnvVar(common.EgressExpectedResponseCodeEnvVar, httpStatusOK)
-
-	common.GetBooks(participantName, meshExpectedResponseCode, egressExpectedResponseCode, &booksBought, &booksBoughtV1, &booksBoughtV2)
+	common.GetBooks(participantName, meshExpectedResponseCode, &booksBought, &booksBoughtV1, &booksBoughtV2)
 }
 
 func main() {
-
 	go debugServer()
 
 	numConnections, err := strconv.Atoi(numConnectionsStr)

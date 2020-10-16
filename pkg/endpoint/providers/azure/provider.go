@@ -52,8 +52,8 @@ func (az Client) ListEndpointsForService(svc service.MeshService) []endpoint.End
 	return endpoints
 }
 
-// GetServiceForServiceAccount retrieves the service for the given service account
-func (az Client) GetServiceForServiceAccount(svcAccount service.K8sServiceAccount) (service.MeshService, error) {
+// GetServicesForServiceAccount retrieves a list of services for the given service account.
+func (az Client) GetServicesForServiceAccount(svcAccount service.K8sServiceAccount) ([]service.MeshService, error) {
 	//TODO (snchh) : need to figure out the service account equivalnent for azure
 	panic("NotImplemented")
 }
@@ -91,9 +91,9 @@ func parseAzureID(id azureID) (resourceGroup, computeKind, computeName, error) {
 func (az *Client) resolveService(svc service.MeshService) []azureID {
 	log.Trace().Msgf("Resolving service %s to an Azure URI", svc)
 	var azureIDs []azureID
-	k8sService, err := az.meshSpec.GetService(svc)
-	if err != nil {
-		log.Error().Err(err).Msg("Error fetching Kubernetes Endpoints from cache")
+	k8sService := az.kubeController.GetService(svc)
+	if k8sService == nil {
+		log.Error().Msgf("Error fetching Kubernetes Service for MeshService %s", svc)
 		return azureIDs
 	}
 	log.Trace().Msgf("Got the service: %+v", k8sService)

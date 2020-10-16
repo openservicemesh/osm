@@ -106,7 +106,7 @@ var _ = Describe("Weighted clusters", func() {
 				totalClusterWeight += cluster.Weight
 			}
 
-			routeWeightedClusters := getWeightedCluster(weightedClusters, totalClusterWeight, true)
+			routeWeightedClusters := getWeightedCluster(weightedClusters, totalClusterWeight, InboundRoute)
 			Expect(routeWeightedClusters.TotalWeight).To(Equal(&wrappers.UInt32Value{Value: uint32(totalClusterWeight)}))
 			Expect(len(routeWeightedClusters.GetClusters())).To(Equal(weightedClusters.Cardinality()))
 
@@ -149,13 +149,13 @@ var _ = Describe("Routes with weighted clusters", func() {
 
 		It("Adds a new route", func() {
 
-			routePolicy := trafficpolicy.Route{
+			routePolicy := trafficpolicy.HTTPRoute{
 				PathRegex: "/books-bought",
 				Methods:   []string{"GET", "POST"},
 			}
 
-			routeWeightedClustersMap[routePolicy.PathRegex] = trafficpolicy.RouteWeightedClusters{Route: routePolicy, WeightedClusters: weightedClusters}
-			rt := createRoutes(routeWeightedClustersMap, true)
+			routeWeightedClustersMap[routePolicy.PathRegex] = trafficpolicy.RouteWeightedClusters{HTTPRoute: routePolicy, WeightedClusters: weightedClusters}
+			rt := createRoutes(routeWeightedClustersMap, InboundRoute)
 			Expect(len(rt)).To(Equal(len(routePolicy.Methods)))
 
 			for i, route := range rt {
@@ -174,15 +174,15 @@ var _ = Describe("Routes with weighted clusters", func() {
 
 		It("Appends another route", func() {
 
-			routePolicy2 := trafficpolicy.Route{
+			routePolicy2 := trafficpolicy.HTTPRoute{
 				PathRegex: "/buy-a-book",
 				Methods:   []string{"GET"},
 			}
-			routeWeightedClustersMap[routePolicy2.PathRegex] = trafficpolicy.RouteWeightedClusters{Route: routePolicy2, WeightedClusters: weightedClusters}
+			routeWeightedClustersMap[routePolicy2.PathRegex] = trafficpolicy.RouteWeightedClusters{HTTPRoute: routePolicy2, WeightedClusters: weightedClusters}
 
 			httpMethodCount := 3 // 2 from previously added routes + 1 append
 
-			rt := createRoutes(routeWeightedClustersMap, true)
+			rt := createRoutes(routeWeightedClustersMap, InboundRoute)
 
 			Expect(len(rt)).To(Equal(httpMethodCount))
 			var newRoute *envoy_route.Route
@@ -217,7 +217,7 @@ var _ = Describe("Route Configuration", func() {
 				cluster := clusterInterface.(service.WeightedCluster)
 				totalClusterWeight += cluster.Weight
 			}
-			routePolicy := trafficpolicy.Route{
+			routePolicy := trafficpolicy.HTTPRoute{
 				PathRegex: "/books-bought",
 				Methods:   []string{"GET"},
 				Headers: map[string]string{
@@ -226,7 +226,7 @@ var _ = Describe("Route Configuration", func() {
 			}
 
 			sourceDomainRouteData := map[string]trafficpolicy.RouteWeightedClusters{
-				routePolicy.PathRegex: {Route: routePolicy, WeightedClusters: weightedClusters},
+				routePolicy.PathRegex: {HTTPRoute: routePolicy, WeightedClusters: weightedClusters},
 			}
 
 			sourceDomainAggregatedData := map[string]map[string]trafficpolicy.RouteWeightedClusters{
@@ -234,17 +234,17 @@ var _ = Describe("Route Configuration", func() {
 			}
 
 			//Validating the outbound clusters and routes
-			sourceRouteConfig := NewRouteConfigurationStub(OutboundRouteConfigName)
-			UpdateRouteConfiguration(sourceDomainAggregatedData, sourceRouteConfig, true, false)
-			Expect(sourceRouteConfig).NotTo(Equal(nil))
-			Expect(sourceRouteConfig.Name).To(Equal(OutboundRouteConfigName))
-			Expect(len(sourceRouteConfig.VirtualHosts)).To(Equal(len(sourceDomainAggregatedData)))
-			Expect(len(sourceRouteConfig.VirtualHosts[0].Routes)).To(Equal(1))
-			Expect(len(sourceRouteConfig.VirtualHosts[0].Routes[0].Match.Headers)).To(Equal(1))
-			Expect(sourceRouteConfig.VirtualHosts[0].Routes[0].Match.GetSafeRegex().Regex).To(Equal(constants.RegexMatchAll))
-			Expect(sourceRouteConfig.VirtualHosts[0].Routes[0].Match.GetHeaders()[0].GetSafeRegexMatch().Regex).To(Equal(constants.RegexMatchAll))
-			Expect(len(sourceRouteConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters().GetClusters())).To(Equal(weightedClusters.Cardinality()))
-			Expect(sourceRouteConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters().TotalWeight).To(Equal(&wrappers.UInt32Value{Value: uint32(totalClusterWeight)}))
+			outboundRouteConfig := NewRouteConfigurationStub(OutboundRouteConfigName)
+			UpdateRouteConfiguration(sourceDomainAggregatedData, outboundRouteConfig, OutboundRoute)
+			Expect(outboundRouteConfig).NotTo(Equal(nil))
+			Expect(outboundRouteConfig.Name).To(Equal(OutboundRouteConfigName))
+			Expect(len(outboundRouteConfig.VirtualHosts)).To(Equal(len(sourceDomainAggregatedData)))
+			Expect(len(outboundRouteConfig.VirtualHosts[0].Routes)).To(Equal(1))
+			Expect(len(outboundRouteConfig.VirtualHosts[0].Routes[0].Match.Headers)).To(Equal(1))
+			Expect(outboundRouteConfig.VirtualHosts[0].Routes[0].Match.GetSafeRegex().Regex).To(Equal(constants.RegexMatchAll))
+			Expect(outboundRouteConfig.VirtualHosts[0].Routes[0].Match.GetHeaders()[0].GetSafeRegexMatch().Regex).To(Equal(constants.RegexMatchAll))
+			Expect(len(outboundRouteConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters().GetClusters())).To(Equal(weightedClusters.Cardinality()))
+			Expect(outboundRouteConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters().TotalWeight).To(Equal(&wrappers.UInt32Value{Value: uint32(totalClusterWeight)}))
 		})
 
 		It("Returns inbound route configuration", func() {
@@ -257,7 +257,7 @@ var _ = Describe("Route Configuration", func() {
 				cluster := clusterInterface.(service.WeightedCluster)
 				totalClusterWeight += cluster.Weight
 			}
-			routePolicy := trafficpolicy.Route{
+			routePolicy := trafficpolicy.HTTPRoute{
 				PathRegex: "/books-bought",
 				Methods:   []string{"GET"},
 				Headers: map[string]string{
@@ -266,7 +266,7 @@ var _ = Describe("Route Configuration", func() {
 			}
 
 			destDomainRouteData := map[string]trafficpolicy.RouteWeightedClusters{
-				routePolicy.PathRegex: {Route: routePolicy, WeightedClusters: weightedClusters},
+				routePolicy.PathRegex: {HTTPRoute: routePolicy, WeightedClusters: weightedClusters},
 			}
 
 			destDomainAggregatedData := map[string]map[string]trafficpolicy.RouteWeightedClusters{
@@ -275,7 +275,7 @@ var _ = Describe("Route Configuration", func() {
 
 			//Validating the inbound clusters and routes
 			destRouteConfig := NewRouteConfigurationStub(InboundRouteConfigName)
-			UpdateRouteConfiguration(destDomainAggregatedData, destRouteConfig, false, true)
+			UpdateRouteConfiguration(destDomainAggregatedData, destRouteConfig, InboundRoute)
 			Expect(destRouteConfig).NotTo(Equal(nil))
 			Expect(destRouteConfig.Name).To(Equal(InboundRouteConfigName))
 			Expect(len(destRouteConfig.VirtualHosts)).To(Equal(len(destDomainAggregatedData)))
@@ -307,7 +307,7 @@ var _ = Describe("Route Configuration", func() {
 var _ = Describe("Routes with headers", func() {
 	Context("Testing getHeadersForRoute", func() {
 		It("Returns a list of HeaderMatcher for a route", func() {
-			routePolicy := trafficpolicy.Route{
+			routePolicy := trafficpolicy.HTTPRoute{
 				PathRegex: "/books-bought",
 				Methods:   []string{"GET", "POST"},
 				Headers: map[string]string{
@@ -324,7 +324,7 @@ var _ = Describe("Routes with headers", func() {
 		})
 
 		It("Returns only one HeaderMatcher for a route", func() {
-			routePolicy := trafficpolicy.Route{
+			routePolicy := trafficpolicy.HTTPRoute{
 				PathRegex: "/books-bought",
 				Methods:   []string{"GET", "POST"},
 			}
@@ -336,7 +336,7 @@ var _ = Describe("Routes with headers", func() {
 		})
 
 		It("Returns only one HeaderMatcher for a route ignoring the host", func() {
-			routePolicy := trafficpolicy.Route{
+			routePolicy := trafficpolicy.HTTPRoute{
 				PathRegex: "/books-bought",
 				Methods:   []string{"GET", "POST"},
 				Headers: map[string]string{

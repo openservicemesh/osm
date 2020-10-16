@@ -20,9 +20,6 @@ const (
 	// TestsTimedOut is used for tests that timed out.
 	TestsTimedOut
 
-	// KubeConfigEnvVar is the environment variable for KUBECONFIG.
-	KubeConfigEnvVar = "KUBECONFIG"
-
 	// OSMNamespaceEnvVar is the environment variable for the OSM namespace.
 	OSMNamespaceEnvVar = "K8S_NAMESPACE"
 

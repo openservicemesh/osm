@@ -10,26 +10,25 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
-	"github.com/openservicemesh/osm/pkg/namespace"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
 // NewIngressClient implements ingress.Monitor and creates the Kubernetes client to monitor Ingress resources.
-func NewIngressClient(kubeClient kubernetes.Interface, namespaceController namespace.Controller, stop chan struct{}, cfg configurator.Configurator) (Monitor, error) {
+func NewIngressClient(kubeClient kubernetes.Interface, kubeController k8s.Controller, stop chan struct{}, cfg configurator.Configurator) (Monitor, error) {
 	informerFactory := informers.NewSharedInformerFactory(kubeClient, k8s.DefaultKubeEventResyncInterval)
 	informer := informerFactory.Extensions().V1beta1().Ingresses().Informer()
 
 	client := Client{
-		informer:            informer,
-		cache:               informer.GetStore(),
-		cacheSynced:         make(chan interface{}),
-		announcements:       make(chan interface{}),
-		namespaceController: namespaceController,
+		informer:       informer,
+		cache:          informer.GetStore(),
+		cacheSynced:    make(chan interface{}),
+		announcements:  make(chan interface{}),
+		kubeController: kubeController,
 	}
 
 	shouldObserve := func(obj interface{}) bool {
 		ns := reflect.ValueOf(obj).Elem().FieldByName("ObjectMeta").FieldByName("Namespace").String()
-		return namespaceController.IsMonitoredNamespace(ns)
+		return kubeController.IsMonitoredNamespace(ns)
 	}
 	informer.AddEventHandler(k8s.GetKubernetesEventHandlers("Ingress", "Kubernetes", client.announcements, shouldObserve))
 
@@ -78,7 +77,7 @@ func (c Client) GetIngressResources(meshService service.MeshService) ([]*extensi
 		}
 
 		// Extra safety - make sure we do not pay attention to Ingresses outside of observed namespaces
-		if !c.namespaceController.IsMonitoredNamespace(ingress.Namespace) {
+		if !c.kubeController.IsMonitoredNamespace(ingress.Namespace) {
 			continue
 		}
 

@@ -5,6 +5,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 )
 
@@ -68,6 +69,14 @@ var _ = Describe("Test Tresor Tools", func() {
 	Context("Test EncodeCertDERtoPEM function", func() {
 		cert, err := EncodeCertDERtoPEM([]byte{1, 2, 3})
 		It("should have encoded DER bytes into a PEM certificate", func() {
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(cert).NotTo(Equal(nil))
+		})
+	})
+
+	Context("Test EncodeCertReqDERtoPEM function", func() {
+		cert, err := EncodeCertReqDERtoPEM([]byte{1, 2, 3})
+		It("should have encoded DER bytes into a PEM certificate request", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(cert).NotTo(Equal(nil))
 		})

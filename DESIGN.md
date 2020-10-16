@@ -35,7 +35,31 @@ OSM ships out-of-the-box with all necessary components to deploy a complete serv
 
 
 
-## High-level architecture
+## OSM Components & Interactions
+![OSM Components & Interactions](./docs/images/osm-components-and-interactions.png)
+
+### Containers
+When a new Pod creation is initiated, OSM's
+[MutatingWebhookConfiguration](https://github.com/openservicemesh/osm/blob/release-v0.3/charts/osm/templates/mutatingwebhook.yaml)
+intercepts the
+[create](https://github.com/openservicemesh/osm/blob/release-v0.3/pkg/injector/webhook.go#L295)
+[pod](https://github.com/openservicemesh/osm/blob/release-v0.3/pkg/injector/webhook.go#L299)
+operations for [namespaces joined to the mesh](https://github.com/openservicemesh/osm/blob/release-v0.3/charts/osm/templates/mutatingwebhook.yaml#L19),
+and forwards these API calls to the
+[OSM control plane](https://github.com/openservicemesh/osm/blob/release-v0.3/charts/osm/templates/mutatingwebhook.yaml#L11).
+OSM control plane augments ([patches](https://github.com/openservicemesh/osm/blob/release-v0.3/pkg/injector/webhook.go#L202-L208))
+the Pod spec with 2 new containers.
+One is the [Envoy sidecar](https://github.com/openservicemesh/osm/blob/release-v0.3/pkg/injector/patch.go#L82-L86),
+the other is an [init container](https://github.com/openservicemesh/osm/blob/release-v0.3/pkg/injector/patch.go#L61-L74).
+The init container is ephemeral. It executes the [init-iptables.sh bash script](https://github.com/openservicemesh/osm/blob/release-v0.3/init-iptables.sh)
+and terminates.
+The init container requires [NET_ADMIN Kernel capability](https://github.com/openservicemesh/osm/blob/release-v0.3/pkg/injector/init-container.go#L21-L25) for
+[iptables](https://en.wikipedia.org/wiki/Iptables) changes to be applied.
+OSM uses `iptables` to ensure that all inbound and outbound traffic flows through the Envoy sidecar.
+The [init container Docker image](https://hub.docker.com/r/openservicemesh/init)
+is passed as a string pointing to a container registry. This is passed via the `--init-container-image` CLI param to the OSM controller on startup. The default value is defined in the [OSM Deployment chart](https://github.com/openservicemesh/osm/blob/release-v0.3/charts/osm/templates/osm-deployment.yaml#L33).
+
+## High-level software architecture
 
 The Open Service Mesh project is composed of the following five high-level components:
   1. [Proxy control plane](#1-proxy-control-plane) - handles gRPC connections from the service mesh sidecar proxies
@@ -224,7 +248,7 @@ the development of the OSM in [this repository](https://github.com/openserviceme
 
 
 This section adopts the following assumptions:
-  - [1:1 relationship](https://en.wikipedia.org/wiki/One-to-one_(data_model)) between an [proxy](https://www.envoyproxy.io/docs/envoy/latest/intro/what_is_envoy) and an instance of a service. (No more than one service fronted by the same proxy.)
+  - [1:1 relationship](https://en.wikipedia.org/wiki/One-to-one_(data_model)) between a [proxy](https://www.envoyproxy.io/docs/envoy/latest/intro/what_is_envoy) and an instance of a service. (No more than one service fronted by the same proxy.)
   - [1:1 relationship](https://en.wikipedia.org/wiki/One-to-one_(data_model)) between an [endpoint](#fgh-endpoint) (port and IP) and a [proxy](#a-proxy)
 
 
@@ -286,7 +310,7 @@ type MeshCataloger interface {
 	ListAllowedOutboundServices(service.MeshService) ([]service.MeshService, error)
 
 	// ListSMIPolicies lists SMI policies.
-	ListSMIPolicies() ([]*split.TrafficSplit, []service.WeightedService, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget, []*corev1.Service)
+	ListSMIPolicies() ([]*split.TrafficSplit, []service.WeightedService, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget)
 
 	// ListEndpointsForService returns the list of provider endpoints corresponding to a service
 	ListEndpointsForService(service.MeshService) ([]endpoint.Endpoint, error)
@@ -298,8 +322,9 @@ type MeshCataloger interface {
 	// ExpectProxy catalogs the fact that a certificate was issued for an Envoy proxy and this is expected to connect to XDS.
 	ExpectProxy(certificate.CommonName)
 
-	// GetServiceFromEnvoyCertificate returns the single service given Envoy is a member of based on the certificate provided, which is a cert issued to an Envoy for XDS communication (not Envoy-to-Envoy).
-	GetServiceFromEnvoyCertificate(certificate.CommonName) (*service.MeshService, error)
+    // GetServicesFromEnvoyCertificate returns a list of services the given Envoy is a member of based on the certificate provided,
+    // which is a cert issued to an Envoy for XDS communication (not Envoy-to-Envoy).
+	GetServicesFromEnvoyCertificate(certificate.CommonName) ([]service.MeshService, error)
 
 	// RegisterProxy registers a newly connected proxy with the service mesh catalog.
 	RegisterProxy(*envoy.Proxy)
@@ -307,8 +332,8 @@ type MeshCataloger interface {
 	// UnregisterProxy unregisters an existing proxy from the service mesh catalog
 	UnregisterProxy(*envoy.Proxy)
 
-	// GetServiceForServiceAccount returns the service corresponding to a service account
-	GetServiceForServiceAccount(service.K8sServiceAccount) (service.MeshService, error)
+	// GetServicesForServiceAccount returns a list of services corresponding to a service account
+	GetServicesForServiceAccount(service.K8sServiceAccount) ([]service.MeshService, error)
 
 	// GetHostnamesForService returns the hostnames for a service
 	GetHostnamesForService(service service.MeshService) (string, error)
@@ -316,8 +341,8 @@ type MeshCataloger interface {
 	//GetWeightedClusterForService returns the weighted cluster for a service
 	GetWeightedClusterForService(service service.MeshService) (service.WeightedCluster, error)
 
-	// GetIngressRoutesPerHost returns the routes per host associated with an ingress service
-	GetIngressRoutesPerHost(service.MeshService) (map[string][]trafficpolicy.Route, error)
+	// GetIngressRoutesPerHost returns the HTTP routes per host associated with an ingress service
+	GetIngressRoutesPerHost(service.MeshService) (map[string][]trafficpolicy.HTTPRoute, error)
 }
 ```
 
@@ -425,29 +450,32 @@ The `MeshSpec` implementation **has no awareness** of:
 ```go
 // MeshSpec is an interface declaring functions, which provide the specs for a service mesh declared with SMI.
 type MeshSpec interface {
-	// ListTrafficSplits lists TrafficSplit SMI resources.
+	// ListTrafficSplits lists SMI TrafficSplit resources
 	ListTrafficSplits() []*split.TrafficSplit
 
-	// ListTrafficSplitServices fetches all services declared with SMI Spec.
+	// ListTrafficSplitServices lists WeightedServices for the services specified in TrafficSplit SMI resources
 	ListTrafficSplitServices() []service.WeightedService
 
-	// ListServiceAccounts fetches all service accounts declared with SMI Spec.
+	// ListServiceAccounts lists ServiceAccount resources specified in SMI TrafficTarget resources
 	ListServiceAccounts() []service.K8sServiceAccount
 
-	// GetService fetches a specific service declared in SMI.
-	GetService(service.MeshService) (service *corev1.Service, err error)
+	// GetService fetches a Kubernetes Service resource for the given MeshService
+	GetService(service.MeshService) *corev1.Service
 
-	// ListHTTPTrafficSpecs lists TrafficSpec SMI resources.
+	// ListServices Lists Kubernets Service resources that are part of monitored namespaces
+	ListServices() []*corev1.Service
+
+	// ListHTTPTrafficSpecs lists SMI HTTPRouteGroup resources
 	ListHTTPTrafficSpecs() []*spec.HTTPRouteGroup
 
-	// ListTrafficTargets lists TrafficTarget SMI resources.
+	// ListTrafficTargets lists SMI TrafficTarget resources
 	ListTrafficTargets() []*target.TrafficTarget
 
-	// GetAnnouncementsChannel returns the channel on which SMI makes announcements
-	GetAnnouncementsChannel() <-chan interface{}
+	// GetBackpressurePolicy fetches the Backpressure policy for the MeshService
+	GetBackpressurePolicy(service.MeshService) *backpressure.Backpressure
 
-	// ListServices returns a list of services that are part of monitored namespaces
-	ListServices() ([]*corev1.Service, error)
+	// GetAnnouncementsChannel returns the channel on which SMI client makes announcements
+	GetAnnouncementsChannel() <-chan interface{}
 }
 ```
 
@@ -460,7 +488,7 @@ package certificate
 // Manager is the interface declaring the methods for the Certificate Manager.
 type Manager interface {
 	// IssueCertificate issues a new certificate.
-	IssueCertificate(CommonName, *time.Duration) (Certificater, error)
+	IssueCertificate(CommonName, time.Duration) (Certificater, error)
 
 	// GetCertificate returns a certificate given its Common Name (CN)
 	GetCertificate(CommonName) (Certificater, error)

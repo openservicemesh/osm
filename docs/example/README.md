@@ -20,13 +20,17 @@
 - [Inspect Dashbaords](#inspect-dashboards)
 
 ## Overview
-The OSM Manual Install Demo Guide is designed to quickly allow you to demo and experience the OSM mesh. 
+The OSM Manual Install Demo Guide is designed to quickly allow you to demo and experience the OSM mesh.
 
 ## Configure Prerequisites
 - Kubernetes cluster running Kubernetes v1.15.0 or greater
 - Have `kubectl` CLI installed - [Install and Set Up Kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 - kubectl current context is configured for the target cluster install
   - ```kubectl config current-context```
+- Have a local clone of the OSM GitHub Repo
+  - ```git clone https://github.com/openservicemesh/osm.git```
+  - ```cd osm```
+
 
 
 ## Install OSM CLI
@@ -44,14 +48,14 @@ The `Bookstore`, `Bookbuyer`, `Bookthief`, `Bookwarehouse` demo applications wil
 ```bash
 for i in bookstore bookbuyer bookthief bookwarehouse; do kubectl create ns $i; done
 ```
-### Onboard the Namespaces to the OSM Mesh
+### Onboard the Namespaces to the OSM Mesh and enable sidecar injection on the namespaces
 ```bash
-for i in bookstore bookbuyer bookthief bookwarehouse; do osm namespace add $i; done
+osm namespace add bookstore bookbuyer bookthief bookwarehouse --enable-sidecar-injection
 ```
 ### Deploy the Bookstore Application
 Install `Bookstore`, `Bookbuyer`, `Bookthief`, `Bookwarehouse`.
 ```bash
-kubectl create -f docs/example/manifests/apps/
+kubectl apply -f docs/example/manifests/apps/
 ```
 
 ### Checkpoint: What Got Installed?
@@ -63,33 +67,37 @@ The following are the key components of the demo application:
 
 To view these resources on your cluster, run the following commands:
 ```
-kubectl get svc
+kubectl get svc --all-namespaces
 kubectl get deploy --all-namespaces
 kubectl get trafficsplit -n bookstore
 ```
 
-A simple toplogy view of the Bookstore application looks like the following:
+A simple topology view of the Bookstore application looks like the following:
 ![Bookstore Application Topology](/img/book-thief-app-topology.jpg "Bookstore Application Topology")
 
 *Note: At the moment, you must configure a TrafficSplit object to get your applications set up correctly for inbound traffic because it helps us properly configure the dataplane. We're working on removing the need for this entirely.* [#1370](https://github.com/openservicemesh/osm/issues/1370)
 
 ### View the Application UIs
-We will now setup client port forwarding, so we can access the services in the Kubernetes cluster. It is best to start a new terminal session for running the port forwarding script to maintain the port forwarding session, while using the original terminal to continue to issue commands. The port-forward-all.sh script will look for a ```".env"``` file for variables. The ```".env"``` creates the necessary variables that target the previously created namespaces. We will use the reference .env.examples file and then run the port forwarding script. 
+We will now setup client port forwarding, so we can access the services in the Kubernetes cluster. It is best to start a new terminal session for running the port forwarding script to maintain the port forwarding session, while using the original terminal to continue to issue commands. The port-forward-all.sh script will look for a ```".env"``` file for variables. The ```".env"``` creates the necessary variables that target the previously created namespaces. We will use the reference .env.examples file and then run the port forwarding script.
 
 In a new terminal session, run the following commands to enable port forwarding into the Kubernetes cluster.
 ```bash
 cp .env.example .env
 ./scripts/port-forward-all.sh
 ```
+*Note: To override the default ports, prefix the `BOOKBUYER_LOCAL_PORT`, `BOOKSTOREv1_LOCAL_PORT`, `BOOKSTOREv2_LOCAL_PORT`, and/or `BOOKTHIEF_LOCAL_PORT` variable assignments to the `port-forward` scripts. For example:*
 
+```bash
+BOOKBUYER_LOCAL_PORT=7070 BOOKSTOREv1_LOCAL_PORT=7071 BOOKSTOREv2_LOCAL_PORT=7072 BOOKTHIEF_LOCAL_PORT=7073 ./scripts/port-forward-all.sh
+```
 In a browser, open up the following urls:
 - http://localhost:8080 - **Bookbuyer**
 - http://localhost:8081 - **bookstore-v1**
-- http://localhost:8082 - **bookstore-v2** 
+- http://localhost:8082 - **bookstore-v2**
   - *Note: This page will not be available at this time in the demo. This will become available during the Traffic Split Configuration*
 - http://localhost:8083 - **bookthief**
 
-Position the windows so that you can see all four at the same time. The header at the top of the webpage indicates the application and version. 
+Position the windows so that you can see all four at the same time. The header at the top of the webpage indicates the application and version.
 
 ## Deploy SMI Access Control Policies
 At this point, no applications have access to each other because no access control policies have been applied. Confirm this by confirming that none of the counters in the UI are incrementing. Apply the [SMI Traffic Target][1] and [SMI Traffic Specs][2] resources to define access control policies below:
@@ -129,7 +137,7 @@ spec:
     #name: bookthief
     #namespace: bookthief
  ```
- 
+
  Updated TrafficTarget spec with uncommented `Bookthief` kind:
  ```
  kind: TrafficTarget
@@ -183,7 +191,7 @@ kubectl apply -f docs/example/manifests/bookstore-v2/
 
 Browse to http://localhost:8082. You should see the `bookstore-v2` heading in your browser window. **NOTE** Please exit and restart the `./scripts/port-forward-all.sh` script in order to access v2 of Bookstore.
 
-After restarting the port forwarding script, you should now be able to access the `bookstore-v2` application at http://localhost:8082. The count for the books sold should remain at 0, this is because the current traffic split policy is currently weighted 100% for `bookstore-v2`. You can verify the traffic split policy by running the following and viewing the **Backends** properties:
+After restarting the port forwarding script, you should now be able to access the `bookstore-v2` application at http://localhost:8082. The count for the books sold should remain at 0, this is because the current traffic split policy is currently weighted 100% for `bookstore-v1`. You can verify the traffic split policy by running the following and viewing the **Backends** properties:
 ```
 kubectl describe trafficsplit bookstore-split -n bookstore
 ```

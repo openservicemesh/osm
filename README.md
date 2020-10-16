@@ -14,6 +14,8 @@ The OSM project builds on the ideas and implementations of many cloud native eco
 - [Overview](#overview)
   - [Core Principles](#core-principles)
   - [Features](#features)
+  - [Project Status](#project-status)
+  - [Support](#support)
   - [SMI Specification Support](#smi-specification-support)
 - [OSM Design](#osm-design)
 - [Install](#install)
@@ -47,6 +49,14 @@ OSM runs an Envoy based control plane on Kubernetes, can be configured with SMI 
 1. [Observability](docs/patterns/observability.md) and insights into application metrics for debugging and monitoring services
 1. Integrate with [external certificate management](docs/patterns/certificates.md) services/solutions with a pluggable interface
 1. Onboard applications onto the mesh by enabling [automatic sidecar injection](docs/patterns/sidecar_injection.md) of Envoy proxy
+
+### Project status
+
+OSM is under active development and is **NOT** ready for production workloads. 
+
+### Support
+
+OSM is an open source project that is [**not** covered by the Microsoft Azure support policy](https://support.microsoft.com/en-us/help/2941892/support-for-linux-and-open-source-technology-in-azure). [Please search open issues here](https://github.com/openservicemesh/osm/issues), and if your issue isn't already represented please [open a new one](https://github.com/openservicemesh/osm/issues/new/choose). The OSM project maintainers will respond to the best of their abilities.
 
 ### SMI Specification support
 
@@ -107,8 +117,8 @@ After installing OSM, [onboard a microservice application](docs/onboard_services
 Connect with the Open Service Mesh community:
 
 - GitHub [issues](https://github.com/openservicemesh/osm/issues) and [pull requests](https://github.com/openservicemesh/osm/pulls) in this repo
-- OSM Slack (coming soon)
-- Public Community Call (coming soon)
+- OSM Slack: <a href="https://slack.cncf.io/">Join</a> the CNCF Slack for related discussions in <a href="https://cloud-native.slack.com/archives/C018794NV1C">#openservicemesh</a>
+- Public Community Call: OSM Community calls take place on the [second Tuesday of each month, 10:30am-11am Pacific](https://calendar.google.com/calendar?cid=Y181dXJwY3F0NWd2OW5ldXE2c2IxM2hvcnN2Z0Bncm91cC5jYWxlbmRhci5nb29nbGUuY29t) in the [CNCF OSM Zoom room](https://zoom.us/my/cncfosm?pwd=aXdkaGU3OWRjUllyaHZEZkh0ZjFwUT09) - notes available in [Open Service Mesh (OSM) Community Meeting Notes](https://docs.google.com/document/d/1da-XIqthmyG7zQyFAV1Kt-Qvq4NoNNBX7hZ_sM_kM98/edit?usp=sharing)
 - [Mailing list](https://groups.google.com/g/openservicemesh)
 
 ## Development Guide
@@ -117,7 +127,7 @@ If you would like to contribute to OSM, check out the [development guide](docs/d
 
 ## Code of Conduct
 
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for further details.
+This project has adopted the [CNCF Code of Conduct](https://github.com/cncf/foundation/blob/master/code-of-conduct.md). See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for further details.
 
 ## License
 

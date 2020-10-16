@@ -42,6 +42,7 @@ func newRootCmd(config *action.Configuration, in io.Reader, out io.Writer, args 
 		newUpdateCmd(config, out),
 		newDashboardCmd(config, out),
 		newNamespaceCmd(out),
+		newMetricsCmd(out),
 		newVersionCmd(out),
 	)
 

@@ -12,7 +12,6 @@ type namespaces struct {
 
 func (ds debugServer) getMonitoredNamespacesHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 		var n namespaces
 		n.Namespaces = ds.meshCatalogDebugger.ListMonitoredNamespaces()
 

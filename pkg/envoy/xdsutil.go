@@ -117,7 +117,6 @@ func UnmarshalSDSCert(str string) (*SDSCert, error) {
 	}
 
 	return &ret, nil
-
 }
 
 // String is a common facility/interface to generate a string resource name out of a SDSCert
@@ -277,7 +276,7 @@ func GetUpstreamTLSContext(serviceName service.MeshService, sni string) *xds_aut
 		CommonTlsContext: commonTLSContext,
 
 		// The Sni field is going to be used to do FilterChainMatch in getInboundInMeshFilterChain()
-		// The "Sni" field below of an incoming request will be matched aganist a list of server names
+		// The "Sni" field below of an incoming request will be matched against a list of server names
 		// in FilterChainMatch.ServerNames
 		Sni: sni,
 	}

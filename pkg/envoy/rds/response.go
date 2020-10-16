@@ -1,14 +1,11 @@
 package rds
 
 import (
-	"context"
-
+	set "github.com/deckarep/golang-set"
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-
-	set "github.com/deckarep/golang-set"
-
 	"github.com/golang/protobuf/ptypes"
+
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -18,13 +15,14 @@ import (
 )
 
 // NewResponse creates a new Route Discovery Response.
-func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, cfg configurator.Configurator) (*xds_discovery.DiscoveryResponse, error) {
-	svc, err := catalog.GetServiceFromEnvoyCertificate(proxy.GetCommonName())
+func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, _ configurator.Configurator) (*xds_discovery.DiscoveryResponse, error) {
+	svcList, err := catalog.GetServicesFromEnvoyCertificate(proxy.GetCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up MeshService for Envoy with CN=%q", proxy.GetCommonName())
 		return nil, err
 	}
-	proxyServiceName := *svc
+	// Github Issue #1575
+	proxyServiceName := svcList[0]
 
 	allTrafficPolicies, err := catalog.ListTrafficPolicies(proxyServiceName)
 	if err != nil {
@@ -37,16 +35,16 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, proxy *envo
 		TypeUrl: string(envoy.TypeRDS),
 	}
 
-	routeConfiguration := []*xds_route.RouteConfiguration{}
-	sourceRouteConfig := route.NewRouteConfigurationStub(route.OutboundRouteConfigName)
-	destinationRouteConfig := route.NewRouteConfigurationStub(route.InboundRouteConfigName)
-	sourceAggregatedRoutesByHostnames := make(map[string]map[string]trafficpolicy.RouteWeightedClusters)
-	destinationAggregatedRoutesByHostnames := make(map[string]map[string]trafficpolicy.RouteWeightedClusters)
+	var routeConfiguration []*xds_route.RouteConfiguration
+	outboundRouteConfig := route.NewRouteConfigurationStub(route.OutboundRouteConfigName)
+	inboundRouteConfig := route.NewRouteConfigurationStub(route.InboundRouteConfigName)
+	outboundAggregatedRoutesByHostnames := make(map[string]map[string]trafficpolicy.RouteWeightedClusters)
+	inboundAggregatedRoutesByHostnames := make(map[string]map[string]trafficpolicy.RouteWeightedClusters)
 
-	for _, trafficPolicies := range allTrafficPolicies {
-		isSourceService := trafficPolicies.Source.Equals(proxyServiceName)
-		isDestinationService := trafficPolicies.Destination.Equals(proxyServiceName)
-		svc := trafficPolicies.Destination
+	for _, trafficPolicy := range allTrafficPolicies {
+		isSourceService := trafficPolicy.Source.Equals(proxyServiceName)
+		isDestinationService := trafficPolicy.Destination.Equals(proxyServiceName)
+		svc := trafficPolicy.Destination
 		hostnames, err := catalog.GetHostnamesForService(svc)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed listing domains")
@@ -58,23 +56,26 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, proxy *envo
 			return nil, err
 		}
 
-		if isSourceService {
-			aggregateRoutesByHost(sourceAggregatedRoutesByHostnames, trafficPolicies.Route, weightedCluster, hostnames)
-		}
+		// All routes from a given source to destination are part of 1 traffic policy between the source and destination.
+		for _, httpRoute := range trafficPolicy.HTTPRoutes {
+			if isSourceService {
+				aggregateRoutesByHost(outboundAggregatedRoutesByHostnames, httpRoute, weightedCluster, hostnames)
+			}
 
-		if isDestinationService {
-			aggregateRoutesByHost(destinationAggregatedRoutesByHostnames, trafficPolicies.Route, weightedCluster, hostnames)
+			if isDestinationService {
+				aggregateRoutesByHost(inboundAggregatedRoutesByHostnames, httpRoute, weightedCluster, hostnames)
+			}
 		}
 	}
 
-	if err = updateRoutesForIngress(proxyServiceName, catalog, destinationAggregatedRoutesByHostnames); err != nil {
+	if err = updateRoutesForIngress(proxyServiceName, catalog, inboundAggregatedRoutesByHostnames); err != nil {
 		return nil, err
 	}
 
-	route.UpdateRouteConfiguration(sourceAggregatedRoutesByHostnames, sourceRouteConfig, true, false)
-	route.UpdateRouteConfiguration(destinationAggregatedRoutesByHostnames, destinationRouteConfig, false, true)
-	routeConfiguration = append(routeConfiguration, sourceRouteConfig)
-	routeConfiguration = append(routeConfiguration, destinationRouteConfig)
+	route.UpdateRouteConfiguration(outboundAggregatedRoutesByHostnames, outboundRouteConfig, route.OutboundRoute)
+	route.UpdateRouteConfiguration(inboundAggregatedRoutesByHostnames, inboundRouteConfig, route.InboundRoute)
+	routeConfiguration = append(routeConfiguration, outboundRouteConfig)
+	routeConfiguration = append(routeConfiguration, inboundRouteConfig)
 
 	for _, config := range routeConfiguration {
 		marshalledRouteConfig, err := ptypes.MarshalAny(config)
@@ -87,7 +88,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, proxy *envo
 	return resp, nil
 }
 
-func aggregateRoutesByHost(routesPerHost map[string]map[string]trafficpolicy.RouteWeightedClusters, routePolicy trafficpolicy.Route, weightedCluster service.WeightedCluster, host string) {
+func aggregateRoutesByHost(routesPerHost map[string]map[string]trafficpolicy.RouteWeightedClusters, routePolicy trafficpolicy.HTTPRoute, weightedCluster service.WeightedCluster, host string) {
 	_, exists := routesPerHost[host]
 	if !exists {
 		// no host found, create a new route map
@@ -97,12 +98,12 @@ func aggregateRoutesByHost(routesPerHost map[string]map[string]trafficpolicy.Rou
 	if routeFound {
 		// add the cluster to the existing route
 		routePolicyWeightedCluster.WeightedClusters.Add(weightedCluster)
-		routePolicyWeightedCluster.Route.Methods = append(routePolicyWeightedCluster.Route.Methods, routePolicy.Methods...)
-		if routePolicyWeightedCluster.Route.Headers == nil {
-			routePolicyWeightedCluster.Route.Headers = make(map[string]string)
+		routePolicyWeightedCluster.HTTPRoute.Methods = append(routePolicyWeightedCluster.HTTPRoute.Methods, routePolicy.Methods...)
+		if routePolicyWeightedCluster.HTTPRoute.Headers == nil {
+			routePolicyWeightedCluster.HTTPRoute.Headers = make(map[string]string)
 		}
 		for headerKey, headerValue := range routePolicy.Headers {
-			routePolicyWeightedCluster.Route.Headers[headerKey] = headerValue
+			routePolicyWeightedCluster.HTTPRoute.Headers[headerKey] = headerValue
 		}
 		routesPerHost[host][routePolicy.PathRegex] = routePolicyWeightedCluster
 	} else {
@@ -111,9 +112,9 @@ func aggregateRoutesByHost(routesPerHost map[string]map[string]trafficpolicy.Rou
 	}
 }
 
-func createRoutePolicyWeightedClusters(routePolicy trafficpolicy.Route, weightedCluster service.WeightedCluster) trafficpolicy.RouteWeightedClusters {
+func createRoutePolicyWeightedClusters(routePolicy trafficpolicy.HTTPRoute, weightedCluster service.WeightedCluster) trafficpolicy.RouteWeightedClusters {
 	return trafficpolicy.RouteWeightedClusters{
-		Route:            routePolicy,
+		HTTPRoute:        routePolicy,
 		WeightedClusters: set.NewSet(weightedCluster),
 	}
 }

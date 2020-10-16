@@ -25,9 +25,10 @@ func setupMutualTLS(insecure bool, serverName string, certPem []byte, keyPem []b
 
 	// Load the set of Root CAs
 	if ok := certPool.AppendCertsFromPEM(ca); !ok {
-		return nil, errors.Errorf("[grpc][mTLS][%s] Filed to append client certs", serverName)
+		return nil, errors.Errorf("[grpc][mTLS][%s] Failed to append client certs", serverName)
 	}
 
+	// #nosec G402
 	tlsConfig := tls.Config{
 		InsecureSkipVerify: insecure,
 		ServerName:         serverName,

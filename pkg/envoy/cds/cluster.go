@@ -41,6 +41,8 @@ func getRemoteServiceCluster(remoteService, localService service.MeshService, cf
 				TypedConfig: marshalledUpstreamTLSContext,
 			},
 		},
+		ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
+		Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
 	}
 
 	if cfg.IsPermissiveTrafficPolicyMode() {
@@ -65,7 +67,9 @@ func getOutboundPassthroughCluster() *xds_cluster.Cluster {
 		ClusterDiscoveryType: &xds_cluster.Cluster_Type{
 			Type: xds_cluster.Cluster_ORIGINAL_DST,
 		},
-		LbPolicy: xds_cluster.Cluster_CLUSTER_PROVIDED,
+		LbPolicy:             xds_cluster.Cluster_CLUSTER_PROVIDED,
+		ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
+		Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
 	}
 }
 
@@ -89,6 +93,8 @@ func getLocalServiceCluster(catalog catalog.MeshCataloger, proxyServiceName serv
 				// Filled based on discovered endpoints for the service
 			},
 		},
+		ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
+		Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
 	}
 
 	endpoints, err := catalog.ListEndpointsForService(proxyServiceName)
