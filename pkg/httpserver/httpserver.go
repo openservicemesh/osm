@@ -55,14 +55,17 @@ func NewHTTPServer(probes []health.Probes, httpProbes []health.HTTPProbe, metric
 }
 
 // Start runs the Serve operations for the http.server on a separate go routine context
-func (s *HTTPServer) Start() {
+func (s *HTTPServer) Start(announcementCh <-chan interface{}) {
 	go func() {
+		announcement := <-announcementCh
+		log.Info().Msgf("Announcement Channel %s", announcement)
 		log.Info().Msgf("Starting API Server on %s", s.server.Addr)
 		if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			events.GenericEventRecorder().FatalEvent(err, events.InitializationError,
 				"Error starting HTTP server")
 		}
 	}()
+
 }
 
 // Stop halts the http.server
