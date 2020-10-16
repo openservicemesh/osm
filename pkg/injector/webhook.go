@@ -225,6 +225,11 @@ func (wh *webhook) mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespo
 }
 
 func (wh *webhook) isNamespaceAllowed(namespace string) bool {
+	// Skip osm-controller namespace
+	if namespace == wh.osmNamespace {
+		return false
+	}
+
 	// Skip Kubernetes system namespaces
 	for _, ns := range kubeSystemNamespaces {
 		if ns == namespace {

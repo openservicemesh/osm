@@ -193,18 +193,15 @@ var _ = Describe("Testing mustInject, isNamespaceAllowed", func() {
 	mockKubeController = k8s.NewMockController(mockCtrl)
 	fakeClientSet = fake.NewSimpleClientset()
 	namespace := "test"
+	osmNamespace := "osm-namespace"
 
 	BeforeEach(func() {
 		fakeClientSet = fake.NewSimpleClientset()
 		wh = &webhook{
 			kubeClient:     fakeClientSet,
 			kubeController: mockKubeController,
+			osmNamespace:   osmNamespace,
 		}
-	})
-
-	AfterEach(func() {
-		err := fakeClientSet.CoreV1().Namespaces().Delete(context.TODO(), namespace, metav1.DeleteOptions{})
-		Expect(err).ToNot(HaveOccurred())
 	})
 
 	It("should return true when the pod is enabled for sidecar injection", func() {
@@ -398,6 +395,49 @@ var _ = Describe("Testing mustInject, isNamespaceAllowed", func() {
 
 		Expect(err).To(HaveOccurred())
 		Expect(inject).To(BeFalse())
+	})
+
+	It("Should allow a monitored app namespace", func() {
+		testNamespace := &corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: namespace,
+			},
+		}
+		_, err := fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), testNamespace, metav1.CreateOptions{})
+		Expect(err).ToNot(HaveOccurred())
+
+		mockKubeController.EXPECT().IsMonitoredNamespace(testNamespace.Name).Return(true).Times(1)
+		allowed := wh.isNamespaceAllowed(testNamespace.Name)
+		Expect(allowed).To(BeTrue())
+	})
+
+	It("Should not allow an osm-controller's namespace", func() {
+		allowed := wh.isNamespaceAllowed(osmNamespace)
+		Expect(allowed).To(BeFalse())
+	})
+
+	It("Should not allow an kubernetes system namespace", func() {
+		allowed := wh.isNamespaceAllowed(metav1.NamespaceSystem)
+		Expect(allowed).To(BeFalse())
+	})
+
+	It("Should not allow an kubernetes public namespace", func() {
+		allowed := wh.isNamespaceAllowed(metav1.NamespacePublic)
+		Expect(allowed).To(BeFalse())
+	})
+
+	It("Should not allow an unmonitored app namespace", func() {
+		testNamespace := &corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: namespace,
+			},
+		}
+		_, err := fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), testNamespace, metav1.CreateOptions{})
+		Expect(err).ToNot(HaveOccurred())
+
+		mockKubeController.EXPECT().IsMonitoredNamespace(testNamespace.Name).Return(false).Times(1)
+		allowed := wh.isNamespaceAllowed(testNamespace.Name)
+		Expect(allowed).To(BeFalse())
 	})
 })
 
