@@ -47,13 +47,13 @@ var _ = Describe("HTTP and HTTPS Egress", func() {
 				"http://",
 				"https://",
 			}
-			egressTests := []string{
+			egressURLs := []string{
 				"edition.cnn.com",
 				"github.com",
 			}
 			var urls []string
 			for _, protocol := range protocols {
-				for _, test := range egressTests {
+				for _, test := range egressURLs {
 					urls = append(urls, protocol+test)
 				}
 			}
@@ -63,7 +63,7 @@ var _ = Describe("HTTP and HTTPS Egress", func() {
 					result := td.HTTPRequest(HTTPRequestDef{
 						SourceNs:        srcPod.Namespace,
 						SourcePod:       srcPod.Name,
-						SourceContainer: "client", // We can do better
+						SourceContainer: "client",
 
 						Destination: url,
 					})
@@ -88,7 +88,7 @@ var _ = Describe("HTTP and HTTPS Egress", func() {
 					result := td.HTTPRequest(HTTPRequestDef{
 						SourceNs:        srcPod.Namespace,
 						SourcePod:       srcPod.Name,
-						SourceContainer: "client", // We can do better
+						SourceContainer: "client",
 
 						Destination: url,
 					})
