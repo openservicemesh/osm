@@ -21,6 +21,10 @@ BUILD_GITCOMMIT_VAR := github.com/openservicemesh/osm/pkg/version.GitCommit
 
 LDFLAGS ?= "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(CLI_VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -X main.chartTGZSource=$$(cat -) -s -w"
 
+# These two values are combined and passed to go test
+E2E_FLAGS ?= -kindCluster
+E2E_FLAGS_DEFAULT := -test.v -ginkgo.v -ginkgo.progress -ctrRegistry $(CTR_REGISTRY) -osmImageTag $(CTR_TAG)
+
 check-env:
 ifndef CTR_REGISTRY
 	$(error CTR_REGISTRY environment variable is not defined; see the .env.example file for more information; then source .env)
@@ -89,7 +93,7 @@ kind-reset:
 
 .PHONY: test-e2e
 test-e2e: docker-build-osm-controller docker-build-init build-osm
-	go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -ctrRegistry $(CTR_REGISTRY) -osmImageTag $(CTR_TAG) -kindCluster
+	go test ./tests/e2e $(E2E_FLAGS_DEFAULT) $(E2E_FLAGS)
 
 .env:
 	cp .env.example .env
