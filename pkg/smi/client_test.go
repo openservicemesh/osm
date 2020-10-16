@@ -109,11 +109,11 @@ var _ = Describe("When listing TrafficSplit", func() {
 				Backends: []smiSplit.TrafficSplitBackend{
 					{
 						Service: tests.BookstoreV1ServiceName,
-						Weight:  tests.Weight,
+						Weight:  tests.Weight1,
 					},
 					{
 						Service: tests.BookstoreV2ServiceName,
-						Weight:  tests.Weight,
+						Weight:  tests.Weight2,
 					},
 				},
 			},
@@ -155,11 +155,11 @@ var _ = Describe("When listing TrafficSplit services", func() {
 				Backends: []smiSplit.TrafficSplitBackend{
 					{
 						Service: "bookstore-v1",
-						Weight:  tests.Weight,
+						Weight:  tests.Weight1,
 					},
 					{
 						Service: "bookstore-v2",
-						Weight:  tests.Weight,
+						Weight:  tests.Weight2,
 					},
 				},
 			},
