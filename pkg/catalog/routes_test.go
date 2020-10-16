@@ -192,7 +192,7 @@ func TestGetWeightedClusterForService(t *testing.T) {
 
 	expected := service.WeightedCluster{
 		ClusterName: "default/bookstore-v1",
-		Weight:      tests.Weight1,
+		Weight:      tests.Weight90,
 	}
 	assert.Equal(weightedCluster, expected)
 }
