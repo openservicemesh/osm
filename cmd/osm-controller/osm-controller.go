@@ -227,7 +227,7 @@ func main() {
 	funcProbes := []health.Probes{xdsServer}
 	httpProbes := getHTTPHealthProbes()
 	httpServer := httpserver.NewHTTPServer(funcProbes, httpProbes, metricsStore, constants.MetricsServerPort, debugServer)
-	httpServer.Start()
+	httpServer.Start(cfg.GetAnnouncementsChannel())
 
 	// Wait for exit handler signal
 	<-stop
