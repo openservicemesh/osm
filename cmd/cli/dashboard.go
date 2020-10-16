@@ -5,13 +5,13 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/pkg/browser"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"helm.sh/helm/v3/pkg/action"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -86,11 +86,11 @@ func createDialer(conf *rest.Config, v1ClientSet v1.CoreV1Interface, podName str
 
 func (d *dashboardCmd) run() error {
 	var err error
-	log.Printf("[+] Starting Dashboard forwarding\n")
+	fmt.Fprintf(d.out, "[+] Starting Dashboard forwarding\n")
 
 	conf, err := d.config.RESTClientGetter.ToRESTConfig()
 	if err != nil {
-		log.Fatalf("Failed to get REST config from Helm %s\n", err)
+		return errors.Errorf("Failed to get REST config from Helm %s\n", err)
 	}
 
 	// Get v1 interface to our cluster. Do or die trying
@@ -102,7 +102,7 @@ func (d *dashboardCmd) run() error {
 		Get(context.TODO(), grafanaServiceName, metav1.GetOptions{})
 
 	if err != nil {
-		log.Fatalf("Failed to get OSM Grafana service data: %s", err)
+		return errors.Errorf("Failed to get OSM Grafana service data: %s", err)
 	}
 
 	// Select pod/s given the service data available
@@ -120,7 +120,7 @@ func (d *dashboardCmd) run() error {
 
 		it++
 		if it == len(pods.Items) {
-			log.Fatalf("No running Grafana pod available.")
+			return errors.Errorf("No running Grafana pod available.")
 		}
 	}
 
@@ -134,7 +134,7 @@ func (d *dashboardCmd) run() error {
 	out, errOut := new(bytes.Buffer), new(bytes.Buffer)
 
 	forwardStr := fmt.Sprintf("%d:%d", d.localPort, d.remotePort)
-	log.Printf("[+] Using forwarding: %s\n", forwardStr)
+	fmt.Fprintf(d.out, "[+] Using forwarding: %s\n", forwardStr)
 
 	forwarder, err := portforward.New(dialer,
 		[]string{forwardStr},
@@ -143,14 +143,14 @@ func (d *dashboardCmd) run() error {
 		out,
 		errOut)
 	if err != nil {
-		log.Fatalf("Failed to create forwarder: %s\n", err)
+		return errors.Errorf("Failed to create forwarder: %s\n", err)
 	}
 
 	// Binding SIGINT & SIGTERM to trigger the closing routine
 	signal.Notify(d.sigintChan, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-d.sigintChan // Blocking
-		log.Println("[+] SIGINT/TERM received, closing")
+		fmt.Fprintf(d.out, "[+] SIGINT/TERM received, closing")
 		close(stopChan)
 	}()
 
@@ -160,16 +160,16 @@ func (d *dashboardCmd) run() error {
 		case <-readyChan:
 			break
 		}
-		log.Printf("[+] Port forwarding successful (localhost:%d)\n", d.localPort)
+		fmt.Fprintf(d.out, "[+] Port forwarding successful (localhost:%d)\n", d.localPort)
 		if d.openBrowser {
 			url := fmt.Sprintf("http://localhost:%d", d.localPort)
-			log.Printf("[+] Issuing open browser %s\n", url)
+			fmt.Fprintf(d.out, "[+] Issuing open browser %s\n", url)
 			browser.OpenURL(url)
 		}
 	}()
 
 	if err = forwarder.ForwardPorts(); err != nil { // Locks until stopChan is closed.
-		log.Fatalf("Failed to execute Forward: %s\n", err)
+		return errors.Errorf("Failed to execute Forward: %s\n", err)
 	}
 
 	return nil
