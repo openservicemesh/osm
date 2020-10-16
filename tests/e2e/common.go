@@ -14,6 +14,7 @@ import (
 	"time"
 
 	. "github.com/onsi/ginkgo"
+	"github.com/openservicemesh/osm/pkg/utils"
 
 	"github.com/docker/docker/client"
 	"github.com/pkg/errors"
@@ -36,6 +37,8 @@ const (
 	registrySecretName = "acr-creds"
 	// constant, default name for the mesh
 	defaultMeshName = "osm-system"
+	// default image tag
+	defaultImageTag = "latest"
 )
 
 // OsmTestData stores common state, variables and flags for the test at hand
@@ -85,21 +88,8 @@ func registerFlags(td *OsmTestData) {
 	flag.StringVar(&td.ctrRegistryUser, "ctrRegistryUser", os.Getenv("CTR_REGISTRY_USER"), "Container registry")
 	flag.StringVar(&td.ctrRegistryPassword, "ctrRegistrySecret", os.Getenv("CTR_REGISTRY_PASSWORD"), "Container registry secret")
 
-	flag.StringVar(&td.osmImageTag, "osmImageTag", func() string {
-		tmp := os.Getenv("CTR_TAG")
-		if len(tmp) != 0 {
-			return tmp
-		}
-		return "latest"
-	}(), "OSM image tag")
-
-	flag.StringVar(&td.osmNamespace, "meshName", func() string {
-		tmp := os.Getenv("K8S_NAMESPACE")
-		if len(tmp) != 0 {
-			return tmp
-		}
-		return defaultMeshName
-	}(), "OSM mesh name")
+	flag.StringVar(&td.osmImageTag, "osmImageTag", utils.GetEnv("CTR_TAG", defaultImageTag), "OSM image tag")
+	flag.StringVar(&td.osmNamespace, "osmNamespace", utils.GetEnv("K8S_NAMESPACE", defaultMeshName), "OSM mesh name")
 }
 
 // AreRegistryCredsPresent checks if Registry Credentials are present

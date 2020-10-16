@@ -15,6 +15,7 @@ import (
 	"github.com/openservicemesh/osm/demo/cmd/common"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 var log = logger.NewPretty("ci/maestro")
@@ -36,14 +37,14 @@ var (
 	bookstoreV2Selector      = fmt.Sprintf("%s=%s", selectorKey, bookstoreV2Label)
 	bookWarehouseSelector    = fmt.Sprintf("%s=%s", selectorKey, bookWarehouseLabel)
 
-	osmNamespace    = common.GetEnv(maestro.OSMNamespaceEnvVar, "osm-system")
-	bookbuyerNS     = common.GetEnv(maestro.BookbuyerNamespaceEnvVar, "bookbuyer")
-	bookthiefNS     = common.GetEnv(maestro.BookthiefNamespaceEnvVar, "bookthief")
-	bookstoreNS     = common.GetEnv(maestro.BookstoreNamespaceEnvVar, "bookstore")
-	bookWarehouseNS = common.GetEnv(common.BookwarehouseNamespaceEnvVar, "bookwarehouse")
+	osmNamespace    = utils.GetEnv(maestro.OSMNamespaceEnvVar, "osm-system")
+	bookbuyerNS     = utils.GetEnv(maestro.BookbuyerNamespaceEnvVar, "bookbuyer")
+	bookthiefNS     = utils.GetEnv(maestro.BookthiefNamespaceEnvVar, "bookthief")
+	bookstoreNS     = utils.GetEnv(maestro.BookstoreNamespaceEnvVar, "bookstore")
+	bookWarehouseNS = utils.GetEnv(common.BookwarehouseNamespaceEnvVar, "bookwarehouse")
 
-	maxPodWaitString = common.GetEnv(maestro.WaitForPodTimeSecondsEnvVar, "30")
-	maxOKWaitString  = common.GetEnv(maestro.WaitForOKSecondsEnvVar, "30")
+	maxPodWaitString = utils.GetEnv(maestro.WaitForPodTimeSecondsEnvVar, "30")
+	maxOKWaitString  = utils.GetEnv(maestro.WaitForOKSecondsEnvVar, "30")
 	meshName         = osmNamespace
 
 	// Mesh namespaces
