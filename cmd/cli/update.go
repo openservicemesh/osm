@@ -5,7 +5,6 @@ import (
 	"io"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart"
@@ -69,13 +68,6 @@ func (u *updateCmd) run(config *helm.Configuration) error {
 	}
 	if err != nil {
 		return err
-	}
-
-	// Validate CIDR ranges if egress is enabled
-	if u.enableEgress {
-		if err := validateCIDRs(u.meshCIDRRanges); err != nil {
-			return errors.Errorf("Invalid mesh-cidr-ranges: %q, error: %v. Valid mesh CIDR ranges must be specified with egress enabled.", u.meshCIDRRanges, err)
-		}
 	}
 
 	// Fetch the current release from Helm
