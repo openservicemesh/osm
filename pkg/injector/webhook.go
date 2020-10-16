@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/google/uuid"
+
 	"github.com/pkg/errors"
 	"k8s.io/api/admission/v1beta1"
 	admissionv1beta1 "k8s.io/api/admissionregistration/v1beta1"
@@ -23,7 +25,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/namespace"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 )
 
 var (
@@ -37,32 +39,37 @@ var (
 )
 
 const (
-	osmWebhookName       = "osm-inject.k8s.io"
-	osmWebhookMutatePath = "/mutate"
+	// mutatingWebhookName is the name of the mutating webhook used for sidecar injection
+	mutatingWebhookName = "osm-inject.k8s.io"
+
+	// webhookMutatePath is the HTTP path at which the webhook exptects to receive mutation requests
+	webhookMutatePath = "/mutate"
+
+	// WebhookHealthPath is the HTTP path at which the health of the webhook can be queried
+	WebhookHealthPath = "/healthz"
 )
 
 // NewWebhook starts a new web server handling requests from the injector MutatingWebhookConfiguration
-func NewWebhook(config Config, kubeClient kubernetes.Interface, certManager certificate.Manager, meshCatalog catalog.MeshCataloger, namespaceController namespace.Controller, meshName, osmNamespace, webhookName string, stop <-chan struct{}, cfg configurator.Configurator) error {
+func NewWebhook(config Config, kubeClient kubernetes.Interface, certManager certificate.Manager, meshCatalog catalog.MeshCataloger, kubeController k8s.Controller, meshName, osmNamespace, webhookConfigName string, stop <-chan struct{}, cfg configurator.Configurator) error {
 	cn := certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.OSMControllerName, osmNamespace))
-	validityPeriod := constants.XDSCertificateValidityPeriod
-	cert, err := certManager.IssueCertificate(cn, &validityPeriod)
+	cert, err := certManager.IssueCertificate(cn, constants.XDSCertificateValidityPeriod)
 	if err != nil {
 		return errors.Errorf("Error issuing certificate for the mutating webhook: %+v", err)
 	}
 
 	wh := webhook{
-		config:              config,
-		kubeClient:          kubeClient,
-		certManager:         certManager,
-		meshCatalog:         meshCatalog,
-		namespaceController: namespaceController,
-		osmNamespace:        osmNamespace,
-		cert:                cert,
-		configurator:        cfg,
+		config:         config,
+		kubeClient:     kubeClient,
+		certManager:    certManager,
+		meshCatalog:    meshCatalog,
+		kubeController: kubeController,
+		osmNamespace:   osmNamespace,
+		cert:           cert,
+		configurator:   cfg,
 	}
 
 	go wh.run(stop)
-	if err = patchMutatingWebhookConfiguration(cert, meshName, osmNamespace, webhookName, wh.kubeClient); err != nil {
+	if err = patchMutatingWebhookConfiguration(cert, meshName, osmNamespace, webhookConfigName, wh.kubeClient); err != nil {
 		return errors.Errorf("Error configuring MutatingWebhookConfiguration: %+v", err)
 	}
 	return nil
@@ -74,8 +81,8 @@ func (wh *webhook) run(stop <-chan struct{}) {
 
 	mux := http.DefaultServeMux
 	// HTTP handlers
-	mux.HandleFunc("/health/ready", wh.healthReadyHandler)
-	mux.HandleFunc(osmWebhookMutatePath, wh.mutateHandler)
+	mux.HandleFunc(WebhookHealthPath, wh.healthHandler)
+	mux.HandleFunc(webhookMutatePath, wh.mutateHandler)
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", wh.config.ListenPort),
@@ -91,6 +98,7 @@ func (wh *webhook) run(stop <-chan struct{}) {
 			return
 		}
 
+		// #nosec G402
 		server.TLSConfig = &tls.Config{
 			Certificates: []tls.Certificate{cert},
 		}
@@ -112,8 +120,7 @@ func (wh *webhook) run(stop <-chan struct{}) {
 	}
 }
 
-func (wh *webhook) healthReadyHandler(w http.ResponseWriter, req *http.Request) {
-	// TODO(shashank): If TLS certificate is not present, mark as not ready
+func (wh *webhook) healthHandler(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_, err := w.Write([]byte("Health OK"))
 	if err != nil {
@@ -174,6 +181,11 @@ func (wh *webhook) mutateHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func (wh *webhook) mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
+	if req == nil {
+		log.Error().Msg("Nil AdmissionRequest")
+		return toAdmissionError(errors.New("nil admission request"))
+	}
+
 	// Decode the Pod spec from the request
 	var pod corev1.Pod
 	if err := json.Unmarshal(req.Object.Raw, &pod); err != nil {
@@ -199,7 +211,9 @@ func (wh *webhook) mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespo
 
 	// Create the patches for the spec
 	// We use req.Namespace because pod.Namespace is "" at this point
-	patchBytes, err := wh.createPatch(&pod, req.Namespace)
+	// This string uniquely identifies the pod. Ideally this would be the pod.UID, but this is not available at this point.
+	proxyUUID := uuid.New().String()
+	patchBytes, err := wh.createPatch(&pod, req.Namespace, proxyUUID)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create patch")
 		return toAdmissionError(err)
@@ -218,46 +232,72 @@ func (wh *webhook) isNamespaceAllowed(namespace string) bool {
 		}
 	}
 	// Skip namespaces not being observed
-	return wh.namespaceController.IsMonitoredNamespace(namespace)
+	return wh.kubeController.IsMonitoredNamespace(namespace)
 }
 
 // mustInject determines whether the sidecar must be injected.
 //
-// The sidecar injection is performed when:
-// 1. The namespace is annotated for OSM monitoring, and
-// 2. The POD is not annotated with sidecar-injection or is set to enabled/yes/true
+// The sidecar injection is performed when the namespace is labeled for monitoring and either of the following is true:
+// 1. The pod is explicitly annotated with enabled/yes/true for sidecar injection, or
+// 2. The namespace is annotated for sidecar injection and the pod is not explicitly annotated with disabled/no/false
 //
-// The sidecar injection is not performed when:
-// 1. The namespace is not annotated for OSM monitoring, or
-// 2. The POD is annotated with sidecar-injection set to disabled/no/false
-//
-// The function returns an error when:
-// 1. The value of the POD level sidecar-injection annotation is invalid
+// The function returns an error when it is unable to determine whether to perform sidecar injection.
 func (wh *webhook) mustInject(pod *corev1.Pod, namespace string) (bool, error) {
 	// If the request belongs to a namespace we are not monitoring, skip it
 	if !wh.isNamespaceAllowed(namespace) {
-		log.Info().Msgf("Request belongs to namespace=%s not in the list of monitored namespaces", namespace)
+		log.Info().Msgf("Request belongs to namespace=%s, not in the list of monitored namespaces", namespace)
 		return false, nil
 	}
 
-	// Check if the POD is annotated for injection
-	inject := strings.ToLower(pod.ObjectMeta.Annotations[annotationInject])
-	log.Debug().Msgf("Sidecar injection annotation: '%s:%s'", annotationInject, inject)
-	if inject != "" {
+	// Check if the pod is annotated for injection
+	podInjectAnnotationExists, podInject, err := isAnnotatedForInjection(pod.Annotations)
+	if err != nil {
+		log.Error().Err(err).Msg("Error determining if the pod is enabled for sidecar injection")
+		return false, err
+	}
 
-		switch inject {
-		case "enabled", "yes", "true":
+	// Check if the namespace is annotated for injection
+	ns := wh.kubeController.GetNamespace(namespace)
+	if ns == nil {
+		log.Error().Err(errNamespaceNotFound).Msgf("Error retrieving namespace %s", namespace)
+		return false, err
+	}
+	nsInjectAnnotationExists, nsInject, err := isAnnotatedForInjection(ns.Annotations)
+	if err != nil {
+		log.Error().Err(err).Msg("Error determining if namespace %s is enabled for sidecar injection")
+		return false, err
+	}
+
+	if podInjectAnnotationExists && podInject {
+		// Pod is explicitly annotated to enable sidecar injection
+		return true, nil
+	} else if nsInjectAnnotationExists && nsInject {
+		// Namespace is annotated to enable sidecar injection
+		if !podInjectAnnotationExists || podInject {
+			// If pod annotation doesn't exist or if an annotation exists to enable injection, enable it
 			return true, nil
-		case "disabled", "no", "false":
-			return false, nil
-		default:
-			return false, errors.Errorf("Invalid annotion value specified for annotation %q: %s", annotationInject, inject)
 		}
 	}
 
-	// If we reached here, it means the namespace was annotated for OSM to monitor
-	// and no POD level sidecar injection overrides are present.
-	return true, nil
+	// Conditions to inject the sidecar are not met
+	return false, nil
+}
+
+func isAnnotatedForInjection(annotations map[string]string) (exists bool, enabled bool, err error) {
+	inject := strings.ToLower(annotations[constants.SidecarInjectionAnnotation])
+	log.Trace().Msgf("Sidecar injection annotation: '%s:%s'", constants.SidecarInjectionAnnotation, inject)
+	if inject != "" {
+		exists = true
+		switch inject {
+		case "enabled", "yes", "true":
+			enabled = true
+		case "disabled", "no", "false":
+			enabled = false
+		default:
+			err = errors.Errorf("Invalid annotion value specified for annotation %q: %s", constants.SidecarInjectionAnnotation, inject)
+		}
+	}
+	return
 }
 
 func toAdmissionError(err error) *v1beta1.AdmissionResponse {
@@ -270,23 +310,21 @@ func toAdmissionError(err error) *v1beta1.AdmissionResponse {
 
 func patchAdmissionResponse(resp *v1beta1.AdmissionResponse, patchBytes []byte) {
 	resp.Patch = patchBytes
-	resp.PatchType = func() *v1beta1.PatchType {
-		pt := v1beta1.PatchTypeJSONPatch
-		return &pt
-	}()
+	pt := v1beta1.PatchTypeJSONPatch
+	resp.PatchType = &pt
 }
 
-func patchMutatingWebhookConfiguration(cert certificate.Certificater, meshName, osmNamespace, webhookName string, clientSet kubernetes.Interface) error {
-	if err := hookExists(clientSet, webhookName); err != nil {
-		log.Error().Err(err).Msgf("Error getting webhook %s", webhookName)
+func patchMutatingWebhookConfiguration(cert certificate.Certificater, meshName, osmNamespace, webhookConfigName string, clientSet kubernetes.Interface) error {
+	if err := hookExists(clientSet, webhookConfigName); err != nil {
+		log.Error().Err(err).Msgf("Error getting MutatingWebhookConfiguration %s", webhookConfigName)
 	}
 	updatedWH := admissionv1beta1.MutatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: webhookName,
+			Name: webhookConfigName,
 		},
 		Webhooks: []admissionv1beta1.MutatingWebhook{
 			{
-				Name: osmWebhookName,
+				Name: mutatingWebhookName,
 				ClientConfig: admissionv1beta1.WebhookClientConfig{
 					CABundle: cert.GetCertificateChain(),
 				},
@@ -309,17 +347,17 @@ func patchMutatingWebhookConfiguration(cert certificate.Certificater, meshName, 
 	}
 
 	_, err = clientSet.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Patch(
-		context.Background(), webhookName, types.StrategicMergePatchType, data, metav1.PatchOptions{})
+		context.Background(), webhookConfigName, types.StrategicMergePatchType, data, metav1.PatchOptions{})
 	if err != nil {
-		log.Error().Err(err).Msgf("Error configuring webhook %s", webhookName)
+		log.Error().Err(err).Msgf("Error configuring MutatingWebhookConfiguration %s", webhookConfigName)
 		return err
 	}
 
-	log.Info().Msgf("Configured MutatingWebhookConfiguration %s", webhookName)
+	log.Info().Msgf("Configured MutatingWebhookConfiguration %s", webhookConfigName)
 	return nil
 }
 
-func hookExists(clientSet kubernetes.Interface, webhookName string) error {
-	_, err := clientSet.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Get(context.Background(), webhookName, metav1.GetOptions{})
+func hookExists(clientSet kubernetes.Interface, webhookConfigName string) error {
+	_, err := clientSet.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Get(context.Background(), webhookConfigName, metav1.GetOptions{})
 	return err
 }

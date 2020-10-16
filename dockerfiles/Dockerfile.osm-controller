@@ -1,4 +1,4 @@
-FROM alpine:3.10.1
+FROM alpine:3.12
 
-ADD bin/osm-controller /osm-controller
+ADD osm-controller /
 RUN chmod +x /osm-controller

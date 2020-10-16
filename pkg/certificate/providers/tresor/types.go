@@ -7,6 +7,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
+	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
 
@@ -28,9 +29,6 @@ var (
 
 // CertManager implements certificate.Manager
 type CertManager struct {
-	// Period for which the newly issued certificate will be valid.
-	validityPeriod time.Duration
-
 	// The Certificate Authority root certificate to be used by this certificate manager
 	ca certificate.Certificater
 
@@ -42,6 +40,8 @@ type CertManager struct {
 	cacheLock sync.Mutex
 
 	certificatesOrganization string
+
+	cfg configurator.Configurator
 }
 
 // Certificate implements certificate.Certificater
@@ -56,7 +56,6 @@ type Certificate struct {
 	certChain  pem.Certificate
 	privateKey pem.PrivateKey
 
-	// The CA issuing this certificate.
-	// If the certificate itself is a root certificate this would be nil.
-	issuingCA certificate.Certificater
+	// Certificate authority signing this certificate
+	issuingCA pem.RootCertificate
 }

@@ -2,10 +2,13 @@
 
 set -aueo pipefail
 
-go test -timeout 80s \
+readarray -t modules < <(go list ./... | grep -v tests/e2e)
+
+go test -timeout 120s \
+   -failfast \
    -v \
    -coverprofile=coverage.txt \
-   -covermode count ./... | tee testoutput.txt || { echo "go test returned non-zero"; cat testoutput.txt; exit 1; }
+   -covermode count "${modules[@]}" | tee testoutput.txt || { echo "go test returned non-zero"; exit 1; }
 
 # shellcheck disable=SC2002
 cat testoutput.txt | go run github.com/jstemmer/go-junit-report > report.xml

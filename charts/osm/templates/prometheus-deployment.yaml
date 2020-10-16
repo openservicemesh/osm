@@ -1,4 +1,4 @@
-{{- if .Values.OpenServiceMesh.enableMetricsStack }}
+{{- if .Values.OpenServiceMesh.enablePrometheus }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -25,7 +25,7 @@ spec:
         - --storage.tsdb.retention.time={{.Values.OpenServiceMesh.prometheus.retention.time}}
         - --web.listen-address=:{{.Values.OpenServiceMesh.prometheus.port}}
         image: prom/prometheus:v2.18.1
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         resources:
           limits:
             cpu: 500m

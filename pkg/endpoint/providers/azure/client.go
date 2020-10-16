@@ -7,12 +7,12 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/pkg/errors"
 
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/providers/azure"
-	"github.com/openservicemesh/osm/pkg/smi"
 )
 
 // NewProvider creates an Azure Client
-func NewProvider(subscriptionID string, azureAuthFile string, stop chan struct{}, meshSpec smi.MeshSpec, azureResourceClient ResourceClient, providerIdent string) (Client, error) {
+func NewProvider(subscriptionID string, azureAuthFile string, stop chan struct{}, kubeController k8s.Controller, azureResourceClient ResourceClient, providerIdent string) (Client, error) {
 	var authorizer autorest.Authorizer
 	var err error
 	var az Client
@@ -36,7 +36,7 @@ func NewProvider(subscriptionID string, azureAuthFile string, stop chan struct{}
 		},
 
 		subscriptionID: subscriptionID,
-		meshSpec:       meshSpec,
+		kubeController: kubeController,
 		providerID:     providerIdent,
 
 		// AzureResource Client is needed here so the Azure EndpointsProvider can resolve a Kubernetes service

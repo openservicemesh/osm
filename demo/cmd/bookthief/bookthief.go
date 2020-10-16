@@ -12,6 +12,7 @@ import (
 
 	"github.com/openservicemesh/osm/demo/cmd/common"
 	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 const (
@@ -21,12 +22,12 @@ const (
 )
 
 var (
-	booksStolen   int64 = 0
-	booksStolenV1 int64 = 0
-	booksStolenV2 int64 = 0
-	log                 = logger.NewPretty(participantName)
-	port                = flag.Int("port", 80, "port on which this app is listening for incoming HTTP")
-	path                = flag.String("path", ".", "path to the HTML template")
+	booksStolen   int64
+	booksStolenV1 int64
+	booksStolenV2 int64
+	log           = logger.NewPretty(participantName)
+	port          = flag.Int("port", 80, "port on which this app is listening for incoming HTTP")
+	path          = flag.String("path", ".", "path to the HTML template")
 )
 
 func renderTemplate(w http.ResponseWriter) {
@@ -46,7 +47,7 @@ func renderTemplate(w http.ResponseWriter) {
 	}
 }
 func getIdentity() string {
-	return common.GetEnv("IDENTITY", "Bookthief")
+	return utils.GetEnv("IDENTITY", "Bookthief")
 }
 
 type handler struct {
@@ -58,7 +59,6 @@ type handler struct {
 func getIndex(w http.ResponseWriter, r *http.Request) {
 	renderTemplate(w)
 	fmt.Printf("%s;  URL: %q;  Count: %d\n", getIdentity(), html.EscapeString(r.URL.Path), booksStolen)
-
 }
 
 func getHandlers() []handler {
@@ -88,7 +88,6 @@ func debugServer() {
 }
 
 func main() {
-
 	go debugServer()
 
 	// The bookthief is not allowed to purchase books from the bookstore.
@@ -97,11 +96,10 @@ func main() {
 	// the HTTP response status code will differ for in-mesh requests.
 	//
 	// Expected response code when bookthief tries to buy books from the bookstore:
-	// 1. With SMI policies: 404
+	// 1. With SMI policies: 0
 	// 2. With permissive traffic policy: 200
 	//
 	// When it tries to make an egress request, we expect a 200 response with egress enabled and a 404 response with egress disabled.
 	meshExpectedResponseCode := common.GetExpectedResponseCodeFromEnvVar(common.BookthiefExpectedResponseCodeEnvVar, httpStatusNotFound)
-	egressExpectedResponseCode := common.GetExpectedResponseCodeFromEnvVar(common.EgressExpectedResponseCodeEnvVar, httpStatusOK)
-	common.GetBooks(participantName, meshExpectedResponseCode, egressExpectedResponseCode, &booksStolen, &booksStolenV1, &booksStolenV2)
+	common.GetBooks(participantName, meshExpectedResponseCode, &booksStolen, &booksStolenV1, &booksStolenV2)
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/certificate/rotor"
+	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
@@ -21,16 +22,17 @@ const (
 	issuingCAField   = "issuing_ca"
 
 	checkCertificateExpirationInterval = 5 * time.Second
+	tmpCertValidityPeriod              = 1 * time.Second
 )
 
 // NewCertManager implements certificate.Manager and wraps a Hashi Vault with methods to allow easy certificate issuance.
-func NewCertManager(vaultAddr, token string, validityPeriod time.Duration, vaultRole string) (*CertManager, error) {
+func NewCertManager(vaultAddr, token string, vaultRole string, cfg configurator.Configurator) (*CertManager, error) {
 	cache := make(map[certificate.CommonName]certificate.Certificater)
 	c := &CertManager{
-		validityPeriod: validityPeriod,
-		announcements:  make(chan interface{}),
-		cache:          &cache,
-		vaultRole:      vaultRole,
+		announcements: make(chan interface{}),
+		cache:         &cache,
+		vaultRole:     vaultRole,
+		cfg:           cfg,
 	}
 	config := api.DefaultConfig()
 	config.Address = vaultAddr
@@ -44,7 +46,8 @@ func NewCertManager(vaultAddr, token string, validityPeriod time.Duration, vault
 
 	c.client.SetToken(token)
 
-	someCert, err := c.issue("localhost", nil)
+	// Create a temp certificate to determine the issuing CA
+	tmpCert, err := c.issue("localhost", tmpCertValidityPeriod)
 	if err != nil {
 		return nil, err
 	}
@@ -52,8 +55,8 @@ func NewCertManager(vaultAddr, token string, validityPeriod time.Duration, vault
 	c.ca = &Certificate{
 		commonName: constants.CertificationAuthorityCommonName,
 		expiration: time.Now().Add(8765 * time.Hour), // a decade
-		certChain:  someCert.GetIssuingCA(),
-		issuingCA:  someCert.GetIssuingCA(),
+		certChain:  tmpCert.GetIssuingCA(),
+		issuingCA:  tmpCert.GetIssuingCA(),
 	}
 
 	// Instantiating a new certificate rotation mechanism will start a goroutine for certificate rotation.
@@ -62,18 +65,14 @@ func NewCertManager(vaultAddr, token string, validityPeriod time.Duration, vault
 	return c, nil
 }
 
-func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod *time.Duration) (certificate.Certificater, error) {
-	secret, err := cm.client.Logical().Write(getIssueURL(cm.vaultRole), getIssuanceData(cn, cm.validityPeriod))
+func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Duration) (certificate.Certificater, error) {
+	secret, err := cm.client.Logical().Write(getIssueURL(cm.vaultRole), getIssuanceData(cn, validityPeriod))
 	if err != nil {
 		log.Error().Err(err).Msgf("Error issuing new certificate for CN=%s", cn)
 		return nil, err
 	}
 
-	if validityPeriod == nil {
-		validityPeriod = &cm.validityPeriod
-	}
-
-	return newCert(cn, secret, time.Now().Add(*validityPeriod)), nil
+	return newCert(cn, secret, time.Now().Add(validityPeriod)), nil
 }
 
 func (cm *CertManager) getFromCache(cn certificate.CommonName) certificate.Certificater {
@@ -91,7 +90,7 @@ func (cm *CertManager) getFromCache(cn certificate.CommonName) certificate.Certi
 }
 
 // IssueCertificate issues a certificate by leveraging the Hashi Vault CertManager.
-func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPeriod *time.Duration) (certificate.Certificater, error) {
+func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPeriod time.Duration) (certificate.Certificater, error) {
 	log.Info().Msgf("Issuing new certificate for CN=%s", cn)
 
 	start := time.Now()
@@ -149,7 +148,7 @@ func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate
 
 	start := time.Now()
 
-	cert, err := cm.issue(cn, &cm.validityPeriod)
+	cert, err := cm.issue(cn, cm.cfg.GetServiceCertValidityPeriod())
 	if err != nil {
 		return cert, err
 	}

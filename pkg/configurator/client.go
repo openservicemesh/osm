@@ -16,14 +16,15 @@ import (
 const (
 	permissiveTrafficPolicyModeKey = "permissive_traffic_policy_mode"
 	egressKey                      = "egress"
+	enableDebugServer              = "enable_debug_server"
 	prometheusScrapingKey          = "prometheus_scraping"
-	meshCIDRRangesKey              = "mesh_cidr_ranges"
 	useHTTPSIngressKey             = "use_https_ingress"
-	zipkinTracingKey               = "zipkin_tracing"
-	zipkinAddressKey               = "zipkin_address"
-	zipkinPortKey                  = "zipkin_port"
-	zipkinEndpointKey              = "zipkin_endpoint"
-	defaultInMeshCIDR              = ""
+	tracingEnableKey               = "tracing_enable"
+	tracingAddressKey              = "tracing_address"
+	tracingPortKey                 = "tracing_port"
+	tracingEndpointKey             = "tracing_endpoint"
+	envoyLogLevel                  = "envoy_log_level"
+	serviceCertValidityDurationKey = "service_cert_validity_duration"
 )
 
 // NewConfigurator implements configurator.Configurator and creates the Kubernetes client to manage namespaces.
@@ -71,26 +72,34 @@ type osmConfig struct {
 	// Egress is a bool toggle used to enable or disable egress globally within the mesh
 	Egress bool `yaml:"egress"`
 
+	// EnableDebugServer is a bool toggle, which enables/disables the debug server within the OSM Controller
+	EnableDebugServer bool `yaml:"enable_debug_server"`
+
 	// PrometheusScraping is a bool toggle used to enable or disable metrics scraping by Prometheus
 	PrometheusScraping bool `yaml:"prometheus_scraping"`
 
-	// ZipkinTracing is a bool toggle used to enable ot disable Zipkin tracing
-	ZipkinTracing bool `yaml:"zipkin_tracing"`
-
-	// ZipkinAddress is the address of the Zipkin cluster
-	ZipkinAddress string `yaml:"zipkin_address"`
-
-	// ZipkinPort is the port of the Zipkin cluster
-	ZipkinPort int `yaml:"zipkin_port"`
-
-	// ZipkinEndpoint is the endpoint of the Zipkin cluster
-	ZipkinEndpoint string `yaml:"zipkin_endpoint"`
-
-	// MeshCIDRRanges is the list of CIDR ranges for in-mesh traffic
-	MeshCIDRRanges string `yaml:"mesh_cidr_ranges"`
-
 	// UseHTTPSIngress is a bool toggle enabling HTTPS protocol between ingress and backend pods
 	UseHTTPSIngress bool `yaml:"use_https_ingress"`
+
+	// TracingEnabled is a bool toggle used to enable or disable tracing
+	TracingEnable bool `yaml:"tracing_enable"`
+
+	// TracingAddress is the address of the listener cluster
+	TracingAddress string `yaml:"tracing_address"`
+
+	// TracingPort remote port for the listener
+	TracingPort int `yaml:"tracing_port"`
+
+	// TracingEndpoint is the collector endpoint on the listener
+	TracingEndpoint string `yaml:"tracing_endpoint"`
+
+	// EnvoyLogLevel is a string that defines the log level for envoy proxies
+	EnvoyLogLevel string `yaml:"envoy_log_level"`
+
+	// ServiceCertValidityDuration is a string that defines the validity duration of service certificates
+	// It is represented as a sequence of decimal numbers each with optional fraction and a unit suffix.
+	// Ex: 1h to represent 1 hour, 30m to represent 30 minutes, 1.5h or 1h30m to represent 1 hour and 30 minutes.
+	ServiceCertValidityDuration string `yaml:"service_cert_validity_duration"`
 }
 
 func (c *Client) run(stop <-chan struct{}) {
@@ -126,36 +135,32 @@ func (c *Client) getConfigMap() *osmConfig {
 
 	configMap := item.(*v1.ConfigMap)
 
-	return &osmConfig{
+	osmConfigMap := osmConfig{
 		PermissiveTrafficPolicyMode: getBoolValueForKey(configMap, permissiveTrafficPolicyModeKey),
 		Egress:                      getBoolValueForKey(configMap, egressKey),
+		EnableDebugServer:           getBoolValueForKey(configMap, enableDebugServer),
 		PrometheusScraping:          getBoolValueForKey(configMap, prometheusScrapingKey),
-		MeshCIDRRanges:              getEgressCIDR(configMap),
 		UseHTTPSIngress:             getBoolValueForKey(configMap, useHTTPSIngressKey),
 
-		ZipkinTracing:  getBoolValueForKey(configMap, zipkinTracingKey),
-		ZipkinAddress:  getStringValueForKey(configMap, zipkinAddressKey),
-		ZipkinPort:     getIntValueForKey(configMap, zipkinPortKey),
-		ZipkinEndpoint: getStringValueForKey(configMap, zipkinEndpointKey),
-	}
-}
-
-func getEgressCIDR(configMap *v1.ConfigMap) string {
-	cidr, ok := configMap.Data[meshCIDRRangesKey]
-	if !ok {
-		if getBoolValueForKey(configMap, egressKey) {
-			log.Error().Err(errMissingKeyInConfigMap).Msgf("Missing ConfigMap %s/%s key %s, required when egress is enabled; Defaulting to %+v", configMap.Namespace, configMap.Name, meshCIDRRangesKey, defaultInMeshCIDR)
-		}
-		return defaultInMeshCIDR
+		TracingEnable:               getBoolValueForKey(configMap, tracingEnableKey),
+		EnvoyLogLevel:               getStringValueForKey(configMap, envoyLogLevel),
+		ServiceCertValidityDuration: getStringValueForKey(configMap, serviceCertValidityDurationKey),
 	}
 
-	return cidr
+	if osmConfigMap.TracingEnable {
+		osmConfigMap.TracingAddress = getStringValueForKey(configMap, tracingAddressKey)
+		osmConfigMap.TracingPort = getIntValueForKey(configMap, tracingPortKey)
+		osmConfigMap.TracingEndpoint = getStringValueForKey(configMap, tracingEndpointKey)
+	}
+
+	return &osmConfigMap
 }
 
 func getBoolValueForKey(configMap *v1.ConfigMap, key string) bool {
 	configMapStringValue, ok := configMap.Data[key]
 	if !ok {
-		log.Error().Err(errInvalidKeyInConfigMap).Msgf("Key %s does not exist in ConfigMap %s/%s (%s)", key, configMap.Namespace, configMap.Name, configMap.Data)
+		log.Debug().Msgf("Key %s does not exist in ConfigMap %s/%s (%s)",
+			key, configMap.Namespace, configMap.Name, configMap.Data)
 		return false
 	}
 
@@ -171,7 +176,8 @@ func getBoolValueForKey(configMap *v1.ConfigMap, key string) bool {
 func getIntValueForKey(configMap *v1.ConfigMap, key string) int {
 	configMapStringValue, ok := configMap.Data[key]
 	if !ok {
-		log.Error().Err(errInvalidKeyInConfigMap).Msgf("Key %s does not exist in ConfigMap %s/%s (%s)", key, configMap.Namespace, configMap.Name, configMap.Data)
+		log.Debug().Msgf("Key %s does not exist in ConfigMap %s/%s (%s)",
+			key, configMap.Namespace, configMap.Name, configMap.Data)
 		return 0
 	}
 
@@ -187,7 +193,8 @@ func getIntValueForKey(configMap *v1.ConfigMap, key string) int {
 func getStringValueForKey(configMap *v1.ConfigMap, key string) string {
 	configMapStringValue, ok := configMap.Data[key]
 	if !ok {
-		log.Error().Err(errInvalidKeyInConfigMap).Msgf("Key %s does not exist in ConfigMap %s/%s (%s)", key, configMap.Namespace, configMap.Name, configMap.Data)
+		log.Debug().Msgf("Key %s does not exist in ConfigMap %s/%s (%s)",
+			key, configMap.Namespace, configMap.Name, configMap.Data)
 		return ""
 	}
 	return configMapStringValue

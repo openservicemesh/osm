@@ -11,3 +11,6 @@ type RootCertificate []byte
 
 // RootPrivateKey is the private key for a root SSL certificate.
 type RootPrivateKey []byte
+
+// CertificateRequest is an SSL certificate request.
+type CertificateRequest []byte

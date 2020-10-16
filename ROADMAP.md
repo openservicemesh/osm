@@ -1,16 +1,22 @@
 # Roadmap
 
-The OSM team uses [GitHub Milestones](https://github.com/openservicemesh/osm/milestones) and [GitHub Project Boards](https://github.com/openservicemesh/osm/projects) to track the progress of the project.
+## Process and Tools
 
-# High Level Overview
-At a high level, these are some of the scenarios and features we plan on working toward supporting and iterating on:
+The OSM team uses the [Roadmap GitHub Project Board](https://github.com/openservicemesh/osm/projects/3) to track short term (1-3 months) and medium term (3-6 months) efforts. Once a broad objective (from the "Research & Scoping" column) is further scoped into a GitHub issue that has a clear objective, background and motive, it is moved into the "Planned & Scoped" column. From there, the team plans monthly releases via [GitHub Milestones](https://github.com/openservicemesh/osm/milestones).
 
+## Current and Future Objectives
+
+At this time, the OSM community is working on:
 - Hardening of the project with a rigorous testing environment.
-- Implement SMI Traffic Metrics and build tooling to leverage it.
-- Iterate on the current Ingress/Egress functionality, experience, workflow.
-- Iterating on existing tools for debugging the OSM control plane and data plane.
-- Leverage xDS v2 protocol when limited by SMI to provide a "no cliffs" design
-- Iterate on performance
-- Extend OSM to support VMs, hybrid and multicluster scenarios
+- Implementing SMI Traffic Metrics and build tooling to leverage it.
+- Iterating on SMI Traffic Split and Traffic Access implementations.
 
-... and much more (in our [GitHub issues](https://github.com/openservicemesh/osm/issues)). Please file issues for scenarios and features you'd like to OSM support.
+In the medium to long term future, the OSM communtiy will tackle the following:
+- Iterate on the current Ingress/Egress functionality, experience, workflow.
+- Iterate on existing tools for debugging the OSM control plane and data plane.
+- Leverage xDS v3 protocol when limited by SMI to provide a "no cliffs" design.
+- Extend OSM to support VMs, hybrid and multicluster scenarios.
+
+## Getting Involved
+
+Please file [GitHub issues](https://github.com/openservicemesh/osm/issues) to propose features and identify bugs. See more information about how to get involved with the community [here](https://github.com/openservicemesh/osm/projects/3).

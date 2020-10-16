@@ -2,6 +2,7 @@ package common
 
 import (
 	"fmt"
+	"math/rand"
 	"net/http"
 	"os"
 	"strconv"
@@ -10,32 +11,32 @@ import (
 	"time"
 
 	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 const (
 	// RestockWarehouseURL is a header string constant.
 	RestockWarehouseURL = "restock-books"
 
-	// httpEgressURL is the URL used to test HTTP egress.
-	// The HTTP request will result in an HTTPS redirect which will be handled by the HTTP client.
-	httpEgressURL = "http://github.com"
-
-	// httpsEgressURL is the URL used to test HTTPS egress
-	httpsEgressURL = "https://github.com"
-
 	// bookstorePort is the bookstore service's port
 	bookstorePort = 80
+
+	httpPrefix = "http://"
+
+	httpsPrefix = "https://"
 )
 
 var (
-	sleepDurationBetweenRequestsSecondsStr = GetEnv("CI_SLEEP_BETWEEN_REQUESTS_SECONDS", "1")
-	minSuccessThresholdStr                 = GetEnv("CI_MIN_SUCCESS_THRESHOLD", "1")
-	maxIterationsStr                       = GetEnv("CI_MAX_ITERATIONS_THRESHOLD", "0") // 0 for unlimited
-	bookstoreServiceName                   = GetEnv("BOOKSTORE_SVC", "bookstore")
+	// enableEgress determines whether egress is enabled
+	enableEgress = os.Getenv(EnableEgressEnvVar) == "true"
+
+	sleepDurationBetweenRequestsSecondsStr = utils.GetEnv("CI_SLEEP_BETWEEN_REQUESTS_SECONDS", "1")
+	minSuccessThresholdStr                 = utils.GetEnv("CI_MIN_SUCCESS_THRESHOLD", "1")
+	maxIterationsStr                       = utils.GetEnv("CI_MAX_ITERATIONS_THRESHOLD", "0") // 0 for unlimited
+	bookstoreServiceName                   = utils.GetEnv("BOOKSTORE_SVC", "bookstore")
 	bookstoreNamespace                     = os.Getenv(BookstoreNamespaceEnvVar)
 	warehouseServiceName                   = "bookwarehouse"
 	bookwarehouseNamespace                 = os.Getenv(BookwarehouseNamespaceEnvVar)
-	enableEgress                           = os.Getenv(EnableEgressEnvVar) == "true"
 
 	bookstoreService = fmt.Sprintf("%s.%s:%d", bookstoreServiceName, bookstoreNamespace, bookstorePort) // FQDN
 	warehouseService = fmt.Sprintf("%s.%s", warehouseServiceName, bookwarehouseNamespace)               // FQDN
@@ -56,6 +57,11 @@ var (
 			"user-agent": "Go-http-client/1.1",
 		},
 		buyBook: nil,
+	}
+
+	egressURLs = []string{
+		"edition.cnn.com",
+		"github.com",
 	}
 )
 
@@ -88,17 +94,8 @@ func RestockBooks(amount int) {
 	log.Info().Msgf("RestockBooks (%s) finished w/ status: %s %d ", chargeAccountURL, resp.Status, resp.StatusCode)
 }
 
-// GetEnv is much  like os.Getenv() but with a default value.
-func GetEnv(envVar string, defaultValue string) string {
-	val := os.Getenv(envVar)
-	if val == "" {
-		return defaultValue
-	}
-	return val
-}
-
 // GetBooks reaches out to the bookstore and buys/steals books. This is invoked by the bookbuyer and the bookthief.
-func GetBooks(participantName string, meshExpectedResponseCode int, egressExpectedResponseCode int, booksCount *int64, booksCountV1 *int64, booksCountV2 *int64) {
+func GetBooks(participantName string, meshExpectedResponseCode int, booksCount *int64, booksCountV1 *int64, booksCountV2 *int64) {
 	minSuccessThreshold, maxIterations, sleepDurationBetweenRequests := getEnvVars(participantName)
 
 	// The URLs this participant will attempt to query from the bookstore service
@@ -108,15 +105,16 @@ func GetBooks(participantName string, meshExpectedResponseCode int, egressExpect
 	}
 
 	if enableEgress {
-		urlSuccessMap[httpEgressURL] = false
-		urlSuccessMap[httpsEgressURL] = false
+		urlSuccessMap[httpPrefix] = false
+		urlSuccessMap[httpsPrefix] = false
 	}
 
 	urlExpectedRespCode := map[string]int{
-		booksBought:    meshExpectedResponseCode,
-		buyBook:        meshExpectedResponseCode,
-		httpEgressURL:  egressExpectedResponseCode,
-		httpsEgressURL: getHTTPSEgressExpectedResponseCode(egressExpectedResponseCode),
+		booksBought: meshExpectedResponseCode,
+		buyBook:     meshExpectedResponseCode,
+		// Using only prefixes as placeholders so that we can select random URL while testing
+		httpPrefix:  getHTTPEgressExpectedResponseCode(),
+		httpsPrefix: getHTTPSEgressExpectedResponseCode(),
 	}
 
 	// Count how many times we have reached out to the bookstore
@@ -137,9 +135,16 @@ func GetBooks(participantName string, meshExpectedResponseCode int, egressExpect
 		startTime := time.Now()
 
 		for url := range urlSuccessMap {
+			fetchURL := url
 
-			// We only care about the response code of the HTTP call for the given URL
-			responseCode, identity := fetch(url)
+			// Create random URLs to test egress
+			if fetchURL == httpPrefix || fetchURL == httpsPrefix {
+				index := rand.Intn(len(egressURLs)) // #nosec G404
+				fetchURL = fmt.Sprintf("%s%s", url, egressURLs[index])
+			}
+
+			// We only care about the response code of the HTTP(s) call for the given URL
+			responseCode, identity := fetch(fetchURL)
 
 			expectedResponseCode := urlExpectedRespCode[url]
 			succeeded := responseCode == expectedResponseCode
@@ -172,7 +177,6 @@ func GetBooks(participantName string, meshExpectedResponseCode int, egressExpect
 					// Maestro will stop tailing logs.
 					fmt.Println(Success)
 				}
-
 			}
 
 			if previouslySucceeded && !succeeded {
@@ -273,7 +277,7 @@ func getEnvVars(participantName string) (minSuccessThreshold int64, maxIteration
 
 // GetExpectedResponseCodeFromEnvVar returns the expected response code based on the given environment variable
 func GetExpectedResponseCodeFromEnvVar(envVar, defaultValue string) int {
-	expectedRespCodeStr := GetEnv(envVar, defaultValue)
+	expectedRespCodeStr := utils.GetEnv(envVar, defaultValue)
 	expectedRespCode, err := strconv.ParseInt(expectedRespCodeStr, 10, 0)
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Could not convert environment variable %s='%s' to int", envVar, expectedRespCodeStr)
@@ -285,11 +289,19 @@ func GetExpectedResponseCodeFromEnvVar(envVar, defaultValue string) int {
 // Since HTTPS egress depends on clients to originate TLS, when egress is disabled the
 // TLS negotiation will fail. As a result no HTTP response code will be returned
 // but rather the HTTP library will return 0 as the status code in such cases.
-// This function returns the expect HTTPS response code for egress based on the
-// expectations of the test.
-func getHTTPSEgressExpectedResponseCode(expectedEgressResponseCode int) int {
-	if expectedEgressResponseCode != http.StatusOK {
-		return 0
+func getHTTPSEgressExpectedResponseCode() int {
+	if enableEgress {
+		return http.StatusOK
 	}
-	return expectedEgressResponseCode
+
+	return 0
+}
+
+// getHTTPEgressExpectedResponseCode returns the expected response code for HTTP egress
+func getHTTPEgressExpectedResponseCode() int {
+	if enableEgress {
+		return http.StatusOK
+	}
+
+	return http.StatusNotFound
 }

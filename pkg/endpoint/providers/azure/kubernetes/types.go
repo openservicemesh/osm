@@ -4,8 +4,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/logger"
-	"github.com/openservicemesh/osm/pkg/namespace"
 )
 
 var (
@@ -24,11 +24,11 @@ type CacheCollection struct {
 
 // Client is a struct for all components necessary to connect to and maintain state of a Kubernetes cluster.
 type Client struct {
-	caches              *CacheCollection
-	cacheSynced         chan interface{}
-	kubeClient          kubernetes.Interface
-	informers           *InformerCollection
-	providerIdent       string
-	announcements       chan interface{}
-	namespaceController namespace.Controller
+	caches         *CacheCollection
+	cacheSynced    chan interface{}
+	kubeClient     kubernetes.Interface
+	informers      *InformerCollection
+	providerIdent  string
+	announcements  chan interface{}
+	kubeController k8s.Controller
 }

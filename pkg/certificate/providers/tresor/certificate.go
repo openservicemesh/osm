@@ -5,6 +5,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/rotor"
+	"github.com/openservicemesh/osm/pkg/configurator"
 )
 
 const (
@@ -28,12 +29,7 @@ func (c Certificate) GetPrivateKey() []byte {
 
 // GetIssuingCA implements certificate.Certificater and returns the root certificate for the given cert.
 func (c Certificate) GetIssuingCA() []byte {
-	if c.issuingCA == nil {
-		log.Fatal().Msgf("No issuing CA available for cert %s", c.commonName)
-		return nil
-	}
-
-	return c.issuingCA.GetCertificateChain()
+	return c.issuingCA
 }
 
 // GetExpiration implements certificate.Certificater and returns the time the given certificate expires.
@@ -70,7 +66,7 @@ func LoadCA(certFilePEM string, keyFilePEM string) (*Certificate, error) {
 }
 
 // NewCertManager creates a new CertManager with the passed CA and CA Private Key
-func NewCertManager(ca certificate.Certificater, validityPeriod time.Duration, certificatesOrganization string) (*CertManager, error) {
+func NewCertManager(ca certificate.Certificater, certificatesOrganization string, cfg configurator.Configurator) (*CertManager, error) {
 	if ca == nil {
 		return nil, errNoIssuingCA
 	}
@@ -81,9 +77,6 @@ func NewCertManager(ca certificate.Certificater, validityPeriod time.Duration, c
 		// The root certificate signing all newly issued certificates
 		ca: ca,
 
-		// Newly issued certificates will be valid for this duration
-		validityPeriod: validityPeriod,
-
 		// Channel used to inform other components of cert changes (rotation etc.)
 		announcements: make(chan interface{}),
 
@@ -91,6 +84,8 @@ func NewCertManager(ca certificate.Certificater, validityPeriod time.Duration, c
 		cache: &cache,
 
 		certificatesOrganization: certificatesOrganization,
+
+		cfg: cfg,
 	}
 
 	// Instantiating a new certificate rotation mechanism will start a goroutine for certificate rotation.

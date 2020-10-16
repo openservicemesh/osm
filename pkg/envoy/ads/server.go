@@ -15,14 +15,23 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy/lds"
 	"github.com/openservicemesh/osm/pkg/envoy/rds"
 	"github.com/openservicemesh/osm/pkg/envoy/sds"
+	"github.com/openservicemesh/osm/pkg/utils"
 )
 
+// ServerType is the type identifier for the ADS server
+const ServerType = "ADS"
+
 // NewADSServer creates a new Aggregated Discovery Service server
-func NewADSServer(ctx context.Context, meshCatalog catalog.MeshCataloger, enableDebug bool, osmNamespace string, cfg configurator.Configurator) *Server {
+func NewADSServer(meshCatalog catalog.MeshCataloger, enableDebug bool, osmNamespace string, cfg configurator.Configurator) *Server {
 	server := Server{
-		catalog:      meshCatalog,
-		ctx:          ctx,
-		xdsHandlers:  getHandlers(),
+		catalog: meshCatalog,
+		xdsHandlers: map[envoy.TypeURI]func(catalog.MeshCataloger, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator) (*xds_discovery.DiscoveryResponse, error){
+			envoy.TypeEDS: eds.NewResponse,
+			envoy.TypeCDS: cds.NewResponse,
+			envoy.TypeRDS: rds.NewResponse,
+			envoy.TypeLDS: lds.NewResponse,
+			envoy.TypeSDS: sds.NewResponse,
+		},
 		enableDebug:  enableDebug,
 		osmNamespace: osmNamespace,
 		cfg:          cfg,
@@ -35,14 +44,19 @@ func NewADSServer(ctx context.Context, meshCatalog catalog.MeshCataloger, enable
 	return &server
 }
 
-func getHandlers() map[envoy.TypeURI]func(context.Context, catalog.MeshCataloger, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator) (*xds_discovery.DiscoveryResponse, error) {
-	return map[envoy.TypeURI]func(context.Context, catalog.MeshCataloger, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator) (*xds_discovery.DiscoveryResponse, error){
-		envoy.TypeEDS: eds.NewResponse,
-		envoy.TypeCDS: cds.NewResponse,
-		envoy.TypeRDS: rds.NewResponse,
-		envoy.TypeLDS: lds.NewResponse,
-		envoy.TypeSDS: sds.NewResponse,
+// Start starts the ADS server
+func (s *Server) Start(ctx context.Context, cancel context.CancelFunc, port int, adsCert certificate.Certificater) error {
+	grpcServer, lis, err := utils.NewGrpc(ServerType, port, adsCert.GetCertificateChain(), adsCert.GetPrivateKey(), adsCert.GetIssuingCA())
+	if err != nil {
+		log.Error().Err(err).Msg("Error starting ADS server")
+		return err
 	}
+
+	xds_discovery.RegisterAggregatedDiscoveryServiceServer(grpcServer, s)
+	go utils.GrpcServe(ctx, grpcServer, lis, cancel, ServerType, nil)
+	s.ready = true
+
+	return nil
 }
 
 // DeltaAggregatedResources implements discovery.AggregatedDiscoveryServiceServer

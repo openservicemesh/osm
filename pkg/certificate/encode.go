@@ -86,3 +86,17 @@ func DecodePEMPrivateKey(keyPEM []byte) (*rsa.PrivateKey, error) {
 
 	return nil, errNoCertificateInPEM
 }
+
+// EncodeCertReqDERtoPEM encodes the certificate request provided in DER format
+// into PEM format.
+func EncodeCertReqDERtoPEM(derBytes []byte) (pem.CertificateRequest, error) {
+	csrPEM := bytes.NewBuffer([]byte{})
+	block := pemEnc.Block{
+		Type:  TypeCertificateRequest,
+		Bytes: derBytes,
+	}
+	if err := pemEnc.Encode(csrPEM, &block); err != nil {
+		return nil, errors.Wrap(err, errEncodeCert.Error())
+	}
+	return csrPEM.Bytes(), nil
+}

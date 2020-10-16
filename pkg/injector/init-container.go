@@ -8,15 +8,10 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
-const (
-	// InitContainerName is the name of the init container
-	InitContainerName = "osm-init"
-)
-
-func getInitContainerSpec(pod *corev1.Pod, data *InitContainerData) (corev1.Container, error) {
+func getInitContainerSpec(initContainer *InitContainer) (corev1.Container, error) {
 	return corev1.Container{
-		Name:  data.Name,
-		Image: data.Image,
+		Name:  initContainer.Name,
+		Image: initContainer.Image,
 		SecurityContext: &corev1.SecurityContext{
 			Capabilities: &corev1.Capabilities{
 				Add: []corev1.Capability{

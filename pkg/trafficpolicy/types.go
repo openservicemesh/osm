@@ -2,6 +2,7 @@ package trafficpolicy
 
 import (
 	set "github.com/deckarep/golang-set"
+
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -11,23 +12,23 @@ type TrafficSpecName string
 // TrafficSpecMatchName is the  name of a match in SMI TrafficSpec
 type TrafficSpecMatchName string
 
-// Route is a struct of a path regex and the methods on a given route
-type Route struct {
+// HTTPRoute is a struct to represent an HTTP route comprised of a path regex, methods, and headers
+type HTTPRoute struct {
 	PathRegex string            `json:"path_regex:omitempty"`
 	Methods   []string          `json:"methods:omitempty"`
 	Headers   map[string]string `json:"headers:omitempty"`
 }
 
-// TrafficTarget is a struct of the allowed RoutePaths from sources to a destination
+// TrafficTarget is a struct to represent a traffic policy between a source and destination along with its routes
 type TrafficTarget struct {
 	Name        string              `json:"name:omitempty"`
 	Destination service.MeshService `json:"destination:omitempty"`
 	Source      service.MeshService `json:"source:omitempty"`
-	Route       Route               `json:"route:omitempty"`
+	HTTPRoutes  []HTTPRoute         `json:"http_route:omitempty"`
 }
 
-//RouteWeightedClusters is a struct of a route and the weighted clusters on that route
+// RouteWeightedClusters is a struct of an HTTPRoute and associated weighted clusters
 type RouteWeightedClusters struct {
-	Route            Route   `json:"route:omitempty"`
-	WeightedClusters set.Set `json:"weighted_clusters:omitempty"`
+	HTTPRoute        HTTPRoute `json:"http_route:omitempty"`
+	WeightedClusters set.Set   `json:"weighted_clusters:omitempty"`
 }

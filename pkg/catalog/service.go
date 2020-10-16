@@ -1,20 +1,31 @@
 package catalog
 
 import (
-	"github.com/openservicemesh/osm/pkg/constants"
+	"strings"
+
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
-// GetServiceForServiceAccount returns a service corresponding to a service account
-func (mc *MeshCatalog) GetServiceForServiceAccount(sa service.K8sServiceAccount) (service.MeshService, error) {
+// GetServicesForServiceAccount returns a list of services corresponding to a service account
+func (mc *MeshCatalog) GetServicesForServiceAccount(sa service.K8sServiceAccount) ([]service.MeshService, error) {
+	var services []service.MeshService
 	for _, provider := range mc.endpointsProviders {
-		// TODO (#88) : remove this provider check once we have figured out the service account story for azure vms
-		if provider.GetID() != constants.AzureProviderName {
-			log.Trace().Msgf("[%s] Looking for Services for Name=%s", provider.GetID(), sa)
-			service, err := provider.GetServiceForServiceAccount(sa)
-			log.Trace().Msgf("[%s] Found service %s for Name=%s", provider.GetID(), service.String(), sa)
-			return service, err
+		if providerServices, err := provider.GetServicesForServiceAccount(sa); err != nil {
+			log.Warn().Msgf("Error getting K8s Services linked to Service Account %s from provider %s: %s", provider.GetID(), sa, err)
+		} else {
+			var svcs []string
+			for _, svc := range providerServices {
+				svcs = append(svcs, svc.String())
+			}
+
+			log.Trace().Msgf("Found K8s Services %s linked to Service Account %s from endpoint provider %s", strings.Join(svcs, ","), sa, provider.GetID())
+			services = append(services, providerServices...)
 		}
 	}
-	return service.MeshService{}, errServiceNotFoundForAnyProvider
+
+	if len(services) == 0 {
+		return nil, errServiceNotFoundForAnyProvider
+	}
+
+	return services, nil
 }

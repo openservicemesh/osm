@@ -20,7 +20,7 @@ The directory `providers` contains implementations of certificate issuers (`cert
   1. `tresor` is a minimal internal implementation of a certificate issuer, which leverages Go's `crypto` library and uses Kubernetes' etcd for storage.
   2. `keyvault` is a certificate issuer leveraging Azure Key Vault for secrets storage.
   3. `vault` is another implementation of the `certificate.Manager` interface, which provides a way for all service mesh certificates to be stored on and signed by [Hashicorp Vault](https://www.vaultproject.io/).
-
+  4. `cert-manager` is a certificate issuer leveraging [cert-manager](https://cert-manager.io) to sign certificates from [Issuers](https://cert-manager.io/docs/concepts/issuer/).
 
 ## Certificate Rotation
 In the `rotor` directory we implement a certificate rotation mechanism, which may or may not be leveraged by the certificate issuers (`providers`).

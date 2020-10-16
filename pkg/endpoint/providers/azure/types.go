@@ -9,8 +9,8 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 
 	osm "github.com/openservicemesh/osm/pkg/apis/azureresource/v1"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/logger"
-	"github.com/openservicemesh/osm/pkg/smi"
 )
 
 type resourceGroup string
@@ -51,7 +51,7 @@ type Client struct {
 	azureClients
 
 	subscriptionID string
-	meshSpec       smi.MeshSpec
+	kubeController k8s.Controller
 
 	// Free-form string identifying the compute provider: Azure, Kubernetes etc.
 	// This is used in logs

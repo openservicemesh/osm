@@ -10,16 +10,16 @@ import (
 	xds_endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	xds_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/wrappers"
-
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
+
+	"github.com/golang/mock/gomock"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -30,9 +30,16 @@ import (
 )
 
 var _ = Describe("CDS Response", func() {
+	var (
+		mockCtrl         *gomock.Controller
+		mockConfigurator *configurator.MockConfigurator
+	)
+
+	mockCtrl = gomock.NewController(GinkgoT())
+	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
+
 	kubeClient := testclient.NewSimpleClientset()
 	catalog := catalog.NewFakeMeshCatalog(kubeClient)
-	cfg := configurator.NewFakeConfigurator()
 	proxyServiceName := tests.BookbuyerServiceName
 	proxyServiceAccountName := tests.BookbuyerServiceAccountName
 	proxyService := tests.BookbuyerService
@@ -58,7 +65,7 @@ var _ = Describe("CDS Response", func() {
 			{
 				// Create a service for the pod created above
 				selectors := map[string]string{
-					// These need to match teh POD created above
+					// These need to match the POD created above
 					tests.SelectorKey: tests.SelectorValue,
 				}
 				// The serviceName must match the SMI
@@ -67,24 +74,31 @@ var _ = Describe("CDS Response", func() {
 				Expect(err).ToNot(HaveOccurred())
 			}
 
-			resp, err := NewResponse(context.Background(), catalog, proxy, nil, cfg)
+			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
+			mockConfigurator.EXPECT().IsPrometheusScrapingEnabled().Return(true).AnyTimes()
+			mockConfigurator.EXPECT().IsTracingEnabled().Return(true).AnyTimes()
+			mockConfigurator.EXPECT().IsEgressEnabled().Return(true).AnyTimes()
+			mockConfigurator.EXPECT().GetTracingHost().Return(constants.DefaultTracingHost).AnyTimes()
+			mockConfigurator.EXPECT().GetTracingPort().Return(constants.DefaultTracingPort).AnyTimes()
+
+			resp, err := NewResponse(catalog, proxy, nil, mockConfigurator)
 			Expect(err).ToNot(HaveOccurred())
 
 			// There are to any.Any resources in the ClusterDiscoveryStruct (Clusters)
 			// There are 5 types of clusters that can exist based on the configuration:
-			// 1. Destination cluster
-			// 2. Source cluster
+			// 1. Destination cluster (Bookstore-v1, Bookstore-v2, and BookstoreApex)
+			// 2. Source cluster (Bookbuyer)
 			// 3. Prometheus cluster
-			// 4. Zipkin cluster
+			// 4. Tracing cluster
 			// 5. Passthrough cluster for egress
-			numExpectedClusters := 5 // source and destination clusters
+			numExpectedClusters := 7 // source and destination clusters
 			Expect(len((*resp).Resources)).To(Equal(numExpectedClusters))
 		})
 	})
 
 	Context("Test cds clusters", func() {
 		It("Returns a local cluster object", func() {
-			remoteCluster, err := getLocalServiceCluster(catalog, proxyService, getLocalClusterName(proxyService))
+			localCluster, err := getLocalServiceCluster(catalog, proxyService, getLocalClusterName(proxyService))
 			Expect(err).ToNot(HaveOccurred())
 
 			expectedClusterLoadAssignment := &xds_endpoint.ClusterLoadAssignment{
@@ -126,20 +140,24 @@ var _ = Describe("CDS Response", func() {
 				LoadAssignment:         expectedClusterLoadAssignment,
 			}
 
-			Expect(remoteCluster.Name).To(Equal(expectedCluster.Name))
-			Expect(remoteCluster.LoadAssignment.ClusterName).To(Equal(expectedClusterLoadAssignment.ClusterName))
-			Expect(len(remoteCluster.LoadAssignment.Endpoints)).To(Equal(len(expectedClusterLoadAssignment.Endpoints)))
-			Expect(remoteCluster.LoadAssignment.Endpoints[0].LbEndpoints).To(Equal(expectedClusterLoadAssignment.Endpoints[0].LbEndpoints))
+			Expect(localCluster.Name).To(Equal(expectedCluster.Name))
+			Expect(localCluster.LoadAssignment.ClusterName).To(Equal(expectedClusterLoadAssignment.ClusterName))
+			Expect(len(localCluster.LoadAssignment.Endpoints)).To(Equal(len(expectedClusterLoadAssignment.Endpoints)))
+			Expect(localCluster.LoadAssignment.Endpoints[0].LbEndpoints).To(Equal(expectedClusterLoadAssignment.Endpoints[0].LbEndpoints))
+			Expect(localCluster.ProtocolSelection).To(Equal(xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL))
 		})
 
 		It("Returns a remote cluster object", func() {
 			localService := tests.BookbuyerService
-			remoteService := tests.BookstoreService
-			remoteCluster, err := getRemoteServiceCluster(remoteService, localService, cfg)
+			remoteService := tests.BookstoreV1Service
+
+			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).Times(1)
+
+			remoteCluster, err := getRemoteServiceCluster(remoteService, localService, mockConfigurator)
 			Expect(err).ToNot(HaveOccurred())
 
 			expectedClusterLoadAssignment := &xds_endpoint.ClusterLoadAssignment{
-				ClusterName: constants.EnvoyMetricsCluster,
+				ClusterName: "test",
 				Endpoints: []*xds_endpoint.LocalityLbEndpoints{
 					{
 						Locality: nil,
@@ -242,7 +260,7 @@ var _ = Describe("CDS Response", func() {
 				AllowRenegotiation: false,
 			}
 			Expect(upstreamTLSContext.CommonTlsContext.TlsParams).To(Equal(expectedTLSContext.CommonTlsContext.TlsParams))
-			Expect(upstreamTLSContext.Sni).To(Equal("bookstore.default.svc.cluster.local"))
+			Expect(upstreamTLSContext.Sni).To(Equal("bookstore-v1.default.svc.cluster.local"))
 			// TODO(draychev): finish the rest
 			// Expect(upstreamTLSContext).To(Equal(expectedTLSContext)
 		})

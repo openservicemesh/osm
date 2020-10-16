@@ -19,17 +19,6 @@ import (
 
 var _ = Describe("Test CMD tools", func() {
 
-	Context("Testing encodeExpiration", func() {
-		It("serialized expiration date", func() {
-			expiration, err := time.Parse(constants.TimeDateLayout, "2020-05-07T14:25:18.677Z")
-			Expect(err).ToNot(HaveOccurred())
-
-			actual := encodeExpiration(expiration)
-			expected := []byte("MjAyMC0wNS0wN1QxNDoyNToxOC42Nzda")
-			Expect(actual).To(Equal(expected))
-		})
-	})
-
 	Context("Testing getCertFromKubernetes", func() {
 		It("obtained root cert from k8s", func() {
 			kubeClient := testclient.NewSimpleClientset()
@@ -47,7 +36,7 @@ var _ = Describe("Test CMD tools", func() {
 				},
 				Data: map[string][]byte{
 					constants.KubernetesOpaqueSecretCAKey:             certPEM,
-					constants.KubernetesOpaqueSecretCAExpiration:      []byte("MjAyMC0wNS0wN1QxNDoyNToxOC42Nzda"),
+					constants.KubernetesOpaqueSecretCAExpiration:      []byte("2020-05-07T14:25:18.677Z"),
 					constants.KubernetesOpaqueSecretRootPrivateKeyKey: keyPEM,
 				},
 			}
@@ -55,7 +44,8 @@ var _ = Describe("Test CMD tools", func() {
 			_, err := kubeClient.CoreV1().Secrets(ns).Create(context.Background(), secret, v1.CreateOptions{})
 			Expect(err).ToNot(HaveOccurred())
 
-			actual := getCertFromKubernetes(kubeClient, ns, secretName)
+			actual, err := getCertFromKubernetes(kubeClient, ns, secretName)
+			Expect(err).ToNot(HaveOccurred())
 
 			expectedCert := pem.Certificate(certPEM)
 			expectedKey := pem.PrivateKey(keyPEM)
@@ -67,10 +57,103 @@ var _ = Describe("Test CMD tools", func() {
 
 			Expect(actual).To(Equal(expected))
 		})
+
+		It("should not error when the root certificate secret is not found", func() {
+			kubeClient := testclient.NewSimpleClientset()
+
+			ns := uuid.New().String()
+			secretName := uuid.New().String()
+
+			rootCert, err := getCertFromKubernetes(kubeClient, ns, secretName)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(rootCert).To(BeNil())
+		})
+
+		It("should return an error when the root cert CA is missing in the secret", func() {
+			kubeClient := testclient.NewSimpleClientset()
+
+			ns := uuid.New().String()
+			secretName := uuid.New().String()
+
+			keyPEM := []byte(uuid.New().String())
+
+			secret := &corev1.Secret{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      secretName,
+					Namespace: ns,
+				},
+				Data: map[string][]byte{
+					constants.KubernetesOpaqueSecretCAExpiration:      []byte("2020-05-07T14:25:18.677Z"),
+					constants.KubernetesOpaqueSecretRootPrivateKeyKey: keyPEM,
+				},
+			}
+
+			_, err := kubeClient.CoreV1().Secrets(ns).Create(context.Background(), secret, v1.CreateOptions{})
+			Expect(err).ToNot(HaveOccurred())
+
+			rootCert, err := getCertFromKubernetes(kubeClient, ns, secretName)
+			Expect(err).To(HaveOccurred())
+			Expect(rootCert).To(BeNil())
+		})
+
+		It("should return an error when the root cert private key is missing in the secret", func() {
+			kubeClient := testclient.NewSimpleClientset()
+
+			ns := uuid.New().String()
+			secretName := uuid.New().String()
+
+			certPEM := []byte(uuid.New().String())
+
+			secret := &corev1.Secret{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      secretName,
+					Namespace: ns,
+				},
+				Data: map[string][]byte{
+					constants.KubernetesOpaqueSecretCAKey:        certPEM,
+					constants.KubernetesOpaqueSecretCAExpiration: []byte("2020-05-07T14:25:18.677Z"),
+				},
+			}
+
+			_, err := kubeClient.CoreV1().Secrets(ns).Create(context.Background(), secret, v1.CreateOptions{})
+			Expect(err).ToNot(HaveOccurred())
+
+			rootCert, err := getCertFromKubernetes(kubeClient, ns, secretName)
+			Expect(err).To(HaveOccurred())
+			Expect(rootCert).To(BeNil())
+		})
+
+		It("should return an error when the root cert expiration time is missing in the secret", func() {
+			kubeClient := testclient.NewSimpleClientset()
+
+			ns := uuid.New().String()
+			secretName := uuid.New().String()
+
+			certPEM := []byte(uuid.New().String())
+			keyPEM := []byte(uuid.New().String())
+
+			secret := &corev1.Secret{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      secretName,
+					Namespace: ns,
+				},
+				Data: map[string][]byte{
+					constants.KubernetesOpaqueSecretCAKey:             certPEM,
+					constants.KubernetesOpaqueSecretRootPrivateKeyKey: keyPEM,
+				},
+			}
+
+			_, err := kubeClient.CoreV1().Secrets(ns).Create(context.Background(), secret, v1.CreateOptions{})
+			Expect(err).ToNot(HaveOccurred())
+
+			rootCert, err := getCertFromKubernetes(kubeClient, ns, secretName)
+			Expect(err).To(HaveOccurred())
+			Expect(rootCert).To(BeNil())
+		})
 	})
 
-	Context("Testing saveSecretToKubernetes", func() {
-		It("saves root cert to k8s", func() {
+	Context("Testing saveOrUpdateSecretToKubernetes", func() {
+		It("saves root cert to k8s if Secret doesn't exist", func() {
 			kubeClient := testclient.NewSimpleClientset()
 
 			ns := uuid.New().String()
@@ -86,7 +169,7 @@ var _ = Describe("Test CMD tools", func() {
 				},
 				Data: map[string][]byte{
 					constants.KubernetesOpaqueSecretCAKey:             certPEM,
-					constants.KubernetesOpaqueSecretCAExpiration:      []byte("MjAyMC0wNS0wN1QxNDoyNToxOC42Nzda"),
+					constants.KubernetesOpaqueSecretCAExpiration:      []byte("2020-05-07T14:25:18.677Z"),
 					constants.KubernetesOpaqueSecretRootPrivateKeyKey: keyPEM,
 				},
 			}
@@ -98,7 +181,58 @@ var _ = Describe("Test CMD tools", func() {
 			cert, err := tresor.NewCertificateFromPEM(expectedCert, expectedKey, expiration)
 			Expect(err).ToNot(HaveOccurred())
 
-			err = saveSecretToKubernetes(kubeClient, cert, ns, secretName, keyPEM)
+			err = saveOrUpdateSecretToKubernetes(kubeClient, cert, ns, secretName)
+			Expect(err).ToNot(HaveOccurred())
+
+			actual, err := kubeClient.CoreV1().Secrets(ns).Get(context.Background(), secretName, v1.GetOptions{})
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(*actual).To(Equal(*expected))
+		})
+
+		It("updates root cert to k8s if Secret exists", func() {
+			ns := uuid.New().String()
+			secretName := uuid.New().String()
+
+			kubeClient := testclient.NewSimpleClientset(&corev1.Secret{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      secretName,
+					Namespace: ns,
+				},
+				Data: map[string][]byte{
+					constants.KubernetesOpaqueSecretCAKey:             []byte("abc"),
+					constants.KubernetesOpaqueSecretCAExpiration:      []byte("def"),
+					constants.KubernetesOpaqueSecretRootPrivateKeyKey: []byte("ghi"),
+					"foo": []byte("bar"),
+					"123": []byte("456"),
+				},
+			})
+
+			certPEM := []byte(uuid.New().String())
+			keyPEM := []byte(uuid.New().String())
+
+			expected := &corev1.Secret{
+				ObjectMeta: v1.ObjectMeta{
+					Name:      secretName,
+					Namespace: ns,
+				},
+				Data: map[string][]byte{
+					constants.KubernetesOpaqueSecretCAKey:             certPEM,
+					constants.KubernetesOpaqueSecretCAExpiration:      []byte("2020-05-07T14:25:18.677Z"),
+					constants.KubernetesOpaqueSecretRootPrivateKeyKey: keyPEM,
+					"foo": []byte("bar"),
+					"123": []byte("456"),
+				},
+			}
+
+			expectedCert := pem.Certificate(certPEM)
+			expectedKey := pem.PrivateKey(keyPEM)
+			expiration, err := time.Parse(constants.TimeDateLayout, "2020-05-07T14:25:18.677Z")
+			Expect(err).ToNot(HaveOccurred())
+			cert, err := tresor.NewCertificateFromPEM(expectedCert, expectedKey, expiration)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = saveOrUpdateSecretToKubernetes(kubeClient, cert, ns, secretName)
 			Expect(err).ToNot(HaveOccurred())
 
 			actual, err := kubeClient.CoreV1().Secrets(ns).Get(context.Background(), secretName, v1.GetOptions{})

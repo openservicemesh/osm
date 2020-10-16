@@ -5,10 +5,9 @@ import (
 	"sort"
 	"strings"
 
+	set "github.com/deckarep/golang-set"
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	xds_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
-
-	set "github.com/deckarep/golang-set"
 	"github.com/golang/protobuf/ptypes/wrappers"
 
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -18,6 +17,17 @@ import (
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
+// Direction is a type to signify the direction associated with a route
+type Direction int
+
+const (
+	// OutboundRoute is the direction for an outbound route
+	OutboundRoute Direction = iota
+
+	// InboundRoute is the direction for an inbound route
+	InboundRoute
+)
+
 const (
 	//InboundRouteConfigName is the name of the route config that the envoy will identify
 	InboundRouteConfigName = "RDS_Inbound"
@@ -25,51 +35,39 @@ const (
 	//OutboundRouteConfigName is the name of the route config that the envoy will identify
 	OutboundRouteConfigName = "RDS_Outbound"
 
-	// maxRegexProgramSize is the max supported regex complexity
-	maxRegexProgramSize = 1024
-
-	//InboundVirtualHost is the name of the virtual host on the inbound route configuration
+	// inboundVirtualHost is the name of the virtual host on the inbound route configuration
 	inboundVirtualHost = "inbound_virtualHost"
 
-	//OutboundVirtualHost is the name of the virtual host on the outbound route configuration
+	// outboundVirtualHost is the name of the virtual host on the outbound route configuration
 	outboundVirtualHost = "outbound_virtualHost"
 
 	// MethodHeaderKey is the key of the header for HTTP methods
 	MethodHeaderKey = ":method"
 
-	// wildcardPathPrefix is the wildcard path prefix for HTTP paths
-	wildcardPathPrefix = "/"
-
 	// httpHostHeader is the name of the HTTP host header
 	httpHostHeader = "host"
 )
 
-var (
-	regexEngine = &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{
-		MaxProgramSize: &wrappers.UInt32Value{
-			Value: uint32(maxRegexProgramSize),
-		},
-	}}
-)
-
 //UpdateRouteConfiguration consrtucts the Envoy construct necessary for TrafficTarget implementation
-func UpdateRouteConfiguration(domainRoutesMap map[string]map[string]trafficpolicy.RouteWeightedClusters, routeConfig *xds_route.RouteConfiguration, isSourceConfig bool, isDestinationConfig bool) {
+func UpdateRouteConfiguration(domainRoutesMap map[string]map[string]trafficpolicy.RouteWeightedClusters, routeConfig *xds_route.RouteConfiguration, direction Direction) {
 	log.Trace().Msgf("[RDS] Updating Route Configuration")
-	var isLocalCluster bool
 	var virtualHostPrefix string
 
-	if isSourceConfig {
-		log.Trace().Msgf("[RDS] Updating OutboundRouteConfiguration for policy %v", domainRoutesMap)
-		isLocalCluster = false
+	switch direction {
+	case OutboundRoute:
 		virtualHostPrefix = outboundVirtualHost
-	} else if isDestinationConfig {
-		log.Trace().Msgf("[RDS] Updating InboundRouteConfiguration for policy %v", domainRoutesMap)
-		isLocalCluster = true
+
+	case InboundRoute:
 		virtualHostPrefix = inboundVirtualHost
+
+	default:
+		log.Error().Msgf("Invalid route direction: %v", direction)
+		return
 	}
+
 	for domain, routePolicyWeightedClustersMap := range domainRoutesMap {
 		virtualHost := createVirtualHostStub(virtualHostPrefix, domain)
-		virtualHost.Routes = createRoutes(routePolicyWeightedClustersMap, isLocalCluster)
+		virtualHost.Routes = createRoutes(routePolicyWeightedClustersMap, direction)
 		routeConfig.VirtualHosts = append(routeConfig.VirtualHosts, virtualHost)
 	}
 }
@@ -86,40 +84,39 @@ func createVirtualHostStub(namePrefix string, domain string) *xds_route.VirtualH
 	virtualHost := xds_route.VirtualHost{
 		Name:    name,
 		Domains: domains,
-		Routes:  []*xds_route.Route{},
 	}
 	return &virtualHost
 }
 
-func createRoutes(routePolicyWeightedClustersMap map[string]trafficpolicy.RouteWeightedClusters, isLocalCluster bool) []*xds_route.Route {
+func createRoutes(routePolicyWeightedClustersMap map[string]trafficpolicy.RouteWeightedClusters, direction Direction) []*xds_route.Route {
 	var routes []*xds_route.Route
-	if !isLocalCluster {
+	if direction == OutboundRoute {
 		// For a source service, configure a wildcard route match (without any headers) with weighted routes to upstream clusters based on traffic split policies
 		weightedClusters := getDistinctWeightedClusters(routePolicyWeightedClustersMap)
 		totalClustersWeight := getTotalWeightForClusters(weightedClusters)
 		emptyHeaders := make(map[string]string)
-		route := getRoute(constants.RegexMatchAll, constants.WildcardHTTPMethod, emptyHeaders, weightedClusters, totalClustersWeight, isLocalCluster)
+		route := getRoute(constants.RegexMatchAll, constants.WildcardHTTPMethod, emptyHeaders, weightedClusters, totalClustersWeight, OutboundRoute)
 		routes = append(routes, route)
 		return routes
 	}
 	for _, routePolicyWeightedClusters := range routePolicyWeightedClustersMap {
 		// For a given route path, sanitize the methods in case there
 		// is wildcard or if there are duplicates
-		allowedMethods := sanitizeHTTPMethods(routePolicyWeightedClusters.Route.Methods)
+		allowedMethods := sanitizeHTTPMethods(routePolicyWeightedClusters.HTTPRoute.Methods)
 		for _, method := range allowedMethods {
-			route := getRoute(routePolicyWeightedClusters.Route.PathRegex, method, routePolicyWeightedClusters.Route.Headers, routePolicyWeightedClusters.WeightedClusters, 100, isLocalCluster)
+			route := getRoute(routePolicyWeightedClusters.HTTPRoute.PathRegex, method, routePolicyWeightedClusters.HTTPRoute.Headers, routePolicyWeightedClusters.WeightedClusters, 100, direction)
 			routes = append(routes, route)
 		}
 	}
 	return routes
 }
 
-func getRoute(pathRegex string, method string, headersMap map[string]string, weightedClusters set.Set, totalClustersWeight int, isLocalCluster bool) *xds_route.Route {
+func getRoute(pathRegex string, method string, headersMap map[string]string, weightedClusters set.Set, totalClustersWeight int, direction Direction) *xds_route.Route {
 	route := xds_route.Route{
 		Match: &xds_route.RouteMatch{
 			PathSpecifier: &xds_route.RouteMatch_SafeRegex{
 				SafeRegex: &xds_matcher.RegexMatcher{
-					EngineType: regexEngine,
+					EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
 					Regex:      pathRegex,
 				},
 			},
@@ -128,7 +125,7 @@ func getRoute(pathRegex string, method string, headersMap map[string]string, wei
 		Action: &xds_route.Route_Route{
 			Route: &xds_route.RouteAction{
 				ClusterSpecifier: &xds_route.RouteAction_WeightedClusters{
-					WeightedClusters: getWeightedCluster(weightedClusters, totalClustersWeight, isLocalCluster),
+					WeightedClusters: getWeightedCluster(weightedClusters, totalClustersWeight, direction),
 				},
 			},
 		},
@@ -144,7 +141,7 @@ func getHeadersForRoute(method string, headersMap map[string]string) []*xds_rout
 		Name: MethodHeaderKey,
 		HeaderMatchSpecifier: &xds_route.HeaderMatcher_SafeRegexMatch{
 			SafeRegexMatch: &xds_matcher.RegexMatcher{
-				EngineType: regexEngine,
+				EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
 				Regex:      getRegexForMethod(method),
 			},
 		},
@@ -161,25 +158,27 @@ func getHeadersForRoute(method string, headersMap map[string]string) []*xds_rout
 			Name: headerKey,
 			HeaderMatchSpecifier: &xds_route.HeaderMatcher_SafeRegexMatch{
 				SafeRegexMatch: &xds_matcher.RegexMatcher{
-					EngineType: regexEngine,
+					EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
 					Regex:      headerValue,
 				},
 			},
 		}
 		headers = append(headers, &header)
-
 	}
 	return headers
 }
 
-func getWeightedCluster(weightedClusters set.Set, totalClustersWeight int, isLocalCluster bool) *xds_route.WeightedCluster {
+func getWeightedCluster(weightedClusters set.Set, totalClustersWeight int, direction Direction) *xds_route.WeightedCluster {
 	var wc xds_route.WeightedCluster
 	var total int
 	for clusterInterface := range weightedClusters.Iter() {
 		cluster := clusterInterface.(service.WeightedCluster)
 		clusterName := string(cluster.ClusterName)
 		total += cluster.Weight
-		if isLocalCluster {
+		if direction == InboundRoute {
+			// An inbound route is associated with a local cluster. The inbound route is applied
+			// on the destination cluster, and the destination clusters that accept inbound
+			// traffic have the name of the form 'someClusterName-local`.
 			clusterName += envoy.LocalClusterSuffix
 		}
 		wc.Clusters = append(wc.Clusters, &xds_route.WeightedCluster_ClusterWeight{
@@ -187,8 +186,9 @@ func getWeightedCluster(weightedClusters set.Set, totalClustersWeight int, isLoc
 			Weight: &wrappers.UInt32Value{Value: uint32(cluster.Weight)},
 		})
 	}
-	if !isLocalCluster {
-		// for source service, the pre-computed total weight based on traffic splits is used
+	if direction == OutboundRoute {
+		// For an outbound route from the source, the pre-computed total weight based on the weights defined in
+		// the traffic split policies are used.
 		total = totalClustersWeight
 	}
 	wc.TotalWeight = &wrappers.UInt32Value{Value: uint32(total)}
@@ -232,7 +232,7 @@ func (c clusterWeightByName) Less(i, j int) bool {
 // sanitizeHTTPMethods takes in a list of HTTP methods including a wildcard (*) and returns a wildcard if any of
 // the methods is a wildcard or sanitizes the input list to avoid duplicates.
 func sanitizeHTTPMethods(allowedMethods []string) []string {
-	newAllowedMethods := []string{}
+	var newAllowedMethods []string
 	keys := make(map[string]interface{})
 	for _, method := range allowedMethods {
 		if method != "" {
@@ -253,7 +253,6 @@ func sanitizeHTTPMethods(allowedMethods []string) []string {
 func NewRouteConfigurationStub(routeConfigName string) *xds_route.RouteConfiguration {
 	routeConfiguration := xds_route.RouteConfiguration{
 		Name:             routeConfigName,
-		VirtualHosts:     []*xds_route.VirtualHost{},
 		ValidateClusters: &wrappers.BoolValue{Value: true},
 	}
 	return &routeConfiguration

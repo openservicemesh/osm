@@ -142,7 +142,7 @@
         "steppedLine": false,
         "targets": [
           {
-            "expr": "irate(envoy_cluster_upstream_rq_xx{envoy_response_code_class=\"2\",source_pod_name=\"$source_pod\",source_namespace=\"$source_namespace\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-zipkin-cluster|passthrough-outbound\"}[1m])",
+            "expr": "irate(envoy_cluster_upstream_rq_xx{envoy_response_code_class=\"2\",source_pod_name=\"$source_pod\",source_namespace=\"$source_namespace\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-tracing-cluster|passthrough-outbound\"}[1m])",
             "legendFormat": "{{envoy_cluster_name}}",
             "refId": "A"
           }
@@ -248,7 +248,7 @@
         "steppedLine": false,
         "targets": [
           {
-            "expr": "irate(envoy_cluster_upstream_rq_xx{envoy_response_code_class!=\"2\",source_pod_name=\"$source_pod\",source_namespace=\"$source_namespace\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-zipkin-cluster|passthrough-outbound\"}[1m])",
+            "expr": "irate(envoy_cluster_upstream_rq_xx{envoy_response_code_class!=\"2\",source_pod_name=\"$source_pod\",source_namespace=\"$source_namespace\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-tracing-cluster|passthrough-outbound\"}[1m])",
             "interval": "",
             "legendFormat": "{{envoy_cluster_name}}",
             "refId": "A"
@@ -357,7 +357,7 @@
         "steppedLine": false,
         "targets": [
           {
-            "expr": "histogram_quantile(0.99,irate(envoy_cluster_upstream_rq_time_bucket{source_pod_name=\"$source_pod\",source_namespace=\"$source_namespace\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-zipkin-cluster|passthrough-outbound\"}[1m]))",
+            "expr": "histogram_quantile(0.99,irate(envoy_cluster_upstream_rq_time_bucket{source_pod_name=\"$source_pod\",source_namespace=\"$source_namespace\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-tracing-cluster|passthrough-outbound\"}[1m]))",
             "interval": "",
             "legendFormat": "{{envoy_cluster_name}}",
             "refId": "A"
@@ -452,7 +452,7 @@
         "steppedLine": false,
         "targets": [
           {
-            "expr": "histogram_quantile(0.90,irate(envoy_cluster_upstream_rq_time_bucket{source_pod_name=\"$source_pod\",source_namespace=\"$source_namespace\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-zipkin-cluster|passthrough-outbound\"}[1m]))",
+            "expr": "histogram_quantile(0.90,irate(envoy_cluster_upstream_rq_time_bucket{source_pod_name=\"$source_pod\",source_namespace=\"$source_namespace\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-tracing-cluster|passthrough-outbound\"}[1m]))",
             "interval": "",
             "legendFormat": "{{envoy_cluster_name}}",
             "refId": "A"
@@ -547,7 +547,7 @@
         "steppedLine": false,
         "targets": [
           {
-            "expr": "histogram_quantile(0.50,irate(envoy_cluster_upstream_rq_time_bucket{source_pod_name=\"$source_pod\",source_namespace=\"$source_namespace\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-zipkin-cluster|passthrough-outbound\"}[1m]))",
+            "expr": "histogram_quantile(0.50,irate(envoy_cluster_upstream_rq_time_bucket{source_pod_name=\"$source_pod\",source_namespace=\"$source_namespace\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-tracing-cluster|passthrough-outbound\"}[1m]))",
             "interval": "",
             "legendFormat": "{{envoy_cluster_name}}",
             "refId": "A"
@@ -642,7 +642,7 @@
         "pluginVersion": "7.0.1",
         "targets": [
           {
-            "expr": "irate(envoy_cluster_upstream_cx_active{source_pod_name=\"$source_pod\",source_namespace=\"$source_namespace\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-zipkin-cluster|passthrough-outbound\"}[1m])",
+            "expr": "irate(envoy_cluster_upstream_cx_active{source_pod_name=\"$source_pod\",source_namespace=\"$source_namespace\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-tracing-cluster|passthrough-outbound\"}[1m])",
             "legendFormat": "{{envoy_cluster_name}}",
             "refId": "A"
           }
@@ -766,42 +766,42 @@
         "steppedLine": false,
         "targets": [
           {
-            "expr": "irate(envoy_cluster_upstream_cx_destroy_remote_with_active_rq{source_pod_name=\"$source_pod\",source_namespace=\"$source_namespace\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-zipkin-cluster|passthrough-outbound\"}[1m])",
+            "expr": "irate(envoy_cluster_upstream_cx_destroy_remote_with_active_rq{source_pod_name=\"$source_pod\",source_namespace=\"$source_namespace\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-tracing-cluster|passthrough-outbound\"}[1m])",
             "legendFormat": "Connection destroyed by the client - {{envoy_cluster_name}}",
             "refId": "A"
           },
           {
-            "expr": "irate(envoy_cluster_upstream_cx_connect_timeout{source_pod_name=\"$source_pod\",source_namespace=\"$source_namespace\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-zipkin-cluster|passthrough-outbound\"}[1m])",
+            "expr": "irate(envoy_cluster_upstream_cx_connect_timeout{source_pod_name=\"$source_pod\",source_namespace=\"$source_namespace\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-tracing-cluster|passthrough-outbound\"}[1m])",
             "legendFormat": "Connection timeout - {{envoy_cluster_name}}",
             "refId": "B"
           },
           {
-            "expr": "irate(envoy_cluster_upstream_cx_destroy_local_with_active_rq{source_pod_name=\"$source_pod\",source_namespace=\"$source_namespace\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-zipkin-cluster|passthrough-outbound\"}[1m])",
+            "expr": "irate(envoy_cluster_upstream_cx_destroy_local_with_active_rq{source_pod_name=\"$source_pod\",source_namespace=\"$source_namespace\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-tracing-cluster|passthrough-outbound\"}[1m])",
             "legendFormat": "Connection destroyed by local Envoy - {{envoy_cluster_name}}",
             "refId": "C"
           },
           {
-            "expr": "irate(envoy_cluster_upstream_rq_pending_failure_eject{source_pod_name=\"$source_pod\",source_namespace=\"$source_namespace\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-zipkin-cluster|passthrough-outbound\"}[1m])",
+            "expr": "irate(envoy_cluster_upstream_rq_pending_failure_eject{source_pod_name=\"$source_pod\",source_namespace=\"$source_namespace\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-tracing-cluster|passthrough-outbound\"}[1m])",
             "legendFormat": "Pending failure ejection - {{envoy_cluster_name}}",
             "refId": "D"
           },
           {
-            "expr": "irate(envoy_cluster_upstream_rq_pending_overflow{source_pod_name=\"$source_pod\",source_namespace=\"$source_namespace\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-zipkin-cluster|passthrough-outbound\"}[1m])",
+            "expr": "irate(envoy_cluster_upstream_rq_pending_overflow{source_pod_name=\"$source_pod\",source_namespace=\"$source_namespace\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-tracing-cluster|passthrough-outbound\"}[1m])",
             "legendFormat": "Pending overflow - {{envoy_cluster_name}}",
             "refId": "E"
           },
           {
-            "expr": "irate(envoy_cluster_upstream_rq_timeout{source_pod_name=\"$source_pod\",source_namespace=\"$source_namespace\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-zipkin-cluster|passthrough-outbound\"}[1m])",
+            "expr": "irate(envoy_cluster_upstream_rq_timeout{source_pod_name=\"$source_pod\",source_namespace=\"$source_namespace\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-tracing-cluster|passthrough-outbound\"}[1m])",
             "legendFormat": "Request timeout - {{envoy_cluster_name}}",
             "refId": "F"
           },
           {
-            "expr": "irate(envoy_cluster_upstream_rq_rx_reset{source_pod_name=\"$source_pod\",source_namespace=\"$source_namespace\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-zipkin-cluster|passthrough-outbound\"}[1m])",
+            "expr": "irate(envoy_cluster_upstream_rq_rx_reset{source_pod_name=\"$source_pod\",source_namespace=\"$source_namespace\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-tracing-cluster|passthrough-outbound\"}[1m])",
             "legendFormat": "Response reset - {{envoy_cluster_name}}",
             "refId": "G"
           },
           {
-            "expr": "irate(envoy_cluster_upstream_rq_tx_reset{source_pod_name=\"$source_pod\",source_namespace=\"$source_namespace\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-zipkin-cluster|passthrough-outbound\"}[1m])",
+            "expr": "irate(envoy_cluster_upstream_rq_tx_reset{source_pod_name=\"$source_pod\",source_namespace=\"$source_namespace\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-tracing-cluster|passthrough-outbound\"}[1m])",
             "legendFormat": "Request reset - {{envoy_cluster_name}}",
             "refId": "H"
           }
@@ -895,7 +895,7 @@
         "steppedLine": false,
         "targets": [
           {
-            "expr": "irate(envoy_cluster_upstream_cx_rx_bytes_total{source_pod_name=\"$source_pod\",source_namespace=\"$source_namespace\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-zipkin-cluster|passthrough-outbound\"}[1m])",
+            "expr": "irate(envoy_cluster_upstream_cx_rx_bytes_total{source_pod_name=\"$source_pod\",source_namespace=\"$source_namespace\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-tracing-cluster|passthrough-outbound\"}[1m])",
             "legendFormat": "{{envoy_cluster_name}}",
             "refId": "B"
           }
@@ -989,7 +989,7 @@
         "steppedLine": false,
         "targets": [
           {
-            "expr": "irate(envoy_cluster_upstream_cx_tx_bytes_total{source_pod_name=\"$source_pod\",source_namespace=\"$source_namespace\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-zipkin-cluster|passthrough-outbound\"}[1m])",
+            "expr": "irate(envoy_cluster_upstream_cx_tx_bytes_total{source_pod_name=\"$source_pod\",source_namespace=\"$source_namespace\",envoy_cluster_name!~\"osm-controller|envoy-metrics-cluster|envoy-tracing-cluster|passthrough-outbound\"}[1m])",
             "interval": "",
             "legendFormat": "{{envoy_cluster_name}}",
             "refId": "A"

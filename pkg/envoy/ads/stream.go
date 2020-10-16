@@ -24,13 +24,17 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 
 	ip := utils.GetIPFromContext(server.Context())
 
-	namespacedService, err := s.catalog.GetServiceFromEnvoyCertificate(cn)
+	svcList, err := s.catalog.GetServicesFromEnvoyCertificate(cn)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error fetching service for Envoy %s with CN %s", ip, cn)
 		return err
 	}
+	// Github Issue #1575
+	namespacedService := svcList[0]
+
 	log.Info().Msgf("Client %s connected: Subject CN=%s; Service=%s", ip, cn, namespacedService)
 
+	// This is the Envoy proxy that just connected to the control plane.
 	proxy := envoy.NewProxy(cn, ip)
 	s.catalog.RegisterProxy(proxy)
 	defer s.catalog.UnregisterProxy(proxy)
@@ -46,7 +50,6 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 	go receive(requests, &server, proxy, quit)
 
 	for {
-
 		select {
 		case <-ctx.Done():
 			return nil
@@ -102,7 +105,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 
 			// In the DiscoveryRequest we have a VersionInfo field.
 			// When this is smaller or equal to what we last sent to this proxy - it is
-			// interpreted as an acknoweldgement of a previously sent request.
+			// interpreted as an acknowledgement of a previously sent request.
 			// Such DiscoveryRequest requires no further action.
 			if ackVersion > 0 && ackVersion <= proxy.GetLastSentVersion(typeURL) {
 				log.Debug().Msgf("Request %s VersionInfo (%d) <= last sent VersionInfo (%d); ACK", typeURL, ackVersion, proxy.GetLastSentVersion(typeURL))
@@ -144,7 +147,6 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 		case <-proxy.GetAnnouncementsChannel():
 			log.Info().Msgf("Change detected - update all Envoys.")
 			s.sendAllResponses(proxy, &server, s.cfg)
-
 		}
 	}
 }

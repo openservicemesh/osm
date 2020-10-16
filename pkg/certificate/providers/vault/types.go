@@ -2,17 +2,15 @@ package vault
 
 import (
 	"sync"
-	"time"
 
 	"github.com/hashicorp/vault/api"
+
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/configurator"
 )
 
 // CertManager implements certificate.Manager and contains a Hashi Vault client instance.
 type CertManager struct {
-	// How long will newly issued certificates be valid for
-	validityPeriod time.Duration
-
 	// The Certificate Authority root certificate to be used by this certificate manager
 	ca certificate.Certificater
 
@@ -28,4 +26,6 @@ type CertManager struct {
 
 	// The Vault role configured for OSM and passed as a CLI.
 	vaultRole string
+
+	cfg configurator.Configurator
 }
