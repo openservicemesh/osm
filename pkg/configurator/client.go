@@ -16,15 +16,15 @@ import (
 const (
 	permissiveTrafficPolicyModeKey = "permissive_traffic_policy_mode"
 	egressKey                      = "egress"
+	enableDebugServer              = "enable_debug_server"
 	prometheusScrapingKey          = "prometheus_scraping"
-	meshCIDRRangesKey              = "mesh_cidr_ranges"
 	useHTTPSIngressKey             = "use_https_ingress"
 	tracingEnableKey               = "tracing_enable"
 	tracingAddressKey              = "tracing_address"
 	tracingPortKey                 = "tracing_port"
 	tracingEndpointKey             = "tracing_endpoint"
-	defaultInMeshCIDR              = ""
 	envoyLogLevel                  = "envoy_log_level"
+	serviceCertValidityDurationKey = "service_cert_validity_duration"
 )
 
 // NewConfigurator implements configurator.Configurator and creates the Kubernetes client to manage namespaces.
@@ -72,6 +72,9 @@ type osmConfig struct {
 	// Egress is a bool toggle used to enable or disable egress globally within the mesh
 	Egress bool `yaml:"egress"`
 
+	// EnableDebugServer is a bool toggle, which enables/disables the debug server within the OSM Controller
+	EnableDebugServer bool `yaml:"enable_debug_server"`
+
 	// PrometheusScraping is a bool toggle used to enable or disable metrics scraping by Prometheus
 	PrometheusScraping bool `yaml:"prometheus_scraping"`
 
@@ -90,11 +93,13 @@ type osmConfig struct {
 	// TracingEndpoint is the collector endpoint on the listener
 	TracingEndpoint string `yaml:"tracing_endpoint"`
 
-	// MeshCIDRRanges is the list of CIDR ranges for in-mesh traffic
-	MeshCIDRRanges string `yaml:"mesh_cidr_ranges"`
-
 	// EnvoyLogLevel is a string that defines the log level for envoy proxies
 	EnvoyLogLevel string `yaml:"envoy_log_level"`
+
+	// ServiceCertValidityDuration is a string that defines the validity duration of service certificates
+	// It is represented as a sequence of decimal numbers each with optional fraction and a unit suffix.
+	// Ex: 1h to represent 1 hour, 30m to represent 30 minutes, 1.5h or 1h30m to represent 1 hour and 30 minutes.
+	ServiceCertValidityDuration string `yaml:"service_cert_validity_duration"`
 }
 
 func (c *Client) run(stop <-chan struct{}) {
@@ -133,12 +138,13 @@ func (c *Client) getConfigMap() *osmConfig {
 	osmConfigMap := osmConfig{
 		PermissiveTrafficPolicyMode: getBoolValueForKey(configMap, permissiveTrafficPolicyModeKey),
 		Egress:                      getBoolValueForKey(configMap, egressKey),
+		EnableDebugServer:           getBoolValueForKey(configMap, enableDebugServer),
 		PrometheusScraping:          getBoolValueForKey(configMap, prometheusScrapingKey),
-		MeshCIDRRanges:              getEgressCIDR(configMap),
 		UseHTTPSIngress:             getBoolValueForKey(configMap, useHTTPSIngressKey),
 
-		TracingEnable: getBoolValueForKey(configMap, tracingEnableKey),
-		EnvoyLogLevel: getStringValueForKey(configMap, envoyLogLevel),
+		TracingEnable:               getBoolValueForKey(configMap, tracingEnableKey),
+		EnvoyLogLevel:               getStringValueForKey(configMap, envoyLogLevel),
+		ServiceCertValidityDuration: getStringValueForKey(configMap, serviceCertValidityDurationKey),
 	}
 
 	if osmConfigMap.TracingEnable {
@@ -148,18 +154,6 @@ func (c *Client) getConfigMap() *osmConfig {
 	}
 
 	return &osmConfigMap
-}
-
-func getEgressCIDR(configMap *v1.ConfigMap) string {
-	cidr, ok := configMap.Data[meshCIDRRangesKey]
-	if !ok {
-		if getBoolValueForKey(configMap, egressKey) {
-			log.Error().Err(errMissingKeyInConfigMap).Msgf("Missing ConfigMap %s/%s key %s, required when egress is enabled; Defaulting to %+v", configMap.Namespace, configMap.Name, meshCIDRRangesKey, defaultInMeshCIDR)
-		}
-		return defaultInMeshCIDR
-	}
-
-	return cidr
 }
 
 func getBoolValueForKey(configMap *v1.ConfigMap, key string) bool {

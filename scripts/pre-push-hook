@@ -22,6 +22,16 @@ then
     exit 1
 fi
 
+# run go mod tidy
+make go-mod-tidy >commit_logs/go_mod.log 2>&1
+if [ $? -ne 0 ]
+then
+    echo "'go mod tidy': has detected potential issues in the project."
+    echo "Details:"
+    cat commit_logs/go_mod.log
+    exit 1
+fi
+
 # run go test
 go test -v ./... >commit_logs/unit_tests.log 2>&1
 if [ $? -ne 0 ]

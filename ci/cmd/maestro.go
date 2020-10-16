@@ -108,8 +108,7 @@ func main() {
 	maestro.SearchLogsForSuccess(kubeClient, bookthiefNS, bookThiefPodName, bookThiefLabel, maxWaitForOK(), bookThiefCh, common.Success, common.Failure)
 
 	bookWarehouseCh := make(chan maestro.TestResult)
-	successToken := "Restocking bookstore with 1 new books; Total so far: 3 "
-	maestro.SearchLogsForSuccess(kubeClient, bookWarehouseNS, bookWarehousePodName, bookWarehouseLabel, maxWaitForOK(), bookWarehouseCh, successToken, common.Failure)
+	maestro.SearchLogsForSuccess(kubeClient, bookWarehouseNS, bookWarehousePodName, bookWarehouseLabel, maxWaitForOK(), bookWarehouseCh, common.Success, common.Failure)
 
 	bookBuyerTestResult := <-bookBuyerCh
 	bookThiefTestResult := <-bookThiefCh
@@ -119,8 +118,8 @@ func main() {
 	if bookBuyerTestResult == maestro.TestsPassed && bookThiefTestResult == maestro.TestsPassed && bookWarehouseTestResult == maestro.TestsPassed {
 		log.Info().Msg("Test succeeded")
 		maestro.DeleteNamespaces(kubeClient, append(namespaces, osmNamespace)...)
-		webhookName := fmt.Sprintf("osm-webhook-%s", meshName)
-		maestro.DeleteWebhook(kubeClient, webhookName)
+		webhookConfigName := fmt.Sprintf("osm-webhook-%s", meshName)
+		maestro.DeleteWebhookConfiguration(kubeClient, webhookConfigName)
 		os.Exit(0)
 	}
 

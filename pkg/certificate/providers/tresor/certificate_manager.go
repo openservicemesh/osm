@@ -13,11 +13,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate/rotor"
 )
 
-func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod *time.Duration) (certificate.Certificater, error) {
-	if validityPeriod == nil {
-		validityPeriod = &cm.validityPeriod
-	}
-
+func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Duration) (certificate.Certificater, error) {
 	if cm.ca == nil {
 		log.Error().Msgf("Invalid CA provided for issuance of certificate with CN=%s", cn)
 		return nil, errNoIssuingCA
@@ -45,7 +41,7 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod *time.Dur
 			Organization: []string{cm.certificatesOrganization},
 		},
 		NotBefore: now,
-		NotAfter:  now.Add(*validityPeriod),
+		NotAfter:  now.Add(validityPeriod),
 
 		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
@@ -84,7 +80,7 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod *time.Dur
 		commonName: cn,
 		certChain:  certPEM,
 		privateKey: privKeyPEM,
-		issuingCA:  cm.ca,
+		issuingCA:  cm.ca.GetCertificateChain(),
 		expiration: template.NotAfter,
 	}
 
@@ -108,7 +104,7 @@ func (cm *CertManager) getFromCache(cn certificate.CommonName) certificate.Certi
 }
 
 // IssueCertificate implements certificate.Manager and returns a newly issued certificate.
-func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPeriod *time.Duration) (certificate.Certificater, error) {
+func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPeriod time.Duration) (certificate.Certificater, error) {
 	start := time.Now()
 
 	if cert := cm.getFromCache(cn); cert != nil {
@@ -143,7 +139,7 @@ func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate
 
 	start := time.Now()
 
-	cert, err := cm.issue(cn, &cm.validityPeriod)
+	cert, err := cm.issue(cn, cm.cfg.GetServiceCertValidityPeriod())
 	if err != nil {
 		return cert, err
 	}

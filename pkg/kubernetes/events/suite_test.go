@@ -1,4 +1,4 @@
-package utils
+package events
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestProvider(t *testing.T) {
+func TestEvents(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Utils Test Suite")
+	RunSpecs(t, "Kubernetes events test suite")
 }

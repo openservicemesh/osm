@@ -3,6 +3,7 @@ package ads
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
@@ -14,11 +15,14 @@ import (
 
 func (s *Server) sendAllResponses(proxy *envoy.Proxy, server *xds_discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer, cfg configurator.Configurator) {
 	log.Trace().Msgf("A change announcement triggered *DS update for proxy with CN=%s", proxy.GetCommonName())
+	fullUpdateStartTime := time.Now()
+
 	// Order is important: CDS, EDS, LDS, RDS
 	// See: https://github.com/envoyproxy/go-control-plane/issues/59
 	for idx, typeURI := range envoy.XDSResponseOrder {
 		prefix := fmt.Sprintf("[*DS %d/%d]", idx+1, len(envoy.XDSResponseOrder))
 		log.Trace().Msgf("%s Creating %s response for proxy with CN=%s", prefix, typeURI, proxy.GetCommonName())
+		updateStartTime := time.Now()
 
 		// For SDS we need to add ResourceNames
 		var request *xds_discovery.DiscoveryRequest
@@ -34,12 +38,19 @@ func (s *Server) sendAllResponses(proxy *envoy.Proxy, server *xds_discovery.Aggr
 		discoveryResponse, err := s.newAggregatedDiscoveryResponse(proxy, request, cfg)
 		if err != nil {
 			log.Error().Err(err).Msgf("%s Failed to create %s discovery response for proxy with CN=%s", prefix, typeURI, proxy.GetCommonName())
-			continue
+		} else {
+			if err := (*server).Send(discoveryResponse); err != nil {
+				log.Error().Err(err).Msgf("%s Error sending %s to proxy with CN=%s", prefix, typeURI, proxy.GetCommonName())
+			}
 		}
-		if err := (*server).Send(discoveryResponse); err != nil {
-			log.Error().Err(err).Msgf("%s Error sending %s to proxy with CN=%s", prefix, typeURI, proxy.GetCommonName())
-		}
+		log.Debug().Msgf("%s (%s) proxy %s took %s",
+			prefix,
+			typeURI.String()[strings.LastIndex(typeURI.String(), ".")+1:], // Last word of typeUri
+			proxy.GetCommonName(),
+			time.Since(updateStartTime))
 	}
+
+	log.Info().Msgf("Full update for %s took %s", proxy.GetCommonName(), time.Since(fullUpdateStartTime))
 }
 
 // makeRequestForAllSecrets constructs an SDS request AS IF an Envoy proxy sent it.

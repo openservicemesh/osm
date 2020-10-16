@@ -5,11 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/http/pprof"
 	"time"
 
 	"github.com/openservicemesh/osm/pkg/debugger"
 	"github.com/openservicemesh/osm/pkg/health"
+	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 	"github.com/openservicemesh/osm/pkg/version"
@@ -45,12 +45,6 @@ func NewHTTPServer(probes []health.Probes, httpProbes []health.HTTPProbe, metric
 		"/health/alive": health.LivenessHandler(probes, httpProbes),
 		"/metrics":      metricStore.Handler(),
 		"/version":      getVersionHandler(),
-		// Pprof handlers
-		"/debug/pprof/":        http.HandlerFunc(pprof.Index),
-		"/debug/pprof/cmdline": http.HandlerFunc(pprof.Cmdline),
-		"/debug/pprof/profile": http.HandlerFunc(pprof.Profile),
-		"/debug/pprof/symbol":  http.HandlerFunc(pprof.Symbol),
-		"/debug/pprof/trace":   http.HandlerFunc(pprof.Trace),
 	}
 
 	if debugServer != nil {
@@ -72,7 +66,8 @@ func (s *HTTPServer) Start() {
 	go func() {
 		log.Info().Msgf("Starting API Server on %s", s.server.Addr)
 		if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatal().Err(err).Msg("Failed to start API server")
+			events.GenericEventRecorder().FatalEvent(err, events.InitializationError,
+				"Error starting HTTP server")
 		}
 	}()
 }

@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"time"
 
+	"github.com/golang/mock/gomock"
 	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1beta1"
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	cmfakeclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/fake"
@@ -16,12 +17,21 @@ import (
 	"k8s.io/client-go/testing"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/configurator"
 )
 
 var _ = Describe("Test cert-manager Certificate Manager", func() {
+	defer GinkgoRecover()
+
+	var (
+		mockCtrl         *gomock.Controller
+		mockConfigurator *configurator.MockConfigurator
+	)
+
+	mockCtrl = gomock.NewController(GinkgoT())
+	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
+
 	Context("Test Getting a certificate from the cache", func() {
-		log := logger.New("cert-manager-test")
 		validity := 1 * time.Hour
 		rootCertFilePEM := "../../sample_certificate.pem"
 		rootKeyFilePEM := "../../sample_private_key.pem"
@@ -29,37 +39,37 @@ var _ = Describe("Test cert-manager Certificate Manager", func() {
 
 		rootCertPEM, err := certificate.LoadCertificateFromFile(rootCertFilePEM)
 		if err != nil {
-			log.Fatal().Err(err).Msgf("Error loading certificate from file %s", rootCertFilePEM)
+			GinkgoT().Fatalf("Error loading certificate from file %s: %s", rootCertFilePEM, err.Error())
 		}
 
 		rootCert, err := certificate.DecodePEMCertificate(rootCertPEM)
 		if err != nil {
-			log.Fatal().Err(err).Msgf("Error decoding certificate from file %s", rootCertFilePEM)
+			GinkgoT().Fatalf("Error decoding certificate from file %s: %s", rootCertFilePEM, err.Error())
 		}
 		rootCert.NotAfter = time.Now().Add(time.Minute * 30)
 
 		rootKeyPEM, err := certificate.LoadPrivateKeyFromFile(rootKeyFilePEM)
 		if err != nil {
-			log.Fatal().Err(err).Msgf("Error loading private ket from file %s", rootCertFilePEM)
+			GinkgoT().Fatalf("Error loading private ket from file %s: %s", rootCertFilePEM, err.Error())
 		}
 		rootKey, err := certificate.DecodePEMPrivateKey(rootKeyPEM)
 		if err != nil {
-			log.Fatal().Err(err).Msgf("Error decoding private key from file %s", rootKeyFilePEM)
+			GinkgoT().Fatalf("Error decoding private key from file %s: %s", rootKeyFilePEM, err.Error())
 		}
 
 		signedCertDER, err := x509.CreateCertificate(rand.Reader, rootCert, rootCert, rootKey.Public(), rootKey)
 		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to self signed certificate")
+			GinkgoT().Fatalf("Failed to self signed certificate: %s", err.Error())
 		}
 
 		signedCertPEM, err := certificate.EncodeCertDERtoPEM(signedCertDER)
 		if err != nil {
-			log.Fatal().Err(err).Msg("Failed encode signed signed certificate")
+			GinkgoT().Fatalf("Failed encode signed signed certificate: %s", err.Error())
 		}
 
 		rootCertificator, err := NewRootCertificateFromPEM(rootCertPEM)
 		if err != nil {
-			log.Fatal().Err(err).Msgf("Error loading ca %s", rootCertPEM)
+			GinkgoT().Fatalf("Error loading ca %s: %s", rootCertPEM, err.Error())
 		}
 
 		crNotReady := &cmapi.CertificateRequest{
@@ -96,10 +106,10 @@ var _ = Describe("Test cert-manager Certificate Manager", func() {
 			}
 		})
 
-		cm, newCertError := NewCertManager(rootCertificator, fakeClient, "osm-system", validity, cmmeta.ObjectReference{Name: "osm-ca"})
+		cm, newCertError := NewCertManager(rootCertificator, fakeClient, "osm-system", cmmeta.ObjectReference{Name: "osm-ca"}, mockConfigurator)
 		It("should get an issued certificate from the cache", func() {
 			Expect(newCertError).ToNot(HaveOccurred())
-			cert, issueCertificateError := cm.IssueCertificate(cn, &validity)
+			cert, issueCertificateError := cm.IssueCertificate(cn, validity)
 			Expect(issueCertificateError).ToNot(HaveOccurred())
 			Expect(cert.GetCommonName()).To(Equal(cn))
 

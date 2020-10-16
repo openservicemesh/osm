@@ -8,6 +8,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -31,6 +32,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/ingress"
 	"github.com/openservicemesh/osm/pkg/injector"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
+	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 	"github.com/openservicemesh/osm/pkg/signals"
@@ -39,21 +41,18 @@ import (
 )
 
 const (
-	defaultServiceCertValidityMinutes = 60 // 1 hour
-	caBundleSecretNameCLIParam        = "ca-bundle-secret-name"
-	xdsServerCertificateCommonName    = "ads"
+	caBundleSecretNameCLIParam     = "ca-bundle-secret-name"
+	xdsServerCertificateCommonName = "ads"
 )
 
 var (
-	verbosity                  string
-	meshName                   string // An ID that uniquely identifies an OSM instance
-	kubeConfigFile             string
-	osmNamespace               string
-	webhookName                string
-	serviceCertValidityMinutes int
-	caBundleSecretName         string
-	enableDebugServer          bool
-	osmConfigMapName           string
+	verbosity          string
+	meshName           string // An ID that uniquely identifies an OSM instance
+	kubeConfigFile     string
+	osmNamespace       string
+	webhookConfigName  string
+	caBundleSecretName string
+	osmConfigMapName   string
 
 	injectorConfig injector.Config
 
@@ -86,10 +85,8 @@ func init() {
 	flags.StringVar(&meshName, "mesh-name", "", "OSM mesh name")
 	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file.")
 	flags.StringVar(&osmNamespace, "osm-namespace", "", "Namespace to which OSM belongs to.")
-	flags.StringVar(&webhookName, "webhook-name", "", "Name of the MutatingWebhookConfiguration to be configured by osm-controller")
-	flags.IntVar(&serviceCertValidityMinutes, "service-cert-validity-minutes", defaultServiceCertValidityMinutes, "Certificate validityPeriod duration in minutes")
+	flags.StringVar(&webhookConfigName, "webhook-config-name", "", "Name of the MutatingWebhookConfiguration to be configured by osm-controller")
 	flags.StringVar(&caBundleSecretName, caBundleSecretNameCLIParam, "", "Name of the Kubernetes Secret for the OSM CA bundle")
-	flags.BoolVar(&enableDebugServer, "enable-debug-server", false, "Enable OSM debug HTTP server")
 	flags.StringVar(&osmConfigMapName, "osm-configmap-name", "osm-config", "Name of the OSM ConfigMap")
 
 	// sidecar injector options
@@ -112,24 +109,31 @@ func main() {
 	}
 	featureflags.Initialize(optionalFeatures)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// This ensures CLI parameters (and dependent values) are correct.
-	// Side effects: This will log.Fatal on error resulting in os.Exit(255)
-	if err := validateCLIParams(); err != nil {
-		log.Fatal().Err(err).Msg("Failed to validate CLI parameters")
-	}
-
+	// Initialize kube config and client
 	kubeConfig, err := clientcmd.BuildConfigFromFlags("", kubeConfigFile)
-
-	smiKubeConfig := &kubeConfig
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Error creating kube config (kubeconfig=%s)", kubeConfigFile)
 	}
 	kubeClient := kubernetes.NewForConfigOrDie(kubeConfig)
 
+	// Initialize the generic Kubernetes event recorder and associate it with the osm-controller pod resource
+	controllerPod, err := getOSMControllerPod(kubeClient)
+	if err != nil {
+		log.Fatal().Msg("Error fetching osm-controller pod")
+	}
+	eventRecorder := events.GenericEventRecorder()
+	if err := eventRecorder.Initialize(controllerPod, kubeClient, osmNamespace); err != nil {
+		log.Fatal().Msg("Error initializing generic event recorder")
+	}
+
+	// This ensures CLI parameters (and dependent values) are correct.
+	if err := validateCLIParams(); err != nil {
+		events.GenericEventRecorder().FatalEvent(err, events.InvalidCLIParameters, "Error validating CLI parameters")
+	}
+
 	stop := signals.RegisterExitHandlers()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	// This component will be watching the OSM ConfigMap and will make it
 	// to the rest of the components.
@@ -140,18 +144,21 @@ func main() {
 	}
 	log.Info().Msgf("Initial ConfigMap %s: %s", osmConfigMapName, string(configMap))
 
-	kubernetesClient := k8s.NewKubernetesClient(kubeClient, meshName, stop)
-	meshSpec, err := smi.NewMeshSpecClient(*smiKubeConfig, kubeClient, osmNamespace, kubernetesClient, stop)
+	kubernetesClient, err := k8s.NewKubernetesController(kubeClient, meshName, stop)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to create new mesh spec client")
+		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Kubernetes Controller")
 	}
 
-	certManager, certDebugger, err := getCertificateManager(kubeClient, kubeConfig)
+	meshSpec, err := smi.NewMeshSpecClient(kubeConfig, kubeClient, osmNamespace, kubernetesClient, stop)
 	if err != nil {
-		log.Fatal().Err(err).Msgf("Failed to get certificate manager based on CLI argument: %s", *osmCertificateManagerKind)
+		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating MeshSpec")
 	}
 
-	log.Info().Msgf("Service certificates will be valid for %+v", getServiceCertValidityPeriod())
+	certManager, certDebugger, err := getCertificateManager(kubeClient, kubeConfig, cfg)
+	if err != nil {
+		events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
+			"Error fetching certificate manager of kind %s", *osmCertificateManagerKind)
+	}
 
 	if caBundleSecretName == "" {
 		log.Info().Msgf("CA bundle will not be exported to a k8s secret (no --%s provided)", caBundleSecretNameCLIParam)
@@ -161,16 +168,16 @@ func main() {
 		}
 	}
 
-	provider, err := kube.NewProvider(kubeClient, kubernetesClient, stop, constants.KubeProviderName, cfg)
+	kubeProvider, err := kube.NewProvider(kubeClient, kubernetesClient, stop, constants.KubeProviderName, cfg)
 	if err != nil {
-		log.Fatal().Err(err).Msgf("Failed to get endpoint provider")
+		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Kubernetes endpoints provider")
 	}
 
-	endpointsProviders := []endpoint.Provider{provider}
+	endpointsProviders := []endpoint.Provider{kubeProvider}
 
 	ingressClient, err := ingress.NewIngressClient(kubeClient, kubernetesClient, stop, cfg)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to initialize ingress client")
+		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Ingress monitor client")
 	}
 
 	meshCatalog := catalog.NewMeshCatalog(
@@ -184,20 +191,20 @@ func main() {
 		endpointsProviders...)
 
 	// Create the sidecar-injector webhook
-	if err := injector.NewWebhook(injectorConfig, kubeClient, certManager, meshCatalog, kubernetesClient, meshName, osmNamespace, webhookName, stop, cfg); err != nil {
-		log.Fatal().Err(err).Msg("Error creating mutating webhook")
+	if err := injector.NewWebhook(injectorConfig, kubeClient, certManager, meshCatalog, kubernetesClient, meshName, osmNamespace, webhookConfigName, stop, cfg); err != nil {
+		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating sidecar injector webhook")
 	}
 
-	// TODO(draychev): we need to pass this hard-coded string is a CLI argument (https://github.com/openservicemesh/osm/issues/542)
-	validityPeriod := constants.XDSCertificateValidityPeriod
-	adsCert, err := certManager.IssueCertificate(xdsServerCertificateCommonName, &validityPeriod)
+	adsCert, err := certManager.IssueCertificate(xdsServerCertificateCommonName, constants.XDSCertificateValidityPeriod)
 	if err != nil {
-		log.Fatal().Err(err)
+		events.GenericEventRecorder().FatalEvent(err, events.CertificateIssuanceFailure, "Error issuing XDS certificate to ADS server")
 	}
 
 	// Create and start the ADS gRPC service
-	xdsServer := ads.NewADSServer(meshCatalog, enableDebugServer, osmNamespace, cfg)
-	xdsServer.Start(ctx, cancel, *port, adsCert)
+	xdsServer := ads.NewADSServer(meshCatalog, cfg.IsDebugServerEnabled(), osmNamespace, cfg)
+	if err := xdsServer.Start(ctx, cancel, *port, adsCert); err != nil {
+		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error initializing ADS server")
+	}
 
 	// initialize the http server and start it
 	// TODO(draychev): figure out the NS and POD
@@ -205,8 +212,8 @@ func main() {
 
 	// Expose /debug endpoints and data only if the enableDebugServer flag is enabled
 	var debugServer debugger.DebugServer
-	if enableDebugServer {
-		debugServer = debugger.NewDebugServer(certDebugger, xdsServer, meshCatalog, kubeConfig, kubeClient, cfg)
+	if cfg.IsDebugServerEnabled() {
+		debugServer = debugger.NewDebugServer(certDebugger, xdsServer, meshCatalog, kubeConfig, kubeClient, cfg, kubernetesClient)
 	}
 
 	funcProbes := []health.Probes{xdsServer}
@@ -251,17 +258,14 @@ func createOrUpdateCABundleKubernetesSecret(kubeClient clientset.Interface, cert
 		return nil
 	}
 
-	return saveOrUpdateSecretToKubernetes(kubeClient, ca, namespace, caBundleSecretName, nil)
+	return saveOrUpdateSecretToKubernetes(kubeClient, ca, namespace, caBundleSecretName)
 }
 
-func saveOrUpdateSecretToKubernetes(kubeClient clientset.Interface, ca certificate.Certificater, namespace, caBundleSecretName string, privKey []byte) error {
+func saveOrUpdateSecretToKubernetes(kubeClient clientset.Interface, ca certificate.Certificater, namespace, caBundleSecretName string) error {
 	secretData := map[string][]byte{
-		constants.KubernetesOpaqueSecretCAKey:        ca.GetCertificateChain(),
-		constants.KubernetesOpaqueSecretCAExpiration: []byte(ca.GetExpiration().Format(constants.TimeDateLayout)),
-	}
-
-	if privKey != nil {
-		secretData[constants.KubernetesOpaqueSecretRootPrivateKeyKey] = privKey
+		constants.KubernetesOpaqueSecretCAKey:             ca.GetCertificateChain(),
+		constants.KubernetesOpaqueSecretCAExpiration:      []byte(ca.GetExpiration().Format(constants.TimeDateLayout)),
+		constants.KubernetesOpaqueSecretRootPrivateKeyKey: ca.GetPrivateKey(),
 	}
 
 	existingSecret, getErr := kubeClient.CoreV1().Secrets(namespace).Get(context.TODO(), caBundleSecretName, metav1.GetOptions{})
@@ -307,14 +311,14 @@ func saveOrUpdateSecretToKubernetes(kubeClient clientset.Interface, ca certifica
 	return nil
 }
 
-func getCertificateManager(kubeClient kubernetes.Interface, kubeConfig *rest.Config) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
+func getCertificateManager(kubeClient kubernetes.Interface, kubeConfig *rest.Config, cfg configurator.Configurator) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
 	switch *osmCertificateManagerKind {
 	case tresorKind:
-		return getTresorOSMCertificateManager(kubeClient, enableDebugServer)
+		return getTresorOSMCertificateManager(kubeClient, cfg)
 	case vaultKind:
-		return getHashiVaultOSMCertificateManager(enableDebugServer)
+		return getHashiVaultOSMCertificateManager(cfg)
 	case certmanagerKind:
-		return getCertManagerOSMCertificateManager(kubeClient, kubeConfig, enableDebugServer)
+		return getCertManagerOSMCertificateManager(kubeClient, kubeConfig, cfg)
 	default:
 		return nil, nil, fmt.Errorf("Unsupported Certificate Manager %s", *osmCertificateManagerKind)
 	}
@@ -323,4 +327,21 @@ func getCertificateManager(kubeClient kubernetes.Interface, kubeConfig *rest.Con
 func joinURL(baseURL string, paths ...string) string {
 	p := path.Join(paths...)
 	return fmt.Sprintf("%s/%s", strings.TrimRight(baseURL, "/"), strings.TrimLeft(p, "/"))
+}
+
+// getOSMControllerPod returns the osm-controller pod.
+// The pod name is inferred from the 'CONTROLLER_POD_NAME' env variable which is set during deployment.
+func getOSMControllerPod(kubeClient kubernetes.Interface) (*corev1.Pod, error) {
+	podName := os.Getenv("CONTROLLER_POD_NAME")
+	if podName == "" {
+		return nil, errors.New("CONTROLLER_POD_NAME env variable cannot be empty")
+	}
+
+	pod, err := kubeClient.CoreV1().Pods(osmNamespace).Get(context.TODO(), podName, metav1.GetOptions{})
+	if err != nil {
+		log.Error().Err(err).Msgf("Error retrieving osm-controller pod %s", podName)
+		return nil, err
+	}
+
+	return pod, nil
 }

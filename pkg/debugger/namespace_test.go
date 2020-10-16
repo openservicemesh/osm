@@ -1,27 +1,36 @@
 package debugger
 
 import (
-	"fmt"
 	"net/http/httptest"
+	"testing"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	gomock "github.com/golang/mock/gomock"
+	"github.com/stretchr/testify/assert"
+
+	"github.com/openservicemesh/osm/pkg/tests"
 )
 
-// Tests if namespace handler returns default namespace correctly
-var _ = Describe("Test debugger methods", func() {
-	Context("Testing getMonitoredNamespacesHandler()", func() {
-		It("returns JSON serialized monitored namespaces", func() {
-			mc := NewFakeMeshCatalogDebugger()
-			ds := debugServer{
-				meshCatalogDebugger: mc,
-			}
-			monitoredNamespacesHandler := ds.getMonitoredNamespacesHandler()
-			responseRecorder := httptest.NewRecorder()
-			monitoredNamespacesHandler.ServeHTTP(responseRecorder, nil)
-			actualResponseBody := responseRecorder.Body.String()
-			expectedResponseBody := `{"namespaces":["default"]}`
-			Expect(actualResponseBody).To(Equal(expectedResponseBody), fmt.Sprintf("Actual value did not match expectations:\n%s", actualResponseBody))
-		})
+// Tests getMonitoredNamespaces through HTTP handler returns a the list of monitored namespaces
+func TestMonitoredNamespaceHandler(t *testing.T) {
+	assert := assert.New(t)
+	mockCtrl := gomock.NewController(t)
+	mock := NewMockMeshCatalogDebugger(mockCtrl)
+
+	ds := debugServer{
+		meshCatalogDebugger: mock,
+	}
+	monitoredNamespacesHandler := ds.getMonitoredNamespacesHandler()
+
+	uniqueNs := tests.GetUnique([]string{
+		tests.BookbuyerService.Namespace,   // default
+		tests.BookstoreV1Service.Namespace, // default
 	})
-})
+
+	mock.EXPECT().ListMonitoredNamespaces().Return(uniqueNs)
+
+	responseRecorder := httptest.NewRecorder()
+	monitoredNamespacesHandler.ServeHTTP(responseRecorder, nil)
+	actualResponseBody := responseRecorder.Body.String()
+	expectedResponseBody := `{"namespaces":["default"]}`
+	assert.Equal(expectedResponseBody, actualResponseBody, "Actual value did not match expectations:\n%s", actualResponseBody)
+}

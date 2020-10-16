@@ -2,6 +2,7 @@ package common
 
 import (
 	"fmt"
+	"math/rand"
 	"net/http"
 	"os"
 	"strconv"
@@ -16,15 +17,12 @@ const (
 	// RestockWarehouseURL is a header string constant.
 	RestockWarehouseURL = "restock-books"
 
-	// httpEgressURL is the URL used to test HTTP egress.
-	// The HTTP request will result in an HTTPS redirect which will be handled by the HTTP client.
-	httpEgressURL = "http://github.com"
-
-	// httpsEgressURL is the URL used to test HTTPS egress
-	httpsEgressURL = "https://github.com"
-
 	// bookstorePort is the bookstore service's port
 	bookstorePort = 80
+
+	httpPrefix = "http://"
+
+	httpsPrefix = "https://"
 )
 
 var (
@@ -58,6 +56,11 @@ var (
 			"user-agent": "Go-http-client/1.1",
 		},
 		buyBook: nil,
+	}
+
+	egressURLs = []string{
+		"edition.cnn.com",
+		"github.com",
 	}
 )
 
@@ -110,15 +113,16 @@ func GetBooks(participantName string, meshExpectedResponseCode int, booksCount *
 	}
 
 	if enableEgress {
-		urlSuccessMap[httpEgressURL] = false
-		urlSuccessMap[httpsEgressURL] = false
+		urlSuccessMap[httpPrefix] = false
+		urlSuccessMap[httpsPrefix] = false
 	}
 
 	urlExpectedRespCode := map[string]int{
-		booksBought:    meshExpectedResponseCode,
-		buyBook:        meshExpectedResponseCode,
-		httpEgressURL:  getHTTPEgressExpectedResponseCode(),
-		httpsEgressURL: getHTTPSEgressExpectedResponseCode(),
+		booksBought: meshExpectedResponseCode,
+		buyBook:     meshExpectedResponseCode,
+		// Using only prefixes as placeholders so that we can select random URL while testing
+		httpPrefix:  getHTTPEgressExpectedResponseCode(),
+		httpsPrefix: getHTTPSEgressExpectedResponseCode(),
 	}
 
 	// Count how many times we have reached out to the bookstore
@@ -139,8 +143,16 @@ func GetBooks(participantName string, meshExpectedResponseCode int, booksCount *
 		startTime := time.Now()
 
 		for url := range urlSuccessMap {
-			// We only care about the response code of the HTTP call for the given URL
-			responseCode, identity := fetch(url)
+			fetchURL := url
+
+			// Create random URLs to test egress
+			if fetchURL == httpPrefix || fetchURL == httpsPrefix {
+				index := rand.Intn(len(egressURLs)) // #nosec G404
+				fetchURL = fmt.Sprintf("%s%s", url, egressURLs[index])
+			}
+
+			// We only care about the response code of the HTTP(s) call for the given URL
+			responseCode, identity := fetch(fetchURL)
 
 			expectedResponseCode := urlExpectedRespCode[url]
 			succeeded := responseCode == expectedResponseCode

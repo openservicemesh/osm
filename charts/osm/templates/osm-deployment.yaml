@@ -32,7 +32,7 @@ spec:
             "--mesh-name", "{{.Values.OpenServiceMesh.meshName}}",
             "--init-container-image", "{{.Values.OpenServiceMesh.image.registry}}/init:{{ .Values.OpenServiceMesh.image.tag }}",
             "--sidecar-image", "{{.Values.OpenServiceMesh.sidecarImage}}",
-            "--webhook-name", "osm-webhook-{{.Values.OpenServiceMesh.meshName}}",
+            "--webhook-config-name", "osm-webhook-{{.Values.OpenServiceMesh.meshName}}",
             "--ca-bundle-secret-name", "{{.Values.OpenServiceMesh.caBundleSecretName}}",
             "--certificate-manager", "{{.Values.OpenServiceMesh.certificateManager}}",
             "--vault-host", "{{.Values.OpenServiceMesh.vault.host}}",
@@ -41,10 +41,6 @@ spec:
             "--cert-manager-issuer-name", "{{.Values.OpenServiceMesh.certmanager.issuerName}}",
             "--cert-manager-issuer-kind", "{{.Values.OpenServiceMesh.certmanager.issuerKind}}",
             "--cert-manager-issuer-group", "{{.Values.OpenServiceMesh.certmanager.issuerGroup}}",
-            "--service-cert-validity-minutes", "{{.Values.OpenServiceMesh.serviceCertValidityMinutes}}",
-            {{- if .Values.OpenServiceMesh.enableDebugServer }}
-            "--enable-debug-server",
-            {{- end }}
             {{- if .Values.OpenServiceMesh.enableBackpressureExperimental }}
             "--enable-backpressure-experimental",
             {{- end }}
@@ -70,6 +66,12 @@ spec:
               scheme: HTTP
               path: /health/alive
               port: 9091
+          env:
+            # The CONTROLLER_POD_NAME env variable sets pod name dynamically, used by osm-controller to register events
+            - name: CONTROLLER_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
     {{- if .Values.OpenServiceMesh.imagePullSecrets }}
       imagePullSecrets:
 {{ toYaml .Values.OpenServiceMesh.imagePullSecrets | indent 8 }}

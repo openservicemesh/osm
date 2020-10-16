@@ -16,6 +16,8 @@ func (ds debugServer) getEnvoyConfig(pod *v1.Pod, cn certificate.CommonName, url
 
 	minPort := 16000
 	maxPort := 18000
+
+	// #nosec G404
 	portFwdRequest := portForward{
 		Pod:       pod,
 		LocalPort: rand.Intn(maxPort-minPort) + minPort,

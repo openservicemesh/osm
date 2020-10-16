@@ -1,16 +1,14 @@
 package catalog
 
 import (
-	"context"
 	"strings"
 
 	v1 "k8s.io/api/core/v1"
-	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/kubernetes"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/utils"
 )
@@ -18,12 +16,12 @@ import (
 // GetServicesFromEnvoyCertificate returns a list of services the given Envoy is a member of based on the certificate provided, which is a cert issued to an Envoy for XDS communication (not Envoy-to-Envoy).
 func (mc *MeshCatalog) GetServicesFromEnvoyCertificate(cn certificate.CommonName) ([]service.MeshService, error) {
 	var serviceList []service.MeshService
-	pod, err := GetPodFromCertificate(cn, mc.kubeClient)
+	pod, err := GetPodFromCertificate(cn, mc.kubeController)
 	if err != nil {
 		return nil, err
 	}
 
-	services, err := listServicesForPod(pod, mc.kubeClient)
+	services, err := listServicesForPod(pod, mc.kubeController)
 	if err != nil {
 		return nil, err
 	}
@@ -69,8 +67,8 @@ func (mc *MeshCatalog) filterTrafficSplitServices(services []v1.Service) []v1.Se
 	// These are the services except ones that are a root of a TrafficSplit policy
 	var filteredServices []v1.Service
 
-	for _, svc := range services {
-		nsSvc := utils.K8sSvcToMeshSvc(&svc)
+	for i, svc := range services {
+		nsSvc := utils.K8sSvcToMeshSvc(&services[i])
 		if _, shouldSkip := excludeTheseServices[nsSvc]; shouldSkip {
 			continue
 		}
@@ -81,25 +79,22 @@ func (mc *MeshCatalog) filterTrafficSplitServices(services []v1.Service) []v1.Se
 }
 
 // GetPodFromCertificate returns the Kubernetes Pod object for a given certificate.
-func GetPodFromCertificate(cn certificate.CommonName, kubeClient kubernetes.Interface) (*v1.Pod, error) {
+func GetPodFromCertificate(cn certificate.CommonName, kubecontroller k8s.Controller) (*v1.Pod, error) {
 	cnMeta, err := getCertificateCommonNameMeta(cn)
 	if err != nil {
 		return nil, err
 	}
 
 	log.Trace().Msgf("Looking for pod with label %q=%q", constants.EnvoyUniqueIDLabelName, cnMeta.ProxyID)
-
-	podList, err := kubeClient.CoreV1().Pods(cnMeta.Namespace).List(context.Background(), v12.ListOptions{})
-	if err != nil {
-		log.Error().Err(err).Msgf("Error listing pods in namespace %s", cnMeta.Namespace)
-		return nil, err
-	}
-
+	podList := kubecontroller.ListPods()
 	var pods []v1.Pod
-	for _, pod := range podList.Items {
+	for _, pod := range podList {
+		if pod.Namespace != cnMeta.Namespace {
+			continue
+		}
 		for labelKey, labelValue := range pod.Labels {
 			if labelKey == constants.EnvoyUniqueIDLabelName && labelValue == cnMeta.ProxyID {
-				pods = append(pods, pod)
+				pods = append(pods, *pod)
 			}
 		}
 	}
@@ -138,19 +133,18 @@ func GetPodFromCertificate(cn certificate.CommonName, kubeClient kubernetes.Inte
 }
 
 // listServicesForPod lists Kubernetes services whose selectors match pod labels
-func listServicesForPod(pod *v1.Pod, kubeClient kubernetes.Interface) ([]v1.Service, error) {
+func listServicesForPod(pod *v1.Pod, kubeController k8s.Controller) ([]v1.Service, error) {
 	var serviceList []v1.Service
-	svcList, err := kubeClient.CoreV1().Services(pod.Namespace).List(context.Background(), v12.ListOptions{})
-	if err != nil {
-		log.Error().Err(err).Msgf("Error listing pods in namespace %s", pod.Namespace)
-		return nil, err
-	}
+	svcList := kubeController.ListServices()
 
-	for _, svc := range svcList.Items {
+	for _, svc := range svcList {
+		if svc.Namespace != pod.Namespace {
+			continue
+		}
 		svcRawSelector := svc.Spec.Selector
 		selector := labels.Set(svcRawSelector).AsSelector()
 		if selector.Matches(labels.Set(pod.Labels)) {
-			serviceList = append(serviceList, svc)
+			serviceList = append(serviceList, *svc)
 		}
 	}
 

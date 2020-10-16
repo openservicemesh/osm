@@ -2,24 +2,35 @@ package injector
 
 import (
 	"context"
+	"errors"
+	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"time"
 
-	"github.com/golang/mock/gomock"
+	"github.com/google/uuid"
+	"k8s.io/api/admission/v1beta1"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	"github.com/golang/mock/gomock"
 	admissionv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 
+	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
+	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 )
 
 var _ = Describe("Test MutatingWebhookConfiguration patch", func() {
 	Context("find and patches webhook", func() {
-		//cert := tresor.Certificate{}
 		cert := mockCertificate{}
 		meshName := "--meshName--"
 		osmNamespace := "--namespace--"
@@ -170,26 +181,27 @@ var _ = Describe("Testing isAnnotatedForInjection", func() {
 	})
 })
 
-var _ = Describe("Testing mustInject", func() {
+var _ = Describe("Testing mustInject, isNamespaceAllowed", func() {
 	var (
-		mockCtrl         *gomock.Controller
-		mockNsController *k8s.MockNamespaceController
-		fakeClientSet    *fake.Clientset
-		wh               *webhook
+		mockCtrl           *gomock.Controller
+		mockKubeController *k8s.MockController
+		fakeClientSet      *fake.Clientset
+		wh                 *webhook
 	)
 
 	mockCtrl = gomock.NewController(GinkgoT())
-	mockNsController = k8s.NewMockNamespaceController(mockCtrl)
+	mockKubeController = k8s.NewMockController(mockCtrl)
 	fakeClientSet = fake.NewSimpleClientset()
 	namespace := "test"
 
 	BeforeEach(func() {
 		fakeClientSet = fake.NewSimpleClientset()
 		wh = &webhook{
-			kubeClient:          fakeClientSet,
-			namespaceController: mockNsController,
+			kubeClient:     fakeClientSet,
+			kubeController: mockKubeController,
 		}
 	})
+
 	AfterEach(func() {
 		err := fakeClientSet.CoreV1().Namespaces().Delete(context.TODO(), namespace, metav1.DeleteOptions{})
 		Expect(err).ToNot(HaveOccurred())
@@ -201,7 +213,7 @@ var _ = Describe("Testing mustInject", func() {
 				Name: namespace,
 			},
 		}
-		_, err := fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), testNamespace, metav1.CreateOptions{})
+		retNs, err := fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), testNamespace, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 
 		podWithInjectAnnotationEnabled := &corev1.Pod{
@@ -218,7 +230,8 @@ var _ = Describe("Testing mustInject", func() {
 		_, err = fakeClientSet.CoreV1().Pods(namespace).Create(context.TODO(), podWithInjectAnnotationEnabled, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 
-		mockNsController.EXPECT().IsMonitoredNamespace(namespace).Return(true).Times(1)
+		mockKubeController.EXPECT().IsMonitoredNamespace(namespace).Return(true).Times(1)
+		mockKubeController.EXPECT().GetNamespace(namespace).Return(retNs)
 
 		inject, err := wh.mustInject(podWithInjectAnnotationEnabled, namespace)
 
@@ -232,7 +245,7 @@ var _ = Describe("Testing mustInject", func() {
 				Name: namespace,
 			},
 		}
-		_, err := fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), testNamespace, metav1.CreateOptions{})
+		retNs, err := fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), testNamespace, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 
 		podWithInjectAnnotationEnabled := &corev1.Pod{
@@ -249,7 +262,8 @@ var _ = Describe("Testing mustInject", func() {
 		_, err = fakeClientSet.CoreV1().Pods(namespace).Create(context.TODO(), podWithInjectAnnotationEnabled, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 
-		mockNsController.EXPECT().IsMonitoredNamespace(namespace).Return(true).Times(1)
+		mockKubeController.EXPECT().IsMonitoredNamespace(namespace).Return(true).Times(1)
+		mockKubeController.EXPECT().GetNamespace(namespace).Return(retNs)
 
 		inject, err := wh.mustInject(podWithInjectAnnotationEnabled, namespace)
 
@@ -266,7 +280,7 @@ var _ = Describe("Testing mustInject", func() {
 				},
 			},
 		}
-		_, err := fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), testNamespace, metav1.CreateOptions{})
+		retNs, err := fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), testNamespace, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 
 		podWithInjectAnnotationEnabled := &corev1.Pod{
@@ -280,7 +294,8 @@ var _ = Describe("Testing mustInject", func() {
 		_, err = fakeClientSet.CoreV1().Pods(namespace).Create(context.TODO(), podWithInjectAnnotationEnabled, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 
-		mockNsController.EXPECT().IsMonitoredNamespace(namespace).Return(true).Times(1)
+		mockKubeController.EXPECT().IsMonitoredNamespace(namespace).Return(true).Times(1)
+		mockKubeController.EXPECT().GetNamespace(namespace).Return(retNs)
 
 		inject, err := wh.mustInject(podWithInjectAnnotationEnabled, namespace)
 
@@ -297,7 +312,7 @@ var _ = Describe("Testing mustInject", func() {
 				},
 			},
 		}
-		_, err := fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), testNamespace, metav1.CreateOptions{})
+		retNs, err := fakeClientSet.CoreV1().Namespaces().Create(context.TODO(), testNamespace, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 
 		podWithInjectAnnotationEnabled := &corev1.Pod{
@@ -314,7 +329,8 @@ var _ = Describe("Testing mustInject", func() {
 		_, err = fakeClientSet.CoreV1().Pods(namespace).Create(context.TODO(), podWithInjectAnnotationEnabled, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 
-		mockNsController.EXPECT().IsMonitoredNamespace(namespace).Return(true).Times(1)
+		mockKubeController.EXPECT().IsMonitoredNamespace(namespace).Return(true).Times(1)
+		mockKubeController.EXPECT().GetNamespace(namespace).Return(retNs)
 
 		inject, err := wh.mustInject(podWithInjectAnnotationEnabled, namespace)
 
@@ -345,7 +361,7 @@ var _ = Describe("Testing mustInject", func() {
 		_, err = fakeClientSet.CoreV1().Pods(namespace).Create(context.TODO(), podWithInjectAnnotationEnabled, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 
-		mockNsController.EXPECT().IsMonitoredNamespace(namespace).Return(false).Times(1)
+		mockKubeController.EXPECT().IsMonitoredNamespace(namespace).Return(false).Times(1)
 
 		inject, err := wh.mustInject(podWithInjectAnnotationEnabled, namespace)
 
@@ -376,11 +392,183 @@ var _ = Describe("Testing mustInject", func() {
 		_, err = fakeClientSet.CoreV1().Pods(namespace).Create(context.TODO(), podWithInjectAnnotationEnabled, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 
-		mockNsController.EXPECT().IsMonitoredNamespace(namespace).Return(true).Times(1)
+		mockKubeController.EXPECT().IsMonitoredNamespace(namespace).Return(true).Times(1)
 
 		inject, err := wh.mustInject(podWithInjectAnnotationEnabled, namespace)
 
 		Expect(err).To(HaveOccurred())
 		Expect(inject).To(BeFalse())
+	})
+})
+
+var _ = Describe("Testing Injector Functions", func() {
+	It("creates new webhook", func() {
+		injectorConfig := Config{
+			InitContainerImage: "-testInitContainerImage-",
+			SidecarImage:       "-testSidecarImage-",
+		}
+		kubeClient := fake.NewSimpleClientset()
+		var meshCatalog catalog.MeshCataloger
+		var kubeController k8s.Controller
+		meshName := "-mesh-name-"
+		osmNamespace := "-osm-namespace-"
+		webhookName := "-webhook-name-"
+		stop := make(<-chan struct{})
+		mockController := gomock.NewController(GinkgoT())
+		cfg := configurator.NewMockConfigurator(mockController)
+		cache := make(map[certificate.CommonName]certificate.Certificater)
+		certManager := tresor.NewFakeCertManager(&cache, cfg)
+
+		actualErr := NewWebhook(injectorConfig, kubeClient, certManager, meshCatalog, kubeController, meshName, osmNamespace, webhookName, stop, cfg)
+		expectedErrorMessage := "Error configuring MutatingWebhookConfiguration: mutatingwebhookconfigurations.admissionregistration.k8s.io \"-webhook-name-\" not found"
+		Expect(actualErr.Error()).To(Equal(expectedErrorMessage))
+	})
+
+	It("creates new webhook", func() {
+		client := fake.NewSimpleClientset()
+		mockNsController := k8s.NewMockController(gomock.NewController(GinkgoT()))
+		mockNsController.EXPECT().GetNamespace("default").Return(&corev1.Namespace{})
+		testNamespace := &corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "default",
+			},
+		}
+		_, err := client.CoreV1().Namespaces().Create(context.TODO(), testNamespace, metav1.CreateOptions{})
+		Expect(err).ToNot(HaveOccurred())
+		wh := &webhook{
+			kubeClient:     client,
+			kubeController: mockNsController,
+		}
+		body := strings.NewReader(`{
+  "kind": "AdmissionReview",
+  "apiVersion": "admission.k8s.io/v1beta1",
+  "request": {
+    "uid": "11111111-2222-3333-4444-555555555555",
+    "kind": {
+      "group": "",
+      "version": "v1",
+      "kind": "PodExecOptions"
+    },
+    "resource": {
+      "group": "",
+      "version": "v1",
+      "resource": "pods"
+    },
+    "subResource": "exec",
+    "requestKind": {
+      "group": "",
+      "version": "v1",
+      "kind": "PodExecOptions"
+    },
+    "requestResource": {
+      "group": "",
+      "version": "v1",
+      "resource": "pods"
+    },
+    "requestSubResource": "exec",
+    "name": "some-pod-1111111111-22222",
+    "namespace": "default",
+    "operation": "CONNECT",
+    "userInfo": {
+      "username": "user",
+      "groups": []
+    },
+    "object": {
+      "kind": "PodExecOptions",
+      "apiVersion": "v1",
+      "stdin": true,
+      "stdout": true,
+      "tty": true,
+      "container": "some-pod",
+      "command": ["bin/bash"]
+    },
+    "oldObject": null,
+    "dryRun": false,
+    "options": null
+  }
+}`)
+		req := httptest.NewRequest("GET", "/a/b/c", body)
+		req.Header = map[string][]string{
+			"Content-Type": {"application/json"},
+		}
+		w := httptest.NewRecorder()
+		mockNsController.EXPECT().IsMonitoredNamespace("default").Return(true).Times(1)
+		wh.mutateHandler(w, req)
+
+		resp := w.Result()
+		bodyBytes, _ := ioutil.ReadAll(resp.Body)
+		expected := "{\"response\":{\"uid\":\"11111111-2222-3333-4444-555555555555\",\"allowed\":true}}"
+		Expect(resp.StatusCode).To(Equal(http.StatusOK))
+		Expect(string(bodyBytes)).To(Equal(expected))
+	})
+
+	It("handles health requests", func() {
+		client := fake.NewSimpleClientset()
+		mockNsController := k8s.NewMockController(gomock.NewController(GinkgoT()))
+		mockNsController.EXPECT().GetNamespace("default").Return(&corev1.Namespace{})
+		wh := &webhook{
+			kubeClient:     client,
+			kubeController: mockNsController,
+		}
+		w := httptest.NewRecorder()
+		body := strings.NewReader(``)
+		req := httptest.NewRequest("GET", "/a/b/c", body)
+
+		// Action !!
+		wh.healthHandler(w, req)
+
+		resp := w.Result()
+		bodyBytes, _ := ioutil.ReadAll(resp.Body)
+		expected := "Health OK"
+		Expect(resp.StatusCode).To(Equal(http.StatusOK))
+		Expect(string(bodyBytes)).To(Equal(expected))
+	})
+
+	It("mutate() handles nil admission request", func() {
+		client := fake.NewSimpleClientset()
+		mockNsController := k8s.NewMockController(gomock.NewController(GinkgoT()))
+		mockNsController.EXPECT().GetNamespace("default").Return(&corev1.Namespace{})
+		wh := &webhook{
+			kubeClient:     client,
+			kubeController: mockNsController,
+		}
+
+		// Action !!
+		actual := wh.mutate(nil)
+
+		expected := v1beta1.AdmissionResponse{
+			Result: &metav1.Status{
+				Message: "nil admission request",
+			},
+		}
+		Expect(actual).To(Equal(&expected))
+	})
+
+	It("patches admission response", func() {
+		admRes := v1beta1.AdmissionResponse{
+			Patch: []byte(""),
+		}
+		patchBytes := []byte("abc")
+		patchAdmissionResponse(&admRes, patchBytes)
+
+		expectedPatchType := v1beta1.PatchTypeJSONPatch
+		expected := v1beta1.AdmissionResponse{
+			Patch:     []byte("abc"),
+			PatchType: &expectedPatchType,
+		}
+		Expect(admRes).To(Equal(expected))
+	})
+
+	It("creates admission error", func() {
+		message := uuid.New().String()
+		err := errors.New(message)
+		actual := toAdmissionError(err)
+
+		expected := v1beta1.AdmissionResponse{
+			Result: &metav1.Status{
+				Message: message,
+			},
+		}
+		Expect(actual).To(Equal(&expected))
 	})
 })

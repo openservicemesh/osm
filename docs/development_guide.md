@@ -229,6 +229,15 @@ which tests the functionality of multiple functions together. In this particular
   - [creates a ConfigMap](https://github.com/openservicemesh/osm/blob/release-v0.2/pkg/configurator/client_test.go#L32)
   - [tests whether](https://github.com/openservicemesh/osm/blob/release-v0.2/pkg/configurator/client_test.go#L95-L96) the underlying functions compose correctly by fetching the results of the top-level function `GetMeshCIDRRanges()`
 
+### End-to-End (e2e) Tests
+
+End-to-end tests verify the behavior of the entire system. For OSM, e2e tests will install a control plane, install test workloads and SMI policies, and check that the workload is behaving as expected.
+
+OSM's e2e tests are located in tests/e2e. The tests can be run using the `test-e2e` Makefile target. The Makefile target will also build the necessary container images and `osm` CLI binary before running the tests. The tests are written using Ginkgo and Gomega so they may also be directly invoked using `go test`. Be sure to build the `osm-controller` and `init` container images and `osm` CLI before directly invoking the tests. With either option, it is suggested to explicitly set the container registry location and tag to ensure up-to-date images are used by setting the `CTR_REGISTRY` and `CTR_TAG` environment variables.
+
+In addition to the flags provided by `go test` and Ginkgo, there are several custom command line flags that may be used for e2e tests to configure global parameters like container image locations and cleanup behavior. The full list of custom flags can be found in [tests/e2e/common.go](/tests/e2e/common.go).
+
+For more information, please refer to [OSM's E2E Readme](/tests/e2e/README.md).
 
 #### Simulation / Demo
 When we want to ensure that the entire system works correctly over time and
@@ -236,6 +245,23 @@ transitions state as expected - we run
 [the demo included in the docs](https://github.com/openservicemesh/osm/blob/main/docs/example/README.md).
 This type of test is the slowest, but also most comprehensive. This test will ensure that your changes
 work with a real Kubernetes cluster, with real SMI policy, and real functions - no mocked or fake Go objects.
+
+#### Profiling
+OSM control plane exposes an HTTP server able to serve a number of resources.
+
+For mesh visibility and debugabbility, one can refer to the endpoints provided under [pkg/debugger](https://github.com/openservicemesh/osm/tree/main/pkg/debugger) which contains a number of endpoints able to inspect and list most of the common structures used by the control plane at runtime.
+
+Additionally, the current implementation of the debugger imports and hooks [pprof endpoints](https://golang.org/pkg/net/http/pprof/).
+Pprof is a golang package able to provide profiling information at runtime through HTTP protocol to a connecting client.
+
+Debugging endpoints can be turned on or off through the runtime argument `enable-debug-server`, normally set on the deployment at install time through the CLI.
+
+Example usage:
+```
+scripts/port-forward-osm-debug.sh &
+go tool pprof http://localhost:9091/debug/pprof/heap
+```
+From pprof tool, it is possible to extract a large variety of profiling information, from heap and cpu profiling, to goroutine blocking, mutex profiling or execution tracing. We suggest to refer to their [original documentation](https://golang.org/pkg/net/http/pprof/) for more information.
 
 ## Helm charts
 

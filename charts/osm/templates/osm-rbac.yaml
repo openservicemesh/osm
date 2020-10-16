@@ -24,6 +24,9 @@ rules:
     verbs: ["get", "list", "create"]
 
   - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "watch"]
+  - apiGroups: [""]
     resources: ["secrets", "configmaps"]
     verbs: ["create", "update"]
   - apiGroups: ["admissionregistration.k8s.io"]

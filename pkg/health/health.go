@@ -43,6 +43,9 @@ func (httpProbe HTTPProbe) Probe() (int, error) {
 	client := &http.Client{}
 
 	if httpProbe.Protocol == ProtocolHTTPS {
+		// Certificate validation is to be skipped for HTTPS probes
+		// similar to how k8s api server handles HTTPS probes.
+		// #nosec G402
 		transport := &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 		}

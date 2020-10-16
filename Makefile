@@ -53,7 +53,7 @@ clean-osm:
 	@rm -rf bin/osm
 
 .PHONY: go-checks
-go-checks: go-lint go-fmt
+go-checks: go-lint go-fmt go-mod-tidy
 
 .PHONY: go-vet
 go-vet:
@@ -61,11 +61,15 @@ go-vet:
 
 .PHONY: go-lint
 go-lint:
-	go run github.com/golangci/golangci-lint/cmd/golangci-lint run
+	go run github.com/golangci/golangci-lint/cmd/golangci-lint run --config .golangci.yml
 
 .PHONY: go-fmt
 go-fmt:
 	go fmt ./...
+
+.PHONY: go-mod-tidy
+go-mod-tidy:
+	./scripts/go-mod-tidy.sh
 
 .PHONY: go-test
 go-test:
@@ -82,6 +86,10 @@ kind-up:
 .PHONY: kind-reset
 kind-reset:
 	kind delete cluster --name osm
+
+.PHONY: test-e2e
+test-e2e: docker-build-osm-controller docker-build-init build-osm
+	go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -ctrRegistry $(CTR_REGISTRY) -osmImageTag $(CTR_TAG) -kindCluster
 
 .env:
 	cp .env.example .env
@@ -126,7 +134,7 @@ DOCKER_PUSH_TARGETS = $(addprefix docker-push-, $(DEMO_TARGETS) init osm-control
 $(DOCKER_PUSH_TARGETS): NAME=$(@:docker-push-%=%)
 $(DOCKER_PUSH_TARGETS):
 	make docker-build-$(NAME)
-	docker push "$(CTR_REGISTRY)/$(NAME):$(CTR_TAG)"
+	docker push "$(CTR_REGISTRY)/$(NAME):$(CTR_TAG)" || { echo "Error pushing images to container registry $(CTR_REGISTRY)/$(NAME):$(CTR_TAG)"; exit 1; }
 
 .PHONY: docker-push
 docker-push: $(DOCKER_PUSH_TARGETS)

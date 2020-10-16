@@ -45,13 +45,18 @@ func NewADSServer(meshCatalog catalog.MeshCataloger, enableDebug bool, osmNamesp
 }
 
 // Start starts the ADS server
-func (s *Server) Start(ctx context.Context, cancel context.CancelFunc, port int, adsCert certificate.Certificater) {
-	grpcServer, lis := utils.NewGrpc(ServerType, port, adsCert.GetCertificateChain(), adsCert.GetPrivateKey(), adsCert.GetIssuingCA())
+func (s *Server) Start(ctx context.Context, cancel context.CancelFunc, port int, adsCert certificate.Certificater) error {
+	grpcServer, lis, err := utils.NewGrpc(ServerType, port, adsCert.GetCertificateChain(), adsCert.GetPrivateKey(), adsCert.GetIssuingCA())
+	if err != nil {
+		log.Error().Err(err).Msg("Error starting ADS server")
+		return err
+	}
+
 	xds_discovery.RegisterAggregatedDiscoveryServiceServer(grpcServer, s)
-
-	go utils.GrpcServe(ctx, grpcServer, lis, cancel, ServerType)
-
+	go utils.GrpcServe(ctx, grpcServer, lis, cancel, ServerType, nil)
 	s.ready = true
+
+	return nil
 }
 
 // DeltaAggregatedResources implements discovery.AggregatedDiscoveryServiceServer

@@ -10,6 +10,8 @@ Automatic sidecar injection can be configured per namespace as a part of enrolli
 
 Prerequisites:
 - The namespace to which the pods belong must be a monitored namespace that is added to the mesh using the `osm namespace add` command.
+- The namespace to which the pods belong must not be set to be ignored using the `osm namespace ignore` command.
+- The namespace to which the pods belong must not have a label with key `name` and value corresponding to the OSM control plane namespace. For example, a namespace with a label `name: osm-system` where `osm-system` is the control plane namespace cannot have sidecar injection enabled for pods in this namespace.
 
 Automatic Sidecar injection can be enabled in the following ways:
 
