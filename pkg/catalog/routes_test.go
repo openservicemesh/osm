@@ -294,9 +294,10 @@ func TestBuildAllowAllTrafficPolicies(t *testing.T) {
 func TestListTrafficTargetPermutations(t *testing.T) {
 	assert := assert.New(t)
 
-	destList := []service.MeshService{tests.BookstoreV1Service, tests.BookstoreApexService}
-	srcList := []service.MeshService{tests.BookbuyerService, tests.BookwarehouseService}
-	trafficTargets := listTrafficTargetPermutations(tests.TrafficTargetName, srcList, destList)
+	mc := newFakeMeshCatalog()
+
+	trafficTargets, err := mc.listTrafficTargetPermutations(tests.TrafficTarget, tests.TrafficTarget.Spec.Sources[0], tests.TrafficTarget.Spec.Destination)
+	assert.Nil(err)
 
 	var actualTargetNames []string
 	for _, target := range trafficTargets {
@@ -304,10 +305,9 @@ func TestListTrafficTargetPermutations(t *testing.T) {
 	}
 
 	expected := []string{
-		utils.GetTrafficTargetName(tests.TrafficTargetName, srcList[0], destList[0]),
-		utils.GetTrafficTargetName(tests.TrafficTargetName, srcList[0], destList[1]),
-		utils.GetTrafficTargetName(tests.TrafficTargetName, srcList[1], destList[0]),
-		utils.GetTrafficTargetName(tests.TrafficTargetName, srcList[1], destList[1]),
+		utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreV1Service),
+		utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreV2Service),
+		utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreApexService),
 	}
 	assert.ElementsMatch(actualTargetNames, expected)
 }
