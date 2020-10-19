@@ -75,7 +75,8 @@ const (
 	defaultEnableEgress                   = false
 	defaultEnablePermissiveTrafficPolicy  = false
 	defaultEnableBackpressureExperimental = false
-	defaultEnablePrometheus               = true
+	defaultEnablePrometheus               = false
+	defaultEnablePrometheusScraping       = false
 	defaultEnableGrafana                  = false
 	defaultEnableFluentbit                = false
 	defaultDeployJaeger                   = true
@@ -118,6 +119,9 @@ type installCmd struct {
 
 	// Toggle to enable/disable Prometheus installation
 	enablePrometheus bool
+
+	// Toggle to enable/disable Prometheus scraping
+	enablePrometheusScraping bool
 
 	// Toggle to enable/disable Grafana installation
 	enableGrafana bool
@@ -177,6 +181,7 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.BoolVar(&inst.enableEgress, "enable-egress", defaultEnableEgress, "Enable egress in the mesh")
 	f.BoolVar(&inst.enableBackpressureExperimental, "enable-backpressure-experimental", defaultEnableBackpressureExperimental, "Enable experimental backpressure feature")
 	f.BoolVar(&inst.enablePrometheus, "enable-prometheus", defaultEnablePrometheus, "Enable Prometheus installation and deployment")
+	f.BoolVar(&inst.enablePrometheus, "enable-prometheus-scraping", defaultEnablePrometheusScraping, "Enable Prometheus metrics scraping on sidecar proxies")
 	f.BoolVar(&inst.enableGrafana, "enable-grafana", defaultEnableGrafana, "Enable Grafana installation and deployment")
 	f.BoolVar(&inst.enableFluentbit, "enable-fluentbit", defaultEnableFluentbit, "Enable Fluentbit sidecar deployment")
 	f.StringVar(&inst.meshName, "mesh-name", defaultMeshName, "name for the new control plane instance")
@@ -247,6 +252,7 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 		fmt.Sprintf("OpenServiceMesh.enablePermissiveTrafficPolicy=%t", i.enablePermissiveTrafficPolicy),
 		fmt.Sprintf("OpenServiceMesh.enableBackpressureExperimental=%t", i.enableBackpressureExperimental),
 		fmt.Sprintf("OpenServiceMesh.enablePrometheus=%t", i.enablePrometheus),
+		fmt.Sprintf("OpenServiceMesh.enablePrometheusScraping=%t", i.enablePrometheusScraping),
 		fmt.Sprintf("OpenServiceMesh.enableGrafana=%t", i.enableGrafana),
 		fmt.Sprintf("OpenServiceMesh.enableFluentbit=%t", i.enableFluentbit),
 		fmt.Sprintf("OpenServiceMesh.meshName=%s", i.meshName),
@@ -348,6 +354,10 @@ func (i *installCmd) validateOptions() error {
 		if len(list.Items) != 0 {
 			return errors.Errorf("Meshes already exist in cluster. Cannot enforce single mesh cluster. ")
 		}
+	}
+
+	if i.enablePrometheus {
+		i.enablePrometheusScraping = true
 	}
 
 	return nil

@@ -13,8 +13,9 @@ Each service that is part of the mesh has an Envoy sidecar and is capable of exp
 OSM is able to automatically provision Prometheus and Grafana instances to monitor the mesh, however the user can choose not to, in favour of an already existing deployment or service (we will refer to the latter as Bring-Your-Own, or BYO)
 
 ### Automatic bring up
+By default, both Prometheus and Grafana are disabled.
 
-By default, OSM installation will deploy a Prometheus instance to scrape the sidecar's metrics endpoints. Based on the metrics scraping configuration set by the user, OSM will annotate pods part of the mesh with necessary metrics annotations to have Prometheus reach and scrape the pods to collect relevant metrics. To install Grafana for metrics visualization, set the `enable-grafana` flag to true when installing OSM using the `osm install` command.
+However, when configured with the `--enable-prometheus` flag, OSM installation will deploy a Prometheus instance to scrape the sidecar's metrics endpoints. Based on the metrics scraping configuration set by the user, OSM will annotate pods part of the mesh with necessary metrics annotations to have Prometheus reach and scrape the pods to collect relevant metrics. To install Grafana for metrics visualization, set the `enable-grafana` flag to true when installing OSM using the `osm install` command.
 
 The automatic bring up can be overridden with the `osm install` option during install time:
 ```
@@ -22,7 +23,7 @@ osm install --help
 
 This command installs an osm control plane on the Kubernetes...
 ...
---enable-prometheus               Enable Prometheus deployment (default true)
+--enable-prometheus               Enable Prometheus deployment (default false)
 --enable-grafana                  Enable Grafana deployment (default false)
 ...
 ```
@@ -35,7 +36,7 @@ The following section will document the additional steps needed to allow an alre
 
 - Already running an accessible Prometheus instance *outside* of the mesh.
 - A running OSM control plane instance, deployed without metrics stack.
-   - OSM controls the Envoy's Prometheus listener aperture through `prometheus_scraping: "true"`, under OSM configmap. By default this is set to true, but do double check it has been enabled on the OSM configmap, or else Prometheus might not be able to reach the pods.
+   - OSM controls the Envoy's Prometheus listener aperture through `prometheus_scraping: "true"`, under OSM configmap. By default this is set to false (unless OSM was installed with Prometheus enabled.)
 - We will assume having Grafana reach Prometheus, exposing or forwarding Prometheus or Grafana web ports and configuring Prometheus to reach Kubernetes API services is taken care of or otherwise out of the scope of these steps.
 
 #### Configuration
@@ -115,7 +116,7 @@ Metrics scraping can be configured using the `osm metrics` command. By default, 
 For metrics to be scraped, the following prerequisites must be met:
 - The namespace must be a part of the mesh, ie. it must be labeled with the `openservicemesh.io/monitored-by` label with an appropriate mesh name. This can be done using the `osm namespace add` command.
 - A running service able to scrap Prometheus endpoints. OSM provides configuration for an [automatic bringup of Prometheus](#automatic-bring-up); alternatively users can [bring their own Prometheus](#byo-bring-your-own).
-- The `prometheus_scraping` config key in osm-controller's `osm-config` ConfigMap must be set to `"true"`, which is the default configuration.
+- The `prometheus_scraping` config key in osm-controller's `osm-config` ConfigMap must be set to `"true"`. It is `"false"` by default.
 
 
 To enable one or more namespaces for metrics scraping:

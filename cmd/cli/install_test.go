@@ -525,6 +525,78 @@ var _ = Describe("Test envoy log level types", func() {
 	})
 })
 
+var _ = Describe("enablePrometheus is true", func() {
+	var (
+		out    *bytes.Buffer
+		store  *storage.Storage
+		config *helm.Configuration
+		err    error
+	)
+
+	BeforeEach(func() {
+		out = new(bytes.Buffer)
+		store = storage.Init(driver.NewMemory())
+		if mem, ok := store.Driver.(*driver.Memory); ok {
+			mem.SetNamespace(settings.Namespace())
+		}
+
+		config = &helm.Configuration{
+			Releases: store,
+			KubeClient: &kubefake.PrintingKubeClient{
+				Out: ioutil.Discard},
+			Capabilities: chartutil.DefaultCapabilities,
+			Log:          func(format string, v ...interface{}) {},
+		}
+
+		installCmd := getDefaultInstallCmd(out)
+		installCmd.enablePrometheus = true // Leave scraping as false
+
+		err = installCmd.run(config)
+	})
+
+	It("should not error", func() {
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("should give a message confirming the successful install", func() {
+		Expect(out.String()).To(Equal("OSM installed successfully in namespace [osm-system] with mesh name [osm]\n"))
+	})
+
+	Context("the Helm release", func() {
+		var (
+			rel *release.Release
+			err error
+		)
+
+		BeforeEach(func() {
+			rel, err = config.Releases.Get(defaultMeshName, 1)
+		})
+
+		It("should not error when retrieved", func() {
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("should have the correct values", func() {
+			expectedValues := getDefaultValues()
+			valuesConfig := []string{
+				fmt.Sprintf("OpenServiceMesh.enablePrometheus=%s", "true"),
+				fmt.Sprintf("OpenServiceMesh.enablePrometheusScraping=%s", "true"),
+			}
+			for _, val := range valuesConfig {
+				// parses Helm strvals line and merges into a map
+				err := strvals.ParseInto(val, expectedValues)
+				Expect(err).NotTo(HaveOccurred())
+			}
+
+			Expect(rel.Config).To(BeEquivalentTo(expectedValues))
+		})
+
+		It("should be installed in the correct namespace", func() {
+			Expect(rel.Namespace).To(Equal(settings.Namespace()))
+		})
+	})
+})
+
 func TestResolveValues(t *testing.T) {
 	assert := assert.New(t)
 
@@ -756,38 +828,39 @@ func getDefaultInstallCmd(writer *bytes.Buffer) installCmd {
 func getDefaultValues() map[string]interface{} {
 	return map[string]interface{}{
 		"OpenServiceMesh": map[string]interface{}{
-			"certificateManager": "tresor",
+			"certificateManager": defaultCertificateManager,
 			"certmanager": map[string]interface{}{
-				"issuerKind":  "Issuer",
-				"issuerGroup": "cert-manager.io",
-				"issuerName":  "osm-ca",
+				"issuerKind":  defaultCertManagerIssuerKind,
+				"issuerGroup": defaultCertManagerIssuerGroup,
+				"issuerName":  defaultCertManagerIssuerName,
 			},
 			"meshName": defaultMeshName,
 			"image": map[string]interface{}{
-				"registry":   "openservicemesh",
-				"tag":        "v0.5.0",
+				"registry":   defaultContainerRegistry,
+				"tag":        defaultOsmImageTag,
 				"pullPolicy": defaultOsmImagePullPolicy,
 			},
-			"serviceCertValidityDuration": "24h",
+			"serviceCertValidityDuration": defaultServiceCertValidityDuration,
 			"vault": map[string]interface{}{
-				"host":     "",
-				"protocol": "http",
-				"token":    "",
-				"role":     "openservicemesh",
+				"host":     defaultVaultHost,
+				"protocol": defaultVaultProtocol,
+				"token":    defaultVaultToken,
+				"role":     defaultVaultRole,
 			},
 			"prometheus": map[string]interface{}{
 				"retention": map[string]interface{}{
-					"time": "15d",
+					"time": defaultPrometheusRetentionTime,
 				}},
-			"enableDebugServer":              false,
-			"enablePermissiveTrafficPolicy":  false,
-			"enableBackpressureExperimental": false,
-			"enableEgress":                   false,
-			"enablePrometheus":               true,
-			"enableGrafana":                  false,
-			"enableFluentbit":                false,
-			"deployJaeger":                   true,
+			"enableDebugServer":              defaultEnableDebugServer,
+			"enablePermissiveTrafficPolicy":  defaultEnablePermissiveTrafficPolicy,
+			"enableBackpressureExperimental": defaultEnableBackpressureExperimental,
+			"enableEgress":                   defaultEnableEgress,
+			"enablePrometheus":               defaultEnablePrometheus,
+			"enablePrometheusScraping":       defaultEnablePrometheusScraping,
+			"enableGrafana":                  defaultEnableGrafana,
+			"enableFluentbit":                defaultEnableFluentbit,
+			"deployJaeger":                   defaultDeployJaeger,
 			"envoyLogLevel":                  testEnvoyLogLevel,
-			"enforceSingleMesh":              false,
+			"enforceSingleMesh":              defaultEnforceSingleMesh,
 		}}
 }

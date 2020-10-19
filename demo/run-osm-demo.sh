@@ -29,8 +29,10 @@ CTR_TAG="${CTR_TAG:-$(git rev-parse HEAD)}"
 IMAGE_PULL_POLICY="${IMAGE_PULL_POLICY:-Always}"
 ENABLE_DEBUG_SERVER="${ENABLE_DEBUG_SERVER:-true}"
 ENABLE_EGRESS="${ENABLE_EGRESS:-false}"
-ENABLE_GRAFANA="${ENABLE_GRAFANA:-false}"
+ENABLE_GRAFANA="${ENABLE_GRAFANA:-true}"
 ENABLE_FLUENTBIT="${ENABLE_FLUENTBIT:-false}"
+ENABLE_PROMETHEUS="${ENABLE_PROMETHEUS:-true}"
+ENABLE_PROMETHEUS_SCRAPING="${ENABLE_PROMETHEUS_SCRAPING:-false}"
 DEPLOY_WITH_SAME_SA="${DEPLOY_WITH_SAME_SA:-false}"
 ENVOY_LOG_LEVEL="${ENVOY_LOG_LEVEL:-debug}"
 
@@ -97,6 +99,8 @@ if [ "$CERT_MANAGER" = "vault" ]; then
       --enable-egress="$ENABLE_EGRESS" \
       --enable-grafana="$ENABLE_GRAFANA" \
       --enable-fluentbit="$ENABLE_FLUENTBIT" \
+      --enable-prometheus="$ENABLE_PROMETHEUS" \
+      --enable-prometheus-scraping="$ENABLE_PROMETHEUS_SCRAPING" \
       --envoy-log-level "$ENVOY_LOG_LEVEL" \
       --timeout=90s \
       $optionalInstallArgs
@@ -114,6 +118,8 @@ else
       --enable-egress="$ENABLE_EGRESS" \
       --enable-grafana="$ENABLE_GRAFANA" \
       --enable-fluentbit="$ENABLE_FLUENTBIT" \
+      --enable-prometheus="$ENABLE_PROMETHEUS" \
+      --enable-prometheus-scraping="$ENABLE_PROMETHEUS_SCRAPING" \
       --envoy-log-level "$ENVOY_LOG_LEVEL" \
       --timeout=90s \
       $optionalInstallArgs
