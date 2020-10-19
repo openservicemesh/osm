@@ -28,6 +28,11 @@ type HTTPServer struct {
 	server *http.Server
 }
 
+//DebugServer is the object wrapper for OSM's HTTP server class
+type DebugServer struct {
+	server *http.Server
+}
+
 // NewHealthMux makes a new *http.ServeMux
 func NewHealthMux(handlers map[string]http.Handler) *http.ServeMux {
 	router := http.NewServeMux()
@@ -39,18 +44,12 @@ func NewHealthMux(handlers map[string]http.Handler) *http.ServeMux {
 }
 
 // NewHTTPServer creates a new API server
-func NewHTTPServer(probes []health.Probes, httpProbes []health.HTTPProbe, metricStore metricsstore.MetricStore, apiPort int32, debugServer debugger.DebugServer) *HTTPServer {
+func NewHTTPServer(probes []health.Probes, httpProbes []health.HTTPProbe, metricStore metricsstore.MetricStore, apiPort int32) *HTTPServer {
 	handlers := map[string]http.Handler{
 		"/health/ready": health.ReadinessHandler(probes, httpProbes),
 		"/health/alive": health.LivenessHandler(probes, httpProbes),
 		"/metrics":      metricStore.Handler(),
 		"/version":      getVersionHandler(),
-	}
-
-	if debugServer != nil {
-		for url, handler := range debugServer.GetHandlers() {
-			handlers[url] = handler
-		}
 	}
 
 	return &HTTPServer{
@@ -61,15 +60,35 @@ func NewHTTPServer(probes []health.Probes, httpProbes []health.HTTPProbe, metric
 	}
 }
 
+//NewDebugServer creates a new API Server for Debug
+func NewDebugServer(debugServer debugger.DebugServer, apiPort int32) *DebugServer {
+	return &DebugServer{
+		server: &http.Server{
+			Addr:    fmt.Sprintf(":%d", apiPort),
+			Handler: NewHealthMux(debugServer.GetHandlers()),
+		},
+	}
+}
+
 // Start runs the Serve operations for the http.server on a separate go routine context
-func (s *HTTPServer) Start(announcementCh <-chan interface{}) {
+func (s *HTTPServer) Start() {
 	go func() {
-		announcement := <-announcementCh
-		log.Info().Msgf("Announcement Channel %s", announcement)
 		log.Info().Msgf("Starting API Server on %s", s.server.Addr)
 		if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			events.GenericEventRecorder().FatalEvent(err, events.InitializationError,
 				"Error starting HTTP server")
+		}
+	}()
+
+}
+
+// Start runs the Serve operations for the DebugServer http.server on a separate go routine context
+func (d *DebugServer) Start() {
+	go func() {
+		log.Info().Msgf("Starting API Debug Server on %s", d.server.Addr)
+		if err := d.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			events.GenericEventRecorder().FatalEvent(err, events.InitializationError,
+				"Error starting Debug server")
 		}
 	}()
 
@@ -81,6 +100,17 @@ func (s *HTTPServer) Stop() error {
 	defer cancel()
 	if err := s.server.Shutdown(ctx); err != nil {
 		log.Error().Err(err).Msg("Unable to shutdown API server gracefully")
+		return err
+	}
+	return nil
+}
+
+//Stop halts the DebugServer http.server
+func (d *DebugServer) Stop() error {
+	ctx, cancel := context.WithTimeout(context.Background(), contextTimeoutDuration)
+	defer cancel()
+	if err := d.server.Shutdown(ctx); err != nil {
+		log.Error().Err(err).Msg("Unable to shutdown Debug API server gracefully")
 		return err
 	}
 	return nil
