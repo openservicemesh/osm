@@ -469,7 +469,7 @@ func (td *OsmTestData) installCertManager(instOpts InstallOSMOpts) error {
 	install := action.NewInstall(helm)
 	install.RepoURL = "https://charts.jetstack.io"
 	install.Namespace = td.osmNamespace
-	install.ReleaseName = "cert-manager"
+	install.ReleaseName = "certmanager"
 	install.Version = "v0.16.1"
 
 	chartPath, err := install.LocateChart("cert-manager", helmcli.New())

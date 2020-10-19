@@ -10,8 +10,8 @@ import (
 
 var _ = Describe("1 Client pod -> 1 Server pod test using cert-manager", func() {
 	Context("CertManagerSimpleClientServer", func() {
-		sourceNs := "client"
-		destNs := "server"
+		const sourceNs = "client"
+		const destNs = "server"
 		var ns []string = []string{sourceNs, destNs}
 
 		It("Tests HTTP traffic for client pod -> server pod", func() {
