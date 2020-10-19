@@ -823,7 +823,7 @@ func (td *OsmTestData) Cleanup(ct CleanupType) {
 		}
 		By(fmt.Sprintf("[Cleanup] waiting for %s:%d test NS cleanup", osmTest, GinkgoRandomSeed()))
 		if td.waitForCleanup {
-			wait.Poll(2*time.Second, 240*time.Second,
+			err := wait.Poll(2*time.Second, 240*time.Second,
 				func() (bool, error) {
 					nsList, err := td.client.CoreV1().Namespaces().List(context.TODO(), nsSelector)
 					if err != nil {
@@ -833,6 +833,9 @@ func (td *OsmTestData) Cleanup(ct CleanupType) {
 					return len(nsList.Items) == 0, nil
 				},
 			)
+			if err != nil {
+				td.T.Logf("Poll err: %v", err)
+			}
 		}
 	}
 
