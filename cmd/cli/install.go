@@ -304,9 +304,9 @@ func (i *installCmd) validateOptions() error {
 	}
 
 	// Check if single mesh cluster is already specified
-	for _, mesh := range list.Items {
-		singleMeshEnforced := mesh.ObjectMeta.Labels["enforceSingleMesh"] == "true"
-		name := mesh.ObjectMeta.Labels["meshName"]
+	for _, deployment := range list.Items {
+		singleMeshEnforced := deployment.ObjectMeta.Labels["enforceSingleMesh"] == "true"
+		name := deployment.ObjectMeta.Labels["meshName"]
 		if singleMeshEnforced {
 			return errors.Errorf("Cannot install mesh [%s]. Existing mesh [%s] enforces single mesh cluster.", i.meshName, name)
 		}
