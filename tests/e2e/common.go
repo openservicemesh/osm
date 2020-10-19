@@ -688,7 +688,7 @@ func (td *OsmTestData) Cleanup(ct CleanupType) {
 
 		if len(nsList) > 0 && td.waitForCleanup {
 			// on kind this can take a while apparently
-			err := td.WaitForNamespacesDeleted(nsList, 120*time.Second)
+			err := td.WaitForNamespacesDeleted(nsList, 240*time.Second)
 			if err != nil {
 				td.T.Logf("Could not confirm all namespace deletion in time: %v", err)
 			}
