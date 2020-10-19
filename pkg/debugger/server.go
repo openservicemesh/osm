@@ -36,15 +36,9 @@ func (ds debugConfig) GetHandlers() map[string]http.Handler {
 	return handlers
 }
 
-<<<<<<< HEAD
 // NewDebugConfig returns an implementation of DebugConfig interface.
 func NewDebugConfig(certDebugger CertificateManagerDebugger, xdsDebugger XDSDebugger, meshCatalogDebugger MeshCatalogDebugger, kubeConfig *rest.Config, kubeClient kubernetes.Interface, cfg configurator.Configurator, kubeController k8s.Controller) DebugConfig {
 	return debugConfig{
-=======
-// NewDebugImpl returns an implementation of DebugServer interface.
-func NewDebugImpl(certDebugger CertificateManagerDebugger, xdsDebugger XDSDebugger, meshCatalogDebugger MeshCatalogDebugger, kubeConfig *rest.Config, kubeClient kubernetes.Interface, cfg configurator.Configurator, kubeController k8s.Controller) DebugServer {
-	return debugServer{
->>>>>>> automate enableDebugServer when change in configMap
 		certDebugger:        certDebugger,
 		xdsDebugger:         xdsDebugger,
 		meshCatalogDebugger: meshCatalogDebugger,
