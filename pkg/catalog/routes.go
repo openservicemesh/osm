@@ -7,6 +7,7 @@ import (
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/pkg/errors"
+	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -261,30 +262,12 @@ func getTrafficPoliciesForService(mc *MeshCatalog, routePolicies map[trafficpoli
 			continue
 		}
 
-		dstNamespacedServiceAcc := service.K8sServiceAccount{
-			Namespace: trafficTargets.Spec.Destination.Namespace,
-			Name:      trafficTargets.Spec.Destination.Name,
-		}
-		destServiceList, destErr := mc.GetServicesForServiceAccount(dstNamespacedServiceAcc)
-		if destErr != nil {
-			log.Error().Msgf("TrafficTarget %s/%s could not get destination services for service account %s", trafficTargets.Namespace, trafficTargets.Name, dstNamespacedServiceAcc.String())
-			return nil, destErr
-		}
-
 		for _, trafficSources := range trafficTargets.Spec.Sources {
-			namespacedServiceAccount := service.K8sServiceAccount{
-				Namespace: trafficSources.Namespace,
-				Name:      trafficSources.Name,
+			trafficTargetPermutations, err := mc.listTrafficTargetPermutations(*trafficTargets, trafficSources, trafficTargets.Spec.Destination)
+			if err != nil {
+				log.Error().Msgf("Could not list services for TrafficTarget %s/%s", trafficTargets.Namespace, trafficTargets.Name)
+				return nil, err
 			}
-
-			srcServiceList, srcErr := mc.GetServicesForServiceAccount(namespacedServiceAccount)
-			if srcErr != nil {
-				log.Error().Msgf("TrafficTarget %s/%s could not get source services for service account %s", trafficTargets.Namespace, trafficTargets.Name, fmt.Sprintf("%s/%s", trafficSources.Namespace, trafficSources.Name))
-				return nil, srcErr
-			}
-
-			trafficTargetPermutations := listTrafficTargetPermutations(trafficTargets.Name, srcServiceList, destServiceList)
-
 			for _, trafficTarget := range trafficTargetPermutations {
 				var httpRoutes []trafficpolicy.HTTPRoute // Keeps track of all the routes from a source to a destination service
 
@@ -381,13 +364,34 @@ func getDefaultWeightedClusterForService(meshService service.MeshService) servic
 }
 
 // listTrafficTargetPermutations creates a list of TrafficTargets for each source and destination pair.
-func listTrafficTargetPermutations(name string, srcServiceList []service.MeshService, destServiceList []service.MeshService) []trafficpolicy.TrafficTarget {
+func (mc *MeshCatalog) listTrafficTargetPermutations(trafficTarget target.TrafficTarget, src target.IdentityBindingSubject, dest target.IdentityBindingSubject) ([]trafficpolicy.TrafficTarget, error) {
+	sourceServiceAccount := service.K8sServiceAccount{
+		Namespace: src.Namespace,
+		Name:      src.Name,
+	}
+
+	srcServiceList, srcErr := mc.GetServicesForServiceAccount(sourceServiceAccount)
+	if srcErr != nil {
+		log.Error().Msgf("TrafficTarget %s/%s could not get source services for service account %s", trafficTarget.Namespace, trafficTarget.Name, sourceServiceAccount.String())
+		return nil, srcErr
+	}
+
+	dstNamespacedServiceAcc := service.K8sServiceAccount{
+		Namespace: dest.Namespace,
+		Name:      dest.Name,
+	}
+	destServiceList, destErr := mc.GetServicesForServiceAccount(dstNamespacedServiceAcc)
+	if destErr != nil {
+		log.Error().Msgf("TrafficTarget %s/%s could not get destination services for service account %s", trafficTarget.Namespace, trafficTarget.Name, dstNamespacedServiceAcc.String())
+		return nil, destErr
+	}
+
 	trafficPolicies := make([]trafficpolicy.TrafficTarget, 0, len(srcServiceList)*len(destServiceList))
 
 	for _, destService := range destServiceList {
 		for _, srcService := range srcServiceList {
 			trafficTarget := trafficpolicy.TrafficTarget{
-				Name:        utils.GetTrafficTargetName(name, srcService, destService),
+				Name:        utils.GetTrafficTargetName(trafficTarget.Name, srcService, destService),
 				Destination: destService,
 				Source:      srcService,
 			}
@@ -395,5 +399,5 @@ func listTrafficTargetPermutations(name string, srcServiceList []service.MeshSer
 		}
 	}
 
-	return trafficPolicies
+	return trafficPolicies, nil
 }
