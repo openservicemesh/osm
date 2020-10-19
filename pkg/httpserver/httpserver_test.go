@@ -44,6 +44,7 @@ var _ = Describe("Test httpserver", func() {
 		mockProbe       *health.MockProbes
 		testServer      *httptest.Server
 		mockDebugServer *debugger.MockDebugServer
+		testDebug       *httptest.Server
 	)
 	mockCtrl = gomock.NewController(GinkgoT())
 
@@ -59,9 +60,13 @@ var _ = Describe("Test httpserver", func() {
 			}),
 		})
 
-		httpServ := NewHTTPServer(testProbes, nil, metricsStore, testPort, mockDebugServer)
+		httpServ := NewHTTPServer(testProbes, nil, metricsStore, testPort)
+		debugServ := NewDebugServer(mockDebugServer, testPort)
 		testServer = &httptest.Server{
 			Config: httpServ.server,
+		}
+		testDebug = &httptest.Server{
+			Config: debugServ.server,
 		}
 	})
 
@@ -69,7 +74,7 @@ var _ = Describe("Test httpserver", func() {
 		req := httptest.NewRequest("GET", fmt.Sprintf("%s%s", url, invalidRoutePath), nil)
 
 		w := httptest.NewRecorder()
-		testServer.Config.Handler.ServeHTTP(w, req)
+		testDebug.Config.Handler.ServeHTTP(w, req)
 
 		resp := w.Result()
 		Expect(resp.StatusCode).To(Equal(http.StatusNotFound))
@@ -79,7 +84,7 @@ var _ = Describe("Test httpserver", func() {
 		req := httptest.NewRequest("GET", fmt.Sprintf("%s%s", url, validRoutePath), nil)
 
 		w := httptest.NewRecorder()
-		testServer.Config.Handler.ServeHTTP(w, req)
+		testDebug.Config.Handler.ServeHTTP(w, req)
 
 		resp := w.Result()
 		bodyBytes, _ := ioutil.ReadAll(resp.Body)

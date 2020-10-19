@@ -69,6 +69,9 @@ const (
 	// MetricsServerPort is the port on which OSM exposes its own metrics server
 	MetricsServerPort = 9091
 
+	//DebugPort is the port on which OSM exposes its debug server
+	DebugPort = 9092
+
 	// OSMControllerName is the name of the OSM Controller (formerly ADS service).
 	OSMControllerName = "osm-controller"
 
