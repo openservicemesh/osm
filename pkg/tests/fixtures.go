@@ -57,8 +57,11 @@ const (
 	// WildcardWithHeadersMatchName is the name of the match object.
 	WildcardWithHeadersMatchName = "allow-everything-on-header"
 
-	// Weight is the percentage of the traffic to be sent this way in a traffic split scenario.
-	Weight = 100
+	// Weight90 is the value representing a share of the traffic to be sent this way in a traffic split scenario.
+	Weight90 = 90
+
+	// Weight10 is the value representing a share of the traffic to be sent this way in a traffic split scenario.
+	Weight10 = 10
 
 	// RouteGroupName is the name of the route group SMI object.
 	RouteGroupName = "bookstore-service-routes"
@@ -222,11 +225,11 @@ var (
 			Backends: []v1alpha2.TrafficSplitBackend{
 				{
 					Service: BookstoreV1ServiceName,
-					Weight:  Weight,
+					Weight:  Weight90,
 				},
 				{
 					Service: BookstoreV2ServiceName,
-					Weight:  Weight,
+					Weight:  Weight10,
 				},
 			},
 		},
@@ -287,7 +290,7 @@ var (
 			Namespace: Namespace,
 			Name:      BookstoreV1ServiceName,
 		},
-		Weight:      Weight,
+		Weight:      Weight90,
 		RootService: BookstoreApexServiceName,
 	}
 
@@ -297,7 +300,7 @@ var (
 			Namespace: Namespace,
 			Name:      BookstoreV2ServiceName,
 		},
-		Weight:      Weight,
+		Weight:      Weight10,
 		RootService: BookstoreApexServiceName,
 	}
 

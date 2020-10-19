@@ -313,7 +313,7 @@ var _ = Describe("RDS Response", func() {
 
 			expected := service.WeightedCluster{
 				ClusterName: service.ClusterName(tests.BookbuyerService.String()),
-				Weight:      tests.Weight,
+				Weight:      constants.ClusterWeightAcceptAll,
 			}
 			Expect(actual).To(Equal(expected))
 		})
