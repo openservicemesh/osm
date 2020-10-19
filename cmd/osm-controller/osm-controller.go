@@ -218,16 +218,34 @@ func main() {
 	// TODO(draychev): figure out the NS and POD
 	metricsStore := metricsstore.NewMetricStore("TBD_NameSpace", "TBD_PodName")
 
-	// Expose /debug endpoints and data only if the enableDebugServer flag is enabled
-	var debugServer debugger.DebugServer
-	if cfg.IsDebugServerEnabled() {
-		debugServer = debugger.NewDebugServer(certDebugger, xdsServer, meshCatalog, kubeConfig, kubeClient, cfg, kubernetesClient)
-	}
-
 	funcProbes := []health.Probes{xdsServer}
 	httpProbes := getHTTPHealthProbes()
-	httpServer := httpserver.NewHTTPServer(funcProbes, httpProbes, metricsStore, constants.MetricsServerPort, debugServer)
-	httpServer.Start(cfg.GetAnnouncementsChannel())
+	httpServer := httpserver.NewHTTPServer(funcProbes, httpProbes, metricsStore, constants.MetricsServerPort)
+	httpServer.Start()
+
+	// Expose /debug endpoints and data only if the enableDebugServer flag is enabled
+	debugServerRunning := false
+	debugImpl := debugger.NewDebugImpl(certDebugger, xdsServer, meshCatalog, kubeConfig, kubeClient, cfg, kubernetesClient)
+	debugServer := httpserver.NewDebugServer(debugImpl, constants.DebugPort)
+
+	if cfg.IsDebugServerEnabled() {
+		debugServerRunning = true
+		debugServer.Start()
+	}
+	go func() {
+		for change := range cfg.GetAnnouncementsChannel() {
+			fmt.Println("CHANGE", change)
+			if debugServerRunning && !cfg.IsDebugServerEnabled() {
+				debugServerRunning = false
+				debugServer.Stop()
+			}
+			if !debugServerRunning && cfg.IsDebugServerEnabled() {
+				debugServerRunning = true
+				debugServer = httpserver.NewDebugServer(debugImpl, constants.DebugPort)
+				debugServer.Start()
+			}
+		}
+	}()
 
 	// Wait for exit handler signal
 	<-stop
