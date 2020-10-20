@@ -1087,6 +1087,7 @@ var _ = Describe("Ensure that prometheus is disabled when flag is set to false",
 				"enableFluentbit":                false,
 				"deployJaeger":                   false,
 				"envoyLogLevel":                  testEnvoyLogLevel,
+				"enforceSingleMesh":              false,
 			}}))
 	})
 })
@@ -1169,6 +1170,7 @@ var _ = Describe("Ensure that fluentbit is disabled when flag is set to false", 
 				"enableFluentbit":                false,
 				"deployJaeger":                   false,
 				"envoyLogLevel":                  testEnvoyLogLevel,
+				"enforceSingleMesh":              false,
 			}}))
 	})
 
