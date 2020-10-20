@@ -89,10 +89,7 @@ func (pf *PortForwarder) Start(readyFunc func(pf *PortForwarder) error) error {
 	// Process signals and call readyFunc
 	select {
 	case <-pf.readyChan:
-		if err := readyFunc(pf); err != nil {
-			return err
-		}
-		return nil
+		return readyFunc(pf)
 
 	case err := <-errChan:
 		return errors.Errorf("Error during port forwarding: %s", err)

@@ -106,7 +106,10 @@ func (d *dashboardCmd) run() error {
 	// Select pod/s given the service data available
 	set := labels.Set(svc.Spec.Selector)
 	listOptions := metav1.ListOptions{LabelSelector: set.AsSelector().String()}
-	pods, _ := v1ClientSet.Pods(settings.Namespace()).List(context.TODO(), listOptions)
+	pods, err := v1ClientSet.Pods(settings.Namespace()).List(context.TODO(), listOptions)
+	if err != nil {
+		return errors.Errorf("Error listing pods: %s", err)
+	}
 
 	// Will select first running Pod available
 	var grafanaPod *corev1.Pod
