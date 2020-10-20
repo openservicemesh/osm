@@ -1149,7 +1149,7 @@ var _ = Describe("Ensure that fluentbit is disabled when flag is set to false", 
 						"name": testRegistrySecret,
 					},
 				},
-				"serviceCertValidityMinutes": int64(1),
+				"serviceCertValidityDuration": "24h",
 				"vault": map[string]interface{}{
 					"host":     testVaultHost,
 					"protocol": "http",
@@ -1233,7 +1233,7 @@ var _ = Describe("Ensure that fluentbit is enabled when flag is set to true", fu
 						"name": testRegistrySecret,
 					},
 				},
-				"serviceCertValidityMinutes": int64(1),
+				"serviceCertValidityDuration": "24h",
 				"vault": map[string]interface{}{
 					"host":     testVaultHost,
 					"protocol": "http",
