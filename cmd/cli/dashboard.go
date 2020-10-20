@@ -1,26 +1,24 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"os/signal"
-	"syscall"
 
 	"github.com/pkg/browser"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"helm.sh/helm/v3/pkg/action"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/httpstream"
 	"k8s.io/client-go/kubernetes"
 	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/portforward"
 	"k8s.io/client-go/transport/spdy"
 )
 
@@ -30,8 +28,8 @@ grafana instance running under the OSM namespace, and cast a
 generic browser-open towards localhost on the redirected port.
 
 By default redirects through port 3000 unless manually overridden.
-This command blocks and redirection remains active until closed
-from either side.
+This command blocks if port forwarding is successful until the
+process is interrupted with a signal from the OS.
 `
 const (
 	grafanaServiceName = "osm-grafana"
@@ -108,67 +106,44 @@ func (d *dashboardCmd) run() error {
 	// Select pod/s given the service data available
 	set := labels.Set(svc.Spec.Selector)
 	listOptions := metav1.ListOptions{LabelSelector: set.AsSelector().String()}
-	pods, err := v1ClientSet.Pods(settings.Namespace()).
-		List(context.TODO(), listOptions)
+	pods, _ := v1ClientSet.Pods(settings.Namespace()).List(context.TODO(), listOptions)
 
 	// Will select first running Pod available
-	it := 0
-	for {
-		if pods.Items[it].Status.Phase == "Running" {
+	var grafanaPod *corev1.Pod
+	for _, pod := range pods.Items {
+		pod := pod // prevents aliasing address of loop variable which is the same in each iteration
+		if pod.Status.Phase == "Running" {
+			grafanaPod = &pod
 			break
 		}
-
-		it++
-		if it == len(pods.Items) {
-			return errors.Errorf("No running Grafana pod available.")
-		}
+	}
+	if grafanaPod == nil {
+		return errors.Errorf("No running Grafana pod available")
 	}
 
-	// Build http spdy-upgraded handler
-	dialer := createDialer(conf, v1ClientSet, pods.Items[it].GetName())
-
-	// StopChan is used to understand the lifecycle of the forwarding blocking op
-	// ReadyChan signals when the connection has been established and forwarding is in place
-	stopChan := make(chan struct{}, 1)
-	readyChan := make(chan struct{}, 1)
-	out, errOut := new(bytes.Buffer), new(bytes.Buffer)
-
-	forwardStr := fmt.Sprintf("%d:%d", d.localPort, d.remotePort)
-	fmt.Fprintf(d.out, "[+] Using forwarding: %s\n", forwardStr)
-
-	forwarder, err := portforward.New(dialer,
-		[]string{forwardStr},
-		stopChan,
-		readyChan,
-		out,
-		errOut)
+	portForwarder, err := NewPortForwarder(conf, clientSet, grafanaPod.Name, grafanaPod.Namespace, d.localPort, d.remotePort)
 	if err != nil {
-		return errors.Errorf("Failed to create forwarder: %s\n", err)
+		return errors.Errorf("Error setting up port forwarding: %s", err)
 	}
 
-	// Binding SIGINT & SIGTERM to trigger the closing routine
-	signal.Notify(d.sigintChan, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		<-d.sigintChan // Blocking
-		fmt.Fprintf(d.out, "[+] SIGINT/TERM received, closing")
-		close(stopChan)
-	}()
-
-	// This routine blocks on readyChan till forwarding is setup and ready.
-	go func() {
-		<-readyChan
-
-		fmt.Fprintf(d.out, "[+] Port forwarding successful (localhost:%d)\n", d.localPort)
+	err = portForwarder.Start(func(pf *PortForwarder) error {
 		if d.openBrowser {
 			url := fmt.Sprintf("http://localhost:%d", d.localPort)
 			fmt.Fprintf(d.out, "[+] Issuing open browser %s\n", url)
 			browser.OpenURL(url)
 		}
-	}()
-
-	if err = forwarder.ForwardPorts(); err != nil { // Locks until stopChan is closed.
-		return errors.Errorf("Failed to execute Forward: %s\n", err)
+		return nil
+	})
+	if err != nil {
+		return errors.Errorf("Port forwarding failed: %s", err)
 	}
+
+	// The command should only exit when a signal is received from the OS.
+	// Exiting before will result in port forwarding to stop causing the browser
+	// if open to not render the dashboard.
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt)
+	<-sigChan
 
 	return nil
 }
