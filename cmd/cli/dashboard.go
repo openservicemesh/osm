@@ -154,12 +154,10 @@ func (d *dashboardCmd) run() error {
 		close(stopChan)
 	}()
 
-	// This routine blocks on readyChan til forwarding is setup and ready.
+	// This routine blocks on readyChan till forwarding is setup and ready.
 	go func() {
-		select {
-		case <-readyChan:
-			break
-		}
+		<-readyChan
+
 		fmt.Fprintf(d.out, "[+] Port forwarding successful (localhost:%d)\n", d.localPort)
 		if d.openBrowser {
 			url := fmt.Sprintf("http://localhost:%d", d.localPort)
