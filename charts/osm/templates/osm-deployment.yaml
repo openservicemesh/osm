@@ -79,7 +79,7 @@ spec:
           imagePullPolicy: Always
           volumeMounts:
           - name: config
-            mountPath: /fluent-bit/etc # https://hub.docker.com/r/fluent/fluent-bit/dockerfile
+            mountPath: /fluent-bit/etc
             readOnly: true 
           - name: var-log-containers
             mountPath: /var/log/containers
