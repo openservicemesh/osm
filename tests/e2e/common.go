@@ -102,9 +102,9 @@ func registerFlags(td *OsmTestData) {
 	flag.StringVar(&td.osmNamespace, "osmNamespace", utils.GetEnv("K8S_NAMESPACE", defaultMeshName), "OSM mesh name")
 }
 
-// GetTestSelectorMap returns a string-based selector used to refer/select all namespace
+// GetTestNamespaceSelectorMap returns a string-based selector used to refer/select all namespace
 // resources for this test
-func (td *OsmTestData) GetTestSelectorMap() map[string]string {
+func (td *OsmTestData) GetTestNamespaceSelectorMap() map[string]string {
 	return map[string]string{
 		osmTest: fmt.Sprintf("%d", GinkgoRandomSeed()),
 	}
@@ -602,11 +602,10 @@ func (td *OsmTestData) CreateMultipleNs(nsName ...string) error {
 // CreateNs creates a Namespace. Will automatically add Docker registry creds if provided
 func (td *OsmTestData) CreateNs(nsName string, labels map[string]string) error {
 	if labels == nil {
-		labels = td.GetTestSelectorMap()
-	} else {
-		for k, v := range td.GetTestSelectorMap() {
-			labels[k] = v
-		}
+		labels = make(map[string]string)
+	}
+	for k, v := range td.GetTestNamespaceSelectorMap() {
+		labels[k] = v
 	}
 
 	namespaceObj := &corev1.Namespace{
@@ -797,8 +796,12 @@ const (
 
 // Cleanup is Used to cleanup resorces once the test is done
 func (td *OsmTestData) Cleanup(ct CleanupType) {
-	// Small speedup: avoid graceful/wait delete of k8s resources on kind if the cluster is destined to be
-	// trashed anyway
+	// The condition enters to cleanup K8s resources if
+	// - cleanup is enabled and it's not a kind cluster
+	// - cleanup is enabled and it is a kind cluster, but the kind cluster will NOT be
+	//   destroyed after this test.
+	//   The latter is a condition to speed up and not wait for k8s resources to vanish
+	//   if the current kind cluster has to be destroyed anyway.
 	if td.cleanupTest &&
 		(!td.kindCluster ||
 			(td.kindCluster &&
@@ -806,7 +809,7 @@ func (td *OsmTestData) Cleanup(ct CleanupType) {
 				(ct == Suite && !td.cleanupKindCluster))) {
 		// Use selector to refer to all namespaces used in this test
 		nsSelector := metav1.ListOptions{
-			LabelSelector: labels.SelectorFromSet(td.GetTestSelectorMap()).String(),
+			LabelSelector: labels.SelectorFromSet(td.GetTestNamespaceSelectorMap()).String(),
 		}
 
 		testNs, err := td.client.CoreV1().Namespaces().List(context.Background(), nsSelector)
