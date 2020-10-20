@@ -20,7 +20,7 @@ var _ = Describe("Permissive Traffic Policy Mode", func() {
 			installOpts := td.GetOSMInstallOpts()
 			installOpts.enablePermissiveMode = true
 			Expect(td.InstallOSM(installOpts)).To(Succeed())
-			Expect(td.WaitForPodsRunningReady(td.osmNamespace, 60*time.Second, 1)).To(Succeed())
+			Expect(td.WaitForPodsRunningReady(td.osmNamespace, 90*time.Second, 1)).To(Succeed())
 
 			// Create Test NS
 			for _, n := range ns {
@@ -44,7 +44,7 @@ var _ = Describe("Permissive Traffic Policy Mode", func() {
 			_, err = td.CreateService(destNs, svcDef)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(td.WaitForPodsRunningReady(sourceNs, 60*time.Second, 1)).To(Succeed())
+			Expect(td.WaitForPodsRunningReady(sourceNs, 90*time.Second, 1)).To(Succeed())
 
 			// Get simple Pod definitions for the client
 			svcAccDef, podDef, svcDef = td.SimplePodApp(SimplePodAppDef{
@@ -63,7 +63,7 @@ var _ = Describe("Permissive Traffic Policy Mode", func() {
 			_, err = td.CreateService(sourceNs, svcDef)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(td.WaitForPodsRunningReady(destNs, 60*time.Second, 1)).To(Succeed())
+			Expect(td.WaitForPodsRunningReady(destNs, 90*time.Second, 1)).To(Succeed())
 
 			req := HTTPRequestDef{
 				SourceNs:        srcPod.Namespace,
