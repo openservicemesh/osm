@@ -75,7 +75,7 @@ spec:
                   fieldPath: metadata.name
       {{- if .Values.OpenServiceMesh.enableFluentbit}}
         - name: fluentbit-logger
-          image: fluent/fluent-bit:1.5-debug
+          image: fluent/fluent-bit:1.5
           imagePullPolicy: Always
           volumeMounts:
           - name: config

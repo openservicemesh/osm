@@ -19,7 +19,7 @@ data:
     [FILTER]
       name       grep
       match      *
-      regex      $message['level'] info
+      regex      $message['level'] error
     [OUTPUT]
       Name    stdout
       Match   *
