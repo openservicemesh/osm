@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 	"os/signal"
 
@@ -15,11 +14,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/util/httpstream"
 	"k8s.io/client-go/kubernetes"
-	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/transport/spdy"
 )
 
 const openGrafanaDashboardDesc = `
@@ -64,22 +59,6 @@ func newDashboardCmd(config *action.Configuration, out io.Writer) *cobra.Command
 	cmd.Flags().BoolVarP(&dash.openBrowser, "open-browser", "b", true, "Triggers browser open, true by default")
 
 	return cmd
-}
-
-// Creates an spdy-upgraded http stream handler
-func createDialer(conf *rest.Config, v1ClientSet v1.CoreV1Interface, podName string) httpstream.Dialer {
-	roundTripper, upgrader, err := spdy.RoundTripperFor(conf)
-	if err != nil {
-		panic(err)
-	}
-
-	serverURL := v1ClientSet.RESTClient().Post().
-		Resource("pods").
-		Namespace(settings.Namespace()).
-		Name(podName).
-		SubResource("portforward").URL()
-
-	return spdy.NewDialer(upgrader, &http.Client{Transport: roundTripper}, http.MethodPost, serverURL)
 }
 
 func (d *dashboardCmd) run() error {
