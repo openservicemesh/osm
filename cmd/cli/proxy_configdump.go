@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 
@@ -98,12 +97,9 @@ func (cmd *proxyDumpConfigCmd) run() error {
 		if err != nil {
 			return errors.Errorf("Error fetching url %s: %s", url, err)
 		}
-		config, err := ioutil.ReadAll(resp.Body)
-		resp.Body.Close()
-		if err != nil {
-			return errors.Errorf("Error retrieving proxy config: %s", err)
+		if _, err := io.Copy(cmd.out, resp.Body); err != nil {
+			return errors.Errorf("Error rendering HTTP response: %s", err)
 		}
-		fmt.Fprintf(cmd.out, "%s", config)
 		pf.Stop()
 		return nil
 	})
