@@ -216,33 +216,35 @@ func main() {
 	httpServer.Start()
 
 	// Expose /debug endpoints and data only if the enableDebugServer flag is enabled
-	debugServerRunning := false
+	debugServerRunning := !cfg.IsDebugServerEnabled()
 	debugImpl := debugger.NewDebugImpl(certDebugger, xdsServer, meshCatalog, kubeConfig, kubeClient, cfg, kubernetesClient)
-	debugServer := httpserver.NewDebugServer(debugImpl, constants.DebugPort)
+	debugServer := httpserver.NewDebugHTTPServer(debugImpl, constants.DebugPort)
 
-	if cfg.IsDebugServerEnabled() {
-		debugServerRunning = true
-		debugServer.Start()
-	}
-	go func() {
-		for change := range cfg.GetAnnouncementsChannel() {
-			fmt.Println("CHANGE", change)
-			if debugServerRunning && !cfg.IsDebugServerEnabled() {
-				debugServerRunning = false
-				debugServer.Stop()
-			}
-			if !debugServerRunning && cfg.IsDebugServerEnabled() {
-				debugServerRunning = true
-				debugServer = httpserver.NewDebugServer(debugImpl, constants.DebugPort)
-				debugServer.Start()
-			}
-		}
-	}()
+	go configureDebugServer(debugServer, debugImpl, debugServerRunning, cfg)
 
 	// Wait for exit handler signal
 	<-stop
 
 	log.Info().Msg("Goodbye!")
+}
+
+func configureDebugServer(debugServer *httpserver.DebugServer, debugImpl debugger.DebugServer, debugServerRunning bool, cfg configurator.Configurator) error {
+	var err error = nil
+	for range cfg.GetAnnouncementsChannel() {
+		if debugServerRunning && !cfg.IsDebugServerEnabled() {
+			debugServerRunning = false
+			err = debugServer.Stop()
+			if err != nil {
+				log.Error().Err(err).Msg("Unable to stop debug server")
+			}
+		}
+		if !debugServerRunning && cfg.IsDebugServerEnabled() {
+			debugServerRunning = true
+			debugServer = httpserver.NewDebugHTTPServer(debugImpl, constants.DebugPort)
+			debugServer.Start()
+		}
+	}
+	return err
 }
 
 func getHTTPHealthProbes() []health.HTTPProbe {
