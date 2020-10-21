@@ -31,13 +31,6 @@ var _ = Describe("Test HTTP traffic from N deployment client -> 1 deployment ser
 		}
 
 		It("Tests HTTP traffic from multiple client deployments to a server deployment", func() {
-			// We populate test namespaces in advance, to not have to clean one by one each test run
-			// This is just for convenience
-			td.cleanupNamespaces["server"] = true
-			for _, srcClient := range sourceNamespaces {
-				td.cleanupNamespaces[srcClient] = true
-			}
-
 			// Install OSM
 			Expect(td.InstallOSM(td.GetOSMInstallOpts())).To(Succeed())
 			Expect(td.WaitForPodsRunningReady(td.osmNamespace, 90*time.Second, 1)).To(Succeed())

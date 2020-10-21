@@ -51,11 +51,6 @@ var _ = Describe("Test TrafficSplit where each backend shares the same ServiceAc
 		var wg sync.WaitGroup
 
 		It("Tests HTTP traffic from Clients to the traffic split Cluster IP", func() {
-			// For Cleanup only
-			for _, ns := range allNamespaces {
-				td.cleanupNamespaces[ns] = true
-			}
-
 			// Install OSM
 			Expect(td.InstallOSM(td.GetOSMInstallOpts())).To(Succeed())
 			Expect(td.WaitForPodsRunningReady(td.osmNamespace, 90*time.Second, 1)).To(Succeed())
