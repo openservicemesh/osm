@@ -43,6 +43,7 @@ func newRootCmd(config *action.Configuration, in io.Reader, out io.Writer, args 
 		newNamespaceCmd(out),
 		newMetricsCmd(out),
 		newVersionCmd(out),
+		newProxyCmd(config, out),
 	)
 
 	flags.Parse(args)
