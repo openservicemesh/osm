@@ -14,14 +14,19 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/onsi/ginkgo"
-	"github.com/openservicemesh/osm/pkg/utils"
-
 	"github.com/docker/docker/client"
+	"github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
+	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
+	certman "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
+	. "github.com/onsi/ginkgo"
 	"github.com/pkg/errors"
+	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/chart/loader"
+	helmcli "helm.sh/helm/v3/pkg/cli"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -32,6 +37,9 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 	"sigs.k8s.io/kind/pkg/cluster"
 	"sigs.k8s.io/kind/pkg/cluster/nodeutils"
+
+	"github.com/openservicemesh/osm/pkg/cli"
+	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 const (
@@ -41,6 +49,8 @@ const (
 	defaultMeshName = "osm-system"
 	// default image tag
 	defaultImageTag = "latest"
+	// test tag prefix, for NS labeling
+	osmTest = "osmTest"
 )
 
 // OsmTestData stores common state, variables and flags for the test at hand
@@ -66,13 +76,11 @@ type OsmTestData struct {
 	cleanupKindCluster             bool   // Cleanup kind cluster upon test finish
 
 	// Cluster handles and rest config
+	env             *cli.EnvSettings
 	restConfig      *rest.Config
 	client          *kubernetes.Clientset
 	smiClients      *smiClients
 	clusterProvider *cluster.Provider // provider, used when kindCluster is used
-
-	// Tracks namespaces to cleanup when test finishes (if cleanup is enabled)
-	cleanupNamespaces map[string]bool
 }
 
 // Function to run at init before Ginkgo has called parseFlags
@@ -94,6 +102,14 @@ func registerFlags(td *OsmTestData) {
 	flag.StringVar(&td.osmNamespace, "osmNamespace", utils.GetEnv("K8S_NAMESPACE", defaultMeshName), "OSM mesh name")
 }
 
+// GetTestNamespaceSelectorMap returns a string-based selector used to refer/select all namespace
+// resources for this test
+func (td *OsmTestData) GetTestNamespaceSelectorMap() map[string]string {
+	return map[string]string{
+		osmTest: fmt.Sprintf("%d", GinkgoRandomSeed()),
+	}
+}
+
 // AreRegistryCredsPresent checks if Registry Credentials are present
 // It's usually used to factor if a docker registry secret and ImagePullSecret
 // should be installed when creating namespaces and application templates
@@ -105,7 +121,6 @@ func (td *OsmTestData) AreRegistryCredsPresent() bool {
 // Called by Gingkgo BeforeEach
 func (td *OsmTestData) InitTestData(t GinkgoTInterface) error {
 	td.T = t
-	td.cleanupNamespaces = make(map[string]bool)
 
 	if len(td.ctrRegistryServer) == 0 {
 		td.T.Errorf("Did not read any container registry (is CTR_REGISTRY set?)")
@@ -136,6 +151,7 @@ func (td *OsmTestData) InitTestData(t GinkgoTInterface) error {
 
 	td.restConfig = kubeConfig
 	td.client = clientset
+	td.env = cli.New()
 
 	if err := td.InitSMIClients(); err != nil {
 		return errors.Wrap(err, "failed to initialize SMI clients")
@@ -168,6 +184,10 @@ type InstallOSMOpts struct {
 	vaultToken    string
 	vaultRole     string
 
+	certmanagerIssuerGroup string
+	certmanagerIssuerKind  string
+	certmanagerIssuerName  string
+
 	egressEnabled bool
 }
 
@@ -187,6 +207,10 @@ func (td *OsmTestData) GetOSMInstallOpts() InstallOSMOpts {
 		vaultProtocol: "http",
 		vaultRole:     "openservicemesh",
 		vaultToken:    "token",
+
+		certmanagerIssuerGroup: "cert-manager.io",
+		certmanagerIssuerKind:  "Issuer",
+		certmanagerIssuerName:  "osm-ca",
 	}
 }
 
@@ -229,17 +253,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		return errors.Wrap(err, "failed to create namespace "+instOpts.controlPlaneNS)
 	}
 
-	if instOpts.certManager == "vault" {
-		if err := td.installVault(instOpts); err != nil {
-			return err
-		}
-	}
-
-	td.T.Log("Installing OSM")
 	var args []string
-
-	// Add OSM namespace to cleanup namespaces, in case the test can't init
-	td.cleanupNamespaces[instOpts.controlPlaneNS] = true
 
 	args = append(args, "install",
 		"--container-registry="+instOpts.containerRegistryLoc,
@@ -252,11 +266,23 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 
 	switch instOpts.certManager {
 	case "vault":
+		if err := td.installVault(instOpts); err != nil {
+			return err
+		}
 		args = append(args,
 			"--vault-host="+instOpts.vaultHost,
 			"--vault-token="+instOpts.vaultToken,
 			"--vault-protocol="+instOpts.vaultProtocol,
 			"--vault-role="+instOpts.vaultRole,
+		)
+	case "cert-manager":
+		if err := td.installCertManager(instOpts); err != nil {
+			return err
+		}
+		args = append(args,
+			"--cert-manager-issuer-name="+instOpts.certmanagerIssuerName,
+			"--cert-manager-issuer-kind="+instOpts.certmanagerIssuerKind,
+			"--cert-manager-issuer-group="+instOpts.certmanagerIssuerGroup,
 		)
 	}
 
@@ -273,6 +299,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 	args = append(args, fmt.Sprintf("--enable-grafana=%v", instOpts.deployGrafana))
 	args = append(args, fmt.Sprintf("--deploy-jaeger=%v", instOpts.deployJaeger))
 
+	td.T.Log("Installing OSM")
 	stdout, stderr, err := td.RunLocal(filepath.FromSlash("../../bin/osm"), args)
 	if err != nil {
 		td.T.Logf("error running osm install")
@@ -437,6 +464,103 @@ tail /dev/random;
 	return nil
 }
 
+func (td *OsmTestData) installCertManager(instOpts InstallOSMOpts) error {
+	By("Installing cert-manager")
+	helm := &action.Configuration{}
+	if err := helm.Init(td.env.RESTClientGetter(), td.osmNamespace, "secret", td.T.Logf); err != nil {
+		return errors.Wrap(err, "failed to initialize helm config")
+	}
+	install := action.NewInstall(helm)
+	install.RepoURL = "https://charts.jetstack.io"
+	install.Namespace = td.osmNamespace
+	install.ReleaseName = "certmanager"
+	install.Version = "v0.16.1"
+
+	chartPath, err := install.LocateChart("cert-manager", helmcli.New())
+	if err != nil {
+		return errors.Wrap(err, "failed to get cert-manager-chart")
+	}
+
+	chart, err := loader.Load(chartPath)
+	if err != nil {
+		return errors.Wrap(err, "failed to load cert-manager chart")
+	}
+
+	_, err = install.Run(chart, map[string]interface{}{
+		"installCRDs": true,
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed to install cert-manager chart")
+	}
+
+	selfsigned := &v1alpha2.Issuer{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "selfsigned",
+		},
+		Spec: v1alpha2.IssuerSpec{
+			IssuerConfig: v1alpha2.IssuerConfig{
+				SelfSigned: &v1alpha2.SelfSignedIssuer{},
+			},
+		},
+	}
+
+	cert := &v1alpha2.Certificate{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "osm-ca",
+		},
+		Spec: v1alpha2.CertificateSpec{
+			IsCA:       true,
+			Duration:   &metav1.Duration{Duration: 90 * 24 * time.Hour},
+			SecretName: "osm-ca-bundle",
+			CommonName: "osm-system",
+			IssuerRef: cmmeta.ObjectReference{
+				Name:  selfsigned.Name,
+				Kind:  "Issuer",
+				Group: "cert-manager.io",
+			},
+		},
+	}
+
+	ca := &v1alpha2.Issuer{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "osm-ca",
+		},
+		Spec: v1alpha2.IssuerSpec{
+			IssuerConfig: v1alpha2.IssuerConfig{
+				CA: &v1alpha2.CAIssuer{
+					SecretName: "osm-ca-bundle",
+				},
+			},
+		},
+	}
+
+	if err := td.WaitForPodsRunningReady(install.Namespace, 60*time.Second, 3); err != nil {
+		return errors.Wrap(err, "failed to wait for cert-manager pods ready")
+	}
+
+	cmClient, err := certman.NewForConfig(td.restConfig)
+	if err != nil {
+		return errors.Wrap(err, "failed to create cert-manager config")
+	}
+
+	_, err = cmClient.CertmanagerV1alpha2().Certificates(td.osmNamespace).Create(context.TODO(), cert, metav1.CreateOptions{})
+	if err != nil {
+		return errors.Wrap(err, "failed to create Certificate "+cert.Name)
+	}
+
+	_, err = cmClient.CertmanagerV1alpha2().Issuers(td.osmNamespace).Create(context.TODO(), selfsigned, metav1.CreateOptions{})
+	if err != nil {
+		return errors.Wrap(err, "failed to create Issuer "+selfsigned.Name)
+	}
+
+	_, err = cmClient.CertmanagerV1alpha2().Issuers(td.osmNamespace).Create(context.TODO(), ca, metav1.CreateOptions{})
+	if err != nil {
+		return errors.Wrap(err, "failed to create Issuer "+ca.Name)
+	}
+
+	return nil
+}
+
 // AddNsToMesh Adds monitored namespaces to the OSM mesh
 func (td *OsmTestData) AddNsToMesh(sidecardInject bool, ns ...string) error {
 	td.T.Logf("Adding Namespaces [+%s] to the mesh", ns)
@@ -478,13 +602,11 @@ func (td *OsmTestData) CreateMultipleNs(nsName ...string) error {
 // CreateNs creates a Namespace. Will automatically add Docker registry creds if provided
 func (td *OsmTestData) CreateNs(nsName string, labels map[string]string) error {
 	if labels == nil {
-		labels = map[string]string{}
+		labels = make(map[string]string)
 	}
-
-	// For cleanup purposes, we mark this as present at this time.
-	// If the test can't run because there's the same namespace running, it's most
-	// likely that the user will want it gone anyway
-	td.cleanupNamespaces[nsName] = true
+	for k, v := range td.GetTestNamespaceSelectorMap() {
+		labels[k] = v
+	}
 
 	namespaceObj := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
@@ -515,7 +637,6 @@ func (td *OsmTestData) DeleteNs(nsName string) error {
 
 	td.T.Logf("Deleting namespace %v", nsName)
 	err := td.client.CoreV1().Namespaces().Delete(context.Background(), nsName, metav1.DeleteOptions{PropagationPolicy: &backgroundDelete})
-	delete(td.cleanupNamespaces, nsName)
 	if err != nil {
 		return errors.Wrap(err, "failed to delete namespace "+nsName)
 	}
@@ -525,7 +646,7 @@ func (td *OsmTestData) DeleteNs(nsName string) error {
 // WaitForNamespacesDeleted waits for the namespaces to be deleted.
 // Reference impl taken from https://github.com/kubernetes/kubernetes/blob/master/test/e2e/framework/util.go#L258
 func (td *OsmTestData) WaitForNamespacesDeleted(namespaces []string, timeout time.Duration) error {
-	By(fmt.Sprintf("Waiting for namespaces %+v to vanish", namespaces))
+	By(fmt.Sprintf("Waiting for namespaces %v to vanish", namespaces))
 	nsMap := map[string]bool{}
 	for _, ns := range namespaces {
 		nsMap[ns] = true
@@ -675,25 +796,50 @@ const (
 
 // Cleanup is Used to cleanup resorces once the test is done
 func (td *OsmTestData) Cleanup(ct CleanupType) {
-	// In-cluster Test resources cleanup(namespace, crds, specs and whatnot) here
-	if td.cleanupTest {
-		var nsList []string
-		for ns := range td.cleanupNamespaces {
-			err := td.DeleteNs(ns)
-			if err != nil {
-				td.T.Logf("(warn) delete ns %s err: %v", ns, err)
-			}
-			nsList = append(nsList, ns)
+	// The condition enters to cleanup K8s resources if
+	// - cleanup is enabled and it's not a kind cluster
+	// - cleanup is enabled and it is a kind cluster, but the kind cluster will NOT be
+	//   destroyed after this test.
+	//   The latter is a condition to speed up and not wait for k8s resources to vanish
+	//   if the current kind cluster has to be destroyed anyway.
+	if td.cleanupTest &&
+		(!td.kindCluster ||
+			(td.kindCluster &&
+				(ct == Test && !td.cleanupKindClusterBetweenTests) ||
+				(ct == Suite && !td.cleanupKindCluster))) {
+		// Use selector to refer to all namespaces used in this test
+		nsSelector := metav1.ListOptions{
+			LabelSelector: labels.SelectorFromSet(td.GetTestNamespaceSelectorMap()).String(),
 		}
 
-		if len(nsList) > 0 && td.waitForCleanup {
-			// on kind this can take a while apparently
-			err := td.WaitForNamespacesDeleted(nsList, 240*time.Second)
+		testNs, err := td.client.CoreV1().Namespaces().List(context.Background(), nsSelector)
+		if err != nil {
+			td.T.Fatalf("Failed to get list of test NS: %v", err)
+		}
+
+		for _, ns := range testNs.Items {
+			err := td.DeleteNs(ns.Name)
 			if err != nil {
-				td.T.Logf("Could not confirm all namespace deletion in time: %v", err)
+				td.T.Logf("Err deleting ns %s: %v", ns.Name, err)
+				continue
 			}
 		}
-		td.cleanupNamespaces = map[string]bool{}
+		By(fmt.Sprintf("[Cleanup] waiting for %s:%d test NS cleanup", osmTest, GinkgoRandomSeed()))
+		if td.waitForCleanup {
+			err := wait.Poll(2*time.Second, 240*time.Second,
+				func() (bool, error) {
+					nsList, err := td.client.CoreV1().Namespaces().List(context.TODO(), nsSelector)
+					if err != nil {
+						td.T.Logf("Err waiting for ns list to disappear: %v", err)
+						return false, err
+					}
+					return len(nsList.Items) == 0, nil
+				},
+			)
+			if err != nil {
+				td.T.Logf("Poll err: %v", err)
+			}
+		}
 	}
 
 	// Kind cluster deletion, if needed
