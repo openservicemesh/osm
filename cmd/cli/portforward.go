@@ -33,7 +33,7 @@ func NewPortForwarder(conf *rest.Config, clientSet kubernetes.Interface, podName
 
 	serverURL := clientSet.CoreV1().RESTClient().Post().
 		Resource("pods").
-		Namespace(settings.Namespace()).
+		Namespace(namespace).
 		Name(podName).
 		SubResource("portforward").URL()
 
