@@ -79,7 +79,6 @@ func (s *HTTPServer) Start() {
 				"Error starting HTTP server")
 		}
 	}()
-
 }
 
 // Start runs the Serve operations for the DebugServer http.server on a separate go routine context
