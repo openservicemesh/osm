@@ -40,11 +40,9 @@ func recordCall(ts *httptest.Server, path string) *http.Response {
 
 var _ = Describe("Test httpserver", func() {
 	var (
-		mockCtrl        *gomock.Controller
-		mockProbe       *health.MockProbes
-		testServer      *httptest.Server
-		mockDebugServer *debugger.MockDebugServer
-		testDebug       *httptest.Server
+		mockCtrl   *gomock.Controller
+		mockProbe  *health.MockProbes
+		testServer *httptest.Server
 	)
 	mockCtrl = gomock.NewController(GinkgoT())
 
@@ -53,44 +51,10 @@ var _ = Describe("Test httpserver", func() {
 		testProbes := []health.Probes{mockProbe}
 		metricsStore := metricsstore.NewMetricStore("TBD_NameSpace", "TBD_PodName")
 
-		mockDebugServer = debugger.NewMockDebugServer(mockCtrl)
-		mockDebugServer.EXPECT().GetHandlers().Return(map[string]http.Handler{
-			validRoutePath: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				_, _ = fmt.Fprint(w, responseBody)
-			}),
-		})
-
 		httpServ := NewHTTPServer(testProbes, nil, metricsStore, testPort)
-		debugServ := NewDebugServer(mockDebugServer, testPort)
 		testServer = &httptest.Server{
 			Config: httpServ.server,
 		}
-		testDebug = &httptest.Server{
-			Config: debugServ.server,
-		}
-	})
-
-	It("should return 404 for a non-existent debug url", func() {
-		req := httptest.NewRequest("GET", fmt.Sprintf("%s%s", url, invalidRoutePath), nil)
-
-		w := httptest.NewRecorder()
-		testDebug.Config.Handler.ServeHTTP(w, req)
-
-		resp := w.Result()
-		Expect(resp.StatusCode).To(Equal(http.StatusNotFound))
-	})
-
-	It("should return 200 for an existing debug url - body should match", func() {
-		req := httptest.NewRequest("GET", fmt.Sprintf("%s%s", url, validRoutePath), nil)
-
-		w := httptest.NewRecorder()
-		testDebug.Config.Handler.ServeHTTP(w, req)
-
-		resp := w.Result()
-		bodyBytes, _ := ioutil.ReadAll(resp.Body)
-
-		Expect(resp.StatusCode).To(Equal(http.StatusOK))
-		Expect(string(bodyBytes)).To(Equal(responseBody))
 	})
 
 	It("should result in a successful readiness probe", func() {
@@ -147,5 +111,51 @@ var _ = Describe("Test httpserver", func() {
 
 		resp := w.Result()
 		Expect(resp.StatusCode).To(Equal(http.StatusOK))
+	})
+})
+
+var _ = Describe("Test debugserver", func() {
+	var (
+		mockCtrl        *gomock.Controller
+		mockDebugServer *debugger.MockDebugServer
+		testDebug       *httptest.Server
+	)
+	mockCtrl = gomock.NewController(GinkgoT())
+
+	BeforeEach(func() {
+		mockDebugServer = debugger.NewMockDebugServer(mockCtrl)
+		mockDebugServer.EXPECT().GetHandlers().Return(map[string]http.Handler{
+			validRoutePath: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				_, _ = fmt.Fprint(w, responseBody)
+			}),
+		})
+
+		debugServ := NewDebugHTTPServer(mockDebugServer, testPort)
+		testDebug = &httptest.Server{
+			Config: debugServ.server,
+		}
+	})
+
+	It("should return 404 for a non-existent debug url", func() {
+		req := httptest.NewRequest("GET", fmt.Sprintf("%s%s", url, invalidRoutePath), nil)
+
+		w := httptest.NewRecorder()
+		testDebug.Config.Handler.ServeHTTP(w, req)
+
+		resp := w.Result()
+		Expect(resp.StatusCode).To(Equal(http.StatusNotFound))
+	})
+
+	It("should return 200 for an existing debug url - body should match", func() {
+		req := httptest.NewRequest("GET", fmt.Sprintf("%s%s", url, validRoutePath), nil)
+
+		w := httptest.NewRecorder()
+		testDebug.Config.Handler.ServeHTTP(w, req)
+
+		resp := w.Result()
+		bodyBytes, _ := ioutil.ReadAll(resp.Body)
+
+		Expect(resp.StatusCode).To(Equal(http.StatusOK))
+		Expect(string(bodyBytes)).To(Equal(responseBody))
 	})
 })
