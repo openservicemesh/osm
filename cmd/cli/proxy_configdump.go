@@ -45,7 +45,7 @@ func newProxyDumpConfig(config *action.Configuration, out io.Writer) *cobra.Comm
 	}
 
 	cmd := &cobra.Command{
-		Use:   "dump-config POD ...",
+		Use:   "dump-config POD",
 		Short: "dump proxy config",
 		Long:  dumpConfigDescription,
 		Args:  cobra.ExactArgs(1),
@@ -76,7 +76,7 @@ func newProxyDumpConfig(config *action.Configuration, out io.Writer) *cobra.Comm
 }
 
 func (cmd *proxyDumpConfigCmd) run() error {
-	// Check if the pod belongs to the mesh
+	// Check if the pod belongs to a mesh
 	pod, err := cmd.clientSet.CoreV1().Pods(cmd.namespace).Get(context.TODO(), cmd.pod, metav1.GetOptions{})
 	if err != nil {
 		return errors.Errorf("Could not find pod %s in namespace %s", cmd.pod, cmd.namespace)
