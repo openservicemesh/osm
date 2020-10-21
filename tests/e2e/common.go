@@ -188,7 +188,8 @@ type InstallOSMOpts struct {
 	certmanagerIssuerKind  string
 	certmanagerIssuerName  string
 
-	egressEnabled bool
+	egressEnabled        bool
+	enablePermissiveMode bool
 }
 
 // GetOSMInstallOpts initializes install options for OSM
@@ -261,6 +262,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		"--namespace="+instOpts.controlPlaneNS,
 		"--certificate-manager="+instOpts.certManager,
 		"--enable-egress="+strconv.FormatBool(instOpts.egressEnabled),
+		"--enable-permissive-traffic-policy="+strconv.FormatBool(instOpts.enablePermissiveMode),
 		"--enable-debug-server",
 	)
 
