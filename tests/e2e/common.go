@@ -259,7 +259,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 	args = append(args, "install",
 		"--container-registry="+instOpts.containerRegistryLoc,
 		"--osm-image-tag="+instOpts.osmImagetag,
-		"--namespace="+instOpts.controlPlaneNS,
+		"--osm-namespace="+instOpts.controlPlaneNS,
 		"--certificate-manager="+instOpts.certManager,
 		"--enable-egress="+strconv.FormatBool(instOpts.egressEnabled),
 		"--enable-permissive-traffic-policy="+strconv.FormatBool(instOpts.enablePermissiveMode),
@@ -572,7 +572,6 @@ func (td *OsmTestData) AddNsToMesh(sidecardInject bool, ns ...string) error {
 			args = append(args, "--enable-sidecar-injection")
 		}
 
-		args = append(args, "--namespace="+td.osmNamespace)
 		stdout, stderr, err := td.RunLocal(filepath.FromSlash("../../bin/osm"), args)
 		if err != nil {
 			td.T.Logf("error running osm namespace add")

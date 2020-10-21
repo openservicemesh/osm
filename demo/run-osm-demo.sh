@@ -112,7 +112,7 @@ echo "Certificate Manager in use: $CERT_MANAGER"
 if [ "$CERT_MANAGER" = "vault" ]; then
   # shellcheck disable=SC2086
   bin/osm install \
-      --namespace "$K8S_NAMESPACE" \
+      --osm-namespace "$K8S_NAMESPACE" \
       --mesh-name "$MESH_NAME" \
       --certificate-manager="$CERT_MANAGER" \
       --vault-host="$VAULT_HOST" \
@@ -130,7 +130,7 @@ if [ "$CERT_MANAGER" = "vault" ]; then
 else
   # shellcheck disable=SC2086
   bin/osm install \
-      --namespace "$K8S_NAMESPACE" \
+      --osm-namespace "$K8S_NAMESPACE" \
       --mesh-name "$MESH_NAME" \
       --certificate-manager="$CERT_MANAGER" \
       --container-registry "$CTR_REGISTRY" \
