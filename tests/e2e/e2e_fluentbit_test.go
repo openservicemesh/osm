@@ -34,8 +34,11 @@ var _ = Describe("Test deployment of Fluent Bit sidecar", func() {
 				}
 			}
 			Expect(cond).To(BeTrue())
-			td.DeleteNs(td.osmNamespace)
-			td.WaitForNamespacesDeleted([]string{td.osmNamespace}, 60*time.Second)
+
+			err = td.DeleteNs(td.osmNamespace)
+			Expect(err).NotTo(HaveOccurred())
+			err = td.WaitForNamespacesDeleted([]string{td.osmNamespace}, 60*time.Second)
+			Expect(err).NotTo(HaveOccurred())
 
 			// Install OSM without Fluentbit (default)
 			installOpts = td.GetOSMInstallOpts()
