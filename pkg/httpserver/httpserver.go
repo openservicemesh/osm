@@ -90,7 +90,6 @@ func (d *DebugServer) Start() {
 				"Error starting Debug server")
 		}
 	}()
-
 }
 
 // Stop halts the http.server
