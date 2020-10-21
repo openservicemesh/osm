@@ -820,7 +820,26 @@ func (td *OsmTestData) Cleanup(ct CleanupType) {
 		}
 
 		for _, ns := range testNs.Items {
-			err := td.DeleteNs(ns.Name)
+			// Delete Helm releases created in the namespace
+			helm := &action.Configuration{}
+			if err := helm.Init(td.env.RESTClientGetter(), ns.Name, "secret", td.T.Logf); err != nil {
+				td.T.Logf("WARNING: failed to initialize helm config, skipping helm cleanup: %v", err)
+			} else {
+				list := action.NewList(helm)
+				list.All = true
+				if releases, err := list.Run(); err != nil {
+					td.T.Logf("WARNING: failed to list helm releases in namespace %s, skipping release cleanup: %v", ns.Name, err)
+				} else {
+					del := action.NewUninstall(helm)
+					for _, release := range releases {
+						if _, err := del.Run(release.Name); err != nil {
+							td.T.Logf("WARNING: failed to delete helm release %s in namespace %s: %v", release.Name, ns.Name, err)
+						}
+					}
+				}
+			}
+
+			err = td.DeleteNs(ns.Name)
 			if err != nil {
 				td.T.Logf("Err deleting ns %s: %v", ns.Name, err)
 				continue
