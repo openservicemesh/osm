@@ -27,11 +27,6 @@ type HTTPServer struct {
 	server *http.Server
 }
 
-// DebugServer is the object wrapper for OSM's HTTP server class
-type DebugServer struct {
-	server *http.Server
-}
-
 // NewHealthMux makes a new *http.ServeMux
 func NewHealthMux(handlers map[string]http.Handler) *http.ServeMux {
 	router := http.NewServeMux()
@@ -59,16 +54,6 @@ func NewHTTPServer(probes []health.Probes, httpProbes []health.HTTPProbe, metric
 	}
 }
 
-// NewDebugHTTPServer creates a new API Server for Debug
-func NewDebugHTTPServer(debugServer debugger.DebugServer, apiPort int32) *DebugServer {
-	return &DebugServer{
-		server: &http.Server{
-			Addr:    fmt.Sprintf(":%d", apiPort),
-			Handler: NewHealthMux(debugServer.GetHandlers()),
-		},
-	}
-}
-
 // Start runs the Serve operations for the http.server on a separate go routine context
 func (s *HTTPServer) Start() {
 	go func() {
@@ -78,19 +63,6 @@ func (s *HTTPServer) Start() {
 				"Error starting HTTP server")
 		}
 	}()
-
-}
-
-// Start runs the Serve operations for the DebugServer http.server on a separate go routine context
-func (d *DebugServer) Start() {
-	go func() {
-		log.Info().Msgf("Starting Debug Server on %s", d.server.Addr)
-		if err := d.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			events.GenericEventRecorder().FatalEvent(err, events.InitializationError,
-				"Error starting Debug server")
-		}
-	}()
-
 }
 
 // Stop halts the http.server
@@ -99,17 +71,6 @@ func (s *HTTPServer) Stop() error {
 	defer cancel()
 	if err := s.server.Shutdown(ctx); err != nil {
 		log.Error().Err(err).Msg("Unable to shutdown API server gracefully")
-		return err
-	}
-	return nil
-}
-
-//Stop halts the DebugServer http.server
-func (d *DebugServer) Stop() error {
-	ctx, cancel := context.WithTimeout(context.Background(), contextTimeoutDuration)
-	defer cancel()
-	if err := d.server.Shutdown(ctx); err != nil {
-		log.Error().Err(err).Msg("Unable to shutdown Debug server gracefully")
 		return err
 	}
 	return nil
