@@ -74,13 +74,13 @@ spec:
                 fieldRef:
                   fieldPath: metadata.name
       {{- if .Values.OpenServiceMesh.enableFluentbit}}
-        - name: fluentbit-logger
-          image: fluent/fluent-bit:1.5
-          imagePullPolicy: Always
+        - name: {{ .Values.OpenServiceMesh.fluentBitImage.name }}
+          image: {{ .Values.OpenServiceMesh.fluentBitImage.registry }}/fluent-bit:{{ .Values.OpenServiceMesh.fluentBitImage.tag }}
+          imagePullPolicy: {{ .Values.OpenServiceMesh.fluentBitImage.pullPolicy }}
           volumeMounts:
           - name: config
             mountPath: /fluent-bit/etc
-            readOnly: true 
+            readOnly: true
           - name: var-log-containers
             mountPath: /var/log/containers
             readOnly: true

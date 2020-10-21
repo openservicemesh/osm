@@ -212,7 +212,7 @@ OSM Service to Service Metrics dashboard will look like:
 OSM provides log forwarding by optionally deploying a Fluent Bit sidecar to the OSM controller using the `--enable-fluentbit` flag during installation. The user can then define where OSM logs should be forwarded using any of the available [Fluent Bit output plugins](https://docs.fluentbit.io/manual/v/1.4/pipeline/outputs).
 
 ## Configuring Log Forwarding with Fluent Bit
-1. By default, the Fluent Bit sidecar is configured to simply forward logs to an the Fluent Bit container's stdout. Define the output plugin you would like to forward your logs to in the existing `fluentbit-configmap.yaml` file. For example, to forward logs to Azure Monitor, you can use the Azure Log Analytics output plugin by changing the `[OUTPUT]` section as follows:
+1. By default, the Fluent Bit sidecar is configured to simply forward logs to the Fluent Bit container's stdout. Define the output plugin you would like to forward your logs to in the existing `fluentbit-configmap.yaml` file. For example, to forward logs to Azure Monitor, you can use the Azure Log Analytics output plugin by changing the `[OUTPUT]` section as follows:
    ```
    [OUTPUT]
          Name        azure

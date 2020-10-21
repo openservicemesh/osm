@@ -35,6 +35,11 @@ OpenServiceMesh:
   enablePrometheus: true
   enableGrafana: false
   enableFluentbit: false
+  fluentBitImage:
+    name: fluentbit-logger
+    registry: fluent
+    tag: 1.5
+    pullPolicy: IfNotPresent
   meshName: osm
   useHTTPSIngress: false
   envoyLogLevel: error
