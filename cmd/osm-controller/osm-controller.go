@@ -220,22 +220,28 @@ func main() {
 	debugImpl := debugger.NewDebugImpl(certDebugger, xdsServer, meshCatalog, kubeConfig, kubeClient, cfg, kubernetesClient)
 	debugServer := httpserver.NewDebugHTTPServer(debugImpl, constants.DebugPort)
 
-	go configureDebugServer(debugServer, debugImpl, debugServerRunning, cfg)
+	errCh := make(chan error)
+	go configureDebugServer(debugServer, debugImpl, debugServerRunning, cfg, errCh)
 
-	// Wait for exit handler signal
-	<-stop
+	select {
+	case err := <-errCh:
+		log.Error().Err(err).Msg("Unable to configure debug server")
+
+		// Wait for exit handler signal
+	case <-stop:
+	}
 
 	log.Info().Msg("Goodbye!")
 }
 
-func configureDebugServer(debugServer *httpserver.DebugServer, debugImpl debugger.DebugServer, debugServerRunning bool, cfg configurator.Configurator) error {
-	var err error = nil
+func configureDebugServer(debugServer *httpserver.DebugServer, debugImpl debugger.DebugServer, debugServerRunning bool, cfg configurator.Configurator, errCh chan error) {
 	for range cfg.GetAnnouncementsChannel() {
 		if debugServerRunning && !cfg.IsDebugServerEnabled() {
 			debugServerRunning = false
-			err = debugServer.Stop()
+			err := debugServer.Stop()
 			if err != nil {
 				log.Error().Err(err).Msg("Unable to stop debug server")
+				errCh <- err
 			}
 		}
 		if !debugServerRunning && cfg.IsDebugServerEnabled() {
@@ -244,7 +250,6 @@ func configureDebugServer(debugServer *httpserver.DebugServer, debugImpl debugge
 			debugServer.Start()
 		}
 	}
-	return err
 }
 
 func getHTTPHealthProbes() []health.HTTPProbe {

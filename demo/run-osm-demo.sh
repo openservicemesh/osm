@@ -27,6 +27,7 @@ CTR_REGISTRY_CREDS_NAME="${CTR_REGISTRY_CREDS_NAME:-acr-creds}"
 DEPLOY_TRAFFIC_SPLIT="${DEPLOY_TRAFFIC_SPLIT:-true}"
 CTR_TAG="${CTR_TAG:-$(git rev-parse HEAD)}"
 IMAGE_PULL_POLICY="${IMAGE_PULL_POLICY:-Always}"
+ENABLE_DEBUG_SERVER="${ENABLE_DEBUG_SERVER:-true}"
 ENABLE_EGRESS="${ENABLE_EGRESS:-false}"
 ENABLE_GRAFANA="${ENABLE_GRAFANA:-false}"
 DEPLOY_WITH_SAME_SA="${DEPLOY_WITH_SAME_SA:-false}"
@@ -122,7 +123,7 @@ if [ "$CERT_MANAGER" = "vault" ]; then
       --container-registry-secret "$CTR_REGISTRY_CREDS_NAME" \
       --osm-image-tag "$CTR_TAG" \
       --osm-image-pull-policy "$IMAGE_PULL_POLICY" \
-      --enable-debug-server \
+      --enable-debug-server="$ENABLE_DEBUG_SERVER" \
       --enable-egress="$ENABLE_EGRESS" \
       --enable-grafana="$ENABLE_GRAFANA" \
       --envoy-log-level "$ENVOY_LOG_LEVEL" \
@@ -137,7 +138,7 @@ else
       --container-registry-secret "$CTR_REGISTRY_CREDS_NAME" \
       --osm-image-tag "$CTR_TAG" \
       --osm-image-pull-policy "$IMAGE_PULL_POLICY" \
-      --enable-debug-server \
+      --enable-debug-server="$ENABLE_DEBUG_SERVER"\
       --enable-egress="$ENABLE_EGRESS" \
       --enable-grafana="$ENABLE_GRAFANA" \
       --envoy-log-level "$ENVOY_LOG_LEVEL" \
