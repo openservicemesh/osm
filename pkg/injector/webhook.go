@@ -77,15 +77,10 @@ func NewWebhook(config Config, kubeClient kubernetes.Interface, certManager cert
 
 	// Start the MutatingWebhook web server
 	go wh.run(stop)
-<<<<<<< HEAD
 
 	// Update the MutatingWebhookConfig with the OSM CA bundle
 	if err = updateMutatingWebhookCABundle(cert, webhookConfigName, wh.kubeClient); err != nil {
-		return errors.Errorf("Error configuring MutatingWebhookConfiguration: %+v", err)
-=======
-	if err = patchMutatingWebhookConfiguration(cert, webhookConfigName, wh.kubeClient); err != nil {
 		return errors.Errorf("Error configuring MutatingWebhookConfiguration %s: %+v", webhookConfigName, err)
->>>>>>> injector: Augment log messages with admission request details
 	}
 	return nil
 }
@@ -144,7 +139,6 @@ func healthHandler(w http.ResponseWriter, _ *http.Request) {
 func (wh *webhook) mutateHandler(w http.ResponseWriter, req *http.Request) {
 	log.Trace().Msgf("Received mutating webhook request: Method=%v, URL=%v", req.Method, req.URL)
 
-<<<<<<< HEAD
 	// For debug/profiling purposes
 	if log.GetLevel() == zerolog.DebugLevel {
 		// Read timeout from request
@@ -156,16 +150,10 @@ func (wh *webhook) mutateHandler(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	if contentType := req.Header.Get("Content-Type"); contentType != "application/json" {
-		errmsg := fmt.Sprintf("Invalid Content-Type: %q", contentType)
-		http.Error(w, errmsg, http.StatusUnsupportedMediaType)
-		log.Error().Msgf("Request error: error=%s, code=%v", errmsg, http.StatusUnsupportedMediaType)
-=======
 	if contentType := req.Header.Get("Content-Type"); contentType != contentTypeJSON {
 		err := errors.Errorf("Invalid content type: %s; Expected %s", contentType, contentTypeJSON)
 		http.Error(w, err.Error(), http.StatusUnsupportedMediaType)
 		log.Error().Err(err).Msgf("Responded to admission request with HTTP %v", http.StatusUnsupportedMediaType)
->>>>>>> injector: Augment log messages with admission request details
 		return
 	}
 
@@ -187,30 +175,32 @@ func (wh *webhook) mutateHandler(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	proxyUUID := uuid.New().String()
+
 	var admissionReq v1beta1.AdmissionReview
 	var admissionResp v1beta1.AdmissionReview
 	if _, _, err := deserializer.Decode(admissionRequestBody, nil, &admissionReq); err != nil {
-		log.Error().Err(err).Msgf("Error decoding admission request body: %s", string(admissionRequestBody))
+		log.Error().Err(err).Msg("Error decoding admission request body")
 		admissionResp.Response = admissionError(err)
 	} else {
-		admissionResp.Response = wh.mutate(admissionReq.Request)
+		admissionResp.Response = wh.mutate(admissionReq.Request, proxyUUID)
 	}
 
 	resp, err := json.Marshal(&admissionResp)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error marshalling admission response: %s", err), http.StatusInternalServerError)
-		log.Error().Err(err).Msgf("Responded to admission request for pod %s/%s with HTTP %v", admissionReq.Request.Namespace, admissionReq.Request.Name, http.StatusInternalServerError)
+		log.Error().Err(err).Msgf("Responded to admission request for pod with UUID %s in namespace %s with HTTP %v", proxyUUID, admissionReq.Request.Namespace, http.StatusInternalServerError)
 		return
 	}
 
 	if _, err := w.Write(resp); err != nil {
-		log.Error().Err(err).Msgf("Error writing admission response for pod %s/%s", admissionReq.Request.Namespace, admissionReq.Request.Name)
+		log.Error().Err(err).Msgf("Error writing admission response for pod with UUID %s in namespace %s", proxyUUID, admissionReq.Request.Namespace)
 	}
 
-	log.Trace().Msgf("Done responding to admission request for %s/%s", admissionReq.Request.Namespace, admissionReq.Request.Name)
+	log.Trace().Msgf("Done responding to admission request for pod with UUID %s in namespace %s", proxyUUID, admissionReq.Request.Namespace)
 }
 
-func (wh *webhook) mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
+func (wh *webhook) mutate(req *v1beta1.AdmissionRequest, proxyUUID string) *v1beta1.AdmissionResponse {
 	if req == nil {
 		log.Error().Msg("nil admission Request")
 		return admissionError(errNilAdmissionRequest)
@@ -219,10 +209,10 @@ func (wh *webhook) mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespo
 	// Decode the Pod spec from the request
 	var pod corev1.Pod
 	if err := json.Unmarshal(req.Object.Raw, &pod); err != nil {
-		log.Error().Err(err).Msgf("Error unmarshaling request to pod %s/%s", req.Name, req.Namespace)
+		log.Error().Err(err).Msgf("Error unmarshaling request to pod with UUID %s in namespace %s", proxyUUID, req.Namespace)
 		return admissionError(err)
 	}
-	log.Info().Msgf("Mutation request: (new object: %v) (old object: %v)", string(req.Object.Raw), string(req.OldObject.Raw))
+	log.Trace().Msgf("Mutation request: (new object: %v) (old object: %v)", string(req.Object.Raw), string(req.OldObject.Raw))
 
 	// Start building the response
 	resp := &v1beta1.AdmissionResponse{
@@ -232,10 +222,10 @@ func (wh *webhook) mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespo
 
 	// Check if we must inject the sidecar
 	if inject, err := wh.mustInject(&pod, req.Namespace); err != nil {
-		log.Error().Err(err).Msgf("Error checking if sidecar must be injected for pod %s/%s", req.Namespace, pod.Name)
+		log.Error().Err(err).Msgf("Error checking if sidecar must be injected for pod with UUID %s in namespace %s", proxyUUID, req.Namespace)
 		return admissionError(err)
 	} else if !inject {
-		log.Trace().Msgf("Skipping sidecar injection for pod %s/%s", req.Namespace, pod.Name)
+		log.Trace().Msgf("Skipping sidecar injection for pod with UUID %s in namespace %s", proxyUUID, req.Namespace)
 		return resp
 	}
 
@@ -243,14 +233,15 @@ func (wh *webhook) mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespo
 	// We use req.Namespace because pod.Namespace is "" at this point
 	// This string uniquely identifies the pod. Ideally this would be the pod.UID, but this is not available at this point.
 	proxyUUID := uuid.New()
+
 	patchBytes, err := wh.createPatch(&pod, req.Namespace, proxyUUID)
 	if err != nil {
-		log.Error().Err(err).Msgf("Failed to create patch for pod %s/%s", req.Namespace, pod.Name)
+		log.Error().Err(err).Msgf("Failed to create patch for pod with UUID %s in namespace %s", proxyUUID, req.Namespace)
 		return admissionError(err)
 	}
 
 	patchAdmissionResponse(resp, patchBytes)
-	log.Trace().Msgf("Done creating patch admission response for pod %s/%s", req.Namespace, pod.Name)
+	log.Trace().Msgf("Done creating patch admission response for pod with UUID %s in namespace %s", proxyUUID, req.Namespace)
 	return resp
 }
 
@@ -278,7 +269,7 @@ func (wh *webhook) isNamespaceInjectable(namespace string) bool {
 // The function returns an error when it is unable to determine whether to perform sidecar injection.
 func (wh *webhook) mustInject(pod *corev1.Pod, namespace string) (bool, error) {
 	if !wh.isNamespaceInjectable(namespace) {
-		log.Warn().Msgf("Request is for pod %s/%s; Injection in namespace %s is not permitted", namespace, pod.Name, namespace)
+		log.Warn().Msgf("Request is for pod with UUID %s in namespace %s; Injection in namespace %s is not permitted", namespace, pod.Name, namespace)
 		return false, nil
 	}
 
@@ -327,11 +318,7 @@ func isAnnotatedForInjection(annotations map[string]string) (exists bool, enable
 		case "disabled", "no", "false":
 			enabled = false
 		default:
-<<<<<<< HEAD
-			err = errors.Errorf("Invalid annotation value specified for annotation %q: %s", constants.SidecarInjectionAnnotation, inject)
-=======
 			err = errors.Errorf("Invalid annotation value for key %q: %s", constants.SidecarInjectionAnnotation, inject)
->>>>>>> injector: Augment log messages with admission request details
 		}
 	}
 	return
@@ -351,17 +338,9 @@ func patchAdmissionResponse(resp *v1beta1.AdmissionResponse, patchBytes []byte) 
 	resp.PatchType = &pt
 }
 
-<<<<<<< HEAD
 // getPartialMutatingWebhookConfiguration returns only the portion of the MutatingWebhookConfiguration that needs to be updated.
 func getPartialMutatingWebhookConfiguration(cert certificate.Certificater, webhookConfigName string) admissionv1beta1.MutatingWebhookConfiguration {
 	return admissionv1beta1.MutatingWebhookConfiguration{
-=======
-func patchMutatingWebhookConfiguration(cert certificate.Certificater, webhookConfigName string, clientSet kubernetes.Interface) error {
-	if err := hookExists(clientSet, webhookConfigName); err != nil {
-		log.Error().Err(err).Msgf("Error getting MutatingWebhookConfiguration %s", webhookConfigName)
-	}
-	updatedWH := admissionv1beta1.MutatingWebhookConfiguration{
->>>>>>> injector: Augment log messages with admission request details
 		ObjectMeta: metav1.ObjectMeta{
 			Name: webhookConfigName,
 		},
@@ -394,11 +373,7 @@ func updateMutatingWebhookCABundle(cert certificate.Certificater, webhookName st
 		return err
 	}
 
-<<<<<<< HEAD
 	log.Info().Msgf("Finished updating CA Bundle for MutatingWebhookConfiguration %s", webhookName)
-=======
-	log.Info().Msgf("Successfully configured MutatingWebhookConfiguration %s", webhookConfigName)
->>>>>>> injector: Augment log messages with admission request details
 	return nil
 }
 
