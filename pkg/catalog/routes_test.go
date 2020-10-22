@@ -31,7 +31,7 @@ func TestListTrafficPolicies(t *testing.T) {
 		},
 		{
 			input:  tests.BookbuyerService,
-			output: []trafficpolicy.TrafficTarget{tests.BookstoreV1TrafficPolicy, tests.BookstoreV2TrafficPolicy, tests.BookstoreApexTrafficPolicy},
+			output: []trafficpolicy.TrafficTarget{tests.BookstoreV1TrafficPolicy, tests.BookstoreV2TrafficPolicy, tests.BookstoreV3TrafficPolicy},
 		},
 	}
 
@@ -68,11 +68,11 @@ func TestGetTrafficPoliciesForService(t *testing.T) {
 					Source:      tests.BookbuyerService,
 					HTTPRoutes:  tests.BookstoreV2TrafficPolicy.HTTPRoutes,
 				},
-				hashSrcDstService(tests.BookbuyerService, tests.BookstoreApexService): {
-					Name:        utils.GetTrafficTargetName(tests.BookstoreTrafficTargetName, tests.BookbuyerService, tests.BookstoreApexService),
-					Destination: tests.BookstoreApexService,
+				hashSrcDstService(tests.BookbuyerService, tests.BookstoreV3Service): {
+					Name:        utils.GetTrafficTargetName(tests.BookstoreTrafficTargetName, tests.BookbuyerService, tests.BookstoreV3Service),
+					Destination: tests.BookstoreV3Service,
 					Source:      tests.BookbuyerService,
-					HTTPRoutes:  tests.BookstoreApexTrafficPolicy.HTTPRoutes,
+					HTTPRoutes:  tests.BookstoreV3TrafficPolicy.HTTPRoutes,
 				},
 			},
 		},
@@ -179,7 +179,7 @@ func TestListAllowedOutboundServices(t *testing.T) {
 	actualList, err := mc.ListAllowedOutboundServices(tests.BookbuyerService)
 	assert.Nil(err)
 
-	expectedList := []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service, tests.BookstoreApexService}
+	expectedList := []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service, tests.BookstoreV3Service}
 	assert.ElementsMatch(actualList, expectedList)
 }
 
@@ -296,7 +296,7 @@ func TestListTrafficTargetPermutations(t *testing.T) {
 
 	mc := newFakeMeshCatalog()
 
-	trafficTargets, err := mc.listTrafficTargetPermutations(tests.TrafficTarget, tests.TrafficTarget.Spec.Sources[0], tests.TrafficTarget.Spec.Destination)
+	trafficTargets, err := mc.listTrafficTargetPermutations(tests.BookstoreTrafficTarget, tests.BookstoreTrafficTarget.Spec.Sources[0], tests.BookstoreTrafficTarget.Spec.Destination)
 	assert.Nil(err)
 
 	var actualTargetNames []string
@@ -305,9 +305,8 @@ func TestListTrafficTargetPermutations(t *testing.T) {
 	}
 
 	expected := []string{
-		utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreV1Service),
-		utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreV2Service),
-		utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreApexService),
+		utils.GetTrafficTargetName(tests.BookstoreTrafficTargetName, tests.BookbuyerService, tests.BookstoreV1Service),
+		utils.GetTrafficTargetName(tests.BookstoreTrafficTargetName, tests.BookbuyerService, tests.BookstoreV3Service),
 	}
 	assert.ElementsMatch(actualTargetNames, expected)
 }
@@ -376,7 +375,7 @@ func TestGetWeightedBackendsForService(t *testing.T) {
 	getWeightedBackendsForServiceTests := []getWeightedBackendsForServiceTest{
 		{
 			input:  tests.BookstoreApexService,
-			output: []service.WeightedService{tests.BookstoreV1WeightedService, tests.BookstoreV2WeightedService},
+			output: []service.WeightedService{tests.BookstoreV1WeightedService, tests.BookstoreV2WeightedService, tests.BookstoreV3WeightedService},
 		},
 		{
 			input: tests.BookbuyerService,

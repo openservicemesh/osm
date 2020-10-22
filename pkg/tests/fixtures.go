@@ -31,6 +31,9 @@ const (
 	// BookstoreV2ServiceName is the name of the bookstore-v2 service.
 	BookstoreV2ServiceName = "bookstore-v2"
 
+	// BookstoreV3ServiceName is the name of the bookstore-v3 service.
+	BookstoreV3ServiceName = "bookstore-v3"
+
 	// BookstoreApexServiceName that have been is the name of the bookstore service, which is then split into other services.
 	BookstoreApexServiceName = "bookstore-apex"
 
@@ -70,6 +73,9 @@ const (
 	// Weight10 is the value representing a share of the traffic to be sent this way in a traffic split scenario.
 	Weight10 = 10
 
+	// Weight50 is the value representing a share of the traffic to be sent this way in a traffic split scenario.
+	Weight50 = 50
+
 	// RouteGroupName is the name of the route group SMI object.
 	RouteGroupName = "bookstore-service-routes"
 
@@ -105,10 +111,16 @@ var (
 		Name:      BookstoreV1ServiceName,
 	}
 
-	// BookstoreV2Service is the bookstore service.
+	// BookstoreV2Service is the bookstore-v2 service.
 	BookstoreV2Service = service.MeshService{
 		Namespace: Namespace,
 		Name:      BookstoreV2ServiceName,
+	}
+
+	// BookstoreV3Service is the bookstore-v3 service.
+	BookstoreV3Service = service.MeshService{
+		Namespace: Namespace,
+		Name:      BookstoreV3ServiceName,
 	}
 
 	// BookbuyerService is the bookbuyer service.
@@ -192,6 +204,29 @@ var (
 		},
 	}
 
+	// BookstoreV3TrafficPolicy is a traffic policy SMI object.
+	BookstoreV3TrafficPolicy = trafficpolicy.TrafficTarget{
+		Name:        fmt.Sprintf("%s:default/bookbuyer->default/bookstore-v3", BookstoreTrafficTargetName),
+		Destination: BookstoreV3Service,
+		Source:      BookbuyerService,
+		HTTPRoutes: []trafficpolicy.HTTPRoute{
+			{
+				PathRegex: BookstoreBuyPath,
+				Methods:   []string{"GET"},
+				Headers: map[string]string{
+					"user-agent": HTTPUserAgent,
+				},
+			},
+			{
+				PathRegex: BookstoreSellPath,
+				Methods:   []string{"GET"},
+				Headers: map[string]string{
+					"user-agent": HTTPUserAgent,
+				},
+			},
+		},
+	}
+
 	// BookstoreApexTrafficPolicy is a traffic policy SMI object.
 	BookstoreApexTrafficPolicy = trafficpolicy.TrafficTarget{
 		Name:        fmt.Sprintf("%s:default/bookbuyer->default/bookstore-apex", BookstoreTrafficTargetName),
@@ -230,6 +265,10 @@ var (
 				{
 					Service: BookstoreV2ServiceName,
 					Weight:  Weight10,
+				},
+				{
+					Service: BookstoreV3ServiceName,
+					Weight:  Weight50,
 				},
 			},
 		},
@@ -336,6 +375,16 @@ var (
 			Name:      BookstoreV2ServiceName,
 		},
 		Weight:      Weight10,
+		RootService: BookstoreApexServiceName,
+	}
+
+	// BookstoreV3WeightedService is a service with a weight used for traffic split.
+	BookstoreV3WeightedService = service.WeightedService{
+		Service: service.MeshService{
+			Namespace: Namespace,
+			Name:      BookstoreV3ServiceName,
+		},
+		Weight:      Weight50,
 		RootService: BookstoreApexServiceName,
 	}
 
