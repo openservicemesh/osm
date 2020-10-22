@@ -11,7 +11,6 @@
             "type": "object",
             "title": "The OpenServiceMesh schema",
             "description": "The top level required key in the values file.",
-            "default": {},
             "required": [
                 "replicaCount",
                 "image",
@@ -38,7 +37,6 @@
                     "type": "integer",
                     "title": "The replicaCount schema",
                     "description": "The number of replicas of the osm-controller Pod.",
-                    "default": 1,
                     "examples": [
                         1
                     ]
@@ -48,7 +46,6 @@
                     "type": "object",
                     "title": "The image schema",
                     "description": "The details of the images to run.",
-                    "default": {},
                     "examples": [
                         {
                             "registry": "openservicemesh",
@@ -67,7 +64,6 @@
                             "type": "string",
                             "title": "The registry schema",
                             "description": "The registry of the images to run.",
-                            "default": "openservicemesh",
                             "examples": [
                                 "openservicemesh"
                             ]
@@ -77,7 +73,6 @@
                             "type": "string",
                             "title": "The pullPolicy schema",
                             "description": "The image pull policy.",
-                            "default": "IfNotPresent",
                             "pattern": "^(Always|Never|IfNotPresent)$",
                             "examples": [
                                 "IfNotPresent"
@@ -88,7 +83,6 @@
                             "type": "string",
                             "title": "The tag schema",
                             "description": "The image tag to run.",
-                            "default": "",
                             "examples": [
                                 "v0.4.2"
                             ]
@@ -101,7 +95,6 @@
                     "type": "string",
                     "title": "The sidecarImage schema",
                     "description": "The proxy side car image to run.",
-                    "default": "",
                     "examples": [
                         "envoyproxy/envoy-alpine:v1.15.0"
                     ]
@@ -111,7 +104,6 @@
                     "type": "string",
                     "title": "The certificateManager schema",
                     "description": "The certificate manager osm-controller should use.",
-                    "default": "",
                     "pattern": "^(tresor|vault|cert-manager)$",
                     "examples": [
                         "tresor"
@@ -122,7 +114,6 @@
                     "type": "string",
                     "title": "The serviceCertValidityDuration schema",
                     "description": "The service certificate validity duration.",
-                    "default": "24h",
                     "examples": [
                         "24h"
                     ]
@@ -132,7 +123,6 @@
                     "type": "string",
                     "title": "The caBundleSecretName schema",
                     "description": "An explanation about the purpose of this instance.",
-                    "default": "osm-ca-bundle",
                     "examples": [
                         "osm-ca-bundle"
                     ]
@@ -142,7 +132,6 @@
                     "type": "boolean",
                     "title": "The enableDebugServer schema",
                     "description": "Indicates whether the Debug Server should be enabled or not.",
-                    "default": false,
                     "examples": [
                         false
                     ]
@@ -152,7 +141,6 @@
                     "type": "boolean",
                     "title": "The enablePermissiveTrafficPolicy schema",
                     "description": "Indicates whether permissive traffic policy should be enabled or not.",
-                    "default": false,
                     "examples": [
                         false
                     ]
@@ -162,7 +150,6 @@
                     "type": "boolean",
                     "title": "The enableBackpressureExperimental schema",
                     "description": "Indicates whether the experimental backpressure policy should be enabled or not.",
-                    "default": false,
                     "examples": [
                         false
                     ]
@@ -172,7 +159,6 @@
                     "type": "boolean",
                     "title": "The enableEgress schema",
                     "description": "Indicates whether egress should be enabled or not.",
-                    "default": false,
                     "examples": [
                         false
                     ]
@@ -182,7 +168,6 @@
                     "type": "boolean",
                     "title": "The enablePrometheus schema",
                     "description": "Indicates whether Prometheus should be installed and configured as part of the osm control plane.",
-                    "default": false,
                     "examples": [
                         true
                     ]
@@ -192,7 +177,6 @@
                     "type": "boolean",
                     "title": "The enableGrafana schema",
                     "description": "Indicates whether Grafana should be installed and configured as part of the osm control plane.",
-                    "default": false,
                     "examples": [
                         false
                     ]
@@ -202,7 +186,6 @@
                     "type": "string",
                     "title": "The meshName schema",
                     "description": "The name associated with the control plane being installed.",
-                    "default": "",
                     "examples": [
                         "osm"
                     ]
@@ -212,7 +195,6 @@
                     "type": "boolean",
                     "title": "The useHTTPSIngress schema",
                     "description": "Indicates whether HTTPS Ingress should be enabled or not.",
-                    "default": false,
                     "examples": [
                         false
                     ]
@@ -222,7 +204,7 @@
                     "type": "string",
                     "title": "The envoyLogLevel schema",
                     "description": "Envoy log level.",
-                    "default": "error",
+                    "pattern": "^(trace|debug|info|warning|warn|error|critical|off)$",
                     "examples": [
                         "error"
                     ]
@@ -232,7 +214,6 @@
                     "type": "boolean",
                     "title": "The enforceSingleMesh schema",
                     "description": "Enforce only running a single control plane within a cluster.",
-                    "default": false,
                     "examples": [
                         false
                     ]
@@ -242,7 +223,6 @@
                     "type": "boolean",
                     "title": "The deployJaeger schema",
                     "description": "Indicates whether Jaeger should be installed and configured as part of the control plane.",
-                    "default": false,
                     "examples": [
                         true
                     ]
@@ -252,7 +232,6 @@
                     "type": "object",
                     "title": "The tracing schema",
                     "description": "An explanation about the purpose of this instance.",
-                    "default": {},
                     "examples": [
                         {
                             "enable": true
@@ -267,7 +246,6 @@
                             "type": "boolean",
                             "title": "The enable schema",
                             "description": "Indicates whether tracing is enabled or not.",
-                            "default": false,
                             "examples": [
                                 true
                             ]
