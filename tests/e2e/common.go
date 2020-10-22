@@ -249,10 +249,10 @@ func (td *OsmTestData) GetOSMInstallOpts() InstallOSMOpts {
 		containerRegistryLoc:    td.ctrRegistryServer,
 		containerRegistrySecret: td.ctrRegistryPassword,
 		osmImagetag:             td.osmImageTag,
-		deployGrafana:           false,
-		deployPrometheus:        false,
-		deployJaeger:            false,
-		deployFluentbit:         false,
+		deployGrafana:           defaultDeployGrafana,
+		deployPrometheus:        defaultDeployPrometheus,
+		deployJaeger:            defaultDeployJaeger,
+		deployFluentbit:         defaultDeployFluentbit,
 
 		vaultHost:     "vault." + td.osmNamespace + ".svc.cluster.local",
 		vaultProtocol: "http",
@@ -298,10 +298,10 @@ func (td *OsmTestData) DeleteHelmRelease(name, namespace string) error {
 func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 	if td.instType == NoInstall {
 		if instOpts.certManager != defaultCertManager ||
-			instOpts.deployPrometheus != defaultDeployPrometheus ||
-			instOpts.deployGrafana != defaultDeployGrafana ||
-			instOpts.deployJaeger != defaultDeployJaeger ||
-			instOpts.deployFluentbit != defaultDeployFluentbit {
+			instOpts.deployPrometheus ||
+			instOpts.deployGrafana ||
+			instOpts.deployJaeger ||
+			instOpts.deployFluentbit {
 			Skip("Skipping test: NoInstall marked on a test that requires modified install")
 		}
 
