@@ -30,10 +30,8 @@ import (
 )
 
 var _ = Describe("Test MutatingWebhookConfiguration patch", func() {
-	Context("find and patches webhook", func() {
+	Context("find and patches the mutating webhook and updates the CABundle", func() {
 		cert := mockCertificate{}
-		meshName := "--meshName--"
-		osmNamespace := "--namespace--"
 		webhookName := "--webhookName--"
 		//TODO:seed a test webhook
 		testWebhookServiceNamespace := "test-namespace"
@@ -62,18 +60,21 @@ var _ = Describe("Test MutatingWebhookConfiguration patch", func() {
 			},
 		})
 
+		mwc := kubeClient.AdmissionregistrationV1beta1().MutatingWebhookConfigurations()
+
 		It("checks if the hook exists", func() {
-			err := hookExists(kubeClient, webhookName)
+			err := webhookExists(mwc, webhookName)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("checks if a non existent hook exists", func() {
-			err := hookExists(kubeClient, webhookName+"blah")
+
+			err := webhookExists(mwc, webhookName+"blah")
 			Expect(err).To(HaveOccurred())
 		})
 
 		It("patches a webhook", func() {
-			err := patchMutatingWebhookConfiguration(cert, meshName, osmNamespace, webhookName, kubeClient)
+			err := updateMutatingWebhookCABundle(cert, webhookName, kubeClient)
 			Expect(err).ToNot(HaveOccurred())
 
 		})
@@ -90,13 +91,6 @@ var _ = Describe("Test MutatingWebhookConfiguration patch", func() {
 			Expect(webhook.Webhooks[0].ClientConfig.Service.Name).To(Equal(testWebhookServiceName))
 			Expect(webhook.Webhooks[0].ClientConfig.Service.Path).To(Equal(&testWebhookServicePath))
 			Expect(webhook.Webhooks[0].ClientConfig.CABundle).To(Equal([]byte("chain")))
-			Expect(len(webhook.Webhooks[0].Rules)).To(Equal(1))
-			rule := webhook.Webhooks[0].Rules[0]
-			Expect(len(rule.Operations)).To(Equal(1))
-			Expect(rule.Operations[0]).To(Equal(admissionv1beta1.Create))
-			Expect(rule.Rule.APIGroups).To(Equal([]string{""}))
-			Expect(rule.Rule.APIVersions).To(Equal([]string{"v1"}))
-			Expect(rule.Rule.Resources).To(Equal([]string{"pods"}))
 		})
 	})
 })

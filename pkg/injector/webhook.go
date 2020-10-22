@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-
 	"github.com/pkg/errors"
 	"k8s.io/api/admission/v1beta1"
 	admissionv1beta1 "k8s.io/api/admissionregistration/v1beta1"
@@ -20,6 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
+	v1beta12 "k8s.io/client-go/kubernetes/typed/admissionregistration/v1beta1"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -68,8 +68,11 @@ func NewWebhook(config Config, kubeClient kubernetes.Interface, certManager cert
 		configurator:   cfg,
 	}
 
+	// Start the MutatingWebhook web server
 	go wh.run(stop)
-	if err = patchMutatingWebhookConfiguration(cert, meshName, osmNamespace, webhookConfigName, wh.kubeClient); err != nil {
+
+	// Update the MutatingWebhookConfig with the OSM CA bundle
+	if err = updateMutatingWebhookCABundle(cert, webhookConfigName, wh.kubeClient); err != nil {
 		return errors.Errorf("Error configuring MutatingWebhookConfiguration: %+v", err)
 	}
 	return nil
@@ -299,7 +302,7 @@ func isAnnotatedForInjection(annotations map[string]string) (exists bool, enable
 		case "disabled", "no", "false":
 			enabled = false
 		default:
-			err = errors.Errorf("Invalid annotion value specified for annotation %q: %s", constants.SidecarInjectionAnnotation, inject)
+			err = errors.Errorf("Invalid annotation value specified for annotation %q: %s", constants.SidecarInjectionAnnotation, inject)
 		}
 	}
 	return
@@ -319,13 +322,11 @@ func patchAdmissionResponse(resp *v1beta1.AdmissionResponse, patchBytes []byte) 
 	resp.PatchType = &pt
 }
 
-func patchMutatingWebhookConfiguration(cert certificate.Certificater, meshName, osmNamespace, webhookConfigName string, clientSet kubernetes.Interface) error {
-	if err := hookExists(clientSet, webhookConfigName); err != nil {
-		log.Error().Err(err).Msgf("Error getting MutatingWebhookConfiguration %s", webhookConfigName)
-	}
-	updatedWH := admissionv1beta1.MutatingWebhookConfiguration{
+// getPartialMutatingWebhookConfiguration returns only the portion of the MutatingWebhookConfiguration that needs to be updated.
+func getPartialMutatingWebhookConfiguration(cert certificate.Certificater, webhookName string) admissionv1beta1.MutatingWebhookConfiguration {
+	return admissionv1beta1.MutatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: webhookConfigName,
+			Name: webhookName,
 		},
 		Webhooks: []admissionv1beta1.MutatingWebhook{
 			{
@@ -333,36 +334,34 @@ func patchMutatingWebhookConfiguration(cert certificate.Certificater, meshName, 
 				ClientConfig: admissionv1beta1.WebhookClientConfig{
 					CABundle: cert.GetCertificateChain(),
 				},
-				Rules: []admissionv1beta1.RuleWithOperations{
-					{
-						Operations: []admissionv1beta1.OperationType{admissionv1beta1.Create},
-						Rule: admissionv1beta1.Rule{
-							APIGroups:   []string{""},
-							APIVersions: []string{"v1"},
-							Resources:   []string{"pods"},
-						},
-					},
-				},
 			},
 		},
 	}
-	data, err := json.Marshal(updatedWH)
+}
+
+// updateMutatingWebhookCABundle updates the existing MutatingWebhookConfiguration with the CA this OSM instance runs with.
+// It is necessary to perform this patch because the original MutatingWebhookConfig YAML does not contain the root certificate.
+func updateMutatingWebhookCABundle(cert certificate.Certificater, webhookName string, clientSet kubernetes.Interface) error {
+	mwc := clientSet.AdmissionregistrationV1beta1().MutatingWebhookConfigurations()
+	if err := webhookExists(mwc, webhookName); err != nil {
+		log.Error().Err(err).Msgf("Error getting MutatingWebhookConfiguration %s; Will not update CA Bundle for webhook", webhookName)
+	}
+
+	patchJSON, err := json.Marshal(getPartialMutatingWebhookConfiguration(cert, webhookName))
 	if err != nil {
 		return err
 	}
 
-	_, err = clientSet.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Patch(
-		context.Background(), webhookConfigName, types.StrategicMergePatchType, data, metav1.PatchOptions{})
-	if err != nil {
-		log.Error().Err(err).Msgf("Error configuring MutatingWebhookConfiguration %s", webhookConfigName)
+	if _, err = mwc.Patch(context.Background(), webhookName, types.StrategicMergePatchType, patchJSON, metav1.PatchOptions{}); err != nil {
+		log.Error().Err(err).Msgf("Error updating CA Bundle for MutatingWebhookConfiguration %s", webhookName)
 		return err
 	}
 
-	log.Info().Msgf("Configured MutatingWebhookConfiguration %s", webhookConfigName)
+	log.Info().Msgf("Finished updating CA Bundle for MutatingWebhookConfiguration %s", webhookName)
 	return nil
 }
 
-func hookExists(clientSet kubernetes.Interface, webhookConfigName string) error {
-	_, err := clientSet.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Get(context.Background(), webhookConfigName, metav1.GetOptions{})
+func webhookExists(mwc v1beta12.MutatingWebhookConfigurationInterface, webhookName string) error {
+	_, err := mwc.Get(context.Background(), webhookName, metav1.GetOptions{})
 	return err
 }
