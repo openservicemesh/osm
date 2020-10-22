@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	mapset "github.com/deckarep/golang-set"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
@@ -33,19 +34,14 @@ import (
 var (
 	codecs       = serializer.NewCodecFactory(runtime.NewScheme())
 	deserializer = codecs.UniversalDeserializer()
-
-	kubeSystemNamespaces = map[string]interface{}{
-		metav1.NamespaceSystem: nil,
-		metav1.NamespacePublic: nil,
-	}
 )
 
 const (
 	// mutatingWebhookName is the name of the mutating webhook used for sidecar injection
 	mutatingWebhookName = "osm-inject.k8s.io"
 
-	// webhookMutatePath is the HTTP path at which the webhook expects to receive mutation requests
-	webhookMutatePath = "/mutate"
+	// webhookCreatePod is the HTTP path at which the webhook expects to receive pod creation events
+	webhookCreatePod = "/create/pod"
 
 	// WebhookHealthPath is the HTTP path at which the health of the webhook can be queried
 	WebhookHealthPath = "/healthz"
@@ -53,7 +49,8 @@ const (
 	// webhookTimeoutStr is the url variable name for timeout
 	webhookMutateTimeoutKey = "timeout"
 
-	contentTypeJSON = "application/json"
+	contentTypeJSON       = "application/json"
+	httpHeaderContentType = "Content-Type"
 )
 
 // NewWebhook starts a new web server handling requests from the injector MutatingWebhookConfiguration
@@ -73,6 +70,13 @@ func NewWebhook(config Config, kubeClient kubernetes.Interface, certManager cert
 		osmNamespace:   osmNamespace,
 		cert:           cert,
 		configurator:   cfg,
+
+		// Envoy sidecars should never be injected in these namespaces
+		nonInjectNamespaces: mapset.NewSetFromSlice([]interface{}{
+			metav1.NamespaceSystem,
+			metav1.NamespacePublic,
+			osmNamespace,
+		}),
 	}
 
 	// Start the MutatingWebhook web server
@@ -91,7 +95,8 @@ func (wh *webhook) run(stop <-chan struct{}) {
 
 	mux := http.DefaultServeMux
 	mux.HandleFunc(WebhookHealthPath, healthHandler)
-	mux.HandleFunc(webhookMutatePath, wh.mutateHandler)
+	// We know that the events arriving
+	mux.HandleFunc(webhookCreatePod, wh.podCreationHandler)
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", wh.config.ListenPort),
@@ -136,7 +141,44 @@ func healthHandler(w http.ResponseWriter, _ *http.Request) {
 	}
 }
 
-func (wh *webhook) mutateHandler(w http.ResponseWriter, req *http.Request) {
+func (wh *webhook) getAdmissionReqResp(proxyUUID string, admissionRequestBody []byte) (admissionReq v1beta1.AdmissionReview, admissionResp v1beta1.AdmissionReview) {
+	if _, _, err := deserializer.Decode(admissionRequestBody, nil, &admissionReq); err != nil {
+		log.Error().Err(err).Msg("Error decoding admission request body")
+		admissionResp.Response = admissionError(err)
+	} else {
+		admissionResp.Response = wh.mutate(admissionReq.Request, proxyUUID)
+	}
+
+	return admissionReq, admissionResp
+}
+
+func getAdmissionRequestBody(w http.ResponseWriter, req *http.Request) ([]byte, error) {
+	emptyBodyError := func() ([]byte, error) {
+		http.Error(w, errEmptyAdmissionRequestBody.Error(), http.StatusBadRequest)
+		log.Error().Err(errEmptyAdmissionRequestBody).Msgf("Responded to admission request with HTTP %v", http.StatusBadRequest)
+		return nil, errEmptyAdmissionRequestBody
+	}
+
+	if req.Body == nil {
+		return emptyBodyError()
+	}
+
+	admissionRequestBody, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Error().Err(err).Msgf("Error reading admission request body; Responded to admission request with HTTP %v", http.StatusInternalServerError)
+		return admissionRequestBody, nil
+	}
+
+	if len(admissionRequestBody) == 0 {
+		return emptyBodyError()
+	}
+
+	return admissionRequestBody, nil
+}
+
+// podCreationHandler is a MutatingWebhookConfiguration handler exclusive to POD CREATE events.
+func (wh *webhook) podCreationHandler(w http.ResponseWriter, req *http.Request) {
 	log.Trace().Msgf("Received mutating webhook request: Method=%v, URL=%v", req.Method, req.URL)
 
 	// For debug/profiling purposes
@@ -150,46 +192,27 @@ func (wh *webhook) mutateHandler(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	if contentType := req.Header.Get("Content-Type"); contentType != contentTypeJSON {
-		err := errors.Errorf("Invalid content type: %s; Expected %s", contentType, contentTypeJSON)
+	if contentType := req.Header.Get(httpHeaderContentType); contentType != contentTypeJSON {
+		err := errors.Errorf("Invalid content type %s; Expected %s", contentType, contentTypeJSON)
 		http.Error(w, err.Error(), http.StatusUnsupportedMediaType)
 		log.Error().Err(err).Msgf("Responded to admission request with HTTP %v", http.StatusUnsupportedMediaType)
 		return
 	}
 
-	var admissionRequestBody []byte
-	if req.Body != nil {
-		var err error
-		if admissionRequestBody, err = ioutil.ReadAll(req.Body); err != nil {
-			err := errors.Errorf("Error reading request admissionRequestBody: %s", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			log.Error().Err(err).Msgf("Responded to admission request with HTTP %v", http.StatusInternalServerError)
-			return
-		}
-	}
-
-	if len(admissionRequestBody) == 0 {
-		err := errors.New("Empty request admissionRequestBody")
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		log.Error().Err(err).Msgf("Responded to admission request with HTTP %v", http.StatusBadRequest)
+	admissionRequestBody, err := getAdmissionRequestBody(w, req)
+	if err != nil {
+		// Error was already logged and written to the ResponseWriter
 		return
 	}
 
 	proxyUUID := uuid.New().String()
 
-	var admissionReq v1beta1.AdmissionReview
-	var admissionResp v1beta1.AdmissionReview
-	if _, _, err := deserializer.Decode(admissionRequestBody, nil, &admissionReq); err != nil {
-		log.Error().Err(err).Msg("Error decoding admission request body")
-		admissionResp.Response = admissionError(err)
-	} else {
-		admissionResp.Response = wh.mutate(admissionReq.Request, proxyUUID)
-	}
+	admissionReq, admissionResp := wh.getAdmissionReqResp(proxyUUID, admissionRequestBody)
 
 	resp, err := json.Marshal(&admissionResp)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error marshalling admission response: %s", err), http.StatusInternalServerError)
-		log.Error().Err(err).Msgf("Responded to admission request for pod with UUID %s in namespace %s with HTTP %v", proxyUUID, admissionReq.Request.Namespace, http.StatusInternalServerError)
+		log.Error().Err(err).Msgf("Error marshalling admission response; Responded to admission request for pod with UUID %s in namespace %s with HTTP %v", proxyUUID, admissionReq.Request.Namespace, http.StatusInternalServerError)
 		return
 	}
 
@@ -246,18 +269,11 @@ func (wh *webhook) mutate(req *v1beta1.AdmissionRequest, proxyUUID string) *v1be
 }
 
 func (wh *webhook) isNamespaceInjectable(namespace string) bool {
-	// Never inject pods in the namespace where the OSM Controller resides.
-	if namespace == wh.osmNamespace {
-		return false
-	}
-
-	// Never ever inject kube-public, kube-system, or the OSM namespaces.
-	if _, isKubeNS := kubeSystemNamespaces[namespace]; isKubeNS {
-		return false
-	}
+	// Never inject pods in the OSM Controller namespace or kube-public or kube-system
+	isInjectableNS := !wh.nonInjectNamespaces.Contains(namespace)
 
 	// Ignore namespaces not joined in the mesh.
-	return wh.kubeController.IsMonitoredNamespace(namespace)
+	return isInjectableNS && wh.kubeController.IsMonitoredNamespace(namespace)
 }
 
 // mustInject determines whether the sidecar must be injected.

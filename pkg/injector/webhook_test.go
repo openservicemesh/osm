@@ -12,6 +12,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	mapset "github.com/deckarep/golang-set"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"k8s.io/api/admission/v1beta1"
@@ -194,6 +195,11 @@ var _ = Describe("Testing mustInject, isNamespaceInjectable", func() {
 			kubeClient:     fakeClientSet,
 			kubeController: mockKubeController,
 			osmNamespace:   osmNamespace,
+			nonInjectNamespaces: mapset.NewSetFromSlice([]interface{}{
+				metav1.NamespaceSystem,
+				metav1.NamespacePublic,
+				osmNamespace,
+			}),
 		}
 	})
 
@@ -469,8 +475,9 @@ var _ = Describe("Testing Injector Functions", func() {
 		_, err := client.CoreV1().Namespaces().Create(context.TODO(), testNamespace, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 		wh := &webhook{
-			kubeClient:     client,
-			kubeController: mockNsController,
+			kubeClient:          client,
+			kubeController:      mockNsController,
+			nonInjectNamespaces: mapset.NewSet(),
 		}
 		body := strings.NewReader(`{
   "kind": "AdmissionReview",
@@ -526,7 +533,7 @@ var _ = Describe("Testing Injector Functions", func() {
 		}
 		w := httptest.NewRecorder()
 		mockNsController.EXPECT().IsMonitoredNamespace("default").Return(true).Times(1)
-		wh.mutateHandler(w, req)
+		wh.podCreationHandler(w, req)
 
 		resp := w.Result()
 		bodyBytes, _ := ioutil.ReadAll(resp.Body)
@@ -557,12 +564,14 @@ var _ = Describe("Testing Injector Functions", func() {
 		mockNsController := k8s.NewMockController(gomock.NewController(GinkgoT()))
 		mockNsController.EXPECT().GetNamespace("default").Return(&corev1.Namespace{})
 		wh := &webhook{
-			kubeClient:     client,
-			kubeController: mockNsController,
+			kubeClient:          client,
+			kubeController:      mockNsController,
+			nonInjectNamespaces: mapset.NewSet(),
 		}
+		proxyUUID := uuid.New().String()
 
 		// Action !!
-		actual := wh.mutate(nil)
+		actual := wh.mutate(nil, proxyUUID)
 
 		expected := v1beta1.AdmissionResponse{
 			Result: &metav1.Status{

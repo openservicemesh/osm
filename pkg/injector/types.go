@@ -1,6 +1,7 @@
 package injector
 
 import (
+	mapset "github.com/deckarep/golang-set"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
@@ -26,6 +27,8 @@ type webhook struct {
 	osmNamespace   string
 	cert           certificate.Certificater
 	configurator   configurator.Configurator
+
+	nonInjectNamespaces mapset.Set
 }
 
 // Config is the type used to represent the config options for the sidecar injection
@@ -41,7 +44,7 @@ type Config struct {
 	SidecarImage string
 }
 
-// JSONPatchOperation is the type used to represenet a JSON Patch operation
+// JSONPatchOperation defines a Kubernetes JSON Patch operation
 type JSONPatchOperation struct {
 	Op    string      `json:"op"`
 	Path  string      `json:"path"`

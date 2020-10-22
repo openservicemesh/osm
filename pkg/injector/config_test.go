@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	mapset "github.com/deckarep/golang-set"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	corev1 "k8s.io/api/core/v1"
@@ -113,8 +114,9 @@ static_resources:
 
 		It("Creates bootstrap config for the Envoy proxy", func() {
 			wh := &webhook{
-				kubeClient:     fake.NewSimpleClientset(),
-				kubeController: k8s.NewMockController(gomock.NewController(GinkgoT())),
+				kubeClient:          fake.NewSimpleClientset(),
+				kubeController:      k8s.NewMockController(gomock.NewController(GinkgoT())),
+				nonInjectNamespaces: mapset.NewSet(),
 			}
 			name := uuid.New().String()
 			namespace := "a"
