@@ -15,6 +15,7 @@ var _ = DescribeTier1("HTTP and HTTPS Egress", func() {
 		It("Allows egress traffic when enabled", func() {
 			// Install OSM
 			installOpts := td.GetOSMInstallOpts()
+			installOpts.egressEnabled = true
 			Expect(td.InstallOSM(installOpts)).To(Succeed())
 
 			// Create Test NS
