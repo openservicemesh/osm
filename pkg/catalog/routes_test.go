@@ -394,35 +394,31 @@ func TestGetWeightedBackendsForService(t *testing.T) {
 	}
 }
 
-func TestGetRouteKey(t *testing.T) {
+func TestContainsRouteKey(t *testing.T) {
 	assert := assert.New(t)
 
-	type getRouteKeyTest struct {
+	type containsRouteTest struct {
 		inputRoute trafficpolicy.HTTPRoute
-		inputMap   map[*trafficpolicy.HTTPRoute][]service.WeightedService
-		output     *trafficpolicy.HTTPRoute
+		inputList  []trafficpolicy.HTTPRoute
+		output     bool
 	}
 
-	getRouteKeyTests := []getRouteKeyTest{
+	containsRouteTests := []containsRouteTest{
 		{
 			inputRoute: tests.BookstoreV2TrafficPolicy.HTTPRoutes[0],
-			inputMap: map[*trafficpolicy.HTTPRoute][]service.WeightedService{
-				&tests.BookstoreV1TrafficPolicy.HTTPRoutes[0]: {{Service: tests.BookstoreV1Service, Weight: constants.ClusterWeightAcceptAll}},
-			},
-			output: &tests.BookstoreV1TrafficPolicy.HTTPRoutes[0],
+			inputList:  tests.BookstoreV1TrafficPolicy.HTTPRoutes,
+			output:     true,
 		},
 		{
 			inputRoute: tests.BookstoreV1TrafficPolicy.HTTPRoutes[1],
-			inputMap: map[*trafficpolicy.HTTPRoute][]service.WeightedService{
-				&tests.BookstoreV1TrafficPolicy.HTTPRoutes[0]: {{Service: tests.BookstoreV1Service, Weight: constants.ClusterWeightAcceptAll}},
-			},
-			output: nil,
+			inputList:  tests.BookstoreV2TrafficPolicy.HTTPRoutes,
+			output:     false,
 		},
 	}
 
-	for _, test := range getRouteKeyTests {
-		key := getRouteKey(test.inputRoute, test.inputMap)
-		assert.Equal(key, test.output)
+	for _, test := range containsRouteTests {
+		routeExists := containsRoute(test.inputList, test.inputRoute)
+		assert.Equal(routeExists, test.output)
 	}
 }
 

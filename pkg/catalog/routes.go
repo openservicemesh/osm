@@ -463,30 +463,23 @@ func (mc *MeshCatalog) getRouteWeightedServices(src service.MeshService, dest se
 
 	weightedBackends := mc.getWeightedBackendsForService(dest)
 
-	routeServicesMap := make(map[*trafficpolicy.HTTPRoute][]service.WeightedService)
-
+	routeList := []trafficpolicy.HTTPRoute{}
 	for _, backend := range weightedBackends {
 		hash := hashSrcDstService(src, backend.Service)
 		routes := trafficTargets[hash].HTTPRoutes
 
-		for i, r := range routes {
-			key := getRouteKey(r, routeServicesMap)
-			if key == nil {
-				servicesValue := []service.WeightedService{backend}
-				key = &routes[i]
-				routeServicesMap[key] = servicesValue
-			} else {
-				servicesValue := routeServicesMap[key]
-				servicesValue = append(servicesValue, backend)
-				routeServicesMap[key] = servicesValue
+		for _, r := range routes {
+			routeExists := containsRoute(routeList, r)
+			if !routeExists {
+				routeList = append(routeList, r)
 			}
 		}
 	}
 
-	for route, services := range routeServicesMap {
+	for _, r := range routeList {
 		rWS := trafficpolicy.RouteWeightedServices{
-			HTTPRoute:        *route,
-			WeightedServices: services,
+			HTTPRoute:        r,
+			WeightedServices: weightedBackends,
 		}
 		routeWeightedSvcs = append(routeWeightedSvcs, rWS)
 	}
@@ -494,15 +487,11 @@ func (mc *MeshCatalog) getRouteWeightedServices(src service.MeshService, dest se
 	return routeWeightedSvcs
 }
 
-func getRouteKey(route trafficpolicy.HTTPRoute, routeMap map[*trafficpolicy.HTTPRoute][]service.WeightedService) *trafficpolicy.HTTPRoute {
-	var matchingKey *trafficpolicy.HTTPRoute
-
-	for key := range routeMap {
-		keyRoute := *key
-		if keyRoute.Equal(route) {
-			matchingKey = key
-			break
+func containsRoute(routeList []trafficpolicy.HTTPRoute, route trafficpolicy.HTTPRoute) bool {
+	for _, r := range routeList {
+		if r.Equal(route) {
+			return true
 		}
 	}
-	return matchingKey
+	return false
 }
