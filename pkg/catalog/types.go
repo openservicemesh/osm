@@ -104,8 +104,8 @@ type MeshCataloger interface {
 	// TODO(ref: PR #1316): return a list of strings
 	GetHostnamesForService(service service.MeshService) (string, error)
 
-	//GetWeightedClusterForService returns the weighted cluster for a service
-	GetWeightedClusterForService(service service.MeshService) (service.WeightedCluster, error)
+	//GetWeightedClustersForService returns the weighted clusters for a service
+	GetWeightedClustersForService(service service.MeshService) ([]service.WeightedCluster, error)
 
 	// GetIngressRoutesPerHost returns the HTTP routes per host associated with an ingress service
 	GetIngressRoutesPerHost(service.MeshService) (map[string][]trafficpolicy.HTTPRoute, error)

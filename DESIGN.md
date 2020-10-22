@@ -338,8 +338,8 @@ type MeshCataloger interface {
 	// GetHostnamesForService returns the hostnames for a service
 	GetHostnamesForService(service service.MeshService) (string, error)
 
-	//GetWeightedClusterForService returns the weighted cluster for a service
-	GetWeightedClusterForService(service service.MeshService) (service.WeightedCluster, error)
+	//GetWeightedClustersForService returns the weighted clusters for a service
+	GetWeightedClustersForService(service service.MeshService) ([]service.WeightedCluster, error)
 
 	// GetIngressRoutesPerHost returns the HTTP routes per host associated with an ingress service
 	GetIngressRoutesPerHost(service.MeshService) (map[string][]trafficpolicy.HTTPRoute, error)
@@ -462,7 +462,7 @@ type MeshSpec interface {
 	// GetService fetches a Kubernetes Service resource for the given MeshService
 	GetService(service.MeshService) *corev1.Service
 
-	// ListServices Lists Kubernets Service resources that are part of monitored namespaces
+	// ListServices Lists Kubernetes Service resources that are part of monitored namespaces
 	ListServices() []*corev1.Service
 
 	// ListHTTPTrafficSpecs lists SMI HTTPRouteGroup resources

@@ -50,7 +50,7 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 			log.Error().Err(err).Msg("Failed listing domains")
 			return nil, err
 		}
-		weightedCluster, err := catalog.GetWeightedClusterForService(svc)
+		weightedClusters, err := catalog.GetWeightedClustersForService(svc)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed listing clusters")
 			return nil, err
@@ -58,12 +58,14 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 
 		// All routes from a given source to destination are part of 1 traffic policy between the source and destination.
 		for _, httpRoute := range trafficPolicy.HTTPRoutes {
-			if isSourceService {
-				aggregateRoutesByHost(outboundAggregatedRoutesByHostnames, httpRoute, weightedCluster, hostnames)
-			}
+			for _, weightedCluster := range weightedClusters {
+				if isSourceService {
+					aggregateRoutesByHost(outboundAggregatedRoutesByHostnames, httpRoute, weightedCluster, hostnames)
+				}
 
-			if isDestinationService {
-				aggregateRoutesByHost(inboundAggregatedRoutesByHostnames, httpRoute, weightedCluster, hostnames)
+				if isDestinationService {
+					aggregateRoutesByHost(inboundAggregatedRoutesByHostnames, httpRoute, weightedCluster, hostnames)
+				}
 			}
 		}
 	}

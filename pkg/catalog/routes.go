@@ -102,27 +102,46 @@ func (mc *MeshCatalog) ListAllowedOutboundServices(sourceService service.MeshSer
 	return mc.getAllowedDirectionalServices(sourceService, outbound)
 }
 
-//GetWeightedClusterForService returns the weighted cluster for a given service
-func (mc *MeshCatalog) GetWeightedClusterForService(svc service.MeshService) (service.WeightedCluster, error) {
+//GetWeightedClustersForService returns the weighted clusters for a given service
+func (mc *MeshCatalog) GetWeightedClustersForService(svc service.MeshService) ([]service.WeightedCluster, error) {
 	log.Trace().Msgf("Finding weighted cluster for service %s", svc)
 
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
-		return getDefaultWeightedClusterForService(svc), nil
+		return []service.WeightedCluster{getDefaultWeightedClusterForService(svc)}, nil
 	}
 
+	weightedClusters := []service.WeightedCluster{}
+
 	// Retrieve the weighted clusters from traffic split
-	servicesList := mc.meshSpec.ListTrafficSplitServices()
-	for _, activeService := range servicesList {
-		if activeService.Service == svc {
-			return service.WeightedCluster{
-				ClusterName: service.ClusterName(activeService.Service.String()),
-				Weight:      activeService.Weight,
-			}, nil
+	// Assumes no nested splits
+	for _, trafficSplit := range mc.meshSpec.ListTrafficSplits() {
+		rootSvc := service.MeshService{
+			Namespace: trafficSplit.Namespace,
+			Name:      kubernetes.GetServiceFromHostname(trafficSplit.Spec.Service),
+		}
+		if svc == rootSvc {
+			for _, backend := range trafficSplit.Spec.Backends {
+				// The TrafficSplit SMI Spec does not allow providing a namespace for the backends,
+				// so we assume that the top level namespace for the TrafficSplit is the namespace
+				// the backends belong to.
+				meshService := service.MeshService{
+					Namespace: trafficSplit.Namespace,
+					Name:      backend.Service,
+				}
+				weightedCluster := service.WeightedCluster{
+					ClusterName: service.ClusterName(meshService.String()),
+					Weight:      backend.Weight,
+				}
+				weightedClusters = append(weightedClusters, weightedCluster)
+			}
 		}
 	}
 
-	// Use a default weighted cluster as an SMI TrafficSplit policy is not defined for the service
-	return getDefaultWeightedClusterForService(svc), nil
+	if len(weightedClusters) == 0 {
+		return []service.WeightedCluster{getDefaultWeightedClusterForService(svc)}, nil
+	}
+
+	return weightedClusters, nil
 }
 
 // hostnamesTostr returns a comma separated string of hostnames from the list
@@ -428,7 +447,7 @@ func (mc *MeshCatalog) listTrafficTargetPermutations(trafficTarget target.Traffi
 			if activeService.Service == d {
 				rootSvc := service.MeshService{
 					Namespace: activeService.Service.Namespace,
-					Name:      activeService.RootService,
+					Name:      kubernetes.GetServiceFromHostname(activeService.RootService),
 				}
 				destSet.Add(rootSvc)
 			}

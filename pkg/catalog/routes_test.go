@@ -196,18 +196,20 @@ func TestListAllowedOutboundServices(t *testing.T) {
 	assert.ElementsMatch(actualList, expectedList)
 }
 
-func TestGetWeightedClusterForService(t *testing.T) {
+func TestGetWeightedClustersForService(t *testing.T) {
 	assert := assert.New(t)
 
 	mc := newFakeMeshCatalog()
-	weightedCluster, err := mc.GetWeightedClusterForService(tests.BookstoreV1Service)
+	weightedClusters, err := mc.GetWeightedClustersForService(tests.BookstoreV1Service)
 	assert.Nil(err)
 
-	expected := service.WeightedCluster{
-		ClusterName: "default/bookstore-v1",
-		Weight:      tests.Weight90,
+	expected := []service.WeightedCluster{
+		{
+			ClusterName: "default/bookstore-v1",
+			Weight:      tests.Weight90,
+		},
 	}
-	assert.Equal(weightedCluster, expected)
+	assert.ElementsMatch(weightedClusters, expected)
 }
 
 func TestGetServiceHostnames(t *testing.T) {

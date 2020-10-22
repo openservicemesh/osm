@@ -275,27 +275,39 @@ var _ = Describe("RDS Response", func() {
 		})
 	})
 
-	Context("GetWeightedClusterForService", func() {
-		It("returns weighted cluster for service from traffic split", func() {
+	Context("GetWeightedClustersForService", func() {
+		It("returns weighted clusters for service in traffic split", func() {
 
-			actual, err := meshCatalog.GetWeightedClusterForService(tests.BookstoreV1Service)
+			actual, err := meshCatalog.GetWeightedClustersForService(tests.BookstoreApexService)
 			Expect(err).ToNot(HaveOccurred())
 
-			expected := service.WeightedCluster{
-				ClusterName: service.ClusterName(tests.BookstoreV1WeightedService.Service.String()),
-				Weight:      tests.BookstoreV1WeightedService.Weight,
+			expected := []service.WeightedCluster{
+				{
+					ClusterName: service.ClusterName(tests.BookstoreV1WeightedService.Service.String()),
+					Weight:      tests.BookstoreV1WeightedService.Weight,
+				},
+				{
+					ClusterName: service.ClusterName(tests.BookstoreV2WeightedService.Service.String()),
+					Weight:      tests.BookstoreV2WeightedService.Weight,
+				},
+				{
+					ClusterName: service.ClusterName(tests.BookstoreV3WeightedService.Service.String()),
+					Weight:      tests.BookstoreV3WeightedService.Weight,
+				},
 			}
 			Expect(actual).To(Equal(expected))
 		})
 
 		It("returns weighted cluster for service with default weight of 100", func() {
 
-			actual, err := meshCatalog.GetWeightedClusterForService(tests.BookbuyerService)
+			actual, err := meshCatalog.GetWeightedClustersForService(tests.BookbuyerService)
 			Expect(err).ToNot(HaveOccurred())
 
-			expected := service.WeightedCluster{
-				ClusterName: service.ClusterName(tests.BookbuyerService.String()),
-				Weight:      constants.ClusterWeightAcceptAll,
+			expected := []service.WeightedCluster{
+				{
+					ClusterName: service.ClusterName(tests.BookbuyerService.String()),
+					Weight:      constants.ClusterWeightAcceptAll,
+				},
 			}
 			Expect(actual).To(Equal(expected))
 		})
