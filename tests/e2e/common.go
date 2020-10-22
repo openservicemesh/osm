@@ -197,10 +197,10 @@ func (td *OsmTestData) HelmInstallOSM() error {
 			return err
 		}
 	}
-
-	values := fmt.Sprintf("OpenServiceMesh.image.registry=%s,OpenServiceMesh.image.tag=%s", td.ctrRegistryServer, td.osmImageTag)
 	namespace := "helm-install-namespace"
 	release := "helm-install-osm"
+
+	values := fmt.Sprintf("OpenServiceMesh.image.registry=%s,OpenServiceMesh.image.tag=%s,meshName=%s", td.ctrRegistryServer, td.osmImageTag, release)
 	args := []string{"install", release, "../../charts/osm", "--set", values, "--namespace", namespace, "--create-namespace", "--wait"}
 	stdout, stderr, err := td.RunLocal("helm", args)
 	if err != nil {
