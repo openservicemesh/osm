@@ -145,6 +145,7 @@ func (mc *MeshCatalog) GetHostnamesForService(meshService service.MeshService) (
 		return hostnamesTostr(hostnames), nil
 	}
 
+	/* No longer necessary, will remove after testing
 	// Retrieve the domain name from traffic split
 	servicesList := mc.meshSpec.ListTrafficSplitServices()
 	for _, activeService := range servicesList {
@@ -163,6 +164,7 @@ func (mc *MeshCatalog) GetHostnamesForService(meshService service.MeshService) (
 			return hostnamesTostr(hostnames), nil
 		}
 	}
+	*/
 
 	// This service is not a backend for a traffic split policy.
 	// The hostnames for this service are the Kubernetes service DNS names.
@@ -309,6 +311,10 @@ func getTrafficPoliciesForService(mc *MeshCatalog, routePolicies map[trafficpoli
 					// The given meshService is a source or destination for this trafficTarget, so add
 					// it to the list of traffic targets associated with this service.
 					srcDstServiceHash := hashSrcDstService(trafficTarget.Source, trafficTarget.Destination)
+					existingTarget, ok := srcDstTrafficTargetMap[srcDstServiceHash]
+					if ok {
+						httpRoutes = consolidateRoutes(existingTarget.HTTPRoutes, httpRoutes)
+					}
 					srcDstTrafficTarget := getTrafficTargetFromSrcDstHash(srcDstServiceHash, trafficTarget.Name, httpRoutes)
 					srcDstTrafficTargetMap[srcDstServiceHash] = srcDstTrafficTarget
 				}
@@ -322,6 +328,27 @@ func getTrafficPoliciesForService(mc *MeshCatalog, routePolicies map[trafficpoli
 
 	log.Debug().Msgf("Traffic policies for service %s: %+v", meshService, matchedTrafficTargets)
 	return matchedTrafficTargets, nil
+}
+
+func consolidateRoutes(existingRoutes []trafficpolicy.HTTPRoute, newRoutes []trafficpolicy.HTTPRoute) []trafficpolicy.HTTPRoute {
+	if existingRoutes == nil {
+		return newRoutes
+	}
+
+	for _, n := range newRoutes {
+		addRoute := true
+		for _, e := range existingRoutes {
+			if n.Equal(e) {
+				addRoute = false
+				break
+			}
+		}
+		if addRoute {
+			existingRoutes = append(existingRoutes, n)
+		}
+	}
+
+	return existingRoutes
 }
 
 func (mc *MeshCatalog) buildAllowAllTrafficPolicies(service service.MeshService) []trafficpolicy.TrafficTarget {
