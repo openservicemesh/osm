@@ -32,10 +32,10 @@ wide Kubernetes resources.
 
 The default Kubernetes namespace that gets created on install is called
 osm-system. To create an install control plane components in a different
-namespace, use the --namespace flag.
+namespace, use the global --osm-namespace flag.
 
 Example:
-  $ osm install --namespace hello-world
+  $ osm install --osm-namespace hello-world
 
 Multiple control plane installations can exist within a cluster. Each
 control plane is given a cluster-wide unqiue identifier called mesh name.
@@ -351,5 +351,5 @@ func errMeshAlreadyExists(name string) error {
 }
 
 func errNamespaceAlreadyHasController(namespace string) error {
-	return errors.Errorf("Namespace %s has an osm controller. Please specify a new namespace using --namespace", namespace)
+	return errors.Errorf("Namespace %s has an osm controller. Please specify a new namespace using --osm-namespace", namespace)
 }
