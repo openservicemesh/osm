@@ -14,11 +14,13 @@ import (
 	"strings"
 	"time"
 
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
 	"github.com/docker/docker/client"
 	"github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	certman "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
-	. "github.com/onsi/ginkgo"
 	"github.com/pkg/errors"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
@@ -46,9 +48,11 @@ const (
 	// contant, default name for the Registry Secret
 	registrySecretName = "acr-creds"
 	// constant, default name for the mesh
-	defaultMeshName = "osm-system"
+	defaultOsmNamespace = "osm-system"
 	// default image tag
 	defaultImageTag = "latest"
+	// default cert manager
+	defaultCertManager = "tresor"
 	// test tag prefix, for NS labeling
 	osmTest = "osmTest"
 )
@@ -62,6 +66,32 @@ func DescribeTierN(tier uint) func(string, func()) bool {
 var DescribeTier1 = DescribeTierN(1)
 var DescribeTier2 = DescribeTierN(2)
 
+// InstallType defines several OSM test deployment scenarios
+type InstallType string
+
+const (
+	// SelfInstall uses current kube cluster, installs OSM using CLI
+	SelfInstall InstallType = "SelfInstall"
+	// KindCluster Creates Kind cluster on docker and uses it as cluster, OSM installs through CLI
+	KindCluster InstallType = "KindCluster"
+	// NoInstall uses current kube cluster, assumes an OSM is present in `osmNamespace`
+	NoInstall InstallType = "NoInstall"
+)
+
+// Verifies the instType string flag option is a valid enum type
+func verifyValidInstallType(t InstallType) error {
+	switch t {
+	case SelfInstall:
+		fallthrough
+	case KindCluster:
+		fallthrough
+	case NoInstall:
+		return nil
+	default:
+		return errors.Errorf("%s is not a valid OSM install type", string(t))
+	}
+}
+
 // OsmTestData stores common state, variables and flags for the test at hand
 type OsmTestData struct {
 	T GinkgoTInterface // for common test logging
@@ -70,6 +100,7 @@ type OsmTestData struct {
 	waitForCleanup bool // Forces test to wait for effective deletion of resources upon cleanup
 
 	// OSM install-time variables
+	instType     InstallType // Install type.
 	osmNamespace string
 	osmImageTag  string
 
@@ -79,7 +110,6 @@ type OsmTestData struct {
 	ctrRegistryServer   string // server name. Has to be network reachable
 
 	// Kind cluster related vars
-	kindCluster                    bool   // Create and use a kind cluster
 	clusterName                    string // Kind cluster name (used if kindCluster)
 	cleanupKindClusterBetweenTests bool   // Clean and re-create kind cluster between tests
 	cleanupKindCluster             bool   // Cleanup kind cluster upon test finish
@@ -98,7 +128,8 @@ func registerFlags(td *OsmTestData) {
 	flag.BoolVar(&td.cleanupTest, "cleanupTest", true, "Cleanup test resources when done")
 	flag.BoolVar(&td.waitForCleanup, "waitForCleanup", true, "Wait for effective deletion of resources")
 
-	flag.BoolVar(&td.kindCluster, "kindCluster", false, "Creates kind cluster")
+	flag.StringVar((*string)(&td.instType), "installType", string(SelfInstall), "Type of install/deployment for OSM")
+
 	flag.StringVar(&td.clusterName, "kindClusterName", "osm-e2e", "Name of the Kind cluster to be created")
 	flag.BoolVar(&td.cleanupKindCluster, "cleanupKindCluster", true, "Cleanup kind cluster upon exit")
 	flag.BoolVar(&td.cleanupKindClusterBetweenTests, "cleanupKindClusterBetweenTests", false, "Cleanup kind cluster between tests")
@@ -108,7 +139,7 @@ func registerFlags(td *OsmTestData) {
 	flag.StringVar(&td.ctrRegistryPassword, "ctrRegistrySecret", os.Getenv("CTR_REGISTRY_PASSWORD"), "Container registry secret")
 
 	flag.StringVar(&td.osmImageTag, "osmImageTag", utils.GetEnv("CTR_TAG", defaultImageTag), "OSM image tag")
-	flag.StringVar(&td.osmNamespace, "osmNamespace", utils.GetEnv("K8S_NAMESPACE", defaultMeshName), "OSM mesh name")
+	flag.StringVar(&td.osmNamespace, "osmNamespace", utils.GetEnv("K8S_NAMESPACE", defaultOsmNamespace), "OSM Namespace")
 }
 
 // GetTestNamespaceSelectorMap returns a string-based selector used to refer/select all namespace
@@ -131,11 +162,9 @@ func (td *OsmTestData) AreRegistryCredsPresent() bool {
 func (td *OsmTestData) InitTestData(t GinkgoTInterface) error {
 	td.T = t
 
-	if len(td.ctrRegistryServer) == 0 {
-		td.T.Errorf("Did not read any container registry (is CTR_REGISTRY set?)")
-	}
+	Expect(verifyValidInstallType(td.instType)).To(Succeed())
 
-	if td.kindCluster && td.clusterProvider == nil {
+	if (td.instType == KindCluster) && td.clusterProvider == nil {
 		td.clusterProvider = cluster.NewProvider()
 		td.T.Logf("Creating local kind cluster")
 		if err := td.clusterProvider.Create(td.clusterName); err != nil {
@@ -168,7 +197,7 @@ func (td *OsmTestData) InitTestData(t GinkgoTInterface) error {
 
 	// After client creations, do a wait for kind cluster just in case it's not done yet coming up
 	// Ballparking pod number. kind has a large number of containers to run by default
-	if td.kindCluster && td.clusterProvider != nil {
+	if (td.instType == KindCluster) && td.clusterProvider != nil {
 		if err := td.WaitForPodsRunningReady("kube-system", 120*time.Second, 5); err != nil {
 			return errors.Wrap(err, "failed to wait for kube-system pods")
 		}
@@ -206,7 +235,7 @@ type InstallOSMOpts struct {
 func (td *OsmTestData) GetOSMInstallOpts() InstallOSMOpts {
 	return InstallOSMOpts{
 		controlPlaneNS:          td.osmNamespace,
-		certManager:             "tresor",
+		certManager:             defaultCertManager,
 		containerRegistryLoc:    td.ctrRegistryServer,
 		containerRegistrySecret: td.ctrRegistryPassword,
 		osmImagetag:             td.osmImageTag,
@@ -228,7 +257,7 @@ func (td *OsmTestData) GetOSMInstallOpts() InstallOSMOpts {
 
 // HelmInstallOSM installs an osm control plane using the osm chart which lives in charts/osm
 func (td *OsmTestData) HelmInstallOSM(release, namespace string) error {
-	if td.kindCluster {
+	if td.instType == KindCluster {
 		if err := td.loadOSMImagesIntoKind(); err != nil {
 			return err
 		}
@@ -254,12 +283,56 @@ func (td *OsmTestData) DeleteHelmRelease(name, namespace string) error {
 	return nil
 }
 
-// InstallOSM installs OSM. Right now relies on externally calling the binary and a subset of possible opts
-// TODO: refactor install to be able to call it directly here vs. exec-ing CLI.
+// InstallOSM installs OSM. The behavior of this function is dependant on
+// installType and instOpts
 func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
-	if td.kindCluster {
-		if err := td.loadOSMImagesIntoKind(); err != nil {
-			return err
+	if td.instType == NoInstall {
+		if instOpts.certManager != defaultCertManager ||
+			instOpts.deployPrometheus ||
+			instOpts.deployGrafana ||
+			instOpts.deployJaeger ||
+			instOpts.deployFluentbit {
+			Skip("Skipping test: NoInstall marked on a test that requires modified install")
+		}
+
+		// TODO: Check there is a valid OSM instance running already in osmNamespace
+
+		// This resets supported dynamic configs expected by the caller
+		Expect(td.UpdateOSMConfig("egress", fmt.Sprintf("%t", instOpts.egressEnabled))).To(Succeed())
+		Expect(td.UpdateOSMConfig("permissive_traffic_policy_mode", fmt.Sprintf("%t", instOpts.enablePermissiveMode))).To(Succeed())
+
+		return nil
+	}
+
+	if td.instType == KindCluster {
+		td.T.Log("Getting image data")
+		imageNames := []string{
+			"osm-controller",
+			"init",
+		}
+		docker, err := client.NewClientWithOpts(client.WithAPIVersionNegotiation())
+		if err != nil {
+			return errors.Wrap(err, "failed to create docker client")
+		}
+		var imageIDs []string
+		for _, name := range imageNames {
+			imageName := fmt.Sprintf("%s/%s:%s", td.ctrRegistryServer, name, td.osmImageTag)
+			imageIDs = append(imageIDs, imageName)
+		}
+		imageData, err := docker.ImageSave(context.TODO(), imageIDs)
+		if err != nil {
+			return errors.Wrap(err, "failed to get image data")
+		}
+		defer imageData.Close()
+		nodes, err := td.clusterProvider.ListNodes(td.clusterName)
+		if err != nil {
+			return errors.Wrap(err, "failed to list kind nodes")
+		}
+		for _, n := range nodes {
+			td.T.Log("Loading images onto node", n)
+			if err := nodeutils.LoadImageArchive(n, imageData); err != nil {
+				return errors.Wrap(err, "failed to load images")
+			}
 		}
 	}
 
@@ -268,7 +341,6 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 	}
 
 	var args []string
-
 	args = append(args, "install",
 		"--container-registry="+instOpts.containerRegistryLoc,
 		"--osm-image-tag="+instOpts.osmImagetag,
@@ -301,7 +373,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		)
 	}
 
-	if !td.kindCluster {
+	if !(td.instType == KindCluster) {
 		// Making sure the image is always pulled in registry-based testing
 		args = append(args, "--osm-image-pull-policy=Always")
 	}
@@ -324,7 +396,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		return errors.Wrap(err, "failed to run osm install")
 	}
 
-	return nil
+	return td.WaitForPodsRunningReady(td.osmNamespace, 90*time.Second, 1)
 }
 
 // GetConfigMap is a wrapper to get a config map by name in a particular namespace
@@ -639,6 +711,7 @@ func (td *OsmTestData) AddNsToMesh(sidecardInject bool, ns ...string) error {
 	return nil
 }
 
+// UpdateOSMConfig updates OSM configmap
 func (td *OsmTestData) UpdateOSMConfig(key, value string) error {
 	patch := []byte(fmt.Sprintf(`{"data": {%q: %q}}`, key, value))
 	_, err := td.client.CoreV1().ConfigMaps(td.osmNamespace).Patch(context.TODO(), "osm-config", types.StrategicMergePatchType, patch, metav1.PatchOptions{})
@@ -802,7 +875,7 @@ func (td *OsmTestData) RunRemote(
 
 // WaitForPodsRunningReady waits for a <n> number of pods on an NS to be running and ready
 func (td *OsmTestData) WaitForPodsRunningReady(ns string, timeout time.Duration, nExpectedRunningPods int) error {
-	td.T.Logf("Wait for pods ready in ns [%s]...", ns)
+	td.T.Logf("Wait up to %v for %d pods ready in ns [%s]...", timeout, nExpectedRunningPods, ns)
 	for start := time.Now(); time.Since(start) < timeout; time.Sleep(2 * time.Second) {
 		pods, err := td.client.CoreV1().Pods(ns).List(context.TODO(), metav1.ListOptions{
 			FieldSelector: "status.phase=Running",
@@ -872,6 +945,12 @@ const (
 
 // Cleanup is Used to cleanup resorces once the test is done
 func (td *OsmTestData) Cleanup(ct CleanupType) {
+	if td.client == nil {
+		// Avoid any cleanup (crash) if no test is run;
+		// init doesn't happen and clientsets are nil
+		return
+	}
+
 	// The condition enters to cleanup K8s resources if
 	// - cleanup is enabled and it's not a kind cluster
 	// - cleanup is enabled and it is a kind cluster, but the kind cluster will NOT be
@@ -879,8 +958,8 @@ func (td *OsmTestData) Cleanup(ct CleanupType) {
 	//   The latter is a condition to speed up and not wait for k8s resources to vanish
 	//   if the current kind cluster has to be destroyed anyway.
 	if td.cleanupTest &&
-		(!td.kindCluster ||
-			(td.kindCluster &&
+		(!(td.instType == KindCluster) ||
+			(td.instType == KindCluster &&
 				(ct == Test && !td.cleanupKindClusterBetweenTests) ||
 				(ct == Suite && !td.cleanupKindCluster))) {
 		// Use selector to refer to all namespaces used in this test
@@ -919,7 +998,7 @@ func (td *OsmTestData) Cleanup(ct CleanupType) {
 	}
 
 	// Kind cluster deletion, if needed
-	if td.kindCluster && td.clusterProvider != nil {
+	if (td.instType == KindCluster) && td.clusterProvider != nil {
 		if ct == Test && td.cleanupKindClusterBetweenTests || ct == Suite && td.cleanupKindCluster {
 			td.T.Logf("Deleting kind cluster: %s", td.clusterName)
 			if err := td.clusterProvider.Delete(td.clusterName, clientcmd.RecommendedHomeFile); err != nil {

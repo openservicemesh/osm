@@ -18,7 +18,6 @@ var _ = DescribeTier2("Test deployment of Fluent Bit sidecar", func() {
 			installOpts := td.GetOSMInstallOpts()
 			installOpts.deployFluentbit = true
 			Expect(td.InstallOSM(installOpts)).To(Succeed())
-			Expect(td.WaitForPodsRunningReady(td.osmNamespace, 60*time.Second, 1)).To(Succeed())
 
 			pods, err := td.client.CoreV1().Pods(td.osmNamespace).List(context.TODO(), metav1.ListOptions{
 				LabelSelector: labels.SelectorFromSet(map[string]string{"app": "osm-controller"}).String(),

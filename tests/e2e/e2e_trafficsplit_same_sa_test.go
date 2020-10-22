@@ -53,7 +53,6 @@ var _ = DescribeTier1("Test TrafficSplit where each backend shares the same Serv
 		It("Tests HTTP traffic from Clients to the traffic split Cluster IP", func() {
 			// Install OSM
 			Expect(td.InstallOSM(td.GetOSMInstallOpts())).To(Succeed())
-			Expect(td.WaitForPodsRunningReady(td.osmNamespace, 90*time.Second, 1)).To(Succeed())
 
 			// Create NSs
 			Expect(td.CreateMultipleNs(allNamespaces...)).To(Succeed())
