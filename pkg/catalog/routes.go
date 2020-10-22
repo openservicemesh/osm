@@ -386,9 +386,30 @@ func (mc *MeshCatalog) listTrafficTargetPermutations(trafficTarget target.Traffi
 		return nil, destErr
 	}
 
+	// Make set of destinations
+	destInterfaces := make([]interface{}, len(destServiceList))
+	for i := range destServiceList {
+		destInterfaces[i] = destServiceList[i]
+	}
+	destSet := mapset.NewSetFromSlice(destInterfaces)
+
+	// Add root services to destination set
+	for _, d := range destServiceList {
+		for _, activeService := range mc.meshSpec.ListTrafficSplitServices() {
+			if activeService.Service == d {
+				rootSvc := service.MeshService{
+					Namespace: activeService.Service.Namespace,
+					Name:      activeService.RootService,
+				}
+				destSet.Add(rootSvc)
+			}
+		}
+	}
+
 	trafficPolicies := make([]trafficpolicy.TrafficTarget, 0, len(srcServiceList)*len(destServiceList))
 
-	for _, destService := range destServiceList {
+	for destInterface := range destSet.Iter() {
+		destService := destInterface.(service.MeshService)
 		for _, srcService := range srcServiceList {
 			trafficTarget := trafficpolicy.TrafficTarget{
 				Name:        utils.GetTrafficTargetName(trafficTarget.Name, srcService, destService),
