@@ -120,22 +120,6 @@ var _ = Describe("Construct inbound listeners", func() {
 			Expect(listener.TrafficDirection).To(Equal(xds_core.TrafficDirection_INBOUND))
 		})
 	})
-
-	Context("Test parseCIDR", func() {
-		It("Tests that a valid CIDR is parsed correctly", func() {
-			cidr := "10.2.0.0/24"
-			addr, prefix, err := parseCIDR(cidr)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(addr).To(Equal("10.2.0.0"))
-			Expect(prefix).To(Equal(uint32(24)))
-		})
-
-		It("Tests that an invalid CIDR returns an error", func() {
-			cidr := "10.2.0.0/99"
-			_, _, err := parseCIDR(cidr)
-			Expect(err).To(HaveOccurred())
-		})
-	})
 })
 
 var _ = Describe("Test getHTTPConnectionManager", func() {
