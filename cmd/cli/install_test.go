@@ -83,6 +83,7 @@ var _ = Describe("Running the install command", func() {
 				enableEgress:                true,
 				enablePrometheus:            true,
 				enableGrafana:               false,
+				enableFluentbit:             false,
 				clientSet:                   fakeClientSet,
 				envoyLogLevel:               testEnvoyLogLevel,
 			}
@@ -144,6 +145,7 @@ var _ = Describe("Running the install command", func() {
 						"enableEgress":                   true,
 						"enablePrometheus":               true,
 						"enableGrafana":                  false,
+						"enableFluentbit":                false,
 						"deployJaeger":                   false,
 						"envoyLogLevel":                  testEnvoyLogLevel,
 						"enforceSingleMesh":              false,
@@ -196,6 +198,7 @@ var _ = Describe("Running the install command", func() {
 				enableEgress:                true,
 				enablePrometheus:            true,
 				enableGrafana:               false,
+				enableFluentbit:             false,
 				clientSet:                   fakeClientSet,
 				envoyLogLevel:               testEnvoyLogLevel,
 			}
@@ -262,6 +265,7 @@ var _ = Describe("Running the install command", func() {
 						"enableEgress":                   true,
 						"enablePrometheus":               true,
 						"enableGrafana":                  false,
+						"enableFluentbit":                false,
 						"deployJaeger":                   false,
 						"envoyLogLevel":                  testEnvoyLogLevel,
 						"enforceSingleMesh":              false,
@@ -321,6 +325,7 @@ var _ = Describe("Running the install command", func() {
 				enableEgress:                true,
 				enablePrometheus:            true,
 				enableGrafana:               false,
+				enableFluentbit:             false,
 				clientSet:                   fakeClientSet,
 				envoyLogLevel:               testEnvoyLogLevel,
 			}
@@ -388,6 +393,7 @@ var _ = Describe("Running the install command", func() {
 						"enableEgress":                   true,
 						"enablePrometheus":               true,
 						"enableGrafana":                  false,
+						"enableFluentbit":                false,
 						"deployJaeger":                   false,
 						"envoyLogLevel":                  testEnvoyLogLevel,
 						"enforceSingleMesh":              false,
@@ -488,6 +494,7 @@ var _ = Describe("Running the install command", func() {
 				enableEgress:                true,
 				enablePrometheus:            true,
 				enableGrafana:               false,
+				enableFluentbit:             false,
 				clientSet:                   fakeClientSet,
 				envoyLogLevel:               testEnvoyLogLevel,
 			}
@@ -555,6 +562,7 @@ var _ = Describe("Running the install command", func() {
 						"enableEgress":                   true,
 						"enablePrometheus":               true,
 						"enableGrafana":                  false,
+						"enableFluentbit":                false,
 						"deployJaeger":                   false,
 						"envoyLogLevel":                  testEnvoyLogLevel,
 						"enforceSingleMesh":              false,
@@ -776,6 +784,8 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 			enableEgress:                true,
 			enablePrometheus:            true,
 			enableGrafana:               false,
+			enableFluentbit:             false,
+
 			envoyLogLevel:               testEnvoyLogLevel,
 		}
 
@@ -824,6 +834,7 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 				"enableEgress":                   true,
 				"enablePrometheus":               true,
 				"enableGrafana":                  false,
+				"enableFluentbit":                false,
 				"deployJaeger":                   false,
 				"envoyLogLevel":                  testEnvoyLogLevel,
 				"enforceSingleMesh":              false,
@@ -857,6 +868,7 @@ var _ = Describe("Ensure that grafana is disabled when flag is set to false", fu
 			enableEgress:                true,
 			enablePrometheus:            true,
 			enableGrafana:               false,
+			enableFluentbit:             false,
 			envoyLogLevel:               testEnvoyLogLevel,
 		}
 
@@ -905,6 +917,7 @@ var _ = Describe("Ensure that grafana is disabled when flag is set to false", fu
 				"enableEgress":                   true,
 				"enablePrometheus":               true,
 				"enableGrafana":                  false,
+				"enableFluentbit":                false,
 				"deployJaeger":                   false,
 				"envoyLogLevel":                  testEnvoyLogLevel,
 				"enforceSingleMesh":              false,
@@ -939,6 +952,7 @@ var _ = Describe("Ensure that grafana is enabled when flag is set to true", func
 			enableEgress:                true,
 			enablePrometheus:            true,
 			enableGrafana:               true,
+			enableFluentbit:             false,
 			envoyLogLevel:               testEnvoyLogLevel,
 		}
 
@@ -987,6 +1001,7 @@ var _ = Describe("Ensure that grafana is enabled when flag is set to true", func
 				"enableEgress":                   true,
 				"enablePrometheus":               true,
 				"enableGrafana":                  true,
+				"enableFluentbit":                false,
 				"deployJaeger":                   false,
 				"envoyLogLevel":                  testEnvoyLogLevel,
 				"enforceSingleMesh":              false,
@@ -1021,6 +1036,7 @@ var _ = Describe("Ensure that prometheus is disabled when flag is set to false",
 			enableEgress:                true,
 			enablePrometheus:            false,
 			enableGrafana:               false,
+			enableFluentbit:             false,
 			envoyLogLevel:               testEnvoyLogLevel,
 		}
 
@@ -1069,6 +1085,174 @@ var _ = Describe("Ensure that prometheus is disabled when flag is set to false",
 				"enableEgress":                   true,
 				"enablePrometheus":               false,
 				"enableGrafana":                  false,
+				"enableFluentbit":                false,
+				"deployJaeger":                   false,
+				"envoyLogLevel":                  testEnvoyLogLevel,
+				"enforceSingleMesh":              false,
+			}}))
+	})
+})
+
+var _ = Describe("Ensure that fluentbit is disabled when flag is set to false", func() {
+	var (
+		vals map[string]interface{}
+		err  error
+	)
+
+	BeforeEach(func() {
+		installCmd := &installCmd{
+			containerRegistry:           testRegistry,
+			containerRegistrySecret:     testRegistrySecret,
+			certificateManager:          "vault",
+			vaultHost:                   testVaultHost,
+			vaultProtocol:               testVaultProtocol,
+			certmanagerIssuerName:       testCertManagerIssuerName,
+			certmanagerIssuerKind:       testCertManagerIssuerKind,
+			certmanagerIssuerGroup:      testCertManagerIssuerGroup,
+			vaultToken:                  testVaultToken,
+			vaultRole:                   testVaultRole,
+			osmImageTag:                 testOsmImageTag,
+			osmImagePullPolicy:          defaultOsmImagePullPolicy,
+			serviceCertValidityDuration: "24h",
+			prometheusRetentionTime:     testRetentionTime,
+			meshName:                    defaultMeshName,
+			enableEgress:                true,
+			enablePrometheus:            true,
+			enableGrafana:               false,
+			enableFluentbit:             false,
+			envoyLogLevel:               testEnvoyLogLevel,
+		}
+
+		vals, err = installCmd.resolveValues()
+	})
+
+	It("should not error", func() {
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("should resolve correctly", func() {
+		Expect(vals).To(BeEquivalentTo(map[string]interface{}{
+			"OpenServiceMesh": map[string]interface{}{
+				"certificateManager": "vault",
+				"certmanager": map[string]interface{}{
+					"issuerKind":  "ClusterIssuer",
+					"issuerGroup": "example.co.uk",
+					"issuerName":  "my-osm-ca",
+				},
+				"meshName": defaultMeshName,
+				"image": map[string]interface{}{
+					"registry":   testRegistry,
+					"tag":        testOsmImageTag,
+					"pullPolicy": defaultOsmImagePullPolicy,
+				},
+				"imagePullSecrets": []interface{}{
+					map[string]interface{}{
+						"name": testRegistrySecret,
+					},
+				},
+				"serviceCertValidityDuration": "24h",
+				"vault": map[string]interface{}{
+					"host":     testVaultHost,
+					"protocol": "http",
+					"token":    testVaultToken,
+					"role":     testVaultRole,
+				},
+				"prometheus": map[string]interface{}{
+					"retention": map[string]interface{}{
+						"time": "5d",
+					},
+				},
+				"enableDebugServer":              false,
+				"enablePermissiveTrafficPolicy":  false,
+				"enableBackpressureExperimental": false,
+				"enableEgress":                   true,
+				"enablePrometheus":               true,
+				"enableGrafana":                  false,
+				"enableFluentbit":                false,
+				"deployJaeger":                   false,
+				"envoyLogLevel":                  testEnvoyLogLevel,
+				"enforceSingleMesh":              false,
+			}}))
+	})
+
+})
+
+var _ = Describe("Ensure that fluentbit is enabled when flag is set to true", func() {
+	var (
+		vals map[string]interface{}
+		err  error
+	)
+
+	BeforeEach(func() {
+		installCmd := &installCmd{
+			containerRegistry:           testRegistry,
+			containerRegistrySecret:     testRegistrySecret,
+			certificateManager:          "vault",
+			vaultHost:                   testVaultHost,
+			vaultProtocol:               testVaultProtocol,
+			certmanagerIssuerName:       testCertManagerIssuerName,
+			certmanagerIssuerKind:       testCertManagerIssuerKind,
+			certmanagerIssuerGroup:      testCertManagerIssuerGroup,
+			vaultToken:                  testVaultToken,
+			vaultRole:                   testVaultRole,
+			osmImageTag:                 testOsmImageTag,
+			osmImagePullPolicy:          defaultOsmImagePullPolicy,
+			serviceCertValidityDuration: "24h",
+			prometheusRetentionTime:     testRetentionTime,
+			meshName:                    defaultMeshName,
+			enableEgress:                true,
+			enablePrometheus:            true,
+			enableGrafana:               false,
+			enableFluentbit:             true,
+			envoyLogLevel:               testEnvoyLogLevel,
+		}
+
+		vals, err = installCmd.resolveValues()
+	})
+
+	It("should not error", func() {
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("should resolve correctly", func() {
+		Expect(vals).To(BeEquivalentTo(map[string]interface{}{
+			"OpenServiceMesh": map[string]interface{}{
+				"certificateManager": "vault",
+				"certmanager": map[string]interface{}{
+					"issuerKind":  "ClusterIssuer",
+					"issuerGroup": "example.co.uk",
+					"issuerName":  "my-osm-ca",
+				},
+				"meshName": defaultMeshName,
+				"image": map[string]interface{}{
+					"registry":   testRegistry,
+					"tag":        testOsmImageTag,
+					"pullPolicy": defaultOsmImagePullPolicy,
+				},
+				"imagePullSecrets": []interface{}{
+					map[string]interface{}{
+						"name": testRegistrySecret,
+					},
+				},
+				"serviceCertValidityDuration": "24h",
+				"vault": map[string]interface{}{
+					"host":     testVaultHost,
+					"protocol": "http",
+					"token":    testVaultToken,
+					"role":     testVaultRole,
+				},
+				"prometheus": map[string]interface{}{
+					"retention": map[string]interface{}{
+						"time": "5d",
+					},
+				},
+				"enableDebugServer":              false,
+				"enablePermissiveTrafficPolicy":  false,
+				"enableBackpressureExperimental": false,
+				"enableEgress":                   true,
+				"enablePrometheus":               true,
+				"enableGrafana":                  false,
+				"enableFluentbit":                true,
 				"deployJaeger":                   false,
 				"envoyLogLevel":                  testEnvoyLogLevel,
 				"enforceSingleMesh":              false,
@@ -1102,6 +1286,7 @@ var _ = Describe("Resolving values for install command with cert-manager paramet
 			enableEgress:                true,
 			enablePrometheus:            true,
 			enableGrafana:               false,
+			enableFluentbit:             false,
 			envoyLogLevel:               testEnvoyLogLevel,
 		}
 
@@ -1150,6 +1335,7 @@ var _ = Describe("Resolving values for install command with cert-manager paramet
 				"enableEgress":                   true,
 				"enablePrometheus":               true,
 				"enableGrafana":                  false,
+				"enableFluentbit":                false,
 				"deployJaeger":                   false,
 				"envoyLogLevel":                  testEnvoyLogLevel,
 				"enforceSingleMesh":              false,

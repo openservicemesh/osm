@@ -204,3 +204,33 @@ OSM Service to Service Metrics dashboard will look like:
 [4]: http://localhost:3000
 [5]: http://localhost:7070
 [6]: http://localhost:3000/d/OSMs2sMetrics/osm-service-to-service-metrics?orgId=1
+
+
+# Fluent Bit
+[Fluent Bit](https://fluentbit.io/) is an open source log processor and forwarder which allows you to collect data/logs and send them to multiple destinations. It can be used with OSM to forward OSM controller logs to a variety of outputs/log consumers by using its output plugins.
+
+OSM provides log forwarding by optionally deploying a Fluent Bit sidecar to the OSM controller using the `--enable-fluentbit` flag during installation. The user can then define where OSM logs should be forwarded using any of the available [Fluent Bit output plugins](https://docs.fluentbit.io/manual/v/1.4/pipeline/outputs).
+
+## Configuring Log Forwarding with Fluent Bit
+1. By default, the Fluent Bit sidecar is configured to simply forward logs to the Fluent Bit container's stdout. Define the output plugin you would like to forward your logs to in the existing `fluentbit-configmap.yaml` file. For example, to forward logs to Azure Monitor, you can use the Azure Log Analytics output plugin by changing the `[OUTPUT]` section as follows:
+   ```
+   [OUTPUT]
+         Name        azure
+         Match       *
+         Customer_ID <Log Analytics Workspace ID>
+         Shared_Key  <Log Analytics Primary key> 
+   ```
+   In this example, once you run OSM with Fluent Bit enabled, logs will populate under the Logs > Custom Logs section in Log Analytics. You can then set up a Log Analytics workspace-based instance of Application Insights to consume the logs.
+
+2. This configuration assumes OSM is running on a kind cluster so it uses a parser that matches the CRI log format. If you are using a different kubernetes distribution, you may have to update the `[PARSER]` section and the `parser` name in the `[INPUT]` section to one of the parsers defined [here](https://github.com/fluent/fluent-bit/blob/master/conf/parsers.conf) based on the format your logs are saved in.
+
+3. To change the log level being filtered on, you can update the "error" value below to "debug", "info", "warn", "fatal", "panic" or "trace":
+   ```    
+   [FILTER]
+         name       grep
+         match      *
+         regex      $message['level'] error
+   ```
+
+3. Once you have updated the Fluent Bit configmap, you can deploy the sidecar during OSM installation using the `--enable-fluentbit` flag. You should now be able to interact with error logs in the output of your choice as they get generated.
+

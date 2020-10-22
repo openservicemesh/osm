@@ -73,6 +73,33 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
+      {{- if .Values.OpenServiceMesh.enableFluentbit }}
+        - name: {{ .Values.OpenServiceMesh.fluentBitImage.name }}
+          image: {{ .Values.OpenServiceMesh.fluentBitImage.registry }}/fluent-bit:{{ .Values.OpenServiceMesh.fluentBitImage.tag }}
+          imagePullPolicy: {{ .Values.OpenServiceMesh.fluentBitImage.pullPolicy }}
+          volumeMounts:
+          - name: config
+            mountPath: /fluent-bit/etc
+            readOnly: true
+          - name: var-log-containers
+            mountPath: /var/log/containers
+            readOnly: true
+          - name: var-log-pods
+            mountPath: /var/log/pods
+            readOnly: true
+       {{- end }}
+    {{- if .Values.OpenServiceMesh.enableFluentbit }}
+      volumes:
+      - name: config
+        configMap:
+          name: fluentbit-configmap
+      - name: var-log-containers
+        hostPath:
+          path: /var/log/containers
+      - name: var-log-pods
+        hostPath:
+          path: /var/log/pods
+     {{- end }}
     {{- if .Values.OpenServiceMesh.imagePullSecrets }}
       imagePullSecrets:
 {{ toYaml .Values.OpenServiceMesh.imagePullSecrets | indent 8 }}

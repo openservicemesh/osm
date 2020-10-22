@@ -178,6 +178,7 @@ type InstallOSMOpts struct {
 	deployGrafana           bool
 	deployPrometheus        bool
 	deployJaeger            bool
+	deployFluentbit         bool
 
 	vaultHost     string
 	vaultProtocol string
@@ -203,6 +204,7 @@ func (td *OsmTestData) GetOSMInstallOpts() InstallOSMOpts {
 		deployGrafana:           false,
 		deployPrometheus:        false,
 		deployJaeger:            false,
+		deployFluentbit:         false,
 
 		vaultHost:     "vault." + td.osmNamespace + ".svc.cluster.local",
 		vaultProtocol: "http",
@@ -300,6 +302,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 	args = append(args, fmt.Sprintf("--enable-prometheus=%v", instOpts.deployPrometheus))
 	args = append(args, fmt.Sprintf("--enable-grafana=%v", instOpts.deployGrafana))
 	args = append(args, fmt.Sprintf("--deploy-jaeger=%v", instOpts.deployJaeger))
+	args = append(args, fmt.Sprintf("--enable-fluentbit=%v", instOpts.deployFluentbit))
 
 	td.T.Log("Installing OSM")
 	stdout, stderr, err := td.RunLocal(filepath.FromSlash("../../bin/osm"), args)
