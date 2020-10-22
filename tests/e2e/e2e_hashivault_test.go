@@ -19,6 +19,7 @@ var _ = DescribeTier2("1 Client pod -> 1 Server pod test using Vault", func() {
 			installOpts := td.GetOSMInstallOpts()
 			installOpts.certManager = "vault"
 			Expect(td.InstallOSM(installOpts)).To(Succeed())
+			Expect(td.WaitForPodsRunningReady(td.osmNamespace, 60*time.Second, 2)).To(Succeed())
 
 			// Create Test NS
 			for _, n := range ns {

@@ -15,7 +15,6 @@ import (
 	"time"
 
 	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 
 	"github.com/docker/docker/client"
 	"github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
@@ -53,6 +52,14 @@ const (
 	defaultImageTag = "latest"
 	// default cert manager
 	defaultCertManager = "tresor"
+	// default deploy Prometheus
+	defaultDeployPrometheus = false
+	// default deploy Grafana
+	defaultDeployGrafana = false
+	// default deploy Jaeger
+	defaultDeployJaeger = false
+	// default deploy Fluentbit
+	defaultDeployFluentbit = false
 	// test tag prefix, for NS labeling
 	osmTest = "osmTest"
 )
@@ -162,7 +169,10 @@ func (td *OsmTestData) AreRegistryCredsPresent() bool {
 func (td *OsmTestData) InitTestData(t GinkgoTInterface) error {
 	td.T = t
 
-	Expect(verifyValidInstallType(td.instType)).To(Succeed())
+	err := verifyValidInstallType(td.instType)
+	if err != nil {
+		return err
+	}
 
 	if (td.instType == KindCluster) && td.clusterProvider == nil {
 		td.clusterProvider = cluster.NewProvider()
@@ -288,18 +298,26 @@ func (td *OsmTestData) DeleteHelmRelease(name, namespace string) error {
 func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 	if td.instType == NoInstall {
 		if instOpts.certManager != defaultCertManager ||
-			instOpts.deployPrometheus ||
-			instOpts.deployGrafana ||
-			instOpts.deployJaeger ||
-			instOpts.deployFluentbit {
+			instOpts.deployPrometheus != defaultDeployPrometheus ||
+			instOpts.deployGrafana != defaultDeployGrafana ||
+			instOpts.deployJaeger != defaultDeployJaeger ||
+			instOpts.deployFluentbit != defaultDeployFluentbit {
 			Skip("Skipping test: NoInstall marked on a test that requires modified install")
 		}
 
 		// TODO: Check there is a valid OSM instance running already in osmNamespace
 
 		// This resets supported dynamic configs expected by the caller
-		Expect(td.UpdateOSMConfig("egress", fmt.Sprintf("%t", instOpts.egressEnabled))).To(Succeed())
-		Expect(td.UpdateOSMConfig("permissive_traffic_policy_mode", fmt.Sprintf("%t", instOpts.enablePermissiveMode))).To(Succeed())
+		err := td.UpdateOSMConfig("egress",
+			fmt.Sprintf("%t", instOpts.egressEnabled))
+		if err != nil {
+			return err
+		}
+		err = td.UpdateOSMConfig("permissive_traffic_policy_mode",
+			fmt.Sprintf("%t", instOpts.enablePermissiveMode))
+		if err != nil {
+			return err
+		}
 
 		return nil
 	}
