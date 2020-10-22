@@ -571,8 +571,8 @@ func (td *OsmTestData) AddNsToMesh(sidecardInject bool, ns ...string) error {
 	td.T.Logf("Adding Namespaces [+%s] to the mesh", ns)
 	for _, namespace := range ns {
 		args := []string{"namespace", "add", namespace}
-		if sidecardInject {
-			args = append(args, "--enable-sidecar-injection")
+		if !sidecardInject {
+			args = append(args, "--disable-sidecar-injection")
 		}
 
 		stdout, stderr, err := td.RunLocal(filepath.FromSlash("../../bin/osm"), args)

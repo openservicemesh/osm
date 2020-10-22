@@ -11,7 +11,7 @@ for ns in "$BOOKWAREHOUSE_NAMESPACE" "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPAC
 done
 
 # Add namespaces to the mesh
-bin/osm namespace add --mesh-name "$MESH_NAME" "$BOOKWAREHOUSE_NAMESPACE" "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE" --enable-sidecar-injection
+bin/osm namespace add --mesh-name "$MESH_NAME" "$BOOKWAREHOUSE_NAMESPACE" "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE"
 
 # Enable metrics for pods belonging to app namespaces
 bin/osm metrics enable --namespace "$BOOKWAREHOUSE_NAMESPACE, $BOOKBUYER_NAMESPACE, $BOOKSTORE_NAMESPACE, $BOOKTHIEF_NAMESPACE"
