@@ -28,3 +28,12 @@ webhooks:
         operator: NotIn
         values:
         - {{.Release.Namespace}}
+  rules:
+    - apiGroups:
+        - ""
+      apiVersions:
+        - v1
+      operations:
+        - CREATE
+      resources:
+        - pods
