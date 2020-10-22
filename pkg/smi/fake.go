@@ -26,10 +26,11 @@ func NewFakeMeshSpecClient() MeshSpec {
 		trafficSplits:    []*split.TrafficSplit{&tests.TrafficSplit},
 		httpRouteGroups:  []*spec.HTTPRouteGroup{&tests.HTTPRouteGroup},
 		tcpRoutes:        []*spec.TCPRoute{&tests.TCPRoute},
-		trafficTargets:   []*target.TrafficTarget{&tests.TrafficTarget},
-		weightedServices: []service.WeightedService{tests.BookstoreV1WeightedService, tests.BookstoreV2WeightedService},
+		trafficTargets:   []*target.TrafficTarget{&tests.BookstoreTrafficTarget, &tests.BookstoreV2TrafficTarget},
+		weightedServices: []service.WeightedService{tests.BookstoreV1WeightedService, tests.BookstoreV2WeightedService, tests.BookstoreV3WeightedService},
 		serviceAccounts: []service.K8sServiceAccount{
 			tests.BookstoreServiceAccount,
+			tests.BookstoreV2ServiceAccount,
 			tests.BookbuyerServiceAccount,
 		},
 

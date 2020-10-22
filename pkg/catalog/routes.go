@@ -257,32 +257,32 @@ func getTrafficPoliciesForService(mc *MeshCatalog, routePolicies map[trafficpoli
 	// is a part of.
 	var matchedTrafficTargets []trafficpolicy.TrafficTarget
 
-	for _, trafficTargets := range mc.meshSpec.ListTrafficTargets() {
-		log.Debug().Msgf("Discovered TrafficTarget resource: %s/%s", trafficTargets.Namespace, trafficTargets.Name)
-		if trafficTargets.Spec.Rules == nil || len(trafficTargets.Spec.Rules) == 0 {
-			log.Error().Msgf("TrafficTarget %s/%s has no spec routes; Skipping...", trafficTargets.Namespace, trafficTargets.Name)
+	for _, trafficTarget := range mc.meshSpec.ListTrafficTargets() {
+		log.Debug().Msgf("Discovered TrafficTarget resource: %s/%s", trafficTarget.Namespace, trafficTarget.Name)
+		if trafficTarget.Spec.Rules == nil || len(trafficTarget.Spec.Rules) == 0 {
+			log.Error().Msgf("TrafficTarget %s/%s has no spec routes; Skipping...", trafficTarget.Namespace, trafficTarget.Name)
 			continue
 		}
 
-		for _, trafficSources := range trafficTargets.Spec.Sources {
-			trafficTargetPermutations, err := mc.listTrafficTargetPermutations(*trafficTargets, trafficSources, trafficTargets.Spec.Destination)
+		for _, trafficSources := range trafficTarget.Spec.Sources {
+			trafficTargetPermutations, err := mc.listTrafficTargetPermutations(*trafficTarget, trafficSources, trafficTarget.Spec.Destination)
 			if err != nil {
-				log.Error().Msgf("Could not list services for TrafficTarget %s/%s", trafficTargets.Namespace, trafficTargets.Name)
+				log.Error().Msgf("Could not list services for TrafficTarget %s/%s", trafficTarget.Namespace, trafficTarget.Name)
 				return nil, err
 			}
-			for _, trafficTarget := range trafficTargetPermutations {
+			for _, trafficPolicy := range trafficTargetPermutations {
 				var httpRoutes []trafficpolicy.HTTPRoute // Keeps track of all the routes from a source to a destination service
 
-				for _, trafficTargetSpecs := range trafficTargets.Spec.Rules {
+				for _, trafficTargetSpecs := range trafficTarget.Spec.Rules {
 					if trafficTargetSpecs.Kind != HTTPTraffic {
-						log.Error().Msgf("TrafficTarget %s/%s has Spec Kind %s which isn't supported for now; Skipping...", trafficTargets.Namespace, trafficTargets.Name, trafficTargetSpecs.Kind)
+						log.Error().Msgf("TrafficTarget %s/%s has Spec Kind %s which isn't supported for now; Skipping...", trafficTarget.Namespace, trafficTarget.Name, trafficTargetSpecs.Kind)
 						continue
 					}
 
-					specKey := mc.getTrafficSpecName(trafficTargetSpecs.Kind, trafficTargets.Namespace, trafficTargetSpecs.Name)
+					specKey := mc.getTrafficSpecName(trafficTargetSpecs.Kind, trafficTarget.Namespace, trafficTargetSpecs.Name)
 					routePoliciesMatched, matchFound := routePolicies[specKey]
 					if !matchFound {
-						log.Error().Msgf("TrafficTarget %s/%s could not find a TrafficSpec %s", trafficTargets.Namespace, trafficTargets.Name, specKey)
+						log.Error().Msgf("TrafficTarget %s/%s could not find a TrafficSpec %s", trafficTarget.Namespace, trafficTarget.Name, specKey)
 						return nil, errNoTrafficSpecFoundForTrafficPolicy
 					}
 					if len(trafficTargetSpecs.Matches) == 0 {
@@ -298,7 +298,7 @@ func getTrafficPoliciesForService(mc *MeshCatalog, routePolicies map[trafficpoli
 						for _, specMatchesName := range trafficTargetSpecs.Matches {
 							routePolicy, matchFound := routePoliciesMatched[trafficpolicy.TrafficSpecMatchName(specMatchesName)]
 							if !matchFound {
-								log.Error().Msgf("TrafficTarget %s/%s could not find a TrafficSpec %s with match name %s", trafficTargets.Namespace, trafficTargets.Name, specKey, specMatchesName)
+								log.Error().Msgf("TrafficTarget %s/%s could not find a TrafficSpec %s with match name %s", trafficTarget.Namespace, trafficTarget.Name, specKey, specMatchesName)
 								return nil, errNoTrafficSpecFoundForTrafficPolicy
 							}
 							// Consider this route for the current traffic target object being evaluated
@@ -307,15 +307,17 @@ func getTrafficPoliciesForService(mc *MeshCatalog, routePolicies map[trafficpoli
 					}
 				}
 
-				if trafficTarget.Source.Equals(meshService) || trafficTarget.Destination.Equals(meshService) {
+				if trafficPolicy.Source.Equals(meshService) || trafficPolicy.Destination.Equals(meshService) {
 					// The given meshService is a source or destination for this trafficTarget, so add
 					// it to the list of traffic targets associated with this service.
-					srcDstServiceHash := hashSrcDstService(trafficTarget.Source, trafficTarget.Destination)
+					srcDstServiceHash := hashSrcDstService(trafficPolicy.Source, trafficPolicy.Destination)
+					name := trafficPolicy.Name
 					existingTarget, ok := srcDstTrafficTargetMap[srcDstServiceHash]
 					if ok {
 						httpRoutes = consolidateRoutes(existingTarget.HTTPRoutes, httpRoutes)
+						name = utils.GetTrafficTargetName("", trafficPolicy.Source, trafficPolicy.Destination)
 					}
-					srcDstTrafficTarget := getTrafficTargetFromSrcDstHash(srcDstServiceHash, trafficTarget.Name, httpRoutes)
+					srcDstTrafficTarget := getTrafficTargetFromSrcDstHash(srcDstServiceHash, name, httpRoutes)
 					srcDstTrafficTargetMap[srcDstServiceHash] = srcDstTrafficTarget
 				}
 			}

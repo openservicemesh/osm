@@ -31,7 +31,7 @@ func TestListTrafficPolicies(t *testing.T) {
 		},
 		{
 			input:  tests.BookbuyerService,
-			output: []trafficpolicy.TrafficTarget{tests.BookstoreV1TrafficPolicy, tests.BookstoreV2TrafficPolicy, tests.BookstoreApexTrafficPolicy},
+			output: []trafficpolicy.TrafficTarget{tests.BookstoreV1TrafficPolicy, tests.BookstoreV2TrafficPolicy, tests.BookstoreV3TrafficPolicy, tests.BookstoreApexTrafficPolicy},
 		},
 	}
 
@@ -57,19 +57,25 @@ func TestGetTrafficPoliciesForService(t *testing.T) {
 			input: tests.BookbuyerService,
 			output: []trafficpolicy.TrafficTarget{
 				{
-					Name:        utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreV1Service),
+					Name:        tests.BookstoreV1TrafficPolicy.Name,
 					Destination: tests.BookstoreV1Service,
 					Source:      tests.BookbuyerService,
 					HTTPRoutes:  tests.BookstoreV1TrafficPolicy.HTTPRoutes,
 				},
 				{
-					Name:        utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreV2Service),
+					Name:        tests.BookstoreV2TrafficPolicy.Name,
 					Destination: tests.BookstoreV2Service,
 					Source:      tests.BookbuyerService,
 					HTTPRoutes:  tests.BookstoreV2TrafficPolicy.HTTPRoutes,
 				},
 				{
-					Name:        utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreApexService),
+					Name:        tests.BookstoreV3TrafficPolicy.Name,
+					Destination: tests.BookstoreV3Service,
+					Source:      tests.BookbuyerService,
+					HTTPRoutes:  tests.BookstoreV3TrafficPolicy.HTTPRoutes,
+				},
+				{
+					Name:        tests.BookstoreApexTrafficPolicy.Name,
 					Destination: tests.BookstoreApexService,
 					Source:      tests.BookbuyerService,
 					HTTPRoutes:  tests.BookstoreApexTrafficPolicy.HTTPRoutes,
@@ -106,6 +112,13 @@ func TestGetHTTPPathsPerRoute(t *testing.T) {
 			},
 			trafficpolicy.TrafficSpecMatchName(tests.SellBooksMatchName): {
 				PathRegex: tests.BookstoreSellPath,
+				Methods:   []string{"GET"},
+				Headers: map[string]string{
+					"user-agent": tests.HTTPUserAgent,
+				},
+			},
+			trafficpolicy.TrafficSpecMatchName(tests.RentBooksMatchName): {
+				PathRegex: tests.BookstoreRentPath,
 				Methods:   []string{"GET"},
 				Headers: map[string]string{
 					"user-agent": tests.HTTPUserAgent,
@@ -179,7 +192,7 @@ func TestListAllowedOutboundServices(t *testing.T) {
 	actualList, err := mc.ListAllowedOutboundServices(tests.BookbuyerService)
 	assert.Nil(err)
 
-	expectedList := []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service, tests.BookstoreApexService}
+	expectedList := []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service, tests.BookstoreV3Service, tests.BookstoreApexService}
 	assert.ElementsMatch(actualList, expectedList)
 }
 
@@ -247,16 +260,16 @@ func TestGetHostnamesForService(t *testing.T) {
 
 	expected := strings.Join(
 		[]string{
-			"bookstore-apex",
-			"bookstore-apex.default",
-			"bookstore-apex.default.svc",
-			"bookstore-apex.default.svc.cluster",
-			"bookstore-apex.default.svc.cluster.local",
-			"bookstore-apex:8888",
-			"bookstore-apex.default:8888",
-			"bookstore-apex.default.svc:8888",
-			"bookstore-apex.default.svc.cluster:8888",
-			"bookstore-apex.default.svc.cluster.local:8888",
+			"bookstore-v1",
+			"bookstore-v1.default",
+			"bookstore-v1.default.svc",
+			"bookstore-v1.default.svc.cluster",
+			"bookstore-v1.default.svc.cluster.local",
+			"bookstore-v1:8888",
+			"bookstore-v1.default:8888",
+			"bookstore-v1.default.svc:8888",
+			"bookstore-v1.default.svc.cluster:8888",
+			"bookstore-v1.default.svc.cluster.local:8888",
 		},
 		",")
 
@@ -296,7 +309,7 @@ func TestListTrafficTargetPermutations(t *testing.T) {
 
 	mc := newFakeMeshCatalog()
 
-	trafficTargets, err := mc.listTrafficTargetPermutations(tests.TrafficTarget, tests.TrafficTarget.Spec.Sources[0], tests.TrafficTarget.Spec.Destination)
+	trafficTargets, err := mc.listTrafficTargetPermutations(tests.BookstoreTrafficTarget, tests.BookstoreTrafficTarget.Spec.Sources[0], tests.BookstoreTrafficTarget.Spec.Destination)
 	assert.Nil(err)
 
 	var actualTargetNames []string
@@ -305,9 +318,9 @@ func TestListTrafficTargetPermutations(t *testing.T) {
 	}
 
 	expected := []string{
-		utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreV1Service),
-		utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreV2Service),
-		utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreApexService),
+		utils.GetTrafficTargetName(tests.BookstoreTrafficTargetName, tests.BookbuyerService, tests.BookstoreV1Service),
+		utils.GetTrafficTargetName(tests.BookstoreTrafficTargetName, tests.BookbuyerService, tests.BookstoreV3Service),
+		utils.GetTrafficTargetName(tests.BookstoreTrafficTargetName, tests.BookbuyerService, tests.BookstoreApexService),
 	}
 	assert.ElementsMatch(actualTargetNames, expected)
 }
