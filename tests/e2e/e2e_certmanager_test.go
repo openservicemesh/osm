@@ -8,7 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("1 Client pod -> 1 Server pod test using cert-manager", func() {
+var _ = DescribeTier2("1 Client pod -> 1 Server pod test using cert-manager", func() {
 	Context("CertManagerSimpleClientServer", func() {
 		const sourceNs = "client"
 		const destNs = "server"
