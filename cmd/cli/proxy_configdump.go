@@ -52,13 +52,13 @@ func newProxyDumpConfig(config *action.Configuration, out io.Writer) *cobra.Comm
 			dumpConfigCmd.pod = args[0]
 			conf, err := config.RESTClientGetter.ToRESTConfig()
 			if err != nil {
-				return errors.Errorf("Error fetching kubeconfig")
+				return errors.Errorf("Error fetching kubeconfig: %s", err)
 			}
 			dumpConfigCmd.config = conf
 
 			clientset, err := kubernetes.NewForConfig(conf)
 			if err != nil {
-				return errors.Errorf("Could not access Kubernetes cluster. Check kubeconfig")
+				return errors.Errorf("Could not access Kubernetes cluster, check kubeconfig: %s", err)
 			}
 			dumpConfigCmd.clientSet = clientset
 			return dumpConfigCmd.run()

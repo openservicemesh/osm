@@ -8,9 +8,11 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 	"k8s.io/api/admission/v1beta1"
 	admissionv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -47,6 +49,9 @@ const (
 
 	// WebhookHealthPath is the HTTP path at which the health of the webhook can be queried
 	WebhookHealthPath = "/healthz"
+
+	// webhookTimeoutStr is the url variable name for timeout
+	webhookMutateTimeoutKey = "timeout"
 )
 
 // NewWebhook starts a new web server handling requests from the injector MutatingWebhookConfiguration
@@ -134,6 +139,17 @@ func (wh *webhook) healthHandler(w http.ResponseWriter, req *http.Request) {
 func (wh *webhook) mutateHandler(w http.ResponseWriter, req *http.Request) {
 	log.Info().Msgf("Request received: Method=%v, URL=%v", req.Method, req.URL)
 
+	// For debug/profiling purposes
+	if log.GetLevel() == zerolog.DebugLevel {
+		// Read timeout from request
+		reqTimeout, err := readTimeout(req)
+		if err != nil {
+			log.Error().Msgf("Could not read timeout from request url: %v", err)
+		} else {
+			defer webhookTimeTrack(time.Now(), *reqTimeout)
+		}
+	}
+
 	if contentType := req.Header.Get("Content-Type"); contentType != "application/json" {
 		errmsg := fmt.Sprintf("Invalid Content-Type: %q", contentType)
 		http.Error(w, errmsg, http.StatusUnsupportedMediaType)
@@ -215,7 +231,7 @@ func (wh *webhook) mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespo
 	// Create the patches for the spec
 	// We use req.Namespace because pod.Namespace is "" at this point
 	// This string uniquely identifies the pod. Ideally this would be the pod.UID, but this is not available at this point.
-	proxyUUID := uuid.New().String()
+	proxyUUID := uuid.New()
 	patchBytes, err := wh.createPatch(&pod, req.Namespace, proxyUUID)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create patch")

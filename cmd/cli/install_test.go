@@ -37,7 +37,6 @@ var (
 	testCertManagerIssuerGroup = "example.co.uk"
 	testCABundleSecretName     = "osm-ca-bundle"
 	testRetentionTime          = "5d"
-	testMeshCIDR               = "10.20.0.0/16"
 	testEnvoyLogLevel          = "error"
 )
 

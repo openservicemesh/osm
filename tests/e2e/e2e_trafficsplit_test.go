@@ -13,7 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = Describe("Test HTTP from N Clients deployments to 1 Server deployment backed with Traffic split test", func() {
+var _ = DescribeTier1("Test HTTP from N Clients deployments to 1 Server deployment backed with Traffic split test", func() {
 	Context("ClientServerTrafficSplit", func() {
 		const (
 			// to name the header we will use to identify the server that replies

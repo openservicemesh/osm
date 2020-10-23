@@ -106,7 +106,7 @@ const (
 	KubernetesOpaqueSecretCAExpiration = "expiration"
 
 	// EnvoyUniqueIDLabelName is the label applied to pods with the unique ID of the Envoy sidecar.
-	EnvoyUniqueIDLabelName = "osm-envoy-uid"
+	EnvoyUniqueIDLabelName = "osm-proxy-uuid"
 
 	// TimeDateLayout is the layout for time.Parse used in this repo
 	TimeDateLayout = "2006-01-02T15:04:05.000Z"

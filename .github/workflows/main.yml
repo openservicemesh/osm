@@ -113,6 +113,9 @@ jobs:
     name: Go test e2e
     runs-on: ubuntu-latest
     needs: build
+    env:
+      CTR_TAG: ${{ github.sha }}
+      CTR_REGISTRY: "localhost:5000"   # unused for kind, but currently required in framework
     steps:
       - name: Checkout
         uses: actions/checkout@v1
@@ -132,13 +135,14 @@ jobs:
         uses: actions/setup-go@v1
         with:
           go-version: 1.15
-      - name: Run E2E tests
-        env:
-          CTR_TAG: ${{ github.sha }}
-          CTR_REGISTRY: "localhost:5000"   # unused for kind, but currently required in framework
-        run: |
-          make docker-build-osm-controller docker-build-init build-osm
-          go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -kindCluster -test.timeout 0 -test.failfast
+      - name: Build test dependencies
+        run: make docker-build-osm-controller docker-build-init build-osm
+      - name: Run PR tests
+        if: ${{ github.event_name == 'pull_request' }}
+        run: go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -kindCluster -test.timeout 0 -test.failfast -ginkgo.focus='\[Tier 1\]'
+      - name: Run tests for push to main
+        if: ${{ github.event_name == 'push' }}
+        run: go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -kindCluster -test.timeout 0 -test.failfast
 
   integration-tresor:
     name: Integration Test with Tresor, SMI traffic policies, and egress disabled

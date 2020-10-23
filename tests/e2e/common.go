@@ -53,6 +53,15 @@ const (
 	osmTest = "osmTest"
 )
 
+func DescribeTierN(tier uint) func(string, func()) bool {
+	return func(name string, body func()) bool {
+		return Describe(fmt.Sprintf("[Tier %d] %s", tier, name), body)
+	}
+}
+
+var DescribeTier1 = DescribeTierN(1)
+var DescribeTier2 = DescribeTierN(2)
+
 // OsmTestData stores common state, variables and flags for the test at hand
 type OsmTestData struct {
 	T GinkgoTInterface // for common test logging
@@ -217,38 +226,40 @@ func (td *OsmTestData) GetOSMInstallOpts() InstallOSMOpts {
 	}
 }
 
+// HelmInstallOSM installs an osm control plane using the osm chart which lives in charts/osm
+func (td *OsmTestData) HelmInstallOSM(release, namespace string) error {
+	if td.kindCluster {
+		if err := td.loadOSMImagesIntoKind(); err != nil {
+			return err
+		}
+	}
+
+	values := fmt.Sprintf("OpenServiceMesh.image.registry=%s,OpenServiceMesh.image.tag=%s,OpenServiceMesh.meshName=%s", td.ctrRegistryServer, td.osmImageTag, release)
+	args := []string{"install", release, "../../charts/osm", "--set", values, "--namespace", namespace, "--create-namespace", "--wait"}
+	stdout, stderr, err := td.RunLocal("helm", args)
+	if err != nil {
+		td.T.Logf("stdout:\n%s", stdout)
+		return errors.Errorf("failed to run helm install with osm chart: %s", stderr)
+	}
+
+	return nil
+}
+
+func (td *OsmTestData) DeleteHelmRelease(name, namespace string) error {
+	args := []string{"uninstall", name, "--namespace", namespace}
+	_, _, err := td.RunLocal("helm", args)
+	if err != nil {
+		td.T.Fatal(err)
+	}
+	return nil
+}
+
 // InstallOSM installs OSM. Right now relies on externally calling the binary and a subset of possible opts
 // TODO: refactor install to be able to call it directly here vs. exec-ing CLI.
 func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 	if td.kindCluster {
-		td.T.Log("Getting image data")
-		imageNames := []string{
-			"osm-controller",
-			"init",
-		}
-		docker, err := client.NewClientWithOpts(client.WithAPIVersionNegotiation())
-		if err != nil {
-			return errors.Wrap(err, "failed to create docker client")
-		}
-		var imageIDs []string
-		for _, name := range imageNames {
-			imageName := fmt.Sprintf("%s/%s:%s", td.ctrRegistryServer, name, td.osmImageTag)
-			imageIDs = append(imageIDs, imageName)
-		}
-		imageData, err := docker.ImageSave(context.TODO(), imageIDs)
-		if err != nil {
-			return errors.Wrap(err, "failed to get image data")
-		}
-		defer imageData.Close()
-		nodes, err := td.clusterProvider.ListNodes(td.clusterName)
-		if err != nil {
-			return errors.Wrap(err, "failed to list kind nodes")
-		}
-		for _, n := range nodes {
-			td.T.Log("Loading images onto node", n)
-			if err := nodeutils.LoadImageArchive(n, imageData); err != nil {
-				return errors.Wrap(err, "failed to load images")
-			}
+		if err := td.loadOSMImagesIntoKind(); err != nil {
+			return err
 		}
 	}
 
@@ -261,7 +272,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 	args = append(args, "install",
 		"--container-registry="+instOpts.containerRegistryLoc,
 		"--osm-image-tag="+instOpts.osmImagetag,
-		"--namespace="+instOpts.controlPlaneNS,
+		"--osm-namespace="+instOpts.controlPlaneNS,
 		"--certificate-manager="+instOpts.certManager,
 		"--enable-egress="+strconv.FormatBool(instOpts.egressEnabled),
 		"--enable-permissive-traffic-policy="+strconv.FormatBool(instOpts.enablePermissiveMode),
@@ -313,6 +324,48 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		return errors.Wrap(err, "failed to run osm install")
 	}
 
+	return nil
+}
+
+// GetConfigMap is a wrapper to get a config map by name in a particular namespace
+func (td *OsmTestData) GetConfigMap(name, namespace string) (*corev1.ConfigMap, error) {
+	configmap, err := td.client.CoreV1().ConfigMaps(namespace).Get(context.Background(), name, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return configmap, nil
+}
+
+func (td *OsmTestData) loadOSMImagesIntoKind() error {
+	td.T.Log("Getting image data")
+	imageNames := []string{
+		"osm-controller",
+		"init",
+	}
+	docker, err := client.NewClientWithOpts(client.WithAPIVersionNegotiation())
+	if err != nil {
+		return errors.Wrap(err, "failed to create docker client")
+	}
+	var imageIDs []string
+	for _, name := range imageNames {
+		imageName := fmt.Sprintf("%s/%s:%s", td.ctrRegistryServer, name, td.osmImageTag)
+		imageIDs = append(imageIDs, imageName)
+	}
+	imageData, err := docker.ImageSave(context.TODO(), imageIDs)
+	if err != nil {
+		return errors.Wrap(err, "failed to get image data")
+	}
+	defer imageData.Close()
+	nodes, err := td.clusterProvider.ListNodes(td.clusterName)
+	if err != nil {
+		return errors.Wrap(err, "failed to list kind nodes")
+	}
+	for _, n := range nodes {
+		td.T.Log("Loading images onto node", n)
+		if err := nodeutils.LoadImageArchive(n, imageData); err != nil {
+			return errors.Wrap(err, "failed to load images")
+		}
+	}
 	return nil
 }
 
@@ -571,11 +624,10 @@ func (td *OsmTestData) AddNsToMesh(sidecardInject bool, ns ...string) error {
 	td.T.Logf("Adding Namespaces [+%s] to the mesh", ns)
 	for _, namespace := range ns {
 		args := []string{"namespace", "add", namespace}
-		if sidecardInject {
-			args = append(args, "--enable-sidecar-injection")
+		if !sidecardInject {
+			args = append(args, "--disable-sidecar-injection")
 		}
 
-		args = append(args, "--namespace="+td.osmNamespace)
 		stdout, stderr, err := td.RunLocal(filepath.FromSlash("../../bin/osm"), args)
 		if err != nil {
 			td.T.Logf("error running osm namespace add")
@@ -638,6 +690,25 @@ func (td *OsmTestData) CreateNs(nsName string, labels map[string]string) error {
 
 // DeleteNs deletes a test NS
 func (td *OsmTestData) DeleteNs(nsName string) error {
+	// Delete Helm releases created in the namespace
+	helm := &action.Configuration{}
+	if err := helm.Init(td.env.RESTClientGetter(), nsName, "secret", td.T.Logf); err != nil {
+		td.T.Logf("WARNING: failed to initialize helm config, skipping helm cleanup: %v", err)
+	} else {
+		list := action.NewList(helm)
+		list.All = true
+		if releases, err := list.Run(); err != nil {
+			td.T.Logf("WARNING: failed to list helm releases in namespace %s, skipping release cleanup: %v", nsName, err)
+		} else {
+			del := action.NewUninstall(helm)
+			for _, release := range releases {
+				if _, err := del.Run(release.Name); err != nil {
+					td.T.Logf("WARNING: failed to delete helm release %s in namespace %s: %v", release.Name, nsName, err)
+				}
+			}
+		}
+	}
+
 	var backgroundDelete metav1.DeletionPropagation = metav1.DeletePropagationBackground
 
 	td.T.Logf("Deleting namespace %v", nsName)

@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Permissive Traffic Policy Mode", func() {
+var _ = DescribeTier1("Permissive Traffic Policy Mode", func() {
 	Context("PermissiveMode", func() {
 		const sourceNs = "client"
 		const destNs = "server"

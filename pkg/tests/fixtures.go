@@ -78,8 +78,8 @@ const (
 	// SelectorValue is a Pod selector value constant.
 	SelectorValue = "frontend"
 
-	// EnvoyUID is the unique ID of the Envoy used for unit tests.
-	EnvoyUID = "A-B-C-D"
+	// ProxyUUID is the unique ID of the Envoy used for unit tests.
+	ProxyUUID = "abcdef12-5791-9876-abcd-1234567890ab"
 
 	// ServicePort is the port used by a service
 	ServicePort = 8888
@@ -373,7 +373,7 @@ func NewPodTestFixture(namespace string, podName string) corev1.Pod {
 			Namespace: namespace,
 			Labels: map[string]string{
 				SelectorKey:                      SelectorValue,
-				constants.EnvoyUniqueIDLabelName: EnvoyUID,
+				constants.EnvoyUniqueIDLabelName: ProxyUUID,
 			},
 		},
 		Spec: corev1.PodSpec{
@@ -390,7 +390,7 @@ func NewPodTestFixtureWithOptions(namespace string, podName string, serviceAccou
 			Namespace: namespace,
 			Labels: map[string]string{
 				SelectorKey:                      SelectorValue,
-				constants.EnvoyUniqueIDLabelName: EnvoyUID,
+				constants.EnvoyUniqueIDLabelName: ProxyUUID,
 			},
 		},
 		Spec: corev1.PodSpec{

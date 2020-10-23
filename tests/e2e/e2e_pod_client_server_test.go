@@ -11,7 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = Describe("Test HTTP traffic from 1 pod client -> 1 pod server", func() {
+var _ = DescribeTier1("Test HTTP traffic from 1 pod client -> 1 pod server", func() {
 	Context("SimpleClientServer", func() {
 		sourceName := "client"
 		destName := "server"

@@ -65,10 +65,10 @@ var _ = Describe("Running the namespace add command", func() {
 				Expect(ns.Labels[constants.OSMKubeResourceMonitorAnnotation]).To(Equal(testMeshName))
 			})
 
-			It("should correctly not add an inject annotation to the namespace", func() {
+			It("should correctly add an inject annotation to the namespace", func() {
 				ns, err := fakeClientSet.CoreV1().Namespaces().Get(context.TODO(), testNamespace, metav1.GetOptions{})
 				Expect(err).ToNot(HaveOccurred())
-				Expect(ns.Annotations).ShouldNot(HaveKey(constants.SidecarInjectionAnnotation))
+				Expect(ns.Annotations[constants.SidecarInjectionAnnotation]).To(Equal("enabled"))
 			})
 		})
 
@@ -83,12 +83,10 @@ var _ = Describe("Running the namespace add command", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				namespaceAddCmd := &namespaceAddCmd{
-					out:                     out,
-					meshName:                testMeshName,
-					namespaces:              []string{testNamespace},
-					sidecarInjectionFlagSet: true,
-					enableSidecarInjection:  true,
-					clientSet:               fakeClientSet,
+					out:        out,
+					meshName:   testMeshName,
+					namespaces: []string{testNamespace},
+					clientSet:  fakeClientSet,
 				}
 
 				err = namespaceAddCmd.run()
@@ -129,8 +127,7 @@ var _ = Describe("Running the namespace add command", func() {
 					out:                     out,
 					meshName:                testMeshName,
 					namespaces:              []string{testNamespace},
-					sidecarInjectionFlagSet: true,
-					enableSidecarInjection:  false,
+					disableSidecarInjection: true,
 					clientSet:               fakeClientSet,
 				}
 

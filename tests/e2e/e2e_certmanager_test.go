@@ -8,15 +8,13 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("1 Client pod -> 1 Server pod test using cert-manager", func() {
+var _ = DescribeTier2("1 Client pod -> 1 Server pod test using cert-manager", func() {
 	Context("CertManagerSimpleClientServer", func() {
 		const sourceNs = "client"
 		const destNs = "server"
 		var ns []string = []string{sourceNs, destNs}
 
 		It("Tests HTTP traffic for client pod -> server pod", func() {
-			Skip("Needs fix: https://github.com/openservicemesh/osm/issues/1880")
-
 			// Install OSM
 			installOpts := td.GetOSMInstallOpts()
 			installOpts.certManager = "cert-manager"
