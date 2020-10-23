@@ -20,7 +20,6 @@ var _ = DescribeTier1("Permissive Traffic Policy Mode", func() {
 			installOpts := td.GetOSMInstallOpts()
 			installOpts.enablePermissiveMode = true
 			Expect(td.InstallOSM(installOpts)).To(Succeed())
-			Expect(td.WaitForPodsRunningReady(td.osmNamespace, 90*time.Second, 1)).To(Succeed())
 
 			// Create Test NS
 			for _, n := range ns {

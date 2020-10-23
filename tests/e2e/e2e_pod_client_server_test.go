@@ -20,7 +20,6 @@ var _ = DescribeTier1("Test HTTP traffic from 1 pod client -> 1 pod server", fun
 		It("Tests HTTP traffic for client pod -> server pod", func() {
 			// Install OSM
 			Expect(td.InstallOSM(td.GetOSMInstallOpts())).To(Succeed())
-			Expect(td.WaitForPodsRunningReady(td.osmNamespace, 90*time.Second, 1)).To(Succeed())
 
 			// Create Test NS
 			for _, n := range ns {

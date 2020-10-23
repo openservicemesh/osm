@@ -33,7 +33,6 @@ var _ = DescribeTier1("Test HTTP traffic from N deployment client -> 1 deploymen
 		It("Tests HTTP traffic from multiple client deployments to a server deployment", func() {
 			// Install OSM
 			Expect(td.InstallOSM(td.GetOSMInstallOpts())).To(Succeed())
-			Expect(td.WaitForPodsRunningReady(td.osmNamespace, 90*time.Second, 1)).To(Succeed())
 
 			// Server NS
 			Expect(td.CreateNs(destApp, nil)).To(Succeed())

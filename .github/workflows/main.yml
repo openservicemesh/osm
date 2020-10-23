@@ -139,10 +139,10 @@ jobs:
         run: make docker-build-osm-controller docker-build-init build-osm
       - name: Run PR tests
         if: ${{ github.event_name == 'pull_request' }}
-        run: go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -kindCluster -test.timeout 0 -test.failfast -ginkgo.focus='\[Tier 1\]'
+        run: go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -installType=KindCluster -test.timeout 0 -test.failfast -ginkgo.failFast -ginkgo.focus='\[Tier 1\]'
       - name: Run tests for push to main
         if: ${{ github.event_name == 'push' }}
-        run: go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -kindCluster -test.timeout 0 -test.failfast
+        run: go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -installType=KindCluster -test.timeout 0 -test.failfast -ginkgo.failFast
 
   integration-tresor:
     name: Integration Test with Tresor, SMI traffic policies, and egress disabled
