@@ -41,12 +41,12 @@ func newNamespaceList(out io.Writer) *cobra.Command {
 
 			config, err := settings.RESTClientGetter().ToRESTConfig()
 			if err != nil {
-				return errors.Errorf("Error fetching kubeconfig")
+				return errors.Errorf("Error fetching kubeconfig: %s", err)
 			}
 
 			clientset, err := kubernetes.NewForConfig(config)
 			if err != nil {
-				return errors.Errorf("Could not access Kubernetes cluster. Check kubeconfig")
+				return errors.Errorf("Could not access Kubernetes cluster, check kubeconfig: %s", err)
 			}
 			namespaceList.clientSet = clientset
 			return namespaceList.run()
