@@ -24,7 +24,7 @@ import (
 var _ = Describe("Test all patch operations", func() {
 
 	// Setup all constants and variables needed for the tests
-	envoyUID := uuid.New().String()
+	proxyUUID := uuid.New()
 	const (
 		namespace    = "-namespace-"
 		podName      = "-pod-name-"
@@ -39,12 +39,12 @@ var _ = Describe("Test all patch operations", func() {
 		It("adds", func() {
 			pod := tests.NewPodTestFixture(namespace, podName)
 			pod.Labels = nil
-			actual := updateLabels(&pod, envoyUID)
+			actual := updateLabels(&pod, proxyUUID)
 			expected := &JSONPatchOperation{
 				Op:   addOperation,
 				Path: "/metadata/labels",
 				Value: map[string]string{
-					"osm-envoy-uid": envoyUID,
+					"osm-proxy-uuid": proxyUUID.String(),
 				},
 			}
 			Expect(actual).To(Equal(expected))
@@ -52,11 +52,11 @@ var _ = Describe("Test all patch operations", func() {
 
 		It("replaces", func() {
 			pod := tests.NewPodTestFixture(namespace, podName)
-			actual := updateLabels(&pod, envoyUID)
+			actual := updateLabels(&pod, proxyUUID)
 			replace := &JSONPatchOperation{
 				Op:    replaceOperation,
-				Path:  "/metadata/labels/osm-envoy-uid",
-				Value: envoyUID,
+				Path:  "/metadata/labels/osm-proxy-uuid",
+				Value: proxyUUID,
 			}
 			Expect(actual).To(Equal(replace))
 		})
@@ -194,7 +194,7 @@ var _ = Describe("Test all patch operations", func() {
 			pod := tests.NewPodTestFixture(namespace, podName)
 			mockConfigurator.EXPECT().GetEnvoyLogLevel().Return("").Times(1)
 
-			jsonPatches, err := wh.createPatch(&pod, namespace, envoyUID)
+			jsonPatches, err := wh.createPatch(&pod, namespace, proxyUUID)
 
 			Expect(err).ToNot(HaveOccurred())
 
@@ -228,7 +228,7 @@ var _ = Describe("Test all patch operations", func() {
 				`{"op":addOperation,"path":"/metadata/annotations/prometheus.io~1path","value":"/stats/prometheus"},` +
 
 				// Add Envoy UID Label
-				`{"op":replaceOperation,"path":"/metadata/labels/osm-envoy-uid","value":"proxy-uuid"}` +
+				`{"op":replaceOperation,"path":"/metadata/labels/osm-proxy-uuid","value":"proxy-uuid"}` +
 
 				`]`
 

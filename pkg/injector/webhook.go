@@ -212,7 +212,7 @@ func (wh *webhook) mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespo
 	// Create the patches for the spec
 	// We use req.Namespace because pod.Namespace is "" at this point
 	// This string uniquely identifies the pod. Ideally this would be the pod.UID, but this is not available at this point.
-	proxyUUID := uuid.New().String()
+	proxyUUID := uuid.New()
 	patchBytes, err := wh.createPatch(&pod, req.Namespace, proxyUUID)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create patch")

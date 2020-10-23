@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/google/uuid"
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
@@ -24,7 +25,7 @@ const (
 	labelsPath             = "/metadata/labels"
 )
 
-func (wh *webhook) createPatch(pod *corev1.Pod, namespace, proxyUUID string) ([]byte, error) {
+func (wh *webhook) createPatch(pod *corev1.Pod, namespace string, proxyUUID uuid.UUID) ([]byte, error) {
 	// Start patching the spec
 	var patches []JSONPatchOperation
 
@@ -209,12 +210,12 @@ func updateAnnotation(target, add map[string]string, basePath string) []JSONPatc
 // This function will append a label to the pod, which points to the unique Envoy ID used in the
 // xDS certificate for that Envoy. This label will help xDS match the actual pod to the Envoy that
 // connects to xDS (with the certificate's CN matching this label).
-func updateLabels(pod *corev1.Pod, envoyUID string) *JSONPatchOperation {
+func updateLabels(pod *corev1.Pod, proxyUUID uuid.UUID) *JSONPatchOperation {
 	if len(pod.Labels) == 0 {
 		return &JSONPatchOperation{
 			Op:    addOperation,
 			Path:  labelsPath,
-			Value: map[string]string{constants.EnvoyUniqueIDLabelName: envoyUID},
+			Value: map[string]string{constants.EnvoyUniqueIDLabelName: proxyUUID.String()},
 		}
 	}
 
@@ -228,7 +229,7 @@ func updateLabels(pod *corev1.Pod, envoyUID string) *JSONPatchOperation {
 	return &JSONPatchOperation{
 		Op:    getOp(),
 		Path:  path.Join(labelsPath, constants.EnvoyUniqueIDLabelName),
-		Value: envoyUID,
+		Value: proxyUUID,
 	}
 }
 

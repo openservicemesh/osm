@@ -40,16 +40,16 @@ var _ = Describe("Test ADS response functions", func() {
 	// --- setup
 	kubeClient := testclient.NewSimpleClientset()
 	namespace := tests.Namespace
-	envoyUID := tests.EnvoyUID
+	proxyUUID := tests.ProxyUUID
 	serviceName := tests.BookstoreV1ServiceName
 	serviceAccountName := tests.BookstoreServiceAccountName
 
-	labels := map[string]string{constants.EnvoyUniqueIDLabelName: tests.EnvoyUID}
+	labels := map[string]string{constants.EnvoyUniqueIDLabelName: tests.ProxyUUID}
 	mc := catalog.NewFakeMeshCatalog(kubeClient)
 
 	// Create a Pod
 	pod := tests.NewPodTestFixture(namespace, fmt.Sprintf("pod-0-%s", uuid.New()))
-	pod.Labels[constants.EnvoyUniqueIDLabelName] = envoyUID
+	pod.Labels[constants.EnvoyUniqueIDLabelName] = proxyUUID
 	_, err := kubeClient.CoreV1().Pods(namespace).Create(context.TODO(), &pod, metav1.CreateOptions{})
 	It("should have created a pod", func() {
 		Expect(err).ToNot(HaveOccurred())
@@ -68,7 +68,7 @@ var _ = Describe("Test ADS response functions", func() {
 		GinkgoT().Fatalf("Error creating new Bookstire Apex service: %s", err.Error())
 	}
 
-	cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s", envoyUID, serviceAccountName, namespace))
+	cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s", proxyUUID, serviceAccountName, namespace))
 	proxy := envoy.NewProxy(cn, nil)
 
 	meshService := service.MeshService{
