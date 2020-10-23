@@ -12,7 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = Describe("Test HTTP traffic from N deployment client -> 1 deployment server", func() {
+var _ = DescribeTier1("Test HTTP traffic from N deployment client -> 1 deployment server", func() {
 	Context("DeploymentsClientServer", func() {
 		destApp := "server"
 		sourceAppBaseName := "client"

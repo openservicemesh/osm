@@ -14,7 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = Describe("Test TrafficSplit where each backend shares the same ServiceAccount", func() {
+var _ = DescribeTier1("Test TrafficSplit where each backend shares the same ServiceAccount", func() {
 	Context("ClientServerTrafficSplitSameSA", func() {
 		const (
 			// to name the header we will use to identify the server that replies

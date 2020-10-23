@@ -11,7 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 )
 
-var _ = Describe("Test deployment of Fluent Bit sidecar", func() {
+var _ = DescribeTier2("Test deployment of Fluent Bit sidecar", func() {
 	Context("Fluentbit", func() {
 		It("Deploys a Fluent Bit sidecar only when enabled", func() {
 			// Install OSM with Fluentbit

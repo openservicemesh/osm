@@ -53,6 +53,15 @@ const (
 	osmTest = "osmTest"
 )
 
+func DescribeTierN(tier uint) func(string, func()) bool {
+	return func(name string, body func()) bool {
+		return Describe(fmt.Sprintf("[Tier %d] %s", tier, name), body)
+	}
+}
+
+var DescribeTier1 = DescribeTierN(1)
+var DescribeTier2 = DescribeTierN(2)
+
 // OsmTestData stores common state, variables and flags for the test at hand
 type OsmTestData struct {
 	T GinkgoTInterface // for common test logging

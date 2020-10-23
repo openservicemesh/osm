@@ -8,7 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("HTTP and HTTPS Egress", func() {
+var _ = DescribeTier1("HTTP and HTTPS Egress", func() {
 	Context("Egress", func() {
 		sourceNs := "client"
 
