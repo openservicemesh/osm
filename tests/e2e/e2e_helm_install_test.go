@@ -5,7 +5,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Test osm control plane installation with Helm", func() {
+var _ = DescribeTier2("Test osm control plane installation with Helm", func() {
 	Context("Using default values", func() {
 		It("installs osm control plane successfully", func() {
 			namespace := "helm-install-namespace"
