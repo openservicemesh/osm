@@ -323,10 +323,10 @@ func patchAdmissionResponse(resp *v1beta1.AdmissionResponse, patchBytes []byte) 
 }
 
 // getPartialMutatingWebhookConfiguration returns only the portion of the MutatingWebhookConfiguration that needs to be updated.
-func getPartialMutatingWebhookConfiguration(cert certificate.Certificater, webhookName string) admissionv1beta1.MutatingWebhookConfiguration {
+func getPartialMutatingWebhookConfiguration(cert certificate.Certificater, webhookConfigName string) admissionv1beta1.MutatingWebhookConfiguration {
 	return admissionv1beta1.MutatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: webhookName,
+			Name: webhookConfigName,
 		},
 		Webhooks: []admissionv1beta1.MutatingWebhook{
 			{
