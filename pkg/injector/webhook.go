@@ -19,7 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
-	v1beta12 "k8s.io/client-go/kubernetes/typed/admissionregistration/v1beta1"
+	admissionRegistrationTypes "k8s.io/client-go/kubernetes/typed/admissionregistration/v1beta1"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -361,7 +361,7 @@ func updateMutatingWebhookCABundle(cert certificate.Certificater, webhookName st
 	return nil
 }
 
-func webhookExists(mwc v1beta12.MutatingWebhookConfigurationInterface, webhookName string) error {
+func webhookExists(mwc admissionRegistrationTypes.MutatingWebhookConfigurationInterface, webhookName string) error {
 	_, err := mwc.Get(context.Background(), webhookName, metav1.GetOptions{})
 	return err
 }
