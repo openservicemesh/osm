@@ -8,6 +8,10 @@ import (
 var _ = DescribeTier2("Test osm control plane installation with Helm", func() {
 	Context("Using default values", func() {
 		It("installs osm control plane successfully", func() {
+			if td.instType == NoInstall {
+				Skip("Test is not going through InstallOSM, hence cannot be automatically skipped with NoInstall (#1908)")
+			}
+
 			namespace := "helm-install-namespace"
 			release := "helm-install-osm"
 

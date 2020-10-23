@@ -46,7 +46,12 @@ import (
 const (
 	// contant, default name for the Registry Secret
 	registrySecretName = "acr-creds"
-	// constant, default name for the mesh
+	// test tag prefix, for NS labeling
+	osmTest = "osmTest"
+)
+
+var (
+	// default name for the mesh
 	defaultOsmNamespace = "osm-system"
 	// default image tag
 	defaultImageTag = "latest"
@@ -60,8 +65,6 @@ const (
 	defaultDeployJaeger = false
 	// default deploy Fluentbit
 	defaultDeployFluentbit = false
-	// test tag prefix, for NS labeling
-	osmTest = "osmTest"
 )
 
 func DescribeTierN(tier uint) func(string, func()) bool {
@@ -298,10 +301,10 @@ func (td *OsmTestData) DeleteHelmRelease(name, namespace string) error {
 func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 	if td.instType == NoInstall {
 		if instOpts.certManager != defaultCertManager ||
-			instOpts.deployPrometheus ||
-			instOpts.deployGrafana ||
-			instOpts.deployJaeger ||
-			instOpts.deployFluentbit {
+			instOpts.deployPrometheus != defaultDeployPrometheus ||
+			instOpts.deployGrafana != defaultDeployGrafana ||
+			instOpts.deployJaeger != defaultDeployJaeger ||
+			instOpts.deployFluentbit != defaultDeployFluentbit {
 			Skip("Skipping test: NoInstall marked on a test that requires modified install")
 		}
 
