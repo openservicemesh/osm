@@ -144,7 +144,8 @@ func healthHandler(w http.ResponseWriter, _ *http.Request) {
 	}
 }
 
-func (wh *webhook) getAdmissionReqResp(proxyUUID string, admissionRequestBody []byte) (admissionReq v1beta1.AdmissionReview, admissionResp v1beta1.AdmissionReview) {
+func (wh *webhook) getAdmissionReqResp(proxyUUID uuid.UUID, admissionRequestBody []byte) (requestForNamespace string, admissionResp v1beta1.AdmissionReview) {
+	var admissionReq v1beta1.AdmissionReview
 	if _, _, err := deserializer.Decode(admissionRequestBody, nil, &admissionReq); err != nil {
 		log.Error().Err(err).Msg("Error decoding admission request body")
 		admissionResp.Response = admissionError(err)
@@ -152,7 +153,7 @@ func (wh *webhook) getAdmissionReqResp(proxyUUID string, admissionRequestBody []
 		admissionResp.Response = wh.mutate(admissionReq.Request, proxyUUID)
 	}
 
-	return admissionReq, admissionResp
+	return admissionReq.Request.Namespace, admissionResp
 }
 
 func getAdmissionRequestBody(w http.ResponseWriter, req *http.Request) ([]byte, error) {
@@ -208,25 +209,28 @@ func (wh *webhook) podCreationHandler(w http.ResponseWriter, req *http.Request) 
 		return
 	}
 
-	proxyUUID := uuid.New().String()
+	// Create the patches for the spec
+	// We use req.Namespace because pod.Namespace is "" at this point
+	// This string uniquely identifies the pod. Ideally this would be the pod.UID, but this is not available at this point.
+	proxyUUID := uuid.New()
 
-	admissionReq, admissionResp := wh.getAdmissionReqResp(proxyUUID, admissionRequestBody)
+	requestForNamespace, admissionResp := wh.getAdmissionReqResp(proxyUUID, admissionRequestBody)
 
 	resp, err := json.Marshal(&admissionResp)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error marshalling admission response: %s", err), http.StatusInternalServerError)
-		log.Error().Err(err).Msgf("Error marshalling admission response; Responded to admission request for pod with UUID %s in namespace %s with HTTP %v", proxyUUID, admissionReq.Request.Namespace, http.StatusInternalServerError)
+		log.Error().Err(err).Msgf("Error marshalling admission response; Responded to admission request for pod with UUID %s in namespace %s with HTTP %v", proxyUUID, requestForNamespace, http.StatusInternalServerError)
 		return
 	}
 
 	if _, err := w.Write(resp); err != nil {
-		log.Error().Err(err).Msgf("Error writing admission response for pod with UUID %s in namespace %s", proxyUUID, admissionReq.Request.Namespace)
+		log.Error().Err(err).Msgf("Error writing admission response for pod with UUID %s in namespace %s", proxyUUID, requestForNamespace)
 	}
 
-	log.Trace().Msgf("Done responding to admission request for pod with UUID %s in namespace %s", proxyUUID, admissionReq.Request.Namespace)
+	log.Trace().Msgf("Done responding to admission request for pod with UUID %s in namespace %s", proxyUUID, requestForNamespace)
 }
 
-func (wh *webhook) mutate(req *v1beta1.AdmissionRequest, proxyUUID string) *v1beta1.AdmissionResponse {
+func (wh *webhook) mutate(req *v1beta1.AdmissionRequest, proxyUUID uuid.UUID) *v1beta1.AdmissionResponse {
 	if req == nil {
 		log.Error().Msg("nil admission Request")
 		return admissionError(errNilAdmissionRequest)
@@ -254,11 +258,6 @@ func (wh *webhook) mutate(req *v1beta1.AdmissionRequest, proxyUUID string) *v1be
 		log.Trace().Msgf("Skipping sidecar injection for pod with UUID %s in namespace %s", proxyUUID, req.Namespace)
 		return resp
 	}
-
-	// Create the patches for the spec
-	// We use req.Namespace because pod.Namespace is "" at this point
-	// This string uniquely identifies the pod. Ideally this would be the pod.UID, but this is not available at this point.
-	proxyUUID := uuid.New()
 
 	patchBytes, err := wh.createPatch(&pod, req.Namespace, proxyUUID)
 	if err != nil {

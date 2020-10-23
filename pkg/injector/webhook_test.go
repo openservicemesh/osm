@@ -441,45 +441,7 @@ var _ = Describe("Testing mustInject, isNamespaceInjectable", func() {
 })
 
 var _ = Describe("Testing Injector Functions", func() {
-	It("creates new webhook", func() {
-		injectorConfig := Config{
-			InitContainerImage: "-testInitContainerImage-",
-			SidecarImage:       "-testSidecarImage-",
-		}
-		kubeClient := fake.NewSimpleClientset()
-		var meshCatalog catalog.MeshCataloger
-		var kubeController k8s.Controller
-		meshName := "-mesh-name-"
-		osmNamespace := "-osm-namespace-"
-		webhookName := "-webhook-name-"
-		stop := make(<-chan struct{})
-		mockController := gomock.NewController(GinkgoT())
-		cfg := configurator.NewMockConfigurator(mockController)
-		cache := make(map[certificate.CommonName]certificate.Certificater)
-		certManager := tresor.NewFakeCertManager(&cache, cfg)
-
-		actualErr := NewWebhook(injectorConfig, kubeClient, certManager, meshCatalog, kubeController, meshName, osmNamespace, webhookName, stop, cfg)
-		expectedErrorMessage := "Error configuring MutatingWebhookConfiguration -webhook-name-: mutatingwebhookconfigurations.admissionregistration.k8s.io \"-webhook-name-\" not found"
-		Expect(actualErr.Error()).To(Equal(expectedErrorMessage))
-	})
-
-	It("creates new webhook", func() {
-		client := fake.NewSimpleClientset()
-		mockNsController := k8s.NewMockController(gomock.NewController(GinkgoT()))
-		mockNsController.EXPECT().GetNamespace("default").Return(&corev1.Namespace{})
-		testNamespace := &corev1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "default",
-			},
-		}
-		_, err := client.CoreV1().Namespaces().Create(context.TODO(), testNamespace, metav1.CreateOptions{})
-		Expect(err).ToNot(HaveOccurred())
-		wh := &webhook{
-			kubeClient:          client,
-			kubeController:      mockNsController,
-			nonInjectNamespaces: mapset.NewSet(),
-		}
-		body := strings.NewReader(`{
+	admissionRequestBody := `{
   "kind": "AdmissionReview",
   "apiVersion": "admission.k8s.io/v1beta1",
   "request": {
@@ -526,8 +488,47 @@ var _ = Describe("Testing Injector Functions", func() {
     "dryRun": false,
     "options": null
   }
-}`)
-		req := httptest.NewRequest("GET", "/a/b/c", body)
+}`
+	It("creates new webhook", func() {
+		injectorConfig := Config{
+			InitContainerImage: "-testInitContainerImage-",
+			SidecarImage:       "-testSidecarImage-",
+		}
+		kubeClient := fake.NewSimpleClientset()
+		var meshCatalog catalog.MeshCataloger
+		var kubeController k8s.Controller
+		meshName := "-mesh-name-"
+		osmNamespace := "-osm-namespace-"
+		webhookName := "-webhook-name-"
+		stop := make(<-chan struct{})
+		mockController := gomock.NewController(GinkgoT())
+		cfg := configurator.NewMockConfigurator(mockController)
+		cache := make(map[certificate.CommonName]certificate.Certificater)
+		certManager := tresor.NewFakeCertManager(&cache, cfg)
+
+		actualErr := NewWebhook(injectorConfig, kubeClient, certManager, meshCatalog, kubeController, meshName, osmNamespace, webhookName, stop, cfg)
+		expectedErrorMessage := "Error configuring MutatingWebhookConfiguration -webhook-name-: mutatingwebhookconfigurations.admissionregistration.k8s.io \"-webhook-name-\" not found"
+		Expect(actualErr.Error()).To(Equal(expectedErrorMessage))
+	})
+
+	It("creates new webhook", func() {
+		client := fake.NewSimpleClientset()
+		mockNsController := k8s.NewMockController(gomock.NewController(GinkgoT()))
+		mockNsController.EXPECT().GetNamespace("default").Return(&corev1.Namespace{})
+		testNamespace := &corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "default",
+			},
+		}
+		_, err := client.CoreV1().Namespaces().Create(context.TODO(), testNamespace, metav1.CreateOptions{})
+		Expect(err).ToNot(HaveOccurred())
+		wh := &webhook{
+			kubeClient:          client,
+			kubeController:      mockNsController,
+			nonInjectNamespaces: mapset.NewSet(),
+		}
+
+		req := httptest.NewRequest("GET", "/a/b/c", strings.NewReader(admissionRequestBody))
 		req.Header = map[string][]string{
 			"Content-Type": {"application/json"},
 		}
@@ -540,6 +541,40 @@ var _ = Describe("Testing Injector Functions", func() {
 		expected := "{\"response\":{\"uid\":\"11111111-2222-3333-4444-555555555555\",\"allowed\":true}}"
 		Expect(resp.StatusCode).To(Equal(http.StatusOK))
 		Expect(string(bodyBytes)).To(Equal(expected))
+	})
+
+	It("getAdmissionReqResp creates admission ", func() {
+		namespace := "default"
+		client := fake.NewSimpleClientset()
+		mockKubeController := k8s.NewMockController(gomock.NewController(GinkgoT()))
+		mockKubeController.EXPECT().GetNamespace(namespace).Return(&corev1.Namespace{})
+		mockKubeController.EXPECT().IsMonitoredNamespace(namespace).Return(true).Times(1)
+
+		wh := &webhook{
+			kubeClient:          client,
+			kubeController:      mockKubeController,
+			nonInjectNamespaces: mapset.NewSet(),
+		}
+		proxyUUID := uuid.New()
+
+		// !! ACTION !!
+		requestForNamespace, admissionResp := wh.getAdmissionReqResp(proxyUUID, []byte(admissionRequestBody))
+
+		Expect(requestForNamespace).To(Equal("default"))
+
+		expectedAdmissionResponse := v1beta1.AdmissionReview{
+			TypeMeta: metav1.TypeMeta{Kind: "", APIVersion: ""},
+			Request:  nil,
+			Response: &v1beta1.AdmissionResponse{
+				UID:              "11111111-2222-3333-4444-555555555555",
+				Allowed:          true,
+				Result:           nil,
+				Patch:            nil,
+				PatchType:        nil,
+				AuditAnnotations: nil,
+			},
+		}
+		Expect(admissionResp).To(Equal(expectedAdmissionResponse))
 	})
 
 	It("handles health requests", func() {
@@ -568,7 +603,7 @@ var _ = Describe("Testing Injector Functions", func() {
 			kubeController:      mockNsController,
 			nonInjectNamespaces: mapset.NewSet(),
 		}
-		proxyUUID := uuid.New().String()
+		proxyUUID := uuid.New()
 
 		// Action !!
 		actual := wh.mutate(nil, proxyUUID)
