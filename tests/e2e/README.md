@@ -28,6 +28,8 @@ To help organize the tests, custom `Describe` blocks named after the tiers like 
 ## Running the tests
 Running the tests will require a running Kubernetes cluster. If you do not have a Kubernetes cluster to run the tests onto, you can choose to run them using `Kind`, which will make the test framework initialize a cluster on a local accessible docker client.
 
+Running the tests will also require the [Helm](https://helm.sh/) CLI to be installed on your machine.
+
 The tests can be run using the `test-e2e` Makefile target at repository root level (which defaults to use Kind), or alternatively `go test` targetting the test folder, which gives more flexibility but depends on related `env` flags given or parsed by the test.
 
 Please refer to the [Kind cluster](#kind-cluster) or [Other K8s deployment](#other-k8s-eployment) and follow the instructions to setup potential env flags required by either option.

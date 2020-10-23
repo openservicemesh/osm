@@ -226,38 +226,40 @@ func (td *OsmTestData) GetOSMInstallOpts() InstallOSMOpts {
 	}
 }
 
+// HelmInstallOSM installs an osm control plane using the osm chart which lives in charts/osm
+func (td *OsmTestData) HelmInstallOSM(release, namespace string) error {
+	if td.kindCluster {
+		if err := td.loadOSMImagesIntoKind(); err != nil {
+			return err
+		}
+	}
+
+	values := fmt.Sprintf("OpenServiceMesh.image.registry=%s,OpenServiceMesh.image.tag=%s,OpenServiceMesh.meshName=%s", td.ctrRegistryServer, td.osmImageTag, release)
+	args := []string{"install", release, "../../charts/osm", "--set", values, "--namespace", namespace, "--create-namespace", "--wait"}
+	stdout, stderr, err := td.RunLocal("helm", args)
+	if err != nil {
+		td.T.Logf("stdout:\n%s", stdout)
+		return errors.Errorf("failed to run helm install with osm chart: %s", stderr)
+	}
+
+	return nil
+}
+
+func (td *OsmTestData) DeleteHelmRelease(name, namespace string) error {
+	args := []string{"uninstall", name, "--namespace", namespace}
+	_, _, err := td.RunLocal("helm", args)
+	if err != nil {
+		td.T.Fatal(err)
+	}
+	return nil
+}
+
 // InstallOSM installs OSM. Right now relies on externally calling the binary and a subset of possible opts
 // TODO: refactor install to be able to call it directly here vs. exec-ing CLI.
 func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 	if td.kindCluster {
-		td.T.Log("Getting image data")
-		imageNames := []string{
-			"osm-controller",
-			"init",
-		}
-		docker, err := client.NewClientWithOpts(client.WithAPIVersionNegotiation())
-		if err != nil {
-			return errors.Wrap(err, "failed to create docker client")
-		}
-		var imageIDs []string
-		for _, name := range imageNames {
-			imageName := fmt.Sprintf("%s/%s:%s", td.ctrRegistryServer, name, td.osmImageTag)
-			imageIDs = append(imageIDs, imageName)
-		}
-		imageData, err := docker.ImageSave(context.TODO(), imageIDs)
-		if err != nil {
-			return errors.Wrap(err, "failed to get image data")
-		}
-		defer imageData.Close()
-		nodes, err := td.clusterProvider.ListNodes(td.clusterName)
-		if err != nil {
-			return errors.Wrap(err, "failed to list kind nodes")
-		}
-		for _, n := range nodes {
-			td.T.Log("Loading images onto node", n)
-			if err := nodeutils.LoadImageArchive(n, imageData); err != nil {
-				return errors.Wrap(err, "failed to load images")
-			}
+		if err := td.loadOSMImagesIntoKind(); err != nil {
+			return err
 		}
 	}
 
@@ -322,6 +324,48 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		return errors.Wrap(err, "failed to run osm install")
 	}
 
+	return nil
+}
+
+// GetConfigMap is a wrapper to get a config map by name in a particular namespace
+func (td *OsmTestData) GetConfigMap(name, namespace string) (*corev1.ConfigMap, error) {
+	configmap, err := td.client.CoreV1().ConfigMaps(namespace).Get(context.Background(), name, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return configmap, nil
+}
+
+func (td *OsmTestData) loadOSMImagesIntoKind() error {
+	td.T.Log("Getting image data")
+	imageNames := []string{
+		"osm-controller",
+		"init",
+	}
+	docker, err := client.NewClientWithOpts(client.WithAPIVersionNegotiation())
+	if err != nil {
+		return errors.Wrap(err, "failed to create docker client")
+	}
+	var imageIDs []string
+	for _, name := range imageNames {
+		imageName := fmt.Sprintf("%s/%s:%s", td.ctrRegistryServer, name, td.osmImageTag)
+		imageIDs = append(imageIDs, imageName)
+	}
+	imageData, err := docker.ImageSave(context.TODO(), imageIDs)
+	if err != nil {
+		return errors.Wrap(err, "failed to get image data")
+	}
+	defer imageData.Close()
+	nodes, err := td.clusterProvider.ListNodes(td.clusterName)
+	if err != nil {
+		return errors.Wrap(err, "failed to list kind nodes")
+	}
+	for _, n := range nodes {
+		td.T.Log("Loading images onto node", n)
+		if err := nodeutils.LoadImageArchive(n, imageData); err != nil {
+			return errors.Wrap(err, "failed to load images")
+		}
+	}
 	return nil
 }
 
