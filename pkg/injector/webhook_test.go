@@ -605,4 +605,26 @@ var _ = Describe("Testing Injector Functions", func() {
 		}
 		Expect(actual).To(Equal(&expected))
 	})
+
+	It("creates partial mutating webhook configuration", func() {
+		cert := mockCertificate{}
+		webhookConfigName := "-webhook-config-name-"
+
+		actual := getPartialMutatingWebhookConfiguration(cert, webhookConfigName)
+
+		expected := admissionv1beta1.MutatingWebhookConfiguration{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "-webhook-config-name-",
+			},
+			Webhooks: []admissionv1beta1.MutatingWebhook{
+				{
+					Name: "osm-inject.k8s.io",
+					ClientConfig: admissionv1beta1.WebhookClientConfig{
+						CABundle: cert.GetCertificateChain(),
+					},
+				},
+			},
+		}
+		Expect(actual).To(Equal(expected))
+	})
 })
