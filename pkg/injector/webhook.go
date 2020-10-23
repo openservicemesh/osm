@@ -8,8 +8,10 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 
 	"github.com/pkg/errors"
 	"k8s.io/api/admission/v1beta1"
@@ -47,6 +49,9 @@ const (
 
 	// WebhookHealthPath is the HTTP path at which the health of the webhook can be queried
 	WebhookHealthPath = "/healthz"
+
+	// webhookTimeoutStr is the url variable name for timeout
+	webhookMutateTimeoutKey = "timeout"
 )
 
 // NewWebhook starts a new web server handling requests from the injector MutatingWebhookConfiguration
@@ -130,6 +135,17 @@ func (wh *webhook) healthHandler(w http.ResponseWriter, req *http.Request) {
 
 func (wh *webhook) mutateHandler(w http.ResponseWriter, req *http.Request) {
 	log.Info().Msgf("Request received: Method=%v, URL=%v", req.Method, req.URL)
+
+	// For debug/profiling purposes
+	if log.GetLevel() == zerolog.DebugLevel {
+		// Read timeout from request
+		reqTimeout, err := readTimeout(req)
+		if err != nil {
+			log.Error().Msgf("Could not read timeout from request url: %v", err)
+		} else {
+			defer webhookTimeTrack(time.Now(), *reqTimeout)
+		}
+	}
 
 	if contentType := req.Header.Get("Content-Type"); contentType != "application/json" {
 		errmsg := fmt.Sprintf("Invalid Content-Type: %q", contentType)
