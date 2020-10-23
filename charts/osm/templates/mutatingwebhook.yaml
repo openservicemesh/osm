@@ -10,7 +10,7 @@ webhooks:
     service:
       name: osm-controller
       namespace: {{.Release.Namespace}}
-      path: /mutate
+      path: /create/pod
       port: 443
   failurePolicy: Fail
   matchPolicy: Exact
