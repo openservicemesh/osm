@@ -94,8 +94,11 @@ func (wh *webhook) run(stop <-chan struct{}) {
 	defer cancel()
 
 	mux := http.DefaultServeMux
+
 	mux.HandleFunc(WebhookHealthPath, healthHandler)
-	// We know that the events arriving
+
+	// We know that the events arriving at this handler are CREATE POD only
+	// because of the specifics of MutatingWebhookConfiguration template in this repository.
 	mux.HandleFunc(webhookCreatePod, wh.podCreationHandler)
 
 	server := &http.Server{
