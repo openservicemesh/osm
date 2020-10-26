@@ -282,8 +282,7 @@ func configureDebugServer(debugServer *httpserver.DebugServer, debugImpl debugge
 				log.Error().Err(err).Msg("Unable to stop debug server")
 				errCh <- err
 			}
-		}
-		if !debugServerRunning && cfg.IsDebugServerEnabled() {
+		} else if !debugServerRunning && cfg.IsDebugServerEnabled() {
 			debugServerRunning = true
 			debugServer = httpserver.NewDebugHTTPServer(debugImpl, constants.DebugPort)
 			debugServer.Start()
