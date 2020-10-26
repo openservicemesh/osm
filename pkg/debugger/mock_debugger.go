@@ -5,6 +5,10 @@
 package debugger
 
 import (
+	http "net/http"
+	reflect "reflect"
+	time "time"
+
 	gomock "github.com/golang/mock/gomock"
 	certificate "github.com/openservicemesh/osm/pkg/certificate"
 	envoy "github.com/openservicemesh/osm/pkg/envoy"
@@ -12,9 +16,6 @@ import (
 	v1alpha2 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
 	v1alpha3 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha3"
 	v1alpha20 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
-	http "net/http"
-	reflect "reflect"
-	time "time"
 )
 
 // MockCertificateManagerDebugger is a mock of CertificateManagerDebugger interface
