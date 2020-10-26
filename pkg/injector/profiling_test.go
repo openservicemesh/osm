@@ -15,12 +15,12 @@ func TestReadTimeout(t *testing.T) {
 	assert := assert.New(t)
 
 	expectedResults := map[string]bool{
-		"/create/pod?timeout=30s":            true,
-		"/create/pod?timeout=20h":            true,
-		"/create/pod?timeout=s":              false,
-		"/create/pod?":                       false,
-		"/create/pod?timeout=20&timeout=30m": false,
-		"randomString":                       false,
+		"/mutate-pod-creation?timeout=30s":            true,
+		"/mutate-pod-creation?timeout=20h":            true,
+		"/mutate-pod-creation?timeout=s":              false,
+		"/mutate-pod-creation?":                       false,
+		"/mutate-pod-creation?timeout=20&timeout=30m": false,
+		"randomString":                                false,
 	}
 
 	for url, expectedRes := range expectedResults {

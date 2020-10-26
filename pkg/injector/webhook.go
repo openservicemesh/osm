@@ -41,7 +41,7 @@ const (
 	mutatingWebhookName = "osm-inject.k8s.io"
 
 	// webhookCreatePod is the HTTP path at which the webhook expects to receive pod creation events
-	webhookCreatePod = "/create/pod"
+	webhookCreatePod = "/mutate-pod-creation"
 
 	// WebhookHealthPath is the HTTP path at which the health of the webhook can be queried
 	WebhookHealthPath = "/healthz"
