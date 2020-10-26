@@ -18,8 +18,8 @@ var _ = OSMDescribe("Test HTTP traffic from 1 pod client -> 1 pod server",
 	},
 	func() {
 		Context("SimpleClientServer", func() {
-			sourceName := "client"
-			destName := "server"
+			const sourceName = "client"
+			const destName = "server"
 			var ns []string = []string{sourceName, destName}
 
 			It("Tests HTTP traffic for client pod -> server pod", func() {
