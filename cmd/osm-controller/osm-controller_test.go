@@ -97,14 +97,14 @@ func TestCreateCABundleKubernetesSecret(t *testing.T) {
 
 	cache := make(map[certificate.CommonName]certificate.Certificater)
 	certManager := tresor.NewFakeCertManager(&cache, nil)
-	secretName := "--secret--name--"
+	testName := "--secret--name--"
 	namespace := "--namespace--"
 	k8sClient := testclient.NewSimpleClientset()
 
-	err := createOrUpdateCABundleKubernetesSecret(k8sClient, certManager, namespace, secretName)
+	err := createOrUpdateCABundleKubernetesSecret(k8sClient, certManager, namespace, testName)
 	assert.Nil(err)
 
-	actual, err := k8sClient.CoreV1().Secrets(namespace).Get(context.Background(), secretName, metav1.GetOptions{})
+	actual, err := k8sClient.CoreV1().Secrets(namespace).Get(context.Background(), testName, metav1.GetOptions{})
 	assert.Nil(err)
 
 	expected := "-----BEGIN CERTIFICATE-----\nMIIF"
