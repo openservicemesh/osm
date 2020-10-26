@@ -8,8 +8,9 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/openservicemesh/osm/pkg/debugger"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/openservicemesh/osm/pkg/debugger"
 )
 
 const (
