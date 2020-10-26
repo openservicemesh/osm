@@ -15,8 +15,8 @@ var _ = OSMDescribe("1 Client pod -> 1 Server pod test using Vault",
 	},
 	func() {
 		Context("HashivaultSimpleClientServer", func() {
-			sourceNs := "client"
-			destNs := "server"
+			const sourceNs = "client"
+			const destNs = "server"
 			var ns []string = []string{sourceNs, destNs}
 
 			It("Tests HTTP traffic for client pod -> server pod", func() {
