@@ -28,7 +28,7 @@ func TestNewDebugHTTPServer(t *testing.T) {
 			_, _ = fmt.Fprint(w, responseBody)
 		}),
 	})
-	debugServ := NewDebugHTTPServer(mockDebugServer, testPort)
+	debugServ := NewDebugHTTPServer(mockDebugServer, testPort).(*DebugServer)
 	testDebug := &httptest.Server{
 		Config: debugServ.Server,
 	}
