@@ -7,9 +7,8 @@ enableRobotsTXT = true
 
 # Will give values to .Lastmod etc.
 enableGitInfo = true
-
-# Language settings
-contentDir = "content/en"
+contentDir = "content"
+version_menu = "Releases"
 defaultContentLanguage = "en"
 defaultContentLanguageInSubdir = false
 # Useful when translating.
@@ -77,6 +76,40 @@ time_format_blog = "02.01.2006"
 
 # Everything below this are Site Params
 
+# OSM top menu (should match main site)
+[[menu.main]]
+	name = "Home"
+	weight = 10
+	url = "https://openservicemesh.io"
+[[menu.main]]
+	name = "Docs"
+	weight = 20
+	url = "/docs"
+[[menu.main]]
+	name = "Github"
+	weight = 30
+	url = "https://github.com/openservicemesh/osm"
+[[menu.main]]
+	name = "Blog"
+	weight = 40
+	url = "https://openservicemesh.io/blog"
+[[menu.main]]
+	name = "Slack"
+	weight = 50
+	url = "https://cloud-native.slack.com/archives/C018794NV1C"
+[[menu.main]]
+	name = "Twitter"
+	weight = 60
+	url = "https://twitter.com/openservicemesh"
+
+
+# Add your release versions here
+[[params.versions]]
+  version = "v0.4"
+  url = "https://docs.openservicemesh.io"
+
+
+# Theme Additional params
 [params]
 copyright = "The Docsy Authors"
 privacy_policy = "https://policies.google.com/privacy"

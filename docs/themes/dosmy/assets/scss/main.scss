@@ -144,6 +144,15 @@ body {
             left: -999em;
         }
     }
+
+    .nav-item.dropdown {
+        border-left: 1px solid $bluel;
+        padding-left: 0.5rem;
+        
+        a {
+            font-weight: normal;
+        }
+    }
 }
 
 .td-outer {

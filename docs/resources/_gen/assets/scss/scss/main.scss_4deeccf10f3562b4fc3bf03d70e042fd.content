@@ -13926,6 +13926,11 @@ body {
   .td-navbar .navbar-brand span.text-uppercase {
     position: absolute;
     left: -999em; }
+  .td-navbar .nav-item.dropdown {
+    border-left: 1px solid #C1D6F1;
+    padding-left: 0.5rem; }
+    .td-navbar .nav-item.dropdown a {
+      font-weight: normal; }
 
 .td-outer {
   padding-top: 3.5rem; }
