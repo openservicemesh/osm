@@ -14,12 +14,14 @@ import (
 // GetHandlers implements DebugServer interface and returns the rest of URLs and the handling functions.
 func (ds debugServer) GetHandlers() map[string]http.Handler {
 	handlers := map[string]http.Handler{
-		"/debug/certs":      ds.getCertHandler(),
-		"/debug/xds":        ds.getXDSHandler(),
-		"/debug/proxy":      ds.getProxies(),
-		"/debug/policies":   ds.getSMIPoliciesHandler(),
-		"/debug/config":     ds.getOSMConfigHandler(),
-		"/debug/namespaces": ds.getMonitoredNamespacesHandler(),
+		"/debug/certs":         ds.getCertHandler(),
+		"/debug/xds":           ds.getXDSHandler(),
+		"/debug/proxy":         ds.getProxies(),
+		"/debug/policies":      ds.getSMIPoliciesHandler(),
+		"/debug/config":        ds.getOSMConfigHandler(),
+		"/debug/namespaces":    ds.getMonitoredNamespacesHandler(),
+		"/debug/feature-flags": ds.getFeatureFlags(),
+
 		// Pprof handlers
 		"/debug/pprof/":        http.HandlerFunc(pprof.Index),
 		"/debug/pprof/cmdline": http.HandlerFunc(pprof.Cmdline),
