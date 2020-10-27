@@ -1,4 +1,5 @@
-baseURL = "http://example.org/"
+title = "Open Service Mesh"
+baseURL = "https://docs.openservicemesh.io/"
 languageCode = "en-us"
 title = "OSM Documentation"
 theme = "docsy-osm"
