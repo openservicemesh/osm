@@ -2,8 +2,6 @@ package rds
 
 import (
 	"context"
-	"fmt"
-	"strings"
 
 	set "github.com/deckarep/golang-set"
 	corev1 "k8s.io/api/core/v1"
@@ -238,60 +236,6 @@ var _ = Describe("RDS Response", func() {
 
 	meshCatalog := catalog.NewMeshCatalog(mockKubeController, kubeClient, smi.NewFakeMeshSpecClient(), certManager,
 		mockIngressMonitor, make(<-chan struct{}), cfg, endpointProviders...)
-
-	Context("Test GetHostnamesForService", func() {
-		contains := func(domains []string, expected string) bool {
-			for _, entry := range domains {
-				if entry == expected {
-					return true
-				}
-			}
-			return false
-		}
-		It("returns the domain for a service when traffic split is specified for the given service", func() {
-
-			actual, err := meshCatalog.GetHostnamesForService(tests.BookstoreV1Service)
-			Expect(err).ToNot(HaveOccurred())
-
-			domainList := strings.Split(actual, ",")
-			Expect(len(domainList)).To(Equal(10))
-			Expect(contains(domainList, tests.BookstoreApexServiceName)).To(BeTrue())
-			Expect(contains(domainList, fmt.Sprintf("%s:%d", tests.BookstoreApexServiceName, tests.ServicePort))).To(BeTrue())
-			Expect(contains(domainList, fmt.Sprintf("%s.%s", tests.BookstoreApexServiceName, tests.Namespace))).To(BeTrue())
-			Expect(contains(domainList, fmt.Sprintf("%s.%s:%d", tests.BookstoreApexServiceName, tests.Namespace, tests.ServicePort))).To(BeTrue())
-			Expect(contains(domainList, fmt.Sprintf("%s.%s.svc", tests.BookstoreApexServiceName, tests.Namespace))).To(BeTrue())
-			Expect(contains(domainList, fmt.Sprintf("%s.%s.svc:%d", tests.BookstoreApexServiceName, tests.Namespace, tests.ServicePort))).To(BeTrue())
-			Expect(contains(domainList, fmt.Sprintf("%s.%s.svc.cluster", tests.BookstoreApexServiceName, tests.Namespace))).To(BeTrue())
-			Expect(contains(domainList, fmt.Sprintf("%s.%s.svc.cluster:%d", tests.BookstoreApexServiceName, tests.Namespace, tests.ServicePort))).To(BeTrue())
-			Expect(contains(domainList, fmt.Sprintf("%s.%s.svc.cluster.local", tests.BookstoreApexServiceName, tests.Namespace))).To(BeTrue())
-			Expect(contains(domainList, fmt.Sprintf("%s.%s.svc.cluster.local:%d", tests.BookstoreApexServiceName, tests.Namespace, tests.ServicePort))).To(BeTrue())
-		})
-
-		It("returns a list of domains for a service when traffic split is not specified for the given service", func() {
-
-			actual, err := meshCatalog.GetHostnamesForService(tests.BookbuyerService)
-			Expect(err).ToNot(HaveOccurred())
-
-			domainList := strings.Split(actual, ",")
-			Expect(len(domainList)).To(Equal(10))
-
-			Expect(contains(domainList, tests.BookbuyerServiceName)).To(BeTrue())
-			Expect(contains(domainList, fmt.Sprintf("%s:%d", tests.BookbuyerServiceName, tests.ServicePort))).To(BeTrue())
-			Expect(contains(domainList, fmt.Sprintf("%s.%s", tests.BookbuyerServiceName, tests.Namespace))).To(BeTrue())
-			Expect(contains(domainList, fmt.Sprintf("%s.%s:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort))).To(BeTrue())
-			Expect(contains(domainList, fmt.Sprintf("%s.%s.svc", tests.BookbuyerServiceName, tests.Namespace))).To(BeTrue())
-			Expect(contains(domainList, fmt.Sprintf("%s.%s.svc:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort))).To(BeTrue())
-			Expect(contains(domainList, fmt.Sprintf("%s.%s.svc.cluster", tests.BookbuyerServiceName, tests.Namespace))).To(BeTrue())
-			Expect(contains(domainList, fmt.Sprintf("%s.%s.svc.cluster:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort))).To(BeTrue())
-			Expect(contains(domainList, fmt.Sprintf("%s.%s.svc.cluster.local", tests.BookbuyerServiceName, tests.Namespace))).To(BeTrue())
-			Expect(contains(domainList, fmt.Sprintf("%s.%s.svc.cluster.local:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort))).To(BeTrue())
-		})
-
-		It("No service found when mesh does not have service", func() {
-			_, err := meshCatalog.GetHostnamesForService(tests.BookwarehouseService)
-			Expect(err).To(HaveOccurred())
-		})
-	})
 
 	Context("GetWeightedClusterForService", func() {
 		It("returns weighted cluster for service from traffic split", func() {

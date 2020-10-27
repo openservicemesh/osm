@@ -130,16 +130,16 @@ func hostnamesTostr(hostnames []string) string {
 	return strings.Join(hostnames, ",")
 }
 
-// GetHostnamesForService returns the hostnames for a service.
-// The hostname can be the FQDN for the service, and can include ports as well.
+// GetResolvableHostnamesForUpstreamService returns the hostnames over which an upstream service is accessible from a downstream service
+// The hostname is the FQDN for the service, and can include ports as well.
 // Ex. bookstore.default, bookstore.default:80, bookstore.default.svc, bookstore.default.svc:80 etc.
-func (mc *MeshCatalog) GetHostnamesForService(meshService service.MeshService) (string, error) {
-	log.Trace().Msgf("Finding domain for service %s", meshService)
+func (mc *MeshCatalog) GetResolvableHostnamesForUpstreamService(downstream, upstream service.MeshService) (string, error) {
+	sameNamespace := downstream.Namespace == upstream.Namespace
 
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
-		hostnames, err := mc.getServiceHostnames(meshService)
+		hostnames, err := mc.getServiceHostnames(upstream, sameNamespace)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error getting service hostnames for MeshService %s", meshService)
+			log.Error().Err(err).Msgf("Error getting service hostnames for upstream service %s", upstream)
 			return "", err
 		}
 		return hostnamesTostr(hostnames), nil
@@ -148,14 +148,14 @@ func (mc *MeshCatalog) GetHostnamesForService(meshService service.MeshService) (
 	// Retrieve the domain name from traffic split
 	servicesList := mc.meshSpec.ListTrafficSplitServices()
 	for _, activeService := range servicesList {
-		if activeService.Service == meshService {
-			log.Trace().Msgf("Getting hostnames for service %s", meshService)
+		if activeService.Service == upstream {
+			log.Trace().Msgf("Getting hostnames for service %s", upstream)
 			rootServiceName := kubernetes.GetServiceFromHostname(activeService.RootService)
 			rootMeshService := service.MeshService{
-				Namespace: meshService.Namespace,
+				Namespace: upstream.Namespace,
 				Name:      rootServiceName,
 			}
-			hostnames, err := mc.getServiceHostnames(rootMeshService)
+			hostnames, err := mc.getServiceHostnames(rootMeshService, sameNamespace)
 			if err != nil {
 				log.Error().Err(err).Msgf("Error getting service hostnames for Apex service %s", rootMeshService)
 				return "", err
@@ -166,23 +166,25 @@ func (mc *MeshCatalog) GetHostnamesForService(meshService service.MeshService) (
 
 	// This service is not a backend for a traffic split policy.
 	// The hostnames for this service are the Kubernetes service DNS names.
-	hostnames, err := mc.getServiceHostnames(meshService)
+	hostnames, err := mc.getServiceHostnames(upstream, sameNamespace)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting service hostnames for MeshService %s", meshService)
+		log.Error().Err(err).Msgf("Error getting service hostnames for upstream service %s", upstream)
 		return "", err
 	}
 
 	return hostnamesTostr(hostnames), nil
 }
 
-// getServiceHostnames returns a list of hostnames corresponding to the service
-func (mc *MeshCatalog) getServiceHostnames(meshService service.MeshService) ([]string, error) {
+// getServiceHostnames returns a list of hostnames corresponding to the service.
+// If the service is in the same namespace, it returns the shorthand hostname for the service that does not
+// include its namespace, ex: bookstore, bookstore:80
+func (mc *MeshCatalog) getServiceHostnames(meshService service.MeshService, sameNamespace bool) ([]string, error) {
 	svc := mc.kubeController.GetService(meshService)
 	if svc == nil {
 		return nil, errors.Errorf("Error fetching service %q", meshService)
 	}
 
-	hostnames := kubernetes.GetHostnamesForService(svc)
+	hostnames := kubernetes.GetHostnamesForService(svc, sameNamespace)
 	return hostnames, nil
 }
 
