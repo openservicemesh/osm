@@ -336,7 +336,7 @@ type MeshCataloger interface {
 	GetServicesForServiceAccount(service.K8sServiceAccount) ([]service.MeshService, error)
 
 	// GetHostnamesForService returns the hostnames for a service
-	GetHostnamesForService(service service.MeshService) (string, error)
+	GetHostnamesForService(service service.MeshService) ([]string, error)
 
 	//GetWeightedClusterForService returns the weighted cluster for a service
 	GetWeightedClusterForService(service service.MeshService) (service.WeightedCluster, error)
