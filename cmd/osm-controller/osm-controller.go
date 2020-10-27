@@ -238,9 +238,10 @@ func initDebugServer(cfg configurator.Configurator, certDebugger debugger.Certif
 	}
 }
 
-func configureDebugServer(debugServer *httpserver.DebugServer, debugImpl debugger.DebugServer, debugServerRunning bool, cfg configurator.Configurator, errCh chan error) {
+func configureDebugServer(debugServer httpserver.DebugServerInterface, debugImpl debugger.DebugServer, debugServerRunning bool, cfg configurator.Configurator, errCh chan error) {
 	for range cfg.GetAnnouncementsChannel() {
 		if debugServerRunning && !cfg.IsDebugServerEnabled() {
+			fmt.Println("POWRJKL;ASDGASF ENTERED STOPPING")
 			debugServerRunning = false
 			err := debugServer.Stop()
 			if err != nil {
@@ -248,8 +249,9 @@ func configureDebugServer(debugServer *httpserver.DebugServer, debugImpl debugge
 				errCh <- err
 			}
 		} else if !debugServerRunning && cfg.IsDebugServerEnabled() {
+			fmt.Println("ENTERED STARTING ASADFWAETDFGAR")
 			debugServerRunning = true
-			debugServer = httpserver.NewDebugHTTPServer(debugImpl, constants.DebugPort)
+			debugServer = httpserver.NewDebugHTTPServer(debugImpl, constants.DebugPort) //.(*httpserver.DebugServer)
 			debugServer.Start()
 		}
 	}
