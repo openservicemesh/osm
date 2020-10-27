@@ -14,8 +14,14 @@ type DebugServer struct {
 	Server *http.Server
 }
 
+//DebugServerInterface contains debug server functions
+type DebugServerInterface interface {
+	Stop() error
+	Start()
+}
+
 // NewDebugHTTPServer creates a new API Server for Debug
-func NewDebugHTTPServer(debugServer debugger.DebugServer, apiPort int32) *DebugServer {
+func NewDebugHTTPServer(debugServer debugger.DebugServer, apiPort int32) DebugServerInterface {
 	return &DebugServer{
 		Server: &http.Server{
 			Addr:    fmt.Sprintf(":%d", apiPort),
