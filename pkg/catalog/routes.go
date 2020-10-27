@@ -24,7 +24,7 @@ const (
 
 // ListTrafficPolicies returns all the traffic policies for a given service that Envoy proxy should be aware of.
 func (mc *MeshCatalog) ListTrafficPolicies(service service.MeshService) ([]trafficpolicy.TrafficTarget, error) {
-	log.Info().Msgf("Listing traffic policies for service: %s", service)
+	log.Trace().Msgf("Listing traffic policies for service: %s", service)
 
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
 		// Build traffic policies from service discovery for allow-all policy
@@ -35,7 +35,7 @@ func (mc *MeshCatalog) ListTrafficPolicies(service service.MeshService) ([]traff
 	// Build traffic policies from SMI
 	allRoutes, err := mc.getHTTPPathsPerRoute()
 	if err != nil {
-		log.Error().Err(err).Msgf("Could not get all routes")
+		log.Error().Err(err).Msgf("Error getting all paths per route while working on service %s", service)
 		return nil, err
 	}
 
