@@ -12,7 +12,7 @@ GOBIN  = $(GOPATH)/bin
 GOX    = go run github.com/mitchellh/gox
 
 CLI_VERSION ?= dev
-CONTROLLER_VERSION = $$(git describe --abbrev=0 --tags)
+CONTROLLER_VERSION = $$(git describe --abbrev=0 --tags --match "v*")
 BUILD_DATE=$$(date +%Y-%m-%d-%H:%M)
 GIT_SHA=$$(git rev-parse HEAD)
 BUILD_DATE_VAR := github.com/openservicemesh/osm/pkg/version.BuildDate
