@@ -273,23 +273,6 @@ func (c *controller) configureDebugServer(cfg configurator.Configurator, errCh c
 	}
 }
 
-func configureDebugServer(debugServer *httpserver.DebugServer, debugImpl debugger.DebugServer, debugServerRunning bool, cfg configurator.Configurator, errCh chan error) {
-	for range cfg.GetAnnouncementsChannel() {
-		if debugServerRunning && !cfg.IsDebugServerEnabled() {
-			debugServerRunning = false
-			err := debugServer.Stop()
-			if err != nil {
-				log.Error().Err(err).Msg("Unable to stop debug server")
-				errCh <- err
-			}
-		} else if !debugServerRunning && cfg.IsDebugServerEnabled() {
-			debugServerRunning = true
-			debugServer = httpserver.NewDebugHTTPServer(debugImpl, constants.DebugPort)
-			debugServer.Start()
-		}
-	}
-}
-
 func getHTTPHealthProbes() []health.HTTPProbe {
 	return []health.HTTPProbe{
 		{
