@@ -56,14 +56,17 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 			return nil, err
 		}
 
-		// All routes from a given source to destination are part of 1 traffic policy between the source and destination.
-		for _, httpRoute := range trafficPolicy.HTTPRoutes {
-			if isSourceService {
-				aggregateRoutesByHost(outboundAggregatedRoutesByHostnames, httpRoute, weightedCluster, hostnames)
-			}
+		// if the service is referenced in a traffic split there will be more than one host name (root service and backend)
+		for _, hostname := range hostnames {
+			// All routes from a given source to destination are part of 1 traffic policy between the source and destination.
+			for _, httpRoute := range trafficPolicy.HTTPRoutes {
+				if isSourceService {
+					aggregateRoutesByHost(outboundAggregatedRoutesByHostnames, httpRoute, weightedCluster, hostname)
+				}
 
-			if isDestinationService {
-				aggregateRoutesByHost(inboundAggregatedRoutesByHostnames, httpRoute, weightedCluster, hostnames)
+				if isDestinationService {
+					aggregateRoutesByHost(inboundAggregatedRoutesByHostnames, httpRoute, weightedCluster, hostname)
+				}
 			}
 		}
 	}

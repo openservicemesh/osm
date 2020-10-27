@@ -133,19 +133,21 @@ func hostnamesTostr(hostnames []string) string {
 // GetHostnamesForService returns the hostnames for a service.
 // The hostname can be the FQDN for the service, and can include ports as well.
 // Ex. bookstore.default, bookstore.default:80, bookstore.default.svc, bookstore.default.svc:80 etc.
-func (mc *MeshCatalog) GetHostnamesForService(meshService service.MeshService) (string, error) {
+func (mc *MeshCatalog) GetHostnamesForService(meshService service.MeshService) ([]string, error) {
 	log.Trace().Msgf("Finding domain for service %s", meshService)
+	var svcHostnames []string
 
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
 		hostnames, err := mc.getServiceHostnames(meshService)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error getting service hostnames for MeshService %s", meshService)
-			return "", err
+			return svcHostnames, err
 		}
-		return hostnamesTostr(hostnames), nil
+		return []string{hostnamesTostr(hostnames)}, nil
 	}
 
 	// Retrieve the domain name from traffic split
+	// Domains will be derived from both the root service and backend
 	servicesList := mc.meshSpec.ListTrafficSplitServices()
 	for _, activeService := range servicesList {
 		if activeService.Service == meshService {
@@ -155,12 +157,20 @@ func (mc *MeshCatalog) GetHostnamesForService(meshService service.MeshService) (
 				Namespace: meshService.Namespace,
 				Name:      rootServiceName,
 			}
-			hostnames, err := mc.getServiceHostnames(rootMeshService)
+			rootHostnames, err := mc.getServiceHostnames(rootMeshService)
 			if err != nil {
 				log.Error().Err(err).Msgf("Error getting service hostnames for Apex service %s", rootMeshService)
-				return "", err
+				return svcHostnames, err
 			}
-			return hostnamesTostr(hostnames), nil
+			hostnames, err := mc.getServiceHostnames(activeService.Service)
+			if err != nil {
+				log.Error().Err(err).Msgf("Error getting service hostnames for Backend service %s", activeService.Service)
+				return svcHostnames, err
+			}
+
+			svcHostnames = append(svcHostnames, hostnamesTostr(rootHostnames))
+			svcHostnames = append(svcHostnames, hostnamesTostr(hostnames))
+			return svcHostnames, nil
 		}
 	}
 
@@ -169,10 +179,10 @@ func (mc *MeshCatalog) GetHostnamesForService(meshService service.MeshService) (
 	hostnames, err := mc.getServiceHostnames(meshService)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error getting service hostnames for MeshService %s", meshService)
-		return "", err
+		return svcHostnames, err
 	}
 
-	return hostnamesTostr(hostnames), nil
+	return []string{hostnamesTostr(hostnames)}, nil
 }
 
 // getServiceHostnames returns a list of hostnames corresponding to the service

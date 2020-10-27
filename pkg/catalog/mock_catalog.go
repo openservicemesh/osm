@@ -69,10 +69,10 @@ func (mr *MockMeshCatalogerMockRecorder) GetCertificateForService(arg0 interface
 }
 
 // GetHostnamesForService mocks base method
-func (m *MockMeshCataloger) GetHostnamesForService(arg0 service.MeshService) (string, error) {
+func (m *MockMeshCataloger) GetHostnamesForService(arg0 service.MeshService) ([]string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetHostnamesForService", arg0)
-	ret0, _ := ret[0].(string)
+	ret0, _ := ret[0].([]string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

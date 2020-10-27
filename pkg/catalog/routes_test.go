@@ -260,7 +260,24 @@ func TestGetHostnamesForService(t *testing.T) {
 		},
 		",")
 
-	assert.Equal(actual, expected)
+	assert.Equal(actual[0], expected)
+
+	expected = strings.Join(
+		[]string{
+			"bookstore-v1",
+			"bookstore-v1.default",
+			"bookstore-v1.default.svc",
+			"bookstore-v1.default.svc.cluster",
+			"bookstore-v1.default.svc.cluster.local",
+			"bookstore-v1:8888",
+			"bookstore-v1.default:8888",
+			"bookstore-v1.default.svc:8888",
+			"bookstore-v1.default.svc.cluster:8888",
+			"bookstore-v1.default.svc.cluster.local:8888",
+		},
+		",")
+
+	assert.Equal(actual[1], expected)
 }
 
 func TestBuildAllowAllTrafficPolicies(t *testing.T) {

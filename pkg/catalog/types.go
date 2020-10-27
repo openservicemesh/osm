@@ -103,7 +103,7 @@ type MeshCataloger interface {
 
 	// GetHostnamesForService returns the hostnames for a service
 	// TODO(ref: PR #1316): return a list of strings
-	GetHostnamesForService(service service.MeshService) (string, error)
+	GetHostnamesForService(service service.MeshService) ([]string, error)
 
 	//GetWeightedClusterForService returns the weighted cluster for a service
 	GetWeightedClusterForService(service service.MeshService) (service.WeightedCluster, error)
