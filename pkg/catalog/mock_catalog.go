@@ -5,6 +5,8 @@
 package catalog
 
 import (
+	reflect "reflect"
+
 	gomock "github.com/golang/mock/gomock"
 	certificate "github.com/openservicemesh/osm/pkg/certificate"
 	endpoint "github.com/openservicemesh/osm/pkg/endpoint"
@@ -15,7 +17,6 @@ import (
 	v1alpha2 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
 	v1alpha3 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha3"
 	v1alpha20 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
-	reflect "reflect"
 )
 
 // MockMeshCataloger is a mock of MeshCataloger interface
@@ -68,21 +69,6 @@ func (mr *MockMeshCatalogerMockRecorder) GetCertificateForService(arg0 interface
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCertificateForService", reflect.TypeOf((*MockMeshCataloger)(nil).GetCertificateForService), arg0)
 }
 
-// GetHostnamesForService mocks base method
-func (m *MockMeshCataloger) GetHostnamesForService(arg0 service.MeshService) (string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetHostnamesForService", arg0)
-	ret0, _ := ret[0].(string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetHostnamesForService indicates an expected call of GetHostnamesForService
-func (mr *MockMeshCatalogerMockRecorder) GetHostnamesForService(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostnamesForService", reflect.TypeOf((*MockMeshCataloger)(nil).GetHostnamesForService), arg0)
-}
-
 // GetIngressRoutesPerHost mocks base method
 func (m *MockMeshCataloger) GetIngressRoutesPerHost(arg0 service.MeshService) (map[string][]trafficpolicy.HTTPRoute, error) {
 	m.ctrl.T.Helper()
@@ -96,6 +82,21 @@ func (m *MockMeshCataloger) GetIngressRoutesPerHost(arg0 service.MeshService) (m
 func (mr *MockMeshCatalogerMockRecorder) GetIngressRoutesPerHost(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIngressRoutesPerHost", reflect.TypeOf((*MockMeshCataloger)(nil).GetIngressRoutesPerHost), arg0)
+}
+
+// GetResolvableHostnamesForUpstreamService mocks base method
+func (m *MockMeshCataloger) GetResolvableHostnamesForUpstreamService(arg0, arg1 service.MeshService) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetResolvableHostnamesForUpstreamService", arg0, arg1)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetResolvableHostnamesForUpstreamService indicates an expected call of GetResolvableHostnamesForUpstreamService
+func (mr *MockMeshCatalogerMockRecorder) GetResolvableHostnamesForUpstreamService(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetResolvableHostnamesForUpstreamService", reflect.TypeOf((*MockMeshCataloger)(nil).GetResolvableHostnamesForUpstreamService), arg0, arg1)
 }
 
 // GetResolvableServiceEndpoints mocks base method

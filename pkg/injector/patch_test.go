@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	mapset "github.com/deckarep/golang-set"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	corev1 "k8s.io/api/core/v1"
@@ -184,11 +185,12 @@ var _ = Describe("Test all patch operations", func() {
 			cache := make(map[certificate.CommonName]certificate.Certificater)
 
 			wh := &webhook{
-				kubeClient:     client,
-				kubeController: mockNsController,
-				certManager:    tresor.NewFakeCertManager(&cache, mockConfigurator),
-				meshCatalog:    catalog.NewFakeMeshCatalog(client),
-				configurator:   mockConfigurator,
+				kubeClient:          client,
+				kubeController:      mockNsController,
+				certManager:         tresor.NewFakeCertManager(&cache, mockConfigurator),
+				meshCatalog:         catalog.NewFakeMeshCatalog(client),
+				configurator:        mockConfigurator,
+				nonInjectNamespaces: mapset.NewSet(),
 			}
 
 			pod := tests.NewPodTestFixture(namespace, podName)

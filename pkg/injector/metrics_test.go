@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	mapset "github.com/deckarep/golang-set"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
@@ -67,8 +68,9 @@ func TestIsMetricsEnabled(t *testing.T) {
 
 	mockController := k8s.NewMockController(gomock.NewController(t))
 	wh := &webhook{
-		kubeClient:     fakeClient,
-		kubeController: mockController,
+		kubeClient:          fakeClient,
+		kubeController:      mockController,
+		nonInjectNamespaces: mapset.NewSet(),
 	}
 
 	mockController.EXPECT().GetNamespace("ns-1").Return(nsWithMetrics)
