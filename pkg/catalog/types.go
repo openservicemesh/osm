@@ -103,7 +103,7 @@ type MeshCataloger interface {
 
 	// GetResolvableHostnamesForUpstreamService returns the hostnames over which an upstream service is accessible from a downstream service
 	// TODO(ref: Issue #1316): return a list of strings
-	GetResolvableHostnamesForUpstreamService(downstream, upstream service.MeshService) (string, error)
+	GetResolvableHostnamesForUpstreamService(downstream, upstream service.MeshService) ([]string, error)
 
 	//GetWeightedClusterForService returns the weighted cluster for a service
 	GetWeightedClusterForService(service service.MeshService) (service.WeightedCluster, error)

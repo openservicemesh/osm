@@ -85,10 +85,10 @@ func (mr *MockMeshCatalogerMockRecorder) GetIngressRoutesPerHost(arg0 interface{
 }
 
 // GetResolvableHostnamesForUpstreamService mocks base method
-func (m *MockMeshCataloger) GetResolvableHostnamesForUpstreamService(arg0, arg1 service.MeshService) (string, error) {
+func (m *MockMeshCataloger) GetResolvableHostnamesForUpstreamService(arg0, arg1 service.MeshService) ([]string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetResolvableHostnamesForUpstreamService", arg0, arg1)
-	ret0, _ := ret[0].(string)
+	ret0, _ := ret[0].([]string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

@@ -27,8 +27,9 @@ type TrafficTarget struct {
 	HTTPRoutes  []HTTPRoute         `json:"http_route:omitempty"`
 }
 
-// RouteWeightedClusters is a struct of an HTTPRoute and associated weighted clusters
+// RouteWeightedClusters is a struct of an HTTPRoute, associated weighted clusters and the domains
 type RouteWeightedClusters struct {
 	HTTPRoute        HTTPRoute `json:"http_route:omitempty"`
 	WeightedClusters set.Set   `json:"weighted_clusters:omitempty"`
+	Domains          set.Set   `json:"domains:omitempty"`
 }
