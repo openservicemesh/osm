@@ -32,13 +32,7 @@ func (mc *MeshCatalog) GetServicesFromEnvoyCertificate(cn certificate.CommonName
 	services = mc.filterTrafficSplitServices(services)
 
 	if len(services) == 0 {
-		svcAccount := service.K8sServiceAccount{
-			Namespace: pod.Namespace,
-			Name:      pod.Spec.ServiceAccountName,
-		}
-		syntheticService := []service.MeshService{svcAccount.GetSyntheticService()}
-		log.Debug().Msgf("Creating synthetic service %s since no actual services found for connected proxy ID %s", syntheticService, cn)
-		return syntheticService, nil
+		return makeSyntheticServiceForPod(pod, cn), nil
 	}
 
 	cnMeta, err := getCertificateCommonNameMeta(cn)
@@ -54,6 +48,16 @@ func (mc *MeshCatalog) GetServicesFromEnvoyCertificate(cn certificate.CommonName
 		serviceList = append(serviceList, meshService)
 	}
 	return serviceList, nil
+}
+
+func makeSyntheticServiceForPod(pod *v1.Pod, proxyCommonName certificate.CommonName) []service.MeshService {
+	svcAccount := service.K8sServiceAccount{
+		Namespace: pod.Namespace,
+		Name:      pod.Spec.ServiceAccountName,
+	}
+	syntheticService := svcAccount.GetSyntheticService()
+	log.Debug().Msgf("Creating synthetic service %s since no actual services found for connected proxy CN %s", syntheticService, proxyCommonName)
+	return []service.MeshService{syntheticService}
 }
 
 // filterTrafficSplitServices takes a list of services and removes from it the ones

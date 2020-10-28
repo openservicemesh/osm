@@ -29,6 +29,29 @@ var _ = Describe("Test XDS certificate tooling", func() {
 	cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s", tests.ProxyUUID, tests.BookstoreServiceAccountName, tests.Namespace))
 
 	Context("Test GetServicesFromEnvoyCertificate()", func() {
+		It("", func() {
+			namespace := uuid.New().String()
+			serviceAccountName := uuid.New().String()
+			cn := certificate.CommonName(uuid.New().String())
+			pod := &v1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: namespace,
+				},
+				Spec: v1.PodSpec{
+					ServiceAccountName: serviceAccountName,
+				},
+			}
+
+			actual := makeSyntheticServiceForPod(pod, cn)
+
+			expected := service.MeshService{
+				Name:      fmt.Sprintf("%s.%s.osm.synthetic-%s", serviceAccountName, namespace, service.SyntheticServiceSuffix),
+				Namespace: namespace,
+			}
+			Expect(len(actual)).To(Equal(1))
+			Expect(actual[0]).To(Equal(expected))
+		})
+
 		It("works as expected", func() {
 			pod := tests.NewPodTestFixtureWithOptions(tests.Namespace, "pod-name", tests.BookstoreServiceAccountName)
 			_, err := kubeClient.CoreV1().Pods(tests.Namespace).Create(context.TODO(), &pod, metav1.CreateOptions{})
