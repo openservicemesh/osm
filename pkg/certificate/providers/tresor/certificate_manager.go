@@ -89,6 +89,12 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Dura
 	return cert, nil
 }
 
+func (cm *CertManager) deleteFromCache(cn certificate.CommonName) {
+	cm.cacheLock.Lock()
+	delete(*cm.cache, cn)
+	cm.cacheLock.Unlock()
+}
+
 func (cm *CertManager) getFromCache(cn certificate.CommonName) certificate.Certificater {
 	cm.cacheLock.Lock()
 	defer cm.cacheLock.Unlock()
@@ -123,6 +129,11 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 	log.Info().Msgf("It took %+v to issue certificate with CN=%s", time.Since(start), cn)
 
 	return cert, nil
+}
+
+// ReleaseCertificate is called when a cert will no longer be needed and should be removed from the system.
+func (cm *CertManager) ReleaseCertificate(cn certificate.CommonName) {
+	cm.deleteFromCache(cn)
 }
 
 // GetCertificate returns a certificate given its Common Name (CN)
