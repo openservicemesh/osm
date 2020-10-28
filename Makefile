@@ -11,15 +11,14 @@ GOPATH = $(shell go env GOPATH)
 GOBIN  = $(GOPATH)/bin
 GOX    = go run github.com/mitchellh/gox
 
-CLI_VERSION ?= dev
-CONTROLLER_VERSION = $$(git describe --abbrev=0 --tags --match "v*")
+VERSION ?= dev
 BUILD_DATE=$$(date +%Y-%m-%d-%H:%M)
 GIT_SHA=$$(git rev-parse HEAD)
 BUILD_DATE_VAR := github.com/openservicemesh/osm/pkg/version.BuildDate
 BUILD_VERSION_VAR := github.com/openservicemesh/osm/pkg/version.Version
 BUILD_GITCOMMIT_VAR := github.com/openservicemesh/osm/pkg/version.GitCommit
 
-LDFLAGS ?= "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(CLI_VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -X main.chartTGZSource=$$(cat -) -s -w"
+LDFLAGS ?= "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -X main.chartTGZSource=$$(cat -) -s -w"
 
 # These two values are combined and passed to go test
 E2E_FLAGS ?= -kindCluster
@@ -46,7 +45,7 @@ build: build-osm-controller
 
 .PHONY: build-osm-controller
 build-osm-controller: clean-osm-controller
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o ./bin/osm-controller/osm-controller -ldflags "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(CONTROLLER_VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -s -w" ./cmd/osm-controller
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o ./bin/osm-controller/osm-controller -ldflags "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -s -w" ./cmd/osm-controller
 
 .PHONY: build-osm
 build-osm:
@@ -169,8 +168,8 @@ dist:
 		cd _dist && \
 		$(DIST_DIRS) cp ../LICENSE {} \; && \
 		$(DIST_DIRS) cp ../README.md {} \; && \
-		$(DIST_DIRS) tar -zcf osm-${CLI_VERSION}-{}.tar.gz {} \; && \
-		$(DIST_DIRS) zip -r osm-${CLI_VERSION}-{}.zip {} \; && \
+		$(DIST_DIRS) tar -zcf osm-${VERSION}-{}.tar.gz {} \; && \
+		$(DIST_DIRS) zip -r osm-${VERSION}-{}.zip {} \; && \
 		sha256sum osm-* > sha256sums.txt \
 	)
 
