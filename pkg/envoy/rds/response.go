@@ -121,6 +121,6 @@ func createRoutePolicyWeightedClusters(routePolicy trafficpolicy.HTTPRoute, weig
 	return trafficpolicy.RouteWeightedClusters{
 		HTTPRoute:        routePolicy,
 		WeightedClusters: set.NewSet(weightedCluster),
-		Domains:          set.NewSet(hostname),
+		Hostnames:        set.NewSet(hostname),
 	}
 }
