@@ -28,8 +28,8 @@ var _ = Describe("Test XDS certificate tooling", func() {
 	mc := NewFakeMeshCatalog(kubeClient)
 	cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s", tests.ProxyUUID, tests.BookstoreServiceAccountName, tests.Namespace))
 
-	Context("Test GetServicesFromEnvoyCertificate()", func() {
-		It("", func() {
+	Context("Test makeSyntheticServiceForPod()", func() {
+		It("creates a MeshService struct with properly formatted Name and Namespace of the synthetic service", func() {
 			namespace := uuid.New().String()
 			serviceAccountName := uuid.New().String()
 			cn := certificate.CommonName(uuid.New().String())
@@ -51,7 +51,9 @@ var _ = Describe("Test XDS certificate tooling", func() {
 			Expect(len(actual)).To(Equal(1))
 			Expect(actual[0]).To(Equal(expected))
 		})
+	})
 
+	Context("Test GetServicesFromEnvoyCertificate()", func() {
 		It("works as expected", func() {
 			pod := tests.NewPodTestFixtureWithOptions(tests.Namespace, "pod-name", tests.BookstoreServiceAccountName)
 			_, err := kubeClient.CoreV1().Pods(tests.Namespace).Create(context.TODO(), &pod, metav1.CreateOptions{})
