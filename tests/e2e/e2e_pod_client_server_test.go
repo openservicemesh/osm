@@ -14,7 +14,17 @@ import (
 )
 
 var _ = DescribeTier1("Test HTTP traffic from 1 pod client -> 1 pod server", func() {
-	Context("SimpleClientServer", func() {
+	Context("SimpleClientServer with a Kubernetes Service for the Source", func() {
+		testTraffic(true)
+	})
+
+	Context("SimpleClientServer without a Kubernetes Service for the Source", func() {
+		testTraffic(false)
+	})
+})
+
+func testTraffic(withSourceKubernetesService bool) {
+	{
 		sourceName := "client"
 		destName := "server"
 		var ns = []string{sourceName, destName}
@@ -48,8 +58,7 @@ var _ = DescribeTier1("Test HTTP traffic from 1 pod client -> 1 pod server", fun
 			// Expect it to be up and running in it's receiver namespace
 			Expect(td.WaitForPodsRunningReady(destName, 90*time.Second, 1)).To(Succeed())
 
-			withKubernetesService := true
-			srcPod := setupSource(sourceName, withKubernetesService)
+			srcPod := setupSource(sourceName, withSourceKubernetesService)
 
 			By("Creating SMI policies")
 			// Deploy allow rule client->server
@@ -95,7 +104,9 @@ var _ = DescribeTier1("Test HTTP traffic from 1 pod client -> 1 pod server", fun
 				td.T.Logf("> (%s) HTTP Req succeeded: %d", srcToDestStr, result.StatusCode)
 				return true
 			}, 5, 90*time.Second)
-			Expect(cond).To(BeTrue())
+
+			sourceService := map[bool]string{true: "with", false: "without"}[withSourceKubernetesService]
+			Expect(cond).To(BeTrue(), "Failed testing HTTP traffic from source pod %s Kubernetes Service to a destination", sourceService)
 
 			By("Deleting SMI policies")
 			Expect(td.smiClients.AccessClient.AccessV1alpha2().TrafficTargets(sourceName).Delete(context.TODO(), trafficTarget.Name, metav1.DeleteOptions{})).To(Succeed())
@@ -115,8 +126,8 @@ var _ = DescribeTier1("Test HTTP traffic from 1 pod client -> 1 pod server", fun
 			}, 5, 150*time.Second)
 			Expect(cond).To(BeTrue())
 		})
-	})
-})
+	}
+}
 
 func setupSource(sourceName string, withKubernetesService bool) *v1.Pod {
 	// Get simple Pod definitions for the client
