@@ -233,7 +233,7 @@ var _ = Describe("Route Configuration", func() {
 			}
 
 			sourceDomainRouteData := map[string]trafficpolicy.RouteWeightedClusters{
-				routePolicy.PathRegex: {HTTPRoute: routePolicy, WeightedClusters: weightedClusters, Domains: domains},
+				routePolicy.PathRegex: {HTTPRoute: routePolicy, WeightedClusters: weightedClusters, Hostnames: domains},
 			}
 
 			sourceDomainAggregatedData := map[string]map[string]trafficpolicy.RouteWeightedClusters{
@@ -274,7 +274,7 @@ var _ = Describe("Route Configuration", func() {
 			}
 
 			destDomainRouteData := map[string]trafficpolicy.RouteWeightedClusters{
-				routePolicy.PathRegex: {HTTPRoute: routePolicy, WeightedClusters: weightedClusters, Domains: domains},
+				routePolicy.PathRegex: {HTTPRoute: routePolicy, WeightedClusters: weightedClusters, Hostnames: domains},
 			}
 
 			destDomainAggregatedData := map[string]map[string]trafficpolicy.RouteWeightedClusters{
