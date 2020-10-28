@@ -2,8 +2,18 @@ apiVersion: v1
 entries:
   osm:
   - apiVersion: v2
+    appVersion: v0.5.0-rc.1
+    created: "2020-10-28T19:42:24.958096416Z"
+    description: A Helm chart to install the OSM control plane on Kubernetes
+    digest: 65ee2d8313097846fda3527208e91cf79e8920bb0891e36106b11a7234b30aa9
+    name: osm
+    type: application
+    urls:
+    - https://openservicemesh.github.io/osm/osm-0.5.0-rc.1.tgz
+    version: 0.5.0-rc.1
+  - apiVersion: v2
     appVersion: v0.4.2
-    created: "2020-10-14T21:26:30.685846252Z"
+    created: "2020-10-28T19:42:24.956361013Z"
     description: A Helm chart to install the OSM control plane on Kubernetes
     digest: 5817b75d955b07bae459871ea23b54133fc106b44761ef1821038a253d0ee135
     name: osm
@@ -13,7 +23,7 @@ entries:
     version: 0.4.2
   - apiVersion: v2
     appVersion: v0.4.1
-    created: "2020-10-14T21:26:30.684527722Z"
+    created: "2020-10-28T19:42:24.954891411Z"
     description: A Helm chart to install the OSM control plane on Kubernetes
     digest: 3b05115628f1c1081260ba6e151ceffeab48410f768347a160e42d25324da723
     name: osm
@@ -21,4 +31,4 @@ entries:
     urls:
     - https://openservicemesh.github.io/osm/osm-0.4.1.tgz
     version: 0.4.1
-generated: "2020-10-14T21:26:30.682398474Z"
+generated: "2020-10-28T19:42:24.953152408Z"
