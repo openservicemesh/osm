@@ -8,6 +8,8 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -15,7 +17,7 @@ var _ = DescribeTier1("Test HTTP traffic from 1 pod client -> 1 pod server", fun
 	Context("SimpleClientServer", func() {
 		sourceName := "client"
 		destName := "server"
-		var ns []string = []string{sourceName, destName}
+		var ns = []string{sourceName, destName}
 
 		It("Tests HTTP traffic for client pod -> server pod", func() {
 			// Install OSM
@@ -46,25 +48,8 @@ var _ = DescribeTier1("Test HTTP traffic from 1 pod client -> 1 pod server", fun
 			// Expect it to be up and running in it's receiver namespace
 			Expect(td.WaitForPodsRunningReady(destName, 90*time.Second, 1)).To(Succeed())
 
-			// Get simple Pod definitions for the client
-			svcAccDef, podDef, svcDef = td.SimplePodApp(SimplePodAppDef{
-				name:      sourceName,
-				namespace: sourceName,
-				command:   []string{"/bin/bash", "-c", "--"},
-				args:      []string{"while true; do sleep 30; done;"},
-				image:     "songrgg/alpine-debug",
-				ports:     []int{80},
-			})
-
-			_, err = td.CreateServiceAccount(sourceName, &svcAccDef)
-			Expect(err).NotTo(HaveOccurred())
-			srcPod, err := td.CreatePod(sourceName, podDef)
-			Expect(err).NotTo(HaveOccurred())
-			_, err = td.CreateService(sourceName, svcDef)
-			Expect(err).NotTo(HaveOccurred())
-
-			// Expect it to be up and running in it's receiver namespace
-			Expect(td.WaitForPodsRunningReady(sourceName, 90*time.Second, 1)).To(Succeed())
+			withKubernetesService := true
+			srcPod := setupSource(sourceName, withKubernetesService)
 
 			By("Creating SMI policies")
 			// Deploy allow rule client->server
@@ -132,3 +117,32 @@ var _ = DescribeTier1("Test HTTP traffic from 1 pod client -> 1 pod server", fun
 		})
 	})
 })
+
+func setupSource(sourceName string, withKubernetesService bool) *v1.Pod {
+	// Get simple Pod definitions for the client
+	svcAccDef, podDef, svcDef := td.SimplePodApp(SimplePodAppDef{
+		name:      sourceName,
+		namespace: sourceName,
+		command:   []string{"/bin/bash", "-c", "--"},
+		args:      []string{"while true; do sleep 30; done;"},
+		image:     "songrgg/alpine-debug",
+		ports:     []int{80},
+	})
+
+	_, err := td.CreateServiceAccount(sourceName, &svcAccDef)
+	Expect(err).NotTo(HaveOccurred())
+
+	srcPod, err := td.CreatePod(sourceName, podDef)
+	Expect(err).NotTo(HaveOccurred())
+
+	// In some cases we may want to skip the creation of a Kubernetes service for the source.
+	if withKubernetesService {
+		_, err = td.CreateService(sourceName, svcDef)
+		Expect(err).NotTo(HaveOccurred())
+	}
+
+	// Expect it to be up and running in it's receiver namespace
+	Expect(td.WaitForPodsRunningReady(sourceName, 90*time.Second, 1)).To(Succeed())
+
+	return srcPod
+}
