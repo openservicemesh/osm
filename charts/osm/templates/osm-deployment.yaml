@@ -87,6 +87,9 @@ spec:
           - name: var-log-pods
             mountPath: /var/log/pods
             readOnly: true
+          - name: var-lib-containers
+            mountPath: /var/lib/docker/containers
+            readOnly: true
        {{- end }}
     {{- if .Values.OpenServiceMesh.enableFluentbit }}
       volumes:
@@ -99,6 +102,9 @@ spec:
       - name: var-log-pods
         hostPath:
           path: /var/log/pods
+      - name: var-lib-containers
+        hostPath:
+          path: /var/lib/docker/containers
      {{- end }}
     {{- if .Values.OpenServiceMesh.imagePullSecrets }}
       imagePullSecrets:
