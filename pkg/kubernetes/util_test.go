@@ -56,7 +56,7 @@ var _ = Describe("Hostnames for a kubernetes service", func() {
 		})
 		It("Returns the service name from its hostname", func() {
 			hostname := fmt.Sprintf("%s:%d", service, tests.ServicePort)
-			Expect(GetServiceFromHostname(hostname)).To(Equal(fmt.Sprintf("%s:%d", service, tests.ServicePort)))
+			Expect(GetServiceFromHostname(hostname)).To(Equal(service))
 		})
 		It("Returns the service name from its hostname", func() {
 			hostname := fmt.Sprintf("%s.namespace", service)

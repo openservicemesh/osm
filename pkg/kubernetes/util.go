@@ -51,5 +51,9 @@ func GetHostnamesForService(service *corev1.Service, sameNamespace bool) []strin
 func GetServiceFromHostname(host string) string {
 	// The service name is the first string in the host name for a service.
 	// Ex. service.namespace, service.namespace.cluster.local
-	return strings.Split(host, ".")[0]
+	service := strings.Split(host, ".")[0]
+
+	// For services that are not namespaced the service name contains the port as well
+	// Ex. service:port
+	return strings.Split(service, ":")[0]
 }

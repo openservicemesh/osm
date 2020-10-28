@@ -133,19 +133,21 @@ func hostnamesTostr(hostnames []string) string {
 // GetResolvableHostnamesForUpstreamService returns the hostnames over which an upstream service is accessible from a downstream service
 // The hostname is the FQDN for the service, and can include ports as well.
 // Ex. bookstore.default, bookstore.default:80, bookstore.default.svc, bookstore.default.svc:80 etc.
-func (mc *MeshCatalog) GetResolvableHostnamesForUpstreamService(downstream, upstream service.MeshService) (string, error) {
+func (mc *MeshCatalog) GetResolvableHostnamesForUpstreamService(downstream, upstream service.MeshService) ([]string, error) {
 	sameNamespace := downstream.Namespace == upstream.Namespace
+	var svcHostnames []string
 
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
 		hostnames, err := mc.getServiceHostnames(upstream, sameNamespace)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error getting service hostnames for upstream service %s", upstream)
-			return "", err
+			return svcHostnames, err
 		}
-		return hostnamesTostr(hostnames), nil
+		return hostnames, nil
 	}
 
-	// Retrieve the domain name from traffic split
+	// If this service is referenced in a traffic split
+	// Retrieve the domain name from traffic split root service
 	servicesList := mc.meshSpec.ListTrafficSplitServices()
 	for _, activeService := range servicesList {
 		if activeService.Service == upstream {
@@ -158,21 +160,21 @@ func (mc *MeshCatalog) GetResolvableHostnamesForUpstreamService(downstream, upst
 			hostnames, err := mc.getServiceHostnames(rootMeshService, sameNamespace)
 			if err != nil {
 				log.Error().Err(err).Msgf("Error getting service hostnames for Apex service %s", rootMeshService)
-				return "", err
+				return svcHostnames, err
 			}
-			return hostnamesTostr(hostnames), nil
+			svcHostnames = append(svcHostnames, hostnames...)
 		}
 	}
 
-	// This service is not a backend for a traffic split policy.
 	// The hostnames for this service are the Kubernetes service DNS names.
 	hostnames, err := mc.getServiceHostnames(upstream, sameNamespace)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error getting service hostnames for upstream service %s", upstream)
-		return "", err
+		return svcHostnames, err
 	}
 
-	return hostnamesTostr(hostnames), nil
+	svcHostnames = append(svcHostnames, hostnames...)
+	return svcHostnames, nil
 }
 
 // getServiceHostnames returns a list of hostnames corresponding to the service.

@@ -10,6 +10,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/route"
+	"github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
@@ -56,14 +57,16 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 			return nil, err
 		}
 
-		// All routes from a given source to destination are part of 1 traffic policy between the source and destination.
-		for _, httpRoute := range trafficPolicy.HTTPRoutes {
-			if isSourceService {
-				aggregateRoutesByHost(outboundAggregatedRoutesByHostnames, httpRoute, weightedCluster, hostnames)
-			}
+		for _, hostname := range hostnames {
+			// All routes from a given source to destination are part of 1 traffic policy between the source and destination.
+			for _, httpRoute := range trafficPolicy.HTTPRoutes {
+				if isSourceService {
+					aggregateRoutesByHost(outboundAggregatedRoutesByHostnames, httpRoute, weightedCluster, hostname)
+				}
 
-			if isDestinationService {
-				aggregateRoutesByHost(inboundAggregatedRoutesByHostnames, httpRoute, weightedCluster, hostnames)
+				if isDestinationService {
+					aggregateRoutesByHost(inboundAggregatedRoutesByHostnames, httpRoute, weightedCluster, hostname)
+				}
 			}
 		}
 	}
@@ -88,7 +91,8 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 	return resp, nil
 }
 
-func aggregateRoutesByHost(routesPerHost map[string]map[string]trafficpolicy.RouteWeightedClusters, routePolicy trafficpolicy.HTTPRoute, weightedCluster service.WeightedCluster, host string) {
+func aggregateRoutesByHost(routesPerHost map[string]map[string]trafficpolicy.RouteWeightedClusters, routePolicy trafficpolicy.HTTPRoute, weightedCluster service.WeightedCluster, hostname string) {
+	host := kubernetes.GetServiceFromHostname(hostname)
 	_, exists := routesPerHost[host]
 	if !exists {
 		// no host found, create a new route map
@@ -105,16 +109,18 @@ func aggregateRoutesByHost(routesPerHost map[string]map[string]trafficpolicy.Rou
 		for headerKey, headerValue := range routePolicy.Headers {
 			routePolicyWeightedCluster.HTTPRoute.Headers[headerKey] = headerValue
 		}
+		routePolicyWeightedCluster.Hostnames.Add(hostname)
 		routesPerHost[host][routePolicy.PathRegex] = routePolicyWeightedCluster
 	} else {
 		// no route found, create a new route and cluster mapping on host
-		routesPerHost[host][routePolicy.PathRegex] = createRoutePolicyWeightedClusters(routePolicy, weightedCluster)
+		routesPerHost[host][routePolicy.PathRegex] = createRoutePolicyWeightedClusters(routePolicy, weightedCluster, hostname)
 	}
 }
 
-func createRoutePolicyWeightedClusters(routePolicy trafficpolicy.HTTPRoute, weightedCluster service.WeightedCluster) trafficpolicy.RouteWeightedClusters {
+func createRoutePolicyWeightedClusters(routePolicy trafficpolicy.HTTPRoute, weightedCluster service.WeightedCluster, hostname string) trafficpolicy.RouteWeightedClusters {
 	return trafficpolicy.RouteWeightedClusters{
 		HTTPRoute:        routePolicy,
 		WeightedClusters: set.NewSet(weightedCluster),
+		Hostnames:        set.NewSet(hostname),
 	}
 }

@@ -3,7 +3,6 @@ package catalog
 import (
 	"fmt"
 	reflect "reflect"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -273,43 +272,59 @@ func TestGetResolvableHostnamesForUpstreamService(t *testing.T) {
 
 	testCases := []struct {
 		downstream        service.MeshService
-		expectedHostnames string
+		expectedHostnames []string
 	}{
 		{
 			downstream: service.MeshService{
 				Namespace: "default",
 				Name:      "foo",
 			},
-			expectedHostnames: strings.Join(
-				[]string{
-					"bookstore-apex",
-					"bookstore-apex.default",
-					"bookstore-apex.default.svc",
-					"bookstore-apex.default.svc.cluster",
-					"bookstore-apex.default.svc.cluster.local",
-					"bookstore-apex:8888",
-					"bookstore-apex.default:8888",
-					"bookstore-apex.default.svc:8888",
-					"bookstore-apex.default.svc.cluster:8888",
-					"bookstore-apex.default.svc.cluster.local:8888",
-				}, ","),
+			expectedHostnames: []string{
+				"bookstore-apex",
+				"bookstore-apex.default",
+				"bookstore-apex.default.svc",
+				"bookstore-apex.default.svc.cluster",
+				"bookstore-apex.default.svc.cluster.local",
+				"bookstore-apex:8888",
+				"bookstore-apex.default:8888",
+				"bookstore-apex.default.svc:8888",
+				"bookstore-apex.default.svc.cluster:8888",
+				"bookstore-apex.default.svc.cluster.local:8888",
+				"bookstore-v1",
+				"bookstore-v1.default",
+				"bookstore-v1.default.svc",
+				"bookstore-v1.default.svc.cluster",
+				"bookstore-v1.default.svc.cluster.local",
+				"bookstore-v1:8888",
+				"bookstore-v1.default:8888",
+				"bookstore-v1.default.svc:8888",
+				"bookstore-v1.default.svc.cluster:8888",
+				"bookstore-v1.default.svc.cluster.local:8888",
+			},
 		},
 		{
 			downstream: service.MeshService{
 				Namespace: "bar",
 				Name:      "foo",
 			},
-			expectedHostnames: strings.Join(
-				[]string{
-					"bookstore-apex.default",
-					"bookstore-apex.default.svc",
-					"bookstore-apex.default.svc.cluster",
-					"bookstore-apex.default.svc.cluster.local",
-					"bookstore-apex.default:8888",
-					"bookstore-apex.default.svc:8888",
-					"bookstore-apex.default.svc.cluster:8888",
-					"bookstore-apex.default.svc.cluster.local:8888",
-				}, ","),
+			expectedHostnames: []string{
+				"bookstore-apex.default",
+				"bookstore-apex.default.svc",
+				"bookstore-apex.default.svc.cluster",
+				"bookstore-apex.default.svc.cluster.local",
+				"bookstore-apex.default:8888",
+				"bookstore-apex.default.svc:8888",
+				"bookstore-apex.default.svc.cluster:8888",
+				"bookstore-apex.default.svc.cluster.local:8888",
+				"bookstore-v1.default",
+				"bookstore-v1.default.svc",
+				"bookstore-v1.default.svc.cluster",
+				"bookstore-v1.default.svc.cluster.local",
+				"bookstore-v1.default:8888",
+				"bookstore-v1.default.svc:8888",
+				"bookstore-v1.default.svc.cluster:8888",
+				"bookstore-v1.default.svc.cluster.local:8888",
+			},
 		},
 	}
 

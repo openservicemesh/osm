@@ -336,7 +336,7 @@ type MeshCataloger interface {
 	GetServicesForServiceAccount(service.K8sServiceAccount) ([]service.MeshService, error)
 
 	// GetResolvableHostnamesForUpstreamService returns the hostnames over which an upstream service is accessible from a downstream service
-	GetResolvableHostnamesForUpstreamService(downstream, upstream service.MeshService) (string, error)
+	GetResolvableHostnamesForUpstreamService(downstream, upstream service.MeshService) ([]string, error)
 
 	//GetWeightedClusterForService returns the weighted cluster for a service
 	GetWeightedClusterForService(service service.MeshService) (service.WeightedCluster, error)
