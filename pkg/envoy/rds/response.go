@@ -45,7 +45,7 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 		isSourceService := trafficPolicy.Source.Equals(proxyServiceName)
 		isDestinationService := trafficPolicy.Destination.Equals(proxyServiceName)
 		svc := trafficPolicy.Destination
-		hostnames, err := catalog.GetHostnamesForService(svc)
+		hostnames, err := catalog.GetResolvableHostnamesForUpstreamService(proxyServiceName, svc)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed listing domains")
 			return nil, err
