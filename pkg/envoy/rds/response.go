@@ -109,7 +109,7 @@ func aggregateRoutesByHost(routesPerHost map[string]map[string]trafficpolicy.Rou
 		for headerKey, headerValue := range routePolicy.Headers {
 			routePolicyWeightedCluster.HTTPRoute.Headers[headerKey] = headerValue
 		}
-		routePolicyWeightedCluster.Domains.Add(hostname)
+		routePolicyWeightedCluster.Hostnames.Add(hostname)
 		routesPerHost[host][routePolicy.PathRegex] = routePolicyWeightedCluster
 	} else {
 		// no route found, create a new route and cluster mapping on host

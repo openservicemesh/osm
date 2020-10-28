@@ -54,7 +54,7 @@ var _ = Describe("Construct RoutePolicyWeightedClusters object", func() {
 			routePolicyWeightedClustersSlice := routePolicyWeightedClusters.WeightedClusters.ToSlice()
 			Expect(string(routePolicyWeightedClustersSlice[0].(service.WeightedCluster).ClusterName)).To(Equal("osm/bookstore-1"))
 			Expect(routePolicyWeightedClustersSlice[0].(service.WeightedCluster).Weight).To(Equal(100))
-			Expect(routePolicyWeightedClusters.Domains).To(Equal(set.NewSet("bookstore-1")))
+			Expect(routePolicyWeightedClusters.Hostnames).To(Equal(set.NewSet("bookstore-1")))
 		})
 	})
 })
@@ -87,7 +87,7 @@ var _ = Describe("AggregateRoutesByDomain", func() {
 			for path := range domainRoutesMap["bookstore"] {
 				Expect(domainRoutesMap["bookstore"][path].WeightedClusters.Cardinality()).To(Equal(1))
 				Expect(domainRoutesMap["bookstore"][path].WeightedClusters.Equal(weightedClustersMap)).To(Equal(true))
-				Expect(domainRoutesMap["bookstore"][path].Domains).To(Equal(expectedDomains))
+				Expect(domainRoutesMap["bookstore"][path].Hostnames).To(Equal(expectedDomains))
 			}
 		})
 	})
@@ -117,7 +117,7 @@ var _ = Describe("AggregateRoutesByDomain", func() {
 			Expect(domainRoutesMap["bookstore"][routePolicy.PathRegex].WeightedClusters.Cardinality()).To(Equal(1))
 			Expect(domainRoutesMap["bookstore"][routePolicy.PathRegex].HTTPRoute).To(Equal(trafficpolicy.HTTPRoute{PathRegex: "/update-books-bought", Methods: []string{"GET"}, Headers: map[string]string{testHeaderKey1: "This is a test header 1"}}))
 			Expect(domainRoutesMap["bookstore"][routePolicy.PathRegex].WeightedClusters.Equal(weightedClustersMap)).To(Equal(true))
-			Expect(domainRoutesMap["bookstore"][routePolicy.PathRegex].Domains).To(Equal(expectedDomains))
+			Expect(domainRoutesMap["bookstore"][routePolicy.PathRegex].Hostnames).To(Equal(expectedDomains))
 		})
 	})
 
@@ -145,7 +145,7 @@ var _ = Describe("AggregateRoutesByDomain", func() {
 			Expect(domainRoutesMap["bookstore"][routePolicy.PathRegex].WeightedClusters.Cardinality()).To(Equal(2))
 			Expect(domainRoutesMap["bookstore"][routePolicy.PathRegex].HTTPRoute).To(Equal(trafficpolicy.HTTPRoute{PathRegex: "/update-books-bought", Methods: []string{"GET", "GET"}, Headers: map[string]string{testHeaderKey1: "This is a test header 1", testHeaderKey2: "This is a test header 2"}}))
 			Expect(domainRoutesMap["bookstore"][routePolicy.PathRegex].WeightedClusters.Equal(weightedClustersMap)).To(Equal(true))
-			Expect(domainRoutesMap["bookstore"][routePolicy.PathRegex].Domains).To(Equal(expectedDomains))
+			Expect(domainRoutesMap["bookstore"][routePolicy.PathRegex].Hostnames).To(Equal(expectedDomains))
 		})
 	})
 })

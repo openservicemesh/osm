@@ -31,5 +31,5 @@ type TrafficTarget struct {
 type RouteWeightedClusters struct {
 	HTTPRoute        HTTPRoute `json:"http_route:omitempty"`
 	WeightedClusters set.Set   `json:"weighted_clusters:omitempty"`
-	Domains          set.Set   `json:"domains:omitempty"`
+	Hostnames        set.Set   `json:"hostnames:omitempty"`
 }

@@ -78,7 +78,6 @@ func createVirtualHostStub(namePrefix string, host string, domains set.Set) *xds
 		domainsSlice = append(domainsSlice, strings.TrimSpace(domainIntf.(string)))
 	}
 
-	log.Trace().Msgf("TEST domains %v", domains)
 	name := fmt.Sprintf("%s|%s", namePrefix, host)
 	virtualHost := xds_route.VirtualHost{
 		Name:    name,
@@ -214,9 +213,9 @@ func getDistinctDomains(routePolicyWeightedClustersMap map[string]trafficpolicy.
 	domains := set.NewSet()
 	for _, perRouteWeightedClusters := range routePolicyWeightedClustersMap {
 		if domains.Cardinality() == 0 {
-			domains = perRouteWeightedClusters.Domains
+			domains = perRouteWeightedClusters.Hostnames
 		}
-		domains.Union(perRouteWeightedClusters.Domains)
+		domains.Union(perRouteWeightedClusters.Hostnames)
 	}
 	return domains
 }
