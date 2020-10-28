@@ -238,6 +238,49 @@ var _ = DescribeTier1("Test HTTP from N Clients deployments to 1 Server deployme
 				return curlSuccess && (len(serversSeen) == numberOfServerServices*serverReplicaSet)
 			}, 5, 150*time.Second)
 
+			// Test now against the individual services, observe they should still be reachable
+			requests = HTTPMultipleRequest{
+				Sources: []HTTPRequestDef{},
+			}
+			for _, clientNs := range clientServices {
+				pods, err := td.client.CoreV1().Pods(clientNs).List(context.Background(), metav1.ListOptions{})
+				Expect(err).To(BeNil())
+				// For each client pod
+				for _, pod := range pods.Items {
+					// reach each service
+					for _, svcNs := range serverServices {
+						requests.Sources = append(requests.Sources, HTTPRequestDef{
+							SourceNs:        pod.Namespace,
+							SourcePod:       pod.Name,
+							SourceContainer: pod.Namespace, // Generally this is true in our testing
+
+							// direct traffic target against the specific server service in the server namespace
+							Destination: fmt.Sprintf("%s.%s", svcNs, serverNamespace),
+						})
+					}
+				}
+			}
+
+			results = HTTPMultipleResults{}
+			serversSeen = map[string]bool{} // Just counts unique servers seen
+			success = td.WaitForRepeatedSuccess(func() bool {
+				// Get results
+				results = td.MultipleHTTPRequest(&requests)
+
+				// Print results
+				td.PrettyPrintHTTPResults(&results)
+
+				// Verify REST status code results
+				for _, ns := range results {
+					for _, podResult := range ns {
+						if podResult.Err != nil || podResult.StatusCode != 200 {
+							return false
+						}
+					}
+				}
+				return true
+			}, 5, 150*time.Second)
+
 			Expect(success).To(BeTrue())
 		})
 	})
