@@ -182,7 +182,7 @@ func TestCreateCABundleKubernetesSecret(t *testing.T) {
 	actual, err := k8sClient.CoreV1().Secrets(namespace).Get(context.Background(), testName, metav1.GetOptions{})
 	assert.Nil(err)
 
-	expected := "-----BEGIN CERTIFICATE-----\nMIIF"
+	expected := "-----BEGIN CERTIFICATE-----\nMIID"
 	stringPEM := string(actual.Data[constants.KubernetesOpaqueSecretCAKey])[:len(expected)]
 	assert.Equal(stringPEM, expected)
 
