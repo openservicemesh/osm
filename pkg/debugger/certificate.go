@@ -10,7 +10,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 )
 
-func (ds debugServer) getCertHandler() http.Handler {
+func (ds debugConfig) getCertHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		certs := ds.certDebugger.ListIssuedCertificates()
 
