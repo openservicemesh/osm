@@ -176,12 +176,12 @@ func TestCheckTrafficPolicy(t *testing.T) {
 				},
 				Spec: smiAccess.TrafficTargetSpec{
 					Destination: smiAccess.IdentityBindingSubject{
-						Kind:      "Name",
+						Kind:      "ServiceAccount",
 						Name:      "sa-2",
 						Namespace: "ns-2",
 					},
 					Sources: []smiAccess.IdentityBindingSubject{{
-						Kind:      "Name",
+						Kind:      "ServiceAccount",
 						Name:      "sa-1",
 						Namespace: "ns-1",
 					}},
@@ -232,12 +232,12 @@ func TestCheckTrafficPolicy(t *testing.T) {
 				},
 				Spec: smiAccess.TrafficTargetSpec{
 					Destination: smiAccess.IdentityBindingSubject{
-						Kind:      "Name",
+						Kind:      "ServiceAccount",
 						Name:      "sa-2",
 						Namespace: "ns-2",
 					},
 					Sources: []smiAccess.IdentityBindingSubject{{
-						Kind:      "Name",
+						Kind:      "ServiceAccount",
 						Name:      "sa-1",
 						Namespace: "ns-1",
 					}},
@@ -289,12 +289,12 @@ func TestCheckTrafficPolicy(t *testing.T) {
 				},
 				Spec: smiAccess.TrafficTargetSpec{
 					Destination: smiAccess.IdentityBindingSubject{
-						Kind:      "Name",
+						Kind:      "ServiceAccount",
 						Name:      "sa-2",
 						Namespace: "ns-2",
 					},
 					Sources: []smiAccess.IdentityBindingSubject{{
-						Kind:      "Name",
+						Kind:      "ServiceAccount",
 						Name:      "sa-1",
 						Namespace: "ns-1",
 					}},

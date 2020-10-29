@@ -13,7 +13,7 @@ associated with osm.
 
 func newTrafficPolicyCmd(out io.Writer) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "trafficpolicy",
+		Use:   "policy",
 		Short: "manage and check traffic policies",
 		Long:  trafficPolicyDescription,
 		Args:  cobra.NoArgs,

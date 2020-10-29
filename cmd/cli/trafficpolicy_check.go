@@ -24,17 +24,18 @@ in lieu of the mesh operating in permissive traffic policy mode.
 
 const trafficPolicyCheckExample = `
 # To check if pod 'bookbuyer-client' in the 'bookbuyer' namespace can send traffic to pod 'bookstore-server' in the 'bookstore' namespace
-osm trafficpolicy check-pods bookbuyer/bookbuyer-client bookstore/bookstore-server
+osm policy check-pods bookbuyer/bookbuyer-client bookstore/bookstore-server
 
 # If the pod belongs to the default namespace, the namespace can be omitted with the flags
 # To check if pod 'bookbuyer-client' in the 'default' namespace can send traffic to pod 'bookstore-server' in the 'default' namespace
-osm trafficpolicy check-pods bookbuyer-client bookstore-server
+osm policy check-pods bookbuyer-client bookstore-server
 `
 
 const (
 	namespaceSeparator             = "/"
 	osmConfigMapName               = "osm-config"
 	permissiveTrafficPolicyModeKey = "permissive_traffic_policy_mode"
+	serviceAccountKind             = "ServiceAccount"
 )
 
 type trafficPolicyCheckCmd struct {
@@ -131,12 +132,20 @@ func (cmd *trafficPolicyCheckCmd) checkTrafficPolicy(srcPod, dstPod *corev1.Pod)
 	var foundTrafficTarget bool
 	for _, trafficTarget := range trafficTargets.Items {
 		spec := trafficTarget.Spec
+		if spec.Destination.Kind != serviceAccountKind {
+			continue
+		}
+
 		// Map traffic targets to the given pods
 		if spec.Destination.Name == dstPod.Spec.ServiceAccountName && spec.Destination.Namespace == dstPod.Namespace {
 			// The TrafficTarget destination is associated to 'dstPod'
 
 			// Check if 'srcPod` is an allowed source to this destination
 			for _, source := range spec.Sources {
+				if source.Kind != serviceAccountKind {
+					continue
+				}
+
 				if source.Name == srcPod.Spec.ServiceAccountName && source.Namespace == srcPod.Namespace {
 					fmt.Fprintf(cmd.out, "[+] Pod '%s/%s' is allowed to communicate to pod '%s/%s' via the SMI TrafficTarget policy %q:\n",
 						srcPod.Namespace, srcPod.Name, dstPod.Namespace, dstPod.Name, trafficTarget.Name)
@@ -190,16 +199,20 @@ func (cmd *trafficPolicyCheckCmd) isPermissiveModeEnabled() (bool, error) {
 	return configMapBoolValue, nil
 }
 
-func unmarshalNamespacedPod(namespacedPod string) (string, string, error) {
+func unmarshalNamespacedPod(namespacedPod string) (namespace string, podName string, err error) {
 	if namespacedPod == "" {
-		return "", "", errors.Errorf("Pod name should be of the form <namespace/pod>, or <pod> for default namespace, cannot be empty")
+		err = errors.Errorf("Pod name should be of the form <namespace/pod>, or <pod> for default namespace, cannot be empty")
+		return
 	}
 	chunks := strings.Split(namespacedPod, namespaceSeparator)
 	if len(chunks) == 1 {
-		return metav1.NamespaceDefault, chunks[0], nil
+		namespace = metav1.NamespaceDefault
+		podName = chunks[0]
 	} else if len(chunks) == 2 {
-		return chunks[0], chunks[1], nil
+		namespace = chunks[0]
+		podName = chunks[1]
 	} else {
-		return "", "", errors.Errorf("Pod name should be of the form <namespace/pod>, or <pod> for default namespace, got: %s", namespacedPod)
+		err = errors.Errorf("Pod name should be of the form <namespace/pod>, or <pod> for default namespace, got: %s", namespacedPod)
 	}
+	return
 }
