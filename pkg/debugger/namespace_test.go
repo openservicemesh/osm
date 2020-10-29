@@ -16,7 +16,7 @@ func TestMonitoredNamespaceHandler(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	mock := NewMockMeshCatalogDebugger(mockCtrl)
 
-	ds := debugServer{
+	ds := debugConfig{
 		meshCatalogDebugger: mock,
 	}
 	monitoredNamespacesHandler := ds.getMonitoredNamespacesHandler()
