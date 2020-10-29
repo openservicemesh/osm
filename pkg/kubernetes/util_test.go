@@ -11,31 +11,40 @@ import (
 
 var _ = Describe("Hostnames for a kubernetes service", func() {
 	Context("Testing GethostnamesForService", func() {
-		contains := func(hostnames []string, expected string) bool {
-			for _, entry := range hostnames {
-				if entry == expected {
-					return true
-				}
-			}
-			return false
-		}
-		It("Returns a list of hostnames corresponding to the service", func() {
+		It("Should correctly return a list of hostnames corresponding to a service in the same namespace", func() {
 			selectors := map[string]string{
 				tests.SelectorKey: tests.SelectorValue,
 			}
 			service := tests.NewServiceFixture(tests.BookbuyerServiceName, tests.Namespace, selectors)
-			hostnames := GetHostnamesForService(service)
+			hostnames := GetHostnamesForService(service, true)
 			Expect(len(hostnames)).To(Equal(10))
-			Expect(contains(hostnames, tests.BookbuyerServiceName)).To(BeTrue())
-			Expect(contains(hostnames, fmt.Sprintf("%s:%d", tests.BookbuyerServiceName, tests.ServicePort))).To(BeTrue())
-			Expect(contains(hostnames, fmt.Sprintf("%s.%s", tests.BookbuyerServiceName, tests.Namespace))).To(BeTrue())
-			Expect(contains(hostnames, fmt.Sprintf("%s.%s:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort))).To(BeTrue())
-			Expect(contains(hostnames, fmt.Sprintf("%s.%s.svc", tests.BookbuyerServiceName, tests.Namespace))).To(BeTrue())
-			Expect(contains(hostnames, fmt.Sprintf("%s.%s.svc:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort))).To(BeTrue())
-			Expect(contains(hostnames, fmt.Sprintf("%s.%s.svc.cluster", tests.BookbuyerServiceName, tests.Namespace))).To(BeTrue())
-			Expect(contains(hostnames, fmt.Sprintf("%s.%s.svc.cluster:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort))).To(BeTrue())
-			Expect(contains(hostnames, fmt.Sprintf("%s.%s.svc.cluster.local", tests.BookbuyerServiceName, tests.Namespace))).To(BeTrue())
-			Expect(contains(hostnames, fmt.Sprintf("%s.%s.svc.cluster.local:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort))).To(BeTrue())
+			Expect(tests.BookbuyerServiceName).To(BeElementOf(hostnames))
+			Expect(fmt.Sprintf("%s:%d", tests.BookbuyerServiceName, tests.ServicePort)).To(BeElementOf(hostnames))
+			Expect(fmt.Sprintf("%s.%s", tests.BookbuyerServiceName, tests.Namespace)).To(BeElementOf(hostnames))
+			Expect(fmt.Sprintf("%s.%s:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort)).To(BeElementOf(hostnames))
+			Expect(fmt.Sprintf("%s.%s.svc", tests.BookbuyerServiceName, tests.Namespace)).To(BeElementOf(hostnames))
+			Expect(fmt.Sprintf("%s.%s.svc:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort)).To(BeElementOf(hostnames))
+			Expect(fmt.Sprintf("%s.%s.svc.cluster", tests.BookbuyerServiceName, tests.Namespace)).To(BeElementOf(hostnames))
+			Expect(fmt.Sprintf("%s.%s.svc.cluster:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort)).To(BeElementOf(hostnames))
+			Expect(fmt.Sprintf("%s.%s.svc.cluster.local", tests.BookbuyerServiceName, tests.Namespace)).To(BeElementOf(hostnames))
+			Expect(fmt.Sprintf("%s.%s.svc.cluster.local:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort)).To(BeElementOf(hostnames))
+		})
+
+		It("Should correctly return a list of hostnames corresponding to a service not in the same namespace", func() {
+			selectors := map[string]string{
+				tests.SelectorKey: tests.SelectorValue,
+			}
+			service := tests.NewServiceFixture(tests.BookbuyerServiceName, tests.Namespace, selectors)
+			hostnames := GetHostnamesForService(service, false)
+			Expect(len(hostnames)).To(Equal(8))
+			Expect(fmt.Sprintf("%s.%s", tests.BookbuyerServiceName, tests.Namespace)).To(BeElementOf(hostnames))
+			Expect(fmt.Sprintf("%s.%s:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort)).To(BeElementOf(hostnames))
+			Expect(fmt.Sprintf("%s.%s.svc", tests.BookbuyerServiceName, tests.Namespace)).To(BeElementOf(hostnames))
+			Expect(fmt.Sprintf("%s.%s.svc:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort)).To(BeElementOf(hostnames))
+			Expect(fmt.Sprintf("%s.%s.svc.cluster", tests.BookbuyerServiceName, tests.Namespace)).To(BeElementOf(hostnames))
+			Expect(fmt.Sprintf("%s.%s.svc.cluster:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort)).To(BeElementOf(hostnames))
+			Expect(fmt.Sprintf("%s.%s.svc.cluster.local", tests.BookbuyerServiceName, tests.Namespace)).To(BeElementOf(hostnames))
+			Expect(fmt.Sprintf("%s.%s.svc.cluster.local:%d", tests.BookbuyerServiceName, tests.Namespace, tests.ServicePort)).To(BeElementOf(hostnames))
 		})
 	})
 
@@ -47,7 +56,7 @@ var _ = Describe("Hostnames for a kubernetes service", func() {
 		})
 		It("Returns the service name from its hostname", func() {
 			hostname := fmt.Sprintf("%s:%d", service, tests.ServicePort)
-			Expect(GetServiceFromHostname(hostname)).To(Equal(fmt.Sprintf("%s:%d", service, tests.ServicePort)))
+			Expect(GetServiceFromHostname(hostname)).To(Equal(service))
 		})
 		It("Returns the service name from its hostname", func() {
 			hostname := fmt.Sprintf("%s.namespace", service)

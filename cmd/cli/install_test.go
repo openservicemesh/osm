@@ -785,7 +785,7 @@ var _ = Describe("Resolving values for install command with vault parameters", f
 			enableGrafana:               false,
 			enableFluentbit:             false,
 
-			envoyLogLevel:               testEnvoyLogLevel,
+			envoyLogLevel: testEnvoyLogLevel,
 		}
 
 		vals, err = installCmd.resolveValues()

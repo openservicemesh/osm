@@ -21,7 +21,7 @@ You may configure log forwarding to an output by following these steps _before_ 
    [FILTER]
          name       grep
          match      *
-         regex      $message['level'] error
+         regex      message /"level":"error"/
    ```
 
 4. Once you have updated the Fluent Bit configmap, you can deploy the sidecar during OSM installation using the `--enable-fluentbit` flag. You should now be able to interact with error logs in the output of your choice as they get generated.
