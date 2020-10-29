@@ -2,13 +2,13 @@ package kube
 
 import (
 	"context"
+	"fmt"
 	"net"
-	"time"
 
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/golang/mock/gomock"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -265,10 +265,11 @@ var _ = Describe("When getting a Service associated with a ServiceAccount", func
 		_, err := fakeClientSet.CoreV1().Services(testNamespace).Create(context.TODO(), svc, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 
-		Eventually(func() error {
-			_, err := provider.GetServicesForServiceAccount(tests.BookbuyerServiceAccount)
-			return err
-		}, 2*time.Second).Should(HaveOccurred())
+		services, err := provider.GetServicesForServiceAccount(tests.BookbuyerServiceAccount)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(len(services)).To(Equal(1))
+		expectedServiceName := fmt.Sprintf("bookbuyer.default.osm.synthetic-%s", service.SyntheticServiceSuffix)
+		Expect(services[0].Name).To(Equal(expectedServiceName))
 
 		err = fakeClientSet.CoreV1().Services(testNamespace).Delete(context.TODO(), svc.Name, metav1.DeleteOptions{})
 		Expect(err).ToNot(HaveOccurred())
@@ -402,9 +403,11 @@ var _ = Describe("When getting a Service associated with a ServiceAccount", func
 		}
 
 		// Expect a MeshService that corresponds to a Service that matches the Deployment spec labels
-		_, err = provider.GetServicesForServiceAccount(givenSvcAccount)
-		Expect(err).To(HaveOccurred())
-		Expect(err).To(MatchError(errDidNotFindServiceForServiceAccount))
+		svcs, err := provider.GetServicesForServiceAccount(givenSvcAccount)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(len(svcs)).To(Equal(1))
+		expectedServiceName := fmt.Sprintf("test-service-account.test.osm.synthetic-%s", service.SyntheticServiceSuffix)
+		Expect(svcs[0].Name).To(Equal(expectedServiceName))
 
 		err = fakeClientSet.CoreV1().Pods(testNamespace).Delete(context.Background(), pod.Name, metav1.DeleteOptions{})
 		Expect(err).ToNot(HaveOccurred())

@@ -130,7 +130,7 @@ func (c Client) GetServicesForServiceAccount(svcAccount service.K8sServiceAccoun
 		k8sServices, err := c.getServicesByLabels(podLabels, appNamspace)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error retrieving service matching labels %v in namespace %s", podLabels, appNamspace)
-			return nil, errDidNotFindServiceForServiceAccount
+			return nil, err
 		}
 		for _, svc := range k8sServices {
 			meshService := service.MeshService{
@@ -142,12 +142,14 @@ func (c Client) GetServicesForServiceAccount(svcAccount service.K8sServiceAccoun
 	}
 
 	if services.Cardinality() == 0 {
-		log.Error().Msgf("Did not find any service with serviceAccount = %s in namespace %s", svcAccount.Name, svcAccount.Namespace)
-
-		return nil, errDidNotFindServiceForServiceAccount
+		// Add a service, which is a representation of the ServiceAccount, but not a real K8s service.
+		// This will ensure that all pods in the service account are represented as one service.
+		synthService := svcAccount.GetSyntheticService()
+		services.Add(synthService)
+		log.Info().Msgf("No services for service account %s in namespace %s; Adding synthetic service %s", svcAccount.Name, svcAccount.Namespace, synthService)
+	} else {
+		log.Info().Msgf("[%s] Services %v observed on service account %s on Kubernetes", c.providerIdent, services, svcAccount)
 	}
-
-	log.Info().Msgf("[%s] Services %v observed on service account %s on Kubernetes", c.providerIdent, services, svcAccount)
 
 	servicesSlice := make([]service.MeshService, 0, services.Cardinality())
 	for svc := range services.Iterator().C {
