@@ -36,6 +36,7 @@ func (mc *MeshCatalog) repeater() {
 
 func (mc *MeshCatalog) handleAnnouncement(ann announcements.Announcement) {
 	if ann.Type == announcements.EndpointDeleted {
+		log.Trace().Msgf("Handling announcement: %+v", ann)
 		// TODO: implement (https://github.com/openservicemesh/osm/issues/1719)
 	}
 }
