@@ -44,8 +44,7 @@ func (mc *MeshCatalog) handleAnnouncement(ann announcements.Announcement) {
 func (mc *MeshCatalog) getCases() ([]reflect.SelectCase, []string) {
 	var caseNames []string
 	var cases []reflect.SelectCase
-	for _, channelInterface := range mc.announcementChannels.ToSlice() {
-		annCh := channelInterface.(announcementChannel)
+	for _, annCh := range mc.getAnnouncementChannels() {
 		cases = append(cases, reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(annCh.channel)})
 		caseNames = append(caseNames, annCh.announcer)
 	}
