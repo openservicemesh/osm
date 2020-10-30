@@ -19,10 +19,11 @@ var (
 // Server implements the Envoy xDS Aggregate Discovery Services
 type Server struct {
 	catalog      catalog.MeshCataloger
-	xdsHandlers  map[envoy.TypeURI]func(catalog.MeshCataloger, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator) (*xds_discovery.DiscoveryResponse, error)
+	xdsHandlers  map[envoy.TypeURI]func(catalog.MeshCataloger, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator, certificate.Manager) (*xds_discovery.DiscoveryResponse, error)
 	xdsLog       map[certificate.CommonName]map[envoy.TypeURI][]time.Time
 	enableDebug  bool
 	osmNamespace string
 	cfg          configurator.Configurator
+	certManager  certificate.Manager
 	ready        bool
 }

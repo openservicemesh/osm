@@ -81,7 +81,7 @@ var _ = Describe("CDS Response", func() {
 			mockConfigurator.EXPECT().GetTracingHost().Return(constants.DefaultTracingHost).AnyTimes()
 			mockConfigurator.EXPECT().GetTracingPort().Return(constants.DefaultTracingPort).AnyTimes()
 
-			resp, err := NewResponse(catalog, proxy, nil, mockConfigurator)
+			resp, err := NewResponse(catalog, proxy, nil, mockConfigurator, nil)
 			Expect(err).ToNot(HaveOccurred())
 
 			// There are to any.Any resources in the ClusterDiscoveryStruct (Clusters)
