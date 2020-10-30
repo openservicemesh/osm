@@ -108,36 +108,34 @@ func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endp
 func (c Client) GetServicesForServiceAccount(svcAccount service.K8sServiceAccount) ([]service.MeshService, error) {
 	log.Info().Msgf("[%s] Getting Services for service account %s on Kubernetes", c.providerIdent, svcAccount)
 	services := mapset.NewSet()
-	podsInterface := c.caches.Pods.List()
 
-	for _, pods := range podsInterface {
-		kubernetesPods := pods.(*corev1.Pod)
-		if kubernetesPods == nil || !c.kubeController.IsMonitoredNamespace(kubernetesPods.Namespace) {
-			// Doesn't belong to namespaces we are observing
+	for _, podInterface := range c.caches.Pods.List() {
+		pod := podInterface.(*corev1.Pod)
+		if pod == nil {
 			continue
 		}
-		spec := kubernetesPods.Spec
-		namespacedSvcAccount := service.K8sServiceAccount{
-			Namespace: kubernetesPods.Namespace,
-			Name:      spec.ServiceAccountName,
-		}
-		if svcAccount != namespacedSvcAccount {
+
+		if pod.Namespace != svcAccount.Namespace {
 			continue
 		}
-		podLabels := kubernetesPods.ObjectMeta.Labels
 
-		appNamspace := kubernetesPods.Namespace
-		k8sServices, err := c.getServicesByLabels(podLabels, appNamspace)
+		if pod.Spec.ServiceAccountName != svcAccount.Name {
+			continue
+		}
+
+		podLabels := pod.ObjectMeta.Labels
+
+		k8sServices, err := c.getServicesByLabels(podLabels, pod.Namespace)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error retrieving service matching labels %v in namespace %s", podLabels, appNamspace)
+			log.Error().Err(err).Msgf("Error retrieving service matching labels %v in namespace %s", podLabels, pod.Namespace)
 			return nil, err
 		}
+
 		for _, svc := range k8sServices {
-			meshService := service.MeshService{
-				Namespace: appNamspace,
+			services.Add(service.MeshService{
+				Namespace: pod.Namespace,
 				Name:      svc.Name,
-			}
-			services.Add(meshService)
+			})
 		}
 	}
 
