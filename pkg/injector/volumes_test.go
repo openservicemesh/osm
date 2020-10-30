@@ -8,7 +8,7 @@ import (
 )
 
 var _ = Describe("Test volume functions", func() {
-	Context("Test updateLabels", func() {
+	Context("Test getVolumeSpec", func() {
 		It("creates volume spec", func() {
 			actual := getVolumeSpec("-envoy-config-")
 			expected := []v1.Volume{{
