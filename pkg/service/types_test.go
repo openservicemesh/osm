@@ -1,6 +1,8 @@
 package service
 
 import (
+	"fmt"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -53,6 +55,26 @@ var _ = Describe("Test types helpers", func() {
 			Expect(err).To(HaveOccurred())
 		})
 
+	})
+
+	Context("Test GetSyntheticService()", func() {
+		It("returns MeshService", func() {
+			namespace := "-namespace-"
+			serviceAccount := "-service-account-"
+
+			sa := K8sServiceAccount{
+				Namespace: namespace,
+				Name:      serviceAccount,
+			}
+
+			actual := sa.GetSyntheticService()
+
+			expected := MeshService{
+				Namespace: namespace,
+				Name:      fmt.Sprintf("-service-account-.-namespace-.osm.synthetic-%s", SyntheticServiceSuffix),
+			}
+			Expect(actual).To(Equal(expected))
+		})
 	})
 
 })

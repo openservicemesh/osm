@@ -101,7 +101,7 @@ func (wh *webhook) createPatch(pod *corev1.Pod, namespace string, proxyUUID uuid
 		)
 	}
 
-	patches = append(patches, *updateLabels(pod, proxyUUID))
+	patches = append(patches, *updateLabels(pod, constants.EnvoyUniqueIDLabelName, proxyUUID.String()))
 
 	return json.Marshal(patches)
 }
@@ -210,17 +210,17 @@ func updateAnnotation(target, add map[string]string, basePath string) []JSONPatc
 // This function will append a label to the pod, which points to the unique Envoy ID used in the
 // xDS certificate for that Envoy. This label will help xDS match the actual pod to the Envoy that
 // connects to xDS (with the certificate's CN matching this label).
-func updateLabels(pod *corev1.Pod, proxyUUID uuid.UUID) *JSONPatchOperation {
+func updateLabels(pod *corev1.Pod, label, value string) *JSONPatchOperation {
 	if len(pod.Labels) == 0 {
 		return &JSONPatchOperation{
 			Op:    addOperation,
 			Path:  labelsPath,
-			Value: map[string]string{constants.EnvoyUniqueIDLabelName: proxyUUID.String()},
+			Value: map[string]string{label: value},
 		}
 	}
 
 	getOp := func() string {
-		if _, exists := pod.Labels[constants.EnvoyUniqueIDLabelName]; exists {
+		if _, exists := pod.Labels[label]; exists {
 			return replaceOperation
 		}
 		return addOperation
@@ -228,8 +228,8 @@ func updateLabels(pod *corev1.Pod, proxyUUID uuid.UUID) *JSONPatchOperation {
 
 	return &JSONPatchOperation{
 		Op:    getOp(),
-		Path:  path.Join(labelsPath, constants.EnvoyUniqueIDLabelName),
-		Value: proxyUUID,
+		Path:  path.Join(labelsPath, label),
+		Value: value,
 	}
 }
 

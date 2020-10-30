@@ -28,6 +28,31 @@ var _ = Describe("Test XDS certificate tooling", func() {
 	mc := NewFakeMeshCatalog(kubeClient)
 	cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s", tests.ProxyUUID, tests.BookstoreServiceAccountName, tests.Namespace))
 
+	Context("Test makeSyntheticServiceForPod()", func() {
+		It("creates a MeshService struct with properly formatted Name and Namespace of the synthetic service", func() {
+			namespace := uuid.New().String()
+			serviceAccountName := uuid.New().String()
+			cn := certificate.CommonName(uuid.New().String())
+			pod := &v1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: namespace,
+				},
+				Spec: v1.PodSpec{
+					ServiceAccountName: serviceAccountName,
+				},
+			}
+
+			actual := makeSyntheticServiceForPod(pod, cn)
+
+			expected := service.MeshService{
+				Name:      fmt.Sprintf("%s.%s.osm.synthetic-%s", serviceAccountName, namespace, service.SyntheticServiceSuffix),
+				Namespace: namespace,
+			}
+			Expect(len(actual)).To(Equal(1))
+			Expect(actual[0]).To(Equal(expected))
+		})
+	})
+
 	Context("Test GetServicesFromEnvoyCertificate()", func() {
 		It("works as expected", func() {
 			pod := tests.NewPodTestFixtureWithOptions(tests.Namespace, "pod-name", tests.BookstoreServiceAccountName)

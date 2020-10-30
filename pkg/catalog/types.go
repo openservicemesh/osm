@@ -4,7 +4,6 @@ import (
 	"sync"
 	"time"
 
-	mapset "github.com/deckarep/golang-set"
 	"github.com/google/uuid"
 	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha3"
@@ -43,8 +42,6 @@ type MeshCatalog struct {
 
 	disconnectedProxies     map[certificate.CommonName]disconnectedProxy
 	disconnectedProxiesLock sync.Mutex
-
-	announcementChannels mapset.Set
 
 	// Current assumption is that OSM is working with a single Kubernetes cluster.
 	// This is the API/REST interface to the cluster

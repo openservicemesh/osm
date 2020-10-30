@@ -18,6 +18,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/constants"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
@@ -40,7 +41,7 @@ var _ = Describe("Test all patch operations", func() {
 		It("adds", func() {
 			pod := tests.NewPodTestFixture(namespace, podName)
 			pod.Labels = nil
-			actual := updateLabels(&pod, proxyUUID)
+			actual := updateLabels(&pod, constants.EnvoyUniqueIDLabelName, proxyUUID.String())
 			expected := &JSONPatchOperation{
 				Op:   addOperation,
 				Path: "/metadata/labels",
@@ -53,11 +54,11 @@ var _ = Describe("Test all patch operations", func() {
 
 		It("replaces", func() {
 			pod := tests.NewPodTestFixture(namespace, podName)
-			actual := updateLabels(&pod, proxyUUID)
+			actual := updateLabels(&pod, constants.EnvoyUniqueIDLabelName, proxyUUID.String())
 			replace := &JSONPatchOperation{
 				Op:    replaceOperation,
 				Path:  "/metadata/labels/osm-proxy-uuid",
-				Value: proxyUUID,
+				Value: proxyUUID.String(),
 			}
 			Expect(actual).To(Equal(replace))
 		})
