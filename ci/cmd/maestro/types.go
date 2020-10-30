@@ -7,18 +7,15 @@ import (
 	"github.com/openservicemesh/osm/pkg/logger"
 )
 
-// TestResult is the type for the test result enum
-type TestResult int
-
 const (
 	// TestsPassed is used for tests that passed.
-	TestsPassed TestResult = iota + 1
+	TestsPassed = "passed"
 
 	// TestsFailed is used for tests that failed.
-	TestsFailed
+	TestsFailed = "failed"
 
 	// TestsTimedOut is used for tests that timed out.
-	TestsTimedOut
+	TestsTimedOut = "timedout"
 
 	// OSMNamespaceEnvVar is the environment variable for the OSM namespace.
 	OSMNamespaceEnvVar = "K8S_NAMESPACE"
