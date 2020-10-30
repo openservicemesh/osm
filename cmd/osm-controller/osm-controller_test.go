@@ -29,17 +29,7 @@ type FakeDebugServer struct {
 	stopErr   error
 }
 
-type testCaseDebugServer struct {
-	initialDebugServerEnabled  string
-	changeDebugServerEnabledTo string
-	c                          controller
-	expectedStopCount          int
-	expectedStopErr            error
-	expectedDebugServerRunning bool
-}
-
 func (f *FakeDebugServer) Stop() error {
-	fmt.Println("ENTERED STOPPING")
 	f.stopCount++
 	if f.stopErr != nil {
 		return errors.Errorf("Debug server error")
@@ -65,105 +55,115 @@ func TestConfigureDebugServer(t *testing.T) {
 	osmConfigMapName := "-test-osm-config-map-"
 
 	cfg := configurator.NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
-	errCh := make(chan error)
+	errCh := make(chan error, 1)
 
 	fakeDebugServer := FakeDebugServer{0, nil}
 	fakeDebugServerGetErr := FakeDebugServer{0, errors.Errorf("Debug server error")}
 
-	testCases := []testCaseDebugServer{
-		{ //test: debug server is already on, do nothing
-			initialDebugServerEnabled:  "true",
-			changeDebugServerEnabledTo: "true",
+	testCases := []struct {
+		name                       string
+		initialDebugServerEnabled  bool
+		changeDebugServerEnabledTo bool
+		c                          controller
+		expectedStopCount          int
+		expectedStopErr            bool
+		expectedDebugServerRunning bool
+	}{
+		{
+			name:                       "debug server is already on, do nothing",
+			initialDebugServerEnabled:  true,
+			changeDebugServerEnabledTo: true,
 			c:                          controller{debugServerRunning: true, debugComponents: mockDebugConfig, debugServer: nil},
 			expectedStopCount:          0,
-			expectedStopErr:            nil,
+			expectedStopErr:            false,
 			expectedDebugServerRunning: true,
 		},
-		{ //test: debug server is already off, do nothing
-			initialDebugServerEnabled:  "false",
-			changeDebugServerEnabledTo: "false",
+		{
+			name:                       "debug server is already off, do nothing",
+			initialDebugServerEnabled:  false,
+			changeDebugServerEnabledTo: false,
 			c:                          controller{debugServerRunning: false, debugComponents: mockDebugConfig, debugServer: nil},
 			expectedStopCount:          0,
-			expectedStopErr:            nil,
+			expectedStopErr:            false,
 			expectedDebugServerRunning: false,
 		},
-		{ //test: turn on debug server
-			initialDebugServerEnabled:  "false",
-			changeDebugServerEnabledTo: "true",
+		{
+			name:                       "turn on debug server",
+			initialDebugServerEnabled:  false,
+			changeDebugServerEnabledTo: true,
 			c:                          controller{debugServerRunning: false, debugComponents: mockDebugConfig, debugServer: nil},
 			expectedStopCount:          0,
-			expectedStopErr:            nil,
+			expectedStopErr:            false,
 			expectedDebugServerRunning: true,
 		},
-		{ //test: turn off debug server
-			initialDebugServerEnabled:  "true",
-			changeDebugServerEnabledTo: "false",
+		{
+			name:                       "turn off debug server",
+			initialDebugServerEnabled:  true,
+			changeDebugServerEnabledTo: false,
 			c:                          controller{debugServerRunning: true, debugComponents: mockDebugConfig, debugServer: &fakeDebugServer},
 			expectedStopCount:          1,
-			expectedStopErr:            nil,
+			expectedStopErr:            false,
 			expectedDebugServerRunning: false,
 		},
-		{ //test: error when turning off debug server
-			initialDebugServerEnabled:  "true",
-			changeDebugServerEnabledTo: "false",
+		{
+			name:                       "error when turning off debug server",
+			initialDebugServerEnabled:  true,
+			changeDebugServerEnabledTo: false,
 			c:                          controller{debugServerRunning: true, debugComponents: mockDebugConfig, debugServer: &fakeDebugServerGetErr},
 			expectedStopCount:          1,
-			expectedStopErr:            errors.Errorf("error"),
-			expectedDebugServerRunning: true,
+			expectedStopErr:            true,
+			expectedDebugServerRunning: false,
 		},
 	}
 	firstTest := true
+
 	for _, tests := range testCases {
-		defaultConfigMap := map[string]string{
-			"enabled_debug_server": tests.initialDebugServerEnabled,
-		}
-		configMap := v1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: osmNamespace,
-				Name:      osmConfigMapName,
-			},
-			Data: defaultConfigMap,
-		}
-		if firstTest {
-			firstTest = false
-			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Create(context.TODO(), &configMap, metav1.CreateOptions{})
+		t.Run(fmt.Sprintf("Test: %s", tests.name), func(t *testing.T) {
+			defaultConfigMap := map[string]string{
+				"enabled_debug_server": strconv.FormatBool(tests.initialDebugServerEnabled),
+			}
+			configMap := v1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: osmNamespace,
+					Name:      osmConfigMapName,
+				},
+				Data: defaultConfigMap,
+			}
+			if firstTest {
+				firstTest = false
+				_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Create(context.TODO(), &configMap, metav1.CreateOptions{})
+				assert.Nil(err)
+			}
+
+			defaultConfigMap["enable_debug_server"] = strconv.FormatBool(tests.changeDebugServerEnabledTo)
+			configMap.Data = defaultConfigMap
+
+			go tests.c.configureDebugServer(cfg, errCh)
+			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Update(context.TODO(), &configMap, metav1.UpdateOptions{})
 			assert.Nil(err)
-		}
+			time.Sleep(time.Second)
+			close(stop)
 
-		defaultConfigMap["enable_debug_server"] = tests.changeDebugServerEnabledTo
-		configMap = v1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: osmNamespace,
-				Name:      osmConfigMapName,
-			},
-			Data: defaultConfigMap,
-		}
+			assert.Equal(tests.expectedDebugServerRunning, tests.c.debugServerRunning)
 
-		go tests.c.configureDebugServer(cfg, errCh)
-		_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Update(context.TODO(), &configMap, metav1.UpdateOptions{})
-		assert.Nil(err)
+			if !tests.initialDebugServerEnabled && tests.changeDebugServerEnabledTo {
+				assert.NotNil(tests.c.debugServer)
+			} else {
+				assert.Nil(tests.c.debugServer)
+			}
 
-		time.Sleep(time.Second)
-		close(stop)
+			if tests.expectedStopErr {
+				assert.Equal(tests.expectedStopCount, fakeDebugServerGetErr.stopCount)
+				assert.NotEmpty(errCh)
+				err := <-errCh
+				assert.NotNil(err)
+			} else {
+				assert.Equal(tests.expectedStopCount, fakeDebugServer.stopCount)
+			}
 
-		assert.Equal(tests.expectedStopCount, fakeDebugServer.stopCount)
-		assert.Equal(tests.expectedDebugServerRunning, tests.c.debugServerRunning)
-
-		init, _ := strconv.ParseBool(tests.initialDebugServerEnabled)
-		changed, _ := strconv.ParseBool(tests.changeDebugServerEnabledTo)
-		if !init && changed || tests.expectedStopErr != nil {
-			assert.NotNil(tests.c.debugServer)
-		} else {
-			assert.Nil(tests.c.debugServer)
-		}
-
-		if tests.expectedStopErr != nil {
-			err := <-errCh
-			assert.NotNil(err)
-		}
-
-		stop = make(chan struct{})
-		cfg = configurator.NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
+			stop = make(chan struct{})
+			cfg = configurator.NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
+		})
 	}
 }
 
