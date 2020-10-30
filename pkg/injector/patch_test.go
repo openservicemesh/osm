@@ -18,7 +18,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/configurator"
-	"github.com/openservicemesh/osm/pkg/constants"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
@@ -36,33 +35,6 @@ var _ = Describe("Test all patch operations", func() {
 		containerTwo = "-container-two-"
 		basePath     = "/base/path"
 	)
-
-	Context("Test updateLabels() function", func() {
-		It("adds", func() {
-			pod := tests.NewPodTestFixture(namespace, podName)
-			pod.Labels = nil
-			actual := updateLabels(&pod, constants.EnvoyUniqueIDLabelName, proxyUUID.String())
-			expected := &JSONPatchOperation{
-				Op:   addOperation,
-				Path: "/metadata/labels",
-				Value: map[string]string{
-					"osm-proxy-uuid": proxyUUID.String(),
-				},
-			}
-			Expect(actual).To(Equal(expected))
-		})
-
-		It("replaces", func() {
-			pod := tests.NewPodTestFixture(namespace, podName)
-			actual := updateLabels(&pod, constants.EnvoyUniqueIDLabelName, proxyUUID.String())
-			replace := &JSONPatchOperation{
-				Op:    replaceOperation,
-				Path:  "/metadata/labels/osm-proxy-uuid",
-				Value: proxyUUID.String(),
-			}
-			Expect(actual).To(Equal(replace))
-		})
-	})
 
 	Context("test addVolume() function", func() {
 		It("adds volume", func() {
@@ -110,7 +82,7 @@ var _ = Describe("Test all patch operations", func() {
 		})
 	})
 
-	Context("test updateAnnotation() function", func() {
+	Context("test updateMapType() function", func() {
 		It("creates a list of patches", func() {
 			target := map[string]string{
 				"one": "1",
@@ -122,7 +94,7 @@ var _ = Describe("Test all patch operations", func() {
 				"three": "3",
 			}
 
-			actual := updateAnnotation(target, add, basePath)
+			actual := updateMapType(target, add, basePath)
 
 			expectedReplaceTwo := JSONPatchOperation{
 				Op:    replaceOperation,
@@ -146,7 +118,7 @@ var _ = Describe("Test all patch operations", func() {
 			}
 
 			// Target here is NIL -- this means we will be CREATING
-			actual := updateAnnotation(nil, annotationsToAdd, basePath)
+			actual := updateMapType(nil, annotationsToAdd, basePath)
 
 			// The first operation is "three" ("three" comes before "two" alphabetically)
 			// This is a CREATE operation since target is NIL
