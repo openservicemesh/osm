@@ -241,6 +241,7 @@ func main() {
 
 	log.Info().Msg("Goodbye!")
 }
+
 func (c *controller) initDebugServer(cfg configurator.Configurator, stop chan struct{}) {
 	errCh := make(chan error)
 	go c.configureDebugServer(cfg, errCh)
