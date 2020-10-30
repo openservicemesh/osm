@@ -116,7 +116,7 @@ func (cmd *trafficPolicyCheckCmd) checkTrafficPolicy(srcPod, dstPod *corev1.Pod)
 	if permissiveMode, err := cmd.isPermissiveModeEnabled(); err != nil {
 		return errors.Errorf("Error checking if permissive mode is enabled")
 	} else if permissiveMode {
-		fmt.Fprintf(cmd.out, "[+] Permissive mode enabled for mesh operated by osm-controller running in %s namespace\n\n "+
+		fmt.Fprintf(cmd.out, "[+] Permissive mode enabled for mesh operated by osm-controller running in '%s' namespace\n\n "+
 			"[+] Pod '%s/%s' is allowed to communicate to pod '%s/%s'\n",
 			osmNamespace, srcPod.Namespace, srcPod.Name, dstPod.Namespace, dstPod.Name)
 		return nil
