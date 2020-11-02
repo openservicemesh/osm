@@ -50,11 +50,18 @@ func TestConfigureDebugServer(t *testing.T) {
 		validRoutePath: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}),
 	}).AnyTimes()
 	kubeClient := testclient.NewSimpleClientset()
-	stop := make(chan struct{})
 	osmNamespace := "-test-osm-namespace-"
 	osmConfigMapName := "-test-osm-config-map-"
-
-	cfg := configurator.NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
+	defaultConfigMap := map[string]string{}
+	configMap := v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: osmNamespace,
+			Name:      osmConfigMapName,
+		},
+		Data: defaultConfigMap,
+	}
+	_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Create(context.TODO(), &configMap, metav1.CreateOptions{})
+	stop := make(chan struct{})
 
 	fakeDebugServer := FakeDebugServer{0, nil}
 	fakeDebugServerGetErr := FakeDebugServer{0, errors.Errorf("Debug server error")}
@@ -69,15 +76,6 @@ func TestConfigureDebugServer(t *testing.T) {
 		expectedDebugServerRunning bool
 	}{
 		{
-			name:                       "turn off debug server",
-			initialDebugServerEnabled:  true,
-			changeDebugServerEnabledTo: false,
-			c:                          controller{debugServerRunning: true, debugComponents: mockDebugConfig, debugServer: &fakeDebugServer},
-			expectedStopCount:          1,
-			expectedStopErr:            false,
-			expectedDebugServerRunning: false,
-		},
-		{
 			name:                       "turn on debug server",
 			initialDebugServerEnabled:  false,
 			changeDebugServerEnabledTo: true,
@@ -86,6 +84,16 @@ func TestConfigureDebugServer(t *testing.T) {
 			expectedStopErr:            false,
 			expectedDebugServerRunning: true,
 		},
+		{
+			name:                       "turn off debug server",
+			initialDebugServerEnabled:  true,
+			changeDebugServerEnabledTo: false,
+			c:                          controller{debugServerRunning: true, debugComponents: mockDebugConfig, debugServer: &fakeDebugServer},
+			expectedStopCount:          1,
+			expectedStopErr:            false,
+			expectedDebugServerRunning: false,
+		},
+
 		{
 			name:                       "error when turning off debug server",
 			initialDebugServerEnabled:  true,
@@ -115,25 +123,25 @@ func TestConfigureDebugServer(t *testing.T) {
 		},
 	}
 
-	defaultConfigMap := map[string]string{}
-	configMap := v1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: osmNamespace,
-			Name:      osmConfigMapName,
-		},
-		Data: defaultConfigMap,
-	}
-	_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Create(context.TODO(), &configMap, metav1.CreateOptions{})
-	assert.Nil(err)
-
 	for _, tests := range testCases {
 		t.Run(fmt.Sprintf("Test: %s", tests.name), func(t *testing.T) {
+			//set initial enable_debug_server value in configurator
+			defaultConfigMap["enable_debug_server"] = strconv.FormatBool(tests.initialDebugServerEnabled)
+			configMap.Data = defaultConfigMap
+			_, err = kubeClient.CoreV1().ConfigMaps(osmNamespace).Update(context.TODO(), &configMap, metav1.UpdateOptions{})
+			cfg := configurator.NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
+
+			//set enable_debug_server configMap value
 			defaultConfigMap["enable_debug_server"] = strconv.FormatBool(tests.changeDebugServerEnabledTo)
 			configMap.Data = defaultConfigMap
 
 			go tests.c.configureDebugServer(cfg)
-			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Update(context.TODO(), &configMap, metav1.UpdateOptions{})
+
+			//update configMap with change to enable_debug_server
+			_, err = kubeClient.CoreV1().ConfigMaps(osmNamespace).Update(context.TODO(), &configMap, metav1.UpdateOptions{})
 			assert.Nil(err)
+
+			//give time for goroutine to run
 			time.Sleep(time.Second)
 			close(stop)
 
@@ -151,9 +159,7 @@ func TestConfigureDebugServer(t *testing.T) {
 				assert.Equal(tests.expectedStopCount, fakeDebugServer.stopCount)
 				fakeDebugServer.stopCount = 0
 			}
-
 			stop = make(chan struct{})
-			cfg = configurator.NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
 		})
 	}
 }
