@@ -241,6 +241,7 @@ func main() {
 
 	// Wait for exit handler signal
 	<-stop
+
 	log.Info().Msg("Goodbye!")
 }
 
