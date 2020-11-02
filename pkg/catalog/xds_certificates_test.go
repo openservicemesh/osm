@@ -434,4 +434,64 @@ var _ = Describe("Test XDS certificate tooling", func() {
 			Expect(actual).To(Equal(expected))
 		})
 	})
+
+	Context("Test kubernetesServicesToMeshServices()", func() {
+		It("converts a list of Kubernetes Services to a list of OSM Mesh Services", func() {
+
+			services := []v1.Service{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "foo",
+						Name:      "A",
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: tests.TrafficSplit.Namespace,
+						Name:      tests.TrafficSplit.Spec.Service,
+					},
+				},
+			}
+
+			expected := []service.MeshService{
+				{
+					Namespace: "foo",
+					Name:      "A",
+				},
+				{
+					Namespace: "default",
+					Name:      "bookstore-apex",
+				},
+			}
+
+			actual := kubernetesServicesToMeshServices(services)
+
+			Expect(actual).To(Equal(expected))
+		})
+	})
+
+	Context("Test listServiceNames()", func() {
+		It("converts a list of OSM Mesh Services to a list of strings (the Mesh Service names)", func() {
+
+			services := []service.MeshService{
+				{
+					Namespace: "foo",
+					Name:      "A",
+				},
+				{
+					Namespace: "default",
+					Name:      "bookstore-apex",
+				},
+			}
+
+			expected := []string{
+				"foo/A",
+				"default/bookstore-apex",
+			}
+
+			actual := listServiceNames(services)
+
+			Expect(actual).To(Equal(expected))
+		})
+	})
 })
