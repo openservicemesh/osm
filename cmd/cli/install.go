@@ -83,6 +83,7 @@ type installCmd struct {
 	vaultRole                     string
 	envoyLogLevel                 string
 	serviceCertValidityDuration   string
+	timeout                       time.Duration
 	enableDebugServer             bool
 	enableEgress                  bool
 	enablePermissiveTrafficPolicy bool
@@ -160,6 +161,7 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.BoolVar(&inst.deployJaeger, "deploy-jaeger", true, "Deploy Jaeger in the namespace of the OSM controller")
 	f.StringVar(&inst.envoyLogLevel, "envoy-log-level", "error", "Envoy log level is used to specify the level of logs collected from envoy and needs to be one of these (trace, debug, info, warning, warn, error, critical, off)")
 	f.BoolVar(&inst.enforceSingleMesh, "enforce-single-mesh", false, "Enforce only deploying one mesh in the cluster")
+	f.DurationVar(&inst.timeout, "timeout", 5*time.Minute, "time to wait for installation and resources in a ready state, zero means no timeout")
 
 	return cmd
 }
@@ -179,6 +181,8 @@ func (i *installCmd) run(config *helm.Configuration) error {
 	installClient.ReleaseName = i.meshName
 	installClient.Namespace = settings.Namespace()
 	installClient.CreateNamespace = true
+	installClient.Atomic = true
+	installClient.Timeout = i.timeout
 	if _, err = installClient.Run(i.chartRequested, values); err != nil {
 		return err
 	}
