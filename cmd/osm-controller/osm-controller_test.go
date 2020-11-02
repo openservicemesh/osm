@@ -55,7 +55,6 @@ func TestConfigureDebugServer(t *testing.T) {
 	osmConfigMapName := "-test-osm-config-map-"
 
 	cfg := configurator.NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
-	errCh := make(chan error, 1)
 
 	fakeDebugServer := FakeDebugServer{0, nil}
 	fakeDebugServerGetErr := FakeDebugServer{0, errors.Errorf("Debug server error")}
@@ -132,7 +131,7 @@ func TestConfigureDebugServer(t *testing.T) {
 			defaultConfigMap["enable_debug_server"] = strconv.FormatBool(tests.changeDebugServerEnabledTo)
 			configMap.Data = defaultConfigMap
 
-			go tests.c.configureDebugServer(cfg, errCh)
+			go tests.c.configureDebugServer(cfg)
 			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Update(context.TODO(), &configMap, metav1.UpdateOptions{})
 			assert.Nil(err)
 			time.Sleep(time.Second)
@@ -140,7 +139,7 @@ func TestConfigureDebugServer(t *testing.T) {
 
 			assert.Equal(tests.expectedDebugServerRunning, tests.c.debugServerRunning)
 
-			if !tests.initialDebugServerEnabled && tests.changeDebugServerEnabledTo {
+			if !tests.initialDebugServerEnabled && tests.changeDebugServerEnabledTo || tests.expectedStopErr {
 				assert.NotNil(tests.c.debugServer)
 			} else {
 				assert.Nil(tests.c.debugServer)
@@ -148,9 +147,6 @@ func TestConfigureDebugServer(t *testing.T) {
 
 			if tests.expectedStopErr {
 				assert.Equal(tests.expectedStopCount, fakeDebugServerGetErr.stopCount)
-				assert.NotEmpty(errCh)
-				err := <-errCh
-				assert.NotNil(err)
 			} else {
 				assert.Equal(tests.expectedStopCount, fakeDebugServer.stopCount)
 				fakeDebugServer.stopCount = 0

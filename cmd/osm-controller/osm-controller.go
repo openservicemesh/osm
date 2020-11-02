@@ -237,7 +237,7 @@ func main() {
 		debugServer:        httpserver.NewDebugHTTPServer(debugConfig, constants.DebugPort),
 	}
 
-	c.initDebugServer(cfg, stop)
+	c.configureDebugServer(cfg)
 
 	// Wait for exit handler signal
 	<-stop
@@ -245,27 +245,18 @@ func main() {
 	log.Info().Msg("Goodbye!")
 }
 
-func (c *controller) initDebugServer(cfg configurator.Configurator, stop chan struct{}) {
-	errCh := make(chan error)
-	go c.configureDebugServer(cfg, errCh)
-
-	select {
-	case err := <-errCh:
-		log.Error().Err(err).Msg("Unable to configure debug server")
-	}
-}
-
-func (c *controller) configureDebugServer(cfg configurator.Configurator, errCh chan error) {
+func (c *controller) configureDebugServer(cfg configurator.Configurator) {
 	//GetAnnouncementsChannel will check ConfigMap every 3 * time.Second
 	for range cfg.GetAnnouncementsChannel() {
 		if c.debugServerRunning && !cfg.IsDebugServerEnabled() {
 			err := c.debugServer.Stop()
 			if err != nil {
 				log.Error().Err(err).Msg("Unable to stop debug server")
-				errCh <- err
+			} else {
+				c.debugServer = nil
 			}
 			c.debugServerRunning = false
-			c.debugServer = nil
+
 		} else if !c.debugServerRunning && cfg.IsDebugServerEnabled() {
 			c.debugServer = httpserver.NewDebugHTTPServer(c.debugComponents, constants.DebugPort)
 			c.debugServer.Start()
