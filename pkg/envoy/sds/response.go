@@ -23,7 +23,7 @@ var directionMap = map[envoy.SDSCertType]string{
 }
 
 // NewResponse creates a new Secrets Discovery Response.
-func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, _ configurator.Configurator) (*xds_discovery.DiscoveryResponse, error) {
+func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, certManager certificate.Manager) (*xds_discovery.DiscoveryResponse, error) {
 	log.Info().Msgf("Composing SDS Discovery Response for proxy: %s", proxy.GetCommonName())
 
 	svcList, err := catalog.GetServicesFromEnvoyCertificate(proxy.GetCommonName())
@@ -34,9 +34,9 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds
 		return nil, err
 	}
 
-	cert, err := catalog.GetCertificateForService(serviceForProxy)
+	cert, err := certManager.IssueCertificate(serviceForProxy.GetCommonName(), cfg.GetServiceCertValidityPeriod())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error obtaining a certificate for client %s", proxy.GetCommonName())
+		log.Error().Err(err).Msgf("Error issuing a certificate for proxy service %s", serviceForProxy)
 		return nil, err
 	}
 

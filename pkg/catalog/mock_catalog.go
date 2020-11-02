@@ -54,21 +54,6 @@ func (mr *MockMeshCatalogerMockRecorder) ExpectProxy(arg0 interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExpectProxy", reflect.TypeOf((*MockMeshCataloger)(nil).ExpectProxy), arg0)
 }
 
-// GetCertificateForService mocks base method
-func (m *MockMeshCataloger) GetCertificateForService(arg0 service.MeshService) (certificate.Certificater, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetCertificateForService", arg0)
-	ret0, _ := ret[0].(certificate.Certificater)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetCertificateForService indicates an expected call of GetCertificateForService
-func (mr *MockMeshCatalogerMockRecorder) GetCertificateForService(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCertificateForService", reflect.TypeOf((*MockMeshCataloger)(nil).GetCertificateForService), arg0)
-}
-
 // GetIngressRoutesPerHost mocks base method
 func (m *MockMeshCataloger) GetIngressRoutesPerHost(arg0 service.MeshService) (map[string][]trafficpolicy.HTTPRoute, error) {
 	m.ctrl.T.Helper()
