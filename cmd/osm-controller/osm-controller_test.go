@@ -70,6 +70,33 @@ func TestConfigureDebugServer(t *testing.T) {
 		expectedDebugServerRunning bool
 	}{
 		{
+			name:                       "turn off debug server",
+			initialDebugServerEnabled:  true,
+			changeDebugServerEnabledTo: false,
+			c:                          controller{debugServerRunning: true, debugComponents: mockDebugConfig, debugServer: &fakeDebugServer},
+			expectedStopCount:          1,
+			expectedStopErr:            false,
+			expectedDebugServerRunning: false,
+		},
+		{
+			name:                       "turn on debug server",
+			initialDebugServerEnabled:  false,
+			changeDebugServerEnabledTo: true,
+			c:                          controller{debugServerRunning: false, debugComponents: mockDebugConfig, debugServer: nil},
+			expectedStopCount:          0,
+			expectedStopErr:            false,
+			expectedDebugServerRunning: true,
+		},
+		{
+			name:                       "error when turning off debug server",
+			initialDebugServerEnabled:  true,
+			changeDebugServerEnabledTo: false,
+			c:                          controller{debugServerRunning: true, debugComponents: mockDebugConfig, debugServer: &fakeDebugServerGetErr},
+			expectedStopCount:          1,
+			expectedStopErr:            true,
+			expectedDebugServerRunning: false,
+		},
+		{
 			name:                       "debug server is already on, do nothing",
 			initialDebugServerEnabled:  true,
 			changeDebugServerEnabledTo: true,
@@ -87,54 +114,21 @@ func TestConfigureDebugServer(t *testing.T) {
 			expectedStopErr:            false,
 			expectedDebugServerRunning: false,
 		},
-		{
-			name:                       "turn on debug server",
-			initialDebugServerEnabled:  false,
-			changeDebugServerEnabledTo: true,
-			c:                          controller{debugServerRunning: false, debugComponents: mockDebugConfig, debugServer: nil},
-			expectedStopCount:          0,
-			expectedStopErr:            false,
-			expectedDebugServerRunning: true,
-		},
-		{
-			name:                       "turn off debug server",
-			initialDebugServerEnabled:  true,
-			changeDebugServerEnabledTo: false,
-			c:                          controller{debugServerRunning: true, debugComponents: mockDebugConfig, debugServer: &fakeDebugServer},
-			expectedStopCount:          1,
-			expectedStopErr:            false,
-			expectedDebugServerRunning: false,
-		},
-		{
-			name:                       "error when turning off debug server",
-			initialDebugServerEnabled:  true,
-			changeDebugServerEnabledTo: false,
-			c:                          controller{debugServerRunning: true, debugComponents: mockDebugConfig, debugServer: &fakeDebugServerGetErr},
-			expectedStopCount:          1,
-			expectedStopErr:            true,
-			expectedDebugServerRunning: false,
-		},
 	}
-	firstTest := true
+
+	defaultConfigMap := map[string]string{}
+	configMap := v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: osmNamespace,
+			Name:      osmConfigMapName,
+		},
+		Data: defaultConfigMap,
+	}
+	_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Create(context.TODO(), &configMap, metav1.CreateOptions{})
+	assert.Nil(err)
 
 	for _, tests := range testCases {
 		t.Run(fmt.Sprintf("Test: %s", tests.name), func(t *testing.T) {
-			defaultConfigMap := map[string]string{
-				"enabled_debug_server": strconv.FormatBool(tests.initialDebugServerEnabled),
-			}
-			configMap := v1.ConfigMap{
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: osmNamespace,
-					Name:      osmConfigMapName,
-				},
-				Data: defaultConfigMap,
-			}
-			if firstTest {
-				firstTest = false
-				_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Create(context.TODO(), &configMap, metav1.CreateOptions{})
-				assert.Nil(err)
-			}
-
 			defaultConfigMap["enable_debug_server"] = strconv.FormatBool(tests.changeDebugServerEnabledTo)
 			configMap.Data = defaultConfigMap
 
@@ -159,6 +153,7 @@ func TestConfigureDebugServer(t *testing.T) {
 				assert.NotNil(err)
 			} else {
 				assert.Equal(tests.expectedStopCount, fakeDebugServer.stopCount)
+				fakeDebugServer.stopCount = 0
 			}
 
 			stop = make(chan struct{})

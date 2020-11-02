@@ -239,6 +239,8 @@ func main() {
 
 	c.initDebugServer(cfg, stop)
 
+	// Wait for exit handler signal
+	<-stop
 	log.Info().Msg("Goodbye!")
 }
 
@@ -249,9 +251,6 @@ func (c *controller) initDebugServer(cfg configurator.Configurator, stop chan st
 	select {
 	case err := <-errCh:
 		log.Error().Err(err).Msg("Unable to configure debug server")
-
-		// Wait for exit handler signal
-	case <-stop:
 	}
 }
 
