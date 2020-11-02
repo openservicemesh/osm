@@ -22,10 +22,10 @@ import (
 const ServerType = "ADS"
 
 // NewADSServer creates a new Aggregated Discovery Service server
-func NewADSServer(meshCatalog catalog.MeshCataloger, enableDebug bool, osmNamespace string, cfg configurator.Configurator) *Server {
+func NewADSServer(meshCatalog catalog.MeshCataloger, enableDebug bool, osmNamespace string, cfg configurator.Configurator, certManager certificate.Manager) *Server {
 	server := Server{
 		catalog: meshCatalog,
-		xdsHandlers: map[envoy.TypeURI]func(catalog.MeshCataloger, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator) (*xds_discovery.DiscoveryResponse, error){
+		xdsHandlers: map[envoy.TypeURI]func(catalog.MeshCataloger, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator, certificate.Manager) (*xds_discovery.DiscoveryResponse, error){
 			envoy.TypeEDS: eds.NewResponse,
 			envoy.TypeCDS: cds.NewResponse,
 			envoy.TypeRDS: rds.NewResponse,
@@ -35,6 +35,7 @@ func NewADSServer(meshCatalog catalog.MeshCataloger, enableDebug bool, osmNamesp
 		enableDebug:  enableDebug,
 		osmNamespace: osmNamespace,
 		cfg:          cfg,
+		certManager:  certManager,
 	}
 
 	if enableDebug {

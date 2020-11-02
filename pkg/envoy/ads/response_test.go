@@ -32,10 +32,12 @@ var _ = Describe("Test ADS response functions", func() {
 	var (
 		mockCtrl         *gomock.Controller
 		mockConfigurator *configurator.MockConfigurator
+		mockCertManager  *certificate.MockManager
 	)
 
 	mockCtrl = gomock.NewController(GinkgoT())
 	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
+	mockCertManager = certificate.NewMockManager(mockCtrl)
 
 	// --- setup
 	kubeClient := testclient.NewSimpleClientset()
@@ -111,7 +113,8 @@ var _ = Describe("Test ADS response functions", func() {
 		cache := make(map[certificate.CommonName]certificate.Certificater)
 		certManager := tresor.NewFakeCertManager(&cache, mockConfigurator)
 		cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s", uuid.New(), serviceAccountName, tests.Namespace))
-		certPEM, _ := certManager.IssueCertificate(cn, 1*time.Hour)
+		certDuration := 1 * time.Hour
+		certPEM, _ := certManager.IssueCertificate(cn, certDuration)
 		cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())
 		server, actualResponses := tests.NewFakeXDSServer(cert, nil, nil)
 
@@ -119,12 +122,14 @@ var _ = Describe("Test ADS response functions", func() {
 		mockConfigurator.EXPECT().IsPrometheusScrapingEnabled().Return(false).AnyTimes()
 		mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
 		mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
+		mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(certDuration).AnyTimes()
 
 		It("returns Aggregated Discovery Service response", func() {
-			s := NewADSServer(mc, true, tests.Namespace, mockConfigurator)
+			s := NewADSServer(mc, true, tests.Namespace, mockConfigurator, mockCertManager)
 
 			Expect(s).ToNot(BeNil())
 
+			mockCertManager.EXPECT().IssueCertificate(gomock.Any(), certDuration).Return(certPEM, nil).Times(1)
 			s.sendAllResponses(proxy, &server, mockConfigurator)
 
 			Expect(actualResponses).ToNot(BeNil())
