@@ -256,7 +256,6 @@ func (c *controller) configureDebugServer(cfg configurator.Configurator) {
 				c.debugServer = nil
 			}
 			c.debugServerRunning = false
-
 		} else if !c.debugServerRunning && cfg.IsDebugServerEnabled() {
 			c.debugServer = httpserver.NewDebugHTTPServer(c.debugComponents, constants.DebugPort)
 			c.debugServer.Start()
