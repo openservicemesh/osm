@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -107,6 +108,13 @@ func main() {
 	if err := logger.SetLogLevel(verbosity); err != nil {
 		log.Fatal().Err(err).Msg("Error setting log level")
 	}
+
+	if featureFlagsJSON, err := json.Marshal(featureflags.Features); err != nil {
+		log.Error().Err(err).Msgf("Error marshaling feature flags struct: %+v", featureflags.Features)
+	} else {
+		log.Info().Msgf("Feature flags: %s", string(featureFlagsJSON))
+	}
+
 	featureflags.Initialize(optionalFeatures)
 
 	// Initialize kube config and client
@@ -201,7 +209,7 @@ func main() {
 	}
 
 	// Create and start the ADS gRPC service
-	xdsServer := ads.NewADSServer(meshCatalog, cfg.IsDebugServerEnabled(), osmNamespace, cfg)
+	xdsServer := ads.NewADSServer(meshCatalog, cfg.IsDebugServerEnabled(), osmNamespace, cfg, certManager)
 	if err := xdsServer.Start(ctx, cancel, *port, adsCert); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error initializing ADS server")
 	}

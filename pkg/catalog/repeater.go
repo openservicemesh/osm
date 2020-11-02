@@ -3,6 +3,8 @@ package catalog
 import (
 	"reflect"
 	"time"
+
+	"github.com/openservicemesh/osm/pkg/announcements"
 )
 
 const (
@@ -17,6 +19,10 @@ func (mc *MeshCatalog) repeater() {
 		cases, caseNames := mc.getCases()
 		for {
 			if chosenIdx, message, ok := reflect.Select(cases); ok {
+				if ann, ok := message.Interface().(announcements.Announcement); ok {
+					mc.handleAnnouncement(ann)
+				}
+
 				log.Info().Msgf("[repeater] Received announcement from %s", caseNames[chosenIdx])
 				delta := time.Since(lastUpdateAt)
 				if delta >= updateAtMostEvery {
@@ -28,11 +34,17 @@ func (mc *MeshCatalog) repeater() {
 	}
 }
 
+func (mc *MeshCatalog) handleAnnouncement(ann announcements.Announcement) {
+	if ann.Type == announcements.EndpointDeleted {
+		log.Trace().Msgf("Handling announcement: %+v", ann)
+		// TODO: implement (https://github.com/openservicemesh/osm/issues/1719)
+	}
+}
+
 func (mc *MeshCatalog) getCases() ([]reflect.SelectCase, []string) {
 	var caseNames []string
 	var cases []reflect.SelectCase
-	for _, channelInterface := range mc.announcementChannels.ToSlice() {
-		annCh := channelInterface.(announcementChannel)
+	for _, annCh := range mc.getAnnouncementChannels() {
 		cases = append(cases, reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(annCh.channel)})
 		caseNames = append(caseNames, annCh.announcer)
 	}

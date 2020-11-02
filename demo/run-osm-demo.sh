@@ -29,6 +29,7 @@ CTR_TAG="${CTR_TAG:-$(git rev-parse HEAD)}"
 IMAGE_PULL_POLICY="${IMAGE_PULL_POLICY:-Always}"
 ENABLE_EGRESS="${ENABLE_EGRESS:-false}"
 ENABLE_GRAFANA="${ENABLE_GRAFANA:-false}"
+ENABLE_FLUENTBIT="${ENABLE_FLUENTBIT:-false}"
 DEPLOY_WITH_SAME_SA="${DEPLOY_WITH_SAME_SA:-false}"
 ENVOY_LOG_LEVEL="${ENVOY_LOG_LEVEL:-debug}"
 
@@ -112,7 +113,7 @@ echo "Certificate Manager in use: $CERT_MANAGER"
 if [ "$CERT_MANAGER" = "vault" ]; then
   # shellcheck disable=SC2086
   bin/osm install \
-      --namespace "$K8S_NAMESPACE" \
+      --osm-namespace "$K8S_NAMESPACE" \
       --mesh-name "$MESH_NAME" \
       --certificate-manager="$CERT_MANAGER" \
       --vault-host="$VAULT_HOST" \
@@ -125,12 +126,13 @@ if [ "$CERT_MANAGER" = "vault" ]; then
       --enable-debug-server \
       --enable-egress="$ENABLE_EGRESS" \
       --enable-grafana="$ENABLE_GRAFANA" \
+      --enable-fluentbit="$ENABLE_FLUENTBIT" \
       --envoy-log-level "$ENVOY_LOG_LEVEL" \
       $optionalInstallArgs
 else
   # shellcheck disable=SC2086
   bin/osm install \
-      --namespace "$K8S_NAMESPACE" \
+      --osm-namespace "$K8S_NAMESPACE" \
       --mesh-name "$MESH_NAME" \
       --certificate-manager="$CERT_MANAGER" \
       --container-registry "$CTR_REGISTRY" \
@@ -140,6 +142,7 @@ else
       --enable-debug-server \
       --enable-egress="$ENABLE_EGRESS" \
       --enable-grafana="$ENABLE_GRAFANA" \
+      --enable-fluentbit="$ENABLE_FLUENTBIT" \
       --envoy-log-level "$ENVOY_LOG_LEVEL" \
       $optionalInstallArgs
 fi

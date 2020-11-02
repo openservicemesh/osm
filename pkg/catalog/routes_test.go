@@ -3,7 +3,6 @@ package catalog
 import (
 	"fmt"
 	reflect "reflect"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -192,7 +191,7 @@ func TestGetWeightedClusterForService(t *testing.T) {
 
 	expected := service.WeightedCluster{
 		ClusterName: "default/bookstore-v1",
-		Weight:      100,
+		Weight:      tests.Weight90,
 	}
 	assert.Equal(weightedCluster, expected)
 }
@@ -201,22 +200,51 @@ func TestGetServiceHostnames(t *testing.T) {
 	assert := assert.New(t)
 
 	mc := newFakeMeshCatalog()
-	actual, err := mc.getServiceHostnames(tests.BookstoreV1Service)
-	assert.Nil(err)
 
-	expected := []string{
-		"bookstore-v1",
-		"bookstore-v1.default",
-		"bookstore-v1.default.svc",
-		"bookstore-v1.default.svc.cluster",
-		"bookstore-v1.default.svc.cluster.local",
-		"bookstore-v1:8888",
-		"bookstore-v1.default:8888",
-		"bookstore-v1.default.svc:8888",
-		"bookstore-v1.default.svc.cluster:8888",
-		"bookstore-v1.default.svc.cluster.local:8888",
+	testCases := []struct {
+		svc           service.MeshService
+		sameNamespace bool
+		expected      []string
+	}{
+		{
+			tests.BookstoreV1Service,
+			true,
+			[]string{
+				"bookstore-v1",
+				"bookstore-v1.default",
+				"bookstore-v1.default.svc",
+				"bookstore-v1.default.svc.cluster",
+				"bookstore-v1.default.svc.cluster.local",
+				"bookstore-v1:8888",
+				"bookstore-v1.default:8888",
+				"bookstore-v1.default.svc:8888",
+				"bookstore-v1.default.svc.cluster:8888",
+				"bookstore-v1.default.svc.cluster.local:8888",
+			},
+		},
+		{
+			tests.BookstoreV1Service,
+			false,
+			[]string{
+				"bookstore-v1.default",
+				"bookstore-v1.default.svc",
+				"bookstore-v1.default.svc.cluster",
+				"bookstore-v1.default.svc.cluster.local",
+				"bookstore-v1.default:8888",
+				"bookstore-v1.default.svc:8888",
+				"bookstore-v1.default.svc.cluster:8888",
+				"bookstore-v1.default.svc.cluster.local:8888",
+			},
+		},
 	}
-	assert.ElementsMatch(actual, expected)
+
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("Testing hostnames for svc %s with sameNamespace=%t", tc.svc, tc.sameNamespace), func(t *testing.T) {
+			actual, err := mc.getServiceHostnames(tc.svc, tc.sameNamespace)
+			assert.Nil(err)
+			assert.ElementsMatch(actual, tc.expected)
+		})
+	}
 }
 
 func TestHostnamesTostr(t *testing.T) {
@@ -237,30 +265,76 @@ func TestGetDefaultWeightedClusterForService(t *testing.T) {
 	assert.Equal(actual, expected)
 }
 
-func TestGetHostnamesForService(t *testing.T) {
+func TestGetResolvableHostnamesForUpstreamService(t *testing.T) {
 	assert := assert.New(t)
 
 	mc := newFakeMeshCatalog()
 
-	actual, err := mc.GetHostnamesForService(tests.BookstoreV1Service)
-	assert.Nil(err)
-
-	expected := strings.Join(
-		[]string{
-			"bookstore-apex",
-			"bookstore-apex.default",
-			"bookstore-apex.default.svc",
-			"bookstore-apex.default.svc.cluster",
-			"bookstore-apex.default.svc.cluster.local",
-			"bookstore-apex:8888",
-			"bookstore-apex.default:8888",
-			"bookstore-apex.default.svc:8888",
-			"bookstore-apex.default.svc.cluster:8888",
-			"bookstore-apex.default.svc.cluster.local:8888",
+	testCases := []struct {
+		downstream        service.MeshService
+		expectedHostnames []string
+	}{
+		{
+			downstream: service.MeshService{
+				Namespace: "default",
+				Name:      "foo",
+			},
+			expectedHostnames: []string{
+				"bookstore-apex",
+				"bookstore-apex.default",
+				"bookstore-apex.default.svc",
+				"bookstore-apex.default.svc.cluster",
+				"bookstore-apex.default.svc.cluster.local",
+				"bookstore-apex:8888",
+				"bookstore-apex.default:8888",
+				"bookstore-apex.default.svc:8888",
+				"bookstore-apex.default.svc.cluster:8888",
+				"bookstore-apex.default.svc.cluster.local:8888",
+				"bookstore-v1",
+				"bookstore-v1.default",
+				"bookstore-v1.default.svc",
+				"bookstore-v1.default.svc.cluster",
+				"bookstore-v1.default.svc.cluster.local",
+				"bookstore-v1:8888",
+				"bookstore-v1.default:8888",
+				"bookstore-v1.default.svc:8888",
+				"bookstore-v1.default.svc.cluster:8888",
+				"bookstore-v1.default.svc.cluster.local:8888",
+			},
 		},
-		",")
+		{
+			downstream: service.MeshService{
+				Namespace: "bar",
+				Name:      "foo",
+			},
+			expectedHostnames: []string{
+				"bookstore-apex.default",
+				"bookstore-apex.default.svc",
+				"bookstore-apex.default.svc.cluster",
+				"bookstore-apex.default.svc.cluster.local",
+				"bookstore-apex.default:8888",
+				"bookstore-apex.default.svc:8888",
+				"bookstore-apex.default.svc.cluster:8888",
+				"bookstore-apex.default.svc.cluster.local:8888",
+				"bookstore-v1.default",
+				"bookstore-v1.default.svc",
+				"bookstore-v1.default.svc.cluster",
+				"bookstore-v1.default.svc.cluster.local",
+				"bookstore-v1.default:8888",
+				"bookstore-v1.default.svc:8888",
+				"bookstore-v1.default.svc.cluster:8888",
+				"bookstore-v1.default.svc.cluster.local:8888",
+			},
+		},
+	}
 
-	assert.Equal(actual, expected)
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("Testing hostnames when %s svc reaches %s svc", tc.downstream, tests.BookstoreV1Service), func(t *testing.T) {
+			actual, err := mc.GetResolvableHostnamesForUpstreamService(tc.downstream, tests.BookstoreV1Service)
+			assert.Nil(err)
+			assert.Equal(actual, tc.expectedHostnames)
+		})
+	}
 }
 
 func TestBuildAllowAllTrafficPolicies(t *testing.T) {
@@ -294,9 +368,10 @@ func TestBuildAllowAllTrafficPolicies(t *testing.T) {
 func TestListTrafficTargetPermutations(t *testing.T) {
 	assert := assert.New(t)
 
-	destList := []service.MeshService{tests.BookstoreV1Service, tests.BookstoreApexService}
-	srcList := []service.MeshService{tests.BookbuyerService, tests.BookwarehouseService}
-	trafficTargets := listTrafficTargetPermutations(tests.TrafficTargetName, srcList, destList)
+	mc := newFakeMeshCatalog()
+
+	trafficTargets, err := mc.listTrafficTargetPermutations(tests.TrafficTarget, tests.TrafficTarget.Spec.Sources[0], tests.TrafficTarget.Spec.Destination)
+	assert.Nil(err)
 
 	var actualTargetNames []string
 	for _, target := range trafficTargets {
@@ -304,10 +379,9 @@ func TestListTrafficTargetPermutations(t *testing.T) {
 	}
 
 	expected := []string{
-		utils.GetTrafficTargetName(tests.TrafficTargetName, srcList[0], destList[0]),
-		utils.GetTrafficTargetName(tests.TrafficTargetName, srcList[0], destList[1]),
-		utils.GetTrafficTargetName(tests.TrafficTargetName, srcList[1], destList[0]),
-		utils.GetTrafficTargetName(tests.TrafficTargetName, srcList[1], destList[1]),
+		utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreV1Service),
+		utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreV2Service),
+		utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreApexService),
 	}
 	assert.ElementsMatch(actualTargetNames, expected)
 }

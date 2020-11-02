@@ -82,7 +82,7 @@ func envOr(name, defaultVal string) string {
 
 // AddFlags binds flags to the given flagset.
 func (s *EnvSettings) AddFlags(fs *pflag.FlagSet) {
-	fs.StringVarP(&s.namespace, "namespace", "n", s.namespace, "namespace for osm control plane")
+	fs.StringVar(&s.namespace, "osm-namespace", s.namespace, "namespace for osm control plane")
 }
 
 // EnvVars returns a map of all OSM related environment variables

@@ -57,8 +57,11 @@ const (
 	// WildcardWithHeadersMatchName is the name of the match object.
 	WildcardWithHeadersMatchName = "allow-everything-on-header"
 
-	// Weight is the percentage of the traffic to be sent this way in a traffic split scenario.
-	Weight = 100
+	// Weight90 is the value representing a share of the traffic to be sent this way in a traffic split scenario.
+	Weight90 = 90
+
+	// Weight10 is the value representing a share of the traffic to be sent this way in a traffic split scenario.
+	Weight10 = 10
 
 	// RouteGroupName is the name of the route group SMI object.
 	RouteGroupName = "bookstore-service-routes"
@@ -75,8 +78,8 @@ const (
 	// SelectorValue is a Pod selector value constant.
 	SelectorValue = "frontend"
 
-	// EnvoyUID is the unique ID of the Envoy used for unit tests.
-	EnvoyUID = "A-B-C-D"
+	// ProxyUUID is the unique ID of the Envoy used for unit tests.
+	ProxyUUID = "abcdef12-5791-9876-abcd-1234567890ab"
 
 	// ServicePort is the port used by a service
 	ServicePort = 8888
@@ -222,11 +225,11 @@ var (
 			Backends: []v1alpha2.TrafficSplitBackend{
 				{
 					Service: BookstoreV1ServiceName,
-					Weight:  Weight,
+					Weight:  Weight90,
 				},
 				{
 					Service: BookstoreV2ServiceName,
-					Weight:  Weight,
+					Weight:  Weight10,
 				},
 			},
 		},
@@ -287,7 +290,7 @@ var (
 			Namespace: Namespace,
 			Name:      BookstoreV1ServiceName,
 		},
-		Weight:      Weight,
+		Weight:      Weight90,
 		RootService: BookstoreApexServiceName,
 	}
 
@@ -297,7 +300,7 @@ var (
 			Namespace: Namespace,
 			Name:      BookstoreV2ServiceName,
 		},
-		Weight:      Weight,
+		Weight:      Weight10,
 		RootService: BookstoreApexServiceName,
 	}
 
@@ -370,7 +373,7 @@ func NewPodTestFixture(namespace string, podName string) corev1.Pod {
 			Namespace: namespace,
 			Labels: map[string]string{
 				SelectorKey:                      SelectorValue,
-				constants.EnvoyUniqueIDLabelName: EnvoyUID,
+				constants.EnvoyUniqueIDLabelName: ProxyUUID,
 			},
 		},
 		Spec: corev1.PodSpec{
@@ -387,7 +390,7 @@ func NewPodTestFixtureWithOptions(namespace string, podName string, serviceAccou
 			Namespace: namespace,
 			Labels: map[string]string{
 				SelectorKey:                      SelectorValue,
-				constants.EnvoyUniqueIDLabelName: EnvoyUID,
+				constants.EnvoyUniqueIDLabelName: ProxyUUID,
 			},
 		},
 		Spec: corev1.PodSpec{

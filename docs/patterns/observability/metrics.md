@@ -1,4 +1,4 @@
-# Observability
+# Metrics
 Open Service Mesh (OSM) generates detailed metrics for all services communicating within the mesh. These metrics provide insights into the behavior of services in the mesh helping users to troubleshoot, maintain and analyze their applications.
 
 As of today OSM collects metrics directly from the sidecar proxies (Envoy). OSM provides rich metrics for incoming and outgoing traffic for all services in the mesh. With these metrics the user can get information about the overall volume of traffic, errors within traffic and the response time for requests.
@@ -204,3 +204,4 @@ OSM Service to Service Metrics dashboard will look like:
 [4]: http://localhost:3000
 [5]: http://localhost:7070
 [6]: http://localhost:3000/d/OSMs2sMetrics/osm-service-to-service-metrics?orgId=1
+

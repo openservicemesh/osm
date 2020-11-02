@@ -105,7 +105,7 @@ func GetPodName(kubeClient kubernetes.Interface, namespace, selector string) (st
 
 // SearchLogsForSuccess tails logs until success enum is found.
 // The pod/container we are observing is responsible for sending the SUCCESS/FAIL token based on local heuristic.
-func SearchLogsForSuccess(kubeClient kubernetes.Interface, namespace string, podName string, containerName string, totalWait time.Duration, result chan TestResult, successToken, failureToken string) {
+func SearchLogsForSuccess(kubeClient kubernetes.Interface, namespace string, podName string, containerName string, totalWait time.Duration, result chan string, successToken, failureToken string) {
 	sinceTime := metav1.NewTime(time.Now().Add(-PollLogsFromTimeSince))
 	options := &corev1.PodLogOptions{
 		Container: containerName,

@@ -41,7 +41,7 @@ var _ = Describe("Test creation of CA bundle k8s secret", func() {
 
 			actual, err := k8sClient.CoreV1().Secrets(namespace).Get(context.Background(), secretName, v1.GetOptions{})
 			Expect(err).ToNot(HaveOccurred())
-			expected := "-----BEGIN CERTIFICATE-----\nMIIF"
+			expected := "-----BEGIN CERTIFICATE-----\nMIID"
 			stringPEM := string(actual.Data[constants.KubernetesOpaqueSecretCAKey])[:len(expected)]
 			Expect(stringPEM).To(Equal(expected))
 

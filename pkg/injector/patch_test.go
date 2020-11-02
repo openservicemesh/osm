@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	mapset "github.com/deckarep/golang-set"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	corev1 "k8s.io/api/core/v1"
@@ -24,7 +25,7 @@ import (
 var _ = Describe("Test all patch operations", func() {
 
 	// Setup all constants and variables needed for the tests
-	envoyUID := uuid.New().String()
+	proxyUUID := uuid.New()
 	const (
 		namespace    = "-namespace-"
 		podName      = "-pod-name-"
@@ -34,33 +35,6 @@ var _ = Describe("Test all patch operations", func() {
 		containerTwo = "-container-two-"
 		basePath     = "/base/path"
 	)
-
-	Context("Test updateLabels() function", func() {
-		It("adds", func() {
-			pod := tests.NewPodTestFixture(namespace, podName)
-			pod.Labels = nil
-			actual := updateLabels(&pod, envoyUID)
-			expected := &JSONPatchOperation{
-				Op:   addOperation,
-				Path: "/metadata/labels",
-				Value: map[string]string{
-					"osm-envoy-uid": envoyUID,
-				},
-			}
-			Expect(actual).To(Equal(expected))
-		})
-
-		It("replaces", func() {
-			pod := tests.NewPodTestFixture(namespace, podName)
-			actual := updateLabels(&pod, envoyUID)
-			replace := &JSONPatchOperation{
-				Op:    replaceOperation,
-				Path:  "/metadata/labels/osm-envoy-uid",
-				Value: envoyUID,
-			}
-			Expect(actual).To(Equal(replace))
-		})
-	})
 
 	Context("test addVolume() function", func() {
 		It("adds volume", func() {
@@ -108,7 +82,7 @@ var _ = Describe("Test all patch operations", func() {
 		})
 	})
 
-	Context("test updateAnnotation() function", func() {
+	Context("test updateMapType() function", func() {
 		It("creates a list of patches", func() {
 			target := map[string]string{
 				"one": "1",
@@ -120,7 +94,7 @@ var _ = Describe("Test all patch operations", func() {
 				"three": "3",
 			}
 
-			actual := updateAnnotation(target, add, basePath)
+			actual := updateMapType(target, add, basePath)
 
 			expectedReplaceTwo := JSONPatchOperation{
 				Op:    replaceOperation,
@@ -144,7 +118,7 @@ var _ = Describe("Test all patch operations", func() {
 			}
 
 			// Target here is NIL -- this means we will be CREATING
-			actual := updateAnnotation(nil, annotationsToAdd, basePath)
+			actual := updateMapType(nil, annotationsToAdd, basePath)
 
 			// The first operation is "three" ("three" comes before "two" alphabetically)
 			// This is a CREATE operation since target is NIL
@@ -184,17 +158,18 @@ var _ = Describe("Test all patch operations", func() {
 			cache := make(map[certificate.CommonName]certificate.Certificater)
 
 			wh := &webhook{
-				kubeClient:     client,
-				kubeController: mockNsController,
-				certManager:    tresor.NewFakeCertManager(&cache, mockConfigurator),
-				meshCatalog:    catalog.NewFakeMeshCatalog(client),
-				configurator:   mockConfigurator,
+				kubeClient:          client,
+				kubeController:      mockNsController,
+				certManager:         tresor.NewFakeCertManager(&cache, mockConfigurator),
+				meshCatalog:         catalog.NewFakeMeshCatalog(client),
+				configurator:        mockConfigurator,
+				nonInjectNamespaces: mapset.NewSet(),
 			}
 
 			pod := tests.NewPodTestFixture(namespace, podName)
 			mockConfigurator.EXPECT().GetEnvoyLogLevel().Return("").Times(1)
 
-			jsonPatches, err := wh.createPatch(&pod, namespace, envoyUID)
+			jsonPatches, err := wh.createPatch(&pod, namespace, proxyUUID)
 
 			Expect(err).ToNot(HaveOccurred())
 
@@ -228,7 +203,7 @@ var _ = Describe("Test all patch operations", func() {
 				`{"op":addOperation,"path":"/metadata/annotations/prometheus.io~1path","value":"/stats/prometheus"},` +
 
 				// Add Envoy UID Label
-				`{"op":replaceOperation,"path":"/metadata/labels/osm-envoy-uid","value":"proxy-uuid"}` +
+				`{"op":replaceOperation,"path":"/metadata/labels/osm-proxy-uuid","value":"proxy-uuid"}` +
 
 				`]`
 

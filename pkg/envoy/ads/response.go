@@ -104,7 +104,7 @@ func (s *Server) newAggregatedDiscoveryResponse(proxy *envoy.Proxy, request *xds
 	}
 
 	log.Trace().Msgf("Invoking handler for %s with request: %+v", typeURL, request)
-	response, err := handler(s.catalog, proxy, request, cfg)
+	response, err := handler(s.catalog, proxy, request, cfg, s.certManager)
 	if err != nil {
 		log.Error().Msgf("Responder for TypeUrl %s is not implemented", request.TypeUrl)
 		return nil, errCreatingResponse

@@ -39,7 +39,8 @@ type HTTPRequestResult struct {
 func (td *OsmTestData) HTTPRequest(ht HTTPRequestDef) HTTPRequestResult {
 	// -s silent progress, -o output to devnull, '-D -' dump headers to "-" (stdout), -i Status code
 	// -I skip body download, '-w StatusCode:%{http_code}' prints Status code label-like for easy parsing
-	command := fmt.Sprintf("/usr/bin/curl -s -o /dev/null -D - -I -w %s:%%{http_code} %s", StatusCodeWord, ht.Destination)
+	// -L follow redirects
+	command := fmt.Sprintf("/usr/bin/curl -s -o /dev/null -D - -I -w %s:%%{http_code} -L %s", StatusCodeWord, ht.Destination)
 
 	stdout, stderr, err := td.RunRemote(ht.SourceNs, ht.SourcePod, ht.SourceContainer, command)
 	if err != nil {
@@ -103,7 +104,7 @@ type HTTPMultipleRequest struct {
 }
 
 // HTTPMultipleResults represents results from a multiple HTTP request call
-// results come back as a map[namespace][pod] -> HTTPResults
+// results come back as a map["srcNs/srcPod"]["dstNs/dstPod"] -> HTTPResults
 type HTTPMultipleResults map[string]map[string]HTTPRequestResult
 
 // MultipleHTTPRequest will issue a list of requests concurrently and return results when all requests have returned
@@ -114,13 +115,18 @@ func (td *OsmTestData) MultipleHTTPRequest(requests *HTTPMultipleRequest) HTTPMu
 
 	// Prepare results
 	for idx, r := range requests.Sources {
-		if _, ok := results[r.SourceNs]; !ok {
-			results[r.SourceNs] = map[string]HTTPRequestResult{}
+		srcKey := fmt.Sprintf("%s/%s", r.SourceNs, r.SourcePod)
+		dstKey := r.Destination
+
+		if _, ok := results[srcKey]; !ok {
+			results[srcKey] = map[string]HTTPRequestResult{}
 		}
-		if _, ok := results[r.SourceNs][r.SourcePod]; !ok {
-			results[r.SourceNs][r.SourcePod] = HTTPRequestResult{}
+		if _, ok := results[srcKey][dstKey]; !ok {
+			results[srcKey][dstKey] = HTTPRequestResult{}
 		} else {
-			td.T.Logf("WARN: Multiple requests from same pod %s. Results will overwrite.", r.SourcePod)
+			td.T.Logf("No support for more than one request from src to dst. (%s to %s).Ignoring.",
+				srcKey, dstKey)
+			continue
 		}
 
 		wg.Add(1)
@@ -132,7 +138,7 @@ func (td *OsmTestData) MultipleHTTPRequest(requests *HTTPMultipleRequest) HTTPMu
 			mtx.Lock()
 			results[ns][podname] = r
 			mtx.Unlock()
-		}(r.SourceNs, r.SourcePod, (*requests).Sources[idx])
+		}(srcKey, dstKey, (*requests).Sources[idx])
 	}
 	wg.Wait()
 

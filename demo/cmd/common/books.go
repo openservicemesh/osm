@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 const (
@@ -29,10 +30,10 @@ var (
 	// enableEgress determines whether egress is enabled
 	enableEgress = os.Getenv(EnableEgressEnvVar) == "true"
 
-	sleepDurationBetweenRequestsSecondsStr = GetEnv("CI_SLEEP_BETWEEN_REQUESTS_SECONDS", "1")
-	minSuccessThresholdStr                 = GetEnv("CI_MIN_SUCCESS_THRESHOLD", "1")
-	maxIterationsStr                       = GetEnv("CI_MAX_ITERATIONS_THRESHOLD", "0") // 0 for unlimited
-	bookstoreServiceName                   = GetEnv("BOOKSTORE_SVC", "bookstore")
+	sleepDurationBetweenRequestsSecondsStr = utils.GetEnv("CI_SLEEP_BETWEEN_REQUESTS_SECONDS", "1")
+	minSuccessThresholdStr                 = utils.GetEnv("CI_MIN_SUCCESS_THRESHOLD", "1")
+	maxIterationsStr                       = utils.GetEnv("CI_MAX_ITERATIONS_THRESHOLD", "0") // 0 for unlimited
+	bookstoreServiceName                   = utils.GetEnv("BOOKSTORE_SVC", "bookstore")
 	bookstoreNamespace                     = os.Getenv(BookstoreNamespaceEnvVar)
 	warehouseServiceName                   = "bookwarehouse"
 	bookwarehouseNamespace                 = os.Getenv(BookwarehouseNamespaceEnvVar)
@@ -91,15 +92,6 @@ func RestockBooks(amount int) {
 		log.Info().Msgf("RestockBooks (%s) adding header {%s: %s}", chargeAccountURL, hdr, getHeader(resp.Header, hdr))
 	}
 	log.Info().Msgf("RestockBooks (%s) finished w/ status: %s %d ", chargeAccountURL, resp.Status, resp.StatusCode)
-}
-
-// GetEnv is much  like os.Getenv() but with a default value.
-func GetEnv(envVar string, defaultValue string) string {
-	val := os.Getenv(envVar)
-	if val == "" {
-		return defaultValue
-	}
-	return val
 }
 
 // GetBooks reaches out to the bookstore and buys/steals books. This is invoked by the bookbuyer and the bookthief.
@@ -285,7 +277,7 @@ func getEnvVars(participantName string) (minSuccessThreshold int64, maxIteration
 
 // GetExpectedResponseCodeFromEnvVar returns the expected response code based on the given environment variable
 func GetExpectedResponseCodeFromEnvVar(envVar, defaultValue string) int {
-	expectedRespCodeStr := GetEnv(envVar, defaultValue)
+	expectedRespCodeStr := utils.GetEnv(envVar, defaultValue)
 	expectedRespCode, err := strconv.ParseInt(expectedRespCodeStr, 10, 0)
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Could not convert environment variable %s='%s' to int", envVar, expectedRespCodeStr)

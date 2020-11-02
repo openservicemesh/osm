@@ -1,27 +1,20 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
-	"log"
-	"net/http"
 	"os"
 	"os/signal"
-	"syscall"
 
 	"github.com/pkg/browser"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"helm.sh/helm/v3/pkg/action"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/util/httpstream"
 	"k8s.io/client-go/kubernetes"
-	v1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/portforward"
-	"k8s.io/client-go/transport/spdy"
 )
 
 const openGrafanaDashboardDesc = `
@@ -29,8 +22,8 @@ This command will perform a port redirection towards a running
 grafana instance running under the OSM namespace, and cast a
 generic browser-open towards localhost on the redirected port.
 By default redirects through port 3000 unless manually overridden.
-This command blocks and redirection remains active until closed
-from either side.
+This command blocks if port forwarding is successful until the
+process is interrupted with a signal from the OS.
 `
 const (
 	grafanaServiceName = "osm-grafana"
@@ -67,29 +60,13 @@ func newDashboardCmd(config *action.Configuration, out io.Writer) *cobra.Command
 	return cmd
 }
 
-// Creates an spdy-upgraded http stream handler
-func createDialer(conf *rest.Config, v1ClientSet v1.CoreV1Interface, podName string) httpstream.Dialer {
-	roundTripper, upgrader, err := spdy.RoundTripperFor(conf)
-	if err != nil {
-		panic(err)
-	}
-
-	serverURL := v1ClientSet.RESTClient().Post().
-		Resource("pods").
-		Namespace(settings.Namespace()).
-		Name(podName).
-		SubResource("portforward").URL()
-
-	return spdy.NewDialer(upgrader, &http.Client{Transport: roundTripper}, http.MethodPost, serverURL)
-}
-
 func (d *dashboardCmd) run() error {
 	var err error
-	log.Printf("[+] Starting Dashboard forwarding\n")
+	fmt.Fprintf(d.out, "[+] Starting Dashboard forwarding\n")
 
 	conf, err := d.config.RESTClientGetter.ToRESTConfig()
 	if err != nil {
-		log.Fatalf("Failed to get REST config from Helm %s\n", err)
+		return errors.Errorf("Failed to get REST config from Helm %s\n", err)
 	}
 
 	// Get v1 interface to our cluster. Do or die trying
@@ -101,75 +78,53 @@ func (d *dashboardCmd) run() error {
 		Get(context.TODO(), grafanaServiceName, metav1.GetOptions{})
 
 	if err != nil {
-		log.Fatalf("Failed to get OSM Grafana service data: %s", err)
+		return errors.Errorf("Failed to get OSM Grafana service data: %s", err)
 	}
 
 	// Select pod/s given the service data available
 	set := labels.Set(svc.Spec.Selector)
 	listOptions := metav1.ListOptions{LabelSelector: set.AsSelector().String()}
-	pods, err := v1ClientSet.Pods(settings.Namespace()).
-		List(context.TODO(), listOptions)
+	pods, err := v1ClientSet.Pods(settings.Namespace()).List(context.TODO(), listOptions)
+	if err != nil {
+		return errors.Errorf("Error listing pods: %s", err)
+	}
 
 	// Will select first running Pod available
-	it := 0
-	for {
-		if pods.Items[it].Status.Phase == "Running" {
+	var grafanaPod *corev1.Pod
+	for _, pod := range pods.Items {
+		pod := pod // prevents aliasing address of loop variable which is the same in each iteration
+		if pod.Status.Phase == "Running" {
+			grafanaPod = &pod
 			break
 		}
-
-		it++
-		if it == len(pods.Items) {
-			log.Fatalf("No running Grafana pod available.")
-		}
+	}
+	if grafanaPod == nil {
+		return errors.Errorf("No running Grafana pod available")
 	}
 
-	// Build http spdy-upgraded handler
-	dialer := createDialer(conf, v1ClientSet, pods.Items[it].GetName())
-
-	// StopChan is used to understand the lifecycle of the forwarding blocking op
-	// ReadyChan signals when the connection has been established and forwarding is in place
-	stopChan := make(chan struct{}, 1)
-	readyChan := make(chan struct{}, 1)
-	out, errOut := new(bytes.Buffer), new(bytes.Buffer)
-
-	forwardStr := fmt.Sprintf("%d:%d", d.localPort, d.remotePort)
-	log.Printf("[+] Using forwarding: %s\n", forwardStr)
-
-	forwarder, err := portforward.New(dialer,
-		[]string{forwardStr},
-		stopChan,
-		readyChan,
-		out,
-		errOut)
+	portForwarder, err := NewPortForwarder(conf, clientSet, grafanaPod.Name, grafanaPod.Namespace, d.localPort, d.remotePort)
 	if err != nil {
-		log.Fatalf("Failed to create forwarder: %s\n", err)
+		return errors.Errorf("Error setting up port forwarding: %s", err)
 	}
 
-	// Binding SIGINT & SIGTERM to trigger the closing routine
-	signal.Notify(d.sigintChan, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		<-d.sigintChan // Blocking
-		log.Println("[+] SIGINT/TERM received, closing")
-		close(stopChan)
-	}()
-
-	// This routine blocks on readyChan til forwarding is setup and ready.
-	go func() {
-		select {
-		case <-readyChan:
-			break
-		}
-		log.Printf("[+] Port forwarding successful (localhost:%d)\n", d.localPort)
+	err = portForwarder.Start(func(pf *PortForwarder) error {
 		if d.openBrowser {
 			url := fmt.Sprintf("http://localhost:%d", d.localPort)
-			log.Printf("[+] Issuing open browser %s\n", url)
+			fmt.Fprintf(d.out, "[+] Issuing open browser %s\n", url)
 			browser.OpenURL(url)
 		}
-	}()
-
-	if err = forwarder.ForwardPorts(); err != nil { // Locks until stopChan is closed.
-		log.Fatalf("Failed to execute Forward: %s\n", err)
+		return nil
+	})
+	if err != nil {
+		return errors.Errorf("Port forwarding failed: %s", err)
 	}
+
+	// The command should only exit when a signal is received from the OS.
+	// Exiting before will result in port forwarding to stop causing the browser
+	// if open to not render the dashboard.
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt)
+	<-sigChan
 
 	return nil
 }

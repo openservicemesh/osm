@@ -19,12 +19,15 @@ The following guide describes how to onboard a Kubernetes microservice to an OSM
     $ kubectl label namespace <namespace> openservicemesh.io/monitored-by=<mesh-name>
     ```
 
-    By default, the `osm namespace add` command does not enable the namespace for automatic sidecar injection. To enable automatic sidecar injection as a part of enrolling a namespace into the mesh, use `osm namespace add <namespace> --enable-sidecar-injection`. This does the equivalent of the following:
+    By default, the `osm namespace add` command enables automatic sidecar injection for pods in the namespace.
+    This does the equivalent of the following:
 
     ```console
     $ kubectl label namespace <namespace> openservicemesh.io/monitored-by=<mesh-name>
     $ kubectl annotate namespace <namespace> openservicemesh.io/sidecar-injection=enabled
     ```
+
+    To disable automatic sidecar injection as a part of enrolling a namespace into the mesh, use `osm namespace add <namespace> --disable-sidecar-injection`.
 
     Once a namespace has been onboarded, pods can be enrolled in the mesh by configuring automatic sidecar injection. See the [Sidecar Injection](patterns/sidecar_injection.md) document for more details.
 

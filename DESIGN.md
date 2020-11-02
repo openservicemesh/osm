@@ -289,7 +289,7 @@ would require:
 
 In the previous section, we proposed implementation of the `StreamAggregatedResources` method. This provides
 connected Envoy proxies with a list of clusters, mapping of service name to list of routable IP addresses, list of permitted routes, listeners and secrets for CDS, EDS, RDS, LDS and SDS respectively.
-The `ListEndpointsForService`, `ListTrafficPolicies` and `GetCertificateForService` methods will be provided by the OSM component, which we refer to
+The `ListEndpointsForService`, `ListTrafficPolicies` methods will be provided by the OSM component, which we refer to
  as the **Mesh Catalog** in this document.
 
 The Mesh Catalog will have access to the `MeshSpec`, `CertificateManager`, and the list of `EndpointsProvider`s.
@@ -315,10 +315,6 @@ type MeshCataloger interface {
 	// ListEndpointsForService returns the list of provider endpoints corresponding to a service
 	ListEndpointsForService(service.MeshService) ([]endpoint.Endpoint, error)
 
-	// GetCertificateForService returns the SSL Certificate for the given service.
-	// This certificate will be used for service-to-service mTLS.
-	GetCertificateForService(service.MeshService) (certificate.Certificater, error)
-
 	// ExpectProxy catalogs the fact that a certificate was issued for an Envoy proxy and this is expected to connect to XDS.
 	ExpectProxy(certificate.CommonName)
 
@@ -335,8 +331,8 @@ type MeshCataloger interface {
 	// GetServicesForServiceAccount returns a list of services corresponding to a service account
 	GetServicesForServiceAccount(service.K8sServiceAccount) ([]service.MeshService, error)
 
-	// GetHostnamesForService returns the hostnames for a service
-	GetHostnamesForService(service service.MeshService) (string, error)
+	// GetResolvableHostnamesForUpstreamService returns the hostnames over which an upstream service is accessible from a downstream service
+	GetResolvableHostnamesForUpstreamService(downstream, upstream service.MeshService) ([]string, error)
 
 	//GetWeightedClusterForService returns the weighted cluster for a service
 	GetWeightedClusterForService(service service.MeshService) (service.WeightedCluster, error)

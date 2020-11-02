@@ -8,7 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("1 Client pod -> 1 Server pod test using Vault", func() {
+var _ = DescribeTier2("1 Client pod -> 1 Server pod test using Vault", func() {
 	Context("HashivaultSimpleClientServer", func() {
 		sourceNs := "client"
 		destNs := "server"

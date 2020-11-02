@@ -16,8 +16,19 @@ The tests are written using Ginkgo and Gomega so they may also be directly invok
 
 OSM's framework has an init mechanism which will automatically initialize and parse flags and variables from both `env` and `go test flags` if any are passed to the test. The hooks for initialization and cleanup are set at Ginkgo's `BeforeEach` at the top level of test execution (between Ginkgo `Describes`); we henceforth recommend keeping every test in its own `Describe` section, as well as on a separate file for clarity. You can refer to [suite_test](tests/e2e/suite_test.go) for more details about the init process.
 
+Tests are organized by top-level `Describe` blocks into tiers based on priority. A tier's tests will also be run as a part of all the tiers below it.
+
+- Tier 1: run against every PR and should pass before being merged
+- Tier 2: run against every merge into the main branch
+
+**Note**: These tiers and which tests fall into each are likely to change as the test suite grows.
+
+To help organize the tests, custom `Describe` blocks named after the tiers like `DescribeTier1` are provided to help name tests accordingly and should be used in place of Ginkgo's original `Describe` to ensure the right tests are run at the right times in CI.
+
 ## Running the tests
 Running the tests will require a running Kubernetes cluster. If you do not have a Kubernetes cluster to run the tests onto, you can choose to run them using `Kind`, which will make the test framework initialize a cluster on a local accessible docker client.
+
+Running the tests will also require the [Helm](https://helm.sh/) CLI to be installed on your machine.
 
 The tests can be run using the `test-e2e` Makefile target at repository root level (which defaults to use Kind), or alternatively `go test` targetting the test folder, which gives more flexibility but depends on related `env` flags given or parsed by the test.
 

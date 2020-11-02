@@ -25,7 +25,8 @@ var _ = Describe("New", func() {
 	It("sets the namespace from the flag", func() {
 		settings := New()
 		settings.AddFlags(flags)
-		flags.Parse([]string{"--namespace=osm-ns"})
+		err := flags.Parse([]string{"--osm-namespace=osm-ns"})
+		Expect(err).To(BeNil())
 		Expect(settings.Namespace()).To(Equal("osm-ns"))
 	})
 
@@ -45,7 +46,8 @@ var _ = Describe("New", func() {
 
 		settings := New()
 		settings.AddFlags(flags)
-		flags.Parse([]string{"--namespace=osm-ns"})
+		err := flags.Parse([]string{"--osm-namespace=osm-ns"})
+		Expect(err).To(BeNil())
 		Expect(settings.Namespace()).To(Equal("osm-ns"))
 	})
 })

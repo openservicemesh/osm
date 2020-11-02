@@ -32,10 +32,10 @@ wide Kubernetes resources.
 
 The default Kubernetes namespace that gets created on install is called
 osm-system. To create an install control plane components in a different
-namespace, use the --namespace flag.
+namespace, use the global --osm-namespace flag.
 
 Example:
-  $ osm install --namespace hello-world
+  $ osm install --osm-namespace hello-world
 
 Multiple control plane installations can exist within a cluster. Each
 control plane is given a cluster-wide unqiue identifier called mesh name.
@@ -99,8 +99,14 @@ type installCmd struct {
 	// Toggle to enable/disable Grafana installation
 	enableGrafana bool
 
+	// Toggle to enable/disable FluentBit sidecar
+	enableFluentbit bool
+
 	// Toggle this to enable/disable the automatic deployment of Jaeger
 	deployJaeger bool
+
+	// Toggle this to enforce only one mesh in this cluster
+	enforceSingleMesh bool
 }
 
 func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
@@ -115,12 +121,12 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 		RunE: func(_ *cobra.Command, args []string) error {
 			kubeconfig, err := settings.RESTClientGetter().ToRESTConfig()
 			if err != nil {
-				return errors.Errorf("Error fetching kubeconfig")
+				return errors.Errorf("Error fetching kubeconfig: %s", err)
 			}
 
 			clientset, err := kubernetes.NewForConfig(kubeconfig)
 			if err != nil {
-				return errors.Errorf("Could not access Kubernetes cluster. Check kubeconfig, %s", err)
+				return errors.Errorf("Could not access Kubernetes cluster, check kubeconfig: %s", err)
 			}
 			inst.clientSet = clientset
 			return inst.run(config)
@@ -131,7 +137,7 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.StringVar(&inst.containerRegistry, "container-registry", "openservicemesh", "container registry that hosts control plane component images")
 	f.StringVar(&inst.chartPath, "osm-chart-path", "", "path to osm chart to override default chart")
 	f.StringVar(&inst.certificateManager, "certificate-manager", defaultCertManager, "certificate manager to use one of (tresor, vault, cert-manager)")
-	f.StringVar(&inst.osmImageTag, "osm-image-tag", "v0.4.2", "osm image tag")
+	f.StringVar(&inst.osmImageTag, "osm-image-tag", "v0.5.0-rc.1", "osm image tag")
 	f.StringVar(&inst.osmImagePullPolicy, "osm-image-pull-policy", defaultOsmImagePullPolicy, "osm image pull policy")
 	f.StringVar(&inst.containerRegistrySecret, "container-registry-secret", "", "name of Kubernetes secret for container registry credentials to be created if it doesn't already exist")
 	f.StringVar(&inst.vaultHost, "vault-host", "", "Hashicorp Vault host/service - where Vault is installed")
@@ -149,9 +155,11 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.BoolVar(&inst.enableBackpressureExperimental, "enable-backpressure-experimental", false, "Enable experimental backpressure feature")
 	f.BoolVar(&inst.enablePrometheus, "enable-prometheus", true, "Enable Prometheus installation and deployment")
 	f.BoolVar(&inst.enableGrafana, "enable-grafana", false, "Enable Grafana installation and deployment")
+	f.BoolVar(&inst.enableFluentbit, "enable-fluentbit", false, "Enable Fluentbit sidecar deployment")
 	f.StringVar(&inst.meshName, "mesh-name", defaultMeshName, "name for the new control plane instance")
 	f.BoolVar(&inst.deployJaeger, "deploy-jaeger", true, "Deploy Jaeger in the namespace of the OSM controller")
 	f.StringVar(&inst.envoyLogLevel, "envoy-log-level", "error", "Envoy log level is used to specify the level of logs collected from envoy and needs to be one of these (trace, debug, info, warning, warn, error, critical, off)")
+	f.BoolVar(&inst.enforceSingleMesh, "enforce-single-mesh", false, "Enforce only deploying one mesh in the cluster")
 
 	return cmd
 }
@@ -214,10 +222,12 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 		fmt.Sprintf("OpenServiceMesh.enableBackpressureExperimental=%t", i.enableBackpressureExperimental),
 		fmt.Sprintf("OpenServiceMesh.enablePrometheus=%t", i.enablePrometheus),
 		fmt.Sprintf("OpenServiceMesh.enableGrafana=%t", i.enableGrafana),
+		fmt.Sprintf("OpenServiceMesh.enableFluentbit=%t", i.enableFluentbit),
 		fmt.Sprintf("OpenServiceMesh.meshName=%s", i.meshName),
 		fmt.Sprintf("OpenServiceMesh.enableEgress=%t", i.enableEgress),
 		fmt.Sprintf("OpenServiceMesh.deployJaeger=%t", i.deployJaeger),
 		fmt.Sprintf("OpenServiceMesh.envoyLogLevel=%s", strings.ToLower(i.envoyLogLevel)),
+		fmt.Sprintf("OpenServiceMesh.enforceSingleMesh=%t", i.enforceSingleMesh),
 	}
 
 	if i.containerRegistrySecret != "" {
@@ -293,6 +303,27 @@ func (i *installCmd) validateOptions() error {
 		return err
 	}
 
+	list, err = getControllerDeployments(i.clientSet)
+	if err != nil {
+		return err
+	}
+
+	// Check if single mesh cluster is already specified
+	for _, deployment := range list.Items {
+		singleMeshEnforced := deployment.ObjectMeta.Labels["enforceSingleMesh"] == "true"
+		name := deployment.ObjectMeta.Labels["meshName"]
+		if singleMeshEnforced {
+			return errors.Errorf("Cannot install mesh [%s]. Existing mesh [%s] enforces single mesh cluster.", i.meshName, name)
+		}
+	}
+
+	// Enforce single mesh cluster if needed
+	if i.enforceSingleMesh {
+		if len(list.Items) != 0 {
+			return errors.Errorf("Meshes already exist in cluster. Cannot enforce single mesh cluster. ")
+		}
+	}
+
 	return nil
 }
 
@@ -320,5 +351,5 @@ func errMeshAlreadyExists(name string) error {
 }
 
 func errNamespaceAlreadyHasController(namespace string) error {
-	return errors.Errorf("Namespace %s has an osm controller. Please specify a new namespace using --namespace", namespace)
+	return errors.Errorf("Namespace %s has an osm controller. Please specify a new namespace using --osm-namespace", namespace)
 }

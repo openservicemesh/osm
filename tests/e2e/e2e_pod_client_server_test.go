@@ -8,19 +8,30 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = Describe("Test HTTP traffic from 1 pod client -> 1 pod server", func() {
-	Context("SimpleClientServer", func() {
+var _ = DescribeTier1("Test HTTP traffic from 1 pod client -> 1 pod server", func() {
+	Context("SimpleClientServer with a Kubernetes Service for the Source", func() {
+		testTraffic(true)
+	})
+
+	Context("SimpleClientServer without a Kubernetes Service for the Source", func() {
+		testTraffic(false)
+	})
+})
+
+func testTraffic(withSourceKubernetesService bool) {
+	{
 		sourceName := "client"
 		destName := "server"
-		var ns []string = []string{sourceName, destName}
+		var ns = []string{sourceName, destName}
 
 		It("Tests HTTP traffic for client pod -> server pod", func() {
 			// Install OSM
 			Expect(td.InstallOSM(td.GetOSMInstallOpts())).To(Succeed())
-			Expect(td.WaitForPodsRunningReady(td.osmNamespace, 90*time.Second, 1)).To(Succeed())
 
 			// Create Test NS
 			for _, n := range ns {
@@ -47,25 +58,7 @@ var _ = Describe("Test HTTP traffic from 1 pod client -> 1 pod server", func() {
 			// Expect it to be up and running in it's receiver namespace
 			Expect(td.WaitForPodsRunningReady(destName, 90*time.Second, 1)).To(Succeed())
 
-			// Get simple Pod definitions for the client
-			svcAccDef, podDef, svcDef = td.SimplePodApp(SimplePodAppDef{
-				name:      sourceName,
-				namespace: sourceName,
-				command:   []string{"/bin/bash", "-c", "--"},
-				args:      []string{"while true; do sleep 30; done;"},
-				image:     "songrgg/alpine-debug",
-				ports:     []int{80},
-			})
-
-			_, err = td.CreateServiceAccount(sourceName, &svcAccDef)
-			Expect(err).NotTo(HaveOccurred())
-			srcPod, err := td.CreatePod(sourceName, podDef)
-			Expect(err).NotTo(HaveOccurred())
-			_, err = td.CreateService(sourceName, svcDef)
-			Expect(err).NotTo(HaveOccurred())
-
-			// Expect it to be up and running in it's receiver namespace
-			Expect(td.WaitForPodsRunningReady(sourceName, 90*time.Second, 1)).To(Succeed())
+			srcPod := setupSource(sourceName, withSourceKubernetesService)
 
 			By("Creating SMI policies")
 			// Deploy allow rule client->server
@@ -111,7 +104,9 @@ var _ = Describe("Test HTTP traffic from 1 pod client -> 1 pod server", func() {
 				td.T.Logf("> (%s) HTTP Req succeeded: %d", srcToDestStr, result.StatusCode)
 				return true
 			}, 5, 90*time.Second)
-			Expect(cond).To(BeTrue())
+
+			sourceService := map[bool]string{true: "with", false: "without"}[withSourceKubernetesService]
+			Expect(cond).To(BeTrue(), "Failed testing HTTP traffic from source pod %s Kubernetes Service to a destination", sourceService)
 
 			By("Deleting SMI policies")
 			Expect(td.smiClients.AccessClient.AccessV1alpha2().TrafficTargets(sourceName).Delete(context.TODO(), trafficTarget.Name, metav1.DeleteOptions{})).To(Succeed())
@@ -131,5 +126,34 @@ var _ = Describe("Test HTTP traffic from 1 pod client -> 1 pod server", func() {
 			}, 5, 150*time.Second)
 			Expect(cond).To(BeTrue())
 		})
+	}
+}
+
+func setupSource(sourceName string, withKubernetesService bool) *v1.Pod {
+	// Get simple Pod definitions for the client
+	svcAccDef, podDef, svcDef := td.SimplePodApp(SimplePodAppDef{
+		name:      sourceName,
+		namespace: sourceName,
+		command:   []string{"/bin/bash", "-c", "--"},
+		args:      []string{"while true; do sleep 30; done;"},
+		image:     "songrgg/alpine-debug",
+		ports:     []int{80},
 	})
-})
+
+	_, err := td.CreateServiceAccount(sourceName, &svcAccDef)
+	Expect(err).NotTo(HaveOccurred())
+
+	srcPod, err := td.CreatePod(sourceName, podDef)
+	Expect(err).NotTo(HaveOccurred())
+
+	// In some cases we may want to skip the creation of a Kubernetes service for the source.
+	if withKubernetesService {
+		_, err = td.CreateService(sourceName, svcDef)
+		Expect(err).NotTo(HaveOccurred())
+	}
+
+	// Expect it to be up and running in it's receiver namespace
+	Expect(td.WaitForPodsRunningReady(sourceName, 90*time.Second, 1)).To(Succeed())
+
+	return srcPod
+}

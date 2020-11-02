@@ -13,6 +13,10 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
+const (
+	inboundMeshFilterChainName = "inbound-mesh-filter-chain"
+)
+
 func getInboundInMeshFilterChain(proxyServiceName service.MeshService, cfg configurator.Configurator) (*xds_listener.FilterChain, error) {
 	marshalledDownstreamTLSContext, err := envoy.MessageToAny(envoy.GetDownstreamTLSContext(proxyServiceName, true /* mTLS */))
 	if err != nil {
@@ -28,6 +32,7 @@ func getInboundInMeshFilterChain(proxyServiceName service.MeshService, cfg confi
 	}
 
 	filterChain := &xds_listener.FilterChain{
+		Name: inboundMeshFilterChainName,
 		Filters: []*xds_listener.Filter{
 			{
 				Name: wellknown.HTTPConnectionManager,

@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/google/uuid"
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
@@ -21,10 +22,12 @@ const (
 
 	volumesBasePath        = "/spec/volumes"
 	initContainersBasePath = "/spec/initContainers"
-	labelsPath             = "/metadata/labels"
+	labelsBasePath         = "/metadata/labels"
+	annotationsBasePath    = "/metadata/annotations"
+	containersBasePath     = "/spec/containers"
 )
 
-func (wh *webhook) createPatch(pod *corev1.Pod, namespace, proxyUUID string) ([]byte, error) {
+func (wh *webhook) createPatch(pod *corev1.Pod, namespace string, proxyUUID uuid.UUID) ([]byte, error) {
 	// Start patching the spec
 	var patches []JSONPatchOperation
 
@@ -78,7 +81,7 @@ func (wh *webhook) createPatch(pod *corev1.Pod, namespace, proxyUUID string) ([]
 	patches = append(patches, addContainer(
 		pod.Spec.Containers,
 		getEnvoySidecarContainerSpec(constants.EnvoyContainerName, wh.config.SidecarImage, envoyNodeID, envoyClusterID, wh.configurator),
-		"/spec/containers")...,
+		containersBasePath)...,
 	)
 
 	enableMetrics, err := wh.isMetricsEnabled(namespace)
@@ -93,14 +96,22 @@ func (wh *webhook) createPatch(pod *corev1.Pod, namespace, proxyUUID string) ([]
 			constants.PrometheusPortAnnotation:   strconv.Itoa(constants.EnvoyPrometheusInboundListenerPort),
 			constants.PrometheusPathAnnotation:   constants.PrometheusScrapePath,
 		}
-		patches = append(patches, updateAnnotation(
+		patches = append(patches, updateMapType(
 			pod.Annotations,
 			prometheusAnnotations,
-			"/metadata/annotations")...,
+			annotationsBasePath)...,
 		)
 	}
 
-	patches = append(patches, *updateLabels(pod, proxyUUID))
+	// This will append a label to the pod, which points to the unique Envoy ID used in the
+	// xDS certificate for that Envoy. This label will help xDS match the actual pod to the Envoy that
+	// connects to xDS (with the certificate's CN matching this label).
+	labelsToAdd := map[string]string{constants.EnvoyUniqueIDLabelName: proxyUUID.String()}
+	patches = append(patches, updateMapType(
+		pod.Labels,
+		labelsToAdd,
+		labelsBasePath)...,
+	)
 
 	return json.Marshal(patches)
 }
@@ -179,7 +190,10 @@ func getSortedKeys(m map[string]string) []string {
 	return keys
 }
 
-func updateAnnotation(target, add map[string]string, basePath string) []JSONPatchOperation {
+// updateMaptType returns a list of JSONPatchOperation objects to reflect how the 'target' map should be patched
+// given the key-value pairs specified by the 'add` map and a 'basePath' corresponding to the API object.
+// It is used to patch Annotations and Labels.
+func updateMapType(target, add map[string]string, basePath string) []JSONPatchOperation {
 	var patches []JSONPatchOperation
 
 	// If the target does not exist we need to create it
@@ -204,32 +218,6 @@ func updateAnnotation(target, add map[string]string, basePath string) []JSONPatc
 	}
 
 	return patches
-}
-
-// This function will append a label to the pod, which points to the unique Envoy ID used in the
-// xDS certificate for that Envoy. This label will help xDS match the actual pod to the Envoy that
-// connects to xDS (with the certificate's CN matching this label).
-func updateLabels(pod *corev1.Pod, envoyUID string) *JSONPatchOperation {
-	if len(pod.Labels) == 0 {
-		return &JSONPatchOperation{
-			Op:    addOperation,
-			Path:  labelsPath,
-			Value: map[string]string{constants.EnvoyUniqueIDLabelName: envoyUID},
-		}
-	}
-
-	getOp := func() string {
-		if _, exists := pod.Labels[constants.EnvoyUniqueIDLabelName]; exists {
-			return replaceOperation
-		}
-		return addOperation
-	}
-
-	return &JSONPatchOperation{
-		Op:    getOp(),
-		Path:  path.Join(labelsPath, constants.EnvoyUniqueIDLabelName),
-		Value: envoyUID,
-	}
 }
 
 // escapeJSONPointerValue escapes a JSON value as per https://tools.ietf.org/html/rfc6901.

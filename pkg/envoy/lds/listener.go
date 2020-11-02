@@ -1,10 +1,6 @@
 package lds
 
 import (
-	"net"
-	"strconv"
-	"strings"
-
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	xds_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
@@ -14,7 +10,6 @@ import (
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
-	"github.com/golang/protobuf/ptypes/wrappers"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -118,39 +113,6 @@ func buildEgressFilterChain() (*xds_listener.FilterChain, error) {
 			},
 		},
 	}, nil
-}
-
-func parseCIDR(cidr string) (string, uint32, error) {
-	var addr string
-
-	_, _, err := net.ParseCIDR(cidr)
-	if err != nil {
-		return addr, 0, err
-	}
-	chunks := strings.Split(cidr, "/")
-	addr = chunks[0]
-	prefix, err := strconv.Atoi(chunks[1])
-	if err != nil {
-		return addr, 0, err
-	}
-
-	return addr, uint32(prefix), nil
-}
-
-func getCIDRRange(cidr string) (*xds_core.CidrRange, error) {
-	addr, prefix, err := parseCIDR(cidr)
-	if err != nil {
-		return nil, err
-	}
-
-	cidrRange := &xds_core.CidrRange{
-		AddressPrefix: addr,
-		PrefixLen: &wrappers.UInt32Value{
-			Value: prefix,
-		},
-	}
-
-	return cidrRange, nil
 }
 
 // getOutboundFilterForService builds a network filter action for traffic destined to a specific service

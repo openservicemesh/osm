@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	mapset "github.com/deckarep/golang-set"
+	"github.com/google/uuid"
 	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha3"
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
@@ -43,8 +43,6 @@ type MeshCatalog struct {
 	disconnectedProxies     map[certificate.CommonName]disconnectedProxy
 	disconnectedProxiesLock sync.Mutex
 
-	announcementChannels mapset.Set
-
 	// Current assumption is that OSM is working with a single Kubernetes cluster.
 	// This is the API/REST interface to the cluster
 	kubeClient kubernetes.Interface
@@ -81,10 +79,6 @@ type MeshCataloger interface {
 	// If no LB/virtual IPs are assigned to the service, GetResolvableServiceEndpoints will return ListEndpointsForService
 	GetResolvableServiceEndpoints(service.MeshService) ([]endpoint.Endpoint, error)
 
-	// GetCertificateForService returns the SSL Certificate for the given service.
-	// This certificate will be used for service-to-service mTLS.
-	GetCertificateForService(service.MeshService) (certificate.Certificater, error)
-
 	// ExpectProxy catalogs the fact that a certificate was issued for an Envoy proxy and this is expected to connect to XDS.
 	ExpectProxy(certificate.CommonName)
 
@@ -100,9 +94,8 @@ type MeshCataloger interface {
 	// GetServicesForServiceAccount returns a list of services corresponding to a service account
 	GetServicesForServiceAccount(service.K8sServiceAccount) ([]service.MeshService, error)
 
-	// GetHostnamesForService returns the hostnames for a service
-	// TODO(ref: PR #1316): return a list of strings
-	GetHostnamesForService(service service.MeshService) (string, error)
+	// GetResolvableHostnamesForUpstreamService returns the hostnames over which an upstream service is accessible from a downstream service
+	GetResolvableHostnamesForUpstreamService(downstream, upstream service.MeshService) ([]string, error)
 
 	//GetWeightedClusterForService returns the weighted cluster for a service
 	GetWeightedClusterForService(service service.MeshService) (service.WeightedCluster, error)
@@ -138,7 +131,7 @@ type disconnectedProxy struct {
 
 // certificateCommonNameMeta is the type that stores the metadata present in the CommonName field in a proxy's certificate
 type certificateCommonNameMeta struct {
-	ProxyID        string
+	ProxyUUID      uuid.UUID
 	ServiceAccount string
 	Namespace      string
 }

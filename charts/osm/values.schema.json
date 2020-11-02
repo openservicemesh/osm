@@ -1,0 +1,261 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "type": "object",
+    "title": "The OSM Helm chart values schema",
+    "required": [
+        "OpenServiceMesh"
+    ],
+    "properties": {
+        "OpenServiceMesh": {
+            "$id": "#/properties/OpenServiceMesh",
+            "type": "object",
+            "title": "The OpenServiceMesh schema",
+            "description": "The top level required key in the values file.",
+            "required": [
+                "replicaCount",
+                "image",
+                "sidecarImage",
+                "certificateManager",
+                "serviceCertValidityDuration",
+                "caBundleSecretName",
+                "enableDebugServer",
+                "enablePermissiveTrafficPolicy",
+                "enableBackpressureExperimental",
+                "enableEgress",
+                "enablePrometheus",
+                "enableGrafana",
+                "meshName",
+                "useHTTPSIngress",
+                "envoyLogLevel",
+                "enforceSingleMesh",
+                "deployJaeger",
+                "tracing"
+            ],
+            "properties": {
+                "replicaCount": {
+                    "$id": "#/properties/OpenServiceMesh/properties/replicaCount",
+                    "type": "integer",
+                    "title": "The replicaCount schema",
+                    "description": "The number of replicas of the osm-controller Pod.",
+                    "examples": [
+                        1
+                    ]
+                },
+                "image": {
+                    "$id": "#/properties/OpenServiceMesh/properties/image",
+                    "type": "object",
+                    "title": "The image schema",
+                    "description": "The details of the images to run.",
+                    "examples": [
+                        {
+                            "registry": "openservicemesh",
+                            "pullPolicy": "IfNotPresent",
+                            "tag": "v0.4.2"
+                        }
+                    ],
+                    "required": [
+                        "registry",
+                        "pullPolicy",
+                        "tag"
+                    ],
+                    "properties": {
+                        "registry": {
+                            "$id": "#/properties/OpenServiceMesh/properties/image/properties/registry",
+                            "type": "string",
+                            "title": "The registry schema",
+                            "description": "The registry of the images to run.",
+                            "examples": [
+                                "openservicemesh"
+                            ]
+                        },
+                        "pullPolicy": {
+                            "$id": "#/properties/OpenServiceMesh/properties/image/properties/pullPolicy",
+                            "type": "string",
+                            "title": "The pullPolicy schema",
+                            "description": "The image pull policy.",
+                            "pattern": "^(Always|Never|IfNotPresent)$",
+                            "examples": [
+                                "IfNotPresent"
+                            ]
+                        },
+                        "tag": {
+                            "$id": "#/properties/OpenServiceMesh/properties/image/properties/tag",
+                            "type": "string",
+                            "title": "The tag schema",
+                            "description": "The image tag to run.",
+                            "examples": [
+                                "v0.4.2"
+                            ]
+                        }
+                    },
+                    "additionalProperties": true
+                },
+                "sidecarImage": {
+                    "$id": "#/properties/OpenServiceMesh/properties/sidecarImage",
+                    "type": "string",
+                    "title": "The sidecarImage schema",
+                    "description": "The proxy side car image to run.",
+                    "examples": [
+                        "envoyproxy/envoy-alpine:v1.15.0"
+                    ]
+                },
+                "certificateManager": {
+                    "$id": "#/properties/OpenServiceMesh/properties/certificateManager",
+                    "type": "string",
+                    "title": "The certificateManager schema",
+                    "description": "The certificate manager osm-controller should use.",
+                    "pattern": "^(tresor|vault|cert-manager)$",
+                    "examples": [
+                        "tresor"
+                    ]
+                },
+                "serviceCertValidityDuration": {
+                    "$id": "#/properties/OpenServiceMesh/properties/serviceCertValidityDuration",
+                    "type": "string",
+                    "title": "The serviceCertValidityDuration schema",
+                    "description": "The service certificate validity duration.",
+                    "examples": [
+                        "24h"
+                    ]
+                },
+                "caBundleSecretName": {
+                    "$id": "#/properties/OpenServiceMesh/properties/caBundleSecretName",
+                    "type": "string",
+                    "title": "The caBundleSecretName schema",
+                    "description": "An explanation about the purpose of this instance.",
+                    "examples": [
+                        "osm-ca-bundle"
+                    ]
+                },
+                "enableDebugServer": {
+                    "$id": "#/properties/OpenServiceMesh/properties/enableDebugServer",
+                    "type": "boolean",
+                    "title": "The enableDebugServer schema",
+                    "description": "Indicates whether the Debug Server should be enabled or not.",
+                    "examples": [
+                        false
+                    ]
+                },
+                "enablePermissiveTrafficPolicy": {
+                    "$id": "#/properties/OpenServiceMesh/properties/enablePermissiveTrafficPolicy",
+                    "type": "boolean",
+                    "title": "The enablePermissiveTrafficPolicy schema",
+                    "description": "Indicates whether permissive traffic policy should be enabled or not.",
+                    "examples": [
+                        false
+                    ]
+                },
+                "enableBackpressureExperimental": {
+                    "$id": "#/properties/OpenServiceMesh/properties/enableBackpressureExperimental",
+                    "type": "boolean",
+                    "title": "The enableBackpressureExperimental schema",
+                    "description": "Indicates whether the experimental backpressure policy should be enabled or not.",
+                    "examples": [
+                        false
+                    ]
+                },
+                "enableEgress": {
+                    "$id": "#/properties/OpenServiceMesh/properties/enableEgress",
+                    "type": "boolean",
+                    "title": "The enableEgress schema",
+                    "description": "Indicates whether egress should be enabled or not.",
+                    "examples": [
+                        false
+                    ]
+                },
+                "enablePrometheus": {
+                    "$id": "#/properties/OpenServiceMesh/properties/enablePrometheus",
+                    "type": "boolean",
+                    "title": "The enablePrometheus schema",
+                    "description": "Indicates whether Prometheus should be installed and configured as part of the osm control plane.",
+                    "examples": [
+                        true
+                    ]
+                },
+                "enableGrafana": {
+                    "$id": "#/properties/OpenServiceMesh/properties/enableGrafana",
+                    "type": "boolean",
+                    "title": "The enableGrafana schema",
+                    "description": "Indicates whether Grafana should be installed and configured as part of the osm control plane.",
+                    "examples": [
+                        false
+                    ]
+                },
+                "meshName": {
+                    "$id": "#/properties/OpenServiceMesh/properties/meshName",
+                    "type": "string",
+                    "title": "The meshName schema",
+                    "description": "The name associated with the control plane being installed.",
+                    "examples": [
+                        "osm"
+                    ]
+                },
+                "useHTTPSIngress": {
+                    "$id": "#/properties/OpenServiceMesh/properties/useHTTPSIngress",
+                    "type": "boolean",
+                    "title": "The useHTTPSIngress schema",
+                    "description": "Indicates whether HTTPS Ingress should be enabled or not.",
+                    "examples": [
+                        false
+                    ]
+                },
+                "envoyLogLevel": {
+                    "$id": "#/properties/OpenServiceMesh/properties/envoyLogLevel",
+                    "type": "string",
+                    "title": "The envoyLogLevel schema",
+                    "description": "Envoy log level.",
+                    "pattern": "^(trace|debug|info|warning|warn|error|critical|off)$",
+                    "examples": [
+                        "error"
+                    ]
+                },
+                "enforceSingleMesh": {
+                    "$id": "#/properties/OpenServiceMesh/properties/enforceSingleMesh",
+                    "type": "boolean",
+                    "title": "The enforceSingleMesh schema",
+                    "description": "Enforce only running a single control plane within a cluster.",
+                    "examples": [
+                        false
+                    ]
+                },
+                "deployJaeger": {
+                    "$id": "#/properties/OpenServiceMesh/properties/deployJaeger",
+                    "type": "boolean",
+                    "title": "The deployJaeger schema",
+                    "description": "Indicates whether Jaeger should be installed and configured as part of the control plane.",
+                    "examples": [
+                        true
+                    ]
+                },
+                "tracing": {
+                    "$id": "#/properties/OpenServiceMesh/properties/tracing",
+                    "type": "object",
+                    "title": "The tracing schema",
+                    "description": "An explanation about the purpose of this instance.",
+                    "examples": [
+                        {
+                            "enable": true
+                        }
+                    ],
+                    "required": [
+                        "enable"
+                    ],
+                    "properties": {
+                        "enable": {
+                            "$id": "#/properties/OpenServiceMesh/properties/tracing/properties/enable",
+                            "type": "boolean",
+                            "title": "The enable schema",
+                            "description": "Indicates whether tracing is enabled or not.",
+                            "examples": [
+                                true
+                            ]
+                        }
+                    },
+                    "additionalProperties": true
+                }
+            },
+            "additionalProperties": true
+        }
+    },
+    "additionalProperties": true
+}

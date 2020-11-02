@@ -5,6 +5,7 @@ metadata:
   labels:
     app: osm-controller
     meshName: {{ .Values.OpenServiceMesh.meshName }}
+    {{ if .Values.OpenServiceMesh.enforceSingleMesh }}enforceSingleMesh: "true"{{ end }}
 spec:
   replicas: {{ .Values.OpenServiceMesh.replicaCount }}
   selector:
@@ -48,7 +49,7 @@ spec:
           resources:
             limits:
               cpu: 1.5
-              memory: 128M
+              memory: 256M
             requests:
               cpu: 0.5
               memory: 32M
@@ -72,6 +73,39 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
+      {{- if .Values.OpenServiceMesh.enableFluentbit }}
+        - name: {{ .Values.OpenServiceMesh.fluentBitImage.name }}
+          image: {{ .Values.OpenServiceMesh.fluentBitImage.registry }}/fluent-bit:{{ .Values.OpenServiceMesh.fluentBitImage.tag }}
+          imagePullPolicy: {{ .Values.OpenServiceMesh.fluentBitImage.pullPolicy }}
+          volumeMounts:
+          - name: config
+            mountPath: /fluent-bit/etc
+            readOnly: true
+          - name: var-log-containers
+            mountPath: /var/log/containers
+            readOnly: true
+          - name: var-log-pods
+            mountPath: /var/log/pods
+            readOnly: true
+          - name: var-lib-containers
+            mountPath: /var/lib/docker/containers
+            readOnly: true
+       {{- end }}
+    {{- if .Values.OpenServiceMesh.enableFluentbit }}
+      volumes:
+      - name: config
+        configMap:
+          name: fluentbit-configmap
+      - name: var-log-containers
+        hostPath:
+          path: /var/log/containers
+      - name: var-log-pods
+        hostPath:
+          path: /var/log/pods
+      - name: var-lib-containers
+        hostPath:
+          path: /var/lib/docker/containers
+     {{- end }}
     {{- if .Values.OpenServiceMesh.imagePullSecrets }}
       imagePullSecrets:
 {{ toYaml .Values.OpenServiceMesh.imagePullSecrets | indent 8 }}

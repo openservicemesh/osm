@@ -7,7 +7,7 @@ import (
 )
 
 var _ = Describe("Test volume functions", func() {
-	Context("Test updateLabels", func() {
+	Context("Test getInitContainerSpec", func() {
 		It("creates volume spec", func() {
 			container := &InitContainer{
 				Name:  "-container-name-",

@@ -15,6 +15,7 @@ import (
 
 	"github.com/openservicemesh/osm/demo/cmd/common"
 	"github.com/openservicemesh/osm/pkg/logger"
+	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 const (
@@ -30,7 +31,7 @@ var (
 	log               = logger.NewPretty(participantName)
 	port              = flag.Int("port", 80, "port on which this app is listening for incoming HTTP")
 	path              = flag.String("path", ".", "path to the HTML template")
-	numConnectionsStr = common.GetEnv("CI_CLIENT_CONCURRENT_CONNECTIONS", "1")
+	numConnectionsStr = utils.GetEnv("CI_CLIENT_CONCURRENT_CONNECTIONS", "1")
 )
 
 type handler struct {
@@ -40,7 +41,7 @@ type handler struct {
 }
 
 func getIdentity() string {
-	return common.GetEnv("IDENTITY", "Bookbuyer")
+	return utils.GetEnv("IDENTITY", "Bookbuyer")
 }
 
 func renderTemplate(w http.ResponseWriter) {

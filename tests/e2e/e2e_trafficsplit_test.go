@@ -13,7 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = Describe("Test HTTP from N Clients deployments to 1 Server deployment backed with Traffic split test", func() {
+var _ = DescribeTier1("Test HTTP from N Clients deployments to 1 Server deployment backed with Traffic split test", func() {
 	Context("ClientServerTrafficSplit", func() {
 		const (
 			// to name the header we will use to identify the server that replies
@@ -50,14 +50,8 @@ var _ = Describe("Test HTTP from N Clients deployments to 1 Server deployment ba
 		var wg sync.WaitGroup
 
 		It("Tests HTTP traffic from Clients to the traffic split Cluster IP", func() {
-			// For Cleanup only
-			for _, ns := range allNamespaces {
-				td.cleanupNamespaces[ns] = true
-			}
-
 			// Install OSM
 			Expect(td.InstallOSM(td.GetOSMInstallOpts())).To(Succeed())
-			Expect(td.WaitForPodsRunningReady(td.osmNamespace, 90*time.Second, 1)).To(Succeed())
 
 			// Create NSs
 			Expect(td.CreateMultipleNs(allNamespaces...)).To(Succeed())
@@ -188,6 +182,8 @@ var _ = Describe("Test HTTP from N Clients deployments to 1 Server deployment ba
 			_, err = td.CreateTrafficSplit(serverNamespace, tSplit)
 			Expect(err).To(BeNil())
 
+			By("Issuing http requests from clients to the traffic split FQDN")
+
 			// Test traffic
 			// Create Multiple HTTP request structure
 			requests := HTTPMultipleRequest{
@@ -243,6 +239,52 @@ var _ = Describe("Test HTTP from N Clients deployments to 1 Server deployment ba
 				// - We have seen all servers from the traffic split reply at least once
 				return curlSuccess && (len(serversSeen) == numberOfServerServices*serverReplicaSet)
 			}, 5, 150*time.Second)
+
+			Expect(success).To(BeTrue())
+
+			By("Issuing http requests from clients to the allowed individual service backends")
+
+			// Test now against the individual services, observe they should still be reachable
+			requests = HTTPMultipleRequest{
+				Sources: []HTTPRequestDef{},
+			}
+			for _, clientNs := range clientServices {
+				pods, err := td.client.CoreV1().Pods(clientNs).List(context.Background(), metav1.ListOptions{})
+				Expect(err).To(BeNil())
+				// For each client pod
+				for _, pod := range pods.Items {
+					// reach each service
+					for _, svcNs := range serverServices {
+						requests.Sources = append(requests.Sources, HTTPRequestDef{
+							SourceNs:        pod.Namespace,
+							SourcePod:       pod.Name,
+							SourceContainer: pod.Namespace, // We generally code it like so for test purposes
+
+							// direct traffic target against the specific server service in the server namespace
+							Destination: fmt.Sprintf("%s.%s", svcNs, serverNamespace),
+						})
+					}
+				}
+			}
+
+			results = HTTPMultipleResults{}
+			success = td.WaitForRepeatedSuccess(func() bool {
+				// Get results
+				results = td.MultipleHTTPRequest(&requests)
+
+				// Print results
+				td.PrettyPrintHTTPResults(&results)
+
+				// Verify REST status code results
+				for _, ns := range results {
+					for _, podResult := range ns {
+						if podResult.Err != nil || podResult.StatusCode != 200 {
+							return false
+						}
+					}
+				}
+				return true
+			}, 2, 150*time.Second)
 
 			Expect(success).To(BeTrue())
 		})
