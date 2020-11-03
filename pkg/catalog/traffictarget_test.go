@@ -374,3 +374,42 @@ func TestListAllowedOutboundServiceAccounts(t *testing.T) {
 		})
 	}
 }
+
+func TestTrafficTargetIdentityToSvcAccount(t *testing.T) {
+	assert := assert.New(t)
+
+	testCases := []struct {
+		identity               smiAccess.IdentityBindingSubject
+		expectedServiceAccount service.K8sServiceAccount
+	}{
+		{
+			smiAccess.IdentityBindingSubject{
+				Kind:      "ServiceAccount",
+				Name:      "sa-2",
+				Namespace: "ns-2",
+			},
+			service.K8sServiceAccount{
+				Name:      "sa-2",
+				Namespace: "ns-2",
+			},
+		},
+		{
+			smiAccess.IdentityBindingSubject{
+				Kind:      "ServiceAccount",
+				Name:      "sa-1",
+				Namespace: "ns-1",
+			},
+			service.K8sServiceAccount{
+				Name:      "sa-1",
+				Namespace: "ns-1",
+			},
+		},
+	}
+
+	for i, tc := range testCases {
+		t.Run(fmt.Sprintf("Testing test case %d", i), func(t *testing.T) {
+			svcAccount := trafficTargetIdentityToSvcAccount(tc.identity)
+			assert.Equal(svcAccount, tc.expectedServiceAccount)
+		})
+	}
+}
