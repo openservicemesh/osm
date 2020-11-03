@@ -31,7 +31,6 @@ type MutatingWebhookConfigrationReconciler struct {
 
 // Reconcile is the reconciliation method for OSM MutatingWebhookConfiguration.
 func (r *MutatingWebhookConfigrationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-
 	ctx := context.Background()
 	instance := &v1beta1.MutatingWebhookConfiguration{}
 
