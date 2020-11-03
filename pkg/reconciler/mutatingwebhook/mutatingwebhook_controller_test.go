@@ -56,7 +56,7 @@ var _ = Describe("MutatingWehookConfigurationReconciler", func() {
 			certManager := tresor.NewFakeCertManager(&cache, cfg)
 			cn := certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.OSMControllerName, testWebhookServiceNamespace))
 			validity := 1 * time.Hour
-			cert, err := certManager.IssueCertificate(cn, validity)
+			cert, _ := certManager.IssueCertificate(cn, validity)
 			Expect(cert.GetCommonName()).To(Equal(cn))
 			Expect((cert.GetCertificateChain())).NotTo(BeNil())
 
