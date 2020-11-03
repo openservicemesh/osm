@@ -107,7 +107,7 @@ var _ = Describe("Testing isAnnotatedForInjection", func() {
 	Context("when the inject annotation is one of enabled/yes/true", func() {
 		It("should return true to enable sidecar injection", func() {
 			annotation := map[string]string{constants.SidecarInjectionAnnotation: "enabled"}
-			exists, enabled, err := isAnnotatedForInjection(annotation)
+			exists, enabled, err := isAnnotatedForInjection(annotation, "-kind-", "-name-")
 			Expect(exists).To(BeTrue())
 			Expect(enabled).To(BeTrue())
 			Expect(err).To(BeNil())
@@ -115,7 +115,7 @@ var _ = Describe("Testing isAnnotatedForInjection", func() {
 
 		It("should return true to enable sidecar injection", func() {
 			annotation := map[string]string{constants.SidecarInjectionAnnotation: "yes"}
-			exists, enabled, err := isAnnotatedForInjection(annotation)
+			exists, enabled, err := isAnnotatedForInjection(annotation, "-kind-", "-name-")
 			Expect(exists).To(BeTrue())
 			Expect(enabled).To(BeTrue())
 			Expect(err).To(BeNil())
@@ -123,7 +123,7 @@ var _ = Describe("Testing isAnnotatedForInjection", func() {
 
 		It("should return true to enable sidecar injection", func() {
 			annotation := map[string]string{constants.SidecarInjectionAnnotation: "true"}
-			exists, enabled, err := isAnnotatedForInjection(annotation)
+			exists, enabled, err := isAnnotatedForInjection(annotation, "-kind-", "-name-")
 			Expect(exists).To(BeTrue())
 			Expect(enabled).To(BeTrue())
 			Expect(err).To(BeNil())
@@ -133,7 +133,7 @@ var _ = Describe("Testing isAnnotatedForInjection", func() {
 	Context("when the inject annotation is one of disabled/no/false", func() {
 		It("should return false to disable sidecar injection", func() {
 			annotation := map[string]string{constants.SidecarInjectionAnnotation: "disabled"}
-			exists, enabled, err := isAnnotatedForInjection(annotation)
+			exists, enabled, err := isAnnotatedForInjection(annotation, "-kind-", "-name-")
 			Expect(exists).To(BeTrue())
 			Expect(enabled).To(BeFalse())
 			Expect(err).To(BeNil())
@@ -141,7 +141,7 @@ var _ = Describe("Testing isAnnotatedForInjection", func() {
 
 		It("should return false to disable sidecar injection", func() {
 			annotation := map[string]string{constants.SidecarInjectionAnnotation: "no"}
-			exists, enabled, err := isAnnotatedForInjection(annotation)
+			exists, enabled, err := isAnnotatedForInjection(annotation, "-kind-", "-name-")
 			Expect(exists).To(BeTrue())
 			Expect(enabled).To(BeFalse())
 			Expect(err).To(BeNil())
@@ -149,7 +149,7 @@ var _ = Describe("Testing isAnnotatedForInjection", func() {
 
 		It("should return false to disable sidecar injection", func() {
 			annotation := map[string]string{constants.SidecarInjectionAnnotation: "false"}
-			exists, enabled, err := isAnnotatedForInjection(annotation)
+			exists, enabled, err := isAnnotatedForInjection(annotation, "-kind-", "-name-")
 			Expect(exists).To(BeTrue())
 			Expect(enabled).To(BeFalse())
 			Expect(err).To(BeNil())
@@ -159,7 +159,7 @@ var _ = Describe("Testing isAnnotatedForInjection", func() {
 	Context("when the inject annotation does not exist", func() {
 		It("should return false to indicate the annotation does not exist", func() {
 			annotation := map[string]string{}
-			exists, enabled, err := isAnnotatedForInjection(annotation)
+			exists, enabled, err := isAnnotatedForInjection(annotation, "-kind-", "-name-")
 			Expect(exists).To(BeFalse())
 			Expect(enabled).To(BeFalse())
 			Expect(err).To(BeNil())
@@ -169,7 +169,7 @@ var _ = Describe("Testing isAnnotatedForInjection", func() {
 	Context("when an invalid inject annotation is specified", func() {
 		It("should return an error", func() {
 			annotation := map[string]string{constants.SidecarInjectionAnnotation: "invalid-value"}
-			_, _, err := isAnnotatedForInjection(annotation)
+			_, _, err := isAnnotatedForInjection(annotation, "-kind-", "-name-")
 			Expect(err).To(HaveOccurred())
 		})
 	})
