@@ -292,7 +292,7 @@ func (wh *webhook) mustInject(pod *corev1.Pod, namespace string) (bool, error) {
 	}
 
 	// Check if the pod is annotated for injection
-	podInjectAnnotationExists, podInject, err := isAnnotatedForInjection(pod.Annotations)
+	podInjectAnnotationExists, podInject, err := isAnnotatedForInjection(pod.Annotations, pod.Kind, fmt.Sprintf("%s/%s", pod.Namespace, pod.Name))
 	if err != nil {
 		log.Error().Err(err).Msg("Error determining if the pod is enabled for sidecar injection")
 		return false, err
@@ -304,7 +304,7 @@ func (wh *webhook) mustInject(pod *corev1.Pod, namespace string) (bool, error) {
 		log.Error().Err(errNamespaceNotFound).Msgf("Error retrieving namespace %s", namespace)
 		return false, err
 	}
-	nsInjectAnnotationExists, nsInject, err := isAnnotatedForInjection(ns.Annotations)
+	nsInjectAnnotationExists, nsInject, err := isAnnotatedForInjection(ns.Annotations, ns.Kind, ns.Name)
 	if err != nil {
 		log.Error().Err(err).Msg("Error determining if namespace %s is enabled for sidecar injection")
 		return false, err
@@ -325,9 +325,9 @@ func (wh *webhook) mustInject(pod *corev1.Pod, namespace string) (bool, error) {
 	return false, nil
 }
 
-func isAnnotatedForInjection(annotations map[string]string) (exists bool, enabled bool, err error) {
+func isAnnotatedForInjection(annotations map[string]string, objectKind string, objectName string) (exists bool, enabled bool, err error) {
 	inject := strings.ToLower(annotations[constants.SidecarInjectionAnnotation])
-	log.Trace().Msgf("Sidecar injection annotation: '%s:%s'", constants.SidecarInjectionAnnotation, inject)
+	log.Trace().Msgf("%s %s has sidecar injection annotation: '%s:%s'", objectKind, objectName, constants.SidecarInjectionAnnotation, inject)
 	if inject != "" {
 		exists = true
 		switch inject {
