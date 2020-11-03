@@ -38,7 +38,7 @@ var _ = Describe("Test OSM ConfigMap parsing", func() {
 
 		It("Tag matches const key for all fields of OSM ConfigMap struct", func() {
 			fieldNameTag := map[string]string{
-				"PermissiveTrafficPolicyMode": permissiveTrafficPolicyModeKey,
+				"PermissiveTrafficPolicyMode": PermissiveTrafficPolicyModeKey,
 				"Egress":                      egressKey,
 				"EnableDebugServer":           enableDebugServer,
 				"PrometheusScraping":          prometheusScrapingKey,
@@ -63,31 +63,44 @@ var _ = Describe("Test OSM ConfigMap parsing", func() {
 				f, _ := t.FieldByName("PermissiveTrafficPolicyMode")
 				actualtag := f.Tag.Get("yaml")
 				Expect(actualtag).To(
-					Equal(permissiveTrafficPolicyModeKey),
+					Equal(PermissiveTrafficPolicyModeKey),
 					fmt.Sprintf("Field %s expected to have tag %s; fuond %s instead", fieldName, expectedTag, actualtag))
 			}
 		})
 
-		It("Test getBoolValueForKey()", func() {
+		It("Test GetBoolValueForKey()", func() {
 			cm := &v1.ConfigMap{Data: map[string]string{tracingEnableKey: "true"}}
-			Expect(getBoolValueForKey(cm, tracingEnableKey)).To(BeTrue())
-			Expect(getBoolValueForKey(cm, egressKey)).To(BeFalse())
+			val, err := GetBoolValueForKey(cm, tracingEnableKey)
+			Expect(val).To(BeTrue())
+			Expect(err).To(BeNil())
+
+			val, err = GetBoolValueForKey(cm, egressKey)
+			Expect(val).To(BeFalse())
+			Expect(err).To(HaveOccurred())
 		})
 
-		It("Test getIntValueForKey()", func() {
+		It("Test GetIntValueForKey()", func() {
 			cm := &v1.ConfigMap{Data: map[string]string{tracingPortKey: "12345"}}
-			Expect(getIntValueForKey(cm, tracingPortKey)).To(Equal(12345))
+			val, err := GetIntValueForKey(cm, tracingPortKey)
+			Expect(val).To(Equal(12345))
+			Expect(err).To(BeNil())
 
 			cm0 := &v1.ConfigMap{Data: map[string]string{}}
-			Expect(getIntValueForKey(cm0, egressKey)).To(Equal(0))
+			val, err = GetIntValueForKey(cm0, egressKey)
+			Expect(val).To(Equal(0))
+			Expect(err).To(HaveOccurred())
 		})
 
-		It("Test getStringValueForKey()", func() {
+		It("Test GetStringValueForKey()", func() {
 			cm := &v1.ConfigMap{Data: map[string]string{tracingEndpointKey: "foo"}}
-			Expect(getStringValueForKey(cm, tracingEndpointKey)).To(Equal("foo"))
+			val, err := GetStringValueForKey(cm, tracingEndpointKey)
+			Expect(val).To(Equal("foo"))
+			Expect(err).To(BeNil())
 
 			cm0 := &v1.ConfigMap{Data: map[string]string{}}
-			Expect(getStringValueForKey(cm0, tracingEndpointKey)).To(Equal(""))
+			strval, err := GetStringValueForKey(cm0, tracingEndpointKey)
+			Expect(strval).To(Equal(""))
+			Expect(err).To(HaveOccurred())
 		})
 	})
 })

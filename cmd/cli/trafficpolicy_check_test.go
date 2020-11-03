@@ -13,6 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 
+	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
@@ -63,7 +64,7 @@ func TestIsPermissiveModeEnabled(t *testing.T) {
 					Name:      osmConfigMapName,
 				},
 				Data: map[string]string{
-					permissiveTrafficPolicyModeKey: "true",
+					configurator.PermissiveTrafficPolicyModeKey: "true",
 				},
 			},
 			true,
@@ -76,7 +77,7 @@ func TestIsPermissiveModeEnabled(t *testing.T) {
 					Name:      osmConfigMapName,
 				},
 				Data: map[string]string{
-					permissiveTrafficPolicyModeKey: "false",
+					configurator.PermissiveTrafficPolicyModeKey: "false",
 				},
 			},
 			false,
@@ -89,7 +90,7 @@ func TestIsPermissiveModeEnabled(t *testing.T) {
 					Name:      osmConfigMapName,
 				},
 				Data: map[string]string{
-					permissiveTrafficPolicyModeKey: "invalid-value",
+					configurator.PermissiveTrafficPolicyModeKey: "invalid-value",
 				},
 			},
 			false,
@@ -193,7 +194,7 @@ func TestCheckTrafficPolicy(t *testing.T) {
 					Name:      osmConfigMapName,
 				},
 				Data: map[string]string{
-					permissiveTrafficPolicyModeKey: "false",
+					configurator.PermissiveTrafficPolicyModeKey: "false",
 				},
 			},
 			false,
@@ -249,7 +250,7 @@ func TestCheckTrafficPolicy(t *testing.T) {
 					Name:      osmConfigMapName,
 				},
 				Data: map[string]string{
-					permissiveTrafficPolicyModeKey: "false",
+					configurator.PermissiveTrafficPolicyModeKey: "false",
 				},
 			},
 			false,
@@ -306,7 +307,7 @@ func TestCheckTrafficPolicy(t *testing.T) {
 					Name:      osmConfigMapName,
 				},
 				Data: map[string]string{
-					permissiveTrafficPolicyModeKey: "true",
+					configurator.PermissiveTrafficPolicyModeKey: "true",
 				},
 			},
 			false,

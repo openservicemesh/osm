@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -14,6 +13,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+
+	"github.com/openservicemesh/osm/pkg/configurator"
 )
 
 const trafficPolicyCheckDescription = `
@@ -32,10 +33,9 @@ osm policy check-pods bookbuyer-client bookstore-server
 `
 
 const (
-	namespaceSeparator             = "/"
-	osmConfigMapName               = "osm-config"
-	permissiveTrafficPolicyModeKey = "permissive_traffic_policy_mode"
-	serviceAccountKind             = "ServiceAccount"
+	namespaceSeparator = "/"
+	osmConfigMapName   = "osm-config"
+	serviceAccountKind = "ServiceAccount"
 )
 
 type trafficPolicyCheckCmd struct {
@@ -188,15 +188,12 @@ func (cmd *trafficPolicyCheckCmd) isPermissiveModeEnabled() (bool, error) {
 	if err != nil {
 		return false, errors.Errorf("Error checking if permissive mode is enabled: %s", err)
 	}
-	strval, ok := configMap.Data[permissiveTrafficPolicyModeKey]
-	if !ok {
-		return false, errors.Errorf("Missing key %q in %s/%s ConfigMap", permissiveTrafficPolicyModeKey, configMap.Namespace, configMap.Name)
-	}
-	configMapBoolValue, err := strconv.ParseBool(strval)
+
+	configVal, err := configurator.GetBoolValueForKey(configMap, configurator.PermissiveTrafficPolicyModeKey)
 	if err != nil {
-		return false, errors.Errorf("Invalid value %q for key %q in %s/%s ConfigMap, must be boolean", strval, permissiveTrafficPolicyModeKey, configMap.Namespace, configMap.Name)
+		return false, errors.Errorf("Invalid value for key %q in %s/%s ConfigMap: %s", configurator.PermissiveTrafficPolicyModeKey, configMap.Namespace, configMap.Name, err)
 	}
-	return configMapBoolValue, nil
+	return configVal, nil
 }
 
 func unmarshalNamespacedPod(namespacedPod string) (namespace string, podName string, err error) {
