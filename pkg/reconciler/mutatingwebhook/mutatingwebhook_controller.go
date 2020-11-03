@@ -72,7 +72,6 @@ func (r *MutatingWebhookConfigrationReconciler) Reconcile(req ctrl.Request) (ctr
 	log.Trace().Msgf("TEST Successfully updated mutating webhook configuration CA bundle for : %s ", req.Name)
 
 	return ctrl.Result{}, nil
-
 }
 
 // SetupWithManager links the reconciler to the manager.
