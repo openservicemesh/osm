@@ -12,13 +12,20 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
+	"k8s.io/api/admissionregistration/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	clientset "k8s.io/client-go/kubernetes"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	ctrl "sigs.k8s.io/controller-runtime"
+
+	// +kubebuilder:scaffold:imports
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -37,6 +44,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
+	reconciler "github.com/openservicemesh/osm/pkg/reconciler/mutatingwebhook"
 	"github.com/openservicemesh/osm/pkg/signals"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/version"
@@ -48,18 +56,22 @@ const (
 )
 
 var (
-	verbosity          string
-	meshName           string // An ID that uniquely identifies an OSM instance
-	kubeConfigFile     string
-	osmNamespace       string
-	webhookConfigName  string
-	caBundleSecretName string
-	osmConfigMapName   string
+	verbosity            string
+	meshName             string // An ID that uniquely identifies an OSM instance
+	kubeConfigFile       string
+	osmNamespace         string
+	webhookConfigName    string
+	caBundleSecretName   string
+	osmConfigMapName     string
+	metricsAddr          string
+	enableLeaderElection bool
 
 	injectorConfig injector.Config
 
 	// feature flag options
 	optionalFeatures featureflags.OptionalFeatures
+
+	scheme = runtime.NewScheme()
 )
 
 var (
@@ -105,6 +117,15 @@ func init() {
 
 	// feature flags
 	flags.BoolVar(&optionalFeatures.Backpressure, "enable-backpressure-experimental", false, "Enable experimental backpressure feature")
+
+	// k8s controller manager options
+	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
+	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
+		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
+
+	_ = clientgoscheme.AddToScheme(scheme)
+	_ = v1beta1.AddToScheme(scheme)
+	// +kubebuilder:scaffold:scheme
 }
 
 func main() {
@@ -239,6 +260,46 @@ func main() {
 	}
 
 	go c.configureDebugServer(cfg)
+	//Setting up k8s controller manager to reconcile OSM resources
+	log.Info().Msg("Setting up controller to reconcile OSM resources")
+	/*ctrl.SetLogger(zap.New(func(o *zap.Options) {
+		o.Development = false
+	}))*/
+
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+		Scheme:             scheme,
+		MetricsBindAddress: metricsAddr,
+		LeaderElection:     enableLeaderElection,
+		Port:               9443,
+		Namespace:          osmNamespace,
+	})
+	if err != nil {
+		log.Error().Err(err).Msg("Error starting up controller manager")
+		os.Exit(1)
+	}
+
+	log.Info().Msg("Successfully setup controller for reconcile")
+	log.Info().Msg("Setting up mutatingWebhookConfiguration reconciler")
+
+	// Adding a reconciler for OSM's mutatingwehbookconfiguration
+	if err = (&reconciler.MutatingWebhookConfigrationReconciler{
+		Client:       mgr.GetClient(),
+		Scheme:       mgr.GetScheme(),
+		OsmWebhook:   fmt.Sprintf("osm-webhook-%s", meshName),
+		OsmNamespace: osmNamespace,
+		CertManager:  certManager,
+	}).SetupWithManager(mgr); err != nil {
+		log.Error().Err(err).Msg("Error creating reconcile controller for MutatingWebhookConfiguration")
+		os.Exit(1)
+	}
+	// +kubebuilder:scaffold:builder
+
+	log.Info().Msg("starting manager")
+	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+		log.Error().Err(err).Msg("problem running manager")
+		os.Exit(1)
+	}
+	log.Info().Msg("Successfully running controller manager")
 
 	// Wait for exit handler signal
 	<-stop
