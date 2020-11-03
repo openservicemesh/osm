@@ -13,15 +13,20 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = DescribeTier1("Test HTTP traffic from 1 pod client -> 1 pod server", func() {
-	Context("SimpleClientServer with a Kubernetes Service for the Source", func() {
-		testTraffic(true)
-	})
+var _ = OSMDescribe("Test HTTP traffic from 1 pod client -> 1 pod server",
+	OSMDescribeInfo{
+		tier:   1,
+		bucket: 1,
+	},
+	func() {
+		Context("SimpleClientServer with a Kubernetes Service for the Source", func() {
+			testTraffic(true)
+		})
 
-	Context("SimpleClientServer without a Kubernetes Service for the Source", func() {
-		testTraffic(false)
+		Context("SimpleClientServer without a Kubernetes Service for the Source", func() {
+			testTraffic(false)
+		})
 	})
-})
 
 func testTraffic(withSourceKubernetesService bool) {
 	{

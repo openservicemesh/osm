@@ -21,9 +21,11 @@ Tests are organized by top-level `Describe` blocks into tiers based on priority.
 - Tier 1: run against every PR and should pass before being merged
 - Tier 2: run against every merge into the main branch
 
-**Note**: These tiers and which tests fall into each are likely to change as the test suite grows.
+Independent of tiers, tests are also organized into buckets. Each bucket runs in parallel, and individual tests in the bucket run sequentially.
 
-To help organize the tests, custom `Describe` blocks named after the tiers like `DescribeTier1` are provided to help name tests accordingly and should be used in place of Ginkgo's original `Describe` to ensure the right tests are run at the right times in CI.
+**Note**: These tiers and buckets and which tests fall into each are likely to change as the test suite grows.
+
+To help organize the tests, a custom `Describe` block named `OSMDescribe` is provided which accepts an additional struct parameter which contains fields for test metadata like tier and bucket. `OSMDescribe` will construct a well-formatted name including the test metadata which can be used in CI to run tests accordingly. Ginkgo's original `Describe` should not be used directly at the top-level and `OSMDescribe` should be used instead.
 
 ## Running the tests
 Running the tests will require a running Kubernetes cluster. If you do not have a Kubernetes cluster to run the tests onto, you can choose to run them using `Kind`, which will make the test framework initialize a cluster on a local accessible docker client.
