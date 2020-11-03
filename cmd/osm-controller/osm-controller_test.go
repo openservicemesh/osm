@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"strconv"
 	"testing"
-	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
@@ -49,18 +48,7 @@ func TestConfigureDebugServer(t *testing.T) {
 	mockDebugConfig.EXPECT().GetHandlers().Return(map[string]http.Handler{
 		validRoutePath: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}),
 	}).AnyTimes()
-	kubeClient := testclient.NewSimpleClientset()
-	osmNamespace := "-test-osm-namespace-"
-	osmConfigMapName := "-test-osm-config-map-"
-	defaultConfigMap := map[string]string{}
-	configMap := v1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: osmNamespace,
-			Name:      osmConfigMapName,
-		},
-		Data: defaultConfigMap,
-	}
-	_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Create(context.TODO(), &configMap, metav1.CreateOptions{})
+
 	stop := make(chan struct{})
 
 	fakeDebugServer := FakeDebugServer{0, nil}
@@ -125,25 +113,34 @@ func TestConfigureDebugServer(t *testing.T) {
 
 	for _, tests := range testCases {
 		t.Run(fmt.Sprintf("Test: %s", tests.name), func(t *testing.T) {
-			//set initial enable_debug_server value in configurator
-			defaultConfigMap["enable_debug_server"] = strconv.FormatBool(tests.initialDebugServerEnabled)
-			configMap.Data = defaultConfigMap
-			_, err = kubeClient.CoreV1().ConfigMaps(osmNamespace).Update(context.TODO(), &configMap, metav1.UpdateOptions{})
-			cfg := configurator.NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
+			fmt.Println(tests.name)
 
-			//set enable_debug_server configMap value
-			defaultConfigMap["enable_debug_server"] = strconv.FormatBool(tests.changeDebugServerEnabledTo)
-			configMap.Data = defaultConfigMap
+			//set initial enable_debug_server value in configurator
+			kubeClient := testclient.NewSimpleClientset()
+			osmNamespace := "-test-osm-namespace-"
+			osmConfigMapName := "-test-osm-config-map-"
+			defaultConfigMap := map[string]string{
+				"enable_debug_server": strconv.FormatBool(tests.initialDebugServerEnabled),
+			}
+			configMap := v1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: osmNamespace,
+					Name:      osmConfigMapName,
+				},
+				Data: defaultConfigMap,
+			}
+			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Create(context.TODO(), &configMap, metav1.CreateOptions{})
+			cfg := configurator.NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
 
 			go tests.c.configureDebugServer(cfg)
 
 			//update configMap with change to enable_debug_server
+			defaultConfigMap["enable_debug_server"] = strconv.FormatBool(tests.changeDebugServerEnabledTo)
+			configMap.Data = defaultConfigMap
 			_, err = kubeClient.CoreV1().ConfigMaps(osmNamespace).Update(context.TODO(), &configMap, metav1.UpdateOptions{})
 			assert.Nil(err)
-
 			//give time for goroutine to run
-			time.Sleep(time.Second)
-			close(stop)
+			// time.Sleep(time.Second)
 
 			assert.Equal(tests.expectedDebugServerRunning, tests.c.debugServerRunning)
 
@@ -159,6 +156,10 @@ func TestConfigureDebugServer(t *testing.T) {
 				assert.Equal(tests.expectedStopCount, fakeDebugServer.stopCount)
 				fakeDebugServer.stopCount = 0
 			}
+			close(stop)
+
+			err = kubeClient.CoreV1().ConfigMaps(osmNamespace).Delete(context.TODO(), osmConfigMapName, metav1.DeleteOptions{})
+			assert.Nil(err)
 			stop = make(chan struct{})
 		})
 	}
