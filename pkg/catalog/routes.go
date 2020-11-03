@@ -51,7 +51,7 @@ func (mc *MeshCatalog) ListTrafficPolicies(service service.MeshService) ([]traff
 // This is a bimodal function:
 //   - it could list services that are allowed to connect to the given service (inbound)
 //   - it could list services that the given service can connect to (outbound)
-func (mc *MeshCatalog) getAllowedDirectionalServices(svc service.MeshService, directn direction) ([]service.MeshService, error) {
+func (mc *MeshCatalog) getAllowedDirectionalServices(svc service.MeshService, directn trafficDirection) ([]service.MeshService, error) {
 	allTrafficPolicies, err := mc.ListTrafficPolicies(svc)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed listing traffic routes")
@@ -82,7 +82,7 @@ func (mc *MeshCatalog) getAllowedDirectionalServices(svc service.MeshService, di
 		allowedServices = append(allowedServices, svc.(service.MeshService))
 	}
 
-	msg := map[direction]string{
+	msg := map[trafficDirection]string{
 		inbound:  "Allowed inbound services for destination service %q: %+v",
 		outbound: "Allowed outbound services from source %q: %+v",
 	}[directn]
