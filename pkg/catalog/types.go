@@ -67,6 +67,12 @@ type MeshCataloger interface {
 	// ListAllowedOutboundServices lists the services the given service is allowed outbound connections to.
 	ListAllowedOutboundServices(service.MeshService) ([]service.MeshService, error)
 
+	// ListAllowedInboundServiceAccounts lists the downstream service accounts that can connect to the given service account
+	ListAllowedInboundServiceAccounts(service.K8sServiceAccount) ([]service.K8sServiceAccount, error)
+
+	// ListAllowedOutboundServiceAccounts lists the upstream service accounts the given service account can connect to
+	ListAllowedOutboundServiceAccounts(service.K8sServiceAccount) ([]service.K8sServiceAccount, error)
+
 	// ListSMIPolicies lists SMI policies.
 	ListSMIPolicies() ([]*split.TrafficSplit, []service.WeightedService, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget)
 
@@ -136,9 +142,9 @@ type certificateCommonNameMeta struct {
 	Namespace      string
 }
 
-type direction string
+type trafficDirection string
 
 const (
-	inbound  direction = "inbound"
-	outbound direction = "outbound"
+	inbound  trafficDirection = "inbound"
+	outbound trafficDirection = "outbound"
 )
