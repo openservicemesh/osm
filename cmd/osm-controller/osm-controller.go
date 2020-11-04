@@ -262,10 +262,6 @@ func main() {
 	go c.configureDebugServer(cfg)
 	//Setting up k8s controller manager to reconcile OSM resources
 	log.Info().Msg("Setting up controller to reconcile OSM resources")
-	/*ctrl.SetLogger(zap.New(func(o *zap.Options) {
-		o.Development = false
-	}))*/
-
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,
 		MetricsBindAddress: metricsAddr,
