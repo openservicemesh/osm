@@ -26,6 +26,9 @@ spec:
   - kind: ServiceAccount
     name: bookbuyer
     namespace: "$BOOKBUYER_NAMESPACE"
+  - kind: ServiceAccount
+    name: flaneur
+    namespace: "$BOOKBUYER_NAMESPACE"
 
 
 # TrafficTarget is deny-by-default policy: if traffic from source to destination is not

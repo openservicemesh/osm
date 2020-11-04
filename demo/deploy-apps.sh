@@ -27,3 +27,6 @@ fi
 
 # Deploy bookthief
 ./demo/deploy-bookthief.sh
+
+# Deploy a single pod without a service, which also buys books.
+./demo/deploy-flaneur.sh
