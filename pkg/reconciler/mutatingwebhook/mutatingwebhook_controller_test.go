@@ -42,7 +42,7 @@ var _ = Describe("Validating MutatingWebhookConfigurationReconciler", func() {
 			ctx = context.TODO()
 
 			mgr, err := ctrl.NewManager(cfg, ctrl.Options{
-				MetricsBindAddress: "6060",
+				MetricsBindAddress: "0",
 			})
 			Expect(err).NotTo(HaveOccurred(), "failed to create manager")
 
