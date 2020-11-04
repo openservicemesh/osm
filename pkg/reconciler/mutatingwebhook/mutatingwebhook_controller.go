@@ -42,17 +42,16 @@ func (r *MutatingWebhookConfigrationReconciler) Reconcile(req ctrl.Request) (ctr
 	// reconcile only for OSM mutatingWebhookConfiguration
 	var shouldUpdate bool
 	if r.OsmWebhook == instance.Name {
-		log.Trace().Msgf("TEST Trying to update mutating webhook configuration for : %s", req.Name)
 		//check if CA bundle exists on webhook
 		for idx, webhook := range instance.Webhooks {
 			// CA bundle missing for webhook, update webhook to include the latest CA bundle
 			if webhook.Name == "osm-inject.k8s.io" && webhook.ClientConfig.CABundle == nil {
-				log.Trace().Msgf("TEST CA bundle missing for webhook : %s ", req.Name)
+				log.Trace().Msgf("CA bundle missing for webhook : %s ", req.Name)
 				shouldUpdate = true
 				cn := certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.OSMControllerName, r.OsmNamespace))
 				cert, err := r.CertManager.GetCertificate(cn)
 				if err != nil {
-					return ctrl.Result{}, errors.Errorf("TEST Unable to update mutating webhook, Error getting certificate for the mutating webhook: %+v", err)
+					return ctrl.Result{}, errors.Errorf("Unable to update mutating webhook, Error getting certificate for the mutating webhook: %+v", err)
 				}
 				instance.Webhooks[idx].ClientConfig.CABundle = cert.GetCertificateChain()
 			}
@@ -60,7 +59,7 @@ func (r *MutatingWebhookConfigrationReconciler) Reconcile(req ctrl.Request) (ctr
 	}
 
 	if !shouldUpdate {
-		log.Trace().Msgf("TEST mutating webhook configuration already compliant %s", req.Name)
+		log.Trace().Msgf("Mutating webhook configuration already compliant %s", req.Name)
 		return ctrl.Result{}, nil
 	}
 
@@ -69,7 +68,7 @@ func (r *MutatingWebhookConfigrationReconciler) Reconcile(req ctrl.Request) (ctr
 		return ctrl.Result{Requeue: false}, nil
 	}
 
-	log.Trace().Msgf("TEST Successfully updated mutating webhook configuration CA bundle for : %s ", req.Name)
+	log.Trace().Msgf("Successfully updated mutating webhook configuration CA bundle for : %s ", req.Name)
 
 	return ctrl.Result{}, nil
 }

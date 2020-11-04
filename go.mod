@@ -41,12 +41,12 @@ require (
 	google.golang.org/protobuf v1.23.0
 	gopkg.in/yaml.v2 v2.3.0
 	helm.sh/helm/v3 v3.2.0
-	k8s.io/api v0.18.5
+	k8s.io/api v0.18.6
 	k8s.io/apimachinery v0.18.8
 	k8s.io/cli-runtime v0.18.5
-	k8s.io/client-go v0.18.5
+	k8s.io/client-go v0.18.6
 	rsc.io/letsencrypt v0.0.3 // indirect
-	sigs.k8s.io/controller-runtime v0.5.1-0.20200416234307-5377effd4043
+	sigs.k8s.io/controller-runtime v0.6.3
 	sigs.k8s.io/kind v0.9.0
 )
 

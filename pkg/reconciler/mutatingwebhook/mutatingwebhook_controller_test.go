@@ -10,7 +10,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"k8s.io/api/admissionregistration/v1beta1"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -22,43 +21,39 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
-var _ = Describe("MutatingWehookConfigurationReconciler", func() {
-	Context("Testing reconcile for MutatingWebhookConfiguration", func() {
+var _ = Describe("Validating MutatingWebhookConfigurationReconciler", func() {
 
+	Describe("Controller Integration", func() {
+
+		// name of the webhook which the controller watches
 		webhookName := "osm-webhook"
 		testWebhookServiceNamespace := "test-namespace"
 		testWebhookServiceName := "test-service-name"
 		testWebhookServicePath := "/path"
+		var caBundle []byte
 
 		var (
 			ctx    context.Context
 			stopCh chan struct{}
-			ns     *corev1.Namespace
 		)
 
 		BeforeEach(func() {
 			stopCh = make(chan struct{})
 			ctx = context.TODO()
 
-			ns = &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{Name: testWebhookServiceNamespace},
-			}
-
-			err := k8sClient.Create(ctx, ns)
-			Expect(err).NotTo(HaveOccurred(), "failed to create test namespace")
-
 			mgr, err := ctrl.NewManager(cfg, ctrl.Options{})
 			Expect(err).NotTo(HaveOccurred(), "failed to create manager")
 
 			mockController := gomock.NewController(GinkgoT())
-			cfg := configurator.NewMockConfigurator(mockController)
+			cfgMock := configurator.NewMockConfigurator(mockController)
 			cache := make(map[certificate.CommonName]certificate.Certificater)
-			certManager := tresor.NewFakeCertManager(&cache, cfg)
+			certManager := tresor.NewFakeCertManager(&cache, cfgMock)
 			cn := certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.OSMControllerName, testWebhookServiceNamespace))
 			validity := 1 * time.Hour
 			cert, _ := certManager.IssueCertificate(cn, validity)
 			Expect(cert.GetCommonName()).To(Equal(cn))
 			Expect((cert.GetCertificateChain())).NotTo(BeNil())
+			caBundle = cert.GetCertificateChain()
 
 			controller := &MutatingWebhookConfigrationReconciler{
 				Client:       mgr.GetClient(),
@@ -78,44 +73,37 @@ var _ = Describe("MutatingWehookConfigurationReconciler", func() {
 
 		AfterEach(func() {
 			close(stopCh)
-
-			err := k8sClient.Delete(ctx, ns)
-			Expect(err).NotTo(HaveOccurred(), "failed to delete test namespace")
 		})
 
-		It("Should add the CA bundle", func() {
-			mwhc := getTestMWHC(webhookName, ns.Name, testWebhookServiceName, testWebhookServicePath)
-
+		It("Should add a CA bundle when OSM webhook is missing one", func() {
+			mwhc := getTestMWHC(webhookName, testWebhookServiceNamespace, testWebhookServiceName, testWebhookServicePath)
 			err := k8sClient.Create(ctx, mwhc)
-			Expect(err).NotTo(HaveOccurred(), "failed to create test mutating webhook resource")
+			Expect(err).NotTo(HaveOccurred(), "failed to create test mutating webhook")
 
+			time.Sleep(time.Second * 1)
 			actualMwhc := &v1beta1.MutatingWebhookConfiguration{}
-
 			Eventually(
-				getResourceFunc(ctx, client.ObjectKey{Name: webhookName, Namespace: mwhc.Namespace}, actualMwhc),
-				time.Second*5, 10*time.Millisecond).Should(BeNil())
+				getResourceFunc(ctx, client.ObjectKey{Name: webhookName, Namespace: testWebhookServiceNamespace}, actualMwhc),
+				time.Second*10, 10*time.Millisecond).Should(BeNil())
 
-			fmt.Printf("Checking mutating webhook")
-			Expect(actualMwhc.Webhooks[0].Name).To(Equal("osm-inject.k8s.io"))
 			Expect(actualMwhc.Webhooks[0].ClientConfig.CABundle).NotTo(BeNil())
-			Expect(actualMwhc.Webhooks[0].ClientConfig.CABundle).To(Equal([]byte{}))
-
+			Expect(actualMwhc.Webhooks[0].ClientConfig.CABundle).To(Equal(caBundle))
 		})
 
-		/*It("Should not add the CA bundle", func() {
-			mwhc := getTestMWHC("random-webhook", testWebhookServiceNamespace, testWebhookServiceName, testWebhookServicePath)
-
+		It("Should not add a CA bundle on a random webhook", func() {
+			webhookName = "random-webhook"
+			mwhc := getTestMWHC(webhookName, testWebhookServiceNamespace, testWebhookServiceName, testWebhookServicePath)
 			err := k8sClient.Create(ctx, mwhc)
-			Expect(err).NotTo(HaveOccurred(), "failed to create test mutating webhook resource")
+			Expect(err).NotTo(HaveOccurred(), "failed to create test mutating webhook")
 
-			actualMWHC := &v1beta1.MutatingWebhookConfiguration{}
-
+			time.Sleep(time.Second * 1)
+			actualMwhc := &v1beta1.MutatingWebhookConfiguration{}
 			Eventually(
-				getResourceFunc(ctx, client.ObjectKey{Name: webhookName, Namespace: mwhc.Namespace}, actualMWHC),
-				time.Second*5, 10*time.Millisecond).Should(BeNil())
+				getResourceFunc(ctx, client.ObjectKey{Name: webhookName, Namespace: testWebhookServiceNamespace}, actualMwhc),
+				time.Second*10, 10*time.Millisecond).Should(BeNil())
 
-			Expect(actualMWHC.Webhooks[0].ClientConfig.CABundle).To(BeNil())
-		})*/
+			Expect(actualMwhc.Webhooks[0].ClientConfig.CABundle).To(BeNil())
+		})
 	})
 })
 
