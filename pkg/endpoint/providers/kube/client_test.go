@@ -50,7 +50,7 @@ var _ = Describe("Test Kube Client Provider", func() {
 
 		It("should correctly return a list of endpoints for a service", func() {
 			// Should be empty for now
-			Expect(cli.ListEndpointsForService(tests.BookbuyerService)).To(Equal([]endpoint.Endpoint{}))
+			Expect(cli.ListEndpointsForService(tests.BookbuyerService)).To(BeNil())
 
 			// Create bookbuyer endpoint in Bookbuyer namespace
 			endp := &corev1.Endpoints{
