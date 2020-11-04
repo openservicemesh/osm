@@ -26,14 +26,13 @@ $ make build-osm
 ## Install OSM
 Use the `osm` CLI to install the OSM control plane on to a Kubernetes cluster.
 
-Run `osm install`.
+**Note**: It's important to keep the version of the CLI in sync with the components it installs. Tagged releases of the CLI use the correspondingly tagged and published images by default. When using a CLI built from source, it is strongly encouraged to also build and push the OSM container images to ensure their compatibility with the CLI:
+
 ```console
-# Install osm control plane components
-$ osm install
-OSM installed successfully in namespace [osm-system] with mesh name [osm]
+$ CTR_REGISTRY=myregistry CTR_TAG=mytag make docker-push-{osm-controller,init}
 ```
 
-By default, the control plane components are installed into a Kubernetes Namespace called `osm-system` and the control plane is given a unique identifier attribute `mesh-name` defaulted to `osm`. Both the Namespace and mesh-name can be configured with flags to the `osm install` command. Running `osm install --help` provides details on the various flags that can be configured.
+By default, the control plane components are installed into a Kubernetes Namespace called `osm-system` and the control plane is given a unique identifier attribute `mesh-name` defaulted to `osm`. Both the Namespace and mesh-name can be configured with flags to the `osm install` command.
 
 The `mesh-name` is a unique identifier assigned to an osm-controller instance during install to identify and manage a mesh instance.
 
@@ -43,6 +42,15 @@ The `mesh-name` should follow [RFC 1123](https://tools.ietf.org/html/rfc1123) DN
 - contain only lowercase alphanumeric characters or '-'
 - start with an alphanumeric character
 - end with an alphanumeric character
+
+ Running `osm install --help` provides details on the various flags that can be configured. For this demo, the defaults unless you need to point to custom-built images with `--container-registry` and `--osm-image-tag`.
+
+Install the control plane components with the following command, optionally with flags:
+
+```console
+$ osm install
+OSM installed successfully in namespace [osm-system] with mesh name [osm]
+```
 
 ## Inspect OSM Components
 A few components will be installed by default into the `osm-system` Namespace. Inspect them by using the following `kubectl` command:
