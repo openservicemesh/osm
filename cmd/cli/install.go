@@ -54,10 +54,32 @@ well as for adding a Kubernetes Namespace to the list of Namespaces a control
 plane should watch for sidecar injection of Envoy proxies.
 `
 const (
-	defaultCertManager        = "tresor"
-	defaultVaultProtocol      = "http"
-	defaultMeshName           = "osm"
-	defaultOsmImagePullPolicy = "IfNotPresent"
+	defaultCertificateManager             = "tresor"
+	defaultCertManagerIssuerGroup         = "cert-manager.io"
+	defaultCertManagerIssuerKind          = "Issuer"
+	defaultCertManagerIssuerName          = "osm-ca"
+	defaultChartPath                      = ""
+	defaultContainerRegistry              = "openservicemesh"
+	defaultContainerRegistrySecret        = ""
+	defaultMeshName                       = "osm"
+	defaultOsmImagePullPolicy             = "IfNotPresent"
+	defaultOsmImageTag                    = "v0.5.0-rc.1"
+	defaultPrometheusRetentionTime        = constants.PrometheusDefaultRetentionTime
+	defaultVaultHost                      = ""
+	defaultVaultProtocol                  = "http"
+	defaultVaultToken                     = ""
+	defaultVaultRole                      = "openservicemesh"
+	defaultEnvoyLogLevel                  = "error"
+	defaultServiceCertValidityDuration    = "24h"
+	defaultEnableDebugServer              = false
+	defaultEnableEgress                   = false
+	defaultEnablePermissiveTrafficPolicy  = false
+	defaultEnableBackpressureExperimental = false
+	defaultEnablePrometheus               = true
+	defaultEnableGrafana                  = false
+	defaultEnableFluentbit                = false
+	defaultDeployJaeger                   = true
+	defaultEnforceSingleMesh              = false
 )
 
 // chartTGZSource is a base64-encoded, gzipped tarball of the default Helm chart.
@@ -67,9 +89,9 @@ var chartTGZSource string
 type installCmd struct {
 	out                           io.Writer
 	certificateManager            string
-	certmanagerIssuerGroup        string
-	certmanagerIssuerKind         string
-	certmanagerIssuerName         string
+	certManagerIssuerGroup        string
+	certManagerIssuerKind         string
+	certManagerIssuerName         string
 	chartPath                     string
 	containerRegistry             string
 	containerRegistrySecret       string
@@ -134,32 +156,32 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	}
 
 	f := cmd.Flags()
-	f.StringVar(&inst.containerRegistry, "container-registry", "openservicemesh", "container registry that hosts control plane component images")
-	f.StringVar(&inst.chartPath, "osm-chart-path", "", "path to osm chart to override default chart")
-	f.StringVar(&inst.certificateManager, "certificate-manager", defaultCertManager, "certificate manager to use one of (tresor, vault, cert-manager)")
-	f.StringVar(&inst.osmImageTag, "osm-image-tag", "v0.5.0-rc.1", "osm image tag")
+	f.StringVar(&inst.containerRegistry, "container-registry", defaultContainerRegistry, "container registry that hosts control plane component images")
+	f.StringVar(&inst.chartPath, "osm-chart-path", defaultChartPath, "path to osm chart to override default chart")
+	f.StringVar(&inst.certificateManager, "certificate-manager", defaultCertificateManager, "certificate manager to use one of (tresor, vault, cert-manager)")
+	f.StringVar(&inst.osmImageTag, "osm-image-tag", defaultOsmImageTag, "osm image tag")
 	f.StringVar(&inst.osmImagePullPolicy, "osm-image-pull-policy", defaultOsmImagePullPolicy, "osm image pull policy")
-	f.StringVar(&inst.containerRegistrySecret, "container-registry-secret", "", "name of Kubernetes secret for container registry credentials to be created if it doesn't already exist")
-	f.StringVar(&inst.vaultHost, "vault-host", "", "Hashicorp Vault host/service - where Vault is installed")
+	f.StringVar(&inst.containerRegistrySecret, "container-registry-secret", defaultContainerRegistrySecret, "name of Kubernetes secret for container registry credentials to be created if it doesn't already exist")
+	f.StringVar(&inst.vaultHost, "vault-host", defaultVaultHost, "Hashicorp Vault host/service - where Vault is installed")
 	f.StringVar(&inst.vaultProtocol, "vault-protocol", defaultVaultProtocol, "protocol to use to connect to Vault")
-	f.StringVar(&inst.vaultToken, "vault-token", "", "token that should be used to connect to Vault")
-	f.StringVar(&inst.vaultRole, "vault-role", "openservicemesh", "Vault role to be used by Open Service Mesh")
-	f.StringVar(&inst.certmanagerIssuerName, "cert-manager-issuer-name", "osm-ca", "cert-manager issuer name")
-	f.StringVar(&inst.certmanagerIssuerKind, "cert-manager-issuer-kind", "Issuer", "cert-manager issuer kind")
-	f.StringVar(&inst.certmanagerIssuerGroup, "cert-manager-issuer-group", "cert-manager.io", "cert-manager issuer group")
-	f.StringVar(&inst.serviceCertValidityDuration, "service-cert-validity-duration", "24h", "Service certificate validity duration, represented as a sequence of decimal numbers each with optional fraction and a unit suffix")
-	f.StringVar(&inst.prometheusRetentionTime, "prometheus-retention-time", constants.PrometheusDefaultRetentionTime, "Duration for which data will be retained in prometheus")
-	f.BoolVar(&inst.enableDebugServer, "enable-debug-server", false, "Enable the debug HTTP server")
-	f.BoolVar(&inst.enablePermissiveTrafficPolicy, "enable-permissive-traffic-policy", false, "Enable permissive traffic policy mode")
-	f.BoolVar(&inst.enableEgress, "enable-egress", false, "Enable egress in the mesh")
-	f.BoolVar(&inst.enableBackpressureExperimental, "enable-backpressure-experimental", false, "Enable experimental backpressure feature")
-	f.BoolVar(&inst.enablePrometheus, "enable-prometheus", true, "Enable Prometheus installation and deployment")
-	f.BoolVar(&inst.enableGrafana, "enable-grafana", false, "Enable Grafana installation and deployment")
-	f.BoolVar(&inst.enableFluentbit, "enable-fluentbit", false, "Enable Fluentbit sidecar deployment")
+	f.StringVar(&inst.vaultToken, "vault-token", defaultVaultToken, "token that should be used to connect to Vault")
+	f.StringVar(&inst.vaultRole, "vault-role", defaultVaultRole, "Vault role to be used by Open Service Mesh")
+	f.StringVar(&inst.certManagerIssuerName, "cert-manager-issuer-name", defaultCertManagerIssuerName, "cert-manager issuer name")
+	f.StringVar(&inst.certManagerIssuerKind, "cert-manager-issuer-kind", defaultCertManagerIssuerKind, "cert-manager issuer kind")
+	f.StringVar(&inst.certManagerIssuerGroup, "cert-manager-issuer-group", defaultCertManagerIssuerGroup, "cert-manager issuer group")
+	f.StringVar(&inst.serviceCertValidityDuration, "service-cert-validity-duration", defaultServiceCertValidityDuration, "Service certificate validity duration, represented as a sequence of decimal numbers each with optional fraction and a unit suffix")
+	f.StringVar(&inst.prometheusRetentionTime, "prometheus-retention-time", defaultPrometheusRetentionTime, "Duration for which data will be retained in prometheus")
+	f.BoolVar(&inst.enableDebugServer, "enable-debug-server", defaultEnableDebugServer, "Enable the debug HTTP server")
+	f.BoolVar(&inst.enablePermissiveTrafficPolicy, "enable-permissive-traffic-policy", defaultEnablePermissiveTrafficPolicy, "Enable permissive traffic policy mode")
+	f.BoolVar(&inst.enableEgress, "enable-egress", defaultEnableEgress, "Enable egress in the mesh")
+	f.BoolVar(&inst.enableBackpressureExperimental, "enable-backpressure-experimental", defaultEnableBackpressureExperimental, "Enable experimental backpressure feature")
+	f.BoolVar(&inst.enablePrometheus, "enable-prometheus", defaultEnablePrometheus, "Enable Prometheus installation and deployment")
+	f.BoolVar(&inst.enableGrafana, "enable-grafana", defaultEnableGrafana, "Enable Grafana installation and deployment")
+	f.BoolVar(&inst.enableFluentbit, "enable-fluentbit", defaultEnableFluentbit, "Enable Fluentbit sidecar deployment")
 	f.StringVar(&inst.meshName, "mesh-name", defaultMeshName, "name for the new control plane instance")
-	f.BoolVar(&inst.deployJaeger, "deploy-jaeger", true, "Deploy Jaeger in the namespace of the OSM controller")
-	f.StringVar(&inst.envoyLogLevel, "envoy-log-level", "error", "Envoy log level is used to specify the level of logs collected from envoy and needs to be one of these (trace, debug, info, warning, warn, error, critical, off)")
-	f.BoolVar(&inst.enforceSingleMesh, "enforce-single-mesh", false, "Enforce only deploying one mesh in the cluster")
+	f.BoolVar(&inst.deployJaeger, "deploy-jaeger", defaultDeployJaeger, "Deploy Jaeger in the namespace of the OSM controller")
+	f.StringVar(&inst.envoyLogLevel, "envoy-log-level", defaultEnvoyLogLevel, "Envoy log level is used to specify the level of logs collected from envoy and needs to be one of these (trace, debug, info, warning, warn, error, critical, off)")
+	f.BoolVar(&inst.enforceSingleMesh, "enforce-single-mesh", defaultEnforceSingleMesh, "Enforce only deploying one mesh in the cluster")
 
 	return cmd
 }
@@ -212,9 +234,9 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 		fmt.Sprintf("OpenServiceMesh.vault.protocol=%s", i.vaultProtocol),
 		fmt.Sprintf("OpenServiceMesh.vault.token=%s", i.vaultToken),
 		fmt.Sprintf("OpenServiceMesh.vault.role=%s", i.vaultRole),
-		fmt.Sprintf("OpenServiceMesh.certmanager.issuerName=%s", i.certmanagerIssuerName),
-		fmt.Sprintf("OpenServiceMesh.certmanager.issuerKind=%s", i.certmanagerIssuerKind),
-		fmt.Sprintf("OpenServiceMesh.certmanager.issuerGroup=%s", i.certmanagerIssuerGroup),
+		fmt.Sprintf("OpenServiceMesh.certmanager.issuerName=%s", i.certManagerIssuerName),
+		fmt.Sprintf("OpenServiceMesh.certmanager.issuerKind=%s", i.certManagerIssuerKind),
+		fmt.Sprintf("OpenServiceMesh.certmanager.issuerGroup=%s", i.certManagerIssuerGroup),
 		fmt.Sprintf("OpenServiceMesh.serviceCertValidityDuration=%s", i.serviceCertValidityDuration),
 		fmt.Sprintf("OpenServiceMesh.prometheus.retention.time=%s", i.prometheusRetentionTime),
 		fmt.Sprintf("OpenServiceMesh.enableDebugServer=%t", i.enableDebugServer),
