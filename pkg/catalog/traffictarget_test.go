@@ -187,7 +187,7 @@ func TestListAllowedInboundServiceAccounts(t *testing.T) {
 
 			actual, err := meshCatalog.ListAllowedInboundServiceAccounts(tc.svcAccount)
 			assert.Equal(err != nil, tc.expectError)
-			assert.Equal(actual, tc.expectedInboundSvcAccounts)
+			assert.ElementsMatch(actual, tc.expectedInboundSvcAccounts)
 		})
 	}
 }
@@ -370,7 +370,7 @@ func TestListAllowedOutboundServiceAccounts(t *testing.T) {
 
 			actual, err := meshCatalog.ListAllowedOutboundServiceAccounts(tc.svcAccount)
 			assert.Equal(err != nil, tc.expectError)
-			assert.Equal(actual, tc.expectedOutboundSvcAccounts)
+			assert.ElementsMatch(actual, tc.expectedOutboundSvcAccounts)
 		})
 	}
 }
