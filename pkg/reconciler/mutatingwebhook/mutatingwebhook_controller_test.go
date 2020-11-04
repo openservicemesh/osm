@@ -41,7 +41,9 @@ var _ = Describe("Validating MutatingWebhookConfigurationReconciler", func() {
 			stopCh = make(chan struct{})
 			ctx = context.TODO()
 
-			mgr, err := ctrl.NewManager(cfg, ctrl.Options{})
+			mgr, err := ctrl.NewManager(cfg, ctrl.Options{
+				MetricsBindAddress: "6060",
+			})
 			Expect(err).NotTo(HaveOccurred(), "failed to create manager")
 
 			mockController := gomock.NewController(GinkgoT())
