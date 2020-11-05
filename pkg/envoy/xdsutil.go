@@ -1,6 +1,7 @@
 package envoy
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -17,6 +18,7 @@ import (
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/jinzhu/copier"
 
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -291,4 +293,33 @@ func GetADSConfigSource() *xds_core.ConfigSource {
 		},
 		ResourceApiVersion: xds_core.ApiVersion_V3,
 	}
+}
+
+// GetEnvoyServiceNodeID creates the string for Envoy's "--service-node" CLI argument for the Kubernetes sidecar container Command/Args
+func GetEnvoyServiceNodeID(nodeID string) string {
+	items := []string{
+		"$(POD_UID)",
+		"$(POD_NAMESPACE)",
+		"$(POD_IP)",
+		"$(SERVICE_ACCOUNT)",
+		nodeID,
+	}
+
+	return strings.Join(items, constants.EnvoyServiceNodeSeparator)
+}
+
+func ParseEnvoyServiceNodeID(serviceNodeID string) (podUID, podNamespace, podIP, serviceAccountName, nodeID string, err error) {
+	chunks := strings.Split(serviceNodeID, constants.EnvoyServiceNodeSeparator)
+
+	if len(chunks) != 5 {
+		return podUID, podNamespace, podIP, serviceAccountName, nodeID, errors.New("invalid envoy service node id format")
+	}
+
+	podUID = chunks[0]
+	podNamespace = chunks[1]
+	podIP = chunks[2]
+	serviceAccountName = chunks[3]
+	nodeID = chunks[4]
+
+	return podUID, podNamespace, podIP, serviceAccountName, nodeID, nil
 }
