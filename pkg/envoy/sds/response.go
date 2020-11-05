@@ -114,7 +114,7 @@ func (s *sdsImpl) getSDSSecrets(cert certificate.Certificater, requestedCerts []
 		}
 
 		if proxyService != sdsCert.MeshService {
-			log.Debug().Msgf("Proxy %s (service %s) requested service certificate %s; this is not allowed", s.proxy.GetCommonName(), proxyService, sdsCert.MeshService)
+			log.Warn().Msgf("Proxy %s (service %s) requested service certificate %s; this is not allowed", s.proxy.GetCommonName(), proxyService, sdsCert.MeshService)
 			continue
 		}
 
