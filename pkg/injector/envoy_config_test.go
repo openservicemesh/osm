@@ -201,9 +201,63 @@ var _ = Describe("Test Envoy sidecar", func() {
 				Args: []string{
 					"--log-level", "debug",
 					"--config-path", "/etc/envoy/bootstrap.yaml",
-					"--service-node", nodeID,
+					"--service-node", "$(POD_UID)/$(POD_NAMESPACE)/$(POD_IP)/$(SERVICE_ACCOUNT)/-node-id-",
 					"--service-cluster", clusterID,
 					"--bootstrap-version 3",
+				},
+				Env: []corev1.EnvVar{
+					{
+						Name:  "POD_UID",
+						Value: "",
+						ValueFrom: &corev1.EnvVarSource{
+							FieldRef: &corev1.ObjectFieldSelector{
+								APIVersion: "",
+								FieldPath:  "metadata.uid",
+							},
+							ResourceFieldRef: nil,
+							ConfigMapKeyRef:  nil,
+							SecretKeyRef:     nil,
+						},
+					},
+					{
+						Name:  "POD_NAMESPACE",
+						Value: "",
+						ValueFrom: &corev1.EnvVarSource{
+							FieldRef: &corev1.ObjectFieldSelector{
+								APIVersion: "",
+								FieldPath:  "metadata.namespace",
+							},
+							ResourceFieldRef: nil,
+							ConfigMapKeyRef:  nil,
+							SecretKeyRef:     nil,
+						},
+					},
+					{
+						Name:  "POD_IP",
+						Value: "",
+						ValueFrom: &corev1.EnvVarSource{
+							FieldRef: &corev1.ObjectFieldSelector{
+								APIVersion: "",
+								FieldPath:  "status.podIP",
+							},
+							ResourceFieldRef: nil,
+							ConfigMapKeyRef:  nil,
+							SecretKeyRef:     nil,
+						},
+					},
+					{
+						Name:  "SERVICE_ACCOUNT",
+						Value: "",
+						ValueFrom: &corev1.EnvVarSource{
+							FieldRef: &corev1.ObjectFieldSelector{
+								APIVersion: "",
+								FieldPath:  "spec.serviceAccountName",
+							},
+							ResourceFieldRef: nil,
+							ConfigMapKeyRef:  nil,
+							SecretKeyRef:     nil,
+						},
+					},
 				},
 			}
 			Expect(actual[0]).To(Equal(expected))

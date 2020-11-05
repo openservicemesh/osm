@@ -26,10 +26,26 @@ func receive(requests chan xds_discovery.DiscoveryRequest, server *xds_discovery
 			return
 		}
 		if request.TypeUrl != "" {
+			if !proxy.HasPodMetadata() {
+				// Set the Pod metadata on the given proxy only once. This could arrive with the first few XDS requests.
+				recordEnvoyPodMetadata(request, proxy)
+			}
 			log.Trace().Msgf("[grpc] Received DiscoveryRequest from Envoy %s: %+v", proxy.GetCommonName(), request)
 			requests <- *request
 		} else {
 			log.Warn().Msgf("[grpc] Unknown resource: %+v", request)
+		}
+	}
+}
+
+func recordEnvoyPodMetadata(request *xds_discovery.DiscoveryRequest, proxy *envoy.Proxy) {
+	if request != nil && request.Node != nil {
+		if podUID, podNamespace, podIP, serviceAccountName, envoyNodeID, err := envoy.ParseEnvoyServiceNodeID(request.Node.Id); err != nil {
+			log.Error().Err(err).Msgf("Error parsing Envoy Node ID: %s", request.Node.Id)
+		} else {
+			log.Trace().Msgf("Recorded metadata for Envoy %s: podUID=%s, podNamespace=%s, podIP=%s, serviceAccountName=%s, envoyNodeID=%s",
+				proxy.CommonName, podUID, podNamespace, podIP, serviceAccountName, envoyNodeID)
+			proxy.SetMetadata(podUID, podNamespace, podIP, serviceAccountName, envoyNodeID)
 		}
 	}
 }
