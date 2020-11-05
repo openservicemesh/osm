@@ -237,9 +237,8 @@ func main() {
 		debugComponents:    debugConfig,
 		debugServer:        httpserver.NewDebugHTTPServer(debugConfig, constants.DebugPort),
 	}
-	var wg sync.WaitGroup
 
-	go c.configureDebugServer(cfg, &wg)
+	go c.configureDebugServer(cfg)
 
 	// Wait for exit handler signal
 	<-stop
@@ -247,7 +246,7 @@ func main() {
 	log.Info().Msg("Goodbye!")
 }
 
-func (c *controller) configureDebugServer(cfg configurator.Configurator, wg *sync.WaitGroup) {
+func (c *controller) configureDebugServer(cfg configurator.Configurator) {
 	//GetAnnouncementsChannel will check ConfigMap every 3 * time.Second
 	var mutex = &sync.Mutex{}
 	for range cfg.GetAnnouncementsChannel() {
@@ -261,14 +260,14 @@ func (c *controller) configureDebugServer(cfg configurator.Configurator, wg *syn
 				c.debugServerRunning = false
 			}
 			mutex.Unlock()
-			wg.Done()
 		} else if !c.debugServerRunning && cfg.IsDebugServerEnabled() {
 			mutex.Lock()
-			c.debugServer = httpserver.NewDebugHTTPServer(c.debugComponents, constants.DebugPort)
+			if c.debugServer == nil {
+				c.debugServer = httpserver.NewDebugHTTPServer(c.debugComponents, constants.DebugPort)
+			}
 			c.debugServer.Start()
 			c.debugServerRunning = true
 			mutex.Unlock()
-			wg.Done()
 		}
 	}
 }

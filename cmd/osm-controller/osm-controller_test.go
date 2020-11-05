@@ -30,19 +30,26 @@ const (
 )
 
 type FakeDebugServer struct {
-	stopCount int
-	stopErr   error
+	stopCount  int
+	startCount int
+	stopErr    error
+
+	wg *sync.WaitGroup
 }
 
 func (f *FakeDebugServer) Stop() error {
 	f.stopCount++
 	if f.stopErr != nil {
+		f.wg.Done()
 		return errors.Errorf("Debug server error")
 	}
+	f.wg.Done()
 	return nil
 }
 
 func (f *FakeDebugServer) Start() {
+	f.startCount++
+	f.wg.Done()
 }
 
 func mockDebugConfig(mockCtrl *gomock.Controller) *debugger.MockDebugServer {
@@ -83,15 +90,16 @@ func TestConfigureDebugServerStart(t *testing.T) {
 
 	kubeClient, _, cfg, err := setupComponents(testOSMNamespace, testOSMConfigMapName, false, stop)
 	assert.Nil(err)
+	var wg sync.WaitGroup
 
+	fakeDebugServer := FakeDebugServer{0, 0, nil, &wg}
 	con := &controller{
 		debugServerRunning: false,
 		debugComponents:    mockDebugConfig(mockCtrl),
-		debugServer:        nil,
+		debugServer:        &fakeDebugServer,
 	}
-	var wg sync.WaitGroup
 	wg.Add(1)
-	go con.configureDebugServer(cfg, &wg)
+	go con.configureDebugServer(cfg)
 
 	updatedConfigMap := v1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -107,7 +115,8 @@ func TestConfigureDebugServerStart(t *testing.T) {
 	wg.Wait()
 
 	close(stop)
-
+	assert.Equal(1, fakeDebugServer.startCount)
+	assert.Equal(0, fakeDebugServer.stopCount)
 	assert.True(con.debugServerRunning)
 	assert.NotNil(con.debugServer)
 }
@@ -121,16 +130,17 @@ func TestConfigureDebugServerStop(t *testing.T) {
 
 	kubeClient, _, cfg, err := setupComponents(testOSMNamespace, testOSMConfigMapName, true, stop)
 	assert.Nil(err)
-	fakeDebugServer := FakeDebugServer{0, nil}
+	var wg sync.WaitGroup
+
+	fakeDebugServer := FakeDebugServer{0, 0, nil, &wg}
 	con := &controller{
 		debugServerRunning: true,
 		debugComponents:    mockDebugConfig(mockCtrl),
 		debugServer:        &fakeDebugServer,
 	}
-	var wg sync.WaitGroup
 	wg.Add(1)
 
-	go con.configureDebugServer(cfg, &wg)
+	go con.configureDebugServer(cfg)
 
 	updatedConfigMap := v1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -147,7 +157,8 @@ func TestConfigureDebugServerStop(t *testing.T) {
 	wg.Wait()
 
 	close(stop)
-
+	assert.Equal(0, fakeDebugServer.startCount)
+	assert.Equal(1, fakeDebugServer.stopCount)
 	assert.False(con.debugServerRunning)
 	assert.Nil(con.debugServer)
 }
@@ -161,15 +172,16 @@ func TestConfigureDebugServerErr(t *testing.T) {
 
 	kubeClient, _, cfg, err := setupComponents(testOSMNamespace, testOSMConfigMapName, true, stop)
 	assert.Nil(err)
-	fakeDebugServer := FakeDebugServer{0, errors.Errorf("Debug server error")}
+	var wg sync.WaitGroup
+
+	fakeDebugServer := FakeDebugServer{0, 0, errors.Errorf("Debug server error"), &wg}
 	con := &controller{
 		debugServerRunning: true,
 		debugComponents:    mockDebugConfig(mockCtrl),
 		debugServer:        &fakeDebugServer,
 	}
-	var wg sync.WaitGroup
 	wg.Add(1)
-	go con.configureDebugServer(cfg, &wg)
+	go con.configureDebugServer(cfg)
 
 	updatedConfigMap := v1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -185,7 +197,8 @@ func TestConfigureDebugServerErr(t *testing.T) {
 	wg.Wait()
 
 	close(stop)
-
+	assert.Equal(0, fakeDebugServer.startCount)
+	assert.Equal(1, fakeDebugServer.stopCount)
 	assert.True(con.debugServerRunning)
 	assert.NotNil(con.debugServer)
 }
