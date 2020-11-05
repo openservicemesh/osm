@@ -232,7 +232,8 @@ func (s *sdsImpl) getRootCert(cert certificate.Certificater, sdscert envoy.SDSCe
 		log.Trace().Msgf("Proxy for service %s will only allow %s SANs exactly matching: %v", proxyService, directionMap[sdscert.CertType], matchingCerts)
 
 		// Ensure the Subject Alternate Names (SAN) added by CertificateManager.IssueCertificate()
-		// matches what is allowed to connect to the downstream service as defined in TrafficPolicy.
+		// matches what is allowed to connect to or accept connections from, as defined in the SMI
+		// TrafficTarget policy.
 		secret.GetValidationContext().MatchSubjectAltNames = matchSANs
 	default:
 		log.Debug().Msgf("SAN matching not needed for cert type %s", sdscert.CertType.String())

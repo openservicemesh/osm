@@ -98,6 +98,33 @@ func TestGetRootCert(t *testing.T) {
 			expectError:  false,
 		},
 		// Test case 2 end -------------------------------
+
+		// Test case 3: tests SDS secret for permissive mode -------------------------------
+		{
+			s: &sdsImpl{
+				proxyServices: []service.MeshService{
+					{Name: "service-1", Namespace: "ns-1"},
+				},
+				svcAccount:  service.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"},
+				proxy:       envoy.NewProxy(certificate.CommonName(fmt.Sprintf("%s.%s.%s", uuid.New().String(), "sa-1", "ns-1")), nil),
+				meshCatalog: mockCatalog,
+				certManager: mockCertManager,
+				cfg:         mockConfigurator,
+			},
+			certCN: certificate.CommonName("sa-1.ns-1.cluster.local"),
+			sdsCert: envoy.SDSCert{
+				MeshService: service.MeshService{Name: "service-1", Namespace: "ns-1"},
+				CertType:    envoy.RootCertTypeForMTLSOutbound,
+			},
+			proxyService:                  service.MeshService{Name: "service-1", Namespace: "ns-1"},
+			allowedDirectionalSvcAccounts: []service.K8sServiceAccount{},
+			permissiveMode:                true,
+
+			// expectations
+			expectedSANs: []string{}, // no SAN matching in permissive mode
+			expectError:  false,
+		},
+		// Test case 2 end -------------------------------
 	}
 
 	for i, tc := range testCases {
