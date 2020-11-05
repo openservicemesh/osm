@@ -308,6 +308,7 @@ func GetEnvoyServiceNodeID(nodeID string) string {
 	return strings.Join(items, constants.EnvoyServiceNodeSeparator)
 }
 
+// ParseEnvoyServiceNodeID parses the given Envoy service node ID and returns the encoded metadata
 func ParseEnvoyServiceNodeID(serviceNodeID string) (podUID, podNamespace, podIP, serviceAccountName, nodeID string, err error) {
 	chunks := strings.Split(serviceNodeID, constants.EnvoyServiceNodeSeparator)
 
