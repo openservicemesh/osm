@@ -26,8 +26,8 @@ const (
 	singleIpv4Mask                = 32
 )
 
-func newOutboundListener(catalog catalog.MeshCataloger, cfg configurator.Configurator, localSvc []service.MeshService) (*xds_listener.Listener, error) {
-	serviceFilterChains, err := getOutboundFilterChains(catalog, cfg, localSvc)
+func newOutboundListener(catalog catalog.MeshCataloger, cfg configurator.Configurator, downstreamSvc []service.MeshService) (*xds_listener.Listener, error) {
+	serviceFilterChains, err := getOutboundFilterChains(catalog, cfg, downstreamSvc)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error getting filter chains for outbound listener")
 		return nil, err
@@ -161,14 +161,14 @@ func getOutboundFilterChainMatchForService(dstSvc service.MeshService, catalog c
 	return filterMatch, nil
 }
 
-func getOutboundFilterChains(catalog catalog.MeshCataloger, cfg configurator.Configurator, localSvc []service.MeshService) ([]*xds_listener.FilterChain, error) {
+func getOutboundFilterChains(catalog catalog.MeshCataloger, cfg configurator.Configurator, downstreamSvc []service.MeshService) ([]*xds_listener.FilterChain, error) {
 	var filterChains []*xds_listener.FilterChain
 	var dstServicesSet map[service.MeshService]struct{} = make(map[service.MeshService]struct{}) // Set, avoid dups
 
 	// Assuming single service in pod till #1682, #1575 get addressed
-	outboundSvc, err := catalog.ListAllowedOutboundServices(localSvc[0])
+	outboundSvc, err := catalog.ListAllowedOutboundServices(downstreamSvc[0])
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting allowed outbound services for %s", localSvc[0].String())
+		log.Error().Err(err).Msgf("Error getting allowed outbound services for %s", downstreamSvc[0].String())
 		return nil, err
 	}
 
