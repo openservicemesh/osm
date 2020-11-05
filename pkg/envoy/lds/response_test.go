@@ -77,7 +77,7 @@ var _ = Describe("Test LDS response", func() {
 
 			// Ensure the UpstreamTlsContext.Sni field from the client matches one of the strings
 			// in the servers FilterChainMatch.ServerNames
-			tlsContext := envoy.GetUpstreamTLSContext(tests.BookbuyerService, tests.BookstoreV1Service.ServerName())
+			tlsContext := envoy.GetUpstreamTLSContext(tests.BookbuyerService, tests.BookstoreV1Service)
 			Expect(tlsContext.Sni).To(Equal(filterChain.FilterChainMatch.ServerNames[0]))
 
 			// Show what that actually looks like

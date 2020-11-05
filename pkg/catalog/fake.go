@@ -94,6 +94,9 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface) *MeshCatalog {
 	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookstoreV2Service.Namespace).Return(true).AnyTimes()
 	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).AnyTimes()
 	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookwarehouseService.Namespace).Return(true).AnyTimes()
+	mockKubeController.EXPECT().ListServiceAccountsForService(tests.BookstoreV1Service).Return([]service.K8sServiceAccount{tests.BookstoreServiceAccount}, nil).AnyTimes()
+	mockKubeController.EXPECT().ListServiceAccountsForService(tests.BookstoreV2Service).Return([]service.K8sServiceAccount{tests.BookstoreServiceAccount}, nil).AnyTimes()
+	mockKubeController.EXPECT().ListServiceAccountsForService(tests.BookbuyerService).Return([]service.K8sServiceAccount{tests.BookbuyerServiceAccount}, nil).AnyTimes()
 
 	return NewMeshCatalog(mockKubeController, kubeClient, meshSpec, certManager,
 		mockIngressMonitor, stop, cfg, endpointProviders...)

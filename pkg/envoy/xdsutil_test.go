@@ -195,7 +195,7 @@ var _ = Describe("Test Envoy tools", func() {
 	Context("Test GetUpstreamTLSContext()", func() {
 		It("should return TLS context", func() {
 			sni := "bookstore-v1.default.svc.cluster.local"
-			tlsContext := GetUpstreamTLSContext(tests.BookstoreV1Service, sni)
+			tlsContext := GetUpstreamTLSContext(tests.BookbuyerService, tests.BookstoreV1Service)
 
 			expectedTLSContext := &auth.UpstreamTlsContext{
 				CommonTlsContext: &auth.CommonTlsContext{
@@ -205,7 +205,7 @@ var _ = Describe("Test Envoy tools", func() {
 					},
 					TlsCertificates: nil,
 					TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
-						Name: "service-cert:default/bookstore-v1",
+						Name: "service-cert:default/bookbuyer",
 						SdsConfig: &core.ConfigSource{
 							ConfigSourceSpecifier: &core.ConfigSource_Ads{
 								Ads: &core.AggregatedConfigSource{},
@@ -215,13 +215,7 @@ var _ = Describe("Test Envoy tools", func() {
 					}},
 					ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 						ValidationContextSdsSecretConfig: &auth.SdsSecretConfig{
-							Name: SDSCert{
-								MeshService: service.MeshService{
-									Namespace: "default",
-									Name:      "bookstore-v1",
-								},
-								CertType: RootCertTypeForMTLSOutbound,
-							}.String(),
+							Name: "root-cert-for-mtls-outbound:default/bookstore-v1",
 							SdsConfig: &core.ConfigSource{
 								ConfigSourceSpecifier: &core.ConfigSource_Ads{
 									Ads: &core.AggregatedConfigSource{},
@@ -232,7 +226,7 @@ var _ = Describe("Test Envoy tools", func() {
 					},
 					AlpnProtocols: ALPNInMesh,
 				},
-				Sni:                sni, // "bookstore.default.svc.cluster.local"
+				Sni:                sni, // "bookstore-v1.default.svc.cluster.local"
 				AllowRenegotiation: false,
 			}
 
@@ -250,85 +244,100 @@ var _ = Describe("Test Envoy tools", func() {
 
 	Context("Test GetUpstreamTLSContext()", func() {
 		It("creates correct UpstreamTlsContext.Sni field", func() {
-			sni := "test.default.svc.cluster.local"
-			tlsContext := GetUpstreamTLSContext(tests.BookbuyerService, sni)
+			tlsContext := GetUpstreamTLSContext(tests.BookbuyerService, tests.BookstoreV1Service)
 			// To show the actual string for human comprehension
-			Expect(tlsContext.Sni).To(Equal(sni))
+			Expect(tlsContext.Sni).To(Equal(tests.BookstoreV1Service.ServerName()))
 		})
 	})
 
 	Context("Test getCommonTLSContext()", func() {
-		It("returns proper auth.CommonTlsContext for mTLS", func() {
-			namespacedService := service.MeshService{
-				Namespace: "-namespace-",
-				Name:      "-service-",
-			}
-			actual := getCommonTLSContext(namespacedService, true /* mTLS */, Inbound)
-
-			expectedServiceCertName := SDSCert{
-				MeshService: namespacedService,
+		It("returns proper auth.CommonTlsContext for outbound mTLS", func() {
+			tlsSDSCert := SDSCert{
+				MeshService: tests.BookbuyerService,
 				CertType:    ServiceCertType,
-			}.String()
-			expectedRootCertName := SDSCert{
-				MeshService: namespacedService,
-				CertType:    RootCertTypeForMTLSInbound,
-			}.String()
+			}
+			peerValidationSDSCert := SDSCert{
+				MeshService: tests.BookstoreV1Service,
+				CertType:    RootCertTypeForMTLSOutbound,
+			}
+
+			actual := getCommonTLSContext(tlsSDSCert, peerValidationSDSCert)
 
 			expected := &auth.CommonTlsContext{
 				TlsParams: GetTLSParams(),
 				TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
-					Name:      expectedServiceCertName,
+					Name:      "service-cert:default/bookbuyer",
 					SdsConfig: GetADSConfigSource(),
 				}},
 				ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 					ValidationContextSdsSecretConfig: &auth.SdsSecretConfig{
-						Name:      expectedRootCertName,
+						Name:      "root-cert-for-mtls-outbound:default/bookstore-v1",
 						SdsConfig: GetADSConfigSource(),
 					},
 				},
 				AlpnProtocols: nil,
 			}
 
-			Expect(len(actual.TlsCertificateSdsSecretConfigs)).To(Equal(1))
-			Expect(actual.TlsCertificateSdsSecretConfigs[0].Name).To(Equal(expectedServiceCertName))
-			Expect(actual.GetValidationContextSdsSecretConfig().Name).To(Equal(expectedRootCertName))
 			Expect(actual).To(Equal(expected))
 		})
 
-		It("returns proper auth.CommonTlsContext for non-mTLS", func() {
-			namespacedService := service.MeshService{
-				Namespace: "-namespace-",
-				Name:      "-service-",
-			}
-			actual := getCommonTLSContext(namespacedService, false, false /* Ignored in case of non-tls */)
-
-			expectedServiceCertName := SDSCert{
-				MeshService: namespacedService,
+		It("returns proper auth.CommonTlsContext for inbound mTLS", func() {
+			tlsSDSCert := SDSCert{
+				MeshService: tests.BookstoreV1Service,
 				CertType:    ServiceCertType,
-			}.String()
-			expectedRootCertName := SDSCert{
-				MeshService: namespacedService,
-				CertType:    RootCertTypeForHTTPS,
-			}.String()
+			}
+			peerValidationSDSCert := SDSCert{
+				MeshService: tests.BookstoreV1Service,
+				CertType:    RootCertTypeForMTLSInbound,
+			}
+
+			actual := getCommonTLSContext(tlsSDSCert, peerValidationSDSCert)
 
 			expected := &auth.CommonTlsContext{
 				TlsParams: GetTLSParams(),
 				TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
-					Name:      expectedServiceCertName,
+					Name:      "service-cert:default/bookstore-v1",
 					SdsConfig: GetADSConfigSource(),
 				}},
 				ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
 					ValidationContextSdsSecretConfig: &auth.SdsSecretConfig{
-						Name:      expectedRootCertName,
+						Name:      "root-cert-for-mtls-inbound:default/bookstore-v1",
 						SdsConfig: GetADSConfigSource(),
 					},
 				},
 				AlpnProtocols: nil,
 			}
 
-			Expect(len(actual.TlsCertificateSdsSecretConfigs)).To(Equal(1))
-			Expect(actual.TlsCertificateSdsSecretConfigs[0].Name).To(Equal(expectedServiceCertName))
-			Expect(actual.GetValidationContextSdsSecretConfig().Name).To(Equal(expectedRootCertName))
+			Expect(actual).To(Equal(expected))
+		})
+
+		It("returns proper auth.CommonTlsContext for non-mTLS (HTTPS)", func() {
+			tlsSDSCert := SDSCert{
+				MeshService: tests.BookstoreV1Service,
+				CertType:    ServiceCertType,
+			}
+			peerValidationSDSCert := SDSCert{
+				MeshService: tests.BookstoreV1Service,
+				CertType:    RootCertTypeForHTTPS,
+			}
+
+			actual := getCommonTLSContext(tlsSDSCert, peerValidationSDSCert)
+
+			expected := &auth.CommonTlsContext{
+				TlsParams: GetTLSParams(),
+				TlsCertificateSdsSecretConfigs: []*auth.SdsSecretConfig{{
+					Name:      "service-cert:default/bookstore-v1",
+					SdsConfig: GetADSConfigSource(),
+				}},
+				ValidationContextType: &auth.CommonTlsContext_ValidationContextSdsSecretConfig{
+					ValidationContextSdsSecretConfig: &auth.SdsSecretConfig{
+						Name:      "root-cert-https:default/bookstore-v1",
+						SdsConfig: GetADSConfigSource(),
+					},
+				},
+				AlpnProtocols: nil,
+			}
+
 			Expect(actual).To(Equal(expected))
 		})
 	})
