@@ -248,7 +248,6 @@ func main() {
 }
 
 func (c *controller) configureDebugServer(cfg configurator.Configurator, wg *sync.WaitGroup) {
-
 	//GetAnnouncementsChannel will check ConfigMap every 3 * time.Second
 	var mutex = &sync.Mutex{}
 	for range cfg.GetAnnouncementsChannel() {
@@ -259,8 +258,8 @@ func (c *controller) configureDebugServer(cfg configurator.Configurator, wg *syn
 				log.Error().Err(err).Msg("Unable to stop debug server")
 			} else {
 				c.debugServer = nil
+				c.debugServerRunning = false
 			}
-			c.debugServerRunning = false
 			mutex.Unlock()
 			wg.Done()
 		} else if !c.debugServerRunning && cfg.IsDebugServerEnabled() {

@@ -31,10 +31,7 @@ const (
 
 type FakeDebugServer struct {
 	stopCount int
-
-	stopErr error
-	//wg      sync.WaitGroup // create a wait group, this will allow you to block later
-
+	stopErr   error
 }
 
 func (f *FakeDebugServer) Stop() error {
@@ -55,6 +52,7 @@ func mockDebugConfig(mockCtrl *gomock.Controller) *debugger.MockDebugServer {
 	}).AnyTimes()
 	return mockDebugConfig
 }
+
 func setupComponents(namespace, configMapName string, initialDebugServerEnabled bool, stop chan struct{}) (*testclient.Clientset, v1.ConfigMap, configurator.Configurator, error) {
 	kubeClient := testclient.NewSimpleClientset()
 
@@ -131,6 +129,7 @@ func TestConfigureDebugServerStop(t *testing.T) {
 	}
 	var wg sync.WaitGroup
 	wg.Add(1)
+
 	go con.configureDebugServer(cfg, &wg)
 
 	updatedConfigMap := v1.ConfigMap{
@@ -144,6 +143,7 @@ func TestConfigureDebugServerStop(t *testing.T) {
 	}
 	_, err = kubeClient.CoreV1().ConfigMaps(testOSMNamespace).Update(context.TODO(), &updatedConfigMap, metav1.UpdateOptions{})
 	assert.Nil(err)
+
 	wg.Wait()
 
 	close(stop)
@@ -186,7 +186,7 @@ func TestConfigureDebugServerErr(t *testing.T) {
 
 	close(stop)
 
-	assert.False(con.debugServerRunning)
+	assert.True(con.debugServerRunning)
 	assert.NotNil(con.debugServer)
 }
 
