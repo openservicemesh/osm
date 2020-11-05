@@ -45,7 +45,7 @@ func getEnvoySidecarContainerSpec(containerName, envoyImage, nodeID, clusterID s
 		Args: []string{
 			"--log-level", cfg.GetEnvoyLogLevel(),
 			"--config-path", strings.Join([]string{envoyProxyConfigPath, envoyBootstrapConfigFile}, "/"),
-			"--service-node", envoy.GetEnvoyServiceNodeIDForCLI(nodeID),
+			"--service-node", envoy.GetEnvoyServiceNodeID(nodeID),
 			"--service-cluster", clusterID,
 			"--bootstrap-version 3",
 		},

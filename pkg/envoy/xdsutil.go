@@ -295,8 +295,8 @@ func GetADSConfigSource() *xds_core.ConfigSource {
 	}
 }
 
-// GetEnvoyServiceNodeIDForCLI creates the string for Envoy's "--service-node" CLI argument for the Kubernetes sidecar container Command/Args
-func GetEnvoyServiceNodeIDForCLI(nodeID string) string {
+// GetEnvoyServiceNodeID creates the string for Envoy's "--service-node" CLI argument for the Kubernetes sidecar container Command/Args
+func GetEnvoyServiceNodeID(nodeID string) string {
 	items := []string{
 		"$(POD_UID)",
 		"$(POD_NAMESPACE)",

@@ -333,9 +333,9 @@ var _ = Describe("Test Envoy tools", func() {
 		})
 	})
 
-	Context("Test GetEnvoyServiceNodeIDForCLI()", func() {
+	Context("Test GetEnvoyServiceNodeID()", func() {
 		It("", func() {
-			actual := GetEnvoyServiceNodeIDForCLI("-nodeID-")
+			actual := GetEnvoyServiceNodeID("-nodeID-")
 			expected := "$(POD_UID)/$(POD_NAMESPACE)/$(POD_IP)/$(SERVICE_ACCOUNT)/-nodeID-"
 			Expect(actual).To(Equal(expected))
 		})
@@ -343,7 +343,7 @@ var _ = Describe("Test Envoy tools", func() {
 
 	Context("Test ParseEnvoyServiceNodeID()", func() {
 		It("", func() {
-			serviceNodeID := GetEnvoyServiceNodeIDForCLI("-nodeID-")
+			serviceNodeID := GetEnvoyServiceNodeID("-nodeID-")
 			podUID, podNamespace, podIP, serviceAccountName, nodeID, err := ParseEnvoyServiceNodeID(serviceNodeID)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(podUID).To(Equal("$(POD_UID)"))
