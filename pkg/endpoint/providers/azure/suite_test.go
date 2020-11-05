@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestProvider(t *testing.T) {
+func TestAzureProvider(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Azure Endpoints Provider Suite")
 }
