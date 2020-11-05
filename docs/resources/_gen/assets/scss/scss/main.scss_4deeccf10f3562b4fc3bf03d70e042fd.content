@@ -14000,8 +14000,16 @@ pre {
     margin-top: 2rem;
     margin-bottom: 2.5rem; }
     .td-content div.code-toolbar
-pre code {
-      background: none; }
+pre code[class*="language-"],
+    .td-content div.code-toolbar
+pre pre[class*="language-"] {
+      background: transparent !important; }
+  .td-content .td-content .highlight,
+  .td-content .highlight {
+    border: none;
+    margin: 0; }
+  .td-content .td-content code {
+    background: transparent; }
 
 .td-toc {
   top: 7.25rem !important;

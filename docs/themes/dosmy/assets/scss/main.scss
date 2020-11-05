@@ -256,9 +256,20 @@ body {
         margin-top: 2rem;
         margin-bottom: 2.5rem;
 
-        code {
-            background: none;
+        code[class*="language-"],
+        pre[class*="language-"] {
+            background: transparent !important;
         }
+    }
+
+    .td-content .highlight,
+    .highlight {
+        border: none;
+        margin: 0;
+    }
+
+    .td-content code {
+        background: transparent;
     }
 }
 
