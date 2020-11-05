@@ -12,10 +12,11 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/injector"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
 
-var log = logger.New("mutatingwebhook-reconciler")
+var log = logger.New("reconciler")
 
 // MutatingWebhookConfigrationReconciler reconciles a MutatingWebhookConfiguration object
 type MutatingWebhookConfigrationReconciler struct {
@@ -45,13 +46,13 @@ func (r *MutatingWebhookConfigrationReconciler) Reconcile(req ctrl.Request) (ctr
 		//check if CA bundle exists on webhook
 		for idx, webhook := range instance.Webhooks {
 			// CA bundle missing for webhook, update webhook to include the latest CA bundle
-			if webhook.Name == "osm-inject.k8s.io" && webhook.ClientConfig.CABundle == nil {
+			if webhook.Name == injector.MutatingWebhookName && webhook.ClientConfig.CABundle == nil {
 				log.Trace().Msgf("CA bundle missing for webhook : %s ", req.Name)
 				shouldUpdate = true
 				cn := certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.OSMControllerName, r.OsmNamespace))
 				cert, err := r.CertManager.GetCertificate(cn)
 				if err != nil {
-					return ctrl.Result{}, errors.Errorf("Unable to update mutating webhook, Error getting certificate for the mutating webhook: %+v", err)
+					return ctrl.Result{}, errors.Errorf("Error updating mutating webhook, unable to get certificate for the mutating webhook %s: %+s", req.Name, err)
 				}
 				instance.Webhooks[idx].ClientConfig.CABundle = cert.GetCertificateChain()
 			}
@@ -59,16 +60,16 @@ func (r *MutatingWebhookConfigrationReconciler) Reconcile(req ctrl.Request) (ctr
 	}
 
 	if !shouldUpdate {
-		log.Trace().Msgf("Mutating webhook configuration already compliant %s", req.Name)
+		log.Trace().Msgf("Mutatingwebhookconfiguration %s already compliant", req.Name)
 		return ctrl.Result{}, nil
 	}
 
 	if err := r.Update(ctx, instance); err != nil {
-		log.Error().Err(err).Msgf("failure reading object %s", req.NamespacedName.String())
+		log.Error().Err(err).Msgf("Error updating mutatingwebhookconfiguration %s: %s", req.Name, err)
 		return ctrl.Result{Requeue: false}, nil
 	}
 
-	log.Trace().Msgf("Successfully updated mutating webhook configuration CA bundle for : %s ", req.Name)
+	log.Trace().Msgf("Successfully updated mutatingwebhookconfiguration CA bundle for : %s ", req.Name)
 
 	return ctrl.Result{}, nil
 }

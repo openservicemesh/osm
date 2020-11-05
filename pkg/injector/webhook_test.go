@@ -43,7 +43,7 @@ var _ = Describe("Test MutatingWebhookConfiguration patch", func() {
 			},
 			Webhooks: []admissionv1beta1.MutatingWebhook{
 				{
-					Name: mutatingWebhookName,
+					Name: MutatingWebhookName,
 					ClientConfig: admissionv1beta1.WebhookClientConfig{
 						Service: &admissionv1beta1.ServiceReference{
 							Namespace: testWebhookServiceNamespace,
@@ -656,7 +656,7 @@ var _ = Describe("Testing Injector Functions", func() {
 			},
 			Webhooks: []admissionv1beta1.MutatingWebhook{
 				{
-					Name: "osm-inject.k8s.io",
+					Name: MutatingWebhookName,
 					ClientConfig: admissionv1beta1.WebhookClientConfig{
 						CABundle: cert.GetCertificateChain(),
 					},

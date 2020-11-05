@@ -19,6 +19,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/injector"
 )
 
 var _ = Describe("Validating MutatingWebhookConfigurationReconciler", func() {
@@ -116,7 +117,7 @@ func getTestMWHC(webhookName, testWebhookServiceNamespace, testWebhookServiceNam
 		},
 		Webhooks: []v1beta1.MutatingWebhook{
 			{
-				Name: "osm-inject.k8s.io",
+				Name: injector.MutatingWebhookName,
 				ClientConfig: v1beta1.WebhookClientConfig{
 					Service: &v1beta1.ServiceReference{
 						Namespace: testWebhookServiceNamespace,
