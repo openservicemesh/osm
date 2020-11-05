@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
@@ -236,8 +237,9 @@ func main() {
 		debugComponents:    debugConfig,
 		debugServer:        httpserver.NewDebugHTTPServer(debugConfig, constants.DebugPort),
 	}
+	var wg sync.WaitGroup
 
-	go c.configureDebugServer(cfg)
+	go c.configureDebugServer(cfg, &wg)
 
 	// Wait for exit handler signal
 	<-stop
@@ -245,13 +247,13 @@ func main() {
 	log.Info().Msg("Goodbye!")
 }
 
-func (c *controller) configureDebugServer(cfg configurator.Configurator) {
+func (c *controller) configureDebugServer(cfg configurator.Configurator, wg *sync.WaitGroup) {
+
 	//GetAnnouncementsChannel will check ConfigMap every 3 * time.Second
+	var mutex = &sync.Mutex{}
 	for range cfg.GetAnnouncementsChannel() {
-		fmt.Println("announcement")
-		fmt.Printf("c.debugServerRunning: %t | cfg.IsDebugServerEnabled(): %t", c.debugServerRunning, cfg.IsDebugServerEnabled())
 		if c.debugServerRunning && !cfg.IsDebugServerEnabled() {
-			fmt.Println("stop")
+			mutex.Lock()
 			err := c.debugServer.Stop()
 			if err != nil {
 				log.Error().Err(err).Msg("Unable to stop debug server")
@@ -259,11 +261,15 @@ func (c *controller) configureDebugServer(cfg configurator.Configurator) {
 				c.debugServer = nil
 			}
 			c.debugServerRunning = false
+			mutex.Unlock()
+			wg.Done()
 		} else if !c.debugServerRunning && cfg.IsDebugServerEnabled() {
-			fmt.Println("start")
+			mutex.Lock()
 			c.debugServer = httpserver.NewDebugHTTPServer(c.debugComponents, constants.DebugPort)
 			c.debugServer.Start()
 			c.debugServerRunning = true
+			mutex.Unlock()
+			wg.Done()
 		}
 	}
 }
