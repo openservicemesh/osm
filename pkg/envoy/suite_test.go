@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestEnvoySds(t *testing.T) {
+func TestEnvoy(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Envoy SDS Test Suite")
+	RunSpecs(t, "Envoy Test Suite")
 }
