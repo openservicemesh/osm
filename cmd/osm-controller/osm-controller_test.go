@@ -39,11 +39,10 @@ type FakeDebugServer struct {
 
 func (f *FakeDebugServer) Stop() error {
 	f.stopCount++
+	f.wg.Done()
 	if f.stopErr != nil {
-		f.wg.Done()
 		return errors.Errorf("Debug server error")
 	}
-	f.wg.Done()
 	return nil
 }
 
@@ -199,7 +198,7 @@ func TestConfigureDebugServerErr(t *testing.T) {
 	close(stop)
 	assert.Equal(0, fakeDebugServer.startCount)
 	assert.Equal(1, fakeDebugServer.stopCount)
-	assert.True(con.debugServerRunning)
+	assert.False(con.debugServerRunning)
 	assert.NotNil(con.debugServer)
 }
 

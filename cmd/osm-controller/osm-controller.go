@@ -257,8 +257,8 @@ func (c *controller) configureDebugServer(cfg configurator.Configurator) {
 				log.Error().Err(err).Msg("Unable to stop debug server")
 			} else {
 				c.debugServer = nil
-				c.debugServerRunning = false
 			}
+			c.debugServerRunning = false
 			mutex.Unlock()
 		} else if !c.debugServerRunning && cfg.IsDebugServerEnabled() {
 			mutex.Lock()
