@@ -237,7 +237,7 @@ var _ = Describe("Test Envoy tools", func() {
 			}
 
 			// Ensure the SNI is in the expected format!
-			Expect(tlsContext.Sni).To(Equal(tests.BookstoreV1Service.GetCommonName().String()))
+			Expect(tlsContext.Sni).To(Equal(tests.BookstoreV1Service.ServerName()))
 			Expect(tlsContext.Sni).To(Equal("bookstore-v1.default.svc.cluster.local"))
 
 			Expect(tlsContext.CommonTlsContext.TlsParams).To(Equal(expectedTLSContext.CommonTlsContext.TlsParams))

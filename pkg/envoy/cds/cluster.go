@@ -27,7 +27,7 @@ const (
 func getRemoteServiceCluster(remoteService, localService service.MeshService, cfg configurator.Configurator) (*xds_cluster.Cluster, error) {
 	clusterName := remoteService.String()
 	marshalledUpstreamTLSContext, err := envoy.MessageToAny(
-		envoy.GetUpstreamTLSContext(localService, remoteService.GetCommonName().String()))
+		envoy.GetUpstreamTLSContext(localService, remoteService.ServerName()))
 	if err != nil {
 		return nil, err
 	}

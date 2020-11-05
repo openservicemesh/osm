@@ -494,4 +494,19 @@ var _ = Describe("Test XDS certificate tooling", func() {
 			Expect(actual).To(Equal(expected))
 		})
 	})
+
+	Context("Test GetServiceAccountFromProxyCertificate", func() {
+		It("should correctly return the ServiceAccount encoded in the XDS certificate CN", func() {
+			cn := certificate.CommonName(fmt.Sprintf("%s.sa-name.sa-namespace", uuid.New().String()))
+			svcAccount, err := GetServiceAccountFromProxyCertificate(cn)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(svcAccount).To(Equal(service.K8sServiceAccount{Name: "sa-name", Namespace: "sa-namespace"}))
+		})
+
+		It("should correctly error when the XDS certificate CN is invalid", func() {
+			svcAccount, err := GetServiceAccountFromProxyCertificate(certificate.CommonName("invalid"))
+			Expect(err).To(HaveOccurred())
+			Expect(svcAccount).To(Equal(service.K8sServiceAccount{}))
+		})
+	})
 })
