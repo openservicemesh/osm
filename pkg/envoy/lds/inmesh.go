@@ -47,7 +47,7 @@ func getInboundInMeshFilterChain(proxyServiceName service.MeshService, cfg confi
 		// This field is configured by the GetDownstreamTLSContext() function.
 		// This is not a field obtained from the mTLS Certificate.
 		FilterChainMatch: &xds_listener.FilterChainMatch{
-			ServerNames:          []string{proxyServiceName.GetCommonName().String()},
+			ServerNames:          []string{proxyServiceName.ServerName()},
 			TransportProtocol:    envoy.TransportProtocolTLS,
 			ApplicationProtocols: envoy.ALPNInMesh, // in-mesh proxies will advertise this, set in UpstreamTlsContext
 		},

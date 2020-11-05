@@ -192,3 +192,17 @@ func getCertificateCommonNameMeta(cn certificate.CommonName) (*certificateCommon
 func NewCertCommonNameWithProxyID(proxyUUID uuid.UUID, serviceAccount, namespace string) certificate.CommonName {
 	return certificate.CommonName(strings.Join([]string{proxyUUID.String(), serviceAccount, namespace}, constants.DomainDelimiter))
 }
+
+// GetServiceAccountFromProxyCertificate returns the ServiceAccount information encoded in the certificate CN
+func GetServiceAccountFromProxyCertificate(cn certificate.CommonName) (service.K8sServiceAccount, error) {
+	var svcAccount service.K8sServiceAccount
+	cnMeta, err := getCertificateCommonNameMeta(cn)
+	if err != nil {
+		return svcAccount, err
+	}
+
+	svcAccount.Name = cnMeta.ServiceAccount
+	svcAccount.Namespace = cnMeta.Namespace
+
+	return svcAccount, nil
+}

@@ -64,7 +64,7 @@ func getIngressFilterChains(svc service.MeshService, cfg configurator.Configurat
 		// Filter chain with SNI matching enabled for HTTPS clients that set the SNI
 		ingressFilterChainWithSNI := newIngressFilterChain(cfg, svc)
 		ingressFilterChainWithSNI.Name = inboundIngressHTTPSFilterChain
-		ingressFilterChainWithSNI.FilterChainMatch.ServerNames = []string{svc.GetCommonName().String()}
+		ingressFilterChainWithSNI.FilterChainMatch.ServerNames = []string{svc.ServerName()}
 		ingressFilterChains = append(ingressFilterChains, ingressFilterChainWithSNI)
 	}
 

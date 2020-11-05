@@ -187,7 +187,7 @@ var _ = Describe("CDS Response", func() {
 
 			// Checking for the value by generating the same value the same way is reduntant
 			// Nonetheless, as getRemoteServiceCluster logic gets more complicated, this might just be ok to have
-			upstreamTLSProto, err := envoy.MessageToAny(envoy.GetUpstreamTLSContext(proxyService, remoteService.GetCommonName().String()))
+			upstreamTLSProto, err := envoy.MessageToAny(envoy.GetUpstreamTLSContext(proxyService, remoteService.ServerName()))
 			Expect(err).ToNot(HaveOccurred())
 
 			expectedCluster := xds_cluster.Cluster{
@@ -256,7 +256,7 @@ var _ = Describe("CDS Response", func() {
 					},
 					AlpnProtocols: envoy.ALPNInMesh,
 				},
-				Sni:                remoteService.GetCommonName().String(),
+				Sni:                remoteService.ServerName(),
 				AllowRenegotiation: false,
 			}
 			Expect(upstreamTLSContext.CommonTlsContext.TlsParams).To(Equal(expectedTLSContext.CommonTlsContext.TlsParams))
