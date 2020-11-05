@@ -45,6 +45,7 @@ func (p *Proxy) HasPodMetadata() bool {
 	return p.podMetadata != nil
 }
 
+// SetMetadata sets the proxy metadata constructured from the given parameters
 func (p *Proxy) SetMetadata(podUID, podNamespace, podIP, podServiceAccountName, envoyNodeID string) {
 	p.podMetadata = &PodMetadata{
 		UID:            podUID,
