@@ -20,7 +20,7 @@ import (
 
 // makeService creates a new service for a set of pods with matching selectors
 func makeService(kubeClient kubernetes.Interface, svcName string) {
-	// These selectors must the POD(s) created
+	// These selectors must match the POD(s) created
 	selectors := map[string]string{
 		tests.SelectorKey: tests.SelectorValue,
 	}
