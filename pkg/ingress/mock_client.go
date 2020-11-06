@@ -8,6 +8,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
+	"github.com/openservicemesh/osm/pkg/announcements"
 	service "github.com/openservicemesh/osm/pkg/service"
 	v1beta1 "k8s.io/api/extensions/v1beta1"
 )
@@ -36,10 +37,10 @@ func (m *MockMonitor) EXPECT() *MockMonitorMockRecorder {
 }
 
 // GetAnnouncementsChannel mocks base method
-func (m *MockMonitor) GetAnnouncementsChannel() <-chan interface{} {
+func (m *MockMonitor) GetAnnouncementsChannel() <-chan announcements.Announcement {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAnnouncementsChannel")
-	ret0, _ := ret[0].(<-chan interface{})
+	ret0, _ := ret[0].(<-chan announcements.Announcement)
 	return ret0
 }
 

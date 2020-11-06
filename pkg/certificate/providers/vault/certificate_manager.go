@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/vault/api"
 	"github.com/pkg/errors"
 
+	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/certificate/rotor"
@@ -29,7 +30,7 @@ const (
 func NewCertManager(vaultAddr, token string, vaultRole string, cfg configurator.Configurator) (*CertManager, error) {
 	cache := make(map[certificate.CommonName]certificate.Certificater)
 	c := &CertManager{
-		announcements: make(chan interface{}),
+		announcements: make(chan announcements.Announcement),
 		cache:         &cache,
 		vaultRole:     vaultRole,
 		cfg:           cfg,
@@ -149,7 +150,7 @@ func (cm *CertManager) GetRootCertificate() (certificate.Certificater, error) {
 }
 
 // GetAnnouncementsChannel returns a channel used by the Hashi Vault instance to signal when a certificate has been changed.
-func (cm *CertManager) GetAnnouncementsChannel() <-chan interface{} {
+func (cm *CertManager) GetAnnouncementsChannel() <-chan announcements.Announcement {
 	return cm.announcements
 }
 
@@ -167,7 +168,7 @@ func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate
 	cm.cacheLock.Lock()
 	(*cm.cache)[cn] = cert
 	cm.cacheLock.Unlock()
-	cm.announcements <- nil
+	cm.announcements <- announcements.Announcement{}
 
 	log.Info().Msgf("Rotating certificate CN=%s took %+v", cn, time.Since(start))
 

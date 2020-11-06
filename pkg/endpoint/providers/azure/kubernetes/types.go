@@ -4,6 +4,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/openservicemesh/osm/pkg/announcements"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
@@ -29,6 +30,6 @@ type Client struct {
 	kubeClient     kubernetes.Interface
 	informers      *InformerCollection
 	providerIdent  string
-	announcements  chan interface{}
+	announcements  chan announcements.Announcement
 	kubeController k8s.Controller
 }

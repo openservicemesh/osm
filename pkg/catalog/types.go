@@ -10,6 +10,7 @@ import (
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	"k8s.io/client-go/kubernetes"
 
+	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -118,7 +119,7 @@ type MeshCataloger interface {
 
 type announcementChannel struct {
 	announcer string
-	channel   <-chan interface{}
+	channel   <-chan announcements.Announcement
 }
 
 type expectedProxy struct {

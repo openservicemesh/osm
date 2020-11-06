@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
@@ -104,7 +105,7 @@ func (c *Client) GetEnvoyLogLevel() string {
 }
 
 // GetAnnouncementsChannel returns a channel, which is used to announce when changes have been made to the OSM ConfigMap.
-func (c *Client) GetAnnouncementsChannel() <-chan interface{} {
+func (c *Client) GetAnnouncementsChannel() <-chan announcements.Announcement {
 	return c.announcements
 }
 

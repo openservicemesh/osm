@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -23,7 +24,7 @@ type Provider interface {
 	GetID() string
 
 	// GetAnnouncementsChannel obtains the channel on which providers will announce changes to the infrastructure.
-	GetAnnouncementsChannel() <-chan interface{}
+	GetAnnouncementsChannel() <-chan announcements.Announcement
 }
 
 // Endpoint is a tuple of IP and Port representing an instance of a service

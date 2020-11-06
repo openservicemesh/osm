@@ -5,6 +5,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
 )
 
@@ -13,7 +14,7 @@ import (
 type Proxy struct {
 	certificate.CommonName
 	net.Addr
-	announcements chan interface{}
+	announcements chan announcements.Announcement
 
 	// The time this Proxy connected to the OSM control plane
 	connectedAt time.Time
@@ -120,7 +121,7 @@ func (p Proxy) GetIP() net.Addr {
 }
 
 // GetAnnouncementsChannel returns the announcement channel for the given Envoy proxy.
-func (p Proxy) GetAnnouncementsChannel() chan interface{} {
+func (p Proxy) GetAnnouncementsChannel() chan announcements.Announcement {
 	return p.announcements
 }
 
@@ -132,7 +133,7 @@ func NewProxy(cn certificate.CommonName, ip net.Addr) *Proxy {
 
 		connectedAt: time.Now(),
 
-		announcements:      make(chan interface{}),
+		announcements:      make(chan announcements.Announcement),
 		lastNonce:          make(map[TypeURI]string),
 		lastSentVersion:    make(map[TypeURI]uint64),
 		lastAppliedVersion: make(map[TypeURI]uint64),

@@ -8,11 +8,13 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	v1alpha1 "github.com/openservicemesh/osm/experimental/pkg/apis/policy/v1alpha1"
-	service "github.com/openservicemesh/osm/pkg/service"
 	v1alpha2 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
 	v1alpha3 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha3"
 	v1alpha20 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
+
+	v1alpha1 "github.com/openservicemesh/osm/experimental/pkg/apis/policy/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/announcements"
+	service "github.com/openservicemesh/osm/pkg/service"
 )
 
 // MockMeshSpec is a mock of MeshSpec interface
@@ -39,10 +41,10 @@ func (m *MockMeshSpec) EXPECT() *MockMeshSpecMockRecorder {
 }
 
 // GetAnnouncementsChannel mocks base method
-func (m *MockMeshSpec) GetAnnouncementsChannel() <-chan interface{} {
+func (m *MockMeshSpec) GetAnnouncementsChannel() <-chan announcements.Announcement {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAnnouncementsChannel")
-	ret0, _ := ret[0].(<-chan interface{})
+	ret0, _ := ret[0].(<-chan announcements.Announcement)
 	return ret0
 }
 

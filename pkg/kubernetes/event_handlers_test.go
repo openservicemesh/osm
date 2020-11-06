@@ -9,6 +9,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
@@ -26,19 +27,19 @@ var _ = Describe("Testing event handlers", func() {
 		}
 
 		It("Should add the event to the announcement channel", func() {
-			announcements := make(chan interface{}, 1)
+			ann := make(chan announcements.Announcement, 1)
 			pod := tests.NewPodTestFixture(testNamespace, "pod-name")
-			addEvent(testInformer, testProvider, announcements, shouldObserve, "ADD")(&pod)
-			Expect(len(announcements)).To(Equal(1))
-			<-announcements
+			addEvent(testInformer, testProvider, ann, shouldObserve, "ADD")(&pod)
+			Expect(len(ann)).To(Equal(1))
+			<-ann
 		})
 
 		It("Should not add the event to the announcement channel", func() {
-			announcements := make(chan interface{}, 1)
+			ann := make(chan announcements.Announcement, 1)
 			var pod corev1.Pod
 			pod.Namespace = "not-a-monitored-namespace"
-			addEvent(testInformer, testProvider, announcements, shouldObserve, "ADD")(&pod)
-			Expect(len(announcements)).To(Equal(0))
+			addEvent(testInformer, testProvider, ann, shouldObserve, "ADD")(&pod)
+			Expect(len(ann)).To(Equal(0))
 		})
 	})
 

@@ -7,6 +7,7 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/pkg/errors"
 
+	"github.com/openservicemesh/osm/pkg/announcements"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/providers/azure"
 )
@@ -43,7 +44,7 @@ func NewProvider(subscriptionID string, azureAuthFile string, stop chan struct{}
 		// into an Azure URI. (Example: resolve "webService" to an IP of a VM.)
 		azureResourceClient: azureResourceClient,
 
-		announcements: make(chan interface{}),
+		announcements: make(chan announcements.Announcement),
 	}
 
 	az.publicIPsClient.Authorizer = az.authorizer

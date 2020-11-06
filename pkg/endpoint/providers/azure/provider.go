@@ -7,6 +7,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
+	"github.com/openservicemesh/osm/pkg/announcements"
 	osm "github.com/openservicemesh/osm/pkg/apis/azureresource/v1"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -65,7 +66,7 @@ func (az Client) run(stop <-chan struct{}) error {
 }
 
 // GetAnnouncementsChannel returns the announcement channel for the Azure endponits provider.
-func (az Client) GetAnnouncementsChannel() <-chan interface{} {
+func (az Client) GetAnnouncementsChannel() <-chan announcements.Announcement {
 	return az.announcements
 }
 

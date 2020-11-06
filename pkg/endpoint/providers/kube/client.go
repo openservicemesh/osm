@@ -13,6 +13,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
@@ -39,7 +40,7 @@ func NewProvider(kubeClient kubernetes.Interface, kubeController k8s.Controller,
 		informers:      &informerCollection,
 		caches:         &cacheCollection,
 		cacheSynced:    make(chan interface{}),
-		announcements:  make(chan interface{}),
+		announcements:  make(chan announcements.Announcement),
 		kubeController: kubeController,
 	}
 
@@ -157,7 +158,7 @@ func (c Client) GetServicesForServiceAccount(svcAccount service.K8sServiceAccoun
 }
 
 // GetAnnouncementsChannel returns the announcement channel for the Kubernetes endpoints provider.
-func (c Client) GetAnnouncementsChannel() <-chan interface{} {
+func (c Client) GetAnnouncementsChannel() <-chan announcements.Announcement {
 	return c.announcements
 }
 

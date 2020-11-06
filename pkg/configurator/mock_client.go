@@ -9,6 +9,7 @@ import (
 	time "time"
 
 	gomock "github.com/golang/mock/gomock"
+	"github.com/openservicemesh/osm/pkg/announcements"
 )
 
 // MockConfigurator is a mock of Configurator interface
@@ -35,10 +36,10 @@ func (m *MockConfigurator) EXPECT() *MockConfiguratorMockRecorder {
 }
 
 // GetAnnouncementsChannel mocks base method
-func (m *MockConfigurator) GetAnnouncementsChannel() <-chan interface{} {
+func (m *MockConfigurator) GetAnnouncementsChannel() <-chan announcements.Announcement {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAnnouncementsChannel")
-	ret0, _ := ret[0].(<-chan interface{})
+	ret0, _ := ret[0].(<-chan announcements.Announcement)
 	return ret0
 }
 

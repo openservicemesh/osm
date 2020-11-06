@@ -8,6 +8,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/services/network/mgmt/2019-06-01/network"
 	"github.com/Azure/go-autorest/autorest"
 
+	"github.com/openservicemesh/osm/pkg/announcements"
 	osm "github.com/openservicemesh/osm/pkg/apis/azureresource/v1"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/logger"
@@ -63,7 +64,7 @@ type Client struct {
 	// will convert a service name to an Azure resource URI.
 	azureResourceClient ResourceClient
 
-	announcements chan interface{}
+	announcements chan announcements.Announcement
 }
 
 // ResourceClient is an interface defining necessary functions to list the AzureResources.
