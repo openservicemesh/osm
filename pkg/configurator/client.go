@@ -2,10 +2,11 @@ package configurator
 
 import (
 	"fmt"
-	"reflect"
 	"strconv"
 
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
@@ -54,7 +55,12 @@ func NewConfigurator(kubeClient kubernetes.Interface, stop <-chan struct{}, osmN
 }
 
 func newConfigurator(kubeClient kubernetes.Interface, stop <-chan struct{}, osmNamespace, osmConfigMapName string) *Client {
-	informerFactory := informers.NewSharedInformerFactoryWithOptions(kubeClient, k8s.DefaultKubeEventResyncInterval, informers.WithNamespace(osmNamespace))
+	// Ensure this informer exclusively watches only the Namespace where OSM in installed and the particular 'osm-config' ConfigMap
+	informerFactory := informers.NewSharedInformerFactoryWithOptions(kubeClient,
+		k8s.DefaultKubeEventResyncInterval, informers.WithNamespace(osmNamespace),
+		informers.WithTweakListOptions(func(listOptions *metav1.ListOptions) {
+			listOptions.FieldSelector = fields.OneTermEqualSelector("metadata.name", osmConfigMapName).String()
+		}))
 	informer := informerFactory.Core().V1().ConfigMaps().Informer()
 	client := Client{
 		informer:         informer,
@@ -65,16 +71,9 @@ func newConfigurator(kubeClient kubernetes.Interface, stop <-chan struct{}, osmN
 		osmConfigMapName: osmConfigMapName,
 	}
 
-	// Ensure this exclusively watches only the Namespace where OSM in installed and the particular ConfigMap we need.
-	shouldObserve := func(obj interface{}) bool {
-		ns := reflect.ValueOf(obj).Elem().FieldByName("ObjectMeta").FieldByName("Namespace").String()
-		name := reflect.ValueOf(obj).Elem().FieldByName("ObjectMeta").FieldByName("Name").String()
-		return ns == osmNamespace && name == osmConfigMapName
-	}
-
 	informerName := "ConfigMap"
 	providerName := "OSMConfigMap"
-	informer.AddEventHandler(k8s.GetKubernetesEventHandlers(informerName, providerName, client.announcements, shouldObserve))
+	informer.AddEventHandler(k8s.GetKubernetesEventHandlers(informerName, providerName, client.announcements, nil))
 
 	client.run(stop)
 
