@@ -77,4 +77,14 @@ var _ = Describe("Test types helpers", func() {
 		})
 	})
 
+	Context("Testing ServerName", func() {
+		It("should return DNS-1123 of the MeshService struct", func() {
+			namespacedService := MeshService{
+				Namespace: "namespace-here",
+				Name:      "service-name-here",
+			}
+			actual := namespacedService.ServerName()
+			Expect(actual).To(Equal("service-name-here.namespace-here.svc.cluster.local"))
+		})
+	})
 })

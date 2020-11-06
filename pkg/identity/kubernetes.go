@@ -7,6 +7,9 @@ import (
 )
 
 const (
+	// ClusterLocalTrustDomain is the trust domain for the local kubernetes cluster
+	ClusterLocalTrustDomain = "cluster.local"
+
 	identityDelimiter = "."
 )
 

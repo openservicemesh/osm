@@ -237,7 +237,7 @@ var _ = Describe("Test Envoy tools", func() {
 			}
 
 			// Ensure the SNI is in the expected format!
-			Expect(tlsContext.Sni).To(Equal(tests.BookstoreV1Service.GetCommonName().String()))
+			Expect(tlsContext.Sni).To(Equal(tests.BookstoreV1Service.ServerName()))
 			Expect(tlsContext.Sni).To(Equal("bookstore-v1.default.svc.cluster.local"))
 
 			Expect(tlsContext.CommonTlsContext.TlsParams).To(Equal(expectedTLSContext.CommonTlsContext.TlsParams))
@@ -330,6 +330,27 @@ var _ = Describe("Test Envoy tools", func() {
 			Expect(actual.TlsCertificateSdsSecretConfigs[0].Name).To(Equal(expectedServiceCertName))
 			Expect(actual.GetValidationContextSdsSecretConfig().Name).To(Equal(expectedRootCertName))
 			Expect(actual).To(Equal(expected))
+		})
+	})
+
+	Context("Test GetEnvoyServiceNodeID()", func() {
+		It("", func() {
+			actual := GetEnvoyServiceNodeID("-nodeID-")
+			expected := "$(POD_UID)/$(POD_NAMESPACE)/$(POD_IP)/$(SERVICE_ACCOUNT)/-nodeID-"
+			Expect(actual).To(Equal(expected))
+		})
+	})
+
+	Context("Test ParseEnvoyServiceNodeID()", func() {
+		It("", func() {
+			serviceNodeID := GetEnvoyServiceNodeID("-nodeID-")
+			podUID, podNamespace, podIP, serviceAccountName, nodeID, err := ParseEnvoyServiceNodeID(serviceNodeID)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(podUID).To(Equal("$(POD_UID)"))
+			Expect(podNamespace).To(Equal("$(POD_NAMESPACE)"))
+			Expect(podIP).To(Equal("$(POD_IP)"))
+			Expect(serviceAccountName).To(Equal("$(SERVICE_ACCOUNT)"))
+			Expect(nodeID).To(Equal("-nodeID-"))
 		})
 	})
 })

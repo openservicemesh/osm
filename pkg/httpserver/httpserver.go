@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/openservicemesh/osm/pkg/debugger"
 	"github.com/openservicemesh/osm/pkg/health"
 	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 	"github.com/openservicemesh/osm/pkg/logger"
@@ -39,18 +38,12 @@ func NewHealthMux(handlers map[string]http.Handler) *http.ServeMux {
 }
 
 // NewHTTPServer creates a new API server
-func NewHTTPServer(probes []health.Probes, httpProbes []health.HTTPProbe, metricStore metricsstore.MetricStore, apiPort int32, debugServer debugger.DebugServer) *HTTPServer {
+func NewHTTPServer(probes []health.Probes, httpProbes []health.HTTPProbe, metricStore metricsstore.MetricStore, apiPort int32) *HTTPServer {
 	handlers := map[string]http.Handler{
 		"/health/ready": health.ReadinessHandler(probes, httpProbes),
 		"/health/alive": health.LivenessHandler(probes, httpProbes),
 		"/metrics":      metricStore.Handler(),
 		"/version":      getVersionHandler(),
-	}
-
-	if debugServer != nil {
-		for url, handler := range debugServer.GetHandlers() {
-			handlers[url] = handler
-		}
 	}
 
 	return &HTTPServer{

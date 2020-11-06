@@ -20,8 +20,8 @@ import (
 
 var log = logger.New("debugger")
 
-// debugServer implements the DebugServer interface.
-type debugServer struct {
+// debugConfig implements the DebugServer interface.
+type debugConfig struct {
 	certDebugger        CertificateManagerDebugger
 	xdsDebugger         XDSDebugger
 	meshCatalogDebugger MeshCatalogDebugger
@@ -61,8 +61,8 @@ type XDSDebugger interface {
 	GetXDSLog() *map[certificate.CommonName]map[envoy.TypeURI][]time.Time
 }
 
-// DebugServer is the interface of the Debug HTTP server.
-type DebugServer interface {
+// DebugConfig is the interface of the debug config for debug HTTP server
+type DebugConfig interface {
 	// GetHandlers returns the HTTP handlers available for the debug server.
 	GetHandlers() map[string]http.Handler
 }

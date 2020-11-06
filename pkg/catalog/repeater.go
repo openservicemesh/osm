@@ -23,7 +23,7 @@ func (mc *MeshCatalog) repeater() {
 					mc.handleAnnouncement(ann)
 				}
 
-				log.Info().Msgf("[repeater] Received announcement from %s", caseNames[chosenIdx])
+				log.Trace().Msgf("Received announcement from %s", caseNames[chosenIdx])
 				delta := time.Since(lastUpdateAt)
 				if delta >= updateAtMostEvery {
 					mc.broadcast(message)

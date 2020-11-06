@@ -20,13 +20,13 @@ var _ = Describe("Cluster configurations", func() {
 	mockCtrl = gomock.NewController(GinkgoT())
 	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
 
-	localService := tests.BookbuyerService
-	remoteService := tests.BookstoreV1Service
-	Context("Test getRemoteServiceCluster", func() {
+	downstreamSvc := tests.BookbuyerService
+	upstreamSvc := tests.BookstoreV1Service
+	Context("Test getUpstreamServiceCluster", func() {
 		It("Returns an EDS based cluster when permissive mode is disabled", func() {
 			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).Times(1)
 
-			remoteCluster, err := getRemoteServiceCluster(remoteService, localService, mockConfigurator)
+			remoteCluster, err := getUpstreamServiceCluster(upstreamSvc, downstreamSvc, mockConfigurator)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(remoteCluster.GetType()).To(Equal(xds_cluster.Cluster_EDS))
 			Expect(remoteCluster.LbPolicy).To(Equal(xds_cluster.Cluster_ROUND_ROBIN))
@@ -36,7 +36,7 @@ var _ = Describe("Cluster configurations", func() {
 		It("Returns an Original Destination based cluster when permissive mode is enabled", func() {
 			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(true).Times(1)
 
-			remoteCluster, err := getRemoteServiceCluster(remoteService, localService, mockConfigurator)
+			remoteCluster, err := getUpstreamServiceCluster(upstreamSvc, downstreamSvc, mockConfigurator)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(remoteCluster.GetType()).To(Equal(xds_cluster.Cluster_ORIGINAL_DST))
 			Expect(remoteCluster.LbPolicy).To(Equal(xds_cluster.Cluster_CLUSTER_PROVIDED))

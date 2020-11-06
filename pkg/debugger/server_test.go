@@ -23,7 +23,7 @@ func TestGetHandlers(t *testing.T) {
 	client := testclient.NewSimpleClientset()
 	mockKubeController := k8s.NewMockController(mockCtrl)
 
-	ds := NewDebugServer(mockCertDebugger,
+	ds := NewDebugConfig(mockCertDebugger,
 		mockXdsDebugger,
 		mockCatalogDebugger,
 		nil,

@@ -10,7 +10,7 @@ import (
 
 func TestCLIUtils(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Test Suite")
+	RunSpecs(t, "CLI-Utils Test Suite")
 }
 
 var oldEnv *string

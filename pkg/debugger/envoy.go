@@ -11,7 +11,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 )
 
-func (ds debugServer) getEnvoyConfig(pod *v1.Pod, cn certificate.CommonName, url string) string {
+func (ds debugConfig) getEnvoyConfig(pod *v1.Pod, cn certificate.CommonName, url string) string {
 	log.Info().Msgf("Getting Envoy config for CN=%s, podIP=%s", cn, pod.Status.PodIP)
 
 	minPort := 16000
