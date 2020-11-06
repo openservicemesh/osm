@@ -15,7 +15,7 @@ const (
 	proxyConfigQueryKey   = "cfg"
 )
 
-func (ds debugServer) getProxies() http.Handler {
+func (ds debugConfig) getProxies() http.Handler {
 	// This function is needed to convert the list of connected proxies to
 	// the type (map) required by the printProxies function.
 	listConnected := func() map[certificate.CommonName]time.Time {
@@ -59,7 +59,7 @@ func printProxies(w http.ResponseWriter, proxies map[certificate.CommonName]time
 	_, _ = fmt.Fprint(w, `</table>`)
 }
 
-func (ds debugServer) getConfigDump(cn certificate.CommonName, w http.ResponseWriter) {
+func (ds debugConfig) getConfigDump(cn certificate.CommonName, w http.ResponseWriter) {
 	pod, err := catalog.GetPodFromCertificate(cn, ds.kubeController)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error getting Pod from certificate with CN=%s", cn)
@@ -69,7 +69,7 @@ func (ds debugServer) getConfigDump(cn certificate.CommonName, w http.ResponseWr
 	_, _ = fmt.Fprintf(w, "%s", envoyConfig)
 }
 
-func (ds debugServer) getProxy(cn certificate.CommonName, w http.ResponseWriter) {
+func (ds debugConfig) getProxy(cn certificate.CommonName, w http.ResponseWriter) {
 	pod, err := catalog.GetPodFromCertificate(cn, ds.kubeController)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error getting Pod from certificate with CN=%s", cn)

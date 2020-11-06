@@ -309,6 +309,12 @@ type MeshCataloger interface {
 	// ListAllowedOutboundServices lists the services the given service is allowed outbound connections to.
 	ListAllowedOutboundServices(service.MeshService) ([]service.MeshService, error)
 
+	// ListAllowedInboundServiceAccounts lists the downstream service accounts that can connect to the given service account
+	ListAllowedInboundServiceAccounts(service.K8sServiceAccount) ([]service.K8sServiceAccount, error)
+
+	// ListAllowedOutboundServiceAccounts lists the upstream service accounts the given service account can connect to
+	ListAllowedOutboundServiceAccounts(service.K8sServiceAccount) ([]service.K8sServiceAccount, error)
+
 	// ListSMIPolicies lists SMI policies.
 	ListSMIPolicies() ([]*split.TrafficSplit, []service.WeightedService, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget)
 
@@ -497,6 +503,10 @@ type Manager interface {
 
 	// ListCertificates lists all certificates issued
 	ListCertificates() ([]Certificater, error)
+
+	// ReleaseCertificate informs the underlying certificate issuer that the given cert will no longer be needed.
+	// This method could be called when a given payload is terminated. Calling this should remove certs from cache and free memory if possible.
+	ReleaseCertificate(CommonName)
 
 	// GetAnnouncementsChannel returns a channel, which is used to announce when changes have been made to the issued certificates.
 	GetAnnouncementsChannel() <-chan interface{}

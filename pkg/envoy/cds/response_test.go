@@ -148,12 +148,12 @@ var _ = Describe("CDS Response", func() {
 		})
 
 		It("Returns a remote cluster object", func() {
-			localService := tests.BookbuyerService
-			remoteService := tests.BookstoreV1Service
+			downstreamSvc := tests.BookbuyerService
+			upstreamSvc := tests.BookstoreV1Service
 
 			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).Times(1)
 
-			remoteCluster, err := getRemoteServiceCluster(remoteService, localService, mockConfigurator)
+			remoteCluster, err := getUpstreamServiceCluster(upstreamSvc, downstreamSvc, mockConfigurator)
 			Expect(err).ToNot(HaveOccurred())
 
 			expectedClusterLoadAssignment := &xds_endpoint.ClusterLoadAssignment{
@@ -186,8 +186,8 @@ var _ = Describe("CDS Response", func() {
 			}
 
 			// Checking for the value by generating the same value the same way is reduntant
-			// Nonetheless, as getRemoteServiceCluster logic gets more complicated, this might just be ok to have
-			upstreamTLSProto, err := envoy.MessageToAny(envoy.GetUpstreamTLSContext(proxyService, remoteService.GetCommonName().String()))
+			// Nonetheless, as getUpstreamServiceCluster logic gets more complicated, this might just be ok to have
+			upstreamTLSProto, err := envoy.MessageToAny(envoy.GetUpstreamTLSContext(proxyService, upstreamSvc.ServerName()))
 			Expect(err).ToNot(HaveOccurred())
 
 			expectedCluster := xds_cluster.Cluster{
@@ -256,7 +256,7 @@ var _ = Describe("CDS Response", func() {
 					},
 					AlpnProtocols: envoy.ALPNInMesh,
 				},
-				Sni:                remoteService.GetCommonName().String(),
+				Sni:                upstreamSvc.ServerName(),
 				AllowRenegotiation: false,
 			}
 			Expect(upstreamTLSContext.CommonTlsContext.TlsParams).To(Equal(expectedTLSContext.CommonTlsContext.TlsParams))

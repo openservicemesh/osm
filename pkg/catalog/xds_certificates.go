@@ -1,6 +1,7 @@
 package catalog
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
@@ -16,7 +17,6 @@ import (
 
 // GetServicesFromEnvoyCertificate returns a list of services the given Envoy is a member of based on the certificate provided, which is a cert issued to an Envoy for XDS communication (not Envoy-to-Envoy).
 func (mc *MeshCatalog) GetServicesFromEnvoyCertificate(cn certificate.CommonName) ([]service.MeshService, error) {
-	var serviceList []service.MeshService
 	pod, err := GetPodFromCertificate(cn, mc.kubeController)
 	if err != nil {
 		return nil, err
@@ -27,27 +27,36 @@ func (mc *MeshCatalog) GetServicesFromEnvoyCertificate(cn certificate.CommonName
 		return nil, err
 	}
 
-	// Remove services that have been split into other services.
-	// Filters out services referenced in TrafficSplit.spec.service
-	services = mc.filterTrafficSplitServices(services)
-
 	if len(services) == 0 {
 		return makeSyntheticServiceForPod(pod, cn), nil
 	}
 
-	cnMeta, err := getCertificateCommonNameMeta(cn)
-	if err != nil {
-		return nil, err
-	}
+	// Remove services that have been split into other services.
+	// Filters out services referenced in TrafficSplit.spec.service
+	services = mc.filterTrafficSplitServices(services)
 
-	for _, svc := range services {
-		meshService := service.MeshService{
-			Namespace: cnMeta.Namespace,
+	meshServices := kubernetesServicesToMeshServices(services)
+
+	log.Trace().Msgf("Services associated with pod %s/%s: %+v", pod.Namespace, pod.Name, strings.Join(listServiceNames(meshServices), ","))
+
+	return meshServices, nil
+}
+
+func kubernetesServicesToMeshServices(kubernetesServices []v1.Service) (meshServices []service.MeshService) {
+	for _, svc := range kubernetesServices {
+		meshServices = append(meshServices, service.MeshService{
+			Namespace: svc.Namespace,
 			Name:      svc.Name,
-		}
-		serviceList = append(serviceList, meshService)
+		})
 	}
-	return serviceList, nil
+	return meshServices
+}
+
+func listServiceNames(meshServices []service.MeshService) (serviceNames []string) {
+	for _, meshService := range meshServices {
+		serviceNames = append(serviceNames, fmt.Sprintf("%s/%s", meshService.Namespace, meshService.Name))
+	}
+	return serviceNames
 }
 
 func makeSyntheticServiceForPod(pod *v1.Pod, proxyCommonName certificate.CommonName) []service.MeshService {
@@ -182,4 +191,18 @@ func getCertificateCommonNameMeta(cn certificate.CommonName) (*certificateCommon
 // NewCertCommonNameWithProxyID returns a newly generated CommonName for a certificate of the form: <ProxyUUID>.<serviceAccount>.<namespace>
 func NewCertCommonNameWithProxyID(proxyUUID uuid.UUID, serviceAccount, namespace string) certificate.CommonName {
 	return certificate.CommonName(strings.Join([]string{proxyUUID.String(), serviceAccount, namespace}, constants.DomainDelimiter))
+}
+
+// GetServiceAccountFromProxyCertificate returns the ServiceAccount information encoded in the certificate CN
+func GetServiceAccountFromProxyCertificate(cn certificate.CommonName) (service.K8sServiceAccount, error) {
+	var svcAccount service.K8sServiceAccount
+	cnMeta, err := getCertificateCommonNameMeta(cn)
+	if err != nil {
+		return svcAccount, err
+	}
+
+	svcAccount.Name = cnMeta.ServiceAccount
+	svcAccount.Namespace = cnMeta.Namespace
+
+	return svcAccount, nil
 }

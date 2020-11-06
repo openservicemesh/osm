@@ -6,8 +6,6 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-
-	"github.com/openservicemesh/osm/pkg/certificate"
 )
 
 const (
@@ -57,9 +55,9 @@ func UnmarshalMeshService(str string) (*MeshService, error) {
 	}, nil
 }
 
-// GetCommonName returns the Subject CN for the MeshService to be used for its certificate.
-func (ms MeshService) GetCommonName() certificate.CommonName {
-	return certificate.CommonName(strings.Join([]string{ms.Name, ms.Namespace, "svc", "cluster", "local"}, "."))
+// ServerName returns the Server Name Identifier (SNI) for TLS connections
+func (ms MeshService) ServerName() string {
+	return strings.Join([]string{ms.Name, ms.Namespace, "svc", "cluster", "local"}, ".")
 }
 
 // K8sServiceAccount is a type for a namespaced service account

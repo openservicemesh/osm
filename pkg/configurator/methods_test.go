@@ -14,8 +14,9 @@ import (
 
 var _ = Describe("Test Envoy configuration creation", func() {
 	testErrorEnvoyLogLevel := "error"
+	//noling: goconst
 	defaultConfigMap := map[string]string{
-		permissiveTrafficPolicyModeKey: "false",
+		PermissiveTrafficPolicyModeKey: "false",
 		egressKey:                      "true",
 		enableDebugServer:              "true",
 		prometheusScrapingKey:          "true",
@@ -83,7 +84,7 @@ var _ = Describe("Test Envoy configuration creation", func() {
 
 		It("correctly identifies that permissive_traffic_policy_mode is enabled", func() {
 			Expect(cfg.IsPermissiveTrafficPolicyMode()).To(BeFalse())
-			defaultConfigMap[permissiveTrafficPolicyModeKey] = "true"
+			defaultConfigMap[PermissiveTrafficPolicyModeKey] = "true"
 			configMap := v1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: osmNamespace,
@@ -105,7 +106,7 @@ var _ = Describe("Test Envoy configuration creation", func() {
 		})
 
 		It("correctly identifies that permissive_traffic_policy_mode is disabled", func() {
-			defaultConfigMap[permissiveTrafficPolicyModeKey] = "false"
+			defaultConfigMap[PermissiveTrafficPolicyModeKey] = "false" //nolint: goconst
 			configMap := v1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Namespace: osmNamespace,

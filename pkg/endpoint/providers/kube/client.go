@@ -65,8 +65,8 @@ func (c *Client) GetID() string {
 
 // ListEndpointsForService retrieves the list of IP addresses for the given service
 func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endpoint {
-	log.Info().Msgf("[%s] Getting Endpoints for service %s on Kubernetes", c.providerIdent, svc)
-	var endpoints []endpoint.Endpoint = []endpoint.Endpoint{}
+	log.Trace().Msgf("[%s] Getting Endpoints for service %s on Kubernetes", c.providerIdent, svc)
+	var endpoints []endpoint.Endpoint
 	endpointsInterface, exist, err := c.caches.Endpoints.GetByKey(svc.String())
 	if err != nil {
 		log.Error().Err(err).Msgf("[%s] Error fetching Kubernetes Endpoints from cache", c.providerIdent)
@@ -89,7 +89,7 @@ func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endp
 				for _, port := range kubernetesEndpoint.Ports {
 					ip := net.ParseIP(address.IP)
 					if ip == nil {
-						log.Error().Msgf("Error parsing IP address %s", address.IP)
+						log.Error().Msgf("[%s] Error parsing IP address %s", c.providerIdent, address.IP)
 						break
 					}
 					ept := endpoint.Endpoint{
@@ -106,7 +106,6 @@ func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endp
 
 // GetServicesForServiceAccount retrieves a list of services for the given service account.
 func (c Client) GetServicesForServiceAccount(svcAccount service.K8sServiceAccount) ([]service.MeshService, error) {
-	log.Info().Msgf("[%s] Getting Services for service account %s on Kubernetes", c.providerIdent, svcAccount)
 	services := mapset.NewSet()
 
 	for _, podInterface := range c.caches.Pods.List() {
@@ -127,7 +126,7 @@ func (c Client) GetServicesForServiceAccount(svcAccount service.K8sServiceAccoun
 
 		k8sServices, err := c.getServicesByLabels(podLabels, pod.Namespace)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error retrieving service matching labels %v in namespace %s", podLabels, pod.Namespace)
+			log.Error().Err(err).Msgf("[%s] Error retrieving service matching labels %v in namespace %s", c.providerIdent, podLabels, pod.Namespace)
 			return nil, err
 		}
 
@@ -144,9 +143,9 @@ func (c Client) GetServicesForServiceAccount(svcAccount service.K8sServiceAccoun
 		// This will ensure that all pods in the service account are represented as one service.
 		synthService := svcAccount.GetSyntheticService()
 		services.Add(synthService)
-		log.Info().Msgf("No services for service account %s in namespace %s; Adding synthetic service %s", svcAccount.Name, svcAccount.Namespace, synthService)
+		log.Trace().Msgf("[%s] No services for service account %s/%s; Adding synthetic service %s", c.providerIdent, svcAccount.Name, svcAccount.Namespace, synthService)
 	} else {
-		log.Info().Msgf("[%s] Services %v observed on service account %s on Kubernetes", c.providerIdent, services, svcAccount)
+		log.Trace().Msgf("[%s] Services for service account %s: %+v", c.providerIdent, svcAccount, services)
 	}
 
 	servicesSlice := make([]service.MeshService, 0, services.Cardinality())
@@ -181,12 +180,12 @@ func (c *Client) run(stop <-chan struct{}) error {
 			continue
 		}
 		names = append(names, name)
-		log.Debug().Msgf("Starting informer %s", name)
+		log.Info().Msgf("[%s] Starting informer %s", c.providerIdent, name)
 		go informer.Run(stop)
 		hasSynced = append(hasSynced, informer.HasSynced)
 	}
 
-	log.Info().Msgf("Waiting for informer's cache to sync: %+v", strings.Join(names, ", "))
+	log.Info().Msgf("[%s] Waiting for informer's cache to sync: %+v", c.providerIdent, strings.Join(names, ", "))
 	if !cache.WaitForCacheSync(stop, hasSynced...) {
 		return errSyncingCaches
 	}
@@ -194,7 +193,7 @@ func (c *Client) run(stop <-chan struct{}) error {
 	// Closing the cacheSynced channel signals to the rest of the system that... caches have been synced.
 	close(c.cacheSynced)
 
-	log.Info().Msgf("Cache sync finished for %+v", names)
+	log.Info().Msgf("[%s] Cache sync finished for %+v", c.providerIdent, names)
 	return nil
 }
 
@@ -227,25 +226,25 @@ func (c *Client) GetResolvableEndpointsForService(svc service.MeshService) ([]en
 	var err error
 
 	// Check if the service has been given Cluster IP
-	service := c.kubeController.GetService(svc)
-	if service == nil {
-		log.Error().Msgf("Could not find service %s", svc.String())
+	kubeService := c.kubeController.GetService(svc)
+	if kubeService == nil {
+		log.Error().Msgf("[%s] Could not find service %s", c.providerIdent, svc.String())
 		return nil, errServiceNotFound
 	}
 
-	if len(service.Spec.ClusterIP) == 0 {
+	if len(kubeService.Spec.ClusterIP) == 0 {
 		// If service has no cluster IP, use final endpoint as resolvable destinations
 		return c.ListEndpointsForService(svc), nil
 	}
 
 	// Cluster IP is present
-	ip := net.ParseIP(service.Spec.ClusterIP)
+	ip := net.ParseIP(kubeService.Spec.ClusterIP)
 	if ip == nil {
-		log.Error().Msgf("Could not parse Cluster IP %s", service.Spec.ClusterIP)
+		log.Error().Msgf("[%s] Could not parse Cluster IP %s", c.providerIdent, kubeService.Spec.ClusterIP)
 		return nil, errParseClusterIP
 	}
 
-	for _, svcPort := range service.Spec.Ports {
+	for _, svcPort := range kubeService.Spec.Ports {
 		endpoints = append(endpoints, endpoint.Endpoint{
 			IP:   ip,
 			Port: endpoint.Port(svcPort.Port),

@@ -31,7 +31,7 @@ var _ = Describe("Test LDS response", func() {
 		})
 
 		It("constructs filter chain used for HTTPS ingress", func() {
-			expectedServerNames := []string{tests.BookstoreV1Service.GetCommonName().String()}
+			expectedServerNames := []string{tests.BookstoreV1Service.ServerName()}
 
 			mockConfigurator.EXPECT().UseHTTPSIngress().Return(true).AnyTimes()
 
@@ -67,7 +67,7 @@ var _ = Describe("Test LDS response", func() {
 			filterChain, err := getInboundInMeshFilterChain(tests.BookstoreV1Service, mockConfigurator)
 			Expect(err).ToNot(HaveOccurred())
 
-			expectedServerNames := []string{tests.BookstoreV1Service.GetCommonName().String()}
+			expectedServerNames := []string{tests.BookstoreV1Service.ServerName()}
 
 			// Show what this looks like (human readable)!  And ensure this is setup correctly!
 			Expect(expectedServerNames[0]).To(Equal("bookstore-v1.default.svc.cluster.local"))
@@ -77,7 +77,7 @@ var _ = Describe("Test LDS response", func() {
 
 			// Ensure the UpstreamTlsContext.Sni field from the client matches one of the strings
 			// in the servers FilterChainMatch.ServerNames
-			tlsContext := envoy.GetUpstreamTLSContext(tests.BookbuyerService, tests.BookstoreV1Service.GetCommonName().String())
+			tlsContext := envoy.GetUpstreamTLSContext(tests.BookbuyerService, tests.BookstoreV1Service.ServerName())
 			Expect(tlsContext.Sni).To(Equal(filterChain.FilterChainMatch.ServerNames[0]))
 
 			// Show what that actually looks like

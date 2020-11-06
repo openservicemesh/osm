@@ -46,7 +46,7 @@ OSM runs an Envoy based control plane on Kubernetes, can be configured with SMI 
 1. Easily and transparently configure [traffic shifting][3] for deployments
 1. Secure service to service communication by [enabling mTLS](docs/patterns/certificates.md)
 1. Define and execute fine grained [access control][4] policies for services
-1. [Observability](docs/patterns/observability.md) and insights into application metrics for debugging and monitoring services
+1. [Observability](docs/patterns/observability/README.md) and insights into application metrics for debugging and monitoring services
 1. Integrate with [external certificate management](docs/patterns/certificates.md) services/solutions with a pluggable interface
 1. Onboard applications onto the mesh by enabling [automatic sidecar injection](docs/patterns/sidecar_injection.md) of Envoy proxy
 
@@ -108,7 +108,7 @@ After installing OSM, [onboard a microservice application](docs/onboard_services
 ### OSM Usage Patterns
 
 1. [Ingress](docs/patterns/ingress.md) and [Egress](docs/patterns/egress.md)
-1. [Observability](docs/patterns/observability.md)
+1. [Observability](docs/patterns/observability/README.md)
 1. [Certificates](docs/patterns/certificates.md)
 1. [Sidecar Injection](docs/patterns/sidecar_injection.md)
 

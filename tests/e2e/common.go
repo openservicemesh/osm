@@ -67,14 +67,22 @@ var (
 	defaultDeployFluentbit = false
 )
 
-func DescribeTierN(tier uint) func(string, func()) bool {
-	return func(name string, body func()) bool {
-		return Describe(fmt.Sprintf("[Tier %d] %s", tier, name), body)
-	}
+type OSMDescribeInfo struct {
+	// tier represents the priority of the test. Lower value indicates higher priority.
+	tier int
+
+	// bucket indicates in which test bucket the test will run in for CI. Each
+	// bucket is run in parallel while tests in the same bucket run sequentially.
+	bucket int
 }
 
-var DescribeTier1 = DescribeTierN(1)
-var DescribeTier2 = DescribeTierN(2)
+func (o OSMDescribeInfo) String() string {
+	return fmt.Sprintf("[Tier %d][Bucket %d]", o.tier, o.bucket)
+}
+
+func OSMDescribe(name string, opts OSMDescribeInfo, body func()) bool {
+	return Describe(opts.String()+" "+name, body)
+}
 
 // InstallType defines several OSM test deployment scenarios
 type InstallType string

@@ -10,7 +10,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy"
 )
 
-func (ds debugServer) getXDSHandler() http.Handler {
+func (ds debugConfig) getXDSHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		xdsLog := ds.xdsDebugger.GetXDSLog()
 

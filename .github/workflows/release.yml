@@ -24,6 +24,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
       - name: Restore Module Cache
         uses: actions/cache@v2
         with:
@@ -43,12 +45,15 @@ jobs:
       - name: Build Binaries
         run: |
           make release-artifacts
+      - name: Generate Release Notes
+        run: scripts/release-notes.sh $VERSION > release-notes.md
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
         with:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
+          body_path: release-notes.md
       - name: Upload macOS .zip
         uses: actions/upload-release-asset@v1
         with:

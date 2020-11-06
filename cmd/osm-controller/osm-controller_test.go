@@ -2,74 +2,259 @@ package main
 
 import (
 	"context"
-	"time"
+	"net/http"
+	"strconv"
+	"sync"
+	"testing"
 
 	"github.com/golang/mock/gomock"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/stretchr/testify/assert"
+
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/debugger"
 )
 
-var _ = Describe("Test creation of CA bundle k8s secret", func() {
-	var (
-		mockCtrl         *gomock.Controller
-		mockConfigurator *configurator.MockConfigurator
-	)
-	mockCtrl = gomock.NewController(GinkgoT())
+const (
+	validRoutePath       = "/debug/test1"
+	testOSMNamespace     = "-test-osm-namespace-"
+	testOSMConfigMapName = "-test-osm-config-map-"
+)
 
-	Context("Testing createCABundleKubernetesSecret", func() {
-		mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
-		mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(1 * time.Hour).AnyTimes()
+func TestConfigureDebugServerStart(t *testing.T) {
+	assert := assert.New(t)
 
-		It("creates a k8s secret", func() {
+	// set up a controller
+	mockCtrl := gomock.NewController(t)
+	stop := make(chan struct{})
 
-			cache := make(map[certificate.CommonName]certificate.Certificater)
-			certManager := tresor.NewFakeCertManager(&cache, mockConfigurator)
-			secretName := "--secret--name--"
-			namespace := "--namespace--"
-			k8sClient := testclient.NewSimpleClientset()
+	kubeClient, _, cfg, err := setupComponents(testOSMNamespace, testOSMConfigMapName, false, stop)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var wg sync.WaitGroup
 
-			err := createOrUpdateCABundleKubernetesSecret(k8sClient, certManager, namespace, secretName)
-			Expect(err).ToNot(HaveOccurred())
+	fakeDebugServer := FakeDebugServer{0, 0, nil, &wg}
+	con := &controller{
+		debugServerRunning: false,
+		debugComponents:    mockDebugConfig(mockCtrl),
+		debugServer:        &fakeDebugServer,
+	}
+	wg.Add(1)
+	go con.configureDebugServer(cfg)
 
-			actual, err := k8sClient.CoreV1().Secrets(namespace).Get(context.Background(), secretName, v1.GetOptions{})
-			Expect(err).ToNot(HaveOccurred())
-			expected := "-----BEGIN CERTIFICATE-----\nMIID"
-			stringPEM := string(actual.Data[constants.KubernetesOpaqueSecretCAKey])[:len(expected)]
-			Expect(stringPEM).To(Equal(expected))
+	updatedConfigMap := v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: testOSMNamespace,
+			Name:      testOSMConfigMapName,
+		},
+		Data: map[string]string{
+			"enable_debug_server": "true",
+		},
+	}
+	_, err = kubeClient.CoreV1().ConfigMaps(testOSMNamespace).Update(context.TODO(), &updatedConfigMap, metav1.UpdateOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	wg.Wait()
 
-			expectedRootCert, err := certManager.GetRootCertificate()
-			Expect(err).ToNot(HaveOccurred())
-			Expect(actual.Data[constants.KubernetesOpaqueSecretCAKey]).To(Equal(expectedRootCert.GetCertificateChain()))
-		})
-	})
-})
+	close(stop)
+	assert.Equal(1, fakeDebugServer.startCount)
+	assert.Equal(0, fakeDebugServer.stopCount)
+	assert.True(con.debugServerRunning)
+	assert.NotNil(con.debugServer)
+}
 
-var _ = Describe("Test joining of URL paths", func() {
-	It("should correctly join URL paths", func() {
-		final := joinURL("http://foo", "/bar")
-		Expect(final).To(Equal("http://foo/bar"))
-	})
+func TestConfigureDebugServerStop(t *testing.T) {
+	assert := assert.New(t)
 
-	It("should correctly join URL paths", func() {
-		final := joinURL("http://foo/", "/bar")
-		Expect(final).To(Equal("http://foo/bar"))
-	})
+	// set up a controller
+	mockCtrl := gomock.NewController(t)
+	stop := make(chan struct{})
 
-	It("should correctly join URL paths", func() {
-		final := joinURL("http://foo/", "bar")
-		Expect(final).To(Equal("http://foo/bar"))
-	})
+	kubeClient, _, cfg, err := setupComponents(testOSMNamespace, testOSMConfigMapName, true, stop)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var wg sync.WaitGroup
 
-	It("should correctly join URL paths", func() {
-		final := joinURL("http://foo", "bar")
-		Expect(final).To(Equal("http://foo/bar"))
-	})
-})
+	fakeDebugServer := FakeDebugServer{0, 0, nil, &wg}
+	con := &controller{
+		debugServerRunning: true,
+		debugComponents:    mockDebugConfig(mockCtrl),
+		debugServer:        &fakeDebugServer,
+	}
+	wg.Add(1)
+
+	go con.configureDebugServer(cfg)
+
+	updatedConfigMap := v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: testOSMNamespace,
+			Name:      testOSMConfigMapName,
+		},
+		Data: map[string]string{
+			"enable_debug_server": "false",
+		},
+	}
+	_, err = kubeClient.CoreV1().ConfigMaps(testOSMNamespace).Update(context.TODO(), &updatedConfigMap, metav1.UpdateOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	wg.Wait()
+
+	close(stop)
+	assert.Equal(0, fakeDebugServer.startCount)
+	assert.Equal(1, fakeDebugServer.stopCount)
+	assert.False(con.debugServerRunning)
+	assert.Nil(con.debugServer)
+}
+
+func TestConfigureDebugServerErr(t *testing.T) {
+	assert := assert.New(t)
+
+	// set up a controller
+	mockCtrl := gomock.NewController(t)
+	stop := make(chan struct{})
+
+	kubeClient, _, cfg, err := setupComponents(testOSMNamespace, testOSMConfigMapName, true, stop)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var wg sync.WaitGroup
+
+	fakeDebugServer := FakeDebugServer{0, 0, errors.Errorf("Debug server error"), &wg}
+	con := &controller{
+		debugServerRunning: true,
+		debugComponents:    mockDebugConfig(mockCtrl),
+		debugServer:        &fakeDebugServer,
+	}
+	wg.Add(1)
+	go con.configureDebugServer(cfg)
+
+	updatedConfigMap := v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: testOSMNamespace,
+			Name:      testOSMConfigMapName,
+		},
+		Data: map[string]string{
+			"enable_debug_server": "false",
+		},
+	}
+	_, err = kubeClient.CoreV1().ConfigMaps(testOSMNamespace).Update(context.TODO(), &updatedConfigMap, metav1.UpdateOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	wg.Wait()
+
+	close(stop)
+	assert.Equal(0, fakeDebugServer.startCount)
+	assert.Equal(1, fakeDebugServer.stopCount)
+	assert.False(con.debugServerRunning)
+	assert.NotNil(con.debugServer)
+}
+
+func TestCreateCABundleKubernetesSecret(t *testing.T) {
+	assert := assert.New(t)
+
+	cache := make(map[certificate.CommonName]certificate.Certificater)
+	certManager := tresor.NewFakeCertManager(&cache, nil)
+	testName := "--secret--name--"
+	namespace := "--namespace--"
+	k8sClient := testclient.NewSimpleClientset()
+
+	err := createOrUpdateCABundleKubernetesSecret(k8sClient, certManager, namespace, testName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	actual, err := k8sClient.CoreV1().Secrets(namespace).Get(context.Background(), testName, metav1.GetOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	expected := "-----BEGIN CERTIFICATE-----\nMIID"
+	stringPEM := string(actual.Data[constants.KubernetesOpaqueSecretCAKey])[:len(expected)]
+	assert.Equal(stringPEM, expected)
+
+	expectedRootCert, err := certManager.GetRootCertificate()
+	assert.Nil(err)
+	assert.Equal(actual.Data[constants.KubernetesOpaqueSecretCAKey], expectedRootCert.GetCertificateChain())
+}
+
+func TestJoinURL(t *testing.T) {
+	assert := assert.New(t)
+	type joinURLtest struct {
+		baseURL        string
+		path           string
+		expectedOutput string
+	}
+	joinURLtests := []joinURLtest{
+		{"http://foo", "/bar", "http://foo/bar"},
+		{"http://foo/", "/bar", "http://foo/bar"},
+		{"http://foo/", "bar", "http://foo/bar"},
+		{"http://foo", "bar", "http://foo/bar"},
+	}
+
+	for _, ju := range joinURLtests {
+		result := joinURL(ju.baseURL, ju.path)
+		assert.Equal(result, ju.expectedOutput)
+	}
+}
+
+type FakeDebugServer struct {
+	stopCount  int
+	startCount int
+	stopErr    error
+
+	wg *sync.WaitGroup
+}
+
+func (f *FakeDebugServer) Stop() error {
+	f.stopCount++
+	f.wg.Done()
+	if f.stopErr != nil {
+		return errors.Errorf("Debug server error")
+	}
+	return nil
+}
+
+func (f *FakeDebugServer) Start() {
+	f.startCount++
+	f.wg.Done()
+}
+
+func mockDebugConfig(mockCtrl *gomock.Controller) *debugger.MockDebugServer {
+	mockDebugConfig := debugger.NewMockDebugServer(mockCtrl)
+	mockDebugConfig.EXPECT().GetHandlers().Return(map[string]http.Handler{
+		validRoutePath: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}),
+	}).AnyTimes()
+	return mockDebugConfig
+}
+
+func setupComponents(namespace, configMapName string, initialDebugServerEnabled bool, stop chan struct{}) (*testclient.Clientset, v1.ConfigMap, configurator.Configurator, error) {
+	kubeClient := testclient.NewSimpleClientset()
+
+	defaultConfigMap := map[string]string{
+		"enable_debug_server": strconv.FormatBool(initialDebugServerEnabled),
+	}
+	configMap := v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      configMapName,
+		},
+		Data: defaultConfigMap,
+	}
+	_, err := kubeClient.CoreV1().ConfigMaps(namespace).Create(context.TODO(), &configMap, metav1.CreateOptions{})
+	if err != nil {
+		return kubeClient, configMap, nil, err
+	}
+	cfg := configurator.NewConfigurator(kubeClient, stop, namespace, configMapName)
+	return kubeClient, configMap, cfg, nil
+}

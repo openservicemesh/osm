@@ -69,6 +69,9 @@ const (
 	// MetricsServerPort is the port on which OSM exposes its own metrics server
 	MetricsServerPort = 9091
 
+	//DebugPort is the port on which OSM exposes its debug server
+	DebugPort = 9092
+
 	// OSMControllerName is the name of the OSM Controller (formerly ADS service).
 	OSMControllerName = "osm-controller"
 
@@ -133,6 +136,10 @@ const (
 
 	// InitContainerName is the name of the init container
 	InitContainerName = "osm-init"
+
+	// EnvoyServiceNodeSeparator is the character separating the strings used to create an Envoy service node parameter.
+	// Example use: envoy --service-node 52883c80-6e0d-4c64-b901-cbcb75134949/bookstore/10.144.2.91/bookstore-v1/bookstore-v1
+	EnvoyServiceNodeSeparator = "/"
 )
 
 // Annotations used by the controller
