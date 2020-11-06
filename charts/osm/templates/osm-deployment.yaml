@@ -15,8 +15,16 @@ spec:
     metadata:
       labels:
         app: osm-controller
+      annotations:
+          checksum/config: {{ print .Values.openServiceMesh | sha256sum }}
+          seccomp.security.alpha.kubernetes.io/pod: runtime/default
     spec:
       serviceAccountName: {{ .Release.Name }}
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 3000
+        fsGroup: 2000
+        supplementalGroups: [5555]
       containers:
         - name: osm-controller
           image: "{{ .Values.OpenServiceMesh.image.registry }}/osm-controller:{{ .Values.OpenServiceMesh.image.tag }}"
@@ -33,12 +41,14 @@ spec:
             "--mesh-name", "{{.Values.OpenServiceMesh.meshName}}",
             "--init-container-image", "{{.Values.OpenServiceMesh.image.registry}}/init:{{ .Values.OpenServiceMesh.image.tag }}",
             "--sidecar-image", "{{.Values.OpenServiceMesh.sidecarImage}}",
-            "--webhook-config-name", "osm-webhook-{{.Values.OpenServiceMesh.meshName}}",
+            "--webhook-config-name", "{{.Values>openServiceMesh.webhookName}}-{{.Values.OpenServiceMesh.meshName}}",
             "--ca-bundle-secret-name", "{{.Values.OpenServiceMesh.caBundleSecretName}}",
             "--certificate-manager", "{{.Values.OpenServiceMesh.certificateManager}}",
+            {{- if .Values.OpenServiceMesh.connectVault }}
             "--vault-host", "{{.Values.OpenServiceMesh.vault.host}}",
             "--vault-protocol", "{{.Values.OpenServiceMesh.vault.protocol}}",
             "--vault-token", "{{.Values.OpenServiceMesh.vault.token}}",
+            {{- end }}
             "--cert-manager-issuer-name", "{{.Values.OpenServiceMesh.certmanager.issuerName}}",
             "--cert-manager-issuer-kind", "{{.Values.OpenServiceMesh.certmanager.issuerKind}}",
             "--cert-manager-issuer-group", "{{.Values.OpenServiceMesh.certmanager.issuerGroup}}",
@@ -73,6 +83,8 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
+          securityContext:
+            allowPrivilegeEscalation: false
       {{- if .Values.OpenServiceMesh.enableFluentbit }}
         - name: {{ .Values.OpenServiceMesh.fluentBitImage.name }}
           image: {{ .Values.OpenServiceMesh.fluentBitImage.registry }}/fluent-bit:{{ .Values.OpenServiceMesh.fluentBitImage.tag }}

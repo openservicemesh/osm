@@ -19,6 +19,7 @@ OpenServiceMesh:
     protocol: http
     token:
     role: openservicemesh
+  connectVault: true
   certmanager:
     issuerName: osm-ca
     issuerKind: Issuer
@@ -44,6 +45,9 @@ OpenServiceMesh:
   useHTTPSIngress: false
   envoyLogLevel: error
   enforceSingleMesh: false
+  customLogAnalyticsWorkspace: true
+  fluentbitOutput: stdout
+  webhookName: osm-webhook
 
   # Set deployJaeger to true to deploy a Jaeger cluster in the
   # namespace where OSM resides.

@@ -3,7 +3,7 @@ kind: MutatingWebhookConfiguration
 metadata:
   labels:
     app: osm-controller
-  name: osm-webhook-{{.Values.OpenServiceMesh.meshName}}
+  name: {{.Values.OpenServiceMesh.webhookName}}-{{.Values.OpenServiceMesh.meshName}}
 webhooks:
 - name: osm-inject.k8s.io
   clientConfig:
