@@ -18,22 +18,26 @@ import (
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
+// makeService creates a new service for a set of pods with matching selectors
 func makeService(kubeClient kubernetes.Interface, svcName string) {
-	// Create a service for the pod created above
+	// These selectors must match the POD(s) created
 	selectors := map[string]string{
-		// These need to match the POD created above
 		tests.SelectorKey: tests.SelectorValue,
 	}
+
 	// The serviceName must match the SMI
 	service := tests.NewServiceFixture(svcName, tests.Namespace, selectors)
 	_, err := kubeClient.CoreV1().Services(tests.Namespace).Create(context.TODO(), service, metav1.CreateOptions{})
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 }
 
+// makePod creates a pod
 func makePod(kubeClient kubernetes.Interface, namespace, podName, serviceAccountName, proxyUUID string) (*v1.Pod, error) {
-	// Create a pod to match the CN
+
 	requestedPod := tests.NewPodTestFixtureWithOptions(namespace, podName, serviceAccountName)
-	requestedPod.Labels[constants.EnvoyUniqueIDLabelName] = proxyUUID // This is what links the Pod and the Certificate
+
+	// The proxyUUID links the Pod and the Certificate created for it
+	requestedPod.Labels[constants.EnvoyUniqueIDLabelName] = proxyUUID
 	createdPod, err := kubeClient.CoreV1().Pods(namespace).Create(context.TODO(), &requestedPod, metav1.CreateOptions{})
 	if err != nil {
 		return nil, err
