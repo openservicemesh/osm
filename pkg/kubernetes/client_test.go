@@ -3,7 +3,9 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"time"
 
+	mapset "github.com/deckarep/golang-set"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -17,6 +19,10 @@ import (
 
 var (
 	testMeshName = "mesh"
+)
+
+const (
+	nsInformerSyncTimeout = 3 * time.Second
 )
 
 var _ = Describe("Test Namespace KubeController Methods", func() {
@@ -49,12 +55,12 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 			}
 			_, err = kubeClient.CoreV1().Namespaces().Create(context.TODO(), &testNamespace, metav1.CreateOptions{})
 			Expect(err).To(BeNil())
-			<-kubeController.GetAnnouncementsChannel(Namespaces)
 
-			monitoredNamespaces, err := kubeController.ListMonitoredNamespaces()
-			Expect(err).ToNot(HaveOccurred())
-			Expect(len(monitoredNamespaces)).To(Equal(1))
-			Expect(testNamespaceName).To(BeElementOf(monitoredNamespaces))
+			// Eventually asserts that all return values apart from the first value are nil or zero-valued,
+			// so asserting that an error is nil is implicit.
+			Eventually(func() ([]string, error) {
+				return kubeController.ListMonitoredNamespaces()
+			}, nsInformerSyncTimeout).Should(Equal([]string{testNamespaceName}))
 		})
 	})
 
@@ -79,21 +85,20 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 			// Create it
 			nsCreate, err := kubeClient.CoreV1().Namespaces().Create(context.TODO(), &testNamespace, metav1.CreateOptions{})
 			Expect(err).To(BeNil())
-			<-kubeController.GetAnnouncementsChannel(Namespaces)
 
 			// Check it is present
-			ns := kubeController.GetNamespace(testNamespaceName)
-			Expect(ns).ToNot(BeNil())
-			Expect(*ns).To(Equal(*nsCreate))
+			Eventually(func() *corev1.Namespace {
+				return kubeController.GetNamespace(testNamespaceName)
+			}, nsInformerSyncTimeout).Should(Equal(nsCreate))
 
 			// Delete it
 			err = kubeClient.CoreV1().Namespaces().Delete(context.TODO(), testNamespaceName, metav1.DeleteOptions{})
 			Expect(err).To(BeNil())
-			<-kubeController.GetAnnouncementsChannel(Namespaces)
 
 			// Check it is gone
-			ns = kubeController.GetNamespace(testNamespaceName)
-			Expect(ns).To(BeNil())
+			Eventually(func() *corev1.Namespace {
+				return kubeController.GetNamespace(testNamespaceName)
+			}, nsInformerSyncTimeout).Should(BeNil())
 		})
 	})
 
@@ -117,10 +122,10 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 
 			_, err = kubeClient.CoreV1().Namespaces().Create(context.TODO(), &testNamespace, metav1.CreateOptions{})
 			Expect(err).To(BeNil())
-			<-kubeController.GetAnnouncementsChannel(Namespaces)
 
-			namespaceIsMonitored := kubeController.IsMonitoredNamespace(testNamespaceName)
-			Expect(namespaceIsMonitored).To(BeTrue())
+			Eventually(func() bool {
+				return kubeController.IsMonitoredNamespace(testNamespaceName)
+			}, nsInformerSyncTimeout).Should(BeTrue())
 
 			fakeNamespaceIsMonitored := kubeController.IsMonitoredNamespace("fake")
 			Expect(fakeNamespaceIsMonitored).ToNot(BeTrue())
@@ -151,7 +156,6 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 			}
 			_, err := kubeClient.CoreV1().Namespaces().Create(context.TODO(), &testNamespace, metav1.CreateOptions{})
 			Expect(err).To(BeNil())
-			<-kubeController.GetAnnouncementsChannel(Namespaces)
 
 			svc := tests.NewServiceFixture(meshSvc.Name, meshSvc.Namespace, nil)
 			_, err = kubeClient.CoreV1().Services(meshSvc.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{})
@@ -190,21 +194,28 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 				tests.BookwarehouseService,
 			}
 
+			// Test services could belong to the same namespace, so ensure we create a list of unique namespaces
+			testNamespaces := mapset.NewSet()
+			for _, svc := range testSvcs {
+				testNamespaces.Add(svc.Namespace)
+			}
+
 			// Add namespace if doesn't exist
-			for _, svcAdd := range testSvcs {
-				if kubeController.IsMonitoredNamespace(svcAdd.Namespace) {
+			for ns := range testNamespaces.Iter() {
+				namespace := ns.(string)
+
+				if kubeController.IsMonitoredNamespace(namespace) {
 					continue
 				}
 
 				testNamespace := corev1.Namespace{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:   svcAdd.Namespace,
+						Name:   namespace,
 						Labels: map[string]string{constants.OSMKubeResourceMonitorAnnotation: testMeshName},
 					},
 				}
 				_, err = kubeClient.CoreV1().Namespaces().Create(context.TODO(), &testNamespace, metav1.CreateOptions{})
 				Expect(err).To(BeNil())
-				<-kubeController.GetAnnouncementsChannel(Namespaces)
 			}
 
 			// Add services

@@ -52,11 +52,8 @@ func (c *Client) initNamespaceMonitor() {
 	// Add informer
 	c.informers[Namespaces] = informerFactory.Core().V1().Namespaces().Informer()
 
-	// Announcement channel for Namespaces
-	c.announcements[Namespaces] = make(chan interface{})
-
 	// Add event handler to informer
-	c.informers[Namespaces].AddEventHandler(GetKubernetesEventHandlers((string)(Namespaces), ProviderName, c.announcements[Namespaces], nil))
+	c.informers[Namespaces].AddEventHandler(GetKubernetesEventHandlers((string)(Namespaces), ProviderName, nil, nil))
 }
 
 // Initializes Service monitoring

@@ -70,7 +70,6 @@ func bootstrapClient() (MeshSpec, *fakeKubeClientSet, error) {
 	if _, err := kubeClient.CoreV1().Namespaces().Create(context.TODO(), &testNamespace, metav1.CreateOptions{}); err != nil {
 		GinkgoT().Fatalf("Error creating Namespace %v: %s", testNamespace, err.Error())
 	}
-	<-kubernetesClient.GetAnnouncementsChannel(k8s.Namespaces)
 
 	meshSpec, err := newSMIClient(
 		kubeClient,
