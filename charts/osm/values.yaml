@@ -47,7 +47,7 @@ OpenServiceMesh:
   enforceSingleMesh: false
   customLogAnalyticsWorkspace: true
   fluentbitOutput: stdout
-  webhooConfigNamePrefix: osm-webhook
+  webhookConfigNamePrefix: osm-webhook
 
   # Set deployJaeger to true to deploy a Jaeger cluster in the
   # namespace where OSM resides.
