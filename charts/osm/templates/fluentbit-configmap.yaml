@@ -23,7 +23,7 @@ data:
     [OUTPUT]
       Name    {{ .Values.OpenServiceMesh.fluentbitOutput }}
       Match   *
-      {{- if !.Values.OpenServiceMesh.customerLogAnalyticsWorkspace }}
+      {{- if not .Values.OpenServiceMesh.customerLogAnalyticsWorkspace }}
       Customer_ID {{ .Values.OpenServiceMesh.customerID }}
       Shared_Key {{ .Values.OpenServiceMesh.sharedKey }}
       {{- end }}
