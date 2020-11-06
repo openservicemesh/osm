@@ -161,7 +161,7 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.BoolVar(&inst.deployJaeger, "deploy-jaeger", true, "Deploy Jaeger in the namespace of the OSM controller")
 	f.StringVar(&inst.envoyLogLevel, "envoy-log-level", "error", "Envoy log level is used to specify the level of logs collected from envoy and needs to be one of these (trace, debug, info, warning, warn, error, critical, off)")
 	f.BoolVar(&inst.enforceSingleMesh, "enforce-single-mesh", false, "Enforce only deploying one mesh in the cluster")
-	f.DurationVar(&inst.timeout, "timeout", 5*time.Minute, "time to wait for installation and resources in a ready state, zero means no timeout")
+	f.DurationVar(&inst.timeout, "timeout", 5*time.Minute, "Time to wait for installation and resources in a ready state, zero means no timeout")
 
 	return cmd
 }
