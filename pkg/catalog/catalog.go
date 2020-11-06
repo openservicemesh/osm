@@ -50,7 +50,6 @@ func (mc *MeshCatalog) getAnnouncementChannels() []announcementChannel {
 		{"CertManager", mc.certManager.GetAnnouncementsChannel()},
 		{"IngressMonitor", mc.ingressMonitor.GetAnnouncementsChannel()},
 		{"Ticker", ticking},
-		{"Namespace", mc.kubeController.GetAnnouncementsChannel(k8s.Namespaces)},
 		{"Services", mc.kubeController.GetAnnouncementsChannel(k8s.Services)},
 	}
 
