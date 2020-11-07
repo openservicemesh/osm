@@ -3,9 +3,12 @@ package kubernetes
 import (
 	"reflect"
 
+	mapset "github.com/deckarep/golang-set"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
@@ -196,4 +199,33 @@ func (c Client) ListPods() []*corev1.Pod {
 		pods = append(pods, pod)
 	}
 	return pods
+}
+
+// ListServiceAccountsForService lists ServiceAccounts associated with the given service
+func (c Client) ListServiceAccountsForService(svc service.MeshService) ([]service.K8sServiceAccount, error) {
+	var svcAccounts []service.K8sServiceAccount
+
+	k8sSvc := c.GetService(svc)
+	if k8sSvc == nil {
+		return nil, errors.Errorf("Error fetching service %q: %s", svc, errServiceNotFound)
+	}
+
+	svcAccountsSet := mapset.NewSet()
+	pods := c.ListPods()
+	for _, pod := range pods {
+		svcRawSelector := k8sSvc.Spec.Selector
+		selector := labels.Set(svcRawSelector).AsSelector()
+		if selector.Matches(labels.Set(pod.Labels)) {
+			podSvcAccount := service.K8sServiceAccount{
+				Name:      pod.Spec.ServiceAccountName,
+				Namespace: pod.Namespace, // ServiceAccount must belong to the same namespace as the pod
+			}
+			svcAccountsSet.Add(podSvcAccount)
+		}
+	}
+
+	for svcAcc := range svcAccountsSet.Iter() {
+		svcAccounts = append(svcAccounts, svcAcc.(service.K8sServiceAccount))
+	}
+	return svcAccounts, nil
 }
