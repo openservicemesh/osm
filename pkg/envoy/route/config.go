@@ -3,7 +3,6 @@ package route
 import (
 	"fmt"
 	"sort"
-	"strings"
 
 	set "github.com/deckarep/golang-set"
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
@@ -47,62 +46,122 @@ const (
 	httpHostHeader = "host"
 )
 
-//UpdateRouteConfiguration consrtucts the Envoy construct necessary for TrafficTarget implementation
-func UpdateRouteConfiguration(domainRoutesMap map[string]map[string]trafficpolicy.RouteWeightedClusters, routeConfig *xds_route.RouteConfiguration, direction Direction) {
-	log.Trace().Msgf("[RDS] Updating Route Configuration")
-	var virtualHostPrefix string
+// BuildRouteConfiguration constructs the Envoy constructs ([]*xds_route.RouteConfiguration) for implementing inbound and outbound routes
+func BuildRouteConfiguration(inbound []*trafficpolicy.TrafficPolicy, outbound []*trafficpolicy.TrafficPolicy) []*xds_route.RouteConfiguration {
+	routeConfiguration := []*xds_route.RouteConfiguration{}
 
-	switch direction {
-	case OutboundRoute:
-		virtualHostPrefix = outboundVirtualHost
+	if len(inbound) > 0 {
+		inboundRouteConfig := NewRouteConfigurationStub(InboundRouteConfigName)
 
-	case InboundRoute:
-		virtualHostPrefix = inboundVirtualHost
+		for _, in := range inbound {
+			virtualHost := createVirtualHostStub(inboundVirtualHost, in.Destination.Name, in.Hostnames) // domains -> trafficpolicy.Hostnames
+			virtualHost.Routes = createRoutes(in.HTTPRoutesClusters, InboundRoute)
+			inboundRouteConfig.VirtualHosts = append(inboundRouteConfig.VirtualHosts, virtualHost)
+		}
+		log.Debug().Msgf("LEN inbound Virtual Hosts %v from total inbound %v", len(inboundRouteConfig.VirtualHosts), len(inbound))
 
-	default:
-		log.Error().Msgf("Invalid route direction: %v", direction)
-		return
+		routeConfiguration = append(routeConfiguration, inboundRouteConfig)
 	}
 
-	for host, routePolicyWeightedClustersMap := range domainRoutesMap {
-		domains := getDistinctDomains(routePolicyWeightedClustersMap)
-		virtualHost := createVirtualHostStub(virtualHostPrefix, host, domains)
-		virtualHost.Routes = createRoutes(routePolicyWeightedClustersMap, direction)
-		routeConfig.VirtualHosts = append(routeConfig.VirtualHosts, virtualHost)
+	if len(outbound) > 0 {
+		outboundRouteConfig := NewRouteConfigurationStub(OutboundRouteConfigName)
+
+		for _, out := range outbound {
+			virtualHost := createVirtualHostStub(outboundVirtualHost, out.Destination.Name, out.Hostnames) // domains -> trafficpolicy.Hostnames
+			virtualHost.Routes = createRoutes(out.HTTPRoutesClusters, OutboundRoute)
+			outboundRouteConfig.VirtualHosts = append(outboundRouteConfig.VirtualHosts, virtualHost)
+		}
+		routeConfiguration = append(routeConfiguration, outboundRouteConfig)
+
 	}
+
+	return routeConfiguration
 }
 
-func createVirtualHostStub(namePrefix string, host string, domains set.Set) *xds_route.VirtualHost {
-	var domainsSlice []string
-	for domainIntf := range domains.Iter() {
-		domainsSlice = append(domainsSlice, strings.TrimSpace(domainIntf.(string)))
-	}
+func createVirtualHostStub(namePrefix string, host string, domains []string) *xds_route.VirtualHost {
 
 	name := fmt.Sprintf("%s|%s", namePrefix, host)
 	virtualHost := xds_route.VirtualHost{
 		Name:    name,
-		Domains: domainsSlice,
+		Domains: domains,
 	}
 	return &virtualHost
 }
 
-func createRoutes(routePolicyWeightedClustersMap map[string]trafficpolicy.RouteWeightedClusters, direction Direction) []*xds_route.Route {
+func buildWeightedCluster(weightedClusters set.Set, totalWeight int, direction Direction) *xds_route.WeightedCluster {
+	var wc xds_route.WeightedCluster
+	var total int
+	for clusterInterface := range weightedClusters.Iter() {
+		cluster := clusterInterface.(service.WeightedCluster)
+		clusterName := string(cluster.ClusterName)
+		total += cluster.Weight
+		if direction == InboundRoute {
+			// An inbound route is associated with a local cluster. The inbound route is applied
+			// on the destination cluster, and the destination clusters that accept inbound
+			// traffic have the name of the form 'someClusterName-local`.
+			clusterName += envoy.LocalClusterSuffix
+		}
+		wc.Clusters = append(wc.Clusters, &xds_route.WeightedCluster_ClusterWeight{
+			Name:   clusterName,
+			Weight: &wrappers.UInt32Value{Value: uint32(cluster.Weight)},
+		})
+	}
+	if direction == OutboundRoute {
+		// For an outbound route from the source, the pre-computed total weight based on the weights defined in
+		// the traffic split policies are used.
+		total = totalWeight
+	}
+	wc.TotalWeight = &wrappers.UInt32Value{Value: uint32(total)}
+	sort.Stable(clusterWeightByName(wc.Clusters))
+	return &wc
+}
+
+//func getRoute(pathRegex string, method string, headersMap map[string]string, weightedClusters set.Set, totalClustersWeight int, direction Direction) *xds_route.Route {
+
+//func buildRoute(routeWeightedClusters trafficpolicy.RouteWeightedClusters, direction Direction) *xds_route.Route {
+//route := &xds_route.Route{}
+// deal with total weight here
+func buildRoute(pathRegex, method string, headersMap map[string]string, weightedClusters set.Set, totalWeight int, direction Direction) *xds_route.Route {
+
+	route := xds_route.Route{
+		Match: &xds_route.RouteMatch{
+			PathSpecifier: &xds_route.RouteMatch_SafeRegex{
+				SafeRegex: &xds_matcher.RegexMatcher{
+					EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+					Regex:      pathRegex,
+				},
+			},
+			Headers: getHeadersForRoute(method, headersMap),
+		},
+		Action: &xds_route.Route_Route{
+			Route: &xds_route.RouteAction{
+				ClusterSpecifier: &xds_route.RouteAction_WeightedClusters{
+					WeightedClusters: buildWeightedCluster(weightedClusters, totalWeight, direction),
+				},
+			},
+		},
+	}
+	return &route
+
+}
+func createRoutes(routesClusters []trafficpolicy.RouteWeightedClusters, direction Direction) []*xds_route.Route {
 	var routes []*xds_route.Route
 	if direction == OutboundRoute {
+		for _, routeClusters := range routesClusters {
+			emptyHeaders := map[string]string{}
+			// TODO build route should take in path, method, headers from trafficpolicy.HTTPRoute ??
+			routes = append(routes, buildRoute(constants.RegexMatchAll, constants.WildcardHTTPMethod, emptyHeaders, routeClusters.WeightedClusters, routeClusters.TotalClustersWeight(), direction))
+		}
 		// For a source service, configure a wildcard route match (without any headers) with weighted routes to upstream clusters based on traffic split policies
-		weightedClusters := getDistinctWeightedClusters(routePolicyWeightedClustersMap)
-		totalClustersWeight := getTotalWeightForClusters(weightedClusters)
-		emptyHeaders := make(map[string]string)
-		route := getRoute(constants.RegexMatchAll, constants.WildcardHTTPMethod, emptyHeaders, weightedClusters, totalClustersWeight, OutboundRoute)
-		routes = append(routes, route)
+
 		return routes
 	}
-	for _, routePolicyWeightedClusters := range routePolicyWeightedClustersMap {
+	for _, routeClusters := range routesClusters {
 		// For a given route path, sanitize the methods in case there
 		// is wildcard or if there are duplicates
-		allowedMethods := sanitizeHTTPMethods(routePolicyWeightedClusters.HTTPRoute.Methods)
+		allowedMethods := sanitizeHTTPMethods(routeClusters.HTTPRoute.Methods)
 		for _, method := range allowedMethods {
-			route := getRoute(routePolicyWeightedClusters.HTTPRoute.PathRegex, method, routePolicyWeightedClusters.HTTPRoute.Headers, routePolicyWeightedClusters.WeightedClusters, 100, direction)
+			route := buildRoute(routeClusters.HTTPRoute.PathRegex, method, routeClusters.HTTPRoute.Headers, routeClusters.WeightedClusters, 100, direction)
 			routes = append(routes, route)
 		}
 	}
@@ -205,19 +264,6 @@ func getDistinctWeightedClusters(routePolicyWeightedClustersMap map[string]traff
 		weightedClusters.Union(perRouteWeightedClusters.WeightedClusters)
 	}
 	return weightedClusters
-}
-
-// This method gets a list of all the distinct domains for a host
-// needed to configure virtual hosts
-func getDistinctDomains(routePolicyWeightedClustersMap map[string]trafficpolicy.RouteWeightedClusters) set.Set {
-	domains := set.NewSet()
-	for _, perRouteWeightedClusters := range routePolicyWeightedClustersMap {
-		if domains.Cardinality() == 0 {
-			domains = perRouteWeightedClusters.Hostnames
-		}
-		domains.Union(perRouteWeightedClusters.Hostnames)
-	}
-	return domains
 }
 
 func getTotalWeightForClusters(weightedClusters set.Set) int {

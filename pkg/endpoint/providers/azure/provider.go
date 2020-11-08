@@ -58,6 +58,12 @@ func (az Client) GetServicesForServiceAccount(svcAccount service.K8sServiceAccou
 	panic("NotImplemented")
 }
 
+// GetServicesForServiceAccount retrieves a list of services accounts for the given service.
+func (az Client) GetServiceAccountsForService(service.MeshService) ([]service.K8sServiceAccount, error) {
+	//TODO (michellen) : need to figure out the service account equivalnent for azure
+	panic("NotImplemented")
+}
+
 func (az Client) run(stop <-chan struct{}) error {
 	log.Info().Msg("Azure provider run started.")
 	// TODO(draychev): implement pub/sub

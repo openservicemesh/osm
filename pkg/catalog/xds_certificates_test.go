@@ -405,7 +405,7 @@ var _ = Describe("Test XDS certificate tooling", func() {
 	Context("Test filterTrafficSplitServices()", func() {
 		It("returns services except these to be traffic split", func() {
 
-			services := []v1.Service{
+			services := []*v1.Service{
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "foo",
@@ -420,7 +420,7 @@ var _ = Describe("Test XDS certificate tooling", func() {
 				},
 			}
 
-			expected := []v1.Service{
+			expected := []*v1.Service{
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "foo",
@@ -438,7 +438,7 @@ var _ = Describe("Test XDS certificate tooling", func() {
 	Context("Test kubernetesServicesToMeshServices()", func() {
 		It("converts a list of Kubernetes Services to a list of OSM Mesh Services", func() {
 
-			services := []v1.Service{
+			services := []*v1.Service{
 				{
 					ObjectMeta: metav1.ObjectMeta{
 						Namespace: "foo",

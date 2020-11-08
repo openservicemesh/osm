@@ -19,8 +19,8 @@ spec:
     name: bookbuyer
     namespace: bookbuyer
   #- kind: ServiceAccount
-    #name: bookthief
-    #namespace: bookthief
+  #  name: bookthief
+  #  namespace: bookthief
 ---
 apiVersion: specs.smi-spec.io/v1alpha3
 kind: HTTPRouteGroup
@@ -33,13 +33,7 @@ spec:
     pathRegex: /books-bought
     methods:
     - GET
-    headers:
-    - host: "bookstore.bookstore"
-    - "user-agent": ".*-http-client/*.*"
-    - "client-app": "bookbuyer"
   - name: buy-a-book
     pathRegex: ".*a-book.*new"
     methods:
     - GET
-    headers:
-    - host: "bookstore.bookstore"

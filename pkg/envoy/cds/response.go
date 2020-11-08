@@ -7,7 +7,7 @@ import (
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/golang/protobuf/ptypes"
 
-	"github.com/openservicemesh/osm/pkg/catalog"
+	cat "github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
@@ -16,10 +16,15 @@ import (
 )
 
 // NewResponse creates a new Cluster Discovery Response.
-func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, _ certificate.Manager) (*xds_discovery.DiscoveryResponse, error) {
+func NewResponse(catalog cat.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, _ certificate.Manager) (*xds_discovery.DiscoveryResponse, error) {
+	proxyIdentity, err := cat.GetServiceAccountFromProxyCertificate(proxy.GetCommonName())
+	if err != nil {
+		log.Error().Err(err).Msgf("Error looking up proxy identity for Envoy with CN=%q", proxy.GetCommonName())
+		return nil, err
+	}
 	svcList, err := catalog.GetServicesFromEnvoyCertificate(proxy.GetCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up MeshService for Envoy with CN=%q", proxy.GetCommonName())
+		log.Error().Err(err).Msgf("Error looking up proxy service name for Envoy with CN=%q", proxy.GetCommonName())
 		return nil, err
 	}
 	// Github Issue #1575
@@ -31,9 +36,9 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 	// The clusters have to be unique, so use a map to prevent duplicates. Keys correspond to the cluster name.
 	clusterFactories := make(map[string]*xds_cluster.Cluster)
 
-	outboundServices, err := catalog.ListAllowedOutboundServices(proxyServiceName)
+	outboundServices, err := catalog.ListAllowedOutboundServices(proxyIdentity)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error listing outbound services for proxy %q", proxyServiceName)
+		log.Error().Err(err).Msgf("Error listing outbound services for proxy %q", proxyIdentity)
 		return nil, err
 	}
 
@@ -57,15 +62,17 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 		clusterFactories[remoteCluster.Name] = remoteCluster
 	}
 
-	// Create a local cluster for the service.
-	// The local cluster will be used for incoming traffic.
-	localClusterName := getLocalClusterName(proxyServiceName)
-	localCluster, err := getLocalServiceCluster(catalog, proxyServiceName, localClusterName)
-	if err != nil {
-		log.Error().Err(err).Msgf("Failed to get local cluster config for proxy %s", proxyServiceName)
-		return nil, err
+	// Create local clusters for the proxy identity
+	// The local cluster(s) will be used for incoming traffic
+	for _, svc := range svcList {
+		localClusterName := getLocalClusterName(svc)
+		localCluster, err := getLocalServiceCluster(catalog, svc, localClusterName)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to get local cluster config for proxy %s", svc)
+			return nil, err
+		}
+		clusterFactories[localCluster.Name] = localCluster
 	}
-	clusterFactories[localCluster.Name] = localCluster
 
 	if cfg.IsEgressEnabled() {
 		// Add a pass-through cluster for egress

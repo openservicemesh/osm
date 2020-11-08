@@ -6,7 +6,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 
-	"github.com/openservicemesh/osm/pkg/catalog"
+	cat "github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -16,18 +16,20 @@ import (
 )
 
 // NewResponse creates a new Endpoint Discovery Response.
-func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, _ configurator.Configurator, _ certificate.Manager) (*xds_discovery.DiscoveryResponse, error) {
-	svcList, err := catalog.GetServicesFromEnvoyCertificate(proxy.GetCommonName())
+func NewResponse(catalog cat.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, _ configurator.Configurator, _ certificate.Manager) (*xds_discovery.DiscoveryResponse, error) {
+	//proxyIdentity, err := catalog.GetServicesFromEnvoyCertificate(proxy.GetCommonName())
+	proxyIdentity, err := cat.GetServiceAccountFromProxyCertificate(proxy.GetCommonName())
+
 	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up MeshService for Envoy with CN=%q", proxy.GetCommonName())
+		log.Error().Err(err).Msgf("Error looking up proxy Identity for Envoy with CN=%q", proxy.GetCommonName())
 		return nil, err
 	}
 	// Github Issue #1575
-	proxyServiceName := svcList[0]
+	//proxyServiceName := svcList[0]
 
-	outboundServices, err := catalog.ListAllowedOutboundServices(proxyServiceName)
+	outboundServices, err := catalog.ListAllowedOutboundServices(proxyIdentity)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error listing outbound services for proxy %q", proxyServiceName)
+		log.Error().Err(err).Msgf("Error listing outbound services for proxy %q", proxyIdentity)
 		return nil, err
 	}
 
@@ -41,14 +43,14 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 		outboundServicesEndpoints[dstSvc] = endpoints
 	}
 
-	log.Trace().Msgf("Outbound service endpoints for proxy %s: %v", proxyServiceName, outboundServicesEndpoints)
+	log.Trace().Msgf("Outbound service endpoints for proxy %s: %v", proxyIdentity, outboundServicesEndpoints)
 
 	var protos []*any.Any
 	for svc, endpoints := range outboundServicesEndpoints {
 		loadAssignment := cla.NewClusterLoadAssignment(svc, endpoints)
 		proto, err := ptypes.MarshalAny(loadAssignment)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error marshalling EDS payload for proxy %s: %+v", proxyServiceName, loadAssignment)
+			log.Error().Err(err).Msgf("Error marshalling EDS payload for proxy %s: %+v", proxyIdentity, loadAssignment)
 			continue
 		}
 		protos = append(protos, proto)

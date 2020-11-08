@@ -4,7 +4,7 @@ metadata:
   name: bookstore-split
   namespace: bookstore
 spec:
-  service: bookstore.bookstore # <root-service>.<namespace>
+  service: bookstore-v1.bookstore # <root-service>.<namespace>
   backends:
   - service: bookstore-v1
     weight: 100

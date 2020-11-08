@@ -5,85 +5,323 @@ import (
 	reflect "reflect"
 	"testing"
 
+	mapset "github.com/deckarep/golang-set"
+	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
-	"github.com/openservicemesh/osm/pkg/utils"
 )
 
-func TestListTrafficPolicies(t *testing.T) {
-	assert := assert.New(t)
+var (
+	testPermissiveDefault = false
 
-	type listTrafficPoliciesTest struct {
-		input  service.MeshService
-		output []trafficpolicy.TrafficTarget
-	}
-
-	listTrafficPoliciesTests := []listTrafficPoliciesTest{
-		{
-			input:  tests.BookstoreV1Service,
-			output: []trafficpolicy.TrafficTarget{tests.BookstoreV1TrafficPolicy},
-		},
-		{
-			input:  tests.BookbuyerService,
-			output: []trafficpolicy.TrafficTarget{tests.BookstoreV1TrafficPolicy, tests.BookstoreV2TrafficPolicy, tests.BookstoreApexTrafficPolicy},
+	getAllRoute = trafficpolicy.HTTPRoute{
+		PathRegex: "/all",
+		Methods:   []string{"GET"},
+		Headers: map[string]string{
+			"user-agent": "some-agent",
 		},
 	}
-
-	mc := newFakeMeshCatalog()
-
-	for _, test := range listTrafficPoliciesTests {
-		trafficTargets, err := mc.ListTrafficPolicies(test.input)
-		assert.Nil(err)
-		assert.ElementsMatch(trafficTargets, test.output)
+	getSomeRoute = trafficpolicy.HTTPRoute{
+		PathRegex: "/some",
+		Methods:   []string{"GET"},
+		Headers: map[string]string{
+			"user-agent": "another-agent",
+		},
 	}
-}
+)
 
-func TestGetTrafficPoliciesForService(t *testing.T) {
+func TestListTrafficPoliciesForService(t *testing.T) {
 	assert := assert.New(t)
-
-	type getTrafficPoliciesForServiceTest struct {
-		input  service.MeshService
-		output []trafficpolicy.TrafficTarget
-	}
-
-	getTrafficPoliciesForServiceTests := []getTrafficPoliciesForServiceTest{
+	testCases := []struct {
+		name             string
+		input            service.K8sServiceAccount
+		expectedInbound  []*trafficpolicy.TrafficPolicy
+		expectedOutbound []*trafficpolicy.TrafficPolicy
+		mc               *MeshCatalog
+	}{
 		{
-			input: tests.BookbuyerService,
-			output: []trafficpolicy.TrafficTarget{
-				{
-					Name:        utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreV1Service),
-					Destination: tests.BookstoreV1Service,
-					Source:      tests.BookbuyerService,
-					HTTPRoutes:  tests.BookstoreV1TrafficPolicy.HTTPRoutes,
+			name:  "bookbuyer service account in permissive mode",
+			input: tests.BookbuyerServiceAccount,
+			expectedInbound: []*trafficpolicy.TrafficPolicy{
+				&trafficpolicy.TrafficPolicy{
+					Name:        "bookstore-v2-default-bookbuyer-default",
+					Source:      tests.BookstoreV2Service,
+					Destination: tests.BookbuyerService,
+					Hostnames:   tests.BookbuyerHostnames,
+					HTTPRoutesClusters: []trafficpolicy.RouteWeightedClusters{
+						trafficpolicy.RouteWeightedClusters{
+							HTTPRoute: allowAllRoute,
+							WeightedClusters: mapset.NewSet(service.WeightedCluster{
+								ClusterName: "default/bookbuyer",
+								Weight:      100,
+							}),
+						},
+					},
 				},
-				{
-					Name:        utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreV2Service),
-					Destination: tests.BookstoreV2Service,
-					Source:      tests.BookbuyerService,
-					HTTPRoutes:  tests.BookstoreV2TrafficPolicy.HTTPRoutes,
+				&trafficpolicy.TrafficPolicy{
+					Name:        "bookstore-v1-default-bookbuyer-default",
+					Source:      tests.BookstoreV1Service,
+					Destination: tests.BookbuyerService,
+					Hostnames:   tests.BookbuyerHostnames,
+					HTTPRoutesClusters: []trafficpolicy.RouteWeightedClusters{
+						trafficpolicy.RouteWeightedClusters{
+							HTTPRoute: allowAllRoute,
+							WeightedClusters: mapset.NewSet(service.WeightedCluster{
+								ClusterName: "default/bookbuyer",
+								Weight:      100,
+							}),
+						},
+					},
 				},
-				{
-					Name:        utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreApexService),
+				&trafficpolicy.TrafficPolicy{
+					Name:        "bookstore-apex-default-bookbuyer-default",
+					Source:      tests.BookstoreApexService,
+					Destination: tests.BookbuyerService,
+					Hostnames:   tests.BookbuyerHostnames,
+					HTTPRoutesClusters: []trafficpolicy.RouteWeightedClusters{
+						trafficpolicy.RouteWeightedClusters{
+							HTTPRoute: allowAllRoute,
+							WeightedClusters: mapset.NewSet(service.WeightedCluster{
+								ClusterName: "default/bookbuyer",
+								Weight:      100,
+							}),
+						},
+					},
+				},
+			},
+			expectedOutbound: []*trafficpolicy.TrafficPolicy{
+				&trafficpolicy.TrafficPolicy{
+					Name:        "bookbuyer-default-bookstore-apex-default",
 					Destination: tests.BookstoreApexService,
 					Source:      tests.BookbuyerService,
-					HTTPRoutes:  tests.BookstoreApexTrafficPolicy.HTTPRoutes,
+					Hostnames:   tests.BookstoreApexHostnames,
+					HTTPRoutesClusters: []trafficpolicy.RouteWeightedClusters{
+						trafficpolicy.RouteWeightedClusters{
+							HTTPRoute: allowAllRoute,
+							WeightedClusters: mapset.NewSet(service.WeightedCluster{
+								ClusterName: "default/bookstore-apex",
+								Weight:      100,
+							}),
+						},
+					},
+				},
+				&trafficpolicy.TrafficPolicy{
+					Name:        "bookbuyer-default-bookstore-v1-default",
+					Destination: tests.BookstoreV1Service,
+					Source:      tests.BookbuyerService,
+					Hostnames:   tests.BookstoreV1Hostnames,
+					HTTPRoutesClusters: []trafficpolicy.RouteWeightedClusters{
+						trafficpolicy.RouteWeightedClusters{
+							HTTPRoute: allowAllRoute,
+							WeightedClusters: mapset.NewSet(service.WeightedCluster{
+								ClusterName: "default/bookstore-v1",
+								Weight:      100,
+							}),
+						},
+					},
+				},
+				&trafficpolicy.TrafficPolicy{
+					Name:        "bookbuyer-default-bookstore-v2-default",
+					Destination: tests.BookstoreV2Service,
+					Source:      tests.BookbuyerService,
+					Hostnames:   tests.BookstoreV2Hostnames,
+					HTTPRoutesClusters: []trafficpolicy.RouteWeightedClusters{
+						trafficpolicy.RouteWeightedClusters{
+							HTTPRoute: allowAllRoute,
+							WeightedClusters: mapset.NewSet(service.WeightedCluster{
+								ClusterName: "default/bookstore-v2",
+								Weight:      100,
+							}),
+						},
+					},
+				},
+			},
+			mc: newFakeMeshCatalogForRoutes(t, true),
+		}, {
+			name:            "bookbuyer service account in non-permissive mode",
+			input:           tests.BookbuyerServiceAccount,
+			expectedInbound: []*trafficpolicy.TrafficPolicy{},
+			expectedOutbound: []*trafficpolicy.TrafficPolicy{
+				&trafficpolicy.TrafficPolicy{
+					Name:        "bookbuyer-default-bookstore-apex-default",
+					Destination: tests.BookstoreApexService,
+					Source:      tests.BookbuyerService,
+					Hostnames:   tests.BookstoreApexHostnames,
+					HTTPRoutesClusters: []trafficpolicy.RouteWeightedClusters{
+						trafficpolicy.RouteWeightedClusters{
+							HTTPRoute: allowAllRoute,
+							WeightedClusters: mapset.NewSet(service.WeightedCluster{
+								ClusterName: "default/bookstore-apex",
+								Weight:      100,
+							}),
+						},
+					},
+				},
+				&trafficpolicy.TrafficPolicy{
+					Name:        "bookbuyer-default-bookstore-v1-default",
+					Destination: tests.BookstoreV1Service,
+					Source:      tests.BookbuyerService,
+					Hostnames:   tests.BookstoreV1Hostnames,
+					HTTPRoutesClusters: []trafficpolicy.RouteWeightedClusters{
+						trafficpolicy.RouteWeightedClusters{
+							HTTPRoute: allowAllRoute,
+							WeightedClusters: mapset.NewSet(service.WeightedCluster{
+								ClusterName: "default/bookstore-v1",
+								Weight:      100,
+							}),
+						},
+					},
+				},
+				&trafficpolicy.TrafficPolicy{
+					Name:        "bookbuyer-default-bookstore-v2-default",
+					Destination: tests.BookstoreV2Service,
+					Source:      tests.BookbuyerService,
+					Hostnames:   tests.BookstoreV2Hostnames,
+					HTTPRoutesClusters: []trafficpolicy.RouteWeightedClusters{
+						trafficpolicy.RouteWeightedClusters{
+							HTTPRoute: allowAllRoute,
+							WeightedClusters: mapset.NewSet(service.WeightedCluster{
+								ClusterName: "default/bookstore-v2",
+								Weight:      100,
+							}),
+						},
+					},
+				},
+			},
+			mc: newFakeMeshCatalogForRoutes(t, false),
+		},
+	}
+	for _, tc := range testCases {
+		inbound, outbound, err := tc.mc.ListTrafficPoliciesForService(tests.BookbuyerServiceAccount)
+		assert.Nil(err)
+		assert.ElementsMatch(tc.expectedInbound, inbound)
+		assert.ElementsMatch(tc.expectedOutbound, outbound)
+	}
+
+}
+
+func TestBuildTrafficPolicies(t *testing.T) {
+	mc := newFakeMeshCatalogForRoutes(t, testPermissiveDefault)
+
+	testCases := []struct {
+		Name             string
+		sourceServices   []service.MeshService
+		destServices     []service.MeshService
+		routes           []trafficpolicy.HTTPRoute
+		expectedPolicies []*trafficpolicy.TrafficPolicy
+	}{
+		{
+			Name:           "policy for 1 source service and 1 destination service with 1 route",
+			sourceServices: []service.MeshService{tests.BookbuyerService},
+			destServices:   []service.MeshService{tests.BookstoreV2Service},
+			routes:         []trafficpolicy.HTTPRoute{getAllRoute},
+			expectedPolicies: []*trafficpolicy.TrafficPolicy{
+				&trafficpolicy.TrafficPolicy{
+					Name:        "bookbuyer-default-bookstore-v2-default",
+					Source:      tests.BookbuyerService,
+					Destination: tests.BookstoreV2Service,
+					HTTPRoutesClusters: []trafficpolicy.RouteWeightedClusters{
+						trafficpolicy.RouteWeightedClusters{
+							HTTPRoute: getAllRoute,
+							WeightedClusters: mapset.NewSet(service.WeightedCluster{
+								ClusterName: "default/bookstore-v2",
+								Weight:      100,
+							}),
+						},
+					},
+					Hostnames: tests.BookstoreV2Hostnames,
+				},
+			},
+		},
+		{
+			Name:           "policy for 1 source service and 2 destination services with one destination service that doesn't exist",
+			sourceServices: []service.MeshService{tests.BookbuyerService},
+			destServices: []service.MeshService{tests.BookstoreV2Service, service.MeshService{
+				Namespace: "default",
+				Name:      "nonexistentservices",
+			}},
+			routes: []trafficpolicy.HTTPRoute{getAllRoute},
+			expectedPolicies: []*trafficpolicy.TrafficPolicy{
+				&trafficpolicy.TrafficPolicy{
+					Name:        "bookbuyer-default-bookstore-v2-default",
+					Source:      tests.BookbuyerService,
+					Destination: tests.BookstoreV2Service,
+					HTTPRoutesClusters: []trafficpolicy.RouteWeightedClusters{
+						trafficpolicy.RouteWeightedClusters{
+							HTTPRoute: getAllRoute,
+							WeightedClusters: mapset.NewSet(service.WeightedCluster{
+								ClusterName: "default/bookstore-v2",
+								Weight:      100,
+							}),
+						},
+					},
+					Hostnames: tests.BookstoreV2Hostnames,
+				},
+			},
+		},
+		{
+			Name:           "policies for 1 source service, 2 destination services, and multiple routes ",
+			sourceServices: []service.MeshService{tests.BookbuyerService},
+			destServices:   []service.MeshService{tests.BookstoreV2Service, tests.BookstoreV1Service},
+			routes:         []trafficpolicy.HTTPRoute{getAllRoute, getSomeRoute},
+			expectedPolicies: []*trafficpolicy.TrafficPolicy{
+				&trafficpolicy.TrafficPolicy{
+					Name:        "bookbuyer-default-bookstore-v2-default",
+					Source:      tests.BookbuyerService,
+					Destination: tests.BookstoreV2Service,
+					HTTPRoutesClusters: []trafficpolicy.RouteWeightedClusters{
+						trafficpolicy.RouteWeightedClusters{
+							HTTPRoute: getAllRoute,
+							WeightedClusters: mapset.NewSet(service.WeightedCluster{
+								ClusterName: "default/bookstore-v2",
+								Weight:      100,
+							}),
+						},
+						trafficpolicy.RouteWeightedClusters{
+							HTTPRoute: getSomeRoute,
+							WeightedClusters: mapset.NewSet(service.WeightedCluster{
+								ClusterName: "default/bookstore-v2",
+								Weight:      100,
+							}),
+						},
+					},
+					Hostnames: tests.BookstoreV2Hostnames,
+				},
+				&trafficpolicy.TrafficPolicy{
+					Name:        "bookbuyer-default-bookstore-v1-default",
+					Source:      tests.BookbuyerService,
+					Destination: tests.BookstoreV1Service,
+					HTTPRoutesClusters: []trafficpolicy.RouteWeightedClusters{
+						trafficpolicy.RouteWeightedClusters{
+							HTTPRoute: getAllRoute,
+							WeightedClusters: mapset.NewSet(service.WeightedCluster{
+								ClusterName: "default/bookstore-v1",
+								Weight:      100,
+							}),
+						},
+						trafficpolicy.RouteWeightedClusters{
+							HTTPRoute: getSomeRoute,
+							WeightedClusters: mapset.NewSet(service.WeightedCluster{
+								ClusterName: "default/bookstore-v1",
+								Weight:      100,
+							}),
+						},
+					},
+					Hostnames: tests.BookstoreV1Hostnames,
 				},
 			},
 		},
 	}
 
-	mc := newFakeMeshCatalog()
-
-	for _, test := range getTrafficPoliciesForServiceTests {
-		allTrafficPolicies, err := getTrafficPoliciesForService(mc, tests.RoutePolicyMap, test.input)
-		assert.Nil(err)
-		assert.ElementsMatch(allTrafficPolicies, test.output)
+	for _, tc := range testCases {
+		policies := mc.buildTrafficPolicies(tc.sourceServices, tc.destServices, tc.routes)
+		assert.ElementsMatch(t, tc.expectedPolicies, policies, tc.Name)
 	}
+
 }
 
 func TestGetHTTPPathsPerRoute(t *testing.T) {
@@ -123,14 +361,54 @@ func TestGetHTTPPathsPerRoute(t *testing.T) {
 	assert.True(reflect.DeepEqual(actual, expected))
 }
 
-func TestGetTrafficSpecName(t *testing.T) {
+func TestHTTPRoutesFromRules(t *testing.T) {
 	assert := assert.New(t)
-
 	mc := MeshCatalog{meshSpec: smi.NewFakeMeshSpecClient()}
 
-	actual := mc.getTrafficSpecName("HTTPRouteGroup", tests.Namespace, tests.RouteGroupName)
-	expected := trafficpolicy.TrafficSpecName(fmt.Sprintf("HTTPRouteGroup/%s/%s", tests.Namespace, tests.RouteGroupName))
-	assert.Equal(actual, expected)
+	testCases := []struct {
+		name           string
+		rules          []target.TrafficTargetRule
+		namespace      string
+		expectedRoutes []trafficpolicy.HTTPRoute
+	}{
+		{
+			rules: []target.TrafficTargetRule{
+				target.TrafficTargetRule{
+					Kind:    "HTTPRouteGroup",
+					Name:    tests.RouteGroupName,
+					Matches: []string{tests.BuyBooksMatchName},
+				},
+			},
+			namespace: tests.Namespace,
+			expectedRoutes: []trafficpolicy.HTTPRoute{
+				trafficpolicy.HTTPRoute{
+					PathRegex: tests.BookstoreBuyPath,
+					Methods:   []string{"GET"},
+					Headers: map[string]string{
+						"user-agent": tests.HTTPUserAgent,
+					},
+				},
+			},
+		},
+		{
+			rules: []target.TrafficTargetRule{
+				target.TrafficTargetRule{
+					Kind:    "HTTPRouteGroup",
+					Name:    "DoesNotExist",
+					Matches: []string{"hello"},
+				},
+			},
+			namespace:      tests.Namespace,
+			expectedRoutes: []trafficpolicy.HTTPRoute{},
+		},
+	}
+
+	for _, tc := range testCases {
+		routes, err := mc.HTTPRoutesFromRules(tc.rules, tc.namespace) // returns []trafficpolicy.HTTPRoute
+		assert.Nil(err)
+		assert.EqualValues(tc.expectedRoutes, routes)
+	}
+
 }
 
 func TestListAllowedInboundServices(t *testing.T) {
@@ -138,62 +416,90 @@ func TestListAllowedInboundServices(t *testing.T) {
 
 	mc := newFakeMeshCatalog()
 
-	actualList, err := mc.ListAllowedInboundServices(tests.BookstoreV1Service)
+	actualList, err := mc.ListAllowedInboundServices(tests.BookstoreServiceAccount)
 	assert.Nil(err)
 	expectedList := []service.MeshService{tests.BookbuyerService}
 	assert.ElementsMatch(actualList, expectedList)
-}
-
-func TestBuildAllowPolicyForSourceToDest(t *testing.T) {
-	assert := assert.New(t)
-
-	mc := newFakeMeshCatalog()
-
-	selectors := map[string]string{
-		tests.SelectorKey: tests.SelectorValue,
-	}
-	source := tests.NewServiceFixture(tests.BookbuyerServiceName, tests.Namespace, selectors)
-	expectedSourceTrafficResource := utils.K8sSvcToMeshSvc(source)
-	destination := tests.NewServiceFixture(tests.BookstoreV1ServiceName, tests.Namespace, selectors)
-	expectedDestinationTrafficResource := utils.K8sSvcToMeshSvc(destination)
-
-	expectedHostHeaders := map[string]string{"user-agent": tests.HTTPUserAgent}
-	expectedRoute := trafficpolicy.HTTPRoute{
-		PathRegex: constants.RegexMatchAll,
-		Methods:   []string{constants.WildcardHTTPMethod},
-		Headers:   expectedHostHeaders,
-	}
-
-	trafficTarget := mc.buildAllowPolicyForSourceToDest(source, destination)
-	assert.Equal(trafficTarget.Source, expectedSourceTrafficResource)
-	assert.Equal(trafficTarget.Destination, expectedDestinationTrafficResource)
-	assert.Equal(trafficTarget.HTTPRoutes[0].PathRegex, expectedRoute.PathRegex)
-	assert.ElementsMatch(trafficTarget.HTTPRoutes[0].Methods, expectedRoute.Methods)
 }
 
 func TestListAllowedOutboundServices(t *testing.T) {
 	assert := assert.New(t)
 
 	mc := newFakeMeshCatalog()
-	actualList, err := mc.ListAllowedOutboundServices(tests.BookbuyerService)
+	actualList, err := mc.ListAllowedOutboundServices(tests.BookbuyerServiceAccount)
 	assert.Nil(err)
 
 	expectedList := []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service, tests.BookstoreApexService}
 	assert.ElementsMatch(actualList, expectedList)
 }
 
-func TestGetWeightedClusterForService(t *testing.T) {
+func TestGetResolvableHostnamesForUpstreamService(t *testing.T) {
 	assert := assert.New(t)
 
-	mc := newFakeMeshCatalog()
-	weightedCluster, err := mc.GetWeightedClusterForService(tests.BookstoreV1Service)
-	assert.Nil(err)
+	mc := newFakeMeshCatalogForRoutes(t, testPermissiveDefault)
 
-	expected := service.WeightedCluster{
-		ClusterName: "default/bookstore-v1",
-		Weight:      tests.Weight90,
+	testCases := []struct {
+		name              string
+		upstream          service.MeshService
+		downstream        service.MeshService
+		expectedHostnames []string
+		expectedErr       bool
+	}{
+		{
+			name:     "When upstream and downstream are  in same namespace",
+			upstream: tests.BookstoreV1Service,
+			downstream: service.MeshService{
+				Namespace: "default",
+				Name:      "foo",
+			},
+			expectedHostnames: tests.BookstoreV1Hostnames,
+			expectedErr:       false,
+		},
+		{
+			name:     "When upstream and downstream are not in same namespace",
+			upstream: tests.BookstoreV1Service,
+			downstream: service.MeshService{
+				Namespace: "bar",
+				Name:      "foo",
+			},
+			expectedHostnames: []string{
+				"bookstore-v1.default",
+				"bookstore-v1.default.svc",
+				"bookstore-v1.default.svc.cluster",
+				"bookstore-v1.default.svc.cluster.local",
+				"bookstore-v1.default:8888",
+				"bookstore-v1.default.svc:8888",
+				"bookstore-v1.default.svc.cluster:8888",
+				"bookstore-v1.default.svc.cluster.local:8888",
+			},
+			expectedErr: false,
+		},
+		{
+			name: "When upstream service does not exist",
+			upstream: service.MeshService{
+				Namespace: "bar",
+				Name:      "DoesNotExist",
+			},
+			downstream: service.MeshService{
+				Namespace: "bar",
+				Name:      "foo",
+			},
+			expectedHostnames: nil,
+			expectedErr:       true,
+		},
 	}
-	assert.Equal(weightedCluster, expected)
+
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("Testing hostnames when %s svc reaches %s svc", tc.downstream, tc.upstream), func(t *testing.T) {
+			actual, err := mc.GetResolvableHostnamesForUpstreamService(tc.downstream, tc.upstream)
+			if tc.expectedErr == false {
+				assert.Nil(err)
+			} else {
+				assert.NotNil(err)
+			}
+			assert.Equal(actual, tc.expectedHostnames, tc.name)
+		})
+	}
 }
 
 func TestGetServiceHostnames(t *testing.T) {
@@ -209,18 +515,7 @@ func TestGetServiceHostnames(t *testing.T) {
 		{
 			tests.BookstoreV1Service,
 			true,
-			[]string{
-				"bookstore-v1",
-				"bookstore-v1.default",
-				"bookstore-v1.default.svc",
-				"bookstore-v1.default.svc.cluster",
-				"bookstore-v1.default.svc.cluster.local",
-				"bookstore-v1:8888",
-				"bookstore-v1.default:8888",
-				"bookstore-v1.default.svc:8888",
-				"bookstore-v1.default.svc.cluster:8888",
-				"bookstore-v1.default.svc.cluster.local:8888",
-			},
+			tests.BookstoreV1Hostnames,
 		},
 		{
 			tests.BookstoreV1Service,
@@ -247,10 +542,13 @@ func TestGetServiceHostnames(t *testing.T) {
 	}
 }
 
-func TestHostnamesTostr(t *testing.T) {
+func TestGetTrafficSpecName(t *testing.T) {
 	assert := assert.New(t)
-	actual := hostnamesTostr([]string{"foo", "bar", "baz"})
-	expected := "foo,bar,baz"
+
+	mc := MeshCatalog{meshSpec: smi.NewFakeMeshSpecClient()}
+
+	actual := mc.getTrafficSpecName("HTTPRouteGroup", tests.Namespace, tests.RouteGroupName)
+	expected := trafficpolicy.TrafficSpecName(fmt.Sprintf("HTTPRouteGroup/%s/%s", tests.Namespace, tests.RouteGroupName))
 	assert.Equal(actual, expected)
 }
 
@@ -265,175 +563,404 @@ func TestGetDefaultWeightedClusterForService(t *testing.T) {
 	assert.Equal(actual, expected)
 }
 
-func TestGetResolvableHostnamesForUpstreamService(t *testing.T) {
-	assert := assert.New(t)
-
-	mc := newFakeMeshCatalog()
-
-	testCases := []struct {
-		downstream        service.MeshService
-		expectedHostnames []string
-	}{
-		{
-			downstream: service.MeshService{
-				Namespace: "default",
-				Name:      "foo",
-			},
-			expectedHostnames: []string{
-				"bookstore-apex",
-				"bookstore-apex.default",
-				"bookstore-apex.default.svc",
-				"bookstore-apex.default.svc.cluster",
-				"bookstore-apex.default.svc.cluster.local",
-				"bookstore-apex:8888",
-				"bookstore-apex.default:8888",
-				"bookstore-apex.default.svc:8888",
-				"bookstore-apex.default.svc.cluster:8888",
-				"bookstore-apex.default.svc.cluster.local:8888",
-				"bookstore-v1",
-				"bookstore-v1.default",
-				"bookstore-v1.default.svc",
-				"bookstore-v1.default.svc.cluster",
-				"bookstore-v1.default.svc.cluster.local",
-				"bookstore-v1:8888",
-				"bookstore-v1.default:8888",
-				"bookstore-v1.default.svc:8888",
-				"bookstore-v1.default.svc.cluster:8888",
-				"bookstore-v1.default.svc.cluster.local:8888",
-			},
-		},
-		{
-			downstream: service.MeshService{
-				Namespace: "bar",
-				Name:      "foo",
-			},
-			expectedHostnames: []string{
-				"bookstore-apex.default",
-				"bookstore-apex.default.svc",
-				"bookstore-apex.default.svc.cluster",
-				"bookstore-apex.default.svc.cluster.local",
-				"bookstore-apex.default:8888",
-				"bookstore-apex.default.svc:8888",
-				"bookstore-apex.default.svc.cluster:8888",
-				"bookstore-apex.default.svc.cluster.local:8888",
-				"bookstore-v1.default",
-				"bookstore-v1.default.svc",
-				"bookstore-v1.default.svc.cluster",
-				"bookstore-v1.default.svc.cluster.local",
-				"bookstore-v1.default:8888",
-				"bookstore-v1.default.svc:8888",
-				"bookstore-v1.default.svc.cluster:8888",
-				"bookstore-v1.default.svc.cluster.local:8888",
-			},
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(fmt.Sprintf("Testing hostnames when %s svc reaches %s svc", tc.downstream, tests.BookstoreV1Service), func(t *testing.T) {
-			actual, err := mc.GetResolvableHostnamesForUpstreamService(tc.downstream, tests.BookstoreV1Service)
-			assert.Nil(err)
-			assert.Equal(actual, tc.expectedHostnames)
-		})
-	}
-}
-
 func TestBuildAllowAllTrafficPolicies(t *testing.T) {
 	assert := assert.New(t)
 
 	mc := newFakeMeshCatalog()
 
-	actual := mc.buildAllowAllTrafficPolicies(tests.BookstoreV1Service)
-	var actualTargetNames []string
-	for _, target := range actual {
-		actualTargetNames = append(actualTargetNames, target.Name)
+	expectedInbound := []*trafficpolicy.TrafficPolicy{
+		&trafficpolicy.TrafficPolicy{
+			Name:        "bookstore-v1-default-bookbuyer-default",
+			Source:      tests.BookstoreV1Service,
+			Destination: tests.BookbuyerService,
+			Hostnames:   tests.BookbuyerHostnames,
+			HTTPRoutesClusters: []trafficpolicy.RouteWeightedClusters{
+				trafficpolicy.RouteWeightedClusters{
+					HTTPRoute: allowAllRoute,
+					WeightedClusters: mapset.NewSet(service.WeightedCluster{
+						ClusterName: "default/bookbuyer",
+						Weight:      100,
+					}),
+				},
+			},
+		},
+		&trafficpolicy.TrafficPolicy{
+			Name:        "bookstore-v2-default-bookbuyer-default",
+			Source:      tests.BookstoreV2Service,
+			Destination: tests.BookbuyerService,
+			Hostnames:   tests.BookbuyerHostnames,
+			HTTPRoutesClusters: []trafficpolicy.RouteWeightedClusters{
+				trafficpolicy.RouteWeightedClusters{
+					HTTPRoute: allowAllRoute,
+					WeightedClusters: mapset.NewSet(service.WeightedCluster{
+						ClusterName: "default/bookbuyer",
+						Weight:      100,
+					}),
+				},
+			},
+		},
+		&trafficpolicy.TrafficPolicy{
+			Name:        "bookstore-apex-default-bookbuyer-default",
+			Source:      tests.BookstoreApexService,
+			Destination: tests.BookbuyerService,
+			Hostnames:   tests.BookbuyerHostnames,
+			HTTPRoutesClusters: []trafficpolicy.RouteWeightedClusters{
+				trafficpolicy.RouteWeightedClusters{
+					HTTPRoute: allowAllRoute,
+					WeightedClusters: mapset.NewSet(service.WeightedCluster{
+						ClusterName: "default/bookbuyer",
+						Weight:      100,
+					}),
+				},
+			},
+		},
 	}
-
-	expected := []string{
-		"default/bookstore-v1->default/bookbuyer",
-		"default/bookstore-v1->default/bookstore-apex",
-		"default/bookstore-v2->default/bookbuyer",
-		"default/bookstore-v2->default/bookstore-apex",
-		"default/bookbuyer->default/bookstore-v1",
-		"default/bookbuyer->default/bookstore-apex",
-		"default/bookstore-apex->default/bookstore-v1",
-		"default/bookbuyer->default/bookstore-v2",
-		"default/bookstore-apex->default/bookstore-v2",
-		"default/bookstore-apex->default/bookbuyer",
-		"default/bookstore-v1->default/bookstore-v2",
-		"default/bookstore-v2->default/bookstore-v1",
-	}
-	assert.ElementsMatch(actualTargetNames, expected)
-}
-
-func TestListTrafficTargetPermutations(t *testing.T) {
-	assert := assert.New(t)
-
-	mc := newFakeMeshCatalog()
-
-	trafficTargets, err := mc.listTrafficTargetPermutations(tests.TrafficTarget, tests.TrafficTarget.Spec.Sources[0], tests.TrafficTarget.Spec.Destination)
-	assert.Nil(err)
-
-	var actualTargetNames []string
-	for _, target := range trafficTargets {
-		actualTargetNames = append(actualTargetNames, target.Name)
-	}
-
-	expected := []string{
-		utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreV1Service),
-		utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreV2Service),
-		utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreApexService),
-	}
-	assert.ElementsMatch(actualTargetNames, expected)
-}
-
-func TestHashSrcDstService(t *testing.T) {
-	assert := assert.New(t)
-
-	src := service.MeshService{
-		Namespace: "src-ns",
-		Name:      "source",
-	}
-	dst := service.MeshService{
-		Namespace: "dst-ns",
-		Name:      "destination",
-	}
-
-	srcDstServiceHash := hashSrcDstService(src, dst)
-	assert.Equal(srcDstServiceHash, "src-ns/source:dst-ns/destination")
-}
-
-func TestGetTrafficTargetFromSrcDstHash(t *testing.T) {
-	assert := assert.New(t)
-
-	src := service.MeshService{
-		Namespace: "src-ns",
-		Name:      "source",
-	}
-	dst := service.MeshService{
-		Namespace: "dst-ns",
-		Name:      "destination",
-	}
-	srcDstServiceHash := "src-ns/source:dst-ns/destination"
-
-	targetName := "test"
-	httpRoutes := []trafficpolicy.HTTPRoute{
-		{
-			PathRegex: tests.BookstoreBuyPath,
-			Methods:   []string{"GET"},
-			Headers: map[string]string{
-				"user-agent": tests.HTTPUserAgent,
+	expectedOutbound := []*trafficpolicy.TrafficPolicy{
+		&trafficpolicy.TrafficPolicy{
+			Name:        "bookbuyer-default-bookstore-v1-default",
+			Source:      tests.BookbuyerService,
+			Destination: tests.BookstoreV1Service,
+			Hostnames:   tests.BookstoreV1Hostnames,
+			HTTPRoutesClusters: []trafficpolicy.RouteWeightedClusters{
+				trafficpolicy.RouteWeightedClusters{
+					HTTPRoute: allowAllRoute,
+					WeightedClusters: mapset.NewSet(service.WeightedCluster{
+						ClusterName: "default/bookstore-v1",
+						Weight:      100,
+					}),
+				},
+			},
+		},
+		&trafficpolicy.TrafficPolicy{
+			Name:        "bookbuyer-default-bookstore-v2-default",
+			Source:      tests.BookbuyerService,
+			Destination: tests.BookstoreV2Service,
+			Hostnames:   tests.BookstoreV2Hostnames,
+			HTTPRoutesClusters: []trafficpolicy.RouteWeightedClusters{
+				trafficpolicy.RouteWeightedClusters{
+					HTTPRoute: allowAllRoute,
+					WeightedClusters: mapset.NewSet(service.WeightedCluster{
+						ClusterName: "default/bookstore-v2",
+						Weight:      100,
+					}),
+				},
+			},
+		},
+		&trafficpolicy.TrafficPolicy{
+			Name:        "bookbuyer-default-bookstore-apex-default",
+			Source:      tests.BookbuyerService,
+			Destination: tests.BookstoreApexService,
+			Hostnames:   tests.BookstoreApexHostnames,
+			HTTPRoutesClusters: []trafficpolicy.RouteWeightedClusters{
+				trafficpolicy.RouteWeightedClusters{
+					HTTPRoute: allowAllRoute,
+					WeightedClusters: mapset.NewSet(service.WeightedCluster{
+						ClusterName: "default/bookstore-apex",
+						Weight:      100,
+					}),
+				},
 			},
 		},
 	}
 
-	trafficTarget := getTrafficTargetFromSrcDstHash(srcDstServiceHash, targetName, httpRoutes)
+	inbound, outbound, err := mc.buildAllowAllTrafficPolicies(tests.BookbuyerServiceAccount)
+	assert.Nil(err)
+	assert.ElementsMatch(expectedInbound, inbound)
+	assert.ElementsMatch(expectedOutbound, outbound)
 
-	expectedTrafficTarget := trafficpolicy.TrafficTarget{
-		Source:      src,
-		Destination: dst,
-		Name:        targetName,
-		HTTPRoutes:  httpRoutes,
+}
+
+func TestListTrafficPoliciesFromTrafficTargets(t *testing.T) {
+	assert := assert.New(t)
+	mc := newFakeMeshCatalogForRoutes(t, testPermissiveDefault)
+
+	testCases := []struct {
+		input                    service.K8sServiceAccount
+		expectedInboundPolicies  []*trafficpolicy.TrafficPolicy
+		expectedOutboundPolicies []*trafficpolicy.TrafficPolicy
+	}{
+		{
+			input: tests.BookstoreServiceAccount,
+			expectedInboundPolicies: []*trafficpolicy.TrafficPolicy{
+				&trafficpolicy.TrafficPolicy{
+					Name:        "bookbuyer-default-bookstore-v2-default",
+					Source:      tests.BookbuyerService,
+					Destination: tests.BookstoreV2Service,
+					Hostnames:   tests.BookstoreV2Hostnames,
+					HTTPRoutesClusters: []trafficpolicy.RouteWeightedClusters{
+						trafficpolicy.RouteWeightedClusters{
+							HTTPRoute: trafficpolicy.HTTPRoute{
+								PathRegex: "/buy",
+								Methods:   []string{"GET"},
+								Headers: map[string]string{
+									"user-agent": tests.HTTPUserAgent,
+								},
+							},
+							WeightedClusters: mapset.NewSet(service.WeightedCluster{
+								ClusterName: "default/bookstore-v2",
+								Weight:      100,
+							}),
+						},
+						trafficpolicy.RouteWeightedClusters{
+							HTTPRoute: trafficpolicy.HTTPRoute{
+								PathRegex: "/sell",
+								Methods:   []string{"GET"},
+								Headers: map[string]string{
+									"user-agent": tests.HTTPUserAgent,
+								},
+							},
+							WeightedClusters: mapset.NewSet(service.WeightedCluster{
+								ClusterName: "default/bookstore-v2",
+								Weight:      100,
+							}),
+						},
+					},
+				},
+				&trafficpolicy.TrafficPolicy{
+					Name:        "bookbuyer-default-bookstore-v1-default",
+					Source:      tests.BookbuyerService,
+					Destination: tests.BookstoreV1Service,
+					Hostnames:   tests.BookstoreV1Hostnames,
+					HTTPRoutesClusters: []trafficpolicy.RouteWeightedClusters{
+						trafficpolicy.RouteWeightedClusters{
+							HTTPRoute: trafficpolicy.HTTPRoute{
+								PathRegex: "/buy",
+								Methods:   []string{"GET"},
+								Headers: map[string]string{
+									"user-agent": tests.HTTPUserAgent,
+								},
+							},
+							WeightedClusters: mapset.NewSet(service.WeightedCluster{
+								ClusterName: "default/bookstore-v1",
+								Weight:      100,
+							}),
+						},
+						trafficpolicy.RouteWeightedClusters{
+							HTTPRoute: trafficpolicy.HTTPRoute{
+								PathRegex: "/sell",
+								Methods:   []string{"GET"},
+								Headers: map[string]string{
+									"user-agent": tests.HTTPUserAgent,
+								},
+							},
+							WeightedClusters: mapset.NewSet(service.WeightedCluster{
+								ClusterName: "default/bookstore-v1",
+								Weight:      100,
+							}),
+						},
+					},
+				},
+				&trafficpolicy.TrafficPolicy{
+					Name:        "bookbuyer-default-bookstore-apex-default",
+					Source:      tests.BookbuyerService,
+					Destination: tests.BookstoreApexService,
+					Hostnames:   tests.BookstoreApexHostnames,
+					HTTPRoutesClusters: []trafficpolicy.RouteWeightedClusters{
+						trafficpolicy.RouteWeightedClusters{
+							HTTPRoute: trafficpolicy.HTTPRoute{
+								PathRegex: "/buy",
+								Methods:   []string{"GET"},
+								Headers: map[string]string{
+									"user-agent": tests.HTTPUserAgent,
+								},
+							},
+							WeightedClusters: mapset.NewSet(service.WeightedCluster{
+								ClusterName: "default/bookstore-apex",
+								Weight:      100,
+							}),
+						},
+						trafficpolicy.RouteWeightedClusters{
+							HTTPRoute: trafficpolicy.HTTPRoute{
+								PathRegex: "/sell",
+								Methods:   []string{"GET"},
+								Headers: map[string]string{
+									"user-agent": tests.HTTPUserAgent,
+								},
+							},
+							WeightedClusters: mapset.NewSet(service.WeightedCluster{
+								ClusterName: "default/bookstore-apex",
+								Weight:      100,
+							}),
+						},
+					},
+				},
+			},
+			expectedOutboundPolicies: []*trafficpolicy.TrafficPolicy{},
+		},
+		{
+			input:                   tests.BookbuyerServiceAccount,
+			expectedInboundPolicies: []*trafficpolicy.TrafficPolicy{},
+			expectedOutboundPolicies: []*trafficpolicy.TrafficPolicy{
+				&trafficpolicy.TrafficPolicy{
+					Name:        "bookbuyer-default-bookstore-v1-default",
+					Source:      tests.BookbuyerService,
+					Destination: tests.BookstoreV1Service,
+					Hostnames:   tests.BookstoreV1Hostnames,
+					HTTPRoutesClusters: []trafficpolicy.RouteWeightedClusters{
+						trafficpolicy.RouteWeightedClusters{
+							HTTPRoute: allowAllRoute,
+							WeightedClusters: mapset.NewSet(service.WeightedCluster{
+								ClusterName: "default/bookstore-v1",
+								Weight:      100,
+							}),
+						},
+					},
+				},
+				&trafficpolicy.TrafficPolicy{
+					Name:        "bookbuyer-default-bookstore-v2-default",
+					Source:      tests.BookbuyerService,
+					Destination: tests.BookstoreV2Service,
+					Hostnames:   tests.BookstoreV2Hostnames,
+					HTTPRoutesClusters: []trafficpolicy.RouteWeightedClusters{
+						trafficpolicy.RouteWeightedClusters{
+							HTTPRoute: allowAllRoute,
+							WeightedClusters: mapset.NewSet(service.WeightedCluster{
+								ClusterName: "default/bookstore-v2",
+								Weight:      100,
+							}),
+						},
+					},
+				},
+				&trafficpolicy.TrafficPolicy{
+					Name:        "bookbuyer-default-bookstore-apex-default",
+					Source:      tests.BookbuyerService,
+					Destination: tests.BookstoreApexService,
+					Hostnames:   tests.BookstoreApexHostnames,
+					HTTPRoutesClusters: []trafficpolicy.RouteWeightedClusters{
+						trafficpolicy.RouteWeightedClusters{
+							HTTPRoute: allowAllRoute,
+							WeightedClusters: mapset.NewSet(service.WeightedCluster{
+								ClusterName: "default/bookstore-apex",
+								Weight:      100,
+							}),
+						},
+					},
+				},
+			},
+		},
 	}
 
-	assert.Equal(trafficTarget, expectedTrafficTarget)
+	for _, tc := range testCases {
+		inboundPolicies, outboundPolicies, err := mc.listTrafficPoliciesFromTrafficTargets(tc.input)
+		assert.Nil(err)
+		assert.ElementsMatch(tc.expectedInboundPolicies, inboundPolicies)
+		assert.ElementsMatch(tc.expectedOutboundPolicies, outboundPolicies)
+
+	}
+}
+
+func TestConsolidatePolicies(t *testing.T) {
+	assert := assert.New(t)
+	policies := []*trafficpolicy.TrafficPolicy{
+		&trafficpolicy.TrafficPolicy{
+			Name:        "bookbuyer-default-bookstore-v1-default",
+			Source:      tests.BookbuyerService,
+			Destination: tests.BookstoreV1Service,
+			Hostnames:   tests.BookstoreV1Hostnames,
+			HTTPRoutesClusters: []trafficpolicy.RouteWeightedClusters{
+				trafficpolicy.RouteWeightedClusters{
+					HTTPRoute: allowAllRoute,
+					WeightedClusters: mapset.NewSet(service.WeightedCluster{
+						ClusterName: "default/bookstore-v1",
+						Weight:      100,
+					}),
+				},
+			},
+		},
+		&trafficpolicy.TrafficPolicy{
+			Name:        "bookbuyer-default-bookstore-v1-default",
+			Source:      tests.BookbuyerService,
+			Destination: tests.BookstoreV1Service,
+			Hostnames:   tests.BookstoreV1Hostnames,
+			HTTPRoutesClusters: []trafficpolicy.RouteWeightedClusters{
+				trafficpolicy.RouteWeightedClusters{
+					HTTPRoute: getAllRoute,
+					WeightedClusters: mapset.NewSet(service.WeightedCluster{
+						ClusterName: "default/bookstore-v1",
+						Weight:      100,
+					}),
+				},
+			},
+		},
+		&trafficpolicy.TrafficPolicy{
+			Name:        "bookbuyer-default-bookstore-v1-default",
+			Source:      tests.BookbuyerService,
+			Destination: tests.BookstoreV1Service,
+			Hostnames:   tests.BookstoreV1Hostnames,
+			HTTPRoutesClusters: []trafficpolicy.RouteWeightedClusters{
+				trafficpolicy.RouteWeightedClusters{
+					HTTPRoute: getSomeRoute,
+					WeightedClusters: mapset.NewSet(service.WeightedCluster{
+						ClusterName: "default/bookstore-v1",
+						Weight:      100,
+					}),
+				},
+			},
+		},
+
+		&trafficpolicy.TrafficPolicy{
+			Name:        "bookbuyer-default-bookstore-v2-default",
+			Source:      tests.BookbuyerService,
+			Destination: tests.BookstoreV2Service,
+			Hostnames:   tests.BookstoreV2Hostnames,
+			HTTPRoutesClusters: []trafficpolicy.RouteWeightedClusters{
+				trafficpolicy.RouteWeightedClusters{
+					HTTPRoute: getSomeRoute,
+					WeightedClusters: mapset.NewSet(service.WeightedCluster{
+						ClusterName: "default/bookstore-v2",
+						Weight:      100,
+					}),
+				},
+			},
+		},
+	}
+	expectedPolicies := []*trafficpolicy.TrafficPolicy{
+		&trafficpolicy.TrafficPolicy{
+			Name:        "bookbuyer-default-bookstore-v1-default",
+			Source:      tests.BookbuyerService,
+			Destination: tests.BookstoreV1Service,
+			Hostnames:   tests.BookstoreV1Hostnames,
+			HTTPRoutesClusters: []trafficpolicy.RouteWeightedClusters{
+				trafficpolicy.RouteWeightedClusters{
+					HTTPRoute: allowAllRoute,
+					WeightedClusters: mapset.NewSet(service.WeightedCluster{
+						ClusterName: "default/bookstore-v1",
+						Weight:      100,
+					}),
+				},
+				trafficpolicy.RouteWeightedClusters{
+					HTTPRoute: getAllRoute,
+					WeightedClusters: mapset.NewSet(service.WeightedCluster{
+						ClusterName: "default/bookstore-v1",
+						Weight:      100,
+					}),
+				},
+				trafficpolicy.RouteWeightedClusters{
+					HTTPRoute: getSomeRoute,
+					WeightedClusters: mapset.NewSet(service.WeightedCluster{
+						ClusterName: "default/bookstore-v1",
+						Weight:      100,
+					}),
+				},
+			},
+		},
+		&trafficpolicy.TrafficPolicy{
+			Name:        "bookbuyer-default-bookstore-v2-default",
+			Source:      tests.BookbuyerService,
+			Destination: tests.BookstoreV2Service,
+			Hostnames:   tests.BookstoreV2Hostnames,
+			HTTPRoutesClusters: []trafficpolicy.RouteWeightedClusters{
+				trafficpolicy.RouteWeightedClusters{
+					HTTPRoute: getSomeRoute,
+					WeightedClusters: mapset.NewSet(service.WeightedCluster{
+						ClusterName: "default/bookstore-v2",
+						Weight:      100,
+					}),
+				},
+			},
+		},
+	}
+	actualPolicies := consolidatePolicies(policies)
+	assert.ElementsMatch(expectedPolicies, actualPolicies)
+
 }

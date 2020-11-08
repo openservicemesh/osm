@@ -58,14 +58,14 @@ type MeshCataloger interface {
 	// GetSMISpec returns the SMI spec
 	GetSMISpec() smi.MeshSpec
 
-	// ListTrafficPolicies returns all the traffic policies for a given service that Envoy proxy should be aware of.
-	ListTrafficPolicies(service.MeshService) ([]trafficpolicy.TrafficTarget, error)
+	// ListTrafficPoliciesForService returns a full list of inbound and outbound traffic policies for the given service
+	ListTrafficPoliciesForService(service.K8sServiceAccount) ([]*trafficpolicy.TrafficPolicy, []*trafficpolicy.TrafficPolicy, error)
 
-	// ListAllowedInboundServices lists the inbound services allowed to connect to the given service.
-	ListAllowedInboundServices(service.MeshService) ([]service.MeshService, error)
+	// HTTPRoutesFromRules returns a list of matching trafficpolicy.HTTPRoute given a list of Traffic Target rules
+	HTTPRoutesFromRules([]target.TrafficTargetRule, string) ([]trafficpolicy.HTTPRoute, error)
 
 	// ListAllowedOutboundServices lists the services the given service is allowed outbound connections to.
-	ListAllowedOutboundServices(service.MeshService) ([]service.MeshService, error)
+	ListAllowedOutboundServices(service.K8sServiceAccount) ([]service.MeshService, error)
 
 	// ListAllowedInboundServiceAccounts lists the downstream service accounts that can connect to the given service account
 	ListAllowedInboundServiceAccounts(service.K8sServiceAccount) ([]service.K8sServiceAccount, error)
@@ -102,9 +102,6 @@ type MeshCataloger interface {
 
 	// GetResolvableHostnamesForUpstreamService returns the hostnames over which an upstream service is accessible from a downstream service
 	GetResolvableHostnamesForUpstreamService(downstream, upstream service.MeshService) ([]string, error)
-
-	//GetWeightedClusterForService returns the weighted cluster for a service
-	GetWeightedClusterForService(service service.MeshService) (service.WeightedCluster, error)
 
 	// GetIngressRoutesPerHost returns the HTTP routes per host associated with an ingress service
 	GetIngressRoutesPerHost(service.MeshService) (map[string][]trafficpolicy.HTTPRoute, error)

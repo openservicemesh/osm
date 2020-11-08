@@ -28,8 +28,16 @@ type TrafficTarget struct {
 }
 
 // RouteWeightedClusters is a struct of an HTTPRoute, associated weighted clusters and the domains
+type TrafficPolicy struct {
+	Name               string                  `json:"name:omitempty"`
+	Destination        service.MeshService     `json:"destination:omitempty"` // for ingress, ingress service
+	Source             service.MeshService     `json:"source:omitempty"`      // ingress, don't care about source
+	HTTPRoutesClusters []RouteWeightedClusters `json:"http_routes:omitempty"`
+	Hostnames          []string                `json:"hostnames:omitempty"`
+}
+
+// RouteWeightedClusters is a struct of an HTTPRoute and associated weighted clusters
 type RouteWeightedClusters struct {
 	HTTPRoute        HTTPRoute `json:"http_route:omitempty"`
 	WeightedClusters set.Set   `json:"weighted_clusters:omitempty"`
-	Hostnames        set.Set   `json:"hostnames:omitempty"`
 }

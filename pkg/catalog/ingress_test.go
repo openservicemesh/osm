@@ -40,6 +40,7 @@ var (
 	}
 )
 
+
 func newFakeMeshCatalog() *MeshCatalog {
 	defer GinkgoRecover()
 

@@ -29,6 +29,11 @@ type fakeClient struct {
 	services  map[service.K8sServiceAccount][]service.MeshService
 }
 
+func (f fakeClient) GetServiceAccountsForService(sa service.MeshService) ([]service.K8sServiceAccount, error) {
+	services := []service.K8sServiceAccount{}
+	return services, nil
+}
+
 // Retrieve the IP addresses comprising the given service.
 func (f fakeClient) ListEndpointsForService(svc service.MeshService) []endpoint.Endpoint {
 	if svc, ok := f.endpoints[svc.String()]; ok {

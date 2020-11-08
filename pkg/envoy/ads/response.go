@@ -39,6 +39,7 @@ func (s *Server) sendAllResponses(proxy *envoy.Proxy, server *xds_discovery.Aggr
 		if err != nil {
 			log.Error().Err(err).Msgf("%s Failed to create %s discovery response for proxy with CN=%s", prefix, typeURI, proxy.GetCommonName())
 		} else {
+			log.Debug().Msgf("DISCOVERY RESPONSE %#v", discoveryResponse.Resources)
 			if err := (*server).Send(discoveryResponse); err != nil {
 				log.Error().Err(err).Msgf("%s Error sending %s to proxy with CN=%s", prefix, typeURI, proxy.GetCommonName())
 			}

@@ -24,6 +24,9 @@ type Provider interface {
 
 	// GetAnnouncementsChannel obtains the channel on which providers will announce changes to the infrastructure.
 	GetAnnouncementsChannel() <-chan interface{}
+
+	// GetServiceAccountsForService retrieves the service accounts related to the given namespaced service
+	GetServiceAccountsForService(service.MeshService) ([]service.K8sServiceAccount, error)
 }
 
 // Endpoint is a tuple of IP and Port representing an instance of a service

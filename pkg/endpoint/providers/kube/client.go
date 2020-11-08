@@ -9,11 +9,13 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -102,6 +104,56 @@ func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endp
 		}
 	}
 	return endpoints
+}
+
+// GetServiceAccounts retrieves a list of services accounts for pods that part of the given service.
+func (c Client) GetServiceAccountsForService(svc service.MeshService) ([]service.K8sServiceAccount, error) {
+	log.Info().Msgf("[%s] Getting Service Accounts for service %s on Kubernetes", c.providerIdent, svc)
+	serviceAccounts := []service.K8sServiceAccount{}
+	namespace := svc.Namespace
+
+	if !c.kubeController.IsMonitoredNamespace(namespace) {
+		// Doesn't belong to namespaces we are observing
+		return nil, errors.Errorf("Namespace %s is not monitored", namespace)
+	}
+
+	//find all pods related to service
+
+	kubeService := c.kubeController.GetService(svc)
+	if kubeService == nil {
+		return serviceAccounts, errors.Errorf("No Kubernetes service found for %#v", svc)
+	}
+
+	log.Info().Msgf("kubeService Found %#v\n", kubeService)
+
+	serviceLabels := labels.Set(kubeService.Spec.Selector)
+	log.Info().Msgf("serviceLabels %v\n", serviceLabels)
+
+	pods, err := c.getPodsByLabels(serviceLabels, namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	/*
+		pods, err := c.getPodsForService(svc, namespace)
+	*/
+	log.Info().Msgf("Got Pods length %v\n", len(pods))
+
+	// TODO unique
+	for _, pod := range pods {
+		log.Info().Msgf("Pod/namespace %s - %s serviceAccountName %s\n", pod.Name, pod.Namespace, pod.Spec.ServiceAccountName)
+		serviceAccounts = append(serviceAccounts,
+			service.K8sServiceAccount{
+				Namespace: namespace,
+				Name:      pod.Spec.ServiceAccountName,
+			})
+	}
+
+	//TODO: handle duplicates
+	log.Info().Msgf("serviceAccounts return %v", serviceAccounts)
+
+	return serviceAccounts, nil
+
 }
 
 // GetServicesForServiceAccount retrieves a list of services for the given service account.
@@ -197,6 +249,40 @@ func (c *Client) run(stop <-chan struct{}) error {
 	return nil
 }
 
+// getServicesByAnyOfTheseLabels() gets Kubernetes services whose selectors match any of the given labels
+func (c *Client) getServicesByAnyOfTheseLabels(podLabels map[string]string, namespace string) ([]corev1.Service, error) {
+	servicesFound := []corev1.Service{}
+	serviceList := c.kubeController.ListServices()
+	for _, svc := range serviceList {
+		if svc.Namespace != namespace {
+			continue
+		}
+		/*
+			podLabels = map[string]string{app: bookstore, version: v1}
+			svc.Labels = map[string]string{app: bookstore}
+		*/
+
+		log.Info().Msgf("comparing pod Labels with service Labels: %v, ns: %s\n", podLabels, svc.Labels)
+
+		for podLabel, value := range podLabels {
+			// loop through svc labels
+			// if one of svc labels matches pod Label .. add that service to finalList
+			val, found := svc.Labels[podLabel]
+			if found && val == value {
+				log.Info().Msgf("matched pod label with service label: %v=%v\n", podLabel, val)
+
+				servicesFound = append(servicesFound, *svc)
+				break
+			}
+
+		}
+	}
+
+	log.Info().Msgf("%v servicesFound for podLabels %#v", len(servicesFound), podLabels)
+
+	return servicesFound, nil
+}
+
 // getServicesByLabels gets Kubernetes services whose selectors match the given labels
 func (c *Client) getServicesByLabels(podLabels map[string]string, namespace string) ([]corev1.Service, error) {
 	var finalList []corev1.Service
@@ -217,6 +303,57 @@ func (c *Client) getServicesByLabels(podLabels map[string]string, namespace stri
 	}
 
 	return finalList, nil
+}
+
+func (c *Client) getPodsByLabels(labelsMatch map[string]string, namespace string) ([]corev1.Pod, error) {
+	log.Info().Msgf("entered getPodsByLabels labels: %v, ns: %s\n", labelsMatch, namespace)
+
+	filteredPods := []corev1.Pod{}
+	podList := c.kubeController.ListPods()
+	log.Info().Msgf("podList length %v\n", len(podList))
+
+	for _, pod := range podList {
+		if pod.Namespace != namespace {
+			log.Info().Msgf("Skipping bc pod.Namespace %v != ns %v\n", pod.Namespace, namespace)
+
+			continue
+
+		}
+		//EnvoyUniqueIDLabelName
+		podLabels := pod.ObjectMeta.Labels
+		log.Info().Msgf("podLabels %v", podLabels)
+
+		selector := labels.Set(labelsMatch).AsSelector()
+		envoyIDLabelRequirement, err := labels.NewRequirement(constants.EnvoyUniqueIDLabelName, selection.Exists, []string{})
+		if err != nil {
+			return nil, err
+		}
+		podTemplateHashLabelRequirement, err := labels.NewRequirement(constants.EnvoyUniqueIDLabelName, selection.Exists, []string{})
+		if err != nil {
+			return nil, err
+		}
+		selector.Add(*envoyIDLabelRequirement, *podTemplateHashLabelRequirement)
+		//selector := labels.Set(podLabels).AsSelector()
+		/*
+			match conditions:
+			- pod needs to have exact labels as labelsMatch &&
+			- pod needs to have a label "osm-proxy-uuid" (EnvoyUniqueIDLabelName) &&
+			- pod needs to have label "pod-template-hash"
+		*/
+
+		if selector.Matches(labels.Set(pod.Labels)) {
+			log.Info().Msgf("Match! %v %v \n", podLabels, labelsMatch)
+
+			filteredPods = append(filteredPods, *pod)
+		} else {
+			log.Info().Msgf("NOPE No Match %v %v \n", podLabels, labelsMatch)
+
+		}
+
+	}
+	log.Info().Msgf("filtered Pods length %v\n", len(podList))
+
+	return filteredPods, nil
 }
 
 // GetResolvableEndpointsForService returns the expected endpoints that are to be reached when the service

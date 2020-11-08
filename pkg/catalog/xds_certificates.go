@@ -42,7 +42,7 @@ func (mc *MeshCatalog) GetServicesFromEnvoyCertificate(cn certificate.CommonName
 	return meshServices, nil
 }
 
-func kubernetesServicesToMeshServices(kubernetesServices []v1.Service) (meshServices []service.MeshService) {
+func kubernetesServicesToMeshServices(kubernetesServices []*v1.Service) (meshServices []service.MeshService) {
 	for _, svc := range kubernetesServices {
 		meshServices = append(meshServices, service.MeshService{
 			Namespace: svc.Namespace,
@@ -71,7 +71,7 @@ func makeSyntheticServiceForPod(pod *v1.Pod, proxyCommonName certificate.CommonN
 
 // filterTrafficSplitServices takes a list of services and removes from it the ones
 // that have been split via an SMI TrafficSplit.
-func (mc *MeshCatalog) filterTrafficSplitServices(services []v1.Service) []v1.Service {
+func (mc *MeshCatalog) filterTrafficSplitServices(services []*v1.Service) []*v1.Service {
 	excludeTheseServices := make(map[service.MeshService]interface{})
 	for _, trafficSplit := range mc.meshSpec.ListTrafficSplits() {
 		svc := service.MeshService{
@@ -84,10 +84,10 @@ func (mc *MeshCatalog) filterTrafficSplitServices(services []v1.Service) []v1.Se
 	log.Debug().Msgf("Filtered out apex services (no pods can belong to these): %+v", excludeTheseServices)
 
 	// These are the services except ones that are a root of a TrafficSplit policy
-	var filteredServices []v1.Service
+	var filteredServices []*v1.Service
 
 	for i, svc := range services {
-		nsSvc := utils.K8sSvcToMeshSvc(&services[i])
+		nsSvc := utils.K8sSvcToMeshSvc(services[i])
 		if _, shouldSkip := excludeTheseServices[nsSvc]; shouldSkip {
 			continue
 		}
@@ -152,8 +152,8 @@ func GetPodFromCertificate(cn certificate.CommonName, kubecontroller k8s.Control
 }
 
 // listServicesForPod lists Kubernetes services whose selectors match pod labels
-func listServicesForPod(pod *v1.Pod, kubeController k8s.Controller) ([]v1.Service, error) {
-	var serviceList []v1.Service
+func listServicesForPod(pod *v1.Pod, kubeController k8s.Controller) ([]*v1.Service, error) {
+	var serviceList []*v1.Service
 	svcList := kubeController.ListServices()
 
 	for _, svc := range svcList {
@@ -163,7 +163,7 @@ func listServicesForPod(pod *v1.Pod, kubeController k8s.Controller) ([]v1.Servic
 		svcRawSelector := svc.Spec.Selector
 		selector := labels.Set(svcRawSelector).AsSelector()
 		if selector.Matches(labels.Set(pod.Labels)) {
-			serviceList = append(serviceList, *svc)
+			serviceList = append(serviceList, svc)
 		}
 	}
 

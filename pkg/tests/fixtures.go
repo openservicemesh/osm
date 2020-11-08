@@ -304,6 +304,22 @@ var (
 		RootService: BookstoreApexServiceName,
 	}
 
+	BuyBooksRoute = trafficpolicy.HTTPRoute{
+		PathRegex: BookstoreBuyPath,
+		Methods:   []string{"GET"},
+		Headers: map[string]string{
+			"user-agent": HTTPUserAgent,
+		},
+	}
+
+	SellBooksRoute = trafficpolicy.HTTPRoute{
+		PathRegex: BookstoreSellPath,
+		Methods:   []string{"GET"},
+		Headers: map[string]string{
+			"user-agent": HTTPUserAgent,
+		},
+	}
+
 	// HTTPRouteGroup is the HTTP route group SMI object.
 	HTTPRouteGroup = spec.HTTPRouteGroup{
 		TypeMeta: v1.TypeMeta{
@@ -362,6 +378,57 @@ var (
 		Spec: backpressure.BackpressureSpec{
 			MaxConnections: 123,
 		},
+	}
+
+	BookbuyerHostnames = []string{
+		"bookbuyer",
+		"bookbuyer.default",
+		"bookbuyer.default.svc",
+		"bookbuyer.default.svc.cluster",
+		"bookbuyer.default.svc.cluster.local",
+		"bookbuyer:8888",
+		"bookbuyer.default:8888",
+		"bookbuyer.default.svc:8888",
+		"bookbuyer.default.svc.cluster:8888",
+		"bookbuyer.default.svc.cluster.local:8888",
+	}
+
+	BookstoreV1Hostnames = []string{
+		"bookstore-v1",
+		"bookstore-v1.default",
+		"bookstore-v1.default.svc",
+		"bookstore-v1.default.svc.cluster",
+		"bookstore-v1.default.svc.cluster.local",
+		"bookstore-v1:8888",
+		"bookstore-v1.default:8888",
+		"bookstore-v1.default.svc:8888",
+		"bookstore-v1.default.svc.cluster:8888",
+		"bookstore-v1.default.svc.cluster.local:8888",
+	}
+	BookstoreApexHostnames = []string{
+		"bookstore-apex",
+		"bookstore-apex.default",
+		"bookstore-apex.default.svc",
+		"bookstore-apex.default.svc.cluster",
+		"bookstore-apex.default.svc.cluster.local",
+		"bookstore-apex:8888",
+		"bookstore-apex.default:8888",
+		"bookstore-apex.default.svc:8888",
+		"bookstore-apex.default.svc.cluster:8888",
+		"bookstore-apex.default.svc.cluster.local:8888",
+	}
+
+	BookstoreV2Hostnames = []string{
+		"bookstore-v2",
+		"bookstore-v2.default",
+		"bookstore-v2.default.svc",
+		"bookstore-v2.default.svc.cluster",
+		"bookstore-v2.default.svc.cluster.local",
+		"bookstore-v2:8888",
+		"bookstore-v2.default:8888",
+		"bookstore-v2.default.svc:8888",
+		"bookstore-v2.default.svc.cluster:8888",
+		"bookstore-v2.default.svc.cluster.local:8888",
 	}
 )
 

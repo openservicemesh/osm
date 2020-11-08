@@ -1,67 +1,47 @@
-# Deploy bookstore Namespace
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: bookstore
 ---
-# Create a top level service just for the bookstore domain
+# Deploy bookstore-v2 Service
 apiVersion: v1
 kind: Service
 metadata:
-  name: bookstore
+  name: bookstore-v2
   namespace: bookstore
   labels:
     app: bookstore
+    version: v2
 spec:
   ports:
   - port: 80
     name: bookstore-port
   selector:
     app: bookstore
+    version: v2
 ---
-# Deploy bookstore-v1 Service
-apiVersion: v1
-kind: Service
-metadata:
-  name: bookstore-v1
-  namespace: bookstore
-  labels:
-    app: bookstore
-    version: v1
-spec:
-  ports:
-  - port: 80
-    name: bookstore-port
-  selector:
-    app: bookstore
-    version: v1
----
-# Deploy bookstore-v1 Service Account
+# Deploy bookstore-v2 Service Account
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: bookstore-v1
+  name: bookstore-v2
   namespace: bookstore
 ---
-# Deploy bookstore-v1 Deployment
+# Deploy bookstore-v2 Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: bookstore-v1
+  name: bookstore-v2
   namespace: bookstore
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: bookstore
-      version: v1
+      version: v2
   template:
     metadata:
       labels:
         app: bookstore
-        version: v1
+        version: v2
     spec:
-      serviceAccountName: bookstore-v1
+      serviceAccountName: bookstore-v2
       containers:
         - name: bookstore
           image: openservicemesh/bookstore:v0.2.0
@@ -75,4 +55,25 @@ spec:
             - name: BOOKWAREHOUSE_NAMESPACE
               value: bookwarehouse
             - name: IDENTITY
-              value: bookstore-v1
+              value: bookstore-v2
+---
+kind: TrafficTarget
+apiVersion: access.smi-spec.io/v1alpha2
+metadata:
+  name: bookstore-v2
+  namespace: bookstore
+spec:
+  destination:
+    kind: ServiceAccount
+    name: bookstore-v2
+    namespace: bookstore
+  rules:
+  - kind: HTTPRouteGroup
+    name: bookstore-service-routes
+    matches:
+    - buy-a-book
+    - books-bought
+  sources:
+  - kind: ServiceAccount
+    name: bookbuyer
+    namespace: bookbuyer
