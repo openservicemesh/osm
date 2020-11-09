@@ -67,7 +67,7 @@ See [the Doscy versioning docs](https://www.docsy.dev/docs/adding-content/versio
 
 * built with the [Hugo](https://gohugo.io/) static site generator
 * custom theme uses [Docsy](https://www.docsy.dev/) as a base, with [Bootstrap](https://getbootstrap.com/) as the underlying css framework and some [OSM custom sass](https://github.com/openservicemesh/osm/pull/1840/files#diff-374e78d353e95d66afe7e6c3e13de4aab370ffb117f32aeac519b15c2cbd057aR1)
-* deployed to [Netlify](https://app.netlify.com/sites/osm-docs/deploys) via merges to master. (@flynnduism can grant additional access to account)
+* deployed to [Netlify](https://app.netlify.com/sites/osm-docs/deploys) via merges to main. (@flynnduism can grant additional access to account)
 * metrics tracked via Google Analytics
 
 ## Install dependencies:
@@ -87,7 +87,7 @@ hugo serve
 
 ## Deploying the site:
 
-The site auto deploys the master branch via [Netlify](https://app.netlify.com/sites/osm-docs). Once pull requests are merged the changes will appear at docs.openservicemesh.io after a couple of minutes. Check the [logs](https://app.netlify.com/sites/osm-docs/deploys) for details.
+The site auto deploys the main branch via [Netlify](https://app.netlify.com/sites/osm-docs). Once pull requests are merged the changes will appear at docs.openservicemesh.io after a couple of minutes. Check the [logs](https://app.netlify.com/sites/osm-docs/deploys) for details.
 
 [![Netlify Status](https://api.netlify.com/api/v1/badges/8c8b7b52-b87f-42e0-949a-a784c3ca6d9a/deploy-status)](https://app.netlify.com/sites/osm-docs/deploys)
 
