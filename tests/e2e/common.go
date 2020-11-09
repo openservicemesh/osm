@@ -415,6 +415,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 	args = append(args, fmt.Sprintf("--enable-grafana=%v", instOpts.deployGrafana))
 	args = append(args, fmt.Sprintf("--deploy-jaeger=%v", instOpts.deployJaeger))
 	args = append(args, fmt.Sprintf("--enable-fluentbit=%v", instOpts.deployFluentbit))
+	args = append(args, fmt.Sprintf("--timeout=%v", 90*time.Second))
 
 	td.T.Log("Installing OSM")
 	stdout, stderr, err := td.RunLocal(filepath.FromSlash("../../bin/osm"), args)
@@ -425,7 +426,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		return errors.Wrap(err, "failed to run osm install")
 	}
 
-	return td.WaitForPodsRunningReady(td.osmNamespace, 90*time.Second, 1)
+	return nil
 }
 
 // GetConfigMap is a wrapper to get a config map by name in a particular namespace

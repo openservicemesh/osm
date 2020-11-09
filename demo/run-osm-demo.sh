@@ -43,37 +43,6 @@ exit_error() {
     exit 1
 }
 
-wait_for_osm_pods() {
-  # Wait for OSM pods to be ready before deploying the apps.
-  pods=$(kubectl get pods -n "$K8S_NAMESPACE" -o name | sed 's/^pod\///')
-  if [ -n "$pods" ]; then
-    for pod in $pods; do
-      wait_for_pod_ready "$pod"
-    done
-  else
-    exit_error "No Pods found in namespace $K8S_NAMESPACE"
-  fi
-}
-
-wait_for_pod_ready() {
-    max=15
-    pod_name=$1
-
-    for x in $(seq 1 $max); do
-        pod_ready="$(kubectl get pods -n "$K8S_NAMESPACE" "${pod_name}" -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}')"
-        if [ "$pod_ready" == "True" ]; then
-            echo "[${x}] Pod ready ${pod_name}"
-            return
-        fi
-
-        pod_status="$(kubectl get pods -n "$K8S_NAMESPACE" "${pod_name}" -o 'jsonpath={..status.phase}')"
-        echo "[${x}] Pod status is ${pod_status}; waiting for pod ${pod_name} to be Ready" && sleep 5
-    done
-
-    pod_status="$(kubectl get pods -n "$K8S_NAMESPACE" "${pod_name}" -o 'jsonpath={..status.phase}')"
-    exit_error "Pod ${pod_name} status is ${pod_status} -- still not Ready"
-}
-
 # Check if Docker daemon is running
 docker info > /dev/null || { echo "Docker daemon is not running"; exit 1; }
 
@@ -129,6 +98,7 @@ if [ "$CERT_MANAGER" = "vault" ]; then
       --enable-grafana="$ENABLE_GRAFANA" \
       --enable-fluentbit="$ENABLE_FLUENTBIT" \
       --envoy-log-level "$ENVOY_LOG_LEVEL" \
+      --timeout=90s \
       $optionalInstallArgs
 else
   # shellcheck disable=SC2086
@@ -145,10 +115,9 @@ else
       --enable-grafana="$ENABLE_GRAFANA" \
       --enable-fluentbit="$ENABLE_FLUENTBIT" \
       --envoy-log-level "$ENVOY_LOG_LEVEL" \
+      --timeout=90s \
       $optionalInstallArgs
 fi
-
-wait_for_osm_pods
 
 ./demo/configure-app-namespaces.sh
 
