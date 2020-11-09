@@ -64,7 +64,10 @@ func (mc *MeshCatalog) getAnnouncementChannels() []announcementChannel {
 	// See Github Issue: https://github.com/openservicemesh/osm/issues/1501
 	go func() {
 		ticker := time.NewTicker(updateAtLeastEvery)
-		ticking <- ticker.C
+		for {
+			<-ticker.C
+			ticking <- nil
+		}
 	}()
 
 	return announcementChannels
