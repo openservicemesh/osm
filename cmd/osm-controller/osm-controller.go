@@ -255,6 +255,10 @@ func main() {
 	httpServer := httpserver.NewHTTPServer(funcProbes, httpProbes, metricsStore, constants.MetricsServerPort)
 	httpServer.Start()
 
+	if err := createControllerManagerForOSMResources(certManager); err != nil {
+		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating controller manager to reconcile OSM resources")
+	}
+
 	// Expose /debug endpoints and data only if the enableDebugServer flag is enabled
 	debugConfig := debugger.NewDebugConfig(certDebugger, xdsServer, meshCatalog, kubeConfig, kubeClient, cfg, kubernetesClient)
 	c := controller{
@@ -264,21 +268,6 @@ func main() {
 	}
 
 	go c.configureDebugServer(cfg)
-	//Setting up k8s controller manager to reconcile OSM resources
-	log.Info().Msg("Setting up controller to reconcile OSM resources")
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:             scheme,
-		MetricsBindAddress: metricsAddr,
-		LeaderElection:     enableLeaderElection,
-		Namespace:          osmNamespace,
-	})
-	if err != nil {
-		log.Error().Err(err).Msg("Error starting up controller manager")
-		os.Exit(1)
-	// Create and start a controller manager
-	if err := createControllerManagerForOSMResources(certManager); err != nil {
-		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating controller manager to reconcile OSM resources")
-	}
 
 	// Wait for exit handler signal
 	<-stop
