@@ -256,6 +256,42 @@
                         }
                     },
                     "additionalProperties": true
+                }, 
+                "fluentbitOutput": {
+                    "$id": "#/properties/OpenServiceMesh/properties/fluentbitOutput",
+                    "type": "string",
+                    "title": "Fluentbit logger output location",
+                    "description": "The log forwarding destination to be forwarded by Fluent Bit",
+                    "examples": [
+                        "stdout"
+                    ]
+                },
+                "webhookConfigNamePrefix": {
+                    "$id": "#/properties/OpenServiceMesh/properties/webhookConfigNamePrefix",
+                    "type": "string",
+                    "title": "Webhook Config Name Prefix",
+                    "description": "Prefix for the webhook name, which uses the format <webhook-prefix>-<mesh-name>",
+                    "examples": [
+                        ""
+                    ]
+                },
+                "customLogAnalyticsWorkspace": {
+                    "$id": "#/properties/OpenServiceMesh/properties/customLogAnalyticsWorkspace",
+                    "type": "boolean",
+                    "title": "Custom Log Analytics Workspace",
+                    "description": "Specifies whether users will provide their own output plugin",
+                    "examples": [
+                        true
+                    ]
+                },
+                "connectVault": {
+                    "$id": "#/properties/OpenServiceMesh/properties/connectVault",
+                    "type": "boolean",
+                    "title": "Connect to vault for cert manager",
+                    "description": "Specifies whether OSM deployment needs vault connection for cert-manager support",
+                    "examples": [
+                        true
+                    ]
                 }
             },
             "additionalProperties": true
