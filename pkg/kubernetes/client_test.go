@@ -325,9 +325,14 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 
 			_, err := kubeClient.CoreV1().Services(testNamespaceName).Create(context.TODO(), svc, metav1.CreateOptions{})
 			Expect(err).ToNot(HaveOccurred())
+
+			// Wait for both pods and the service to be created
+			<-kubeController.GetAnnouncementsChannel(Pods)
+			<-kubeController.GetAnnouncementsChannel(Pods)
 			<-kubeController.GetAnnouncementsChannel(Services)
 
 			meshSvc := service.MeshService{Name: svc.Name, Namespace: svc.Namespace}
+
 			svcAccounts, err := kubeController.ListServiceAccountsForService(meshSvc)
 
 			Expect(err).ToNot(HaveOccurred())

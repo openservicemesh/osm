@@ -89,7 +89,7 @@ func (c *Client) initPodMonitor() {
 	// Announcement channel for Pods
 	c.announcements[Pods] = make(chan interface{})
 
-	c.informers[Pods].AddEventHandler(GetKubernetesEventHandlers((string)(Pods), ProviderName, c.announcements[Services], shouldObserve))
+	c.informers[Pods].AddEventHandler(GetKubernetesEventHandlers((string)(Pods), ProviderName, c.announcements[Pods], shouldObserve))
 }
 
 func (c *Client) run(stop <-chan struct{}) error {
