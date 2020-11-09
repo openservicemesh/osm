@@ -315,6 +315,9 @@ type MeshCataloger interface {
 	// ListAllowedOutboundServiceAccounts lists the upstream service accounts the given service account can connect to
 	ListAllowedOutboundServiceAccounts(service.K8sServiceAccount) ([]service.K8sServiceAccount, error)
 
+	// ListServiceAccountsForService lists the service accounts associated with the given service
+	ListServiceAccountsForService(service.MeshService) ([]service.K8sServiceAccount, error)
+
 	// ListSMIPolicies lists SMI policies.
 	ListSMIPolicies() ([]*split.TrafficSplit, []service.WeightedService, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget)
 

@@ -265,6 +265,21 @@ func (mr *MockMeshCatalogerMockRecorder) ListSMIPolicies() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSMIPolicies", reflect.TypeOf((*MockMeshCataloger)(nil).ListSMIPolicies))
 }
 
+// ListServiceAccountsForService mocks base method
+func (m *MockMeshCataloger) ListServiceAccountsForService(arg0 service.MeshService) ([]service.K8sServiceAccount, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListServiceAccountsForService", arg0)
+	ret0, _ := ret[0].([]service.K8sServiceAccount)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListServiceAccountsForService indicates an expected call of ListServiceAccountsForService
+func (mr *MockMeshCatalogerMockRecorder) ListServiceAccountsForService(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServiceAccountsForService", reflect.TypeOf((*MockMeshCataloger)(nil).ListServiceAccountsForService), arg0)
+}
+
 // ListTrafficPolicies mocks base method
 func (m *MockMeshCataloger) ListTrafficPolicies(arg0 service.MeshService) ([]trafficpolicy.TrafficTarget, error) {
 	m.ctrl.T.Helper()
