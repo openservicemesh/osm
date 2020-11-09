@@ -442,7 +442,6 @@ func createControllerManagerForOSMResources(certManager certificate.Manager) err
 		Scheme:             scheme,
 		MetricsBindAddress: metricsAddr,
 		LeaderElection:     enableLeaderElection,
-		Port:               9443,
 		Namespace:          osmNamespace,
 	})
 	if err != nil {
