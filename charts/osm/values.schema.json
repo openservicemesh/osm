@@ -29,7 +29,11 @@
                 "envoyLogLevel",
                 "enforceSingleMesh",
                 "deployJaeger",
-                "tracing"
+                "tracing", 
+                "fluentbitOutput", 
+                "webhookConfigNamePrefix", 
+                "customLogAnalyticsWorkspace", 
+                "connectVault"
             ],
             "properties": {
                 "replicaCount": {
