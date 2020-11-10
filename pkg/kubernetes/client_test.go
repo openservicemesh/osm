@@ -135,11 +135,6 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 			Expect(kubeController).ToNot(BeNil())
 		})
 
-		It("should correctly verify initialization the controller", func() {
-			Expect(err).ToNot(HaveOccurred())
-			Expect(kubeController).ToNot(BeNil())
-		})
-
 		It("should create and delete services, and be detected if NS is monitored", func() {
 			meshSvc := tests.BookbuyerService
 
