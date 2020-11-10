@@ -37,8 +37,8 @@ var (
 )
 
 const (
-	// mutatingWebhookName is the name of the mutating webhook used for sidecar injection
-	mutatingWebhookName = "osm-inject.k8s.io"
+	// MutatingWebhookName is the name of the mutating webhook used for sidecar injection
+	MutatingWebhookName = "osm-inject.k8s.io"
 
 	// webhookCreatePod is the HTTP path at which the webhook expects to receive pod creation events
 	webhookCreatePod = "/mutate-pod-creation"
@@ -364,7 +364,7 @@ func getPartialMutatingWebhookConfiguration(cert certificate.Certificater, webho
 		},
 		Webhooks: []admissionv1beta1.MutatingWebhook{
 			{
-				Name: mutatingWebhookName,
+				Name: MutatingWebhookName,
 				ClientConfig: admissionv1beta1.WebhookClientConfig{
 					CABundle: cert.GetCertificateChain(),
 				},
