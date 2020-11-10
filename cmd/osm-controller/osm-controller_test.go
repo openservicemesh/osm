@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 	"strconv"
-	"sync"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
@@ -40,16 +40,16 @@ func TestConfigureDebugServerStart(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var wg sync.WaitGroup
 
-	fakeDebugServer := FakeDebugServer{0, 0, nil, &wg}
+	fakeDebugServer := FakeDebugServer{0, 0, nil}
 	con := &controller{
 		debugServerRunning: false,
 		debugComponents:    mockDebugConfig(mockCtrl),
 		debugServer:        &fakeDebugServer,
 	}
-	wg.Add(1)
-	go con.configureDebugServer(cfg)
+
+	errs := make(chan error)
+	go con.configureDebugServer(cfg, errs)
 
 	updatedConfigMap := v1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -64,8 +64,8 @@ func TestConfigureDebugServerStart(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	wg.Wait()
 
+	getErrorOrTimeout(assert, errs, 1*time.Second)
 	close(stop)
 	assert.Equal(1, fakeDebugServer.startCount)
 	assert.Equal(0, fakeDebugServer.stopCount)
@@ -84,17 +84,16 @@ func TestConfigureDebugServerStop(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var wg sync.WaitGroup
 
-	fakeDebugServer := FakeDebugServer{0, 0, nil, &wg}
+	fakeDebugServer := FakeDebugServer{0, 0, nil}
 	con := &controller{
 		debugServerRunning: true,
 		debugComponents:    mockDebugConfig(mockCtrl),
 		debugServer:        &fakeDebugServer,
 	}
-	wg.Add(1)
 
-	go con.configureDebugServer(cfg)
+	errs := make(chan error)
+	go con.configureDebugServer(cfg, errs)
 
 	updatedConfigMap := v1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -109,8 +108,8 @@ func TestConfigureDebugServerStop(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	wg.Wait()
 
+	getErrorOrTimeout(assert, errs, 1*time.Second)
 	close(stop)
 	assert.Equal(0, fakeDebugServer.startCount)
 	assert.Equal(1, fakeDebugServer.stopCount)
@@ -129,16 +128,15 @@ func TestConfigureDebugServerErr(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var wg sync.WaitGroup
 
-	fakeDebugServer := FakeDebugServer{0, 0, errors.Errorf("Debug server error"), &wg}
+	fakeDebugServer := FakeDebugServer{0, 0, errors.Errorf("Debug server error")}
 	con := &controller{
 		debugServerRunning: true,
 		debugComponents:    mockDebugConfig(mockCtrl),
 		debugServer:        &fakeDebugServer,
 	}
-	wg.Add(1)
-	go con.configureDebugServer(cfg)
+	errs := make(chan error)
+	go con.configureDebugServer(cfg, errs)
 
 	updatedConfigMap := v1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -153,8 +151,8 @@ func TestConfigureDebugServerErr(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	wg.Wait()
 
+	getErrorOrTimeout(assert, errs, 1*time.Second)
 	close(stop)
 	assert.Equal(0, fakeDebugServer.startCount)
 	assert.Equal(1, fakeDebugServer.stopCount)
@@ -212,13 +210,10 @@ type FakeDebugServer struct {
 	stopCount  int
 	startCount int
 	stopErr    error
-
-	wg *sync.WaitGroup
 }
 
 func (f *FakeDebugServer) Stop() error {
 	f.stopCount++
-	f.wg.Done()
 	if f.stopErr != nil {
 		return errors.Errorf("Debug server error")
 	}
@@ -227,7 +222,6 @@ func (f *FakeDebugServer) Stop() error {
 
 func (f *FakeDebugServer) Start() {
 	f.startCount++
-	f.wg.Done()
 }
 
 func mockDebugConfig(mockCtrl *gomock.Controller) *debugger.MockDebugServer {
@@ -257,4 +251,12 @@ func setupComponents(namespace, configMapName string, initialDebugServerEnabled 
 	}
 	cfg := configurator.NewConfigurator(kubeClient, stop, namespace, configMapName)
 	return kubeClient, configMap, cfg, nil
+}
+
+func getErrorOrTimeout(assert *assert.Assertions, errs <-chan error, timeout time.Duration) {
+	select {
+	case <-errs:
+	case <-time.After(timeout):
+		assert.Fail("failed to receive error after " + timeout.String())
+	}
 }

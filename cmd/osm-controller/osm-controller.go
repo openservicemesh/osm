@@ -267,27 +267,36 @@ func main() {
 		debugServer:        httpserver.NewDebugHTTPServer(debugConfig, constants.DebugPort),
 	}
 
-	go c.configureDebugServer(cfg)
+	errs := make(chan error)
+	go c.configureDebugServer(cfg, errs)
 
-	// Wait for exit handler signal
-	<-stop
+	done := false
+	for !done {
+		select {
+		case <-stop:
+			done = true
+		case err := <-errs:
+			if err != nil {
+				log.Error().Err(err)
+			}
+		}
+	}
 
 	log.Info().Msg("Goodbye!")
 }
 
-func (c *controller) configureDebugServer(cfg configurator.Configurator) {
+func (c *controller) configureDebugServer(cfg configurator.Configurator, errs chan<- error) {
 	//GetAnnouncementsChannel will check ConfigMap every 3 * time.Second
 	var mutex = &sync.Mutex{}
 	for range cfg.GetAnnouncementsChannel() {
 		if c.debugServerRunning && !cfg.IsDebugServerEnabled() {
 			mutex.Lock()
 			err := c.debugServer.Stop()
-			if err != nil {
-				log.Error().Err(err).Msg("Unable to stop debug server")
-			} else {
+			if err == nil {
 				c.debugServer = nil
 			}
 			c.debugServerRunning = false
+			errs <- errors.Wrap(err, "unable to stop debug server")
 			mutex.Unlock()
 		} else if !c.debugServerRunning && cfg.IsDebugServerEnabled() {
 			mutex.Lock()
@@ -296,6 +305,7 @@ func (c *controller) configureDebugServer(cfg configurator.Configurator) {
 			}
 			c.debugServer.Start()
 			c.debugServerRunning = true
+			errs <- nil
 			mutex.Unlock()
 		}
 	}
