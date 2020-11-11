@@ -64,7 +64,7 @@ go-vet:
 
 .PHONY: go-lint
 go-lint:
-	go run github.com/golangci/golangci-lint/cmd/golangci-lint run --config .golangci.yml
+	go run github.com/golangci/golangci-lint/cmd/golangci-lint run --config .golangci.yml --exclude-use-default=false
 
 .PHONY: go-fmt
 go-fmt:

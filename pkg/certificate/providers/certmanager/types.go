@@ -42,8 +42,6 @@ type CertManager struct {
 	// changed.
 	announcements chan interface{}
 
-	certificatesOrganization string
-
 	// Control plane namespace where CertificateRequests are created.
 	namespace string
 

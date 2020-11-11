@@ -28,20 +28,14 @@ import (
 )
 
 var (
-	testRegistry               = "test-registry"
-	testRegistrySecret         = "test-registry-secret"
-	testOsmImageTag            = "test-tag"
-	testVaultHost              = "vault.osm.svc.cluster.local"
-	testVaultProtocol          = "http"
-	testVaultToken             = "token"
-	testVaultRole              = "role"
-	testCertManagerIssuerName  = "my-osm-ca"
-	testCertManagerIssuerKind  = "ClusterIssuer"
-	testCertManagerIssuerGroup = "example.co.uk"
-	testCABundleSecretName     = "osm-ca-bundle"
-	testRetentionTime          = "5d"
-	testEnvoyLogLevel          = "error"
-	testChartPath              = "testdata/test-chart"
+	testRegistry       = "test-registry"
+	testRegistrySecret = "test-registry-secret"
+	testOsmImageTag    = "test-tag"
+	testVaultHost      = "vault.osm.svc.cluster.local"
+	testVaultToken     = "token"
+	testRetentionTime  = "5d"
+	testEnvoyLogLevel  = "error"
+	testChartPath      = "testdata/test-chart"
 )
 
 var _ = Describe("Running the install command", func() {
@@ -379,7 +373,8 @@ var _ = Describe("Running the install command", func() {
 
 			fakeClientSet = fake.NewSimpleClientset()
 			deploymentSpec := createDeploymentSpec(settings.Namespace(), defaultMeshName)
-			fakeClientSet.AppsV1().Deployments(settings.Namespace()).Create(context.TODO(), deploymentSpec, metav1.CreateOptions{})
+			_, err = fakeClientSet.AppsV1().Deployments(settings.Namespace()).Create(context.TODO(), deploymentSpec, metav1.CreateOptions{})
+			Expect(err).To(BeNil())
 
 			installCmd = getDefaultInstallCmd(out)
 			// Use the client set with the existing mesh deployment
@@ -438,7 +433,8 @@ var _ = Describe("Running the install command", func() {
 
 			fakeClientSet = fake.NewSimpleClientset()
 			deploymentSpec := createDeploymentSpec(settings.Namespace(), defaultMeshName)
-			fakeClientSet.AppsV1().Deployments(settings.Namespace()).Create(context.TODO(), deploymentSpec, metav1.CreateOptions{})
+			_, err = fakeClientSet.AppsV1().Deployments(settings.Namespace()).Create(context.TODO(), deploymentSpec, metav1.CreateOptions{})
+			Expect(err).To(BeNil())
 
 			installCmd = getDefaultInstallCmd(out)
 			installCmd.meshName = defaultMeshName + "-2" //use different name than pre-existing mesh

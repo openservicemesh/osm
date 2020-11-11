@@ -2,7 +2,6 @@ package main
 
 import (
 	goflag "flag"
-	"fmt"
 	"io"
 	"os"
 
@@ -47,7 +46,7 @@ func newRootCmd(config *action.Configuration, in io.Reader, out io.Writer, args 
 		newTrafficPolicyCmd(out),
 	)
 
-	flags.Parse(args)
+	_ = flags.Parse(args)
 
 	return cmd
 }
@@ -55,7 +54,7 @@ func newRootCmd(config *action.Configuration, in io.Reader, out io.Writer, args 
 func main() {
 	actionConfig := new(action.Configuration)
 	cmd := newRootCmd(actionConfig, os.Stdin, os.Stdout, os.Args[1:])
-	actionConfig.Init(settings.RESTClientGetter(), settings.Namespace(), "secret", debug)
+	_ = actionConfig.Init(settings.RESTClientGetter(), settings.Namespace(), "secret", debug)
 
 	// run when each command's execute method is called
 	cobra.OnInitialize(func() {
@@ -70,5 +69,4 @@ func main() {
 }
 
 func debug(format string, v ...interface{}) {
-	format = fmt.Sprintf("[debug] %s\n", format)
 }

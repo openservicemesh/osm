@@ -13,13 +13,16 @@ import (
 	testclient "k8s.io/client-go/kubernetes/fake"
 )
 
+const (
+	osmNamespace     = "-test-osm-namespace-"
+	osmConfigMapName = "-test-osm-config-map-"
+)
+
 var _ = Describe("Test OSM ConfigMap parsing", func() {
 	defer GinkgoRecover()
 
 	kubeClient := testclient.NewSimpleClientset()
 
-	osmNamespace := "-test-osm-namespace-"
-	osmConfigMapName := "-test-osm-config-map-"
 	stop := make(<-chan struct{})
 	cfg := newConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
 

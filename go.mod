@@ -15,7 +15,7 @@ require (
 	github.com/envoyproxy/go-control-plane v0.9.6
 	github.com/fatih/color v1.10.0
 	github.com/golang/mock v1.3.1
-	github.com/golang/protobuf v1.4.2
+	github.com/golang/protobuf v1.4.3
 	github.com/golangci/golangci-lint v1.32.2
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/mux v1.7.3
@@ -35,6 +35,7 @@ require (
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.6.1
+	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
 	golang.org/x/tools v0.0.0-20201021214918-23787c007979 // indirect
 	google.golang.org/grpc v1.27.0
 	google.golang.org/protobuf v1.23.0

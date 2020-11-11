@@ -40,8 +40,6 @@ var _ = Describe("Test Envoy configuration creation", func() {
 	Context("create OSM config with default values", func() {
 		kubeClient := testclient.NewSimpleClientset()
 		stop := make(chan struct{})
-		osmNamespace := "-test-osm-namespace-"
-		osmConfigMapName := "-test-osm-config-map-"
 		cfg := NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
 
 		It("test GetConfigMap", func() {
@@ -78,8 +76,6 @@ var _ = Describe("Test Envoy configuration creation", func() {
 	Context("create OSM config for permissive_traffic_policy_mode", func() {
 		kubeClient := testclient.NewSimpleClientset()
 		stop := make(chan struct{})
-		osmNamespace := "-test-osm-namespace-"
-		osmConfigMapName := "-test-osm-config-map-"
 		cfg := NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
 
 		It("correctly identifies that permissive_traffic_policy_mode is enabled", func() {
@@ -131,8 +127,6 @@ var _ = Describe("Test Envoy configuration creation", func() {
 	Context("create OSM config for egress", func() {
 		kubeClient := testclient.NewSimpleClientset()
 		stop := make(chan struct{})
-		osmNamespace := "-test-osm-namespace-"
-		osmConfigMapName := "-test-osm-config-map-"
 		cfg := NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
 
 		It("correctly identifies that egress is enabled", func() {
@@ -183,8 +177,6 @@ var _ = Describe("Test Envoy configuration creation", func() {
 	Context("create OSM config for osm debug HTTP server", func() {
 		kubeClient := testclient.NewSimpleClientset()
 		stop := make(chan struct{})
-		osmNamespace := "-test-osm-namespace-"
-		osmConfigMapName := "-test-osm-config-map-"
 		cfg := NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
 
 		It("correctly identifies that the debug server is enabled", func() {
@@ -213,8 +205,6 @@ var _ = Describe("Test Envoy configuration creation", func() {
 	Context("create OSM config for Prometheus scraping", func() {
 		kubeClient := testclient.NewSimpleClientset()
 		stop := make(chan struct{})
-		osmNamespace := "-test-osm-namespace-"
-		osmConfigMapName := "-test-osm-config-map-"
 		cfg := NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
 
 		It("correctly identifies that the config is enabled", func() {
@@ -265,8 +255,6 @@ var _ = Describe("Test Envoy configuration creation", func() {
 	Context("create OSM config for tracing", func() {
 		kubeClient := testclient.NewSimpleClientset()
 		stop := make(chan struct{})
-		osmNamespace := "-test-osm-namespace-"
-		osmConfigMapName := "-test-osm-config-map-"
 		cfg := NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
 
 		It("correctly identifies that the config is enabled", func() {
@@ -317,8 +305,6 @@ var _ = Describe("Test Envoy configuration creation", func() {
 	Context("create OSM config for the Envoy proxy log level", func() {
 		kubeClient := testclient.NewSimpleClientset()
 		stop := make(chan struct{})
-		osmNamespace := "-test-osm-namespace-"
-		osmConfigMapName := "-test-osm-config-map-"
 		testInfoEnvoyLogLevel := "info"
 		testDebugEnvoyLogLevel := "debug"
 		cfg := NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
@@ -393,8 +379,6 @@ var _ = Describe("Test Envoy configuration creation", func() {
 	Context("create OSM config service cert validity period", func() {
 		kubeClient := testclient.NewSimpleClientset()
 		stop := make(chan struct{})
-		osmNamespace := "-test-osm-namespace-"
-		osmConfigMapName := "-test-osm-config-map-"
 		cfg := NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
 
 		It("correctly retrieves the default service cert validity duration when an invalid value is specified", func() {
