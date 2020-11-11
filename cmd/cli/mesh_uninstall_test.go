@@ -116,7 +116,6 @@ var _ = Describe("Running the mesh uninstall command", func() {
 	Context("custom parameters", func() {
 		var (
 			uninstallCmd *meshUninstallCmd
-			meshName     string
 			force        bool
 		)
 		When("force is true", func() {
