@@ -13,6 +13,8 @@ linters:
     - misspell
     - unused
     - whitespace
+  disable:
+    - errcheck
 
 linters-settings:
   goimports:
@@ -31,7 +33,7 @@ issues:
       linters: 
         - unused
         - deadcode
-    # Exclude staticcheck messages for deprecated 
+    # Exclude staticcheck messages for deprecated function, variable or constant
     # This causes issues with package github.com/golang/protobuf/proto
     - linters:
         - staticcheck
