@@ -405,3 +405,33 @@ func (mc *MeshCatalog) listTrafficTargetPermutations(trafficTarget target.Traffi
 
 	return trafficPolicies, nil
 }
+
+// routesFromRules takes a set of traffic target rules and a namespace and returns a list of http routes (trafficpolicy.HTTPRoute)
+func (mc *MeshCatalog) routesFromRules(rules []target.TrafficTargetRule, namespace string) ([]trafficpolicy.HTTPRoute, error) {
+	routes := []trafficpolicy.HTTPRoute{}
+
+	specMatchRoute, err := mc.getHTTPPathsPerRoute() // returns map[traffic_spec_name]map[match_name]trafficpolicy.HTTPRoute
+	if err != nil {
+		return nil, err
+	}
+
+	if len(specMatchRoute) == 0 {
+		log.Debug().Msg("No elements in map[traffic_spec_name]map[match name]trafficpolicyHTTPRoute")
+		return routes, nil
+	}
+
+	for _, rule := range rules {
+		trafficSpecName := mc.getTrafficSpecName("HTTPRouteGroup", namespace, rule.Name)
+		for _, match := range rule.Matches {
+			matchedRoute, found := specMatchRoute[trafficSpecName][trafficpolicy.TrafficSpecMatchName(match)]
+			if found {
+				routes = append(routes, matchedRoute)
+			} else {
+				log.Debug().Msgf("No matching trafficpolicy.HTTPRoute found for match name %s in Traffic Spec %s (in namespace %s)", match, trafficSpecName, namespace)
+			}
+		}
+
+	}
+
+	return routes, nil
+}
