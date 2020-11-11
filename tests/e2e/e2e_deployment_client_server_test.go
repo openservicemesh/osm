@@ -114,10 +114,10 @@ var _ = OSMDescribe("Test HTTP traffic from N deployment client -> 1 deployment 
 							DestinationSvcAccountName: destApp,
 						})
 
-					// Configs have to be put into a monitored NS, and osm-system can't be by cli
-					_, err = td.CreateHTTPRouteGroup(srcClient, httpRG)
+					// SMI is formally deployed on destination NS
+					_, err = td.CreateHTTPRouteGroup(destApp, httpRG)
 					Expect(err).NotTo(HaveOccurred())
-					_, err = td.CreateTrafficTarget(srcClient, trafficTarget)
+					_, err = td.CreateTrafficTarget(destApp, trafficTarget)
 					Expect(err).NotTo(HaveOccurred())
 				}
 

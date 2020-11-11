@@ -79,10 +79,10 @@ func testTraffic(withSourceKubernetesService bool) {
 					DestinationSvcAccountName: destName,
 				})
 
-			// Configs have to be put into a monitored NS
-			_, err = td.CreateHTTPRouteGroup(sourceName, httpRG)
+			// SMI is formally deployed on destination NS
+			_, err = td.CreateHTTPRouteGroup(destName, httpRG)
 			Expect(err).NotTo(HaveOccurred())
-			_, err = td.CreateTrafficTarget(sourceName, trafficTarget)
+			_, err = td.CreateTrafficTarget(destName, trafficTarget)
 			Expect(err).NotTo(HaveOccurred())
 
 			// All ready. Expect client to reach server

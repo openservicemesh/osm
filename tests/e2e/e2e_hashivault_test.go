@@ -84,10 +84,10 @@ var _ = OSMDescribe("1 Client pod -> 1 Server pod test using Vault",
 						DestinationSvcAccountName: "server",
 					})
 
-				// Configs have to be put into a monitored NS, and osm-system can't be by cli
-				_, err = td.CreateHTTPRouteGroup(sourceNs, httpRG)
+				// SMI is formally deployed on destination NS
+				_, err = td.CreateHTTPRouteGroup(destNs, httpRG)
 				Expect(err).NotTo(HaveOccurred())
-				_, err = td.CreateTrafficTarget(sourceNs, trafficTarget)
+				_, err = td.CreateTrafficTarget(destNs, trafficTarget)
 				Expect(err).NotTo(HaveOccurred())
 
 				// All ready. Expect client to reach server

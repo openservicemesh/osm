@@ -145,9 +145,10 @@ var _ = OSMDescribe("Test HTTP from N Clients deployments to 1 Server deployment
 								DestinationSvcAccountName: dstServer,
 							})
 
-						_, err := td.CreateHTTPRouteGroup(srcClient, httpRG)
+						// SMI is formally deployed on destination NS
+						_, err := td.CreateHTTPRouteGroup(serverNamespace, httpRG)
 						Expect(err).NotTo(HaveOccurred())
-						_, err = td.CreateTrafficTarget(srcClient, trafficTarget)
+						_, err = td.CreateTrafficTarget(serverNamespace, trafficTarget)
 						Expect(err).NotTo(HaveOccurred())
 					}
 				}
@@ -183,7 +184,7 @@ var _ = OSMDescribe("Test HTTP from N Clients deployments to 1 Server deployment
 				tSplit, err := td.CreateSimpleTrafficSplit(trafficSplit)
 				Expect(err).To(BeNil())
 
-				// Push them in K8s
+				// Push them in K8s, SMI is formally deployed on destination NS
 				_, err = td.CreateTrafficSplit(serverNamespace, tSplit)
 				Expect(err).To(BeNil())
 
