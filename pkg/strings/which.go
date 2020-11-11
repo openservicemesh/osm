@@ -1,6 +1,6 @@
 package strings
 
-// Which is a struct of strings
+// Which is a slice of strings
 type Which []string
 
 // NotEqual returns a new slice of strings from an existing slice that do not match a given string
