@@ -1,6 +1,6 @@
 # osm
 
-![Version: 0.4.2](https://img.shields.io/badge/Version-0.4.2-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v0.4.2](https://img.shields.io/badge/AppVersion-v0.4.2-informational?style=flat-square)
+![Version: 0.5.0](https://img.shields.io/badge/Version-0.5.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v0.5.0](https://img.shields.io/badge/AppVersion-v0.5.0-informational?style=flat-square)
 
 A Helm chart to install the OSM control plane on Kubernetes
 
@@ -17,15 +17,20 @@ A Helm chart to install the OSM control plane on Kubernetes
 | OpenServiceMesh.enableBackpressureExperimental | bool | `false` |  |
 | OpenServiceMesh.enableDebugServer | bool | `false` |  |
 | OpenServiceMesh.enableEgress | bool | `false` |  |
-| OpenServiceMesh.enableGrafana | bool | `false` |  |
 | OpenServiceMesh.enableFluentbit | bool | `false` |  |
+| OpenServiceMesh.enableGrafana | bool | `false` |  |
 | OpenServiceMesh.enablePermissiveTrafficPolicy | bool | `false` |  |
 | OpenServiceMesh.enablePrometheus | bool | `true` |  |
+| OpenServiceMesh.enforceSingleMesh | bool | `false` |  |
 | OpenServiceMesh.envoyLogLevel | string | `"error"` |  |
+| OpenServiceMesh.fluentBitImage.name | string | `"fluentbit-logger"` |  |
+| OpenServiceMesh.fluentBitImage.pullPolicy | string | `"IfNotPresent"` |  |
+| OpenServiceMesh.fluentBitImage.registry | string | `"fluent"` |  |
+| OpenServiceMesh.fluentBitImage.tag | float | `1.5` |  |
 | OpenServiceMesh.grafana.port | int | `3000` |  |
 | OpenServiceMesh.image.pullPolicy | string | `"IfNotPresent"` |  |
 | OpenServiceMesh.image.registry | string | `"openservicemesh"` |  |
-| OpenServiceMesh.image.tag | string | `"v0.4.2"` |  |
+| OpenServiceMesh.image.tag | string | `"v0.5.0"` |  |
 | OpenServiceMesh.imagePullSecrets | list | `[]` |  |
 | OpenServiceMesh.meshName | string | `"osm"` |  |
 | OpenServiceMesh.prometheus.port | int | `7070` |  |
@@ -42,4 +47,4 @@ A Helm chart to install the OSM control plane on Kubernetes
 | OpenServiceMesh.vault.protocol | string | `"http"` |  |
 | OpenServiceMesh.vault.role | string | `"openservicemesh"` |  |
 | OpenServiceMesh.vault.token | string | `nil` |  |
-| OpenServiceMesh.enforceSingleMesh | bool | `"false"` |  |
+
