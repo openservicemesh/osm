@@ -19,7 +19,6 @@ linters-settings:
     local-prefixes: github.com/openservicemesh/osm
 
 issues:
-  new: true
   exclude-rules:
     # Ignore error for ginkgo and gomega dot imports
     - linters:
