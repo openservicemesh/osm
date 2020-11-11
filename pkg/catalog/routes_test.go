@@ -66,9 +66,7 @@ func TestRoutesFromRules(t *testing.T) {
 			assert.Nil(err)
 			assert.EqualValues(tc.expectedRoutes, routes)
 		})
-
 	}
-
 }
 
 func TestListTrafficPolicies(t *testing.T) {

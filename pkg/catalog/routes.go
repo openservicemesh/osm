@@ -431,7 +431,6 @@ func (mc *MeshCatalog) routesFromRules(rules []target.TrafficTargetRule, traffic
 				log.Debug().Msgf("No matching trafficpolicy.HTTPRoute found for match name %s in Traffic Spec %s (in namespace %s)", match, trafficSpecName, trafficTargetNamespace)
 			}
 		}
-
 	}
 
 	return routes, nil
