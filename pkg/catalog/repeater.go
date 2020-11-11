@@ -25,7 +25,7 @@ func (mc *MeshCatalog) repeater() {
 					log.Trace().Msgf("Received announcement from %s", caseNames[chosenIdx])
 					delta := time.Since(lastUpdateAt)
 					if delta >= updateAtMostEvery {
-						mc.broadcast(ann)
+						mc.broadcastToAllProxies(ann)
 						lastUpdateAt = time.Now()
 					}
 				}
@@ -51,10 +51,10 @@ func (mc *MeshCatalog) getCases() ([]reflect.SelectCase, []string) {
 	return cases, caseNames
 }
 
-func (mc *MeshCatalog) broadcast(message announcements.Announcement) {
+func (mc *MeshCatalog) broadcastToAllProxies(message announcements.Announcement) {
 	mc.connectedProxiesLock.Lock()
 	for _, connectedEnvoy := range mc.connectedProxies {
-		log.Debug().Msgf("[repeater] Broadcast announcement to envoy %s", connectedEnvoy.proxy.GetCommonName())
+		log.Debug().Msgf("[repeater] Broadcast announcement to Envoy with CN %s", connectedEnvoy.proxy.GetCommonName())
 		select {
 		// send the message if possible - do not block
 		case connectedEnvoy.proxy.GetAnnouncementsChannel() <- message:
