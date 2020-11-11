@@ -27,6 +27,7 @@ func TestRoutesFromRules(t *testing.T) {
 		expectedRoutes []trafficpolicy.HTTPRoute
 	}{
 		{
+			name: "http route group and match name exist",
 			rules: []target.TrafficTargetRule{
 				{
 					Kind:    "HTTPRouteGroup",
@@ -46,6 +47,7 @@ func TestRoutesFromRules(t *testing.T) {
 			},
 		},
 		{
+			name: "http route group and match name do not exist",
 			rules: []target.TrafficTargetRule{
 				{
 					Kind:    "HTTPRouteGroup",
@@ -59,9 +61,12 @@ func TestRoutesFromRules(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		routes, err := mc.routesFromRules(tc.rules, tc.namespace)
-		assert.Nil(err)
-		assert.EqualValues(tc.expectedRoutes, routes)
+		t.Run(fmt.Sprintf("Testing routesFromRules where %s", tc.name), func(t *testing.T) {
+			routes, err := mc.routesFromRules(tc.rules, tc.namespace)
+			assert.Nil(err)
+			assert.EqualValues(tc.expectedRoutes, routes)
+		})
+
 	}
 
 }
