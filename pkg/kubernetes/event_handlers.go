@@ -17,53 +17,91 @@ var emitLogs = os.Getenv(constants.EnvVarLogKubernetesEvents) == "true"
 type observeFilter func(obj interface{}) bool
 
 // GetKubernetesEventHandlers creates Kubernetes events handlers.
-func GetKubernetesEventHandlers(informerName string, providerName string, announcements chan announcements.Announcement, shouldObserve observeFilter) cache.ResourceEventHandlerFuncs {
+func GetKubernetesEventHandlers(informerName string, providerName string, announcements chan announcements.Announcement, shouldObserve observeFilter, remap map[EventType]announcements.AnnouncementType, getObjID func(obj interface{}) interface{}) cache.ResourceEventHandlerFuncs {
 	if shouldObserve == nil {
 		shouldObserve = func(obj interface{}) bool { return true }
 	}
 	return cache.ResourceEventHandlerFuncs{
-		AddFunc:    addEvent(informerName, providerName, announcements, shouldObserve, AddEvent),
-		UpdateFunc: updateEvent(informerName, providerName, announcements, shouldObserve, UpdateEvent),
-		DeleteFunc: deleteEvent(informerName, providerName, announcements, shouldObserve, DeleteEvent),
+		AddFunc:    addEvent(informerName, providerName, announcements, shouldObserve, AddEvent, remap, getObjID),
+		UpdateFunc: updateEvent(informerName, providerName, announcements, shouldObserve, UpdateEvent, remap, getObjID),
+		DeleteFunc: deleteEvent(informerName, providerName, announcements, shouldObserve, DeleteEvent, remap, getObjID),
 	}
 }
 
-func addEvent(informerName string, providerName string, announce chan announcements.Announcement, shouldObserve observeFilter, eventType EventType) func(obj interface{}) {
+func addEvent(informerName string, providerName string, announce chan announcements.Announcement, shouldObserve observeFilter, eventType EventType, remap map[EventType]announcements.AnnouncementType, getObjID func(obj interface{}) interface{}) func(obj interface{}) {
 	return func(obj interface{}) {
 		if !shouldObserve(obj) {
 			logNotObservedNamespace(obj, eventType)
 			return
 		}
+
 		logEvent(eventType, providerName, informerName, obj)
-		if announce != nil {
-			announce <- announcements.Announcement{}
+		if announce == nil {
+			return
 		}
+
+		ann := announcements.Announcement{}
+		if remap != nil {
+			if announcementType, ok := remap[eventType]; ok {
+				ann.Type = announcementType
+			}
+		}
+
+		if getObjID != nil {
+			ann.ReferencedObjectID = getObjID(obj)
+		}
+
+		announce <- ann
 	}
 }
 
-func updateEvent(informerName string, providerName string, announce chan announcements.Announcement, shouldObserve observeFilter, eventType EventType) func(oldObj, newObj interface{}) {
+func updateEvent(informerName string, providerName string, announce chan announcements.Announcement, shouldObserve observeFilter, eventType EventType, remap map[EventType]announcements.AnnouncementType, getObjID func(obj interface{}) interface{}) func(oldObj, newObj interface{}) {
 	return func(oldObj, newObj interface{}) {
 		if !shouldObserve(newObj) {
 			logNotObservedNamespace(newObj, eventType)
 			return
 		}
 		logEvent(eventType, providerName, informerName, oldObj)
-		if announce != nil {
-			announce <- announcements.Announcement{}
+		if announce == nil {
+			return
 		}
+		ann := announcements.Announcement{}
+		if remap != nil {
+			if announcementType, ok := remap[eventType]; ok {
+				ann.Type = announcementType
+			}
+		}
+
+		if getObjID != nil {
+			ann.ReferencedObjectID = getObjID(oldObj)
+		}
+
+		announce <- ann
 	}
 }
 
-func deleteEvent(informerName string, providerName string, announce chan announcements.Announcement, shouldObserve observeFilter, eventType EventType) func(obj interface{}) {
+func deleteEvent(informerName string, providerName string, announce chan announcements.Announcement, shouldObserve observeFilter, eventType EventType, remap map[EventType]announcements.AnnouncementType, getObjID func(obj interface{}) interface{}) func(obj interface{}) {
 	return func(obj interface{}) {
 		if !shouldObserve(obj) {
 			logNotObservedNamespace(obj, eventType)
 			return
 		}
 		logEvent(eventType, providerName, informerName, obj)
-		if announce != nil {
-			announce <- announcements.Announcement{}
+		if announce == nil {
+			return
 		}
+		ann := announcements.Announcement{}
+		if remap != nil {
+			if announcementType, ok := remap[eventType]; ok {
+				ann.Type = announcementType
+			}
+		}
+
+		if getObjID != nil {
+			ann.ReferencedObjectID = getObjID(obj)
+		}
+
+		announce <- ann
 	}
 }
 

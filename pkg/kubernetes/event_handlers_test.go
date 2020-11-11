@@ -29,7 +29,7 @@ var _ = Describe("Testing event handlers", func() {
 		It("Should add the event to the announcement channel", func() {
 			ann := make(chan announcements.Announcement, 1)
 			pod := tests.NewPodTestFixture(testNamespace, "pod-name")
-			addEvent(testInformer, testProvider, ann, shouldObserve, "ADD")(&pod)
+			addEvent(testInformer, testProvider, ann, shouldObserve, "ADD", nil, nil)(&pod)
 			Expect(len(ann)).To(Equal(1))
 			<-ann
 		})
@@ -38,7 +38,7 @@ var _ = Describe("Testing event handlers", func() {
 			ann := make(chan announcements.Announcement, 1)
 			var pod corev1.Pod
 			pod.Namespace = "not-a-monitored-namespace"
-			addEvent(testInformer, testProvider, ann, shouldObserve, "ADD")(&pod)
+			addEvent(testInformer, testProvider, ann, shouldObserve, "ADD", nil, nil)(&pod)
 			Expect(len(ann)).To(Equal(0))
 		})
 	})

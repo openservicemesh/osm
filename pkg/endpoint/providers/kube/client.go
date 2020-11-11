@@ -48,8 +48,8 @@ func NewProvider(kubeClient kubernetes.Interface, kubeController k8s.Controller,
 		ns := reflect.ValueOf(obj).Elem().FieldByName("ObjectMeta").FieldByName("Namespace").String()
 		return kubeController.IsMonitoredNamespace(ns)
 	}
-	informerCollection.Endpoints.AddEventHandler(k8s.GetKubernetesEventHandlers("Endpoints", "Kubernetes", client.announcements, shouldObserve))
-	informerCollection.Pods.AddEventHandler(k8s.GetKubernetesEventHandlers("Pods", "Kubernetes", client.announcements, shouldObserve))
+	informerCollection.Endpoints.AddEventHandler(k8s.GetKubernetesEventHandlers("Endpoints", "Kubernetes", client.announcements, shouldObserve, endpointEventTypeRemap, getPodUIDFromEndpoint))
+	informerCollection.Pods.AddEventHandler(k8s.GetKubernetesEventHandlers("Pods", "Kubernetes", client.announcements, shouldObserve, podEventTypeRemap, getPodUID))
 
 	if err := client.run(stop); err != nil {
 		return nil, errors.Errorf("Failed to start Kubernetes EndpointProvider client: %+v", err)
