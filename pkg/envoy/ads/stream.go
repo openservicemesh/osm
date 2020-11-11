@@ -59,7 +59,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			return nil
 
 		case discoveryRequest, ok := <-requests:
-			log.Info().Msgf("Received %s (nonce=%s; version=%s) from Envoy %s", discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, proxy.GetCommonName())
+			log.Info().Msgf("Received %s (nonce=%s; version=%s; resources=%v) from Envoy %s", discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, discoveryRequest.ResourceNames, proxy.GetCommonName())
 			log.Info().Msgf("Last sent for %s nonce=%s; last sent version=%s for Envoy %s", discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, proxy.GetCommonName())
 			if !ok {
 				log.Error().Msgf("Proxy %s closed GRPC!", proxy.GetCommonName())
@@ -108,7 +108,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			// interpreted as an acknowledgement of a previously sent request.
 			// Such DiscoveryRequest requires no further action.
 			if ackVersion > 0 && ackVersion <= proxy.GetLastSentVersion(typeURL) {
-				log.Debug().Msgf("Request %s VersionInfo (%d) <= last sent VersionInfo (%d); ACK", typeURL, ackVersion, proxy.GetLastSentVersion(typeURL))
+				log.Debug().Msgf("Skipping request %s for resources (%v),  VersionInfo (%d) <= last sent VersionInfo (%d); ACK", typeURL, discoveryRequest.ResourceNames, ackVersion, proxy.GetLastSentVersion(typeURL))
 				continue
 			}
 
@@ -132,7 +132,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			if discoveryRequest.ResponseNonce != "" {
 				log.Debug().Msgf("Received discovery request with Nonce=%s; matches=%t; proxy last Nonce=%s", discoveryRequest.ResponseNonce, discoveryRequest.ResponseNonce == lastNonce, lastNonce)
 			}
-			log.Info().Msgf("Received discovery request <%s> from Envoy <%s> with Nonce=%s", discoveryRequest.TypeUrl, proxy, discoveryRequest.ResponseNonce)
+			log.Info().Msgf("Received discovery request <%s> for resources (%v) from Envoy <%s> with Nonce=%s", discoveryRequest.TypeUrl, discoveryRequest.ResourceNames, proxy, discoveryRequest.ResponseNonce)
 
 			resp, err := s.newAggregatedDiscoveryResponse(proxy, &discoveryRequest, s.cfg)
 			if err != nil {
