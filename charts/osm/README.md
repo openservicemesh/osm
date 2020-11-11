@@ -21,7 +21,7 @@ A Helm chart to install the OSM control plane on Kubernetes
 | OpenServiceMesh.enableFluentbit | bool | `false` |  |
 | OpenServiceMesh.enablePermissiveTrafficPolicy | bool | `false` |  |
 | OpenServiceMesh.enablePrometheusDeployment | bool | `false` |  |
-| OpenServiceMesh.enablePrometheusScraping | bool | `true` | Automatically set to true if `enablePrometheusDeployment` is true |
+| OpenServiceMesh.enablePrometheusScraping | bool | `true` | Cannot be false if `enablePrometheusDeployment` is true |
 | OpenServiceMesh.envoyLogLevel | string | `"error"` |  |
 | OpenServiceMesh.grafana.port | int | `3000` |  |
 | OpenServiceMesh.image.pullPolicy | string | `"IfNotPresent"` |  |
