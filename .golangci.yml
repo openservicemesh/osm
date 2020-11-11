@@ -31,4 +31,10 @@ issues:
       linters: 
         - unused
         - deadcode
+    # Exclude staticcheck messages for deprecated 
+    # This causes issues with package github.com/golang/protobuf/proto
+    - linters:
+        - staticcheck
+      text: "SA1019:"
+  exclude-use-default: false
 
