@@ -19,15 +19,20 @@ func (mc *MeshCatalog) repeater() {
 		cases, caseNames := mc.getCases()
 		for {
 			if chosenIdx, message, ok := reflect.Select(cases); ok {
-				if ann, ok := message.Interface().(announcements.Announcement); ok {
-					mc.handleAnnouncement(ann)
+				ann, ok := message.Interface().(announcements.Announcement)
+				if !ok {
+					log.Error().Msgf("Repeater received a interface{} message, which is not an Announcement")
+					continue
+				}
 
-					log.Trace().Msgf("Received announcement from %s", caseNames[chosenIdx])
-					delta := time.Since(lastUpdateAt)
-					if delta >= updateAtMostEvery {
-						mc.broadcastToAllProxies(ann)
-						lastUpdateAt = time.Now()
-					}
+				log.Trace().Msgf("Handling announcement from %s: %+v", caseNames[chosenIdx], ann)
+
+				mc.handleAnnouncement(ann)
+
+				delta := time.Since(lastUpdateAt)
+				if delta >= updateAtMostEvery {
+					mc.broadcastToAllProxies(ann)
+					lastUpdateAt = time.Now()
 				}
 			}
 		}
