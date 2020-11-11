@@ -65,6 +65,8 @@ var (
 	defaultDeployJaeger = false
 	// default deploy Fluentbit
 	defaultDeployFluentbit = false
+	// default envoy loglevel
+	defaultEnvoyLogLevel = "debug"
 )
 
 // OSMDescribeInfo is a struct to represent the tier and bucket of a given e2e test
@@ -252,6 +254,7 @@ type InstallOSMOpts struct {
 
 	egressEnabled        bool
 	enablePermissiveMode bool
+	envoyLogLevel        string
 }
 
 // GetOSMInstallOpts initializes install options for OSM
@@ -275,6 +278,7 @@ func (td *OsmTestData) GetOSMInstallOpts() InstallOSMOpts {
 		certmanagerIssuerGroup: "cert-manager.io",
 		certmanagerIssuerKind:  "Issuer",
 		certmanagerIssuerName:  "osm-ca",
+		envoyLogLevel:          defaultEnvoyLogLevel,
 	}
 }
 
@@ -381,6 +385,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		"--enable-egress="+strconv.FormatBool(instOpts.egressEnabled),
 		"--enable-permissive-traffic-policy="+strconv.FormatBool(instOpts.enablePermissiveMode),
 		"--enable-debug-server",
+		"--envoy-log-level="+instOpts.envoyLogLevel,
 	)
 
 	switch instOpts.certManager {
