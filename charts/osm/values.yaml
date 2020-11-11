@@ -6,7 +6,7 @@ OpenServiceMesh:
   image:
     registry: openservicemesh
     pullPolicy: IfNotPresent
-    tag: v0.5.0-rc.1
+    tag: v0.5.0
   imagePullSecrets: []
   sidecarImage: envoyproxy/envoy-alpine:v1.15.0
   prometheus:
