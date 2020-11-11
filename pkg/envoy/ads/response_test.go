@@ -91,10 +91,6 @@ var _ = Describe("Test ADS response functions", func() {
 					}.String(),
 					envoy.SDSCert{
 						MeshService: meshService,
-						CertType:    envoy.RootCertTypeForMTLSOutbound,
-					}.String(),
-					envoy.SDSCert{
-						MeshService: meshService,
 						CertType:    envoy.RootCertTypeForMTLSInbound,
 					}.String(),
 					envoy.SDSCert{
@@ -150,7 +146,7 @@ var _ = Describe("Test ADS response functions", func() {
 			Expect((*actualResponses)[4].VersionInfo).To(Equal("1"))
 			Expect((*actualResponses)[4].TypeUrl).To(Equal(string(envoy.TypeSDS)))
 			log.Printf("%v", len((*actualResponses)[4].Resources))
-			Expect(len((*actualResponses)[4].Resources)).To(Equal(4))
+			Expect(len((*actualResponses)[4].Resources)).To(Equal(3))
 
 			secretOne := xds_auth.Secret{}
 			firstSecret := (*actualResponses)[4].Resources[0]
@@ -165,21 +161,13 @@ var _ = Describe("Test ADS response functions", func() {
 			err = ptypes.UnmarshalAny(secondSecret, &secretTwo)
 			Expect(secretTwo.Name).To(Equal(envoy.SDSCert{
 				MeshService: meshService,
-				CertType:    envoy.RootCertTypeForMTLSOutbound,
+				CertType:    envoy.RootCertTypeForMTLSInbound,
 			}.String()))
 
 			secretThree := xds_auth.Secret{}
 			thirdSecret := (*actualResponses)[4].Resources[2]
 			err = ptypes.UnmarshalAny(thirdSecret, &secretThree)
 			Expect(secretThree.Name).To(Equal(envoy.SDSCert{
-				MeshService: meshService,
-				CertType:    envoy.RootCertTypeForMTLSInbound,
-			}.String()))
-
-			secretFour := xds_auth.Secret{}
-			forthSecret := (*actualResponses)[4].Resources[3]
-			err = ptypes.UnmarshalAny(forthSecret, &secretFour)
-			Expect(secretFour.Name).To(Equal(envoy.SDSCert{
 				MeshService: meshService,
 				CertType:    envoy.RootCertTypeForHTTPS,
 			}.String()))

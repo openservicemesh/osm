@@ -2,13 +2,11 @@ package sds
 
 import (
 	"fmt"
-
-	"github.com/google/uuid"
-
 	"testing"
 
 	xds_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"github.com/golang/mock/gomock"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
