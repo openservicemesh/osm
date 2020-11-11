@@ -32,8 +32,8 @@ OpenServiceMesh:
   enablePermissiveTrafficPolicy: false
   enableBackpressureExperimental: false
   enableEgress: false
-  enablePrometheus: false
-  enablePrometheusScraping: false
+  enablePrometheusDeployment: false
+  enablePrometheusScraping: true
   enableGrafana: false
   enableFluentbit: false
   fluentBitImage:

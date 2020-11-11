@@ -525,7 +525,7 @@ var _ = Describe("Test envoy log level types", func() {
 	})
 })
 
-var _ = Describe("enablePrometheus is true", func() {
+var _ = Describe("enablePrometheusDeployment is true", func() {
 	var (
 		out    *bytes.Buffer
 		store  *storage.Storage
@@ -549,51 +549,15 @@ var _ = Describe("enablePrometheus is true", func() {
 		}
 
 		installCmd := getDefaultInstallCmd(out)
-		installCmd.enablePrometheus = true // Leave scraping as false
+		installCmd.enablePrometheusDeployment = true
+		installCmd.enablePrometheusScraping = false
 
 		err = installCmd.run(config)
 	})
 
-	It("should not error", func() {
-		Expect(err).NotTo(HaveOccurred())
-	})
-
-	It("should give a message confirming the successful install", func() {
-		Expect(out.String()).To(Equal("OSM installed successfully in namespace [osm-system] with mesh name [osm]\n"))
-	})
-
-	Context("the Helm release", func() {
-		var (
-			rel *release.Release
-			err error
-		)
-
-		BeforeEach(func() {
-			rel, err = config.Releases.Get(defaultMeshName, 1)
-		})
-
-		It("should not error when retrieved", func() {
-			Expect(err).NotTo(HaveOccurred())
-		})
-
-		It("should have the correct values", func() {
-			expectedValues := getDefaultValues()
-			valuesConfig := []string{
-				fmt.Sprintf("OpenServiceMesh.enablePrometheus=%s", "true"),
-				fmt.Sprintf("OpenServiceMesh.enablePrometheusScraping=%s", "true"),
-			}
-			for _, val := range valuesConfig {
-				// parses Helm strvals line and merges into a map
-				err := strvals.ParseInto(val, expectedValues)
-				Expect(err).NotTo(HaveOccurred())
-			}
-
-			Expect(rel.Config).To(BeEquivalentTo(expectedValues))
-		})
-
-		It("should be installed in the correct namespace", func() {
-			Expect(rel.Namespace).To(Equal(settings.Namespace()))
-		})
+	It("should error", func() {
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(Equal("Prometheus cannot be disabled when deploying Prometheus."))
 	})
 })
 
@@ -659,7 +623,6 @@ func TestEnforceSingleMesh(t *testing.T) {
 		prometheusRetentionTime:     testRetentionTime,
 		meshName:                    defaultMeshName,
 		enableEgress:                true,
-		enablePrometheus:            true,
 		enableGrafana:               false,
 		clientSet:                   fakeClientSet,
 		envoyLogLevel:               testEnvoyLogLevel,
@@ -717,7 +680,7 @@ func TestEnforceSingleMeshRejectsNewMesh(t *testing.T) {
 		prometheusRetentionTime:     testRetentionTime,
 		meshName:                    defaultMeshName + "-2",
 		enableEgress:                true,
-		enablePrometheus:            true,
+		enablePrometheusDeployment:  true,
 		enableGrafana:               false,
 		clientSet:                   fakeClientSet,
 		envoyLogLevel:               testEnvoyLogLevel,
@@ -763,7 +726,7 @@ func TestEnforceSingleMeshWithExistingMesh(t *testing.T) {
 		prometheusRetentionTime:     testRetentionTime,
 		meshName:                    defaultMeshName + "-2",
 		enableEgress:                true,
-		enablePrometheus:            true,
+		enablePrometheusDeployment:  true,
 		enableGrafana:               false,
 		clientSet:                   fakeClientSet,
 		envoyLogLevel:               testEnvoyLogLevel,
@@ -815,7 +778,8 @@ func getDefaultInstallCmd(writer *bytes.Buffer) installCmd {
 		enablePermissiveTrafficPolicy:  defaultEnablePermissiveTrafficPolicy,
 		clientSet:                      fake.NewSimpleClientset(),
 		enableBackpressureExperimental: defaultEnableBackpressureExperimental,
-		enablePrometheus:               defaultEnablePrometheus,
+		enablePrometheusDeployment:     defaultEnablePrometheusDeployment,
+		enablePrometheusScraping:       defaultEnablePrometheusScraping,
 		enableGrafana:                  defaultEnableGrafana,
 		enableFluentbit:                defaultEnableFluentbit,
 		deployJaeger:                   defaultDeployJaeger,
@@ -855,7 +819,7 @@ func getDefaultValues() map[string]interface{} {
 			"enablePermissiveTrafficPolicy":  defaultEnablePermissiveTrafficPolicy,
 			"enableBackpressureExperimental": defaultEnableBackpressureExperimental,
 			"enableEgress":                   defaultEnableEgress,
-			"enablePrometheus":               defaultEnablePrometheus,
+			"enablePrometheusDeployment":     defaultEnablePrometheusDeployment,
 			"enablePrometheusScraping":       defaultEnablePrometheusScraping,
 			"enableGrafana":                  defaultEnableGrafana,
 			"enableFluentbit":                defaultEnableFluentbit,

@@ -75,8 +75,8 @@ const (
 	defaultEnableEgress                   = false
 	defaultEnablePermissiveTrafficPolicy  = false
 	defaultEnableBackpressureExperimental = false
-	defaultEnablePrometheus               = false
-	defaultEnablePrometheusScraping       = false
+	defaultEnablePrometheusDeployment     = false
+	defaultEnablePrometheusScraping       = true
 	defaultEnableGrafana                  = false
 	defaultEnableFluentbit                = false
 	defaultDeployJaeger                   = true
@@ -118,7 +118,7 @@ type installCmd struct {
 	enableBackpressureExperimental bool
 
 	// Toggle to enable/disable Prometheus installation
-	enablePrometheus bool
+	enablePrometheusDeployment bool
 
 	// Toggle to enable/disable Prometheus scraping
 	enablePrometheusScraping bool
@@ -180,8 +180,8 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.BoolVar(&inst.enablePermissiveTrafficPolicy, "enable-permissive-traffic-policy", defaultEnablePermissiveTrafficPolicy, "Enable permissive traffic policy mode")
 	f.BoolVar(&inst.enableEgress, "enable-egress", defaultEnableEgress, "Enable egress in the mesh")
 	f.BoolVar(&inst.enableBackpressureExperimental, "enable-backpressure-experimental", defaultEnableBackpressureExperimental, "Enable experimental backpressure feature")
-	f.BoolVar(&inst.enablePrometheus, "enable-prometheus", defaultEnablePrometheus, "Enable Prometheus installation and deployment")
-	f.BoolVar(&inst.enablePrometheus, "enable-prometheus-scraping", defaultEnablePrometheusScraping, "Enable Prometheus metrics scraping on sidecar proxies")
+	f.BoolVar(&inst.enablePrometheusDeployment, "enable-prometheus-deployment", defaultEnablePrometheusDeployment, "Enable Prometheus installation and deployment")
+	f.BoolVar(&inst.enablePrometheusScraping, "enable-prometheus-scraping", defaultEnablePrometheusScraping, "Enable Prometheus metrics scraping on sidecar proxies")
 	f.BoolVar(&inst.enableGrafana, "enable-grafana", defaultEnableGrafana, "Enable Grafana installation and deployment")
 	f.BoolVar(&inst.enableFluentbit, "enable-fluentbit", defaultEnableFluentbit, "Enable Fluentbit sidecar deployment")
 	f.StringVar(&inst.meshName, "mesh-name", defaultMeshName, "name for the new control plane instance")
@@ -251,7 +251,7 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 		fmt.Sprintf("OpenServiceMesh.enableDebugServer=%t", i.enableDebugServer),
 		fmt.Sprintf("OpenServiceMesh.enablePermissiveTrafficPolicy=%t", i.enablePermissiveTrafficPolicy),
 		fmt.Sprintf("OpenServiceMesh.enableBackpressureExperimental=%t", i.enableBackpressureExperimental),
-		fmt.Sprintf("OpenServiceMesh.enablePrometheus=%t", i.enablePrometheus),
+		fmt.Sprintf("OpenServiceMesh.enablePrometheusDeployment=%t", i.enablePrometheusDeployment),
 		fmt.Sprintf("OpenServiceMesh.enablePrometheusScraping=%t", i.enablePrometheusScraping),
 		fmt.Sprintf("OpenServiceMesh.enableGrafana=%t", i.enableGrafana),
 		fmt.Sprintf("OpenServiceMesh.enableFluentbit=%t", i.enableFluentbit),
@@ -356,8 +356,10 @@ func (i *installCmd) validateOptions() error {
 		}
 	}
 
-	if i.enablePrometheus {
-		i.enablePrometheusScraping = true
+	if i.enablePrometheusDeployment {
+		if !i.enablePrometheusScraping {
+			return errors.Errorf("Prometheus cannot be disabled when deploying Prometheus.")
+		}
 	}
 
 	return nil
