@@ -17,17 +17,21 @@ var (
 )
 
 // EventType is the type of event we have received from Kubernetes
-type EventType int
+type EventType string
+
+func (et EventType) String() string {
+	return string(et)
+}
 
 const (
-	// CreateEvent is a type of a Kubernetes API event.
-	CreateEvent EventType = iota + 1
+	// AddEvent is a type of a Kubernetes API event.
+	AddEvent EventType = "ADD"
 
 	// UpdateEvent is a type of a Kubernetes API event.
-	UpdateEvent
+	UpdateEvent EventType = "UPDATE"
 
 	// DeleteEvent is a type of a Kubernetes API event.
-	DeleteEvent
+	DeleteEvent EventType = "DELETE"
 )
 
 const (

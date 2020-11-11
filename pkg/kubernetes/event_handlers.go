@@ -10,12 +10,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
-const (
-	eventAdd    = "ADD"
-	eventUpdate = "UPDATE"
-	eventDelete = "DELETE"
-)
-
 var emitLogs = os.Getenv(constants.EnvVarLogKubernetesEvents) == "true"
 
 // observeFilter returns true for YES observe and false for NO do not pay attention to this
@@ -28,13 +22,13 @@ func GetKubernetesEventHandlers(informerName string, providerName string, announ
 		shouldObserve = func(obj interface{}) bool { return true }
 	}
 	return cache.ResourceEventHandlerFuncs{
-		AddFunc:    addEvent(informerName, providerName, announcements, shouldObserve, eventAdd),
-		UpdateFunc: updateEvent(informerName, providerName, announcements, shouldObserve, eventUpdate),
-		DeleteFunc: deleteEvent(informerName, providerName, announcements, shouldObserve, eventDelete),
+		AddFunc:    addEvent(informerName, providerName, announcements, shouldObserve, AddEvent),
+		UpdateFunc: updateEvent(informerName, providerName, announcements, shouldObserve, UpdateEvent),
+		DeleteFunc: deleteEvent(informerName, providerName, announcements, shouldObserve, DeleteEvent),
 	}
 }
 
-func addEvent(informerName string, providerName string, announce chan announcements.Announcement, shouldObserve observeFilter, eventType string) func(obj interface{}) {
+func addEvent(informerName string, providerName string, announce chan announcements.Announcement, shouldObserve observeFilter, eventType EventType) func(obj interface{}) {
 	return func(obj interface{}) {
 		if !shouldObserve(obj) {
 			logNotObservedNamespace(obj, eventType)
@@ -47,7 +41,7 @@ func addEvent(informerName string, providerName string, announce chan announceme
 	}
 }
 
-func updateEvent(informerName string, providerName string, announce chan announcements.Announcement, shouldObserve observeFilter, eventType string) func(oldObj, newObj interface{}) {
+func updateEvent(informerName string, providerName string, announce chan announcements.Announcement, shouldObserve observeFilter, eventType EventType) func(oldObj, newObj interface{}) {
 	return func(oldObj, newObj interface{}) {
 		if !shouldObserve(newObj) {
 			logNotObservedNamespace(newObj, eventType)
@@ -60,7 +54,7 @@ func updateEvent(informerName string, providerName string, announce chan announc
 	}
 }
 
-func deleteEvent(informerName string, providerName string, announce chan announcements.Announcement, shouldObserve observeFilter, eventType string) func(obj interface{}) {
+func deleteEvent(informerName string, providerName string, announce chan announcements.Announcement, shouldObserve observeFilter, eventType EventType) func(obj interface{}) {
 	return func(obj interface{}) {
 		if !shouldObserve(obj) {
 			logNotObservedNamespace(obj, eventType)
@@ -77,13 +71,13 @@ func getNamespace(obj interface{}) string {
 	return reflect.ValueOf(obj).Elem().FieldByName("ObjectMeta").FieldByName("Namespace").String()
 }
 
-func logNotObservedNamespace(obj interface{}, eventType string) {
+func logNotObservedNamespace(obj interface{}, eventType EventType) {
 	if emitLogs {
 		log.Debug().Msgf("Namespace %q is not observed by OSM; ignoring %s event", getNamespace(obj), eventType)
 	}
 }
 
-func logEvent(eventType, providerName, informerName string, obj interface{}) {
+func logEvent(eventType EventType, providerName, informerName string, obj interface{}) {
 	if emitLogs {
 		log.Trace().Msgf("[%s][%s] %s event: %+v", providerName, informerName, eventType, obj)
 	}
