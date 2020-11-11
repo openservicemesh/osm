@@ -68,7 +68,7 @@ func (l *meshListCmd) run() error {
 		ns := elem.ObjectMeta.Namespace
 		fmt.Fprintf(w, "%s\t%s\t\n", m, ns)
 	}
-	w.Flush()
+	_ = w.Flush()
 
 	return nil
 }

@@ -11,8 +11,7 @@ import (
 	xds_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 
-	//lint:ignore SA1019
-	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/proto" //ignore SA1019
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	structpb "github.com/golang/protobuf/ptypes/struct"

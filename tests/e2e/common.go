@@ -67,6 +67,7 @@ var (
 	defaultDeployFluentbit = false
 )
 
+// OSMDescribeInfo is a struct to represent the tier and bucket of a given e2e test
 type OSMDescribeInfo struct {
 	// tier represents the priority of the test. Lower value indicates higher priority.
 	tier int
@@ -80,6 +81,7 @@ func (o OSMDescribeInfo) String() string {
 	return fmt.Sprintf("[Tier %d][Bucket %d]", o.tier, o.bucket)
 }
 
+// OSMDescribe givens the description of an e2e test
 func OSMDescribe(name string, opts OSMDescribeInfo, body func()) bool {
 	return Describe(opts.String()+" "+name, body)
 }
@@ -295,6 +297,7 @@ func (td *OsmTestData) HelmInstallOSM(release, namespace string) error {
 	return nil
 }
 
+// DeleteHelmRelease uninstalls a particular helm release
 func (td *OsmTestData) DeleteHelmRelease(name, namespace string) error {
 	args := []string{"uninstall", name, "--namespace", namespace}
 	_, _, err := td.RunLocal("helm", args)
@@ -1042,10 +1045,14 @@ func (td *OsmTestData) Cleanup(ct CleanupType) {
 //DockerConfig and other configs are docker-specific container registry secret structures.
 // Most of it is taken or referenced from kubectl source itself
 type DockerConfig map[string]DockerConfigEntry
+
+// DockerConfigJSON  is a struct for docker-specific config
 type DockerConfigJSON struct {
 	Auths       DockerConfig      `json:"auths"`
 	HTTPHeaders map[string]string `json:"HttpHeaders,omitempty"`
 }
+
+// DockerConfigEntry is a struct for docker-specific container registry secret structures
 type DockerConfigEntry struct {
 	Username string `json:"username,omitempty"`
 	Password string `json:"password,omitempty"`

@@ -87,7 +87,7 @@ func (l *namespaceListCmd) run() error {
 
 		fmt.Fprintf(w, "%s\t%s\t%s\t\n", ns.Name, osmName, sidecarInjectionEnabled)
 	}
-	w.Flush()
+	_ = w.Flush()
 
 	return nil
 }
