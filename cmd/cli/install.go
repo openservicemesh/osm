@@ -17,10 +17,10 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/kubernetes"
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
 	"github.com/openservicemesh/osm/pkg/cli"
 	"github.com/openservicemesh/osm/pkg/constants"
-	_ "k8s.io/client-go/plugin/pkg/client/auth"
 )
 
 const installDesc = `

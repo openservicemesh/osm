@@ -86,7 +86,6 @@ func updateBooksSold(w http.ResponseWriter, r *http.Request) {
 	setHeaders(w)
 	renderTemplate(w)
 	log.Info().Msgf("%s;  URL: %q;  %s: %d\n", getIdentity(), html.EscapeString(r.URL.Path), common.BooksBoughtHeader, booksSold)
-	return
 }
 
 // sellBook increments the value of the booksSold

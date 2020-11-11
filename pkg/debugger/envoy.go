@@ -38,7 +38,7 @@ func (ds debugConfig) getEnvoyConfig(pod *v1.Pod, cn certificate.CommonName, url
 
 	defer func() {
 		portFwdRequest.Stop <- struct{}{}
-		resp.Body.Close()
+		_ = resp.Body.Close()
 	}()
 
 	if resp.StatusCode != http.StatusOK {

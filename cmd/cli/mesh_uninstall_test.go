@@ -14,23 +14,26 @@ import (
 	"helm.sh/helm/v3/pkg/storage/driver"
 )
 
+const (
+	meshName = "testing"
+)
+
 var _ = Describe("Running the mesh uninstall command", func() {
 	Context("default parameters", func() {
 		var (
 			uninstallCmd *meshUninstallCmd
-			meshName     string
 			force        bool
 		)
 
 		When("the mesh exists", func() {
-			meshName = "testing"
 			store := storage.Init(driver.NewMemory())
 			if mem, ok := store.Driver.(*driver.Memory); ok {
 				mem.SetNamespace(settings.Namespace())
 			}
 
 			rel := release.Mock(&release.MockReleaseOptions{Name: meshName})
-			store.Create(rel)
+			err := store.Create(rel)
+			Expect(err).To(BeNil())
 
 			testConfig := &helm.Configuration{
 				Releases: store,
@@ -52,7 +55,7 @@ var _ = Describe("Running the mesh uninstall command", func() {
 				force:    force,
 			}
 
-			err := uninstallCmd.run()
+			err = uninstallCmd.run()
 
 			It("should prompt for confirmation", func() {
 				Expect(out.String()).To(ContainSubstring("Uninstall OSM [mesh name: testing] ? [y/n]: "))
@@ -67,14 +70,14 @@ var _ = Describe("Running the mesh uninstall command", func() {
 		})
 
 		When("the mesh doesn't exist", func() {
-			meshName = "testing"
 			store := storage.Init(driver.NewMemory())
 			if mem, ok := store.Driver.(*driver.Memory); ok {
 				mem.SetNamespace(settings.Namespace())
 			}
 
 			rel := release.Mock(&release.MockReleaseOptions{Name: "other-mesh"})
-			store.Create(rel)
+			err := store.Create(rel)
+			Expect(err).To(BeNil())
 
 			testConfig := &helm.Configuration{
 				Releases: store,
@@ -96,7 +99,7 @@ var _ = Describe("Running the mesh uninstall command", func() {
 				force:    force,
 			}
 
-			err := uninstallCmd.run()
+			err = uninstallCmd.run()
 
 			It("should prompt for confirmation", func() {
 				Expect(out.String()).To(ContainSubstring("Uninstall OSM [mesh name: testing] ? [y/n]: "))
@@ -113,18 +116,17 @@ var _ = Describe("Running the mesh uninstall command", func() {
 	Context("custom parameters", func() {
 		var (
 			uninstallCmd *meshUninstallCmd
-			meshName     string
 			force        bool
 		)
 		When("force is true", func() {
-			meshName = "testing"
 			store := storage.Init(driver.NewMemory())
 			if mem, ok := store.Driver.(*driver.Memory); ok {
 				mem.SetNamespace(settings.Namespace())
 			}
 
 			rel := release.Mock(&release.MockReleaseOptions{Name: "other-mesh"})
-			store.Create(rel)
+			err := store.Create(rel)
+			Expect(err).To(BeNil())
 
 			testConfig := &helm.Configuration{
 				Releases: store,
@@ -145,7 +147,7 @@ var _ = Describe("Running the mesh uninstall command", func() {
 				force:    force,
 			}
 
-			err := uninstallCmd.run()
+			err = uninstallCmd.run()
 
 			It("should not prompt for confirmation", func() {
 				Expect(out.String()).NotTo(ContainSubstring("Uninstall OSM [mesh name: testing] ? [y/n]: "))

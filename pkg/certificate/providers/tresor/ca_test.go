@@ -14,7 +14,6 @@ var _ = Describe("Test creation of a new CA", func() {
 	Context("Create a new CA", func() {
 		rootCertCountry := "US"
 		rootCertLocality := "CA"
-		rootCertOrganization := "Open Service Mesh Tresor"
 		cert, err := NewCA("Tresor CA for Testing", 2*time.Second, rootCertCountry, rootCertLocality, rootCertOrganization)
 		It("should create a new CA", func() {
 			Expect(err).ToNot(HaveOccurred())

@@ -21,7 +21,6 @@ import (
 )
 
 const (
-	outboundMeshFilterChainName   = "outbound-mesh-filter-chain"
 	outboundEgressFilterChainName = "outbound-egress-filter-chain"
 	singleIpv4Mask                = 32
 )

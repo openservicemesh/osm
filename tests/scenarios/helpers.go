@@ -33,7 +33,6 @@ func makeService(kubeClient kubernetes.Interface, svcName string) {
 
 // makePod creates a pod
 func makePod(kubeClient kubernetes.Interface, namespace, podName, serviceAccountName, proxyUUID string) (*v1.Pod, error) {
-
 	requestedPod := tests.NewPodTestFixtureWithOptions(namespace, podName, serviceAccountName)
 
 	// The proxyUUID links the Pod and the Certificate created for it

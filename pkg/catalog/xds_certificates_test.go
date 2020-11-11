@@ -21,6 +21,10 @@ import (
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
+const (
+	service1Name = "svc-name-1"
+)
+
 var _ = Describe("Test XDS certificate tooling", func() {
 	mockCtrl := gomock.NewController(ginkgo.GinkgoT())
 	kubeClient := testclient.NewSimpleClientset()
@@ -284,8 +288,7 @@ var _ = Describe("Test XDS certificate tooling", func() {
 
 			{
 				// Create a service
-				serviceName := "svc-name-1"
-				service := tests.NewServiceFixture(serviceName, namespace, selectors)
+				service := tests.NewServiceFixture(service1Name, namespace, selectors)
 				services = append(services, service)
 				_, err := kubeClient.CoreV1().Services(namespace).Create(context.TODO(), service, metav1.CreateOptions{})
 				Expect(err).ToNot(HaveOccurred())
@@ -294,8 +297,8 @@ var _ = Describe("Test XDS certificate tooling", func() {
 
 			{
 				// Create a second service
-				serviceName := "svc-name-2"
-				service := tests.NewServiceFixture(serviceName, namespace, selectors)
+				svc2Name := "svc-name-2"
+				service := tests.NewServiceFixture(svc2Name, namespace, selectors)
 				services = append(services, service)
 				_, err := kubeClient.CoreV1().Services(namespace).Create(context.TODO(), service, metav1.CreateOptions{})
 				Expect(err).ToNot(HaveOccurred())
@@ -318,8 +321,7 @@ var _ = Describe("Test XDS certificate tooling", func() {
 			mockKubeController := k8s.NewMockController(mockCtrl)
 
 			// Create a service
-			serviceName := "svc-name-1"
-			service := tests.NewServiceFixture(serviceName, namespace, selectors)
+			service := tests.NewServiceFixture(service1Name, namespace, selectors)
 			_, err := kubeClient.CoreV1().Services(namespace).Create(context.TODO(), service, metav1.CreateOptions{})
 			Expect(err).ToNot(HaveOccurred())
 
@@ -343,8 +345,7 @@ var _ = Describe("Test XDS certificate tooling", func() {
 			}
 
 			// Create a service
-			serviceName := "svc-name-1"
-			service := tests.NewServiceFixture(serviceName, namespace, selectors)
+			service := tests.NewServiceFixture(service1Name, namespace, selectors)
 			_, err := kubeClient.CoreV1().Services(namespace).Create(context.TODO(), service, metav1.CreateOptions{})
 			Expect(err).ToNot(HaveOccurred())
 

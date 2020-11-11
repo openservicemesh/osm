@@ -79,7 +79,7 @@ func (l *namespaceListCmd) run() error {
 	w := newTabWriter(l.out)
 	fmt.Fprintln(w, "NAMESPACE\tMESH\tSIDECAR-INJECTION\t")
 	for _, ns := range namespaces.Items {
-		osmName, _ := ns.ObjectMeta.Labels[constants.OSMKubeResourceMonitorAnnotation]
+		osmName := ns.ObjectMeta.Labels[constants.OSMKubeResourceMonitorAnnotation]
 		sidecarInjectionEnabled, ok := ns.ObjectMeta.Annotations[constants.SidecarInjectionAnnotation]
 		if !ok {
 			sidecarInjectionEnabled = "-" // not set
@@ -87,7 +87,7 @@ func (l *namespaceListCmd) run() error {
 
 		fmt.Fprintf(w, "%s\t%s\t%s\t\n", ns.Name, osmName, sidecarInjectionEnabled)
 	}
-	w.Flush()
+	_ = w.Flush()
 
 	return nil
 }

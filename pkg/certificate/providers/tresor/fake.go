@@ -8,11 +8,14 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 )
 
+const (
+	rootCertOrganization = "Open Service Mesh Tresor"
+)
+
 // NewFakeCertManager creates a fake CertManager used for testing.
 func NewFakeCertManager(cache *map[certificate.CommonName]certificate.Certificater, cfg configurator.Configurator) *CertManager {
 	rootCertCountry := "US"
 	rootCertLocality := "CA"
-	rootCertOrganization := "Open Service Mesh Tresor"
 	ca, err := NewCA("Fake Tresor CN", 1*time.Hour, rootCertCountry, rootCertLocality, rootCertOrganization)
 	if err != nil {
 		log.Error().Err(err).Msg("Error creating CA for fake cert manager")

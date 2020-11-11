@@ -79,8 +79,9 @@ var _ = Describe("Test Kube Client Provider", func() {
 				},
 			}
 
-			fakeClientSet.CoreV1().Endpoints(tests.BookbuyerService.Namespace).
+			_, err = fakeClientSet.CoreV1().Endpoints(tests.BookbuyerService.Namespace).
 				Create(context.TODO(), endp, metav1.CreateOptions{})
+			Expect(err).To(BeNil())
 
 			<-cli.GetAnnouncementsChannel()
 			Expect(cli.ListEndpointsForService(tests.BookbuyerService)).To(Equal([]endpoint.Endpoint{

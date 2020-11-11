@@ -17,7 +17,6 @@ import (
 
 const (
 	participantName    = "bookthief"
-	httpStatusOK       = "200"
 	httpStatusNotFound = "404"
 )
 

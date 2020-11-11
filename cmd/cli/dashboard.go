@@ -112,7 +112,7 @@ func (d *dashboardCmd) run() error {
 		if d.openBrowser {
 			url := fmt.Sprintf("http://localhost:%d", d.localPort)
 			fmt.Fprintf(d.out, "[+] Issuing open browser %s\n", url)
-			browser.OpenURL(url)
+			_ = browser.OpenURL(url)
 		}
 		return nil
 	})

@@ -52,7 +52,8 @@ func TestNew(t *testing.T) {
 			flags := pflag.NewFlagSet("test-new", pflag.ContinueOnError)
 
 			for k, v := range test.envVars {
-				os.Setenv(k, v)
+				err := os.Setenv(k, v)
+				assert.Nil(err)
 			}
 
 			settings := New()

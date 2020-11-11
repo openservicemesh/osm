@@ -20,7 +20,6 @@ import (
 
 const (
 	participantName = "bookbuyer"
-	httpStatusOK    = "200"
 )
 
 var (
