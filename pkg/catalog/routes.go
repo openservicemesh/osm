@@ -28,13 +28,12 @@ var allowAllRoute trafficpolicy.HTTPRoute = trafficpolicy.HTTPRoute{
 // ListTrafficPolicies returns a list of traffic policies associated with the given service account
 func (mc *MeshCatalog) ListTrafficPoliciesForService(sa service.K8sServiceAccount) ([]*trafficpolicy.TrafficPolicy, []*trafficpolicy.TrafficPolicy, error) {
 
-	// TODO	For permissive mode, are we programming inbound at all?
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
 		// Build traffic policies from service discovery for allow-all policy
 		return mc.buildAllowAllTrafficPolicies(sa)
 	}
 
-	inbound, outbound, err := mc.listTrafficPoliciesFromTrafficTargets(sa)
+	inbound, outbound, _ := mc.listTrafficPoliciesFromTrafficTargets(sa)
 
 	/*
 		TODO: outboundFromSplits := mc.ListTrafficPoliciesFromTrafficSplits()
@@ -49,8 +48,92 @@ func (mc *MeshCatalog) ListTrafficPoliciesForService(sa service.K8sServiceAccoun
 	//	and then consolidate inbound with the routes from ingress
 	//ingress has host: hostname.namespace
 	// existing trafficpolicy { hostname.namespace, hostname, hostname}
-	return inbound, outbound, err
+	//ingressPolicies, _ := mc.GetIngressTrafficPolicies(sa)
+	//inbound = consolidateIngressPolicies(ingressPolicies, inbound)
+	return inbound, outbound, nil
 
+}
+
+// foundHostMatch takes two string slices and returns a string slice that contains all matching
+//	strings between the two slices and a boolean indicating whether any matching strings were found
+func foundHostMatch(hostnames1, hostnames2 []string) ([]string, bool) {
+	matches := []string{}
+	found := false
+	for _, h1 := range hostnames1 {
+		for _, h2 := range hostnames2 {
+			if h1 == h2 {
+				found = true
+				matches = append(matches, h1)
+			}
+		}
+	}
+	return matches, found
+}
+
+// removeHostnames takes a list of the original hostnames and the a list of the hostnames to be removed
+//	and returns a list of hostnames without the hostnames in the remove list
+func removeHostnames(originalList, removeList []string) []string {
+	updatedList := []string{}
+	for _, original := range originalList {
+		found := false
+		for _, remove := range removeList {
+			if original == remove {
+				found = true
+				break
+			}
+		}
+		if found {
+			continue
+		} else {
+			// since original is not in the removeList append it to the updatedList
+			updatedList = append(updatedList, original)
+		}
+
+	}
+
+	return updatedList
+}
+
+// consolidateIngressPolicies takes traffic policies related to ingress resources and traffic policies related to SMI TrafficTargets
+//	and SMI TrafficSplits and returns a list of traffic policies where the domains do not overlap but the routes for the domains
+//	are preserved
+func consolidateIngressPolicies(ingressPolicies, inboundPolicies []*trafficpolicy.TrafficPolicy) []*trafficpolicy.TrafficPolicy {
+	final := []*trafficpolicy.TrafficPolicy{}
+	for _, ingress := range ingressPolicies {
+		for _, inbound := range inboundPolicies {
+			matches, found := foundHostMatch(ingress.Hostnames, inbound.Hostnames)
+			if found {
+				inbound.Hostnames = removeHostnames(inbound.Hostnames, matches)
+				for _, route := range inbound.HTTPRoutesClusters {
+					ingress.HTTPRoutesClusters = append(ingress.HTTPRoutesClusters, route)
+				}
+			}
+			final = append(final, inbound)
+		}
+		final = append(final, ingress)
+	}
+
+	return final
+}
+
+// consolidatePoliciesByDestination consolidates the given traffic policies by destination service and returns a list of
+//	traffic policies where there is a policy for each unique destination service and all HTTPRouteWeightedClusters
+// 	for that destination service are merged into a single list of HTTPRouteWeightedClusters
+func consolidatePoliciesByDestination(policies []*trafficpolicy.TrafficPolicy) []*trafficpolicy.TrafficPolicy {
+	policyKeys := make(map[string]*trafficpolicy.TrafficPolicy)
+	uniquePolicies := []*trafficpolicy.TrafficPolicy{}
+	for _, policy := range policies {
+		if foundPolicy, found := policyKeys[policy.Name]; !found {
+			policyKeys[policy.Name] = policy
+			uniquePolicies = append(uniquePolicies, policy)
+		} else {
+			// if a policy with the name already exists, merge the HTTPRoutesClusters slices
+			for _, r := range policy.HTTPRoutesClusters {
+				foundPolicy.HTTPRoutesClusters = append(foundPolicy.HTTPRoutesClusters, r)
+			}
+		}
+	}
+	return uniquePolicies
 }
 
 // listTrafficPoliciesFromTrafficTargets loops through all SMI Traffic Target resources and returns inbound traffic policies and outbound policies
@@ -113,7 +196,7 @@ func (mc *MeshCatalog) listTrafficPoliciesFromTrafficTargets(sa service.K8sServi
 		}
 
 	}
-	return consolidatePolicies(inboundPolicies), consolidatePolicies(outboundPolicies), nil
+	return consolidatePoliciesByDestination(inboundPolicies), consolidatePoliciesByDestination(outboundPolicies), nil
 }
 
 func (mc *MeshCatalog) HTTPRoutesFromRules(rules []target.TrafficTargetRule, namespace string) ([]trafficpolicy.HTTPRoute, error) {
@@ -320,7 +403,7 @@ func (mc *MeshCatalog) buildAllowAllTrafficPolicies(sa service.K8sServiceAccount
 	inbound = mc.buildTrafficPolicies(allServices, services, []trafficpolicy.HTTPRoute{allowAllRoute})
 	outbound = mc.buildTrafficPolicies(services, allServices, []trafficpolicy.HTTPRoute{allowAllRoute})
 
-	return consolidatePolicies(inbound), consolidatePolicies(outbound), err
+	return consolidatePoliciesByDestination(inbound), consolidatePoliciesByDestination(outbound), err
 }
 
 func consolidatePolicies(policies []*trafficpolicy.TrafficPolicy) []*trafficpolicy.TrafficPolicy {

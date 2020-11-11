@@ -8,7 +8,7 @@ import (
 
 func NewTrafficPolicy(source, dest service.MeshService, routesClusters []RouteWeightedClusters, hostnames []string) *TrafficPolicy {
 	return &TrafficPolicy{
-		Name:               fmt.Sprintf("%s-%s-%s-%s", source.Name, source.Namespace, dest.Name, dest.Namespace),
+		Name:               fmt.Sprintf("%s-%s", dest.Name, dest.Namespace),
 		Source:             source,
 		Destination:        dest,
 		HTTPRoutesClusters: routesClusters,

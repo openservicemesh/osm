@@ -392,7 +392,6 @@ var (
 		"bookbuyer.default.svc.cluster:8888",
 		"bookbuyer.default.svc.cluster.local:8888",
 	}
-
 	BookstoreV1Hostnames = []string{
 		"bookstore-v1",
 		"bookstore-v1.default",

@@ -964,3 +964,117 @@ func TestConsolidatePolicies(t *testing.T) {
 	assert.ElementsMatch(expectedPolicies, actualPolicies)
 
 }
+
+func TestConsolidateIngressPolicies(t *testing.T) {
+	assert := assert.New(t)
+	ingressPolicies := []*trafficpolicy.TrafficPolicy{
+		&trafficpolicy.TrafficPolicy{
+			Name:        "bookstore-v1-default-ingress",
+			Destination: tests.BookstoreV1Service,
+			Hostnames:   []string{"bookstore-v1.default.svc.cluster.local"},
+			HTTPRoutesClusters: []trafficpolicy.RouteWeightedClusters{
+				trafficpolicy.RouteWeightedClusters{
+					HTTPRoute: trafficpolicy.HTTPRoute{
+						PathRegex: "/books-bought",
+					},
+					WeightedClusters: mapset.NewSet(service.WeightedCluster{
+						ClusterName: "default/bookstore-v1",
+						Weight:      100,
+					}),
+				},
+			},
+		},
+	}
+	inboundPolicies := []*trafficpolicy.TrafficPolicy{
+		&trafficpolicy.TrafficPolicy{
+			Name:        "bookstore-v1-default",
+			Source:      tests.BookbuyerService,
+			Destination: tests.BookstoreV1Service,
+			Hostnames:   tests.BookstoreV1Hostnames,
+			HTTPRoutesClusters: []trafficpolicy.RouteWeightedClusters{
+				trafficpolicy.RouteWeightedClusters{
+					HTTPRoute: getAllRoute,
+					WeightedClusters: mapset.NewSet(service.WeightedCluster{
+						ClusterName: "default/bookstore-v1",
+						Weight:      100,
+					}),
+				},
+				trafficpolicy.RouteWeightedClusters{
+					HTTPRoute: getSomeRoute,
+					WeightedClusters: mapset.NewSet(service.WeightedCluster{
+						ClusterName: "default/bookstore-v1",
+						Weight:      100,
+					}),
+				},
+			},
+		},
+	}
+
+	expectedPolicies := []*trafficpolicy.TrafficPolicy{
+		&trafficpolicy.TrafficPolicy{
+			Name:        "bookstore-v1-default",
+			Source:      tests.BookbuyerService,
+			Destination: tests.BookstoreV1Service,
+			Hostnames: []string{
+				"bookstore-v1",
+				"bookstore-v1.default",
+				"bookstore-v1.default.svc",
+				"bookstore-v1.default.svc.cluster",
+				"bookstore-v1:8888",
+				"bookstore-v1.default:8888",
+				"bookstore-v1.default.svc:8888",
+				"bookstore-v1.default.svc.cluster:8888",
+				"bookstore-v1.default.svc.cluster.local:8888",
+			},
+			HTTPRoutesClusters: []trafficpolicy.RouteWeightedClusters{
+				trafficpolicy.RouteWeightedClusters{
+					HTTPRoute: getAllRoute,
+					WeightedClusters: mapset.NewSet(service.WeightedCluster{
+						ClusterName: "default/bookstore-v1",
+						Weight:      100,
+					}),
+				},
+				trafficpolicy.RouteWeightedClusters{
+					HTTPRoute: getSomeRoute,
+					WeightedClusters: mapset.NewSet(service.WeightedCluster{
+						ClusterName: "default/bookstore-v1",
+						Weight:      100,
+					}),
+				},
+			},
+		},
+		&trafficpolicy.TrafficPolicy{
+			Name:        "bookstore-v1-default-ingress",
+			Destination: tests.BookstoreV1Service,
+			Hostnames:   []string{"bookstore-v1.default.svc.cluster.local"},
+			HTTPRoutesClusters: []trafficpolicy.RouteWeightedClusters{
+				trafficpolicy.RouteWeightedClusters{
+					HTTPRoute: trafficpolicy.HTTPRoute{
+						PathRegex: "/books-bought",
+					},
+					WeightedClusters: mapset.NewSet(service.WeightedCluster{
+						ClusterName: "default/bookstore-v1",
+						Weight:      100,
+					}),
+				},
+				trafficpolicy.RouteWeightedClusters{
+					HTTPRoute: getAllRoute,
+					WeightedClusters: mapset.NewSet(service.WeightedCluster{
+						ClusterName: "default/bookstore-v1",
+						Weight:      100,
+					}),
+				},
+				trafficpolicy.RouteWeightedClusters{
+					HTTPRoute: getSomeRoute,
+					WeightedClusters: mapset.NewSet(service.WeightedCluster{
+						ClusterName: "default/bookstore-v1",
+						Weight:      100,
+					}),
+				},
+			},
+		},
+	}
+
+	actual := consolidateIngressPolicies(ingressPolicies, inboundPolicies)
+	assert.ElementsMatch(expectedPolicies, actual)
+}
