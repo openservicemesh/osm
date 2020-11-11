@@ -11,6 +11,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/openservicemesh/osm/pkg/announcements"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 )
 
@@ -66,7 +67,7 @@ func newConfigurator(kubeClient kubernetes.Interface, stop <-chan struct{}, osmN
 		informer:         informer,
 		cache:            informer.GetStore(),
 		cacheSynced:      make(chan interface{}),
-		announcements:    make(chan interface{}),
+		announcements:    make(chan announcements.Announcement),
 		osmNamespace:     osmNamespace,
 		osmConfigMapName: osmConfigMapName,
 	}

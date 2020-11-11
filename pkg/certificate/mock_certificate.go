@@ -9,6 +9,7 @@ import (
 	time "time"
 
 	gomock "github.com/golang/mock/gomock"
+	"github.com/openservicemesh/osm/pkg/announcements"
 )
 
 // MockCertificater is a mock of Certificater interface
@@ -215,10 +216,10 @@ func (mr *MockManagerMockRecorder) ReleaseCertificate(arg0 interface{}) *gomock.
 }
 
 // GetAnnouncementsChannel mocks base method
-func (m *MockManager) GetAnnouncementsChannel() <-chan interface{} {
+func (m *MockManager) GetAnnouncementsChannel() <-chan announcements.Announcement {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAnnouncementsChannel")
-	ret0, _ := ret[0].(<-chan interface{})
+	ret0, _ := ret[0].(<-chan announcements.Announcement)
 	return ret0
 }
 

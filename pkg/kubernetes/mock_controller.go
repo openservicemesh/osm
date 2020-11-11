@@ -8,8 +8,10 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	service "github.com/openservicemesh/osm/pkg/service"
 	v1 "k8s.io/api/core/v1"
+
+	"github.com/openservicemesh/osm/pkg/announcements"
+	service "github.com/openservicemesh/osm/pkg/service"
 )
 
 // MockController is a mock of Controller interface
@@ -107,10 +109,10 @@ func (mr *MockControllerMockRecorder) GetNamespace(ns interface{}) *gomock.Call 
 }
 
 // GetAnnouncementsChannel mocks base method
-func (m *MockController) GetAnnouncementsChannel(informerID InformerKey) <-chan interface{} {
+func (m *MockController) GetAnnouncementsChannel(informerID InformerKey) <-chan announcements.Announcement {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAnnouncementsChannel", informerID)
-	ret0, _ := ret[0].(<-chan interface{})
+	ret0, _ := ret[0].(<-chan announcements.Announcement)
 	return ret0
 }
 

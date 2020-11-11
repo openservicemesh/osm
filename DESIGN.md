@@ -385,7 +385,7 @@ type Proxy struct {
 	certificate.CommonName
 	net.IP
 	ServiceName   service.MeshService
-	announcements chan interface{}
+	announcements chan announcements.Announcement
 
 	lastSentVersion    map[TypeURI]uint64
 	lastAppliedVersion map[TypeURI]uint64

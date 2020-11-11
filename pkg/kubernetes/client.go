@@ -13,6 +13,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/service"
 )
@@ -24,7 +25,7 @@ func NewKubernetesController(kubeClient kubernetes.Interface, meshName string, s
 		kubeClient:    kubeClient,
 		meshName:      meshName,
 		informers:     InformerCollection{},
-		announcements: make(map[InformerKey]chan interface{}),
+		announcements: make(map[InformerKey]chan announcements.Announcement),
 		cacheSynced:   make(chan interface{}),
 	}
 
@@ -71,7 +72,7 @@ func (c *Client) initServicesMonitor() {
 	}
 
 	// Announcement channel for Services
-	c.announcements[Services] = make(chan interface{})
+	c.announcements[Services] = make(chan announcements.Announcement)
 
 	c.informers[Services].AddEventHandler(GetKubernetesEventHandlers((string)(Services), ProviderName, c.announcements[Services], shouldObserve))
 }
@@ -87,7 +88,7 @@ func (c *Client) initPodMonitor() {
 	}
 
 	// Announcement channel for Pods
-	c.announcements[Pods] = make(chan interface{})
+	c.announcements[Pods] = make(chan announcements.Announcement)
 
 	c.informers[Pods].AddEventHandler(GetKubernetesEventHandlers((string)(Pods), ProviderName, c.announcements[Pods], shouldObserve))
 }
@@ -171,7 +172,7 @@ func (c Client) ListServices() []*corev1.Service {
 }
 
 // GetAnnouncementsChannel gets the Announcements channel back
-func (c Client) GetAnnouncementsChannel(informerID InformerKey) <-chan interface{} {
+func (c Client) GetAnnouncementsChannel(informerID InformerKey) <-chan announcements.Announcement {
 	return c.announcements[informerID]
 }
 

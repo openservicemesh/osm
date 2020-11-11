@@ -6,6 +6,7 @@ import (
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 
 	backpressure "github.com/openservicemesh/osm/experimental/pkg/apis/policy/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
@@ -72,6 +73,6 @@ func (f fakeMeshSpec) GetBackpressurePolicy(svc service.MeshService) *backpressu
 }
 
 // GetAnnouncementsChannel returns the channel on which SMI makes announcements for the fake Mesh Spec.
-func (f fakeMeshSpec) GetAnnouncementsChannel() <-chan interface{} {
-	return make(chan interface{})
+func (f fakeMeshSpec) GetAnnouncementsChannel() <-chan announcements.Announcement {
+	return make(chan announcements.Announcement)
 }

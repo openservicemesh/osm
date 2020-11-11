@@ -8,6 +8,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 
 	backpressure "github.com/openservicemesh/osm/experimental/pkg/apis/policy/v1alpha1"
+	"github.com/openservicemesh/osm/pkg/announcements"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -41,7 +42,7 @@ type Client struct {
 	cacheSynced    chan interface{}
 	providerIdent  string
 	informers      *InformerCollection
-	announcements  chan interface{}
+	announcements  chan announcements.Announcement
 	osmNamespace   string
 	kubeController k8s.Controller
 }
@@ -70,5 +71,5 @@ type MeshSpec interface {
 	GetBackpressurePolicy(service.MeshService) *backpressure.Backpressure
 
 	// GetAnnouncementsChannel returns the channel on which SMI client makes announcements
-	GetAnnouncementsChannel() <-chan interface{}
+	GetAnnouncementsChannel() <-chan announcements.Announcement
 }

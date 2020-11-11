@@ -3,6 +3,7 @@ package tresor
 import (
 	"time"
 
+	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/rotor"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -78,7 +79,7 @@ func NewCertManager(ca certificate.Certificater, certificatesOrganization string
 		ca: ca,
 
 		// Channel used to inform other components of cert changes (rotation etc.)
-		announcements: make(chan interface{}),
+		announcements: make(chan announcements.Announcement),
 
 		// Certificate cache
 		cache: &cache,

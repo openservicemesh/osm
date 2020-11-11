@@ -8,10 +8,10 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/openservicemesh/osm/pkg/announcements"
 	osm "github.com/openservicemesh/osm/pkg/apis/azureresource/v1"
-	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
-
 	"github.com/openservicemesh/osm/pkg/configurator"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	osmClient "github.com/openservicemesh/osm/pkg/osm_client/clientset/versioned"
 	osmInformers "github.com/openservicemesh/osm/pkg/osm_client/informers/externalversions"
 )
@@ -48,7 +48,7 @@ func newClient(kubeClient kubernetes.Interface, azureResourceClient *osmClient.C
 		informers:      &informerCollection,
 		caches:         &cacheCollection,
 		cacheSynced:    make(chan interface{}),
-		announcements:  make(chan interface{}),
+		announcements:  make(chan announcements.Announcement),
 		kubeController: kubeController,
 	}
 

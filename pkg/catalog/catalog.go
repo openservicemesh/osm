@@ -5,6 +5,7 @@ import (
 
 	"k8s.io/client-go/kubernetes"
 
+	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -44,7 +45,7 @@ func (mc *MeshCatalog) GetSMISpec() smi.MeshSpec {
 }
 
 func (mc *MeshCatalog) getAnnouncementChannels() []announcementChannel {
-	ticking := make(chan interface{})
+	ticking := make(chan announcements.Announcement)
 	announcementChannels := []announcementChannel{
 		{"MeshSpec", mc.meshSpec.GetAnnouncementsChannel()},
 		{"CertManager", mc.certManager.GetAnnouncementsChannel()},
@@ -66,7 +67,7 @@ func (mc *MeshCatalog) getAnnouncementChannels() []announcementChannel {
 		ticker := time.NewTicker(updateAtLeastEvery)
 		for {
 			<-ticker.C
-			ticking <- nil
+			ticking <- announcements.Announcement{}
 		}
 	}()
 

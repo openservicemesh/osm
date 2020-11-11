@@ -8,6 +8,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -22,7 +23,7 @@ func NewIngressClient(kubeClient kubernetes.Interface, kubeController k8s.Contro
 		informer:       informer,
 		cache:          informer.GetStore(),
 		cacheSynced:    make(chan interface{}),
-		announcements:  make(chan interface{}),
+		announcements:  make(chan announcements.Announcement),
 		kubeController: kubeController,
 	}
 
@@ -62,7 +63,7 @@ func (c *Client) run(stop <-chan struct{}) error {
 }
 
 // GetAnnouncementsChannel returns the announcement channel for the Ingress client
-func (c Client) GetAnnouncementsChannel() <-chan interface{} {
+func (c Client) GetAnnouncementsChannel() <-chan announcements.Announcement {
 	return c.announcements
 }
 

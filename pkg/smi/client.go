@@ -21,6 +21,7 @@ import (
 	osmPolicy "github.com/openservicemesh/osm/experimental/pkg/apis/policy/v1alpha1"
 	osmPolicyClient "github.com/openservicemesh/osm/experimental/pkg/client/clientset/versioned"
 	backpressureInformers "github.com/openservicemesh/osm/experimental/pkg/client/informers/externalversions"
+	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/featureflags"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -99,7 +100,7 @@ func (c *Client) run(stop <-chan struct{}) error {
 }
 
 // GetAnnouncementsChannel returns the announcement channel for the SMI client.
-func (c *Client) GetAnnouncementsChannel() <-chan interface{} {
+func (c *Client) GetAnnouncementsChannel() <-chan announcements.Announcement {
 	return c.announcements
 }
 
@@ -134,7 +135,7 @@ func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient smiTraf
 		informers:      &informerCollection,
 		caches:         &cacheCollection,
 		cacheSynced:    make(chan interface{}),
-		announcements:  make(chan interface{}),
+		announcements:  make(chan announcements.Announcement),
 		osmNamespace:   osmNamespace,
 		kubeController: kubeController,
 	}
