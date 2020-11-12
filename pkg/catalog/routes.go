@@ -446,8 +446,9 @@ func (mc *MeshCatalog) GetServicesForServiceAccounts(saList []service.K8sService
 		if err != nil {
 			log.Error().Msgf("Error getting services linked to Service Account %s: %v", sa, err)
 			continue
+		} else {
+			serviceList = append(serviceList, services...)
 		}
-		serviceList = append(serviceList, services...)
 	}
 
 	return serviceList

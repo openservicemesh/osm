@@ -35,6 +35,14 @@ func TestGetServicesForServiceAccounts(t *testing.T) {
 			input:    []service.K8sServiceAccount{tests.BookbuyerServiceAccount},
 			expected: []service.MeshService{tests.BookbuyerService},
 		},
+		{
+			name: "service account does not exist",
+			input: []service.K8sServiceAccount{service.K8sServiceAccount{
+				Name:      "DoesNotExist",
+				Namespace: "default",
+			}},
+			expected: []service.MeshService{},
+		},
 	}
 
 	for _, tc := range testCases {
