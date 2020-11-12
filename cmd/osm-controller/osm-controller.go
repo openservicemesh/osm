@@ -25,8 +25,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	// +kubebuilder:scaffold:imports
-
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -129,7 +127,6 @@ func init() {
 
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = v1beta1.AddToScheme(scheme)
-	// +kubebuilder:scaffold:scheme
 }
 
 func main() {
@@ -459,7 +456,6 @@ func createControllerManagerForOSMResources(certManager certificate.Manager) err
 		log.Error().Err(err).Msg("Error creating reconcile controller for MutatingWebhookConfiguration")
 		return err
 	}
-	// +kubebuilder:scaffold:builder
 
 	log.Info().Msg("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"k8s.io/api/admissionregistration/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -49,6 +50,26 @@ func (td *OsmTestData) CreateService(ns string, svc corev1.Service) (*corev1.Ser
 		return nil, err
 	}
 	return sv, nil
+}
+
+// CreateMutatingWebhook is a wrapper to create a mutating webhook configuration
+func (td *OsmTestData) CreateMutatingWebhook(mwhc *v1beta1.MutatingWebhookConfiguration) (*v1beta1.MutatingWebhookConfiguration, error) {
+	mw, err := td.client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Create(context.Background(), mwhc, metav1.CreateOptions{})
+	if err != nil {
+		err := fmt.Errorf("Could not create MutatingWebhook: %v", err)
+		return nil, err
+	}
+	return mw, nil
+}
+
+// GetMutatingWebhook is a wrapper to get a mutating webhook configuration
+func (td *OsmTestData) GetMutatingWebhook(mwhcName string) (*v1beta1.MutatingWebhookConfiguration, error) {
+	mwhc, err := td.client.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Get(context.Background(), mwhcName, metav1.GetOptions{})
+	if err != nil {
+		err := fmt.Errorf("Could not get MutatingWebhook: %v", err)
+		return nil, err
+	}
+	return mwhc, nil
 }
 
 /* Application templates
