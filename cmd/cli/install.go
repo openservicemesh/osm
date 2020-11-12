@@ -137,7 +137,7 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.StringVar(&inst.containerRegistry, "container-registry", "openservicemesh", "container registry that hosts control plane component images")
 	f.StringVar(&inst.chartPath, "osm-chart-path", "", "path to osm chart to override default chart")
 	f.StringVar(&inst.certificateManager, "certificate-manager", defaultCertManager, "certificate manager to use one of (tresor, vault, cert-manager)")
-	f.StringVar(&inst.osmImageTag, "osm-image-tag", "v0.5.0-rc.1", "osm image tag")
+	f.StringVar(&inst.osmImageTag, "osm-image-tag", "v0.5.0", "osm image tag")
 	f.StringVar(&inst.osmImagePullPolicy, "osm-image-pull-policy", defaultOsmImagePullPolicy, "osm image pull policy")
 	f.StringVar(&inst.containerRegistrySecret, "container-registry-secret", "", "name of Kubernetes secret for container registry credentials to be created if it doesn't already exist")
 	f.StringVar(&inst.vaultHost, "vault-host", "", "Hashicorp Vault host/service - where Vault is installed")
