@@ -35,16 +35,8 @@ func TestRoutesFromRules(t *testing.T) {
 					Matches: []string{tests.BuyBooksMatchName},
 				},
 			},
-			namespace: tests.Namespace,
-			expectedRoutes: []trafficpolicy.HTTPRoute{
-				{
-					PathRegex: tests.BookstoreBuyPath,
-					Methods:   []string{"GET"},
-					Headers: map[string]string{
-						"user-agent": tests.HTTPUserAgent,
-					},
-				},
-			},
+			namespace:      tests.Namespace,
+			expectedRoutes: []trafficpolicy.HTTPRoute{tests.BookstoreBuyHTTPRoute},
 		},
 		{
 			name: "http route group and match name do not exist",
