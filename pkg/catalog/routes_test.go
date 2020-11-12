@@ -5,6 +5,7 @@ import (
 	reflect "reflect"
 	"testing"
 
+	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -14,6 +15,59 @@ import (
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 	"github.com/openservicemesh/osm/pkg/utils"
 )
+
+func TestRoutesFromRules(t *testing.T) {
+	assert := assert.New(t)
+	mc := MeshCatalog{meshSpec: smi.NewFakeMeshSpecClient()}
+
+	testCases := []struct {
+		name           string
+		rules          []target.TrafficTargetRule
+		namespace      string
+		expectedRoutes []trafficpolicy.HTTPRoute
+	}{
+		{
+			name: "http route group and match name exist",
+			rules: []target.TrafficTargetRule{
+				{
+					Kind:    "HTTPRouteGroup",
+					Name:    tests.RouteGroupName,
+					Matches: []string{tests.BuyBooksMatchName},
+				},
+			},
+			namespace: tests.Namespace,
+			expectedRoutes: []trafficpolicy.HTTPRoute{
+				{
+					PathRegex: tests.BookstoreBuyPath,
+					Methods:   []string{"GET"},
+					Headers: map[string]string{
+						"user-agent": tests.HTTPUserAgent,
+					},
+				},
+			},
+		},
+		{
+			name: "http route group and match name do not exist",
+			rules: []target.TrafficTargetRule{
+				{
+					Kind:    "HTTPRouteGroup",
+					Name:    "DoesNotExist",
+					Matches: []string{"hello"},
+				},
+			},
+			namespace:      tests.Namespace,
+			expectedRoutes: []trafficpolicy.HTTPRoute{},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("Testing routesFromRules where %s", tc.name), func(t *testing.T) {
+			routes, err := mc.routesFromRules(tc.rules, tc.namespace)
+			assert.Nil(err)
+			assert.EqualValues(tc.expectedRoutes, routes)
+		})
+	}
+}
 
 func TestListTrafficPolicies(t *testing.T) {
 	assert := assert.New(t)
