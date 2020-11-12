@@ -21,7 +21,11 @@ func GetChartSource(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer os.Remove(packagedPath)
+
+	defer func() {
+		_ = os.Remove(packagedPath)
+	}()
+
 	packaged, err := ioutil.ReadFile(packagedPath) // #nosec G304
 	if err != nil {
 		return "", err

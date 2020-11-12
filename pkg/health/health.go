@@ -62,7 +62,9 @@ func (httpProbe HTTPProbe) Probe() (int, error) {
 		return http.StatusServiceUnavailable, err
 	}
 
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 	return resp.StatusCode, nil
 }
 

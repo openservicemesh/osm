@@ -13,8 +13,6 @@ linters:
     - misspell
     - unused
     - whitespace
-  disable:
-    - errcheck
 
 linters-settings:
   goimports:

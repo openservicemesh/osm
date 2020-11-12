@@ -87,7 +87,9 @@ func RestockBooks(amount int) {
 		return
 	}
 
-	defer resp.Body.Close()
+	defer func() {
+		_ = resp.Body.Close()
+	}()
 	for _, hdr := range interestingHeaders {
 		log.Info().Msgf("RestockBooks (%s) adding header {%s: %s}", chargeAccountURL, hdr, getHeader(resp.Header, hdr))
 	}
@@ -229,7 +231,9 @@ func fetch(url string) (responseCode int, identity string) {
 	if err != nil {
 		fmt.Printf("Error fetching %s: %s\n", url, err)
 	} else {
-		defer resp.Body.Close()
+		defer func() {
+			_ = resp.Body.Close()
+		}()
 		responseCode = resp.StatusCode
 		for _, hdr := range interestingHeaders {
 			fmt.Printf("%s: %s\n", hdr, getHeader(resp.Header, hdr))
