@@ -201,7 +201,7 @@ func (s *sdsImpl) getRootCert(cert certificate.Certificater, sdscert envoy.SDSCe
 		// For inbound certificate validation context, the SAN needs to be the list of all downstream
 		// service identities that are allowed to connect to this upstream service. This means, if sdscert.MeshService
 		// points to 'X', the SANs for this certificate should correspond to all the downstream service identities
-		// allowed to rech 'X'.
+		// allowed to reach 'X'.
 		svcAccounts, err := s.meshCatalog.ListAllowedInboundServiceAccounts(s.svcAccount)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error listing inbound service accounts for proxy service %s", proxyService)
