@@ -439,7 +439,7 @@ func (mc *MeshCatalog) routesFromRules(rules []target.TrafficTargetRule, traffic
 // GetServicesForServiceAccounts returns a list of services corresponding to a list service accounts
 //	TODO: Consider merging this function and mc.GetServicesForServiceAccount in future (#2038)
 func (mc *MeshCatalog) GetServicesForServiceAccounts(saList []service.K8sServiceAccount) []service.MeshService {
-	serviceMap := map[service.MeshService]int{}
+	serviceMap := map[service.MeshService]bool{}
 
 	for _, sa := range saList {
 		services, err := mc.GetServicesForServiceAccount(sa)
@@ -448,7 +448,7 @@ func (mc *MeshCatalog) GetServicesForServiceAccounts(saList []service.K8sService
 			continue
 		} else {
 			for _, s := range services {
-				serviceMap[s] = 1
+				serviceMap[s] = true
 			}
 		}
 	}
