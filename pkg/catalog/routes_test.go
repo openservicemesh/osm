@@ -16,6 +16,48 @@ import (
 	"github.com/openservicemesh/osm/pkg/utils"
 )
 
+func TestGetServicesForServiceAccounts(t *testing.T) {
+	assert := assert.New(t)
+	mc := newFakeMeshCatalog()
+
+	testCases := []struct {
+		name     string
+		input    []service.K8sServiceAccount
+		expected []service.MeshService
+	}{
+		{
+			name:     "multiple service accounts and services",
+			input:    []service.K8sServiceAccount{tests.BookstoreServiceAccount, tests.BookbuyerServiceAccount},
+			expected: []service.MeshService{tests.BookbuyerService, tests.BookstoreV1Service, tests.BookstoreV2Service, tests.BookstoreApexService},
+		},
+		{
+			name:     "single service account and service",
+			input:    []service.K8sServiceAccount{tests.BookbuyerServiceAccount},
+			expected: []service.MeshService{tests.BookbuyerService},
+		},
+		{
+			name: "service account does not exist",
+			input: []service.K8sServiceAccount{{
+				Name:      "DoesNotExist",
+				Namespace: "default",
+			}},
+			expected: []service.MeshService{},
+		},
+		{
+			name:     "duplicate service accounts and services",
+			input:    []service.K8sServiceAccount{tests.BookbuyerServiceAccount, tests.BookbuyerServiceAccount},
+			expected: []service.MeshService{tests.BookbuyerService},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("Testing GetServicesForServiceAccounts where %s", tc.name), func(t *testing.T) {
+			actual := mc.GetServicesForServiceAccounts(tc.input)
+			assert.ElementsMatch(tc.expected, actual)
+		})
+	}
+}
+
 func TestRoutesFromRules(t *testing.T) {
 	assert := assert.New(t)
 	mc := MeshCatalog{meshSpec: smi.NewFakeMeshSpecClient()}
@@ -35,16 +77,8 @@ func TestRoutesFromRules(t *testing.T) {
 					Matches: []string{tests.BuyBooksMatchName},
 				},
 			},
-			namespace: tests.Namespace,
-			expectedRoutes: []trafficpolicy.HTTPRoute{
-				{
-					PathRegex: tests.BookstoreBuyPath,
-					Methods:   []string{"GET"},
-					Headers: map[string]string{
-						"user-agent": tests.HTTPUserAgent,
-					},
-				},
-			},
+			namespace:      tests.Namespace,
+			expectedRoutes: []trafficpolicy.HTTPRoute{tests.BookstoreBuyHTTPRoute},
 		},
 		{
 			name: "http route group and match name do not exist",
