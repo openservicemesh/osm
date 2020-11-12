@@ -39,9 +39,7 @@ func GetPodLogs(kubeClient kubernetes.Interface, namespace string, podName strin
 		os.Exit(1)
 	}
 
-	defer func() {
-		_ = logStream.Close()
-	}()
+	defer logStream.Close() //nolint: errcheck,gosec
 	buf := new(bytes.Buffer)
 	_, err = buf.ReadFrom(logStream)
 	if err != nil {
@@ -126,9 +124,7 @@ func SearchLogsForSuccess(kubeClient kubernetes.Interface, namespace string, pod
 
 	go func() {
 		defer close(result)
-		defer func() {
-			_ = logStream.Close()
-		}()
+		defer logStream.Close() //nolint: errcheck,gosec
 		r := bufio.NewReader(logStream)
 		for {
 			line, err := r.ReadString('\n')
