@@ -525,7 +525,7 @@ var _ = Describe("Test envoy log level types", func() {
 	})
 })
 
-var _ = Describe("enablePrometheusDeployment is true", func() {
+var _ = Describe("deployPrometheus is true", func() {
 	var (
 		out    *bytes.Buffer
 		store  *storage.Storage
@@ -549,7 +549,7 @@ var _ = Describe("enablePrometheusDeployment is true", func() {
 		}
 
 		installCmd := getDefaultInstallCmd(out)
-		installCmd.enablePrometheusDeployment = true
+		installCmd.deployPrometheus = true
 		installCmd.enablePrometheusScraping = false
 
 		err = installCmd.run(config)
@@ -557,7 +557,7 @@ var _ = Describe("enablePrometheusDeployment is true", func() {
 
 	It("should error", func() {
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(Equal("Prometheus cannot be disabled when deploying Prometheus."))
+		Expect(err.Error()).To(Equal("Prometheus scraping cannot be disabled when deploying Prometheus."))
 	})
 })
 
@@ -623,7 +623,7 @@ func TestEnforceSingleMesh(t *testing.T) {
 		prometheusRetentionTime:     testRetentionTime,
 		meshName:                    defaultMeshName,
 		enableEgress:                true,
-		enableGrafana:               false,
+		deployGrafana:               false,
 		clientSet:                   fakeClientSet,
 		envoyLogLevel:               testEnvoyLogLevel,
 		enforceSingleMesh:           true,
@@ -680,8 +680,8 @@ func TestEnforceSingleMeshRejectsNewMesh(t *testing.T) {
 		prometheusRetentionTime:     testRetentionTime,
 		meshName:                    defaultMeshName + "-2",
 		enableEgress:                true,
-		enablePrometheusDeployment:  true,
-		enableGrafana:               false,
+		deployPrometheus:            true,
+		deployGrafana:               false,
 		clientSet:                   fakeClientSet,
 		envoyLogLevel:               testEnvoyLogLevel,
 	}
@@ -726,8 +726,8 @@ func TestEnforceSingleMeshWithExistingMesh(t *testing.T) {
 		prometheusRetentionTime:     testRetentionTime,
 		meshName:                    defaultMeshName + "-2",
 		enableEgress:                true,
-		enablePrometheusDeployment:  true,
-		enableGrafana:               false,
+		deployPrometheus:            true,
+		deployGrafana:               false,
 		clientSet:                   fakeClientSet,
 		envoyLogLevel:               testEnvoyLogLevel,
 		enforceSingleMesh:           true,
@@ -778,9 +778,9 @@ func getDefaultInstallCmd(writer *bytes.Buffer) installCmd {
 		enablePermissiveTrafficPolicy:  defaultEnablePermissiveTrafficPolicy,
 		clientSet:                      fake.NewSimpleClientset(),
 		enableBackpressureExperimental: defaultEnableBackpressureExperimental,
-		enablePrometheusDeployment:     defaultEnablePrometheusDeployment,
+		deployPrometheus:               defaultDeployPrometheus,
 		enablePrometheusScraping:       defaultEnablePrometheusScraping,
-		enableGrafana:                  defaultEnableGrafana,
+		deployGrafana:                  defaultDeployGrafana,
 		enableFluentbit:                defaultEnableFluentbit,
 		deployJaeger:                   defaultDeployJaeger,
 		enforceSingleMesh:              defaultEnforceSingleMesh,
@@ -819,9 +819,9 @@ func getDefaultValues() map[string]interface{} {
 			"enablePermissiveTrafficPolicy":  defaultEnablePermissiveTrafficPolicy,
 			"enableBackpressureExperimental": defaultEnableBackpressureExperimental,
 			"enableEgress":                   defaultEnableEgress,
-			"enablePrometheusDeployment":     defaultEnablePrometheusDeployment,
+			"deployPrometheus":               defaultDeployPrometheus,
 			"enablePrometheusScraping":       defaultEnablePrometheusScraping,
-			"enableGrafana":                  defaultEnableGrafana,
+			"deployGrafana":                  defaultDeployGrafana,
 			"enableFluentbit":                defaultEnableFluentbit,
 			"deployJaeger":                   defaultDeployJaeger,
 			"envoyLogLevel":                  testEnvoyLogLevel,

@@ -33,8 +33,8 @@ From the root of this repository execute:
 ```
 
 ### Observability
-By default, Prometheus is deployed by the demo script. To turn this off. Set the variable `ENABLE_PROMETHEUS` in your `.env` file to false. 
-By default, Grafana is deployed by the demo script. To turn this off. Set the variable `ENABLE_PROMETHEUS` in your `.env` file to false. 
+By default, Prometheus is deployed by the demo script. To turn this off. Set the variable `DEPLOY_PROMETHEUS` in your `.env` file to false. 
+By default, Grafana is deployed by the demo script. To turn this off. Set the variable `DEPLOY_GRAFANA` in your `.env` file to false. 
 
 ### This script will:
   - compile OSM's control plane (`cmd/osm-controller`), create a separate container image and push it to the workstation's default container registry (See `~/.docker/config.json`)

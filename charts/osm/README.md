@@ -17,11 +17,11 @@ A Helm chart to install the OSM control plane on Kubernetes
 | OpenServiceMesh.enableBackpressureExperimental | bool | `false` |  |
 | OpenServiceMesh.enableDebugServer | bool | `false` |  |
 | OpenServiceMesh.enableEgress | bool | `false` |  |
-| OpenServiceMesh.enableGrafana | bool | `false` |  |
+| OpenServiceMesh.deployGrafana | bool | `false` |  |
 | OpenServiceMesh.enableFluentbit | bool | `false` |  |
 | OpenServiceMesh.enablePermissiveTrafficPolicy | bool | `false` |  |
-| OpenServiceMesh.enablePrometheusDeployment | bool | `false` |  |
-| OpenServiceMesh.enablePrometheusScraping | bool | `true` | Cannot be false if `enablePrometheusDeployment` is true |
+| OpenServiceMesh.deployPrometheus | bool | `false` |  |
+| OpenServiceMesh.enablePrometheusScraping | bool | `true` | Cannot be false if `deployPrometheus` is true |
 | OpenServiceMesh.envoyLogLevel | string | `"error"` |  |
 | OpenServiceMesh.grafana.port | int | `3000` |  |
 | OpenServiceMesh.image.pullPolicy | string | `"IfNotPresent"` |  |

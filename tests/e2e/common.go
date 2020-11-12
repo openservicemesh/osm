@@ -419,8 +419,8 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		args = append(args, "--container-registry-secret="+registrySecretName)
 	}
 
-	args = append(args, fmt.Sprintf("--enable-prometheus-deployment=%v", instOpts.deployPrometheus))
-	args = append(args, fmt.Sprintf("--enable-grafana=%v", instOpts.deployGrafana))
+	args = append(args, fmt.Sprintf("--deploy-prometheus=%v", instOpts.deployPrometheus))
+	args = append(args, fmt.Sprintf("--deploy-grafana=%v", instOpts.deployGrafana))
 	args = append(args, fmt.Sprintf("--deploy-jaeger=%v", instOpts.deployJaeger))
 	args = append(args, fmt.Sprintf("--enable-fluentbit=%v", instOpts.deployFluentbit))
 	args = append(args, fmt.Sprintf("--timeout=%v", 90*time.Second))
