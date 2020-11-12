@@ -21,7 +21,7 @@ import (
 	osmPolicy "github.com/openservicemesh/osm/experimental/pkg/apis/policy/v1alpha1"
 	osmPolicyClient "github.com/openservicemesh/osm/experimental/pkg/client/clientset/versioned"
 	backpressureInformers "github.com/openservicemesh/osm/experimental/pkg/client/informers/externalversions"
-	"github.com/openservicemesh/osm/pkg/announcements"
+	a "github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/featureflags"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -100,7 +100,7 @@ func (c *Client) run(stop <-chan struct{}) error {
 }
 
 // GetAnnouncementsChannel returns the announcement channel for the SMI client.
-func (c *Client) GetAnnouncementsChannel() <-chan announcements.Announcement {
+func (c *Client) GetAnnouncementsChannel() <-chan a.Announcement {
 	return c.announcements
 }
 
@@ -135,7 +135,7 @@ func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient smiTraf
 		informers:      &informerCollection,
 		caches:         &cacheCollection,
 		cacheSynced:    make(chan interface{}),
-		announcements:  make(chan announcements.Announcement),
+		announcements:  make(chan a.Announcement),
 		osmNamespace:   osmNamespace,
 		kubeController: kubeController,
 	}
@@ -144,13 +144,42 @@ func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient smiTraf
 		ns := reflect.ValueOf(obj).Elem().FieldByName("ObjectMeta").FieldByName("Namespace").String()
 		return kubeController.IsMonitoredNamespace(ns)
 	}
-	informerCollection.TrafficSplit.AddEventHandler(k8s.GetKubernetesEventHandlers("TrafficSplit", "SMI", client.announcements, shouldObserve, nil, nil))
-	informerCollection.HTTPRouteGroup.AddEventHandler(k8s.GetKubernetesEventHandlers("HTTPRouteGroup", "SMI", client.announcements, shouldObserve, nil, nil))
-	informerCollection.TCPRoute.AddEventHandler(k8s.GetKubernetesEventHandlers("TCPRoute", "SMI", client.announcements, shouldObserve, nil, nil))
-	informerCollection.TrafficTarget.AddEventHandler(k8s.GetKubernetesEventHandlers("TrafficTarget", "SMI", client.announcements, shouldObserve, nil, nil))
+
+	splitEventTypes := k8s.EventTypes{
+		Add:    a.TrafficSplitAdded,
+		Update: a.TrafficSplitUpdated,
+		Delete: a.TrafficSplitDeleted,
+	}
+	informerCollection.TrafficSplit.AddEventHandler(k8s.GetKubernetesEventHandlers("TrafficSplit", "SMI", client.announcements, shouldObserve, nil, splitEventTypes))
+
+	routeGroupEventTypes := k8s.EventTypes{
+		Add:    a.RouteGroupAdded,
+		Update: a.RouteGroupUpdated,
+		Delete: a.RouteGroupDeleted,
+	}
+	informerCollection.HTTPRouteGroup.AddEventHandler(k8s.GetKubernetesEventHandlers("HTTPRouteGroup", "SMI", client.announcements, shouldObserve, nil, routeGroupEventTypes))
+
+	tcpRouteEventTypes := k8s.EventTypes{
+		Add:    a.TCPRouteAdded,
+		Update: a.TCPRouteUpdated,
+		Delete: a.TCPRouteDeleted,
+	}
+	informerCollection.TCPRoute.AddEventHandler(k8s.GetKubernetesEventHandlers("TCPRoute", "SMI", client.announcements, shouldObserve, nil, tcpRouteEventTypes))
+
+	trafficTargetEventTypes := k8s.EventTypes{
+		Add:    a.TrafficTargetAdded,
+		Update: a.TrafficTargetUpdated,
+		Delete: a.TrafficTargetDeleted,
+	}
+	informerCollection.TrafficTarget.AddEventHandler(k8s.GetKubernetesEventHandlers("TrafficTarget", "SMI", client.announcements, shouldObserve, nil, trafficTargetEventTypes))
 
 	if featureflags.IsBackpressureEnabled() {
-		informerCollection.Backpressure.AddEventHandler(k8s.GetKubernetesEventHandlers("Backpressure", "SMI", client.announcements, shouldObserve, nil, nil))
+		backpressureEventTypes := k8s.EventTypes{
+			Add:    a.BackpressureAdded,
+			Update: a.BackpressureUpdated,
+			Delete: a.BackpressureDeleted,
+		}
+		informerCollection.Backpressure.AddEventHandler(k8s.GetKubernetesEventHandlers("Backpressure", "SMI", client.announcements, shouldObserve, nil, backpressureEventTypes))
 	}
 
 	err := client.run(stop)

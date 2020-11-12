@@ -13,7 +13,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
+	a "github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
@@ -40,7 +40,7 @@ func NewProvider(kubeClient kubernetes.Interface, kubeController k8s.Controller,
 		informers:      &informerCollection,
 		caches:         &cacheCollection,
 		cacheSynced:    make(chan interface{}),
-		announcements:  make(chan announcements.Announcement),
+		announcements:  make(chan a.Announcement),
 		kubeController: kubeController,
 	}
 
@@ -48,8 +48,19 @@ func NewProvider(kubeClient kubernetes.Interface, kubeController k8s.Controller,
 		ns := reflect.ValueOf(obj).Elem().FieldByName("ObjectMeta").FieldByName("Namespace").String()
 		return kubeController.IsMonitoredNamespace(ns)
 	}
-	informerCollection.Endpoints.AddEventHandler(k8s.GetKubernetesEventHandlers("Endpoints", "Kubernetes", client.announcements, shouldObserve, nil, nil))
-	informerCollection.Pods.AddEventHandler(k8s.GetKubernetesEventHandlers("Pods", "Kubernetes", client.announcements, shouldObserve, podEventTypeRemap, getPodUID))
+	eptEventTypes := k8s.EventTypes{
+		Add:    a.EndpointAdded,
+		Update: a.EndpointUpdated,
+		Delete: a.EndpointDeleted,
+	}
+	informerCollection.Endpoints.AddEventHandler(k8s.GetKubernetesEventHandlers("Endpoints", "Kubernetes", client.announcements, shouldObserve, nil, eptEventTypes))
+
+	podEventTypes := k8s.EventTypes{
+		Add:    a.PodAdded,
+		Update: a.PodUpdated,
+		Delete: a.PodDeleted,
+	}
+	informerCollection.Pods.AddEventHandler(k8s.GetKubernetesEventHandlers("Pods", "Kubernetes", client.announcements, shouldObserve, getPodUID, podEventTypes))
 
 	if err := client.run(stop); err != nil {
 		return nil, errors.Errorf("Failed to start Kubernetes EndpointProvider client: %+v", err)
@@ -158,7 +169,7 @@ func (c Client) GetServicesForServiceAccount(svcAccount service.K8sServiceAccoun
 }
 
 // GetAnnouncementsChannel returns the announcement channel for the Kubernetes endpoints provider.
-func (c Client) GetAnnouncementsChannel() <-chan announcements.Announcement {
+func (c Client) GetAnnouncementsChannel() <-chan a.Announcement {
 	return c.announcements
 }
 
