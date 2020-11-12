@@ -68,6 +68,9 @@ func GetKubernetesEventHandlers(informerName, providerName string, announce chan
 				logNotObservedNamespace(newObj, eventTypes.Update)
 				return
 			}
+			if reflect.DeepEqual(oldObj, newObj) {
+				return
+			}
 			sendAnnouncement(eventTypes.Update, oldObj)
 		},
 
