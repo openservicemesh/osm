@@ -400,7 +400,7 @@ participate in the service mesh. Each [endpoint provider](#3-endpoints-providers
 The [Mesh catalog](#5-mesh-catalog) will query each [Endpoints provider](#3-endpoints-providers) for a particular [service](#c-service), and obtain the IP addresses and ports of the endpoints handling traffic for service.
 
 The [Endpoints providers](#3-endpoints-providers) are aware of:
-  - Kubernetes Service and their own CRD (example: `AzureResource`)
+  - Kubernetes Service and their own CRD
   - vendor-specific APIs and methods to retrieve IP addresses and Port numbers for Endpoints
 
 The [Endpoints providers](#3-endpoints-providers) has no awareness of:

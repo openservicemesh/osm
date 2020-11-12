@@ -48,7 +48,6 @@ as a birds-eye view of where the different components are located.
     - `logger/` - logging facilities
     - `metricsstore/` - OSM controller system metrics tools
     - `namespace/` - package with tools handling a service mesh spanning multiple Kubernetes namespaces.
-    - `osm_client/` - OSM client
     - `service/` - tools needed for easier handling of Kubernetes services
     - `signals/` - operating system signal handlers
     - `smi/` - SMI client, informer, caches and tools
