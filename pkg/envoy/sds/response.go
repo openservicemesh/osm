@@ -17,12 +17,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
-// Used mainly for logging/translation purposes
-var directionMap = map[envoy.SDSCertType]string{
-	envoy.RootCertTypeForMTLSInbound:  "inbound",
-	envoy.RootCertTypeForMTLSOutbound: "outbound",
-}
-
 // NewResponse creates a new Secrets Discovery Response.
 func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, certManager certificate.Manager) (*xds_discovery.DiscoveryResponse, error) {
 	log.Info().Msgf("Composing SDS Discovery Response for proxy: %s", proxy.GetCommonName())
@@ -113,14 +107,11 @@ func (s *sdsImpl) getSDSSecrets(cert certificate.Certificater, requestedCerts []
 			continue
 		}
 
-		if proxyService != sdsCert.MeshService {
-			log.Warn().Msgf("Proxy %s (service %s) requested service certificate %s; this is not allowed", s.proxy.GetCommonName(), proxyService, sdsCert.MeshService)
-			continue
-		}
+		log.Debug().Msgf("proxy %s (member of service %s) requested %s", s.proxy.GetCommonName(), proxyService, requestedCertificate)
 
 		switch sdsCert.CertType {
 		case envoy.ServiceCertType:
-			log.Info().Msgf("proxy %s (member of service %s) requested %s", s.proxy.GetCommonName(), proxyService, requestedCertificate)
+			// A service certificate is requested
 			envoySecret, err := getServiceCertSecret(cert, requestedCertificate)
 			if err != nil {
 				log.Error().Err(err).Msgf("Error creating cert %s for proxy %s for service %s", requestedCertificate, s.proxy.GetCommonName(), proxyService)
@@ -128,12 +119,12 @@ func (s *sdsImpl) getSDSSecrets(cert certificate.Certificater, requestedCerts []
 			}
 			envoySecrets = append(envoySecrets, envoySecret)
 
+		// A root certificate used to validate a service certificate is requested
 		case envoy.RootCertTypeForMTLSInbound:
 			fallthrough
 		case envoy.RootCertTypeForMTLSOutbound:
 			fallthrough
 		case envoy.RootCertTypeForHTTPS:
-			log.Info().Msgf("proxy %s (member of service %s) requested %s", s.proxy.GetCommonName(), proxyService, requestedCertificate)
 			envoySecret, err := s.getRootCert(cert, *sdsCert, proxyService)
 			if err != nil {
 				log.Error().Err(err).Msgf("Error creating cert %s for proxy %s for service %s", requestedCertificate, s.proxy.GetCommonName(), proxyService)
@@ -194,50 +185,61 @@ func (s *sdsImpl) getRootCert(cert certificate.Certificater, sdscert envoy.SDSCe
 	// Program SAN matching based on SMI TrafficTarget policies
 	switch sdscert.CertType {
 	case envoy.RootCertTypeForMTLSOutbound:
-		fallthrough
-	case envoy.RootCertTypeForMTLSInbound:
-		var matchSANs []*xds_matcher.StringMatcher
-		var serviceAccounts []service.K8sServiceAccount
-		var err error
-
-		// This block constructs a list of Server Names (peers) that are allowed to connect to the given service.
-		// The allowed list is derived from SMI's Traffic Policy.
-		if sdscert.CertType == envoy.RootCertTypeForMTLSOutbound {
-			// Outbound
-			serviceAccounts, err = s.meshCatalog.ListAllowedOutboundServiceAccounts(s.svcAccount)
-		} else {
-			// Inbound
-			serviceAccounts, err = s.meshCatalog.ListAllowedInboundServiceAccounts(s.svcAccount)
-		}
-
+		// For outbound certificate validation context, the SAN needs to the list of service identities
+		// corresponding to the upstream service. This means, if the sdscert.MeshService points to 'X',
+		// the SANs for this certificate should correspond to the service identities of 'X'.
+		svcAccounts, err := s.meshCatalog.ListServiceAccountsForService(sdscert.MeshService)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error getting %s service accounts for proxy service %s", directionMap[sdscert.CertType], proxyService)
+			log.Error().Err(err).Msgf("Error listing service accounts for service %q", sdscert.MeshService)
 			return nil, err
 		}
+		secret.GetValidationContext().MatchSubjectAltNames = getSubjectAltNamesFromSvcAccount(svcAccounts)
+		log.Trace().Msgf("Proxy for service=%s, upstream cert=%s will only allow SANs exactly matching: %v",
+			proxyService, sdscert, subjectAltNamesToStr(secret.GetValidationContext().GetMatchSubjectAltNames()))
 
-		log.Trace().Msgf("%s Service accounts for proxy service account %s: %v", directionMap[sdscert.CertType], s.svcAccount, serviceAccounts)
-		var matchingCerts []string
-		for _, svcAccount := range serviceAccounts {
-			// OSM currently relies on kubernetes ServiceAccount for service identity
-			si := identity.GetKubernetesServiceIdentity(svcAccount, identity.ClusterLocalTrustDomain)
-			matchingCerts = append(matchingCerts, si.String())
-			match := xds_matcher.StringMatcher{
-				MatchPattern: &xds_matcher.StringMatcher_Exact{
-					Exact: si.String(),
-				},
-			}
-			matchSANs = append(matchSANs, &match)
+	case envoy.RootCertTypeForMTLSInbound:
+		// For inbound certificate validation context, the SAN needs to be the list of all downstream
+		// service identities that are allowed to connect to this upstream service. This means, if sdscert.MeshService
+		// points to 'X', the SANs for this certificate should correspond to all the downstream service identities
+		// allowed to reach 'X'.
+		svcAccounts, err := s.meshCatalog.ListAllowedInboundServiceAccounts(s.svcAccount)
+		if err != nil {
+			log.Error().Err(err).Msgf("Error listing inbound service accounts for proxy service %s", proxyService)
+			return nil, err
 		}
+		secret.GetValidationContext().MatchSubjectAltNames = getSubjectAltNamesFromSvcAccount(svcAccounts)
+		log.Trace().Msgf("Proxy for service=%s, downstream cert=%s will only allow SANs exactly matching: %v",
+			proxyService, sdscert, subjectAltNamesToStr(secret.GetValidationContext().GetMatchSubjectAltNames()))
 
-		log.Trace().Msgf("Proxy for service %s will only allow %s SANs exactly matching: %v", proxyService, directionMap[sdscert.CertType], matchingCerts)
-
-		// Ensure the Subject Alternate Names (SAN) added by CertificateManager.IssueCertificate()
-		// matches what is allowed to connect to or accept connections from, as defined in the SMI
-		// TrafficTarget policy.
-		secret.GetValidationContext().MatchSubjectAltNames = matchSANs
 	default:
-		log.Debug().Msgf("SAN matching not needed for cert type %s", sdscert.CertType.String())
+		log.Debug().Msgf("SAN matching not needed for cert %s", sdscert)
 	}
 
 	return secret, nil
+}
+
+func getSubjectAltNamesFromSvcAccount(svcAccounts []service.K8sServiceAccount) []*xds_matcher.StringMatcher {
+	var matchSANs []*xds_matcher.StringMatcher
+
+	for _, svcAccount := range svcAccounts {
+		// OSM currently relies on kubernetes ServiceAccount for service identity
+		si := identity.GetKubernetesServiceIdentity(svcAccount, identity.ClusterLocalTrustDomain)
+		match := xds_matcher.StringMatcher{
+			MatchPattern: &xds_matcher.StringMatcher_Exact{
+				Exact: si.String(),
+			},
+		}
+		matchSANs = append(matchSANs, &match)
+	}
+
+	return matchSANs
+}
+
+func subjectAltNamesToStr(sanMatchList []*xds_matcher.StringMatcher) []string {
+	var sanStr []string
+
+	for _, sanMatcher := range sanMatchList {
+		sanStr = append(sanStr, sanMatcher.GetExact())
+	}
+	return sanStr
 }

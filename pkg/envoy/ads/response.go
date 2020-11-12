@@ -56,8 +56,8 @@ func (s *Server) sendAllResponses(proxy *envoy.Proxy, server *xds_discovery.Aggr
 // makeRequestForAllSecrets constructs an SDS request AS IF an Envoy proxy sent it.
 // This request will result in the rest of the system creating an SDS response with the certificates
 // required by this proxy. The proxy itself did not ask for these. We know it needs them - so we send them.
-func makeRequestForAllSecrets(proxy *envoy.Proxy, catalog catalog.MeshCataloger) *xds_discovery.DiscoveryRequest {
-	svcList, err := catalog.GetServicesFromEnvoyCertificate(proxy.GetCommonName())
+func makeRequestForAllSecrets(proxy *envoy.Proxy, meshCatalog catalog.MeshCataloger) *xds_discovery.DiscoveryRequest {
+	svcList, err := meshCatalog.GetServicesFromEnvoyCertificate(proxy.GetCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up MeshService for Envoy with CN=%q", proxy.GetCommonName())
 		return nil
@@ -65,15 +65,11 @@ func makeRequestForAllSecrets(proxy *envoy.Proxy, catalog catalog.MeshCataloger)
 	// Github Issue #1575
 	serviceForProxy := svcList[0]
 
-	return &xds_discovery.DiscoveryRequest{
+	discoveryRequest := &xds_discovery.DiscoveryRequest{
 		ResourceNames: []string{
 			envoy.SDSCert{
 				MeshService: serviceForProxy,
 				CertType:    envoy.ServiceCertType,
-			}.String(),
-			envoy.SDSCert{
-				MeshService: serviceForProxy,
-				CertType:    envoy.RootCertTypeForMTLSOutbound,
 			}.String(),
 			envoy.SDSCert{
 				MeshService: serviceForProxy,
@@ -86,6 +82,22 @@ func makeRequestForAllSecrets(proxy *envoy.Proxy, catalog catalog.MeshCataloger)
 		},
 		TypeUrl: string(envoy.TypeSDS),
 	}
+
+	// There is an SDS validation cert corresponding to each upstream service
+	upstreamServices, err := meshCatalog.ListAllowedOutboundServices(serviceForProxy)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error listing outbound services for proxy %q", serviceForProxy)
+		return nil
+	}
+	for _, upstream := range upstreamServices {
+		upstreamRootCertResource := envoy.SDSCert{
+			MeshService: upstream,
+			CertType:    envoy.RootCertTypeForMTLSOutbound,
+		}.String()
+		discoveryRequest.ResourceNames = append(discoveryRequest.ResourceNames, upstreamRootCertResource)
+	}
+
+	return discoveryRequest
 }
 
 func (s *Server) newAggregatedDiscoveryResponse(proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, cfg configurator.Configurator) (*xds_discovery.DiscoveryResponse, error) {

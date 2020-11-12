@@ -27,7 +27,7 @@ const (
 func getUpstreamServiceCluster(upstreamSvc, downstreamSvc service.MeshService, cfg configurator.Configurator) (*xds_cluster.Cluster, error) {
 	clusterName := upstreamSvc.String()
 	marshalledUpstreamTLSContext, err := envoy.MessageToAny(
-		envoy.GetUpstreamTLSContext(downstreamSvc, upstreamSvc.ServerName()))
+		envoy.GetUpstreamTLSContext(downstreamSvc, upstreamSvc))
 	if err != nil {
 		return nil, err
 	}
