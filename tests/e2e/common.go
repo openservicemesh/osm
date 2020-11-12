@@ -359,7 +359,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		if err != nil {
 			return errors.Wrap(err, "failed to get image data")
 		}
-		defer imageData.Close()
+		defer imageData.Close() //nolint: errcheck,gosec
 		nodes, err := td.clusterProvider.ListNodes(td.clusterName)
 		if err != nil {
 			return errors.Wrap(err, "failed to list kind nodes")
@@ -465,7 +465,7 @@ func (td *OsmTestData) loadOSMImagesIntoKind() error {
 	if err != nil {
 		return errors.Wrap(err, "failed to get image data")
 	}
-	defer imageData.Close()
+	defer imageData.Close() //nolint: errcheck,gosec
 	nodes, err := td.clusterProvider.ListNodes(td.clusterName)
 	if err != nil {
 		return errors.Wrap(err, "failed to list kind nodes")
