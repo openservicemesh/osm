@@ -15,7 +15,7 @@ OSM is able to automatically provision Prometheus and Grafana instances to monit
 ### Automatic bring up
 By default, both Prometheus and Grafana are disabled.
 
-However, when configured with the `--enable-prometheus` flag, OSM installation will deploy a Prometheus instance to scrape the sidecar's metrics endpoints. Based on the metrics scraping configuration set by the user, OSM will annotate pods part of the mesh with necessary metrics annotations to have Prometheus reach and scrape the pods to collect relevant metrics. To install Grafana for metrics visualization, set the `enable-grafana` flag to true when installing OSM using the `osm install` command.
+However, when configured with the `--enable-prometheus-deployment` flag, OSM installation will deploy a Prometheus instance to scrape the sidecar's metrics endpoints. Based on the metrics scraping configuration set by the user, OSM will annotate pods part of the mesh with necessary metrics annotations to have Prometheus reach and scrape the pods to collect relevant metrics. To install Grafana for metrics visualization, set the `enable-grafana` flag to true when installing OSM using the `osm install` command.
 
 The automatic bring up can be overridden with the `osm install` option during install time:
 ```
@@ -23,7 +23,7 @@ osm install --help
 
 This command installs an osm control plane on the Kubernetes...
 ...
---enable-prometheus               Enable Prometheus deployment (default false)
+--enable-prometheus-deployment    Enable Prometheus deployment (default false)
 --enable-grafana                  Enable Grafana deployment (default false)
 ...
 ```

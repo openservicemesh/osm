@@ -44,7 +44,7 @@ Use the [installation guide](/docs/installation_guide.md) to install the `osm` c
     ```
 1. To enable Prometheus and Grafana, use their respective flags
     ```bash
-    osm install --enable-prometheus true --enable-grafana true
+    osm install --enable-prometheus-deployment true --enable-grafana true
     ```
     See the [metrics documentation](/docs/patterns/observability/metrics.md#automatic-bring-up) for more details.
 
