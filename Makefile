@@ -142,10 +142,6 @@ $(DOCKER_PUSH_TARGETS):
 .PHONY: docker-push
 docker-push: $(DOCKER_PUSH_TARGETS)
 
-.PHONY: generate-crds
-generate-crds:
-	@./crd/generate-AzureResource.sh
-
 .PHONY: shellcheck
 shellcheck:
 	shellcheck -x $(shell find . -name '*.sh')
