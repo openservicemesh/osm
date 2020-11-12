@@ -27,19 +27,32 @@ var _ = Describe("Testing event handlers", func() {
 		}
 
 		It("Should add the event to the announcement channel", func() {
-			ann := make(chan announcements.Announcement, 1)
+			annCh := make(chan announcements.Announcement, 1)
 			pod := tests.NewPodTestFixture(testNamespace, "pod-name")
-			addEvent(testInformer, testProvider, ann, shouldObserve, "ADD")(&pod)
-			Expect(len(ann)).To(Equal(1))
-			<-ann
+			eventTypes := EventTypes{
+				Add:    announcements.PodAdded,
+				Update: announcements.PodUpdated,
+				Delete: announcements.PodDeleted,
+			}
+			handlers := GetKubernetesEventHandlers(testInformer, testProvider, annCh, shouldObserve, nil, eventTypes)
+			handlers.AddFunc(&pod)
+			Expect(len(annCh)).To(Equal(1))
+			announcement := <-annCh
+
+			expected := announcements.Announcement{
+				Type:               announcements.PodAdded,
+				ReferencedObjectID: nil,
+			}
+			Expect(announcement).To(Equal(expected))
 		})
 
 		It("Should not add the event to the announcement channel", func() {
-			ann := make(chan announcements.Announcement, 1)
+			annCh := make(chan announcements.Announcement, 1)
 			var pod corev1.Pod
 			pod.Namespace = "not-a-monitored-namespace"
-			addEvent(testInformer, testProvider, ann, shouldObserve, "ADD")(&pod)
-			Expect(len(ann)).To(Equal(0))
+			handlers := GetKubernetesEventHandlers(testInformer, testProvider, annCh, shouldObserve, nil, EventTypes{})
+			handlers.AddFunc(&pod)
+			Expect(len(annCh)).To(Equal(0))
 		})
 	})
 

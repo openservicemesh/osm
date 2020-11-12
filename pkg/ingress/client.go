@@ -31,7 +31,13 @@ func NewIngressClient(kubeClient kubernetes.Interface, kubeController k8s.Contro
 		ns := reflect.ValueOf(obj).Elem().FieldByName("ObjectMeta").FieldByName("Namespace").String()
 		return kubeController.IsMonitoredNamespace(ns)
 	}
-	informer.AddEventHandler(k8s.GetKubernetesEventHandlers("Ingress", "Kubernetes", client.announcements, shouldObserve))
+
+	ingrEventTypes := k8s.EventTypes{
+		Add:    announcements.IngressAdded,
+		Update: announcements.IngressUpdated,
+		Delete: announcements.IngressDeleted,
+	}
+	informer.AddEventHandler(k8s.GetKubernetesEventHandlers("Ingress", "Kubernetes", client.announcements, shouldObserve, nil, ingrEventTypes))
 
 	if err := client.run(stop); err != nil {
 		log.Error().Err(err).Msg("Could not start Kubernetes Ingress client")

@@ -57,7 +57,12 @@ func (c *Client) initNamespaceMonitor() {
 	c.informers[Namespaces] = informerFactory.Core().V1().Namespaces().Informer()
 
 	// Add event handler to informer
-	c.informers[Namespaces].AddEventHandler(GetKubernetesEventHandlers((string)(Namespaces), ProviderName, nil, nil))
+	nsEventTypes := EventTypes{
+		Add:    announcements.NamespaceAdded,
+		Update: announcements.NamespaceUpdated,
+		Delete: announcements.NamespaceDeleted,
+	}
+	c.informers[Namespaces].AddEventHandler(GetKubernetesEventHandlers((string)(Namespaces), ProviderName, nil, nil, nil, nsEventTypes))
 }
 
 // Initializes Service monitoring
@@ -74,7 +79,12 @@ func (c *Client) initServicesMonitor() {
 	// Announcement channel for Services
 	c.announcements[Services] = make(chan announcements.Announcement)
 
-	c.informers[Services].AddEventHandler(GetKubernetesEventHandlers((string)(Services), ProviderName, c.announcements[Services], shouldObserve))
+	svcEventTypes := EventTypes{
+		Add:    announcements.ServiceAdded,
+		Update: announcements.ServiceUpdated,
+		Delete: announcements.ServiceDeleted,
+	}
+	c.informers[Services].AddEventHandler(GetKubernetesEventHandlers((string)(Services), ProviderName, c.announcements[Services], shouldObserve, nil, svcEventTypes))
 }
 
 func (c *Client) initPodMonitor() {
@@ -90,7 +100,12 @@ func (c *Client) initPodMonitor() {
 	// Announcement channel for Pods
 	c.announcements[Pods] = make(chan announcements.Announcement)
 
-	c.informers[Pods].AddEventHandler(GetKubernetesEventHandlers((string)(Pods), ProviderName, c.announcements[Pods], shouldObserve))
+	podEventTypes := EventTypes{
+		Add:    announcements.PodAdded,
+		Update: announcements.PodUpdated,
+		Delete: announcements.PodDeleted,
+	}
+	c.informers[Pods].AddEventHandler(GetKubernetesEventHandlers((string)(Pods), ProviderName, c.announcements[Pods], shouldObserve, nil, podEventTypes))
 }
 
 func (c *Client) run(stop <-chan struct{}) error {
