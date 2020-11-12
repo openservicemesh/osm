@@ -27,9 +27,6 @@ type MutatingWebhookConfigrationReconciler struct {
 	CertManager  certificate.Manager
 }
 
-// +kubebuilder:rbac:groups=admissionregistration.k8s.io,resources=mutatingwebhookconfigurations,verbs=get;list;watch;update;
-// +kubebuilder:rbac:groups=admissionregistration.k8s.io,resources=mutatingwebhookconfigurations/status,verbs=get;update;patch
-
 // Reconcile is the reconciliation method for OSM MutatingWebhookConfiguration.
 func (r *MutatingWebhookConfigrationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// reconcile only for OSM mutatingWebhookConfiguration
