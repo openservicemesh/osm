@@ -255,6 +255,7 @@ type InstallOSMOpts struct {
 	egressEnabled        bool
 	enablePermissiveMode bool
 	envoyLogLevel        string
+	enableDebugServer    bool
 }
 
 // GetOSMInstallOpts initializes install options for OSM
@@ -336,7 +337,11 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		if err != nil {
 			return err
 		}
-
+		err = td.UpdateOSMConfig("enable_debug_server",
+			fmt.Sprintf("%t", instOpts.enableDebugServer))
+		if err != nil {
+			return err
+		}
 		return nil
 	}
 
@@ -384,7 +389,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		"--certificate-manager="+instOpts.certManager,
 		"--enable-egress="+strconv.FormatBool(instOpts.egressEnabled),
 		"--enable-permissive-traffic-policy="+strconv.FormatBool(instOpts.enablePermissiveMode),
-		"--enable-debug-server",
+		"--enable-debug-server="+strconv.FormatBool(instOpts.enableDebugServer),
 		"--envoy-log-level="+instOpts.envoyLogLevel,
 	)
 
