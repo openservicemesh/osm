@@ -17,7 +17,6 @@ import (
 // buildRBACFilter builds an RBAC filter based on SMI TrafficTarget policies.
 // The returned RBAC filter has policies that gives downstream principals full access to the local service.
 func (lb *listenerBuilder) buildRBACFilter() (*xds_listener.Filter, error) {
-	log.Trace().Msgf("Building RBAC filter for ServiceAccount %q", lb.svcAccount)
 	networkRBACPolicy, err := lb.buildInboundRBACPolicies()
 	if err != nil {
 		log.Error().Err(err).Msgf("Error building inbound RBAC policies for principal %q", lb.svcAccount)
@@ -45,6 +44,8 @@ func (lb *listenerBuilder) buildInboundRBACPolicies() (*xds_network_rbac.RBAC, e
 		log.Error().Err(err).Msgf("Error listing allowed inbound ServiceAccounts for ServiceAccount %q", lb.svcAccount)
 		return nil, err
 	}
+
+	log.Trace().Msgf("Building RBAC policies for ServiceAccount %q with allowed inbound %v", lb.svcAccount, allowsInboundSvcAccounts)
 
 	// Each downstream is a principal in the RBAC policy, which will have its own permissions
 	// based on SMI TrafficTarget policies.
