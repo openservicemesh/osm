@@ -11,6 +11,8 @@ import (
 
 var errEventNotHandled = errors.New("event not handled")
 
+// releaseCertificate is an Announcement handler, which on receiving a PodDeleted event
+// it releases the xDS certificate for the Envoy for that Pod.
 func (mc *MeshCatalog) releaseCertificate(ann announcements.Announcement) error {
 	whatWeGot := ann.Type
 	whatWeCanHandle := announcements.PodDeleted
@@ -32,6 +34,9 @@ func (mc *MeshCatalog) releaseCertificate(ann announcements.Announcement) error 
 	return nil
 }
 
+// updateRelatedProxies is an Announcement handler, which augments the handling of PodDeleted events
+// and leverages broadcastToAllProxies() to let all proxies know that something has changed.
+// TODO: The use of broadcastToAllProxies() needs to be deprecated in favor of more granular approach.
 func (mc *MeshCatalog) updateRelatedProxies(ann announcements.Announcement) error {
 	whatWeGot := ann.Type
 	whatWeCanHandle := announcements.PodDeleted
