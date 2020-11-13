@@ -486,6 +486,9 @@ func (mc *MeshCatalog) buildTrafficPolicies(sourceServices, destServices []servi
 				continue
 			}
 			routesClusters := []trafficpolicy.RouteWeightedClusters{}
+			// When TrafficSplit v1alpha3 is implemented (#705), weighted clusters information should be passed into this function as a parameter
+			//	but since we are not implementing TrafficSplit v1alpha3 and only dealing with TrafficTargets for the initial routes refactor(#2034),
+			//	we use the default weighted clusters configuration for the given destination service (destService)
 			weightedClusters := mapset.NewSet(getDefaultWeightedClusterForService(destService))
 
 			for _, route := range routes {
