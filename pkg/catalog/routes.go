@@ -460,3 +460,51 @@ func (mc *MeshCatalog) GetServicesForServiceAccounts(saList []service.K8sService
 
 	return serviceList
 }
+
+// GetHostnamesForUpstreamService returns the hostnames over which an upstream service is accessible from a downstream service
+// The hostname is the FQDN for the service, and can include ports as well.
+// Ex. bookstore.default, bookstore.default:80, bookstore.default.svc, bookstore.default.svc:80 etc.
+// TODO: replace GetResolvableHostnamesForUpstreamService with this func once routes refactor is complete (#issue)
+func (mc *MeshCatalog) GetHostnamesForUpstreamService(downstream, upstream service.MeshService) ([]string, error) {
+	sameNamespace := downstream.Namespace == upstream.Namespace
+	// The hostnames for this service are the Kubernetes service DNS names
+	hostnames, err := mc.getServiceHostnames(upstream, sameNamespace)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error getting service hostnames for upstream service %s", upstream)
+		return nil, err
+	}
+
+	return hostnames, nil
+}
+
+// buildTrafficPolicies takes a list of source services, destination services and routes and returns a list of traffic policies for all
+//	combinations of the given source and destination services
+func (mc *MeshCatalog) buildTrafficPolicies(sourceServices, destServices []service.MeshService, routes []trafficpolicy.HTTPRoute) (policies []*trafficpolicy.TrafficPolicy) {
+	for _, sourceService := range sourceServices {
+		for _, destService := range destServices {
+			if sourceService == destService {
+				continue
+			}
+			routesClusters := []trafficpolicy.RouteWeightedClusters{}
+			// When TrafficSplit v1alpha3 is implemented (#705), weighted clusters information should be passed into this function as a parameter
+			//	but since we are not implementing TrafficSplit v1alpha3 and only dealing with TrafficTargets for the initial routes refactor(#2034),
+			//	we use the default weighted clusters configuration for the given destination service (destService)
+			weightedClusters := mapset.NewSet(getDefaultWeightedClusterForService(destService))
+
+			for _, route := range routes {
+				routesClusters = append(routesClusters, trafficpolicy.RouteWeightedClusters{
+					HTTPRoute:        trafficpolicy.HTTPRoute(route),
+					WeightedClusters: weightedClusters,
+				})
+			}
+
+			hostnames, err := mc.GetHostnamesForUpstreamService(sourceService, destService)
+			if err != nil {
+				log.Error().Msgf("Err getting resolvable hostnames for source %v and destination %v service : %s", sourceService, destService, err)
+				continue
+			}
+			policies = append(policies, trafficpolicy.NewTrafficPolicy(sourceService, destService, routesClusters, hostnames))
+		}
+	}
+	return policies
+}
