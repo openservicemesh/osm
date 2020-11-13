@@ -10,6 +10,7 @@ require (
 	github.com/Azure/go-autorest/autorest/to v0.3.0
 	github.com/axw/gocov v1.0.0
 	github.com/cncf/udpa/go v0.0.0-20200629203442-efcf912fb354 // indirect
+	github.com/cskr/pubsub v1.0.2
 	github.com/deckarep/golang-set v1.7.1
 	github.com/docker/docker v1.4.2-0.20200203170920-46ec8731fbce
 	github.com/envoyproxy/go-control-plane v0.9.6
