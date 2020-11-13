@@ -8,6 +8,7 @@ import (
 	mapset "github.com/deckarep/golang-set"
 	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
 	"github.com/stretchr/testify/assert"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -34,6 +35,55 @@ var (
 		},
 	}
 )
+
+func TestIsValidTrafficTarget(t *testing.T) {
+	assert := assert.New(t)
+
+	testCases := []struct {
+		name     string
+		input    *target.TrafficTarget
+		expected bool
+	}{
+		{
+			name:     "is valid",
+			input:    &tests.TrafficTarget,
+			expected: true,
+		},
+		{
+			name: "is not valid",
+			input: &target.TrafficTarget{
+				TypeMeta: v1.TypeMeta{
+					APIVersion: "access.smi-spec.io/v1alpha2",
+					Kind:       "TrafficTarget",
+				},
+				ObjectMeta: v1.ObjectMeta{
+					Name:      "target",
+					Namespace: "default",
+				},
+				Spec: target.TrafficTargetSpec{
+					Destination: target.IdentityBindingSubject{
+						Kind:      "Name",
+						Name:      "dest-id",
+						Namespace: "default",
+					},
+					Sources: []target.IdentityBindingSubject{{
+						Kind:      "Name",
+						Name:      "source-id",
+						Namespace: "default",
+					}},
+				},
+			},
+			expected: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("Testing isValidTrafficTarget when input %s ", tc.name), func(t *testing.T) {
+			actual := isValidTrafficTarget(tc.input)
+			assert.Equal(tc.expected, actual)
+		})
+	}
+}
 
 func TestBuildTrafficPolicies(t *testing.T) {
 	mc := newFakeMeshCatalogForRoutes(t)
