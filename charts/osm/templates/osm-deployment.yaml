@@ -28,7 +28,7 @@ spec:
               containerPort: 15128
           command: ['/osm-controller']
           args: [
-            "--verbosity", "trace",
+            "--verbosity", "{{.Values.OpenServiceMesh.controllerLogLevel}}",
             "--osm-namespace", "{{.Release.Namespace}}",
             "--mesh-name", "{{.Values.OpenServiceMesh.meshName}}",
             "--init-container-image", "{{.Values.OpenServiceMesh.image.registry}}/init:{{ .Values.OpenServiceMesh.image.tag }}",
