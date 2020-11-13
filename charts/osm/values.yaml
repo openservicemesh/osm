@@ -43,7 +43,7 @@ OpenServiceMesh:
   meshName: osm
   useHTTPSIngress: false
   envoyLogLevel: error
-  osmLogLevel: trace
+  controllerLogLevel: trace
   enforceSingleMesh: false
 
   # Set deployJaeger to true to deploy a Jaeger cluster in the
