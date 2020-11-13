@@ -55,6 +55,10 @@ build-osm:
 clean-osm:
 	@rm -rf bin/osm
 
+.PHONY: chart-readme
+chart-readme:
+	go run github.com/norwoodj/helm-docs/cmd/helm-docs -c charts
+
 .PHONY: go-checks
 go-checks: go-lint go-fmt go-mod-tidy
 
