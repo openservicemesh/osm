@@ -765,7 +765,7 @@ func getDefaultValues() map[string]interface{} {
 			"meshName": defaultMeshName,
 			"image": map[string]interface{}{
 				"registry":   "openservicemesh",
-				"tag":        "v0.5.0-rc.1",
+				"tag":        "v0.5.0",
 				"pullPolicy": defaultOsmImagePullPolicy,
 			},
 			"serviceCertValidityDuration": "24h",

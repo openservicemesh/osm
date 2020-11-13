@@ -3,6 +3,8 @@ package kube
 import (
 	"fmt"
 
+	"github.com/pkg/errors"
+
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -41,7 +43,7 @@ func (f fakeClient) ListEndpointsForService(svc service.MeshService) []endpoint.
 func (f fakeClient) GetServicesForServiceAccount(svcAccount service.K8sServiceAccount) ([]service.MeshService, error) {
 	services, ok := f.services[svcAccount]
 	if !ok {
-		panic(fmt.Sprintf("ServiceAccount %s is not in cache: %+v", svcAccount, f.services))
+		return nil, errors.Errorf("ServiceAccount %s is not in cache: %+v", svcAccount, f.services)
 	}
 	return services, nil
 }

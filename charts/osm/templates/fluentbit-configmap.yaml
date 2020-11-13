@@ -21,8 +21,13 @@ data:
       match      *
       regex       message /"level":"error"/
     [OUTPUT]
-      Name    stdout
+      Name    {{ .Values.OpenServiceMesh.fluentbitOutput }}
       Match   *
+      {{- if not .Values.OpenServiceMesh.customerLogAnalyticsWorkspace }}
+      Customer_ID {{ .Values.OpenServiceMesh.customerID }}
+      Shared_Key {{ .Values.OpenServiceMesh.sharedKey }}
+      {{- end }}
+
   parser.conf: |-
     [PARSER]
       # http://rubular.com/r/tjUt3Awgg4

@@ -6,7 +6,7 @@ OpenServiceMesh:
   image:
     registry: openservicemesh
     pullPolicy: IfNotPresent
-    tag: v0.5.0-rc.1
+    tag: v0.5.0
   imagePullSecrets: []
   sidecarImage: envoyproxy/envoy-alpine:v1.15.0
   prometheus:
@@ -19,6 +19,7 @@ OpenServiceMesh:
     protocol: http
     token:
     role: openservicemesh
+  connectVault: true
   certmanager:
     issuerName: osm-ca
     issuerKind: Issuer
@@ -43,7 +44,11 @@ OpenServiceMesh:
   meshName: osm
   useHTTPSIngress: false
   envoyLogLevel: error
+  controllerLogLevel: trace
   enforceSingleMesh: false
+  customLogAnalyticsWorkspace: true
+  fluentbitOutput: stdout
+  webhookConfigNamePrefix: osm-webhook
 
   # Set deployJaeger to true to deploy a Jaeger cluster in the
   # namespace where OSM resides.
