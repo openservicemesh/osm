@@ -18,20 +18,16 @@ func (mc *MeshCatalog) ExpectProxy(cn certificate.CommonName) {
 
 // RegisterProxy implements MeshCatalog and registers a newly connected proxy.
 func (mc *MeshCatalog) RegisterProxy(p *envoy.Proxy) {
-	mc.connectedProxiesLock.Lock()
-	mc.connectedProxies[p.CommonName] = connectedProxy{
+	mc.connectedProxies.Store(p.CommonName, connectedProxy{
 		proxy:       p,
 		connectedAt: time.Now(),
-	}
-	mc.connectedProxiesLock.Unlock()
+	})
 	log.Info().Msgf("Registered new proxy: CN=%v, ip=%v", p.GetCommonName(), p.GetIP())
 }
 
 // UnregisterProxy unregisters the given proxy from the catalog.
 func (mc *MeshCatalog) UnregisterProxy(p *envoy.Proxy) {
-	mc.connectedProxiesLock.Lock()
-	delete(mc.connectedProxies, p.CommonName)
-	mc.connectedProxiesLock.Unlock()
+	mc.connectedProxies.Delete(p.CommonName)
 
 	mc.disconnectedProxiesLock.Lock()
 	mc.disconnectedProxies[p.CommonName] = disconnectedProxy{

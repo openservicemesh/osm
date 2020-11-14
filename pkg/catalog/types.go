@@ -38,8 +38,7 @@ type MeshCatalog struct {
 	expectedProxies     map[certificate.CommonName]expectedProxy
 	expectedProxiesLock sync.Mutex
 
-	connectedProxies     map[certificate.CommonName]connectedProxy
-	connectedProxiesLock sync.Mutex
+	connectedProxies sync.Map
 
 	disconnectedProxies     map[certificate.CommonName]disconnectedProxy
 	disconnectedProxiesLock sync.Mutex

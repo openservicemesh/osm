@@ -16,10 +16,9 @@ import (
 func (mc *MeshCatalog) ListExpectedProxies() map[certificate.CommonName]time.Time {
 	proxies := make(map[certificate.CommonName]time.Time)
 	mc.expectedProxiesLock.Lock()
-	mc.connectedProxiesLock.Lock()
 	mc.disconnectedProxiesLock.Lock()
 	for cn, props := range mc.expectedProxies {
-		if _, ok := mc.connectedProxies[cn]; ok {
+		if _, ok := mc.connectedProxies.Load(cn); ok {
 			continue
 		}
 		if _, ok := mc.disconnectedProxies[cn]; ok {
@@ -28,7 +27,6 @@ func (mc *MeshCatalog) ListExpectedProxies() map[certificate.CommonName]time.Tim
 		proxies[cn] = props.certificateIssuedAt
 	}
 	mc.disconnectedProxiesLock.Unlock()
-	mc.connectedProxiesLock.Unlock()
 	mc.expectedProxiesLock.Unlock()
 	return proxies
 }
@@ -36,16 +34,16 @@ func (mc *MeshCatalog) ListExpectedProxies() map[certificate.CommonName]time.Tim
 // ListConnectedProxies lists the Envoy proxies already connected and the time they first connected.
 func (mc *MeshCatalog) ListConnectedProxies() map[certificate.CommonName]*envoy.Proxy {
 	proxies := make(map[certificate.CommonName]*envoy.Proxy)
-	mc.connectedProxiesLock.Lock()
 	mc.disconnectedProxiesLock.Lock()
-	for cn, props := range mc.connectedProxies {
-		if _, ok := mc.disconnectedProxies[cn]; ok {
-			continue
+	mc.connectedProxies.Range(func(cnIface, propsIface interface{}) bool {
+		cn := cnIface.(certificate.CommonName)
+		props := propsIface.(connectedProxy)
+		if _, isDisconnected := mc.disconnectedProxies[cn]; !isDisconnected {
+			proxies[cn] = props.proxy
 		}
-		proxies[cn] = props.proxy
-	}
+		return true
+	})
 	mc.disconnectedProxiesLock.Unlock()
-	mc.connectedProxiesLock.Unlock()
 	return proxies
 }
 
