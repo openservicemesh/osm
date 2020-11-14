@@ -458,10 +458,13 @@ func createControllerManagerForOSMResources(certManager certificate.Manager) err
 	}
 
 	log.Info().Msg("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		log.Error().Err(err).Msg("problem running manager")
-		return err
-	}
-	log.Info().Msg("Successfully running controller manager")
+	go func() {
+		// mgr.Start() below will block until stopped
+		// See: https://github.com/kubernetes-sigs/controller-runtime/blob/release-0.6/pkg/manager/internal.go#L507-L514
+		if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+			log.Error().Err(err).Msg("problem running manager")
+		}
+	}()
+
 	return nil
 }
