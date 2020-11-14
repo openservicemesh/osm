@@ -15,17 +15,19 @@ import (
 // ListExpectedProxies lists the Envoy proxies yet to connect and the time their XDS certificate was issued.
 func (mc *MeshCatalog) ListExpectedProxies() map[certificate.CommonName]time.Time {
 	proxies := make(map[certificate.CommonName]time.Time)
-	mc.expectedProxiesLock.Lock()
-	for cn, props := range mc.expectedProxies {
-		if _, isConnected := mc.connectedProxies.Load(cn); isConnected {
-			continue
+	mc.expectedProxies.Range(func(cnInterface, expectedProxyInterface interface{}) bool {
+		cn := cnInterface.(certificate.CommonName)
+		props := expectedProxyInterface.(expectedProxy)
+
+		_, isConnected := mc.connectedProxies.Load(cn)
+		_, isDisconnected := mc.disconnectedProxies.Load(cn)
+
+		if !isConnected && !isDisconnected {
+			proxies[cn] = props.certificateIssuedAt
 		}
-		if _, isDisconnected := mc.disconnectedProxies.Load(cn); isDisconnected {
-			continue
-		}
-		proxies[cn] = props.certificateIssuedAt
-	}
-	mc.expectedProxiesLock.Unlock()
+
+		return true
+	})
 	return proxies
 }
 

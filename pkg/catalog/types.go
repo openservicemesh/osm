@@ -35,11 +35,8 @@ type MeshCatalog struct {
 	ingressMonitor     ingress.Monitor
 	configurator       configurator.Configurator
 
-	expectedProxies     map[certificate.CommonName]expectedProxy
-	expectedProxiesLock sync.Mutex
-
-	connectedProxies sync.Map
-
+	expectedProxies     sync.Map
+	connectedProxies    sync.Map
 	disconnectedProxies sync.Map
 
 	// Current assumption is that OSM is working with a single Kubernetes cluster.
