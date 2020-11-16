@@ -73,8 +73,8 @@ var _ = Describe("Test Announcement Handlers", func() {
 				return true
 			})
 
-			Expect(connectedProxies).To(Equal(1))
-			Expect(connectedProxies[0]).To(Equal(proxy))
+			Expect(len(connectedProxies)).To(Equal(1))
+			Expect(connectedProxies[0]).To(Equal(*proxy))
 
 			err := mc.releaseCertificate(ann)
 			Expect(err).To(HaveOccurred())
@@ -94,8 +94,8 @@ var _ = Describe("Test Announcement Handlers", func() {
 				return true
 			})
 
-			Expect(connectedProxies).To(Equal(1))
-			Expect(connectedProxies[0]).To(Equal(proxy))
+			Expect(len(connectedProxies)).To(Equal(1))
+			Expect(connectedProxies[0]).To(Equal(*proxy))
 
 			err := mc.updateRelatedProxies(ann)
 			Expect(err).To(HaveOccurred())
