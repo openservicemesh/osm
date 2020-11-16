@@ -11,6 +11,8 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
+
+	"github.com/openservicemesh/osm/pkg/announcements"
 )
 
 const (
@@ -25,6 +27,10 @@ var _ = Describe("Test OSM ConfigMap parsing", func() {
 
 	stop := make(<-chan struct{})
 	cfg := newConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
+	confChannel := cfg.Subscribe(
+		announcements.ConfigMapAdded,
+		announcements.ConfigMapDeleted,
+		announcements.ConfigMapUpdated)
 
 	configMap := v1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -35,7 +41,7 @@ var _ = Describe("Test OSM ConfigMap parsing", func() {
 	if _, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Create(context.TODO(), &configMap, metav1.CreateOptions{}); err != nil {
 		GinkgoT().Fatalf("[TEST] Error creating ConfigMap %s/%s/: %s", configMap.Namespace, configMap.Name, err.Error())
 	}
-	<-cfg.GetAnnouncementsChannel()
+	<-confChannel
 
 	Context("Ensure we are able to get reasonable defaults from ConfigMap", func() {
 
