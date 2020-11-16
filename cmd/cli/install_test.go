@@ -867,7 +867,7 @@ var _ = Describe("Resolving values for overriding set options command with vault
 	It("should resolve correctly", func() {
 		Expect(vals).To(BeEquivalentTo(map[string]interface{}{
 			"OpenServiceMesh": map[string]interface{}{
-				"certificateManager": "overridingVaultName",
+				"certificateManager": "vault",
 				"certmanager": map[string]interface{}{
 					"issuerKind":  "ClusterIssuer",
 					"issuerGroup": "example.co.uk",
@@ -952,7 +952,7 @@ var _ = Describe("Resolving values for install command with --set options cert-m
 			"key1": "val1",
 			"key2": "val2",
 			"OpenServiceMesh": map[string]interface{}{
-				"certificateManager": "overridingCertManager",
+				"certificateManager": "cert-manager",
 				"certmanager": map[string]interface{}{
 					"issuerKind":  "ClusterIssuer",
 					"issuerGroup": "example.co.uk",

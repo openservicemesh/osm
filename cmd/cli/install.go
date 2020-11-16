@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -150,12 +149,15 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.BoolVar(&inst.enableMetricsStack, "enable-metrics-stack", true, "Enable metrics (Prometheus and Grafana) deployment")
 	f.StringVar(&inst.meshName, "mesh-name", defaultMeshName, "name for the new control plane instance")
 	f.BoolVar(&inst.deployJaeger, "deploy-jaeger", true, "Deploy Jaeger in the namespace of the OSM controller")
-	f.StringArrayVar(&inst.setOptions, "set", []string{}, "set values on the command line (can specify multiple or separate values with commas: key1=val1,key2=val2)")
+	f.StringArrayVar(&inst.setOptions, "set", nil, "set arbitrary chart values values not settable by another flag (can specify multiple or separate values with commas: key1=val1,key2=val2)")
 
 	return cmd
 }
 
 func (i *installCmd) run(config *helm.Configuration) error {
+	if err := i.validateOptions(); err != nil {
+		return err
+	}
 
 	// values represents the overrides for the OSM chart's values.yaml file
 	values, err := i.resolveValues()
@@ -190,16 +192,15 @@ func (i *installCmd) loadOSMChart() error {
 }
 
 func (i *installCmd) resolveValues() (map[string]interface{}, error) {
-	parsedArgs, err := i.parseSetOptions()
-	if err != nil {
-		return nil, err
-	}
-
-	if err := i.validateOptions(); err != nil {
-		return nil, err
-	}
-
 	finalValues := map[string]interface{}{}
+
+	for _, val := range i.setOptions {
+		// parses Helm strvals line and merges into a map for the final overrides for values.yaml
+		if err := strvals.ParseInto(val, finalValues); err != nil {
+			return nil, err
+		}
+	}
+
 	valuesConfig := []string{
 		fmt.Sprintf("OpenServiceMesh.image.registry=%s", i.containerRegistry),
 		fmt.Sprintf("OpenServiceMesh.image.tag=%s", i.osmImageTag),
@@ -235,111 +236,7 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 		}
 	}
 
-	for _, val := range parsedArgs {
-		// parses Helm strvals line and merges into a map for the final overrides for values.yaml
-		if err := strvals.ParseInto(val, finalValues); err != nil {
-			return nil, err
-		}
-	}
-
 	return finalValues, nil
-}
-
-func (i *installCmd) parseSetOptions() ([]string, error) {
-	newArgsAlone := []string{}
-	// override individual arguments with set overrides
-	for _, option := range i.setOptions {
-		s := strings.Split(option, "=")
-		if len(s) < 2 {
-			return nil, errors.Errorf("Invalid set argument: %s", option)
-		}
-		key := s[0]
-		val := s[1]
-		additionalArg, err := i.overrideLegacyArgs(key, val, option)
-		if err != nil {
-			return nil, err
-		}
-		newArgsAlone = append(newArgsAlone, additionalArg)
-	}
-	return newArgsAlone, nil
-}
-
-func (i *installCmd) overrideLegacyArgs(key string, val string, option string) (string, error) {
-	switch key {
-	case "OpenServiceMesh.image.registry":
-		i.containerRegistry = val
-	case "OpenServiceMesh.image.tag":
-		i.osmImageTag = val
-	case "OpenServiceMesh.image.pullPolicy":
-		i.osmImagePullPolicy = val
-	case "OpenServiceMesh.certificateManager":
-		i.certificateManager = val
-	case "OpenServiceMesh.vault.host":
-		i.vaultHost = val
-	case "OpenServiceMesh.vault.protocol":
-		i.vaultProtocol = val
-	case "OpenServiceMesh.vault.token":
-		i.vaultToken = val
-	case "OpenServiceMesh.vault.role":
-		i.vaultRole = val
-	case "OpenServiceMesh.certmanager.issuerName":
-		i.certmanagerIssuerName = val
-	case "OpenServiceMesh.certmanager.issuerKind":
-		i.certmanagerIssuerKind = val
-	case "OpenServiceMesh.certmanager.issuerGroup":
-		i.certmanagerIssuerGroup = val
-	case "OpenServiceMesh.serviceCertValidityMinutes":
-		serviceCertValidityMinutes, err := strconv.Atoi(val)
-		if err != nil {
-			return "", errors.Errorf("Invalid set argument: %s", option)
-		}
-		i.serviceCertValidityMinutes = serviceCertValidityMinutes
-	case "OpenServiceMesh.prometheus.retention.time":
-		i.prometheusRetentionTime = val
-	case "OpenServiceMesh.enableDebugServer":
-		enableDebugServer, err := strconv.ParseBool(val)
-		if err != nil {
-			return "", errors.Errorf("Invalid set argument: %s", option)
-		}
-		i.enableDebugServer = enableDebugServer
-	case "OpenServiceMesh.enablePermissiveTrafficPolicy":
-		enablePermissiveTrafficPolicy, err := strconv.ParseBool(val)
-		if err != nil {
-			return "", errors.Errorf("Invalid set argument: %s", option)
-		}
-		i.enablePermissiveTrafficPolicy = enablePermissiveTrafficPolicy
-	case "OpenServiceMesh.enableBackpressureExperimental":
-		enableBackpressureExperimental, err := strconv.ParseBool(val)
-		if err != nil {
-			return "", errors.Errorf("Invalid set argument: %s", option)
-		}
-		i.enableBackpressureExperimental = enableBackpressureExperimental
-	case "OpenServiceMesh.enableMetricsStack":
-		enableMetricsStack, err := strconv.ParseBool(val)
-		if err != nil {
-			return "", errors.Errorf("Invalid set argument: %s", option)
-		}
-		i.enableMetricsStack = enableMetricsStack
-	case "OpenServiceMesh.meshName":
-		i.meshName = val
-	case "OpenServiceMesh.enableEgress":
-		enableEgress, err := strconv.ParseBool(val)
-		if err != nil {
-			return "", errors.Errorf("Invalid set argument: %s", option)
-		}
-		i.enableEgress = enableEgress
-	case "OpenServiceMesh.meshCIDRRanges":
-		i.meshCIDRRanges = strings.Split(val, " ")
-	case "OpenServiceMesh.deployJaeger":
-		deployJaeger, err := strconv.ParseBool(val)
-		if err != nil {
-			return "", errors.Errorf("Invalid set argument: %s", option)
-		}
-		i.deployJaeger = deployJaeger
-	default:
-		return option, nil
-	}
-	return "", nil
 }
 
 func (i *installCmd) validateOptions() error {
