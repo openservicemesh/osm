@@ -29,11 +29,9 @@ func (mc *MeshCatalog) RegisterProxy(p *envoy.Proxy) {
 func (mc *MeshCatalog) UnregisterProxy(p *envoy.Proxy) {
 	mc.connectedProxies.Delete(p.CommonName)
 
-	mc.disconnectedProxiesLock.Lock()
-	mc.disconnectedProxies[p.CommonName] = disconnectedProxy{
+	mc.disconnectedProxies.Store(p.CommonName, disconnectedProxy{
 		lastSeen: time.Now(),
-	}
-	mc.disconnectedProxiesLock.Unlock()
+	})
 
 	log.Info().Msgf("Unregistered proxy: CN=%v, ip=%v", p.GetCommonName(), p.GetIP())
 }

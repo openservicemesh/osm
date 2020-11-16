@@ -16,17 +16,15 @@ import (
 func (mc *MeshCatalog) ListExpectedProxies() map[certificate.CommonName]time.Time {
 	proxies := make(map[certificate.CommonName]time.Time)
 	mc.expectedProxiesLock.Lock()
-	mc.disconnectedProxiesLock.Lock()
 	for cn, props := range mc.expectedProxies {
-		if _, ok := mc.connectedProxies.Load(cn); ok {
+		if _, isConnected := mc.connectedProxies.Load(cn); isConnected {
 			continue
 		}
-		if _, ok := mc.disconnectedProxies[cn]; ok {
+		if _, isDisconnected := mc.disconnectedProxies.Load(cn); isDisconnected {
 			continue
 		}
 		proxies[cn] = props.certificateIssuedAt
 	}
-	mc.disconnectedProxiesLock.Unlock()
 	mc.expectedProxiesLock.Unlock()
 	return proxies
 }
@@ -34,27 +32,26 @@ func (mc *MeshCatalog) ListExpectedProxies() map[certificate.CommonName]time.Tim
 // ListConnectedProxies lists the Envoy proxies already connected and the time they first connected.
 func (mc *MeshCatalog) ListConnectedProxies() map[certificate.CommonName]*envoy.Proxy {
 	proxies := make(map[certificate.CommonName]*envoy.Proxy)
-	mc.disconnectedProxiesLock.Lock()
 	mc.connectedProxies.Range(func(cnIface, propsIface interface{}) bool {
 		cn := cnIface.(certificate.CommonName)
 		props := propsIface.(connectedProxy)
-		if _, isDisconnected := mc.disconnectedProxies[cn]; !isDisconnected {
+		if _, isDisconnected := mc.disconnectedProxies.Load(cn); !isDisconnected {
 			proxies[cn] = props.proxy
 		}
 		return true
 	})
-	mc.disconnectedProxiesLock.Unlock()
 	return proxies
 }
 
 // ListDisconnectedProxies lists the Envoy proxies disconnected and the time last seen.
 func (mc *MeshCatalog) ListDisconnectedProxies() map[certificate.CommonName]time.Time {
 	proxies := make(map[certificate.CommonName]time.Time)
-	mc.disconnectedProxiesLock.Lock()
-	for cn, props := range mc.disconnectedProxies {
+	mc.disconnectedProxies.Range(func(cnInterface, disconnectedProxyInterface interface{}) bool {
+		cn := cnInterface.(certificate.CommonName)
+		props := disconnectedProxyInterface.(disconnectedProxy)
 		proxies[cn] = props.lastSeen
-	}
-	mc.disconnectedProxiesLock.Unlock()
+		return true
+	})
 	return proxies
 }
 
