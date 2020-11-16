@@ -555,9 +555,9 @@ var _ = Describe("deployPrometheus is true", func() {
 		err = installCmd.run(config)
 	})
 
-	It("should error", func() {
-		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(Equal("Prometheus scraping cannot be disabled when deploying Prometheus."))
+	It("should not error", func() {
+		Expect(err).NotTo(HaveOccurred())
+		Expect(out.String()).To(Equal("Prometheus scraping is disabled. To enable it, set prometheus_scraping in osm-system/osm-config to true.\nOSM installed successfully in namespace [osm-system] with mesh name [osm]\n"))
 	})
 })
 

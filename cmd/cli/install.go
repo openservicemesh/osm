@@ -352,13 +352,13 @@ func (i *installCmd) validateOptions() error {
 	// Enforce single mesh cluster if needed
 	if i.enforceSingleMesh {
 		if len(list.Items) != 0 {
-			return errors.Errorf("Meshes already exist in cluster. Cannot enforce single mesh cluster. ")
+			return errors.Errorf("Meshes already exist in cluster. Cannot enforce single mesh cluster.")
 		}
 	}
 
 	if i.deployPrometheus {
 		if !i.enablePrometheusScraping {
-			return errors.Errorf("Prometheus scraping cannot be disabled when deploying Prometheus.")
+			fmt.Fprintf(i.out, "Prometheus scraping is disabled. To enable it, set prometheus_scraping in %s/%s to true.\n", settings.Namespace(), constants.OSMConfigMap)
 		}
 	}
 
