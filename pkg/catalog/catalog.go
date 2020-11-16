@@ -24,8 +24,6 @@ func NewMeshCatalog(kubeController k8s.Controller, kubeClient kubernetes.Interfa
 		ingressMonitor:     ingressMonitor,
 		configurator:       cfg,
 
-		expectedProxies: make(map[certificate.CommonName]expectedProxy),
-
 		// Kubernetes needed to determine what Services a pod that connects to XDS belongs to.
 		// In multicluster scenarios this would be a map of cluster ID to Kubernetes client.
 		// The certificate itself would contain the cluster ID making it easy to lookup the client in this map.

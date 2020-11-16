@@ -9,11 +9,9 @@ import (
 
 // ExpectProxy catalogs the fact that a certificate was issued for an Envoy proxy and this is expected to connect to XDS.
 func (mc *MeshCatalog) ExpectProxy(cn certificate.CommonName) {
-	mc.expectedProxiesLock.Lock()
-	mc.expectedProxies[cn] = expectedProxy{
+	mc.expectedProxies.Store(cn, expectedProxy{
 		certificateIssuedAt: time.Now(),
-	}
-	mc.expectedProxiesLock.Unlock()
+	})
 }
 
 // RegisterProxy implements MeshCatalog and registers a newly connected proxy.
