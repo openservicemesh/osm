@@ -8,7 +8,6 @@ import (
 	"os"
 	"path"
 	"strings"
-	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
@@ -91,12 +90,6 @@ var (
 	certmanagerIssuerKind  = flags.String("cert-manager-issuer-kind", "Issuer", "cert-manager issuer kind")
 	certmanagerIssuerGroup = flags.String("cert-manager-issuer-group", "cert-manager.io", "cert-manager issuer group")
 )
-
-type controller struct {
-	debugServerRunning bool
-	debugComponents    debugger.DebugConfig
-	debugServer        httpserver.DebugServerInterface
-}
 
 func init() {
 	flags.StringVarP(&verbosity, "verbosity", "v", "info", "Set log verbosity level")
@@ -258,54 +251,11 @@ func main() {
 
 	// Expose /debug endpoints and data only if the enableDebugServer flag is enabled
 	debugConfig := debugger.NewDebugConfig(certDebugger, xdsServer, meshCatalog, kubeConfig, kubeClient, cfg, kubernetesClient)
-	c := controller{
-		debugServerRunning: !cfg.IsDebugServerEnabled(),
-		debugComponents:    debugConfig,
-		debugServer:        httpserver.NewDebugHTTPServer(debugConfig, constants.DebugPort),
-	}
+	debugServerInterface := httpserver.NewDebugHTTPServer(debugConfig, constants.DebugPort)
+	httpserver.RegisterDebugServer(debugServerInterface, cfg)
 
-	errs := make(chan error)
-	go c.configureDebugServer(cfg, errs)
-
-	done := false
-	for !done {
-		select {
-		case <-stop:
-			done = true
-		case err := <-errs:
-			if err != nil {
-				log.Error().Err(err)
-			}
-		}
-	}
-
+	<-stop
 	log.Info().Msg("Goodbye!")
-}
-
-func (c *controller) configureDebugServer(cfg configurator.Configurator, errs chan<- error) {
-	//GetAnnouncementsChannel will check ConfigMap every 3 * time.Second
-	var mutex = &sync.Mutex{}
-	for range cfg.GetAnnouncementsChannel() {
-		if c.debugServerRunning && !cfg.IsDebugServerEnabled() {
-			mutex.Lock()
-			err := c.debugServer.Stop()
-			if err == nil {
-				c.debugServer = nil
-			}
-			c.debugServerRunning = false
-			errs <- errors.Wrap(err, "unable to stop debug server")
-			mutex.Unlock()
-		} else if !c.debugServerRunning && cfg.IsDebugServerEnabled() {
-			mutex.Lock()
-			if c.debugServer == nil {
-				c.debugServer = httpserver.NewDebugHTTPServer(c.debugComponents, constants.DebugPort)
-			}
-			c.debugServer.Start()
-			c.debugServerRunning = true
-			errs <- nil
-			mutex.Unlock()
-		}
-	}
 }
 
 func getHTTPHealthProbes() []health.HTTPProbe {
@@ -458,10 +408,13 @@ func createControllerManagerForOSMResources(certManager certificate.Manager) err
 	}
 
 	log.Info().Msg("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-		log.Error().Err(err).Msg("problem running manager")
-		return err
-	}
-	log.Info().Msg("Successfully running controller manager")
+	go func() {
+		// mgr.Start() below will block until stopped
+		// See: https://github.com/kubernetes-sigs/controller-runtime/blob/release-0.6/pkg/manager/internal.go#L507-L514
+		if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+			log.Error().Err(err).Msg("problem running manager")
+		}
+	}()
+
 	return nil
 }

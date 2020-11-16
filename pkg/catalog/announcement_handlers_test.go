@@ -66,8 +66,15 @@ var _ = Describe("Test Announcement Handlers", func() {
 				Type: announcements.IngressAdded,
 			}
 
-			Expect(len(mc.connectedProxies)).To(Equal(1))
-			Expect(mc.connectedProxies[envoyCN].proxy).To(Equal(proxy))
+			var connectedProxies []envoy.Proxy
+			mc.connectedProxies.Range(func(key interface{}, value interface{}) bool {
+				connectedProxy := value.(connectedProxy)
+				connectedProxies = append(connectedProxies, *connectedProxy.proxy)
+				return true
+			})
+
+			Expect(connectedProxies).To(Equal(1))
+			Expect(connectedProxies[0]).To(Equal(proxy))
 
 			err := mc.releaseCertificate(ann)
 			Expect(err).To(HaveOccurred())
@@ -80,8 +87,15 @@ var _ = Describe("Test Announcement Handlers", func() {
 				Type: announcements.IngressAdded,
 			}
 
-			Expect(len(mc.connectedProxies)).To(Equal(1))
-			Expect(mc.connectedProxies[envoyCN].proxy).To(Equal(proxy))
+			var connectedProxies []envoy.Proxy
+			mc.connectedProxies.Range(func(key interface{}, value interface{}) bool {
+				connectedProxy := value.(connectedProxy)
+				connectedProxies = append(connectedProxies, *connectedProxy.proxy)
+				return true
+			})
+
+			Expect(connectedProxies).To(Equal(1))
+			Expect(connectedProxies[0]).To(Equal(proxy))
 
 			err := mc.updateRelatedProxies(ann)
 			Expect(err).To(HaveOccurred())

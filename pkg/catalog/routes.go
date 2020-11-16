@@ -261,7 +261,7 @@ func getTrafficPoliciesForService(mc *MeshCatalog, routePolicies map[trafficpoli
 
 	for _, trafficTargets := range mc.meshSpec.ListTrafficTargets() {
 		log.Debug().Msgf("Discovered TrafficTarget resource: %s/%s", trafficTargets.Namespace, trafficTargets.Name)
-		if trafficTargets.Spec.Rules == nil || len(trafficTargets.Spec.Rules) == 0 {
+		if !isValidTrafficTarget(trafficTargets) {
 			log.Error().Msgf("TrafficTarget %s/%s has no spec routes; Skipping...", trafficTargets.Namespace, trafficTargets.Name)
 			continue
 		}
@@ -507,4 +507,11 @@ func (mc *MeshCatalog) buildTrafficPolicies(sourceServices, destServices []servi
 		}
 	}
 	return policies
+}
+
+func isValidTrafficTarget(t *target.TrafficTarget) bool {
+	if t.Spec.Rules == nil || len(t.Spec.Rules) == 0 {
+		return false
+	}
+	return true
 }

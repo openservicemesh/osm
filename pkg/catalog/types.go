@@ -38,11 +38,9 @@ type MeshCatalog struct {
 	expectedProxies     map[certificate.CommonName]expectedProxy
 	expectedProxiesLock sync.Mutex
 
-	connectedProxies     map[certificate.CommonName]connectedProxy
-	connectedProxiesLock sync.Mutex
+	connectedProxies sync.Map
 
-	disconnectedProxies     map[certificate.CommonName]disconnectedProxy
-	disconnectedProxiesLock sync.Mutex
+	disconnectedProxies sync.Map
 
 	// Current assumption is that OSM is working with a single Kubernetes cluster.
 	// This is the API/REST interface to the cluster

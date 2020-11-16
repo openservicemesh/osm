@@ -104,11 +104,6 @@ func (c *Client) GetEnvoyLogLevel() string {
 	return constants.DefaultEnvoyLogLevel
 }
 
-// GetAnnouncementsChannel returns a channel, which is used to announce when changes have been made to the OSM ConfigMap.
-func (c *Client) GetAnnouncementsChannel() <-chan announcements.Announcement {
-	return c.announcements
-}
-
 // GetServiceCertValidityPeriod returns the validity duration for service certificates, and a default in case of invalid duration
 func (c *Client) GetServiceCertValidityPeriod() time.Duration {
 	durationStr := c.getConfigMap().ServiceCertValidityDuration
@@ -119,4 +114,15 @@ func (c *Client) GetServiceCertValidityPeriod() time.Duration {
 	}
 
 	return validityDuration
+}
+
+// Subscribe returns a channel subscribed to the announcement types passed by the given parameter
+func (c *Client) Subscribe(aTypes ...announcements.AnnouncementType) chan interface{} {
+	// Cast of array of T types, even when T types are equivalent, is forbidden
+	subTypes := []string{}
+	for _, v := range aTypes {
+		subTypes = append(subTypes, string(v))
+	}
+
+	return c.pSub.Sub(subTypes...)
 }

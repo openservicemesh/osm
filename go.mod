@@ -10,6 +10,7 @@ require (
 	github.com/Azure/go-autorest/autorest/to v0.3.0
 	github.com/axw/gocov v1.0.0
 	github.com/cncf/udpa/go v0.0.0-20200629203442-efcf912fb354 // indirect
+	github.com/cskr/pubsub v1.0.2
 	github.com/deckarep/golang-set v1.7.1
 	github.com/docker/docker v1.4.2-0.20200203170920-46ec8731fbce
 	github.com/envoyproxy/go-control-plane v0.9.6
@@ -25,6 +26,7 @@ require (
 	github.com/jstemmer/go-junit-report v0.0.0-20190106144839-af01ea7f8024
 	github.com/matm/gocov-html v0.0.0-20200509184451-71874e2e203b
 	github.com/mitchellh/gox v1.0.1
+	github.com/norwoodj/helm-docs v1.4.0
 	github.com/nxadm/tail v1.4.5 // indirect
 	github.com/onsi/ginkgo v1.14.1
 	github.com/onsi/gomega v1.10.2
@@ -36,7 +38,6 @@ require (
 	github.com/spf13/cobra v1.1.1
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.6.1
-	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
 	golang.org/x/sys v0.0.0-20201112073958-5cba982894dd // indirect
 	golang.org/x/tools v0.0.0-20201021214918-23787c007979 // indirect
 	google.golang.org/grpc v1.27.0

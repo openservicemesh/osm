@@ -20,12 +20,10 @@ func (mc *MeshCatalog) ExpectProxy(cn certificate.CommonName) {
 
 // RegisterProxy implements MeshCatalog and registers a newly connected proxy.
 func (mc *MeshCatalog) RegisterProxy(proxy *envoy.Proxy) {
-	mc.connectedProxiesLock.Lock()
-	mc.connectedProxies[proxy.CommonName] = connectedProxy{
+	mc.connectedProxies.Store(proxy.CommonName, connectedProxy{
 		proxy:       proxy,
 		connectedAt: time.Now(),
-	}
-	mc.connectedProxiesLock.Unlock()
+	})
 
 	// If this proxy object is on a Kubernetes Pod - it will have an UID
 	if proxy.HasPodMetadata() {
@@ -37,15 +35,11 @@ func (mc *MeshCatalog) RegisterProxy(proxy *envoy.Proxy) {
 
 // UnregisterProxy unregisters the given proxy from the catalog.
 func (mc *MeshCatalog) UnregisterProxy(p *envoy.Proxy) {
-	mc.connectedProxiesLock.Lock()
-	delete(mc.connectedProxies, p.CommonName)
-	mc.connectedProxiesLock.Unlock()
+	mc.connectedProxies.Delete(p.CommonName)
 
-	mc.disconnectedProxiesLock.Lock()
-	mc.disconnectedProxies[p.CommonName] = disconnectedProxy{
+	mc.disconnectedProxies.Store(p.CommonName, disconnectedProxy{
 		lastSeen: time.Now(),
-	}
-	mc.disconnectedProxiesLock.Unlock()
+	})
 
 	log.Info().Msgf("Unregistered proxy: CN=%v, ip=%v", p.GetCommonName(), p.GetIP())
 }

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/openservicemesh/osm/pkg/announcements"
+	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/debugger"
 	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 )
@@ -18,6 +20,44 @@ type DebugServer struct {
 type DebugServerInterface interface {
 	Stop() error
 	Start()
+}
+
+// RegisterDebugServer registers a go routine to listen to configuration and configure debug server as needed
+func RegisterDebugServer(dbgServerInterface DebugServerInterface, cfg configurator.Configurator) {
+	// Subscribe to configuration updates
+	ch := cfg.Subscribe(
+		announcements.ConfigMapAdded,
+		announcements.ConfigMapDeleted,
+		announcements.ConfigMapUpdated)
+
+	// Run config listener
+	go func(cfgSubChannel chan interface{}, cf configurator.Configurator, dbgIf DebugServerInterface) {
+		// Bootstrap after subscribing
+		dbgSrvRunning := false
+		if cfg.IsDebugServerEnabled() {
+			dbgIf.Start()
+			dbgSrvRunning = true
+		}
+
+		for {
+			<-cfgSubChannel
+			isDbgSrvEnabled := cfg.IsDebugServerEnabled()
+
+			if isDbgSrvEnabled && !dbgSrvRunning {
+				log.Debug().Msgf("Starting DBG server")
+				dbgIf.Start()
+				dbgSrvRunning = true
+			} else if !isDbgSrvEnabled && dbgSrvRunning {
+				log.Debug().Msgf("Stopping DBG server")
+				err := dbgIf.Stop()
+				if err != nil {
+					log.Error().Msgf("Error stopping debug server: %v", err)
+					continue
+				}
+				dbgSrvRunning = false
+			}
+		}
+	}(ch, cfg, dbgServerInterface)
 }
 
 // NewDebugHTTPServer creates a new API Server for Debug
@@ -41,7 +81,7 @@ func (d *DebugServer) Start() {
 	}()
 }
 
-//Stop halts the DebugServer http.server
+// Stop halts the DebugServer http.server
 func (d *DebugServer) Stop() error {
 	ctx, cancel := context.WithTimeout(context.Background(), contextTimeoutDuration)
 	defer cancel()
