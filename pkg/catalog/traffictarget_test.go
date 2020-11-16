@@ -6,6 +6,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
+	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -412,4 +413,34 @@ func TestTrafficTargetIdentityToSvcAccount(t *testing.T) {
 			assert.Equal(svcAccount, tc.expectedServiceAccount)
 		})
 	}
+}
+
+func TestTrafficTargetIdentitiesToSvcAccounts(t *testing.T) {
+	assert := assert.New(t)
+	input := []target.IdentityBindingSubject{
+		{
+			Kind:      "ServiceAccount",
+			Name:      "example1",
+			Namespace: "default1",
+		},
+		{
+			Kind:      "Name",
+			Name:      "example2",
+			Namespace: "default2",
+		},
+	}
+
+	expected := []service.K8sServiceAccount{
+		{
+			Name:      "example1",
+			Namespace: "default1",
+		},
+		{
+			Name:      "example2",
+			Namespace: "default2",
+		},
+	}
+
+	actual := trafficTargetIdentitiesToSvcAccounts(input)
+	assert.ElementsMatch(expected, actual)
 }
