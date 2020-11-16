@@ -84,3 +84,20 @@ func trafficTargetIdentityToSvcAccount(identity smiAccess.IdentityBindingSubject
 		Namespace: identity.Namespace,
 	}
 }
+
+// trafficTargetIdentitiesToSvcAccounts returns a list of Service Accounts from the given list of identities from a Traffic Target
+func trafficTargetIdentitiesToSvcAccounts(identities []smiAccess.IdentityBindingSubject) []service.K8sServiceAccount {
+	serviceAccountsMap := map[service.K8sServiceAccount]bool{}
+
+	for _, id := range identities {
+		sa := trafficTargetIdentityToSvcAccount(id)
+		serviceAccountsMap[sa] = true
+	}
+
+	serviceAccounts := []service.K8sServiceAccount{}
+	for k := range serviceAccountsMap {
+		serviceAccounts = append(serviceAccounts, k)
+	}
+
+	return serviceAccounts
+}
