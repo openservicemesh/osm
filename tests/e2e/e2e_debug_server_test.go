@@ -17,7 +17,7 @@ var _ = OSMDescribe("Test Debug Server by toggling enableDebugServer",
 		Context("DebugServer", func() {
 			const sourceNs = "client"
 
-			It("Turns on debug server when enabled", func() {
+			It("Starts debug server only when enableDebugServer flag is enabled", func() {
 				// Install OSM
 				installOpts := td.GetOSMInstallOpts()
 				installOpts.enableDebugServer = false
