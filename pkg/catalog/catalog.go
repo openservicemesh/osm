@@ -25,7 +25,6 @@ func NewMeshCatalog(kubeController k8s.Controller, kubeClient kubernetes.Interfa
 		configurator:       cfg,
 
 		expectedProxies:     make(map[certificate.CommonName]expectedProxy),
-		connectedProxies:    make(map[certificate.CommonName]connectedProxy),
 		disconnectedProxies: make(map[certificate.CommonName]disconnectedProxy),
 
 		// Kubernetes needed to determine what Services a pod that connects to XDS belongs to.

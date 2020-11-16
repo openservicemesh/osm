@@ -57,14 +57,14 @@ func (mc *MeshCatalog) getCases() ([]reflect.SelectCase, []string) {
 }
 
 func (mc *MeshCatalog) broadcastToAllProxies(message announcements.Announcement) {
-	mc.connectedProxiesLock.Lock()
-	for _, connectedEnvoy := range mc.connectedProxies {
+	mc.connectedProxies.Range(func(_, connectedEnvoyInterface interface{}) bool {
+		connectedEnvoy := connectedEnvoyInterface.(connectedProxy)
 		log.Debug().Msgf("[repeater] Broadcast announcement to Envoy with CN %s", connectedEnvoy.proxy.GetCommonName())
 		select {
 		// send the message if possible - do not block
 		case connectedEnvoy.proxy.GetAnnouncementsChannel() <- message:
 		default:
 		}
-	}
-	mc.connectedProxiesLock.Unlock()
+		return true
+	})
 }
