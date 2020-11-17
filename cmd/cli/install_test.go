@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -527,9 +528,10 @@ var _ = Describe("Test envoy log level types", func() {
 
 func TestResolveValues(t *testing.T) {
 	tests := []struct {
-		name       string
-		installCmd installCmd
-		expected   map[string]interface{}
+		name        string
+		installCmd  installCmd
+		expected    map[string]interface{}
+		expectedErr error
 	}{
 		{
 			name: "default",
@@ -583,13 +585,26 @@ func TestResolveValues(t *testing.T) {
 			}(),
 			expected: getDefaultValues(),
 		},
+		{
+			name: "invalid --set format",
+			installCmd: func() installCmd {
+				installCmd := getDefaultInstallCmd(ioutil.Discard)
+				installCmd.setOptions = []string{"can't set this"}
+				return installCmd
+			}(),
+			expectedErr: errors.New("invalid format for --set: key \"can't set this\" has no value"),
+		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			assert := assert.New(t)
 			actual, err := test.installCmd.resolveValues()
-			assert.Nil(err)
+			if err != nil && test.expectedErr != nil {
+				assert.Equal(err.Error(), test.expectedErr.Error())
+			} else {
+				assert.Equal(err, test.expectedErr)
+			}
 			assert.Equal(actual, test.expected)
 		})
 	}

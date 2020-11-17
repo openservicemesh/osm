@@ -235,7 +235,7 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 	for _, val := range i.setOptions {
 		// parses Helm strvals line and merges into a map for the final overrides for values.yaml
 		if err := strvals.ParseInto(val, finalValues); err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "invalid format for --set")
 		}
 	}
 
