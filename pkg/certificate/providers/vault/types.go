@@ -26,7 +26,19 @@ type CertManager struct {
 	client *api.Client
 
 	// The Vault role configured for OSM and passed as a CLI.
-	vaultRole string
+	role vaultRole
 
 	cfg configurator.Configurator
+}
+
+type vaultRole string
+
+func (vr vaultRole) String() string {
+	return string(vr)
+}
+
+type vaultPath string
+
+func (vp vaultPath) String() string {
+	return string(vp)
 }
