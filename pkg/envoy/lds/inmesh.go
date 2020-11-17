@@ -42,14 +42,17 @@ func getInboundInMeshFilterChain(proxyServiceName service.MeshService, cfg confi
 			},
 		},
 
-		// Apply this filter chain only to requests where the auth.UpstreamTlsContext.Sni matches
-		// one from the list of ServerNames provided below.
-		// This field is configured by the GetDownstreamTLSContext() function.
-		// This is not a field obtained from the mTLS Certificate.
+		// The 'FilterChainMatch' field defines the criteria for matching traffic against filters in this filter chain
 		FilterChainMatch: &xds_listener.FilterChainMatch{
-			ServerNames:          []string{proxyServiceName.ServerName()},
-			TransportProtocol:    envoy.TransportProtocolTLS,
-			ApplicationProtocols: envoy.ALPNInMesh, // in-mesh proxies will advertise this, set in UpstreamTlsContext
+			// The ServerName is the SNI set by the downstream in the UptreamTlsContext by GetUpstreamTLSContext()
+			// This is not a field obtained from the mTLS Certificate.
+			ServerNames: []string{proxyServiceName.ServerName()},
+
+			// Only match when transport protocol is TLS
+			TransportProtocol: envoy.TransportProtocolTLS,
+
+			// In-mesh proxies will advertise this, set in the UpstreamTlsContext by GetUpstreamTLSContext()
+			ApplicationProtocols: envoy.ALPNInMesh,
 		},
 
 		TransportSocket: &xds_core.TransportSocket{
