@@ -541,7 +541,6 @@ func TestResolveValues(t *testing.T) {
 				installCmd.vaultHost = testVaultHost
 				installCmd.vaultToken = testVaultToken
 				return installCmd
-
 			}(),
 			expected: func() map[string]interface{} {
 				expectedValues := getDefaultValues()
@@ -566,7 +565,6 @@ func TestResolveValues(t *testing.T) {
 				installCmd := getDefaultInstallCmd(ioutil.Discard)
 				installCmd.setOptions = []string{"new=from set", "key1=val1,key2=val2"}
 				return installCmd
-
 			}(),
 			expected: func() map[string]interface{} {
 				vals := getDefaultValues()
@@ -582,7 +580,6 @@ func TestResolveValues(t *testing.T) {
 				installCmd := getDefaultInstallCmd(ioutil.Discard)
 				installCmd.setOptions = []string{"OpenServiceMesh.meshName=set"}
 				return installCmd
-
 			}(),
 			expected: getDefaultValues(),
 		},
