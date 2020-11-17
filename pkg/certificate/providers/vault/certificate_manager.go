@@ -28,10 +28,8 @@ const (
 
 // NewCertManager implements certificate.Manager and wraps a Hashi Vault with methods to allow easy certificate issuance.
 func NewCertManager(vaultAddr, token string, vaultRole string, cfg configurator.Configurator) (*CertManager, error) {
-	cache := make(map[certificate.CommonName]certificate.Certificater)
 	c := &CertManager{
 		announcements: make(chan announcements.Announcement),
-		cache:         &cache,
 		vaultRole:     vaultRole,
 		cfg:           cfg,
 	}
@@ -77,15 +75,12 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Dura
 }
 
 func (cm *CertManager) deleteFromCache(cn certificate.CommonName) {
-	cm.cacheLock.Lock()
-	delete(*cm.cache, cn)
-	cm.cacheLock.Unlock()
+	cm.cache.Delete(cn)
 }
 
 func (cm *CertManager) getFromCache(cn certificate.CommonName) certificate.Certificater {
-	cm.cacheLock.Lock()
-	defer cm.cacheLock.Unlock()
-	if cert, exists := (*cm.cache)[cn]; exists {
+	if certificateInterface, exists := cm.cache.Load(cn); exists {
+		cert := certificateInterface.(certificate.Certificater)
 		log.Trace().Msgf("Certificate found in cache CN=%s", cn)
 		if rotor.ShouldRotate(cert) {
 			log.Trace().Msgf("Certificate found in cache but has expired CN=%s", cn)
@@ -111,9 +106,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 		return cert, err
 	}
 
-	cm.cacheLock.Lock()
-	(*cm.cache)[cn] = cert
-	cm.cacheLock.Unlock()
+	cm.cache.Store(cn, cert)
 
 	log.Info().Msgf("Issuing new certificate for CN=%s took %+v", cn, time.Since(start))
 
@@ -128,11 +121,10 @@ func (cm *CertManager) ReleaseCertificate(cn certificate.CommonName) {
 // ListCertificates lists all certificates issued
 func (cm *CertManager) ListCertificates() ([]certificate.Certificater, error) {
 	var certs []certificate.Certificater
-	cm.cacheLock.Lock()
-	for _, cert := range *cm.cache {
-		certs = append(certs, cert)
-	}
-	cm.cacheLock.Unlock()
+	cm.cache.Range(func(cnInterface interface{}, certInterface interface{}) bool {
+		certs = append(certs, certInterface.(certificate.Certificater))
+		return true
+	})
 	return certs, nil
 }
 
@@ -165,9 +157,7 @@ func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate
 		return cert, err
 	}
 
-	cm.cacheLock.Lock()
-	(*cm.cache)[cn] = cert
-	cm.cacheLock.Unlock()
+	cm.cache.Store(cn, cert)
 	cm.announcements <- announcements.Announcement{}
 
 	log.Info().Msgf("Rotating certificate CN=%s took %+v", cn, time.Since(start))

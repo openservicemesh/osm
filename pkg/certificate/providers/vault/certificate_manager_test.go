@@ -99,12 +99,10 @@ var _ = Describe("Test client helpers", func() {
 
 	Context("Test Hashi Vault functions", func() {
 		cm := CertManager{
-			cache: &map[certificate.CommonName]certificate.Certificater{
-				expiredCertCN: expiredCert,
-				validCertCN:   validCert,
-			},
 			ca: rootCert,
 		}
+		cm.cache.Store(expiredCertCN, expiredCert)
+		cm.cache.Store(validCertCN, validCert)
 
 		It("gets certs from cache", func() {
 			// This cert does not exist - returns nil
