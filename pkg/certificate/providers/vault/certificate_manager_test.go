@@ -70,33 +70,47 @@ var _ = Describe("Test client helpers", func() {
 	})
 
 	Context("Test creating a Certificate from Hashi Vault Secret", func() {
-		It("creates a Certificate struct from Hashi Vault Secret struct", func() {
+		It("issues a Certificate struct from Hashi Vault Secret struct", func() {
 
 			cn := certificate.CommonName("foo.bar.co.uk")
 
-			secret := &api.Secret{
-				Data: map[string]interface{}{
-					certificateField:  "xx",
-					privateKeyField:   "yy",
-					issuingCAField:    "zz",
-					serialNumberField: "123",
-				},
+			certDuration := 1 * time.Hour
+
+			serNum := uuid.New().String()
+			chain := uuid.New().String()
+			privKey := uuid.New().String()
+			ca := uuid.New().String()
+
+			role := vaultRole("-some-role-")
+			mockWrite := func(path string, data map[string]interface{}) (*api.Secret, error) {
+				return &api.Secret{
+					RequestID:     "",
+					LeaseID:       "",
+					LeaseDuration: 0,
+					Renewable:     false,
+					Data: map[string]interface{}{
+						serialNumberField: serNum,
+						certificateField:  chain,
+						privateKeyField:   privKey,
+						issuingCAField:    ca,
+					},
+					Warnings: nil,
+					Auth:     nil,
+					WrapInfo: nil,
+				}, nil
 			}
 
-			expiration := time.Now().Add(1 * time.Hour)
+			actual, err := issue(mockWrite, role, cn, certDuration)
+			Expect(err).ToNot(HaveOccurred())
 
-			actual := newCert(cn, secret, expiration)
+			Expect(actual.issuingCA).To(Equal(pem.RootCertificate(ca)))
+			Expect(actual.privateKey).To(Equal(pem.PrivateKey(privKey)))
+			Expect(actual.certChain).To(Equal(pem.Certificate(chain)))
 
-			expected := &Certificate{
-				issuingCA:    pem.RootCertificate("zz"),
-				privateKey:   pem.PrivateKey("yy"),
-				certChain:    pem.Certificate("xx"),
-				expiration:   expiration,
-				commonName:   "foo.bar.co.uk",
-				serialNumber: "123",
-			}
+			Expect(time.Until(actual.expiration)).Should(BeNumerically("<", certDuration))
+			Expect(time.Until(actual.expiration)).Should(BeNumerically(">", certDuration-10*time.Second))
 
-			Expect(actual).To(Equal(expected))
+			Expect(actual.commonName).To(Equal(certificate.CommonName("foo.bar.co.uk")))
 		})
 	})
 
@@ -109,11 +123,19 @@ var _ = Describe("Test client helpers", func() {
 
 		It("gets issuing CA public part", func() {
 			expectedNumberOfCertsInCache := 2
-			Expect(len(*cm.cache)).To(Equal(expectedNumberOfCertsInCache))
+			{
+				actualCache := make(map[certificate.CommonName]*Certificate)
+				cm.cache.Range(func(cnI interface{}, certI interface{}) bool {
+					actualCache[cnI.(certificate.CommonName)] = certI.(*Certificate)
+					return true
+				})
+				Expect(len(actualCache)).To(Equal(expectedNumberOfCertsInCache))
+			}
 			certBytes := uuid.New().String()
-			issue := func(certificate.CommonName, time.Duration) (certificate.Certificater, error) {
-				cert := Certificate{
-					issuingCA: pem.RootCertificate(certBytes),
+			issue := func(hashiVaultWrite, vaultRole, certificate.CommonName, time.Duration) (*Certificate, error) {
+				cert := &Certificate{
+					issuingCA:    pem.RootCertificate(certBytes),
+					serialNumber: "abcd",
 				}
 				return cert, nil
 			}
@@ -122,7 +144,15 @@ var _ = Describe("Test client helpers", func() {
 
 			// Ensure that cache is NOT affected
 			Expect(issuingCA).To(Equal([]byte(certBytes)))
-			Expect(len(*cm.cache)).To(Equal(expectedNumberOfCertsInCache))
+			{
+				actualCache := make(map[certificate.CommonName]*Certificate)
+				cm.cache.Range(func(cnI interface{}, certI interface{}) bool {
+					actualCache[cnI.(certificate.CommonName)] = certI.(*Certificate)
+					return true
+				})
+				Expect(len(actualCache)).To(Equal(expectedNumberOfCertsInCache))
+			}
+
 		})
 
 		It("gets certs from cache", func() {
