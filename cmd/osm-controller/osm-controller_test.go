@@ -14,7 +14,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -82,8 +81,7 @@ func TestDebugServer(t *testing.T) {
 func TestCreateCABundleKubernetesSecret(t *testing.T) {
 	assert := assert.New(t)
 
-	cache := make(map[certificate.CommonName]certificate.Certificater)
-	certManager := tresor.NewFakeCertManager(&cache, nil)
+	certManager := tresor.NewFakeCertManager(nil)
 	testName := "--secret--name--"
 	namespace := "--namespace--"
 	k8sClient := testclient.NewSimpleClientset()

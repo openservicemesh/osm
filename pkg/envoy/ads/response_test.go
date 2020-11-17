@@ -106,8 +106,7 @@ var _ = Describe("Test ADS response functions", func() {
 
 	Context("Test sendAllResponses()", func() {
 
-		cache := make(map[certificate.CommonName]certificate.Certificater)
-		certManager := tresor.NewFakeCertManager(&cache, mockConfigurator)
+		certManager := tresor.NewFakeCertManager(mockConfigurator)
 		cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s", uuid.New(), serviceAccountName, tests.Namespace))
 		certDuration := 1 * time.Hour
 		certPEM, _ := certManager.IssueCertificate(cn, certDuration)

@@ -504,8 +504,7 @@ var _ = Describe("Testing Injector Functions", func() {
 		stop := make(<-chan struct{})
 		mockController := gomock.NewController(GinkgoT())
 		cfg := configurator.NewMockConfigurator(mockController)
-		cache := make(map[certificate.CommonName]certificate.Certificater)
-		certManager := tresor.NewFakeCertManager(&cache, cfg)
+		certManager := tresor.NewFakeCertManager(cfg)
 
 		actualErr := NewWebhook(injectorConfig, kubeClient, certManager, meshCatalog, kubeController, meshName, osmNamespace, webhookName, stop, cfg)
 		expectedErrorMessage := "Error configuring MutatingWebhookConfiguration -webhook-name-: mutatingwebhookconfigurations.admissionregistration.k8s.io \"-webhook-name-\" not found"
