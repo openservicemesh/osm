@@ -115,7 +115,13 @@ func (s *Server) newAggregatedDiscoveryResponse(proxy *envoy.Proxy, request *xds
 		s.xdsLog[proxy.GetCommonName()][typeURL] = append(s.xdsLog[proxy.GetCommonName()][typeURL], time.Now())
 	}
 
-	log.Trace().Msgf("Invoking handler for %s with request: %+v", typeURL, request)
+	// request.Node is only available on the first Discovery Request; will be nil on the following
+	nodeID := ""
+	if request.Node != nil {
+		nodeID = request.Node.Id
+	}
+
+	log.Trace().Msgf("Invoking handler for type %s; request from Envoy with Node ID %s", typeURL, nodeID)
 	response, err := handler(s.catalog, proxy, request, cfg, s.certManager)
 	if err != nil {
 		log.Error().Msgf("Responder for TypeUrl %s is not implemented", request.TypeUrl)

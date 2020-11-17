@@ -3,12 +3,6 @@ package constants
 import "time"
 
 const (
-	// AzureProviderName is the string constant used for the ID of the Azure endpoints provider.
-	// These strings identify the participating clusters / endpoint providers.
-	// Ideally these should be not only the type of compute but also a unique identifier, like the FQDN of the cluster,
-	// or the subscription within the cloud vendor.
-	AzureProviderName = "Azure"
-
 	// KubeProviderName is a string constant used for the ID string of the Kubernetes endpoints provider.
 	KubeProviderName = "Kubernetes"
 

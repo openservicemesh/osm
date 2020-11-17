@@ -1,4 +1,2 @@
-FROM alpine:3.12
-
-ADD osm-controller /
-RUN chmod +x /osm-controller
+FROM gcr.io/distroless/static
+COPY osm-controller /

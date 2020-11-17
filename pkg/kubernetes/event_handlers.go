@@ -8,6 +8,7 @@ import (
 
 	a "github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 )
 
 var emitLogs = os.Getenv(constants.EnvVarLogKubernetesEvents) == "true"
@@ -60,6 +61,11 @@ func GetKubernetesEventHandlers(informerName, providerName string, announce chan
 				logNotObservedNamespace(obj, eventTypes.Add)
 				return
 			}
+			events.GetPubSubInstance().Publish(events.PubSubMessage{
+				AnnouncementType: eventTypes.Add,
+				NewObj:           obj,
+				OldObj:           nil,
+			})
 			sendAnnouncement(eventTypes.Add, obj)
 		},
 
@@ -68,6 +74,11 @@ func GetKubernetesEventHandlers(informerName, providerName string, announce chan
 				logNotObservedNamespace(newObj, eventTypes.Update)
 				return
 			}
+			events.GetPubSubInstance().Publish(events.PubSubMessage{
+				AnnouncementType: eventTypes.Update,
+				NewObj:           oldObj,
+				OldObj:           newObj,
+			})
 			sendAnnouncement(eventTypes.Update, oldObj)
 		},
 
@@ -76,6 +87,11 @@ func GetKubernetesEventHandlers(informerName, providerName string, announce chan
 				logNotObservedNamespace(obj, eventTypes.Delete)
 				return
 			}
+			events.GetPubSubInstance().Publish(events.PubSubMessage{
+				AnnouncementType: eventTypes.Delete,
+				NewObj:           nil,
+				OldObj:           obj,
+			})
 			sendAnnouncement(eventTypes.Delete, obj)
 		},
 	}
