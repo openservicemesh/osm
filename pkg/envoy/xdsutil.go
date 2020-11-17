@@ -324,18 +324,18 @@ func GetEnvoyServiceNodeID(nodeID string) string {
 }
 
 // ParseEnvoyServiceNodeID parses the given Envoy service node ID and returns the encoded metadata
-func ParseEnvoyServiceNodeID(serviceNodeID string) (podUID, podNamespace, podIP, serviceAccountName, nodeID string, err error) {
+func ParseEnvoyServiceNodeID(serviceNodeID string) (*PodMetadata, error) {
 	chunks := strings.Split(serviceNodeID, constants.EnvoyServiceNodeSeparator)
 
 	if len(chunks) != 5 {
-		return podUID, podNamespace, podIP, serviceAccountName, nodeID, errors.New("invalid envoy service node id format")
+		return nil, errors.New("invalid envoy service node id format")
 	}
 
-	podUID = chunks[0]
-	podNamespace = chunks[1]
-	podIP = chunks[2]
-	serviceAccountName = chunks[3]
-	nodeID = chunks[4]
-
-	return podUID, podNamespace, podIP, serviceAccountName, nodeID, nil
+	return &PodMetadata{
+		UID:            chunks[0],
+		Namespace:      chunks[1],
+		IP:             chunks[2],
+		ServiceAccount: chunks[3],
+		EnvoyNodeID:    chunks[4],
+	}, nil
 }
