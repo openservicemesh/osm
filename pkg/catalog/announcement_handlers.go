@@ -1,52 +1,56 @@
 package catalog
 
 import (
-	"errors"
-
-	"k8s.io/apimachinery/pkg/types"
+	v1 "k8s.io/api/core/v1"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 )
 
-var errEventNotHandled = errors.New("event not handled")
+// releaseCertificateHandler releases certificate based on podDelete events
+func (mc *MeshCatalog) releaseCertificateHandler() chan struct{} {
+	podDeleteSubscription := events.GetPubSubInstance().Subscribe(announcements.PodDeleted)
+	stop := make(chan struct{})
 
-// releaseCertificate is an Announcement handler, which on receiving a PodDeleted event
-// it releases the xDS certificate for the Envoy for that Pod.
-func (mc *MeshCatalog) releaseCertificate(ann announcements.Announcement) error {
-	whatWeGot := ann.Type
-	whatWeCanHandle := announcements.PodDeleted
-	if whatWeCanHandle != whatWeGot {
-		log.Error().Msgf("releaseCertificate function received an announcement with type %s; it can only handle %s", whatWeGot, whatWeCanHandle)
-		return errEventNotHandled
-	}
+	go func() {
+		for {
+			select {
+			case <-stop:
+				return
+			case podDeletedMsg := <-podDeleteSubscription:
+				psubMessage, castOk := podDeletedMsg.(events.PubSubMessage)
+				if !castOk {
+					log.Error().Msgf("Error casting PubSubMessage: %v", psubMessage)
+					continue
+				}
 
-	if podUID, ok := ann.ReferencedObjectID.(types.UID); ok {
-		if podIface, ok := mc.podUIDToCN.Load(podUID); ok {
-			endpointCN := podIface.(certificate.CommonName)
-			log.Warn().Msgf("Pod with UID %s found in Mesh Catalog; Releasing certificate %s", podUID, endpointCN)
-			mc.certManager.ReleaseCertificate(endpointCN)
-		} else {
-			log.Warn().Msgf("Pod with UID %s not found in Mesh Catalog", podUID)
+				// guaranteed can only be a PodDeleted event
+				deletedPodObj, castOk := psubMessage.OldObj.(*v1.Pod)
+				if !castOk {
+					log.Error().Msgf("Failed to cast to *v1.Pod: %v", psubMessage.OldObj)
+					continue
+				}
+
+				podUID := deletedPodObj.GetObjectMeta().GetUID()
+				if podIface, ok := mc.podUIDToCN.Load(podUID); ok {
+					endpointCN := podIface.(certificate.CommonName)
+					log.Warn().Msgf("Pod with UID %s found in Mesh Catalog; Releasing certificate %s", podUID, endpointCN)
+					mc.certManager.ReleaseCertificate(endpointCN)
+
+					// Request a broadcast update, just for security.
+					// Repeater code also handles PodDelete, so probably the two will get coalesced.
+					events.GetPubSubInstance().Publish(events.PubSubMessage{
+						AnnouncementType: announcements.ScheduleBroadcastUpdate,
+						NewObj:           nil,
+						OldObj:           nil,
+					})
+				} else {
+					log.Warn().Msgf("Pod with UID %s not found in Mesh Catalog", podUID)
+				}
+			}
 		}
-	}
+	}()
 
-	return nil
-}
-
-// updateRelatedProxies is an Announcement handler, which augments the handling of PodDeleted events
-// and leverages broadcastToAllProxies() to let all proxies know that something has changed.
-// TODO: The use of broadcastToAllProxies() needs to be deprecated in favor of more granular approach.
-func (mc *MeshCatalog) updateRelatedProxies(ann announcements.Announcement) error {
-	whatWeGot := ann.Type
-	whatWeCanHandle := announcements.PodDeleted
-	if whatWeCanHandle != whatWeGot {
-		log.Error().Msgf("updateRelatedProxies function received an announcement with type %s; it can only handle %s", whatWeGot, whatWeCanHandle)
-		return errEventNotHandled
-	}
-
-	// TODO: the function below updates all proxies; understand what proxies need to be updated and update only these
-	mc.broadcastToAllProxies(ann)
-
-	return nil
+	return stop
 }

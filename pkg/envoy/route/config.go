@@ -264,7 +264,7 @@ func sanitizeHTTPMethods(allowedMethods []string) []string {
 func NewRouteConfigurationStub(routeConfigName string) *xds_route.RouteConfiguration {
 	routeConfiguration := xds_route.RouteConfiguration{
 		Name:             routeConfigName,
-		ValidateClusters: &wrappers.BoolValue{Value: true},
+		ValidateClusters: &wrappers.BoolValue{Value: false},
 	}
 	return &routeConfiguration
 }

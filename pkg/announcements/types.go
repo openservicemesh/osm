@@ -8,6 +8,12 @@ func (at AnnouncementType) String() string {
 }
 
 const (
+	// ScheduleBroadcastUpdate is used by other modules to request the dispatcher to schedule a global envoy update
+	ScheduleBroadcastUpdate AnnouncementType = "schedule-envoy-broadcast-update"
+
+	// EnvoyBroadcast is used to notify all Envoy streams that they need to trigger an update
+	EnvoyBroadcast AnnouncementType = "envoy-broadcast"
+
 	// PodAdded is the type of announcement emitted when we observe an addition of a Kubernetes Pod
 	PodAdded AnnouncementType = "pod-added"
 

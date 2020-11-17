@@ -51,7 +51,15 @@ func GetKubernetesEventHandlers(informerName, providerName string, announce chan
 			ann.ReferencedObjectID = getObjID(obj)
 		}
 
-		announce <- ann
+		select {
+		case announce <- ann:
+			// Channel post succeeded
+		default:
+			// Since pubsub introduction, there's a chance we start seeing full channels which
+			// will slowly become unused in favour of pub-sub subscriptions.
+			// We are making sure here ResourceEventHandlerFuncs never locks due to a push on a full channel.
+			log.Debug().Msgf("Channel for provider %s is full, dropping channel notify %s ", providerName, eventType)
+		}
 	}
 
 	return cache.ResourceEventHandlerFuncs{

@@ -7,12 +7,15 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/google/uuid"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 )
 
 var _ = Describe("Test Announcement Handlers", func() {
@@ -38,6 +41,15 @@ var _ = Describe("Test Announcement Handlers", func() {
 	})
 
 	Context("test releaseCertificate()", func() {
+		var stopChannel chan struct{}
+		BeforeEach(func() {
+			stopChannel = mc.releaseCertificateHandler()
+		})
+
+		AfterEach(func() {
+			stopChannel <- struct{}{}
+		})
+
 		It("deletes certificate when Pod is terminated", func() {
 			// Ensure setup is correct
 			{
@@ -46,26 +58,37 @@ var _ = Describe("Test Announcement Handlers", func() {
 				Expect(len(certs)).To(Equal(1))
 			}
 
-			ann := announcements.Announcement{
-				Type:               announcements.PodDeleted,
-				ReferencedObjectID: types.UID(podUID),
-			}
-			err := mc.releaseCertificate(ann)
-			Expect(err).ToNot(HaveOccurred())
+			// Register to Update proxies event. We should see a schedule broadcast update
+			// requested by the handler when the certificate is released.
+			rcvBroadcastChannel := events.GetPubSubInstance().Subscribe(announcements.ScheduleBroadcastUpdate)
 
-			// Ensure certificate was deleted
-			{
+			// Publish a podDeleted event
+			events.GetPubSubInstance().Publish(events.PubSubMessage{
+				AnnouncementType: announcements.PodDeleted,
+				NewObj:           nil,
+				OldObj: &v1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						UID: types.UID(podUID),
+					},
+				},
+			})
+
+			// Expect the certificate to eventually be gone for the deleted Pod
+			Eventually(func() int {
 				certs, err := mc.certManager.ListCertificates()
 				Expect(err).ToNot(HaveOccurred())
-				Expect(len(certs)).To(Equal(0))
+				return len(certs)
+			}).Should(Equal(0))
+
+			select {
+			case <-rcvBroadcastChannel:
+				// broadcast event received
+			case <-time.After(1 * time.Second):
+				Fail("Did not see a broadcast request in time")
 			}
 		})
 
 		It("ignores events other than pod-deleted", func() {
-			ann := announcements.Announcement{
-				Type: announcements.IngressAdded,
-			}
-
 			var connectedProxies []envoy.Proxy
 			mc.connectedProxies.Range(func(key interface{}, value interface{}) bool {
 				connectedProxy := value.(connectedProxy)
@@ -76,29 +99,24 @@ var _ = Describe("Test Announcement Handlers", func() {
 			Expect(len(connectedProxies)).To(Equal(1))
 			Expect(connectedProxies[0]).To(Equal(*proxy))
 
-			err := mc.releaseCertificate(ann)
-			Expect(err).To(HaveOccurred())
-		})
-	})
-
-	Context("test updateRelatedProxies()", func() {
-		It("ignores events other than pod-deleted", func() {
-			ann := announcements.Announcement{
-				Type: announcements.IngressAdded,
-			}
-
-			var connectedProxies []envoy.Proxy
-			mc.connectedProxies.Range(func(key interface{}, value interface{}) bool {
-				connectedProxy := value.(connectedProxy)
-				connectedProxies = append(connectedProxies, *connectedProxy.proxy)
-				return true
+			// Publish some event unrelated to podDeleted
+			events.GetPubSubInstance().Publish(events.PubSubMessage{
+				AnnouncementType: announcements.IngressAdded,
+				NewObj:           nil,
+				OldObj: &v1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						UID: types.UID(proxy.PodMetadata.UID),
+					},
+				},
 			})
 
-			Expect(len(connectedProxies)).To(Equal(1))
-			Expect(connectedProxies[0]).To(Equal(*proxy))
+			// Give some grace period for event to propagate
+			time.Sleep(500 * time.Millisecond)
 
-			err := mc.updateRelatedProxies(ann)
-			Expect(err).To(HaveOccurred())
+			// Ensure it was not deleted due to an unrelated event
+			certs, err := mc.certManager.ListCertificates()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(certs)).To(Equal(1))
 		})
 	})
 })
