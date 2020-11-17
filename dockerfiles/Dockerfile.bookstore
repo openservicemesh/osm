@@ -1,4 +1,2 @@
-FROM alpine:3.12
-ADD bookstore /
-ADD bookstore.html.template /
-RUN chmod +x /bookstore
+FROM gcr.io/distroless/static
+COPY bookstore bookstore.html.template /
