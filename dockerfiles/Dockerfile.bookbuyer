@@ -1,5 +1,2 @@
-FROM alpine:3.12
-ADD bookbuyer /
-ADD bookbuyer.html.template /
-RUN apk add --no-cache curl openssl ca-certificates
-RUN chmod +x /bookbuyer
+FROM gcr.io/distroless/base
+COPY bookbuyer bookbuyer.html.template /

@@ -31,6 +31,20 @@ func NewMeshCatalog(kubeController k8s.Controller, kubeClient kubernetes.Interfa
 		kubeController: kubeController,
 	}
 
+	// This map holds a list of Announcement handlers per type.
+	// The handlers will be evaluated sequentially in the order they appear here.
+	mc.announcementHandlerPerType = map[announcements.AnnouncementType][]func(ann announcements.Announcement) error{
+
+		// When a Kubernetes Pod is deleted
+		announcements.PodDeleted: {
+			// Delete the xDS Certificate that was issued to the Envoy fronting this pod.
+			mc.releaseCertificate,
+
+			// Remove the Endpoint (Pod) from relevant Envoys.
+			mc.updateRelatedProxies,
+		},
+	}
+
 	go mc.repeater()
 	return &mc
 }

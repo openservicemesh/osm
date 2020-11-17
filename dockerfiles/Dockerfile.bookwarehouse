@@ -1,3 +1,2 @@
-FROM alpine:3.12
-ADD bookwarehouse /
-RUN chmod +x /bookwarehouse
+FROM gcr.io/distroless/static
+COPY bookwarehouse /

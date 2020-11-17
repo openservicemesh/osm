@@ -3,12 +3,6 @@ package constants
 import "time"
 
 const (
-	// AzureProviderName is the string constant used for the ID of the Azure endpoints provider.
-	// These strings identify the participating clusters / endpoint providers.
-	// Ideally these should be not only the type of compute but also a unique identifier, like the FQDN of the cluster,
-	// or the subscription within the cloud vendor.
-	AzureProviderName = "Azure"
-
 	// KubeProviderName is a string constant used for the ID string of the Kubernetes endpoints provider.
 	KubeProviderName = "Kubernetes"
 
@@ -140,6 +134,9 @@ const (
 	// EnvoyServiceNodeSeparator is the character separating the strings used to create an Envoy service node parameter.
 	// Example use: envoy --service-node 52883c80-6e0d-4c64-b901-cbcb75134949/bookstore/10.144.2.91/bookstore-v1/bookstore-v1
 	EnvoyServiceNodeSeparator = "/"
+
+	// OSMConfigMap is the name of the OSM ConfigMap
+	OSMConfigMap = "osm-config"
 )
 
 // Annotations used by the controller

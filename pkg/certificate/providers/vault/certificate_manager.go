@@ -21,16 +21,18 @@ const (
 	certificateField = "certificate"
 	privateKeyField  = "private_key"
 	issuingCAField   = "issuing_ca"
+	commonNameField  = "common_name"
+	ttlField         = "ttl"
 
 	checkCertificateExpirationInterval = 5 * time.Second
 	tmpCertValidityPeriod              = 1 * time.Second
 )
 
 // NewCertManager implements certificate.Manager and wraps a Hashi Vault with methods to allow easy certificate issuance.
-func NewCertManager(vaultAddr, token string, vaultRole string, cfg configurator.Configurator) (*CertManager, error) {
+func NewCertManager(vaultAddr, token string, role string, cfg configurator.Configurator) (*CertManager, error) {
 	c := &CertManager{
 		announcements: make(chan announcements.Announcement),
-		vaultRole:     vaultRole,
+		role:          vaultRole(role),
 		cfg:           cfg,
 	}
 	config := api.DefaultConfig()
@@ -41,7 +43,7 @@ func NewCertManager(vaultAddr, token string, vaultRole string, cfg configurator.
 		return nil, errors.Errorf("Error creating Vault CertManager without TLS at %s", vaultAddr)
 	}
 
-	log.Info().Msgf("Created Vault CertManager, with vaultRole=%q at %v", vaultRole, vaultAddr)
+	log.Info().Msgf("Created Vault CertManager, with role=%q at %v", role, vaultAddr)
 
 	c.client.SetToken(token)
 
@@ -65,7 +67,7 @@ func NewCertManager(vaultAddr, token string, vaultRole string, cfg configurator.
 }
 
 func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Duration) (certificate.Certificater, error) {
-	secret, err := cm.client.Logical().Write(getIssueURL(cm.vaultRole), getIssuanceData(cn, validityPeriod))
+	secret, err := cm.client.Logical().Write(getIssueURL(cm.role).String(), getIssuanceData(cn, validityPeriod))
 	if err != nil {
 		log.Error().Err(err).Msgf("Error issuing new certificate for CN=%s", cn)
 		return nil, err

@@ -27,7 +27,7 @@ type Proxy struct {
 	// This could be nil if the Envoy is not operating in a Kubernetes cluster (VM for example)
 	// NOTE: This field may be not be set at the time Proxy struct is initialized. This would
 	// eventually be set when the metadata arrives via the xDS protocol.
-	podMetadata *PodMetadata
+	PodMetadata *PodMetadata
 }
 
 // PodMetadata is a struct holding information on the Pod on which a given Envoy proxy is installed
@@ -43,12 +43,12 @@ type PodMetadata struct {
 
 // HasPodMetadata answers the question - has the Pod metadata been recorded for the given Envoy proxy
 func (p *Proxy) HasPodMetadata() bool {
-	return p.podMetadata != nil
+	return p.PodMetadata != nil
 }
 
 // SetMetadata sets the proxy metadata constructured from the given parameters
 func (p *Proxy) SetMetadata(podUID, podNamespace, podIP, podServiceAccountName, envoyNodeID string) {
-	p.podMetadata = &PodMetadata{
+	p.PodMetadata = &PodMetadata{
 		UID:            podUID,
 		Namespace:      podNamespace,
 		IP:             podIP,
