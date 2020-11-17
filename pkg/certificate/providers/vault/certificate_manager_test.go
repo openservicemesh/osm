@@ -75,9 +75,10 @@ var _ = Describe("Test client helpers", func() {
 
 			secret := &api.Secret{
 				Data: map[string]interface{}{
-					certificateField: "xx",
-					privateKeyField:  "yy",
-					issuingCAField:   "zz",
+					certificateField:  "xx",
+					privateKeyField:   "yy",
+					issuingCAField:    "zz",
+					serialNumberField: "123",
 				},
 			}
 
@@ -86,11 +87,12 @@ var _ = Describe("Test client helpers", func() {
 			actual := newCert(cn, secret, expiration)
 
 			expected := &Certificate{
-				issuingCA:  pem.RootCertificate("zz"),
-				privateKey: pem.PrivateKey("yy"),
-				certChain:  pem.Certificate("xx"),
-				expiration: expiration,
-				commonName: "foo.bar.co.uk",
+				issuingCA:    pem.RootCertificate("zz"),
+				privateKey:   pem.PrivateKey("yy"),
+				certChain:    pem.Certificate("xx"),
+				expiration:   expiration,
+				commonName:   "foo.bar.co.uk",
+				serialNumber: "123",
 			}
 
 			Expect(actual).To(Equal(expected))
