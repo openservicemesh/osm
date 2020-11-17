@@ -134,6 +134,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 
 // ReleaseCertificate is called when a cert will no longer be needed and should be removed from the system.
 func (cm *CertManager) ReleaseCertificate(cn certificate.CommonName) {
+	log.Trace().Msgf("Releasing certificate %s", cn)
 	cm.deleteFromCache(cn)
 }
 

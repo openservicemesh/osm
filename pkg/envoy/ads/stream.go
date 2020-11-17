@@ -12,6 +12,7 @@ import (
 )
 
 // StreamAggregatedResources handles streaming of the clusters to the connected Envoy proxies
+// This is evaluated once per new Envoy proxy connecting and remains running for the duration of the gRPC socket.
 func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer) error {
 	// When a new Envoy proxy connects, ValidateClient would ensure that it has a valid certificate,
 	// and the Subject CN is in the allowedCommonNames set.
@@ -47,7 +48,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 
 	// This helper handles receiving messages from the connected Envoys
 	// and any gRPC error states.
-	go receive(requests, &server, proxy, quit)
+	go receive(requests, &server, proxy, quit, s.catalog)
 
 	for {
 		select {
@@ -145,7 +146,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			}
 
 		case <-proxy.GetAnnouncementsChannel():
-			log.Info().Msgf("Change detected - update all Envoys.")
+			log.Info().Msgf("Announcement for Envoy proxy %s received: sending all xDS updates", proxy.GetCommonName())
 			s.sendAllResponses(proxy, &server, s.cfg)
 		}
 	}
