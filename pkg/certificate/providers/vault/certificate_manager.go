@@ -225,3 +225,8 @@ func newCert(cn certificate.CommonName, secret *api.Secret, expiration time.Time
 		issuingCA:  pem.RootCertificate(secret.Data[issuingCAField].(string)),
 	}
 }
+
+// GetSerialNumber returns the serial number of the given certificate.
+func (c Certificate) GetSerialNumber() string {
+	panic("NotImplemented")
+}
