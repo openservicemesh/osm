@@ -8,7 +8,7 @@ data:
   egress: {{ .Values.OpenServiceMesh.enableEgress | quote }}
   envoy_log_level: {{ .Values.OpenServiceMesh.envoyLogLevel | quote }}
   enable_debug_server: {{ .Values.OpenServiceMesh.enableDebugServer | quote }}
-  prometheus_scraping: "true"
+  prometheus_scraping: {{ .Values.OpenServiceMesh.enablePrometheusScraping | quote }}
 
 {{- if .Values.OpenServiceMesh.tracing.enable }}
   tracing_enable: {{ .Values.OpenServiceMesh.tracing.enable | quote }}

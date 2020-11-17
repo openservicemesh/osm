@@ -1,4 +1,4 @@
-{{- if .Values.OpenServiceMesh.enableGrafana}}
+{{- if .Values.OpenServiceMesh.deployGrafana}}
 apiVersion: v1
 kind: Service
 metadata:

@@ -134,6 +134,9 @@ const (
 	// EnvoyServiceNodeSeparator is the character separating the strings used to create an Envoy service node parameter.
 	// Example use: envoy --service-node 52883c80-6e0d-4c64-b901-cbcb75134949/bookstore/10.144.2.91/bookstore-v1/bookstore-v1
 	EnvoyServiceNodeSeparator = "/"
+
+	// OSMConfigMap is the name of the OSM ConfigMap
+	OSMConfigMap = "osm-config"
 )
 
 // Annotations used by the controller

@@ -22,8 +22,9 @@
                 "enablePermissiveTrafficPolicy",
                 "enableBackpressureExperimental",
                 "enableEgress",
-                "enablePrometheus",
-                "enableGrafana",
+                "deployPrometheus",
+                "enablePrometheusScraping",
+                "deployGrafana",
                 "meshName",
                 "useHTTPSIngress",
                 "envoyLogLevel",
@@ -167,19 +168,28 @@
                         false
                     ]
                 },
-                "enablePrometheus": {
-                    "$id": "#/properties/OpenServiceMesh/properties/enablePrometheus",
+                "deployPrometheus": {
+                    "$id": "#/properties/OpenServiceMesh/properties/deployPrometheus",
                     "type": "boolean",
-                    "title": "The enablePrometheus schema",
+                    "title": "The deployPrometheus schema",
                     "description": "Indicates whether Prometheus should be installed and configured as part of the osm control plane.",
+                    "examples": [
+                        false
+                    ]
+                },
+                "enablePrometheusScraping": {
+                    "$id": "#/properties/OpenServiceMesh/properties/enablePrometheusScraping",
+                    "type": "boolean",
+                    "title": "The enablePrometheusScraping schema",
+                    "description": "Indicates whether Prometheus scraping should be enabled.",
                     "examples": [
                         true
                     ]
                 },
-                "enableGrafana": {
-                    "$id": "#/properties/OpenServiceMesh/properties/enableGrafana",
+                "deployGrafana": {
+                    "$id": "#/properties/OpenServiceMesh/properties/deployGrafana",
                     "type": "boolean",
-                    "title": "The enableGrafana schema",
+                    "title": "The deployGrafana schema",
                     "description": "Indicates whether Grafana should be installed and configured as part of the osm control plane.",
                     "examples": [
                         false

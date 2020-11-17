@@ -13,8 +13,9 @@ Each service that is part of the mesh has an Envoy sidecar and is capable of exp
 OSM is able to automatically provision Prometheus and Grafana instances to monitor the mesh, however the user can choose not to, in favour of an already existing deployment or service (we will refer to the latter as Bring-Your-Own, or BYO)
 
 ### Automatic bring up
+By default, both Prometheus and Grafana are disabled.
 
-By default, OSM installation will deploy a Prometheus instance to scrape the sidecar's metrics endpoints. Based on the metrics scraping configuration set by the user, OSM will annotate pods part of the mesh with necessary metrics annotations to have Prometheus reach and scrape the pods to collect relevant metrics. To install Grafana for metrics visualization, set the `enable-grafana` flag to true when installing OSM using the `osm install` command.
+However, when configured with the `--deploy-grafana` flag, OSM installation will deploy a Prometheus instance to scrape the sidecar's metrics endpoints. Based on the metrics scraping configuration set by the user, OSM will annotate pods part of the mesh with necessary metrics annotations to have Prometheus reach and scrape the pods to collect relevant metrics. To install Grafana for metrics visualization, set the `deploy-grafana` flag to true when installing OSM using the `osm install` command.
 
 The automatic bring up can be overridden with the `osm install` option during install time:
 ```
@@ -22,8 +23,8 @@ osm install --help
 
 This command installs an osm control plane on the Kubernetes...
 ...
---enable-prometheus               Enable Prometheus deployment (default true)
---enable-grafana                  Enable Grafana deployment (default false)
+--deploy-prometheus               Enable Prometheus deployment (default false)
+--deploy-grafana                  Enable Grafana deployment (default false)
 ...
 ```
 
