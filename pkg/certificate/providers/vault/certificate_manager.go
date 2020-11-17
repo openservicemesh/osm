@@ -193,7 +193,7 @@ type Certificate struct {
 	// Certificate authority signing this certificate.
 	issuingCA pem.RootCertificate
 
-	// serialNumber is the serial_number value in the Data filed assigned to the Certificate Hashicorp Vault issued
+	// serialNumber is the serial_number value in the Data field assigned to the Certificate Hashicorp Vault issued
 	serialNumber string
 }
 
