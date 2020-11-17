@@ -138,6 +138,7 @@ func main() {
 	}
 
 	featureflags.Initialize(optionalFeatures)
+	events.GetPubSubInstance() // Just to generate the interface, single routine context
 
 	// Initialize kube config and client
 	kubeConfig, err := clientcmd.BuildConfigFromFlags("", kubeConfigFile)
