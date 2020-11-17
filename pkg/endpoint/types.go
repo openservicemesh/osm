@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -15,11 +16,15 @@ type Provider interface {
 	// Retrieve the namespaced services for a given service account
 	GetServicesForServiceAccount(service.K8sServiceAccount) ([]service.MeshService, error)
 
+	// Returns the expected endpoints that are to be reached when the service FQDN is resolved under
+	// the scope of the provider
+	GetResolvableEndpointsForService(service.MeshService) ([]Endpoint, error)
+
 	// GetID returns the unique identifier of the EndpointsProvider.
 	GetID() string
 
 	// GetAnnouncementsChannel obtains the channel on which providers will announce changes to the infrastructure.
-	GetAnnouncementsChannel() <-chan interface{}
+	GetAnnouncementsChannel() <-chan announcements.Announcement
 }
 
 // Endpoint is a tuple of IP and Port representing an instance of a service

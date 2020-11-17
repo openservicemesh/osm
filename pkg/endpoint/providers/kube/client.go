@@ -1,58 +1,66 @@
 package kube
 
 import (
-	"context"
 	"net"
 	"reflect"
 	"strings"
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/pkg/errors"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
+	a "github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
-	"github.com/openservicemesh/osm/pkg/namespace"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
 // NewProvider implements mesh.EndpointsProvider, which creates a new Kubernetes cluster/compute provider.
-func NewProvider(kubeClient kubernetes.Interface, namespaceController namespace.Controller, stop chan struct{}, providerIdent string, cfg configurator.Configurator) (endpoint.Provider, error) {
+func NewProvider(kubeClient kubernetes.Interface, kubeController k8s.Controller, stop chan struct{}, providerIdent string, cfg configurator.Configurator) (endpoint.Provider, error) {
 	informerFactory := informers.NewSharedInformerFactory(kubeClient, k8s.DefaultKubeEventResyncInterval)
 
 	informerCollection := InformerCollection{
-		Endpoints:   informerFactory.Core().V1().Endpoints().Informer(),
-		Deployments: informerFactory.Apps().V1().Deployments().Informer(),
+		Endpoints: informerFactory.Core().V1().Endpoints().Informer(),
+		Pods:      informerFactory.Core().V1().Pods().Informer(),
 	}
 
 	cacheCollection := CacheCollection{
-		Endpoints:   informerCollection.Endpoints.GetStore(),
-		Deployments: informerCollection.Deployments.GetStore(),
+		Endpoints: informerCollection.Endpoints.GetStore(),
+		Pods:      informerCollection.Pods.GetStore(),
 	}
 
 	client := Client{
-		providerIdent:       providerIdent,
-		kubeClient:          kubeClient,
-		informers:           &informerCollection,
-		caches:              &cacheCollection,
-		cacheSynced:         make(chan interface{}),
-		announcements:       make(chan interface{}),
-		namespaceController: namespaceController,
+		providerIdent:  providerIdent,
+		kubeClient:     kubeClient,
+		informers:      &informerCollection,
+		caches:         &cacheCollection,
+		cacheSynced:    make(chan interface{}),
+		announcements:  make(chan a.Announcement),
+		kubeController: kubeController,
 	}
 
 	shouldObserve := func(obj interface{}) bool {
 		ns := reflect.ValueOf(obj).Elem().FieldByName("ObjectMeta").FieldByName("Namespace").String()
-		return namespaceController.IsMonitoredNamespace(ns)
+		return kubeController.IsMonitoredNamespace(ns)
 	}
-	informerCollection.Endpoints.AddEventHandler(k8s.GetKubernetesEventHandlers("Endpoints", "Kubernetes", client.announcements, shouldObserve))
-	informerCollection.Deployments.AddEventHandler(k8s.GetKubernetesEventHandlers("Deployments", "Kubernetes", client.announcements, shouldObserve))
+	eptEventTypes := k8s.EventTypes{
+		Add:    a.EndpointAdded,
+		Update: a.EndpointUpdated,
+		Delete: a.EndpointDeleted,
+	}
+	informerCollection.Endpoints.AddEventHandler(k8s.GetKubernetesEventHandlers("Endpoints", "Kubernetes", client.announcements, shouldObserve, nil, eptEventTypes))
+
+	podEventTypes := k8s.EventTypes{
+		Add:    a.PodAdded,
+		Update: a.PodUpdated,
+		Delete: a.PodDeleted,
+	}
+	informerCollection.Pods.AddEventHandler(k8s.GetKubernetesEventHandlers("Pods", "Kubernetes", client.announcements, shouldObserve, getPodUID, podEventTypes))
 
 	if err := client.run(stop); err != nil {
 		return nil, errors.Errorf("Failed to start Kubernetes EndpointProvider client: %+v", err)
@@ -69,8 +77,8 @@ func (c *Client) GetID() string {
 
 // ListEndpointsForService retrieves the list of IP addresses for the given service
 func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endpoint {
-	log.Info().Msgf("[%s] Getting Endpoints for service %s on Kubernetes", c.providerIdent, svc)
-	var endpoints []endpoint.Endpoint = []endpoint.Endpoint{}
+	log.Trace().Msgf("[%s] Getting Endpoints for service %s on Kubernetes", c.providerIdent, svc)
+	var endpoints []endpoint.Endpoint
 	endpointsInterface, exist, err := c.caches.Endpoints.GetByKey(svc.String())
 	if err != nil {
 		log.Error().Err(err).Msgf("[%s] Error fetching Kubernetes Endpoints from cache", c.providerIdent)
@@ -84,7 +92,7 @@ func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endp
 
 	kubernetesEndpoints := endpointsInterface.(*corev1.Endpoints)
 	if kubernetesEndpoints != nil {
-		if !c.namespaceController.IsMonitoredNamespace(kubernetesEndpoints.Namespace) {
+		if !c.kubeController.IsMonitoredNamespace(kubernetesEndpoints.Namespace) {
 			// Doesn't belong to namespaces we are observing
 			return endpoints
 		}
@@ -93,7 +101,7 @@ func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endp
 				for _, port := range kubernetesEndpoint.Ports {
 					ip := net.ParseIP(address.IP)
 					if ip == nil {
-						log.Error().Msgf("Error parsing IP address %s", address.IP)
+						log.Error().Msgf("[%s] Error parsing IP address %s", c.providerIdent, address.IP)
 						break
 					}
 					ept := endpoint.Endpoint{
@@ -110,55 +118,47 @@ func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endp
 
 // GetServicesForServiceAccount retrieves a list of services for the given service account.
 func (c Client) GetServicesForServiceAccount(svcAccount service.K8sServiceAccount) ([]service.MeshService, error) {
-	log.Info().Msgf("[%s] Getting Services for service account %s on Kubernetes", c.providerIdent, svcAccount)
 	services := mapset.NewSet()
-	deploymentsInterface := c.caches.Deployments.List()
 
-	for _, deployments := range deploymentsInterface {
-		kubernetesDeployments := deployments.(*appsv1.Deployment)
-		if kubernetesDeployments != nil {
-			if !c.namespaceController.IsMonitoredNamespace(kubernetesDeployments.Namespace) {
-				// Doesn't belong to namespaces we are observing
-				continue
-			}
-			spec := kubernetesDeployments.Spec
-			namespacedSvcAccount := service.K8sServiceAccount{
-				Namespace: kubernetesDeployments.Namespace,
-				Name:      spec.Template.Spec.ServiceAccountName,
-			}
-			if svcAccount == namespacedSvcAccount {
-				var selectorLabel map[string]string
-				if spec.Selector != nil {
-					selectorLabel = spec.Selector.MatchLabels
-				} else {
-					selectorLabel = spec.Template.Labels
-				}
+	for _, podInterface := range c.caches.Pods.List() {
+		pod := podInterface.(*corev1.Pod)
+		if pod == nil {
+			continue
+		}
 
-				appNamspace := kubernetesDeployments.Namespace
-				k8sServices, err := c.getServicesByLabels(selectorLabel, appNamspace)
-				if err != nil {
-					log.Error().Err(err).Msgf("Error retrieving service with label %v in namespace %s", selectorLabel, appNamspace)
+		if pod.Namespace != svcAccount.Namespace {
+			continue
+		}
 
-					return nil, errDidNotFindServiceForServiceAccount
-				}
-				for _, svc := range k8sServices {
-					meshService := service.MeshService{
-						Namespace: appNamspace,
-						Name:      svc.Name,
-					}
-					services.Add(meshService)
-				}
-			}
+		if pod.Spec.ServiceAccountName != svcAccount.Name {
+			continue
+		}
+
+		podLabels := pod.ObjectMeta.Labels
+
+		k8sServices, err := c.getServicesByLabels(podLabels, pod.Namespace)
+		if err != nil {
+			log.Error().Err(err).Msgf("[%s] Error retrieving service matching labels %v in namespace %s", c.providerIdent, podLabels, pod.Namespace)
+			return nil, err
+		}
+
+		for _, svc := range k8sServices {
+			services.Add(service.MeshService{
+				Namespace: pod.Namespace,
+				Name:      svc.Name,
+			})
 		}
 	}
 
 	if services.Cardinality() == 0 {
-		log.Error().Msgf("Did not find any service with serviceAccount = %s in namespace %s", svcAccount.Name, svcAccount.Namespace)
-
-		return nil, errDidNotFindServiceForServiceAccount
+		// Add a service, which is a representation of the ServiceAccount, but not a real K8s service.
+		// This will ensure that all pods in the service account are represented as one service.
+		synthService := svcAccount.GetSyntheticService()
+		services.Add(synthService)
+		log.Trace().Msgf("[%s] No services for service account %s/%s; Adding synthetic service %s", c.providerIdent, svcAccount.Name, svcAccount.Namespace, synthService)
+	} else {
+		log.Trace().Msgf("[%s] Services for service account %s: %+v", c.providerIdent, svcAccount, services)
 	}
-
-	log.Info().Msgf("[%s] Services %v observed on service account %s on Kubernetes", c.providerIdent, services, svcAccount)
 
 	servicesSlice := make([]service.MeshService, 0, services.Cardinality())
 	for svc := range services.Iterator().C {
@@ -169,7 +169,7 @@ func (c Client) GetServicesForServiceAccount(svcAccount service.K8sServiceAccoun
 }
 
 // GetAnnouncementsChannel returns the announcement channel for the Kubernetes endpoints provider.
-func (c Client) GetAnnouncementsChannel() <-chan interface{} {
+func (c Client) GetAnnouncementsChannel() <-chan a.Announcement {
 	return c.announcements
 }
 
@@ -181,8 +181,8 @@ func (c *Client) run(stop <-chan struct{}) error {
 	}
 
 	sharedInformers := map[string]cache.SharedInformer{
-		"Endpoints":   c.informers.Endpoints,
-		"Deployments": c.informers.Deployments,
+		"Endpoints": c.informers.Endpoints,
+		"Pods":      c.informers.Pods,
 	}
 
 	var names []string
@@ -192,12 +192,12 @@ func (c *Client) run(stop <-chan struct{}) error {
 			continue
 		}
 		names = append(names, name)
-		log.Debug().Msgf("Starting informer %s", name)
+		log.Info().Msgf("[%s] Starting informer %s", c.providerIdent, name)
 		go informer.Run(stop)
 		hasSynced = append(hasSynced, informer.HasSynced)
 	}
 
-	log.Info().Msgf("Waiting for informer's cache to sync: %+v", strings.Join(names, ", "))
+	log.Info().Msgf("[%s] Waiting for informer's cache to sync: %+v", c.providerIdent, strings.Join(names, ", "))
 	if !cache.WaitForCacheSync(stop, hasSynced...) {
 		return errSyncingCaches
 	}
@@ -205,26 +205,63 @@ func (c *Client) run(stop <-chan struct{}) error {
 	// Closing the cacheSynced channel signals to the rest of the system that... caches have been synced.
 	close(c.cacheSynced)
 
-	log.Info().Msgf("Cache sync finished for %+v", names)
+	log.Info().Msgf("[%s] Cache sync finished for %+v", c.providerIdent, names)
 	return nil
 }
 
 // getServicesByLabels gets Kubernetes services whose selectors match the given labels
-func (c *Client) getServicesByLabels(matchLabels map[string]string, namespace string) ([]corev1.Service, error) {
-	var serviceList []corev1.Service
-	svcList, err := c.kubeClient.CoreV1().Services(namespace).List(context.Background(), metav1.ListOptions{})
-	if err != nil {
-		log.Error().Err(err).Msgf("Error listing Services in namespace %s", namespace)
-		return nil, err
-	}
+func (c *Client) getServicesByLabels(podLabels map[string]string, namespace string) ([]corev1.Service, error) {
+	var finalList []corev1.Service
+	serviceList := c.kubeController.ListServices()
 
-	for _, svc := range svcList.Items {
+	for _, svc := range serviceList {
+		// TODO: #1684 Introduce APIs to dynamically allow applying selectors, instead of callers implementing
+		// filtering themselves
+		if svc.Namespace != namespace {
+			continue
+		}
+
 		svcRawSelector := svc.Spec.Selector
 		selector := labels.Set(svcRawSelector).AsSelector()
-		if selector.Matches(labels.Set(matchLabels)) {
-			serviceList = append(serviceList, svc)
+		if selector.Matches(labels.Set(podLabels)) {
+			finalList = append(finalList, *svc)
 		}
 	}
 
-	return serviceList, nil
+	return finalList, nil
+}
+
+// GetResolvableEndpointsForService returns the expected endpoints that are to be reached when the service
+// FQDN is resolved
+func (c *Client) GetResolvableEndpointsForService(svc service.MeshService) ([]endpoint.Endpoint, error) {
+	var endpoints []endpoint.Endpoint
+	var err error
+
+	// Check if the service has been given Cluster IP
+	kubeService := c.kubeController.GetService(svc)
+	if kubeService == nil {
+		log.Error().Msgf("[%s] Could not find service %s", c.providerIdent, svc.String())
+		return nil, errServiceNotFound
+	}
+
+	if len(kubeService.Spec.ClusterIP) == 0 {
+		// If service has no cluster IP, use final endpoint as resolvable destinations
+		return c.ListEndpointsForService(svc), nil
+	}
+
+	// Cluster IP is present
+	ip := net.ParseIP(kubeService.Spec.ClusterIP)
+	if ip == nil {
+		log.Error().Msgf("[%s] Could not parse Cluster IP %s", c.providerIdent, kubeService.Spec.ClusterIP)
+		return nil, errParseClusterIP
+	}
+
+	for _, svcPort := range kubeService.Spec.Ports {
+		endpoints = append(endpoints, endpoint.Endpoint{
+			IP:   ip,
+			Port: endpoint.Port(svcPort.Port),
+		})
+	}
+
+	return endpoints, err
 }

@@ -1,0 +1,94 @@
+title = "Open Service Mesh"
+baseURL = "https://docs.openservicemesh.io/"
+languageCode = "en-us"
+description = "Documentation for Open Service Mesh (OSM)"
+theme = "dosmy"
+
+# Theme General Config
+[languages]
+[languages.en]
+title = "Open Service Mesh"
+description = "Documentation for Open Service Mesh (OSM)"
+languageName ="English"
+weight = 1
+[services]
+[services.googleAnalytics]
+id = "UA-130516746-13"
+enableRobotsTXT = true
+enableGitInfo = true
+contentDir = "content"
+version_menu = "Releases"
+defaultContentLanguage = "en"
+defaultContentLanguageInSubdir = false
+enableMissingTranslationPlaceholders = true
+disableKinds = ["taxonomy", "taxonomyTerm"]
+pygmentsCodeFences = true
+pygmentsUseClasses = false
+pygmentsUseClassic = false
+pygmentsStyle = "tango"
+[imaging]
+resampleFilter = "CatmullRom"
+quality = 75
+anchor = "smart"
+[blackfriday]
+plainIDAnchors = true
+hrefTargetBlank = true
+angledQuotes = false
+latexDashes = true
+[markup]
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      unsafe = true
+  [markup.highlight]
+      style = "tango"
+
+
+# OSM top menu (should match main site)
+[[menu.main]]
+	name = "Home"
+	weight = 10
+	url = "https://openservicemesh.io"
+[[menu.main]]
+	name = "Docs"
+	weight = 20
+	url = "/docs"
+[[menu.main]]
+	name = "Github"
+	weight = 30
+	url = "https://github.com/openservicemesh/osm"
+[[menu.main]]
+	name = "Blog"
+	weight = 40
+	url = "https://openservicemesh.io/blog"
+[[menu.main]]
+	name = "Slack"
+	weight = 50
+	url = "https://cloud-native.slack.com/archives/C018794NV1C"
+[[menu.main]]
+	name = "Twitter"
+	weight = 60
+	url = "https://twitter.com/openservicemesh"
+
+
+# Add your release versions here
+[[params.versions]]
+  version = "v0.4"
+  url = "https://docs.openservicemesh.io"
+
+
+# Theme Additional params
+[params]
+copyright = "The Docsy Authors"
+offlineSearch = true
+prism_syntax_highlighting = true
+
+[params.ui]
+navbar_logo = true
+sidebar_menu_compact = false
+breadcrumb_disable = false
+sidebar_search_disable = false
+
+[params.ui.feedback]
+enable = true
+yes = 'Glad to hear it! Please <a href="https://github.com/USERNAME/REPOSITORY/issues/new">tell us how we can improve</a>.'
+no = 'Sorry to hear that. Please <a href="https://github.com/USERNAME/REPOSITORY/issues/new">tell us how we can improve</a>.'

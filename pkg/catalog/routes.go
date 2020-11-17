@@ -7,6 +7,7 @@ import (
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/pkg/errors"
+	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -23,7 +24,7 @@ const (
 
 // ListTrafficPolicies returns all the traffic policies for a given service that Envoy proxy should be aware of.
 func (mc *MeshCatalog) ListTrafficPolicies(service service.MeshService) ([]trafficpolicy.TrafficTarget, error) {
-	log.Info().Msgf("Listing traffic policies for service: %s", service)
+	log.Trace().Msgf("Listing traffic policies for service: %s", service)
 
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
 		// Build traffic policies from service discovery for allow-all policy
@@ -34,7 +35,7 @@ func (mc *MeshCatalog) ListTrafficPolicies(service service.MeshService) ([]traff
 	// Build traffic policies from SMI
 	allRoutes, err := mc.getHTTPPathsPerRoute()
 	if err != nil {
-		log.Error().Err(err).Msgf("Could not get all routes")
+		log.Error().Err(err).Msgf("Error getting all paths per route while working on service %s", service)
 		return nil, err
 	}
 
@@ -50,7 +51,7 @@ func (mc *MeshCatalog) ListTrafficPolicies(service service.MeshService) ([]traff
 // This is a bimodal function:
 //   - it could list services that are allowed to connect to the given service (inbound)
 //   - it could list services that the given service can connect to (outbound)
-func (mc *MeshCatalog) getAllowedDirectionalServices(svc service.MeshService, directn direction) ([]service.MeshService, error) {
+func (mc *MeshCatalog) getAllowedDirectionalServices(svc service.MeshService, directn trafficDirection) ([]service.MeshService, error) {
 	allTrafficPolicies, err := mc.ListTrafficPolicies(svc)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed listing traffic routes")
@@ -81,7 +82,7 @@ func (mc *MeshCatalog) getAllowedDirectionalServices(svc service.MeshService, di
 		allowedServices = append(allowedServices, svc.(service.MeshService))
 	}
 
-	msg := map[direction]string{
+	msg := map[trafficDirection]string{
 		inbound:  "Allowed inbound services for destination service %q: %+v",
 		outbound: "Allowed outbound services from source %q: %+v",
 	}[directn]
@@ -129,60 +130,63 @@ func hostnamesTostr(hostnames []string) string {
 	return strings.Join(hostnames, ",")
 }
 
-// GetHostnamesForService returns the hostnames for a service.
-// The hostname can be the FQDN for the service, and can include ports as well.
+// GetResolvableHostnamesForUpstreamService returns the hostnames over which an upstream service is accessible from a downstream service
+// The hostname is the FQDN for the service, and can include ports as well.
 // Ex. bookstore.default, bookstore.default:80, bookstore.default.svc, bookstore.default.svc:80 etc.
-func (mc *MeshCatalog) GetHostnamesForService(meshService service.MeshService) (string, error) {
-	log.Trace().Msgf("Finding domain for service %s", meshService)
+func (mc *MeshCatalog) GetResolvableHostnamesForUpstreamService(downstream, upstream service.MeshService) ([]string, error) {
+	sameNamespace := downstream.Namespace == upstream.Namespace
+	var svcHostnames []string
 
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
-		hostnames, err := mc.getServiceHostnames(meshService)
+		hostnames, err := mc.getServiceHostnames(upstream, sameNamespace)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error getting service hostnames for MeshService %s", meshService)
-			return "", err
+			log.Error().Err(err).Msgf("Error getting service hostnames for upstream service %s", upstream)
+			return svcHostnames, err
 		}
-		return hostnamesTostr(hostnames), nil
+		return hostnames, nil
 	}
 
-	// Retrieve the domain name from traffic split
+	// If this service is referenced in a traffic split
+	// Retrieve the domain name from traffic split root service
 	servicesList := mc.meshSpec.ListTrafficSplitServices()
 	for _, activeService := range servicesList {
-		if activeService.Service == meshService {
-			log.Trace().Msgf("Getting hostnames for service %s", meshService)
+		if activeService.Service == upstream {
+			log.Trace().Msgf("Getting hostnames for service %s", upstream)
 			rootServiceName := kubernetes.GetServiceFromHostname(activeService.RootService)
 			rootMeshService := service.MeshService{
-				Namespace: meshService.Namespace,
+				Namespace: upstream.Namespace,
 				Name:      rootServiceName,
 			}
-			hostnames, err := mc.getServiceHostnames(rootMeshService)
-			log.Trace().Msgf("hostnames for service %s: %v", meshService, hostnames)
+			hostnames, err := mc.getServiceHostnames(rootMeshService, sameNamespace)
 			if err != nil {
-				log.Error().Err(err).Msgf("Error getting service hostnames for MeshService %s", meshService)
-				return "", err
+				log.Error().Err(err).Msgf("Error getting service hostnames for Apex service %s", rootMeshService)
+				return svcHostnames, err
 			}
-			return hostnamesTostr(hostnames), nil
+			svcHostnames = append(svcHostnames, hostnames...)
 		}
 	}
 
-	// This service is not a backend for a traffic split policy.
 	// The hostnames for this service are the Kubernetes service DNS names.
-	hostnames, err := mc.getServiceHostnames(meshService)
+	hostnames, err := mc.getServiceHostnames(upstream, sameNamespace)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting service hostnames for MeshService %s", meshService)
-		return "", err
+		log.Error().Err(err).Msgf("Error getting service hostnames for upstream service %s", upstream)
+		return svcHostnames, err
 	}
 
-	return hostnamesTostr(hostnames), nil
+	svcHostnames = append(svcHostnames, hostnames...)
+	return svcHostnames, nil
 }
 
-// getServiceHostnames returns a list of hostnames corresponding to the service
-func (mc *MeshCatalog) getServiceHostnames(meshService service.MeshService) ([]string, error) {
-	svc := mc.meshSpec.GetService(meshService)
+// getServiceHostnames returns a list of hostnames corresponding to the service.
+// If the service is in the same namespace, it returns the shorthand hostname for the service that does not
+// include its namespace, ex: bookstore, bookstore:80
+func (mc *MeshCatalog) getServiceHostnames(meshService service.MeshService, sameNamespace bool) ([]string, error) {
+	svc := mc.kubeController.GetService(meshService)
 	if svc == nil {
 		return nil, errors.Errorf("Error fetching service %q", meshService)
 	}
 
-	hostnames := kubernetes.GetHostnamesForService(svc)
+	hostnames := kubernetes.GetHostnamesForService(svc, sameNamespace)
 	return hostnames, nil
 }
 
@@ -257,35 +261,17 @@ func getTrafficPoliciesForService(mc *MeshCatalog, routePolicies map[trafficpoli
 
 	for _, trafficTargets := range mc.meshSpec.ListTrafficTargets() {
 		log.Debug().Msgf("Discovered TrafficTarget resource: %s/%s", trafficTargets.Namespace, trafficTargets.Name)
-		if trafficTargets.Spec.Rules == nil || len(trafficTargets.Spec.Rules) == 0 {
+		if !isValidTrafficTarget(trafficTargets) {
 			log.Error().Msgf("TrafficTarget %s/%s has no spec routes; Skipping...", trafficTargets.Namespace, trafficTargets.Name)
 			continue
 		}
 
-		dstNamespacedServiceAcc := service.K8sServiceAccount{
-			Namespace: trafficTargets.Spec.Destination.Namespace,
-			Name:      trafficTargets.Spec.Destination.Name,
-		}
-		destServiceList, destErr := mc.GetServicesForServiceAccount(dstNamespacedServiceAcc)
-		if destErr != nil {
-			log.Error().Msgf("TrafficTarget %s/%s could not get destination services for service account %s", trafficTargets.Namespace, trafficTargets.Name, dstNamespacedServiceAcc.String())
-			return nil, destErr
-		}
-
 		for _, trafficSources := range trafficTargets.Spec.Sources {
-			namespacedServiceAccount := service.K8sServiceAccount{
-				Namespace: trafficSources.Namespace,
-				Name:      trafficSources.Name,
+			trafficTargetPermutations, err := mc.listTrafficTargetPermutations(*trafficTargets, trafficSources, trafficTargets.Spec.Destination)
+			if err != nil {
+				log.Error().Msgf("Could not list services for TrafficTarget %s/%s", trafficTargets.Namespace, trafficTargets.Name)
+				return nil, err
 			}
-
-			srcServiceList, srcErr := mc.GetServicesForServiceAccount(namespacedServiceAccount)
-			if srcErr != nil {
-				log.Error().Msgf("TrafficTarget %s/%s could not get source services for service account %s", trafficTargets.Namespace, trafficTargets.Name, fmt.Sprintf("%s/%s", trafficSources.Namespace, trafficSources.Name))
-				return nil, srcErr
-			}
-
-			trafficTargetPermutations := listTrafficTargetPermutations(trafficTargets.Name, srcServiceList, destServiceList)
-
 			for _, trafficTarget := range trafficTargetPermutations {
 				var httpRoutes []trafficpolicy.HTTPRoute // Keeps track of all the routes from a source to a destination service
 
@@ -343,7 +329,7 @@ func getTrafficPoliciesForService(mc *MeshCatalog, routePolicies map[trafficpoli
 }
 
 func (mc *MeshCatalog) buildAllowAllTrafficPolicies(service service.MeshService) []trafficpolicy.TrafficTarget {
-	services := mc.meshSpec.ListServices()
+	services := mc.kubeController.ListServices()
 
 	var trafficTargets []trafficpolicy.TrafficTarget
 	for _, source := range services {
@@ -382,13 +368,34 @@ func getDefaultWeightedClusterForService(meshService service.MeshService) servic
 }
 
 // listTrafficTargetPermutations creates a list of TrafficTargets for each source and destination pair.
-func listTrafficTargetPermutations(name string, srcServiceList []service.MeshService, destServiceList []service.MeshService) []trafficpolicy.TrafficTarget {
+func (mc *MeshCatalog) listTrafficTargetPermutations(trafficTarget target.TrafficTarget, src target.IdentityBindingSubject, dest target.IdentityBindingSubject) ([]trafficpolicy.TrafficTarget, error) {
+	sourceServiceAccount := service.K8sServiceAccount{
+		Namespace: src.Namespace,
+		Name:      src.Name,
+	}
+
+	srcServiceList, srcErr := mc.GetServicesForServiceAccount(sourceServiceAccount)
+	if srcErr != nil {
+		log.Error().Msgf("TrafficTarget %s/%s could not get source services for service account %s", trafficTarget.Namespace, trafficTarget.Name, sourceServiceAccount.String())
+		return nil, srcErr
+	}
+
+	dstNamespacedServiceAcc := service.K8sServiceAccount{
+		Namespace: dest.Namespace,
+		Name:      dest.Name,
+	}
+	destServiceList, destErr := mc.GetServicesForServiceAccount(dstNamespacedServiceAcc)
+	if destErr != nil {
+		log.Error().Msgf("TrafficTarget %s/%s could not get destination services for service account %s", trafficTarget.Namespace, trafficTarget.Name, dstNamespacedServiceAcc.String())
+		return nil, destErr
+	}
+
 	trafficPolicies := make([]trafficpolicy.TrafficTarget, 0, len(srcServiceList)*len(destServiceList))
 
 	for _, destService := range destServiceList {
 		for _, srcService := range srcServiceList {
 			trafficTarget := trafficpolicy.TrafficTarget{
-				Name:        utils.GetTrafficTargetName(name, srcService, destService),
+				Name:        utils.GetTrafficTargetName(trafficTarget.Name, srcService, destService),
 				Destination: destService,
 				Source:      srcService,
 			}
@@ -396,5 +403,115 @@ func listTrafficTargetPermutations(name string, srcServiceList []service.MeshSer
 		}
 	}
 
-	return trafficPolicies
+	return trafficPolicies, nil
+}
+
+// routesFromRules takes a set of traffic target rules and the namespace of the traffic target and returns a list of
+//	http routes (trafficpolicy.HTTPRoute)
+func (mc *MeshCatalog) routesFromRules(rules []target.TrafficTargetRule, trafficTargetNamespace string) ([]trafficpolicy.HTTPRoute, error) {
+	routes := []trafficpolicy.HTTPRoute{}
+
+	specMatchRoute, err := mc.getHTTPPathsPerRoute() // returns map[traffic_spec_name]map[match_name]trafficpolicy.HTTPRoute
+	if err != nil {
+		return nil, err
+	}
+
+	if len(specMatchRoute) == 0 {
+		log.Debug().Msg("No elements in map[traffic_spec_name]map[match name]trafficpolicyHTTPRoute")
+		return routes, nil
+	}
+
+	for _, rule := range rules {
+		trafficSpecName := mc.getTrafficSpecName("HTTPRouteGroup", trafficTargetNamespace, rule.Name)
+		for _, match := range rule.Matches {
+			matchedRoute, found := specMatchRoute[trafficSpecName][trafficpolicy.TrafficSpecMatchName(match)]
+			if found {
+				routes = append(routes, matchedRoute)
+			} else {
+				log.Debug().Msgf("No matching trafficpolicy.HTTPRoute found for match name %s in Traffic Spec %s (in namespace %s)", match, trafficSpecName, trafficTargetNamespace)
+			}
+		}
+	}
+
+	return routes, nil
+}
+
+// GetServicesForServiceAccounts returns a list of services corresponding to a list service accounts
+//	TODO: Consider merging this function and mc.GetServicesForServiceAccount in future (#2038)
+func (mc *MeshCatalog) GetServicesForServiceAccounts(saList []service.K8sServiceAccount) []service.MeshService {
+	serviceMap := map[service.MeshService]bool{}
+
+	for _, sa := range saList {
+		services, err := mc.GetServicesForServiceAccount(sa)
+		if err != nil {
+			log.Error().Msgf("Error getting services linked to Service Account %s: %v", sa, err)
+			continue
+		} else {
+			for _, s := range services {
+				serviceMap[s] = true
+			}
+		}
+	}
+
+	serviceList := []service.MeshService{}
+	for k := range serviceMap {
+		serviceList = append(serviceList, k)
+	}
+
+	return serviceList
+}
+
+// GetHostnamesForUpstreamService returns the hostnames over which an upstream service is accessible from a downstream service
+// The hostname is the FQDN for the service, and can include ports as well.
+// Ex. bookstore.default, bookstore.default:80, bookstore.default.svc, bookstore.default.svc:80 etc.
+// TODO: replace GetResolvableHostnamesForUpstreamService with this func once routes refactor is complete (#issue)
+func (mc *MeshCatalog) GetHostnamesForUpstreamService(downstream, upstream service.MeshService) ([]string, error) {
+	sameNamespace := downstream.Namespace == upstream.Namespace
+	// The hostnames for this service are the Kubernetes service DNS names
+	hostnames, err := mc.getServiceHostnames(upstream, sameNamespace)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error getting service hostnames for upstream service %s", upstream)
+		return nil, err
+	}
+
+	return hostnames, nil
+}
+
+// buildTrafficPolicies takes a list of source services, destination services and routes and returns a list of traffic policies for all
+//	combinations of the given source and destination services
+func (mc *MeshCatalog) buildTrafficPolicies(sourceServices, destServices []service.MeshService, routes []trafficpolicy.HTTPRoute) (policies []*trafficpolicy.TrafficPolicy) {
+	for _, sourceService := range sourceServices {
+		for _, destService := range destServices {
+			if sourceService == destService {
+				continue
+			}
+			routesClusters := []trafficpolicy.RouteWeightedClusters{}
+			// When TrafficSplit v1alpha3 is implemented (#705), weighted clusters information should be passed into this function as a parameter
+			//	but since we are not implementing TrafficSplit v1alpha3 and only dealing with TrafficTargets for the initial routes refactor(#2034),
+			//	we use the default weighted clusters configuration for the given destination service (destService)
+			weightedClusters := mapset.NewSet(getDefaultWeightedClusterForService(destService))
+
+			for _, route := range routes {
+				routesClusters = append(routesClusters, trafficpolicy.RouteWeightedClusters{
+					HTTPRoute:        trafficpolicy.HTTPRoute(route),
+					WeightedClusters: weightedClusters,
+				})
+			}
+
+			hostnames, err := mc.GetHostnamesForUpstreamService(sourceService, destService)
+			if err != nil {
+				log.Error().Msgf("Err getting resolvable hostnames for source %v and destination %v service : %s", sourceService, destService, err)
+				continue
+			}
+			policies = append(policies, trafficpolicy.NewTrafficPolicy(sourceService, destService, routesClusters, hostnames))
+		}
+	}
+	return policies
+}
+
+func isValidTrafficTarget(t *target.TrafficTarget) bool {
+	if t.Spec.Rules == nil || len(t.Spec.Rules) == 0 {
+		return false
+	}
+	return true
 }

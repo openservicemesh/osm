@@ -7,6 +7,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault"
 	az "github.com/Azure/go-autorest/autorest/azure"
 
+	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/providers/azure"
 )
 
@@ -28,7 +29,7 @@ func newKeyVaultClient(keyVaultName string, azureAuthFile string) (*client, erro
 	return &client{
 		client:        &keyVaultClient,
 		vaultURL:      getKeyVaultURL(keyVaultName),
-		announcements: make(chan interface{}),
+		announcements: make(chan announcements.Announcement),
 	}, nil
 }
 

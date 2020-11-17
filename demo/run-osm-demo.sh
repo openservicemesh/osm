@@ -27,9 +27,12 @@ CTR_REGISTRY_CREDS_NAME="${CTR_REGISTRY_CREDS_NAME:-acr-creds}"
 DEPLOY_TRAFFIC_SPLIT="${DEPLOY_TRAFFIC_SPLIT:-true}"
 CTR_TAG="${CTR_TAG:-$(git rev-parse HEAD)}"
 IMAGE_PULL_POLICY="${IMAGE_PULL_POLICY:-Always}"
+ENABLE_DEBUG_SERVER="${ENABLE_DEBUG_SERVER:-true}"
 ENABLE_EGRESS="${ENABLE_EGRESS:-false}"
-MESH_CIDR=$(./scripts/get_mesh_cidr.sh)
+ENABLE_GRAFANA="${ENABLE_GRAFANA:-false}"
+ENABLE_FLUENTBIT="${ENABLE_FLUENTBIT:-false}"
 DEPLOY_WITH_SAME_SA="${DEPLOY_WITH_SAME_SA:-false}"
+ENVOY_LOG_LEVEL="${ENVOY_LOG_LEVEL:-debug}"
 
 # For any additional installation arguments. Used heavily in CI.
 optionalInstallArgs=$*
@@ -40,46 +43,26 @@ exit_error() {
     exit 1
 }
 
-wait_for_osm_pods() {
-  # Wait for OSM pods to be ready before deploying the apps.
-  pods=$(kubectl get pods -n "$K8S_NAMESPACE" -o name | sed 's/^pod\///')
-  if [ -n "$pods" ]; then
-    for pod in $pods; do
-      wait_for_pod_ready "$pod"
-    done
-  else
-    exit_error "No Pods found in namespace $K8S_NAMESPACE"
-  fi
-}
-
-wait_for_pod_ready() {
-    max=15
-    pod_name=$1
-
-    for x in $(seq 1 $max); do
-        pod_ready="$(kubectl get pods -n "$K8S_NAMESPACE" "${pod_name}" -o 'jsonpath={..status.conditions[?(@.type=="Ready")].status}')"
-        if [ "$pod_ready" == "True" ]; then
-            echo "[${x}] Pod ready ${pod_name}"
-            return
-        fi
-
-        pod_status="$(kubectl get pods -n "$K8S_NAMESPACE" "${pod_name}" -o 'jsonpath={..status.phase}')"
-        echo "[${x}] Pod status is ${pod_status}; waiting for pod ${pod_name} to be Ready" && sleep 5
-    done
-
-    pod_status="$(kubectl get pods -n "$K8S_NAMESPACE" "${pod_name}" -o 'jsonpath={..status.phase}')"
-    exit_error "Pod ${pod_name} status is ${pod_status} -- still not Ready"
-}
+# Check if Docker daemon is running
+docker info > /dev/null || { echo "Docker daemon is not running"; exit 1; }
 
 make build-osm
 
 # cleanup stale resources from previous runs
-bin/osm mesh delete -f --mesh-name "$MESH_NAME" --namespace "$K8S_NAMESPACE"
 ./demo/clean-kubernetes.sh
 
 # The demo uses osm's namespace as defined by environment variables, K8S_NAMESPACE
 # to house the control plane components.
+#
+# Note: `osm install` creates the namespace via Helm only if such a namespace already
+# doesn't exist. We explicitly create the namespace below because of the need to
+# create container registry credentials in this namespace for the purpose of testing.
+# The side effect of creating the namespace here instead of letting Helm create it is
+# that Helm no longer manages namespace creation, and as a result labels that it
+# otherwise adds for using as a namespace selector are no longer available.
 kubectl create namespace "$K8S_NAMESPACE"
+# Mimic Helm namespace label behavior: https://github.com/helm/helm/blob/release-3.2/pkg/action/install.go#L292
+kubectl label namespace "$K8S_NAMESPACE" name="$K8S_NAMESPACE"
 
 echo "Certificate Manager in use: $CERT_MANAGER"
 if [ "$CERT_MANAGER" = "vault" ]; then
@@ -100,7 +83,7 @@ echo "Certificate Manager in use: $CERT_MANAGER"
 if [ "$CERT_MANAGER" = "vault" ]; then
   # shellcheck disable=SC2086
   bin/osm install \
-      --namespace "$K8S_NAMESPACE" \
+      --osm-namespace "$K8S_NAMESPACE" \
       --mesh-name "$MESH_NAME" \
       --certificate-manager="$CERT_MANAGER" \
       --vault-host="$VAULT_HOST" \
@@ -110,30 +93,34 @@ if [ "$CERT_MANAGER" = "vault" ]; then
       --container-registry-secret "$CTR_REGISTRY_CREDS_NAME" \
       --osm-image-tag "$CTR_TAG" \
       --osm-image-pull-policy "$IMAGE_PULL_POLICY" \
-      --enable-debug-server \
+      --enable-debug-server="$ENABLE_DEBUG_SERVER" \
       --enable-egress="$ENABLE_EGRESS" \
-      --mesh-cidr "$MESH_CIDR" \
+      --enable-grafana="$ENABLE_GRAFANA" \
+      --enable-fluentbit="$ENABLE_FLUENTBIT" \
+      --envoy-log-level "$ENVOY_LOG_LEVEL" \
+      --timeout=90s \
       $optionalInstallArgs
 else
   # shellcheck disable=SC2086
   bin/osm install \
-      --namespace "$K8S_NAMESPACE" \
+      --osm-namespace "$K8S_NAMESPACE" \
       --mesh-name "$MESH_NAME" \
       --certificate-manager="$CERT_MANAGER" \
       --container-registry "$CTR_REGISTRY" \
       --container-registry-secret "$CTR_REGISTRY_CREDS_NAME" \
       --osm-image-tag "$CTR_TAG" \
       --osm-image-pull-policy "$IMAGE_PULL_POLICY" \
-      --enable-debug-server \
+      --enable-debug-server="$ENABLE_DEBUG_SERVER"\
       --enable-egress="$ENABLE_EGRESS" \
-      --mesh-cidr "$MESH_CIDR" \
+      --enable-grafana="$ENABLE_GRAFANA" \
+      --enable-fluentbit="$ENABLE_FLUENTBIT" \
+      --envoy-log-level "$ENVOY_LOG_LEVEL" \
+      --timeout=90s \
       $optionalInstallArgs
 fi
 
-wait_for_osm_pods
-
 ./demo/configure-app-namespaces.sh
-bin/osm namespace add --mesh-name "$MESH_NAME" "$BOOKWAREHOUSE_NAMESPACE" "$BOOKBUYER_NAMESPACE" "$BOOKSTORE_NAMESPACE" "$BOOKTHIEF_NAMESPACE" --enable-sidecar-injection
+
 ./demo/deploy-apps.sh
 
 # Apply SMI policies

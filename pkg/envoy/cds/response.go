@@ -8,6 +8,7 @@ import (
 	"github.com/golang/protobuf/ptypes"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
+	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/featureflags"
@@ -15,7 +16,7 @@ import (
 )
 
 // NewResponse creates a new Cluster Discovery Response.
-func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator) (*xds_discovery.DiscoveryResponse, error) {
+func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, _ certificate.Manager) (*xds_discovery.DiscoveryResponse, error) {
 	svcList, err := catalog.GetServicesFromEnvoyCertificate(proxy.GetCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up MeshService for Envoy with CN=%q", proxy.GetCommonName())
@@ -43,7 +44,7 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 			continue
 		}
 
-		remoteCluster, err := getRemoteServiceCluster(dstService, proxyServiceName, cfg)
+		remoteCluster, err := getUpstreamServiceCluster(dstService, proxyServiceName, cfg)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed to construct service cluster for proxy %s", proxyServiceName)
 			return nil, err

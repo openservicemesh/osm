@@ -103,7 +103,7 @@ var _ = Describe("Test validateCLIParams", func() {
 		testOsmNamespace       = "test-namespace"
 		testInitContainerImage = "test-init-image"
 		testSidecarImage       = "test-sidecar-image"
-		testWebhookName        = "test-webhook-name"
+		testwebhookConfigName  = "test-webhook-name"
 	)
 
 	Context("none of the necessary CLI params are empty", func() {
@@ -114,7 +114,7 @@ var _ = Describe("Test validateCLIParams", func() {
 			InitContainerImage: testInitContainerImage,
 			SidecarImage:       testSidecarImage,
 		}
-		webhookName = testWebhookName
+		webhookConfigName = testwebhookConfigName
 
 		err := validateCLIParams()
 
@@ -130,7 +130,7 @@ var _ = Describe("Test validateCLIParams", func() {
 			InitContainerImage: testInitContainerImage,
 			SidecarImage:       testSidecarImage,
 		}
-		webhookName = testWebhookName
+		webhookConfigName = testwebhookConfigName
 
 		err := validateCLIParams()
 
@@ -146,7 +146,7 @@ var _ = Describe("Test validateCLIParams", func() {
 			InitContainerImage: testInitContainerImage,
 			SidecarImage:       testSidecarImage,
 		}
-		webhookName = testWebhookName
+		webhookConfigName = testwebhookConfigName
 
 		err := validateCLIParams()
 
@@ -162,7 +162,7 @@ var _ = Describe("Test validateCLIParams", func() {
 			InitContainerImage: "",
 			SidecarImage:       testSidecarImage,
 		}
-		webhookName = testWebhookName
+		webhookConfigName = testwebhookConfigName
 
 		err := validateCLIParams()
 
@@ -178,7 +178,7 @@ var _ = Describe("Test validateCLIParams", func() {
 			InitContainerImage: testInitContainerImage,
 			SidecarImage:       "",
 		}
-		webhookName = testWebhookName
+		webhookConfigName = testwebhookConfigName
 
 		err := validateCLIParams()
 
@@ -186,7 +186,7 @@ var _ = Describe("Test validateCLIParams", func() {
 			Expect(err).To(HaveOccurred())
 		})
 	})
-	Context("webhookName is empty", func() {
+	Context("webhookConfigName is empty", func() {
 		*osmCertificateManagerKind = tresorKind
 		meshName = testMeshName
 		osmNamespace = testOsmNamespace
@@ -194,7 +194,7 @@ var _ = Describe("Test validateCLIParams", func() {
 			InitContainerImage: testInitContainerImage,
 			SidecarImage:       testSidecarImage,
 		}
-		webhookName = ""
+		webhookConfigName = ""
 
 		err := validateCLIParams()
 

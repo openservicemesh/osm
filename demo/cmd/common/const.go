@@ -7,9 +7,6 @@ const (
 	// Failure is the string constant emitted at the end of the Bookbuyer/Bookthief logs when the test failed.
 	Failure = "MAESTRO, WE HAVE A PROBLEM! THIS TEST FAILED!"
 
-	// KubeConfigEnvVar is the environment variable holding path to kube config
-	KubeConfigEnvVar = "KUBECONFIG"
-
 	// KubeNamespaceEnvVar is the environment variable with the k8s namespace
 	KubeNamespaceEnvVar = "K8S_NAMESPACE"
 
@@ -39,9 +36,6 @@ const (
 
 	// BookthiefExpectedResponseCodeEnvVar is the environment variable for Bookthief's expected HTTP response code
 	BookthiefExpectedResponseCodeEnvVar = "BOOKTHIEF_EXPECTED_RESPONSE_CODE"
-
-	// EgressExpectedResponseCodeEnvVar is the environment variable for the expected response code for egress HTTP requests
-	EgressExpectedResponseCodeEnvVar = "EGRESS_EXPECTED_RESPONSE_CODE"
 
 	// EnableEgressEnvVar is the envorinment variable to enable egress requests in the demo
 	EnableEgressEnvVar = "ENABLE_EGRESS"

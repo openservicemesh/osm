@@ -8,8 +8,12 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
 
+	mapset "github.com/deckarep/golang-set"
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 	"k8s.io/api/admission/v1beta1"
 	admissionv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -18,52 +22,69 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
+	admissionRegistrationTypes "k8s.io/client-go/kubernetes/typed/admissionregistration/v1beta1"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/namespace"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 )
 
 var (
 	codecs       = serializer.NewCodecFactory(runtime.NewScheme())
 	deserializer = codecs.UniversalDeserializer()
-
-	kubeSystemNamespaces = []string{
-		metav1.NamespaceSystem,
-		metav1.NamespacePublic,
-	}
 )
 
 const (
-	osmWebhookName       = "osm-inject.k8s.io"
-	osmWebhookMutatePath = "/mutate"
+	// MutatingWebhookName is the name of the mutating webhook used for sidecar injection
+	MutatingWebhookName = "osm-inject.k8s.io"
+
+	// webhookCreatePod is the HTTP path at which the webhook expects to receive pod creation events
+	webhookCreatePod = "/mutate-pod-creation"
+
+	// WebhookHealthPath is the HTTP path at which the health of the webhook can be queried
+	WebhookHealthPath = "/healthz"
+
+	// webhookTimeoutStr is the url variable name for timeout
+	webhookMutateTimeoutKey = "timeout"
+
+	contentTypeJSON       = "application/json"
+	httpHeaderContentType = "Content-Type"
 )
 
 // NewWebhook starts a new web server handling requests from the injector MutatingWebhookConfiguration
-func NewWebhook(config Config, kubeClient kubernetes.Interface, certManager certificate.Manager, meshCatalog catalog.MeshCataloger, namespaceController namespace.Controller, meshName, osmNamespace, webhookName string, stop <-chan struct{}, cfg configurator.Configurator) error {
+func NewWebhook(config Config, kubeClient kubernetes.Interface, certManager certificate.Manager, meshCatalog catalog.MeshCataloger, kubeController k8s.Controller, meshName, osmNamespace, webhookConfigName string, stop <-chan struct{}, cfg configurator.Configurator) error {
 	cn := certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.OSMControllerName, osmNamespace))
-	validityPeriod := constants.XDSCertificateValidityPeriod
-	cert, err := certManager.IssueCertificate(cn, &validityPeriod)
+	cert, err := certManager.IssueCertificate(cn, constants.XDSCertificateValidityPeriod)
 	if err != nil {
 		return errors.Errorf("Error issuing certificate for the mutating webhook: %+v", err)
 	}
 
 	wh := webhook{
-		config:              config,
-		kubeClient:          kubeClient,
-		certManager:         certManager,
-		meshCatalog:         meshCatalog,
-		namespaceController: namespaceController,
-		osmNamespace:        osmNamespace,
-		cert:                cert,
-		configurator:        cfg,
+		config:         config,
+		kubeClient:     kubeClient,
+		certManager:    certManager,
+		meshCatalog:    meshCatalog,
+		kubeController: kubeController,
+		osmNamespace:   osmNamespace,
+		cert:           cert,
+		configurator:   cfg,
+
+		// Envoy sidecars should never be injected in these namespaces
+		nonInjectNamespaces: mapset.NewSetFromSlice([]interface{}{
+			metav1.NamespaceSystem,
+			metav1.NamespacePublic,
+			osmNamespace,
+		}),
 	}
 
+	// Start the MutatingWebhook web server
 	go wh.run(stop)
-	if err = patchMutatingWebhookConfiguration(cert, meshName, osmNamespace, webhookName, wh.kubeClient); err != nil {
-		return errors.Errorf("Error configuring MutatingWebhookConfiguration: %+v", err)
+
+	// Update the MutatingWebhookConfig with the OSM CA bundle
+	if err = updateMutatingWebhookCABundle(cert, webhookConfigName, wh.kubeClient); err != nil {
+		return errors.Errorf("Error configuring MutatingWebhookConfiguration %s: %+v", webhookConfigName, err)
 	}
 	return nil
 }
@@ -73,16 +94,19 @@ func (wh *webhook) run(stop <-chan struct{}) {
 	defer cancel()
 
 	mux := http.DefaultServeMux
-	// HTTP handlers
-	mux.HandleFunc("/health/ready", wh.healthReadyHandler)
-	mux.HandleFunc(osmWebhookMutatePath, wh.mutateHandler)
+
+	mux.HandleFunc(WebhookHealthPath, healthHandler)
+
+	// We know that the events arriving at this handler are CREATE POD only
+	// because of the specifics of MutatingWebhookConfiguration template in this repository.
+	mux.HandleFunc(webhookCreatePod, wh.podCreationHandler)
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", wh.config.ListenPort),
 		Handler: mux,
 	}
 
-	log.Info().Msgf("Starting sidecar-injection webhook server on :%v", wh.config.ListenPort)
+	log.Info().Msgf("Starting sidecar-injection webhook server on port: %v", wh.config.ListenPort)
 	go func() {
 		// Generate a key pair from your pem-encoded cert and key ([]byte).
 		cert, err := tls.X509KeyPair(wh.cert.GetCertificateChain(), wh.cert.GetPrivateKey())
@@ -91,6 +115,7 @@ func (wh *webhook) run(stop <-chan struct{}) {
 			return
 		}
 
+		// #nosec G402
 		server.TLSConfig = &tls.Config{
 			Certificates: []tls.Certificate{cert},
 		}
@@ -112,75 +137,112 @@ func (wh *webhook) run(stop <-chan struct{}) {
 	}
 }
 
-func (wh *webhook) healthReadyHandler(w http.ResponseWriter, req *http.Request) {
-	// TODO(shashank): If TLS certificate is not present, mark as not ready
+func healthHandler(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
-	_, err := w.Write([]byte("Health OK"))
-	if err != nil {
-		log.Error().Err(err).Msgf("Error writing bytes")
+	if _, err := w.Write([]byte("Health OK")); err != nil {
+		log.Error().Err(err).Msgf("Error writing bytes for mutating webhook health check handler")
 	}
 }
 
-func (wh *webhook) mutateHandler(w http.ResponseWriter, req *http.Request) {
-	log.Info().Msgf("Request received: Method=%v, URL=%v", req.Method, req.URL)
-
-	if contentType := req.Header.Get("Content-Type"); contentType != "application/json" {
-		errmsg := fmt.Sprintf("Invalid Content-Type: %q", contentType)
-		http.Error(w, errmsg, http.StatusUnsupportedMediaType)
-		log.Error().Msgf("Request error: error=%s, code=%v", errmsg, http.StatusUnsupportedMediaType)
-		return
+func (wh *webhook) getAdmissionReqResp(proxyUUID uuid.UUID, admissionRequestBody []byte) (requestForNamespace string, admissionResp v1beta1.AdmissionReview) {
+	var admissionReq v1beta1.AdmissionReview
+	if _, _, err := deserializer.Decode(admissionRequestBody, nil, &admissionReq); err != nil {
+		log.Error().Err(err).Msg("Error decoding admission request body")
+		admissionResp.Response = admissionError(err)
+	} else {
+		admissionResp.Response = wh.mutate(admissionReq.Request, proxyUUID)
 	}
 
-	var body []byte
-	if req.Body != nil {
-		var err error
-		if body, err = ioutil.ReadAll(req.Body); err != nil {
-			errmsg := fmt.Sprintf("Error reading request body: %s", err)
-			http.Error(w, errmsg, http.StatusInternalServerError)
-			log.Error().Msgf("Request error: error=%s, code=%v", errmsg, http.StatusInternalServerError)
-			return
+	return admissionReq.Request.Namespace, admissionResp
+}
+
+func getAdmissionRequestBody(w http.ResponseWriter, req *http.Request) ([]byte, error) {
+	emptyBodyError := func() ([]byte, error) {
+		http.Error(w, errEmptyAdmissionRequestBody.Error(), http.StatusBadRequest)
+		log.Error().Err(errEmptyAdmissionRequestBody).Msgf("Responded to admission request with HTTP %v", http.StatusBadRequest)
+		return nil, errEmptyAdmissionRequestBody
+	}
+
+	if req.Body == nil {
+		return emptyBodyError()
+	}
+
+	admissionRequestBody, err := ioutil.ReadAll(req.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Error().Err(err).Msgf("Error reading admission request body; Responded to admission request with HTTP %v", http.StatusInternalServerError)
+		return admissionRequestBody, nil
+	}
+
+	if len(admissionRequestBody) == 0 {
+		return emptyBodyError()
+	}
+
+	return admissionRequestBody, nil
+}
+
+// podCreationHandler is a MutatingWebhookConfiguration handler exclusive to POD CREATE events.
+func (wh *webhook) podCreationHandler(w http.ResponseWriter, req *http.Request) {
+	log.Trace().Msgf("Received mutating webhook request: Method=%v, URL=%v", req.Method, req.URL)
+
+	// For debug/profiling purposes
+	if log.GetLevel() == zerolog.DebugLevel {
+		// Read timeout from request
+		reqTimeout, err := readTimeout(req)
+		if err != nil {
+			log.Error().Msgf("Could not read timeout from request url: %v", err)
+		} else {
+			defer webhookTimeTrack(time.Now(), *reqTimeout)
 		}
 	}
 
-	if len(body) == 0 {
-		errmsg := "Empty request body"
-		http.Error(w, errmsg, http.StatusBadRequest)
-		log.Error().Msgf("Request error: error=%s, code=%v", errmsg, http.StatusBadRequest)
+	if contentType := req.Header.Get(httpHeaderContentType); contentType != contentTypeJSON {
+		err := errors.Errorf("Invalid content type %s; Expected %s", contentType, contentTypeJSON)
+		http.Error(w, err.Error(), http.StatusUnsupportedMediaType)
+		log.Error().Err(err).Msgf("Responded to admission request with HTTP %v", http.StatusUnsupportedMediaType)
 		return
 	}
 
-	var admissionReq v1beta1.AdmissionReview
-	var admissionResp v1beta1.AdmissionReview
-	if _, _, err := deserializer.Decode(body, nil, &admissionReq); err != nil {
-		log.Error().Err(err).Msg("Error decoding admission request")
-		admissionResp.Response = toAdmissionError(err)
-	} else {
-		admissionResp.Response = wh.mutate(admissionReq.Request)
+	admissionRequestBody, err := getAdmissionRequestBody(w, req)
+	if err != nil {
+		// Error was already logged and written to the ResponseWriter
+		return
 	}
+
+	// Create the patches for the spec
+	// We use req.Namespace because pod.Namespace is "" at this point
+	// This string uniquely identifies the pod. Ideally this would be the pod.UID, but this is not available at this point.
+	proxyUUID := uuid.New()
+
+	requestForNamespace, admissionResp := wh.getAdmissionReqResp(proxyUUID, admissionRequestBody)
 
 	resp, err := json.Marshal(&admissionResp)
 	if err != nil {
-		errmsg := fmt.Sprintf("Error marshalling admission response: %s", err)
-		http.Error(w, errmsg, http.StatusInternalServerError)
-		log.Error().Msgf("Request error, error=%s, code=%v", errmsg, http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Error marshalling admission response: %s", err), http.StatusInternalServerError)
+		log.Error().Err(err).Msgf("Error marshalling admission response; Responded to admission request for pod with UUID %s in namespace %s with HTTP %v", proxyUUID, requestForNamespace, http.StatusInternalServerError)
 		return
 	}
 
 	if _, err := w.Write(resp); err != nil {
-		log.Error().Err(err).Msg("Error writing admission response")
+		log.Error().Err(err).Msgf("Error writing admission response for pod with UUID %s in namespace %s", proxyUUID, requestForNamespace)
 	}
 
-	log.Debug().Msg("Done responding to admission request")
+	log.Trace().Msgf("Done responding to admission request for pod with UUID %s in namespace %s", proxyUUID, requestForNamespace)
 }
 
-func (wh *webhook) mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
+func (wh *webhook) mutate(req *v1beta1.AdmissionRequest, proxyUUID uuid.UUID) *v1beta1.AdmissionResponse {
+	if req == nil {
+		log.Error().Msg("nil admission Request")
+		return admissionError(errNilAdmissionRequest)
+	}
+
 	// Decode the Pod spec from the request
 	var pod corev1.Pod
 	if err := json.Unmarshal(req.Object.Raw, &pod); err != nil {
-		log.Error().Err(err).Msg("Error unmarshaling request to Pod")
-		return toAdmissionError(err)
+		log.Error().Err(err).Msgf("Error unmarshaling request to pod with UUID %s in namespace %s", proxyUUID, req.Namespace)
+		return admissionError(err)
 	}
-	log.Info().Msgf("Mutation request: (new object: %v) (old object: %v)", string(req.Object.Raw), string(req.OldObject.Raw))
+	log.Trace().Msgf("Mutation request: (new object: %v) (old object: %v)", string(req.Object.Raw), string(req.OldObject.Raw))
 
 	// Start building the response
 	resp := &v1beta1.AdmissionResponse{
@@ -190,35 +252,30 @@ func (wh *webhook) mutate(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionRespo
 
 	// Check if we must inject the sidecar
 	if inject, err := wh.mustInject(&pod, req.Namespace); err != nil {
-		log.Error().Err(err).Msg("Error checking if sidecar must be injected")
-		return toAdmissionError(err)
+		log.Error().Err(err).Msgf("Error checking if sidecar must be injected for pod with UUID %s in namespace %s", proxyUUID, req.Namespace)
+		return admissionError(err)
 	} else if !inject {
-		log.Info().Msg("Skipping sidecar injection")
+		log.Trace().Msgf("Skipping sidecar injection for pod with UUID %s in namespace %s", proxyUUID, req.Namespace)
 		return resp
 	}
 
-	// Create the patches for the spec
-	// We use req.Namespace because pod.Namespace is "" at this point
-	patchBytes, err := wh.createPatch(&pod, req.Namespace)
+	patchBytes, err := wh.createPatch(&pod, req.Namespace, proxyUUID)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to create patch")
-		return toAdmissionError(err)
+		log.Error().Err(err).Msgf("Failed to create patch for pod with UUID %s in namespace %s", proxyUUID, req.Namespace)
+		return admissionError(err)
 	}
 
 	patchAdmissionResponse(resp, patchBytes)
-	log.Info().Msg("Done patching admission response")
+	log.Trace().Msgf("Done creating patch admission response for pod with UUID %s in namespace %s", proxyUUID, req.Namespace)
 	return resp
 }
 
-func (wh *webhook) isNamespaceAllowed(namespace string) bool {
-	// Skip Kubernetes system namespaces
-	for _, ns := range kubeSystemNamespaces {
-		if ns == namespace {
-			return false
-		}
-	}
-	// Skip namespaces not being observed
-	return wh.namespaceController.IsMonitoredNamespace(namespace)
+func (wh *webhook) isNamespaceInjectable(namespace string) bool {
+	// Never inject pods in the OSM Controller namespace or kube-public or kube-system
+	isInjectableNS := !wh.nonInjectNamespaces.Contains(namespace)
+
+	// Ignore namespaces not joined in the mesh.
+	return isInjectableNS && wh.kubeController.IsMonitoredNamespace(namespace)
 }
 
 // mustInject determines whether the sidecar must be injected.
@@ -229,26 +286,25 @@ func (wh *webhook) isNamespaceAllowed(namespace string) bool {
 //
 // The function returns an error when it is unable to determine whether to perform sidecar injection.
 func (wh *webhook) mustInject(pod *corev1.Pod, namespace string) (bool, error) {
-	// If the request belongs to a namespace we are not monitoring, skip it
-	if !wh.isNamespaceAllowed(namespace) {
-		log.Info().Msgf("Request belongs to namespace=%s, not in the list of monitored namespaces", namespace)
+	if !wh.isNamespaceInjectable(namespace) {
+		log.Warn().Msgf("Request is for pod with UUID %s in namespace %s; Injection in namespace %s is not permitted", namespace, pod.Name, namespace)
 		return false, nil
 	}
 
 	// Check if the pod is annotated for injection
-	podInjectAnnotationExists, podInject, err := isAnnotatedForInjection(pod.Annotations)
+	podInjectAnnotationExists, podInject, err := isAnnotatedForInjection(pod.Annotations, pod.Kind, fmt.Sprintf("%s/%s", pod.Namespace, pod.Name))
 	if err != nil {
 		log.Error().Err(err).Msg("Error determining if the pod is enabled for sidecar injection")
 		return false, err
 	}
 
 	// Check if the namespace is annotated for injection
-	ns, err := wh.kubeClient.CoreV1().Namespaces().Get(context.Background(), namespace, metav1.GetOptions{})
-	if err != nil {
-		log.Error().Err(err).Msgf("Error retrieving namespace %s", namespace)
+	ns := wh.kubeController.GetNamespace(namespace)
+	if ns == nil {
+		log.Error().Err(errNamespaceNotFound).Msgf("Error retrieving namespace %s", namespace)
 		return false, err
 	}
-	nsInjectAnnotationExists, nsInject, err := isAnnotatedForInjection(ns.Annotations)
+	nsInjectAnnotationExists, nsInject, err := isAnnotatedForInjection(ns.Annotations, ns.Kind, ns.Name)
 	if err != nil {
 		log.Error().Err(err).Msg("Error determining if namespace %s is enabled for sidecar injection")
 		return false, err
@@ -269,9 +325,9 @@ func (wh *webhook) mustInject(pod *corev1.Pod, namespace string) (bool, error) {
 	return false, nil
 }
 
-func isAnnotatedForInjection(annotations map[string]string) (exists bool, enabled bool, err error) {
+func isAnnotatedForInjection(annotations map[string]string, objectKind string, objectName string) (exists bool, enabled bool, err error) {
 	inject := strings.ToLower(annotations[constants.SidecarInjectionAnnotation])
-	log.Trace().Msgf("Sidecar injection annotation: '%s:%s'", constants.SidecarInjectionAnnotation, inject)
+	log.Trace().Msgf("%s %s has sidecar injection annotation: '%s:%s'", objectKind, objectName, constants.SidecarInjectionAnnotation, inject)
 	if inject != "" {
 		exists = true
 		switch inject {
@@ -280,13 +336,13 @@ func isAnnotatedForInjection(annotations map[string]string) (exists bool, enable
 		case "disabled", "no", "false":
 			enabled = false
 		default:
-			err = errors.Errorf("Invalid annotion value specified for annotation %q: %s", constants.SidecarInjectionAnnotation, inject)
+			err = errors.Errorf("Invalid annotation value for key %q: %s", constants.SidecarInjectionAnnotation, inject)
 		}
 	}
 	return
 }
 
-func toAdmissionError(err error) *v1beta1.AdmissionResponse {
+func admissionError(err error) *v1beta1.AdmissionResponse {
 	return &v1beta1.AdmissionResponse{
 		Result: &metav1.Status{
 			Message: err.Error(),
@@ -296,56 +352,50 @@ func toAdmissionError(err error) *v1beta1.AdmissionResponse {
 
 func patchAdmissionResponse(resp *v1beta1.AdmissionResponse, patchBytes []byte) {
 	resp.Patch = patchBytes
-	resp.PatchType = func() *v1beta1.PatchType {
-		pt := v1beta1.PatchTypeJSONPatch
-		return &pt
-	}()
+	pt := v1beta1.PatchTypeJSONPatch
+	resp.PatchType = &pt
 }
 
-func patchMutatingWebhookConfiguration(cert certificate.Certificater, meshName, osmNamespace, webhookName string, clientSet kubernetes.Interface) error {
-	if err := hookExists(clientSet, webhookName); err != nil {
-		log.Error().Err(err).Msgf("Error getting webhook %s", webhookName)
-	}
-	updatedWH := admissionv1beta1.MutatingWebhookConfiguration{
+// getPartialMutatingWebhookConfiguration returns only the portion of the MutatingWebhookConfiguration that needs to be updated.
+func getPartialMutatingWebhookConfiguration(cert certificate.Certificater, webhookConfigName string) admissionv1beta1.MutatingWebhookConfiguration {
+	return admissionv1beta1.MutatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: webhookName,
+			Name: webhookConfigName,
 		},
 		Webhooks: []admissionv1beta1.MutatingWebhook{
 			{
-				Name: osmWebhookName,
+				Name: MutatingWebhookName,
 				ClientConfig: admissionv1beta1.WebhookClientConfig{
 					CABundle: cert.GetCertificateChain(),
-				},
-				Rules: []admissionv1beta1.RuleWithOperations{
-					{
-						Operations: []admissionv1beta1.OperationType{admissionv1beta1.Create},
-						Rule: admissionv1beta1.Rule{
-							APIGroups:   []string{""},
-							APIVersions: []string{"v1"},
-							Resources:   []string{"pods"},
-						},
-					},
 				},
 			},
 		},
 	}
-	data, err := json.Marshal(updatedWH)
+}
+
+// updateMutatingWebhookCABundle updates the existing MutatingWebhookConfiguration with the CA this OSM instance runs with.
+// It is necessary to perform this patch because the original MutatingWebhookConfig YAML does not contain the root certificate.
+func updateMutatingWebhookCABundle(cert certificate.Certificater, webhookName string, clientSet kubernetes.Interface) error {
+	mwc := clientSet.AdmissionregistrationV1beta1().MutatingWebhookConfigurations()
+	if err := webhookExists(mwc, webhookName); err != nil {
+		log.Error().Err(err).Msgf("Error getting MutatingWebhookConfiguration %s; Will not update CA Bundle for webhook", webhookName)
+	}
+
+	patchJSON, err := json.Marshal(getPartialMutatingWebhookConfiguration(cert, webhookName))
 	if err != nil {
 		return err
 	}
 
-	_, err = clientSet.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Patch(
-		context.Background(), webhookName, types.StrategicMergePatchType, data, metav1.PatchOptions{})
-	if err != nil {
-		log.Error().Err(err).Msgf("Error configuring webhook %s", webhookName)
+	if _, err = mwc.Patch(context.Background(), webhookName, types.StrategicMergePatchType, patchJSON, metav1.PatchOptions{}); err != nil {
+		log.Error().Err(err).Msgf("Error updating CA Bundle for MutatingWebhookConfiguration %s", webhookName)
 		return err
 	}
 
-	log.Info().Msgf("Configured MutatingWebhookConfiguration %s", webhookName)
+	log.Info().Msgf("Finished updating CA Bundle for MutatingWebhookConfiguration %s", webhookName)
 	return nil
 }
 
-func hookExists(clientSet kubernetes.Interface, webhookName string) error {
-	_, err := clientSet.AdmissionregistrationV1beta1().MutatingWebhookConfigurations().Get(context.Background(), webhookName, metav1.GetOptions{})
+func webhookExists(mwc admissionRegistrationTypes.MutatingWebhookConfigurationInterface, webhookName string) error {
+	_, err := mwc.Get(context.Background(), webhookName, metav1.GetOptions{})
 	return err
 }

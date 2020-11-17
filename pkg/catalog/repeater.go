@@ -3,6 +3,10 @@ package catalog
 import (
 	"reflect"
 	"time"
+
+	mapset "github.com/deckarep/golang-set"
+
+	"github.com/openservicemesh/osm/pkg/announcements"
 )
 
 const (
@@ -10,17 +14,32 @@ const (
 	updateAtLeastEvery = 1 * time.Minute
 )
 
-// repeater rebroadcasts announcements from SMI, Secrets, Endpoints providers etc. to all connected proxies.
+// This is a set of announcement types that are explicitly handled
+// and there is no need to call the legacy broadcastToAllProxies() for these
+var alreadyHandled = mapset.NewSetFromSlice([]interface{}{
+	announcements.PodDeleted,
+})
+
+// repeater is a goroutine, which rebroadcasts announcements from SMI, Secrets, Endpoints providers etc. to all connected proxies.
 func (mc *MeshCatalog) repeater() {
 	lastUpdateAt := time.Now().Add(-1 * updateAtMostEvery)
 	for {
 		cases, caseNames := mc.getCases()
 		for {
 			if chosenIdx, message, ok := reflect.Select(cases); ok {
-				log.Info().Msgf("[repeater] Received announcement from %s", caseNames[chosenIdx])
+				ann, ok := message.Interface().(announcements.Announcement)
+				if !ok {
+					log.Error().Msgf("Repeater received a interface{} message, which is not an Announcement")
+					continue
+				}
+
+				log.Trace().Msgf("Handling announcement from %s: %+v", caseNames[chosenIdx], ann)
+
+				mc.handleAnnouncement(ann)
+
 				delta := time.Since(lastUpdateAt)
-				if delta >= updateAtMostEvery {
-					mc.broadcast(message)
+				if !alreadyHandled.Contains(ann.Type) && delta >= updateAtMostEvery {
+					mc.broadcastToAllProxies(ann)
 					lastUpdateAt = time.Now()
 				}
 			}
@@ -28,26 +47,39 @@ func (mc *MeshCatalog) repeater() {
 	}
 }
 
+func (mc *MeshCatalog) handleAnnouncement(ann announcements.Announcement) {
+	handlers, ok := mc.announcementHandlerPerType[ann.Type]
+	if !ok {
+		log.Error().Msgf("No handler for announcement of type %+v", ann.Type)
+		return
+	}
+
+	for _, handler := range handlers {
+		if err := handler(ann); err != nil {
+			log.Error().Err(err).Msgf("Error handling announcement %s", ann.Type)
+		}
+	}
+}
+
 func (mc *MeshCatalog) getCases() ([]reflect.SelectCase, []string) {
 	var caseNames []string
 	var cases []reflect.SelectCase
-	for _, channelInterface := range mc.announcementChannels.ToSlice() {
-		annCh := channelInterface.(announcementChannel)
+	for _, annCh := range mc.getAnnouncementChannels() {
 		cases = append(cases, reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(annCh.channel)})
 		caseNames = append(caseNames, annCh.announcer)
 	}
 	return cases, caseNames
 }
 
-func (mc *MeshCatalog) broadcast(message interface{}) {
-	mc.connectedProxiesLock.Lock()
-	for _, connectedEnvoy := range mc.connectedProxies {
-		log.Debug().Msgf("[repeater] Broadcast announcement to envoy %s", connectedEnvoy.proxy.GetCommonName())
+func (mc *MeshCatalog) broadcastToAllProxies(message announcements.Announcement) {
+	mc.connectedProxies.Range(func(_, connectedEnvoyInterface interface{}) bool {
+		connectedEnvoy := connectedEnvoyInterface.(connectedProxy)
+		log.Debug().Msgf("[repeater] Broadcast announcement to Envoy with CN %s", connectedEnvoy.proxy.GetCommonName())
 		select {
 		// send the message if possible - do not block
 		case connectedEnvoy.proxy.GetAnnouncementsChannel() <- message:
 		default:
 		}
-	}
-	mc.connectedProxiesLock.Unlock()
+		return true
+	})
 }

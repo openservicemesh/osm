@@ -14,6 +14,11 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
+const (
+	inboundIngressHTTPSFilterChain = "inbound-ingress-https-filter-chain"
+	inboundIngressHTTPFilterChain  = "inbound-ingress-http-filter-chain"
+)
+
 func getIngressTransportProtocol(cfg configurator.Configurator) string {
 	if cfg.UseHTTPSIngress() {
 		return envoy.TransportProtocolTLS
@@ -58,12 +63,14 @@ func getIngressFilterChains(svc service.MeshService, cfg configurator.Configurat
 	if cfg.UseHTTPSIngress() {
 		// Filter chain with SNI matching enabled for HTTPS clients that set the SNI
 		ingressFilterChainWithSNI := newIngressFilterChain(cfg, svc)
-		ingressFilterChainWithSNI.FilterChainMatch.ServerNames = []string{svc.GetCommonName().String()}
+		ingressFilterChainWithSNI.Name = inboundIngressHTTPSFilterChain
+		ingressFilterChainWithSNI.FilterChainMatch.ServerNames = []string{svc.ServerName()}
 		ingressFilterChains = append(ingressFilterChains, ingressFilterChainWithSNI)
 	}
 
 	// Filter chain without SNI matching enabled for HTTP clients and HTTPS clients that don't set the SNI
 	ingressFilterChainWithoutSNI := newIngressFilterChain(cfg, svc)
+	ingressFilterChainWithoutSNI.Name = inboundIngressHTTPFilterChain
 	ingressFilterChains = append(ingressFilterChains, ingressFilterChainWithoutSNI)
 
 	return ingressFilterChains

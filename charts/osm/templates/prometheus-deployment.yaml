@@ -1,4 +1,4 @@
-{{- if .Values.OpenServiceMesh.enableMetricsStack }}
+{{- if .Values.OpenServiceMesh.enablePrometheus }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:

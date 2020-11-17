@@ -11,15 +11,18 @@ GOPATH = $(shell go env GOPATH)
 GOBIN  = $(GOPATH)/bin
 GOX    = go run github.com/mitchellh/gox
 
-CLI_VERSION ?= dev
-CONTROLLER_VERSION = $$(git describe --abbrev=0 --tags)
+VERSION ?= dev
 BUILD_DATE=$$(date +%Y-%m-%d-%H:%M)
 GIT_SHA=$$(git rev-parse HEAD)
 BUILD_DATE_VAR := github.com/openservicemesh/osm/pkg/version.BuildDate
 BUILD_VERSION_VAR := github.com/openservicemesh/osm/pkg/version.Version
 BUILD_GITCOMMIT_VAR := github.com/openservicemesh/osm/pkg/version.GitCommit
 
-LDFLAGS ?= "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(CLI_VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -X main.chartTGZSource=$$(cat -) -s -w"
+LDFLAGS ?= "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -X main.chartTGZSource=$$(cat -) -s -w"
+
+# These two values are combined and passed to go test
+E2E_FLAGS ?= -kindCluster
+E2E_FLAGS_DEFAULT := -test.v -ginkgo.v -ginkgo.progress -ctrRegistry $(CTR_REGISTRY) -osmImageTag $(CTR_TAG)
 
 check-env:
 ifndef CTR_REGISTRY
@@ -42,7 +45,7 @@ build: build-osm-controller
 
 .PHONY: build-osm-controller
 build-osm-controller: clean-osm-controller
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o ./bin/osm-controller/osm-controller -ldflags "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(CONTROLLER_VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -s -w" ./cmd/osm-controller
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o ./bin/osm-controller/osm-controller -ldflags "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -s -w" ./cmd/osm-controller
 
 .PHONY: build-osm
 build-osm:
@@ -52,8 +55,12 @@ build-osm:
 clean-osm:
 	@rm -rf bin/osm
 
+.PHONY: chart-readme
+chart-readme:
+	go run github.com/norwoodj/helm-docs/cmd/helm-docs -c charts
+
 .PHONY: go-checks
-go-checks: go-lint go-fmt
+go-checks: go-lint go-fmt go-mod-tidy
 
 .PHONY: go-vet
 go-vet:
@@ -61,11 +68,15 @@ go-vet:
 
 .PHONY: go-lint
 go-lint:
-	go run github.com/golangci/golangci-lint/cmd/golangci-lint run
+	go run github.com/golangci/golangci-lint/cmd/golangci-lint run --config .golangci.yml
 
 .PHONY: go-fmt
 go-fmt:
 	go fmt ./...
+
+.PHONY: go-mod-tidy
+go-mod-tidy:
+	./scripts/go-mod-tidy.sh
 
 .PHONY: go-test
 go-test:
@@ -82,6 +93,10 @@ kind-up:
 .PHONY: kind-reset
 kind-reset:
 	kind delete cluster --name osm
+
+.PHONY: test-e2e
+test-e2e: docker-build-osm-controller docker-build-init build-osm
+	go test ./tests/e2e $(E2E_FLAGS_DEFAULT) $(E2E_FLAGS)
 
 .env:
 	cp .env.example .env
@@ -126,14 +141,10 @@ DOCKER_PUSH_TARGETS = $(addprefix docker-push-, $(DEMO_TARGETS) init osm-control
 $(DOCKER_PUSH_TARGETS): NAME=$(@:docker-push-%=%)
 $(DOCKER_PUSH_TARGETS):
 	make docker-build-$(NAME)
-	docker push "$(CTR_REGISTRY)/$(NAME):$(CTR_TAG)"
+	docker push "$(CTR_REGISTRY)/$(NAME):$(CTR_TAG)" || { echo "Error pushing images to container registry $(CTR_REGISTRY)/$(NAME):$(CTR_TAG)"; exit 1; }
 
 .PHONY: docker-push
 docker-push: $(DOCKER_PUSH_TARGETS)
-
-.PHONY: generate-crds
-generate-crds:
-	@./crd/generate-AzureResource.sh
 
 .PHONY: shellcheck
 shellcheck:
@@ -157,8 +168,8 @@ dist:
 		cd _dist && \
 		$(DIST_DIRS) cp ../LICENSE {} \; && \
 		$(DIST_DIRS) cp ../README.md {} \; && \
-		$(DIST_DIRS) tar -zcf osm-${CLI_VERSION}-{}.tar.gz {} \; && \
-		$(DIST_DIRS) zip -r osm-${CLI_VERSION}-{}.zip {} \; && \
+		$(DIST_DIRS) tar -zcf osm-${VERSION}-{}.tar.gz {} \; && \
+		$(DIST_DIRS) zip -r osm-${VERSION}-{}.zip {} \; && \
 		sha256sum osm-* > sha256sums.txt \
 	)
 

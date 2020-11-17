@@ -2,14 +2,13 @@ package kube
 
 import (
 	"context"
+	"fmt"
 	"net"
-	"time"
 
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	appsv1 "k8s.io/api/apps/v1"
+	"github.com/golang/mock/gomock"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,7 +16,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
-	"github.com/openservicemesh/osm/pkg/namespace"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 	"github.com/openservicemesh/osm/pkg/utils"
@@ -25,20 +24,21 @@ import (
 
 var _ = Describe("Test Kube Client Provider", func() {
 	var (
-		mockCtrl         *gomock.Controller
-		mockNsController *namespace.MockController
+		mockCtrl           *gomock.Controller
+		mockKubeController *k8s.MockController
+		mockConfigurator   *configurator.MockConfigurator
 	)
 	mockCtrl = gomock.NewController(GinkgoT())
-	mockNsController = namespace.NewMockController(mockCtrl)
+	mockKubeController = k8s.NewMockController(mockCtrl)
+	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
 
 	fakeClientSet := fake.NewSimpleClientset()
 	stopChann := make(chan struct{})
-	cfg := configurator.NewFakeConfigurator()
 	providerID := "provider"
 
-	cli, err := NewProvider(fakeClientSet, mockNsController, stopChann, providerID, cfg)
+	cli, err := NewProvider(fakeClientSet, mockKubeController, stopChann, providerID, mockConfigurator)
 
-	mockNsController.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).AnyTimes()
+	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).AnyTimes()
 	Context("when testing ListEndpointsForService", func() {
 		It("verifies new Provider at context scope succeeded", func() {
 			Expect(err).To(BeNil())
@@ -50,7 +50,7 @@ var _ = Describe("Test Kube Client Provider", func() {
 
 		It("should correctly return a list of endpoints for a service", func() {
 			// Should be empty for now
-			Expect(cli.ListEndpointsForService(tests.BookbuyerService)).To(Equal([]endpoint.Endpoint{}))
+			Expect(cli.ListEndpointsForService(tests.BookbuyerService)).To(BeNil())
 
 			// Create bookbuyer endpoint in Bookbuyer namespace
 			endp := &corev1.Endpoints{
@@ -79,11 +79,67 @@ var _ = Describe("Test Kube Client Provider", func() {
 				},
 			}
 
-			fakeClientSet.CoreV1().Endpoints(tests.BookbuyerService.Namespace).
+			_, err = fakeClientSet.CoreV1().Endpoints(tests.BookbuyerService.Namespace).
 				Create(context.TODO(), endp, metav1.CreateOptions{})
+			Expect(err).To(BeNil())
 
 			<-cli.GetAnnouncementsChannel()
 			Expect(cli.ListEndpointsForService(tests.BookbuyerService)).To(Equal([]endpoint.Endpoint{
+				{
+					IP:   net.IPv4(8, 8, 8, 8),
+					Port: 88,
+				},
+			}))
+		})
+
+		It("GetResolvableEndpoints should properly return Cluster IP or Endpoints when present or not", func() {
+			// Should be empty for now
+
+			// If the service has cluster IP, expect the cluster IP + port
+			mockKubeController.EXPECT().GetService(tests.BookbuyerService).Return(&corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      tests.BookbuyerService.Name,
+					Namespace: tests.BookbuyerService.Namespace,
+				},
+				Spec: corev1.ServiceSpec{
+					ClusterIP: "192.168.0.1",
+					Ports: []corev1.ServicePort{{
+						Name:     "servicePort",
+						Protocol: corev1.ProtocolTCP,
+						Port:     tests.ServicePort,
+					}},
+					Selector: map[string]string{
+						"some-label": "test",
+					},
+				},
+			})
+
+			Expect(cli.GetResolvableEndpointsForService(tests.BookbuyerService)).To(Equal([]endpoint.Endpoint{
+				{
+					IP:   net.IPv4(192, 168, 0, 1),
+					Port: tests.ServicePort,
+				},
+			}))
+
+			// Expect the individual pod endpoints, when no cluster IP is assigned to the service
+			mockKubeController.EXPECT().GetService(tests.BookbuyerService).Return(&corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      tests.BookbuyerService.Name,
+					Namespace: tests.BookbuyerService.Namespace,
+				},
+				Spec: corev1.ServiceSpec{
+					Ports: []corev1.ServicePort{{
+						Name:     "servicePort",
+						Protocol: corev1.ProtocolTCP,
+						Port:     tests.ServicePort,
+					}},
+					Selector: map[string]string{
+						"some-label": "test",
+					},
+				},
+			})
+
+			Expect(cli.GetResolvableEndpointsForService(tests.BookbuyerService)).To(Equal([]endpoint.Endpoint{
 				{
 					IP:   net.IPv4(8, 8, 8, 8),
 					Port: 88,
@@ -110,7 +166,7 @@ var _ = Describe("Test Kube Client Provider", func() {
 
 		It("returns the services for a given service account", func() {
 			c := NewFakeProvider()
-			actual := c.ListEndpointsForService(tests.BookstoreService)
+			actual := c.ListEndpointsForService(tests.BookstoreV1Service)
 			expected := []endpoint.Endpoint{{
 				IP:   net.ParseIP("8.8.8.8"),
 				Port: 8888,
@@ -122,7 +178,7 @@ var _ = Describe("Test Kube Client Provider", func() {
 
 			sMesh, err := c.GetServicesForServiceAccount(tests.BookstoreServiceAccount)
 			Expect(err).To(BeNil())
-			expectedServices := []service.MeshService{tests.BookstoreService, tests.BookstoreApexService}
+			expectedServices := []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service, tests.BookstoreApexService}
 			Expect(sMesh).To(Equal(expectedServices))
 
 			sMesh2, err := c.GetServicesForServiceAccount(tests.BookbuyerServiceAccount)
@@ -135,11 +191,13 @@ var _ = Describe("Test Kube Client Provider", func() {
 
 var _ = Describe("When getting a Service associated with a ServiceAccount", func() {
 	var (
-		mockCtrl         *gomock.Controller
-		mockNsController *namespace.MockController
+		mockCtrl           *gomock.Controller
+		mockKubeController *k8s.MockController
+		mockConfigurator   *configurator.MockConfigurator
 	)
 	mockCtrl = gomock.NewController(GinkgoT())
-	mockNsController = namespace.NewMockController(mockCtrl)
+	mockKubeController = k8s.NewMockController(mockCtrl)
+	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
 
 	var (
 		fakeClientSet *fake.Clientset
@@ -149,18 +207,45 @@ var _ = Describe("When getting a Service associated with a ServiceAccount", func
 
 	providerID := "test-provider"
 	testNamespace := "test"
-	cfg := configurator.NewFakeConfigurator()
 	stop := make(chan struct{})
 
-	mockNsController.EXPECT().IsMonitoredNamespace(testNamespace).Return(true).AnyTimes()
+	// Configure the controller
+	listMonitoredNs := []string{
+		testNamespace,
+	}
+	mockKubeController.EXPECT().ListServices().DoAndReturn(func() []*corev1.Service {
+		var services []*corev1.Service
+
+		for _, ns := range listMonitoredNs {
+			// simulate lookup on controller cache
+			svcList, _ := fakeClientSet.CoreV1().Services(ns).List(context.TODO(), metav1.ListOptions{})
+			for serviceIdx := range svcList.Items {
+				services = append(services, &svcList.Items[serviceIdx])
+			}
+		}
+
+		return services
+	}).AnyTimes()
+	mockKubeController.EXPECT().GetService(gomock.Any()).DoAndReturn(func(msh service.MeshService) *v1.Service {
+		// simulate lookup on controller cache
+		vv, err := fakeClientSet.CoreV1().Services(msh.Namespace).Get(context.TODO(), msh.Name, metav1.GetOptions{})
+
+		if err != nil {
+			return nil
+		}
+
+		return vv
+	}).AnyTimes()
+
+	mockKubeController.EXPECT().IsMonitoredNamespace(testNamespace).Return(true).AnyTimes()
 
 	BeforeEach(func() {
 		fakeClientSet = fake.NewSimpleClientset()
-		provider, err = NewProvider(fakeClientSet, mockNsController, stop, providerID, cfg)
+		provider, err = NewProvider(fakeClientSet, mockKubeController, stop, providerID, mockConfigurator)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
-	It("should return not return a service when a Deployment matching the selector doesn't exist", func() {
+	It("should return not return a service when a pod matching the selector doesn't exist", func() {
 		svc := &corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-1",
@@ -181,16 +266,17 @@ var _ = Describe("When getting a Service associated with a ServiceAccount", func
 		_, err := fakeClientSet.CoreV1().Services(testNamespace).Create(context.TODO(), svc, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 
-		Eventually(func() error {
-			_, err := provider.GetServicesForServiceAccount(tests.BookbuyerServiceAccount)
-			return err
-		}, 2*time.Second).Should(HaveOccurred())
+		services, err := provider.GetServicesForServiceAccount(tests.BookbuyerServiceAccount)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(len(services)).To(Equal(1))
+		expectedServiceName := fmt.Sprintf("bookbuyer.default.osm.synthetic-%s", service.SyntheticServiceSuffix)
+		Expect(services[0].Name).To(Equal(expectedServiceName))
 
 		err = fakeClientSet.CoreV1().Services(testNamespace).Delete(context.TODO(), svc.Name, metav1.DeleteOptions{})
 		Expect(err).ToNot(HaveOccurred())
 	})
 
-	It("should return a service that matches the ServiceAccount associated with the Deployment", func() {
+	It("should return a service that matches the ServiceAccount associated with the Pod", func() {
 		// Create a Service
 		svc := &corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
@@ -212,39 +298,25 @@ var _ = Describe("When getting a Service associated with a ServiceAccount", func
 		_, err := fakeClientSet.CoreV1().Services(testNamespace).Create(context.TODO(), svc, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 
-		// Create a Deployment with labels that match the service selector
-		deployment := &appsv1.Deployment{
+		// Create a pod with labels that match the service selector
+		pod := &corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test",
-				Namespace: testNamespace,
-			},
-			Spec: appsv1.DeploymentSpec{
-				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{
-						"some-label": "test",
-						"version":    "v1",
-					},
+				Labels: map[string]string{
+					"some-label": "test",
+					"version":    "v1",
 				},
-				Template: corev1.PodTemplateSpec{
-					ObjectMeta: metav1.ObjectMeta{
-						Labels: map[string]string{
-							"some-label": "test",
-							"version":    "v1",
-						},
-					},
-					Spec: corev1.PodSpec{
-						ServiceAccountName: "test-service-account",
-						Containers: []corev1.Container{
+			},
+			Spec: corev1.PodSpec{
+				ServiceAccountName: "test-service-account",
+				Containers: []corev1.Container{
+					{
+						Name:  "BookbuyerContainerA",
+						Image: "random",
+						Ports: []corev1.ContainerPort{
 							{
-								Name:  "BookbuyerContainerA",
-								Image: "random",
-								Ports: []corev1.ContainerPort{
-									{
-										Name:          "http",
-										Protocol:      corev1.ProtocolTCP,
-										ContainerPort: 80,
-									},
-								},
+								Name:          "http",
+								Protocol:      corev1.ProtocolTCP,
+								ContainerPort: 80,
 							},
 						},
 					},
@@ -252,16 +324,16 @@ var _ = Describe("When getting a Service associated with a ServiceAccount", func
 			},
 		}
 
-		_, err = fakeClientSet.AppsV1().Deployments(testNamespace).Create(context.Background(), deployment, metav1.CreateOptions{})
+		_, err = fakeClientSet.CoreV1().Pods(testNamespace).Create(context.Background(), pod, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 		<-provider.GetAnnouncementsChannel()
 
 		givenSvcAccount := service.K8sServiceAccount{
 			Namespace: testNamespace,
-			Name:      "test-service-account", // Should match the service account in the Deployment spec above
+			Name:      "test-service-account", // Should match the service account in the Pod spec above
 		}
 
-		// Expect a MeshService that corresponds to a Service that matches the Deployment spec labels
+		// Expect a MeshService that corresponds to a Service that matches the Pod spec labels
 		expectedMeshSvc := utils.K8sSvcToMeshSvc(svc)
 
 		meshSvcs, err := provider.GetServicesForServiceAccount(givenSvcAccount)
@@ -269,12 +341,12 @@ var _ = Describe("When getting a Service associated with a ServiceAccount", func
 		expectedMeshSvcs := []service.MeshService{expectedMeshSvc}
 		Expect(meshSvcs).To(Equal(expectedMeshSvcs))
 
-		err = fakeClientSet.AppsV1().Deployments(testNamespace).Delete(context.Background(), deployment.Name, metav1.DeleteOptions{})
+		err = fakeClientSet.CoreV1().Pods(testNamespace).Delete(context.Background(), pod.Name, metav1.DeleteOptions{})
 		Expect(err).ToNot(HaveOccurred())
 		<-provider.GetAnnouncementsChannel()
 	})
 
-	It("should return an error when the Service selector doesn't match the deployment", func() {
+	It("should return an error when the Service selector doesn't match the pod", func() {
 		// Create a Service
 		svc := &corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
@@ -297,37 +369,24 @@ var _ = Describe("When getting a Service associated with a ServiceAccount", func
 		_, err := fakeClientSet.CoreV1().Services(testNamespace).Create(context.TODO(), svc, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 
-		// Create a Deployment with labels that match the service selector
-		deployment := &appsv1.Deployment{
+		// Create a Pod with labels that match the service selector
+		pod := &corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test",
-				Namespace: testNamespace,
-			},
-			Spec: appsv1.DeploymentSpec{
-				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{
-						"app": "test",
-					},
+				Labels: map[string]string{
+					"app": "test",
 				},
-				Template: corev1.PodTemplateSpec{
-					ObjectMeta: metav1.ObjectMeta{
-						Labels: map[string]string{
-							"app": "test",
-						},
-					},
-					Spec: corev1.PodSpec{
-						ServiceAccountName: "test-service-account",
-						Containers: []corev1.Container{
+			},
+			Spec: corev1.PodSpec{
+				ServiceAccountName: "test-service-account",
+				Containers: []corev1.Container{
+					{
+						Name:  "BookbuyerContainerA",
+						Image: "random",
+						Ports: []corev1.ContainerPort{
 							{
-								Name:  "BookbuyerContainerA",
-								Image: "random",
-								Ports: []corev1.ContainerPort{
-									{
-										Name:          "http",
-										Protocol:      corev1.ProtocolTCP,
-										ContainerPort: 80,
-									},
-								},
+								Name:          "http",
+								Protocol:      corev1.ProtocolTCP,
+								ContainerPort: 80,
 							},
 						},
 					},
@@ -335,7 +394,7 @@ var _ = Describe("When getting a Service associated with a ServiceAccount", func
 			},
 		}
 
-		_, err = fakeClientSet.AppsV1().Deployments(testNamespace).Create(context.Background(), deployment, metav1.CreateOptions{})
+		_, err = fakeClientSet.CoreV1().Pods(testNamespace).Create(context.Background(), pod, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 		<-provider.GetAnnouncementsChannel()
 
@@ -345,16 +404,18 @@ var _ = Describe("When getting a Service associated with a ServiceAccount", func
 		}
 
 		// Expect a MeshService that corresponds to a Service that matches the Deployment spec labels
-		_, err = provider.GetServicesForServiceAccount(givenSvcAccount)
-		Expect(err).To(HaveOccurred())
-		Expect(err).To(MatchError(errDidNotFindServiceForServiceAccount))
+		svcs, err := provider.GetServicesForServiceAccount(givenSvcAccount)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(len(svcs)).To(Equal(1))
+		expectedServiceName := fmt.Sprintf("test-service-account.test.osm.synthetic-%s", service.SyntheticServiceSuffix)
+		Expect(svcs[0].Name).To(Equal(expectedServiceName))
 
-		err = fakeClientSet.AppsV1().Deployments(testNamespace).Delete(context.Background(), deployment.Name, metav1.DeleteOptions{})
+		err = fakeClientSet.CoreV1().Pods(testNamespace).Delete(context.Background(), pod.Name, metav1.DeleteOptions{})
 		Expect(err).ToNot(HaveOccurred())
 		<-provider.GetAnnouncementsChannel()
 	})
 
-	It("should return all services when multiple services match the same deployment", func() {
+	It("should return all services when multiple services match the same Pod", func() {
 		// This test is meant to ensure the
 		// service selector logic works as expected when multiple services
 		// have the same selector match.
@@ -386,39 +447,25 @@ var _ = Describe("When getting a Service associated with a ServiceAccount", func
 		_, err = fakeClientSet.CoreV1().Services(testNamespace).Create(context.TODO(), &svc2, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 
-		// Create a Deployment with labels that match the service selector
-		deployment := &appsv1.Deployment{
+		// Create a Pod with labels that match the service selector
+		pod := &corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test",
-				Namespace: testNamespace,
-			},
-			Spec: appsv1.DeploymentSpec{
-				Selector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{
-						"some-label": "test",
-						"version":    "v1",
-					},
+				Labels: map[string]string{
+					"some-label": "test",
+					"version":    "v1",
 				},
-				Template: corev1.PodTemplateSpec{
-					ObjectMeta: metav1.ObjectMeta{
-						Labels: map[string]string{
-							"some-label": "test",
-							"version":    "v1",
-						},
-					},
-					Spec: corev1.PodSpec{
-						ServiceAccountName: "test-service-account",
-						Containers: []corev1.Container{
+			},
+			Spec: corev1.PodSpec{
+				ServiceAccountName: "test-service-account",
+				Containers: []corev1.Container{
+					{
+						Name:  "BookbuyerContainerA",
+						Image: "random",
+						Ports: []corev1.ContainerPort{
 							{
-								Name:  "BookbuyerContainerA",
-								Image: "random",
-								Ports: []corev1.ContainerPort{
-									{
-										Name:          "http",
-										Protocol:      corev1.ProtocolTCP,
-										ContainerPort: 80,
-									},
-								},
+								Name:          "http",
+								Protocol:      corev1.ProtocolTCP,
+								ContainerPort: 80,
 							},
 						},
 					},
@@ -426,7 +473,7 @@ var _ = Describe("When getting a Service associated with a ServiceAccount", func
 			},
 		}
 
-		_, err = fakeClientSet.AppsV1().Deployments(testNamespace).Create(context.Background(), deployment, metav1.CreateOptions{})
+		_, err = fakeClientSet.CoreV1().Pods(testNamespace).Create(context.Background(), pod, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 		<-provider.GetAnnouncementsChannel()
 
@@ -445,7 +492,7 @@ var _ = Describe("When getting a Service associated with a ServiceAccount", func
 		Expect(meshServices[0]).To(BeElementOf(expectedServices))
 		Expect(meshServices[1]).To(BeElementOf(expectedServices))
 
-		err = fakeClientSet.AppsV1().Deployments(testNamespace).Delete(context.Background(), deployment.Name, metav1.DeleteOptions{})
+		err = fakeClientSet.CoreV1().Pods(testNamespace).Delete(context.Background(), pod.Name, metav1.DeleteOptions{})
 		Expect(err).ToNot(HaveOccurred())
 		<-provider.GetAnnouncementsChannel()
 	})

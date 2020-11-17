@@ -17,17 +17,24 @@ import (
 
 const namespaceAddDescription = `
 This command will add a namespace or a set of namespaces
-to the mesh. Optionally, the namespaces can be configured
-for automatic sidecar injection which enables pods in the
-added namespaces to be injected with a sidecar upon creation.
+to the mesh so that osm-controller can observe resources belonging
+to mesh namespaces, automatic sidecar injection is disabled by
+default. The namespaces will be configured for automatic sidecar,
+which can be optionally disabled.
 `
+const namespaceAddExample = `
+# Add namespace 'test' to the mesh with automatic sidecar injection enabled.
+osm namespace add test
+
+# Add namespace 'test' to the mesh while disabling automatic sidecar injection. If sidecar injection was previously enabled, it will be disabled by this command.
+osm namespace add test --disable-sidecar-injection`
 
 type namespaceAddCmd struct {
-	out                    io.Writer
-	namespaces             []string
-	meshName               string
-	enableSidecarInjection bool
-	clientSet              kubernetes.Interface
+	out                     io.Writer
+	namespaces              []string
+	meshName                string
+	disableSidecarInjection bool
+	clientSet               kubernetes.Interface
 }
 
 func newNamespaceAdd(out io.Writer) *cobra.Command {
@@ -40,26 +47,29 @@ func newNamespaceAdd(out io.Writer) *cobra.Command {
 		Short: "add namespace to mesh",
 		Long:  namespaceAddDescription,
 		Args:  cobra.MinimumNArgs(1),
-		RunE: func(_ *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			namespaceAdd.namespaces = args
 			config, err := settings.RESTClientGetter().ToRESTConfig()
 			if err != nil {
-				return errors.Errorf("Error fetching kubeconfig")
+				return errors.Errorf("Error fetching kubeconfig: %s", err)
 			}
 
 			clientset, err := kubernetes.NewForConfig(config)
 			if err != nil {
-				return errors.Errorf("Could not access Kubernetes cluster. Check kubeconfig")
+				return errors.Errorf("Could not access Kubernetes cluster, check kubeconfig: %s", err)
 			}
 			namespaceAdd.clientSet = clientset
 			return namespaceAdd.run()
 		},
+		Example: namespaceAddExample,
 	}
 
 	//add mesh name flag
 	f := cmd.Flags()
 	f.StringVar(&namespaceAdd.meshName, "mesh-name", "osm", "Name of the service mesh")
-	f.BoolVar(&namespaceAdd.enableSidecarInjection, "enable-sidecar-injection", false, "Enable automatic sidecar injection")
+
+	//add sidecar injection flag
+	f.BoolVar(&namespaceAdd.disableSidecarInjection, "disable-sidecar-injection", false, "Disable automatic sidecar injection")
 
 	return cmd
 }
@@ -79,12 +89,28 @@ func (a *namespaceAddCmd) run() error {
 
 		// if osm-controller is installed in this namespace then don't add that to mesh
 		if len(list.Items) != 0 {
-			fmt.Fprintf(a.out, "Namespace [%s] already has [%s] installed and cannot be added to mesh [%s]\n", ns, constants.OSMControllerName, a.meshName)
+			_, _ = fmt.Fprintf(a.out, "Namespace [%s] already has [%s] installed and cannot be added to mesh [%s]\n", ns, constants.OSMControllerName, a.meshName)
+			continue
+		}
+
+		var patch string
+		if a.disableSidecarInjection {
+			// Patch the namespace with monitoring label and disable sidecar injection if previously enabled.
+			patch = fmt.Sprintf(`
+{
+	"metadata": {
+		"labels": {
+			"%s": "%s"
+		},
+		"annotations": {
+			"%s": null
+		}
+	}
+}`, constants.OSMKubeResourceMonitorAnnotation, a.meshName, constants.SidecarInjectionAnnotation)
 		} else {
-			var patch string
-			if a.enableSidecarInjection {
-				// Patch the namespace with the monitoring label and sidecar injection annotation
-				patch = fmt.Sprintf(`
+			// Patch the namespace with the monitoring label.
+			// Enable sidecar injection.
+			patch = fmt.Sprintf(`
 {
 	"metadata": {
 		"labels": {
@@ -95,25 +121,14 @@ func (a *namespaceAddCmd) run() error {
 		}
 	}
 }`, constants.OSMKubeResourceMonitorAnnotation, a.meshName, constants.SidecarInjectionAnnotation)
-			} else {
-				// Patch the namespace with monitoring label
-				patch = fmt.Sprintf(`
-{
-	"metadata": {
-		"labels": {
-			"%s": "%s"
 		}
-	}
-}`, constants.OSMKubeResourceMonitorAnnotation, a.meshName)
-			}
 
-			_, err := a.clientSet.CoreV1().Namespaces().Patch(ctx, ns, types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{}, "")
-			if err != nil {
-				return errors.Errorf("Could not add namespace [%s] to mesh [%s]: %v", ns, a.meshName, err)
-			}
-
-			fmt.Fprintf(a.out, "Namespace [%s] successfully added to mesh [%s]\n", ns, a.meshName)
+		_, err := a.clientSet.CoreV1().Namespaces().Patch(ctx, ns, types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{}, "")
+		if err != nil {
+			return errors.Errorf("Could not add namespace [%s] to mesh [%s]: %v", ns, a.meshName, err)
 		}
+
+		_, _ = fmt.Fprintf(a.out, "Namespace [%s] successfully added to mesh [%s]\n", ns, a.meshName)
 	}
 
 	return nil

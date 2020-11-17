@@ -5,6 +5,7 @@ metadata:
   labels:
     app: osm-controller
     meshName: {{ .Values.OpenServiceMesh.meshName }}
+    {{ if .Values.OpenServiceMesh.enforceSingleMesh }}enforceSingleMesh: "true"{{ end }}
 spec:
   replicas: {{ .Values.OpenServiceMesh.replicaCount }}
   selector:
@@ -27,24 +28,22 @@ spec:
               containerPort: 15128
           command: ['/osm-controller']
           args: [
-            "--verbosity", "trace",
+            "--verbosity", "{{.Values.OpenServiceMesh.controllerLogLevel}}",
             "--osm-namespace", "{{.Release.Namespace}}",
             "--mesh-name", "{{.Values.OpenServiceMesh.meshName}}",
             "--init-container-image", "{{.Values.OpenServiceMesh.image.registry}}/init:{{ .Values.OpenServiceMesh.image.tag }}",
             "--sidecar-image", "{{.Values.OpenServiceMesh.sidecarImage}}",
-            "--webhook-name", "osm-webhook-{{.Values.OpenServiceMesh.meshName}}",
+            "--webhook-config-name", "{{.Values.OpenServiceMesh.webhookConfigNamePrefix}}-{{.Values.OpenServiceMesh.meshName}}",
             "--ca-bundle-secret-name", "{{.Values.OpenServiceMesh.caBundleSecretName}}",
             "--certificate-manager", "{{.Values.OpenServiceMesh.certificateManager}}",
+            {{- if .Values.OpenServiceMesh.connectVault }}
             "--vault-host", "{{.Values.OpenServiceMesh.vault.host}}",
             "--vault-protocol", "{{.Values.OpenServiceMesh.vault.protocol}}",
             "--vault-token", "{{.Values.OpenServiceMesh.vault.token}}",
+            {{- end }}
             "--cert-manager-issuer-name", "{{.Values.OpenServiceMesh.certmanager.issuerName}}",
             "--cert-manager-issuer-kind", "{{.Values.OpenServiceMesh.certmanager.issuerKind}}",
             "--cert-manager-issuer-group", "{{.Values.OpenServiceMesh.certmanager.issuerGroup}}",
-            "--service-cert-validity-minutes", "{{.Values.OpenServiceMesh.serviceCertValidityMinutes}}",
-            {{- if .Values.OpenServiceMesh.enableDebugServer }}
-            "--enable-debug-server",
-            {{- end }}
             {{- if .Values.OpenServiceMesh.enableBackpressureExperimental }}
             "--enable-backpressure-experimental",
             {{- end }}
@@ -52,16 +51,63 @@ spec:
           resources:
             limits:
               cpu: 1.5
-              memory: 128M
+              memory: 256M
             requests:
               cpu: 0.5
               memory: 32M
           readinessProbe:
             initialDelaySeconds: 1
+            timeoutSeconds: 5
             httpGet:
-              scheme: HTTPS
+              scheme: HTTP
               path: /health/ready
-              port: 9090
+              port: 9091
+          livenessProbe:
+            initialDelaySeconds: 1
+            timeoutSeconds: 5
+            httpGet:
+              scheme: HTTP
+              path: /health/alive
+              port: 9091
+          env:
+            # The CONTROLLER_POD_NAME env variable sets pod name dynamically, used by osm-controller to register events
+            - name: CONTROLLER_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+      {{- if .Values.OpenServiceMesh.enableFluentbit }}
+        - name: {{ .Values.OpenServiceMesh.fluentBitImage.name }}
+          image: {{ .Values.OpenServiceMesh.fluentBitImage.registry }}/fluent-bit:{{ .Values.OpenServiceMesh.fluentBitImage.tag }}
+          imagePullPolicy: {{ .Values.OpenServiceMesh.fluentBitImage.pullPolicy }}
+          volumeMounts:
+          - name: config
+            mountPath: /fluent-bit/etc
+            readOnly: true
+          - name: var-log-containers
+            mountPath: /var/log/containers
+            readOnly: true
+          - name: var-log-pods
+            mountPath: /var/log/pods
+            readOnly: true
+          - name: var-lib-containers
+            mountPath: /var/lib/docker/containers
+            readOnly: true
+       {{- end }}
+    {{- if .Values.OpenServiceMesh.enableFluentbit }}
+      volumes:
+      - name: config
+        configMap:
+          name: fluentbit-configmap
+      - name: var-log-containers
+        hostPath:
+          path: /var/log/containers
+      - name: var-log-pods
+        hostPath:
+          path: /var/log/pods
+      - name: var-lib-containers
+        hostPath:
+          path: /var/lib/docker/containers
+     {{- end }}
     {{- if .Values.OpenServiceMesh.imagePullSecrets }}
       imagePullSecrets:
 {{ toYaml .Values.OpenServiceMesh.imagePullSecrets | indent 8 }}

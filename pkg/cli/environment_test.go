@@ -2,50 +2,65 @@ package cli
 
 import (
 	"os"
+	"testing"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	"github.com/spf13/pflag"
+	"github.com/stretchr/testify/assert"
 )
 
-var _ = Describe("New", func() {
-	var flags *pflag.FlagSet
+func TestNew(t *testing.T) {
+	tests := []struct {
+		name              string
+		args              []string
+		envVars           map[string]string
+		expectedNamespace string
+	}{
+		{
+			name:              "default",
+			args:              nil,
+			envVars:           nil,
+			expectedNamespace: defaultOSMNamespace,
+		},
+		{
+			name:              "flag overrides default",
+			args:              []string{"--osm-namespace=osm-ns"},
+			envVars:           nil,
+			expectedNamespace: "osm-ns",
+		},
+		{
+			name: "env var overrides default",
+			args: nil,
+			envVars: map[string]string{
+				osmNamespaceEnvVar: "osm-env",
+			},
+			expectedNamespace: "osm-env",
+		},
+		{
+			name: "flag overrides env var",
+			args: []string{"--osm-namespace=osm-ns"},
+			envVars: map[string]string{
+				osmNamespaceEnvVar: "osm-env",
+			},
+			expectedNamespace: "osm-ns",
+		},
+	}
 
-	BeforeEach(func() {
-		flags = pflag.NewFlagSet("test-new", pflag.ContinueOnError)
-	})
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert := assert.New(t)
 
-	It("sets the default namespace", func() {
-		settings := New()
-		settings.AddFlags(flags)
-		flags.Parse(nil)
-		Expect(settings.Namespace()).To(Equal(defaultOSMNamespace))
-	})
+			flags := pflag.NewFlagSet("test-new", pflag.ContinueOnError)
 
-	It("sets the namespace from the flag", func() {
-		settings := New()
-		settings.AddFlags(flags)
-		flags.Parse([]string{"--namespace=osm-ns"})
-		Expect(settings.Namespace()).To(Equal("osm-ns"))
-	})
+			for k, v := range test.envVars {
+				err := os.Setenv(k, v)
+				assert.Nil(err)
+			}
 
-	It("sets the namespace from the env var", func() {
-		os.Setenv(osmNamespaceEnvVar, "osm-env")
-		defer os.Unsetenv(osmNamespaceEnvVar)
-
-		settings := New()
-		settings.AddFlags(flags)
-		flags.Parse(nil)
-		Expect(settings.Namespace()).To(Equal("osm-env"))
-	})
-
-	It("overrides the env var with the flag", func() {
-		os.Setenv(osmNamespaceEnvVar, "osm-env")
-		defer os.Unsetenv(osmNamespaceEnvVar)
-
-		settings := New()
-		settings.AddFlags(flags)
-		flags.Parse([]string{"--namespace=osm-ns"})
-		Expect(settings.Namespace()).To(Equal("osm-ns"))
-	})
-})
+			settings := New()
+			settings.AddFlags(flags)
+			err := flags.Parse(test.args)
+			assert.Nil(err)
+			assert.Equal(settings.Namespace(), test.expectedNamespace)
+		})
+	}
+}

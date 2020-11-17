@@ -12,7 +12,6 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
@@ -65,25 +64,24 @@ func UpdateRouteConfiguration(domainRoutesMap map[string]map[string]trafficpolic
 		return
 	}
 
-	for domain, routePolicyWeightedClustersMap := range domainRoutesMap {
-		virtualHost := createVirtualHostStub(virtualHostPrefix, domain)
+	for host, routePolicyWeightedClustersMap := range domainRoutesMap {
+		domains := getDistinctDomains(routePolicyWeightedClustersMap)
+		virtualHost := createVirtualHostStub(virtualHostPrefix, host, domains)
 		virtualHost.Routes = createRoutes(routePolicyWeightedClustersMap, direction)
 		routeConfig.VirtualHosts = append(routeConfig.VirtualHosts, virtualHost)
 	}
 }
 
-func createVirtualHostStub(namePrefix string, domain string) *xds_route.VirtualHost {
-	// If domain consists a comma separated list of domains, it means multiple
-	// domains match against the same route config.
-	domains := strings.Split(domain, ",")
-	for i := range domains {
-		domains[i] = strings.TrimSpace(domains[i])
+func createVirtualHostStub(namePrefix string, host string, domains set.Set) *xds_route.VirtualHost {
+	var domainsSlice []string
+	for domainIntf := range domains.Iter() {
+		domainsSlice = append(domainsSlice, strings.TrimSpace(domainIntf.(string)))
 	}
 
-	name := fmt.Sprintf("%s|%s", namePrefix, kubernetes.GetServiceFromHostname(domains[0]))
+	name := fmt.Sprintf("%s|%s", namePrefix, host)
 	virtualHost := xds_route.VirtualHost{
 		Name:    name,
-		Domains: domains,
+		Domains: domainsSlice,
 	}
 	return &virtualHost
 }
@@ -207,6 +205,19 @@ func getDistinctWeightedClusters(routePolicyWeightedClustersMap map[string]traff
 		weightedClusters.Union(perRouteWeightedClusters.WeightedClusters)
 	}
 	return weightedClusters
+}
+
+// This method gets a list of all the distinct domains for a host
+// needed to configure virtual hosts
+func getDistinctDomains(routePolicyWeightedClustersMap map[string]trafficpolicy.RouteWeightedClusters) set.Set {
+	domains := set.NewSet()
+	for _, perRouteWeightedClusters := range routePolicyWeightedClustersMap {
+		if domains.Cardinality() == 0 {
+			domains = perRouteWeightedClusters.Hostnames
+		}
+		domains.Union(perRouteWeightedClusters.Hostnames)
+	}
+	return domains
 }
 
 func getTotalWeightForClusters(weightedClusters set.Set) int {

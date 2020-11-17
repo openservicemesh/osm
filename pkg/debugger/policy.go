@@ -8,7 +8,6 @@ import (
 	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha3"
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
-	corev1 "k8s.io/api/core/v1"
 
 	"github.com/openservicemesh/osm/pkg/service"
 )
@@ -19,10 +18,9 @@ type policies struct {
 	ServiceAccounts  []service.K8sServiceAccount `json:"service_accounts"`
 	RouteGroups      []*spec.HTTPRouteGroup      `json:"route_groups"`
 	TrafficTargets   []*target.TrafficTarget     `json:"traffic_targets"`
-	Services         []*corev1.Service           `json:"services"`
 }
 
-func (ds debugServer) getOSMConfigHandler() http.Handler {
+func (ds debugConfig) getOSMConfigHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		confJSON, err := ds.configurator.GetConfigMap()
 		if err != nil {
@@ -33,10 +31,10 @@ func (ds debugServer) getOSMConfigHandler() http.Handler {
 	})
 }
 
-func (ds debugServer) getSMIPoliciesHandler() http.Handler {
+func (ds debugConfig) getSMIPoliciesHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var p policies
-		p.TrafficSplits, p.WeightedServices, p.ServiceAccounts, p.RouteGroups, p.TrafficTargets, p.Services = ds.meshCatalogDebugger.ListSMIPolicies()
+		p.TrafficSplits, p.WeightedServices, p.ServiceAccounts, p.RouteGroups, p.TrafficTargets = ds.meshCatalogDebugger.ListSMIPolicies()
 
 		jsonPolicies, err := json.Marshal(p)
 		if err != nil {

@@ -19,11 +19,13 @@ jobs:
     runs-on: ubuntu-latest
     needs: version
     env:
-      CLI_VERSION: ${{ needs.version.outputs.version }}
+      VERSION: ${{ needs.version.outputs.version }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
       - name: Restore Module Cache
         uses: actions/cache@v2
         with:
@@ -43,53 +45,56 @@ jobs:
       - name: Build Binaries
         run: |
           make release-artifacts
+      - name: Generate Release Notes
+        run: scripts/release-notes.sh $VERSION > release-notes.md
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
         with:
           tag_name: ${{ github.ref }}
           release_name: Release ${{ github.ref }}
+          body_path: release-notes.md
       - name: Upload macOS .zip
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: "_dist/osm-${{ env.CLI_VERSION }}-darwin-amd64.zip"
-          asset_name: "osm-${{ env.CLI_VERSION }}-darwin-amd64.zip"
+          asset_path: "_dist/osm-${{ env.VERSION }}-darwin-amd64.zip"
+          asset_name: "osm-${{ env.VERSION }}-darwin-amd64.zip"
           asset_content_type: application/zip
       - name: Upload macOS .tar.gz
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: "_dist/osm-${{ env.CLI_VERSION }}-darwin-amd64.tar.gz"
-          asset_name: "osm-${{ env.CLI_VERSION }}-darwin-amd64.tar.gz"
+          asset_path: "_dist/osm-${{ env.VERSION }}-darwin-amd64.tar.gz"
+          asset_name: "osm-${{ env.VERSION }}-darwin-amd64.tar.gz"
           asset_content_type: application/gzip
       - name: Upload Linux .zip
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: "_dist/osm-${{ env.CLI_VERSION }}-linux-amd64.zip"
-          asset_name: "osm-${{ env.CLI_VERSION }}-linux-amd64.zip"
+          asset_path: "_dist/osm-${{ env.VERSION }}-linux-amd64.zip"
+          asset_name: "osm-${{ env.VERSION }}-linux-amd64.zip"
           asset_content_type: application/zip
       - name: Upload Linux .tar.gz
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: "_dist/osm-${{ env.CLI_VERSION }}-linux-amd64.tar.gz"
-          asset_name: "osm-${{ env.CLI_VERSION }}-linux-amd64.tar.gz"
+          asset_path: "_dist/osm-${{ env.VERSION }}-linux-amd64.tar.gz"
+          asset_name: "osm-${{ env.VERSION }}-linux-amd64.tar.gz"
           asset_content_type: application/gzip
       - name: Upload Windows .zip
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: "_dist/osm-${{ env.CLI_VERSION }}-windows-amd64.zip"
-          asset_name: "osm-${{ env.CLI_VERSION }}-windows-amd64.zip"
+          asset_path: "_dist/osm-${{ env.VERSION }}-windows-amd64.zip"
+          asset_name: "osm-${{ env.VERSION }}-windows-amd64.zip"
           asset_content_type: application/zip
       - name: Upload Windows .tar.gz
         uses: actions/upload-release-asset@v1
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: "_dist/osm-${{ env.CLI_VERSION }}-windows-amd64.tar.gz"
-          asset_name: "osm-${{ env.CLI_VERSION }}-windows-amd64.tar.gz"
+          asset_path: "_dist/osm-${{ env.VERSION }}-windows-amd64.tar.gz"
+          asset_name: "osm-${{ env.VERSION }}-windows-amd64.tar.gz"
           asset_content_type: application/gzip
       - name: Upload Checksums
         uses: actions/upload-release-asset@v1

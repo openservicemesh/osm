@@ -1,55 +1,72 @@
 package catalog
 
 import (
-	"context"
+	"fmt"
 	"strings"
 
+	"github.com/google/uuid"
 	v1 "k8s.io/api/core/v1"
-	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/client-go/kubernetes"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 // GetServicesFromEnvoyCertificate returns a list of services the given Envoy is a member of based on the certificate provided, which is a cert issued to an Envoy for XDS communication (not Envoy-to-Envoy).
 func (mc *MeshCatalog) GetServicesFromEnvoyCertificate(cn certificate.CommonName) ([]service.MeshService, error) {
-	var serviceList []service.MeshService
-	pod, err := GetPodFromCertificate(cn, mc.kubeClient)
+	pod, err := GetPodFromCertificate(cn, mc.kubeController)
 	if err != nil {
 		return nil, err
 	}
 
-	services, err := listServicesForPod(pod, mc.kubeClient)
+	services, err := listServicesForPod(pod, mc.kubeController)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(services) == 0 {
+		return makeSyntheticServiceForPod(pod, cn), nil
 	}
 
 	// Remove services that have been split into other services.
 	// Filters out services referenced in TrafficSplit.spec.service
 	services = mc.filterTrafficSplitServices(services)
 
-	if len(services) == 0 {
-		log.Error().Msgf("No services found for connected proxy ID %s", cn)
-		return nil, errNoServicesFoundForCertificate
-	}
+	meshServices := kubernetesServicesToMeshServices(services)
 
-	cnMeta, err := getCertificateCommonNameMeta(cn)
-	if err != nil {
-		return nil, err
-	}
+	log.Trace().Msgf("Services associated with pod %s/%s: %+v", pod.Namespace, pod.Name, strings.Join(listServiceNames(meshServices), ","))
 
-	for _, svc := range services {
-		meshService := service.MeshService{
-			Namespace: cnMeta.Namespace,
+	return meshServices, nil
+}
+
+func kubernetesServicesToMeshServices(kubernetesServices []v1.Service) (meshServices []service.MeshService) {
+	for _, svc := range kubernetesServices {
+		meshServices = append(meshServices, service.MeshService{
+			Namespace: svc.Namespace,
 			Name:      svc.Name,
-		}
-		serviceList = append(serviceList, meshService)
+		})
 	}
-	return serviceList, nil
+	return meshServices
+}
+
+func listServiceNames(meshServices []service.MeshService) (serviceNames []string) {
+	for _, meshService := range meshServices {
+		serviceNames = append(serviceNames, fmt.Sprintf("%s/%s", meshService.Namespace, meshService.Name))
+	}
+	return serviceNames
+}
+
+func makeSyntheticServiceForPod(pod *v1.Pod, proxyCommonName certificate.CommonName) []service.MeshService {
+	svcAccount := service.K8sServiceAccount{
+		Namespace: pod.Namespace,
+		Name:      pod.Spec.ServiceAccountName,
+	}
+	syntheticService := svcAccount.GetSyntheticService()
+	log.Debug().Msgf("Creating synthetic service %s since no actual services found for connected proxy CN %s", syntheticService, proxyCommonName)
+	return []service.MeshService{syntheticService}
 }
 
 // filterTrafficSplitServices takes a list of services and removes from it the ones
@@ -69,8 +86,8 @@ func (mc *MeshCatalog) filterTrafficSplitServices(services []v1.Service) []v1.Se
 	// These are the services except ones that are a root of a TrafficSplit policy
 	var filteredServices []v1.Service
 
-	for _, svc := range services {
-		nsSvc := utils.K8sSvcToMeshSvc(&svc)
+	for i, svc := range services {
+		nsSvc := utils.K8sSvcToMeshSvc(&services[i])
 		if _, shouldSkip := excludeTheseServices[nsSvc]; shouldSkip {
 			continue
 		}
@@ -81,31 +98,28 @@ func (mc *MeshCatalog) filterTrafficSplitServices(services []v1.Service) []v1.Se
 }
 
 // GetPodFromCertificate returns the Kubernetes Pod object for a given certificate.
-func GetPodFromCertificate(cn certificate.CommonName, kubeClient kubernetes.Interface) (*v1.Pod, error) {
+func GetPodFromCertificate(cn certificate.CommonName, kubecontroller k8s.Controller) (*v1.Pod, error) {
 	cnMeta, err := getCertificateCommonNameMeta(cn)
 	if err != nil {
 		return nil, err
 	}
 
-	log.Trace().Msgf("Looking for pod with label %q=%q", constants.EnvoyUniqueIDLabelName, cnMeta.ProxyID)
-
-	podList, err := kubeClient.CoreV1().Pods(cnMeta.Namespace).List(context.Background(), v12.ListOptions{})
-	if err != nil {
-		log.Error().Err(err).Msgf("Error listing pods in namespace %s", cnMeta.Namespace)
-		return nil, err
-	}
-
+	log.Trace().Msgf("Looking for pod with label %q=%q", constants.EnvoyUniqueIDLabelName, cnMeta.ProxyUUID)
+	podList := kubecontroller.ListPods()
 	var pods []v1.Pod
-	for _, pod := range podList.Items {
+	for _, pod := range podList {
+		if pod.Namespace != cnMeta.Namespace {
+			continue
+		}
 		for labelKey, labelValue := range pod.Labels {
-			if labelKey == constants.EnvoyUniqueIDLabelName && labelValue == cnMeta.ProxyID {
-				pods = append(pods, pod)
+			if labelKey == constants.EnvoyUniqueIDLabelName && labelValue == cnMeta.ProxyUUID.String() {
+				pods = append(pods, *pod)
 			}
 		}
 	}
 
 	if len(pods) == 0 {
-		log.Error().Msgf("Did not find pod with label %s = %s in namespace %s", constants.EnvoyUniqueIDLabelName, cnMeta.ProxyID, cnMeta.Namespace)
+		log.Error().Msgf("Did not find pod with label %s = %s in namespace %s", constants.EnvoyUniqueIDLabelName, cnMeta.ProxyUUID, cnMeta.Namespace)
 		return nil, errDidNotFindPodForCertificate
 	}
 
@@ -114,12 +128,12 @@ func GetPodFromCertificate(cn certificate.CommonName, kubeClient kubernetes.Inte
 	// This is a limitation we set in place in order to make the mesh easy to understand and reason about.
 	// When a pod belongs to more than one service XDS will not program the Envoy proxy, leaving it out of the mesh.
 	if len(pods) > 1 {
-		log.Error().Msgf("Found more than one pod with label %s = %s in namespace %s; There should be only one!", constants.EnvoyUniqueIDLabelName, cnMeta.ProxyID, cnMeta.Namespace)
+		log.Error().Msgf("Found more than one pod with label %s = %s in namespace %s; There should be only one!", constants.EnvoyUniqueIDLabelName, cnMeta.ProxyUUID, cnMeta.Namespace)
 		return nil, errMoreThanOnePodForCertificate
 	}
 
 	pod := pods[0]
-	log.Trace().Msgf("Found pod %s for proxyID %s", pod.Name, cnMeta.ProxyID)
+	log.Trace().Msgf("Found pod %s for proxyID %s", pod.Name, cnMeta.ProxyUUID)
 
 	// Ensure the Namespace encoded in the certificate matches that of the Pod
 	if pod.Namespace != cnMeta.Namespace {
@@ -138,19 +152,18 @@ func GetPodFromCertificate(cn certificate.CommonName, kubeClient kubernetes.Inte
 }
 
 // listServicesForPod lists Kubernetes services whose selectors match pod labels
-func listServicesForPod(pod *v1.Pod, kubeClient kubernetes.Interface) ([]v1.Service, error) {
+func listServicesForPod(pod *v1.Pod, kubeController k8s.Controller) ([]v1.Service, error) {
 	var serviceList []v1.Service
-	svcList, err := kubeClient.CoreV1().Services(pod.Namespace).List(context.Background(), v12.ListOptions{})
-	if err != nil {
-		log.Error().Err(err).Msgf("Error listing pods in namespace %s", pod.Namespace)
-		return nil, err
-	}
+	svcList := kubeController.ListServices()
 
-	for _, svc := range svcList.Items {
+	for _, svc := range svcList {
+		if svc.Namespace != pod.Namespace {
+			continue
+		}
 		svcRawSelector := svc.Spec.Selector
 		selector := labels.Set(svcRawSelector).AsSelector()
 		if selector.Matches(labels.Set(pod.Labels)) {
-			serviceList = append(serviceList, svc)
+			serviceList = append(serviceList, *svc)
 		}
 	}
 
@@ -162,14 +175,34 @@ func getCertificateCommonNameMeta(cn certificate.CommonName) (*certificateCommon
 	if len(chunks) < 3 {
 		return nil, errInvalidCertificateCN
 	}
+	proxyUUID, err := uuid.Parse(chunks[0])
+	if err != nil {
+		log.Error().Err(err).Msgf("Error parsing %s into uuid.UUID", chunks[0])
+		return nil, err
+	}
+
 	return &certificateCommonNameMeta{
-		ProxyID:        chunks[0],
+		ProxyUUID:      proxyUUID,
 		ServiceAccount: chunks[1],
 		Namespace:      chunks[2],
 	}, nil
 }
 
-// NewCertCommonNameWithProxyID returns a newly generated CommonName for a certificate of the form: <ProxyID>.<serviceAccount>.<namespace>
-func NewCertCommonNameWithProxyID(proxyUUID, serviceAccount, namespace string) certificate.CommonName {
-	return certificate.CommonName(strings.Join([]string{proxyUUID, serviceAccount, namespace}, constants.DomainDelimiter))
+// NewCertCommonNameWithProxyID returns a newly generated CommonName for a certificate of the form: <ProxyUUID>.<serviceAccount>.<namespace>
+func NewCertCommonNameWithProxyID(proxyUUID uuid.UUID, serviceAccount, namespace string) certificate.CommonName {
+	return certificate.CommonName(strings.Join([]string{proxyUUID.String(), serviceAccount, namespace}, constants.DomainDelimiter))
+}
+
+// GetServiceAccountFromProxyCertificate returns the ServiceAccount information encoded in the certificate CN
+func GetServiceAccountFromProxyCertificate(cn certificate.CommonName) (service.K8sServiceAccount, error) {
+	var svcAccount service.K8sServiceAccount
+	cnMeta, err := getCertificateCommonNameMeta(cn)
+	if err != nil {
+		return svcAccount, err
+	}
+
+	svcAccount.Name = cnMeta.ServiceAccount
+	svcAccount.Namespace = cnMeta.Namespace
+
+	return svcAccount, nil
 }

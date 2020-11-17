@@ -25,8 +25,11 @@ const (
 	// PodName is the name of the pod commonly used namespace.
 	PodName = "pod-name"
 
-	// BookstoreServiceName is the name of the bookstore service.
-	BookstoreServiceName = "bookstore"
+	// BookstoreV1ServiceName is the name of the bookstore-v1 service.
+	BookstoreV1ServiceName = "bookstore-v1"
+
+	// BookstoreV2ServiceName is the name of the bookstore-v2 service.
+	BookstoreV2ServiceName = "bookstore-v2"
 
 	// BookstoreApexServiceName that have been is the name of the bookstore service, which is then split into other services.
 	BookstoreApexServiceName = "bookstore-apex"
@@ -54,8 +57,11 @@ const (
 	// WildcardWithHeadersMatchName is the name of the match object.
 	WildcardWithHeadersMatchName = "allow-everything-on-header"
 
-	// Weight is the percentage of the traffic to be sent this way in a traffic split scenario.
-	Weight = 100
+	// Weight90 is the value representing a share of the traffic to be sent this way in a traffic split scenario.
+	Weight90 = 90
+
+	// Weight10 is the value representing a share of the traffic to be sent this way in a traffic split scenario.
+	Weight10 = 10
 
 	// RouteGroupName is the name of the route group SMI object.
 	RouteGroupName = "bookstore-service-routes"
@@ -72,8 +78,8 @@ const (
 	// SelectorValue is a Pod selector value constant.
 	SelectorValue = "frontend"
 
-	// EnvoyUID is the unique ID of the Envoy used for unit tests.
-	EnvoyUID = "A-B-C-D"
+	// ProxyUUID is the unique ID of the Envoy used for unit tests.
+	ProxyUUID = "abcdef12-5791-9876-abcd-1234567890ab"
 
 	// ServicePort is the port used by a service
 	ServicePort = 8888
@@ -86,10 +92,16 @@ const (
 )
 
 var (
-	// BookstoreService is the bookstore service.
-	BookstoreService = service.MeshService{
+	// BookstoreV1Service is the bookstore service.
+	BookstoreV1Service = service.MeshService{
 		Namespace: Namespace,
-		Name:      BookstoreServiceName,
+		Name:      BookstoreV1ServiceName,
+	}
+
+	// BookstoreV2Service is the bookstore service.
+	BookstoreV2Service = service.MeshService{
+		Namespace: Namespace,
+		Name:      BookstoreV2ServiceName,
 	}
 
 	// BookbuyerService is the bookbuyer service.
@@ -108,6 +120,34 @@ var (
 	BookwarehouseService = service.MeshService{
 		Namespace: Namespace,
 		Name:      BookwarehouseServiceName,
+	}
+
+	// BookstoreV1Hostnames are the hostnames for bookstore-v1 service
+	BookstoreV1Hostnames = []string{
+		"bookstore-v1",
+		"bookstore-v1.default",
+		"bookstore-v1.default.svc",
+		"bookstore-v1.default.svc.cluster",
+		"bookstore-v1.default.svc.cluster.local",
+		"bookstore-v1:8888",
+		"bookstore-v1.default:8888",
+		"bookstore-v1.default.svc:8888",
+		"bookstore-v1.default.svc.cluster:8888",
+		"bookstore-v1.default.svc.cluster.local:8888",
+	}
+
+	// BookstoreV2Hostnames are the hostnames for the bookstore-v2 service
+	BookstoreV2Hostnames = []string{
+		"bookstore-v2",
+		"bookstore-v2.default",
+		"bookstore-v2.default.svc",
+		"bookstore-v2.default.svc.cluster",
+		"bookstore-v2.default.svc.cluster.local",
+		"bookstore-v2:8888",
+		"bookstore-v2.default:8888",
+		"bookstore-v2.default.svc:8888",
+		"bookstore-v2.default.svc.cluster:8888",
+		"bookstore-v2.default.svc.cluster.local:8888",
 	}
 
 	// BookstoreBuyHTTPRoute is an HTTP route to buy books
@@ -134,10 +174,56 @@ var (
 		Port: endpoint.Port(ServicePort),
 	}
 
-	// TrafficPolicy is a traffic policy SMI object.
-	TrafficPolicy = trafficpolicy.TrafficTarget{
-		Name:        fmt.Sprintf("%s:default/bookbuyer->default/bookstore", TrafficTargetName),
-		Destination: BookstoreService,
+	// BookstoreV1TrafficPolicy is a traffic policy SMI object.
+	BookstoreV1TrafficPolicy = trafficpolicy.TrafficTarget{
+		Name:        fmt.Sprintf("%s:default/bookbuyer->default/bookstore-v1", TrafficTargetName),
+		Destination: BookstoreV1Service,
+		Source:      BookbuyerService,
+		HTTPRoutes: []trafficpolicy.HTTPRoute{
+			{
+				PathRegex: BookstoreBuyPath,
+				Methods:   []string{"GET"},
+				Headers: map[string]string{
+					"user-agent": HTTPUserAgent,
+				},
+			},
+			{
+				PathRegex: BookstoreSellPath,
+				Methods:   []string{"GET"},
+				Headers: map[string]string{
+					"user-agent": HTTPUserAgent,
+				},
+			},
+		},
+	}
+
+	// BookstoreV2TrafficPolicy is a traffic policy SMI object.
+	BookstoreV2TrafficPolicy = trafficpolicy.TrafficTarget{
+		Name:        fmt.Sprintf("%s:default/bookbuyer->default/bookstore-v2", TrafficTargetName),
+		Destination: BookstoreV2Service,
+		Source:      BookbuyerService,
+		HTTPRoutes: []trafficpolicy.HTTPRoute{
+			{
+				PathRegex: BookstoreBuyPath,
+				Methods:   []string{"GET"},
+				Headers: map[string]string{
+					"user-agent": HTTPUserAgent,
+				},
+			},
+			{
+				PathRegex: BookstoreSellPath,
+				Methods:   []string{"GET"},
+				Headers: map[string]string{
+					"user-agent": HTTPUserAgent,
+				},
+			},
+		},
+	}
+
+	// BookstoreApexTrafficPolicy is a traffic policy SMI object.
+	BookstoreApexTrafficPolicy = trafficpolicy.TrafficTarget{
+		Name:        fmt.Sprintf("%s:default/bookbuyer->default/bookstore-apex", TrafficTargetName),
+		Destination: BookstoreApexService,
 		Source:      BookbuyerService,
 		HTTPRoutes: []trafficpolicy.HTTPRoute{
 			{
@@ -166,8 +252,12 @@ var (
 			Service: BookstoreApexServiceName,
 			Backends: []v1alpha2.TrafficSplitBackend{
 				{
-					Service: BookstoreServiceName,
-					Weight:  Weight,
+					Service: BookstoreV1ServiceName,
+					Weight:  Weight90,
+				},
+				{
+					Service: BookstoreV2ServiceName,
+					Weight:  Weight10,
 				},
 			},
 		},
@@ -222,13 +312,23 @@ var (
 		Name:      BookbuyerServiceAccountName,
 	}
 
-	// WeightedService is a service with a weight used for traffic split.
-	WeightedService = service.WeightedService{
+	// BookstoreV1WeightedService is a service with a weight used for traffic split.
+	BookstoreV1WeightedService = service.WeightedService{
 		Service: service.MeshService{
 			Namespace: Namespace,
-			Name:      BookstoreServiceName,
+			Name:      BookstoreV1ServiceName,
 		},
-		Weight:      Weight,
+		Weight:      Weight90,
+		RootService: BookstoreApexServiceName,
+	}
+
+	// BookstoreV2WeightedService is a service with a weight used for traffic split.
+	BookstoreV2WeightedService = service.WeightedService{
+		Service: service.MeshService{
+			Namespace: Namespace,
+			Name:      BookstoreV2ServiceName,
+		},
+		Weight:      Weight10,
 		RootService: BookstoreApexServiceName,
 	}
 
@@ -271,6 +371,19 @@ var (
 		},
 	}
 
+	// TCPRoute is a TCPRoute SMI resource
+	TCPRoute = spec.TCPRoute{
+		TypeMeta: v1.TypeMeta{
+			APIVersion: "specs.smi-spec.io/v1alpha2",
+			Kind:       "TCPRoute",
+		},
+		ObjectMeta: v1.ObjectMeta{
+			Namespace: "default",
+			Name:      "tcp-route",
+		},
+		Spec: spec.TCPRouteSpec{},
+	}
+
 	// Backpressure is an experimental Backpressure policy.
 	// This will be replaced by an SMI Spec when it is ready.
 	Backpressure = backpressure.Backpressure{
@@ -288,7 +401,7 @@ func NewPodTestFixture(namespace string, podName string) corev1.Pod {
 			Namespace: namespace,
 			Labels: map[string]string{
 				SelectorKey:                      SelectorValue,
-				constants.EnvoyUniqueIDLabelName: EnvoyUID,
+				constants.EnvoyUniqueIDLabelName: ProxyUUID,
 			},
 		},
 		Spec: corev1.PodSpec{
@@ -305,7 +418,7 @@ func NewPodTestFixtureWithOptions(namespace string, podName string, serviceAccou
 			Namespace: namespace,
 			Labels: map[string]string{
 				SelectorKey:                      SelectorValue,
-				constants.EnvoyUniqueIDLabelName: EnvoyUID,
+				constants.EnvoyUniqueIDLabelName: ProxyUUID,
 			},
 		},
 		Spec: corev1.PodSpec{

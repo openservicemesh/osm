@@ -1,0 +1,39 @@
+{{- if .Values.OpenServiceMesh.enableFluentbit }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluentbit-configmap
+  namespace: {{ .Release.Namespace }}
+data:
+  fluent-bit.conf: |-
+    [SERVICE]
+      Flush             5
+      Daemon            off
+      Log_Level         info
+      Parsers_File      parser.conf
+    [INPUT]
+      Name    tail
+      Tag     kube.*
+      Path    /var/log/containers/osm-controller-*_{{ .Release.Namespace }}_osm-controller-*.log
+      Parser  cri
+    [FILTER]
+      name       grep
+      match      *
+      regex       message /"level":"error"/
+    [OUTPUT]
+      Name    {{ .Values.OpenServiceMesh.fluentbitOutput }}
+      Match   *
+      {{- if not .Values.OpenServiceMesh.customLogAnalyticsWorkspace }}
+      Customer_ID {{ .Values.OpenServiceMesh.customerID }}
+      Shared_Key {{ .Values.OpenServiceMesh.sharedKey }}
+      {{- end }}
+
+  parser.conf: |-
+    [PARSER]
+      # http://rubular.com/r/tjUt3Awgg4
+      Name    cri
+      Format  regex
+      Regex   ^(?<time>[^ ]+) (?<stream>stdout|stderr) (?<logtag>[^ ]*) (?<message>.*)$
+      Time_Key    time
+      Time_Format %Y-%m-%dT%H:%M:%S.%L%z
+{{- end }}

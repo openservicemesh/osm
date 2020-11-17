@@ -1,0 +1,9 @@
+section.attachments a {
+  border-bottom: 1px dotted white; }
+
+section.attachments a:hover {
+  border-bottom: 1px solid white; }
+
+section.attachments > label {
+  font-weight: 600;
+  font-variant: small-caps; }

@@ -12,6 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -26,20 +27,31 @@ import (
 )
 
 var _ = Describe("Test ADS response functions", func() {
+	defer GinkgoRecover()
+
+	var (
+		mockCtrl         *gomock.Controller
+		mockConfigurator *configurator.MockConfigurator
+		mockCertManager  *certificate.MockManager
+	)
+
+	mockCtrl = gomock.NewController(GinkgoT())
+	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
+	mockCertManager = certificate.NewMockManager(mockCtrl)
 
 	// --- setup
 	kubeClient := testclient.NewSimpleClientset()
 	namespace := tests.Namespace
-	envoyUID := tests.EnvoyUID
-	serviceName := tests.BookstoreServiceName
+	proxyUUID := tests.ProxyUUID
+	serviceName := tests.BookstoreV1ServiceName
 	serviceAccountName := tests.BookstoreServiceAccountName
 
-	labels := map[string]string{constants.EnvoyUniqueIDLabelName: tests.EnvoyUID}
+	labels := map[string]string{constants.EnvoyUniqueIDLabelName: tests.ProxyUUID}
 	mc := catalog.NewFakeMeshCatalog(kubeClient)
 
 	// Create a Pod
 	pod := tests.NewPodTestFixture(namespace, fmt.Sprintf("pod-0-%s", uuid.New()))
-	pod.Labels[constants.EnvoyUniqueIDLabelName] = envoyUID
+	pod.Labels[constants.EnvoyUniqueIDLabelName] = proxyUUID
 	_, err := kubeClient.CoreV1().Pods(namespace).Create(context.TODO(), &pod, metav1.CreateOptions{})
 	It("should have created a pod", func() {
 		Expect(err).ToNot(HaveOccurred())
@@ -50,7 +62,15 @@ var _ = Describe("Test ADS response functions", func() {
 	It("should have created a service", func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
-	cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s", envoyUID, serviceAccountName, namespace))
+
+	// Create Bookstore apex Service, since the fake catalog has a traffic split applied, needs to be
+	// able to be looked up
+	svc = tests.NewServiceFixture(tests.BookstoreApexService.Name, tests.BookstoreApexService.Namespace, nil)
+	if _, err := kubeClient.CoreV1().Services(tests.BookstoreApexService.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{}); err != nil {
+		GinkgoT().Fatalf("Error creating new Bookstire Apex service: %s", err.Error())
+	}
+
+	cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s", proxyUUID, serviceAccountName, namespace))
 	proxy := envoy.NewProxy(cn, nil)
 
 	meshService := service.MeshService{
@@ -71,10 +91,6 @@ var _ = Describe("Test ADS response functions", func() {
 					}.String(),
 					envoy.SDSCert{
 						MeshService: meshService,
-						CertType:    envoy.RootCertTypeForMTLSOutbound,
-					}.String(),
-					envoy.SDSCert{
-						MeshService: meshService,
 						CertType:    envoy.RootCertTypeForMTLSInbound,
 					}.String(),
 					envoy.SDSCert{
@@ -91,19 +107,26 @@ var _ = Describe("Test ADS response functions", func() {
 	Context("Test sendAllResponses()", func() {
 
 		cache := make(map[certificate.CommonName]certificate.Certificater)
-		certManager := tresor.NewFakeCertManager(&cache, 1*time.Hour)
+		certManager := tresor.NewFakeCertManager(&cache, mockConfigurator)
 		cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s", uuid.New(), serviceAccountName, tests.Namespace))
-		certPEM, _ := certManager.IssueCertificate(cn, nil)
+		certDuration := 1 * time.Hour
+		certPEM, _ := certManager.IssueCertificate(cn, certDuration)
 		cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())
 		server, actualResponses := tests.NewFakeXDSServer(cert, nil, nil)
-		cfg := configurator.NewFakeConfigurator()
+
+		mockConfigurator.EXPECT().IsEgressEnabled().Return(false).AnyTimes()
+		mockConfigurator.EXPECT().IsPrometheusScrapingEnabled().Return(false).AnyTimes()
+		mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
+		mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
+		mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(certDuration).AnyTimes()
 
 		It("returns Aggregated Discovery Service response", func() {
-			s := NewADSServer(mc, true, tests.Namespace, cfg)
+			s := NewADSServer(mc, true, tests.Namespace, mockConfigurator, mockCertManager)
 
 			Expect(s).ToNot(BeNil())
 
-			s.sendAllResponses(proxy, &server, cfg)
+			mockCertManager.EXPECT().IssueCertificate(gomock.Any(), certDuration).Return(certPEM, nil).Times(1)
+			s.sendAllResponses(proxy, &server, mockConfigurator)
 
 			Expect(actualResponses).ToNot(BeNil())
 			Expect(len(*actualResponses)).To(Equal(5))
@@ -123,7 +146,7 @@ var _ = Describe("Test ADS response functions", func() {
 			Expect((*actualResponses)[4].VersionInfo).To(Equal("1"))
 			Expect((*actualResponses)[4].TypeUrl).To(Equal(string(envoy.TypeSDS)))
 			log.Printf("%v", len((*actualResponses)[4].Resources))
-			Expect(len((*actualResponses)[4].Resources)).To(Equal(4))
+			Expect(len((*actualResponses)[4].Resources)).To(Equal(3))
 
 			secretOne := xds_auth.Secret{}
 			firstSecret := (*actualResponses)[4].Resources[0]
@@ -138,21 +161,13 @@ var _ = Describe("Test ADS response functions", func() {
 			err = ptypes.UnmarshalAny(secondSecret, &secretTwo)
 			Expect(secretTwo.Name).To(Equal(envoy.SDSCert{
 				MeshService: meshService,
-				CertType:    envoy.RootCertTypeForMTLSOutbound,
+				CertType:    envoy.RootCertTypeForMTLSInbound,
 			}.String()))
 
 			secretThree := xds_auth.Secret{}
 			thirdSecret := (*actualResponses)[4].Resources[2]
 			err = ptypes.UnmarshalAny(thirdSecret, &secretThree)
 			Expect(secretThree.Name).To(Equal(envoy.SDSCert{
-				MeshService: meshService,
-				CertType:    envoy.RootCertTypeForMTLSInbound,
-			}.String()))
-
-			secretFour := xds_auth.Secret{}
-			forthSecret := (*actualResponses)[4].Resources[3]
-			err = ptypes.UnmarshalAny(forthSecret, &secretFour)
-			Expect(secretFour.Name).To(Equal(envoy.SDSCert{
 				MeshService: meshService,
 				CertType:    envoy.RootCertTypeForHTTPS,
 			}.String()))

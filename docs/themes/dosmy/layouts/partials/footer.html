@@ -1,0 +1,42 @@
+{{ $year := now.Year }}
+
+<footer class="py-5 row d-print-none">
+  <div class="container-fluid mx-sm-5">
+    <div class="row">
+      <div class="col-6 col-sm-6 text-xs-center order-sm-2">
+        <p class="footer-cncf"><img class="logo-cncf" src="/images/logos/cncf-color.svg" alt="Cloud Native Computing Foundation" /></p>
+        <h4 class="footer-cncf">Open Service Mesh is a <a href="https://cncf.io">Cloud Native Computing Foundation</a> sandbox project.</h4>
+
+        <p class="footer-legal">&copy; Open Service Mesh Authors {{ $year }} | Documentation Distributed under <a href="https://creativecommons.org/licenses/by/4.0" target="_blank">CC-BY-4.0</a>. &copy; {{ $year }} The Linux Foundation. All rights reserved. The Linux Foundation has registered trademarks and uses trademarks. For a list of trademarks of The Linux Foundation, please see our <a href="https://www.linuxfoundation.org/trademark-usage" target="_blank">Trademark Usage</a> page.</p>
+      </div>
+      <div class="col-6 col-sm-6 text-right text-xs-center order-sm-3">
+        <ul class="inline list-inline text-right">
+          {{ $p := . }}
+          {{ range .Site.Menus.main }}
+          <li class="nav-item list-inline-item mr-4 mb-2 mb-lg-0">
+            {{ $active := or ($p.IsMenuCurrent "main" .) ($p.HasMenuCurrent "main" .) }}
+            {{ with .Page }}
+            {{ $active = or $active ( $.IsDescendant .)  }}
+            {{ end }}
+            {{ $url := urls.Parse .URL }}
+            {{ $baseurl := urls.Parse $.Site.Params.Baseurl }}
+            <a class="nav-link{{if $active }} active{{end}}" href="{{ with .Page }}{{ .RelPermalink }}{{ else }}{{ .URL | relLangURL }}{{ end }}" {{ if ne $url.Host $baseurl.Host }}target="_blank" {{ end }}><span{{if $active }} class="active"{{end}}>{{ .Name }}</span></a>
+          </li>
+          {{ end }}
+        </ul>
+      </div>
+    </div>
+  </div>
+</footer>
+
+{{ define "footer-links-block" }}
+<ul class="list-inline mb-0">
+  {{ range . }}
+  <li class="list-inline-item mx-2 h3" data-toggle="tooltip" data-placement="top" title="{{ .name }}" aria-label="{{ .name }}">
+    <a class="text-white" target="_blank" rel="noopener noreferrer" href="{{ .url }}">
+      <i class="{{ .icon }}"></i>
+    </a>
+  </li>
+  {{ end }}
+</ul>
+{{ end }}

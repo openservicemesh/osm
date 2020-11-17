@@ -3,12 +3,6 @@ package constants
 import "time"
 
 const (
-	// AzureProviderName is the string constant used for the ID of the Azure endpoints provider.
-	// These strings identify the participating clusters / endpoint providers.
-	// Ideally these should be not only the type of compute but also a unique identifier, like the FQDN of the cluster,
-	// or the subscription within the cloud vendor.
-	AzureProviderName = "Azure"
-
 	// KubeProviderName is a string constant used for the ID string of the Kubernetes endpoints provider.
 	KubeProviderName = "Kubernetes"
 
@@ -58,7 +52,7 @@ const (
 	DefaultTracingPort = uint32(9411)
 
 	// DefaultEnvoyLogLevel is the default envoy log level if not defined in the osm configmap
-	DefaultEnvoyLogLevel = "debug"
+	DefaultEnvoyLogLevel = "error"
 
 	// EnvoyPrometheusInboundListenerPort is Envoy's inbound listener port number for prometheus
 	EnvoyPrometheusInboundListenerPort = 15010
@@ -68,6 +62,9 @@ const (
 
 	// MetricsServerPort is the port on which OSM exposes its own metrics server
 	MetricsServerPort = 9091
+
+	//DebugPort is the port on which OSM exposes its debug server
+	DebugPort = 9092
 
 	// OSMControllerName is the name of the OSM Controller (formerly ADS service).
 	OSMControllerName = "osm-controller"
@@ -106,7 +103,7 @@ const (
 	KubernetesOpaqueSecretCAExpiration = "expiration"
 
 	// EnvoyUniqueIDLabelName is the label applied to pods with the unique ID of the Envoy sidecar.
-	EnvoyUniqueIDLabelName = "osm-envoy-uid"
+	EnvoyUniqueIDLabelName = "osm-proxy-uuid"
 
 	// TimeDateLayout is the layout for time.Parse used in this repo
 	TimeDateLayout = "2006-01-02T15:04:05.000Z"
@@ -134,6 +131,28 @@ const (
 	// InitContainerName is the name of the init container
 	InitContainerName = "osm-init"
 
+	// EnvoyServiceNodeSeparator is the character separating the strings used to create an Envoy service node parameter.
+	// Example use: envoy --service-node 52883c80-6e0d-4c64-b901-cbcb75134949/bookstore/10.144.2.91/bookstore-v1/bookstore-v1
+	EnvoyServiceNodeSeparator = "/"
+)
+
+// Annotations used by the controller
+const (
 	// SidecarInjectionAnnotation is the annotation used for sidecar injection
 	SidecarInjectionAnnotation = "openservicemesh.io/sidecar-injection"
+
+	// MetricsAnnotation is the annotation used for enabling/disabling metrics
+	MetricsAnnotation = "openservicemesh.io/metrics"
+)
+
+// Annotations used for Metrics
+const (
+	// PrometheusScrapeAnnotation is the annotation used to configure prometheus scraping
+	PrometheusScrapeAnnotation = "prometheus.io/scrape"
+
+	// PrometheusPortAnnotation is the anontation used to configure the port to scrape on
+	PrometheusPortAnnotation = "prometheus.io/port"
+
+	// PrometheusPathAnnotation is the annotation used to configure the path to scrape on
+	PrometheusPathAnnotation = "prometheus.io/path"
 )

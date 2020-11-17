@@ -7,6 +7,7 @@ data:
   permissive_traffic_policy_mode: {{ .Values.OpenServiceMesh.enablePermissiveTrafficPolicy | default "false" | quote }}
   egress: {{ .Values.OpenServiceMesh.enableEgress | quote }}
   envoy_log_level: {{ .Values.OpenServiceMesh.envoyLogLevel | quote }}
+  enable_debug_server: {{ .Values.OpenServiceMesh.enableDebugServer | quote }}
   prometheus_scraping: "true"
 
 {{- if .Values.OpenServiceMesh.tracing.enable }}
@@ -16,7 +17,5 @@ data:
   tracing_endpoint: {{ .Values.OpenServiceMesh.tracing.endpoint | quote }}
 {{- end }}
 
-{{- if .Values.OpenServiceMesh.enableEgress }}
-  mesh_cidr_ranges: {{ .Values.OpenServiceMesh.meshCIDRRanges | quote }}
-{{- end }}
   use_https_ingress: {{ .Values.OpenServiceMesh.useHTTPSIngress | default "false" | quote }}
+  service_cert_validity_duration: {{ .Values.OpenServiceMesh.serviceCertValidityDuration | quote }}

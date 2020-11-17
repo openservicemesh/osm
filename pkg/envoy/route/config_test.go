@@ -37,8 +37,9 @@ var _ = Describe("VirtualHost cration", func() {
 			prefix := "test"
 			service := "test-service"
 			domain := fmt.Sprintf("%s.namespace.svc.cluster.local", service)
+			domains := set.NewSet(domain)
 
-			vhost := createVirtualHostStub(prefix, domain)
+			vhost := createVirtualHostStub(prefix, service, domains)
 			Expect(len(vhost.Domains)).To(Equal(1))
 			Expect(vhost.Domains[0]).To(Equal(domain))
 			Expect(vhost.Name).To(Equal(fmt.Sprintf("%s|%s", prefix, service)))
@@ -51,7 +52,12 @@ var _ = Describe("VirtualHost cration", func() {
 			expectedDomains := strings.Split(domain, ",")
 			expectedDomainCount := len(expectedDomains)
 
-			vhost := createVirtualHostStub(prefix, domain)
+			domainsSet := set.NewSet()
+			for _, expectedDomain := range expectedDomains {
+				domainsSet.Add(expectedDomain)
+			}
+
+			vhost := createVirtualHostStub(prefix, service, domainsSet)
 			Expect(len(vhost.Domains)).To(Equal(expectedDomainCount))
 			for _, entry := range expectedDomains {
 				Expect(containsDomain(vhost, entry)).To(BeTrue())
@@ -212,6 +218,7 @@ var _ = Describe("Route Configuration", func() {
 			weightedClusters.Add(service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1"), Weight: 100})
 			weightedClusters.Add(service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-2"), Weight: 100})
 
+			domains := set.NewSet("bookstore.mesh")
 			totalClusterWeight := 0
 			for clusterInterface := range weightedClusters.Iter() {
 				cluster := clusterInterface.(service.WeightedCluster)
@@ -226,11 +233,11 @@ var _ = Describe("Route Configuration", func() {
 			}
 
 			sourceDomainRouteData := map[string]trafficpolicy.RouteWeightedClusters{
-				routePolicy.PathRegex: {HTTPRoute: routePolicy, WeightedClusters: weightedClusters},
+				routePolicy.PathRegex: {HTTPRoute: routePolicy, WeightedClusters: weightedClusters, Hostnames: domains},
 			}
 
 			sourceDomainAggregatedData := map[string]map[string]trafficpolicy.RouteWeightedClusters{
-				"bookstore.mesh": sourceDomainRouteData,
+				"bookstore": sourceDomainRouteData,
 			}
 
 			//Validating the outbound clusters and routes
@@ -252,6 +259,7 @@ var _ = Describe("Route Configuration", func() {
 			weightedClusters := set.NewSet()
 			weightedClusters.Add(service.WeightedCluster{ClusterName: service.ClusterName("osm/bookstore-1"), Weight: 100})
 
+			domains := set.NewSet("bookstore.mesh")
 			totalClusterWeight := 0
 			for clusterInterface := range weightedClusters.Iter() {
 				cluster := clusterInterface.(service.WeightedCluster)
@@ -266,11 +274,11 @@ var _ = Describe("Route Configuration", func() {
 			}
 
 			destDomainRouteData := map[string]trafficpolicy.RouteWeightedClusters{
-				routePolicy.PathRegex: {HTTPRoute: routePolicy, WeightedClusters: weightedClusters},
+				routePolicy.PathRegex: {HTTPRoute: routePolicy, WeightedClusters: weightedClusters, Hostnames: domains},
 			}
 
 			destDomainAggregatedData := map[string]map[string]trafficpolicy.RouteWeightedClusters{
-				"bookstore.mesh": destDomainRouteData,
+				"bookstore": destDomainRouteData,
 			}
 
 			//Validating the inbound clusters and routes

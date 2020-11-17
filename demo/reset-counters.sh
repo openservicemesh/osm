@@ -12,5 +12,9 @@ curl -I -X GET http://localhost:8081/reset &
 curl -I -X GET http://localhost:8082/reset &
 curl -I -X GET http://localhost:8083/reset &
 
-wait
+# Restart these pods to reset their data stores.
+kubectl rollout restart deployment -n osm-system jaeger &
+kubectl rollout restart deployment -n osm-system osm-grafana &
+kubectl rollout restart deployment -n osm-system osm-prometheus &
 
+wait

@@ -86,7 +86,6 @@ func updateBooksSold(w http.ResponseWriter, r *http.Request) {
 	setHeaders(w)
 	renderTemplate(w)
 	log.Info().Msgf("%s;  URL: %q;  %s: %d\n", getIdentity(), html.EscapeString(r.URL.Path), common.BooksBoughtHeader, booksSold)
-	return
 }
 
 // sellBook increments the value of the booksSold
@@ -109,7 +108,7 @@ func sellBook(w http.ResponseWriter, r *http.Request) {
 	// Slow down the responses artificially.
 	maxNoiseMilliseconds := 750
 	minNoiseMilliseconds := 150
-	intNoise := rand.Intn(maxNoiseMilliseconds-minNoiseMilliseconds) + minNoiseMilliseconds
+	intNoise := rand.Intn(maxNoiseMilliseconds-minNoiseMilliseconds) + minNoiseMilliseconds // #nosec G404
 	pretendToBeBusy := time.Duration(intNoise) * time.Millisecond
 	log.Info().Msgf("Sleeping %+v", pretendToBeBusy)
 	time.Sleep(pretendToBeBusy)

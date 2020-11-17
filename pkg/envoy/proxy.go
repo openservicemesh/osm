@@ -5,6 +5,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
 )
 
@@ -13,7 +14,7 @@ import (
 type Proxy struct {
 	certificate.CommonName
 	net.Addr
-	announcements chan interface{}
+	announcements chan announcements.Announcement
 
 	// The time this Proxy connected to the OSM control plane
 	connectedAt time.Time
@@ -21,6 +22,40 @@ type Proxy struct {
 	lastSentVersion    map[TypeURI]uint64
 	lastAppliedVersion map[TypeURI]uint64
 	lastNonce          map[TypeURI]string
+
+	// Records metadata around the Kubernetes Pod on which this Envoy Proxy is installed.
+	// This could be nil if the Envoy is not operating in a Kubernetes cluster (VM for example)
+	// NOTE: This field may be not be set at the time Proxy struct is initialized. This would
+	// eventually be set when the metadata arrives via the xDS protocol.
+	PodMetadata *PodMetadata
+}
+
+// PodMetadata is a struct holding information on the Pod on which a given Envoy proxy is installed
+// This struct is initialized *eventually*, when the metadata arrives via xDS.
+type PodMetadata struct {
+	UID            string
+	Namespace      string
+	IP             string
+	ServiceAccount string
+	Cluster        string
+	EnvoyNodeID    string
+}
+
+// HasPodMetadata answers the question - has the Pod metadata been recorded for the given Envoy proxy
+func (p *Proxy) HasPodMetadata() bool {
+	return p.PodMetadata != nil
+}
+
+// SetMetadata sets the proxy metadata constructured from the given parameters
+func (p *Proxy) SetMetadata(podUID, podNamespace, podIP, podServiceAccountName, envoyNodeID string) {
+	p.PodMetadata = &PodMetadata{
+		UID:            podUID,
+		Namespace:      podNamespace,
+		IP:             podIP,
+		ServiceAccount: podServiceAccountName,
+		Cluster:        "", // TODO
+		EnvoyNodeID:    envoyNodeID,
+	}
 }
 
 // SetLastAppliedVersion records the version of the given Envoy proxy that was last acknowledged.
@@ -86,7 +121,7 @@ func (p Proxy) GetIP() net.Addr {
 }
 
 // GetAnnouncementsChannel returns the announcement channel for the given Envoy proxy.
-func (p Proxy) GetAnnouncementsChannel() chan interface{} {
+func (p Proxy) GetAnnouncementsChannel() chan announcements.Announcement {
 	return p.announcements
 }
 
@@ -98,7 +133,7 @@ func NewProxy(cn certificate.CommonName, ip net.Addr) *Proxy {
 
 		connectedAt: time.Now(),
 
-		announcements:      make(chan interface{}),
+		announcements:      make(chan announcements.Announcement),
 		lastNonce:          make(map[TypeURI]string),
 		lastSentVersion:    make(map[TypeURI]uint64),
 		lastAppliedVersion: make(map[TypeURI]uint64),

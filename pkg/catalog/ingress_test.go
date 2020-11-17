@@ -2,17 +2,19 @@ package catalog
 
 import (
 	"context"
-	"time"
 
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/golang/mock/gomock"
+	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	extensionsV1beta "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
+	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -20,7 +22,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/endpoint/providers/kube"
 	"github.com/openservicemesh/osm/pkg/ingress"
-	"github.com/openservicemesh/osm/pkg/namespace"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -40,55 +42,111 @@ var (
 )
 
 func newFakeMeshCatalog() *MeshCatalog {
+	defer GinkgoRecover()
+
 	var (
-		mockCtrl         *gomock.Controller
-		mockNsController *namespace.MockController
+		mockCtrl           *gomock.Controller
+		mockKubeController *k8s.MockController
+		mockIngressMonitor *ingress.MockMonitor
 	)
 
 	mockCtrl = gomock.NewController(GinkgoT())
-	mockNsController = namespace.NewMockController(mockCtrl)
+	mockKubeController = k8s.NewMockController(mockCtrl)
+	mockIngressMonitor = ingress.NewMockMonitor(mockCtrl)
+
 	meshSpec := smi.NewFakeMeshSpecClient()
-	cache := make(map[certificate.CommonName]certificate.Certificater)
-	certManager := tresor.NewFakeCertManager(&cache, 1*time.Hour)
-	ingressMonitor := ingress.NewFakeIngressMonitor()
-	ingressMonitor.FakeIngresses = getFakeIngresses()
+
+	osmNamespace := "-test-osm-namespace-"
+	osmConfigMapName := "-test-osm-config-map-"
+
 	stop := make(chan struct{})
 	endpointProviders := []endpoint.Provider{
 		kube.NewFakeProvider(),
 	}
 	kubeClient := testclient.NewSimpleClientset()
 
+	cfg := configurator.NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
+
+	cache := make(map[certificate.CommonName]certificate.Certificater)
+	certManager := tresor.NewFakeCertManager(&cache, cfg)
+
 	// Create a pod
 	pod := tests.NewPodTestFixtureWithOptions(tests.Namespace, "pod-name", tests.BookstoreServiceAccountName)
 	if _, err := kubeClient.CoreV1().Pods(tests.Namespace).Create(context.TODO(), &pod, metav1.CreateOptions{}); err != nil {
-		log.Fatal().Err(err).Msgf("Error creating new fake Mesh Catalog")
+		GinkgoT().Fatalf("Error creating new fake Mesh Catalog: %s", err.Error())
 	}
 
+	// Create Bookstore-v1 Service
 	selector := map[string]string{tests.SelectorKey: tests.SelectorValue}
-	svc := tests.NewServiceFixture(tests.BookstoreServiceName, tests.Namespace, selector)
-	if _, err := kubeClient.CoreV1().Services(tests.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{}); err != nil {
-		log.Fatal().Err(err).Msgf("Error creating new fake Mesh Catalog")
+	svc := tests.NewServiceFixture(tests.BookstoreV1Service.Name, tests.BookstoreV1Service.Namespace, selector)
+	if _, err := kubeClient.CoreV1().Services(tests.BookstoreV1Service.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{}); err != nil {
+		GinkgoT().Fatalf("Error creating new Bookstore service: %s", err.Error())
 	}
 
-	osmNamespace := "-test-osm-namespace-"
-	osmConfigMapName := "-test-osm-config-map-"
-	cfg := configurator.NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
+	// Create Bookstore-v2 Service
+	svc = tests.NewServiceFixture(tests.BookstoreV2Service.Name, tests.BookstoreV2Service.Namespace, selector)
+	if _, err := kubeClient.CoreV1().Services(tests.BookstoreV2Service.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{}); err != nil {
+		GinkgoT().Fatalf("Error creating new Bookstore service: %s", err.Error())
+	}
 
-	testChan := make(chan interface{})
-	monitoredNamespace := []string{
-		tests.BookstoreService.Namespace,
+	// Create Bookbuyer Service
+	svc = tests.NewServiceFixture(tests.BookbuyerService.Name, tests.BookbuyerService.Namespace, nil)
+	if _, err := kubeClient.CoreV1().Services(tests.BookbuyerService.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{}); err != nil {
+		GinkgoT().Fatalf("Error creating new Bookbuyer service: %s", err.Error())
+	}
+
+	// Create Bookstore apex Service
+	svc = tests.NewServiceFixture(tests.BookstoreApexService.Name, tests.BookstoreApexService.Namespace, nil)
+	if _, err := kubeClient.CoreV1().Services(tests.BookstoreApexService.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{}); err != nil {
+		GinkgoT().Fatalf("Error creating new Bookstire Apex service", err.Error())
+	}
+
+	announcementsChan := make(chan announcements.Announcement)
+
+	mockIngressMonitor.EXPECT().GetAnnouncementsChannel().Return(announcementsChan).AnyTimes()
+	mockIngressMonitor.EXPECT().GetIngressResources(gomock.Any()).Return(getFakeIngresses(), nil).AnyTimes()
+
+	// Monitored namespaces is made a set to make sure we don't repeat namespaces on mock
+	listExpectedNs := tests.GetUnique([]string{
+		tests.BookstoreV1Service.Namespace,
 		tests.BookbuyerService.Namespace,
-		tests.BookwarehouseService.Namespace,
-	}
+		tests.BookstoreApexService.Namespace,
+	})
 
-	mockNsController.EXPECT().IsMonitoredNamespace(tests.BookstoreService.Namespace).Return(true).AnyTimes()
-	mockNsController.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).AnyTimes()
-	mockNsController.EXPECT().IsMonitoredNamespace(tests.BookwarehouseService.Namespace).Return(true).AnyTimes()
-	mockNsController.EXPECT().GetAnnouncementsChannel().Return(testChan).AnyTimes()
-	mockNsController.EXPECT().ListMonitoredNamespaces().Return(monitoredNamespace, nil).AnyTimes()
+	// #1683 tracks potential improvements to the following dynamic mocks
+	mockKubeController.EXPECT().ListServices().DoAndReturn(func() []*corev1.Service {
+		// play pretend this call queries a controller cache
+		var services []*corev1.Service
 
-	return NewMeshCatalog(mockNsController, kubeClient, meshSpec, certManager,
-		ingressMonitor, stop, cfg, endpointProviders...)
+		for _, ns := range listExpectedNs {
+			// simulate lookup on controller cache
+			svcList, _ := kubeClient.CoreV1().Services(ns).List(context.TODO(), metav1.ListOptions{})
+			for serviceIdx := range svcList.Items {
+				services = append(services, &svcList.Items[serviceIdx])
+			}
+		}
+
+		return services
+	}).AnyTimes()
+	mockKubeController.EXPECT().GetService(gomock.Any()).DoAndReturn(func(msh service.MeshService) *v1.Service {
+		// simulate lookup on controller cache
+		vv, err := kubeClient.CoreV1().Services(msh.Namespace).Get(context.TODO(), msh.Name, metav1.GetOptions{})
+
+		if err != nil {
+			return nil
+		}
+
+		return vv
+	}).AnyTimes()
+	mockKubeController.EXPECT().GetAnnouncementsChannel(k8s.Services).Return(announcementsChan).AnyTimes()
+	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookstoreV1Service.Namespace).Return(true).AnyTimes()
+	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookstoreV2Service.Namespace).Return(true).AnyTimes()
+	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).AnyTimes()
+	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookwarehouseService.Namespace).Return(true).AnyTimes()
+	mockKubeController.EXPECT().ListMonitoredNamespaces().Return(listExpectedNs, nil).AnyTimes()
+
+	return NewMeshCatalog(mockKubeController, kubeClient, meshSpec, certManager,
+		mockIngressMonitor, stop, cfg, endpointProviders...)
 }
 
 func getFakeIngresses() []*extensionsV1beta.Ingress {
@@ -195,6 +253,7 @@ var _ = Describe("Test ingress route policies", func() {
 				Namespace: fakeIngressNamespace,
 				Name:      fakeIngressService,
 			}
+
 			domainRoutesMap, _ := mc.GetIngressRoutesPerHost(fakeService)
 
 			for domain, routePolicies := range domainRoutesMap {

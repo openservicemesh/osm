@@ -29,3 +29,9 @@ func (mc *MeshCatalog) GetServicesForServiceAccount(sa service.K8sServiceAccount
 
 	return services, nil
 }
+
+// ListServiceAccountsForService lists the service accounts associated with the given service
+func (mc *MeshCatalog) ListServiceAccountsForService(svc service.MeshService) ([]service.K8sServiceAccount, error) {
+	// Currently OSM uses kubernetes service accounts as service identities
+	return mc.kubeController.ListServiceAccountsForService(svc)
+}

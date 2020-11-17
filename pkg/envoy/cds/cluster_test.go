@@ -3,6 +3,7 @@ package cds
 import (
 	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -11,18 +12,21 @@ import (
 )
 
 var _ = Describe("Cluster configurations", func() {
+	var (
+		mockCtrl         *gomock.Controller
+		mockConfigurator *configurator.MockConfigurator
+	)
 
-	localService := tests.BookbuyerService
-	remoteService := tests.BookstoreService
-	Context("Test getRemoteServiceCluster", func() {
+	mockCtrl = gomock.NewController(GinkgoT())
+	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
+
+	downstreamSvc := tests.BookbuyerService
+	upstreamSvc := tests.BookstoreV1Service
+	Context("Test getUpstreamServiceCluster", func() {
 		It("Returns an EDS based cluster when permissive mode is disabled", func() {
-			cfg := configurator.NewFakeConfiguratorWithOptions(
-				configurator.FakeConfigurator{
-					PermissiveTrafficPolicyMode: false,
-				},
-			)
+			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).Times(1)
 
-			remoteCluster, err := getRemoteServiceCluster(remoteService, localService, cfg)
+			remoteCluster, err := getUpstreamServiceCluster(upstreamSvc, downstreamSvc, mockConfigurator)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(remoteCluster.GetType()).To(Equal(xds_cluster.Cluster_EDS))
 			Expect(remoteCluster.LbPolicy).To(Equal(xds_cluster.Cluster_ROUND_ROBIN))
@@ -30,13 +34,9 @@ var _ = Describe("Cluster configurations", func() {
 		})
 
 		It("Returns an Original Destination based cluster when permissive mode is enabled", func() {
-			cfg := configurator.NewFakeConfiguratorWithOptions(
-				configurator.FakeConfigurator{
-					PermissiveTrafficPolicyMode: true,
-				},
-			)
+			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(true).Times(1)
 
-			remoteCluster, err := getRemoteServiceCluster(remoteService, localService, cfg)
+			remoteCluster, err := getUpstreamServiceCluster(upstreamSvc, downstreamSvc, mockConfigurator)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(remoteCluster.GetType()).To(Equal(xds_cluster.Cluster_ORIGINAL_DST))
 			Expect(remoteCluster.LbPolicy).To(Equal(xds_cluster.Cluster_CLUSTER_PROVIDED))

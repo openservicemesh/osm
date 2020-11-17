@@ -19,7 +19,7 @@ import (
 	osmPolicyClient "github.com/openservicemesh/osm/experimental/pkg/client/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/featureflags"
-	"github.com/openservicemesh/osm/pkg/namespace"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
@@ -37,6 +37,8 @@ type fakeKubeClientSet struct {
 }
 
 func bootstrapClient() (MeshSpec, *fakeKubeClientSet, error) {
+	defer GinkgoRecover()
+
 	osmNamespace := "osm-system"
 	meshName := "osm"
 	stop := make(chan struct{})
@@ -45,7 +47,10 @@ func bootstrapClient() (MeshSpec, *fakeKubeClientSet, error) {
 	smiTrafficSpecClientSet := testTrafficSpecClient.NewSimpleClientset()
 	smiTrafficTargetClientSet := testTrafficTargetClient.NewSimpleClientset()
 	osmPolicyClientSet := osmPolicyClient.NewSimpleClientset()
-	namespaceController := namespace.NewNamespaceController(kubeClient, meshName, stop)
+	kubernetesClient, err := k8s.NewKubernetesController(kubeClient, meshName, stop)
+	if err != nil {
+		GinkgoT().Fatalf("Error initializing kubernetes controller: %s", err.Error())
+	}
 
 	fakeClientSet := &fakeKubeClientSet{
 		kubeClient:                kubeClient,
@@ -63,9 +68,8 @@ func bootstrapClient() (MeshSpec, *fakeKubeClientSet, error) {
 		},
 	}
 	if _, err := kubeClient.CoreV1().Namespaces().Create(context.TODO(), &testNamespace, metav1.CreateOptions{}); err != nil {
-		log.Fatal().Err(err).Msgf("Error creating Namespace %v", testNamespace)
+		GinkgoT().Fatalf("Error creating Namespace %v: %s", testNamespace, err.Error())
 	}
-	<-namespaceController.GetAnnouncementsChannel()
 
 	meshSpec, err := newSMIClient(
 		kubeClient,
@@ -74,7 +78,7 @@ func bootstrapClient() (MeshSpec, *fakeKubeClientSet, error) {
 		smiTrafficTargetClientSet,
 		osmPolicyClientSet,
 		osmNamespace,
-		namespaceController,
+		kubernetesClient,
 		kubernetesClientName,
 		stop,
 	)
@@ -103,8 +107,12 @@ var _ = Describe("When listing TrafficSplit", func() {
 				Service: tests.BookstoreApexServiceName,
 				Backends: []smiSplit.TrafficSplitBackend{
 					{
-						Service: tests.BookstoreServiceName,
-						Weight:  tests.Weight,
+						Service: tests.BookstoreV1ServiceName,
+						Weight:  tests.Weight90,
+					},
+					{
+						Service: tests.BookstoreV2ServiceName,
+						Weight:  tests.Weight10,
 					},
 				},
 			},
@@ -146,11 +154,11 @@ var _ = Describe("When listing TrafficSplit services", func() {
 				Backends: []smiSplit.TrafficSplitBackend{
 					{
 						Service: "bookstore-v1",
-						Weight:  tests.Weight,
+						Weight:  tests.Weight90,
 					},
 					{
 						Service: "bookstore-v2",
-						Weight:  tests.Weight,
+						Weight:  tests.Weight10,
 					},
 				},
 			},
@@ -282,127 +290,6 @@ var _ = Describe("When listing TrafficTargets", func() {
 	})
 })
 
-var _ = Describe("When fetching a Service corresponding to a Meshservice", func() {
-	var (
-		meshSpec      MeshSpec
-		fakeClientSet *fakeKubeClientSet
-		err           error
-	)
-	BeforeEach(func() {
-		meshSpec, fakeClientSet, err = bootstrapClient()
-		Expect(err).ToNot(HaveOccurred())
-	})
-
-	It("should return a Service resource corresponding to the given service", func() {
-		meshSvc := service.MeshService{
-			Namespace: testNamespaceName,
-			Name:      "test-GetService",
-		}
-		svc := &corev1.Service{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      meshSvc.Name,
-				Namespace: meshSvc.Namespace,
-			},
-			Spec: corev1.ServiceSpec{
-				Ports: []corev1.ServicePort{{
-					Name:     "servicePort",
-					Protocol: corev1.ProtocolTCP,
-					Port:     tests.ServicePort,
-				}},
-			},
-		}
-
-		_, err := fakeClientSet.kubeClient.CoreV1().Services(testNamespaceName).Create(context.TODO(), svc, metav1.CreateOptions{})
-		Expect(err).ToNot(HaveOccurred())
-		<-meshSpec.GetAnnouncementsChannel()
-
-		svcIncache := meshSpec.GetService(meshSvc)
-		Expect(svcIncache).To(Equal(svc))
-
-		err = fakeClientSet.kubeClient.CoreV1().Services(testNamespaceName).Delete(context.TODO(), svc.Name, metav1.DeleteOptions{})
-		Expect(err).ToNot(HaveOccurred())
-		<-meshSpec.GetAnnouncementsChannel()
-	})
-
-	It("should return nil when the given MeshService is not found", func() {
-		meshSvc := service.MeshService{
-			Namespace: testNamespaceName,
-			Name:      "test-GetService",
-		}
-
-		svcIncache := meshSpec.GetService(meshSvc)
-		Expect(svcIncache).To(BeNil())
-	})
-})
-
-var _ = Describe("When listing Services", func() {
-	var (
-		meshSpec      MeshSpec
-		fakeClientSet *fakeKubeClientSet
-		err           error
-	)
-	BeforeEach(func() {
-		meshSpec, fakeClientSet, err = bootstrapClient()
-		Expect(err).ToNot(HaveOccurred())
-	})
-
-	It("should return an empty list when no services are found", func() {
-		services := meshSpec.ListServices()
-		Expect(len(services)).To(Equal(0))
-	})
-
-	It("should return a list of Services", func() {
-		svc1 := &corev1.Service{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-1",
-				Namespace: testNamespaceName,
-			},
-			Spec: corev1.ServiceSpec{
-				Ports: []corev1.ServicePort{{
-					Name:     "servicePort",
-					Protocol: corev1.ProtocolTCP,
-					Port:     tests.ServicePort,
-				}},
-			},
-		}
-		svc2 := &corev1.Service{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-2",
-				Namespace: testNamespaceName,
-			},
-			Spec: corev1.ServiceSpec{
-				Ports: []corev1.ServicePort{{
-					Name:     "servicePort",
-					Protocol: corev1.ProtocolTCP,
-					Port:     tests.ServicePort,
-				}},
-			},
-		}
-
-		_, err := fakeClientSet.kubeClient.CoreV1().Services(testNamespaceName).Create(context.TODO(), svc1, metav1.CreateOptions{})
-		Expect(err).ToNot(HaveOccurred())
-		<-meshSpec.GetAnnouncementsChannel()
-		_, err = fakeClientSet.kubeClient.CoreV1().Services(testNamespaceName).Create(context.TODO(), svc2, metav1.CreateOptions{})
-		Expect(err).ToNot(HaveOccurred())
-		<-meshSpec.GetAnnouncementsChannel()
-
-		services := meshSpec.ListServices()
-		Expect(len(services)).To(Equal(2))
-
-		expectedServices := []string{"test-1", "test-2"}
-		Expect(len(services)).To(Equal(len(expectedServices)))
-		Expect(services[0].Name).To(BeElementOf(expectedServices))
-		Expect(services[1].Name).To(BeElementOf(expectedServices))
-
-		err = fakeClientSet.kubeClient.CoreV1().Services(testNamespaceName).Delete(context.TODO(), svc1.Name, metav1.DeleteOptions{})
-		Expect(err).ToNot(HaveOccurred())
-		<-meshSpec.GetAnnouncementsChannel()
-		err = fakeClientSet.kubeClient.CoreV1().Services(testNamespaceName).Delete(context.TODO(), svc2.Name, metav1.DeleteOptions{})
-		Expect(err).ToNot(HaveOccurred())
-		<-meshSpec.GetAnnouncementsChannel()
-	})
-})
-
 var _ = Describe("When listing ListHTTPTrafficSpecs", func() {
 	var (
 		meshSpec      MeshSpec
@@ -463,6 +350,49 @@ var _ = Describe("When listing ListHTTPTrafficSpecs", func() {
 		Expect(httpRoutes[0].Name).To(Equal(routeSpec.Name))
 
 		err = fakeClientSet.smiTrafficSpecClientSet.SpecsV1alpha3().HTTPRouteGroups(testNamespaceName).Delete(context.TODO(), routeSpec.Name, metav1.DeleteOptions{})
+		Expect(err).ToNot(HaveOccurred())
+		<-meshSpec.GetAnnouncementsChannel()
+	})
+})
+
+var _ = Describe("When listing TCP routes", func() {
+	var (
+		meshSpec      MeshSpec
+		fakeClientSet *fakeKubeClientSet
+		err           error
+	)
+	BeforeEach(func() {
+		meshSpec, fakeClientSet, err = bootstrapClient()
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("Returns an empty list when no TCPRoute resources are found", func() {
+		services := meshSpec.ListTCPTrafficSpecs()
+		Expect(len(services)).To(Equal(0))
+	})
+
+	It("should return a list of TCPRoute resources", func() {
+		routeSpec := &smiSpecs.TCPRoute{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: "specs.smi-spec.io/v1alpha2",
+				Kind:       "TCPRoute",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: testNamespaceName,
+				Name:      "tcp-route",
+			},
+			Spec: smiSpecs.TCPRouteSpec{},
+		}
+
+		_, err := fakeClientSet.smiTrafficSpecClientSet.SpecsV1alpha3().TCPRoutes(testNamespaceName).Create(context.TODO(), routeSpec, metav1.CreateOptions{})
+		Expect(err).ToNot(HaveOccurred())
+		<-meshSpec.GetAnnouncementsChannel()
+
+		tcpRoutes := meshSpec.ListTCPTrafficSpecs()
+		Expect(len(tcpRoutes)).To(Equal(1))
+		Expect(tcpRoutes[0].Name).To(Equal(routeSpec.Name))
+
+		err = fakeClientSet.smiTrafficSpecClientSet.SpecsV1alpha3().TCPRoutes(testNamespaceName).Delete(context.TODO(), routeSpec.Name, metav1.DeleteOptions{})
 		Expect(err).ToNot(HaveOccurred())
 		<-meshSpec.GetAnnouncementsChannel()
 	})

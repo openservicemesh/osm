@@ -23,11 +23,11 @@ const (
 	clusterConnectTimeout = 1 * time.Second
 )
 
-// getRemoteServiceCluster returns an Envoy Cluster corresponding to the remote service
-func getRemoteServiceCluster(remoteService, localService service.MeshService, cfg configurator.Configurator) (*xds_cluster.Cluster, error) {
-	clusterName := remoteService.String()
+// getUpstreamServiceCluster returns an Envoy Cluster corresponding to the given upstream service
+func getUpstreamServiceCluster(upstreamSvc, downstreamSvc service.MeshService, cfg configurator.Configurator) (*xds_cluster.Cluster, error) {
+	clusterName := upstreamSvc.String()
 	marshalledUpstreamTLSContext, err := envoy.MessageToAny(
-		envoy.GetUpstreamTLSContext(localService, remoteService.GetCommonName().String()))
+		envoy.GetUpstreamTLSContext(downstreamSvc, upstreamSvc))
 	if err != nil {
 		return nil, err
 	}

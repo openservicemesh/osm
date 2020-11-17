@@ -10,16 +10,16 @@ import (
 	xds_endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	xds_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 	"github.com/golang/protobuf/ptypes/wrappers"
-
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
+
+	"github.com/golang/mock/gomock"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -30,9 +30,16 @@ import (
 )
 
 var _ = Describe("CDS Response", func() {
+	var (
+		mockCtrl         *gomock.Controller
+		mockConfigurator *configurator.MockConfigurator
+	)
+
+	mockCtrl = gomock.NewController(GinkgoT())
+	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
+
 	kubeClient := testclient.NewSimpleClientset()
 	catalog := catalog.NewFakeMeshCatalog(kubeClient)
-	cfg := configurator.NewFakeConfigurator()
 	proxyServiceName := tests.BookbuyerServiceName
 	proxyServiceAccountName := tests.BookbuyerServiceAccountName
 	proxyService := tests.BookbuyerService
@@ -40,7 +47,7 @@ var _ = Describe("CDS Response", func() {
 
 	Context("Test cds.NewResponse", func() {
 		It("Returns unique list of clusters for CDS", func() {
-			proxyUUID := fmt.Sprintf("proxy-0-%s", uuid.New())
+			proxyUUID := uuid.New()
 			podName := fmt.Sprintf("pod-0-%s", uuid.New())
 
 			// The format of the CN matters
@@ -50,7 +57,7 @@ var _ = Describe("CDS Response", func() {
 			{
 				// Create a pod to match the CN
 				pod := tests.NewPodTestFixtureWithOptions(tests.Namespace, podName, proxyServiceAccountName)
-				pod.Labels[constants.EnvoyUniqueIDLabelName] = proxyUUID // This is what links the Pod and the Certificate
+				pod.Labels[constants.EnvoyUniqueIDLabelName] = proxyUUID.String() // This is what links the Pod and the Certificate
 				_, err := kubeClient.CoreV1().Pods(tests.Namespace).Create(context.TODO(), &pod, metav1.CreateOptions{})
 				Expect(err).ToNot(HaveOccurred())
 			}
@@ -67,17 +74,24 @@ var _ = Describe("CDS Response", func() {
 				Expect(err).ToNot(HaveOccurred())
 			}
 
-			resp, err := NewResponse(catalog, proxy, nil, cfg)
+			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
+			mockConfigurator.EXPECT().IsPrometheusScrapingEnabled().Return(true).AnyTimes()
+			mockConfigurator.EXPECT().IsTracingEnabled().Return(true).AnyTimes()
+			mockConfigurator.EXPECT().IsEgressEnabled().Return(true).AnyTimes()
+			mockConfigurator.EXPECT().GetTracingHost().Return(constants.DefaultTracingHost).AnyTimes()
+			mockConfigurator.EXPECT().GetTracingPort().Return(constants.DefaultTracingPort).AnyTimes()
+
+			resp, err := NewResponse(catalog, proxy, nil, mockConfigurator, nil)
 			Expect(err).ToNot(HaveOccurred())
 
 			// There are to any.Any resources in the ClusterDiscoveryStruct (Clusters)
 			// There are 5 types of clusters that can exist based on the configuration:
-			// 1. Destination cluster (Bookstore and BookstoreApex)
+			// 1. Destination cluster (Bookstore-v1, Bookstore-v2, and BookstoreApex)
 			// 2. Source cluster (Bookbuyer)
 			// 3. Prometheus cluster
 			// 4. Tracing cluster
 			// 5. Passthrough cluster for egress
-			numExpectedClusters := 6 // source and destination clusters
+			numExpectedClusters := 7 // source and destination clusters
 			Expect(len((*resp).Resources)).To(Equal(numExpectedClusters))
 		})
 	})
@@ -134,13 +148,16 @@ var _ = Describe("CDS Response", func() {
 		})
 
 		It("Returns a remote cluster object", func() {
-			localService := tests.BookbuyerService
-			remoteService := tests.BookstoreService
-			remoteCluster, err := getRemoteServiceCluster(remoteService, localService, cfg)
+			downstreamSvc := tests.BookbuyerService
+			upstreamSvc := tests.BookstoreV1Service
+
+			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).Times(1)
+
+			remoteCluster, err := getUpstreamServiceCluster(upstreamSvc, downstreamSvc, mockConfigurator)
 			Expect(err).ToNot(HaveOccurred())
 
 			expectedClusterLoadAssignment := &xds_endpoint.ClusterLoadAssignment{
-				ClusterName: constants.EnvoyMetricsCluster,
+				ClusterName: "test",
 				Endpoints: []*xds_endpoint.LocalityLbEndpoints{
 					{
 						Locality: nil,
@@ -169,8 +186,8 @@ var _ = Describe("CDS Response", func() {
 			}
 
 			// Checking for the value by generating the same value the same way is reduntant
-			// Nonetheless, as getRemoteServiceCluster logic gets more complicated, this might just be ok to have
-			upstreamTLSProto, err := envoy.MessageToAny(envoy.GetUpstreamTLSContext(proxyService, remoteService.GetCommonName().String()))
+			// Nonetheless, as getUpstreamServiceCluster logic gets more complicated, this might just be ok to have
+			upstreamTLSProto, err := envoy.MessageToAny(envoy.GetUpstreamTLSContext(proxyService, upstreamSvc))
 			Expect(err).ToNot(HaveOccurred())
 
 			expectedCluster := xds_cluster.Cluster{
@@ -239,11 +256,11 @@ var _ = Describe("CDS Response", func() {
 					},
 					AlpnProtocols: envoy.ALPNInMesh,
 				},
-				Sni:                remoteService.GetCommonName().String(),
+				Sni:                upstreamSvc.ServerName(),
 				AllowRenegotiation: false,
 			}
 			Expect(upstreamTLSContext.CommonTlsContext.TlsParams).To(Equal(expectedTLSContext.CommonTlsContext.TlsParams))
-			Expect(upstreamTLSContext.Sni).To(Equal("bookstore.default.svc.cluster.local"))
+			Expect(upstreamTLSContext.Sni).To(Equal("bookstore-v1.default.svc.cluster.local"))
 			// TODO(draychev): finish the rest
 			// Expect(upstreamTLSContext).To(Equal(expectedTLSContext)
 		})

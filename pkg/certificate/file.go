@@ -15,6 +15,7 @@ func LoadCertificateFromFile(caPEMFile string) (tresorPem.Certificate, error) {
 		return nil, errors.Wrap(errInvalidFileName, caPEMFile)
 	}
 
+	// #nosec G304
 	caPEM, err := ioutil.ReadFile(caPEMFile)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error reading file: %+v", caPEMFile)
@@ -37,6 +38,7 @@ func LoadPrivateKeyFromFile(caKeyPEMFile string) (tresorPem.PrivateKey, error) {
 		return nil, errInvalidFileName
 	}
 
+	// #nosec G304
 	caKeyPEM, err := ioutil.ReadFile(caKeyPEMFile)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error reading file: %+v", caKeyPEMFile)

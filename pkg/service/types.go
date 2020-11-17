@@ -1,10 +1,11 @@
 package service
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 
-	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/google/uuid"
 )
 
 const (
@@ -12,6 +13,9 @@ const (
 	// or viceversa
 	namespaceNameSeparator = "/"
 )
+
+// SyntheticServiceSuffix is a random string appended to the name of the synthetic service created for each K8s service account
+var SyntheticServiceSuffix = uuid.New().String()
 
 // MeshService is the struct defining a service (Kubernetes or otherwise) within a service mesh.
 type MeshService struct {
@@ -51,9 +55,9 @@ func UnmarshalMeshService(str string) (*MeshService, error) {
 	}, nil
 }
 
-// GetCommonName returns the Subject CN for the MeshService to be used for its certificate.
-func (ms MeshService) GetCommonName() certificate.CommonName {
-	return certificate.CommonName(strings.Join([]string{ms.Name, ms.Namespace, "svc", "cluster", "local"}, "."))
+// ServerName returns the Server Name Identifier (SNI) for TLS connections
+func (ms MeshService) ServerName() string {
+	return strings.Join([]string{ms.Name, ms.Namespace, "svc", "cluster", "local"}, ".")
 }
 
 // K8sServiceAccount is a type for a namespaced service account
@@ -62,8 +66,17 @@ type K8sServiceAccount struct {
 	Name      string
 }
 
-func (ns K8sServiceAccount) String() string {
-	return strings.Join([]string{ns.Namespace, namespaceNameSeparator, ns.Name}, "")
+func (sa K8sServiceAccount) String() string {
+	return strings.Join([]string{sa.Namespace, namespaceNameSeparator, sa.Name}, "")
+}
+
+// GetSyntheticService creates a MeshService for the given K8s Service Account,
+// which has a unique name and is in lieu of an existing Kubernetes service.
+func (sa K8sServiceAccount) GetSyntheticService() MeshService {
+	return MeshService{
+		Namespace: sa.Namespace,
+		Name:      fmt.Sprintf("%s.%s.osm.synthetic-%s", sa.Name, sa.Namespace, SyntheticServiceSuffix),
+	}
 }
 
 // ClusterName is a type for a service name

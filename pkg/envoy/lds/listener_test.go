@@ -1,117 +1,105 @@
 package lds
 
 import (
+	"net"
+	"testing"
+
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
-	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	xds_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/stretchr/testify/assert"
 
+	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/route"
+	"github.com/openservicemesh/osm/pkg/tests"
 )
 
-var _ = Describe("Construct inbound and outbound listeners", func() {
-	Context("Test creation of outbound listener", func() {
-		containsListenerFilter := func(filters []string, filterName string) bool {
-			for _, filter := range filters {
-				if filter == filterName {
-					return true
-				}
-			}
-			return false
-		}
-		It("Tests the outbound listener config with egress enabled", func() {
-			cidr1 := "10.0.0.0/16"
-			cidr2 := "10.2.0.0/16"
-			cfg := configurator.NewFakeConfiguratorWithOptions(configurator.FakeConfigurator{
-				Egress:         true,
-				MeshCIDRRanges: []string{cidr1, cidr2},
-			})
+// Tests TestGetFilterForService checks that a proper filter type is properly returned
+// for given config parametres and service
+func TestGetFilterForService(t *testing.T) {
+	assert := assert.New(t)
+	mockCtrl := gomock.NewController(t)
 
-			listener, err := newOutboundListener(cfg)
-			Expect(err).ToNot(HaveOccurred())
+	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 
-			Expect(listener.Address).To(Equal(envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyOutboundListenerPort)))
+	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false)
+	mockConfigurator.EXPECT().IsTracingEnabled().Return(true)
+	mockConfigurator.EXPECT().GetTracingEndpoint().Return("test-endpoint")
 
-			// Test FilterChains
-			Expect(len(listener.FilterChains)).To(Equal(2)) // 1. in-mesh, 2. egress
-			// Test mesh FilterChain
-			Expect(listener.FilterChains[0].Name).To(Equal(outboundMeshFilterChainName))
-			Expect(len(listener.FilterChains[0].FilterChainMatch.PrefixRanges)).To(Equal(2)) // 2 CIDRs
-			// Test egress FilterChain
-			Expect(listener.FilterChains[1].Name).To(Equal(outboundEgressFilterChainName))
-			Expect(listener.FilterChains[1].FilterChainMatch).Should(BeNil())
+	// Check we get HTTP connection manager filter without Permissive mode
+	filter, err := getOutboundFilterForService(tests.BookbuyerService, mockConfigurator)
 
-			// Test ListenerFilters
-			expectedListenerFilters := []string{wellknown.OriginalDestination}
-			Expect(len(listener.ListenerFilters)).To(Equal(len(expectedListenerFilters)))
-			for _, filter := range listener.ListenerFilters {
-				Expect(containsListenerFilter(expectedListenerFilters, filter.Name)).To(BeTrue())
-			}
-			Expect(listener.TrafficDirection).To(Equal(xds_core.TrafficDirection_OUTBOUND))
-		})
+	assert.NoError(err)
+	assert.Equal(filter.Name, wellknown.HTTPConnectionManager)
 
-		It("Tests the outbound listener config with egress disabled", func() {
-			cfg := configurator.NewFakeConfiguratorWithOptions(configurator.FakeConfigurator{
-				Egress: false,
-			})
+	// Check we get HTTP connection manager filter with Permissive mode
+	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(true)
+	mockConfigurator.EXPECT().IsTracingEnabled().Return(true)
+	mockConfigurator.EXPECT().GetTracingEndpoint().Return("test-endpoint")
 
-			listener, err := newOutboundListener(cfg)
-			Expect(err).ToNot(HaveOccurred())
+	filter, err = getOutboundFilterForService(tests.BookbuyerService, mockConfigurator)
+	assert.NoError(err)
+	assert.Equal(filter.Name, wellknown.HTTPConnectionManager)
+}
 
-			Expect(listener.Address).To(Equal(envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyOutboundListenerPort)))
+// Tests TestGetFilterChainMatchForService checks that a proper filter chain match is returned
+// for a given service
+func TestGetFilterChainMatchForService(t *testing.T) {
+	assert := assert.New(t)
+	mockCtrl := gomock.NewController(t)
 
-			// Test FilterChains
-			Expect(len(listener.FilterChains)).To(Equal(1)) // Filter chain for in-mesh
-			Expect(listener.FilterChains[0].FilterChainMatch).Should(BeNil())
+	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
+	mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
 
-			// Test ListenerFilters
-			expectedListenerFilters := []string{wellknown.OriginalDestination}
-			Expect(len(listener.ListenerFilters)).To(Equal(len(expectedListenerFilters)))
-			for _, filter := range listener.ListenerFilters {
-				Expect(containsListenerFilter(expectedListenerFilters, filter.Name)).To(BeTrue())
-			}
-			Expect(listener.TrafficDirection).To(Equal(xds_core.TrafficDirection_OUTBOUND))
-		})
-	})
+	mockCatalog.EXPECT().GetResolvableServiceEndpoints(tests.BookbuyerService).Return(
+		[]endpoint.Endpoint{
+			tests.Endpoint,
+			{
+				// Adding another IP to test multiple-endpoint filter chain
+				IP: net.IPv4(192, 168, 0, 1),
+			},
+		},
+		nil,
+	)
 
-	Context("Tests building outbound egress listener", func() {
-		It("Tests that building the outbound egress filter chain succeeds with valid CIDRs", func() {
-			cfg := configurator.NewFakeConfiguratorWithOptions(configurator.FakeConfigurator{
-				Egress:         false,
-				MeshCIDRRanges: []string{"10.0.0.0/16"},
-			})
-			outboundListener := xds_listener.Listener{
-				FilterChains: []*xds_listener.FilterChain{
-					{
-						Name: "test",
-					},
-				},
-			}
-			err := updateOutboundListenerForEgress(&outboundListener, cfg)
-			Expect(err).ToNot(HaveOccurred())
-		})
-		It("Tests that building the outbound egress filter chain fails with invalid CIDRs", func() {
-			cfg := configurator.NewFakeConfiguratorWithOptions(configurator.FakeConfigurator{
-				Egress:         false,
-				MeshCIDRRanges: []string{"10.0.0.0/100"},
-			})
-			outboundListener := xds_listener.Listener{
-				FilterChains: []*xds_listener.FilterChain{
-					{
-						Name: "test",
-					},
-				},
-			}
-			err := updateOutboundListenerForEgress(&outboundListener, cfg)
-			Expect(err).To(HaveOccurred())
-		})
-	})
+	filterChainMatch, err := getOutboundFilterChainMatchForService(tests.BookbuyerService, mockCatalog, mockConfigurator)
+
+	assert.NoError(err)
+	assert.Equal(filterChainMatch.PrefixRanges[0].GetAddressPrefix(), tests.Endpoint.IP.String())
+	assert.Equal(filterChainMatch.PrefixRanges[0].GetPrefixLen().GetValue(), uint32(32))
+	assert.Equal(filterChainMatch.PrefixRanges[1].GetAddressPrefix(), net.IPv4(192, 168, 0, 1).String())
+	assert.Equal(filterChainMatch.PrefixRanges[1].GetPrefixLen().GetValue(), uint32(32))
+
+	// Test negative getOutboundFilterChainMatchForService when no endpoints are present
+	mockCatalog.EXPECT().GetResolvableServiceEndpoints(tests.BookbuyerService).Return(
+		[]endpoint.Endpoint{},
+		nil,
+	)
+
+	filterChainMatch, err = getOutboundFilterChainMatchForService(tests.BookbuyerService, mockCatalog, mockConfigurator)
+	assert.NoError(err)
+	assert.Nil(filterChainMatch)
+}
+
+var _ = Describe("Construct inbound listeners", func() {
+	var (
+		mockCtrl         *gomock.Controller
+		mockConfigurator *configurator.MockConfigurator
+	)
+
+	mockCtrl = gomock.NewController(GinkgoT())
+	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
+
+	mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
+	mockConfigurator.EXPECT().GetTracingHost().Return(constants.DefaultTracingHost).AnyTimes()
+	mockConfigurator.EXPECT().GetTracingPort().Return(constants.DefaultTracingPort).AnyTimes()
 
 	Context("Test creation of inbound listener", func() {
 		It("Tests the inbound listener config", func() {
@@ -120,22 +108,6 @@ var _ = Describe("Construct inbound and outbound listeners", func() {
 			Expect(len(listener.ListenerFilters)).To(Equal(1)) // tls-inspector listener filter
 			Expect(listener.ListenerFilters[0].Name).To(Equal(wellknown.TlsInspector))
 			Expect(listener.TrafficDirection).To(Equal(xds_core.TrafficDirection_INBOUND))
-		})
-	})
-
-	Context("Test creation of HTTP connection manager", func() {
-		It("Returns proper Zipkin config given a cfg", func() {
-			cfg := configurator.NewFakeConfiguratorWithOptions(configurator.FakeConfigurator{})
-			connManager := getHTTPConnectionManager(route.InboundRouteConfigName, cfg)
-			var nilHcmTrace *xds_hcm.HttpConnectionManager_Tracing = nil
-
-			if cfg.IsTracingEnabled() {
-				Expect(connManager.Tracing).NotTo(Equal(nilHcmTrace))
-				Expect(connManager.Tracing.Verbose).To(Equal(true))
-				Expect(connManager.Tracing.Provider.Name).To(Equal("envoy.tracers.zipkin"))
-			} else {
-				Expect(connManager.Tracing).To(Equal(nilHcmTrace))
-			}
 		})
 	})
 
@@ -148,20 +120,37 @@ var _ = Describe("Construct inbound and outbound listeners", func() {
 			Expect(listener.TrafficDirection).To(Equal(xds_core.TrafficDirection_INBOUND))
 		})
 	})
+})
 
-	Context("Test parseCIDR", func() {
-		It("Tests that a valid CIDR is parsed correctly", func() {
-			cidr := "10.2.0.0/24"
-			addr, prefix, err := parseCIDR(cidr)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(addr).To(Equal("10.2.0.0"))
-			Expect(prefix).To(Equal(uint32(24)))
+var _ = Describe("Test getHTTPConnectionManager", func() {
+	var (
+		mockCtrl         *gomock.Controller
+		mockConfigurator *configurator.MockConfigurator
+	)
+
+	mockCtrl = gomock.NewController(GinkgoT())
+	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
+
+	Context("Test creation of HTTP connection manager", func() {
+		It("Returns proper Zipkin config given when tracing is enabled", func() {
+			mockConfigurator.EXPECT().GetTracingHost().Return(constants.DefaultTracingHost).Times(1)
+			mockConfigurator.EXPECT().GetTracingPort().Return(constants.DefaultTracingPort).Times(1)
+			mockConfigurator.EXPECT().GetTracingEndpoint().Return(constants.DefaultTracingEndpoint).Times(1)
+			mockConfigurator.EXPECT().IsTracingEnabled().Return(true).Times(1)
+
+			connManager := getHTTPConnectionManager(route.InboundRouteConfigName, mockConfigurator)
+
+			Expect(connManager.Tracing.Verbose).To(Equal(true))
+			Expect(connManager.Tracing.Provider.Name).To(Equal("envoy.tracers.zipkin"))
 		})
 
-		It("Tests that an invalid CIDR returns an error", func() {
-			cidr := "10.2.0.0/99"
-			_, _, err := parseCIDR(cidr)
-			Expect(err).To(HaveOccurred())
+		It("Returns proper Zipkin config given when tracing is disabled", func() {
+			mockConfigurator.EXPECT().IsTracingEnabled().Return(false).Times(1)
+
+			connManager := getHTTPConnectionManager(route.InboundRouteConfigName, mockConfigurator)
+			var nilHcmTrace *xds_hcm.HttpConnectionManager_Tracing = nil
+
+			Expect(connManager.Tracing).To(Equal(nilHcmTrace))
 		})
 	})
 })

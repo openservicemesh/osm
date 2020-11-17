@@ -5,10 +5,12 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
+
+	"github.com/golang/mock/gomock"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -19,16 +21,23 @@ import (
 )
 
 var _ = Describe("Test EDS response", func() {
+	var (
+		mockCtrl         *gomock.Controller
+		mockConfigurator *configurator.MockConfigurator
+	)
+
+	mockCtrl = gomock.NewController(GinkgoT())
+	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
+
 	kubeClient := testclient.NewSimpleClientset()
 	catalog := catalog.NewFakeMeshCatalog(kubeClient)
-	cfg := configurator.NewFakeConfigurator()
 
 	Context("Test eds.NewResponse", func() {
 		It("Correctly returns an response for endpoints when the certificate and service are valid", func() {
 			// Initialize the proxy service
 			proxyServiceName := tests.BookbuyerServiceName
 			proxyServiceAccountName := tests.BookbuyerServiceAccountName
-			proxyUUID := fmt.Sprintf("proxy-0-%s", uuid.New())
+			proxyUUID := uuid.New()
 
 			// The format of the CN matters
 			xdsCertificate := certificate.CommonName(fmt.Sprintf("%s.%s.%s.foo.bar", proxyUUID, proxyServiceAccountName, tests.Namespace))
@@ -37,8 +46,9 @@ var _ = Describe("Test EDS response", func() {
 			{
 				// Create a pod to match the CN
 				podName := fmt.Sprintf("pod-0-%s", uuid.New())
+
 				pod := tests.NewPodTestFixtureWithOptions(tests.Namespace, podName, proxyServiceAccountName)
-				pod.Labels[constants.EnvoyUniqueIDLabelName] = proxyUUID // This is what links the Pod and the Certificate
+				pod.Labels[constants.EnvoyUniqueIDLabelName] = proxyUUID.String() // This is what links the Pod and the Certificate
 				_, err := kubeClient.CoreV1().Pods(tests.Namespace).Create(context.TODO(), &pod, metav1.CreateOptions{})
 				Expect(err).ToNot(HaveOccurred())
 			}
@@ -55,14 +65,14 @@ var _ = Describe("Test EDS response", func() {
 				Expect(err).ToNot(HaveOccurred())
 			}
 
-			_, err := NewResponse(catalog, proxy, nil, cfg)
+			_, err := NewResponse(catalog, proxy, nil, mockConfigurator, nil)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("Correctly returns an error response for endpoints when the proxy isn't associated with a MeshService", func() {
 			// Initialize the proxy service
 			proxyServiceAccountName := "non-existent-service-account"
-			proxyUUID := fmt.Sprintf("non-existent-pod-%s", uuid.New())
+			proxyUUID := uuid.New()
 
 			// The format of the CN matters
 			xdsCertificate := certificate.CommonName(fmt.Sprintf("%s.%s.%s.foo.bar", proxyUUID, proxyServiceAccountName, tests.Namespace))
@@ -71,7 +81,7 @@ var _ = Describe("Test EDS response", func() {
 			// Don't create a pod/service for this proxy, this should result in an error when the
 			// service is being looked up based on the proxy's certificate
 
-			_, err := NewResponse(catalog, proxy, nil, cfg)
+			_, err := NewResponse(catalog, proxy, nil, mockConfigurator, nil)
 			Expect(err).To(HaveOccurred())
 		})
 	})

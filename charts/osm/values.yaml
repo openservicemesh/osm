@@ -6,24 +6,25 @@ OpenServiceMesh:
   image:
     registry: openservicemesh
     pullPolicy: IfNotPresent
-    tag: v0.3.0
+    tag: v0.5.0
   imagePullSecrets: []
   sidecarImage: envoyproxy/envoy-alpine:v1.15.0
   prometheus:
     port: 7070
     retention:
       time: 15d
-  certficateManager: tresor
+  certificateManager: tresor
   vault:
     host:
     protocol: http
     token:
     role: openservicemesh
+  connectVault: true
   certmanager:
     issuerName: osm-ca
     issuerKind: Issuer
     issuerGroup: cert-manager
-  serviceCertValidityMinutes: 1
+  serviceCertValidityDuration: 24h
   caBundleSecretName: osm-ca-bundle
   grafana:
     port: 3000
@@ -32,11 +33,22 @@ OpenServiceMesh:
   enablePermissiveTrafficPolicy: false
   enableBackpressureExperimental: false
   enableEgress: false
-  enableMetricsStack: true
+  enablePrometheus: true
+  enableGrafana: false
+  enableFluentbit: false
+  fluentBitImage:
+    name: fluentbit-logger
+    registry: fluent
+    tag: 1.5
+    pullPolicy: IfNotPresent
   meshName: osm
-  meshCIDRRanges: 0.0.0.0/0
   useHTTPSIngress: false
-  envoyLogLevel: debug
+  envoyLogLevel: error
+  controllerLogLevel: trace
+  enforceSingleMesh: false
+  customLogAnalyticsWorkspace: true
+  fluentbitOutput: stdout
+  webhookConfigNamePrefix: osm-webhook
 
   # Set deployJaeger to true to deploy a Jaeger cluster in the
   # namespace where OSM resides.
@@ -57,6 +69,6 @@ OpenServiceMesh:
     # Destination port for the listener
     port: 9411
 
-    # Destination's API or collector endpoint where the spans will 
+    # Destination's API or collector endpoint where the spans will
     # be sent to
     endpoint: "/api/v2/spans"

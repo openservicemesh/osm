@@ -24,6 +24,9 @@ rules:
     verbs: ["get", "list", "create"]
 
   - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "watch"]
+  - apiGroups: [""]
     resources: ["secrets", "configmaps"]
     verbs: ["create", "update"]
   - apiGroups: ["admissionregistration.k8s.io"]
@@ -36,7 +39,7 @@ rules:
     resources: ["traffictargets"]
     verbs: ["list", "get", "watch"]
   - apiGroups: ["specs.smi-spec.io"]
-    resources: ["httproutegroups"]
+    resources: ["httproutegroups", "tcproutes"]
     verbs: ["list", "get", "watch"]
 
   # Backpressure is an experimental extension of SMI.

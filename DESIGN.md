@@ -289,7 +289,7 @@ would require:
 
 In the previous section, we proposed implementation of the `StreamAggregatedResources` method. This provides
 connected Envoy proxies with a list of clusters, mapping of service name to list of routable IP addresses, list of permitted routes, listeners and secrets for CDS, EDS, RDS, LDS and SDS respectively.
-The `ListEndpointsForService`, `ListTrafficPolicies` and `GetCertificateForService` methods will be provided by the OSM component, which we refer to
+The `ListEndpointsForService`, `ListTrafficPolicies` methods will be provided by the OSM component, which we refer to
  as the **Mesh Catalog** in this document.
 
 The Mesh Catalog will have access to the `MeshSpec`, `CertificateManager`, and the list of `EndpointsProvider`s.
@@ -309,15 +309,20 @@ type MeshCataloger interface {
 	// ListAllowedOutboundServices lists the services the given service is allowed outbound connections to.
 	ListAllowedOutboundServices(service.MeshService) ([]service.MeshService, error)
 
+	// ListAllowedInboundServiceAccounts lists the downstream service accounts that can connect to the given service account
+	ListAllowedInboundServiceAccounts(service.K8sServiceAccount) ([]service.K8sServiceAccount, error)
+
+	// ListAllowedOutboundServiceAccounts lists the upstream service accounts the given service account can connect to
+	ListAllowedOutboundServiceAccounts(service.K8sServiceAccount) ([]service.K8sServiceAccount, error)
+
+	// ListServiceAccountsForService lists the service accounts associated with the given service
+	ListServiceAccountsForService(service.MeshService) ([]service.K8sServiceAccount, error)
+
 	// ListSMIPolicies lists SMI policies.
-	ListSMIPolicies() ([]*split.TrafficSplit, []service.WeightedService, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget, []*corev1.Service)
+	ListSMIPolicies() ([]*split.TrafficSplit, []service.WeightedService, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget)
 
 	// ListEndpointsForService returns the list of provider endpoints corresponding to a service
 	ListEndpointsForService(service.MeshService) ([]endpoint.Endpoint, error)
-
-	// GetCertificateForService returns the SSL Certificate for the given service.
-	// This certificate will be used for service-to-service mTLS.
-	GetCertificateForService(service.MeshService) (certificate.Certificater, error)
 
 	// ExpectProxy catalogs the fact that a certificate was issued for an Envoy proxy and this is expected to connect to XDS.
 	ExpectProxy(certificate.CommonName)
@@ -335,8 +340,8 @@ type MeshCataloger interface {
 	// GetServicesForServiceAccount returns a list of services corresponding to a service account
 	GetServicesForServiceAccount(service.K8sServiceAccount) ([]service.MeshService, error)
 
-	// GetHostnamesForService returns the hostnames for a service
-	GetHostnamesForService(service service.MeshService) (string, error)
+	// GetResolvableHostnamesForUpstreamService returns the hostnames over which an upstream service is accessible from a downstream service
+	GetResolvableHostnamesForUpstreamService(downstream, upstream service.MeshService) ([]string, error)
 
 	//GetWeightedClusterForService returns the weighted cluster for a service
 	GetWeightedClusterForService(service service.MeshService) (service.WeightedCluster, error)
@@ -380,7 +385,7 @@ type Proxy struct {
 	certificate.CommonName
 	net.IP
 	ServiceName   service.MeshService
-	announcements chan interface{}
+	announcements chan announcements.Announcement
 
 	lastSentVersion    map[TypeURI]uint64
 	lastAppliedVersion map[TypeURI]uint64
@@ -395,7 +400,7 @@ participate in the service mesh. Each [endpoint provider](#3-endpoints-providers
 The [Mesh catalog](#5-mesh-catalog) will query each [Endpoints provider](#3-endpoints-providers) for a particular [service](#c-service), and obtain the IP addresses and ports of the endpoints handling traffic for service.
 
 The [Endpoints providers](#3-endpoints-providers) are aware of:
-  - Kubernetes Service and their own CRD (example: `AzureResource`)
+  - Kubernetes Service and their own CRD
   - vendor-specific APIs and methods to retrieve IP addresses and Port numbers for Endpoints
 
 The [Endpoints providers](#3-endpoints-providers) has no awareness of:
@@ -488,7 +493,7 @@ package certificate
 // Manager is the interface declaring the methods for the Certificate Manager.
 type Manager interface {
 	// IssueCertificate issues a new certificate.
-	IssueCertificate(CommonName, *time.Duration) (Certificater, error)
+	IssueCertificate(CommonName, time.Duration) (Certificater, error)
 
 	// GetCertificate returns a certificate given its Common Name (CN)
 	GetCertificate(CommonName) (Certificater, error)
@@ -501,6 +506,10 @@ type Manager interface {
 
 	// ListCertificates lists all certificates issued
 	ListCertificates() ([]Certificater, error)
+
+	// ReleaseCertificate informs the underlying certificate issuer that the given cert will no longer be needed.
+	// This method could be called when a given payload is terminated. Calling this should remove certs from cache and free memory if possible.
+	ReleaseCertificate(CommonName)
 
 	// GetAnnouncementsChannel returns a channel, which is used to announce when changes have been made to the issued certificates.
 	GetAnnouncementsChannel() <-chan interface{}

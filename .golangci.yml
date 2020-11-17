@@ -1,9 +1,6 @@
 run:
   tests: true
 
-issues:
-  new: true
-
 linters:
   enable:
     - goconst
@@ -11,6 +8,7 @@ linters:
     - gofmt
     - goimports
     - golint
+    - gosec
     - govet
     - misspell
     - unused
@@ -19,3 +17,24 @@ linters:
 linters-settings:
   goimports:
     local-prefixes: github.com/openservicemesh/osm
+
+issues:
+  exclude-rules:
+    # Ignore error for ginkgo and gomega dot imports
+    - linters:
+        - golint
+      source: ". \"github.com/onsi/(ginkgo|gomega)\""
+      text: "dot imports"
+    # ignore unused linters on keyvault as this code isn't being used
+    # TODO: disable this rule once keyvault is integrated
+    - path: pkg/certificate/providers/keyvault/
+      linters: 
+        - unused
+        - deadcode
+    # Exclude staticcheck messages for deprecated function, variable or constant
+    # This causes issues with package github.com/golang/protobuf/proto
+    - linters:
+        - staticcheck
+      text: "SA1019:"
+  exclude-use-default: false
+

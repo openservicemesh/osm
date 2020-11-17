@@ -3,16 +3,22 @@ package main
 import (
 	"bytes"
 	"context"
+	"fmt"
+	"io"
 	"io/ioutil"
+	"strings"
+	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/stretchr/testify/assert"
 	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chartutil"
 	kubefake "helm.sh/helm/v3/pkg/kube/fake"
 	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/storage"
 	"helm.sh/helm/v3/pkg/storage/driver"
+	"helm.sh/helm/v3/pkg/strvals"
 	v1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -22,33 +28,24 @@ import (
 )
 
 var (
-	testRegistry               = "test-registry"
-	testRegistrySecret         = "test-registry-secret"
-	testOsmImageTag            = "test-tag"
-	testVaultHost              = "vault.osm.svc.cluster.local"
-	testVaultProtocol          = "http"
-	testVaultToken             = "token"
-	testVaultRole              = "role"
-	testCertManagerIssuerName  = "my-osm-ca"
-	testCertManagerIssuerKind  = "ClusterIssuer"
-	testCertManagerIssuerGroup = "example.co.uk"
-	testCABundleSecretName     = "osm-ca-bundle"
-	testRetentionTime          = "5d"
-	testMeshCIDR               = "10.20.0.0/16"
-	testMeshCIDRRanges         = []string{testMeshCIDR}
-	testKey1                   = "key1=val1"
-	testSetOptions             = []string{testKey1}
+	testRegistry       = "test-registry"
+	testRegistrySecret = "test-registry-secret"
+	testOsmImageTag    = "test-tag"
+	testVaultHost      = "vault.osm.svc.cluster.local"
+	testVaultToken     = "token"
+	testRetentionTime  = "5d"
+	testEnvoyLogLevel  = "error"
+	testChartPath      = "testdata/test-chart"
 )
 
 var _ = Describe("Running the install command", func() {
 
 	Describe("with default parameters", func() {
 		var (
-			out           *bytes.Buffer
-			store         *storage.Storage
-			config        *helm.Configuration
-			err           error
-			fakeClientSet kubernetes.Interface
+			out    *bytes.Buffer
+			store  *storage.Storage
+			config *helm.Configuration
+			err    error
 		)
 
 		BeforeEach(func() {
@@ -67,23 +64,7 @@ var _ = Describe("Running the install command", func() {
 				Log:          func(format string, v ...interface{}) {},
 			}
 
-			fakeClientSet = fake.NewSimpleClientset()
-
-			installCmd := &installCmd{
-				out:                        out,
-				chartPath:                  "testdata/test-chart",
-				containerRegistry:          testRegistry,
-				osmImageTag:                testOsmImageTag,
-				osmImagePullPolicy:         defaultOsmImagePullPolicy,
-				certificateManager:         "tresor",
-				serviceCertValidityMinutes: 1,
-				prometheusRetentionTime:    testRetentionTime,
-				meshName:                   defaultMeshName,
-				enableEgress:               true,
-				enableMetricsStack:         true,
-				meshCIDRRanges:             testMeshCIDRRanges,
-				clientSet:                  fakeClientSet,
-			}
+			installCmd := getDefaultInstallCmd(out)
 
 			err = installCmd.run(config)
 		})
@@ -111,39 +92,8 @@ var _ = Describe("Running the install command", func() {
 			})
 
 			It("should have the correct values", func() {
-				Expect(rel.Config).To(BeEquivalentTo(map[string]interface{}{
-					"OpenServiceMesh": map[string]interface{}{
-						"certificateManager": "tresor",
-						"certmanager": map[string]interface{}{
-							"issuerKind":  "",
-							"issuerGroup": "",
-							"issuerName":  "",
-						},
-						"meshName": defaultMeshName,
-						"image": map[string]interface{}{
-							"registry":   testRegistry,
-							"tag":        testOsmImageTag,
-							"pullPolicy": defaultOsmImagePullPolicy,
-						},
-						"serviceCertValidityMinutes": int64(1),
-						"vault": map[string]interface{}{
-							"host":     "",
-							"protocol": "",
-							"token":    "",
-							"role":     "",
-						},
-						"prometheus": map[string]interface{}{
-							"retention": map[string]interface{}{
-								"time": "5d",
-							}},
-						"enableDebugServer":              false,
-						"enablePermissiveTrafficPolicy":  false,
-						"enableBackpressureExperimental": false,
-						"enableEgress":                   true,
-						"meshCIDRRanges":                 testMeshCIDR,
-						"enableMetricsStack":             true,
-						"deployJaeger":                   false,
-					}}))
+				defaultValues := getDefaultValues()
+				Expect(rel.Config).To(BeEquivalentTo(defaultValues))
 			})
 
 			It("should be installed in the correct namespace", func() {
@@ -152,13 +102,12 @@ var _ = Describe("Running the install command", func() {
 		})
 	})
 
-	Describe("with the default chart from source", func() {
+	Describe("with a default Helm chart", func() {
 		var (
-			out           *bytes.Buffer
-			store         *storage.Storage
-			config        *helm.Configuration
-			err           error
-			fakeClientSet kubernetes.Interface
+			out    *bytes.Buffer
+			store  *storage.Storage
+			config *helm.Configuration
+			err    error
 		)
 
 		BeforeEach(func() {
@@ -177,23 +126,8 @@ var _ = Describe("Running the install command", func() {
 				Log:          func(format string, v ...interface{}) {},
 			}
 
-			fakeClientSet = fake.NewSimpleClientset()
-
-			installCmd := &installCmd{
-				out:                        out,
-				containerRegistry:          testRegistry,
-				containerRegistrySecret:    testRegistrySecret,
-				osmImageTag:                testOsmImageTag,
-				osmImagePullPolicy:         defaultOsmImagePullPolicy,
-				certificateManager:         "tresor",
-				serviceCertValidityMinutes: 1,
-				prometheusRetentionTime:    testRetentionTime,
-				meshName:                   defaultMeshName,
-				enableEgress:               true,
-				meshCIDRRanges:             testMeshCIDRRanges,
-				enableMetricsStack:         true,
-				clientSet:                  fakeClientSet,
-			}
+			installCmd := getDefaultInstallCmd(out)
+			installCmd.chartPath = "testdata/test-chart"
 
 			err = installCmd.run(config)
 		})
@@ -221,44 +155,8 @@ var _ = Describe("Running the install command", func() {
 			})
 
 			It("should have the correct values", func() {
-				Expect(rel.Config).To(BeEquivalentTo(map[string]interface{}{
-					"OpenServiceMesh": map[string]interface{}{
-						"certificateManager": "tresor",
-						"certmanager": map[string]interface{}{
-							"issuerKind":  "",
-							"issuerGroup": "",
-							"issuerName":  "",
-						},
-						"meshName": defaultMeshName,
-						"image": map[string]interface{}{
-							"registry":   testRegistry,
-							"tag":        testOsmImageTag,
-							"pullPolicy": defaultOsmImagePullPolicy,
-						},
-						"imagePullSecrets": []interface{}{
-							map[string]interface{}{
-								"name": testRegistrySecret,
-							},
-						},
-						"serviceCertValidityMinutes": int64(1),
-						"vault": map[string]interface{}{
-							"host":     "",
-							"protocol": "",
-							"token":    "",
-							"role":     "",
-						},
-						"prometheus": map[string]interface{}{
-							"retention": map[string]interface{}{
-								"time": "5d",
-							}},
-						"enableDebugServer":              false,
-						"enablePermissiveTrafficPolicy":  false,
-						"enableBackpressureExperimental": false,
-						"enableEgress":                   true,
-						"meshCIDRRanges":                 testMeshCIDR,
-						"enableMetricsStack":             true,
-						"deployJaeger":                   false,
-					}}))
+				defaultValues := getDefaultValues()
+				Expect(rel.Config).To(BeEquivalentTo(defaultValues))
 			})
 
 			It("should be installed in the correct namespace", func() {
@@ -269,11 +167,10 @@ var _ = Describe("Running the install command", func() {
 
 	Describe("with the vault cert manager", func() {
 		var (
-			out           *bytes.Buffer
-			store         *storage.Storage
-			config        *helm.Configuration
-			err           error
-			fakeClientSet kubernetes.Interface
+			out    *bytes.Buffer
+			store  *storage.Storage
+			config *helm.Configuration
+			err    error
 		)
 
 		BeforeEach(func() {
@@ -291,31 +188,10 @@ var _ = Describe("Running the install command", func() {
 				Log:          func(format string, v ...interface{}) {},
 			}
 
-			fakeClientSet = fake.NewSimpleClientset()
-
-			installCmd := &installCmd{
-				out:                        out,
-				chartPath:                  "testdata/test-chart",
-				containerRegistry:          testRegistry,
-				containerRegistrySecret:    testRegistrySecret,
-				certificateManager:         "vault",
-				vaultHost:                  testVaultHost,
-				vaultToken:                 testVaultToken,
-				vaultRole:                  testVaultRole,
-				vaultProtocol:              "http",
-				certmanagerIssuerName:      testCertManagerIssuerName,
-				certmanagerIssuerKind:      testCertManagerIssuerKind,
-				certmanagerIssuerGroup:     testCertManagerIssuerGroup,
-				osmImageTag:                testOsmImageTag,
-				osmImagePullPolicy:         defaultOsmImagePullPolicy,
-				serviceCertValidityMinutes: 1,
-				prometheusRetentionTime:    testRetentionTime,
-				meshName:                   defaultMeshName,
-				enableEgress:               true,
-				meshCIDRRanges:             testMeshCIDRRanges,
-				enableMetricsStack:         true,
-				clientSet:                  fakeClientSet,
-			}
+			installCmd := getDefaultInstallCmd(out)
+			installCmd.certificateManager = "vault"
+			installCmd.vaultHost = testVaultHost
+			installCmd.vaultToken = testVaultToken
 
 			err = installCmd.run(config)
 		})
@@ -343,45 +219,19 @@ var _ = Describe("Running the install command", func() {
 			})
 
 			It("should have the correct values", func() {
-				Expect(rel.Config).To(BeEquivalentTo(map[string]interface{}{
-					"OpenServiceMesh": map[string]interface{}{
-						"certificateManager": "vault",
-						"certmanager": map[string]interface{}{
-							"issuerKind":  "ClusterIssuer",
-							"issuerGroup": "example.co.uk",
-							"issuerName":  "my-osm-ca",
-						},
-						"meshName": defaultMeshName,
-						"image": map[string]interface{}{
-							"registry":   testRegistry,
-							"tag":        testOsmImageTag,
-							"pullPolicy": defaultOsmImagePullPolicy,
-						},
-						"imagePullSecrets": []interface{}{
-							map[string]interface{}{
-								"name": testRegistrySecret,
-							},
-						},
-						"serviceCertValidityMinutes": int64(1),
-						"vault": map[string]interface{}{
-							"host":     testVaultHost,
-							"protocol": "http",
-							"token":    testVaultToken,
-							"role":     testVaultRole,
-						},
-						"prometheus": map[string]interface{}{
-							"retention": map[string]interface{}{
-								"time": "5d",
-							},
-						},
-						"enableDebugServer":              false,
-						"enablePermissiveTrafficPolicy":  false,
-						"enableBackpressureExperimental": false,
-						"enableEgress":                   true,
-						"meshCIDRRanges":                 testMeshCIDR,
-						"enableMetricsStack":             true,
-						"deployJaeger":                   false,
-					}}))
+				expectedValues := getDefaultValues()
+				valuesConfig := []string{
+					fmt.Sprintf("OpenServiceMesh.certificateManager=%s", "vault"),
+					fmt.Sprintf("OpenServiceMesh.vault.host=%s", testVaultHost),
+					fmt.Sprintf("OpenServiceMesh.vault.token=%s", testVaultToken),
+				}
+				for _, val := range valuesConfig {
+					// parses Helm strvals line and merges into a map
+					err := strvals.ParseInto(val, expectedValues)
+					Expect(err).NotTo(HaveOccurred())
+				}
+
+				Expect(rel.Config).To(BeEquivalentTo(expectedValues))
 			})
 
 			It("should be installed in the correct namespace", func() {
@@ -413,16 +263,8 @@ var _ = Describe("Running the install command", func() {
 				Log:          func(format string, v ...interface{}) {},
 			}
 
-			installCmd := &installCmd{
-				out:                     out,
-				chartPath:               "testdata/test-chart",
-				containerRegistry:       testRegistry,
-				containerRegistrySecret: testRegistrySecret,
-				certificateManager:      "vault",
-				meshName:                defaultMeshName,
-				enableEgress:            true,
-				meshCIDRRanges:          testMeshCIDRRanges,
-			}
+			installCmd := getDefaultInstallCmd(out)
+			installCmd.certificateManager = "vault"
 
 			err = installCmd.run(config)
 		})
@@ -434,11 +276,10 @@ var _ = Describe("Running the install command", func() {
 
 	Describe("with the cert-manager certificate manager", func() {
 		var (
-			out           *bytes.Buffer
-			store         *storage.Storage
-			config        *helm.Configuration
-			err           error
-			fakeClientSet kubernetes.Interface
+			out    *bytes.Buffer
+			store  *storage.Storage
+			config *helm.Configuration
+			err    error
 		)
 
 		BeforeEach(func() {
@@ -456,31 +297,8 @@ var _ = Describe("Running the install command", func() {
 				Log:          func(format string, v ...interface{}) {},
 			}
 
-			fakeClientSet = fake.NewSimpleClientset()
-
-			installCmd := &installCmd{
-				out:                        out,
-				chartPath:                  "testdata/test-chart",
-				containerRegistry:          testRegistry,
-				containerRegistrySecret:    testRegistrySecret,
-				certificateManager:         "cert-manager",
-				vaultHost:                  testVaultHost,
-				vaultToken:                 testVaultToken,
-				vaultRole:                  testVaultRole,
-				vaultProtocol:              "http",
-				certmanagerIssuerName:      testCertManagerIssuerName,
-				certmanagerIssuerKind:      testCertManagerIssuerKind,
-				certmanagerIssuerGroup:     testCertManagerIssuerGroup,
-				osmImageTag:                testOsmImageTag,
-				osmImagePullPolicy:         defaultOsmImagePullPolicy,
-				serviceCertValidityMinutes: 1,
-				prometheusRetentionTime:    testRetentionTime,
-				meshName:                   defaultMeshName,
-				enableEgress:               true,
-				meshCIDRRanges:             testMeshCIDRRanges,
-				enableMetricsStack:         true,
-				clientSet:                  fakeClientSet,
-			}
+			installCmd := getDefaultInstallCmd(out)
+			installCmd.certificateManager = "cert-manager"
 
 			err = installCmd.run(config)
 		})
@@ -508,45 +326,17 @@ var _ = Describe("Running the install command", func() {
 			})
 
 			It("should have the correct values", func() {
-				Expect(rel.Config).To(BeEquivalentTo(map[string]interface{}{
-					"OpenServiceMesh": map[string]interface{}{
-						"certificateManager": "cert-manager",
-						"certmanager": map[string]interface{}{
-							"issuerKind":  "ClusterIssuer",
-							"issuerGroup": "example.co.uk",
-							"issuerName":  "my-osm-ca",
-						},
-						"meshName": defaultMeshName,
-						"image": map[string]interface{}{
-							"registry":   testRegistry,
-							"tag":        testOsmImageTag,
-							"pullPolicy": defaultOsmImagePullPolicy,
-						},
-						"imagePullSecrets": []interface{}{
-							map[string]interface{}{
-								"name": testRegistrySecret,
-							},
-						},
-						"serviceCertValidityMinutes": int64(1),
-						"vault": map[string]interface{}{
-							"host":     testVaultHost,
-							"protocol": "http",
-							"token":    testVaultToken,
-							"role":     testVaultRole,
-						},
-						"prometheus": map[string]interface{}{
-							"retention": map[string]interface{}{
-								"time": "5d",
-							},
-						},
-						"enableDebugServer":              false,
-						"enablePermissiveTrafficPolicy":  false,
-						"enableBackpressureExperimental": false,
-						"enableEgress":                   true,
-						"meshCIDRRanges":                 testMeshCIDR,
-						"enableMetricsStack":             true,
-						"deployJaeger":                   false,
-					}}))
+				expectedValues := getDefaultValues()
+				valuesConfig := []string{
+					fmt.Sprintf("OpenServiceMesh.certificateManager=%s", "cert-manager"),
+				}
+				for _, val := range valuesConfig {
+					// parses Helm strvals line and merges into a map
+					err := strvals.ParseInto(val, expectedValues)
+					Expect(err).NotTo(HaveOccurred())
+				}
+
+				Expect(rel.Config).To(BeEquivalentTo(expectedValues))
 			})
 
 			It("should be installed in the correct namespace", func() {
@@ -560,7 +350,7 @@ var _ = Describe("Running the install command", func() {
 			out           *bytes.Buffer
 			store         *storage.Storage
 			config        *helm.Configuration
-			install       *installCmd
+			installCmd    installCmd
 			err           error
 			fakeClientSet kubernetes.Interface
 		)
@@ -583,28 +373,18 @@ var _ = Describe("Running the install command", func() {
 
 			fakeClientSet = fake.NewSimpleClientset()
 			deploymentSpec := createDeploymentSpec(settings.Namespace(), defaultMeshName)
-			fakeClientSet.AppsV1().Deployments(settings.Namespace()).Create(context.TODO(), deploymentSpec, metav1.CreateOptions{})
+			_, err = fakeClientSet.AppsV1().Deployments(settings.Namespace()).Create(context.TODO(), deploymentSpec, metav1.CreateOptions{})
+			Expect(err).To(BeNil())
 
-			install = &installCmd{
-				out:                        out,
-				chartPath:                  "testdata/test-chart",
-				containerRegistry:          testRegistry,
-				containerRegistrySecret:    testRegistrySecret,
-				osmImageTag:                testOsmImageTag,
-				certificateManager:         "tresor",
-				serviceCertValidityMinutes: 1,
-				prometheusRetentionTime:    testRetentionTime,
-				meshName:                   defaultMeshName,
-				enableEgress:               true,
-				meshCIDRRanges:             testMeshCIDRRanges,
-				clientSet:                  fakeClientSet,
-			}
+			installCmd = getDefaultInstallCmd(out)
+			// Use the client set with the existing mesh deployment
+			installCmd.clientSet = fakeClientSet
 
 			err = config.Releases.Create(&release.Release{
 				Namespace: settings.Namespace(), // should be found in any namespace
 				Config: map[string]interface{}{
 					"OpenServiceMesh": map[string]interface{}{
-						"meshName": install.meshName,
+						"meshName": installCmd.meshName,
 					},
 				},
 				Info: &release.Info{
@@ -616,11 +396,12 @@ var _ = Describe("Running the install command", func() {
 				panic(err)
 			}
 
-			err = install.run(config)
+			err = installCmd.run(config)
 		})
 
 		It("should error", func() {
-			Expect(err.Error()).To(Equal(errMeshAlreadyExists(install.meshName).Error()))
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(Equal(errMeshAlreadyExists(installCmd.meshName).Error()))
 		})
 	})
 
@@ -629,7 +410,7 @@ var _ = Describe("Running the install command", func() {
 			out           *bytes.Buffer
 			store         *storage.Storage
 			config        *helm.Configuration
-			install       *installCmd
+			installCmd    installCmd
 			err           error
 			fakeClientSet kubernetes.Interface
 		)
@@ -652,28 +433,19 @@ var _ = Describe("Running the install command", func() {
 
 			fakeClientSet = fake.NewSimpleClientset()
 			deploymentSpec := createDeploymentSpec(settings.Namespace(), defaultMeshName)
-			fakeClientSet.AppsV1().Deployments(settings.Namespace()).Create(context.TODO(), deploymentSpec, metav1.CreateOptions{})
+			_, err = fakeClientSet.AppsV1().Deployments(settings.Namespace()).Create(context.TODO(), deploymentSpec, metav1.CreateOptions{})
+			Expect(err).To(BeNil())
 
-			install = &installCmd{
-				out:                        out,
-				chartPath:                  "testdata/test-chart",
-				containerRegistry:          testRegistry,
-				containerRegistrySecret:    testRegistrySecret,
-				osmImageTag:                testOsmImageTag,
-				certificateManager:         "tresor",
-				serviceCertValidityMinutes: 1,
-				prometheusRetentionTime:    testRetentionTime,
-				meshName:                   defaultMeshName + "-2",
-				enableEgress:               true,
-				meshCIDRRanges:             testMeshCIDRRanges,
-				clientSet:                  fakeClientSet,
-			}
+			installCmd = getDefaultInstallCmd(out)
+			installCmd.meshName = defaultMeshName + "-2" //use different name than pre-existing mesh
+			installCmd.clientSet = fakeClientSet
 
+			// Create pre-existing mesh
 			err = config.Releases.Create(&release.Release{
 				Namespace: settings.Namespace(), // should be found in any namespace
 				Config: map[string]interface{}{
 					"OpenServiceMesh": map[string]interface{}{
-						"meshName": install.meshName,
+						"meshName": defaultMeshName,
 					},
 				},
 				Info: &release.Info{
@@ -685,7 +457,7 @@ var _ = Describe("Running the install command", func() {
 				panic(err)
 			}
 
-			err = install.run(config)
+			err = installCmd.run(config)
 		})
 
 		It("should error", func() {
@@ -695,11 +467,11 @@ var _ = Describe("Running the install command", func() {
 
 	Describe("when a mesh name is invalid", func() {
 		var (
-			out     *bytes.Buffer
-			store   *storage.Storage
-			config  *helm.Configuration
-			install *installCmd
-			err     error
+			out        *bytes.Buffer
+			store      *storage.Storage
+			config     *helm.Configuration
+			installCmd installCmd
+			err        error
 		)
 
 		BeforeEach(func() {
@@ -717,21 +489,10 @@ var _ = Describe("Running the install command", func() {
 				Log:          func(format string, v ...interface{}) {},
 			}
 
-			install = &installCmd{
-				out:                        out,
-				chartPath:                  "testdata/test-chart",
-				containerRegistry:          testRegistry,
-				containerRegistrySecret:    testRegistrySecret,
-				osmImageTag:                testOsmImageTag,
-				certificateManager:         "tresor",
-				serviceCertValidityMinutes: 1,
-				prometheusRetentionTime:    testRetentionTime,
-				meshName:                   "osm!!123456789012345678901234567890123456789012345678901234567890", // >65 characters, contains !
-				enableEgress:               true,
-				meshCIDRRanges:             testMeshCIDRRanges,
-			}
+			installCmd = getDefaultInstallCmd(out)
+			installCmd.meshName = "osm!!123456789012345678901234567890123456789012345678901234567890" // >65 characters, contains !
 
-			err = install.run(config)
+			err = installCmd.run(config)
 		})
 
 		It("should error", func() {
@@ -741,458 +502,248 @@ var _ = Describe("Running the install command", func() {
 
 })
 
-var _ = Describe("Resolving values for install command with vault parameters", func() {
-	var (
-		vals          map[string]interface{}
-		err           error
-		fakeClientSet kubernetes.Interface
-	)
-
-	BeforeEach(func() {
-		fakeClientSet = fake.NewSimpleClientset()
-
-		installCmd := &installCmd{
-			containerRegistry:          testRegistry,
-			containerRegistrySecret:    testRegistrySecret,
-			certificateManager:         "vault",
-			vaultHost:                  testVaultHost,
-			vaultProtocol:              testVaultProtocol,
-			certmanagerIssuerName:      testCertManagerIssuerName,
-			certmanagerIssuerKind:      testCertManagerIssuerKind,
-			certmanagerIssuerGroup:     testCertManagerIssuerGroup,
-			vaultToken:                 testVaultToken,
-			vaultRole:                  testVaultRole,
-			osmImageTag:                testOsmImageTag,
-			osmImagePullPolicy:         defaultOsmImagePullPolicy,
-			serviceCertValidityMinutes: 1,
-			prometheusRetentionTime:    testRetentionTime,
-			meshName:                   defaultMeshName,
-			enableEgress:               true,
-			meshCIDRRanges:             testMeshCIDRRanges,
-			enableMetricsStack:         true,
-			setOptions:                 testSetOptions,
-			clientSet:                  fakeClientSet,
-		}
-
-		vals, err = installCmd.resolveValues()
-	})
-
-	It("should not error", func() {
-		Expect(err).NotTo(HaveOccurred())
-	})
-
-	It("should resolve correctly", func() {
-		Expect(vals).To(BeEquivalentTo(map[string]interface{}{
-			"key1": "val1",
-			"OpenServiceMesh": map[string]interface{}{
-				"certificateManager": "vault",
-				"certmanager": map[string]interface{}{
-					"issuerKind":  "ClusterIssuer",
-					"issuerGroup": "example.co.uk",
-					"issuerName":  "my-osm-ca",
-				},
-				"meshName": defaultMeshName,
-				"image": map[string]interface{}{
-					"registry":   testRegistry,
-					"tag":        testOsmImageTag,
-					"pullPolicy": defaultOsmImagePullPolicy,
-				},
-				"imagePullSecrets": []interface{}{
-					map[string]interface{}{
-						"name": testRegistrySecret,
-					},
-				},
-				"serviceCertValidityMinutes": int64(1),
-				"vault": map[string]interface{}{
-					"host":     testVaultHost,
-					"protocol": "http",
-					"token":    testVaultToken,
-					"role":     testVaultRole,
-				},
-				"prometheus": map[string]interface{}{
-					"retention": map[string]interface{}{
-						"time": "5d",
-					},
-				},
-				"enableDebugServer":              false,
-				"enablePermissiveTrafficPolicy":  false,
-				"enableBackpressureExperimental": false,
-				"enableEgress":                   true,
-				"meshCIDRRanges":                 testMeshCIDR,
-				"enableMetricsStack":             true,
-				"deployJaeger":                   false,
-			}}))
-	})
-})
-
-var _ = Describe("Resolving values for overriding set options command with vault parameters", func() {
-	var (
-		vals          map[string]interface{}
-		err           error
-		fakeClientSet kubernetes.Interface
-	)
-
-	BeforeEach(func() {
-		fakeClientSet = fake.NewSimpleClientset()
-		installCmd := &installCmd{
-			containerRegistry:          testRegistry,
-			containerRegistrySecret:    testRegistrySecret,
-			certificateManager:         "vault",
-			vaultHost:                  testVaultHost,
-			vaultProtocol:              testVaultProtocol,
-			certmanagerIssuerName:      testCertManagerIssuerName,
-			certmanagerIssuerKind:      testCertManagerIssuerKind,
-			certmanagerIssuerGroup:     testCertManagerIssuerGroup,
-			vaultToken:                 testVaultToken,
-			vaultRole:                  testVaultRole,
-			osmImageTag:                testOsmImageTag,
-			osmImagePullPolicy:         defaultOsmImagePullPolicy,
-			serviceCertValidityMinutes: 1,
-			prometheusRetentionTime:    testRetentionTime,
-			meshName:                   defaultMeshName,
-			enableEgress:               true,
-			meshCIDRRanges:             testMeshCIDRRanges,
-			enableMetricsStack:         true,
-			setOptions:                 []string{"OpenServiceMesh.certificateManager=overridingVaultName"},
-			clientSet:                  fakeClientSet,
-		}
-
-		vals, err = installCmd.resolveValues()
-	})
-
-	It("should not error", func() {
-		Expect(err).NotTo(HaveOccurred())
-	})
-
-	It("should resolve correctly", func() {
-		Expect(vals).To(BeEquivalentTo(map[string]interface{}{
-			"OpenServiceMesh": map[string]interface{}{
-				"certificateManager": "vault",
-				"certmanager": map[string]interface{}{
-					"issuerKind":  "ClusterIssuer",
-					"issuerGroup": "example.co.uk",
-					"issuerName":  "my-osm-ca",
-				},
-				"meshName": defaultMeshName,
-				"image": map[string]interface{}{
-					"registry":   testRegistry,
-					"tag":        testOsmImageTag,
-					"pullPolicy": defaultOsmImagePullPolicy,
-				},
-				"imagePullSecrets": []interface{}{
-					map[string]interface{}{
-						"name": testRegistrySecret,
-					},
-				},
-				"serviceCertValidityMinutes": int64(1),
-				"vault": map[string]interface{}{
-					"host":     testVaultHost,
-					"protocol": "http",
-					"token":    testVaultToken,
-					"role":     testVaultRole,
-				},
-				"prometheus": map[string]interface{}{
-					"retention": map[string]interface{}{
-						"time": "5d",
-					},
-				},
-				"enableDebugServer":              false,
-				"enablePermissiveTrafficPolicy":  false,
-				"enableBackpressureExperimental": false,
-				"enableEgress":                   true,
-				"meshCIDRRanges":                 testMeshCIDR,
-				"enableMetricsStack":             true,
-				"deployJaeger":                   false,
-			}}))
-	})
-})
-
-var _ = Describe("Resolving values for install command with --set options cert-manager parameter and a brand new dynamically passed in parameter", func() {
-	var (
-		vals          map[string]interface{}
-		err           error
-		fakeClientSet kubernetes.Interface
-	)
-
-	fakeClientSet = fake.NewSimpleClientset()
-
-	BeforeEach(func() {
-		installCmd := &installCmd{
-			containerRegistry:          testRegistry,
-			containerRegistrySecret:    testRegistrySecret,
-			certificateManager:         "cert-manager",
-			vaultHost:                  testVaultHost,
-			vaultProtocol:              testVaultProtocol,
-			certmanagerIssuerName:      testCertManagerIssuerName,
-			certmanagerIssuerKind:      testCertManagerIssuerKind,
-			certmanagerIssuerGroup:     testCertManagerIssuerGroup,
-			vaultToken:                 testVaultToken,
-			vaultRole:                  testVaultRole,
-			osmImageTag:                testOsmImageTag,
-			osmImagePullPolicy:         defaultOsmImagePullPolicy,
-			serviceCertValidityMinutes: 1,
-			prometheusRetentionTime:    testRetentionTime,
-			meshName:                   defaultMeshName,
-			enableEgress:               true,
-			meshCIDRRanges:             testMeshCIDRRanges,
-			enableMetricsStack:         true,
-			setOptions:                 []string{"OpenServiceMesh.certificateManager=overridingCertManager", "key1=val1,key2=val2"},
-			clientSet:                  fakeClientSet,
-		}
-
-		vals, err = installCmd.resolveValues()
-	})
-
-	It("should not error", func() {
-		Expect(err).NotTo(HaveOccurred())
-	})
-
-	It("should resolve correctly", func() {
-		Expect(vals).To(BeEquivalentTo(map[string]interface{}{
-			"key1": "val1",
-			"key2": "val2",
-			"OpenServiceMesh": map[string]interface{}{
-				"certificateManager": "cert-manager",
-				"certmanager": map[string]interface{}{
-					"issuerKind":  "ClusterIssuer",
-					"issuerGroup": "example.co.uk",
-					"issuerName":  "my-osm-ca",
-				},
-				"meshName": defaultMeshName,
-				"image": map[string]interface{}{
-					"registry":   testRegistry,
-					"tag":        testOsmImageTag,
-					"pullPolicy": defaultOsmImagePullPolicy,
-				},
-				"imagePullSecrets": []interface{}{
-					map[string]interface{}{
-						"name": testRegistrySecret,
-					},
-				},
-				"serviceCertValidityMinutes": int64(1),
-				"vault": map[string]interface{}{
-					"host":     testVaultHost,
-					"protocol": "http",
-					"token":    testVaultToken,
-					"role":     testVaultRole,
-				},
-				"prometheus": map[string]interface{}{
-					"retention": map[string]interface{}{
-						"time": "5d",
-					},
-				},
-				"enableDebugServer":              false,
-				"enablePermissiveTrafficPolicy":  false,
-				"enableBackpressureExperimental": false,
-				"enableEgress":                   true,
-				"meshCIDRRanges":                 testMeshCIDR,
-				"enableMetricsStack":             true,
-				"deployJaeger":                   false,
-			}}))
-	})
-})
-
-var _ = Describe("Resolving values for install command with cert-manager parameters", func() {
-	var (
-		vals          map[string]interface{}
-		err           error
-		fakeClientSet kubernetes.Interface
-	)
-
-	BeforeEach(func() {
-		fakeClientSet = fake.NewSimpleClientset()
-		installCmd := &installCmd{
-			containerRegistry:          testRegistry,
-			containerRegistrySecret:    testRegistrySecret,
-			certificateManager:         "cert-manager",
-			vaultHost:                  testVaultHost,
-			vaultProtocol:              testVaultProtocol,
-			certmanagerIssuerName:      testCertManagerIssuerName,
-			certmanagerIssuerKind:      testCertManagerIssuerKind,
-			certmanagerIssuerGroup:     testCertManagerIssuerGroup,
-			vaultToken:                 testVaultToken,
-			vaultRole:                  testVaultRole,
-			osmImageTag:                testOsmImageTag,
-			osmImagePullPolicy:         defaultOsmImagePullPolicy,
-			serviceCertValidityMinutes: 1,
-			prometheusRetentionTime:    testRetentionTime,
-			meshName:                   defaultMeshName,
-			enableEgress:               true,
-			meshCIDRRanges:             testMeshCIDRRanges,
-			enableMetricsStack:         true,
-			setOptions:                 testSetOptions,
-			clientSet:                  fakeClientSet,
-		}
-
-		vals, err = installCmd.resolveValues()
-	})
-
-	It("should not error", func() {
-		Expect(err).NotTo(HaveOccurred())
-	})
-
-	It("should resolve correctly", func() {
-		Expect(vals).To(BeEquivalentTo(map[string]interface{}{
-			"key1": "val1",
-			"OpenServiceMesh": map[string]interface{}{
-				"certificateManager": "cert-manager",
-				"certmanager": map[string]interface{}{
-					"issuerKind":  "ClusterIssuer",
-					"issuerGroup": "example.co.uk",
-					"issuerName":  "my-osm-ca",
-				},
-				"meshName": defaultMeshName,
-				"image": map[string]interface{}{
-					"registry":   testRegistry,
-					"tag":        testOsmImageTag,
-					"pullPolicy": defaultOsmImagePullPolicy,
-				},
-				"imagePullSecrets": []interface{}{
-					map[string]interface{}{
-						"name": testRegistrySecret,
-					},
-				},
-				"serviceCertValidityMinutes": int64(1),
-				"vault": map[string]interface{}{
-					"host":     testVaultHost,
-					"protocol": "http",
-					"token":    testVaultToken,
-					"role":     testVaultRole,
-				},
-				"prometheus": map[string]interface{}{
-					"retention": map[string]interface{}{
-						"time": "5d",
-					},
-				},
-				"enableDebugServer":              false,
-				"enablePermissiveTrafficPolicy":  false,
-				"enableBackpressureExperimental": false,
-				"enableEgress":                   true,
-				"meshCIDRRanges":                 testMeshCIDR,
-				"enableMetricsStack":             true,
-				"deployJaeger":                   false,
-			}}))
-	})
-})
-
-var _ = Describe("Resolving values for egress option", func() {
-	Context("Test enableEgress chart value with install cli option", func() {
-		var (
-			fakeClientSet kubernetes.Interface
-		)
-
-		BeforeEach(func() {
-			fakeClientSet = fake.NewSimpleClientset()
-		})
-
-		It("Should disable egress in the Helm chart", func() {
-			installCmd := &installCmd{
-				enableEgress: false,
-				clientSet:    fakeClientSet,
-			}
-			vals, err := installCmd.resolveValues()
+var _ = Describe("Test envoy log level types", func() {
+	Context("Test isValidEnvoyLogLevel", func() {
+		It("Should validate if the specified envoy log level is supported", func() {
+			err := isValidEnvoyLogLevel("error")
 			Expect(err).NotTo(HaveOccurred())
 
-			enableEgressVal := vals["OpenServiceMesh"].(map[string]interface{})["enableEgress"]
-			Expect(enableEgressVal).To(BeFalse())
-		})
-
-		It("Should enable egress in the Helm chart", func() {
-			installCmd := &installCmd{
-				enableEgress:   true,
-				meshCIDRRanges: testMeshCIDRRanges,
-				clientSet:      fakeClientSet,
-			}
-
-			vals, err := installCmd.resolveValues()
+			err = isValidEnvoyLogLevel("off")
 			Expect(err).NotTo(HaveOccurred())
 
-			enableEgressVal := vals["OpenServiceMesh"].(map[string]interface{})["enableEgress"]
-			Expect(enableEgressVal).To(BeTrue())
-		})
-	})
-})
-
-var _ = Describe("Test mesh CIDR ranges", func() {
-	var (
-		fakeClientSet kubernetes.Interface
-	)
-
-	BeforeEach(func() {
-		fakeClientSet = fake.NewSimpleClientset()
-	})
-
-	Context("Test meshCIDRRanges chart value with install cli option", func() {
-		It("Should correctly resolve meshCIDRRanges when egress is enabled", func() {
-			installCmd := &installCmd{
-				enableEgress:   true,
-				meshCIDRRanges: testMeshCIDRRanges,
-				clientSet:      fakeClientSet,
-			}
-
-			vals, err := installCmd.resolveValues()
-			Expect(err).NotTo(HaveOccurred())
-
-			cidrRanges := vals["OpenServiceMesh"].(map[string]interface{})["meshCIDRRanges"]
-			Expect(cidrRanges).To(Equal(testMeshCIDR))
-		})
-	})
-
-	Context("Test validateCIDRs", func() {
-		It("Should correctly validate valid CIDR ranges", func() {
-			err := validateCIDRs([]string{"10.2.0.0/16"})
-			Expect(err).NotTo(HaveOccurred())
-
-			err = validateCIDRs([]string{"10.0.0.0/16", "10.20.0.0/16"})
+			err = isValidEnvoyLogLevel("warn")
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("Should correctly error invalid CIDR ranges", func() {
-			err := validateCIDRs([]string{"10.0.0.0/16", "10.20.0.0/99"})
+		It("Should correctly error for invalid envoy log level", func() {
+			err := isValidEnvoyLogLevel("tracing")
 			Expect(err).To(HaveOccurred())
 
-			err = validateCIDRs([]string{"300.0.0.0/16"})
-			Expect(err).To(HaveOccurred())
-
-			err = validateCIDRs([]string{"10.2.0.0"})
+			err = isValidEnvoyLogLevel("warns")
 			Expect(err).To(HaveOccurred())
 		})
 	})
 })
 
-var _ = Describe("Test osm image pull policy cli option", func() {
-	var (
-		fakeClientSet kubernetes.Interface
-	)
+func TestResolveValues(t *testing.T) {
+	tests := []struct {
+		name       string
+		installCmd installCmd
+		expected   map[string]interface{}
+	}{
+		{
+			name: "default",
+			installCmd: func() installCmd {
+				installCmd := getDefaultInstallCmd(ioutil.Discard)
 
-	BeforeEach(func() {
-		fakeClientSet = fake.NewSimpleClientset()
-	})
+				// Fill out fields which are empty by default
+				installCmd.containerRegistrySecret = testRegistrySecret
+				installCmd.vaultHost = testVaultHost
+				installCmd.vaultToken = testVaultToken
+				return installCmd
 
-	It("Should correctly resolve the pull policy option to chart values", func() {
-		installCmd := &installCmd{
-			osmImagePullPolicy: "IfNotPresent",
-			clientSet:          fakeClientSet,
-		}
-		vals, err := installCmd.resolveValues()
-		Expect(err).NotTo(HaveOccurred())
+			}(),
+			expected: func() map[string]interface{} {
+				expectedValues := getDefaultValues()
 
-		pullPolicy := vals["OpenServiceMesh"].(map[string]interface{})["image"].(map[string]interface{})["pullPolicy"]
-		Expect(pullPolicy).To(Equal("IfNotPresent"))
-	})
+				// Fill out fields which are empty by default
+				valuesConfig := []string{
+					fmt.Sprintf("OpenServiceMesh.imagePullSecrets[0].name=%s", testRegistrySecret),
+					fmt.Sprintf("OpenServiceMesh.vault.host=%s", testVaultHost),
+					fmt.Sprintf("OpenServiceMesh.vault.token=%s", testVaultToken),
+				}
+				for _, val := range valuesConfig {
+					// parses Helm strvals line and merges into a map
+					err := strvals.ParseInto(val, expectedValues)
+					assert.Nil(t, err)
+				}
+				return expectedValues
+			}(),
+		},
+		{
+			name: "--set creates additional values",
+			installCmd: func() installCmd {
+				installCmd := getDefaultInstallCmd(ioutil.Discard)
+				installCmd.setOptions = []string{"new=from set", "key1=val1,key2=val2"}
+				return installCmd
 
-	It("Should correctly resolve the pull policy option to chart values", func() {
-		installCmd := &installCmd{
-			osmImagePullPolicy: "Always",
-			clientSet:          fakeClientSet,
-		}
-		vals, err := installCmd.resolveValues()
-		Expect(err).NotTo(HaveOccurred())
+			}(),
+			expected: func() map[string]interface{} {
+				vals := getDefaultValues()
+				vals["new"] = "from set"
+				vals["key1"] = "val1"
+				vals["key2"] = "val2"
+				return vals
+			}(),
+		},
+		{
+			name: "--set for an existing parameter as no effect",
+			installCmd: func() installCmd {
+				installCmd := getDefaultInstallCmd(ioutil.Discard)
+				installCmd.setOptions = []string{"OpenServiceMesh.meshName=set"}
+				return installCmd
 
-		pullPolicy := vals["OpenServiceMesh"].(map[string]interface{})["image"].(map[string]interface{})["pullPolicy"]
-		Expect(pullPolicy).To(Equal("Always"))
-	})
-})
+			}(),
+			expected: getDefaultValues(),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			assert := assert.New(t)
+			actual, err := test.installCmd.resolveValues()
+			assert.Nil(err)
+			assert.Equal(actual, test.expected)
+		})
+	}
+}
+
+func TestEnforceSingleMesh(t *testing.T) {
+	assert := assert.New(t)
+
+	out := new(bytes.Buffer)
+	store := storage.Init(driver.NewMemory())
+	if mem, ok := store.Driver.(*driver.Memory); ok {
+		mem.SetNamespace(settings.Namespace())
+	}
+
+	config := &helm.Configuration{
+		Releases: store,
+		KubeClient: &kubefake.PrintingKubeClient{
+			Out: ioutil.Discard,
+		},
+		Capabilities: chartutil.DefaultCapabilities,
+		Log:          func(format string, v ...interface{}) {},
+	}
+
+	fakeClientSet := fake.NewSimpleClientset()
+
+	install := &installCmd{
+		out:                         out,
+		chartPath:                   testChartPath,
+		containerRegistry:           testRegistry,
+		osmImageTag:                 testOsmImageTag,
+		osmImagePullPolicy:          defaultOsmImagePullPolicy,
+		certificateManager:          "tresor",
+		serviceCertValidityDuration: "24h",
+		prometheusRetentionTime:     testRetentionTime,
+		meshName:                    defaultMeshName,
+		enableEgress:                true,
+		enablePrometheus:            true,
+		enableGrafana:               false,
+		clientSet:                   fakeClientSet,
+		envoyLogLevel:               testEnvoyLogLevel,
+		enforceSingleMesh:           true,
+	}
+
+	err := install.run(config)
+	assert.Nil(err)
+	assert.Equal(out.String(), "OSM installed successfully in namespace [osm-system] with mesh name [osm]\n")
+}
+
+func TestEnforceSingleMeshRejectsNewMesh(t *testing.T) {
+	assert := assert.New(t)
+
+	out := new(bytes.Buffer)
+	store := storage.Init(driver.NewMemory())
+	if mem, ok := store.Driver.(*driver.Memory); ok {
+		mem.SetNamespace(settings.Namespace())
+	}
+
+	config := &helm.Configuration{
+		Releases: store,
+		KubeClient: &kubefake.PrintingKubeClient{
+			Out: ioutil.Discard,
+		},
+		Capabilities: chartutil.DefaultCapabilities,
+		Log:          func(format string, v ...interface{}) {},
+	}
+
+	fakeClientSet := fake.NewSimpleClientset()
+
+	labelMap := make(map[string]string)
+	labelMap["meshName"] = defaultMeshName
+	labelMap["app"] = constants.OSMControllerName
+	labelMap["enforceSingleMesh"] = "true"
+
+	deploymentSpec := &v1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      constants.OSMControllerName,
+			Namespace: settings.Namespace() + "-existing",
+			Labels:    labelMap,
+		},
+	}
+	_, err := fakeClientSet.AppsV1().Deployments(settings.Namespace()+"-existing").Create(context.TODO(), deploymentSpec, metav1.CreateOptions{})
+	assert.Nil(err)
+
+	install := &installCmd{
+		out:                         out,
+		chartPath:                   testChartPath,
+		containerRegistry:           testRegistry,
+		osmImageTag:                 testOsmImageTag,
+		osmImagePullPolicy:          defaultOsmImagePullPolicy,
+		certificateManager:          "tresor",
+		serviceCertValidityDuration: "24h",
+		prometheusRetentionTime:     testRetentionTime,
+		meshName:                    defaultMeshName + "-2",
+		enableEgress:                true,
+		enablePrometheus:            true,
+		enableGrafana:               false,
+		clientSet:                   fakeClientSet,
+		envoyLogLevel:               testEnvoyLogLevel,
+	}
+
+	err = install.run(config)
+	assert.NotNil(err)
+	assert.True(strings.Contains(err.Error(), "Cannot install mesh [osm-2]. Existing mesh [osm] enforces single mesh cluster"))
+}
+
+func TestEnforceSingleMeshWithExistingMesh(t *testing.T) {
+	assert := assert.New(t)
+
+	out := new(bytes.Buffer)
+	store := storage.Init(driver.NewMemory())
+	if mem, ok := store.Driver.(*driver.Memory); ok {
+		mem.SetNamespace(settings.Namespace())
+	}
+
+	config := &helm.Configuration{
+		Releases: store,
+		KubeClient: &kubefake.PrintingKubeClient{
+			Out: ioutil.Discard,
+		},
+		Capabilities: chartutil.DefaultCapabilities,
+		Log:          func(format string, v ...interface{}) {},
+	}
+
+	fakeClientSet := fake.NewSimpleClientset()
+
+	deploymentSpec := createDeploymentSpec(settings.Namespace()+"-existing", defaultMeshName)
+	_, err := fakeClientSet.AppsV1().Deployments(settings.Namespace()+"-existing").Create(context.TODO(), deploymentSpec, metav1.CreateOptions{})
+	assert.Nil(err)
+
+	install := &installCmd{
+		out:                         out,
+		chartPath:                   testChartPath,
+		containerRegistry:           testRegistry,
+		osmImageTag:                 testOsmImageTag,
+		osmImagePullPolicy:          defaultOsmImagePullPolicy,
+		certificateManager:          "tresor",
+		serviceCertValidityDuration: "24h",
+		prometheusRetentionTime:     testRetentionTime,
+		meshName:                    defaultMeshName + "-2",
+		enableEgress:                true,
+		enablePrometheus:            true,
+		enableGrafana:               false,
+		clientSet:                   fakeClientSet,
+		envoyLogLevel:               testEnvoyLogLevel,
+		enforceSingleMesh:           true,
+	}
+
+	err = install.run(config)
+	assert.NotNil(err)
+	assert.True(strings.Contains(err.Error(), "Meshes already exist in cluster. Cannot enforce single mesh cluster"))
+}
 
 func createDeploymentSpec(namespace, meshName string) *v1.Deployment {
 	labelMap := make(map[string]string)
@@ -1207,4 +758,78 @@ func createDeploymentSpec(namespace, meshName string) *v1.Deployment {
 			Labels:    labelMap,
 		},
 	}
+}
+
+func getDefaultInstallCmd(writer io.Writer) installCmd {
+	installCmd := installCmd{
+		out:                            writer,
+		certificateManager:             defaultCertificateManager,
+		certManagerIssuerGroup:         defaultCertManagerIssuerGroup,
+		certManagerIssuerKind:          defaultCertManagerIssuerKind,
+		certManagerIssuerName:          defaultCertManagerIssuerName,
+		chartPath:                      defaultChartPath,
+		containerRegistry:              defaultContainerRegistry,
+		containerRegistrySecret:        defaultContainerRegistrySecret,
+		meshName:                       defaultMeshName,
+		osmImagePullPolicy:             defaultOsmImagePullPolicy,
+		osmImageTag:                    defaultOsmImageTag,
+		prometheusRetentionTime:        defaultPrometheusRetentionTime,
+		vaultHost:                      defaultVaultHost,
+		vaultProtocol:                  defaultVaultProtocol,
+		vaultToken:                     defaultVaultToken,
+		vaultRole:                      defaultVaultRole,
+		envoyLogLevel:                  defaultEnvoyLogLevel,
+		serviceCertValidityDuration:    defaultServiceCertValidityDuration,
+		enableDebugServer:              defaultEnableDebugServer,
+		enableEgress:                   defaultEnableEgress,
+		enablePermissiveTrafficPolicy:  defaultEnablePermissiveTrafficPolicy,
+		clientSet:                      fake.NewSimpleClientset(),
+		enableBackpressureExperimental: defaultEnableBackpressureExperimental,
+		enablePrometheus:               defaultEnablePrometheus,
+		enableGrafana:                  defaultEnableGrafana,
+		enableFluentbit:                defaultEnableFluentbit,
+		deployJaeger:                   defaultDeployJaeger,
+		enforceSingleMesh:              defaultEnforceSingleMesh,
+	}
+
+	return installCmd
+}
+
+func getDefaultValues() map[string]interface{} {
+	return map[string]interface{}{
+		"OpenServiceMesh": map[string]interface{}{
+			"certificateManager": "tresor",
+			"certmanager": map[string]interface{}{
+				"issuerKind":  "Issuer",
+				"issuerGroup": "cert-manager.io",
+				"issuerName":  "osm-ca",
+			},
+			"meshName": defaultMeshName,
+			"image": map[string]interface{}{
+				"registry":   "openservicemesh",
+				"tag":        "v0.5.0",
+				"pullPolicy": defaultOsmImagePullPolicy,
+			},
+			"serviceCertValidityDuration": "24h",
+			"vault": map[string]interface{}{
+				"host":     "",
+				"protocol": "http",
+				"token":    "",
+				"role":     "openservicemesh",
+			},
+			"prometheus": map[string]interface{}{
+				"retention": map[string]interface{}{
+					"time": "15d",
+				}},
+			"enableDebugServer":              false,
+			"enablePermissiveTrafficPolicy":  false,
+			"enableBackpressureExperimental": false,
+			"enableEgress":                   false,
+			"enablePrometheus":               true,
+			"enableGrafana":                  false,
+			"enableFluentbit":                false,
+			"deployJaeger":                   true,
+			"envoyLogLevel":                  testEnvoyLogLevel,
+			"enforceSingleMesh":              false,
+		}}
 }

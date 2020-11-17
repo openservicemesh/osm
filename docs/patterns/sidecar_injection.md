@@ -10,10 +10,13 @@ Automatic sidecar injection can be configured per namespace as a part of enrolli
 
 Prerequisites:
 - The namespace to which the pods belong must be a monitored namespace that is added to the mesh using the `osm namespace add` command.
+- The namespace to which the pods belong must not be set to be ignored using the `osm namespace ignore` command.
+- The namespace to which the pods belong must not have a label with key `name` and value corresponding to the OSM control plane namespace. For example, a namespace with a label `name: osm-system` where `osm-system` is the control plane namespace cannot have sidecar injection enabled for pods in this namespace.
 
 Automatic Sidecar injection can be enabled in the following ways:
 
-- While enrolling a namespace into the mesh using `osm` cli: `osm namespace add <namespace> --enable-sidecar-injection`
+- While enrolling a namespace into the mesh using `osm` cli: `osm namespace add <namespace>`:
+  Automatic sidecar injection is enabled by default with this command.
 
 - Using `kubectl` to annotate individual namespaces and pods to enable sidecar injection:
 
@@ -38,6 +41,20 @@ Automatic Sidecar injection can be enabled in the following ways:
   Pods will be injected with a sidecar only if the following conditions are met:
   1. The namespace to which the pod belongs is a monitored namespace.
   2. The pod is explicitly enabled for the sidecar injection, OR the namespace to which the pod belongs is enabled for the sidecar injection and the pod is not explicitly disabled for sidecar injection.
+
+### Explicitly Disabling Automatic Sidecar Injection on Namespaces
+
+Namespaces can be disabled for automatic sidecar injection in the following ways:
+
+- While enrolling a namespace into the mesh using `osm` cli: `osm namespace add <namespace> --disable-sidecar-injection`:
+  If the namespace was previously enabled for sidecar injection, it will be disabled after running this command.
+
+- Using `kubectl` to annotate individual namespaces to disable sidecar injection:
+
+  ```console
+  # Disable sidecar injection on a namespace
+  $ kubectl annotate namespace <namespace> openservicemesh.io/sidecar-injection=disabled
+  ```
 
 ### Explicitly Disabling Automatic Sidecar Injection on Pods
 
