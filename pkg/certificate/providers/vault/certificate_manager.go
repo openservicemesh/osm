@@ -235,5 +235,5 @@ func newCert(cn certificate.CommonName, secret *api.Secret, expiration time.Time
 
 // GetSerialNumber returns the serial number of the given certificate.
 func (c Certificate) GetSerialNumber() string {
-	panic("NotImplemented")
+	return c.serialNumber
 }
