@@ -19,8 +19,8 @@ type CertManager struct {
 	announcements chan announcements.Announcement
 
 	// Cache for all the certificates issued
-	cache     *map[certificate.CommonName]certificate.Certificater
-	cacheLock sync.Mutex
+	// Types: map[certificate.CommonName]certificate.Certificater
+	cache sync.Map
 
 	// Hashicorp Vault client
 	client *api.Client
