@@ -1,6 +1,7 @@
 package injector
 
 import (
+	"fmt"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -15,9 +16,14 @@ const (
 	envoyProxyConfigPath     = "/etc/envoy"
 )
 
-func getEnvoySidecarContainerSpec(containerName, envoyImage, nodeID, clusterID string, cfg configurator.Configurator, originalHealthProbes healthProbes) corev1.Container {
+func getEnvoySidecarContainerSpec(pod *corev1.Pod, envoyImage string, cfg configurator.Configurator, originalHealthProbes healthProbes) corev1.Container {
+	// nodeID and clusterID are required for Envoy proxy to start.
+	nodeID := pod.Spec.ServiceAccountName
+	// cluster ID will be used as an identifier to the tracing sink
+	clusterID := fmt.Sprintf("%s.%s", pod.Spec.ServiceAccountName, pod.Namespace)
+
 	return corev1.Container{
-		Name:            containerName,
+		Name:            constants.EnvoyContainerName,
 		Image:           envoyImage,
 		ImagePullPolicy: corev1.PullAlways,
 		SecurityContext: &corev1.SecurityContext{
