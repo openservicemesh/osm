@@ -38,7 +38,7 @@ func (mc *MeshCatalog) dispatcher() {
 	var chanMovingDeadline <-chan time.Time = make(chan time.Time)
 	var chanMaxDeadline <-chan time.Time = make(chan time.Time)
 
-	// When there is no broadcast scheduled (bucketStarted == false) we start a max deadline (15s)
+	// When there is no broadcast scheduled (broadcastScheduled == false) we start a max deadline (15s)
 	// and a moving deadline (3s) timers.
 	// The max deadline (15s) is the guaranteed hard max time we will wait til the next
 	// broadcast actually and surely is issued.

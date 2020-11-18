@@ -39,7 +39,7 @@ func (mc *MeshCatalog) releaseCertificateHandler() chan struct{} {
 					mc.certManager.ReleaseCertificate(endpointCN)
 
 					// Request a broadcast update, just for security.
-					// Repeater code also handles PodDelete, so probably the two will get coalesced.
+					// Dispatcher code also handles PodDelete, so probably the two will get coalesced.
 					events.GetPubSubInstance().Publish(events.PubSubMessage{
 						AnnouncementType: announcements.ScheduleBroadcastUpdate,
 						NewObj:           nil,
