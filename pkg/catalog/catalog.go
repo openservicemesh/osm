@@ -16,6 +16,7 @@ import (
 )
 
 const (
+	// this is catalog's tick rate for ticker, which triggers global proxy updates
 	updateAtLeastEvery = 30 * time.Second
 )
 
@@ -72,7 +73,7 @@ func (mc *MeshCatalog) getAnnouncementChannels() []announcementChannel {
 		for {
 			<-ticker.C
 			events.GetPubSubInstance().Publish(events.PubSubMessage{
-				AnnouncementType: announcements.ScheduleBroadcastUpdate,
+				AnnouncementType: announcements.ScheduleProxyBroadcast,
 				NewObj:           nil,
 				OldObj:           nil,
 			})

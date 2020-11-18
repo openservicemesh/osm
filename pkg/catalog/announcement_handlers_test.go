@@ -60,7 +60,7 @@ var _ = Describe("Test Announcement Handlers", func() {
 
 			// Register to Update proxies event. We should see a schedule broadcast update
 			// requested by the handler when the certificate is released.
-			rcvBroadcastChannel := events.GetPubSubInstance().Subscribe(announcements.ScheduleBroadcastUpdate)
+			rcvBroadcastChannel := events.GetPubSubInstance().Subscribe(announcements.ScheduleProxyBroadcast)
 
 			// Publish a podDeleted event
 			events.GetPubSubInstance().Publish(events.PubSubMessage{

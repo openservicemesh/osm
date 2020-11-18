@@ -53,7 +53,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 	go receive(requests, &server, proxy, quit, s.catalog)
 
 	// Register to Envoy global broadcast updates
-	broadcastUpdate := events.GetPubSubInstance().Subscribe(announcements.EnvoyBroadcast)
+	broadcastUpdate := events.GetPubSubInstance().Subscribe(announcements.ProxyBroadcast)
 
 	for {
 		select {

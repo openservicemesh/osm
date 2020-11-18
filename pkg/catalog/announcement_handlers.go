@@ -9,6 +9,7 @@ import (
 )
 
 // releaseCertificateHandler releases certificates based on podDelete events
+// returns a stop channel which can be used to stop the inner handler
 func (mc *MeshCatalog) releaseCertificateHandler() chan struct{} {
 	podDeleteSubscription := events.GetPubSubInstance().Subscribe(announcements.PodDeleted)
 	stop := make(chan struct{})
@@ -41,7 +42,7 @@ func (mc *MeshCatalog) releaseCertificateHandler() chan struct{} {
 					// Request a broadcast update, just for security.
 					// Dispatcher code also handles PodDelete, so probably the two will get coalesced.
 					events.GetPubSubInstance().Publish(events.PubSubMessage{
-						AnnouncementType: announcements.ScheduleBroadcastUpdate,
+						AnnouncementType: announcements.ScheduleProxyBroadcast,
 						NewObj:           nil,
 						OldObj:           nil,
 					})
