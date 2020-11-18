@@ -91,6 +91,14 @@ func (mr *MockCertificaterMockRecorder) GetIssuingCA() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIssuingCA", reflect.TypeOf((*MockCertificater)(nil).GetIssuingCA))
 }
 
+// GetSerialNumber mocks base method
+func (m *MockCertificater) GetSerialNumber() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSerialNumber")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
 // GetExpiration mocks base method
 func (m *MockCertificater) GetExpiration() time.Time {
 	m.ctrl.T.Helper()

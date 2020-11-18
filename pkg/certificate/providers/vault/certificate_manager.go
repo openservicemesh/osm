@@ -18,11 +18,14 @@ import (
 var log = logger.New("vault")
 
 const (
-	certificateField = "certificate"
-	privateKeyField  = "private_key"
-	issuingCAField   = "issuing_ca"
-	commonNameField  = "common_name"
-	ttlField         = "ttl"
+	// The string value of the JSON key containing the certificate's Serial Number.
+	// See: https://www.vaultproject.io/api-docs/secret/pki#sample-response-8
+	serialNumberField = "serial_number"
+	certificateField  = "certificate"
+	privateKeyField   = "private_key"
+	issuingCAField    = "issuing_ca"
+	commonNameField   = "common_name"
+	ttlField          = "ttl"
 
 	checkCertificateExpirationInterval = 5 * time.Second
 	tmpCertValidityPeriod              = 1 * time.Second
@@ -191,6 +194,9 @@ type Certificate struct {
 
 	// Certificate authority signing this certificate.
 	issuingCA pem.RootCertificate
+
+	// serialNumber is the serial_number value in the Data field assigned to the Certificate Hashicorp Vault issued
+	serialNumber string
 }
 
 // GetCommonName returns the common name of the given certificate.
@@ -220,10 +226,16 @@ func (c Certificate) GetExpiration() time.Time {
 
 func newCert(cn certificate.CommonName, secret *api.Secret, expiration time.Time) *Certificate {
 	return &Certificate{
-		commonName: cn,
-		expiration: expiration,
-		certChain:  pem.Certificate(secret.Data[certificateField].(string)),
-		privateKey: []byte(secret.Data[privateKeyField].(string)),
-		issuingCA:  pem.RootCertificate(secret.Data[issuingCAField].(string)),
+		commonName:   cn,
+		expiration:   expiration,
+		certChain:    pem.Certificate(secret.Data[certificateField].(string)),
+		privateKey:   []byte(secret.Data[privateKeyField].(string)),
+		issuingCA:    pem.RootCertificate(secret.Data[issuingCAField].(string)),
+		serialNumber: secret.Data[serialNumberField].(string),
 	}
+}
+
+// GetSerialNumber returns the serial number of the given certificate.
+func (c Certificate) GetSerialNumber() string {
+	return c.serialNumber
 }

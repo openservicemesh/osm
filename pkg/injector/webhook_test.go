@@ -102,6 +102,7 @@ func (mc mockCertificate) GetCertificateChain() []byte           { return []byte
 func (mc mockCertificate) GetPrivateKey() []byte                 { return []byte("key") }
 func (mc mockCertificate) GetIssuingCA() []byte                  { return []byte("ca") }
 func (mc mockCertificate) GetExpiration() time.Time              { return time.Now() }
+func (mc mockCertificate) GetSerialNumber() string               { return "serial_number" }
 
 var _ = Describe("Testing isAnnotatedForInjection", func() {
 	Context("when the inject annotation is one of enabled/yes/true", func() {
