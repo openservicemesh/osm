@@ -41,9 +41,9 @@ func (mc *MeshCatalog) dispatcher() {
 	// When there is no broadcast scheduled (broadcastScheduled == false) we start a max deadline (15s)
 	// and a moving deadline (3s) timers.
 	// The max deadline (15s) is the guaranteed hard max time we will wait til the next
-	// broadcast actually and surely is issued.
+	// envoy broadcast update is actually published.
 	// The moving deadline resets if a new delta/change is detected in the next (3s). This is used to coalesce updates
-	// and avoid issuing all-envoys reconfigurations at large if new updates are meant to be received shortly after.
+	// and avoid issuing global envoy reconfiguration at large if new updates are meant to be received shortly after.
 	// Either deadline will trigger the broadcast, whichever happens first, given previous conditions.
 	// This mechanism is reset when the broadcast is published.
 
@@ -51,7 +51,7 @@ func (mc *MeshCatalog) dispatcher() {
 		select {
 		case message := <-subChannel:
 
-			// New update message from pubsub
+			// New message from pubsub
 			psubMessage, castOk := message.(events.PubSubMessage)
 			if !castOk {
 				log.Error().Msgf("Error casting PubSubMessage: %v", psubMessage)

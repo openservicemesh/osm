@@ -8,7 +8,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 )
 
-// releaseCertificateHandler releases certificate based on podDelete events
+// releaseCertificateHandler releases certificates based on podDelete events
 func (mc *MeshCatalog) releaseCertificateHandler() chan struct{} {
 	podDeleteSubscription := events.GetPubSubInstance().Subscribe(announcements.PodDeleted)
 	stop := make(chan struct{})
