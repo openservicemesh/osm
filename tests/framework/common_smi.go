@@ -1,4 +1,4 @@
-package e2e
+package e2ef
 
 import (
 	"context"
@@ -22,20 +22,20 @@ type smiClients struct {
 
 // InitSMIClients initializes SMI clients on OsmTestData structure
 func (td *OsmTestData) InitSMIClients() error {
-	td.smiClients = &smiClients{}
+	td.SmiClients = &smiClients{}
 	var err error
 
-	td.smiClients.SpecClient, err = smiTrafficSpecClient.NewForConfig(td.restConfig)
+	td.SmiClients.SpecClient, err = smiTrafficSpecClient.NewForConfig(td.RestConfig)
 	if err != nil {
 		return errors.Wrap(err, "failed to create traffic spec client")
 	}
 
-	td.smiClients.AccessClient, err = smiTrafficAccessClient.NewForConfig(td.restConfig)
+	td.SmiClients.AccessClient, err = smiTrafficAccessClient.NewForConfig(td.RestConfig)
 	if err != nil {
 		return errors.Wrap(err, "failed to create traffic access client")
 	}
 
-	td.smiClients.SplitClient, err = smiTrafficSplitClient.NewForConfig(td.restConfig)
+	td.SmiClients.SplitClient, err = smiTrafficSplitClient.NewForConfig(td.RestConfig)
 	if err != nil {
 		return errors.Wrap(err, "failed to create traffic split client")
 	}
@@ -45,7 +45,7 @@ func (td *OsmTestData) InitSMIClients() error {
 
 // CreateHTTPRouteGroup Creates an SMI Route Group
 func (td *OsmTestData) CreateHTTPRouteGroup(ns string, rg smiSpecs.HTTPRouteGroup) (*smiSpecs.HTTPRouteGroup, error) {
-	hrg, err := td.smiClients.SpecClient.SpecsV1alpha3().HTTPRouteGroups(ns).Create(context.Background(), &rg, metav1.CreateOptions{})
+	hrg, err := td.SmiClients.SpecClient.SpecsV1alpha3().HTTPRouteGroups(ns).Create(context.Background(), &rg, metav1.CreateOptions{})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create HTTPRouteGroup")
 	}
@@ -54,7 +54,7 @@ func (td *OsmTestData) CreateHTTPRouteGroup(ns string, rg smiSpecs.HTTPRouteGrou
 
 // CreateTrafficTarget Creates an SMI TrafficTarget
 func (td *OsmTestData) CreateTrafficTarget(ns string, tar smiAccess.TrafficTarget) (*smiAccess.TrafficTarget, error) {
-	tt, err := td.smiClients.AccessClient.AccessV1alpha2().TrafficTargets(ns).Create(context.Background(), &tar, metav1.CreateOptions{})
+	tt, err := td.SmiClients.AccessClient.AccessV1alpha2().TrafficTargets(ns).Create(context.Background(), &tar, metav1.CreateOptions{})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create TrafficTarget")
 	}
@@ -63,7 +63,7 @@ func (td *OsmTestData) CreateTrafficTarget(ns string, tar smiAccess.TrafficTarge
 
 // CreateTrafficSplit Creates an SMI TrafficSplit
 func (td *OsmTestData) CreateTrafficSplit(ns string, tar smiSplit.TrafficSplit) (*smiSplit.TrafficSplit, error) {
-	tt, err := td.smiClients.SplitClient.SplitV1alpha2().TrafficSplits(ns).Create(context.Background(), &tar, metav1.CreateOptions{})
+	tt, err := td.SmiClients.SplitClient.SplitV1alpha2().TrafficSplits(ns).Create(context.Background(), &tar, metav1.CreateOptions{})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create TrafficTarget")
 	}

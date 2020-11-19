@@ -1,15 +1,18 @@
-package e2e
+package scenarios
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	. "github.com/openservicemesh/osm/tests/framework"
 
 	"k8s.io/api/admissionregistration/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -23,8 +26,8 @@ import (
 
 var _ = OSMDescribe("Reconcile MutatingWebhookConfiguration",
 	OSMDescribeInfo{
-		tier:   1,
-		bucket: 2,
+		Tier:   1,
+		Bucket: 2,
 	},
 	func() {
 		Context("MutatingWebhookConfigurationReconciler", func() {
@@ -42,7 +45,7 @@ var _ = OSMDescribe("Reconcile MutatingWebhookConfiguration",
 			BeforeEach(func() {
 				stopCh = make(chan struct{})
 
-				mgr, err := ctrl.NewManager(td.restConfig, ctrl.Options{
+				mgr, err := ctrl.NewManager(Td.RestConfig, ctrl.Options{
 					MetricsBindAddress: "0",
 				})
 				Expect(err).NotTo(HaveOccurred(), "failed to create manager")
@@ -80,11 +83,11 @@ var _ = OSMDescribe("Reconcile MutatingWebhookConfiguration",
 
 			It("Should add a CA bundle when OSM webhook is missing one", func() {
 				mwhc := getTestMWHC(webhookName, testWebhookServiceNamespace, testWebhookServiceName, testWebhookServicePath)
-				_, err := td.CreateMutatingWebhook(mwhc)
+				_, err := Td.CreateMutatingWebhook(mwhc)
 				Expect(err).NotTo(HaveOccurred(), "failed to create test mutating webhook")
 
 				time.Sleep(time.Second * 1)
-				actualMwhc, errMwhc := td.GetMutatingWebhook(webhookName)
+				actualMwhc, errMwhc := Td.GetMutatingWebhook(webhookName)
 				Expect(errMwhc).NotTo(HaveOccurred())
 
 				Expect(actualMwhc.Webhooks[0].ClientConfig.CABundle).NotTo(BeNil())
@@ -94,22 +97,30 @@ var _ = OSMDescribe("Reconcile MutatingWebhookConfiguration",
 			It("Should not add a CA bundle on a random webhook", func() {
 				webhookName = "random-webhook"
 				mwhc := getTestMWHC(webhookName, testWebhookServiceNamespace, testWebhookServiceName, testWebhookServicePath)
-				_, err := td.CreateMutatingWebhook(mwhc)
+				_, err := Td.CreateMutatingWebhook(mwhc)
 				Expect(err).NotTo(HaveOccurred(), "failed to create test mutating webhook")
 
 				time.Sleep(time.Second * 1)
-				actualMwhc, errMwhc := td.GetMutatingWebhook(webhookName)
+				actualMwhc, errMwhc := Td.GetMutatingWebhook(webhookName)
 				Expect(errMwhc).NotTo(HaveOccurred())
 
 				Expect(actualMwhc.Webhooks[0].ClientConfig.CABundle).To(BeNil())
 			})
+		})
+		AfterEach(func() {
+			// Cleanup
+			Td.Client.AdmissionregistrationV1().MutatingWebhookConfigurations().DeleteCollection(context.Background(),
+				metav1.DeleteOptions{}, metav1.ListOptions{
+					LabelSelector: labels.SelectorFromSet(Td.GetTestNamespaceSelectorMap()).String(),
+				})
 		})
 	})
 
 func getTestMWHC(webhookName, testWebhookServiceNamespace, testWebhookServiceName, testWebhookServicePath string) *v1beta1.MutatingWebhookConfiguration {
 	return &v1beta1.MutatingWebhookConfiguration{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: webhookName,
+			Name:   webhookName,
+			Labels: Td.GetTestNamespaceSelectorMap(),
 		},
 		Webhooks: []v1beta1.MutatingWebhook{
 			{
