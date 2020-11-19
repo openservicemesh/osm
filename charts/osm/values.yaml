@@ -41,10 +41,13 @@ OpenServiceMesh:
   fluentBit:
     name: fluentbit-logger
     registry: fluent
-    tag: 1.5.0
+    tag: 1.6.4
     pullPolicy: IfNotPresent
     defaultOutput: stdout
     allowCustomOutput: true
+    enableProxySupport: false
+    httpProxy: ""
+    httpsProxy: ""
   meshName: osm
   useHTTPSIngress: false
   envoyLogLevel: error

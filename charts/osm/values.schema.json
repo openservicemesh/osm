@@ -216,7 +216,10 @@
                             "tag": "1.6.4",
                             "pullPolicy": "IfNotPresent",
                             "defaultOutput": "stdout",
-                            "allowCustomOutput": "true"
+                            "allowCustomOutput": "true",
+                            "enableProxySupport": "false",
+                            "httpProxy": "",
+                            "httpsProxy": ""
                         }
                     ],
                     "required": [
@@ -225,7 +228,10 @@
                         "tag",
                         "pullPolicy",
                         "defaultOutput",
-                        "allowCustomOutput"
+                        "allowCustomOutput",
+                        "enableProxySupport",
+                        "httpProxy",
+                        "httpsProxy"
                     ],
                     "properties": {
                         "name": {
@@ -252,7 +258,7 @@
                             "title": "The tag schema",
                             "description": "The image tag to run.",
                             "examples": [
-                                "1.5"
+                                "v1.6.4"
                             ]
                         },
                         "pullPolicy": {
@@ -281,6 +287,33 @@
                             "description": "Indicates whether users can provide their own output plugin",
                             "examples": [
                                 true
+                            ]
+                        },
+                        "enableProxySupport": {
+                            "$id": "#/properties/OpenServiceMesh/properties/fluentBit/properties/enableProxySupport",
+                            "type": "boolean",
+                            "title": "The enableProxySupport output schema",
+                            "description": "Indicates whether outbound proxy support should be configured for Fluent Bit",
+                            "examples": [
+                                false
+                            ]
+                        },
+                        "httpProxy": {
+                            "$id": "#/properties/OpenServiceMesh/properties/fluentBit/properties/httpProxy",
+                            "type": "string",
+                            "title": "The httpProxy schema",
+                            "description": "http proxy endpoint",
+                            "examples": [
+                                "http://<host>:<port>"
+                            ]
+                        },
+                        "httpsProxy": {
+                            "$id": "#/properties/OpenServiceMesh/properties/fluentBit/properties/httpsProxy",
+                            "type": "string",
+                            "title": "The httpsProxy schema",
+                            "description": "https proxy endpoint",
+                            "examples": [
+                                "http://<host>:<port>"
                             ]
                         }
                     },
