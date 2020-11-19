@@ -4,10 +4,11 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/golang/mock/gomock"
+	"github.com/google/uuid"
 	"github.com/hashicorp/vault/api"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -105,6 +106,24 @@ var _ = Describe("Test client helpers", func() {
 		}
 		cm.cache.Store(expiredCertCN, expiredCert)
 		cm.cache.Store(validCertCN, validCert)
+
+		It("gets issuing CA public part", func() {
+			expectedNumberOfCertsInCache := 2
+			Expect(len(*cm.cache)).To(Equal(expectedNumberOfCertsInCache))
+			certBytes := uuid.New().String()
+			issue := func(certificate.CommonName, time.Duration) (certificate.Certificater, error) {
+				cert := Certificate{
+					issuingCA: pem.RootCertificate(certBytes),
+				}
+				return cert, nil
+			}
+			issuingCA, err := cm.getIssuingCA(issue)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Ensure that cache is NOT affected
+			Expect(issuingCA).To(Equal([]byte(certBytes)))
+			Expect(len(*cm.cache)).To(Equal(expectedNumberOfCertsInCache))
+		})
 
 		It("gets certs from cache", func() {
 			// This cert does not exist - returns nil
