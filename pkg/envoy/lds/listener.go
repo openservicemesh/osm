@@ -6,16 +6,12 @@ import (
 	xds_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	xds_tcp_proxy "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-	"google.golang.org/protobuf/types/known/wrapperspb"
-
 	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/any"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/envoy/route"
 	"github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 )
@@ -112,52 +108,6 @@ func buildEgressFilterChain() (*xds_listener.FilterChain, error) {
 			},
 		},
 	}, nil
-}
-
-// getOutboundFilterForService builds a network filter action for traffic destined to a specific service
-func getOutboundFilterForService(dstSvc service.MeshService, cfg configurator.Configurator) (*xds_listener.Filter, error) {
-	var marshalledFilter *any.Any
-	var err error
-
-	marshalledFilter, err = envoy.MessageToAny(
-		getHTTPConnectionManager(route.OutboundRouteConfigName, cfg))
-	if err != nil {
-		log.Error().Err(err).Msgf("Error marshalling HTTPConnManager object")
-		return nil, err
-	}
-
-	return &xds_listener.Filter{
-		Name:       wellknown.HTTPConnectionManager,
-		ConfigType: &xds_listener.Filter_TypedConfig{TypedConfig: marshalledFilter},
-	}, nil
-}
-
-// getOutboundFilterChainMatchForService builds a filter chain to match the destination traffic.
-// Filter Chain currently match on destination IP for possible service endpoints
-func getOutboundFilterChainMatchForService(dstSvc service.MeshService, catalog catalog.MeshCataloger, cfg configurator.Configurator) (*xds_listener.FilterChainMatch, error) {
-	filterMatch := &xds_listener.FilterChainMatch{}
-
-	endpoints, err := catalog.GetResolvableServiceEndpoints(dstSvc)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error getting GetResolvableServiceEndpoints for %s", dstSvc.String())
-		return nil, err
-	}
-
-	if len(endpoints) == 0 {
-		log.Info().Msgf("No resolvable endpoints retured for service %s", dstSvc.String())
-		return nil, nil
-	}
-
-	for _, endp := range endpoints {
-		filterMatch.PrefixRanges = append(filterMatch.PrefixRanges, &xds_core.CidrRange{
-			AddressPrefix: endp.IP.String(),
-			PrefixLen: &wrapperspb.UInt32Value{
-				Value: singleIpv4Mask,
-			},
-		})
-	}
-
-	return filterMatch, nil
 }
 
 func getOutboundFilterChains(catalog catalog.MeshCataloger, cfg configurator.Configurator, downstreamSvc []service.MeshService) ([]*xds_listener.FilterChain, error) {
