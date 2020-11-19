@@ -1,4 +1,4 @@
-package e2ef
+package framework
 
 import (
 	"bytes"
@@ -449,8 +449,8 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		args = append(args, "--container-registry-secret="+registrySecretName)
 	}
 
-	args = append(args, fmt.Sprintf("--enable-prometheus=%v", instOpts.DeployPrometheus))
-	args = append(args, fmt.Sprintf("--enable-grafana=%v", instOpts.DeployGrafana))
+	args = append(args, fmt.Sprintf("--deploy-prometheus=%v", instOpts.DeployPrometheus))
+	args = append(args, fmt.Sprintf("--deploy-grafana=%v", instOpts.DeployGrafana))
 	args = append(args, fmt.Sprintf("--deploy-jaeger=%v", instOpts.DeployJaeger))
 	args = append(args, fmt.Sprintf("--enable-fluentbit=%v", instOpts.DeployFluentbit))
 	args = append(args, fmt.Sprintf("--timeout=%v", 90*time.Second))

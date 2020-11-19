@@ -1,4 +1,4 @@
-package e2ef
+package framework
 
 import (
 	"bufio"
