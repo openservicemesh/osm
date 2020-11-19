@@ -15,14 +15,10 @@ var _ = Describe("Test Tresor Debugger", func() {
 		//   3. Populate the CertManager's cache w/ cert
 		cert := NewFakeCertificate()
 		cert.issuingCA = cert.GetCertificateChain()
-		cache := map[certificate.CommonName]certificate.Certificater{
-			"foo": cert,
-		}
-		cm := CertManager{
-			cache: &cache,
-		}
+		cm := CertManager{}
+		cm.cache.Store("foo", cert)
 
-		It("lists all issued certificets", func() {
+		It("lists all issued certificates", func() {
 			actual := cm.ListIssuedCertificates()
 			expected := []certificate.Certificater{cert}
 			Expect(actual).To(Equal(expected))

@@ -49,8 +49,8 @@ var _ = OSMDescribe("Reconcile MutatingWebhookConfiguration",
 
 				mockController := gomock.NewController(GinkgoT())
 				cfgMock := configurator.NewMockConfigurator(mockController)
-				cache := make(map[certificate.CommonName]certificate.Certificater)
-				certManager := tresor.NewFakeCertManager(&cache, cfgMock)
+
+				certManager := tresor.NewFakeCertManager(cfgMock)
 				cn := certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.OSMControllerName, testWebhookServiceNamespace))
 				validity := 1 * time.Hour
 				cert, _ := certManager.IssueCertificate(cn, validity)

@@ -77,17 +77,12 @@ func NewCertManager(ca certificate.Certificater, certificatesOrganization string
 		return nil, errNoIssuingCA
 	}
 
-	cache := make(map[certificate.CommonName]certificate.Certificater)
-
 	certManager := CertManager{
 		// The root certificate signing all newly issued certificates
 		ca: ca,
 
 		// Channel used to inform other components of cert changes (rotation etc.)
 		announcements: make(chan announcements.Announcement),
-
-		// Certificate cache
-		cache: &cache,
 
 		certificatesOrganization: certificatesOrganization,
 
