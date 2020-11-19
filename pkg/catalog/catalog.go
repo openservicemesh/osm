@@ -11,7 +11,13 @@ import (
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/ingress"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
+	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 	"github.com/openservicemesh/osm/pkg/smi"
+)
+
+const (
+	// this is catalog's tick rate for ticker, which triggers global proxy updates
+	updateAtLeastEvery = 30 * time.Second
 )
 
 // NewMeshCatalog creates a new service catalog
@@ -31,21 +37,10 @@ func NewMeshCatalog(kubeController k8s.Controller, kubeClient kubernetes.Interfa
 		kubeController: kubeController,
 	}
 
-	// This map holds a list of Announcement handlers per type.
-	// The handlers will be evaluated sequentially in the order they appear here.
-	mc.announcementHandlerPerType = map[announcements.AnnouncementType][]func(ann announcements.Announcement) error{
+	// Run release certificate handler, which listens to podDelete events
+	mc.releaseCertificateHandler()
 
-		// When a Kubernetes Pod is deleted
-		announcements.PodDeleted: {
-			// Delete the xDS Certificate that was issued to the Envoy fronting this pod.
-			mc.releaseCertificate,
-
-			// Remove the Endpoint (Pod) from relevant Envoys.
-			mc.updateRelatedProxies,
-		},
-	}
-
-	go mc.repeater()
+	go mc.dispatcher()
 	return &mc
 }
 
@@ -77,7 +72,11 @@ func (mc *MeshCatalog) getAnnouncementChannels() []announcementChannel {
 		ticker := time.NewTicker(updateAtLeastEvery)
 		for {
 			<-ticker.C
-			ticking <- announcements.Announcement{}
+			events.GetPubSubInstance().Publish(events.PubSubMessage{
+				AnnouncementType: announcements.ScheduleProxyBroadcast,
+				NewObj:           nil,
+				OldObj:           nil,
+			})
 		}
 	}()
 

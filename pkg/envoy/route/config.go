@@ -263,8 +263,12 @@ func sanitizeHTTPMethods(allowedMethods []string) []string {
 //NewRouteConfigurationStub creates the route configuration placeholder
 func NewRouteConfigurationStub(routeConfigName string) *xds_route.RouteConfiguration {
 	routeConfiguration := xds_route.RouteConfiguration{
-		Name:             routeConfigName,
-		ValidateClusters: &wrappers.BoolValue{Value: true},
+		Name: routeConfigName,
+		// ValidateClusters `true` causes RDS rejections if the CDS is not "warm" with the expected
+		// clusters RDS wants to use. This can happen when CDS and RDS updates are sent closely
+		// together. Setting it to false bypasses this check, and just assumes the cluster will
+		// be present when it needs to be checked by traffic (or 404 otherwise).
+		ValidateClusters: &wrappers.BoolValue{Value: false},
 	}
 	return &routeConfiguration
 }
