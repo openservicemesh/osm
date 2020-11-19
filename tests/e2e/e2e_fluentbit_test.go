@@ -9,22 +9,24 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+
+	. "github.com/openservicemesh/osm/tests/framework"
 )
 
 var _ = OSMDescribe("Test deployment of Fluent Bit sidecar",
 	OSMDescribeInfo{
-		tier:   2,
-		bucket: 2,
+		Tier:   2,
+		Bucket: 2,
 	},
 	func() {
 		Context("Fluentbit", func() {
 			It("Deploys a Fluent Bit sidecar only when enabled", func() {
 				// Install OSM with Fluentbit
-				installOpts := td.GetOSMInstallOpts()
-				installOpts.deployFluentbit = true
-				Expect(td.InstallOSM(installOpts)).To(Succeed())
+				installOpts := Td.GetOSMInstallOpts()
+				installOpts.DeployFluentbit = true
+				Expect(Td.InstallOSM(installOpts)).To(Succeed())
 
-				pods, err := td.client.CoreV1().Pods(td.osmNamespace).List(context.TODO(), metav1.ListOptions{
+				pods, err := Td.Client.CoreV1().Pods(Td.OsmNamespace).List(context.TODO(), metav1.ListOptions{
 					LabelSelector: labels.SelectorFromSet(map[string]string{"app": "osm-controller"}).String(),
 				})
 
@@ -39,17 +41,17 @@ var _ = OSMDescribe("Test deployment of Fluent Bit sidecar",
 				}
 				Expect(cond).To(BeTrue())
 
-				err = td.DeleteNs(td.osmNamespace)
+				err = Td.DeleteNs(Td.OsmNamespace)
 				Expect(err).NotTo(HaveOccurred())
-				err = td.WaitForNamespacesDeleted([]string{td.osmNamespace}, 60*time.Second)
+				err = Td.WaitForNamespacesDeleted([]string{Td.OsmNamespace}, 60*time.Second)
 				Expect(err).NotTo(HaveOccurred())
 
 				// Install OSM without Fluentbit (default)
-				installOpts = td.GetOSMInstallOpts()
-				Expect(td.InstallOSM(installOpts)).To(Succeed())
-				Expect(td.WaitForPodsRunningReady(td.osmNamespace, 60*time.Second, 1)).To(Succeed())
+				installOpts = Td.GetOSMInstallOpts()
+				Expect(Td.InstallOSM(installOpts)).To(Succeed())
+				Expect(Td.WaitForPodsRunningReady(Td.OsmNamespace, 60*time.Second, 1)).To(Succeed())
 
-				pods, err = td.client.CoreV1().Pods(td.osmNamespace).List(context.TODO(), metav1.ListOptions{
+				pods, err = Td.Client.CoreV1().Pods(Td.OsmNamespace).List(context.TODO(), metav1.ListOptions{
 					LabelSelector: labels.SelectorFromSet(map[string]string{"app": "osm-controller"}).String(),
 				})
 
