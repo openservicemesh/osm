@@ -8,8 +8,6 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	. "github.com/openservicemesh/osm/tests/framework"
-
 	"k8s.io/api/admissionregistration/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -22,6 +20,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/injector"
 	reconciler "github.com/openservicemesh/osm/pkg/reconciler/mutatingwebhook"
+	. "github.com/openservicemesh/osm/tests/framework"
 )
 
 var _ = OSMDescribe("Reconcile MutatingWebhookConfiguration",
@@ -109,10 +108,11 @@ var _ = OSMDescribe("Reconcile MutatingWebhookConfiguration",
 		})
 		AfterEach(func() {
 			// Cleanup
-			Td.Client.AdmissionregistrationV1().MutatingWebhookConfigurations().DeleteCollection(context.Background(),
+			err := Td.Client.AdmissionregistrationV1().MutatingWebhookConfigurations().DeleteCollection(context.Background(),
 				metav1.DeleteOptions{}, metav1.ListOptions{
 					LabelSelector: labels.SelectorFromSet(Td.GetTestNamespaceSelectorMap()).String(),
 				})
+			Expect(err).To(BeNil())
 		})
 	})
 
