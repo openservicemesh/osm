@@ -66,7 +66,7 @@ func (mc *MeshCatalog) getAnnouncementChannels() []announcementChannel {
 		announcementChannels = append(announcementChannels, annCh)
 	}
 
-	if updateAtLeastEvery != 0 {
+	if updateAtLeastEvery > 0 {
 		go func() {
 			ticker := time.NewTicker(updateAtLeastEvery)
 			for {
