@@ -37,6 +37,16 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 		TypeUrl: string(envoy.TypeRDS),
 	}
 
+	allTrafficSplits, _, _, _, _ := catalog.ListSMIPolicies()
+	isTrafficSplitService := func(svc service.MeshService) bool {
+		for _, split := range allTrafficSplits {
+			if split.Namespace == svc.Namespace && split.Spec.Service == svc.Name {
+				return true
+			}
+		}
+		return false
+	}
+
 	var routeConfiguration []*xds_route.RouteConfiguration
 	outboundRouteConfig := route.NewRouteConfigurationStub(route.OutboundRouteConfigName)
 	inboundRouteConfig := route.NewRouteConfigurationStub(route.InboundRouteConfigName)
@@ -47,6 +57,10 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 		isSourceService := trafficPolicy.Source.Equals(proxyServiceName)
 		isDestinationService := trafficPolicy.Destination.Equals(proxyServiceName)
 		svc := trafficPolicy.Destination
+		//filter out traffic split service, reference to pkg/catalog/xds_certificates.go:74
+		if isTrafficSplitService(svc) {
+			continue
+		}
 		hostnames, err := catalog.GetResolvableHostnamesForUpstreamService(proxyServiceName, svc)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed listing domains")
