@@ -43,10 +43,10 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		TypeUrl: string(envoy.TypeLDS),
 	}
 
-	lb := newListenerBuilder(meshCatalog, svcAccount)
+	lb := newListenerBuilder(meshCatalog, svcAccount, cfg)
 
 	// --- OUTBOUND -------------------
-	outboundListener, err := newOutboundListener(meshCatalog, cfg, svcList)
+	outboundListener, err := lb.newOutboundListener(svcList)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error making outbound listener config for proxy %s", proxyServiceName)
 	} else {
@@ -123,9 +123,10 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	return resp, nil
 }
 
-func newListenerBuilder(meshCatalog catalog.MeshCataloger, svcAccount service.K8sServiceAccount) *listenerBuilder {
+func newListenerBuilder(meshCatalog catalog.MeshCataloger, svcAccount service.K8sServiceAccount, cfg configurator.Configurator) *listenerBuilder {
 	return &listenerBuilder{
 		meshCatalog: meshCatalog,
 		svcAccount:  svcAccount,
+		cfg:         cfg,
 	}
 }

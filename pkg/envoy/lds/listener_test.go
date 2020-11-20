@@ -30,13 +30,16 @@ func TestGetFilterForService(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
+	lb := &listenerBuilder{
+		cfg: mockConfigurator,
+	}
 
 	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false)
 	mockConfigurator.EXPECT().IsTracingEnabled().Return(true)
 	mockConfigurator.EXPECT().GetTracingEndpoint().Return("test-endpoint")
 
 	// Check we get HTTP connection manager filter without Permissive mode
-	filter, err := getOutboundHTTPFilter(mockConfigurator)
+	filter, err := lb.getOutboundHTTPFilter()
 
 	assert.NoError(err)
 	assert.Equal(filter.Name, wellknown.HTTPConnectionManager)
@@ -46,7 +49,7 @@ func TestGetFilterForService(t *testing.T) {
 	mockConfigurator.EXPECT().IsTracingEnabled().Return(true)
 	mockConfigurator.EXPECT().GetTracingEndpoint().Return("test-endpoint")
 
-	filter, err = getOutboundHTTPFilter(mockConfigurator)
+	filter, err = lb.getOutboundHTTPFilter()
 	assert.NoError(err)
 	assert.Equal(filter.Name, wellknown.HTTPConnectionManager)
 }
@@ -60,7 +63,9 @@ func TestGetFilterChainMatchForService(t *testing.T) {
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 	mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
 
-	mockCatalog.EXPECT().GetResolvableServiceEndpoints(tests.BookbuyerService).Return(
+	lb := newListenerBuilder(mockCatalog, tests.BookbuyerServiceAccount, mockConfigurator)
+
+	mockCatalog.EXPECT().GetResolvableServiceEndpoints(tests.BookstoreApexService).Return(
 		[]endpoint.Endpoint{
 			tests.Endpoint,
 			{
@@ -71,7 +76,7 @@ func TestGetFilterChainMatchForService(t *testing.T) {
 		nil,
 	)
 
-	filterChainMatch, err := getOutboundHTTPFilterChainMatchForService(tests.BookbuyerService, mockCatalog, mockConfigurator)
+	filterChainMatch, err := lb.getOutboundHTTPFilterChainMatchForService(tests.BookstoreApexService)
 
 	assert.NoError(err)
 
@@ -97,12 +102,12 @@ func TestGetFilterChainMatchForService(t *testing.T) {
 	assert.Equal(filterChainMatch, expectedFilterChainMatch)
 
 	// Test negative getOutboundHTTPFilterChainMatchForService when no endpoints are present
-	mockCatalog.EXPECT().GetResolvableServiceEndpoints(tests.BookbuyerService).Return(
+	mockCatalog.EXPECT().GetResolvableServiceEndpoints(tests.BookstoreApexService).Return(
 		[]endpoint.Endpoint{},
 		nil,
 	)
 
-	filterChainMatch, err = getOutboundHTTPFilterChainMatchForService(tests.BookbuyerService, mockCatalog, mockConfigurator)
+	filterChainMatch, err = lb.getOutboundHTTPFilterChainMatchForService(tests.BookstoreApexService)
 	assert.NoError(err)
 	assert.Nil(filterChainMatch)
 }

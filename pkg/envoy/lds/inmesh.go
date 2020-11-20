@@ -8,7 +8,6 @@ import (
 	"github.com/golang/protobuf/ptypes/any"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/route"
@@ -77,12 +76,12 @@ func getInboundInMeshFilterChain(proxyServiceName service.MeshService, cfg confi
 }
 
 // getOutboundHTTPFilter returns an HTTP connection manager network filter used to filter outbound HTTP traffic
-func getOutboundHTTPFilter(cfg configurator.Configurator) (*xds_listener.Filter, error) {
+func (lb *listenerBuilder) getOutboundHTTPFilter() (*xds_listener.Filter, error) {
 	var marshalledFilter *any.Any
 	var err error
 
 	marshalledFilter, err = ptypes.MarshalAny(
-		getHTTPConnectionManager(route.OutboundRouteConfigName, cfg))
+		getHTTPConnectionManager(route.OutboundRouteConfigName, lb.cfg))
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshalling HTTP connection manager object")
 		return nil, err
@@ -98,14 +97,14 @@ func getOutboundHTTPFilter(cfg configurator.Configurator) (*xds_listener.Filter,
 // Filter Chain currently matches on the following:
 // 1. Destination IP of service endpoints
 // 2. HTTP application protocols
-func getOutboundHTTPFilterChainMatchForService(dstSvc service.MeshService, catalog catalog.MeshCataloger, cfg configurator.Configurator) (*xds_listener.FilterChainMatch, error) {
+func (lb *listenerBuilder) getOutboundHTTPFilterChainMatchForService(dstSvc service.MeshService) (*xds_listener.FilterChainMatch, error) {
 	filterMatch := &xds_listener.FilterChainMatch{
 		// HTTP filter chain should only match on supported HTTP protocols that the downstream can use
 		// to originate a request.
 		ApplicationProtocols: supportedDownstreamHTTPProtocols,
 	}
 
-	endpoints, err := catalog.GetResolvableServiceEndpoints(dstSvc)
+	endpoints, err := lb.meshCatalog.GetResolvableServiceEndpoints(dstSvc)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error getting GetResolvableServiceEndpoints for %s", dstSvc.String())
 		return nil, err
