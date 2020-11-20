@@ -98,7 +98,7 @@ func buildEgressFilterChain() (*xds_listener.FilterChain, error) {
 		StatPrefix:       envoy.OutboundPassthroughCluster,
 		ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{Cluster: envoy.OutboundPassthroughCluster},
 	}
-	marshalledTCPProxy, err := envoy.MessageToAny(tcpProxy)
+	marshalledTCPProxy, err := ptypes.MarshalAny(tcpProxy)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshalling TcpProxy object for egress HTTPS filter chain")
 		return nil, err

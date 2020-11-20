@@ -28,7 +28,7 @@ var (
 )
 
 func getInboundInMeshFilterChain(proxyServiceName service.MeshService, cfg configurator.Configurator) (*xds_listener.FilterChain, error) {
-	marshalledDownstreamTLSContext, err := envoy.MessageToAny(envoy.GetDownstreamTLSContext(proxyServiceName, true /* mTLS */))
+	marshalledDownstreamTLSContext, err := ptypes.MarshalAny(envoy.GetDownstreamTLSContext(proxyServiceName, true /* mTLS */))
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshalling DownstreamTLSContext object for proxy %s", proxyServiceName)
 		return nil, err
@@ -81,7 +81,7 @@ func getOutboundFilterForService(dstSvc service.MeshService, cfg configurator.Co
 	var marshalledFilter *any.Any
 	var err error
 
-	marshalledFilter, err = envoy.MessageToAny(
+	marshalledFilter, err = ptypes.MarshalAny(
 		getHTTPConnectionManager(route.OutboundRouteConfigName, cfg))
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshalling HTTPConnManager object")
