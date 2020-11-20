@@ -44,6 +44,11 @@ func newOutboundListener(catalog catalog.MeshCataloger, cfg configurator.Configu
 				// to its original destination.
 				Name: wellknown.OriginalDestination,
 			},
+			{
+				// The HttpInspector ListenerFilter is used to inspect plaintext traffic
+				// for HTTP protocols.
+				Name: wellknown.HttpInspector,
+			},
 		},
 	}, nil
 }
@@ -155,7 +160,7 @@ func getOutboundFilterChains(catalog catalog.MeshCataloger, cfg configurator.Con
 		}
 
 		// Get filter match criteria for destination service
-		filterChainMatch, err := getOutboundFilterChainMatchForService(keyService, catalog, cfg)
+		filterChainMatch, err := getOutboundHTTPFilterChainMatchForService(keyService, catalog, cfg)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error getting Chain Match for service %s", keyService.String())
 			return nil, err
