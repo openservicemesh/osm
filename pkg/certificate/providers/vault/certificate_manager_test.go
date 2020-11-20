@@ -107,9 +107,21 @@ var _ = Describe("Test client helpers", func() {
 		cm.cache.Store(expiredCertCN, expiredCert)
 		cm.cache.Store(validCertCN, validCert)
 
+		getCachedCertificateCNs := func() []certificate.CommonName {
+			var commonNames []certificate.CommonName
+			cm.cache.Range(func(cnInterface interface{}, certInterface interface{}) bool {
+				cert := certInterface.(*Certificate)
+				commonNames = append(commonNames, cert.GetCommonName())
+				return true
+			})
+			return commonNames
+		}
+
 		It("gets issuing CA public part", func() {
 			expectedNumberOfCertsInCache := 2
-			Expect(len(*cm.cache)).To(Equal(expectedNumberOfCertsInCache))
+			Expect(len(getCachedCertificateCNs())).To(Equal(expectedNumberOfCertsInCache))
+			Expect(getCachedCertificateCNs()).To(ContainElement(certificate.CommonName("this.has.expired")))
+			Expect(getCachedCertificateCNs()).To(ContainElement(certificate.CommonName("valid.certificate")))
 			certBytes := uuid.New().String()
 			issue := func(certificate.CommonName, time.Duration) (certificate.Certificater, error) {
 				cert := Certificate{
@@ -122,7 +134,9 @@ var _ = Describe("Test client helpers", func() {
 
 			// Ensure that cache is NOT affected
 			Expect(issuingCA).To(Equal([]byte(certBytes)))
-			Expect(len(*cm.cache)).To(Equal(expectedNumberOfCertsInCache))
+			Expect(len(getCachedCertificateCNs())).To(Equal(expectedNumberOfCertsInCache))
+			Expect(getCachedCertificateCNs()).To(ContainElement(certificate.CommonName("this.has.expired")))
+			Expect(getCachedCertificateCNs()).To(ContainElement(certificate.CommonName("valid.certificate")))
 		})
 
 		It("gets certs from cache", func() {
