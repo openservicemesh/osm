@@ -13,7 +13,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
+	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
@@ -137,6 +139,9 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 
 		It("should create and delete services, and be detected if NS is monitored", func() {
 			meshSvc := tests.BookbuyerService
+			serviceChannel := events.GetPubSubInstance().Subscribe(announcements.ServiceAdded,
+				announcements.ServiceDeleted,
+				announcements.ServiceUpdated)
 
 			// Create monitored namespace for this service
 			testNamespace := &corev1.Namespace{
@@ -155,14 +160,14 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 			svc := tests.NewServiceFixture(meshSvc.Name, meshSvc.Namespace, nil)
 			_, err = kubeClient.CoreV1().Services(meshSvc.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{})
 			Expect(err).ToNot(HaveOccurred())
-			<-kubeController.GetAnnouncementsChannel(Services)
+			<-serviceChannel
 
 			svcIncache := kubeController.GetService(meshSvc)
 			Expect(svcIncache).To(Equal(svc))
 
 			err = kubeClient.CoreV1().Services(meshSvc.Namespace).Delete(context.TODO(), svc.Name, metav1.DeleteOptions{})
 			Expect(err).ToNot(HaveOccurred())
-			<-kubeController.GetAnnouncementsChannel(Services)
+			<-serviceChannel
 
 			svcIncache = kubeController.GetService(meshSvc)
 			Expect(svcIncache).To(BeNil())
@@ -182,6 +187,9 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 
 		It("should return a list of Services", func() {
 			// Define services to test with
+			serviceChannel := events.GetPubSubInstance().Subscribe(announcements.ServiceAdded,
+				announcements.ServiceDeleted,
+				announcements.ServiceUpdated)
 			testSvcs := []service.MeshService{
 				{Name: uuid.New().String(), Namespace: "ns-1"},
 				{Name: uuid.New().String(), Namespace: "ns-2"},
@@ -223,7 +231,7 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 
 			// Wait for all the service related events: 1 for each service created
 			for range testSvcs {
-				<-kubeController.GetAnnouncementsChannel(Services)
+				<-serviceChannel
 			}
 
 			services := kubeController.ListServices()
@@ -248,6 +256,13 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 			testNamespaceName := "test-ns"
 			testSvcAccountName1 := "test-service-account-1"
 			testSvcAccountName2 := "test-service-account-2"
+
+			serviceChannel := events.GetPubSubInstance().Subscribe(announcements.ServiceAdded,
+				announcements.ServiceDeleted,
+				announcements.ServiceUpdated)
+			podsChannel := events.GetPubSubInstance().Subscribe(announcements.PodAdded,
+				announcements.PodDeleted,
+				announcements.PodUpdated)
 
 			// Create a namespace
 			testNamespace := &corev1.Namespace{
@@ -279,7 +294,7 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 			}
 			_, err = kubeClient.CoreV1().Pods(testNamespaceName).Create(context.TODO(), pod1, metav1.CreateOptions{})
 			Expect(err).To(BeNil())
-			<-kubeController.GetAnnouncementsChannel(Pods)
+			<-podsChannel
 
 			pod2 := &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
@@ -296,7 +311,7 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 			}
 			_, err = kubeClient.CoreV1().Pods(testNamespaceName).Create(context.TODO(), pod2, metav1.CreateOptions{})
 			Expect(err).To(BeNil())
-			<-kubeController.GetAnnouncementsChannel(Pods)
+			<-podsChannel
 
 			// Create a service with selector that matches the pods above
 			svc := &corev1.Service{
@@ -318,7 +333,7 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 
 			_, err := kubeClient.CoreV1().Services(testNamespaceName).Create(context.TODO(), svc, metav1.CreateOptions{})
 			Expect(err).ToNot(HaveOccurred())
-			<-kubeController.GetAnnouncementsChannel(Services)
+			<-serviceChannel
 
 			meshSvc := service.MeshService{Name: svc.Name, Namespace: svc.Namespace}
 
