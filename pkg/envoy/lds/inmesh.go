@@ -76,15 +76,15 @@ func getInboundInMeshFilterChain(proxyServiceName service.MeshService, cfg confi
 	return filterChain, nil
 }
 
-// getOutboundFilterForService builds a network filter action for traffic destined to a specific service
-func getOutboundFilterForService(dstSvc service.MeshService, cfg configurator.Configurator) (*xds_listener.Filter, error) {
+// getOutboundHTTPFilter returns an HTTP connection manager network filter used to filter outbound HTTP traffic
+func getOutboundHTTPFilter(cfg configurator.Configurator) (*xds_listener.Filter, error) {
 	var marshalledFilter *any.Any
 	var err error
 
 	marshalledFilter, err = envoy.MessageToAny(
 		getHTTPConnectionManager(route.OutboundRouteConfigName, cfg))
 	if err != nil {
-		log.Error().Err(err).Msgf("Error marshalling HTTPConnManager object")
+		log.Error().Err(err).Msgf("Error marshalling HTTP connection manager object")
 		return nil, err
 	}
 
