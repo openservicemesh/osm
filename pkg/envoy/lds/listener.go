@@ -152,8 +152,8 @@ func getOutboundFilterChains(catalog catalog.MeshCataloger, cfg configurator.Con
 
 	// Iterate all destination services
 	for keyService := range dstServicesSet {
-		// Get filter for service
-		filter, err := getOutboundFilterForService(keyService, cfg)
+		// Get HTTP filter for service
+		filter, err := getOutboundHTTPFilter(cfg)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error getting filter for dst service %s", keyService.String())
 			return nil, err
