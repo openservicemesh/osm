@@ -17,7 +17,8 @@ import (
 
 const (
 	// this is catalog's tick rate for ticker, which triggers global proxy updates
-	updateAtLeastEvery = 30 * time.Second
+	// 0 disables the ticker
+	updateAtLeastEvery = 0 * time.Second
 )
 
 // NewMeshCatalog creates a new service catalog
@@ -65,20 +66,19 @@ func (mc *MeshCatalog) getAnnouncementChannels() []announcementChannel {
 		announcementChannels = append(announcementChannels, annCh)
 	}
 
-	// TODO(draychev): Ticker Announcement channel should be made optional
-	// with osm-config configurable interval
-	// See Github Issue: https://github.com/openservicemesh/osm/issues/1501
-	go func() {
-		ticker := time.NewTicker(updateAtLeastEvery)
-		for {
-			<-ticker.C
-			events.GetPubSubInstance().Publish(events.PubSubMessage{
-				AnnouncementType: announcements.ScheduleProxyBroadcast,
-				NewObj:           nil,
-				OldObj:           nil,
-			})
-		}
-	}()
+	if updateAtLeastEvery > 0 {
+		go func() {
+			ticker := time.NewTicker(updateAtLeastEvery)
+			for {
+				<-ticker.C
+				events.GetPubSubInstance().Publish(events.PubSubMessage{
+					AnnouncementType: announcements.ScheduleProxyBroadcast,
+					NewObj:           nil,
+					OldObj:           nil,
+				})
+			}
+		}()
+	}
 
 	return announcementChannels
 }

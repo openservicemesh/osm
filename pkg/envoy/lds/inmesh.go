@@ -19,8 +19,16 @@ const (
 	inboundMeshFilterChainName = "inbound-mesh-filter-chain"
 )
 
+var (
+	// supportedDownstreamHTTPProtocols is the list of allowed HTTP protocols that the
+	// downstream can use in an HTTP request. Since the downstream client is only allowed
+	// to send plaintext traffic to an in-mesh destinations, we do not include HTTP2 over
+	// TLS (h2) in this list.
+	supportedDownstreamHTTPProtocols = []string{"http/1.0", "http/1.1", "h2c"}
+)
+
 func getInboundInMeshFilterChain(proxyServiceName service.MeshService, cfg configurator.Configurator) (*xds_listener.FilterChain, error) {
-	marshalledDownstreamTLSContext, err := envoy.MessageToAny(envoy.GetDownstreamTLSContext(proxyServiceName, true /* mTLS */))
+	marshalledDownstreamTLSContext, err := ptypes.MarshalAny(envoy.GetDownstreamTLSContext(proxyServiceName, true /* mTLS */))
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshalling DownstreamTLSContext object for proxy %s", proxyServiceName)
 		return nil, err
@@ -68,15 +76,15 @@ func getInboundInMeshFilterChain(proxyServiceName service.MeshService, cfg confi
 	return filterChain, nil
 }
 
-// getOutboundFilterForService builds a network filter action for traffic destined to a specific service
-func getOutboundFilterForService(dstSvc service.MeshService, cfg configurator.Configurator) (*xds_listener.Filter, error) {
+// getOutboundHTTPFilter returns an HTTP connection manager network filter used to filter outbound HTTP traffic
+func getOutboundHTTPFilter(cfg configurator.Configurator) (*xds_listener.Filter, error) {
 	var marshalledFilter *any.Any
 	var err error
 
-	marshalledFilter, err = envoy.MessageToAny(
+	marshalledFilter, err = ptypes.MarshalAny(
 		getHTTPConnectionManager(route.OutboundRouteConfigName, cfg))
 	if err != nil {
-		log.Error().Err(err).Msgf("Error marshalling HTTPConnManager object")
+		log.Error().Err(err).Msgf("Error marshalling HTTP connection manager object")
 		return nil, err
 	}
 
@@ -86,10 +94,16 @@ func getOutboundFilterForService(dstSvc service.MeshService, cfg configurator.Co
 	}, nil
 }
 
-// getOutboundFilterChainMatchForService builds a filter chain to match the destination traffic.
-// Filter Chain currently match on destination IP for possible service endpoints
-func getOutboundFilterChainMatchForService(dstSvc service.MeshService, catalog catalog.MeshCataloger, cfg configurator.Configurator) (*xds_listener.FilterChainMatch, error) {
-	filterMatch := &xds_listener.FilterChainMatch{}
+// getOutboundHTTPFilterChainMatchForService builds a filter chain to match the HTTP baseddestination traffic.
+// Filter Chain currently matches on the following:
+// 1. Destination IP of service endpoints
+// 2. HTTP application protocols
+func getOutboundHTTPFilterChainMatchForService(dstSvc service.MeshService, catalog catalog.MeshCataloger, cfg configurator.Configurator) (*xds_listener.FilterChainMatch, error) {
+	filterMatch := &xds_listener.FilterChainMatch{
+		// HTTP filter chain should only match on supported HTTP protocols that the downstream can use
+		// to originate a request.
+		ApplicationProtocols: supportedDownstreamHTTPProtocols,
+	}
 
 	endpoints, err := catalog.GetResolvableServiceEndpoints(dstSvc)
 	if err != nil {

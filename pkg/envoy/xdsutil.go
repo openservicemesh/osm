@@ -10,10 +10,7 @@ import (
 	xds_accesslog "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/file/v3"
 	xds_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-
-	"github.com/golang/protobuf/proto" //ignore SA1019
 	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/any"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/jinzhu/copier"
@@ -231,15 +228,6 @@ func getCommonTLSContext(tlsSDSCert, peerValidationSDSCert SDSCert) *xds_auth.Co
 			},
 		},
 	}
-}
-
-// MessageToAny converts from proto message to proto Any and returns an error if any
-func MessageToAny(pb proto.Message) (*any.Any, error) {
-	msg, err := ptypes.MarshalAny(pb)
-	if err != nil {
-		return nil, err
-	}
-	return msg, nil
 }
 
 // GetDownstreamTLSContext creates a downstream Envoy TLS Context

@@ -5,12 +5,14 @@ import (
 	"testing"
 
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	xds_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -34,7 +36,7 @@ func TestGetFilterForService(t *testing.T) {
 	mockConfigurator.EXPECT().GetTracingEndpoint().Return("test-endpoint")
 
 	// Check we get HTTP connection manager filter without Permissive mode
-	filter, err := getOutboundFilterForService(tests.BookbuyerService, mockConfigurator)
+	filter, err := getOutboundHTTPFilter(mockConfigurator)
 
 	assert.NoError(err)
 	assert.Equal(filter.Name, wellknown.HTTPConnectionManager)
@@ -44,7 +46,7 @@ func TestGetFilterForService(t *testing.T) {
 	mockConfigurator.EXPECT().IsTracingEnabled().Return(true)
 	mockConfigurator.EXPECT().GetTracingEndpoint().Return("test-endpoint")
 
-	filter, err = getOutboundFilterForService(tests.BookbuyerService, mockConfigurator)
+	filter, err = getOutboundHTTPFilter(mockConfigurator)
 	assert.NoError(err)
 	assert.Equal(filter.Name, wellknown.HTTPConnectionManager)
 }
@@ -69,21 +71,38 @@ func TestGetFilterChainMatchForService(t *testing.T) {
 		nil,
 	)
 
-	filterChainMatch, err := getOutboundFilterChainMatchForService(tests.BookbuyerService, mockCatalog, mockConfigurator)
+	filterChainMatch, err := getOutboundHTTPFilterChainMatchForService(tests.BookbuyerService, mockCatalog, mockConfigurator)
 
 	assert.NoError(err)
-	assert.Equal(filterChainMatch.PrefixRanges[0].GetAddressPrefix(), tests.Endpoint.IP.String())
-	assert.Equal(filterChainMatch.PrefixRanges[0].GetPrefixLen().GetValue(), uint32(32))
-	assert.Equal(filterChainMatch.PrefixRanges[1].GetAddressPrefix(), net.IPv4(192, 168, 0, 1).String())
-	assert.Equal(filterChainMatch.PrefixRanges[1].GetPrefixLen().GetValue(), uint32(32))
 
-	// Test negative getOutboundFilterChainMatchForService when no endpoints are present
+	expectedFilterChainMatch := &xds_listener.FilterChainMatch{
+		// HTTP filter chain should only match on supported HTTP protocols that the downstream can use
+		// to originate a request.
+		ApplicationProtocols: []string{"http/1.0", "http/1.1", "h2c"},
+		PrefixRanges: []*xds_core.CidrRange{
+			{
+				AddressPrefix: tests.Endpoint.IP.String(),
+				PrefixLen: &wrapperspb.UInt32Value{
+					Value: 32,
+				},
+			},
+			{
+				AddressPrefix: "192.168.0.1",
+				PrefixLen: &wrapperspb.UInt32Value{
+					Value: 32,
+				},
+			},
+		},
+	}
+	assert.Equal(filterChainMatch, expectedFilterChainMatch)
+
+	// Test negative getOutboundHTTPFilterChainMatchForService when no endpoints are present
 	mockCatalog.EXPECT().GetResolvableServiceEndpoints(tests.BookbuyerService).Return(
 		[]endpoint.Endpoint{},
 		nil,
 	)
 
-	filterChainMatch, err = getOutboundFilterChainMatchForService(tests.BookbuyerService, mockCatalog, mockConfigurator)
+	filterChainMatch, err = getOutboundHTTPFilterChainMatchForService(tests.BookbuyerService, mockCatalog, mockConfigurator)
 	assert.NoError(err)
 	assert.Nil(filterChainMatch)
 }
