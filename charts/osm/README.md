@@ -23,6 +23,12 @@ A Helm chart to install the OSM control plane on Kubernetes
 | OpenServiceMesh.deployPrometheus | bool | `false` |  |
 | OpenServiceMesh.enablePrometheusScraping | bool | `true` | Cannot be false if `deployPrometheus` is true |
 | OpenServiceMesh.envoyLogLevel | string | `"error"` |  |
+| OpenServiceMesh.fluentBit.name | string | `"fluentbit-logger"` |  |
+| OpenServiceMesh.fluentBit.registry | string | `"fluent"` |  |
+| OpenServiceMesh.fluentBit.tag | string | `"1.6.4"` |  |
+| OpenServiceMesh.fluentBit.pullPolicy | string | `"IfNotPresent"` |  |
+| OpenServiceMesh.fluentBit.defaultOutput | string | `"stdout"` |  |
+| OpenServiceMesh.fluentBit.allowCustomOutput | bool | `"true"` |  |
 | OpenServiceMesh.grafana.port | int | `3000` |  |
 | OpenServiceMesh.image.pullPolicy | string | `"IfNotPresent"` |  |
 | OpenServiceMesh.image.registry | string | `"openservicemesh"` |  |

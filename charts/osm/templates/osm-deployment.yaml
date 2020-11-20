@@ -76,9 +76,9 @@ spec:
                 fieldRef:
                   fieldPath: metadata.name
       {{- if .Values.OpenServiceMesh.enableFluentbit }}
-        - name: {{ .Values.OpenServiceMesh.fluentBitImage.name }}
-          image: {{ .Values.OpenServiceMesh.fluentBitImage.registry }}/fluent-bit:{{ .Values.OpenServiceMesh.fluentBitImage.tag }}
-          imagePullPolicy: {{ .Values.OpenServiceMesh.fluentBitImage.pullPolicy }}
+        - name: {{ .Values.OpenServiceMesh.fluentBit.name }}
+          image: {{ .Values.OpenServiceMesh.fluentBit.registry }}/fluent-bit:{{ .Values.OpenServiceMesh.fluentBit.tag }}
+          imagePullPolicy: {{ .Values.OpenServiceMesh.fluentBit.pullPolicy }}
           volumeMounts:
           - name: config
             mountPath: /fluent-bit/etc
