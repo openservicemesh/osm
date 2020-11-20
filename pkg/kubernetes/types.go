@@ -36,7 +36,7 @@ const (
 
 const (
 	// DefaultKubeEventResyncInterval is the default resync interval for k8s events
-	DefaultKubeEventResyncInterval = 30 * time.Second
+	DefaultKubeEventResyncInterval = 5 * time.Minute
 
 	// ProviderName is used for provider logging
 	ProviderName = "Kubernetes"
