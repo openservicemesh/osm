@@ -60,3 +60,23 @@ func TestPubSubEvents(t *testing.T) {
 		}
 	}
 }
+
+func TestPubSubClose(t *testing.T) {
+	assert := assert.New(t)
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	subChannel := GetPubSubInstance().Subscribe(announcements.BackpressureUpdated)
+
+	// publish something
+	GetPubSubInstance().Publish(PubSubMessage{
+		AnnouncementType: announcements.BackpressureUpdated,
+	})
+
+	// make sure channel is drained and closed
+	GetPubSubInstance().Close(subChannel)
+
+	// Channel has to have been already emptied and closed
+	_, ok := <-subChannel
+	assert.False(ok)
+}
