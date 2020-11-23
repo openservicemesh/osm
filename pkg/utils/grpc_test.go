@@ -7,14 +7,12 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 )
 
 func TestNewGrpc(t *testing.T) {
 	assert := assert.New(t)
-	cache := make(map[certificate.CommonName]certificate.Certificater)
-	certManager := tresor.NewFakeCertManager(&cache, nil)
+	certManager := tresor.NewFakeCertManager(nil)
 	adsCert, err := certManager.GetRootCertificate()
 	assert.Nil(err)
 
@@ -53,8 +51,7 @@ func TestNewGrpc(t *testing.T) {
 func TestGrpcServe(t *testing.T) {
 	assert := assert.New(t)
 
-	cache := make(map[certificate.CommonName]certificate.Certificater)
-	certManager := tresor.NewFakeCertManager(&cache, nil)
+	certManager := tresor.NewFakeCertManager(nil)
 	adsCert, err := certManager.GetRootCertificate()
 	assert.Nil(err)
 

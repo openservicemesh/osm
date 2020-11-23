@@ -38,6 +38,11 @@ func (c Certificate) GetExpiration() time.Time {
 	return c.expiration
 }
 
+// GetSerialNumber returns the serial number of the given certificate.
+func (c Certificate) GetSerialNumber() string {
+	panic("NotImplemented")
+}
+
 // LoadCA loads the certificate and its key from the supplied PEM files.
 func LoadCA(certFilePEM string, keyFilePEM string) (*Certificate, error) {
 	pemCert, err := certificate.LoadCertificateFromFile(certFilePEM)
@@ -72,17 +77,12 @@ func NewCertManager(ca certificate.Certificater, certificatesOrganization string
 		return nil, errNoIssuingCA
 	}
 
-	cache := make(map[certificate.CommonName]certificate.Certificater)
-
 	certManager := CertManager{
 		// The root certificate signing all newly issued certificates
 		ca: ca,
 
 		// Channel used to inform other components of cert changes (rotation etc.)
 		announcements: make(chan announcements.Announcement),
-
-		// Certificate cache
-		cache: &cache,
 
 		certificatesOrganization: certificatesOrganization,
 

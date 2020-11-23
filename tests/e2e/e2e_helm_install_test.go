@@ -3,17 +3,19 @@ package e2e
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	. "github.com/openservicemesh/osm/tests/framework"
 )
 
 var _ = OSMDescribe("Test osm control plane installation with Helm",
 	OSMDescribeInfo{
-		tier:   2,
-		bucket: 1,
+		Tier:   2,
+		Bucket: 1,
 	},
 	func() {
 		Context("Using default values", func() {
 			It("installs osm control plane successfully", func() {
-				if td.instType == NoInstall {
+				if Td.InstType == NoInstall {
 					Skip("Test is not going through InstallOSM, hence cannot be automatically skipped with NoInstall (#1908)")
 				}
 
@@ -21,9 +23,9 @@ var _ = OSMDescribe("Test osm control plane installation with Helm",
 				release := "helm-install-osm"
 
 				// Install OSM with Helm
-				Expect(td.HelmInstallOSM(release, namespace)).To(Succeed())
+				Expect(Td.HelmInstallOSM(release, namespace)).To(Succeed())
 
-				configmap, err := td.GetConfigMap("osm-config", namespace)
+				configmap, err := Td.GetConfigMap("osm-config", namespace)
 				Expect(err).ShouldNot(HaveOccurred())
 
 				// validate osm configmap
@@ -39,7 +41,7 @@ var _ = OSMDescribe("Test osm control plane installation with Helm",
 				Expect(configmap.Data["use_https_ingress"]).Should(Equal("false"))
 				Expect(configmap.Data["service_cert_validity_duration"]).Should(Equal("24h"))
 
-				Expect(td.DeleteHelmRelease(release, namespace)).To(Succeed())
+				Expect(Td.DeleteHelmRelease(release, namespace)).To(Succeed())
 			})
 		})
 	})

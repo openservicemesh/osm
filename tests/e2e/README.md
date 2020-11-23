@@ -14,7 +14,8 @@ End-to-end tests verify the behavior of the entire system. For OSM, e2e tests wi
 OSM's e2e tests are located in `tests/e2e`.
 The tests are written using Ginkgo and Gomega so they may also be directly invoked using `go test`. Be sure to build the `osm-controller` and `init` container images and `osm` CLI before directly invoking the tests ([see instructions below](#running-the-tests)). 
 
-OSM's framework has an init mechanism which will automatically initialize and parse flags and variables from both `env` and `go test flags` if any are passed to the test. The hooks for initialization and cleanup are set at Ginkgo's `BeforeEach` at the top level of test execution (between Ginkgo `Describes`); we henceforth recommend keeping every test in its own `Describe` section, as well as on a separate file for clarity. You can refer to [suite_test](tests/e2e/suite_test.go) for more details about the init process.
+OSM's framework, helpers and related files are located under `tests/framework`.
+Once imported, it automatically sets up an init mechanism which will automatically initialize and parse flags and variables from both `env` and `go test flags` if any are passed to the test. The hooks for initialization and cleanup are set at Ginkgo's `BeforeEach` at the top level of test execution (between Ginkgo `Describes`); we henceforth recommend keeping every test in its own `Describe` section, as well as on a separate file for clarity. You can refer to [common.go](tests/framework/common.go) for more details about the init, setup and cleanup processes.
 
 Tests are organized by top-level `Describe` blocks into tiers based on priority. A tier's tests will also be run as a part of all the tiers below it.
 

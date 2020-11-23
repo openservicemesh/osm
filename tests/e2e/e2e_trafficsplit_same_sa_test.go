@@ -12,12 +12,14 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	. "github.com/openservicemesh/osm/tests/framework"
 )
 
 var _ = OSMDescribe("Test TrafficSplit where each backend shares the same ServiceAccount",
 	OSMDescribeInfo{
-		tier:   1,
-		bucket: 2,
+		Tier:   1,
+		Bucket: 2,
 	},
 	func() {
 		Context("ClientServerTrafficSplitSameSA", func() {
@@ -57,11 +59,11 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 
 			It("Tests HTTP traffic from Clients to the traffic split Cluster IP", func() {
 				// Install OSM
-				Expect(td.InstallOSM(td.GetOSMInstallOpts())).To(Succeed())
+				Expect(Td.InstallOSM(Td.GetOSMInstallOpts())).To(Succeed())
 
 				// Create NSs
-				Expect(td.CreateMultipleNs(allNamespaces...)).To(Succeed())
-				Expect(td.AddNsToMesh(true, allNamespaces...)).To(Succeed())
+				Expect(Td.CreateMultipleNs(allNamespaces...)).To(Succeed())
+				Expect(Td.AddNsToMesh(true, allNamespaces...)).To(Succeed())
 
 				// Create server apps
 				svcAcc := &corev1.ServiceAccount{
@@ -69,17 +71,17 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 						Name: "server",
 					},
 				}
-				_, err := td.CreateServiceAccount(serverNamespace, svcAcc)
+				_, err := Td.CreateServiceAccount(serverNamespace, svcAcc)
 				Expect(err).NotTo(HaveOccurred())
 
 				for _, serverApp := range serverServices {
-					_, deploymentDef, svcDef := td.SimpleDeploymentApp(
+					_, deploymentDef, svcDef := Td.SimpleDeploymentApp(
 						SimpleDeploymentAppDef{
-							name:         serverApp,
-							namespace:    serverNamespace,
-							replicaCount: int32(serverReplicaSet),
-							image:        "simonkowallik/httpbin",
-							ports:        []int{80},
+							Name:         serverApp,
+							Namespace:    serverNamespace,
+							ReplicaCount: int32(serverReplicaSet),
+							Image:        "simonkowallik/httpbin",
+							Ports:        []int{80},
 						})
 
 					// Expose an env variable such as XHTTPBIN_X_POD_NAME:
@@ -99,41 +101,41 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 
 					deploymentDef.Spec.Template.Spec.ServiceAccountName = svcAcc.Name
 
-					_, err = td.CreateDeployment(serverNamespace, deploymentDef)
+					_, err = Td.CreateDeployment(serverNamespace, deploymentDef)
 					Expect(err).NotTo(HaveOccurred())
-					_, err = td.CreateService(serverNamespace, svcDef)
+					_, err = Td.CreateService(serverNamespace, svcDef)
 					Expect(err).NotTo(HaveOccurred())
 				}
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
-					Expect(td.WaitForPodsRunningReady(serverNamespace, 200*time.Second, numberOfServerServices*serverReplicaSet)).To(Succeed())
+					Expect(Td.WaitForPodsRunningReady(serverNamespace, 200*time.Second, numberOfServerServices*serverReplicaSet)).To(Succeed())
 				}()
 
 				// Client apps
 				for _, clientApp := range clientServices {
-					svcAccDef, deploymentDef, svcDef := td.SimpleDeploymentApp(
+					svcAccDef, deploymentDef, svcDef := Td.SimpleDeploymentApp(
 						SimpleDeploymentAppDef{
-							name:         clientApp,
-							namespace:    clientApp,
-							replicaCount: int32(clientReplicaSet),
-							command:      []string{"/bin/bash", "-c", "--"},
-							args:         []string{"while true; do sleep 30; done;"},
-							image:        "songrgg/alpine-debug",
-							ports:        []int{80},
+							Name:         clientApp,
+							Namespace:    clientApp,
+							ReplicaCount: int32(clientReplicaSet),
+							Command:      []string{"/bin/bash", "-c", "--"},
+							Args:         []string{"while true; do sleep 30; done;"},
+							Image:        "songrgg/alpine-debug",
+							Ports:        []int{80},
 						})
 
-					_, err := td.CreateServiceAccount(clientApp, &svcAccDef)
+					_, err := Td.CreateServiceAccount(clientApp, &svcAccDef)
 					Expect(err).NotTo(HaveOccurred())
-					_, err = td.CreateDeployment(clientApp, deploymentDef)
+					_, err = Td.CreateDeployment(clientApp, deploymentDef)
 					Expect(err).NotTo(HaveOccurred())
-					_, err = td.CreateService(clientApp, svcDef)
+					_, err = Td.CreateService(clientApp, svcDef)
 					Expect(err).NotTo(HaveOccurred())
 
 					wg.Add(1)
 					go func(app string) {
 						defer wg.Done()
-						Expect(td.WaitForPodsRunningReady(app, 200*time.Second, clientReplicaSet)).To(Succeed())
+						Expect(Td.WaitForPodsRunningReady(app, 200*time.Second, clientReplicaSet)).To(Succeed())
 					}(clientApp)
 				}
 
@@ -141,7 +143,7 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 
 				// Put allow traffic target rules
 				for _, srcClient := range clientServices {
-					httpRG, trafficTarget := td.CreateSimpleAllowPolicy(
+					httpRG, trafficTarget := Td.CreateSimpleAllowPolicy(
 						SimpleAllowPolicy{
 							RouteGroupName:    srcClient + "-server",
 							TrafficTargetName: srcClient + "-server",
@@ -153,21 +155,21 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 							DestinationSvcAccountName: svcAcc.Name,
 						})
 
-					_, err := td.CreateHTTPRouteGroup(srcClient, httpRG)
+					_, err := Td.CreateHTTPRouteGroup(srcClient, httpRG)
 					Expect(err).NotTo(HaveOccurred())
-					_, err = td.CreateTrafficTarget(srcClient, trafficTarget)
+					_, err = Td.CreateTrafficTarget(srcClient, trafficTarget)
 					Expect(err).NotTo(HaveOccurred())
 				}
 
 				// Create traffic split service. Use simple Pod to create a simple service definition
-				_, _, trafficSplitService := td.SimplePodApp(SimplePodAppDef{
-					name:      trafficSplitName,
-					namespace: serverNamespace,
-					ports:     []int{80},
+				_, _, trafficSplitService := Td.SimplePodApp(SimplePodAppDef{
+					Name:      trafficSplitName,
+					Namespace: serverNamespace,
+					Ports:     []int{80},
 				})
 
 				// Creating trafficsplit service in K8s
-				_, err = td.CreateService(serverNamespace, trafficSplitService)
+				_, err = Td.CreateService(serverNamespace, trafficSplitService)
 				Expect(err).NotTo(HaveOccurred())
 
 				// Create Traffic split with all server processes as backends
@@ -187,11 +189,11 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 					)
 				}
 				// Get the Traffic split structures
-				tSplit, err := td.CreateSimpleTrafficSplit(trafficSplit)
+				tSplit, err := Td.CreateSimpleTrafficSplit(trafficSplit)
 				Expect(err).To(BeNil())
 
 				// Push them in K8s
-				_, err = td.CreateTrafficSplit(serverNamespace, tSplit)
+				_, err = Td.CreateTrafficSplit(serverNamespace, tSplit)
 				Expect(err).To(BeNil())
 
 				// Test traffic
@@ -200,7 +202,7 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 					Sources: []HTTPRequestDef{},
 				}
 				for _, ns := range clientServices {
-					pods, err := td.client.CoreV1().Pods(ns).List(context.Background(), metav1.ListOptions{})
+					pods, err := Td.Client.CoreV1().Pods(ns).List(context.Background(), metav1.ListOptions{})
 					Expect(err).To(BeNil())
 
 					for _, pod := range pods.Items {
@@ -217,14 +219,14 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 
 				var results HTTPMultipleResults
 				var serversSeen map[string]bool = map[string]bool{} // Just counts unique servers seen
-				success := td.WaitForRepeatedSuccess(func() bool {
+				success := Td.WaitForRepeatedSuccess(func() bool {
 					curlSuccess := true
 
 					// Get results
-					results = td.MultipleHTTPRequest(&requests)
+					results = Td.MultipleHTTPRequest(&requests)
 
 					// Print results
-					td.PrettyPrintHTTPResults(&results)
+					Td.PrettyPrintHTTPResults(&results)
 
 					// Verify REST status code results
 					for _, ns := range results {
@@ -241,7 +243,7 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 							}
 						}
 					}
-					td.T.Logf("Unique servers replied %d/%d",
+					Td.T.Logf("Unique servers replied %d/%d",
 						len(serversSeen), numberOfServerServices*serverReplicaSet)
 
 					// Success conditions:

@@ -37,9 +37,16 @@ The OSM Manual Install Demo Guide is designed to quickly allow you to demo and e
 Use the [installation guide](/docs/installation_guide.md) to install the `osm` cli.
 
 ## Install OSM Control Plane
-```bash
-osm install
-```
+
+1.  By default, OSM does not enable Prometheus or Grafana.
+    ```bash
+    osm install
+    ```
+1. To enable Prometheus and Grafana, use their respective flags
+    ```bash
+    osm install --deploy-prometheus true --deploy-grafana true
+    ```
+    See the [metrics documentation](/docs/patterns/observability/metrics.md#automatic-bring-up) for more details.
 
 ## Deploying the Bookstore Demo Applications
 The `Bookstore`, `Bookbuyer`, `Bookthief`, `Bookwarehouse` demo applications will be installed in their respective Kubernetes Namespaces. In order for these applications to be injected with a Envoy sidecar automatically, we must add the Namespaces to be monitored by the mesh.
@@ -208,7 +215,7 @@ Wait for the changes to propagate and observe the counters increment for booksto
 - http://localhost:8082 - **bookstore-v2**
 
 ## Inspect Dashboards
-OSM ships with a set of pre-configured Grafana dashboards. **NOTE** If you still have the additional terminal still running the `./scripts/port-forward-all.sh` script, go ahead and `CTRL+C` to terminate the port forwarding. The `osm dashboard` port redirection will not work simultaneously with the port forwarding script still running. The `osm dashboard` can be viewed with the following command:
+OSM can be configured to deploy Grafana dashboards using the `--deploy-grafana` flag in `osm install`. **NOTE** If you still have the additional terminal still running the `./scripts/port-forward-all.sh` script, go ahead and `CTRL+C` to terminate the port forwarding. The `osm dashboard` port redirection will not work simultaneously with the port forwarding script still running. The `osm dashboard` can be viewed with the following command:
 ```bash
 $ osm dashboard
 ```

@@ -537,6 +537,9 @@ type Certificater interface {
 
 	// GetExpiration() returns the expiration of the certificate
 	GetExpiration() time.Time
+
+ 	// GetSerialNumber returns the serial number of the given certificate.
+ 	GetSerialNumber() string
 }
 ```
 

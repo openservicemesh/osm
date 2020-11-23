@@ -43,6 +43,9 @@ type Certificater interface {
 
 	// GetExpiration returns the time the certificate would expire.
 	GetExpiration() time.Time
+
+	// GetSerialNumber returns the serial number of the given certificate.
+	GetSerialNumber() string
 }
 
 // Manager is the interface declaring the methods for the Certificate Manager.

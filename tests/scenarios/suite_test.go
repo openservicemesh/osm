@@ -1,4 +1,4 @@
-package e2e
+package scenarios
 
 import (
 	"testing"
@@ -9,5 +9,5 @@ import (
 
 func TestSuite(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Ginkgo e2e tests")
+	RunSpecs(t, "Scenarios")
 }

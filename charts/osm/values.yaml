@@ -33,8 +33,9 @@ OpenServiceMesh:
   enablePermissiveTrafficPolicy: false
   enableBackpressureExperimental: false
   enableEgress: false
-  enablePrometheus: true
-  enableGrafana: false
+  deployPrometheus: false
+  enablePrometheusScraping: true
+  deployGrafana: false
   enableFluentbit: false
   fluentBitImage:
     name: fluentbit-logger

@@ -15,7 +15,6 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
@@ -155,12 +154,10 @@ var _ = Describe("Test all patch operations", func() {
 			_, err := client.CoreV1().Namespaces().Create(context.TODO(), testNamespace, metav1.CreateOptions{})
 			Expect(err).ToNot(HaveOccurred())
 
-			cache := make(map[certificate.CommonName]certificate.Certificater)
-
 			wh := &webhook{
 				kubeClient:          client,
 				kubeController:      mockNsController,
-				certManager:         tresor.NewFakeCertManager(&cache, mockConfigurator),
+				certManager:         tresor.NewFakeCertManager(mockConfigurator),
 				meshCatalog:         catalog.NewFakeMeshCatalog(client),
 				configurator:        mockConfigurator,
 				nonInjectNamespaces: mapset.NewSet(),

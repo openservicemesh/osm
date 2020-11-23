@@ -31,7 +31,7 @@ func newLogger(component string) zerolog.Logger {
 // New creates a new zerolog.Logger
 func New(component string) zerolog.Logger {
 	if os.Getenv(constants.EnvVarHumanReadableLogMessages) == "true" {
-		NewPretty(component)
+		return NewPretty(component)
 	}
 	return newLogger(component)
 }

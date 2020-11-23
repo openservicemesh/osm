@@ -7,12 +7,14 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	. "github.com/openservicemesh/osm/tests/framework"
 )
 
 var _ = OSMDescribe("Permissive Traffic Policy Mode",
 	OSMDescribeInfo{
-		tier:   1,
-		bucket: 2,
+		Tier:   1,
+		Bucket: 2,
 	},
 	func() {
 		Context("PermissiveMode", func() {
@@ -22,52 +24,52 @@ var _ = OSMDescribe("Permissive Traffic Policy Mode",
 
 			It("Tests HTTP traffic for client pod -> server pod with permissive mode", func() {
 				// Install OSM
-				installOpts := td.GetOSMInstallOpts()
-				installOpts.enablePermissiveMode = true
-				Expect(td.InstallOSM(installOpts)).To(Succeed())
+				installOpts := Td.GetOSMInstallOpts()
+				installOpts.EnablePermissiveMode = true
+				Expect(Td.InstallOSM(installOpts)).To(Succeed())
 
 				// Create Test NS
 				for _, n := range ns {
-					Expect(td.CreateNs(n, nil)).To(Succeed())
-					Expect(td.AddNsToMesh(true, n)).To(Succeed())
+					Expect(Td.CreateNs(n, nil)).To(Succeed())
+					Expect(Td.AddNsToMesh(true, n)).To(Succeed())
 				}
 
 				// Get simple pod definitions for the HTTP server
-				svcAccDef, podDef, svcDef := td.SimplePodApp(
+				svcAccDef, podDef, svcDef := Td.SimplePodApp(
 					SimplePodAppDef{
-						name:      "server",
-						namespace: destNs,
-						image:     "kennethreitz/httpbin",
-						ports:     []int{80},
+						Name:      "server",
+						Namespace: destNs,
+						Image:     "kennethreitz/httpbin",
+						Ports:     []int{80},
 					})
 
-				_, err := td.CreateServiceAccount(destNs, &svcAccDef)
+				_, err := Td.CreateServiceAccount(destNs, &svcAccDef)
 				Expect(err).NotTo(HaveOccurred())
-				dstPod, err := td.CreatePod(destNs, podDef)
+				dstPod, err := Td.CreatePod(destNs, podDef)
 				Expect(err).NotTo(HaveOccurred())
-				_, err = td.CreateService(destNs, svcDef)
+				_, err = Td.CreateService(destNs, svcDef)
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(td.WaitForPodsRunningReady(destNs, 90*time.Second, 1)).To(Succeed())
+				Expect(Td.WaitForPodsRunningReady(destNs, 90*time.Second, 1)).To(Succeed())
 
 				// Get simple Pod definitions for the client
-				svcAccDef, podDef, svcDef = td.SimplePodApp(SimplePodAppDef{
-					name:      "client",
-					namespace: sourceNs,
-					command:   []string{"/bin/bash", "-c", "--"},
-					args:      []string{"while true; do sleep 30; done;"},
-					image:     "songrgg/alpine-debug",
-					ports:     []int{80},
+				svcAccDef, podDef, svcDef = Td.SimplePodApp(SimplePodAppDef{
+					Name:      "client",
+					Namespace: sourceNs,
+					Command:   []string{"/bin/bash", "-c", "--"},
+					Args:      []string{"while true; do sleep 30; done;"},
+					Image:     "songrgg/alpine-debug",
+					Ports:     []int{80},
 				})
 
-				_, err = td.CreateServiceAccount(sourceNs, &svcAccDef)
+				_, err = Td.CreateServiceAccount(sourceNs, &svcAccDef)
 				Expect(err).NotTo(HaveOccurred())
-				srcPod, err := td.CreatePod(sourceNs, podDef)
+				srcPod, err := Td.CreatePod(sourceNs, podDef)
 				Expect(err).NotTo(HaveOccurred())
-				_, err = td.CreateService(sourceNs, svcDef)
+				_, err = Td.CreateService(sourceNs, svcDef)
 				Expect(err).NotTo(HaveOccurred())
 
-				Expect(td.WaitForPodsRunningReady(sourceNs, 90*time.Second, 1)).To(Succeed())
+				Expect(Td.WaitForPodsRunningReady(sourceNs, 90*time.Second, 1)).To(Succeed())
 
 				req := HTTPRequestDef{
 					SourceNs:        srcPod.Namespace,
@@ -79,30 +81,30 @@ var _ = OSMDescribe("Permissive Traffic Policy Mode",
 
 				By("Ensuring traffic is allowed when permissive mode is enabled")
 
-				cond := td.WaitForRepeatedSuccess(func() bool {
-					result := td.HTTPRequest(req)
+				cond := Td.WaitForRepeatedSuccess(func() bool {
+					result := Td.HTTPRequest(req)
 
 					if result.Err != nil || result.StatusCode != 200 {
-						td.T.Logf("> REST req failed (status: %d) %v", result.StatusCode, result.Err)
+						Td.T.Logf("> REST req failed (status: %d) %v", result.StatusCode, result.Err)
 						return false
 					}
-					td.T.Logf("> REST req succeeded: %d", result.StatusCode)
+					Td.T.Logf("> REST req succeeded: %d", result.StatusCode)
 					return true
 				}, 5 /*consecutive success threshold*/, 90*time.Second /*timeout*/)
 				Expect(cond).To(BeTrue())
 
 				By("Ensuring traffic is not allowed when permissive mode is disabled")
 
-				Expect(td.UpdateOSMConfig("permissive_traffic_policy_mode", "false"))
+				Expect(Td.UpdateOSMConfig("permissive_traffic_policy_mode", "false"))
 
-				cond = td.WaitForRepeatedSuccess(func() bool {
-					result := td.HTTPRequest(req)
+				cond = Td.WaitForRepeatedSuccess(func() bool {
+					result := Td.HTTPRequest(req)
 
 					if result.Err == nil || !strings.Contains(result.Err.Error(), "command terminated with exit code 7 ") {
-						td.T.Logf("> REST req received unexpected response (status: %d) %v", result.StatusCode, result.Err)
+						Td.T.Logf("> REST req received unexpected response (status: %d) %v", result.StatusCode, result.Err)
 						return false
 					}
-					td.T.Logf("> REST req succeeded, got expected error: %v", result.Err)
+					Td.T.Logf("> REST req succeeded, got expected error: %v", result.Err)
 					return true
 				}, 5 /*consecutive success threshold*/, 90*time.Second /*timeout*/)
 				Expect(cond).To(BeTrue())

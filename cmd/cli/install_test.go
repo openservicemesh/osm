@@ -526,6 +526,42 @@ var _ = Describe("Test envoy log level types", func() {
 	})
 })
 
+var _ = Describe("deployPrometheus is true", func() {
+	var (
+		out    *bytes.Buffer
+		store  *storage.Storage
+		config *helm.Configuration
+		err    error
+	)
+
+	BeforeEach(func() {
+		out = new(bytes.Buffer)
+		store = storage.Init(driver.NewMemory())
+		if mem, ok := store.Driver.(*driver.Memory); ok {
+			mem.SetNamespace(settings.Namespace())
+		}
+
+		config = &helm.Configuration{
+			Releases: store,
+			KubeClient: &kubefake.PrintingKubeClient{
+				Out: ioutil.Discard},
+			Capabilities: chartutil.DefaultCapabilities,
+			Log:          func(format string, v ...interface{}) {},
+		}
+
+		installCmd := getDefaultInstallCmd(out)
+		installCmd.deployPrometheus = true
+		installCmd.enablePrometheusScraping = false
+
+		err = installCmd.run(config)
+	})
+
+	It("should not error", func() {
+		Expect(err).NotTo(HaveOccurred())
+		Expect(out.String()).To(Equal("Prometheus scraping is disabled. To enable it, set prometheus_scraping in osm-system/osm-config to true.\nOSM installed successfully in namespace [osm-system] with mesh name [osm]\n"))
+	})
+})
+
 func TestResolveValues(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -641,8 +677,7 @@ func TestEnforceSingleMesh(t *testing.T) {
 		prometheusRetentionTime:     testRetentionTime,
 		meshName:                    defaultMeshName,
 		enableEgress:                true,
-		enablePrometheus:            true,
-		enableGrafana:               false,
+		deployGrafana:               false,
 		clientSet:                   fakeClientSet,
 		envoyLogLevel:               testEnvoyLogLevel,
 		enforceSingleMesh:           true,
@@ -699,8 +734,8 @@ func TestEnforceSingleMeshRejectsNewMesh(t *testing.T) {
 		prometheusRetentionTime:     testRetentionTime,
 		meshName:                    defaultMeshName + "-2",
 		enableEgress:                true,
-		enablePrometheus:            true,
-		enableGrafana:               false,
+		deployPrometheus:            true,
+		deployGrafana:               false,
 		clientSet:                   fakeClientSet,
 		envoyLogLevel:               testEnvoyLogLevel,
 	}
@@ -745,8 +780,8 @@ func TestEnforceSingleMeshWithExistingMesh(t *testing.T) {
 		prometheusRetentionTime:     testRetentionTime,
 		meshName:                    defaultMeshName + "-2",
 		enableEgress:                true,
-		enablePrometheus:            true,
-		enableGrafana:               false,
+		deployPrometheus:            true,
+		deployGrafana:               false,
 		clientSet:                   fakeClientSet,
 		envoyLogLevel:               testEnvoyLogLevel,
 		enforceSingleMesh:           true,
@@ -797,8 +832,9 @@ func getDefaultInstallCmd(writer io.Writer) installCmd {
 		enablePermissiveTrafficPolicy:  defaultEnablePermissiveTrafficPolicy,
 		clientSet:                      fake.NewSimpleClientset(),
 		enableBackpressureExperimental: defaultEnableBackpressureExperimental,
-		enablePrometheus:               defaultEnablePrometheus,
-		enableGrafana:                  defaultEnableGrafana,
+		deployPrometheus:               defaultDeployPrometheus,
+		enablePrometheusScraping:       defaultEnablePrometheusScraping,
+		deployGrafana:                  defaultDeployGrafana,
 		enableFluentbit:                defaultEnableFluentbit,
 		deployJaeger:                   defaultDeployJaeger,
 		enforceSingleMesh:              defaultEnforceSingleMesh,
@@ -810,38 +846,39 @@ func getDefaultInstallCmd(writer io.Writer) installCmd {
 func getDefaultValues() map[string]interface{} {
 	return map[string]interface{}{
 		"OpenServiceMesh": map[string]interface{}{
-			"certificateManager": "tresor",
+			"certificateManager": defaultCertificateManager,
 			"certmanager": map[string]interface{}{
-				"issuerKind":  "Issuer",
-				"issuerGroup": "cert-manager.io",
-				"issuerName":  "osm-ca",
+				"issuerKind":  defaultCertManagerIssuerKind,
+				"issuerGroup": defaultCertManagerIssuerGroup,
+				"issuerName":  defaultCertManagerIssuerName,
 			},
 			"meshName": defaultMeshName,
 			"image": map[string]interface{}{
-				"registry":   "openservicemesh",
-				"tag":        "v0.5.0",
+				"registry":   defaultContainerRegistry,
+				"tag":        defaultOsmImageTag,
 				"pullPolicy": defaultOsmImagePullPolicy,
 			},
-			"serviceCertValidityDuration": "24h",
+			"serviceCertValidityDuration": defaultServiceCertValidityDuration,
 			"vault": map[string]interface{}{
-				"host":     "",
-				"protocol": "http",
-				"token":    "",
-				"role":     "openservicemesh",
+				"host":     defaultVaultHost,
+				"protocol": defaultVaultProtocol,
+				"token":    defaultVaultToken,
+				"role":     defaultVaultRole,
 			},
 			"prometheus": map[string]interface{}{
 				"retention": map[string]interface{}{
-					"time": "15d",
+					"time": defaultPrometheusRetentionTime,
 				}},
-			"enableDebugServer":              false,
-			"enablePermissiveTrafficPolicy":  false,
-			"enableBackpressureExperimental": false,
-			"enableEgress":                   false,
-			"enablePrometheus":               true,
-			"enableGrafana":                  false,
-			"enableFluentbit":                false,
-			"deployJaeger":                   true,
+			"enableDebugServer":              defaultEnableDebugServer,
+			"enablePermissiveTrafficPolicy":  defaultEnablePermissiveTrafficPolicy,
+			"enableBackpressureExperimental": defaultEnableBackpressureExperimental,
+			"enableEgress":                   defaultEnableEgress,
+			"deployPrometheus":               defaultDeployPrometheus,
+			"enablePrometheusScraping":       defaultEnablePrometheusScraping,
+			"deployGrafana":                  defaultDeployGrafana,
+			"enableFluentbit":                defaultEnableFluentbit,
+			"deployJaeger":                   defaultDeployJaeger,
 			"envoyLogLevel":                  testEnvoyLogLevel,
-			"enforceSingleMesh":              false,
+			"enforceSingleMesh":              defaultEnforceSingleMesh,
 		}}
 }

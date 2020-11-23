@@ -46,18 +46,6 @@ func (p *Proxy) HasPodMetadata() bool {
 	return p.PodMetadata != nil
 }
 
-// SetMetadata sets the proxy metadata constructured from the given parameters
-func (p *Proxy) SetMetadata(podUID, podNamespace, podIP, podServiceAccountName, envoyNodeID string) {
-	p.PodMetadata = &PodMetadata{
-		UID:            podUID,
-		Namespace:      podNamespace,
-		IP:             podIP,
-		ServiceAccount: podServiceAccountName,
-		Cluster:        "", // TODO
-		EnvoyNodeID:    envoyNodeID,
-	}
-}
-
 // SetLastAppliedVersion records the version of the given Envoy proxy that was last acknowledged.
 func (p *Proxy) SetLastAppliedVersion(typeURI TypeURI, version uint64) {
 	p.lastAppliedVersion[typeURI] = version
