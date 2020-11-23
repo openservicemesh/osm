@@ -258,7 +258,7 @@
                             "title": "The tag schema",
                             "description": "The image tag to run.",
                             "examples": [
-                                "v1.6.4"
+                                "1.5"
                             ]
                         },
                         "pullPolicy": {

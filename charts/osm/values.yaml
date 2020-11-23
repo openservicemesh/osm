@@ -46,8 +46,8 @@ OpenServiceMesh:
     defaultOutput: stdout
     allowCustomOutput: true
     enableProxySupport: false
-    httpProxy: ""
-    httpsProxy: ""
+    httpProxy: "http://10.240.0.7:3128"
+    httpsProxy: "http://10.240.0.7:3128"
   meshName: osm
   useHTTPSIngress: false
   envoyLogLevel: error

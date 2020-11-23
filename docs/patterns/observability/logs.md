@@ -73,9 +73,9 @@ If you require outbound proxy support:
     apiVersion: v1
     kind: Secret
     metadata:
-    name: proxy-config
+        name: proxy-config
     stringData:
-    HTTP_PROXY: {{ .Values.OpenServiceMesh.fluentBit.httpProxy }}
-    HTTPS_PROXY: {{ .Values.OpenServiceMesh.fluentBit.httpsProxy }}
+        HTTP_PROXY: {{ .Values.OpenServiceMesh.fluentBit.httpProxy }}
+        HTTPS_PROXY: {{ .Values.OpenServiceMesh.fluentBit.httpsProxy }}
     ```
 
