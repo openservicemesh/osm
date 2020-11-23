@@ -21,11 +21,11 @@ data:
       match      *
       regex       message /"level":"error"/
     [OUTPUT]
-      Name    {{ .Values.OpenServiceMesh.fluentbitOutput }}
+      Name    {{ .Values.OpenServiceMesh.fluentBit.defaultOutput }}
       Match   *
-      {{- if not .Values.OpenServiceMesh.customLogAnalyticsWorkspace }}
-      Customer_ID {{ .Values.OpenServiceMesh.customerID }}
-      Shared_Key {{ .Values.OpenServiceMesh.sharedKey }}
+      {{- if not .Values.OpenServiceMesh.fluentBit.allowCustomOutput }}
+      Customer_ID {{ .Values.OpenServiceMesh.fluentBit.workspaceID }}
+      Shared_Key {{ .Values.OpenServiceMesh.fluentBit.primaryKey }}
       {{- end }}
 
   parser.conf: |-
