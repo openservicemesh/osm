@@ -128,3 +128,25 @@ func (lb *listenerBuilder) getOutboundHTTPFilterChainMatchForService(dstSvc serv
 
 	return filterMatch, nil
 }
+
+func (lb *listenerBuilder) getOutboundHTTPFilterChainForService(upstream service.MeshService) (*xds_listener.FilterChain, error) {
+	// Get HTTP filter for service
+	filter, err := lb.getOutboundHTTPFilter()
+	if err != nil {
+		log.Error().Err(err).Msgf("Error getting HTTP filter for upstream service %s", upstream)
+		return nil, err
+	}
+
+	// Get filter match criteria for destination service
+	filterChainMatch, err := lb.getOutboundHTTPFilterChainMatchForService(upstream)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error getting HTTP filter chain match for upstream service %s", upstream)
+		return nil, err
+	}
+
+	return &xds_listener.FilterChain{
+		Name:             upstream.String(),
+		Filters:          []*xds_listener.Filter{filter},
+		FilterChainMatch: filterChainMatch,
+	}, nil
+}
