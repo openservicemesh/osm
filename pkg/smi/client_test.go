@@ -103,7 +103,7 @@ var _ = Describe("When listing TrafficSplit", func() {
 		tsChannel := events.GetPubSubInstance().Subscribe(announcements.TrafficSplitAdded,
 			announcements.TrafficSplitDeleted,
 			announcements.TrafficSplitUpdated)
-		defer events.GetPubSubInstance().Close(tsChannel)
+		defer events.GetPubSubInstance().Unsub(tsChannel)
 
 		split := &smiSplit.TrafficSplit{
 			ObjectMeta: metav1.ObjectMeta{
@@ -154,7 +154,7 @@ var _ = Describe("When listing TrafficSplit services", func() {
 		tsChannel := events.GetPubSubInstance().Subscribe(announcements.TrafficSplitAdded,
 			announcements.TrafficSplitDeleted,
 			announcements.TrafficSplitUpdated)
-		defer events.GetPubSubInstance().Close(tsChannel)
+		defer events.GetPubSubInstance().Unsub(tsChannel)
 
 		split := &smiSplit.TrafficSplit{
 			ObjectMeta: metav1.ObjectMeta{
@@ -209,7 +209,7 @@ var _ = Describe("When listing ServiceAccounts", func() {
 		ttChannel := events.GetPubSubInstance().Subscribe(announcements.TrafficTargetAdded,
 			announcements.TrafficTargetDeleted,
 			announcements.TrafficTargetUpdated)
-		defer events.GetPubSubInstance().Close(ttChannel)
+		defer events.GetPubSubInstance().Unsub(ttChannel)
 
 		trafficTarget := &smiAccess.TrafficTarget{
 			TypeMeta: metav1.TypeMeta{
@@ -269,7 +269,7 @@ var _ = Describe("When listing TrafficTargets", func() {
 		ttChannel := events.GetPubSubInstance().Subscribe(announcements.TrafficTargetAdded,
 			announcements.TrafficTargetDeleted,
 			announcements.TrafficTargetUpdated)
-		defer events.GetPubSubInstance().Close(ttChannel)
+		defer events.GetPubSubInstance().Unsub(ttChannel)
 
 		trafficTarget := &smiAccess.TrafficTarget{
 			TypeMeta: metav1.TypeMeta{
@@ -332,7 +332,7 @@ var _ = Describe("When listing ListHTTPTrafficSpecs", func() {
 		rgChannel := events.GetPubSubInstance().Subscribe(announcements.RouteGroupAdded,
 			announcements.RouteGroupDeleted,
 			announcements.RouteGroupUpdated)
-		defer events.GetPubSubInstance().Close(rgChannel)
+		defer events.GetPubSubInstance().Unsub(rgChannel)
 
 		routeSpec := &smiSpecs.HTTPRouteGroup{
 			TypeMeta: metav1.TypeMeta{
@@ -402,7 +402,7 @@ var _ = Describe("When listing TCP routes", func() {
 		trChannel := events.GetPubSubInstance().Subscribe(announcements.TCPRouteAdded,
 			announcements.TCPRouteDeleted,
 			announcements.TCPRouteUpdated)
-		defer events.GetPubSubInstance().Close(trChannel)
+		defer events.GetPubSubInstance().Unsub(trChannel)
 		routeSpec := &smiSpecs.TCPRoute{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "specs.smi-spec.io/v1alpha2",
@@ -469,7 +469,7 @@ var _ = Describe("When fetching BackpressurePolicy for the given MeshService", f
 		bpChannel := events.GetPubSubInstance().Subscribe(announcements.BackpressureAdded,
 			announcements.BackpressureDeleted,
 			announcements.BackpressureUpdated)
-		defer events.GetPubSubInstance().Close(bpChannel)
+		defer events.GetPubSubInstance().Unsub(bpChannel)
 
 		meshSvc := service.MeshService{
 			Namespace: testNamespaceName,
@@ -507,7 +507,7 @@ var _ = Describe("When fetching BackpressurePolicy for the given MeshService", f
 		bpChannel := events.GetPubSubInstance().Subscribe(announcements.BackpressureAdded,
 			announcements.BackpressureDeleted,
 			announcements.BackpressureUpdated)
-		defer events.GetPubSubInstance().Close(bpChannel)
+		defer events.GetPubSubInstance().Unsub(bpChannel)
 
 		meshSvc := service.MeshService{
 			Namespace: testNamespaceName,
