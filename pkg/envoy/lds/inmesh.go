@@ -6,9 +6,9 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
+	"github.com/pkg/errors"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
-	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/route"
@@ -77,12 +77,12 @@ func getInboundInMeshFilterChain(proxyServiceName service.MeshService, cfg confi
 }
 
 // getOutboundHTTPFilter returns an HTTP connection manager network filter used to filter outbound HTTP traffic
-func getOutboundHTTPFilter(cfg configurator.Configurator) (*xds_listener.Filter, error) {
+func (lb *listenerBuilder) getOutboundHTTPFilter() (*xds_listener.Filter, error) {
 	var marshalledFilter *any.Any
 	var err error
 
 	marshalledFilter, err = ptypes.MarshalAny(
-		getHTTPConnectionManager(route.OutboundRouteConfigName, cfg))
+		getHTTPConnectionManager(route.OutboundRouteConfigName, lb.cfg))
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshalling HTTP connection manager object")
 		return nil, err
@@ -98,22 +98,23 @@ func getOutboundHTTPFilter(cfg configurator.Configurator) (*xds_listener.Filter,
 // Filter Chain currently matches on the following:
 // 1. Destination IP of service endpoints
 // 2. HTTP application protocols
-func getOutboundHTTPFilterChainMatchForService(dstSvc service.MeshService, catalog catalog.MeshCataloger, cfg configurator.Configurator) (*xds_listener.FilterChainMatch, error) {
+func (lb *listenerBuilder) getOutboundHTTPFilterChainMatchForService(dstSvc service.MeshService) (*xds_listener.FilterChainMatch, error) {
 	filterMatch := &xds_listener.FilterChainMatch{
 		// HTTP filter chain should only match on supported HTTP protocols that the downstream can use
 		// to originate a request.
 		ApplicationProtocols: supportedDownstreamHTTPProtocols,
 	}
 
-	endpoints, err := catalog.GetResolvableServiceEndpoints(dstSvc)
+	endpoints, err := lb.meshCatalog.GetResolvableServiceEndpoints(dstSvc)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting GetResolvableServiceEndpoints for %s", dstSvc.String())
+		log.Error().Err(err).Msgf("Error getting GetResolvableServiceEndpoints for %q", dstSvc)
 		return nil, err
 	}
 
 	if len(endpoints) == 0 {
-		log.Info().Msgf("No resolvable endpoints retured for service %s", dstSvc.String())
-		return nil, nil
+		err := errors.Errorf("Endpoints not found for service %q", dstSvc)
+		log.Error().Err(err).Msgf("Error constructing HTTP filter chain match for service %q", dstSvc)
+		return nil, err
 	}
 
 	for _, endp := range endpoints {

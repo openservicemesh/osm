@@ -8,8 +8,6 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes"
 
-	"github.com/openservicemesh/osm/pkg/catalog"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/kubernetes"
@@ -21,8 +19,8 @@ const (
 	singleIpv4Mask                = 32
 )
 
-func newOutboundListener(catalog catalog.MeshCataloger, cfg configurator.Configurator, downstreamSvc []service.MeshService) (*xds_listener.Listener, error) {
-	serviceFilterChains, err := getOutboundFilterChains(catalog, cfg, downstreamSvc)
+func (lb *listenerBuilder) newOutboundListener(downstreamSvc []service.MeshService) (*xds_listener.Listener, error) {
+	serviceFilterChains, err := lb.getOutboundFilterChains(downstreamSvc)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error getting filter chains for outbound listener")
 		return nil, err
@@ -115,14 +113,14 @@ func buildEgressFilterChain() (*xds_listener.FilterChain, error) {
 	}, nil
 }
 
-func getOutboundFilterChains(catalog catalog.MeshCataloger, cfg configurator.Configurator, downstreamSvc []service.MeshService) ([]*xds_listener.FilterChain, error) {
+func (lb *listenerBuilder) getOutboundFilterChains(downstreamSvc []service.MeshService) ([]*xds_listener.FilterChain, error) {
 	var filterChains []*xds_listener.FilterChain
 	var dstServicesSet map[service.MeshService]struct{} = make(map[service.MeshService]struct{}) // Set, avoid dups
 
 	// Assuming single service in pod till #1682, #1575 get addressed
-	outboundSvc, err := catalog.ListAllowedOutboundServices(downstreamSvc[0])
+	outboundSvc, err := lb.meshCatalog.ListAllowedOutboundServices(downstreamSvc[0])
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting allowed outbound services for %s", downstreamSvc[0].String())
+		log.Error().Err(err).Msgf("Error getting allowed outbound services for %q", downstreamSvc[0].String())
 		return nil, err
 	}
 
@@ -134,7 +132,7 @@ func getOutboundFilterChains(catalog catalog.MeshCataloger, cfg configurator.Con
 	// Getting apex services referring to the outbound services
 	// We get possible apexes which could traffic split to any of the possible
 	// outbound services
-	splitServices := catalog.GetSMISpec().ListTrafficSplitServices()
+	splitServices := lb.meshCatalog.GetSMISpec().ListTrafficSplitServices()
 	for _, svc := range splitServices {
 		for _, outSvc := range outboundSvc {
 			if svc.Service == outSvc {
@@ -153,20 +151,16 @@ func getOutboundFilterChains(catalog catalog.MeshCataloger, cfg configurator.Con
 	// Iterate all destination services
 	for keyService := range dstServicesSet {
 		// Get HTTP filter for service
-		filter, err := getOutboundHTTPFilter(cfg)
+		filter, err := lb.getOutboundHTTPFilter()
 		if err != nil {
 			log.Error().Err(err).Msgf("Error getting filter for dst service %s", keyService.String())
-			return nil, err
+			continue
 		}
 
 		// Get filter match criteria for destination service
-		filterChainMatch, err := getOutboundHTTPFilterChainMatchForService(keyService, catalog, cfg)
+		filterChainMatch, err := lb.getOutboundHTTPFilterChainMatchForService(keyService)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error getting Chain Match for service %s", keyService.String())
-			return nil, err
-		}
-		if filterChainMatch == nil {
-			log.Info().Msgf("No endpoints found for dst service %s. Not adding filterchain.", keyService)
 			continue
 		}
 
@@ -179,7 +173,7 @@ func getOutboundFilterChains(catalog catalog.MeshCataloger, cfg configurator.Con
 
 	// This filterchain matches any traffic not filtered by allow rules, it will be treated as egress
 	// traffic when enabled
-	if cfg.IsEgressEnabled() {
+	if lb.cfg.IsEgressEnabled() {
 		egressFilterChgain, err := buildEgressFilterChain()
 		if err != nil {
 			log.Error().Err(err).Msgf("Error getting filter chain for Egress")
