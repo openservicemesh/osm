@@ -149,26 +149,13 @@ func (lb *listenerBuilder) getOutboundFilterChains(downstreamSvc []service.MeshS
 	}
 
 	// Iterate all destination services
-	for keyService := range dstServicesSet {
-		// Get HTTP filter for service
-		filter, err := lb.getOutboundHTTPFilter()
-		if err != nil {
-			log.Error().Err(err).Msgf("Error getting filter for dst service %s", keyService.String())
-			continue
+	for upstream := range dstServicesSet {
+		// Construct HTTP filter chain
+		if httpFilterChain, err := lb.getOutboundHTTPFilterChainForService(upstream); err != nil {
+			log.Error().Err(err).Msgf("Error constructing outbount HTTP filter chain for upstream service %q", upstream)
+		} else {
+			filterChains = append(filterChains, httpFilterChain)
 		}
-
-		// Get filter match criteria for destination service
-		filterChainMatch, err := lb.getOutboundHTTPFilterChainMatchForService(keyService)
-		if err != nil {
-			log.Error().Err(err).Msgf("Error getting Chain Match for service %s", keyService.String())
-			continue
-		}
-
-		filterChains = append(filterChains, &xds_listener.FilterChain{
-			Name:             keyService.String(),
-			Filters:          []*xds_listener.Filter{filter},
-			FilterChainMatch: filterChainMatch,
-		})
 	}
 
 	// This filterchain matches any traffic not filtered by allow rules, it will be treated as egress
