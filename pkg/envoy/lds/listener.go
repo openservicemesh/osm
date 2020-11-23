@@ -154,17 +154,13 @@ func (lb *listenerBuilder) getOutboundFilterChains(downstreamSvc []service.MeshS
 		filter, err := lb.getOutboundHTTPFilter()
 		if err != nil {
 			log.Error().Err(err).Msgf("Error getting filter for dst service %s", keyService.String())
-			return nil, err
+			continue
 		}
 
 		// Get filter match criteria for destination service
 		filterChainMatch, err := lb.getOutboundHTTPFilterChainMatchForService(keyService)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error getting Chain Match for service %s", keyService.String())
-			return nil, err
-		}
-		if filterChainMatch == nil {
-			log.Info().Msgf("No endpoints found for dst service %s. Not adding filterchain.", keyService)
 			continue
 		}
 

@@ -6,6 +6,7 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
+	"github.com/pkg/errors"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -106,13 +107,14 @@ func (lb *listenerBuilder) getOutboundHTTPFilterChainMatchForService(dstSvc serv
 
 	endpoints, err := lb.meshCatalog.GetResolvableServiceEndpoints(dstSvc)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting GetResolvableServiceEndpoints for %s", dstSvc.String())
+		log.Error().Err(err).Msgf("Error getting GetResolvableServiceEndpoints for %q", dstSvc)
 		return nil, err
 	}
 
 	if len(endpoints) == 0 {
-		log.Info().Msgf("No resolvable endpoints retured for service %s", dstSvc.String())
-		return nil, nil
+		err := errors.Errorf("Endpoints not found for service %q", dstSvc)
+		log.Error().Err(err).Msgf("Error constructing HTTP filter chain match for service %q", dstSvc)
+		return nil, err
 	}
 
 	for _, endp := range endpoints {
