@@ -46,7 +46,7 @@ func (c *osmPubsub) Unsub(unsubChan chan interface{}) {
 
 	syncCh := make(chan struct{})
 	go func() {
-		// This should close the channel on the pubsub backend
+		// This will close the channel on the pubsub backend
 		// https://github.com/cskr/pubsub/blob/v1.0.2/pubsub.go#L264
 		c.pSub.Unsub(unsubChan)
 
