@@ -49,6 +49,36 @@ spec:
               readOnly: true
           ports:
             - containerPort: {{.Values.OpenServiceMesh.grafana.port}}
+{{- if .Values.OpenServiceMesh.grafana.enableRemoteRendering}}
+          env:
+          - name: GF_RENDERING_SERVER_URL
+            value: "http://osm-grafana:8081/render"
+          - name: GF_RENDERING_CALLBACK_URL
+            value: "http://osm-grafana:3000/"
+          - name: GF_LOG_FILTERS
+            value: "rendering:debug"
+        - name: renderer
+          image: grafana/grafana-image-renderer:2.0.0-beta1
+          imagePullPolicy: IfNotPresent
+          resources:
+            limits:
+              cpu: 1
+              memory: 256M
+            requests:
+              cpu: 100m
+              memory: 64M
+          ports:
+            - containerPort: 8081
+          env:
+          - name: ENABLE_METRICS
+            value: "true"
+          - name: RENDERING_MODE
+            value: "clustered"
+          - name: RENDERING_CLUSTERING_MODE
+            value: "context"
+          - name: RENDERING_CLUSTERING_MAX_CONCURRENCY
+            value: "5"
+{{- end }}
       volumes:
         - name: osm-grafana-config
           configMap:

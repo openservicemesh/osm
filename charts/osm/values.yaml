@@ -28,6 +28,7 @@ OpenServiceMesh:
   caBundleSecretName: osm-ca-bundle
   grafana:
     port: 3000
+    enableRemoteRendering: false
 
   enableDebugServer: false
   enablePermissiveTrafficPolicy: false
@@ -47,7 +48,7 @@ OpenServiceMesh:
   meshName: osm
   useHTTPSIngress: false
   envoyLogLevel: error
-  controllerLogLevel: trace
+  controllerLogLevel: warn
   enforceSingleMesh: false
   webhookConfigNamePrefix: osm-webhook
 
