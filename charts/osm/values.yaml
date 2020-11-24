@@ -48,7 +48,7 @@ OpenServiceMesh:
   meshName: osm
   useHTTPSIngress: false
   envoyLogLevel: error
-  controllerLogLevel: warn
+  controllerLogLevel: trace
   enforceSingleMesh: false
   webhookConfigNamePrefix: osm-webhook
 
