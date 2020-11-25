@@ -62,26 +62,5 @@ var _ = Describe("Test LDS response", func() {
 			}
 			Expect(len(filterChains[0].FilterChainMatch.ServerNames)).To(Equal(0)) // filter chain without SNI matching
 		})
-
-		It("constructs in-mesh filter chain", func() {
-			filterChain, err := getInboundInMeshFilterChain(tests.BookstoreV1Service, mockConfigurator)
-			Expect(err).ToNot(HaveOccurred())
-
-			expectedServerNames := []string{tests.BookstoreV1Service.ServerName()}
-
-			// Show what this looks like (human readable)!  And ensure this is setup correctly!
-			Expect(expectedServerNames[0]).To(Equal("bookstore-v1.default.svc.cluster.local"))
-
-			Expect(filterChain.FilterChainMatch.TransportProtocol).To(Equal(envoy.TransportProtocolTLS))
-			Expect(filterChain.FilterChainMatch.ServerNames).To(Equal(expectedServerNames))
-
-			// Ensure the UpstreamTlsContext.Sni field from the client matches one of the strings
-			// in the servers FilterChainMatch.ServerNames
-			tlsContext := envoy.GetUpstreamTLSContext(tests.BookbuyerService, tests.BookstoreV1Service)
-			Expect(tlsContext.Sni).To(Equal(filterChain.FilterChainMatch.ServerNames[0]))
-
-			// Show what that actually looks like
-			Expect(tlsContext.Sni).To(Equal("bookstore-v1.default.svc.cluster.local"))
-		})
 	})
 })
