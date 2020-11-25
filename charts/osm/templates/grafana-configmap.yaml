@@ -81,6 +81,8 @@ metadata:
 data:
   osm-control-plane.json: |
 {{ .Files.Get "grafana/dashboards/osm-control-plane.json" | replace "${DS_PROMETHEUS}" "Prometheus" | indent 4 }}
+  osm-mesh-envoy-details.json: |
+{{ .Files.Get "grafana/dashboards/osm-mesh-envoy-details.json" | replace "${DS_PROMETHEUS}" "Prometheus" | indent 4 }}
 
 ---
 
