@@ -28,6 +28,7 @@ OpenServiceMesh:
   caBundleSecretName: osm-ca-bundle
   grafana:
     port: 3000
+    enableRemoteRendering: false
 
   enableDebugServer: false
   enablePermissiveTrafficPolicy: false
