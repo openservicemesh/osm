@@ -78,7 +78,7 @@
                             "type": "string",
                             "title": "The pullPolicy schema",
                             "description": "The image pull policy.",
-                            "pattern": "^(Always|Never|IfNotPresent)$",
+                            "pattern": "^(Always|Never|IfNotPresent)?$",
                             "examples": [
                                 "IfNotPresent"
                             ]
