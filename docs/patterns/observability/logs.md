@@ -59,22 +59,10 @@ You can now interact with your logs in either of these instances.
 
 
 ### Configuring Outbound Proxy Support for Fluent Bit
-If you require outbound proxy support:
-
-1. In `values.yaml`:
+You may require outbound proxy support if your egress traffic is configured to go through a proxy server. To enable this, make the following changes in `values.yaml`:
     
-    a) Change `enableProxySupport` to `true`
+1. Change `enableProxySupport` to `true`
 
-    b) Update the httpProxy and httpsProxy values to `"http://<host>:<port>"`
+2. Update the httpProxy and httpsProxy values to `"http://<host>:<port>"`
 
-2. In `/charts/osm/templates` create a new secret `proxy-config.yaml`:
-    ```
-    apiVersion: v1
-    kind: Secret
-    metadata:
-        name: proxy-config
-    stringData:
-        HTTP_PROXY: {{ .Values.OpenServiceMesh.fluentBit.httpProxy }}
-        HTTPS_PROXY: {{ .Values.OpenServiceMesh.fluentBit.httpsProxy }}
-    ```
-
+Ensure that the Fluent Bit image tag is `1.6.4` or greater as it is required for this feature. 
