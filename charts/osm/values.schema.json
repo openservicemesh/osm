@@ -25,15 +25,15 @@
                 "deployPrometheus",
                 "enablePrometheusScraping",
                 "deployGrafana",
+                "enableFluentbit",
+                "fluentBit",
                 "meshName",
                 "useHTTPSIngress",
                 "envoyLogLevel",
                 "enforceSingleMesh",
                 "deployJaeger",
                 "tracing", 
-                "fluentbitOutput", 
                 "webhookConfigNamePrefix", 
-                "customLogAnalyticsWorkspace", 
                 "connectVault"
             ],
             "properties": {
@@ -78,7 +78,7 @@
                             "type": "string",
                             "title": "The pullPolicy schema",
                             "description": "The image pull policy.",
-                            "pattern": "^(Always|Never|IfNotPresent)$",
+                            "pattern": "^(Always|Never|IfNotPresent)?$",
                             "examples": [
                                 "IfNotPresent"
                             ]
@@ -195,6 +195,97 @@
                         false
                     ]
                 },
+                "enableFluentbit": {
+                    "$id": "#/properties/OpenServiceMesh/properties/enableFluentbit",
+                    "type": "boolean",
+                    "title": "The enableFluentbit schema",
+                    "description": "Indicates whether Fluent Bit log forwarding should be enabled",
+                    "examples": [
+                        false
+                    ]
+                },
+                "fluentBit": {
+                    "$id": "#/properties/OpenServiceMesh/properties/fluentBit",
+                    "type": "object",
+                    "title": "The Fluent Bit schema",
+                    "description": "The default details of the Fluent Bit sidecar if enabled.",
+                    "examples": [
+                        {
+                            "name": "fluentbit-logger",
+                            "registry": "fluent",
+                            "tag": "1.6.4",
+                            "pullPolicy": "IfNotPresent",
+                            "defaultOutput": "stdout",
+                            "allowCustomOutput": "true"
+                        }
+                    ],
+                    "required": [
+                        "name",
+                        "registry",
+                        "tag",
+                        "pullPolicy",
+                        "defaultOutput",
+                        "allowCustomOutput"
+                    ],
+                    "properties": {
+                        "name": {
+                            "$id": "#/properties/OpenServiceMesh/properties/fluentBit/properties/name",
+                            "type": "string",
+                            "title": "The name schema",
+                            "description": "The name of the Fluent Bit container",
+                            "examples": [
+                                "fluentbit-logger"
+                            ]
+                        },
+                        "registry": {
+                            "$id": "#/properties/OpenServiceMesh/properties/fluentBit/properties/registry",
+                            "type": "string",
+                            "title": "The registry schema",
+                            "description": "The registry of the image to run.",
+                            "examples": [
+                                "fluent"
+                            ]
+                        },
+                        "tag": {
+                            "$id": "#/properties/OpenServiceMesh/properties/fluentBit/properties/tag",
+                            "type": "string",
+                            "title": "The tag schema",
+                            "description": "The image tag to run.",
+                            "examples": [
+                                "1.5"
+                            ]
+                        },
+                        "pullPolicy": {
+                            "$id": "#/properties/OpenServiceMesh/properties/fluentBit/properties/pullPolicy",
+                            "type": "string",
+                            "title": "The pullPolicy schema",
+                            "description": "The image pull policy.",
+                            "pattern": "^(Always|Never|IfNotPresent)$",
+                            "examples": [
+                                "IfNotPresent"
+                            ]
+                        },
+                        "defaultOutput": {
+                            "$id": "#/properties/OpenServiceMesh/properties/fluentBit/properties/defaultOutput",
+                            "type": "string",
+                            "title": "The default output schema for Fluent Bit",
+                            "description": "The default log forwarding destination for Fluent Bit",
+                            "examples": [
+                                "stdout"
+                            ]
+                        },
+                        "allowCustomOutput": {
+                            "$id": "#/properties/OpenServiceMesh/properties/fluentBit/properties/allowCustomOutput",
+                            "type": "boolean",
+                            "title": "The allowCustomOutput output schema",
+                            "description": "Indicates whether users can provide their own output plugin",
+                            "examples": [
+                                true
+                            ]
+                        }
+                    },
+                    "additionalProperties": true
+                },
                 "meshName": {
                     "$id": "#/properties/OpenServiceMesh/properties/meshName",
                     "type": "string",
@@ -267,15 +358,6 @@
                     },
                     "additionalProperties": true
                 }, 
-                "fluentbitOutput": {
-                    "$id": "#/properties/OpenServiceMesh/properties/fluentbitOutput",
-                    "type": "string",
-                    "title": "Fluentbit logger output location",
-                    "description": "The log forwarding destination to be forwarded by Fluent Bit",
-                    "examples": [
-                        "stdout"
-                    ]
-                },
                 "webhookConfigNamePrefix": {
                     "$id": "#/properties/OpenServiceMesh/properties/webhookConfigNamePrefix",
                     "type": "string",
@@ -283,15 +365,6 @@
                     "description": "Prefix for the webhook name, which uses the format <webhook-prefix>-<mesh-name>",
                     "examples": [
                         ""
-                    ]
-                },
-                "customLogAnalyticsWorkspace": {
-                    "$id": "#/properties/OpenServiceMesh/properties/customLogAnalyticsWorkspace",
-                    "type": "boolean",
-                    "title": "Custom Log Analytics Workspace",
-                    "description": "Specifies whether users will provide their own output plugin",
-                    "examples": [
-                        true
                     ]
                 },
                 "connectVault": {

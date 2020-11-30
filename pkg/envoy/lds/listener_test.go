@@ -108,7 +108,7 @@ func TestGetFilterChainMatchForService(t *testing.T) {
 	)
 
 	filterChainMatch, err = lb.getOutboundHTTPFilterChainMatchForService(tests.BookstoreApexService)
-	assert.NoError(err)
+	assert.Error(err)
 	assert.Nil(filterChainMatch)
 }
 
