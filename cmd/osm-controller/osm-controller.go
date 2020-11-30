@@ -26,6 +26,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/endpoint/providers/azure"
 	azureResource "github.com/openservicemesh/osm/pkg/endpoint/providers/azure/kubernetes"
 	"github.com/openservicemesh/osm/pkg/endpoint/providers/kube"
+	"github.com/openservicemesh/osm/pkg/endpoint/providers/subm"
 	"github.com/openservicemesh/osm/pkg/envoy/ads"
 	"github.com/openservicemesh/osm/pkg/featureflags"
 	"github.com/openservicemesh/osm/pkg/httpserver"
@@ -50,6 +51,8 @@ var (
 	verbosity                  string
 	meshName                   string // An ID that uniquely identifies an OSM instance
 	azureAuthFile              string
+	enableRemoteCluster        bool
+	clusterId                  string
 	kubeConfigFile             string
 	osmNamespace               string
 	webhookName                string
@@ -92,6 +95,8 @@ func init() {
 	flags.StringVar(&meshName, "mesh-name", "", "OSM mesh name")
 	flags.StringVar(&azureAuthFile, "azure-auth-file", "", "Path to Azure Auth File")
 	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file.")
+	flags.BoolVar(&enableRemoteCluster, "enable-remote-cluster", false, "Enable Remote cluster")
+	flags.StringVar(&clusterId, "cluster-id", "hq", "local cluster-id.")
 	flags.StringVar(&osmNamespace, "osm-namespace", "", "Namespace to which OSM belongs to.")
 	flags.StringVar(&webhookName, "webhook-name", "", "Name of the MutatingWebhookConfiguration to be configured by osm-controller")
 	flags.IntVar(&serviceCertValidityMinutes, "service-cert-validity-minutes", defaultServiceCertValidityMinutes, "Certificate validityPeriod duration in minutes")
@@ -186,6 +191,15 @@ func main() {
 			log.Fatal().Err(err).Msg("Failed to initialize azure provider")
 		}
 		endpointsProviders = append(endpointsProviders, azureProvider)
+	}
+
+	log.Info().Msgf("enableRemoteCluster:%t clusterId:%s", enableRemoteCluster, clusterId)
+
+	if enableRemoteCluster {
+		submProvider, err := subm.NewProvider(kubeClient, clusterId, stop, meshSpec, constants.SubmProviderName, kubeConfig)
+		if err != nil {
+		}
+		endpointsProviders = append(endpointsProviders, submProvider)
 	}
 
 	ingressClient, err := ingress.NewIngressClient(kubeClient, namespaceController, stop, cfg)

@@ -74,3 +74,12 @@ func (mc *MeshCatalog) getAnnouncementChannels() []announcementChannel {
 	}()
 	return announcementChannels
 }
+
+func (mc *MeshCatalog) GetProvider(ident string) endpoint.Provider {
+	for _, ep := range mc.endpointsProviders {
+		if ep.GetID() == ident {
+			return ep
+		}
+	}
+	return nil
+}

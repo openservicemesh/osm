@@ -112,11 +112,13 @@ func newInboundListener() *xds_listener.Listener {
 		Address:          envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyInboundListenerPort),
 		TrafficDirection: xds_core.TrafficDirection_INBOUND,
 		FilterChains:     []*xds_listener.FilterChain{},
+		/* WITESAND_TLS_DISABLE
 		ListenerFilters: []*xds_listener.ListenerFilter{
 			{
 				Name: wellknown.TlsInspector,
 			},
 		},
+		*/
 	}
 }
 

@@ -12,6 +12,9 @@ const (
 	// KubeProviderName is a string constant used for the ID string of the Kubernetes endpoints provider.
 	KubeProviderName = "Kubernetes"
 
+	// SubmProviderName is a string constant used for the ID string of the Submariner endpoints provider.
+	SubmProviderName = "Submariner"
+
 	// WildcardIPAddr is a string constant.
 	WildcardIPAddr = "0.0.0.0"
 

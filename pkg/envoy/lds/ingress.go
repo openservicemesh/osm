@@ -22,11 +22,13 @@ func getIngressTransportProtocol(cfg configurator.Configurator) string {
 }
 
 func newIngressFilterChain(cfg configurator.Configurator, svc service.MeshService) *xds_listener.FilterChain {
-	marshalledDownstreamTLSContext, err := envoy.MessageToAny(envoy.GetDownstreamTLSContext(svc, false /* TLS */))
+	/* WITESAND_TLS_DISABLE
+	marshalledDownstreamTLSContext, err := envoy.MessageToAny(envoy.GetDownstreamTLSContext(svc, false))
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshalling DownstreamTLSContext object for proxy %s", svc)
 		return nil
 	}
+	*/
 
 	inboundConnManager := getHTTPConnectionManager(route.InboundRouteConfigName, cfg)
 	marshalledInboundConnManager, err := ptypes.MarshalAny(inboundConnManager)
@@ -40,7 +42,9 @@ func newIngressFilterChain(cfg configurator.Configurator, svc service.MeshServic
 		FilterChainMatch: &xds_listener.FilterChainMatch{
 			TransportProtocol: getIngressTransportProtocol(cfg),
 		},
+		/* WITESAND_TLS_DISABLE
 		TransportSocket: getIngressTransportSocket(cfg, marshalledDownstreamTLSContext),
+		*/
 		Filters: []*xds_listener.Filter{
 			{
 				Name: wellknown.HTTPConnectionManager,

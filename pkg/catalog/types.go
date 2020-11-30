@@ -107,6 +107,9 @@ type MeshCataloger interface {
 
 	// ListMonitoredNamespaces lists namespaces monitored by the control plane
 	ListMonitoredNamespaces() []string
+
+	// GetProvider returns provider given providerName
+	GetProvider(ident string) endpoint.Provider
 }
 
 type announcementChannel struct {

@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	mapset "github.com/deckarep/golang-set"
-	"github.com/pkg/errors"
+	_ "github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -199,7 +199,11 @@ func (mc *MeshCatalog) GetHostnamesForService(meshService service.MeshService) (
 func (mc *MeshCatalog) getServiceHostnames(meshService service.MeshService) ([]string, error) {
 	svc := mc.meshSpec.GetService(meshService)
 	if svc == nil {
-		return nil, errors.Errorf("Error fetching service %q", meshService)
+		var svc1 corev1.Service
+		svc1.Name =  meshService.Name
+		svc1.Namespace =  meshService.Namespace
+		svc1.Spec.Ports = make([]corev1.ServicePort, 0)
+		svc = &svc1
 	}
 
 	hostnames := kubernetes.GetHostnamesForService(svc)
