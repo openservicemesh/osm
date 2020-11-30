@@ -1,0 +1,51 @@
+# Deploy bookwarehouse Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: bookwarehouse
+---
+# Deploy bookwarehouse Service Account
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: bookwarehouse
+  namespace: bookwarehouse
+---
+# Deploy bookwarehouse Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: bookwarehouse
+  namespace: bookwarehouse
+  labels:
+    app: bookwarehouse
+spec:
+  ports:
+  - port: 80
+    name: bookwarehouse-port
+  selector:
+    app: bookwarehouse
+---
+# Deploy bookwarehouse Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bookwarehouse
+  namespace: bookwarehouse
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bookwarehouse
+  template:
+    metadata:
+      labels:
+        app: bookwarehouse
+        version: v1
+    spec:
+      serviceAccountName: bookwarehouse
+      containers:
+        - name: bookwarehouse
+          image: openservicemesh/bookwarehouse:v0.2.0
+          imagePullPolicy: Always
+          command: ["/bookwarehouse"]
