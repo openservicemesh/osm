@@ -91,15 +91,12 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Dura
 }
 
 func (cm *CertManager) deleteFromCache(cn certificate.CommonName) {
-	cm.cacheLock.Lock()
-	delete(*cm.cache, cn)
-	cm.cacheLock.Unlock()
+	cm.cache.Delete(cn)
 }
 
 func (cm *CertManager) getFromCache(cn certificate.CommonName) certificate.Certificater {
-	cm.cacheLock.Lock()
-	defer cm.cacheLock.Unlock()
-	if cert, exists := (*cm.cache)[cn]; exists {
+	if certInterface, exists := cm.cache.Load(cn); exists {
+		cert := certInterface.(certificate.Certificater)
 		log.Trace().Msgf("Certificate found in cache CN=%s", cn)
 		if rotor.ShouldRotate(cert) {
 			log.Trace().Msgf("Certificate found in cache but has expired CN=%s", cn)
@@ -123,9 +120,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 		return cert, err
 	}
 
-	cm.cacheLock.Lock()
-	(*cm.cache)[cn] = cert
-	cm.cacheLock.Unlock()
+	cm.cache.Store(cn, cert)
 
 	log.Info().Msgf("It took %+v to issue certificate with CN=%s", time.Since(start), cn)
 
@@ -157,9 +152,7 @@ func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate
 		return cert, err
 	}
 
-	cm.cacheLock.Lock()
-	(*cm.cache)[cn] = cert
-	cm.cacheLock.Unlock()
+	cm.cache.Store(cn, cert)
 	cm.announcements <- announcements.Announcement{}
 
 	log.Info().Msgf("Rotating certificate CN=%s took %+v", cn, time.Since(start))
@@ -170,11 +163,10 @@ func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate
 // ListCertificates lists all certificates issued
 func (cm *CertManager) ListCertificates() ([]certificate.Certificater, error) {
 	var certs []certificate.Certificater
-	cm.cacheLock.Lock()
-	for _, cert := range *cm.cache {
-		certs = append(certs, cert)
-	}
-	cm.cacheLock.Unlock()
+	cm.cache.Range(func(cn interface{}, certInterface interface{}) bool {
+		certs = append(certs, certInterface.(certificate.Certificater))
+		return true
+	})
 	return certs, nil
 }
 

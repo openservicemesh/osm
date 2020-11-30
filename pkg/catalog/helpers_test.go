@@ -13,7 +13,6 @@ import (
 	testclient "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -39,8 +38,7 @@ func newFakeMeshCatalogForRoutes(t *testing.T) *MeshCatalog {
 	}
 	stop := make(chan struct{})
 
-	cache := make(map[certificate.CommonName]certificate.Certificater)
-	certManager := tresor.NewFakeCertManager(&cache, mockConfigurator)
+	certManager := tresor.NewFakeCertManager(mockConfigurator)
 
 	// Create a bookstoreV1 pod
 	bookstoreV1Pod := tests.NewPodTestFixtureWithOptions(tests.BookstoreV1Service.Namespace, tests.BookstoreV1Service.Name, tests.BookstoreServiceAccountName)

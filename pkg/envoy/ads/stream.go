@@ -7,7 +7,9 @@ import (
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/pkg/errors"
 
+	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 	"github.com/openservicemesh/osm/pkg/utils"
 )
 
@@ -49,6 +51,9 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 	// This helper handles receiving messages from the connected Envoys
 	// and any gRPC error states.
 	go receive(requests, &server, proxy, quit, s.catalog)
+
+	// Register to Envoy global broadcast updates
+	broadcastUpdate := events.GetPubSubInstance().Subscribe(announcements.ProxyBroadcast)
 
 	for {
 		select {
@@ -145,8 +150,12 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 				log.Error().Err(err).Msgf("Error sending DiscoveryResponse")
 			}
 
+		case <-broadcastUpdate:
+			log.Info().Msgf("Broadcast update received for %s", proxy.GetCommonName())
+			s.sendAllResponses(proxy, &server, s.cfg)
+
 		case <-proxy.GetAnnouncementsChannel():
-			log.Info().Msgf("Announcement for Envoy proxy %s received: sending all xDS updates", proxy.GetCommonName())
+			log.Info().Msgf("Individual update for %s", proxy.GetCommonName())
 			s.sendAllResponses(proxy, &server, s.cfg)
 		}
 	}

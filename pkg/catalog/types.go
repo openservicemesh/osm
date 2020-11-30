@@ -50,9 +50,6 @@ type MeshCatalog struct {
 
 	// Maintain a mapping of pod UID to CN of the Envoy on that pod
 	podUIDToCN sync.Map
-
-	// Functions able to handle announcements flowing through the system; grouped per type of announcement
-	announcementHandlerPerType map[announcements.AnnouncementType][]func(ann announcements.Announcement) error
 }
 
 // MeshCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.

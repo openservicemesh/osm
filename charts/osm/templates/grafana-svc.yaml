@@ -1,4 +1,4 @@
-{{- if .Values.OpenServiceMesh.enableGrafana}}
+{{- if .Values.OpenServiceMesh.deployGrafana}}
 apiVersion: v1
 kind: Service
 metadata:
@@ -8,6 +8,11 @@ metadata:
 spec:
   ports:
     - port: {{.Values.OpenServiceMesh.grafana.port}}
+      name: grafana-dashboard
+{{- if .Values.OpenServiceMesh.grafana.enableRemoteRendering}}
+    - port: 8081
+      name: grafana-renderer
+{{- end }}
   selector:
     app: osm-grafana
 {{- end }}

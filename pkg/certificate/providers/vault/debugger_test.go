@@ -19,13 +19,9 @@ var _ = Describe("Test Vault Debugger", func() {
 			expiration: time.Now(),
 			commonName: "foo.bar.co.uk",
 		}
-		cache := map[certificate.CommonName]certificate.Certificater{
-			"foo": cert,
-		}
-		cm := CertManager{
-			cache: &cache,
-		}
-		It("lists all issued certificets", func() {
+		cm := CertManager{}
+		cm.cache.Store("foo", cert)
+		It("lists all issued certificates", func() {
 			actual := cm.ListIssuedCertificates()
 			expected := []certificate.Certificater{cert}
 			Expect(actual).To(Equal(expected))

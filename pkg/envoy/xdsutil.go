@@ -10,10 +10,7 @@ import (
 	xds_accesslog "github.com/envoyproxy/go-control-plane/envoy/extensions/access_loggers/file/v3"
 	xds_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
-
-	"github.com/golang/protobuf/proto" //ignore SA1019
 	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/any"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/jinzhu/copier"
@@ -233,15 +230,6 @@ func getCommonTLSContext(tlsSDSCert, peerValidationSDSCert SDSCert) *xds_auth.Co
 	}
 }
 
-// MessageToAny converts from proto message to proto Any and returns an error if any
-func MessageToAny(pb proto.Message) (*any.Any, error) {
-	msg, err := ptypes.MarshalAny(pb)
-	if err != nil {
-		return nil, err
-	}
-	return msg, nil
-}
-
 // GetDownstreamTLSContext creates a downstream Envoy TLS Context
 func GetDownstreamTLSContext(upstreamSvc service.MeshService, mTLS bool) *xds_auth.DownstreamTlsContext {
 	upstreamSDSCert := SDSCert{
@@ -292,7 +280,7 @@ func GetUpstreamTLSContext(downstreamSvc, upstreamSvc service.MeshService) *xds_
 	tlsConfig := &xds_auth.UpstreamTlsContext{
 		CommonTlsContext: commonTLSContext,
 
-		// The Sni field is going to be used to do FilterChainMatch in getInboundInMeshFilterChain()
+		// The Sni field is going to be used to do FilterChainMatch in getInboundMeshHTTPFilterChain()
 		// The "Sni" field below of an incoming request will be matched against a list of server names
 		// in FilterChainMatch.ServerNames
 		Sni: upstreamSvc.ServerName(),
@@ -324,18 +312,18 @@ func GetEnvoyServiceNodeID(nodeID string) string {
 }
 
 // ParseEnvoyServiceNodeID parses the given Envoy service node ID and returns the encoded metadata
-func ParseEnvoyServiceNodeID(serviceNodeID string) (podUID, podNamespace, podIP, serviceAccountName, nodeID string, err error) {
+func ParseEnvoyServiceNodeID(serviceNodeID string) (*PodMetadata, error) {
 	chunks := strings.Split(serviceNodeID, constants.EnvoyServiceNodeSeparator)
 
 	if len(chunks) != 5 {
-		return podUID, podNamespace, podIP, serviceAccountName, nodeID, errors.New("invalid envoy service node id format")
+		return nil, errors.New("invalid envoy service node id format")
 	}
 
-	podUID = chunks[0]
-	podNamespace = chunks[1]
-	podIP = chunks[2]
-	serviceAccountName = chunks[3]
-	nodeID = chunks[4]
-
-	return podUID, podNamespace, podIP, serviceAccountName, nodeID, nil
+	return &PodMetadata{
+		UID:            chunks[0],
+		Namespace:      chunks[1],
+		IP:             chunks[2],
+		ServiceAccount: chunks[3],
+		EnvoyNodeID:    chunks[4],
+	}, nil
 }

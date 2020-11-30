@@ -8,6 +8,12 @@ func (at AnnouncementType) String() string {
 }
 
 const (
+	// ScheduleProxyBroadcast is used by other modules to request the dispatcher to schedule a global proxy broadcast
+	ScheduleProxyBroadcast AnnouncementType = "schedule-proxy-broadcast"
+
+	// ProxyBroadcast is used to notify all Proxy streams that they need to trigger an update
+	ProxyBroadcast AnnouncementType = "proxy-broadcast"
+
 	// PodAdded is the type of announcement emitted when we observe an addition of a Kubernetes Pod
 	PodAdded AnnouncementType = "pod-added"
 
