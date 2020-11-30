@@ -5,6 +5,7 @@ import (
 
 	set "github.com/deckarep/golang-set"
 	"github.com/golang/mock/gomock"
+	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -15,7 +16,6 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/catalog"
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -56,6 +56,23 @@ var _ = Describe("Construct RoutePolicyWeightedClusters object", func() {
 			Expect(string(routePolicyWeightedClustersSlice[0].(service.WeightedCluster).ClusterName)).To(Equal("osm/bookstore-1"))
 			Expect(routePolicyWeightedClustersSlice[0].(service.WeightedCluster).Weight).To(Equal(100))
 			Expect(routePolicyWeightedClusters.Hostnames).To(Equal(set.NewSet("bookstore-1")))
+		})
+	})
+})
+
+var _ = Describe("IsTrafficSplitService", func() {
+	svc := tests.BookstoreApexService
+	Context("Check if a mesh service is root service of TrafficSplit", func() {
+		It("Returns true", func() {
+			allTrafficSplits := []*split.TrafficSplit{&tests.TrafficSplit}
+			Expect(isTrafficSplitService(svc, allTrafficSplits)).To(Equal(true))
+		})
+
+		It("Return false", func() {
+			mutation := tests.TrafficSplit
+			mutation.Spec.Service = mutation.Spec.Service + "-mutation"
+			allTrafficSplits := []*split.TrafficSplit{&mutation}
+			Expect(isTrafficSplitService(svc, allTrafficSplits)).To(Equal(false))
 		})
 	})
 })
@@ -171,8 +188,7 @@ var _ = Describe("RDS Response", func() {
 	osmConfigMapName := "-test-osm-config-map-"
 	cfg := configurator.NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
 
-	cache := make(map[certificate.CommonName]certificate.Certificater)
-	certManager := tresor.NewFakeCertManager(&cache, cfg)
+	certManager := tresor.NewFakeCertManager(cfg)
 
 	announcementsCh := make(chan announcements.Announcement)
 

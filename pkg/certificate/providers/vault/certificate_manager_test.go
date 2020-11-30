@@ -4,10 +4,11 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/golang/mock/gomock"
+	"github.com/google/uuid"
 	"github.com/hashicorp/vault/api"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -75,9 +76,10 @@ var _ = Describe("Test client helpers", func() {
 
 			secret := &api.Secret{
 				Data: map[string]interface{}{
-					certificateField: "xx",
-					privateKeyField:  "yy",
-					issuingCAField:   "zz",
+					certificateField:  "xx",
+					privateKeyField:   "yy",
+					issuingCAField:    "zz",
+					serialNumberField: "123",
 				},
 			}
 
@@ -86,11 +88,12 @@ var _ = Describe("Test client helpers", func() {
 			actual := newCert(cn, secret, expiration)
 
 			expected := &Certificate{
-				issuingCA:  pem.RootCertificate("zz"),
-				privateKey: pem.PrivateKey("yy"),
-				certChain:  pem.Certificate("xx"),
-				expiration: expiration,
-				commonName: "foo.bar.co.uk",
+				issuingCA:    pem.RootCertificate("zz"),
+				privateKey:   pem.PrivateKey("yy"),
+				certChain:    pem.Certificate("xx"),
+				expiration:   expiration,
+				commonName:   "foo.bar.co.uk",
+				serialNumber: "123",
 			}
 
 			Expect(actual).To(Equal(expected))
@@ -99,12 +102,42 @@ var _ = Describe("Test client helpers", func() {
 
 	Context("Test Hashi Vault functions", func() {
 		cm := CertManager{
-			cache: &map[certificate.CommonName]certificate.Certificater{
-				expiredCertCN: expiredCert,
-				validCertCN:   validCert,
-			},
 			ca: rootCert,
 		}
+		cm.cache.Store(expiredCertCN, expiredCert)
+		cm.cache.Store(validCertCN, validCert)
+
+		getCachedCertificateCNs := func() []certificate.CommonName {
+			var commonNames []certificate.CommonName
+			cm.cache.Range(func(cnInterface interface{}, certInterface interface{}) bool {
+				cert := certInterface.(*Certificate)
+				commonNames = append(commonNames, cert.GetCommonName())
+				return true
+			})
+			return commonNames
+		}
+
+		It("gets issuing CA public part", func() {
+			expectedNumberOfCertsInCache := 2
+			Expect(len(getCachedCertificateCNs())).To(Equal(expectedNumberOfCertsInCache))
+			Expect(getCachedCertificateCNs()).To(ContainElement(certificate.CommonName("this.has.expired")))
+			Expect(getCachedCertificateCNs()).To(ContainElement(certificate.CommonName("valid.certificate")))
+			certBytes := uuid.New().String()
+			issue := func(certificate.CommonName, time.Duration) (certificate.Certificater, error) {
+				cert := Certificate{
+					issuingCA: pem.RootCertificate(certBytes),
+				}
+				return cert, nil
+			}
+			issuingCA, err := cm.getIssuingCA(issue)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Ensure that cache is NOT affected
+			Expect(issuingCA).To(Equal([]byte(certBytes)))
+			Expect(len(getCachedCertificateCNs())).To(Equal(expectedNumberOfCertsInCache))
+			Expect(getCachedCertificateCNs()).To(ContainElement(certificate.CommonName("this.has.expired")))
+			Expect(getCachedCertificateCNs()).To(ContainElement(certificate.CommonName("valid.certificate")))
+		})
 
 		It("gets certs from cache", func() {
 			// This cert does not exist - returns nil

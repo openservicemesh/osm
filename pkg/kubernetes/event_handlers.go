@@ -8,6 +8,7 @@ import (
 
 	a "github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 )
 
 var emitLogs = os.Getenv(constants.EnvVarLogKubernetesEvents) == "true"
@@ -50,7 +51,15 @@ func GetKubernetesEventHandlers(informerName, providerName string, announce chan
 			ann.ReferencedObjectID = getObjID(obj)
 		}
 
-		announce <- ann
+		select {
+		case announce <- ann:
+			// Channel post succeeded
+		default:
+			// Since pubsub introduction, there's a chance we start seeing full channels which
+			// will slowly become unused in favour of pub-sub subscriptions.
+			// We are making sure here ResourceEventHandlerFuncs never locks due to a push on a full channel.
+			log.Trace().Msgf("Channel for provider %s is full, dropping channel notify %s ", providerName, eventType)
+		}
 	}
 
 	return cache.ResourceEventHandlerFuncs{
@@ -60,6 +69,11 @@ func GetKubernetesEventHandlers(informerName, providerName string, announce chan
 				logNotObservedNamespace(obj, eventTypes.Add)
 				return
 			}
+			events.GetPubSubInstance().Publish(events.PubSubMessage{
+				AnnouncementType: eventTypes.Add,
+				NewObj:           obj,
+				OldObj:           nil,
+			})
 			sendAnnouncement(eventTypes.Add, obj)
 		},
 
@@ -68,6 +82,11 @@ func GetKubernetesEventHandlers(informerName, providerName string, announce chan
 				logNotObservedNamespace(newObj, eventTypes.Update)
 				return
 			}
+			events.GetPubSubInstance().Publish(events.PubSubMessage{
+				AnnouncementType: eventTypes.Update,
+				NewObj:           oldObj,
+				OldObj:           newObj,
+			})
 			sendAnnouncement(eventTypes.Update, oldObj)
 		},
 
@@ -76,6 +95,11 @@ func GetKubernetesEventHandlers(informerName, providerName string, announce chan
 				logNotObservedNamespace(obj, eventTypes.Delete)
 				return
 			}
+			events.GetPubSubInstance().Publish(events.PubSubMessage{
+				AnnouncementType: eventTypes.Delete,
+				NewObj:           nil,
+				OldObj:           obj,
+			})
 			sendAnnouncement(eventTypes.Delete, obj)
 		},
 	}
