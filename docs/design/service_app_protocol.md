@@ -74,7 +74,7 @@ A service `service-2` backed by a pod in service account `sa-1` serving raw `tcp
 ```yaml
 kind: Service
 metadata:
-  name: service-1
+  name: service-2
   namespace: default
 spec:
   ports:
