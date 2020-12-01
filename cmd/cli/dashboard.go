@@ -16,7 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/openservicemesh/osm/pkg/utils"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 )
 
 const openGrafanaDashboardDesc = `
@@ -105,12 +105,12 @@ func (d *dashboardCmd) run() error {
 		return errors.Errorf("No running Grafana pod available")
 	}
 
-	portForwarder, err := utils.NewPortForwarder(conf, clientSet, grafanaPod.Name, grafanaPod.Namespace, d.localPort, d.remotePort)
+	portForwarder, err := k8s.NewPortForwarder(conf, clientSet, grafanaPod.Name, grafanaPod.Namespace, d.localPort, d.remotePort)
 	if err != nil {
 		return errors.Errorf("Error setting up port forwarding: %s", err)
 	}
 
-	err = portForwarder.Start(func(pf *utils.PortForwarder) error {
+	err = portForwarder.Start(func(pf *k8s.PortForwarder) error {
 		if d.openBrowser {
 			url := fmt.Sprintf("http://localhost:%d", d.localPort)
 			fmt.Fprintf(d.out, "[+] Issuing open browser %s\n", url)
