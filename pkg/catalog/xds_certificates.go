@@ -62,6 +62,35 @@ func (mc *MeshCatalog) GetGatewaypods(searchName string) ([]string, error) {
 			searchList = append(searchList, pod.Name)
 		}
 	}
+
+	// Add from remote pods too
+	submProvider := mc.GetProvider("Submariner")
+	if submProvider != nil  {
+		svc := service.MeshService{
+			Namespace: "default",
+			Name:      searchName,
+		}
+		// Note this is Service specific instead of pod specific.
+		eps := submProvider.ListEndpointsForService(svc)
+		if len(eps) > 0 {
+			svcName := searchName + "-branch"
+			searchList = append(searchList, svcName)
+		}
+		/*
+		knownIPs := make(map[string]bool, 0)
+		for _, ep := range eps {
+			ipStr := ep.IP.String()
+			if _, exists := knownIPs[ipStr]; !exists {
+				knownIPs[ipStr] = true
+				svcName := searchName + "-" + ipStr
+				log.Info().Msgf("[GetGatewaypods] adding svcName:%s", svcName)
+				searchList = append(searchList, svcName)
+			}
+		}
+		*/
+	} else {
+		log.Info().Msgf("[GetGatewaypods]: Submariner provider is nil")
+	}
 	return searchList, nil
 }
 

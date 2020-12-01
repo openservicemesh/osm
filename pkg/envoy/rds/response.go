@@ -154,5 +154,22 @@ func filterOnTargetPort(hostnames string, port int) string {
 			newHostnames = append(newHostnames, name)
 		}
 	}
+	if len(newHostnames) == 0 {
+		return joinTargetPort(hostnames, port)
+	}
+	return strings.Join(newHostnames, ",")
+}
+
+// join port on all hostnames
+func joinTargetPort(hostnames string, port int) string {
+	newHostnames := make([]string, 0)
+	strs := strings.Split(hostnames, ",")
+	portStr := fmt.Sprintf(":%d", port)
+	for _, name := range strs {
+		if !strings.Contains(name, ":") {
+			newHostname := name + portStr
+			newHostnames = append(newHostnames, newHostname)
+		}
+	}
 	return strings.Join(newHostnames, ",")
 }

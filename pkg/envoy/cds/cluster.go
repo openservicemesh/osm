@@ -2,12 +2,13 @@ package cds
 
 import (
 	"fmt"
+	_ "strings"
 	"time"
 
 	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
-	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
+	_ "github.com/envoyproxy/go-control-plane/pkg/wellknown"
 
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/wrappers"
@@ -27,21 +28,26 @@ const (
 // getRemoteServiceCluster returns an Envoy Cluster corresponding to the remote service
 func getRemoteServiceCluster(remoteService, localService service.MeshServicePort, cfg configurator.Configurator) (*xds_cluster.Cluster, error) {
 	clusterName := remoteService.String()
+	/* WITESAND_TLS_DISABLE
+	sni := remoteService.GetMeshService().GetCommonName().String()
 	marshalledUpstreamTLSContext, err := envoy.MessageToAny(
-		envoy.GetUpstreamTLSContext(localService.GetMeshService(), remoteService.GetMeshService().GetCommonName().String()))
+		envoy.GetUpstreamTLSContext(localService.GetMeshService(), sni))
 	if err != nil {
 		return nil, err
 	}
+	*/
 
 	remoteCluster := &xds_cluster.Cluster{
 		Name:           clusterName,
 		ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
+		/* WITESAND_TLS_DISABLE
 		TransportSocket: &xds_core.TransportSocket{
 			Name: wellknown.TransportSocketTls,
 			ConfigType: &xds_core.TransportSocket_TypedConfig{
 				TypedConfig: marshalledUpstreamTLSContext,
 			},
 		},
+		*/
 		ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
 		Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
 	}
