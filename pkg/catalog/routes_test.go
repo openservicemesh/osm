@@ -5,7 +5,6 @@ import (
 	reflect "reflect"
 	"testing"
 
-	mapset "github.com/deckarep/golang-set"
 	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,24 +15,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/tests"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 	"github.com/openservicemesh/osm/pkg/utils"
-)
-
-var (
-	testGetAllRoute = trafficpolicy.HTTPRoute{
-		PathRegex: "/all",
-		Methods:   []string{"GET"},
-		Headers: map[string]string{
-			"user-agent": "some-agent",
-		},
-	}
-
-	testGetSomeRoute = trafficpolicy.HTTPRoute{
-		PathRegex: "/some",
-		Methods:   []string{"GET"},
-		Headers: map[string]string{
-			"user-agent": "another-agent",
-		},
-	}
 )
 
 func TestIsValidTrafficTarget(t *testing.T) {
@@ -81,127 +62,6 @@ func TestIsValidTrafficTarget(t *testing.T) {
 		t.Run(fmt.Sprintf("Testing isValidTrafficTarget when input %s ", tc.name), func(t *testing.T) {
 			actual := isValidTrafficTarget(tc.input)
 			assert.Equal(tc.expected, actual)
-		})
-	}
-}
-
-func TestBuildTrafficPolicies(t *testing.T) {
-	mc := newFakeMeshCatalogForRoutes(t)
-
-	testCases := []struct {
-		name             string
-		sourceServices   []service.MeshService
-		destServices     []service.MeshService
-		routes           []trafficpolicy.HTTPRoute
-		expectedPolicies []*trafficpolicy.TrafficPolicy
-	}{
-		{
-			name:           "policy for 1 source service and 1 destination service with 1 route",
-			sourceServices: []service.MeshService{tests.BookbuyerService},
-			destServices:   []service.MeshService{tests.BookstoreV2Service},
-			routes:         []trafficpolicy.HTTPRoute{testGetAllRoute},
-			expectedPolicies: []*trafficpolicy.TrafficPolicy{
-				{
-					Name:        "bookstore-v2-default",
-					Source:      tests.BookbuyerService,
-					Destination: tests.BookstoreV2Service,
-					HTTPRoutesClusters: []trafficpolicy.RouteWeightedClusters{
-						{
-							HTTPRoute: testGetAllRoute,
-							WeightedClusters: mapset.NewSet(service.WeightedCluster{
-								ClusterName: "default/bookstore-v2",
-								Weight:      100,
-							}),
-						},
-					},
-					Hostnames: tests.BookstoreV2Hostnames,
-				},
-			},
-		},
-		{
-			name:           "policy for 1 source service and 2 destination services with one destination service that doesn't exist",
-			sourceServices: []service.MeshService{tests.BookbuyerService},
-			destServices: []service.MeshService{tests.BookstoreV2Service, {
-				Namespace: "default",
-				Name:      "nonexistentservices",
-			}},
-			routes: []trafficpolicy.HTTPRoute{testGetAllRoute},
-			expectedPolicies: []*trafficpolicy.TrafficPolicy{
-				{
-					Name:        "bookstore-v2-default",
-					Source:      tests.BookbuyerService,
-					Destination: tests.BookstoreV2Service,
-					HTTPRoutesClusters: []trafficpolicy.RouteWeightedClusters{
-						{
-							HTTPRoute: testGetAllRoute,
-							WeightedClusters: mapset.NewSet(service.WeightedCluster{
-								ClusterName: "default/bookstore-v2",
-								Weight:      100,
-							}),
-						},
-					},
-					Hostnames: tests.BookstoreV2Hostnames,
-				},
-			},
-		},
-		{
-			name:           "policies for 1 source service, 2 destination services, and multiple routes ",
-			sourceServices: []service.MeshService{tests.BookbuyerService},
-			destServices:   []service.MeshService{tests.BookstoreV2Service, tests.BookstoreV1Service},
-			routes:         []trafficpolicy.HTTPRoute{testGetAllRoute, testGetSomeRoute},
-			expectedPolicies: []*trafficpolicy.TrafficPolicy{
-				{
-					Name:        "bookstore-v2-default",
-					Source:      tests.BookbuyerService,
-					Destination: tests.BookstoreV2Service,
-					HTTPRoutesClusters: []trafficpolicy.RouteWeightedClusters{
-						{
-							HTTPRoute: testGetAllRoute,
-							WeightedClusters: mapset.NewSet(service.WeightedCluster{
-								ClusterName: "default/bookstore-v2",
-								Weight:      100,
-							}),
-						},
-						{
-							HTTPRoute: testGetSomeRoute,
-							WeightedClusters: mapset.NewSet(service.WeightedCluster{
-								ClusterName: "default/bookstore-v2",
-								Weight:      100,
-							}),
-						},
-					},
-					Hostnames: tests.BookstoreV2Hostnames,
-				},
-				{
-					Name:        "bookstore-v1-default",
-					Source:      tests.BookbuyerService,
-					Destination: tests.BookstoreV1Service,
-					HTTPRoutesClusters: []trafficpolicy.RouteWeightedClusters{
-						{
-							HTTPRoute: testGetAllRoute,
-							WeightedClusters: mapset.NewSet(service.WeightedCluster{
-								ClusterName: "default/bookstore-v1",
-								Weight:      100,
-							}),
-						},
-						{
-							HTTPRoute: testGetSomeRoute,
-							WeightedClusters: mapset.NewSet(service.WeightedCluster{
-								ClusterName: "default/bookstore-v1",
-								Weight:      100,
-							}),
-						},
-					},
-					Hostnames: tests.BookstoreV1Hostnames,
-				},
-			},
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(fmt.Sprintf("Testing build traffic policies when %s ", tc.name), func(t *testing.T) {
-			policies := mc.buildTrafficPolicies(tc.sourceServices, tc.destServices, tc.routes)
-			assert.ElementsMatch(t, tc.expectedPolicies, policies, tc.name)
 		})
 	}
 }
@@ -325,7 +185,7 @@ func TestRoutesFromRules(t *testing.T) {
 		name           string
 		rules          []target.TrafficTargetRule
 		namespace      string
-		expectedRoutes []trafficpolicy.HTTPRoute
+		expectedRoutes []trafficpolicy.HTTPRouteMatch
 	}{
 		{
 			name: "http route group and match name exist",
@@ -337,7 +197,7 @@ func TestRoutesFromRules(t *testing.T) {
 				},
 			},
 			namespace:      tests.Namespace,
-			expectedRoutes: []trafficpolicy.HTTPRoute{tests.BookstoreBuyHTTPRoute},
+			expectedRoutes: []trafficpolicy.HTTPRouteMatch{tests.BookstoreBuyHTTPRoute},
 		},
 		{
 			name: "http route group and match name do not exist",
@@ -349,7 +209,7 @@ func TestRoutesFromRules(t *testing.T) {
 				},
 			},
 			namespace:      tests.Namespace,
-			expectedRoutes: []trafficpolicy.HTTPRoute{},
+			expectedRoutes: []trafficpolicy.HTTPRouteMatch{},
 		},
 	}
 
@@ -403,22 +263,22 @@ func TestGetTrafficPoliciesForService(t *testing.T) {
 			input: tests.BookbuyerService,
 			output: []trafficpolicy.TrafficTarget{
 				{
-					Name:        utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreV1Service),
-					Destination: tests.BookstoreV1Service,
-					Source:      tests.BookbuyerService,
-					HTTPRoutes:  tests.BookstoreV1TrafficPolicy.HTTPRoutes,
+					Name:             utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreV1Service),
+					Destination:      tests.BookstoreV1Service,
+					Source:           tests.BookbuyerService,
+					HTTPRouteMatches: tests.BookstoreV1TrafficPolicy.HTTPRouteMatches,
 				},
 				{
-					Name:        utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreV2Service),
-					Destination: tests.BookstoreV2Service,
-					Source:      tests.BookbuyerService,
-					HTTPRoutes:  tests.BookstoreV2TrafficPolicy.HTTPRoutes,
+					Name:             utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreV2Service),
+					Destination:      tests.BookstoreV2Service,
+					Source:           tests.BookbuyerService,
+					HTTPRouteMatches: tests.BookstoreV2TrafficPolicy.HTTPRouteMatches,
 				},
 				{
-					Name:        utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreApexService),
-					Destination: tests.BookstoreApexService,
-					Source:      tests.BookbuyerService,
-					HTTPRoutes:  tests.BookstoreApexTrafficPolicy.HTTPRoutes,
+					Name:             utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreApexService),
+					Destination:      tests.BookstoreApexService,
+					Source:           tests.BookbuyerService,
+					HTTPRouteMatches: tests.BookstoreApexTrafficPolicy.HTTPRouteMatches,
 				},
 			},
 		},
@@ -441,7 +301,7 @@ func TestGetHTTPPathsPerRoute(t *testing.T) {
 	assert.Nil(err)
 
 	specKey := mc.getTrafficSpecName("HTTPRouteGroup", tests.Namespace, tests.RouteGroupName)
-	expected := map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.HTTPRoute{
+	expected := map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.HTTPRouteMatch{
 		specKey: {
 			trafficpolicy.TrafficSpecMatchName(tests.BuyBooksMatchName): {
 				PathRegex: tests.BookstoreBuyPath,
@@ -505,7 +365,7 @@ func TestBuildAllowPolicyForSourceToDest(t *testing.T) {
 	expectedDestinationTrafficResource := utils.K8sSvcToMeshSvc(destination)
 
 	expectedHostHeaders := map[string]string{"user-agent": tests.HTTPUserAgent}
-	expectedRoute := trafficpolicy.HTTPRoute{
+	expectedRoute := trafficpolicy.HTTPRouteMatch{
 		PathRegex: constants.RegexMatchAll,
 		Methods:   []string{constants.WildcardHTTPMethod},
 		Headers:   expectedHostHeaders,
@@ -514,8 +374,8 @@ func TestBuildAllowPolicyForSourceToDest(t *testing.T) {
 	trafficTarget := mc.buildAllowPolicyForSourceToDest(source, destination)
 	assert.Equal(trafficTarget.Source, expectedSourceTrafficResource)
 	assert.Equal(trafficTarget.Destination, expectedDestinationTrafficResource)
-	assert.Equal(trafficTarget.HTTPRoutes[0].PathRegex, expectedRoute.PathRegex)
-	assert.ElementsMatch(trafficTarget.HTTPRoutes[0].Methods, expectedRoute.Methods)
+	assert.Equal(trafficTarget.HTTPRouteMatches[0].PathRegex, expectedRoute.PathRegex)
+	assert.ElementsMatch(trafficTarget.HTTPRouteMatches[0].Methods, expectedRoute.Methods)
 }
 
 func TestListAllowedOutboundServices(t *testing.T) {
@@ -763,7 +623,7 @@ func TestGetTrafficTargetFromSrcDstHash(t *testing.T) {
 	srcDstServiceHash := "src-ns/source:dst-ns/destination"
 
 	targetName := "test"
-	httpRoutes := []trafficpolicy.HTTPRoute{
+	httpRoutes := []trafficpolicy.HTTPRouteMatch{
 		{
 			PathRegex: tests.BookstoreBuyPath,
 			Methods:   []string{"GET"},
@@ -776,10 +636,10 @@ func TestGetTrafficTargetFromSrcDstHash(t *testing.T) {
 	trafficTarget := getTrafficTargetFromSrcDstHash(srcDstServiceHash, targetName, httpRoutes)
 
 	expectedTrafficTarget := trafficpolicy.TrafficTarget{
-		Source:      src,
-		Destination: dst,
-		Name:        targetName,
-		HTTPRoutes:  httpRoutes,
+		Source:           src,
+		Destination:      dst,
+		Name:             targetName,
+		HTTPRouteMatches: httpRoutes,
 	}
 
 	assert.Equal(trafficTarget, expectedTrafficTarget)

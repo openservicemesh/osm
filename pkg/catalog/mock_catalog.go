@@ -55,10 +55,10 @@ func (mr *MockMeshCatalogerMockRecorder) ExpectProxy(arg0 interface{}) *gomock.C
 }
 
 // GetIngressRoutesPerHost mocks base method
-func (m *MockMeshCataloger) GetIngressRoutesPerHost(arg0 service.MeshService) (map[string][]trafficpolicy.HTTPRoute, error) {
+func (m *MockMeshCataloger) GetIngressRoutesPerHost(arg0 service.MeshService) (map[string][]trafficpolicy.HTTPRouteMatch, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetIngressRoutesPerHost", arg0)
-	ret0, _ := ret[0].(map[string][]trafficpolicy.HTTPRoute)
+	ret0, _ := ret[0].(map[string][]trafficpolicy.HTTPRouteMatch)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
