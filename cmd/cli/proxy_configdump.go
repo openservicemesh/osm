@@ -16,6 +16,7 @@ import (
 	"k8s.io/client-go/rest"
 
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 const dumpConfigDescription = `
@@ -84,12 +85,12 @@ func (cmd *proxyDumpConfigCmd) run() error {
 		return errors.Errorf("Pod %s in namespace %s is not a part of a mesh", cmd.pod, cmd.namespace)
 	}
 
-	portForwarder, err := NewPortForwarder(cmd.config, cmd.clientSet, cmd.pod, cmd.namespace, cmd.localPort, constants.EnvoyAdminPort)
+	portForwarder, err := utils.NewPortForwarder(cmd.config, cmd.clientSet, cmd.pod, cmd.namespace, cmd.localPort, constants.EnvoyAdminPort)
 	if err != nil {
 		return errors.Errorf("Error setting up port forwarding: %s", err)
 	}
 
-	err = portForwarder.Start(func(pf *PortForwarder) error {
+	err = portForwarder.Start(func(pf *utils.PortForwarder) error {
 		url := fmt.Sprintf("http://localhost:%d/config_dump", cmd.localPort)
 
 		// #nosec G107: Potential HTTP request made with variable url

@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/openservicemesh/osm/pkg/utils"
 	"github.com/pkg/browser"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -103,12 +104,12 @@ func (d *dashboardCmd) run() error {
 		return errors.Errorf("No running Grafana pod available")
 	}
 
-	portForwarder, err := NewPortForwarder(conf, clientSet, grafanaPod.Name, grafanaPod.Namespace, d.localPort, d.remotePort)
+	portForwarder, err := utils.NewPortForwarder(conf, clientSet, grafanaPod.Name, grafanaPod.Namespace, d.localPort, d.remotePort)
 	if err != nil {
 		return errors.Errorf("Error setting up port forwarding: %s", err)
 	}
 
-	err = portForwarder.Start(func(pf *PortForwarder) error {
+	err = portForwarder.Start(func(pf *utils.PortForwarder) error {
 		if d.openBrowser {
 			url := fmt.Sprintf("http://localhost:%d", d.localPort)
 			fmt.Fprintf(d.out, "[+] Issuing open browser %s\n", url)
