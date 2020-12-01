@@ -82,6 +82,10 @@ var (
 	defaultImageTag = "latest"
 	// default cert manager
 	defaultCertManager = "tresor"
+	// default enable NS metrics tag
+	defaultEnableNsMetricTag = true
+	// default enable debug server
+	defaultEnableDebugServer = true
 	// default deploy Prometheus
 	defaultDeployPrometheus = false
 	// default deploy Grafana
@@ -147,9 +151,10 @@ type OsmTestData struct {
 	WaitForCleanup bool // Forces test to wait for effective deletion of resources upon cleanup
 
 	// OSM install-time variables
-	InstType     InstallType // Install type.
-	OsmNamespace string
-	OsmImageTag  string
+	InstType          InstallType // Install type.
+	OsmNamespace      string
+	OsmImageTag       string
+	EnableNsMetricTag bool
 
 	// Container registry related vars
 	CtrRegistryUser     string // registry login
@@ -187,6 +192,8 @@ func registerFlags(td *OsmTestData) {
 
 	flag.StringVar(&td.OsmImageTag, "osmImageTag", utils.GetEnv("CTR_TAG", defaultImageTag), "OSM image tag")
 	flag.StringVar(&td.OsmNamespace, "OsmNamespace", utils.GetEnv("K8S_NAMESPACE", defaultOsmNamespace), "OSM Namespace")
+
+	flag.BoolVar(&td.EnableNsMetricTag, "EnableMetricsTag", defaultEnableNsMetricTag, "Enable taggic Namespaces for metric collection")
 }
 
 // GetTestNamespaceSelectorMap returns a string-based selector used to refer/select all namespace
@@ -305,6 +312,7 @@ func (td *OsmTestData) GetOSMInstallOpts() InstallOSMOpts {
 		CertmanagerIssuerKind:  "Issuer",
 		CertmanagerIssuerName:  "osm-ca",
 		EnvoyLogLevel:          defaultEnvoyLogLevel,
+		EnableDebugServer:      defaultEnableDebugServer,
 	}
 }
 
@@ -774,6 +782,17 @@ func (td *OsmTestData) AddNsToMesh(sidecardInject bool, ns ...string) error {
 			td.T.Logf("stdout:\n%s", stdout)
 			td.T.Logf("stderr:\n%s", stderr)
 			return errors.Wrap(err, "failed to run osm namespace add")
+		}
+
+		if Td.EnableNsMetricTag {
+			args = []string{"metrics", "enable", "--namespace", namespace}
+			stdout, stderr, err = td.RunLocal(filepath.FromSlash("../../bin/osm"), args)
+			if err != nil {
+				td.T.Logf("error running osm namespace add")
+				td.T.Logf("stdout:\n%s", stdout)
+				td.T.Logf("stderr:\n%s", stderr)
+				return errors.Wrap(err, "failed to run osm namespace add")
+			}
 		}
 	}
 	return nil
