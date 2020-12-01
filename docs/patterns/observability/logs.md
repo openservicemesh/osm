@@ -57,3 +57,12 @@ Once logs have been sent to Log Analytics, that can also be consumed by Applicat
 
 You can now interact with your logs in either of these instances.
 
+
+### Configuring Outbound Proxy Support for Fluent Bit
+You may require outbound proxy support if your egress traffic is configured to go through a proxy server. To enable this, make the following changes in `values.yaml`:
+    
+1. Change `enableProxySupport` to `true`
+
+2. Update the httpProxy and httpsProxy values to `"http://<host>:<port>"`
+
+Ensure that the Fluent Bit image tag is `1.6.4` or greater as it is required for this feature. 

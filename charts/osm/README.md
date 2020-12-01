@@ -29,6 +29,9 @@ A Helm chart to install the OSM control plane on Kubernetes
 | OpenServiceMesh.fluentBit.pullPolicy | string | `"IfNotPresent"` |  |
 | OpenServiceMesh.fluentBit.defaultOutput | string | `"stdout"` |  |
 | OpenServiceMesh.fluentBit.allowCustomOutput | bool | `"true"` |  |
+| OpenServiceMesh.fluentBit.enableProxySupport | bool | `"false"` |  |
+| OpenServiceMesh.fluentBit.httpProxy | string | `""` |  |
+| OpenServiceMesh.fluentBit.httpsProxy | string | `""` |  |
 | OpenServiceMesh.grafana.port | int | `3000` |  |
 | OpenServiceMesh.image.pullPolicy | string | `"IfNotPresent"` |  |
 | OpenServiceMesh.image.registry | string | `"openservicemesh"` |  |
