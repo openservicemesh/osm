@@ -5,6 +5,7 @@ import (
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/golang/protobuf/ptypes"
+	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -37,6 +38,7 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 		TypeUrl: string(envoy.TypeRDS),
 	}
 
+	allTrafficSplits, _, _, _, _ := catalog.ListSMIPolicies()
 	var routeConfiguration []*xds_route.RouteConfiguration
 	outboundRouteConfig := route.NewRouteConfigurationStub(route.OutboundRouteConfigName)
 	inboundRouteConfig := route.NewRouteConfigurationStub(route.InboundRouteConfigName)
@@ -48,6 +50,10 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 		isDestinationService := trafficPolicy.Destination.Equals(proxyServiceName)
 		svc := trafficPolicy.Destination
 		hostnames, err := catalog.GetResolvableHostnamesForUpstreamService(proxyServiceName, svc)
+		//filter out traffic split service, reference to pkg/catalog/xds_certificates.go:74
+		if isTrafficSplitService(svc, allTrafficSplits) {
+			continue
+		}
 		if err != nil {
 			log.Error().Err(err).Msg("Failed listing domains")
 			return nil, err
@@ -90,6 +96,15 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 		resp.Resources = append(resp.Resources, marshalledRouteConfig)
 	}
 	return resp, nil
+}
+
+func isTrafficSplitService(svc service.MeshService, allTrafficSplits []*split.TrafficSplit) bool {
+	for _, split := range allTrafficSplits {
+		if split.Namespace == svc.Namespace && split.Spec.Service == svc.Name {
+			return true
+		}
+	}
+	return false
 }
 
 func aggregateRoutesByHost(routesPerHost map[string]map[string]trafficpolicy.RouteWeightedClusters, routePolicy trafficpolicy.HTTPRoute, weightedCluster service.WeightedCluster, hostname string) {
