@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/openservicemesh/osm/pkg/utils"
 	"github.com/pkg/browser"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -16,6 +15,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
+
+	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 const openGrafanaDashboardDesc = `
