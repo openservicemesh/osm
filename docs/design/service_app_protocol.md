@@ -6,3 +6,79 @@ This document proposes to leverage the newly introduced `AppProtocol` field to d
 
 The minimum Kubernetes version must be v1.19 for features that require the `AppProtocol` to be specified for the service ports. If the Kubernetes version is lower than v1.19 or if the `AppProtocol` field is not set on the service's ports, OSM controller will log error events where applicable.
 
+
+## Example
+
+Consider the following SMI traffic access and traffic specs policies:
+- A `TCPRoute` resource named `tcp-route` that specifies the port TCP traffic should be allowed on.
+- An `HTTPRouteGroup` resource named `http-route` that specifies the HTTP routes for which HTTP traffic should be allowed.
+- A `TrafficTarget` resource named `test` that allows pods in the service account `sa-2` to access pods in the service account `sa-1` for the speficied TCP and HTTP rules.
+
+```yaml
+kind: TCPRoute
+metadata:
+  name: tcp-route
+spec:
+  matches:
+    ports:
+    - 8080
+---
+kind: HTTPRouteGroup
+metadata:
+  name: http-route
+spec:
+  matches:
+  - name: version
+    pathRegex: "/version"
+    methods:
+    - GET
+---
+kind: TrafficTarget
+metadata:
+  name: test
+  namespace: default
+spec:
+  destination:
+    kind: ServiceAccount
+    name: sa-1
+    namespace: default
+  rules:
+  - kind: TCPRoute
+    name: tcp-route
+  - kind: HTTPRouteGroup
+    name: http-route
+  sources:
+  - kind: ServiceAccount
+    name: sa-2
+    namespace: default
+```
+
+Kubernetes service resources should explicitly specify the application protocol being served by the service's ports using the `appProtocol` field.
+
+A service `service-1` backed by a pod in service account `sa-1` serving `http` application traffic should be defined as follows:
+
+```yaml
+kind: Service
+metadata:
+  name: service-1
+  namespace: default
+spec:
+  ports:
+  - port: 8080
+    name: some-port
+    appProtocol: http
+```
+
+A service `service-2` backed by a pod in service account `sa-1` serving raw `tcp` application traffic shold be defined as follows:
+
+```yaml
+kind: Service
+metadata:
+  name: service-1
+  namespace: default
+spec:
+  ports:
+  - port: 8080
+    name: some-port
+    appProtocol: tcp
+```
