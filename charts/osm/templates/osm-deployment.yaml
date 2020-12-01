@@ -79,6 +79,11 @@ spec:
         - name: {{ .Values.OpenServiceMesh.fluentBit.name }}
           image: {{ .Values.OpenServiceMesh.fluentBit.registry }}/fluent-bit:{{ .Values.OpenServiceMesh.fluentBit.tag }}
           imagePullPolicy: {{ .Values.OpenServiceMesh.fluentBit.pullPolicy }}
+        {{- if .Values.OpenServiceMesh.fluentBit.enableProxySupport }}
+          envFrom:
+            - secretRef:
+                name: proxy-config
+        {{- end }}
           volumeMounts:
           - name: config
             mountPath: /fluent-bit/etc
