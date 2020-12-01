@@ -8,10 +8,9 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	v1 "k8s.io/api/core/v1"
-
-	"github.com/openservicemesh/osm/pkg/announcements"
+	announcements "github.com/openservicemesh/osm/pkg/announcements"
 	service "github.com/openservicemesh/osm/pkg/service"
+	v1 "k8s.io/api/core/v1"
 )
 
 // MockController is a mock of Controller interface
@@ -134,6 +133,20 @@ func (m *MockController) ListPods() []*v1.Pod {
 func (mr *MockControllerMockRecorder) ListPods() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPods", reflect.TypeOf((*MockController)(nil).ListPods))
+}
+
+// ListPodsForService mocks base method
+func (m *MockController) ListPodsForService(arg0 v1.Service) []*v1.Pod {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListPodsForService", arg0)
+	ret0, _ := ret[0].([]*v1.Pod)
+	return ret0
+}
+
+// ListPodsForService indicates an expected call of ListPodsForService
+func (mr *MockControllerMockRecorder) ListPodsForService(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPodsForService", reflect.TypeOf((*MockController)(nil).ListPodsForService), arg0)
 }
 
 // ListServiceAccountsForService mocks base method

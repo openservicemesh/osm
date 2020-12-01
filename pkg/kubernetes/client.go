@@ -245,3 +245,25 @@ func (c Client) ListServiceAccountsForService(svc service.MeshService) ([]servic
 	}
 	return svcAccounts, nil
 }
+
+// ListPodsForService lists the pods associated with a service
+func (c Client) ListPodsForService(svc corev1.Service) []*corev1.Pod {
+	var pods []*corev1.Pod
+
+	svcSelector := svc.Spec.Selector
+	allPods := c.ListPods()
+
+	for _, pod := range allPods {
+		if svc.Namespace != pod.Namespace {
+			continue
+		}
+
+		podLabels := pod.ObjectMeta.Labels
+		selector := labels.Set(svcSelector).AsSelector()
+		if selector.Matches(labels.Set(podLabels)) {
+			pods = append(pods, pod)
+		}
+	}
+
+	return pods
+}
