@@ -142,6 +142,7 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 			serviceChannel := events.GetPubSubInstance().Subscribe(announcements.ServiceAdded,
 				announcements.ServiceDeleted,
 				announcements.ServiceUpdated)
+			defer events.GetPubSubInstance().Unsub(serviceChannel)
 
 			// Create monitored namespace for this service
 			testNamespace := &corev1.Namespace{
@@ -190,6 +191,7 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 			serviceChannel := events.GetPubSubInstance().Subscribe(announcements.ServiceAdded,
 				announcements.ServiceDeleted,
 				announcements.ServiceUpdated)
+			defer events.GetPubSubInstance().Unsub(serviceChannel)
 			testSvcs := []service.MeshService{
 				{Name: uuid.New().String(), Namespace: "ns-1"},
 				{Name: uuid.New().String(), Namespace: "ns-2"},
@@ -260,9 +262,11 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 			serviceChannel := events.GetPubSubInstance().Subscribe(announcements.ServiceAdded,
 				announcements.ServiceDeleted,
 				announcements.ServiceUpdated)
+			defer events.GetPubSubInstance().Unsub(serviceChannel)
 			podsChannel := events.GetPubSubInstance().Subscribe(announcements.PodAdded,
 				announcements.PodDeleted,
 				announcements.PodUpdated)
+			defer events.GetPubSubInstance().Unsub(podsChannel)
 
 			// Create a namespace
 			testNamespace := &corev1.Namespace{

@@ -28,6 +28,7 @@ OpenServiceMesh:
   caBundleSecretName: osm-ca-bundle
   grafana:
     port: 3000
+    enableRemoteRendering: false
 
   enableDebugServer: false
   enablePermissiveTrafficPolicy: false
@@ -37,18 +38,21 @@ OpenServiceMesh:
   enablePrometheusScraping: true
   deployGrafana: false
   enableFluentbit: false
-  fluentBitImage:
+  fluentBit:
     name: fluentbit-logger
     registry: fluent
-    tag: 1.5
+    tag: 1.6.4
     pullPolicy: IfNotPresent
+    defaultOutput: stdout
+    allowCustomOutput: true
+    enableProxySupport: false
+    httpProxy: ""
+    httpsProxy: ""
   meshName: osm
   useHTTPSIngress: false
   envoyLogLevel: error
   controllerLogLevel: trace
   enforceSingleMesh: false
-  customLogAnalyticsWorkspace: true
-  fluentbitOutput: stdout
   webhookConfigNamePrefix: osm-webhook
 
   # Set deployJaeger to true to deploy a Jaeger cluster in the

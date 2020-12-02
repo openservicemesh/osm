@@ -1,7 +1,6 @@
 package lds
 
 import (
-	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/golang/protobuf/ptypes"
 
@@ -63,21 +62,8 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 
 	// --- INBOUND -------------------
 	inboundListener := newInboundListener()
-	if meshFilterChain, err := getInboundInMeshFilterChain(proxyServiceName, cfg); err != nil {
-		log.Error().Err(err).Msgf("Error making in-mesh filter chain for proxy %s", proxy.GetCommonName())
-	} else {
-		if !cfg.IsPermissiveTrafficPolicyMode() {
-			// Apply RBAC policies on the inbound filters based on configured policies
-			rbacFilter, err := lb.buildRBACFilter()
-			if err != nil {
-				log.Error().Err(err).Msgf("Error applying RBAC filter for service %s", proxyServiceName)
-				return nil, err
-			}
-			// RBAC filter should be the very first filter in the filter chain
-			meshFilterChain.Filters = append([]*xds_listener.Filter{rbacFilter}, meshFilterChain.Filters...)
-		}
-		inboundListener.FilterChains = append(inboundListener.FilterChains, meshFilterChain)
-	}
+	inboundMeshFilterChains := lb.getInboundMeshFilterChains(proxyServiceName)
+	inboundListener.FilterChains = append(inboundListener.FilterChains, inboundMeshFilterChains...)
 
 	// --- INGRESS -------------------
 	// Apply an ingress filter chain if there are any ingress routes
