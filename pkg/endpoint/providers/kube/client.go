@@ -193,6 +193,11 @@ func (c Client) GetPortToProtocolMappingForService(svc service.MeshService) (map
 		return nil, errors.Errorf("Error fetching endpoints for service %s, namespace %s is not monitored", svc, endpoints.Namespace)
 	}
 
+	// A given port can only map to a single application protocol. Even if the same
+	// port appears as a separate endpoint 'ip:port', the application protocol is
+	// derived from the Service that fronts these endpoints, and a service's port
+	// can only have one application protocol. So for the same port we don't have
+	// to worry about different application protocols being set.
 	for _, endpointSet := range endpoints.Subsets {
 		for _, port := range endpointSet.Ports {
 			appProtocol := defaultAppProtocol
