@@ -8,13 +8,13 @@ Open Service Mesh (OSM) collects logs that are sent to stdout by default. When e
 OSM provides log forwarding by optionally deploying a Fluent Bit sidecar to the OSM controller using the `--enable-fluentbit` flag during installation. The user can then define where OSM logs should be forwarded using any of the available [Fluent Bit output plugins](https://docs.fluentbit.io/manual/v/1.4/pipeline/outputs).
 
 ### Configuring Log Forwarding with Fluent Bit
-By default, the Fluent Bit sidecar is configured to simply send logs to the Fluent Bit container's stdout. If you have installed OSM with Fluent Bit enabled, you may access these logs using `kubectl logs -n osm-system <osm-controller-name> -c fluentbit-logger`. However, we recommend configuring log forwarding to your preferred output for more informative results.
+By default, the Fluent Bit sidecar is configured to simply send logs to the Fluent Bit container's stdout. If you have installed OSM with Fluent Bit enabled, you may access these logs using `kubectl logs -n osm-system <osm-controller-name> -c fluentbit-logger`. This command will also help you find how your logs are formatted in case you need to change your parsers and filters. Once you have tried this out however, we recommend configuring log forwarding to your preferred output for more informative results.
 
-You may configure log forwarding to an output by following these steps _before_ you install OSM.
+To customize log forwarding to your output, follow these steps and then reinstall OSM with Fluent Bit enabled.
 
-1. Define the output plugin you would like to forward your logs to in the existing `fluentbit-configmap.yaml` file by replacing the `[OUTPUT]` section with your chosen output as described by Fluent Bit documentation [here](https://docs.fluentbit.io/manual/v/1.4/pipeline/outputs).
+1. Find the output plugin you would like to forward your logs to in [Fluent Bit documentation](https://docs.fluentbit.io/manual/pipeline/outputs). Replace the `[OUTPUT]` section in `fluentbit-configmap.yaml` with appropriate values.
 
-2. The default configuration uses CRI log format parsing. If you are using a kubernetes distribution that causes your logs to be formatted differently, you may need to update the `[PARSER]` section and the `parser` name in the `[INPUT]` section to one of the parsers defined [here](https://github.com/fluent/fluent-bit/blob/master/conf/parsers.conf).
+2. The default configuration uses CRI log format parsing. If you are using a kubernetes distribution that causes your logs to be formatted differently, you may need to add a new parser to the `[PARSER]` section and change the `parser` name in the `[INPUT]` section to one of the parsers defined [here](https://github.com/fluent/fluent-bit/blob/master/conf/parsers.conf).
 
 3. To view all logs irrespective of log level, you may remove the `[FILTER]` section. To change the log level being filtered on, you can update the "error" value below to "debug", "info", "warn", "fatal", "panic" or "trace":
    ```    
@@ -23,21 +23,15 @@ You may configure log forwarding to an output by following these steps _before_ 
          match      *
          regex      message /"level":"error"/
    ```
-
+    This regular expression may have to be customized if your logs are formatted or nested differently. If you wish to apply further filtering, explore [Fluent Bit filters](https://docs.fluentbit.io/manual/pipeline/filters).
+     
 4. Once you have updated the Fluent Bit configmap, you can deploy the sidecar during OSM installation using the `--enable-fluentbit` flag. You should now be able to interact with error logs in the output of your choice as they get generated.
 
 ### Example: Using Fluent Bit to send logs to Azure Monitor
 Fluent Bit has an Azure output plugin that can be used to send logs to an Azure Log Analytics workspace as follows:
 1. [Create a Log Analytics workspace](https://docs.microsoft.com/en-us/azure/azure-monitor/learn/quick-create-workspace)
 
-2. Navigate to your new workspace in Azure Portal. Find your Workspace ID and Primary key in your workspace under Advanced settings > Agents management. Locally, in `fluentbit-configmap.yaml`, update the `[OUTPUT]` section with those values as follows:
-   ```
-   [OUTPUT]
-         Name        azure
-         Match       *
-         Customer_ID <Log Analytics Workspace ID>
-         Shared_Key  <Log Analytics Primary key> 
-   ```
+2. Navigate to your new workspace in Azure Portal. Find your Workspace ID and Primary key in your workspace under Agents management. In `values.yaml`, under `fluentBit`, update the `outputPlugin` to `azure` and keys `workspaceId` and `primaryKey` with the corresponding values from Azure Portal (without quotes). Alternatively, you may replace entire output section in `fluentbit-configmap.yaml` as you would for any other output plugin.
 
 3. Run through steps 3 and 4 above. 
 
@@ -47,7 +41,7 @@ Fluent Bit has an Azure output plugin that can be used to send logs to an Azure 
     | order by TimeGenerated desc
     ```
 
-Once logs have been sent to Log Analytics, that can also be consumed by Application Insights as follows:
+Once logs have been sent to Log Analytics, they can also be consumed by Application Insights as follows:
 1. [Create a Workspace-based Application Insights instance](https://docs.microsoft.com/en-us/azure/azure-monitor/app/create-workspace-resource).
 
 2. Navigate to your instance in Azure Portal. Go to the Logs section. Run this query to ensure that logs are being picked up from Log Analytics:
