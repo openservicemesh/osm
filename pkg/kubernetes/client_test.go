@@ -368,6 +368,7 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 		})
 
 		It("should correctly return the pods associated with a service", func() {
+			// Test creates 2 pods whose labels match the service's selectors
 			serviceChannel := events.GetPubSubInstance().Subscribe(announcements.ServiceAdded,
 				announcements.ServiceDeleted,
 				announcements.ServiceUpdated)
@@ -448,6 +449,7 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 		})
 
 		It("should correctly return the pods associated with a service", func() {
+			// Test creates 2 pods, only one whose labels match the service's selectors
 			serviceChannel := events.GetPubSubInstance().Subscribe(announcements.ServiceAdded,
 				announcements.ServiceDeleted,
 				announcements.ServiceUpdated)
