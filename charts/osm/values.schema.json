@@ -216,8 +216,6 @@
                             "tag": "1.6.4",
                             "pullPolicy": "IfNotPresent",
                             "outputPlugin": "stdout",
-                            "workspaceId": "",
-                            "primaryKey": "",
                             "enableProxySupport": "false",
                             "httpProxy": "",
                             "httpsProxy": ""
@@ -229,8 +227,6 @@
                         "tag",
                         "pullPolicy",
                         "outputPlugin",
-                        "workspaceId",
-                        "primaryKey",
                         "enableProxySupport",
                         "httpProxy",
                         "httpsProxy"
@@ -280,24 +276,6 @@
                             "description": "The log forwarding destination plugin for Fluent Bit",
                             "examples": [
                                 "stdout"
-                            ]
-                        },
-                        "workspaceId": {
-                            "$id": "#/properties/OpenServiceMesh/properties/fluentBit/properties/workspaceId",
-                            "type": "string",
-                            "title": "The Azure Log Analytics workspaceId schema",
-                            "description": "Workspace ID of Azure Log Analytics to be outputted to by Fluent Bit",
-                            "examples": [
-                                ""
-                            ]
-                        },
-                        "primaryKey": {
-                            "$id": "#/properties/OpenServiceMesh/properties/fluentBit/properties/primaryKey",
-                            "type": "string",
-                            "title": "The Azure Log Analytics primaryKey schema",
-                            "description": "Primary Key of Azure Log Analytics to be outputted to by Fluent Bit",
-                            "examples": [
-                                ""
                             ]
                         },
                         "enableProxySupport": {

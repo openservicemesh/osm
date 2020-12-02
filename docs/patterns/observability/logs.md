@@ -31,7 +31,7 @@ To customize log forwarding to your output, follow these steps and then reinstal
 Fluent Bit has an Azure output plugin that can be used to send logs to an Azure Log Analytics workspace as follows:
 1. [Create a Log Analytics workspace](https://docs.microsoft.com/en-us/azure/azure-monitor/learn/quick-create-workspace)
 
-2. Navigate to your new workspace in Azure Portal. Find your Workspace ID and Primary key in your workspace under Advanced settings > Agents management. In `values.yaml`, under `fluentBit`, update the `outputPlugin` to `azure` and keys `workspaceId` and `primaryKey` with the corresponding values from Azure Portal (without quotes). Alternatively, you may replace entire output section in `fluentbit-configmap.yaml` as you would for any other output plugin.
+2. Navigate to your new workspace in Azure Portal. Find your Workspace ID and Primary key in your workspace under Agents management. In `values.yaml`, under `fluentBit`, update the `outputPlugin` to `azure` and keys `workspaceId` and `primaryKey` with the corresponding values from Azure Portal (without quotes). Alternatively, you may replace entire output section in `fluentbit-configmap.yaml` as you would for any other output plugin.
 
 3. Run through steps 3 and 4 above. 
 
