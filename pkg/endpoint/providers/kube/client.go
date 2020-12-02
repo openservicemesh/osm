@@ -20,6 +20,11 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
+const (
+	// defaultAppProtocol is the default application protocol for a port if unspecified
+	defaultAppProtocol = "http"
+)
+
 // NewProvider implements mesh.EndpointsProvider, which creates a new Kubernetes cluster/compute provider.
 func NewProvider(kubeClient kubernetes.Interface, kubeController k8s.Controller, stop chan struct{}, providerIdent string, cfg configurator.Configurator) (endpoint.Provider, error) {
 	informerFactory := informers.NewSharedInformerFactory(kubeClient, k8s.DefaultKubeEventResyncInterval)
@@ -166,6 +171,40 @@ func (c Client) GetServicesForServiceAccount(svcAccount service.K8sServiceAccoun
 	}
 
 	return servicesSlice, nil
+}
+
+// GetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol
+func (c Client) GetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
+	portToProtocolMap := make(map[uint32]string)
+
+	endpointsInterface, exist, err := c.caches.Endpoints.GetByKey(svc.String())
+	if err != nil {
+		log.Error().Err(err).Msgf("[%s] Error fetching Kubernetes Endpoints from cache", c.providerIdent)
+		return nil, err
+	}
+
+	if !exist {
+		log.Error().Msgf("[%s] Error fetching Kubernetes Endpoints from cache: MeshService %s does not exist", c.providerIdent, svc)
+		return nil, errServiceNotFound
+	}
+
+	endpoints := endpointsInterface.(*corev1.Endpoints)
+	if !c.kubeController.IsMonitoredNamespace(endpoints.Namespace) {
+		return nil, errors.Errorf("Error fetching endpoints for service %s, namespace %s is not monitored", svc, endpoints.Namespace)
+	}
+
+	for _, endpointSet := range endpoints.Subsets {
+		for _, port := range endpointSet.Ports {
+			appProtocol := defaultAppProtocol
+			if port.AppProtocol != nil {
+				appProtocol = *port.AppProtocol
+			}
+
+			portToProtocolMap[uint32(port.Port)] = appProtocol
+		}
+	}
+
+	return portToProtocolMap, nil
 }
 
 // GetAnnouncementsChannel returns the announcement channel for the Kubernetes endpoints provider.
