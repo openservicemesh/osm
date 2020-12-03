@@ -102,8 +102,8 @@ func (td *OsmTestData) GetMutatingWebhook(mwhcName string) (*v1beta1.MutatingWeb
 	return mwhc, nil
 }
 
-// GetPodsForAppLabel returns the Pods matching a specific `appLabel`
-func (td *OsmTestData) GetPodsForAppLabel(ns string, labelSel metav1.LabelSelector) ([]corev1.Pod, error) {
+// GetPodsForLabel returns the Pods matching a specific `appLabel`
+func (td *OsmTestData) GetPodsForLabel(ns string, labelSel metav1.LabelSelector) ([]corev1.Pod, error) {
 	// Apparently there has to be a conversion between metav1 and labels
 	labelMap, _ := metav1.LabelSelectorAsMap(&labelSel)
 
@@ -324,9 +324,7 @@ func (td *OsmTestData) SimpleDeploymentApp(def SimpleDeploymentAppDef) (corev1.S
 	return serviceAccountDefinition, deploymentDefinition, serviceDefinition
 }
 
-// Handlers to  control plane apps below
-
-// GetGrafanaPodHandle forwards a grafana pod and returns a handler pointing to the local forwarded resource
+// GetGrafanaPodHandle generic func to forward a grafana pod and returns a handler pointing to the locally forwarded resource
 func (td *OsmTestData) GetGrafanaPodHandle(ns string, grafanaPodName string, port uint16) (*Grafana, error) {
 	portForwarder, err := k8s.NewPortForwarder(td.RestConfig, td.Client, grafanaPodName, ns, port, port)
 	if err != nil {
@@ -349,7 +347,7 @@ func (td *OsmTestData) GetGrafanaPodHandle(ns string, grafanaPodName string, por
 	}, nil
 }
 
-// GetPrometheusPodHandle forwards a prometheus pod and returns a handler pointing to the local forwarded resource
+// GetPrometheusPodHandle generic func to forward a prometheus pod and returns a handler pointing to the locally forwarded resource
 func (td *OsmTestData) GetPrometheusPodHandle(ns string, prometheusPodName string, port uint16) (*Prometheus, error) {
 	portForwarder, err := k8s.NewPortForwarder(td.RestConfig, td.Client, prometheusPodName, ns, port, port)
 	if err != nil {
@@ -378,33 +376,39 @@ func (td *OsmTestData) GetPrometheusPodHandle(ns string, prometheusPodName strin
 	}, nil
 }
 
-// GetOSMPrometheusAndGrafanaHandles convenience wrapper, will get Prometheus and Grafana instances regularly deployed
-// by OSM installation in test OsmNamespace, and return a handle for each
-func (td *OsmTestData) GetOSMPrometheusAndGrafanaHandles() (*Prometheus, *Grafana, error) {
-	prometheusPod, err := Td.GetPodsForAppLabel(Td.OsmNamespace, metav1.LabelSelector{
+// GetOSMPrometheusaHandles convenience wrapper, will get the Prometheus instance regularly deployed
+// by OSM installation in test <OsmNamespace>
+func (td *OsmTestData) GetOSMPrometheusaHandles() (*Prometheus, error) {
+	prometheusPod, err := Td.GetPodsForLabel(Td.OsmNamespace, metav1.LabelSelector{
 		MatchLabels: map[string]string{
 			"app": OsmPrometheusAppLabel,
 		},
 	})
 	if err != nil || len(prometheusPod) == 0 {
-		return nil, nil, errors.Errorf("Error getting Prometheus pods: %v (prom pods len: %d)", err, len(prometheusPod))
+		return nil, errors.Errorf("Error getting Prometheus pods: %v (prom pods len: %d)", err, len(prometheusPod))
 	}
 	pHandle, err := Td.GetPrometheusPodHandle(prometheusPod[0].Namespace, prometheusPod[0].Name, DefaultOsmPrometheusPort)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	grafanaPod, err := Td.GetPodsForAppLabel(Td.OsmNamespace, metav1.LabelSelector{
+	return pHandle, nil
+}
+
+// GetOSMGrafanaHandles convenience wrapper, will get the Grafana instance regularly deployed
+// by OSM installation in test <OsmNamespace>
+func (td *OsmTestData) GetOSMGrafanaHandles() (*Grafana, error) {
+	grafanaPod, err := Td.GetPodsForLabel(Td.OsmNamespace, metav1.LabelSelector{
 		MatchLabels: map[string]string{
 			"app": OsmGrafanaAppLabel,
 		},
 	})
 	if err != nil || len(grafanaPod) == 0 {
-		return nil, nil, errors.Errorf("Error getting Grafana pods: %v (graf pods len: %d)", err, len(grafanaPod))
+		return nil, errors.Errorf("Error getting Grafana pods: %v (graf pods len: %d)", err, len(grafanaPod))
 	}
 	gHandle, err := Td.GetGrafanaPodHandle(grafanaPod[0].Namespace, grafanaPod[0].Name, DefaultOsmGrafanaPort)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	return pHandle, gHandle, nil
+	return gHandle, nil
 }

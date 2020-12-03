@@ -21,9 +21,10 @@ type Prometheus struct {
 	API    v1.API
 }
 
-// VectorQuery runs a query, expects single vector type, and executes a Parsing function on the string result
-func (p *Prometheus) VectorQuery(query string) (float64, error) {
-	modelValue, warn, err := p.API.Query(context.Background(), query, time.Now())
+// VectorQuery runs a query at time <t>, expects single vector type and single result.
+// Returns expected first and only <SampleValue> as a float64
+func (p *Prometheus) VectorQuery(query string, t time.Time) (float64, error) {
+	modelValue, warn, err := p.API.Query(context.Background(), query, t)
 
 	if err != nil {
 		return 0, err
@@ -47,7 +48,7 @@ func (p *Prometheus) VectorQuery(query string) (float64, error) {
 // by prometheus.
 func (p *Prometheus) GetNumEnvoysInMesh() (float64, error) {
 	queryString := "count(count by(source_pod_name)(envoy_server_live))"
-	return p.VectorQuery(queryString)
+	return p.VectorQuery(queryString, time.Now())
 }
 
 // GetMemRSSforContainer returns RSS memory footprint for a given NS/podname/containerName
@@ -58,7 +59,7 @@ func (p *Prometheus) GetMemRSSforContainer(ns string, podName string, containerN
 		podName,
 		containerName)
 
-	return p.VectorQuery(queryString)
+	return p.VectorQuery(queryString, time.Now())
 }
 
 // GetCPULoadAvgforContainer returns CPU load average value for the time bucket passed as parametres, in minutes
@@ -70,7 +71,7 @@ func (p *Prometheus) GetCPULoadAvgforContainer(ns string, podName string, contai
 		containerName,
 		minutesBucket)
 
-	return p.VectorQuery(queryString)
+	return p.VectorQuery(queryString, time.Now())
 }
 
 // GetCPULoadsForContainer convenience wrapper to get 1m, 5m and 15m cpu loads for a resource
