@@ -4,12 +4,42 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/api"
+	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"k8s.io/api/admissionregistration/v1beta1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/intstr"
+
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
+)
+
+const (
+	// DefaultOsmGrafanaPort is the default Grafana port
+	DefaultOsmGrafanaPort = 3000
+	// DefaultOsmPrometheusPort default OSM prometheus port
+	DefaultOsmPrometheusPort = 7070
+
+	// OsmControllerAppLabel is the OSM Controller deployment app label
+	OsmControllerAppLabel = "osm-controller"
+	// OsmGrafanaAppLabel is the OSM Grafana deployment app label
+	OsmGrafanaAppLabel = "osm-grafana"
+	// OsmPrometheusAppLabel is the OSM Prometheus deployment app label
+	OsmPrometheusAppLabel = "osm-prometheus"
+
+	// OSM Grafana Dashboard specifics
+
+	// MeshDetails is dashboard uuid and name as we have them load in Grafana
+	MeshDetails string = "PLyKJcHGz/mesh-and-envoy-details"
+
+	// MemRSSPanel is the ID of the MemRSS panel on OSM's MeshDetails dashboard
+	MemRSSPanel int = 13
+	// CPUPanel is the ID of the CPU panel on OSM's MeshDetails dashboard
+	CPUPanel int = 14
 )
 
 // CreateServiceAccount is a wrapper to create a service account
@@ -70,6 +100,22 @@ func (td *OsmTestData) GetMutatingWebhook(mwhcName string) (*v1beta1.MutatingWeb
 		return nil, err
 	}
 	return mwhc, nil
+}
+
+// GetPodsForAppLabel returns the Pods matching a specific `appLabel`
+func (td *OsmTestData) GetPodsForAppLabel(ns string, labelSel metav1.LabelSelector) ([]corev1.Pod, error) {
+	// Apparently there has to be a conversion between metav1 and labels
+	labelMap, _ := metav1.LabelSelectorAsMap(&labelSel)
+
+	pods, err := Td.Client.CoreV1().Pods(ns).List(context.Background(), metav1.ListOptions{
+		LabelSelector: labels.SelectorFromSet(labelMap).String(),
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return pods.Items, nil
 }
 
 /* Application templates
@@ -276,4 +322,89 @@ func (td *OsmTestData) SimpleDeploymentApp(def SimpleDeploymentAppDef) (corev1.S
 	}
 
 	return serviceAccountDefinition, deploymentDefinition, serviceDefinition
+}
+
+// Handlers to  control plane apps below
+
+// GetGrafanaPodHandle forwards a grafana pod and returns a handler pointing to the local forwarded resource
+func (td *OsmTestData) GetGrafanaPodHandle(ns string, grafanaPodName string, port uint16) (*Grafana, error) {
+	portForwarder, err := k8s.NewPortForwarder(td.RestConfig, td.Client, grafanaPodName, ns, port, port)
+	if err != nil {
+		return nil, errors.Errorf("Error setting up port forwarding: %s", err)
+	}
+
+	err = portForwarder.Start(func(pf *k8s.PortForwarder) error {
+		return nil
+	})
+	if err != nil {
+		return nil, errors.Errorf("Could not start forwarding: %s", err)
+	}
+
+	return &Grafana{
+		Schema:   "http",
+		Hostname: "localhost",
+		Port:     port,
+		User:     "admin", // default value of grafana deployment
+		Password: "admin", // default value of grafana deployment
+	}, nil
+}
+
+// GetPrometheusPodHandle forwards a prometheus pod and returns a handler pointing to the local forwarded resource
+func (td *OsmTestData) GetPrometheusPodHandle(ns string, prometheusPodName string, port uint16) (*Prometheus, error) {
+	portForwarder, err := k8s.NewPortForwarder(td.RestConfig, td.Client, prometheusPodName, ns, port, port)
+	if err != nil {
+		return nil, errors.Errorf("Error setting up port forwarding: %s", err)
+	}
+
+	err = portForwarder.Start(func(pf *k8s.PortForwarder) error {
+		return nil
+	})
+	if err != nil {
+		return nil, errors.Errorf("Could not start forwarding: %s", err)
+	}
+
+	client, err := api.NewClient(api.Config{
+		Address: fmt.Sprintf("http://localhost:%d", port),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	v1api := v1.NewAPI(client)
+
+	return &Prometheus{
+		Client: client,
+		API:    v1api,
+	}, nil
+}
+
+// GetOSMPrometheusAndGrafanaHandles convenience wrapper, will get Prometheus and Grafana instances regularly deployed
+// by OSM installation in test OsmNamespace, and return a handle for each
+func (td *OsmTestData) GetOSMPrometheusAndGrafanaHandles() (*Prometheus, *Grafana, error) {
+	prometheusPod, err := Td.GetPodsForAppLabel(Td.OsmNamespace, metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			"app": OsmPrometheusAppLabel,
+		},
+	})
+	if err != nil || len(prometheusPod) == 0 {
+		return nil, nil, errors.Errorf("Error getting Prometheus pods: %v (prom pods len: %d)", err, len(prometheusPod))
+	}
+	pHandle, err := Td.GetPrometheusPodHandle(prometheusPod[0].Namespace, prometheusPod[0].Name, DefaultOsmPrometheusPort)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	grafanaPod, err := Td.GetPodsForAppLabel(Td.OsmNamespace, metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			"app": OsmGrafanaAppLabel,
+		},
+	})
+	if err != nil || len(grafanaPod) == 0 {
+		return nil, nil, errors.Errorf("Error getting Grafana pods: %v (graf pods len: %d)", err, len(grafanaPod))
+	}
+	gHandle, err := Td.GetGrafanaPodHandle(grafanaPod[0].Namespace, grafanaPod[0].Name, DefaultOsmGrafanaPort)
+	if err != nil {
+		return nil, nil, err
+	}
+	return pHandle, gHandle, nil
 }
