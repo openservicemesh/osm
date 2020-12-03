@@ -376,9 +376,9 @@ func (td *OsmTestData) GetPrometheusPodHandle(ns string, prometheusPodName strin
 	}, nil
 }
 
-// GetOSMPrometheusaHandles convenience wrapper, will get the Prometheus instance regularly deployed
+// GetOSMPrometheusaHandle convenience wrapper, will get the Prometheus instance regularly deployed
 // by OSM installation in test <OsmNamespace>
-func (td *OsmTestData) GetOSMPrometheusaHandles() (*Prometheus, error) {
+func (td *OsmTestData) GetOSMPrometheusaHandle() (*Prometheus, error) {
 	prometheusPod, err := Td.GetPodsForLabel(Td.OsmNamespace, metav1.LabelSelector{
 		MatchLabels: map[string]string{
 			"app": OsmPrometheusAppLabel,
@@ -395,9 +395,9 @@ func (td *OsmTestData) GetOSMPrometheusaHandles() (*Prometheus, error) {
 	return pHandle, nil
 }
 
-// GetOSMGrafanaHandles convenience wrapper, will get the Grafana instance regularly deployed
+// GetOSMGrafanaHandle convenience wrapper, will get the Grafana instance regularly deployed
 // by OSM installation in test <OsmNamespace>
-func (td *OsmTestData) GetOSMGrafanaHandles() (*Grafana, error) {
+func (td *OsmTestData) GetOSMGrafanaHandle() (*Grafana, error) {
 	grafanaPod, err := Td.GetPodsForLabel(Td.OsmNamespace, metav1.LabelSelector{
 		MatchLabels: map[string]string{
 			"app": OsmGrafanaAppLabel,
