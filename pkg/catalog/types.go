@@ -108,11 +108,14 @@ type MeshCataloger interface {
 	//GetWeightedClusterForService returns the weighted cluster for a service
 	GetWeightedClusterForService(service service.MeshService) (service.WeightedCluster, error)
 
-	// GetIngressRoutesPerHost returns the HTTP routes per host associated with an ingress service
-	GetIngressRoutesPerHost(service.MeshService) (map[string][]trafficpolicy.HTTPRoute, error)
+	// GetIngressRoutesPerHost returns the HTTP route matches per host associated with an ingress service
+	GetIngressRoutesPerHost(service.MeshService) (map[string][]trafficpolicy.HTTPRouteMatch, error)
 
 	// ListMonitoredNamespaces lists namespaces monitored by the control plane
 	ListMonitoredNamespaces() []string
+
+	// GetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol
+	GetPortToProtocolMappingForService(service.MeshService) (map[uint32]string, error)
 }
 
 type announcementChannel struct {

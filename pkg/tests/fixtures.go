@@ -151,7 +151,7 @@ var (
 	}
 
 	// BookstoreBuyHTTPRoute is an HTTP route to buy books
-	BookstoreBuyHTTPRoute = trafficpolicy.HTTPRoute{
+	BookstoreBuyHTTPRoute = trafficpolicy.HTTPRouteMatch{
 		PathRegex: BookstoreBuyPath,
 		Methods:   []string{"GET"},
 		Headers: map[string]string{
@@ -160,7 +160,7 @@ var (
 	}
 
 	// BookstoreSellHTTPRoute is an HTTP route to sell books
-	BookstoreSellHTTPRoute = trafficpolicy.HTTPRoute{
+	BookstoreSellHTTPRoute = trafficpolicy.HTTPRouteMatch{
 		PathRegex: BookstoreSellPath,
 		Methods:   []string{"GET"},
 		Headers: map[string]string{
@@ -179,7 +179,7 @@ var (
 		Name:        fmt.Sprintf("%s:default/bookbuyer->default/bookstore-v1", TrafficTargetName),
 		Destination: BookstoreV1Service,
 		Source:      BookbuyerService,
-		HTTPRoutes: []trafficpolicy.HTTPRoute{
+		HTTPRouteMatches: []trafficpolicy.HTTPRouteMatch{
 			{
 				PathRegex: BookstoreBuyPath,
 				Methods:   []string{"GET"},
@@ -202,7 +202,7 @@ var (
 		Name:        fmt.Sprintf("%s:default/bookbuyer->default/bookstore-v2", TrafficTargetName),
 		Destination: BookstoreV2Service,
 		Source:      BookbuyerService,
-		HTTPRoutes: []trafficpolicy.HTTPRoute{
+		HTTPRouteMatches: []trafficpolicy.HTTPRouteMatch{
 			{
 				PathRegex: BookstoreBuyPath,
 				Methods:   []string{"GET"},
@@ -225,7 +225,7 @@ var (
 		Name:        fmt.Sprintf("%s:default/bookbuyer->default/bookstore-apex", TrafficTargetName),
 		Destination: BookstoreApexService,
 		Source:      BookbuyerService,
-		HTTPRoutes: []trafficpolicy.HTTPRoute{
+		HTTPRouteMatches: []trafficpolicy.HTTPRouteMatch{
 			{
 				PathRegex: BookstoreBuyPath,
 				Methods:   []string{"GET"},
@@ -293,7 +293,7 @@ var (
 	}
 
 	// RoutePolicyMap is a map of a key to a route policy SMI object.
-	RoutePolicyMap = map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.HTTPRoute{
+	RoutePolicyMap = map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.HTTPRouteMatch{
 		trafficpolicy.TrafficSpecName(fmt.Sprintf("HTTPRouteGroup/%s/%s", Namespace, RouteGroupName)): {
 			trafficpolicy.TrafficSpecMatchName(BuyBooksMatchName):  BookstoreBuyHTTPRoute,
 			trafficpolicy.TrafficSpecMatchName(SellBooksMatchName): BookstoreSellHTTPRoute,
