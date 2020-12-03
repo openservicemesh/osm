@@ -113,6 +113,9 @@ type MeshCataloger interface {
 
 	// ListMonitoredNamespaces lists namespaces monitored by the control plane
 	ListMonitoredNamespaces() []string
+
+	// GetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol
+	GetPortToProtocolMappingForService(service.MeshService) (map[uint32]string, error)
 }
 
 type announcementChannel struct {
