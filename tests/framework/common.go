@@ -3,11 +3,13 @@ package framework
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
 	"flag"
 	"fmt"
-	"math/rand"
+	"math"
+	"math/big"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -148,7 +150,7 @@ func verifyValidInstallType(t InstallType) error {
 // OsmTestData stores common state, variables and flags for the test at hand
 type OsmTestData struct {
 	T      GinkgoTInterface // for common test logging
-	TestID uint32           // uint randomized for every test. GinkgoRandomSeed can't be used as is per-suite.
+	TestID uint64           // uint randomized for every test. GinkgoRandomSeed can't be used as is per-suite.
 
 	CleanupTest    bool // Cleanup test-related resources once finished
 	WaitForCleanup bool // Forces test to wait for effective deletion of resources upon cleanup
@@ -206,7 +208,7 @@ func registerFlags(td *OsmTestData) {
 func (td *OsmTestData) GetTestFile(filename string) string {
 	testDir := fmt.Sprintf("test-%d", td.TestID)
 
-	err := os.Mkdir(testDir, 0755)
+	err := os.Mkdir(testDir, 0750)
 
 	exists := false
 	if err == nil {
@@ -240,11 +242,14 @@ func (td *OsmTestData) AreRegistryCredsPresent() bool {
 // Called by Gingkgo BeforeEach
 func (td *OsmTestData) InitTestData(t GinkgoTInterface) error {
 	td.T = t
-	rand.Seed(GinkgoRandomSeed())
-	td.TestID = rand.Uint32()
+	r, err := rand.Int(rand.Reader, big.NewInt(math.MaxUint32))
+	if err != nil {
+		return err
+	}
+	td.TestID = r.Uint64()
 	td.T.Log(color.HiGreenString("ID for test: %d", td.TestID))
 
-	err := verifyValidInstallType(td.InstType)
+	err = verifyValidInstallType(td.InstType)
 	if err != nil {
 		return err
 	}
