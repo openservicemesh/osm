@@ -39,6 +39,10 @@ data:
       Name           modify
       Match          kube.*
       Remove         keep
+    [FILTER]
+      Name    modify
+      Match   *
+      Add controller_pod_name ${CONTROLLER_POD_NAME}
     [OUTPUT]
       Name    {{ .Values.OpenServiceMesh.fluentBit.outputPlugin }}
       Match   *
