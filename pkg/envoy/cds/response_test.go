@@ -98,11 +98,11 @@ var _ = Describe("CDS Response", func() {
 
 	Context("Test cds clusters", func() {
 		It("Returns a local cluster object", func() {
-			localCluster, err := getLocalServiceCluster(catalog, proxyService, getLocalClusterName(proxyService))
+			localCluster, err := getLocalServiceCluster(catalog, proxyService, envoy.GetLocalClusterNameForService(proxyService))
 			Expect(err).ToNot(HaveOccurred())
 
 			expectedClusterLoadAssignment := &xds_endpoint.ClusterLoadAssignment{
-				ClusterName: getLocalClusterName(proxyService),
+				ClusterName: envoy.GetLocalClusterNameForService(proxyService),
 				Endpoints: []*xds_endpoint.LocalityLbEndpoints{
 					{
 						Locality: nil,
@@ -132,8 +132,8 @@ var _ = Describe("CDS Response", func() {
 
 			expectedCluster := xds_cluster.Cluster{
 				TransportSocketMatches: nil,
-				Name:                   getLocalClusterName(proxyService),
-				AltStatName:            getLocalClusterName(proxyService),
+				Name:                   envoy.GetLocalClusterNameForService(proxyService),
+				AltStatName:            envoy.GetLocalClusterNameForService(proxyService),
 				ClusterDiscoveryType:   &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_STATIC},
 				EdsClusterConfig:       nil,
 				ConnectTimeout:         ptypes.DurationProto(1 * time.Second),
