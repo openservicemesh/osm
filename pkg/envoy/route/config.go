@@ -171,13 +171,13 @@ func getWeightedCluster(weightedClusters set.Set, totalClustersWeight int, direc
 	var total int
 	for clusterInterface := range weightedClusters.Iter() {
 		cluster := clusterInterface.(service.WeightedCluster)
-		clusterName := string(cluster.ClusterName)
+		clusterName := cluster.ClusterName.String()
 		total += cluster.Weight
 		if direction == InboundRoute {
 			// An inbound route is associated with a local cluster. The inbound route is applied
 			// on the destination cluster, and the destination clusters that accept inbound
 			// traffic have the name of the form 'someClusterName-local`.
-			clusterName += envoy.LocalClusterSuffix
+			clusterName = envoy.GetLocalClusterNameForServiceCluster(clusterName)
 		}
 		wc.Clusters = append(wc.Clusters, &xds_route.WeightedCluster_ClusterWeight{
 			Name:   clusterName,

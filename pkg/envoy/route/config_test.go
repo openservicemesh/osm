@@ -102,7 +102,7 @@ var _ = Describe("Weighted clusters", func() {
 			weightsExpected := set.NewSet()
 			for weightedClusterInterface := range weightedClusters.Iter() {
 				cluster := weightedClusterInterface.(service.WeightedCluster)
-				clustersExpected.Add(string(cluster.ClusterName + envoy.LocalClusterSuffix))
+				clustersExpected.Add(string(envoy.GetLocalClusterNameForServiceCluster(cluster.ClusterName.String())))
 				weightsExpected.Add(uint32(cluster.Weight))
 			}
 
@@ -140,7 +140,7 @@ var _ = Describe("Routes with weighted clusters", func() {
 		weightsExpected := set.NewSet()
 		for weightedClusterInterface := range weightedClusters.Iter() {
 			cluster := weightedClusterInterface.(service.WeightedCluster)
-			clustersExpected.Add(string(cluster.ClusterName + envoy.LocalClusterSuffix))
+			clustersExpected.Add(string(envoy.GetLocalClusterNameForServiceCluster(cluster.ClusterName.String())))
 			weightsExpected.Add(uint32(cluster.Weight))
 		}
 
