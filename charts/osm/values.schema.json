@@ -215,8 +215,10 @@
                             "registry": "fluent",
                             "tag": "1.6.4",
                             "pullPolicy": "IfNotPresent",
-                            "defaultOutput": "stdout",
-                            "allowCustomOutput": "true"
+                            "outputPlugin": "stdout",
+                            "enableProxySupport": "false",
+                            "httpProxy": "",
+                            "httpsProxy": ""
                         }
                     ],
                     "required": [
@@ -224,8 +226,10 @@
                         "registry",
                         "tag",
                         "pullPolicy",
-                        "defaultOutput",
-                        "allowCustomOutput"
+                        "outputPlugin",
+                        "enableProxySupport",
+                        "httpProxy",
+                        "httpsProxy"
                     ],
                     "properties": {
                         "name": {
@@ -252,7 +256,7 @@
                             "title": "The tag schema",
                             "description": "The image tag to run.",
                             "examples": [
-                                "1.5"
+                                "1.6.4"
                             ]
                         },
                         "pullPolicy": {
@@ -265,22 +269,40 @@
                                 "IfNotPresent"
                             ]
                         },
-                        "defaultOutput": {
-                            "$id": "#/properties/OpenServiceMesh/properties/fluentBit/properties/defaultOutput",
+                        "outputPlugin": {
+                            "$id": "#/properties/OpenServiceMesh/properties/fluentBit/properties/outputPlugin",
                             "type": "string",
-                            "title": "The default output schema for Fluent Bit",
-                            "description": "The default log forwarding destination for Fluent Bit",
+                            "title": "The output plugin for Fluent Bit",
+                            "description": "The log forwarding destination plugin for Fluent Bit",
                             "examples": [
                                 "stdout"
                             ]
                         },
-                        "allowCustomOutput": {
-                            "$id": "#/properties/OpenServiceMesh/properties/fluentBit/properties/allowCustomOutput",
+                        "enableProxySupport": {
+                            "$id": "#/properties/OpenServiceMesh/properties/fluentBit/properties/enableProxySupport",
                             "type": "boolean",
-                            "title": "The allowCustomOutput output schema",
-                            "description": "Indicates whether users can provide their own output plugin",
+                            "title": "The enableProxySupport output schema",
+                            "description": "Indicates whether outbound proxy support should be configured for Fluent Bit",
                             "examples": [
-                                true
+                                false
+                            ]
+                        },
+                        "httpProxy": {
+                            "$id": "#/properties/OpenServiceMesh/properties/fluentBit/properties/httpProxy",
+                            "type": "string",
+                            "title": "The httpProxy schema",
+                            "description": "http proxy endpoint",
+                            "examples": [
+                                "http://<host>:<port>"
+                            ]
+                        },
+                        "httpsProxy": {
+                            "$id": "#/properties/OpenServiceMesh/properties/fluentBit/properties/httpsProxy",
+                            "type": "string",
+                            "title": "The httpsProxy schema",
+                            "description": "https proxy endpoint",
+                            "examples": [
+                                "http://<host>:<port>"
                             ]
                         }
                     },

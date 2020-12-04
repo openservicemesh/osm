@@ -3,10 +3,13 @@ package framework
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
 	"flag"
 	"fmt"
+	"math"
+	"math/big"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -18,6 +21,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/docker/docker/client"
+	"github.com/fatih/color"
 	"github.com/jetstack/cert-manager/pkg/apis/certmanager/v1alpha2"
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	certman "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
@@ -145,7 +149,8 @@ func verifyValidInstallType(t InstallType) error {
 
 // OsmTestData stores common state, variables and flags for the test at hand
 type OsmTestData struct {
-	T GinkgoTInterface // for common test logging
+	T      GinkgoTInterface // for common test logging
+	TestID uint64           // uint randomized for every test. GinkgoRandomSeed can't be used as is per-suite.
 
 	CleanupTest    bool // Cleanup test-related resources once finished
 	WaitForCleanup bool // Forces test to wait for effective deletion of resources upon cleanup
@@ -196,6 +201,28 @@ func registerFlags(td *OsmTestData) {
 	flag.BoolVar(&td.EnableNsMetricTag, "EnableMetricsTag", defaultEnableNsMetricTag, "Enable taggic Namespaces for metric collection")
 }
 
+// GetTestFile prefixes a filename with current test folder (based on current test ID
+// calling this API) and creates the test folder for current test if it doesn't exists.
+// Only if some part of a test calls this function the test folder will be created,
+// otherwise nothing is created to avoid extra clutter.
+func (td *OsmTestData) GetTestFile(filename string) string {
+	testDir := fmt.Sprintf("test-%d", td.TestID)
+
+	err := os.Mkdir(testDir, 0750)
+
+	exists := false
+	if err == nil {
+		td.T.Logf("Created test dir %s", testDir)
+		exists = true
+	}
+
+	if os.IsExist(err) || exists {
+		return fmt.Sprintf("./%s/%s", testDir, filename)
+	}
+
+	return ""
+}
+
 // GetTestNamespaceSelectorMap returns a string-based selector used to refer/select all namespace
 // resources for this test
 func (td *OsmTestData) GetTestNamespaceSelectorMap() map[string]string {
@@ -215,8 +242,14 @@ func (td *OsmTestData) AreRegistryCredsPresent() bool {
 // Called by Gingkgo BeforeEach
 func (td *OsmTestData) InitTestData(t GinkgoTInterface) error {
 	td.T = t
+	r, err := rand.Int(rand.Reader, big.NewInt(math.MaxUint32))
+	if err != nil {
+		return err
+	}
+	td.TestID = r.Uint64()
+	td.T.Log(color.HiGreenString("ID for test: %d", td.TestID))
 
-	err := verifyValidInstallType(td.InstType)
+	err = verifyValidInstallType(td.InstType)
 	if err != nil {
 		return err
 	}

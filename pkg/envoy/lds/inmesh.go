@@ -1,6 +1,8 @@
 package lds
 
 import (
+	"fmt"
+
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
@@ -16,6 +18,7 @@ import (
 
 const (
 	inboundMeshFilterChainName = "inbound-mesh-filter-chain"
+	httpAppProtocol            = "http"
 )
 
 var (
@@ -29,14 +32,28 @@ var (
 func (lb *listenerBuilder) getInboundMeshFilterChains(proxyService service.MeshService) []*xds_listener.FilterChain {
 	var filterChains []*xds_listener.FilterChain
 
-	// Apply an inbound HTTP filter chain to filter in-mesh traffic
-	if httpFilterChain, err := lb.getInboundMeshHTTPFilterChain(proxyService); err != nil {
-		log.Error().Err(err).Msgf("Error constructing inbound mesh filter chain for proxy %s", proxyService)
-	} else {
-		filterChains = append(filterChains, httpFilterChain)
+	protocolToPortMap, err := lb.meshCatalog.GetPortToProtocolMappingForService(proxyService)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error retrieving port to protocol mapping for service %s", proxyService)
+		return filterChains
 	}
 
-	// TODO: add TCP filter chain here
+	// Create protocol specific inbound filter chains per port to handle different ports serving different protocols
+	for port, appProtocol := range protocolToPortMap {
+		switch appProtocol {
+		case httpAppProtocol:
+			// Filter chain for HTTP port
+			filterChainForPort, err := lb.getInboundMeshHTTPFilterChain(proxyService, port)
+			if err != nil {
+				log.Error().Err(err).Msgf("Error building inbound HTTP filter chain for proxy:port %s:%d", proxyService, port)
+				continue // continue building filter chains for other ports on the service
+			}
+			filterChains = append(filterChains, filterChainForPort)
+
+		default:
+			log.Error().Msgf("Cannot build inbound filter chain, unsupported protocol %s for proxy:port %s:%d", appProtocol, proxyService, port)
+		}
+	}
 
 	return filterChains
 }
@@ -74,7 +91,7 @@ func (lb *listenerBuilder) getInboundHTTPFilters(proxyService service.MeshServic
 	return filters, nil
 }
 
-func (lb *listenerBuilder) getInboundMeshHTTPFilterChain(proxyService service.MeshService) (*xds_listener.FilterChain, error) {
+func (lb *listenerBuilder) getInboundMeshHTTPFilterChain(proxyService service.MeshService, servicePort uint32) (*xds_listener.FilterChain, error) {
 	// Construct HTTP filters
 	filters, err := lb.getInboundHTTPFilters(proxyService)
 	if err != nil {
@@ -89,12 +106,18 @@ func (lb *listenerBuilder) getInboundMeshHTTPFilterChain(proxyService service.Me
 		return nil, err
 	}
 
+	filterchainName := fmt.Sprintf("%s:%d", inboundMeshFilterChainName, servicePort)
 	filterChain := &xds_listener.FilterChain{
-		Name:    inboundMeshFilterChainName,
+		Name:    filterchainName,
 		Filters: filters,
 
 		// The 'FilterChainMatch' field defines the criteria for matching traffic against filters in this filter chain
 		FilterChainMatch: &xds_listener.FilterChainMatch{
+			// The DestinationPort is the service port the downstream directs traffic to
+			DestinationPort: &wrapperspb.UInt32Value{
+				Value: servicePort,
+			},
+
 			// The ServerName is the SNI set by the downstream in the UptreamTlsContext by GetUpstreamTLSContext()
 			// This is not a field obtained from the mTLS Certificate.
 			ServerNames: []string{proxyService.ServerName()},

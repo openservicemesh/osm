@@ -61,6 +61,12 @@ func newInboundListener() *xds_listener.Listener {
 			{
 				Name: wellknown.TlsInspector,
 			},
+			{
+				// The OriginalDestination ListenerFilter is used to restore the original destination address
+				// as opposed to the listener's address upon iptables redirection.
+				// This enables inbound filter chain matching on the original destination address (ip, port).
+				Name: wellknown.OriginalDestination,
+			},
 		},
 	}
 }

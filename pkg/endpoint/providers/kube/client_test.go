@@ -27,165 +27,218 @@ var _ = Describe("Test Kube Client Provider", func() {
 		mockCtrl           *gomock.Controller
 		mockKubeController *k8s.MockController
 		mockConfigurator   *configurator.MockConfigurator
+
+		fakeClientSet *fake.Clientset
+		provider      endpoint.Provider
+		err           error
 	)
+
 	mockCtrl = gomock.NewController(GinkgoT())
 	mockKubeController = k8s.NewMockController(mockCtrl)
 	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
 
-	fakeClientSet := fake.NewSimpleClientset()
-	stopChann := make(chan struct{})
+	stopChan := make(chan struct{})
 	providerID := "provider"
 
-	cli, err := NewProvider(fakeClientSet, mockKubeController, stopChann, providerID, mockConfigurator)
-
 	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).AnyTimes()
-	Context("when testing ListEndpointsForService", func() {
-		It("verifies new Provider at context scope succeeded", func() {
-			Expect(err).To(BeNil())
-		})
 
-		It("tests GetID", func() {
-			Expect(cli.GetID()).To(Equal(providerID))
-		})
+	BeforeEach(func() {
+		fakeClientSet = fake.NewSimpleClientset()
+		provider, err = NewProvider(fakeClientSet, mockKubeController, stopChan, providerID, mockConfigurator)
+		Expect(err).ToNot(HaveOccurred())
+	})
 
-		It("should correctly return a list of endpoints for a service", func() {
-			// Should be empty for now
-			Expect(cli.ListEndpointsForService(tests.BookbuyerService)).To(BeNil())
+	It("tests GetID", func() {
+		Expect(provider.GetID()).To(Equal(providerID))
+	})
 
-			// Create bookbuyer endpoint in Bookbuyer namespace
-			endp := &corev1.Endpoints{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "Endpoints",
-					APIVersion: "v1",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name: tests.BookbuyerService.Name,
-				},
-				Subsets: []v1.EndpointSubset{
-					{
-						Addresses: []v1.EndpointAddress{
-							{
-								IP: "8.8.8.8",
-							},
-						},
-						Ports: []v1.EndpointPort{
-							{
-								Name:     "port",
-								Port:     88,
-								Protocol: v1.ProtocolTCP,
-							},
+	It("should correctly return a list of endpoints for a service", func() {
+		// Should be empty for now
+		Expect(provider.ListEndpointsForService(tests.BookbuyerService)).To(BeNil())
+
+		// Create bookbuyer endpoint in Bookbuyer namespace
+		endp := &corev1.Endpoints{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Endpoints",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      tests.BookbuyerService.Name,
+				Namespace: tests.BookbuyerService.Namespace,
+			},
+			Subsets: []v1.EndpointSubset{
+				{
+					Addresses: []v1.EndpointAddress{
+						{
+							IP: "8.8.8.8",
 						},
 					},
-				},
-			}
-
-			_, err = fakeClientSet.CoreV1().Endpoints(tests.BookbuyerService.Namespace).
-				Create(context.TODO(), endp, metav1.CreateOptions{})
-			Expect(err).To(BeNil())
-
-			<-cli.GetAnnouncementsChannel()
-			Expect(cli.ListEndpointsForService(tests.BookbuyerService)).To(Equal([]endpoint.Endpoint{
-				{
-					IP:   net.IPv4(8, 8, 8, 8),
-					Port: 88,
-				},
-			}))
-		})
-
-		It("GetResolvableEndpoints should properly return Cluster IP or Endpoints when present or not", func() {
-			// Should be empty for now
-
-			// If the service has cluster IP, expect the cluster IP + port
-			mockKubeController.EXPECT().GetService(tests.BookbuyerService).Return(&corev1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      tests.BookbuyerService.Name,
-					Namespace: tests.BookbuyerService.Namespace,
-				},
-				Spec: corev1.ServiceSpec{
-					ClusterIP: "192.168.0.1",
-					Ports: []corev1.ServicePort{{
-						Name:     "servicePort",
-						Protocol: corev1.ProtocolTCP,
-						Port:     tests.ServicePort,
-					}},
-					Selector: map[string]string{
-						"some-label": "test",
+					Ports: []v1.EndpointPort{
+						{
+							Name:     "port",
+							Port:     88,
+							Protocol: v1.ProtocolTCP,
+						},
 					},
 				},
-			})
+			},
+		}
 
-			Expect(cli.GetResolvableEndpointsForService(tests.BookbuyerService)).To(Equal([]endpoint.Endpoint{
+		_, err = fakeClientSet.CoreV1().Endpoints(tests.BookbuyerService.Namespace).Create(context.TODO(), endp, metav1.CreateOptions{})
+		Expect(err).To(BeNil())
+		<-provider.GetAnnouncementsChannel()
+
+		Expect(provider.ListEndpointsForService(tests.BookbuyerService)).To(Equal([]endpoint.Endpoint{
+			{
+				IP:   net.IPv4(8, 8, 8, 8),
+				Port: 88,
+			},
+		}))
+	})
+
+	It("GetResolvableEndpoints should properly return endpoints based on ClusterIP when set", func() {
+		// If the service has cluster IP, expect the cluster IP + port
+		mockKubeController.EXPECT().GetService(tests.BookbuyerService).Return(&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      tests.BookbuyerService.Name,
+				Namespace: tests.BookbuyerService.Namespace,
+			},
+			Spec: corev1.ServiceSpec{
+				ClusterIP: "192.168.0.1",
+				Ports: []corev1.ServicePort{{
+					Name:     "servicePort",
+					Protocol: corev1.ProtocolTCP,
+					Port:     tests.ServicePort,
+				}},
+				Selector: map[string]string{
+					"some-label": "test",
+				},
+			},
+		})
+
+		Expect(provider.GetResolvableEndpointsForService(tests.BookbuyerService)).To(Equal([]endpoint.Endpoint{
+			{
+				IP:   net.IPv4(192, 168, 0, 1),
+				Port: tests.ServicePort,
+			},
+		}))
+	})
+
+	It("GetResolvableEndpoints should properly return actual endpoints without ClusterIP when ClusterIP is not set", func() {
+		// Expect the individual pod endpoints, when no cluster IP is assigned to the service
+		mockKubeController.EXPECT().GetService(tests.BookbuyerService).Return(&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      tests.BookbuyerService.Name,
+				Namespace: tests.BookbuyerService.Namespace,
+			},
+			Spec: corev1.ServiceSpec{
+				Ports: []corev1.ServicePort{{
+					Name:     "servicePort",
+					Protocol: corev1.ProtocolTCP,
+					Port:     tests.ServicePort,
+				}},
+				Selector: map[string]string{
+					"some-label": "test",
+				},
+			},
+		})
+
+		// Create bookbuyer endpoint in Bookbuyer namespace
+		endp := &corev1.Endpoints{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Endpoints",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      tests.BookbuyerService.Name,
+				Namespace: tests.BookbuyerService.Namespace,
+			},
+			Subsets: []v1.EndpointSubset{
 				{
-					IP:   net.IPv4(192, 168, 0, 1),
-					Port: tests.ServicePort,
-				},
-			}))
-
-			// Expect the individual pod endpoints, when no cluster IP is assigned to the service
-			mockKubeController.EXPECT().GetService(tests.BookbuyerService).Return(&corev1.Service{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      tests.BookbuyerService.Name,
-					Namespace: tests.BookbuyerService.Namespace,
-				},
-				Spec: corev1.ServiceSpec{
-					Ports: []corev1.ServicePort{{
-						Name:     "servicePort",
-						Protocol: corev1.ProtocolTCP,
-						Port:     tests.ServicePort,
-					}},
-					Selector: map[string]string{
-						"some-label": "test",
+					Addresses: []v1.EndpointAddress{
+						{
+							IP: "8.8.8.8",
+						},
+					},
+					Ports: []v1.EndpointPort{
+						{
+							Name:     "port",
+							Port:     88,
+							Protocol: v1.ProtocolTCP,
+						},
 					},
 				},
-			})
+			},
+		}
 
-			Expect(cli.GetResolvableEndpointsForService(tests.BookbuyerService)).To(Equal([]endpoint.Endpoint{
+		_, err = fakeClientSet.CoreV1().Endpoints(tests.BookbuyerService.Namespace).Create(context.TODO(), endp, metav1.CreateOptions{})
+		Expect(err).To(BeNil())
+		<-provider.GetAnnouncementsChannel()
+
+		Expect(provider.GetResolvableEndpointsForService(tests.BookbuyerService)).To(Equal([]endpoint.Endpoint{
+			{
+				IP:   net.IPv4(8, 8, 8, 8),
+				Port: 88,
+			},
+		}))
+	})
+
+	It("should correctly return the port to protocol mapping for a service's endpoints", func() {
+		appProtoHTTP := "http"
+		appProtoTCP := "tcp"
+
+		// Create bookbuyer endpoint in Bookbuyer namespace
+		endp := &corev1.Endpoints{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Endpoints",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      tests.BookbuyerService.Name,
+				Namespace: tests.BookbuyerService.Namespace,
+			},
+			Subsets: []v1.EndpointSubset{
 				{
-					IP:   net.IPv4(8, 8, 8, 8),
-					Port: 88,
+					Addresses: []v1.EndpointAddress{
+						{
+							IP: "8.8.8.8",
+						},
+					},
+					Ports: []v1.EndpointPort{
+						{
+							Name:        "port",
+							Port:        88,
+							Protocol:    v1.ProtocolTCP,
+							AppProtocol: &appProtoTCP,
+						},
+						{
+							Name:        "port",
+							Port:        80,
+							Protocol:    v1.ProtocolTCP,
+							AppProtocol: &appProtoHTTP,
+						},
+					},
 				},
-			}))
-		})
+			},
+		}
+
+		_, err = fakeClientSet.CoreV1().Endpoints(tests.BookbuyerService.Namespace).
+			Create(context.TODO(), endp, metav1.CreateOptions{})
+		Expect(err).To(BeNil())
+
+		<-provider.GetAnnouncementsChannel()
+		portToProtocolMap, err := provider.GetPortToProtocolMappingForService(tests.BookbuyerService)
+		Expect(err).To(BeNil())
+
+		expectedPortToProtocolMap := map[uint32]string{88: appProtoTCP, 80: appProtoHTTP}
+		Expect(portToProtocolMap).To(Equal(expectedPortToProtocolMap))
 	})
 
 	It("tests GetAnnouncementChannel", func() {
-		ch := cli.GetAnnouncementsChannel()
+		ch := provider.GetAnnouncementsChannel()
 
 		// Can only expect to not be null
 		Expect(ch).ToNot(BeNil())
-	})
-
-	Context("Testing FakeProvider", func() {
-		It("returns empty list", func() {
-			c := NewFakeProvider()
-			svc := service.MeshService{
-				Name: "blah",
-			}
-			Ω(func() { c.ListEndpointsForService(svc) }).Should(Panic())
-		})
-
-		It("returns the services for a given service account", func() {
-			c := NewFakeProvider()
-			actual := c.ListEndpointsForService(tests.BookstoreV1Service)
-			expected := []endpoint.Endpoint{{
-				IP:   net.ParseIP("8.8.8.8"),
-				Port: 8888,
-			}}
-			Expect(actual).To(Equal(expected))
-		})
-		It("Testing GetServicesForServiceAccount", func() {
-			c := NewFakeProvider()
-
-			sMesh, err := c.GetServicesForServiceAccount(tests.BookstoreServiceAccount)
-			Expect(err).To(BeNil())
-			expectedServices := []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service, tests.BookstoreApexService}
-			Expect(sMesh).To(Equal(expectedServices))
-
-			sMesh2, err := c.GetServicesForServiceAccount(tests.BookbuyerServiceAccount)
-			Expect(err).To(BeNil())
-			expectedServices2 := []service.MeshService{tests.BookbuyerService}
-			Expect(sMesh2).To(Equal(expectedServices2))
-		})
 	})
 })
 

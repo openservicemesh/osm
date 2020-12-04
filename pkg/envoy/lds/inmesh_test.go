@@ -10,6 +10,7 @@ import (
 
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -96,6 +97,7 @@ func TestGetInboundMeshHTTPFilterChain(t *testing.T) {
 	testCases := []struct {
 		name           string
 		permissiveMode bool
+		port           uint32
 
 		expectedFilterChainMatch *xds_listener.FilterChainMatch
 		expectedFilterNames      []string
@@ -104,7 +106,9 @@ func TestGetInboundMeshHTTPFilterChain(t *testing.T) {
 		{
 			name:           "inbound HTTP filter chain with permissive mode disabled",
 			permissiveMode: false,
+			port:           80,
 			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
+				DestinationPort:      &wrapperspb.UInt32Value{Value: 80},
 				ServerNames:          []string{proxyService.ServerName()},
 				TransportProtocol:    "tls",
 				ApplicationProtocols: []string{"osm"},
@@ -116,7 +120,9 @@ func TestGetInboundMeshHTTPFilterChain(t *testing.T) {
 		{
 			name:           "inbound HTTP filter chain with permissive mode enabled",
 			permissiveMode: true,
+			port:           90,
 			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
+				DestinationPort:      &wrapperspb.UInt32Value{Value: 90},
 				ServerNames:          []string{proxyService.ServerName()},
 				TransportProtocol:    "tls",
 				ApplicationProtocols: []string{"osm"},
@@ -134,7 +140,7 @@ func TestGetInboundMeshHTTPFilterChain(t *testing.T) {
 				mockCatalog.EXPECT().ListAllowedInboundServiceAccounts(lb.svcAccount).Return([]service.K8sServiceAccount{tests.BookstoreServiceAccount}, nil).Times(1)
 			}
 
-			filterChain, err := lb.getInboundMeshHTTPFilterChain(proxyService)
+			filterChain, err := lb.getInboundMeshHTTPFilterChain(proxyService, tc.port)
 
 			assert.Equal(err != nil, tc.expectError)
 			assert.Equal(filterChain.FilterChainMatch, tc.expectedFilterChainMatch)
