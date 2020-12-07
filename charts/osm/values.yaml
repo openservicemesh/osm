@@ -43,8 +43,9 @@ OpenServiceMesh:
     registry: fluent
     tag: 1.6.4
     pullPolicy: IfNotPresent
-    defaultOutput: stdout
-    allowCustomOutput: true
+    outputPlugin: stdout
+    workspaceId: ""
+    primaryKey: ""
     enableProxySupport: false
     httpProxy: ""
     httpsProxy: ""

@@ -129,7 +129,7 @@ var _ = Describe("Construct inbound listeners", func() {
 		It("Tests the inbound listener config", func() {
 			listener := newInboundListener()
 			Expect(listener.Address).To(Equal(envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyInboundListenerPort)))
-			Expect(len(listener.ListenerFilters)).To(Equal(1)) // tls-inspector listener filter
+			Expect(len(listener.ListenerFilters)).To(Equal(2)) // TlsInspector, OriginalDestination listener filter
 			Expect(listener.ListenerFilters[0].Name).To(Equal(wellknown.TlsInspector))
 			Expect(listener.TrafficDirection).To(Equal(xds_core.TrafficDirection_INBOUND))
 		})

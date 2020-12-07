@@ -62,6 +62,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 
 	// --- INBOUND -------------------
 	inboundListener := newInboundListener()
+	// --- INBOUND: mesh filter chain
 	inboundMeshFilterChains := lb.getInboundMeshFilterChains(proxyServiceName)
 	inboundListener.FilterChains = append(inboundListener.FilterChains, inboundMeshFilterChains...)
 
@@ -75,7 +76,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		if thereAreIngressRoutes {
 			log.Info().Msgf("Found k8s Ingress for MeshService %s, applying necessary filters", proxyServiceName)
 			// This proxy is fronting a service that is a backend for an ingress, add a FilterChain for it
-			ingressFilterChains := getIngressFilterChains(proxyServiceName, cfg)
+			ingressFilterChains := lb.getIngressFilterChains(proxyServiceName)
 			inboundListener.FilterChains = append(inboundListener.FilterChains, ingressFilterChains...)
 		} else {
 			log.Trace().Msgf("There is no k8s Ingress for service %s", proxyServiceName)

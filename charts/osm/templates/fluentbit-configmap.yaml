@@ -21,10 +21,10 @@ data:
       match      *
       regex       message /"level":"error"/
     [OUTPUT]
-      Name    {{ .Values.OpenServiceMesh.fluentBit.defaultOutput }}
+      Name    {{ .Values.OpenServiceMesh.fluentBit.outputPlugin }}
       Match   *
-      {{- if not .Values.OpenServiceMesh.fluentBit.allowCustomOutput }}
-      Customer_ID {{ .Values.OpenServiceMesh.fluentBit.workspaceID }}
+      {{- if eq (.Values.OpenServiceMesh.fluentBit.outputPlugin | lower) "azure" }}
+      Customer_ID {{ .Values.OpenServiceMesh.fluentBit.workspaceId }}
       Shared_Key {{ .Values.OpenServiceMesh.fluentBit.primaryKey }}
       {{- end }}
 

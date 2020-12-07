@@ -82,6 +82,11 @@ func (sa K8sServiceAccount) GetSyntheticService() MeshService {
 // ClusterName is a type for a service name
 type ClusterName string
 
+// String returns the given ClusterName type as a string
+func (c ClusterName) String() string {
+	return string(c)
+}
+
 //WeightedService is a struct of a service name, its weight and its root service
 type WeightedService struct {
 	Service     MeshService `json:"service_name:omitempty"`

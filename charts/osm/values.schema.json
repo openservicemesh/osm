@@ -215,8 +215,7 @@
                             "registry": "fluent",
                             "tag": "1.6.4",
                             "pullPolicy": "IfNotPresent",
-                            "defaultOutput": "stdout",
-                            "allowCustomOutput": "true",
+                            "outputPlugin": "stdout",
                             "enableProxySupport": "false",
                             "httpProxy": "",
                             "httpsProxy": ""
@@ -227,8 +226,7 @@
                         "registry",
                         "tag",
                         "pullPolicy",
-                        "defaultOutput",
-                        "allowCustomOutput",
+                        "outputPlugin",
                         "enableProxySupport",
                         "httpProxy",
                         "httpsProxy"
@@ -271,22 +269,13 @@
                                 "IfNotPresent"
                             ]
                         },
-                        "defaultOutput": {
-                            "$id": "#/properties/OpenServiceMesh/properties/fluentBit/properties/defaultOutput",
+                        "outputPlugin": {
+                            "$id": "#/properties/OpenServiceMesh/properties/fluentBit/properties/outputPlugin",
                             "type": "string",
-                            "title": "The default output schema for Fluent Bit",
-                            "description": "The default log forwarding destination for Fluent Bit",
+                            "title": "The output plugin for Fluent Bit",
+                            "description": "The log forwarding destination plugin for Fluent Bit",
                             "examples": [
                                 "stdout"
-                            ]
-                        },
-                        "allowCustomOutput": {
-                            "$id": "#/properties/OpenServiceMesh/properties/fluentBit/properties/allowCustomOutput",
-                            "type": "boolean",
-                            "title": "The allowCustomOutput output schema",
-                            "description": "Indicates whether users can provide their own output plugin",
-                            "examples": [
-                                true
                             ]
                         },
                         "enableProxySupport": {

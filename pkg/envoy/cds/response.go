@@ -1,8 +1,6 @@
 package cds
 
 import (
-	"fmt"
-
 	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/golang/protobuf/ptypes"
@@ -12,7 +10,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/featureflags"
-	"github.com/openservicemesh/osm/pkg/service"
 )
 
 // NewResponse creates a new Cluster Discovery Response.
@@ -59,7 +56,7 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 
 	// Create a local cluster for the service.
 	// The local cluster will be used for incoming traffic.
-	localClusterName := getLocalClusterName(proxyServiceName)
+	localClusterName := envoy.GetLocalClusterNameForService(proxyServiceName)
 	localCluster, err := getLocalServiceCluster(catalog, proxyServiceName, localClusterName)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to get local cluster config for proxy %s", proxyServiceName)
@@ -104,8 +101,4 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 	}
 
 	return resp, nil
-}
-
-func getLocalClusterName(proxyServiceName service.MeshService) string {
-	return fmt.Sprintf("%s%s", proxyServiceName, envoy.LocalClusterSuffix)
 }
