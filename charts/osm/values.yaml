@@ -55,6 +55,7 @@ OpenServiceMesh:
   controllerLogLevel: trace
   enforceSingleMesh: false
   webhookConfigNamePrefix: osm-webhook
+  osmNamespace: ""
 
   # Set deployJaeger to true to deploy a Jaeger cluster in the
   # namespace where OSM resides.

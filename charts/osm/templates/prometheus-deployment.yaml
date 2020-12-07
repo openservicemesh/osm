@@ -3,6 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: osm-prometheus
+  namespace: {{ include "osm.namespace" . }}
 spec:
   replicas: 1
   strategy:

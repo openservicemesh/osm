@@ -5,6 +5,7 @@ metadata:
   labels:
     app: osm-grafana
   name: osm-grafana
+  namespace: {{ include "osm.namespace" . }}
 
 ---
 
@@ -27,7 +28,7 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: osm-grafana
-    namespace: {{.Release.Name}}
+    namespace: {{ include "osm.namespace" . }}
 roleRef:
   kind: ClusterRole
   name: {{.Release.Name}}-grafana

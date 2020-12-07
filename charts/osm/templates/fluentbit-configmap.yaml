@@ -3,7 +3,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: fluentbit-configmap
-  namespace: {{ .Release.Namespace }}
+  namespace: {{ include "osm.namespace" . }}
 data:
   fluent-bit.conf: |-
     [SERVICE]
@@ -14,7 +14,7 @@ data:
     [INPUT]
       Name    tail
       Tag     kube.*
-      Path    /var/log/containers/osm-controller-*_{{ .Release.Namespace }}_osm-controller-*.log
+      Path    /var/log/containers/osm-controller-*_{{ include "osm.namespace" . }}_osm-controller-*.log
       Parser  cri
     [FILTER]
       name       grep

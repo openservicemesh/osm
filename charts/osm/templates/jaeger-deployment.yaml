@@ -3,6 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: jaeger
+  namespace: {{ include "osm.namespace" . }}
   labels:
     app: jaeger
 spec:
