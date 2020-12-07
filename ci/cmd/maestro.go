@@ -50,7 +50,6 @@ var (
 
 	maxPodWaitString = utils.GetEnv(maestro.WaitForPodTimeSecondsEnvVar, "30")
 	maxOKWaitString  = utils.GetEnv(maestro.WaitForOKSecondsEnvVar, "30")
-	meshName         = osmNamespace
 
 	// Mesh namespaces
 	namespaces = []string{
