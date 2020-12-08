@@ -31,18 +31,18 @@ Create a test using GinkGo, and import the test framework. As we do for our E2E,
 import . "github.com/openservicemesh/osm/tests/framework"
 
 var  _ = Describe("Example Skeleton for scale test", func() {
-    Context("ScaleTest", func() {
+	Context("ScaleTest", func() {
 		// sd to store test state and iteration information
 		var  sd *DataHandle
-		
+
 		// WrapUp will call to evaluate and output results on test's on os.Stdout.
 		// Additional outputs can be defined through `sd` API
-        AfterEach(func() {
-	        if sd != nil {
-				sd.WrapUp()
-			}
-		})
+	AfterEach(func() {
+		if sd != nil {
+			sd.WrapUp()
+		}
 	})
+})
 ```
 
 Initialize the body of the test, pretty standard from E2E framework semantics:
@@ -64,7 +64,7 @@ It("Deploys OSM and scales traffic Splits indefinitely", func() {
 	// Repetitive scale loop
 	sd.Iterate(func() {
 		// Code goes here
-	})
+	}
 })
 ```
 
