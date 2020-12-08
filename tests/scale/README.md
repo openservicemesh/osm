@@ -61,7 +61,7 @@ It("Deploys OSM and scales traffic Splits indefinitely", func() {
 	// This could/should be called on `Context`, subject to when are resources available
 	sd = NewDataHandle(pHandle, gHandle, GetTrackedResources(), GetSaveDashboards())	
 
-    // Repetitive scale loop
+	// Repetitive scale loop
 	sd.Iterate(func() {
 		// Code goes here
 	})
