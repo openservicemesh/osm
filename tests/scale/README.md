@@ -20,14 +20,13 @@ The current set of metrics aimed  to be automatically tracked across iteration f
 - RSS footprint and related relative increases per iteration per tracked resource.
 - Visual representation of the previous trends, provided by Grafana.
 - Control plane profiling (pprof), cpu and mem (Todo)
-- Envoy config latency trends (time to create an envoy config on OSM, latency increase per pod, test dependant) (Todo)
-- Envoy config latency apply trends (from  `SMI apply`  to  `200`  network requests) (Todo)
+- Envoy config latency trends (time to create an envoy config by osm-controller, latency increase per pod, test dependent) (Todo)
+- Envoy config latency apply trends (from  `SMI apply`  to  `200` network requests) (Todo)
 
 
 ## Usage examples
-Create a test using GinkGo, and import the test framework. As we do for our E2E, we try to keep its own test in a separate file.
+Create a test using GinkGo, and import the test framework. As we do for our E2E, we require a separate test per file.
 ```go
-
 import . "github.com/openservicemesh/osm/tests/framework"
 
 var  _ = Describe("Example Skeleton for scale test", func() {
