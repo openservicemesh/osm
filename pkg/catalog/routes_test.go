@@ -389,6 +389,38 @@ func TestListAllowedOutboundServices(t *testing.T) {
 	assert.ElementsMatch(actualList, expectedList)
 }
 
+func TestListAllowedOutboundServicesForIdentity(t *testing.T) {
+	assert := assert.New(t)
+	mc := newFakeMeshCatalog()
+
+	testCases := []struct {
+		name           string
+		serviceAccount service.K8sServiceAccount
+		expectedList   []service.MeshService
+	}{
+		{
+			name:           "traffic targets configured for service account",
+			serviceAccount: tests.BookbuyerServiceAccount,
+			expectedList:   []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service, tests.BookstoreApexService},
+		},
+		{
+			name: "traffic targets not configured for service account",
+			serviceAccount: service.K8sServiceAccount{
+				Name:      "some-name",
+				Namespace: "some-ns",
+			},
+			expectedList: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actualList := mc.ListAllowedOutboundServicesForIdentity(tc.serviceAccount)
+			assert.ElementsMatch(actualList, tc.expectedList)
+		})
+	}
+}
+
 func TestGetWeightedClusterForService(t *testing.T) {
 	assert := assert.New(t)
 
