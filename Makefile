@@ -107,7 +107,7 @@ kind-demo: .env kind-up clean-osm
 	./demo/run-osm-demo.sh
 
 # build-bookbuyer, etc
-DEMO_TARGETS = bookbuyer bookthief bookstore bookwarehouse
+DEMO_TARGETS = bookbuyer bookthief bookstore bookwarehouse tcp-echo-server tcp-client
 DEMO_BUILD_TARGETS = $(addprefix build-, $(DEMO_TARGETS))
 .PHONY: $(DEMO_BUILD_TARGETS)
 $(DEMO_BUILD_TARGETS): NAME=$(@:build-%=%)

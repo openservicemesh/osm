@@ -1,6 +1,8 @@
 package rbac
 
 import (
+	"strconv"
+
 	xds_rbac "github.com/envoyproxy/go-control-plane/envoy/config/rbac/v3"
 	xds_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"github.com/pkg/errors"
@@ -26,7 +28,8 @@ func (p *Policy) Generate() (*xds_rbac.Policy, error) {
 
 		var currentPrincipal *xds_rbac.Principal
 
-		if len(principalRuleList.AndRules) != 0 {
+		switch {
+		case len(principalRuleList.AndRules) != 0:
 			// Combine all the AND rules for this Principal rule with AND semantics
 			var andPrincipalRules []*xds_rbac.Principal
 			for _, andPrincipalRule := range principalRuleList.AndRules {
@@ -37,7 +40,8 @@ func (p *Policy) Generate() (*xds_rbac.Policy, error) {
 				}
 			}
 			currentPrincipal = getPrincipalAnd(andPrincipalRules)
-		} else if len(principalRuleList.OrRules) != 0 {
+
+		case len(principalRuleList.OrRules) != 0:
 			// Combine all the OR rules for this Principal rule with OR semantics
 			var orPrincipalRules []*xds_rbac.Principal
 			for _, orPrincipalRule := range principalRuleList.OrRules {
@@ -48,7 +52,8 @@ func (p *Policy) Generate() (*xds_rbac.Policy, error) {
 				}
 			}
 			currentPrincipal = getPrincipalOr(orPrincipalRules)
-		} else {
+
+		default:
 			// Neither AND/OR rules set, set principal to Any
 			currentPrincipal = getPrincipalAny()
 		}
@@ -63,15 +68,67 @@ func (p *Policy) Generate() (*xds_rbac.Policy, error) {
 	policy.Principals = finalPrincipals
 
 	// Construct the Permissions ---------------------------
-	// Currently an RBAC policy grants all permissions.
-	// This will be extended in the future as a part of TCP policy support
-	// where permission will only be granted to select ports.
-	policy.Permissions = []*xds_rbac.Permission{
-		{
-			// Grant the given principal all access
-			Rule: &xds_rbac.Permission_Any{Any: true},
-		},
+	var finalPermissions []*xds_rbac.Permission
+
+	// Each RuleList follows OR semantics with other RuleList in the list of RuleList
+	for _, permissionRuleList := range p.Permissions {
+		// 'principalRuleList' corresponds to a single Principal in an RBAC policy.
+		// This Principal can be defined in terms of one of AND or OR rules.
+		// When AND/OR semantics are not required to define multiple rules corresponding
+		// to this principal, a single Rule in either the AndRules or OrRules will suffice.
+
+		if len(permissionRuleList.AndRules) != 0 && len(permissionRuleList.OrRules) != 0 {
+			return nil, errors.New("Permission rule cannot have both AND & OR rules at the same time")
+		}
+
+		var currentPermission *xds_rbac.Permission
+
+		switch {
+		case len(permissionRuleList.AndRules) != 0:
+			// Combine all the AND rules for this Permission rule with AND semantics
+			var andPermissionRules []*xds_rbac.Permission
+			for _, andPermissionRule := range permissionRuleList.AndRules {
+				// Fill in the destination port permission
+				if andPermissionRule.Attribute == DestinationPort {
+					port, err := strconv.ParseUint(andPermissionRule.Value, 10, 32)
+					if err != nil {
+						return nil, errors.Errorf("Error parsing destination port value %s", andPermissionRule.Value)
+					}
+					portPermission := getPermissionDestinationPort(uint32(port))
+					andPermissionRules = append(andPermissionRules, portPermission)
+				}
+			}
+			currentPermission = getPermissionAnd(andPermissionRules)
+
+		case len(permissionRuleList.OrRules) != 0:
+			// Combine all the OR rules for this Permission rule with OR semantics
+			var orPermissionRules []*xds_rbac.Permission
+			for _, orPermissionRule := range permissionRuleList.OrRules {
+				// Fill in the destination port permission
+				if orPermissionRule.Attribute == DestinationPort {
+					port, err := strconv.ParseUint(orPermissionRule.Value, 10, 32)
+					if err != nil {
+						return nil, errors.Errorf("Error parsing destination port value %s", orPermissionRule.Value)
+					}
+					portPermission := getPermissionDestinationPort(uint32(port))
+					orPermissionRules = append(orPermissionRules, portPermission)
+				}
+			}
+			currentPermission = getPermissionOr(orPermissionRules)
+
+		default:
+			// Neither AND/OR rules set, set permission to Any
+			currentPermission = getPermissionAny()
+		}
+
+		finalPermissions = append(finalPermissions, currentPermission)
 	}
+	if len(p.Permissions) == 0 {
+		// No permissions specified for this policy, allow ANY
+		finalPermissions = append(finalPermissions, getPermissionAny())
+	}
+
+	policy.Permissions = finalPermissions
 
 	return policy, nil
 }
@@ -113,5 +170,39 @@ func getPrincipalAnd(principals []*xds_rbac.Principal) *xds_rbac.Principal {
 func getPrincipalAny() *xds_rbac.Principal {
 	return &xds_rbac.Principal{
 		Identifier: &xds_rbac.Principal_Any{Any: true},
+	}
+}
+
+func getPermissionAny() *xds_rbac.Permission {
+	return &xds_rbac.Permission{
+		Rule: &xds_rbac.Permission_Any{Any: true},
+	}
+}
+
+func getPermissionOr(permissions []*xds_rbac.Permission) *xds_rbac.Permission {
+	return &xds_rbac.Permission{
+		Rule: &xds_rbac.Permission_OrRules{
+			OrRules: &xds_rbac.Permission_Set{
+				Rules: permissions,
+			},
+		},
+	}
+}
+
+func getPermissionAnd(permissions []*xds_rbac.Permission) *xds_rbac.Permission {
+	return &xds_rbac.Permission{
+		Rule: &xds_rbac.Permission_AndRules{
+			AndRules: &xds_rbac.Permission_Set{
+				Rules: permissions,
+			},
+		},
+	}
+}
+
+func getPermissionDestinationPort(port uint32) *xds_rbac.Permission {
+	return &xds_rbac.Permission{
+		Rule: &xds_rbac.Permission_DestinationPort{
+			DestinationPort: port,
+		},
 	}
 }
