@@ -53,6 +53,8 @@ type DataHandle struct {
 	// Defines the panels to save upon WrapUp invocation
 	GrafanaPanelsToSave []GrafanaPanel
 
+	// Set of names to track exact resources that were observed at any point in time
+	// during the test
 	SeenResources map[Resource]bool
 
 	// Scale iterations data
