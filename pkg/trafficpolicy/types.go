@@ -43,8 +43,8 @@ type InboundTrafficPolicy struct {
 
 // Rule is a struct that represents which Service Accounts can access a Route
 type Rule struct {
-	Route           RouteWeightedClusters `json:"route:omitempty"`
-	ServiceAccounts set.Set               `json:"service_accounts:omitempty"`
+	Route                  RouteWeightedClusters `json:"route:omitempty"`
+	AllowedServiceAccounts set.Set               `json:"allowed_service_accounts:omitempty"`
 }
 
 // OutboundTrafficPolicy is a struct that associates a list of Routes with outbound traffic on a set of Hostnames
