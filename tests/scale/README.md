@@ -13,7 +13,7 @@ Scale testing will have several use cases:
 Current tests leverage the existing test framework to deploy OSM and repeat a work operation (iteration) till the validation phase of the iteration fails. How and what does the iteration do is up to the test, so implementation is free to scale any resource/s till failure.
 
 The framework provides helpers to track profiling information through the overall test and individual iterations. Some of most relevant metrics are automatically captured during the test, but more exclusive metrics for speicific tests might have to be implemented. 
-Gathering these metrics require a Prometheus instance scraping both the envoy endpoints and the K8s api servers.
+Gathering these metrics requires a Prometheus instance scraping both the envoy endpoints and the K8s api servers.
 
 The current set of metrics aimed to be automatically tracked across iteration for any set of resources specified in the test are:
 - CPU Average loads, for each iteration for each tracked resource.
@@ -110,7 +110,7 @@ func  GetSaveDashboards() []GrafanaPanel {
 ```
 
 ## Results
- Iteration results will display on test logs to keep an idea of progress.
+Iteration results will display on test logs to keep an idea of progress.
 Only observed resources at this point in time are displayed.
 ```
 -- Successfully completed iteration 8 - took 1m36.700005257s
@@ -141,7 +141,7 @@ Note that this will show all possible resources that ever appeared during the te
 |  8 | 1m36.700005257s (+71.78%) |   180 | 0.21 / 1.2 GB (+17.39%) | 0.44 / 160 MB (+14.70%) |
 +----+---------------------------+-------+-------------------------+-------------------------+
 ```
-A per-pod RSS footprint average increase per pod is also provided for the runtime of the test:
+A per-pod RSS footprint average increase is also provided for the runtime of the test:
 ```
 +------------------------+-----------+
 |        Resource        | Mem / pod |

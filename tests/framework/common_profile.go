@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/dustin/go-humanize"
-	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -114,9 +113,9 @@ func (sd *DataHandle) Iterate(f func()) {
 
 		diff := sd.ItEndTime[sd.Iterations].Sub(sd.ItStartTime[sd.Iterations])
 
-		fmt.Println(color.HiGreenString("-- Successfully completed iteration %d - took %v", sd.Iterations, diff))
+		fmt.Printf("-- Successfully completed iteration %d - took %v\n", sd.Iterations, diff)
 		sd.OutputIteration(sd.Iterations, os.Stdout)
-		fmt.Println(color.HiGreenString("--------"))
+		fmt.Println("--------")
 
 		// Increase iterations done
 		sd.Iterations++
@@ -128,7 +127,20 @@ func shortenResName(res Resource) string {
 	// examples
 	// osm-cont..3452/osm-con..
 	// osm-prom..9284/prometh..
-	return fmt.Sprintf("%s..%s/%s..", res.PodName[:8], res.PodName[len(res.PodName)-4:], res.ContainerName[:5])
+	var podShortened, contShortened string
+	if len(res.PodName) > 14 { // 12 + len("..")
+		podShortened = fmt.Sprintf("%s..%s", res.PodName[:7], res.PodName[len(res.PodName)-4:])
+	} else {
+		podShortened = res.PodName
+	}
+
+	if len(res.ContainerName) > 7 { // 5 + len("..")
+		contShortened = fmt.Sprintf("%s..", res.ContainerName[:4])
+	} else {
+		contShortened = res.ContainerName
+	}
+
+	return fmt.Sprintf("%s/%s", podShortened, contShortened)
 }
 
 // Given two floats, return the signed relative percentual difference as a string

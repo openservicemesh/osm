@@ -87,10 +87,10 @@ func (p *Prometheus) GetCPULoadAvgforContainer(ns string, podName string, contai
 
 // GetCPULoadsForContainer convenience wrapper to get 1m, 5m and 15m cpu loads for a resource
 func (p *Prometheus) GetCPULoadsForContainer(ns string, podName string, containerName string, t time.Time) (float64, float64, float64, error) {
-	timesMinutes := []time.Duration{1 * time.Minute, 5 * time.Minute, 15 * time.Minute}
+	timeBuckets := []time.Duration{1 * time.Minute, 5 * time.Minute, 15 * time.Minute}
 	loads := []float64{}
 
-	for _, bucketTime := range timesMinutes {
+	for _, bucketTime := range timeBuckets {
 		val, err := p.GetCPULoadAvgforContainer(ns, podName, containerName, bucketTime, t)
 		if err != nil {
 			return 0, 0, 0, err

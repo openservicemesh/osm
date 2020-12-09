@@ -64,6 +64,9 @@ testoutput.txt
 commit_logs
 bootstrap.yaml
 
+# Test result folders
+test-[0-9]*/
+
 # hugo static site generator
 .DS_Store
 .sass-cache/
