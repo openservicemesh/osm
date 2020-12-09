@@ -102,6 +102,35 @@ func (mc *MeshCatalog) ListAllowedOutboundServices(sourceService service.MeshSer
 	return mc.getAllowedDirectionalServices(sourceService, outbound)
 }
 
+// ListAllowedOutboundServicesForIdentity list the services the given service account is allowed to initiate outbound connections to
+func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(identity service.K8sServiceAccount) []service.MeshService {
+	serviceSet := mapset.NewSet()
+	for _, t := range mc.meshSpec.ListTrafficTargets() { // loop through all traffic targets
+		for _, source := range t.Spec.Sources {
+			if source.Name == identity.Name && source.Namespace == identity.Namespace { // found outbound
+				destServices, err := mc.GetServicesForServiceAccount(service.K8sServiceAccount{
+					Name:      t.Spec.Destination.Name,
+					Namespace: t.Namespace,
+				})
+				if err != nil {
+					log.Error().Msgf("No Services found matching Service Account %s in Namespace %s", t.Spec.Destination.Name, t.Namespace)
+					break
+				}
+				for _, destService := range destServices {
+					serviceSet.Add(destService)
+				}
+				break
+			}
+		}
+	}
+
+	serviceSlice := []service.MeshService{}
+	for elem := range serviceSet.Iter() {
+		serviceSlice = append(serviceSlice, elem.(service.MeshService))
+	}
+	return serviceSlice
+}
+
 //GetWeightedClusterForService returns the weighted cluster for a given service
 func (mc *MeshCatalog) GetWeightedClusterForService(svc service.MeshService) (service.WeightedCluster, error) {
 	log.Trace().Msgf("Finding weighted cluster for service %s", svc)
