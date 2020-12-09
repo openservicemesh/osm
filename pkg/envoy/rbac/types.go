@@ -10,6 +10,12 @@ const (
 	DownstreamAuthPrincipal RuleAttribute = "downstreamAuthPrincipal"
 )
 
+// Supported attributes for an RBAC permission
+const (
+	// DestinationPort is the key used for the destination port as a permission in a policy Rule
+	DestinationPort RuleAttribute = "destinationPort"
+)
+
 // Rule is a type that can represent a policy's Permission and Principal rules
 type Rule struct {
 	Attribute RuleAttribute

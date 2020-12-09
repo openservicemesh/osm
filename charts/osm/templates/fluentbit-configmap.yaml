@@ -16,6 +16,7 @@ data:
       Tag     kube.*
       Path    /var/log/containers/osm-controller-*_{{ include "osm.namespace" . }}_osm-controller-*.log
       Parser  cri
+      Read_from_Head  on
     [FILTER]
       name       grep
       match      *

@@ -13,6 +13,7 @@ require (
 	github.com/cskr/pubsub v1.0.2
 	github.com/deckarep/golang-set v1.7.1
 	github.com/docker/docker v1.4.2-0.20200203170920-46ec8731fbce
+	github.com/dustin/go-humanize v1.0.0
 	github.com/envoyproxy/go-control-plane v0.9.6
 	github.com/fatih/color v1.10.0
 	github.com/golang/mock v1.3.1
@@ -28,6 +29,7 @@ require (
 	github.com/mitchellh/gox v1.0.1
 	github.com/norwoodj/helm-docs v1.4.0
 	github.com/nxadm/tail v1.4.5 // indirect
+	github.com/olekukonko/tablewriter v0.0.2
 	github.com/onsi/ginkgo v1.14.1
 	github.com/onsi/gomega v1.10.2
 	github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4

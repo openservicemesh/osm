@@ -526,7 +526,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "rate(apiserver_watch_events_total[5m])",
+          "expr": "irate(apiserver_watch_events_total[1m])",
           "hide": false,
           "interval": "",
           "legendFormat": "{{kind}}",
@@ -637,7 +637,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "rate(container_cpu_usage_seconds_total{namespace=\"osm-system\", container!~\"POD\", container!~\"\"}[1m])",
+          "expr": "irate(container_cpu_usage_seconds_total{namespace=\"osm-system\", container!~\"POD\", container!~\"\"}[1m])",
           "interval": "",
           "legendFormat": "{{container}}",
           "refId": "A"
@@ -893,7 +893,7 @@
           "refId": "A"
         },
         {
-          "expr": "rate(apiserver_admission_webhook_admission_duration_seconds_bucket[1m])",
+          "expr": "irate(apiserver_admission_webhook_admission_duration_seconds_bucket[1m])",
           "interval": "",
           "legendFormat": "{{le}}-{{rejected}}",
           "refId": "B"
@@ -1004,7 +1004,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "rate(apiserver_admission_webhook_rejection_count[1m])",
+          "expr": "irate(apiserver_admission_webhook_rejection_count[1m])",
           "interval": "",
           "legendFormat": "",
           "refId": "B"

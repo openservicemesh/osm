@@ -69,7 +69,7 @@ func TestIsValidTrafficTarget(t *testing.T) {
 func TestGetHostnamesForUpstreamService(t *testing.T) {
 	assert := assert.New(t)
 
-	mc := newFakeMeshCatalogForRoutes(t)
+	mc := newFakeMeshCatalogForRoutes(t, testParams{})
 
 	testCases := []struct {
 		name              string
@@ -387,6 +387,49 @@ func TestListAllowedOutboundServices(t *testing.T) {
 
 	expectedList := []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service, tests.BookstoreApexService}
 	assert.ElementsMatch(actualList, expectedList)
+}
+
+func TestListAllowedOutboundServicesForIdentity(t *testing.T) {
+	assert := assert.New(t)
+
+	testCases := []struct {
+		name           string
+		serviceAccount service.K8sServiceAccount
+		expectedList   []service.MeshService
+		permissiveMode bool
+	}{
+		{
+			name:           "traffic targets configured for service account",
+			serviceAccount: tests.BookbuyerServiceAccount,
+			expectedList:   []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service, tests.BookstoreApexService},
+			permissiveMode: false,
+		},
+		{
+			name: "traffic targets not configured for service account",
+			serviceAccount: service.K8sServiceAccount{
+				Name:      "some-name",
+				Namespace: "some-ns",
+			},
+			expectedList:   nil,
+			permissiveMode: false,
+		},
+		{
+			name:           "permissive mode enabled",
+			serviceAccount: tests.BookstoreServiceAccount,
+			expectedList:   []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service, tests.BookstoreApexService, tests.BookbuyerService},
+			permissiveMode: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mc := newFakeMeshCatalogForRoutes(t, testParams{
+				permissiveMode: tc.permissiveMode,
+			})
+			actualList := mc.ListAllowedOutboundServicesForIdentity(tc.serviceAccount)
+			assert.ElementsMatch(actualList, tc.expectedList)
+		})
+	}
 }
 
 func TestGetWeightedClusterForService(t *testing.T) {

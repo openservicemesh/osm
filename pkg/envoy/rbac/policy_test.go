@@ -181,6 +181,98 @@ func TestGenerate(t *testing.T) {
 			expectedPermissions: nil,
 			expectError:         true,
 		},
+
+		{
+			name: "testing single principal AND rules with single permission AND rules",
+			p: &Policy{
+				Principals: []RulesList{
+					{
+						AndRules: []Rule{
+							{Attribute: DownstreamAuthPrincipal, Value: "foo.domain"},
+							{Attribute: DownstreamAuthPrincipal, Value: "bar.domain"},
+						},
+					},
+				},
+				Permissions: []RulesList{
+					{
+						AndRules: []Rule{
+							{Attribute: DestinationPort, Value: "80"},
+							{Attribute: DestinationPort, Value: "90"},
+						},
+					},
+				},
+			},
+			expectedPrincipals: []*xds_rbac.Principal{
+				{
+					Identifier: &xds_rbac.Principal_AndIds{
+						AndIds: &xds_rbac.Principal_Set{
+							Ids: []*xds_rbac.Principal{
+								getPrincipalAuthenticated("foo.domain"),
+								getPrincipalAuthenticated("bar.domain"),
+							},
+						},
+					},
+				},
+			},
+			expectedPermissions: []*xds_rbac.Permission{
+				{
+					Rule: &xds_rbac.Permission_AndRules{
+						AndRules: &xds_rbac.Permission_Set{
+							Rules: []*xds_rbac.Permission{
+								getPermissionDestinationPort(80),
+								getPermissionDestinationPort(90),
+							},
+						},
+					},
+				},
+			},
+			expectError: false,
+		},
+
+		{
+			name: "testing single principal AND rules with single permission OR rule",
+			p: &Policy{
+				Principals: []RulesList{
+					{
+						AndRules: []Rule{
+							{Attribute: DownstreamAuthPrincipal, Value: "foo.domain"},
+							{Attribute: DownstreamAuthPrincipal, Value: "bar.domain"},
+						},
+					},
+				},
+				Permissions: []RulesList{
+					{
+						OrRules: []Rule{
+							{Attribute: DestinationPort, Value: "80"},
+						},
+					},
+				},
+			},
+			expectedPrincipals: []*xds_rbac.Principal{
+				{
+					Identifier: &xds_rbac.Principal_AndIds{
+						AndIds: &xds_rbac.Principal_Set{
+							Ids: []*xds_rbac.Principal{
+								getPrincipalAuthenticated("foo.domain"),
+								getPrincipalAuthenticated("bar.domain"),
+							},
+						},
+					},
+				},
+			},
+			expectedPermissions: []*xds_rbac.Permission{
+				{
+					Rule: &xds_rbac.Permission_OrRules{
+						OrRules: &xds_rbac.Permission_Set{
+							Rules: []*xds_rbac.Permission{
+								getPermissionDestinationPort(80),
+							},
+						},
+					},
+				},
+			},
+			expectError: false,
+		},
 	}
 
 	for i, tc := range testCases {

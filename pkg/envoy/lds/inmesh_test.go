@@ -151,3 +151,81 @@ func TestGetInboundMeshHTTPFilterChain(t *testing.T) {
 		})
 	}
 }
+
+func TestGetInboundMeshTCPFilterChain(t *testing.T) {
+	assert := assert.New(t)
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
+	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
+
+	// Mock calls used to build the HTTP connection manager
+	mockConfigurator.EXPECT().IsTracingEnabled().Return(false).AnyTimes()
+	mockConfigurator.EXPECT().GetTracingEndpoint().Return("test-api").AnyTimes()
+
+	lb := &listenerBuilder{
+		meshCatalog: mockCatalog,
+		cfg:         mockConfigurator,
+		svcAccount:  tests.BookbuyerServiceAccount,
+	}
+
+	proxyService := tests.BookbuyerService
+
+	testCases := []struct {
+		name           string
+		permissiveMode bool
+		port           uint32
+
+		expectedFilterChainMatch *xds_listener.FilterChainMatch
+		expectedFilterNames      []string
+		expectError              bool
+	}{
+		{
+			name:           "inbound TCP filter chain with permissive mode disabled",
+			permissiveMode: false,
+			port:           80,
+			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
+				DestinationPort:      &wrapperspb.UInt32Value{Value: 80},
+				ServerNames:          []string{proxyService.ServerName()},
+				TransportProtocol:    "tls",
+				ApplicationProtocols: []string{"osm"},
+			},
+			expectedFilterNames: []string{wellknown.RoleBasedAccessControl, wellknown.TCPProxy},
+			expectError:         false,
+		},
+
+		{
+			name:           "inbound TCP filter chain with permissive mode enabled",
+			permissiveMode: true,
+			port:           90,
+			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
+				DestinationPort:      &wrapperspb.UInt32Value{Value: 90},
+				ServerNames:          []string{proxyService.ServerName()},
+				TransportProtocol:    "tls",
+				ApplicationProtocols: []string{"osm"},
+			},
+			expectedFilterNames: []string{wellknown.TCPProxy},
+			expectError:         false,
+		},
+	}
+
+	for i, tc := range testCases {
+		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
+			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(tc.permissiveMode).Times(1)
+			if !tc.permissiveMode {
+				// mock catalog calls used to build the RBAC filter
+				mockCatalog.EXPECT().ListAllowedInboundServiceAccounts(lb.svcAccount).Return([]service.K8sServiceAccount{tests.BookstoreServiceAccount}, nil).Times(1)
+			}
+
+			filterChain, err := lb.getInboundMeshTCPFilterChain(proxyService, tc.port)
+
+			assert.Equal(err != nil, tc.expectError)
+			assert.Equal(filterChain.FilterChainMatch, tc.expectedFilterChainMatch)
+			assert.Len(filterChain.Filters, len(tc.expectedFilterNames))
+			for i, filter := range filterChain.Filters {
+				assert.Equal(filter.Name, tc.expectedFilterNames[i])
+			}
+		})
+	}
+}
