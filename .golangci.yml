@@ -25,6 +25,11 @@ issues:
         - golint
       source: ". \"github.com/onsi/(ginkgo|gomega)\""
       text: "dot imports"
+    # Ignore error for test framework imports
+    - linters:
+        - golint
+      source: ". \"github.com/openservicemesh/osm/tests/framework\""
+      text: "dot imports"
     # ignore unused linters on keyvault as this code isn't being used
     # TODO: disable this rule once keyvault is integrated
     - path: pkg/certificate/providers/keyvault/
