@@ -151,7 +151,7 @@ func verifyValidInstallType(t InstallType) error {
 type OsmTestData struct {
 	T              GinkgoTInterface // for common test logging
 	TestID         uint64           // uint randomized for every test. GinkgoRandomSeed can't be used as is per-suite.
-	TestFolderName string           // Test folder name, when overriden by test flags
+	TestFolderName string           // Test folder name, when overridden by test flags
 
 	CleanupTest    bool // Cleanup test-related resources once finished
 	WaitForCleanup bool // Forces test to wait for effective deletion of resources upon cleanup
