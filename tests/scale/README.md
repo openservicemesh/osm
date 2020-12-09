@@ -3,10 +3,10 @@
 This folder contains scale tests and related/explicit scale helpers to test OSM.
 
 Scale testing will have several use cases:
-- It will seek to qualify and document the behavior of OSM (and related control plane services) under certain loads associated to one or multiple dimensions of what a service mesh a service mesh can offer (number of services, number of policies, rate of change, etc).
+- It will seek to qualify and document the behavior of OSM (and related control plane services) under certain loads associated to one or more dimensions (number of services, number of policies, rate of change, etc).
 - It will help find, understand and validate soft ceilings and bottlenecks on current design and implementation.
 - It should also provide instrumentation to gate at PR level (possibly an on-demand pipeline), in order to find possible performance/scale regressions before merge.
-- It should also provide meaningful insight on how the performance and scalability of the product evolves at each milestone/release.
+- It should also provide meaningful insight on how the performance and scalability of the overall product offering evolves at each milestone/release.
 
 ## Design
 
@@ -15,13 +15,13 @@ Current tests leverage the existing test framework to deploy OSM and repeat a wo
 The framework provides helpers to track profiling information through the overall test and individual iterations. Some of most relevant metrics are automatically captured during the test, but more exclusive metrics for speicific tests might have to be implemented. 
 Gathering these metrics require a Prometheus instance scraping both the envoy endpoints and the K8s api servers.
 
-The current set of metrics aimed  to be automatically tracked across iteration for any set of resources specified in the test are:
+The current set of metrics aimed to be automatically tracked across iteration for any set of resources specified in the test are:
 - CPU Average loads, for each iteration for each tracked resource.
 - RSS footprint and related relative increases per iteration per tracked resource.
 - Visual representation of the previous trends, provided by Grafana.
 - Control plane profiling (pprof), cpu and mem (Todo)
 - Envoy config latency trends (time to create an envoy config by osm-controller, latency increase per pod, test dependent) (Todo)
-- Envoy config latency apply trends (from  `SMI apply`  to  `200` network requests) (Todo)
+- Envoy config latency apply trends (from  `SMI apply` to `200` network requests) (Todo)
 
 
 ## Usage examples
@@ -124,7 +124,7 @@ Only observed resources at this point in time are displayed.
 
 Upon `WrapUp` call time, a more comprehensive view of the evolution of resources is displayed at the end of the test, displaying both CPU avg for iteration and RSS footprint at the end, as well as relative increase to previous iteration.
 
-Note that this will  show all possible resources that ever appeared during the test that matched any tracked label (so in case of restarted/crashed pods, all metrics and iterations present will also show):
+Note that this will show all possible resources that ever appeared during the test that matched any tracked label (so in case of restarted/crashed pods, all metrics and iterations present will also show):
 ```[AfterEach] ScaleClientServerTrafficSplit
   /home/eserra/src/osm/tests/scale/scale_trafficSplit_test.go:22
 +----+---------------------------+-------+-------------------------+-------------------------+
