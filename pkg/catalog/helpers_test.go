@@ -24,7 +24,11 @@ import (
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
-func newFakeMeshCatalogForRoutes(t *testing.T) *MeshCatalog {
+type testParams struct {
+	permissiveMode bool
+}
+
+func newFakeMeshCatalogForRoutes(t *testing.T, testParams testParams) *MeshCatalog {
 	mockCtrl := gomock.NewController(t)
 	kubeClient := testclient.NewSimpleClientset()
 
@@ -124,6 +128,8 @@ func newFakeMeshCatalogForRoutes(t *testing.T) *MeshCatalog {
 	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookstoreV2Service.Namespace).Return(true).AnyTimes()
 	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).AnyTimes()
 	mockKubeController.EXPECT().ListMonitoredNamespaces().Return(listExpectedNs, nil).AnyTimes()
+
+	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(testParams.permissiveMode).AnyTimes()
 
 	mockMeshSpec.EXPECT().GetAnnouncementsChannel().Return(announcementsChan).AnyTimes()
 	mockMeshSpec.EXPECT().ListTrafficTargets().Return([]*target.TrafficTarget{&tests.TrafficTarget}).AnyTimes()
