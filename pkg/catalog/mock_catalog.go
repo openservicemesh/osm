@@ -233,6 +233,20 @@ func (mr *MockMeshCatalogerMockRecorder) ListAllowedOutboundServices(arg0 interf
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAllowedOutboundServices", reflect.TypeOf((*MockMeshCataloger)(nil).ListAllowedOutboundServices), arg0)
 }
 
+// ListAllowedOutboundServicesForIdentity mocks base method
+func (m *MockMeshCataloger) ListAllowedOutboundServicesForIdentity(arg0 service.K8sServiceAccount) []service.MeshService {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListAllowedOutboundServicesForIdentity", arg0)
+	ret0, _ := ret[0].([]service.MeshService)
+	return ret0
+}
+
+// ListAllowedOutboundServicesForIdentity indicates an expected call of ListAllowedOutboundServicesForIdentity
+func (mr *MockMeshCatalogerMockRecorder) ListAllowedOutboundServicesForIdentity(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAllowedOutboundServicesForIdentity", reflect.TypeOf((*MockMeshCataloger)(nil).ListAllowedOutboundServicesForIdentity), arg0)
+}
+
 // ListEndpointsForService mocks base method
 func (m *MockMeshCataloger) ListEndpointsForService(arg0 service.MeshService) ([]endpoint.Endpoint, error) {
 	m.ctrl.T.Helper()
