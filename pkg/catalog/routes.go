@@ -116,11 +116,9 @@ func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(identity service.K
 					log.Error().Msgf("No Services found matching Service Account %s in Namespace %s", t.Spec.Destination.Name, t.Namespace)
 					break
 				}
-				destServicesSet := mapset.NewSet()
 				for _, destService := range destServices {
-					destServicesSet.Add(destService)
+					serviceSet.Add(destService)
 				}
-				serviceSet = serviceSet.Union(destServicesSet)
 				break
 			}
 		}
