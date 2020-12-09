@@ -19,8 +19,8 @@ const (
 	singleIpv4Mask                = 32
 )
 
-func (lb *listenerBuilder) newOutboundListener(downstreamSvc []service.MeshService) (*xds_listener.Listener, error) {
-	serviceFilterChains, err := lb.getOutboundFilterChains(downstreamSvc)
+func (lb *listenerBuilder) newOutboundListener() (*xds_listener.Listener, error) {
+	serviceFilterChains, err := lb.getOutboundFilterChains()
 	if err != nil {
 		log.Error().Err(err).Msgf("Error getting filter chains for outbound listener")
 		return nil, err
@@ -119,17 +119,37 @@ func buildEgressFilterChain() (*xds_listener.FilterChain, error) {
 	}, nil
 }
 
-func (lb *listenerBuilder) getOutboundFilterChains(downstreamSvc []service.MeshService) ([]*xds_listener.FilterChain, error) {
-	var filterChains []*xds_listener.FilterChain
-	var dstServicesSet map[service.MeshService]struct{} = make(map[service.MeshService]struct{}) // Set, avoid dups
+func (lb *listenerBuilder) getOutboundFilterChains() ([]*xds_listener.FilterChain, error) {
+	// Create filter chain for upstream services
+	filterChains := lb.getOutboundFilterChainPerUpstream()
 
-	// Assuming single service in pod till #1682, #1575 get addressed
-	outboundSvc, err := lb.meshCatalog.ListAllowedOutboundServices(downstreamSvc[0])
-	if err != nil {
-		log.Error().Err(err).Msgf("Error getting allowed outbound services for %q", downstreamSvc[0].String())
-		return nil, err
+	// Create filter chain for egress if egress is enabled
+	// This filterchain matches any traffic not filtered by allow rules, it will be treated as egress
+	// traffic when enabled
+	if lb.cfg.IsEgressEnabled() {
+		egressFilterChgain, err := buildEgressFilterChain()
+		if err != nil {
+			log.Error().Err(err).Msgf("Error getting filter chain for Egress")
+			return nil, err
+		}
+
+		filterChains = append(filterChains, egressFilterChgain)
 	}
 
+	return filterChains, nil
+}
+
+// getOutboundFilterChainPerUpstream returns a list of filter chains corresponding to upstream services
+func (lb *listenerBuilder) getOutboundFilterChainPerUpstream() []*xds_listener.FilterChain {
+	var filterChains []*xds_listener.FilterChain
+
+	outboundSvc := lb.meshCatalog.ListAllowedOutboundServicesForIdentity(lb.svcAccount)
+	if len(outboundSvc) == 0 {
+		log.Debug().Msgf("Proxy with identity %s does not have any allowed upstream services", lb.svcAccount)
+		return filterChains
+	}
+
+	var dstServicesSet map[service.MeshService]struct{} = make(map[service.MeshService]struct{}) // Set, avoid duplicates
 	// Transform into set, when listing apex services we might face repetitions
 	for _, meshSvc := range outboundSvc {
 		dstServicesSet[meshSvc] = struct{}{}
@@ -164,17 +184,5 @@ func (lb *listenerBuilder) getOutboundFilterChains(downstreamSvc []service.MeshS
 		}
 	}
 
-	// This filterchain matches any traffic not filtered by allow rules, it will be treated as egress
-	// traffic when enabled
-	if lb.cfg.IsEgressEnabled() {
-		egressFilterChgain, err := buildEgressFilterChain()
-		if err != nil {
-			log.Error().Err(err).Msgf("Error getting filter chain for Egress")
-			return nil, err
-		}
-
-		filterChains = append(filterChains, egressFilterChgain)
-	}
-
-	return filterChains, nil
+	return filterChains
 }

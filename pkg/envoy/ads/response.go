@@ -65,6 +65,12 @@ func makeRequestForAllSecrets(proxy *envoy.Proxy, meshCatalog catalog.MeshCatalo
 	// Github Issue #1575
 	serviceForProxy := svcList[0]
 
+	proxyIdentity, err := catalog.GetServiceAccountFromProxyCertificate(proxy.GetCommonName())
+	if err != nil {
+		log.Error().Err(err).Msgf("Error looking up proxy identity for proxy with CN=%q", proxy.GetCommonName())
+		return nil
+	}
+
 	discoveryRequest := &xds_discovery.DiscoveryRequest{
 		ResourceNames: []string{
 			envoy.SDSCert{
@@ -84,11 +90,7 @@ func makeRequestForAllSecrets(proxy *envoy.Proxy, meshCatalog catalog.MeshCatalo
 	}
 
 	// There is an SDS validation cert corresponding to each upstream service
-	upstreamServices, err := meshCatalog.ListAllowedOutboundServices(serviceForProxy)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error listing outbound services for proxy %q", serviceForProxy)
-		return nil
-	}
+	upstreamServices := meshCatalog.ListAllowedOutboundServicesForIdentity(proxyIdentity)
 	for _, upstream := range upstreamServices {
 		upstreamRootCertResource := envoy.SDSCert{
 			MeshService: upstream,

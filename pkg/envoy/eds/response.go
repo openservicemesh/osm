@@ -16,8 +16,8 @@ import (
 )
 
 // NewResponse creates a new Endpoint Discovery Response.
-func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, _ configurator.Configurator, _ certificate.Manager) (*xds_discovery.DiscoveryResponse, error) {
-	svcList, err := catalog.GetServicesFromEnvoyCertificate(proxy.GetCommonName())
+func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, _ configurator.Configurator, _ certificate.Manager) (*xds_discovery.DiscoveryResponse, error) {
+	svcList, err := meshCatalog.GetServicesFromEnvoyCertificate(proxy.GetCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up MeshService for Envoy with CN=%q", proxy.GetCommonName())
 		return nil, err
@@ -25,7 +25,12 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 	// Github Issue #1575
 	proxyServiceName := svcList[0]
 
-	outboundServices, err := catalog.ListAllowedOutboundServices(proxyServiceName)
+	proxyIdentity, err := catalog.GetServiceAccountFromProxyCertificate(proxy.GetCommonName())
+	if err != nil {
+		log.Error().Err(err).Msgf("Error looking up proxy identity for proxy with CN=%q", proxy.GetCommonName())
+		return nil, err
+	}
+	outboundServices := meshCatalog.ListAllowedOutboundServicesForIdentity(proxyIdentity)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error listing outbound services for proxy %q", proxyServiceName)
 		return nil, err
@@ -33,7 +38,7 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 
 	outboundServicesEndpoints := make(map[service.MeshService][]endpoint.Endpoint)
 	for _, dstSvc := range outboundServices {
-		endpoints, err := catalog.ListEndpointsForService(dstSvc)
+		endpoints, err := meshCatalog.ListEndpointsForService(dstSvc)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed listing endpoints for service %s", dstSvc)
 			continue
