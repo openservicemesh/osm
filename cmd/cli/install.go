@@ -112,6 +112,7 @@ type installCmd struct {
 	enablePermissiveTrafficPolicy bool
 	clientSet                     kubernetes.Interface
 	chartRequested                *chart.Chart
+	setOptions                    []string
 
 	// This is an experimental flag, which will eventually
 	// become part of SMI Spec.
@@ -189,6 +190,7 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.StringVar(&inst.envoyLogLevel, "envoy-log-level", defaultEnvoyLogLevel, "Envoy log level is used to specify the level of logs collected from envoy and needs to be one of these (trace, debug, info, warning, warn, error, critical, off)")
 	f.BoolVar(&inst.enforceSingleMesh, "enforce-single-mesh", defaultEnforceSingleMesh, "Enforce only deploying one mesh in the cluster")
 	f.DurationVar(&inst.timeout, "timeout", 5*time.Minute, "Time to wait for installation and resources in a ready state, zero means no timeout")
+	f.StringArrayVar(&inst.setOptions, "set", nil, "Set arbitrary chart values values not settable by another flag (can specify multiple or separate values with commas: key1=val1,key2=val2)")
 
 	return cmd
 }
@@ -234,6 +236,14 @@ func (i *installCmd) loadOSMChart() error {
 
 func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 	finalValues := map[string]interface{}{}
+
+	for _, val := range i.setOptions {
+		// parses Helm strvals line and merges into a map for the final overrides for values.yaml
+		if err := strvals.ParseInto(val, finalValues); err != nil {
+			return nil, errors.Wrap(err, "invalid format for --set")
+		}
+	}
+
 	valuesConfig := []string{
 		fmt.Sprintf("OpenServiceMesh.image.registry=%s", i.containerRegistry),
 		fmt.Sprintf("OpenServiceMesh.image.tag=%s", i.osmImageTag),
@@ -272,6 +282,7 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 			return nil, err
 		}
 	}
+
 	return finalValues, nil
 }
 

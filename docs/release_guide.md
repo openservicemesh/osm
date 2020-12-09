@@ -17,9 +17,9 @@ Identify the base commit in the `main` branch for the release and cut a release 
 $ git checkout -b release-<version> <commit-id> # ex: git checkout -b release-v0.4 0d05587
 ```
 
-Push the release branch to origin.
+Push the release branch to the main repo (not fork), identified here by the `upstream` remote.
 ```console
-$ git push origin release-<version> # ex: git push origin release-v0.4
+$ git push upstream release-<version> # ex: git push upstream release-v0.4
 ```
 
 ## Update release branch with versioning changes
@@ -36,12 +36,12 @@ The pull request must be reviewed and merged before proceeding to the next step.
 ## Create and push a Git tag
 
 Once the release is ready to be published, create and push a Git tag from the release branch in
-the main repo (not fork).
+the main repo (not fork), identified here by the `upstream` remote.
 
 ```console
 $ export RELEASE_VERSION=<release-version> # ex: export RELEASE_VERSION=v0.4.0
 $ git tag -a "$RELEASE_VERSION" -m "<add description here>"
-$ git push origin "$RELEASE_VERSION"
+$ git push upstream "$RELEASE_VERSION"
 ```
 
 A [GitHub Action](/.github/workflows/release.yml) is triggered when the tag is pushed.
@@ -67,7 +67,7 @@ make chart-readme
 ## Create a Helm chart release
 
 * create a Git tag from main in the format `chart/x.x.x` where `x.x.x` is the chart version
-* push the Git tag to origin
+* push the Git tag to the main repo (not fork)
 * GitHub Actions runs [helm-gh-pages](https://github.com/stefanprodan/helm-gh-pages) that packages the charts, updates `index.yaml` and pushes the changes to `gh-pages` branch
 * GitHub Pages publishes the new version, making the chart available at `https://openservicemesh.github.io/osm`
 
