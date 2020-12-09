@@ -97,11 +97,6 @@ func (mc *MeshCatalog) ListAllowedInboundServices(destinationService service.Mes
 	return mc.getAllowedDirectionalServices(destinationService, inbound)
 }
 
-// ListAllowedOutboundServices lists the services the given service is allowed outbound connections to.
-func (mc *MeshCatalog) ListAllowedOutboundServices(sourceService service.MeshService) ([]service.MeshService, error) {
-	return mc.getAllowedDirectionalServices(sourceService, outbound)
-}
-
 // ListAllowedOutboundServicesForIdentity list the services the given service account is allowed to initiate outbound connections to
 func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(identity service.K8sServiceAccount) []service.MeshService {
 	allowedServices := []service.MeshService{}

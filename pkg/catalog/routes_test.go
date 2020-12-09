@@ -378,17 +378,6 @@ func TestBuildAllowPolicyForSourceToDest(t *testing.T) {
 	assert.ElementsMatch(trafficTarget.HTTPRouteMatches[0].Methods, expectedRoute.Methods)
 }
 
-func TestListAllowedOutboundServices(t *testing.T) {
-	assert := assert.New(t)
-
-	mc := newFakeMeshCatalog()
-	actualList, err := mc.ListAllowedOutboundServices(tests.BookbuyerService)
-	assert.Nil(err)
-
-	expectedList := []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service, tests.BookstoreApexService}
-	assert.ElementsMatch(actualList, expectedList)
-}
-
 func TestListAllowedOutboundServicesForIdentity(t *testing.T) {
 	assert := assert.New(t)
 
