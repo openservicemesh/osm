@@ -104,6 +104,15 @@ func (mc *MeshCatalog) ListAllowedOutboundServices(sourceService service.MeshSer
 
 // ListAllowedOutboundServicesForIdentity list the services the given service account is allowed to initiate outbound connections to
 func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(identity service.K8sServiceAccount) []service.MeshService {
+	allowedServices := []service.MeshService{}
+
+	if mc.configurator.IsPermissiveTrafficPolicyMode() {
+		for _, svc := range mc.kubeController.ListServices() {
+			allowedServices = append(allowedServices, utils.K8sSvcToMeshSvc(svc))
+		}
+		return allowedServices
+	}
+
 	serviceSet := mapset.NewSet()
 	for _, t := range mc.meshSpec.ListTrafficTargets() { // loop through all traffic targets
 		for _, source := range t.Spec.Sources {
@@ -124,11 +133,10 @@ func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(identity service.K
 		}
 	}
 
-	serviceSlice := []service.MeshService{}
 	for elem := range serviceSet.Iter() {
-		serviceSlice = append(serviceSlice, elem.(service.MeshService))
+		allowedServices = append(allowedServices, elem.(service.MeshService))
 	}
-	return serviceSlice
+	return allowedServices
 }
 
 //GetWeightedClusterForService returns the weighted cluster for a given service
