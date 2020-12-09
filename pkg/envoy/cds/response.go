@@ -13,8 +13,8 @@ import (
 )
 
 // NewResponse creates a new Cluster Discovery Response.
-func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, _ certificate.Manager) (*xds_discovery.DiscoveryResponse, error) {
-	svcList, err := catalog.GetServicesFromEnvoyCertificate(proxy.GetCommonName())
+func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, _ certificate.Manager) (*xds_discovery.DiscoveryResponse, error) {
+	svcList, err := meshCatalog.GetServicesFromEnvoyCertificate(proxy.GetCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up MeshService for Envoy with CN=%q", proxy.GetCommonName())
 		return nil, err
@@ -28,11 +28,12 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 	// The clusters have to be unique, so use a map to prevent duplicates. Keys correspond to the cluster name.
 	clusterFactories := make(map[string]*xds_cluster.Cluster)
 
-	outboundServices, err := catalog.ListAllowedOutboundServices(proxyServiceName)
+	proxyIdentity, err := catalog.GetServiceAccountFromProxyCertificate(proxy.GetCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error listing outbound services for proxy %q", proxyServiceName)
+		log.Error().Err(err).Msgf("Error looking up proxy identity for proxy with CN=%q", proxy.GetCommonName())
 		return nil, err
 	}
+	outboundServices := meshCatalog.ListAllowedOutboundServicesForIdentity(proxyIdentity)
 
 	// Build remote clusters based on allowed outbound services
 	for _, dstService := range outboundServices {
@@ -48,7 +49,7 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 		}
 
 		if featureflags.IsBackpressureEnabled() {
-			enableBackpressure(catalog, remoteCluster, dstService)
+			enableBackpressure(meshCatalog, remoteCluster, dstService)
 		}
 
 		clusterFactories[remoteCluster.Name] = remoteCluster
@@ -57,7 +58,7 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 	// Create a local cluster for the service.
 	// The local cluster will be used for incoming traffic.
 	localClusterName := envoy.GetLocalClusterNameForService(proxyServiceName)
-	localCluster, err := getLocalServiceCluster(catalog, proxyServiceName, localClusterName)
+	localCluster, err := getLocalServiceCluster(meshCatalog, proxyServiceName, localClusterName)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to get local cluster config for proxy %s", proxyServiceName)
 		return nil, err

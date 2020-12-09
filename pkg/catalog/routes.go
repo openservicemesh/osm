@@ -119,7 +119,7 @@ func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(identity service.K
 			if source.Name == identity.Name && source.Namespace == identity.Namespace { // found outbound
 				destServices, err := mc.GetServicesForServiceAccount(service.K8sServiceAccount{
 					Name:      t.Spec.Destination.Name,
-					Namespace: t.Namespace,
+					Namespace: t.Spec.Destination.Namespace,
 				})
 				if err != nil {
 					log.Error().Msgf("No Services found matching Service Account %s in Namespace %s", t.Spec.Destination.Name, t.Namespace)
