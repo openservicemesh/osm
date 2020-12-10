@@ -378,9 +378,9 @@ func (td *OsmTestData) GetPrometheusPodHandle(ns string, prometheusPodName strin
 	}, nil
 }
 
-// GetOSMPrometheusaHandle convenience wrapper, will get the Prometheus instance regularly deployed
+// GetOSMPrometheusHandle convenience wrapper, will get the Prometheus instance regularly deployed
 // by OSM installation in test <OsmNamespace>
-func (td *OsmTestData) GetOSMPrometheusaHandle() (*Prometheus, error) {
+func (td *OsmTestData) GetOSMPrometheusHandle() (*Prometheus, error) {
 	prometheusPod, err := Td.GetPodsForLabel(Td.OsmNamespace, metav1.LabelSelector{
 		MatchLabels: map[string]string{
 			"app": OsmPrometheusAppLabel,

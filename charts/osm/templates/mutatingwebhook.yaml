@@ -12,6 +12,8 @@ webhooks:
       namespace: {{.Release.Namespace}}
       path: /mutate-pod-creation
       port: 443
+  # failurePolicy should always be set to Fail to ensure no new resources get created without a sidecar
+  #   (and bypass TrafficTarget policies) if the webhook server is down
   failurePolicy: Fail
   matchPolicy: Exact
   namespaceSelector:
