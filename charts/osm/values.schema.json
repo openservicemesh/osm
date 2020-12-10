@@ -397,6 +397,15 @@
                     "examples": [
                         true
                     ]
+                },
+                "osmNamespace": {
+                    "$id": "#/properties/OpenServiceMesh/properties/osmNamespace",
+                    "type": "string",
+                    "title": "The namespace of the osm controller",
+                    "description": "Indicates the namespace in which the osm controller will be installed.",
+                    "examples": [
+                        "osm-system"
+                    ]
                 }
             },
             "additionalProperties": true

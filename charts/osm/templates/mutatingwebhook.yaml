@@ -9,7 +9,7 @@ webhooks:
   clientConfig:
     service:
       name: osm-controller
-      namespace: {{.Release.Namespace}}
+      namespace: {{ include "osm.namespace" . }}
       path: /mutate-pod-creation
       port: 443
   # failurePolicy should always be set to Fail to ensure no new resources get created without a sidecar
@@ -29,7 +29,7 @@ webhooks:
       - key: "name"
         operator: NotIn
         values:
-        - {{.Release.Namespace}}
+        - {{ include "osm.namespace" . }}
   rules:
     - apiGroups:
         - ""
