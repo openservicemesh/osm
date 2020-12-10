@@ -47,6 +47,9 @@ type DataHandle struct {
 	PromHandle *Prometheus
 	GrafHandle *Grafana
 
+	// Result output files, allows setting multiple descriptors to write results
+	ResultsOut []*os.File
+
 	// Defines the resources to keep track across iterations
 	TrackAppLabels []TrackedLabel
 	// Defines the panels to save upon WrapUp invocation
@@ -74,6 +77,7 @@ func NewDataHandle(pHandle *Prometheus, gHandle *Grafana, trackResources []Track
 		ItStartTime:         []time.Time{},
 		ItEndTime:           []time.Time{},
 		SeenResources:       map[Resource]bool{},
+		ResultsOut:          []*os.File{},
 	}
 }
 
@@ -81,7 +85,9 @@ func NewDataHandle(pHandle *Prometheus, gHandle *Grafana, trackResources []Track
 // Will output all iteration results, compute some relative usages between iterations
 // and save grafana dashboards if any are to be saved
 func (sd *DataHandle) WrapUp() {
-	sd.OutputTestResults(os.Stdout)
+	for _, f := range sd.ResultsOut {
+		sd.OutputTestResults(f)
+	}
 
 	if sd.GrafHandle != nil {
 		for _, panel := range sd.GrafanaPanelsToSave {
