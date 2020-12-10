@@ -40,6 +40,7 @@ spec:
         app: tcp-client
         version: v1
     spec:
+      serviceAccountName: tcp-client
       containers:
       - name: tcp-client
         image: "${CTR_REGISTRY}/tcp-client:${CTR_TAG}"

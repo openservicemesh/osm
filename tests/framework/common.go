@@ -136,11 +136,7 @@ const (
 // Verifies the instType string flag option is a valid enum type
 func verifyValidInstallType(t InstallType) error {
 	switch t {
-	case SelfInstall:
-		fallthrough
-	case KindCluster:
-		fallthrough
-	case NoInstall:
+	case SelfInstall, KindCluster, NoInstall:
 		return nil
 	default:
 		return errors.Errorf("%s is not a valid OSM install type", string(t))

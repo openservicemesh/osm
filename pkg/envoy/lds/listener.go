@@ -15,6 +15,9 @@ import (
 )
 
 const (
+	inboundListenerName           = "inbound-listener"
+	outboundListenerName          = "outbound-listener"
+	prometheusListenerName        = "inbound-prometheus-listener"
 	outboundEgressFilterChainName = "outbound-egress-filter-chain"
 	singleIpv4Mask                = 32
 )
@@ -178,9 +181,16 @@ func (lb *listenerBuilder) getOutboundFilterChainPerUpstream() []*xds_listener.F
 	for upstream := range dstServicesSet {
 		// Construct HTTP filter chain
 		if httpFilterChain, err := lb.getOutboundHTTPFilterChainForService(upstream); err != nil {
-			log.Error().Err(err).Msgf("Error constructing outbount HTTP filter chain for upstream service %q", upstream)
+			log.Error().Err(err).Msgf("Error constructing outbound HTTP filter chain for upstream service %s on proxy with identity %s", upstream, lb.svcAccount)
 		} else {
 			filterChains = append(filterChains, httpFilterChain)
+		}
+
+		// Construct TCP filter chain
+		if tcpFilterChain, err := lb.getOutboundTCPFilterChainForService(upstream); err != nil {
+			log.Error().Err(err).Msgf("Error constructing outbound TCP filter chain for upstream service %s on proxy with identity %s", upstream, lb.svcAccount)
+		} else {
+			filterChains = append(filterChains, tcpFilterChain)
 		}
 	}
 
