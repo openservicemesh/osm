@@ -24,6 +24,8 @@ var (
 
 	testHostnames = []string{"testHostname1", "testHostname2", "testHostname3"}
 
+	testHostnames2 = []string{"testing1", "testing2", "testing3"}
+
 	testWeightedCluster = service.WeightedCluster{
 		ClusterName: "testCluster",
 		Weight:      100,
@@ -45,6 +47,11 @@ var (
 
 	testRoute = RouteWeightedClusters{
 		HTTPRouteMatch:   testHTTPRouteMatch,
+		WeightedClusters: set.NewSet(testWeightedCluster),
+	}
+
+	testRoute2 = RouteWeightedClusters{
+		HTTPRouteMatch:   testHTTPRouteMatch2,
 		WeightedClusters: set.NewSet(testWeightedCluster),
 	}
 )
@@ -232,6 +239,319 @@ func TestAddRoute(t *testing.T) {
 				assert.Nil(err)
 			}
 			assert.Equal(tc.expectedRoutes, outboundPolicy.Routes)
+		})
+	}
+}
+
+func TestMergeInboundPolicies(t *testing.T) {
+	assert := assert.New(t)
+
+	testRule1 := Rule{
+		Route:                  testRoute,
+		AllowedServiceAccounts: set.NewSet(testServiceAccount1),
+	}
+	testRule2 := Rule{
+		Route:                  testRoute2,
+		AllowedServiceAccounts: set.NewSet(testServiceAccount2),
+	}
+	testCases := []struct {
+		name            string
+		originalInbound []*InboundTrafficPolicy
+		newInbound      []*InboundTrafficPolicy
+		expectedInbound []*InboundTrafficPolicy
+	}{
+		{
+			name: "hostnames match",
+			originalInbound: []*InboundTrafficPolicy{
+				{
+					Hostnames: testHostnames,
+					Rules:     []*Rule{&testRule1, &testRule2},
+				},
+			},
+			newInbound: []*InboundTrafficPolicy{
+				{
+					Hostnames: testHostnames,
+					Rules:     []*Rule{&testRule2},
+				},
+			},
+			expectedInbound: []*InboundTrafficPolicy{
+				{
+					Hostnames: testHostnames,
+					Rules:     []*Rule{&testRule1, &testRule2},
+				},
+			},
+		},
+		{
+			name: "hostnames do not match",
+			originalInbound: []*InboundTrafficPolicy{
+				{
+					Hostnames: testHostnames,
+					Rules:     []*Rule{&testRule1, &testRule2},
+				},
+			},
+			newInbound: []*InboundTrafficPolicy{
+				{
+					Hostnames: testHostnames2,
+					Rules:     []*Rule{&testRule2},
+				},
+			},
+			expectedInbound: []*InboundTrafficPolicy{
+				{
+					Hostnames: testHostnames2,
+					Rules:     []*Rule{&testRule2},
+				},
+				{
+					Hostnames: testHostnames,
+					Rules:     []*Rule{&testRule1, &testRule2},
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := MergeInboundPolicies(tc.originalInbound, tc.newInbound...)
+			assert.ElementsMatch(tc.expectedInbound, actual)
+		})
+	}
+}
+func TestMergeRules(t *testing.T) {
+	assert := assert.New(t)
+
+	testCases := []struct {
+		name          string
+		originalRules []*Rule
+		newRules      []*Rule
+		expectedRules []*Rule
+	}{
+		{
+			name: "routes match",
+			originalRules: []*Rule{
+				{
+					Route:                  testRoute,
+					AllowedServiceAccounts: set.NewSet(testServiceAccount1),
+				},
+			},
+			newRules: []*Rule{
+				{
+					Route:                  testRoute,
+					AllowedServiceAccounts: set.NewSet(testServiceAccount2),
+				},
+			},
+			expectedRules: []*Rule{
+				{
+					Route:                  testRoute,
+					AllowedServiceAccounts: set.NewSetWith(testServiceAccount1, testServiceAccount2),
+				},
+			},
+		},
+		{
+			name: "routes match but with duplicate allowed service accounts",
+			originalRules: []*Rule{
+				{
+					Route:                  testRoute,
+					AllowedServiceAccounts: set.NewSet(testServiceAccount1),
+				},
+			},
+			newRules: []*Rule{
+				{
+					Route:                  testRoute,
+					AllowedServiceAccounts: set.NewSet(testServiceAccount1),
+				},
+			},
+			expectedRules: []*Rule{
+				{
+					Route:                  testRoute,
+					AllowedServiceAccounts: set.NewSetWith(testServiceAccount1),
+				},
+			},
+		},
+		{
+			name: "routes don't match, add rule",
+			originalRules: []*Rule{
+				{
+					Route:                  testRoute,
+					AllowedServiceAccounts: set.NewSet(testServiceAccount1),
+				},
+			},
+			newRules: []*Rule{
+				{
+					Route:                  testRoute2,
+					AllowedServiceAccounts: set.NewSet(testServiceAccount1),
+				},
+			},
+			expectedRules: []*Rule{
+				{
+					Route:                  testRoute,
+					AllowedServiceAccounts: set.NewSetWith(testServiceAccount1),
+				},
+				{
+					Route:                  testRoute2,
+					AllowedServiceAccounts: set.NewSetWith(testServiceAccount1),
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := mergeRules(tc.originalRules, tc.newRules)
+			assert.ElementsMatch(tc.expectedRules, actual)
+		})
+	}
+}
+
+func TestMergeOutboundPolicies(t *testing.T) {
+	assert := assert.New(t)
+
+	testCases := []struct {
+		name                                               string
+		originalPolicies, latestPolicies, expectedPolicies []*OutboundTrafficPolicy
+		errsLen                                            int
+	}{
+		{
+			name: "hostnames don't match",
+			originalPolicies: []*OutboundTrafficPolicy{
+				{
+					Hostnames: testHostnames,
+					Routes:    []*RouteWeightedClusters{&testRoute},
+				},
+			},
+			latestPolicies: []*OutboundTrafficPolicy{
+				{
+					Hostnames: testHostnames2,
+					Routes:    []*RouteWeightedClusters{&testRoute},
+				},
+			},
+			expectedPolicies: []*OutboundTrafficPolicy{
+				{
+					Hostnames: testHostnames,
+					Routes:    []*RouteWeightedClusters{&testRoute},
+				},
+				{
+					Hostnames: testHostnames2,
+					Routes:    []*RouteWeightedClusters{&testRoute},
+				},
+			},
+			errsLen: 0,
+		},
+		{
+			name: "hostnames match",
+			originalPolicies: []*OutboundTrafficPolicy{
+				{
+					Hostnames: testHostnames,
+					Routes:    []*RouteWeightedClusters{&testRoute},
+				},
+			},
+			latestPolicies: []*OutboundTrafficPolicy{
+				{
+					Hostnames: testHostnames,
+					Routes:    []*RouteWeightedClusters{&testRoute2},
+				},
+			},
+			expectedPolicies: []*OutboundTrafficPolicy{
+				{
+					Hostnames: testHostnames,
+					Routes:    []*RouteWeightedClusters{&testRoute, &testRoute2},
+				},
+			},
+			errsLen: 0,
+		},
+		{
+			name: "hostnames match, routes match",
+			originalPolicies: []*OutboundTrafficPolicy{
+				{
+					Hostnames: testHostnames,
+					Routes:    []*RouteWeightedClusters{&testRoute},
+				},
+			},
+			latestPolicies: []*OutboundTrafficPolicy{
+				{
+					Hostnames: testHostnames,
+					Routes:    []*RouteWeightedClusters{&testRoute},
+				},
+			},
+			expectedPolicies: []*OutboundTrafficPolicy{
+				{
+					Hostnames: testHostnames,
+					Routes:    []*RouteWeightedClusters{&testRoute},
+				},
+			},
+			errsLen: 0,
+		},
+		{
+			name: "hostnames match, routes have same match conditions but diff weighted clusters",
+			originalPolicies: []*OutboundTrafficPolicy{
+				{
+					Hostnames: testHostnames,
+					Routes:    []*RouteWeightedClusters{&testRoute},
+				},
+			},
+			latestPolicies: []*OutboundTrafficPolicy{
+				{
+					Hostnames: testHostnames,
+					Routes: []*RouteWeightedClusters{{
+						HTTPRouteMatch:   testHTTPRouteMatch,
+						WeightedClusters: set.NewSet(testWeightedCluster2),
+					}},
+				},
+			},
+			expectedPolicies: []*OutboundTrafficPolicy{
+				{
+					Hostnames: testHostnames,
+					Routes:    []*RouteWeightedClusters{&testRoute},
+				},
+			},
+			errsLen: 1,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual, errs := MergeOutboundPolicies(tc.originalPolicies, tc.latestPolicies...)
+			assert.Equal(tc.errsLen, len(errs))
+			assert.ElementsMatch(tc.expectedPolicies, actual)
+		})
+	}
+}
+
+func TestMergeRouteWeightedClusters(t *testing.T) {
+	assert := assert.New(t)
+
+	testCases := []struct {
+		name                                         string
+		originalRoutes, latestRoutes, expectedRoutes []*RouteWeightedClusters
+		errsLen                                      int
+	}{
+		{
+			name:           "merge routes with different match conditions",
+			originalRoutes: []*RouteWeightedClusters{&testRoute},
+			latestRoutes:   []*RouteWeightedClusters{&testRoute2},
+			expectedRoutes: []*RouteWeightedClusters{&testRoute, &testRoute2},
+			errsLen:        0,
+		},
+		{
+			name:           "collapse routes with same match conditions and weighted clusters",
+			originalRoutes: []*RouteWeightedClusters{&testRoute},
+			latestRoutes:   []*RouteWeightedClusters{&testRoute},
+			expectedRoutes: []*RouteWeightedClusters{&testRoute},
+			errsLen:        0,
+		},
+		{
+			name:           "error when routes have same match conditions but different weighted clusters",
+			originalRoutes: []*RouteWeightedClusters{&testRoute},
+			latestRoutes: []*RouteWeightedClusters{{
+				HTTPRouteMatch:   testHTTPRouteMatch,
+				WeightedClusters: set.NewSet(testWeightedCluster2),
+			}},
+			expectedRoutes: []*RouteWeightedClusters{&testRoute},
+			errsLen:        1,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual, errs := mergeRoutesWeightedClusters(tc.originalRoutes, tc.latestRoutes)
+			assert.Equal(tc.errsLen, len(errs))
+			assert.Equal(tc.expectedRoutes, actual)
 		})
 	}
 }
