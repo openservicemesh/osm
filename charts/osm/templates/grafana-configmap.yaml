@@ -3,6 +3,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: osm-grafana-config
+  namespace: {{ include "osm.namespace" . }}
   labels:
     app: osm-grafana
 data:
@@ -25,6 +26,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: osm-grafana-datasources
+  namespace: {{ include "osm.namespace" . }}
   labels:
     app: osm-grafana
 data:
@@ -49,7 +51,7 @@ data:
         # <int> org id. will default to orgId 1 if not specified
         orgId: 1
         # <string> url
-        url: http://osm-prometheus.{{.Release.Namespace}}.svc:{{.Values.OpenServiceMesh.prometheus.port}}
+        url: http://osm-prometheus.{{ include "osm.namespace" . }}.svc:{{.Values.OpenServiceMesh.prometheus.port}}
         version: 1
         # <bool> allow users to edit datasources from the UI.
         editable: true
@@ -60,6 +62,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: osm-grafana-dashboard-definition-dataplane
+  namespace: {{ include "osm.namespace" . }}
   labels:
     app: osm-grafana
 data:
@@ -76,6 +79,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: osm-grafana-dashboard-definition-controlplane
+  namespace: {{ include "osm.namespace" . }}
   labels:
     app: osm-grafana
 data:
@@ -90,6 +94,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: osm-grafana-dashboards
+  namespace: {{ include "osm.namespace" . }}
   labels:
     app: osm-grafana
 data:

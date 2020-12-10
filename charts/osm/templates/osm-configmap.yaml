@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: osm-config
-  namespace: {{ .Release.Namespace }}
+  namespace: {{ include "osm.namespace" . }}
 data:
   permissive_traffic_policy_mode: {{ .Values.OpenServiceMesh.enablePermissiveTrafficPolicy | default "false" | quote }}
   egress: {{ .Values.OpenServiceMesh.enableEgress | quote }}

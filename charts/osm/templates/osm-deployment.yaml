@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: osm-controller
+  namespace: {{ include "osm.namespace" . }}
   labels:
     app: osm-controller
     meshName: {{ .Values.OpenServiceMesh.meshName }}
@@ -29,7 +30,7 @@ spec:
           command: ['/osm-controller']
           args: [
             "--verbosity", "{{.Values.OpenServiceMesh.controllerLogLevel}}",
-            "--osm-namespace", "{{.Release.Namespace}}",
+            "--osm-namespace", "{{ include "osm.namespace" . }}",
             "--mesh-name", "{{.Values.OpenServiceMesh.meshName}}",
             "--init-container-image", "{{.Values.OpenServiceMesh.image.registry}}/init:{{ .Values.OpenServiceMesh.image.tag }}",
             "--sidecar-image", "{{.Values.OpenServiceMesh.sidecarImage}}",

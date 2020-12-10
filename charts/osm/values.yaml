@@ -56,6 +56,10 @@ OpenServiceMesh:
   enforceSingleMesh: false
   webhookConfigNamePrefix: osm-webhook
 
+  # Optional parameter. If not specified, the release namespace is 
+  # used to deploy the osm components.
+  osmNamespace: ""
+
   # Set deployJaeger to true to deploy a Jaeger cluster in the
   # namespace where OSM resides.
   deployJaeger: true

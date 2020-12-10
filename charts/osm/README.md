@@ -54,3 +54,4 @@ A Helm chart to install the OSM control plane on Kubernetes
 | OpenServiceMesh.vault.role | string | `"openservicemesh"` |  |
 | OpenServiceMesh.vault.token | string | `nil` |  |
 | OpenServiceMesh.enforceSingleMesh | bool | `"false"` |  |
+| OpenServiceMesh.osmNamespace | bool | `""` | Optional parameter. If not specified, the release namespace is used to deploy the osm components. |

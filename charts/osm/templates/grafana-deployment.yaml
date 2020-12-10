@@ -3,6 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: osm-grafana
+  namespace: {{ include "osm.namespace" . }}
   labels:
     app: osm-grafana
 spec:
