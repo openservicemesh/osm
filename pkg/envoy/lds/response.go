@@ -12,12 +12,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
-const (
-	inboundListenerName    = "inbound_listener"
-	outboundListenerName   = "outbound_listener"
-	prometheusListenerName = "inbound_prometheus_listener"
-)
-
 // NewResponse creates a new Listener Discovery Response.
 // The response build 3 Listeners:
 // 1. Inbound listener to handle incoming traffic
