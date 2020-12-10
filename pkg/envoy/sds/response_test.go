@@ -370,11 +370,7 @@ func TestGetSDSSecrets(t *testing.T) {
 			// verify different cert types
 			switch tc.sdsCertType {
 			// Verify SAN for inbound and outbound MTLS certs
-			case envoy.RootCertTypeForMTLSInbound:
-				fallthrough
-			case envoy.RootCertTypeForMTLSOutbound:
-				fallthrough
-			case envoy.RootCertTypeForHTTPS:
+			case envoy.RootCertTypeForMTLSInbound, envoy.RootCertTypeForMTLSOutbound, envoy.RootCertTypeForHTTPS:
 				// Check SANs
 				actualSANs := subjectAltNamesToStr(sdsSecret.GetValidationContext().GetMatchSubjectAltNames())
 				assert.ElementsMatch(actualSANs, tc.expectedSANs)
