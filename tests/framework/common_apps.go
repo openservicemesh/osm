@@ -344,6 +344,7 @@ func (td *OsmTestData) GetGrafanaPodHandle(ns string, grafanaPodName string, por
 		Port:     port,
 		User:     "admin", // default value of grafana deployment
 		Password: "admin", // default value of grafana deployment
+		pfwd:     portForwarder,
 	}, nil
 }
 
@@ -373,6 +374,7 @@ func (td *OsmTestData) GetPrometheusPodHandle(ns string, prometheusPodName strin
 	return &Prometheus{
 		Client: client,
 		API:    v1api,
+		pfwd:   portForwarder,
 	}, nil
 }
 

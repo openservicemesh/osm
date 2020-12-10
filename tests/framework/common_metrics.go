@@ -13,6 +13,8 @@ import (
 	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
+
+	"github.com/openservicemesh/osm/pkg/kubernetes"
 )
 
 var (
@@ -23,6 +25,13 @@ var (
 type Prometheus struct {
 	Client api.Client
 	API    v1.API
+
+	pfwd *kubernetes.PortForwarder
+}
+
+// Stop gracefully stops the port forwarding to Prometheus
+func (p *Prometheus) Stop() {
+	p.pfwd.Stop()
 }
 
 // VectorQuery runs a query at time <t>, expects single vector type and single result.
@@ -110,6 +119,13 @@ type Grafana struct {
 	Port     uint16
 	User     string
 	Password string
+
+	pfwd *kubernetes.PortForwarder
+}
+
+// Stop gracefully stops the port forwarding to Grafana
+func (g *Grafana) Stop() {
+	g.pfwd.Stop()
 }
 
 // PanelPNGSnapshot takes a snapshot from a Grafana dashboard or panel
