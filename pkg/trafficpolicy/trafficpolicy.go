@@ -56,3 +56,81 @@ func (out *OutboundTrafficPolicy) AddRoute(httpRouteMatch HTTPRouteMatch, weight
 	}
 	return nil
 }
+
+// MergeInboundPolicies merges latest InboundTrafficPolicies into original InboundTrafficPolicies
+func MergeInboundPolicies(original []*InboundTrafficPolicy, latest ...*InboundTrafficPolicy) []*InboundTrafficPolicy {
+	for _, l := range latest {
+		foundHostnames := false
+		for _, or := range original {
+			if reflect.DeepEqual(or.Hostnames, l.Hostnames) {
+				foundHostnames = true
+				or.Rules = mergeRules(or.Rules, l.Rules)
+			}
+		}
+		if !foundHostnames {
+			original = append(original, l)
+		}
+	}
+	return original
+}
+
+// MergeOutboundPolicies merges two slices of *OutboundTrafficPolicies so that there is only one traffic policy for a given set of a hostnames
+func MergeOutboundPolicies(original []*OutboundTrafficPolicy, latest ...*OutboundTrafficPolicy) ([]*OutboundTrafficPolicy, []error) {
+	routesErrors := []error{}
+	for _, l := range latest {
+		foundHostnames := false
+		for _, or := range original {
+			if reflect.DeepEqual(or.Hostnames, l.Hostnames) {
+				foundHostnames = true
+				mergedRoutes, errs := mergeRoutesWeightedClusters(or.Routes, l.Routes)
+				or.Routes = mergedRoutes
+				routesErrors = append(routesErrors, errs...)
+			}
+		}
+		if !foundHostnames {
+			original = append(original, l)
+		}
+	}
+	return original, routesErrors
+}
+
+// mergeRules merges the give slices of rules such that there is one Rule for a Route with all allowed service accounts listed in the
+//	returned slice of rules
+func mergeRules(originalRules, latestRules []*Rule) []*Rule {
+	for _, latest := range latestRules {
+		foundRoute := false
+		for _, original := range originalRules {
+			if reflect.DeepEqual(latest.Route, original.Route) {
+				foundRoute = true
+				original.AllowedServiceAccounts = original.AllowedServiceAccounts.Union(latest.AllowedServiceAccounts)
+				break
+			}
+		}
+		if !foundRoute {
+			originalRules = append(originalRules, latest)
+		}
+	}
+	return originalRules
+}
+
+// mergeRoutesWeightedClusters merges two slices of RouteWeightedClusters and returns a slice where there is one RouteWeightedCluster
+//	for any HTTPRouteMatch
+func mergeRoutesWeightedClusters(originalRoutes, latestRoutes []*RouteWeightedClusters) ([]*RouteWeightedClusters, []error) {
+	mergeErrors := []error{}
+	for _, latest := range latestRoutes {
+		foundRoute := false
+		for _, original := range originalRoutes {
+			if reflect.DeepEqual(original.HTTPRouteMatch, latest.HTTPRouteMatch) {
+				foundRoute = true
+				if !reflect.DeepEqual(original.WeightedClusters, latest.WeightedClusters) {
+					mergeErrors = append(mergeErrors, errors.Errorf("Error merging RoutesWeightedClusters %v with %v", original, latest))
+				}
+				continue
+			}
+		}
+		if !foundRoute {
+			originalRoutes = append(originalRoutes, latest)
+		}
+	}
+	return originalRoutes, mergeErrors
+}
