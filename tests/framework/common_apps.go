@@ -344,6 +344,7 @@ func (td *OsmTestData) GetGrafanaPodHandle(ns string, grafanaPodName string, por
 		Port:     port,
 		User:     "admin", // default value of grafana deployment
 		Password: "admin", // default value of grafana deployment
+		pfwd:     portForwarder,
 	}, nil
 }
 
@@ -373,12 +374,13 @@ func (td *OsmTestData) GetPrometheusPodHandle(ns string, prometheusPodName strin
 	return &Prometheus{
 		Client: client,
 		API:    v1api,
+		pfwd:   portForwarder,
 	}, nil
 }
 
-// GetOSMPrometheusaHandle convenience wrapper, will get the Prometheus instance regularly deployed
+// GetOSMPrometheusHandle convenience wrapper, will get the Prometheus instance regularly deployed
 // by OSM installation in test <OsmNamespace>
-func (td *OsmTestData) GetOSMPrometheusaHandle() (*Prometheus, error) {
+func (td *OsmTestData) GetOSMPrometheusHandle() (*Prometheus, error) {
 	prometheusPod, err := Td.GetPodsForLabel(Td.OsmNamespace, metav1.LabelSelector{
 		MatchLabels: map[string]string{
 			"app": OsmPrometheusAppLabel,

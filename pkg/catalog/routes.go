@@ -97,20 +97,10 @@ func (mc *MeshCatalog) ListAllowedInboundServices(destinationService service.Mes
 	return mc.getAllowedDirectionalServices(destinationService, inbound)
 }
 
-// ListAllowedOutboundServices lists the services the given service is allowed outbound connections to.
-func (mc *MeshCatalog) ListAllowedOutboundServices(sourceService service.MeshService) ([]service.MeshService, error) {
-	return mc.getAllowedDirectionalServices(sourceService, outbound)
-}
-
 // ListAllowedOutboundServicesForIdentity list the services the given service account is allowed to initiate outbound connections to
 func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(identity service.K8sServiceAccount) []service.MeshService {
-	allowedServices := []service.MeshService{}
-
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
-		for _, svc := range mc.kubeController.ListServices() {
-			allowedServices = append(allowedServices, utils.K8sSvcToMeshSvc(svc))
-		}
-		return allowedServices
+		return mc.listMeshServices()
 	}
 
 	serviceSet := mapset.NewSet()
@@ -133,6 +123,7 @@ func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(identity service.K
 		}
 	}
 
+	allowedServices := []service.MeshService{}
 	for elem := range serviceSet.Iter() {
 		allowedServices = append(allowedServices, elem.(service.MeshService))
 	}
@@ -512,6 +503,15 @@ func (mc *MeshCatalog) GetHostnamesForUpstreamService(downstream, upstream servi
 	}
 
 	return hostnames, nil
+}
+
+// listMeshServices returns all services in the mesh
+func (mc *MeshCatalog) listMeshServices() []service.MeshService {
+	services := []service.MeshService{}
+	for _, svc := range mc.kubeController.ListServices() {
+		services = append(services, utils.K8sSvcToMeshSvc(svc))
+	}
+	return services
 }
 
 func isValidTrafficTarget(t *target.TrafficTarget) bool {

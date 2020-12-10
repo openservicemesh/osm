@@ -12,12 +12,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
-const (
-	inboundListenerName    = "inbound_listener"
-	outboundListenerName   = "outbound_listener"
-	prometheusListenerName = "inbound_prometheus_listener"
-)
-
 // NewResponse creates a new Listener Discovery Response.
 // The response build 3 Listeners:
 // 1. Inbound listener to handle incoming traffic
@@ -45,7 +39,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	lb := newListenerBuilder(meshCatalog, svcAccount, cfg)
 
 	// --- OUTBOUND -------------------
-	outboundListener, err := lb.newOutboundListener(svcList)
+	outboundListener, err := lb.newOutboundListener()
 	if err != nil {
 		log.Error().Err(err).Msgf("Error making outbound listener config for proxy %s", proxyServiceName)
 	} else {

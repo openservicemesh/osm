@@ -8,6 +8,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
+	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 	"google.golang.org/protobuf/types/known/wrapperspb"
@@ -226,6 +227,120 @@ func TestGetInboundMeshTCPFilterChain(t *testing.T) {
 			for i, filter := range filterChain.Filters {
 				assert.Equal(filter.Name, tc.expectedFilterNames[i])
 			}
+		})
+	}
+}
+
+// Tests getOutboundFilterChainMatchForService and ensures the filter chain match returned is as expected
+func TestGetOutboundFilterChainMatchForService(t *testing.T) {
+	assert := assert.New(t)
+	mockCtrl := gomock.NewController(t)
+
+	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
+	mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
+
+	lb := newListenerBuilder(mockCatalog, tests.BookbuyerServiceAccount, mockConfigurator)
+
+	testCases := []struct {
+		name        string
+		endpoints   []endpoint.Endpoint
+		appProtocol string
+
+		expectedFilterChainMatch *xds_listener.FilterChainMatch
+		expectError              bool
+	}{
+		{
+			// test case 1
+			name: "outbound HTTP filter chain for service with endpoints",
+			endpoints: []endpoint.Endpoint{
+				{
+					IP: net.IPv4(192, 168, 10, 1),
+				},
+				{
+					IP: net.IPv4(192, 168, 20, 2),
+				},
+			},
+			appProtocol: httpAppProtocol,
+			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
+				// HTTP filter chain should only match on supported HTTP protocols that the downstream can use
+				// to originate a request.
+				ApplicationProtocols: []string{"http/1.0", "http/1.1", "h2c"},
+				PrefixRanges: []*xds_core.CidrRange{
+					{
+						AddressPrefix: "192.168.10.1",
+						PrefixLen: &wrapperspb.UInt32Value{
+							Value: 32,
+						},
+					},
+					{
+						AddressPrefix: "192.168.20.2",
+						PrefixLen: &wrapperspb.UInt32Value{
+							Value: 32,
+						},
+					},
+				},
+			},
+			expectError: false,
+		},
+
+		{
+			// test case 2
+			name:                     "outbound HTTP filter chain for service without endpoints",
+			endpoints:                []endpoint.Endpoint{},
+			appProtocol:              httpAppProtocol,
+			expectedFilterChainMatch: nil,
+			expectError:              true,
+		},
+
+		{
+			// test case 3
+			name: "outbound TCP filter chain for service with endpoints",
+			endpoints: []endpoint.Endpoint{
+				{
+					IP: net.IPv4(192, 168, 10, 1),
+				},
+				{
+					IP: net.IPv4(192, 168, 20, 2),
+				},
+			},
+			appProtocol: tcpAppProtocol,
+			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
+				PrefixRanges: []*xds_core.CidrRange{
+					{
+						AddressPrefix: "192.168.10.1",
+						PrefixLen: &wrapperspb.UInt32Value{
+							Value: 32,
+						},
+					},
+					{
+						AddressPrefix: "192.168.20.2",
+						PrefixLen: &wrapperspb.UInt32Value{
+							Value: 32,
+						},
+					},
+				},
+			},
+			expectError: false,
+		},
+
+		{
+			// test case 4
+			name:                     "outbound TCP filter chain for service without endpoints",
+			endpoints:                []endpoint.Endpoint{},
+			appProtocol:              httpAppProtocol,
+			expectedFilterChainMatch: nil,
+			expectError:              true,
+		},
+	}
+
+	for i, tc := range testCases {
+		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
+			// mock endpoints returned
+			mockCatalog.EXPECT().GetResolvableServiceEndpoints(tests.BookstoreApexService).Return(tc.endpoints, nil)
+
+			filterChainMatch, err := lb.getOutboundFilterChainMatchForService(tests.BookstoreApexService, tc.appProtocol)
+			assert.Equal(tc.expectError, err != nil)
+			assert.Equal(tc.expectedFilterChainMatch, filterChainMatch)
 		})
 	}
 }

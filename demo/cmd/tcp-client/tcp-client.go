@@ -22,8 +22,8 @@ var (
 	serverAddress         = flag.String("server-address", "", "address (ip:port) to connect to")
 	requestPrefix         = "request:"
 	connectRetryDelay     = 3 * time.Second
-	nextMsgDelay          = 5 * time.Second
-	msgCountPerConnection = 10
+	nextMsgDelay          = 3 * time.Second
+	msgCountPerConnection = 3
 )
 
 func main() {
@@ -40,7 +40,7 @@ func main() {
 			continue
 		}
 
-		fmt.Printf("Started connection #%d -------------------------\n", connectionCounter)
+		fmt.Printf("Started connection #%d to %s -----------------------\n", connectionCounter, *serverAddress)
 
 		// Send as many messages determined by 'msgCountPerConnection' before creating a new connection
 		response := bufio.NewReader(conn)

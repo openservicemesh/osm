@@ -5,11 +5,14 @@ import (
 	reflect "reflect"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
 	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/constants"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -378,17 +381,6 @@ func TestBuildAllowPolicyForSourceToDest(t *testing.T) {
 	assert.ElementsMatch(trafficTarget.HTTPRouteMatches[0].Methods, expectedRoute.Methods)
 }
 
-func TestListAllowedOutboundServices(t *testing.T) {
-	assert := assert.New(t)
-
-	mc := newFakeMeshCatalog()
-	actualList, err := mc.ListAllowedOutboundServices(tests.BookbuyerService)
-	assert.Nil(err)
-
-	expectedList := []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service, tests.BookstoreApexService}
-	assert.ElementsMatch(actualList, expectedList)
-}
-
 func TestListAllowedOutboundServicesForIdentity(t *testing.T) {
 	assert := assert.New(t)
 
@@ -428,6 +420,47 @@ func TestListAllowedOutboundServicesForIdentity(t *testing.T) {
 			})
 			actualList := mc.ListAllowedOutboundServicesForIdentity(tc.serviceAccount)
 			assert.ElementsMatch(actualList, tc.expectedList)
+		})
+	}
+}
+
+func TestListMeshServices(t *testing.T) {
+	assert := assert.New(t)
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockKubeController := k8s.NewMockController(mockCtrl)
+	mc := MeshCatalog{
+		kubeController: mockKubeController,
+	}
+
+	testCases := []struct {
+		name     string
+		services map[string]string // name: namespace
+	}{
+		{
+			name:     "services exist in mesh",
+			services: map[string]string{"bookstore": "bookstore-ns", "bookbuyer": "bookbuyer-ns", "bookwarehouse": "bookwarehouse"},
+		},
+		{
+			name:     "no services in mesh",
+			services: map[string]string{},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			k8sServices := []*corev1.Service{}
+			expectedMeshServices := []service.MeshService{}
+
+			for name, namespace := range tc.services {
+				k8sServices = append(k8sServices, tests.NewServiceFixture(name, namespace, map[string]string{}))
+				expectedMeshServices = append(expectedMeshServices, tests.NewMeshServiceFixture(name, namespace))
+			}
+
+			mockKubeController.EXPECT().ListServices().Return(k8sServices)
+			actual := mc.listMeshServices()
+			assert.Equal(expectedMeshServices, actual)
 		})
 	}
 }

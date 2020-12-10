@@ -136,11 +136,7 @@ const (
 // Verifies the instType string flag option is a valid enum type
 func verifyValidInstallType(t InstallType) error {
 	switch t {
-	case SelfInstall:
-		fallthrough
-	case KindCluster:
-		fallthrough
-	case NoInstall:
+	case SelfInstall, KindCluster, NoInstall:
 		return nil
 	default:
 		return errors.Errorf("%s is not a valid OSM install type", string(t))
@@ -149,8 +145,9 @@ func verifyValidInstallType(t InstallType) error {
 
 // OsmTestData stores common state, variables and flags for the test at hand
 type OsmTestData struct {
-	T      GinkgoTInterface // for common test logging
-	TestID uint64           // uint randomized for every test. GinkgoRandomSeed can't be used as is per-suite.
+	T              GinkgoTInterface // for common test logging
+	TestID         uint64           // uint randomized for every test. GinkgoRandomSeed can't be used as is per-suite.
+	TestFolderName string           // Test folder name, when overridden by test flags
 
 	CleanupTest    bool // Cleanup test-related resources once finished
 	WaitForCleanup bool // Forces test to wait for effective deletion of resources upon cleanup
@@ -184,6 +181,7 @@ type OsmTestData struct {
 func registerFlags(td *OsmTestData) {
 	flag.BoolVar(&td.CleanupTest, "cleanupTest", true, "Cleanup test resources when done")
 	flag.BoolVar(&td.WaitForCleanup, "waitForCleanup", true, "Wait for effective deletion of resources")
+	flag.StringVar(&td.TestFolderName, "testFolderName", "", "Test folder name")
 
 	flag.StringVar((*string)(&td.InstType), "installType", string(SelfInstall), "Type of install/deployment for OSM")
 
@@ -201,12 +199,17 @@ func registerFlags(td *OsmTestData) {
 	flag.BoolVar(&td.EnableNsMetricTag, "EnableMetricsTag", defaultEnableNsMetricTag, "Enable taggic Namespaces for metric collection")
 }
 
-// GetTestFile prefixes a filename with current test folder (based on current test ID
-// calling this API) and creates the test folder for current test if it doesn't exists.
+// GetTestFile prefixes a filename with current test folder
+// and creates the test folder for current test if it doesn't exists.
 // Only if some part of a test calls this function the test folder will be created,
 // otherwise nothing is created to avoid extra clutter.
 func (td *OsmTestData) GetTestFile(filename string) string {
-	testDir := fmt.Sprintf("test-%d", td.TestID)
+	var testDir string
+	if len(td.TestFolderName) == 0 {
+		testDir = fmt.Sprintf("test-%d", td.TestID)
+	} else {
+		testDir = td.TestFolderName
+	}
 
 	err := os.Mkdir(testDir, 0750)
 
@@ -321,6 +324,8 @@ type InstallOSMOpts struct {
 	EnablePermissiveMode bool
 	EnvoyLogLevel        string
 	EnableDebugServer    bool
+
+	SetOverrides []string
 }
 
 // GetOSMInstallOpts initializes install options for OSM
@@ -346,6 +351,7 @@ func (td *OsmTestData) GetOSMInstallOpts() InstallOSMOpts {
 		CertmanagerIssuerName:  "osm-ca",
 		EnvoyLogLevel:          defaultEnvoyLogLevel,
 		EnableDebugServer:      defaultEnableDebugServer,
+		SetOverrides:           []string{},
 	}
 }
 
@@ -495,6 +501,16 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 	args = append(args, fmt.Sprintf("--deploy-jaeger=%v", instOpts.DeployJaeger))
 	args = append(args, fmt.Sprintf("--enable-fluentbit=%v", instOpts.DeployFluentbit))
 	args = append(args, fmt.Sprintf("--timeout=%v", 90*time.Second))
+
+	if len(instOpts.SetOverrides) > 0 {
+		separator := "="
+		finalLine := "--set"
+		for _, override := range instOpts.SetOverrides {
+			finalLine = finalLine + separator + override
+			separator = ","
+		}
+		args = append(args, finalLine)
+	}
 
 	td.T.Log("Installing OSM")
 	stdout, stderr, err := td.RunLocal(filepath.FromSlash("../../bin/osm"), args)
