@@ -427,7 +427,7 @@ func NewPodTestFixtureWithOptions(namespace string, podName string, serviceAccou
 	}
 }
 
-// NewServiceFixture creates a new MeshService
+// NewServiceFixture creates a new Kubernetes service
 func NewServiceFixture(serviceName, namespace string, selectors map[string]string) *corev1.Service {
 	return &corev1.Service{
 		ObjectMeta: v1.ObjectMeta{
@@ -446,5 +446,13 @@ func NewServiceFixture(serviceName, namespace string, selectors map[string]strin
 			}},
 			Selector: selectors,
 		},
+	}
+}
+
+// NewMeshServiceFixture creates a new mesh service
+func NewMeshServiceFixture(serviceName, namespace string) service.MeshService {
+	return service.MeshService{
+		Name:      serviceName,
+		Namespace: namespace,
 	}
 }
