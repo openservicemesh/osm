@@ -58,6 +58,7 @@ spec:
         app: tcp-echo
         version: v1
     spec:
+      serviceAccountName: tcp-echo
       containers:
       - name: tcp-echo-server
         image: "${CTR_REGISTRY}/tcp-echo-server:${CTR_TAG}"

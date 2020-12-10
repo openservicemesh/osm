@@ -18,10 +18,12 @@ import (
 )
 
 const (
-	inboundMeshHTTPFilterChainName = "inbound-mesh-http-filter-chain"
-	inboundMeshTCPFilterChain      = "inbound-mesh-tcp-filter-chain"
-	httpAppProtocol                = "http"
-	tcpAppProtocol                 = "tcp"
+	inboundMeshHTTPFilterChainPrefix  = "inbound-mesh-http-filter-chain"
+	outboundMeshHTTPFilterChainPrefix = "outbound-mesh-http-filter-chain"
+	inboundMeshTCPFilterChainPrefix   = "inbound-mesh-tcp-filter-chain"
+	outboundMeshTCPFilterChainPrefix  = "outbound-mesh-tcp-filter-chain"
+	httpAppProtocol                   = "http"
+	tcpAppProtocol                    = "tcp"
 )
 
 var (
@@ -117,7 +119,7 @@ func (lb *listenerBuilder) getInboundMeshHTTPFilterChain(proxyService service.Me
 		return nil, err
 	}
 
-	filterchainName := fmt.Sprintf("%s:%d", inboundMeshHTTPFilterChainName, servicePort)
+	filterchainName := fmt.Sprintf("%s:%d", inboundMeshHTTPFilterChainPrefix, servicePort)
 	filterChain := &xds_listener.FilterChain{
 		Name:    filterchainName,
 		Filters: filters,
@@ -166,7 +168,7 @@ func (lb *listenerBuilder) getInboundMeshTCPFilterChain(proxyService service.Mes
 		return nil, err
 	}
 
-	filterchainName := fmt.Sprintf("%s:%d", inboundMeshTCPFilterChain, servicePort)
+	filterchainName := fmt.Sprintf("%s:%d", inboundMeshTCPFilterChainPrefix, servicePort)
 	return &xds_listener.FilterChain{
 		Name: filterchainName,
 		FilterChainMatch: &xds_listener.FilterChainMatch{
@@ -247,15 +249,17 @@ func (lb *listenerBuilder) getOutboundHTTPFilter() (*xds_listener.Filter, error)
 	}, nil
 }
 
-// getOutboundHTTPFilterChainMatchForService builds a filter chain to match the HTTP baseddestination traffic.
+// getOutboundFilterChainMatchForService builds a filter chain to match the HTTP or TCP based destination traffic.
 // Filter Chain currently matches on the following:
 // 1. Destination IP of service endpoints
-// 2. HTTP application protocols
-func (lb *listenerBuilder) getOutboundHTTPFilterChainMatchForService(dstSvc service.MeshService) (*xds_listener.FilterChainMatch, error) {
-	filterMatch := &xds_listener.FilterChainMatch{
+// 2. HTTP application protocols if protocol is http
+func (lb *listenerBuilder) getOutboundFilterChainMatchForService(dstSvc service.MeshService, protocol string) (*xds_listener.FilterChainMatch, error) {
+	filterMatch := &xds_listener.FilterChainMatch{}
+
+	if protocol == httpAppProtocol {
 		// HTTP filter chain should only match on supported HTTP protocols that the downstream can use
 		// to originate a request.
-		ApplicationProtocols: supportedDownstreamHTTPProtocols,
+		filterMatch.ApplicationProtocols = supportedDownstreamHTTPProtocols
 	}
 
 	endpoints, err := lb.meshCatalog.GetResolvableServiceEndpoints(dstSvc)
@@ -291,15 +295,56 @@ func (lb *listenerBuilder) getOutboundHTTPFilterChainForService(upstream service
 	}
 
 	// Get filter match criteria for destination service
-	filterChainMatch, err := lb.getOutboundHTTPFilterChainMatchForService(upstream)
+	filterChainMatch, err := lb.getOutboundFilterChainMatchForService(upstream, httpAppProtocol)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error getting HTTP filter chain match for upstream service %s", upstream)
 		return nil, err
 	}
 
+	filterChainName := fmt.Sprintf("%s:%s", outboundMeshHTTPFilterChainPrefix, upstream)
 	return &xds_listener.FilterChain{
-		Name:             upstream.String(),
+		Name:             filterChainName,
 		Filters:          []*xds_listener.Filter{filter},
 		FilterChainMatch: filterChainMatch,
+	}, nil
+}
+
+func (lb *listenerBuilder) getOutboundTCPFilterChainForService(upstream service.MeshService) (*xds_listener.FilterChain, error) {
+	// Get TCP filter for service
+	filter, err := lb.getOutboundTCPFilter(upstream)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error getting outbound TCP filter for upstream service %s", upstream)
+		return nil, err
+	}
+
+	// Get filter match criteria for destination service
+	filterChainMatch, err := lb.getOutboundFilterChainMatchForService(upstream, tcpAppProtocol)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error getting HTTP filter chain match for upstream service %s", upstream)
+		return nil, err
+	}
+
+	filterChainName := fmt.Sprintf("%s:%s", outboundMeshTCPFilterChainPrefix, upstream)
+	return &xds_listener.FilterChain{
+		Name:             filterChainName,
+		Filters:          []*xds_listener.Filter{filter},
+		FilterChainMatch: filterChainMatch,
+	}, nil
+}
+
+func (lb *listenerBuilder) getOutboundTCPFilter(upstream service.MeshService) (*xds_listener.Filter, error) {
+	tcpProxy := &xds_tcp_proxy.TcpProxy{
+		StatPrefix:       fmt.Sprintf("%s:%s", outboundMeshTCPFilterChainPrefix, upstream),
+		ClusterSpecifier: &xds_tcp_proxy.TcpProxy_Cluster{Cluster: upstream.String()},
+	}
+	marshalledTCPProxy, err := ptypes.MarshalAny(tcpProxy)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error marshalling TcpProxy object needed by outbound TCP filter for upstream service %s", upstream)
+		return nil, err
+	}
+
+	return &xds_listener.Filter{
+		Name:       wellknown.TCPProxy,
+		ConfigType: &xds_listener.Filter_TypedConfig{TypedConfig: marshalledTCPProxy},
 	}, nil
 }
