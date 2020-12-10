@@ -54,7 +54,7 @@ It("Deploys OSM and scales traffic Splits indefinitely", func() {
 	Td.InstallOSM(t)
 
 	// Helpers to get OSM's install handlers, but arbitrary ones can be provided
-	pHandle := Td.GetOSMPrometheusaHandle()
+	pHandle := Td.GetOSMPrometheusHandle()
 	gHandle := Td.GetOSMGrafanaHandle()
 
 	// This could/should be called on `Context`, subject to when are resources available
