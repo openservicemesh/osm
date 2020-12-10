@@ -120,11 +120,7 @@ func (s *sdsImpl) getSDSSecrets(cert certificate.Certificater, requestedCerts []
 			envoySecrets = append(envoySecrets, envoySecret)
 
 		// A root certificate used to validate a service certificate is requested
-		case envoy.RootCertTypeForMTLSInbound:
-			fallthrough
-		case envoy.RootCertTypeForMTLSOutbound:
-			fallthrough
-		case envoy.RootCertTypeForHTTPS:
+		case envoy.RootCertTypeForMTLSInbound, envoy.RootCertTypeForMTLSOutbound, envoy.RootCertTypeForHTTPS:
 			envoySecret, err := s.getRootCert(cert, *sdsCert, proxyService)
 			if err != nil {
 				log.Error().Err(err).Msgf("Error creating cert %s for proxy %s for service %s", requestedCertificate, s.proxy.GetCommonName(), proxyService)
