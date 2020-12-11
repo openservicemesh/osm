@@ -2,12 +2,39 @@ package kubernetes
 
 import (
 	"fmt"
+	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/openservicemesh/osm/pkg/tests"
 )
+
+func TestGetLocalNamespaceHostnamesForService(t *testing.T) {
+	assert := assert.New(t)
+	svc := tests.NewServiceFixture("testing", "test-ns", map[string]string{})
+	expectedHostnames := []string{"testing", "testing:8888"}
+	actual := GetLocalNamespaceHostnamesForService(svc)
+	assert.Equal(expectedHostnames, actual)
+}
+
+func TestGetNamespaceScopedHostnamesForService(t *testing.T) {
+	assert := assert.New(t)
+	svc := tests.NewServiceFixture("testing", "test-ns", map[string]string{})
+	expectedHostnames := []string{
+		"testing.test-ns",
+		"testing.test-ns:8888",
+		"testing.test-ns.svc",
+		"testing.test-ns.svc:8888",
+		"testing.test-ns.svc.cluster",
+		"testing.test-ns.svc.cluster:8888",
+		"testing.test-ns.svc.cluster.local",
+		"testing.test-ns.svc.cluster.local:8888",
+	}
+	actual := GetNamespaceScopedHostnamesForService(svc)
+	assert.ElementsMatch(expectedHostnames, actual)
+}
 
 var _ = Describe("Hostnames for a kubernetes service", func() {
 	Context("Testing GethostnamesForService", func() {
