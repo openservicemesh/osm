@@ -60,12 +60,6 @@ func (mc *MeshCatalog) getAnnouncementChannels() []announcementChannel {
 		{"Services", mc.kubeController.GetAnnouncementsChannel(k8s.Services)},
 	}
 
-	// There could be many Endpoint Providers - iterate over all of them!
-	for _, ep := range mc.endpointsProviders {
-		annCh := announcementChannel{ep.GetID(), ep.GetAnnouncementsChannel()}
-		announcementChannels = append(announcementChannels, annCh)
-	}
-
 	if updateAtLeastEvery > 0 {
 		go func() {
 			ticker := time.NewTicker(updateAtLeastEvery)

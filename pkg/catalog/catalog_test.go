@@ -22,7 +22,7 @@ var _ = Describe("Test catalog functions", func() {
 			chans := mc.getAnnouncementChannels()
 
 			// Currently returns len(Channels), see getAnnouncementChannels implementation for details.
-			expectedNumberOfChannels := 6
+			expectedNumberOfChannels := 5
 			Expect(len(chans)).To(Equal(expectedNumberOfChannels))
 		})
 	})
