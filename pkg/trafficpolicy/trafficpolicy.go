@@ -9,6 +9,30 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
+// NewRouteWeightedCluster takes a route and weighted cluster and returns a *RouteWeightedCluster
+func NewRouteWeightedCluster(route HTTPRouteMatch, weightedCluster service.WeightedCluster) *RouteWeightedClusters {
+	return &RouteWeightedClusters{
+		HTTPRouteMatch:   route,
+		WeightedClusters: set.NewSet(weightedCluster),
+	}
+}
+
+// NewInboundTrafficPolicy takes a name and list of hostnames and returns an *InboundTrafficPolicy
+func NewInboundTrafficPolicy(name string, hostnames []string) *InboundTrafficPolicy {
+	return &InboundTrafficPolicy{
+		Name:      name,
+		Hostnames: hostnames,
+	}
+}
+
+// NewOutboundTrafficPolicy takes a name and list of hostnames and returns an *OutboundTrafficPolicy
+func NewOutboundTrafficPolicy(name string, hostnames []string) *OutboundTrafficPolicy {
+	return &OutboundTrafficPolicy{
+		Name:      name,
+		Hostnames: hostnames,
+	}
+}
+
 // AddRule adds a Rule to an InboundTrafficPolicy based on the given HTTP route match, weighted cluster, and allowed service account
 //	parameters. If a Rule for the given HTTP route match exists, it will add the given service account to the Rule. If the the given route
 //	match is not already associated with a Rule, it will create a Rule for the given route and service account.
@@ -57,7 +81,7 @@ func (out *OutboundTrafficPolicy) AddRoute(httpRouteMatch HTTPRouteMatch, weight
 	return nil
 }
 
-// MergeInboundPolicies merges latest InboundTrafficPolicies into original InboundTrafficPolicies
+// MergeInboundPolicies merges latest InboundTrafficPolicies into a slice of InboundTrafficPolicies that already exists (original)
 func MergeInboundPolicies(original []*InboundTrafficPolicy, latest ...*InboundTrafficPolicy) []*InboundTrafficPolicy {
 	for _, l := range latest {
 		foundHostnames := false

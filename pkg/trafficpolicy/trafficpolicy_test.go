@@ -555,6 +555,35 @@ func TestMergeRouteWeightedClusters(t *testing.T) {
 		})
 	}
 }
+func TestNewInboundTrafficPolicy(t *testing.T) {
+	assert := assert.New(t)
+
+	name := "name"
+	hostnames := []string{"hostname1", "hostname2"}
+	expected := &InboundTrafficPolicy{Name: name, Hostnames: hostnames}
+
+	actual := NewInboundTrafficPolicy(name, hostnames)
+	assert.Equal(expected, actual)
+}
+
+func TestNewRouteWeightedCluster(t *testing.T) {
+	assert := assert.New(t)
+	expected := &RouteWeightedClusters{HTTPRouteMatch: testHTTPRouteMatch, WeightedClusters: set.NewSet(testWeightedCluster)}
+
+	actual := NewRouteWeightedCluster(testHTTPRouteMatch, testWeightedCluster)
+	assert.Equal(expected, actual)
+}
+
+func TestNewOutboundPolicy(t *testing.T) {
+	assert := assert.New(t)
+
+	name := "name"
+	hostnames := []string{"hostname1", "hostname2"}
+	expected := &OutboundTrafficPolicy{Name: name, Hostnames: hostnames}
+
+	actual := NewOutboundTrafficPolicy(name, hostnames)
+	assert.Equal(expected, actual)
+}
 
 func newTestInboundPolicy(name string, rules []*Rule) *InboundTrafficPolicy {
 	return &InboundTrafficPolicy{
