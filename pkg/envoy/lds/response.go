@@ -57,6 +57,9 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, proxy *envo
 
 	// --- INGRESS -------------------
 	// Apply an ingress filter chain if there are any ingress routes
+        /* Ingress rules are taken care by iptables, having them here
+           causes duplicates without TLS configuration.
+
 	if ingressRoutesPerHost, err := catalog.GetIngressRoutesPerHost(proxyServiceName); err != nil {
 		log.Error().Err(err).Msgf("Error getting ingress routes per host for service %s", proxyServiceName)
 	} else {
@@ -72,6 +75,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, proxy *envo
 			log.Trace().Msgf("There is no k8s Ingress for service %s", proxyServiceName)
 		}
 	}
+	*/
 
 	if len(inboundListener.FilterChains) > 0 {
 		// Inbound filter chains can be empty if the there both ingress and in-mesh policies are not configued.
