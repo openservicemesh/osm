@@ -122,15 +122,6 @@ var (
 		Name:      BookwarehouseServiceName,
 	}
 
-	// BookstoreV1LocalHostnames are hostnames for bookstore-v1 services local to the namespace the service is running in
-	BookstoreV1LocalHostnames = []string{"bookstore-v1", "bookstore-v1:8888"}
-
-	// BookstoreV2LocalHostnames are hostnames for bookstore-v2 services local to the namespace the service is running in
-	BookstoreV2LocalHostnames = []string{"bookstore-v2", "bookstore-v2:8888"}
-
-	// BookstoreApexLocalHostnames are hostnames for bookstore-apex services local to the namespace the service is running in
-	BookstoreApexLocalHostnames = []string{"bookstore-apex", "bookstore-apex:8888"}
-
 	// BookstoreV1Hostnames are the hostnames for bookstore-v1 service
 	BookstoreV1Hostnames = []string{
 		"bookstore-v1",
@@ -139,18 +130,6 @@ var (
 		"bookstore-v1.default.svc.cluster",
 		"bookstore-v1.default.svc.cluster.local",
 		"bookstore-v1:8888",
-		"bookstore-v1.default:8888",
-		"bookstore-v1.default.svc:8888",
-		"bookstore-v1.default.svc.cluster:8888",
-		"bookstore-v1.default.svc.cluster.local:8888",
-	}
-
-	// BookstoreV1DefaultHostnames are the hostnames for bookstore-v1 service in default namespace
-	BookstoreV1DefaultHostnames = []string{
-		"bookstore-v1.default",
-		"bookstore-v1.default.svc",
-		"bookstore-v1.default.svc.cluster",
-		"bookstore-v1.default.svc.cluster.local",
 		"bookstore-v1.default:8888",
 		"bookstore-v1.default.svc:8888",
 		"bookstore-v1.default.svc.cluster:8888",
@@ -171,18 +150,6 @@ var (
 		"bookstore-v2.default.svc.cluster.local:8888",
 	}
 
-	// BookstoreV2DefaultHostnames are the hostnames for the bookstore-v2 service in the default namespace
-	BookstoreV2DefaultHostnames = []string{
-		"bookstore-v2.default",
-		"bookstore-v2.default.svc",
-		"bookstore-v2.default.svc.cluster",
-		"bookstore-v2.default.svc.cluster.local",
-		"bookstore-v2.default:8888",
-		"bookstore-v2.default.svc:8888",
-		"bookstore-v2.default.svc.cluster:8888",
-		"bookstore-v2.default.svc.cluster.local:8888",
-	}
-
 	// BookstoreApexHostnames are the hostnames for the bookstore-apex service
 	BookstoreApexHostnames = []string{
 		"bookstore-apex",
@@ -191,18 +158,6 @@ var (
 		"bookstore-apex.default.svc.cluster",
 		"bookstore-apex.default.svc.cluster.local",
 		"bookstore-apex:8888",
-		"bookstore-apex.default:8888",
-		"bookstore-apex.default.svc:8888",
-		"bookstore-apex.default.svc.cluster:8888",
-		"bookstore-apex.default.svc.cluster.local:8888",
-	}
-
-	// BookstoreApexDefaultHostnames are the hostnames for the bookstore-apex service in default namespace
-	BookstoreApexDefaultHostnames = []string{
-		"bookstore-apex.default",
-		"bookstore-apex.default.svc",
-		"bookstore-apex.default.svc.cluster",
-		"bookstore-apex.default.svc.cluster.local",
 		"bookstore-apex.default:8888",
 		"bookstore-apex.default.svc:8888",
 		"bookstore-apex.default.svc.cluster:8888",

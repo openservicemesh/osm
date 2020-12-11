@@ -892,10 +892,12 @@ func TestBuildInboundPoliciesDiffNamespaces(t *testing.T) {
 
 	trafficTarget := tests.NewSMITrafficTarget(sourceSA.Name, sourceSA.Namespace, destSA.Name, destSA.Namespace)
 	expectedHostnames := []string{
+		"bookstore",
 		"bookstore.bookstore-ns",
 		"bookstore.bookstore-ns.svc",
 		"bookstore.bookstore-ns.svc.cluster",
 		"bookstore.bookstore-ns.svc.cluster.local",
+		"bookstore:8888",
 		"bookstore.bookstore-ns:8888",
 		"bookstore.bookstore-ns.svc:8888",
 		"bookstore.bookstore-ns.svc.cluster:8888",
@@ -1001,10 +1003,12 @@ func TestBuildInboundPoliciesSameNamespace(t *testing.T) {
 
 	trafficTarget := tests.NewSMITrafficTarget(sourceSA.Name, sourceSA.Namespace, destSA.Name, destSA.Namespace)
 	expectedHostnames := []string{
+		"bookstore",
 		"bookstore.default",
 		"bookstore.default.svc",
 		"bookstore.default.svc.cluster",
 		"bookstore.default.svc.cluster.local",
+		"bookstore:8888",
 		"bookstore.default:8888",
 		"bookstore.default.svc:8888",
 		"bookstore.default.svc.cluster:8888",
@@ -1018,26 +1022,6 @@ func TestBuildInboundPoliciesSameNamespace(t *testing.T) {
 		{
 			Name:      "bookstore-default",
 			Hostnames: expectedHostnames,
-			Rules: []*trafficpolicy.Rule{
-				{
-					Route: trafficpolicy.RouteWeightedClusters{
-						HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
-						WeightedClusters: mapset.NewSet(bookstoreWeightedCluster),
-					},
-					AllowedServiceAccounts: mapset.NewSet(sourceSA),
-				},
-				{
-					Route: trafficpolicy.RouteWeightedClusters{
-						HTTPRouteMatch:   tests.BookstoreSellHTTPRoute,
-						WeightedClusters: mapset.NewSet(bookstoreWeightedCluster),
-					},
-					AllowedServiceAccounts: mapset.NewSet(sourceSA),
-				},
-			},
-		},
-		{
-			Name:      "bookstore",
-			Hostnames: []string{"bookstore", "bookstore:8888"},
 			Rules: []*trafficpolicy.Rule{
 				{
 					Route: trafficpolicy.RouteWeightedClusters{
@@ -1098,28 +1082,8 @@ func TestListPoliciesFromTrafficTargets(t *testing.T) {
 
 	expectedBookstoreInbound := []*trafficpolicy.InboundTrafficPolicy{
 		{
-			Name:      "bookstore-v1",
-			Hostnames: tests.BookstoreV1LocalHostnames,
-			Rules: []*trafficpolicy.Rule{
-				{
-					Route: trafficpolicy.RouteWeightedClusters{
-						HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
-						WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
-					},
-					AllowedServiceAccounts: mapset.NewSet(tests.BookbuyerServiceAccount),
-				},
-				{
-					Route: trafficpolicy.RouteWeightedClusters{
-						HTTPRouteMatch:   tests.BookstoreSellHTTPRoute,
-						WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
-					},
-					AllowedServiceAccounts: mapset.NewSet(tests.BookbuyerServiceAccount),
-				},
-			},
-		},
-		{
 			Name:      "bookstore-v1-default",
-			Hostnames: tests.BookstoreV1DefaultHostnames,
+			Hostnames: tests.BookstoreV1Hostnames,
 			Rules: []*trafficpolicy.Rule{
 				{
 					Route: trafficpolicy.RouteWeightedClusters{
@@ -1132,26 +1096,6 @@ func TestListPoliciesFromTrafficTargets(t *testing.T) {
 					Route: trafficpolicy.RouteWeightedClusters{
 						HTTPRouteMatch:   tests.BookstoreSellHTTPRoute,
 						WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
-					},
-					AllowedServiceAccounts: mapset.NewSet(tests.BookbuyerServiceAccount),
-				},
-			},
-		},
-		{
-			Name:      "bookstore-v2",
-			Hostnames: tests.BookstoreV2LocalHostnames,
-			Rules: []*trafficpolicy.Rule{
-				{
-					Route: trafficpolicy.RouteWeightedClusters{
-						HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
-						WeightedClusters: mapset.NewSet(tests.BookstoreV2DefaultWeightedCluster),
-					},
-					AllowedServiceAccounts: mapset.NewSet(tests.BookbuyerServiceAccount),
-				},
-				{
-					Route: trafficpolicy.RouteWeightedClusters{
-						HTTPRouteMatch:   tests.BookstoreSellHTTPRoute,
-						WeightedClusters: mapset.NewSet(tests.BookstoreV2DefaultWeightedCluster),
 					},
 					AllowedServiceAccounts: mapset.NewSet(tests.BookbuyerServiceAccount),
 				},
@@ -1159,7 +1103,7 @@ func TestListPoliciesFromTrafficTargets(t *testing.T) {
 		},
 		{
 			Name:      "bookstore-v2-default",
-			Hostnames: tests.BookstoreV2DefaultHostnames,
+			Hostnames: tests.BookstoreV2Hostnames,
 			Rules: []*trafficpolicy.Rule{
 				{
 					Route: trafficpolicy.RouteWeightedClusters{
@@ -1172,26 +1116,6 @@ func TestListPoliciesFromTrafficTargets(t *testing.T) {
 					Route: trafficpolicy.RouteWeightedClusters{
 						HTTPRouteMatch:   tests.BookstoreSellHTTPRoute,
 						WeightedClusters: mapset.NewSet(tests.BookstoreV2DefaultWeightedCluster),
-					},
-					AllowedServiceAccounts: mapset.NewSet(tests.BookbuyerServiceAccount),
-				},
-			},
-		},
-		{
-			Name:      "bookstore-apex",
-			Hostnames: tests.BookstoreApexLocalHostnames,
-			Rules: []*trafficpolicy.Rule{
-				{
-					Route: trafficpolicy.RouteWeightedClusters{
-						HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
-						WeightedClusters: mapset.NewSet(tests.BookstoreApexDefaultWeightedCluster),
-					},
-					AllowedServiceAccounts: mapset.NewSet(tests.BookbuyerServiceAccount),
-				},
-				{
-					Route: trafficpolicy.RouteWeightedClusters{
-						HTTPRouteMatch:   tests.BookstoreSellHTTPRoute,
-						WeightedClusters: mapset.NewSet(tests.BookstoreApexDefaultWeightedCluster),
 					},
 					AllowedServiceAccounts: mapset.NewSet(tests.BookbuyerServiceAccount),
 				},
@@ -1199,7 +1123,7 @@ func TestListPoliciesFromTrafficTargets(t *testing.T) {
 		},
 		{
 			Name:      "bookstore-apex-default",
-			Hostnames: tests.BookstoreApexDefaultHostnames,
+			Hostnames: tests.BookstoreApexHostnames,
 			Rules: []*trafficpolicy.Rule{
 				{
 					Route: trafficpolicy.RouteWeightedClusters{
@@ -1257,43 +1181,7 @@ func TestListPoliciesFromTrafficTargets(t *testing.T) {
 	}
 }
 
-func TestBuildPolicyName(t *testing.T) {
-	assert := assert.New(t)
-
-	svc := service.MeshService{
-		Namespace: "default",
-		Name:      "foo",
-	}
-
-	testCases := []struct {
-		name          string
-		svc           service.MeshService
-		sameNamespace bool
-		expectedName  string
-	}{
-		{
-			name:          "same namespace",
-			svc:           svc,
-			sameNamespace: true,
-			expectedName:  "foo",
-		},
-		{
-			name:          "different namespace",
-			svc:           svc,
-			sameNamespace: false,
-			expectedName:  "foo-default",
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			actual := buildPolicyName(tc.svc, tc.sameNamespace)
-			assert.Equal(tc.expectedName, actual)
-		})
-	}
-}
-
-func TestDestinationServicesFromTrafficTarget(t *testing.T) {
+func TestGetDestinationServicesFromTrafficTarget(t *testing.T) {
 	assert := assert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -1350,38 +1238,38 @@ func TestDestinationServicesFromTrafficTarget(t *testing.T) {
 	assert.Equal([]service.MeshService{destMeshService}, actual)
 }
 
-func TestGetHostnamesBasedOnNamespace(t *testing.T) {
+func TestBuildPolicyName(t *testing.T) {
 	assert := assert.New(t)
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
 
-	mockKubeController := k8s.NewMockController(mockCtrl)
-
-	mc := MeshCatalog{
-		kubeController: mockKubeController,
+	svc := service.MeshService{
+		Namespace: "default",
+		Name:      "foo",
 	}
 
-	meshService := service.MeshService{
-		Name:      "testService",
-		Namespace: "testService-ns",
+	testCases := []struct {
+		name          string
+		svc           service.MeshService
+		sameNamespace bool
+		expectedName  string
+	}{
+		{
+			name:          "same namespace",
+			svc:           svc,
+			sameNamespace: true,
+			expectedName:  "foo",
+		},
+		{
+			name:          "different namespace",
+			svc:           svc,
+			sameNamespace: false,
+			expectedName:  "foo-default",
+		},
 	}
-	k8sService := tests.NewServiceFixture("testService", "testService-ns", map[string]string{})
 
-	mockKubeController.EXPECT().GetService(meshService).Return(k8sService).AnyTimes()
-
-	expectedLocalHostnames := []string{"testService", "testService:8888"}
-	expectedNamespaceScopedHostnames := []string{
-		"testService.testService-ns",
-		"testService.testService-ns.svc",
-		"testService.testService-ns.svc.cluster",
-		"testService.testService-ns.svc.cluster.local",
-		"testService.testService-ns:8888",
-		"testService.testService-ns.svc:8888",
-		"testService.testService-ns.svc.cluster:8888",
-		"testService.testService-ns.svc.cluster.local:8888",
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := buildPolicyName(tc.svc, tc.sameNamespace)
+			assert.Equal(tc.expectedName, actual)
+		})
 	}
-	actualLocalHostnames, actualNamespaceScopedHostnames, err := mc.getLocalAndNamespacedHostnames(meshService)
-	assert.Nil(err)
-	assert.ElementsMatch(expectedLocalHostnames, actualLocalHostnames)
-	assert.ElementsMatch(expectedNamespaceScopedHostnames, actualNamespaceScopedHostnames)
 }
