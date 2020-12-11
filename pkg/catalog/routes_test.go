@@ -1257,7 +1257,7 @@ func TestListPoliciesFromTrafficTargets(t *testing.T) {
 	}
 }
 
-func TestPolicyName(t *testing.T) {
+func TestBuildPolicyName(t *testing.T) {
 	assert := assert.New(t)
 
 	svc := service.MeshService{
@@ -1287,7 +1287,7 @@ func TestPolicyName(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := policyName(tc.svc, tc.sameNamespace)
+			actual := buildPolicyName(tc.svc, tc.sameNamespace)
 			assert.Equal(tc.expectedName, actual)
 		})
 	}
@@ -1380,7 +1380,7 @@ func TestGetHostnamesBasedOnNamespace(t *testing.T) {
 		"testService.testService-ns.svc.cluster:8888",
 		"testService.testService-ns.svc.cluster.local:8888",
 	}
-	actualLocalHostnames, actualNamespaceScopedHostnames, err := mc.getHostnamesBasedOnNamespace(meshService)
+	actualLocalHostnames, actualNamespaceScopedHostnames, err := mc.getLocalAndNamespacedHostnames(meshService)
 	assert.Nil(err)
 	assert.ElementsMatch(expectedLocalHostnames, actualLocalHostnames)
 	assert.ElementsMatch(expectedNamespaceScopedHostnames, actualNamespaceScopedHostnames)

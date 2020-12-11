@@ -541,7 +541,9 @@ func (mc *MeshCatalog) getDestinationServicesFromTrafficTarget(t *target.Traffic
 	return destServices, nil
 }
 
-func (mc *MeshCatalog) getHostnamesBasedOnNamespace(meshService service.MeshService) ([]string, []string, error) {
+// getLocalAndNamespacedScopedHostnames returns the local hostnames for the given service and the namespaced scoped hostnames
+//	for the given service
+func (mc *MeshCatalog) getLocalAndNamespacedHostnames(meshService service.MeshService) ([]string, []string, error) {
 	svc := mc.kubeController.GetService(meshService)
 	if svc == nil {
 		return nil, nil, errors.Errorf("Error fetching service %q", meshService)
@@ -566,22 +568,22 @@ func (mc *MeshCatalog) buildInboundPolicies(t *target.TrafficTarget) []*trafficp
 	// fetch all routes referenced in traffic target
 	routeMatches, err := mc.routesFromRules(t.Spec.Rules, t.Namespace)
 	if err != nil {
-		log.Error().Msgf("Err finding route matches from TrafficTarget %s in namespace %s: %v", t.Name, t.Namespace, err)
+		log.Error().Msgf("Error finding route matches from TrafficTarget %s in namespace %s: %v", t.Name, t.Namespace, err)
 		return inboundPolicies
 	}
 
 	for _, destService := range destServices {
 		wc := getDefaultWeightedClusterForService(destService)
 
-		hostnamesInNS, hostnamesNotInNS, err := mc.getHostnamesBasedOnNamespace(destService)
+		hostnamesInNS, hostnamesNotInNS, err := mc.getLocalAndNamespacedHostnames(destService)
 		if err != nil {
 			continue
 		}
 
 		// create traffic policy with domains without namespace suffix
-		policyInNS := trafficpolicy.NewInboundTrafficPolicy(policyName(destService, true), hostnamesInNS)
+		policyInNS := trafficpolicy.NewInboundTrafficPolicy(buildPolicyName(destService, true), hostnamesInNS)
 		// create traffic policy for domains with namespace suffix
-		policyNotInNS := trafficpolicy.NewInboundTrafficPolicy(policyName(destService, false), hostnamesNotInNS)
+		policyNotInNS := trafficpolicy.NewInboundTrafficPolicy(buildPolicyName(destService, false), hostnamesNotInNS)
 
 		for _, sourceServiceAccount := range trafficTargetIdentitiesToSvcAccounts(t.Spec.Sources) {
 			for _, routeMatch := range routeMatches {
@@ -622,7 +624,7 @@ func (mc *MeshCatalog) buildOutboundPolicies(source service.K8sServiceAccount, t
 		}
 		weightedCluster := getDefaultWeightedClusterForService(destService)
 
-		policy := trafficpolicy.NewOutboundTrafficPolicy(policyName(destService, source.Namespace == destService.Namespace), hostnames)
+		policy := trafficpolicy.NewOutboundTrafficPolicy(buildPolicyName(destService, source.Namespace == destService.Namespace), hostnames)
 		if err := policy.AddRoute(wildCardRouteMatch, weightedCluster); err != nil {
 			log.Error().Err(err).Msgf("Error adding Route to outbound policy for source %s(%s) and destination %s (%s)", source.Name, source.Namespace, destService.Name, destService.Namespace)
 			continue
@@ -669,9 +671,10 @@ func isValidTrafficTarget(t *target.TrafficTarget) bool {
 	return true
 }
 
-func policyName(svc service.MeshService, sameNamespace bool) string {
+// buildPolicyName creates a name for a policy associated with the given service
+func buildPolicyName(svc service.MeshService, namespaced bool) string {
 	name := svc.Name
-	if !sameNamespace {
+	if !namespaced {
 		return name + "-" + svc.Namespace
 	}
 	return name
