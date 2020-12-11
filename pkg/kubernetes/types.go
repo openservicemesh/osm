@@ -52,6 +52,8 @@ const (
 	Services InformerKey = "Services"
 	// Pods lookup identifier
 	Pods InformerKey = "Pods"
+	// Endpoints lookup identifier
+	Endpoints InformerKey = "Endpoints"
 )
 
 // InformerCollection is the type holding the collection of informers we keep
@@ -92,4 +94,7 @@ type Controller interface {
 
 	// ListServiceAccountsForService lists ServiceAccounts associated with the given service
 	ListServiceAccountsForService(svc service.MeshService) ([]service.K8sServiceAccount, error)
+
+	// GetEndpoints returns the endpoints for a given service, if found
+	GetEndpoints(svc service.MeshService) (*corev1.Endpoints, error)
 }
