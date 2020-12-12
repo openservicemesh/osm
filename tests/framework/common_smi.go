@@ -132,6 +132,39 @@ func (td *OsmTestData) CreateSimpleAllowPolicy(def SimpleAllowPolicy) (smiSpecs.
 	return routeGroup, trafficTarget
 }
 
+// CreateSimpleTCPAllowPolicy returns an allow policy to allow all TCP traffic from source to destination
+func (td *OsmTestData) CreateSimpleTCPAllowPolicy(def SimpleAllowPolicy) smiAccess.TrafficTarget {
+	trafficTarget := smiAccess.TrafficTarget{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: def.TrafficTargetName,
+		},
+		Spec: smiAccess.TrafficTargetSpec{
+			Sources: []smiAccess.IdentityBindingSubject{
+				{
+					Kind:      "ServiceAccount",
+					Name:      def.SourceSVCAccountName,
+					Namespace: def.SourceNamespace,
+				},
+			},
+			Destination: smiAccess.IdentityBindingSubject{
+				Kind:      "ServiceAccount",
+				Name:      def.DestinationSvcAccountName,
+				Namespace: def.DestinationNamespace,
+			},
+			/* TODO: add TCP rule when supported by SMI
+			Rules: []smiAccess.TrafficTargetRule{
+				{
+					Kind: "TCPRoute",
+					Name: def.RouteGroupName,
+				},
+			},
+			*/
+		},
+	}
+
+	return trafficTarget
+}
+
 // TrafficSplitBackend is a simple define to refer to a TrafficSplit backend
 type TrafficSplitBackend struct {
 	Name   string

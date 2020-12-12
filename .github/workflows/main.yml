@@ -135,7 +135,7 @@ jobs:
         with:
           go-version: 1.15
       - name: Build test dependencies
-        run: make docker-build-osm-controller docker-build-init build-osm
+        run: make docker-build-osm-controller docker-build-init build-osm docker-build-tcp-echo-server
       - name: Run PR tests
         if: ${{ github.event_name == 'pull_request' }}
         run: go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -installType=KindCluster -test.timeout 0 -test.failfast -ginkgo.failFast -ginkgo.focus='\[Tier 1\]\[Bucket ${{ matrix.bucket }}\]'
