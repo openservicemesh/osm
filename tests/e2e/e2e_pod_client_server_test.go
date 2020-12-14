@@ -167,7 +167,7 @@ func testTCPTraffic(withSourceKubernetesService bool) {
 				SimplePodAppDef{
 					Name:        destName,
 					Namespace:   destName,
-					Image:       fmt.Sprintf("%s/tcp-echo-server:%s", installOpts.ContainerRegistryLoc, installOpts.OsmImagetag), // FIXME
+					Image:       fmt.Sprintf("%s/tcp-echo-server:%s", installOpts.ContainerRegistryLoc, installOpts.OsmImagetag),
 					Command:     []string{"/tcp-echo-server"},
 					Args:        []string{"--port", fmt.Sprintf("%d", destinationPort)},
 					Ports:       []int{destinationPort},

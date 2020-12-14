@@ -8,11 +8,11 @@
   - [Flags](#flags)
 
 ## Overview
-End-to-end tests verify the behavior of the entire system. For OSM, e2e tests will install a control plane, install test workloads and SMI policies, and check that the workload is behaving as expected. 
+End-to-end tests verify the behavior of the entire system. For OSM, e2e tests will install a control plane, install test workloads and SMI policies, and check that the workload is behaving as expected.
 
 ## Files and structure
 OSM's e2e tests are located in `tests/e2e`.
-The tests are written using Ginkgo and Gomega so they may also be directly invoked using `go test`. Be sure to build the `osm-controller` and `init` container images and `osm` CLI before directly invoking the tests ([see instructions below](#running-the-tests)). 
+The tests are written using Ginkgo and Gomega so they may also be directly invoked using `go test`. Be sure to build the `osm-controller` and `init` container images and `osm` CLI before directly invoking the tests ([see instructions below](#running-the-tests)).
 
 OSM's framework, helpers and related files are located under `tests/framework`.
 Once imported, it automatically sets up an init mechanism which will automatically initialize and parse flags and variables from both `env` and `go test flags` if any are passed to the test. The hooks for initialization and cleanup are set at Ginkgo's `BeforeEach` at the top level of test execution (between Ginkgo `Describes`); we henceforth recommend keeping every test in its own `Describe` section, as well as on a separate file for clarity. You can refer to [common.go](tests/framework/common.go) for more details about the init, setup and cleanup processes.
@@ -51,7 +51,7 @@ Note: If you use `latest` tag, K8s will try to pull the image by default. If the
 Have your Kubeconfig file point to your testing cluster of choice.
 The following code uses `latest` tag by default. Non-Kind deployments do not push the images on the nodes, so make sure to set the registry accordingly.
 ```
-export CTR_REGISTRY=<myacr>.dockerhub.io # if needed, set CTR_REGISTRY_USER and CTR_REGISTRY_PASSWORD 
+export CTR_REGISTRY=<myacr>.dockerhub.io # if needed, set CTR_REGISTRY_USER and CTR_REGISTRY_PASSWORD
 make build-osm
 make docker-push
 go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress
@@ -59,7 +59,7 @@ go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress
 
 ### Flags
 #### (TODO) Kubeconf selection
-Currently, test init will load a `Kubeconf` based on Defalut Kubeconf Loading rules. 
+Currently, test init will load a `Kubeconf` based on Defalut Kubeconf Loading rules.
 If Kind is used, the kubeconf is temporarily replaced and Kind's kubeconf is used instead.
 
 #### Container registry
@@ -81,7 +81,7 @@ export CTR_REGISTRY_PASSWORD=<password>        # opt
 ```
 
 #### OSM Tag
-The following flag will refer to the version of the OSM platform containers (OSM and init) for test to use:
+The following flag will refer to the image version of the OSM platform containers (`osm-controller` and `init`) and `tcp-echo-server` for the tests to use:
 ```
 -osmImageTag string
 		OSM image tag (default "latest")
@@ -93,7 +93,7 @@ export CTR_TAG=mytag               # Optional, 'latest' used by default
 make docker-push-init docker-push-osm-controller.    # Use docker-build-* targets instead when using kind
 ```
 
-#### Use Kind for testing 
+#### Use Kind for testing
 Testing implements support for Kind. If `kindCluster` is enabled, a new Kind cluster will be provisioned and it will be automatically used for the test.
 ```
 -kindCluster
