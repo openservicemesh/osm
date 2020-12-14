@@ -34,15 +34,12 @@ data:
       Name           grep
       Match          kube.*
       Regex          keep true
-    # Removes extra "keep: true" key/value pair once matching is complete 
+    # Removes extra "keep: true" key/value pair once matching is complete; adds controller pod name value to help users query logs in output
     [FILTER]
       Name           modify
       Match          kube.*
       Remove         keep
-    [FILTER]
-      Name    modify
-      Match   *
-      Add controller_pod_name ${CONTROLLER_POD_NAME}
+      Add            controller_pod_name ${CONTROLLER_POD_NAME}
     [OUTPUT]
       Name    {{ .Values.OpenServiceMesh.fluentBit.outputPlugin }}
       Match   *
