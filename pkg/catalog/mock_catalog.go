@@ -5,8 +5,6 @@
 package catalog
 
 import (
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
 	certificate "github.com/openservicemesh/osm/pkg/certificate"
 	endpoint "github.com/openservicemesh/osm/pkg/endpoint"
@@ -17,6 +15,7 @@ import (
 	v1alpha2 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
 	v1alpha3 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha3"
 	v1alpha20 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
+	reflect "reflect"
 )
 
 // MockMeshCataloger is a mock of MeshCataloger interface
@@ -307,6 +306,22 @@ func (m *MockMeshCataloger) ListTrafficPolicies(arg0 service.MeshService) ([]tra
 func (mr *MockMeshCatalogerMockRecorder) ListTrafficPolicies(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTrafficPolicies", reflect.TypeOf((*MockMeshCataloger)(nil).ListTrafficPolicies), arg0)
+}
+
+// ListTrafficPoliciesForServiceAccount mocks base method
+func (m *MockMeshCataloger) ListTrafficPoliciesForServiceAccount(arg0 service.K8sServiceAccount) ([]*trafficpolicy.InboundTrafficPolicy, []*trafficpolicy.OutboundTrafficPolicy, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListTrafficPoliciesForServiceAccount", arg0)
+	ret0, _ := ret[0].([]*trafficpolicy.InboundTrafficPolicy)
+	ret1, _ := ret[1].([]*trafficpolicy.OutboundTrafficPolicy)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// ListTrafficPoliciesForServiceAccount indicates an expected call of ListTrafficPoliciesForServiceAccount
+func (mr *MockMeshCatalogerMockRecorder) ListTrafficPoliciesForServiceAccount(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTrafficPoliciesForServiceAccount", reflect.TypeOf((*MockMeshCataloger)(nil).ListTrafficPoliciesForServiceAccount), arg0)
 }
 
 // RegisterProxy mocks base method

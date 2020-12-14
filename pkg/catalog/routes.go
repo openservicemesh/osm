@@ -22,6 +22,25 @@ const (
 	HTTPTraffic = "HTTPRouteGroup"
 )
 
+var wildCardRouteMatch trafficpolicy.HTTPRouteMatch = trafficpolicy.HTTPRouteMatch{
+	PathRegex: constants.RegexMatchAll,
+	Methods:   []string{constants.WildcardHTTPMethod},
+}
+
+// ListTrafficPoliciesForServiceAccount returns all inbound and outbound traffic policies related to the given service account
+func (mc *MeshCatalog) ListTrafficPoliciesForServiceAccount(sa service.K8sServiceAccount) ([]*trafficpolicy.InboundTrafficPolicy, []*trafficpolicy.OutboundTrafficPolicy, error) {
+	// TODO handle permissive traffic mode (#2034)
+
+	inbound, outbound, err := mc.listPoliciesFromTrafficTargets(sa)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	//	TODO: handle traffic splits, merge policies from traffic splits into outbound policies (#705)
+	//	TODO: handle ingress, merge policies from ingress resources into inbound policies (#2034)
+	return inbound, outbound, nil
+}
+
 // ListTrafficPolicies returns all the traffic policies for a given service that Envoy proxy should be aware of.
 func (mc *MeshCatalog) ListTrafficPolicies(service service.MeshService) ([]trafficpolicy.TrafficTarget, error) {
 	log.Trace().Msgf("Listing traffic policies for service: %s", service)
@@ -374,17 +393,13 @@ func (mc *MeshCatalog) buildAllowAllTrafficPolicies(service service.MeshService)
 }
 
 func (mc *MeshCatalog) buildAllowPolicyForSourceToDest(source *corev1.Service, destination *corev1.Service) trafficpolicy.TrafficTarget {
-	allowAllRoute := trafficpolicy.HTTPRouteMatch{
-		PathRegex: constants.RegexMatchAll,
-		Methods:   []string{constants.WildcardHTTPMethod},
-	}
 	srcMeshSvc := utils.K8sSvcToMeshSvc(source)
 	dstMeshSvc := utils.K8sSvcToMeshSvc(destination)
 	return trafficpolicy.TrafficTarget{
 		Name:             utils.GetTrafficTargetName("", srcMeshSvc, dstMeshSvc),
 		Destination:      dstMeshSvc,
 		Source:           srcMeshSvc,
-		HTTPRouteMatches: []trafficpolicy.HTTPRouteMatch{allowAllRoute},
+		HTTPRouteMatches: []trafficpolicy.HTTPRouteMatch{wildCardRouteMatch},
 	}
 }
 
@@ -514,9 +529,130 @@ func (mc *MeshCatalog) listMeshServices() []service.MeshService {
 	return services
 }
 
+func (mc *MeshCatalog) getDestinationServicesFromTrafficTarget(t *target.TrafficTarget) ([]service.MeshService, error) {
+	sa := service.K8sServiceAccount{
+		Name:      t.Spec.Destination.Name,
+		Namespace: t.Spec.Destination.Namespace,
+	}
+	destServices, err := mc.GetServicesForServiceAccount(sa)
+	if err != nil {
+		return nil, errors.Errorf("Error finding Services for Service Account %#v: %v", sa, err)
+	}
+	return destServices, nil
+}
+
+func (mc *MeshCatalog) buildInboundPolicies(t *target.TrafficTarget) []*trafficpolicy.InboundTrafficPolicy {
+	inboundPolicies := []*trafficpolicy.InboundTrafficPolicy{}
+
+	// fetch services running workloads with destination service account
+	destServices, err := mc.getDestinationServicesFromTrafficTarget(t)
+	if err != nil {
+		log.Error().Msgf("Error resolving destination from traffic target %s (%s): %v", t.Name, t.Namespace, err)
+		return inboundPolicies
+	}
+
+	// fetch all routes referenced in traffic target
+	routeMatches, err := mc.routesFromRules(t.Spec.Rules, t.Namespace)
+	if err != nil {
+		log.Error().Msgf("Error finding route matches from TrafficTarget %s in namespace %s: %v", t.Name, t.Namespace, err)
+		return inboundPolicies
+	}
+
+	for _, destService := range destServices {
+		hostnames, err := mc.getServiceHostnames(destService, true)
+		if err != nil {
+			continue
+		}
+
+		servicePolicy := trafficpolicy.NewInboundTrafficPolicy(buildPolicyName(destService, false), hostnames)
+
+		weightedCluster := getDefaultWeightedClusterForService(destService)
+
+		for _, sourceServiceAccount := range trafficTargetIdentitiesToSvcAccounts(t.Spec.Sources) {
+			for _, routeMatch := range routeMatches {
+				servicePolicy.AddRule(*trafficpolicy.NewRouteWeightedCluster(routeMatch, weightedCluster), sourceServiceAccount)
+			}
+		}
+
+		if len(servicePolicy.Rules) > 0 {
+			inboundPolicies = append(inboundPolicies, servicePolicy)
+		}
+	}
+
+	return inboundPolicies
+}
+
+func (mc *MeshCatalog) buildOutboundPolicies(source service.K8sServiceAccount, t *target.TrafficTarget) []*trafficpolicy.OutboundTrafficPolicy {
+	outPolicies := []*trafficpolicy.OutboundTrafficPolicy{}
+
+	// fetch services running workloads with destination service account
+	destServices, err := mc.getDestinationServicesFromTrafficTarget(t)
+	if err != nil {
+		log.Error().Msgf("Error resolving destination from traffic target %s (%s): %v", t.Name, t.Namespace, err)
+		return outPolicies
+	}
+
+	// build an outbound traffic policy for each destination service
+	for _, destService := range destServices {
+		hostnames, err := mc.getServiceHostnames(destService, source.Namespace == destService.Namespace)
+		if err != nil {
+			log.Error().Err(err).Msgf("Error getting service hostnames for service %s", destService)
+			continue
+		}
+		weightedCluster := getDefaultWeightedClusterForService(destService)
+
+		policy := trafficpolicy.NewOutboundTrafficPolicy(buildPolicyName(destService, source.Namespace == destService.Namespace), hostnames)
+		if err := policy.AddRoute(wildCardRouteMatch, weightedCluster); err != nil {
+			log.Error().Err(err).Msgf("Error adding Route to outbound policy for source %s(%s) and destination %s (%s)", source.Name, source.Namespace, destService.Name, destService.Namespace)
+			continue
+		}
+
+		outPolicies = append(outPolicies, policy)
+	}
+	return outPolicies
+}
+
+// listPoliciesFromTrafficTargets loops through all SMI Traffic Target resources and returns inbound and outbound traffic policies
+//		based on when the given service account matches a destination or source in the Traffic Target resource
+func (mc *MeshCatalog) listPoliciesFromTrafficTargets(sa service.K8sServiceAccount) ([]*trafficpolicy.InboundTrafficPolicy, []*trafficpolicy.OutboundTrafficPolicy, error) {
+	inboundPolicies := []*trafficpolicy.InboundTrafficPolicy{}
+	outboundPolicies := []*trafficpolicy.OutboundTrafficPolicy{}
+
+	for _, t := range mc.meshSpec.ListTrafficTargets() { // loop through all traffic targets
+		if !isValidTrafficTarget(t) {
+			continue
+		}
+
+		if t.Spec.Destination.Name == sa.Name { // found inbound
+			inboundPolicies = trafficpolicy.MergeInboundPolicies(inboundPolicies, mc.buildInboundPolicies(t)...)
+		}
+
+		for _, source := range t.Spec.Sources {
+			if source.Name == sa.Name && source.Namespace == sa.Namespace { // found outbound
+				mergedPolicies, mergeErrors := trafficpolicy.MergeOutboundPolicies(outboundPolicies, mc.buildOutboundPolicies(sa, t)...)
+				outboundPolicies = mergedPolicies
+				for _, mergeError := range mergeErrors {
+					log.Error().Err(mergeError).Msgf("Error building outbound policies for source %s (%s) and with traffic target %s (%s)", source.Name, source.Namespace, t.Name, t.Namespace)
+				}
+				break
+			}
+		}
+	}
+	return inboundPolicies, outboundPolicies, nil
+}
+
 func isValidTrafficTarget(t *target.TrafficTarget) bool {
 	if t.Spec.Rules == nil || len(t.Spec.Rules) == 0 {
 		return false
 	}
 	return true
+}
+
+// buildPolicyName creates a name for a policy associated with the given service
+func buildPolicyName(svc service.MeshService, sameNamespace bool) string {
+	name := svc.Name
+	if !sameNamespace {
+		return name + "-" + svc.Namespace
+	}
+	return name
 }
