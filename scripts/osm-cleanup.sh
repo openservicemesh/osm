@@ -18,4 +18,4 @@ helm template "$MESH_NAME" ./charts/osm \
     --set OpenServiceMesh.deployGrafana="$DEPLOY_GRAFANA" \
     --set OpenServiceMesh.enableFluentbit="$ENABLE_FLUENTBIT" \
     --set OpenServiceMesh.deployPrometheus="$DEPLOY_PROMETHEUS" \
-    | kubectl delete -f -
+    | kubectl delete --ignore-not-found -f -
