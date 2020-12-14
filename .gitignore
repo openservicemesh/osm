@@ -40,7 +40,6 @@ build/
 .dev/
 .env
 _dist/
-out/
 
 creds.json
 screenlog.*

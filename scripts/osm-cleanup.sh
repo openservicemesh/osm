@@ -1,8 +1,9 @@
 #!/bin/bash
 
-# This is script is only meant to clean up leaked resources.
+# This script is only for cleaning up leaked resources.
 # Please use osm cli or helm uninstall if possible.
 
+# shellcheck disable=SC1091
 source .env
 
 MESH_NAME="${MESH_NAME:-osm}"
@@ -17,6 +18,4 @@ helm template "$MESH_NAME" ./charts/osm \
     --set OpenServiceMesh.deployGrafana="$DEPLOY_GRAFANA" \
     --set OpenServiceMesh.enableFluentbit="$ENABLE_FLUENTBIT" \
     --set OpenServiceMesh.deployPrometheus="$DEPLOY_PROMETHEUS" \
-    --output-dir ./out \
-
-kubectl delete -f out/osm/templates
+    | kubectl delete -f -
