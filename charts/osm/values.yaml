@@ -43,6 +43,7 @@ OpenServiceMesh:
     registry: fluent
     tag: 1.6.4
     pullPolicy: IfNotPresent
+    logLevel: error
     outputPlugin: stdout
     workspaceId: ""
     primaryKey: ""

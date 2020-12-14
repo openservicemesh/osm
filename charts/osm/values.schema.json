@@ -215,6 +215,7 @@
                             "registry": "fluent",
                             "tag": "1.6.4",
                             "pullPolicy": "IfNotPresent",
+                            "logLevel": "error",
                             "outputPlugin": "stdout",
                             "enableProxySupport": "false",
                             "httpProxy": "",
@@ -226,6 +227,7 @@
                         "registry",
                         "tag",
                         "pullPolicy",
+                        "logLevel",
                         "outputPlugin",
                         "enableProxySupport",
                         "httpProxy",
@@ -267,6 +269,16 @@
                             "pattern": "^(Always|Never|IfNotPresent)$",
                             "examples": [
                                 "IfNotPresent"
+                            ]
+                        },
+                        "logLevel": {
+                            "$id": "#/properties/OpenServiceMesh/properties/fluentBit/properties/logLevel",
+                            "type": "string",
+                            "title": "The logLevel schema",
+                            "description": "The Fluent Bit log level.",
+                            "pattern": "^(debug|info|warn|error|fatal|panic|disabled|trace)$",
+                            "examples": [
+                                "error"
                             ]
                         },
                         "outputPlugin": {

@@ -29,6 +29,7 @@ A Helm chart to install the OSM control plane on Kubernetes
 | OpenServiceMesh.fluentBit.enableProxySupport | bool | `false` |  |
 | OpenServiceMesh.fluentBit.httpProxy | string | `""` |  |
 | OpenServiceMesh.fluentBit.httpsProxy | string | `""` |  |
+| OpenServiceMesh.fluentBit.logLevel | string | `"error"` |  |
 | OpenServiceMesh.fluentBit.name | string | `"fluentbit-logger"` |  |
 | OpenServiceMesh.fluentBit.outputPlugin | string | `"stdout"` |  |
 | OpenServiceMesh.fluentBit.primaryKey | string | `""` |  |
