@@ -21,12 +21,16 @@ var _ = OSMDescribe("Test HTTP traffic from 1 pod client -> 1 pod server",
 		Bucket: 1,
 	},
 	func() {
-		Context("SimpleClientServer with a Kubernetes Service for the Source", func() {
+		Context("SimpleClientServer with a Kubernetes Service for the Source: HTTP", func() {
 			testTraffic(true)
 		})
 
-		Context("SimpleClientServer without a Kubernetes Service for the Source", func() {
+		Context("SimpleClientServer without a Kubernetes Service for the Source: HTTP", func() {
 			testTraffic(false)
+		})
+
+		Context("SimpleClientServer without a Kubernetes Service for the Source: TCP", func() {
+			testTCPTraffic(false)
 		})
 	})
 
@@ -57,9 +61,9 @@ func testTraffic(withSourceKubernetesService bool) {
 
 			_, err := Td.CreateServiceAccount(destName, &svcAccDef)
 			Expect(err).NotTo(HaveOccurred())
-			dstPod, err := Td.CreatePod(destName, podDef)
+			_, err = Td.CreatePod(destName, podDef)
 			Expect(err).NotTo(HaveOccurred())
-			_, err = Td.CreateService(destName, svcDef)
+			dstSvc, err := Td.CreateService(destName, svcDef)
 			Expect(err).NotTo(HaveOccurred())
 
 			// Expect it to be up and running in it's receiver namespace
@@ -93,7 +97,7 @@ func testTraffic(withSourceKubernetesService bool) {
 				SourcePod:       srcPod.Name,
 				SourceContainer: sourceName,
 
-				Destination: fmt.Sprintf("%s.%s", dstPod.Name, dstPod.Namespace),
+				Destination: fmt.Sprintf("%s.%s", dstSvc.Name, dstSvc.Namespace),
 			}
 
 			srcToDestStr := fmt.Sprintf("%s -> %s",
@@ -136,14 +140,133 @@ func testTraffic(withSourceKubernetesService bool) {
 	}
 }
 
+func testTCPTraffic(withSourceKubernetesService bool) {
+	{
+		const sourceName = "client"
+		const destName = "server"
+		var ns = []string{sourceName, destName}
+
+		It("Tests TCP traffic for client pod -> server pod", func() {
+			installOpts := Td.GetOSMInstallOpts()
+			// Install OSM
+			Expect(Td.InstallOSM(installOpts)).To(Succeed())
+
+			// Load TCP server image
+			Expect(Td.LoadImagesToKind([]string{"tcp-echo-server"})).To(Succeed())
+
+			// Create Test NS
+			for _, n := range ns {
+				Expect(Td.CreateNs(n, nil)).To(Succeed())
+				Expect(Td.AddNsToMesh(true, n)).To(Succeed())
+			}
+
+			destinationPort := 80
+
+			// Get simple pod definitions for the TCP server
+			svcAccDef, podDef, svcDef := Td.SimplePodApp(
+				SimplePodAppDef{
+					Name:        destName,
+					Namespace:   destName,
+					Image:       fmt.Sprintf("%s/tcp-echo-server:%s", installOpts.ContainerRegistryLoc, installOpts.OsmImagetag),
+					Command:     []string{"/tcp-echo-server"},
+					Args:        []string{"--port", fmt.Sprintf("%d", destinationPort)},
+					Ports:       []int{destinationPort},
+					AppProtocol: AppProtocolTCP,
+				})
+
+			_, err := Td.CreateServiceAccount(destName, &svcAccDef)
+			Expect(err).NotTo(HaveOccurred())
+			_, err = Td.CreatePod(destName, podDef)
+			Expect(err).NotTo(HaveOccurred())
+			dstSvc, err := Td.CreateService(destName, svcDef)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Expect it to be up and running in it's receiver namespace
+			Expect(Td.WaitForPodsRunningReady(destName, 120*time.Second, 1)).To(Succeed())
+
+			srcPod := setupSource(sourceName, withSourceKubernetesService)
+
+			By("Creating SMI policies")
+			// Deploy allow rule client->server
+			trafficTarget := Td.CreateSimpleTCPAllowPolicy(
+				SimpleAllowPolicy{
+					RouteGroupName:    "routes",
+					TrafficTargetName: "test-target",
+
+					SourceNamespace:      sourceName,
+					SourceSVCAccountName: sourceName,
+
+					DestinationNamespace:      destName,
+					DestinationSvcAccountName: destName,
+				})
+
+			// Configs have to be put into a monitored NS
+			_, err = Td.CreateTrafficTarget(sourceName, trafficTarget)
+			Expect(err).NotTo(HaveOccurred())
+
+			// All ready. Expect client to reach server
+			requestMsg := "test request"
+			clientToServer := TCPRequestDef{
+				SourceNs:        sourceName,
+				SourcePod:       srcPod.Name,
+				SourceContainer: sourceName,
+
+				DestinationHost: fmt.Sprintf("%s.%s", dstSvc.Name, dstSvc.Namespace),
+				DestinationPort: destinationPort,
+				Message:         requestMsg,
+			}
+
+			srcToDestStr := fmt.Sprintf("%s -> %s:%d",
+				fmt.Sprintf("%s/%s", sourceName, srcPod.Name),
+				clientToServer.DestinationHost, clientToServer.DestinationPort)
+
+			cond := Td.WaitForRepeatedSuccess(func() bool {
+				result := Td.TCPRequest(clientToServer)
+
+				if result.Err != nil {
+					Td.T.Logf("> (%s) TCP Req failed, response: %s, err: %s",
+						srcToDestStr, result.Response, result.Err)
+					return false
+				}
+
+				// Ensure the echo response contains request message
+				if !strings.Contains(result.Response, requestMsg) {
+					Td.T.Logf("> (%s) Unexpected response: %s.\n Response expected to contain: %s", result.Response, requestMsg)
+					return false
+				}
+				Td.T.Logf("> (%s) TCP Req succeeded, response: %s", srcToDestStr, result.Response)
+				return true
+			}, 5, 90*time.Second)
+
+			sourceService := map[bool]string{true: "with", false: "without"}[withSourceKubernetesService]
+			Expect(cond).To(BeTrue(), "Failed testing TCP traffic from source pod %s Kubernetes Service to a destination", sourceService)
+
+			By("Deleting SMI policies")
+			Expect(Td.SmiClients.AccessClient.AccessV1alpha2().TrafficTargets(sourceName).Delete(context.TODO(), trafficTarget.Name, metav1.DeleteOptions{})).To(Succeed())
+
+			// Expect client not to reach server
+			cond = Td.WaitForRepeatedSuccess(func() bool {
+				result := Td.TCPRequest(clientToServer)
+
+				if result.Err == nil {
+					Td.T.Logf("> (%s) TCP Req did not fail, expected it to fail,  response: %s", srcToDestStr, result.Response)
+					return false
+				}
+				Td.T.Logf("> (%s) TCP Req failed correctly, response: %s, err: %s", srcToDestStr, result.Response, result.Err)
+				return true
+			}, 5, 150*time.Second)
+			Expect(cond).To(BeTrue())
+		})
+	}
+}
+
 func setupSource(sourceName string, withKubernetesService bool) *v1.Pod {
 	// Get simple Pod definitions for the client
 	svcAccDef, podDef, svcDef := Td.SimplePodApp(SimplePodAppDef{
 		Name:      sourceName,
 		Namespace: sourceName,
-		Command:   []string{"/bin/bash", "-c", "--"},
-		Args:      []string{"while true; do sleep 30; done;"},
-		Image:     "songrgg/alpine-debug",
+		Command:   []string{"sleep", "365d"},
+		Image:     "curlimages/curl",
 		Ports:     []int{80},
 	})
 

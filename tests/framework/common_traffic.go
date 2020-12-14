@@ -28,6 +28,21 @@ type HTTPRequestDef struct {
 	Destination string
 }
 
+// TCPRequestDef defines a remote TCP request intent
+type TCPRequestDef struct {
+	// Source pod where to run the HTTP request from
+	SourceNs        string
+	SourcePod       string
+	SourceContainer string
+
+	// The destination server host (FQDN or IP address) and port the request is directed to
+	DestinationHost string
+	DestinationPort int
+
+	// Message to send as a part of the request
+	Message string
+}
+
 // HTTPRequestResult represents results of an HTTPRequest call
 type HTTPRequestResult struct {
 	StatusCode int
@@ -35,12 +50,19 @@ type HTTPRequestResult struct {
 	Err        error
 }
 
+// TCPRequestResult represents the result of a TCPRequest call
+type TCPRequestResult struct {
+	Response string
+	Err      error
+}
+
 // HTTPRequest runs a synchronous call to run the HTTPRequestDef and return a HTTPRequestResult
 func (td *OsmTestData) HTTPRequest(ht HTTPRequestDef) HTTPRequestResult {
 	// -s silent progress, -o output to devnull, '-D -' dump headers to "-" (stdout), -i Status code
 	// -I skip body download, '-w StatusCode:%{http_code}' prints Status code label-like for easy parsing
 	// -L follow redirects
-	command := fmt.Sprintf("/usr/bin/curl -s -o /dev/null -D - -I -w %s:%%{http_code} -L %s", StatusCodeWord, ht.Destination)
+	commandStr := fmt.Sprintf("/usr/bin/curl -s -o /dev/null -D - -I -w %s:%%{http_code} -L %s", StatusCodeWord, ht.Destination)
+	command := strings.Fields(commandStr)
 
 	stdout, stderr, err := td.RunRemote(ht.SourceNs, ht.SourcePod, ht.SourceContainer, command)
 	if err != nil {
@@ -72,6 +94,30 @@ func (td *OsmTestData) HTTPRequest(ht HTTPRequestDef) HTTPRequestResult {
 	return HTTPRequestResult{
 		statusCode,
 		curlMappedReturn,
+		nil,
+	}
+}
+
+// TCPRequest runs a synchronous TCP request to run the TCPRequestDef and return a TCPRequestResult
+func (td *OsmTestData) TCPRequest(req TCPRequestDef) TCPRequestResult {
+	commandArgs := fmt.Sprintf("echo \"%s\" | nc %s %d", req.Message, req.DestinationHost, req.DestinationPort)
+	command := []string{"sh", "-c", commandArgs}
+
+	stdout, stderr, err := td.RunRemote(req.SourceNs, req.SourcePod, req.SourceContainer, command)
+	if err != nil {
+		// Error codes from the execution come through err
+		return TCPRequestResult{
+			stdout,
+			fmt.Errorf("Remote exec err: %v | stderr: %s | cmd: %s", err, stderr, command),
+		}
+	}
+	if len(stderr) > 0 {
+		// no error from execution and proper exit code, we got some stderr though
+		td.T.Logf("[warn] Stderr: %v", stderr)
+	}
+
+	return TCPRequestResult{
+		stdout,
 		nil,
 	}
 }

@@ -38,8 +38,15 @@ const (
 
 	// MemRSSPanel is the ID of the MemRSS panel on OSM's MeshDetails dashboard
 	MemRSSPanel int = 13
+
 	// CPUPanel is the ID of the CPU panel on OSM's MeshDetails dashboard
 	CPUPanel int = 14
+
+	// AppProtocolHTTP is the HTTP application protocol
+	AppProtocolHTTP = "http"
+
+	// AppProtocolTCP is the TCP application protocol
+	AppProtocolTCP = "tcp"
 )
 
 // CreateServiceAccount is a wrapper to create a service account
@@ -127,12 +134,13 @@ func (td *OsmTestData) GetPodsForLabel(ns string, labelSel metav1.LabelSelector)
 
 // SimplePodAppDef defines some parametrization to create a pod-based application from template
 type SimplePodAppDef struct {
-	Namespace string
-	Name      string
-	Image     string
-	Command   []string
-	Args      []string
-	Ports     []int
+	Namespace   string
+	Name        string
+	Image       string
+	Command     []string
+	Args        []string
+	Ports       []int
+	AppProtocol string
 }
 
 // SimplePodApp creates returns a set of k8s typed definitions for a pod-based k8s definition.
@@ -207,9 +215,16 @@ func (td *OsmTestData) SimplePodApp(def SimplePodAppDef) (corev1.ServiceAccount,
 					ContainerPort: int32(p),
 				},
 			)
+
+			appProtocol := AppProtocolHTTP // default
+			if def.AppProtocol != "" {
+				appProtocol = def.AppProtocol
+			}
+
 			serviceDefinition.Spec.Ports = append(serviceDefinition.Spec.Ports, corev1.ServicePort{
-				Port:       int32(p),
-				TargetPort: intstr.FromInt(p),
+				Port:        int32(p),
+				TargetPort:  intstr.FromInt(p),
+				AppProtocol: &appProtocol,
 			})
 		}
 	}

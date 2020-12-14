@@ -384,6 +384,42 @@ func (td *OsmTestData) DeleteHelmRelease(name, namespace string) error {
 	return nil
 }
 
+// LoadImagesToKind loads the list of images to the node for Kind clusters
+func (td *OsmTestData) LoadImagesToKind(imageNames []string) error {
+	if td.InstType != KindCluster {
+		td.T.Log("Not a Kind cluster, nothing to load")
+		return nil
+	}
+
+	td.T.Log("Getting image data")
+	docker, err := client.NewClientWithOpts(client.WithAPIVersionNegotiation())
+	if err != nil {
+		return errors.Wrap(err, "failed to create docker client")
+	}
+	var imageIDs []string
+	for _, name := range imageNames {
+		imageName := fmt.Sprintf("%s/%s:%s", td.CtrRegistryServer, name, td.OsmImageTag)
+		imageIDs = append(imageIDs, imageName)
+	}
+	imageData, err := docker.ImageSave(context.TODO(), imageIDs)
+	if err != nil {
+		return errors.Wrap(err, "failed to get image data")
+	}
+	defer imageData.Close() //nolint: errcheck,gosec
+	nodes, err := td.ClusterProvider.ListNodes(td.ClusterName)
+	if err != nil {
+		return errors.Wrap(err, "failed to list kind nodes")
+	}
+	for _, n := range nodes {
+		td.T.Log("Loading images onto node", n)
+		if err := nodeutils.LoadImageArchive(n, imageData); err != nil {
+			return errors.Wrap(err, "failed to load images")
+		}
+	}
+
+	return nil
+}
+
 // InstallOSM installs OSM. The behavior of this function is dependant on
 // installType and instOpts
 func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
@@ -418,34 +454,8 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 	}
 
 	if td.InstType == KindCluster {
-		td.T.Log("Getting image data")
-		imageNames := []string{
-			"osm-controller",
-			"init",
-		}
-		docker, err := client.NewClientWithOpts(client.WithAPIVersionNegotiation())
-		if err != nil {
-			return errors.Wrap(err, "failed to create docker client")
-		}
-		var imageIDs []string
-		for _, name := range imageNames {
-			imageName := fmt.Sprintf("%s/%s:%s", td.CtrRegistryServer, name, td.OsmImageTag)
-			imageIDs = append(imageIDs, imageName)
-		}
-		imageData, err := docker.ImageSave(context.TODO(), imageIDs)
-		if err != nil {
-			return errors.Wrap(err, "failed to get image data")
-		}
-		defer imageData.Close() //nolint: errcheck,gosec
-		nodes, err := td.ClusterProvider.ListNodes(td.ClusterName)
-		if err != nil {
-			return errors.Wrap(err, "failed to list kind nodes")
-		}
-		for _, n := range nodes {
-			td.T.Log("Loading images onto node", n)
-			if err := nodeutils.LoadImageArchive(n, imageData); err != nil {
-				return errors.Wrap(err, "failed to load images")
-			}
+		if err := td.loadOSMImagesIntoKind(); err != nil {
+			return errors.Wrap(err, "failed to load OSM images to nodes for Kind cluster")
 		}
 	}
 
@@ -534,36 +544,12 @@ func (td *OsmTestData) GetConfigMap(name, namespace string) (*corev1.ConfigMap, 
 }
 
 func (td *OsmTestData) loadOSMImagesIntoKind() error {
-	td.T.Log("Getting image data")
 	imageNames := []string{
 		"osm-controller",
 		"init",
 	}
-	docker, err := client.NewClientWithOpts(client.WithAPIVersionNegotiation())
-	if err != nil {
-		return errors.Wrap(err, "failed to create docker client")
-	}
-	var imageIDs []string
-	for _, name := range imageNames {
-		imageName := fmt.Sprintf("%s/%s:%s", td.CtrRegistryServer, name, td.OsmImageTag)
-		imageIDs = append(imageIDs, imageName)
-	}
-	imageData, err := docker.ImageSave(context.TODO(), imageIDs)
-	if err != nil {
-		return errors.Wrap(err, "failed to get image data")
-	}
-	defer imageData.Close() //nolint: errcheck,gosec
-	nodes, err := td.ClusterProvider.ListNodes(td.ClusterName)
-	if err != nil {
-		return errors.Wrap(err, "failed to list kind nodes")
-	}
-	for _, n := range nodes {
-		td.T.Log("Loading images onto node", n)
-		if err := nodeutils.LoadImageArchive(n, imageData); err != nil {
-			return errors.Wrap(err, "failed to load images")
-		}
-	}
-	return nil
+
+	return td.LoadImagesToKind(imageNames)
 }
 
 func (td *OsmTestData) installVault(instOpts InstallOSMOpts) error {
@@ -968,14 +954,14 @@ func (td *OsmTestData) RunLocal(path string, args []string) (*bytes.Buffer, *byt
 // RunRemote runs command in remote container
 func (td *OsmTestData) RunRemote(
 	ns string, podName string, containerName string,
-	command string) (string, string, error) {
+	command []string) (string, string, error) {
 	var stdin, stdout, stderr bytes.Buffer
 
 	req := td.Client.CoreV1().RESTClient().Post().Resource("pods").Name(podName).
 		Namespace(ns).SubResource("exec")
 
 	option := &corev1.PodExecOptions{
-		Command:   strings.Fields(command),
+		Command:   command,
 		Container: containerName,
 		Stdin:     true,
 		Stdout:    true,
