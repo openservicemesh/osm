@@ -150,6 +150,20 @@ var (
 		"bookstore-v2.default.svc.cluster.local:8888",
 	}
 
+	// BookstoreApexHostnames are the hostnames for the bookstore-apex service
+	BookstoreApexHostnames = []string{
+		"bookstore-apex",
+		"bookstore-apex.default",
+		"bookstore-apex.default.svc",
+		"bookstore-apex.default.svc.cluster",
+		"bookstore-apex.default.svc.cluster.local",
+		"bookstore-apex:8888",
+		"bookstore-apex.default:8888",
+		"bookstore-apex.default.svc:8888",
+		"bookstore-apex.default.svc.cluster:8888",
+		"bookstore-apex.default.svc.cluster.local:8888",
+	}
+
 	// BookstoreBuyHTTPRoute is an HTTP route to buy books
 	BookstoreBuyHTTPRoute = trafficpolicy.HTTPRouteMatch{
 		PathRegex: BookstoreBuyPath,
@@ -391,6 +405,24 @@ var (
 			MaxConnections: 123,
 		},
 	}
+
+	// BookstoreV1DefaultWeightedCluster is a weighted cluster for bookstore-v1
+	BookstoreV1DefaultWeightedCluster = service.WeightedCluster{
+		ClusterName: "default/bookstore-v1",
+		Weight:      100,
+	}
+
+	// BookstoreV2DefaultWeightedCluster is a weighted cluster for bookstore-v2
+	BookstoreV2DefaultWeightedCluster = service.WeightedCluster{
+		ClusterName: "default/bookstore-v2",
+		Weight:      100,
+	}
+
+	// BookstoreApexDefaultWeightedCluster is a weighted cluster for bookstore-apex
+	BookstoreApexDefaultWeightedCluster = service.WeightedCluster{
+		ClusterName: "default/bookstore-apex",
+		Weight:      100,
+	}
 )
 
 // NewPodTestFixture creates a new Pod struct for testing.
@@ -454,5 +486,36 @@ func NewMeshServiceFixture(serviceName, namespace string) service.MeshService {
 	return service.MeshService{
 		Name:      serviceName,
 		Namespace: namespace,
+	}
+}
+
+// NewSMITrafficTarget creates a new SMI Traffic Target
+func NewSMITrafficTarget(sourceName, sourceNamespace, destName, destNamespace string) target.TrafficTarget {
+	return target.TrafficTarget{
+		TypeMeta: v1.TypeMeta{
+			APIVersion: "access.smi-spec.io/v1alpha2",
+			Kind:       "TrafficTarget",
+		},
+		ObjectMeta: v1.ObjectMeta{
+			Name:      destName,
+			Namespace: destNamespace,
+		},
+		Spec: target.TrafficTargetSpec{
+			Destination: target.IdentityBindingSubject{
+				Kind:      "ServiceAccount",
+				Name:      destName,
+				Namespace: destNamespace,
+			},
+			Sources: []target.IdentityBindingSubject{{
+				Kind:      "ServiceAccount",
+				Name:      sourceName,
+				Namespace: sourceNamespace,
+			}},
+			Rules: []target.TrafficTargetRule{{
+				Kind:    "HTTPRouteGroup",
+				Name:    RouteGroupName,
+				Matches: []string{BuyBooksMatchName, SellBooksMatchName},
+			}},
+		},
 	}
 }

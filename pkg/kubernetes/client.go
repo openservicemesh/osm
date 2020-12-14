@@ -33,6 +33,7 @@ func NewKubernetesController(kubeClient kubernetes.Interface, meshName string, s
 	client.initNamespaceMonitor()
 	client.initServicesMonitor()
 	client.initPodMonitor()
+	client.initEndpointMonitor()
 
 	if err := client.run(stop); err != nil {
 		log.Error().Err(err).Msg("Could not start Kubernetes Namespaces client")
@@ -65,16 +66,16 @@ func (c *Client) initNamespaceMonitor() {
 	c.informers[Namespaces].AddEventHandler(GetKubernetesEventHandlers((string)(Namespaces), ProviderName, nil, nil, nil, nsEventTypes))
 }
 
+// Function to filter K8s meta Objects by OSM's isMonitoredNamespace
+func (c *Client) shouldObserve(obj interface{}) bool {
+	ns := reflect.ValueOf(obj).Elem().FieldByName("ObjectMeta").FieldByName("Namespace").String()
+	return c.IsMonitoredNamespace(ns)
+}
+
 // Initializes Service monitoring
 func (c *Client) initServicesMonitor() {
 	informerFactory := informers.NewSharedInformerFactory(c.kubeClient, DefaultKubeEventResyncInterval)
 	c.informers[Services] = informerFactory.Core().V1().Services().Informer()
-
-	// Function to filter Services by Namespace
-	shouldObserve := func(obj interface{}) bool {
-		ns := reflect.ValueOf(obj).Elem().FieldByName("ObjectMeta").FieldByName("Namespace").String()
-		return c.IsMonitoredNamespace(ns)
-	}
 
 	// Announcement channel for Services
 	c.announcements[Services] = make(chan announcements.Announcement)
@@ -84,18 +85,12 @@ func (c *Client) initServicesMonitor() {
 		Update: announcements.ServiceUpdated,
 		Delete: announcements.ServiceDeleted,
 	}
-	c.informers[Services].AddEventHandler(GetKubernetesEventHandlers((string)(Services), ProviderName, c.announcements[Services], shouldObserve, nil, svcEventTypes))
+	c.informers[Services].AddEventHandler(GetKubernetesEventHandlers((string)(Services), ProviderName, c.announcements[Services], c.shouldObserve, nil, svcEventTypes))
 }
 
 func (c *Client) initPodMonitor() {
 	informerFactory := informers.NewSharedInformerFactory(c.kubeClient, DefaultKubeEventResyncInterval)
 	c.informers[Pods] = informerFactory.Core().V1().Pods().Informer()
-
-	// Function to filter Pods by Namespace
-	shouldObserve := func(obj interface{}) bool {
-		ns := reflect.ValueOf(obj).Elem().FieldByName("ObjectMeta").FieldByName("Namespace").String()
-		return c.IsMonitoredNamespace(ns)
-	}
 
 	// Announcement channel for Pods
 	c.announcements[Pods] = make(chan announcements.Announcement)
@@ -105,7 +100,22 @@ func (c *Client) initPodMonitor() {
 		Update: announcements.PodUpdated,
 		Delete: announcements.PodDeleted,
 	}
-	c.informers[Pods].AddEventHandler(GetKubernetesEventHandlers((string)(Pods), ProviderName, c.announcements[Pods], shouldObserve, nil, podEventTypes))
+	c.informers[Pods].AddEventHandler(GetKubernetesEventHandlers((string)(Pods), ProviderName, c.announcements[Pods], c.shouldObserve, nil, podEventTypes))
+}
+
+func (c *Client) initEndpointMonitor() {
+	informerFactory := informers.NewSharedInformerFactory(c.kubeClient, DefaultKubeEventResyncInterval)
+	c.informers[Endpoints] = informerFactory.Core().V1().Endpoints().Informer()
+
+	// Announcement channel for Endpoints
+	c.announcements[Endpoints] = make(chan announcements.Announcement)
+
+	eptEventTypes := EventTypes{
+		Add:    announcements.EndpointAdded,
+		Update: announcements.EndpointUpdated,
+		Delete: announcements.EndpointDeleted,
+	}
+	c.informers[Endpoints].AddEventHandler(GetKubernetesEventHandlers((string)(Endpoints), ProviderName, c.announcements[Pods], c.shouldObserve, nil, eptEventTypes))
 }
 
 func (c *Client) run(stop <-chan struct{}) error {
@@ -215,6 +225,19 @@ func (c Client) ListPods() []*corev1.Pod {
 		pods = append(pods, pod)
 	}
 	return pods
+}
+
+// GetEndpoints returns the endpoint for a given service, otherwise returns nil if not found
+// or error if the API errored out.
+func (c Client) GetEndpoints(svc service.MeshService) (*corev1.Endpoints, error) {
+	ep, exists, err := c.informers[Endpoints].GetStore().GetByKey(svc.String())
+	if err != nil {
+		return nil, err
+	}
+	if exists {
+		return ep.(*corev1.Endpoints), nil
+	}
+	return nil, nil
 }
 
 // ListServiceAccountsForService lists ServiceAccounts associated with the given service
