@@ -106,7 +106,6 @@ func (td *OsmTestData) TCPRequest(req TCPRequestDef) TCPRequestResult {
 	stdout, stderr, err := td.RunRemote(req.SourceNs, req.SourcePod, req.SourceContainer, command)
 	if err != nil {
 		// Error codes from the execution come through err
-		// Curl 'Connection refused' err code = 7
 		return TCPRequestResult{
 			stdout,
 			fmt.Errorf("Remote exec err: %v | stderr: %s | cmd: %s", err, stderr, command),
