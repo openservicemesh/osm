@@ -195,12 +195,12 @@ var _ = Describe("Scales a setup with client-servers and traffic splits til fail
 					TrafficSplitServiceName: TrafficSplitPrefix,
 					Backends:                []TrafficSplitBackend{},
 				}
-				assignation := 100 / len(serverServices) // Spread loadbalancing between backends
+				assignment := 100 / len(serverServices) // Spread loadbalancing between backends
 				for _, dstServer := range serverServices {
 					trafficSplit.Backends = append(trafficSplit.Backends,
 						TrafficSplitBackend{
 							Name:   dstServer,
-							Weight: assignation,
+							Weight: assignment,
 						},
 					)
 				}
