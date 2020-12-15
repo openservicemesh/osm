@@ -6,9 +6,10 @@ This guide describes the process to create a GitHub Release for this project.
 1. [Update release branch with versioning changes](#update-release-branch-with-versioning-changes)
 1. [Create and push a Git tag](#create-and-push-a-git-tag)
 1. [Add release notes](#add-release-notes)
+1. [Update README chart with helm-docs](#update-readme-chart-with-helm-docs)
 1. [Create a Helm chart release](#create-a-helm-chart-release)
 1. [Announce the new release](#announce-the-new-release)
-1. [Merge release branch into main](#merge-release-branch-into-main)
+1. [Make version changes on main branch](#make-version-changes-on-main-branch)
 
 ## Create a release branch
 
@@ -75,11 +76,7 @@ make chart-readme
 
 Make an announcement on the [mailing list](https://groups.google.com/g/openservicemesh).
 
-## Merge release branch into main
+## Make version changes on main branch
 
-Open a pull request from the release branch in the main repo (not fork) against the `main` branch.
-This should be done directly on Github by going to https://github.com/openservicemesh/osm/compare
-and opening a pull request from the release branch `release-<version>`.
+Open a pull request in the main repo (not fork) against the `main` branch making the same version updates as [above](#update-release-branch-with-versioning-changes) so the latest release assets are referenced there.
 
-Always use the `Merge pull request` option once this pull request is ready for merge since this
-pull request must be a merge instead of a squash.
