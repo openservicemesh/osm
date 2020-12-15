@@ -9,6 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      # Workaround DCO requirement for gh-pages branch
+      - run: git config alias.commit "commit -s"
       - name: Publish Helm charts
         uses: stefanprodan/helm-gh-pages@v1.1.0
         with:
