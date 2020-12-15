@@ -23,6 +23,8 @@ To customize log forwarding to your output, follow these steps and then reinstal
      
 4. Once you have updated the Fluent Bit configmap, you can deploy the sidecar during OSM installation using the `--enable-fluentbit` flag. You should now be able to interact with error logs in the output of your choice as they get generated.
 
+5. The `controller_pod_name` key/value pair has been added to the logs to help you query logs in your output by refining results on pod name (see example usage below).
+
 ### Example: Using Fluent Bit to send logs to Azure Monitor
 Fluent Bit has an Azure output plugin that can be used to send logs to an Azure Log Analytics workspace as follows:
 1. [Create a Log Analytics workspace](https://docs.microsoft.com/en-us/azure/azure-monitor/learn/quick-create-workspace)
@@ -35,6 +37,10 @@ Fluent Bit has an Azure output plugin that can be used to send logs to an Azure 
     ```
     fluentbit_CL
     | order by TimeGenerated desc
+    ```
+5. Refine your log results on a specific deployment of the OSM controller pod:
+    ```
+    | where controller_pod_name_s == "<desired osm controller pod name>"
     ```
 
 Once logs have been sent to Log Analytics, they can also be consumed by Application Insights as follows:
