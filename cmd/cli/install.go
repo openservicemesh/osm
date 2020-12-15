@@ -63,7 +63,7 @@ const (
 	defaultContainerRegistrySecret        = ""
 	defaultMeshName                       = "osm"
 	defaultOsmImagePullPolicy             = "IfNotPresent"
-	defaultOsmImageTag                    = "v0.6.0-rc.1"
+	defaultOsmImageTag                    = "v0.6.0"
 	defaultPrometheusRetentionTime        = constants.PrometheusDefaultRetentionTime
 	defaultVaultHost                      = ""
 	defaultVaultProtocol                  = "http"
