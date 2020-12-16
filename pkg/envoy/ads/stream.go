@@ -55,7 +55,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 	// Register to Envoy global broadcast updates
 	broadcastUpdate := events.GetPubSubInstance().Subscribe(announcements.ProxyBroadcast)
 
-	// Isusue a send all response on a connecting envoy
+	// Issues a send all response on a connecting envoy
 	// If this were to fail, it most likely just means we still have configuration being applied on flight,
 	// which will get triggered by the dispatcher anyway
 	s.sendAllResponses(proxy, &server, s.cfg)
