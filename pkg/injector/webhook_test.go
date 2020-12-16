@@ -84,13 +84,13 @@ var _ = Describe("Test MutatingWebhookConfiguration patch", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(webhooks.Items)).To(Equal(1))
 
-			webhook := webhooks.Items[0]
-			Expect(len(webhook.Webhooks)).To(Equal(1))
-			Expect(webhook.Webhooks[0].NamespaceSelector.MatchLabels["some-key"]).To(Equal("some-value"))
-			Expect(webhook.Webhooks[0].ClientConfig.Service.Namespace).To(Equal(testWebhookServiceNamespace))
-			Expect(webhook.Webhooks[0].ClientConfig.Service.Name).To(Equal(testWebhookServiceName))
-			Expect(webhook.Webhooks[0].ClientConfig.Service.Path).To(Equal(&testWebhookServicePath))
-			Expect(webhook.Webhooks[0].ClientConfig.CABundle).To(Equal([]byte("chain")))
+			wh := webhooks.Items[0]
+			Expect(len(wh.Webhooks)).To(Equal(1))
+			Expect(wh.Webhooks[0].NamespaceSelector.MatchLabels["some-key"]).To(Equal("some-value"))
+			Expect(wh.Webhooks[0].ClientConfig.Service.Namespace).To(Equal(testWebhookServiceNamespace))
+			Expect(wh.Webhooks[0].ClientConfig.Service.Name).To(Equal(testWebhookServiceName))
+			Expect(wh.Webhooks[0].ClientConfig.Service.Path).To(Equal(&testWebhookServicePath))
+			Expect(wh.Webhooks[0].ClientConfig.CABundle).To(Equal([]byte("chain")))
 		})
 	})
 })
@@ -506,7 +506,7 @@ var _ = Describe("Testing Injector Functions", func() {
 		cfg := configurator.NewMockConfigurator(mockController)
 		certManager := tresor.NewFakeCertManager(cfg)
 
-		actualErr := NewWebhook(injectorConfig, kubeClient, certManager, meshCatalog, kubeController, meshName, osmNamespace, webhookName, stop, cfg)
+		actualErr := NewMutatingWebhook(injectorConfig, kubeClient, certManager, meshCatalog, kubeController, meshName, osmNamespace, webhookName, stop, cfg)
 		expectedErrorMessage := "Error configuring MutatingWebhookConfiguration -webhook-name-: mutatingwebhookconfigurations.admissionregistration.k8s.io \"-webhook-name-\" not found"
 		Expect(actualErr.Error()).To(Equal(expectedErrorMessage))
 	})
@@ -598,7 +598,7 @@ var _ = Describe("Testing Injector Functions", func() {
 		client := fake.NewSimpleClientset()
 		mockNsController := k8s.NewMockController(gomock.NewController(GinkgoT()))
 		mockNsController.EXPECT().GetNamespace("default").Return(&corev1.Namespace{})
-		wh := &webhook{
+		wh := &mutatingWebhook{
 			kubeClient:          client,
 			kubeController:      mockNsController,
 			nonInjectNamespaces: mapset.NewSet(),
