@@ -1,6 +1,7 @@
 package cds
 
 import (
+	mapset "github.com/deckarep/golang-set"
 	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/golang/protobuf/ptypes"
@@ -22,7 +23,6 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	// Github Issue #1575
 	proxyServiceName := svcList[0]
 
-	// The clusters have to be unique, so use a map to prevent duplicates. Keys correspond to the cluster name.
 	var clusters []*xds_cluster.Cluster
 
 	proxyIdentity, err := catalog.GetServiceAccountFromProxyCertificate(proxy.GetCommonName())
@@ -75,7 +75,13 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		TypeUrl: string(envoy.TypeCDS),
 	}
 
+	alreadyAdded := mapset.NewSet()
 	for _, cluster := range clusters {
+		if alreadyAdded.Contains(cluster.Name) {
+			log.Error().Msgf("Found duplicate clusters with name %s; Duplicate will not be sent to Envoy for Service %s with CN=%s", cluster.Name, proxyServiceName, proxy.CommonName)
+			continue
+		}
+		alreadyAdded.Add(cluster.Name)
 		marshalledClusters, err := ptypes.MarshalAny(cluster)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed to marshal cluster %s for proxy %s", cluster.Name, proxy.GetCommonName())
