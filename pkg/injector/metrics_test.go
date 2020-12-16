@@ -86,26 +86,3 @@ func TestIsMetricsEnabled(t *testing.T) {
 		})
 	}
 }
-
-func TestIsAnnotatedForMetrics(t *testing.T) {
-	assert := assert.New(t)
-
-	testCases := []struct {
-		annotations              map[string]string
-		expectMetricsToBeEnabled bool // set to true if metrics is expected to be enabled
-		expectedErr              bool // set to true if error is expected
-	}{
-		{map[string]string{constants.MetricsAnnotation: "enabled"}, true, false},
-		{map[string]string{constants.MetricsAnnotation: "disabled"}, false, false},
-		{nil, false, false},
-		{map[string]string{constants.MetricsAnnotation: "invalid"}, false, true},
-	}
-
-	for _, tc := range testCases {
-		t.Run(fmt.Sprintf("Annotation %v", tc.annotations), func(t *testing.T) {
-			enabled, err := isAnnotatedForMetrics(tc.annotations)
-			assert.Equal(enabled, tc.expectMetricsToBeEnabled)
-			assert.Equal(err != nil, tc.expectedErr)
-		})
-	}
-}
