@@ -22,37 +22,28 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	// Github Issue #1575
 	proxyServiceName := svcList[0]
 
-	resp := &xds_discovery.DiscoveryResponse{
-		TypeUrl: string(envoy.TypeCDS),
-	}
 	// The clusters have to be unique, so use a map to prevent duplicates. Keys correspond to the cluster name.
-	clusterFactories := make(map[string]*xds_cluster.Cluster)
+	var clusters []*xds_cluster.Cluster
 
 	proxyIdentity, err := catalog.GetServiceAccountFromProxyCertificate(proxy.GetCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up proxy identity for proxy with CN=%q", proxy.GetCommonName())
 		return nil, err
 	}
-	outboundServices := meshCatalog.ListAllowedOutboundServicesForIdentity(proxyIdentity)
 
 	// Build remote clusters based on allowed outbound services
-	for _, dstService := range outboundServices {
-		if _, found := clusterFactories[dstService.String()]; found {
-			// Guard against duplicates
-			continue
-		}
-
-		remoteCluster, err := getUpstreamServiceCluster(dstService, proxyServiceName, cfg)
+	for _, dstService := range meshCatalog.ListAllowedOutboundServicesForIdentity(proxyIdentity) {
+		cluster, err := getUpstreamServiceCluster(dstService, proxyServiceName, cfg)
 		if err != nil {
-			log.Error().Err(err).Msgf("Failed to construct service cluster for proxy %s", proxyServiceName)
+			log.Error().Err(err).Msgf("Failed to construct service cluster for service %s for proxy %s", dstService.Name, proxyServiceName)
 			return nil, err
 		}
 
 		if featureflags.IsBackpressureEnabled() {
-			enableBackpressure(meshCatalog, remoteCluster, dstService)
+			enableBackpressure(meshCatalog, cluster, dstService)
 		}
 
-		clusterFactories[remoteCluster.Name] = remoteCluster
+		clusters = append(clusters, cluster)
 	}
 
 	// Create a local cluster for the service.
@@ -63,42 +54,34 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		log.Error().Err(err).Msgf("Failed to get local cluster config for proxy %s", proxyServiceName)
 		return nil, err
 	}
-	clusterFactories[localCluster.Name] = localCluster
+	clusters = append(clusters, localCluster)
 
+	// Add an outbound passthrough cluster for egress
 	if cfg.IsEgressEnabled() {
-		// Add a pass-through cluster for egress
-		passthroughCluster := getOutboundPassthroughCluster()
-		clusterFactories[passthroughCluster.Name] = passthroughCluster
-	}
-
-	for _, cluster := range clusterFactories {
-		log.Debug().Msgf("Proxy service %s constructed ClusterConfiguration: %+v ", proxyServiceName, cluster)
-		marshalledClusters, err := ptypes.MarshalAny(cluster)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed to marshal cluster for proxy %s", proxy.GetCommonName())
-			return nil, err
-		}
-		resp.Resources = append(resp.Resources, marshalledClusters)
+		clusters = append(clusters, getOutboundPassthroughCluster())
 	}
 
 	// Add an inbound prometheus cluster (from Prometheus to localhost)
 	if cfg.IsPrometheusScrapingEnabled() {
-		marshalledCluster, err := ptypes.MarshalAny(getPrometheusCluster())
-		if err != nil {
-			log.Error().Err(err).Msgf("Error marshaling Prometheus cluster for proxy with CN=%s", proxy.GetCommonName())
-			return nil, err
-		}
-		resp.Resources = append(resp.Resources, marshalledCluster)
+		clusters = append(clusters, getPrometheusCluster())
 	}
 
 	// Add an outbound tracing cluster (from localhost to tracing sink)
 	if cfg.IsTracingEnabled() {
-		marshalledCluster, err := ptypes.MarshalAny(getTracingCluster(cfg))
+		clusters = append(clusters, getTracingCluster(cfg))
+	}
+
+	resp := &xds_discovery.DiscoveryResponse{
+		TypeUrl: string(envoy.TypeCDS),
+	}
+
+	for _, cluster := range clusters {
+		marshalledClusters, err := ptypes.MarshalAny(cluster)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error marshaling tracing cluster for proxy with CN=%s", proxy.GetCommonName())
+			log.Error().Err(err).Msgf("Failed to marshal cluster %s for proxy %s", cluster.Name, proxy.GetCommonName())
 			return nil, err
 		}
-		resp.Resources = append(resp.Resources, marshalledCluster)
+		resp.Resources = append(resp.Resources, marshalledClusters)
 	}
 
 	return resp, nil
