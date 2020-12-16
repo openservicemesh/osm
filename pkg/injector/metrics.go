@@ -38,7 +38,7 @@ func isAnnotatedForMetrics(annotations map[string]string) (enabled bool, err err
 		case "disabled", "no", "false":
 			enabled = false
 		default:
-			err = errors.Errorf("Invalid annotion value specified for annotation %q: %s", constants.MetricsAnnotation, metrics)
+			err = errors.Errorf("Invalid value specified for annotation %q: %s", constants.MetricsAnnotation, metrics)
 		}
 	}
 	return
