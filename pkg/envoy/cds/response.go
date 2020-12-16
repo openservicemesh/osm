@@ -81,9 +81,9 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		resp.Resources = append(resp.Resources, marshalledClusters)
 	}
 
+	// Add an inbound prometheus cluster (from Prometheus to localhost)
 	if cfg.IsPrometheusScrapingEnabled() {
-		prometheusCluster := getPrometheusCluster()
-		marshalledCluster, err := ptypes.MarshalAny(&prometheusCluster)
+		marshalledCluster, err := ptypes.MarshalAny(getPrometheusCluster())
 		if err != nil {
 			log.Error().Err(err).Msgf("Error marshaling Prometheus cluster for proxy with CN=%s", proxy.GetCommonName())
 			return nil, err
@@ -91,9 +91,9 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		resp.Resources = append(resp.Resources, marshalledCluster)
 	}
 
+	// Add an outbound tracing cluster (from localhost to tracing sink)
 	if cfg.IsTracingEnabled() {
-		tracingCluster := getTracingCluster(cfg)
-		marshalledCluster, err := ptypes.MarshalAny(&tracingCluster)
+		marshalledCluster, err := ptypes.MarshalAny(getTracingCluster(cfg))
 		if err != nil {
 			log.Error().Err(err).Msgf("Error marshaling tracing cluster for proxy with CN=%s", proxy.GetCommonName())
 			return nil, err
