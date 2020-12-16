@@ -89,6 +89,19 @@ spec:
             - name: BOOKWAREHOUSE_NAMESPACE
               value: ${BOOKWAREHOUSE_NAMESPACE}
 
+          livenessProbe:
+            httpGet:
+              path: /liveness
+              port: 80
+            initialDelaySeconds: 3
+            periodSeconds: 3
+          readinessProbe:
+            failureThreshold: 10
+            httpGet:
+              path: /readiness
+              port: 80
+              scheme: HTTP
+
       imagePullSecrets:
         - name: $CTR_REGISTRY_CREDS_NAME
 EOF
