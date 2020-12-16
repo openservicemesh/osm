@@ -123,6 +123,7 @@ func getHandlers() []handler {
 		{"/reset", reset, "GET"},
 		{"/liveness", ok, "GET"},
 		{"/readiness", ok, "GET"},
+		{"/startup", ok, "GET"},
 	}
 }
 
