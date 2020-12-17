@@ -57,6 +57,8 @@ var _ = Describe("Test all patch operations", func() {
 			}
 
 			pod := tests.NewPodTestFixture(namespace, podName)
+			pod.Labels = nil
+			pod.Annotations = nil
 			mockConfigurator.EXPECT().GetEnvoyLogLevel().Return("").Times(1)
 
 			req := &v1beta1.AdmissionRequest{Namespace: namespace}

@@ -29,10 +29,9 @@ func (wh *webhook) createPatch(pod *corev1.Pod, req *v1beta1.AdmissionRequest, p
 
 	wh.meshCatalog.ExpectProxy(cn)
 
-	// Create kube secret for Envoy bootstrap config
+	// Create the bootstrap configuration for the Envoy proxy for the given pod
 	envoyBootstrapConfigName := fmt.Sprintf("envoy-bootstrap-config-%s", proxyUUID)
-	_, err = wh.createEnvoyBootstrapConfig(envoyBootstrapConfigName, namespace, wh.osmNamespace, bootstrapCertificate)
-	if err != nil {
+	if _, err = wh.createEnvoyBootstrapConfig(envoyBootstrapConfigName, namespace, wh.osmNamespace, bootstrapCertificate); err != nil {
 		log.Error().Err(err).Msg("Failed to create bootstrap config for Envoy sidecar")
 		return nil, err
 	}
@@ -41,16 +40,8 @@ func (wh *webhook) createPatch(pod *corev1.Pod, req *v1beta1.AdmissionRequest, p
 	pod.Spec.Volumes = getVolumeSpec(envoyBootstrapConfigName)
 
 	// Add the Init Container
-	initContainerData := InitContainer{
-		Name:  constants.InitContainerName,
-		Image: wh.config.InitContainerImage,
-	}
-	initContainerSpec, err := getInitContainerSpec(&initContainerData)
-	if err != nil {
-		return nil, err
-	}
-
-	pod.Spec.InitContainers = []corev1.Container{initContainerSpec}
+	initContainer := getInitContainerSpec(constants.InitContainerName, wh.config.InitContainerImage)
+	pod.Spec.InitContainers = append(pod.Spec.InitContainers, initContainer)
 
 	// envoyNodeID and envoyClusterID are required for Envoy proxy to start.
 	envoyNodeID := pod.Spec.ServiceAccountName
@@ -58,6 +49,7 @@ func (wh *webhook) createPatch(pod *corev1.Pod, req *v1beta1.AdmissionRequest, p
 	// envoyCluster ID will be used as an identifier to the tracing sink
 	envoyClusterID := fmt.Sprintf("%s.%s", pod.Spec.ServiceAccountName, namespace)
 
+	// Add the Envoy sidecar
 	sidecar := getEnvoySidecarContainerSpec(constants.EnvoyContainerName, wh.config.SidecarImage, envoyNodeID, envoyClusterID, wh.configurator)
 	pod.Spec.Containers = append(pod.Spec.Containers, sidecar)
 
@@ -78,6 +70,9 @@ func (wh *webhook) createPatch(pod *corev1.Pod, req *v1beta1.AdmissionRequest, p
 	// This will append a label to the pod, which points to the unique Envoy ID used in the
 	// xDS certificate for that Envoy. This label will help xDS match the actual pod to the Envoy that
 	// connects to xDS (with the certificate's CN matching this label).
+	if pod.Labels == nil {
+		pod.Labels = make(map[string]string)
+	}
 	pod.Labels[constants.EnvoyUniqueIDLabelName] = proxyUUID.String()
 
 	return json.Marshal(makePatches(req, pod))
