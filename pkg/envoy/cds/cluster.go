@@ -54,7 +54,6 @@ func getRemoteServiceCluster(remoteService, localService service.MeshServicePort
 
 	log.Debug().Msgf("cfg.IsPermissiveTrafficPolicyMode()=%+v", cfg.IsPermissiveTrafficPolicyMode())
 	if cfg.IsPermissiveTrafficPolicyMode() {
-		log.Debug().Msgf("reached permissive traffi policy")
 		// Since no traffic policies exist with permissive mode, rely on cluster provided service discovery.
 		remoteCluster.ClusterDiscoveryType = &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_ORIGINAL_DST}
 		remoteCluster.LbPolicy = xds_cluster.Cluster_CLUSTER_PROVIDED
@@ -62,7 +61,6 @@ func getRemoteServiceCluster(remoteService, localService service.MeshServicePort
 		// Configure service discovery based on traffic policies
 		remoteCluster.ClusterDiscoveryType = &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS}
 		remoteCluster.EdsClusterConfig = &xds_cluster.Cluster_EdsClusterConfig{EdsConfig: envoy.GetADSConfigSource()}
-		//remoteCluster.LbPolicy = xds_cluster.Cluster_ROUND_ROBIN
 		remoteCluster.LbPolicy = xds_cluster.Cluster_RING_HASH
 	}
 
@@ -101,9 +99,8 @@ func getLocalServiceCluster(catalog catalog.MeshCataloger, proxyServiceName serv
 			Name:           newClusterName,
 			AltStatName:    newClusterName,
 			ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
-			//LbPolicy:       xds_cluster.Cluster_ROUND_ROBIN,
-			LbPolicy:      xds_cluster.Cluster_RING_HASH,
-			RespectDnsTtl: true,
+			LbPolicy:       xds_cluster.Cluster_RING_HASH,
+			RespectDnsTtl:  true,
 			ClusterDiscoveryType: &xds_cluster.Cluster_Type{
 				Type: xds_cluster.Cluster_STRICT_DNS,
 			},
