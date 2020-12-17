@@ -10,6 +10,7 @@ import (
 	mapset "github.com/deckarep/golang-set"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
+	"k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
@@ -26,118 +27,9 @@ var _ = Describe("Test all patch operations", func() {
 	// Setup all constants and variables needed for the tests
 	proxyUUID := uuid.New()
 	const (
-		namespace    = "-namespace-"
-		podName      = "-pod-name-"
-		volumeOne    = "-volume-one-"
-		volumeTwo    = "-volume-two-"
-		containerOne = "-container-one-"
-		containerTwo = "-container-two-"
-		basePath     = "/base/path"
+		namespace = "-namespace-"
+		podName   = "-pod-name-"
 	)
-
-	Context("test addVolume() function", func() {
-		It("adds volume", func() {
-			target := []corev1.Volume{{
-				Name: volumeOne,
-			}}
-			add := []corev1.Volume{{
-				Name: volumeTwo,
-			}}
-
-			actualPatch := addVolume(target, add, basePath)
-			addVolume := JSONPatchOperation{
-				Op:   addOperation,
-				Path: "/base/path/-",
-				Value: corev1.Volume{
-					Name: volumeTwo,
-				},
-			}
-			Expect(len(actualPatch)).To(Equal(1))
-			Expect(actualPatch).To(ContainElement(addVolume))
-		})
-	})
-
-	Context("test addContainer() function", func() {
-		It("adds container", func() {
-			target := []corev1.Container{{
-				Name: containerOne,
-			}}
-
-			add := []corev1.Container{{
-				Name: containerTwo,
-			}}
-
-			actualPatches := addContainer(target, add, basePath)
-
-			expectedAddContainer := JSONPatchOperation{
-				Op:   addOperation,
-				Path: "/base/path/-",
-				Value: corev1.Container{
-					Name: containerTwo,
-				},
-			}
-			Expect(len(actualPatches)).To(Equal(1))
-			Expect(actualPatches).To(ContainElement(expectedAddContainer))
-		})
-	})
-
-	Context("test updateMapType() function", func() {
-		It("creates a list of patches", func() {
-			target := map[string]string{
-				"one": "1",
-				"two": "2",
-			}
-
-			add := map[string]string{
-				"two":   "2",
-				"three": "3",
-			}
-
-			actual := updateMapType(target, add, basePath)
-
-			expectedReplaceTwo := JSONPatchOperation{
-				Op:    replaceOperation,
-				Path:  "/base/path/two",
-				Value: "2",
-			}
-			Expect(actual).To(ContainElement(expectedReplaceTwo))
-
-			expectedAddThree := JSONPatchOperation{
-				Op:    addOperation,
-				Path:  "/base/path/three",
-				Value: "3",
-			}
-			Expect(actual).To(ContainElement(expectedAddThree))
-		})
-
-		It("creates a list of patches", func() {
-			annotationsToAdd := map[string]string{
-				"three": "3",
-				"two":   "2",
-			}
-
-			// Target here is NIL -- this means we will be CREATING
-			actual := updateMapType(nil, annotationsToAdd, basePath)
-
-			// The first operation is "three" ("three" comes before "two" alphabetically)
-			// This is a CREATE operation since target is NIL
-			expectedCreateThree := JSONPatchOperation{
-				Op:   addOperation,
-				Path: "/base/path",
-				Value: map[string]string{
-					"three": "3",
-				},
-			}
-			Expect(actual).To(ContainElement(expectedCreateThree))
-
-			expectedAddTwo := JSONPatchOperation{
-				Op:    addOperation,
-				Path:  "/base/path/two",
-				Value: "2",
-			}
-			Expect(actual).To(ContainElement(expectedAddTwo))
-		})
-	})
 
 	Context("test createPatch() function", func() {
 		It("creates a patch", func() {
@@ -164,9 +56,12 @@ var _ = Describe("Test all patch operations", func() {
 			}
 
 			pod := tests.NewPodTestFixture(namespace, podName)
+			pod.Labels = nil
+			pod.Annotations = nil
 			mockConfigurator.EXPECT().GetEnvoyLogLevel().Return("").Times(1)
 
-			jsonPatches, err := wh.createPatch(&pod, namespace, proxyUUID)
+			req := &v1beta1.AdmissionRequest{Namespace: namespace}
+			jsonPatches, err := wh.createPatch(&pod, req, proxyUUID)
 
 			Expect(err).ToNot(HaveOccurred())
 
