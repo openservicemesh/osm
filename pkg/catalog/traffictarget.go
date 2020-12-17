@@ -60,7 +60,7 @@ func (mc *MeshCatalog) ListInboundTrafficTargetsWithRoutes(upstreamIdentity iden
 
 		// TCP routes for this traffic target
 		if tcpRouteMatches, err := mc.getTCPRouteMatchesFromTrafficTarget(*t); err != nil {
-			log.Error().Err(err).Msgf("Error fetting TCP Routes for TrafficTarget %s/%s", t.Namespace, t.Name)
+			log.Error().Err(err).Msgf("Error fetching TCP Routes for TrafficTarget %s/%s", t.Namespace, t.Name)
 		} else {
 			// Add this traffic target to the final list
 			trafficTarget.TCPRouteMatches = tcpRouteMatches
