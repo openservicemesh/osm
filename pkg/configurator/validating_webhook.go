@@ -28,10 +28,10 @@ var (
 	codecs       = serializer.NewCodecFactory(runtime.NewScheme())
 	deserializer = codecs.UniversalDeserializer()
 
-	//boolFieldsInConfigMap are the fields in osm-config that take in a boolean
+	// boolFieldsInConfigMap are the fields in osm-config that take in a boolean
 	boolFieldsInConfigMap = []string{"egress", "enable_debug_server", "permissive_traffic_policy_mode", "prometheus_scraping", "tracing_enable", "use_https_ingress"}
 
-	//ValidEnvoyLogLevels is a list of envoy log levels
+	// ValidEnvoyLogLevels is a list of envoy log levels
 	ValidEnvoyLogLevels = []string{"trace", "debug", "info", "warning", "warn", "error", "critical", "off"}
 )
 
@@ -39,32 +39,32 @@ const (
 	// ValidatingWebhookName is the name of the validating webhook used for validating osm-config
 	ValidatingWebhookName = "validating-webhook.k8s.io"
 
-	//webhookUpdateConfigMapis the HTTP path at which the webhook expects to receive configmap update events
+	// webhookUpdateConfigMapis the HTTP path at which the webhook expects to receive configmap update events
 	webhookUpdateConfigMap = "/validate-webhook"
 	listenPort             = 9090
 
-	//MustBeBool is the reason for denial for a boolean field
+	// MustBeBool is the reason for denial for a boolean field
 	MustBeBool = ": must be a boolean"
 
-	//MustBeValidLogLvl is the reason for denial for envoy_log_level field
+	// MustBeValidLogLvl is the reason for denial for envoy_log_level field
 	MustBeValidLogLvl = ": invalid log level"
 
-	//MustBeValidTime is the reason for denial for incorrect syntax for service_cert_validity_duration field
+	// MustBeValidTime is the reason for denial for incorrect syntax for service_cert_validity_duration field
 	MustBeValidTime = ": invalid time format must be a sequence of decimal numbers each with optional fraction and a unit suffix"
 
-	//MustBeLessThanAYear is the reason for denial for service_cert_validity_duration field
+	// MustBeLessThanAYear is the reason for denial for service_cert_validity_duration field
 	MustBeLessThanAYear = ": must be max 8760H (1 year)"
 
-	//MustFollowSyntax is the reason for denial for tracing_address field
+	// MustFollowSyntax is the reason for denial for tracing_address field
 	MustFollowSyntax = ": invalid hostname syntax"
 
-	//MustbeInt is the reason for denial for incorrect syntax for tracing_port field
+	// MustbeInt is the reason for denial for incorrect syntax for tracing_port field
 	MustbeInt = ": must be an integer"
 
-	//MustBeInPortRange is the reason for denial for tracing_port field
+	// MustBeInPortRange is the reason for denial for tracing_port field
 	MustBeInPortRange = ": must be between 0 and 65535"
 
-	//CannotChangeMetadata is the reason for denial for changes to configmap metadata
+	// CannotChangeMetadata is the reason for denial for changes to configmap metadata
 	CannotChangeMetadata = ": cannot change metadata"
 
 	hrInAYear  = 8760
@@ -78,7 +78,7 @@ type webhookConfig struct {
 	osmNamespace string
 }
 
-//NewWebhookConfig  starts a new web server handling requests from the  ValidatingWebhookConfiguration
+// NewWebhookConfig  starts a new web server handling requests from the  ValidatingWebhookConfiguration
 func NewWebhookConfig(kubeClient kubernetes.Interface, certManager certificate.Manager, osmNamespace, webhookConfigName string, stop <-chan struct{}) error {
 	cn := certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.OSMControllerName, osmNamespace))
 	cert, err := certManager.IssueCertificate(cn, constants.XDSCertificateValidityPeriod)
@@ -94,10 +94,10 @@ func NewWebhookConfig(kubeClient kubernetes.Interface, certManager certificate.M
 		cert:         cert,
 	}
 
-	//Start the ValidatingWebhook web server
+	// Start the ValidatingWebhook web server
 	go whc.runValidatingWebhook(stop)
 
-	//Update the ValidatingWebhookConfig with the OSM CA bundle
+	// Update the ValidatingWebhookConfig with the OSM CA bundle
 	if err = updateValidatingWebhookCABundle(cert, webhookConfigName, whc.kubeClient); err != nil {
 		log.Error().Err(err).Msgf("Error configuring ValidatingWebhookConfiguration %s: %+v", webhookConfigName, err)
 		return err
@@ -202,14 +202,14 @@ func (whc *webhookConfig) validateConfigMap(req *v1beta1.AdmissionRequest) *v1be
 
 	log.Trace().Msgf("Validation request: (new object: %v) (old object: %v)", string(req.Object.Raw), string(req.OldObject.Raw))
 
-	//default response
+	// Default response
 	resp := &v1beta1.AdmissionResponse{
 		Allowed: true,
 		Result:  &metav1.Status{Reason: ""},
 		UID:     req.UID,
 	}
 
-	//Allow if not a change to osm-config
+	// Allow if not a change to osm-config
 	if req.Name != constants.OSMConfigMap {
 		return resp
 	}
@@ -219,7 +219,7 @@ func (whc *webhookConfig) validateConfigMap(req *v1beta1.AdmissionRequest) *v1be
 	return resp
 }
 
-//validate performs all the checks to the configmap fields and rejects as necessary
+// validate performs all the checks to the configmap fields and rejects as necessary
 func (whc *webhookConfig) validate(configMap corev1.ConfigMap, resp *v1beta1.AdmissionResponse) *v1beta1.AdmissionResponse {
 	for field, value := range configMap.Data {
 		if !checkBoolFields(field, value, boolFieldsInConfigMap) {
@@ -266,14 +266,14 @@ func (whc *webhookConfig) validate(configMap corev1.ConfigMap, resp *v1beta1.Adm
 	return resp
 }
 
-//matchAddrSyntax checks that string follows hostname syntax
+// matchAddrSyntax checks that string follows hostname syntax
 func matchAddrSyntax(configMapField, configMapValue string) bool {
 	syntax := regexp.MustCompile(`^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$`)
 
 	return syntax.Match([]byte(configMapValue))
 }
 
-//checkEnvoyLogLevels checks that the field value is a valid log level
+// checkEnvoyLogLevels checks that the field value is a valid log level
 func checkEnvoyLogLevels(configMapField, configMapValue string, levels []string) bool {
 	valid := false
 	for _, lvl := range levels {
@@ -284,7 +284,7 @@ func checkEnvoyLogLevels(configMapField, configMapValue string, levels []string)
 	return valid
 }
 
-//checkBoolFields checks that the value is a boolean for fields that take in a boolean
+// checkBoolFields checks that the value is a boolean for fields that take in a boolean
 func checkBoolFields(configMapField, configMapValue string, fields []string) bool {
 	for _, f := range fields {
 		if configMapField == f {

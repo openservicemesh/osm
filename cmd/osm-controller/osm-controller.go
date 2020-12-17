@@ -226,7 +226,7 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating sidecar injector webhook")
 	}
 
-	//Create the configMap validating webhook
+	// Create the configMap validating webhook
 	if err := configurator.NewWebhookConfig(kubeClient, certManager, osmNamespace, webhookConfigName, stop); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating osm-config validating webhook")
 	}
