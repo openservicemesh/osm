@@ -8,13 +8,12 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
+	v1alpha1 "github.com/openservicemesh/osm/experimental/pkg/apis/policy/v1alpha1"
+	announcements "github.com/openservicemesh/osm/pkg/announcements"
+	service "github.com/openservicemesh/osm/pkg/service"
 	v1alpha2 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
 	v1alpha3 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha3"
 	v1alpha20 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
-
-	v1alpha1 "github.com/openservicemesh/osm/experimental/pkg/apis/policy/v1alpha1"
-	"github.com/openservicemesh/osm/pkg/announcements"
-	service "github.com/openservicemesh/osm/pkg/service"
 )
 
 // MockMeshSpec is a mock of MeshSpec interface
@@ -66,6 +65,20 @@ func (m *MockMeshSpec) GetBackpressurePolicy(arg0 service.MeshService) *v1alpha1
 func (mr *MockMeshSpecMockRecorder) GetBackpressurePolicy(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBackpressurePolicy", reflect.TypeOf((*MockMeshSpec)(nil).GetBackpressurePolicy), arg0)
+}
+
+// GetTCPRoute mocks base method
+func (m *MockMeshSpec) GetTCPRoute(arg0 string) *v1alpha3.TCPRoute {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTCPRoute", arg0)
+	ret0, _ := ret[0].(*v1alpha3.TCPRoute)
+	return ret0
+}
+
+// GetTCPRoute indicates an expected call of GetTCPRoute
+func (mr *MockMeshSpecMockRecorder) GetTCPRoute(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTCPRoute", reflect.TypeOf((*MockMeshSpec)(nil).GetTCPRoute), arg0)
 }
 
 // ListHTTPTrafficSpecs mocks base method

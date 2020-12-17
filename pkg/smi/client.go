@@ -232,6 +232,17 @@ func (c *Client) ListTCPTrafficSpecs() []*smiSpecs.TCPRoute {
 	return tcpRouteSpec
 }
 
+// GetTCPRoute returns an SMI TCPRoute resource given its name of the form <namespace>/<name>
+func (c *Client) GetTCPRoute(namespacedName string) *smiSpecs.TCPRoute {
+	// client-go cache uses <namespace>/<name> as key
+	routeIf, exists, err := c.caches.TCPRoute.GetByKey(namespacedName)
+	if exists && err == nil {
+		route := routeIf.(*smiSpecs.TCPRoute)
+		return route
+	}
+	return nil
+}
+
 // ListTrafficTargets implements mesh.Topology by returning the list of traffic targets.
 func (c *Client) ListTrafficTargets() []*smiAccess.TrafficTarget {
 	var trafficTargets []*smiAccess.TrafficTarget

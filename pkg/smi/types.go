@@ -64,6 +64,9 @@ type MeshSpec interface {
 	// ListTCPTrafficSpecs lists SMI TCPRoute resources
 	ListTCPTrafficSpecs() []*spec.TCPRoute
 
+	// GetTCPRoute returns an SMI TCPRoute resource given its name of the form <namespace>/<name>
+	GetTCPRoute(string) *spec.TCPRoute
+
 	// ListTrafficTargets lists SMI TrafficTarget resources
 	ListTrafficTargets() []*target.TrafficTarget
 
