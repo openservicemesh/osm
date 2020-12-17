@@ -3,7 +3,6 @@ package configurator
 import (
 	"time"
 
-	"github.com/cskr/pubsub"
 	"k8s.io/client-go/tools/cache"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
@@ -22,7 +21,6 @@ type Client struct {
 	informer         cache.SharedIndexInformer
 	cache            cache.Store
 	cacheSynced      chan interface{}
-	pSub             *pubsub.PubSub
 }
 
 // Configurator is the controller interface for K8s namespaces

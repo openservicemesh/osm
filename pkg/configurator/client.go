@@ -48,9 +48,6 @@ const (
 
 	// serviceCertValidityDurationKey is the key name used to specify the validity duration of service certificates in the ConfigMap
 	serviceCertValidityDurationKey = "service_cert_validity_duration"
-
-	// defaultPubSubChannelSize is the default size of the buffered channel returned to the  subscriber
-	defaultPubSubChannelSize = 128
 )
 
 // NewConfigurator implements configurator.Configurator and creates the Kubernetes client to manage namespaces.
