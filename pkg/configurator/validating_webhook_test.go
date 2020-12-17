@@ -11,9 +11,10 @@ import (
 	"time"
 
 	gomock "github.com/golang/mock/gomock"
+	"github.com/pkg/errors"
+
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/pkg/errors"
 
 	"github.com/stretchr/testify/assert"
 	"k8s.io/client-go/kubernetes/fake"
@@ -65,46 +66,44 @@ func TestNewWebhookConfig(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	kubeClient := fake.NewSimpleClientset()
 	certManager := certificate.NewMockManager(mockCtrl)
-	osmNamespace := "-osm-namespace-"
 	stop := make(<-chan struct{})
 
 	testCases := []struct {
+		testName    string
 		webhookName string
 		expErr      string
 		mockCall    interface{}
 	}{
 		{
+			testName:    "Error in updateValidatingWebhookCABundle",
 			webhookName: "-webhook-name-",
-			mockCall:    certManager.EXPECT().IssueCertificate(certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.OSMControllerName, osmNamespace)), constants.XDSCertificateValidityPeriod),
+			mockCall:    certManager.EXPECT().IssueCertificate(certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.OSMControllerName, whc.osmNamespace)), constants.XDSCertificateValidityPeriod),
 			expErr:      "validatingwebhookconfigurations.admissionregistration.k8s.io \"-webhook-name-\" not found",
 		},
 		{
+			testName:    "Error in IssueCertificate",
 			webhookName: "-webhook-name-",
-			mockCall:    certManager.EXPECT().IssueCertificate(certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.OSMControllerName, osmNamespace)), constants.XDSCertificateValidityPeriod).Return(nil, errors.New("error issuing certificate")),
+			mockCall:    certManager.EXPECT().IssueCertificate(certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.OSMControllerName, whc.osmNamespace)), constants.XDSCertificateValidityPeriod).Return(nil, errors.New("error issuing certificate")),
 			expErr:      "error issuing certificate",
 		},
 	}
-	for _, test := range testCases {
-		res := NewWebhookConfig(kubeClient, certManager, osmNamespace, test.webhookName, stop)
-		_ = test.mockCall
-		assert.Equal(test.expErr, res.Error())
+	for _, tc := range testCases {
+		t.Run(tc.testName, func(t *testing.T) {
+			res := NewWebhookConfig(kubeClient, certManager, whc.osmNamespace, tc.webhookName, stop)
+			_ = tc.mockCall
+			assert.Equal(tc.expErr, res.Error())
+		})
 	}
-}
-
-func TestRunValidatingWebhook(t *testing.T) {
-
 }
 
 func TestConfigMapHandler(t *testing.T) {
 	assert := assert.New(t)
-	whc := &webhookConfig{}
 	req := httptest.NewRequest("GET", "/a/b/c", strings.NewReader(admissionRequestBody))
 	req.Header = map[string][]string{
 		"Content-Type": {"application/json"},
 	}
 	w := httptest.NewRecorder()
 	whc.configMapHandler(w, req)
-
 	resp := w.Result()
 	bodyBytes, _ := ioutil.ReadAll(resp.Body)
 	expRes := "{\"response\":{\"uid\":\"11111111-2222-3333-4444-555555555555\",\"allowed\":true,\"status\":{\"metadata\":{}}}}"
@@ -142,16 +141,16 @@ func TestValidateConfigMap(t *testing.T) {
 		expRes   *v1beta1.AdmissionResponse
 	}{
 		{
-			testName: "nil admission request",
+			testName: "Admission request is nil",
 			req:      nil,
 			expRes: &v1beta1.AdmissionResponse{
 				Result: &metav1.Status{
-					Message: errors.New("nil Admission Request").Error(),
+					Message: errors.New("nil admission request").Error(),
 				},
 			},
 		},
 		{
-			testName: "error decoding request",
+			testName: "Error decoding request",
 			req: &v1beta1.AdmissionRequest{
 				Object: runtime.RawExtension{
 					Raw: []byte("asdf"),
@@ -164,7 +163,7 @@ func TestValidateConfigMap(t *testing.T) {
 			},
 		},
 		{
-			testName: "allow updates to configmaps that are not osm-config",
+			testName: "Allow updates to configmaps that are not osm-config",
 			req: &v1beta1.AdmissionRequest{
 				UID: "1234",
 				Kind: metav1.GroupVersionKind{
@@ -180,9 +179,11 @@ func TestValidateConfigMap(t *testing.T) {
 			},
 		},
 	}
-	for _, test := range testCases {
-		res := whc.validateConfigMap(test.req)
-		assert.Equal(test.expRes, res)
+	for _, tc := range testCases {
+		t.Run(tc.testName, func(t *testing.T) {
+			res := whc.validateConfigMap(tc.req)
+			assert.Equal(tc.expRes, res)
+		})
 	}
 }
 
@@ -195,13 +196,14 @@ func TestValidate(t *testing.T) {
 	cm := corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: whc.osmNamespace,
-			Name:      "osm-config",
+			Name:      constants.OSMConfigMap,
 			Annotations: map[string]string{
 				"apple": "banana",
 			},
 		},
 	}
-	whc.kubeClient.CoreV1().ConfigMaps(whc.osmNamespace).Create(context.TODO(), &cm, metav1.CreateOptions{})
+	_, err := whc.kubeClient.CoreV1().ConfigMaps(whc.osmNamespace).Create(context.TODO(), &cm, metav1.CreateOptions{})
+	assert.Nil(err)
 
 	testCases := []struct {
 		testName  string
@@ -209,7 +211,7 @@ func TestValidate(t *testing.T) {
 		expRes    *v1beta1.AdmissionResponse
 	}{
 		{
-			testName: "valid configMap update",
+			testName: "Accpet valid configMap update",
 			configMap: corev1.ConfigMap{
 				Data: map[string]string{
 					"egress":                         "true",
@@ -224,7 +226,7 @@ func TestValidate(t *testing.T) {
 			},
 		},
 		{
-			testName: "invalid configMap update",
+			testName: "Reject invalid configMap update (error in boolean, envoy lvl, cert duration, address, port fields and metadata)",
 			configMap: corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
@@ -240,13 +242,32 @@ func TestValidate(t *testing.T) {
 			},
 			expRes: &v1beta1.AdmissionResponse{
 				Allowed: false,
-				Result:  &metav1.Status{Reason: "\negress: must be a boolean\nenvoy_log_level: invalid log level\nservice_cert_validity_duration: must be max 8760H (1 year)\ntracing_address: invalid hostname syntax\ntracing_port: must be between 0 and 65535\napple: cannot change metadata"},
+				Result: &metav1.Status{
+					Reason: MustBeBool + MustBeValidLogLvl + MustBeLessThanAYear + MustFollowSyntax + MustBeInPortRange + CannotChangeMetadata,
+				},
+			},
+		},
+		{
+			testName: "Reject invalid configmap update (error in cert duration and port fields)",
+			configMap: corev1.ConfigMap{
+				Data: map[string]string{
+					"service_cert_validity_duration": "1hw",
+					"tracing_port":                   "1.00"},
+			},
+			expRes: &v1beta1.AdmissionResponse{
+				Allowed: false,
+				Result: &metav1.Status{
+					Reason: MustBeValidTime + MustbeInt,
+				},
 			},
 		},
 	}
-	for _, test := range testCases {
-		res := whc.validate(test.configMap, resp)
-		assert.Equal(test.expRes, res)
+	for _, tc := range testCases {
+		t.Run(tc.testName, func(t *testing.T) {
+			res := whc.validate(tc.configMap, resp)
+			assert.Contains(tc.expRes.Result.Status, res.Result.Status)
+			assert.Equal(tc.expRes.Allowed, res.Allowed)
+		})
 	}
 }
 

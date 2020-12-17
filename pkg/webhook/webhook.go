@@ -1,28 +1,20 @@
 package webhook
 
 import (
-	"errors"
 	"io/ioutil"
 	"net/http"
 
 	"github.com/rs/zerolog/log"
 	"k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
-)
-
-var (
-	codecs       = serializer.NewCodecFactory(runtime.NewScheme())
-	deserializer = codecs.UniversalDeserializer()
 )
 
 // GetAdmissionRequestBody returns the body of the admission request
 func GetAdmissionRequestBody(w http.ResponseWriter, req *http.Request) ([]byte, error) {
 	emptyBodyError := func() ([]byte, error) {
-		errEmptyAdmissionRequestBody := errors.New("empty request admission request body")
 		http.Error(w, errEmptyAdmissionRequestBody.Error(), http.StatusBadRequest)
 		log.Error().Err(errEmptyAdmissionRequestBody).Msgf("Responded to admission request with HTTP %v", http.StatusBadRequest)
+
 		return nil, errEmptyAdmissionRequestBody
 	}
 
@@ -34,7 +26,7 @@ func GetAdmissionRequestBody(w http.ResponseWriter, req *http.Request) ([]byte, 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		log.Error().Err(err).Msgf("Error reading admission request body; Responded to admission request with HTTP %v", http.StatusInternalServerError)
-		return admissionRequestBody, nil
+		return admissionRequestBody, err
 	}
 
 	if len(admissionRequestBody) == 0 {

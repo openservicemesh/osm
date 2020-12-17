@@ -5,10 +5,12 @@
 package configurator
 
 import (
-	gomock "github.com/golang/mock/gomock"
-	announcements "github.com/openservicemesh/osm/pkg/announcements"
 	reflect "reflect"
 	time "time"
+
+	gomock "github.com/golang/mock/gomock"
+
+	announcements "github.com/openservicemesh/osm/pkg/announcements"
 )
 
 // MockConfigurator is a mock of Configurator interface

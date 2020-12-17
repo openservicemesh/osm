@@ -10,10 +10,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/webhook"
-	"github.com/pkg/errors"
 	"k8s.io/api/admission/v1beta1"
 	admissionv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -22,6 +18,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
+
+	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/webhook"
 )
 
 var (
@@ -39,16 +39,36 @@ const (
 	// ValidatingWebhookName is the name of the validating webhook used for validating osm-config
 	ValidatingWebhookName = "validating-webhook.k8s.io"
 
-	mustBeBool           = ": must be a boolean"
-	mustBeValidLogLvl    = ": invalid log level"
-	mustBeValidTime      = ": invalid time format must be a sequence of decimal numbers each with optional fraction and a unit suffix"
-	mustBeLessThanAYear  = ": must be max 8760H (1 year)"
-	mustFollowSyntax     = ": invalid hostname syntax"
-	mustbeInt            = ": must be an integer"
-	mustBeInPortRange    = ": must be between 0 and 65535"
-	cannotChangeMetadata = ": cannot change metadata"
-	hrInAYear            = 8760
-	maxPortNum           = 65535
+	//webhookUpdateConfigMapis the HTTP path at which the webhook expects to receive configmap update events
+	webhookUpdateConfigMap = "/validate-webhook"
+	listenPort             = 9090
+
+	//MustBeBool is the reason for denial for a boolean field
+	MustBeBool = ": must be a boolean"
+
+	//MustBeValidLogLvl is the reason for denial for envoy_log_level field
+	MustBeValidLogLvl = ": invalid log level"
+
+	//MustBeValidTime is the reason for denial for incorrect syntax for service_cert_validity_duration field
+	MustBeValidTime = ": invalid time format must be a sequence of decimal numbers each with optional fraction and a unit suffix"
+
+	//MustBeLessThanAYear is the reason for denial for service_cert_validity_duration field
+	MustBeLessThanAYear = ": must be max 8760H (1 year)"
+
+	//MustFollowSyntax is the reason for denial for tracing_address field
+	MustFollowSyntax = ": invalid hostname syntax"
+
+	//MustbeInt is the reason for denial for incorrect syntax for tracing_port field
+	MustbeInt = ": must be an integer"
+
+	//MustBeInPortRange is the reason for denial for tracing_port field
+	MustBeInPortRange = ": must be between 0 and 65535"
+
+	//CannotChangeMetadata is the reason for denial for changes to configmap metadata
+	CannotChangeMetadata = ": cannot change metadata"
+
+	hrInAYear  = 8760
+	maxPortNum = 65535
 )
 
 type webhookConfig struct {
@@ -58,7 +78,7 @@ type webhookConfig struct {
 	osmNamespace string
 }
 
-//NewWebhookConfig thing stuff
+//NewWebhookConfig  starts a new web server handling requests from the  ValidatingWebhookConfiguration
 func NewWebhookConfig(kubeClient kubernetes.Interface, certManager certificate.Manager, osmNamespace, webhookConfigName string, stop <-chan struct{}) error {
 	cn := certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.OSMControllerName, osmNamespace))
 	cert, err := certManager.IssueCertificate(cn, constants.XDSCertificateValidityPeriod)
@@ -66,14 +86,18 @@ func NewWebhookConfig(kubeClient kubernetes.Interface, certManager certificate.M
 		log.Error().Err(err).Msgf("Error issuing certificate for the validating webhook: %+v", err)
 		return err
 	}
+
 	whc := &webhookConfig{
 		kubeClient:   kubeClient,
 		certManager:  certManager,
 		osmNamespace: osmNamespace,
 		cert:         cert,
 	}
+
+	//Start the ValidatingWebhook web server
 	go whc.runValidatingWebhook(stop)
 
+	//Update the ValidatingWebhookConfig with the OSM CA bundle
 	if err = updateValidatingWebhookCABundle(cert, webhookConfigName, whc.kubeClient); err != nil {
 		log.Error().Err(err).Msgf("Error configuring ValidatingWebhookConfiguration %s: %+v", webhookConfigName, err)
 		return err
@@ -87,23 +111,29 @@ func (whc *webhookConfig) runValidatingWebhook(stop <-chan struct{}) {
 
 	mux := http.DefaultServeMux
 
-	mux.HandleFunc("/validate-webhook", whc.configMapHandler)
+	mux.HandleFunc(webhookUpdateConfigMap, whc.configMapHandler)
 
 	server := &http.Server{
-		Addr:    fmt.Sprintf(":%d", 9090),
+		Addr:    fmt.Sprintf(":%d", listenPort),
 		Handler: mux,
 	}
-	// start webhook server in new rountine
+
+	log.Info().Msgf("Starting configmap webhook server on port: %v", listenPort)
+
 	go func() {
 		if whc.cert == nil {
 			log.Error().Msgf("Error certificate is nil")
 			return
 		}
+
+		// Generate a key pair from your pem-encoded cert and key ([]byte).
 		cert, err := tls.X509KeyPair(whc.cert.GetCertificateChain(), whc.cert.GetPrivateKey())
 		if err != nil {
 			log.Error().Err(err).Msgf("Error parsing webhook certificate: %+v", err)
 			return
 		}
+
+		// #nosec G402
 		server.TLSConfig = &tls.Config{
 			Certificates: []tls.Certificate{cert},
 		}
@@ -123,13 +153,20 @@ func (whc *webhookConfig) runValidatingWebhook(stop <-chan struct{}) {
 	}
 }
 func (whc *webhookConfig) configMapHandler(w http.ResponseWriter, req *http.Request) {
+	log.Trace().Msgf("Received validating webhook request: Method=%v, URL=%v", req.Method, req.URL)
+
 	admissionRequestBody, err := webhook.GetAdmissionRequestBody(w, req)
+	if err != nil {
+		// Error was already logged and written to the ResponseWriter
+		return
+	}
 
 	requestForNamespace, admissionResp := whc.getAdmissionReqResp(admissionRequestBody)
 
 	resp, err := json.Marshal(&admissionResp)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error marshalling admission response: %s", err), http.StatusInternalServerError)
+		log.Error().Err(err).Msgf("Error marshalling admission response; Responded to admission request for configmap in namespace %s with HTTP %v", requestForNamespace, http.StatusInternalServerError)
 		return
 	}
 
@@ -141,6 +178,7 @@ func (whc *webhookConfig) configMapHandler(w http.ResponseWriter, req *http.Requ
 func (whc *webhookConfig) getAdmissionReqResp(admissionRequestBody []byte) (requestForNamespace string, admissionResp v1beta1.AdmissionReview) {
 	var admissionReq v1beta1.AdmissionReview
 	if _, _, err := deserializer.Decode(admissionRequestBody, nil, &admissionReq); err != nil {
+		log.Error().Err(err).Msg("Error decoding admission request body")
 		admissionResp.Response = webhook.AdmissionError(err)
 	} else {
 		admissionResp.Response = whc.validateConfigMap(admissionReq.Request)
@@ -150,19 +188,19 @@ func (whc *webhookConfig) getAdmissionReqResp(admissionRequestBody []byte) (requ
 }
 
 func (whc *webhookConfig) validateConfigMap(req *v1beta1.AdmissionRequest) *v1beta1.AdmissionResponse {
-	// fmt.Println("HI", req)
-	// fmt.Println("HI marshal", string(req.Object.Raw))
 	if req == nil {
-		return webhook.AdmissionError(errors.New("nil Admission Request"))
+		log.Error().Msg("nil admission request")
+		return webhook.AdmissionError(errNilAdmissionRequest)
 	}
 
 	// Decode the configmap from the request
 	var configMap corev1.ConfigMap
 	if _, _, err := deserializer.Decode(req.Object.Raw, nil, &configMap); err != nil {
-		fmt.Println(&configMap)
-		fmt.Println(string(req.Object.Raw))
+		log.Error().Err(err).Msgf("Error unmarshaling request to configmap in namespace %s", req.Namespace)
 		return webhook.AdmissionError(err)
 	}
+
+	log.Trace().Msgf("Validation request: (new object: %v) (old object: %v)", string(req.Object.Raw), string(req.OldObject.Raw))
 
 	//default response
 	resp := &v1beta1.AdmissionResponse{
@@ -185,30 +223,30 @@ func (whc *webhookConfig) validateConfigMap(req *v1beta1.AdmissionRequest) *v1be
 func (whc *webhookConfig) validate(configMap corev1.ConfigMap, resp *v1beta1.AdmissionResponse) *v1beta1.AdmissionResponse {
 	for field, value := range configMap.Data {
 		if !checkBoolFields(field, value, boolFieldsInConfigMap) {
-			reasonForDenial(resp, mustBeBool, field)
+			reasonForDenial(resp, MustBeBool, field)
 		}
 		if field == "envoy_log_level" && !checkEnvoyLogLevels(field, value, ValidEnvoyLogLevels) {
-			reasonForDenial(resp, mustBeValidLogLvl, field)
+			reasonForDenial(resp, MustBeValidLogLvl, field)
 		}
 		if field == "service_cert_validity_duration" {
 			t, err := time.ParseDuration(value)
 			if err != nil {
-				reasonForDenial(resp, mustBeValidTime, field)
+				reasonForDenial(resp, MustBeValidTime, field)
 			}
 			if t.Hours() > hrInAYear {
-				reasonForDenial(resp, mustBeLessThanAYear, field)
+				reasonForDenial(resp, MustBeLessThanAYear, field)
 			}
 		}
 		if field == "tracing_address" && !matchAddrSyntax(field, value) {
-			reasonForDenial(resp, mustFollowSyntax, field)
+			reasonForDenial(resp, MustFollowSyntax, field)
 		}
 		if field == "tracing_port" {
 			portNum, err := strconv.Atoi(value)
 			if err != nil {
-				reasonForDenial(resp, mustbeInt, field)
+				reasonForDenial(resp, MustbeInt, field)
 			}
 			if portNum < 0 || portNum > maxPortNum {
-				reasonForDenial(resp, mustBeInPortRange, field)
+				reasonForDenial(resp, MustBeInPortRange, field)
 			}
 		}
 	}
@@ -217,12 +255,12 @@ func (whc *webhookConfig) validate(configMap corev1.ConfigMap, resp *v1beta1.Adm
 
 	for metadataAnnotation, val := range configMap.ObjectMeta.Annotations {
 		if originalConfigMap.Annotations[metadataAnnotation] != val {
-			reasonForDenial(resp, cannotChangeMetadata, metadataAnnotation)
+			reasonForDenial(resp, CannotChangeMetadata, metadataAnnotation)
 		}
 	}
 	for metadataLabels, val := range configMap.ObjectMeta.Labels {
 		if originalConfigMap.Labels[metadataLabels] != val {
-			reasonForDenial(resp, cannotChangeMetadata, metadataLabels)
+			reasonForDenial(resp, CannotChangeMetadata, metadataLabels)
 		}
 	}
 	return resp
@@ -231,10 +269,8 @@ func (whc *webhookConfig) validate(configMap corev1.ConfigMap, resp *v1beta1.Adm
 //matchAddrSyntax checks that string follows hostname syntax
 func matchAddrSyntax(configMapField, configMapValue string) bool {
 	syntax := regexp.MustCompile(`^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$`)
-	if syntax.Match([]byte(configMapValue)) {
-		return true
-	}
-	return false
+
+	return syntax.Match([]byte(configMapValue))
 }
 
 //checkEnvoyLogLevels checks that the field value is a valid log level
@@ -245,10 +281,7 @@ func checkEnvoyLogLevels(configMapField, configMapValue string, levels []string)
 			valid = true
 		}
 	}
-	if !valid {
-		return false
-	}
-	return true
+	return valid
 }
 
 //checkBoolFields checks that the value is a boolean for fields that take in a boolean

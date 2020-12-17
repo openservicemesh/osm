@@ -2,7 +2,6 @@ package injector
 
 import (
 	"context"
-	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -181,7 +180,7 @@ var _ = Describe("Testing mustInject, isNamespaceInjectable", func() {
 		mockCtrl           *gomock.Controller
 		mockKubeController *k8s.MockController
 		fakeClientSet      *fake.Clientset
-		wh                 *webhook
+		wh                 *mutatingWebhook
 	)
 
 	mockCtrl = gomock.NewController(GinkgoT())
@@ -192,7 +191,7 @@ var _ = Describe("Testing mustInject, isNamespaceInjectable", func() {
 
 	BeforeEach(func() {
 		fakeClientSet = fake.NewSimpleClientset()
-		wh = &webhook{
+		wh = &mutatingWebhook{
 			kubeClient:     fakeClientSet,
 			kubeController: mockKubeController,
 			osmNamespace:   osmNamespace,
@@ -522,7 +521,7 @@ var _ = Describe("Testing Injector Functions", func() {
 		}
 		_, err := client.CoreV1().Namespaces().Create(context.TODO(), testNamespace, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
-		wh := &webhook{
+		wh := &mutatingWebhook{
 			kubeClient:          client,
 			kubeController:      mockNsController,
 			nonInjectNamespaces: mapset.NewSet(),
@@ -550,7 +549,7 @@ var _ = Describe("Testing Injector Functions", func() {
 		mockKubeController.EXPECT().GetNamespace(namespace).Return(&corev1.Namespace{})
 		mockKubeController.EXPECT().IsMonitoredNamespace(namespace).Return(true).Times(1)
 
-		wh := &webhook{
+		wh := &mutatingWebhook{
 			kubeClient:          client,
 			kubeController:      mockKubeController,
 			nonInjectNamespaces: mapset.NewSet(),
@@ -629,19 +628,6 @@ var _ = Describe("Testing Injector Functions", func() {
 			PatchType: &expectedPatchType,
 		}
 		Expect(admRes).To(Equal(expected))
-	})
-
-	It("creates admission error", func() {
-		message := uuid.New().String()
-		err := errors.New(message)
-		actual := admissionError(err)
-
-		expected := v1beta1.AdmissionResponse{
-			Result: &metav1.Status{
-				Message: message,
-			},
-		}
-		Expect(actual).To(Equal(&expected))
 	})
 
 	It("creates partial mutating webhook configuration", func() {

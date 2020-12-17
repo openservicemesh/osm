@@ -227,7 +227,9 @@ func main() {
 	}
 
 	//Create the configMap validating webhook
-	configurator.NewWebhookConfig(kubeClient, certManager, osmNamespace, webhookConfigName, stop)
+	if err := configurator.NewWebhookConfig(kubeClient, certManager, osmNamespace, webhookConfigName, stop); err != nil {
+		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating osm-config validating webhook")
+	}
 
 	adsCert, err := certManager.IssueCertificate(xdsServerCertificateCommonName, constants.XDSCertificateValidityPeriod)
 	if err != nil {
