@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/cskr/pubsub"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
@@ -74,7 +73,6 @@ func newConfigurator(kubeClient kubernetes.Interface, stop <-chan struct{}, osmN
 		announcements:    make(chan a.Announcement),
 		osmNamespace:     osmNamespace,
 		osmConfigMapName: osmConfigMapName,
-		pSub:             pubsub.New(defaultPubSubChannelSize),
 	}
 
 	informerName := "ConfigMap"
@@ -133,18 +131,7 @@ type osmConfig struct {
 	ServiceCertValidityDuration string `yaml:"service_cert_validity_duration"`
 }
 
-// This function captures the Announcements from k8s informer updates, and relays them to the subscribed
-// members on the pubsub interface
-func (c *Client) publish() {
-	for {
-		a := <-c.announcements
-		log.Debug().Msgf("OSM config publish: %s", a.Type.String())
-		c.pSub.Pub(a, a.Type.String())
-	}
-}
-
 func (c *Client) run(stop <-chan struct{}) {
-	go c.publish()          // prepare the publish interface
 	go c.informer.Run(stop) // run the informer synchronization
 	log.Info().Msgf("Started OSM ConfigMap informer - watching for %s", c.getConfigMapCacheKey())
 	log.Info().Msg("[ConfigMap Client] Waiting for ConfigMap informer's cache to sync")

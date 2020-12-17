@@ -33,9 +33,6 @@ type Configurator interface {
 	// GetConfigMap returns the ConfigMap in pretty JSON (human readable)
 	GetConfigMap() ([]byte, error)
 
-	// Subscribe returns a channel subscribed to the announcement types passed by parameter
-	Subscribe(...announcements.AnnouncementType) chan interface{}
-
 	// IsPermissiveTrafficPolicyMode determines whether we are in "allow-all" mode or SMI policy (block by default) mode
 	IsPermissiveTrafficPolicyMode() bool
 

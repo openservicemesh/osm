@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
@@ -114,15 +113,4 @@ func (c *Client) GetServiceCertValidityPeriod() time.Duration {
 	}
 
 	return validityDuration
-}
-
-// Subscribe returns a channel subscribed to the announcement types passed by the given parameter
-func (c *Client) Subscribe(aTypes ...announcements.AnnouncementType) chan interface{} {
-	// Cast of array of T types, even when T types are equivalent, is forbidden
-	subTypes := []string{}
-	for _, v := range aTypes {
-		subTypes = append(subTypes, string(v))
-	}
-
-	return c.pSub.Sub(subTypes...)
 }
