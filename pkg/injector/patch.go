@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"gomodules.xyz/jsonpatch/v2"
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
@@ -29,7 +30,7 @@ const (
 
 func (wh *webhook) createPatch(pod *corev1.Pod, namespace string, proxyUUID uuid.UUID) ([]byte, error) {
 	// Start patching the spec
-	var patches []JSONPatchOperation
+	var patches []jsonpatch.JsonPatchOperation
 
 	// Issue a certificate for the proxy sidecar - used for Envoy to connect to XDS (not Envoy-to-Envoy connections)
 	cn := catalog.NewCertCommonNameWithProxyID(proxyUUID, pod.Spec.ServiceAccountName, namespace)
@@ -116,7 +117,7 @@ func (wh *webhook) createPatch(pod *corev1.Pod, namespace string, proxyUUID uuid
 	return json.Marshal(patches)
 }
 
-func addVolume(target, add []corev1.Volume, basePath string) (patch []JSONPatchOperation) {
+func addVolume(target, add []corev1.Volume, basePath string) (patch []jsonpatch.JsonPatchOperation) {
 	isFirst := len(target) == 0 // target is empty, use this to create the first item
 	var value interface{}
 	for _, volume := range add {
@@ -128,16 +129,16 @@ func addVolume(target, add []corev1.Volume, basePath string) (patch []JSONPatchO
 		} else {
 			volumePath += "/-"
 		}
-		patch = append(patch, JSONPatchOperation{
-			Op:    addOperation,
-			Path:  volumePath,
-			Value: value,
+		patch = append(patch, jsonpatch.JsonPatchOperation{
+			Operation: addOperation,
+			Path:      volumePath,
+			Value:     value,
 		})
 	}
 	return patch
 }
 
-func addContainer(target, add []corev1.Container, basePath string) (patch []JSONPatchOperation) {
+func addContainer(target, add []corev1.Container, basePath string) (patch []jsonpatch.JsonPatchOperation) {
 	isFirst := len(target) == 0 // target is empty, use this to create the first item
 	var value interface{}
 	for _, container := range add {
@@ -149,10 +150,10 @@ func addContainer(target, add []corev1.Container, basePath string) (patch []JSON
 		} else {
 			path += "/-"
 		}
-		patch = append(patch, JSONPatchOperation{
-			Op:    addOperation,
-			Path:  path,
-			Value: value,
+		patch = append(patch, jsonpatch.JsonPatchOperation{
+			Operation: addOperation,
+			Path:      path,
+			Value:     value,
 		})
 	}
 	return patch
@@ -160,10 +161,10 @@ func addContainer(target, add []corev1.Container, basePath string) (patch []JSON
 
 // createMapPatchOperation is used specifically for the very first 'add' operation
 // for a non-existent 'path'.
-func createMapPatchOperation(key, path, value string) JSONPatchOperation {
-	return JSONPatchOperation{
-		Op:   addOperation,
-		Path: path,
+func createMapPatchOperation(key, path, value string) jsonpatch.JsonPatchOperation {
+	return jsonpatch.JsonPatchOperation{
+		Operation: addOperation,
+		Path:      path,
 		Value: map[string]string{
 			key: value,
 		},
@@ -171,11 +172,11 @@ func createMapPatchOperation(key, path, value string) JSONPatchOperation {
 }
 
 // createPatch is used for add and replace operations on existing paths.
-func createPatch(key, basePath, patchOp, value string) JSONPatchOperation {
-	return JSONPatchOperation{
-		Op:    patchOp,
-		Path:  path.Join(basePath, escapeJSONPointerValue(key)),
-		Value: value,
+func createPatch(key, basePath, patchOp, value string) jsonpatch.JsonPatchOperation {
+	return jsonpatch.JsonPatchOperation{
+		Operation: patchOp,
+		Path:      path.Join(basePath, escapeJSONPointerValue(key)),
+		Value:     value,
 	}
 }
 
@@ -190,11 +191,11 @@ func getSortedKeys(m map[string]string) []string {
 	return keys
 }
 
-// updateMaptType returns a list of JSONPatchOperation objects to reflect how the 'target' map should be patched
+// updateMapType returns a list of JsonPatchOperation objects to reflect how the 'target' map should be patched
 // given the key-value pairs specified by the 'add` map and a 'basePath' corresponding to the API object.
 // It is used to patch Annotations and Labels.
-func updateMapType(target, add map[string]string, basePath string) []JSONPatchOperation {
-	var patches []JSONPatchOperation
+func updateMapType(target, add map[string]string, basePath string) []jsonpatch.JsonPatchOperation {
+	var patches []jsonpatch.JsonPatchOperation
 
 	// If the target does not exist we need to create it
 	noTarget := len(target) == 0

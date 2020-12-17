@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"gomodules.xyz/jsonpatch/v2"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -45,9 +47,9 @@ var _ = Describe("Test all patch operations", func() {
 			}}
 
 			actualPatch := addVolume(target, add, basePath)
-			addVolume := JSONPatchOperation{
-				Op:   addOperation,
-				Path: "/base/path/-",
+			addVolume := jsonpatch.JsonPatchOperation{
+				Operation: addOperation,
+				Path:      "/base/path/-",
 				Value: corev1.Volume{
 					Name: volumeTwo,
 				},
@@ -69,9 +71,9 @@ var _ = Describe("Test all patch operations", func() {
 
 			actualPatches := addContainer(target, add, basePath)
 
-			expectedAddContainer := JSONPatchOperation{
-				Op:   addOperation,
-				Path: "/base/path/-",
+			expectedAddContainer := jsonpatch.JsonPatchOperation{
+				Operation: addOperation,
+				Path:      "/base/path/-",
 				Value: corev1.Container{
 					Name: containerTwo,
 				},
@@ -95,17 +97,17 @@ var _ = Describe("Test all patch operations", func() {
 
 			actual := updateMapType(target, add, basePath)
 
-			expectedReplaceTwo := JSONPatchOperation{
-				Op:    replaceOperation,
-				Path:  "/base/path/two",
-				Value: "2",
+			expectedReplaceTwo := jsonpatch.JsonPatchOperation{
+				Operation: replaceOperation,
+				Path:      "/base/path/two",
+				Value:     "2",
 			}
 			Expect(actual).To(ContainElement(expectedReplaceTwo))
 
-			expectedAddThree := JSONPatchOperation{
-				Op:    addOperation,
-				Path:  "/base/path/three",
-				Value: "3",
+			expectedAddThree := jsonpatch.JsonPatchOperation{
+				Operation: addOperation,
+				Path:      "/base/path/three",
+				Value:     "3",
 			}
 			Expect(actual).To(ContainElement(expectedAddThree))
 		})
@@ -121,19 +123,19 @@ var _ = Describe("Test all patch operations", func() {
 
 			// The first operation is "three" ("three" comes before "two" alphabetically)
 			// This is a CREATE operation since target is NIL
-			expectedCreateThree := JSONPatchOperation{
-				Op:   addOperation,
-				Path: "/base/path",
+			expectedCreateThree := jsonpatch.JsonPatchOperation{
+				Operation: addOperation,
+				Path:      "/base/path",
 				Value: map[string]string{
 					"three": "3",
 				},
 			}
 			Expect(actual).To(ContainElement(expectedCreateThree))
 
-			expectedAddTwo := JSONPatchOperation{
-				Op:    addOperation,
-				Path:  "/base/path/two",
-				Value: "2",
+			expectedAddTwo := jsonpatch.JsonPatchOperation{
+				Operation: addOperation,
+				Path:      "/base/path/two",
+				Value:     "2",
 			}
 			Expect(actual).To(ContainElement(expectedAddTwo))
 		})
