@@ -15,6 +15,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/ingress"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/logger"
@@ -119,6 +120,9 @@ type MeshCataloger interface {
 
 	// GetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol
 	GetPortToProtocolMappingForService(service.MeshService) (map[uint32]string, error)
+
+	// ListInboundTrafficTargetsWithRoutes returns a list traffic target objects componsed of its routes for the given destination identity
+	ListInboundTrafficTargetsWithRoutes(identity.ServiceIdentity) ([]trafficpolicy.TrafficTargetWithRoutes, error)
 }
 
 type announcementChannel struct {
