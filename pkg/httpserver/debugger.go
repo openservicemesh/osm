@@ -25,7 +25,7 @@ type DebugServerInterface interface {
 // RegisterDebugServer registers a go routine to listen to configuration and configure debug server as needed
 func RegisterDebugServer(dbgServerInterface DebugServerInterface, cfg configurator.Configurator) {
 	// Subscribe to configuration updates
-	ch := cfg.Subscribe(
+	ch := events.GetPubSubInstance().Subscribe(
 		announcements.ConfigMapAdded,
 		announcements.ConfigMapDeleted,
 		announcements.ConfigMapUpdated)

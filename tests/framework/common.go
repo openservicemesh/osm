@@ -45,6 +45,7 @@ import (
 	"sigs.k8s.io/kind/pkg/cluster/nodeutils"
 
 	"github.com/openservicemesh/osm/pkg/cli"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/utils"
 )
 
@@ -529,6 +530,32 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		td.T.Logf("stdout:\n%s", stdout)
 		td.T.Logf("stderr:\n%s", stderr)
 		return errors.Wrap(err, "failed to run osm install")
+	}
+
+	return nil
+}
+
+// RestartOSMController restarts the osm-controller pod in the installed controller's namespace
+func (td *OsmTestData) RestartOSMController(instOpts InstallOSMOpts) error {
+	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"app": constants.OSMControllerName}}
+	listOptions := metav1.ListOptions{
+		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
+	}
+
+	controllerPods, err := td.Client.CoreV1().Pods(instOpts.ControlPlaneNS).List(context.TODO(), listOptions)
+	if err != nil {
+		return errors.Wrap(err, "error fetching controller pod")
+	}
+	if len(controllerPods.Items) != 1 {
+		return errors.Errorf("expected 1 osm-controller pod, got %d", len(controllerPods.Items))
+	}
+
+	pod := controllerPods.Items[0]
+
+	// Delete the pod and let k8s spin it up again
+	err = td.Client.CoreV1().Pods(instOpts.ControlPlaneNS).Delete(context.TODO(), pod.Name, metav1.DeleteOptions{})
+	if err != nil {
+		return errors.Wrap(err, "erorr deleting osm-controller pod")
 	}
 
 	return nil

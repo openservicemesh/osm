@@ -44,19 +44,6 @@ type Config struct {
 	SidecarImage string
 }
 
-// JSONPatchOperation defines a Kubernetes JSON Patch operation
-type JSONPatchOperation struct {
-	Op    string      `json:"op"`
-	Path  string      `json:"path"`
-	Value interface{} `json:"value,omitempty"`
-}
-
-// InitContainer is the type used to represent information about the init container
-type InitContainer struct {
-	Name  string
-	Image string
-}
-
 // EnvoySidecarData is the type used to represent information about the Envoy sidecar
 type EnvoySidecarData struct {
 	Name           string
