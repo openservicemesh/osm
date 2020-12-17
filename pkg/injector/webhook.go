@@ -259,7 +259,7 @@ func (wh *webhook) mutate(req *v1beta1.AdmissionRequest, proxyUUID uuid.UUID) *v
 		return resp
 	}
 
-	patchBytes, err := wh.createPatch(&pod, req.Namespace, proxyUUID)
+	patchBytes, err := wh.createPatch(&pod, req, proxyUUID)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to create patch for pod with UUID %s in namespace %s", proxyUUID, req.Namespace)
 		return admissionError(err)
