@@ -26,7 +26,8 @@ import (
 	"github.com/openservicemesh/osm/pkg/endpoint/providers/azure"
 	azureResource "github.com/openservicemesh/osm/pkg/endpoint/providers/azure/kubernetes"
 	"github.com/openservicemesh/osm/pkg/endpoint/providers/kube"
-	"github.com/openservicemesh/osm/pkg/endpoint/providers/subm"
+	_ "github.com/openservicemesh/osm/pkg/endpoint/providers/subm"
+	"github.com/openservicemesh/osm/pkg/endpoint/providers/remote"
 	"github.com/openservicemesh/osm/pkg/envoy/ads"
 	"github.com/openservicemesh/osm/pkg/featureflags"
 	"github.com/openservicemesh/osm/pkg/httpserver"
@@ -52,7 +53,7 @@ var (
 	meshName                   string // An ID that uniquely identifies an OSM instance
 	azureAuthFile              string
 	enableRemoteCluster        bool
-	clusterId                  string
+	masterOsmIP                string
 	kubeConfigFile             string
 	osmNamespace               string
 	webhookName                string
@@ -62,6 +63,8 @@ var (
 	osmConfigMapName           string
 
 	injectorConfig injector.Config
+
+	remoteProvider             *remote.Client
 
 	// feature flag options
 	optionalFeatures featureflags.OptionalFeatures
@@ -96,7 +99,7 @@ func init() {
 	flags.StringVar(&azureAuthFile, "azure-auth-file", "", "Path to Azure Auth File")
 	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file.")
 	flags.BoolVar(&enableRemoteCluster, "enable-remote-cluster", false, "Enable Remote cluster")
-	flags.StringVar(&clusterId, "cluster-id", "hq", "local cluster-id.")
+	flags.StringVar(&masterOsmIP, "master-osm-ip", "", "Master OSM POD IP")
 	flags.StringVar(&osmNamespace, "osm-namespace", "", "Namespace to which OSM belongs to.")
 	flags.StringVar(&webhookName, "webhook-name", "", "Name of the MutatingWebhookConfiguration to be configured by osm-controller")
 	flags.IntVar(&serviceCertValidityMinutes, "service-cert-validity-minutes", defaultServiceCertValidityMinutes, "Certificate validityPeriod duration in minutes")
@@ -193,13 +196,14 @@ func main() {
 		endpointsProviders = append(endpointsProviders, azureProvider)
 	}
 
-	log.Info().Msgf("enableRemoteCluster:%t clusterId:%s", enableRemoteCluster, clusterId)
+	log.Info().Msgf("enableRemoteCluster:%t masterOsmIP:%s", enableRemoteCluster, masterOsmIP)
 
 	if enableRemoteCluster {
-		submProvider, err := subm.NewProvider(kubeClient, clusterId, stop, meshSpec, constants.SubmProviderName, kubeConfig)
+		remoteProvider, err = remote.NewProvider(kubeClient, masterOsmIP, stop, meshSpec, constants.RemoteProviderName, masterOsmIP)
 		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to initialize remote provider")
 		}
-		endpointsProviders = append(endpointsProviders, submProvider)
+		endpointsProviders = append(endpointsProviders, remoteProvider)
 	}
 
 	ingressClient, err := ingress.NewIngressClient(kubeClient, namespaceController, stop, cfg)
@@ -253,6 +257,7 @@ func main() {
 	go func() {
 		http.Handle("/metrics", promhttp.Handler())
 		http.HandleFunc("/gatewaypod", GatewayPod)
+		http.HandleFunc("/endpoints", LocalEndpoints)
 		http.ListenAndServe(":2500", nil)
 	}()
 
@@ -270,6 +275,30 @@ func GatewayPod(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewEncoder(w).Encode(list); err != nil {
 		log.Error().Msgf("err fetching gateway pod %+v", err)
+	}
+}
+
+func ReadRemoteIP(r *http.Request) string {
+	IPAddress := r.Header.Get("X-Osm-Origin-Ip")
+	log.Info().Msgf("[ReadRemoteIP] real IP addr %s", IPAddress)
+	return IPAddress
+}
+
+func LocalEndpoints(w http.ResponseWriter, r *http.Request) {
+	// On Master, learn remote IP address by gleaning from the request
+	remoteAddress := ReadRemoteIP(r)
+
+	log.Info().Msgf("[LocalEndpoints] remote IP addr %s", remoteAddress)
+
+	remoteProvider.RegisterRemoteOSM(remoteAddress)
+
+	endpointMap, err := m.ListLocalClusterEndpoints()
+	if err != nil {
+		log.Error().Msgf("err fetching endpoints %+v", err)
+	}
+
+	if err := json.NewEncoder(w).Encode(endpointMap); err != nil {
+		log.Error().Msgf("err encoding endpoints %+v", err)
 	}
 }
 

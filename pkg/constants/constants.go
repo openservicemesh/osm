@@ -15,6 +15,9 @@ const (
 	// SubmProviderName is a string constant used for the ID string of the Submariner endpoints provider.
 	SubmProviderName = "Submariner"
 
+	// RemoteProviderName is a string constant used for the ID string of the Remote endpoints provider.
+	RemoteProviderName = "Remote"
+
 	// WildcardIPAddr is a string constant.
 	WildcardIPAddr = "0.0.0.0"
 

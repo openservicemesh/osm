@@ -63,7 +63,7 @@ func (mc *MeshCatalog) GetGatewaypods(searchName string) ([]string, error) {
 		}
 	}
 
-	// Add from remote pods too
+	// Add from remote pods from Submariner
 	submProvider := mc.GetProvider("Submariner")
 	if submProvider != nil  {
 		svc := service.MeshService{
@@ -90,6 +90,22 @@ func (mc *MeshCatalog) GetGatewaypods(searchName string) ([]string, error) {
 		*/
 	} else {
 		log.Info().Msgf("[GetGatewaypods]: Submariner provider is nil")
+	}
+
+	// Add from remote pods from Remote osm-controller
+	remoteProvider := mc.GetProvider("Remote")
+	if remoteProvider != nil  {
+		svc := service.MeshService{
+			Namespace: "default",
+			Name:      searchName,
+		}
+		// Note this is Service specific instead of pod specific.
+		eps := remoteProvider.ListEndpointsForService(svc)
+		if len(eps) > 0 {
+			searchList = append(searchList, searchName)
+		}
+	} else {
+		log.Info().Msgf("[GetGatewaypods]: Remote provider is nil")
 	}
 	return searchList, nil
 }

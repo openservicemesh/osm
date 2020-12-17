@@ -1,6 +1,7 @@
 package catalog
 
 import (
+	"net"
 	"sync"
 	"time"
 
@@ -72,6 +73,9 @@ type MeshCataloger interface {
 
 	// ListEndpointsForService returns the list of provider endpoints corresponding to a service
 	ListEndpointsForService(service.MeshService) ([]endpoint.Endpoint, error)
+
+	// ListLocalClusterEndpoints returns the list of endpoints for this kubernetes cluster
+	ListLocalClusterEndpoints() (map[string][]EndpointJSON, error)
 
 	// GetCertificateForService returns the SSL Certificate for the given service.
 	// This certificate will be used for service-to-service mTLS.
@@ -147,3 +151,9 @@ const (
 	inbound  direction = "inbound"
 	outbound direction = "outbound"
 )
+
+type EndpointJSON struct {
+	IP      net.IP          `json:"ip"`
+	Port    endpoint.Port   `json:"port"`
+}
+

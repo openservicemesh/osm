@@ -106,6 +106,7 @@ func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endp
 			}
 		}
 	}
+	log.Info().Msgf("[%s] Endpoints for service %s on Kubernetes :%+v", c.providerIdent, svc, endpoints)
 	return endpoints
 }
 
