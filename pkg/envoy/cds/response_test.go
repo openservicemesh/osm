@@ -266,7 +266,7 @@ var _ = Describe("CDS Response", func() {
 		})
 
 		It("Returns a Prometheus cluster object", func() {
-			remoteCluster := getPrometheusCluster()
+			remoteCluster := *getPrometheusCluster()
 
 			expectedClusterLoadAssignment := &xds_endpoint.ClusterLoadAssignment{
 				ClusterName: constants.EnvoyMetricsCluster,

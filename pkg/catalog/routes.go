@@ -142,7 +142,7 @@ func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(identity service.K
 		}
 	}
 
-	allowedServices := []service.MeshService{}
+	var allowedServices []service.MeshService
 	for elem := range serviceSet.Iter() {
 		allowedServices = append(allowedServices, elem.(service.MeshService))
 	}
