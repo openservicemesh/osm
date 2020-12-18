@@ -63,6 +63,11 @@ func (f fakeMeshSpec) ListTCPTrafficSpecs() []*spec.TCPRoute {
 	return f.tcpRoutes
 }
 
+// GetTCPRoute returns an SMI TCPRoute resource given its name of the form <namespace>/<name>s
+func (f fakeMeshSpec) GetTCPRoute(_ string) *spec.TCPRoute {
+	return nil
+}
+
 // ListTrafficTargets lists TrafficTarget SMI resources for the fake Mesh Spec.
 func (f fakeMeshSpec) ListTrafficTargets() []*target.TrafficTarget {
 	return f.trafficTargets

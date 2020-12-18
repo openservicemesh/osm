@@ -3,6 +3,7 @@ package trafficpolicy
 import (
 	set "github.com/deckarep/golang-set"
 
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -17,6 +18,11 @@ type HTTPRouteMatch struct {
 	PathRegex string            `json:"path_regex:omitempty"`
 	Methods   []string          `json:"methods:omitempty"`
 	Headers   map[string]string `json:"headers:omitempty"`
+}
+
+// TCPRouteMatch is a struct to represent a TCP route matching based on ports
+type TCPRouteMatch struct {
+	Ports []int `json:"ports:omitempty"`
 }
 
 // TrafficTarget is a struct to represent a traffic policy between a source and destination along with its routes
@@ -52,4 +58,12 @@ type OutboundTrafficPolicy struct {
 	Name      string                   `json:"name:omitempty"`
 	Hostnames []string                 `json:"hostnames"`
 	Routes    []*RouteWeightedClusters `json:"routes:omitempty"`
+}
+
+// TrafficTargetWithRoutes is a struct to represent an SMI TrafficTarget resource composed of its associated routes
+type TrafficTargetWithRoutes struct {
+	Name            string                     `json:"name:omitempty"`
+	Destination     identity.ServiceIdentity   `json:"destination:omitempty"`
+	Sources         []identity.ServiceIdentity `json:"sources:omitempty"`
+	TCPRouteMatches []TCPRouteMatch            `json:"tcp_route_matches:omitempty"`
 }

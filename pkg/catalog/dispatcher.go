@@ -29,8 +29,7 @@ func (mc *MeshCatalog) dispatcher() {
 	// to take ownership of certain events, and just notify dispatcher through
 	// ScheduleBroadcastUpdate announcement type
 	subChannel := events.GetPubSubInstance().Subscribe(
-		a.ScheduleProxyBroadcast,                                 // Other modules requesting a global envoy update
-		a.ConfigMapAdded, a.ConfigMapDeleted, a.ConfigMapUpdated, // config
+		a.ScheduleProxyBroadcast,                              // Other modules requesting a global envoy update
 		a.EndpointAdded, a.EndpointDeleted, a.EndpointUpdated, // endpoint
 		a.NamespaceAdded, a.NamespaceDeleted, a.NamespaceUpdated, // namespace
 		a.PodAdded, a.PodDeleted, a.PodUpdated, // pod
