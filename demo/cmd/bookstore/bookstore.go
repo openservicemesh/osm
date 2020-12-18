@@ -121,11 +121,18 @@ func getHandlers() []handler {
 		{"/books-bought", updateBooksSold, "POST"},
 		{"/buy-a-book/new", sellBook, "GET"},
 		{"/reset", reset, "GET"},
+		{"/liveness", ok, "GET"},
+		{"/readiness", ok, "GET"},
+		{"/startup", ok, "GET"},
 	}
 }
 
 func reset(w http.ResponseWriter, r *http.Request) {
 	booksSold = 0
+	renderTemplate(w)
+}
+
+func ok(w http.ResponseWriter, r *http.Request) {
 	renderTemplate(w)
 }
 
