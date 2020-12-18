@@ -10,8 +10,8 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy"
 )
 
-func getTracingCluster(cfg configurator.Configurator) xds_cluster.Cluster {
-	return xds_cluster.Cluster{
+func getTracingCluster(cfg configurator.Configurator) *xds_cluster.Cluster {
+	return &xds_cluster.Cluster{
 		Name:           constants.EnvoyTracingCluster,
 		AltStatName:    constants.EnvoyTracingCluster,
 		ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
