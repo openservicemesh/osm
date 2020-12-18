@@ -162,7 +162,6 @@ var _ = Describe("Test Envoy sidecar", func() {
 		It("creates correct Envoy sidecar spec", func() {
 			mockConfigurator.EXPECT().GetEnvoyLogLevel().Return("debug").Times(1)
 			actual := getEnvoySidecarContainerSpec(containerName, envoyImage, nodeID, clusterID, mockConfigurator)
-			Expect(len(actual)).To(Equal(1))
 
 			expected := corev1.Container{
 				Name:            containerName,
@@ -260,7 +259,7 @@ var _ = Describe("Test Envoy sidecar", func() {
 					},
 				},
 			}
-			Expect(actual[0]).To(Equal(expected))
+			Expect(actual).To(Equal(expected))
 		})
 	})
 })

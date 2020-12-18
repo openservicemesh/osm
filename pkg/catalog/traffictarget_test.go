@@ -7,11 +7,15 @@ import (
 	"github.com/golang/mock/gomock"
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
 	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
+	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha3"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
+	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
 func TestListAllowedInboundServiceAccounts(t *testing.T) {
@@ -443,4 +447,418 @@ func TestTrafficTargetIdentitiesToSvcAccounts(t *testing.T) {
 
 	actual := trafficTargetIdentitiesToSvcAccounts(input)
 	assert.ElementsMatch(expected, actual)
+}
+
+func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
+	assert := assert.New(t)
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	testCases := []struct {
+		name               string
+		trafficTargets     []*smiAccess.TrafficTarget
+		tcpRoutes          map[string]*smiSpecs.TCPRoute
+		upstreamSvcAccount service.K8sServiceAccount
+
+		expectedTrafficTargets []trafficpolicy.TrafficTargetWithRoutes
+		expectError            bool
+	}{
+		// Test case 1 begin ------------------------------------
+		{
+			name: "Single traffic target with single TCP route rule",
+			trafficTargets: []*smiAccess.TrafficTarget{
+				{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: "access.smi-spec.io/v1alpha2",
+						Kind:       "TrafficTarget",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-1",
+						Namespace: "ns-1",
+					},
+					Spec: smiAccess.TrafficTargetSpec{
+						Destination: smiAccess.IdentityBindingSubject{
+							Kind:      "ServiceAccount",
+							Name:      "sa-1",
+							Namespace: "ns-1",
+						},
+						Sources: []smiAccess.IdentityBindingSubject{{
+							Kind:      "ServiceAccount",
+							Name:      "sa-2",
+							Namespace: "ns-2",
+						}},
+						Rules: []smiAccess.TrafficTargetRule{
+							{
+								Kind: "TCPRoute",
+								Name: "route-1",
+							},
+						},
+					},
+				},
+			},
+
+			// Each route in this list corresponds to a TCPRoute
+			tcpRoutes: map[string]*smiSpecs.TCPRoute{
+				"ns-1/route-1": {
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "route-1",
+						Namespace: "ns-1",
+						Labels: map[string]string{
+							"ports": "8000, 9000",
+						},
+					},
+				},
+			},
+
+			upstreamSvcAccount: service.K8sServiceAccount{Namespace: "ns-1", Name: "sa-1"},
+
+			expectedTrafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
+				{
+					Name:        "ns-1/test-1",
+					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Sources: []identity.ServiceIdentity{
+						identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
+					},
+					TCPRouteMatches: []trafficpolicy.TCPRouteMatch{
+						{
+							Ports: []int{8000, 9000},
+						},
+					},
+				},
+			},
+
+			expectError: false, // no errors expected
+		},
+		// Test case 1 end ------------------------------------
+
+		// Test case 2 begin ------------------------------------
+		{
+			name: "Single traffic target with multiple TCP route rules",
+			trafficTargets: []*smiAccess.TrafficTarget{
+				{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: "access.smi-spec.io/v1alpha2",
+						Kind:       "TrafficTarget",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-1",
+						Namespace: "ns-1",
+					},
+					Spec: smiAccess.TrafficTargetSpec{
+						Destination: smiAccess.IdentityBindingSubject{
+							Kind:      "ServiceAccount",
+							Name:      "sa-1",
+							Namespace: "ns-1",
+						},
+						Sources: []smiAccess.IdentityBindingSubject{{
+							Kind:      "ServiceAccount",
+							Name:      "sa-2",
+							Namespace: "ns-2",
+						}},
+						Rules: []smiAccess.TrafficTargetRule{
+							{
+								Kind: "TCPRoute",
+								Name: "route-1",
+							},
+							{
+								Kind: "TCPRoute",
+								Name: "route-2",
+							},
+						},
+					},
+				},
+			},
+
+			// Each route in this list corresponds to a TCPRoute
+			tcpRoutes: map[string]*smiSpecs.TCPRoute{
+				"ns-1/route-1": {
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "route-1",
+						Namespace: "ns-1",
+						Labels: map[string]string{
+							"ports": "8000",
+						},
+					},
+				},
+				"ns-1/route-2": {
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "route-2",
+						Namespace: "ns-1",
+						Labels: map[string]string{
+							"ports": "9000",
+						},
+					},
+				},
+			},
+
+			upstreamSvcAccount: service.K8sServiceAccount{Namespace: "ns-1", Name: "sa-1"},
+
+			expectedTrafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
+				{
+					Name:        "ns-1/test-1",
+					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Sources: []identity.ServiceIdentity{
+						identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
+					},
+					TCPRouteMatches: []trafficpolicy.TCPRouteMatch{
+						{
+							// route-1
+							Ports: []int{8000},
+						},
+						{
+							// route-2
+							Ports: []int{9000},
+						},
+					},
+				},
+			},
+
+			expectError: false, // no errors expected
+		},
+		// Test case 2 end ------------------------------------
+
+		// Test case 3 begin ------------------------------------
+		{
+			name: "Multiple traffic target with multiple TCP route rules",
+			trafficTargets: []*smiAccess.TrafficTarget{
+				{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: "access.smi-spec.io/v1alpha2",
+						Kind:       "TrafficTarget",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-1",
+						Namespace: "ns-1",
+					},
+					Spec: smiAccess.TrafficTargetSpec{
+						Destination: smiAccess.IdentityBindingSubject{
+							Kind:      "ServiceAccount",
+							Name:      "sa-1",
+							Namespace: "ns-1",
+						},
+						Sources: []smiAccess.IdentityBindingSubject{{
+							Kind:      "ServiceAccount",
+							Name:      "sa-2",
+							Namespace: "ns-2",
+						}},
+						Rules: []smiAccess.TrafficTargetRule{
+							{
+								Kind: "TCPRoute",
+								Name: "route-1",
+							},
+							{
+								Kind: "TCPRoute",
+								Name: "route-2",
+							},
+						},
+					},
+				},
+				{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: "access.smi-spec.io/v1alpha2",
+						Kind:       "TrafficTarget",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-2",
+						Namespace: "ns-1",
+					},
+					Spec: smiAccess.TrafficTargetSpec{
+						Destination: smiAccess.IdentityBindingSubject{
+							Kind:      "ServiceAccount",
+							Name:      "sa-1",
+							Namespace: "ns-1",
+						},
+						Sources: []smiAccess.IdentityBindingSubject{{
+							Kind:      "ServiceAccount",
+							Name:      "sa-3",
+							Namespace: "ns-3",
+						}},
+						Rules: []smiAccess.TrafficTargetRule{
+							{
+								Kind: "TCPRoute",
+								Name: "route-3",
+							},
+							{
+								Kind: "TCPRoute",
+								Name: "route-4",
+							},
+						},
+					},
+				},
+			},
+
+			// Each route in this list corresponds to a TCPRoute
+			tcpRoutes: map[string]*smiSpecs.TCPRoute{
+				"ns-1/route-1": {
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "route-1",
+						Namespace: "ns-1",
+						Labels: map[string]string{
+							"ports": "1000",
+						},
+					},
+				},
+				"ns-1/route-2": {
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "route-2",
+						Namespace: "ns-1",
+						Labels: map[string]string{
+							"ports": "2000",
+						},
+					},
+				},
+				"ns-1/route-3": {
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "route-3",
+						Namespace: "ns-1",
+						Labels: map[string]string{
+							"ports": "3000",
+						},
+					},
+				},
+				"ns-1/route-4": {
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "route-4",
+						Namespace: "ns-1",
+						Labels: map[string]string{
+							"ports": "4000",
+						},
+					},
+				},
+			},
+
+			upstreamSvcAccount: service.K8sServiceAccount{Namespace: "ns-1", Name: "sa-1"},
+
+			expectedTrafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
+				{
+					Name:        "ns-1/test-1",
+					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Sources: []identity.ServiceIdentity{
+						identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
+					},
+					TCPRouteMatches: []trafficpolicy.TCPRouteMatch{
+						{
+							// route-1
+							Ports: []int{1000},
+						},
+						{
+							// route-2
+							Ports: []int{2000},
+						},
+					},
+				},
+				{
+					Name:        "ns-1/test-2",
+					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Sources: []identity.ServiceIdentity{
+						identity.ServiceIdentity("sa-3.ns-3.cluster.local"),
+					},
+					TCPRouteMatches: []trafficpolicy.TCPRouteMatch{
+						{
+							// route-3
+							Ports: []int{3000},
+						},
+						{
+							// route-4
+							Ports: []int{4000},
+						},
+					},
+				},
+			},
+
+			expectError: false, // no errors expected
+		},
+		// Test case 3 end ------------------------------------
+
+		// Test case 4 begin ------------------------------------
+		{
+			name: "Single traffic target with single TCP route rule without ports specified",
+			trafficTargets: []*smiAccess.TrafficTarget{
+				{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: "access.smi-spec.io/v1alpha2",
+						Kind:       "TrafficTarget",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-1",
+						Namespace: "ns-1",
+					},
+					Spec: smiAccess.TrafficTargetSpec{
+						Destination: smiAccess.IdentityBindingSubject{
+							Kind:      "ServiceAccount",
+							Name:      "sa-1",
+							Namespace: "ns-1",
+						},
+						Sources: []smiAccess.IdentityBindingSubject{{
+							Kind:      "ServiceAccount",
+							Name:      "sa-2",
+							Namespace: "ns-2",
+						}},
+						Rules: []smiAccess.TrafficTargetRule{
+							{
+								Kind: "TCPRoute",
+								Name: "route-1",
+							},
+						},
+					},
+				},
+			},
+
+			// Each route in this list corresponds to a TCPRoute
+			tcpRoutes: map[string]*smiSpecs.TCPRoute{
+				"ns-1/route-1": {
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "route-1",
+						Namespace: "ns-1",
+					},
+				},
+			},
+
+			upstreamSvcAccount: service.K8sServiceAccount{Namespace: "ns-1", Name: "sa-1"},
+
+			expectedTrafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
+				{
+					Name:        "ns-1/test-1",
+					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Sources: []identity.ServiceIdentity{
+						identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
+					},
+					TCPRouteMatches: nil,
+				},
+			},
+
+			expectError: false, // no errors expected
+		},
+		// Test case 4 end ------------------------------------
+	}
+
+	for i, tc := range testCases {
+		t.Run(fmt.Sprintf("Testing test case %d", i), func(t *testing.T) {
+			// Initialize test objects
+			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+			mockCfg := configurator.NewMockConfigurator(mockCtrl)
+			meshCatalog := MeshCatalog{
+				meshSpec:     mockMeshSpec,
+				configurator: mockCfg,
+			}
+
+			mockCfg.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
+
+			// Mock TrafficTargets returned by MeshSpec, should return all TrafficTargets relevant for this test
+			mockMeshSpec.EXPECT().ListTrafficTargets().Return(tc.trafficTargets).AnyTimes()
+			for _, trafficTarget := range tc.trafficTargets {
+				for _, rule := range trafficTarget.Spec.Rules {
+					if rule.Kind != tcpRouteKind {
+						continue
+					}
+					routeName := fmt.Sprintf("%s/%s", trafficTarget.Spec.Destination.Namespace, rule.Name)
+					mockMeshSpec.EXPECT().GetTCPRoute(routeName).Return(tc.tcpRoutes[routeName]).AnyTimes()
+				}
+			}
+
+			actual, err := meshCatalog.ListInboundTrafficTargetsWithRoutes(tc.upstreamSvcAccount)
+			assert.Equal(err != nil, tc.expectError)
+			assert.ElementsMatch(tc.expectedTrafficTargets, actual)
+		})
+	}
 }

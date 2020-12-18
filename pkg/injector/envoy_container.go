@@ -15,8 +15,8 @@ const (
 	envoyProxyConfigPath     = "/etc/envoy"
 )
 
-func getEnvoySidecarContainerSpec(containerName, envoyImage, nodeID, clusterID string, cfg configurator.Configurator) []corev1.Container {
-	container := corev1.Container{
+func getEnvoySidecarContainerSpec(containerName, envoyImage, nodeID, clusterID string, cfg configurator.Configurator) corev1.Container {
+	return corev1.Container{
 		Name:            containerName,
 		Image:           envoyImage,
 		ImagePullPolicy: corev1.PullAlways,
@@ -84,6 +84,4 @@ func getEnvoySidecarContainerSpec(containerName, envoyImage, nodeID, clusterID s
 			},
 		},
 	}
-
-	return []corev1.Container{container}
 }
