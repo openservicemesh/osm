@@ -11,7 +11,6 @@ import (
 	certificate "github.com/openservicemesh/osm/pkg/certificate"
 	endpoint "github.com/openservicemesh/osm/pkg/endpoint"
 	envoy "github.com/openservicemesh/osm/pkg/envoy"
-	identity "github.com/openservicemesh/osm/pkg/identity"
 	service "github.com/openservicemesh/osm/pkg/service"
 	smi "github.com/openservicemesh/osm/pkg/smi"
 	trafficpolicy "github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -249,7 +248,7 @@ func (mr *MockMeshCatalogerMockRecorder) ListEndpointsForService(arg0 interface{
 }
 
 // ListInboundTrafficTargetsWithRoutes mocks base method
-func (m *MockMeshCataloger) ListInboundTrafficTargetsWithRoutes(arg0 identity.ServiceIdentity) ([]trafficpolicy.TrafficTargetWithRoutes, error) {
+func (m *MockMeshCataloger) ListInboundTrafficTargetsWithRoutes(arg0 service.K8sServiceAccount) ([]trafficpolicy.TrafficTargetWithRoutes, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListInboundTrafficTargetsWithRoutes", arg0)
 	ret0, _ := ret[0].([]trafficpolicy.TrafficTargetWithRoutes)

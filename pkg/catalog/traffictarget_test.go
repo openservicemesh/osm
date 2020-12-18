@@ -455,10 +455,10 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	testCases := []struct {
-		name             string
-		trafficTargets   []*smiAccess.TrafficTarget
-		tcpRoutes        map[string]*smiSpecs.TCPRoute
-		upstreamIdentity identity.ServiceIdentity
+		name               string
+		trafficTargets     []*smiAccess.TrafficTarget
+		tcpRoutes          map[string]*smiSpecs.TCPRoute
+		upstreamSvcAccount service.K8sServiceAccount
 
 		expectedTrafficTargets []trafficpolicy.TrafficTargetWithRoutes
 		expectError            bool
@@ -503,21 +503,26 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "route-1",
 						Namespace: "ns-1",
+						Labels: map[string]string{
+							"ports": "8000, 9000",
+						},
 					},
 				},
 			},
 
-			upstreamIdentity: identity.ServiceIdentity("ns-1/sa-1"),
+			upstreamSvcAccount: service.K8sServiceAccount{Namespace: "ns-1", Name: "sa-1"},
 
 			expectedTrafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
 				{
-					Name:        "test-1",
-					Destination: identity.ServiceIdentity("ns-1/sa-1"),
+					Name:        "ns-1/test-1",
+					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
 					Sources: []identity.ServiceIdentity{
-						identity.ServiceIdentity("ns-2/sa-2"),
+						identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
 					},
 					TCPRouteMatches: []trafficpolicy.TCPRouteMatch{
-						{},
+						{
+							Ports: []int{8000, 9000},
+						},
 					},
 				},
 			},
@@ -570,28 +575,40 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "route-1",
 						Namespace: "ns-1",
+						Labels: map[string]string{
+							"ports": "8000",
+						},
 					},
 				},
 				"ns-1/route-2": {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "route-2",
 						Namespace: "ns-1",
+						Labels: map[string]string{
+							"ports": "9000",
+						},
 					},
 				},
 			},
 
-			upstreamIdentity: identity.ServiceIdentity("ns-1/sa-1"),
+			upstreamSvcAccount: service.K8sServiceAccount{Namespace: "ns-1", Name: "sa-1"},
 
 			expectedTrafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
 				{
-					Name:        "test-1",
-					Destination: identity.ServiceIdentity("ns-1/sa-1"),
+					Name:        "ns-1/test-1",
+					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
 					Sources: []identity.ServiceIdentity{
-						identity.ServiceIdentity("ns-2/sa-2"),
+						identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
 					},
 					TCPRouteMatches: []trafficpolicy.TCPRouteMatch{
-						{}, // route-1
-						{}, // route-2
+						{
+							// route-1
+							Ports: []int{8000},
+						},
+						{
+							// route-2
+							Ports: []int{9000},
+						},
 					},
 				},
 			},
@@ -676,51 +693,75 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "route-1",
 						Namespace: "ns-1",
+						Labels: map[string]string{
+							"ports": "1000",
+						},
 					},
 				},
 				"ns-1/route-2": {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "route-2",
 						Namespace: "ns-1",
+						Labels: map[string]string{
+							"ports": "2000",
+						},
 					},
 				},
 				"ns-1/route-3": {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "route-3",
 						Namespace: "ns-1",
+						Labels: map[string]string{
+							"ports": "3000",
+						},
 					},
 				},
 				"ns-1/route-4": {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "route-4",
 						Namespace: "ns-1",
+						Labels: map[string]string{
+							"ports": "4000",
+						},
 					},
 				},
 			},
 
-			upstreamIdentity: identity.ServiceIdentity("ns-1/sa-1"),
+			upstreamSvcAccount: service.K8sServiceAccount{Namespace: "ns-1", Name: "sa-1"},
 
 			expectedTrafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
 				{
-					Name:        "test-1",
-					Destination: identity.ServiceIdentity("ns-1/sa-1"),
+					Name:        "ns-1/test-1",
+					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
 					Sources: []identity.ServiceIdentity{
-						identity.ServiceIdentity("ns-2/sa-2"),
+						identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
 					},
 					TCPRouteMatches: []trafficpolicy.TCPRouteMatch{
-						{}, // route-1
-						{}, // route-2
+						{
+							// route-1
+							Ports: []int{1000},
+						},
+						{
+							// route-2
+							Ports: []int{2000},
+						},
 					},
 				},
 				{
-					Name:        "test-2",
-					Destination: identity.ServiceIdentity("ns-1/sa-1"),
+					Name:        "ns-1/test-2",
+					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
 					Sources: []identity.ServiceIdentity{
-						identity.ServiceIdentity("ns-3/sa-3"),
+						identity.ServiceIdentity("sa-3.ns-3.cluster.local"),
 					},
 					TCPRouteMatches: []trafficpolicy.TCPRouteMatch{
-						{}, // route-3
-						{}, // route-4
+						{
+							// route-3
+							Ports: []int{3000},
+						},
+						{
+							// route-4
+							Ports: []int{4000},
+						},
 					},
 				},
 			},
@@ -728,6 +769,67 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 			expectError: false, // no errors expected
 		},
 		// Test case 3 end ------------------------------------
+
+		// Test case 4 begin ------------------------------------
+		{
+			name: "Single traffic target with single TCP route rule without ports specified",
+			trafficTargets: []*smiAccess.TrafficTarget{
+				{
+					TypeMeta: metav1.TypeMeta{
+						APIVersion: "access.smi-spec.io/v1alpha2",
+						Kind:       "TrafficTarget",
+					},
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-1",
+						Namespace: "ns-1",
+					},
+					Spec: smiAccess.TrafficTargetSpec{
+						Destination: smiAccess.IdentityBindingSubject{
+							Kind:      "ServiceAccount",
+							Name:      "sa-1",
+							Namespace: "ns-1",
+						},
+						Sources: []smiAccess.IdentityBindingSubject{{
+							Kind:      "ServiceAccount",
+							Name:      "sa-2",
+							Namespace: "ns-2",
+						}},
+						Rules: []smiAccess.TrafficTargetRule{
+							{
+								Kind: "TCPRoute",
+								Name: "route-1",
+							},
+						},
+					},
+				},
+			},
+
+			// Each route in this list corresponds to a TCPRoute
+			tcpRoutes: map[string]*smiSpecs.TCPRoute{
+				"ns-1/route-1": {
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "route-1",
+						Namespace: "ns-1",
+					},
+				},
+			},
+
+			upstreamSvcAccount: service.K8sServiceAccount{Namespace: "ns-1", Name: "sa-1"},
+
+			expectedTrafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
+				{
+					Name:        "ns-1/test-1",
+					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Sources: []identity.ServiceIdentity{
+						identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
+					},
+					TCPRouteMatches: nil,
+				},
+			},
+
+			expectError: false, // no errors expected
+		},
+		// Test case 4 end ------------------------------------
 	}
 
 	for i, tc := range testCases {
@@ -754,7 +856,7 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 				}
 			}
 
-			actual, err := meshCatalog.ListInboundTrafficTargetsWithRoutes(tc.upstreamIdentity)
+			actual, err := meshCatalog.ListInboundTrafficTargetsWithRoutes(tc.upstreamSvcAccount)
 			assert.Equal(err != nil, tc.expectError)
 			assert.ElementsMatch(tc.expectedTrafficTargets, actual)
 		})
