@@ -49,67 +49,9 @@ func getEnvoyConfigYAML(config envoyBootstrapConfigMeta, cfg configurator.Config
 				"resource_api_version": "V3",
 			},
 		},
-
-		"static_resources": map[string]interface{}{
-			"clusters": []map[string]interface{}{
-				{
-					"name":                   config.XDSClusterName,
-					"connect_timeout":        "0.25s",
-					"type":                   "LOGICAL_DNS",
-					"http2_protocol_options": map[string]string{},
-					"transport_socket": map[string]interface{}{
-						"name": "envoy.transport_sockets.tls",
-						"typed_config": map[string]interface{}{
-							"@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
-							"common_tls_context": map[string]interface{}{
-								"alpn_protocols": []string{
-									"h2",
-								},
-								"validation_context": map[string]interface{}{
-									"trusted_ca": map[string]interface{}{
-										"inline_bytes": config.RootCert,
-									},
-								},
-								"tls_params": map[string]interface{}{
-									"tls_minimum_protocol_version": "TLSv1_2",
-									"tls_maximum_protocol_version": "TLSv1_3",
-								},
-								"tls_certificates": []map[string]interface{}{
-									{
-										"certificate_chain": map[string]interface{}{
-											"inline_bytes": config.Cert,
-										},
-										"private_key": map[string]interface{}{
-											"inline_bytes": config.Key,
-										},
-									},
-								},
-							},
-						},
-					},
-					"load_assignment": map[string]interface{}{
-						"cluster_name": config.XDSClusterName,
-						"endpoints": []map[string]interface{}{
-							{
-								"lb_endpoints": []map[string]interface{}{
-									{
-										"endpoint": map[string]interface{}{
-											"address": map[string]interface{}{
-												"socket_address": map[string]interface{}{
-													"address":    config.XDSHost,
-													"port_value": config.XDSPort,
-												},
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
 	}
+
+	m["static_resources"] = getStaticResources(config)
 
 	configYAML, err := yaml.Marshal(&m)
 	if err != nil {
@@ -117,6 +59,18 @@ func getEnvoyConfigYAML(config envoyBootstrapConfigMeta, cfg configurator.Config
 		return nil, err
 	}
 	return configYAML, err
+}
+
+func getStaticResources(config envoyBootstrapConfigMeta) map[string]interface{} {
+	clusters := []map[string]interface{}{
+		getXdsCluster(config),
+	}
+
+	staticResources := map[string]interface{}{
+		"clusters": clusters,
+	}
+
+	return staticResources
 }
 
 func (wh *webhook) createEnvoyBootstrapConfig(name, namespace, osmNamespace string, cert certificate.Certificater) (*corev1.Secret, error) {
@@ -153,4 +107,62 @@ func (wh *webhook) createEnvoyBootstrapConfig(name, namespace, osmNamespace stri
 
 	log.Info().Msgf("Creating bootstrap config for Envoy: name=%s, namespace=%s", name, namespace)
 	return wh.kubeClient.CoreV1().Secrets(namespace).Create(context.Background(), secret, metav1.CreateOptions{})
+}
+
+func getXdsCluster(config envoyBootstrapConfigMeta) map[string]interface{} {
+	return map[string]interface{}{
+		"name":                   config.XDSClusterName,
+		"connect_timeout":        "0.25s",
+		"type":                   "LOGICAL_DNS",
+		"http2_protocol_options": map[string]string{},
+		"transport_socket": map[string]interface{}{
+			"name": "envoy.transport_sockets.tls",
+			"typed_config": map[string]interface{}{
+				"@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
+				"common_tls_context": map[string]interface{}{
+					"alpn_protocols": []string{
+						"h2",
+					},
+					"validation_context": map[string]interface{}{
+						"trusted_ca": map[string]interface{}{
+							"inline_bytes": config.RootCert,
+						},
+					},
+					"tls_params": map[string]interface{}{
+						"tls_minimum_protocol_version": "TLSv1_2",
+						"tls_maximum_protocol_version": "TLSv1_3",
+					},
+					"tls_certificates": []map[string]interface{}{
+						{
+							"certificate_chain": map[string]interface{}{
+								"inline_bytes": config.Cert,
+							},
+							"private_key": map[string]interface{}{
+								"inline_bytes": config.Key,
+							},
+						},
+					},
+				},
+			},
+		},
+		"load_assignment": map[string]interface{}{
+			"cluster_name": config.XDSClusterName,
+			"endpoints": []map[string]interface{}{
+				{
+					"lb_endpoints": []map[string]interface{}{
+						{
+							"endpoint": map[string]interface{}{
+								"address": map[string]interface{}{
+									"socket_address": map[string]interface{}{
+										"address":    config.XDSHost,
+										"port_value": config.XDSPort,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
 }
