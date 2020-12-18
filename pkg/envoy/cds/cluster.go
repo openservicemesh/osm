@@ -126,9 +126,8 @@ func getLocalServiceCluster(catalog catalog.MeshCataloger, proxyServiceName serv
 }
 
 // getPrometheusCluster returns an Envoy Cluster responsible for scraping metrics by Prometheus
-func getPrometheusCluster() xds_cluster.Cluster {
-	return xds_cluster.Cluster{
-		// The name must match the domain being cURLed in the demo
+func getPrometheusCluster() *xds_cluster.Cluster {
+	return &xds_cluster.Cluster{
 		Name:           constants.EnvoyMetricsCluster,
 		AltStatName:    constants.EnvoyMetricsCluster,
 		ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
@@ -137,7 +136,7 @@ func getPrometheusCluster() xds_cluster.Cluster {
 		},
 		LbPolicy: xds_cluster.Cluster_ROUND_ROBIN,
 		LoadAssignment: &xds_endpoint.ClusterLoadAssignment{
-			// NOTE: results.MeshService is the top level service that is cURLed.
+			// NOTE: results.MeshService is the top level service that is accessed.
 			ClusterName: constants.EnvoyMetricsCluster,
 			Endpoints: []*xds_endpoint.LocalityLbEndpoints{
 				{
