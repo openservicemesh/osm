@@ -188,7 +188,7 @@ func testTCPTraffic(withSourceKubernetesService bool) {
 
 			By("Creating SMI policies")
 			// Deploy allow rule client->server
-			trafficTarget := Td.CreateSimpleTCPAllowPolicy(
+			tcpRoute, trafficTarget := Td.CreateSimpleTCPAllowPolicy(
 				SimpleAllowPolicy{
 					RouteGroupName:    "routes",
 					TrafficTargetName: "test-target",
@@ -198,9 +198,13 @@ func testTCPTraffic(withSourceKubernetesService bool) {
 
 					DestinationNamespace:      destName,
 					DestinationSvcAccountName: destName,
-				})
+				},
+				destinationPort,
+			)
 
 			// Configs have to be put into a monitored NS
+			_, err = Td.CreateTCPRoute(sourceName, tcpRoute)
+			Expect(err).NotTo(HaveOccurred())
 			_, err = Td.CreateTrafficTarget(sourceName, trafficTarget)
 			Expect(err).NotTo(HaveOccurred())
 
@@ -243,6 +247,7 @@ func testTCPTraffic(withSourceKubernetesService bool) {
 
 			By("Deleting SMI policies")
 			Expect(Td.SmiClients.AccessClient.AccessV1alpha2().TrafficTargets(sourceName).Delete(context.TODO(), trafficTarget.Name, metav1.DeleteOptions{})).To(Succeed())
+			Expect(Td.SmiClients.SpecClient.SpecsV1alpha3().TCPRoutes(sourceName).Delete(context.TODO(), tcpRoute.Name, metav1.DeleteOptions{})).To(Succeed())
 
 			// Expect client not to reach server
 			cond = Td.WaitForRepeatedSuccess(func() bool {

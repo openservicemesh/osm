@@ -16,8 +16,9 @@ import (
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
-	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/tests"
+	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
 func TestGetOutboundHTTPFilterChainForService(t *testing.T) {
@@ -133,12 +134,24 @@ func TestGetInboundMeshHTTPFilterChain(t *testing.T) {
 		},
 	}
 
+	trafficTargets := []trafficpolicy.TrafficTargetWithRoutes{
+		{
+			Name:        "ns-1/test-1",
+			Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+			Sources: []identity.ServiceIdentity{
+				identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
+				identity.ServiceIdentity("sa-3.ns-3.cluster.local"),
+			},
+			TCPRouteMatches: nil,
+		},
+	}
+
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
 			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(tc.permissiveMode).Times(1)
 			if !tc.permissiveMode {
 				// mock catalog calls used to build the RBAC filter
-				mockCatalog.EXPECT().ListAllowedInboundServiceAccounts(lb.svcAccount).Return([]service.K8sServiceAccount{tests.BookstoreServiceAccount}, nil).Times(1)
+				mockCatalog.EXPECT().ListInboundTrafficTargetsWithRoutes(lb.svcAccount).Return(trafficTargets, nil).Times(1)
 			}
 
 			filterChain, err := lb.getInboundMeshHTTPFilterChain(proxyService, tc.port)
@@ -211,12 +224,24 @@ func TestGetInboundMeshTCPFilterChain(t *testing.T) {
 		},
 	}
 
+	trafficTargets := []trafficpolicy.TrafficTargetWithRoutes{
+		{
+			Name:        "ns-1/test-1",
+			Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+			Sources: []identity.ServiceIdentity{
+				identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
+				identity.ServiceIdentity("sa-3.ns-3.cluster.local"),
+			},
+			TCPRouteMatches: nil,
+		},
+	}
+
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
 			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(tc.permissiveMode).Times(1)
 			if !tc.permissiveMode {
 				// mock catalog calls used to build the RBAC filter
-				mockCatalog.EXPECT().ListAllowedInboundServiceAccounts(lb.svcAccount).Return([]service.K8sServiceAccount{tests.BookstoreServiceAccount}, nil).Times(1)
+				mockCatalog.EXPECT().ListInboundTrafficTargetsWithRoutes(lb.svcAccount).Return(trafficTargets, nil).Times(1)
 			}
 
 			filterChain, err := lb.getInboundMeshTCPFilterChain(proxyService, tc.port)
