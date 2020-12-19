@@ -35,7 +35,7 @@ func (p *Policy) Generate() (*xds_rbac.Policy, error) {
 			for _, andPrincipalRule := range principalRuleList.AndRules {
 				// Fill in the authenticated principal types
 				if andPrincipalRule.Attribute == DownstreamAuthPrincipal {
-					authPrincipal := getPrincipalAuthenticated(andPrincipalRule.Value)
+					authPrincipal := GetPrincipalAuthenticated(andPrincipalRule.Value)
 					andPrincipalRules = append(andPrincipalRules, authPrincipal)
 				}
 			}
@@ -47,7 +47,7 @@ func (p *Policy) Generate() (*xds_rbac.Policy, error) {
 			for _, orPrincipalRule := range principalRuleList.OrRules {
 				// Fill in the authenticated principal types
 				if orPrincipalRule.Attribute == DownstreamAuthPrincipal {
-					authPrincipal := getPrincipalAuthenticated(orPrincipalRule.Value)
+					authPrincipal := GetPrincipalAuthenticated(orPrincipalRule.Value)
 					orPrincipalRules = append(orPrincipalRules, authPrincipal)
 				}
 			}
@@ -94,7 +94,7 @@ func (p *Policy) Generate() (*xds_rbac.Policy, error) {
 					if err != nil {
 						return nil, errors.Errorf("Error parsing destination port value %s", andPermissionRule.Value)
 					}
-					portPermission := getPermissionDestinationPort(uint32(port))
+					portPermission := GetPermissionDestinationPort(uint32(port))
 					andPermissionRules = append(andPermissionRules, portPermission)
 				}
 			}
@@ -110,7 +110,7 @@ func (p *Policy) Generate() (*xds_rbac.Policy, error) {
 					if err != nil {
 						return nil, errors.Errorf("Error parsing destination port value %s", orPermissionRule.Value)
 					}
-					portPermission := getPermissionDestinationPort(uint32(port))
+					portPermission := GetPermissionDestinationPort(uint32(port))
 					orPermissionRules = append(orPermissionRules, portPermission)
 				}
 			}
@@ -133,7 +133,8 @@ func (p *Policy) Generate() (*xds_rbac.Policy, error) {
 	return policy, nil
 }
 
-func getPrincipalAuthenticated(principalName string) *xds_rbac.Principal {
+// GetPrincipalAuthenticated returns an authenticated RBAC principal object for the given principal
+func GetPrincipalAuthenticated(principalName string) *xds_rbac.Principal {
 	return &xds_rbac.Principal{
 		Identifier: &xds_rbac.Principal_Authenticated_{
 			Authenticated: &xds_rbac.Principal_Authenticated{
@@ -199,7 +200,8 @@ func getPermissionAnd(permissions []*xds_rbac.Permission) *xds_rbac.Permission {
 	}
 }
 
-func getPermissionDestinationPort(port uint32) *xds_rbac.Permission {
+// GetPermissionDestinationPort returns an RBAC permission for the given destination port
+func GetPermissionDestinationPort(port uint32) *xds_rbac.Permission {
 	return &xds_rbac.Permission{
 		Rule: &xds_rbac.Permission_DestinationPort{
 			DestinationPort: port,

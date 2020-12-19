@@ -2,6 +2,7 @@ package framework
 
 import (
 	"context"
+	"strconv"
 
 	"github.com/pkg/errors"
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
@@ -43,11 +44,20 @@ func (td *OsmTestData) InitSMIClients() error {
 	return nil
 }
 
-// CreateHTTPRouteGroup Creates an SMI Route Group
+// CreateHTTPRouteGroup Creates an SMI HTTPRouteGroup
 func (td *OsmTestData) CreateHTTPRouteGroup(ns string, rg smiSpecs.HTTPRouteGroup) (*smiSpecs.HTTPRouteGroup, error) {
 	hrg, err := td.SmiClients.SpecClient.SpecsV1alpha3().HTTPRouteGroups(ns).Create(context.Background(), &rg, metav1.CreateOptions{})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create HTTPRouteGroup")
+	}
+	return hrg, nil
+}
+
+// CreateTCPRoute Creates an SMI TCPRoute
+func (td *OsmTestData) CreateTCPRoute(ns string, route smiSpecs.TCPRoute) (*smiSpecs.TCPRoute, error) {
+	hrg, err := td.SmiClients.SpecClient.SpecsV1alpha3().TCPRoutes(ns).Create(context.Background(), &route, metav1.CreateOptions{})
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create TCPRoute")
 	}
 	return hrg, nil
 }
@@ -133,7 +143,17 @@ func (td *OsmTestData) CreateSimpleAllowPolicy(def SimpleAllowPolicy) (smiSpecs.
 }
 
 // CreateSimpleTCPAllowPolicy returns an allow policy to allow all TCP traffic from source to destination
-func (td *OsmTestData) CreateSimpleTCPAllowPolicy(def SimpleAllowPolicy) smiAccess.TrafficTarget {
+func (td *OsmTestData) CreateSimpleTCPAllowPolicy(def SimpleAllowPolicy, port int) (smiSpecs.TCPRoute, smiAccess.TrafficTarget) {
+	// Hack to specify TCP ports via labels till v1alpha4 of TCPRoute is available
+	tcpRoute := smiSpecs.TCPRoute{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: def.RouteGroupName,
+			Labels: map[string]string{
+				"ports": strconv.Itoa(port),
+			},
+		},
+	}
+
 	trafficTarget := smiAccess.TrafficTarget{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: def.TrafficTargetName,
@@ -151,18 +171,16 @@ func (td *OsmTestData) CreateSimpleTCPAllowPolicy(def SimpleAllowPolicy) smiAcce
 				Name:      def.DestinationSvcAccountName,
 				Namespace: def.DestinationNamespace,
 			},
-			/* TODO: add TCP rule when supported by SMI
 			Rules: []smiAccess.TrafficTargetRule{
 				{
 					Kind: "TCPRoute",
 					Name: def.RouteGroupName,
 				},
 			},
-			*/
 		},
 	}
 
-	return trafficTarget
+	return tcpRoute, trafficTarget
 }
 
 // TrafficSplitBackend is a simple define to refer to a TrafficSplit backend
