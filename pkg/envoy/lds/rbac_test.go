@@ -51,7 +51,7 @@ func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
 						Identifier: &xds_rbac.Principal_OrIds{
 							OrIds: &xds_rbac.Principal_Set{
 								Ids: []*xds_rbac.Principal{
-									rbac.GetPrincipalAuthenticated("sa-2.ns-2.cluster.local"),
+									rbac.GetAuthenticatedPrincipal("sa-2.ns-2.cluster.local"),
 								},
 							},
 						},
@@ -60,7 +60,7 @@ func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
 						Identifier: &xds_rbac.Principal_OrIds{
 							OrIds: &xds_rbac.Principal_Set{
 								Ids: []*xds_rbac.Principal{
-									rbac.GetPrincipalAuthenticated("sa-3.ns-3.cluster.local"),
+									rbac.GetAuthenticatedPrincipal("sa-3.ns-3.cluster.local"),
 								},
 							},
 						},
@@ -96,8 +96,8 @@ func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
 						Rule: &xds_rbac.Permission_OrRules{
 							OrRules: &xds_rbac.Permission_Set{
 								Rules: []*xds_rbac.Permission{
-									rbac.GetPermissionDestinationPort(1000),
-									rbac.GetPermissionDestinationPort(2000),
+									rbac.GetDestinationPortPermission(1000),
+									rbac.GetDestinationPortPermission(2000),
 								},
 							},
 						},
@@ -106,7 +106,7 @@ func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
 						Rule: &xds_rbac.Permission_OrRules{
 							OrRules: &xds_rbac.Permission_Set{
 								Rules: []*xds_rbac.Permission{
-									rbac.GetPermissionDestinationPort(3000),
+									rbac.GetDestinationPortPermission(3000),
 								},
 							},
 						},
@@ -117,7 +117,7 @@ func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
 						Identifier: &xds_rbac.Principal_OrIds{
 							OrIds: &xds_rbac.Principal_Set{
 								Ids: []*xds_rbac.Principal{
-									rbac.GetPrincipalAuthenticated("sa-2.ns-2.cluster.local"),
+									rbac.GetAuthenticatedPrincipal("sa-2.ns-2.cluster.local"),
 								},
 							},
 						},
@@ -126,7 +126,7 @@ func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
 						Identifier: &xds_rbac.Principal_OrIds{
 							OrIds: &xds_rbac.Principal_Set{
 								Ids: []*xds_rbac.Principal{
-									rbac.GetPrincipalAuthenticated("sa-3.ns-3.cluster.local"),
+									rbac.GetAuthenticatedPrincipal("sa-3.ns-3.cluster.local"),
 								},
 							},
 						},
