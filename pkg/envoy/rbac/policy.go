@@ -35,11 +35,11 @@ func (p *Policy) Generate() (*xds_rbac.Policy, error) {
 			for _, andPrincipalRule := range principalRuleList.AndRules {
 				// Fill in the authenticated principal types
 				if andPrincipalRule.Attribute == DownstreamAuthPrincipal {
-					authPrincipal := getPrincipalAuthenticated(andPrincipalRule.Value)
+					authPrincipal := GetAuthenticatedPrincipal(andPrincipalRule.Value)
 					andPrincipalRules = append(andPrincipalRules, authPrincipal)
 				}
 			}
-			currentPrincipal = getPrincipalAnd(andPrincipalRules)
+			currentPrincipal = andPrincipals(andPrincipalRules)
 
 		case len(principalRuleList.OrRules) != 0:
 			// Combine all the OR rules for this Principal rule with OR semantics
@@ -47,22 +47,22 @@ func (p *Policy) Generate() (*xds_rbac.Policy, error) {
 			for _, orPrincipalRule := range principalRuleList.OrRules {
 				// Fill in the authenticated principal types
 				if orPrincipalRule.Attribute == DownstreamAuthPrincipal {
-					authPrincipal := getPrincipalAuthenticated(orPrincipalRule.Value)
+					authPrincipal := GetAuthenticatedPrincipal(orPrincipalRule.Value)
 					orPrincipalRules = append(orPrincipalRules, authPrincipal)
 				}
 			}
-			currentPrincipal = getPrincipalOr(orPrincipalRules)
+			currentPrincipal = orPrincipals(orPrincipalRules)
 
 		default:
 			// Neither AND/OR rules set, set principal to Any
-			currentPrincipal = getPrincipalAny()
+			currentPrincipal = getAnyPrincipal()
 		}
 
 		finalPrincipals = append(finalPrincipals, currentPrincipal)
 	}
 	if len(p.Principals) == 0 {
 		// No principals specified for this policy, allow ANY
-		finalPrincipals = append(finalPrincipals, getPrincipalAny())
+		finalPrincipals = append(finalPrincipals, getAnyPrincipal())
 	}
 
 	policy.Principals = finalPrincipals
@@ -94,11 +94,11 @@ func (p *Policy) Generate() (*xds_rbac.Policy, error) {
 					if err != nil {
 						return nil, errors.Errorf("Error parsing destination port value %s", andPermissionRule.Value)
 					}
-					portPermission := getPermissionDestinationPort(uint32(port))
+					portPermission := GetDestinationPortPermission(uint32(port))
 					andPermissionRules = append(andPermissionRules, portPermission)
 				}
 			}
-			currentPermission = getPermissionAnd(andPermissionRules)
+			currentPermission = andPermissions(andPermissionRules)
 
 		case len(permissionRuleList.OrRules) != 0:
 			// Combine all the OR rules for this Permission rule with OR semantics
@@ -110,22 +110,22 @@ func (p *Policy) Generate() (*xds_rbac.Policy, error) {
 					if err != nil {
 						return nil, errors.Errorf("Error parsing destination port value %s", orPermissionRule.Value)
 					}
-					portPermission := getPermissionDestinationPort(uint32(port))
+					portPermission := GetDestinationPortPermission(uint32(port))
 					orPermissionRules = append(orPermissionRules, portPermission)
 				}
 			}
-			currentPermission = getPermissionOr(orPermissionRules)
+			currentPermission = orPermissions(orPermissionRules)
 
 		default:
 			// Neither AND/OR rules set, set permission to Any
-			currentPermission = getPermissionAny()
+			currentPermission = getAnyPermission()
 		}
 
 		finalPermissions = append(finalPermissions, currentPermission)
 	}
 	if len(p.Permissions) == 0 {
 		// No permissions specified for this policy, allow ANY
-		finalPermissions = append(finalPermissions, getPermissionAny())
+		finalPermissions = append(finalPermissions, getAnyPermission())
 	}
 
 	policy.Permissions = finalPermissions
@@ -133,7 +133,8 @@ func (p *Policy) Generate() (*xds_rbac.Policy, error) {
 	return policy, nil
 }
 
-func getPrincipalAuthenticated(principalName string) *xds_rbac.Principal {
+// GetAuthenticatedPrincipal returns an authenticated RBAC principal object for the given principal
+func GetAuthenticatedPrincipal(principalName string) *xds_rbac.Principal {
 	return &xds_rbac.Principal{
 		Identifier: &xds_rbac.Principal_Authenticated_{
 			Authenticated: &xds_rbac.Principal_Authenticated{
@@ -147,7 +148,7 @@ func getPrincipalAuthenticated(principalName string) *xds_rbac.Principal {
 	}
 }
 
-func getPrincipalOr(principals []*xds_rbac.Principal) *xds_rbac.Principal {
+func orPrincipals(principals []*xds_rbac.Principal) *xds_rbac.Principal {
 	return &xds_rbac.Principal{
 		Identifier: &xds_rbac.Principal_OrIds{
 			OrIds: &xds_rbac.Principal_Set{
@@ -157,7 +158,7 @@ func getPrincipalOr(principals []*xds_rbac.Principal) *xds_rbac.Principal {
 	}
 }
 
-func getPrincipalAnd(principals []*xds_rbac.Principal) *xds_rbac.Principal {
+func andPrincipals(principals []*xds_rbac.Principal) *xds_rbac.Principal {
 	return &xds_rbac.Principal{
 		Identifier: &xds_rbac.Principal_AndIds{
 			AndIds: &xds_rbac.Principal_Set{
@@ -167,19 +168,19 @@ func getPrincipalAnd(principals []*xds_rbac.Principal) *xds_rbac.Principal {
 	}
 }
 
-func getPrincipalAny() *xds_rbac.Principal {
+func getAnyPrincipal() *xds_rbac.Principal {
 	return &xds_rbac.Principal{
 		Identifier: &xds_rbac.Principal_Any{Any: true},
 	}
 }
 
-func getPermissionAny() *xds_rbac.Permission {
+func getAnyPermission() *xds_rbac.Permission {
 	return &xds_rbac.Permission{
 		Rule: &xds_rbac.Permission_Any{Any: true},
 	}
 }
 
-func getPermissionOr(permissions []*xds_rbac.Permission) *xds_rbac.Permission {
+func orPermissions(permissions []*xds_rbac.Permission) *xds_rbac.Permission {
 	return &xds_rbac.Permission{
 		Rule: &xds_rbac.Permission_OrRules{
 			OrRules: &xds_rbac.Permission_Set{
@@ -189,7 +190,7 @@ func getPermissionOr(permissions []*xds_rbac.Permission) *xds_rbac.Permission {
 	}
 }
 
-func getPermissionAnd(permissions []*xds_rbac.Permission) *xds_rbac.Permission {
+func andPermissions(permissions []*xds_rbac.Permission) *xds_rbac.Permission {
 	return &xds_rbac.Permission{
 		Rule: &xds_rbac.Permission_AndRules{
 			AndRules: &xds_rbac.Permission_Set{
@@ -199,7 +200,8 @@ func getPermissionAnd(permissions []*xds_rbac.Permission) *xds_rbac.Permission {
 	}
 }
 
-func getPermissionDestinationPort(port uint32) *xds_rbac.Permission {
+// GetDestinationPortPermission returns an RBAC permission for the given destination port
+func GetDestinationPortPermission(port uint32) *xds_rbac.Permission {
 	return &xds_rbac.Permission{
 		Rule: &xds_rbac.Permission_DestinationPort{
 			DestinationPort: port,

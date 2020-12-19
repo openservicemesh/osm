@@ -11,8 +11,142 @@ import (
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
+	"github.com/openservicemesh/osm/pkg/envoy/rbac"
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
+
+func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
+	assert := assert.New(t)
+
+	testCases := []struct {
+		name          string
+		trafficTarget trafficpolicy.TrafficTargetWithRoutes
+
+		expectedPolicy *xds_rbac.Policy
+		expectErr      bool
+	}{
+		{
+			// Test 1
+			name: "traffic target without TCP routes",
+			trafficTarget: trafficpolicy.TrafficTargetWithRoutes{
+				Name:        "ns-1/test-1",
+				Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+				Sources: []identity.ServiceIdentity{
+					identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
+					identity.ServiceIdentity("sa-3.ns-3.cluster.local"),
+				},
+				TCPRouteMatches: nil,
+			},
+
+			expectedPolicy: &xds_rbac.Policy{
+				Permissions: []*xds_rbac.Permission{
+					{
+						Rule: &xds_rbac.Permission_Any{Any: true},
+					},
+				},
+				Principals: []*xds_rbac.Principal{
+					{
+						Identifier: &xds_rbac.Principal_OrIds{
+							OrIds: &xds_rbac.Principal_Set{
+								Ids: []*xds_rbac.Principal{
+									rbac.GetAuthenticatedPrincipal("sa-2.ns-2.cluster.local"),
+								},
+							},
+						},
+					},
+					{
+						Identifier: &xds_rbac.Principal_OrIds{
+							OrIds: &xds_rbac.Principal_Set{
+								Ids: []*xds_rbac.Principal{
+									rbac.GetAuthenticatedPrincipal("sa-3.ns-3.cluster.local"),
+								},
+							},
+						},
+					},
+				},
+			},
+			expectErr: false, // no error
+		},
+
+		{
+			// Test 2
+			name: "traffic target with TCP routes",
+			trafficTarget: trafficpolicy.TrafficTargetWithRoutes{
+				Name:        "ns-1/test-1",
+				Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+				Sources: []identity.ServiceIdentity{
+					identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
+					identity.ServiceIdentity("sa-3.ns-3.cluster.local"),
+				},
+				TCPRouteMatches: []trafficpolicy.TCPRouteMatch{
+					{
+						Ports: []int{1000, 2000},
+					},
+					{
+						Ports: []int{3000},
+					},
+				},
+			},
+
+			expectedPolicy: &xds_rbac.Policy{
+				Permissions: []*xds_rbac.Permission{
+					{
+						Rule: &xds_rbac.Permission_OrRules{
+							OrRules: &xds_rbac.Permission_Set{
+								Rules: []*xds_rbac.Permission{
+									rbac.GetDestinationPortPermission(1000),
+									rbac.GetDestinationPortPermission(2000),
+								},
+							},
+						},
+					},
+					{
+						Rule: &xds_rbac.Permission_OrRules{
+							OrRules: &xds_rbac.Permission_Set{
+								Rules: []*xds_rbac.Permission{
+									rbac.GetDestinationPortPermission(3000),
+								},
+							},
+						},
+					},
+				},
+				Principals: []*xds_rbac.Principal{
+					{
+						Identifier: &xds_rbac.Principal_OrIds{
+							OrIds: &xds_rbac.Principal_Set{
+								Ids: []*xds_rbac.Principal{
+									rbac.GetAuthenticatedPrincipal("sa-2.ns-2.cluster.local"),
+								},
+							},
+						},
+					},
+					{
+						Identifier: &xds_rbac.Principal_OrIds{
+							OrIds: &xds_rbac.Principal_Set{
+								Ids: []*xds_rbac.Principal{
+									rbac.GetAuthenticatedPrincipal("sa-3.ns-3.cluster.local"),
+								},
+							},
+						},
+					},
+				},
+			},
+			expectErr: false, // no error
+		},
+	}
+
+	for i, tc := range testCases {
+		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
+			// Test the RBAC policies
+			policy, err := buildRBACPolicyFromTrafficTarget(tc.trafficTarget)
+
+			assert.Equal(tc.expectErr, err != nil)
+			assert.Equal(tc.expectedPolicy, policy)
+		})
+	}
+}
 
 func TestBuildInboundRBACPolicies(t *testing.T) {
 	assert := assert.New(t)
@@ -28,57 +162,75 @@ func TestBuildInboundRBACPolicies(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name                      string
-		allowedInboundSvcAccounts []service.K8sServiceAccount
-		expectedPrincipals        []string
-		expectErr                 bool
+		name           string
+		trafficTargets []trafficpolicy.TrafficTargetWithRoutes
+
+		expectedPolicyKeys []string
+		expectErr          bool
 	}{
 		{
-			name: "multiple client allowed",
-			allowedInboundSvcAccounts: []service.K8sServiceAccount{
-				{Name: "sa-2", Namespace: "ns-2"},
-				{Name: "sa-3", Namespace: "ns-3"},
+			// Test 1
+			name: "traffic target without TCP routes",
+			trafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
+				{
+					Name:        "ns-1/test-1",
+					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Sources: []identity.ServiceIdentity{
+						identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
+						identity.ServiceIdentity("sa-3.ns-3.cluster.local"),
+					},
+					TCPRouteMatches: nil,
+				},
 			},
-			expectedPrincipals: []string{
-				"sa-2.ns-2.cluster.local",
-				"sa-3.ns-3.cluster.local",
-			},
+
+			expectedPolicyKeys: []string{"ns-1/test-1"},
+
 			expectErr: false, // no error
 		},
+
 		{
-			name:                      "no clients allowed",
-			allowedInboundSvcAccounts: []service.K8sServiceAccount{},
-			expectedPrincipals:        []string{},
-			expectErr:                 false, // no error
+			// Test 2
+			name: "traffic target with TCP routes",
+			trafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
+				{
+					Name:        "ns-1/test-1",
+					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Sources: []identity.ServiceIdentity{
+						identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
+						identity.ServiceIdentity("sa-3.ns-3.cluster.local"),
+					},
+				},
+				{
+					Name:        "ns-1/test-2",
+					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Sources: []identity.ServiceIdentity{
+						identity.ServiceIdentity("sa-4.ns-2.cluster.local"),
+					},
+				},
+			},
+
+			expectedPolicyKeys: []string{"ns-1/test-1", "ns-1/test-2"},
+			expectErr:          false, // no error
 		},
 	}
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
-			// Mock the calls to catalog
-			mockCatalog.EXPECT().ListAllowedInboundServiceAccounts(lb.svcAccount).Return(tc.allowedInboundSvcAccounts, nil).Times(1)
+			// Mock catalog calls
+			mockCatalog.EXPECT().ListInboundTrafficTargetsWithRoutes(proxySvcAccount).Return(tc.trafficTargets, nil).Times(1)
 
 			// Test the RBAC policies
-			networkRBAC, err := lb.buildInboundRBACPolicies()
-			assert.Equal(err != nil, tc.expectErr)
+			policy, err := lb.buildInboundRBACPolicies()
 
-			assert.Equal(networkRBAC.Rules.GetAction(), xds_rbac.RBAC_ALLOW)
+			assert.Equal(tc.expectErr, err != nil)
+			assert.Equal(xds_rbac.RBAC_ALLOW, policy.Rules.Action)
+			assert.Len(policy.Rules.Policies, len(tc.expectedPolicyKeys))
 
-			rbacPolicies := networkRBAC.Rules.Policies
-
-			// Expect 1 policy per client principal
-			assert.Len(rbacPolicies, len(tc.expectedPrincipals))
-
-			// Loop through the policies and ensure there is a policy corresponding to each principal
-			var actualPrincipals []string
-			for _, policy := range rbacPolicies {
-				principalName := policy.Principals[0].GetOrIds().Ids[0].GetAuthenticated().PrincipalName.GetExact()
-				actualPrincipals = append(actualPrincipals, principalName)
-
-				assert.Len(policy.Permissions, 1) // Any permission
-				assert.True(policy.Permissions[0].GetAny())
+			var actualPolicyKeys []string
+			for key := range policy.Rules.Policies {
+				actualPolicyKeys = append(actualPolicyKeys, key)
 			}
-			assert.ElementsMatch(tc.expectedPrincipals, actualPrincipals)
+			assert.ElementsMatch(tc.expectedPolicyKeys, actualPolicyKeys)
 		})
 	}
 }
@@ -97,58 +249,63 @@ func TestBuildRBACFilter(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name                      string
-		allowedInboundSvcAccounts []service.K8sServiceAccount
-		expectErr                 bool
+		name           string
+		trafficTargets []trafficpolicy.TrafficTargetWithRoutes
+
+		expectErr bool
 	}{
 		{
-			name: "multiple clients allowed",
-			allowedInboundSvcAccounts: []service.K8sServiceAccount{
-				{Name: "sa-2", Namespace: "ns-2"},
-				{Name: "sa-3", Namespace: "ns-3"},
+			// Test 1
+			name: "traffic target without TCP routes",
+			trafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
+				{
+					Name:        "ns-1/test-1",
+					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Sources: []identity.ServiceIdentity{
+						identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
+						identity.ServiceIdentity("sa-3.ns-3.cluster.local"),
+					},
+					TCPRouteMatches: nil,
+				},
 			},
+
 			expectErr: false, // no error
 		},
+
 		{
-			name:                      "no clients allowed",
-			allowedInboundSvcAccounts: []service.K8sServiceAccount{},
-			expectErr:                 false, // no error
+			// Test 2
+			name: "traffic target with TCP routes",
+			trafficTargets: []trafficpolicy.TrafficTargetWithRoutes{
+				{
+					Name:        "ns-1/test-1",
+					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Sources: []identity.ServiceIdentity{
+						identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
+						identity.ServiceIdentity("sa-3.ns-3.cluster.local"),
+					},
+				},
+				{
+					Name:        "ns-1/test-2",
+					Destination: identity.ServiceIdentity("sa-1.ns-1.cluster.local"),
+					Sources: []identity.ServiceIdentity{
+						identity.ServiceIdentity("sa-4.ns-2.cluster.local"),
+					},
+				},
+			},
+
+			expectErr: false, // no error
 		},
 	}
 
 	for i, tc := range testCases {
-		t.Run(fmt.Sprintf("Testing test case %d", i), func(t *testing.T) {
-			// Mock the calls to catalog
-			mockCatalog.EXPECT().ListAllowedInboundServiceAccounts(lb.svcAccount).Return(tc.allowedInboundSvcAccounts, nil).Times(1)
+		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
+			// Mock catalog calls
+			mockCatalog.EXPECT().ListInboundTrafficTargetsWithRoutes(proxySvcAccount).Return(tc.trafficTargets, nil).Times(1)
 
-			// Test the RBAC filter
 			rbacFilter, err := lb.buildRBACFilter()
 			assert.Equal(err != nil, tc.expectErr)
 
 			assert.Equal(rbacFilter.Name, wellknown.RoleBasedAccessControl)
-		})
-	}
-}
-
-func TestGetPolicyName(t *testing.T) {
-	assert := assert.New(t)
-
-	testCases := []struct {
-		downstream   service.K8sServiceAccount
-		upstream     service.K8sServiceAccount
-		expectedName string
-	}{
-		{
-			downstream:   service.K8sServiceAccount{Name: "foo", Namespace: "ns-1"},
-			upstream:     service.K8sServiceAccount{Name: "bar", Namespace: "ns-2"},
-			expectedName: "ns-1/foo to ns-2/bar",
-		},
-	}
-
-	for i, tc := range testCases {
-		t.Run(fmt.Sprintf("Testing test case %d", i), func(t *testing.T) {
-			actual := getPolicyName(tc.downstream, tc.upstream)
-			assert.Equal(actual, tc.expectedName)
 		})
 	}
 }
