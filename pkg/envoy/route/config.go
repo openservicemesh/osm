@@ -128,6 +128,18 @@ func createRoutes(routePolicyWeightedClustersMap map[string]trafficpolicy.RouteW
 }
 
 func getRoute(pathRegex string, method string, headersMap map[string]string, weightedClusters set.Set, totalClustersWeight int, direction Direction) *xds_route.Route {
+	t := &xds_route.RouteAction_HashPolicy_Header_{
+		&xds_route.RouteAction_HashPolicy_Header{
+			HeaderName:   "x-apigroup",
+			RegexRewrite: nil,
+		},
+	}
+
+	r := &xds_route.RouteAction_HashPolicy{
+		PolicySpecifier: t,
+		Terminal:        false,
+	}
+
 	route := xds_route.Route{
 		Match: &xds_route.RouteMatch{
 			PathSpecifier: &xds_route.RouteMatch_SafeRegex{
@@ -143,6 +155,7 @@ func getRoute(pathRegex string, method string, headersMap map[string]string, wei
 				ClusterSpecifier: &xds_route.RouteAction_WeightedClusters{
 					WeightedClusters: getWeightedCluster(weightedClusters, totalClustersWeight, direction),
 				},
+				HashPolicy: []*xds_route.RouteAction_HashPolicy{r},
 			},
 		},
 	}
@@ -180,8 +193,9 @@ func getHeadersForRoute(method string, headersMap map[string]string) []*xds_rout
 			},
 		}
 		headers = append(headers, &header)
-
 	}
+
+	log.Debug().Msgf("[getHeadersForRoute] headers=%+v \n", headers)
 	return headers
 }
 
