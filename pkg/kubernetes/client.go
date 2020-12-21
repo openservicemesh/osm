@@ -22,11 +22,10 @@ import (
 func NewKubernetesController(kubeClient kubernetes.Interface, meshName string, stop chan struct{}) (Controller, error) {
 	// Initialize client object
 	client := Client{
-		kubeClient:    kubeClient,
-		meshName:      meshName,
-		informers:     InformerCollection{},
-		announcements: make(map[InformerKey]chan announcements.Announcement),
-		cacheSynced:   make(chan interface{}),
+		kubeClient:  kubeClient,
+		meshName:    meshName,
+		informers:   InformerCollection{},
+		cacheSynced: make(chan interface{}),
 	}
 
 	// Initialize resources here
@@ -63,7 +62,7 @@ func (c *Client) initNamespaceMonitor() {
 		Update: announcements.NamespaceUpdated,
 		Delete: announcements.NamespaceDeleted,
 	}
-	c.informers[Namespaces].AddEventHandler(GetKubernetesEventHandlers((string)(Namespaces), ProviderName, nil, nil, nil, nsEventTypes))
+	c.informers[Namespaces].AddEventHandler(GetKubernetesEventHandlers((string)(Namespaces), ProviderName, nil, nsEventTypes))
 }
 
 // Function to filter K8s meta Objects by OSM's isMonitoredNamespace
@@ -77,45 +76,36 @@ func (c *Client) initServicesMonitor() {
 	informerFactory := informers.NewSharedInformerFactory(c.kubeClient, DefaultKubeEventResyncInterval)
 	c.informers[Services] = informerFactory.Core().V1().Services().Informer()
 
-	// Announcement channel for Services
-	c.announcements[Services] = make(chan announcements.Announcement)
-
 	svcEventTypes := EventTypes{
 		Add:    announcements.ServiceAdded,
 		Update: announcements.ServiceUpdated,
 		Delete: announcements.ServiceDeleted,
 	}
-	c.informers[Services].AddEventHandler(GetKubernetesEventHandlers((string)(Services), ProviderName, c.announcements[Services], c.shouldObserve, nil, svcEventTypes))
+	c.informers[Services].AddEventHandler(GetKubernetesEventHandlers((string)(Services), ProviderName, c.shouldObserve, svcEventTypes))
 }
 
 func (c *Client) initPodMonitor() {
 	informerFactory := informers.NewSharedInformerFactory(c.kubeClient, DefaultKubeEventResyncInterval)
 	c.informers[Pods] = informerFactory.Core().V1().Pods().Informer()
 
-	// Announcement channel for Pods
-	c.announcements[Pods] = make(chan announcements.Announcement)
-
 	podEventTypes := EventTypes{
 		Add:    announcements.PodAdded,
 		Update: announcements.PodUpdated,
 		Delete: announcements.PodDeleted,
 	}
-	c.informers[Pods].AddEventHandler(GetKubernetesEventHandlers((string)(Pods), ProviderName, c.announcements[Pods], c.shouldObserve, nil, podEventTypes))
+	c.informers[Pods].AddEventHandler(GetKubernetesEventHandlers((string)(Pods), ProviderName, c.shouldObserve, podEventTypes))
 }
 
 func (c *Client) initEndpointMonitor() {
 	informerFactory := informers.NewSharedInformerFactory(c.kubeClient, DefaultKubeEventResyncInterval)
 	c.informers[Endpoints] = informerFactory.Core().V1().Endpoints().Informer()
 
-	// Announcement channel for Endpoints
-	c.announcements[Endpoints] = make(chan announcements.Announcement)
-
 	eptEventTypes := EventTypes{
 		Add:    announcements.EndpointAdded,
 		Update: announcements.EndpointUpdated,
 		Delete: announcements.EndpointDeleted,
 	}
-	c.informers[Endpoints].AddEventHandler(GetKubernetesEventHandlers((string)(Endpoints), ProviderName, c.announcements[Pods], c.shouldObserve, nil, eptEventTypes))
+	c.informers[Endpoints].AddEventHandler(GetKubernetesEventHandlers((string)(Endpoints), ProviderName, c.shouldObserve, eptEventTypes))
 }
 
 func (c *Client) run(stop <-chan struct{}) error {
@@ -194,11 +184,6 @@ func (c Client) ListServices() []*corev1.Service {
 		services = append(services, svc)
 	}
 	return services
-}
-
-// GetAnnouncementsChannel gets the Announcements channel back
-func (c Client) GetAnnouncementsChannel(informerID InformerKey) <-chan announcements.Announcement {
-	return c.announcements[informerID]
 }
 
 // GetNamespace returns a Namespace resource if found, nil otherwise.

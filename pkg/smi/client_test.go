@@ -539,20 +539,3 @@ var _ = Describe("When fetching BackpressurePolicy for the given MeshService", f
 		<-bpChannel
 	})
 })
-
-var _ = Describe("When fetching the announcement channel", func() {
-	var (
-		meshSpec MeshSpec
-		err      error
-	)
-
-	BeforeEach(func() {
-		meshSpec, _, err = bootstrapClient()
-		Expect(err).ToNot(HaveOccurred())
-	})
-
-	It("should return an announcement channel on which events are notified", func() {
-		announcementChan := meshSpec.GetAnnouncementsChannel()
-		Expect(announcementChan).ToNot(BeNil())
-	})
-})

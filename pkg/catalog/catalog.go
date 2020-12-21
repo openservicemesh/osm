@@ -1,24 +1,14 @@
 package catalog
 
 import (
-	"time"
-
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/ingress"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
-	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 	"github.com/openservicemesh/osm/pkg/smi"
-)
-
-const (
-	// this is catalog's tick rate for ticker, which triggers global proxy updates
-	// 0 disables the ticker
-	updateAtLeastEvery = 0 * time.Second
 )
 
 // NewMeshCatalog creates a new service catalog
@@ -48,31 +38,4 @@ func NewMeshCatalog(kubeController k8s.Controller, kubeClient kubernetes.Interfa
 // GetSMISpec returns a MeshCatalog's SMI Spec
 func (mc *MeshCatalog) GetSMISpec() smi.MeshSpec {
 	return mc.meshSpec
-}
-
-func (mc *MeshCatalog) getAnnouncementChannels() []announcementChannel {
-	ticking := make(chan announcements.Announcement)
-	announcementChannels := []announcementChannel{
-		{"MeshSpec", mc.meshSpec.GetAnnouncementsChannel()},
-		{"CertManager", mc.certManager.GetAnnouncementsChannel()},
-		{"IngressMonitor", mc.ingressMonitor.GetAnnouncementsChannel()},
-		{"Ticker", ticking},
-		{"Services", mc.kubeController.GetAnnouncementsChannel(k8s.Services)},
-	}
-
-	if updateAtLeastEvery > 0 {
-		go func() {
-			ticker := time.NewTicker(updateAtLeastEvery)
-			for {
-				<-ticker.C
-				events.GetPubSubInstance().Publish(events.PubSubMessage{
-					AnnouncementType: announcements.ScheduleProxyBroadcast,
-					NewObj:           nil,
-					OldObj:           nil,
-				})
-			}
-		}()
-	}
-
-	return announcementChannels
 }
