@@ -40,8 +40,8 @@ var _ = Describe("Testing event handlers", func() {
 			}
 			handlers := GetKubernetesEventHandlers(testInformer, testProvider, shouldObserve, eventTypes)
 			handlers.AddFunc(&pod)
-			Expect(len(podAddChannel)).To(Equal(1))
 			an := <-podAddChannel
+			Expect(len(podAddChannel)).To(Equal(0))
 
 			// Pubsub msg
 			pubsubMsg, castOk := an.(events.PubSubMessage)
