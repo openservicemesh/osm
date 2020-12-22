@@ -27,11 +27,12 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *v1beta1.AdmissionRe
 		return nil, err
 	}
 
-	wh.meshCatalog.ExpectProxy(cn)
+	originalHealthProbes := rewriteHealthProbes(pod)
 
+	wh.meshCatalog.ExpectProxy(cn)
 	// Create the bootstrap configuration for the Envoy proxy for the given pod
 	envoyBootstrapConfigName := fmt.Sprintf("envoy-bootstrap-config-%s", proxyUUID)
-	if _, err = wh.createEnvoyBootstrapConfig(envoyBootstrapConfigName, namespace, wh.osmNamespace, bootstrapCertificate); err != nil {
+	if _, err = wh.createEnvoyBootstrapConfig(envoyBootstrapConfigName, namespace, wh.osmNamespace, bootstrapCertificate, originalHealthProbes); err != nil {
 		log.Error().Err(err).Msg("Failed to create bootstrap config for Envoy sidecar")
 		return nil, err
 	}
@@ -50,7 +51,7 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *v1beta1.AdmissionRe
 	envoyClusterID := fmt.Sprintf("%s.%s", pod.Spec.ServiceAccountName, namespace)
 
 	// Add the Envoy sidecar
-	sidecar := getEnvoySidecarContainerSpec(constants.EnvoyContainerName, wh.config.SidecarImage, envoyNodeID, envoyClusterID, wh.configurator)
+	sidecar := getEnvoySidecarContainerSpec(constants.EnvoyContainerName, wh.config.SidecarImage, envoyNodeID, envoyClusterID, wh.configurator, originalHealthProbes)
 	pod.Spec.Containers = append(pod.Spec.Containers, sidecar)
 
 	enableMetrics, err := wh.isMetricsEnabled(namespace)

@@ -61,19 +61,47 @@ func getEnvoyConfigYAML(config envoyBootstrapConfigMeta, cfg configurator.Config
 	return configYAML, err
 }
 
+// getStaticResources returns STATIC resources included in the bootstrap Envoy config.
+// These will not change during the lifetime of the Pod.
 func getStaticResources(config envoyBootstrapConfigMeta) map[string]interface{} {
+	// This slice is the list of listeners for liveness, readiness, startup IF these have been configured in the Pod Spec
+	var listeners []map[string]interface{}
+
+	// There will ALWAYS be an xDS cluster
 	clusters := []map[string]interface{}{
 		getXdsCluster(config),
+	}
+
+	// Is there a liveness probe in the Pod Spec?
+	if config.OriginalHealthProbes.liveness != nil {
+		listeners = append(listeners, getLivenessListener(config.OriginalHealthProbes.liveness))
+		clusters = append(clusters, getLivenessCluster(config.OriginalHealthProbes.liveness))
+	}
+
+	// Is there a readiness probe in the Pod Spec?
+	if config.OriginalHealthProbes.readiness != nil {
+		listeners = append(listeners, getReadinessListener(config.OriginalHealthProbes.readiness))
+		clusters = append(clusters, getReadinessCluster(config.OriginalHealthProbes.readiness))
+	}
+
+	// Is there a startup probe in the Pod Spec?
+	if config.OriginalHealthProbes.startup != nil {
+		listeners = append(listeners, getStartupListener(config.OriginalHealthProbes.startup))
+		clusters = append(clusters, getStartupCluster(config.OriginalHealthProbes.startup))
 	}
 
 	staticResources := map[string]interface{}{
 		"clusters": clusters,
 	}
 
+	if len(listeners) > 0 {
+		staticResources["listeners"] = listeners
+	}
+
 	return staticResources
 }
 
-func (wh *mutatingWebhook) createEnvoyBootstrapConfig(name, namespace, osmNamespace string, cert certificate.Certificater) (*corev1.Secret, error) {
+func (wh *mutatingWebhook) createEnvoyBootstrapConfig(name, namespace, osmNamespace string, cert certificate.Certificater, originalHealthProbes healthProbes) (*corev1.Secret, error) {
 	configMeta := envoyBootstrapConfigMeta{
 		EnvoyAdminPort: constants.EnvoyAdminPort,
 		XDSClusterName: constants.OSMControllerName,
@@ -84,6 +112,10 @@ func (wh *mutatingWebhook) createEnvoyBootstrapConfig(name, namespace, osmNamesp
 
 		XDSHost: fmt.Sprintf("%s.%s.svc.cluster.local", constants.OSMControllerName, osmNamespace),
 		XDSPort: constants.OSMControllerPort,
+
+		// OriginalHealthProbes stores the path and port for liveness, readiness, and startup health probes as initially
+		// defined on the Pod Spec.
+		OriginalHealthProbes: originalHealthProbes,
 	}
 	yamlContent, err := getEnvoyConfigYAML(configMeta, wh.configurator)
 	if err != nil {

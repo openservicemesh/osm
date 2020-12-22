@@ -63,4 +63,8 @@ type envoyBootstrapConfigMeta struct {
 	// Host and port of the Envoy xDS server
 	XDSHost string
 	XDSPort int
+
+	// The bootstrap Envoy config will be affected by the liveness, readiness, startup probes set on
+	// the pod this Envoy is fronting.
+	OriginalHealthProbes healthProbes
 }
