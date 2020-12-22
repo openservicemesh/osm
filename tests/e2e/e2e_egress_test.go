@@ -13,7 +13,7 @@ import (
 var _ = OSMDescribe("HTTP and HTTPS Egress",
 	OSMDescribeInfo{
 		Tier:   1,
-		Bucket: 1,
+		Bucket: 2,
 	},
 	func() {
 		Context("Egress", func() {
