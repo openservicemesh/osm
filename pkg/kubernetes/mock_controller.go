@@ -6,7 +6,6 @@ package kubernetes
 
 import (
 	gomock "github.com/golang/mock/gomock"
-	announcements "github.com/openservicemesh/osm/pkg/announcements"
 	service "github.com/openservicemesh/osm/pkg/service"
 	v1 "k8s.io/api/core/v1"
 	reflect "reflect"
@@ -33,20 +32,6 @@ func NewMockController(ctrl *gomock.Controller) *MockController {
 // EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockController) EXPECT() *MockControllerMockRecorder {
 	return m.recorder
-}
-
-// GetAnnouncementsChannel mocks base method
-func (m *MockController) GetAnnouncementsChannel(arg0 InformerKey) <-chan announcements.Announcement {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAnnouncementsChannel", arg0)
-	ret0, _ := ret[0].(<-chan announcements.Announcement)
-	return ret0
-}
-
-// GetAnnouncementsChannel indicates an expected call of GetAnnouncementsChannel
-func (mr *MockControllerMockRecorder) GetAnnouncementsChannel(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAnnouncementsChannel", reflect.TypeOf((*MockController)(nil).GetAnnouncementsChannel), arg0)
 }
 
 // GetEndpoints mocks base method

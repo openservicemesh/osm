@@ -5,7 +5,6 @@ import (
 
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
 
@@ -17,7 +16,6 @@ var (
 type Client struct {
 	osmNamespace     string
 	osmConfigMapName string
-	announcements    chan announcements.Announcement
 	informer         cache.SharedIndexInformer
 	cache            cache.Store
 	cacheSynced      chan interface{}

@@ -10,7 +10,6 @@ import (
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -123,12 +122,6 @@ type MeshCataloger interface {
 	// ListInboundTrafficTargetsWithRoutes returns a list traffic target objects componsed of its routes for the given destination service account
 	ListInboundTrafficTargetsWithRoutes(service.K8sServiceAccount) ([]trafficpolicy.TrafficTargetWithRoutes, error)
 }
-
-type announcementChannel struct {
-	announcer string
-	channel   <-chan announcements.Announcement
-}
-
 type expectedProxy struct {
 	// The time the certificate, identified by CN, for the expected proxy was issued on
 	certificateIssuedAt time.Time

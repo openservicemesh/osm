@@ -25,45 +25,12 @@ type EventTypes struct {
 }
 
 // GetKubernetesEventHandlers creates Kubernetes events handlers.
-func GetKubernetesEventHandlers(informerName, providerName string, announce chan a.Announcement, shouldObserve observeFilter, getObjID func(obj interface{}) interface{}, eventTypes EventTypes) cache.ResourceEventHandlerFuncs {
+func GetKubernetesEventHandlers(informerName, providerName string, shouldObserve observeFilter, eventTypes EventTypes) cache.ResourceEventHandlerFuncs {
 	if shouldObserve == nil {
 		shouldObserve = func(obj interface{}) bool { return true }
 	}
 
-	sendAnnouncement := func(eventType a.AnnouncementType, obj interface{}) {
-		if emitLogs {
-			log.Trace().Msgf("[%s][%s] %s event: %+v", providerName, informerName, eventType, obj)
-		}
-
-		if announce == nil {
-			return
-		}
-
-		ann := a.Announcement{
-			Type: eventType,
-		}
-
-		// getObjID is a function which has enough context to establish a
-		// ReferenceObjectID from the object for which this event occurred.
-		// For example the ReferenceObjectID for a Pod would be the Pod's UID.
-		// The getObjID function is optional;
-		if getObjID != nil {
-			ann.ReferencedObjectID = getObjID(obj)
-		}
-
-		select {
-		case announce <- ann:
-			// Channel post succeeded
-		default:
-			// Since pubsub introduction, there's a chance we start seeing full channels which
-			// will slowly become unused in favour of pub-sub subscriptions.
-			// We are making sure here ResourceEventHandlerFuncs never locks due to a push on a full channel.
-			log.Trace().Msgf("Channel for provider %s is full, dropping channel notify %s ", providerName, eventType)
-		}
-	}
-
 	return cache.ResourceEventHandlerFuncs{
-
 		AddFunc: func(obj interface{}) {
 			if !shouldObserve(obj) {
 				logNotObservedNamespace(obj, eventTypes.Add)
@@ -74,7 +41,6 @@ func GetKubernetesEventHandlers(informerName, providerName string, announce chan
 				NewObj:           obj,
 				OldObj:           nil,
 			})
-			sendAnnouncement(eventTypes.Add, obj)
 		},
 
 		UpdateFunc: func(oldObj, newObj interface{}) {
@@ -87,7 +53,6 @@ func GetKubernetesEventHandlers(informerName, providerName string, announce chan
 				NewObj:           oldObj,
 				OldObj:           newObj,
 			})
-			sendAnnouncement(eventTypes.Update, oldObj)
 		},
 
 		DeleteFunc: func(obj interface{}) {
@@ -100,7 +65,6 @@ func GetKubernetesEventHandlers(informerName, providerName string, announce chan
 				NewObj:           nil,
 				OldObj:           obj,
 			})
-			sendAnnouncement(eventTypes.Delete, obj)
 		},
 	}
 }

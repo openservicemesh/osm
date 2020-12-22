@@ -72,7 +72,4 @@ type MeshSpec interface {
 
 	// GetBackpressurePolicy fetches the Backpressure policy for the MeshService
 	GetBackpressurePolicy(service.MeshService) *backpressure.Backpressure
-
-	// GetAnnouncementsChannel returns the channel on which SMI client makes announcements
-	GetAnnouncementsChannel() <-chan announcements.Announcement
 }
