@@ -9,7 +9,6 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	v1alpha1 "github.com/openservicemesh/osm/experimental/pkg/apis/policy/v1alpha1"
-	announcements "github.com/openservicemesh/osm/pkg/announcements"
 	service "github.com/openservicemesh/osm/pkg/service"
 	v1alpha2 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
 	v1alpha3 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha3"
@@ -37,20 +36,6 @@ func NewMockMeshSpec(ctrl *gomock.Controller) *MockMeshSpec {
 // EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockMeshSpec) EXPECT() *MockMeshSpecMockRecorder {
 	return m.recorder
-}
-
-// GetAnnouncementsChannel mocks base method
-func (m *MockMeshSpec) GetAnnouncementsChannel() <-chan announcements.Announcement {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAnnouncementsChannel")
-	ret0, _ := ret[0].(<-chan announcements.Announcement)
-	return ret0
-}
-
-// GetAnnouncementsChannel indicates an expected call of GetAnnouncementsChannel
-func (mr *MockMeshSpecMockRecorder) GetAnnouncementsChannel() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAnnouncementsChannel", reflect.TypeOf((*MockMeshSpec)(nil).GetAnnouncementsChannel))
 }
 
 // GetBackpressurePolicy mocks base method

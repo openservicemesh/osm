@@ -199,7 +199,7 @@ func main() {
 		}
 	}
 
-	kubeProvider, err := kube.NewProvider(kubeClient, kubernetesClient, stop, constants.KubeProviderName, cfg)
+	kubeProvider, err := kube.NewProvider(kubeClient, kubernetesClient, constants.KubeProviderName, cfg)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Kubernetes endpoints provider")
 	}

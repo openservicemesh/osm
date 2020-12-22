@@ -254,7 +254,6 @@ var _ = Describe("RDS Response", func() {
 	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookstoreV2Service.Namespace).Return(true).AnyTimes()
 	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).AnyTimes()
 	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookwarehouseService.Namespace).Return(true).AnyTimes()
-	mockKubeController.EXPECT().GetAnnouncementsChannel(k8s.Services).Return(announcementsCh).AnyTimes()
 	mockKubeController.EXPECT().ListMonitoredNamespaces().Return(listExpectedNs, nil).AnyTimes()
 
 	meshCatalog := catalog.NewMeshCatalog(mockKubeController, kubeClient, smi.NewFakeMeshSpecClient(), certManager,

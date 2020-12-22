@@ -69,7 +69,6 @@ func newConfigurator(kubeClient kubernetes.Interface, stop <-chan struct{}, osmN
 		informer:         informer,
 		cache:            informer.GetStore(),
 		cacheSynced:      make(chan interface{}),
-		announcements:    make(chan a.Announcement),
 		osmNamespace:     osmNamespace,
 		osmConfigMapName: osmConfigMapName,
 	}
@@ -81,7 +80,7 @@ func newConfigurator(kubeClient kubernetes.Interface, stop <-chan struct{}, osmN
 		Update: a.ConfigMapUpdated,
 		Delete: a.ConfigMapDeleted,
 	}
-	informer.AddEventHandler(k8s.GetKubernetesEventHandlers(informerName, providerName, client.announcements, nil, nil, eventTypes))
+	informer.AddEventHandler(k8s.GetKubernetesEventHandlers(informerName, providerName, nil, eventTypes))
 
 	// Start listener
 	go client.configMapListener()

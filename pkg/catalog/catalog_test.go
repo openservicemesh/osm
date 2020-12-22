@@ -16,18 +16,4 @@ var _ = Describe("Test catalog functions", func() {
 			Expect(smiSpec).ToNot(BeNil())
 		})
 	})
-
-	Context("Test getAnnouncementChannels()", func() {
-		It("provides the SMI Spec component via Mesh Catalog", func() {
-			chans := mc.getAnnouncementChannels()
-
-			// Current channels are MeshSpec, CertManager, IngressMonitor, Ticker, Services
-			expectedNumberOfChannels := 5
-			Expect(len(chans)).To(Equal(expectedNumberOfChannels))
-			for _, aChannel := range chans {
-				Expect(len(aChannel.announcer)).ToNot(BeZero())
-				Expect(aChannel.channel).ToNot(BeNil())
-			}
-		})
-	})
 })

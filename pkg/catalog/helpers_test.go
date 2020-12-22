@@ -123,7 +123,6 @@ func newFakeMeshCatalogForRoutes(t *testing.T, testParams testParams) *MeshCatal
 
 		return vv
 	}).AnyTimes()
-	mockKubeController.EXPECT().GetAnnouncementsChannel(k8s.Services).Return(announcementsChan).AnyTimes()
 	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookstoreV1Service.Namespace).Return(true).AnyTimes()
 	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookstoreV2Service.Namespace).Return(true).AnyTimes()
 	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).AnyTimes()
@@ -131,7 +130,6 @@ func newFakeMeshCatalogForRoutes(t *testing.T, testParams testParams) *MeshCatal
 
 	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(testParams.permissiveMode).AnyTimes()
 
-	mockMeshSpec.EXPECT().GetAnnouncementsChannel().Return(announcementsChan).AnyTimes()
 	mockMeshSpec.EXPECT().ListTrafficTargets().Return([]*target.TrafficTarget{&tests.TrafficTarget}).AnyTimes()
 	mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return([]*specs.HTTPRouteGroup{&tests.HTTPRouteGroup}).AnyTimes()
 

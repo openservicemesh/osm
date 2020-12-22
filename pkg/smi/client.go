@@ -150,28 +150,28 @@ func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient smiTraf
 		Update: a.TrafficSplitUpdated,
 		Delete: a.TrafficSplitDeleted,
 	}
-	informerCollection.TrafficSplit.AddEventHandler(k8s.GetKubernetesEventHandlers("TrafficSplit", "SMI", client.announcements, shouldObserve, nil, splitEventTypes))
+	informerCollection.TrafficSplit.AddEventHandler(k8s.GetKubernetesEventHandlers("TrafficSplit", "SMI", shouldObserve, splitEventTypes))
 
 	routeGroupEventTypes := k8s.EventTypes{
 		Add:    a.RouteGroupAdded,
 		Update: a.RouteGroupUpdated,
 		Delete: a.RouteGroupDeleted,
 	}
-	informerCollection.HTTPRouteGroup.AddEventHandler(k8s.GetKubernetesEventHandlers("HTTPRouteGroup", "SMI", client.announcements, shouldObserve, nil, routeGroupEventTypes))
+	informerCollection.HTTPRouteGroup.AddEventHandler(k8s.GetKubernetesEventHandlers("HTTPRouteGroup", "SMI", shouldObserve, routeGroupEventTypes))
 
 	tcpRouteEventTypes := k8s.EventTypes{
 		Add:    a.TCPRouteAdded,
 		Update: a.TCPRouteUpdated,
 		Delete: a.TCPRouteDeleted,
 	}
-	informerCollection.TCPRoute.AddEventHandler(k8s.GetKubernetesEventHandlers("TCPRoute", "SMI", client.announcements, shouldObserve, nil, tcpRouteEventTypes))
+	informerCollection.TCPRoute.AddEventHandler(k8s.GetKubernetesEventHandlers("TCPRoute", "SMI", shouldObserve, tcpRouteEventTypes))
 
 	trafficTargetEventTypes := k8s.EventTypes{
 		Add:    a.TrafficTargetAdded,
 		Update: a.TrafficTargetUpdated,
 		Delete: a.TrafficTargetDeleted,
 	}
-	informerCollection.TrafficTarget.AddEventHandler(k8s.GetKubernetesEventHandlers("TrafficTarget", "SMI", client.announcements, shouldObserve, nil, trafficTargetEventTypes))
+	informerCollection.TrafficTarget.AddEventHandler(k8s.GetKubernetesEventHandlers("TrafficTarget", "SMI", shouldObserve, trafficTargetEventTypes))
 
 	if featureflags.IsBackpressureEnabled() {
 		backpressureEventTypes := k8s.EventTypes{
@@ -179,7 +179,7 @@ func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient smiTraf
 			Update: a.BackpressureUpdated,
 			Delete: a.BackpressureDeleted,
 		}
-		informerCollection.Backpressure.AddEventHandler(k8s.GetKubernetesEventHandlers("Backpressure", "SMI", client.announcements, shouldObserve, nil, backpressureEventTypes))
+		informerCollection.Backpressure.AddEventHandler(k8s.GetKubernetesEventHandlers("Backpressure", "SMI", shouldObserve, backpressureEventTypes))
 	}
 
 	err := client.run(stop)
