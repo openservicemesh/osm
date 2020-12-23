@@ -1,21 +1,18 @@
 package injector
 
 import (
-	"context"
 	"encoding/base64"
 	"fmt"
 	"strconv"
 
+	ghyaml "github.com/ghodss/yaml"
 	"gopkg.in/yaml.v2"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
-func getEnvoyConfigYAML(config envoyBootstrapConfigMeta, cfg configurator.Configurator) ([]byte, error) {
+func getEnvoyConfigYAML(config envoyBootstrapConfigMeta) ([]byte, []byte, error) {
 	m := map[interface{}]interface{}{
 		"admin": map[string]interface{}{
 			"access_log_path": "/dev/stdout",
@@ -56,9 +53,16 @@ func getEnvoyConfigYAML(config envoyBootstrapConfigMeta, cfg configurator.Config
 	configYAML, err := yaml.Marshal(&m)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshaling Envoy config struct into YAML")
-		return nil, err
+		return nil, nil, err
 	}
-	return configYAML, err
+
+	configJSON, err := ghyaml.YAMLToJSON(configYAML)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error converting YAML to JSON")
+		return nil, nil, err
+	}
+
+	return configYAML, configJSON, err
 }
 
 func getStaticResources(config envoyBootstrapConfigMeta) map[string]interface{} {
@@ -73,7 +77,7 @@ func getStaticResources(config envoyBootstrapConfigMeta) map[string]interface{} 
 	return staticResources
 }
 
-func (wh *webhook) createEnvoyBootstrapConfig(name, namespace, osmNamespace string, cert certificate.Certificater) (*corev1.Secret, error) {
+func getEnvoyBootstrapConfig(osmNamespace string, cert certificate.Certificater) ([]byte, error) {
 	configMeta := envoyBootstrapConfigMeta{
 		EnvoyAdminPort: constants.EnvoyAdminPort,
 		XDSClusterName: constants.OSMControllerName,
@@ -85,28 +89,13 @@ func (wh *webhook) createEnvoyBootstrapConfig(name, namespace, osmNamespace stri
 		XDSHost: fmt.Sprintf("%s.%s.svc.cluster.local", constants.OSMControllerName, osmNamespace),
 		XDSPort: constants.OSMControllerPort,
 	}
-	yamlContent, err := getEnvoyConfigYAML(configMeta, wh.configurator)
+	_, jsonConfig, err := getEnvoyConfigYAML(configMeta)
 	if err != nil {
 		log.Error().Err(err).Msg("Error creating Envoy bootstrap YAML")
 		return nil, err
 	}
 
-	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
-		Data: map[string][]byte{
-			envoyBootstrapConfigFile: yamlContent,
-		},
-	}
-	if existing, err := wh.kubeClient.CoreV1().Secrets(namespace).Get(context.Background(), name, metav1.GetOptions{}); err == nil {
-		log.Info().Msgf("Updating bootstrap config Envoy: name=%s, namespace=%s", name, namespace)
-		existing.Data = secret.Data
-		return wh.kubeClient.CoreV1().Secrets(namespace).Update(context.Background(), existing, metav1.UpdateOptions{})
-	}
-
-	log.Info().Msgf("Creating bootstrap config for Envoy: name=%s, namespace=%s", name, namespace)
-	return wh.kubeClient.CoreV1().Secrets(namespace).Create(context.Background(), secret, metav1.CreateOptions{})
+	return jsonConfig, err
 }
 
 func getXdsCluster(config envoyBootstrapConfigMeta) map[string]interface{} {

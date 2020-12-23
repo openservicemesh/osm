@@ -16,6 +16,7 @@ require (
 	github.com/dustin/go-humanize v1.0.0
 	github.com/envoyproxy/go-control-plane v0.9.6
 	github.com/fatih/color v1.10.0
+	github.com/ghodss/yaml v1.0.0
 	github.com/golang/mock v1.3.1
 	github.com/golang/protobuf v1.4.3
 	github.com/golangci/golangci-lint v1.32.2

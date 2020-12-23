@@ -11,10 +11,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/logger"
 )
 
-const (
-	envoyBootstrapConfigVolume = "envoy-bootstrap-config-volume"
-)
-
 var log = logger.New("sidecar-injector")
 
 // webhook is the type used to represent the webhook for sidecar injection

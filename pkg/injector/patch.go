@@ -30,14 +30,11 @@ func (wh *webhook) createPatch(pod *corev1.Pod, req *v1beta1.AdmissionRequest, p
 	wh.meshCatalog.ExpectProxy(cn)
 
 	// Create the bootstrap configuration for the Envoy proxy for the given pod
-	envoyBootstrapConfigName := fmt.Sprintf("envoy-bootstrap-config-%s", proxyUUID)
-	if _, err = wh.createEnvoyBootstrapConfig(envoyBootstrapConfigName, namespace, wh.osmNamespace, bootstrapCertificate); err != nil {
+	envoyBootstrapConfig, err := getEnvoyBootstrapConfig(wh.osmNamespace, bootstrapCertificate)
+	if err != nil {
 		log.Error().Err(err).Msg("Failed to create bootstrap config for Envoy sidecar")
 		return nil, err
 	}
-
-	// Create volume for envoy TLS secret
-	pod.Spec.Volumes = getVolumeSpec(envoyBootstrapConfigName)
 
 	// Add the Init Container
 	initContainer := getInitContainerSpec(constants.InitContainerName, wh.config.InitContainerImage)
@@ -50,7 +47,7 @@ func (wh *webhook) createPatch(pod *corev1.Pod, req *v1beta1.AdmissionRequest, p
 	envoyClusterID := fmt.Sprintf("%s.%s", pod.Spec.ServiceAccountName, namespace)
 
 	// Add the Envoy sidecar
-	sidecar := getEnvoySidecarContainerSpec(constants.EnvoyContainerName, wh.config.SidecarImage, envoyNodeID, envoyClusterID, wh.configurator)
+	sidecar := getEnvoySidecarContainerSpec(constants.EnvoyContainerName, wh.config.SidecarImage, envoyNodeID, envoyClusterID, string(envoyBootstrapConfig), wh.configurator)
 	pod.Spec.Containers = append(pod.Spec.Containers, sidecar)
 
 	enableMetrics, err := wh.isMetricsEnabled(namespace)

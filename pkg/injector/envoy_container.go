@@ -1,8 +1,6 @@
 package injector
 
 import (
-	"strings"
-
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -10,12 +8,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy"
 )
 
-const (
-	envoyBootstrapConfigFile = "bootstrap.yaml"
-	envoyProxyConfigPath     = "/etc/envoy"
-)
-
-func getEnvoySidecarContainerSpec(containerName, envoyImage, nodeID, clusterID string, cfg configurator.Configurator) corev1.Container {
+func getEnvoySidecarContainerSpec(containerName, envoyImage, nodeID, clusterID, envoyConfig string, cfg configurator.Configurator) corev1.Container {
 	return corev1.Container{
 		Name:            containerName,
 		Image:           envoyImage,
@@ -36,15 +29,10 @@ func getEnvoySidecarContainerSpec(containerName, envoyImage, nodeID, clusterID s
 			Name:          constants.EnvoyInboundPrometheusListenerPortName,
 			ContainerPort: constants.EnvoyPrometheusInboundListenerPort,
 		}},
-		VolumeMounts: []corev1.VolumeMount{{
-			Name:      envoyBootstrapConfigVolume,
-			ReadOnly:  true,
-			MountPath: envoyProxyConfigPath,
-		}},
 		Command: []string{"envoy"},
 		Args: []string{
 			"--log-level", cfg.GetEnvoyLogLevel(),
-			"--config-path", strings.Join([]string{envoyProxyConfigPath, envoyBootstrapConfigFile}, "/"),
+			"--config-yaml", envoyConfig,
 			"--service-node", envoy.GetEnvoyServiceNodeID(nodeID),
 			"--service-cluster", clusterID,
 			"--bootstrap-version 3",
