@@ -1,6 +1,6 @@
 #!/bin/bash
 
-./scripts/port-forward-zipkin.sh &
+./scripts/port-forward-jaeger.sh &
 ./scripts/port-forward-bookbuyer-ui.sh &
 ./scripts/port-forward-bookstore-ui-v2.sh &
 ./scripts/port-forward-bookstore-ui-v1.sh &

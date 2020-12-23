@@ -9,15 +9,12 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/rotor"
 )
 
-func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod *time.Duration) (certificate.Certificater, error) {
-	if validityPeriod == nil {
-		validityPeriod = &cm.validityPeriod
-	}
-
+func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Duration) (certificate.Certificater, error) {
 	if cm.ca == nil {
 		log.Error().Msgf("Invalid CA provided for issuance of certificate with CN=%s", cn)
 		return nil, errNoIssuingCA
@@ -45,7 +42,7 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod *time.Dur
 			Organization: []string{cm.certificatesOrganization},
 		},
 		NotBefore: now,
-		NotAfter:  now.Add(*validityPeriod),
+		NotAfter:  now.Add(validityPeriod),
 
 		KeyUsage:              x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
@@ -84,7 +81,7 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod *time.Dur
 		commonName: cn,
 		certChain:  certPEM,
 		privateKey: privKeyPEM,
-		issuingCA:  cm.ca,
+		issuingCA:  cm.ca.GetCertificateChain(),
 		expiration: template.NotAfter,
 	}
 
@@ -93,10 +90,13 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod *time.Dur
 	return cert, nil
 }
 
+func (cm *CertManager) deleteFromCache(cn certificate.CommonName) {
+	cm.cache.Delete(cn)
+}
+
 func (cm *CertManager) getFromCache(cn certificate.CommonName) certificate.Certificater {
-	cm.cacheLock.Lock()
-	defer cm.cacheLock.Unlock()
-	if cert, exists := (*cm.cache)[cn]; exists {
+	if certInterface, exists := cm.cache.Load(cn); exists {
+		cert := certInterface.(certificate.Certificater)
 		log.Trace().Msgf("Certificate found in cache CN=%s", cn)
 		if rotor.ShouldRotate(cert) {
 			log.Trace().Msgf("Certificate found in cache but has expired CN=%s", cn)
@@ -108,7 +108,7 @@ func (cm *CertManager) getFromCache(cn certificate.CommonName) certificate.Certi
 }
 
 // IssueCertificate implements certificate.Manager and returns a newly issued certificate.
-func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPeriod *time.Duration) (certificate.Certificater, error) {
+func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPeriod time.Duration) (certificate.Certificater, error) {
 	start := time.Now()
 
 	if cert := cm.getFromCache(cn); cert != nil {
@@ -120,13 +120,17 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 		return cert, err
 	}
 
-	cm.cacheLock.Lock()
-	(*cm.cache)[cn] = cert
-	cm.cacheLock.Unlock()
+	cm.cache.Store(cn, cert)
 
 	log.Info().Msgf("It took %+v to issue certificate with CN=%s", time.Since(start), cn)
 
 	return cert, nil
+}
+
+// ReleaseCertificate is called when a cert will no longer be needed and should be removed from the system.
+func (cm *CertManager) ReleaseCertificate(cn certificate.CommonName) {
+	log.Trace().Msgf("Releasing certificate %s", cn)
+	cm.deleteFromCache(cn)
 }
 
 // GetCertificate returns a certificate given its Common Name (CN)
@@ -143,15 +147,13 @@ func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate
 
 	start := time.Now()
 
-	cert, err := cm.issue(cn, &cm.validityPeriod)
+	cert, err := cm.issue(cn, cm.cfg.GetServiceCertValidityPeriod())
 	if err != nil {
 		return cert, err
 	}
 
-	cm.cacheLock.Lock()
-	(*cm.cache)[cn] = cert
-	cm.cacheLock.Unlock()
-	cm.announcements <- nil
+	cm.cache.Store(cn, cert)
+	cm.announcements <- announcements.Announcement{}
 
 	log.Info().Msgf("Rotating certificate CN=%s took %+v", cn, time.Since(start))
 
@@ -161,11 +163,10 @@ func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate
 // ListCertificates lists all certificates issued
 func (cm *CertManager) ListCertificates() ([]certificate.Certificater, error) {
 	var certs []certificate.Certificater
-	cm.cacheLock.Lock()
-	for _, cert := range *cm.cache {
-		certs = append(certs, cert)
-	}
-	cm.cacheLock.Unlock()
+	cm.cache.Range(func(cn interface{}, certInterface interface{}) bool {
+		certs = append(certs, certInterface.(certificate.Certificater))
+		return true
+	})
 	return certs, nil
 }
 
@@ -175,6 +176,6 @@ func (cm *CertManager) GetRootCertificate() (certificate.Certificater, error) {
 }
 
 // GetAnnouncementsChannel implements certificate.Manager and returns the channel on which the certificate manager announces changes made to certificates.
-func (cm *CertManager) GetAnnouncementsChannel() <-chan interface{} {
+func (cm *CertManager) GetAnnouncementsChannel() <-chan announcements.Announcement {
 	return cm.announcements
 }

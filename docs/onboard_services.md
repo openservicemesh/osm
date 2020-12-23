@@ -2,7 +2,7 @@
 The following guide describes how to onboard a Kubernetes microservice to an OSM instance.
 
 
-1. Configure and Install [Service Mesh Interface (SMI) policies](https://github.com/servicemeshinterface/smi-spec) 
+1. Configure and Install [Service Mesh Interface (SMI) policies](https://github.com/servicemeshinterface/smi-spec)
 
     OSM conforms to the SMI specification. By default, OSM denies all traffic communications between Kubernetes services unless explicitly allowed by SMI policies. This behavior can be overridden with the `--enable-permissive-traffic-policy` flag on the `osm install` command, allowing SMI policies not to be enforced while allowing traffic and services to still take advantage of features such as mTLS-encrypted traffic, metrics, and tracing.
 
@@ -19,7 +19,17 @@ The following guide describes how to onboard a Kubernetes microservice to an OSM
     $ kubectl label namespace <namespace> openservicemesh.io/monitored-by=<mesh-name>
     ```
 
-    All newly created pods in the added namespace(s) will automatically have a proxy sidecar container injected. To prevent specific pods from participating in the mesh, they can easily be labeled to prevent the sidecar injection. See the [Sidecar Injection](patterns/sidecar_injection.md) document for more details.
+    By default, the `osm namespace add` command enables automatic sidecar injection for pods in the namespace.
+    This does the equivalent of the following:
+
+    ```console
+    $ kubectl label namespace <namespace> openservicemesh.io/monitored-by=<mesh-name>
+    $ kubectl annotate namespace <namespace> openservicemesh.io/sidecar-injection=enabled
+    ```
+
+    To disable automatic sidecar injection as a part of enrolling a namespace into the mesh, use `osm namespace add <namespace> --disable-sidecar-injection`.
+
+    Once a namespace has been onboarded, pods can be enrolled in the mesh by configuring automatic sidecar injection. See the [Sidecar Injection](patterns/sidecar_injection.md) document for more details.
 
     For an example on how to onboard and join namespaces to the OSM mesh, please see the following example:
     - [demo/join-namespaces.sh](/demo/join-namespaces.sh)

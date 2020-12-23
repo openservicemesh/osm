@@ -30,7 +30,7 @@ type portForward struct {
 	Ready chan struct{}
 }
 
-func (ds debugServer) forwardPort(req portForward) {
+func (ds debugConfig) forwardPort(req portForward) {
 	log.Info().Msgf("Start port forward to podIP=%s on PodPort=%d to LocalPort=%d", req.Pod.Status.PodIP, req.PodPort, req.LocalPort)
 	path := fmt.Sprintf("/api/v1/namespaces/%s/pods/%s/portforward", req.Pod.Namespace, req.Pod.Name)
 	hostIP := strings.TrimLeft(ds.kubeConfig.Host, "htps:/")
@@ -58,5 +58,4 @@ func (ds debugServer) forwardPort(req portForward) {
 	if err = fw.ForwardPorts(); err != nil {
 		log.Error().Err(err)
 	}
-
 }

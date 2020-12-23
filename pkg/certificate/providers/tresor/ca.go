@@ -68,7 +68,7 @@ func NewCA(cn certificate.CommonName, validityPeriod time.Duration, rootCertCoun
 		expiration: template.NotAfter,
 	}
 
-	rootCertificate.issuingCA = rootCertificate
+	rootCertificate.issuingCA = rootCertificate.GetCertificateChain()
 
 	return &rootCertificate, nil
 }
@@ -82,7 +82,7 @@ func NewCertificateFromPEM(pemCert pem.Certificate, pemKey pem.PrivateKey, expir
 		expiration: expiration,
 	}
 
-	rootCertificate.issuingCA = rootCertificate
+	rootCertificate.issuingCA = rootCertificate.GetCertificateChain()
 
 	return &rootCertificate, nil
 }

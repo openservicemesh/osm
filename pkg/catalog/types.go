@@ -5,20 +5,20 @@ import (
 	"sync"
 	"time"
 
-	mapset "github.com/deckarep/golang-set"
+	"github.com/google/uuid"
 	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha3"
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 
+	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/ingress"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/logger"
-	"github.com/openservicemesh/osm/pkg/namespace"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -36,22 +36,21 @@ type MeshCatalog struct {
 	ingressMonitor     ingress.Monitor
 	configurator       configurator.Configurator
 
-	expectedProxies     map[certificate.CommonName]expectedProxy
-	expectedProxiesLock sync.Mutex
-
-	connectedProxies     map[certificate.CommonName]connectedProxy
-	connectedProxiesLock sync.Mutex
-
-	disconnectedProxies     map[certificate.CommonName]disconnectedProxy
-	disconnectedProxiesLock sync.Mutex
-
-	announcementChannels mapset.Set
+	expectedProxies     sync.Map
+	connectedProxies    sync.Map
+	disconnectedProxies sync.Map
 
 	// Current assumption is that OSM is working with a single Kubernetes cluster.
-	// This here is the client to that cluster.
+	// This is the API/REST interface to the cluster
 	kubeClient kubernetes.Interface
 
-	namespaceController namespace.Controller
+	// This is the kubernetes client that operates async caches to avoid issuing synchronous
+	// calls through kubeClient and instead relies on background cache synchronization and local
+	// lookups
+	kubeController k8s.Controller
+
+	// Maintain a mapping of pod UID to CN of the Envoy on that pod
+	podUIDToCN sync.Map
 }
 
 // MeshCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
@@ -68,24 +67,41 @@ type MeshCataloger interface {
 	// ListAllowedOutboundServices lists the services the given service is allowed outbound connections to.
 	ListAllowedOutboundServices(service.MeshService) ([]service.MeshServicePort, error)
 
-	// ListSMIPolicies lists SMI policies.
-	ListSMIPolicies() ([]*split.TrafficSplit, []service.WeightedService, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget, []*corev1.Service)
+	// ListAllowedInboundServiceAccounts lists the downstream service accounts that can connect to the given service account
+	ListAllowedInboundServiceAccounts(service.K8sServiceAccount) ([]service.K8sServiceAccount, error)
 
-	// ListEndpointsForService returns the list of provider endpoints corresponding to a service
+	// ListAllowedOutboundServiceAccounts lists the upstream service accounts the given service account can connect to
+	ListAllowedOutboundServiceAccounts(service.K8sServiceAccount) ([]service.K8sServiceAccount, error)
+
+	// ListServiceAccountsForService lists the service accounts associated with the given service
+	ListServiceAccountsForService(service.MeshService) ([]service.K8sServiceAccount, error)
+
+	// ListSMIPolicies lists SMI policies.
+	ListSMIPolicies() ([]*split.TrafficSplit, []service.WeightedService, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget)
+
+	// ListEndpointsForService returns the list of individual instance endpoint backing a service
 	ListEndpointsForService(service.MeshService) ([]endpoint.Endpoint, error)
 
+<<<<<<< HEAD
 	// ListLocalClusterEndpoints returns the list of endpoints for this kubernetes cluster
 	ListLocalClusterEndpoints() (map[string][]EndpointJSON, error)
 
 	// GetCertificateForService returns the SSL Certificate for the given service.
 	// This certificate will be used for service-to-service mTLS.
 	GetCertificateForService(service.MeshService) (certificate.Certificater, error)
+=======
+	// GetResolvableServiceEndpoints returns the resolvable set of endpoint over which a service is accessible using its FQDN.
+	// These are the endpoint destinations we'd expect client applications sends the traffic towards to, when attemtpting to
+	// reach a specific service.
+	// If no LB/virtual IPs are assigned to the service, GetResolvableServiceEndpoints will return ListEndpointsForService
+	GetResolvableServiceEndpoints(service.MeshService) ([]endpoint.Endpoint, error)
+>>>>>>> d8b189c3bbeb430f8827cd653a07b0a1fc07ae22
 
 	// ExpectProxy catalogs the fact that a certificate was issued for an Envoy proxy and this is expected to connect to XDS.
 	ExpectProxy(certificate.CommonName)
 
-	// GetServiceFromEnvoyCertificate returns the single service given Envoy is a member of based on the certificate provided, which is a cert issued to an Envoy for XDS communication (not Envoy-to-Envoy).
-	GetServiceFromEnvoyCertificate(certificate.CommonName) (*service.MeshService, error)
+	// GetServicesFromEnvoyCertificate returns a list of services the given Envoy is a member of based on the certificate provided, which is a cert issued to an Envoy for XDS communication (not Envoy-to-Envoy).
+	GetServicesFromEnvoyCertificate(certificate.CommonName) ([]service.MeshService, error)
 
 	// RegisterProxy registers a newly connected proxy with the service mesh catalog.
 	RegisterProxy(*envoy.Proxy)
@@ -96,29 +112,38 @@ type MeshCataloger interface {
 	// GetServicesForServiceAccount returns a list of services corresponding to a service account
 	GetServicesForServiceAccount(service.K8sServiceAccount) ([]service.MeshService, error)
 
-	// GetHostnamesForService returns the hostnames for a service
-	// TODO(ref: PR #1316): return a list of strings
-	GetHostnamesForService(service service.MeshService) (string, error)
+	// GetResolvableHostnamesForUpstreamService returns the hostnames over which an upstream service is accessible from a downstream service
+	GetResolvableHostnamesForUpstreamService(downstream, upstream service.MeshService) ([]string, error)
 
 	//GetWeightedClusterForService returns the weighted cluster for a service
 	GetWeightedClusterForService(service service.MeshService) (service.WeightedCluster, error)
 
+<<<<<<< HEAD
 	//GetWeightedClusterForServicePort returns the weighted cluster for a ServicePort
 	GetWeightedClusterForServicePort(service service.MeshServicePort) (service.WeightedCluster, error)
 
 	// GetIngressRoutesPerHost returns the routes per host associated with an ingress service
 	GetIngressRoutesPerHost(service.MeshService) (map[string][]trafficpolicy.Route, error)
+=======
+	// GetIngressRoutesPerHost returns the HTTP route matches per host associated with an ingress service
+	GetIngressRoutesPerHost(service.MeshService) (map[string][]trafficpolicy.HTTPRouteMatch, error)
+>>>>>>> d8b189c3bbeb430f8827cd653a07b0a1fc07ae22
 
 	// ListMonitoredNamespaces lists namespaces monitored by the control plane
 	ListMonitoredNamespaces() []string
 
+<<<<<<< HEAD
 	// GetProvider returns provider given providerName
 	GetProvider(ident string) endpoint.Provider
+=======
+	// GetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol
+	GetPortToProtocolMappingForService(service.MeshService) (map[uint32]string, error)
+>>>>>>> d8b189c3bbeb430f8827cd653a07b0a1fc07ae22
 }
 
 type announcementChannel struct {
 	announcer string
-	channel   <-chan interface{}
+	channel   <-chan announcements.Announcement
 }
 
 type expectedProxy struct {
@@ -140,16 +165,16 @@ type disconnectedProxy struct {
 
 // certificateCommonNameMeta is the type that stores the metadata present in the CommonName field in a proxy's certificate
 type certificateCommonNameMeta struct {
-	ProxyID        string
+	ProxyUUID      uuid.UUID
 	ServiceAccount string
 	Namespace      string
 }
 
-type direction string
+type trafficDirection string
 
 const (
-	inbound  direction = "inbound"
-	outbound direction = "outbound"
+	inbound  trafficDirection = "inbound"
+	outbound trafficDirection = "outbound"
 )
 
 type EndpointJSON struct {

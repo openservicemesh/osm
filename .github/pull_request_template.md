@@ -1,7 +1,17 @@
+<!--
+
 Please describe the motivation for this PR and provide enough
 information so that others can review it.
 
+-->
+**Description**:
+
+<!--
+
 Please mark with X for applicable areas.
+
+-->
+**Affected area**:
 
 - New Functionality      [ ]
 - Documentation          [ ]
@@ -13,8 +23,11 @@ Please mark with X for applicable areas.
 - Metrics                [ ]
 - SMI Policy             [ ]
 - Security               [ ]
-- Tests / CI System      [ ]
+- Tests                  [ ]
+- CI System              [ ]
+- Performance            [ ]
 - Other                  [ ]
+
 
 Please answer the following questions with yes/no.
 

@@ -9,5 +9,5 @@ import (
 
 func TestADSMain(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Test Suite")
+	RunSpecs(t, "ADSMain Test Suite")
 }

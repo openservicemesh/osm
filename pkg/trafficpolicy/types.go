@@ -2,6 +2,7 @@ package trafficpolicy
 
 import (
 	set "github.com/deckarep/golang-set"
+
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -11,23 +12,51 @@ type TrafficSpecName string
 // TrafficSpecMatchName is the  name of a match in SMI TrafficSpec
 type TrafficSpecMatchName string
 
-// Route is a struct of a path regex and the methods on a given route
-type Route struct {
+// HTTPRouteMatch is a struct to represent an HTTP route match comprised of a path regex, methods, and headers
+type HTTPRouteMatch struct {
 	PathRegex string            `json:"path_regex:omitempty"`
 	Methods   []string          `json:"methods:omitempty"`
 	Headers   map[string]string `json:"headers:omitempty"`
 }
 
-// TrafficTarget is a struct of the allowed RoutePaths from sources to a destination
+// TrafficTarget is a struct to represent a traffic policy between a source and destination along with its routes
 type TrafficTarget struct {
+<<<<<<< HEAD
 	Name        string                  `json:"name:omitempty"`
 	Destination service.MeshServicePort `json:"destination:omitempty"`
 	Source      service.MeshService     `json:"source:omitempty"`
 	Route       Route                   `json:"route:omitempty"`
+=======
+	Name             string              `json:"name:omitempty"`
+	Destination      service.MeshService `json:"destination:omitempty"`
+	Source           service.MeshService `json:"source:omitempty"`
+	HTTPRouteMatches []HTTPRouteMatch    `json:"http_route_matches:omitempty"`
+>>>>>>> d8b189c3bbeb430f8827cd653a07b0a1fc07ae22
 }
 
-//RouteWeightedClusters is a struct of a route and the weighted clusters on that route
+// RouteWeightedClusters is a struct of an HTTPRoute, associated weighted clusters and the domains
 type RouteWeightedClusters struct {
-	Route            Route   `json:"route:omitempty"`
-	WeightedClusters set.Set `json:"weighted_clusters:omitempty"`
+	HTTPRouteMatch   HTTPRouteMatch `json:"http_route_match:omitempty"`
+	WeightedClusters set.Set        `json:"weighted_clusters:omitempty"`
+	Hostnames        set.Set        `json:"hostnames:omitempty"` // TODO remove hostnames as part of #2034
+}
+
+// InboundTrafficPolicy is a struct that associates incoming traffic on a set of Hostnames with a list of Rules
+type InboundTrafficPolicy struct {
+	Name      string   `json:"name:omitempty"`
+	Hostnames []string `json:"hostnames"`
+	Rules     []*Rule  `json:"rules:omitempty"`
+}
+
+// Rule is a struct that represents which Service Accounts can access a Route
+type Rule struct {
+	Route                  RouteWeightedClusters `json:"route:omitempty"`
+	AllowedServiceAccounts set.Set               `json:"allowed_service_accounts:omitempty"`
+}
+
+// OutboundTrafficPolicy is a struct that associates a list of Routes with outbound traffic on a set of Hostnames
+type OutboundTrafficPolicy struct {
+	Name      string                   `json:"name:omitempty"`
+	Hostnames []string                 `json:"hostnames"`
+	Routes    []*RouteWeightedClusters `json:"routes:omitempty"`
 }

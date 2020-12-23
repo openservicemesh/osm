@@ -7,11 +7,14 @@ import (
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/pkg/errors"
 
+	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 	"github.com/openservicemesh/osm/pkg/utils"
 )
 
 // StreamAggregatedResources handles streaming of the clusters to the connected Envoy proxies
+// This is evaluated once per new Envoy proxy connecting and remains running for the duration of the gRPC socket.
 func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer) error {
 	// When a new Envoy proxy connects, ValidateClient would ensure that it has a valid certificate,
 	// and the Subject CN is in the allowedCommonNames set.
@@ -24,13 +27,17 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 
 	ip := utils.GetIPFromContext(server.Context())
 
-	namespacedService, err := s.catalog.GetServiceFromEnvoyCertificate(cn)
+	svcList, err := s.catalog.GetServicesFromEnvoyCertificate(cn)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error fetching service for Envoy %s with CN %s", ip, cn)
 		return err
 	}
+	// Github Issue #1575
+	namespacedService := svcList[0]
+
 	log.Info().Msgf("Client %s connected: Subject CN=%s; Service=%s", ip, cn, namespacedService)
 
+	// This is the Envoy proxy that just connected to the control plane.
 	proxy := envoy.NewProxy(cn, ip)
 	s.catalog.RegisterProxy(proxy)
 	defer s.catalog.UnregisterProxy(proxy)
@@ -43,10 +50,12 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 
 	// This helper handles receiving messages from the connected Envoys
 	// and any gRPC error states.
-	go receive(requests, &server, proxy, quit)
+	go receive(requests, &server, proxy, quit, s.catalog)
+
+	// Register to Envoy global broadcast updates
+	broadcastUpdate := events.GetPubSubInstance().Subscribe(announcements.ProxyBroadcast)
 
 	for {
-
 		select {
 		case <-ctx.Done():
 			return nil
@@ -56,7 +65,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			return nil
 
 		case discoveryRequest, ok := <-requests:
-			log.Info().Msgf("Received %s (nonce=%s; version=%s) from Envoy %s", discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, proxy.GetCommonName())
+			log.Info().Msgf("Received %s (nonce=%s; version=%s; resources=%v) from Envoy %s", discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, discoveryRequest.ResourceNames, proxy.GetCommonName())
 			log.Info().Msgf("Last sent for %s nonce=%s; last sent version=%s for Envoy %s", discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, proxy.GetCommonName())
 			if !ok {
 				log.Error().Msgf("Proxy %s closed GRPC!", proxy.GetCommonName())
@@ -105,7 +114,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			// interpreted as an acknowledgement of a previously sent request.
 			// Such DiscoveryRequest requires no further action.
 			if ackVersion > 0 && ackVersion <= proxy.GetLastSentVersion(typeURL) {
-				log.Debug().Msgf("Request %s VersionInfo (%d) <= last sent VersionInfo (%d); ACK", typeURL, ackVersion, proxy.GetLastSentVersion(typeURL))
+				log.Debug().Msgf("Skipping request %s for resources (%v),  VersionInfo (%d) <= last sent VersionInfo (%d); ACK", typeURL, discoveryRequest.ResourceNames, ackVersion, proxy.GetLastSentVersion(typeURL))
 				continue
 			}
 
@@ -129,7 +138,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			if discoveryRequest.ResponseNonce != "" {
 				log.Debug().Msgf("Received discovery request with Nonce=%s; matches=%t; proxy last Nonce=%s", discoveryRequest.ResponseNonce, discoveryRequest.ResponseNonce == lastNonce, lastNonce)
 			}
-			log.Info().Msgf("Received discovery request <%s> from Envoy <%s> with Nonce=%s", discoveryRequest.TypeUrl, proxy, discoveryRequest.ResponseNonce)
+			log.Info().Msgf("Received discovery request <%s> for resources (%v) from Envoy <%s> with Nonce=%s", discoveryRequest.TypeUrl, discoveryRequest.ResourceNames, proxy, discoveryRequest.ResponseNonce)
 
 			resp, err := s.newAggregatedDiscoveryResponse(proxy, &discoveryRequest, s.cfg)
 			if err != nil {
@@ -141,10 +150,13 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 				log.Error().Err(err).Msgf("Error sending DiscoveryResponse")
 			}
 
-		case <-proxy.GetAnnouncementsChannel():
-			log.Info().Msgf("Change detected - update all Envoys.")
+		case <-broadcastUpdate:
+			log.Info().Msgf("Broadcast update received for %s", proxy.GetCommonName())
 			s.sendAllResponses(proxy, &server, s.cfg)
 
+		case <-proxy.GetAnnouncementsChannel():
+			log.Info().Msgf("Individual update for %s", proxy.GetCommonName())
+			s.sendAllResponses(proxy, &server, s.cfg)
 		}
 	}
 }

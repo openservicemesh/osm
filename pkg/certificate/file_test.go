@@ -45,7 +45,6 @@ func getPrivateKeyFixture() *rsa.PrivateKey {
 			CRTValues: []rsa.CRTValue{},
 		},
 	}
-
 }
 
 func getX509CertFixture() *x509.Certificate {

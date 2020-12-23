@@ -5,24 +5,17 @@ import (
 	"io"
 
 	"github.com/spf13/cobra"
+
+	"github.com/openservicemesh/osm/pkg/version"
 )
 
 const versionHelp = `
 This command prints out all the version information used by OSM
 `
 
-var (
-	// BuildDate is date when binary was built
-	BuildDate string
-	// BuildVersion is the version of binary
-	BuildVersion string
-	// GitCommit is the commit hash when the binary was built
-	GitCommit string
-)
-
 // PrintCliVersion prints the version
 func PrintCliVersion(out io.Writer) {
-	fmt.Fprintf(out, "Version: %s; Commit: %s; Date: %s\n", BuildVersion, GitCommit, BuildDate)
+	_, _ = fmt.Fprintf(out, "Version: %s; Commit: %s; Date: %s\n", version.Version, version.GitCommit, version.BuildDate)
 }
 
 func newVersionCmd(out io.Writer) *cobra.Command {

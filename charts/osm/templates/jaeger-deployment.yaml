@@ -1,0 +1,33 @@
+{{- if .Values.OpenServiceMesh.deployJaeger }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jaeger
+  labels:
+    app: jaeger
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jaeger
+  template:
+    metadata:
+      labels:
+        app: jaeger
+    spec:
+      containers:
+      - name: jaeger
+        image: jaegertracing/all-in-one
+        args:
+          - --collector.zipkin.host-port={{ .Values.OpenServiceMesh.tracing.port }}
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: {{ .Values.OpenServiceMesh.tracing.port }}
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512M
+          requests:
+            cpu: 100m
+            memory: 256M
+{{- end }}

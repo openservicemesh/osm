@@ -30,3 +30,8 @@ func (c Certificate) GetIssuingCA() []byte {
 func (c Certificate) GetExpiration() time.Time {
 	return c.expiration
 }
+
+// GetSerialNumber returns the serial number of the given certificate.
+func (c Certificate) GetSerialNumber() string {
+	panic("NotImplemented")
+}

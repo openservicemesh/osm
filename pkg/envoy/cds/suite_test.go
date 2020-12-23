@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestEndpoints(t *testing.T) {
+func TestEnvoyCds(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "CDS Test Suite")
+	RunSpecs(t, "Envoy CDS Test Suite")
 }

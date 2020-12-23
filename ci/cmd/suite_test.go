@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestEndpoints(t *testing.T) {
+func TestMaestro(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Maestro Test Suite")
 }

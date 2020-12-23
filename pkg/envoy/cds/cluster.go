@@ -25,6 +25,7 @@ const (
 	clusterConnectTimeout = 1 * time.Second
 )
 
+<<<<<<< HEAD
 // getRemoteServiceCluster returns an Envoy Cluster corresponding to the remote service
 func getRemoteServiceCluster(remoteService, localService service.MeshServicePort, cfg configurator.Configurator) (*xds_cluster.Cluster, error) {
 	clusterName := remoteService.String()
@@ -32,6 +33,13 @@ func getRemoteServiceCluster(remoteService, localService service.MeshServicePort
 	sni := remoteService.GetMeshService().GetCommonName().String()
 	marshalledUpstreamTLSContext, err := envoy.MessageToAny(
 		envoy.GetUpstreamTLSContext(localService.GetMeshService(), sni))
+=======
+// getUpstreamServiceCluster returns an Envoy Cluster corresponding to the given upstream service
+func getUpstreamServiceCluster(upstreamSvc, downstreamSvc service.MeshService, cfg configurator.Configurator) (*xds_cluster.Cluster, error) {
+	clusterName := upstreamSvc.String()
+	marshalledUpstreamTLSContext, err := ptypes.MarshalAny(
+		envoy.GetUpstreamTLSContext(downstreamSvc, upstreamSvc))
+>>>>>>> d8b189c3bbeb430f8827cd653a07b0a1fc07ae22
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +55,10 @@ func getRemoteServiceCluster(remoteService, localService service.MeshServicePort
 				TypedConfig: marshalledUpstreamTLSContext,
 			},
 		},
+<<<<<<< HEAD
 		*/
+=======
+>>>>>>> d8b189c3bbeb430f8827cd653a07b0a1fc07ae22
 		ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
 		Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
 	}
@@ -82,8 +93,34 @@ func getOutboundPassthroughCluster() *xds_cluster.Cluster {
 }
 
 // getLocalServiceCluster returns an Envoy Cluster corresponding to the local service
+<<<<<<< HEAD
 func getLocalServiceCluster(catalog catalog.MeshCataloger, proxyServiceName service.MeshService) ([]*xds_cluster.Cluster, error) {
 	xdsClusters := make([]*xds_cluster.Cluster, 0)
+=======
+func getLocalServiceCluster(catalog catalog.MeshCataloger, proxyServiceName service.MeshService, clusterName string) (*xds_cluster.Cluster, error) {
+	xdsCluster := xds_cluster.Cluster{
+		// The name must match the domain being cURLed in the demo
+		Name:           clusterName,
+		AltStatName:    clusterName,
+		ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
+		LbPolicy:       xds_cluster.Cluster_ROUND_ROBIN,
+		RespectDnsTtl:  true,
+		ClusterDiscoveryType: &xds_cluster.Cluster_Type{
+			Type: xds_cluster.Cluster_STRICT_DNS,
+		},
+		DnsLookupFamily: xds_cluster.Cluster_V4_ONLY,
+		LoadAssignment: &xds_endpoint.ClusterLoadAssignment{
+			// NOTE: results.MeshService is the top level service that is cURLed.
+			ClusterName: clusterName,
+			Endpoints:   []*xds_endpoint.LocalityLbEndpoints{
+				// Filled based on discovered endpoints for the service
+			},
+		},
+		ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
+		Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
+	}
+
+>>>>>>> d8b189c3bbeb430f8827cd653a07b0a1fc07ae22
 	endpoints, err := catalog.ListEndpointsForService(proxyServiceName)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to get endpoints for service %s", proxyServiceName)

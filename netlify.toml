@@ -1,0 +1,9 @@
+[build]
+  command = "hugo"
+
+[build.environment]
+  HUGO_VERSION = "0.73.0"
+  HUGO_ENABLEGITINFO = "true"
+
+[context.production.environment]
+  HUGO_ENV = "production"

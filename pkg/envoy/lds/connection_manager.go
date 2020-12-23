@@ -34,14 +34,14 @@ func getHTTPConnectionManager(routeName string, cfg configurator.Configurator) *
 		AccessLog: envoy.GetAccessLog(),
 	}
 
-	if cfg.IsZipkinTracingEnabled() {
+	if cfg.IsTracingEnabled() {
 		connManager.GenerateRequestId = &wrappers.BoolValue{
 			Value: true,
 		}
 
-		tracing, err := GetZipkinTracingConfig(cfg)
+		tracing, err := GetTracingConfig(cfg)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error getting zipkin tracing config %s", err)
+			log.Error().Err(err).Msgf("Error getting tracing config %s", err)
 			return connManager
 		}
 

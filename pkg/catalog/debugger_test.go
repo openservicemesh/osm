@@ -80,27 +80,28 @@ var _ = Describe("Test catalog proxy register/unregister", func() {
 	Context("Test ListMonitoredNamespaces", func() {
 		It("lists monitored namespaces", func() {
 			actual := mc.ListMonitoredNamespaces()
-			expected := []string{
-				"-test-osm-namespace-",
-				"default",
-			}
-			Expect(actual).To(Equal(expected))
+			listExpectedNs := tests.GetUnique([]string{
+				tests.BookstoreV1Service.Namespace,
+				tests.BookbuyerService.Namespace,
+				tests.BookwarehouseService.Namespace,
+			})
+
+			Expect(actual).To(Equal(listExpectedNs))
 		})
 	})
 
 	Context("Test ListSMIPolicies", func() {
 		It("lists available SMI Spec policies", func() {
-			trafficSplits, weightedServices, serviceAccounts, routeGroups, trafficTargets, services := mc.ListSMIPolicies()
+			trafficSplits, weightedServices, serviceAccounts, routeGroups, trafficTargets := mc.ListSMIPolicies()
 
 			Expect(trafficSplits[0].Spec.Service).To(Equal("bookstore-apex"))
 			Expect(weightedServices[0]).To(Equal(service.WeightedService{
-				Service:     tests.BookstoreService,
-				Weight:      100,
+				Service:     tests.BookstoreV1Service,
+				Weight:      tests.Weight90,
 				RootService: "bookstore-apex"}))
 			Expect(serviceAccounts[0].String()).To(Equal("default/bookstore"))
 			Expect(routeGroups[0].Name).To(Equal("bookstore-service-routes"))
-			Expect(trafficTargets[0].Name).To(Equal("bookbuyer-access-bookstore"))
-			Expect(services[0].Name).To(Equal(tests.BookstoreServiceName))
+			Expect(trafficTargets[0].Name).To(Equal(tests.TrafficTargetName))
 
 		})
 	})

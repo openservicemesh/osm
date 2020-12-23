@@ -5,18 +5,18 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
+
+	"github.com/openservicemesh/osm/pkg/constants"
 )
 
 const namespaceRemoveDescription = `
 This command will remove a namespace from the mesh. All
 services in this namespace will be removed from the mesh.
-
 `
 
 type namespaceRemoveCmd struct {
@@ -40,12 +40,12 @@ func newNamespaceRemove(out io.Writer) *cobra.Command {
 			namespaceRemove.namespace = args[0]
 			config, err := settings.RESTClientGetter().ToRESTConfig()
 			if err != nil {
-				return errors.Errorf("Error fetching kubeconfig")
+				return errors.Errorf("Error fetching kubeconfig: %s", err)
 			}
 
 			clientset, err := kubernetes.NewForConfig(config)
 			if err != nil {
-				return errors.Errorf("Could not access Kubernetes cluster. Check kubeconfig")
+				return errors.Errorf("Could not access Kubernetes cluster, check kubeconfig: %s", err)
 			}
 			namespaceRemove.clientSet = clientset
 			return namespaceRemove.run()
@@ -72,12 +72,25 @@ func (r *namespaceRemoveCmd) run() error {
 	val, exists := namespace.ObjectMeta.Labels[constants.OSMKubeResourceMonitorAnnotation]
 	if exists {
 		if val == r.meshName {
-			patch := `{"metadata":{"labels":{"$patch":"delete", "` + constants.OSMKubeResourceMonitorAnnotation + `":"` + r.meshName + `"}}}`
+			// Setting null for a key in a map removes only that specific key, which is the desired behavior.
+			// Even if the key does not exist, there will be no side effects with setting the key to null, which
+			// will result in the same behavior as if the key were present - the key being removed.
+			patch := fmt.Sprintf(`
+{
+	"metadata": {
+		"labels": {
+			"%s": null
+		},
+		"annotations": {
+			"%s": null
+		}
+	}
+}`, constants.OSMKubeResourceMonitorAnnotation, constants.SidecarInjectionAnnotation)
 
 			_, err = r.clientSet.CoreV1().Namespaces().Patch(ctx, r.namespace, types.StrategicMergePatchType, []byte(patch), metav1.PatchOptions{}, "")
 
 			if err != nil {
-				return errors.Errorf("Could not remove label from namespace %s: %v", r.namespace, err)
+				return errors.Errorf("Could not remove namespace [%s] from mesh [%s]: %v", r.namespace, r.meshName, err)
 			}
 
 			fmt.Fprintf(r.out, "Namespace [%s] successfully removed from mesh [%s]\n", r.namespace, r.meshName)

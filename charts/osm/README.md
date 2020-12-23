@@ -1,34 +1,61 @@
-osm
-===
-A Helm chart for to install the OSM control plane on Kubernetes
+# osm
 
-Current chart version is `0.1.0`
+![Version: 0.6.0](https://img.shields.io/badge/Version-0.6.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v0.6.0](https://img.shields.io/badge/AppVersion-v0.6.0-informational?style=flat-square)
 
-The OSM Command Line Interface (CLI) installs the OSM control plan into Kubernetes using this Helm chart. Alternatively, one can install the OSM control plane using this chart with the [Helm](https://helm.sh/docs/intro/install/) CLI with the following command:
-```console
-$ helm install osm . --namespace osm-system
-```
+A Helm chart to install the OSM control plane on Kubernetes
 
-This command is equivalent to installing the osm control plane using the OSM CLI and it is the same chart that is embedded into the OSM binary.
-
-
-## Chart Values
+## Values
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| certificateManager | string | `"tresor"` | Certificate manager to use (tresor, vault, cert-manager) |
-| enablePermissiveTrafficPolicy | bool | `false` | Enable permissive traffic policy mode |
-| enableDebugServer | bool | `false` | Enable the debug HTTP server |
-| grafana.port | int | `3000` | Grafana port |
-| image.pullPolicy | string | `"Always"` | osm-controller image pull policy |
-| image.registry | string | `"openservicemesh"` |  osm-controller image registry |
-| image.tag | string | `"latest"` | osm-controller image tag |
-| imagePullSecrets[0].name | string | `"acr-creds"` | osm-controller image pull secrets |
-| prometheus.port | int | `7070` | Prometheus port |
-| prometheus.retention.time | string | `"15d"` | Prometheus retention time |
-| replicaCount | int | `1` | replica count |
-| serviceCertValidityMinutes | int | `1` | Duration of certificate validity in minutes |
-| sidecarImage | string | `"envoyproxy/envoy-alpine:v1.14.1"` | Envoy proxy sidecar image |
-| vault.host | string | `nil` | Vault host |
-| vault.protocol | string | `"http"` | Vault protocol |
-| vault.token | string | `nil` | Vault token |
+| OpenServiceMesh.caBundleSecretName | string | `"osm-ca-bundle"` |  |
+| OpenServiceMesh.certificateManager | string | `"tresor"` |  |
+| OpenServiceMesh.certmanager.issuerGroup | string | `"cert-manager"` |  |
+| OpenServiceMesh.certmanager.issuerKind | string | `"Issuer"` |  |
+| OpenServiceMesh.certmanager.issuerName | string | `"osm-ca"` |  |
+| OpenServiceMesh.connectVault | bool | `true` |  |
+| OpenServiceMesh.controllerLogLevel | string | `"trace"` |  |
+| OpenServiceMesh.deployGrafana | bool | `false` |  |
+| OpenServiceMesh.deployJaeger | bool | `true` |  |
+| OpenServiceMesh.deployPrometheus | bool | `false` |  |
+| OpenServiceMesh.enableBackpressureExperimental | bool | `false` |  |
+| OpenServiceMesh.enableDebugServer | bool | `false` |  |
+| OpenServiceMesh.enableEgress | bool | `false` |  |
+| OpenServiceMesh.enableFluentbit | bool | `false` |  |
+| OpenServiceMesh.enablePermissiveTrafficPolicy | bool | `false` |  |
+| OpenServiceMesh.enablePrometheusScraping | bool | `true` |  |
+| OpenServiceMesh.enforceSingleMesh | bool | `false` |  |
+| OpenServiceMesh.envoyLogLevel | string | `"error"` |  |
+| OpenServiceMesh.fluentBit.enableProxySupport | bool | `false` |  |
+| OpenServiceMesh.fluentBit.httpProxy | string | `""` |  |
+| OpenServiceMesh.fluentBit.httpsProxy | string | `""` |  |
+| OpenServiceMesh.fluentBit.name | string | `"fluentbit-logger"` |  |
+| OpenServiceMesh.fluentBit.outputPlugin | string | `"stdout"` |  |
+| OpenServiceMesh.fluentBit.primaryKey | string | `""` |  |
+| OpenServiceMesh.fluentBit.pullPolicy | string | `"IfNotPresent"` |  |
+| OpenServiceMesh.fluentBit.registry | string | `"fluent"` |  |
+| OpenServiceMesh.fluentBit.tag | string | `"1.6.4"` |  |
+| OpenServiceMesh.fluentBit.workspaceId | string | `""` |  |
+| OpenServiceMesh.grafana.enableRemoteRendering | bool | `false` |  |
+| OpenServiceMesh.grafana.port | int | `3000` |  |
+| OpenServiceMesh.image.pullPolicy | string | `"IfNotPresent"` |  |
+| OpenServiceMesh.image.registry | string | `"openservicemesh"` |  |
+| OpenServiceMesh.image.tag | string | `"v0.6.0"` |  |
+| OpenServiceMesh.imagePullSecrets | list | `[]` |  |
+| OpenServiceMesh.meshName | string | `"osm"` |  |
+| OpenServiceMesh.prometheus.port | int | `7070` |  |
+| OpenServiceMesh.prometheus.retention.time | string | `"15d"` |  |
+| OpenServiceMesh.replicaCount | int | `1` |  |
+| OpenServiceMesh.serviceCertValidityDuration | string | `"24h"` |  |
+| OpenServiceMesh.sidecarImage | string | `"envoyproxy/envoy-alpine:v1.15.0"` |  |
+| OpenServiceMesh.tracing.address | string | `"jaeger.osm-system.svc.cluster.local"` |  |
+| OpenServiceMesh.tracing.enable | bool | `true` |  |
+| OpenServiceMesh.tracing.endpoint | string | `"/api/v2/spans"` |  |
+| OpenServiceMesh.tracing.port | int | `9411` |  |
+| OpenServiceMesh.useHTTPSIngress | bool | `false` |  |
+| OpenServiceMesh.vault.host | string | `nil` |  |
+| OpenServiceMesh.vault.protocol | string | `"http"` |  |
+| OpenServiceMesh.vault.role | string | `"openservicemesh"` |  |
+| OpenServiceMesh.vault.token | string | `nil` |  |
+| OpenServiceMesh.webhookConfigNamePrefix | string | `"osm-webhook"` |  |
+
