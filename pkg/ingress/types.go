@@ -4,8 +4,9 @@ import (
 	extensionsV1beta "k8s.io/api/extensions/v1beta1"
 	"k8s.io/client-go/tools/cache"
 
+	"github.com/openservicemesh/osm/pkg/announcements"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/logger"
-	"github.com/openservicemesh/osm/pkg/namespace"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -15,11 +16,11 @@ var (
 
 // Client is a struct for all components necessary to connect to and maintain state of a Kubernetes cluster.
 type Client struct {
-	informer            cache.SharedIndexInformer
-	cache               cache.Store
-	cacheSynced         chan interface{}
-	announcements       chan interface{}
-	namespaceController namespace.Controller
+	informer       cache.SharedIndexInformer
+	cache          cache.Store
+	cacheSynced    chan interface{}
+	announcements  chan announcements.Announcement
+	kubeController k8s.Controller
 }
 
 // Monitor is the client interface for K8s Ingress resource
@@ -28,5 +29,5 @@ type Monitor interface {
 	GetIngressResources(service.MeshService) ([]*extensionsV1beta.Ingress, error)
 
 	// GetAnnouncementsChannel returns the channel on which Ingress Monitor makes annoucements
-	GetAnnouncementsChannel() <-chan interface{}
+	GetAnnouncementsChannel() <-chan announcements.Announcement
 }

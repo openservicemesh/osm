@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-func (ds debugServer) getDebugIndex(handlers map[string]http.Handler) http.Handler {
+func (ds debugConfig) getDebugIndex(handlers map[string]http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
 		_, _ = fmt.Fprint(w, `<ul>`)

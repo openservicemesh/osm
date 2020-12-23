@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestEndpoints(t *testing.T) {
+func TestHealth(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Test Suite")
+	RunSpecs(t, "Health Test Suite")
 }

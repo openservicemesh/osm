@@ -1,0 +1,9 @@
+{{- if .Values.OpenServiceMesh.fluentBit.enableProxySupport }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: proxy-config
+stringData:
+  HTTP_PROXY: {{ .Values.OpenServiceMesh.fluentBit.httpProxy }}
+  HTTPS_PROXY: {{ .Values.OpenServiceMesh.fluentBit.httpsProxy }}
+{{- end }}

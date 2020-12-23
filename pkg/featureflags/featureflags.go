@@ -2,8 +2,6 @@ package featureflags
 
 import (
 	"sync"
-
-	"github.com/openservicemesh/osm/pkg/logger"
 )
 
 // OptionalFeatures is a struct to enable/disable optional features
@@ -17,7 +15,6 @@ var (
 	Features OptionalFeatures
 
 	once sync.Once
-	log  = logger.New("featureflags")
 )
 
 // Initialize initializes the feature flag options

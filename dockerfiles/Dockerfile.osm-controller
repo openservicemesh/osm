@@ -1,6 +1,11 @@
+<<<<<<< HEAD
 FROM alpine:3.10.1
 
 ADD bin/osm-controller /osm-controller
 RUN chmod +x /osm-controller
 RUN apk add --no-cache tcpdump
 RUN apk add --no-cache curl
+=======
+FROM gcr.io/distroless/static
+COPY osm-controller /
+>>>>>>> d8b189c3bbeb430f8827cd653a07b0a1fc07ae22

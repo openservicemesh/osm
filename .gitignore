@@ -63,3 +63,15 @@ testoutput.txt
 ./certs/
 commit_logs
 bootstrap.yaml
+
+# hugo static site generator
+.DS_Store
+.sass-cache/
+.yarnclean
+.publish/*
+.publish/
+public/*
+docs/public/*
+node_modules/
+vendor/
+rootfs/

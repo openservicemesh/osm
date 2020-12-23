@@ -1,19 +1,17 @@
 package injector
 
 import (
-	"github.com/openservicemesh/osm/pkg/configurator"
+	mapset "github.com/deckarep/golang-set"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/configurator"
+	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/logger"
-	"github.com/openservicemesh/osm/pkg/namespace"
 )
 
 const (
-	// OSM Annotations
-	annotationInject = "openservicemesh.io/sidecar-injection"
-
 	envoyBootstrapConfigVolume = "envoy-bootstrap-config-volume"
 )
 
@@ -21,14 +19,16 @@ var log = logger.New("sidecar-injector")
 
 // webhook is the type used to represent the webhook for sidecar injection
 type webhook struct {
-	config              Config
-	kubeClient          kubernetes.Interface
-	certManager         certificate.Manager
-	meshCatalog         catalog.MeshCataloger
-	namespaceController namespace.Controller
-	osmNamespace        string
-	cert                certificate.Certificater
-	configurator        configurator.Configurator
+	config         Config
+	kubeClient     kubernetes.Interface
+	certManager    certificate.Manager
+	meshCatalog    catalog.MeshCataloger
+	kubeController k8s.Controller
+	osmNamespace   string
+	cert           certificate.Certificater
+	configurator   configurator.Configurator
+
+	nonInjectNamespaces mapset.Set
 }
 
 // Config is the type used to represent the config options for the sidecar injection
@@ -44,15 +44,15 @@ type Config struct {
 	SidecarImage string
 }
 
-// JSONPatchOperation is the type used to represenet a JSON Patch operation
+// JSONPatchOperation defines a Kubernetes JSON Patch operation
 type JSONPatchOperation struct {
 	Op    string      `json:"op"`
 	Path  string      `json:"path"`
 	Value interface{} `json:"value,omitempty"`
 }
 
-// InitContainerData is the type used to represent information about the init container
-type InitContainerData struct {
+// InitContainer is the type used to represent information about the init container
+type InitContainer struct {
 	Name  string
 	Image string
 }
