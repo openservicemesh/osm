@@ -44,6 +44,7 @@ iptables -t nat -A PROXY_REDIRECT -p tcp --dport "6001" -j ACCEPT # deviced
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "7201" -j ACCEPT # m3db/metricsd
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "7203" -j ACCEPT # m3db/metricsd
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "7301" -j ACCEPT # m3db/metricsd
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "8005" -j ACCEPT # aws metricsd
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "8080" -j ACCEPT # presto
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "8081" -j ACCEPT # apiserver
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "8100:8110" -j ACCEPT # proxyd
@@ -108,6 +109,7 @@ iptables -t nat -A PROXY_INBOUND -p tcp --dport "6001" -j RETURN  # deviced
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "7201" -j RETURN  # m3db/metricsd
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "7203" -j RETURN  # m3db/metricsd
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "7301" -j RETURN  # m3db/metricsd
+iptables -t nat -A PROXY_INBOUND -p tcp --dport "8005" -j RETURN  # aws metricsd
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "8080" -j RETURN  # presto
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "8081" -j RETURN  # apiserver
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "8100:8110" -j RETURN  # proxyd
