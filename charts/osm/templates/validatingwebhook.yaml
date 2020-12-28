@@ -9,14 +9,14 @@ webhooks:
   clientConfig:
     service:
       name: osm-controller
-      namespace: {{.Release.Namespace}}
+      namespace: {{ include "osm.namespace" . }}
       path: /validate-webhook
       port: 443
   failurePolicy: Fail
   matchPolicy: Exact
   namespaceSelector:
     matchLabels:
-      name: osm-system
+      name: {{ include "osm.namespace" . }}
   rules:
     - apiGroups:
         - ""

@@ -9,7 +9,6 @@ import (
 	time "time"
 
 	gomock "github.com/golang/mock/gomock"
-
 	announcements "github.com/openservicemesh/osm/pkg/announcements"
 )
 

@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"regexp"
 	"strconv"
 	"time"
 
@@ -35,7 +34,7 @@ var (
 	ValidEnvoyLogLevels = []string{"trace", "debug", "info", "warning", "warn", "error", "critical", "off"}
 
 	// defaultFields are the default fields in osm-config
-	defaultFields = map[string]struct{}{"egress": {}, "enable_debug_server": {}, "permissive_traffic_policy_mode": {}, "prometheus_scraping": {}, "tracing_enable": {}, "use_https_ingress": {}, "envoy_log_level": {}, "service_cert_validity_duration": {}, "tracing_address": {}, "tracing_port": {}, "tracing_endpoint": {}}
+	defaultFields = []string{"egress", "enable_debug_server", "permissive_traffic_policy_mode", "prometheus_scraping", "tracing_enable", "use_https_ingress", "envoy_log_level", "service_cert_validity_duration", "tracing_address", "tracing_port", "tracing_endpoint"}
 )
 
 const (
@@ -54,9 +53,6 @@ const (
 
 	// mustBeValidTime is the reason for denial for incorrect syntax for service_cert_validity_duration field
 	mustBeValidTime = ": invalid time format must be a sequence of decimal numbers each with optional fraction and a unit suffix"
-
-	// mustFollowSyntax is the reason for denial for tracing_address field
-	mustFollowSyntax = ": invalid hostname syntax"
 
 	// mustbeInt is the reason for denial for incorrect syntax for tracing_port field
 	mustbeInt = ": must be an integer"
@@ -229,9 +225,9 @@ func checkDefaultFields(configMap corev1.ConfigMap, resp *v1beta1.AdmissionRespo
 		data[field] = struct{}{}
 	}
 
-	for def := range defaultFields {
-		if _, ok := data[def]; !ok {
-			reasonForDenial(resp, doesNotContainDef, def)
+	for _, f := range defaultFields {
+		if _, ok := data[f]; !ok {
+			reasonForDenial(resp, doesNotContainDef, f)
 		}
 	}
 	return resp
@@ -251,9 +247,6 @@ func (whc *webhookConfig) validateFields(configMap corev1.ConfigMap, resp *v1bet
 			if err != nil {
 				reasonForDenial(resp, mustBeValidTime, field)
 			}
-		}
-		if field == "tracing_address" && !matchAddrSyntax(field, value) {
-			reasonForDenial(resp, mustFollowSyntax, field)
 		}
 		if field == "tracing_port" {
 			portNum, err := strconv.Atoi(value)
@@ -279,14 +272,6 @@ func (whc *webhookConfig) validateFields(configMap corev1.ConfigMap, resp *v1bet
 		}
 	}
 	return resp
-}
-
-// matchAddrSyntax checks that string follows hostname syntax
-// example hostname address: abc123.1cd23.efg
-func matchAddrSyntax(configMapField, configMapValue string) bool {
-	syntax := regexp.MustCompile(`^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$`)
-
-	return syntax.Match([]byte(configMapValue))
 }
 
 // checkEnvoyLogLevels checks that the field value is a valid log level

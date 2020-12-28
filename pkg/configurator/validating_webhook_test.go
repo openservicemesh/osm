@@ -275,7 +275,6 @@ func TestValidateFields(t *testing.T) {
 					"egress":                         "true",
 					"envoy_log_level":                "debug",
 					"service_cert_validity_duration": "24h",
-					"tracing_address":                "abc.123.efg",
 					"tracing_port":                   "9411"},
 			},
 			expRes: &v1beta1.AdmissionResponse{
@@ -294,13 +293,12 @@ func TestValidateFields(t *testing.T) {
 				Data: map[string]string{
 					"egress":          "truie",
 					"envoy_log_level": "envoy",
-					"tracing_address": "abc.123.efg.",
 					"tracing_port":    "123456"},
 			},
 			expRes: &v1beta1.AdmissionResponse{
 				Allowed: false,
 				Result: &metav1.Status{
-					Reason: mustBeBool + mustBeValidLogLvl + mustFollowSyntax + mustBeInPortRange + cannotChangeMetadata,
+					Reason: mustBeBool + mustBeValidLogLvl + mustBeInPortRange + cannotChangeMetadata,
 				},
 			},
 		},
@@ -325,21 +323,6 @@ func TestValidateFields(t *testing.T) {
 			assert.Contains(tc.expRes.Result.Status, res.Result.Status)
 			assert.Equal(tc.expRes.Allowed, res.Allowed)
 		})
-	}
-}
-
-func TestMatchAddrSyntax(t *testing.T) {
-	assert := assert.New(t)
-	tests := map[string]bool{
-		"abc.efg.678":       true,
-		"abc2.7A6.123.":     false,
-		".234ab.asdf2.1342": false,
-		"asde9.*aed.d34d!`": false,
-	}
-
-	for addr, expRes := range tests {
-		res := matchAddrSyntax(fakeField, addr)
-		assert.Equal(expRes, res)
 	}
 }
 
