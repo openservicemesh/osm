@@ -227,7 +227,7 @@ func main() {
 	}
 
 	// Create the configMap validating webhook
-	if err := configurator.NewWebhookConfig(kubeClient, certManager, osmNamespace, webhookConfigName, stop); err != nil {
+	if err := configurator.NewValidatingWebhook(kubeClient, certManager, osmNamespace, webhookConfigName, stop); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating osm-config validating webhook")
 	}
 

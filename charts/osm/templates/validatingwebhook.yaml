@@ -25,5 +25,6 @@ webhooks:
       operations:
         - CREATE
         - UPDATE
+        - DELETE
       resources:
         - configmaps

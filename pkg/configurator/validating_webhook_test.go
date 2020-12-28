@@ -61,7 +61,7 @@ const (
 	  }`
 )
 
-func TestNewWebhookConfig(t *testing.T) {
+func TestNewValidatingWebhook(t *testing.T) {
 	assert := assert.New(t)
 	mockCtrl := gomock.NewController(t)
 	kubeClient := fake.NewSimpleClientset()
@@ -89,7 +89,7 @@ func TestNewWebhookConfig(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.testName, func(t *testing.T) {
-			res := NewWebhookConfig(kubeClient, certManager, whc.osmNamespace, tc.webhookName, stop)
+			res := NewValidatingWebhook(kubeClient, certManager, whc.osmNamespace, tc.webhookName, stop)
 			_ = tc.mockCall
 			assert.Equal(tc.expErr, res.Error())
 		})
@@ -187,7 +187,65 @@ func TestValidateConfigMap(t *testing.T) {
 	}
 }
 
-func TestValidate(t *testing.T) {
+func TestCheckDefaultFields(t *testing.T) {
+	assert := assert.New(t)
+	resp := &v1beta1.AdmissionResponse{
+		Allowed: true,
+		Result:  &metav1.Status{Reason: ""},
+	}
+
+	testCases := []struct {
+		testName  string
+		configMap corev1.ConfigMap
+		expRes    *v1beta1.AdmissionResponse
+	}{
+		{
+			testName: "Contains all default fields",
+			configMap: corev1.ConfigMap{
+				Data: map[string]string{
+					"egress":                         "",
+					"enable_debug_server":            "",
+					"permissive_traffic_policy_mode": "",
+					"prometheus_scraping":            "",
+					"tracing_enable":                 "",
+					"use_https_ingress":              "",
+					"envoy_log_level":                "",
+					"service_cert_validity_duration": "",
+					"tracing_address":                "",
+					"tracing_port":                   "",
+					"tracing_endpoint":               "",
+				},
+			},
+			expRes: &v1beta1.AdmissionResponse{
+				Allowed: true,
+				Result:  &metav1.Status{Reason: ""},
+			},
+		},
+		{
+			testName: "Does not have all default fields",
+			configMap: corev1.ConfigMap{
+				Data: map[string]string{
+					"egress":              "",
+					"enable_debug_server": "",
+				},
+			},
+			expRes: &v1beta1.AdmissionResponse{
+				Allowed: false,
+				Result:  &metav1.Status{Reason: doesNotContainDef},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.testName, func(t *testing.T) {
+			res := checkDefaultFields(tc.configMap, resp)
+			assert.Contains(tc.expRes.Result.Status, res.Result.Status)
+			assert.Equal(tc.expRes.Allowed, res.Allowed)
+		})
+	}
+}
+
+func TestValidateFields(t *testing.T) {
 	assert := assert.New(t)
 	resp := &v1beta1.AdmissionResponse{
 		Allowed: true,
@@ -226,7 +284,7 @@ func TestValidate(t *testing.T) {
 			},
 		},
 		{
-			testName: "Reject invalid configMap update (error in boolean, envoy lvl, cert duration, address, port fields and metadata)",
+			testName: "Reject invalid configMap update (error in boolean, envoy lvl, address, port fields and metadata)",
 			configMap: corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
@@ -234,16 +292,15 @@ func TestValidate(t *testing.T) {
 					},
 				},
 				Data: map[string]string{
-					"egress":                         "truie",
-					"envoy_log_level":                "envoy",
-					"service_cert_validity_duration": "8761h",
-					"tracing_address":                "abc.123.efg.",
-					"tracing_port":                   "123456"},
+					"egress":          "truie",
+					"envoy_log_level": "envoy",
+					"tracing_address": "abc.123.efg.",
+					"tracing_port":    "123456"},
 			},
 			expRes: &v1beta1.AdmissionResponse{
 				Allowed: false,
 				Result: &metav1.Status{
-					Reason: MustBeBool + MustBeValidLogLvl + MustBeLessThanAYear + MustFollowSyntax + MustBeInPortRange + CannotChangeMetadata,
+					Reason: mustBeBool + mustBeValidLogLvl + mustFollowSyntax + mustBeInPortRange + cannotChangeMetadata,
 				},
 			},
 		},
@@ -257,14 +314,14 @@ func TestValidate(t *testing.T) {
 			expRes: &v1beta1.AdmissionResponse{
 				Allowed: false,
 				Result: &metav1.Status{
-					Reason: MustBeValidTime + MustbeInt,
+					Reason: mustBeValidTime + mustbeInt,
 				},
 			},
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.testName, func(t *testing.T) {
-			res := whc.validate(tc.configMap, resp)
+			res := whc.validateFields(tc.configMap, resp)
 			assert.Contains(tc.expRes.Result.Status, res.Result.Status)
 			assert.Equal(tc.expRes.Allowed, res.Allowed)
 		})
@@ -294,7 +351,7 @@ func TestCheckEnvoyLogLevels(t *testing.T) {
 	}
 
 	for lvl, expRes := range tests {
-		res := checkEnvoyLogLevels(fakeField, lvl, ValidEnvoyLogLevels)
+		res := checkEnvoyLogLevels(fakeField, lvl)
 		assert.Equal(expRes, res)
 	}
 }
