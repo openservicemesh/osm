@@ -49,7 +49,7 @@ A Helm chart to install the OSM control plane on Kubernetes
 | OpenServiceMesh.prometheus.retention.time | string | `"15d"` |  |
 | OpenServiceMesh.replicaCount | int | `1` |  |
 | OpenServiceMesh.serviceCertValidityDuration | string | `"24h"` |  |
-| OpenServiceMesh.sidecarImage | string | `"envoyproxy/envoy-alpine:v1.15.0"` |  |
+| OpenServiceMesh.sidecarImage | string | `"envoyproxy/envoy-alpine:v1.17.0"` |  |
 | OpenServiceMesh.tracing.address | string | `"jaeger.osm-system.svc.cluster.local"` |  |
 | OpenServiceMesh.tracing.enable | bool | `true` |  |
 | OpenServiceMesh.tracing.endpoint | string | `"/api/v2/spans"` |  |

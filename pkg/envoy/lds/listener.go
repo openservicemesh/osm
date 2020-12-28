@@ -23,18 +23,9 @@ const (
 )
 
 func (lb *listenerBuilder) newOutboundListener() (*xds_listener.Listener, error) {
-	serviceFilterChains, err := lb.getOutboundFilterChains()
-	if err != nil {
-		log.Error().Err(err).Msgf("Error getting filter chains for outbound listener")
-		return nil, err
-	}
+	serviceFilterChains := lb.getOutboundFilterChainPerUpstream()
 
-	if len(serviceFilterChains) == 0 {
-		log.Info().Msgf("No filterchains for outbound services. Not programming Outbound listener.")
-		return nil, nil
-	}
-
-	return &xds_listener.Listener{
+	listener := &xds_listener.Listener{
 		Name:             outboundListenerName,
 		Address:          envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyOutboundListenerPort),
 		TrafficDirection: xds_core.TrafficDirection_OUTBOUND,
@@ -51,7 +42,29 @@ func (lb *listenerBuilder) newOutboundListener() (*xds_listener.Listener, error)
 				Name: wellknown.HttpInspector,
 			},
 		},
-	}, nil
+	}
+
+	// Create filter chain for egress if egress is enabled
+	// This filterchain matches any traffic not filtered by allow rules, it will be treated as egress
+	// traffic when enabled
+	if lb.cfg.IsEgressEnabled() {
+		egressFilterChgain, err := buildEgressFilterChain()
+		if err != nil {
+			log.Error().Err(err).Msgf("Error getting filter chain for Egress")
+			return nil, err
+		}
+		listener.DefaultFilterChain = egressFilterChgain
+	}
+
+	if len(listener.FilterChains) == 0 && listener.DefaultFilterChain == nil {
+		// Programming a listener with no filter chains is an error.
+		// It is possible for the outbound listener to have no filter chains if
+		// there are no allowed upstreams for this proxy and egress is disabled.
+		// In this case, return a nil filter chain so that it doesn't get programmed.
+		return nil, nil
+	}
+
+	return listener, nil
 }
 
 func newInboundListener() *xds_listener.Listener {
@@ -120,26 +133,6 @@ func buildEgressFilterChain() (*xds_listener.FilterChain, error) {
 			},
 		},
 	}, nil
-}
-
-func (lb *listenerBuilder) getOutboundFilterChains() ([]*xds_listener.FilterChain, error) {
-	// Create filter chain for upstream services
-	filterChains := lb.getOutboundFilterChainPerUpstream()
-
-	// Create filter chain for egress if egress is enabled
-	// This filterchain matches any traffic not filtered by allow rules, it will be treated as egress
-	// traffic when enabled
-	if lb.cfg.IsEgressEnabled() {
-		egressFilterChgain, err := buildEgressFilterChain()
-		if err != nil {
-			log.Error().Err(err).Msgf("Error getting filter chain for Egress")
-			return nil, err
-		}
-
-		filterChains = append(filterChains, egressFilterChgain)
-	}
-
-	return filterChains, nil
 }
 
 // getOutboundFilterChainPerUpstream returns a list of filter chains corresponding to upstream services
