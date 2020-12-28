@@ -70,7 +70,6 @@ const (
 	// doesNotContainDef is the reason for denial for not having default field(s) for osm-config
 	doesNotContainDef = ": must be included as it is a default field"
 
-	hrInAYear  = 8760
 	maxPortNum = 65535
 )
 
