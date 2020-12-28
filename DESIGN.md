@@ -107,9 +107,9 @@ This component:
 
 This section outlines the conventions adopted and guiding the development of the Open Service Mesh (OSM). Components discussed in this section:
   - (A) Proxy [sidecar](https://docs.microsoft.com/en-us/azure/architecture/patterns/sidecar) - Envoy or other reverse-proxy with service-mesh capabilities
-  - (B) [Proxy Certificate](#proxy-tls-certificate) - unique X.509 certificate issued to the specific proxy by the [Certificate Manager](#2-certificate-manager)
+  - (B) [Proxy Certificate](#b-proxy-tls-certificate) - unique X.509 certificate issued to the specific proxy by the [Certificate Manager](#2-certificate-manager)
   - (C) Service - [Kubernetes service resource](https://kubernetes.io/docs/concepts/services-networking/service/) referenced in SMI Spec
-  - (D) [Service Certificate](#service-tls-certificate) - X.509 certificate issued to the service
+  - (D) [Service Certificate](#d-service-tls-certificate) - X.509 certificate issued to the service
   - (E) Policy - [SMI Spec](https://smi-spec.io/) traffic policy enforced by the target service's proxy
   - Examples of service endpoints handling traffic for the given service:
     - (F) Azure VM - process running on an Azure VM, listening for connections on IP 1.2.3.11, port 81.
