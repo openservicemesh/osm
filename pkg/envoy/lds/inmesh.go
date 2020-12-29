@@ -274,9 +274,25 @@ func (lb *listenerBuilder) getOutboundFilterChainMatchForService(dstSvc service.
 		return nil, err
 	}
 
+	contains := func(s []string, t string) bool {
+		for _, a := range s {
+			if a == t {
+				return true
+			}
+		}
+		return false
+	}
+
+	var endpointSet []string
 	for _, endp := range endpoints {
+		if !contains(endpointSet, endp.IP.String()) {
+			endpointSet = append(endpointSet, endp.IP.String())
+		}
+	}
+
+	for _, ip := range endpointSet {
 		filterMatch.PrefixRanges = append(filterMatch.PrefixRanges, &xds_core.CidrRange{
-			AddressPrefix: endp.IP.String(),
+			AddressPrefix: ip,
 			PrefixLen: &wrapperspb.UInt32Value{
 				Value: singleIpv4Mask,
 			},
