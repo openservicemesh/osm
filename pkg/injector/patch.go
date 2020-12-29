@@ -37,7 +37,7 @@ func (wh *webhook) createPatch(pod *corev1.Pod, req *v1beta1.AdmissionRequest, p
 	}
 
 	// Create volume for envoy TLS secret
-	pod.Spec.Volumes = getVolumeSpec(envoyBootstrapConfigName)
+	pod.Spec.Volumes = append(pod.Spec.Volumes, getVolumeSpec(envoyBootstrapConfigName)...)
 
 	// Add the Init Container
 	initContainer := getInitContainerSpec(constants.InitContainerName, wh.config.InitContainerImage)
