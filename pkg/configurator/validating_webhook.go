@@ -39,7 +39,7 @@ var (
 
 const (
 	// ValidatingWebhookName is the name of the validating webhook used for validating osm-config
-	ValidatingWebhookName = "validating-webhook.k8s.io"
+	ValidatingWebhookName = "osm-config-webhook.k8s.io"
 
 	// webhookUpdateConfigMapis the HTTP path at which the webhook expects to receive configmap update events
 	webhookUpdateConfigMap = "/validate-webhook"

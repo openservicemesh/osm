@@ -5,7 +5,7 @@ metadata:
     app: osm-controller
   name: {{.Values.OpenServiceMesh.webhookConfigNamePrefix}}-{{.Values.OpenServiceMesh.meshName}}
 webhooks:
-- name: validating-webhook.k8s.io
+- name: osm-config-webhook.k8s.io
   clientConfig:
     service:
       name: osm-controller
