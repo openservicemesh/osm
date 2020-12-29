@@ -15,7 +15,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
-func (wh *webhook) createPatch(pod *corev1.Pod, req *v1beta1.AdmissionRequest, proxyUUID uuid.UUID) ([]byte, error) {
+func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *v1beta1.AdmissionRequest, proxyUUID uuid.UUID) ([]byte, error) {
 	namespace := req.Namespace
 
 	// Issue a certificate for the proxy sidecar - used for Envoy to connect to XDS (not Envoy-to-Envoy connections)

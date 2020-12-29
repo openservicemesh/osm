@@ -176,7 +176,7 @@ static_resources:
 		})
 
 		It("Creates bootstrap config for the Envoy proxy", func() {
-			wh := &webhook{
+			wh := &mutatingWebhook{
 				kubeClient:          fake.NewSimpleClientset(),
 				kubeController:      k8s.NewMockController(gomock.NewController(GinkgoT())),
 				nonInjectNamespaces: mapset.NewSet(),

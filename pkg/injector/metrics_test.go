@@ -67,7 +67,7 @@ func TestIsMetricsEnabled(t *testing.T) {
 	}
 
 	mockController := k8s.NewMockController(gomock.NewController(t))
-	wh := &webhook{
+	wh := &mutatingWebhook{
 		kubeClient:          fakeClient,
 		kubeController:      mockController,
 		nonInjectNamespaces: mapset.NewSet(),
