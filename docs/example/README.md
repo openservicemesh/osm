@@ -7,7 +7,7 @@
 - [Install OSM Control Plane](#install-osm-control-plane)
 - [Deploying the Bookstore Demo Applications](#deploying-the-bookstore-demo-applications)
   - [Create the Bookstore Applications Namespaces](#create-the-bookstore-application-namespaces)
-  - [Onboard the Namespaces to the OSM Mesh](#onboard-the-namespaces-to-the-osm-mesh)
+  - [Onboard the Namespaces to the OSM Mesh and enable sidecar injection](#onboard-the-namespaces-to-the-osm-mesh-and-enable-sidecar-injection-on-the-namespaces)
   - [Deploy the Bookstore Application](#deploy-the-bookstore-application)
   - [Checkpoint: What got installed?](#checkpoint-what-got-installed)
   - [View the Applications UIs](#view-the-application-uis)
