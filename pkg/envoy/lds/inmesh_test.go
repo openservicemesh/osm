@@ -356,6 +356,33 @@ func TestGetOutboundFilterChainMatchForService(t *testing.T) {
 			expectedFilterChainMatch: nil,
 			expectError:              true,
 		},
+
+		{
+			// test case 5
+			name: "outbound TCP filter chain for service with duplicated endpoints",
+			endpoints: []endpoint.Endpoint{
+				{
+					IP:   net.IPv4(192, 168, 10, 1),
+					Port: 8080,
+				},
+				{
+					IP:   net.IPv4(192, 168, 10, 1),
+					Port: 8090,
+				},
+			},
+			appProtocol: tcpAppProtocol,
+			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
+				PrefixRanges: []*xds_core.CidrRange{
+					{
+						AddressPrefix: "192.168.10.1",
+						PrefixLen: &wrapperspb.UInt32Value{
+							Value: 32,
+						},
+					},
+				},
+			},
+			expectError: false,
+		},
 	}
 
 	for i, tc := range testCases {
