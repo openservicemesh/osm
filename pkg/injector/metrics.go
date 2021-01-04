@@ -8,7 +8,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
-func (wh *webhook) isMetricsEnabled(namespace string) (enabled bool, err error) {
+func (wh *mutatingWebhook) isMetricsEnabled(namespace string) (enabled bool, err error) {
 	ns := wh.kubeController.GetNamespace(namespace)
 	if ns == nil {
 		log.Error().Err(errNamespaceNotFound).Msgf("Error retrieving namespace %s", namespace)
