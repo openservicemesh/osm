@@ -77,7 +77,7 @@ func (c *Client) initServicesMonitor() {
 	}
 
 	// Announcement channel for Services
-	c.announcements[Services] = make(chan announcements.Announcement)
+	c.announcements[Services] = make(chan announcements.Announcement, 10)
 
 	svcEventTypes := EventTypes{
 		Add:    announcements.ServiceAdded,

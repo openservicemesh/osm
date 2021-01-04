@@ -12,10 +12,16 @@ import (
 
 	"github.com/pkg/errors"
 
+	a "github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
+)
+
+const (
+        // defaultAppProtocol is the default application protocol for a port if unspecified
+        defaultAppProtocol = "http"
 )
 
 // NewProvider implements mesh.EndpointsProvider, which creates a new Kubernetes cluster/compute provider.
@@ -26,7 +32,7 @@ func NewProvider(kubeClient kubernetes.Interface, clusterId string, stop chan st
 		clusterId:           clusterId,
 		meshSpec:            meshSpec,
 		caches:              nil,
-		announcements:       make(chan interface{}),
+		announcements:       make(chan a.Announcement),
 		remoteOsm:           remoteOsm,
 	}
 
@@ -63,11 +69,12 @@ func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endp
 }
 
 // GetServiceForServiceAccount retrieves the service for the given service account
-func (c Client) GetServiceForServiceAccount(svcAccount service.K8sServiceAccount) (service.MeshService, error) {
+func (c Client) GetServicesForServiceAccount(svcAccount service.K8sServiceAccount) ([]service.MeshService, error) {
 	log.Info().Msgf("[%s] Getting Services for service account %s on Remote", c.providerIdent, svcAccount)
+	servicesSlice := make([]service.MeshService, 0)
 
 	if c.caches == nil {
-		return service.MeshService{}, errDidNotFindServiceForServiceAccount
+		return servicesSlice, errDidNotFindServiceForServiceAccount
 	}
 
 	svc := fmt.Sprintf("%s/%s", svcAccount.Namespace, svcAccount.Name)
@@ -77,14 +84,43 @@ func (c Client) GetServiceForServiceAccount(svcAccount service.K8sServiceAccount
 			Namespace: svcAccount.Namespace,
 			Name:      svcAccount.Name,
 		}
-		return namespacedService, nil
+		servicesSlice = append(servicesSlice, namespacedService)
+		return servicesSlice, nil
 	}
 
-	return service.MeshService{}, errDidNotFindServiceForServiceAccount
+	return servicesSlice, errDidNotFindServiceForServiceAccount
+}
+
+// GetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol
+func (c Client) GetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
+	portToProtocolMap := make(map[uint32]string)
+
+	if c.caches == nil {
+		return nil, errServiceNotFound
+	}
+
+	eps, ok := c.caches.endpoints[svc.String()]
+	if !ok {
+		return nil, errServiceNotFound
+	}
+
+	for _, ep := range eps {
+		portToProtocolMap[uint32(ep.Port)] = defaultAppProtocol
+	}
+
+	return portToProtocolMap, nil
+}
+
+func (c *Client) GetResolvableEndpointsForService(svc service.MeshService) ([]endpoint.Endpoint, error) {
+	eps := c.ListEndpointsForService(svc)
+	if len(eps) == 0 {
+		return nil, errServiceNotFound
+	}
+	return eps, nil
 }
 
 // GetAnnouncementsChannel returns the announcement channel for the Kubernetes endpoints provider.
-func (c Client) GetAnnouncementsChannel() <-chan interface{} {
+func (c Client) GetAnnouncementsChannel() <-chan a.Announcement {
 	return c.announcements
 }
 

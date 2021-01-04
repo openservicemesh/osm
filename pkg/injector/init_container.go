@@ -10,14 +10,9 @@ import (
 
 func getInitContainerSpec(initContainer *InitContainer) (corev1.Container, error) {
 	return corev1.Container{
-<<<<<<< HEAD:pkg/injector/init-container.go
-		Name:  data.Name,
-		Image: data.Image,
-		ImagePullPolicy: "Always",
-=======
 		Name:  initContainer.Name,
 		Image: initContainer.Image,
->>>>>>> d8b189c3bbeb430f8827cd653a07b0a1fc07ae22:pkg/injector/init_container.go
+		ImagePullPolicy: "Always",
 		SecurityContext: &corev1.SecurityContext{
 			Capabilities: &corev1.Capabilities{
 				Add: []corev1.Capability{

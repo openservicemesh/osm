@@ -50,10 +50,12 @@ func getTresorOSMCertificateManager(kubeClient kubernetes.Interface, cfg configu
 	// An empty string or nil value would not load or save/load CA.
 	if caBundleSecretName != "" {
 		rootCert, err = getCertFromKubernetes(kubeClient, osmNamespace, caBundleSecretName)
+		/* WITESAND_FIX
 		if err != nil {
 			log.Error().Err(err).Msgf("Error retrieving root certificate from secret %s/%s", osmNamespace, caBundleSecretName)
 			return nil, nil, err
 		}
+		*/
 	}
 
 	if rootCert == nil {

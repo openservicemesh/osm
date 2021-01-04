@@ -22,11 +22,10 @@ func (mc *MeshCatalog) ListEndpointsForService(svc service.MeshService) ([]endpo
 	return endpoints, nil
 }
 
-<<<<<<< HEAD
 // ListLocalEndpoints returns the list of endpoints for this kubernetes cluster
 func (mc *MeshCatalog) ListLocalClusterEndpoints() (map[string][]EndpointJSON, error) {
 	endpointMap := make(map[string][]EndpointJSON)
-	services := mc.meshSpec.ListServices()
+	services := mc.kubeController.ListServices()
 	for _, provider := range mc.endpointsProviders {
 		if provider.GetID() != constants.KubeProviderName {
 			continue
@@ -56,7 +55,8 @@ func (mc *MeshCatalog) ListLocalClusterEndpoints() (map[string][]EndpointJSON, e
 		}
 	}
 	return endpointMap, nil
-=======
+}
+
 // GetResolvableServiceEndpoints returns the resolvable set of endpoint over which a service is accessible using its FQDN
 func (mc *MeshCatalog) GetResolvableServiceEndpoints(svc service.MeshService) ([]endpoint.Endpoint, error) {
 	var endpoints []endpoint.Endpoint
@@ -73,5 +73,4 @@ func (mc *MeshCatalog) GetResolvableServiceEndpoints(svc service.MeshService) ([
 		endpoints = append(endpoints, ep...)
 	}
 	return endpoints, nil
->>>>>>> d8b189c3bbeb430f8827cd653a07b0a1fc07ae22
 }

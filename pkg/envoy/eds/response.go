@@ -25,32 +25,28 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 	// Github Issue #1575
 	proxyServiceName := svcList[0]
 
-<<<<<<< HEAD
 	allTrafficPolicies, err := catalog.ListTrafficPolicies(proxyServiceName)
 	log.Debug().Msgf("EDS svc %s allTrafficPolicies %+v", proxyServiceName, allTrafficPolicies)
 
-=======
-	outboundServices, err := catalog.ListAllowedOutboundServices(proxyServiceName)
->>>>>>> d8b189c3bbeb430f8827cd653a07b0a1fc07ae22
 	if err != nil {
 		log.Error().Err(err).Msgf("Error listing outbound services for proxy %q", proxyServiceName)
 		return nil, err
 	}
 
-<<<<<<< HEAD
-	allServicesEndpoints := make(map[service.MeshServicePort][]endpoint.Endpoint)
+	outboundServicesEndpoints := make(map[service.MeshServicePort][]endpoint.Endpoint)
 	for _, trafficPolicy := range allTrafficPolicies {
 		isSourceService := trafficPolicy.Source.Equals(proxyServiceName)
 		if isSourceService {
 			destService := trafficPolicy.Destination.GetMeshService()
 			serviceEndpoints, err := catalog.ListEndpointsForService(destService)
+			log.Trace().Msgf("EDS: proxy:%s, serviceEndpoints:%+v", proxyServiceName, serviceEndpoints)
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed listing endpoints for proxy %s", proxyServiceName)
 				return nil, err
 			}
 			destServicePort := trafficPolicy.Destination
 			if destServicePort.Port == 0  {
-				allServicesEndpoints[destServicePort] = serviceEndpoints
+				outboundServicesEndpoints[destServicePort] = serviceEndpoints
 				continue
 			}
 			// if port specified, filter based on port
@@ -61,17 +57,8 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 				}
 				filteredEndpoints = append(filteredEndpoints, endpoint)
 			}
-			allServicesEndpoints[destServicePort] = filteredEndpoints
-=======
-	outboundServicesEndpoints := make(map[service.MeshService][]endpoint.Endpoint)
-	for _, dstSvc := range outboundServices {
-		endpoints, err := catalog.ListEndpointsForService(dstSvc)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed listing endpoints for service %s", dstSvc)
-			continue
->>>>>>> d8b189c3bbeb430f8827cd653a07b0a1fc07ae22
+			outboundServicesEndpoints[destServicePort] = filteredEndpoints
 		}
-		outboundServicesEndpoints[dstSvc] = endpoints
 	}
 
 	log.Trace().Msgf("Outbound service endpoints for proxy %s: %v", proxyServiceName, outboundServicesEndpoints)

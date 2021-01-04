@@ -1,14 +1,10 @@
 package rds
 
 import (
-<<<<<<< HEAD
-	"context"
 	"strings"
 	"fmt"
 
-=======
 	set "github.com/deckarep/golang-set"
->>>>>>> d8b189c3bbeb430f8827cd653a07b0a1fc07ae22
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/golang/protobuf/ptypes"
@@ -34,14 +30,13 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 	// Github Issue #1575
 	proxyServiceName := svcList[0]
 
-	log.Debug().Msgf("RDS proxyServiceName:%s proxy:%+v", proxyServiceName, proxy)
 
 	allTrafficPolicies, err := catalog.ListTrafficPolicies(proxyServiceName)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed listing routes")
 		return nil, err
 	}
-	log.Debug().Msgf("trafficPolicies: %+v", allTrafficPolicies)
+	log.Debug().Msgf("RDS proxy:%+v trafficPolicies:%+v", proxy, allTrafficPolicies)
 
 	resp := &xds_discovery.DiscoveryResponse{
 		TypeUrl: string(envoy.TypeRDS),
@@ -54,23 +49,15 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 	outboundAggregatedRoutesByHostnames := make(map[string]map[string]trafficpolicy.RouteWeightedClusters)
 	inboundAggregatedRoutesByHostnames := make(map[string]map[string]trafficpolicy.RouteWeightedClusters)
 
-<<<<<<< HEAD
-	for _, trafficPolicies := range allTrafficPolicies {
-		isSourceService := trafficPolicies.Source.Equals(proxyServiceName)
-		isDestinationService := trafficPolicies.Destination.GetMeshService().Equals(proxyServiceName)
-		svc := trafficPolicies.Destination.GetMeshService()
-		hostnames, err := catalog.GetHostnamesForService(svc)
-=======
 	for _, trafficPolicy := range allTrafficPolicies {
 		isSourceService := trafficPolicy.Source.Equals(proxyServiceName)
-		isDestinationService := trafficPolicy.Destination.Equals(proxyServiceName)
-		svc := trafficPolicy.Destination
+		isDestinationService := trafficPolicy.Destination.GetMeshService().Equals(proxyServiceName)
+		svc := trafficPolicy.Destination.GetMeshService()
 		hostnames, err := catalog.GetResolvableHostnamesForUpstreamService(proxyServiceName, svc)
 		//filter out traffic split service, reference to pkg/catalog/xds_certificates.go:74
 		if isTrafficSplitService(svc, allTrafficSplits) {
 			continue
 		}
->>>>>>> d8b189c3bbeb430f8827cd653a07b0a1fc07ae22
 		if err != nil {
 			log.Error().Err(err).Msg("Failed listing domains")
 			return nil, err
@@ -79,7 +66,7 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 
 		// multiple targets exist per service
 		var weightedCluster service.WeightedCluster
-		target := trafficPolicies.Destination
+		target := trafficPolicy.Destination
 		if target.Port != 0 {
 			hostnames = filterOnTargetPort(hostnames, target.Port)
 			log.Debug().Msgf("RDS filtered hostnames: %+v", hostnames)
@@ -98,15 +85,15 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 		}
 		log.Debug().Msgf("RDS weightedCluster: %+v", weightedCluster)
 
+		// All routes from a given source to destination are part of 1 traffic policy between the source and destination.
 		for _, hostname := range hostnames {
-			// All routes from a given source to destination are part of 1 traffic policy between the source and destination.
 			for _, httpRoute := range trafficPolicy.HTTPRouteMatches {
 				if isSourceService {
-					aggregateRoutesByHost(outboundAggregatedRoutesByHostnames, httpRoute, weightedCluster, hostname)
+					aggregateRoutesByHost(outboundAggregatedRoutesByHostnames, httpRoute, weightedCluster, hostname, target.Port)
 				}
 
 				if isDestinationService {
-					aggregateRoutesByHost(inboundAggregatedRoutesByHostnames, httpRoute, weightedCluster, hostname)
+					aggregateRoutesByHost(inboundAggregatedRoutesByHostnames, httpRoute, weightedCluster, hostname, target.Port)
 				}
 			}
 		}
@@ -120,10 +107,10 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 
 	route.UpdateRouteConfiguration(outboundAggregatedRoutesByHostnames, outboundRouteConfig, route.OutboundRoute)
 	route.UpdateRouteConfiguration(inboundAggregatedRoutesByHostnames, inboundRouteConfig, route.InboundRoute)
-	routeConfiguration = append(routeConfiguration, outboundRouteConfig)
 	routeConfiguration = append(routeConfiguration, inboundRouteConfig)
+	routeConfiguration = append(routeConfiguration, outboundRouteConfig)
 
-	log.Debug().Msgf("RDS routeConfiguration: %+v", routeConfiguration)
+	log.Debug().Msgf("RDS proxy: %+v routeConfiguration: %+v", proxy, routeConfiguration)
 
 	for _, config := range routeConfiguration {
 		marshalledRouteConfig, err := ptypes.MarshalAny(config)
@@ -145,8 +132,11 @@ func isTrafficSplitService(svc service.MeshService, allTrafficSplits []*split.Tr
 	return false
 }
 
-func aggregateRoutesByHost(routesPerHost map[string]map[string]trafficpolicy.RouteWeightedClusters, routePolicy trafficpolicy.HTTPRouteMatch, weightedCluster service.WeightedCluster, hostname string) {
+func aggregateRoutesByHost(routesPerHost map[string]map[string]trafficpolicy.RouteWeightedClusters, routePolicy trafficpolicy.HTTPRouteMatch, weightedCluster service.WeightedCluster, hostname string, targetPort int) {
 	host := kubernetes.GetServiceFromHostname(hostname)
+	if targetPort != 0 {
+		host = fmt.Sprintf("%s:%d", host, targetPort)
+	}
 	_, exists := routesPerHost[host]
 	if !exists {
 		// no host found, create a new route map
@@ -181,11 +171,10 @@ func createRoutePolicyWeightedClusters(routePolicy trafficpolicy.HTTPRouteMatch,
 }
 
 // return only those hostnames whose name ends with ":<port>"
-func filterOnTargetPort(hostnames string, port int) string {
+func filterOnTargetPort(hostnames []string, port int) []string {
 	newHostnames := make([]string, 0)
-	strs := strings.Split(hostnames, ",")
 	toMatch := fmt.Sprintf(":%d", port)
-	for _, name := range strs {
+	for _, name := range hostnames {
 		if strings.HasSuffix(name, toMatch) {
 			newHostnames = append(newHostnames, name)
 		}
@@ -193,19 +182,18 @@ func filterOnTargetPort(hostnames string, port int) string {
 	if len(newHostnames) == 0 {
 		return joinTargetPort(hostnames, port)
 	}
-	return strings.Join(newHostnames, ",")
+	return newHostnames
 }
 
 // join port on all hostnames
-func joinTargetPort(hostnames string, port int) string {
+func joinTargetPort(hostnames []string, port int) []string {
 	newHostnames := make([]string, 0)
-	strs := strings.Split(hostnames, ",")
 	portStr := fmt.Sprintf(":%d", port)
-	for _, name := range strs {
+	for _, name := range hostnames {
 		if !strings.Contains(name, ":") {
 			newHostname := name + portStr
 			newHostnames = append(newHostnames, newHostname)
 		}
 	}
-	return strings.Join(newHostnames, ",")
+	return newHostnames
 }

@@ -63,19 +63,19 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	// --- INBOUND -------------------
 	inboundListener := newInboundListener()
 	// --- INBOUND: mesh filter chain
-	inboundMeshFilterChains := lb.getInboundMeshFilterChains(proxyServiceName)
-	inboundListener.FilterChains = append(inboundListener.FilterChains, inboundMeshFilterChains...)
+	inboundMeshFilterChains, err := lb.getInboundInMeshFilterChain(proxyServiceName)
+	if  err == nil {
+		inboundListener.FilterChains = append(inboundListener.FilterChains, inboundMeshFilterChains)
+	} else {
+		log.Error().Err(err).Msgf("Error making inbound listener config for proxy %s", proxyServiceName)
+	}
 
 	// --- INGRESS -------------------
 	// Apply an ingress filter chain if there are any ingress routes
-<<<<<<< HEAD
         /* Ingress rules are taken care by iptables, having them here
            causes duplicates without TLS configuration.
 
-	if ingressRoutesPerHost, err := catalog.GetIngressRoutesPerHost(proxyServiceName); err != nil {
-=======
 	if ingressRoutesPerHost, err := meshCatalog.GetIngressRoutesPerHost(proxyServiceName); err != nil {
->>>>>>> d8b189c3bbeb430f8827cd653a07b0a1fc07ae22
 		log.Error().Err(err).Msgf("Error getting ingress routes per host for service %s", proxyServiceName)
 	} else {
 		thereAreIngressRoutes := len(ingressRoutesPerHost) > 0

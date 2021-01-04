@@ -6,12 +6,7 @@ import (
 	"strings"
 
 	mapset "github.com/deckarep/golang-set"
-<<<<<<< HEAD
-	_ "github.com/pkg/errors"
-=======
-	"github.com/pkg/errors"
 	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
->>>>>>> d8b189c3bbeb430f8827cd653a07b0a1fc07ae22
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -51,16 +46,8 @@ func (mc *MeshCatalog) ListTrafficPolicies(service service.MeshService) ([]traff
 	return allTrafficPolicies, nil
 }
 
-// This function returns the list of connected services.
-// This is a bimodal function:
-//   - it could list services that are allowed to connect to the given service (inbound)
-//   - it could list services that the given service can connect to (outbound)
-<<<<<<< HEAD
 // ListAllowedOutboundServices lists the services the given service is allowed outbound connections to.
 func (mc *MeshCatalog) ListAllowedOutboundServices(svc service.MeshService) ([]service.MeshServicePort, error) {
-=======
-func (mc *MeshCatalog) getAllowedDirectionalServices(svc service.MeshService, directn trafficDirection) ([]service.MeshService, error) {
->>>>>>> d8b189c3bbeb430f8827cd653a07b0a1fc07ae22
 	allTrafficPolicies, err := mc.ListTrafficPolicies(svc)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed listing traffic routes")
@@ -84,22 +71,12 @@ func (mc *MeshCatalog) getAllowedDirectionalServices(svc service.MeshService, di
 		allowedServices = append(allowedServices, svc.(service.MeshServicePort))
 	}
 
-<<<<<<< HEAD
 	log.Trace().Msgf("Allowed outbound services from source %q: %+v", svc, allowedServices)
-=======
-	msg := map[trafficDirection]string{
-		inbound:  "Allowed inbound services for destination service %q: %+v",
-		outbound: "Allowed outbound services from source %q: %+v",
-	}[directn]
-
-	log.Trace().Msgf(msg, svc, allowedServices)
->>>>>>> d8b189c3bbeb430f8827cd653a07b0a1fc07ae22
 
 	return allowedServices, nil
 }
 
 // ListAllowedInboundServices lists the inbound services allowed to connect to the given service.
-<<<<<<< HEAD
 func (mc *MeshCatalog) ListAllowedInboundServices(destinationService service.MeshServicePort) ([]service.MeshService, error) {
 	svc := destinationService.GetMeshService()
 	allTrafficPolicies, err := mc.ListTrafficPolicies(svc)
@@ -109,11 +86,6 @@ func (mc *MeshCatalog) ListAllowedInboundServices(destinationService service.Mes
 	}
 
 	log.Debug().Msgf("ListAllowedInboundServices svc:%s trafficpolicies:%+v", destinationService, allTrafficPolicies)
-=======
-func (mc *MeshCatalog) ListAllowedInboundServices(destinationService service.MeshService) ([]service.MeshService, error) {
-	return mc.getAllowedDirectionalServices(destinationService, inbound)
-}
->>>>>>> d8b189c3bbeb430f8827cd653a07b0a1fc07ae22
 
 	allowedServicesSet := mapset.NewSet()
 
@@ -276,16 +248,8 @@ func (mc *MeshCatalog) getTrafficSpecName(trafficSpecKind string, trafficSpecNam
 	return trafficpolicy.TrafficSpecName(specKey)
 }
 
-<<<<<<< HEAD
-func getTrafficPolicyPerRoute(mc *MeshCatalog, routePolicies map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.Route, meshService service.MeshService) ([]trafficpolicy.TrafficTarget, error) {
-	//var trafficPolicies []trafficpolicy.TrafficTarget
-	trafficPolicies := make([]trafficpolicy.TrafficTarget, 0)
-	for _, trafficTargets := range mc.meshSpec.ListTrafficTargets() {
-		log.Debug().Msgf("Discovered TrafficTarget resource: %s/%s/%d", trafficTargets.Namespace, trafficTargets.Name, *trafficTargets.Spec.Destination.Port)
-		if trafficTargets.Spec.Rules == nil || len(trafficTargets.Spec.Rules) == 0 {
-=======
 // hashSrcDstService returns a hash for the source and destination MeshService
-func hashSrcDstService(src service.MeshService, dst service.MeshService) string {
+func hashSrcDstService(src service.MeshService, dst service.MeshServicePort) string {
 	return fmt.Sprintf("%s:%s", src, dst)
 }
 
@@ -293,7 +257,7 @@ func hashSrcDstService(src service.MeshService, dst service.MeshService) string 
 func getTrafficTargetFromSrcDstHash(hash string, name string, httpRoutes []trafficpolicy.HTTPRouteMatch) trafficpolicy.TrafficTarget {
 	s := strings.Split(hash, ":")
 	src, _ := service.UnmarshalMeshService(s[0])
-	dst, _ := service.UnmarshalMeshService(s[1])
+	dst, _ := service.UnmarshalMeshServicePort(s[1])
 
 	return trafficpolicy.TrafficTarget{
 		Name:             name,
@@ -318,56 +282,15 @@ func getTrafficPoliciesForService(mc *MeshCatalog, routePolicies map[trafficpoli
 	for _, trafficTargets := range mc.meshSpec.ListTrafficTargets() {
 		log.Debug().Msgf("Discovered TrafficTarget resource: %s/%s", trafficTargets.Namespace, trafficTargets.Name)
 		if !isValidTrafficTarget(trafficTargets) {
->>>>>>> d8b189c3bbeb430f8827cd653a07b0a1fc07ae22
 			log.Error().Msgf("TrafficTarget %s/%s has no spec routes; Skipping...", trafficTargets.Namespace, trafficTargets.Name)
 			continue
 		}
 
-<<<<<<< HEAD
-		dstNamespacedServiceAcc := service.K8sServiceAccount{
-			Namespace: trafficTargets.Spec.Destination.Namespace,
-			Name:      trafficTargets.Spec.Destination.Name,
-		}
-		destServiceList, destErr := mc.GetServicesForServiceAccount(dstNamespacedServiceAcc)
-		if destErr != nil {
-			log.Error().Msgf("TrafficTarget %s/%s could not get destination services for service account %s", trafficTargets.Namespace, trafficTargets.Name, dstNamespacedServiceAcc.String())
-			//return nil, destErr
-			continue
-		}
-		destService := destServiceList[0]
-
-		for _, trafficSources := range trafficTargets.Spec.Sources {
-			namespacedServiceAccount := service.K8sServiceAccount{
-				Namespace: trafficSources.Namespace,
-				Name:      trafficSources.Name,
-			}
-
-			srcServiceList, srcErr := mc.GetServicesForServiceAccount(namespacedServiceAccount)
-			if srcErr != nil {
-				log.Error().Msgf("TrafficTarget %s/%s could not get source services for service account %s", trafficTargets.Namespace, trafficTargets.Name, fmt.Sprintf("%s/%s", trafficSources.Namespace, trafficSources.Name))
-				//return nil, srcErr
-				continue
-			}
-			srcService := srcServiceList[0]
-
-			destServicePort := service.MeshServicePort{
-				Namespace: destService.Namespace,
-				Name:      destService.Name,
-				Port:      *trafficTargets.Spec.Destination.Port,
-			}
-
-
-			trafficTarget := trafficpolicy.TrafficTarget{
-				Name:        trafficTargets.Name,
-				Destination: destServicePort,
-				Source:      srcService,
-=======
 		for _, trafficSources := range trafficTargets.Spec.Sources {
 			trafficTargetPermutations, err := mc.listTrafficTargetPermutations(*trafficTargets, trafficSources, trafficTargets.Spec.Destination)
 			if err != nil {
 				log.Error().Msgf("Could not list services for TrafficTarget %s/%s", trafficTargets.Namespace, trafficTargets.Name)
 				return nil, err
->>>>>>> d8b189c3bbeb430f8827cd653a07b0a1fc07ae22
 			}
 			for _, trafficTarget := range trafficTargetPermutations {
 				var httpRoutes []trafficpolicy.HTTPRouteMatch // Keeps track of all the routes from a source to a destination service
@@ -378,23 +301,11 @@ func getTrafficPoliciesForService(mc *MeshCatalog, routePolicies map[trafficpoli
 						continue
 					}
 
-<<<<<<< HEAD
-				}
-				if len(trafficTargetSpecs.Matches) == 0 {
-					// no match name provided, so routes are build for all matches in traffic spec
-					for _, routePolicy := range routePoliciesMatched {
-						trafficTarget.Route = routePolicy
-						// append a traffic trafficTarget only if it corresponds to the service
-						if trafficTarget.Source.Equals(meshService) || trafficTarget.Destination.GetMeshService().Equals(meshService) {
-							trafficPolicies = append(trafficPolicies, trafficTarget)
-						}
-=======
 					specKey := mc.getTrafficSpecName(trafficTargetSpecs.Kind, trafficTargets.Namespace, trafficTargetSpecs.Name)
 					routePoliciesMatched, matchFound := routePolicies[specKey]
 					if !matchFound {
 						log.Error().Msgf("TrafficTarget %s/%s could not find a TrafficSpec %s", trafficTargets.Namespace, trafficTargets.Name, specKey)
 						return nil, errNoTrafficSpecFoundForTrafficPolicy
->>>>>>> d8b189c3bbeb430f8827cd653a07b0a1fc07ae22
 					}
 					if len(trafficTargetSpecs.Matches) == 0 {
 						// This TrafficTarget does not match against a specific route match criteria defined in the
@@ -403,12 +314,6 @@ func getTrafficPoliciesForService(mc *MeshCatalog, routePolicies map[trafficpoli
 							// Consider this route for the current traffic target object being evaluated
 							httpRoutes = append(httpRoutes, routePolicy)
 						}
-<<<<<<< HEAD
-						trafficTarget.Route = routePolicy
-						// append a traffic trafficTarget only if it corresponds to the service
-						if trafficTarget.Source.Equals(meshService) || trafficTarget.Destination.GetMeshService().Equals(meshService) {
-							trafficPolicies = append(trafficPolicies, trafficTarget)
-=======
 					} else {
 						// This TrafficTarget has a match criteria specified to match against specific routes, so
 						// only consider those routes that match.
@@ -420,12 +325,11 @@ func getTrafficPoliciesForService(mc *MeshCatalog, routePolicies map[trafficpoli
 							}
 							// Consider this route for the current traffic target object being evaluated
 							httpRoutes = append(httpRoutes, routePolicy)
->>>>>>> d8b189c3bbeb430f8827cd653a07b0a1fc07ae22
 						}
 					}
 				}
 
-				if trafficTarget.Source.Equals(meshService) || trafficTarget.Destination.Equals(meshService) {
+				if trafficTarget.Source.Equals(meshService) || trafficTarget.Destination.GetMeshService().Equals(meshService) {
 					// The given meshService is a source or destination for this trafficTarget, so add
 					// it to the list of traffic targets associated with this service.
 					srcDstServiceHash := hashSrcDstService(trafficTarget.Source, trafficTarget.Destination)
@@ -466,16 +370,11 @@ func (mc *MeshCatalog) buildAllowPolicyForSourceToDest(source *corev1.Service, d
 		PathRegex: constants.RegexMatchAll,
 		Methods:   []string{constants.WildcardHTTPMethod},
 	}
-<<<<<<< HEAD
-	srcMeshSvc := k8sSvcToMeshSvc(source)
-	dstMeshSvc := k8sSvcToMeshSvc(destination).GetMeshServicePort()
-=======
 	srcMeshSvc := utils.K8sSvcToMeshSvc(source)
 	dstMeshSvc := utils.K8sSvcToMeshSvc(destination)
->>>>>>> d8b189c3bbeb430f8827cd653a07b0a1fc07ae22
 	return trafficpolicy.TrafficTarget{
 		Name:             utils.GetTrafficTargetName("", srcMeshSvc, dstMeshSvc),
-		Destination:      dstMeshSvc,
+		Destination:      dstMeshSvc.GetMeshServicePort(),
 		Source:           srcMeshSvc,
 		HTTPRouteMatches: []trafficpolicy.HTTPRouteMatch{allowAllRoute},
 	}
@@ -515,9 +414,15 @@ func (mc *MeshCatalog) listTrafficTargetPermutations(trafficTarget target.Traffi
 
 	for _, destService := range destServiceList {
 		for _, srcService := range srcServiceList {
+			destServicePort := service.MeshServicePort{
+				Namespace: destService.Namespace,
+				Name:      destService.Name,
+				Port:      *trafficTarget.Spec.Destination.Port,
+			}
+
 			trafficTarget := trafficpolicy.TrafficTarget{
 				Name:        utils.GetTrafficTargetName(trafficTarget.Name, srcService, destService),
-				Destination: destService,
+				Destination: destServicePort,
 				Source:      srcService,
 			}
 			trafficPolicies = append(trafficPolicies, trafficTarget)

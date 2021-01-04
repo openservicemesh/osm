@@ -91,7 +91,7 @@ func makeRequestForAllSecrets(proxy *envoy.Proxy, meshCatalog catalog.MeshCatalo
 	}
 	for _, upstream := range upstreamServices {
 		upstreamRootCertResource := envoy.SDSCert{
-			MeshService: upstream,
+			MeshService: upstream.GetMeshService(),
 			CertType:    envoy.RootCertTypeForMTLSOutbound,
 		}.String()
 		discoveryRequest.ResourceNames = append(discoveryRequest.ResourceNames, upstreamRootCertResource)

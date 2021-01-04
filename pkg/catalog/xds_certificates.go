@@ -1,11 +1,13 @@
 package catalog
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
 	v1 "k8s.io/api/core/v1"
+	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -224,6 +226,9 @@ func listServicesForPod(pod *v1.Pod, kubeController k8s.Controller) ([]v1.Servic
 			continue
 		}
 		svcRawSelector := svc.Spec.Selector
+		if len(svcRawSelector) == 0 {
+			continue
+		}
 		selector := labels.Set(svcRawSelector).AsSelector()
 		if selector.Matches(labels.Set(pod.Labels)) {
 			serviceList = append(serviceList, *svc)

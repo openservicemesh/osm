@@ -101,6 +101,7 @@ func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endp
 			// Doesn't belong to namespaces we are observing
 			return endpoints
 		}
+		log.Info().Msgf("[%s] Endpoint subsets for service %s on Kubernetes :%+v", c.providerIdent, svc, kubernetesEndpoints.Subsets)
 		for _, kubernetesEndpoint := range kubernetesEndpoints.Subsets {
 			for _, address := range kubernetesEndpoint.Addresses {
 				for _, port := range kubernetesEndpoint.Ports {
@@ -149,6 +150,13 @@ func (c Client) GetServicesForServiceAccount(svcAccount service.K8sServiceAccoun
 		}
 
 		for _, svc := range k8sServices {
+			/* WITESAND START */
+			if svc.Name != svcAccount.Name {
+				// even though it defeats the purpose, we want to use
+				// only one service per destination
+				continue
+			}
+			/* WITESAND END */
 			services.Add(service.MeshService{
 				Namespace: pod.Namespace,
 				Name:      svc.Name,
@@ -267,6 +275,9 @@ func (c *Client) getServicesByLabels(podLabels map[string]string, namespace stri
 		}
 
 		svcRawSelector := svc.Spec.Selector
+		if len(svcRawSelector) == 0 {
+			continue
+		}
 		selector := labels.Set(svcRawSelector).AsSelector()
 		if selector.Matches(labels.Set(podLabels)) {
 			finalList = append(finalList, *svc)
@@ -289,7 +300,7 @@ func (c *Client) GetResolvableEndpointsForService(svc service.MeshService) ([]en
 		return nil, errServiceNotFound
 	}
 
-	if len(kubeService.Spec.ClusterIP) == 0 {
+	if len(kubeService.Spec.ClusterIP) == 0 || kubeService.Spec.ClusterIP == "None" {
 		// If service has no cluster IP, use final endpoint as resolvable destinations
 		return c.ListEndpointsForService(svc), nil
 	}

@@ -174,16 +174,10 @@ var (
 		Port: endpoint.Port(ServicePort),
 	}
 
-<<<<<<< HEAD
-	// TrafficPolicy is a traffic policy SMI object.
-	TrafficPolicy = trafficpolicy.TrafficTarget{
-		Name:        TrafficTargetName,
-		//Destination: BookstoreService,
-=======
 	// BookstoreV1TrafficPolicy is a traffic policy SMI object.
 	BookstoreV1TrafficPolicy = trafficpolicy.TrafficTarget{
 		Name:        fmt.Sprintf("%s:default/bookbuyer->default/bookstore-v1", TrafficTargetName),
-		Destination: BookstoreV1Service,
+		//Destination: BookstoreV1Service,
 		Source:      BookbuyerService,
 		HTTPRouteMatches: []trafficpolicy.HTTPRouteMatch{
 			{
@@ -206,8 +200,7 @@ var (
 	// BookstoreV2TrafficPolicy is a traffic policy SMI object.
 	BookstoreV2TrafficPolicy = trafficpolicy.TrafficTarget{
 		Name:        fmt.Sprintf("%s:default/bookbuyer->default/bookstore-v2", TrafficTargetName),
-		Destination: BookstoreV2Service,
->>>>>>> d8b189c3bbeb430f8827cd653a07b0a1fc07ae22
+		//Destination: BookstoreV2Service,
 		Source:      BookbuyerService,
 		HTTPRouteMatches: []trafficpolicy.HTTPRouteMatch{
 			{
@@ -230,7 +223,7 @@ var (
 	// BookstoreApexTrafficPolicy is a traffic policy SMI object.
 	BookstoreApexTrafficPolicy = trafficpolicy.TrafficTarget{
 		Name:        fmt.Sprintf("%s:default/bookbuyer->default/bookstore-apex", TrafficTargetName),
-		Destination: BookstoreApexService,
+		//Destination: BookstoreApexService,
 		Source:      BookbuyerService,
 		HTTPRouteMatches: []trafficpolicy.HTTPRouteMatch{
 			{

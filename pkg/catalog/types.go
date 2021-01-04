@@ -82,20 +82,14 @@ type MeshCataloger interface {
 	// ListEndpointsForService returns the list of individual instance endpoint backing a service
 	ListEndpointsForService(service.MeshService) ([]endpoint.Endpoint, error)
 
-<<<<<<< HEAD
 	// ListLocalClusterEndpoints returns the list of endpoints for this kubernetes cluster
 	ListLocalClusterEndpoints() (map[string][]EndpointJSON, error)
 
-	// GetCertificateForService returns the SSL Certificate for the given service.
-	// This certificate will be used for service-to-service mTLS.
-	GetCertificateForService(service.MeshService) (certificate.Certificater, error)
-=======
 	// GetResolvableServiceEndpoints returns the resolvable set of endpoint over which a service is accessible using its FQDN.
 	// These are the endpoint destinations we'd expect client applications sends the traffic towards to, when attemtpting to
 	// reach a specific service.
 	// If no LB/virtual IPs are assigned to the service, GetResolvableServiceEndpoints will return ListEndpointsForService
 	GetResolvableServiceEndpoints(service.MeshService) ([]endpoint.Endpoint, error)
->>>>>>> d8b189c3bbeb430f8827cd653a07b0a1fc07ae22
 
 	// ExpectProxy catalogs the fact that a certificate was issued for an Envoy proxy and this is expected to connect to XDS.
 	ExpectProxy(certificate.CommonName)
@@ -118,27 +112,20 @@ type MeshCataloger interface {
 	//GetWeightedClusterForService returns the weighted cluster for a service
 	GetWeightedClusterForService(service service.MeshService) (service.WeightedCluster, error)
 
-<<<<<<< HEAD
 	//GetWeightedClusterForServicePort returns the weighted cluster for a ServicePort
 	GetWeightedClusterForServicePort(service service.MeshServicePort) (service.WeightedCluster, error)
 
-	// GetIngressRoutesPerHost returns the routes per host associated with an ingress service
-	GetIngressRoutesPerHost(service.MeshService) (map[string][]trafficpolicy.Route, error)
-=======
 	// GetIngressRoutesPerHost returns the HTTP route matches per host associated with an ingress service
 	GetIngressRoutesPerHost(service.MeshService) (map[string][]trafficpolicy.HTTPRouteMatch, error)
->>>>>>> d8b189c3bbeb430f8827cd653a07b0a1fc07ae22
 
 	// ListMonitoredNamespaces lists namespaces monitored by the control plane
 	ListMonitoredNamespaces() []string
 
-<<<<<<< HEAD
 	// GetProvider returns provider given providerName
 	GetProvider(ident string) endpoint.Provider
-=======
+
 	// GetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol
 	GetPortToProtocolMappingForService(service.MeshService) (map[uint32]string, error)
->>>>>>> d8b189c3bbeb430f8827cd653a07b0a1fc07ae22
 }
 
 type announcementChannel struct {

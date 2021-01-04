@@ -42,11 +42,7 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 			continue
 		}
 
-<<<<<<< HEAD
-		remoteCluster, err := getRemoteServiceCluster(dstService, proxyServiceName.GetMeshServicePort(), cfg)
-=======
-		remoteCluster, err := getUpstreamServiceCluster(dstService, proxyServiceName, cfg)
->>>>>>> d8b189c3bbeb430f8827cd653a07b0a1fc07ae22
+		remoteCluster, err := getUpstreamServiceCluster(dstService, proxyServiceName.GetMeshServicePort(), cfg)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed to construct service cluster for proxy %s", proxyServiceName)
 			return nil, err
@@ -62,12 +58,7 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 
 	// Create a local cluster for the service.
 	// The local cluster will be used for incoming traffic.
-<<<<<<< HEAD
 	localClusters, err := getLocalServiceCluster(catalog, proxyServiceName)
-=======
-	localClusterName := envoy.GetLocalClusterNameForService(proxyServiceName)
-	localCluster, err := getLocalServiceCluster(catalog, proxyServiceName, localClusterName)
->>>>>>> d8b189c3bbeb430f8827cd653a07b0a1fc07ae22
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to get local cluster config for proxy %s", proxyServiceName)
 		return nil, err
@@ -115,6 +106,7 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 		}
 		resp.Resources = append(resp.Resources, marshalledCluster)
 	}
+	log.Debug().Msgf("Proxy service %s CDS resp: %+v ", proxyServiceName, resp.Resources)
 
 	return resp, nil
 }

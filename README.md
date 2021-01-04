@@ -1,5 +1,4 @@
-<<<<<<< HEAD
-Adding a REST service to OSM Mesh
+# Adding a REST service to OSM Mesh (WiteSand Specific)
 ---------------------------------
 In case of OSM, REST service will bypass envoy. We add iptables rules to bypass it.
 1. Modify init-iptables.sh
@@ -28,7 +27,7 @@ In case of OSM, REST service will bypass envoy. We add iptables rules to bypass 
    Don't forget this step.
 7. Merge cloud-scripts/osm/values.yaml into controller repo.
    Don't forget this step.
-=======
+
 # Open Service Mesh (OSM)
 
 [![build](https://github.com/openservicemesh/osm/workflows/Go/badge.svg)](https://github.com/openservicemesh/osm/actions?query=workflow%3AGo)
@@ -169,4 +168,3 @@ This software is covered under the MIT license. You can read the license [here](
 [2]: https://github.com/servicemeshinterface/smi-spec/blob/master/SPEC_LATEST_STABLE.md
 [3]: https://github.com/servicemeshinterface/smi-spec/blob/v0.5.0/apis/traffic-split/v1alpha2/traffic-split.md
 [4]: https://github.com/servicemeshinterface/smi-spec/blob/v0.5.0/apis/traffic-access/v1alpha2/traffic-access.md
->>>>>>> d8b189c3bbeb430f8827cd653a07b0a1fc07ae22

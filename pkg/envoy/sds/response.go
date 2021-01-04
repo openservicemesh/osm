@@ -185,34 +185,10 @@ func (s *sdsImpl) getRootCert(cert certificate.Certificater, sdscert envoy.SDSCe
 	// Program SAN matching based on SMI TrafficTarget policies
 	switch sdscert.CertType {
 	case envoy.RootCertTypeForMTLSOutbound:
-<<<<<<< HEAD
-		fallthrough
-	case envoy.RootCertTypeForMTLSInbound:
-		var matchSANs []*xds_matcher.StringMatcher
-		var serverNames []service.MeshService
-		var serverPortNames []service.MeshServicePort
-		var err error
-
-		// This block constructs a list of Server Names (peers) that are allowed to connect to the given service.
-		// The allowed list is derived from SMI's Traffic Policy.
-		if sdscert.CertType == envoy.RootCertTypeForMTLSOutbound {
-			// Outbound
-			serverPortNames, err = mc.ListAllowedOutboundServices(proxyServiceName)
-			for _, sp := range serverPortNames {
-				serverNames = append(serverNames, sp.GetMeshService())
-			}
-
-		} else {
-			// Inbound
-			serverNames, err = mc.ListAllowedInboundServices(proxyServiceName.GetMeshServicePort())
-		}
-
-=======
 		// For outbound certificate validation context, the SAN needs to the list of service identities
 		// corresponding to the upstream service. This means, if the sdscert.MeshService points to 'X',
 		// the SANs for this certificate should correspond to the service identities of 'X'.
 		svcAccounts, err := s.meshCatalog.ListServiceAccountsForService(sdscert.MeshService)
->>>>>>> d8b189c3bbeb430f8827cd653a07b0a1fc07ae22
 		if err != nil {
 			log.Error().Err(err).Msgf("Error listing service accounts for service %q", sdscert.MeshService)
 			return nil, err

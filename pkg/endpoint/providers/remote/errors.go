@@ -8,4 +8,5 @@ var (
 	errDidNotFindServiceForServiceAccount = errors.New("no service exists for the service account")
 	errMoreThanServiceForServiceAccount   = errors.New("more than one service found for the service account")
 	errInvalidSvcAccount                  = errors.New("invalid service account name")
+	errServiceNotFound                    = errors.New("Service not found")
 )

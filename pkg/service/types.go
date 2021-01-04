@@ -126,11 +126,6 @@ func UnmarshalMeshServicePort(str string) (*MeshServicePort, error) {
 	}, nil
 }
 
-// GetCommonName returns the Subject CN for the MeshServicePort to be used for its certificate.
-func (ms MeshServicePort) GetCommonName() certificate.CommonName {
-	return certificate.CommonName(strings.Join([]string{ms.Name, ms.Namespace, "svc", "cluster", "local", strconv.Itoa(ms.Port)}, "."))
-}
-
 // K8sServiceAccount is a type for a namespaced service account
 type K8sServiceAccount struct {
 	Namespace string

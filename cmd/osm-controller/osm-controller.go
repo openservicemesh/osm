@@ -4,12 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
-<<<<<<< HEAD
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
-=======
 	"fmt"
->>>>>>> d8b189c3bbeb430f8827cd653a07b0a1fc07ae22
 	"os"
 	"path"
 	"strings"
@@ -36,7 +32,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/debugger"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/endpoint/providers/kube"
-	_ "github.com/openservicemesh/osm/pkg/endpoint/providers/subm"
 	"github.com/openservicemesh/osm/pkg/endpoint/providers/remote"
 	"github.com/openservicemesh/osm/pkg/envoy/ads"
 	"github.com/openservicemesh/osm/pkg/featureflags"
@@ -60,22 +55,10 @@ const (
 )
 
 var (
-<<<<<<< HEAD
-	verbosity                  string
-	meshName                   string // An ID that uniquely identifies an OSM instance
-	azureAuthFile              string
-	enableRemoteCluster        bool
-	masterOsmIP                string
-	kubeConfigFile             string
-	osmNamespace               string
-	webhookName                string
-	serviceCertValidityMinutes int
-	caBundleSecretName         string
-	enableDebugServer          bool
-	osmConfigMapName           string
-=======
 	verbosity            string
 	meshName             string // An ID that uniquely identifies an OSM instance
+	enableRemoteCluster  bool
+	masterOsmIP          string
 	kubeConfigFile       string
 	osmNamespace         string
 	webhookConfigName    string
@@ -83,7 +66,6 @@ var (
 	osmConfigMapName     string
 	metricsAddr          string
 	enableLeaderElection bool
->>>>>>> d8b189c3bbeb430f8827cd653a07b0a1fc07ae22
 
 	injectorConfig injector.Config
 
@@ -91,12 +73,9 @@ var (
 
 	// feature flag options
 	optionalFeatures featureflags.OptionalFeatures
-<<<<<<< HEAD
 	m                *catalog.MeshCatalog
-=======
 
 	scheme = runtime.NewScheme()
->>>>>>> d8b189c3bbeb430f8827cd653a07b0a1fc07ae22
 )
 
 var (
@@ -236,19 +215,6 @@ func main() {
 
 	endpointsProviders := []endpoint.Provider{kubeProvider}
 
-<<<<<<< HEAD
-	if azureAuthFile != "" {
-		azureResourceClient, err := azureResource.NewClient(kubeClient, kubeConfig, namespaceController, stop, cfg)
-		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to initialize azure resource client")
-		}
-		azureProvider, err := azure.NewProvider(*azureSubscriptionID, azureAuthFile, stop, meshSpec, azureResourceClient, constants.AzureProviderName)
-		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to initialize azure provider")
-		}
-		endpointsProviders = append(endpointsProviders, azureProvider)
-	}
-
 	log.Info().Msgf("enableRemoteCluster:%t masterOsmIP:%s", enableRemoteCluster, masterOsmIP)
 
 	if enableRemoteCluster {
@@ -259,10 +225,7 @@ func main() {
 		endpointsProviders = append(endpointsProviders, remoteProvider)
 	}
 
-	ingressClient, err := ingress.NewIngressClient(kubeClient, namespaceController, stop, cfg)
-=======
 	ingressClient, err := ingress.NewIngressClient(kubeClient, kubernetesClient, stop, cfg)
->>>>>>> d8b189c3bbeb430f8827cd653a07b0a1fc07ae22
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Ingress monitor client")
 	}
@@ -282,17 +245,9 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating sidecar injector webhook")
 	}
 
-<<<<<<< HEAD
-	xdsServer := ads.NewADSServer(ctx, meshCatalog, enableDebugServer, osmNamespace, cfg)
-
 	m = meshCatalog
 
-	// TODO(draychev): we need to pass this hard-coded string is a CLI argument (https://github.com/openservicemesh/osm/issues/542)
-	validityPeriod := constants.XDSCertificateValidityPeriod
-	adsCert, err := certManager.IssueCertificate(xdsServerCertificateCommonName, &validityPeriod)
-=======
 	adsCert, err := certManager.IssueCertificate(xdsServerCertificateCommonName, constants.XDSCertificateValidityPeriod)
->>>>>>> d8b189c3bbeb430f8827cd653a07b0a1fc07ae22
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.CertificateIssuanceFailure, "Error issuing XDS certificate to ADS server")
 	}
@@ -312,17 +267,12 @@ func main() {
 	httpServer := httpserver.NewHTTPServer(funcProbes, httpProbes, metricsStore, constants.MetricsServerPort)
 	httpServer.Start()
 
-<<<<<<< HEAD
 	go func() {
-		http.Handle("/metrics", promhttp.Handler())
 		http.HandleFunc("/gatewaypod", GatewayPod)
 		http.HandleFunc("/endpoints", LocalEndpoints)
 		http.ListenAndServe(":2500", nil)
 	}()
 
-	// Wait for exit handler signal
-	<-stop
-=======
 	if err := createControllerManagerForOSMResources(certManager); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating controller manager to reconcile OSM resources")
 	}
@@ -331,13 +281,12 @@ func main() {
 	debugConfig := debugger.NewDebugConfig(certDebugger, xdsServer, meshCatalog, kubeConfig, kubeClient, cfg, kubernetesClient)
 	debugServerInterface := httpserver.NewDebugHTTPServer(debugConfig, constants.DebugPort)
 	httpserver.RegisterDebugServer(debugServerInterface, cfg)
->>>>>>> d8b189c3bbeb430f8827cd653a07b0a1fc07ae22
 
+	// Wait for exit handler signal
 	<-stop
 	log.Info().Msg("Goodbye!")
 }
 
-<<<<<<< HEAD
 func GatewayPod(w http.ResponseWriter, r *http.Request) {
 	list, err := m.GetGatewaypods("gateway")
 	if err != nil {
@@ -370,7 +319,9 @@ func LocalEndpoints(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewEncoder(w).Encode(endpointMap); err != nil {
 		log.Error().Msgf("err encoding endpoints %+v", err)
-=======
+	}
+}
+
 func getHTTPHealthProbes() []health.HTTPProbe {
 	return []health.HTTPProbe{
 		{
@@ -379,7 +330,6 @@ func getHTTPHealthProbes() []health.HTTPProbe {
 				injector.WebhookHealthPath),
 			Protocol: health.ProtocolHTTPS,
 		},
->>>>>>> d8b189c3bbeb430f8827cd653a07b0a1fc07ae22
 	}
 }
 
