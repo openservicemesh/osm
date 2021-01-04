@@ -43,7 +43,9 @@ const (
 
 	// webhookUpdateConfigMapis the HTTP path at which the webhook expects to receive configmap update events
 	webhookUpdateConfigMap = "/validate-webhook"
-	listenPort             = 9090
+
+	// listenPort is the validating webhook server port
+	listenPort = 9093
 
 	// mustBeBool is the reason for denial for a boolean field
 	mustBeBool = ": must be a boolean"
