@@ -2,7 +2,9 @@ package lds
 
 import (
 	"fmt"
+	"sort"
 
+	mapset "github.com/deckarep/golang-set"
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	xds_tcp_proxy "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/tcp_proxy/v3"
@@ -274,23 +276,20 @@ func (lb *listenerBuilder) getOutboundFilterChainMatchForService(dstSvc service.
 		return nil, err
 	}
 
-	contains := func(s []string, t string) bool {
-		for _, a := range s {
-			if a == t {
-				return true
-			}
-		}
-		return false
-	}
-
-	var endpointSet []string
+	endpointSet := mapset.NewSet()
 	for _, endp := range endpoints {
-		if !contains(endpointSet, endp.IP.String()) {
-			endpointSet = append(endpointSet, endp.IP.String())
-		}
+		endpointSet.Add(endp.IP.String())
 	}
 
-	for _, ip := range endpointSet {
+	// For deterministic ordering
+	sortedEndpoints := []string{}
+	endpointSet.Each(func(elem interface{}) bool {
+		sortedEndpoints = append(sortedEndpoints, elem.(string))
+		return false
+	})
+	sort.Strings(sortedEndpoints)
+
+	for _, ip := range sortedEndpoints {
 		filterMatch.PrefixRanges = append(filterMatch.PrefixRanges, &xds_core.CidrRange{
 			AddressPrefix: ip,
 			PrefixLen: &wrapperspb.UInt32Value{
