@@ -11,15 +11,11 @@ func makeThresholds(maxConnections *uint32) []*xds_cluster.CircuitBreakers_Thres
 		return nil
 	}
 
-	threshold := &xds_cluster.CircuitBreakers_Thresholds{}
-
-	if maxConnections != nil {
-		threshold.MaxConnections = &wrappers.UInt32Value{
-			Value: *maxConnections,
-		}
-	}
-
 	return []*xds_cluster.CircuitBreakers_Thresholds{
-		threshold,
+		{
+			MaxConnections: &wrappers.UInt32Value{
+				Value: *maxConnections,
+			},
+		},
 	}
 }
