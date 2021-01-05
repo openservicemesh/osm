@@ -3,7 +3,7 @@ package debugger
 import (
 	"testing"
 
-	gomock "github.com/golang/mock/gomock"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
