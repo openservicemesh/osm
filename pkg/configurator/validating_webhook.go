@@ -42,7 +42,7 @@ const (
 	ValidatingWebhookName = "osm-config-webhook.k8s.io"
 
 	// webhookUpdateConfigMapis the HTTP path at which the webhook expects to receive configmap update events
-	webhookUpdateConfigMap = "/validate-webhook"
+	webhookUpdateConfigMap = "/validate-config"
 
 	// listenPort is the validating webhook server port
 	listenPort = 9093
@@ -152,6 +152,7 @@ func (whc *webhookConfig) runValidatingWebhook(stop <-chan struct{}) {
 		log.Info().Msg("Done shutting down validating webhook HTTP server")
 	}
 }
+
 func (whc *webhookConfig) configMapHandler(w http.ResponseWriter, req *http.Request) {
 	log.Trace().Msgf("Received validating webhook request: Method=%v, URL=%v", req.Method, req.URL)
 

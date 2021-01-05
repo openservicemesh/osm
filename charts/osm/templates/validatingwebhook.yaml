@@ -10,8 +10,8 @@ webhooks:
     service:
       name: osm-controller
       namespace: {{ include "osm.namespace" . }}
-      path: /validate-webhook
-      port: 443
+      path: /validate-config
+      port: 9093
   failurePolicy: Fail
   matchPolicy: Exact
   namespaceSelector:
@@ -25,6 +25,5 @@ webhooks:
       operations:
         - CREATE
         - UPDATE
-        - DELETE
       resources:
         - configmaps
