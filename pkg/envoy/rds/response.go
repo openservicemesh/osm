@@ -99,8 +99,8 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 }
 
 func isTrafficSplitService(svc service.MeshService, allTrafficSplits []*split.TrafficSplit) bool {
-	for _, split := range allTrafficSplits {
-		if split.Namespace == svc.Namespace && split.Spec.Service == svc.Name {
+	for _, trafficSplit := range allTrafficSplits {
+		if trafficSplit.Namespace == svc.Namespace && trafficSplit.Spec.Service == svc.Name {
 			return true
 		}
 	}
