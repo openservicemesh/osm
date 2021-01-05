@@ -12,7 +12,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/stretchr/testify/assert"
+	tassert "github.com/stretchr/testify/assert"
 	helm "helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chartutil"
 	kubefake "helm.sh/helm/v3/pkg/kube/fake"
@@ -592,7 +592,7 @@ func TestResolveValues(t *testing.T) {
 				for _, val := range valuesConfig {
 					// parses Helm strvals line and merges into a map
 					err := strvals.ParseInto(val, expectedValues)
-					assert.Nil(t, err)
+					tassert.Nil(t, err)
 				}
 				return expectedValues
 			}(),
@@ -634,7 +634,7 @@ func TestResolveValues(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			assert := assert.New(t)
+			assert := tassert.New(t)
 			actual, err := test.installCmd.resolveValues()
 			if err != nil && test.expectedErr != nil {
 				assert.Equal(err.Error(), test.expectedErr.Error())
@@ -647,7 +647,7 @@ func TestResolveValues(t *testing.T) {
 }
 
 func TestEnforceSingleMesh(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	out := new(bytes.Buffer)
 	store := storage.Init(driver.NewMemory())
@@ -689,7 +689,7 @@ func TestEnforceSingleMesh(t *testing.T) {
 }
 
 func TestEnforceSingleMeshRejectsNewMesh(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	out := new(bytes.Buffer)
 	store := storage.Init(driver.NewMemory())
@@ -746,7 +746,7 @@ func TestEnforceSingleMeshRejectsNewMesh(t *testing.T) {
 }
 
 func TestEnforceSingleMeshWithExistingMesh(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	out := new(bytes.Buffer)
 	store := storage.Init(driver.NewMemory())

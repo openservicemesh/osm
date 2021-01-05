@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	tassert "github.com/stretchr/testify/assert"
 
 	xds_rbac "github.com/envoyproxy/go-control-plane/envoy/config/rbac/v3"
 )
 
 func TestGenerate(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	testCases := []struct {
 		name                string

@@ -4,18 +4,18 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
+	tassert "github.com/stretchr/testify/assert"
 )
 
 func TestNewUUIDStr(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	output := NewUUIDStr()
 	assert.NotEmpty(output)
 }
 
 func TestIsValidUUID(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	listUUID := map[string]bool{
 		uuid.New().String():          true,

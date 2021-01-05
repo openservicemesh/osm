@@ -8,7 +8,7 @@ import (
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
 	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
 	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha3"
-	"github.com/stretchr/testify/assert"
+	tassert "github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -19,7 +19,7 @@ import (
 )
 
 func TestListAllowedInboundServiceAccounts(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -198,7 +198,7 @@ func TestListAllowedInboundServiceAccounts(t *testing.T) {
 }
 
 func TestListAllowedOutboundServiceAccounts(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -381,7 +381,7 @@ func TestListAllowedOutboundServiceAccounts(t *testing.T) {
 }
 
 func TestTrafficTargetIdentityToSvcAccount(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	testCases := []struct {
 		identity               smiAccess.IdentityBindingSubject
@@ -420,7 +420,7 @@ func TestTrafficTargetIdentityToSvcAccount(t *testing.T) {
 }
 
 func TestTrafficTargetIdentitiesToSvcAccounts(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	input := []target.IdentityBindingSubject{
 		{
 			Kind:      "ServiceAccount",
@@ -450,7 +450,7 @@ func TestTrafficTargetIdentitiesToSvcAccounts(t *testing.T) {
 }
 
 func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 

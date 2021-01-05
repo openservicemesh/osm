@@ -10,7 +10,7 @@ import (
 	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha3"
 	specs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha3"
-	"github.com/stretchr/testify/assert"
+	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -25,7 +25,7 @@ import (
 )
 
 func TestIsValidTrafficTarget(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	testCases := []struct {
 		name     string
@@ -74,7 +74,7 @@ func TestIsValidTrafficTarget(t *testing.T) {
 }
 
 func TestGetHostnamesForUpstreamService(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	mc := newFakeMeshCatalogForRoutes(t, testParams{})
 
@@ -143,7 +143,7 @@ func TestGetHostnamesForUpstreamService(t *testing.T) {
 }
 
 func TestGetServicesForServiceAccounts(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	mc := newFakeMeshCatalog()
 
 	testCases := []struct {
@@ -185,7 +185,7 @@ func TestGetServicesForServiceAccounts(t *testing.T) {
 }
 
 func TestRoutesFromRules(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	mc := MeshCatalog{meshSpec: smi.NewFakeMeshSpecClient()}
 
 	testCases := []struct {
@@ -230,7 +230,7 @@ func TestRoutesFromRules(t *testing.T) {
 }
 
 func TestListTrafficPolicies(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	type listTrafficPoliciesTest struct {
 		input  service.MeshService
@@ -258,7 +258,7 @@ func TestListTrafficPolicies(t *testing.T) {
 }
 
 func TestGetTrafficPoliciesForService(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	type getTrafficPoliciesForServiceTest struct {
 		input  service.MeshService
@@ -301,7 +301,7 @@ func TestGetTrafficPoliciesForService(t *testing.T) {
 }
 
 func TestGetHTTPPathsPerRoute(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	mc := MeshCatalog{meshSpec: smi.NewFakeMeshSpecClient()}
 	actual, err := mc.getHTTPPathsPerRoute()
@@ -338,7 +338,7 @@ func TestGetHTTPPathsPerRoute(t *testing.T) {
 }
 
 func TestGetTrafficSpecName(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	mc := MeshCatalog{meshSpec: smi.NewFakeMeshSpecClient()}
 
@@ -348,7 +348,7 @@ func TestGetTrafficSpecName(t *testing.T) {
 }
 
 func TestListAllowedInboundServices(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	mc := newFakeMeshCatalog()
 
@@ -359,7 +359,7 @@ func TestListAllowedInboundServices(t *testing.T) {
 }
 
 func TestBuildAllowPolicyForSourceToDest(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	mc := newFakeMeshCatalog()
 
@@ -386,7 +386,7 @@ func TestBuildAllowPolicyForSourceToDest(t *testing.T) {
 }
 
 func TestListAllowedOutboundServicesForIdentity(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	testCases := []struct {
 		name           string
@@ -429,7 +429,7 @@ func TestListAllowedOutboundServicesForIdentity(t *testing.T) {
 }
 
 func TestListMeshServices(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -470,7 +470,7 @@ func TestListMeshServices(t *testing.T) {
 }
 
 func TestGetWeightedClusterForService(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	mc := newFakeMeshCatalog()
 	weightedCluster, err := mc.GetWeightedClusterForService(tests.BookstoreV1Service)
@@ -484,7 +484,7 @@ func TestGetWeightedClusterForService(t *testing.T) {
 }
 
 func TestGetServiceHostnames(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	mc := newFakeMeshCatalog()
 
@@ -535,14 +535,14 @@ func TestGetServiceHostnames(t *testing.T) {
 }
 
 func TestHostnamesTostr(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	actual := hostnamesTostr([]string{"foo", "bar", "baz"})
 	expected := "foo,bar,baz"
 	assert.Equal(actual, expected)
 }
 
 func TestGetDefaultWeightedClusterForService(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	actual := getDefaultWeightedClusterForService(tests.BookstoreV1Service)
 	expected := service.WeightedCluster{
@@ -553,7 +553,7 @@ func TestGetDefaultWeightedClusterForService(t *testing.T) {
 }
 
 func TestGetResolvableHostnamesForUpstreamService(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	mc := newFakeMeshCatalog()
 
@@ -625,7 +625,7 @@ func TestGetResolvableHostnamesForUpstreamService(t *testing.T) {
 }
 
 func TestBuildAllowAllTrafficPolicies(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	mc := newFakeMeshCatalog()
 
@@ -653,7 +653,7 @@ func TestBuildAllowAllTrafficPolicies(t *testing.T) {
 }
 
 func TestListTrafficTargetPermutations(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	mc := newFakeMeshCatalog()
 
@@ -674,7 +674,7 @@ func TestListTrafficTargetPermutations(t *testing.T) {
 }
 
 func TestHashSrcDstService(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	src := service.MeshService{
 		Namespace: "src-ns",
@@ -690,7 +690,7 @@ func TestHashSrcDstService(t *testing.T) {
 }
 
 func TestGetTrafficTargetFromSrcDstHash(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	src := service.MeshService{
 		Namespace: "src-ns",
@@ -726,7 +726,7 @@ func TestGetTrafficTargetFromSrcDstHash(t *testing.T) {
 }
 
 func TestBuildOutboundPolicies(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -823,7 +823,7 @@ func TestBuildOutboundPolicies(t *testing.T) {
 }
 
 func TestBuildInboundPoliciesDiffNamespaces(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -934,7 +934,7 @@ func TestBuildInboundPoliciesDiffNamespaces(t *testing.T) {
 }
 
 func TestBuildInboundPoliciesSameNamespace(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -1045,7 +1045,7 @@ func TestBuildInboundPoliciesSameNamespace(t *testing.T) {
 }
 
 func TestListPoliciesFromTrafficTargets(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	expectedBookbuyerOutbound := []*trafficpolicy.OutboundTrafficPolicy{
 		{
@@ -1182,7 +1182,7 @@ func TestListPoliciesFromTrafficTargets(t *testing.T) {
 }
 
 func TestGetDestinationServicesFromTrafficTarget(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -1239,7 +1239,7 @@ func TestGetDestinationServicesFromTrafficTarget(t *testing.T) {
 }
 
 func TestBuildPolicyName(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	svc := service.MeshService{
 		Namespace: "default",

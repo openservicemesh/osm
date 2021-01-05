@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
+	tassert "github.com/stretchr/testify/assert"
 
 	"github.com/openservicemesh/osm/pkg/debugger"
 )
@@ -19,7 +19,7 @@ const (
 )
 
 func TestNewDebugHTTPServer(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	mockCtrl := gomock.NewController(t)
 	mockDebugServer := debugger.NewMockDebugServer(mockCtrl)
