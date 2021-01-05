@@ -127,12 +127,12 @@ func getHandlers() []handler {
 	}
 }
 
-func reset(w http.ResponseWriter, r *http.Request) {
+func reset(w http.ResponseWriter, _ *http.Request) {
 	booksSold = 0
 	renderTemplate(w)
 }
 
-func ok(w http.ResponseWriter, r *http.Request) {
+func ok(w http.ResponseWriter, _ *http.Request) {
 	renderTemplate(w)
 }
 
