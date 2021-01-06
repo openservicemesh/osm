@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	gomock "github.com/golang/mock/gomock"
+	"github.com/golang/mock/gomock"
 	"github.com/pkg/errors"
 
 	"github.com/openservicemesh/osm/pkg/certificate"

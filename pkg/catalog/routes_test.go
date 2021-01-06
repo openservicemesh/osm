@@ -2,7 +2,7 @@ package catalog
 
 import (
 	"fmt"
-	reflect "reflect"
+	"reflect"
 	"testing"
 
 	mapset "github.com/deckarep/golang-set"
