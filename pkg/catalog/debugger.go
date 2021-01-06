@@ -27,7 +27,7 @@ func (mc *MeshCatalog) ListExpectedProxies() map[certificate.CommonName]time.Tim
 			proxies[cn] = props.certificateIssuedAt
 		}
 
-		return true
+		return true // continue the iteration
 	})
 
 	return proxies
@@ -42,7 +42,7 @@ func (mc *MeshCatalog) ListConnectedProxies() map[certificate.CommonName]*envoy.
 		if _, isDisconnected := mc.disconnectedProxies.Load(cn); !isDisconnected {
 			proxies[cn] = props.proxy
 		}
-		return true
+		return true // continue the iteration
 	})
 	return proxies
 }
@@ -54,7 +54,7 @@ func (mc *MeshCatalog) ListDisconnectedProxies() map[certificate.CommonName]time
 		cn := cnInterface.(certificate.CommonName)
 		props := disconnectedProxyInterface.(disconnectedProxy)
 		proxies[cn] = props.lastSeen
-		return true
+		return true // continue the iteration
 	})
 	return proxies
 }

@@ -73,7 +73,7 @@ func (f fakeMeshSpec) ListTrafficTargets() []*target.TrafficTarget {
 	return f.trafficTargets
 }
 
-func (f fakeMeshSpec) GetBackpressurePolicy(svc service.MeshService) *backpressure.Backpressure {
+func (f fakeMeshSpec) GetBackpressurePolicy(_ service.MeshService) *backpressure.Backpressure {
 	return nil
 }
 

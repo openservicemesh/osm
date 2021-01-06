@@ -67,7 +67,7 @@ func getHandlers() []handler {
 	}
 }
 
-func reset(w http.ResponseWriter, r *http.Request) {
+func reset(w http.ResponseWriter, _ *http.Request) {
 	booksStolen = 0
 	booksStolenV1 = 0
 	booksStolenV2 = 0
