@@ -91,7 +91,7 @@ func (s *XDSServer) Context() context.Context {
 // It is safe to have a goroutine calling SendMsg and another goroutine
 // calling RecvMsg on the same stream at the same time, but it is not safe
 // to call SendMsg on the same stream in different goroutines.
-func (s *XDSServer) SendMsg(m interface{}) error {
+func (s *XDSServer) SendMsg(_ interface{}) error {
 	return nil
 }
 
@@ -103,6 +103,6 @@ func (s *XDSServer) SendMsg(m interface{}) error {
 // It is safe to have a goroutine calling SendMsg and another goroutine
 // calling RecvMsg on the same stream at the same time, but it is not
 // safe to call RecvMsg on the same stream in different goroutines.
-func (s *XDSServer) RecvMsg(m interface{}) error {
+func (s *XDSServer) RecvMsg(_ interface{}) error {
 	return nil
 }
