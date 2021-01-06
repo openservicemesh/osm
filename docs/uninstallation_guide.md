@@ -28,6 +28,6 @@ The following sections detail which Kubernetes resources are cleaned up and whic
 
 ### Remaining after OSM uninstallation
 1. Existing Envoy sidecars
-    - Redploy application pods to delete sidecars
-1. Namespace annotations including but not limited to `openservicemesh.io/monitored-by`
+    - Redeploy application pods to delete sidecars
+1. Namespace annotations, including but not limited to `openservicemesh.io/monitored-by`
 1. Custom resource definitions ([CRDs](https://github.com/openservicemesh/osm/tree/main/charts/osm/crds))
