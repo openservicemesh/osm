@@ -112,7 +112,7 @@ var _ = Describe("Test client helpers", func() {
 			cm.cache.Range(func(cnInterface interface{}, certInterface interface{}) bool {
 				cert := certInterface.(*Certificate)
 				commonNames = append(commonNames, cert.GetCommonName())
-				return true
+				return true // continue the iteration
 			})
 			return commonNames
 		}
