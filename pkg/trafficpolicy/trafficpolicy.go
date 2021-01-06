@@ -57,7 +57,6 @@ func (in *InboundTrafficPolicy) AddRule(route RouteWeightedClusters, allowedServ
 //	already exists, an error will be returned. If a Route with the given HTTP route match does not exist,
 //	a Route with the given HTTP route match and weighted clusters will be added to the Routes on the OutboundTrafficPolicy
 func (out *OutboundTrafficPolicy) AddRoute(httpRouteMatch HTTPRouteMatch, weightedClusters ...service.WeightedCluster) error {
-	routeExists := false
 	wc := set.NewSet()
 	for _, c := range weightedClusters {
 		wc.Add(c)
@@ -72,12 +71,10 @@ func (out *OutboundTrafficPolicy) AddRoute(httpRouteMatch HTTPRouteMatch, weight
 		}
 	}
 
-	if !routeExists {
-		out.Routes = append(out.Routes, &RouteWeightedClusters{
-			HTTPRouteMatch:   httpRouteMatch,
-			WeightedClusters: wc,
-		})
-	}
+	out.Routes = append(out.Routes, &RouteWeightedClusters{
+		HTTPRouteMatch:   httpRouteMatch,
+		WeightedClusters: wc,
+	})
 	return nil
 }
 
