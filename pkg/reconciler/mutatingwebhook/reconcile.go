@@ -50,7 +50,7 @@ func (r *MutatingWebhookConfigrationReconciler) Reconcile(req ctrl.Request) (ctr
 					cn := certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.OSMControllerName, r.OsmNamespace))
 					cert, err := r.CertManager.GetCertificate(cn)
 					if err != nil {
-						return ctrl.Result{}, errors.Errorf("Error updating mutating webhook, unable to get certificate for the mutating webhook %s: %+s", req.Name, err)
+						return ctrl.Result{}, errors.Errorf("Error updating mutating webhook, unable to get certificate for the mutating webhook %s: %s", req.Name, err)
 					}
 					instance.Webhooks[idx].ClientConfig.CABundle = cert.GetCertificateChain()
 				}
