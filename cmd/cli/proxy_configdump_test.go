@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -12,7 +12,7 @@ import (
 )
 
 func TestIsMeshedPod(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	type test struct {
 		pod      corev1.Pod

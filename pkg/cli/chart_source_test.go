@@ -6,12 +6,12 @@ import (
 	"testing"
 
 	"github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
+	tassert "github.com/stretchr/testify/assert"
 	"helm.sh/helm/v3/pkg/chartutil"
 )
 
 func TestChartSource(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	tmp, err := ioutil.TempDir(os.TempDir(), "osm-test")
 	assert.Nil(errors.Wrap(err, "failed to create temp dir"))

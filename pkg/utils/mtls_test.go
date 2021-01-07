@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
+	tassert "github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/peer"
@@ -20,7 +20,7 @@ import (
 )
 
 func TestSetupMutualTLS(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	type setupMutualTLStest struct {
 		certPem       []byte
@@ -58,7 +58,7 @@ func TestSetupMutualTLS(t *testing.T) {
 }
 
 func TestValidateClient(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	type validateClientTest struct {
 		ctx           context.Context

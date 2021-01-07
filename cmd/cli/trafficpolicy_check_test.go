@@ -8,7 +8,7 @@ import (
 
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
 	fakeAccessClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/clientset/versioned/fake"
-	"github.com/stretchr/testify/assert"
+	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
@@ -18,7 +18,7 @@ import (
 )
 
 func TestUnmarshalNamespacedPod(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	testCases := []struct {
 		namespacedPod     string
@@ -43,7 +43,7 @@ func TestUnmarshalNamespacedPod(t *testing.T) {
 }
 
 func TestIsPermissiveModeEnabled(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	fakeClient := fake.NewSimpleClientset()
 	out := new(bytes.Buffer)
 
@@ -125,7 +125,7 @@ func TestIsPermissiveModeEnabled(t *testing.T) {
 }
 
 func TestCheckTrafficPolicy(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	fakeClient := fake.NewSimpleClientset()
 	fakeAccessClient := fakeAccessClient.NewSimpleClientset()
 	out := new(bytes.Buffer)

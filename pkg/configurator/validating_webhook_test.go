@@ -16,7 +16,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/constants"
 
-	"github.com/stretchr/testify/assert"
+	tassert "github.com/stretchr/testify/assert"
 	"k8s.io/client-go/kubernetes/fake"
 
 	"k8s.io/api/admission/v1beta1"
@@ -62,7 +62,7 @@ const (
 )
 
 func TestNewValidatingWebhook(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	kubeClient := fake.NewSimpleClientset()
 	certManager := certificate.NewMockManager(mockCtrl)
@@ -97,7 +97,7 @@ func TestNewValidatingWebhook(t *testing.T) {
 }
 
 func TestConfigMapHandler(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	req := httptest.NewRequest("GET", "/a/b/c", strings.NewReader(admissionRequestBody))
 	req.Header = map[string][]string{
 		"Content-Type": {"application/json"},
@@ -112,7 +112,7 @@ func TestConfigMapHandler(t *testing.T) {
 }
 
 func TestGetAdmissionReqResp(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	requestForNamespace, admissionResp := whc.getAdmissionReqResp([]byte(admissionRequestBody))
 
@@ -133,7 +133,7 @@ func TestGetAdmissionReqResp(t *testing.T) {
 }
 
 func TestValidateConfigMap(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	testCases := []struct {
 		testName string
@@ -188,7 +188,7 @@ func TestValidateConfigMap(t *testing.T) {
 }
 
 func TestCheckDefaultFields(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	resp := &v1beta1.AdmissionResponse{
 		Allowed: true,
 		Result:  &metav1.Status{Reason: ""},
@@ -246,7 +246,7 @@ func TestCheckDefaultFields(t *testing.T) {
 }
 
 func TestValidateFields(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	resp := &v1beta1.AdmissionResponse{
 		Allowed: true,
 		Result:  &metav1.Status{Reason: ""},
@@ -327,7 +327,7 @@ func TestValidateFields(t *testing.T) {
 }
 
 func TestCheckEnvoyLogLevels(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	tests := map[string]bool{
 		"debug":      true,
 		"invalidLvl": false,
@@ -340,7 +340,7 @@ func TestCheckEnvoyLogLevels(t *testing.T) {
 }
 
 func TestCheckBoolFields(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	fakeFields := []string{"field"}
 	tests := map[string]bool{
 		"true":  true,
@@ -358,7 +358,7 @@ func TestCheckBoolFields(t *testing.T) {
 }
 
 func TestGetPartialValidatingWebhookConfiguration(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	cert := mockCertificate{}
 	webhookConfigName := "-webhook-config-name-"
 	res := getPartialValidatingWebhookConfiguration(ValidatingWebhookName, cert, webhookConfigName)
@@ -380,7 +380,7 @@ func TestGetPartialValidatingWebhookConfiguration(t *testing.T) {
 }
 
 func TestUpdateValidatingWebhookCABundle(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	cert := mockCertificate{}
 	webhookName := "--webhookName--"
 	testWebhookServiceNamespace := "test-namespace"

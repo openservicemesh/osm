@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
+	tassert "github.com/stretchr/testify/assert"
 
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
@@ -22,7 +22,7 @@ import (
 )
 
 func TestGetOutboundHTTPFilterChainForService(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -77,7 +77,7 @@ func TestGetOutboundHTTPFilterChainForService(t *testing.T) {
 }
 
 func TestGetInboundMeshHTTPFilterChain(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -167,7 +167,7 @@ func TestGetInboundMeshHTTPFilterChain(t *testing.T) {
 }
 
 func TestGetInboundMeshTCPFilterChain(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -258,7 +258,7 @@ func TestGetInboundMeshTCPFilterChain(t *testing.T) {
 
 // Tests getOutboundFilterChainMatchForService and ensures the filter chain match returned is as expected
 func TestGetOutboundFilterChainMatchForService(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)

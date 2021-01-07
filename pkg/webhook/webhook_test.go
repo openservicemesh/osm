@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
+	tassert "github.com/stretchr/testify/assert"
 	"k8s.io/api/admission/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -18,7 +18,7 @@ var (
 )
 
 func TestGetAdmissionRequestBody(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	w := httptest.NewRecorder()
 
 	testCases := []struct {
@@ -63,7 +63,7 @@ func TestGetAdmissionRequestBody(t *testing.T) {
 }
 
 func TestAdmissionError(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	message := uuid.New().String()
 	err := errors.New(message)
 	actual := AdmissionError(err)

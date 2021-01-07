@@ -3,14 +3,14 @@ package utils
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	tassert "github.com/stretchr/testify/assert"
 
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
 func TestK8sSvcToMeshSvc(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	v1Service := tests.NewServiceFixture(tests.BookstoreV1ServiceName, tests.Namespace, nil)
 	meshSvc := K8sSvcToMeshSvc(v1Service)
@@ -23,7 +23,7 @@ func TestK8sSvcToMeshSvc(t *testing.T) {
 }
 
 func TestGetTrafficTargetName(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	type getTrafficTargetNameTest struct {
 		input              string
