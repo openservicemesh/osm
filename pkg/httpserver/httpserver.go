@@ -38,11 +38,11 @@ func NewHealthMux(handlers map[string]http.Handler) *http.ServeMux {
 }
 
 // NewHTTPServer creates a new API server
-func NewHTTPServer(probes []health.Probes, httpProbes []health.HTTPProbe, metricStore metricsstore.MetricStore, apiPort int32) *HTTPServer {
+func NewHTTPServer(probes []health.Probes, httpProbes []health.HTTPProbe, metricsStore *metricsstore.MetricsStore, apiPort int32) *HTTPServer {
 	handlers := map[string]http.Handler{
 		"/health/ready": health.ReadinessHandler(probes, httpProbes),
 		"/health/alive": health.LivenessHandler(probes, httpProbes),
-		"/metrics":      metricStore.Handler(),
+		"/metrics":      metricsStore.Handler(),
 		"/version":      getVersionHandler(),
 	}
 
