@@ -13,7 +13,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	fake "k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -41,14 +41,13 @@ var _ = Describe("Test Kube Client Provider (w/o kubecontroller)", func() {
 	mockKubeController = k8s.NewMockController(mockCtrl)
 	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
 
-	stopChan := make(chan struct{})
 	providerID := "provider"
 
 	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).AnyTimes()
 
 	BeforeEach(func() {
 		fakeClientSet = fake.NewSimpleClientset()
-		provider, err = NewProvider(fakeClientSet, mockKubeController, stopChan, providerID, mockConfigurator)
+		provider, err = NewProvider(fakeClientSet, mockKubeController, providerID, mockConfigurator)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -241,7 +240,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 		}, 3*time.Second).Should(BeTrue())
 
 		Expect(err).ToNot(HaveOccurred())
-		provider, err = NewProvider(fakeClientSet, kubeController, stop, providerID, mockConfigurator)
+		provider, err = NewProvider(fakeClientSet, kubeController, providerID, mockConfigurator)
 		Expect(err).ToNot(HaveOccurred())
 	})
 

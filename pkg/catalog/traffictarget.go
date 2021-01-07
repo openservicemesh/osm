@@ -1,14 +1,22 @@
 package catalog
 
 import (
+	"fmt"
+	"strconv"
+	"strings"
+
 	mapset "github.com/deckarep/golang-set"
+	"github.com/pkg/errors"
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
 
+	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
 const (
 	serviceAccountKind = "ServiceAccount"
+	tcpRouteKind       = "TCPRoute"
 )
 
 // ListAllowedInboundServiceAccounts lists the downstream service accounts that can connect to the given upstream service account
@@ -19,6 +27,53 @@ func (mc *MeshCatalog) ListAllowedInboundServiceAccounts(upstream service.K8sSer
 // ListAllowedOutboundServiceAccounts lists the upstream service accounts the given downstream service account can connect to
 func (mc *MeshCatalog) ListAllowedOutboundServiceAccounts(downstream service.K8sServiceAccount) ([]service.K8sServiceAccount, error) {
 	return mc.getAllowedDirectionalServiceAccounts(downstream, outbound)
+}
+
+// ListInboundTrafficTargetsWithRoutes returns a list traffic target objects componsed of its routes for the given destination service account
+func (mc *MeshCatalog) ListInboundTrafficTargetsWithRoutes(upstream service.K8sServiceAccount) ([]trafficpolicy.TrafficTargetWithRoutes, error) {
+	var trafficTargets []trafficpolicy.TrafficTargetWithRoutes
+
+	if mc.configurator.IsPermissiveTrafficPolicyMode() {
+		return nil, nil
+	}
+
+	for _, t := range mc.meshSpec.ListTrafficTargets() { // loop through all traffic targets
+		if !isValidTrafficTarget(t) {
+			continue
+		}
+
+		destinationSvcAccount := trafficTargetIdentityToSvcAccount(t.Spec.Destination)
+		if destinationSvcAccount != upstream {
+			continue
+		}
+
+		destinationIdentity := trafficTargetIdentityToServiceIdentity(t.Spec.Destination)
+
+		// Create a traffic target for this destination indentity
+		trafficTarget := trafficpolicy.TrafficTargetWithRoutes{
+			Name:        fmt.Sprintf("%s/%s", t.Namespace, t.Name),
+			Destination: destinationIdentity,
+		}
+
+		// Source identies for this traffic target
+		var sourceIdentities []identity.ServiceIdentity
+		for _, source := range t.Spec.Sources {
+			srcIdentity := trafficTargetIdentityToServiceIdentity(source)
+			sourceIdentities = append(sourceIdentities, srcIdentity)
+		}
+		trafficTarget.Sources = sourceIdentities
+
+		// TCP routes for this traffic target
+		if tcpRouteMatches, err := mc.getTCPRouteMatchesFromTrafficTarget(*t); err != nil {
+			log.Error().Err(err).Msgf("Error fetching TCP Routes for TrafficTarget %s/%s", t.Namespace, t.Name)
+		} else {
+			// Add this traffic target to the final list
+			trafficTarget.TCPRouteMatches = tcpRouteMatches
+			trafficTargets = append(trafficTargets, trafficTarget)
+		}
+	}
+
+	return trafficTargets, nil
 }
 
 func (mc *MeshCatalog) getAllowedDirectionalServiceAccounts(svcAccount service.K8sServiceAccount, direction trafficDirection) ([]service.K8sServiceAccount, error) {
@@ -78,11 +133,17 @@ func (mc *MeshCatalog) getAllowedDirectionalServiceAccounts(svcAccount service.K
 	return allowedSvcAccounts, nil
 }
 
-func trafficTargetIdentityToSvcAccount(identity smiAccess.IdentityBindingSubject) service.K8sServiceAccount {
+func trafficTargetIdentityToSvcAccount(identitySubject smiAccess.IdentityBindingSubject) service.K8sServiceAccount {
 	return service.K8sServiceAccount{
-		Name:      identity.Name,
-		Namespace: identity.Namespace,
+		Name:      identitySubject.Name,
+		Namespace: identitySubject.Namespace,
 	}
+}
+
+// trafficTargetIdentityToServiceIdentity returns an identity of the form <namespace>/<service-account>
+func trafficTargetIdentityToServiceIdentity(identitySubject smiAccess.IdentityBindingSubject) identity.ServiceIdentity {
+	svcAccount := trafficTargetIdentityToSvcAccount(identitySubject)
+	return identity.GetKubernetesServiceIdentity(svcAccount, identity.ClusterLocalTrustDomain)
 }
 
 // trafficTargetIdentitiesToSvcAccounts returns a list of Service Accounts from the given list of identities from a Traffic Target
@@ -100,4 +161,46 @@ func trafficTargetIdentitiesToSvcAccounts(identities []smiAccess.IdentityBinding
 	}
 
 	return serviceAccounts
+}
+
+func (mc *MeshCatalog) getTCPRouteMatchesFromTrafficTarget(trafficTarget smiAccess.TrafficTarget) ([]trafficpolicy.TCPRouteMatch, error) {
+	var matches []trafficpolicy.TCPRouteMatch
+
+	for _, rule := range trafficTarget.Spec.Rules {
+		if rule.Kind != tcpRouteKind {
+			continue
+		}
+
+		// A route referenced in a traffic target must belong to the same namespace as the traffic target
+		tcpRouteName := fmt.Sprintf("%s/%s", trafficTarget.Namespace, rule.Name)
+
+		tcpRoute := mc.meshSpec.GetTCPRoute(tcpRouteName)
+		if tcpRoute == nil {
+			return nil, errNoTrafficSpecFoundForTrafficPolicy
+		}
+
+		// TODO(#1521): Create an actual TCP route match once v1alpha4 TCPRoute spec is available
+		// Hack: derive ports from 'ports' label on the TCPRoute resource
+		portsStr, ok := tcpRoute.Labels["ports"]
+		if !ok {
+			continue
+		}
+		portStrList := strings.Split(portsStr, ",")
+		var ports []int
+		for i := range portStrList {
+			portStrList[i] = strings.TrimSpace(portStrList[i])
+			port, err := strconv.Atoi(portStrList[i])
+			if err != nil {
+				return nil, errors.Errorf("Invalid port value %s, must be an integer", portStrList[i])
+			}
+			ports = append(ports, port)
+		}
+
+		tcpRouteMatch := trafficpolicy.TCPRouteMatch{
+			Ports: ports,
+		}
+		matches = append(matches, tcpRouteMatch)
+	}
+
+	return matches, nil
 }

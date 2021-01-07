@@ -5,7 +5,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -55,11 +54,6 @@ func (f fakeClient) GetPortToProtocolMappingForService(svc service.MeshService) 
 // GetID returns the unique identifier of the EndpointsProvider.
 func (f fakeClient) GetID() string {
 	return "Fake Kubernetes Client"
-}
-
-// GetAnnouncementsChannel obtains the channel on which providers will announce changes to the infrastructure.
-func (f fakeClient) GetAnnouncementsChannel() <-chan announcements.Announcement {
-	return make(chan announcements.Announcement)
 }
 
 func (f fakeClient) GetResolvableEndpointsForService(svc service.MeshService) ([]endpoint.Endpoint, error) {

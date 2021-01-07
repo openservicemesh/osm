@@ -3,11 +3,11 @@ package utils
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	tassert "github.com/stretchr/testify/assert"
 )
 
 func TestPrettyJson(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	type prettyJSONtest struct {
 		input              []byte

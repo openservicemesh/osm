@@ -7,7 +7,7 @@ import (
 	xds_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
+	tassert "github.com/stretchr/testify/assert"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -17,7 +17,7 @@ import (
 )
 
 func TestGetRootCert(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -154,7 +154,7 @@ func TestGetRootCert(t *testing.T) {
 }
 
 func TestGetServiceCert(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -187,7 +187,7 @@ func TestGetServiceCert(t *testing.T) {
 }
 
 func TestGetSDSSecrets(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -387,7 +387,7 @@ func TestGetSDSSecrets(t *testing.T) {
 }
 
 func TestGetSubjectAltNamesFromSvcAccount(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	testCases := []struct {
 		svcAccounts         []service.K8sServiceAccount
@@ -422,7 +422,7 @@ func TestGetSubjectAltNamesFromSvcAccount(t *testing.T) {
 }
 
 func TestSubjectAltNamesToStr(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	testCases := []struct {
 		sanMatchers []*xds_matcher.StringMatcher

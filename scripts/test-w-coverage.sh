@@ -2,7 +2,7 @@
 
 set -aueo pipefail
 
-readarray -t modules < <(go list ./... | grep -v tests/e2e | grep -v tests/scenarios)
+readarray -t modules < <(go list ./... | grep -v tests/e2e | grep -v tests/scenarios | grep -v tests/scale)
 
 go test -timeout 120s \
    -failfast \

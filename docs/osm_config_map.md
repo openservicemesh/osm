@@ -13,7 +13,7 @@ OSM deploys a configMap `osm-config` as a part of its control plane (in the same
 | prometheus_scraping | bool | true, false | `"true"` | Enables Prometheus metrics scraping on sidecar proxies. |
 | service_cert_validity_duration | string | 24h, 1h30m (any time duration) | `"24h"` | Sets the service certificatevalidity duration, represented as a sequence of decimal numbers each with optional fraction and a unit suffix. |
 | tracing_enable | bool | true, false | `"true"` | Enables Jaeger tracing for the mesh. |
-| tracing_address | string | jaeger.mesh-namespace.svc.cluster.local | `jaeger.osm-system.svc.cluster.local` | Addess of the Jaeger deployment, if tracing is enabled. |
+| tracing_address | string | jaeger.mesh-namespace.svc.cluster.local | `jaeger.osm-system.svc.cluster.local` | Address of the Jaeger deployment, if tracing is enabled. |
 | tracing_endpoint | string | /api/v2/spans | /api/v2/spans | Endpoint for tracing data, if tracing enabled. |
 | tracing_port| int | any non-zero integer value | `"9411"` | Port on which tracing is enabled. |
 | use_https_ingress | bool | true, false | `"false"`| Enables HTTPS ingress on the mesh. |

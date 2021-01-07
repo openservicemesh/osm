@@ -8,10 +8,10 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 )
 
-func getInitContainerSpec(initContainer *InitContainer) (corev1.Container, error) {
+func getInitContainerSpec(containerName, containerImage string) corev1.Container {
 	return corev1.Container{
-		Name:  initContainer.Name,
-		Image: initContainer.Image,
+		Name:  containerName,
+		Image: containerImage,
 		SecurityContext: &corev1.SecurityContext{
 			Capabilities: &corev1.Capabilities{
 				Add: []corev1.Capability{
@@ -33,5 +33,5 @@ func getInitContainerSpec(initContainer *InitContainer) (corev1.Container, error
 				Value: fmt.Sprintf("%d", constants.EnvoyOutboundListenerPort),
 			},
 		},
-	}, nil
+	}
 }

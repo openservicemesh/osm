@@ -2,6 +2,7 @@ package injector
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 
 	. "github.com/onsi/ginkgo"
@@ -21,6 +22,68 @@ import (
 )
 
 var _ = Describe("Test Envoy configuration creation", func() {
+	marshal := func(someStruct interface{}) string {
+		jsonBytes, _ := json.MarshalIndent(someStruct, "-", "    ")
+		return string(jsonBytes)
+	}
+
+	getExpectedXDSClusterStruct := func() map[string]interface{} {
+		return map[string]interface{}{
+			"name":                   "osm-controller",
+			"connect_timeout":        "0.25s",
+			"type":                   "LOGICAL_DNS",
+			"http2_protocol_options": map[string]interface{}{},
+			"transport_socket": map[string]interface{}{
+				"name": "envoy.transport_sockets.tls",
+				"typed_config": map[string]interface{}{
+					"@type": "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
+					"common_tls_context": map[string]interface{}{
+						"alpn_protocols": []string{
+							"h2",
+						},
+						"validation_context": map[string]interface{}{
+							"trusted_ca": map[string]interface{}{
+								"inline_bytes": "eHg=",
+							},
+						},
+						"tls_params": map[string]interface{}{
+							"tls_minimum_protocol_version": "TLSv1_2",
+							"tls_maximum_protocol_version": "TLSv1_3",
+						},
+						"tls_certificates": []map[string]interface{}{
+							{
+								"certificate_chain": map[string]interface{}{
+									"inline_bytes": "eHg=",
+								},
+								"private_key": map[string]interface{}{
+									"inline_bytes": "eXk=",
+								},
+							},
+						},
+					},
+				}},
+			"load_assignment": map[string]interface{}{
+				"endpoints": []map[string]interface{}{
+					{
+						"lb_endpoints": []map[string]interface{}{
+							{
+								"endpoint": map[string]interface{}{
+									"address": map[string]interface{}{
+										"socket_address": map[string]interface{}{
+											"address":    "osm-controller.b.svc.cluster.local",
+											"port_value": 15128,
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				"cluster_name": "osm-controller",
+			},
+		}
+	}
+
 	var (
 		mockCtrl         *gomock.Controller
 		mockConfigurator *configurator.MockConfigurator
@@ -91,20 +154,20 @@ static_resources:
 	mockCtrl = gomock.NewController(GinkgoT())
 	mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
 
+	config := envoyBootstrapConfigMeta{
+		RootCert: base64.StdEncoding.EncodeToString(cert.GetIssuingCA()),
+		Cert:     base64.StdEncoding.EncodeToString(cert.GetCertificateChain()),
+		Key:      base64.StdEncoding.EncodeToString(cert.GetPrivateKey()),
+
+		EnvoyAdminPort: 15000,
+
+		XDSClusterName: "osm-controller",
+		XDSHost:        "osm-controller.b.svc.cluster.local",
+		XDSPort:        15128,
+	}
+
 	Context("create envoy config", func() {
 		It("creates envoy config", func() {
-			config := envoyBootstrapConfigMeta{
-				RootCert: base64.StdEncoding.EncodeToString(cert.GetIssuingCA()),
-				Cert:     base64.StdEncoding.EncodeToString(cert.GetCertificateChain()),
-				Key:      base64.StdEncoding.EncodeToString(cert.GetPrivateKey()),
-
-				EnvoyAdminPort: 15000,
-
-				XDSClusterName: "osm-controller",
-				XDSHost:        "osm-controller.b.svc.cluster.local",
-				XDSPort:        15128,
-			}
-
 			actual, err := getEnvoyConfigYAML(config, mockConfigurator)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -113,7 +176,7 @@ static_resources:
 		})
 
 		It("Creates bootstrap config for the Envoy proxy", func() {
-			wh := &webhook{
+			wh := &mutatingWebhook{
 				kubeClient:          fake.NewSimpleClientset(),
 				kubeController:      k8s.NewMockController(gomock.NewController(GinkgoT())),
 				nonInjectNamespaces: mapset.NewSet(),
@@ -122,7 +185,7 @@ static_resources:
 			namespace := "a"
 			osmNamespace := "b"
 
-			secret, err := wh.createEnvoyBootstrapConfig(name, namespace, osmNamespace, cert)
+			secret, err := wh.createEnvoyBootstrapConfig(name, namespace, osmNamespace, cert, healthProbes{})
 			Expect(err).ToNot(HaveOccurred())
 
 			expected := corev1.Secret{
@@ -145,6 +208,34 @@ static_resources:
 			Expect(*secret).To(Equal(expected))
 		})
 	})
+
+	Context("Test getStaticResources()", func() {
+		It("Creates static_resources Envoy struct", func() {
+			actual := getXdsCluster(config)
+			expected := getExpectedXDSClusterStruct()
+
+			expectedJSON := marshal(expected)
+			actualJSON := marshal(actual)
+
+			Expect(actualJSON).To(Equal(expectedJSON), fmt.Sprintf("Expected: %s\nActual struct: %s", expectedJSON, actualJSON))
+		})
+	})
+
+	Context("Test getStaticResources()", func() {
+		It("Creates static_resources Envoy struct", func() {
+			actual := getStaticResources(config)
+			expected := map[string]interface{}{
+				"clusters": []map[string]interface{}{
+					getExpectedXDSClusterStruct(),
+				},
+			}
+
+			expectedJSON := marshal(expected)
+			actualJSON := marshal(actual)
+
+			Expect(actualJSON).To(Equal(expectedJSON), fmt.Sprintf("Expected: %s\nActual struct: %s", expectedJSON, actualJSON))
+		})
+	})
 })
 
 var _ = Describe("Test Envoy sidecar", func() {
@@ -161,8 +252,7 @@ var _ = Describe("Test Envoy sidecar", func() {
 	Context("create Envoy sidecar", func() {
 		It("creates correct Envoy sidecar spec", func() {
 			mockConfigurator.EXPECT().GetEnvoyLogLevel().Return("debug").Times(1)
-			actual := getEnvoySidecarContainerSpec(containerName, envoyImage, nodeID, clusterID, mockConfigurator)
-			Expect(len(actual)).To(Equal(1))
+			actual := getEnvoySidecarContainerSpec(containerName, envoyImage, nodeID, clusterID, mockConfigurator, healthProbes{})
 
 			expected := corev1.Container{
 				Name:            containerName,
@@ -260,7 +350,7 @@ var _ = Describe("Test Envoy sidecar", func() {
 					},
 				},
 			}
-			Expect(actual[0]).To(Equal(expected))
+			Expect(actual).To(Equal(expected))
 		})
 	})
 })

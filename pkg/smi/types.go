@@ -64,12 +64,12 @@ type MeshSpec interface {
 	// ListTCPTrafficSpecs lists SMI TCPRoute resources
 	ListTCPTrafficSpecs() []*spec.TCPRoute
 
+	// GetTCPRoute returns an SMI TCPRoute resource given its name of the form <namespace>/<name>
+	GetTCPRoute(string) *spec.TCPRoute
+
 	// ListTrafficTargets lists SMI TrafficTarget resources
 	ListTrafficTargets() []*target.TrafficTarget
 
 	// GetBackpressurePolicy fetches the Backpressure policy for the MeshService
 	GetBackpressurePolicy(service.MeshService) *backpressure.Backpressure
-
-	// GetAnnouncementsChannel returns the channel on which SMI client makes announcements
-	GetAnnouncementsChannel() <-chan announcements.Announcement
 }

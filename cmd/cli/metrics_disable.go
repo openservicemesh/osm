@@ -58,7 +58,7 @@ func newMetricsDisable(out io.Writer) *cobra.Command {
 }
 
 func (cmd *metricsDisableCmd) run() error {
-	// Add metrics annotation on namepaces
+	// Add metrics annotation on namespaces
 	for _, ns := range cmd.namespaces {
 		ns = strings.TrimSpace(ns)
 		ctx, cancel := context.WithCancel(context.Background())

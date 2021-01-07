@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/spf13/pflag"
-	"github.com/stretchr/testify/assert"
+	tassert "github.com/stretchr/testify/assert"
 )
 
 func TestNew(t *testing.T) {
@@ -47,7 +47,7 @@ func TestNew(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			assert := assert.New(t)
+			assert := tassert.New(t)
 
 			flags := pflag.NewFlagSet("test-new", pflag.ContinueOnError)
 

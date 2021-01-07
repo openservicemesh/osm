@@ -165,7 +165,7 @@ func (cm *CertManager) ListCertificates() ([]certificate.Certificater, error) {
 	var certs []certificate.Certificater
 	cm.cache.Range(func(cn interface{}, certInterface interface{}) bool {
 		certs = append(certs, certInterface.(certificate.Certificater))
-		return true
+		return true // continue the iteration
 	})
 	return certs, nil
 }

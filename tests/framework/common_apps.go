@@ -216,16 +216,16 @@ func (td *OsmTestData) SimplePodApp(def SimplePodAppDef) (corev1.ServiceAccount,
 				},
 			)
 
-			appProtocol := AppProtocolHTTP // default
-			if def.AppProtocol != "" {
-				appProtocol = def.AppProtocol
+			svcPort := corev1.ServicePort{
+				Port:       int32(p),
+				TargetPort: intstr.FromInt(p),
 			}
 
-			serviceDefinition.Spec.Ports = append(serviceDefinition.Spec.Ports, corev1.ServicePort{
-				Port:        int32(p),
-				TargetPort:  intstr.FromInt(p),
-				AppProtocol: &appProtocol,
-			})
+			if def.AppProtocol != "" {
+				svcPort.AppProtocol = &def.AppProtocol
+			}
+
+			serviceDefinition.Spec.Ports = append(serviceDefinition.Spec.Ports, svcPort)
 		}
 	}
 

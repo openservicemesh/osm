@@ -17,8 +17,8 @@ const (
 
 var log = logger.New("sidecar-injector")
 
-// webhook is the type used to represent the webhook for sidecar injection
-type webhook struct {
+// mutatingWebhook is the type used to represent the webhook for sidecar injection
+type mutatingWebhook struct {
 	config         Config
 	kubeClient     kubernetes.Interface
 	certManager    certificate.Manager
@@ -44,19 +44,6 @@ type Config struct {
 	SidecarImage string
 }
 
-// JSONPatchOperation defines a Kubernetes JSON Patch operation
-type JSONPatchOperation struct {
-	Op    string      `json:"op"`
-	Path  string      `json:"path"`
-	Value interface{} `json:"value,omitempty"`
-}
-
-// InitContainer is the type used to represent information about the init container
-type InitContainer struct {
-	Name  string
-	Image string
-}
-
 // EnvoySidecarData is the type used to represent information about the Envoy sidecar
 type EnvoySidecarData struct {
 	Name           string
@@ -76,4 +63,8 @@ type envoyBootstrapConfigMeta struct {
 	// Host and port of the Envoy xDS server
 	XDSHost string
 	XDSPort int
+
+	// The bootstrap Envoy config will be affected by the liveness, readiness, startup probes set on
+	// the pod this Envoy is fronting.
+	OriginalHealthProbes healthProbes
 }

@@ -5,6 +5,6 @@ metadata:
   name: proxy-config
   namespace: {{ include "osm.namespace" . }}
 stringData:
-  HTTP_PROXY: {{ .Values.OpenServiceMesh.fluentBit.httpProxy }}
-  HTTPS_PROXY: {{ .Values.OpenServiceMesh.fluentBit.httpsProxy }}
+  HTTP_PROXY: {{ .Values.OpenServiceMesh.fluentBit.httpProxy | quote }}
+  HTTPS_PROXY: {{ .Values.OpenServiceMesh.fluentBit.httpsProxy | quote }}
 {{- end }}

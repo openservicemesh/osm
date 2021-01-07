@@ -9,12 +9,7 @@ import (
 var _ = Describe("Test volume functions", func() {
 	Context("Test getInitContainerSpec", func() {
 		It("creates volume spec", func() {
-			container := &InitContainer{
-				Name:  "-container-name-",
-				Image: "-init-container-image-",
-			}
-			actual, err := getInitContainerSpec(container)
-			Expect(err).ToNot(HaveOccurred())
+			actual := getInitContainerSpec("-container-name-", "-init-container-image-")
 			expected := v1.Container{
 				Name:       "-container-name-",
 				Image:      "-init-container-image-",

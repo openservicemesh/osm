@@ -7,7 +7,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/service"
 )
@@ -61,11 +60,10 @@ type InformerCollection map[InformerKey]cache.SharedIndexInformer
 
 // Client is a struct for all components necessary to connect to and maintain state of a Kubernetes cluster.
 type Client struct {
-	meshName      string
-	kubeClient    kubernetes.Interface
-	informers     InformerCollection
-	cacheSynced   chan interface{}
-	announcements map[InformerKey]chan announcements.Announcement
+	meshName    string
+	kubeClient  kubernetes.Interface
+	informers   InformerCollection
+	cacheSynced chan interface{}
 }
 
 // Controller is the controller interface for K8s services
@@ -85,9 +83,6 @@ type Controller interface {
 
 	// GetNamespace returns k8s namespace present in cache
 	GetNamespace(ns string) *corev1.Namespace
-
-	// Returns the announcement channel for a certain Informer ID
-	GetAnnouncementsChannel(informerID InformerKey) <-chan announcements.Announcement
 
 	// ListPods returns a list of pods part of the mesh
 	ListPods() []*corev1.Pod
