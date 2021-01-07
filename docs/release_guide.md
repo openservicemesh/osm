@@ -78,5 +78,5 @@ Make an announcement on the [mailing list](https://groups.google.com/g/openservi
 
 ## Make version changes on main branch
 
-Open a pull request in the main repo (not fork) against the `main` branch making the same version updates as [above](#update-release-branch-with-versioning-changes) so the latest release assets are referenced there.
+Open a pull request against the `main` branch making the same version updates as [above](#update-release-branch-with-versioning-changes) so the latest release assets are referenced there.
 
