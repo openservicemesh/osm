@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -13,9 +12,11 @@ import (
 var _ = Describe("", func() {
 	Context("", func() {
 		It("", func() {
-			metricsStore := NewMetricStore("a", "b")
+			metricsStore := DefaultMetricsStore
+			Expect(metricsStore).ToNot(BeNil())
 			metricsStore.Start()
-			metricsStore.SetUpdateLatencySec(1 * time.Second)
+
+			metricsStore.IncK8sAPIEventCount()
 
 			handler := metricsStore.Handler()
 
@@ -26,12 +27,9 @@ var _ = Describe("", func() {
 			handler.ServeHTTP(rr, req)
 
 			Expect(rr.Code).To(Equal(http.StatusOK))
-			expected := `# HELP osm_k8s_api_event_counter This counter represents the number of events received from Kubernetes API Server
-# TYPE osm_k8s_api_event_counter counter
-osm_k8s_api_event_counter{osm_namespace="a",osm_pod="b",osm_version="//"} 0
-# HELP osm_update_latency_seconds The time spent in updating Envoy proxies
-# TYPE osm_update_latency_seconds gauge
-osm_update_latency_seconds{osm_namespace="a",osm_pod="b",osm_version="//"} 1
+			expected := `# HELP osm_k8s_api_event_count This counter represents the number of events received from the Kubernetes API Server
+# TYPE osm_k8s_api_event_count counter
+osm_k8s_api_event_count 1
 # HELP promhttp_metric_handler_requests_in_flight Current number of scrapes being served.
 # TYPE promhttp_metric_handler_requests_in_flight gauge
 promhttp_metric_handler_requests_in_flight 1

@@ -39,7 +39,7 @@ func TestNewHTTPServer(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	mockProbe := health.NewMockProbes(mockCtrl)
 	testProbes := []health.Probes{mockProbe}
-	metricsStore := metricsstore.NewMetricStore("TBD_NameSpace", "TBD_PodName")
+	metricsStore := metricsstore.DefaultMetricsStore
 
 	httpServ := NewHTTPServer(testProbes, nil, metricsStore, testPort)
 	testServer := &httptest.Server{
