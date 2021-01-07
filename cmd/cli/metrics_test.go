@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	mapset "github.com/deckarep/golang-set"
-	"github.com/stretchr/testify/assert"
+	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -75,7 +75,7 @@ func createFakeController(fakeClient kubernetes.Interface) error {
 }
 
 func TestRun_MetricsEnable(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	fakeClient := fake.NewSimpleClientset()
 
 	err := createFakeController(fakeClient)
@@ -145,7 +145,7 @@ func TestRun_MetricsEnable(t *testing.T) {
 }
 
 func TestRun_MetricsDisable(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	fakeClient := fake.NewSimpleClientset()
 
 	err := createFakeController(fakeClient)
@@ -215,7 +215,7 @@ func TestRun_MetricsDisable(t *testing.T) {
 }
 
 func TestIsMonitoredNamespace(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	meshList := mapset.NewSet(testMesh)
 

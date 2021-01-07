@@ -9,7 +9,7 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/stretchr/testify/assert"
+	tassert "github.com/stretchr/testify/assert"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -20,7 +20,7 @@ import (
 // Tests TestGetFilterForService checks that a proper filter type is properly returned
 // for given config parametres and service
 func TestGetFilterForService(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)

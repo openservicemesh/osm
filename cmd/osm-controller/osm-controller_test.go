@@ -8,7 +8,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/stretchr/testify/assert"
+	tassert "github.com/stretchr/testify/assert"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,7 +40,7 @@ func toggleDebugServer(enable bool, kubeClient *testclient.Clientset) error {
 }
 
 func TestDebugServer(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	// set up a controller
 	stop := make(chan struct{})
@@ -79,7 +79,7 @@ func TestDebugServer(t *testing.T) {
 }
 
 func TestCreateCABundleKubernetesSecret(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	certManager := tresor.NewFakeCertManager(nil)
 	testName := "--secret--name--"
@@ -104,7 +104,7 @@ func TestCreateCABundleKubernetesSecret(t *testing.T) {
 }
 
 func TestJoinURL(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	type joinURLtest struct {
 		baseURL        string
 		path           string

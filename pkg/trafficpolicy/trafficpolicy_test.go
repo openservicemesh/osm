@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	set "github.com/deckarep/golang-set"
-	"github.com/stretchr/testify/assert"
+	tassert "github.com/stretchr/testify/assert"
 
 	"github.com/openservicemesh/osm/pkg/service"
 )
@@ -57,7 +57,7 @@ var (
 )
 
 func TestAddRule(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	testCases := []struct {
 		name                  string
@@ -124,7 +124,7 @@ func TestAddRule(t *testing.T) {
 }
 
 func TestAddRoute(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	testCases := []struct {
 		name                  string
@@ -244,7 +244,7 @@ func TestAddRoute(t *testing.T) {
 }
 
 func TestMergeInboundPolicies(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	testRule1 := Rule{
 		Route:                  testRoute,
@@ -316,7 +316,7 @@ func TestMergeInboundPolicies(t *testing.T) {
 	}
 }
 func TestMergeRules(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	testCases := []struct {
 		name          string
@@ -402,7 +402,7 @@ func TestMergeRules(t *testing.T) {
 }
 
 func TestMergeOutboundPolicies(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	testCases := []struct {
 		name                                               string
@@ -515,7 +515,7 @@ func TestMergeOutboundPolicies(t *testing.T) {
 }
 
 func TestMergeRouteWeightedClusters(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	testCases := []struct {
 		name                                         string
@@ -556,7 +556,7 @@ func TestMergeRouteWeightedClusters(t *testing.T) {
 	}
 }
 func TestNewInboundTrafficPolicy(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	name := "name"
 	hostnames := []string{"hostname1", "hostname2"}
@@ -567,7 +567,7 @@ func TestNewInboundTrafficPolicy(t *testing.T) {
 }
 
 func TestNewRouteWeightedCluster(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	expected := &RouteWeightedClusters{HTTPRouteMatch: testHTTPRouteMatch, WeightedClusters: set.NewSet(testWeightedCluster)}
 
 	actual := NewRouteWeightedCluster(testHTTPRouteMatch, testWeightedCluster)
@@ -575,7 +575,7 @@ func TestNewRouteWeightedCluster(t *testing.T) {
 }
 
 func TestNewOutboundPolicy(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	name := "name"
 	hostnames := []string{"hostname1", "hostname2"}

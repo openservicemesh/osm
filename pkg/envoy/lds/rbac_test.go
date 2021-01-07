@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
+	tassert "github.com/stretchr/testify/assert"
 
 	xds_rbac "github.com/envoyproxy/go-control-plane/envoy/config/rbac/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
@@ -18,7 +18,7 @@ import (
 )
 
 func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	testCases := []struct {
 		name          string
@@ -149,7 +149,7 @@ func TestBuildRBACPolicyFromTrafficTarget(t *testing.T) {
 }
 
 func TestBuildInboundRBACPolicies(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -236,7 +236,7 @@ func TestBuildInboundRBACPolicies(t *testing.T) {
 }
 
 func TestBuildRBACFilter(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 

@@ -8,7 +8,7 @@ import (
 	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha3"
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
-	"github.com/stretchr/testify/assert"
+	tassert "github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/service"
@@ -18,7 +18,7 @@ import (
 // Tests TestGetSMIPolicies through HTTP handler returns the list of SMI policies extracted from MeshCatalog
 // in string format
 func TestGetSMIPolicies(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	mock := NewMockMeshCatalogDebugger(mockCtrl)
 
