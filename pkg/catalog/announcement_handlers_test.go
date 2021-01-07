@@ -93,7 +93,7 @@ var _ = Describe("Test Announcement Handlers", func() {
 			mc.connectedProxies.Range(func(key interface{}, value interface{}) bool {
 				connectedProxy := value.(connectedProxy)
 				connectedProxies = append(connectedProxies, *connectedProxy.proxy)
-				return true
+				return true // continue the iteration
 			})
 
 			Expect(len(connectedProxies)).To(Equal(1))

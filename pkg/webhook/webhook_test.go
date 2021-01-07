@@ -77,4 +77,4 @@ func TestAdmissionError(t *testing.T) {
 
 type err int
 
-func (err) Read(b []byte) (i int, err error) { return 1, errorTest }
+func (err) Read(_ []byte) (i int, err error) { return 1, errorTest }

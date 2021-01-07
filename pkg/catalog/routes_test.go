@@ -2,7 +2,7 @@ package catalog
 
 import (
 	"fmt"
-	reflect "reflect"
+	"reflect"
 	"testing"
 
 	mapset "github.com/deckarep/golang-set"
@@ -27,6 +27,32 @@ import (
 func TestIsValidTrafficTarget(t *testing.T) {
 	assert := tassert.New(t)
 
+	getTrafficTarget := func(rules []target.TrafficTargetRule) *target.TrafficTarget {
+		return &target.TrafficTarget{
+			TypeMeta: v1.TypeMeta{
+				APIVersion: "access.smi-spec.io/v1alpha2",
+				Kind:       "TrafficTarget",
+			},
+			ObjectMeta: v1.ObjectMeta{
+				Name:      "target",
+				Namespace: "default",
+			},
+			Spec: target.TrafficTargetSpec{
+				Destination: target.IdentityBindingSubject{
+					Kind:      "Name",
+					Name:      "dest-id",
+					Namespace: "default",
+				},
+				Sources: []target.IdentityBindingSubject{{
+					Kind:      "Name",
+					Name:      "source-id",
+					Namespace: "default",
+				}},
+				Rules: rules,
+			},
+		}
+	}
+
 	testCases := []struct {
 		name     string
 		input    *target.TrafficTarget
@@ -38,29 +64,13 @@ func TestIsValidTrafficTarget(t *testing.T) {
 			expected: true,
 		},
 		{
-			name: "is not valid",
-			input: &target.TrafficTarget{
-				TypeMeta: v1.TypeMeta{
-					APIVersion: "access.smi-spec.io/v1alpha2",
-					Kind:       "TrafficTarget",
-				},
-				ObjectMeta: v1.ObjectMeta{
-					Name:      "target",
-					Namespace: "default",
-				},
-				Spec: target.TrafficTargetSpec{
-					Destination: target.IdentityBindingSubject{
-						Kind:      "Name",
-						Name:      "dest-id",
-						Namespace: "default",
-					},
-					Sources: []target.IdentityBindingSubject{{
-						Kind:      "Name",
-						Name:      "source-id",
-						Namespace: "default",
-					}},
-				},
-			},
+			name:     "is not valid because TrafficTarget.Spec.Rules is nil",
+			input:    getTrafficTarget(nil),
+			expected: false,
+		},
+		{
+			name:     "is not valid because TrafficTarget.Spec.Rules is not nil but is empty",
+			input:    getTrafficTarget([]target.TrafficTargetRule{}),
 			expected: false,
 		},
 	}

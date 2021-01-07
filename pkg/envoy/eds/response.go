@@ -30,14 +30,9 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		log.Error().Err(err).Msgf("Error looking up proxy identity for proxy with CN=%q", proxy.GetCommonName())
 		return nil, err
 	}
-	outboundServices := meshCatalog.ListAllowedOutboundServicesForIdentity(proxyIdentity)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error listing outbound services for proxy %q", proxyServiceName)
-		return nil, err
-	}
 
 	outboundServicesEndpoints := make(map[service.MeshService][]endpoint.Endpoint)
-	for _, dstSvc := range outboundServices {
+	for _, dstSvc := range meshCatalog.ListAllowedOutboundServicesForIdentity(proxyIdentity) {
 		endpoints, err := meshCatalog.ListEndpointsForService(dstSvc)
 		if err != nil {
 			log.Error().Err(err).Msgf("Failed listing endpoints for service %s", dstSvc)

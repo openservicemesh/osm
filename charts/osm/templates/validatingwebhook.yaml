@@ -1,3 +1,4 @@
+{{- /* disable validating webhook due to Issue #2264
 apiVersion: admissionregistration.k8s.io/v1beta1
 kind: ValidatingWebhookConfiguration
 metadata:
@@ -27,3 +28,4 @@ webhooks:
         - UPDATE
       resources:
         - configmaps
+*/}}
