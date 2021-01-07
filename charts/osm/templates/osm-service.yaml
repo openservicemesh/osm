@@ -11,10 +11,25 @@ spec:
       port: 15128
       targetPort: 15128
     - name: sidecar-injector
-      port: 443
+      port: 9090
       targetPort: 9090
     - name: debug-port
       port: 9092
       targetPort: 9092
+  selector:
+    app: osm-controller
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: osm-config-validator
+  namespace: {{ include "osm.namespace" . }}
+  labels:
+    app: osm-controller
+spec:
+  ports:
+    - name: config-validator
+      port: 9093
+      targetPort: 9093
   selector:
     app: osm-controller
