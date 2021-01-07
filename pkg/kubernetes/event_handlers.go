@@ -9,6 +9,7 @@ import (
 	a "github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/kubernetes/events"
+	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
 
 var emitLogs = os.Getenv(constants.EnvVarLogKubernetesEvents) == "true"
@@ -41,6 +42,7 @@ func GetKubernetesEventHandlers(informerName, providerName string, shouldObserve
 				NewObj:           obj,
 				OldObj:           nil,
 			})
+			metricsstore.DefaultMetricsStore.IncK8sAPIEventCount()
 		},
 
 		UpdateFunc: func(oldObj, newObj interface{}) {
@@ -53,6 +55,7 @@ func GetKubernetesEventHandlers(informerName, providerName string, shouldObserve
 				NewObj:           oldObj,
 				OldObj:           newObj,
 			})
+			metricsstore.DefaultMetricsStore.IncK8sAPIEventCount()
 		},
 
 		DeleteFunc: func(obj interface{}) {
@@ -65,6 +68,7 @@ func GetKubernetesEventHandlers(informerName, providerName string, shouldObserve
 				NewObj:           nil,
 				OldObj:           obj,
 			})
+			metricsstore.DefaultMetricsStore.IncK8sAPIEventCount()
 		},
 	}
 }

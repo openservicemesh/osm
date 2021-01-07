@@ -166,6 +166,9 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	// Start the default metrics store and start it.
+	metricsstore.DefaultMetricsStore.Start()
+
 	// This component will be watching the OSM ConfigMap and will make it
 	// to the rest of the components.
 	cfg := configurator.NewConfigurator(kubernetes.NewForConfigOrDie(kubeConfig), stop, osmNamespace, osmConfigMapName)
@@ -242,13 +245,12 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error initializing ADS server")
 	}
 
-	// initialize the http server and start it
-	// TODO(draychev): figure out the NS and POD
-	metricsStore := metricsstore.NewMetricStore("TBD_NameSpace", "TBD_PodName")
-
+	// Initialize function and HTTP health probes
 	funcProbes := []health.Probes{xdsServer}
 	httpProbes := getHTTPHealthProbes()
-	httpServer := httpserver.NewHTTPServer(funcProbes, httpProbes, metricsStore, constants.MetricsServerPort)
+
+	// Initialize the http server and start it
+	httpServer := httpserver.NewHTTPServer(funcProbes, httpProbes, metricsstore.DefaultMetricsStore, constants.MetricsServerPort)
 	httpServer.Start()
 
 	if err := createControllerManagerForOSMResources(certManager); err != nil {
