@@ -13,8 +13,15 @@ const metricsRootNamespace = "osm"
 
 // MetricsStore is a type that provides functionality related to metrics
 type MetricsStore struct {
-	k8sAPIEventCounter prometheus.Counter
+	// Define metrics by their category below ----------------------
 
+	/*
+	 * K8s metrics
+	 */
+	// K8sAPIEventCounter is the metric counter for the number of K8s API events
+	K8sAPIEventCounter prometheus.Counter
+
+	// MetricsStore internals should be defined below --------
 	registry *prometheus.Registry
 }
 
@@ -24,7 +31,7 @@ var defaultMetricsStore MetricsStore
 var DefaultMetricsStore = &defaultMetricsStore
 
 func init() {
-	defaultMetricsStore.k8sAPIEventCounter = prometheus.NewCounter(prometheus.CounterOpts{
+	defaultMetricsStore.K8sAPIEventCounter = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: metricsRootNamespace,
 		Subsystem: "k8s",
 		Name:      "api_event_count",
@@ -36,17 +43,12 @@ func init() {
 
 // Start store
 func (ms *MetricsStore) Start() {
-	ms.registry.MustRegister(ms.k8sAPIEventCounter)
+	ms.registry.MustRegister(ms.K8sAPIEventCounter)
 }
 
 // Stop store
 func (ms *MetricsStore) Stop() {
-	ms.registry.Unregister(ms.k8sAPIEventCounter)
-}
-
-// IncK8sAPIEventCount increases the K8s API event counter
-func (ms *MetricsStore) IncK8sAPIEventCount() {
-	ms.k8sAPIEventCounter.Inc()
+	ms.registry.Unregister(ms.K8sAPIEventCounter)
 }
 
 // Handler return the registry
