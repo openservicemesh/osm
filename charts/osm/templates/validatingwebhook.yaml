@@ -1,4 +1,3 @@
-{{- /* disable validating webhook due to Issue #2264
 apiVersion: admissionregistration.k8s.io/v1beta1
 kind: ValidatingWebhookConfiguration
 metadata:
@@ -9,10 +8,10 @@ webhooks:
 - name: osm-config-webhook.k8s.io
   clientConfig:
     service:
-      name: osm-controller
+      name: osm-config-validator
       namespace: {{ include "osm.namespace" . }}
       path: /validate-webhook
-      port: 443
+      port: 9093
   failurePolicy: Fail
   matchPolicy: Exact
   namespaceSelector:
@@ -28,4 +27,3 @@ webhooks:
         - UPDATE
       resources:
         - configmaps
-*/}}

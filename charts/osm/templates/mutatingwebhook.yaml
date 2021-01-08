@@ -11,7 +11,7 @@ webhooks:
       name: osm-controller
       namespace: {{ include "osm.namespace" . }}
       path: /mutate-pod-creation
-      port: 443
+      port: 9090
   # failurePolicy should always be set to Fail to ensure no new resources get created without a sidecar
   #   (and bypass TrafficTarget policies) if the webhook server is down
   failurePolicy: Fail

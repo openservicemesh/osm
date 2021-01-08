@@ -77,13 +77,13 @@ func TestNewValidatingWebhook(t *testing.T) {
 		{
 			testName:    "Error in updateValidatingWebhookCABundle",
 			webhookName: "-webhook-name-",
-			mockCall:    certManager.EXPECT().IssueCertificate(certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.OSMControllerName, whc.osmNamespace)), constants.XDSCertificateValidityPeriod),
+			mockCall:    certManager.EXPECT().IssueCertificate(certificate.CommonName(fmt.Sprintf("%s.%s.svc", validatorServiceName, whc.osmNamespace)), constants.XDSCertificateValidityPeriod),
 			expErr:      "validatingwebhookconfigurations.admissionregistration.k8s.io \"-webhook-name-\" not found",
 		},
 		{
 			testName:    "Error in IssueCertificate",
 			webhookName: "-webhook-name-",
-			mockCall:    certManager.EXPECT().IssueCertificate(certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.OSMControllerName, whc.osmNamespace)), constants.XDSCertificateValidityPeriod).Return(nil, errors.New("error issuing certificate")),
+			mockCall:    certManager.EXPECT().IssueCertificate(certificate.CommonName(fmt.Sprintf("%s.%s.svc", validatorServiceName, whc.osmNamespace)), constants.XDSCertificateValidityPeriod).Return(nil, errors.New("error issuing certificate")),
 			expErr:      "error issuing certificate",
 		},
 	}

@@ -69,6 +69,8 @@ const (
 	doesNotContainDef = ": must be included as it is a default field"
 
 	maxPortNum = 65535
+
+	validatorServiceName = "osm-config-validator"
 )
 
 type webhookConfig struct {
@@ -80,7 +82,7 @@ type webhookConfig struct {
 
 // NewValidatingWebhook  starts a new web server handling requests from the  ValidatingWebhookConfiguration
 func NewValidatingWebhook(kubeClient kubernetes.Interface, certManager certificate.Manager, osmNamespace, webhookConfigName string, stop <-chan struct{}) error {
-	cn := certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.OSMControllerName, osmNamespace))
+	cn := certificate.CommonName(fmt.Sprintf("%s.%s.svc", validatorServiceName, osmNamespace))
 	cert, err := certManager.IssueCertificate(cn, constants.XDSCertificateValidityPeriod)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error issuing certificate for the validating webhook: %+v", err)
@@ -109,7 +111,7 @@ func (whc *webhookConfig) runValidatingWebhook(stop <-chan struct{}) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	mux := http.DefaultServeMux
+	mux := http.NewServeMux()
 
 	mux.HandleFunc(webhookUpdateConfigMap, whc.configMapHandler)
 

@@ -93,7 +93,7 @@ func (wh *mutatingWebhook) run(stop <-chan struct{}) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	mux := http.DefaultServeMux
+	mux := http.NewServeMux()
 
 	mux.HandleFunc(WebhookHealthPath, healthHandler)
 
