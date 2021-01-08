@@ -7,12 +7,9 @@ import (
 	. "github.com/onsi/gomega"
 
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
-	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/wrappers"
 
-	"github.com/openservicemesh/osm/pkg/catalog"
-	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/rds"
 )
 
@@ -26,32 +23,28 @@ var _ = Describe(``+
 		Context("Test rds.NewResponse()", func() {
 
 			// ---[  Setup the test context  ]---------
-			var meshCatalog catalog.MeshCataloger
-			var proxy *envoy.Proxy
-
+			meshCatalog, proxy, err := getMeshCatalogAndProxy()
 			It("sets up test context - SMI policies, Services, Pods etc.", func() {
-				var err error
-				meshCatalog, proxy, err = getMeshCatalogAndProxy()
 				Expect(err).ToNot(HaveOccurred())
+				Expect(meshCatalog).ToNot(BeNil())
+				Expect(proxy).ToNot(BeNil())
 			})
 
 			// ---[  Get the config from rds.NewResponse()  ]-------
-			var actual *xds_discovery.DiscoveryResponse
+
+			actual, err := rds.NewResponse(meshCatalog, proxy, nil, nil, nil)
 			It("did not return an error", func() {
-				var err error
-				actual, err = rds.NewResponse(meshCatalog, proxy, nil, nil, nil)
 				Expect(err).ToNot(HaveOccurred())
+				Expect(actual).ToNot(BeNil())
+				Expect(len(actual.Resources)).To(Equal(2))
 			})
 
 			// ---[  Prepare the config for testing  ]-------
 			routeCfg := xds_route.RouteConfiguration{}
 
+			err = ptypes.UnmarshalAny(actual.Resources[0], &routeCfg)
 			It("returns a response that can be unmarshalled into an xds RouteConfiguration struct", func() {
-				err := ptypes.UnmarshalAny(actual.Resources[0], &routeCfg)
 				Expect(err).ToNot(HaveOccurred())
-			})
-
-			It("created an XDS Route Configuration with the correct name", func() {
 				Expect(routeCfg.Name).To(Equal("RDS_Outbound"))
 			})
 
@@ -151,11 +144,11 @@ var _ = Describe(``+
 
 				expectedWeightedCluster := &xds_route.WeightedCluster{
 					Clusters: []*xds_route.WeightedCluster_ClusterWeight{
-						weightedCluster("bookstore-apex", 100),
+						// weightedCluster("bookstore-apex", 100),
 						weightedCluster("bookstore-v1", 90),
 						weightedCluster("bookstore-v2", 10),
 					},
-					TotalWeight: toInt(200),
+					TotalWeight: toInt(100),
 				}
 
 				checkExpectations(expectedDomains, expectedWeightedCluster, apex)
