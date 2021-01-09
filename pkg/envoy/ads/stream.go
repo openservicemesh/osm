@@ -10,6 +10,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/kubernetes/events"
+	"github.com/openservicemesh/osm/pkg/metricsstore"
 	"github.com/openservicemesh/osm/pkg/utils"
 )
 
@@ -36,6 +37,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 	namespacedService := svcList[0]
 
 	log.Info().Msgf("Client %s connected: Subject CN=%s; Service=%s", ip, cn, namespacedService)
+	metricsstore.DefaultMetricsStore.ProxyConnectCount.Inc()
 
 	// This is the Envoy proxy that just connected to the control plane.
 	proxy := envoy.NewProxy(cn, ip)
@@ -63,10 +65,12 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 	for {
 		select {
 		case <-ctx.Done():
+			metricsstore.DefaultMetricsStore.ProxyConnectCount.Dec()
 			return nil
 
 		case <-quit:
 			log.Info().Msg("Stream closed!")
+			metricsstore.DefaultMetricsStore.ProxyConnectCount.Dec()
 			return nil
 
 		case discoveryRequest, ok := <-requests:
@@ -74,6 +78,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			log.Info().Msgf("Last sent for %s nonce=%s; last sent version=%s for Envoy %s", discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, proxy.GetCommonName())
 			if !ok {
 				log.Error().Msgf("Proxy %s closed GRPC!", proxy.GetCommonName())
+				metricsstore.DefaultMetricsStore.ProxyConnectCount.Dec()
 				return errGrpcClosed
 			}
 
