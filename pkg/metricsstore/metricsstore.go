@@ -21,6 +21,12 @@ type MetricsStore struct {
 	// K8sAPIEventCounter is the metric counter for the number of K8s API events
 	K8sAPIEventCounter prometheus.Counter
 
+	/*
+	 * Proxy metrics
+	 */
+	// ProxyConnectCount is the metric for the total number of proxies connected to the controller
+	ProxyConnectCount prometheus.Gauge
+
 	// MetricsStore internals should be defined below --------
 	registry *prometheus.Registry
 }
@@ -31,11 +37,24 @@ var defaultMetricsStore MetricsStore
 var DefaultMetricsStore = &defaultMetricsStore
 
 func init() {
+	/*
+	 * K8s metrics
+	 */
 	defaultMetricsStore.K8sAPIEventCounter = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: metricsRootNamespace,
 		Subsystem: "k8s",
 		Name:      "api_event_count",
-		Help:      "This counter represents the number of events received from the Kubernetes API Server",
+		Help:      "represents the number of events received from the Kubernetes API Server",
+	})
+
+	/*
+	 * Proxy metrics
+	 */
+	defaultMetricsStore.ProxyConnectCount = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: metricsRootNamespace,
+		Subsystem: "proxy",
+		Name:      "connect_count",
+		Help:      "represents the number of proxies connected to OSM controller",
 	})
 
 	defaultMetricsStore.registry = prometheus.NewRegistry()
@@ -44,11 +63,13 @@ func init() {
 // Start store
 func (ms *MetricsStore) Start() {
 	ms.registry.MustRegister(ms.K8sAPIEventCounter)
+	ms.registry.MustRegister(ms.ProxyConnectCount)
 }
 
 // Stop store
 func (ms *MetricsStore) Stop() {
 	ms.registry.Unregister(ms.K8sAPIEventCounter)
+	ms.registry.Unregister(ms.ProxyConnectCount)
 }
 
 // Handler return the registry
