@@ -82,7 +82,7 @@ func init() {
 			Subsystem: "injector",
 			Name:      "injector_rq_time",
 			Buckets:   []float64{.1, .25, .5, 1, 2.5, 5, 10, 20, 40},
-			Help:      "Histogram for time taken to process an injector webhooks",
+			Help:      "Histogram for time taken to perform sidecar injection",
 		},
 		[]string{
 			"success",
