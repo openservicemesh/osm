@@ -47,12 +47,14 @@ var _ = OSMDescribe("Test Debug Server by toggling enableDebugServer",
 
 				Expect(Td.WaitForPodsRunningReady(sourceNs, 90*time.Second, 1)).To(Succeed())
 
+				controllerDest := "osm-controller." + Td.OsmNamespace + ":9092/debug"
+
 				req := HTTPRequestDef{
 					SourceNs:        srcPod.Namespace,
 					SourcePod:       srcPod.Name,
 					SourceContainer: "client",
 
-					Destination: "osm-controller.osm-system:9092/debug",
+					Destination: controllerDest,
 				}
 
 				By("Ensuring debug server is available when enableDebugServer is enabled")
