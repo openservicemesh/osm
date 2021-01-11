@@ -132,6 +132,7 @@ data:
           target_label: __metrics_path__
           replacement: /api/v1/nodes/${1}/proxy/metrics/cadvisor
 
+      # We are currently not using any metrics from these endpoints. Disabling for the time being.
       # - job_name: 'kubernetes-service-endpoints'
       #   kubernetes_sd_configs:
       #   - role: endpoints
