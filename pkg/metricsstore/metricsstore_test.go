@@ -28,10 +28,10 @@ func teardown() {
 func TestK8sAPIEventCounter(t *testing.T) {
 	assert := tassert.New(t)
 
-	apiEventCount := 5
+	apiEventCount := 3
 
 	for i := 1; i <= apiEventCount; i++ {
-		DefaultMetricsStore.K8sAPIEventCounter.Inc()
+		DefaultMetricsStore.K8sAPIEventCounter.WithLabelValues("add", "foo").Inc()
 
 		handler := DefaultMetricsStore.Handler()
 
@@ -45,7 +45,7 @@ func TestK8sAPIEventCounter(t *testing.T) {
 
 		expectedResp := fmt.Sprintf(`# HELP osm_k8s_api_event_count represents the number of events received from the Kubernetes API Server
 # TYPE osm_k8s_api_event_count counter
-osm_k8s_api_event_count %d
+osm_k8s_api_event_count{namespace="foo",type="add"} %d
 `, i /* api event count */)
 		assert.Contains(rr.Body.String(), expectedResp)
 	}

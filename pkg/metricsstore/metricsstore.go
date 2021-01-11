@@ -19,7 +19,7 @@ type MetricsStore struct {
 	 * K8s metrics
 	 */
 	// K8sAPIEventCounter is the metric counter for the number of K8s API events
-	K8sAPIEventCounter prometheus.Counter
+	K8sAPIEventCounter *prometheus.CounterVec
 
 	/*
 	 * Proxy metrics
@@ -36,7 +36,9 @@ type MetricsStore struct {
 	// InjectorRqTime the histogram to track times for the injector webhook calls
 	InjectorRqTime *prometheus.HistogramVec
 
-	// MetricsStore internals should be defined below --------
+	/*
+	 * MetricsStore internals should be defined below --------------
+	 */
 	registry *prometheus.Registry
 }
 
@@ -49,12 +51,15 @@ func init() {
 	/*
 	 * K8s metrics
 	 */
-	defaultMetricsStore.K8sAPIEventCounter = prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: metricsRootNamespace,
-		Subsystem: "k8s",
-		Name:      "api_event_count",
-		Help:      "represents the number of events received from the Kubernetes API Server",
-	})
+	defaultMetricsStore.K8sAPIEventCounter = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: metricsRootNamespace,
+			Subsystem: "k8s",
+			Name:      "api_event_count",
+			Help:      "represents the number of events received from the Kubernetes API Server",
+		},
+		[]string{"type", "namespace"},
+	)
 
 	/*
 	 * Proxy metrics
