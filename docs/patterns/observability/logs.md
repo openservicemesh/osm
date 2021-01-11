@@ -16,16 +16,14 @@ To customize log forwarding to your output, follow these steps and then reinstal
 
 2. The default configuration uses CRI log format parsing. If you are using a kubernetes distribution that causes your logs to be formatted differently, you may need to add a new parser to the `[PARSER]` section and change the `parser` name in the `[INPUT]` section to one of the parsers defined [here](https://github.com/fluent/fluent-bit/blob/master/conf/parsers.conf).
 
-3. To view all logs irrespective of log level, you may remove the `[FILTER]` section. To change the log level being filtered on, you can update the "error" value below to "debug", "info", "warn", "fatal", "panic" or "trace":
-   ```    
-   [FILTER]
-         name       grep
-         match      *
-         regex      message /"level":"error"/
-   ```
-    This regular expression may have to be customized if your logs are formatted or nested differently. If you wish to apply further filtering, explore [Fluent Bit filters](https://docs.fluentbit.io/manual/pipeline/filters).
+3. The logs are currently filtered to match "error" level logs and multiple filters have been used to cover differences in log formatting on various Kubernetes distros. 
+    * To change the log level being filtered on, you can update the `logLevel` value in `values.yaml` to "debug", "info", "warn", "fatal", "panic", "disabled" or "trace". 
+    * To view all logs irrespective of log level, you may remove the `[FILTER]` sections. 
+    * If you wish to apply further filtering, explore [Fluent Bit filters](https://docs.fluentbit.io/manual/pipeline/filters).
      
 4. Once you have updated the Fluent Bit configmap, you can deploy the sidecar during OSM installation using the `--enable-fluentbit` flag. You should now be able to interact with error logs in the output of your choice as they get generated.
+
+5. The `controller_pod_name` key/value pair has been added to the logs to help you query logs in your output by refining results on pod name (see example usage below).
 
 ### Example: Using Fluent Bit to send logs to Azure Monitor
 Fluent Bit has an Azure output plugin that can be used to send logs to an Azure Log Analytics workspace as follows:
@@ -39,6 +37,10 @@ Fluent Bit has an Azure output plugin that can be used to send logs to an Azure 
     ```
     fluentbit_CL
     | order by TimeGenerated desc
+    ```
+5. Refine your log results on a specific deployment of the OSM controller pod:
+    ```
+    | where controller_pod_name_s == "<desired osm controller pod name>"
     ```
 
 Once logs have been sent to Log Analytics, they can also be consumed by Application Insights as follows:

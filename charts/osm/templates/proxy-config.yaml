@@ -4,6 +4,6 @@ kind: Secret
 metadata:
   name: proxy-config
 stringData:
-  HTTP_PROXY: {{ .Values.OpenServiceMesh.fluentBit.httpProxy }}
-  HTTPS_PROXY: {{ .Values.OpenServiceMesh.fluentBit.httpsProxy }}
+  HTTP_PROXY: {{ .Values.OpenServiceMesh.fluentBit.httpProxy | quote }}
+  HTTPS_PROXY: {{ .Values.OpenServiceMesh.fluentBit.httpsProxy | quote }}
 {{- end }}
