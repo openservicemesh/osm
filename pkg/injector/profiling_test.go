@@ -43,13 +43,15 @@ func TestDeferredWebhookLogging(t *testing.T) {
 	logsave := log
 	var b bytes.Buffer
 	log = log.Output(&b)
+	success := false
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		timeout, _ := time.ParseDuration("30s")
-		defer webhookTimeTrack(time.Now(), timeout)
+		timeout := time.Duration(30 * time.Second)
+
+		defer webhookTimeTrack(time.Now(), timeout, &success)
 
 		time.Sleep(100 * time.Millisecond)
 	}()

@@ -27,6 +27,15 @@ type MetricsStore struct {
 	// ProxyConnectCount is the metric for the total number of proxies connected to the controller
 	ProxyConnectCount prometheus.Gauge
 
+	/*
+	 * Injector metrics
+	 */
+	// InjectorSidecarCount counts the number of injector webhooks dealt with over time
+	InjectorSidecarCount prometheus.Counter
+
+	// InjectorRqTime the histogram to track times for the injector webhook calls
+	InjectorRqTime *prometheus.HistogramVec
+
 	// MetricsStore internals should be defined below --------
 	registry *prometheus.Registry
 }
@@ -57,6 +66,28 @@ func init() {
 		Help:      "represents the number of proxies connected to OSM controller",
 	})
 
+	/*
+	 * Injector metrics
+	 */
+	defaultMetricsStore.InjectorSidecarCount = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: metricsRootNamespace,
+		Subsystem: "injector",
+		Name:      "injector_sidecar_count",
+		Help:      "Counts the number of injector webhooks dealt with over time",
+	})
+
+	defaultMetricsStore.InjectorRqTime = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Namespace: metricsRootNamespace,
+			Subsystem: "injector",
+			Name:      "injector_rq_time",
+			Buckets:   []float64{.1, .25, .5, 1, 2.5, 5, 10, 20, 40},
+			Help:      "Histogram for time taken to perform sidecar injection",
+		},
+		[]string{
+			"success",
+		})
+
 	defaultMetricsStore.registry = prometheus.NewRegistry()
 }
 
@@ -64,12 +95,16 @@ func init() {
 func (ms *MetricsStore) Start() {
 	ms.registry.MustRegister(ms.K8sAPIEventCounter)
 	ms.registry.MustRegister(ms.ProxyConnectCount)
+	ms.registry.MustRegister(ms.InjectorSidecarCount)
+	ms.registry.MustRegister(ms.InjectorRqTime)
 }
 
 // Stop store
 func (ms *MetricsStore) Stop() {
 	ms.registry.Unregister(ms.K8sAPIEventCounter)
 	ms.registry.Unregister(ms.ProxyConnectCount)
+	ms.registry.Unregister(ms.InjectorSidecarCount)
+	ms.registry.Unregister(ms.InjectorRqTime)
 }
 
 // Handler return the registry
