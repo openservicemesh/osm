@@ -25,12 +25,6 @@ type EventTypes struct {
 	Delete a.AnnouncementType
 }
 
-const (
-	addEvent    = "add"
-	deleteEvent = "delete"
-	updateEvent = "update"
-)
-
 // GetKubernetesEventHandlers creates Kubernetes events handlers.
 func GetKubernetesEventHandlers(informerName, providerName string, shouldObserve observeFilter, eventTypes EventTypes) cache.ResourceEventHandlerFuncs {
 	if shouldObserve == nil {
@@ -49,7 +43,7 @@ func GetKubernetesEventHandlers(informerName, providerName string, shouldObserve
 				OldObj:           nil,
 			})
 			ns := getNamespace(obj)
-			metricsstore.DefaultMetricsStore.K8sAPIEventCounter.WithLabelValues(addEvent, ns).Inc()
+			metricsstore.DefaultMetricsStore.K8sAPIEventCounter.WithLabelValues(eventTypes.Add.String(), ns).Inc()
 		},
 
 		UpdateFunc: func(oldObj, newObj interface{}) {
@@ -63,7 +57,7 @@ func GetKubernetesEventHandlers(informerName, providerName string, shouldObserve
 				OldObj:           newObj,
 			})
 			ns := getNamespace(newObj)
-			metricsstore.DefaultMetricsStore.K8sAPIEventCounter.WithLabelValues(updateEvent, ns).Inc()
+			metricsstore.DefaultMetricsStore.K8sAPIEventCounter.WithLabelValues(eventTypes.Update.String(), ns).Inc()
 		},
 
 		DeleteFunc: func(obj interface{}) {
@@ -77,7 +71,7 @@ func GetKubernetesEventHandlers(informerName, providerName string, shouldObserve
 				OldObj:           obj,
 			})
 			ns := getNamespace(obj)
-			metricsstore.DefaultMetricsStore.K8sAPIEventCounter.WithLabelValues(deleteEvent, ns).Inc()
+			metricsstore.DefaultMetricsStore.K8sAPIEventCounter.WithLabelValues(eventTypes.Delete.String(), ns).Inc()
 		},
 	}
 }
