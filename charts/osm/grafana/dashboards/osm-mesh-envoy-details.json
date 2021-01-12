@@ -15,7 +15,6 @@
   "editable": true,
   "gnetId": null,
   "graphTooltip": 0,
-  "id": 6,
   "links": [],
   "panels": [
     {
@@ -399,8 +398,8 @@
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
-        "h": 10,
-        "w": 10,
+        "h": 8,
+        "w": 9,
         "x": 0,
         "y": 5
       },
@@ -435,13 +434,19 @@
           "interval": "",
           "legendFormat": "Total N pods in Mesh",
           "refId": "A"
+        },
+        {
+          "expr": "osm_proxy_connect_count",
+          "interval": "",
+          "legendFormat": "OSM Proxy Connect",
+          "refId": "B"
         }
       ],
       "thresholds": [],
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Total number of pods in Mesh",
+      "title": "Pods in Mesh vs Connected Proxies",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -457,6 +462,7 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:605",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -465,6 +471,7 @@
           "show": true
         },
         {
+          "$$hashKey": "object:606",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -493,9 +500,9 @@
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
-        "h": 10,
-        "w": 10,
-        "x": 10,
+        "h": 8,
+        "w": 9,
+        "x": 9,
         "y": 5
       },
       "hiddenSeries": false,
@@ -581,7 +588,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 15
+        "y": 13
       },
       "id": 22,
       "panels": [],
@@ -603,10 +610,10 @@
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
-        "h": 11,
-        "w": 10,
+        "h": 8,
+        "w": 9,
         "x": 0,
-        "y": 16
+        "y": 14
       },
       "hiddenSeries": false,
       "id": 14,
@@ -720,10 +727,10 @@
       "fill": 1,
       "fillGradient": 0,
       "gridPos": {
-        "h": 11,
-        "w": 10,
-        "x": 10,
-        "y": 16
+        "h": 8,
+        "w": 9,
+        "x": 9,
+        "y": 14
       },
       "hiddenSeries": false,
       "id": 13,
@@ -809,20 +816,6 @@
       }
     },
     {
-      "collapsed": false,
-      "datasource": null,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 27
-      },
-      "id": 20,
-      "panels": [],
-      "title": "Webhook",
-      "type": "row"
-    },
-    {
       "aliasColors": {},
       "bars": false,
       "dashLength": 10,
@@ -854,127 +847,9 @@
       "fillGradient": 0,
       "gridPos": {
         "h": 8,
-        "w": 10,
+        "w": 9,
         "x": 0,
-        "y": 28
-      },
-      "hiddenSeries": false,
-      "id": 26,
-      "legend": {
-        "avg": false,
-        "current": false,
-        "max": false,
-        "min": false,
-        "show": true,
-        "total": false,
-        "values": false
-      },
-      "lines": true,
-      "linewidth": 1,
-      "nullPointMode": "null",
-      "options": {
-        "dataLinks": []
-      },
-      "percentage": false,
-      "pluginVersion": "7.0.1",
-      "pointradius": 2,
-      "points": false,
-      "renderer": "flot",
-      "seriesOverrides": [],
-      "spaceLength": 10,
-      "stack": false,
-      "steppedLine": false,
-      "targets": [
-        {
-          "expr": "sum(rate(apiserver_admission_webhook_admission_duration_seconds_bucket\n[1m])) by (le)",
-          "hide": true,
-          "interval": "",
-          "legendFormat": "{{le}}",
-          "refId": "A"
-        },
-        {
-          "expr": "irate(apiserver_admission_webhook_admission_duration_seconds_bucket[1m])",
-          "interval": "",
-          "legendFormat": "{{le}}-{{rejected}}",
-          "refId": "B"
-        }
-      ],
-      "thresholds": [],
-      "timeFrom": null,
-      "timeRegions": [],
-      "timeShift": null,
-      "title": "Webhook Admission time-bucket",
-      "tooltip": {
-        "shared": true,
-        "sort": 0,
-        "value_type": "individual"
-      },
-      "type": "graph",
-      "xaxis": {
-        "buckets": null,
-        "mode": "time",
-        "name": null,
-        "show": true,
-        "values": []
-      },
-      "yaxes": [
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        },
-        {
-          "format": "short",
-          "label": null,
-          "logBase": 1,
-          "max": null,
-          "min": null,
-          "show": true
-        }
-      ],
-      "yaxis": {
-        "align": false,
-        "alignLevel": null
-      }
-    },
-    {
-      "aliasColors": {},
-      "bars": false,
-      "dashLength": 10,
-      "dashes": false,
-      "datasource": "Prometheus",
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "align": null
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "fill": 1,
-      "fillGradient": 0,
-      "gridPos": {
-        "h": 8,
-        "w": 10,
-        "x": 10,
-        "y": 28
+        "y": 22
       },
       "hiddenSeries": false,
       "id": 27,
@@ -1004,23 +879,17 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "irate(apiserver_admission_webhook_rejection_count[1m])",
+          "expr": "irate(osm_injector_injector_rq_time_bucket[1m])",
           "interval": "",
-          "legendFormat": "",
+          "legendFormat": "{{le}}",
           "refId": "B"
-        },
-        {
-          "expr": "",
-          "interval": "",
-          "legendFormat": "",
-          "refId": "A"
         }
       ],
       "thresholds": [],
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Rejected Webhooks",
+      "title": "OSM injector webhooks",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -1036,6 +905,7 @@
       },
       "yaxes": [
         {
+          "$$hashKey": "object:273",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -1044,6 +914,7 @@
           "show": true
         },
         {
+          "$$hashKey": "object:274",
           "format": "short",
           "label": null,
           "logBase": 1,
@@ -1056,20 +927,6 @@
         "align": false,
         "alignLevel": null
       }
-    },
-    {
-      "collapsed": false,
-      "datasource": null,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 36
-      },
-      "id": 18,
-      "panels": [],
-      "title": "OSM namespace Stats",
-      "type": "row"
     }
   ],
   "refresh": "10s",
