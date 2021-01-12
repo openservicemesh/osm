@@ -889,7 +889,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "OSM injector webhooks",
+      "title": "OSM sidecar injector",
       "tooltip": {
         "shared": true,
         "sort": 0,
