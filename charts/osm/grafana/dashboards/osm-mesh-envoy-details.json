@@ -446,7 +446,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Pods in Mesh vs Connected Proxies",
+      "title": "Total number of pods in Mesh",
       "tooltip": {
         "shared": true,
         "sort": 0,
