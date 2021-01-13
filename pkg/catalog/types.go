@@ -116,8 +116,15 @@ type MeshCataloger interface {
 	// ListMonitoredNamespaces lists namespaces monitored by the control plane
 	ListMonitoredNamespaces() []string
 
-	// GetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol
+	// GetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol.
+	// The ports returned are the actual ports on which the application exposes the service derived from the service's endpoints,
+	// ie. 'spec.ports[].targetPort' instead of 'spec.ports[].port' for a Kubernetes service.
 	GetPortToProtocolMappingForService(service.MeshService) (map[uint32]string, error)
+
+	// GetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol,
+	// where the ports returned are the ones used by downstream clients in their requests. This can be different from the ports
+	// actually exposed by the application binary, ie. 'spec.ports[].port' instead of 'spec.ports[].targetPort' for a Kubernetes service.
+	GetPortToProtocolMappingForResolvableService(service.MeshService) (map[uint32]string, error)
 
 	// ListInboundTrafficTargetsWithRoutes returns a list traffic target objects componsed of its routes for the given destination service account
 	ListInboundTrafficTargetsWithRoutes(service.K8sServiceAccount) ([]trafficpolicy.TrafficTargetWithRoutes, error)

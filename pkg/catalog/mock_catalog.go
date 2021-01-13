@@ -69,6 +69,21 @@ func (mr *MockMeshCatalogerMockRecorder) GetIngressRoutesPerHost(arg0 interface{
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetIngressRoutesPerHost", reflect.TypeOf((*MockMeshCataloger)(nil).GetIngressRoutesPerHost), arg0)
 }
 
+// GetPortToProtocolMappingForResolvableService mocks base method
+func (m *MockMeshCataloger) GetPortToProtocolMappingForResolvableService(arg0 service.MeshService) (map[uint32]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPortToProtocolMappingForResolvableService", arg0)
+	ret0, _ := ret[0].(map[uint32]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPortToProtocolMappingForResolvableService indicates an expected call of GetPortToProtocolMappingForResolvableService
+func (mr *MockMeshCatalogerMockRecorder) GetPortToProtocolMappingForResolvableService(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPortToProtocolMappingForResolvableService", reflect.TypeOf((*MockMeshCataloger)(nil).GetPortToProtocolMappingForResolvableService), arg0)
+}
+
 // GetPortToProtocolMappingForService mocks base method
 func (m *MockMeshCataloger) GetPortToProtocolMappingForService(arg0 service.MeshService) (map[uint32]string, error) {
 	m.ctrl.T.Helper()
