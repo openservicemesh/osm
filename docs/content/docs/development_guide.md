@@ -59,6 +59,7 @@ as a birds-eye view of where the different components are located.
     - `smi/` - SMI client, informer, caches and tools
     - `tests/` - test fixtures and other functions to make unit testing easier
     - `trafficpolicy/` - SMI related types
+  - `wasm/` - Source for a WebAssembly-based Envoy extension
 </details>
 
 The Open Service Mesh controller is written in Go.
