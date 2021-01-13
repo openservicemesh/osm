@@ -9,6 +9,11 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
+const (
+	// defaultAppProtocol is the default application protocol for a port if unspecified
+	defaultAppProtocol = "http"
+)
+
 // GetServicesForServiceAccount returns a list of services corresponding to a service account
 func (mc *MeshCatalog) GetServicesForServiceAccount(sa service.K8sServiceAccount) ([]service.MeshService, error) {
 	var services []service.MeshService
@@ -40,6 +45,8 @@ func (mc *MeshCatalog) ListServiceAccountsForService(svc service.MeshService) ([
 }
 
 // GetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol.
+// The ports returned are the actual ports on which the application exposes the service derived from the service's endpoints,
+// ie. 'spec.ports[].targetPort' instead of 'spec.ports[].port' for a Kubernetes service.
 // The function ensures the port:protocol mapping is the same across different endpoint providers for the service, and returns
 // an error otherwise.
 func (mc *MeshCatalog) GetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
@@ -60,6 +67,28 @@ func (mc *MeshCatalog) GetPortToProtocolMappingForService(svc service.MeshServic
 	portToProtocolMap = previous
 	if portToProtocolMap == nil {
 		return nil, errors.Errorf("Error fetching port:protocol mapping for service %s", svc)
+	}
+
+	return portToProtocolMap, nil
+}
+
+// GetPortToProtocolMappingForResolvableService returns a mapping of the service's ports to their corresponding application protocol,
+// where the ports returned are the ones used by downstream clients in their requests. This can be different from the ports
+// actually exposed by the application binary, ie. 'spec.ports[].port' instead of 'spec.ports[].targetPort' for a Kubernetes service.
+func (mc *MeshCatalog) GetPortToProtocolMappingForResolvableService(svc service.MeshService) (map[uint32]string, error) {
+	portToProtocolMap := make(map[uint32]string)
+
+	k8sSvc := mc.kubeController.GetService(svc)
+	if k8sSvc == nil {
+		return nil, errors.Wrapf(errServiceNotFound, "Error retrieving k8s service %s", svc)
+	}
+
+	for _, portSpec := range k8sSvc.Spec.Ports {
+		appProtocol := defaultAppProtocol
+		if portSpec.AppProtocol != nil {
+			appProtocol = *portSpec.AppProtocol
+		}
+		portToProtocolMap[uint32(portSpec.Port)] = appProtocol
 	}
 
 	return portToProtocolMap, nil
