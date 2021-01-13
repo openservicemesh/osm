@@ -22,9 +22,9 @@ func (s *Server) sendTypeResponse(tURI envoy.TypeURI,
 	req *xds_discovery.DiscoveryRequest, cfg configurator.Configurator) error {
 	// Tracks the success of this TypeURI response operation; accounts also for receipt on envoy server side
 	success := false
-	defer xdsPathTimeTrack(time.Now(), tURI.String(), proxy.GetCommonName().String(), &success)
-
 	xdsShortName := envoy.XDSShortURINames[tURI]
+	defer xdsPathTimeTrack(time.Now(), xdsShortName, proxy.GetCommonName().String(), &success)
+
 	log.Trace().Msgf("[%s] Creating response for proxy with CN=%s", xdsShortName, proxy.GetCommonName())
 
 	discoveryResponse, err := s.newAggregatedDiscoveryResponse(proxy, req, cfg)
