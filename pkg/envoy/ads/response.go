@@ -13,7 +13,7 @@ import (
 
 const (
 	// fullUpdateStr is a constant string value to identify full XDS update times on metric labels
-	fullXDSUpdateStr = "FULL"
+	ADSUpdateStr = "ADS"
 )
 
 // Wrapper to create and send a discovert response to an envoy server
