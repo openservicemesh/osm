@@ -20,7 +20,6 @@ const (
 func (s *Server) sendTypeResponse(tURI envoy.TypeURI,
 	proxy *envoy.Proxy, server *xds_discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer,
 	req *xds_discovery.DiscoveryRequest, cfg configurator.Configurator) error {
-
 	// Tracks the success of this TypeURI response operation; accounts also for receipt on envoy server side
 	success := false
 	defer xdsPathTimeTrack(time.Now(), tURI.String(), proxy.GetCommonName().String(), &success)

@@ -85,7 +85,7 @@ func init() {
 		[]string{
 			"proxyName",    // proxyName is the common name of the proxy
 			"resourceType", // identifies a typeURI resource
-			"success",      // further labels if the operation suceeded or not
+			"success",      // further labels if the operation succeeded or not
 		})
 
 	/*
