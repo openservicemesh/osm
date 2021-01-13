@@ -47,7 +47,7 @@ func (f fakeClient) GetServicesForServiceAccount(svcAccount service.K8sServiceAc
 	return services, nil
 }
 
-func (f fakeClient) GetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
+func (f fakeClient) GetTargetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
 	return map[uint32]string{uint32(tests.Endpoint.Port): defaultAppProtocol}, nil
 }
 

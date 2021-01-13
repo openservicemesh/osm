@@ -44,16 +44,16 @@ func (mc *MeshCatalog) ListServiceAccountsForService(svc service.MeshService) ([
 	return mc.kubeController.ListServiceAccountsForService(svc)
 }
 
-// GetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol.
+// GetTargetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol.
 // The ports returned are the actual ports on which the application exposes the service derived from the service's endpoints,
 // ie. 'spec.ports[].targetPort' instead of 'spec.ports[].port' for a Kubernetes service.
 // The function ensures the port:protocol mapping is the same across different endpoint providers for the service, and returns
 // an error otherwise.
-func (mc *MeshCatalog) GetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
+func (mc *MeshCatalog) GetTargetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
 	var portToProtocolMap, previous map[uint32]string
 
 	for _, provider := range mc.endpointsProviders {
-		current, err := provider.GetPortToProtocolMappingForService(svc)
+		current, err := provider.GetTargetPortToProtocolMappingForService(svc)
 		if err != nil {
 			return nil, err
 		}
@@ -72,10 +72,10 @@ func (mc *MeshCatalog) GetPortToProtocolMappingForService(svc service.MeshServic
 	return portToProtocolMap, nil
 }
 
-// GetPortToProtocolMappingForResolvableService returns a mapping of the service's ports to their corresponding application protocol,
+// GetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol,
 // where the ports returned are the ones used by downstream clients in their requests. This can be different from the ports
 // actually exposed by the application binary, ie. 'spec.ports[].port' instead of 'spec.ports[].targetPort' for a Kubernetes service.
-func (mc *MeshCatalog) GetPortToProtocolMappingForResolvableService(svc service.MeshService) (map[uint32]string, error) {
+func (mc *MeshCatalog) GetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
 	portToProtocolMap := make(map[uint32]string)
 
 	k8sSvc := mc.kubeController.GetService(svc)

@@ -39,7 +39,7 @@ var (
 func (lb *listenerBuilder) getInboundMeshFilterChains(proxyService service.MeshService) []*xds_listener.FilterChain {
 	var filterChains []*xds_listener.FilterChain
 
-	protocolToPortMap, err := lb.meshCatalog.GetPortToProtocolMappingForService(proxyService)
+	protocolToPortMap, err := lb.meshCatalog.GetTargetPortToProtocolMappingForService(proxyService)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error retrieving port to protocol mapping for service %s", proxyService)
 		return filterChains
