@@ -15,8 +15,8 @@ type Provider interface {
 	// Retrieve the namespaced services for a given service account
 	GetServicesForServiceAccount(service.K8sServiceAccount) ([]service.MeshService, error)
 
-	// GetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol
-	GetPortToProtocolMappingForService(service.MeshService) (map[uint32]string, error)
+	// GetTargetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol
+	GetTargetPortToProtocolMappingForService(service.MeshService) (map[uint32]string, error)
 
 	// Returns the expected endpoints that are to be reached when the service FQDN is resolved under
 	// the scope of the provider

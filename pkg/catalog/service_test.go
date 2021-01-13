@@ -142,14 +142,14 @@ func TestGetPortToProtocolMappingForService(t *testing.T) {
 			var allProviders []endpoint.Provider
 			for _, providerConfig := range tc.providerConfigs {
 				allProviders = append(allProviders, providerConfig.provider)
-				providerConfig.provider.EXPECT().GetPortToProtocolMappingForService(testSvc).Return(providerConfig.portToProtocolMap, providerConfig.err).Times(1)
+				providerConfig.provider.EXPECT().GetTargetPortToProtocolMappingForService(testSvc).Return(providerConfig.portToProtocolMap, providerConfig.err).Times(1)
 			}
 
 			mc := &MeshCatalog{
 				endpointsProviders: allProviders,
 			}
 
-			actualPortToProtocolMap, err := mc.GetPortToProtocolMappingForService(testSvc)
+			actualPortToProtocolMap, err := mc.GetTargetPortToProtocolMappingForService(testSvc)
 
 			assert.Equal(tc.expectError, err != nil)
 			assert.Equal(tc.expectedPortToProtocolMap, actualPortToProtocolMap)
@@ -262,7 +262,7 @@ func TestGetPortToProtocolMappingForResolvableService(t *testing.T) {
 
 			mockKubeController.EXPECT().GetService(svc).Return(tc.service).Times(1)
 
-			actualPortToProtocolMap, err := mc.GetPortToProtocolMappingForResolvableService(svc)
+			actualPortToProtocolMap, err := mc.GetPortToProtocolMappingForService(svc)
 
 			assert.Equal(tc.expectError, err != nil)
 			assert.Equal(tc.expectedPortToProtocolMap, actualPortToProtocolMap)
