@@ -68,7 +68,7 @@ func newIngressHTTPFilterChain(cfg configurator.Configurator, svc service.MeshSe
 func (lb *listenerBuilder) getIngressFilterChains(svc service.MeshService) []*xds_listener.FilterChain {
 	var ingressFilterChains []*xds_listener.FilterChain
 
-	protocolToPortMap, err := lb.meshCatalog.GetPortToProtocolMappingForService(svc)
+	protocolToPortMap, err := lb.meshCatalog.GetTargetPortToProtocolMappingForService(svc)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error retrieving port to protocol mapping for service %s", svc)
 		return ingressFilterChains
