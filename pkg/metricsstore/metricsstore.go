@@ -83,8 +83,8 @@ func init() {
 			Help:      "Histogram to track time spent for proxy configuration",
 		},
 		[]string{
-			"proxyName",    // proxyName is the common name of the proxy
-			"resourceType", // identifies a typeURI resource
+			"proxy_cn",    // proxy_cn is the common name of the proxy
+			"resource_type", // identifies a typeURI resource
 			"success",      // further labels if the operation succeeded or not
 		})
 
