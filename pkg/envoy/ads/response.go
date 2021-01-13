@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	// fullUpdateStr is a constant string value to identify full XDS update times on metric labels
+	// ADSUpdateStr is a constant string value to identify full XDS update times on metric labels
 	ADSUpdateStr = "ADS"
 )
 
@@ -48,7 +48,7 @@ func (s *Server) sendAllResponses(proxy *envoy.Proxy, server *xds_discovery.Aggr
 	// Tracks the success of this full update of all its XDS paths. If a single XDS response path fails for this full update,
 	// the full updated will be considered as failed for metric purposes (success = false)
 	success := true
-	defer xdsPathTimeTrack(time.Now(), fullXDSUpdateStr, proxy.GetCommonName().String(), &success)
+	defer xdsPathTimeTrack(time.Now(), ADSUpdateStr, proxy.GetCommonName().String(), &success)
 
 	// Order is important: CDS, EDS, LDS, RDS
 	// See: https://github.com/envoyproxy/go-control-plane/issues/59
