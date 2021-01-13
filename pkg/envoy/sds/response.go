@@ -55,7 +55,7 @@ func (s *sdsImpl) createDiscoveryResponse(request *xds_discovery.DiscoveryReques
 	// Resources corresponding to SDS secrets returned as a part of the DiscoveryResponse
 	var resources []*any.Any
 
-	// The DisvoceryRequest contains the requested certs
+	// The DiscoveryRequest contains the requested certs
 	requestedCerts := request.ResourceNames
 	log.Trace().Msgf("Received SDS request for ResourceNames (certificates) %+v on proxy %s, services: %v", requestedCerts, s.proxy.GetCommonName(), s.proxyServices)
 
@@ -100,7 +100,6 @@ func (s *sdsImpl) getSDSSecrets(cert certificate.Certificater, requestedCerts []
 
 	// The Envoy makes a request for a list of resources (aka certificates), which we will send as a response to the SDS request.
 	for _, requestedCertificate := range requestedCerts {
-		// requestedCertType could be either "service-cert" or "root-cert"
 		sdsCert, err := envoy.UnmarshalSDSCert(requestedCertificate)
 		if err != nil {
 			log.Error().Err(err).Msgf("Invalid resource kind requested: %q", requestedCertificate)
@@ -110,8 +109,8 @@ func (s *sdsImpl) getSDSSecrets(cert certificate.Certificater, requestedCerts []
 		log.Debug().Msgf("proxy %s (member of service %s) requested %s", s.proxy.GetCommonName(), proxyService, requestedCertificate)
 
 		switch sdsCert.CertType {
+		// A service certificate is requested
 		case envoy.ServiceCertType:
-			// A service certificate is requested
 			envoySecret, err := getServiceCertSecret(cert, requestedCertificate)
 			if err != nil {
 				log.Error().Err(err).Msgf("Error creating cert %s for proxy %s for service %s", requestedCertificate, s.proxy.GetCommonName(), proxyService)
