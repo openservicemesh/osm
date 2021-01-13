@@ -63,7 +63,7 @@ OpenServiceMesh:
 
   # Set deployJaeger to true to deploy a Jaeger cluster in the
   # namespace where OSM resides.
-  deployJaeger: true
+  deployJaeger: false
 
   # The following section configures a destination where to send
   # tracing data. Current implementation supports only Zipkin format

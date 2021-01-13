@@ -16,7 +16,7 @@ A Helm chart to install the OSM control plane on Kubernetes
 | OpenServiceMesh.connectVault | bool | `true` |  |
 | OpenServiceMesh.controllerLogLevel | string | `"trace"` |  |
 | OpenServiceMesh.deployGrafana | bool | `false` |  |
-| OpenServiceMesh.deployJaeger | bool | `true` |  |
+| OpenServiceMesh.deployJaeger | bool | `false` |  |
 | OpenServiceMesh.deployPrometheus | bool | `false` |  |
 | OpenServiceMesh.enableBackpressureExperimental | bool | `false` |  |
 | OpenServiceMesh.enableDebugServer | bool | `false` |  |

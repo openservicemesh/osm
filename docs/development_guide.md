@@ -278,7 +278,7 @@ The different chart templates are used as follows:
 -  `grafana-*.yaml` chart templates are used to deploy a Grafana instance when grafana installation is enabled
 - `prometheus-*.yaml` chart templates are used to deploy a Prometheus instance when prometheus installation is enabled
 - `fluentbit-configmap.yaml` is used to provide configurations for the fluent bit sidecar and its plugins when fluent bit is enabled
-- `jaeger-*.yaml` chart templates are used to deploy a Jaeger instance when tracing is enabled
+- `jaeger-*.yaml` chart templates are used to deploy a Jaeger instance when Jaeger deployment and tracing are enabled
 
 ### Custom Resource Definitions
 

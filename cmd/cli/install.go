@@ -79,7 +79,7 @@ const (
 	defaultEnablePrometheusScraping       = true
 	defaultDeployGrafana                  = false
 	defaultEnableFluentbit                = false
-	defaultDeployJaeger                   = true
+	defaultDeployJaeger                   = false
 	defaultEnforceSingleMesh              = false
 )
 
