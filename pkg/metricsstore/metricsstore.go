@@ -27,6 +27,9 @@ type MetricsStore struct {
 	// ProxyConnectCount is the metric for the total number of proxies connected to the controller
 	ProxyConnectCount prometheus.Gauge
 
+	// ProxyConfigUpdateTime is the histogram to track time spent for proxy configuration and its occurrences
+	ProxyConfigUpdateTime *prometheus.HistogramVec
+
 	/*
 	 * Injector metrics
 	 */
@@ -71,6 +74,20 @@ func init() {
 		Help:      "represents the number of proxies connected to OSM controller",
 	})
 
+	defaultMetricsStore.ProxyConfigUpdateTime = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Namespace: metricsRootNamespace,
+			Subsystem: "proxy",
+			Name:      "config_update_time",
+			Buckets:   []float64{.1, .25, .5, 1, 2.5, 5, 10, 20, 40, 90},
+			Help:      "Histogram to track time spent for proxy configuration",
+		},
+		[]string{
+			"proxyName",    // proxyName is the common name of the proxy
+			"resourceType", // identifies a typeURI resource
+			"success",      // further labels if the operation suceeded or not
+		})
+
 	/*
 	 * Injector metrics
 	 */
@@ -100,6 +117,7 @@ func init() {
 func (ms *MetricsStore) Start() {
 	ms.registry.MustRegister(ms.K8sAPIEventCounter)
 	ms.registry.MustRegister(ms.ProxyConnectCount)
+	ms.registry.MustRegister(ms.ProxyConfigUpdateTime)
 	ms.registry.MustRegister(ms.InjectorSidecarCount)
 	ms.registry.MustRegister(ms.InjectorRqTime)
 }
@@ -108,6 +126,7 @@ func (ms *MetricsStore) Start() {
 func (ms *MetricsStore) Stop() {
 	ms.registry.Unregister(ms.K8sAPIEventCounter)
 	ms.registry.Unregister(ms.ProxyConnectCount)
+	ms.registry.Unregister(ms.ProxyConfigUpdateTime)
 	ms.registry.Unregister(ms.InjectorSidecarCount)
 	ms.registry.Unregister(ms.InjectorRqTime)
 }
