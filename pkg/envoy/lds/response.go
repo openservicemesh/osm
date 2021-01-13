@@ -28,7 +28,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 
 	svcAccount, err := catalog.GetServiceAccountFromProxyCertificate(proxy.GetCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error retrieving SerivceAccount for proxy %s", proxy.GetCommonName())
+		log.Error().Err(err).Msgf("Error retrieving ServiceAccount for proxy %s", proxy.GetCommonName())
 		return nil, err
 	}
 
