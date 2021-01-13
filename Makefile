@@ -48,8 +48,8 @@ clean-osm-injector:
 build: build-osm-controller build-osm-injector
 
 .PHONY: build-osm-controller
-build-osm-controller: clean-osm-controller
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o ./bin/osm-controller/osm-controller -ldflags "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -s -w" ./cmd/osm-controller
+build-osm-controller: clean-osm-controller wasm/stats.wasm
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o ./bin/osm-controller/osm-controller -ldflags "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -X github.com/openservicemesh/osm/pkg/envoy/lds.statsWASMBytes=$$(base64 < wasm/stats.wasm | tr -d \\n) -s -w" ./cmd/osm-controller
 
 .PHONY: build-osm-injector
 build-osm-injector: clean-osm-injector
@@ -146,6 +146,9 @@ docker-build-osm-controller: build-osm-controller
 
 docker-build-osm-injector: build-osm-injector
 	docker build -t $(CTR_REGISTRY)/osm-injector:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-injector bin/osm-injector
+
+wasm/stats.wasm: wasm/stats.cc wasm/Makefile
+	docker run --rm -v $(PWD)/wasm:/work -w /work openservicemesh/proxy-wasm-cpp-sdk:956f0d500c380cc1656a2d861b7ee12c2515a664 /build_wasm.sh
 
 .PHONY: docker-build
 docker-build: $(DOCKER_DEMO_TARGETS) docker-build-init docker-build-osm-controller docker-build-osm-injector
