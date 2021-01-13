@@ -12,6 +12,7 @@ import (
 
 const (
 	envoyBootstrapConfigVolume = "envoy-bootstrap-config-volume"
+	statsWASMConfigMapName     = "envoy-stats-wasm"
 )
 
 var log = logger.New("sidecar-injector")
@@ -25,6 +26,7 @@ type mutatingWebhook struct {
 	osmNamespace   string
 	cert           certificate.Certificater
 	configurator   configurator.Configurator
+	statsWASM      []byte
 
 	nonInjectNamespaces mapset.Set
 }

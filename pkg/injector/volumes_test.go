@@ -5,6 +5,8 @@ import (
 	. "github.com/onsi/gomega"
 
 	v1 "k8s.io/api/core/v1"
+
+	"github.com/openservicemesh/osm/pkg/featureflags"
 )
 
 var _ = Describe("Test volume functions", func() {
@@ -20,6 +22,17 @@ var _ = Describe("Test volume functions", func() {
 				},
 			}}
 			Expect(actual).To(Equal(expected))
+		})
+
+		It("creates a WASM volume when WASM is enabled", func() {
+			oldWASMflag := featureflags.IsWASMStatsEnabled()
+			featureflags.Features.WASMStats = true
+
+			actual := getVolumeSpec("-envoy-config-")
+			Expect(actual).To(HaveLen(2))
+			Expect(actual[1].Name).To(Equal(envoyStatsWASMVolumeName))
+
+			featureflags.Features.WASMStats = oldWASMflag
 		})
 	})
 })

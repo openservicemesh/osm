@@ -8,11 +8,13 @@ import (
 
 	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/featureflags"
 )
 
 func getEnvoyConfigYAML(config envoyBootstrapConfigMeta, cfg configurator.Configurator) ([]byte, error) {
@@ -131,6 +133,14 @@ func (wh *mutatingWebhook) createEnvoyBootstrapConfig(name, namespace, osmNamesp
 			envoyBootstrapConfigFile: yamlContent,
 		},
 	}
+
+	if featureflags.IsWASMStatsEnabled() {
+		_, err := wh.createOrUpdateWasmConfigMap(namespace)
+		if err != nil {
+			log.Error().Err(err).Msg("failed to update stats WASM ConfigMap")
+		}
+	}
+
 	if existing, err := wh.kubeClient.CoreV1().Secrets(namespace).Get(context.Background(), name, metav1.GetOptions{}); err == nil {
 		log.Debug().Msgf("Updating bootstrap config Envoy: name=%s, namespace=%s", name, namespace)
 		existing.Data = secret.Data
@@ -197,4 +207,22 @@ func getXdsCluster(config envoyBootstrapConfigMeta) map[string]interface{} {
 			},
 		},
 	}
+}
+
+func (wh *mutatingWebhook) createOrUpdateWasmConfigMap(namespace string) (*corev1.ConfigMap, error) {
+	log.Info().Msgf("Creating Configmap to hold WASM module")
+	wasmConfigMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: statsWASMConfigMapName,
+		},
+		BinaryData: map[string][]byte{
+			constants.StatsWASMFilename: wh.statsWASM,
+		},
+	}
+
+	_, err := wh.kubeClient.CoreV1().ConfigMaps(namespace).Get(context.Background(), statsWASMConfigMapName, metav1.GetOptions{})
+	if kerrors.IsNotFound(err) {
+		return wh.kubeClient.CoreV1().ConfigMaps(namespace).Create(context.Background(), wasmConfigMap, metav1.CreateOptions{})
+	}
+	return wh.kubeClient.CoreV1().ConfigMaps(namespace).Update(context.Background(), wasmConfigMap, metav1.UpdateOptions{})
 }

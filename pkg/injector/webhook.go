@@ -55,7 +55,7 @@ const (
 )
 
 // NewMutatingWebhook starts a new web server handling requests from the injector MutatingWebhookConfiguration
-func NewMutatingWebhook(config Config, kubeClient kubernetes.Interface, certManager certificate.Manager, kubeController k8s.Controller, meshName, osmNamespace, webhookConfigName string, stop <-chan struct{}, cfg configurator.Configurator) error {
+func NewMutatingWebhook(config Config, kubeClient kubernetes.Interface, certManager certificate.Manager, kubeController k8s.Controller, meshName, osmNamespace, webhookConfigName string, stop <-chan struct{}, cfg configurator.Configurator, statsWASM []byte) error {
 	// This is a certificate issued for the webhook handler
 	// This cert does not have to be related to the Envoy certs, but it does have to match
 	// the cert provisioned with the MutatingWebhookConfiguration
@@ -74,6 +74,7 @@ func NewMutatingWebhook(config Config, kubeClient kubernetes.Interface, certMana
 		osmNamespace:   osmNamespace,
 		cert:           webhookHandlerCert,
 		configurator:   cfg,
+		statsWASM:      statsWASM,
 
 		// Envoy sidecars should never be injected in these namespaces
 		nonInjectNamespaces: mapset.NewSetFromSlice([]interface{}{

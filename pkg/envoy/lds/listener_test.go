@@ -15,6 +15,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/route"
+	"github.com/openservicemesh/osm/pkg/featureflags"
 )
 
 // Tests TestGetFilterForService checks that a proper filter type is properly returned
@@ -111,6 +112,36 @@ var _ = Describe("Test getHTTPConnectionManager", func() {
 			var nilHcmTrace *xds_hcm.HttpConnectionManager_Tracing = nil
 
 			Expect(connManager.Tracing).To(Equal(nilHcmTrace))
+		})
+
+		It("Returns no stats config when WASM is disabled", func() {
+			mockConfigurator.EXPECT().IsTracingEnabled().AnyTimes()
+			oldWASMflag := featureflags.Features.WASMStats
+			featureflags.Features.WASMStats = false
+
+			connManager := getHTTPConnectionManager(route.InboundRouteConfigName, mockConfigurator)
+
+			Expect(connManager.HttpFilters).To(HaveLen(1))
+			Expect(connManager.HttpFilters[0].GetName()).To(Equal(wellknown.Router))
+			Expect(connManager.LocalReplyConfig).To(BeNil())
+
+			// reset global state
+			featureflags.Features.WASMStats = oldWASMflag
+		})
+
+		It("Returns proper stats config when WASM is enabled", func() {
+			mockConfigurator.EXPECT().IsTracingEnabled().AnyTimes()
+			oldWASMflag := featureflags.Features.WASMStats
+			featureflags.Features.WASMStats = true
+
+			connManager := getHTTPConnectionManager(route.InboundRouteConfigName, mockConfigurator)
+
+			Expect(connManager.GetHttpFilters()).To(HaveLen(2))
+			Expect(connManager.GetHttpFilters()[0].GetName()).To(Equal("envoy.filters.http.wasm"))
+			Expect(connManager.GetHttpFilters()[1].GetName()).To(Equal(wellknown.Router))
+
+			// reset global state
+			featureflags.Features.WASMStats = oldWASMflag
 		})
 	})
 })

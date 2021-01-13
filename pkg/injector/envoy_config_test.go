@@ -1,6 +1,7 @@
 package injector
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -12,12 +13,14 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/featureflags"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 )
 
@@ -207,6 +210,86 @@ static_resources:
 			// Now check the entire struct
 			Expect(*secret).To(Equal(expected))
 		})
+
+		It("does not create a ConfigMap to store WASM when WASM is disabled", func() {
+			oldWASMflag := featureflags.IsWASMStatsEnabled()
+			featureflags.Features.WASMStats = false
+
+			wh := &mutatingWebhook{
+				kubeClient:          fake.NewSimpleClientset(),
+				kubeController:      k8s.NewMockController(gomock.NewController(GinkgoT())),
+				nonInjectNamespaces: mapset.NewSet(),
+			}
+			name := uuid.New().String()
+			namespace := "a"
+			osmNamespace := "b"
+
+			_, err := wh.createEnvoyBootstrapConfig(name, namespace, osmNamespace, cert, healthProbes{})
+			Expect(err).ToNot(HaveOccurred())
+
+			_, err = wh.kubeClient.CoreV1().ConfigMaps(namespace).Get(context.Background(), statsWASMConfigMapName, metav1.GetOptions{})
+			Expect(errors.IsNotFound(err)).To(BeTrue())
+
+			featureflags.Features.WASMStats = oldWASMflag
+		})
+
+		It("creates a ConfigMap to store WASM when WASM is enabled", func() {
+			oldWASMflag := featureflags.IsWASMStatsEnabled()
+			featureflags.Features.WASMStats = true
+
+			wh := &mutatingWebhook{
+				kubeClient:          fake.NewSimpleClientset(),
+				kubeController:      k8s.NewMockController(gomock.NewController(GinkgoT())),
+				nonInjectNamespaces: mapset.NewSet(),
+				statsWASM:           []byte("something non-nil"),
+			}
+			name := uuid.New().String()
+			namespace := "a"
+			osmNamespace := "b"
+
+			_, err := wh.createEnvoyBootstrapConfig(name, namespace, osmNamespace, cert, healthProbes{})
+			Expect(err).ToNot(HaveOccurred())
+
+			wasmCfg, err := wh.kubeClient.CoreV1().ConfigMaps(namespace).Get(context.Background(), statsWASMConfigMapName, metav1.GetOptions{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(wasmCfg.Data[constants.StatsWASMFilename]).NotTo(BeNil())
+
+			featureflags.Features.WASMStats = oldWASMflag
+		})
+
+		It("updates the ConfigMap storing WASM when it already exists and WASM is enabled", func() {
+			oldWASMflag := featureflags.IsWASMStatsEnabled()
+			featureflags.Features.WASMStats = true
+
+			wh := &mutatingWebhook{
+				kubeClient:          fake.NewSimpleClientset(),
+				kubeController:      k8s.NewMockController(gomock.NewController(GinkgoT())),
+				nonInjectNamespaces: mapset.NewSet(),
+				statsWASM:           []byte("real data"),
+			}
+			name := uuid.New().String()
+			namespace := "a"
+			osmNamespace := "b"
+
+			_, err := wh.kubeClient.CoreV1().ConfigMaps(namespace).Create(context.Background(), &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: statsWASMConfigMapName,
+				},
+				BinaryData: map[string][]byte{
+					constants.StatsWASMFilename: []byte("something else"),
+				},
+			}, metav1.CreateOptions{})
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = wh.createEnvoyBootstrapConfig(name, namespace, osmNamespace, cert, healthProbes{})
+			Expect(err).ToNot(HaveOccurred())
+
+			wasmCfg, err := wh.kubeClient.CoreV1().ConfigMaps(namespace).Get(context.Background(), statsWASMConfigMapName, metav1.GetOptions{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(wasmCfg.BinaryData[constants.StatsWASMFilename]).To(Equal([]byte("real data")))
+
+			featureflags.Features.WASMStats = oldWASMflag
+		})
 	})
 
 	Context("Test getStaticResources()", func() {
@@ -354,6 +437,19 @@ var _ = Describe("Test Envoy sidecar", func() {
 				},
 			}
 			Expect(actual).To(Equal(expected))
+		})
+
+		It("adds a volume mount for WASM when enabled", func() {
+			oldWASMflag := featureflags.IsWASMStatsEnabled()
+			featureflags.Features.WASMStats = true
+
+			mockConfigurator.EXPECT().GetEnvoyLogLevel().Times(1)
+			actual := getEnvoySidecarContainerSpec(pod, envoyImage, mockConfigurator, healthProbes{})
+
+			Expect(actual.VolumeMounts).To(HaveLen(2))
+			Expect(actual.VolumeMounts[1].Name).To(Equal(envoyStatsWASMVolumeName))
+
+			featureflags.Features.WASMStats = oldWASMflag
 		})
 	})
 })

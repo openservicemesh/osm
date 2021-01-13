@@ -137,6 +137,13 @@ const (
 
 	// OSMConfigMap is the name of the OSM ConfigMap
 	OSMConfigMap = "osm-config"
+
+	// StatsWASMLocation is the directory on each pod containing the stats WASM module
+	StatsWASMLocation = "/var/wasm"
+
+	// StatsWASMFilename is the filename of the Envoy stats WASM module. It
+	// resides inside StatsWASMLocation on each pod.
+	StatsWASMFilename = "stats.wasm"
 )
 
 // Annotations used by the controller

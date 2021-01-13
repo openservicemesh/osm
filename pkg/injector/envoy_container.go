@@ -9,11 +9,14 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/featureflags"
 )
 
 const (
 	envoyBootstrapConfigFile = "bootstrap.yaml"
 	envoyProxyConfigPath     = "/etc/envoy"
+
+	envoyStatsWASMVolumeName = "stats-wasm"
 )
 
 func getEnvoySidecarContainerSpec(pod *corev1.Pod, envoyImage string, cfg configurator.Configurator, originalHealthProbes healthProbes) corev1.Container {
@@ -22,7 +25,7 @@ func getEnvoySidecarContainerSpec(pod *corev1.Pod, envoyImage string, cfg config
 	// cluster ID will be used as an identifier to the tracing sink
 	clusterID := fmt.Sprintf("%s.%s", pod.Spec.ServiceAccountName, pod.Namespace)
 
-	return corev1.Container{
+	container := corev1.Container{
 		Name:            constants.EnvoyContainerName,
 		Image:           envoyImage,
 		ImagePullPolicy: corev1.PullAlways,
@@ -81,6 +84,16 @@ func getEnvoySidecarContainerSpec(pod *corev1.Pod, envoyImage string, cfg config
 			},
 		},
 	}
+
+	if featureflags.IsWASMStatsEnabled() {
+		container.VolumeMounts = append(container.VolumeMounts, corev1.VolumeMount{
+			Name:      envoyStatsWASMVolumeName,
+			ReadOnly:  true,
+			MountPath: constants.StatsWASMLocation,
+		})
+	}
+
+	return container
 }
 
 func getEnvoyContainerPorts(originalHealthProbes healthProbes) []corev1.ContainerPort {

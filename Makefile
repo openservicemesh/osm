@@ -144,8 +144,13 @@ docker-build-init:
 docker-build-osm-controller: build-osm-controller
 	docker build -t $(CTR_REGISTRY)/osm-controller:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-controller bin/osm-controller
 
-docker-build-osm-injector: build-osm-injector
+docker-build-osm-injector: build-osm-injector bin/osm-injector/stats.wasm
 	docker build -t $(CTR_REGISTRY)/osm-injector:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-injector bin/osm-injector
+
+bin/osm-injector/stats.wasm: wasm/stats.cc wasm/Makefile
+	docker run -v $(PWD)/wasm:/work -w /work openservicemesh/proxy-wasm-cpp-sdk:956f0d500c380cc1656a2d861b7ee12c2515a664 /build_wasm.sh
+	@mkdir -p bin/osm-injector/
+	@mv wasm/stats.wasm bin/osm-injector
 
 .PHONY: docker-build
 docker-build: $(DOCKER_DEMO_TARGETS) docker-build-init docker-build-osm-controller docker-build-osm-injector

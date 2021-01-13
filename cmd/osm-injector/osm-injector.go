@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
 
 	"github.com/pkg/errors"
@@ -20,6 +21,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/featureflags"
 	"github.com/openservicemesh/osm/pkg/httpserver"
 	"github.com/openservicemesh/osm/pkg/injector"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
@@ -29,6 +31,8 @@ import (
 	"github.com/openservicemesh/osm/pkg/signals"
 	"github.com/openservicemesh/osm/pkg/version"
 )
+
+const statsWASMpath = "stats.wasm"
 
 var (
 	verbosity          string
@@ -157,8 +161,16 @@ func main() {
 			"Error initializing certificate manager of kind %s", certProviderKind)
 	}
 
+	var statsWASM []byte
+	if featureflags.IsWASMStatsEnabled() {
+		statsWASM, err = ioutil.ReadFile(statsWASMpath)
+		if err != nil {
+			events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error reading "+statsWASMpath)
+		}
+	}
+
 	// Initialize the sidecar injector webhook
-	if err := injector.NewMutatingWebhook(injectorConfig, kubeClient, certManager, kubeController, meshName, osmNamespace, webhookConfigName, stop, cfg); err != nil {
+	if err := injector.NewMutatingWebhook(injectorConfig, kubeClient, certManager, kubeController, meshName, osmNamespace, webhookConfigName, stop, cfg, statsWASM); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating sidecar injector webhook")
 	}
 
