@@ -150,14 +150,10 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			}
 			log.Info().Msgf("Received discovery request <%s> for resources (%v) from Envoy <%s> with Nonce=%s", discoveryRequest.TypeUrl, discoveryRequest.ResourceNames, proxy, discoveryRequest.ResponseNonce)
 
-			resp, err := s.newAggregatedDiscoveryResponse(proxy, &discoveryRequest, s.cfg)
+			err := s.sendTypeResponse(typeURL, proxy, &server, &discoveryRequest, s.cfg)
 			if err != nil {
-				log.Error().Err(err).Msgf("Error composing a DiscoveryResponse")
-				continue
-			}
-
-			if err := server.Send(resp); err != nil {
-				log.Error().Err(err).Msgf("Error sending DiscoveryResponse")
+				log.Error().Err(err).Msgf("Failed to create and send %s update to Proxy %s",
+					envoy.XDSShortURINames[typeURL], proxy.GetCommonName())
 			}
 
 		case <-broadcastUpdate:

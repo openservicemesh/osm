@@ -30,6 +30,15 @@ var ValidURI = map[string]TypeURI{
 	string(TypeZipkinConfig):       TypeZipkinConfig,
 }
 
+// XDSShortURINames are shortened versions of the URI types
+var XDSShortURINames = map[TypeURI]string{
+	TypeSDS: "SDS",
+	TypeCDS: "CDS",
+	TypeLDS: "LDS",
+	TypeRDS: "RDS",
+	TypeEDS: "EDS",
+}
+
 const (
 	// TypeSDS is the SDS type URI.
 	TypeSDS TypeURI = "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret"

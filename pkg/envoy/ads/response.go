@@ -1,9 +1,7 @@
 package ads
 
 import (
-	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
@@ -13,17 +11,48 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy"
 )
 
+const (
+	// ADSUpdateStr is a constant string value to identify full XDS update times on metric labels
+	ADSUpdateStr = "ADS"
+)
+
+// Wrapper to create and send a discovert response to an envoy server
+func (s *Server) sendTypeResponse(tURI envoy.TypeURI,
+	proxy *envoy.Proxy, server *xds_discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer,
+	req *xds_discovery.DiscoveryRequest, cfg configurator.Configurator) error {
+	// Tracks the success of this TypeURI response operation; accounts also for receipt on envoy server side
+	success := false
+	defer xdsPathTimeTrack(time.Now(), tURI.String(), proxy.GetCommonName().String(), &success)
+
+	xdsShortName := envoy.XDSShortURINames[tURI]
+	log.Trace().Msgf("[%s] Creating response for proxy with CN=%s", xdsShortName, proxy.GetCommonName())
+
+	discoveryResponse, err := s.newAggregatedDiscoveryResponse(proxy, req, cfg)
+	if err != nil {
+		log.Error().Err(err).Msgf("[%s] Failed to create response for proxy with CN=%s", xdsShortName, proxy.GetCommonName())
+		return err
+	}
+
+	if err := (*server).Send(discoveryResponse); err != nil {
+		log.Error().Err(err).Msgf("[%s] Error sending to proxy with CN=%s", xdsShortName, proxy.GetCommonName())
+		return err
+	}
+
+	success = true // read by deferred function
+	return nil
+}
+
 func (s *Server) sendAllResponses(proxy *envoy.Proxy, server *xds_discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer, cfg configurator.Configurator) {
 	log.Trace().Msgf("A change announcement triggered *DS update for proxy with CN=%s", proxy.GetCommonName())
-	fullUpdateStartTime := time.Now()
+
+	// Tracks the success of this full update of all its XDS paths. If a single XDS response path fails for this full update,
+	// the full updated will be considered as failed for metric purposes (success = false)
+	success := true
+	defer xdsPathTimeTrack(time.Now(), ADSUpdateStr, proxy.GetCommonName().String(), &success)
 
 	// Order is important: CDS, EDS, LDS, RDS
 	// See: https://github.com/envoyproxy/go-control-plane/issues/59
-	for idx, typeURI := range envoy.XDSResponseOrder {
-		prefix := fmt.Sprintf("[*DS %d/%d]", idx+1, len(envoy.XDSResponseOrder))
-		log.Trace().Msgf("%s Creating %s response for proxy with CN=%s", prefix, typeURI, proxy.GetCommonName())
-		updateStartTime := time.Now()
-
+	for _, typeURI := range envoy.XDSResponseOrder {
 		// For SDS we need to add ResourceNames
 		var request *xds_discovery.DiscoveryRequest
 		if typeURI == envoy.TypeSDS {
@@ -35,22 +64,13 @@ func (s *Server) sendAllResponses(proxy *envoy.Proxy, server *xds_discovery.Aggr
 			request = &xds_discovery.DiscoveryRequest{TypeUrl: string(typeURI)}
 		}
 
-		discoveryResponse, err := s.newAggregatedDiscoveryResponse(proxy, request, cfg)
+		err := s.sendTypeResponse(typeURI, proxy, server, request, cfg)
 		if err != nil {
-			log.Error().Err(err).Msgf("%s Failed to create %s discovery response for proxy with CN=%s", prefix, typeURI, proxy.GetCommonName())
-		} else {
-			if err := (*server).Send(discoveryResponse); err != nil {
-				log.Error().Err(err).Msgf("%s Error sending %s to proxy with CN=%s", prefix, typeURI, proxy.GetCommonName())
-			}
+			log.Error().Err(err).Msgf("Failed to create and send %s update to Proxy %s",
+				envoy.XDSShortURINames[typeURI], proxy.GetCommonName())
+			success = false
 		}
-		log.Debug().Msgf("%s (%s) proxy %s took %s",
-			prefix,
-			typeURI.String()[strings.LastIndex(typeURI.String(), ".")+1:], // Last word of typeUri
-			proxy.GetCommonName(),
-			time.Since(updateStartTime))
 	}
-
-	log.Info().Msgf("Full update for %s took %s", proxy.GetCommonName(), time.Since(fullUpdateStartTime))
 }
 
 // makeRequestForAllSecrets constructs an SDS request AS IF an Envoy proxy sent it.
