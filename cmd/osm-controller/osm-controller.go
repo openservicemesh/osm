@@ -100,6 +100,9 @@ func init() {
 	flags.StringVar(&certManagerOptions.IssuerKind, "cert-manager-issuer-kind", "Issuer", "cert-manager issuer kind")
 	flags.StringVar(&certManagerOptions.IssuerGroup, "cert-manager-issuer-group", "cert-manager.io", "cert-manager issuer group")
 
+	// feature flags
+	flags.BoolVar(&optionalFeatures.WASMStats, "stats-wasm-experimental", false, "Enable a WebAssembly module that generates additional Envoy statistics.")
+
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = v1beta1.AddToScheme(scheme)
 }
