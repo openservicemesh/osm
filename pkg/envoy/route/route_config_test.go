@@ -8,6 +8,8 @@ import (
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	tassert "github.com/stretchr/testify/assert"
 
+	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/featureflags"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -83,8 +85,38 @@ func TestBuildRouteConfiguration(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := BuildRouteConfiguration(tc.inbound, tc.outbound)
+			actual := BuildRouteConfiguration(tc.inbound, tc.outbound, nil)
 			assert.Equal(tc.expectedRouteConfigLen, len(actual))
+		})
+	}
+
+	statsWASMTestCases := []struct {
+		name                      string
+		wasmEnabled               bool
+		expectedResponseHeaderLen int
+	}{
+		{
+			name:                      "response headers added when WASM enabled",
+			wasmEnabled:               true,
+			expectedResponseHeaderLen: len((&envoy.Proxy{}).StatsHeaders()),
+		},
+		{
+			name:                      "response headers not added when WASM disabled",
+			wasmEnabled:               false,
+			expectedResponseHeaderLen: 0,
+		},
+	}
+
+	for _, tc := range statsWASMTestCases {
+		t.Run(tc.name, func(t *testing.T) {
+			oldWASMflag := featureflags.IsWASMStatsEnabled()
+			featureflags.Features.WASMStats = tc.wasmEnabled
+
+			actual := BuildRouteConfiguration([]*trafficpolicy.InboundTrafficPolicy{testInbound}, nil, &envoy.Proxy{})
+			tassert.Len(t, actual, 1)
+			tassert.Len(t, actual[0].ResponseHeadersToAdd, tc.expectedResponseHeaderLen)
+
+			featureflags.Features.WASMStats = oldWASMflag
 		})
 	}
 }

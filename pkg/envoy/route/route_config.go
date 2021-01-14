@@ -5,18 +5,20 @@ import (
 	"sort"
 
 	set "github.com/deckarep/golang-set"
+	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	xds_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"github.com/golang/protobuf/ptypes/wrappers"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/featureflags"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
 // BuildRouteConfiguration constructs the Envoy constructs ([]*xds_route.RouteConfiguration) for implementing inbound and outbound routes
-func BuildRouteConfiguration(inbound []*trafficpolicy.InboundTrafficPolicy, outbound []*trafficpolicy.OutboundTrafficPolicy) []*xds_route.RouteConfiguration {
+func BuildRouteConfiguration(inbound []*trafficpolicy.InboundTrafficPolicy, outbound []*trafficpolicy.OutboundTrafficPolicy, proxy *envoy.Proxy) []*xds_route.RouteConfiguration {
 	routeConfiguration := []*xds_route.RouteConfiguration{}
 
 	if len(inbound) > 0 {
@@ -25,6 +27,17 @@ func BuildRouteConfiguration(inbound []*trafficpolicy.InboundTrafficPolicy, outb
 			virtualHost := buildVirtualHostStub(inboundVirtualHost, in.Name, in.Hostnames)
 			virtualHost.Routes = buildInboundRoutes(in.Rules)
 			inboundRouteConfig.VirtualHosts = append(inboundRouteConfig.VirtualHosts, virtualHost)
+		}
+
+		if featureflags.IsWASMStatsEnabled() {
+			for k, v := range proxy.StatsHeaders() {
+				inboundRouteConfig.ResponseHeadersToAdd = append(inboundRouteConfig.ResponseHeadersToAdd, &core.HeaderValueOption{
+					Header: &core.HeaderValue{
+						Key:   k,
+						Value: v,
+					},
+				})
+			}
 		}
 
 		routeConfiguration = append(routeConfiguration, inboundRouteConfig)
