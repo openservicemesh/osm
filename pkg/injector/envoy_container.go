@@ -22,6 +22,16 @@ func getEnvoySidecarContainerSpec(pod *corev1.Pod, envoyImage string, cfg config
 	// cluster ID will be used as an identifier to the tracing sink
 	clusterID := fmt.Sprintf("%s.%s", pod.Spec.ServiceAccountName, pod.Namespace)
 
+	var workloadKind string
+	var workloadName string
+	for _, ref := range pod.GetOwnerReferences() {
+		if ref.Controller != nil && *ref.Controller {
+			workloadKind = ref.Kind
+			workloadName = ref.Name
+			break
+		}
+	}
+
 	return corev1.Container{
 		Name:            constants.EnvoyContainerName,
 		Image:           envoyImage,
@@ -42,7 +52,7 @@ func getEnvoySidecarContainerSpec(pod *corev1.Pod, envoyImage string, cfg config
 		Args: []string{
 			"--log-level", cfg.GetEnvoyLogLevel(),
 			"--config-path", strings.Join([]string{envoyProxyConfigPath, envoyBootstrapConfigFile}, "/"),
-			"--service-node", envoy.GetEnvoyServiceNodeID(nodeID),
+			"--service-node", envoy.GetEnvoyServiceNodeID(nodeID, workloadKind, workloadName),
 			"--service-cluster", clusterID,
 			"--bootstrap-version 3",
 		},
@@ -52,6 +62,14 @@ func getEnvoySidecarContainerSpec(pod *corev1.Pod, envoyImage string, cfg config
 				ValueFrom: &corev1.EnvVarSource{
 					FieldRef: &corev1.ObjectFieldSelector{
 						FieldPath: "metadata.uid",
+					},
+				},
+			},
+			{
+				Name: "POD_NAME",
+				ValueFrom: &corev1.EnvVarSource{
+					FieldRef: &corev1.ObjectFieldSelector{
+						FieldPath: "metadata.name",
 					},
 				},
 			},

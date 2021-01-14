@@ -239,9 +239,21 @@ static_resources:
 })
 
 var _ = Describe("Test Envoy sidecar", func() {
+	isTrue := true
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "namespace",
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					Name: "not-me",
+					Kind: "still not me",
+				},
+				{
+					Name:       "workload-name",
+					Kind:       "workload-kind",
+					Controller: &isTrue,
+				},
+			},
 		},
 		Spec: corev1.PodSpec{
 			ServiceAccountName: "svcacc",
@@ -294,7 +306,7 @@ var _ = Describe("Test Envoy sidecar", func() {
 				Args: []string{
 					"--log-level", "debug",
 					"--config-path", "/etc/envoy/bootstrap.yaml",
-					"--service-node", "$(POD_UID)/$(POD_NAMESPACE)/$(POD_IP)/$(SERVICE_ACCOUNT)/svcacc",
+					"--service-node", "$(POD_UID)/$(POD_NAMESPACE)/$(POD_IP)/$(SERVICE_ACCOUNT)/svcacc/$(POD_NAME)/workload-kind/workload-name",
 					"--service-cluster", "svcacc.namespace",
 					"--bootstrap-version 3",
 				},
@@ -306,6 +318,19 @@ var _ = Describe("Test Envoy sidecar", func() {
 							FieldRef: &corev1.ObjectFieldSelector{
 								APIVersion: "",
 								FieldPath:  "metadata.uid",
+							},
+							ResourceFieldRef: nil,
+							ConfigMapKeyRef:  nil,
+							SecretKeyRef:     nil,
+						},
+					},
+					{
+						Name:  "POD_NAME",
+						Value: "",
+						ValueFrom: &corev1.EnvVarSource{
+							FieldRef: &corev1.ObjectFieldSelector{
+								APIVersion: "",
+								FieldPath:  "metadata.name",
 							},
 							ResourceFieldRef: nil,
 							ConfigMapKeyRef:  nil,
