@@ -123,7 +123,7 @@ func init() {
 		Namespace: metricsRootNamespace,
 		Subsystem: "cert",
 		Name:      "xds_issued_count",
-		Help:      "Counts the number xds certificates issued to the proxies",
+		Help:      "represents the total number of XDS certificates issued to proxies",
 	})
 
 	defaultMetricsStore.registry = prometheus.NewRegistry()
