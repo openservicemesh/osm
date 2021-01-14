@@ -10,8 +10,6 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/kubernetes"
-	"github.com/openservicemesh/osm/pkg/service"
 )
 
 const (
@@ -35,11 +33,6 @@ func (lb *listenerBuilder) newOutboundListener() (*xds_listener.Listener, error)
 				// The OriginalDestination ListenerFilter is used to redirect traffic
 				// to its original destination.
 				Name: wellknown.OriginalDestination,
-			},
-			{
-				// The HttpInspector ListenerFilter is used to inspect plaintext traffic
-				// for HTTP protocols.
-				Name: wellknown.HttpInspector,
 			},
 		},
 	}
@@ -133,59 +126,4 @@ func buildEgressFilterChain() (*xds_listener.FilterChain, error) {
 			},
 		},
 	}, nil
-}
-
-// getOutboundFilterChainPerUpstream returns a list of filter chains corresponding to upstream services
-func (lb *listenerBuilder) getOutboundFilterChainPerUpstream() []*xds_listener.FilterChain {
-	var filterChains []*xds_listener.FilterChain
-
-	outboundSvc := lb.meshCatalog.ListAllowedOutboundServicesForIdentity(lb.svcAccount)
-	if len(outboundSvc) == 0 {
-		log.Debug().Msgf("Proxy with identity %s does not have any allowed upstream services", lb.svcAccount)
-		return filterChains
-	}
-
-	var dstServicesSet map[service.MeshService]struct{} = make(map[service.MeshService]struct{}) // Set, avoid duplicates
-	// Transform into set, when listing apex services we might face repetitions
-	for _, meshSvc := range outboundSvc {
-		dstServicesSet[meshSvc] = struct{}{}
-	}
-
-	// Getting apex services referring to the outbound services
-	// We get possible apexes which could traffic split to any of the possible
-	// outbound services
-	splitServices := lb.meshCatalog.GetSMISpec().ListTrafficSplitServices()
-	for _, svc := range splitServices {
-		for _, outSvc := range outboundSvc {
-			if svc.Service == outSvc {
-				rootServiceName := kubernetes.GetServiceFromHostname(svc.RootService)
-				rootMeshService := service.MeshService{
-					Namespace: outSvc.Namespace,
-					Name:      rootServiceName,
-				}
-
-				// Add this root service into the set
-				dstServicesSet[rootMeshService] = struct{}{}
-			}
-		}
-	}
-
-	// Iterate all destination services
-	for upstream := range dstServicesSet {
-		// Construct HTTP filter chain
-		if httpFilterChain, err := lb.getOutboundHTTPFilterChainForService(upstream); err != nil {
-			log.Error().Err(err).Msgf("Error constructing outbound HTTP filter chain for upstream service %s on proxy with identity %s", upstream, lb.svcAccount)
-		} else {
-			filterChains = append(filterChains, httpFilterChain)
-		}
-
-		// Construct TCP filter chain
-		if tcpFilterChain, err := lb.getOutboundTCPFilterChainForService(upstream); err != nil {
-			log.Error().Err(err).Msgf("Error constructing outbound TCP filter chain for upstream service %s on proxy with identity %s", upstream, lb.svcAccount)
-		} else {
-			filterChains = append(filterChains, tcpFilterChain)
-		}
-	}
-
-	return filterChains
 }

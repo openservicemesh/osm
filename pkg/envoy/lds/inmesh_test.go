@@ -40,9 +40,11 @@ func TestGetOutboundHTTPFilterChainForService(t *testing.T) {
 	}
 
 	testCases := []struct {
-		name              string
-		expectedEndpoints []endpoint.Endpoint
-		expectError       bool
+		name                     string
+		expectedEndpoints        []endpoint.Endpoint
+		servicePort              uint32
+		expectedFilterChainMatch *xds_listener.FilterChainMatch
+		expectError              bool
 	}{
 		{
 			name: "service with multiple endpoints",
@@ -50,19 +52,40 @@ func TestGetOutboundHTTPFilterChainForService(t *testing.T) {
 				{IP: net.ParseIP("1.1.1.1"), Port: 80},
 				{IP: net.ParseIP("2.2.2.2"), Port: 80},
 			},
+			servicePort: 80, // this can be different from the target port in the endpoints
+			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
+				DestinationPort: &wrapperspb.UInt32Value{Value: 80}, // same as 'servicePort'
+				PrefixRanges: []*xds_core.CidrRange{
+					// The order is guaranteed to be sorted
+					{
+						AddressPrefix: "1.1.1.1",
+						PrefixLen: &wrapperspb.UInt32Value{
+							Value: 32,
+						},
+					},
+					{
+						AddressPrefix: "2.2.2.2",
+						PrefixLen: &wrapperspb.UInt32Value{
+							Value: 32,
+						},
+					},
+				},
+			},
 			expectError: false,
 		},
 		{
-			name:              "service with no endpoints",
-			expectedEndpoints: []endpoint.Endpoint{},
-			expectError:       true,
+			name:                     "service with no endpoints",
+			expectedEndpoints:        []endpoint.Endpoint{},
+			servicePort:              80,
+			expectedFilterChainMatch: nil,
+			expectError:              true,
 		},
 	}
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
 			mockCatalog.EXPECT().GetResolvableServiceEndpoints(tests.BookstoreApexService).Return(tc.expectedEndpoints, nil)
-			httpFilterChain, err := lb.getOutboundHTTPFilterChainForService(tests.BookstoreApexService)
+			httpFilterChain, err := lb.getOutboundHTTPFilterChainForService(tests.BookstoreApexService, tc.servicePort)
 
 			assert.Equal(err != nil, tc.expectError)
 
@@ -269,7 +292,7 @@ func TestGetOutboundFilterChainMatchForService(t *testing.T) {
 	testCases := []struct {
 		name        string
 		endpoints   []endpoint.Endpoint
-		appProtocol string
+		servicePort uint32
 
 		expectedFilterChainMatch *xds_listener.FilterChainMatch
 		expectError              bool
@@ -285,11 +308,9 @@ func TestGetOutboundFilterChainMatchForService(t *testing.T) {
 					IP: net.IPv4(192, 168, 20, 2),
 				},
 			},
-			appProtocol: httpAppProtocol,
+			servicePort: 80,
 			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
-				// HTTP filter chain should only match on supported HTTP protocols that the downstream can use
-				// to originate a request.
-				ApplicationProtocols: []string{"http/1.0", "http/1.1", "h2c"},
+				DestinationPort: &wrapperspb.UInt32Value{Value: 80}, // same as 'servicePort'
 				PrefixRanges: []*xds_core.CidrRange{
 					{
 						AddressPrefix: "192.168.10.1",
@@ -312,7 +333,7 @@ func TestGetOutboundFilterChainMatchForService(t *testing.T) {
 			// test case 2
 			name:                     "outbound HTTP filter chain for service without endpoints",
 			endpoints:                []endpoint.Endpoint{},
-			appProtocol:              httpAppProtocol,
+			servicePort:              80,
 			expectedFilterChainMatch: nil,
 			expectError:              true,
 		},
@@ -328,8 +349,9 @@ func TestGetOutboundFilterChainMatchForService(t *testing.T) {
 					IP: net.IPv4(192, 168, 20, 2),
 				},
 			},
-			appProtocol: tcpAppProtocol,
+			servicePort: 90,
 			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
+				DestinationPort: &wrapperspb.UInt32Value{Value: 90}, // same as 'servicePort'
 				PrefixRanges: []*xds_core.CidrRange{
 					{
 						AddressPrefix: "192.168.10.1",
@@ -352,7 +374,7 @@ func TestGetOutboundFilterChainMatchForService(t *testing.T) {
 			// test case 4
 			name:                     "outbound TCP filter chain for service without endpoints",
 			endpoints:                []endpoint.Endpoint{},
-			appProtocol:              httpAppProtocol,
+			servicePort:              80,
 			expectedFilterChainMatch: nil,
 			expectError:              true,
 		},
@@ -370,8 +392,9 @@ func TestGetOutboundFilterChainMatchForService(t *testing.T) {
 					Port: 8090,
 				},
 			},
-			appProtocol: tcpAppProtocol,
+			servicePort: 80,
 			expectedFilterChainMatch: &xds_listener.FilterChainMatch{
+				DestinationPort: &wrapperspb.UInt32Value{Value: 80}, // same as 'servicePort'
 				PrefixRanges: []*xds_core.CidrRange{
 					{
 						AddressPrefix: "192.168.10.1",
@@ -390,7 +413,7 @@ func TestGetOutboundFilterChainMatchForService(t *testing.T) {
 			// mock endpoints returned
 			mockCatalog.EXPECT().GetResolvableServiceEndpoints(tests.BookstoreApexService).Return(tc.endpoints, nil)
 
-			filterChainMatch, err := lb.getOutboundFilterChainMatchForService(tests.BookstoreApexService, tc.appProtocol)
+			filterChainMatch, err := lb.getOutboundFilterChainMatchForService(tests.BookstoreApexService, tc.servicePort)
 			assert.Equal(tc.expectError, err != nil)
 			assert.Equal(tc.expectedFilterChainMatch, filterChainMatch)
 		})
