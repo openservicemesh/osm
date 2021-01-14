@@ -16,6 +16,9 @@ spec:
     metadata:
       labels:
         app: osm-controller
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '9091'
     spec:
       serviceAccountName: {{ .Release.Name }}
       containers:
@@ -27,6 +30,8 @@ spec:
               containerPort: 15000
             - name: "osm-port"
               containerPort: 15128
+            - name: "metrics"
+              containerPort: 9091
           command: ['/osm-controller']
           args: [
             "--verbosity", "{{.Values.OpenServiceMesh.controllerLogLevel}}",

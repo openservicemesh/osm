@@ -10,8 +10,6 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/kubernetes"
-	"github.com/openservicemesh/osm/pkg/service"
 )
 
 const (
@@ -23,18 +21,9 @@ const (
 )
 
 func (lb *listenerBuilder) newOutboundListener() (*xds_listener.Listener, error) {
-	serviceFilterChains, err := lb.getOutboundFilterChains()
-	if err != nil {
-		log.Error().Err(err).Msgf("Error getting filter chains for outbound listener")
-		return nil, err
-	}
+	serviceFilterChains := lb.getOutboundFilterChainPerUpstream()
 
-	if len(serviceFilterChains) == 0 {
-		log.Info().Msgf("No filterchains for outbound services. Not programming Outbound listener.")
-		return nil, nil
-	}
-
-	return &xds_listener.Listener{
+	listener := &xds_listener.Listener{
 		Name:             outboundListenerName,
 		Address:          envoy.GetAddress(constants.WildcardIPAddr, constants.EnvoyOutboundListenerPort),
 		TrafficDirection: xds_core.TrafficDirection_OUTBOUND,
@@ -45,13 +34,30 @@ func (lb *listenerBuilder) newOutboundListener() (*xds_listener.Listener, error)
 				// to its original destination.
 				Name: wellknown.OriginalDestination,
 			},
-			{
-				// The HttpInspector ListenerFilter is used to inspect plaintext traffic
-				// for HTTP protocols.
-				Name: wellknown.HttpInspector,
-			},
 		},
-	}, nil
+	}
+
+	// Create filter chain for egress if egress is enabled
+	// This filterchain matches any traffic not filtered by allow rules, it will be treated as egress
+	// traffic when enabled
+	if lb.cfg.IsEgressEnabled() {
+		egressFilterChgain, err := buildEgressFilterChain()
+		if err != nil {
+			log.Error().Err(err).Msgf("Error getting filter chain for Egress")
+			return nil, err
+		}
+		listener.DefaultFilterChain = egressFilterChgain
+	}
+
+	if len(listener.FilterChains) == 0 && listener.DefaultFilterChain == nil {
+		// Programming a listener with no filter chains is an error.
+		// It is possible for the outbound listener to have no filter chains if
+		// there are no allowed upstreams for this proxy and egress is disabled.
+		// In this case, return a nil filter chain so that it doesn't get programmed.
+		return nil, nil
+	}
+
+	return listener, nil
 }
 
 func newInboundListener() *xds_listener.Listener {
@@ -120,79 +126,4 @@ func buildEgressFilterChain() (*xds_listener.FilterChain, error) {
 			},
 		},
 	}, nil
-}
-
-func (lb *listenerBuilder) getOutboundFilterChains() ([]*xds_listener.FilterChain, error) {
-	// Create filter chain for upstream services
-	filterChains := lb.getOutboundFilterChainPerUpstream()
-
-	// Create filter chain for egress if egress is enabled
-	// This filterchain matches any traffic not filtered by allow rules, it will be treated as egress
-	// traffic when enabled
-	if lb.cfg.IsEgressEnabled() {
-		egressFilterChgain, err := buildEgressFilterChain()
-		if err != nil {
-			log.Error().Err(err).Msgf("Error getting filter chain for Egress")
-			return nil, err
-		}
-
-		filterChains = append(filterChains, egressFilterChgain)
-	}
-
-	return filterChains, nil
-}
-
-// getOutboundFilterChainPerUpstream returns a list of filter chains corresponding to upstream services
-func (lb *listenerBuilder) getOutboundFilterChainPerUpstream() []*xds_listener.FilterChain {
-	var filterChains []*xds_listener.FilterChain
-
-	outboundSvc := lb.meshCatalog.ListAllowedOutboundServicesForIdentity(lb.svcAccount)
-	if len(outboundSvc) == 0 {
-		log.Debug().Msgf("Proxy with identity %s does not have any allowed upstream services", lb.svcAccount)
-		return filterChains
-	}
-
-	var dstServicesSet map[service.MeshService]struct{} = make(map[service.MeshService]struct{}) // Set, avoid duplicates
-	// Transform into set, when listing apex services we might face repetitions
-	for _, meshSvc := range outboundSvc {
-		dstServicesSet[meshSvc] = struct{}{}
-	}
-
-	// Getting apex services referring to the outbound services
-	// We get possible apexes which could traffic split to any of the possible
-	// outbound services
-	splitServices := lb.meshCatalog.GetSMISpec().ListTrafficSplitServices()
-	for _, svc := range splitServices {
-		for _, outSvc := range outboundSvc {
-			if svc.Service == outSvc {
-				rootServiceName := kubernetes.GetServiceFromHostname(svc.RootService)
-				rootMeshService := service.MeshService{
-					Namespace: outSvc.Namespace,
-					Name:      rootServiceName,
-				}
-
-				// Add this root service into the set
-				dstServicesSet[rootMeshService] = struct{}{}
-			}
-		}
-	}
-
-	// Iterate all destination services
-	for upstream := range dstServicesSet {
-		// Construct HTTP filter chain
-		if httpFilterChain, err := lb.getOutboundHTTPFilterChainForService(upstream); err != nil {
-			log.Error().Err(err).Msgf("Error constructing outbound HTTP filter chain for upstream service %s on proxy with identity %s", upstream, lb.svcAccount)
-		} else {
-			filterChains = append(filterChains, httpFilterChain)
-		}
-
-		// Construct TCP filter chain
-		if tcpFilterChain, err := lb.getOutboundTCPFilterChainForService(upstream); err != nil {
-			log.Error().Err(err).Msgf("Error constructing outbound TCP filter chain for upstream service %s on proxy with identity %s", upstream, lb.svcAccount)
-		} else {
-			filterChains = append(filterChains, tcpFilterChain)
-		}
-	}
-
-	return filterChains
 }

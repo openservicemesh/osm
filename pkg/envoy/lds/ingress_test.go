@@ -98,7 +98,7 @@ func TestGetIngressFilterChains(t *testing.T) {
 			}
 
 			// Mock catalog call to get port:protocol mapping for service
-			mockCatalog.EXPECT().GetPortToProtocolMappingForService(proxyService).Return(tc.svcPortToProtocolMap, tc.portToProtocolErr).Times(1)
+			mockCatalog.EXPECT().GetTargetPortToProtocolMappingForService(proxyService).Return(tc.svcPortToProtocolMap, tc.portToProtocolErr).Times(1)
 			// Mock configurator calls to determine HTTP vs HTTPS ingress
 			mockConfigurator.EXPECT().UseHTTPSIngress().Return(tc.httpsIngress).AnyTimes()
 			// Mock calls used to build the HTTP connection manager

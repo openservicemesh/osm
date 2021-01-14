@@ -196,7 +196,7 @@ var _ = Describe("Test Kube Client Provider (w/o kubecontroller)", func() {
 			},
 		}, nil)
 
-		portToProtocolMap, err := provider.GetPortToProtocolMappingForService(tests.BookbuyerService)
+		portToProtocolMap, err := provider.GetTargetPortToProtocolMappingForService(tests.BookbuyerService)
 		Expect(err).To(BeNil())
 
 		expectedPortToProtocolMap := map[uint32]string{88: appProtoTCP, 80: appProtoHTTP}

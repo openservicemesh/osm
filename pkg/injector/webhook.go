@@ -12,7 +12,6 @@ import (
 	mapset "github.com/deckarep/golang-set"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
-	"github.com/rs/zerolog"
 	"k8s.io/api/admission/v1beta1"
 	admissionv1beta1 "k8s.io/api/admissionregistration/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -160,16 +159,15 @@ func (wh *mutatingWebhook) getAdmissionReqResp(proxyUUID uuid.UUID, admissionReq
 func (wh *mutatingWebhook) podCreationHandler(w http.ResponseWriter, req *http.Request) {
 	log.Trace().Msgf("Received mutating webhook request: Method=%v, URL=%v", req.Method, req.URL)
 
-	// For debug/profiling purposes
-	if log.GetLevel() == zerolog.DebugLevel {
-		// Read timeout from request
-		reqTimeout, err := readTimeout(req)
-		if err != nil {
-			log.Error().Msgf("Could not read timeout from request url: %v", err)
-		} else {
-			defer webhookTimeTrack(time.Now(), *reqTimeout)
-		}
+	// Tracks the success of the current injector webhook request
+	success := false
+	// Read timeout from request url
+	reqTimeout, err := readTimeout(req)
+	if err != nil {
+		log.Error().Msgf("Could not read timeout from request url: %v", err)
 	}
+	// Execute at return of this handler
+	defer webhookTimeTrack(time.Now(), reqTimeout, &success)
 
 	if contentType := req.Header.Get(httpHeaderContentType); contentType != contentTypeJSON {
 		err := errors.Errorf("Invalid content type %s; Expected %s", contentType, contentTypeJSON)
@@ -200,6 +198,8 @@ func (wh *mutatingWebhook) podCreationHandler(w http.ResponseWriter, req *http.R
 
 	if _, err := w.Write(resp); err != nil {
 		log.Error().Err(err).Msgf("Error writing admission response for pod with UUID %s in namespace %s", proxyUUID, requestForNamespace)
+	} else {
+		success = true // read by the deferred function
 	}
 
 	log.Trace().Msgf("Done responding to admission request for pod with UUID %s in namespace %s", proxyUUID, requestForNamespace)

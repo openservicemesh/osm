@@ -6,9 +6,9 @@ OpenServiceMesh:
   image:
     registry: openservicemesh
     pullPolicy: IfNotPresent
-    tag: v0.6.0
+    tag: v0.6.1
   imagePullSecrets: []
-  sidecarImage: envoyproxy/envoy-alpine:v1.15.0
+  sidecarImage: envoyproxy/envoy-alpine:v1.17.0
   prometheus:
     port: 7070
     retention:
@@ -57,13 +57,13 @@ OpenServiceMesh:
   enforceSingleMesh: false
   webhookConfigNamePrefix: osm-webhook
 
-  # Optional parameter. If not specified, the release namespace is 
+  # Optional parameter. If not specified, the release namespace is
   # used to deploy the osm components.
   osmNamespace: ""
 
   # Set deployJaeger to true to deploy a Jaeger cluster in the
   # namespace where OSM resides.
-  deployJaeger: true
+  deployJaeger: false
 
   # The following section configures a destination where to send
   # tracing data. Current implementation supports only Zipkin format

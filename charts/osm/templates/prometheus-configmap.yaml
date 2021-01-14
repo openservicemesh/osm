@@ -25,8 +25,8 @@ data:
         bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
         metric_relabel_configs:
         - source_labels: [__name__]
-          regex: .*bucket.*
-          action: drop   
+          regex: '(apiserver_watch_events_total|apiserver_admission_webhook_rejection_count)'
+          action: keep   
         relabel_configs: 
         - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
           action: keep
@@ -54,8 +54,8 @@ data:
         - role: pod
         metric_relabel_configs:
         - source_labels: [__name__]
-          regex: .*bucket.*
-          action: drop   
+          regex: '(envoy_server_live|envoy_cluster_upstream_rq_xx|envoy_cluster_upstream_cx_active|envoy_cluster_upstream_cx_tx_bytes_total|envoy_cluster_upstream_cx_rx_bytes_total|envoy_cluster_upstream_cx_destroy_remote_with_active_rq|envoy_cluster_upstream_cx_connect_timeout|envoy_cluster_upstream_cx_destroy_local_with_active_rq|envoy_cluster_upstream_rq_pending_failure_eject|envoy_cluster_upstream_rq_pending_overflow|envoy_cluster_upstream_rq_timeout|envoy_cluster_upstream_rq_rx_reset|^osm.*)'
+          action: keep
         relabel_configs: 
         - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
           action: keep
@@ -118,6 +118,10 @@ data:
         bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
         kubernetes_sd_configs:
         - role: node
+        metric_relabel_configs:
+        - source_labels: [__name__]
+          regex: '(container_cpu_usage_seconds_total|container_memory_rss)'
+          action: keep   
         relabel_configs:
         - action: labelmap
           regex: __meta_kubernetes_node_label_(.+)
@@ -128,32 +132,33 @@ data:
           target_label: __metrics_path__
           replacement: /api/v1/nodes/${1}/proxy/metrics/cadvisor
 
-      - job_name: 'kubernetes-service-endpoints'
-        kubernetes_sd_configs:
-        - role: endpoints
-        relabel_configs:
-        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
-          action: keep
-          regex: true
-        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scheme]
-          action: replace
-          target_label: __scheme__
-          regex: (https?)
-        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]
-          action: replace
-          target_label: __metrics_path__
-          regex: (.+)
-        - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_port]
-          action: replace
-          target_label: __address__
-          regex: ([^:]+)(?::\d+)?;(\d+)
-          replacement: $1:$2
-        - action: labelmap
-          regex: __meta_kubernetes_service_label_(.+)
-        - source_labels: [__meta_kubernetes_namespace]
-          action: replace
-          target_label: kubernetes_namespace
-        - source_labels: [__meta_kubernetes_service_name]
-          action: replace
-          target_label: kubernetes_name
+      # We are currently not using any metrics from these endpoints. Disabling for the time being.
+      # - job_name: 'kubernetes-service-endpoints'
+      #   kubernetes_sd_configs:
+      #   - role: endpoints
+      #   relabel_configs:
+      #   - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+      #     action: keep
+      #     regex: true
+      #   - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scheme]
+      #     action: replace
+      #     target_label: __scheme__
+      #     regex: (https?)
+      #   - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]
+      #     action: replace
+      #     target_label: __metrics_path__
+      #     regex: (.+)
+      #   - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_port]
+      #     action: replace
+      #     target_label: __address__
+      #     regex: ([^:]+)(?::\d+)?;(\d+)
+      #     replacement: $1:$2
+      #   - action: labelmap
+      #     regex: __meta_kubernetes_service_label_(.+)
+      #   - source_labels: [__meta_kubernetes_namespace]
+      #     action: replace
+      #     target_label: kubernetes_namespace
+      #   - source_labels: [__meta_kubernetes_service_name]
+      #     action: replace
+      #     target_label: kubernetes_name
 {{- end }}

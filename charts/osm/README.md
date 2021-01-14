@@ -1,6 +1,6 @@
 # osm
 
-![Version: 0.6.0](https://img.shields.io/badge/Version-0.6.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v0.6.0](https://img.shields.io/badge/AppVersion-v0.6.0-informational?style=flat-square)
+![Version: 0.6.1](https://img.shields.io/badge/Version-0.6.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v0.6.1](https://img.shields.io/badge/AppVersion-v0.6.1-informational?style=flat-square)
 
 A Helm chart to install the OSM control plane on Kubernetes
 
@@ -16,7 +16,7 @@ A Helm chart to install the OSM control plane on Kubernetes
 | OpenServiceMesh.connectVault | bool | `true` |  |
 | OpenServiceMesh.controllerLogLevel | string | `"trace"` |  |
 | OpenServiceMesh.deployGrafana | bool | `false` |  |
-| OpenServiceMesh.deployJaeger | bool | `true` |  |
+| OpenServiceMesh.deployJaeger | bool | `false` |  |
 | OpenServiceMesh.deployPrometheus | bool | `false` |  |
 | OpenServiceMesh.enableBackpressureExperimental | bool | `false` |  |
 | OpenServiceMesh.enableDebugServer | bool | `false` |  |
@@ -41,7 +41,7 @@ A Helm chart to install the OSM control plane on Kubernetes
 | OpenServiceMesh.grafana.port | int | `3000` |  |
 | OpenServiceMesh.image.pullPolicy | string | `"IfNotPresent"` |  |
 | OpenServiceMesh.image.registry | string | `"openservicemesh"` |  |
-| OpenServiceMesh.image.tag | string | `"v0.6.0"` |  |
+| OpenServiceMesh.image.tag | string | `"v0.6.1"` |  |
 | OpenServiceMesh.imagePullSecrets | list | `[]` |  |
 | OpenServiceMesh.meshName | string | `"osm"` |  |
 | OpenServiceMesh.osmNamespace | string | `""` |  |
@@ -49,7 +49,7 @@ A Helm chart to install the OSM control plane on Kubernetes
 | OpenServiceMesh.prometheus.retention.time | string | `"15d"` |  |
 | OpenServiceMesh.replicaCount | int | `1` |  |
 | OpenServiceMesh.serviceCertValidityDuration | string | `"24h"` |  |
-| OpenServiceMesh.sidecarImage | string | `"envoyproxy/envoy-alpine:v1.15.0"` |  |
+| OpenServiceMesh.sidecarImage | string | `"envoyproxy/envoy-alpine:v1.17.0"` |  |
 | OpenServiceMesh.tracing.address | string | `"jaeger.osm-system.svc.cluster.local"` |  |
 | OpenServiceMesh.tracing.enable | bool | `true` |  |
 | OpenServiceMesh.tracing.endpoint | string | `"/api/v2/spans"` |  |
