@@ -99,7 +99,7 @@ var _ = Describe("Test getHTTPConnectionManager", func() {
 			mockConfigurator.EXPECT().GetTracingEndpoint().Return(constants.DefaultTracingEndpoint).Times(1)
 			mockConfigurator.EXPECT().IsTracingEnabled().Return(true).Times(1)
 
-			connManager := getHTTPConnectionManager(route.InboundRouteConfigName, mockConfigurator)
+			connManager := getHTTPConnectionManager(route.InboundRouteConfigName, mockConfigurator, nil)
 
 			Expect(connManager.Tracing.Verbose).To(Equal(true))
 			Expect(connManager.Tracing.Provider.Name).To(Equal("envoy.tracers.zipkin"))
@@ -108,7 +108,7 @@ var _ = Describe("Test getHTTPConnectionManager", func() {
 		It("Returns proper Zipkin config given when tracing is disabled", func() {
 			mockConfigurator.EXPECT().IsTracingEnabled().Return(false).Times(1)
 
-			connManager := getHTTPConnectionManager(route.InboundRouteConfigName, mockConfigurator)
+			connManager := getHTTPConnectionManager(route.InboundRouteConfigName, mockConfigurator, nil)
 			var nilHcmTrace *xds_hcm.HttpConnectionManager_Tracing = nil
 
 			Expect(connManager.Tracing).To(Equal(nilHcmTrace))
@@ -122,7 +122,7 @@ var _ = Describe("Test getHTTPConnectionManager", func() {
 			oldStatsWASMBytes := statsWASMBytes
 			statsWASMBytes = "some bytes"
 
-			connManager := getHTTPConnectionManager(route.InboundRouteConfigName, mockConfigurator)
+			connManager := getHTTPConnectionManager(route.InboundRouteConfigName, mockConfigurator, map[string]string{"k1": "v1"})
 
 			Expect(connManager.HttpFilters).To(HaveLen(2))
 			Expect(connManager.HttpFilters[0].GetName()).To(Equal(wellknown.HTTPRoleBasedAccessControl))
@@ -142,12 +142,13 @@ var _ = Describe("Test getHTTPConnectionManager", func() {
 			oldStatsWASMBytes := statsWASMBytes
 			statsWASMBytes = "some bytes"
 
-			connManager := getHTTPConnectionManager(route.InboundRouteConfigName, mockConfigurator)
+			connManager := getHTTPConnectionManager(route.InboundRouteConfigName, mockConfigurator, map[string]string{"k1": "v1"})
 
-			Expect(connManager.GetHttpFilters()).To(HaveLen(3))
-			Expect(connManager.GetHttpFilters()[0].GetName()).To(Equal("envoy.filters.http.wasm"))
-			Expect(connManager.GetHttpFilters()[1].GetName()).To(Equal(wellknown.HTTPRoleBasedAccessControl))
-			Expect(connManager.GetHttpFilters()[2].GetName()).To(Equal(wellknown.Router))
+			Expect(connManager.GetHttpFilters()).To(HaveLen(4))
+			Expect(connManager.GetHttpFilters()[0].GetName()).To(Equal(wellknown.Lua))
+			Expect(connManager.GetHttpFilters()[1].GetName()).To(Equal("envoy.filters.http.wasm"))
+			Expect(connManager.GetHttpFilters()[2].GetName()).To(Equal(wellknown.HTTPRoleBasedAccessControl))
+			Expect(connManager.GetHttpFilters()[3].GetName()).To(Equal(wellknown.Router))
 
 			// reset global state
 			statsWASMBytes = oldStatsWASMBytes

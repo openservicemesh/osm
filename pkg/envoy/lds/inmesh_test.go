@@ -287,7 +287,7 @@ func TestGetOutboundFilterChainMatchForService(t *testing.T) {
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 	mockCatalog := catalog.NewMockMeshCataloger(mockCtrl)
 
-	lb := newListenerBuilder(mockCatalog, tests.BookbuyerServiceAccount, mockConfigurator)
+	lb := newListenerBuilder(mockCatalog, tests.BookbuyerServiceAccount, mockConfigurator, nil)
 
 	testCases := []struct {
 		name        string
