@@ -42,7 +42,7 @@ type MetricsStore struct {
 	/*
 	 * Certificate metrics
 	 */
-	//CertsXdsIssuedCounter is the metric counter for the number of xds certificates issued
+	// CertsXdsIssuedCounter is the metric counter for the number of xds certificates issued
 	CertsXdsIssuedCounter prometheus.Counter
 
 	/*

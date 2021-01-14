@@ -13,6 +13,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
 
 func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *v1beta1.AdmissionRequest, proxyUUID uuid.UUID) ([]byte, error) {
@@ -27,6 +28,7 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *v1beta1.AdmissionRe
 		return nil, err
 	}
 
+	metricsstore.DefaultMetricsStore.CertsXdsIssuedCounter.Inc()
 	originalHealthProbes := rewriteHealthProbes(pod)
 
 	wh.meshCatalog.ExpectProxy(cn)
