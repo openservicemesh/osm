@@ -1,8 +1,6 @@
 package certificate
 
 import (
-	"crypto/rsa"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -10,7 +8,7 @@ import (
 )
 
 const (
-	expectedPrivateKey = `-----BEGIN PRIVATE KEY-----
+	samplePrivateKeyPEM = `-----BEGIN PRIVATE KEY-----
 MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDD3+gqR5tLq3w2
 KZOVCJRaQ2+0bdDmqvWf4YZjsYlIWUMSxQNhX9fm6u/X/fUbwVMpDP3t2A7ArgJP
 iakti8676Ws7utVbYi2PvjLfcVtsM0UBtAqXfHN2Rg+Ne7B9AanepUeJIfzs+/jr
@@ -41,7 +39,7 @@ sIpZJboKv7uhHDhGJsdP/8Y=
 `
 
 	// Source: https://golang.org/src/crypto/x509/example_test.go
-	certPEM = `-----BEGIN CERTIFICATE-----
+	sampleCertificatePEM = `-----BEGIN CERTIFICATE-----
 MIIDujCCAqKgAwIBAgIIE31FZVaPXTUwDQYJKoZIhvcNAQEFBQAwSTELMAkGA1UE
 BhMCVVMxEzARBgNVBAoTCkdvb2dsZSBJbmMxJTAjBgNVBAMTHEdvb2dsZSBJbnRl
 cm5ldCBBdXRob3JpdHkgRzIwHhcNMTQwMTI5MTMyNzQzWhcNMTQwNTI5MDAwMDAw
@@ -83,28 +81,16 @@ var _ = Describe("Test Tresor Tools", func() {
 	})
 
 	Context("Test EncodeKeyDERtoPEM function", func() {
-		var pemKey pem.PrivateKey
-		var privKey *rsa.PrivateKey
-
-		It("loads PEM key from file", func() {
-			var err error
-			pemKey, err = LoadPrivateKeyFromFile("sample_private_key.pem")
-			Expect(err).ShouldNot(HaveOccurred())
-
-			expected := "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQ"
-			Expect(string(pemKey[:len(expected)])).To(Equal(expected))
-		})
-
+		pemKey := pem.PrivateKey(samplePrivateKeyPEM)
+		privKey, err := DecodePEMPrivateKey(pemKey)
 		It("decodes PEM key to RSA Private Key", func() {
-			var err error
-			privKey, err = DecodePEMPrivateKey(pemKey)
 			Expect(err).ToNot(HaveOccurred(), string(pemKey))
 		})
 
 		It("loaded PEM key from file", func() {
 			actual, err := EncodeKeyDERtoPEM(privKey)
 			Expect(err).ShouldNot(HaveOccurred())
-			Expect(string(actual)).To(Equal(expectedPrivateKey))
+			Expect(string(actual)).To(Equal(samplePrivateKeyPEM))
 
 			expected := "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQ"
 			Expect(string(pemKey[:len(expected)])).To(Equal(expected))
@@ -115,7 +101,7 @@ var _ = Describe("Test Tresor Tools", func() {
 var _ = Describe("Test tools", func() {
 	Context("Testing decoding of PEMs", func() {
 		It("should have decoded the PEM into x509 certificate", func() {
-			x509Cert, err := DecodePEMCertificate([]byte(certPEM))
+			x509Cert, err := DecodePEMCertificate([]byte(sampleCertificatePEM))
 			Expect(err).ToNot(HaveOccurred())
 			expectedCN := "mail.google.com"
 			Expect(x509Cert.Subject.CommonName).To(Equal(expectedCN))
