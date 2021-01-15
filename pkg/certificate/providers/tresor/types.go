@@ -59,4 +59,7 @@ type Certificate struct {
 
 	// Certificate authority signing this certificate
 	issuingCA pem.RootCertificate
+
+	// Serial number of the certificate
+	serialNumber string
 }

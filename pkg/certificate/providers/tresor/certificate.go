@@ -40,7 +40,7 @@ func (c Certificate) GetExpiration() time.Time {
 
 // GetSerialNumber returns the serial number of the given certificate.
 func (c Certificate) GetSerialNumber() string {
-	panic("NotImplemented")
+	return c.serialNumber
 }
 
 // LoadCA loads the certificate and its key from the supplied PEM files.
