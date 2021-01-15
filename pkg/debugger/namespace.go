@@ -10,7 +10,7 @@ type namespaces struct {
 	Namespaces []string `json:"namespaces"`
 }
 
-func (ds debugConfig) getMonitoredNamespacesHandler() http.Handler {
+func (ds DebugConfig) getMonitoredNamespacesHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var n namespaces
 		n.Namespaces = ds.meshCatalogDebugger.ListMonitoredNamespaces()

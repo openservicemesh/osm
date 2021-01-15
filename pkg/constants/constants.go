@@ -60,8 +60,8 @@ const (
 	// InjectorWebhookPort is the port on which the sidecar injection webhook listens
 	InjectorWebhookPort = 9090
 
-	// MetricsServerPort is the port on which OSM exposes its own metrics server
-	MetricsServerPort = 9091
+	// OSMServicePort is the port on which OSM exposes HTTP paths for metrics and probes
+	OSMServicePort = 9091
 
 	//DebugPort is the port on which OSM exposes its debug server
 	DebugPort = 9092

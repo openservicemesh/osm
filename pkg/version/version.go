@@ -1,5 +1,15 @@
 package version
 
+import (
+	"encoding/json"
+	"fmt"
+	"net/http"
+
+	"github.com/openservicemesh/osm/pkg/logger"
+)
+
+var log = logger.New("version")
+
 // BuildDate is the date when the binary was built
 var BuildDate string
 
@@ -19,4 +29,21 @@ type Info struct {
 
 	// BuildDate is the build date of the OSM Controller.
 	BuildDate string `json:"build_date,omitempty"`
+}
+
+// GetVersionHandler returns an HTTP handler that returns the version info
+func GetVersionHandler() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		versionInfo := Info{
+			Version:   Version,
+			BuildDate: BuildDate,
+			GitCommit: GitCommit,
+		}
+
+		if jsonVersionInfo, err := json.Marshal(versionInfo); err != nil {
+			log.Error().Err(err).Msgf("Error marshaling version info struct: %+v", versionInfo)
+		} else {
+			_, _ = fmt.Fprint(w, string(jsonVersionInfo))
+		}
+	})
 }

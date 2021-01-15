@@ -1,7 +1,6 @@
 package debugger
 
 import (
-	"net/http"
 	"time"
 
 	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
@@ -20,8 +19,8 @@ import (
 
 var log = logger.New("debugger")
 
-// debugConfig implements the DebugServer interface.
-type debugConfig struct {
+// DebugConfig implements the DebugServer interface.
+type DebugConfig struct {
 	certDebugger        CertificateManagerDebugger
 	xdsDebugger         XDSDebugger
 	meshCatalogDebugger MeshCatalogDebugger
@@ -59,10 +58,4 @@ type MeshCatalogDebugger interface {
 type XDSDebugger interface {
 	// GetXDSLog returns a log of the XDS responses sent to Envoy proxies.
 	GetXDSLog() *map[certificate.CommonName]map[envoy.TypeURI][]time.Time
-}
-
-// DebugConfig is the interface of the debug config for debug HTTP server
-type DebugConfig interface {
-	// GetHandlers returns the HTTP handlers available for the debug server.
-	GetHandlers() map[string]http.Handler
 }

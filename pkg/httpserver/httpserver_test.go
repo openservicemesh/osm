@@ -41,7 +41,14 @@ func TestNewHTTPServer(t *testing.T) {
 	testProbes := []health.Probes{mockProbe}
 	metricsStore := metricsstore.DefaultMetricsStore
 
-	httpServ := NewHTTPServer(testProbes, nil, metricsStore, testPort)
+	httpServ := NewHTTPServer(testPort)
+
+	httpServ.AddHandlers(map[string]http.Handler{
+		"/health/ready": health.ReadinessHandler(testProbes, nil),
+		"/health/alive": health.LivenessHandler(testProbes, nil),
+		"/metrics":      metricsStore.Handler(),
+	})
+
 	testServer := &httptest.Server{
 		Config: httpServ.server,
 	}

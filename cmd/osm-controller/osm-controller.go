@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"path"
 	"strings"
@@ -245,22 +246,34 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error initializing ADS server")
 	}
 
-	// Initialize function and HTTP health probes
-	funcProbes := []health.Probes{xdsServer}
-	httpProbes := getHTTPHealthProbes()
-
-	// Initialize the http server and start it
-	httpServer := httpserver.NewHTTPServer(funcProbes, httpProbes, metricsstore.DefaultMetricsStore, constants.MetricsServerPort)
-	httpServer.Start()
-
 	if err := createControllerManagerForOSMResources(certManager); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating controller manager to reconcile OSM resources")
 	}
 
-	// Expose /debug endpoints and data only if the enableDebugServer flag is enabled
+	// Initialize OSM's http service server
+	httpServer := httpserver.NewHTTPServer(constants.OSMServicePort)
+
+	// Health/Liveness probes
+	funcProbes := []health.Probes{xdsServer}
+	httpServer.AddHandlers(map[string]http.Handler{
+		"/health/ready": health.ReadinessHandler(funcProbes, getHTTPHealthProbes()),
+		"/health/alive": health.LivenessHandler(funcProbes, getHTTPHealthProbes()),
+	})
+	// Metrics
+	httpServer.AddHandler("/metrics", metricsstore.DefaultMetricsStore.Handler())
+	// Version
+	httpServer.AddHandler("/version", version.GetVersionHandler())
+
+	// Start HTTP server
+	err = httpServer.Start()
+	if err != nil {
+		log.Fatal().Err(err).Msgf("Failed to start OSM metrics/probes HTTP server")
+	}
+
+	// Create DebugServer and start its config event listener.
+	// Listener takes care to start and stop the debug server as appropriate
 	debugConfig := debugger.NewDebugConfig(certDebugger, xdsServer, meshCatalog, kubeConfig, kubeClient, cfg, kubernetesClient)
-	debugServerInterface := httpserver.NewDebugHTTPServer(debugConfig, constants.DebugPort)
-	httpserver.RegisterDebugServer(debugServerInterface, cfg)
+	debugConfig.StartDebugServerConfigListener()
 
 	<-stop
 	log.Info().Msg("Goodbye!")
