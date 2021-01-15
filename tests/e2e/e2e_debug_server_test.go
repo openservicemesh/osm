@@ -58,7 +58,7 @@ var _ = OSMDescribe("Test Debug Server by toggling enableDebugServer",
 					Destination: controllerDest,
 				}
 
-				iterations := 3
+				iterations := 2
 				for i := 1; i <= iterations; i++ {
 					By(fmt.Sprintf("(%d/%d) Ensuring debug server is available when enableDebugServer is enabled", i, iterations))
 
