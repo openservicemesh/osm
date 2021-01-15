@@ -41,3 +41,15 @@ func webhookTimeTrack(start time.Time, timeout time.Duration, success *bool) {
 	metricsstore.DefaultMetricsStore.InjectorRqTime.
 		WithLabelValues(fmt.Sprintf("%t", *success)).Observe(elapsed.Seconds())
 }
+
+// Time tracking function for xds certificate issuance.
+// Will calculate time taken to issue an xds certificate
+func certXdsIssueTimeTrack(t time.Time, commonName string, success *bool) {
+	elapsed := time.Since(t)
+
+	log.Debug().Msgf("Time taken to issue xds certificate %s is %v",
+		commonName, elapsed)
+
+	metricsstore.DefaultMetricsStore.CertsXdsIssuedTime.
+		WithLabelValues(commonName, fmt.Sprintf("%t", *success)).Observe(elapsed.Seconds())
+}

@@ -45,6 +45,9 @@ type MetricsStore struct {
 	// CertsXdsIssuedCounter is the metric counter for the number of xds certificates issued
 	CertsXdsIssuedCounter prometheus.Counter
 
+	// CertsXdsIssuedCounter the histogram to track the time to issue xds certificates
+	CertsXdsIssuedTime *prometheus.HistogramVec
+
 	/*
 	 * MetricsStore internals should be defined below --------------
 	 */
@@ -126,6 +129,18 @@ func init() {
 		Help:      "represents the total number of XDS certificates issued to proxies",
 	})
 
+	defaultMetricsStore.CertsXdsIssuedTime = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Namespace: metricsRootNamespace,
+			Subsystem: "cert",
+			Name:      "xds_issued_time",
+			Buckets:   []float64{.1, .25, .5, 1, 2.5, 5, 10, 20, 40, 90},
+			Help:      "Histogram to track time spent to issue xds certificate",
+		},
+		[]string{
+			"common_name", // common_name is the common name of the certificate
+			"success",
+		})
 	defaultMetricsStore.registry = prometheus.NewRegistry()
 }
 
@@ -137,6 +152,7 @@ func (ms *MetricsStore) Start() {
 	ms.registry.MustRegister(ms.InjectorSidecarCount)
 	ms.registry.MustRegister(ms.InjectorRqTime)
 	ms.registry.MustRegister(ms.CertsXdsIssuedCounter)
+	ms.registry.MustRegister(ms.CertsXdsIssuedTime)
 }
 
 // Stop store
@@ -147,6 +163,7 @@ func (ms *MetricsStore) Stop() {
 	ms.registry.Unregister(ms.InjectorSidecarCount)
 	ms.registry.Unregister(ms.InjectorRqTime)
 	ms.registry.Unregister(ms.CertsXdsIssuedCounter)
+	ms.registry.Unregister(ms.CertsXdsIssuedTime)
 }
 
 // Handler return the registry
