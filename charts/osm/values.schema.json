@@ -401,15 +401,6 @@
                         ""
                     ]
                 },
-                "connectVault": {
-                    "$id": "#/properties/OpenServiceMesh/properties/connectVault",
-                    "type": "boolean",
-                    "title": "Connect to vault for cert manager",
-                    "description": "Specifies whether OSM deployment needs vault connection for cert-manager support",
-                    "examples": [
-                        true
-                    ]
-                },
                 "osmNamespace": {
                     "$id": "#/properties/OpenServiceMesh/properties/osmNamespace",
                     "type": "string",
