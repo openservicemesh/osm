@@ -33,9 +33,10 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *v1beta1.AdmissionRe
 		return nil, err
 	}
 	elapsed := time.Since(startTime)
-	certXdsIssueTimeTrack(elapsed, cn.String(), &certIssuanceSuccess)
 
-	metricsstore.DefaultMetricsStore.CertsXdsIssuedCounter.Inc()
+	metricsstore.DefaultMetricsStore.CertXdsIssuedCount.Inc()
+	metricsstore.DefaultMetricsStore.CertXdsIssuedTime.
+		WithLabelValues(cn.String(), fmt.Sprintf("%t", certIssuanceSuccess)).Observe(elapsed.Seconds())
 	originalHealthProbes := rewriteHealthProbes(pod)
 
 	wh.meshCatalog.ExpectProxy(cn)
