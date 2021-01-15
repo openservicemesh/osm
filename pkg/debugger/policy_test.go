@@ -22,7 +22,7 @@ func TestGetSMIPolicies(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	mock := NewMockMeshCatalogDebugger(mockCtrl)
 
-	ds := debugConfig{
+	ds := DebugConfig{
 		meshCatalogDebugger: mock,
 	}
 

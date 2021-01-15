@@ -18,7 +18,7 @@ func TestGetCertHandler(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	mock := NewMockCertificateManagerDebugger(mockCtrl)
 
-	ds := debugConfig{
+	ds := DebugConfig{
 		certDebugger: mock,
 	}
 
