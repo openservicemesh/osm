@@ -21,17 +21,19 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *v1beta1.AdmissionRe
 	namespace := req.Namespace
 
 	// Tracks the success of the current certificate issued for envoy to connect to XDS
-	success := true
+	certIssuanceSuccess := true
 	// Issue a certificate for the proxy sidecar - used for Envoy to connect to XDS (not Envoy-to-Envoy connections)
 	cn := catalog.NewCertCommonNameWithProxyID(proxyUUID, pod.Spec.ServiceAccountName, namespace)
-	defer certXdsIssueTimeTrack(time.Now(), cn.String(), &success)
 	log.Info().Msgf("Patching POD spec: service-account=%s, namespace=%s with certificate CN=%s", pod.Spec.ServiceAccountName, namespace, cn)
+	startTime := time.Now()
 	bootstrapCertificate, err := wh.certManager.IssueCertificate(cn, constants.XDSCertificateValidityPeriod)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error issuing bootstrap certificate for Envoy with CN=%s", cn)
-		success = false
+		certIssuanceSuccess = false
 		return nil, err
 	}
+	elapsed := time.Since(startTime)
+	certXdsIssueTimeTrack(elapsed, cn.String(), &certIssuanceSuccess)
 
 	metricsstore.DefaultMetricsStore.CertsXdsIssuedCounter.Inc()
 	originalHealthProbes := rewriteHealthProbes(pod)
