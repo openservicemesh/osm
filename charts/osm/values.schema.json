@@ -32,9 +32,8 @@
                 "envoyLogLevel",
                 "enforceSingleMesh",
                 "deployJaeger",
-                "tracing", 
-                "webhookConfigNamePrefix", 
-                "connectVault"
+                "tracing",
+                "webhookConfigNamePrefix"
             ],
             "properties": {
                 "replicaCount": {
@@ -101,7 +100,7 @@
                     "title": "The sidecarImage schema",
                     "description": "The proxy side car image to run.",
                     "examples": [
-                        "envoyproxy/envoy-alpine:v1.15.0"
+                        "envoyproxy/envoy-alpine:v1.17.0"
                     ]
                 },
                 "certificateManager": {
@@ -391,7 +390,7 @@
                         }
                     },
                     "additionalProperties": true
-                }, 
+                },
                 "webhookConfigNamePrefix": {
                     "$id": "#/properties/OpenServiceMesh/properties/webhookConfigNamePrefix",
                     "type": "string",
@@ -399,15 +398,6 @@
                     "description": "Prefix for the webhook name, which uses the format <webhook-prefix>-<mesh-name>",
                     "examples": [
                         ""
-                    ]
-                },
-                "connectVault": {
-                    "$id": "#/properties/OpenServiceMesh/properties/connectVault",
-                    "type": "boolean",
-                    "title": "Connect to vault for cert manager",
-                    "description": "Specifies whether OSM deployment needs vault connection for cert-manager support",
-                    "examples": [
-                        true
                     ]
                 },
                 "osmNamespace": {

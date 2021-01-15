@@ -5,14 +5,14 @@ import (
 	"testing"
 	"time"
 
-	gomock "github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
+	"github.com/golang/mock/gomock"
+	tassert "github.com/stretchr/testify/assert"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 )
 
 func TestPubSubEvents(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -62,7 +62,7 @@ func TestPubSubEvents(t *testing.T) {
 }
 
 func TestPubSubClose(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 

@@ -69,7 +69,7 @@ The Bookstore, Bookbuyer, and Bookthief apps have simple web UI visualizing the 
   - To see the UI for BookThief run `./scripts/port-forward-bookthief-ui.sh` and open [http://localhost:8083/](http://localhost:8083/)
   - To see Jaeger run `./scripts/port-forward-jaeger.sh` and open [http://localhost:16686/](http://localhost:16686/)
   - To see Grafana run `./scripts/port-forward-grafana.sh` and open [http://localhost:3000/](http://localhost:3000/) - default username and password for Grafana is `admin`/`admin`
-  - OSM controller has a simple debugging web endpoint - run `./scripts/port-forward-osm-debug.sh` and open [http://localhost:9091/debug](http://localhost:9091/debug)
+  - OSM controller has a simple debugging web endpoint - run `./scripts/port-forward-osm-debug.sh` and open [http://localhost:9092/debug](http://localhost:9092/debug)
 
 To expose web UI ports of all components of the service mesh the local workstation use the following helper script: `/scripts/port-forward-all.sh`
 

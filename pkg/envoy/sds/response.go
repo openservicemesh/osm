@@ -30,7 +30,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request 
 	// OSM currently relies on kubernetes ServiceAccount for service identity
 	svcAccount, err := catalog.GetServiceAccountFromProxyCertificate(proxy.GetCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error retrieving SerivceAccount for proxy %s", proxy.GetCommonName())
+		log.Error().Err(err).Msgf("Error retrieving ServiceAccount for proxy %s", proxy.GetCommonName())
 		return nil, err
 	}
 

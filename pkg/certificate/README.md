@@ -1,10 +1,9 @@
 # Package: Certificate
 
-This package contains tools necessary to manage certificates for the service mesh. There are 3 kinds of certificates:
+This package contains tools for issuing and renewing certificates for the service mesh.
 
-  - the Envoy-to-xDS certificates - used for Envoys to connect and identify themselves to the xDS control plane.
-  - the Envoy-to-Envoy (east-west) certificates - used for encryption and identification of sidecars in communication between services.
-  - the root certificate for the entire mesh, which signs the leaf certs above
+For design and details on mTLS and certificate issuance please see [docs/patterns/certificates.md](../../docs/patterns/certificates.md).
+
 
 ## Interfaces
 

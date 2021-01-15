@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
+	tassert "github.com/stretchr/testify/assert"
 
 	"github.com/openservicemesh/osm/pkg/health"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
@@ -34,14 +34,21 @@ func recordCall(ts *httptest.Server, path string) *http.Response {
 }
 
 func TestNewHTTPServer(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	mockCtrl := gomock.NewController(t)
 	mockProbe := health.NewMockProbes(mockCtrl)
 	testProbes := []health.Probes{mockProbe}
-	metricsStore := metricsstore.NewMetricStore("TBD_NameSpace", "TBD_PodName")
+	metricsStore := metricsstore.DefaultMetricsStore
 
-	httpServ := NewHTTPServer(testProbes, nil, metricsStore, testPort)
+	httpServ := NewHTTPServer(testPort)
+
+	httpServ.AddHandlers(map[string]http.Handler{
+		"/health/ready": health.ReadinessHandler(testProbes, nil),
+		"/health/alive": health.LivenessHandler(testProbes, nil),
+		"/metrics":      metricsStore.Handler(),
+	})
+
 	testServer := &httptest.Server{
 		Config: httpServ.server,
 	}

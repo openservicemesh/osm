@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
+	tassert "github.com/stretchr/testify/assert"
 
 	xds_listener "github.com/envoyproxy/go-control-plane/envoy/config/listener/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
@@ -17,7 +17,7 @@ import (
 )
 
 func TestGetIngressFilterChains(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
@@ -98,7 +98,7 @@ func TestGetIngressFilterChains(t *testing.T) {
 			}
 
 			// Mock catalog call to get port:protocol mapping for service
-			mockCatalog.EXPECT().GetPortToProtocolMappingForService(proxyService).Return(tc.svcPortToProtocolMap, tc.portToProtocolErr).Times(1)
+			mockCatalog.EXPECT().GetTargetPortToProtocolMappingForService(proxyService).Return(tc.svcPortToProtocolMap, tc.portToProtocolErr).Times(1)
 			// Mock configurator calls to determine HTTP vs HTTPS ingress
 			mockConfigurator.EXPECT().UseHTTPSIngress().Return(tc.httpsIngress).AnyTimes()
 			// Mock calls used to build the HTTP connection manager
@@ -124,7 +124,7 @@ func TestGetIngressFilterChains(t *testing.T) {
 }
 
 func TestGetIngressTransportProtocol(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 
 	testCases := []struct {
 		name                      string

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
 	"path"
 	"strings"
@@ -166,6 +167,9 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	// Start the default metrics store and start it.
+	metricsstore.DefaultMetricsStore.Start()
+
 	// This component will be watching the OSM ConfigMap and will make it
 	// to the rest of the components.
 	cfg := configurator.NewConfigurator(kubernetes.NewForConfigOrDie(kubeConfig), stop, osmNamespace, osmConfigMapName)
@@ -222,8 +226,13 @@ func main() {
 		endpointsProviders...)
 
 	// Create the sidecar-injector webhook
-	if err := injector.NewWebhook(injectorConfig, kubeClient, certManager, meshCatalog, kubernetesClient, meshName, osmNamespace, webhookConfigName, stop, cfg); err != nil {
+	if err := injector.NewMutatingWebhook(injectorConfig, kubeClient, certManager, meshCatalog, kubernetesClient, meshName, osmNamespace, webhookConfigName, stop, cfg); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating sidecar injector webhook")
+	}
+
+	// Create the configMap validating webhook
+	if err := configurator.NewValidatingWebhook(kubeClient, certManager, osmNamespace, webhookConfigName, stop); err != nil {
+		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating osm-config validating webhook")
 	}
 
 	adsCert, err := certManager.IssueCertificate(xdsServerCertificateCommonName, constants.XDSCertificateValidityPeriod)
@@ -237,23 +246,34 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error initializing ADS server")
 	}
 
-	// initialize the http server and start it
-	// TODO(draychev): figure out the NS and POD
-	metricsStore := metricsstore.NewMetricStore("TBD_NameSpace", "TBD_PodName")
-
-	funcProbes := []health.Probes{xdsServer}
-	httpProbes := getHTTPHealthProbes()
-	httpServer := httpserver.NewHTTPServer(funcProbes, httpProbes, metricsStore, constants.MetricsServerPort)
-	httpServer.Start()
-
 	if err := createControllerManagerForOSMResources(certManager); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating controller manager to reconcile OSM resources")
 	}
 
-	// Expose /debug endpoints and data only if the enableDebugServer flag is enabled
+	// Initialize OSM's http service server
+	httpServer := httpserver.NewHTTPServer(constants.OSMServicePort)
+
+	// Health/Liveness probes
+	funcProbes := []health.Probes{xdsServer}
+	httpServer.AddHandlers(map[string]http.Handler{
+		"/health/ready": health.ReadinessHandler(funcProbes, getHTTPHealthProbes()),
+		"/health/alive": health.LivenessHandler(funcProbes, getHTTPHealthProbes()),
+	})
+	// Metrics
+	httpServer.AddHandler("/metrics", metricsstore.DefaultMetricsStore.Handler())
+	// Version
+	httpServer.AddHandler("/version", version.GetVersionHandler())
+
+	// Start HTTP server
+	err = httpServer.Start()
+	if err != nil {
+		log.Fatal().Err(err).Msgf("Failed to start OSM metrics/probes HTTP server")
+	}
+
+	// Create DebugServer and start its config event listener.
+	// Listener takes care to start and stop the debug server as appropriate
 	debugConfig := debugger.NewDebugConfig(certDebugger, xdsServer, meshCatalog, kubeConfig, kubeClient, cfg, kubernetesClient)
-	debugServerInterface := httpserver.NewDebugHTTPServer(debugConfig, constants.DebugPort)
-	httpserver.RegisterDebugServer(debugServerInterface, cfg)
+	debugConfig.StartDebugServerConfigListener()
 
 	<-stop
 	log.Info().Msg("Goodbye!")

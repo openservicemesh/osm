@@ -119,8 +119,8 @@ func (c Client) GetServicesForServiceAccount(svcAccount service.K8sServiceAccoun
 	return servicesSlice, nil
 }
 
-// GetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol
-func (c Client) GetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
+// GetTargetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol
+func (c Client) GetTargetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
 	portToProtocolMap := make(map[uint32]string)
 
 	endpoints, err := c.kubeController.GetEndpoints(svc)

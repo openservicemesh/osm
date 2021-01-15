@@ -63,7 +63,7 @@ const (
 	defaultContainerRegistrySecret        = ""
 	defaultMeshName                       = "osm"
 	defaultOsmImagePullPolicy             = "IfNotPresent"
-	defaultOsmImageTag                    = "v0.6.0"
+	defaultOsmImageTag                    = "v0.6.1"
 	defaultPrometheusRetentionTime        = constants.PrometheusDefaultRetentionTime
 	defaultVaultHost                      = ""
 	defaultVaultProtocol                  = "http"
@@ -79,7 +79,7 @@ const (
 	defaultEnablePrometheusScraping       = true
 	defaultDeployGrafana                  = false
 	defaultEnableFluentbit                = false
-	defaultDeployJaeger                   = true
+	defaultDeployJaeger                   = false
 	defaultEnforceSingleMesh              = false
 )
 
@@ -315,11 +315,11 @@ func (i *installCmd) validateOptions() error {
 	listOptions := metav1.ListOptions{
 		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
 	}
-	list, err := deploymentsClient.List(context.TODO(), listOptions)
+	osmControllerDeployments, err := deploymentsClient.List(context.TODO(), listOptions)
 	if err != nil {
 		return err
 	}
-	if len(list.Items) != 0 {
+	if len(osmControllerDeployments.Items) != 0 {
 		return errMeshAlreadyExists(i.meshName)
 	}
 
@@ -329,8 +329,8 @@ func (i *installCmd) validateOptions() error {
 	listOptions = metav1.ListOptions{
 		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
 	}
-	list, err = deploymentsClient.List(context.TODO(), listOptions)
-	if len(list.Items) != 0 {
+	osmControllerDeployments, err = deploymentsClient.List(context.TODO(), listOptions)
+	if osmControllerDeployments != nil && len(osmControllerDeployments.Items) > 0 {
 		return errNamespaceAlreadyHasController(settings.Namespace())
 	} else if err != nil {
 		return fmt.Errorf("Error ensuring no osm-controller running in namespace %s:%s", settings.Namespace(), err)
@@ -346,13 +346,13 @@ func (i *installCmd) validateOptions() error {
 		return err
 	}
 
-	list, err = getControllerDeployments(i.clientSet)
+	osmControllerDeployments, err = getControllerDeployments(i.clientSet)
 	if err != nil {
 		return err
 	}
 
 	// Check if single mesh cluster is already specified
-	for _, deployment := range list.Items {
+	for _, deployment := range osmControllerDeployments.Items {
 		singleMeshEnforced := deployment.ObjectMeta.Labels["enforceSingleMesh"] == "true"
 		name := deployment.ObjectMeta.Labels["meshName"]
 		if singleMeshEnforced {
@@ -362,14 +362,14 @@ func (i *installCmd) validateOptions() error {
 
 	// Enforce single mesh cluster if needed
 	if i.enforceSingleMesh {
-		if len(list.Items) != 0 {
+		if len(osmControllerDeployments.Items) != 0 {
 			return errors.Errorf("Meshes already exist in cluster. Cannot enforce single mesh cluster.")
 		}
 	}
 
 	if i.deployPrometheus {
 		if !i.enablePrometheusScraping {
-			fmt.Fprintf(i.out, "Prometheus scraping is disabled. To enable it, set prometheus_scraping in %s/%s to true.\n", settings.Namespace(), constants.OSMConfigMap)
+			_, _ = fmt.Fprintf(i.out, "Prometheus scraping is disabled. To enable it, set prometheus_scraping in %s/%s to true.\n", settings.Namespace(), constants.OSMConfigMap)
 		}
 	}
 

@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -47,44 +48,50 @@ var _ = OSMDescribe("Test Debug Server by toggling enableDebugServer",
 
 				Expect(Td.WaitForPodsRunningReady(sourceNs, 90*time.Second, 1)).To(Succeed())
 
+				controllerDest := "osm-controller." + Td.OsmNamespace + ":9092/debug"
+
 				req := HTTPRequestDef{
 					SourceNs:        srcPod.Namespace,
 					SourcePod:       srcPod.Name,
 					SourceContainer: "client",
 
-					Destination: "osm-controller.osm-system:9092/debug",
+					Destination: controllerDest,
 				}
 
-				By("Ensuring debug server is available when enableDebugServer is enabled")
+				iterations := 2
+				for i := 1; i <= iterations; i++ {
+					By(fmt.Sprintf("(%d/%d) Ensuring debug server is available when enableDebugServer is enabled", i, iterations))
 
-				Expect(Td.UpdateOSMConfig("enable_debug_server", "true"))
+					Expect(Td.UpdateOSMConfig("enable_debug_server", "true"))
 
-				cond := Td.WaitForRepeatedSuccess(func() bool {
-					result := Td.HTTPRequest(req)
+					cond := Td.WaitForRepeatedSuccess(func() bool {
+						result := Td.HTTPRequest(req)
 
-					if result.Err != nil || result.StatusCode != 200 {
-						Td.T.Logf("> REST req failed (status: %d) %v", result.StatusCode, result.Err)
-						return false
-					}
-					Td.T.Logf("> REST req succeeded: %d", result.StatusCode)
-					return true
-				}, 5 /*consecutive success threshold*/, 90*time.Second /*timeout*/)
-				Expect(cond).To(BeTrue())
+						if result.Err != nil || result.StatusCode != 200 {
+							Td.T.Logf("> REST req failed (status: %d) %v", result.StatusCode, result.Err)
+							return false
+						}
+						Td.T.Logf("> REST req succeeded: %d", result.StatusCode)
+						return true
+					}, 5 /*consecutive success threshold*/, 90*time.Second /*timeout*/)
+					Expect(cond).To(BeTrue())
 
-				By("Ensuring debug server is unavailable when enableDebugServer is disabled")
+					By(fmt.Sprintf("(%d/%d) Ensuring debug server is unavailable when enableDebugServer is disabled", i, iterations))
 
-				Expect(Td.UpdateOSMConfig("enable_debug_server", "false"))
-				cond = Td.WaitForRepeatedSuccess(func() bool {
-					result := Td.HTTPRequest(req)
+					Expect(Td.UpdateOSMConfig("enable_debug_server", "false"))
 
-					if result.Err == nil || !strings.Contains(result.Err.Error(), "command terminated with exit code 7 ") {
-						Td.T.Logf("> REST req received unexpected response (status: %d) %v", result.StatusCode, result.Err)
-						return false
-					}
-					Td.T.Logf("> REST req succeeded, got expected error: %v", result.Err)
-					return true
-				}, 5 /*consecutive success threshold*/, 90*time.Second /*timeout*/)
-				Expect(cond).To(BeTrue())
+					cond = Td.WaitForRepeatedSuccess(func() bool {
+						result := Td.HTTPRequest(req)
+
+						if result.Err == nil || !strings.Contains(result.Err.Error(), "command terminated with exit code 7 ") {
+							Td.T.Logf("> REST req received unexpected response (status: %d) %v", result.StatusCode, result.Err)
+							return false
+						}
+						Td.T.Logf("> REST req succeeded, got expected error: %v", result.Err)
+						return true
+					}, 5 /*consecutive success threshold*/, 90*time.Second /*timeout*/)
+					Expect(cond).To(BeTrue())
+				}
 			})
 		})
 	})

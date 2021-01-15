@@ -176,7 +176,7 @@ static_resources:
 		})
 
 		It("Creates bootstrap config for the Envoy proxy", func() {
-			wh := &webhook{
+			wh := &mutatingWebhook{
 				kubeClient:          fake.NewSimpleClientset(),
 				kubeController:      k8s.NewMockController(gomock.NewController(GinkgoT())),
 				nonInjectNamespaces: mapset.NewSet(),
@@ -185,7 +185,7 @@ static_resources:
 			namespace := "a"
 			osmNamespace := "b"
 
-			secret, err := wh.createEnvoyBootstrapConfig(name, namespace, osmNamespace, cert)
+			secret, err := wh.createEnvoyBootstrapConfig(name, namespace, osmNamespace, cert, healthProbes{})
 			Expect(err).ToNot(HaveOccurred())
 
 			expected := corev1.Secret{
@@ -252,7 +252,7 @@ var _ = Describe("Test Envoy sidecar", func() {
 	Context("create Envoy sidecar", func() {
 		It("creates correct Envoy sidecar spec", func() {
 			mockConfigurator.EXPECT().GetEnvoyLogLevel().Return("debug").Times(1)
-			actual := getEnvoySidecarContainerSpec(containerName, envoyImage, nodeID, clusterID, mockConfigurator)
+			actual := getEnvoySidecarContainerSpec(containerName, envoyImage, nodeID, clusterID, mockConfigurator, healthProbes{})
 
 			expected := corev1.Container{
 				Name:            containerName,

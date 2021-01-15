@@ -104,7 +104,7 @@ func LivenessHandler(probes []Probes, urlProbes []HTTPProbe) http.Handler {
 		// Probe on all configured probes
 		for _, probe := range probes {
 			if !probe.Liveness() {
-				msg := fmt.Sprintf("Libeness probe for %s indicates it is not alive", probe.GetID())
+				msg := fmt.Sprintf("Liveness probe for %s indicates it is not alive", probe.GetID())
 				log.Warn().Msgf(msg)
 				setProbeResponse(w, http.StatusServiceUnavailable, msg)
 				return

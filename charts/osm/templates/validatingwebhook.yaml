@@ -1,0 +1,29 @@
+apiVersion: admissionregistration.k8s.io/v1beta1
+kind: ValidatingWebhookConfiguration
+metadata:
+  labels:
+    app: osm-controller
+  name: {{.Values.OpenServiceMesh.webhookConfigNamePrefix}}-{{.Values.OpenServiceMesh.meshName}}
+webhooks:
+- name: osm-config-webhook.k8s.io
+  clientConfig:
+    service:
+      name: osm-config-validator
+      namespace: {{ include "osm.namespace" . }}
+      path: /validate-webhook
+      port: 9093
+  failurePolicy: Fail
+  matchPolicy: Exact
+  namespaceSelector:
+    matchLabels:
+      name: {{ include "osm.namespace" . }}
+  rules:
+    - apiGroups:
+        - ""
+      apiVersions:
+        - v1
+      operations:
+        - CREATE
+        - UPDATE
+      resources:
+        - configmaps

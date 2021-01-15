@@ -46,7 +46,7 @@ var _ = Describe("Test all patch operations", func() {
 			_, err := client.CoreV1().Namespaces().Create(context.TODO(), testNamespace, metav1.CreateOptions{})
 			Expect(err).ToNot(HaveOccurred())
 
-			wh := &webhook{
+			wh := &mutatingWebhook{
 				kubeClient:          client,
 				kubeController:      mockNsController,
 				certManager:         tresor.NewFakeCertManager(mockConfigurator),

@@ -13,7 +13,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	fake "k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -196,7 +196,7 @@ var _ = Describe("Test Kube Client Provider (w/o kubecontroller)", func() {
 			},
 		}, nil)
 
-		portToProtocolMap, err := provider.GetPortToProtocolMappingForService(tests.BookbuyerService)
+		portToProtocolMap, err := provider.GetTargetPortToProtocolMappingForService(tests.BookbuyerService)
 		Expect(err).To(BeNil())
 
 		expectedPortToProtocolMap := map[uint32]string{88: appProtoTCP, 80: appProtoHTTP}

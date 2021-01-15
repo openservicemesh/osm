@@ -642,10 +642,7 @@ func (mc *MeshCatalog) listPoliciesFromTrafficTargets(sa service.K8sServiceAccou
 }
 
 func isValidTrafficTarget(t *target.TrafficTarget) bool {
-	if t.Spec.Rules == nil || len(t.Spec.Rules) == 0 {
-		return false
-	}
-	return true
+	return t.Spec.Rules != nil && len(t.Spec.Rules) > 0
 }
 
 // buildPolicyName creates a name for a policy associated with the given service

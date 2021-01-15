@@ -7,7 +7,7 @@ import (
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/golang/mock/gomock"
-	"github.com/stretchr/testify/assert"
+	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
@@ -31,7 +31,7 @@ func newNamespace(name string, annotations map[string]string) *corev1.Namespace 
 }
 
 func TestIsMetricsEnabled(t *testing.T) {
-	assert := assert.New(t)
+	assert := tassert.New(t)
 	fakeClient := fake.NewSimpleClientset()
 
 	// create namespace with metrics enabled
@@ -67,7 +67,7 @@ func TestIsMetricsEnabled(t *testing.T) {
 	}
 
 	mockController := k8s.NewMockController(gomock.NewController(t))
-	wh := &webhook{
+	wh := &mutatingWebhook{
 		kubeClient:          fakeClient,
 		kubeController:      mockController,
 		nonInjectNamespaces: mapset.NewSet(),

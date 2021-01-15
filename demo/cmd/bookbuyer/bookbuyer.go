@@ -85,7 +85,7 @@ func getHandlers() []handler {
 	}
 }
 
-func reset(w http.ResponseWriter, r *http.Request) {
+func reset(w http.ResponseWriter, _ *http.Request) {
 	atomic.StoreInt64(&booksBought, 0)
 	atomic.StoreInt64(&booksBoughtV1, 0)
 	atomic.StoreInt64(&booksBoughtV2, 0)

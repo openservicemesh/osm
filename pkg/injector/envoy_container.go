@@ -15,7 +15,7 @@ const (
 	envoyProxyConfigPath     = "/etc/envoy"
 )
 
-func getEnvoySidecarContainerSpec(containerName, envoyImage, nodeID, clusterID string, cfg configurator.Configurator) corev1.Container {
+func getEnvoySidecarContainerSpec(containerName, envoyImage, nodeID, clusterID string, cfg configurator.Configurator, originalHealthProbes healthProbes) corev1.Container {
 	return corev1.Container{
 		Name:            containerName,
 		Image:           envoyImage,
@@ -26,16 +26,7 @@ func getEnvoySidecarContainerSpec(containerName, envoyImage, nodeID, clusterID s
 				return &uid
 			}(),
 		},
-		Ports: []corev1.ContainerPort{{
-			Name:          constants.EnvoyAdminPortName,
-			ContainerPort: constants.EnvoyAdminPort,
-		}, {
-			Name:          constants.EnvoyInboundListenerPortName,
-			ContainerPort: constants.EnvoyInboundListenerPort,
-		}, {
-			Name:          constants.EnvoyInboundPrometheusListenerPortName,
-			ContainerPort: constants.EnvoyPrometheusInboundListenerPort,
-		}},
+		Ports: getEnvoyContainerPorts(originalHealthProbes),
 		VolumeMounts: []corev1.VolumeMount{{
 			Name:      envoyBootstrapConfigVolume,
 			ReadOnly:  true,
@@ -84,4 +75,50 @@ func getEnvoySidecarContainerSpec(containerName, envoyImage, nodeID, clusterID s
 			},
 		},
 	}
+}
+
+func getEnvoyContainerPorts(originalHealthProbes healthProbes) []corev1.ContainerPort {
+	containerPorts := []corev1.ContainerPort{
+		{
+			Name:          constants.EnvoyAdminPortName,
+			ContainerPort: constants.EnvoyAdminPort,
+		},
+		{
+			Name:          constants.EnvoyInboundListenerPortName,
+			ContainerPort: constants.EnvoyInboundListenerPort,
+		},
+		{
+			Name:          constants.EnvoyInboundPrometheusListenerPortName,
+			ContainerPort: constants.EnvoyPrometheusInboundListenerPort,
+		},
+	}
+
+	if originalHealthProbes.liveness != nil {
+		livenessPort := corev1.ContainerPort{
+			// Name must be no more than 15 characters
+			Name:          "liveness-port",
+			ContainerPort: livenessProbePort,
+		}
+		containerPorts = append(containerPorts, livenessPort)
+	}
+
+	if originalHealthProbes.readiness != nil {
+		readinessPort := corev1.ContainerPort{
+			// Name must be no more than 15 characters
+			Name:          "readiness-port",
+			ContainerPort: readinessProbePort,
+		}
+		containerPorts = append(containerPorts, readinessPort)
+	}
+
+	if originalHealthProbes.startup != nil {
+		startupPort := corev1.ContainerPort{
+			// Name must be no more than 15 characters
+			Name:          "startup-port",
+			ContainerPort: startupProbePort,
+		}
+		containerPorts = append(containerPorts, startupPort)
+	}
+
+	return containerPorts
 }

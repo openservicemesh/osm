@@ -43,7 +43,6 @@ _dist/
 
 creds.json
 screenlog.*
-vendor/
 demo/bin/
 certificates
 
@@ -54,9 +53,6 @@ coverage.xml
 coverage/
 report.xml
 testoutput.txt
-
-# macOS files
-.DS_Store
 
 # Certificates etc
 *.pem

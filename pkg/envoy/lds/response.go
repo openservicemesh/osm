@@ -28,7 +28,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 
 	svcAccount, err := catalog.GetServiceAccountFromProxyCertificate(proxy.GetCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error retrieving SerivceAccount for proxy %s", proxy.GetCommonName())
+		log.Error().Err(err).Msgf("Error retrieving ServiceAccount for proxy %s", proxy.GetCommonName())
 		return nil, err
 	}
 
@@ -44,6 +44,8 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		log.Error().Err(err).Msgf("Error making outbound listener config for proxy %s", proxyServiceName)
 	} else {
 		if outboundListener == nil {
+			// This check is important to prevent attempting to configure a listener without a filter chain which
+			// otherwise results in an error.
 			log.Debug().Msgf("Not programming Outbound listener for proxy %s", proxyServiceName)
 		} else {
 			if marshalledOutbound, err := ptypes.MarshalAny(outboundListener); err != nil {
