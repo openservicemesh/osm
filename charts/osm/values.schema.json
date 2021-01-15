@@ -33,8 +33,7 @@
                 "enforceSingleMesh",
                 "deployJaeger",
                 "tracing",
-                "webhookConfigNamePrefix",
-                "connectVault"
+                "webhookConfigNamePrefix"
             ],
             "properties": {
                 "replicaCount": {
