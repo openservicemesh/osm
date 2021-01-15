@@ -64,18 +64,21 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 			return nil, err
 		}
 
-		for _, hostname := range hostnames {
-			// All routes from a given source to destination are part of 1 traffic policy between the source and destination.
-			for _, httpRoute := range trafficPolicy.HTTPRouteMatches {
-				if isSourceService {
-					aggregateRoutesByHost(outboundAggregatedRoutesByHostnames, httpRoute, weightedCluster, hostname)
-				}
+		if weightedCluster.Weight > 0 {
+			for _, hostname := range hostnames {
+				// All routes from a given source to destination are part of 1 traffic policy between the source and destination.
+				for _, httpRoute := range trafficPolicy.HTTPRouteMatches {
+					if isSourceService {
+						aggregateRoutesByHost(outboundAggregatedRoutesByHostnames, httpRoute, weightedCluster, hostname)
+					}
 
-				if isDestinationService {
-					aggregateRoutesByHost(inboundAggregatedRoutesByHostnames, httpRoute, weightedCluster, hostname)
+					if isDestinationService {
+						aggregateRoutesByHost(inboundAggregatedRoutesByHostnames, httpRoute, weightedCluster, hostname)
+					}
 				}
 			}
 		}
+
 	}
 
 	if err = updateRoutesForIngress(proxyServiceName, catalog, inboundAggregatedRoutesByHostnames); err != nil {

@@ -249,6 +249,87 @@ var _ = OSMDescribe("Test HTTP from N Clients deployments to 1 Server deployment
 
 				Expect(success).To(BeTrue())
 
+				// split the traffic only to the first server service
+				for i := 0; i < len(serverServices); i++ {
+					assignation = 0
+					if i == 0 {
+						assignation = 100
+					}
+					trafficSplit.Backends = append(trafficSplit.Backends,
+						TrafficSplitBackend{
+							Name:   serverServices[i],
+							Weight: assignation,
+						},
+					)
+				}
+				// Get the Traffic split structures
+				tSplit, err = Td.CreateSimpleTrafficSplit(trafficSplit)
+				Expect(err).To(BeNil())
+
+				// Push them in K8s
+				_, err = Td.CreateTrafficSplit(serverNamespace, tSplit)
+				Expect(err).To(BeNil())
+
+				By("Issuing http requests from clients to the traffic split FQDN with all services having 0 weight except for the first service")
+
+				// Test traffic
+				// Create Multiple HTTP request structure
+				requests = HTTPMultipleRequest{
+					Sources: []HTTPRequestDef{},
+				}
+				for _, ns := range clientServices {
+					pods, err := Td.Client.CoreV1().Pods(ns).List(context.Background(), metav1.ListOptions{})
+					Expect(err).To(BeNil())
+
+					for _, pod := range pods.Items {
+						requests.Sources = append(requests.Sources, HTTPRequestDef{
+							SourceNs:        ns,
+							SourcePod:       pod.Name,
+							SourceContainer: ns, // container_name == NS for this test
+
+							// Targeting the trafficsplit FQDN
+							Destination: fmt.Sprintf("%s.%s", trafficSplitName, serverNamespace),
+						})
+					}
+				}
+
+				results = HTTPMultipleResults{}
+				serversSeen = map[string]bool{} // Just counts unique servers seen
+				success = Td.WaitForRepeatedSuccess(func() bool {
+					curlSuccess := true
+
+					// Get results
+					results = Td.MultipleHTTPRequest(&requests)
+
+					// Print results
+					Td.PrettyPrintHTTPResults(&results)
+
+					// Verify REST status code results
+					for _, ns := range results {
+						for _, podResult := range ns {
+							if podResult.Err != nil || podResult.StatusCode != 200 {
+								curlSuccess = false
+							} else {
+								// We should see pod header populated
+								dstPod, ok := podResult.Headers[HTTPHeaderName]
+								if ok {
+									// Store and mark that we have seen a response for this server pod
+									serversSeen[dstPod] = true
+								}
+							}
+						}
+					}
+					Td.T.Logf("Unique servers replied %d/%d",
+						len(serversSeen), 1*serverReplicaSet)
+
+					// Success conditions:
+					// - All clients have been answered consecutively 5 successful HTTP requests
+					// - We have seen all servers from the traffic split reply at least once
+					return curlSuccess && (len(serversSeen) == 1*serverReplicaSet)
+				}, 5, 150*time.Second)
+
+				Expect(success).To(BeTrue())
+
 				By("Issuing http requests from clients to the allowed individual service backends")
 
 				// Test now against the individual services, observe they should still be reachable
