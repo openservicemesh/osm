@@ -43,7 +43,7 @@ func NewHTTPServer(port uint16) *HTTPServer {
 	}
 }
 
-// AddHandler adds a handlers to the httpHandlers map
+// AddHandler adds an HTTP handlers for the given path on the HTTPServer
 // For changes to be effective, server requires restart
 func (s *HTTPServer) AddHandler(url string, handler http.Handler) {
 	s.httpServeMux.Handle(url, handler)
