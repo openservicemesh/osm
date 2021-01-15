@@ -19,7 +19,6 @@ OpenServiceMesh:
     protocol: http
     token:
     role: openservicemesh
-  connectVault: true
   certmanager:
     issuerName: osm-ca
     issuerKind: Issuer

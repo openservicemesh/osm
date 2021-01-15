@@ -1,10 +1,36 @@
 # mTLS and Certificate Issuance
 Open Service Mesh uses mTLS for encryption of data between pods as well as Envoy and service identity. Certificates are created and distributed to each Envoy proxy via the SDS protocol by the OSM control plane.
 
-There are two kinds of certificates in the OSM ecosystem:
 
-1. Certificates used for Envoy proxies to connect to xDS control plane - identifies the proxy and pod connecting to xDS.
-2. Certificates used for service to service communication (one Envoy connects to another) - identifies the services connecting to each other.
+## Types of Certificates
+There are a few kinds of certificates used in OSM:
+
+| Cert Type | Where it is issued | How it is used | Validity duration | Sample CommonName |
+|---|---|---|---|---|
+| xDS bootstrap | [pkg/injector/patch.go → createPatch()](https://github.com/openservicemesh/osm/blob/release-v0.6/pkg/injector/patch.go#L35-L37) | used for [Envoy-to-xDS connections](https://github.com/openservicemesh/osm/blob/release-v0.6/pkg/envoy/ads/stream.go#L21-L30); identifies Envoy (Pod) to the xDS control plane. | [XDSCertificateValidityPeriod](https://github.com/openservicemesh/osm/blob/release-v0.6/pkg/constants/constants.go) → a decade | `7b2359d7-f201-4d3f-a217-73fd6e44e39b.bookstore-v2.bookstore` |
+| service | [pkg/envoy/sds/response.go → createDiscoveryResponse()](https://github.com/openservicemesh/osm/blob/release-v0.6/pkg/envoy/sds/response.go#L66-L67) | used for east-west communication between Envoys; identifies Service Accounts| [defined in ConfigMap; default 24h](https://github.com/openservicemesh/osm/blob/release-v0.6/charts/osm/values.yaml#L27) | `bookstore-v2.bookstore.cluster.local` |
+| mutating webhook handler | [pkg/injector/webhook.go → NewWebhook()](https://github.com/openservicemesh/osm/blob/release-v0.6/pkg/injector/webhook.go#L58-L59) | used by the webhook handler; **note**: this cert does not have to be related to the Envoy certs, but it does have to match the CA in the MutatingWebhookConfiguration | [XDSCertificateValidityPeriod](https://github.com/openservicemesh/osm/blob/release-v0.6/pkg/constants/constants.go) → a decade |  `osm-controller.osm-system.svc` |
+| validating webhook handler | [pkg/configurator/validating_webhook.go → NewValidatingWebhook()](https://github.com/openservicemesh/osm/blob/a48de43463c99c03e3662670bf7f2b99166e1388/pkg/configurator/validating_webhook.go#L85-L86) | used by the validating webhook handler; (same note as MWH cert) | [XDSCertificateValidityPeriod](https://github.com/openservicemesh/osm/blob/release-v0.6/pkg/constants/constants.go) → a decade | `osm-config-validator.osm-system.svc` |
+
+### Root Certificate
+The root certificate for the service mesh is stored in an Opaque Kubernetes Secret named `osm-ca-bundle` in the OSM Namespace (in most cases `osm-system`). 
+The secret YAML has the following shape:
+```yaml
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+      name: osm-ca-bundle
+      namespace: osm-system
+data:
+  ca.crt: <base64 encoded root cert>
+  expiration: <base64 encoded ISO 8601 certificate expiration date; for example: 2031-01-11T23:15:09.299Z> 
+  private.key: <base64 encoded private key>
+```
+
+For details and code where this is used see [osm-controller.go](https://github.com/openservicemesh/osm/blob/release-v0.6/cmd/osm-controller/osm-controller.go#L194-L200).
+
+## Issuing Certificates
 
 Open Service Mesh supports 4 methods of issuing certificates:
   - using an internal OSM package, called [Tresor](/pkg/certificate/providers/tresor/). This is the default for a first time installation.
@@ -13,7 +39,7 @@ Open Service Mesh supports 4 methods of issuing certificates:
   - using [cert-manager](https://cert-manager.io)
 
 
-## Using OSM's Tresor certificate issuer
+### Using OSM's Tresor certificate issuer
 
 Open Service Mesh includes a package, [tresor](/pkg/certificate/providers/tresor/). This is a minimal implementation of the `certificate.Manager` interface. It issues certificates leveraging the `crypto` Go library, and stores these certificates as Kubernetes secrets.
 
@@ -25,7 +51,7 @@ Additionally:
   - `--ca-bundle-secret-name` - this string is the name of the Kubernetes secret, where the CA root certificate and private key will be saved.
 
 
-## Using Hashicorp Vault
+### Using Hashicorp Vault
 
 Service Mesh operators, who consider storing their service mesh's CA root key in Kubernetes insecure have the option to integrate with a [Hashicorp Vault](https://www.vaultproject.io/) installation. In such scenarios a pre-configured Hashi Vault is required. Open Service Mesh's control plane connects to the URL of the Vault, authenticates, and begins requesting certificates. This setup shifts the responsibility of correctly and securely configuring Vault to the operator.
 
@@ -46,7 +72,7 @@ Additionally:
   - `--ca-bundle-secret-name` - this string is the name of the Kubernetes secret where the service mesh root certificate will be stored. When using Vault (unlike Tresor) the root key will **not** be exported to this secret.
 
 
-### Installing Hashi Vault
+#### Installing Hashi Vault
 
 Installation of Hashi Vault is out of scope for the Open Service Mesh project. Typically this is the responsibility of dedicated security teams. Documentation on how to deploy Vault securely and make it highly available is available on [Vault's website](https://learn.hashicorp.com/vault/getting-started/install).
 
@@ -98,7 +124,7 @@ Development mode should NOT be used in production installations!
 
 The outcome of deploying Vault in your system is a URL and a token. For instance the URL of Vauld could be `http://vault.osm-system-ns.svc.cluster.local` and the token `xxx`.
 
-### Configure OSM with Vault
+#### Configure OSM with Vault
 
 After Vault installation and before we use Helm to deploy OSM, the following parameters must be provided provided in the Helm chart:
 ```
@@ -119,7 +145,7 @@ When running OSM on your local workstation, use the following CLI parameters:
 --service-cert-validity-duration=24h
 ```
 
-### How OSM Integrates with Vault
+#### How OSM Integrates with Vault
 
 When the OSM control plane starts, a new certificate issuer is instantiated.
 The kind of cert issuer is determined by the `--certificate-manager` CLI parameter.
@@ -177,7 +203,7 @@ following commands to setup the dev environment:
 The OSM control plane provides verbose logs on operations done with the Vault installations.
 
 
-## Using cert-manager
+### Using cert-manager
 
 [cert-manager](https://cert-manager.io) is another provider for issuing signed
 certificates to the OSM service mesh, without the need for storing private keys
@@ -212,10 +238,10 @@ as a Kubernetes secret in the OSM namespace (`osm-system` by default) at the
 `--ca-bundle-secret-name` (typically `osm-ca-bundle`).
 
 ```bash
-$ kubectl create secret -n osm-system generic osm-ca-bundle --from-file ca.tls
+kubectl create secret -n osm-system generic osm-ca-bundle --from-file ca.tls
 ```
 
-### Configure OSM with cert-manager
+#### Configure OSM with cert-manager
 
 In order for OSM to use cert-manager with the configured issuer, set the
 following CLI arguments on the `osm install` command:

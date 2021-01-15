@@ -13,7 +13,6 @@ A Helm chart to install the OSM control plane on Kubernetes
 | OpenServiceMesh.certmanager.issuerGroup | string | `"cert-manager"` |  |
 | OpenServiceMesh.certmanager.issuerKind | string | `"Issuer"` |  |
 | OpenServiceMesh.certmanager.issuerName | string | `"osm-ca"` |  |
-| OpenServiceMesh.connectVault | bool | `true` |  |
 | OpenServiceMesh.controllerLogLevel | string | `"trace"` |  |
 | OpenServiceMesh.deployGrafana | bool | `false` |  |
 | OpenServiceMesh.deployJaeger | bool | `false` |  |
