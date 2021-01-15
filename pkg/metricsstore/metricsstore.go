@@ -139,7 +139,6 @@ func init() {
 		},
 		[]string{
 			"common_name", // common_name is the common name of the certificate
-			"success",
 		})
 	defaultMetricsStore.registry = prometheus.NewRegistry()
 }
