@@ -36,7 +36,7 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *v1beta1.AdmissionRe
 
 	metricsstore.DefaultMetricsStore.CertXdsIssuedCount.Inc()
 	metricsstore.DefaultMetricsStore.CertXdsIssuedTime.
-		WithLabelValues(cn.String(), fmt.Sprintf("%t", certIssuanceSuccess)).Observe(elapsed.Seconds())
+		WithLabelValues(cn.String(), strconv.FormatBool(certIssuanceSuccess)).Observe(elapsed.Seconds())
 	originalHealthProbes := rewriteHealthProbes(pod)
 
 	wh.meshCatalog.ExpectProxy(cn)
