@@ -42,8 +42,11 @@ type MetricsStore struct {
 	/*
 	 * Certificate metrics
 	 */
-	// CertsXdsIssuedCounter is the metric counter for the number of xds certificates issued
-	CertsXdsIssuedCounter prometheus.Counter
+	// CertXdsIssuedCount is the metric counter for the number of xds certificates issued
+	CertXdsIssuedCount prometheus.Counter
+
+	// CertXdsIssuedCounter the histogram to track the time to issue xds certificates
+	CertXdsIssuedTime *prometheus.HistogramVec
 
 	/*
 	 * MetricsStore internals should be defined below --------------
@@ -119,13 +122,24 @@ func init() {
 	/*
 	 * Certificate metrics
 	 */
-	defaultMetricsStore.CertsXdsIssuedCounter = prometheus.NewCounter(prometheus.CounterOpts{
+	defaultMetricsStore.CertXdsIssuedCount = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: metricsRootNamespace,
 		Subsystem: "cert",
 		Name:      "xds_issued_count",
 		Help:      "represents the total number of XDS certificates issued to proxies",
 	})
 
+	defaultMetricsStore.CertXdsIssuedTime = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Namespace: metricsRootNamespace,
+			Subsystem: "cert",
+			Name:      "xds_issued_time",
+			Buckets:   []float64{.1, .25, .5, 1, 2.5, 5, 10, 20, 40, 90},
+			Help:      "Histogram to track time spent to issue xds certificate",
+		},
+		[]string{
+			"common_name", // common_name is the common name of the certificate
+		})
 	defaultMetricsStore.registry = prometheus.NewRegistry()
 }
 
@@ -136,7 +150,8 @@ func (ms *MetricsStore) Start() {
 	ms.registry.MustRegister(ms.ProxyConfigUpdateTime)
 	ms.registry.MustRegister(ms.InjectorSidecarCount)
 	ms.registry.MustRegister(ms.InjectorRqTime)
-	ms.registry.MustRegister(ms.CertsXdsIssuedCounter)
+	ms.registry.MustRegister(ms.CertXdsIssuedCount)
+	ms.registry.MustRegister(ms.CertXdsIssuedTime)
 }
 
 // Stop store
@@ -146,7 +161,8 @@ func (ms *MetricsStore) Stop() {
 	ms.registry.Unregister(ms.ProxyConfigUpdateTime)
 	ms.registry.Unregister(ms.InjectorSidecarCount)
 	ms.registry.Unregister(ms.InjectorRqTime)
-	ms.registry.Unregister(ms.CertsXdsIssuedCounter)
+	ms.registry.Unregister(ms.CertXdsIssuedCount)
+	ms.registry.Unregister(ms.CertXdsIssuedTime)
 }
 
 // Handler return the registry
