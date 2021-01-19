@@ -132,11 +132,12 @@ func (cm *CertManager) certificaterFromCertificateRequest(cr *cmapi.CertificateR
 	}
 
 	return Certificate{
-		commonName: certificate.CommonName(cert.Subject.CommonName),
-		expiration: cert.NotAfter,
-		certChain:  cr.Status.Certificate,
-		privateKey: privateKey,
-		issuingCA:  cm.ca.GetIssuingCA(),
+		commonName:   certificate.CommonName(cert.Subject.CommonName),
+		serialNumber: certificate.SerialNumber(cert.SerialNumber.String()),
+		expiration:   cert.NotAfter,
+		certChain:    cr.Status.Certificate,
+		privateKey:   privateKey,
+		issuingCA:    cm.ca.GetIssuingCA(),
 	}, nil
 }
 

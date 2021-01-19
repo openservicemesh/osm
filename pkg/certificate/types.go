@@ -19,6 +19,13 @@ const (
 	TypeCertificateRequest = "CERTIFICATE REQUEST"
 )
 
+// SerialNumber is the Serial Number of the given certificate.
+type SerialNumber string
+
+func (sn SerialNumber) String() string {
+	return string(sn)
+}
+
 // CommonName is the Subject Common Name from a given SSL certificate.
 type CommonName string
 
@@ -45,7 +52,7 @@ type Certificater interface {
 	GetExpiration() time.Time
 
 	// GetSerialNumber returns the serial number of the given certificate.
-	GetSerialNumber() string
+	GetSerialNumber() SerialNumber
 }
 
 // Manager is the interface declaring the methods for the Certificate Manager.

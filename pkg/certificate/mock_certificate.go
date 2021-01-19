@@ -92,10 +92,10 @@ func (mr *MockCertificaterMockRecorder) GetIssuingCA() *gomock.Call {
 }
 
 // GetSerialNumber mocks base method
-func (m *MockCertificater) GetSerialNumber() string {
+func (m *MockCertificater) GetSerialNumber() SerialNumber {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetSerialNumber")
-	ret0, _ := ret[0].(string)
+	ret0, _ := ret[0].(SerialNumber)
 	return ret0
 }
 

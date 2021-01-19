@@ -78,11 +78,12 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Dura
 	}
 
 	cert := Certificate{
-		commonName: cn,
-		certChain:  certPEM,
-		privateKey: privKeyPEM,
-		issuingCA:  cm.ca.GetCertificateChain(),
-		expiration: template.NotAfter,
+		commonName:   cn,
+		serialNumber: certificate.SerialNumber(serialNumber.String()),
+		certChain:    certPEM,
+		privateKey:   privKeyPEM,
+		issuingCA:    cm.ca.GetCertificateChain(),
+		expiration:   template.NotAfter,
 	}
 
 	log.Info().Msgf("Created new certificate for CN=%s; validity=%+v; expires on %+v; serial: %x", cn, validityPeriod, template.NotAfter, template.SerialNumber)

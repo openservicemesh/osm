@@ -62,10 +62,11 @@ func NewCA(cn certificate.CommonName, validityPeriod time.Duration, rootCertCoun
 	}
 
 	rootCertificate := Certificate{
-		commonName: rootCertificateName,
-		certChain:  pemCert,
-		privateKey: pemKey,
-		expiration: template.NotAfter,
+		commonName:   rootCertificateName,
+		serialNumber: certificate.SerialNumber(serialNumber.String()),
+		certChain:    pemCert,
+		privateKey:   pemKey,
+		expiration:   template.NotAfter,
 	}
 
 	rootCertificate.issuingCA = rootCertificate.GetCertificateChain()
@@ -75,11 +76,17 @@ func NewCA(cn certificate.CommonName, validityPeriod time.Duration, rootCertCoun
 
 // NewCertificateFromPEM is a helper returning a certificate.Certificater from the PEM components given.
 func NewCertificateFromPEM(pemCert pem.Certificate, pemKey pem.PrivateKey, expiration time.Time) (certificate.Certificater, error) {
+	x509Cert, err := certificate.DecodePEMCertificate(pemCert)
+	if err != nil {
+		log.Err(err).Msg("Error converting PEM cert to x509 to obtain serial number")
+		return nil, err
+	}
 	rootCertificate := Certificate{
-		commonName: rootCertificateName,
-		certChain:  pemCert,
-		privateKey: pemKey,
-		expiration: expiration,
+		commonName:   rootCertificateName,
+		serialNumber: certificate.SerialNumber(x509Cert.SerialNumber.String()),
+		certChain:    pemCert,
+		privateKey:   pemKey,
+		expiration:   expiration,
 	}
 
 	rootCertificate.issuingCA = rootCertificate.GetCertificateChain()
