@@ -12,7 +12,7 @@ import (
 )
 
 func (ds DebugConfig) getEnvoyConfig(pod *v1.Pod, cn certificate.CommonName, url string) string {
-	log.Info().Msgf("Getting Envoy config for CN=%s, podIP=%s", cn, pod.Status.PodIP)
+	log.Info().Msgf("Getting Envoy config for CN=%s, podUID=%s", cn, pod.ObjectMeta.UID)
 
 	minPort := 16000
 	maxPort := 18000
@@ -32,7 +32,7 @@ func (ds DebugConfig) getEnvoyConfig(pod *v1.Pod, cn certificate.CommonName, url
 	client := &http.Client{}
 	resp, err := client.Get(fmt.Sprintf("http://%s:%d/%s", "localhost", portFwdRequest.LocalPort, url))
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting pod with CN=%s and podIP=%s", cn, pod.Status.PodIP)
+		log.Error().Err(err).Msgf("Error getting pod with CN=%s and podUID=%s", cn, pod.ObjectMeta.UID)
 		return fmt.Sprintf("Error: %s", err)
 	}
 
@@ -42,7 +42,7 @@ func (ds DebugConfig) getEnvoyConfig(pod *v1.Pod, cn certificate.CommonName, url
 	}()
 
 	if resp.StatusCode != http.StatusOK {
-		log.Error().Msgf("Error getting Envoy config for Pod with CN=%s and IP=%s; HTTP Error %d", cn, pod.Status.PodIP, resp.StatusCode)
+		log.Error().Msgf("Error getting Envoy config for Pod with CN=%s and UID=%s; HTTP Error %d", cn, pod.ObjectMeta.UID, resp.StatusCode)
 		portFwdRequest.Stop <- struct{}{}
 		return fmt.Sprintf("Error: %s", err)
 	}
