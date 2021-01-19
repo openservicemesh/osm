@@ -20,7 +20,18 @@ prev=$(tail -2 <<< "$tags" | head -1)
 
 changelog=$(git log "$prev".."$tag" --format="* %s %H (%aN)")
 
+# Determine if any CRDs were updated between tags
+# CRD upgrades require manually deleting prior CRDs before upgrading Helm chart
+crd_changes=$(git diff --name-only "$prev".."$tag" -- charts/osm/crds)
+if [[ -z "$crd_changes" ]]; then
+   crd_changes="NONE"
+fi
+
 cat <<EOF
+## CRD Updates
+
+$crd_changes
+
 ## Changelog
 
 $changelog
