@@ -33,8 +33,7 @@
                 "enforceSingleMesh",
                 "deployJaeger",
                 "tracing",
-                "webhookConfigNamePrefix",
-                "connectVault"
+                "webhookConfigNamePrefix"
             ],
             "properties": {
                 "replicaCount": {
@@ -399,15 +398,6 @@
                     "description": "Prefix for the webhook name, which uses the format <webhook-prefix>-<mesh-name>",
                     "examples": [
                         ""
-                    ]
-                },
-                "connectVault": {
-                    "$id": "#/properties/OpenServiceMesh/properties/connectVault",
-                    "type": "boolean",
-                    "title": "Connect to vault for cert manager",
-                    "description": "Specifies whether OSM deployment needs vault connection for cert-manager support",
-                    "examples": [
-                        true
                     ]
                 },
                 "osmNamespace": {

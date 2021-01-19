@@ -54,8 +54,12 @@ const (
 
 // NewMutatingWebhook starts a new web server handling requests from the injector MutatingWebhookConfiguration
 func NewMutatingWebhook(config Config, kubeClient kubernetes.Interface, certManager certificate.Manager, meshCatalog catalog.MeshCataloger, kubeController k8s.Controller, meshName, osmNamespace, webhookConfigName string, stop <-chan struct{}, cfg configurator.Configurator) error {
-	cn := certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.OSMControllerName, osmNamespace))
-	cert, err := certManager.IssueCertificate(cn, constants.XDSCertificateValidityPeriod)
+	// This is a certificate issued for the webhook handler
+	// This cert does not have to be related to the Envoy certs, but it does have to match
+	// the cert provisioned with the MutatingWebhookConfiguration
+	webhookHandlerCert, err := certManager.IssueCertificate(
+		certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.OSMControllerName, osmNamespace)),
+		constants.XDSCertificateValidityPeriod)
 	if err != nil {
 		return errors.Errorf("Error issuing certificate for the mutating webhook: %+v", err)
 	}
@@ -67,7 +71,7 @@ func NewMutatingWebhook(config Config, kubeClient kubernetes.Interface, certMana
 		meshCatalog:    meshCatalog,
 		kubeController: kubeController,
 		osmNamespace:   osmNamespace,
-		cert:           cert,
+		cert:           webhookHandlerCert,
 		configurator:   cfg,
 
 		// Envoy sidecars should never be injected in these namespaces
@@ -82,7 +86,7 @@ func NewMutatingWebhook(config Config, kubeClient kubernetes.Interface, certMana
 	go wh.run(stop)
 
 	// Update the MutatingWebhookConfig with the OSM CA bundle
-	if err = updateMutatingWebhookCABundle(cert, webhookConfigName, wh.kubeClient); err != nil {
+	if err = updateMutatingWebhookCABundle(webhookHandlerCert, webhookConfigName, wh.kubeClient); err != nil {
 		return errors.Errorf("Error configuring MutatingWebhookConfiguration %s: %+v", webhookConfigName, err)
 	}
 	return nil
