@@ -21,6 +21,12 @@ type MetricsStore struct {
 	// K8sAPIEventCounter is the metric counter for the number of K8s API events
 	K8sAPIEventCounter *prometheus.CounterVec
 
+	// K8sMonitoredNamespaceCount is the metric for the number of monitored namespaces
+	K8sMonitoredNamespaceCount prometheus.Gauge
+
+	// K8sMeshPodCount is the metric for the number of pods participating in the mesh
+	K8sMeshPodCount prometheus.Gauge
+
 	/*
 	 * Proxy metrics
 	 */
@@ -72,6 +78,18 @@ func init() {
 		},
 		[]string{"type", "namespace"},
 	)
+	defaultMetricsStore.K8sMonitoredNamespaceCount = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: metricsRootNamespace,
+		Subsystem: "k8s",
+		Name:      "monitored_namespace_count",
+		Help:      "represents the number of namespaces monitored by OSM controller",
+	})
+	defaultMetricsStore.K8sMeshPodCount = prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: metricsRootNamespace,
+		Subsystem: "k8s",
+		Name:      "mesh_pod_count",
+		Help:      "represents the number of pods part of the mesh managed by OSM controller",
+	})
 
 	/*
 	 * Proxy metrics
@@ -146,6 +164,8 @@ func init() {
 // Start store
 func (ms *MetricsStore) Start() {
 	ms.registry.MustRegister(ms.K8sAPIEventCounter)
+	ms.registry.MustRegister(ms.K8sMonitoredNamespaceCount)
+	ms.registry.MustRegister(ms.K8sMeshPodCount)
 	ms.registry.MustRegister(ms.ProxyConnectCount)
 	ms.registry.MustRegister(ms.ProxyConfigUpdateTime)
 	ms.registry.MustRegister(ms.InjectorSidecarCount)
@@ -157,6 +177,8 @@ func (ms *MetricsStore) Start() {
 // Stop store
 func (ms *MetricsStore) Stop() {
 	ms.registry.Unregister(ms.K8sAPIEventCounter)
+	ms.registry.Unregister(ms.K8sMonitoredNamespaceCount)
+	ms.registry.Unregister(ms.K8sMeshPodCount)
 	ms.registry.Unregister(ms.ProxyConnectCount)
 	ms.registry.Unregister(ms.ProxyConfigUpdateTime)
 	ms.registry.Unregister(ms.InjectorSidecarCount)
