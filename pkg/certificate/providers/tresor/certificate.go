@@ -39,8 +39,8 @@ func (c Certificate) GetExpiration() time.Time {
 }
 
 // GetSerialNumber returns the serial number of the given certificate.
-func (c Certificate) GetSerialNumber() string {
-	panic("NotImplemented")
+func (c Certificate) GetSerialNumber() certificate.SerialNumber {
+	return c.serialNumber
 }
 
 // LoadCA loads the certificate and its key from the supplied PEM files.
@@ -63,10 +63,11 @@ func LoadCA(certFilePEM string, keyFilePEM string) (*Certificate, error) {
 	}
 
 	rootCertificate := Certificate{
-		commonName: rootCertificateName,
-		certChain:  pemCert,
-		privateKey: pemKey,
-		expiration: x509RootCert.NotAfter,
+		commonName:   rootCertificateName,
+		serialNumber: certificate.SerialNumber(x509RootCert.SerialNumber.String()),
+		certChain:    pemCert,
+		privateKey:   pemKey,
+		expiration:   x509RootCert.NotAfter,
 	}
 	return &rootCertificate, nil
 }
