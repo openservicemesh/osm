@@ -50,16 +50,17 @@ func NewCertManager(vaultAddr, token string, role string, cfg configurator.Confi
 
 	c.client.SetToken(token)
 
-	issuingCA, err := c.getIssuingCA(c.issue)
+	issuingCA, serialNumber, err := c.getIssuingCA(c.issue)
 	if err != nil {
 		return nil, err
 	}
 
 	c.ca = &Certificate{
-		commonName: constants.CertificationAuthorityCommonName,
-		expiration: time.Now().Add(decade),
-		certChain:  issuingCA,
-		issuingCA:  issuingCA,
+		commonName:   constants.CertificationAuthorityCommonName,
+		serialNumber: serialNumber,
+		expiration:   time.Now().Add(decade),
+		certChain:    issuingCA,
+		issuingCA:    issuingCA,
 	}
 
 	// Instantiating a new certificate rotation mechanism will start a goroutine for certificate rotation.
@@ -68,11 +69,11 @@ func NewCertManager(vaultAddr, token string, role string, cfg configurator.Confi
 	return c, nil
 }
 
-func (cm *CertManager) getIssuingCA(issue func(certificate.CommonName, time.Duration) (certificate.Certificater, error)) ([]byte, error) {
+func (cm *CertManager) getIssuingCA(issue func(certificate.CommonName, time.Duration) (certificate.Certificater, error)) ([]byte, certificate.SerialNumber, error) {
 	// Create a temp certificate to determine the public part of the issuing CA
 	cert, err := issue("localhost", decade)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	issuingCA := cert.GetIssuingCA()
@@ -80,7 +81,7 @@ func (cm *CertManager) getIssuingCA(issue func(certificate.CommonName, time.Dura
 	// We are not going to need this certificate - remove it
 	cm.ReleaseCertificate(cert.GetCommonName())
 
-	return issuingCA, err
+	return issuingCA, cert.GetSerialNumber(), err
 }
 
 func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Duration) (certificate.Certificater, error) {
@@ -201,7 +202,7 @@ type Certificate struct {
 	issuingCA pem.RootCertificate
 
 	// serialNumber is the serial_number value in the Data field assigned to the Certificate Hashicorp Vault issued
-	serialNumber string
+	serialNumber certificate.SerialNumber
 }
 
 // GetCommonName returns the common name of the given certificate.
@@ -232,15 +233,15 @@ func (c Certificate) GetExpiration() time.Time {
 func newCert(cn certificate.CommonName, secret *api.Secret, expiration time.Time) *Certificate {
 	return &Certificate{
 		commonName:   cn,
+		serialNumber: certificate.SerialNumber(secret.Data[serialNumberField].(string)),
 		expiration:   expiration,
 		certChain:    pem.Certificate(secret.Data[certificateField].(string)),
 		privateKey:   []byte(secret.Data[privateKeyField].(string)),
 		issuingCA:    pem.RootCertificate(secret.Data[issuingCAField].(string)),
-		serialNumber: secret.Data[serialNumberField].(string),
 	}
 }
 
 // GetSerialNumber returns the serial number of the given certificate.
-func (c Certificate) GetSerialNumber() string {
+func (c Certificate) GetSerialNumber() certificate.SerialNumber {
 	return c.serialNumber
 }
