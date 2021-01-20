@@ -16,7 +16,7 @@ const (
 	ADSUpdateStr = "ADS"
 )
 
-// Wrapper to create and send a discover response to an envoy server
+// Wrapper to create and send a discovery response to an envoy server
 func (s *Server) sendTypeResponse(tURI envoy.TypeURI,
 	proxy *envoy.Proxy, server *xds_discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer,
 	req *xds_discovery.DiscoveryRequest, cfg configurator.Configurator) error {
