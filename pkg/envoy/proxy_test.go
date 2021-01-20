@@ -16,7 +16,7 @@ const (
 
 var _ = Describe("Test proxy methods", func() {
 	cn := certificate.CommonName(fmt.Sprintf("UUID-of-proxy.%s.%s.one.two.three.co.uk", svc, ns))
-	certSerialNumber := certificate.SerialNumber("123")
+	// certSerialNumber := certificate.SerialNumber("123")
 	proxy := NewProxy(cn, nil)
 
 	Context("Testing proxy.GetCertificateCommonName()", func() {
@@ -26,10 +26,10 @@ var _ = Describe("Test proxy methods", func() {
 		})
 	})
 
-	Context("Testing proxy.GetCertificateSerialNumber()", func() {
-		It("should return certificate serial number", func() {
-			actualSerialNumber := proxy.GetCertificateSerialNumber()
-			Expect(actualSerialNumber).To(Equal(certSerialNumber))
-		})
-	})
+	// Context("Testing proxy.GetCertificateSerialNumber()", func() {
+	// 	It("should return certificate serial number", func() {
+	// 		actualSerialNumber := proxy.GetCertificateSerialNumber()
+	//		Expect(actualSerialNumber).To(Equal(certSerialNumber))
+	//	})
+	//})
 })
