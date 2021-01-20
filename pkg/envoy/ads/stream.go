@@ -74,10 +74,10 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			return nil
 
 		case discoveryRequest, ok := <-requests:
-			log.Info().Msgf("Received %s (nonce=%s; version=%s; resources=%v) from Envoy %s", discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, discoveryRequest.ResourceNames, proxy.GetCommonName())
-			log.Info().Msgf("Last sent for %s nonce=%s; last sent version=%s for Envoy %s", discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, proxy.GetCommonName())
+			log.Info().Msgf("Received %s (nonce=%s; version=%s; resources=%v) from Envoy %s", discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, discoveryRequest.ResourceNames, proxy.GetCertificateCommonName())
+			log.Info().Msgf("Last sent for %s nonce=%s; last sent version=%s for Envoy %s", discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, proxy.GetCertificateCommonName())
 			if !ok {
-				log.Error().Msgf("Proxy %s closed GRPC!", proxy.GetCommonName())
+				log.Error().Msgf("Proxy %s closed GRPC!", proxy.GetCertificateCommonName())
 				metricsstore.DefaultMetricsStore.ProxyConnectCount.Dec()
 				return errGrpcClosed
 			}
@@ -101,7 +101,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 				if ackVersion, err = strconv.ParseUint(discoveryRequest.VersionInfo, 10, 64); err != nil {
 					// It is probable that Envoy responded with a VersionInfo we did not understand
 					// We log this and continue. The ackVersion will be 0 in this state.
-					log.Error().Err(err).Msgf("Error parsing %s discovery request VersionInfo (%s) from proxy %s", typeURL, discoveryRequest.VersionInfo, proxy.GetCommonName())
+					log.Error().Err(err).Msgf("Error parsing %s discovery request VersionInfo (%s) from proxy %s", typeURL, discoveryRequest.VersionInfo, proxy.GetCertificateCommonName())
 				}
 			}
 
@@ -109,13 +109,13 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 				discoveryRequest.TypeUrl,
 				discoveryRequest.ResponseNonce,
 				ackVersion,
-				proxy.GetCommonName(),
+				proxy.GetCertificateCommonName(),
 				proxy.GetLastAppliedVersion(typeURL))
 
 			log.Debug().Msgf("Last sent nonce=%s; last sent version=%d for Envoy %s",
 				proxy.GetLastSentNonce(typeURL),
 				proxy.GetLastSentVersion(typeURL),
-				proxy.GetCommonName())
+				proxy.GetCertificateCommonName())
 
 			proxy.SetLastAppliedVersion(typeURL, ackVersion)
 
@@ -153,15 +153,15 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			err := s.sendTypeResponse(typeURL, proxy, &server, &discoveryRequest, s.cfg)
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed to create and send %s update to Proxy %s",
-					envoy.XDSShortURINames[typeURL], proxy.GetCommonName())
+					envoy.XDSShortURINames[typeURL], proxy.GetCertificateCommonName())
 			}
 
 		case <-broadcastUpdate:
-			log.Info().Msgf("Broadcast update received for %s", proxy.GetCommonName())
+			log.Info().Msgf("Broadcast update received for %s", proxy.GetCertificateCommonName())
 			s.sendAllResponses(proxy, &server, s.cfg)
 
 		case <-proxy.GetAnnouncementsChannel():
-			log.Info().Msgf("Individual update for %s", proxy.GetCommonName())
+			log.Info().Msgf("Individual update for %s", proxy.GetCertificateCommonName())
 			s.sendAllResponses(proxy, &server, s.cfg)
 		}
 	}

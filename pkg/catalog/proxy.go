@@ -26,9 +26,9 @@ func (mc *MeshCatalog) RegisterProxy(proxy *envoy.Proxy) {
 	// If this proxy object is on a Kubernetes Pod - it will have an UID
 	if proxy.HasPodMetadata() {
 		podUID := types.UID(proxy.PodMetadata.UID)
-		mc.podUIDToCN.Store(podUID, proxy.GetCommonName())
+		mc.podUIDToCN.Store(podUID, proxy.GetCertificateCommonName())
 	}
-	log.Info().Msgf("Registered new proxy: CN=%v, ip=%v", proxy.GetCommonName(), proxy.GetIP())
+	log.Info().Msgf("Registered new proxy: CN=%v, ip=%v", proxy.GetCertificateCommonName(), proxy.GetIP())
 }
 
 // UnregisterProxy unregisters the given proxy from the catalog.
@@ -39,5 +39,5 @@ func (mc *MeshCatalog) UnregisterProxy(p *envoy.Proxy) {
 		lastSeen: time.Now(),
 	})
 
-	log.Info().Msgf("Unregistered proxy: CN=%v, ip=%v", p.GetCommonName(), p.GetIP())
+	log.Info().Msgf("Unregistered proxy: CN=%v, ip=%v", p.GetCertificateCommonName(), p.GetIP())
 }

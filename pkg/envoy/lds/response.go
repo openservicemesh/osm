@@ -18,17 +18,17 @@ import (
 // 2. Outbound listener to handle outgoing traffic
 // 3. Prometheus listener for metrics
 func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, _ certificate.Manager) (*xds_discovery.DiscoveryResponse, error) {
-	svcList, err := meshCatalog.GetServicesFromEnvoyCertificate(proxy.GetCommonName())
+	svcList, err := meshCatalog.GetServicesFromEnvoyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up MeshService for Envoy with CN=%q", proxy.GetCommonName())
+		log.Error().Err(err).Msgf("Error looking up MeshService for Envoy with CN=%q", proxy.GetCertificateCommonName())
 		return nil, err
 	}
 	// Github Issue #1575
 	proxyServiceName := svcList[0]
 
-	svcAccount, err := catalog.GetServiceAccountFromProxyCertificate(proxy.GetCommonName())
+	svcAccount, err := catalog.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error retrieving ServiceAccount for proxy %s", proxy.GetCommonName())
+		log.Error().Err(err).Msgf("Error retrieving ServiceAccount for proxy %s", proxy.GetCertificateCommonName())
 		return nil, err
 	}
 

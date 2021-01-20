@@ -35,7 +35,7 @@ func receive(requests chan xds_discovery.DiscoveryRequest, server *xds_discovery
 			if request.Node != nil {
 				nodeID = request.Node.Id
 			}
-			log.Trace().Msgf("[grpc] Received DiscoveryRequest from Envoy with CN %s; Node ID: %s", proxy.GetCommonName(), nodeID)
+			log.Trace().Msgf("[grpc] Received DiscoveryRequest from Envoy with CN %s; Node ID: %s", proxy.GetCertificateCommonName(), nodeID)
 			requests <- *request
 		} else {
 			log.Warn().Msgf("[grpc] Unknown resource: %+v", request)
