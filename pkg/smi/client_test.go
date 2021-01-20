@@ -6,7 +6,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
-	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha3"
+	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	smiSplit "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	testTrafficTargetClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/clientset/versioned/fake"
 	testTrafficSpecClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/specs/clientset/versioned/fake"
@@ -336,7 +336,7 @@ var _ = Describe("When listing ListHTTPTrafficSpecs", func() {
 
 		routeSpec := &smiSpecs.HTTPRouteGroup{
 			TypeMeta: metav1.TypeMeta{
-				APIVersion: "specs.smi-spec.io/v1alpha3",
+				APIVersion: "specs.smi-spec.io/v1alpha4",
 				Kind:       "HTTPRouteGroup",
 			},
 			ObjectMeta: metav1.ObjectMeta{
@@ -368,7 +368,7 @@ var _ = Describe("When listing ListHTTPTrafficSpecs", func() {
 			},
 		}
 
-		_, err := fakeClientSet.smiTrafficSpecClientSet.SpecsV1alpha3().HTTPRouteGroups(testNamespaceName).Create(context.TODO(), routeSpec, metav1.CreateOptions{})
+		_, err := fakeClientSet.smiTrafficSpecClientSet.SpecsV1alpha4().HTTPRouteGroups(testNamespaceName).Create(context.TODO(), routeSpec, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 		<-rgChannel
 
@@ -376,7 +376,7 @@ var _ = Describe("When listing ListHTTPTrafficSpecs", func() {
 		Expect(len(httpRoutes)).To(Equal(1))
 		Expect(httpRoutes[0].Name).To(Equal(routeSpec.Name))
 
-		err = fakeClientSet.smiTrafficSpecClientSet.SpecsV1alpha3().HTTPRouteGroups(testNamespaceName).Delete(context.TODO(), routeSpec.Name, metav1.DeleteOptions{})
+		err = fakeClientSet.smiTrafficSpecClientSet.SpecsV1alpha4().HTTPRouteGroups(testNamespaceName).Delete(context.TODO(), routeSpec.Name, metav1.DeleteOptions{})
 		Expect(err).ToNot(HaveOccurred())
 		<-rgChannel
 	})
@@ -415,7 +415,7 @@ var _ = Describe("When listing TCP routes", func() {
 			Spec: smiSpecs.TCPRouteSpec{},
 		}
 
-		_, err := fakeClientSet.smiTrafficSpecClientSet.SpecsV1alpha3().TCPRoutes(testNamespaceName).Create(context.TODO(), routeSpec, metav1.CreateOptions{})
+		_, err := fakeClientSet.smiTrafficSpecClientSet.SpecsV1alpha4().TCPRoutes(testNamespaceName).Create(context.TODO(), routeSpec, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 		<-trChannel
 
@@ -423,7 +423,7 @@ var _ = Describe("When listing TCP routes", func() {
 		Expect(len(tcpRoutes)).To(Equal(1))
 		Expect(tcpRoutes[0].Name).To(Equal(routeSpec.Name))
 
-		err = fakeClientSet.smiTrafficSpecClientSet.SpecsV1alpha3().TCPRoutes(testNamespaceName).Delete(context.TODO(), routeSpec.Name, metav1.DeleteOptions{})
+		err = fakeClientSet.smiTrafficSpecClientSet.SpecsV1alpha4().TCPRoutes(testNamespaceName).Delete(context.TODO(), routeSpec.Name, metav1.DeleteOptions{})
 		Expect(err).ToNot(HaveOccurred())
 		<-trChannel
 	})

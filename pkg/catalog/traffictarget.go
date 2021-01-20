@@ -2,11 +2,8 @@ package catalog
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
 
 	mapset "github.com/deckarep/golang-set"
-	"github.com/pkg/errors"
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
 
 	"github.com/openservicemesh/osm/pkg/identity"
@@ -179,25 +176,8 @@ func (mc *MeshCatalog) getTCPRouteMatchesFromTrafficTarget(trafficTarget smiAcce
 			return nil, errNoTrafficSpecFoundForTrafficPolicy
 		}
 
-		// TODO(#1521): Create an actual TCP route match once v1alpha4 TCPRoute spec is available
-		// Hack: derive ports from 'ports' label on the TCPRoute resource
-		portsStr, ok := tcpRoute.Labels["ports"]
-		if !ok {
-			continue
-		}
-		portStrList := strings.Split(portsStr, ",")
-		var ports []int
-		for i := range portStrList {
-			portStrList[i] = strings.TrimSpace(portStrList[i])
-			port, err := strconv.Atoi(portStrList[i])
-			if err != nil {
-				return nil, errors.Errorf("Invalid port value %s, must be an integer", portStrList[i])
-			}
-			ports = append(ports, port)
-		}
-
 		tcpRouteMatch := trafficpolicy.TCPRouteMatch{
-			Ports: ports,
+			Ports: tcpRoute.Spec.Matches.Ports,
 		}
 		matches = append(matches, tcpRouteMatch)
 	}
