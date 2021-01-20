@@ -18,6 +18,7 @@ var _ = Describe("Test Envoy tools", func() {
 			addr := "blah"
 			port := uint32(95346)
 			actual := GetAddress(addr, port)
+
 			expected := &core.Address{
 				Address: &core.Address_SocketAddress{
 					SocketAddress: &core.SocketAddress{
@@ -34,7 +35,7 @@ var _ = Describe("Test Envoy tools", func() {
 		})
 	})
 
-	Context("Test CertName interface", func() {
+	Context("Test UnmarshalSDSCert()", func() {
 		It("Interface marshals and unmarshals preserving the exact same data", func() {
 			InitialObj := SDSCert{
 				CertType: ServiceCertType,
@@ -53,9 +54,7 @@ var _ = Describe("Test Envoy tools", func() {
 			// First and final object must be equal
 			Expect(*finalObj).To(Equal(InitialObj))
 		})
-	})
 
-	Context("Test getRequestedCertType()", func() {
 		It("returns service cert", func() {
 			actual, err := UnmarshalSDSCert("service-cert:namespace-test/blahBlahBlahCert")
 			Expect(err).ToNot(HaveOccurred())
