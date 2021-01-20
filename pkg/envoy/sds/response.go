@@ -19,7 +19,7 @@ import (
 
 // NewResponse creates a new Secrets Discovery Response.
 func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, certManager certificate.Manager) (*xds_discovery.DiscoveryResponse, error) {
-	log.Info().Msgf("Composing SDS Discovery Response for proxy: %s", proxy.GetCertificateCommonName())
+	log.Debug().Msgf("Composing SDS Discovery Response for proxy: %s", proxy.GetCertificateCommonName())
 
 	svcList, err := meshCatalog.GetServicesFromEnvoyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {

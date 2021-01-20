@@ -260,7 +260,7 @@ func (c *Client) ListTrafficTargets() []*smiAccess.TrafficTarget {
 // GetBackpressurePolicy gets the Backpressure policy corresponding to the MeshService
 func (c *Client) GetBackpressurePolicy(svc service.MeshService) *osmPolicy.Backpressure {
 	if !featureflags.IsBackpressureEnabled() {
-		log.Info().Msgf("Backpressure turned off!")
+		log.Debug().Msgf("Backpressure turned off!")
 		return nil
 	}
 

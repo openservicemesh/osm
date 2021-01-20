@@ -32,7 +32,7 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 		log.Error().Err(err).Msg("Failed listing routes")
 		return nil, err
 	}
-	log.Debug().Msgf("trafficPolicies: %+v", allTrafficPolicies)
+	log.Debug().Msgf("trafficPolicies for service %s : %+v", proxyServiceName.String(), allTrafficPolicies)
 
 	resp := &xds_discovery.DiscoveryResponse{
 		TypeUrl: string(envoy.TypeRDS),
@@ -51,7 +51,7 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 		svc := trafficPolicy.Destination
 		weightedCluster, err := catalog.GetWeightedClusterForService(svc)
 		if err != nil {
-			log.Error().Err(err).Msg("Failed listing clusters")
+			log.Error().Err(err).Msgf("Failed listing weighted cluster for service %s", svc.String())
 			return nil, err
 		}
 
@@ -65,7 +65,7 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 			continue
 		}
 		if err != nil {
-			log.Error().Err(err).Msg("Failed listing domains")
+			log.Error().Err(err).Msgf("Failed listing domains for service %s", svc.String())
 			return nil, err
 		}
 		for _, hostname := range hostnames {
@@ -94,7 +94,7 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 	for _, config := range routeConfiguration {
 		marshalledRouteConfig, err := ptypes.MarshalAny(config)
 		if err != nil {
-			log.Error().Err(err).Msgf("Failed to marshal route config for proxy")
+			log.Error().Err(err).Msgf("Failed to marshal route config for proxy %s", proxyServiceName)
 			return nil, err
 		}
 		resp.Resources = append(resp.Resources, marshalledRouteConfig)

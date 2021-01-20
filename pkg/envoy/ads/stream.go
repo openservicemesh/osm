@@ -36,7 +36,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 	// Github Issue #1575
 	namespacedService := svcList[0]
 
-	log.Info().Msgf("Client %s connected: Subject CN=%s; Service=%s", ip, cn, namespacedService)
+	log.Debug().Msgf("Client %s connected: Subject CN=%s; Service=%s", ip, cn, namespacedService)
 	metricsstore.DefaultMetricsStore.ProxyConnectCount.Inc()
 
 	// This is the Envoy proxy that just connected to the control plane.
@@ -74,8 +74,8 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			return nil
 
 		case discoveryRequest, ok := <-requests:
-			log.Info().Msgf("Received %s (nonce=%s; version=%s; resources=%v) from Envoy %s", discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, discoveryRequest.ResourceNames, proxy.GetCertificateCommonName())
-			log.Info().Msgf("Last sent for %s nonce=%s; last sent version=%s for Envoy %s", discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, proxy.GetCertificateCommonName())
+			log.Debug().Msgf("Received %s (nonce=%s; version=%s; resources=%v) from Envoy %s", discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, discoveryRequest.ResourceNames, proxy.GetCertificateCommonName())
+			log.Debug().Msgf("Last sent for %s nonce=%s; last sent version=%s for Envoy %s", discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, proxy.GetCertificateCommonName())
 			if !ok {
 				log.Error().Msgf("Proxy %s closed GRPC!", proxy.GetCertificateCommonName())
 				metricsstore.DefaultMetricsStore.ProxyConnectCount.Dec()
@@ -157,11 +157,11 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			}
 
 		case <-broadcastUpdate:
-			log.Info().Msgf("Broadcast update received for %s", proxy.GetCertificateCommonName())
+			log.Debug().Msgf("Broadcast update received for %s", proxy.GetCertificateCommonName())
 			s.sendAllResponses(proxy, &server, s.cfg)
 
 		case <-proxy.GetAnnouncementsChannel():
-			log.Info().Msgf("Individual update for %s", proxy.GetCertificateCommonName())
+			log.Debug().Msgf("Individual update for %s", proxy.GetCertificateCommonName())
 			s.sendAllResponses(proxy, &server, s.cfg)
 		}
 	}

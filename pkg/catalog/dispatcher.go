@@ -95,7 +95,7 @@ func (mc *MeshCatalog) dispatcher() {
 
 		// A select-fallthrough doesn't exist, we are copying some code here
 		case <-chanMovingDeadline:
-			log.Info().Msgf("[Moving deadline trigger] Broadcast envoy update")
+			log.Debug().Msgf("[Moving deadline trigger] Broadcast envoy update")
 			events.GetPubSubInstance().Publish(events.PubSubMessage{
 				AnnouncementType: a.ProxyBroadcast,
 			})
@@ -106,7 +106,7 @@ func (mc *MeshCatalog) dispatcher() {
 			chanMaxDeadline = make(<-chan time.Time)
 
 		case <-chanMaxDeadline:
-			log.Info().Msgf("[Max deadline trigger] Broadcast envoy update")
+			log.Debug().Msgf("[Max deadline trigger] Broadcast envoy update")
 			events.GetPubSubInstance().Publish(events.PubSubMessage{
 				AnnouncementType: a.ProxyBroadcast,
 			})
