@@ -44,7 +44,6 @@ _dist/
 creds.json
 screenlog.*
 demo/bin/
-certificates
 
 ## Ignore test coverage files
 coverage.json
