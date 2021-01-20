@@ -26,7 +26,7 @@ var _ = Describe("Test cert-manager Debugger", func() {
 		cm := CertManager{
 			cache: cache,
 		}
-		It("lists all issued certificets", func() {
+		It("lists all issued certificates", func() {
 			actual := cm.ListIssuedCertificates()
 			expected := []certificate.Certificater{cert}
 			Expect(actual).To(Equal(expected))
