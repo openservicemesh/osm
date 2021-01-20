@@ -1,6 +1,8 @@
 package tests
 
 import (
+	"encoding/pem"
+	"errors"
 	"fmt"
 	"net"
 
@@ -12,11 +14,16 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 
 	backpressure "github.com/openservicemesh/osm/experimental/pkg/apis/policy/v1alpha1"
+	tresorPem "github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/tests/certificates"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
+
+// ErrDecodingPEMBlock is an error message emitted when a PEM block cannot be decoded
+var ErrDecodingPEMBlock = errors.New("failed to decode PEM block containing certificate")
 
 const (
 	// Namespace is the commonly used namespace.
@@ -518,4 +525,24 @@ func NewSMITrafficTarget(sourceName, sourceNamespace, destName, destNamespace st
 			}},
 		},
 	}
+}
+
+// GetPEMCert returns a TEST certificate used ONLY for testing
+func GetPEMCert() (tresorPem.Certificate, error) {
+	caBlock, _ := pem.Decode([]byte(certificates.SampleCertificatePEM))
+	if caBlock == nil || caBlock.Type != "CERTIFICATE" {
+		return nil, ErrDecodingPEMBlock
+	}
+
+	return pem.EncodeToMemory(caBlock), nil
+}
+
+// GetPEMPrivateKey returns a TEST private key used ONLY for testing
+func GetPEMPrivateKey() (tresorPem.PrivateKey, error) {
+	caKeyBlock, _ := pem.Decode([]byte(certificates.SamplePrivateKeyPEM))
+	if caKeyBlock == nil || caKeyBlock.Type != "PRIVATE KEY" {
+		return nil, ErrDecodingPEMBlock
+	}
+
+	return pem.EncodeToMemory(caKeyBlock), nil
 }
