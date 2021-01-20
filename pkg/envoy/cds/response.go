@@ -15,9 +15,9 @@ import (
 
 // NewResponse creates a new Cluster Discovery Response.
 func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, _ certificate.Manager) (*xds_discovery.DiscoveryResponse, error) {
-	svcList, err := meshCatalog.GetServicesFromEnvoyCertificate(proxy.GetCommonName())
+	svcList, err := meshCatalog.GetServicesFromEnvoyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up MeshService for Envoy with CN=%q", proxy.GetCommonName())
+		log.Error().Err(err).Msgf("Error looking up MeshService for Envoy with CN=%q", proxy.GetCertificateCommonName())
 		return nil, err
 	}
 	// Github Issue #1575
@@ -25,9 +25,9 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 
 	var clusters []*xds_cluster.Cluster
 
-	proxyIdentity, err := catalog.GetServiceAccountFromProxyCertificate(proxy.GetCommonName())
+	proxyIdentity, err := catalog.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up proxy identity for proxy with CN=%q", proxy.GetCommonName())
+		log.Error().Err(err).Msgf("Error looking up proxy identity for proxy with CN=%q", proxy.GetCertificateCommonName())
 		return nil, err
 	}
 
@@ -84,7 +84,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		alreadyAdded.Add(cluster.Name)
 		marshalledClusters, err := ptypes.MarshalAny(cluster)
 		if err != nil {
-			log.Error().Err(err).Msgf("Failed to marshal cluster %s for proxy %s", cluster.Name, proxy.GetCommonName())
+			log.Error().Err(err).Msgf("Failed to marshal cluster %s for proxy %s", cluster.Name, proxy.GetCertificateCommonName())
 			return nil, err
 		}
 		resp.Resources = append(resp.Resources, marshalledClusters)

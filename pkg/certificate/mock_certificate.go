@@ -38,7 +38,7 @@ func (m *MockCertificater) EXPECT() *MockCertificaterMockRecorder {
 // GetCommonName mocks base method
 func (m *MockCertificater) GetCommonName() CommonName {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetCommonName")
+	ret := m.ctrl.Call(m, "GetCertificateCommonName")
 	ret0, _ := ret[0].(CommonName)
 	return ret0
 }
@@ -46,7 +46,7 @@ func (m *MockCertificater) GetCommonName() CommonName {
 // GetCommonName indicates an expected call of GetCommonName
 func (mr *MockCertificaterMockRecorder) GetCommonName() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCommonName", reflect.TypeOf((*MockCertificater)(nil).GetCommonName))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCertificateCommonName", reflect.TypeOf((*MockCertificater)(nil).GetCommonName))
 }
 
 // GetCertificateChain mocks base method

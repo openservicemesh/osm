@@ -17,17 +17,17 @@ import (
 
 // NewResponse creates a new Endpoint Discovery Response.
 func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, _ configurator.Configurator, _ certificate.Manager) (*xds_discovery.DiscoveryResponse, error) {
-	svcList, err := meshCatalog.GetServicesFromEnvoyCertificate(proxy.GetCommonName())
+	svcList, err := meshCatalog.GetServicesFromEnvoyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up MeshService for Envoy with CN=%q", proxy.GetCommonName())
+		log.Error().Err(err).Msgf("Error looking up MeshService for Envoy with CN=%q", proxy.GetCertificateCommonName())
 		return nil, err
 	}
 	// Github Issue #1575
 	proxyServiceName := svcList[0]
 
-	proxyIdentity, err := catalog.GetServiceAccountFromProxyCertificate(proxy.GetCommonName())
+	proxyIdentity, err := catalog.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up proxy identity for proxy with CN=%q", proxy.GetCommonName())
+		log.Error().Err(err).Msgf("Error looking up proxy identity for proxy with CN=%q", proxy.GetCertificateCommonName())
 		return nil, err
 	}
 

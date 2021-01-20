@@ -19,9 +19,9 @@ import (
 
 // NewResponse creates a new Route Discovery Response.
 func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, _ configurator.Configurator, _ certificate.Manager) (*xds_discovery.DiscoveryResponse, error) {
-	svcList, err := catalog.GetServicesFromEnvoyCertificate(proxy.GetCommonName())
+	svcList, err := catalog.GetServicesFromEnvoyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up MeshService for Envoy with CN=%q", proxy.GetCommonName())
+		log.Error().Err(err).Msgf("Error looking up MeshService for Envoy with CN=%q", proxy.GetCertificateCommonName())
 		return nil, err
 	}
 	// Github Issue #1575
