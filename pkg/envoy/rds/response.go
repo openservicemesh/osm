@@ -49,6 +49,16 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 		isSourceService := trafficPolicy.Source.Equals(proxyServiceName)
 		isDestinationService := trafficPolicy.Destination.Equals(proxyServiceName)
 		svc := trafficPolicy.Destination
+		weightedCluster, err := catalog.GetWeightedClusterForService(svc)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed listing clusters")
+			return nil, err
+		}
+
+		if weightedCluster.Weight <= 0 {
+			continue
+		}
+
 		hostnames, err := catalog.GetResolvableHostnamesForUpstreamService(proxyServiceName, svc)
 		//filter out traffic split service, reference to pkg/catalog/xds_certificates.go:74
 		if isTrafficSplitService(svc, allTrafficSplits) {
@@ -58,12 +68,6 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 			log.Error().Err(err).Msg("Failed listing domains")
 			return nil, err
 		}
-		weightedCluster, err := catalog.GetWeightedClusterForService(svc)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed listing clusters")
-			return nil, err
-		}
-
 		for _, hostname := range hostnames {
 			// All routes from a given source to destination are part of 1 traffic policy between the source and destination.
 			for _, httpRoute := range trafficPolicy.HTTPRouteMatches {
