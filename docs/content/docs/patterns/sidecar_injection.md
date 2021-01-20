@@ -1,3 +1,9 @@
+---
+title: "Sidecar Injection"
+description: "This section describes the sidecar injection workflow in OSM."
+type: docs
+---
+
 # Sidecar Injection
 Services participating in the service mesh communicate via sidecar proxies installed on pods backing the services. The following sections describe the sidecar injection workflow in OSM.
 

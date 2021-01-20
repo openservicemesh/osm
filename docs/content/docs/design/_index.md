@@ -1,4 +1,9 @@
-# Design Documents
+---
+title: "Design Documents"
+description: "Proposals for features with detailed design explanation and any associated artifacts."
+type: docs
+aliases: ["design"]
+---
 
 Use this directory to place proposals for features with detailed design explanation and any associated artifacts.
 

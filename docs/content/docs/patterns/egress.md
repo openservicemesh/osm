@@ -1,3 +1,9 @@
+---
+title: "Egress"
+description: "Enable access to the Internet and services external to the service mesh."
+type: docs
+---
+
 # Allowing access to the Internet and out-of-mesh services (egress)
 
 This document describes the steps required to enable access to the Internet and services external to the service mesh, sometimes referred to as `egress` traffic.

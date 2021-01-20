@@ -1,3 +1,9 @@
+---
+title: "Onboarding VMs"
+description: "Onboarding VMs to the service mesh"
+type: docs
+---
+
 # Onboarding VMs to the service mesh
 **Status: WIP**
 

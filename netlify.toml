@@ -7,3 +7,7 @@
 
 [context.production.environment]
   HUGO_ENV = "production"
+
+[[redirects]]
+  from = "https://docs.openservicemesh.io/"
+  to = "https://docs.openservicemesh.io/docs/"

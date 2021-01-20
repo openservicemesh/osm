@@ -1,3 +1,9 @@
+---
+title: "Issue Triage"
+description: "Issue Triage Guide"
+type: docs
+---
+
 # Issue Triage Guide
 
 This guide describes how to triage GitHub issues on the [issue queue](https://github.com/openservicemesh/osm/issues) for Open Service Mesh (OSM).

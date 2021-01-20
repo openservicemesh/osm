@@ -1,3 +1,9 @@
+---
+title: "Development Guide"
+description: "Open Service Mesh Development Guide"
+type: docs
+---
+
 # Open Service Mesh Development Guide
 
 Welcome to the Open Service Mesh development guide!
@@ -5,7 +11,7 @@ Thank you for joining us on a journey to build an SMI-native lightweight service
 
 To understand *what* Open Service Mesh does - take it for a spin and kick the tires. Install it on your Kubernetes cluster by following [this guide](./example/README.md).
 
-To get a deeper understanding of how OSM functions - take a look at the detailed [software design](/DESIGN.md).
+To get a deeper understanding of how OSM functions - take a look at the detailed [software design](../design/).
 
 When you are ready to jump in - [fork the repo](https://docs.github.com/en/github/getting-started-with-github/fork-a-repo) and then [clone it](https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/cloning-a-repository) on your workstation.
 
@@ -68,7 +74,7 @@ This repository uses [Go v1.15](https://golang.org/). If you are not familiar wi
 
 The OSM packages rely on many external Go libraries.
 
-Take a peek at the [go.mod](/go.mod) file to see all dependencies.
+Take a peek at the [go.mod](https://github.com/openservicemesh/osm/blob/main/go.mod) file to see all dependencies.
 
 Run `go get -d ./...` to download all required Go packages.
 
@@ -179,7 +185,7 @@ We have a dedicated tool for in-depth analysis of the unit-test code coverage:
 ```bash
 ./scripts/test-w-coverage.sh
 ```
-Running the [test-w-coverage.sh](../scripts/test-w-coverage.sh) script will create
+Running the [test-w-coverage.sh](https://github.com/openservicemesh/osm/blob/main/scripts/test-w-coverage.sh) script will create
 an HTML file with in-depth analysis of unit-test coverage per package, per
 function, and it will even show lines of code that need work. Open the HTML
 file this tool generates to understand how to improve test coverage:
@@ -189,25 +195,25 @@ open ./coverage/index.html
 
 Once the file loads in your browser, scroll to the package you worked on to see current test coverage:
 
-![package coverage](./images/unit-test-coverage-1.png)
+![package coverage](../images/unit-test-coverage-1.png)
 
 Our overall guiding principle is to maintain unit-test coverage at or above 80%.
 
 To understand which particular functions need more testing - scroll further in the report:
 
-![per function](./images/unit-test-coverage-2.png)
+![per function](../images/unit-test-coverage-2.png)
 
 And if you are wondering why a function, which we have written a test for, is not 100% covered,
 you will find the per-function analysis useful. This will show you code paths that are not tested.
 
-![per function](./images/unit-test-coverage-3.png)
+![per function](../images/unit-test-coverage-3.png)
 
 ##### Mocking
 
 OSM uses the [GoMock](https://github.com/golang/mock) mocking framework to mock interfaces in unit tests.
 GoMock's `mockgen` tool is used to autogenerate mocks from interfaces.
 
-As an example, to create a mock client for the `Configurator` interface defined in the [configurator](/pkg/configurator) package:
+As an example, to create a mock client for the `Configurator` interface defined in the [configurator](https://github.com/openservicemesh/osm/tree/main/pkg/configurator) package:
 ```bash
 go run github.com/golang/mock/mockgen -destination=pkg/configurator/mock_client.go -package=configurator github.com/openservicemesh/osm/pkg/configurator Configurator
 ```
@@ -234,9 +240,9 @@ End-to-end tests verify the behavior of the entire system. For OSM, e2e tests wi
 
 OSM's e2e tests are located in tests/e2e. The tests can be run using the `test-e2e` Makefile target. The Makefile target will also build the necessary container images and `osm` CLI binary before running the tests. The tests are written using Ginkgo and Gomega so they may also be directly invoked using `go test`. Be sure to build the `osm-controller` and `init` container images and `osm` CLI before directly invoking the tests. With either option, it is suggested to explicitly set the container registry location and tag to ensure up-to-date images are used by setting the `CTR_REGISTRY` and `CTR_TAG` environment variables.
 
-In addition to the flags provided by `go test` and Ginkgo, there are several custom command line flags that may be used for e2e tests to configure global parameters like container image locations and cleanup behavior. The full list of custom flags can be found in [tests/e2e/common.go](/tests/e2e/common.go).
+In addition to the flags provided by `go test` and Ginkgo, there are several custom command line flags that may be used for e2e tests to configure global parameters like container image locations and cleanup behavior. The full list of custom flags can be found in [tests/e2e/](https://github.com/openservicemesh/osm/tree/main/tests/e2e#flags).
 
-For more information, please refer to [OSM's E2E Readme](/tests/e2e/README.md).
+For more information, please refer to [OSM's E2E Readme](https://github.com/openservicemesh/osm/tree/main/tests/README.md).
 
 #### Simulation / Demo
 When we want to ensure that the entire system works correctly over time and
@@ -265,12 +271,12 @@ From pprof tool, it is possible to extract a large variety of profiling informat
 ## Helm charts
 
 The Open Service Mesh control plane chart is located in the
-[`charts/osm`](/charts/osm) folder.
+[`charts/osm`](https://github.com/openservicemesh/osm/tree/main/charts/osm) folder.
 
-The [`charts/osm/values.yaml`](/charts/osm/values.yaml) file defines the default value for properties
+The [`charts/osm/values.yaml`](https://github.com/openservicemesh/osm/blob/main/charts/osm/values.yaml) file defines the default value for properties
 referenced by the different chart templates.
 
-The [`charts/osm/templates/`](/charts/osm/templates/) folder contains the chart templates
+The [`charts/osm/templates/`](https://github.com/openservicemesh/osm/tree/main/charts/osm/templates) folder contains the chart templates
 for the different Kubernetes resources that are deployed as a part of the Open Service control plane installation.
 The different chart templates are used as follows:
 - `osm-*.yaml` chart templates are directly consumed by the `osm-controller` service.
@@ -282,5 +288,5 @@ The different chart templates are used as follows:
 
 ### Custom Resource Definitions
 
-The [`charts/osm/crds/`](/charts/osm/crds/) folder contains the charts corresponding to the SMI CRDs.
-Experimental CRDs can be found under [`charts/osm/crds/experimental/`](/charts/osm/crds/experimental/).
+The [`charts/osm/crds/`](https://github.com/openservicemesh/osm/tree/main/charts/osm/crds/) folder contains the charts corresponding to the SMI CRDs.
+Experimental CRDs can be found under [`charts/osm/crds/experimental/`](https://github.com/openservicemesh/osm/tree/main/charts/osm/crds/experimental).

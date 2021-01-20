@@ -1,3 +1,10 @@
+---
+title: "Metrics"
+description: "Metrics"
+type: docs
+---
+
+
 # Metrics
 Open Service Mesh (OSM) generates detailed metrics for all services communicating within the mesh. These metrics provide insights into the behavior of services in the mesh helping users to troubleshoot, maintain and analyze their applications.
 

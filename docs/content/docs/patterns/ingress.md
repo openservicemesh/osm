@@ -1,3 +1,9 @@
+---
+title: "Ingress"
+description: "How to expose HTTP and HTTPS routes outside the cluster to services within the cluster using Kubernetes Ingress"
+type: docs
+---
+
 # Exposing services outside the cluster using Ingress
 This document describes how to expose HTTP and HTTPS routes outside the cluster to services within the cluster using Kubernetes Ingress.
 

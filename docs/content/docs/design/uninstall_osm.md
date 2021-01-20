@@ -1,3 +1,9 @@
+---
+title: "Uninstall OSM"
+description: "Uninstall OSM Control Plane from Cluster"
+type: docs
+---
+
 # Uninstall OSM Control Plane from Cluster
 
 - **Revision:** 1

@@ -1,3 +1,9 @@
+---
+title: "Logs"
+description: "Logs"
+type: docs
+---
+
 # Logs
 Open Service Mesh (OSM) collects logs that are sent to stdout by default. When enabled, Fluent Bit can collect these logs, process them and send them to an output of the user's choice such as Elasticsearch, Azure Log Analytics, BigQuery, etc.
 
