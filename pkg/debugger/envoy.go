@@ -10,7 +10,7 @@ import (
 )
 
 func (ds DebugConfig) getEnvoyConfig(pod *v1.Pod, url string) string {
-	log.Info().Msgf("Getting Envoy config for Pod with UID=%s", pod.ObjectMeta.UID)
+	log.Info().Msgf("Getting Envoy config on Pod with UID=%s", pod.ObjectMeta.UID)
 
 	minPort := 16000
 	maxPort := 18000
@@ -40,7 +40,7 @@ func (ds DebugConfig) getEnvoyConfig(pod *v1.Pod, url string) string {
 	}()
 
 	if resp.StatusCode != http.StatusOK {
-		log.Error().Msgf("Error getting Envoy config for Pod with UID=%s; HTTP Error %d", pod.ObjectMeta.UID, resp.StatusCode)
+		log.Error().Msgf("Error getting Envoy config on Pod with UID=%s; HTTP Error %d", pod.ObjectMeta.UID, resp.StatusCode)
 		portFwdRequest.Stop <- struct{}{}
 		return fmt.Sprintf("Error: %s", err)
 	}

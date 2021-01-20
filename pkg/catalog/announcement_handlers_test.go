@@ -3,10 +3,11 @@ package catalog
 import (
 	"time"
 
+	"github.com/google/uuid"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/google/uuid"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -27,13 +28,10 @@ var _ = Describe("Test Announcement Handlers", func() {
 	BeforeEach(func() {
 		mc = NewFakeMeshCatalog(testclient.NewSimpleClientset())
 		podUID = uuid.New().String()
-
-		envoyCN = "abcdefg"
-		certSerialNumber := certificate.SerialNumber("123456")
 		_, err := mc.certManager.IssueCertificate(envoyCN, 5*time.Second)
 		Expect(err).ToNot(HaveOccurred())
 
-		proxy = envoy.NewProxy(envoyCN, certSerialNumber, nil)
+		proxy = envoy.NewProxy(envoyCN, "-cert-serial-number-", nil)
 		proxy.PodMetadata = &envoy.PodMetadata{
 			UID: podUID,
 		}

@@ -47,8 +47,11 @@ type MeshCatalog struct {
 	// lookups
 	kubeController k8s.Controller
 
-	// Maintain a mapping of pod UID to CN of the Envoy on that pod
+	// Maintain a mapping of pod UID to CN of the Envoy on the given pod
 	podUIDToCN sync.Map
+
+	// Maintain a mapping of pod UID to certificate SerialNumber of the Envoy on the given pod
+	podUIDToCertificateSerialNumber sync.Map
 }
 
 // MeshCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.

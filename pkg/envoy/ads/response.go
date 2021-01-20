@@ -25,16 +25,16 @@ func (s *Server) sendTypeResponse(tURI envoy.TypeURI,
 	xdsShortName := envoy.XDSShortURINames[tURI]
 	defer xdsPathTimeTrack(time.Now(), xdsShortName, proxy.GetCertificateCommonName().String(), &success)
 
-	log.Trace().Msgf("[%s] Creating response for proxy with CN=%s", xdsShortName, proxy.GetCertificateCommonName())
+	log.Trace().Msgf("[%s] Creating response for proxy with SerialNumber=%s on Pod with UID=%s", xdsShortName, proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 
 	discoveryResponse, err := s.newAggregatedDiscoveryResponse(proxy, req, cfg)
 	if err != nil {
-		log.Error().Err(err).Msgf("[%s] Failed to create response for proxy with CN=%s", xdsShortName, proxy.GetCertificateCommonName())
+		log.Error().Err(err).Msgf("[%s] Failed to create response for proxy with SerialNumber=%s on Pod with UID=%s", xdsShortName, proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 		return err
 	}
 
 	if err := (*server).Send(discoveryResponse); err != nil {
-		log.Error().Err(err).Msgf("[%s] Error sending to proxy with CN=%s", xdsShortName, proxy.GetCertificateCommonName())
+		log.Error().Err(err).Msgf("[%s] Error sending to proxy with SerialNumber=%s on Pod with UID=%s", xdsShortName, proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 		return err
 	}
 
@@ -43,7 +43,7 @@ func (s *Server) sendTypeResponse(tURI envoy.TypeURI,
 }
 
 func (s *Server) sendAllResponses(proxy *envoy.Proxy, server *xds_discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer, cfg configurator.Configurator) {
-	log.Trace().Msgf("A change announcement triggered *DS update for proxy with CN=%s", proxy.GetCertificateCommonName())
+	log.Trace().Msgf("A change announcement triggered *DS update for proxy with SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 
 	// Tracks the success of this full update of all its XDS paths. If a single XDS response path fails for this full update,
 	// the full updated will be considered as failed for metric purposes (success = false)
@@ -79,7 +79,7 @@ func (s *Server) sendAllResponses(proxy *envoy.Proxy, server *xds_discovery.Aggr
 func makeRequestForAllSecrets(proxy *envoy.Proxy, meshCatalog catalog.MeshCataloger) *xds_discovery.DiscoveryRequest {
 	svcList, err := meshCatalog.GetServicesFromEnvoyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up MeshService for Envoy with CN=%q", proxy.GetCertificateCommonName())
+		log.Error().Err(err).Msgf("Error looking up MeshService for Envoy with SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 		return nil
 	}
 	// Github Issue #1575
@@ -87,7 +87,7 @@ func makeRequestForAllSecrets(proxy *envoy.Proxy, meshCatalog catalog.MeshCatalo
 
 	proxyIdentity, err := catalog.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up proxy identity for proxy with CN=%q", proxy.GetCertificateCommonName())
+		log.Error().Err(err).Msgf("Error looking up proxy identity for proxy with SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 		return nil
 	}
 

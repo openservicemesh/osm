@@ -36,7 +36,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 		return nil, err
 	}
 
-	log.Info().Msgf("It took %+v to issue certificate with CN=%s", time.Since(start), cn)
+	log.Trace().Msgf("It took %+v to issue certificate with SerialNumber=%s", time.Since(start), cert.GetSerialNumber())
 
 	return cert, nil
 }
@@ -64,9 +64,9 @@ func (cm *CertManager) getFromCache(cn certificate.CommonName) certificate.Certi
 	cm.cacheLock.RLock()
 	defer cm.cacheLock.RUnlock()
 	if cert, exists := cm.cache[cn]; exists {
-		log.Trace().Msgf("Certificate found in cache CN=%s", cn)
+		log.Trace().Msgf("Certificate with SerialNumber=%s found in cache", cert.GetSerialNumber())
 		if rotor.ShouldRotate(cert) {
-			log.Trace().Msgf("Certificate found in cache but has expired CN=%s", cn)
+			log.Trace().Msgf("Certificate with SerialNumber=%s found in cache but has expired", cert.GetSerialNumber())
 			return nil
 		}
 		return cert
@@ -78,23 +78,22 @@ func (cm *CertManager) getFromCache(cn certificate.CommonName) certificate.Certi
 // certificate. When a certificate is successfully created, garbage collect
 // old CertificateRequests.
 func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate.Certificater, error) {
-	log.Info().Msgf("Rotating certificate for CN=%s", cn)
-
 	start := time.Now()
 
-	cert, err := cm.issue(cn, cm.cfg.GetServiceCertValidityPeriod())
+	newCert, err := cm.issue(cn, cm.cfg.GetServiceCertValidityPeriod())
 	if err != nil {
-		return cert, err
+		return newCert, err
 	}
 
 	cm.cacheLock.Lock()
-	cm.cache[cn] = cert
+	oldCert := cm.cache[cn]
+	cm.cache[cn] = newCert
 	cm.cacheLock.Unlock()
 	cm.announcements <- announcements.Announcement{}
 
-	log.Info().Msgf("Rotating certificate CN=%s took %+v", cn, time.Since(start))
+	log.Info().Msgf("Rotated certificate (old SerialNumber=%s) with new SerialNumber=%s; took %+v", oldCert.GetSerialNumber(), newCert.GetSerialNumber(), time.Since(start))
 
-	return cert, nil
+	return newCert, nil
 }
 
 // GetRootCertificate returns the root certificate in PEM format and its expiration.
@@ -151,8 +150,7 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Dura
 	certPrivKey, err := rsa.GenerateKey(rand.Reader, rsaBits)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error generating private key for certificate with CN=%s", cn)
-		return nil, fmt.Errorf("failed to generate private key for certificate with CN=%s: %s",
-			cn, err)
+		return nil, fmt.Errorf("failed to generate private key for certificate with CN=%s: %s", cn, err)
 	}
 
 	privKeyPEM, err := certificate.EncodeKeyDERtoPEM(certPrivKey)
@@ -178,8 +176,7 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Dura
 
 	csrPEM, err := certificate.EncodeCertReqDERtoPEM(csrDER)
 	if err != nil {
-		return nil, fmt.Errorf("failed to encode certificate request DER to PEM CN=%s: %s",
-			cn, err)
+		return nil, fmt.Errorf("failed to encode certificate request DER to PEM CN=%s: %s", cn, err)
 	}
 
 	cr := &cmapi.CertificateRequest{
@@ -203,7 +200,7 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Dura
 		return nil, err
 	}
 
-	log.Info().Msgf("Created CertificateRequest %s/%s for CN=%s", cm.namespace, cr.Name, cn)
+	log.Trace().Msgf("Created CertificateRequest %s/%s for CN=%s", cm.namespace, cr.Name, cn)
 
 	// TODO: add timeout option instead of 60s hard coded.
 	cr, err = cm.waitForCertificateReady(cr.Name, time.Second*60)
