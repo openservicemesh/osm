@@ -138,7 +138,8 @@ func TestGetRootCert(t *testing.T) {
 				proxyServices: []service.MeshService{tc.proxyService},
 				svcAccount:    tc.proxySvcAccount,
 				proxy:         envoy.NewProxy(certCommonName, certSerialNumber, nil),
-				certManager:   mockCertManager,
+
+				certManager: mockCertManager,
 
 				// these points to the dynamic mocks which gets updated for each test
 				meshCatalog: d.mockCatalog,
@@ -353,7 +354,8 @@ func TestGetSDSSecrets(t *testing.T) {
 				proxyServices: []service.MeshService{tc.proxyService},
 				svcAccount:    tc.proxySvcAccount,
 				proxy:         envoy.NewProxy(certCommonName, certSerialNumber, nil),
-				certManager:   mockCertManager,
+
+				certManager: mockCertManager,
 
 				// these points to the dynamic mocks which gets updated for each test
 				meshCatalog: d.mockCatalog,

@@ -66,5 +66,5 @@ func ValidateClient(ctx context.Context, allowedCommonNames map[string]interface
 	}
 
 	certificateSerialNumber := tlsAuth.State.VerifiedChains[0][0].SerialNumber.String()
-	return certificate.CertificateCommonName(cn), certificate.SerialNumber(certificateSerialNumber), nil
+	return certificate.CommonName(cn), certificate.SerialNumber(certificateSerialNumber), nil
 }
