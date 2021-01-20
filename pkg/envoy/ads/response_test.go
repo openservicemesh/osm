@@ -78,7 +78,7 @@ var _ = Describe("Test ADS response functions", func() {
 		Name:      serviceName,
 	}
 
-	Context("Test getRequestedCertType()", func() {
+	Context("Test makeRequestForAllSecrets()", func() {
 		It("returns service cert", func() {
 
 			actual := makeRequestForAllSecrets(proxy, mc)

@@ -39,6 +39,7 @@ func (ct SDSCertType) String() string {
 	return string(ct)
 }
 
+// SDSCertType enums
 const (
 	// ServiceCertType is the prefix for the service certificate resource name. Example: "service-cert:webservice"
 	ServiceCertType SDSCertType = "service-cert"
@@ -51,13 +52,9 @@ const (
 
 	// RootCertTypeForHTTPS is the prefix for the HTTPS root certificate resource name. Example: "root-cert-https:webservice"
 	RootCertTypeForHTTPS SDSCertType = "root-cert-https"
+)
 
-	// Outbound refers to Envoy upstream connectivity direction for TLS certs
-	Outbound SDSDirection = true
-
-	// Inbound refers to Envoy downstream connectivity direction for TLS certs
-	Inbound SDSDirection = false
-
+const (
 	// Separator is the separator between the prefix and the name of the certificate.
 	Separator = ":"
 
