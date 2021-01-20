@@ -22,10 +22,11 @@ func NewRootCertificateFromPEM(pemCert pem.Certificate) (certificate.Certificate
 	}
 
 	return Certificate{
-		commonName: certificate.CommonName(cert.Subject.CommonName),
-		certChain:  pemCert,
-		expiration: cert.NotAfter,
-		issuingCA:  pem.RootCertificate(pemCert),
+		commonName:   certificate.CommonName(cert.Subject.CommonName),
+		serialNumber: certificate.SerialNumber(cert.SerialNumber.String()),
+		certChain:    pemCert,
+		expiration:   cert.NotAfter,
+		issuingCA:    pem.RootCertificate(pemCert),
 	}, nil
 }
 

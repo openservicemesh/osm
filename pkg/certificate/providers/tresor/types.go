@@ -50,6 +50,9 @@ type Certificate struct {
 	// The commonName of the certificate
 	commonName certificate.CommonName
 
+	// The serial number of the certificate
+	serialNumber certificate.SerialNumber
+
 	// When the cert expires
 	expiration time.Time
 

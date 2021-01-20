@@ -25,11 +25,11 @@ var _ = OSMDescribe("Test TrafficSplit where each backend shares the same Servic
 		Context("ClientServerTrafficSplitSameSA", func() {
 			const (
 				// to name the header we will use to identify the server that replies
-				HTTPHeaderName = "podname"
+				HTTPHeaderName    = "podname"
+				clientAppBaseName = "client"
+				serverNamespace   = "server"
+				trafficSplitName  = "traffic-split"
 			)
-			clientAppBaseName := "client"
-			serverNamespace := "server"
-			trafficSplitName := "traffic-split"
 
 			// Scale number of client services/pods here
 			numberOfClientServices := 2
