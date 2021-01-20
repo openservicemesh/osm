@@ -101,9 +101,9 @@ func (cm *CertManager) deleteFromCache(cn certificate.CommonName) {
 func (cm *CertManager) getFromCache(cn certificate.CommonName) certificate.Certificater {
 	if certificateInterface, exists := cm.cache.Load(cn); exists {
 		cert := certificateInterface.(certificate.Certificater)
-		log.Trace().Msgf("Certificate found in cache CN=%s", cn)
+		log.Trace().Msgf("Certificate found in cache SerialNumber=%s", cert.GetSerialNumber())
 		if rotor.ShouldRotate(cert) {
-			log.Trace().Msgf("Certificate found in cache but has expired CN=%s", cn)
+			log.Trace().Msgf("Certificate found in cache but has expired SerialNumber=%s", cert.GetSerialNumber())
 			return nil
 		}
 		return cert
@@ -113,8 +113,6 @@ func (cm *CertManager) getFromCache(cn certificate.CommonName) certificate.Certi
 
 // IssueCertificate issues a certificate by leveraging the Hashi Vault CertManager.
 func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPeriod time.Duration) (certificate.Certificater, error) {
-	log.Info().Msgf("Issuing new certificate for CN=%s", cn)
-
 	start := time.Now()
 
 	if cert := cm.getFromCache(cn); cert != nil {
@@ -128,7 +126,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 
 	cm.cache.Store(cn, cert)
 
-	log.Info().Msgf("Issuing new certificate for CN=%s took %+v", cn, time.Since(start))
+	log.Trace().Msgf("Issued new certificate with SerialNumber=%s took %+v", cert.GetSerialNumber(), time.Since(start))
 
 	return cert, nil
 }
@@ -169,8 +167,6 @@ func (cm *CertManager) GetAnnouncementsChannel() <-chan announcements.Announceme
 
 // RotateCertificate implements certificate.Manager and rotates an existing certificate.
 func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate.Certificater, error) {
-	log.Info().Msgf("Rotating certificate for CN=%s", cn)
-
 	start := time.Now()
 
 	cert, err := cm.issue(cn, cm.cfg.GetServiceCertValidityPeriod())
@@ -181,7 +177,7 @@ func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate
 	cm.cache.Store(cn, cert)
 	cm.announcements <- announcements.Announcement{}
 
-	log.Info().Msgf("Rotating certificate CN=%s took %+v", cn, time.Since(start))
+	log.Trace().Msgf("Rotated certificate with new SerialNumber=%s took %+v", cert.GetSerialNumber(), time.Since(start))
 
 	return cert, nil
 }
