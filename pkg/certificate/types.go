@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
-	"github.com/openservicemesh/osm/pkg/logger"
 )
 
 const (
@@ -79,7 +78,3 @@ type Manager interface {
 	// GetAnnouncementsChannel returns a channel, which is used to announce when changes have been made to the issued certificates.
 	GetAnnouncementsChannel() <-chan announcements.Announcement
 }
-
-var (
-	log = logger.New("certificate")
-)
