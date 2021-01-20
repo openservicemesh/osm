@@ -2,6 +2,14 @@
 
 This guide describes the process to create a GitHub Release for this project.
 
+## Release Candidates
+
+Release candidates (RCs) should be created before each significant release so final testing can be performed. RCs are tagged as `vX.Y.Z-rc.W`. After the following steps have been performed to publish the RC, perform any final testing with the published release artifacts for about one week.
+
+If issues are found, submit patches to the RC's release branch and create a new RC with the tag `vX.Y.Z-rc.W+1`. Apply those same patches to the `main` branch. Repeat until the release is suitably stable.
+
+Once an RC has been found to be stable, cut a release tagged `vX.Y.Z` using the following steps.
+
 1. [Create a release branch](#create-a-release-branch)
 1. [Update release branch with versioning changes](#update-release-branch-with-versioning-changes)
 1. [Create and push a Git tag](#create-and-push-a-git-tag)
@@ -77,6 +85,8 @@ make chart-readme
 Make an announcement on the [mailing list](https://groups.google.com/g/openservicemesh).
 
 ## Make version changes on main branch
+
+Skip this step if the release is a release candidate (RC).
 
 Open a pull request against the `main` branch making the same version updates as [above](#update-release-branch-with-versioning-changes) so the latest release assets are referenced there.
 
