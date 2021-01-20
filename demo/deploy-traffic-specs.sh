@@ -7,7 +7,7 @@ source .env
 
 echo "Create Bookstore HTTPRouteGroup"
 kubectl apply -f - <<EOF
-apiVersion: specs.smi-spec.io/v1alpha3
+apiVersion: specs.smi-spec.io/v1alpha4
 kind: HTTPRouteGroup
 metadata:
   name: bookstore-service-routes
@@ -34,7 +34,7 @@ EOF
 
 echo "Create Bookwarehouse HTTPRouteGroup"
 kubectl apply -f - <<EOF
-apiVersion: specs.smi-spec.io/v1alpha3
+apiVersion: specs.smi-spec.io/v1alpha4
 kind: HTTPRouteGroup
 metadata:
   name: bookwarehouse-service-routes
