@@ -38,15 +38,15 @@ func (lb *listenerBuilder) newOutboundListener() (*xds_listener.Listener, error)
 	}
 
 	// Create filter chain for egress if egress is enabled
-	// This filterchain matches any traffic not filtered by allow rules, it will be treated as egress
+	// This filter chain matches any traffic not filtered by allow rules, it will be treated as egress
 	// traffic when enabled
 	if lb.cfg.IsEgressEnabled() {
-		egressFilterChgain, err := buildEgressFilterChain()
+		egressFilterChain, err := buildEgressFilterChain()
 		if err != nil {
 			log.Error().Err(err).Msgf("Error getting filter chain for Egress")
 			return nil, err
 		}
-		listener.DefaultFilterChain = egressFilterChgain
+		listener.DefaultFilterChain = egressFilterChain
 	}
 
 	if len(listener.FilterChains) == 0 && listener.DefaultFilterChain == nil {

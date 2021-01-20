@@ -36,7 +36,7 @@ func GetAdmissionRequestBody(w http.ResponseWriter, req *http.Request) ([]byte, 
 	return admissionRequestBody, nil
 }
 
-// AdmissionError wraps error as AdmisionResponse
+// AdmissionError wraps error as AdmissionResponse
 func AdmissionError(err error) *v1beta1.AdmissionResponse {
 	return &v1beta1.AdmissionResponse{
 		Result: &metav1.Status{

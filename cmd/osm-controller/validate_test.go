@@ -42,7 +42,7 @@ var _ = Describe("Test validateCertificateManagerOptions", func() {
 
 		})
 	})
-	Context("cert-manager osmCertificateManagerKind is passed in with valid caBundleSecretName and certmanagerIssureName", func() {
+	Context("cert-manager osmCertificateManagerKind is passed in with valid caBundleSecretName and certmanagerIssuerName", func() {
 		*osmCertificateManagerKind = certmanagerKind
 		caBundleSecretName = testCaBundleSecretName
 		*certmanagerIssuerName = "test-issuer"

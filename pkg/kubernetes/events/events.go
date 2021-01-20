@@ -89,7 +89,7 @@ func eventWatcher(kubeClient kubernetes.Interface, namespace string) (watch.Inte
 	return watcher, nil
 }
 
-// Initialize intitializes an uninitialized EventRecorder object
+// Initialize initializes an uninitialized EventRecorder object
 func (e *EventRecorder) Initialize(object runtime.Object, kubeClient kubernetes.Interface, namespace string) error {
 	var err error
 	e.object = object

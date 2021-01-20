@@ -49,7 +49,7 @@ func (s *HTTPServer) AddHandler(url string, handler http.Handler) {
 	s.httpServeMux.Handle(url, handler)
 }
 
-// AddHandlers covenience, multi-value AddHandler
+// AddHandlers convenience, multi-value AddHandler
 func (s *HTTPServer) AddHandlers(handlers map[string]http.Handler) {
 	for url, handler := range handlers {
 		s.AddHandler(url, handler)
