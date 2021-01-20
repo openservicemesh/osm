@@ -63,11 +63,11 @@ func (mc *MeshCatalog) ListDisconnectedProxies() map[certificate.CommonName]time
 func (mc *MeshCatalog) ListSMIPolicies() ([]*split.TrafficSplit, []service.WeightedService, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget) {
 	trafficSplits := mc.meshSpec.ListTrafficSplits()
 	splitServices := mc.meshSpec.ListTrafficSplitServices()
-	serviceAccouns := mc.meshSpec.ListServiceAccounts()
+	serviceAccounts := mc.meshSpec.ListServiceAccounts()
 	trafficSpecs := mc.meshSpec.ListHTTPTrafficSpecs()
 	trafficTargets := mc.meshSpec.ListTrafficTargets()
 
-	return trafficSplits, splitServices, serviceAccouns, trafficSpecs, trafficTargets
+	return trafficSplits, splitServices, serviceAccounts, trafficSpecs, trafficTargets
 }
 
 // ListMonitoredNamespaces returns all namespaces that the mesh is monitoring.

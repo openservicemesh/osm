@@ -74,8 +74,9 @@ var _ = AfterSuite(func() {
 })
 
 const (
-	// contant, default name for the Registry Secret
+	// default name for the container registry secret
 	registrySecretName = "acr-creds"
+
 	// test tag prefix, for NS labeling
 	osmTest = "osmTest"
 )
@@ -830,11 +831,11 @@ func (td *OsmTestData) installCertManager(instOpts InstallOSMOpts) error {
 }
 
 // AddNsToMesh Adds monitored namespaces to the OSM mesh
-func (td *OsmTestData) AddNsToMesh(sidecardInject bool, ns ...string) error {
+func (td *OsmTestData) AddNsToMesh(shouldInjectSidecar bool, ns ...string) error {
 	td.T.Logf("Adding Namespaces [+%s] to the mesh", ns)
 	for _, namespace := range ns {
 		args := []string{"namespace", "add", namespace}
-		if !sidecardInject {
+		if !shouldInjectSidecar {
 			args = append(args, "--disable-sidecar-injection")
 		}
 
@@ -1092,7 +1093,7 @@ const (
 	Suite CleanupType = "suite"
 )
 
-// Cleanup is Used to cleanup resorces once the test is done
+// Cleanup is Used to cleanup resources once the test is done
 func (td *OsmTestData) Cleanup(ct CleanupType) {
 	if td.Client == nil {
 		// Avoid any cleanup (crash) if no test is run;

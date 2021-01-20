@@ -185,7 +185,7 @@ var _ = Describe("CDS Response", func() {
 				},
 			}
 
-			// Checking for the value by generating the same value the same way is reduntant
+			// Checking for the value by generating the same value the same way is redundant
 			// Nonetheless, as getUpstreamServiceCluster logic gets more complicated, this might just be ok to have
 			upstreamTLSProto, err := ptypes.MarshalAny(envoy.GetUpstreamTLSContext(proxyService, upstreamSvc))
 			Expect(err).ToNot(HaveOccurred())

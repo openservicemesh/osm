@@ -269,7 +269,7 @@ func TestValidateFields(t *testing.T) {
 		expRes    *v1beta1.AdmissionResponse
 	}{
 		{
-			testName: "Accpet valid configMap update",
+			testName: "Accept valid configMap update",
 			configMap: corev1.ConfigMap{
 				Data: map[string]string{
 					"egress":                         "true",

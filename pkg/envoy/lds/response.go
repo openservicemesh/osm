@@ -80,7 +80,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	}
 
 	if len(inboundListener.FilterChains) > 0 {
-		// Inbound filter chains can be empty if the there both ingress and in-mesh policies are not configued.
+		// Inbound filter chains can be empty if the there both ingress and in-mesh policies are not configured.
 		// Configuring a listener without a filter chain is an error.
 		if marshalledInbound, err := ptypes.MarshalAny(inboundListener); err != nil {
 			log.Error().Err(err).Msgf("Error marshalling inbound listener config for proxy %s", proxyServiceName)

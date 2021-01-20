@@ -41,7 +41,7 @@ Multiple control plane installations can exist within a cluster. Each
 control plane is given a cluster-wide unqiue identifier called mesh name.
 A mesh name can be passed in via the --mesh-name flag. By default, the
 mesh-name name will be set to "osm." The mesh name must conform to same
-guidlines as a valid Kubernetes label value. Must be 63 characters or
+guidelines as a valid Kubernetes label value. Must be 63 characters or
 less and must be empty or begin and end with an alphanumeric character
 ([a-z0-9A-Z]) with dashes (-), underscores (_), dots (.), and
 alphanumerics between.

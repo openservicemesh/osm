@@ -29,7 +29,7 @@ func (mc *MeshCatalog) ListAllowedOutboundServiceAccounts(downstream service.K8s
 	return mc.getAllowedDirectionalServiceAccounts(downstream, outbound)
 }
 
-// ListInboundTrafficTargetsWithRoutes returns a list traffic target objects componsed of its routes for the given destination service account
+// ListInboundTrafficTargetsWithRoutes returns a list traffic target objects composed of its routes for the given destination service account
 func (mc *MeshCatalog) ListInboundTrafficTargetsWithRoutes(upstream service.K8sServiceAccount) ([]trafficpolicy.TrafficTargetWithRoutes, error) {
 	var trafficTargets []trafficpolicy.TrafficTargetWithRoutes
 
@@ -49,13 +49,13 @@ func (mc *MeshCatalog) ListInboundTrafficTargetsWithRoutes(upstream service.K8sS
 
 		destinationIdentity := trafficTargetIdentityToServiceIdentity(t.Spec.Destination)
 
-		// Create a traffic target for this destination indentity
+		// Create a traffic target for this destination identity
 		trafficTarget := trafficpolicy.TrafficTargetWithRoutes{
 			Name:        fmt.Sprintf("%s/%s", t.Namespace, t.Name),
 			Destination: destinationIdentity,
 		}
 
-		// Source identies for this traffic target
+		// Source identifies for this traffic target
 		var sourceIdentities []identity.ServiceIdentity
 		for _, source := range t.Spec.Sources {
 			srcIdentity := trafficTargetIdentityToServiceIdentity(source)

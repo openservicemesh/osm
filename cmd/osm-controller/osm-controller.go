@@ -417,7 +417,7 @@ func createControllerManagerForOSMResources(certManager certificate.Manager) err
 
 	// controller logic is implemented by reconciler
 	// Adding a reconciler for OSM's mutatingwehbookconfiguration
-	if err = (&reconciler.MutatingWebhookConfigrationReconciler{
+	if err = (&reconciler.MutatingWebhookConfigurationReconciler{
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
 		OsmWebhook:   fmt.Sprintf("osm-webhook-%s", meshName),

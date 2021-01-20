@@ -143,7 +143,7 @@ func GetPodFromCertificate(cn certificate.CommonName, kubecontroller k8s.Control
 
 	// Ensure the Name encoded in the certificate matches that of the Pod
 	if pod.Spec.ServiceAccountName != cnMeta.ServiceAccount {
-		// Since we search for the pod in the namespace we obtain from the certificate -- these namespaces will always matech.
+		// Since we search for the pod in the namespace we obtain from the certificate -- these namespaces will always match.
 		log.Warn().Msgf("Pod %s/%s belongs to Name %q while the pod's cert was issued for Name %q", pod.Namespace, pod.Name, pod.Spec.ServiceAccountName, cnMeta.ServiceAccount)
 		return nil, errServiceAccountDoesNotMatchCertificate
 	}

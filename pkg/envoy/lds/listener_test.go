@@ -18,7 +18,7 @@ import (
 )
 
 // Tests TestGetFilterForService checks that a proper filter type is properly returned
-// for given config parametres and service
+// for given config parameters and service
 func TestGetFilterForService(t *testing.T) {
 	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
