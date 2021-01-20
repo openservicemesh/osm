@@ -60,7 +60,7 @@ var _ = OSMDescribe("Reconcile MutatingWebhookConfiguration",
 				Expect((cert.GetCertificateChain())).NotTo(BeNil())
 				caBundle = cert.GetCertificateChain()
 
-				controller := &reconciler.MutatingWebhookConfigrationReconciler{
+				controller := &reconciler.MutatingWebhookConfigurationReconciler{
 					Client:       mgr.GetClient(),
 					Scheme:       scheme.Scheme,
 					OsmWebhook:   webhookName,

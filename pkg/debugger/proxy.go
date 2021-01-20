@@ -65,7 +65,7 @@ func (ds DebugConfig) getConfigDump(cn certificate.CommonName, w http.ResponseWr
 		log.Error().Err(err).Msgf("Error getting Pod from certificate with CN=%s", cn)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	envoyConfig := ds.getEnvoyConfig(pod, cn, "config_dump")
+	envoyConfig := ds.getEnvoyConfig(pod, "config_dump")
 	_, _ = fmt.Fprintf(w, "%s", envoyConfig)
 }
 
@@ -75,6 +75,6 @@ func (ds DebugConfig) getProxy(cn certificate.CommonName, w http.ResponseWriter)
 		log.Error().Err(err).Msgf("Error getting Pod from certificate with CN=%s", cn)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	envoyConfig := ds.getEnvoyConfig(pod, cn, "certs")
+	envoyConfig := ds.getEnvoyConfig(pod, "certs")
 	_, _ = fmt.Fprintf(w, "%s", envoyConfig)
 }

@@ -7,12 +7,10 @@ import (
 	"net/http"
 
 	v1 "k8s.io/api/core/v1"
-
-	"github.com/openservicemesh/osm/pkg/certificate"
 )
 
-func (ds DebugConfig) getEnvoyConfig(pod *v1.Pod, cn certificate.CommonName, url string) string {
-	log.Info().Msgf("Getting Envoy config for CN=%s, podUID=%s", cn, pod.ObjectMeta.UID)
+func (ds DebugConfig) getEnvoyConfig(pod *v1.Pod, url string) string {
+	log.Info().Msgf("Getting Envoy config for Pod with UID=%s", pod.ObjectMeta.UID)
 
 	minPort := 16000
 	maxPort := 18000
@@ -32,7 +30,7 @@ func (ds DebugConfig) getEnvoyConfig(pod *v1.Pod, cn certificate.CommonName, url
 	client := &http.Client{}
 	resp, err := client.Get(fmt.Sprintf("http://%s:%d/%s", "localhost", portFwdRequest.LocalPort, url))
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting pod with CN=%s and podUID=%s", cn, pod.ObjectMeta.UID)
+		log.Error().Err(err).Msgf("Error getting Pod with UID=%s", pod.ObjectMeta.UID)
 		return fmt.Sprintf("Error: %s", err)
 	}
 
@@ -42,13 +40,13 @@ func (ds DebugConfig) getEnvoyConfig(pod *v1.Pod, cn certificate.CommonName, url
 	}()
 
 	if resp.StatusCode != http.StatusOK {
-		log.Error().Msgf("Error getting Envoy config for Pod with CN=%s and UID=%s; HTTP Error %d", cn, pod.ObjectMeta.UID, resp.StatusCode)
+		log.Error().Msgf("Error getting Envoy config for Pod with UID=%s; HTTP Error %d", pod.ObjectMeta.UID, resp.StatusCode)
 		portFwdRequest.Stop <- struct{}{}
 		return fmt.Sprintf("Error: %s", err)
 	}
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting pod with CN=%s", cn)
+		log.Error().Err(err).Msgf("Error getting Pod with UID=%s", pod.ObjectMeta.UID)
 		return fmt.Sprintf("Error: %s", err)
 	}
 

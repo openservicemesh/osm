@@ -465,7 +465,7 @@ var _ = Describe("When fetching BackpressurePolicy for the given MeshService", f
 		Expect(backpressure).To(BeNil())
 	})
 
-	It("should return the Backpresure policy for the given service", func() {
+	It("should return the Backpressure policy for the given service", func() {
 		bpChannel := events.GetPubSubInstance().Subscribe(announcements.BackpressureAdded,
 			announcements.BackpressureDeleted,
 			announcements.BackpressureUpdated)

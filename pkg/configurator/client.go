@@ -124,7 +124,7 @@ func (c *Client) configMapListener() {
 
 			case announcements.ConfigMapDeleted:
 				// Ignore deletion. We expect config to be present
-				log.Info().Msgf("[%s] triggeing a global proxy broadcast",
+				log.Info().Msgf("[%s] triggering a global proxy broadcast",
 					psubMsg.AnnouncementType)
 				events.GetPubSubInstance().Publish(events.PubSubMessage{
 					AnnouncementType: announcements.ScheduleProxyBroadcast,
