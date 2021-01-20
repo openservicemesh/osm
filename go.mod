@@ -4,9 +4,7 @@ go 1.15
 
 require (
 	github.com/AlekSi/gocov-xml v0.0.0-20190121064608-3a14fb1c4737
-	github.com/Azure/azure-sdk-for-go v34.0.0+incompatible
-	github.com/Azure/go-autorest/autorest v0.10.0
-	github.com/Azure/go-autorest/autorest/azure/auth v0.1.0
+	github.com/Azure/go-autorest/autorest v0.10.0 // indirect
 	github.com/Azure/go-autorest/autorest/to v0.3.0
 	github.com/axw/gocov v1.0.0
 	github.com/cskr/pubsub v1.0.2
