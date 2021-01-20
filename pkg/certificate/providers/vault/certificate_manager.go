@@ -126,7 +126,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 
 	cm.cache.Store(cn, cert)
 
-	log.Trace().Msgf("Issued new certificate for SerialNumber=%s took %+v", cert.GetSerialNumber(), time.Since(start))
+	log.Trace().Msgf("Issued new certificate with SerialNumber=%s took %+v", cert.GetSerialNumber(), time.Since(start))
 
 	return cert, nil
 }
