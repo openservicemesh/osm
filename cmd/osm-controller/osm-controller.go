@@ -276,7 +276,7 @@ func main() {
 	debugConfig.StartDebugServerConfigListener()
 
 	<-stop
-	log.Info().Msg("Goodbye!")
+	log.Info().Msgf("Stopping osm-controller %s; %s; %s", version.Version, version.GitCommit, version.BuildDate)
 }
 
 func getHTTPHealthProbes() []health.HTTPProbe {
@@ -428,7 +428,7 @@ func createControllerManagerForOSMResources(certManager certificate.Manager) err
 		return err
 	}
 
-	log.Info().Msg("starting manager")
+	log.Trace().Msg("starting manager")
 	go func() {
 		// mgr.Start() below will block until stopped
 		// See: https://github.com/kubernetes-sigs/controller-runtime/blob/release-0.6/pkg/manager/internal.go#L507-L514

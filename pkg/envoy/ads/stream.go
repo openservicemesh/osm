@@ -36,7 +36,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 	// Github Issue #1575
 	namespacedService := svcList[0]
 
-	log.Info().Msgf("Client %s connected: Subject CN=%s; Service=%s", ip, cn, namespacedService)
+	log.Debug().Msgf("Client %s connected: Subject CN=%s; Service=%s", ip, cn, namespacedService)
 	metricsstore.DefaultMetricsStore.ProxyConnectCount.Inc()
 
 	// This is the Envoy proxy that just connected to the control plane.
