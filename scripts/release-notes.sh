@@ -24,7 +24,7 @@ changelog=$(git log "$prev".."$tag" --format="* %s %H (%aN)")
 # CRD upgrades require manually deleting prior CRDs before upgrading Helm chart
 crd_changes=$(git diff --name-only "$prev".."$tag" -- charts/osm/crds)
 if [[ -z "$crd_changes" ]]; then
-   crd_changes="NONE"
+   crd_changes="No CRD changes between tags ${prev} and ${tag}"
 fi
 
 cat <<EOF
