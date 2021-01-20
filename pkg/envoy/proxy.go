@@ -128,10 +128,15 @@ func (p Proxy) GetAnnouncementsChannel() chan announcements.Announcement {
 }
 
 // NewProxy creates a new instance of an Envoy proxy connected to the xDS servers.
-func NewProxy(cn certificate.CommonName, ip net.Addr) *Proxy {
+func NewProxy(certCommonName certificate.CommonName, certSerialNumber certificate.SerialNumber, ip net.Addr) *Proxy {
 	return &Proxy{
-		CommonName: cn,
-		Addr:       ip,
+		CommonName:   certCommonName,
+		SerialNumber: certSerialNumber,
+
+		// PodUID will be set when the proxy is registered a second time during the xDS hand-shake
+		PodUID: "",
+
+		Addr: ip,
 
 		connectedAt: time.Now(),
 

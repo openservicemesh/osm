@@ -29,10 +29,11 @@ var _ = Describe("Test Announcement Handlers", func() {
 		podUID = uuid.New().String()
 
 		envoyCN = "abcdefg"
+		certSerialNumber := certificate.SerialNumber("123456")
 		_, err := mc.certManager.IssueCertificate(envoyCN, 5*time.Second)
 		Expect(err).ToNot(HaveOccurred())
 
-		proxy = envoy.NewProxy(envoyCN, nil)
+		proxy = envoy.NewProxy(envoyCN, certSerialNumber, nil)
 		proxy.PodMetadata = &envoy.PodMetadata{
 			UID: podUID,
 		}

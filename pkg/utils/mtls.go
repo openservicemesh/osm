@@ -65,6 +65,6 @@ func ValidateClient(ctx context.Context, allowedCommonNames map[string]interface
 		return "", "", status.Error(codes.Unauthenticated, "disallowed subject common name")
 	}
 
-	serialNumber := tlsAuth.State.VerifiedChains[0][0].SerialNumber.String()
-	return certificate.CommonName(cn), certificate.SerialNumber(serialNumber), nil
+	certificateSerialNumber := tlsAuth.State.VerifiedChains[0][0].SerialNumber.String()
+	return certificate.CommonName(cn), certificate.SerialNumber(certificateSerialNumber), nil
 }
