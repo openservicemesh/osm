@@ -18,8 +18,8 @@ import (
 
 var log = logger.New("reconciler")
 
-// MutatingWebhookConfigrationReconciler reconciles a MutatingWebhookConfiguration object
-type MutatingWebhookConfigrationReconciler struct {
+// MutatingWebhookConfigurationReconciler reconciles a MutatingWebhookConfiguration object
+type MutatingWebhookConfigurationReconciler struct {
 	client.Client
 	Scheme       *runtime.Scheme
 	OsmWebhook   string
@@ -28,7 +28,7 @@ type MutatingWebhookConfigrationReconciler struct {
 }
 
 // Reconcile is the reconciliation method for OSM MutatingWebhookConfiguration.
-func (r *MutatingWebhookConfigrationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *MutatingWebhookConfigurationReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// reconcile only for OSM mutatingWebhookConfiguration
 	if req.Name == r.OsmWebhook {
 		ctx := context.Background()
@@ -75,7 +75,7 @@ func (r *MutatingWebhookConfigrationReconciler) Reconcile(req ctrl.Request) (ctr
 }
 
 // SetupWithManager links the reconciler to the manager.
-func (r *MutatingWebhookConfigrationReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *MutatingWebhookConfigurationReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1beta1.MutatingWebhookConfiguration{}).
 		Complete(r)

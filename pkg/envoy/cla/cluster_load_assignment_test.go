@@ -11,7 +11,7 @@ import (
 )
 
 var _ = Describe("Testing Cluster Load Assignment", func() {
-	Context("Testing NewClusterLoadAssignemnt", func() {
+	Context("Testing NewClusterLoadAssignment", func() {
 		It("Returns cluster load assignment", func() {
 
 			namespacedServices := []service.MeshService{

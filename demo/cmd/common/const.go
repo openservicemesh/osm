@@ -37,6 +37,6 @@ const (
 	// BookthiefExpectedResponseCodeEnvVar is the environment variable for Bookthief's expected HTTP response code
 	BookthiefExpectedResponseCodeEnvVar = "BOOKTHIEF_EXPECTED_RESPONSE_CODE"
 
-	// EnableEgressEnvVar is the envorinment variable to enable egress requests in the demo
+	// EnableEgressEnvVar is the environment variable to enable egress requests in the demo
 	EnableEgressEnvVar = "ENABLE_EGRESS"
 )
