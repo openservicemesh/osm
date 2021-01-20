@@ -6,7 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
-	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha3"
+	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	smiSplit "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	smiTrafficAccessClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/clientset/versioned"
 	smiTrafficSpecClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/specs/clientset/versioned"
@@ -46,7 +46,7 @@ func (td *OsmTestData) InitSMIClients() error {
 
 // CreateHTTPRouteGroup Creates an SMI HTTPRouteGroup
 func (td *OsmTestData) CreateHTTPRouteGroup(ns string, rg smiSpecs.HTTPRouteGroup) (*smiSpecs.HTTPRouteGroup, error) {
-	hrg, err := td.SmiClients.SpecClient.SpecsV1alpha3().HTTPRouteGroups(ns).Create(context.Background(), &rg, metav1.CreateOptions{})
+	hrg, err := td.SmiClients.SpecClient.SpecsV1alpha4().HTTPRouteGroups(ns).Create(context.Background(), &rg, metav1.CreateOptions{})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create HTTPRouteGroup")
 	}
@@ -55,7 +55,7 @@ func (td *OsmTestData) CreateHTTPRouteGroup(ns string, rg smiSpecs.HTTPRouteGrou
 
 // CreateTCPRoute Creates an SMI TCPRoute
 func (td *OsmTestData) CreateTCPRoute(ns string, route smiSpecs.TCPRoute) (*smiSpecs.TCPRoute, error) {
-	hrg, err := td.SmiClients.SpecClient.SpecsV1alpha3().TCPRoutes(ns).Create(context.Background(), &route, metav1.CreateOptions{})
+	hrg, err := td.SmiClients.SpecClient.SpecsV1alpha4().TCPRoutes(ns).Create(context.Background(), &route, metav1.CreateOptions{})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create TCPRoute")
 	}
@@ -144,12 +144,14 @@ func (td *OsmTestData) CreateSimpleAllowPolicy(def SimpleAllowPolicy) (smiSpecs.
 
 // CreateSimpleTCPAllowPolicy returns an allow policy to allow all TCP traffic from source to destination
 func (td *OsmTestData) CreateSimpleTCPAllowPolicy(def SimpleAllowPolicy, port int) (smiSpecs.TCPRoute, smiAccess.TrafficTarget) {
-	// Hack to specify TCP ports via labels till v1alpha4 of TCPRoute is available
 	tcpRoute := smiSpecs.TCPRoute{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: def.RouteGroupName,
-			Labels: map[string]string{
-				"ports": strconv.Itoa(port),
+		},
+		Spec: smiSpecs.TCPRouteSpec{
+			Matches: smiSpecs.TCPMatch{
+				Name:  strconv.Itoa(port),
+				Ports: []int{port},
 			},
 		},
 	}

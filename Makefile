@@ -57,7 +57,7 @@ clean-osm:
 
 .PHONY: chart-readme
 chart-readme:
-	go run github.com/norwoodj/helm-docs/cmd/helm-docs -c charts
+	go run github.com/norwoodj/helm-docs/cmd/helm-docs -c charts -t charts/osm/README.md.gotmpl
 
 .PHONY: go-checks
 go-checks: go-lint go-fmt go-mod-tidy

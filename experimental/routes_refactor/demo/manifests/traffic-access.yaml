@@ -22,7 +22,7 @@ spec:
     #name: bookthief
     #namespace: bookthief
 ---
-apiVersion: specs.smi-spec.io/v1alpha3
+apiVersion: specs.smi-spec.io/v1alpha4
 kind: HTTPRouteGroup
 metadata:
   name: bookstore-service-routes

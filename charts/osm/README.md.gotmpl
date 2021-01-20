@@ -1,0 +1,61 @@
+# Open Service Mesh Helm Chart
+
+![Version: 0.6.1](https://img.shields.io/badge/Version-0.6.1-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: v0.6.1](https://img.shields.io/badge/AppVersion-v0.6.1-informational?style=flat-square)
+
+A Helm chart to install the [OSM](https://github.com/openservicemesh/osm) control plane on Kubernetes.
+
+## Prerequisites
+
+- Kubernetes v1.15+
+
+## Get Repo Info
+
+```console
+helm repo add osm https://openservicemesh.github.io/osm
+helm repo update
+```
+
+## Install Chart
+
+```console
+helm install [RELEASE_NAME] osm/osm
+```
+
+The command deploys `osm-controller` on the Kubernetes cluster in the default configuration.
+
+_See [configuration](#configuration) below._
+
+_See [helm install](https://helm.sh/docs/helm/helm_install/) for command documentation._
+
+## Uninstall Chart
+
+```console
+helm uninstall [RELEASE_NAME]
+```
+
+This removes all the Kubernetes components associated with the chart and deletes the release.
+
+_See [helm uninstall](https://helm.sh/docs/helm/helm_uninstall/) for command documentation._
+
+## Upgrading Chart
+
+```console
+helm upgrade [RELEASE_NAME] [CHART] --install
+```
+
+_See [helm upgrade](https://helm.sh/docs/helm/helm_upgrade/) for command documentation._
+
+## Configuration
+
+See [Customizing the Chart Before Installing](https://helm.sh/docs/intro/using_helm/#customizing-the-chart-before-installing). To see all configurable options with detailed comments, visit the chart's [values.yaml](./values.yaml), or run these configuration commands:
+
+```console
+helm show values osm/osm
+```
+
+The following table lists the configurable parameters of the osm chart and their default values.
+
+{{ template "chart.valuesSection" . }}
+
+<!-- markdownlint-enable MD013 MD034 -->
+<!-- markdownlint-restore -->
