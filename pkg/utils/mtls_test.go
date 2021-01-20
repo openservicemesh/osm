@@ -67,7 +67,7 @@ func TestValidateClient(t *testing.T) {
 	}
 
 	certManager := tresor.NewFakeCertManager(nil)
-	cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s", uuid.New(), tests.BookstoreServiceAccountName, tests.Namespace))
+	cn := certificate.CertificateCommonName(fmt.Sprintf("%s.%s.%s", uuid.New(), tests.BookstoreServiceAccountName, tests.Namespace))
 	certPEM, _ := certManager.IssueCertificate(cn, 1*time.Hour)
 	cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())
 
