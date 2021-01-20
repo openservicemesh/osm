@@ -1,6 +1,7 @@
 # Default values for osm.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
+
 OpenServiceMesh:
   # -- `osm-controller` replicas 
   replicaCount: 1
@@ -100,14 +101,10 @@ OpenServiceMesh:
   # -- Validating- and MutatingWebhookConfiguration name            
   webhookConfigNamePrefix: osm-webhook
 
-  # Optional parameter. If not specified, the release namespace is
-  # used to deploy the osm components.
   # -- Optional parameter. If not specified, the release namespace is used to deploy the osm components.
   osmNamespace: ""
 
-  # Set deployJaeger to true to deploy a Jaeger cluster in the
-  # namespace where OSM resides.
-  # -- Deploy Jaeger 
+  # -- Deploy Jaeger in the OSM namespace
   deployJaeger: false
 
   # The following section configures a destination where to send
@@ -115,20 +112,14 @@ OpenServiceMesh:
   # backends (https://github.com/openservicemesh/osm/issues/1596)
   tracing:
 
-    ## Toggles Envoy's tracing functionality on/off
-    ## for all proxies in the mesh.
     # -- Toggles Envoy's tracing functionality on/off for all sidecar proxies in the cluster      
     enable: true
 
-    # Tracing destination cluster
     # -- Tracing destination cluster (must contain the namespace) 
     address: "jaeger.osm-system.svc.cluster.local"
 
-    # Destination port for the listener
     # -- Destination port for the listener   
     port: 9411
 
-    # Destination's API or collector endpoint where the spans will
-    # be sent to
     # -- Destination's API or collector endpoint where the spans will be sent to  
     endpoint: "/api/v2/spans"
