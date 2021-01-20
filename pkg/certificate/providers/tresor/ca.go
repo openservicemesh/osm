@@ -45,19 +45,19 @@ func NewCA(cn certificate.CommonName, validityPeriod time.Duration, rootCertCoun
 	// Self-sign the root certificate
 	derBytes, err := x509.CreateCertificate(rand.Reader, template, template, &rsaKey.PublicKey, rsaKey)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error issuing x509.CreateCertificate command for CN=%s", template.Subject.CommonName)
+		log.Error().Err(err).Msgf("Error issuing x509.CreateCertificate command for SerialNumber=%s", serialNumber)
 		return nil, errors.Wrap(err, errCreateCert.Error())
 	}
 
 	pemCert, err := certificate.EncodeCertDERtoPEM(derBytes)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error encoding certificate with CN=%s", template.Subject.CommonName)
+		log.Error().Err(err).Msgf("Error encoding certificate with SerialNumber=%s", serialNumber)
 		return nil, err
 	}
 
 	pemKey, err := certificate.EncodeKeyDERtoPEM(rsaKey)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error encoding private key for certificate with CN=%s", template.Subject.CommonName)
+		log.Error().Err(err).Msgf("Error encoding private key for certificate with SerialNumber=%s", serialNumber)
 		return nil, err
 	}
 
