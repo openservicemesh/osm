@@ -124,7 +124,7 @@ func (cmd *trafficPolicyCheckCmd) checkTrafficPolicy(srcPod, dstPod *corev1.Pod)
 
 	// SMI traffic policy mode
 	fmt.Fprintf(cmd.out, "[+] SMI traffic policy mode enabled for mesh operated by osm-controller running in %s namespace\n\n", osmNamespace)
-	trafficTargets, err := cmd.smiAccessClient.AccessV1alpha2().TrafficTargets(dstPod.Namespace).List(context.TODO(), metav1.ListOptions{})
+	trafficTargets, err := cmd.smiAccessClient.AccessV1alpha3().TrafficTargets(dstPod.Namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return errors.Errorf("Error listing SMI TrafficTarget policies: %s", err)
 	}

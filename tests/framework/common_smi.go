@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"github.com/pkg/errors"
-	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
+	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	smiSplit "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	smiTrafficAccessClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/clientset/versioned"
@@ -64,7 +64,7 @@ func (td *OsmTestData) CreateTCPRoute(ns string, route smiSpecs.TCPRoute) (*smiS
 
 // CreateTrafficTarget Creates an SMI TrafficTarget
 func (td *OsmTestData) CreateTrafficTarget(ns string, tar smiAccess.TrafficTarget) (*smiAccess.TrafficTarget, error) {
-	tt, err := td.SmiClients.AccessClient.AccessV1alpha2().TrafficTargets(ns).Create(context.Background(), &tar, metav1.CreateOptions{})
+	tt, err := td.SmiClients.AccessClient.AccessV1alpha3().TrafficTargets(ns).Create(context.Background(), &tar, metav1.CreateOptions{})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create TrafficTarget")
 	}

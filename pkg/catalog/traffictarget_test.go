@@ -5,8 +5,7 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
-	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
+	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	tassert "github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,7 +39,7 @@ func TestListAllowedInboundServiceAccounts(t *testing.T) {
 			[]*smiAccess.TrafficTarget{
 				{
 					TypeMeta: metav1.TypeMeta{
-						APIVersion: "access.smi-spec.io/v1alpha2",
+						APIVersion: "access.smi-spec.io/v1alpha3",
 						Kind:       "TrafficTarget",
 					},
 					ObjectMeta: metav1.ObjectMeta{
@@ -62,7 +61,7 @@ func TestListAllowedInboundServiceAccounts(t *testing.T) {
 				},
 				{
 					TypeMeta: metav1.TypeMeta{
-						APIVersion: "access.smi-spec.io/v1alpha2",
+						APIVersion: "access.smi-spec.io/v1alpha3",
 						Kind:       "TrafficTarget",
 					},
 					ObjectMeta: metav1.ObjectMeta{
@@ -108,7 +107,7 @@ func TestListAllowedInboundServiceAccounts(t *testing.T) {
 			[]*smiAccess.TrafficTarget{
 				{
 					TypeMeta: metav1.TypeMeta{
-						APIVersion: "access.smi-spec.io/v1alpha2",
+						APIVersion: "access.smi-spec.io/v1alpha3",
 						Kind:       "TrafficTarget",
 					},
 					ObjectMeta: metav1.ObjectMeta{
@@ -149,7 +148,7 @@ func TestListAllowedInboundServiceAccounts(t *testing.T) {
 			[]*smiAccess.TrafficTarget{
 				{
 					TypeMeta: metav1.TypeMeta{
-						APIVersion: "access.smi-spec.io/v1alpha2",
+						APIVersion: "access.smi-spec.io/v1alpha3",
 						Kind:       "TrafficTarget",
 					},
 					ObjectMeta: metav1.ObjectMeta{
@@ -219,7 +218,7 @@ func TestListAllowedOutboundServiceAccounts(t *testing.T) {
 			[]*smiAccess.TrafficTarget{
 				{
 					TypeMeta: metav1.TypeMeta{
-						APIVersion: "access.smi-spec.io/v1alpha2",
+						APIVersion: "access.smi-spec.io/v1alpha3",
 						Kind:       "TrafficTarget",
 					},
 					ObjectMeta: metav1.ObjectMeta{
@@ -241,7 +240,7 @@ func TestListAllowedOutboundServiceAccounts(t *testing.T) {
 				},
 				{
 					TypeMeta: metav1.TypeMeta{
-						APIVersion: "access.smi-spec.io/v1alpha2",
+						APIVersion: "access.smi-spec.io/v1alpha3",
 						Kind:       "TrafficTarget",
 					},
 					ObjectMeta: metav1.ObjectMeta{
@@ -291,7 +290,7 @@ func TestListAllowedOutboundServiceAccounts(t *testing.T) {
 			[]*smiAccess.TrafficTarget{
 				{
 					TypeMeta: metav1.TypeMeta{
-						APIVersion: "access.smi-spec.io/v1alpha2",
+						APIVersion: "access.smi-spec.io/v1alpha3",
 						Kind:       "TrafficTarget",
 					},
 					ObjectMeta: metav1.ObjectMeta{
@@ -332,7 +331,7 @@ func TestListAllowedOutboundServiceAccounts(t *testing.T) {
 			[]*smiAccess.TrafficTarget{
 				{
 					TypeMeta: metav1.TypeMeta{
-						APIVersion: "access.smi-spec.io/v1alpha2",
+						APIVersion: "access.smi-spec.io/v1alpha3",
 						Kind:       "TrafficTarget",
 					},
 					ObjectMeta: metav1.ObjectMeta{
@@ -421,7 +420,7 @@ func TestTrafficTargetIdentityToSvcAccount(t *testing.T) {
 
 func TestTrafficTargetIdentitiesToSvcAccounts(t *testing.T) {
 	assert := tassert.New(t)
-	input := []target.IdentityBindingSubject{
+	input := []smiAccess.IdentityBindingSubject{
 		{
 			Kind:      "ServiceAccount",
 			Name:      "example1",
@@ -469,7 +468,7 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 			trafficTargets: []*smiAccess.TrafficTarget{
 				{
 					TypeMeta: metav1.TypeMeta{
-						APIVersion: "access.smi-spec.io/v1alpha2",
+						APIVersion: "access.smi-spec.io/v1alpha3",
 						Kind:       "TrafficTarget",
 					},
 					ObjectMeta: metav1.ObjectMeta{
@@ -540,7 +539,7 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 			trafficTargets: []*smiAccess.TrafficTarget{
 				{
 					TypeMeta: metav1.TypeMeta{
-						APIVersion: "access.smi-spec.io/v1alpha2",
+						APIVersion: "access.smi-spec.io/v1alpha3",
 						Kind:       "TrafficTarget",
 					},
 					ObjectMeta: metav1.ObjectMeta{
@@ -632,7 +631,7 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 			trafficTargets: []*smiAccess.TrafficTarget{
 				{
 					TypeMeta: metav1.TypeMeta{
-						APIVersion: "access.smi-spec.io/v1alpha2",
+						APIVersion: "access.smi-spec.io/v1alpha3",
 						Kind:       "TrafficTarget",
 					},
 					ObjectMeta: metav1.ObjectMeta{
@@ -664,7 +663,7 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 				},
 				{
 					TypeMeta: metav1.TypeMeta{
-						APIVersion: "access.smi-spec.io/v1alpha2",
+						APIVersion: "access.smi-spec.io/v1alpha3",
 						Kind:       "TrafficTarget",
 					},
 					ObjectMeta: metav1.ObjectMeta{
@@ -797,7 +796,7 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 			trafficTargets: []*smiAccess.TrafficTarget{
 				{
 					TypeMeta: metav1.TypeMeta{
-						APIVersion: "access.smi-spec.io/v1alpha2",
+						APIVersion: "access.smi-spec.io/v1alpha3",
 						Kind:       "TrafficTarget",
 					},
 					ObjectMeta: metav1.ObjectMeta{
