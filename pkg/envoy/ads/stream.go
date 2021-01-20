@@ -74,8 +74,13 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			return nil
 
 		case discoveryRequest, ok := <-requests:
+<<<<<<< HEAD
 			log.Info().Msgf("Received %s (nonce=%s; version=%s; resources=%v) from Envoy %s", discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, discoveryRequest.ResourceNames, proxy.GetCertificateCommonName())
 			log.Info().Msgf("Last sent for %s nonce=%s; last sent version=%s for Envoy %s", discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, proxy.GetCertificateCommonName())
+=======
+			log.Debug().Msgf("Received %s (nonce=%s; version=%s; resources=%v) from Envoy %s", discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, discoveryRequest.ResourceNames, proxy.GetCommonName())
+			log.Debug().Msgf("Last sent for %s nonce=%s; last sent version=%s for Envoy %s", discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, proxy.GetCommonName())
+>>>>>>> tackling logs
 			if !ok {
 				log.Error().Msgf("Proxy %s closed GRPC!", proxy.GetCertificateCommonName())
 				metricsstore.DefaultMetricsStore.ProxyConnectCount.Dec()
@@ -157,11 +162,11 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			}
 
 		case <-broadcastUpdate:
-			log.Info().Msgf("Broadcast update received for %s", proxy.GetCertificateCommonName())
+			log.Debug().Msgf("Broadcast update received for %s", proxy.GetCertificateCommonName())
 			s.sendAllResponses(proxy, &server, s.cfg)
 
 		case <-proxy.GetAnnouncementsChannel():
-			log.Info().Msgf("Individual update for %s", proxy.GetCertificateCommonName())
+			log.Debug().Msgf("Individual update for %s", proxy.GetCertificateCommonName())
 			s.sendAllResponses(proxy, &server, s.cfg)
 		}
 	}
