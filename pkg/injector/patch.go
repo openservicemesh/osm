@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/google/uuid"
 	"gomodules.xyz/jsonpatch/v2"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
 
 func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *v1beta1.AdmissionRequest, proxyUUID uuid.UUID) ([]byte, error) {
@@ -21,12 +23,17 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *v1beta1.AdmissionRe
 	// Issue a certificate for the proxy sidecar - used for Envoy to connect to XDS (not Envoy-to-Envoy connections)
 	cn := catalog.NewCertCommonNameWithProxyID(proxyUUID, pod.Spec.ServiceAccountName, namespace)
 	log.Info().Msgf("Patching POD spec: service-account=%s, namespace=%s with certificate CN=%s", pod.Spec.ServiceAccountName, namespace, cn)
+	startTime := time.Now()
 	bootstrapCertificate, err := wh.certManager.IssueCertificate(cn, constants.XDSCertificateValidityPeriod)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error issuing bootstrap certificate for Envoy with CN=%s", cn)
 		return nil, err
 	}
+	elapsed := time.Since(startTime)
 
+	metricsstore.DefaultMetricsStore.CertXdsIssuedCount.Inc()
+	metricsstore.DefaultMetricsStore.CertXdsIssuedTime.
+		WithLabelValues(cn.String()).Observe(elapsed.Seconds())
 	originalHealthProbes := rewriteHealthProbes(pod)
 
 	wh.meshCatalog.ExpectProxy(cn)
@@ -38,7 +45,7 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *v1beta1.AdmissionRe
 	}
 
 	// Create volume for envoy TLS secret
-	pod.Spec.Volumes = getVolumeSpec(envoyBootstrapConfigName)
+	pod.Spec.Volumes = append(pod.Spec.Volumes, getVolumeSpec(envoyBootstrapConfigName)...)
 
 	// Add the Init Container
 	initContainer := getInitContainerSpec(constants.InitContainerName, wh.config.InitContainerImage)

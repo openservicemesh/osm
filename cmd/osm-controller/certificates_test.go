@@ -15,9 +15,19 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/tests"
 )
 
 var _ = Describe("Test CMD tools", func() {
+	certPEM, err := tests.GetPEMCert()
+	It("should have resulted in no errors", func() {
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	keyPEM, err := tests.GetPEMPrivateKey()
+	It("should have resulted in no errors", func() {
+		Expect(err).ToNot(HaveOccurred())
+	})
 
 	Context("Testing getCertFromKubernetes", func() {
 		It("obtained root cert from k8s", func() {
@@ -25,9 +35,6 @@ var _ = Describe("Test CMD tools", func() {
 
 			ns := uuid.New().String()
 			secretName := uuid.New().String()
-
-			certPEM := []byte(uuid.New().String())
-			keyPEM := []byte(uuid.New().String())
 
 			secret := &corev1.Secret{
 				ObjectMeta: v1.ObjectMeta{
@@ -102,8 +109,6 @@ var _ = Describe("Test CMD tools", func() {
 			ns := uuid.New().String()
 			secretName := uuid.New().String()
 
-			certPEM := []byte(uuid.New().String())
-
 			secret := &corev1.Secret{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      secretName,
@@ -159,9 +164,6 @@ var _ = Describe("Test CMD tools", func() {
 			ns := uuid.New().String()
 			secretName := uuid.New().String()
 
-			certPEM := []byte(uuid.New().String())
-			keyPEM := []byte(uuid.New().String())
-
 			expected := &corev1.Secret{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      secretName,
@@ -207,9 +209,6 @@ var _ = Describe("Test CMD tools", func() {
 					"123": []byte("456"),
 				},
 			})
-
-			certPEM := []byte(uuid.New().String())
-			keyPEM := []byte(uuid.New().String())
 
 			expected := &corev1.Secret{
 				ObjectMeta: v1.ObjectMeta{

@@ -32,6 +32,6 @@ func (c Certificate) GetExpiration() time.Time {
 }
 
 // GetSerialNumber returns the serial number of the given certificate.
-func (c Certificate) GetSerialNumber() string {
-	panic("NotImplemented")
+func (c Certificate) GetSerialNumber() certificate.SerialNumber {
+	return c.serialNumber
 }

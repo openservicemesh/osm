@@ -45,27 +45,28 @@ func NewCA(cn certificate.CommonName, validityPeriod time.Duration, rootCertCoun
 	// Self-sign the root certificate
 	derBytes, err := x509.CreateCertificate(rand.Reader, template, template, &rsaKey.PublicKey, rsaKey)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error issuing x509.CreateCertificate command for CN=%s", template.Subject.CommonName)
+		log.Error().Err(err).Msgf("Error issuing x509.CreateCertificate command for SerialNumber=%s", serialNumber)
 		return nil, errors.Wrap(err, errCreateCert.Error())
 	}
 
 	pemCert, err := certificate.EncodeCertDERtoPEM(derBytes)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error encoding certificate with CN=%s", template.Subject.CommonName)
+		log.Error().Err(err).Msgf("Error encoding certificate with SerialNumber=%s", serialNumber)
 		return nil, err
 	}
 
 	pemKey, err := certificate.EncodeKeyDERtoPEM(rsaKey)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error encoding private key for certificate with CN=%s", template.Subject.CommonName)
+		log.Error().Err(err).Msgf("Error encoding private key for certificate with SerialNumber=%s", serialNumber)
 		return nil, err
 	}
 
 	rootCertificate := Certificate{
-		commonName: rootCertificateName,
-		certChain:  pemCert,
-		privateKey: pemKey,
-		expiration: template.NotAfter,
+		commonName:   rootCertificateName,
+		serialNumber: certificate.SerialNumber(serialNumber.String()),
+		certChain:    pemCert,
+		privateKey:   pemKey,
+		expiration:   template.NotAfter,
 	}
 
 	rootCertificate.issuingCA = rootCertificate.GetCertificateChain()
@@ -75,11 +76,17 @@ func NewCA(cn certificate.CommonName, validityPeriod time.Duration, rootCertCoun
 
 // NewCertificateFromPEM is a helper returning a certificate.Certificater from the PEM components given.
 func NewCertificateFromPEM(pemCert pem.Certificate, pemKey pem.PrivateKey, expiration time.Time) (certificate.Certificater, error) {
+	x509Cert, err := certificate.DecodePEMCertificate(pemCert)
+	if err != nil {
+		log.Err(err).Msg("Error converting PEM cert to x509 to obtain serial number")
+		return nil, err
+	}
 	rootCertificate := Certificate{
-		commonName: rootCertificateName,
-		certChain:  pemCert,
-		privateKey: pemKey,
-		expiration: expiration,
+		commonName:   rootCertificateName,
+		serialNumber: certificate.SerialNumber(x509Cert.SerialNumber.String()),
+		certChain:    pemCert,
+		privateKey:   pemKey,
+		expiration:   expiration,
 	}
 
 	rootCertificate.issuingCA = rootCertificate.GetCertificateChain()

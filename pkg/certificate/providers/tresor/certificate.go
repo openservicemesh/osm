@@ -39,36 +39,8 @@ func (c Certificate) GetExpiration() time.Time {
 }
 
 // GetSerialNumber returns the serial number of the given certificate.
-func (c Certificate) GetSerialNumber() string {
-	panic("NotImplemented")
-}
-
-// LoadCA loads the certificate and its key from the supplied PEM files.
-func LoadCA(certFilePEM string, keyFilePEM string) (*Certificate, error) {
-	pemCert, err := certificate.LoadCertificateFromFile(certFilePEM)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error loading certificate from file %s", certFilePEM)
-		return nil, err
-	}
-
-	pemKey, err := certificate.LoadPrivateKeyFromFile(keyFilePEM)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error loading private key from file %s", keyFilePEM)
-		return nil, err
-	}
-
-	x509RootCert, err := certificate.DecodePEMCertificate(pemCert)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error converting certificate from PEM to x509 - CN=%s", rootCertificateName)
-	}
-
-	rootCertificate := Certificate{
-		commonName: rootCertificateName,
-		certChain:  pemCert,
-		privateKey: pemKey,
-		expiration: x509RootCert.NotAfter,
-	}
-	return &rootCertificate, nil
+func (c Certificate) GetSerialNumber() certificate.SerialNumber {
+	return c.serialNumber
 }
 
 // NewCertManager creates a new CertManager with the passed CA and CA Private Key

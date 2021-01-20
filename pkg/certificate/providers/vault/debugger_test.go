@@ -13,11 +13,12 @@ import (
 var _ = Describe("Test Vault Debugger", func() {
 	Context("test ListIssuedCertificates()", func() {
 		cert := &Certificate{
-			issuingCA:  pem.RootCertificate("zz"),
-			privateKey: pem.PrivateKey("yy"),
-			certChain:  pem.Certificate("xx"),
-			expiration: time.Now(),
-			commonName: "foo.bar.co.uk",
+			issuingCA:    pem.RootCertificate("zz"),
+			privateKey:   pem.PrivateKey("yy"),
+			certChain:    pem.Certificate("xx"),
+			expiration:   time.Now(),
+			commonName:   "foo.bar.co.uk",
+			serialNumber: "-cert-serial-number-",
 		}
 		cm := CertManager{}
 		cm.cache.Store("foo", cert)

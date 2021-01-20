@@ -42,7 +42,7 @@ spec:
             "--webhook-config-name", "{{.Values.OpenServiceMesh.webhookConfigNamePrefix}}-{{.Values.OpenServiceMesh.meshName}}",
             "--ca-bundle-secret-name", "{{.Values.OpenServiceMesh.caBundleSecretName}}",
             "--certificate-manager", "{{.Values.OpenServiceMesh.certificateManager}}",
-            {{- if .Values.OpenServiceMesh.connectVault }}
+            {{ if eq .Values.OpenServiceMesh.certificateManager "vault" }}
             "--vault-host", "{{.Values.OpenServiceMesh.vault.host}}",
             "--vault-protocol", "{{.Values.OpenServiceMesh.vault.protocol}}",
             "--vault-token", "{{.Values.OpenServiceMesh.vault.token}}",

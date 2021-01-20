@@ -31,10 +31,11 @@ func NewFakeCertManager(cfg configurator.Configurator) *CertManager {
 // NewFakeCertificate is a helper creating Certificates for unit tests.
 func NewFakeCertificate() *Certificate {
 	cert := Certificate{
-		privateKey: pem.PrivateKey("yy"),
-		certChain:  pem.Certificate("xx"),
-		expiration: time.Now(),
-		commonName: "foo.bar.co.uk",
+		privateKey:   pem.PrivateKey("yy"),
+		certChain:    pem.Certificate("xx"),
+		expiration:   time.Now(),
+		commonName:   "foo.bar.co.uk",
+		serialNumber: "-the-certificate-serial-number-",
 	}
 
 	// It is acceptable in the context of a unit test (so far) for

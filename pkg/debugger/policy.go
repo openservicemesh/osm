@@ -20,7 +20,7 @@ type policies struct {
 	TrafficTargets   []*target.TrafficTarget     `json:"traffic_targets"`
 }
 
-func (ds debugConfig) getOSMConfigHandler() http.Handler {
+func (ds DebugConfig) getOSMConfigHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		confJSON, err := ds.configurator.GetConfigMap()
 		if err != nil {
@@ -31,7 +31,7 @@ func (ds debugConfig) getOSMConfigHandler() http.Handler {
 	})
 }
 
-func (ds debugConfig) getSMIPoliciesHandler() http.Handler {
+func (ds DebugConfig) getSMIPoliciesHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var p policies
 		p.TrafficSplits, p.WeightedServices, p.ServiceAccounts, p.RouteGroups, p.TrafficTargets = ds.meshCatalogDebugger.ListSMIPolicies()

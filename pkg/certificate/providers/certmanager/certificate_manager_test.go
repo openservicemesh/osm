@@ -5,19 +5,21 @@ import (
 	"crypto/x509"
 	"time"
 
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
 	"github.com/golang/mock/gomock"
 	cmapi "github.com/jetstack/cert-manager/pkg/apis/certmanager/v1beta1"
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	cmfakeclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/fake"
 	cmfakeapi "github.com/jetstack/cert-manager/pkg/client/clientset/versioned/typed/certmanager/v1beta1/fake"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/testing"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/tests"
 )
 
 var _ = Describe("Test cert-manager Certificate Manager", func() {
@@ -33,29 +35,30 @@ var _ = Describe("Test cert-manager Certificate Manager", func() {
 
 	Context("Test Getting a certificate from the cache", func() {
 		validity := 1 * time.Hour
-		rootCertFilePEM := "../../sample_certificate.pem"
-		rootKeyFilePEM := "../../sample_private_key.pem"
+
 		cn := certificate.CommonName("bookbuyer.azure.mesh")
 
-		rootCertPEM, err := certificate.LoadCertificateFromFile(rootCertFilePEM)
+		rootCertPEM, err := tests.GetPEMCert()
 		if err != nil {
-			GinkgoT().Fatalf("Error loading certificate from file %s: %s", rootCertFilePEM, err.Error())
+			GinkgoT().Fatalf("Error loading sample test certificate: %s", err.Error())
 		}
 
 		rootCert, err := certificate.DecodePEMCertificate(rootCertPEM)
 		if err != nil {
-			GinkgoT().Fatalf("Error decoding certificate from file %s: %s", rootCertFilePEM, err.Error())
+			GinkgoT().Fatalf("Error decoding certificate from file: %s", err.Error())
 		}
+		Expect(rootCert).ToNot(BeNil())
 		rootCert.NotAfter = time.Now().Add(time.Minute * 30)
 
-		rootKeyPEM, err := certificate.LoadPrivateKeyFromFile(rootKeyFilePEM)
+		rootKeyPEM, err := tests.GetPEMPrivateKey()
 		if err != nil {
-			GinkgoT().Fatalf("Error loading private ket from file %s: %s", rootCertFilePEM, err.Error())
+			GinkgoT().Fatalf("Error loading private key: %s", err.Error())
 		}
 		rootKey, err := certificate.DecodePEMPrivateKey(rootKeyPEM)
 		if err != nil {
-			GinkgoT().Fatalf("Error decoding private key from file %s: %s", rootKeyFilePEM, err.Error())
+			GinkgoT().Fatalf("Error decoding private key: %s", err.Error())
 		}
+		Expect(rootKey).ToNot(BeNil())
 
 		signedCertDER, err := x509.CreateCertificate(rand.Reader, rootCert, rootCert, rootKey.Public(), rootKey)
 		if err != nil {

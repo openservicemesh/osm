@@ -10,7 +10,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 )
 
-func (ds debugConfig) getCertHandler() http.Handler {
+func (ds DebugConfig) getCertHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		certs := ds.certDebugger.ListIssuedCertificates()
 
@@ -23,7 +23,7 @@ func (ds debugConfig) getCertHandler() http.Handler {
 			chain := cert.GetCertificateChain()
 			x509, err := certificate.DecodePEMCertificate(chain)
 			if err != nil {
-				log.Error().Err(err).Msgf("Error decoding PEM to x509 CN=%s", cert.GetCommonName())
+				log.Error().Err(err).Msgf("Error decoding PEM to x509 SerialNumber=%s", cert.GetSerialNumber())
 			}
 
 			_, _ = fmt.Fprintf(w, "---[ %d ]---\n", idx)

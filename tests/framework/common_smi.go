@@ -75,7 +75,7 @@ func (td *OsmTestData) CreateTrafficTarget(ns string, tar smiAccess.TrafficTarge
 func (td *OsmTestData) CreateTrafficSplit(ns string, tar smiSplit.TrafficSplit) (*smiSplit.TrafficSplit, error) {
 	tt, err := td.SmiClients.SplitClient.SplitV1alpha2().TrafficSplits(ns).Create(context.Background(), &tar, metav1.CreateOptions{})
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create TrafficTarget")
+		return nil, errors.Wrap(err, "failed to create TrafficSplit")
 	}
 	return tt, nil
 }
