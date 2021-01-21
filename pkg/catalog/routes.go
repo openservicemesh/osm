@@ -106,7 +106,7 @@ func (mc *MeshCatalog) getAllowedDirectionalServices(svc service.MeshService, di
 		outbound: "Allowed outbound services from source %q: %+v",
 	}[directn]
 
-	log.Trace().Msgf(msg, svc, allowedServices)
+	log.Debug().Msgf(msg, svc, allowedServices)
 
 	return allowedServices, nil
 }
@@ -307,7 +307,7 @@ func getTrafficPoliciesForService(mc *MeshCatalog, routePolicies map[trafficpoli
 	var matchedTrafficTargets []trafficpolicy.TrafficTarget
 
 	for _, trafficTargets := range mc.meshSpec.ListTrafficTargets() {
-		log.Debug().Msgf("Discovered TrafficTarget resource: %s/%s", trafficTargets.Namespace, trafficTargets.Name)
+		log.Trace().Msgf("Discovered TrafficTarget resource: %s/%s", trafficTargets.Namespace, trafficTargets.Name)
 		if !isValidTrafficTarget(trafficTargets) {
 			log.Error().Msgf("TrafficTarget %s/%s has no spec routes; Skipping...", trafficTargets.Namespace, trafficTargets.Name)
 			continue
@@ -388,7 +388,7 @@ func (mc *MeshCatalog) buildAllowAllTrafficPolicies(service service.MeshService)
 			trafficTargets = append(trafficTargets, allowTrafficTarget)
 		}
 	}
-	log.Trace().Msgf("all traffic policies: %v", trafficTargets)
+	log.Debug().Msgf("All traffic policies for service %s : %v", service.String(), trafficTargets)
 	return trafficTargets
 }
 
@@ -460,7 +460,7 @@ func (mc *MeshCatalog) routesFromRules(rules []access.TrafficTargetRule, traffic
 	}
 
 	if len(specMatchRoute) == 0 {
-		log.Debug().Msg("No elements in map[traffic_spec_name]map[match name]trafficpolicyHTTPRoute")
+		log.Trace().Msg("No elements in map[traffic_spec_name]map[match name]trafficpolicyHTTPRoute")
 		return routes, nil
 	}
 

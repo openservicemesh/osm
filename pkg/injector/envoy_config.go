@@ -132,12 +132,12 @@ func (wh *mutatingWebhook) createEnvoyBootstrapConfig(name, namespace, osmNamesp
 		},
 	}
 	if existing, err := wh.kubeClient.CoreV1().Secrets(namespace).Get(context.Background(), name, metav1.GetOptions{}); err == nil {
-		log.Info().Msgf("Updating bootstrap config Envoy: name=%s, namespace=%s", name, namespace)
+		log.Debug().Msgf("Updating bootstrap config Envoy: name=%s, namespace=%s", name, namespace)
 		existing.Data = secret.Data
 		return wh.kubeClient.CoreV1().Secrets(namespace).Update(context.Background(), existing, metav1.UpdateOptions{})
 	}
 
-	log.Info().Msgf("Creating bootstrap config for Envoy: name=%s, namespace=%s", name, namespace)
+	log.Debug().Msgf("Creating bootstrap config for Envoy: name=%s, namespace=%s", name, namespace)
 	return wh.kubeClient.CoreV1().Secrets(namespace).Create(context.Background(), secret, metav1.CreateOptions{})
 }
 
