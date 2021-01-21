@@ -1,9 +1,9 @@
 # Upgrade Guide
 
-This guide describes how to upgrade Open Service Mesh (OSM) control plane.
+This guide describes how to upgrade the Open Service Mesh (OSM) control plane.
 
 ## Prerequisites
-- Kubernetes cluster with OSM installed
+- Kubernetes cluster with the OSM control plane installed
 - The [helm 3 CLI](https://helm.sh/docs/intro/install/) 
   - The helm CLI must be used until osm CLI upgrade support is implemented.
 
