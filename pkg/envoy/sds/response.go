@@ -191,8 +191,6 @@ func (s *sdsImpl) getRootCert(cert certificate.Certificater, sdscert envoy.SDSCe
 			return nil, err
 		}
 		secret.GetValidationContext().MatchSubjectAltNames = getSubjectAltNamesFromSvcAccount(svcAccounts)
-		log.Trace().Msgf("Proxy for service=%s, upstream cert=%s will only allow SANs exactly matching: %v",
-			proxyService, sdscert, subjectAltNamesToStr(secret.GetValidationContext().GetMatchSubjectAltNames()))
 
 	case envoy.RootCertTypeForMTLSInbound:
 		// For inbound certificate validation context, the SAN needs to be the list of all downstream
@@ -205,8 +203,6 @@ func (s *sdsImpl) getRootCert(cert certificate.Certificater, sdscert envoy.SDSCe
 			return nil, err
 		}
 		secret.GetValidationContext().MatchSubjectAltNames = getSubjectAltNamesFromSvcAccount(svcAccounts)
-		log.Trace().Msgf("Proxy for service=%s, downstream cert=%s will only allow SANs exactly matching: %v",
-			proxyService, sdscert, subjectAltNamesToStr(secret.GetValidationContext().GetMatchSubjectAltNames()))
 
 	default:
 		log.Debug().Msgf("SAN matching not needed for cert %s", sdscert)
