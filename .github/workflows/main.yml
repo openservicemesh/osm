@@ -6,12 +6,14 @@ on:
     paths-ignore:
       - "docs/**"
       - "**.md"
+      - "scripts/cleanup/**"
   pull_request:
     branches:
       - main
     paths-ignore:
       - "docs/**"
       - "**.md"
+      - "scripts/cleanup/**"
 env:
   CI_WAIT_FOR_OK_SECONDS: 60
   CI_MAX_ITERATIONS_THRESHOLD: 60

@@ -1,0 +1,1 @@
+kubectl delete --ignore-not-found --recursive -f ./charts/osm/crds/
