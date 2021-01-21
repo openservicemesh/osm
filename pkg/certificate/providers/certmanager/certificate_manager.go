@@ -36,7 +36,7 @@ func (cm *CertManager) IssueCertificate(cn certificate.CommonName, validityPerio
 		return nil, err
 	}
 
-	log.Trace().Msgf("It took %+v to issue certificate with SerialNumber=%s", time.Since(start), cert.GetSerialNumber())
+	log.Debug().Msgf("It took %+v to issue certificate with SerialNumber=%s", time.Since(start), cert.GetSerialNumber())
 
 	return cert, nil
 }
@@ -91,7 +91,7 @@ func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate
 	cm.cacheLock.Unlock()
 	cm.announcements <- announcements.Announcement{}
 
-	log.Info().Msgf("Rotated certificate (old SerialNumber=%s) with new SerialNumber=%s; took %+v", oldCert.GetSerialNumber(), newCert.GetSerialNumber(), time.Since(start))
+	log.Debug().Msgf("Rotated certificate (old SerialNumber=%s) with new SerialNumber=%s; took %+v", oldCert.GetSerialNumber(), newCert.GetSerialNumber(), time.Since(start))
 
 	return newCert, nil
 }
