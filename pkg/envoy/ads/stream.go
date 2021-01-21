@@ -19,28 +19,18 @@ import (
 func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer) error {
 	// When a new Envoy proxy connects, ValidateClient would ensure that it has a valid certificate,
 	// and the Subject CN is in the allowedCommonNames set.
-	cn, err := utils.ValidateClient(server.Context(), nil)
+	certCommonName, certSerialNumber, err := utils.ValidateClient(server.Context(), nil)
 	if err != nil {
-		return errors.Wrap(err, "[%s] Could not start stream")
+		return errors.Wrap(err, "Could not start stream")
 	}
 
-	// TODO(draychev): check for envoy.ErrTooManyConnections
+	// TODO(draychev): check for envoy.ErrTooManyConnections; GitHub Issue https://github.com/openservicemesh/osm/issues/2332
 
-	ip := utils.GetIPFromContext(server.Context())
-
-	svcList, err := s.catalog.GetServicesFromEnvoyCertificate(cn)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error fetching service for Envoy %s with CN %s", ip, cn)
-		return err
-	}
-	// Github Issue #1575
-	namespacedService := svcList[0]
-
-	log.Debug().Msgf("Client %s connected: Subject CN=%s; Service=%s", ip, cn, namespacedService)
+	log.Trace().Msgf("Envoy with certificate SerialNumber=%s connected", certSerialNumber)
 	metricsstore.DefaultMetricsStore.ProxyConnectCount.Inc()
 
 	// This is the Envoy proxy that just connected to the control plane.
-	proxy := envoy.NewProxy(cn, ip)
+	proxy := envoy.NewProxy(certCommonName, utils.GetIPFromContext(server.Context()))
 	s.catalog.RegisterProxy(proxy)
 	defer s.catalog.UnregisterProxy(proxy)
 
@@ -148,7 +138,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			if discoveryRequest.ResponseNonce != "" {
 				log.Debug().Msgf("Received discovery request with Nonce=%s; matches=%t; proxy last Nonce=%s", discoveryRequest.ResponseNonce, discoveryRequest.ResponseNonce == lastNonce, lastNonce)
 			}
-			log.Info().Msgf("Received discovery request <%s> for resources (%v) from Envoy <%s> with Nonce=%s", discoveryRequest.TypeUrl, discoveryRequest.ResourceNames, proxy, discoveryRequest.ResponseNonce)
+			log.Debug().Msgf("Received discovery request <%s> for resources (%v) from Envoy <%s> with Nonce=%s", discoveryRequest.TypeUrl, discoveryRequest.ResourceNames, proxy, discoveryRequest.ResponseNonce)
 
 			err := s.sendTypeResponse(typeURL, proxy, &server, &discoveryRequest, s.cfg)
 			if err != nil {
