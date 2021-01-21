@@ -93,11 +93,6 @@ func (p *Proxy) SetNewNonce(typeURI TypeURI) string {
 	return p.lastNonce[typeURI]
 }
 
-// String returns the CommonName of the proxy.
-func (p Proxy) String() string {
-	return p.GetPodUID()
-}
-
 // GetPodUID returns the UID of the pod, which the connected Envoy proxy is fronting.
 func (p Proxy) GetPodUID() string {
 	if p.PodMetadata == nil {
