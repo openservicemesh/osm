@@ -10,7 +10,7 @@ import (
 )
 
 func (ds DebugConfig) getEnvoyConfig(pod *v1.Pod, url string) string {
-	log.Info().Msgf("Getting Envoy config on Pod with UID=%s", pod.ObjectMeta.UID)
+	log.Debug().Msgf("Getting Envoy config on Pod with UID=%s", pod.ObjectMeta.UID)
 
 	minPort := 16000
 	maxPort := 18000
