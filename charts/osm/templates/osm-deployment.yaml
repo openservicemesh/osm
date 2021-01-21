@@ -53,6 +53,9 @@ spec:
             {{- if .Values.OpenServiceMesh.enableBackpressureExperimental }}
             "--enable-backpressure-experimental",
             {{- end }}
+            {{- if .Values.OpenServiceMesh.enableRoutesV2Experimental }}
+            "--enable-routes-v2-experimental",
+            {{- end }}
           ]
           resources:
             limits:

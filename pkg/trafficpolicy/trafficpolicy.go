@@ -33,6 +33,16 @@ func NewOutboundTrafficPolicy(name string, hostnames []string) *OutboundTrafficP
 	}
 }
 
+// TotalClustersWeight returns total weight of the WeightedClusters in RouteWeightedClusters
+func (rwc *RouteWeightedClusters) TotalClustersWeight() int {
+	var totalWeight int
+	for clusterInterface := range rwc.WeightedClusters.Iter() { // iterate
+		cluster := clusterInterface.(service.WeightedCluster)
+		totalWeight += cluster.Weight
+	}
+	return totalWeight
+}
+
 // AddRule adds a Rule to an InboundTrafficPolicy based on the given HTTP route match, weighted cluster, and allowed service account
 //	parameters. If a Rule for the given HTTP route match exists, it will add the given service account to the Rule. If the the given route
 //	match is not already associated with a Rule, it will create a Rule for the given route and service account.
