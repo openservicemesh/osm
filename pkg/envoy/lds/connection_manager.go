@@ -40,7 +40,7 @@ func getHTTPConnectionManager(routeName string, cfg configurator.Configurator) *
 
 		tracing, err := GetTracingConfig(cfg)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error getting tracing config %s", err)
+			log.Error().Err(err).Msg("Error getting tracing config")
 			return connManager
 		}
 
