@@ -160,7 +160,7 @@ func SearchLogsForSuccess(kubeClient kubernetes.Interface, namespace string, pod
 			case time.Since(startedWaiting) >= totalWait:
 				result <- TestsTimedOut
 
-			// If we detect EOF before success - this must have bene a filure
+			// If we detect EOF before success - this must have been a failure
 			case err == io.EOF:
 				log.Error().Err(err).Msgf("EOF reading from pod %s/%s", namespace, podName)
 				result <- TestsFailed

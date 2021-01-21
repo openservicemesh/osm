@@ -214,7 +214,7 @@ var _ = Describe("RDS Response", func() {
 	// Create Bookstore apex Service
 	svc = tests.NewServiceFixture(tests.BookstoreApexService.Name, tests.BookstoreApexService.Namespace, nil)
 	if _, err := kubeClient.CoreV1().Services(tests.BookstoreApexService.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{}); err != nil {
-		GinkgoT().Fatalf("Error creating new Bookstire Apex service: %s", err.Error())
+		GinkgoT().Fatalf("Error creating new Bookstore Apex service: %s", err.Error())
 	}
 
 	mockIngressMonitor.EXPECT().GetIngressResources(gomock.Any()).Return(nil, nil).AnyTimes()

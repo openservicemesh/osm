@@ -10,8 +10,8 @@ import (
 	time "time"
 
 	gomock "github.com/golang/mock/gomock"
-	v1alpha2 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
-	v1alpha3 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha3"
+	v1alpha2 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
+	v1alpha4 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	v1alpha20 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 
 	certificate "github.com/openservicemesh/osm/pkg/certificate"
@@ -136,13 +136,13 @@ func (mr *MockMeshCatalogDebuggerMockRecorder) ListMonitoredNamespaces() *gomock
 }
 
 // ListSMIPolicies mocks base method
-func (m *MockMeshCatalogDebugger) ListSMIPolicies() ([]*v1alpha20.TrafficSplit, []service.WeightedService, []service.K8sServiceAccount, []*v1alpha3.HTTPRouteGroup, []*v1alpha2.TrafficTarget) {
+func (m *MockMeshCatalogDebugger) ListSMIPolicies() ([]*v1alpha20.TrafficSplit, []service.WeightedService, []service.K8sServiceAccount, []*v1alpha4.HTTPRouteGroup, []*v1alpha2.TrafficTarget) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListSMIPolicies")
 	ret0, _ := ret[0].([]*v1alpha20.TrafficSplit)
 	ret1, _ := ret[1].([]service.WeightedService)
 	ret2, _ := ret[2].([]service.K8sServiceAccount)
-	ret3, _ := ret[3].([]*v1alpha3.HTTPRouteGroup)
+	ret3, _ := ret[3].([]*v1alpha4.HTTPRouteGroup)
 	ret4, _ := ret[4].([]*v1alpha2.TrafficTarget)
 	return ret0, ret1, ret2, ret3, ret4
 }

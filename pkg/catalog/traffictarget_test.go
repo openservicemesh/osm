@@ -5,9 +5,8 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
-	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
-	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha3"
+	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
+	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	tassert "github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -40,7 +39,7 @@ func TestListAllowedInboundServiceAccounts(t *testing.T) {
 			[]*smiAccess.TrafficTarget{
 				{
 					TypeMeta: metav1.TypeMeta{
-						APIVersion: "access.smi-spec.io/v1alpha2",
+						APIVersion: "access.smi-spec.io/v1alpha3",
 						Kind:       "TrafficTarget",
 					},
 					ObjectMeta: metav1.ObjectMeta{
@@ -62,7 +61,7 @@ func TestListAllowedInboundServiceAccounts(t *testing.T) {
 				},
 				{
 					TypeMeta: metav1.TypeMeta{
-						APIVersion: "access.smi-spec.io/v1alpha2",
+						APIVersion: "access.smi-spec.io/v1alpha3",
 						Kind:       "TrafficTarget",
 					},
 					ObjectMeta: metav1.ObjectMeta{
@@ -108,7 +107,7 @@ func TestListAllowedInboundServiceAccounts(t *testing.T) {
 			[]*smiAccess.TrafficTarget{
 				{
 					TypeMeta: metav1.TypeMeta{
-						APIVersion: "access.smi-spec.io/v1alpha2",
+						APIVersion: "access.smi-spec.io/v1alpha3",
 						Kind:       "TrafficTarget",
 					},
 					ObjectMeta: metav1.ObjectMeta{
@@ -149,7 +148,7 @@ func TestListAllowedInboundServiceAccounts(t *testing.T) {
 			[]*smiAccess.TrafficTarget{
 				{
 					TypeMeta: metav1.TypeMeta{
-						APIVersion: "access.smi-spec.io/v1alpha2",
+						APIVersion: "access.smi-spec.io/v1alpha3",
 						Kind:       "TrafficTarget",
 					},
 					ObjectMeta: metav1.ObjectMeta{
@@ -219,7 +218,7 @@ func TestListAllowedOutboundServiceAccounts(t *testing.T) {
 			[]*smiAccess.TrafficTarget{
 				{
 					TypeMeta: metav1.TypeMeta{
-						APIVersion: "access.smi-spec.io/v1alpha2",
+						APIVersion: "access.smi-spec.io/v1alpha3",
 						Kind:       "TrafficTarget",
 					},
 					ObjectMeta: metav1.ObjectMeta{
@@ -241,7 +240,7 @@ func TestListAllowedOutboundServiceAccounts(t *testing.T) {
 				},
 				{
 					TypeMeta: metav1.TypeMeta{
-						APIVersion: "access.smi-spec.io/v1alpha2",
+						APIVersion: "access.smi-spec.io/v1alpha3",
 						Kind:       "TrafficTarget",
 					},
 					ObjectMeta: metav1.ObjectMeta{
@@ -291,7 +290,7 @@ func TestListAllowedOutboundServiceAccounts(t *testing.T) {
 			[]*smiAccess.TrafficTarget{
 				{
 					TypeMeta: metav1.TypeMeta{
-						APIVersion: "access.smi-spec.io/v1alpha2",
+						APIVersion: "access.smi-spec.io/v1alpha3",
 						Kind:       "TrafficTarget",
 					},
 					ObjectMeta: metav1.ObjectMeta{
@@ -332,7 +331,7 @@ func TestListAllowedOutboundServiceAccounts(t *testing.T) {
 			[]*smiAccess.TrafficTarget{
 				{
 					TypeMeta: metav1.TypeMeta{
-						APIVersion: "access.smi-spec.io/v1alpha2",
+						APIVersion: "access.smi-spec.io/v1alpha3",
 						Kind:       "TrafficTarget",
 					},
 					ObjectMeta: metav1.ObjectMeta{
@@ -421,7 +420,7 @@ func TestTrafficTargetIdentityToSvcAccount(t *testing.T) {
 
 func TestTrafficTargetIdentitiesToSvcAccounts(t *testing.T) {
 	assert := tassert.New(t)
-	input := []target.IdentityBindingSubject{
+	input := []smiAccess.IdentityBindingSubject{
 		{
 			Kind:      "ServiceAccount",
 			Name:      "example1",
@@ -469,7 +468,7 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 			trafficTargets: []*smiAccess.TrafficTarget{
 				{
 					TypeMeta: metav1.TypeMeta{
-						APIVersion: "access.smi-spec.io/v1alpha2",
+						APIVersion: "access.smi-spec.io/v1alpha3",
 						Kind:       "TrafficTarget",
 					},
 					ObjectMeta: metav1.ObjectMeta{
@@ -503,8 +502,11 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "route-1",
 						Namespace: "ns-1",
-						Labels: map[string]string{
-							"ports": "8000, 9000",
+					},
+					Spec: smiSpecs.TCPRouteSpec{
+						Matches: smiSpecs.TCPMatch{
+							Name:  "8000,9000",
+							Ports: []int{8000, 9000},
 						},
 					},
 				},
@@ -537,7 +539,7 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 			trafficTargets: []*smiAccess.TrafficTarget{
 				{
 					TypeMeta: metav1.TypeMeta{
-						APIVersion: "access.smi-spec.io/v1alpha2",
+						APIVersion: "access.smi-spec.io/v1alpha3",
 						Kind:       "TrafficTarget",
 					},
 					ObjectMeta: metav1.ObjectMeta{
@@ -575,8 +577,11 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "route-1",
 						Namespace: "ns-1",
-						Labels: map[string]string{
-							"ports": "8000",
+					},
+					Spec: smiSpecs.TCPRouteSpec{
+						Matches: smiSpecs.TCPMatch{
+							Name:  "8000",
+							Ports: []int{8000},
 						},
 					},
 				},
@@ -584,8 +589,11 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "route-2",
 						Namespace: "ns-1",
-						Labels: map[string]string{
-							"ports": "9000",
+					},
+					Spec: smiSpecs.TCPRouteSpec{
+						Matches: smiSpecs.TCPMatch{
+							Name:  "9000",
+							Ports: []int{9000},
 						},
 					},
 				},
@@ -623,7 +631,7 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 			trafficTargets: []*smiAccess.TrafficTarget{
 				{
 					TypeMeta: metav1.TypeMeta{
-						APIVersion: "access.smi-spec.io/v1alpha2",
+						APIVersion: "access.smi-spec.io/v1alpha3",
 						Kind:       "TrafficTarget",
 					},
 					ObjectMeta: metav1.ObjectMeta{
@@ -655,7 +663,7 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 				},
 				{
 					TypeMeta: metav1.TypeMeta{
-						APIVersion: "access.smi-spec.io/v1alpha2",
+						APIVersion: "access.smi-spec.io/v1alpha3",
 						Kind:       "TrafficTarget",
 					},
 					ObjectMeta: metav1.ObjectMeta{
@@ -693,8 +701,11 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "route-1",
 						Namespace: "ns-1",
-						Labels: map[string]string{
-							"ports": "1000",
+					},
+					Spec: smiSpecs.TCPRouteSpec{
+						Matches: smiSpecs.TCPMatch{
+							Name:  "1000",
+							Ports: []int{1000},
 						},
 					},
 				},
@@ -702,8 +713,11 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "route-2",
 						Namespace: "ns-1",
-						Labels: map[string]string{
-							"ports": "2000",
+					},
+					Spec: smiSpecs.TCPRouteSpec{
+						Matches: smiSpecs.TCPMatch{
+							Name:  "2000",
+							Ports: []int{2000},
 						},
 					},
 				},
@@ -711,8 +725,11 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "route-3",
 						Namespace: "ns-1",
-						Labels: map[string]string{
-							"ports": "3000",
+					},
+					Spec: smiSpecs.TCPRouteSpec{
+						Matches: smiSpecs.TCPMatch{
+							Name:  "3000",
+							Ports: []int{3000},
 						},
 					},
 				},
@@ -720,8 +737,11 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "route-4",
 						Namespace: "ns-1",
-						Labels: map[string]string{
-							"ports": "4000",
+					},
+					Spec: smiSpecs.TCPRouteSpec{
+						Matches: smiSpecs.TCPMatch{
+							Name:  "4000",
+							Ports: []int{4000},
 						},
 					},
 				},
@@ -776,7 +796,7 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 			trafficTargets: []*smiAccess.TrafficTarget{
 				{
 					TypeMeta: metav1.TypeMeta{
-						APIVersion: "access.smi-spec.io/v1alpha2",
+						APIVersion: "access.smi-spec.io/v1alpha3",
 						Kind:       "TrafficTarget",
 					},
 					ObjectMeta: metav1.ObjectMeta{
@@ -823,7 +843,11 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 					Sources: []identity.ServiceIdentity{
 						identity.ServiceIdentity("sa-2.ns-2.cluster.local"),
 					},
-					TCPRouteMatches: nil,
+					TCPRouteMatches: []trafficpolicy.TCPRouteMatch{
+						{
+							Ports: nil,
+						},
+					},
 				},
 			},
 

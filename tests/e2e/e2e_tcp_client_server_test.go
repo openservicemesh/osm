@@ -141,8 +141,8 @@ func testTCPTraffic(permissiveMode bool) {
 
 			if !permissiveMode {
 				By("Deleting SMI policies")
-				Expect(Td.SmiClients.AccessClient.AccessV1alpha2().TrafficTargets(sourceName).Delete(context.TODO(), trafficTargetName, metav1.DeleteOptions{})).To(Succeed())
-				Expect(Td.SmiClients.SpecClient.SpecsV1alpha3().TCPRoutes(sourceName).Delete(context.TODO(), trafficRouteName, metav1.DeleteOptions{})).To(Succeed())
+				Expect(Td.SmiClients.AccessClient.AccessV1alpha3().TrafficTargets(sourceName).Delete(context.TODO(), trafficTargetName, metav1.DeleteOptions{})).To(Succeed())
+				Expect(Td.SmiClients.SpecClient.SpecsV1alpha4().TCPRoutes(sourceName).Delete(context.TODO(), trafficRouteName, metav1.DeleteOptions{})).To(Succeed())
 
 				// Expect client not to reach server
 				cond = Td.WaitForRepeatedSuccess(func() bool {

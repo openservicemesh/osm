@@ -19,29 +19,23 @@ import (
 func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscoveryService_StreamAggregatedResourcesServer) error {
 	// When a new Envoy proxy connects, ValidateClient would ensure that it has a valid certificate,
 	// and the Subject CN is in the allowedCommonNames set.
-	cn, err := utils.ValidateClient(server.Context(), nil)
+	certCommonName, certSerialNumber, err := utils.ValidateClient(server.Context(), nil)
 	if err != nil {
-		return errors.Wrap(err, "[%s] Could not start stream")
+		return errors.Wrap(err, "Could not start stream")
 	}
 
-	// TODO(draychev): check for envoy.ErrTooManyConnections
+	// TODO(draychev): check for envoy.ErrTooManyConnections; GitHub Issue https://github.com/openservicemesh/osm/issues/2332
 
-	ip := utils.GetIPFromContext(server.Context())
-
-	svcList, err := s.catalog.GetServicesFromEnvoyCertificate(cn)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error fetching service for Envoy %s with CN %s", ip, cn)
-		return err
-	}
-	// Github Issue #1575
-	namespacedService := svcList[0]
-
-	log.Info().Msgf("Client %s connected: Subject CN=%s; Service=%s", ip, cn, namespacedService)
+	log.Trace().Msgf("Envoy with certificate SerialNumber=%s connected", certSerialNumber)
 	metricsstore.DefaultMetricsStore.ProxyConnectCount.Inc()
 
 	// This is the Envoy proxy that just connected to the control plane.
-	proxy := envoy.NewProxy(cn, ip)
-	s.catalog.RegisterProxy(proxy)
+	// NOTE: This is step 1 of the registration. At this point we do not yet have context on the Pod.
+	//       Details on which Pod this Envoy is fronting will arrive via xDS in the NODE_ID string.
+	//       When this arrives we will call RegisterProxy() a second time - this time with Pod context!
+	proxy := envoy.NewProxy(certCommonName, certSerialNumber, utils.GetIPFromContext(server.Context()))
+	s.catalog.RegisterProxy(proxy) // First of Two invocations.  Second one will be during xDS hand-shake!
+
 	defer s.catalog.UnregisterProxy(proxy)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -74,10 +68,12 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			return nil
 
 		case discoveryRequest, ok := <-requests:
-			log.Info().Msgf("Received %s (nonce=%s; version=%s; resources=%v) from Envoy %s", discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, discoveryRequest.ResourceNames, proxy.GetCommonName())
-			log.Info().Msgf("Last sent for %s nonce=%s; last sent version=%s for Envoy %s", discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, proxy.GetCommonName())
+
+			log.Debug().Msgf("Received %s (nonce=%s; version=%s; resources=%v) from Envoy %s", discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, discoveryRequest.ResourceNames, proxy.GetCertificateCommonName())
+			log.Debug().Msgf("Last sent for %s nonce=%s; last sent version=%s for Envoy %s", discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, proxy.GetCertificateCommonName())
+
 			if !ok {
-				log.Error().Msgf("Proxy %s closed GRPC!", proxy.GetCommonName())
+				log.Error().Msgf("Proxy %s closed GRPC!", proxy.GetCertificateCommonName())
 				metricsstore.DefaultMetricsStore.ProxyConnectCount.Dec()
 				return errGrpcClosed
 			}
@@ -101,7 +97,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 				if ackVersion, err = strconv.ParseUint(discoveryRequest.VersionInfo, 10, 64); err != nil {
 					// It is probable that Envoy responded with a VersionInfo we did not understand
 					// We log this and continue. The ackVersion will be 0 in this state.
-					log.Error().Err(err).Msgf("Error parsing %s discovery request VersionInfo (%s) from proxy %s", typeURL, discoveryRequest.VersionInfo, proxy.GetCommonName())
+					log.Error().Err(err).Msgf("Error parsing %s discovery request VersionInfo (%s) from proxy %s", typeURL, discoveryRequest.VersionInfo, proxy.GetCertificateCommonName())
 				}
 			}
 
@@ -109,13 +105,13 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 				discoveryRequest.TypeUrl,
 				discoveryRequest.ResponseNonce,
 				ackVersion,
-				proxy.GetCommonName(),
+				proxy.GetCertificateCommonName(),
 				proxy.GetLastAppliedVersion(typeURL))
 
 			log.Debug().Msgf("Last sent nonce=%s; last sent version=%d for Envoy %s",
 				proxy.GetLastSentNonce(typeURL),
 				proxy.GetLastSentVersion(typeURL),
-				proxy.GetCommonName())
+				proxy.GetCertificateCommonName())
 
 			proxy.SetLastAppliedVersion(typeURL, ackVersion)
 
@@ -148,20 +144,20 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			if discoveryRequest.ResponseNonce != "" {
 				log.Debug().Msgf("Received discovery request with Nonce=%s; matches=%t; proxy last Nonce=%s", discoveryRequest.ResponseNonce, discoveryRequest.ResponseNonce == lastNonce, lastNonce)
 			}
-			log.Info().Msgf("Received discovery request <%s> for resources (%v) from Envoy <%s> with Nonce=%s", discoveryRequest.TypeUrl, discoveryRequest.ResourceNames, proxy, discoveryRequest.ResponseNonce)
+			log.Debug().Msgf("Received discovery request <%s> for resources (%v) from Envoy <%s> with Nonce=%s", discoveryRequest.TypeUrl, discoveryRequest.ResourceNames, proxy, discoveryRequest.ResponseNonce)
 
 			err := s.sendTypeResponse(typeURL, proxy, &server, &discoveryRequest, s.cfg)
 			if err != nil {
 				log.Error().Err(err).Msgf("Failed to create and send %s update to Proxy %s",
-					envoy.XDSShortURINames[typeURL], proxy.GetCommonName())
+					envoy.XDSShortURINames[typeURL], proxy.GetCertificateCommonName())
 			}
 
 		case <-broadcastUpdate:
-			log.Info().Msgf("Broadcast update received for %s", proxy.GetCommonName())
+			log.Debug().Msgf("Broadcast update received for %s", proxy.GetCertificateCommonName())
 			s.sendAllResponses(proxy, &server, s.cfg)
 
 		case <-proxy.GetAnnouncementsChannel():
-			log.Info().Msgf("Individual update for %s", proxy.GetCommonName())
+			log.Debug().Msgf("Individual update for %s", proxy.GetCertificateCommonName())
 			s.sendAllResponses(proxy, &server, s.cfg)
 		}
 	}

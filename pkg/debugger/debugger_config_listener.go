@@ -44,7 +44,7 @@ func (d *DebugConfig) StartDebugServerConfigListener() {
 			}
 			if !isDbgSrvEnabled && started {
 				if err := httpDebugServer.Stop(); err != nil {
-					log.Error().Err(err).Msgf("error stoping debug server")
+					log.Error().Err(err).Msgf("error stopping debug server")
 				} else {
 					started = false
 				}

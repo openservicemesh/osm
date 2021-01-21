@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
-	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha3"
+	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
+	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 
 	"github.com/openservicemesh/osm/pkg/service"
@@ -17,7 +17,7 @@ type policies struct {
 	WeightedServices []service.WeightedService   `json:"weighted_services"`
 	ServiceAccounts  []service.K8sServiceAccount `json:"service_accounts"`
 	RouteGroups      []*spec.HTTPRouteGroup      `json:"route_groups"`
-	TrafficTargets   []*target.TrafficTarget     `json:"traffic_targets"`
+	TrafficTargets   []*access.TrafficTarget     `json:"traffic_targets"`
 }
 
 func (ds DebugConfig) getOSMConfigHandler() http.Handler {

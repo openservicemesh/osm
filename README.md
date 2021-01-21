@@ -52,7 +52,7 @@ OSM runs an Envoy based control plane on Kubernetes, can be configured with SMI 
 
 ### Project status
 
-OSM is under active development and is **NOT** ready for production workloads. 
+OSM is under active development and is **NOT** ready for production workloads.
 
 ### Support
 
@@ -62,10 +62,10 @@ OSM is an open source project that is [**not** covered by the Microsoft Azure su
 
 |   Specification Component    |         Supported Release          |          Comments          |
 | :---------------------------- | :--------------------------------: |  :--------------------------------: |
-| Traffic Access Control  |  [v1alpha2](https://github.com/servicemeshinterface/smi-spec/blob/master/apis/traffic-access/v1alpha2/traffic-access.md)  | |
-| Traffic Specs  |  [v1alpha3](https://github.com/servicemeshinterface/smi-spec/blob/master/apis/traffic-specs/v1alpha3/traffic-specs.md)  | |
-| Traffic Split  |  [v1alpha2](https://github.com/servicemeshinterface/smi-spec/blob/master/apis/traffic-split/v1alpha2/traffic-split.md) | |
-| Traffic Metrics  | [v1alpha1](https://github.com/servicemeshinterface/smi-spec/blob/master/apis/traffic-metrics/v1alpha1/traffic-metrics.md) | 🚧 **In Progress** [#379](https://github.com/openservicemesh/osm/issues/379) 🚧 |
+| Traffic Access Control  |  [v1alpha3](https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-access/v1alpha3/traffic-access.md)  | |
+| Traffic Specs  |  [v1alpha4](https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-specs/v1alpha4/traffic-specs.md)  | |
+| Traffic Split  |  [v1alpha2](https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-split/v1alpha2/traffic-split.md) | |
+| Traffic Metrics  | [v1alpha1](https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-metrics/v1alpha1/traffic-metrics.md) | 🚧 **In Progress** [#379](https://github.com/openservicemesh/osm/issues/379) 🚧 |
 
 ## OSM Design
 
@@ -96,7 +96,7 @@ $ osm install
 See the [installation guide](docs/installation_guide.md) for more detailed options.
 
 ## Demos
-We have provided two demos for you to experience OSM. 
+We have provided two demos for you to experience OSM.
 
 - The [automated demo](demo/README.md) is a set of scripts anyone can run and shows how OSM can manage, secure and provide observability for microservice environments.
 - The [manual demo](docs/example/README.md) is a step-by-step walkthrough set of instruction of the automated demo.
@@ -136,5 +136,5 @@ This software is covered under the MIT license. You can read the license [here](
 
 [1]: https://en.wikipedia.org/wiki/Service_mesh
 [2]: https://github.com/servicemeshinterface/smi-spec/blob/master/SPEC_LATEST_STABLE.md
-[3]: https://github.com/servicemeshinterface/smi-spec/blob/v0.5.0/apis/traffic-split/v1alpha2/traffic-split.md
-[4]: https://github.com/servicemeshinterface/smi-spec/blob/v0.5.0/apis/traffic-access/v1alpha2/traffic-access.md
+[3]: https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-split/v1alpha2/traffic-split.md
+[4]: https://github.com/servicemeshinterface/smi-spec/blob/v0.6.0/apis/traffic-access/v1alpha3/traffic-access.md

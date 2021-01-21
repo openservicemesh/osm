@@ -52,7 +52,8 @@ var _ = Describe("CDS Response", func() {
 
 			// The format of the CN matters
 			xdsCertificate := certificate.CommonName(fmt.Sprintf("%s.%s.%s.foo.bar", proxyUUID, proxyServiceAccountName, tests.Namespace))
-			proxy := envoy.NewProxy(xdsCertificate, nil)
+			certSerialNumber := certificate.SerialNumber("123456")
+			proxy := envoy.NewProxy(xdsCertificate, certSerialNumber, nil)
 
 			{
 				// Create a pod to match the CN
@@ -185,7 +186,7 @@ var _ = Describe("CDS Response", func() {
 				},
 			}
 
-			// Checking for the value by generating the same value the same way is reduntant
+			// Checking for the value by generating the same value the same way is redundant
 			// Nonetheless, as getUpstreamServiceCluster logic gets more complicated, this might just be ok to have
 			upstreamTLSProto, err := ptypes.MarshalAny(envoy.GetUpstreamTLSContext(proxyService, upstreamSvc))
 			Expect(err).ToNot(HaveOccurred())

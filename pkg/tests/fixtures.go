@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"net"
 
-	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
-	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha3"
+	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
+	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	"github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -285,27 +285,27 @@ var (
 	}
 
 	// TrafficTarget is a traffic target SMI object.
-	TrafficTarget = target.TrafficTarget{
+	TrafficTarget = access.TrafficTarget{
 		TypeMeta: v1.TypeMeta{
-			APIVersion: "access.smi-spec.io/v1alpha2",
+			APIVersion: "access.smi-spec.io/v1alpha3",
 			Kind:       "TrafficTarget",
 		},
 		ObjectMeta: v1.ObjectMeta{
 			Name:      TrafficTargetName,
 			Namespace: "default",
 		},
-		Spec: target.TrafficTargetSpec{
-			Destination: target.IdentityBindingSubject{
+		Spec: access.TrafficTargetSpec{
+			Destination: access.IdentityBindingSubject{
 				Kind:      "Name",
 				Name:      BookstoreServiceAccountName,
 				Namespace: "default",
 			},
-			Sources: []target.IdentityBindingSubject{{
+			Sources: []access.IdentityBindingSubject{{
 				Kind:      "Name",
 				Name:      BookbuyerServiceAccountName,
 				Namespace: "default",
 			}},
-			Rules: []target.TrafficTargetRule{{
+			Rules: []access.TrafficTargetRule{{
 				Kind:    "HTTPRouteGroup",
 				Name:    RouteGroupName,
 				Matches: []string{BuyBooksMatchName, SellBooksMatchName},
@@ -356,7 +356,7 @@ var (
 	// HTTPRouteGroup is the HTTP route group SMI object.
 	HTTPRouteGroup = spec.HTTPRouteGroup{
 		TypeMeta: v1.TypeMeta{
-			APIVersion: "specs.smi-spec.io/v1alpha2",
+			APIVersion: "specs.smi-spec.io/v1alpha4",
 			Kind:       "HTTPRouteGroup",
 		},
 		ObjectMeta: v1.ObjectMeta{
@@ -395,7 +395,7 @@ var (
 	// TCPRoute is a TCPRoute SMI resource
 	TCPRoute = spec.TCPRoute{
 		TypeMeta: v1.TypeMeta{
-			APIVersion: "specs.smi-spec.io/v1alpha2",
+			APIVersion: "specs.smi-spec.io/v1alpha4",
 			Kind:       "TCPRoute",
 		},
 		ObjectMeta: v1.ObjectMeta{
@@ -497,28 +497,28 @@ func NewMeshServiceFixture(serviceName, namespace string) service.MeshService {
 }
 
 // NewSMITrafficTarget creates a new SMI Traffic Target
-func NewSMITrafficTarget(sourceName, sourceNamespace, destName, destNamespace string) target.TrafficTarget {
-	return target.TrafficTarget{
+func NewSMITrafficTarget(sourceName, sourceNamespace, destName, destNamespace string) access.TrafficTarget {
+	return access.TrafficTarget{
 		TypeMeta: v1.TypeMeta{
-			APIVersion: "access.smi-spec.io/v1alpha2",
+			APIVersion: "access.smi-spec.io/v1alpha3",
 			Kind:       "TrafficTarget",
 		},
 		ObjectMeta: v1.ObjectMeta{
 			Name:      destName,
 			Namespace: destNamespace,
 		},
-		Spec: target.TrafficTargetSpec{
-			Destination: target.IdentityBindingSubject{
+		Spec: access.TrafficTargetSpec{
+			Destination: access.IdentityBindingSubject{
 				Kind:      "ServiceAccount",
 				Name:      destName,
 				Namespace: destNamespace,
 			},
-			Sources: []target.IdentityBindingSubject{{
+			Sources: []access.IdentityBindingSubject{{
 				Kind:      "ServiceAccount",
 				Name:      sourceName,
 				Namespace: sourceNamespace,
 			}},
-			Rules: []target.TrafficTargetRule{{
+			Rules: []access.TrafficTargetRule{{
 				Kind:    "HTTPRouteGroup",
 				Name:    RouteGroupName,
 				Matches: []string{BuyBooksMatchName, SellBooksMatchName},

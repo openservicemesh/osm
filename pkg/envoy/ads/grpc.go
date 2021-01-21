@@ -31,14 +31,10 @@ func receive(requests chan xds_discovery.DiscoveryRequest, server *xds_discovery
 				// Set the Pod metadata on the given proxy only once. This could arrive with the first few XDS requests.
 				recordEnvoyPodMetadata(request, proxy, catalog)
 			}
-			nodeID := ""
-			if request.Node != nil {
-				nodeID = request.Node.Id
-			}
-			log.Trace().Msgf("[grpc] Received DiscoveryRequest from Envoy with CN %s; Node ID: %s", proxy.GetCommonName(), nodeID)
+			log.Trace().Msgf("[grpc] Received DiscoveryRequest from Envoy with certificate SerialNumber %s", proxy.GetCertificateSerialNumber())
 			requests <- *request
 		} else {
-			log.Warn().Msgf("[grpc] Unknown resource: %+v", request)
+			log.Warn().Msgf("[grpc] Received a request for an unknown TypeURL: %+v", request.TypeUrl)
 		}
 	}
 }
@@ -49,11 +45,13 @@ func recordEnvoyPodMetadata(request *xds_discovery.DiscoveryRequest, proxy *envo
 			log.Error().Err(err).Msgf("Error parsing Envoy Node ID: %s", request.Node.Id)
 		} else {
 			log.Trace().Msgf("Recorded metadata for Envoy %s: podUID=%s, podNamespace=%s, serviceAccountName=%s, envoyNodeID=%s",
-				proxy.CommonName, meta.UID, meta.Namespace, meta.ServiceAccount, meta.EnvoyNodeID)
+				proxy.GetCertificateCommonName(), meta.UID, meta.Namespace, meta.ServiceAccount, meta.EnvoyNodeID)
+
+			// Set the Pod Metadata, which will be used in the RegisterProxy() invocation below!
 			proxy.PodMetadata = meta
 
-			// We call RegisterProxy again on the MeshCatalog to update the index on pod metadata
-			catalog.RegisterProxy(proxy)
+			// We call RegisterProxy again, for a second time, on the MeshCatalog to update the index on pod metadata
+			catalog.RegisterProxy(proxy) // Second of Two invocations. First one was on establishing the gRPC stream.
 		}
 	}
 }

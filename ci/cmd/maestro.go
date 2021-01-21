@@ -61,7 +61,7 @@ var (
 )
 
 func main() {
-	log.Info().Msgf("Looking for: %s/%s, %s/%s, %s/%s, %s/%s, %s/%s", bookBuyerLabel, bookbuyerNS, bookThiefLabel, bookthiefNS, bookstoreV1Label, bookstoreNS, bookstoreV2Label, bookstoreNS, bookWarehouseLabel, bookWarehouseNS)
+	log.Debug().Msgf("Looking for: %s/%s, %s/%s, %s/%s, %s/%s, %s/%s", bookBuyerLabel, bookbuyerNS, bookThiefLabel, bookthiefNS, bookstoreV1Label, bookstoreNS, bookstoreV2Label, bookstoreNS, bookWarehouseLabel, bookWarehouseNS)
 
 	kubeClient := maestro.GetKubernetesClient()
 
@@ -82,7 +82,7 @@ func main() {
 	}
 
 	if allTestsResults.Equal(maestro.TestsPassed) {
-		log.Info().Msg("Test succeeded")
+		log.Debug().Msg("Test succeeded")
 		maestro.DeleteNamespaces(kubeClient, append(namespaces, osmNamespace)...)
 		os.Exit(0) // Tests passed!  WE ARE DONE !!!
 	}

@@ -124,7 +124,7 @@ func (c *Client) configMapListener() {
 
 			case announcements.ConfigMapDeleted:
 				// Ignore deletion. We expect config to be present
-				log.Info().Msgf("[%s] triggeing a global proxy broadcast",
+				log.Info().Msgf("[%s] triggering a global proxy broadcast",
 					psubMsg.AnnouncementType)
 				events.GetPubSubInstance().Publish(events.PubSubMessage{
 					AnnouncementType: announcements.ScheduleProxyBroadcast,
@@ -218,8 +218,8 @@ type osmConfig struct {
 
 func (c *Client) run(stop <-chan struct{}) {
 	go c.informer.Run(stop) // run the informer synchronization
-	log.Info().Msgf("Started OSM ConfigMap informer - watching for %s", c.getConfigMapCacheKey())
-	log.Info().Msg("[ConfigMap Client] Waiting for ConfigMap informer's cache to sync")
+	log.Debug().Msgf("Started OSM ConfigMap informer - watching for %s", c.getConfigMapCacheKey())
+	log.Debug().Msg("[ConfigMap Client] Waiting for ConfigMap informer's cache to sync")
 	if !cache.WaitForCacheSync(stop, c.informer.HasSynced) {
 		log.Error().Msg("Failed initial cache sync for ConfigMap informer")
 		return
@@ -227,7 +227,7 @@ func (c *Client) run(stop <-chan struct{}) {
 
 	// Closing the cacheSynced channel signals to the rest of the system that caches have been synced.
 	close(c.cacheSynced)
-	log.Info().Msg("[ConfigMap Client] Cache sync for ConfigMap informer finished")
+	log.Debug().Msg("[ConfigMap Client] Cache sync for ConfigMap informer finished")
 }
 
 func (c *Client) getConfigMapCacheKey() string {

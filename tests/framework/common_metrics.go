@@ -158,7 +158,7 @@ func (g *Grafana) PanelPNGSnapshot(dashboard string, panelID int, fromMinutes in
 	// panel ID, which panel are we interested in (cpu, mem, etc.)
 	query.Add("panelId", fmt.Sprintf("%d", panelID))
 
-	// Add all query parametres to url
+	// Add all query parameters to url
 	renderURL.RawQuery = query.Encode()
 
 	req, err := http.NewRequest("GET", renderURL.String(), nil)

@@ -18,17 +18,17 @@ import (
 // 2. Outbound listener to handle outgoing traffic
 // 3. Prometheus listener for metrics
 func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, _ certificate.Manager) (*xds_discovery.DiscoveryResponse, error) {
-	svcList, err := meshCatalog.GetServicesFromEnvoyCertificate(proxy.GetCommonName())
+	svcList, err := meshCatalog.GetServicesFromEnvoyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up MeshService for Envoy with CN=%q", proxy.GetCommonName())
+		log.Error().Err(err).Msgf("Error looking up MeshService for Envoy certificate SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 		return nil, err
 	}
 	// Github Issue #1575
 	proxyServiceName := svcList[0]
 
-	svcAccount, err := catalog.GetServiceAccountFromProxyCertificate(proxy.GetCommonName())
+	svcAccount, err := catalog.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error retrieving ServiceAccount for proxy %s", proxy.GetCommonName())
+		log.Error().Err(err).Msgf("Error retrieving ServiceAccount for Envoy with certificate with SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 		return nil, err
 	}
 
@@ -80,7 +80,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	}
 
 	if len(inboundListener.FilterChains) > 0 {
-		// Inbound filter chains can be empty if the there both ingress and in-mesh policies are not configued.
+		// Inbound filter chains can be empty if the there both ingress and in-mesh policies are not configured.
 		// Configuring a listener without a filter chain is an error.
 		if marshalledInbound, err := ptypes.MarshalAny(inboundListener); err != nil {
 			log.Error().Err(err).Msgf("Error marshalling inbound listener config for proxy %s", proxyServiceName)

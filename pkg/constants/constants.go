@@ -125,7 +125,7 @@ const (
 	// DomainDelimiter is a delimiter used in representing domains
 	DomainDelimiter = "."
 
-	// EnvoyContainerName is the name used to identify the envoy sidecard container added on mesh-enabled deployments
+	// EnvoyContainerName is the name used to identify the envoy sidecar container added on mesh-enabled deployments
 	EnvoyContainerName = "envoy"
 
 	// InitContainerName is the name of the init container
@@ -153,7 +153,7 @@ const (
 	// PrometheusScrapeAnnotation is the annotation used to configure prometheus scraping
 	PrometheusScrapeAnnotation = "prometheus.io/scrape"
 
-	// PrometheusPortAnnotation is the anontation used to configure the port to scrape on
+	// PrometheusPortAnnotation is the annotation used to configure the port to scrape on
 	PrometheusPortAnnotation = "prometheus.io/port"
 
 	// PrometheusPathAnnotation is the annotation used to configure the path to scrape on

@@ -102,7 +102,7 @@ func UnmarshalSDSCert(str string) (*SDSCert, error) {
 		return nil, errInvalidCertFormat
 	}
 
-	// Check valid namespace'd service name
+	// Check valid namespaced service name
 	svc, err := service.UnmarshalMeshService(slices[1])
 	if err != nil {
 		return nil, err

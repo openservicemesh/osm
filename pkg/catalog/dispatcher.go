@@ -13,19 +13,19 @@ const (
 	// maxBroadcastDeadlineTime is the max time we will delay a global proxy update
 	// if multiple events that would trigger it get coalesced over time.
 	maxBroadcastDeadlineTime = 15 * time.Second
-	// maxGraceDeadlineTime is the time we will wait for an additinal global proxy update
+	// maxGraceDeadlineTime is the time we will wait for an additional global proxy update
 	// trigger if we just received one.
 	maxGraceDeadlineTime = 3 * time.Second
 )
 
-// isDeltaUpdate assesses and returns if a pubsub mesasge contains an actual delta in config
+// isDeltaUpdate assesses and returns if a pubsub message contains an actual delta in config
 func isDeltaUpdate(psubMsg events.PubSubMessage) bool {
 	return !(strings.HasSuffix(psubMsg.AnnouncementType.String(), "updated") &&
 		reflect.DeepEqual(psubMsg.OldObj, psubMsg.NewObj))
 }
 
 func (mc *MeshCatalog) dispatcher() {
-	// This will be finely tunned in near future, we can instrument other modules
+	// This will be finely tuned in near future, we can instrument other modules
 	// to take ownership of certain events, and just notify dispatcher through
 	// ScheduleBroadcastUpdate announcement type
 	subChannel := events.GetPubSubInstance().Subscribe(
@@ -95,7 +95,7 @@ func (mc *MeshCatalog) dispatcher() {
 
 		// A select-fallthrough doesn't exist, we are copying some code here
 		case <-chanMovingDeadline:
-			log.Info().Msgf("[Moving deadline trigger] Broadcast envoy update")
+			log.Debug().Msgf("[Moving deadline trigger] Broadcast envoy update")
 			events.GetPubSubInstance().Publish(events.PubSubMessage{
 				AnnouncementType: a.ProxyBroadcast,
 			})
@@ -106,7 +106,7 @@ func (mc *MeshCatalog) dispatcher() {
 			chanMaxDeadline = make(<-chan time.Time)
 
 		case <-chanMaxDeadline:
-			log.Info().Msgf("[Max deadline trigger] Broadcast envoy update")
+			log.Debug().Msgf("[Max deadline trigger] Broadcast envoy update")
 			events.GetPubSubInstance().Publish(events.PubSubMessage{
 				AnnouncementType: a.ProxyBroadcast,
 			})

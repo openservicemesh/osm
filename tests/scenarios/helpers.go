@@ -60,7 +60,9 @@ func getMeshCatalogAndProxy() (catalog.MeshCataloger, *envoy.Proxy, error) {
 		makeService(kubeClient, svcName)
 	}
 
-	proxy := envoy.NewProxy(certificate.CommonName(fmt.Sprintf("%s.%s.%s", tests.ProxyUUID, tests.BookbuyerServiceAccountName, tests.Namespace)), nil)
+	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s", tests.ProxyUUID, tests.BookbuyerServiceAccountName, tests.Namespace))
+	certSerialNumber := certificate.SerialNumber("123456")
+	proxy := envoy.NewProxy(certCommonName, certSerialNumber, nil)
 
 	return meshCatalog, proxy, nil
 }

@@ -1,8 +1,8 @@
 package smi
 
 import (
-	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
-	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha3"
+	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
+	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 
 	"k8s.io/client-go/tools/cache"
@@ -68,7 +68,7 @@ type MeshSpec interface {
 	GetTCPRoute(string) *spec.TCPRoute
 
 	// ListTrafficTargets lists SMI TrafficTarget resources
-	ListTrafficTargets() []*target.TrafficTarget
+	ListTrafficTargets() []*access.TrafficTarget
 
 	// GetBackpressurePolicy fetches the Backpressure policy for the MeshService
 	GetBackpressurePolicy(service.MeshService) *backpressure.Backpressure

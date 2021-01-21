@@ -276,7 +276,7 @@ func main() {
 	debugConfig.StartDebugServerConfigListener()
 
 	<-stop
-	log.Info().Msg("Goodbye!")
+	log.Info().Msgf("Stopping osm-controller %s; %s; %s", version.Version, version.GitCommit, version.BuildDate)
 }
 
 func getHTTPHealthProbes() []health.HTTPProbe {
@@ -417,7 +417,7 @@ func createControllerManagerForOSMResources(certManager certificate.Manager) err
 
 	// controller logic is implemented by reconciler
 	// Adding a reconciler for OSM's mutatingwehbookconfiguration
-	if err = (&reconciler.MutatingWebhookConfigrationReconciler{
+	if err = (&reconciler.MutatingWebhookConfigurationReconciler{
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
 		OsmWebhook:   fmt.Sprintf("osm-webhook-%s", meshName),
@@ -428,12 +428,11 @@ func createControllerManagerForOSMResources(certManager certificate.Manager) err
 		return err
 	}
 
-	log.Info().Msg("starting manager")
 	go func() {
 		// mgr.Start() below will block until stopped
 		// See: https://github.com/kubernetes-sigs/controller-runtime/blob/release-0.6/pkg/manager/internal.go#L507-L514
 		if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
-			log.Error().Err(err).Msg("problem running manager")
+			log.Error().Err(err).Msg("problem running manager for controller")
 		}
 	}()
 

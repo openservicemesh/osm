@@ -29,7 +29,7 @@ func newMetricsCmd(out io.Writer) *cobra.Command {
 	return cmd
 }
 
-// isMonitoredNamespace returns true if the Namepspace is correctly annotated for monitoring given a set of existing meshes
+// isMonitoredNamespace returns true if the Namespace is correctly annotated for monitoring given a set of existing meshes
 func isMonitoredNamespace(ns corev1.Namespace, meshList mapset.Set) (bool, error) {
 	// Check if the namespace has the resource monitor annotation
 	meshName, monitored := ns.Labels[constants.OSMKubeResourceMonitorAnnotation]
