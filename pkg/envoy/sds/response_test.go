@@ -132,10 +132,12 @@ func TestGetRootCert(t *testing.T) {
 				tc.prepare(&d)
 			}
 
+			certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s", uuid.New().String(), "sa-1", "ns-1"))
+			certSerialNumber := certificate.SerialNumber("123456")
 			s := &sdsImpl{
 				proxyServices: []service.MeshService{tc.proxyService},
 				svcAccount:    tc.proxySvcAccount,
-				proxy:         envoy.NewProxy(certificate.CommonName(fmt.Sprintf("%s.%s.%s", uuid.New().String(), "sa-1", "ns-1")), nil),
+				proxy:         envoy.NewProxy(certCommonName, certSerialNumber, nil),
 				certManager:   mockCertManager,
 
 				// these points to the dynamic mocks which gets updated for each test
@@ -345,10 +347,12 @@ func TestGetSDSSecrets(t *testing.T) {
 				tc.prepare(&d)
 			}
 
+			certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s", uuid.New().String(), "sa-1", "ns-1"))
+			certSerialNumber := certificate.SerialNumber("123456")
 			s := &sdsImpl{
 				proxyServices: []service.MeshService{tc.proxyService},
 				svcAccount:    tc.proxySvcAccount,
-				proxy:         envoy.NewProxy(certificate.CommonName(fmt.Sprintf("%s.%s.%s", uuid.New().String(), "sa-1", "ns-1")), nil),
+				proxy:         envoy.NewProxy(certCommonName, certSerialNumber, nil),
 				certManager:   mockCertManager,
 
 				// these points to the dynamic mocks which gets updated for each test

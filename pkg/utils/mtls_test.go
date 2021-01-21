@@ -83,12 +83,14 @@ func TestValidateClient(t *testing.T) {
 	}
 
 	for _, vct := range validateClientTests {
-		result, err := ValidateClient(vct.ctx, vct.commonNames)
+		certCN, certSerialNumber, err := ValidateClient(vct.ctx, vct.commonNames)
 		if err != nil {
-			assert.Equal(result, certificate.CommonName(""))
+			assert.Equal(certCN, certificate.CommonName(""))
+			assert.Equal(certSerialNumber, certificate.SerialNumber(""))
 			assert.True(errors.Is(err, vct.expectedError))
 		} else {
-			assert.NotNil(result)
+			assert.NotNil(certCN)
+			assert.NotNil(certSerialNumber)
 			assert.Empty(vct.expectedError)
 		}
 	}

@@ -12,7 +12,12 @@ import (
 // Proxy is a representation of an Envoy proxy connected to the xDS server.
 // This should at some point have a 1:1 match to an Endpoint (which is a member of a meshed service).
 type Proxy struct {
-	certificate.CommonName
+	// The Subject Common Name of the certificate used for Envoy to XDS communication.
+	xDSCertificateCommonName certificate.CommonName
+
+	// The Serial Number of the certificate used for Envoy to XDS communication.
+	xDSCertificateSerialNumber certificate.SerialNumber
+
 	net.Addr
 	announcements chan announcements.Announcement
 
@@ -88,14 +93,22 @@ func (p *Proxy) SetNewNonce(typeURI TypeURI) string {
 	return p.lastNonce[typeURI]
 }
 
-// String returns the CommonName of the proxy.
-func (p Proxy) String() string {
-	return string(p.GetCommonName())
+// GetPodUID returns the UID of the pod, which the connected Envoy proxy is fronting.
+func (p Proxy) GetPodUID() string {
+	if p.PodMetadata == nil {
+		return ""
+	}
+	return p.PodMetadata.UID
 }
 
-// GetCommonName returns the Subject Common Name from the mTLS certificate of the Envoy proxy connected to xDS.
-func (p Proxy) GetCommonName() certificate.CommonName {
-	return p.CommonName
+// GetCertificateCommonName returns the Subject Common Name from the mTLS certificate of the Envoy proxy connected to xDS.
+func (p Proxy) GetCertificateCommonName() certificate.CommonName {
+	return p.xDSCertificateCommonName
+}
+
+// GetCertificateSerialNumber returns the Serial Number of the certificate for the connected Envoy proxy.
+func (p Proxy) GetCertificateSerialNumber() certificate.SerialNumber {
+	return p.xDSCertificateSerialNumber
 }
 
 // GetConnectedAt returns the timestamp of when the given proxy connected to the control plane.
@@ -114,10 +127,12 @@ func (p Proxy) GetAnnouncementsChannel() chan announcements.Announcement {
 }
 
 // NewProxy creates a new instance of an Envoy proxy connected to the xDS servers.
-func NewProxy(cn certificate.CommonName, ip net.Addr) *Proxy {
+func NewProxy(certCommonName certificate.CommonName, certSerialNumber certificate.SerialNumber, ip net.Addr) *Proxy {
 	return &Proxy{
-		CommonName: cn,
-		Addr:       ip,
+		xDSCertificateCommonName:   certCommonName,
+		xDSCertificateSerialNumber: certSerialNumber,
+
+		Addr: ip,
 
 		connectedAt: time.Now(),
 

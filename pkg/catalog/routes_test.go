@@ -7,7 +7,7 @@ import (
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/golang/mock/gomock"
-	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
+	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	specs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	tassert "github.com/stretchr/testify/assert"
@@ -27,23 +27,23 @@ import (
 func TestIsValidTrafficTarget(t *testing.T) {
 	assert := tassert.New(t)
 
-	getTrafficTarget := func(rules []target.TrafficTargetRule) *target.TrafficTarget {
-		return &target.TrafficTarget{
+	getTrafficTarget := func(rules []access.TrafficTargetRule) *access.TrafficTarget {
+		return &access.TrafficTarget{
 			TypeMeta: v1.TypeMeta{
-				APIVersion: "access.smi-spec.io/v1alpha2",
+				APIVersion: "access.smi-spec.io/v1alpha3",
 				Kind:       "TrafficTarget",
 			},
 			ObjectMeta: v1.ObjectMeta{
 				Name:      "target",
 				Namespace: "default",
 			},
-			Spec: target.TrafficTargetSpec{
-				Destination: target.IdentityBindingSubject{
+			Spec: access.TrafficTargetSpec{
+				Destination: access.IdentityBindingSubject{
 					Kind:      "Name",
 					Name:      "dest-id",
 					Namespace: "default",
 				},
-				Sources: []target.IdentityBindingSubject{{
+				Sources: []access.IdentityBindingSubject{{
 					Kind:      "Name",
 					Name:      "source-id",
 					Namespace: "default",
@@ -55,7 +55,7 @@ func TestIsValidTrafficTarget(t *testing.T) {
 
 	testCases := []struct {
 		name     string
-		input    *target.TrafficTarget
+		input    *access.TrafficTarget
 		expected bool
 	}{
 		{
@@ -70,7 +70,7 @@ func TestIsValidTrafficTarget(t *testing.T) {
 		},
 		{
 			name:     "is not valid because TrafficTarget.Spec.Rules is not nil but is empty",
-			input:    getTrafficTarget([]target.TrafficTargetRule{}),
+			input:    getTrafficTarget([]access.TrafficTargetRule{}),
 			expected: false,
 		},
 	}
@@ -200,13 +200,13 @@ func TestRoutesFromRules(t *testing.T) {
 
 	testCases := []struct {
 		name           string
-		rules          []target.TrafficTargetRule
+		rules          []access.TrafficTargetRule
 		namespace      string
 		expectedRoutes []trafficpolicy.HTTPRouteMatch
 	}{
 		{
 			name: "http route group and match name exist",
-			rules: []target.TrafficTargetRule{
+			rules: []access.TrafficTargetRule{
 				{
 					Kind:    "HTTPRouteGroup",
 					Name:    tests.RouteGroupName,
@@ -218,7 +218,7 @@ func TestRoutesFromRules(t *testing.T) {
 		},
 		{
 			name: "http route group and match name do not exist",
-			rules: []target.TrafficTargetRule{
+			rules: []access.TrafficTargetRule{
 				{
 					Kind:    "HTTPRouteGroup",
 					Name:    "DoesNotExist",
@@ -767,7 +767,7 @@ func TestBuildOutboundPolicies(t *testing.T) {
 
 	trafficSpec := spec.HTTPRouteGroup{
 		TypeMeta: v1.TypeMeta{
-			APIVersion: "specs.smi-spec.io/v1alpha2",
+			APIVersion: "specs.smi-spec.io/v1alpha4",
 			Kind:       "HTTPRouteGroup",
 		},
 		ObjectMeta: v1.ObjectMeta{
@@ -865,7 +865,7 @@ func TestBuildInboundPoliciesDiffNamespaces(t *testing.T) {
 
 	trafficSpec := spec.HTTPRouteGroup{
 		TypeMeta: v1.TypeMeta{
-			APIVersion: "specs.smi-spec.io/v1alpha2",
+			APIVersion: "specs.smi-spec.io/v1alpha4",
 			Kind:       "HTTPRouteGroup",
 		},
 		ObjectMeta: v1.ObjectMeta{
@@ -976,7 +976,7 @@ func TestBuildInboundPoliciesSameNamespace(t *testing.T) {
 
 	trafficSpec := spec.HTTPRouteGroup{
 		TypeMeta: v1.TypeMeta{
-			APIVersion: "specs.smi-spec.io/v1alpha2",
+			APIVersion: "specs.smi-spec.io/v1alpha4",
 			Kind:       "HTTPRouteGroup",
 		},
 		ObjectMeta: v1.ObjectMeta{
@@ -1220,22 +1220,22 @@ func TestGetDestinationServicesFromTrafficTarget(t *testing.T) {
 	mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
 	mockKubeController.EXPECT().GetService(destMeshService).Return(destK8sService).AnyTimes()
 
-	trafficTarget := &target.TrafficTarget{
+	trafficTarget := &access.TrafficTarget{
 		TypeMeta: v1.TypeMeta{
-			APIVersion: "access.smi-spec.io/v1alpha2",
+			APIVersion: "access.smi-spec.io/v1alpha3",
 			Kind:       "TrafficTarget",
 		},
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "target",
 			Namespace: "bookstore-ns",
 		},
-		Spec: target.TrafficTargetSpec{
-			Destination: target.IdentityBindingSubject{
+		Spec: access.TrafficTargetSpec{
+			Destination: access.IdentityBindingSubject{
 				Kind:      "Name",
 				Name:      "bookstore",
 				Namespace: "bookstore-ns",
 			},
-			Sources: []target.IdentityBindingSubject{{
+			Sources: []access.IdentityBindingSubject{{
 				Kind:      "Name",
 				Name:      "bookbuyer",
 				Namespace: "default",

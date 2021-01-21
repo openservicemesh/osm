@@ -16,13 +16,13 @@ var (
 func readTimeout(req *http.Request) (time.Duration, error) {
 	durationValue, found := req.URL.Query()[webhookMutateTimeoutKey]
 	if !found || len(durationValue) != 1 {
-		log.Error().Msgf("Webhook timeout value not found in request")
+		log.Error().Msg("Webhook timeout value not found in request")
 		return defaultK8sTimeout, errParseWebhookTimeout
 	}
 
 	val, err := time.ParseDuration(durationValue[0])
 	if err != nil {
-		log.Error().Msgf("Error parsing timeout value as duration: %v", err)
+		log.Error().Err(err).Msg("Error parsing timeout value as duration")
 		return defaultK8sTimeout, errParseWebhookTimeout
 	}
 	return val, nil

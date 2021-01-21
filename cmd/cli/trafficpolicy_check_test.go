@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"testing"
 
-	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
+	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	fakeAccessClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/clientset/versioned/fake"
 	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
@@ -168,7 +168,7 @@ func TestCheckTrafficPolicy(t *testing.T) {
 			},
 			smiAccess.TrafficTarget{
 				TypeMeta: metav1.TypeMeta{
-					APIVersion: "access.smi-spec.io/v1alpha2",
+					APIVersion: "access.smi-spec.io/v1alpha3",
 					Kind:       "TrafficTarget",
 				},
 				ObjectMeta: metav1.ObjectMeta{
@@ -224,7 +224,7 @@ func TestCheckTrafficPolicy(t *testing.T) {
 			},
 			smiAccess.TrafficTarget{
 				TypeMeta: metav1.TypeMeta{
-					APIVersion: "access.smi-spec.io/v1alpha2",
+					APIVersion: "access.smi-spec.io/v1alpha3",
 					Kind:       "TrafficTarget",
 				},
 				ObjectMeta: metav1.ObjectMeta{
@@ -281,7 +281,7 @@ func TestCheckTrafficPolicy(t *testing.T) {
 			},
 			smiAccess.TrafficTarget{
 				TypeMeta: metav1.TypeMeta{
-					APIVersion: "access.smi-spec.io/v1alpha2",
+					APIVersion: "access.smi-spec.io/v1alpha3",
 					Kind:       "TrafficTarget",
 				},
 				ObjectMeta: metav1.ObjectMeta{
@@ -353,7 +353,7 @@ func TestCheckTrafficPolicy(t *testing.T) {
 			assert.Nil(err)
 
 			// create the traffic target
-			_, err = fakeAccessClient.AccessV1alpha2().TrafficTargets(tc.trafficTarget.Namespace).Create(context.TODO(), &tc.trafficTarget, metav1.CreateOptions{})
+			_, err = fakeAccessClient.AccessV1alpha3().TrafficTargets(tc.trafficTarget.Namespace).Create(context.TODO(), &tc.trafficTarget, metav1.CreateOptions{})
 			assert.Nil(err)
 
 			err = cmd.checkTrafficPolicy(&tc.srcPod, &tc.dstPod)
@@ -365,7 +365,7 @@ func TestCheckTrafficPolicy(t *testing.T) {
 			assert.Nil(err)
 
 			// delete the TrafficTarget for the next test case
-			err = fakeAccessClient.AccessV1alpha2().TrafficTargets(tc.trafficTarget.Namespace).Delete(context.TODO(), tc.trafficTarget.Name, metav1.DeleteOptions{})
+			err = fakeAccessClient.AccessV1alpha3().TrafficTargets(tc.trafficTarget.Namespace).Delete(context.TODO(), tc.trafficTarget.Name, metav1.DeleteOptions{})
 			assert.Nil(err)
 		})
 	}

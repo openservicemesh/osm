@@ -3,7 +3,7 @@ package catalog
 import (
 	"time"
 
-	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
+	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 
@@ -60,7 +60,7 @@ func (mc *MeshCatalog) ListDisconnectedProxies() map[certificate.CommonName]time
 }
 
 // ListSMIPolicies returns all policies OSM is aware of.
-func (mc *MeshCatalog) ListSMIPolicies() ([]*split.TrafficSplit, []service.WeightedService, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*target.TrafficTarget) {
+func (mc *MeshCatalog) ListSMIPolicies() ([]*split.TrafficSplit, []service.WeightedService, []service.K8sServiceAccount, []*spec.HTTPRouteGroup, []*access.TrafficTarget) {
 	trafficSplits := mc.meshSpec.ListTrafficSplits()
 	splitServices := mc.meshSpec.ListTrafficSplitServices()
 	serviceAccounts := mc.meshSpec.ListServiceAccounts()

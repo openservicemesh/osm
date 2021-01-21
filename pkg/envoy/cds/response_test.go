@@ -52,7 +52,8 @@ var _ = Describe("CDS Response", func() {
 
 			// The format of the CN matters
 			xdsCertificate := certificate.CommonName(fmt.Sprintf("%s.%s.%s.foo.bar", proxyUUID, proxyServiceAccountName, tests.Namespace))
-			proxy := envoy.NewProxy(xdsCertificate, nil)
+			certSerialNumber := certificate.SerialNumber("123456")
+			proxy := envoy.NewProxy(xdsCertificate, certSerialNumber, nil)
 
 			{
 				// Create a pod to match the CN

@@ -63,11 +63,11 @@ func (r *MutatingWebhookConfigurationReconciler) Reconcile(req ctrl.Request) (ct
 		}
 
 		if err := r.Update(ctx, instance); err != nil {
-			log.Error().Err(err).Msgf("Error updating mutatingwebhookconfiguration %s: %s", req.Name, err)
+			log.Error().Err(err).Msgf("Error updating MutatingWebhookConfiguration %s", req.Name)
 			return ctrl.Result{}, client.IgnoreNotFound(err)
 		}
 
-		log.Trace().Msgf("Successfully updated mutatingwebhookconfiguration CA bundle for : %s ", req.Name)
+		log.Debug().Msgf("Successfully updated CA Bundle for MutatingWebhookConfiguration %s ", req.Name)
 
 		return ctrl.Result{}, nil
 	}

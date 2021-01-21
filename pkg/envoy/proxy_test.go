@@ -3,6 +3,8 @@ package envoy
 import (
 	"fmt"
 
+	"github.com/google/uuid"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -15,13 +17,26 @@ const (
 )
 
 var _ = Describe("Test proxy methods", func() {
-	Context("Testing proxy.GetCommonName()", func() {
-		It("should return DNS-1123 CN of the proxy", func() {
-			commonNameForProxy := fmt.Sprintf("UUID-of-proxy.%s.%s.one.two.three.co.uk", svc, ns)
-			cn := certificate.CommonName(commonNameForProxy)
-			proxy := NewProxy(cn, nil)
-			actualCN := proxy.GetCommonName()
-			Expect(actualCN).To(Equal(certificate.CommonName(commonNameForProxy)))
+	certCommonName := certificate.CommonName(fmt.Sprintf("UUID-of-proxy.%s.%s.one.two.three.co.uk", svc, ns))
+	certSerialNumber := certificate.SerialNumber("123456")
+	podUID := uuid.New().String()
+	proxy := NewProxy(certCommonName, certSerialNumber, nil)
+
+	Context("test GetPodUID() with empty Pod Metadata field", func() {
+		It("returns correct values", func() {
+			Expect(proxy.GetPodUID()).To(Equal(""))
+		})
+	})
+
+	Context("test correctness proxy object creation", func() {
+		It("returns correct values", func() {
+			Expect(proxy.GetCertificateCommonName()).To(Equal(certCommonName))
+			Expect(proxy.GetCertificateSerialNumber()).To(Equal(certSerialNumber))
+
+			proxy.PodMetadata = &PodMetadata{
+				UID: podUID,
+			}
+			Expect(proxy.GetPodUID()).To(Equal(podUID))
 		})
 	})
 })

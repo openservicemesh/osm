@@ -10,9 +10,9 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	v1alpha1 "github.com/openservicemesh/osm/experimental/pkg/apis/policy/v1alpha1"
 	service "github.com/openservicemesh/osm/pkg/service"
-	v1alpha2 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
+	v1alpha3 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	v1alpha4 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
-	v1alpha20 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
+	v1alpha2 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 )
 
 // MockMeshSpec is a mock of MeshSpec interface
@@ -123,10 +123,10 @@ func (mr *MockMeshSpecMockRecorder) ListTrafficSplitServices() *gomock.Call {
 }
 
 // ListTrafficSplits mocks base method
-func (m *MockMeshSpec) ListTrafficSplits() []*v1alpha20.TrafficSplit {
+func (m *MockMeshSpec) ListTrafficSplits() []*v1alpha2.TrafficSplit {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListTrafficSplits")
-	ret0, _ := ret[0].([]*v1alpha20.TrafficSplit)
+	ret0, _ := ret[0].([]*v1alpha2.TrafficSplit)
 	return ret0
 }
 
@@ -137,10 +137,10 @@ func (mr *MockMeshSpecMockRecorder) ListTrafficSplits() *gomock.Call {
 }
 
 // ListTrafficTargets mocks base method
-func (m *MockMeshSpec) ListTrafficTargets() []*v1alpha2.TrafficTarget {
+func (m *MockMeshSpec) ListTrafficTargets() []*v1alpha3.TrafficTarget {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListTrafficTargets")
-	ret0, _ := ret[0].([]*v1alpha2.TrafficTarget)
+	ret0, _ := ret[0].([]*v1alpha3.TrafficTarget)
 	return ret0
 }
 

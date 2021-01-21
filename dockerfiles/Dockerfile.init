@@ -1,6 +1,2 @@
 FROM alpine:3.12
 RUN apk add --no-cache iptables
-ADD init-iptables.sh /
-WORKDIR /
-RUN chmod +x init-iptables.sh
-CMD ["sh","init-iptables.sh"]
