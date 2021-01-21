@@ -85,7 +85,7 @@ func NewValidatingWebhook(kubeClient kubernetes.Interface, certManager certifica
 	cn := certificate.CommonName(fmt.Sprintf("%s.%s.svc", validatorServiceName, osmNamespace))
 	cert, err := certManager.IssueCertificate(cn, constants.XDSCertificateValidityPeriod)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error issuing certificate for the validating webhook: %+v", err)
+		log.Error().Err(err).Msgf("Error issuing certificate for the validating webhook")
 		return err
 	}
 
@@ -101,7 +101,7 @@ func NewValidatingWebhook(kubeClient kubernetes.Interface, certManager certifica
 
 	// Update the ValidatingWebhookConfig with the OSM CA bundle
 	if err = updateValidatingWebhookCABundle(cert, webhookConfigName, whc.kubeClient); err != nil {
-		log.Error().Err(err).Msgf("Error configuring ValidatingWebhookConfiguration %s: %+v", webhookConfigName, err)
+		log.Error().Err(err).Msgf("Error configuring ValidatingWebhookConfiguration %s", webhookConfigName)
 		return err
 	}
 	return nil
@@ -131,7 +131,7 @@ func (whc *webhookConfig) runValidatingWebhook(stop <-chan struct{}) {
 		// Generate a key pair from your pem-encoded cert and key ([]byte).
 		cert, err := tls.X509KeyPair(whc.cert.GetCertificateChain(), whc.cert.GetPrivateKey())
 		if err != nil {
-			log.Error().Err(err).Msgf("Error parsing webhook certificate: %+v", err)
+			log.Error().Err(err).Msg("Error parsing webhook certificate")
 			return
 		}
 
@@ -140,7 +140,7 @@ func (whc *webhookConfig) runValidatingWebhook(stop <-chan struct{}) {
 			Certificates: []tls.Certificate{cert},
 		}
 		if err := server.ListenAndServeTLS("", ""); err != nil {
-			log.Error().Err(err).Msgf("Validating webhook HTTP server failed to start: %+v", err)
+			log.Error().Err(err).Msg("Validating webhook HTTP server failed to start")
 			return
 		}
 	}()
