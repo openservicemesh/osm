@@ -200,7 +200,7 @@ func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Dura
 		return nil, err
 	}
 
-	log.Trace().Msgf("Created CertificateRequest %s/%s for CN=%s", cm.namespace, cr.Name, cn)
+	log.Debug().Msgf("Created CertificateRequest %s/%s for CN=%s", cm.namespace, cr.Name, cn)
 
 	// TODO: add timeout option instead of 60s hard coded.
 	cr, err = cm.waitForCertificateReady(cr.Name, time.Second*60)
