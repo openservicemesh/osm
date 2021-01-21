@@ -1,7 +1,7 @@
 package smi
 
 import (
-	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
+	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 
@@ -15,7 +15,7 @@ type fakeMeshSpec struct {
 	trafficSplits    []*split.TrafficSplit
 	httpRouteGroups  []*spec.HTTPRouteGroup
 	tcpRoutes        []*spec.TCPRoute
-	trafficTargets   []*target.TrafficTarget
+	trafficTargets   []*access.TrafficTarget
 	backpressures    []*backpressure.Backpressure
 	weightedServices []service.WeightedService
 	serviceAccounts  []service.K8sServiceAccount
@@ -27,7 +27,7 @@ func NewFakeMeshSpecClient() MeshSpec {
 		trafficSplits:    []*split.TrafficSplit{&tests.TrafficSplit},
 		httpRouteGroups:  []*spec.HTTPRouteGroup{&tests.HTTPRouteGroup},
 		tcpRoutes:        []*spec.TCPRoute{&tests.TCPRoute},
-		trafficTargets:   []*target.TrafficTarget{&tests.TrafficTarget},
+		trafficTargets:   []*access.TrafficTarget{&tests.TrafficTarget},
 		weightedServices: []service.WeightedService{tests.BookstoreV1WeightedService, tests.BookstoreV2WeightedService},
 		serviceAccounts: []service.K8sServiceAccount{
 			tests.BookstoreServiceAccount,
@@ -69,7 +69,7 @@ func (f fakeMeshSpec) GetTCPRoute(_ string) *spec.TCPRoute {
 }
 
 // ListTrafficTargets lists TrafficTarget SMI resources for the fake Mesh Spec.
-func (f fakeMeshSpec) ListTrafficTargets() []*target.TrafficTarget {
+func (f fakeMeshSpec) ListTrafficTargets() []*access.TrafficTarget {
 	return f.trafficTargets
 }
 

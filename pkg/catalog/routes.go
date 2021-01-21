@@ -7,7 +7,7 @@ import (
 
 	mapset "github.com/deckarep/golang-set"
 	"github.com/pkg/errors"
-	target "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
+	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -411,7 +411,7 @@ func getDefaultWeightedClusterForService(meshService service.MeshService) servic
 }
 
 // listTrafficTargetPermutations creates a list of TrafficTargets for each source and destination pair.
-func (mc *MeshCatalog) listTrafficTargetPermutations(trafficTarget target.TrafficTarget, src target.IdentityBindingSubject, dest target.IdentityBindingSubject) ([]trafficpolicy.TrafficTarget, error) {
+func (mc *MeshCatalog) listTrafficTargetPermutations(trafficTarget access.TrafficTarget, src access.IdentityBindingSubject, dest access.IdentityBindingSubject) ([]trafficpolicy.TrafficTarget, error) {
 	sourceServiceAccount := service.K8sServiceAccount{
 		Namespace: src.Namespace,
 		Name:      src.Name,
@@ -451,7 +451,7 @@ func (mc *MeshCatalog) listTrafficTargetPermutations(trafficTarget target.Traffi
 
 // routesFromRules takes a set of traffic target rules and the namespace of the traffic target and returns a list of
 //	http route matches (trafficpolicy.HTTPRouteMatch)
-func (mc *MeshCatalog) routesFromRules(rules []target.TrafficTargetRule, trafficTargetNamespace string) ([]trafficpolicy.HTTPRouteMatch, error) {
+func (mc *MeshCatalog) routesFromRules(rules []access.TrafficTargetRule, trafficTargetNamespace string) ([]trafficpolicy.HTTPRouteMatch, error) {
 	routes := []trafficpolicy.HTTPRouteMatch{}
 
 	specMatchRoute, err := mc.getHTTPPathsPerRoute() // returns map[traffic_spec_name]map[match_name]trafficpolicy.HTTPRoute
@@ -529,7 +529,7 @@ func (mc *MeshCatalog) listMeshServices() []service.MeshService {
 	return services
 }
 
-func (mc *MeshCatalog) getDestinationServicesFromTrafficTarget(t *target.TrafficTarget) ([]service.MeshService, error) {
+func (mc *MeshCatalog) getDestinationServicesFromTrafficTarget(t *access.TrafficTarget) ([]service.MeshService, error) {
 	sa := service.K8sServiceAccount{
 		Name:      t.Spec.Destination.Name,
 		Namespace: t.Spec.Destination.Namespace,
@@ -541,7 +541,7 @@ func (mc *MeshCatalog) getDestinationServicesFromTrafficTarget(t *target.Traffic
 	return destServices, nil
 }
 
-func (mc *MeshCatalog) buildInboundPolicies(t *target.TrafficTarget) []*trafficpolicy.InboundTrafficPolicy {
+func (mc *MeshCatalog) buildInboundPolicies(t *access.TrafficTarget) []*trafficpolicy.InboundTrafficPolicy {
 	inboundPolicies := []*trafficpolicy.InboundTrafficPolicy{}
 
 	// fetch services running workloads with destination service account
@@ -582,7 +582,7 @@ func (mc *MeshCatalog) buildInboundPolicies(t *target.TrafficTarget) []*trafficp
 	return inboundPolicies
 }
 
-func (mc *MeshCatalog) buildOutboundPolicies(source service.K8sServiceAccount, t *target.TrafficTarget) []*trafficpolicy.OutboundTrafficPolicy {
+func (mc *MeshCatalog) buildOutboundPolicies(source service.K8sServiceAccount, t *access.TrafficTarget) []*trafficpolicy.OutboundTrafficPolicy {
 	outPolicies := []*trafficpolicy.OutboundTrafficPolicy{}
 
 	// fetch services running workloads with destination service account
@@ -641,7 +641,7 @@ func (mc *MeshCatalog) listPoliciesFromTrafficTargets(sa service.K8sServiceAccou
 	return inboundPolicies, outboundPolicies, nil
 }
 
-func isValidTrafficTarget(t *target.TrafficTarget) bool {
+func isValidTrafficTarget(t *access.TrafficTarget) bool {
 	return t.Spec.Rules != nil && len(t.Spec.Rules) > 0
 }
 

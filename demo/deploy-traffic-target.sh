@@ -7,7 +7,7 @@ source .env
 
 kubectl apply -f - <<EOF
 kind: TrafficTarget
-apiVersion: access.smi-spec.io/v1alpha2
+apiVersion: access.smi-spec.io/v1alpha3
 metadata:
   name: bookbuyer-access-bookstore-v1
   namespace: "$BOOKSTORE_NAMESPACE"
@@ -41,7 +41,7 @@ spec:
 ---
 
 kind: TrafficTarget
-apiVersion: access.smi-spec.io/v1alpha2
+apiVersion: access.smi-spec.io/v1alpha3
 metadata:
   name: bookbuyer-access-bookstore-v2
   namespace: "$BOOKSTORE_NAMESPACE"
@@ -74,7 +74,7 @@ spec:
 ---
 
 kind: TrafficTarget
-apiVersion: access.smi-spec.io/v1alpha2
+apiVersion: access.smi-spec.io/v1alpha3
 metadata:
   name: bookstore-access-bookwarehouse
   namespace: "$BOOKWAREHOUSE_NAMESPACE"

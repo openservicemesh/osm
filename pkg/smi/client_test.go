@@ -5,7 +5,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha2"
+	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	smiSplit "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	testTrafficTargetClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/access/clientset/versioned/fake"
@@ -213,7 +213,7 @@ var _ = Describe("When listing ServiceAccounts", func() {
 
 		trafficTarget := &smiAccess.TrafficTarget{
 			TypeMeta: metav1.TypeMeta{
-				APIVersion: "access.smi-spec.io/v1alpha2",
+				APIVersion: "access.smi-spec.io/v1alpha3",
 				Kind:       "TrafficTarget",
 			},
 			ObjectMeta: metav1.ObjectMeta{
@@ -239,7 +239,7 @@ var _ = Describe("When listing ServiceAccounts", func() {
 			},
 		}
 
-		_, err := fakeClientSet.smiTrafficTargetClientSet.AccessV1alpha2().TrafficTargets(testNamespaceName).Create(context.TODO(), trafficTarget, metav1.CreateOptions{})
+		_, err := fakeClientSet.smiTrafficTargetClientSet.AccessV1alpha3().TrafficTargets(testNamespaceName).Create(context.TODO(), trafficTarget, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 		<-ttChannel
 
@@ -248,7 +248,7 @@ var _ = Describe("When listing ServiceAccounts", func() {
 		numExpectedSvcAccounts := len(trafficTarget.Spec.Sources) + 1 // 1 for the destination ServiceAccount
 		Expect(len(svcAccounts)).To(Equal(numExpectedSvcAccounts))
 
-		err = fakeClientSet.smiTrafficTargetClientSet.AccessV1alpha2().TrafficTargets(testNamespaceName).Delete(context.TODO(), trafficTarget.Name, metav1.DeleteOptions{})
+		err = fakeClientSet.smiTrafficTargetClientSet.AccessV1alpha3().TrafficTargets(testNamespaceName).Delete(context.TODO(), trafficTarget.Name, metav1.DeleteOptions{})
 		Expect(err).ToNot(HaveOccurred())
 		<-ttChannel
 	})
@@ -273,7 +273,7 @@ var _ = Describe("When listing TrafficTargets", func() {
 
 		trafficTarget := &smiAccess.TrafficTarget{
 			TypeMeta: metav1.TypeMeta{
-				APIVersion: "access.smi-spec.io/v1alpha2",
+				APIVersion: "access.smi-spec.io/v1alpha3",
 				Kind:       "TrafficTarget",
 			},
 			ObjectMeta: metav1.ObjectMeta{
@@ -299,14 +299,14 @@ var _ = Describe("When listing TrafficTargets", func() {
 			},
 		}
 
-		_, err := fakeClientSet.smiTrafficTargetClientSet.AccessV1alpha2().TrafficTargets(testNamespaceName).Create(context.TODO(), trafficTarget, metav1.CreateOptions{})
+		_, err := fakeClientSet.smiTrafficTargetClientSet.AccessV1alpha3().TrafficTargets(testNamespaceName).Create(context.TODO(), trafficTarget, metav1.CreateOptions{})
 		Expect(err).ToNot(HaveOccurred())
 		<-ttChannel
 
 		targets := meshSpec.ListTrafficTargets()
 		Expect(len(targets)).To(Equal(1))
 
-		err = fakeClientSet.smiTrafficTargetClientSet.AccessV1alpha2().TrafficTargets(testNamespaceName).Delete(context.TODO(), trafficTarget.Name, metav1.DeleteOptions{})
+		err = fakeClientSet.smiTrafficTargetClientSet.AccessV1alpha3().TrafficTargets(testNamespaceName).Delete(context.TODO(), trafficTarget.Name, metav1.DeleteOptions{})
 		Expect(err).ToNot(HaveOccurred())
 		<-ttChannel
 	})
@@ -405,7 +405,7 @@ var _ = Describe("When listing TCP routes", func() {
 		defer events.GetPubSubInstance().Unsub(trChannel)
 		routeSpec := &smiSpecs.TCPRoute{
 			TypeMeta: metav1.TypeMeta{
-				APIVersion: "specs.smi-spec.io/v1alpha2",
+				APIVersion: "specs.smi-spec.io/v1alpha4",
 				Kind:       "TCPRoute",
 			},
 			ObjectMeta: metav1.ObjectMeta{

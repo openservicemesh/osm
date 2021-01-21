@@ -1,5 +1,5 @@
 kind: TrafficTarget
-apiVersion: access.smi-spec.io/v1alpha2
+apiVersion: access.smi-spec.io/v1alpha3
 metadata:
   name: bookstore-v1
   namespace: bookstore

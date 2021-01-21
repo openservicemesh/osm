@@ -121,7 +121,7 @@ Currently the Bookthief application has not been authorized to participate in th
 Current TrafficTarget spec with commented `Bookthief` kind:
 ```
 kind: TrafficTarget
-apiVersion: access.smi-spec.io/v1alpha2
+apiVersion: access.smi-spec.io/v1alpha3
 metadata:
   name: bookstore-v1
   namespace: bookstore
@@ -148,7 +148,7 @@ spec:
  Updated TrafficTarget spec with uncommented `Bookthief` kind:
  ```
  kind: TrafficTarget
-apiVersion: access.smi-spec.io/v1alpha2
+apiVersion: access.smi-spec.io/v1alpha3
 metadata:
   name: bookstore-v1
   namespace: bookstore
