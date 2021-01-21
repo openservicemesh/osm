@@ -68,18 +68,19 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			return nil
 
 		case discoveryRequest, ok := <-requests:
-
-			log.Debug().Msgf("Received %s (nonce=%s; version=%s; resources=%v) from Envoy %s", discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, discoveryRequest.ResourceNames, proxy.GetCertificateCommonName())
-			log.Debug().Msgf("Last sent for %s nonce=%s; last sent version=%s for Envoy %s", discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, proxy.GetCertificateCommonName())
-
+			log.Debug().Msgf("Received %s (nonce=%s; version=%s; resources=%v) from Envoy with xDS Certificate SerialNumber=%s on Pod with UID=%s",
+				discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, discoveryRequest.ResourceNames, proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+			log.Debug().Msgf("Last sent for %s nonce=%s; last sent version=%s for Envoy with xDS Certificate SerialNumber=%s on Pod with UID=%s",
+				discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 			if !ok {
-				log.Error().Msgf("Proxy %s closed GRPC!", proxy.GetCertificateCommonName())
+				log.Error().Msgf("Envoy with xDS Certificate SerialNumber=%s on Pod with UID=%s closed gRPC!", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 				metricsstore.DefaultMetricsStore.ProxyConnectCount.Dec()
 				return errGrpcClosed
 			}
 
 			if discoveryRequest.ErrorDetail != nil {
-				log.Error().Msgf("[NACK] Discovery request error from proxy %s: %s", proxy, discoveryRequest.ErrorDetail)
+				log.Error().Msgf("[NACK] DiscoveryRequest error from Envoy with xDS Certificate SerialNumber=%s on Pod with UID=%s: %s",
+					proxy.GetCertificateSerialNumber(), proxy.GetPodUID(), discoveryRequest.ErrorDetail)
 				// NOTE(draychev): We could also return errEnvoyError - but it seems appropriate to also ignore this request and continue on.
 				continue
 			}
@@ -97,7 +98,8 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 				if ackVersion, err = strconv.ParseUint(discoveryRequest.VersionInfo, 10, 64); err != nil {
 					// It is probable that Envoy responded with a VersionInfo we did not understand
 					// We log this and continue. The ackVersion will be 0 in this state.
-					log.Error().Err(err).Msgf("Error parsing %s discovery request VersionInfo (%s) from proxy %s", typeURL, discoveryRequest.VersionInfo, proxy.GetCertificateCommonName())
+					log.Error().Err(err).Msgf("Error parsing DiscoveryRequest with TypeURL=%s VersionInfo=%s from Envoy with Certificate SerialNumber=%s on Pod with UID=%s",
+						typeURL, discoveryRequest.VersionInfo, proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 				}
 			}
 
@@ -148,16 +150,16 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 
 			err := s.sendTypeResponse(typeURL, proxy, &server, &discoveryRequest, s.cfg)
 			if err != nil {
-				log.Error().Err(err).Msgf("Failed to create and send %s update to Proxy %s",
-					envoy.XDSShortURINames[typeURL], proxy.GetCertificateCommonName())
+				log.Error().Err(err).Msgf("Failed to create and send %s update to Envoy with xDS Certificate SerialNumber=%s on Pod with UID=%s",
+					envoy.XDSShortURINames[typeURL], proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 			}
 
 		case <-broadcastUpdate:
-			log.Debug().Msgf("Broadcast update received for %s", proxy.GetCertificateCommonName())
+			log.Debug().Msgf("Broadcast update received for Envoy with xDS Certificate SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 			s.sendAllResponses(proxy, &server, s.cfg)
 
 		case <-proxy.GetAnnouncementsChannel():
-			log.Debug().Msgf("Individual update for %s", proxy.GetCertificateCommonName())
+			log.Debug().Msgf("Individual update for Envoy with xDS Certificate SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 			s.sendAllResponses(proxy, &server, s.cfg)
 		}
 	}
