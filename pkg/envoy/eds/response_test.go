@@ -31,7 +31,6 @@ var _ = Describe("Test EDS response", func() {
 
 	kubeClient := testclient.NewSimpleClientset()
 	catalog := catalog.NewFakeMeshCatalog(kubeClient)
-	certSerialNumber := certificate.SerialNumber("123456")
 
 	Context("Test eds.NewResponse", func() {
 		It("Correctly returns an response for endpoints when the certificate and service are valid", func() {
@@ -42,7 +41,7 @@ var _ = Describe("Test EDS response", func() {
 
 			// The format of the CN matters
 			xdsCertificate := certificate.CommonName(fmt.Sprintf("%s.%s.%s.foo.bar", proxyUUID, proxyServiceAccountName, tests.Namespace))
-
+			certSerialNumber := certificate.SerialNumber("123456")
 			proxy := envoy.NewProxy(xdsCertificate, certSerialNumber, nil)
 
 			{
@@ -78,7 +77,7 @@ var _ = Describe("Test EDS response", func() {
 
 			// The format of the CN matters
 			xdsCertificate := certificate.CommonName(fmt.Sprintf("%s.%s.%s.foo.bar", proxyUUID, proxyServiceAccountName, tests.Namespace))
-
+			certSerialNumber := certificate.SerialNumber("123456")
 			proxy := envoy.NewProxy(xdsCertificate, certSerialNumber, nil)
 
 			// Don't create a pod/service for this proxy, this should result in an error when the
