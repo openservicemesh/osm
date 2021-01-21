@@ -49,7 +49,7 @@ func recordEnvoyPodMetadata(request *xds_discovery.DiscoveryRequest, proxy *envo
 			log.Error().Err(err).Msgf("Error parsing Envoy Node ID: %s", request.Node.Id)
 		} else {
 			log.Trace().Msgf("Recorded metadata for Envoy %s: podUID=%s, podNamespace=%s, serviceAccountName=%s, envoyNodeID=%s",
-				proxy.CommonName, meta.UID, meta.Namespace, meta.ServiceAccount, meta.EnvoyNodeID)
+				proxy.GetCertificateCommonName(), meta.UID, meta.Namespace, meta.ServiceAccount, meta.EnvoyNodeID)
 			proxy.PodMetadata = meta
 
 			// We call RegisterProxy again on the MeshCatalog to update the index on pod metadata

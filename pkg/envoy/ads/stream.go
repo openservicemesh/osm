@@ -30,7 +30,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 	metricsstore.DefaultMetricsStore.ProxyConnectCount.Inc()
 
 	// This is the Envoy proxy that just connected to the control plane.
-	proxy := envoy.NewProxy(certCommonName, utils.GetIPFromContext(server.Context()))
+	proxy := envoy.NewProxy(certCommonName, certSerialNumber, utils.GetIPFromContext(server.Context()))
 	s.catalog.RegisterProxy(proxy)
 	defer s.catalog.UnregisterProxy(proxy)
 

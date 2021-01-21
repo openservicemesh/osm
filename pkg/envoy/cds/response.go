@@ -78,7 +78,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	alreadyAdded := mapset.NewSet()
 	for _, cluster := range clusters {
 		if alreadyAdded.Contains(cluster.Name) {
-			log.Error().Msgf("Found duplicate clusters with name %s; Duplicate will not be sent to Envoy for Service %s with CN=%s", cluster.Name, proxyServiceName, proxy.CommonName)
+			log.Error().Msgf("Found duplicate clusters with name %s; Duplicate will not be sent to Envoy for Service %s with CN=%s", cluster.Name, proxyServiceName, proxy.GetCertificateCommonName())
 			continue
 		}
 		alreadyAdded.Add(cluster.Name)

@@ -18,7 +18,7 @@ func (mc *MeshCatalog) ExpectProxy(cn certificate.CommonName) {
 
 // RegisterProxy implements MeshCatalog and registers a newly connected proxy.
 func (mc *MeshCatalog) RegisterProxy(proxy *envoy.Proxy) {
-	mc.connectedProxies.Store(proxy.CommonName, connectedProxy{
+	mc.connectedProxies.Store(proxy.GetCertificateCommonName(), connectedProxy{
 		proxy:       proxy,
 		connectedAt: time.Now(),
 	})
@@ -33,9 +33,9 @@ func (mc *MeshCatalog) RegisterProxy(proxy *envoy.Proxy) {
 
 // UnregisterProxy unregisters the given proxy from the catalog.
 func (mc *MeshCatalog) UnregisterProxy(p *envoy.Proxy) {
-	mc.connectedProxies.Delete(p.CommonName)
+	mc.connectedProxies.Delete(p.GetCertificateCommonName())
 
-	mc.disconnectedProxies.Store(p.CommonName, disconnectedProxy{
+	mc.disconnectedProxies.Store(p.GetCertificateCommonName(), disconnectedProxy{
 		lastSeen: time.Now(),
 	})
 

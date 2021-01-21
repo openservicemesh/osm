@@ -70,8 +70,9 @@ var _ = Describe("Test ADS response functions", func() {
 		GinkgoT().Fatalf("Error creating new Bookstire Apex service: %s", err.Error())
 	}
 
-	cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s", proxyUUID, serviceAccountName, namespace))
-	proxy := envoy.NewProxy(cn, nil)
+	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s", proxyUUID, serviceAccountName, namespace))
+	certSerialNumber := certificate.SerialNumber("123456")
+	proxy := envoy.NewProxy(certCommonName, certSerialNumber, nil)
 
 	meshService := service.MeshService{
 		Namespace: "default",
@@ -107,9 +108,9 @@ var _ = Describe("Test ADS response functions", func() {
 	Context("Test sendAllResponses()", func() {
 
 		certManager := tresor.NewFakeCertManager(mockConfigurator)
-		cn := certificate.CommonName(fmt.Sprintf("%s.%s.%s", uuid.New(), serviceAccountName, tests.Namespace))
+		certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s", uuid.New(), serviceAccountName, tests.Namespace))
 		certDuration := 1 * time.Hour
-		certPEM, _ := certManager.IssueCertificate(cn, certDuration)
+		certPEM, _ := certManager.IssueCertificate(certCommonName, certDuration)
 		cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())
 		server, actualResponses := tests.NewFakeXDSServer(cert, nil, nil)
 

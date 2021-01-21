@@ -15,21 +15,21 @@ const (
 )
 
 var _ = Describe("Test proxy methods", func() {
-	cn := certificate.CommonName(fmt.Sprintf("UUID-of-proxy.%s.%s.one.two.three.co.uk", svc, ns))
-	// certSerialNumber := certificate.SerialNumber("123")
-	proxy := NewProxy(cn, nil)
+	certCommonName := certificate.CommonName(fmt.Sprintf("UUID-of-proxy.%s.%s.one.two.three.co.uk", svc, ns))
+	certSerialNumber := certificate.SerialNumber("123456")
+	proxy := NewProxy(certCommonName, certSerialNumber, nil)
 
 	Context("Testing proxy.GetCertificateCommonName()", func() {
 		It("should return DNS-1123 CN of the proxy", func() {
 			actualCN := proxy.GetCertificateCommonName()
-			Expect(actualCN).To(Equal(cn))
+			Expect(actualCN).To(Equal(certCommonName))
 		})
 	})
 
-	// Context("Testing proxy.GetCertificateSerialNumber()", func() {
-	// 	It("should return certificate serial number", func() {
-	// 		actualSerialNumber := proxy.GetCertificateSerialNumber()
-	//		Expect(actualSerialNumber).To(Equal(certSerialNumber))
-	//	})
-	//})
+	Context("Testing proxy.GetCertificateSerialNumber()", func() {
+		It("should return certificate serial number", func() {
+			actualSerialNumber := proxy.GetCertificateSerialNumber()
+			Expect(actualSerialNumber).To(Equal(certSerialNumber))
+		})
+	})
 })
