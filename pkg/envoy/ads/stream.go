@@ -30,8 +30,12 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 	metricsstore.DefaultMetricsStore.ProxyConnectCount.Inc()
 
 	// This is the Envoy proxy that just connected to the control plane.
+	// NOTE: This is step 1 of the registration. At this point we do not yet have context on the Pod.
+	//       Details on which Pod this Envoy is fronting will arrive via xDS in the NODE_ID string.
+	//       When this arrives we will call RegisterProxy() a second time - this time with Pod context!
 	proxy := envoy.NewProxy(certCommonName, certSerialNumber, utils.GetIPFromContext(server.Context()))
-	s.catalog.RegisterProxy(proxy)
+	s.catalog.RegisterProxy(proxy) // First of Two invocations.  Second one will be during xDS hand-shake!
+
 	defer s.catalog.UnregisterProxy(proxy)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -64,8 +68,10 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			return nil
 
 		case discoveryRequest, ok := <-requests:
+
 			log.Debug().Msgf("Received %s (nonce=%s; version=%s; resources=%v) from Envoy %s", discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, discoveryRequest.ResourceNames, proxy.GetCertificateCommonName())
 			log.Debug().Msgf("Last sent for %s nonce=%s; last sent version=%s for Envoy %s", discoveryRequest.TypeUrl, discoveryRequest.ResponseNonce, discoveryRequest.VersionInfo, proxy.GetCertificateCommonName())
+
 			if !ok {
 				log.Error().Msgf("Proxy %s closed GRPC!", proxy.GetCertificateCommonName())
 				metricsstore.DefaultMetricsStore.ProxyConnectCount.Dec()

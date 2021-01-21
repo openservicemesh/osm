@@ -18,8 +18,6 @@ type Proxy struct {
 	// The Serial Number of the certificate used for Envoy to XDS communication.
 	xDSCertificateSerialNumber certificate.SerialNumber
 
-	PodUID string
-
 	net.Addr
 	announcements chan announcements.Announcement
 
@@ -97,12 +95,15 @@ func (p *Proxy) SetNewNonce(typeURI TypeURI) string {
 
 // String returns the CommonName of the proxy.
 func (p Proxy) String() string {
-	return string(p.GetCertificateCommonName())
+	return p.GetPodUID()
 }
 
 // GetPodUID returns the UID of the pod, which the connected Envoy proxy is fronting.
 func (p Proxy) GetPodUID() string {
-	return p.PodUID
+	if p.PodMetadata == nil {
+		return ""
+	}
+	return p.PodMetadata.UID
 }
 
 // GetCertificateCommonName returns the Subject Common Name from the mTLS certificate of the Envoy proxy connected to xDS.
@@ -135,9 +136,6 @@ func NewProxy(certCommonName certificate.CommonName, certSerialNumber certificat
 	return &Proxy{
 		xDSCertificateCommonName:   certCommonName,
 		xDSCertificateSerialNumber: certSerialNumber,
-
-		// PodUID will be set when the proxy is registered a second time during the xDS hand-shake
-		PodUID: "",
 
 		Addr: ip,
 
