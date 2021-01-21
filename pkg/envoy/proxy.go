@@ -13,10 +13,10 @@ import (
 // This should at some point have a 1:1 match to an Endpoint (which is a member of a meshed service).
 type Proxy struct {
 	// The Subject Common Name of the certificate used for Envoy to XDS communication.
-	XDSCertificateCommonName certificate.CommonName
+	xDSCertificateCommonName certificate.CommonName
 
 	// The Serial Number of the certificate used for Envoy to XDS communication.
-	XDSCertificateSerialNumber certificate.SerialNumber
+	xDSCertificateSerialNumber certificate.SerialNumber
 
 	PodUID string
 
@@ -107,12 +107,12 @@ func (p Proxy) GetPodUID() string {
 
 // GetCertificateCommonName returns the Subject Common Name from the mTLS certificate of the Envoy proxy connected to xDS.
 func (p Proxy) GetCertificateCommonName() certificate.CommonName {
-	return p.XDSCertificateCommonName
+	return p.xDSCertificateCommonName
 }
 
 // GetCertificateSerialNumber returns the Serial Number of the certificate for the connected Envoy proxy.
 func (p Proxy) GetCertificateSerialNumber() certificate.SerialNumber {
-	return p.XDSCertificateSerialNumber
+	return p.xDSCertificateSerialNumber
 }
 
 // GetConnectedAt returns the timestamp of when the given proxy connected to the control plane.
@@ -133,8 +133,8 @@ func (p Proxy) GetAnnouncementsChannel() chan announcements.Announcement {
 // NewProxy creates a new instance of an Envoy proxy connected to the xDS servers.
 func NewProxy(certCommonName certificate.CommonName, certSerialNumber certificate.SerialNumber, ip net.Addr) *Proxy {
 	return &Proxy{
-		XDSCertificateCommonName:   certCommonName,
-		XDSCertificateSerialNumber: certSerialNumber,
+		xDSCertificateCommonName:   certCommonName,
+		xDSCertificateSerialNumber: certSerialNumber,
 
 		// PodUID will be set when the proxy is registered a second time during the xDS hand-shake
 		PodUID: "",
