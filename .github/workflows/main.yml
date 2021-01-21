@@ -129,7 +129,10 @@ jobs:
         with:
           go-version: 1.15
       - name: Test
-        run: go test -v ./tests/scenarios/...
+        run: |
+          touch .env
+          make kind-up
+          go test -v ./tests/scenarios/...
 
   e2etest:
     name: Go test e2e
