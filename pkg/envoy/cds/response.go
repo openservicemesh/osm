@@ -78,13 +78,13 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	alreadyAdded := mapset.NewSet()
 	for _, cluster := range clusters {
 		if alreadyAdded.Contains(cluster.Name) {
-			log.Error().Msgf("Found duplicate clusters with name %s; Duplicate will not be sent to Envoy with XDS Certificate SerialNumber=%s on on Pod with UID=%s", cluster.Name, proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+			log.Error().Msgf("Found duplicate clusters with name %s; Duplicate will not be sent to Envoy with XDS Certificate SerialNumber=%s on Pod with UID=%s", cluster.Name, proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 			continue
 		}
 		alreadyAdded.Add(cluster.Name)
 		marshalledClusters, err := ptypes.MarshalAny(cluster)
 		if err != nil {
-			log.Error().Err(err).Msgf("Failed to marshal cluster %s for Envoy with XDS Certificate SerialNumber=%s on on Pod with UID=%s", cluster.Name, proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+			log.Error().Err(err).Msgf("Failed to marshal cluster %s for Envoy with XDS Certificate SerialNumber=%s on Pod with UID=%s", cluster.Name, proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 			return nil, err
 		}
 		resp.Resources = append(resp.Resources, marshalledClusters)
