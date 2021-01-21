@@ -131,7 +131,7 @@ func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(identity service.K
 					Namespace: t.Spec.Destination.Namespace,
 				})
 				if err != nil {
-					log.Error().Msgf("No Services found matching Service Account %s in Namespace %s", t.Spec.Destination.Name, t.Namespace)
+					log.Error().Err(err).Msgf("No Services found matching Service Account %s in Namespace %s", t.Spec.Destination.Name, t.Namespace)
 					break
 				}
 				for _, destService := range destServices {
@@ -487,7 +487,7 @@ func (mc *MeshCatalog) GetServicesForServiceAccounts(saList []service.K8sService
 	for _, sa := range saList {
 		services, err := mc.GetServicesForServiceAccount(sa)
 		if err != nil {
-			log.Error().Msgf("Error getting services linked to Service Account %s: %v", sa, err)
+			log.Error().Err(err).Msgf("Error getting services linked to Service Account %s", sa)
 			continue
 		} else {
 			for _, s := range services {
@@ -547,14 +547,14 @@ func (mc *MeshCatalog) buildInboundPolicies(t *access.TrafficTarget) []*trafficp
 	// fetch services running workloads with destination service account
 	destServices, err := mc.getDestinationServicesFromTrafficTarget(t)
 	if err != nil {
-		log.Error().Msgf("Error resolving destination from traffic target %s (%s): %v", t.Name, t.Namespace, err)
+		log.Error().Err(err).Msgf("Error resolving destination from traffic target %s (%s)", t.Name, t.Namespace)
 		return inboundPolicies
 	}
 
 	// fetch all routes referenced in traffic target
 	routeMatches, err := mc.routesFromRules(t.Spec.Rules, t.Namespace)
 	if err != nil {
-		log.Error().Msgf("Error finding route matches from TrafficTarget %s in namespace %s: %v", t.Name, t.Namespace, err)
+		log.Error().Err(err).Msgf("Error finding route matches from TrafficTarget %s in namespace %s", t.Name, t.Namespace)
 		return inboundPolicies
 	}
 
@@ -588,7 +588,7 @@ func (mc *MeshCatalog) buildOutboundPolicies(source service.K8sServiceAccount, t
 	// fetch services running workloads with destination service account
 	destServices, err := mc.getDestinationServicesFromTrafficTarget(t)
 	if err != nil {
-		log.Error().Msgf("Error resolving destination from traffic target %s (%s): %v", t.Name, t.Namespace, err)
+		log.Error().Err(err).Msgf("Error resolving destination from traffic target %s (%s)", t.Name, t.Namespace)
 		return outPolicies
 	}
 
