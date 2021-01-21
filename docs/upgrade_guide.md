@@ -17,20 +17,24 @@ Data plane interruptions are expected if the upgrade includes CRD changes.
 ## CRD Upgrades
 Please check the `CRD Updates` section of the [release notes](https://github.com/openservicemesh/osm/releases) to see if additional steps are required to update the CRDs used by OSM. If the new release does contain updates to the CRDs, it is required to first delete existing CRDs and the associated Custom Resources prior to upgrading.
 
-In the `./scripts/cleanup` directory we have included a helper script to delete those CRDs and Custom Resources: `./scripts/osm-cleanup.sh`
+In the `./scripts/cleanup` directory we have included a helper script to delete those CRDs and Custom Resources: `./scripts/crd-cleanup.sh`
 
 After upgrading, the Custom Resources will need to be recreated using the updated CRDs installed by the upgrade.
 
-## Upgrade OSM using Helm
-Use the `helm` CLI to upgrade the OSM control plane from a Kubernetes cluster.
+## OSM ConfigMap
+When upgrading, any edits you've made to the OSM ConfigMap may be reverted to the default. Please ensure that you carefully follow the guide to prevent these values from being overwritten.
 
-Run `helm upgrade`. 
+## Upgrade OSM using Helm
+Use the `helm` CLI to upgrade the OSM control plane.
+
+### Preserve ConfigMap
+To preserve any edits you've made to the ConfigMap, use the `helm --set` flag. Find the corresponding field in the [values](https://github.com/openservicemesh/osm/blob/main/charts/osm/values.yaml) file and set the desired value.
+
+For example, to keep the `envoy_log_level` field in the ConfigMap set to `info`:
+
 ```console
-# Add steps for helm upgrade
+$ helm upgrade <mesh name> osm --repo https://openservicemesh.github.io/osm --version <chart version> --namespace <osm namespace> --reuse-values --set OpenServiceMesh.envoyLogLevel=info
 ```
+Omit the `--set` flag if you have not edited the ConfigMap.
 
 Run `helm upgrade --help` for more options.
-
-## Upgrade support
-Upgrades are supported between consecutive minor versions. Skipping minor versions is not supported.
-
