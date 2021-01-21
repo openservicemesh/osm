@@ -114,7 +114,7 @@ func (wh *mutatingWebhook) run(stop <-chan struct{}) {
 		// Generate a key pair from your pem-encoded cert and key ([]byte).
 		cert, err := tls.X509KeyPair(wh.cert.GetCertificateChain(), wh.cert.GetPrivateKey())
 		if err != nil {
-			log.Error().Err(err).Msgf("Error parsing webhook certificate: %+v", err)
+			log.Error().Err(err).Msg("Error parsing webhook certificate")
 			return
 		}
 
@@ -124,7 +124,7 @@ func (wh *mutatingWebhook) run(stop <-chan struct{}) {
 		}
 
 		if err := server.ListenAndServeTLS("", ""); err != nil {
-			log.Error().Err(err).Msgf("Sidecar-injection webhook HTTP server failed to start: %+v", err)
+			log.Error().Err(err).Msg("Sidecar injection webhook HTTP server failed to start")
 			return
 		}
 	}()
@@ -143,7 +143,7 @@ func (wh *mutatingWebhook) run(stop <-chan struct{}) {
 func healthHandler(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	if _, err := w.Write([]byte("Health OK")); err != nil {
-		log.Error().Err(err).Msgf("Error writing bytes for mutating webhook health check handler")
+		log.Error().Err(err).Msg("Error writing bytes for mutating webhook health check handler")
 	}
 }
 
@@ -168,7 +168,7 @@ func (wh *mutatingWebhook) podCreationHandler(w http.ResponseWriter, req *http.R
 	// Read timeout from request url
 	reqTimeout, err := readTimeout(req)
 	if err != nil {
-		log.Error().Msgf("Could not read timeout from request url: %v", err)
+		log.Error().Err(err).Msg("Could not read timeout from request url")
 	}
 	// Execute at return of this handler
 	defer webhookTimeTrack(time.Now(), reqTimeout, &success)
