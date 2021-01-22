@@ -17,24 +17,30 @@ Data plane interruptions are expected if the upgrade includes CRD changes.
 ## CRD Upgrades
 Please check the `CRD Updates` section of the [release notes](https://github.com/openservicemesh/osm/releases) to see if additional steps are required to update the CRDs used by OSM. If the new release does contain updates to the CRDs, it is required to first delete existing CRDs and the associated Custom Resources prior to upgrading.
 
-In the `./scripts/cleanup` directory we have included a helper script to delete those CRDs and Custom Resources: `./scripts/crd-cleanup.sh`
+In the `./scripts/cleanup` directory we have included a helper script to delete those CRDs and Custom Resources: `./scripts/cleanup/crd-cleanup.sh`
 
 After upgrading, the Custom Resources will need to be recreated using the updated CRDs installed by the upgrade.
 
-## OSM ConfigMap
-When upgrading, any edits you've made to the OSM ConfigMap may be reverted to the default. Please ensure that you carefully follow the guide to prevent these values from being overwritten.
+## OSM Configuration
+When upgrading, any custom settings used to install or run OSM may be reverted to the default. This includes any metrics deployments and any changes to the OSM ConfigMap. Please ensure that you carefully follow the guide to prevent these values from being overwritten.
 
 ## Upgrade OSM using Helm
 Use the `helm` CLI to upgrade the OSM control plane.
 
-### Preserve ConfigMap
-To preserve any edits you've made to the ConfigMap, use the `helm --set` flag. Find the corresponding field in the [values](https://github.com/openservicemesh/osm/blob/main/charts/osm/values.yaml) file and set the desired value.
+### Preserve OSM configuration
+To preserve any changes you've made to the OSM configuration, use the `helm --values` flag. Create a copy of the [values file](https://github.com/openservicemesh/osm/blob/main/charts/osm/values.yaml) (make sure to use the version for the upgraded chart) and change any values you wish to customize.
 
-For example, to keep the `envoy_log_level` field in the ConfigMap set to `info`:
+For example, to keep the `envoy_log_level` field in the ConfigMap set to `info`, save the following as `override.yaml`:
 
-```console
-$ helm upgrade <mesh name> osm --repo https://openservicemesh.github.io/osm --version <chart version> --namespace <osm namespace> --reuse-values --set OpenServiceMesh.envoyLogLevel=info
 ```
-Omit the `--set` flag if you have not edited the ConfigMap.
+OpenServiceMesh:
+  envoyLogLevel: info
+```
+
+Then run the following `helm upgrade` command.
+```console
+$ helm upgrade <mesh name> osm --repo https://openservicemesh.github.io/osm --version <chart version> --namespace <osm namespace> --values override.yaml
+```
+Omit the `--values` flag if you prefer to use the default settings.
 
 Run `helm upgrade --help` for more options.
