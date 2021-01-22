@@ -43,6 +43,24 @@ type TCPRequestDef struct {
 	Message string
 }
 
+// GRPCRequestDef defines a remote GRPC request intent
+type GRPCRequestDef struct {
+	// Source pod where to run the HTTP request from
+	SourceNs        string
+	SourcePod       string
+	SourceContainer string
+
+	// The entire destination URL processed by curl, including host name and
+	// optionally protocol, port, and path
+	Destination string
+
+	// JSONRequest is the JSON request body
+	JSONRequest string
+
+	// Symbol is the fully qualified grpc service name, ex. hello.HelloService/SayHello
+	Symbol string
+}
+
 // HTTPRequestResult represents results of an HTTPRequest call
 type HTTPRequestResult struct {
 	StatusCode int
@@ -52,6 +70,12 @@ type HTTPRequestResult struct {
 
 // TCPRequestResult represents the result of a TCPRequest call
 type TCPRequestResult struct {
+	Response string
+	Err      error
+}
+
+// GRPCRequestResult represents the result of a GRPCRequest call
+type GRPCRequestResult struct {
 	Response string
 	Err      error
 }
@@ -117,6 +141,29 @@ func (td *OsmTestData) TCPRequest(req TCPRequestDef) TCPRequestResult {
 	}
 
 	return TCPRequestResult{
+		stdout,
+		nil,
+	}
+}
+
+// GRPCRequest runs a GRPC request to run the GRPCRequestDef and return a GRPCRequestResult
+func (td *OsmTestData) GRPCRequest(req GRPCRequestDef) GRPCRequestResult {
+	command := []string{"/grpcurl", "-d", req.JSONRequest, "-plaintext", req.Destination, req.Symbol}
+
+	stdout, stderr, err := td.RunRemote(req.SourceNs, req.SourcePod, req.SourceContainer, command)
+	if err != nil {
+		// Error codes from the execution come through err
+		return GRPCRequestResult{
+			stdout,
+			fmt.Errorf("Remote exec err: %v | stderr: %s | cmd: %s", err, stderr, command),
+		}
+	}
+	if len(stderr) > 0 {
+		// no error from execution and proper exit code, we got some stderr though
+		td.T.Logf("[warn] Stderr: %v", stderr)
+	}
+
+	return GRPCRequestResult{
 		stdout,
 		nil,
 	}

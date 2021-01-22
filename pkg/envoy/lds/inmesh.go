@@ -3,6 +3,7 @@ package lds
 import (
 	"fmt"
 	"sort"
+	"strings"
 
 	mapset "github.com/deckarep/golang-set"
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -27,6 +28,7 @@ const (
 	outboundMeshTCPFilterChainPrefix  = "outbound-mesh-tcp-filter-chain"
 	httpAppProtocol                   = "http"
 	tcpAppProtocol                    = "tcp"
+	gRPCAppProtocol                   = "grpc"
 )
 
 func (lb *listenerBuilder) getInboundMeshFilterChains(proxyService service.MeshService) []*xds_listener.FilterChain {
@@ -40,8 +42,8 @@ func (lb *listenerBuilder) getInboundMeshFilterChains(proxyService service.MeshS
 
 	// Create protocol specific inbound filter chains per port to handle different ports serving different protocols
 	for port, appProtocol := range protocolToPortMap {
-		switch appProtocol {
-		case httpAppProtocol:
+		switch strings.ToLower(appProtocol) {
+		case httpAppProtocol, gRPCAppProtocol:
 			// Filter chain for HTTP port
 			filterChainForPort, err := lb.getInboundMeshHTTPFilterChain(proxyService, port)
 			if err != nil {
@@ -401,8 +403,8 @@ func (lb *listenerBuilder) getOutboundFilterChainPerUpstream() []*xds_listener.F
 
 		// Create protocol specific inbound filter chains per port to handle different ports serving different protocols
 		for port, appProtocol := range protocolToPortMap {
-			switch appProtocol {
-			case httpAppProtocol:
+			switch strings.ToLower(appProtocol) {
+			case httpAppProtocol, gRPCAppProtocol:
 				// Construct HTTP filter chain
 				if httpFilterChain, err := lb.getOutboundHTTPFilterChainForService(upstream, port); err != nil {
 					log.Error().Err(err).Msgf("Error constructing outbound HTTP filter chain for upstream service %s on proxy with identity %s", upstream, lb.svcAccount)
