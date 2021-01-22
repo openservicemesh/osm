@@ -35,7 +35,7 @@ func (r *MutatingWebhookConfigurationReconciler) Reconcile(req ctrl.Request) (ct
 		instance := &v1beta1.MutatingWebhookConfiguration{}
 
 		if err := r.Get(ctx, req.NamespacedName, instance); err != nil {
-			log.Error().Err(err).Msgf("failure reading object %s ", req.NamespacedName.String())
+			log.Error().Err(err).Msgf("Error reading object %s ", req.NamespacedName)
 			return ctrl.Result{}, client.IgnoreNotFound(err)
 		}
 
