@@ -103,17 +103,19 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 				}
 			}
 
-			log.Debug().Msgf("Incoming Discovery Request %s (nonce=%s; version=%d) from Envoy %s; last applied version: %d",
+			log.Debug().Msgf("Incoming Discovery Request %s (nonce=%s; version=%d) from Envoy with xDS Certificate SerialNumber=%s on Pod with UID=%s; last applied version: %d",
 				discoveryRequest.TypeUrl,
 				discoveryRequest.ResponseNonce,
 				ackVersion,
-				proxy.GetCertificateCommonName(),
+				proxy.GetCertificateSerialNumber(),
+				proxy.GetPodUID(),
 				proxy.GetLastAppliedVersion(typeURL))
 
-			log.Debug().Msgf("Last sent nonce=%s; last sent version=%d for Envoy %s",
+			log.Debug().Msgf("Last sent nonce=%s; last sent version=%d for Envoy with xDS Certificate SerialNumber=%s on Pod with UID=%s",
 				proxy.GetLastSentNonce(typeURL),
 				proxy.GetLastSentVersion(typeURL),
-				proxy.GetCertificateCommonName())
+				proxy.GetCertificateSerialNumber(),
+				proxy.GetPodUID())
 
 			proxy.SetLastAppliedVersion(typeURL, ackVersion)
 
