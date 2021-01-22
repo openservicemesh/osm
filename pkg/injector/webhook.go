@@ -265,7 +265,7 @@ func (wh *mutatingWebhook) isNamespaceInjectable(namespace string) bool {
 // The function returns an error when it is unable to determine whether to perform sidecar injection.
 func (wh *mutatingWebhook) mustInject(pod *corev1.Pod, namespace string) (bool, error) {
 	if !wh.isNamespaceInjectable(namespace) {
-		log.Warn().Msgf("Request is for pod with UUID %s in namespace %s; Injection in namespace %s is not permitted", namespace, pod.Name, namespace)
+		log.Warn().Msgf("Mutation request is for pod with UID %s; Injection in Namespace %s is not permitted", pod.ObjectMeta.UID, namespace)
 		return false, nil
 	}
 
