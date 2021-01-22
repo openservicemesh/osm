@@ -3,14 +3,21 @@ package scenarios
 import (
 	"fmt"
 
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"k8s.io/client-go/kubernetes"
+	testclient "k8s.io/client-go/kubernetes/fake"
 
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/wrappers"
 
+	"github.com/openservicemesh/osm/pkg/catalog"
+	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/rds"
+	"github.com/openservicemesh/osm/pkg/tests"
 )
 
 var _ = Describe(``+
@@ -23,7 +30,9 @@ var _ = Describe(``+
 		Context("Test rds.NewResponse()", func() {
 
 			// ---[  Setup the test context  ]---------
-			meshCatalog, proxy, err := getMeshCatalogAndProxy()
+			kubeClient := testclient.NewSimpleClientset()
+			meshCatalog := catalog.NewFakeMeshCatalog(kubeClient)
+			proxy, err := getProxy(kubeClient)
 			It("sets up test context - SMI policies, Services, Pods etc.", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(meshCatalog).ToNot(BeNil())
@@ -178,4 +187,24 @@ func weightedCluster(serviceName string, weight uint32) *xds_route.WeightedClust
 		Name:   fmt.Sprintf("default/%s", serviceName),
 		Weight: toInt(weight),
 	}
+}
+
+func getProxy(kubeClient kubernetes.Interface) (*envoy.Proxy, error) {
+	if _, err := tests.MakePod(kubeClient, tests.Namespace, tests.BookbuyerServiceName, tests.BookbuyerServiceAccountName, tests.ProxyUUID); err != nil {
+		return nil, err
+	}
+	if _, err := tests.MakePod(kubeClient, tests.Namespace, "bookstore", tests.BookstoreServiceAccountName, uuid.New().String()); err != nil {
+		return nil, err
+	}
+
+	for _, svcName := range []string{tests.BookbuyerServiceName, tests.BookstoreApexServiceName, tests.BookstoreV1ServiceName, tests.BookstoreV2ServiceName} {
+		if _, err := tests.MakeService(kubeClient, svcName); err != nil {
+			return nil, err
+		}
+	}
+
+	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s", tests.ProxyUUID, tests.BookbuyerServiceAccountName, tests.Namespace))
+	certSerialNumber := certificate.SerialNumber("123456")
+	proxy := envoy.NewProxy(certCommonName, certSerialNumber, nil)
+	return proxy, nil
 }
