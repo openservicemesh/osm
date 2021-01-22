@@ -44,8 +44,8 @@ func recordEnvoyPodMetadata(request *xds_discovery.DiscoveryRequest, proxy *envo
 		if meta, err := envoy.ParseEnvoyServiceNodeID(request.Node.Id); err != nil {
 			log.Error().Err(err).Msgf("Error parsing Envoy Node ID: %s", request.Node.Id)
 		} else {
-			log.Trace().Msgf("Recorded metadata for Envoy %s: podUID=%s, podNamespace=%s, serviceAccountName=%s, envoyNodeID=%s",
-				proxy.GetCertificateCommonName(), meta.UID, meta.Namespace, meta.ServiceAccount, meta.EnvoyNodeID)
+			log.Trace().Msgf("Recorded metadata for Envoy with xDS Certificate SerialNumber=%s: podUID=%s, podNamespace=%s, serviceAccountName=%s, envoyNodeID=%s",
+				proxy.GetCertificateSerialNumber(), meta.UID, meta.Namespace, meta.ServiceAccount, meta.EnvoyNodeID)
 
 			// Set the Pod Metadata, which will be used in the RegisterProxy() invocation below!
 			proxy.PodMetadata = meta

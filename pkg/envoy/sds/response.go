@@ -23,14 +23,16 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request 
 
 	svcList, err := meshCatalog.GetServicesFromEnvoyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error getting services associated with Envoy with certificate SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateCommonName(), proxy.GetPodUID())
+		log.Error().Err(err).Msgf("Error getting services associated with Envoy with certificate SerialNumber=%s on Pod with UID=%s",
+			proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 		return nil, err
 	}
 
 	// OSM currently relies on kubernetes ServiceAccount for service identity
 	svcAccount, err := catalog.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error retrieving ServiceAccount for Envoy with certificate SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateCommonName(), proxy.GetPodUID())
+		log.Error().Err(err).Msgf("Error retrieving ServiceAccount for Envoy with certificate SerialNumber=%s on Pod with UID=%s",
+			proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 		return nil, err
 	}
 
@@ -115,7 +117,8 @@ func (s *sdsImpl) getSDSSecrets(cert certificate.Certificater, requestedCerts []
 		case envoy.ServiceCertType:
 			envoySecret, err := getServiceCertSecret(cert, requestedCertificate)
 			if err != nil {
-				log.Error().Err(err).Msgf("Error creating cert %s for proxy %s for service %s", requestedCertificate, s.proxy.GetCertificateCommonName(), proxyService)
+				log.Error().Err(err).Msgf("Error creating cert %s for Envoy with xDS Certificate SerialNumber=%s on Pod with UID=%s for service %s",
+					requestedCertificate, s.proxy.GetCertificateSerialNumber(), s.proxy.GetPodUID(), proxyService)
 				continue
 			}
 			envoySecrets = append(envoySecrets, envoySecret)
@@ -124,7 +127,8 @@ func (s *sdsImpl) getSDSSecrets(cert certificate.Certificater, requestedCerts []
 		case envoy.RootCertTypeForMTLSInbound, envoy.RootCertTypeForMTLSOutbound, envoy.RootCertTypeForHTTPS:
 			envoySecret, err := s.getRootCert(cert, *sdsCert, proxyService)
 			if err != nil {
-				log.Error().Err(err).Msgf("Error creating cert %s for proxy %s for service %s", requestedCertificate, s.proxy.GetCertificateCommonName(), proxyService)
+				log.Error().Err(err).Msgf("Error creating cert %s for Envoy with xDS Certificate SerialNumber=%s on Pod with UID=%s for service %s",
+					requestedCertificate, s.proxy.GetCertificateSerialNumber(), s.proxy.GetPodUID(), proxyService)
 				continue
 			}
 			envoySecrets = append(envoySecrets, envoySecret)
