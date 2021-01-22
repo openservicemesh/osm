@@ -61,6 +61,10 @@ func TestListenerConfiguration(t *testing.T) {
 	actual, err := NewResponse(meshCatalog, proxy, nil, mockConfigurator, nil)
 	assert.Empty(err)
 	assert.NotNil(actual)
+	// There are 3 listeners configured based on the configuration:
+	// 1. Outbound listener (outbound-listener)
+	// 2. inbound listener (inbound-listener)
+	// 3. Prometheus listener (inbound-prometheus-listener)
 	assert.Len(actual.Resources, 3)
 
 	listener := xds_listener.Listener{}
@@ -73,6 +77,10 @@ func TestListenerConfiguration(t *testing.T) {
 	assert.Len(listener.ListenerFilters, 1)
 	assert.Equal(listener.ListenerFilters[0].Name, wellknown.OriginalDestination)
 	assert.NotNil(listener.FilterChains)
+	// There are 3 filter chains configured on the outbound-listner based on the configuration:
+	// 1. Filter chanin for bookstore-v1
+	// 2. Filter chanin for bookstore-v2
+	// 3. Egress filter chain
 	assert.Len(listener.FilterChains, 3)
 	assert.NotNil(listener.DefaultFilterChain)
 	assert.Equal(listener.DefaultFilterChain.Name, outboundEgressFilterChainName)
@@ -87,6 +95,8 @@ func TestListenerConfiguration(t *testing.T) {
 	assert.Equal(listener.ListenerFilters[0].Name, wellknown.TlsInspector)
 	assert.Equal(listener.ListenerFilters[1].Name, wellknown.OriginalDestination)
 	assert.NotNil(listener.FilterChains)
+	// There is 1 filter chains configured on the inbound-listner based on the configuration:
+	// 1. Filter chanin for bookbuyer
 	assert.Len(listener.FilterChains, 1)
 
 	// validating prometheus listener
