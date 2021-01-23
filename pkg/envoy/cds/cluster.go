@@ -2,6 +2,7 @@ package cds
 
 import (
 	"fmt"
+	"strconv"
 	_ "strings"
 	"time"
 
@@ -64,6 +65,50 @@ func getUpstreamServiceCluster(upstreamSvc, downstreamSvc service.MeshServicePor
 	}
 
 	return remoteCluster, nil
+}
+
+// getWSGatewayUpstreamServiceCluster returns an Envoy Cluster corresponding to the given upstream service
+func getWSGatewayUpstreamServiceCluster(catalog catalog.MeshCataloger, upstreamSvc, downstreamSvc service.MeshServicePort, cfg configurator.Configurator, clusterFactories map[string]*xds_cluster.Cluster) error {
+	wscatalog := catalog.GetWitesandCataloger()
+	apigroupClusterNames, err := wscatalog.ListApigroupClusterNames()
+	if err != nil {
+		return err
+	}
+
+	for _, apigroupName := range apigroupClusterNames {
+		clusterName := apigroupName + ":" + strconv.Itoa(upstreamSvc.Port)
+		/* WITESAND_TLS_DISABLE
+		marshalledUpstreamTLSContext, err := ptypes.MarshalAny(
+			envoy.GetUpstreamTLSContext(downstreamSvc, upstreamSvc))
+		if err != nil {
+			return nil, err
+		}
+		*/
+
+		remoteCluster := &xds_cluster.Cluster{
+			Name:           clusterName,
+			ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
+			/* WITESAND_TLS_DISABLE
+			TransportSocket: &xds_core.TransportSocket{
+				Name: wellknown.TransportSocketTls,
+				ConfigType: &xds_core.TransportSocket_TypedConfig{
+					TypedConfig: marshalledUpstreamTLSContext,
+				},
+			},
+			*/
+			ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
+			Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
+		}
+
+		// Configure service discovery based on traffic policies
+		remoteCluster.ClusterDiscoveryType = &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS}
+		remoteCluster.EdsClusterConfig = &xds_cluster.Cluster_EdsClusterConfig{EdsConfig: envoy.GetADSConfigSource()}
+		remoteCluster.LbPolicy = xds_cluster.Cluster_RING_HASH
+
+		clusterFactories[remoteCluster.Name] = remoteCluster
+	}
+
+	return nil
 }
 
 // getOutboundPassthroughCluster returns an Envoy cluster that is used for outbound passthrough traffic

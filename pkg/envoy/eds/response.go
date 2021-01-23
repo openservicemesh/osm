@@ -65,6 +65,18 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 
 	var protos []*any.Any
 	for svc, endpoints := range outboundServicesEndpoints {
+		if catalog.GetWitesandCataloger().IsWSGatewayService(svc) {
+			loadAssignments := cla.NewWSGatewayClusterLoadAssignment(catalog, svc)
+			for _, loadAssignment := range *loadAssignments {
+				proto, err := ptypes.MarshalAny(loadAssignment)
+				if err != nil {
+					log.Error().Err(err).Msgf("Error marshalling EDS payload for proxy %s: %+v", proxyServiceName, loadAssignment)
+					continue
+				}
+				protos = append(protos, proto)
+			}
+			continue
+		}
 		loadAssignment := cla.NewClusterLoadAssignment(svc, endpoints)
 		proto, err := ptypes.MarshalAny(loadAssignment)
 		if err != nil {

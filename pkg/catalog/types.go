@@ -1,7 +1,6 @@
 package catalog
 
 import (
-	"net"
 	"sync"
 	"time"
 
@@ -22,6 +21,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
+	"github.com/openservicemesh/osm/pkg/witesand"
 )
 
 var (
@@ -51,6 +51,8 @@ type MeshCatalog struct {
 
 	// Maintain a mapping of pod UID to CN of the Envoy on that pod
 	podUIDToCN sync.Map
+
+	witesandCatalog   *witesand.WitesandCatalog
 }
 
 // MeshCataloger is the mechanism by which the Service Mesh controller discovers all Envoy proxies connected to the catalog.
@@ -83,7 +85,7 @@ type MeshCataloger interface {
 	ListEndpointsForService(service.MeshService) ([]endpoint.Endpoint, error)
 
 	// ListLocalClusterEndpoints returns the list of endpoints for this kubernetes cluster
-	ListLocalClusterEndpoints() (map[string][]EndpointJSON, error)
+	ListLocalClusterEndpoints() (map[string][]endpoint.Endpoint, error)
 
 	// GetResolvableServiceEndpoints returns the resolvable set of endpoint over which a service is accessible using its FQDN.
 	// These are the endpoint destinations we'd expect client applications sends the traffic towards to, when attemtpting to
@@ -126,6 +128,11 @@ type MeshCataloger interface {
 
 	// GetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol
 	GetPortToProtocolMappingForService(service.MeshService) (map[uint32]string, error)
+
+	GetWitesandCataloger() witesand.WitesandCataloger
+
+	// get this OSM pod's IP address
+	GetMyIP() string
 }
 
 type announcementChannel struct {
@@ -163,9 +170,3 @@ const (
 	inbound  trafficDirection = "inbound"
 	outbound trafficDirection = "outbound"
 )
-
-type EndpointJSON struct {
-	IP      net.IP          `json:"ip"`
-	Port    endpoint.Port   `json:"port"`
-}
-

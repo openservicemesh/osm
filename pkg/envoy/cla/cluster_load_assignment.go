@@ -6,6 +6,7 @@ import (
 
 	"github.com/golang/protobuf/ptypes/wrappers"
 
+	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -51,4 +52,41 @@ func NewClusterLoadAssignment(serviceName service.MeshServicePort, serviceEndpoi
 	}
 	log.Debug().Msgf("[EDS] Constructed ClusterLoadAssignment: %+v", cla)
 	return cla
+}
+
+func NewWSGatewayClusterLoadAssignment(catalog catalog.MeshCataloger, serviceName service.MeshServicePort) *[]*xds_endpoint.ClusterLoadAssignment {
+	var clas []*xds_endpoint.ClusterLoadAssignment
+
+	servicePort := serviceName.Port
+
+	wscatalog := catalog.GetWitesandCataloger()
+	atopMaps, _ := wscatalog.ListApigroupToPodIPs()
+	for _, atopMap := range atopMaps {
+		cla := xds_endpoint.ClusterLoadAssignment{
+			ClusterName: atopMap.Apigroup,
+			Endpoints: []*xds_endpoint.LocalityLbEndpoints{
+				{
+					Locality: &xds_core.Locality{
+						Zone: zone,
+					},
+					LbEndpoints: []*xds_endpoint.LbEndpoint{},
+				},
+			},
+		}
+
+		for _, podIP := range atopMap.PodIPs {
+			log.Trace().Msgf("[EDS][NewWSGatewayClusterLoadAssignment] Adding Endpoint: Cluster=%s, Services=%s, IP=%+v, Port=%d", atopMap.Apigroup, serviceName.String(), podIP, servicePort)
+			lbEpt := xds_endpoint.LbEndpoint{
+				HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
+					Endpoint: &xds_endpoint.Endpoint{
+						Address: envoy.GetAddress(podIP, uint32(servicePort)),
+					},
+				},
+			}
+			cla.Endpoints[0].LbEndpoints = append(cla.Endpoints[0].LbEndpoints, &lbEpt)
+		}
+		log.Debug().Msgf("[EDS] Constructed ClusterLoadAssignment: %+v", cla)
+		clas = append(clas, &cla)
+	}
+	return &clas
 }

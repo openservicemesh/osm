@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
-	"net/http"
 	"fmt"
 	"os"
 	"path"
@@ -47,6 +46,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/signals"
 	"github.com/openservicemesh/osm/pkg/smi"
 	"github.com/openservicemesh/osm/pkg/version"
+	"github.com/openservicemesh/osm/pkg/witesand"
 )
 
 const (
@@ -70,6 +70,7 @@ var (
 	injectorConfig injector.Config
 
 	remoteProvider             *remote.Client
+	witesandCatalog            *witesand.WitesandCatalog
 
 	// feature flag options
 	optionalFeatures featureflags.OptionalFeatures
@@ -217,8 +218,13 @@ func main() {
 
 	log.Info().Msgf("enableRemoteCluster:%t masterOsmIP:%s", enableRemoteCluster, masterOsmIP)
 
+	witesandCatalog = witesand.NewWitesandCatalog(masterOsmIP)
+	if err != nil {
+		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Witesand catalog")
+	}
+
 	if enableRemoteCluster {
-		remoteProvider, err = remote.NewProvider(kubeClient, masterOsmIP, stop, meshSpec, constants.RemoteProviderName, masterOsmIP)
+		remoteProvider, err = remote.NewProvider(kubeClient, witesandCatalog, masterOsmIP, stop, meshSpec, constants.RemoteProviderName, masterOsmIP)
 		if err != nil {
 			log.Fatal().Err(err).Msg("Failed to initialize remote provider")
 		}
@@ -238,6 +244,7 @@ func main() {
 		ingressClient,
 		stop,
 		cfg,
+		witesandCatalog,
 		endpointsProviders...)
 
 	// Create the sidecar-injector webhook
@@ -267,12 +274,6 @@ func main() {
 	httpServer := httpserver.NewHTTPServer(funcProbes, httpProbes, metricsStore, constants.MetricsServerPort)
 	httpServer.Start()
 
-	go func() {
-		http.HandleFunc("/gatewaypod", GatewayPod)
-		http.HandleFunc("/endpoints", LocalEndpoints)
-		http.ListenAndServe(":2500", nil)
-	}()
-
 	if err := createControllerManagerForOSMResources(certManager); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating controller manager to reconcile OSM resources")
 	}
@@ -285,41 +286,6 @@ func main() {
 	// Wait for exit handler signal
 	<-stop
 	log.Info().Msg("Goodbye!")
-}
-
-func GatewayPod(w http.ResponseWriter, r *http.Request) {
-	list, err := m.GetGatewaypods("gateway")
-	if err != nil {
-		log.Error().Msgf("err fetching gateway pod %+v", err)
-	}
-
-	if err := json.NewEncoder(w).Encode(list); err != nil {
-		log.Error().Msgf("err fetching gateway pod %+v", err)
-	}
-}
-
-func ReadRemoteIP(r *http.Request) string {
-	IPAddress := r.Header.Get("X-Osm-Origin-Ip")
-	log.Info().Msgf("[ReadRemoteIP] real IP addr %s", IPAddress)
-	return IPAddress
-}
-
-func LocalEndpoints(w http.ResponseWriter, r *http.Request) {
-	// On Master, learn remote IP address by gleaning from the request
-	remoteAddress := ReadRemoteIP(r)
-
-	log.Info().Msgf("[LocalEndpoints] remote IP addr %s", remoteAddress)
-
-	remoteProvider.RegisterRemoteOSM(remoteAddress)
-
-	endpointMap, err := m.ListLocalClusterEndpoints()
-	if err != nil {
-		log.Error().Msgf("err fetching endpoints %+v", err)
-	}
-
-	if err := json.NewEncoder(w).Encode(endpointMap); err != nil {
-		log.Error().Msgf("err encoding endpoints %+v", err)
-	}
 }
 
 func getHTTPHealthProbes() []health.HTTPProbe {

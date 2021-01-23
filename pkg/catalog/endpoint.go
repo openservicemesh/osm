@@ -23,8 +23,8 @@ func (mc *MeshCatalog) ListEndpointsForService(svc service.MeshService) ([]endpo
 }
 
 // ListLocalEndpoints returns the list of endpoints for this kubernetes cluster
-func (mc *MeshCatalog) ListLocalClusterEndpoints() (map[string][]EndpointJSON, error) {
-	endpointMap := make(map[string][]EndpointJSON)
+func (mc *MeshCatalog) ListLocalClusterEndpoints() (map[string][]endpoint.Endpoint, error) {
+	endpointMap := make(map[string][]endpoint.Endpoint)
 	services := mc.kubeController.ListServices()
 	for _, provider := range mc.endpointsProviders {
 		if provider.GetID() != constants.KubeProviderName {
@@ -40,18 +40,9 @@ func (mc *MeshCatalog) ListLocalClusterEndpoints() (map[string][]EndpointJSON, e
 			if len(eps) == 0 {
 				continue
 			}
-			// convert to use JSON format as endpoint.Endpoint is not suitable
-			var epsJSON = []EndpointJSON{}
-			for _, ep := range eps {
-				epJSON := EndpointJSON{
-					IP:   ep.IP,
-					Port: ep.Port,
-				}
-				epsJSON = append(epsJSON, epJSON)
-			}
-			log.Trace().Msgf("[ListLocalClusterEndpoints] endpoints for service=%+v", epsJSON)
+			log.Trace().Msgf("[ListLocalClusterEndpoints] endpoints for service=%+v", eps)
 			meshSvcStr := fmt.Sprintf("%s/%s", meshSvc.Namespace, meshSvc.Name)
-			endpointMap[meshSvcStr] = epsJSON
+			endpointMap[meshSvcStr] = eps
 		}
 	}
 	return endpointMap, nil

@@ -13,6 +13,7 @@ import (
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 	"github.com/openservicemesh/osm/pkg/smi"
+	"github.com/openservicemesh/osm/pkg/witesand"
 )
 
 const (
@@ -22,7 +23,7 @@ const (
 )
 
 // NewMeshCatalog creates a new service catalog
-func NewMeshCatalog(kubeController k8s.Controller, kubeClient kubernetes.Interface, meshSpec smi.MeshSpec, certManager certificate.Manager, ingressMonitor ingress.Monitor, stop <-chan struct{}, cfg configurator.Configurator, endpointsProviders ...endpoint.Provider) *MeshCatalog {
+func NewMeshCatalog(kubeController k8s.Controller, kubeClient kubernetes.Interface, meshSpec smi.MeshSpec, certManager certificate.Manager, ingressMonitor ingress.Monitor, stop <-chan struct{}, cfg configurator.Configurator, wc *witesand.WitesandCatalog, endpointsProviders ...endpoint.Provider) *MeshCatalog {
 	log.Info().Msg("Create a new Service MeshCatalog.")
 	mc := MeshCatalog{
 		endpointsProviders: endpointsProviders,
@@ -36,10 +37,14 @@ func NewMeshCatalog(kubeController k8s.Controller, kubeClient kubernetes.Interfa
 		// The certificate itself would contain the cluster ID making it easy to lookup the client in this map.
 		kubeClient:     kubeClient,
 		kubeController: kubeController,
+
+		witesandCatalog: wc,
 	}
 
 	// Run release certificate handler, which listens to podDelete events
 	mc.releaseCertificateHandler()
+
+	mc.initWitesandHttpServer()
 
 	go mc.dispatcher()
 	return &mc
@@ -48,6 +53,10 @@ func NewMeshCatalog(kubeController k8s.Controller, kubeClient kubernetes.Interfa
 // GetSMISpec returns a MeshCatalog's SMI Spec
 func (mc *MeshCatalog) GetSMISpec() smi.MeshSpec {
 	return mc.meshSpec
+}
+
+func (mc *MeshCatalog) GetWitesandCataloger() witesand.WitesandCataloger {
+	return mc.witesandCatalog
 }
 
 func (mc *MeshCatalog) getAnnouncementChannels() []announcementChannel {

@@ -45,6 +45,8 @@ const (
 
 	// httpHostHeader is the name of the HTTP host header
 	httpHostHeader = "host"
+
+	clusterHeader = "x-ws-dest-cluster"
 )
 
 //UpdateRouteConfiguration consrtucts the Envoy construct necessary for TrafficTarget implementation
@@ -65,9 +67,14 @@ func UpdateRouteConfiguration(domainRoutesMap map[string]map[string]trafficpolic
 	}
 
 	for host, routePolicyWeightedClustersMap := range domainRoutesMap {
+		wsGatewayHost := isWitesandGatewayHost(host, direction)
 		domains := getDistinctDomains(routePolicyWeightedClustersMap)
 		virtualHost := createVirtualHostStub(virtualHostPrefix, host, domains)
-		virtualHost.Routes = createRoutes(routePolicyWeightedClustersMap, direction)
+		if wsGatewayHost {
+			virtualHost.Routes = createWSGatewayRoutes(routePolicyWeightedClustersMap, direction)
+		} else {
+			virtualHost.Routes = createRoutes(routePolicyWeightedClustersMap, direction)
+		}
 		routeConfig.VirtualHosts = append(routeConfig.VirtualHosts, virtualHost)
 	}
 }
@@ -84,6 +91,36 @@ func createVirtualHostStub(namePrefix string, host string, domains set.Set) *xds
 		Domains: domainsSlice,
 	}
 	return &virtualHost
+}
+
+func createWSGatewayRoutes(routePolicyWeightedClustersMap map[string]trafficpolicy.RouteWeightedClusters, direction Direction) []*xds_route.Route {
+	var routes []*xds_route.Route
+	emptyHeaders := make(map[string]string)
+	route := getWSGatewayRoute(constants.RegexMatchAll, constants.WildcardHTTPMethod, emptyHeaders)
+	routes = append(routes, route)
+	return routes
+}
+
+func getWSGatewayRoute(pathRegex string, method string, headersMap map[string]string) *xds_route.Route {
+	route := xds_route.Route{
+		Match: &xds_route.RouteMatch{
+			PathSpecifier: &xds_route.RouteMatch_SafeRegex{
+				SafeRegex: &xds_matcher.RegexMatcher{
+					EngineType: &xds_matcher.RegexMatcher_GoogleRe2{GoogleRe2: &xds_matcher.RegexMatcher_GoogleRE2{}},
+					Regex:      pathRegex,
+				},
+			},
+			Headers: getHeadersForRoute(method, headersMap),
+		},
+		Action: &xds_route.Route_Route{
+			Route: &xds_route.RouteAction{
+				ClusterSpecifier: &xds_route.RouteAction_ClusterHeader{
+					ClusterHeader: clusterHeader,
+				},
+			},
+		},
+	}
+	return &route
 }
 
 func createRoutes(routePolicyWeightedClustersMap map[string]trafficpolicy.RouteWeightedClusters, direction Direction) []*xds_route.Route {
@@ -294,4 +331,9 @@ func getRegexForMethod(httpMethod string) string {
 		methodRegex = constants.RegexMatchAll
 	}
 	return methodRegex
+}
+
+func isWitesandGatewayHost(host string, direction Direction) bool {
+	// TODO
+	return true
 }

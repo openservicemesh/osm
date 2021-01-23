@@ -1,13 +1,11 @@
 package catalog
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
 	"github.com/google/uuid"
 	v1 "k8s.io/api/core/v1"
-	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -69,69 +67,6 @@ func makeSyntheticServiceForPod(pod *v1.Pod, proxyCommonName certificate.CommonN
 	syntheticService := svcAccount.GetSyntheticService()
 	log.Debug().Msgf("Creating synthetic service %s since no actual services found for connected proxy CN %s", syntheticService, proxyCommonName)
 	return []service.MeshService{syntheticService}
-}
-
-func (mc *MeshCatalog) GetGatewaypods(searchName string) ([]string, error) {
-	kubeClient := mc.kubeClient
-	podList, err := kubeClient.CoreV1().Pods("default").List(context.Background(), v12.ListOptions{})
-	if err != nil {
-		log.Error().Err(err).Msgf("Error listing pods in namespace %s", "default")
-		return nil, fmt.Errorf("error listing pod")
-	}
-
-	searchList := make([]string, 0)
-	for _, pod := range podList.Items {
-		if strings.Contains(pod.Name, searchName) && pod.Status.Phase == "Running" {
-			log.Info().Msgf("pod.Name=%+v, pod.status=%+v \n", pod.Name, pod.Status.Phase)
-			searchList = append(searchList, pod.Name)
-		}
-	}
-
-	// Add from remote pods from Submariner
-	submProvider := mc.GetProvider("Submariner")
-	if submProvider != nil  {
-		svc := service.MeshService{
-			Namespace: "default",
-			Name:      searchName,
-		}
-		// Note this is Service specific instead of pod specific.
-		eps := submProvider.ListEndpointsForService(svc)
-		if len(eps) > 0 {
-			svcName := searchName + "-branch"
-			searchList = append(searchList, svcName)
-		}
-		/*
-		knownIPs := make(map[string]bool, 0)
-		for _, ep := range eps {
-			ipStr := ep.IP.String()
-			if _, exists := knownIPs[ipStr]; !exists {
-				knownIPs[ipStr] = true
-				svcName := searchName + "-" + ipStr
-				log.Info().Msgf("[GetGatewaypods] adding svcName:%s", svcName)
-				searchList = append(searchList, svcName)
-			}
-		}
-		*/
-	} else {
-		log.Info().Msgf("[GetGatewaypods]: Submariner provider is nil")
-	}
-
-	// Add from remote pods from Remote osm-controller
-	remoteProvider := mc.GetProvider("Remote")
-	if remoteProvider != nil  {
-		svc := service.MeshService{
-			Namespace: "default",
-			Name:      searchName,
-		}
-		// Note this is Service specific instead of pod specific.
-		eps := remoteProvider.ListEndpointsForService(svc)
-		if len(eps) > 0 {
-			searchList = append(searchList, searchName)
-		}
-	} else {
-		log.Info().Msgf("[GetGatewaypods]: Remote provider is nil")
-	}
-	return searchList, nil
 }
 
 // filterTrafficSplitServices takes a list of services and removes from it the ones
