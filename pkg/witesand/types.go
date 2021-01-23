@@ -3,6 +3,8 @@ package witesand
 import(
 	"net/http"
 
+	"k8s.io/client-go/kubernetes"
+
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/service"
 )
@@ -12,16 +14,22 @@ var (
 )
 
 const(
-	GatewayServiceName = "gateway"
+	GatewayServiceName = "default/gateway"
 	HttpServerPort = "2500"
 	HttpRemoteAddrHeader = "X-Osm-Origin-Ip"
 	HttpRemoteClusterIdHeader = "X-Osm-Cluster-Id"
+	DeviceHashSuffix = "-device-hash"
 )
 
 type WitesandCatalog struct {
 	myIP        string
+	clusterId   string
 	masterOsmIP string
-	remoteK8s   map[string]RemoteK8s
+
+	remoteK8s     map[string]RemoteK8s     // key = clusterId
+	remotePodMap  map[string]RemotePods    // key = clusterId
+
+	kubeClient kubernetes.Interface
 
 	apigroupToPodMap   map[string]ApigroupToPodMap
 	apigroupToPodIPMap map[string]ApigroupToPodIPMap
@@ -40,7 +48,7 @@ type RemoteK8s struct {
 }
 
 type RemotePods struct {
-	PodToIPs map[string]string
+	PodToIPMap map[string]string  `json:"podtoipmap"`
 }
 
 type ApigroupToPodIPMap struct {
@@ -56,17 +64,21 @@ type PodToApigroupMap struct {
 type WitesandCataloger interface {
 	RegisterMyIP(ip string)
 	GetMyIP() string
+	GetClusterId() string
 
 	UpdateRemoteK8s(remoteIP string, remoteClusterId string)
+	UpdateRemotePods(remoteClusterId string, remotePods *RemotePods)
 	ListRemoteK8s() map[string]RemoteK8s
 
 	UpdateApigroupMap(w http.ResponseWriter, method string, r *http.Request)
 
+	// for usage by CDS
 	ListApigroupClusterNames() ([]string, error)
 
 	ListApigroupToPodIPs() ([]ApigroupToPodIPMap, error)
 
+	ListLocalGatewaypods() ([]string, error)
+	ListAllGatewaypods() ([]string, error)
 
 	IsWSGatewayService(svc service.MeshServicePort) bool
 }
-

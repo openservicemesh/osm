@@ -19,6 +19,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/witesand"
 )
 
 const (
@@ -74,37 +75,59 @@ func getWSGatewayUpstreamServiceCluster(catalog catalog.MeshCataloger, upstreamS
 	if err != nil {
 		return err
 	}
+	gatewayPodNames, err := wscatalog.ListAllGatewaypods()
+	if err != nil {
+		return err
+	}
 
+	// create clusters with apigroup-names with ROUND_ROBIN
 	for _, apigroupName := range apigroupClusterNames {
 		clusterName := apigroupName + ":" + strconv.Itoa(upstreamSvc.Port)
-		/* WITESAND_TLS_DISABLE
-		marshalledUpstreamTLSContext, err := ptypes.MarshalAny(
-			envoy.GetUpstreamTLSContext(downstreamSvc, upstreamSvc))
-		if err != nil {
-			return nil, err
-		}
-		*/
 
 		remoteCluster := &xds_cluster.Cluster{
 			Name:           clusterName,
 			ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
-			/* WITESAND_TLS_DISABLE
-			TransportSocket: &xds_core.TransportSocket{
-				Name: wellknown.TransportSocketTls,
-				ConfigType: &xds_core.TransportSocket_TypedConfig{
-					TypedConfig: marshalledUpstreamTLSContext,
-				},
-			},
-			*/
 			ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
 			Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
 		}
 
-		// Configure service discovery based on traffic policies
+		remoteCluster.ClusterDiscoveryType = &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS}
+		remoteCluster.EdsClusterConfig = &xds_cluster.Cluster_EdsClusterConfig{EdsConfig: envoy.GetADSConfigSource()}
+		remoteCluster.LbPolicy = xds_cluster.Cluster_ROUND_ROBIN
+		clusterFactories[remoteCluster.Name] = remoteCluster
+	}
+
+	// create clusters with apigroup-names + "device-hash" with ROUND_ROBIN
+	for _, apigroupName := range apigroupClusterNames {
+		clusterName := apigroupName + witesand.DeviceHashSuffix + ":" + strconv.Itoa(upstreamSvc.Port)
+
+		remoteCluster := &xds_cluster.Cluster{
+			Name:           clusterName,
+			ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
+			ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
+			Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
+		}
+
 		remoteCluster.ClusterDiscoveryType = &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS}
 		remoteCluster.EdsClusterConfig = &xds_cluster.Cluster_EdsClusterConfig{EdsConfig: envoy.GetADSConfigSource()}
 		remoteCluster.LbPolicy = xds_cluster.Cluster_RING_HASH
+		clusterFactories[remoteCluster.Name] = remoteCluster
+	}
 
+	// create clusters with pod-names with ROUND_ROBIN
+	for _, gatewayPodName := range gatewayPodNames {
+		clusterName := gatewayPodName + ":" + strconv.Itoa(upstreamSvc.Port)
+
+		remoteCluster := &xds_cluster.Cluster{
+			Name:           clusterName,
+			ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
+			ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
+			Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
+		}
+
+		remoteCluster.ClusterDiscoveryType = &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS}
+		remoteCluster.EdsClusterConfig = &xds_cluster.Cluster_EdsClusterConfig{EdsConfig: envoy.GetADSConfigSource()}
+		remoteCluster.LbPolicy = xds_cluster.Cluster_ROUND_ROBIN
 		clusterFactories[remoteCluster.Name] = remoteCluster
 	}
 

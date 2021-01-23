@@ -6,14 +6,18 @@ import (
 	_ "io/ioutil"
 	"net/http"
 
+	"k8s.io/client-go/kubernetes"
+
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
-func NewWitesandCatalog(masterOsmIP string) *WitesandCatalog {
+func NewWitesandCatalog(kubeClient kubernetes.Interface, clusterId string, masterOsmIP string) *WitesandCatalog {
 	wc := WitesandCatalog{
 		myIP:        "",
 		masterOsmIP: masterOsmIP,
+		clusterId:   clusterId,
 		remoteK8s:   make(map[string]RemoteK8s),
+		kubeClient:  kubeClient,
 	}
 
 	if masterOsmIP != "" {

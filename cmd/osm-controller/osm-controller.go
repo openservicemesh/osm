@@ -59,6 +59,7 @@ var (
 	meshName             string // An ID that uniquely identifies an OSM instance
 	enableRemoteCluster  bool
 	masterOsmIP          string
+	clusterId            string
 	kubeConfigFile       string
 	osmNamespace         string
 	webhookConfigName    string
@@ -105,6 +106,7 @@ func init() {
 	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file.")
 	flags.BoolVar(&enableRemoteCluster, "enable-remote-cluster", false, "Enable Remote cluster")
 	flags.StringVar(&masterOsmIP, "master-osm-ip", "", "Master OSM POD IP")
+	flags.StringVar(&clusterId, "cluster-id", "master", "Cluster Id")
 	flags.StringVar(&osmNamespace, "osm-namespace", "", "Namespace to which OSM belongs to.")
 	flags.StringVar(&webhookConfigName, "webhook-config-name", "", "Name of the MutatingWebhookConfiguration to be configured by osm-controller")
 	flags.StringVar(&caBundleSecretName, caBundleSecretNameCLIParam, "", "Name of the Kubernetes Secret for the OSM CA bundle")
@@ -216,9 +218,9 @@ func main() {
 
 	endpointsProviders := []endpoint.Provider{kubeProvider}
 
-	log.Info().Msgf("enableRemoteCluster:%t masterOsmIP:%s", enableRemoteCluster, masterOsmIP)
+	log.Info().Msgf("enableRemoteCluster:%t masterOsmIP:%s clusterId:%s", enableRemoteCluster, masterOsmIP, clusterId)
 
-	witesandCatalog = witesand.NewWitesandCatalog(masterOsmIP)
+	witesandCatalog = witesand.NewWitesandCatalog(kubeClient, clusterId, masterOsmIP)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Witesand catalog")
 	}

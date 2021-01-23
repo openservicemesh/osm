@@ -1,33 +1,72 @@
 package catalog
 
 import(
-	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net"
-	"strings"
+	"time"
 
-	v12 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/witesand"
 )
 
-func (mc *MeshCatalog) initWitesandHttpServer() {
-	go func() {
-		// GET local gatewaypods, also learn remote OSM clusterID and IP
-		http.HandleFunc("/localgatewaypods", mc.GetLocalGatewayPods) // inter OSM
+func (mc *MeshCatalog) witesandHttpServerAndClient() {
+	go mc.witesandHttpServer()
+	go mc.witesandHttpClient()
+}
 
-		// GET handlers
-		http.HandleFunc("/allgatewaypods", mc.GetAllGatewayPods) // from waves
-		http.HandleFunc("/endpoints", mc.LocalEndpoints) // inter OSM
+func (mc *MeshCatalog) witesandHttpServer() {
+	// GET local gatewaypods, also learn remote OSM clusterID and IP
+	http.HandleFunc("/localgatewaypods", mc.GetLocalGatewayPods) // inter OSM
 
-		// POST handler
-		http.HandleFunc("/apigroupMap", mc.ApigroupMapping)
+	// GET handlers
+	http.HandleFunc("/allgatewaypods", mc.GetAllGatewayPods) // from waves
+	http.HandleFunc("/endpoints", mc.LocalEndpoints) // inter OSM
 
-		http.ListenAndServe(":" + witesand.HttpServerPort , nil)
-	}()
+	// POST handler
+	http.HandleFunc("/apigroupMap", mc.ApigroupMapping)
+
+	http.ListenAndServe(":" + witesand.HttpServerPort , nil)
+}
+
+func (mc *MeshCatalog) witesandHttpClient() {
+	wc := mc.GetWitesandCataloger()
+	queryRemoteOsm := func(remoteOsmIP string) (witesand.RemotePods, error) {
+		log.Info().Msgf("[queryRemoteOsm] querying osm:%s", remoteOsmIP)
+		dest := fmt.Sprintf("%s:%s", remoteOsmIP, witesand.HttpServerPort)
+		url := fmt.Sprintf("http://%s/localgatewaypods", dest)
+		client := &http.Client{}
+		req, _ := http.NewRequest("GET", url, nil)
+		req.Header.Set(witesand.HttpRemoteAddrHeader, wc.GetMyIP())
+		req.Header.Set(witesand.HttpRemoteClusterIdHeader, wc.GetClusterId())
+		resp, err := client.Do(req)
+		var remotePods witesand.RemotePods
+		if err == nil {
+			defer resp.Body.Close()
+			b, err := ioutil.ReadAll(resp.Body)
+			if err == nil {
+				err = json.Unmarshal(b, &remotePods)
+				if err == nil {
+					return remotePods, nil
+				}
+			}
+		}
+		log.Info().Msgf("[queryRemoteOsm] err:%+v", err)
+		return remotePods, err
+	}
+
+	ticker := time.NewTicker(15 * time.Second)
+	// run forever
+	for {
+		<-ticker.C
+		for remoteK8sName, remoteK8s := range wc.ListRemoteK8s() {
+			remotePods, err := queryRemoteOsm(remoteK8s.OsmIP)
+			if err == nil {
+				wc.UpdateRemotePods(remoteK8sName, &remotePods)
+			}
+		}
+	}
 }
 
 func (mc *MeshCatalog) GetMyIP() string {
@@ -59,7 +98,7 @@ func (mc *MeshCatalog) GetLocalGatewayPods(w http.ResponseWriter, r *http.Reques
 
 	mc.GetWitesandCataloger().UpdateRemoteK8s(remoteAddress, remoteClusterId)
 
-	list, err := mc.ListLocalGatewaypods(witesand.GatewayServiceName)
+	list, err := mc.GetWitesandCataloger().ListLocalGatewaypods()
 	if err != nil {
 		log.Error().Msgf("err fetching local gateway pod %+v", err)
 	}
@@ -67,11 +106,10 @@ func (mc *MeshCatalog) GetLocalGatewayPods(w http.ResponseWriter, r *http.Reques
 	if err := json.NewEncoder(w).Encode(list); err != nil {
 		log.Error().Msgf("err fetching local gateway pod %+v", err)
 	}
-
 }
 
 func (mc *MeshCatalog) GetAllGatewayPods(w http.ResponseWriter, r *http.Request) {
-	list, err := mc.ListAllGatewaypods(witesand.GatewayServiceName)
+	list, err := mc.GetWitesandCataloger().ListAllGatewaypods()
 	if err != nil {
 		log.Error().Msgf("err fetching gateway pod %+v", err)
 	}
@@ -99,43 +137,4 @@ func (mc *MeshCatalog) ApigroupMapping(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid request method.", 405)
 		return
 	}
-}
-
-func (mc *MeshCatalog) ListLocalGatewaypods(svcName string) ([]string, error) {
-	kubeClient := mc.kubeClient
-	podList, err := kubeClient.CoreV1().Pods("default").List(context.Background(), v12.ListOptions{})
-	if err != nil {
-		log.Error().Err(err).Msgf("Error listing pods in namespace %s", "default")
-		return nil, fmt.Errorf("error listing pod")
-	}
-
-	searchList := make([]string, 0)
-	for _, pod := range podList.Items {
-		if strings.Contains(pod.Name, svcName) && pod.Status.Phase == "Running" {
-			log.Info().Msgf("pod.Name=%+v, pod.status=%+v \n", pod.Name, pod.Status.Phase)
-			searchList = append(searchList, pod.Name)
-		}
-	}
-	return searchList, nil
-}
-
-func (mc *MeshCatalog) ListAllGatewaypods(svcName string) ([]string, error) {
-	searchList, _ := mc.ListLocalGatewaypods(svcName)
-
-	// Add from remote pods from Remote osm-controller
-	remoteProvider := mc.GetProvider("Remote")
-	if remoteProvider != nil  {
-		svc := service.MeshService{
-			Namespace: "default",
-			Name:      svcName,
-		}
-		// Note this is Service specific instead of pod specific.
-		eps := remoteProvider.ListEndpointsForService(svc)
-		if len(eps) > 0 {
-			searchList = append(searchList, svcName)
-		}
-	} else {
-		log.Info().Msgf("[GetGatewaypods]: Remote provider is nil")
-	}
-	return searchList, nil
 }

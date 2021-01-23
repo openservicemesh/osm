@@ -46,7 +46,9 @@ const (
 	// httpHostHeader is the name of the HTTP host header
 	httpHostHeader = "host"
 
-	clusterHeader = "x-ws-dest-cluster"
+	// witesand specific http headers used for route and hash
+	wsClusterHeader = "x-ws-dest-cluster"
+	wsHashHeader = "x-ws-hash-header"
 )
 
 //UpdateRouteConfiguration consrtucts the Envoy construct necessary for TrafficTarget implementation
@@ -102,6 +104,17 @@ func createWSGatewayRoutes(routePolicyWeightedClustersMap map[string]trafficpoli
 }
 
 func getWSGatewayRoute(pathRegex string, method string, headersMap map[string]string) *xds_route.Route {
+	t := &xds_route.RouteAction_HashPolicy_Header_{
+		&xds_route.RouteAction_HashPolicy_Header{
+			HeaderName:   wsHashHeader,
+			RegexRewrite: nil,
+		},
+	}
+
+	r := &xds_route.RouteAction_HashPolicy{
+		PolicySpecifier: t,
+		Terminal:        false,
+	}
 	route := xds_route.Route{
 		Match: &xds_route.RouteMatch{
 			PathSpecifier: &xds_route.RouteMatch_SafeRegex{
@@ -115,8 +128,9 @@ func getWSGatewayRoute(pathRegex string, method string, headersMap map[string]st
 		Action: &xds_route.Route_Route{
 			Route: &xds_route.RouteAction{
 				ClusterSpecifier: &xds_route.RouteAction_ClusterHeader{
-					ClusterHeader: clusterHeader,
+					ClusterHeader: wsClusterHeader,
 				},
+				HashPolicy: []*xds_route.RouteAction_HashPolicy{r},
 			},
 		},
 	}
@@ -149,7 +163,7 @@ func createRoutes(routePolicyWeightedClustersMap map[string]trafficpolicy.RouteW
 func getRoute(pathRegex string, method string, headersMap map[string]string, weightedClusters set.Set, totalClustersWeight int, direction Direction) *xds_route.Route {
 	t := &xds_route.RouteAction_HashPolicy_Header_{
 		&xds_route.RouteAction_HashPolicy_Header{
-			HeaderName:   "x-apigroup",
+			HeaderName:   wsHashHeader,
 			RegexRewrite: nil,
 		},
 	}
@@ -334,6 +348,9 @@ func getRegexForMethod(httpMethod string) string {
 }
 
 func isWitesandGatewayHost(host string, direction Direction) bool {
-	// TODO
-	return true
+	// move to a better mechanism
+	if direction == OutboundRoute {
+		return strings.HasPrefix(host, "gateway")
+	}
+	return false
 }
