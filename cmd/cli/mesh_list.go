@@ -65,7 +65,8 @@ func (l *meshListCmd) run() error {
 	nds, _ := l.clientSet.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 
 	fmt.Fprintf(w, "OSM Deployments on cluster %s\n", nds.Items[0].GetName())
-	fmt.Fprintln(w, "\nMESH NAME\tNAMESPACE\tCONTROLLER PODS\tJOINED NAMESPACES\t")	for _, elem := range list.Items {
+	fmt.Fprintln(w, "\nMESH NAME\tNAMESPACE\tCONTROLLER PODS\tJOINED NAMESPACES\t")
+	for _, elem := range list.Items {
 		m := elem.ObjectMeta.Labels["meshName"]
 		ns := elem.ObjectMeta.Namespace
 		jNs := getJoinedNamespaces(l.clientSet, m)
