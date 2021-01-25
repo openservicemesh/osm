@@ -154,6 +154,7 @@ func (s *Server) newAggregatedDiscoveryResponse(proxy *envoy.Proxy, request *xds
 	response.Nonce = proxy.SetNewNonce(typeURL)
 	response.VersionInfo = strconv.FormatUint(proxy.IncrementLastSentVersion(typeURL), 10)
 
+	// NOTE: Never log entire 'response' - will contain secrets!
 	log.Trace().Msgf("Constructed %s response: VersionInfo=%s", response.TypeUrl, response.VersionInfo)
 
 	return response, nil
