@@ -93,7 +93,8 @@ func (lb *listenerBuilder) getIngressFilterChains(svc service.MeshService) []*xd
 			ingressFilterChains = append(ingressFilterChains, ingressFilterChainWithoutSNI)
 
 		default:
-			log.Error().Msgf("Cannot build inbound filter chain, unsupported protocol %s for proxy:port %s:%d", appProtocol, svc, port)
+			log.Error().Msgf("Cannot build inbound filter chain. Protocol %s is not supported for service %s on port %d",
+				appProtocol, svc, port)
 		}
 	}
 
