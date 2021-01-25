@@ -151,7 +151,7 @@ func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(identity service.K
 
 //GetWeightedClusterForService returns the weighted cluster for a given service
 func (mc *MeshCatalog) GetWeightedClusterForService(svc service.MeshService) (service.WeightedCluster, error) {
-	log.Trace().Msgf("Finding weighted cluster for service %s", svc)
+	log.Trace().Msgf("Looking for weighted cluster for service %s", svc)
 
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
 		return getDefaultWeightedClusterForService(svc), nil
