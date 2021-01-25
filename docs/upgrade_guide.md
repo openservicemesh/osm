@@ -36,7 +36,9 @@ For example, to keep the `envoy_log_level` field in the ConfigMap set to `info`,
 OpenServiceMesh:
   envoyLogLevel: info
 ```
+<b>Warning:</b> Do NOT change `OpenServiceMesh.meshName` or `OpenServiceMesh.osmNamespace`
 
+### Helm Upgrade
 Then run the following `helm upgrade` command.
 ```console
 $ helm upgrade <mesh name> osm --repo https://openservicemesh.github.io/osm --version <chart version> --namespace <osm namespace> --values override.yaml
