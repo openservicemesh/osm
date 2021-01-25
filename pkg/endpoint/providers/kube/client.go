@@ -111,8 +111,9 @@ func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endp
 						break
 					}
 					ept := endpoint.Endpoint{
-						IP:   ip,
-						Port: endpoint.Port(port.Port),
+						IP:      ip,
+						Port:    endpoint.Port(port.Port),
+						PodName: address.Hostname,
 					}
 					endpoints = append(endpoints, ept)
 				}
@@ -167,9 +168,14 @@ func (c Client) GetServicesForServiceAccount(svcAccount service.K8sServiceAccoun
 	if services.Cardinality() == 0 {
 		// Add a service, which is a representation of the ServiceAccount, but not a real K8s service.
 		// This will ensure that all pods in the service account are represented as one service.
+		/* WITESAND START COMMENTED */
+		/*
 		synthService := svcAccount.GetSyntheticService()
 		services.Add(synthService)
 		log.Trace().Msgf("[%s] No services for service account %s/%s; Adding synthetic service %s", c.providerIdent, svcAccount.Name, svcAccount.Namespace, synthService)
+		*/
+		/* WITESAND END */
+		return make([]service.MeshService, 0), errServiceNotFound
 	} else {
 		log.Trace().Msgf("[%s] Services for service account %s: %+v", c.providerIdent, svcAccount, services)
 	}

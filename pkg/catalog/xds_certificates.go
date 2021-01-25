@@ -29,6 +29,12 @@ func (mc *MeshCatalog) GetServicesFromEnvoyCertificate(cn certificate.CommonName
 
 	if len(services) == 0 {
 		return makeSyntheticServiceForPod(pod, cn), nil
+		/* WITESAND BEGIN */
+		/*
+		log.Error().Msgf("No services found for connected proxy ID %s", cn)
+		return nil, errNoServicesFoundForCertificate
+		*/
+		/* WITESAND END */
 	}
 
 	// Remove services that have been split into other services.

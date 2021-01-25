@@ -130,9 +130,6 @@ type MeshCataloger interface {
 	GetPortToProtocolMappingForService(service.MeshService) (map[uint32]string, error)
 
 	GetWitesandCataloger() witesand.WitesandCataloger
-
-	// get this OSM pod's IP address
-	GetMyIP() string
 }
 
 type announcementChannel struct {

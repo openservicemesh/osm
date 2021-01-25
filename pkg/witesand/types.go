@@ -19,6 +19,7 @@ const(
 	HttpRemoteAddrHeader = "X-Osm-Origin-Ip"
 	HttpRemoteClusterIdHeader = "X-Osm-Cluster-Id"
 	DeviceHashSuffix = "-device-hash"
+	LocalClusterId = "local"
 )
 
 type WitesandCatalog struct {
@@ -27,13 +28,21 @@ type WitesandCatalog struct {
 	masterOsmIP string
 
 	remoteK8s     map[string]RemoteK8s     // key = clusterId
-	remotePodMap  map[string]RemotePods    // key = clusterId
+	clusterPodMap map[string]ClusterPods    // key = clusterId
 
 	kubeClient kubernetes.Interface
 
 	apigroupToPodMap   map[string]ApigroupToPodMap
 	apigroupToPodIPMap map[string]ApigroupToPodIPMap
-	podToApigroupMap   map[string]PodToApigroupMap
+}
+
+type RemoteK8s struct {
+	OsmIP	  string
+	failCount int // how many times response not received
+}
+
+type ClusterPods struct {
+	PodToIPMap map[string]string  `json:"podtoipmap"`
 }
 
 type ApigroupToPodMap struct {
@@ -42,23 +51,9 @@ type ApigroupToPodMap struct {
 	Revision int         `json:"revision"`
 }
 
-type RemoteK8s struct {
-	OsmIP	  string
-	failCount int // how many times response not received
-}
-
-type RemotePods struct {
-	PodToIPMap map[string]string  `json:"podtoipmap"`
-}
-
 type ApigroupToPodIPMap struct {
-	Apigroup string
-	PodIPs   []string
-}
-
-type PodToApigroupMap struct {
-	pod       string
-	apigroups []string
+	Apigroup string      `json:"apigroup"`
+	PodIPs   []string    `json:"podips"`
 }
 
 type WitesandCataloger interface {
@@ -67,7 +62,7 @@ type WitesandCataloger interface {
 	GetClusterId() string
 
 	UpdateRemoteK8s(remoteIP string, remoteClusterId string)
-	UpdateRemotePods(remoteClusterId string, remotePods *RemotePods)
+	UpdateClusterPods(remoteClusterId string, remotePods *ClusterPods)
 	ListRemoteK8s() map[string]RemoteK8s
 
 	UpdateApigroupMap(w http.ResponseWriter, method string, r *http.Request)
@@ -75,10 +70,12 @@ type WitesandCataloger interface {
 	// for usage by CDS
 	ListApigroupClusterNames() ([]string, error)
 
+	// for usage by EDS
 	ListApigroupToPodIPs() ([]ApigroupToPodIPMap, error)
+	ListAllGatewayPodIPs() (*ClusterPods, error)
 
-	ListLocalGatewaypods() ([]string, error)
-	ListAllGatewaypods() ([]string, error)
+	ListLocalGatewayPods() (*ClusterPods, error)
+	ListAllGatewayPods() ([]string, error)
 
 	IsWSGatewayService(svc service.MeshServicePort) bool
 }

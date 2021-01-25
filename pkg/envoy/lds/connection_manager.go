@@ -5,7 +5,7 @@ import (
 	xds_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 
-	"github.com/golang/protobuf/ptypes/wrappers"
+	_ "github.com/golang/protobuf/ptypes/wrappers"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -34,6 +34,7 @@ func getHTTPConnectionManager(routeName string, cfg configurator.Configurator) *
 		AccessLog: envoy.GetAccessLog(),
 	}
 
+	/* WITESAND START COMMENTED 
 	if cfg.IsTracingEnabled() {
 		connManager.GenerateRequestId = &wrappers.BoolValue{
 			Value: true,
@@ -47,6 +48,7 @@ func getHTTPConnectionManager(routeName string, cfg configurator.Configurator) *
 
 		connManager.Tracing = tracing
 	}
+	* WITESAND END COMMENTED */
 
 	return connManager
 }

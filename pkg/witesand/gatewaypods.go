@@ -12,9 +12,9 @@ func (wc *WitesandCatalog) GetClusterId() string {
 	return wc.clusterId
 }
 
-func (wc *WitesandCatalog) ListLocalGatewaypods() ([]string, error) {
+func (wc *WitesandCatalog) ListLocalGatewayPods() (*ClusterPods, error) {
 	kubeClient := wc.kubeClient
-	svcName := GatewayServiceName
+	svcName := "gateway"
 
 	podList, err := kubeClient.CoreV1().Pods("default").List(context.Background(), v12.ListOptions{})
 	if err != nil {
@@ -22,24 +22,33 @@ func (wc *WitesandCatalog) ListLocalGatewaypods() ([]string, error) {
 		return nil, fmt.Errorf("error listing pod")
 	}
 
-	searchList := make([]string, 0)
+	pods := ClusterPods{
+			PodToIPMap: make(map[string]string),
+		}
 	for _, pod := range podList.Items {
-		if strings.Contains(pod.Name, svcName) && pod.Status.Phase == "Running" {
-			log.Info().Msgf("pod.Name=%+v, pod.status=%+v \n", pod.Name, pod.Status.Phase)
-			searchList = append(searchList, pod.Name)
+		if strings.HasPrefix(pod.Name, svcName) && pod.Status.Phase == "Running" {
+			log.Info().Msgf("pod.Name=%+v, pod.PodIP=%+v \n", pod.Name, pod.Status.PodIP)
+			pods.PodToIPMap[pod.Name] = pod.Status.PodIP
 		}
 	}
-	return searchList, nil
+	return &pods, nil
 }
 
-func (wc *WitesandCatalog) ListAllGatewaypods() ([]string, error) {
-	pods, err := wc.ListLocalGatewaypods()
+func (wc *WitesandCatalog) ListAllGatewayPods() ([]string, error) {
+	pods := make([]string, 0)
+	/*
+	localPods, err := wc.ListLocalGatewayPods()
 	if err != nil {
 		return pods, err
 	}
 
-	for _, remotePods := range wc.remotePodMap {
-		for pod, _ := range remotePods.PodToIPMap {
+	for pod, _ := range localPods.PodToIPMap {
+		pods = append(pods, pod)
+	}
+	*/
+
+	for _, clusterPods := range wc.clusterPodMap {
+		for pod, _ := range clusterPods.PodToIPMap {
 			pods = append(pods, pod)
 		}
 	}
@@ -47,7 +56,31 @@ func (wc *WitesandCatalog) ListAllGatewaypods() ([]string, error) {
 	return pods, nil
 }
 
-func (wc *WitesandCatalog) UpdateRemotePods(clusterId string, remotePods *RemotePods) {
+func (wc *WitesandCatalog) ListAllGatewayPodIPs() (*ClusterPods, error) {
+	/*
+	pods, err := wc.ListLocalGatewayPods()
+	if err != nil {
+		return nil, err
+	}
+	*/
+
+	pods := ClusterPods{
+			PodToIPMap: make(map[string]string),
+		}
+	for _, clusterPods := range wc.clusterPodMap {
+		for podName, podIP := range clusterPods.PodToIPMap {
+			pods.PodToIPMap[podName] = podIP
+		}
+	}
+
+	return &pods, nil
+}
+
+func (wc *WitesandCatalog) UpdateClusterPods(clusterId string, clusterPods *ClusterPods) {
 	// LOCK
-	wc.remotePodMap[clusterId] = *remotePods
+	log.Info().Msgf("[UpdateClusterPods] clusterId:%s clusterPods:%+v", clusterId, *clusterPods)
+	if len(clusterPods.PodToIPMap) == 0 {
+		return
+	}
+	wc.clusterPodMap[clusterId] = *clusterPods
 }

@@ -33,7 +33,7 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 
 	allTrafficPolicies, err := catalog.ListTrafficPolicies(proxyServiceName)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed listing routes")
+		log.Error().Err(err).Msg(fmt.Sprintf("Failed listing routes for proxyServiceName:%+v", proxyServiceName))
 		return nil, err
 	}
 	log.Debug().Msgf("RDS proxy:%+v trafficPolicies:%+v", proxy, allTrafficPolicies)

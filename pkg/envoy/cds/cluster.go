@@ -75,7 +75,7 @@ func getWSGatewayUpstreamServiceCluster(catalog catalog.MeshCataloger, upstreamS
 	if err != nil {
 		return err
 	}
-	gatewayPodNames, err := wscatalog.ListAllGatewaypods()
+	gatewayPodNames, err := wscatalog.ListAllGatewayPods()
 	if err != nil {
 		return err
 	}
