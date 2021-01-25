@@ -17,7 +17,7 @@ import (
 )
 
 const meshListDescription = `
-This command will list all the osm control planes running in a Kubernetes cluster and their namespaces.`
+This command will list all the osm control planes running in a Kubernetes cluster, their namespaces, controller pods and joined namespaces.`
 
 type meshListCmd struct {
 	out       io.Writer
@@ -62,15 +62,50 @@ func (l *meshListCmd) run() error {
 	}
 
 	w := newTabWriter(l.out)
-	fmt.Fprintln(w, "MESH NAME\tNAMESPACE\t")
-	for _, elem := range list.Items {
+	nds, _ := l.clientSet.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+
+	fmt.Fprintf(w, "OSM Deployments on cluster %s\n", nds.Items[0].GetName())
+	fmt.Fprintln(w, "\nMESH NAME\tNAMESPACE\tCONTROLLER PODS\tJOINED NAMESPACES\t")	for _, elem := range list.Items {
 		m := elem.ObjectMeta.Labels["meshName"]
 		ns := elem.ObjectMeta.Namespace
-		fmt.Fprintf(w, "%s\t%s\t\n", m, ns)
+		jNs := getJoinedNamespaces(l.clientSet, m)
+		podsNs := getControllerPods(l.clientSet, ns)
+		fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", m, ns, strings.Join(podsNs, ","), strings.Join(jNs, ","))
 	}
 	_ = w.Flush()
 
 	return nil
+}
+
+// getJoinedNamespaces returns a list of joined namespaces corresponding to a mesh
+func getJoinedNamespaces(clientSet kubernetes.Interface, meshN string) []string {
+	selector := constants.OSMKubeResourceMonitorAnnotation
+	namespaces, _ := clientSet.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{LabelSelector: selector})
+	var jNs []string
+
+	for _, ns := range namespaces.Items {
+		if ns.ObjectMeta.Labels[constants.OSMKubeResourceMonitorAnnotation] == meshN {
+			jNs = append(jNs, ns.Name)
+		}
+	}
+
+	return jNs
+}
+
+// getControllerPods returns a list of controller pods corresponding to a namespace
+func getControllerPods(clientSet kubernetes.Interface, nameSpace string) []string {
+	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{"app": constants.OSMControllerName}}
+	listOptions := metav1.ListOptions{
+		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
+	}
+	pods, _ := clientSet.CoreV1().Pods(nameSpace).List(context.TODO(), listOptions)
+	var podsNs []string
+
+	for pno := 0; pno < len(pods.Items); pno++ {
+		podsNs = append(podsNs, pods.Items[pno].GetName())
+	}
+
+	return podsNs
 }
 
 // getControllerDeployments returns a list of Deployments corresponding to osm-controller
