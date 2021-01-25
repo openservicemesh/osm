@@ -172,11 +172,6 @@ func (mc *MeshCatalog) GetWeightedClusterForService(svc service.MeshService) (se
 	return getDefaultWeightedClusterForService(svc), nil
 }
 
-// hostnamesTostr returns a comma separated string of hostnames from the list
-func hostnamesTostr(hostnames []string) string {
-	return strings.Join(hostnames, ",")
-}
-
 // GetResolvableHostnamesForUpstreamService returns the hostnames over which an upstream service is accessible from a downstream service
 // The hostname is the FQDN for the service, and can include ports as well.
 // Ex. bookstore.default, bookstore.default:80, bookstore.default.svc, bookstore.default.svc:80 etc.
@@ -198,7 +193,7 @@ func (mc *MeshCatalog) GetResolvableHostnamesForUpstreamService(downstream, upst
 	servicesList := mc.meshSpec.ListTrafficSplitServices()
 	for _, activeService := range servicesList {
 		if activeService.Service == upstream {
-			log.Trace().Msgf("Getting hostnames for service %s", upstream)
+			log.Trace().Msgf("Getting hostnames for upstream service %s", upstream)
 			rootServiceName := kubernetes.GetServiceFromHostname(activeService.RootService)
 			rootMeshService := service.MeshService{
 				Namespace: upstream.Namespace,
