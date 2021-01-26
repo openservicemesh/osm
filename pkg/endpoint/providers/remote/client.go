@@ -24,7 +24,7 @@ const (
 )
 
 // NewProvider implements mesh.EndpointsProvider, which creates a new Kubernetes cluster/compute provider.
-func NewProvider(kubeClient kubernetes.Interface, wsCatalog *witesand.WitesandCatalog, clusterId string, stop chan struct{}, meshSpec smi.MeshSpec, providerIdent string, remoteOsm string) (*Client, error) {
+func NewProvider(kubeClient kubernetes.Interface, wsCatalog *witesand.WitesandCatalog, clusterId string, stop chan struct{}, meshSpec smi.MeshSpec, providerIdent string) (*Client, error) {
 
 	client := Client{
 		wsCatalog:           wsCatalog,
@@ -164,10 +164,10 @@ func (c *Client) run() error {
 		for {
 			<-ticker.C
 			log.Info().Msgf("[poll] tick occurred")
-			for remoteK8sName, remoteK8s := range c.wsCatalog.ListRemoteK8s() {
+			for clusterId, remoteK8s := range c.wsCatalog.ListRemoteK8s() {
 				epMap, err := queryRemoteOsm(remoteK8s.OsmIP)
 				if err == nil {
-					updateCache(remoteK8sName, epMap)
+					updateCache(clusterId, epMap)
 				}
 			}
 		}

@@ -36,17 +36,6 @@ func (wc *WitesandCatalog) ListLocalGatewayPods() (*ClusterPods, error) {
 
 func (wc *WitesandCatalog) ListAllGatewayPods() ([]string, error) {
 	pods := make([]string, 0)
-	/*
-	localPods, err := wc.ListLocalGatewayPods()
-	if err != nil {
-		return pods, err
-	}
-
-	for pod, _ := range localPods.PodToIPMap {
-		pods = append(pods, pod)
-	}
-	*/
-
 	for _, clusterPods := range wc.clusterPodMap {
 		for pod, _ := range clusterPods.PodToIPMap {
 			pods = append(pods, pod)
@@ -57,13 +46,6 @@ func (wc *WitesandCatalog) ListAllGatewayPods() ([]string, error) {
 }
 
 func (wc *WitesandCatalog) ListAllGatewayPodIPs() (*ClusterPods, error) {
-	/*
-	pods, err := wc.ListLocalGatewayPods()
-	if err != nil {
-		return nil, err
-	}
-	*/
-
 	pods := ClusterPods{
 			PodToIPMap: make(map[string]string),
 		}
@@ -77,10 +59,30 @@ func (wc *WitesandCatalog) ListAllGatewayPodIPs() (*ClusterPods, error) {
 }
 
 func (wc *WitesandCatalog) UpdateClusterPods(clusterId string, clusterPods *ClusterPods) {
-	// LOCK
 	log.Info().Msgf("[UpdateClusterPods] clusterId:%s clusterPods:%+v", clusterId, *clusterPods)
-	if len(clusterPods.PodToIPMap) == 0 {
-		return
+	// checks to see if anything (pod or podip) has changed to trigger update
+	triggerUpdate := false
+	prevClusterPods, exists := wc.clusterPodMap[clusterId]
+	if exists && clusterPods != nil && len(prevClusterPods.PodToIPMap) == len(clusterPods.PodToIPMap) {
+		for pod, podip := range clusterPods.PodToIPMap {
+			prevPodIp, exists := prevClusterPods.PodToIPMap[pod]
+			if !exists || prevPodIp != podip {
+				triggerUpdate = true
+				break
+			}
+		}
+	} else {
+		triggerUpdate = true
 	}
-	wc.clusterPodMap[clusterId] = *clusterPods
+
+	// LOCK
+	if triggerUpdate {
+		log.Info().Msgf("[UpdateClusterPods] triggering update")
+		if clusterPods == nil || len(clusterPods.PodToIPMap) == 0 {
+			delete(wc.clusterPodMap, clusterId)
+		} else {
+			wc.clusterPodMap[clusterId] = *clusterPods
+		}
+		wc.updateEnvoy()
+	}
 }

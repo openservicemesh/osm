@@ -15,10 +15,21 @@ var (
 
 const(
 	GatewayServiceName = "default/gateway"
+
+	// HTTP REST port for communication with WAVES and remote OSMes
 	HttpServerPort = "2500"
+
+	// HTTP headers for remote OSMes
 	HttpRemoteAddrHeader = "X-Osm-Origin-Ip"
 	HttpRemoteClusterIdHeader = "X-Osm-Cluster-Id"
+
+	// HTTP headers used by envoy to route traffic to gateway clusters
+	WSClusterHeader = "x-ws-dest-cluster"
+	WSHashHeader = "x-ws-hash-header"
+
+	// Cluster name suffixes for ring-hash LB clusters
 	DeviceHashSuffix = "-device-hash"
+
 	LocalClusterId = "local"
 )
 
@@ -60,8 +71,9 @@ type WitesandCataloger interface {
 	RegisterMyIP(ip string)
 	GetMyIP() string
 	GetClusterId() string
+	UpdateMasterOsmIP()
 
-	UpdateRemoteK8s(remoteIP string, remoteClusterId string)
+	UpdateRemoteK8s(remoteClusterId string, remoteIP string)
 	UpdateClusterPods(remoteClusterId string, remotePods *ClusterPods)
 	ListRemoteK8s() map[string]RemoteK8s
 

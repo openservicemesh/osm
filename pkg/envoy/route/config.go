@@ -14,6 +14,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
+	"github.com/openservicemesh/osm/pkg/witesand"
 )
 
 // Direction is a type to signify the direction associated with a route
@@ -45,10 +46,6 @@ const (
 
 	// httpHostHeader is the name of the HTTP host header
 	httpHostHeader = "host"
-
-	// witesand specific http headers used for route and hash
-	wsClusterHeader = "x-ws-dest-cluster"
-	wsHashHeader = "x-ws-hash-header"
 )
 
 //UpdateRouteConfiguration consrtucts the Envoy construct necessary for TrafficTarget implementation
@@ -106,7 +103,7 @@ func createWSGatewayRoutes(routePolicyWeightedClustersMap map[string]trafficpoli
 func getWSGatewayRoute(pathRegex string, method string, headersMap map[string]string) *xds_route.Route {
 	t := &xds_route.RouteAction_HashPolicy_Header_{
 		&xds_route.RouteAction_HashPolicy_Header{
-			HeaderName:   wsHashHeader,
+			HeaderName:   witesand.WSHashHeader,
 			RegexRewrite: nil,
 		},
 	}
@@ -128,7 +125,7 @@ func getWSGatewayRoute(pathRegex string, method string, headersMap map[string]st
 		Action: &xds_route.Route_Route{
 			Route: &xds_route.RouteAction{
 				ClusterSpecifier: &xds_route.RouteAction_ClusterHeader{
-					ClusterHeader: wsClusterHeader,
+					ClusterHeader: witesand.WSClusterHeader,
 				},
 				HashPolicy: []*xds_route.RouteAction_HashPolicy{r},
 			},
@@ -163,7 +160,7 @@ func createRoutes(routePolicyWeightedClustersMap map[string]trafficpolicy.RouteW
 func getRoute(pathRegex string, method string, headersMap map[string]string, weightedClusters set.Set, totalClustersWeight int, direction Direction) *xds_route.Route {
 	t := &xds_route.RouteAction_HashPolicy_Header_{
 		&xds_route.RouteAction_HashPolicy_Header{
-			HeaderName:   wsHashHeader,
+			HeaderName:   witesand.WSHashHeader,
 			RegexRewrite: nil,
 		},
 	}

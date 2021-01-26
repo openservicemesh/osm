@@ -22,6 +22,7 @@ func (mc *MeshCatalog) witesandHttpServer() {
 
 	// GET handlers
 	http.HandleFunc("/allgatewaypods", mc.GetAllGatewayPods) // from waves
+	http.HandleFunc("/gatewaypod", mc.GetAllGatewayPods) // from waves, will deprecate
 	http.HandleFunc("/endpoints", mc.GetLocalEndpoints) // inter OSM
 
 	// POST/PUT/DELETE handler
@@ -30,6 +31,7 @@ func (mc *MeshCatalog) witesandHttpServer() {
 	http.ListenAndServe(":" + witesand.HttpServerPort , nil)
 }
 
+// HTTP client to query other OSMs for pods
 func (mc *MeshCatalog) witesandHttpClient() {
 	wc := mc.GetWitesandCataloger()
 	queryRemoteOsm := func(remoteOsmIP string) (witesand.ClusterPods, error) {
@@ -60,14 +62,20 @@ func (mc *MeshCatalog) witesandHttpClient() {
 	ticker := time.NewTicker(15 * time.Second)
 	// run forever
 	for {
+		// read env to update Master OSM IP
+		wc.UpdateMasterOsmIP()
+
 		localPods, err := wc.ListLocalGatewayPods()
 		if err == nil {
 			wc.UpdateClusterPods(witesand.LocalClusterId, localPods)
 		}
-		for remoteK8sName, remoteK8s := range wc.ListRemoteK8s() {
+		for clusterId, remoteK8s := range wc.ListRemoteK8s() {
 			remotePods, err := queryRemoteOsm(remoteK8s.OsmIP)
 			if err == nil {
-				wc.UpdateClusterPods(remoteK8sName, &remotePods)
+				wc.UpdateClusterPods(clusterId, &remotePods)
+			} else {
+				// not responding, trigger remove
+				wc.UpdateRemoteK8s(clusterId, "")
 			}
 		}
 		<-ticker.C
@@ -103,7 +111,7 @@ func (mc *MeshCatalog) GetLocalGatewayPods(w http.ResponseWriter, r *http.Reques
 	remoteClusterId := r.Header.Get(witesand.HttpRemoteClusterIdHeader)
 
 	log.Info().Msgf("[GetLocalGatewayPods] remote IP:%s clusterId:%s", remoteAddress, remoteClusterId)
-	mc.GetWitesandCataloger().UpdateRemoteK8s(remoteAddress, remoteClusterId)
+	mc.GetWitesandCataloger().UpdateRemoteK8s(remoteClusterId, remoteAddress)
 
 	list, err := mc.GetWitesandCataloger().ListLocalGatewayPods()
 	if err != nil {
