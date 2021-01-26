@@ -135,7 +135,7 @@ jobs:
       - name: Push images with version tag
         env:
           CTR_TAG: ${{ needs.version.outputs.version }}
-        run: make docker-push
+        run: make docker-push VERIFY_TAGS=1
       - name: Push images with latest tag
         env:
           CTR_TAG: latest
