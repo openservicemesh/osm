@@ -21,7 +21,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 	// and the Subject CN is in the allowedCommonNames set.
 	certCommonName, certSerialNumber, err := utils.ValidateClient(server.Context(), nil)
 	if err != nil {
-		return errors.Wrap(err, "Could not start stream")
+		return errors.Wrap(err, "Could not start Aggregated Discovery Service gRPC stream for newly connected Envoy proxy")
 	}
 
 	// TODO(draychev): check for envoy.ErrTooManyConnections; GitHub Issue https://github.com/openservicemesh/osm/issues/2332
@@ -63,7 +63,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			return nil
 
 		case <-quit:
-			log.Info().Msg("Stream closed!")
+			log.Debug().Msgf("gRPC stream with Envoy on Pod with UID=%s closed!", proxy.GetPodUID())
 			metricsstore.DefaultMetricsStore.ProxyConnectCount.Dec()
 			return nil
 
@@ -124,7 +124,8 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			// interpreted as an acknowledgement of a previously sent request.
 			// Such DiscoveryRequest requires no further action.
 			if ackVersion > 0 && ackVersion <= proxy.GetLastSentVersion(typeURL) {
-				log.Debug().Msgf("Skipping request %s for resources (%v),  VersionInfo (%d) <= last sent VersionInfo (%d); ACK", typeURL, discoveryRequest.ResourceNames, ackVersion, proxy.GetLastSentVersion(typeURL))
+				log.Debug().Msgf("Skipping request of type %s from Envoy on Pod with UID=%s for resources (%v),  VersionInfo (%d) <= last sent VersionInfo (%d); ACK",
+					typeURL, proxy.GetPodUID(), discoveryRequest.ResourceNames, ackVersion, proxy.GetLastSentVersion(typeURL))
 				continue
 			}
 
@@ -141,14 +142,16 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 
 			lastNonce := proxy.GetLastSentNonce(typeURL)
 			if lastNonce != "" && discoveryRequest.ResponseNonce == lastNonce {
-				log.Debug().Msgf("Nothing changed since Nonce=%s", discoveryRequest.ResponseNonce)
+				log.Debug().Msgf("Nothing changed for Envoy on Pod with UID=%s since Nonce=%s", proxy.GetPodUID(), discoveryRequest.ResponseNonce)
 				continue
 			}
 
 			if discoveryRequest.ResponseNonce != "" {
-				log.Debug().Msgf("Received discovery request with Nonce=%s; matches=%t; proxy last Nonce=%s", discoveryRequest.ResponseNonce, discoveryRequest.ResponseNonce == lastNonce, lastNonce)
+				log.Debug().Msgf("Received discovery request with Nonce=%s from Envoy on Pod with UID=%s; matches=%t; proxy last Nonce=%s",
+					discoveryRequest.ResponseNonce, proxy.GetPodUID(), discoveryRequest.ResponseNonce == lastNonce, lastNonce)
 			}
-			log.Debug().Msgf("Received discovery request <%s> for resources (%v) from Envoy <%s> with Nonce=%s", discoveryRequest.TypeUrl, discoveryRequest.ResourceNames, proxy, discoveryRequest.ResponseNonce)
+			log.Debug().Msgf("Received discovery request <%s> for resources (%v) from Envoy on Pod with UID=<%s> with Nonce=%s",
+				discoveryRequest.TypeUrl, discoveryRequest.ResourceNames, proxy.GetPodUID(), discoveryRequest.ResponseNonce)
 
 			err := s.sendTypeResponse(typeURL, proxy, &server, &discoveryRequest, s.cfg)
 			if err != nil {

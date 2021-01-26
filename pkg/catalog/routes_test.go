@@ -544,13 +544,6 @@ func TestGetServiceHostnames(t *testing.T) {
 	}
 }
 
-func TestHostnamesTostr(t *testing.T) {
-	assert := tassert.New(t)
-	actual := hostnamesTostr([]string{"foo", "bar", "baz"})
-	expected := "foo,bar,baz"
-	assert.Equal(actual, expected)
-}
-
 func TestGetDefaultWeightedClusterForService(t *testing.T) {
 	assert := tassert.New(t)
 

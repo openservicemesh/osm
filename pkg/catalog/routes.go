@@ -151,7 +151,7 @@ func (mc *MeshCatalog) ListAllowedOutboundServicesForIdentity(identity service.K
 
 //GetWeightedClusterForService returns the weighted cluster for a given service
 func (mc *MeshCatalog) GetWeightedClusterForService(svc service.MeshService) (service.WeightedCluster, error) {
-	log.Trace().Msgf("Finding weighted cluster for service %s", svc)
+	log.Trace().Msgf("Looking for weighted cluster for service %s", svc)
 
 	if mc.configurator.IsPermissiveTrafficPolicyMode() {
 		return getDefaultWeightedClusterForService(svc), nil
@@ -170,11 +170,6 @@ func (mc *MeshCatalog) GetWeightedClusterForService(svc service.MeshService) (se
 
 	// Use a default weighted cluster as an SMI TrafficSplit policy is not defined for the service
 	return getDefaultWeightedClusterForService(svc), nil
-}
-
-// hostnamesTostr returns a comma separated string of hostnames from the list
-func hostnamesTostr(hostnames []string) string {
-	return strings.Join(hostnames, ",")
 }
 
 // GetResolvableHostnamesForUpstreamService returns the hostnames over which an upstream service is accessible from a downstream service
@@ -198,7 +193,7 @@ func (mc *MeshCatalog) GetResolvableHostnamesForUpstreamService(downstream, upst
 	servicesList := mc.meshSpec.ListTrafficSplitServices()
 	for _, activeService := range servicesList {
 		if activeService.Service == upstream {
-			log.Trace().Msgf("Getting hostnames for service %s", upstream)
+			log.Trace().Msgf("Getting hostnames for upstream service %s", upstream)
 			rootServiceName := kubernetes.GetServiceFromHostname(activeService.RootService)
 			rootMeshService := service.MeshService{
 				Namespace: upstream.Namespace,

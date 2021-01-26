@@ -90,7 +90,7 @@ func makePatches(req *v1beta1.AdmissionRequest, pod *corev1.Pod) []jsonpatch.Jso
 	original := req.Object.Raw
 	current, err := json.Marshal(pod)
 	if err != nil {
-		log.Error().Err(err).Msgf("Error marshaling Pod %s/%s", pod.Namespace, pod.Name)
+		log.Error().Err(err).Msgf("Error marshaling Pod with UID=%s", pod.ObjectMeta.UID)
 	}
 	admissionResponse := admission.PatchResponseFromRaw(original, current)
 	return admissionResponse.Patches

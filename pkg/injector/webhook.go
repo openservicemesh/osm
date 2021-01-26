@@ -284,7 +284,7 @@ func (wh *mutatingWebhook) mustInject(pod *corev1.Pod, namespace string) (bool, 
 	}
 	nsInjectAnnotationExists, nsInject, err := isAnnotatedForInjection(ns.Annotations, ns.Kind, ns.Name)
 	if err != nil {
-		log.Error().Err(err).Msg("Error determining if namespace %s is enabled for sidecar injection")
+		log.Error().Err(err).Msgf("Error determining if namespace %s is enabled for sidecar injection", namespace)
 		return false, err
 	}
 

@@ -49,7 +49,6 @@ const (
 
 //UpdateRouteConfiguration constructs the Envoy construct necessary for TrafficTarget implementation
 func UpdateRouteConfiguration(domainRoutesMap map[string]map[string]trafficpolicy.RouteWeightedClusters, routeConfig *xds_route.RouteConfiguration, direction Direction) {
-	log.Trace().Msgf("[RDS] Updating Route Configuration")
 	var virtualHostPrefix string
 
 	switch direction {
