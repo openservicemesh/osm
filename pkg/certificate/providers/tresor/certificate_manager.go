@@ -154,7 +154,7 @@ func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate
 	cm.cache.Store(cn, cert)
 	cm.announcements <- announcements.Announcement{}
 
-	log.Info().Msgf("Rotated certificate with new SerialNumber=%s took %+v", cert.GetSerialNumber(), time.Since(start))
+	log.Debug().Msgf("Rotated certificate with new SerialNumber=%s took %+v", cert.GetSerialNumber(), time.Since(start))
 
 	return cert, nil
 }
