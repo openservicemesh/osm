@@ -55,8 +55,7 @@ var _ = Describe("Test all patch operations", func() {
 				nonInjectNamespaces: mapset.NewSet(),
 			}
 
-			pod := tests.NewPodTestFixture(namespace, podName)
-			pod.Labels = nil
+			pod := tests.NewPodFixture(namespace, podName, tests.BookstoreServiceAccountName, nil)
 			pod.Annotations = nil
 			mockConfigurator.EXPECT().GetEnvoyLogLevel().Return("").Times(1)
 

@@ -57,7 +57,7 @@ var _ = Describe("CDS Response", func() {
 
 			{
 				// Create a pod to match the CN
-				pod := tests.NewPodTestFixtureWithOptions(tests.Namespace, podName, proxyServiceAccountName)
+				pod := tests.NewPodFixture(tests.Namespace, podName, proxyServiceAccountName, tests.PodLabels)
 				pod.Labels[constants.EnvoyUniqueIDLabelName] = proxyUUID.String() // This is what links the Pod and the Certificate
 				_, err := kubeClient.CoreV1().Pods(tests.Namespace).Create(context.TODO(), &pod, metav1.CreateOptions{})
 				Expect(err).ToNot(HaveOccurred())

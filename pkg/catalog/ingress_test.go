@@ -69,7 +69,7 @@ func newFakeMeshCatalog() *MeshCatalog {
 	certManager := tresor.NewFakeCertManager(cfg)
 
 	// Create a pod
-	pod := tests.NewPodTestFixtureWithOptions(tests.Namespace, "pod-name", tests.BookstoreServiceAccountName)
+	pod := tests.NewPodFixture(tests.Namespace, "pod-name", tests.BookstoreServiceAccountName, tests.PodLabels)
 	if _, err := kubeClient.CoreV1().Pods(tests.Namespace).Create(context.TODO(), &pod, metav1.CreateOptions{}); err != nil {
 		GinkgoT().Fatalf("Error creating new fake Mesh Catalog: %s", err.Error())
 	}
