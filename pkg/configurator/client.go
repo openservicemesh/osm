@@ -113,8 +113,7 @@ func (c *Client) configMapListener() {
 
 			switch psubMsg.AnnouncementType {
 			case announcements.ConfigMapAdded:
-				// New config map added
-				log.Info().Msgf("[%s] added triggered a global proxy broadcast",
+				log.Debug().Msgf("[%s] OSM ConfigMap added event triggered a global proxy broadcast",
 					psubMsg.AnnouncementType)
 				events.GetPubSubInstance().Publish(events.PubSubMessage{
 					AnnouncementType: announcements.ScheduleProxyBroadcast,
@@ -124,7 +123,7 @@ func (c *Client) configMapListener() {
 
 			case announcements.ConfigMapDeleted:
 				// Ignore deletion. We expect config to be present
-				log.Info().Msgf("[%s] triggering a global proxy broadcast",
+				log.Debug().Msgf("[%s] OSM ConfigMap deleted event triggered a global proxy broadcast",
 					psubMsg.AnnouncementType)
 				events.GetPubSubInstance().Publish(events.PubSubMessage{
 					AnnouncementType: announcements.ScheduleProxyBroadcast,
@@ -137,7 +136,7 @@ func (c *Client) configMapListener() {
 				prevConfigMapObj, okPrevCast := psubMsg.OldObj.(*v1.ConfigMap)
 				newConfigMapObj, okNewCast := psubMsg.NewObj.(*v1.ConfigMap)
 				if !okPrevCast || !okNewCast {
-					log.Error().Msgf("[%s]Error casting old/new ConfigMaps objects (%v %v)",
+					log.Error().Msgf("[%s] Error casting old/new ConfigMaps objects (%v %v)",
 						psubMsg.AnnouncementType, okPrevCast, okNewCast)
 					continue
 				}
@@ -158,7 +157,7 @@ func (c *Client) configMapListener() {
 				triggerGlobalBroadcast = triggerGlobalBroadcast || (prevConfigMap.TracingPort != newConfigMap.TracingPort)
 
 				if triggerGlobalBroadcast {
-					log.Info().Msgf("[%s] configmap update, triggering global proxy broadcast",
+					log.Debug().Msgf("[%s] OSM ConfigMap update triggered global proxy broadcast",
 						psubMsg.AnnouncementType)
 					events.GetPubSubInstance().Publish(events.PubSubMessage{
 						AnnouncementType: announcements.ScheduleProxyBroadcast,
