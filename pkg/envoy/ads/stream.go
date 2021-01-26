@@ -63,7 +63,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 			return nil
 
 		case <-quit:
-			log.Info().Msg("Stream closed!")
+			log.Debug().Msgf("gRPC stream with Envoy on Pod with UID=%s closed!", proxy.GetPodUID())
 			metricsstore.DefaultMetricsStore.ProxyConnectCount.Dec()
 			return nil
 

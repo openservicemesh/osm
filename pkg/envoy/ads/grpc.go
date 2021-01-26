@@ -20,10 +20,10 @@ func receive(requests chan xds_discovery.DiscoveryRequest, server *xds_discovery
 		request, recvErr := (*server).Recv()
 		if recvErr != nil {
 			if status.Code(recvErr) == codes.Canceled || recvErr == io.EOF {
-				log.Error().Msgf("[grpc] Connection terminated: %+v", recvErr)
+				log.Debug().Err(recvErr).Msgf("[grpc] Connection terminated")
 				return
 			}
-			log.Error().Msgf("[grpc] Connection terminated with error: %+v", recvErr)
+			log.Error().Err(recvErr).Msgf("[grpc] Connection error")
 			return
 		}
 		if request.TypeUrl != "" {
