@@ -29,7 +29,7 @@ func NewResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 
 	allTrafficPolicies, err := catalog.ListTrafficPolicies(proxyServiceName)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed listing routes")
+		log.Error().Err(err).Msgf("Error listing routes for Envoy on Pod with UID=%s", proxy.GetPodUID())
 		return nil, err
 	}
 	log.Debug().Msgf("trafficPolicies for service %s : %+v", proxyServiceName.String(), allTrafficPolicies)
