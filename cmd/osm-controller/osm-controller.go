@@ -109,6 +109,7 @@ func init() {
 
 	// feature flags
 	flags.BoolVar(&optionalFeatures.Backpressure, "enable-backpressure-experimental", false, "Enable experimental backpressure feature")
+	flags.BoolVar(&optionalFeatures.RoutesV2, "enable-routes-v2-experimental", false, "Enable experimental routes v2 feature")
 
 	// k8s controller manager options
 	// a k8s controller provided by the package "sigs.k8s.io/controller-runtime" helps to ensure that the state of a given k8s object is as per its desired state

@@ -585,6 +585,37 @@ func TestNewOutboundPolicy(t *testing.T) {
 	assert.Equal(expected, actual)
 }
 
+func TestTotalClustersWeight(t *testing.T) {
+	assert := tassert.New(t)
+
+	testCases := []struct {
+		name           string
+		route          RouteWeightedClusters
+		expectedWeight int
+	}{
+		{
+			name:           "route with single cluster",
+			route:          testRoute,
+			expectedWeight: 100,
+		},
+		{
+			name: "route with multiple clusters",
+			route: RouteWeightedClusters{
+				HTTPRouteMatch:   testHTTPRouteMatch2,
+				WeightedClusters: set.NewSetFromSlice([]interface{}{testWeightedCluster, testWeightedCluster2}),
+			},
+			expectedWeight: 200,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := tc.route.TotalClustersWeight()
+			assert.Equal(tc.expectedWeight, actual)
+		})
+	}
+}
+
 func newTestInboundPolicy(name string, rules []*Rule) *InboundTrafficPolicy {
 	return &InboundTrafficPolicy{
 		Name:      name,

@@ -17,7 +17,7 @@ const (
 )
 
 var _ = Describe("Test proxy methods", func() {
-	certCommonName := certificate.CommonName(fmt.Sprintf("UUID-of-proxy.%s.%s.one.two.three.co.uk", svc, ns))
+	certCommonName := certificate.CommonName(fmt.Sprintf("UUID-of-proxy1234566623211353.%s.%s.one.two.three.co.uk", svc, ns))
 	certSerialNumber := certificate.SerialNumber("123456")
 	podUID := uuid.New().String()
 	proxy := NewProxy(certCommonName, certSerialNumber, nil)

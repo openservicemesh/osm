@@ -55,6 +55,8 @@ OpenServiceMesh:
   enablePermissiveTrafficPolicy: false
   # -- Enable experimental backpressure feature 
   enableBackpressureExperimental: false
+   # -- Enable experimental routes feature 
+  enableRoutesV2Experimental: false
   # -- Enable egress in the mesh 
   enableEgress: false
   # -- Deploy Prometheus

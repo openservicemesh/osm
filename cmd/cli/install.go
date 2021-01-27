@@ -75,6 +75,7 @@ const (
 	defaultEnableEgress                   = false
 	defaultEnablePermissiveTrafficPolicy  = false
 	defaultEnableBackpressureExperimental = false
+	defaultEnableRoutesV2Experimental     = false
 	defaultDeployPrometheus               = false
 	defaultEnablePrometheusScraping       = true
 	defaultDeployGrafana                  = false
@@ -117,6 +118,10 @@ type installCmd struct {
 	// This is an experimental flag, which will eventually
 	// become part of SMI Spec.
 	enableBackpressureExperimental bool
+
+	// This is an experimental flag, which results in using
+	// 	the experimental routes v2 feature
+	enableRoutesV2Experimental bool
 
 	// Toggle to enable/disable Prometheus installation
 	deployPrometheus bool
@@ -181,6 +186,7 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.BoolVar(&inst.enablePermissiveTrafficPolicy, "enable-permissive-traffic-policy", defaultEnablePermissiveTrafficPolicy, "Enable permissive traffic policy mode")
 	f.BoolVar(&inst.enableEgress, "enable-egress", defaultEnableEgress, "Enable egress in the mesh")
 	f.BoolVar(&inst.enableBackpressureExperimental, "enable-backpressure-experimental", defaultEnableBackpressureExperimental, "Enable experimental backpressure feature")
+	f.BoolVar(&inst.enableRoutesV2Experimental, "enable-routes-v2-experimental", defaultEnableRoutesV2Experimental, "Enable experimental routes v2 feature")
 	f.BoolVar(&inst.deployPrometheus, "deploy-prometheus", defaultDeployPrometheus, "Install and deploy Prometheus")
 	f.BoolVar(&inst.enablePrometheusScraping, "enable-prometheus-scraping", defaultEnablePrometheusScraping, "Enable Prometheus metrics scraping on sidecar proxies")
 	f.BoolVar(&inst.deployGrafana, "deploy-grafana", defaultDeployGrafana, "Install and deploy Grafana")
@@ -261,6 +267,7 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 		fmt.Sprintf("OpenServiceMesh.enableDebugServer=%t", i.enableDebugServer),
 		fmt.Sprintf("OpenServiceMesh.enablePermissiveTrafficPolicy=%t", i.enablePermissiveTrafficPolicy),
 		fmt.Sprintf("OpenServiceMesh.enableBackpressureExperimental=%t", i.enableBackpressureExperimental),
+		fmt.Sprintf("OpenServiceMesh.enableRoutesV2Experimental=%t", i.enableRoutesV2Experimental),
 		fmt.Sprintf("OpenServiceMesh.deployPrometheus=%t", i.deployPrometheus),
 		fmt.Sprintf("OpenServiceMesh.enablePrometheusScraping=%t", i.enablePrometheusScraping),
 		fmt.Sprintf("OpenServiceMesh.deployGrafana=%t", i.deployGrafana),
