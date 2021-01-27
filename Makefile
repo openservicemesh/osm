@@ -24,6 +24,44 @@ LDFLAGS ?= "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(VERSION
 E2E_FLAGS ?= -installType=KindCluster
 E2E_FLAGS_DEFAULT := -test.v -ginkgo.v -ginkgo.progress -ctrRegistry $(CTR_REGISTRY) -osmImageTag $(CTR_TAG)
 
+# Installed Go version
+# This is the version of Go going to be used to compile this project.
+# It will be compared with the minimum requirements for OSM.
+GO_VERSION_MAJOR = $(shell go version | grep -Po 'go\K(\d+)')
+GO_VERSION_MINOR = $(shell go version | grep -Po 'go\d+\.\K(\d+)')
+GO_VERSION_PATCH = $(shell go version | grep -Po 'go\d+\.\d+\.\K(\d+)')
+
+# Required Go version
+# These variables set the minimum required version of Go for this project.
+# The minimum version below is defined based on:
+#   - required language features
+#   - known required bug fixes
+#   - CVEs
+# Current: 1.15.7
+# For more context see https://github.com/openservicemesh/osm/issues/2363
+# For CVEs fixed with 1.15.7 see https://groups.google.com/g/golang-announce/c/mperVMGa98w
+MIN_REQUIRED_GO_VERSION_MAJOR = 1
+MIN_REQUIRED_GO_VERSION_MINOR = 15
+MIN_REQUIRED_GO_VERSION_PATCH = 7
+
+GO_VERSION_MESSAGE = Installed Go version is $(GO_VERSION_MAJOR).$(GO_VERSION_MINOR).$(GO_VERSION_PATCH). OSM requires Go version $(MIN_REQUIRED_GO_VERSION_MAJOR).$(MIN_REQUIRED_GO_VERSION_MINOR).$(MIN_REQUIRED_GO_VERSION_PATCH) or higher!
+
+check-go-version: # Ensure the Go version used is what OSM requires
+	@echo -e "Installed Go version is $(GO_VERSION_MAJOR).$(GO_VERSION_MINOR).$(GO_VERSION_PATCH)."
+	@echo -e "OSM requires Go version $(MIN_REQUIRED_GO_VERSION_MAJOR).$(MIN_REQUIRED_GO_VERSION_MINOR).$(MIN_REQUIRED_GO_VERSION_PATCH) or higher!\n\n"
+	@if [ $(GO_VERSION_MAJOR) -gt $(MIN_REQUIRED_GO_VERSION_MAJOR) ]; then \
+		exit 0 ;\
+	elif [ $(GO_VERSION_MAJOR) -lt $(MIN_REQUIRED_GO_VERSION_MAJOR) ]; then \
+		echo '$(GO_VERSION_MESSAGE)';\
+		exit 1; \
+	elif [ $(GO_VERSION_MINOR) -lt $(MIN_REQUIRED_GO_VERSION_MINOR) ] ; then \
+		echo '$(GO_VERSION_MESSAGE)';\
+		exit 1; \
+	elif [ $(GO_VERSION_PATCH) -lt $(MIN_REQUIRED_GO_VERSION_PATCH) ] ; then \
+		echo '$(GO_VERSION_MESSAGE)';\
+		exit 1; \
+	fi
+
 check-env:
 ifndef CTR_REGISTRY
 	$(error CTR_REGISTRY environment variable is not defined; see the .env.example file for more information; then source .env)
@@ -48,7 +86,7 @@ clean-osm-injector:
 build: build-osm-controller build-osm-injector
 
 .PHONY: build-osm-controller
-build-osm-controller: clean-osm-controller wasm/stats.wasm
+build-osm-controller: check-go-version clean-osm-controller wasm/stats.wasm
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o ./bin/osm-controller/osm-controller -ldflags "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -X github.com/openservicemesh/osm/pkg/envoy/lds.statsWASMBytes=$$(base64 < wasm/stats.wasm | tr -d \\n) -s -w" ./cmd/osm-controller
 
 .PHONY: build-osm-injector
@@ -56,7 +94,7 @@ build-osm-injector: clean-osm-injector
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o ./bin/osm-injector/osm-injector -ldflags "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -s -w" ./cmd/osm-injector
 
 .PHONY: build-osm
-build-osm:
+build-osm: check-go-version
 	go run scripts/generate_chart/generate_chart.go | CGO_ENABLED=0  go build -v -o ./bin/osm -ldflags ${LDFLAGS} ./cmd/cli
 
 .PHONY: clean-osm

@@ -1,6 +1,9 @@
 // Package main implements the main entrypoint for osm-controller and utility routines to
 // bootstrap the various internal components of osm-controller.
 // osm-controller is the core control plane componenent in OSM responsible for progamming sidecar proxies.
+
+// +build go1.15
+
 package main
 
 import (
