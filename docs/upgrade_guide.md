@@ -19,7 +19,12 @@ Please check the `CRD Updates` section of the [release notes](https://github.com
 
 In the `./scripts/cleanup` directory we have included a helper script to delete those CRDs and Custom Resources: `./scripts/cleanup/crd-cleanup.sh`
 
-After upgrading, the Custom Resources will need to be recreated using the updated CRDs installed by the upgrade.
+After upgrading, the CRDs and Custom Resources will need to be recreated.
+
+1. Checkout the correct release branch of the [repo](https://github.com/openservicemesh/osm).
+1. Install the new CRDs. (Run from the root of the repo.)
+    - `kubectl apply -f charts/osm/crds/`
+1. Recreate CustomResources
 
 ## OSM Configuration
 When upgrading, any custom settings used to install or run OSM may be reverted to the default. This includes any metrics deployments and any changes to the OSM ConfigMap. Please ensure that you carefully follow the guide to prevent these values from being overwritten.
