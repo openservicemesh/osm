@@ -15,6 +15,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/rds"
 	"github.com/openservicemesh/osm/pkg/tests"
@@ -190,15 +191,34 @@ func weightedCluster(serviceName string, weight uint32) *xds_route.WeightedClust
 }
 
 func getProxy(kubeClient kubernetes.Interface) (*envoy.Proxy, error) {
-	if _, err := tests.MakePod(kubeClient, tests.Namespace, tests.BookbuyerServiceName, tests.BookbuyerServiceAccountName, tests.ProxyUUID); err != nil {
-		return nil, err
+	bookbuyerPodLabels := map[string]string{
+		tests.SelectorKey:                tests.BookbuyerService.Name,
+		constants.EnvoyUniqueIDLabelName: tests.ProxyUUID,
 	}
-	if _, err := tests.MakePod(kubeClient, tests.Namespace, "bookstore", tests.BookstoreServiceAccountName, uuid.New().String()); err != nil {
+	if _, err := tests.MakePod(kubeClient, tests.Namespace, tests.BookbuyerServiceName, tests.BookbuyerServiceAccountName, bookbuyerPodLabels); err != nil {
 		return nil, err
 	}
 
-	for _, svcName := range []string{tests.BookbuyerServiceName, tests.BookstoreApexServiceName, tests.BookstoreV1ServiceName, tests.BookstoreV2ServiceName} {
-		if _, err := tests.MakeService(kubeClient, svcName); err != nil {
+	bookstorePodLabels := map[string]string{
+		tests.SelectorKey:                "bookstore",
+		constants.EnvoyUniqueIDLabelName: uuid.New().String(),
+	}
+	if _, err := tests.MakePod(kubeClient, tests.Namespace, "bookstore", tests.BookstoreServiceAccountName, bookstorePodLabels); err != nil {
+		return nil, err
+	}
+
+	selectors := map[string]string{
+		tests.SelectorKey: tests.BookbuyerServiceName,
+	}
+	if _, err := tests.MakeService(kubeClient, tests.BookbuyerServiceName, selectors); err != nil {
+		return nil, err
+	}
+
+	for _, svcName := range []string{tests.BookstoreApexServiceName, tests.BookstoreV1ServiceName, tests.BookstoreV2ServiceName} {
+		selectors := map[string]string{
+			tests.SelectorKey: "bookstore",
+		}
+		if _, err := tests.MakeService(kubeClient, svcName, selectors); err != nil {
 			return nil, err
 		}
 	}

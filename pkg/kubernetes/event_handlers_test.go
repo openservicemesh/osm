@@ -32,7 +32,7 @@ var _ = Describe("Testing event handlers", func() {
 			podAddChannel := events.GetPubSubInstance().Subscribe(announcements.PodAdded)
 			defer events.GetPubSubInstance().Unsub(podAddChannel)
 
-			pod := tests.NewPodTestFixture(testNamespace, "pod-name")
+			pod := tests.NewPodFixture(testNamespace, "pod-name", tests.BookstoreServiceAccountName, tests.PodLabels)
 			eventTypes := EventTypes{
 				Add:    announcements.PodAdded,
 				Update: announcements.PodUpdated,
@@ -71,7 +71,7 @@ var _ = Describe("Testing event handlers", func() {
 	Context("create getNamespace", func() {
 		It("gets the namespace name", func() {
 			ns := uuid.New().String()
-			pod := tests.NewPodTestFixture(ns, uuid.New().String())
+			pod := tests.NewPodFixture(ns, uuid.New().String(), tests.BookstoreServiceAccountName, tests.PodLabels)
 			actual := getNamespace(&pod)
 			Expect(actual).To(Equal(ns))
 		})

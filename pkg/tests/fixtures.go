@@ -430,35 +430,21 @@ var (
 		ClusterName: "default/bookstore-apex",
 		Weight:      100,
 	}
+
+	// PodLabels is a map of the default labels on pods
+	PodLabels = map[string]string{
+		SelectorKey:                      SelectorValue,
+		constants.EnvoyUniqueIDLabelName: ProxyUUID,
+	}
 )
 
-// NewPodTestFixture creates a new Pod struct for testing.
-func NewPodTestFixture(namespace string, podName string) corev1.Pod {
+// NewPodFixture creates a new Pod struct for testing.
+func NewPodFixture(namespace string, podName string, serviceAccountName string, labels map[string]string) corev1.Pod {
 	return corev1.Pod{
 		ObjectMeta: v1.ObjectMeta{
 			Name:      podName,
 			Namespace: namespace,
-			Labels: map[string]string{
-				SelectorKey:                      SelectorValue,
-				constants.EnvoyUniqueIDLabelName: ProxyUUID,
-			},
-		},
-		Spec: corev1.PodSpec{
-			ServiceAccountName: BookstoreServiceAccountName,
-		},
-	}
-}
-
-// NewPodTestFixtureWithOptions creates a new Pod struct with options for testing.
-func NewPodTestFixtureWithOptions(namespace string, podName string, serviceAccountName string) corev1.Pod {
-	return corev1.Pod{
-		ObjectMeta: v1.ObjectMeta{
-			Name:      podName,
-			Namespace: namespace,
-			Labels: map[string]string{
-				SelectorKey:                      SelectorValue,
-				constants.EnvoyUniqueIDLabelName: ProxyUUID,
-			},
+			Labels:    labels,
 		},
 		Spec: corev1.PodSpec{
 			ServiceAccountName: serviceAccountName,
