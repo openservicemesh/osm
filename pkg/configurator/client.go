@@ -50,6 +50,9 @@ const (
 
 	// serviceCertValidityDurationKey is the key name used to specify the validity duration of service certificates in the ConfigMap
 	serviceCertValidityDurationKey = "service_cert_validity_duration"
+
+	// outboundIPRangeExclusionListKey is the key name used to specify the ip ranges to exclude from outbound sidecar interception
+	outboundIPRangeExclusionListKey = "outbound_ip_range_exclusion_list"
 )
 
 // NewConfigurator implements configurator.Configurator and creates the Kubernetes client to manage namespaces.
@@ -213,6 +216,9 @@ type osmConfig struct {
 	// It is represented as a sequence of decimal numbers each with optional fraction and a unit suffix.
 	// Ex: 1h to represent 1 hour, 30m to represent 30 minutes, 1.5h or 1h30m to represent 1 hour and 30 minutes.
 	ServiceCertValidityDuration string `yaml:"service_cert_validity_duration"`
+
+	// OutboundIPRangeExclusionList is the list of outbound IP ranges to exclude from sidecar interception
+	OutboundIPRangeExclusionList string `yaml:"outbound_ip_range_exclusion_list"`
 }
 
 func (c *Client) run(stop <-chan struct{}) {
@@ -264,6 +270,7 @@ func parseOSMConfigMap(configMap *v1.ConfigMap) *osmConfig {
 	osmConfigMap.TracingEnable, _ = GetBoolValueForKey(configMap, tracingEnableKey)
 	osmConfigMap.EnvoyLogLevel, _ = GetStringValueForKey(configMap, envoyLogLevel)
 	osmConfigMap.ServiceCertValidityDuration, _ = GetStringValueForKey(configMap, serviceCertValidityDurationKey)
+	osmConfigMap.OutboundIPRangeExclusionList, _ = GetStringValueForKey(configMap, outboundIPRangeExclusionListKey)
 
 	if osmConfigMap.TracingEnable {
 		osmConfigMap.TracingAddress, _ = GetStringValueForKey(configMap, tracingAddressKey)

@@ -5,10 +5,10 @@
 package configurator
 
 import (
-	gomock "github.com/golang/mock/gomock"
-	announcements "github.com/openservicemesh/osm/pkg/announcements"
 	reflect "reflect"
 	time "time"
+
+	gomock "github.com/golang/mock/gomock"
 )
 
 // MockConfigurator is a mock of Configurator interface
@@ -75,6 +75,20 @@ func (m *MockConfigurator) GetOSMNamespace() string {
 func (mr *MockConfiguratorMockRecorder) GetOSMNamespace() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOSMNamespace", reflect.TypeOf((*MockConfigurator)(nil).GetOSMNamespace))
+}
+
+// GetOutboundIPRangeExclusionList mocks base method
+func (m *MockConfigurator) GetOutboundIPRangeExclusionList() []string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetOutboundIPRangeExclusionList")
+	ret0, _ := ret[0].([]string)
+	return ret0
+}
+
+// GetOutboundIPRangeExclusionList indicates an expected call of GetOutboundIPRangeExclusionList
+func (mr *MockConfiguratorMockRecorder) GetOutboundIPRangeExclusionList() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOutboundIPRangeExclusionList", reflect.TypeOf((*MockConfigurator)(nil).GetOutboundIPRangeExclusionList))
 }
 
 // GetServiceCertValidityPeriod mocks base method
@@ -201,24 +215,6 @@ func (m *MockConfigurator) IsTracingEnabled() bool {
 func (mr *MockConfiguratorMockRecorder) IsTracingEnabled() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsTracingEnabled", reflect.TypeOf((*MockConfigurator)(nil).IsTracingEnabled))
-}
-
-// Subscribe mocks base method
-func (m *MockConfigurator) Subscribe(arg0 ...announcements.AnnouncementType) chan interface{} {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{}
-	for _, a := range arg0 {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "Subscribe", varargs...)
-	ret0, _ := ret[0].(chan interface{})
-	return ret0
-}
-
-// Subscribe indicates an expected call of Subscribe
-func (mr *MockConfiguratorMockRecorder) Subscribe(arg0 ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Subscribe", reflect.TypeOf((*MockConfigurator)(nil).Subscribe), arg0...)
 }
 
 // UseHTTPSIngress mocks base method

@@ -61,4 +61,7 @@ type Configurator interface {
 
 	// GetServiceCertValidityPeriod returns the validity duration for service certificates
 	GetServiceCertValidityPeriod() time.Duration
+
+	// GetOutboundIPRangeExclusionList returns the list of IP ranges of the form x.x.x.x/y to exclude from outbound sidecar interception
+	GetOutboundIPRangeExclusionList() []string
 }

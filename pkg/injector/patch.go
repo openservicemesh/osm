@@ -48,7 +48,7 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *v1beta1.AdmissionRe
 	pod.Spec.Volumes = append(pod.Spec.Volumes, getVolumeSpec(envoyBootstrapConfigName)...)
 
 	// Add the Init Container
-	initContainer := getInitContainerSpec(constants.InitContainerName, wh.config.InitContainerImage)
+	initContainer := getInitContainerSpec(constants.InitContainerName, wh.config.InitContainerImage, wh.configurator.GetOutboundIPRangeExclusionList())
 	pod.Spec.InitContainers = append(pod.Spec.InitContainers, initContainer)
 
 	// envoyNodeID and envoyClusterID are required for Envoy proxy to start.

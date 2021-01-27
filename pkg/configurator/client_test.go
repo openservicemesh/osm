@@ -51,17 +51,18 @@ var _ = Describe("Test OSM ConfigMap parsing", func() {
 
 		It("Tag matches const key for all fields of OSM ConfigMap struct", func() {
 			fieldNameTag := map[string]string{
-				"PermissiveTrafficPolicyMode": PermissiveTrafficPolicyModeKey,
-				"Egress":                      egressKey,
-				"EnableDebugServer":           enableDebugServer,
-				"PrometheusScraping":          prometheusScrapingKey,
-				"TracingEnable":               tracingEnableKey,
-				"TracingAddress":              tracingAddressKey,
-				"TracingPort":                 tracingPortKey,
-				"TracingEndpoint":             tracingEndpointKey,
-				"UseHTTPSIngress":             useHTTPSIngressKey,
-				"EnvoyLogLevel":               envoyLogLevel,
-				"ServiceCertValidityDuration": serviceCertValidityDurationKey,
+				"PermissiveTrafficPolicyMode":  PermissiveTrafficPolicyModeKey,
+				"Egress":                       egressKey,
+				"EnableDebugServer":            enableDebugServer,
+				"PrometheusScraping":           prometheusScrapingKey,
+				"TracingEnable":                tracingEnableKey,
+				"TracingAddress":               tracingAddressKey,
+				"TracingPort":                  tracingPortKey,
+				"TracingEndpoint":              tracingEndpointKey,
+				"UseHTTPSIngress":              useHTTPSIngressKey,
+				"EnvoyLogLevel":                envoyLogLevel,
+				"ServiceCertValidityDuration":  serviceCertValidityDurationKey,
+				"OutboundIPRangeExclusionList": outboundIPRangeExclusionListKey,
 			}
 			t := reflect.TypeOf(osmConfig{})
 
