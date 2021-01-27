@@ -1,3 +1,9 @@
+---
+title: "Application Protocol Selection"
+description: "Application Protocol Selection"
+type: docs
+---
+
 # Application Protocol Selection
 
 Kubernetes services expose one or more ports. A port exposed by an application running the service can serve a specific application protocol such as HTTP, TCP etc. There is a requirement to be able to determine the application protocol served by a service’s port to be able to correctly configure protocol specific configurations in Envoy (Filters, Routes, RBAC policies). Prior to Kubernetes 1.19, there is no way to determine the application protocol for a port. The IP `protocol` field on the Service resource must be one of TCP, UDP, or SCTP, so this cannot be used to determine the application protocols such HTTP, gRPC etc. To address this limitation, Kubernetes 1.19 introduced an [`AppProtocol`](https://kubernetes.io/docs/concepts/services-networking/service/#application-protocol) field for the Service resource.

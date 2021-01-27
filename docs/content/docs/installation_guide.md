@@ -1,3 +1,9 @@
+---
+title: "Installation"
+description: "Installation Guide"
+type: docs
+---
+
 # Installation Guide
 
 This guide describes how to install Open Service Mesh (OSM) on a Kubernetes cluster using the `osm` CLI.
@@ -61,4 +67,4 @@ $ helm get manifest osm --namespace osm-system
 ```
 
 ## Next Steps
-Now that the OSM control plane is up and running, [add services](onboard_services.md) to the mesh.
+Now that the OSM control plane is up and running, [add services](../onboard_services/) to the mesh.

@@ -3,6 +3,8 @@ baseURL = "https://docs.openservicemesh.io/"
 languageCode = "en-us"
 description = "Documentation for Open Service Mesh (OSM)"
 theme = "dosmy"
+RelativeURLs=true
+CanonifyURLs=true
 
 # Theme General Config
 [languages]
@@ -51,7 +53,7 @@ latexDashes = true
 [[menu.main]]
 	name = "Docs"
 	weight = 20
-	url = "/docs"
+	url = "https://docs.openservicemesh.io"
 [[menu.main]]
 	name = "Github"
 	weight = 30
@@ -72,7 +74,7 @@ latexDashes = true
 
 # Add your release versions here
 [[params.versions]]
-  version = "v0.4"
+  version = "v0.6.1"
   url = "https://docs.openservicemesh.io"
 
 
@@ -90,5 +92,5 @@ sidebar_search_disable = false
 
 [params.ui.feedback]
 enable = true
-yes = 'Glad to hear it! Please <a href="https://github.com/USERNAME/REPOSITORY/issues/new">tell us how we can improve</a>.'
-no = 'Sorry to hear that. Please <a href="https://github.com/USERNAME/REPOSITORY/issues/new">tell us how we can improve</a>.'
+yes = 'Glad to hear it! Please <a href="https://github.com/openservicemesh/osm/issues/new">tell us how we can improve</a>.'
+no = 'Sorry to hear that. Please <a href="https://github.com/openservicemesh/osm/issues/new">tell us how we can improve</a>.'

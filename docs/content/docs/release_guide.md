@@ -1,3 +1,9 @@
+---
+title: "Release Guide"
+description: "OSM Release Guide"
+type: docs
+---
+
 # Release Guide
 
 This guide describes the process to create a GitHub Release for this project.
@@ -36,9 +42,9 @@ $ git push upstream release-<version> # ex: git push upstream release-v0.4
 Create a pull request against the release branch `release-<version>` from your fork to update version
 information for the Helm charts and default container images. The pull request should do the following:
 
-* Update the container image tag in [charts/osm/values.yaml](/charts/osm/values.yaml) to point to the new release
-* Bump the chart and app version in [charts/osm/Chart.yaml](/charts/osm/Chart.yaml) to point to the new release
-* Update the default osm-controller image tag in [osm cli](/cmd/cli/install.go) to point to the new release
+* Update the container image tag in [charts/osm/values.yaml](https://github.com/openservicemesh/osm/tree/main/charts/osm/values.yaml) to point to the new release
+* Bump the chart and app version in [charts/osm/Chart.yaml](https://github.com/openservicemesh/osm/tree/main/charts/osm/Chart.yaml) to point to the new release
+* Update the default osm-controller image tag in [osm cli](https://github.com/openservicemesh/osm/blob/main/cmd/cli/install.go) to point to the new release
 
 The pull request must be reviewed and merged before proceeding to the next step.
 
@@ -53,7 +59,7 @@ $ git tag -a "$RELEASE_VERSION" -m "<add description here>"
 $ git push upstream "$RELEASE_VERSION"
 ```
 
-A [GitHub Action](/.github/workflows/release.yml) is triggered when the tag is pushed.
+A [GitHub Action](https://github.com/openservicemesh/osm/blob/main/.github/workflows/release.yml) is triggered when the tag is pushed.
 It will build the CLI binaries, publish a new GitHub release,
 upload the packaged binaries and checksums as release assets,
 and build and push Docker images for OSM and the demo to the
@@ -90,3 +96,6 @@ Skip this step if the release is a release candidate (RC).
 
 Open a pull request against the `main` branch making the same version updates as [above](#update-release-branch-with-versioning-changes) so the latest release assets are referenced there.
 
+## Make version changes on docs.openservicemesh.io
+
+To add the new version to the 'Releases' dropdown menu on [docs.openservicemesh.io](https://docs.openservicemesh.io/), refer to [this section](https://github.com/openservicemesh/osm/tree/main/docs#versioning-the-docs-site) of the site Readme.

@@ -1,3 +1,9 @@
+---
+title: "OSM ConfigMap"
+description: "OSM ConfigMap"
+type: docs
+---
+
 # OSM ConfigMap
 
 OSM deploys a configMap `osm-config` as a part of its control plane (in the same namespace as that of the osm-controller pod) which can be updated by the mesh owner/operator at any time. The purpose of this configMap is to provide the mesh owner/operator the ability to update some of the mesh configurations based on their needs.

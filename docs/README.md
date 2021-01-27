@@ -1,6 +1,12 @@
-A documentation website for the [OSM](https://github.com/openservicemesh/osm/) project - [docs.openservicemesh.io](https://docs.openservicemesh.io)
+# Open Service Mesh Docs
 
-# Editing Content
+> :book: OSM Docs are found within this [section](https://github.com/openservicemesh/osm/tree/main/docs/content)
+> :ship: Also the config to generate them as docs.openservicemesh.io
+ 
+> :link: Looking for the main OSM website? Visit [osm-www](https://github.com/openservicemesh/osm-www).
+
+
+## Editing Content
 
 docs.openservicemesh.io is a static site. The documentation content needs to be located at `docs/content/docs/`.
 
