@@ -247,10 +247,7 @@ func TestCheckDefaultFields(t *testing.T) {
 
 func TestValidateFields(t *testing.T) {
 	assert := tassert.New(t)
-	resp := &v1beta1.AdmissionResponse{
-		Allowed: true,
-		Result:  &metav1.Status{Reason: ""},
-	}
+
 	cm := corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: whc.osmNamespace,
@@ -319,6 +316,10 @@ func TestValidateFields(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.testName, func(t *testing.T) {
+			resp := &v1beta1.AdmissionResponse{
+				Allowed: true,
+				Result:  &metav1.Status{Reason: ""},
+			}
 			res := whc.validateFields(tc.configMap, resp)
 			assert.Contains(tc.expRes.Result.Status, res.Result.Status)
 			assert.Equal(tc.expRes.Allowed, res.Allowed)
