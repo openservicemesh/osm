@@ -343,8 +343,12 @@ type MeshCataloger interface {
 	//GetWeightedClusterForService returns the weighted cluster for a service
 	GetWeightedClusterForService(service service.MeshService) (service.WeightedCluster, error)
 
-	// GetIngressRoutesPerHost returns the HTTP route matches per host associated with an ingress service
-	GetIngressRoutesPerHost(service.MeshService) (map[string][]trafficpolicy.HTTPRouteMatch, error)
+  // GetIngressRoutesPerHost returns the HTTP route matches per host associated with an ingress service
+  // TODO : remove as a part of routes refactor cleanup (#2397)
+  GetIngressRoutesPerHost(service.MeshService) (map[string][]trafficpolicy.HTTPRouteMatch, error)
+  
+  // GetIngressPoliciesForService returns the inbound traffic policies associated with an ingress service
+  GetIngressPoliciesForService(service.MeshService, service.K8sServiceAccount) ([]*trafficpolicy.InboundTrafficPolicy, error)
 }
 ```
 

@@ -594,7 +594,7 @@ func (mc *MeshCatalog) listPoliciesFromTrafficTargets(sa service.K8sServiceAccou
 		}
 
 		if t.Spec.Destination.Name == sa.Name { // found inbound
-			inboundPolicies = trafficpolicy.MergeInboundPolicies(inboundPolicies, mc.buildInboundPolicies(t)...)
+			inboundPolicies = trafficpolicy.MergeInboundPolicies(false, inboundPolicies, mc.buildInboundPolicies(t)...)
 		}
 
 		for _, source := range t.Spec.Sources {
