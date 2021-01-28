@@ -12,7 +12,7 @@ This document proposes to leverage the newly introduced `AppProtocol` field to d
 
 The `AppProtocol` can be specified by default in Kubernetes server versions >= v1.19. In older versions where this field cannot be set, the application protocol for a service port can be indicated by prefixing the protocol name as a part of the port name. If the application protocol cannot be derived,  OSM controller will use `http` as the default application protocol for a port.
 
-
+*Note that for port field in the service spec, the `AppProtocol` field takes precedence over the `Name` field if both are specified.
 ## Example
 
 Consider the following SMI traffic access and traffic specs policies:
