@@ -3,7 +3,7 @@
 # Declare variables to be passed into your templates.
 
 OpenServiceMesh:
-  # -- `osm-controller` replicas 
+  # -- `osm-controller` replicas
   replicaCount: 1
   image:
     # -- `osm-controller` image registry
@@ -12,95 +12,95 @@ OpenServiceMesh:
     pullPolicy: IfNotPresent
     # -- `osm-controller` image tag
     tag: v0.6.1
-  # -- `osm-controller` image pull secret   
+  # -- `osm-controller` image pull secret
   imagePullSecrets: []
-  # -- Envoy sidecar image  
+  # -- Envoy sidecar image
   sidecarImage: envoyproxy/envoy-alpine:v1.17.0
   prometheus:
-    # -- Prometheus port  
+    # -- Prometheus port
     port: 7070
     retention:
       # -- Prometheus retention time
       time: 15d
-  # -- The Certificate manager type: `tresor`, `vault` or `cert-manager` 
+  # -- The Certificate manager type: `tresor`, `vault` or `cert-manager`
   certificateManager: tresor
   vault:
-    # --  Hashicorp Vault host/service - where Vault is installed 
+    # --  Hashicorp Vault host/service - where Vault is installed
     host:
     # -- protocol to use to connect to Vault
     protocol: http
     # -- token that should be used to connect to Vault
     token:
-    # -- Vault role to be used by Open Service Mesh   
+    # -- Vault role to be used by Open Service Mesh
     role: openservicemesh
   certmanager:
-    # --  cert-manager issuer namecert-manager issuer name 
+    # --  cert-manager issuer namecert-manager issuer name
     issuerName: osm-ca
-    # -- cert-manager issuer kind 
+    # -- cert-manager issuer kind
     issuerKind: Issuer
     # -- cert-manager issuer group
     issuerGroup: cert-manager
-  # -- Sets the service certificatevalidity duration 
+  # -- Sets the service certificatevalidity duration
   serviceCertValidityDuration: 24h
   # -- The Kubernetes secret to store `ca.crt`
   caBundleSecretName: osm-ca-bundle
   grafana:
-    # -- Grafana port 
+    # -- Grafana port
     port: 3000
-    # -- Enable Remote Rendering in Grafana  
+    # -- Enable Remote Rendering in Grafana
     enableRemoteRendering: false
-  # -- Enable the debug HTTP server    
+  # -- Enable the debug HTTP server
   enableDebugServer: false
-  # -- Enable permissive traffic policy mode  
+  # -- Enable permissive traffic policy mode
   enablePermissiveTrafficPolicy: false
-  # -- Enable experimental backpressure feature 
+  # -- Enable experimental backpressure feature
   enableBackpressureExperimental: false
-   # -- Enable experimental routes feature 
+   # -- Enable experimental routes feature
   enableRoutesV2Experimental: false
-  # -- Enable egress in the mesh 
+  # -- Enable egress in the mesh
   enableEgress: false
   # -- Deploy Prometheus
   deployPrometheus: false
-  # -- Enable Prometheus metrics scraping on sidecar proxies  
+  # -- Enable Prometheus metrics scraping on sidecar proxies
   enablePrometheusScraping: true
   # -- Deploy Grafana
   deployGrafana: false
-  # -- Enable Fluentbit sidecar deployment 
+  # -- Enable Fluentbit sidecar deployment
   enableFluentbit: false
   fluentBit:
     # -- luentBit Sidecar container name
     name: fluentbit-logger
-    # -- Registry for FluentBit sidecar container 
+    # -- Registry for FluentBit sidecar container
     registry: fluent
     # -- FluentBit sidecar image tag
     tag: 1.6.4
-    # -- PullPolicy for FluentBit sidecar container  
+    # -- PullPolicy for FluentBit sidecar container
     pullPolicy: IfNotPresent
-    # -- Log level for FluentBit  
+    # -- Log level for FluentBit
     logLevel: error
-    # -- FluentBit Output Plugin, can be `stdout` or `azure` 
+    # -- FluentBit Output Plugin, can be `stdout` or `azure`
     outputPlugin: stdout
     # -- WorkspaceId for FluentBit output plugin to Azure LogAnalytics
     workspaceId: ""
-    # -- PrimaryKey for FluentBit output plugin to Azure LogAnalytics  
+    # -- PrimaryKey for FluentBit output plugin to Azure LogAnalytics
     primaryKey: ""
     # -- Enable proxy support for FluentBit
     enableProxySupport: false
-    # -- HTTP Proxy url for FluentBit  
+    # -- HTTP Proxy url for FluentBit
     httpProxy: ""
-    # -- HTTPS Proxy url for FluentBit  
+    # -- HTTPS Proxy url for FluentBit
     httpsProxy: ""
   # -- Name for the new control plane instance
   meshName: osm
-  # -- Enables HTTPS ingress on the mesh   
+  # -- Enables HTTPS ingress on the mesh
   useHTTPSIngress: false
-  # -- Envoy log level is used to specify the level of logs collected from envoy 
+  # -- Envoy log level is used to specify the level of logs collected from envoy
   envoyLogLevel: error
-  # -- Controller log verbosity 
+  # -- Controller log verbosity
   controllerLogLevel: trace
-  # -- Enforce only deploying one mesh in the cluster     
+  # -- Enforce only deploying one mesh in the cluster
   enforceSingleMesh: false
-  # -- Validating- and MutatingWebhookConfiguration name            
+  # -- Validating- and MutatingWebhookConfiguration name
   webhookConfigNamePrefix: osm-webhook
 
   # -- Optional parameter. If not specified, the release namespace is used to deploy the osm components.
@@ -114,14 +114,14 @@ OpenServiceMesh:
   # backends (https://github.com/openservicemesh/osm/issues/1596)
   tracing:
 
-    # -- Toggles Envoy's tracing functionality on/off for all sidecar proxies in the cluster      
+    # -- Toggles Envoy's tracing functionality on/off for all sidecar proxies in the cluster
     enable: true
 
-    # -- Tracing destination cluster (must contain the namespace) 
+    # -- Tracing destination cluster (must contain the namespace)
     address: "jaeger.osm-system.svc.cluster.local"
 
-    # -- Destination port for the listener   
+    # -- Destination port for the listener
     port: 9411
 
-    # -- Destination's API or collector endpoint where the spans will be sent to  
+    # -- Destination's API or collector endpoint where the spans will be sent to
     endpoint: "/api/v2/spans"
