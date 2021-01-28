@@ -211,6 +211,12 @@ var _ = Describe("Test Kube Client Provider (w/o kubecontroller)", func() {
 							Port:     120,
 							Protocol: v1.ProtocolTCP,
 						},
+						{
+							Name:        "http-prefix",
+							Port:        130,
+							Protocol:    v1.ProtocolTCP,
+							AppProtocol: &appProtoTCP, // AppProtocol takes precedence over Name
+						},
 					},
 				},
 			},
@@ -219,7 +225,7 @@ var _ = Describe("Test Kube Client Provider (w/o kubecontroller)", func() {
 		portToProtocolMap, err := provider.GetTargetPortToProtocolMappingForService(tests.BookbuyerService)
 		Expect(err).To(BeNil())
 
-		expectedPortToProtocolMap := map[uint32]string{70: "tcp", 80: "http", 90: "http", 100: "tcp", 110: "grpc", 120: "http"}
+		expectedPortToProtocolMap := map[uint32]string{70: "tcp", 80: "http", 90: "http", 100: "tcp", 110: "grpc", 120: "http", 130: "tcp"}
 		Expect(portToProtocolMap).To(Equal(expectedPortToProtocolMap))
 	})
 })

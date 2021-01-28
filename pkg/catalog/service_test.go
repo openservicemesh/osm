@@ -246,6 +246,32 @@ func TestGetPortToProtocolMappingForResolvableService(t *testing.T) {
 
 		{
 			// Test case 3
+			name: "service with appProtocol and named port specified",
+			service: &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      svc.Name,
+					Namespace: svc.Namespace,
+				},
+				Spec: corev1.ServiceSpec{
+					Ports: []corev1.ServicePort{
+						{
+							Name: "http-port1",
+							TargetPort: intstr.IntOrString{
+								Type:   intstr.String,
+								IntVal: 8080,
+							},
+							AppProtocol: &appProtocolTCP, // takes precedence over 'Name'
+							Port:        80,
+						},
+					},
+				},
+			},
+			expectedPortToProtocolMap: map[uint32]string{80: "tcp"},
+			expectError:               false,
+		},
+
+		{
+			// Test case 4
 			name:                      "service doesn't exist",
 			service:                   nil,
 			expectedPortToProtocolMap: nil,
