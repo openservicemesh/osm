@@ -5,8 +5,10 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"k8s.io/api/admission/v1beta1"
@@ -61,6 +63,8 @@ const (
 
 	// mustBeInPortRange is the reason for denial for tracing_port field
 	mustBeInPortRange = ": must be between 0 and 65535"
+
+	mustBeValidIPRange = ": must be a list of valid IP addresses of the form a.b.c.d/x"
 
 	// cannotChangeMetadata is the reason for denial for changes to configmap metadata
 	cannotChangeMetadata = ": cannot change metadata"
@@ -261,6 +265,9 @@ func (whc *webhookConfig) validateFields(configMap corev1.ConfigMap, resp *v1bet
 				reasonForDenial(resp, mustBeInPortRange, field)
 			}
 		}
+		if field == outboundIPRangeExclusionListKey && !checkOutboundIPRangeExclusionList(value) {
+			reasonForDenial(resp, mustBeValidIPRange, field)
+		}
 	}
 
 	defConfigMap, _ := whc.kubeClient.CoreV1().ConfigMaps(whc.osmNamespace).Get(context.TODO(), constants.OSMConfigMap, metav1.GetOptions{})
@@ -287,6 +294,17 @@ func checkEnvoyLogLevels(configMapField, configMapValue string) bool {
 		}
 	}
 	return valid
+}
+
+func checkOutboundIPRangeExclusionList(ipRangesStr string) bool {
+	exclusionList := strings.Split(ipRangesStr, ",")
+	for i := range exclusionList {
+		ipAddress := strings.TrimSpace(exclusionList[i])
+		if _, _, err := net.ParseCIDR(ipAddress); err != nil {
+			return false
+		}
+	}
+	return true
 }
 
 // checkBoolFields checks that the value is a boolean for fields that take in a boolean
