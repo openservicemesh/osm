@@ -3,6 +3,7 @@ package configurator
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -113,4 +114,19 @@ func (c *Client) GetServiceCertValidityPeriod() time.Duration {
 	}
 
 	return validityDuration
+}
+
+// GetOutboundIPRangeExclusionList returns the list of IP ranges of the form x.x.x.x/y to exclude from outbound sidecar interception
+func (c *Client) GetOutboundIPRangeExclusionList() []string {
+	ipRangesStr := c.getConfigMap().OutboundIPRangeExclusionList
+	if ipRangesStr == "" {
+		return nil
+	}
+
+	exclusionList := strings.Split(ipRangesStr, ",")
+	for i := range exclusionList {
+		exclusionList[i] = strings.TrimSpace(exclusionList[i])
+	}
+
+	return exclusionList
 }

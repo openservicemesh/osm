@@ -512,4 +512,60 @@ var _ = Describe("Test Envoy configuration creation", func() {
 			Expect(cfg.GetServiceCertValidityPeriod()).To(Equal(time.Duration(1 * time.Hour)))
 		})
 	})
+
+	Context("test outbound_ip_range_exclusion_list", func() {
+		kubeClient := testclient.NewSimpleClientset()
+		stop := make(chan struct{})
+		cfg := NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
+		var confChannel chan interface{}
+
+		BeforeEach(func() {
+			confChannel = events.GetPubSubInstance().Subscribe(
+				announcements.ConfigMapAdded,
+				announcements.ConfigMapDeleted,
+				announcements.ConfigMapUpdated)
+		})
+
+		AfterEach(func() {
+			events.GetPubSubInstance().Unsub(confChannel)
+		})
+
+		It("correctly returns an empty list when no exclusion list is specified", func() {
+			configMap := v1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: osmNamespace,
+					Name:      osmConfigMapName,
+				},
+				Data: defaultConfigMap,
+			}
+			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Create(context.TODO(), &configMap, metav1.CreateOptions{})
+			Expect(err).ToNot(HaveOccurred())
+
+			// Wait for the config map change to propagate to the cache.
+			log.Info().Msg("Waiting for announcement")
+			<-confChannel
+
+			Expect(cfg.GetOutboundIPRangeExclusionList()).To(BeNil())
+		})
+
+		It("correctly retrieves the IP ranges to exclude", func() {
+			defaultConfigMap[outboundIPRangeExclusionListKey] = "1.1.1.1/32, 2.2.2.2/24"
+			configMap := v1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: osmNamespace,
+					Name:      osmConfigMapName,
+				},
+				Data: defaultConfigMap,
+			}
+			_, err := kubeClient.CoreV1().ConfigMaps(osmNamespace).Update(context.TODO(), &configMap, metav1.UpdateOptions{})
+			Expect(err).ToNot(HaveOccurred())
+
+			<-confChannel
+
+			expected := []string{"1.1.1.1/32", "2.2.2.2/24"}
+			actual := cfg.GetOutboundIPRangeExclusionList()
+			Expect(actual).Should(HaveLen(len(expected)))
+			Expect(actual).Should(ConsistOf(expected))
+		})
+	})
 })
