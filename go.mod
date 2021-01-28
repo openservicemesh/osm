@@ -18,6 +18,7 @@ require (
 	github.com/golangci/golangci-lint v1.32.2
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/mux v1.7.3
+	github.com/hashicorp/go-version v1.1.0
 	github.com/hashicorp/vault/api v1.0.4
 	github.com/jetstack/cert-manager v0.16.1
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a

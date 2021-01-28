@@ -48,7 +48,7 @@ func (f fakeClient) GetServicesForServiceAccount(svcAccount service.K8sServiceAc
 }
 
 func (f fakeClient) GetTargetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
-	return map[uint32]string{uint32(tests.Endpoint.Port): defaultAppProtocol}, nil
+	return map[uint32]string{uint32(tests.Endpoint.Port): "http"}, nil
 }
 
 // GetID returns the unique identifier of the EndpointsProvider.
