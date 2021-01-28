@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	goversion "github.com/hashicorp/go-version"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/api"
 	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
@@ -222,7 +223,16 @@ func (td *OsmTestData) SimplePodApp(def SimplePodAppDef) (corev1.ServiceAccount,
 			}
 
 			if def.AppProtocol != "" {
-				svcPort.AppProtocol = &def.AppProtocol
+				if ver, err := td.getKubernetesServerVersionNumber(); err != nil {
+					svcPort.Name = fmt.Sprintf("%s-%d", def.AppProtocol, p) // use named port with AppProtocol
+				} else {
+					// use appProtocol field in servicePort if k8s server version >= 1.19
+					if ver[0] >= 1 && ver[1] >= 19 {
+						svcPort.AppProtocol = &def.AppProtocol // set the appProtocol field
+					} else {
+						svcPort.Name = fmt.Sprintf("%s-%d", def.AppProtocol, p) // use named port with AppProtocol
+					}
+				}
 			}
 
 			serviceDefinition.Spec.Ports = append(serviceDefinition.Spec.Ports, svcPort)
@@ -230,6 +240,21 @@ func (td *OsmTestData) SimplePodApp(def SimplePodAppDef) (corev1.ServiceAccount,
 	}
 
 	return serviceAccountDefinition, podDefinition, serviceDefinition
+}
+
+// getKubernetesServerVersionNumber returns the version number in chunks, ex. v1.19.3 => [1, 19, 3]
+func (td *OsmTestData) getKubernetesServerVersionNumber() ([]int, error) {
+	version, err := td.Client.Discovery().ServerVersion()
+	if err != nil {
+		return nil, errors.Errorf("Error getting K8s server version: %s", err)
+	}
+
+	ver, err := goversion.NewVersion(version.String())
+	if err != nil {
+		return nil, errors.Errorf("Error parsing k8s server version %s: %s", version.String(), err)
+	}
+
+	return ver.Segments(), nil
 }
 
 // SimpleDeploymentAppDef defines some parametrization to create a deployment-based application from template

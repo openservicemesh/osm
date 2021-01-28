@@ -6,12 +6,8 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
-)
-
-const (
-	// defaultAppProtocol is the default application protocol for a port if unspecified
-	defaultAppProtocol = "http"
 )
 
 // GetServicesForServiceAccount returns a list of services corresponding to a service account
@@ -85,9 +81,11 @@ func (mc *MeshCatalog) GetPortToProtocolMappingForService(svc service.MeshServic
 	}
 
 	for _, portSpec := range k8sSvc.Spec.Ports {
-		appProtocol := defaultAppProtocol
+		var appProtocol string
 		if portSpec.AppProtocol != nil {
 			appProtocol = *portSpec.AppProtocol
+		} else {
+			appProtocol = kubernetes.GetAppProtocolFromPortName(portSpec.Name)
 		}
 		portToProtocolMap[uint32(portSpec.Port)] = appProtocol
 	}

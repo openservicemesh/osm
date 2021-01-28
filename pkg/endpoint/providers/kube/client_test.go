@@ -180,16 +180,36 @@ var _ = Describe("Test Kube Client Provider (w/o kubecontroller)", func() {
 					},
 					Ports: []v1.EndpointPort{
 						{
-							Name:        "port",
-							Port:        88,
+							Name:        "port1", // appProtocol specified
+							Port:        70,
 							Protocol:    v1.ProtocolTCP,
 							AppProtocol: &appProtoTCP,
 						},
 						{
-							Name:        "port",
+							Name:        "port2", // appProtocol specified
 							Port:        80,
 							Protocol:    v1.ProtocolTCP,
 							AppProtocol: &appProtoHTTP,
+						},
+						{
+							Name:     "http-port3", // appProtocol derived from port name
+							Port:     90,
+							Protocol: v1.ProtocolTCP,
+						},
+						{
+							Name:     "tcp-port4", // appProtocol derived from port name
+							Port:     100,
+							Protocol: v1.ProtocolTCP,
+						},
+						{
+							Name:     "grpc-port5", // appProtocol derived from port name
+							Port:     110,
+							Protocol: v1.ProtocolTCP,
+						},
+						{
+							Name:     "no-protocol-prefix", // appProtocol defaults to http
+							Port:     120,
+							Protocol: v1.ProtocolTCP,
 						},
 					},
 				},
@@ -199,7 +219,7 @@ var _ = Describe("Test Kube Client Provider (w/o kubecontroller)", func() {
 		portToProtocolMap, err := provider.GetTargetPortToProtocolMappingForService(tests.BookbuyerService)
 		Expect(err).To(BeNil())
 
-		expectedPortToProtocolMap := map[uint32]string{88: appProtoTCP, 80: appProtoHTTP}
+		expectedPortToProtocolMap := map[uint32]string{70: "tcp", 80: "http", 90: "http", 100: "tcp", 110: "grpc", 120: "http"}
 		Expect(portToProtocolMap).To(Equal(expectedPortToProtocolMap))
 	})
 })

@@ -10,7 +10,7 @@ Kubernetes services expose one or more ports. A port exposed by an application r
 
 This document proposes to leverage the newly introduced `AppProtocol` field to determine the application protocol for a service’s port in OSM. The application protocol on the port will be used to infer the protocol of the inbound traffic received on that port by the upstream proxy. Based on the protocol detected, appropriate filer chains will be configured on the upstream proxy to apply protocol specific filters to handle protocol specific policies.
 
-The minimum Kubernetes version must be v1.19 for features that require the `AppProtocol` to be specified for the service ports. If the Kubernetes version is lower than v1.19 or if the `AppProtocol` field is not set on the service's ports, OSM controller will log error events where applicable.
+The `AppProtocol` can be specified by default in Kubernetes server versions >= v1.19. In older versions where this field cannot be set, the application protocol for a service port can be indicated by prefixing the protocol name as a part of the port name. If the application protocol cannot be derived,  OSM controller will use `http` as the default application protocol for a port.
 
 
 ## Example
@@ -87,4 +87,19 @@ spec:
   - port: 8080
     name: some-port
     appProtocol: tcp
+```
+
+If the cluster is using an older Kubernetes version where `appProtocol` cannot be specified in the Service spec, the application protocol can be indicated by prefixing the port name with the protocol as follows:
+
+```yaml
+kind: Service
+metadata:
+  name: service-3
+  namespace: default
+spec:
+  ports:
+  - port: 80
+    name: http-someport # prefix 'http-' indicates http application protocol
+  - port: 90
+    name: tcp-someport # prefix 'tcp-' indicates tcp application protocol
 ```

@@ -15,11 +15,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
-const (
-	// defaultAppProtocol is the default application protocol for a port if unspecified
-	defaultAppProtocol = "http"
-)
-
 // NewProvider implements mesh.EndpointsProvider, which creates a new Kubernetes cluster/compute provider.
 func NewProvider(kubeClient kubernetes.Interface, kubeController k8s.Controller, providerIdent string, cfg configurator.Configurator) (endpoint.Provider, error) {
 	client := Client{
@@ -140,9 +135,12 @@ func (c Client) GetTargetPortToProtocolMappingForService(svc service.MeshService
 	// to worry about different application protocols being set.
 	for _, endpointSet := range endpoints.Subsets {
 		for _, port := range endpointSet.Ports {
-			appProtocol := defaultAppProtocol
+			var appProtocol string
 			if port.AppProtocol != nil {
 				appProtocol = *port.AppProtocol
+			} else {
+				appProtocol = k8s.GetAppProtocolFromPortName(port.Name)
+				log.Debug().Msgf("endpoint port name: %s, appProtocol: %s", port.Name, appProtocol)
 			}
 
 			portToProtocolMap[uint32(port.Port)] = appProtocol
