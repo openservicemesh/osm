@@ -59,11 +59,11 @@ spec:
           ]
           resources:
             limits:
-              cpu: 1.5
-              memory: 256M
+              cpu: "{{.Values.OpenServiceMesh.osmcontroller.resource.limits.cpu}}"
+              memory: "{{.Values.OpenServiceMesh.osmcontroller.resource.limits.memory}}"
             requests:
-              cpu: 0.5
-              memory: 32M
+              cpu: "{{.Values.OpenServiceMesh.osmcontroller.resource.requests.cpu}}"
+              memory: "{{.Values.OpenServiceMesh.osmcontroller.resource.requests.memory}}"
           readinessProbe:
             initialDelaySeconds: 1
             timeoutSeconds: 5

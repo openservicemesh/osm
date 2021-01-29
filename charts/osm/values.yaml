@@ -16,6 +16,14 @@ OpenServiceMesh:
   imagePullSecrets: []
   # -- Envoy sidecar image
   sidecarImage: envoyproxy/envoy-alpine:v1.17.0
+  osmcontroller:
+    resource:
+      limits:
+        cpu: "1.5"
+        memory: "256M"
+      requests:
+        cpu: "0.5"
+        memory: "32M"
   prometheus:
     # -- Prometheus port
     port: 7070
