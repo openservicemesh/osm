@@ -104,8 +104,8 @@ jobs:
       - name: Test
         run: make go-test-coverage
       - name: Upload Coverage
-        if: ${{ success() && github.event_name == 'push' }}
-        run: bash <(curl -s https://codecov.io/bash)
+        if: ${{ success() }}
+        run: bash <(curl -s https://codecov.io/bash) -F unittests
 
   scenarios_tests:
     name: Test various Envoy + SMI configuration scenarios
