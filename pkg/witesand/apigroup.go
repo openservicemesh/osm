@@ -5,63 +5,57 @@ import (
 	"fmt"
 	"net/http"
 )
-func (wc *WitesandCatalog) UpdateApigroupMap(w http.ResponseWriter, method string, r *http.Request) {
-
-	var input ApigroupToPodMap
+func (wc *WitesandCatalog) UpdateApigroupMap(w http.ResponseWriter, r *http.Request) {
+	var input map[string][]string
 	err := json.NewDecoder(r.Body).Decode(&input)
 	if err != nil  {
+		log.Error().Msgf("[UpdateApigroupMap] JSON decode err:%s", err)
 		w.WriteHeader(400)
 		fmt.Fprintf(w, "Decode error! please check your JSON formating.")
 		return
 	}
 
-	if method == "DELETE" {
-		_, exists := wc.apigroupToPodMap[input.Apigroup]
-		if !exists {
-			w.WriteHeader(400)
-			fmt.Fprintf(w, "apigroup %s doest not exist.", input.Apigroup)
-			return
+	for apigroupName, pods := range input {
+		atopMap := ApigroupToPodMap{
+			Apigroup: apigroupName,
+			Pods:     pods,
 		}
-		log.Info().Msgf("[UpdateApigroupMap] DELETE apigroup:%s", input.Apigroup)
-		delete(wc.apigroupToPodMap, input.Apigroup)
-		delete(wc.apigroupToPodIPMap, input.Apigroup)
-		wc.updateEnvoy()
-		return
-	}
-	if method == "POST" {
-		_, exists := wc.apigroupToPodMap[input.Apigroup]
-		if exists {
-			w.WriteHeader(400)
-			fmt.Fprintf(w, "apigroup %s already exists.", input.Apigroup)
-			return
+		if len(atopMap.Pods) == 0 {
+			// DELETE pods
+			log.Info().Msgf("[UpdateApigroupMap] DELETE apigroup:%s", apigroupName)
+			delete(wc.apigroupToPodMap, apigroupName)
+			delete(wc.apigroupToPodIPMap, apigroupName)
+		} else {
+			// UPDATE pods
+			log.Info().Msgf("[UpdateApigroupMap] POST apigroup:%s pods:%+v", apigroupName, atopMap.Pods)
+			wc.apigroupToPodMap[apigroupName] = atopMap
+			wc.resolveApigroup(atopMap)
 		}
-		log.Info().Msgf("[UpdateApigroupMap] POST apigroup:%s pods:%+v", input.Apigroup, input.Pods)
-		wc.apigroupToPodMap[input.Apigroup] = input
-	}
-	if method == "PUT" {
-		_, exists := wc.apigroupToPodMap[input.Apigroup]
-		if !exists {
-			w.WriteHeader(400)
-			fmt.Fprintf(w, "apigroup %s doest not exist.", input.Apigroup)
-			return
-		}
-		/*
-		if input.Revision < o.Revision {
-			w.WriteHeader(400)
-			fmt.Fprintf(w, "apigroup %s, revision(old:%d new:%d) stale.", input.Apigroup, o.Revision, input.Revision)
-			return
-		}
-		*/
-		log.Info().Msgf("[UpdateApigroupMap] PUT apigroup:%s pods:%+v", input.Apigroup, input.Pods)
-		wc.apigroupToPodMap[input.Apigroup] = input
 	}
 
-	// Resolve POD to IP
+	wc.updateEnvoy()
+}
+
+func (wc *WitesandCatalog) UpdateAllApigroupMaps(apigroupToPodMap *map[string][]string) {
+	log.Info().Msgf("[UpdateAllApigroupMaps] updating %d apiggroups", len(*apigroupToPodMap))
+	for apigroupName, pods := range *apigroupToPodMap {
+		apigroupMap := ApigroupToPodMap{
+			Apigroup: apigroupName,
+			Pods:     pods,
+		}
+		wc.apigroupToPodMap[apigroupMap.Apigroup] = apigroupMap
+	}
+	wc.ResolveAllApigroups()
+	wc.updateEnvoy()
+}
+
+// Resolve apigroup's pods to their respective IPs
+func (wc *WitesandCatalog) resolveApigroup(atopmap ApigroupToPodMap) {
 	atopipmap := ApigroupToPodIPMap{
-		Apigroup: input.Apigroup,
+		Apigroup: atopmap.Apigroup,
 		PodIPs:   make([]string, 0),
 	}
-	for _, pod := range input.Pods {
+	for _, pod := range atopmap.Pods {
 		podip := ""
 		for _, podInfo := range wc.clusterPodMap {
 			var exists bool
@@ -70,14 +64,20 @@ func (wc *WitesandCatalog) UpdateApigroupMap(w http.ResponseWriter, method strin
 			}
 		}
 		if podip != "" {
-			log.Info().Msgf("[UpdateApigroupMap] RESOLVE pod:%s IP:%s", pod, podip)
+			log.Info().Msgf("[resolveApigroup] RESOLVE pod:%s IP:%s", pod, podip)
 			atopipmap.PodIPs = append(atopipmap.PodIPs, podip)
 		} else {
-			log.Info().Msgf("[UpdateApigroupMap] CANNOT RESOLVE pod:%s !!", pod)
+			log.Info().Msgf("[resolveApigroup] CANNOT RESOLVE pod:%s !!", pod)
 		}
 	}
 	wc.apigroupToPodIPMap[atopipmap.Apigroup] = atopipmap
-	wc.updateEnvoy()
+}
+
+func (wc *WitesandCatalog) ResolveAllApigroups() {
+	log.Info().Msgf("[ResolveAllApigroups] Resovling all apigroups")
+	for _, atopmap := range wc.apigroupToPodMap {
+		wc.resolveApigroup(atopmap)
+	}
 }
 
 func (wc *WitesandCatalog) ListApigroupClusterNames() ([]string, error) {

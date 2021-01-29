@@ -11,6 +11,10 @@ import(
 	"github.com/openservicemesh/osm/pkg/witesand"
 )
 
+var(
+	InitialSyncingPeriod = 3
+)
+
 func (mc *MeshCatalog) witesandHttpServerAndClient() {
 	go mc.witesandHttpServer()
 	go mc.witesandHttpClient()
@@ -52,6 +56,9 @@ func (mc *MeshCatalog) witesandHttpClient() {
 				if err == nil {
 					log.Info().Msgf("[queryRemoteOsm] remoteOsmIP:%s remotePods:%+v", remoteOsmIP, remotePods)
 					return remotePods, nil
+				} else {
+					log.Error().Msgf("[queryRemoteOsm] Marshalling error:%s", err)
+					return remotePods, err
 				}
 			}
 		}
@@ -59,16 +66,45 @@ func (mc *MeshCatalog) witesandHttpClient() {
 		return remotePods, err
 	}
 
+	queryWaves := func(wavesIP string) (*map[string][]string, error) {
+		log.Info().Msgf("[queryWaves] querying waves:%s", wavesIP)
+		dest := fmt.Sprintf("%s:%s", wavesIP, witesand.WavesServerPort)
+		url := fmt.Sprintf("http://%s/apigrpgwmap", dest)
+		client := &http.Client{}
+		req, _ := http.NewRequest("GET", url, nil)
+		resp, err := client.Do(req)
+		var apigroupToPodMaps map[string][]string
+		if err == nil {
+			defer resp.Body.Close()
+			b, err := ioutil.ReadAll(resp.Body)
+			if err == nil {
+				err = json.Unmarshal(b, &apigroupToPodMaps)
+				if err == nil {
+					log.Info().Msgf("[queryWaves] wavesIP:%s apigroupToPodMaps:%+v", wavesIP, apigroupToPodMaps)
+					return &apigroupToPodMaps, nil
+				} else {
+					log.Error().Msgf("[queryWaves] Marshalling error:%s body:%+v", err, b)
+					return nil, err
+				}
+			}
+		}
+		log.Info().Msgf("[queryWaves] err:%+v", err)
+		return nil, err
+	}
+
+	initialWavesSyncDone := false
 	ticker := time.NewTicker(15 * time.Second)
 	// run forever
 	for {
 		// read env to update Master OSM IP
 		wc.UpdateMasterOsmIP()
 
+		// learn local pods
 		localPods, err := wc.ListLocalGatewayPods()
 		if err == nil {
 			wc.UpdateClusterPods(witesand.LocalClusterId, localPods)
 		}
+		// learn remote pods
 		for clusterId, remoteK8s := range wc.ListRemoteK8s() {
 			remotePods, err := queryRemoteOsm(remoteK8s.OsmIP)
 			if err == nil {
@@ -77,6 +113,22 @@ func (mc *MeshCatalog) witesandHttpClient() {
 				// not responding, trigger remove
 				wc.UpdateRemoteK8s(clusterId, "")
 			}
+		}
+
+		// learn apigroups from waves
+		if wc.IsMaster() && !initialWavesSyncDone && InitialSyncingPeriod != 0 {
+			wavesPods, err := wc.ListWavesPodIPs()
+			if err == nil {
+				apigroupMaps, err := queryWaves(wavesPods[0])
+				if err == nil {
+					wc.UpdateAllApigroupMaps(apigroupMaps)
+					initialWavesSyncDone = true
+				}
+			}
+		}
+
+		if InitialSyncingPeriod != 0 {
+			InitialSyncingPeriod -= 1
 		}
 		<-ticker.C
 	}
@@ -124,6 +176,13 @@ func (mc *MeshCatalog) GetLocalGatewayPods(w http.ResponseWriter, r *http.Reques
 }
 
 func (mc *MeshCatalog) GetAllGatewayPods(w http.ResponseWriter, r *http.Request) {
+	if InitialSyncingPeriod != 0 {
+		// initial cooling period, need to wait till we sync with others
+		log.Error().Msgf("InitialSyncingPeriod not over !!, send error response")
+		w.WriteHeader(503)
+		fmt.Fprintf(w, "Not ready")
+		return
+	}
 	list, err := mc.GetWitesandCataloger().ListAllGatewayPods()
 	if err != nil {
 		log.Error().Msgf("err fetching gateway pod %+v", err)
@@ -146,10 +205,5 @@ func (mc *MeshCatalog) GetLocalEndpoints(w http.ResponseWriter, r *http.Request)
 }
 
 func (mc *MeshCatalog) ApigroupMapping(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" || r.Method == "DELETE" || r.Method == "PUT" {
-		mc.witesandCatalog.UpdateApigroupMap(w, r.Method, r)
-	} else {
-		http.Error(w, "Invalid request method.", 405)
-		return
-	}
+	mc.witesandCatalog.UpdateApigroupMap(w, r)
 }

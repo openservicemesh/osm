@@ -18,6 +18,7 @@ const(
 
 	// HTTP REST port for communication with WAVES and remote OSMes
 	HttpServerPort = "2500"
+	WavesServerPort = "9053"
 
 	// HTTP headers for remote OSMes
 	HttpRemoteAddrHeader = "X-Osm-Origin-Ip"
@@ -72,12 +73,14 @@ type WitesandCataloger interface {
 	GetMyIP() string
 	GetClusterId() string
 	UpdateMasterOsmIP()
+	IsMaster() bool
 
 	UpdateRemoteK8s(remoteClusterId string, remoteIP string)
 	UpdateClusterPods(remoteClusterId string, remotePods *ClusterPods)
 	ListRemoteK8s() map[string]RemoteK8s
 
-	UpdateApigroupMap(w http.ResponseWriter, method string, r *http.Request)
+	UpdateApigroupMap(w http.ResponseWriter, r *http.Request)
+	UpdateAllApigroupMaps(*map[string][]string)
 
 	// for usage by CDS
 	ListApigroupClusterNames() ([]string, error)
@@ -88,6 +91,7 @@ type WitesandCataloger interface {
 
 	ListLocalGatewayPods() (*ClusterPods, error)
 	ListAllGatewayPods() ([]string, error)
+	ListWavesPodIPs() ([]string, error)
 
 	IsWSGatewayService(svc service.MeshServicePort) bool
 }

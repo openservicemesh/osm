@@ -34,6 +34,26 @@ func (wc *WitesandCatalog) ListLocalGatewayPods() (*ClusterPods, error) {
 	return &pods, nil
 }
 
+func (wc *WitesandCatalog) ListWavesPodIPs() ([]string, error) {
+	kubeClient := wc.kubeClient
+	svcName := "waves"
+
+	podips := make([]string, 0)
+	podList, err := kubeClient.CoreV1().Pods("default").List(context.Background(), v12.ListOptions{})
+	if err != nil {
+		log.Error().Err(err).Msgf("Error listing waves pods in namespace %s", "default")
+		return podips, fmt.Errorf("error listing waves pods")
+	}
+
+	for _, pod := range podList.Items {
+		if strings.HasPrefix(pod.Name, svcName) && pod.Status.Phase == "Running" {
+			log.Info().Msgf("pod.Name=%+v, pod.PodIP=%+v \n", pod.Name, pod.Status.PodIP)
+			podips = append(podips, pod.Status.PodIP)
+		}
+	}
+	return podips, nil
+}
+
 func (wc *WitesandCatalog) ListAllGatewayPods() ([]string, error) {
 	pods := make([]string, 0)
 	for _, clusterPods := range wc.clusterPodMap {
@@ -83,6 +103,8 @@ func (wc *WitesandCatalog) UpdateClusterPods(clusterId string, clusterPods *Clus
 		} else {
 			wc.clusterPodMap[clusterId] = *clusterPods
 		}
+		// as pod/ips have changed, resolve apigroups again
+		wc.ResolveAllApigroups()
 		wc.updateEnvoy()
 	}
 }
