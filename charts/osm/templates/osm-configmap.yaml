@@ -19,3 +19,7 @@ data:
 
   use_https_ingress: {{ .Values.OpenServiceMesh.useHTTPSIngress | default "false" | quote }}
   service_cert_validity_duration: {{ .Values.OpenServiceMesh.serviceCertValidityDuration | quote }}
+
+{{- if .Values.OpenServiceMesh.outboundIPRangeExclusionList }}
+  outbound_ip_range_exclusion_list: {{ join "," .Values.OpenServiceMesh.outboundIPRangeExclusionList | quote }}
+{{- end}}
