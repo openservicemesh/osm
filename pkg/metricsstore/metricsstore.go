@@ -110,7 +110,6 @@ func init() {
 			Help:      "Histogram to track time spent for proxy configuration",
 		},
 		[]string{
-			"proxy_cn",      // proxy_cn is the common name of the proxy
 			"resource_type", // identifies a typeURI resource
 			"success",       // further labels if the operation succeeded or not
 		})
@@ -155,9 +154,7 @@ func init() {
 			Buckets:   []float64{.1, .25, .5, 1, 2.5, 5, 10, 20, 40, 90},
 			Help:      "Histogram to track time spent to issue xds certificate",
 		},
-		[]string{
-			"common_name", // common_name is the common name of the certificate
-		})
+		[]string{})
 	defaultMetricsStore.registry = prometheus.NewRegistry()
 }
 

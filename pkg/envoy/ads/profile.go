@@ -16,6 +16,6 @@ func xdsPathTimeTrack(t time.Time, tURIStr string, commonNameStr string, success
 		elapsed)
 
 	metricsstore.DefaultMetricsStore.ProxyConfigUpdateTime.
-		WithLabelValues(commonNameStr, tURIStr, fmt.Sprintf("%t", *success)).
+		WithLabelValues(tURIStr, fmt.Sprintf("%t", *success)).
 		Observe(elapsed.Seconds())
 }
