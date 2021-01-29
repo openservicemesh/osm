@@ -104,7 +104,7 @@ jobs:
       - name: Test
         run: make go-test-coverage
       - name: Upload Coverage
-        if: ${{ success() }}
+        if: ${{ success() && github.event_name == 'push' }}
         run: bash <(curl -s https://codecov.io/bash)
 
   scenarios_tests:
