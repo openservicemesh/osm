@@ -33,7 +33,8 @@
                 "enforceSingleMesh",
                 "deployJaeger",
                 "tracing",
-                "webhookConfigNamePrefix"
+                "webhookConfigNamePrefix",
+                "osmcontroller"
             ],
             "properties": {
                 "replicaCount": {
@@ -44,6 +45,78 @@
                     "examples": [
                         1
                     ]
+                },
+                "osmcontroller": {
+                    "$id": "#/properties/OpenServiceMesh/properties/osmcontroller",
+                    "type": "object",
+                    "title": "The osmcontroller schema",
+                    "description": "The details of the osmcontroller.",
+                    "required": [
+                        "resource"
+                    ],
+                    "properties": {
+                        "resource": {
+                            "$id": "#/properties/OpenServiceMesh/properties/osmcontroller/properties/resource",
+                            "type": "object",
+                            "title": "The resource schema",
+                            "description": "The resources used by the osmcontroller.",
+                            "required": [
+                                "limits",
+                                "requests"
+                            ],
+                            "properties": {
+                                "limits": {
+                                    "$id": "#/properties/OpenServiceMesh/properties/osmcontrollers/properties/resource/properties/limits",
+                                    "type": "object",
+                                    "title": "The resource limits schema",
+                                    "description": "The resources limits for the osmcontroller.",
+                                    "required": [
+                                        "cpu",
+                                        "memory"
+                                    ],
+                                    "properties": {
+                                        "cpu": {
+                                            "$id": "#/properties/OpenServiceMesh/properties/osmcontrollers/properties/resource/properties/limits/properties/cpu",
+                                            "type": "string",
+                                            "title": "The resource limits cpu schema",
+                                            "description": "The resources limits cpu for the osmcontroller."
+                                        },
+                                        "memory": {
+                                            "$id": "#/properties/OpenServiceMesh/properties/image/properties/memory",
+                                            "type": "string",
+                                            "title": "The resource limits memory schema",
+                                            "description": "The resources limits cpu for the osmcontroller."
+                                        }
+                                    }
+                                },
+                                "requests": {
+                                    "$id": "#/properties/OpenServiceMesh/properties/osmcontroller/properties/resource/properties/requests",
+                                    "type": "object",
+                                    "title": "The resource requests schema",
+                                    "description": "The resources requests for the osmcontroller.",
+                                    "required": [
+                                        "cpu",
+                                        "memory"
+                                    ],
+                                    "properties": {
+                                        "cpu": {
+                                            "$id": "#/properties/OpenServiceMesh/properties/osmcontroller/properties/resource/properties/requests/properties/cpu",
+                                            "type": "string",
+                                            "title": "The resource requests cpu schema",
+                                            "description": "The resources requests cpu for the osmcontroller."
+                                        },
+                                        "memory": {
+                                            "$id": "#/properties/OpenServiceMesh/properties/osmcontroller/properties/resource/properties/requests/properties/memory",
+                                            "type": "string",
+                                            "title": "The resource requests memory schema",
+                                            "description": "The resources requests memory for the osmcontroller."
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "additionalProperties": true
                 },
                 "image": {
                     "$id": "#/properties/OpenServiceMesh/properties/image",
