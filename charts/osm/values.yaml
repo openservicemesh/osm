@@ -123,7 +123,7 @@ OpenServiceMesh:
   tracing:
 
     # -- Toggles Envoy's tracing functionality on/off for all sidecar proxies in the cluster
-    enable: true
+    enable: false
 
     # -- Tracing destination cluster (must contain the namespace)
     address: "jaeger.osm-system.svc.cluster.local"
