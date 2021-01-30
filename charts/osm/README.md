@@ -107,7 +107,7 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.serviceCertValidityDuration | string | `"24h"` | Sets the service certificatevalidity duration |
 | OpenServiceMesh.sidecarImage | string | `"envoyproxy/envoy-alpine:v1.17.0"` | Envoy sidecar image |
 | OpenServiceMesh.tracing.address | string | `"jaeger.osm-system.svc.cluster.local"` | Tracing destination cluster (must contain the namespace) |
-| OpenServiceMesh.tracing.enable | bool | `true` | Toggles Envoy's tracing functionality on/off for all sidecar proxies in the cluster |
+| OpenServiceMesh.tracing.enable | bool | `false` | Toggles Envoy's tracing functionality on/off for all sidecar proxies in the cluster |
 | OpenServiceMesh.tracing.endpoint | string | `"/api/v2/spans"` | Destination's API or collector endpoint where the spans will be sent to |
 | OpenServiceMesh.tracing.port | int | `9411` | Destination port for the listener |
 | OpenServiceMesh.useHTTPSIngress | bool | `false` | Enables HTTPS ingress on the mesh |
