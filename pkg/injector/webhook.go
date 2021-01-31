@@ -54,8 +54,8 @@ const (
 )
 
 // NewWebhook starts a new web server handling requests from the injector MutatingWebhookConfiguration
-func NewWebhook(config Config, kubeClient kubernetes.Interface, certManager certificate.Manager, meshCatalog catalog.MeshCataloger, kubeController k8s.Controller, meshName, osmNamespace, webhookConfigName string, stop <-chan struct{}, cfg configurator.Configurator) error {
-	cn := certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.OSMControllerName, osmNamespace))
+func NewWebhook(config Config, kubeClient kubernetes.Interface, certManager certificate.Manager, meshCatalog catalog.MeshCataloger, kubeController k8s.Controller, meshName, osmControllerName, osmNamespace, webhookConfigName string, stop <-chan struct{}, cfg configurator.Configurator) error {
+	cn := certificate.CommonName(fmt.Sprintf("%s.%s.svc", osmControllerName, osmNamespace))
 	cert, err := certManager.IssueCertificate(cn, constants.XDSCertificateValidityPeriod)
 	if err != nil {
 		return errors.Errorf("Error issuing certificate for the mutating webhook: %+v", err)
@@ -70,6 +70,8 @@ func NewWebhook(config Config, kubeClient kubernetes.Interface, certManager cert
 		osmNamespace:   osmNamespace,
 		cert:           cert,
 		configurator:   cfg,
+
+		osmControllerName : osmControllerName,
 
 		// Envoy sidecars should never be injected in these namespaces
 		nonInjectNamespaces: mapset.NewSetFromSlice([]interface{}{

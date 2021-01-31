@@ -60,6 +60,7 @@ var (
 	enableRemoteCluster  bool
 	clusterId            string
 	kubeConfigFile       string
+	osmControllerName    string
 	osmNamespace         string
 	webhookConfigName    string
 	caBundleSecretName   string
@@ -106,6 +107,7 @@ func init() {
 	flags.BoolVar(&enableRemoteCluster, "enable-remote-cluster", false, "Enable Remote cluster")
 	flags.StringVar(&clusterId, "cluster-id", "master", "Cluster Id")
 	flags.StringVar(&osmNamespace, "osm-namespace", "", "Namespace to which OSM belongs to.")
+	flags.StringVar(&osmControllerName, "osm-controller-name", "osm-controller", "Service name of osm-controller.")
 	flags.StringVar(&webhookConfigName, "webhook-config-name", "", "Name of the MutatingWebhookConfiguration to be configured by osm-controller")
 	flags.StringVar(&caBundleSecretName, caBundleSecretNameCLIParam, "", "Name of the Kubernetes Secret for the OSM CA bundle")
 	flags.StringVar(&osmConfigMapName, "osm-configmap-name", "osm-config", "Name of the OSM ConfigMap")
@@ -248,7 +250,7 @@ func main() {
 		endpointsProviders...)
 
 	// Create the sidecar-injector webhook
-	if err := injector.NewWebhook(injectorConfig, kubeClient, certManager, meshCatalog, kubernetesClient, meshName, osmNamespace, webhookConfigName, stop, cfg); err != nil {
+	if err := injector.NewWebhook(injectorConfig, kubeClient, certManager, meshCatalog, kubernetesClient, meshName, osmControllerName, osmNamespace, webhookConfigName, stop, cfg); err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating sidecar injector webhook")
 	}
 
@@ -432,6 +434,8 @@ func createControllerManagerForOSMResources(certManager certificate.Manager) err
 		OsmWebhook:   fmt.Sprintf("osm-webhook-%s", meshName),
 		OsmNamespace: osmNamespace,
 		CertManager:  certManager,
+
+		OsmControllerName: osmControllerName,
 	}).SetupWithManager(mgr); err != nil {
 		log.Error().Err(err).Msg("Error creating reconcile controller for MutatingWebhookConfiguration")
 		return err

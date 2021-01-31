@@ -11,7 +11,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/injector"
 	"github.com/openservicemesh/osm/pkg/logger"
 )
@@ -25,6 +24,8 @@ type MutatingWebhookConfigrationReconciler struct {
 	OsmWebhook   string
 	OsmNamespace string
 	CertManager  certificate.Manager
+
+	OsmControllerName string
 }
 
 // Reconcile is the reconciliation method for OSM MutatingWebhookConfiguration.
@@ -47,7 +48,7 @@ func (r *MutatingWebhookConfigrationReconciler) Reconcile(req ctrl.Request) (ctr
 				if webhook.Name == injector.MutatingWebhookName && webhook.ClientConfig.CABundle == nil {
 					log.Trace().Msgf("CA bundle missing for webhook : %s ", req.Name)
 					shouldUpdate = true
-					cn := certificate.CommonName(fmt.Sprintf("%s.%s.svc", constants.OSMControllerName, r.OsmNamespace))
+					cn := certificate.CommonName(fmt.Sprintf("%s.%s.svc", r.OsmControllerName, r.OsmNamespace))
 					cert, err := r.CertManager.GetCertificate(cn)
 					if err != nil {
 						return ctrl.Result{}, errors.Errorf("Error updating mutating webhook, unable to get certificate for the mutating webhook %s: %+s", req.Name, err)

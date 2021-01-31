@@ -28,6 +28,9 @@ type webhook struct {
 	cert           certificate.Certificater
 	configurator   configurator.Configurator
 
+	// WITESAND OSM controller name can be different for each cluster
+	osmControllerName string
+
 	nonInjectNamespaces mapset.Set
 }
 
