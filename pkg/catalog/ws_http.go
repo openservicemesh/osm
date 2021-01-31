@@ -118,7 +118,7 @@ func (mc *MeshCatalog) witesandHttpClient() {
 		// learn apigroups from waves
 		if wc.IsMaster() && !initialWavesSyncDone && InitialSyncingPeriod != 0 {
 			wavesPods, err := wc.ListWavesPodIPs()
-			if err == nil {
+			if err == nil && len(wavesPods) != 0 {
 				apigroupMaps, err := queryWaves(wavesPods[0])
 				if err == nil {
 					wc.UpdateAllApigroupMaps(apigroupMaps)

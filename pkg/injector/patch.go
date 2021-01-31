@@ -58,9 +58,12 @@ func (wh *webhook) createPatch(pod *corev1.Pod, namespace string, proxyUUID uuid
 	)
 
 	// Add the Init Container
+	cidrRanges := wh.configurator.GetMeshCIDRRanges()
 	initContainerData := InitContainer{
 		Name:  constants.InitContainerName,
 		Image: wh.config.InitContainerImage,
+		CIDR1: cidrRanges[0],
+		CIDR2: cidrRanges[1],
 	}
 	initContainerSpec, err := getInitContainerSpec(&initContainerData)
 	if err != nil {

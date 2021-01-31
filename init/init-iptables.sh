@@ -149,7 +149,10 @@ iptables -t nat -A PROXY_OUTPUT -m owner --uid-owner "${PROXY_UID}" -j RETURN
 
 # Skip localhost traffic
 iptables -t nat -A PROXY_OUTPUT -d 127.0.0.1/32 -j RETURN
-#iptables -t nat -A PROXY_OUTPUT \! -d 10.84.0.0/15 -j RETURN # allow non-k8s traffic
 
-# Redirect remaining outbound traffic to Envoy
-iptables -t nat -A PROXY_OUTPUT -j PROXY_REDIRECT
+# Redirect pod and service-bound traffic to envoy
+iptables -t nat -A PROXY_OUTPUT -d "${CIDR1}" -j PROXY_REDIRECT
+iptables -t nat -A PROXY_OUTPUT -d "${CIDR2}" -j PROXY_REDIRECT
+
+# skip remaining trafifc
+iptables -t nat -A PROXY_OUTPUT -j RETURN # allow non-k8s traffic

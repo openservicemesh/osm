@@ -29,6 +29,9 @@ const (
 	// prometheusScrapingKey is the key name used for prometheus scraping in the ConfigMap
 	prometheusScrapingKey = "prometheus_scraping"
 
+	meshCIDRRangesKey = "mesh_cidr_ranges"
+	defaultInMeshCIDR = ""
+
 	// useHTTPSIngressKey is the key name used for HTTPS ingress in the ConfigMap
 	useHTTPSIngressKey = "use_https_ingress"
 
@@ -102,6 +105,9 @@ type osmConfig struct {
 
 	// Egress is a bool toggle used to enable or disable egress globally within the mesh
 	Egress bool `yaml:"egress"`
+
+	// MeshCIDRRanges is the list of CIDR ranges for in-mesh traffic
+	MeshCIDRRanges string `yaml:"mesh_cidr_ranges"`
 
 	// EnableDebugServer is a bool toggle, which enables/disables the debug server within the OSM Controller
 	EnableDebugServer bool `yaml:"enable_debug_server"`
@@ -186,6 +192,7 @@ func (c *Client) getConfigMap() *osmConfig {
 	osmConfigMap.Egress, _ = GetBoolValueForKey(configMap, egressKey)
 	osmConfigMap.EnableDebugServer, _ = GetBoolValueForKey(configMap, enableDebugServer)
 	osmConfigMap.PrometheusScraping, _ = GetBoolValueForKey(configMap, prometheusScrapingKey)
+	osmConfigMap.MeshCIDRRanges = getEgressCIDR(configMap)
 	osmConfigMap.UseHTTPSIngress, _ = GetBoolValueForKey(configMap, useHTTPSIngressKey)
 	osmConfigMap.TracingEnable, _ = GetBoolValueForKey(configMap, tracingEnableKey)
 	osmConfigMap.EnvoyLogLevel, _ = GetStringValueForKey(configMap, envoyLogLevel)
@@ -199,6 +206,16 @@ func (c *Client) getConfigMap() *osmConfig {
 
 	return &osmConfigMap
 }
+
+func getEgressCIDR(configMap *v1.ConfigMap) string {
+	cidr, ok := configMap.Data[meshCIDRRangesKey]
+	if !ok {
+		return defaultInMeshCIDR
+	}
+
+	return cidr
+}
+
 
 // GetBoolValueForKey returns the boolean value for a key and an error in case of errors
 func GetBoolValueForKey(configMap *v1.ConfigMap, key string) (bool, error) {

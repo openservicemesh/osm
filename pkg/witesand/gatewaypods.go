@@ -79,11 +79,12 @@ func (wc *WitesandCatalog) ListAllGatewayPodIPs() (*ClusterPods, error) {
 }
 
 func (wc *WitesandCatalog) UpdateClusterPods(clusterId string, clusterPods *ClusterPods) {
-	log.Info().Msgf("[UpdateClusterPods] clusterId:%s clusterPods:%+v", clusterId, *clusterPods)
+	log.Info().Msgf("[UpdateClusterPods] clusterId:%s", clusterId)
 	// checks to see if anything (pod or podip) has changed to trigger update
 	triggerUpdate := false
 	prevClusterPods, exists := wc.clusterPodMap[clusterId]
 	if exists && clusterPods != nil && len(prevClusterPods.PodToIPMap) == len(clusterPods.PodToIPMap) {
+		log.Info().Msgf("[UpdateClusterPods] clusterId:%s clusterPods:%+v", clusterId, *clusterPods)
 		for pod, podip := range clusterPods.PodToIPMap {
 			prevPodIp, exists := prevClusterPods.PodToIPMap[pod]
 			if !exists || prevPodIp != podip {

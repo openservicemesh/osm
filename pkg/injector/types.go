@@ -55,6 +55,8 @@ type JSONPatchOperation struct {
 type InitContainer struct {
 	Name  string
 	Image string
+	CIDR1 string
+	CIDR2 string
 }
 
 // EnvoySidecarData is the type used to represent information about the Envoy sidecar

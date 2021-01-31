@@ -33,6 +33,14 @@ func getInitContainerSpec(initContainer *InitContainer) (corev1.Container, error
 				Name:  "OSM_ENVOY_OUTBOUND_PORT",
 				Value: fmt.Sprintf("%d", constants.EnvoyOutboundListenerPort),
 			},
+			{
+				Name:  "CIDR1",
+				Value: initContainer.CIDR1,
+			},
+			{
+				Name:  "CIDR2",
+				Value: initContainer.CIDR2,
+			},
 		},
 	}, nil
 }
