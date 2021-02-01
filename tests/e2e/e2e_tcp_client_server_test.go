@@ -130,7 +130,7 @@ func testTCPTraffic(permissiveMode bool) {
 
 				// Ensure the echo response contains request message
 				if !strings.Contains(result.Response, requestMsg) {
-					Td.T.Logf("> (%s) Unexpected response: %s.\n Response expected to contain: %s", result.Response, requestMsg)
+					Td.T.Logf("> (%s) Unexpected response: %s.\n Response expected to contain: %s", srcToDestStr, result.Response, requestMsg)
 					return false
 				}
 				Td.T.Logf("> (%s) TCP Req succeeded, response: %s", srcToDestStr, result.Response)
