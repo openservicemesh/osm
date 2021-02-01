@@ -109,11 +109,13 @@ Position the windows so that you can see all four at the same time. The header a
 ## Deploy SMI Access Control Policies
 At this point, no applications have access to each other because no access control policies have been applied. Confirm this by confirming that none of the counters in the UI are incrementing. Apply the [SMI Traffic Target][1] and [SMI Traffic Specs][2] resources to define access control policies below:
 ```bash
-kubectl create -f docs/example/manifests/access/
+kubectl apply -f docs/example/manifests/access/
 ```
 The counters should now be incrementing for the `Bookbuyer`, and `Bookstore-v1` applications:
 - http://localhost:8080 - **Bookbuyer**
 - http://localhost:8081 - **bookstore-v1**
+
+*Note: If there's no traffic flowing through, please check `permissive_traffic_policy_mode` has been set to `false` in the osm-config configmap in the namespace osm control plane has been installed.*
 
 ### Allowing the Bookthief Application to access the Mesh
 Currently the Bookthief application has not been authorized to participate in the service mesh communication. We will now uncomment out the lines in the [docs/example/manifests/access/traffic-access.yaml](manifests/access/traffic-access.yaml) to allow `Bookthief` to communicate with `Bookstore`. Then, re-apply the manifest and watch the change in policy propagate.
@@ -178,8 +180,6 @@ kubectl apply -f docs/example/manifests/access/
 ```
 The counter in the `Bookthief` window will start incrementing.
 - http://localhost:8083 - **bookthief**
-
-*Note: Bypass setting up and using access control policies entirely by enabling permissive traffic policy mode when installing a control plane: `osm install --enable-permissive-traffic-policy`*
 
 ## Traffic Encryption
 
