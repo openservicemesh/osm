@@ -92,7 +92,7 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.grafana.port | int | `3000` | Grafana port |
 | OpenServiceMesh.image.pullPolicy | string | `"IfNotPresent"` | `osm-controller` pod PullPolicy |
 | OpenServiceMesh.image.registry | string | `"openservicemesh"` | `osm-controller` image registry |
-| OpenServiceMesh.image.tag | string | `"v0.6.1"` | `osm-controller` image tag |
+| OpenServiceMesh.image.tag | string | `"v0.7.0-rc.1"` | `osm-controller` image tag |
 | OpenServiceMesh.imagePullSecrets | list | `[]` | `osm-controller` image pull secret |
 | OpenServiceMesh.meshName | string | `"osm"` | Name for the new control plane instance |
 | OpenServiceMesh.osmNamespace | string | `""` | Optional parameter. If not specified, the release namespace is used to deploy the osm components. |
