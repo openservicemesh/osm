@@ -18,7 +18,7 @@ OSM deploys a configMap `osm-config` as a part of its control plane (in the same
 | envoy_log_level | OpenServiceMesh.envoyLogLevel | string | trace, debug, info, warning, warn, error, critical, off | `"error"` | Sets the logging verbosity of Envoy proxy sidecar, only applicable to newly created pods joining the mesh. |
 | prometheus_scraping | OpenServiceMesh.enablePrometheusScraping | bool | true, false | `"true"` | Enables Prometheus metrics scraping on sidecar proxies. |
 | service_cert_validity_duration | OpenServiceMesh.serviceCertValidityDuration | string | 24h, 1h30m (any time duration) | `"24h"` | Sets the service certificatevalidity duration, represented as a sequence of decimal numbers each with optional fraction and a unit suffix. |
-| tracing_enable | OpenServiceMesh.tracing.enable | bool | true, false | `"true"` | Enables Jaeger tracing for the mesh. |
+| tracing_enable | OpenServiceMesh.tracing.enable | bool | true, false | `"false"` | Enables Jaeger tracing for the mesh. |
 | tracing_address | OpenServiceMesh.tracing.address | string | jaeger.mesh-namespace.svc.cluster.local | `jaeger.osm-system.svc.cluster.local` | Address of the Jaeger deployment, if tracing is enabled. |
 | tracing_endpoint | OpenServiceMesh.tracing.endpoint | string | /api/v2/spans | /api/v2/spans | Endpoint for tracing data, if tracing enabled. |
 | tracing_port| OpenServiceMesh.tracing.port | int | any non-zero integer value | `"9411"` | Port on which tracing is enabled. |

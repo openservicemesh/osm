@@ -36,7 +36,7 @@ var (
 	ValidEnvoyLogLevels = []string{"trace", "debug", "info", "warning", "warn", "error", "critical", "off"}
 
 	// defaultFields are the default fields in osm-config
-	defaultFields = []string{"egress", "enable_debug_server", "permissive_traffic_policy_mode", "prometheus_scraping", "tracing_enable", "use_https_ingress", "envoy_log_level", "service_cert_validity_duration", "tracing_address", "tracing_port", "tracing_endpoint"}
+	defaultFields = []string{"egress", "enable_debug_server", "permissive_traffic_policy_mode", "prometheus_scraping", "use_https_ingress", "envoy_log_level", "service_cert_validity_duration", "tracing_enable"}
 )
 
 const (
