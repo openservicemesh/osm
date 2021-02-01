@@ -9,6 +9,11 @@ CI_MAX_ITERATIONS_THRESHOLD="${CI_MAX_ITERATIONS_THRESHOLD:-0}"
 CI_CLIENT_CONCURRENT_CONNECTIONS="${CI_CLIENT_CONCURRENT_CONNECTIONS:-1}"
 ENABLE_EGRESS="${ENABLE_EGRESS:-false}"
 CI_SLEEP_BETWEEN_REQUESTS_SECONDS="${CI_SLEEP_BETWEEN_REQUESTS_SECONDS:-1}"
+ROUTES_V2="${ROUTES_V2:-false}"
+
+if [ "$ROUTES_V2" = "true" ]; then
+BOOKSTORE_SVC=bookstore-v1
+fi
 
 kubectl delete deployment bookbuyer -n "$BOOKBUYER_NAMESPACE"  --ignore-not-found
 
@@ -52,6 +57,7 @@ spec:
   selector:
     matchLabels:
       app: bookbuyer
+      version: v1
   template:
     metadata:
       labels:

@@ -37,6 +37,10 @@ spec:
     pathRegex: ".*a-book.*new"
     methods:
     - GET
+  - name: update-books-bought
+    pathRegex: /update-books-bought
+    methods:
+    - POST
 ---
 kind: TrafficTarget
 apiVersion: access.smi-spec.io/v1alpha3
@@ -58,34 +62,7 @@ spec:
   - kind: ServiceAccount
     name: bookbuyer
     namespace: bookbuyer
+  #- kind: ServiceAccount
+    #name: bookthief
+    #namespace: bookthief
 ---
-apiVersion: specs.smi-spec.io/v1alpha4
-kind: HTTPRouteGroup
-metadata:
-  name: bookstore-service-routes
-  namespace: bookstore
-spec:
-  matches:
-  - name: books-bought
-    pathRegex: /books-bought
-    methods:
-    - GET
-  - name: buy-a-book
-    pathRegex: ".*a-book.*new"
-    methods:
-    - GET
-  - name: update-books-bought
-    pathRegex: /update-books-bought
-    methods:
-    - POST
----
-apiVersion: specs.smi-spec.io/v1alpha4
-kind: HTTPRouteGroup
-metadata:
-  name: bookwarehouse-service-routes
-  namespace: bookwarehouse
-spec:
-  matches:
-    - name: restock-books
-      methods:
-      - POST

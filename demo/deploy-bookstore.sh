@@ -6,10 +6,12 @@ set -aueo pipefail
 source .env
 VERSION=${1:-v1}
 SVC="bookstore-$VERSION"
+ROUTES_V2="${ROUTES_V2:-false}"
 
 kubectl delete deployment "$SVC" -n "$BOOKSTORE_NAMESPACE"  --ignore-not-found
 
 # Create a top level service just for the bookstore domain
+if [ "$ROUTES_V2" = "false" ]; then
 echo -e "Deploy bookstore Service"
 kubectl apply -f - <<EOF
 apiVersion: v1
@@ -26,6 +28,7 @@ spec:
   selector:
     app: bookstore
 EOF
+fi
 
 echo -e "Deploy $SVC Service Account"
 kubectl apply -f - <<EOF
