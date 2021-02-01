@@ -13,7 +13,7 @@ var _ = OSMDescribe("Test osm control plane installation with Helm",
 		Bucket: 1,
 	},
 	func() {
-		Context("Using default values", func() {
+		Context("Helm install using default values", func() {
 			It("installs osm control plane successfully", func() {
 				if Td.InstType == NoInstall {
 					Skip("Test is not going through InstallOSM, hence cannot be automatically skipped with NoInstall (#1908)")
@@ -34,10 +34,7 @@ var _ = OSMDescribe("Test osm control plane installation with Helm",
 				Expect(configmap.Data["envoy_log_level"]).Should(Equal("error"))
 				Expect(configmap.Data["enable_debug_server"]).Should(Equal("false"))
 				Expect(configmap.Data["prometheus_scraping"]).Should(Equal("true"))
-				Expect(configmap.Data["tracing_enable"]).Should(Equal("true"))
-				Expect(configmap.Data["tracing_address"]).Should(Equal("jaeger.osm-system.svc.cluster.local"))
-				Expect(configmap.Data["tracing_port"]).Should(Equal("9411"))
-				Expect(configmap.Data["tracing_endpoint"]).Should(Equal("/api/v2/spans"))
+				Expect(configmap.Data["tracing_enable"]).Should(Equal("false"))
 				Expect(configmap.Data["use_https_ingress"]).Should(Equal("false"))
 				Expect(configmap.Data["service_cert_validity_duration"]).Should(Equal("24h"))
 
