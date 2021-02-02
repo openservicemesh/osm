@@ -208,7 +208,7 @@ OSM Service to Service Metrics dashboard will look like:
 
 [1]:https://prometheus.io/docs/introduction/overview/
 [2]:https://github.com/openservicemesh/osm/blob/main/demo/README.md
-[3]: https://grafana.com/docs/grafana/latest/getting-started/what-is-grafana/
+[3]: https://grafana.com/docs/grafana/latest/getting-started/#what-is-grafana
 [4]: http://localhost:3000
 [5]: http://localhost:7070
 [6]: http://localhost:3000/d/OSMs2sMetrics/osm-service-to-service-metrics?orgId=1
