@@ -1,0 +1,14 @@
+# Create a top level root service for the bookstore domain.
+apiVersion: v1
+kind: Service
+metadata:
+  name: bookstore
+  namespace: bookstore
+  labels:
+    app: bookstore
+spec:
+  ports:
+  - port: 80
+    name: bookstore-port
+  selector:
+    app: bookstore

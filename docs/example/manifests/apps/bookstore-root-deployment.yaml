@@ -1,49 +1,31 @@
-# Deploy bookstore Namespace
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: bookstore
+# This manifest is required the demonstrate the usage of permissive traffic policy mode in OSM.
+# It has the resource specs for the 'bookstore' ServiceAccount, and Deployment.
 ---
-# Deploy bookstore-v1 Service
-apiVersion: v1
-kind: Service
-metadata:
-  name: bookstore-v1
-  namespace: bookstore
-  labels:
-    app: bookstore
-    version: v1
-spec:
-  ports:
-  - port: 80
-    name: bookstore-port
-  selector:
-    app: bookstore-v1
----
-# Deploy bookstore-v1 Service Account
+# Deploy bookstore Service Account
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: bookstore-v1
+  name: bookstore
   namespace: bookstore
 ---
-# Deploy bookstore-v1 Deployment
+# Deploy bookstore Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: bookstore-v1
+  name: bookstore
   namespace: bookstore
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: bookstore-v1
+      app: bookstore
   template:
     metadata:
       labels:
-        app: bookstore-v1
+        app: bookstore
+        version: v1
     spec:
-      serviceAccountName: bookstore-v1
+      serviceAccountName: bookstore
       containers:
         - name: bookstore
           image: openservicemesh/bookstore:v0.2.0
