@@ -3,13 +3,22 @@ package tresor
 import (
 	"time"
 
-	"github.com/openservicemesh/osm/pkg/certificate"
-
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/configurator"
 )
 
 var _ = Describe("Test Certificate Manager", func() {
+	defer GinkgoRecover()
+
+	var (
+		mockCtrl         *gomock.Controller
+		mockConfigurator *configurator.MockConfigurator
+	)
+	mockCtrl = gomock.NewController(GinkgoT())
 
 	const (
 		serviceFQDN = "a.b.c"
@@ -21,6 +30,9 @@ var _ = Describe("Test Certificate Manager", func() {
 		rootCertPem := "../../sample_certificate.pem"
 		rootKeyPem := "../../sample_private_key.pem"
 
+		mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
+		mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(validity).AnyTimes()
+
 		It("should be able to load a certificate from disk", func() {
 			var err error
 			rootCert, err := LoadCA(rootCertPem, rootKeyPem)
@@ -29,10 +41,10 @@ var _ = Describe("Test Certificate Manager", func() {
 			expected := "-----BEGIN CERTIFICATE-----\nMIIElzCCA3+gAwIBAgIRAOsakgIV4y"
 			Expect(string(rootCert.GetCertificateChain()[:len(expected)])).To(Equal(expected))
 
-			m, newCertError := NewCertManager(rootCert, validity, "org")
+			m, newCertError := NewCertManager(rootCert, "org", mockConfigurator)
 			Expect(newCertError).ToNot(HaveOccurred())
 
-			cert, err := m.IssueCertificate(serviceFQDN, nil)
+			cert, err := m.IssueCertificate(serviceFQDN, validity)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cert.GetCommonName()).To(Equal(certificate.CommonName(serviceFQDN)))
 
@@ -63,14 +75,18 @@ var _ = Describe("Test Certificate Manager", func() {
 		rootCertCountry := "US"
 		rootCertLocality := "CA"
 		rootCertOrganization := "Open Service Mesh Tresor"
+
+		mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
+		mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(validity).AnyTimes()
+
 		rootCert, err := NewCA(cn, 1*time.Hour, rootCertCountry, rootCertLocality, rootCertOrganization)
 		if err != nil {
-			log.Fatal().Err(err).Msgf("Error loading CA from files %s and %s", rootCertPem, rootKeyPem)
+			GinkgoT().Fatalf("Error loading CA from files %s and %s: %s", rootCertPem, rootKeyPem, err.Error())
 		}
-		m, newCertError := NewCertManager(rootCert, validity, "org")
+		m, newCertError := NewCertManager(rootCert, "org", mockConfigurator)
 		It("should issue a certificate", func() {
 			Expect(newCertError).ToNot(HaveOccurred())
-			cert, issueCertificateError := m.IssueCertificate(serviceFQDN, nil)
+			cert, issueCertificateError := m.IssueCertificate(serviceFQDN, validity)
 			Expect(issueCertificateError).ToNot(HaveOccurred())
 			Expect(cert.GetCommonName()).To(Equal(certificate.CommonName(serviceFQDN)))
 
@@ -101,14 +117,18 @@ var _ = Describe("Test Certificate Manager", func() {
 		rootCertCountry := "US"
 		rootCertLocality := "CA"
 		rootCertOrganization := "Open Service Mesh Tresor"
+
+		mockConfigurator = configurator.NewMockConfigurator(mockCtrl)
+		mockConfigurator.EXPECT().GetServiceCertValidityPeriod().Return(validity).AnyTimes()
+
 		rootCert, err := NewCA(cn, validity, rootCertCountry, rootCertLocality, rootCertOrganization)
 		if err != nil {
-			log.Fatal().Err(err).Msgf("Error loading CA from files %s and %s", rootCertPem, rootKeyPem)
+			GinkgoT().Fatalf("Error loading CA from files %s and %s: %s", rootCertPem, rootKeyPem, err.Error())
 		}
-		m, newCertError := NewCertManager(rootCert, validity, "org")
+		m, newCertError := NewCertManager(rootCert, "org", mockConfigurator)
 		It("should get an issued certificate from the cache", func() {
 			Expect(newCertError).ToNot(HaveOccurred())
-			cert, issueCertificateError := m.IssueCertificate(serviceFQDN, &validity)
+			cert, issueCertificateError := m.IssueCertificate(serviceFQDN, validity)
 			Expect(issueCertificateError).ToNot(HaveOccurred())
 			Expect(cert.GetCommonName()).To(Equal(certificate.CommonName(serviceFQDN)))
 

@@ -5,7 +5,7 @@ import (
 	xds_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
 
-	"github.com/golang/protobuf/ptypes/wrappers"
+	_ "github.com/golang/protobuf/ptypes/wrappers"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -34,19 +34,21 @@ func getHTTPConnectionManager(routeName string, cfg configurator.Configurator) *
 		AccessLog: envoy.GetAccessLog(),
 	}
 
-	if cfg.IsZipkinTracingEnabled() {
+	/* WITESAND START COMMENTED 
+	if cfg.IsTracingEnabled() {
 		connManager.GenerateRequestId = &wrappers.BoolValue{
 			Value: true,
 		}
 
-		tracing, err := GetZipkinTracingConfig(cfg)
+		tracing, err := GetTracingConfig(cfg)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error getting zipkin tracing config %s", err)
+			log.Error().Err(err).Msgf("Error getting tracing config %s", err)
 			return connManager
 		}
 
 		connManager.Tracing = tracing
 	}
+	* WITESAND END COMMENTED */
 
 	return connManager
 }

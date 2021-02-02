@@ -11,17 +11,17 @@ func getDurationInMinutes(validityPeriod time.Duration) string {
 	return fmt.Sprintf("%dh", validityPeriod/time.Hour)
 }
 
-func getIssueURL(vaultRole string) string {
-	return fmt.Sprintf("pki/issue/%+v", vaultRole)
+func getIssueURL(role vaultRole) vaultPath {
+	return vaultPath(fmt.Sprintf("pki/issue/%+v", role))
 }
 
-func getRoleConfigURL(vaultRole string) string {
-	return fmt.Sprintf("pki/roles/%s", vaultRole)
+func getRoleConfigURL(role vaultRole) vaultPath {
+	return vaultPath(fmt.Sprintf("pki/roles/%s", role))
 }
 
 func getIssuanceData(cn certificate.CommonName, validityPeriod time.Duration) map[string]interface{} {
 	return map[string]interface{}{
-		"common_name": cn.String(),
-		"ttl":         getDurationInMinutes(validityPeriod),
+		commonNameField: cn.String(),
+		ttlField:        getDurationInMinutes(validityPeriod),
 	}
 }

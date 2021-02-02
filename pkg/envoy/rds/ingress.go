@@ -25,7 +25,7 @@ func updateRoutesForIngress(svc service.MeshService, catalog catalog.MeshCatalog
 
 	for host, routes := range ingressRoutesPerHost {
 		for _, rt := range routes {
-			aggregateRoutesByHost(routesPerHost, rt, ingressWeightedCluster, host)
+			aggregateRoutesByHost(routesPerHost, rt, ingressWeightedCluster, host, 0)
 		}
 	}
 

@@ -7,11 +7,13 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/google/uuid"
+
 	"github.com/openservicemesh/osm/pkg/certificate"
 )
 
 var _ = Describe("Test tools", func() {
-	vaultRole := "openservicemesh"
+	role := vaultRole(uuid.New().String())
 
 	Context("Test converting duration into Vault recognizable string", func() {
 		It("converts 36 hours into correct string representation", func() {
@@ -23,16 +25,16 @@ var _ = Describe("Test tools", func() {
 
 	Context("Test cert issuance URL", func() {
 		It("creates the URL for issuing a new certificate", func() {
-			actual := getIssueURL(vaultRole)
-			expected := fmt.Sprintf("pki/issue/%s", vaultRole)
+			actual := getIssueURL(role)
+			expected := vaultPath(fmt.Sprintf("pki/issue/%s", role))
 			Expect(actual).To(Equal(expected))
 		})
 	})
 
 	Context("Test role config URL", func() {
 		It("creates the URL for role configuration", func() {
-			actual := getRoleConfigURL(vaultRole)
-			expected := fmt.Sprintf("pki/roles/%s", vaultRole)
+			actual := getRoleConfigURL(role)
+			expected := vaultPath(fmt.Sprintf("pki/roles/%s", role))
 			Expect(actual).To(Equal(expected))
 		})
 	})

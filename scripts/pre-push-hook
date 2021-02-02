@@ -12,36 +12,23 @@ fi
 # try to create commit_logs folder
 mkdir -p commit_logs
 
-# run go fmt
-go fmt ./... >/dev/null 2>&1
+# run golangci-lint
+make go-lint >commit_logs/linter.log 2>&1
 if [ $? -ne 0 ]
 then
-    echo "'go fmt': Failed to run. This shouldn't happen. Please"
-    echo "check the output of the command to see what's wrong"
-    echo "or run commit with --no-verify if you know what you"
-    echo "are doing."
-    exit 1
-fi
-
-# run golint
-go run golang.org/x/lint/golint -set_exit_status ./... >commit_logs/linter.log 2>&1
-if [ $? -ne 0 ]
-then
-    echo "'golint': has detected potential issues in the project."
-    echo "Please check the output of 'golint' in: 'commit_logs/linter.log'"
+    echo "'golangci-lint': has detected potential issues in the project."
     echo "Details:"
     cat commit_logs/linter.log
     exit 1
 fi
 
-# run go vet
-go vet ./... >commit_logs/vet.log 2>&1
+# run go mod tidy
+make go-mod-tidy >commit_logs/go_mod.log 2>&1
 if [ $? -ne 0 ]
 then
-    echo "'go vet': has detected potential issues in the project."
-    echo "Please check the output of 'go vet' in: 'commit_logs/vet.log'"
+    echo "'go mod tidy': has detected potential issues in the project."
     echo "Details:"
-    cat commit_logs/vet.log
+    cat commit_logs/go_mod.log
     exit 1
 fi
 

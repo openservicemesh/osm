@@ -1,16 +1,15 @@
 package lds
 
 import (
-	"context"
-
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-
 	"github.com/golang/protobuf/ptypes"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
+	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/service"
 )
 
 const (
@@ -24,35 +23,51 @@ const (
 // 1. Inbound listener to handle incoming traffic
 // 2. Outbound listener to handle outgoing traffic
 // 3. Prometheus listener for metrics
-func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, cfg configurator.Configurator) (*xds_discovery.DiscoveryResponse, error) {
-	svc, err := catalog.GetServiceFromEnvoyCertificate(proxy.GetCommonName())
+func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, _ certificate.Manager) (*xds_discovery.DiscoveryResponse, error) {
+	svcList, err := meshCatalog.GetServicesFromEnvoyCertificate(proxy.GetCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up MeshService for Envoy with CN=%q", proxy.GetCommonName())
 		return nil, err
 	}
-	proxyServiceName := *svc
+	// Github Issue #1575
+	proxyServiceName := svcList[0]
+
+	svcAccount, err := catalog.GetServiceAccountFromProxyCertificate(proxy.GetCommonName())
+	if err != nil {
+		log.Error().Err(err).Msgf("Error retrieving SerivceAccount for proxy %s", proxy.GetCommonName())
+		return nil, err
+	}
 
 	resp := &xds_discovery.DiscoveryResponse{
 		TypeUrl: string(envoy.TypeLDS),
 	}
 
+	lb := newListenerBuilder(meshCatalog, svcAccount, cfg)
+
 	// --- OUTBOUND -------------------
-	if outboundListener, err := newOutboundListener(cfg); err != nil {
+	outboundListener, err := lb.newOutboundListener(svcList)
+	if err != nil {
 		log.Error().Err(err).Msgf("Error making outbound listener config for proxy %s", proxyServiceName)
 	} else {
-		if marshalledOutbound, err := ptypes.MarshalAny(outboundListener); err != nil {
-			log.Error().Err(err).Msgf("Failed to marshal outbound listener config for proxy %s", proxyServiceName)
+		if outboundListener == nil {
+			log.Debug().Msgf("Not programming Outbound listener for proxy %s", proxyServiceName)
 		} else {
-			resp.Resources = append(resp.Resources, marshalledOutbound)
+			if marshalledOutbound, err := ptypes.MarshalAny(outboundListener); err != nil {
+				log.Error().Err(err).Msgf("Failed to marshal outbound listener config for proxy %s", proxyServiceName)
+			} else {
+				resp.Resources = append(resp.Resources, marshalledOutbound)
+			}
 		}
 	}
 
 	// --- INBOUND -------------------
 	inboundListener := newInboundListener()
-	if meshFilterChain, err := getInboundInMeshFilterChain(proxyServiceName, cfg); err != nil {
-		log.Error().Err(err).Msgf("Error making in-mesh filter chain for proxy %s", proxy.GetCommonName())
-	} else if meshFilterChain != nil {
-		inboundListener.FilterChains = append(inboundListener.FilterChains, meshFilterChain)
+	// --- INBOUND: mesh filter chain
+	inboundMeshFilterChains, err := lb.getInboundInMeshFilterChain(proxyServiceName)
+	if  err == nil {
+		inboundListener.FilterChains = append(inboundListener.FilterChains, inboundMeshFilterChains)
+	} else {
+		log.Error().Err(err).Msgf("Error making inbound listener config for proxy %s", proxyServiceName)
 	}
 
 	// --- INGRESS -------------------
@@ -60,7 +75,7 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, proxy *envo
         /* Ingress rules are taken care by iptables, having them here
            causes duplicates without TLS configuration.
 
-	if ingressRoutesPerHost, err := catalog.GetIngressRoutesPerHost(proxyServiceName); err != nil {
+	if ingressRoutesPerHost, err := meshCatalog.GetIngressRoutesPerHost(proxyServiceName); err != nil {
 		log.Error().Err(err).Msgf("Error getting ingress routes per host for service %s", proxyServiceName)
 	} else {
 		thereAreIngressRoutes := len(ingressRoutesPerHost) > 0
@@ -68,9 +83,8 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, proxy *envo
 		if thereAreIngressRoutes {
 			log.Info().Msgf("Found k8s Ingress for MeshService %s, applying necessary filters", proxyServiceName)
 			// This proxy is fronting a service that is a backend for an ingress, add a FilterChain for it
-			ingressFilterChains := getIngressFilterChains(proxyServiceName, cfg)
+			ingressFilterChains := lb.getIngressFilterChains(proxyServiceName)
 			inboundListener.FilterChains = append(inboundListener.FilterChains, ingressFilterChains...)
-
 		} else {
 			log.Trace().Msgf("There is no k8s Ingress for service %s", proxyServiceName)
 		}
@@ -102,4 +116,12 @@ func NewResponse(ctx context.Context, catalog catalog.MeshCataloger, proxy *envo
 	}
 
 	return resp, nil
+}
+
+func newListenerBuilder(meshCatalog catalog.MeshCataloger, svcAccount service.K8sServiceAccount, cfg configurator.Configurator) *listenerBuilder {
+	return &listenerBuilder{
+		meshCatalog: meshCatalog,
+		svcAccount:  svcAccount,
+		cfg:         cfg,
+	}
 }

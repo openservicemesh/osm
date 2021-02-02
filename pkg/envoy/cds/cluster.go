@@ -2,6 +2,7 @@ package cds
 
 import (
 	"fmt"
+	"strconv"
 	_ "strings"
 	"time"
 
@@ -18,6 +19,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/service"
+	"github.com/openservicemesh/osm/pkg/witesand"
 )
 
 const (
@@ -25,13 +27,12 @@ const (
 	clusterConnectTimeout = 1 * time.Second
 )
 
-// getRemoteServiceCluster returns an Envoy Cluster corresponding to the remote service
-func getRemoteServiceCluster(remoteService, localService service.MeshServicePort, cfg configurator.Configurator) (*xds_cluster.Cluster, error) {
-	clusterName := remoteService.String()
+// getUpstreamServiceCluster returns an Envoy Cluster corresponding to the given upstream service
+func getUpstreamServiceCluster(upstreamSvc, downstreamSvc service.MeshServicePort, cfg configurator.Configurator) (*xds_cluster.Cluster, error) {
+	clusterName := upstreamSvc.String()
 	/* WITESAND_TLS_DISABLE
-	sni := remoteService.GetMeshService().GetCommonName().String()
-	marshalledUpstreamTLSContext, err := envoy.MessageToAny(
-		envoy.GetUpstreamTLSContext(localService.GetMeshService(), sni))
+	marshalledUpstreamTLSContext, err := ptypes.MarshalAny(
+		envoy.GetUpstreamTLSContext(downstreamSvc, upstreamSvc))
 	if err != nil {
 		return nil, err
 	}
@@ -67,6 +68,72 @@ func getRemoteServiceCluster(remoteService, localService service.MeshServicePort
 	return remoteCluster, nil
 }
 
+// getWSGatewayUpstreamServiceCluster returns an Envoy Cluster corresponding to the given upstream service
+func getWSGatewayUpstreamServiceCluster(catalog catalog.MeshCataloger, upstreamSvc, downstreamSvc service.MeshServicePort, cfg configurator.Configurator, clusterFactories map[string]*xds_cluster.Cluster) error {
+	wscatalog := catalog.GetWitesandCataloger()
+	apigroupClusterNames, err := wscatalog.ListApigroupClusterNames()
+	if err != nil {
+		return err
+	}
+	gatewayPodNames, err := wscatalog.ListAllGatewayPods()
+	if err != nil {
+		return err
+	}
+
+	// create clusters with apigroup-names with ROUND_ROBIN
+	for _, apigroupName := range apigroupClusterNames {
+		clusterName := apigroupName + ":" + strconv.Itoa(upstreamSvc.Port)
+
+		remoteCluster := &xds_cluster.Cluster{
+			Name:           clusterName,
+			ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
+			ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
+			Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
+		}
+
+		remoteCluster.ClusterDiscoveryType = &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS}
+		remoteCluster.EdsClusterConfig = &xds_cluster.Cluster_EdsClusterConfig{EdsConfig: envoy.GetADSConfigSource()}
+		remoteCluster.LbPolicy = xds_cluster.Cluster_ROUND_ROBIN
+		clusterFactories[remoteCluster.Name] = remoteCluster
+	}
+
+	// create clusters with apigroup-names + "device-hash" with ROUND_ROBIN
+	for _, apigroupName := range apigroupClusterNames {
+		clusterName := apigroupName + witesand.DeviceHashSuffix + ":" + strconv.Itoa(upstreamSvc.Port)
+
+		remoteCluster := &xds_cluster.Cluster{
+			Name:           clusterName,
+			ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
+			ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
+			Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
+		}
+
+		remoteCluster.ClusterDiscoveryType = &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS}
+		remoteCluster.EdsClusterConfig = &xds_cluster.Cluster_EdsClusterConfig{EdsConfig: envoy.GetADSConfigSource()}
+		remoteCluster.LbPolicy = xds_cluster.Cluster_RING_HASH
+		clusterFactories[remoteCluster.Name] = remoteCluster
+	}
+
+	// create clusters with pod-names with ROUND_ROBIN
+	for _, gatewayPodName := range gatewayPodNames {
+		clusterName := gatewayPodName + ":" + strconv.Itoa(upstreamSvc.Port)
+
+		remoteCluster := &xds_cluster.Cluster{
+			Name:           clusterName,
+			ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
+			ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
+			Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
+		}
+
+		remoteCluster.ClusterDiscoveryType = &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_EDS}
+		remoteCluster.EdsClusterConfig = &xds_cluster.Cluster_EdsClusterConfig{EdsConfig: envoy.GetADSConfigSource()}
+		remoteCluster.LbPolicy = xds_cluster.Cluster_ROUND_ROBIN
+		clusterFactories[remoteCluster.Name] = remoteCluster
+	}
+
+	return nil
+}
+
 // getOutboundPassthroughCluster returns an Envoy cluster that is used for outbound passthrough traffic
 func getOutboundPassthroughCluster() *xds_cluster.Cluster {
 	return &xds_cluster.Cluster{
@@ -92,7 +159,8 @@ func getLocalServiceCluster(catalog catalog.MeshCataloger, proxyServiceName serv
 
 	for _, ep := range endpoints {
 		// final newClusterName shuould be something like "bookstore/bookstore-v1/80-local"
-		newClusterName := fmt.Sprintf("%s/%d%s", proxyServiceName, ep.Port, envoy.LocalClusterSuffix)
+		clusterName := fmt.Sprintf("%s/%d", proxyServiceName, ep.Port)
+		newClusterName := envoy.GetLocalClusterNameForServiceCluster(clusterName)
 		log.Debug().Msgf("clusterName:%s newClusterName", proxyServiceName, newClusterName)
 		xdsCluster := &xds_cluster.Cluster{
 			// The name must match the domain being cURLed in the demo

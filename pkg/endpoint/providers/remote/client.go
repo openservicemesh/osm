@@ -5,29 +5,38 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"net"
 	"time"
 
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/pkg/errors"
 
-	"github.com/openservicemesh/osm/pkg/catalog"
+	a "github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/smi"
+	"github.com/openservicemesh/osm/pkg/witesand"
+)
+
+const (
+        // defaultAppProtocol is the default application protocol for a port if unspecified
+        defaultAppProtocol = "http"
 )
 
 // NewProvider implements mesh.EndpointsProvider, which creates a new Kubernetes cluster/compute provider.
-func NewProvider(kubeClient kubernetes.Interface, clusterId string, stop chan struct{}, meshSpec smi.MeshSpec, providerIdent string, remoteOsm string) (*Client, error) {
+func NewProvider(kubeClient kubernetes.Interface, wsCatalog *witesand.WitesandCatalog, clusterId string, stop chan struct{}, meshSpec smi.MeshSpec, providerIdent string) (*Client, error) {
 
 	client := Client{
+		wsCatalog:           wsCatalog,
 		providerIdent:       providerIdent,
 		clusterId:           clusterId,
 		meshSpec:            meshSpec,
 		caches:              nil,
-		announcements:       make(chan interface{}),
-		remoteOsm:           remoteOsm,
+		announcements:       make(chan a.Announcement),
+	}
+
+	client.caches = &CacheCollection{
+		k8sToServiceEndpoints: make(map[string]*ServiceToEndpointMap),
 	}
 
 	if err := client.run(); err != nil {
@@ -53,93 +62,89 @@ func (c Client) ListEndpointsForService(svc service.MeshService) []endpoint.Endp
 		return endpoints
 	}
 
-	if eps, ok := c.caches.endpoints[svc.String()]; ok {
-		log.Info().Msgf("[%s] Endpoints for service %s on Remote:%+v", c.providerIdent, svc.String(), eps)
-		return eps
+	for _, epMap := range c.caches.k8sToServiceEndpoints {
+		if eps, exists := epMap.endpoints[svc.String()]; exists {
+			log.Info().Msgf("[%s:ListEndpointsForService] Endpoints for service %s on Remote:%+v", c.providerIdent, svc.String(), eps)
+			endpoints = append(endpoints, eps...)
+		}
 	}
-	log.Info().Msgf("[%s] No Endpoints for service %s on Remote", c.providerIdent)
 
 	return endpoints
 }
 
 // GetServiceForServiceAccount retrieves the service for the given service account
-func (c Client) GetServiceForServiceAccount(svcAccount service.K8sServiceAccount) (service.MeshService, error) {
+func (c Client) GetServicesForServiceAccount(svcAccount service.K8sServiceAccount) ([]service.MeshService, error) {
 	log.Info().Msgf("[%s] Getting Services for service account %s on Remote", c.providerIdent, svcAccount)
+	servicesSlice := make([]service.MeshService, 0)
 
 	if c.caches == nil {
-		return service.MeshService{}, errDidNotFindServiceForServiceAccount
+		return servicesSlice, errDidNotFindServiceForServiceAccount
 	}
 
 	svc := fmt.Sprintf("%s/%s", svcAccount.Namespace, svcAccount.Name)
 
-	if _, ok := c.caches.endpoints[svc]; ok {
-		namespacedService := service.MeshService{
-			Namespace: svcAccount.Namespace,
-			Name:      svcAccount.Name,
+	// TODO: is this needed
+
+	for _, epMap := range c.caches.k8sToServiceEndpoints {
+		if _, ok := epMap.endpoints[svc]; ok {
+			namespacedService := service.MeshService{
+				Namespace: svcAccount.Namespace,
+				Name:      svcAccount.Name,
+			}
+			servicesSlice = append(servicesSlice, namespacedService)
+			return servicesSlice, nil
 		}
-		return namespacedService, nil
 	}
 
-	return service.MeshService{}, errDidNotFindServiceForServiceAccount
+	return servicesSlice, errDidNotFindServiceForServiceAccount
+}
+
+// GetPortToProtocolMappingForService returns a mapping of the service's ports to their corresponding application protocol
+func (c Client) GetPortToProtocolMappingForService(svc service.MeshService) (map[uint32]string, error) {
+	portToProtocolMap := make(map[uint32]string)
+
+	// TODO
+
+	return portToProtocolMap, nil
+}
+
+func (c *Client) GetResolvableEndpointsForService(svc service.MeshService) ([]endpoint.Endpoint, error) {
+	eps := c.ListEndpointsForService(svc)
+	if len(eps) == 0 {
+		return nil, errServiceNotFound
+	}
+	return eps, nil
 }
 
 // GetAnnouncementsChannel returns the announcement channel for the Kubernetes endpoints provider.
-func (c Client) GetAnnouncementsChannel() <-chan interface{} {
+func (c Client) GetAnnouncementsChannel() <-chan a.Announcement {
 	return c.announcements
 }
 
 func (c *Client) run() error {
-	// convert catalog.endpoint to endpoint.Endpoint
-	convertEndpoints := func(cataEps map[string][]catalog.EndpointJSON) *map[string][]endpoint.Endpoint {
-		endpointMap := make(map[string][]endpoint.Endpoint)
-
-		for svc, cataEpList := range cataEps {
-			var eps = []endpoint.Endpoint{}
-			for _, cataEp := range cataEpList {
-				ep := endpoint.Endpoint{
-					IP:   cataEp.IP,
-					Port: cataEp.Port,
-				}
-				eps = append(eps, ep)
-			}
-			endpointMap[svc] = eps
-		}
-		return &endpointMap
-	}
-
-	// Get preferred outbound ip of this machine
-	myIP := func(destIPPort string) string {
-		conn, err := net.Dial("udp", destIPPort)
-		if err != nil {
-			return ""
-		}
-		defer conn.Close()
-
-		localAddr := conn.LocalAddr().(*net.UDPAddr)
-
-		return localAddr.IP.String()
-	}
 
 	// send HTTP request to remote OSM
-	queryRemoteOsm := func() (*map[string][]endpoint.Endpoint, error) {
-		log.Info().Msgf("[queryRemoteOsm] querying osm:%s", c.remoteOsm)
-		dest := fmt.Sprintf("%s:2500", c.remoteOsm)
+	queryRemoteOsm := func(remoteOsmIP string) (*ServiceToEndpointMap, error) {
+		log.Info().Msgf("[queryRemoteOsm] querying osm:%s", remoteOsmIP)
+		dest := fmt.Sprintf("%s:%s", remoteOsmIP, witesand.HttpServerPort)
 		url := fmt.Sprintf("http://%s/endpoints", dest)
 		client := &http.Client{}
 		req, _ := http.NewRequest("GET", url, nil)
-		req.Header.Set("X-Osm-Origin-Ip", myIP(dest))
+		req.Header.Set(witesand.HttpRemoteAddrHeader, c.wsCatalog.GetMyIP())
+		req.Header.Set(witesand.HttpRemoteClusterIdHeader, c.clusterId)
 		resp, err := client.Do(req)
 		if err == nil {
 			defer resp.Body.Close()
-			cataEndpointMap := make(map[string][]catalog.EndpointJSON)
+
+			serviceToEndpointMap := ServiceToEndpointMap{
+				endpoints: make(map[string][]endpoint.Endpoint),
+			}
 			b, err := ioutil.ReadAll(resp.Body)
 			if err == nil {
-				err = json.Unmarshal(b, &cataEndpointMap)
-				log.Info().Msgf("[queryRemoteOsm] received response: %+v", cataEndpointMap)
+				err = json.Unmarshal(b, &serviceToEndpointMap.endpoints)
+				log.Info().Msgf("[queryRemoteOsm] received response: %+v", serviceToEndpointMap.endpoints)
 				if err == nil {
-					endpointMap := convertEndpoints(cataEndpointMap)
-					log.Info().Msgf("[queryRemoteOsm] converted response: %+v", endpointMap)
-					return endpointMap, nil
+					return &serviceToEndpointMap, nil
 				}
 			}
 		}
@@ -148,12 +153,9 @@ func (c *Client) run() error {
 	}
 
 	// update the cache
-	updateCache := func(epMap *map[string][]endpoint.Endpoint) {
-		log.Info().Msgf("[updateCache] received response, len:%d", len(*epMap))
-		newCache := CacheCollection {
-			endpoints: *epMap,
-		}
-		c.caches = &newCache
+	updateCache := func(k8sName string, epMap *ServiceToEndpointMap) {
+		log.Info().Msgf("[updateCache] updating %s", k8sName)
+		c.caches.k8sToServiceEndpoints[k8sName] = epMap
 	}
 
 	poll := func() {
@@ -162,13 +164,11 @@ func (c *Client) run() error {
 		for {
 			<-ticker.C
 			log.Info().Msgf("[poll] tick occurred")
-			if c.remoteOsm == "" {
-				log.Info().Msgf("[poll] remoteOsmIP not set, yield")
-				continue
-			}
-			epMap, err := queryRemoteOsm()
-			if err == nil {
-				updateCache(epMap)
+			for clusterId, remoteK8s := range c.wsCatalog.ListRemoteK8s() {
+				epMap, err := queryRemoteOsm(remoteK8s.OsmIP)
+				if err == nil {
+					updateCache(clusterId, epMap)
+				}
 			}
 		}
 	}
@@ -177,9 +177,4 @@ func (c *Client) run() error {
 	go poll()
 
 	return nil
-}
-
-func (c *Client) RegisterRemoteOSM(remote string) {
-	log.Info().Msgf("[RegisterRemoteOSM] registering remote OSM:%s", remote)
-	c.remoteOsm = remote
 }

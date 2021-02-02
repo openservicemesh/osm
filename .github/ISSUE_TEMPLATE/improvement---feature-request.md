@@ -2,7 +2,7 @@
 name: Improvement / Feature Request
 about: Suggest an enhancement for the OSM project
 title: ''
-labels: Improvement / Feature Request
+labels: improvement / feature request
 assignees: ''
 
 ---

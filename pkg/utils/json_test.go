@@ -1,19 +1,42 @@
 package utils
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
-var _ = Describe("Testing utils helpers", func() {
-	Context("Test PrettyJSON", func() {
-		It("should return pretty JSON and no error", func() {
-			prettyJSON, err := PrettyJSON([]byte("{\"name\":\"baba yaga\"}"), "--prefix--")
-			Expect(err).ToNot(HaveOccurred())
-			Expect(prettyJSON).To(Equal([]byte(`{
---prefix--    "name": "baba yaga"
---prefix--}`)))
-		})
-	})
+func TestPrettyJson(t *testing.T) {
+	assert := assert.New(t)
 
-})
+	type prettyJSONtest struct {
+		input              []byte
+		prefix             string
+		expectedPrettyJSON []byte
+		expectedError      string
+	}
+
+	prettyJSONtests := []prettyJSONtest{{
+		[]byte("{\"name\":\"baba yaga\"}"),
+		"--prefix--",
+		[]byte(`{
+--prefix--    "name": "baba yaga"
+--prefix--}`),
+		""},
+		{[]byte("should error"),
+			"",
+			nil,
+			"Could not Unmarshal a byte array"},
+	}
+
+	for _, pjt := range prettyJSONtests {
+		prettyJSON, err := PrettyJSON(pjt.input, pjt.prefix)
+		if err != nil {
+			assert.Contains(err.Error(), pjt.expectedError)
+			assert.Nil(prettyJSON)
+		} else {
+			assert.Equal(pjt.expectedPrettyJSON, prettyJSON)
+			assert.Empty(pjt.expectedError)
+		}
+	}
+}
