@@ -474,31 +474,6 @@ func (mc *MeshCatalog) routesFromRules(rules []access.TrafficTargetRule, traffic
 	return routes, nil
 }
 
-// GetServicesForServiceAccounts returns a list of services corresponding to a list service accounts
-//	TODO: Consider merging this function and mc.GetServicesForServiceAccount in future (#2038)
-func (mc *MeshCatalog) GetServicesForServiceAccounts(saList []service.K8sServiceAccount) []service.MeshService {
-	serviceMap := map[service.MeshService]bool{}
-
-	for _, sa := range saList {
-		services, err := mc.GetServicesForServiceAccount(sa)
-		if err != nil {
-			log.Error().Err(err).Msgf("Error getting services linked to Service Account %s", sa)
-			continue
-		} else {
-			for _, s := range services {
-				serviceMap[s] = true
-			}
-		}
-	}
-
-	serviceList := []service.MeshService{}
-	for k := range serviceMap {
-		serviceList = append(serviceList, k)
-	}
-
-	return serviceList
-}
-
 // GetHostnamesForUpstreamService returns the hostnames over which an upstream service is accessible from a downstream service
 // The hostname is the FQDN for the service, and can include ports as well.
 // Ex. bookstore.default, bookstore.default:80, bookstore.default.svc, bookstore.default.svc:80 etc.
