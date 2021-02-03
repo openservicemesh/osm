@@ -2,7 +2,7 @@ name: Release Helm Chart
 on:
   push:
     tags:
-      - "chart/*"
+      - "v*"
 
 jobs:
   release:
