@@ -33,9 +33,6 @@ type mutatingWebhook struct {
 
 // Config is the type used to represent the config options for the sidecar injection
 type Config struct {
-	// DefaultInjection defines whether sidecar injection is enabled by default
-	DefaultInjection bool
-
 	// ListenPort defines the port on which the sidecar injector listens
 	ListenPort int
 
