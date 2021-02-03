@@ -8,6 +8,8 @@ type: docs
 
 This guide describes the process to create a GitHub Release for this project.
 
+**Note**: These steps assume that all OSM components are being released together, including the CLI, container images, and Helm chart, all with the same version.
+
 ## Release Candidates
 
 Release candidates (RCs) should be created before each significant release so final testing can be performed. RCs are tagged as `vX.Y.Z-rc.W`. After the following steps have been performed to publish the RC, perform any final testing with the published release artifacts for about one week.
@@ -17,15 +19,15 @@ If issues are found, submit patches to the RC's release branch and create a new 
 Once an RC has been found to be stable, cut a release tagged `vX.Y.Z` using the following steps.
 
 1. [Create a release branch](#create-a-release-branch)
-1. [Update release branch with versioning changes](#update-release-branch-with-versioning-changes)
+1. [Update release branch with patches and versioning changes](#update-release-branch-with-patches-and-versioning-changes)
 1. [Create and push a Git tag](#create-and-push-a-git-tag)
 1. [Add release notes](#add-release-notes)
-1. [Update README chart with helm-docs](#update-readme-chart-with-helm-docs)
-1. [Create a Helm chart release](#create-a-helm-chart-release)
 1. [Announce the new release](#announce-the-new-release)
 1. [Make version changes on main branch](#make-version-changes-on-main-branch)
 
 ## Create a release branch
+
+Look for a branch on the upstream repo named `release-vX.Y`, where `X` and `Y` correspond to the major and minor version of the semver tag to be used for the new release. If the branch already exists, skip to the next step.
 
 Identify the base commit in the `main` branch for the release and cut a release branch off `main`.
 ```console
@@ -37,58 +39,48 @@ Push the release branch to the main repo (not fork), identified here by the `ups
 $ git push upstream release-<version> # ex: git push upstream release-v0.4
 ```
 
-## Update release branch with versioning changes
+## Update release branch with patches and versioning changes
 
-Create a pull request against the release branch `release-<version>` from your fork to update version
-information for the Helm charts and default container images. The pull request should do the following:
+Create a new branch off of the release branch to maintain updates specific to the new version.
 
-* Update the container image tag in [charts/osm/values.yaml](https://github.com/openservicemesh/osm/tree/main/charts/osm/values.yaml) to point to the new release
-* Bump the chart and app version in [charts/osm/Chart.yaml](https://github.com/openservicemesh/osm/tree/main/charts/osm/Chart.yaml) to point to the new release
-* Update the default osm-controller image tag in [osm cli](https://github.com/openservicemesh/osm/blob/main/cmd/cli/install.go) to point to the new release
+If there are other commits on the `main` branch to be included in the release (such as for successive release candidates or patch releases), cherry-pick those onto this new branch.
 
-The pull request must be reviewed and merged before proceeding to the next step.
+Create a new commit on the new branch to update the hardcoded version information in the following locations:
+
+* The container image tag in [charts/osm/values.yaml](https://github.com/openservicemesh/osm/tree/main/charts/osm/values.yaml) to point to the new release
+* The chart and app version in [charts/osm/Chart.yaml](https://github.com/openservicemesh/osm/tree/main/charts/osm/Chart.yaml) to point to the new release
+* The default osm-controller image tag in [osm cli](https://github.com/openservicemesh/osm/blob/main/cmd/cli/install.go) to point to the new release
+* The Helm chart [README.md](https://github.com/openservicemesh/osm/blob/main/charts/osm/README.md)
+  - Necessary changes should be made automatically by running `make chart-readme`
+
+Once patches and version information have been updated on a new branch off of the release branch, create a pull request from the new branch to the release branch. Proceed to the next step once the pull request is approved and merged.
 
 ## Create and push a Git tag
 
-Once the release is ready to be published, create and push a Git tag from the release branch in
+Ensure your local copy of the release branch has the latest changes from the PR merged above.
+
+Once the release is ready to be published, create and push a Git tag from the release branch to
 the main repo (not fork), identified here by the `upstream` remote.
 
 ```console
 $ export RELEASE_VERSION=<release-version> # ex: export RELEASE_VERSION=v0.4.0
-$ git tag -a "$RELEASE_VERSION" -m "<add description here>"
+$ git tag "$RELEASE_VERSION"
 $ git push upstream "$RELEASE_VERSION"
 ```
 
 A [GitHub Action](https://github.com/openservicemesh/osm/blob/main/.github/workflows/release.yml) is triggered when the tag is pushed.
 It will build the CLI binaries, publish a new GitHub release,
-upload the packaged binaries and checksums as release assets,
-and build and push Docker images for OSM and the demo to the
-[`openservicemesh` organization](https://hub.docker.com/u/openservicemesh) on Docker Hub.
+upload the packaged binaries and checksums as release assets, build and push Docker images for OSM and the demo to the
+[`openservicemesh` organization](https://hub.docker.com/u/openservicemesh) on Docker Hub, and publish the Helm chart to the repo hosted at https://openservicemesh.github.io/osm.
 
 ## Add release notes
 
 In the description section of the new release, add information about feature additions, bug fixes,
 and any other administrative tasks completed on the repository.
 
-## Update README chart with helm-docs
-
-Chart's README is autogenerated with [helm-docs](https://github.com/norwoodj/helm-docs). Once versioning has been addressed
-under `charts/osm/Chart.yaml`, update the README with the following command:
-
-```
-make chart-readme
-```
-
-## Create a Helm chart release
-
-* create a Git tag from main in the format `chart/x.x.x` where `x.x.x` is the chart version
-* push the Git tag to the main repo (not fork)
-* GitHub Actions runs [helm-gh-pages](https://github.com/stefanprodan/helm-gh-pages) that packages the charts, updates `index.yaml` and pushes the changes to `gh-pages` branch
-* GitHub Pages publishes the new version, making the chart available at `https://openservicemesh.github.io/osm`
-
 ## Announce the new release
 
-Make an announcement on the [mailing list](https://groups.google.com/g/openservicemesh).
+Make an announcement on the [mailing list](https://groups.google.com/g/openservicemesh) and [Slack channel](https://cloud-native.slack.com/archives/C018794NV1C).
 
 ## Make version changes on main branch
 
