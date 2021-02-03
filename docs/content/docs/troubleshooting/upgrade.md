@@ -1,3 +1,9 @@
+---
+title: "Upgrade Troubleshooting"
+description: "OSM Upgrade Troubleshooting Guide"
+type: docs
+---
+
 # OSM Upgrade Troubleshooting Guide
 
 ## Server could not find requested resource
