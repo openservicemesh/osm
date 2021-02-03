@@ -360,7 +360,7 @@ func (td *OsmTestData) GetOSMInstallOpts() InstallOSMOpts {
 // HelmInstallOSM installs an osm control plane using the osm chart which lives in charts/osm
 func (td *OsmTestData) HelmInstallOSM(release, namespace string) error {
 	if td.InstType == KindCluster {
-		if err := td.loadOSMImagesIntoKind(); err != nil {
+		if err := td.LoadOSMImagesIntoKind(); err != nil {
 			return err
 		}
 	}
@@ -456,7 +456,7 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 	}
 
 	if td.InstType == KindCluster {
-		if err := td.loadOSMImagesIntoKind(); err != nil {
+		if err := td.LoadOSMImagesIntoKind(); err != nil {
 			return errors.Wrap(err, "failed to load OSM images to nodes for Kind cluster")
 		}
 	}
@@ -571,7 +571,8 @@ func (td *OsmTestData) GetConfigMap(name, namespace string) (*corev1.ConfigMap, 
 	return configmap, nil
 }
 
-func (td *OsmTestData) loadOSMImagesIntoKind() error {
+// LoadOSMImagesIntoKind loads the OSM images to the node for Kind clusters
+func (td *OsmTestData) LoadOSMImagesIntoKind() error {
 	imageNames := []string{
 		"osm-controller",
 		"init",

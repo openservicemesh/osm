@@ -23,6 +23,7 @@ func newMeshCmd(config *action.Configuration, in io.Reader, out io.Writer) *cobr
 	}
 	cmd.AddCommand(newMeshUninstall(config, in, out))
 	cmd.AddCommand(newMeshList(out))
+	cmd.AddCommand(newMeshUpgradeCmd(config, out))
 
 	return cmd
 }
