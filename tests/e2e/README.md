@@ -120,3 +120,17 @@ will anyway be destroyed.
 		Wait for effective deletion of resources (default true)
 ```
 Plus, `go test` and `Ginkgo` specific flags, of course.
+
+#### Running individual tests: 
+
+The `ginkgo.focus` flag can be used to run individual tests. The flag should specify the "Context" of the test they wish to run, which can be found in the `.go` file for that test. For instance, if you want to run the `e2e_tcp_client_server_test` with SMI policies, you should run: 
+
+```console
+go test ./tests/e2e -test.v -ginkgo.v -ginkgo.progress -ginkgo.focus="\bSimpleClientServer TCP with SMI policies\b"
+```
+
+#### Setting test timeout: 
+
+The `test.timeout` flag sets a total time limit for all the tests that you are running. If you run the e2es without specifying any timeout limit, the tests will terminate after 10 minutes. To run the tests without any time limit, you should set `test.timeout 0`. 
+
+To set a specific time limit, a unit must be specified along with a number. For instance, if you want to set the limit to 90 seconds (say for just testing one e2e), you should say `test.timeout 90s`. If you want the tests to run for 60 minutes, you should say `test.timeout 60m`. 
