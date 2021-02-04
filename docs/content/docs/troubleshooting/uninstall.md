@@ -2,7 +2,6 @@
 title: "Uninstall Troubleshooting"
 description: "OSM Uninstall Troubleshooting Guide"
 type: docs
-aliases: ["troubleshooting"]
 ---
 
 # OSM Uninstall Troubleshooting Guide
