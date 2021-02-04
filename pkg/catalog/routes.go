@@ -175,6 +175,7 @@ func (mc *MeshCatalog) GetWeightedClusterForService(svc service.MeshService) (se
 // GetResolvableHostnamesForUpstreamService returns the hostnames over which an upstream service is accessible from a downstream service
 // The hostname is the FQDN for the service, and can include ports as well.
 // Ex. bookstore.default, bookstore.default:80, bookstore.default.svc, bookstore.default.svc:80 etc.
+// TODO : remove as a part of routes refactor (#2397)
 func (mc *MeshCatalog) GetResolvableHostnamesForUpstreamService(downstream, upstream service.MeshService) ([]string, error) {
 	sameNamespace := downstream.Namespace == upstream.Namespace
 	var svcHostnames []string
@@ -472,22 +473,6 @@ func (mc *MeshCatalog) routesFromRules(rules []access.TrafficTargetRule, traffic
 	}
 
 	return routes, nil
-}
-
-// GetHostnamesForUpstreamService returns the hostnames over which an upstream service is accessible from a downstream service
-// The hostname is the FQDN for the service, and can include ports as well.
-// Ex. bookstore.default, bookstore.default:80, bookstore.default.svc, bookstore.default.svc:80 etc.
-// TODO: replace GetResolvableHostnamesForUpstreamService with this func once routes refactor is complete (#issue)
-func (mc *MeshCatalog) GetHostnamesForUpstreamService(downstream, upstream service.MeshService) ([]string, error) {
-	sameNamespace := downstream.Namespace == upstream.Namespace
-	// The hostnames for this service are the Kubernetes service DNS names
-	hostnames, err := mc.getServiceHostnames(upstream, sameNamespace)
-	if err != nil {
-		log.Error().Err(err).Msgf("Error getting service hostnames for upstream service %s", upstream)
-		return nil, err
-	}
-
-	return hostnames, nil
 }
 
 // listMeshServices returns all services in the mesh

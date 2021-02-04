@@ -99,6 +99,7 @@ func (mr *MockMeshCatalogerMockRecorder) GetPortToProtocolMappingForService(arg0
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPortToProtocolMappingForService", reflect.TypeOf((*MockMeshCataloger)(nil).GetPortToProtocolMappingForService), arg0)
 }
 
+// TODO : remove as a part of routes refactor (#2397)
 // GetResolvableHostnamesForUpstreamService mocks base method
 func (m *MockMeshCataloger) GetResolvableHostnamesForUpstreamService(arg0, arg1 service.MeshService) ([]string, error) {
 	m.ctrl.T.Helper()
@@ -108,6 +109,7 @@ func (m *MockMeshCataloger) GetResolvableHostnamesForUpstreamService(arg0, arg1 
 	return ret0, ret1
 }
 
+// TODO : remove as a part of routes refactor (#2397)
 // GetResolvableHostnamesForUpstreamService indicates an expected call of GetResolvableHostnamesForUpstreamService
 func (mr *MockMeshCatalogerMockRecorder) GetResolvableHostnamesForUpstreamService(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
