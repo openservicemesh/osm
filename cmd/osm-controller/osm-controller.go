@@ -251,7 +251,7 @@ func main() {
 	}
 
 	// Initialize OSM's http service server
-	httpServer := httpserver.NewHTTPServer(constants.OSMServicePort)
+	httpServer := httpserver.NewHTTPServer(constants.OSMHTTPServerPort)
 
 	// Health/Liveness probes
 	funcProbes := []health.Probes{xdsServer}
