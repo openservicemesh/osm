@@ -131,11 +131,8 @@ func (s *Server) newAggregatedDiscoveryResponse(proxy *envoy.Proxy, request *xds
 		return nil, errUnknownTypeURL
 	}
 
-	if s.enableDebug {
-		if _, ok := s.xdsLog[proxy.GetCertificateCommonName()]; !ok {
-			s.xdsLog[proxy.GetCertificateCommonName()] = make(map[envoy.TypeURI][]time.Time)
-		}
-		s.xdsLog[proxy.GetCertificateCommonName()][typeURL] = append(s.xdsLog[proxy.GetCertificateCommonName()][typeURL], time.Now())
+	if s.cfg.IsDebugServerEnabled() {
+		s.trackXDSLog(proxy.GetCertificateCommonName(), typeURL)
 	}
 
 	// request.Node is only available on the first Discovery Request; will be nil on the following

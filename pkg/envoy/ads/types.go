@@ -1,6 +1,7 @@
 package ads
 
 import (
+	"sync"
 	"time"
 
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
@@ -18,12 +19,12 @@ var (
 
 // Server implements the Envoy xDS Aggregate Discovery Services
 type Server struct {
-	catalog      catalog.MeshCataloger
-	xdsHandlers  map[envoy.TypeURI]func(catalog.MeshCataloger, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator, certificate.Manager) (*xds_discovery.DiscoveryResponse, error)
-	xdsLog       map[certificate.CommonName]map[envoy.TypeURI][]time.Time
-	enableDebug  bool
-	osmNamespace string
-	cfg          configurator.Configurator
-	certManager  certificate.Manager
-	ready        bool
+	catalog        catalog.MeshCataloger
+	xdsHandlers    map[envoy.TypeURI]func(catalog.MeshCataloger, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator, certificate.Manager) (*xds_discovery.DiscoveryResponse, error)
+	xdsLog         map[certificate.CommonName]map[envoy.TypeURI][]time.Time
+	xdsMapLogMutex sync.Mutex
+	osmNamespace   string
+	cfg            configurator.Configurator
+	certManager    certificate.Manager
+	ready          bool
 }
