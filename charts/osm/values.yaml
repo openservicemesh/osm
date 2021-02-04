@@ -20,7 +20,7 @@ OpenServiceMesh:
     resource:
       limits:
         cpu: "1.5"
-        memory: "256M"
+        memory: "512M"
       requests:
         cpu: "0.5"
         memory: "32M"
