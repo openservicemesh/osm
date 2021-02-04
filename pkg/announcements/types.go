@@ -58,6 +58,17 @@ const (
 
 	// ---
 
+	// ServiceAccountAdded is the type of announcement emitted when we observe an addition of a Kubernetes Service Account
+	ServiceAccountAdded AnnouncementType = "serviceaccount-added"
+
+	// ServiceAccountDeleted the type of announcement emitted when we observe the deletion of a Kubernetes Service Account
+	ServiceAccountDeleted AnnouncementType = "serviceaccount-deleted"
+
+	// ServiceAccountUpdated is the type of announcement emitted when we observe an update to a Kubernetes Service
+	ServiceAccountUpdated AnnouncementType = "serviceaccount-updated"
+
+	// ---
+
 	// TrafficSplitAdded is the type of announcement emitted when we observe an addition of a Kubernetes TrafficSplit
 	TrafficSplitAdded AnnouncementType = "trafficsplit-added"
 

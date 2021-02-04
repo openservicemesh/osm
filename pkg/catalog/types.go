@@ -65,6 +65,9 @@ type MeshCataloger interface {
 	// ListTrafficPoliciesForServiceAccount returns all inbound and outbound traffic policies related to the given service account
 	ListTrafficPoliciesForServiceAccount(service.K8sServiceAccount) ([]*trafficpolicy.InboundTrafficPolicy, []*trafficpolicy.OutboundTrafficPolicy, error)
 
+	// ListPoliciesForPermissiveMode returns all inbound and outbound traffic policies related to the given services
+	ListPoliciesForPermissiveMode(services []service.MeshService) ([]*trafficpolicy.InboundTrafficPolicy, []*trafficpolicy.OutboundTrafficPolicy, error)
+
 	// ListAllowedInboundServices lists the inbound services allowed to connect to the given service.
 	ListAllowedInboundServices(service.MeshService) ([]service.MeshService, error)
 

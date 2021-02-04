@@ -470,7 +470,10 @@ type MeshSpec interface {
 	GetService(service.MeshService) *corev1.Service
 
 	// ListServices Lists Kubernets Service resources that are part of monitored namespaces
-	ListServices() []*corev1.Service
+    ListServices() []*corev1.Service
+  
+	// ListServiceAccounts Lists Kubernets Service Account resources that are part of monitored namespaces
+    ListServiceAccounts() []*corev1.ServiceAccounts
 
 	// ListHTTPTrafficSpecs lists SMI HTTPRouteGroup resources
 	ListHTTPTrafficSpecs() []*spec.HTTPRouteGroup
