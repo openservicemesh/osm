@@ -21,12 +21,12 @@ import (
 	clientset "k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/certificate/providers"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/debugger"
@@ -49,7 +49,6 @@ import (
 )
 
 const (
-	caBundleSecretNameCLIParam     = "ca-bundle-secret-name"
 	xdsServerCertificateCommonName = "ads"
 )
 
@@ -66,6 +65,12 @@ var (
 
 	injectorConfig injector.Config
 
+	osmCertificateManagerKind providers.Kind
+
+	tresorOptions      providers.TresorOptions
+	vaultOptions       providers.VaultOptions
+	certManagerOptions providers.CertManagerOptions
+
 	// feature flag options
 	optionalFeatures featureflags.OptionalFeatures
 
@@ -76,35 +81,39 @@ var (
 	flags = pflag.NewFlagSet(`osm-controller`, pflag.ExitOnError)
 	port  = flags.Int("port", constants.OSMControllerPort, "Aggregated Discovery Service port number.")
 	log   = logger.New("osm-controller/main")
-
-	// What is the Certification Authority to be used
-	osmCertificateManagerKind = flags.String("certificate-manager", "tresor", fmt.Sprintf("Certificate manager [%v]", strings.Join(validCertificateManagerOptions, "|")))
-
-	// When certmanager == "vault"
-	vaultProtocol = flags.String("vault-protocol", "http", "Host name of the Hashi Vault")
-	vaultHost     = flags.String("vault-host", "vault.default.svc.cluster.local", "Host name of the Hashi Vault")
-	vaultPort     = flags.Int("vault-port", 8200, "Port of the Hashi Vault")
-	vaultToken    = flags.String("vault-token", "", "Secret token for the the Hashi Vault")
-	vaultRole     = flags.String("vault-role", "openservicemesh", "Name of the Vault role dedicated to Open Service Mesh")
-
-	certmanagerIssuerName  = flags.String("cert-manager-issuer-name", "osm-ca", "cert-manager issuer name")
-	certmanagerIssuerKind  = flags.String("cert-manager-issuer-kind", "Issuer", "cert-manager issuer kind")
-	certmanagerIssuerGroup = flags.String("cert-manager-issuer-group", "cert-manager.io", "cert-manager issuer group")
 )
 
 func init() {
+	var certProviderKind string
+
 	flags.StringVarP(&verbosity, "verbosity", "v", "info", "Set log verbosity level")
 	flags.StringVar(&meshName, "mesh-name", "", "OSM mesh name")
 	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file.")
 	flags.StringVar(&osmNamespace, "osm-namespace", "", "Namespace to which OSM belongs to.")
 	flags.StringVar(&webhookConfigName, "webhook-config-name", "", "Name of the MutatingWebhookConfiguration to be configured by osm-controller")
-	flags.StringVar(&caBundleSecretName, caBundleSecretNameCLIParam, "", "Name of the Kubernetes Secret for the OSM CA bundle")
 	flags.StringVar(&osmConfigMapName, "osm-configmap-name", "osm-config", "Name of the OSM ConfigMap")
 
 	// sidecar injector options
 	flags.IntVar(&injectorConfig.ListenPort, "webhook-port", constants.InjectorWebhookPort, "Webhook port for sidecar-injector")
 	flags.StringVar(&injectorConfig.InitContainerImage, "init-container-image", "", "InitContainer image")
 	flags.StringVar(&injectorConfig.SidecarImage, "sidecar-image", "", "Sidecar proxy Container image")
+
+	// Generic certificate manager/provider options
+	flags.StringVar(&certProviderKind, "certificate-manager", providers.TresorKind.String(), fmt.Sprintf("Certificate manager, one of [%v]", providers.ValidCertificateProviders))
+	osmCertificateManagerKind = providers.Kind(certProviderKind)
+	flags.StringVar(&caBundleSecretName, "ca-bundle-secret-name", "", "Name of the Kubernetes Secret for the OSM CA bundle")
+
+	// Vault certificate manager/provider options
+	flags.StringVar(&vaultOptions.VaultProtocol, "vault-protocol", "http", "Host name of the Hashi Vault")
+	flags.StringVar(&vaultOptions.VaultHost, "vault-host", "vault.default.svc.cluster.local", "Host name of the Hashi Vault")
+	flags.StringVar(&vaultOptions.VaultToken, "vault-token", "", "Secret token for the the Hashi Vault")
+	flags.StringVar(&vaultOptions.VaultRole, "vault-role", "openservicemesh", "Name of the Vault role dedicated to Open Service Mesh")
+	flags.IntVar(&vaultOptions.VaultPort, "vault-port", 8200, "Port of the Hashi Vault")
+
+	// Cert-manager certificate manager/provider options
+	flags.StringVar(&certManagerOptions.IssuerName, "cert-manager-issuer-name", "osm-ca", "cert-manager issuer name")
+	flags.StringVar(&certManagerOptions.IssuerKind, "cert-manager-issuer-kind", "Issuer", "cert-manager issuer kind")
+	flags.StringVar(&certManagerOptions.IssuerGroup, "cert-manager-issuer-group", "cert-manager.io", "cert-manager issuer group")
 
 	// feature flags
 	flags.BoolVar(&optionalFeatures.Backpressure, "enable-backpressure-experimental", false, "Enable experimental backpressure feature")
@@ -189,18 +198,16 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating MeshSpec")
 	}
 
-	certManager, certDebugger, err := getCertificateManager(kubeClient, kubeConfig, cfg)
+	certManager, certDebugger, _, err := providers.NewCertificateProvider(kubeClient, kubeConfig, cfg, osmCertificateManagerKind, osmNamespace,
+		caBundleSecretName, tresorOptions, vaultOptions, certManagerOptions)
+
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
-			"Error fetching certificate manager of kind %s", *osmCertificateManagerKind)
+			"Error fetching certificate manager of kind %s", osmCertificateManagerKind)
 	}
 
-	if caBundleSecretName == "" {
-		log.Info().Msgf("CA bundle will not be exported to a k8s secret (no --%s provided)", caBundleSecretNameCLIParam)
-	} else {
-		if err := createOrUpdateCABundleKubernetesSecret(kubeClient, certManager, osmNamespace, caBundleSecretName); err != nil {
-			log.Error().Err(err).Msgf("Error exporting CA bundle into Kubernetes secret with name %s", caBundleSecretName)
-		}
+	if err := createOrUpdateCABundleKubernetesSecret(kubeClient, certManager, osmNamespace, caBundleSecretName); err != nil {
+		log.Error().Err(err).Msgf("Error exporting CA bundle into Kubernetes secret with name %s", caBundleSecretName)
 	}
 
 	kubeProvider, err := kube.NewProvider(kubeClient, kubernetesClient, constants.KubeProviderName, cfg)
@@ -361,19 +368,6 @@ func saveOrUpdateSecretToKubernetes(kubeClient clientset.Interface, ca certifica
 	}
 
 	return nil
-}
-
-func getCertificateManager(kubeClient kubernetes.Interface, kubeConfig *rest.Config, cfg configurator.Configurator) (certificate.Manager, debugger.CertificateManagerDebugger, error) {
-	switch *osmCertificateManagerKind {
-	case tresorKind:
-		return getTresorOSMCertificateManager(kubeClient, cfg)
-	case vaultKind:
-		return getHashiVaultOSMCertificateManager(cfg)
-	case certmanagerKind:
-		return getCertManagerOSMCertificateManager(kubeClient, kubeConfig, cfg)
-	default:
-		return nil, nil, fmt.Errorf("Unsupported Certificate Manager %s", *osmCertificateManagerKind)
-	}
 }
 
 func joinURL(baseURL string, paths ...string) string {
