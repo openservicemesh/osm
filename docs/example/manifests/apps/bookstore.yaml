@@ -41,7 +41,6 @@ spec:
     metadata:
       labels:
         app: bookstore
-        version: v1
     spec:
       serviceAccountName: bookstore
       containers:
