@@ -310,11 +310,136 @@ func TestMergeInboundPolicies(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := MergeInboundPolicies(tc.originalInbound, tc.newInbound...)
+			actual := MergeInboundPolicies(false, tc.originalInbound, tc.newInbound...)
 			assert.ElementsMatch(tc.expectedInbound, actual)
 		})
 	}
 }
+
+func TestMergeInboundPoliciesWithIngress(t *testing.T) {
+	assert := tassert.New(t)
+
+	testRule1 := Rule{
+		Route:                  testRoute,
+		AllowedServiceAccounts: set.NewSet(testServiceAccount1),
+	}
+	testRule2 := Rule{
+		Route:                  testRoute2,
+		AllowedServiceAccounts: set.NewSet(testServiceAccount2),
+	}
+	testRule1Modified := Rule{
+		Route: RouteWeightedClusters{
+			HTTPRouteMatch: HTTPRouteMatch{
+				PathRegex: "/hello",
+				Methods:   []string{"*"},
+			},
+			WeightedClusters: set.NewSet(testWeightedCluster),
+		},
+	}
+	testCases := []struct {
+		name              string
+		originalInbound   []*InboundTrafficPolicy
+		newIngressInbound []*InboundTrafficPolicy
+		expectedInbound   []*InboundTrafficPolicy
+	}{
+		{
+			name: "hostnames match",
+			originalInbound: []*InboundTrafficPolicy{
+				{
+					Hostnames: testHostnames,
+					Rules:     []*Rule{&testRule1, &testRule2},
+				},
+			},
+			newIngressInbound: []*InboundTrafficPolicy{
+				{
+					Hostnames: testHostnames,
+					Rules:     []*Rule{&testRule2},
+				},
+			},
+			expectedInbound: []*InboundTrafficPolicy{
+				{
+					Hostnames: testHostnames,
+					Rules:     []*Rule{&testRule1, &testRule2},
+				},
+			},
+		},
+		{
+			name: "hostnames do not match",
+			originalInbound: []*InboundTrafficPolicy{
+				{
+					Hostnames: testHostnames,
+					Rules:     []*Rule{&testRule1, &testRule2},
+				},
+			},
+			newIngressInbound: []*InboundTrafficPolicy{
+				{
+					Hostnames: testHostnames2,
+					Rules:     []*Rule{&testRule2},
+				},
+			},
+			expectedInbound: []*InboundTrafficPolicy{
+				{
+					Hostnames: testHostnames2,
+					Rules:     []*Rule{&testRule2},
+				},
+				{
+					Hostnames: testHostnames,
+					Rules:     []*Rule{&testRule1, &testRule2},
+				},
+			},
+		},
+		{
+			name: "hostnames in ingress is a subset",
+			originalInbound: []*InboundTrafficPolicy{
+				{
+					Hostnames: testHostnames,
+					Rules:     []*Rule{&testRule1, &testRule2},
+				},
+			},
+			newIngressInbound: []*InboundTrafficPolicy{
+				{
+					Hostnames: []string{"testHostname1"},
+					Rules:     []*Rule{&testRule2},
+				},
+			},
+			expectedInbound: []*InboundTrafficPolicy{
+				{
+					Hostnames: testHostnames,
+					Rules:     []*Rule{&testRule1, &testRule2},
+				},
+			},
+		},
+		{
+			name: "hostnames in ingress is a subset but rules differ",
+			originalInbound: []*InboundTrafficPolicy{
+				{
+					Hostnames: testHostnames,
+					Rules:     []*Rule{&testRule1, &testRule2},
+				},
+			},
+			newIngressInbound: []*InboundTrafficPolicy{
+				{
+					Hostnames: []string{"testHostname1"},
+					Rules:     []*Rule{&testRule1Modified},
+				},
+			},
+			expectedInbound: []*InboundTrafficPolicy{
+				{
+					Hostnames: testHostnames,
+					Rules:     []*Rule{&testRule1, &testRule2, &testRule1Modified},
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := MergeInboundPolicies(true, tc.originalInbound, tc.newIngressInbound...)
+			assert.ElementsMatch(tc.expectedInbound, actual)
+		})
+	}
+}
+
 func TestMergeRules(t *testing.T) {
 	assert := tassert.New(t)
 
@@ -630,4 +755,27 @@ func newTestOutboundPolicy(name string, routes []*RouteWeightedClusters) *Outbou
 		Hostnames: testHostnames,
 		Routes:    routes,
 	}
+}
+
+func TestSubset(t *testing.T) {
+	first := []string{"bookstore.bookstore",
+		"bookstore.bookstore.svc.cluster.local",
+		"bookstore:80",
+		"bookstore.bookstore.svc:80",
+		"bookstore.bookstore.svc.cluster.local:80",
+		"bookstore",
+		"bookstore.bookstore.svc",
+		"bookstore.bookstore.svc.cluster",
+		"bookstore.bookstore:80",
+		"bookstore.bookstore.svc.cluster:80",
+	}
+
+	second := []string{"bookstore.bookstore.svc.cluster.local"}
+	assert := tassert.New(t)
+	isSubset := subset(first, second)
+	assert.True(isSubset)
+
+	third := []string{"bookstore.bookstore.svc.cluster.local", "foo.com"}
+	isSubset = subset(first, third)
+	assert.False(isSubset)
 }

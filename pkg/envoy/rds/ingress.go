@@ -7,6 +7,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
+// TODO : remove as a part of routes refactor cleanup (#2397)
 func updateRoutesForIngress(svc service.MeshService, catalog catalog.MeshCataloger, routesPerHost map[string]map[string]trafficpolicy.RouteWeightedClusters) error {
 	ingressRoutesPerHost, err := catalog.GetIngressRoutesPerHost(svc)
 	if err != nil {

@@ -2,9 +2,11 @@ package catalog
 
 import (
 	"context"
+	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	tassert "github.com/stretchr/testify/assert"
 
 	"github.com/golang/mock/gomock"
 	corev1 "k8s.io/api/core/v1"
@@ -34,7 +36,7 @@ var (
 
 	// fakeIngressPaths is a mapping of the fake ingress resource domains to its paths
 	fakeIngressPaths = map[string][]string{
-		"fake1.com": {"/fake1-path1", "/fake1-path2"},
+		"fake1.com": {"/fake1-path1", "/fake1-path2", "/fake1-path3"},
 		"fake2.com": {"/fake2-path1"},
 		"*":         {".*"},
 	}
@@ -207,6 +209,13 @@ func getFakeIngresses() []*extensionsV1beta.Ingress {
 				},
 			},
 			Spec: extensionsV1beta.IngressSpec{
+				Backend: &extensionsV1beta.IngressBackend{
+					ServiceName: fakeIngressService,
+					ServicePort: intstr.IntOrString{
+						Type:   intstr.Int,
+						IntVal: fakeIngressPort,
+					},
+				},
 				Rules: []extensionsV1beta.IngressRule{
 					{
 						Host: "fake2.com",
@@ -215,6 +224,25 @@ func getFakeIngresses() []*extensionsV1beta.Ingress {
 								Paths: []extensionsV1beta.HTTPIngressPath{
 									{
 										Path: "/fake2-path1",
+										Backend: extensionsV1beta.IngressBackend{
+											ServiceName: fakeIngressService,
+											ServicePort: intstr.IntOrString{
+												Type:   intstr.Int,
+												IntVal: fakeIngressPort,
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+					{
+						Host: "fake1.com",
+						IngressRuleValue: extensionsV1beta.IngressRuleValue{
+							HTTP: &extensionsV1beta.HTTPIngressRuleValue{
+								Paths: []extensionsV1beta.HTTPIngressPath{
+									{
+										Path: "/fake1-path3",
 										Backend: extensionsV1beta.IngressBackend{
 											ServiceName: fakeIngressService,
 											ServicePort: intstr.IntOrString{
@@ -242,6 +270,7 @@ func pathContains(allowed []string, path string) bool {
 	return false
 }
 
+// TODO : remove this test as a part of routes refactor (#2397)
 var _ = Describe("Test ingress route policies", func() {
 	Context("Testing GetIngressRoutesPerHost", func() {
 		mc := newFakeMeshCatalog()
@@ -275,3 +304,40 @@ var _ = Describe("Test ingress route policies", func() {
 
 	})
 })
+
+func TestGetIngressPoliciesForService(t *testing.T) {
+	assert := tassert.New(t)
+	mc := newFakeMeshCatalog()
+	fakeService := service.MeshService{
+		Namespace: fakeIngressNamespace,
+		Name:      fakeIngressService,
+	}
+	fakeServiceAccount := service.K8sServiceAccount{
+		Namespace: fakeIngressNamespace,
+		Name:      fakeIngressService,
+	}
+
+	inboundIngressPolicies, err := mc.GetIngressPoliciesForService(fakeService, fakeServiceAccount)
+	assert.Empty(err)
+
+	// The number of ingress inbound policies is the number of unique hosts across the ingress resources :
+	// 1. Hostnames: {"*"}
+	// 2. Hostnames: {"fake1.com"}
+	// 2. Hostnames: {"fake2.com"}
+	assert.Equal(len(inboundIngressPolicies), len(fakeIngressPaths))
+
+	for i := 0; i < len(inboundIngressPolicies); i++ {
+		for _, rule := range inboundIngressPolicies[i].Rules {
+			// For each ingress path, all HTTP methods are allowed, which is a regex match all of '*'
+			assert.Len(rule.Route.HTTPRouteMatch.Methods, 1)
+			assert.Equal(rule.Route.HTTPRouteMatch.Methods[0], constants.WildcardHTTPMethod)
+
+			//  rule.Route constains the path specified in the ingress resource rule. Since the same service
+			// could be a backend for multiple ingress resources, we don't know which ingress resource
+			// this path corresponds to. In order to not make assumptions
+			// on the implementation of 'GetIngressPoliciesForServices()', we relax the check here
+			// to match on any of the ingress paths corresponding to the host.
+			assert.True(pathContains(fakeIngressPaths[inboundIngressPolicies[i].Hostnames[0]], rule.Route.HTTPRouteMatch.PathRegex))
+		}
+	}
+}

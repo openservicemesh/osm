@@ -8,6 +8,7 @@ import (
 	cat "github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/route"
+	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
 func newResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy) (*xds_discovery.DiscoveryResponse, error) {
@@ -21,12 +22,25 @@ func newResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy) (*xds_discov
 		return nil, err
 	}
 
+	// Get Ingress inbound policies for the proxy
+	services, err := catalog.GetServicesFromEnvoyCertificate(proxy.GetCertificateCommonName())
+	if err != nil {
+		log.Error().Err(err).Msgf("Error looking up services for Envoy with serial number=%q", proxy.GetCertificateSerialNumber())
+		return nil, err
+	}
+	for _, svc := range services {
+		ingressInboundPolicies, err := catalog.GetIngressPoliciesForService(svc, proxyIdentity)
+		if err != nil {
+			log.Error().Err(err).Msgf("Error looking up ingress policies for service=%s", svc.String())
+			return nil, err
+		}
+		inboundTrafficPolicies = trafficpolicy.MergeInboundPolicies(true, inboundTrafficPolicies, ingressInboundPolicies...)
+	}
+
+	routeConfiguration := route.BuildRouteConfiguration(inboundTrafficPolicies, outboundTrafficPolicies)
 	resp := &xds_discovery.DiscoveryResponse{
 		TypeUrl: string(envoy.TypeRDS),
 	}
-
-	// TODO merge ingress policies with existing inboundTrafficPolicies (issue #2367)
-	routeConfiguration := route.BuildRouteConfiguration(inboundTrafficPolicies, outboundTrafficPolicies)
 
 	for _, config := range routeConfiguration {
 		marshalledRouteConfig, err := ptypes.MarshalAny(config)
