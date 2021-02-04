@@ -46,6 +46,6 @@ spec:
       serviceAccountName: bookwarehouse
       containers:
         - name: bookwarehouse
-          image: openservicemesh/bookwarehouse:v0.2.0
+          image: openservicemesh/bookwarehouse:v0.7.0-rc.1
           imagePullPolicy: Always
           command: ["/bookwarehouse"]
