@@ -37,7 +37,7 @@ var _ = Describe("Test CMD tools", func() {
 			ns := uuid.New().String()
 			secretName := uuid.New().String()
 
-			certProviderConfig := providers.NewCertificateProviderConfig(kubeClient, nil, nil, osmCertificateManagerKind, ns,
+			certProviderConfig := providers.NewCertificateProviderConfig(kubeClient, nil, nil, providers.Kind(certProviderKind), ns,
 				secretName, tresorOptions, vaultOptions, certManagerOptions)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -76,7 +76,7 @@ var _ = Describe("Test CMD tools", func() {
 			ns := uuid.New().String()
 			secretName := uuid.New().String()
 
-			certProviderConfig := providers.NewCertificateProviderConfig(kubeClient, nil, nil, osmCertificateManagerKind, ns,
+			certProviderConfig := providers.NewCertificateProviderConfig(kubeClient, nil, nil, providers.Kind(certProviderKind), ns,
 				secretName, tresorOptions, vaultOptions, certManagerOptions)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -91,7 +91,7 @@ var _ = Describe("Test CMD tools", func() {
 			ns := uuid.New().String()
 			secretName := uuid.New().String()
 
-			certProviderConfig := providers.NewCertificateProviderConfig(kubeClient, nil, nil, osmCertificateManagerKind, ns,
+			certProviderConfig := providers.NewCertificateProviderConfig(kubeClient, nil, nil, providers.Kind(certProviderKind), ns,
 				secretName, tresorOptions, vaultOptions, certManagerOptions)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -122,7 +122,7 @@ var _ = Describe("Test CMD tools", func() {
 			ns := uuid.New().String()
 			secretName := uuid.New().String()
 
-			certProviderConfig := providers.NewCertificateProviderConfig(kubeClient, nil, nil, osmCertificateManagerKind, ns,
+			certProviderConfig := providers.NewCertificateProviderConfig(kubeClient, nil, nil, providers.Kind(certProviderKind), ns,
 				secretName, tresorOptions, vaultOptions, certManagerOptions)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -151,7 +151,7 @@ var _ = Describe("Test CMD tools", func() {
 			ns := uuid.New().String()
 			secretName := uuid.New().String()
 
-			certProviderConfig := providers.NewCertificateProviderConfig(kubeClient, nil, nil, osmCertificateManagerKind, ns,
+			certProviderConfig := providers.NewCertificateProviderConfig(kubeClient, nil, nil, providers.Kind(certProviderKind), ns,
 				secretName, tresorOptions, vaultOptions, certManagerOptions)
 			Expect(err).ToNot(HaveOccurred())
 
