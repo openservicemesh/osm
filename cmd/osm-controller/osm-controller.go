@@ -65,7 +65,7 @@ var (
 
 	injectorConfig injector.Config
 
-	osmCertificateManagerKind providers.Kind
+	certProviderKind string
 
 	tresorOptions      providers.TresorOptions
 	vaultOptions       providers.VaultOptions
@@ -84,8 +84,6 @@ var (
 )
 
 func init() {
-	var certProviderKind string
-
 	flags.StringVarP(&verbosity, "verbosity", "v", "info", "Set log verbosity level")
 	flags.StringVar(&meshName, "mesh-name", "", "OSM mesh name")
 	flags.StringVar(&kubeConfigFile, "kubeconfig", "", "Path to Kubernetes config file.")
@@ -100,7 +98,6 @@ func init() {
 
 	// Generic certificate manager/provider options
 	flags.StringVar(&certProviderKind, "certificate-manager", providers.TresorKind.String(), fmt.Sprintf("Certificate manager, one of [%v]", providers.ValidCertificateProviders))
-	osmCertificateManagerKind = providers.Kind(certProviderKind)
 	flags.StringVar(&caBundleSecretName, "ca-bundle-secret-name", "", "Name of the Kubernetes Secret for the OSM CA bundle")
 
 	// Vault certificate manager/provider options
@@ -137,6 +134,7 @@ func main() {
 	if err := parseFlags(); err != nil {
 		log.Fatal().Err(err).Msg("Error parsing cmd line arguments")
 	}
+
 	if err := logger.SetLogLevel(verbosity); err != nil {
 		log.Fatal().Err(err).Msg("Error setting log level")
 	}
@@ -198,12 +196,12 @@ func main() {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating MeshSpec")
 	}
 
-	certManager, certDebugger, _, err := providers.NewCertificateProvider(kubeClient, kubeConfig, cfg, osmCertificateManagerKind, osmNamespace,
+	certManager, certDebugger, _, err := providers.NewCertificateProvider(kubeClient, kubeConfig, cfg, providers.Kind(certProviderKind), osmNamespace,
 		caBundleSecretName, tresorOptions, vaultOptions, certManagerOptions)
 
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
-			"Error fetching certificate manager of kind %s", osmCertificateManagerKind)
+			"Error fetching certificate manager of kind %s", certProviderKind)
 	}
 
 	if err := createOrUpdateCABundleKubernetesSecret(kubeClient, certManager, osmNamespace, caBundleSecretName); err != nil {

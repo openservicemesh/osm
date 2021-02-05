@@ -40,7 +40,7 @@ func validateCLIParams() error {
 }
 
 func validateCertificateManagerOptions() error {
-	switch osmCertificateManagerKind {
+	switch providers.Kind(certProviderKind) {
 	case providers.TresorKind:
 		return providers.ValidateTresorOptions(tresorOptions)
 
@@ -51,7 +51,7 @@ func validateCertificateManagerOptions() error {
 		return providers.ValidateCertManagerOptions(certManagerOptions)
 
 	default:
-		return errors.Errorf("Invalid certificate manager kind %s. Please specify a valid certificate manager, one of: [%v] \n",
-			osmCertificateManagerKind, providers.ValidCertificateProviders)
+		return errors.Errorf("Invalid certificate manager kind %s. Please specify a valid certificate manager, one of: [%v]",
+			certProviderKind, providers.ValidCertificateProviders)
 	}
 }
