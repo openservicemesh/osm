@@ -36,7 +36,6 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *v1beta1.AdmissionRe
 		WithLabelValues().Observe(elapsed.Seconds())
 	originalHealthProbes := rewriteHealthProbes(pod)
 
-	wh.meshCatalog.ExpectProxy(cn)
 	// Create the bootstrap configuration for the Envoy proxy for the given pod
 	envoyBootstrapConfigName := fmt.Sprintf("envoy-bootstrap-config-%s", proxyUUID)
 	if _, err = wh.createEnvoyBootstrapConfig(envoyBootstrapConfigName, namespace, wh.osmNamespace, bootstrapCertificate, originalHealthProbes); err != nil {

@@ -8,9 +8,13 @@ import (
 	cmmeta "github.com/jetstack/cert-manager/pkg/apis/meta/v1"
 	cmversionedclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	api "k8s.io/kubernetes/pkg/apis/core"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/certmanager"
@@ -49,7 +53,7 @@ func NewCertificateProvider(kubeClient kubernetes.Interface, kubeConfig *rest.Co
 		return nil, nil, nil, err
 	}
 
-	certManager, certDebugger, err := config.getCertificateManager()
+	certManager, certDebugger, err := config.GetCertificateManager()
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -138,8 +142,8 @@ func ValidateCertManagerOptions(options CertManagerOptions) error {
 	return nil
 }
 
-// getCertificateManager returns the certificate manager/provider instance
-func (c *Config) getCertificateManager() (certificate.Manager, debugger.CertificateManagerDebugger, error) {
+// GetCertificateManager returns the certificate manager/provider instance
+func (c *Config) GetCertificateManager() (certificate.Manager, debugger.CertificateManagerDebugger, error) {
 	switch c.providerKind {
 	case TresorKind:
 		return c.getTresorOSMCertificateManager()
@@ -280,4 +284,32 @@ func (c *Config) getCertManagerOSMCertificateManager(options CertManagerOptions)
 	}
 
 	return certmanagerCertManager, certmanagerCertManager, nil
+}
+
+// RegisterForCABundleSecretReadiness creates and return a signalling channel to notify on when the CA bundle secret is ready.
+// The CA bundle secret is created by osm-controller.
+func (c *Config) RegisterForCABundleSecretReadiness() (<-chan bool, error) {
+	watcher, err := c.kubeClient.CoreV1().Secrets(c.providerNamespace).Watch(context.TODO(), metav1.ListOptions{
+		FieldSelector: fields.OneTermEqualSelector(api.ObjectNameField, c.caBundleSecretName).String(),
+	})
+	if err != nil {
+		return nil, errors.Errorf("Error watching CA Bundle secret: %s", err)
+	}
+
+	ready := make(chan bool)
+	go func() {
+		for event := range watcher.ResultChan() {
+			_, ok := event.Object.(*corev1.Secret)
+			if !ok {
+				log.Error().Msg("Got unexpected type while watching type corev1.Secret")
+				return
+			}
+
+			if event.Type == watch.Added {
+				ready <- true
+			}
+		}
+	}()
+
+	return ready, nil
 }

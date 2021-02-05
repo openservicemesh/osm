@@ -137,3 +137,14 @@ OpenServiceMesh:
   # -- Optional parameter to specify a global list of IP ranges to exclude from outbound traffic interception by the sidecar proxy.
   # If specified, must be a list of IP ranges of the form a.b.c.d/x.
   outboundIPRangeExclusionList: []
+
+  # -- Sidecar injector configuration
+  injector:
+    replicaCount: 1
+    resource:
+      limits:
+        cpu: "0.5"
+        memory: "32M"
+      requests:
+        cpu: "0.3"
+        memory: "32M"

@@ -583,6 +583,7 @@ func (td *OsmTestData) GetConfigMap(name, namespace string) (*corev1.ConfigMap, 
 func (td *OsmTestData) LoadOSMImagesIntoKind() error {
 	imageNames := []string{
 		"osm-controller",
+		"osm-injector",
 		"init",
 	}
 

@@ -40,12 +40,20 @@ clean-cert:
 clean-osm-controller:
 	@rm -rf bin/osm-controller
 
+.PHONY: clean-osm-injector
+clean-osm-injector:
+	@rm -rf bin/osm-injector
+
 .PHONY: build
-build: build-osm-controller
+build: build-osm-controller build-osm-injector
 
 .PHONY: build-osm-controller
 build-osm-controller: clean-osm-controller
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o ./bin/osm-controller/osm-controller -ldflags "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -s -w" ./cmd/osm-controller
+
+.PHONY: build-osm-injector
+build-osm-injector: clean-osm-injector
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o ./bin/osm-injector/osm-injector -ldflags "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -s -w" ./cmd/osm-injector
 
 .PHONY: build-osm
 build-osm:
@@ -99,7 +107,7 @@ kind-reset:
 	kind delete cluster --name osm
 
 .PHONY: test-e2e
-test-e2e: docker-build-osm-controller docker-build-init build-osm docker-build-tcp-echo-server
+test-e2e: docker-build-osm-controller docker-build-osm-injector docker-build-init build-osm docker-build-tcp-echo-server
 	go test ./tests/e2e $(E2E_FLAGS_DEFAULT) $(E2E_FLAGS)
 
 .env:
@@ -120,7 +128,7 @@ $(DEMO_BUILD_TARGETS):
 	@if [ -f demo/$(NAME).html.template ]; then cp demo/$(NAME).html.template demo/bin/$(NAME); fi
 
 .PHONY: demo-build
-demo-build: $(DEMO_BUILD_TARGETS) build-osm-controller
+demo-build: $(DEMO_BUILD_TARGETS) build-osm-controller build-osm-injector
 
 # docker-build-bookbuyer, etc
 DOCKER_DEMO_TARGETS = $(addprefix docker-build-, $(DEMO_TARGETS))
@@ -136,11 +144,14 @@ docker-build-init:
 docker-build-osm-controller: build-osm-controller
 	docker build -t $(CTR_REGISTRY)/osm-controller:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-controller bin/osm-controller
 
+docker-build-osm-injector: build-osm-injector
+	docker build -t $(CTR_REGISTRY)/osm-injector:$(CTR_TAG) -f dockerfiles/Dockerfile.osm-injector bin/osm-injector
+
 .PHONY: docker-build
-docker-build: $(DOCKER_DEMO_TARGETS) docker-build-init docker-build-osm-controller
+docker-build: $(DOCKER_DEMO_TARGETS) docker-build-init docker-build-osm-controller docker-build-osm-injector
 
 # docker-push-bookbuyer, etc
-DOCKER_PUSH_TARGETS = $(addprefix docker-push-, $(DEMO_TARGETS) init osm-controller)
+DOCKER_PUSH_TARGETS = $(addprefix docker-push-, $(DEMO_TARGETS) init osm-controller osm-injector)
 VERIFY_TAGS = 0
 .PHONY: $(DOCKER_PUSH_TARGETS)
 $(DOCKER_PUSH_TARGETS): NAME=$(@:docker-push-%=%)

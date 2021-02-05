@@ -5,7 +5,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
-	"github.com/openservicemesh/osm/pkg/injector"
 )
 
 var _ = Describe("Test validateCertificateManagerOptions", func() {
@@ -92,8 +91,6 @@ var _ = Describe("Test validateCLIParams", func() {
 	var (
 		testMeshName           = "test-mesh-name"
 		testOsmNamespace       = "test-namespace"
-		testInitContainerImage = "test-init-image"
-		testSidecarImage       = "test-sidecar-image"
 		testwebhookConfigName  = "test-webhook-name"
 		testCABundleSecretName = "test-ca-bundle"
 	)
@@ -102,10 +99,6 @@ var _ = Describe("Test validateCLIParams", func() {
 		certProviderKind = providers.TresorKind.String()
 		meshName = testMeshName
 		osmNamespace = testOsmNamespace
-		injectorConfig = injector.Config{
-			InitContainerImage: testInitContainerImage,
-			SidecarImage:       testSidecarImage,
-		}
 		webhookConfigName = testwebhookConfigName
 		caBundleSecretName = testCABundleSecretName
 
@@ -119,10 +112,6 @@ var _ = Describe("Test validateCLIParams", func() {
 		certProviderKind = providers.TresorKind.String()
 		meshName = ""
 		osmNamespace = testOsmNamespace
-		injectorConfig = injector.Config{
-			InitContainerImage: testInitContainerImage,
-			SidecarImage:       testSidecarImage,
-		}
 		webhookConfigName = testwebhookConfigName
 
 		err := validateCLIParams()
@@ -135,42 +124,6 @@ var _ = Describe("Test validateCLIParams", func() {
 		certProviderKind = providers.TresorKind.String()
 		meshName = testMeshName
 		osmNamespace = ""
-		injectorConfig = injector.Config{
-			InitContainerImage: testInitContainerImage,
-			SidecarImage:       testSidecarImage,
-		}
-		webhookConfigName = testwebhookConfigName
-
-		err := validateCLIParams()
-
-		It("should error", func() {
-			Expect(err).To(HaveOccurred())
-		})
-	})
-	Context("InitContainerImage on injectorConfig is empty", func() {
-		certProviderKind = providers.TresorKind.String()
-		meshName = testMeshName
-		osmNamespace = testOsmNamespace
-		injectorConfig = injector.Config{
-			InitContainerImage: "",
-			SidecarImage:       testSidecarImage,
-		}
-		webhookConfigName = testwebhookConfigName
-
-		err := validateCLIParams()
-
-		It("should error", func() {
-			Expect(err).To(HaveOccurred())
-		})
-	})
-	Context("SidecarImage on injectorConfig is empty", func() {
-		certProviderKind = providers.TresorKind.String()
-		meshName = testMeshName
-		osmNamespace = testOsmNamespace
-		injectorConfig = injector.Config{
-			InitContainerImage: testInitContainerImage,
-			SidecarImage:       "",
-		}
 		webhookConfigName = testwebhookConfigName
 
 		err := validateCLIParams()
@@ -183,10 +136,6 @@ var _ = Describe("Test validateCLIParams", func() {
 		certProviderKind = providers.TresorKind.String()
 		meshName = testMeshName
 		osmNamespace = testOsmNamespace
-		injectorConfig = injector.Config{
-			InitContainerImage: testInitContainerImage,
-			SidecarImage:       testSidecarImage,
-		}
 		webhookConfigName = ""
 
 		err := validateCLIParams()

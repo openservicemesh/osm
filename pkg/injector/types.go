@@ -4,7 +4,6 @@ import (
 	mapset "github.com/deckarep/golang-set"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
@@ -22,7 +21,6 @@ type mutatingWebhook struct {
 	config         Config
 	kubeClient     kubernetes.Interface
 	certManager    certificate.Manager
-	meshCatalog    catalog.MeshCataloger
 	kubeController k8s.Controller
 	osmNamespace   string
 	cert           certificate.Certificater
