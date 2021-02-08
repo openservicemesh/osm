@@ -79,6 +79,9 @@ const (
 
 	// test tag prefix, for NS labeling
 	osmTest = "osmTest"
+
+	// osmCABundleName is the name of the secret used to store the CA bundle
+	osmCABundleName = "osm-ca-bundle"
 )
 
 var (
@@ -781,7 +784,7 @@ func (td *OsmTestData) installCertManager(instOpts InstallOSMOpts) error {
 		Spec: v1alpha2.CertificateSpec{
 			IsCA:       true,
 			Duration:   &metav1.Duration{Duration: 90 * 24 * time.Hour},
-			SecretName: "osm-ca-bundle",
+			SecretName: osmCABundleName,
 			CommonName: "osm-system",
 			IssuerRef: cmmeta.ObjectReference{
 				Name:  selfsigned.Name,
@@ -798,7 +801,7 @@ func (td *OsmTestData) installCertManager(instOpts InstallOSMOpts) error {
 		Spec: v1alpha2.IssuerSpec{
 			IssuerConfig: v1alpha2.IssuerConfig{
 				CA: &v1alpha2.CAIssuer{
-					SecretName: "osm-ca-bundle",
+					SecretName: osmCABundleName,
 				},
 			},
 		},
@@ -813,19 +816,42 @@ func (td *OsmTestData) installCertManager(instOpts InstallOSMOpts) error {
 		return errors.Wrap(err, "failed to create cert-manager config")
 	}
 
-	_, err = cmClient.CertmanagerV1alpha2().Certificates(td.OsmNamespace).Create(context.TODO(), cert, metav1.CreateOptions{})
-	if err != nil {
-		return errors.Wrap(err, "failed to create Certificate "+cert.Name)
+	// cert-manager.io webhook can experience connection problems after installation:
+	// https://cert-manager.io/docs/concepts/webhook/#webhook-connection-problems-shortly-after-cert-manager-installation
+	// Retry API errors with some delay in case of failures.
+	if err = Td.RetryFuncOnError(func() error {
+		_, err = cmClient.CertmanagerV1alpha2().Certificates(td.OsmNamespace).Create(context.TODO(), cert, metav1.CreateOptions{})
+		if err != nil {
+			return errors.Wrap(err, "failed to create Certificate "+cert.Name)
+		}
+		return nil
+	}, 5, 5*time.Second); err != nil {
+		return err
 	}
 
-	_, err = cmClient.CertmanagerV1alpha2().Issuers(td.OsmNamespace).Create(context.TODO(), selfsigned, metav1.CreateOptions{})
-	if err != nil {
-		return errors.Wrap(err, "failed to create Issuer "+selfsigned.Name)
+	if err = Td.RetryFuncOnError(func() error {
+		_, err = cmClient.CertmanagerV1alpha2().Issuers(td.OsmNamespace).Create(context.TODO(), selfsigned, metav1.CreateOptions{})
+		if err != nil {
+			return errors.Wrap(err, "failed to create Issuer "+selfsigned.Name)
+		}
+		return nil
+	}, 5, 5*time.Second); err != nil {
+		return err
 	}
 
-	_, err = cmClient.CertmanagerV1alpha2().Issuers(td.OsmNamespace).Create(context.TODO(), ca, metav1.CreateOptions{})
-	if err != nil {
-		return errors.Wrap(err, "failed to create Issuer "+ca.Name)
+	if err = Td.RetryFuncOnError(func() error {
+		_, err = cmClient.CertmanagerV1alpha2().Issuers(td.OsmNamespace).Create(context.TODO(), ca, metav1.CreateOptions{})
+		if err != nil {
+			return errors.Wrap(err, "failed to create Issuer "+ca.Name)
+		}
+		return nil
+	}, 5, 5*time.Second); err != nil {
+		return err
+	}
+
+	// cert-manager.io creates the OSM CA bundle secret which is required by osm-controller. Wait for it to be ready.
+	if err := Td.waitForCABundleSecret(td.OsmNamespace, 90*time.Second); err != nil {
+		return errors.Wrap(err, "error waiting for cert-manager.io to create OSM CA bundle secret")
 	}
 
 	return nil
@@ -1205,4 +1231,36 @@ func (td *OsmTestData) CreateDockerRegistrySecret(ns string) {
 	if err != nil {
 		td.T.Fatalf("Could not add registry secret")
 	}
+}
+
+// RetryOnErrorFunc is a function type passed to RetryFuncOnError() to execute
+type RetryOnErrorFunc func() error
+
+// RetryFuncOnError runs the given function and retries for the given number of times if an error is encountered
+func (td *OsmTestData) RetryFuncOnError(f RetryOnErrorFunc, retryTimes int, sleepBetweenRetries time.Duration) error {
+	var err error
+
+	for i := 0; i <= retryTimes; i++ {
+		err = f()
+		if err == nil {
+			return nil
+		}
+		time.Sleep(sleepBetweenRetries)
+	}
+	return errors.Wrapf(err, "Error after retrying %d times", retryTimes)
+}
+
+// waitForCABundleSecret waits for the CA bundle secret to be created
+func (td *OsmTestData) waitForCABundleSecret(ns string, timeout time.Duration) error {
+	td.T.Logf("Wait up to %s for OSM CA bundle to be ready in NS [%s]...", timeout, ns)
+	for start := time.Now(); time.Since(start) < timeout; time.Sleep(5 * time.Second) {
+		_, err := td.Client.CoreV1().Secrets(ns).Get(context.TODO(), osmCABundleName, metav1.GetOptions{})
+		if err == nil {
+			return nil
+		}
+		td.T.Logf("OSM CA bundle secret not ready in NS [%s]", ns)
+		continue // retry
+	}
+
+	return fmt.Errorf("CA bundle secret not ready in NS %s after %s", ns, timeout)
 }
