@@ -239,12 +239,15 @@ static_resources:
 })
 
 var _ = Describe("Test Envoy sidecar", func() {
-	const (
-		containerName = "-container-name-"
-		envoyImage    = "-envoy-image-"
-		nodeID        = "-node-id-"
-		clusterID     = "-cluster-id-"
-	)
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "namespace",
+		},
+		Spec: corev1.PodSpec{
+			ServiceAccountName: "svcacc",
+		},
+	}
+	const envoyImage = "-envoy-image-"
 
 	mockCtrl := gomock.NewController(GinkgoT())
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
@@ -252,10 +255,10 @@ var _ = Describe("Test Envoy sidecar", func() {
 	Context("create Envoy sidecar", func() {
 		It("creates correct Envoy sidecar spec", func() {
 			mockConfigurator.EXPECT().GetEnvoyLogLevel().Return("debug").Times(1)
-			actual := getEnvoySidecarContainerSpec(containerName, envoyImage, nodeID, clusterID, mockConfigurator, healthProbes{})
+			actual := getEnvoySidecarContainerSpec(pod, envoyImage, mockConfigurator, healthProbes{})
 
 			expected := corev1.Container{
-				Name:            containerName,
+				Name:            constants.EnvoyContainerName,
 				Image:           envoyImage,
 				ImagePullPolicy: corev1.PullAlways,
 				SecurityContext: &corev1.SecurityContext{
@@ -291,8 +294,8 @@ var _ = Describe("Test Envoy sidecar", func() {
 				Args: []string{
 					"--log-level", "debug",
 					"--config-path", "/etc/envoy/bootstrap.yaml",
-					"--service-node", "$(POD_UID)/$(POD_NAMESPACE)/$(POD_IP)/$(SERVICE_ACCOUNT)/-node-id-",
-					"--service-cluster", clusterID,
+					"--service-node", "$(POD_UID)/$(POD_NAMESPACE)/$(POD_IP)/$(SERVICE_ACCOUNT)/svcacc",
+					"--service-cluster", "svcacc.namespace",
 					"--bootstrap-version 3",
 				},
 				Env: []corev1.EnvVar{

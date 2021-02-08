@@ -51,14 +51,8 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *v1beta1.AdmissionRe
 	initContainer := getInitContainerSpec(constants.InitContainerName, wh.config.InitContainerImage, wh.configurator.GetOutboundIPRangeExclusionList())
 	pod.Spec.InitContainers = append(pod.Spec.InitContainers, initContainer)
 
-	// envoyNodeID and envoyClusterID are required for Envoy proxy to start.
-	envoyNodeID := pod.Spec.ServiceAccountName
-
-	// envoyCluster ID will be used as an identifier to the tracing sink
-	envoyClusterID := fmt.Sprintf("%s.%s", pod.Spec.ServiceAccountName, namespace)
-
 	// Add the Envoy sidecar
-	sidecar := getEnvoySidecarContainerSpec(constants.EnvoyContainerName, wh.config.SidecarImage, envoyNodeID, envoyClusterID, wh.configurator, originalHealthProbes)
+	sidecar := getEnvoySidecarContainerSpec(pod, wh.config.SidecarImage, wh.configurator, originalHealthProbes)
 	pod.Spec.Containers = append(pod.Spec.Containers, sidecar)
 
 	enableMetrics, err := wh.isMetricsEnabled(namespace)
