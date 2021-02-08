@@ -65,6 +65,6 @@ You may require outbound proxy support if your egress traffic is configured to g
     
 1. Change `enableProxySupport` to `true`
 
-2. Update the httpProxy and httpsProxy values to `"http://<host>:<port>"`
+2. Update the httpProxy and httpsProxy values to `"http://<host>:<port>"`. If your proxy server requires basic authentication, you may include its username and password as: `http://<username>:<password>@<host>:<port>`
 
-Ensure that the Fluent Bit image tag is `1.6.4` or greater as it is required for this feature. 
+> NOTE: Ensure that the [Fluent Bit image tag](https://github.com/openservicemesh/osm/blob/main/charts/osm/values.yaml) is `1.6.4` or greater as it is required for this feature. 
