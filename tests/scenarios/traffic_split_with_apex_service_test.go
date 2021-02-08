@@ -59,9 +59,9 @@ var _ = Describe(``+
 			})
 
 			const (
-				apexName = "outbound_virtualHost|bookstore-apex"
-				v1Name   = "outbound_virtualHost|bookstore-v1"
-				v2Name   = "outbound_virtualHost|bookstore-v2"
+				apexName = "outbound_virtual-host|bookstore-apex"
+				v1Name   = "outbound_virtual-host|bookstore-v1"
+				v2Name   = "outbound_virtual-host|bookstore-v2"
 			)
 			expectedVHostNames := []string{apexName, v1Name, v2Name}
 

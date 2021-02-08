@@ -36,7 +36,7 @@ func TestNewResponse(t *testing.T) {
 
 	testInbound := []*trafficpolicy.InboundTrafficPolicy{
 		{
-			Name:      "bookstore-v1-default",
+			Name:      "bookstore-v1.default",
 			Hostnames: tests.BookstoreV1Hostnames,
 			Rules: []*trafficpolicy.Rule{
 				{
@@ -75,7 +75,7 @@ func TestNewResponse(t *testing.T) {
 			},
 		},
 		{
-			Name:      "bookstore-v1-default-*",
+			Name:      "bookstore-v1.default|*",
 			Hostnames: []string{"*"},
 			Rules: []*trafficpolicy.Rule{
 				{
@@ -109,14 +109,14 @@ func TestNewResponse(t *testing.T) {
 	assert.Equal("RDS_Inbound", routeConfig.Name)
 	assert.Equal(2, len(routeConfig.VirtualHosts))
 
-	assert.Equal("inbound_virtualHost|bookstore-v1-default", routeConfig.VirtualHosts[0].Name)
+	assert.Equal("inbound_virtual-host|bookstore-v1.default", routeConfig.VirtualHosts[0].Name)
 	assert.Equal(tests.BookstoreV1Hostnames, routeConfig.VirtualHosts[0].Domains)
 	assert.Equal(3, len(routeConfig.VirtualHosts[0].Routes))
 	assert.Equal(tests.BookstoreBuyHTTPRoute.PathRegex, routeConfig.VirtualHosts[0].Routes[0].GetMatch().GetSafeRegex().Regex)
 	assert.Equal(tests.BookstoreSellHTTPRoute.PathRegex, routeConfig.VirtualHosts[0].Routes[1].GetMatch().GetSafeRegex().Regex)
 	assert.Equal(tests.BookstoreBuyHTTPRoute.PathRegex, routeConfig.VirtualHosts[0].Routes[2].GetMatch().GetSafeRegex().Regex)
 
-	assert.Equal("inbound_virtualHost|bookstore-v1-default-*", routeConfig.VirtualHosts[1].Name)
+	assert.Equal("inbound_virtual-host|bookstore-v1.default|*", routeConfig.VirtualHosts[1].Name)
 	assert.Equal([]string{"*"}, routeConfig.VirtualHosts[1].Domains)
 	assert.Equal(1, len(routeConfig.VirtualHosts[1].Routes))
 	assert.Equal(tests.BookstoreBuyHTTPRoute.PathRegex, routeConfig.VirtualHosts[1].Routes[0].GetMatch().GetSafeRegex().Regex)
@@ -137,7 +137,7 @@ func TestNewResponseWithPermissiveMode(t *testing.T) {
 
 	testPermissiveInbound := []*trafficpolicy.InboundTrafficPolicy{
 		{
-			Name:      "bookstore-v1-default",
+			Name:      "bookstore-v1.default",
 			Hostnames: tests.BookstoreV1Hostnames,
 			Rules: []*trafficpolicy.Rule{
 				{
@@ -156,7 +156,7 @@ func TestNewResponseWithPermissiveMode(t *testing.T) {
 
 	testOutbound := []*trafficpolicy.OutboundTrafficPolicy{
 		{
-			Name: "bookbuyer-default",
+			Name: "bookbuyer.default",
 			Hostnames: []string{
 				"bookbuyer.default",
 				"bookbuyer.default.svc",
@@ -197,7 +197,7 @@ func TestNewResponseWithPermissiveMode(t *testing.T) {
 			},
 		},
 		{
-			Name:      "bookstore-v1-default-*",
+			Name:      "bookstore-v1.default|*",
 			Hostnames: []string{"*"},
 			Rules: []*trafficpolicy.Rule{
 				{
@@ -231,13 +231,13 @@ func TestNewResponseWithPermissiveMode(t *testing.T) {
 	assert.Equal("RDS_Inbound", routeConfig.Name)
 	assert.Equal(2, len(routeConfig.VirtualHosts))
 
-	assert.Equal("inbound_virtualHost|bookstore-v1-default", routeConfig.VirtualHosts[0].Name)
+	assert.Equal("inbound_virtual-host|bookstore-v1.default", routeConfig.VirtualHosts[0].Name)
 	assert.Equal(tests.BookstoreV1Hostnames, routeConfig.VirtualHosts[0].Domains)
 	assert.Equal(2, len(routeConfig.VirtualHosts[0].Routes))
 	assert.Equal(constants.RegexMatchAll, routeConfig.VirtualHosts[0].Routes[0].GetMatch().GetSafeRegex().Regex)
 	assert.Equal(tests.BookstoreBuyHTTPRoute.PathRegex, routeConfig.VirtualHosts[0].Routes[1].GetMatch().GetSafeRegex().Regex)
 
-	assert.Equal("inbound_virtualHost|bookstore-v1-default-*", routeConfig.VirtualHosts[1].Name)
+	assert.Equal("inbound_virtual-host|bookstore-v1.default|*", routeConfig.VirtualHosts[1].Name)
 	assert.Equal([]string{"*"}, routeConfig.VirtualHosts[1].Domains)
 	assert.Equal(1, len(routeConfig.VirtualHosts[1].Routes))
 	assert.Equal(tests.BookstoreBuyHTTPRoute.PathRegex, routeConfig.VirtualHosts[1].Routes[0].GetMatch().GetSafeRegex().Regex)
@@ -250,7 +250,7 @@ func TestNewResponseWithPermissiveMode(t *testing.T) {
 	assert.Equal("RDS_Outbound", routeConfig.Name)
 	assert.Equal(1, len(routeConfig.VirtualHosts))
 
-	assert.Equal("outbound_virtualHost|bookbuyer-default", routeConfig.VirtualHosts[0].Name)
+	assert.Equal("outbound_virtual-host|bookbuyer.default", routeConfig.VirtualHosts[0].Name)
 	assert.Equal(1, len(routeConfig.VirtualHosts[0].Routes))
 	assert.Equal(constants.RegexMatchAll, routeConfig.VirtualHosts[0].Routes[0].GetMatch().GetSafeRegex().Regex)
 }

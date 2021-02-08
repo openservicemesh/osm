@@ -673,7 +673,7 @@ func isValidTrafficTarget(t *access.TrafficTarget) bool {
 func buildPolicyName(svc service.MeshService, sameNamespace bool) string {
 	name := svc.Name
 	if !sameNamespace {
-		return name + "-" + svc.Namespace
+		return name + "." + svc.Namespace
 	}
 	return name
 }

@@ -701,7 +701,7 @@ func TestBuildOutboundPolicies(t *testing.T) {
 	}
 	expected := []*trafficpolicy.OutboundTrafficPolicy{
 		{
-			Name:      destMeshService.Name + "-" + destMeshService.Namespace,
+			Name:      destMeshService.Name + "." + destMeshService.Namespace,
 			Hostnames: hostnames,
 			Routes: []*trafficpolicy.RouteWeightedClusters{
 				{
@@ -802,7 +802,7 @@ func TestBuildInboundPoliciesDiffNamespaces(t *testing.T) {
 	}
 	expectedPolicies := []*trafficpolicy.InboundTrafficPolicy{
 		{
-			Name:      "bookstore-bookstore-ns",
+			Name:      "bookstore.bookstore-ns",
 			Hostnames: expectedHostnames,
 			Rules: []*trafficpolicy.Rule{
 				{
@@ -913,7 +913,7 @@ func TestBuildInboundPoliciesSameNamespace(t *testing.T) {
 	}
 	expectedPolicies := []*trafficpolicy.InboundTrafficPolicy{
 		{
-			Name:      "bookstore-default",
+			Name:      "bookstore.default",
 			Hostnames: expectedHostnames,
 			Rules: []*trafficpolicy.Rule{
 				{
@@ -962,7 +962,7 @@ func TestBuildInboundPermissiveModePolicies(t *testing.T) {
 			name: "inbound traffic policies for permissive mode",
 			expectedInboundPolicies: []*trafficpolicy.InboundTrafficPolicy{
 				{
-					Name: "bookstore-bookstore-ns",
+					Name: "bookstore.bookstore-ns",
 					Hostnames: []string{
 						"bookstore",
 						"bookstore.bookstore-ns",
@@ -1049,7 +1049,7 @@ func TestBuildOutboundPermissiveModePolicies(t *testing.T) {
 			services:        map[string]string{"bookstore-v1": "default", "bookstore-apex": "default", "bookbuyer": "default"},
 			expectedOutboundPolicies: []*trafficpolicy.OutboundTrafficPolicy{
 				{
-					Name: "bookstore-apex-default",
+					Name: "bookstore-apex.default",
 					Hostnames: []string{
 						"bookstore-apex.default",
 						"bookstore-apex.default.svc",
@@ -1068,7 +1068,7 @@ func TestBuildOutboundPermissiveModePolicies(t *testing.T) {
 					},
 				},
 				{
-					Name: "bookstore-v1-default",
+					Name: "bookstore-v1.default",
 					Hostnames: []string{
 						"bookstore-v1.default",
 						"bookstore-v1.default.svc",
@@ -1161,7 +1161,7 @@ func TestListPoliciesFromTrafficTargets(t *testing.T) {
 
 	expectedBookstoreInbound := []*trafficpolicy.InboundTrafficPolicy{
 		{
-			Name:      "bookstore-v1-default",
+			Name:      "bookstore-v1.default",
 			Hostnames: tests.BookstoreV1Hostnames,
 			Rules: []*trafficpolicy.Rule{
 				{
@@ -1181,7 +1181,7 @@ func TestListPoliciesFromTrafficTargets(t *testing.T) {
 			},
 		},
 		{
-			Name:      "bookstore-v2-default",
+			Name:      "bookstore-v2.default",
 			Hostnames: tests.BookstoreV2Hostnames,
 			Rules: []*trafficpolicy.Rule{
 				{
@@ -1201,7 +1201,7 @@ func TestListPoliciesFromTrafficTargets(t *testing.T) {
 			},
 		},
 		{
-			Name:      "bookstore-apex-default",
+			Name:      "bookstore-apex.default",
 			Hostnames: tests.BookstoreApexHostnames,
 			Rules: []*trafficpolicy.Rule{
 				{
@@ -1277,7 +1277,7 @@ func TestListPoliciesForPermissiveMode(t *testing.T) {
 
 	expectedBookbuyerOutbound := []*trafficpolicy.OutboundTrafficPolicy{
 		{
-			Name: "bookstore-v1-default",
+			Name: "bookstore-v1.default",
 			Hostnames: []string{
 				"bookstore-v1.default",
 				"bookstore-v1.default.svc",
@@ -1296,7 +1296,7 @@ func TestListPoliciesForPermissiveMode(t *testing.T) {
 			},
 		},
 		{
-			Name: "bookstore-v2-default",
+			Name: "bookstore-v2.default",
 			Hostnames: []string{
 				"bookstore-v2.default",
 				"bookstore-v2.default.svc",
@@ -1318,7 +1318,7 @@ func TestListPoliciesForPermissiveMode(t *testing.T) {
 
 	expectedBookbuyerInbound := []*trafficpolicy.InboundTrafficPolicy{
 		{
-			Name: "bookbuyer-default",
+			Name: "bookbuyer.default",
 			Hostnames: []string{
 				"bookbuyer",
 				"bookbuyer.default",
@@ -1450,7 +1450,7 @@ func TestBuildPolicyName(t *testing.T) {
 			name:          "different namespace",
 			svc:           svc,
 			sameNamespace: false,
-			expectedName:  "foo-default",
+			expectedName:  "foo.default",
 		},
 	}
 
