@@ -372,6 +372,22 @@ func (mr *MockMeshCatalogerMockRecorder) ListTrafficPoliciesForServiceAccount(ar
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTrafficPoliciesForServiceAccount", reflect.TypeOf((*MockMeshCataloger)(nil).ListTrafficPoliciesForServiceAccount), arg0)
 }
 
+// ListPoliciesForPermissiveMode mocks base method
+func (m *MockMeshCataloger) ListPoliciesForPermissiveMode(arg0 []service.MeshService) ([]*trafficpolicy.InboundTrafficPolicy, []*trafficpolicy.OutboundTrafficPolicy, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListPoliciesForPermissiveMode", arg0)
+	ret0, _ := ret[0].([]*trafficpolicy.InboundTrafficPolicy)
+	ret1, _ := ret[1].([]*trafficpolicy.OutboundTrafficPolicy)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// ListPoliciesForPermissiveMode indicates an expected call of ListPoliciesForPermissiveMode
+func (mr *MockMeshCatalogerMockRecorder) ListPoliciesForPermissiveMode(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPoliciesForPermissiveMode", reflect.TypeOf((*MockMeshCataloger)(nil).ListPoliciesForPermissiveMode), arg0)
+}
+
 // RegisterProxy mocks base method
 func (m *MockMeshCataloger) RegisterProxy(arg0 *envoy.Proxy) {
 	m.ctrl.T.Helper()

@@ -19,9 +19,9 @@ import (
 )
 
 // NewResponse creates a new Route Discovery Response.
-func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, _ configurator.Configurator, _ certificate.Manager) (*xds_discovery.DiscoveryResponse, error) {
+func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, discoveryRequest *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, certManager certificate.Manager) (*xds_discovery.DiscoveryResponse, error) {
 	if featureflags.IsRoutesV2Enabled() {
-		return newResponse(cataloger, proxy)
+		return newResponse(cataloger, proxy, discoveryRequest, cfg, certManager)
 	}
 
 	svcList, err := cataloger.GetServicesFromEnvoyCertificate(proxy.GetCertificateCommonName())

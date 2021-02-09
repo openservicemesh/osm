@@ -431,6 +431,12 @@ var (
 		Weight:      100,
 	}
 
+	// BookbuyerDefaultWeightedCluster is a weighted cluster for bookbuyer
+	BookbuyerDefaultWeightedCluster = service.WeightedCluster{
+		ClusterName: "default/bookbuyer",
+		Weight:      100,
+	}
+
 	// PodLabels is a map of the default labels on pods
 	PodLabels = map[string]string{
 		SelectorKey:                      SelectorValue,
@@ -470,6 +476,16 @@ func NewServiceFixture(serviceName, namespace string, selectors map[string]strin
 				Port:     ServicePort,
 			}},
 			Selector: selectors,
+		},
+	}
+}
+
+// NewServiceAccountFixture creates a new Kubernetes service account
+func NewServiceAccountFixture(svcAccountName, namespace string) *corev1.ServiceAccount {
+	return &corev1.ServiceAccount{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      svcAccountName,
+			Namespace: namespace,
 		},
 	}
 }

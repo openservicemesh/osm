@@ -241,6 +241,109 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 		})
 	})
 
+	Context("service account controller", func() {
+		var kubeClient *testclient.Clientset
+		var kubeController Controller
+		var err error
+
+		BeforeEach(func() {
+			kubeClient = testclient.NewSimpleClientset()
+			kubeController, err = NewKubernetesController(kubeClient, testMeshName, make(chan struct{}))
+			Expect(err).ToNot(HaveOccurred())
+			Expect(kubeController).ToNot(BeNil())
+		})
+
+		It("should create and delete service accounts, and be detected if NS is monitored", func() {
+			k8sSvcAccount := tests.BookbuyerServiceAccount
+			serviceChannel := events.GetPubSubInstance().Subscribe(announcements.ServiceAccountAdded,
+				announcements.ServiceAccountDeleted,
+				announcements.ServiceAccountUpdated)
+			defer events.GetPubSubInstance().Unsub(serviceChannel)
+
+			// Create monitored namespace for this service
+			testNamespace := &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:   tests.BookbuyerService.Namespace,
+					Labels: map[string]string{constants.OSMKubeResourceMonitorAnnotation: testMeshName},
+				},
+			}
+			_, err := kubeClient.CoreV1().Namespaces().Create(context.TODO(), testNamespace, metav1.CreateOptions{})
+			Expect(err).To(BeNil())
+			// Wait on namespace to be ready so that resources in this namespace are marked as monitored as soon as possible
+			Eventually(func() bool {
+				return kubeController.IsMonitoredNamespace(testNamespace.Name)
+			}, nsInformerSyncTimeout).Should(BeTrue())
+
+			svcAccount := tests.NewServiceAccountFixture(k8sSvcAccount.Name, k8sSvcAccount.Namespace)
+			_, err = kubeClient.CoreV1().ServiceAccounts(svcAccount.Namespace).Create(context.TODO(), svcAccount, metav1.CreateOptions{})
+			Expect(err).ToNot(HaveOccurred())
+			<-serviceChannel
+
+			err = kubeClient.CoreV1().ServiceAccounts(svcAccount.Namespace).Delete(context.TODO(), svcAccount.Name, metav1.DeleteOptions{})
+			Expect(err).ToNot(HaveOccurred())
+			<-serviceChannel
+		})
+
+		It("should return an empty list when no service accounts are found", func() {
+			services := kubeController.ListServiceAccounts()
+			Expect(len(services)).To(Equal(0))
+		})
+
+		It("should return a list of service accounts", func() {
+			// Define services to test with
+			serviceChannel := events.GetPubSubInstance().Subscribe(announcements.ServiceAccountAdded,
+				announcements.ServiceAccountDeleted,
+				announcements.ServiceAccountUpdated)
+			defer events.GetPubSubInstance().Unsub(serviceChannel)
+			testSvcAccounts := []service.K8sServiceAccount{
+				{Name: uuid.New().String(), Namespace: "ns-1"},
+				{Name: uuid.New().String(), Namespace: "ns-2"},
+			}
+
+			// Test service accounts could belong to the same namespace, so ensure we create a list of unique namespaces
+			testNamespaces := mapset.NewSet()
+			for _, svc := range testSvcAccounts {
+				testNamespaces.Add(svc.Namespace)
+			}
+
+			// Create a namespace resource for each namespace
+			for ns := range testNamespaces.Iter() {
+				namespace := ns.(string)
+
+				testNamespace := corev1.Namespace{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:   namespace,
+						Labels: map[string]string{constants.OSMKubeResourceMonitorAnnotation: testMeshName},
+					},
+				}
+				_, err = kubeClient.CoreV1().Namespaces().Create(context.TODO(), &testNamespace, metav1.CreateOptions{})
+				Expect(err).To(BeNil())
+			}
+			for ns := range testNamespaces.Iter() {
+				namespace := ns.(string)
+				// Wait on namespace to be ready so that resources in this namespace are marked as monitored as soon as possible
+				Eventually(func() bool {
+					return kubeController.IsMonitoredNamespace(namespace)
+				}, nsInformerSyncTimeout).Should(BeTrue())
+			}
+
+			// Add service accounts
+			for _, svcAccountAdd := range testSvcAccounts {
+				svcSpec := tests.NewServiceAccountFixture(svcAccountAdd.Name, svcAccountAdd.Namespace)
+				_, err := kubeClient.CoreV1().ServiceAccounts(svcAccountAdd.Namespace).Create(context.TODO(), svcSpec, metav1.CreateOptions{})
+				Expect(err).ToNot(HaveOccurred())
+			}
+
+			// Wait for all the service account related events: 1 for each service acount created
+			for range testSvcAccounts {
+				<-serviceChannel
+			}
+
+			svcAccounts := kubeController.ListServiceAccounts()
+			Expect(len(testSvcAccounts)).To(Equal(len(svcAccounts)))
+		})
+	})
+
 	Context("Test ListServiceAccountsForService()", func() {
 		var kubeClient *testclient.Clientset
 		var kubeController Controller

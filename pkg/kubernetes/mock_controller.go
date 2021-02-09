@@ -148,3 +148,17 @@ func (mr *MockControllerMockRecorder) ListServices() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServices", reflect.TypeOf((*MockController)(nil).ListServices))
 }
+
+// ListServiceAccounts mocks base method
+func (m *MockController) ListServiceAccounts() []*v1.ServiceAccount {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListServiceAccounts")
+	ret0, _ := ret[0].([]*v1.ServiceAccount)
+	return ret0
+}
+
+// ListServiceAccounts indicates an expected call of ListServiceAccounts
+func (mr *MockControllerMockRecorder) ListServiceAccounts() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServiceAccounts", reflect.TypeOf((*MockController)(nil).ListServiceAccounts))
+}

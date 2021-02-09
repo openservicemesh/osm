@@ -31,6 +31,7 @@ func NewKubernetesController(kubeClient kubernetes.Interface, meshName string, s
 	// Initialize resources here
 	client.initNamespaceMonitor()
 	client.initServicesMonitor()
+	client.initServiceAccountsMonitor()
 	client.initPodMonitor()
 	client.initEndpointMonitor()
 
@@ -82,6 +83,19 @@ func (c *Client) initServicesMonitor() {
 		Delete: announcements.ServiceDeleted,
 	}
 	c.informers[Services].AddEventHandler(GetKubernetesEventHandlers((string)(Services), ProviderName, c.shouldObserve, svcEventTypes))
+}
+
+// Initializes Service Account monitoring
+func (c *Client) initServiceAccountsMonitor() {
+	informerFactory := informers.NewSharedInformerFactory(c.kubeClient, DefaultKubeEventResyncInterval)
+	c.informers[ServiceAccounts] = informerFactory.Core().V1().ServiceAccounts().Informer()
+
+	svcEventTypes := EventTypes{
+		Add:    announcements.ServiceAccountAdded,
+		Update: announcements.ServiceAccountUpdated,
+		Delete: announcements.ServiceAccountDeleted,
+	}
+	c.informers[ServiceAccounts].AddEventHandler(GetKubernetesEventHandlers((string)(ServiceAccounts), ProviderName, c.shouldObserve, svcEventTypes))
 }
 
 func (c *Client) initPodMonitor() {
@@ -184,6 +198,21 @@ func (c Client) ListServices() []*corev1.Service {
 		services = append(services, svc)
 	}
 	return services
+}
+
+// ListServiceAccounts returns a list of service accounts that are part of monitored namespaces
+func (c Client) ListServiceAccounts() []*corev1.ServiceAccount {
+	var serviceAccounts []*corev1.ServiceAccount
+
+	for _, serviceInterface := range c.informers[ServiceAccounts].GetStore().List() {
+		sa := serviceInterface.(*corev1.ServiceAccount)
+
+		if !c.IsMonitoredNamespace(sa.Namespace) {
+			continue
+		}
+		serviceAccounts = append(serviceAccounts, sa)
+	}
+	return serviceAccounts
 }
 
 // GetNamespace returns a Namespace resource if found, nil otherwise.

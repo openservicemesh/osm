@@ -53,6 +53,8 @@ const (
 	Pods InformerKey = "Pods"
 	// Endpoints lookup identifier
 	Endpoints InformerKey = "Endpoints"
+	// ServiceAccounts lookup identifier
+	ServiceAccounts InformerKey = "ServiceAccounts"
 )
 
 // InformerCollection is the type holding the collection of informers we keep
@@ -70,6 +72,9 @@ type Client struct {
 type Controller interface {
 	// ListServices returns a list of all (monitored-namespace filtered) services in the mesh
 	ListServices() []*corev1.Service
+
+	// ListServiceAccounts returns a list of all (monitored-namespace filtered) service accounts in the mesh
+	ListServiceAccounts() []*corev1.ServiceAccount
 
 	// Returns a corev1 Service representation if the MeshService exists in cache, otherwise nil
 	GetService(svc service.MeshService) *corev1.Service

@@ -65,6 +65,18 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface) *MeshCatalog {
 
 		return services
 	}).AnyTimes()
+	mockKubeController.EXPECT().ListServiceAccounts().DoAndReturn(func() []*corev1.ServiceAccount {
+		// play pretend this call queries a controller cache
+		var serviceAccounts []*corev1.ServiceAccount
+
+		// This assumes that catalog tests use monitored namespaces at all times
+		svcAccountList, _ := kubeClient.CoreV1().ServiceAccounts("").List(context.Background(), metav1.ListOptions{})
+		for idx := range svcAccountList.Items {
+			serviceAccounts = append(serviceAccounts, &svcAccountList.Items[idx])
+		}
+
+		return serviceAccounts
+	}).AnyTimes()
 	mockKubeController.EXPECT().GetService(gomock.Any()).DoAndReturn(func(msh service.MeshService) *v1.Service {
 		// play pretend this call queries a controller cache
 		vv, err := kubeClient.CoreV1().Services(msh.Namespace).Get(context.Background(), msh.Name, metav1.GetOptions{})
