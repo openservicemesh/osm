@@ -101,14 +101,14 @@ func TestBuildVirtualHostStub(t *testing.T) {
 			namePrefix:   inboundVirtualHost,
 			host:         "host",
 			domains:      []string{"domain1", "domain2"},
-			expectedName: "inbound_virtualHost|host",
+			expectedName: "inbound_virtual-host|host",
 		},
 		{
 			name:         "outbound virtual host",
 			namePrefix:   outboundVirtualHost,
 			host:         "host",
 			domains:      []string{"domain1", "domain2"},
-			expectedName: "outbound_virtualHost|host",
+			expectedName: "outbound_virtual-host|host",
 		},
 	}
 

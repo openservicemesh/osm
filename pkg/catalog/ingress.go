@@ -71,7 +71,7 @@ func (mc *MeshCatalog) GetIngressPoliciesForService(svc service.MeshService, sa 
 
 	for _, ingress := range ingresses {
 		if ingress.Spec.Backend != nil && ingress.Spec.Backend.ServiceName == svc.Name {
-			wildcardIngressPolicy := trafficpolicy.NewInboundTrafficPolicy(fmt.Sprintf("%s-%s-%s", ingress.ObjectMeta.Name, ingress.ObjectMeta.Namespace, constants.WildcardHTTPMethod), []string{constants.WildcardHTTPMethod})
+			wildcardIngressPolicy := trafficpolicy.NewInboundTrafficPolicy(fmt.Sprintf("%s.%s|%s", ingress.ObjectMeta.Name, ingress.ObjectMeta.Namespace, constants.WildcardHTTPMethod), []string{constants.WildcardHTTPMethod})
 			wildcardIngressPolicy.AddRule(*trafficpolicy.NewRouteWeightedCluster(wildCardRouteMatch, ingressWeightedCluster), sa)
 			inboundIngressPolicies = trafficpolicy.MergeInboundPolicies(false, inboundIngressPolicies, wildcardIngressPolicy)
 		}
@@ -81,7 +81,7 @@ func (mc *MeshCatalog) GetIngressPoliciesForService(svc service.MeshService, sa 
 			if domain == "" {
 				domain = constants.WildcardHTTPMethod
 			}
-			ingressPolicy := trafficpolicy.NewInboundTrafficPolicy(fmt.Sprintf("%s-%s-%s", ingress.ObjectMeta.Name, ingress.ObjectMeta.Namespace, domain), []string{domain})
+			ingressPolicy := trafficpolicy.NewInboundTrafficPolicy(fmt.Sprintf("%s.%s|%s", ingress.ObjectMeta.Name, ingress.ObjectMeta.Namespace, domain), []string{domain})
 
 			for _, ingressPath := range rule.HTTP.Paths {
 				if ingressPath.Backend.ServiceName != svc.Name {
