@@ -341,3 +341,33 @@ func TestGetIngressPoliciesForService(t *testing.T) {
 		}
 	}
 }
+
+func TestBuildIngressPolicyName(t *testing.T) {
+	assert := tassert.New(t)
+	testCases := []struct {
+		name         string
+		namespace    string
+		host         string
+		expectedName string
+	}{
+		{
+			name:         "bookbuyer",
+			namespace:    "default",
+			host:         "*",
+			expectedName: "bookbuyer.default|*",
+		},
+		{
+			name:         "bookbuyer",
+			namespace:    "bookbuyer-ns",
+			host:         "foobar.com",
+			expectedName: "bookbuyer.bookbuyer-ns|foobar.com",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := buildIngressPolicyName(tc.name, tc.namespace, tc.host)
+			assert.Equal(tc.expectedName, actual)
+		})
+	}
+}
