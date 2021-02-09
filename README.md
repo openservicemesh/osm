@@ -93,7 +93,7 @@ $ osm install
 ```
 ![OSM Install Demo](img/osm-install-demo-v0.2.0.gif "OSM Install Demo")
 
-See the [installation guide](docs/installation_guide.md) for more detailed options.
+See the [installation guide](docs/content/docs/installation_guide.md) for more detailed options.
 
 ## Demos
 We have provided two demos for you to experience OSM.
