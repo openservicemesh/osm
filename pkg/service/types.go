@@ -79,6 +79,12 @@ func (sa K8sServiceAccount) GetSyntheticService() MeshService {
 	}
 }
 
+// IsSyntheticService evaluates the given service name and returns a boolean to denote whether the name
+// looks like the name of a synthetic service or not
+func (ms MeshService) IsSyntheticService() bool {
+	return strings.Contains(ms.Name, ".osm.synthetic-")
+}
+
 // ClusterName is a type for a service name
 type ClusterName string
 
