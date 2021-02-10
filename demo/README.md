@@ -32,9 +32,11 @@ From the root of this repository execute:
 ./demo/run-osm-demo.sh
 ```
 
-### Observability
-By default, Prometheus is deployed by the demo script. To turn this off. Set the variable `DEPLOY_PROMETHEUS` in your `.env` file to false. 
-By default, Grafana is deployed by the demo script. To turn this off. Set the variable `DEPLOY_GRAFANA` in your `.env` file to false. 
+### Observability and tracing
+By default:
+-  Prometheus is not deployed by the demo script. To enable prometheus deployment, set the variable `DEPLOY_PROMETHEUS` in your `.env` file to `true`.
+- Grafana is not deployed by the demo script. To enable Grafana deployment, set the variable `DEPLOY_GRAFANA` in your `.env` file to `true`.
+- Jaegar is not deployed by the demo script. To enable Jaegar deployment, set the variable `DEPLOY_JAEGER` in your `.env` file to `true`.
 
 ### This script will:
   - compile OSM's control plane (`cmd/osm-controller`), create a separate container image and push it to the workstation's default container registry (See `~/.docker/config.json`)
@@ -47,7 +49,6 @@ By default, Grafana is deployed by the demo script. To turn this off. Set the va
 	- `bookstore` is a service backed by two servers: `bookstore-v1` and `bookstore-v2`. Whenever either sells a book, it issues an HTTP `POST` request to the `bookwarehouse` to restock.
 
   - applies SMI traffic policies allowing `bookbuyer` to access `bookstore-v1` and `bookstore-v2`, while preventing `bookthief` from accessing the `bookstore` services
-  - installs Jaeger and points all Envoy pods to it
   - finally, a command indefinitely watches the relevant pods within the Kubernetes cluster
 
 
