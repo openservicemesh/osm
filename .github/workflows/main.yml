@@ -55,6 +55,15 @@ jobs:
       - name: go mod tidy
         run: make go-mod-tidy
 
+  charts:
+    name: Chart checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: chart checks
+        run: make chart-checks
+
   build:
     name: Go build
     runs-on: ubuntu-latest

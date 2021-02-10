@@ -59,6 +59,10 @@ clean-osm:
 chart-readme:
 	go run github.com/norwoodj/helm-docs/cmd/helm-docs -c charts -t charts/osm/README.md.gotmpl
 
+.PHONY: chart-checks
+chart-checks: chart-readme
+	@git diff --exit-code charts/osm/README.md || { echo "----- Please commit the changes made by 'make chart-readme' -----"; exit 1; }
+
 .PHONY: go-checks
 go-checks: go-lint go-fmt go-mod-tidy
 
