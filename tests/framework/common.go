@@ -1082,6 +1082,16 @@ func (td *OsmTestData) WaitForPodsRunningReady(ns string, timeout time.Duration,
 		time.Sleep(time.Second)
 	}
 
+	pods, err := td.Client.CoreV1().Pods(ns).List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return errors.Wrap(err, "failed to list pods")
+	}
+	td.T.Log("Pod Statuses in namespace", ns)
+	for _, pod := range pods.Items {
+		status, _ := json.MarshalIndent(pod.Status, "", "  ")
+		td.T.Logf("Pod %s:\n%s", pod.Name, status)
+	}
+
 	return fmt.Errorf("Not all pods were Running & Ready in NS %s after %v", ns, timeout)
 }
 
