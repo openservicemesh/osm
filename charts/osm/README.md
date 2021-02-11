@@ -64,7 +64,7 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.certmanager.issuerGroup | string | `"cert-manager"` | cert-manager issuer group |
 | OpenServiceMesh.certmanager.issuerKind | string | `"Issuer"` | cert-manager issuer kind |
 | OpenServiceMesh.certmanager.issuerName | string | `"osm-ca"` | cert-manager issuer namecert-manager issuer name |
-| OpenServiceMesh.controllerLogLevel | string | `"trace"` | Controller log verbosity |
+| OpenServiceMesh.controllerLogLevel | string | `"info"` | Controller log verbosity |
 | OpenServiceMesh.deployGrafana | bool | `false` | Deploy Grafana |
 | OpenServiceMesh.deployJaeger | bool | `false` | Deploy Jaeger in the OSM namespace |
 | OpenServiceMesh.deployPrometheus | bool | `false` | Deploy Prometheus |

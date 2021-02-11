@@ -105,7 +105,7 @@ OpenServiceMesh:
   # -- Envoy log level is used to specify the level of logs collected from envoy
   envoyLogLevel: error
   # -- Controller log verbosity
-  controllerLogLevel: trace
+  controllerLogLevel: info
   # -- Enforce only deploying one mesh in the cluster
   enforceSingleMesh: false
   # -- Validating- and MutatingWebhookConfiguration name
