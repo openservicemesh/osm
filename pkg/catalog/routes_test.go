@@ -10,6 +10,7 @@ import (
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	specs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
+	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,6 +24,290 @@ import (
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 	"github.com/openservicemesh/osm/pkg/utils"
 )
+
+func TestListTrafficPoliciesForTrafficSplits(t *testing.T) {
+	assert := tassert.New(t)
+
+	testSplit1 := split.TrafficSplit{
+		ObjectMeta: v1.ObjectMeta{
+			Namespace: "bar",
+		},
+		Spec: split.TrafficSplitSpec{
+			Service: "apex-split-1",
+			Backends: []split.TrafficSplitBackend{
+				{
+					Service: tests.BookstoreV1ServiceName,
+					Weight:  tests.Weight10,
+				},
+				{
+					Service: tests.BookstoreV2ServiceName,
+					Weight:  tests.Weight90,
+				},
+			},
+		},
+	}
+
+	testSplit1NamespacedHostnames := []string{
+		"apex-split-1.bar",
+		"apex-split-1.bar.svc",
+		"apex-split-1.bar.svc.cluster",
+		"apex-split-1.bar.svc.cluster.local",
+		"apex-split-1.bar:8888",
+		"apex-split-1.bar.svc:8888",
+		"apex-split-1.bar.svc.cluster:8888",
+		"apex-split-1.bar.svc.cluster.local:8888",
+	}
+
+	testSplit2 := split.TrafficSplit{
+		ObjectMeta: v1.ObjectMeta{
+			Namespace: "bar",
+		},
+		Spec: split.TrafficSplitSpec{
+			Service: "apex-split-1",
+			Backends: []split.TrafficSplitBackend{
+				{
+					Service: tests.BookstoreV1ServiceName,
+					Weight:  tests.Weight90,
+				},
+				{
+					Service: tests.BookstoreV2ServiceName,
+					Weight:  tests.Weight10,
+				},
+			},
+		},
+	}
+
+	testSplit3 := split.TrafficSplit{
+		ObjectMeta: v1.ObjectMeta{
+			Namespace: "baz",
+		},
+		Spec: split.TrafficSplitSpec{
+			Service: "apex-split-1",
+			Backends: []split.TrafficSplitBackend{
+				{
+					Service: tests.BookstoreV1ServiceName,
+					Weight:  tests.Weight10,
+				},
+				{
+					Service: tests.BookstoreV2ServiceName,
+					Weight:  tests.Weight90,
+				},
+			},
+		},
+	}
+
+	testSplit3NamespacedHostnames := []string{
+		"apex-split-1.baz",
+		"apex-split-1.baz.svc",
+		"apex-split-1.baz.svc.cluster",
+		"apex-split-1.baz.svc.cluster.local",
+		"apex-split-1.baz:8888",
+		"apex-split-1.baz.svc:8888",
+		"apex-split-1.baz.svc.cluster:8888",
+		"apex-split-1.baz.svc.cluster.local:8888",
+	}
+
+	testCases := []struct {
+		name             string
+		sourceNamespace  string
+		trafficsplits    []*split.TrafficSplit
+		expectedPolicies []*trafficpolicy.OutboundTrafficPolicy
+		expectedRoutes   []*trafficpolicy.RouteWeightedClusters
+		apexMeshServices []service.MeshService
+	}{
+		{
+			name:            "single traffic split policy in different namespace",
+			sourceNamespace: "foo",
+			trafficsplits:   []*split.TrafficSplit{&tests.TrafficSplit},
+			apexMeshServices: []service.MeshService{
+				{
+					Name:      tests.BookstoreApexServiceName,
+					Namespace: tests.Namespace,
+				},
+			},
+			expectedPolicies: []*trafficpolicy.OutboundTrafficPolicy{
+				{
+					Name:      "bookstore-apex.default",
+					Hostnames: tests.BookstoreApexNamespacedHostnames,
+					Routes: []*trafficpolicy.RouteWeightedClusters{
+						{
+							HTTPRouteMatch: wildCardRouteMatch,
+							WeightedClusters: mapset.NewSetFromSlice([]interface{}{
+								service.WeightedCluster{ClusterName: "default/bookstore-v1", Weight: 90},
+								service.WeightedCluster{ClusterName: "default/bookstore-v2", Weight: 10},
+							}),
+						},
+					},
+				},
+			},
+		},
+		{
+			name:            "single traffic split policy in same namespace",
+			sourceNamespace: tests.Namespace,
+			trafficsplits:   []*split.TrafficSplit{&tests.TrafficSplit},
+			apexMeshServices: []service.MeshService{
+				{
+					Name:      tests.BookstoreApexServiceName,
+					Namespace: tests.Namespace,
+				},
+			},
+			expectedPolicies: []*trafficpolicy.OutboundTrafficPolicy{
+				{
+					Name:      "bookstore-apex",
+					Hostnames: tests.BookstoreApexHostnames,
+					Routes: []*trafficpolicy.RouteWeightedClusters{
+						{
+							HTTPRouteMatch: wildCardRouteMatch,
+							WeightedClusters: mapset.NewSetFromSlice([]interface{}{
+								service.WeightedCluster{ClusterName: "default/bookstore-v1", Weight: 90},
+								service.WeightedCluster{ClusterName: "default/bookstore-v2", Weight: 10},
+							}),
+						},
+					},
+				},
+			},
+		},
+		{
+			name:            "multiple traffic splits",
+			sourceNamespace: "foo",
+			trafficsplits:   []*split.TrafficSplit{&tests.TrafficSplit, &testSplit1},
+			apexMeshServices: []service.MeshService{
+				{
+					Name:      tests.BookstoreApexServiceName,
+					Namespace: tests.Namespace,
+				},
+				{
+					Name:      "apex-split-1",
+					Namespace: "bar",
+				},
+			},
+			expectedPolicies: []*trafficpolicy.OutboundTrafficPolicy{
+				{
+					Name:      "bookstore-apex.default",
+					Hostnames: tests.BookstoreApexNamespacedHostnames,
+					Routes: []*trafficpolicy.RouteWeightedClusters{
+						{
+							HTTPRouteMatch: wildCardRouteMatch,
+							WeightedClusters: mapset.NewSetFromSlice([]interface{}{
+								service.WeightedCluster{ClusterName: "default/bookstore-v1", Weight: 90},
+								service.WeightedCluster{ClusterName: "default/bookstore-v2", Weight: 10},
+							}),
+						},
+					},
+				},
+				{
+					Name:      "apex-split-1.bar",
+					Hostnames: testSplit1NamespacedHostnames,
+					Routes: []*trafficpolicy.RouteWeightedClusters{
+						{
+							HTTPRouteMatch: wildCardRouteMatch,
+							WeightedClusters: mapset.NewSetFromSlice([]interface{}{
+								service.WeightedCluster{ClusterName: "bar/bookstore-v1", Weight: 10},
+								service.WeightedCluster{ClusterName: "bar/bookstore-v2", Weight: 90},
+							}),
+						},
+					},
+				},
+			},
+		},
+		{
+			name:            "duplicate traffic splits",
+			sourceNamespace: "foo",
+			trafficsplits:   []*split.TrafficSplit{&testSplit1, &testSplit2},
+			apexMeshServices: []service.MeshService{
+				{
+					Name:      "apex-split-1",
+					Namespace: "bar",
+				},
+			},
+			expectedPolicies: []*trafficpolicy.OutboundTrafficPolicy{
+				{
+					Name:      "apex-split-1.bar",
+					Hostnames: testSplit1NamespacedHostnames,
+					Routes: []*trafficpolicy.RouteWeightedClusters{
+						{
+							HTTPRouteMatch: wildCardRouteMatch,
+							WeightedClusters: mapset.NewSetFromSlice([]interface{}{
+								service.WeightedCluster{ClusterName: "bar/bookstore-v1", Weight: 10},
+								service.WeightedCluster{ClusterName: "bar/bookstore-v2", Weight: 90},
+							}),
+						},
+					},
+				},
+			},
+		},
+		{
+			name:            "duplicate traffic splits different namespaces",
+			sourceNamespace: "foo",
+			trafficsplits:   []*split.TrafficSplit{&testSplit1, &testSplit3},
+			apexMeshServices: []service.MeshService{
+				{
+					Name:      "apex-split-1",
+					Namespace: "bar",
+				},
+				{
+					Name:      "apex-split-1",
+					Namespace: "baz",
+				},
+			},
+			expectedPolicies: []*trafficpolicy.OutboundTrafficPolicy{
+				{
+					Name:      "apex-split-1.bar",
+					Hostnames: testSplit1NamespacedHostnames,
+					Routes: []*trafficpolicy.RouteWeightedClusters{
+						{
+							HTTPRouteMatch: wildCardRouteMatch,
+							WeightedClusters: mapset.NewSetFromSlice([]interface{}{
+								service.WeightedCluster{ClusterName: "bar/bookstore-v1", Weight: 10},
+								service.WeightedCluster{ClusterName: "bar/bookstore-v2", Weight: 90},
+							}),
+						},
+					},
+				},
+				{
+					Name:      "apex-split-1.baz",
+					Hostnames: testSplit3NamespacedHostnames,
+					Routes: []*trafficpolicy.RouteWeightedClusters{
+						{
+							HTTPRouteMatch: wildCardRouteMatch,
+							WeightedClusters: mapset.NewSetFromSlice([]interface{}{
+								service.WeightedCluster{ClusterName: "baz/bookstore-v1", Weight: 10},
+								service.WeightedCluster{ClusterName: "baz/bookstore-v2", Weight: 90},
+							}),
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			mockKubeController := k8s.NewMockController(mockCtrl)
+			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
+
+			for _, ms := range tc.apexMeshServices {
+				apexK8sService := tests.NewServiceFixture(ms.Name, ms.Namespace, map[string]string{})
+				mockKubeController.EXPECT().GetService(ms).Return(apexK8sService).AnyTimes()
+			}
+			mockMeshSpec.EXPECT().ListTrafficSplits().Return(tc.trafficsplits).AnyTimes()
+
+			mc := MeshCatalog{
+				kubeController:     mockKubeController,
+				meshSpec:           mockMeshSpec,
+				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
+			}
+
+			actual := mc.listTrafficPoliciesForTrafficSplits(tc.sourceNamespace)
+
+			assert.ElementsMatch(tc.expectedPolicies, actual)
+		})
+	}
+}
 
 func TestIsValidTrafficTarget(t *testing.T) {
 	assert := tassert.New(t)

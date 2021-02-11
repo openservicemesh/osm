@@ -27,6 +27,47 @@ var wildCardRouteMatch trafficpolicy.HTTPRouteMatch = trafficpolicy.HTTPRouteMat
 	Methods:   []string{constants.WildcardHTTPMethod},
 }
 
+func (mc *MeshCatalog) listTrafficPoliciesForTrafficSplits(sourceNamespace string) []*trafficpolicy.OutboundTrafficPolicy {
+	outboundPoliciesFromSplits := []*trafficpolicy.OutboundTrafficPolicy{}
+
+	apexServices := mapset.NewSet()
+	for _, split := range mc.meshSpec.ListTrafficSplits() {
+		svc := service.MeshService{
+			Name:      split.Spec.Service,
+			Namespace: split.ObjectMeta.Namespace,
+		}
+
+		hostnames, err := mc.getServiceHostnames(svc, svc.Namespace == sourceNamespace)
+		if err != nil {
+			log.Error().Err(err).Msgf("Error getting service hostnames for apex service %v", svc)
+			continue
+		}
+		policy := trafficpolicy.NewOutboundTrafficPolicy(buildPolicyName(svc, sourceNamespace == svc.Namespace), hostnames)
+
+		rwc := trafficpolicy.RouteWeightedClusters{
+			HTTPRouteMatch:   wildCardRouteMatch,
+			WeightedClusters: mapset.NewSet(),
+		}
+		for _, backend := range split.Spec.Backends {
+			ms := service.MeshService{Name: backend.Service, Namespace: split.ObjectMeta.Namespace}
+			wc := service.WeightedCluster{
+				ClusterName: service.ClusterName(ms.String()),
+				Weight:      backend.Weight,
+			}
+			rwc.WeightedClusters.Add(wc)
+		}
+		policy.Routes = []*trafficpolicy.RouteWeightedClusters{&rwc}
+
+		if apexServices.Contains(svc) {
+			log.Error().Msgf("Skipping Traffic Split policy %s in namespaces %s as there is already a traffic split policy for apex service %v", split.Name, split.Namespace, svc)
+		} else {
+			outboundPoliciesFromSplits = append(outboundPoliciesFromSplits, policy)
+			apexServices.Add(svc)
+		}
+	}
+	return outboundPoliciesFromSplits
+}
+
 // ListTrafficPoliciesForServiceAccount returns all inbound and outbound traffic policies related to the given service account
 func (mc *MeshCatalog) ListTrafficPoliciesForServiceAccount(sa service.K8sServiceAccount) ([]*trafficpolicy.InboundTrafficPolicy, []*trafficpolicy.OutboundTrafficPolicy, error) {
 	inbound, outbound, err := mc.listPoliciesFromTrafficTargets(sa)
