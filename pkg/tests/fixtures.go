@@ -171,6 +171,18 @@ var (
 		"bookstore-apex.default.svc.cluster.local:8888",
 	}
 
+	// BookstoreApexNamespacedHostnames are the namespaced hostnames for the bookstore-apex service
+	BookstoreApexNamespacedHostnames = []string{
+		"bookstore-apex.default",
+		"bookstore-apex.default.svc",
+		"bookstore-apex.default.svc.cluster",
+		"bookstore-apex.default.svc.cluster.local",
+		"bookstore-apex.default:8888",
+		"bookstore-apex.default.svc:8888",
+		"bookstore-apex.default.svc.cluster:8888",
+		"bookstore-apex.default.svc.cluster.local:8888",
+	}
+
 	// BookstoreBuyHTTPRoute is an HTTP route to buy books
 	BookstoreBuyHTTPRoute = trafficpolicy.HTTPRouteMatch{
 		PathRegex: BookstoreBuyPath,
