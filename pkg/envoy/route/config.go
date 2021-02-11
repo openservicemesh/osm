@@ -134,7 +134,7 @@ func getHeadersForRoute(method string, headersMap map[string]string) []*xds_rout
 	var headers []*xds_route.HeaderMatcher
 
 	// add methods header
-	methodsHeader := xds_route.HeaderMatcher{
+	methodsHeader := &xds_route.HeaderMatcher{
 		Name: MethodHeaderKey,
 		HeaderMatchSpecifier: &xds_route.HeaderMatcher_SafeRegexMatch{
 			SafeRegexMatch: &xds_matcher.RegexMatcher{
@@ -143,7 +143,7 @@ func getHeadersForRoute(method string, headersMap map[string]string) []*xds_rout
 			},
 		},
 	}
-	headers = append(headers, &methodsHeader)
+	headers = append(headers, methodsHeader)
 
 	// add all other custom headers
 	for headerKey, headerValue := range headersMap {
