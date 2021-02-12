@@ -845,7 +845,6 @@ func TestListTrafficTargetPermutations(t *testing.T) {
 
 	expected := []string{
 		utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreV1Service),
-		utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreV2Service),
 		utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreApexService),
 	}
 	assert.ElementsMatch(actualTargetNames, expected)
@@ -1551,26 +1550,6 @@ func TestListPoliciesFromTrafficTargets(t *testing.T) {
 					Route: trafficpolicy.RouteWeightedClusters{
 						HTTPRouteMatch:   tests.BookstoreSellHTTPRoute,
 						WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
-					},
-					AllowedServiceAccounts: mapset.NewSet(tests.BookbuyerServiceAccount),
-				},
-			},
-		},
-		{
-			Name:      "bookstore-v2.default",
-			Hostnames: tests.BookstoreV2Hostnames,
-			Rules: []*trafficpolicy.Rule{
-				{
-					Route: trafficpolicy.RouteWeightedClusters{
-						HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
-						WeightedClusters: mapset.NewSet(tests.BookstoreV2DefaultWeightedCluster),
-					},
-					AllowedServiceAccounts: mapset.NewSet(tests.BookbuyerServiceAccount),
-				},
-				{
-					Route: trafficpolicy.RouteWeightedClusters{
-						HTTPRouteMatch:   tests.BookstoreSellHTTPRoute,
-						WeightedClusters: mapset.NewSet(tests.BookstoreV2DefaultWeightedCluster),
 					},
 					AllowedServiceAccounts: mapset.NewSet(tests.BookbuyerServiceAccount),
 				},

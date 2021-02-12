@@ -51,6 +51,8 @@ const (
 	BookstoreServiceAccountName = "bookstore"
 	// BookbuyerServiceAccountName is the name of the bookbuyer service account
 	BookbuyerServiceAccountName = "bookbuyer"
+	// BookstoreV2ServiceAccountName is the name of the bookstore-v2 service account
+	BookstoreV2ServiceAccountName = "bookstore-v2"
 
 	// TrafficTargetName is the name of the traffic target SMI object.
 	TrafficTargetName = "bookbuyer-access-bookstore"
@@ -325,6 +327,35 @@ var (
 		},
 	}
 
+	// BookstoreV2TrafficTarget is a traffic target SMI object for bookstore-v2.
+	BookstoreV2TrafficTarget = access.TrafficTarget{
+		TypeMeta: v1.TypeMeta{
+			APIVersion: "access.smi-spec.io/v1alpha3",
+			Kind:       "TrafficTarget",
+		},
+		ObjectMeta: v1.ObjectMeta{
+			Name:      TrafficTargetName,
+			Namespace: "default",
+		},
+		Spec: access.TrafficTargetSpec{
+			Destination: access.IdentityBindingSubject{
+				Kind:      "Name",
+				Name:      BookstoreV2ServiceAccountName,
+				Namespace: "default",
+			},
+			Sources: []access.IdentityBindingSubject{{
+				Kind:      "Name",
+				Name:      BookbuyerServiceAccountName,
+				Namespace: "default",
+			}},
+			Rules: []access.TrafficTargetRule{{
+				Kind:    "HTTPRouteGroup",
+				Name:    RouteGroupName,
+				Matches: []string{BuyBooksMatchName, SellBooksMatchName},
+			}},
+		},
+	}
+
 	// RoutePolicyMap is a map of a key to a route policy SMI object.
 	RoutePolicyMap = map[trafficpolicy.TrafficSpecName]map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.HTTPRouteMatch{
 		trafficpolicy.TrafficSpecName(fmt.Sprintf("HTTPRouteGroup/%s/%s", Namespace, RouteGroupName)): {
@@ -337,6 +368,12 @@ var (
 	BookstoreServiceAccount = service.K8sServiceAccount{
 		Namespace: Namespace,
 		Name:      BookstoreServiceAccountName,
+	}
+
+	// BookstoreV2ServiceAccount is a namespaced service account.
+	BookstoreV2ServiceAccount = service.K8sServiceAccount{
+		Namespace: Namespace,
+		Name:      BookstoreV2ServiceAccountName,
 	}
 
 	// BookbuyerServiceAccount is a namespaced bookbuyer account.
