@@ -25,6 +25,197 @@ import (
 	"github.com/openservicemesh/osm/pkg/utils"
 )
 
+var expectedBookbuyerOutbound []*trafficpolicy.OutboundTrafficPolicy = []*trafficpolicy.OutboundTrafficPolicy{
+	{
+		Name:      "bookstore-v1",
+		Hostnames: tests.BookstoreV1Hostnames,
+		Routes: []*trafficpolicy.RouteWeightedClusters{
+			{
+				HTTPRouteMatch:   wildCardRouteMatch,
+				WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
+			},
+		},
+	},
+	{
+		Name:      "bookstore-v2",
+		Hostnames: tests.BookstoreV2Hostnames,
+		Routes: []*trafficpolicy.RouteWeightedClusters{
+			{
+				HTTPRouteMatch:   wildCardRouteMatch,
+				WeightedClusters: mapset.NewSet(tests.BookstoreV2DefaultWeightedCluster),
+			},
+		},
+	},
+	{
+		Name:      "bookstore-apex",
+		Hostnames: tests.BookstoreApexHostnames,
+		Routes: []*trafficpolicy.RouteWeightedClusters{
+			{
+				HTTPRouteMatch:   wildCardRouteMatch,
+				WeightedClusters: mapset.NewSet(tests.BookstoreApexDefaultWeightedCluster),
+			},
+		},
+	},
+}
+
+func TestListTrafficPoliciesForServiceAccount(t *testing.T) {
+	assert := tassert.New(t)
+
+	testCases := []struct {
+		name             string
+		serviceAccount   service.K8sServiceAccount
+		apexMeshServices []service.MeshService
+		trafficsplits    []*split.TrafficSplit
+		traffictargets   []*access.TrafficTarget
+		trafficspecs     []*specs.HTTPRouteGroup
+		expectedInbound  []*trafficpolicy.InboundTrafficPolicy
+		expectedOutbound []*trafficpolicy.OutboundTrafficPolicy
+		expectedErr      bool
+	}{
+		{
+			name:             "only traffic targets",
+			serviceAccount:   tests.BookbuyerServiceAccount,
+			apexMeshServices: []service.MeshService{},
+			trafficsplits:    []*split.TrafficSplit{},
+			traffictargets:   []*access.TrafficTarget{&tests.TrafficTarget},
+			trafficspecs:     []*specs.HTTPRouteGroup{&tests.HTTPRouteGroup},
+			expectedInbound:  []*trafficpolicy.InboundTrafficPolicy{},
+			expectedOutbound: expectedBookbuyerOutbound,
+			expectedErr:      false,
+		},
+		{
+			name:           "traffic targets and traffic splits",
+			serviceAccount: tests.BookbuyerServiceAccount,
+			apexMeshServices: []service.MeshService{
+				{
+					Name:      tests.BookstoreApexServiceName,
+					Namespace: tests.Namespace,
+				},
+			},
+			trafficsplits:   []*split.TrafficSplit{&tests.TrafficSplit},
+			traffictargets:  []*access.TrafficTarget{&tests.TrafficTarget},
+			trafficspecs:    []*specs.HTTPRouteGroup{&tests.HTTPRouteGroup},
+			expectedInbound: []*trafficpolicy.InboundTrafficPolicy{},
+			expectedOutbound: []*trafficpolicy.OutboundTrafficPolicy{
+				{
+					Name:      "bookstore-v1",
+					Hostnames: tests.BookstoreV1Hostnames,
+					Routes: []*trafficpolicy.RouteWeightedClusters{
+						{
+							HTTPRouteMatch:   wildCardRouteMatch,
+							WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
+						},
+					},
+				},
+				{
+					Name:      "bookstore-v2",
+					Hostnames: tests.BookstoreV2Hostnames,
+					Routes: []*trafficpolicy.RouteWeightedClusters{
+						{
+							HTTPRouteMatch:   wildCardRouteMatch,
+							WeightedClusters: mapset.NewSet(tests.BookstoreV2DefaultWeightedCluster),
+						},
+					},
+				},
+				{
+					Name:      "bookstore-apex",
+					Hostnames: tests.BookstoreApexHostnames,
+					Routes: []*trafficpolicy.RouteWeightedClusters{
+						{
+							HTTPRouteMatch: wildCardRouteMatch,
+							WeightedClusters: mapset.NewSetFromSlice([]interface{}{
+								service.WeightedCluster{ClusterName: "default/bookstore-v1", Weight: 90},
+								service.WeightedCluster{ClusterName: "default/bookstore-v2", Weight: 10},
+							}),
+						},
+					},
+				},
+			},
+			expectedErr: false,
+		},
+		{
+			name:           "traffic targets and traffic splits",
+			serviceAccount: tests.BookbuyerServiceAccount,
+			apexMeshServices: []service.MeshService{
+				{
+					Name:      tests.BookstoreApexServiceName,
+					Namespace: tests.Namespace,
+				},
+			},
+			trafficsplits:   []*split.TrafficSplit{&tests.TrafficSplit},
+			traffictargets:  []*access.TrafficTarget{},
+			trafficspecs:    []*specs.HTTPRouteGroup{},
+			expectedInbound: []*trafficpolicy.InboundTrafficPolicy{},
+			expectedOutbound: []*trafficpolicy.OutboundTrafficPolicy{
+				{
+					Name:      "bookstore-apex",
+					Hostnames: tests.BookstoreApexHostnames,
+					Routes: []*trafficpolicy.RouteWeightedClusters{
+						{
+							HTTPRouteMatch: wildCardRouteMatch,
+							WeightedClusters: mapset.NewSetFromSlice([]interface{}{
+								service.WeightedCluster{ClusterName: "default/bookstore-v1", Weight: 90},
+								service.WeightedCluster{ClusterName: "default/bookstore-v2", Weight: 10},
+							}),
+						},
+					},
+				},
+			},
+			expectedErr: false,
+		},
+		{
+			name:             "no traffic targets and no traffic splits",
+			serviceAccount:   tests.BookbuyerServiceAccount,
+			apexMeshServices: []service.MeshService{},
+			trafficsplits:    []*split.TrafficSplit{},
+			traffictargets:   []*access.TrafficTarget{},
+			trafficspecs:     []*specs.HTTPRouteGroup{},
+			expectedInbound:  []*trafficpolicy.InboundTrafficPolicy{},
+			expectedOutbound: []*trafficpolicy.OutboundTrafficPolicy{},
+			expectedErr:      false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			mockKubeController := k8s.NewMockController(mockCtrl)
+			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
+
+			for _, ms := range tc.apexMeshServices {
+				apexK8sService := tests.NewServiceFixture(ms.Name, ms.Namespace, map[string]string{})
+				mockKubeController.EXPECT().GetService(ms).Return(apexK8sService).AnyTimes()
+			}
+			mockMeshSpec.EXPECT().ListTrafficSplits().Return(tc.trafficsplits).AnyTimes()
+			mockMeshSpec.EXPECT().ListTrafficTargets().Return(tc.traffictargets).AnyTimes()
+			mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return(tc.trafficspecs).AnyTimes()
+			mockEndpointProvider.EXPECT().GetServicesForServiceAccount(tests.BookstoreServiceAccount).Return([]service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service, tests.BookstoreApexService}, nil).AnyTimes()
+			mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
+			mockKubeController.EXPECT().GetService(tests.BookstoreV1Service).Return(tests.NewServiceFixture(tests.BookstoreV1Service.Name, tests.BookstoreV1Service.Namespace, map[string]string{})).AnyTimes()
+			mockKubeController.EXPECT().GetService(tests.BookstoreV2Service).Return(tests.NewServiceFixture(tests.BookstoreV2Service.Name, tests.BookstoreV2Service.Namespace, map[string]string{})).AnyTimes()
+			mockKubeController.EXPECT().GetService(tests.BookstoreApexService).Return(tests.NewServiceFixture(tests.BookstoreApexService.Name, tests.BookstoreApexService.Namespace, map[string]string{})).AnyTimes()
+
+			mc := MeshCatalog{
+				kubeController:     mockKubeController,
+				meshSpec:           mockMeshSpec,
+				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
+			}
+
+			inbound, outbound, errs := mc.ListTrafficPoliciesForServiceAccount(tc.serviceAccount)
+			if tc.expectedErr {
+				assert.NotNil(errs)
+			} else {
+				assert.Nil(errs)
+			}
+			assert.ElementsMatch(tc.expectedInbound, inbound)
+			assert.ElementsMatch(tc.expectedOutbound, outbound)
+		})
+	}
+}
+
 func TestListTrafficPoliciesForTrafficSplits(t *testing.T) {
 	assert := tassert.New(t)
 
@@ -1502,39 +1693,6 @@ func TestDifference(t *testing.T) {
 func TestListPoliciesFromTrafficTargets(t *testing.T) {
 	assert := tassert.New(t)
 
-	expectedBookbuyerOutbound := []*trafficpolicy.OutboundTrafficPolicy{
-		{
-			Name:      "bookstore-v1",
-			Hostnames: tests.BookstoreV1Hostnames,
-			Routes: []*trafficpolicy.RouteWeightedClusters{
-				{
-					HTTPRouteMatch:   wildCardRouteMatch,
-					WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
-				},
-			},
-		},
-		{
-			Name:      "bookstore-v2",
-			Hostnames: tests.BookstoreV2Hostnames,
-			Routes: []*trafficpolicy.RouteWeightedClusters{
-				{
-					HTTPRouteMatch:   wildCardRouteMatch,
-					WeightedClusters: mapset.NewSet(tests.BookstoreV2DefaultWeightedCluster),
-				},
-			},
-		},
-		{
-			Name:      "bookstore-apex",
-			Hostnames: tests.BookstoreApexHostnames,
-			Routes: []*trafficpolicy.RouteWeightedClusters{
-				{
-					HTTPRouteMatch:   wildCardRouteMatch,
-					WeightedClusters: mapset.NewSet(tests.BookstoreApexDefaultWeightedCluster),
-				},
-			},
-		},
-	}
-
 	expectedBookstoreInbound := []*trafficpolicy.InboundTrafficPolicy{
 		{
 			Name:      "bookstore-v1.default",
@@ -1651,7 +1809,7 @@ func TestListPoliciesForPermissiveMode(t *testing.T) {
 		endpointsProviders: []endpoint.Provider{mockEndpointProvider},
 	}
 
-	expectedBookbuyerOutbound := []*trafficpolicy.OutboundTrafficPolicy{
+	expectedBookbuyerNamespacedOutbound := []*trafficpolicy.OutboundTrafficPolicy{
 		{
 			Name: "bookstore-v1.default",
 			Hostnames: []string{
@@ -1742,7 +1900,7 @@ func TestListPoliciesForPermissiveMode(t *testing.T) {
 	inbound, outbound, err := mc.ListPoliciesForPermissiveMode([]service.MeshService{tests.BookbuyerService})
 	assert.Nil(err)
 	assert.ElementsMatch(expectedBookbuyerInbound, inbound)
-	assert.ElementsMatch(expectedBookbuyerOutbound, outbound)
+	assert.ElementsMatch(expectedBookbuyerNamespacedOutbound, outbound)
 }
 
 func TestGetDestinationServicesFromTrafficTarget(t *testing.T) {
