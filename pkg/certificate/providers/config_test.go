@@ -39,7 +39,7 @@ func TestGetCertificateManager(t *testing.T) {
 
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
-			manager, _, err := tc.util.getCertificateManager()
+			manager, _, err := tc.util.GetCertificateManager()
 			assert.NotNil(manager)
 			assert.Equal(tc.expectError, err != nil)
 		})

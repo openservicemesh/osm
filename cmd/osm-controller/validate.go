@@ -20,16 +20,12 @@ func validateCLIParams() error {
 		return errors.New("Please specify the OSM namespace using --osm-namespace")
 	}
 
-	if injectorConfig.InitContainerImage == "" {
-		return errors.New("Please specify the init container image using --init-container-image")
-	}
-
-	if injectorConfig.SidecarImage == "" {
-		return errors.Errorf("Please specify the sidecar image using --sidecar-image")
-	}
-
 	if webhookConfigName == "" {
-		return errors.Errorf("Invalid --webhook-config-name value: '%s'", webhookConfigName)
+		return errors.Errorf("Please specify the webhook configuration name using --webhook-config-name")
+	}
+
+	if caBundleSecretName == "" {
+		return errors.Errorf("Please specify the CA bundle secret name using --ca-bundle-secret-name")
 	}
 
 	if caBundleSecretName == "" {

@@ -15,7 +15,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 
-	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
@@ -50,7 +49,6 @@ var _ = Describe("Test all patch operations", func() {
 				kubeClient:          client,
 				kubeController:      mockNsController,
 				certManager:         tresor.NewFakeCertManager(mockConfigurator),
-				meshCatalog:         catalog.NewFakeMeshCatalog(client),
 				configurator:        mockConfigurator,
 				nonInjectNamespaces: mapset.NewSet(),
 			}

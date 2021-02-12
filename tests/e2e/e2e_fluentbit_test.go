@@ -49,7 +49,7 @@ var _ = OSMDescribe("Test deployment of Fluent Bit sidecar",
 				// Install OSM without Fluentbit (default)
 				installOpts = Td.GetOSMInstallOpts()
 				Expect(Td.InstallOSM(installOpts)).To(Succeed())
-				Expect(Td.WaitForPodsRunningReady(Td.OsmNamespace, 60*time.Second, 1)).To(Succeed())
+				Expect(Td.WaitForPodsRunningReady(Td.OsmNamespace, 60*time.Second, 2 /* controller, injector */)).To(Succeed())
 
 				pods, err = Td.Client.CoreV1().Pods(Td.OsmNamespace).List(context.TODO(), metav1.ListOptions{
 					LabelSelector: labels.SelectorFromSet(map[string]string{"app": "osm-controller"}).String(),

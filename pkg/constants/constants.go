@@ -60,7 +60,7 @@ const (
 	// InjectorWebhookPort is the port on which the sidecar injection webhook listens
 	InjectorWebhookPort = 9090
 
-	// OSMHTTPServerPort is the port on which osm-controller serves HTTP requests for metrics, health probes etc.
+	// OSMHTTPServerPort is the port on which osm-controller and osm-injector serve HTTP requests for metrics, health probes etc.
 	OSMHTTPServerPort = 9091
 
 	//DebugPort is the port on which OSM exposes its debug server
