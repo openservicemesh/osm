@@ -17,11 +17,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/utils"
 )
 
-const (
-	//HTTPTraffic specifies HTTP Traffic Policy
-	HTTPTraffic = "HTTPRouteGroup"
-)
-
 var wildCardRouteMatch trafficpolicy.HTTPRouteMatch = trafficpolicy.HTTPRouteMatch{
 	PathRegex: constants.RegexMatchAll,
 	Methods:   []string{constants.WildcardHTTPMethod},
@@ -281,7 +276,7 @@ func (mc *MeshCatalog) getHTTPPathsPerRoute() (map[trafficpolicy.TrafficSpecName
 		}
 
 		// since this method gets only specs related to HTTPRouteGroups added HTTPTraffic to the specKey by default
-		specKey := mc.getTrafficSpecName(HTTPTraffic, trafficSpecs.Namespace, trafficSpecs.Name)
+		specKey := mc.getTrafficSpecName(httpRouteGroupKind, trafficSpecs.Namespace, trafficSpecs.Name)
 		routePolicies[specKey] = make(map[trafficpolicy.TrafficSpecMatchName]trafficpolicy.HTTPRouteMatch)
 		for _, trafficSpecsMatches := range trafficSpecs.Spec.Matches {
 			serviceRoute := trafficpolicy.HTTPRouteMatch{}
@@ -343,7 +338,7 @@ func getTrafficPoliciesForService(mc *MeshCatalog, routePolicies map[trafficpoli
 	for _, trafficTargets := range mc.meshSpec.ListTrafficTargets() {
 		log.Trace().Msgf("Discovered TrafficTarget resource: %s/%s", trafficTargets.Namespace, trafficTargets.Name)
 		if !isValidTrafficTarget(trafficTargets) {
-			log.Error().Msgf("TrafficTarget %s/%s has no spec routes; Skipping...", trafficTargets.Namespace, trafficTargets.Name)
+			log.Error().Msgf("TrafficTarget %s/%s is not valid; Skipping...", trafficTargets.Namespace, trafficTargets.Name)
 			continue
 		}
 
@@ -357,8 +352,8 @@ func getTrafficPoliciesForService(mc *MeshCatalog, routePolicies map[trafficpoli
 				var httpRoutes []trafficpolicy.HTTPRouteMatch // Keeps track of all the routes from a source to a destination service
 
 				for _, trafficTargetSpecs := range trafficTargets.Spec.Rules {
-					if trafficTargetSpecs.Kind != HTTPTraffic {
-						log.Error().Msgf("TrafficTarget %s/%s has Spec Kind %s which isn't supported for now; Skipping...", trafficTargets.Namespace, trafficTargets.Name, trafficTargetSpecs.Kind)
+					if trafficTargetSpecs.Kind != httpRouteGroupKind {
+						// If kind does not match HTTPRouteGroup, skip it as it is not required to build HTTP traffic policies
 						continue
 					}
 
@@ -704,10 +699,6 @@ func (mc *MeshCatalog) ListPoliciesForPermissiveMode(services []service.MeshServ
 		log.Error().Err(mergeError).Msgf("Error building permissive mode outbound policies for services %v", services)
 	}
 	return inboundPolicies, outboundPolicies, nil
-}
-
-func isValidTrafficTarget(t *access.TrafficTarget) bool {
-	return t.Spec.Rules != nil && len(t.Spec.Rules) > 0
 }
 
 // buildPolicyName creates a name for a policy associated with the given service

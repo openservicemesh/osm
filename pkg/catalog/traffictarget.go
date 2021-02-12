@@ -12,8 +12,14 @@ import (
 )
 
 const (
+	// serviceAccountKind is the kind specified for the destination and sources in an SMI TrafficTarget policy
 	serviceAccountKind = "ServiceAccount"
-	tcpRouteKind       = "TCPRoute"
+
+	// tcpRouteKind is the kind specified for the TCP route rules in an SMI Traffictarget policy
+	tcpRouteKind = "TCPRoute"
+
+	// httpRouteGroupKind is the kind specified for the HTTP route rules in an SMI Traffictarget policy
+	httpRouteGroupKind = "HTTPRouteGroup"
 )
 
 // ListAllowedInboundServiceAccounts lists the downstream service accounts that can connect to the given upstream service account
@@ -183,4 +189,24 @@ func (mc *MeshCatalog) getTCPRouteMatchesFromTrafficTarget(trafficTarget smiAcce
 	}
 
 	return matches, nil
+}
+
+// isValidTrafficTarget checks if the given SMI TrafficTarget object is valid
+func isValidTrafficTarget(t *smiAccess.TrafficTarget) bool {
+	return t != nil && t.Spec.Rules != nil && len(t.Spec.Rules) > 0 && hasValidRulesKind(t.Spec.Rules)
+}
+
+// hasValidRulesKind checks if the given SMI TrafficTarget object has valid kind for rules
+func hasValidRulesKind(rules []smiAccess.TrafficTargetRule) bool {
+	for _, rule := range rules {
+		switch rule.Kind {
+		case httpRouteGroupKind, tcpRouteKind:
+			// valid Kind for rules
+
+		default:
+			log.Error().Msgf("Invalid Kind for rule %s in TrafficTarget policy %s", rule.Name, rule.Kind)
+			return false
+		}
+	}
+	return true
 }

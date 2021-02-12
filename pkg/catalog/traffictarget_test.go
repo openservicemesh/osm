@@ -886,3 +886,156 @@ func TestListInboundTrafficTargetsWithRoutes(t *testing.T) {
 		})
 	}
 }
+
+func TestIsValidTrafficTarget(t *testing.T) {
+	assert := tassert.New(t)
+
+	testCases := []struct {
+		name     string
+		input    *smiAccess.TrafficTarget
+		expected bool
+	}{
+		{
+			name: "is valid",
+			input: &smiAccess.TrafficTarget{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "access.smi-spec.io/v1alpha3",
+					Kind:       "TrafficTarget",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "foobar",
+					Namespace: "default",
+				},
+				Spec: smiAccess.TrafficTargetSpec{
+					Destination: smiAccess.IdentityBindingSubject{
+						Kind:      "ServiceAccount",
+						Name:      "foo",
+						Namespace: "default",
+					},
+					Sources: []smiAccess.IdentityBindingSubject{{
+						Kind:      "ServiceAccount",
+						Name:      "bar",
+						Namespace: "default",
+					}},
+					Rules: []smiAccess.TrafficTargetRule{
+						{
+							Kind:    "HTTPRouteGroup",
+							Name:    "http",
+							Matches: []string{"match-1"},
+						},
+						{
+							Kind:    "TCPRoute",
+							Name:    "tcp",
+							Matches: []string{"match-2"},
+						},
+					},
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "is not valid because TrafficTarget.Spec.Rules is nil",
+			input: &smiAccess.TrafficTarget{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "access.smi-spec.io/v1alpha3",
+					Kind:       "TrafficTarget",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "foobar",
+					Namespace: "default",
+				},
+				Spec: smiAccess.TrafficTargetSpec{
+					Destination: smiAccess.IdentityBindingSubject{
+						Kind:      "ServiceAccount",
+						Name:      "foo",
+						Namespace: "default",
+					},
+					Sources: []smiAccess.IdentityBindingSubject{{
+						Kind:      "ServiceAccount",
+						Name:      "bar",
+						Namespace: "default",
+					}},
+					Rules: nil,
+				},
+			},
+			expected: false,
+		},
+		{
+			name: "is not valid because TrafficTarget.Spec.Rules is not nil but is empty",
+			input: &smiAccess.TrafficTarget{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "access.smi-spec.io/v1alpha3",
+					Kind:       "TrafficTarget",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "foobar",
+					Namespace: "default",
+				},
+				Spec: smiAccess.TrafficTargetSpec{
+					Destination: smiAccess.IdentityBindingSubject{
+						Kind:      "ServiceAccount",
+						Name:      "foo",
+						Namespace: "default",
+					},
+					Sources: []smiAccess.IdentityBindingSubject{{
+						Kind:      "ServiceAccount",
+						Name:      "bar",
+						Namespace: "default",
+					}},
+					Rules: []smiAccess.TrafficTargetRule{},
+				},
+			},
+			expected: false,
+		},
+		{
+			name: "is not valid because TrafficTarget.Spec.Rules[1].Kind is not valid",
+			input: &smiAccess.TrafficTarget{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "access.smi-spec.io/v1alpha3",
+					Kind:       "TrafficTarget",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "foobar",
+					Namespace: "default",
+				},
+				Spec: smiAccess.TrafficTargetSpec{
+					Destination: smiAccess.IdentityBindingSubject{
+						Kind:      "ServiceAccount",
+						Name:      "foo",
+						Namespace: "default",
+					},
+					Sources: []smiAccess.IdentityBindingSubject{{
+						Kind:      "ServiceAccount",
+						Name:      "bar",
+						Namespace: "default",
+					}},
+					Rules: []smiAccess.TrafficTargetRule{
+						{
+							Kind:    "HTTPRouteGroup",
+							Name:    "route-group",
+							Matches: []string{"match-1"},
+						},
+						{
+							Kind:    "invalid-kind",
+							Name:    "route-group",
+							Matches: []string{"match-1"},
+						},
+					},
+				},
+			},
+			expected: false,
+		},
+		{
+			name:     "is not valid because TrafficTarget is nil",
+			input:    nil,
+			expected: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(fmt.Sprintf("Testing isValidTrafficTarget when input %s ", tc.name), func(t *testing.T) {
+			actual := isValidTrafficTarget(tc.input)
+			assert.Equal(tc.expected, actual)
+		})
+	}
+}

@@ -309,65 +309,6 @@ func TestListTrafficPoliciesForTrafficSplits(t *testing.T) {
 	}
 }
 
-func TestIsValidTrafficTarget(t *testing.T) {
-	assert := tassert.New(t)
-
-	getTrafficTarget := func(rules []access.TrafficTargetRule) *access.TrafficTarget {
-		return &access.TrafficTarget{
-			TypeMeta: v1.TypeMeta{
-				APIVersion: "access.smi-spec.io/v1alpha3",
-				Kind:       "TrafficTarget",
-			},
-			ObjectMeta: v1.ObjectMeta{
-				Name:      "target",
-				Namespace: "default",
-			},
-			Spec: access.TrafficTargetSpec{
-				Destination: access.IdentityBindingSubject{
-					Kind:      "Name",
-					Name:      "dest-id",
-					Namespace: "default",
-				},
-				Sources: []access.IdentityBindingSubject{{
-					Kind:      "Name",
-					Name:      "source-id",
-					Namespace: "default",
-				}},
-				Rules: rules,
-			},
-		}
-	}
-
-	testCases := []struct {
-		name     string
-		input    *access.TrafficTarget
-		expected bool
-	}{
-		{
-			name:     "is valid",
-			input:    &tests.TrafficTarget,
-			expected: true,
-		},
-		{
-			name:     "is not valid because TrafficTarget.Spec.Rules is nil",
-			input:    getTrafficTarget(nil),
-			expected: false,
-		},
-		{
-			name:     "is not valid because TrafficTarget.Spec.Rules is not nil but is empty",
-			input:    getTrafficTarget([]access.TrafficTargetRule{}),
-			expected: false,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(fmt.Sprintf("Testing isValidTrafficTarget when input %s ", tc.name), func(t *testing.T) {
-			actual := isValidTrafficTarget(tc.input)
-			assert.Equal(tc.expected, actual)
-		})
-	}
-}
-
 func TestRoutesFromRules(t *testing.T) {
 	assert := tassert.New(t)
 	mc := MeshCatalog{meshSpec: smi.NewFakeMeshSpecClient()}
