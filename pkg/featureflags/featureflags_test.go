@@ -14,7 +14,10 @@ var _ = Describe("Test FeatureFlags", func() {
 			defaultRoutesV2 := IsRoutesV2Enabled()
 			Expect(defaultRoutesV2).ToNot(BeTrue())
 
-			optionalFeatures := OptionalFeatures{Backpressure: true, RoutesV2: true}
+			defaultWASMStats := IsWASMStatsEnabled()
+			Expect(defaultWASMStats).ToNot(BeTrue())
+
+			optionalFeatures := OptionalFeatures{Backpressure: true, RoutesV2: true, WASMStats: true}
 			Initialize(optionalFeatures)
 
 			initializedBackpressure := IsBackpressureEnabled()
@@ -23,10 +26,13 @@ var _ = Describe("Test FeatureFlags", func() {
 			initializedRoutesV2 := IsRoutesV2Enabled()
 			Expect(initializedRoutesV2).To(BeTrue())
 
+			initializedWASMStats := IsWASMStatsEnabled()
+			Expect(initializedWASMStats).To(BeTrue())
+
 		})
 
 		It("should not re-initialize OptionalFeatures", func() {
-			optionalFeatures2 := OptionalFeatures{Backpressure: false, RoutesV2: false}
+			optionalFeatures2 := OptionalFeatures{Backpressure: false, RoutesV2: false, WASMStats: false}
 			Initialize(optionalFeatures2)
 
 			backpressure := IsBackpressureEnabled()
@@ -34,6 +40,9 @@ var _ = Describe("Test FeatureFlags", func() {
 
 			routesV2 := IsRoutesV2Enabled()
 			Expect(routesV2).To(BeTrue())
+
+			WASMStats := IsWASMStatsEnabled()
+			Expect(WASMStats).To(BeTrue())
 		})
 	})
 })
