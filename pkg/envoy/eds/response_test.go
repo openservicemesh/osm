@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"testing"
 
+	xds_endpoint "github.com/envoyproxy/go-control-plane/envoy/config/endpoint/v3"
 	"github.com/golang/mock/gomock"
+	"github.com/golang/protobuf/ptypes"
 	tassert "github.com/stretchr/testify/assert"
 	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
@@ -61,6 +63,19 @@ func TestEndpointConfiguration(t *testing.T) {
 	assert.NotNil(proxy)
 
 	actual, err := NewResponse(meshCatalog, proxy, nil, mockConfigurator, nil)
-	assert.Empty(err)
+	assert.Nil(err)
 	assert.NotNil(actual)
+
+	// There are 3 endpoints configured based on the configuration:
+	// 1. Bookstore
+	// 2. Bookstore-v1
+	// 3. Bookstore-v2
+	assert.Len(actual.Resources, 3)
+
+	loadAssignment := xds_endpoint.ClusterLoadAssignment{}
+
+	// validating an endpoint
+	err = ptypes.UnmarshalAny(actual.Resources[0], &loadAssignment)
+	assert.Nil(err)
+	assert.Len(loadAssignment.Endpoints, 1)
 }
