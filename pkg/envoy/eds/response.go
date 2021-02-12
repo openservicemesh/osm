@@ -17,14 +17,6 @@ import (
 
 // NewResponse creates a new Endpoint Discovery Response.
 func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, _ configurator.Configurator, _ certificate.Manager) (*xds_discovery.DiscoveryResponse, error) {
-	svcList, err := meshCatalog.GetServicesFromEnvoyCertificate(proxy.GetCertificateCommonName())
-	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up MeshService for Envoy with SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
-		return nil, err
-	}
-	// Github Issue #1575
-	proxyServiceName := svcList[0]
-
 	proxyIdentity, err := catalog.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up proxy identity for proxy with SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
@@ -41,14 +33,14 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		outboundServicesEndpoints[dstSvc] = endpoints
 	}
 
-	log.Trace().Msgf("Outbound service endpoints for proxy %s: %v", proxyServiceName, outboundServicesEndpoints)
+	log.Trace().Msgf("Outbound service endpoints for proxy with SerialNumber=%s on Pod with UID=%s: %v", proxy.GetCertificateSerialNumber(), proxy.GetPodUID(), outboundServicesEndpoints)
 
 	var protos []*any.Any
 	for svc, endpoints := range outboundServicesEndpoints {
 		loadAssignment := cla.NewClusterLoadAssignment(svc, endpoints)
 		proto, err := ptypes.MarshalAny(loadAssignment)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error marshalling EDS payload for proxy %s: %+v", proxyServiceName, loadAssignment)
+			log.Error().Err(err).Msgf("Error marshalling EDS payload for proxy with SerialNumber=%s on Pod with UID=%s: %+v", proxy.GetCertificateSerialNumber(), proxy.GetPodUID(), loadAssignment)
 			continue
 		}
 		protos = append(protos, proto)
