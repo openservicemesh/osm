@@ -3,6 +3,7 @@ package cds
 import (
 	"errors"
 	"testing"
+	"time"
 
 	xds_cluster "github.com/envoyproxy/go-control-plane/envoy/config/cluster/v3"
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -158,4 +159,70 @@ func TestGetSyntheticCluster(t *testing.T) {
 	assert.Equal(&xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_STATIC}, actual.ClusterDiscoveryType)
 	assert.Equal(xds_cluster.Cluster_ROUND_ROBIN, actual.LbPolicy)
 	assert.Equal(ptypes.DurationProto(clusterConnectTimeout), actual.ConnectTimeout)
+}
+func TestGetPrometheusCluster(t *testing.T) {
+	assert := tassert.New(t)
+
+	expectedCluster := &xds_cluster.Cluster{
+		TransportSocketMatches: nil,
+		Name:                   constants.EnvoyMetricsCluster,
+		AltStatName:            constants.EnvoyMetricsCluster,
+		ClusterDiscoveryType:   &xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_STATIC},
+		EdsClusterConfig:       nil,
+		ConnectTimeout:         ptypes.DurationProto(1 * time.Second),
+		LoadAssignment: &xds_endpoint.ClusterLoadAssignment{
+			ClusterName: constants.EnvoyMetricsCluster,
+			Endpoints: []*xds_endpoint.LocalityLbEndpoints{
+				{
+					Locality: nil,
+					LbEndpoints: []*xds_endpoint.LbEndpoint{{
+						HostIdentifier: &xds_endpoint.LbEndpoint_Endpoint{
+							Endpoint: &xds_endpoint.Endpoint{
+								Address: &xds_core.Address{
+									Address: &xds_core.Address_SocketAddress{
+										SocketAddress: &xds_core.SocketAddress{
+											Protocol: xds_core.SocketAddress_TCP,
+											Address:  "127.0.0.1",
+											PortSpecifier: &xds_core.SocketAddress_PortValue{
+												PortValue: uint32(15000),
+											},
+										},
+									},
+								},
+							},
+						},
+						LoadBalancingWeight: &wrappers.UInt32Value{
+							Value: 100,
+						},
+					}},
+				},
+			},
+		},
+	}
+
+	actual := *getPrometheusCluster()
+	assert.Equal(expectedCluster.LoadAssignment.ClusterName, actual.LoadAssignment.ClusterName)
+	assert.Equal(len(expectedCluster.LoadAssignment.Endpoints[0].LbEndpoints), len(actual.LoadAssignment.Endpoints))
+	assert.Equal(expectedCluster.LoadAssignment.Endpoints[0].LbEndpoints, actual.LoadAssignment.Endpoints[0].LbEndpoints)
+	assert.Equal(expectedCluster.LoadAssignment, actual.LoadAssignment)
+	assert.Equal(expectedCluster, &actual)
+}
+
+func TestGetOutboundPassthroughCluster(t *testing.T) {
+	assert := tassert.New(t)
+
+	expectedCluster := &xds_cluster.Cluster{
+		Name:           envoy.OutboundPassthroughCluster,
+		ConnectTimeout: ptypes.DurationProto(1 * time.Second),
+		ClusterDiscoveryType: &xds_cluster.Cluster_Type{
+			Type: xds_cluster.Cluster_ORIGINAL_DST,
+		},
+		LbPolicy:             xds_cluster.Cluster_CLUSTER_PROVIDED,
+		ProtocolSelection:    xds_cluster.Cluster_USE_DOWNSTREAM_PROTOCOL,
+		Http2ProtocolOptions: &xds_core.Http2ProtocolOptions{},
+	}
+
+	actual := getOutboundPassthroughCluster()
+
+	assert.Equal(expectedCluster, actual)
 }
