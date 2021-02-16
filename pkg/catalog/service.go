@@ -4,11 +4,36 @@ import (
 	"reflect"
 	"strings"
 
+	mapset "github.com/deckarep/golang-set"
 	"github.com/pkg/errors"
 
 	"github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 )
+
+// GetApexServicesForBackend returns a list of services that serve as the apex service in a traffic split where the
+// given service is a backend
+func (mc *MeshCatalog) GetApexServicesForBackend(targetService service.MeshService) []service.MeshService {
+	apexList := []service.MeshService{}
+	apexSet := mapset.NewSet()
+	for _, split := range mc.meshSpec.ListTrafficSplits() {
+		for _, backend := range split.Spec.Backends {
+			if backend.Service == targetService.Name && split.Namespace == targetService.Namespace {
+				apexSet.Add(service.MeshService{
+					Name:      split.Spec.Service,
+					Namespace: split.Namespace,
+				})
+				break
+			}
+		}
+	}
+
+	for v := range apexSet.Iter() {
+		apexList = append(apexList, v.(service.MeshService))
+	}
+
+	return apexList
+}
 
 // GetServicesForServiceAccount returns a list of services corresponding to a service account
 func (mc *MeshCatalog) GetServicesForServiceAccount(sa service.K8sServiceAccount) ([]service.MeshService, error) {
