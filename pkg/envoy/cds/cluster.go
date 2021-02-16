@@ -79,7 +79,8 @@ func getSyntheticCluster(name string) *xds_cluster.Cluster {
 		ClusterDiscoveryType: &xds_cluster.Cluster_Type{
 			Type: xds_cluster.Cluster_STATIC,
 		},
-		LbPolicy: xds_cluster.Cluster_ROUND_ROBIN,
+		LbPolicy:       xds_cluster.Cluster_ROUND_ROBIN,
+		ConnectTimeout: ptypes.DurationProto(clusterConnectTimeout),
 	}
 }
 

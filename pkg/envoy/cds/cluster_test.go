@@ -148,3 +148,14 @@ func TestGetLocalServiceCluster(t *testing.T) {
 		})
 	}
 }
+
+func TestGetSyntheticCluster(t *testing.T) {
+	assert := tassert.New(t)
+
+	actual := getSyntheticCluster("foo")
+	assert.NotNil(actual)
+	assert.Equal("foo", actual.Name)
+	assert.Equal(&xds_cluster.Cluster_Type{Type: xds_cluster.Cluster_STATIC}, actual.ClusterDiscoveryType)
+	assert.Equal(xds_cluster.Cluster_ROUND_ROBIN, actual.LbPolicy)
+	assert.Equal(ptypes.DurationProto(clusterConnectTimeout), actual.ConnectTimeout)
+}
