@@ -161,7 +161,8 @@ func (td *OsmTestData) SimplePodApp(def SimplePodAppDef) (corev1.ServiceAccount,
 			},
 		},
 		Spec: corev1.PodSpec{
-			ServiceAccountName: def.Name,
+			TerminationGracePeriodSeconds: new(int64), // 0
+			ServiceAccountName:            def.Name,
 			Containers: []corev1.Container{
 				{
 					Name:            def.Name,
@@ -300,7 +301,8 @@ func (td *OsmTestData) SimpleDeploymentApp(def SimpleDeploymentAppDef) (corev1.S
 					},
 				},
 				Spec: corev1.PodSpec{
-					ServiceAccountName: def.Name,
+					TerminationGracePeriodSeconds: new(int64), // 0
+					ServiceAccountName:            def.Name,
 					Containers: []corev1.Container{
 						{
 							Name:            def.Name,
