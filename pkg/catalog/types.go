@@ -89,6 +89,9 @@ type MeshCataloger interface {
 	// ListEndpointsForService returns the list of individual instance endpoint backing a service
 	ListEndpointsForService(service.MeshService) ([]endpoint.Endpoint, error)
 
+	// ListAllowedEndpointsForService returns the list of endpoints backing a service and its allowed service accounts
+	ListAllowedEndpointsForService(service.K8sServiceAccount, service.MeshService) ([]endpoint.Endpoint, error)
+
 	// GetResolvableServiceEndpoints returns the resolvable set of endpoint over which a service is accessible using its FQDN.
 	// These are the endpoint destinations we'd expect client applications sends the traffic towards to, when attempting to
 	// reach a specific service.

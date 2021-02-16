@@ -4,16 +4,20 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"testing"
 	"time"
 
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"github.com/golang/mock/gomock"
+	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
+	testclient "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -552,3 +556,84 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 		<-podsAndServiceChannel
 	})
 })
+
+func TestListEndpointsForIdentity(t *testing.T) {
+	assert := tassert.New(t)
+
+	testCases := []struct {
+		name                            string
+		serviceAccount                  service.K8sServiceAccount
+		outboundServiceAccountEndpoints map[service.K8sServiceAccount][]endpoint.Endpoint
+		expectedEndpoints               []endpoint.Endpoint
+	}{
+		{
+			name:           "get endpoints for pod with only one ip",
+			serviceAccount: tests.BookstoreServiceAccount,
+			outboundServiceAccountEndpoints: map[service.K8sServiceAccount][]endpoint.Endpoint{
+				tests.BookstoreServiceAccount: {{
+					IP: net.ParseIP(tests.ServiceIP),
+				}},
+			},
+			expectedEndpoints: []endpoint.Endpoint{{
+				IP: net.ParseIP(tests.ServiceIP),
+			}},
+		},
+		{
+			name:           "get endpoints for pod with multiple ips",
+			serviceAccount: tests.BookstoreServiceAccount,
+			outboundServiceAccountEndpoints: map[service.K8sServiceAccount][]endpoint.Endpoint{
+				tests.BookstoreServiceAccount: {
+					endpoint.Endpoint{
+						IP: net.ParseIP(tests.ServiceIP),
+					},
+					endpoint.Endpoint{
+						IP: net.ParseIP("9.9.9.9"),
+					},
+				},
+			},
+			expectedEndpoints: []endpoint.Endpoint{{
+				IP: net.ParseIP(tests.ServiceIP),
+			},
+				{
+					IP: net.ParseIP("9.9.9.9"),
+				}},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockCtrl := gomock.NewController(t)
+			kubeClient := testclient.NewSimpleClientset()
+			defer mockCtrl.Finish()
+
+			mockKubeController := k8s.NewMockController(mockCtrl)
+			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
+			providerID := "provider"
+
+			provider, err := NewProvider(kubeClient, mockKubeController, providerID, mockConfigurator)
+			assert.Nil(err)
+
+			var pods []*v1.Pod
+			for sa, endpoints := range tc.outboundServiceAccountEndpoints {
+				podlabels := map[string]string{
+					tests.SelectorKey:                tests.SelectorValue,
+					constants.EnvoyUniqueIDLabelName: uuid.New().String(),
+				}
+				pod := tests.NewPodFixture(sa.Namespace, sa.Name, sa.Name, podlabels)
+				var podIps []v1.PodIP
+				for _, ep := range endpoints {
+					podIps = append(podIps, v1.PodIP{IP: ep.IP.String()})
+				}
+				pod.Status.PodIPs = podIps
+				_, err := kubeClient.CoreV1().Pods(sa.Namespace).Create(context.TODO(), &pod, metav1.CreateOptions{})
+				assert.Nil(err)
+				pods = append(pods, &pod)
+			}
+			mockKubeController.EXPECT().ListPods().Return(pods).AnyTimes()
+
+			actual := provider.ListEndpointsForIdentity(tc.serviceAccount)
+			assert.NotNil(actual)
+			assert.ElementsMatch(actual, tc.expectedEndpoints)
+		})
+	}
+}

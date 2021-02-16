@@ -31,6 +31,7 @@ func NewFakeMeshSpecClient() MeshSpec {
 		weightedServices: []service.WeightedService{tests.BookstoreV1WeightedService, tests.BookstoreV2WeightedService},
 		serviceAccounts: []service.K8sServiceAccount{
 			tests.BookstoreServiceAccount,
+			tests.BookstoreV2ServiceAccount,
 			tests.BookbuyerServiceAccount,
 		},
 
