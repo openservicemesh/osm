@@ -1,11 +1,13 @@
 package providers
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
 	"github.com/golang/mock/gomock"
 	tassert "github.com/stretchr/testify/assert"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -42,6 +44,14 @@ func TestGetCertificateManager(t *testing.T) {
 			manager, _, err := tc.util.GetCertificateManager()
 			assert.NotNil(manager)
 			assert.Equal(tc.expectError, err != nil)
+
+			switch tc.util.providerKind {
+			case TresorKind:
+				_, err = tc.util.kubeClient.CoreV1().Secrets(tc.util.providerNamespace).Get(context.TODO(), tc.util.caBundleSecretName, metav1.GetOptions{})
+				assert.NoError(err)
+			default:
+				assert.Fail("Unknown provider kind")
+			}
 		})
 	}
 }
