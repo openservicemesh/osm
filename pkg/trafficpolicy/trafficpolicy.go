@@ -155,7 +155,8 @@ func mergeRules(originalRules, latestRules []*Rule) []*Rule {
 }
 
 // mergeRoutesWeightedClusters merges two slices of RouteWeightedClusters and returns a slice where there is one RouteWeightedCluster
-//	for any HTTPRouteMatch
+//	for any HTTPRouteMatch. Where there is an overlap in HTTPRouteMatch between the originalRoutes and latestRoutes, the WeightedClusters
+//  specified in the latestRoutes will be kept since there can only be one set of WeightedClusters per HTTPRouteMatch.
 func mergeRoutesWeightedClusters(originalRoutes, latestRoutes []*RouteWeightedClusters) []*RouteWeightedClusters {
 	for _, latest := range latestRoutes {
 		foundRoute := false

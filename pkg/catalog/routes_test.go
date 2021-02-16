@@ -134,7 +134,7 @@ func TestListTrafficPoliciesForServiceAccount(t *testing.T) {
 			expectedErr: false,
 		},
 		{
-			name:           "traffic targets and traffic splits",
+			name:           "only traffic splits, no traffic targets",
 			serviceAccount: tests.BookbuyerServiceAccount,
 			apexMeshServices: []service.MeshService{
 				{

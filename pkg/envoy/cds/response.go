@@ -64,6 +64,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 
 	if featureflags.IsRoutesV2Enabled() {
 		// if this service is associated with a trafficsplit service, add a local cluster for the apex service
+		// Needs to be updated with #2134 - handling multiple services per pod
 		for _, splitService := range meshCatalog.GetApexServicesForBackend(proxyServiceName) {
 			lcn := envoy.GetLocalClusterNameForService(splitService)
 			lc := getSyntheticCluster(lcn)
