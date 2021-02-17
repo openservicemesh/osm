@@ -18,7 +18,7 @@ var _ = OSMDescribe("Routes V2 Permissive Traffic Policy Mode",
 		Bucket: 1,
 	},
 	func() {
-		Context("PermissiveModeRoutesV2", func() {
+		Context("RoutesV2 permissive mode", func() {
 			const sourceNs = "client"
 			const destNs = "server"
 			var ns []string = []string{sourceNs, destNs}
