@@ -1,3 +1,6 @@
+// Package main implements the main entrypoint for osm-injector and utility routines to
+// bootstrap the various internal components of osm-injector.
+// osm-injector provides the automatic sidecar injection capability in OSM.
 package main
 
 import (
