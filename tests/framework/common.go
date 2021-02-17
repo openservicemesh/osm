@@ -41,6 +41,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/remotecommand"
+	"sigs.k8s.io/kind/pkg/apis/config/v1alpha4"
 	"sigs.k8s.io/kind/pkg/cluster"
 	"sigs.k8s.io/kind/pkg/cluster/nodeutils"
 
@@ -265,7 +266,25 @@ func (td *OsmTestData) InitTestData(t GinkgoTInterface) error {
 	if (td.InstType == KindCluster) && td.ClusterProvider == nil {
 		td.ClusterProvider = cluster.NewProvider()
 		td.T.Logf("Creating local kind cluster")
-		if err := td.ClusterProvider.Create(td.ClusterName); err != nil {
+		clusterConfig := &v1alpha4.Cluster{
+			Nodes: []v1alpha4.Node{
+				{
+					Role: v1alpha4.ControlPlaneRole,
+					KubeadmConfigPatches: []string{`kind: InitConfiguration
+nodeRegistration:
+  kubeletExtraArgs:
+    node-labels: "ingress-ready=true"`},
+					ExtraPortMappings: []v1alpha4.PortMapping{
+						{
+							ContainerPort: 80,
+							HostPort:      80,
+							Protocol:      v1alpha4.PortMappingProtocolTCP,
+						},
+					},
+				},
+			},
+		}
+		if err := td.ClusterProvider.Create(td.ClusterName, cluster.CreateWithV1Alpha4Config(clusterConfig)); err != nil {
 			return errors.Wrap(err, "failed to create kind cluster")
 		}
 	}
