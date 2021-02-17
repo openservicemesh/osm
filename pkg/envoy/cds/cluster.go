@@ -23,10 +23,10 @@ const (
 )
 
 // getUpstreamServiceCluster returns an Envoy Cluster corresponding to the given upstream service
-func getUpstreamServiceCluster(upstreamSvc, downstreamSvc service.MeshService, cfg configurator.Configurator) (*xds_cluster.Cluster, error) {
+func getUpstreamServiceCluster(downstreamIdentity service.K8sServiceAccount, upstreamSvc service.MeshService, cfg configurator.Configurator) (*xds_cluster.Cluster, error) {
 	clusterName := upstreamSvc.String()
 	marshalledUpstreamTLSContext, err := ptypes.MarshalAny(
-		envoy.GetUpstreamTLSContext(downstreamSvc, upstreamSvc))
+		envoy.GetUpstreamTLSContext(downstreamIdentity, upstreamSvc))
 	if err != nil {
 		return nil, err
 	}

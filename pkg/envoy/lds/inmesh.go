@@ -116,7 +116,7 @@ func (lb *listenerBuilder) getInboundMeshHTTPFilterChain(proxyService service.Me
 		return nil, err
 	}
 
-	filterchainName := fmt.Sprintf("%s:%d", inboundMeshHTTPFilterChainPrefix, servicePort)
+	filterchainName := fmt.Sprintf("%s:%s:%d", inboundMeshHTTPFilterChainPrefix, proxyService, servicePort)
 	filterChain := &xds_listener.FilterChain{
 		Name:    filterchainName,
 		Filters: filters,
@@ -165,7 +165,7 @@ func (lb *listenerBuilder) getInboundMeshTCPFilterChain(proxyService service.Mes
 		return nil, err
 	}
 
-	filterchainName := fmt.Sprintf("%s:%d", inboundMeshTCPFilterChainPrefix, servicePort)
+	filterchainName := fmt.Sprintf("%s:%s:%d", inboundMeshTCPFilterChainPrefix, proxyService, servicePort)
 	return &xds_listener.FilterChain{
 		Name: filterchainName,
 		FilterChainMatch: &xds_listener.FilterChainMatch{

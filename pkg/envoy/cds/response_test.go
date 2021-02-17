@@ -115,7 +115,7 @@ func TestNewResponse(t *testing.T) {
 		},
 	}
 
-	upstreamTLSProto, err := ptypes.MarshalAny(envoy.GetUpstreamTLSContext(tests.BookbuyerService, tests.BookstoreV1Service))
+	upstreamTLSProto, err := ptypes.MarshalAny(envoy.GetUpstreamTLSContext(tests.BookbuyerServiceAccount, tests.BookstoreV1Service))
 	require.Nil(err)
 
 	expectedBookstoreV1Cluster := &xds_cluster.Cluster{
@@ -146,7 +146,7 @@ func TestNewResponse(t *testing.T) {
 		},
 	}
 
-	upstreamTLSProto, err = ptypes.MarshalAny(envoy.GetUpstreamTLSContext(tests.BookbuyerService, tests.BookstoreV2Service))
+	upstreamTLSProto, err = ptypes.MarshalAny(envoy.GetUpstreamTLSContext(tests.BookbuyerServiceAccount, tests.BookstoreV2Service))
 	require.Nil(err)
 	expectedBookstoreV2Cluster := &xds_cluster.Cluster{
 		TransportSocketMatches: nil,

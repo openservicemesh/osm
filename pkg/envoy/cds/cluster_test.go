@@ -26,7 +26,8 @@ func TestGetUpstreamServiceCluster(t *testing.T) {
 
 	mockCtrl := gomock.NewController(t)
 	mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
-	downstreamSvc := tests.BookbuyerService
+
+	downstreamSvcAccount := tests.BookbuyerServiceAccount
 	upstreamSvc := tests.BookstoreV1Service
 
 	testCases := []struct {
@@ -55,7 +56,7 @@ func TestGetUpstreamServiceCluster(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(tc.permissiveMode).Times(1)
-			remoteCluster, err := getUpstreamServiceCluster(upstreamSvc, downstreamSvc, mockConfigurator)
+			remoteCluster, err := getUpstreamServiceCluster(downstreamSvcAccount, upstreamSvc, mockConfigurator)
 			assert.Nil(err)
 			assert.Equal(tc.expectedClusterType, remoteCluster.GetType())
 			assert.Equal(tc.expectedLbPolicy, remoteCluster.LbPolicy)

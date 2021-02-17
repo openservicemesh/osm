@@ -22,7 +22,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
@@ -44,7 +43,7 @@ var _ = Describe("Test ADS response functions", func() {
 	namespace := tests.Namespace
 	proxyUUID := tests.ProxyUUID
 	serviceName := tests.BookstoreV1ServiceName
-	serviceAccountName := tests.BookstoreServiceAccountName
+	proxySvcAccount := tests.BookstoreServiceAccount
 
 	labels := map[string]string{constants.EnvoyUniqueIDLabelName: tests.ProxyUUID}
 	mc := catalog.NewFakeMeshCatalog(kubeClient)
@@ -70,14 +69,9 @@ var _ = Describe("Test ADS response functions", func() {
 		GinkgoT().Fatalf("Error creating new Bookstire Apex service: %s", err.Error())
 	}
 
-	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s", proxyUUID, serviceAccountName, namespace))
+	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s", proxyUUID, proxySvcAccount.Name, proxySvcAccount.Namespace))
 	certSerialNumber := certificate.SerialNumber("123456")
 	proxy := envoy.NewProxy(certCommonName, certSerialNumber, nil)
-
-	meshService := service.MeshService{
-		Namespace: "default",
-		Name:      serviceName,
-	}
 
 	Context("Test makeRequestForAllSecrets()", func() {
 		It("returns service cert", func() {
@@ -87,16 +81,16 @@ var _ = Describe("Test ADS response functions", func() {
 				TypeUrl: string(envoy.TypeSDS),
 				ResourceNames: []string{
 					envoy.SDSCert{
-						MeshService: meshService,
-						CertType:    envoy.ServiceCertType,
+						Name:     proxySvcAccount.String(),
+						CertType: envoy.ServiceCertType,
 					}.String(),
 					envoy.SDSCert{
-						MeshService: meshService,
-						CertType:    envoy.RootCertTypeForMTLSInbound,
+						Name:     proxySvcAccount.String(),
+						CertType: envoy.RootCertTypeForMTLSInbound,
 					}.String(),
 					envoy.SDSCert{
-						MeshService: meshService,
-						CertType:    envoy.RootCertTypeForHTTPS,
+						Name:     proxySvcAccount.String(),
+						CertType: envoy.RootCertTypeForHTTPS,
 					}.String(),
 				},
 			}
@@ -108,7 +102,7 @@ var _ = Describe("Test ADS response functions", func() {
 	Context("Test sendAllResponses()", func() {
 
 		certManager := tresor.NewFakeCertManager(mockConfigurator)
-		certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s", uuid.New(), serviceAccountName, tests.Namespace))
+		certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s", uuid.New(), proxySvcAccount.Name, proxySvcAccount.Namespace))
 		certDuration := 1 * time.Hour
 		certPEM, _ := certManager.IssueCertificate(certCommonName, certDuration)
 		cert, _ := certificate.DecodePEMCertificate(certPEM.GetCertificateChain())
@@ -153,24 +147,24 @@ var _ = Describe("Test ADS response functions", func() {
 			firstSecret := (*actualResponses)[4].Resources[0]
 			err = ptypes.UnmarshalAny(firstSecret, &secretOne)
 			Expect(secretOne.Name).To(Equal(envoy.SDSCert{
-				MeshService: meshService,
-				CertType:    envoy.ServiceCertType,
+				Name:     proxySvcAccount.String(),
+				CertType: envoy.ServiceCertType,
 			}.String()))
 
 			secretTwo := xds_auth.Secret{}
 			secondSecret := (*actualResponses)[4].Resources[1]
 			err = ptypes.UnmarshalAny(secondSecret, &secretTwo)
 			Expect(secretTwo.Name).To(Equal(envoy.SDSCert{
-				MeshService: meshService,
-				CertType:    envoy.RootCertTypeForMTLSInbound,
+				Name:     proxySvcAccount.String(),
+				CertType: envoy.RootCertTypeForMTLSInbound,
 			}.String()))
 
 			secretThree := xds_auth.Secret{}
 			thirdSecret := (*actualResponses)[4].Resources[2]
 			err = ptypes.UnmarshalAny(thirdSecret, &secretThree)
 			Expect(secretThree.Name).To(Equal(envoy.SDSCert{
-				MeshService: meshService,
-				CertType:    envoy.RootCertTypeForHTTPS,
+				Name:     proxySvcAccount.String(),
+				CertType: envoy.RootCertTypeForHTTPS,
 			}.String()))
 		})
 	})

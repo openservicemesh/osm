@@ -45,8 +45,8 @@ func TestGetRootCert(t *testing.T) {
 		{
 			name: "test inbound MTLS certificate validation",
 			sdsCert: envoy.SDSCert{
-				MeshService: service.MeshService{Name: "service-1", Namespace: "ns-1"},
-				CertType:    envoy.RootCertTypeForMTLSInbound,
+				Name:     "ns-1/service-1",
+				CertType: envoy.RootCertTypeForMTLSInbound,
 			},
 			proxyService:    service.MeshService{Name: "service-1", Namespace: "ns-1"},
 			proxySvcAccount: service.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"},
@@ -71,8 +71,8 @@ func TestGetRootCert(t *testing.T) {
 		{
 			name: "test outbound MTLS certificate validation",
 			sdsCert: envoy.SDSCert{
-				MeshService: service.MeshService{Name: "service-2", Namespace: "ns-2"},
-				CertType:    envoy.RootCertTypeForMTLSOutbound,
+				Name:     "ns-2/service-2",
+				CertType: envoy.RootCertTypeForMTLSOutbound,
 			},
 			proxyService:    service.MeshService{Name: "service-1", Namespace: "ns-1"},
 			proxySvcAccount: service.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"},
@@ -97,8 +97,8 @@ func TestGetRootCert(t *testing.T) {
 		{
 			name: "test permissive mode certificate validation",
 			sdsCert: envoy.SDSCert{
-				MeshService: service.MeshService{Name: "service-2", Namespace: "ns-2"},
-				CertType:    envoy.RootCertTypeForMTLSOutbound,
+				Name:     "ns-2/service-2",
+				CertType: envoy.RootCertTypeForMTLSOutbound,
 			},
 			proxyService:    service.MeshService{Name: "service-1", Namespace: "ns-1"},
 			proxySvcAccount: service.K8sServiceAccount{Name: "sa-1", Namespace: "ns-1"},
@@ -146,7 +146,7 @@ func TestGetRootCert(t *testing.T) {
 			}
 
 			// test the function
-			sdsSecret, err := s.getRootCert(d.mockCertificater, tc.sdsCert, tc.proxyService)
+			sdsSecret, err := s.getRootCert(d.mockCertificater, tc.sdsCert)
 			assert.Equal(err != nil, tc.expectError)
 
 			actualSANs := subjectAltNamesToStr(sdsSecret.GetValidationContext().GetMatchSubjectAltNames())
@@ -361,7 +361,7 @@ func TestGetSDSSecrets(t *testing.T) {
 			}
 
 			// test the function
-			sdsSecrets := s.getSDSSecrets(d.mockCertificater, tc.requestedCerts, tc.proxyService)
+			sdsSecrets := s.getSDSSecrets(d.mockCertificater, tc.requestedCerts)
 			assert.Len(sdsSecrets, tc.expectedSecretCount)
 
 			if tc.expectedSecretCount <= 0 {

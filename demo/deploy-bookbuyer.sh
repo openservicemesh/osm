@@ -21,25 +21,6 @@ metadata:
   namespace: $BOOKBUYER_NAMESPACE
 EOF
 
-echo -e "Deploy BookBuyer Service"
-kubectl apply -f - <<EOF
-apiVersion: v1
-kind: Service
-metadata:
-  name: bookbuyer
-  namespace: "$BOOKBUYER_NAMESPACE"
-  labels:
-    app: bookbuyer
-spec:
-  ports:
-
-  - port: 9999
-    name: dummy-unused-port
-
-  selector:
-    app: bookbuyer
-EOF
-
 echo -e "Deploy BookBuyer Deployment"
 kubectl apply -f - <<EOF
 apiVersion: apps/v1
