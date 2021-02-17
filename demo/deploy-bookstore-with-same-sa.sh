@@ -23,8 +23,6 @@ spec:
   ports:
   - port: 80
     name: bookstore-port
-  selector:
-    app: bookstore
 EOF
 
 echo -e "Deploy $SVC Service Account"
