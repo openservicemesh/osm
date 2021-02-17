@@ -49,6 +49,20 @@ func (mr *MockProviderMockRecorder) ListEndpointsForService(arg0 interface{}) *g
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEndpointsForService", reflect.TypeOf((*MockProvider)(nil).ListEndpointsForService), arg0)
 }
 
+// ListEndpointsForIdentity mocks base method
+func (m *MockProvider) ListEndpointsForIdentity(arg0 service.K8sServiceAccount) []Endpoint {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListEndpointsForIdentity", arg0)
+	ret0, _ := ret[0].([]Endpoint)
+	return ret0
+}
+
+// ListEndpointsForIdentity indicates an expected call of ListEndpointsForIdentity
+func (mr *MockProviderMockRecorder) ListEndpointsForIdentity(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEndpointsForIdentity", reflect.TypeOf((*MockProvider)(nil).ListEndpointsForIdentity), arg0)
+}
+
 // GetServicesForServiceAccount mocks base method
 func (m *MockProvider) GetServicesForServiceAccount(arg0 service.K8sServiceAccount) ([]service.MeshService, error) {
 	m.ctrl.T.Helper()

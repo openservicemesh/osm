@@ -70,8 +70,14 @@ func newFakeMeshCatalog() *MeshCatalog {
 
 	certManager := tresor.NewFakeCertManager(cfg)
 
-	// Create a pod
-	pod := tests.NewPodFixture(tests.Namespace, "pod-name", tests.BookstoreServiceAccountName, tests.PodLabels)
+	// Create a Bookstore-v1 pod
+	pod := tests.NewPodFixture(tests.Namespace, tests.BookstoreV1Service.Name, tests.BookstoreServiceAccountName, tests.PodLabels)
+	if _, err := kubeClient.CoreV1().Pods(tests.Namespace).Create(context.TODO(), &pod, metav1.CreateOptions{}); err != nil {
+		GinkgoT().Fatalf("Error creating new fake Mesh Catalog: %s", err.Error())
+	}
+
+	// Create a Bookstore-v2 pod
+	pod = tests.NewPodFixture(tests.Namespace, tests.BookstoreV2Service.Name, tests.BookstoreV2ServiceAccountName, tests.PodLabels)
 	if _, err := kubeClient.CoreV1().Pods(tests.Namespace).Create(context.TODO(), &pod, metav1.CreateOptions{}); err != nil {
 		GinkgoT().Fatalf("Error creating new fake Mesh Catalog: %s", err.Error())
 	}

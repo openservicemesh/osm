@@ -301,6 +301,21 @@ func (m *MockMeshCataloger) ListInboundTrafficTargetsWithRoutes(arg0 service.K8s
 	return ret0, ret1
 }
 
+// ListAllowedEndpointsForService mocks base method
+func (m *MockMeshCataloger) ListAllowedEndpointsForService(arg0 service.K8sServiceAccount, arg1 service.MeshService) ([]endpoint.Endpoint, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListAllowedEndpointsForService", arg0, arg1)
+	ret0, _ := ret[0].([]endpoint.Endpoint)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListAllowedEndpointsForService indicates an expected call of ListAllowedEndpointsForService
+func (mr *MockMeshCatalogerMockRecorder) ListAllowedEndpointsForService(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAllowedEndpointsForService", reflect.TypeOf((*MockMeshCataloger)(nil).ListAllowedEndpointsForService), arg0, arg1)
+}
+
 // ListInboundTrafficTargetsWithRoutes indicates an expected call of ListInboundTrafficTargetsWithRoutes
 func (mr *MockMeshCatalogerMockRecorder) ListInboundTrafficTargetsWithRoutes(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()

@@ -559,6 +559,10 @@ func TestListTrafficPolicies(t *testing.T) {
 			output: []trafficpolicy.TrafficTarget{tests.BookstoreV1TrafficPolicy},
 		},
 		{
+			input:  tests.BookstoreV2Service,
+			output: []trafficpolicy.TrafficTarget{tests.BookstoreV2TrafficPolicy},
+		},
+		{
 			input:  tests.BookbuyerService,
 			output: []trafficpolicy.TrafficTarget{tests.BookstoreV1TrafficPolicy, tests.BookstoreV2TrafficPolicy, tests.BookstoreApexTrafficPolicy},
 		},
@@ -592,7 +596,7 @@ func TestGetTrafficPoliciesForService(t *testing.T) {
 					HTTPRouteMatches: tests.BookstoreV1TrafficPolicy.HTTPRouteMatches,
 				},
 				{
-					Name:             utils.GetTrafficTargetName(tests.TrafficTargetName, tests.BookbuyerService, tests.BookstoreV2Service),
+					Name:             utils.GetTrafficTargetName(tests.BookstoreV2TrafficTargetName, tests.BookbuyerService, tests.BookstoreV2Service),
 					Destination:      tests.BookstoreV2Service,
 					Source:           tests.BookbuyerService,
 					HTTPRouteMatches: tests.BookstoreV2TrafficPolicy.HTTPRouteMatches,

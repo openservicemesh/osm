@@ -57,6 +57,9 @@ const (
 	// TrafficTargetName is the name of the traffic target SMI object.
 	TrafficTargetName = "bookbuyer-access-bookstore"
 
+	// BookstoreV2TrafficTargetName is the name of the traffic target SMI object.
+	BookstoreV2TrafficTargetName = "bookbuyer-access-bookstore-v2"
+
 	// BuyBooksMatchName is the name of the match object.
 	BuyBooksMatchName = "buy-books"
 
@@ -234,7 +237,7 @@ var (
 
 	// BookstoreV2TrafficPolicy is a traffic policy SMI object.
 	BookstoreV2TrafficPolicy = trafficpolicy.TrafficTarget{
-		Name:        fmt.Sprintf("%s:default/bookbuyer->default/bookstore-v2", TrafficTargetName),
+		Name:        fmt.Sprintf("%s:default/bookbuyer->default/bookstore-v2", BookstoreV2TrafficTargetName),
 		Destination: BookstoreV2Service,
 		Source:      BookbuyerService,
 		HTTPRouteMatches: []trafficpolicy.HTTPRouteMatch{
@@ -310,12 +313,12 @@ var (
 		},
 		Spec: access.TrafficTargetSpec{
 			Destination: access.IdentityBindingSubject{
-				Kind:      "Name",
+				Kind:      "ServiceAccount",
 				Name:      BookstoreServiceAccountName,
 				Namespace: "default",
 			},
 			Sources: []access.IdentityBindingSubject{{
-				Kind:      "Name",
+				Kind:      "ServiceAccount",
 				Name:      BookbuyerServiceAccountName,
 				Namespace: "default",
 			}},
@@ -334,17 +337,17 @@ var (
 			Kind:       "TrafficTarget",
 		},
 		ObjectMeta: v1.ObjectMeta{
-			Name:      TrafficTargetName,
+			Name:      BookstoreV2TrafficTargetName,
 			Namespace: "default",
 		},
 		Spec: access.TrafficTargetSpec{
 			Destination: access.IdentityBindingSubject{
-				Kind:      "Name",
+				Kind:      "ServiceAccount",
 				Name:      BookstoreV2ServiceAccountName,
 				Namespace: "default",
 			},
 			Sources: []access.IdentityBindingSubject{{
-				Kind:      "Name",
+				Kind:      "ServiceAccount",
 				Name:      BookbuyerServiceAccountName,
 				Namespace: "default",
 			}},
