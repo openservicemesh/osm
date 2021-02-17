@@ -70,7 +70,9 @@ func (mc *MeshCatalog) ListTrafficPoliciesForServiceAccount(sa service.K8sServic
 		return nil, nil, err
 	}
 
-	//	TODO: handle traffic splits, merge policies from traffic splits into outbound policies (#705)
+	outboundPoliciesFromSplits := mc.listTrafficPoliciesForTrafficSplits(sa.Namespace)
+	outbound = trafficpolicy.MergeOutboundPolicies(outbound, outboundPoliciesFromSplits...)
+
 	return inbound, outbound, nil
 }
 
@@ -672,11 +674,8 @@ func (mc *MeshCatalog) listPoliciesFromTrafficTargets(sa service.K8sServiceAccou
 
 		for _, source := range t.Spec.Sources {
 			if source.Name == sa.Name && source.Namespace == sa.Namespace { // found outbound
-				mergedPolicies, mergeErrors := trafficpolicy.MergeOutboundPolicies(outboundPolicies, mc.buildOutboundPolicies(sa, t)...)
+				mergedPolicies := trafficpolicy.MergeOutboundPolicies(outboundPolicies, mc.buildOutboundPolicies(sa, t)...)
 				outboundPolicies = mergedPolicies
-				for _, mergeError := range mergeErrors {
-					log.Error().Err(mergeError).Msgf("Error building outbound policies for source %s (%s) and with traffic target %s (%s)", source.Name, source.Namespace, t.Name, t.Namespace)
-				}
 				break
 			}
 		}
@@ -693,11 +692,8 @@ func (mc *MeshCatalog) ListPoliciesForPermissiveMode(services []service.MeshServ
 		inboundPolicies = trafficpolicy.MergeInboundPolicies(false, inboundPolicies, mc.buildInboundPermissiveModePolicies(svc)...)
 	}
 
-	mergedPolicies, mergeErrors := trafficpolicy.MergeOutboundPolicies(outboundPolicies, mc.buildOutboundPermissiveModePolicies(services)...)
+	mergedPolicies := trafficpolicy.MergeOutboundPolicies(outboundPolicies, mc.buildOutboundPermissiveModePolicies(services)...)
 	outboundPolicies = mergedPolicies
-	for _, mergeError := range mergeErrors {
-		log.Error().Err(mergeError).Msgf("Error building permissive mode outbound policies for services %v", services)
-	}
 	return inboundPolicies, outboundPolicies, nil
 }
 
