@@ -12,7 +12,7 @@ metadata:
   name: bookstore-split
   namespace: "$BOOKSTORE_NAMESPACE"
 spec:
-  service: "bookstore.$BOOKSTORE_NAMESPACE"
+  service: bookstore
   backends:
 
   - service: bookstore-v1
