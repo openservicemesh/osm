@@ -40,10 +40,6 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 			return nil, err
 		}
 
-		if featureflags.IsBackpressureEnabled() {
-			enableBackpressure(meshCatalog, cluster, dstService)
-		}
-
 		clusters = append(clusters, cluster)
 	}
 

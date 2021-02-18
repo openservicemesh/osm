@@ -113,17 +113,6 @@ const (
 
 	// ---
 
-	// BackpressureAdded is the type of announcement emitted when we observe an addition of a Kubernetes Backpressure
-	BackpressureAdded AnnouncementType = "backpressure-added"
-
-	// BackpressureDeleted the type of announcement emitted when we observe the deletion of a Kubernetes Backpressure
-	BackpressureDeleted AnnouncementType = "backpressure-deleted"
-
-	// BackpressureUpdated is the type of announcement emitted when we observe an update to a Kubernetes Backpressure
-	BackpressureUpdated AnnouncementType = "backpressure-updated"
-
-	// ---
-
 	// ConfigMapAdded is the type of announcement emitted when we observe an addition of a Kubernetes ConfigMap
 	ConfigMapAdded AnnouncementType = "configmap-added"
 

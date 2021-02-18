@@ -347,7 +347,7 @@ type MeshCataloger interface {
   // GetIngressRoutesPerHost returns the HTTP route matches per host associated with an ingress service
   // TODO : remove as a part of routes refactor cleanup (#2397)
   GetIngressRoutesPerHost(service.MeshService) (map[string][]trafficpolicy.HTTPRouteMatch, error)
-  
+
   // GetIngressPoliciesForService returns the inbound traffic policies associated with an ingress service
   GetIngressPoliciesForService(service.MeshService, service.K8sServiceAccount) ([]*trafficpolicy.InboundTrafficPolicy, error)
 }
@@ -471,7 +471,7 @@ type MeshSpec interface {
 
 	// ListServices Lists Kubernets Service resources that are part of monitored namespaces
     ListServices() []*corev1.Service
-  
+
 	// ListServiceAccounts Lists Kubernets Service Account resources that are part of monitored namespaces
     ListServiceAccounts() []*corev1.ServiceAccounts
 
@@ -480,9 +480,6 @@ type MeshSpec interface {
 
 	// ListTrafficTargets lists SMI TrafficTarget resources
 	ListTrafficTargets() []*target.TrafficTarget
-
-	// GetBackpressurePolicy fetches the Backpressure policy for the MeshService
-	GetBackpressurePolicy(service.MeshService) *backpressure.Backpressure
 
 	// GetAnnouncementsChannel returns the channel on which SMI client makes announcements
 	GetAnnouncementsChannel() <-chan interface{}

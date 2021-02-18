@@ -22,7 +22,7 @@ func TestPubSubEvents(t *testing.T) {
 		expectMessage bool
 	}{
 		{
-			register: announcements.BackpressureAdded,
+			register: announcements.EndpointAdded,
 			publish: PubSubMessage{
 				AnnouncementType: announcements.ConfigMapAdded,
 				NewObj:           struct{}{},
@@ -31,9 +31,9 @@ func TestPubSubEvents(t *testing.T) {
 			expectMessage: false,
 		},
 		{
-			register: announcements.BackpressureAdded,
+			register: announcements.EndpointAdded,
 			publish: PubSubMessage{
-				AnnouncementType: announcements.BackpressureAdded,
+				AnnouncementType: announcements.EndpointAdded,
 				NewObj:           nil,
 				OldObj:           "randomString",
 			},
@@ -66,11 +66,11 @@ func TestPubSubClose(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	subChannel := GetPubSubInstance().Subscribe(announcements.BackpressureUpdated)
+	subChannel := GetPubSubInstance().Subscribe(announcements.EndpointUpdated)
 
 	// publish something
 	GetPubSubInstance().Publish(PubSubMessage{
-		AnnouncementType: announcements.BackpressureUpdated,
+		AnnouncementType: announcements.EndpointUpdated,
 	})
 
 	// make sure channel is drained and closed

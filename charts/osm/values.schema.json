@@ -20,7 +20,6 @@
                 "caBundleSecretName",
                 "enableDebugServer",
                 "enablePermissiveTrafficPolicy",
-                "enableBackpressureExperimental",
                 "enableEgress",
                 "deployPrometheus",
                 "enablePrometheusScraping",
@@ -218,15 +217,6 @@
                     "type": "boolean",
                     "title": "The enablePermissiveTrafficPolicy schema",
                     "description": "Indicates whether permissive traffic policy should be enabled or not.",
-                    "examples": [
-                        false
-                    ]
-                },
-                "enableBackpressureExperimental": {
-                    "$id": "#/properties/OpenServiceMesh/properties/enableBackpressureExperimental",
-                    "type": "boolean",
-                    "title": "The enableBackpressureExperimental schema",
-                    "description": "Indicates whether the experimental backpressure policy should be enabled or not.",
                     "examples": [
                         false
                     ]
