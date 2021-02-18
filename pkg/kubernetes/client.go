@@ -19,7 +19,7 @@ import (
 )
 
 // NewKubernetesController returns a new kubernetes.Controller which means to provide access to locally-cached k8s resources
-func NewKubernetesController(kubeClient kubernetes.Interface, meshName string, stop chan struct{}) (Controller, error) {
+func NewKubernetesController(kubeClient kubernetes.Interface, meshName string, stop chan struct{}, selectInformers ...InformerKey) (Controller, error) {
 	// Initialize client object
 	client := Client{
 		kubeClient:  kubeClient,
@@ -28,12 +28,23 @@ func NewKubernetesController(kubeClient kubernetes.Interface, meshName string, s
 		cacheSynced: make(chan interface{}),
 	}
 
-	// Initialize resources here
-	client.initNamespaceMonitor()
-	client.initServicesMonitor()
-	client.initServiceAccountsMonitor()
-	client.initPodMonitor()
-	client.initEndpointMonitor()
+	// Initialize informers
+	informerInitHandlerMap := map[InformerKey]func(){
+		Namespaces:      client.initNamespaceMonitor,
+		Services:        client.initServicesMonitor,
+		ServiceAccounts: client.initServiceAccountsMonitor,
+		Pods:            client.initPodMonitor,
+		Endpoints:       client.initEndpointMonitor,
+	}
+
+	// If specific informers are not selected to be initialized, initialize all informers
+	if len(selectInformers) == 0 {
+		selectInformers = []InformerKey{Namespaces, Services, ServiceAccounts, Pods, Endpoints}
+	}
+
+	for _, informer := range selectInformers {
+		informerInitHandlerMap[informer]()
+	}
 
 	if err := client.run(stop); err != nil {
 		log.Error().Err(err).Msg("Could not start Kubernetes Namespaces client")
@@ -138,7 +149,7 @@ func (c *Client) run(stop <-chan struct{}) error {
 
 		go informer.Run(stop)
 		names = append(names, (string)(name))
-		log.Info().Msgf("Waiting informer for %s cache sync...", name)
+		log.Info().Msgf("Waiting for %s informer cache sync...", name)
 		hasSynced = append(hasSynced, informer.HasSynced)
 	}
 
