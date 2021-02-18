@@ -1,0 +1,13 @@
+connect_timeout: 1s
+lb_policy: ROUND_ROBIN
+load_assignment:
+  cluster_name: cluster-name
+  endpoints:
+  - lb_endpoints:
+    - endpoint:
+        address:
+          socket_address:
+            address: 0.0.0.0
+            port_value: 12341234
+name: cluster-name
+type: STATIC
