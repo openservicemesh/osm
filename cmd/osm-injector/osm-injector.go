@@ -138,7 +138,7 @@ func main() {
 	log.Debug().Msgf("Initial ConfigMap %s: %s", osmConfigMapName, string(configMap))
 
 	// Initialize kubernetes.Controller to watch kubernetes resources
-	kubeController, err := k8s.NewKubernetesController(kubeClient, meshName, stop)
+	kubeController, err := k8s.NewKubernetesController(kubeClient, meshName, stop, k8s.Namespaces)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Kubernetes Controller")
 	}
