@@ -13,7 +13,6 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	backpressure "github.com/openservicemesh/osm/experimental/pkg/apis/policy/v1alpha1"
 	tresorPem "github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -455,14 +454,6 @@ var (
 			Name:      "tcp-route",
 		},
 		Spec: spec.TCPRouteSpec{},
-	}
-
-	// Backpressure is an experimental Backpressure policy.
-	// This will be replaced by an SMI Spec when it is ready.
-	Backpressure = backpressure.Backpressure{
-		Spec: backpressure.BackpressureSpec{
-			MaxConnections: 123,
-		},
 	}
 
 	// BookstoreV1DefaultWeightedCluster is a weighted cluster for bookstore-v1

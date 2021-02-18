@@ -7,7 +7,6 @@ import (
 
 	"k8s.io/client-go/tools/cache"
 
-	backpressure "github.com/openservicemesh/osm/experimental/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/announcements"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/logger"
@@ -24,7 +23,6 @@ type InformerCollection struct {
 	HTTPRouteGroup cache.SharedIndexInformer
 	TCPRoute       cache.SharedIndexInformer
 	TrafficTarget  cache.SharedIndexInformer
-	Backpressure   cache.SharedIndexInformer
 }
 
 // CacheCollection is a struct of the Kubernetes caches used in OSM
@@ -33,7 +31,6 @@ type CacheCollection struct {
 	HTTPRouteGroup cache.Store
 	TCPRoute       cache.Store
 	TrafficTarget  cache.Store
-	Backpressure   cache.Store
 }
 
 // Client is a struct for all components necessary to connect to and maintain state of a Kubernetes cluster.
@@ -69,7 +66,4 @@ type MeshSpec interface {
 
 	// ListTrafficTargets lists SMI TrafficTarget resources
 	ListTrafficTargets() []*access.TrafficTarget
-
-	// GetBackpressurePolicy fetches the Backpressure policy for the MeshService
-	GetBackpressurePolicy(service.MeshService) *backpressure.Backpressure
 }

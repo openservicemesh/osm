@@ -68,7 +68,6 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.deployGrafana | bool | `false` | Deploy Grafana |
 | OpenServiceMesh.deployJaeger | bool | `false` | Deploy Jaeger in the OSM namespace |
 | OpenServiceMesh.deployPrometheus | bool | `false` | Deploy Prometheus |
-| OpenServiceMesh.enableBackpressureExperimental | bool | `false` | Enable experimental backpressure feature |
 | OpenServiceMesh.enableDebugServer | bool | `false` | Enable the debug HTTP server |
 | OpenServiceMesh.enableEgress | bool | `false` | Enable egress in the mesh |
 | OpenServiceMesh.enableFluentbit | bool | `false` | Enable Fluent Bit sidecar deployment |

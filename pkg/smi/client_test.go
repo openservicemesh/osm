@@ -15,11 +15,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
-	osmPolicy "github.com/openservicemesh/osm/experimental/pkg/apis/policy/v1alpha1"
-	osmPolicyClient "github.com/openservicemesh/osm/experimental/pkg/client/clientset/versioned/fake"
 	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/featureflags"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -35,7 +32,6 @@ type fakeKubeClientSet struct {
 	smiTrafficSplitClientSet  *testTrafficSplitClient.Clientset
 	smiTrafficSpecClientSet   *testTrafficSpecClient.Clientset
 	smiTrafficTargetClientSet *testTrafficTargetClient.Clientset
-	osmPolicyClientSet        *osmPolicyClient.Clientset
 }
 
 func bootstrapClient() (MeshSpec, *fakeKubeClientSet, error) {
@@ -48,7 +44,6 @@ func bootstrapClient() (MeshSpec, *fakeKubeClientSet, error) {
 	smiTrafficSplitClientSet := testTrafficSplitClient.NewSimpleClientset()
 	smiTrafficSpecClientSet := testTrafficSpecClient.NewSimpleClientset()
 	smiTrafficTargetClientSet := testTrafficTargetClient.NewSimpleClientset()
-	osmPolicyClientSet := osmPolicyClient.NewSimpleClientset()
 	kubernetesClient, err := k8s.NewKubernetesController(kubeClient, meshName, stop)
 	if err != nil {
 		GinkgoT().Fatalf("Error initializing kubernetes controller: %s", err.Error())
@@ -59,7 +54,6 @@ func bootstrapClient() (MeshSpec, *fakeKubeClientSet, error) {
 		smiTrafficSplitClientSet:  smiTrafficSplitClientSet,
 		smiTrafficSpecClientSet:   smiTrafficSpecClientSet,
 		smiTrafficTargetClientSet: smiTrafficTargetClientSet,
-		osmPolicyClientSet:        osmPolicyClientSet,
 	}
 
 	// Create a test namespace that is monitored
@@ -78,7 +72,6 @@ func bootstrapClient() (MeshSpec, *fakeKubeClientSet, error) {
 		smiTrafficSplitClientSet,
 		smiTrafficSpecClientSet,
 		smiTrafficTargetClientSet,
-		osmPolicyClientSet,
 		osmNamespace,
 		kubernetesClient,
 		kubernetesClientName,
@@ -426,116 +419,5 @@ var _ = Describe("When listing TCP routes", func() {
 		err = fakeClientSet.smiTrafficSpecClientSet.SpecsV1alpha4().TCPRoutes(testNamespaceName).Delete(context.TODO(), routeSpec.Name, metav1.DeleteOptions{})
 		Expect(err).ToNot(HaveOccurred())
 		<-trChannel
-	})
-})
-
-var _ = Describe("When fetching BackpressurePolicy for the given MeshService", func() {
-	var (
-		meshSpec      MeshSpec
-		fakeClientSet *fakeKubeClientSet
-		err           error
-	)
-
-	It("should returns nil when a Backpressure feature is disabled", func() {
-		meshSvc := service.MeshService{
-			Namespace: testNamespaceName,
-			Name:      "test-GetBackpressurePolicy",
-		}
-		backpressure := meshSpec.GetBackpressurePolicy(meshSvc)
-		Expect(backpressure).To(BeNil())
-	})
-
-	// Initialize feature for unit testing
-	optional := featureflags.OptionalFeatures{
-		Backpressure: true,
-	}
-	featureflags.Initialize(optional)
-
-	BeforeEach(func() {
-		meshSpec, fakeClientSet, err = bootstrapClient()
-		Expect(err).ToNot(HaveOccurred())
-	})
-
-	It("should returns nil when a Backpressure policy does not exist for the given service", func() {
-		meshSvc := service.MeshService{
-			Namespace: testNamespaceName,
-			Name:      "test-GetBackpressurePolicy",
-		}
-		backpressure := meshSpec.GetBackpressurePolicy(meshSvc)
-		Expect(backpressure).To(BeNil())
-	})
-
-	It("should return the Backpressure policy for the given service", func() {
-		bpChannel := events.GetPubSubInstance().Subscribe(announcements.BackpressureAdded,
-			announcements.BackpressureDeleted,
-			announcements.BackpressureUpdated)
-		defer events.GetPubSubInstance().Unsub(bpChannel)
-
-		meshSvc := service.MeshService{
-			Namespace: testNamespaceName,
-			Name:      "test-GetBackpressurePolicy",
-		}
-		backpressurePolicy := &osmPolicy.Backpressure{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: "policy.openservicemesh.io/v1alpha1",
-				Kind:       "Backpressure",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: testNamespaceName,
-				Name:      "test-GetBackpressurePolicy",
-				Labels:    map[string]string{"app": meshSvc.Name},
-			},
-			Spec: osmPolicy.BackpressureSpec{
-				MaxConnections: 123,
-			},
-		}
-
-		_, err := fakeClientSet.osmPolicyClientSet.PolicyV1alpha1().Backpressures(testNamespaceName).Create(context.TODO(), backpressurePolicy, metav1.CreateOptions{})
-		Expect(err).ToNot(HaveOccurred())
-		<-bpChannel
-
-		backpressurePolicyInCache := meshSpec.GetBackpressurePolicy(meshSvc)
-		Expect(backpressurePolicyInCache).ToNot(BeNil())
-		Expect(backpressurePolicyInCache.Name).To(Equal(backpressurePolicy.Name))
-
-		err = fakeClientSet.osmPolicyClientSet.PolicyV1alpha1().Backpressures(testNamespaceName).Delete(context.TODO(), backpressurePolicy.Name, metav1.DeleteOptions{})
-		Expect(err).ToNot(HaveOccurred())
-		<-bpChannel
-	})
-
-	It("should return nil when the app label is missing for the given service", func() {
-		bpChannel := events.GetPubSubInstance().Subscribe(announcements.BackpressureAdded,
-			announcements.BackpressureDeleted,
-			announcements.BackpressureUpdated)
-		defer events.GetPubSubInstance().Unsub(bpChannel)
-
-		meshSvc := service.MeshService{
-			Namespace: testNamespaceName,
-			Name:      "test-GetBackpressurePolicy",
-		}
-		backpressurePolicy := &osmPolicy.Backpressure{
-			TypeMeta: metav1.TypeMeta{
-				APIVersion: "policy.openservicemesh.io/v1alpha1",
-				Kind:       "Backpressure",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: testNamespaceName,
-				Name:      "test-GetBackpressurePolicy",
-			},
-			Spec: osmPolicy.BackpressureSpec{
-				MaxConnections: 123,
-			},
-		}
-
-		_, err := fakeClientSet.osmPolicyClientSet.PolicyV1alpha1().Backpressures(testNamespaceName).Create(context.TODO(), backpressurePolicy, metav1.CreateOptions{})
-		Expect(err).ToNot(HaveOccurred())
-		<-bpChannel
-
-		backpressurePolicyInCache := meshSpec.GetBackpressurePolicy(meshSvc)
-		Expect(backpressurePolicyInCache).To(BeNil())
-
-		err = fakeClientSet.osmPolicyClientSet.PolicyV1alpha1().Backpressures(testNamespaceName).Delete(context.TODO(), backpressurePolicy.Name, metav1.DeleteOptions{})
-		Expect(err).ToNot(HaveOccurred())
-		<-bpChannel
 	})
 })

@@ -101,7 +101,6 @@ func init() {
 	flags.StringVar(&certManagerOptions.IssuerGroup, "cert-manager-issuer-group", "cert-manager.io", "cert-manager issuer group")
 
 	// feature flags
-	flags.BoolVar(&optionalFeatures.Backpressure, "enable-backpressure-experimental", false, "Enable experimental backpressure feature")
 	flags.BoolVar(&optionalFeatures.RoutesV2, "enable-routes-v2-experimental", false, "Enable experimental routes v2 feature")
 
 	_ = clientgoscheme.AddToScheme(scheme)
