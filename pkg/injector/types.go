@@ -1,3 +1,5 @@
+// Package injector implements OSM's automatic sidecar injection facility. The sidecar injector's mutating webhook
+// admission controller intercepts pod creation requests to mutate the pod spec to inject the sidecar proxy.
 package injector
 
 import (

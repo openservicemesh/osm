@@ -1,3 +1,4 @@
+// Package certificates defines sample certificates used for unit testing.
 package certificates
 
 // SampleCertificatePEM is a sample PEM cert used for tests

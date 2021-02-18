@@ -1,3 +1,5 @@
+// Package announcements provides the types and constants required to contextualize events received from the
+// Kubernetes API server that are propagated internally within the control plane to trigger configuration changes.
 package announcements
 
 // AnnouncementType is used to record the type of announcement

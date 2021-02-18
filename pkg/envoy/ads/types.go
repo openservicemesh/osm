@@ -1,3 +1,4 @@
+// Package ads implements Envoy's Aggregated Discovery Service (ADS).
 package ads
 
 import (

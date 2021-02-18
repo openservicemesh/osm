@@ -1,3 +1,4 @@
+// Package certmanager implements the certificate.Manager interface for cert-manager.io as the certificate provider.
 package certmanager
 
 import (

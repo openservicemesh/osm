@@ -1,3 +1,4 @@
+// Package httpserver implements an HTTP server and utility routines to manage its lifecycle.
 package httpserver
 
 import (

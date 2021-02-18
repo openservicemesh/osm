@@ -1,3 +1,4 @@
+// Package ingress implements functionality to monitor and retrieve Kubernetes Ingress resources.
 package ingress
 
 import (

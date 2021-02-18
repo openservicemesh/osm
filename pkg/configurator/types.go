@@ -1,3 +1,4 @@
+// Package configurator implements the Configurator interface that provides APIs to retrieve OSM control plane configurations.
 package configurator
 
 import (

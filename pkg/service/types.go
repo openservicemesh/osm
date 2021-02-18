@@ -1,3 +1,4 @@
+// Package service models an instance of a service managed by OSM controller and utility routines associated with it.
 package service
 
 import (

@@ -1,3 +1,5 @@
+// Package certificate implements utility routines to endcode and decode certificates, and provides the
+// interface definitions for Certificate and Certificate Manager.
 package certificate
 
 import (

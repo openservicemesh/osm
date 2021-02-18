@@ -1,3 +1,4 @@
+// Package cla implements Envoy's cluster load assignment functionality for discovered endpoints.
 package cla
 
 import (

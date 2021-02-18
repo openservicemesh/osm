@@ -1,3 +1,4 @@
+// Package lds implements Envoy's Listener Discovery Service (LDS).
 package lds
 
 import (

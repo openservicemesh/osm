@@ -1,3 +1,4 @@
+// Package constants defines the constants that are used by multiple other packages within OSM.
 package constants
 
 import "time"

@@ -1,3 +1,5 @@
+// Package smi implements the Service Mesh Interface (SMI) kubernetes client to observe and retrieve information
+// regarding SMI traffic resources.
 package smi
 
 import (
