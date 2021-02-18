@@ -10,6 +10,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/featureflags"
 )
 
 const (
@@ -52,6 +53,21 @@ func getHTTPConnectionManager(routeName string, cfg configurator.Configurator) *
 		}
 
 		connManager.Tracing = tracing
+	}
+
+	if featureflags.IsWASMStatsEnabled() {
+		statsFilter, err := getStatsWASMFilter()
+		if err != nil {
+			log.Error().Err(err).Msg("failed to get stats WASM filter")
+			return connManager
+		}
+
+		// wellknown.Router filter must be last
+		var filters []*xds_hcm.HttpFilter
+		if statsFilter != nil {
+			filters = append(filters, statsFilter)
+		}
+		connManager.HttpFilters = append(filters, connManager.HttpFilters...)
 	}
 
 	return connManager
