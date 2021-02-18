@@ -36,7 +36,6 @@ DEPLOY_PROMETHEUS="${DEPLOY_PROMETHEUS:-false}"
 ENABLE_PROMETHEUS_SCRAPING="${ENABLE_PROMETHEUS_SCRAPING:-true}"
 DEPLOY_WITH_SAME_SA="${DEPLOY_WITH_SAME_SA:-false}"
 ENVOY_LOG_LEVEL="${ENVOY_LOG_LEVEL:-debug}"
-ROUTES_V2="${ROUTES_V2:-false}"
 
 # For any additional installation arguments. Used heavily in CI.
 optionalInstallArgs=$*
@@ -106,7 +105,6 @@ if [ "$CERT_MANAGER" = "vault" ]; then
       --enable-prometheus-scraping="$ENABLE_PROMETHEUS_SCRAPING" \
       --envoy-log-level "$ENVOY_LOG_LEVEL" \
       --timeout=90s \
-      --enable-routes-v2-experimental="$ROUTES_V2"
       $optionalInstallArgs
 else
   # shellcheck disable=SC2086
@@ -127,7 +125,6 @@ else
       --enable-prometheus-scraping="$ENABLE_PROMETHEUS_SCRAPING" \
       --envoy-log-level "$ENVOY_LOG_LEVEL" \
       --timeout=90s \
-      --enable-routes-v2-experimental="$ROUTES_V2"
       $optionalInstallArgs
 fi
 
