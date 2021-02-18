@@ -7,6 +7,7 @@ type: docs
 # Onboard Services
 The following guide describes how to onboard a Kubernetes microservice to an OSM instance.
 
+1. Refer to the [application requirements](application_requirements.md) guide before onboarding applications.
 
 1. Configure and Install [Service Mesh Interface (SMI) policies](https://github.com/servicemeshinterface/smi-spec)
 

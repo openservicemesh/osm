@@ -31,7 +31,7 @@ const (
 	EnvoyOutboundListenerPortName = "proxy-outbound"
 
 	// EnvoyUID is the Envoy's User ID
-	EnvoyUID int64 = 1337
+	EnvoyUID int64 = 1500
 
 	// LocalhostIPAddress is the local host address.
 	LocalhostIPAddress = "127.0.0.1"
