@@ -46,8 +46,9 @@ func TestNewHTTPServer(t *testing.T) {
 	httpServ.AddHandlers(map[string]http.Handler{
 		"/health/ready": health.ReadinessHandler(testProbes, nil),
 		"/health/alive": health.LivenessHandler(testProbes, nil),
-		"/metrics":      metricsStore.Handler(),
 	})
+
+	httpServ.AddHandler("/metrics", metricsStore.Handler())
 
 	testServer := &httptest.Server{
 		Config: httpServ.server,
@@ -89,4 +90,10 @@ func TestNewHTTPServer(t *testing.T) {
 	testServer.Config.Handler.ServeHTTP(w, req)
 	respM := w.Result()
 	assert.Equal(http.StatusOK, respM.StatusCode)
+
+	err := httpServ.Start()
+	assert.Nil(err)
+
+	err = httpServ.Stop()
+	assert.Nil(err)
 }
