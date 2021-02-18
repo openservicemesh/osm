@@ -39,11 +39,14 @@ type Proxy struct {
 // This struct is initialized *eventually*, when the metadata arrives via xDS.
 type PodMetadata struct {
 	UID            string
+	Name           string
 	Namespace      string
 	IP             string
 	ServiceAccount string
 	Cluster        string
 	EnvoyNodeID    string
+	WorkloadKind   string
+	WorkloadName   string
 }
 
 // HasPodMetadata answers the question - has the Pod metadata been recorded for the given Envoy proxy
