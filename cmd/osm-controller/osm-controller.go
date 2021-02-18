@@ -17,17 +17,14 @@ import (
 	"github.com/spf13/pflag"
 	"k8s.io/api/admissionregistration/v1beta1"
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
-	clientset "k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
-	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/providers"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -186,10 +183,6 @@ func main() {
 			"Error fetching certificate manager of kind %s", certProviderKind)
 	}
 
-	if err := createOrUpdateCABundleKubernetesSecret(kubeClient, certManager, osmNamespace, caBundleSecretName); err != nil {
-		log.Error().Err(err).Msgf("Error exporting CA bundle into Kubernetes secret with name %s", caBundleSecretName)
-	}
-
 	kubeProvider, err := kube.NewProvider(kubeClient, kubernetesClient, constants.KubeProviderName, cfg)
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error creating Kubernetes endpoints provider")
@@ -274,66 +267,6 @@ func parseFlags() error {
 		return err
 	}
 	_ = flag.CommandLine.Parse([]string{})
-	return nil
-}
-
-func createOrUpdateCABundleKubernetesSecret(kubeClient clientset.Interface, certManager certificate.Manager, namespace, caBundleSecretName string) error {
-	ca, err := certManager.GetRootCertificate()
-	if err != nil {
-		log.Error().Err(err).Msgf("Error getting root certificate")
-		return nil
-	}
-
-	return saveOrUpdateSecretToKubernetes(kubeClient, ca, namespace, caBundleSecretName)
-}
-
-func saveOrUpdateSecretToKubernetes(kubeClient clientset.Interface, ca certificate.Certificater, namespace, caBundleSecretName string) error {
-	secretData := map[string][]byte{
-		constants.KubernetesOpaqueSecretCAKey:             ca.GetCertificateChain(),
-		constants.KubernetesOpaqueSecretCAExpiration:      []byte(ca.GetExpiration().Format(constants.TimeDateLayout)),
-		constants.KubernetesOpaqueSecretRootPrivateKeyKey: ca.GetPrivateKey(),
-	}
-
-	existingSecret, getErr := kubeClient.CoreV1().Secrets(namespace).Get(context.TODO(), caBundleSecretName, metav1.GetOptions{})
-
-	// If Kubernetes Secret doesn't exist, create a new one.
-	if apierrors.IsNotFound(getErr) {
-		secret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      caBundleSecretName,
-				Namespace: namespace,
-			},
-			Data: secretData,
-		}
-
-		if _, err := kubeClient.CoreV1().Secrets(namespace).Create(context.Background(), secret, metav1.CreateOptions{}); err != nil {
-			log.Error().Err(err).Msgf("Error creating CA bundle Kubernetes secret %s in namespace %s", caBundleSecretName, namespace)
-			return err
-		}
-
-		log.Info().Msgf("Created CA bundle Kubernetes secret %s in namespace %s", caBundleSecretName, namespace)
-
-		return nil
-	}
-
-	if getErr != nil {
-		log.Error().Err(getErr).Msgf("Error getting CA bundle Kubernetes secret %s in namespace %s", caBundleSecretName, namespace)
-		return getErr
-	}
-
-	log.Info().Msgf("Updating existing CA bundle Kubernetes secret %s in namespace %s", caBundleSecretName, namespace)
-
-	// Override or add CA bundle to existing Secret
-	for key, datum := range secretData {
-		existingSecret.Data[key] = datum
-	}
-
-	// Secret already exists, so update
-	if _, err := kubeClient.CoreV1().Secrets(namespace).Update(context.Background(), existingSecret, metav1.UpdateOptions{}); err != nil {
-		log.Error().Err(err).Msgf("Error updating CA bundle Kubernetes secret %s in namespace %s", caBundleSecretName, namespace)
-		return err
-	}
-
 	return nil
 }
 

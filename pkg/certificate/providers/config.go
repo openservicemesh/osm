@@ -9,12 +9,10 @@ import (
 	cmversionedclient "github.com/jetstack/cert-manager/pkg/client/clientset/versioned"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	api "k8s.io/kubernetes/pkg/apis/core"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/certmanager"
@@ -161,30 +159,57 @@ func (c *Config) getTresorOSMCertificateManager() (certificate.Manager, debugger
 	var err error
 	var rootCert certificate.Certificater
 
-	// The caBundleSecretName indicates to the certificate issuer to
-	// load the CA from the given k8s secret within the namespace where OSM is install.d
-	rootCert, err = c.GetCertFromKubernetes()
+	// This part synchronizes CA creation using the inherent atomicity of kubernetes API backend
+	// Assuming multiple instances of Tresor are instantiated at the same time, only one of them will
+	// succeed to issue a "Create" of the secret. All other Creates will fail with "AlreadyExists".
+	// Regardless of success or failure, all instances can proceed to load the same CA.
+
+	rootCert, err = tresor.NewCA(constants.CertificationAuthorityCommonName, constants.CertificationAuthorityRootValidityPeriod, rootCertCountry, rootCertLocality, rootCertOrganization)
+
 	if err != nil {
-		log.Error().Err(err).Msgf("Error retrieving root certificate from secret %s/%s", c.providerNamespace, c.caBundleSecretName)
-		return nil, nil, err
+		return nil, nil, errors.Errorf("Failed to create new Certificate Authority with cert issuer %s", c.providerKind)
 	}
 
 	if rootCert == nil {
-		rootCert, err = tresor.NewCA(constants.CertificationAuthorityCommonName, constants.CertificationAuthorityRootValidityPeriod, rootCertCountry, rootCertLocality, rootCertOrganization)
-
-		if err != nil {
-			return nil, nil, errors.Errorf("Failed to create new Certificate Authority with cert issuer %s", c.providerKind)
-		}
-
-		if rootCert == nil {
-			return nil, nil, errors.Errorf("Invalid root certificate created by cert issuer %s", c.providerKind)
-		}
-
-		if rootCert.GetPrivateKey() == nil {
-			return nil, nil, errors.Errorf("Root cert does not have a private key")
-		}
+		return nil, nil, errors.Errorf("Invalid root certificate created by cert issuer %s", c.providerKind)
 	}
 
+	if rootCert.GetPrivateKey() == nil {
+		return nil, nil, errors.Errorf("Root cert does not have a private key")
+	}
+
+	// Attempt to create it in K8s. When creating, only one of the creates will succeed. All others will get
+	secretData := map[string][]byte{
+		constants.KubernetesOpaqueSecretCAKey:             rootCert.GetCertificateChain(),
+		constants.KubernetesOpaqueSecretCAExpiration:      []byte(rootCert.GetExpiration().Format(constants.TimeDateLayout)),
+		constants.KubernetesOpaqueSecretRootPrivateKeyKey: rootCert.GetPrivateKey(),
+	}
+
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      c.caBundleSecretName,
+			Namespace: c.providerNamespace,
+		},
+		Data: secretData,
+	}
+
+	_, err = c.kubeClient.CoreV1().Secrets(c.providerNamespace).Create(context.TODO(), secret, metav1.CreateOptions{})
+
+	if err == nil {
+		log.Info().Msgf("CA created in kubernetes")
+	} else if apierrors.IsAlreadyExists(err) {
+		log.Info().Msgf("CA already exists in kubernetes, loading.")
+	} else {
+		log.Error().Err(err).Msgf("Error creating/retrieving root certificate from secret %s/%s", c.providerNamespace, c.caBundleSecretName)
+		return nil, nil, err
+	}
+
+	// For simplicity, we will load the CA for all of them, this way the intance which created it
+	// and the ones that didn't share the same code.
+	rootCert, err = c.GetCertFromKubernetes()
+	if err != nil {
+		return nil, nil, errors.Errorf("Failed to load CA from kubernetes")
+	}
 	certManager, err := tresor.NewCertManager(rootCert, rootCertOrganization, c.cfg)
 	if err != nil {
 		return nil, nil, errors.Errorf("Failed to instantiate Tresor as a Certificate Manager")
@@ -284,32 +309,4 @@ func (c *Config) getCertManagerOSMCertificateManager(options CertManagerOptions)
 	}
 
 	return certmanagerCertManager, certmanagerCertManager, nil
-}
-
-// RegisterForCABundleSecretReadiness creates and return a signalling channel to notify on when the CA bundle secret is ready.
-// The CA bundle secret is created by osm-controller.
-func (c *Config) RegisterForCABundleSecretReadiness() (<-chan bool, error) {
-	watcher, err := c.kubeClient.CoreV1().Secrets(c.providerNamespace).Watch(context.TODO(), metav1.ListOptions{
-		FieldSelector: fields.OneTermEqualSelector(api.ObjectNameField, c.caBundleSecretName).String(),
-	})
-	if err != nil {
-		return nil, errors.Errorf("Error watching CA Bundle secret: %s", err)
-	}
-
-	ready := make(chan bool)
-	go func() {
-		for event := range watcher.ResultChan() {
-			_, ok := event.Object.(*corev1.Secret)
-			if !ok {
-				log.Error().Msg("Got unexpected type while watching type corev1.Secret")
-				return
-			}
-
-			if event.Type == watch.Added {
-				ready <- true
-			}
-		}
-	}()
-
-	return ready, nil
 }

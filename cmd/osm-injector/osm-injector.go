@@ -147,13 +147,6 @@ func main() {
 	certProviderConfig := providers.NewCertificateProviderConfig(kubeClient, kubeConfig, cfg, providers.Kind(certProviderKind), osmNamespace,
 		caBundleSecretName, tresorOptions, vaultOptions, certManagerOptions)
 
-	if caBundleSecretReadyChan, err := certProviderConfig.RegisterForCABundleSecretReadiness(); err != nil {
-		events.GenericEventRecorder().FatalEvent(err, events.InitializationError, "Error retrieving CA bundle secret")
-	} else {
-		// Wait for k8s CA bundle secret to be ready, required to initialize the certificate manager
-		<-caBundleSecretReadyChan
-	}
-
 	certManager, _, err := certProviderConfig.GetCertificateManager()
 	if err != nil {
 		events.GenericEventRecorder().FatalEvent(err, events.InvalidCertificateManager,
