@@ -142,10 +142,6 @@ type MeshCataloger interface {
 
 	// ListInboundTrafficTargetsWithRoutes returns a list traffic target objects composed of its routes for the given destination service account
 	ListInboundTrafficTargetsWithRoutes(service.K8sServiceAccount) ([]trafficpolicy.TrafficTargetWithRoutes, error)
-
-	// GetApexServicesForBackend returns a list of services that serve as the apex service in a traffic split where the
-	//	given service is a backend
-	GetApexServicesForBackend(service.MeshService) []service.MeshService
 }
 type expectedProxy struct {
 	// The time the certificate, identified by CN, for the expected proxy was issued on

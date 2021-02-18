@@ -7,6 +7,7 @@ import (
 	"github.com/golang/mock/gomock"
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	specs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
+	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -132,6 +133,7 @@ func newFakeMeshCatalogForRoutes(t *testing.T, testParams testParams) *MeshCatal
 
 	mockMeshSpec.EXPECT().ListTrafficTargets().Return([]*access.TrafficTarget{&tests.TrafficTarget, &tests.BookstoreV2TrafficTarget}).AnyTimes()
 	mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return([]*specs.HTTPRouteGroup{&tests.HTTPRouteGroup}).AnyTimes()
+	mockMeshSpec.EXPECT().ListTrafficSplits().Return([]*split.TrafficSplit{}).AnyTimes()
 
 	return NewMeshCatalog(mockKubeController, kubeClient, mockMeshSpec, certManager,
 		mockIngressMonitor, stop, mockConfigurator, endpointProviders...)
