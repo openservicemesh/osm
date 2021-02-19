@@ -1,0 +1,4 @@
+actual_envoy_bootstrap_config.yaml
+actual_xds_cluster_without_probes.yaml
+actual_xds_cluster_with_probes.yaml
+actual_xds_static_resources_with_probes.yaml

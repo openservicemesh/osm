@@ -1,3 +1,5 @@
+// Package trafficpolicy defines the types to represent traffic policies internally in the OSM control plane, and
+// utility routines to process them.
 package trafficpolicy
 
 import (

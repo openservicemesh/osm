@@ -532,7 +532,6 @@ func TestMergeOutboundPolicies(t *testing.T) {
 	testCases := []struct {
 		name                                               string
 		originalPolicies, latestPolicies, expectedPolicies []*OutboundTrafficPolicy
-		errsLen                                            int
 	}{
 		{
 			name: "hostnames don't match",
@@ -558,7 +557,6 @@ func TestMergeOutboundPolicies(t *testing.T) {
 					Routes:    []*RouteWeightedClusters{&testRoute},
 				},
 			},
-			errsLen: 0,
 		},
 		{
 			name: "hostnames match",
@@ -580,7 +578,6 @@ func TestMergeOutboundPolicies(t *testing.T) {
 					Routes:    []*RouteWeightedClusters{&testRoute, &testRoute2},
 				},
 			},
-			errsLen: 0,
 		},
 		{
 			name: "hostnames match, routes match",
@@ -602,7 +599,6 @@ func TestMergeOutboundPolicies(t *testing.T) {
 					Routes:    []*RouteWeightedClusters{&testRoute},
 				},
 			},
-			errsLen: 0,
 		},
 		{
 			name: "hostnames match, routes have same match conditions but diff weighted clusters",
@@ -627,13 +623,11 @@ func TestMergeOutboundPolicies(t *testing.T) {
 					Routes:    []*RouteWeightedClusters{&testRoute},
 				},
 			},
-			errsLen: 1,
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual, errs := MergeOutboundPolicies(tc.originalPolicies, tc.latestPolicies...)
-			assert.Equal(tc.errsLen, len(errs))
+			actual := MergeOutboundPolicies(tc.originalPolicies, tc.latestPolicies...)
 			assert.ElementsMatch(tc.expectedPolicies, actual)
 		})
 	}
@@ -645,37 +639,35 @@ func TestMergeRouteWeightedClusters(t *testing.T) {
 	testCases := []struct {
 		name                                         string
 		originalRoutes, latestRoutes, expectedRoutes []*RouteWeightedClusters
-		errsLen                                      int
 	}{
 		{
 			name:           "merge routes with different match conditions",
 			originalRoutes: []*RouteWeightedClusters{&testRoute},
 			latestRoutes:   []*RouteWeightedClusters{&testRoute2},
 			expectedRoutes: []*RouteWeightedClusters{&testRoute, &testRoute2},
-			errsLen:        0,
 		},
 		{
 			name:           "collapse routes with same match conditions and weighted clusters",
 			originalRoutes: []*RouteWeightedClusters{&testRoute},
 			latestRoutes:   []*RouteWeightedClusters{&testRoute},
 			expectedRoutes: []*RouteWeightedClusters{&testRoute},
-			errsLen:        0,
 		},
 		{
-			name:           "error when routes have same match conditions but different weighted clusters",
+			name:           "routes have same match conditions but different weighted clusters, apply latest weighted clusters",
 			originalRoutes: []*RouteWeightedClusters{&testRoute},
 			latestRoutes: []*RouteWeightedClusters{{
 				HTTPRouteMatch:   testHTTPRouteMatch,
 				WeightedClusters: set.NewSet(testWeightedCluster2),
 			}},
-			expectedRoutes: []*RouteWeightedClusters{&testRoute},
-			errsLen:        1,
+			expectedRoutes: []*RouteWeightedClusters{{
+				HTTPRouteMatch:   testHTTPRouteMatch,
+				WeightedClusters: set.NewSet(testWeightedCluster2),
+			}},
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual, errs := mergeRoutesWeightedClusters(tc.originalRoutes, tc.latestRoutes)
-			assert.Equal(tc.errsLen, len(errs))
+			actual := mergeRoutesWeightedClusters(tc.originalRoutes, tc.latestRoutes)
 			assert.Equal(tc.expectedRoutes, actual)
 		})
 	}

@@ -8,7 +8,6 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	v1alpha1 "github.com/openservicemesh/osm/experimental/pkg/apis/policy/v1alpha1"
 	service "github.com/openservicemesh/osm/pkg/service"
 	v1alpha3 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	v1alpha4 "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
@@ -36,20 +35,6 @@ func NewMockMeshSpec(ctrl *gomock.Controller) *MockMeshSpec {
 // EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockMeshSpec) EXPECT() *MockMeshSpecMockRecorder {
 	return m.recorder
-}
-
-// GetBackpressurePolicy mocks base method
-func (m *MockMeshSpec) GetBackpressurePolicy(arg0 service.MeshService) *v1alpha1.Backpressure {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetBackpressurePolicy", arg0)
-	ret0, _ := ret[0].(*v1alpha1.Backpressure)
-	return ret0
-}
-
-// GetBackpressurePolicy indicates an expected call of GetBackpressurePolicy
-func (mr *MockMeshSpecMockRecorder) GetBackpressurePolicy(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBackpressurePolicy", reflect.TypeOf((*MockMeshSpec)(nil).GetBackpressurePolicy), arg0)
 }
 
 // GetTCPRoute mocks base method

@@ -23,6 +23,7 @@ The directories in the cloned repo will be structured approximately like this:
 This in a non-exhaustive list of the directories in this repo. It is provided
 as a birds-eye view of where the different components are located.
 
+<<<<<<< HEAD:docs/content/docs/dev_guide/_index.md
 - `charts/` - contains OSM Helm chart
 - `ci/` - tools and scripts for the continuous integration system
 - `cmd/` - OSM command line tools
@@ -30,6 +31,47 @@ as a birds-eye view of where the different components are located.
 - `demo/` - scripts and Kubernetes resources needed to run the Bookstore demonstration of Open Service Mesh
 - `docs/` - OSM documentation
 - `pkg/` - - `catalog/` - Mesh Catalog component is the central piece of OSM, which collects inputs from all other components and dispatches configuration to the proxy control plane - `certificate/` - contains multiple implementations of 1st and 3rd party certificate issuers, as well as PEM and x509 certificate management tools - `providers/` - - `keyvault/` - implements integration with Azure Key Vault - `vault/` - implements integration with Hashicorp Vault - `tresor/` - OSM native certificate issuer - `debugger/` - web server and tools used to debug the service mesh and the controller - `endpoint/` - Endpoints are components capable of introspecting the participating compute platforms; these retrieve the IP addresses of the compute backing the services in the mesh. This directory contains integrations with supported compute providers. - `providers/` - - `azure/` - integrates with Azure - `kube/` - Kubernetes tools and informers integrations - `envoy/` - packages needed to translate SMI into xDS - `ads/` - Aggregated Discovery Service related tools - `cds/` - Cluster Discovery Service related tools - `cla/` - Cluster Load Assignment components - `eds/` - Endpoint Discovery Service tools - `lds/` - Listener Discovery Service tools - `rds/` - Route Discovery Service tools - `sds/` - Secret Discovery service related tools - `health/` - OSM controller liveness and readiness probe handlers - `ingress/` - package mutating the service mesh in response to the application of an Ingress Kubernetes resource - `injector/` - sidecar injection webhook and related tools - `kubernetes/` - Kubernetes event handlers and helpers - `logger/` - logging facilities - `metricsstore/` - OSM controller system metrics tools - `namespace/` - package with tools handling a service mesh spanning multiple Kubernetes namespaces. - `service/` - tools needed for easier handling of Kubernetes services - `signals/` - operating system signal handlers - `smi/` - SMI client, informer, caches and tools - `tests/` - test fixtures and other functions to make unit testing easier - `trafficpolicy/` - SMI related types
+=======
+  - `charts/` - contains OSM Helm chart
+  - `ci/` - tools and scripts for the continuous integration system
+  - `cmd/` - OSM command line tools
+  - `crd/` - Custom Resource Definitions needed by OSM
+  - `demo/` - scripts and Kubernetes resources needed to run the Bookstore demonstration of Open Service Mesh
+  - `docs/` - OSM documentation
+  - `pkg/` -
+    - `catalog/` - Mesh Catalog component is the central piece of OSM, which collects inputs from all other components and dispatches configuration to the proxy control plane
+    - `certificate/` - contains multiple implementations of 1st and 3rd party certificate issuers, as well as PEM and x509 certificate management tools
+        - `providers/` -
+          - `keyvault/` - implements integration with Azure Key Vault
+          - `vault/` - implements integration with Hashicorp Vault
+          - `tresor/` - OSM native certificate issuer
+    - `debugger/` - web server and tools used to debug the service mesh and the controller
+    - `endpoint/` - Endpoints are components capable of introspecting the participating compute platforms; these retrieve the IP addresses of the compute backing the services in the mesh. This directory contains integrations with supported compute providers.
+      - `providers/` -
+        - `azure/` - integrates with Azure
+        - `kube/` - Kubernetes tools and informers integrations
+    - `envoy/` - packages needed to translate SMI into xDS
+      - `ads/` - Aggregated Discovery Service related tools
+      - `cds/` - Cluster Discovery Service related tools
+      - `cla/` - Cluster Load Assignment components
+      - `eds/` - Endpoint Discovery Service tools
+      - `lds/` - Listener Discovery Service tools
+      - `rds/` - Route Discovery Service tools
+      - `sds/` - Secret Discovery service related tools
+    - `health/` - OSM controller liveness and readiness probe handlers
+    - `ingress/` - package mutating the service mesh in response to the application of an Ingress Kubernetes resource
+    - `injector/` - sidecar injection webhook and related tools
+    - `kubernetes/` - Kubernetes event handlers and helpers
+    - `logger/` - logging facilities
+    - `metricsstore/` - OSM controller system metrics tools
+    - `namespace/` - package with tools handling a service mesh spanning multiple Kubernetes namespaces.
+    - `service/` - tools needed for easier handling of Kubernetes services
+    - `signals/` - operating system signal handlers
+    - `smi/` - SMI client, informer, caches and tools
+    - `tests/` - test fixtures and other functions to make unit testing easier
+    - `trafficpolicy/` - SMI related types
+  - `wasm/` - Source for a WebAssembly-based Envoy extension
+>>>>>>> 1ad8ce5a45db0db575d7234715eccf532c45d4ff:docs/content/docs/development_guide.md
 </details>
 
 The Open Service Mesh controller is written in Go.

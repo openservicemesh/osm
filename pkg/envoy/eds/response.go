@@ -17,38 +17,24 @@ import (
 
 // NewResponse creates a new Endpoint Discovery Response.
 func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, _ configurator.Configurator, _ certificate.Manager) (*xds_discovery.DiscoveryResponse, error) {
-	svcList, err := meshCatalog.GetServicesFromEnvoyCertificate(proxy.GetCertificateCommonName())
-	if err != nil {
-		log.Error().Err(err).Msgf("Error looking up MeshService for Envoy with SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
-		return nil, err
-	}
-	// Github Issue #1575
-	proxyServiceName := svcList[0]
-
 	proxyIdentity, err := catalog.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up proxy identity for proxy with SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 		return nil, err
 	}
 
-	outboundServicesEndpoints := make(map[service.MeshService][]endpoint.Endpoint)
-	for _, dstSvc := range meshCatalog.ListAllowedOutboundServicesForIdentity(proxyIdentity) {
-		endpoints, err := meshCatalog.ListEndpointsForService(dstSvc)
-		if err != nil {
-			log.Error().Err(err).Msgf("Failed listing endpoints for service %s", dstSvc)
-			continue
-		}
-		outboundServicesEndpoints[dstSvc] = endpoints
+	allowedEndpoints, err := getEndpointsForProxy(meshCatalog, proxyIdentity)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error looking up endpoints for proxy with SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+		return nil, err
 	}
 
-	log.Trace().Msgf("Outbound service endpoints for proxy %s: %v", proxyServiceName, outboundServicesEndpoints)
-
 	var protos []*any.Any
-	for svc, endpoints := range outboundServicesEndpoints {
+	for svc, endpoints := range allowedEndpoints {
 		loadAssignment := cla.NewClusterLoadAssignment(svc, endpoints)
 		proto, err := ptypes.MarshalAny(loadAssignment)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error marshalling EDS payload for proxy %s: %+v", proxyServiceName, loadAssignment)
+			log.Error().Err(err).Msgf("Error marshalling EDS payload for proxy with SerialNumber=%s on Pod with UID=%s: %+v", proxy.GetCertificateSerialNumber(), proxy.GetPodUID(), loadAssignment)
 			continue
 		}
 		protos = append(protos, proto)
@@ -59,4 +45,20 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		TypeUrl:   string(envoy.TypeEDS),
 	}
 	return resp, nil
+}
+
+// getEndpointsForProxy returns only those service endpoints that belong to the allowed outbound service accounts for the proxy
+func getEndpointsForProxy(meshCatalog catalog.MeshCataloger, proxyIdentity service.K8sServiceAccount) (map[service.MeshService][]endpoint.Endpoint, error) {
+	allowedServicesEndpoints := make(map[service.MeshService][]endpoint.Endpoint)
+
+	for _, dstSvc := range meshCatalog.ListAllowedOutboundServicesForIdentity(proxyIdentity) {
+		endpoints, err := meshCatalog.ListAllowedEndpointsForService(proxyIdentity, dstSvc)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed listing allowed endpoints for service %s for proxy identity %s", dstSvc, proxyIdentity)
+			continue
+		}
+		allowedServicesEndpoints[dstSvc] = endpoints
+	}
+	log.Trace().Msgf("Allowed outbound service endpoints for proxy with identity %s: %v", proxyIdentity, allowedServicesEndpoints)
+	return allowedServicesEndpoints, nil
 }

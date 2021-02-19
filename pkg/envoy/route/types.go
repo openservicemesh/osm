@@ -1,3 +1,4 @@
+// Package route implements utility routines to build HTTP route configurations for Envoy proxies.
 package route
 
 import (

@@ -38,7 +38,7 @@ func newIngressHTTPFilterChain(cfg configurator.Configurator, svc service.MeshSe
 		return nil
 	}
 
-	inboundConnManager := getHTTPConnectionManager(route.InboundRouteConfigName, cfg)
+	inboundConnManager := getHTTPConnectionManager(route.InboundRouteConfigName, cfg, nil)
 	marshalledInboundConnManager, err := ptypes.MarshalAny(inboundConnManager)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshalling inbound HttpConnectionManager object for proxy %s", svc)

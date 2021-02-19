@@ -40,22 +40,33 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 			return nil, err
 		}
 
-		if featureflags.IsBackpressureEnabled() {
-			enableBackpressure(meshCatalog, cluster, dstService)
-		}
-
 		clusters = append(clusters, cluster)
 	}
 
 	// Create a local cluster for the service.
 	// The local cluster will be used for incoming traffic.
 	localClusterName := envoy.GetLocalClusterNameForService(proxyServiceName)
-	localCluster, err := getLocalServiceCluster(meshCatalog, proxyServiceName, localClusterName)
-	if err != nil {
-		log.Error().Err(err).Msgf("Failed to get local cluster config for proxy %s", proxyServiceName)
-		return nil, err
+	var localCluster *xds_cluster.Cluster
+	if proxyServiceName.IsSyntheticService() {
+		localCluster = getSyntheticCluster(localClusterName)
+	} else {
+		localCluster, err = getLocalServiceCluster(meshCatalog, proxyServiceName, localClusterName)
+		if err != nil {
+			log.Error().Err(err).Msgf("Failed to get local cluster config for proxy %s", proxyServiceName)
+			return nil, err
+		}
 	}
 	clusters = append(clusters, localCluster)
+
+	if featureflags.IsRoutesV2Enabled() {
+		// if this service is associated with a trafficsplit service, add a local cluster for the apex service
+		// Needs to be updated with #2134 - handling multiple services per pod
+		for _, splitService := range meshCatalog.GetApexServicesForBackend(proxyServiceName) {
+			lcn := envoy.GetLocalClusterNameForService(splitService)
+			lc := getSyntheticCluster(lcn)
+			clusters = append(clusters, lc)
+		}
+	}
 
 	// Add an outbound passthrough cluster for egress
 	if cfg.IsEgressEnabled() {

@@ -3,6 +3,7 @@ package envoy
 import (
 	"fmt"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/openservicemesh/osm/pkg/announcements"
@@ -39,16 +40,60 @@ type Proxy struct {
 // This struct is initialized *eventually*, when the metadata arrives via xDS.
 type PodMetadata struct {
 	UID            string
+	Name           string
 	Namespace      string
 	IP             string
 	ServiceAccount string
 	Cluster        string
 	EnvoyNodeID    string
+	WorkloadKind   string
+	WorkloadName   string
 }
 
 // HasPodMetadata answers the question - has the Pod metadata been recorded for the given Envoy proxy
 func (p *Proxy) HasPodMetadata() bool {
 	return p.PodMetadata != nil
+}
+
+// StatsHeaders returns the headers required for SMI metrics
+func (p *Proxy) StatsHeaders() map[string]string {
+	unknown := "unknown"
+	podName := unknown
+	podNamespace := unknown
+	podControllerKind := unknown
+	podControllerName := unknown
+
+	if p.PodMetadata != nil {
+		if len(p.PodMetadata.Name) > 0 {
+			podName = p.PodMetadata.Name
+		}
+		if len(p.PodMetadata.Namespace) > 0 {
+			podNamespace = p.PodMetadata.Namespace
+		}
+		if len(p.PodMetadata.WorkloadKind) > 0 {
+			podControllerKind = p.PodMetadata.WorkloadKind
+		}
+		if len(p.PodMetadata.WorkloadName) > 0 {
+			podControllerName = p.PodMetadata.WorkloadName
+		}
+	}
+
+	// Assume ReplicaSets are controlled by a Deployment unless their names
+	// do not contain a hyphen. This aligns with the behavior of the
+	// Prometheus config in the OSM Helm chart.
+	if podControllerKind == "ReplicaSet" {
+		if hyp := strings.LastIndex(podControllerName, "-"); hyp >= 0 {
+			podControllerKind = "Deployment"
+			podControllerName = podControllerName[:hyp]
+		}
+	}
+
+	return map[string]string{
+		"osm-stats-pod":       podName,
+		"osm-stats-namespace": podNamespace,
+		"osm-stats-kind":      podControllerKind,
+		"osm-stats-name":      podControllerName,
+	}
 }
 
 // SetLastAppliedVersion records the version of the given Envoy proxy that was last acknowledged.

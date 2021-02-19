@@ -1,3 +1,5 @@
+// Package announcements provides the types and constants required to contextualize events received from the
+// Kubernetes API server that are propagated internally within the control plane to trigger configuration changes.
 package announcements
 
 // AnnouncementType is used to record the type of announcement
@@ -58,6 +60,17 @@ const (
 
 	// ---
 
+	// ServiceAccountAdded is the type of announcement emitted when we observe an addition of a Kubernetes Service Account
+	ServiceAccountAdded AnnouncementType = "serviceaccount-added"
+
+	// ServiceAccountDeleted the type of announcement emitted when we observe the deletion of a Kubernetes Service Account
+	ServiceAccountDeleted AnnouncementType = "serviceaccount-deleted"
+
+	// ServiceAccountUpdated is the type of announcement emitted when we observe an update to a Kubernetes Service
+	ServiceAccountUpdated AnnouncementType = "serviceaccount-updated"
+
+	// ---
+
 	// TrafficSplitAdded is the type of announcement emitted when we observe an addition of a Kubernetes TrafficSplit
 	TrafficSplitAdded AnnouncementType = "trafficsplit-added"
 
@@ -99,17 +112,6 @@ const (
 
 	// TrafficTargetUpdated is the type of announcement emitted when we observe an update to a Kubernetes TrafficTarget
 	TrafficTargetUpdated AnnouncementType = "traffictarget-updated"
-
-	// ---
-
-	// BackpressureAdded is the type of announcement emitted when we observe an addition of a Kubernetes Backpressure
-	BackpressureAdded AnnouncementType = "backpressure-added"
-
-	// BackpressureDeleted the type of announcement emitted when we observe the deletion of a Kubernetes Backpressure
-	BackpressureDeleted AnnouncementType = "backpressure-deleted"
-
-	// BackpressureUpdated is the type of announcement emitted when we observe an update to a Kubernetes Backpressure
-	BackpressureUpdated AnnouncementType = "backpressure-updated"
 
 	// ---
 

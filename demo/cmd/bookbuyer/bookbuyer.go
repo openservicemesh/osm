@@ -111,7 +111,7 @@ func main() {
 	// This is the bookbuyer.  When it tries to buy books from the bookstore - we expect it to see 200 responses.
 	for i := 0; i < numConnections; i++ {
 		wg.Add(1)
-		fmt.Printf("Backpressure: starting bookbuyer connection #%d", i)
+		fmt.Printf("Starting bookbuyer connection #%d", i)
 		go getBooksWrapper(&wg)
 	}
 

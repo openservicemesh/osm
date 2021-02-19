@@ -20,7 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 
-	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -495,7 +494,6 @@ var _ = Describe("Testing Injector Functions", func() {
 			SidecarImage:       "-testSidecarImage-",
 		}
 		kubeClient := fake.NewSimpleClientset()
-		var meshCatalog catalog.MeshCataloger
 		var kubeController k8s.Controller
 		meshName := "-mesh-name-"
 		osmNamespace := "-osm-namespace-"
@@ -505,7 +503,7 @@ var _ = Describe("Testing Injector Functions", func() {
 		cfg := configurator.NewMockConfigurator(mockController)
 		certManager := tresor.NewFakeCertManager(cfg)
 
-		actualErr := NewMutatingWebhook(injectorConfig, kubeClient, certManager, meshCatalog, kubeController, meshName, osmNamespace, webhookName, stop, cfg)
+		actualErr := NewMutatingWebhook(injectorConfig, kubeClient, certManager, kubeController, meshName, osmNamespace, webhookName, stop, cfg)
 		expectedErrorMessage := "Error configuring MutatingWebhookConfiguration -webhook-name-: mutatingwebhookconfigurations.admissionregistration.k8s.io \"-webhook-name-\" not found"
 		Expect(actualErr.Error()).To(Equal(expectedErrorMessage))
 	})

@@ -1,3 +1,5 @@
+// Package smi implements the Service Mesh Interface (SMI) kubernetes client to observe and retrieve information
+// regarding SMI traffic resources.
 package smi
 
 import (
@@ -7,7 +9,6 @@ import (
 
 	"k8s.io/client-go/tools/cache"
 
-	backpressure "github.com/openservicemesh/osm/experimental/pkg/apis/policy/v1alpha1"
 	"github.com/openservicemesh/osm/pkg/announcements"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/logger"
@@ -18,30 +19,28 @@ var (
 	log = logger.New("mesh-spec")
 )
 
-// InformerCollection is a struct of the Kubernetes informers used in OSM
-type InformerCollection struct {
+// informerCollection is a struct of the Kubernetes informers used for SMI resources
+type informerCollection struct {
 	TrafficSplit   cache.SharedIndexInformer
 	HTTPRouteGroup cache.SharedIndexInformer
 	TCPRoute       cache.SharedIndexInformer
 	TrafficTarget  cache.SharedIndexInformer
-	Backpressure   cache.SharedIndexInformer
 }
 
-// CacheCollection is a struct of the Kubernetes caches used in OSM
-type CacheCollection struct {
+// cacheCollection is a struct of the Kubernetes caches used for SMI resources
+type cacheCollection struct {
 	TrafficSplit   cache.Store
 	HTTPRouteGroup cache.Store
 	TCPRoute       cache.Store
 	TrafficTarget  cache.Store
-	Backpressure   cache.Store
 }
 
 // Client is a struct for all components necessary to connect to and maintain state of a Kubernetes cluster.
 type Client struct {
-	caches         *CacheCollection
+	caches         *cacheCollection
 	cacheSynced    chan interface{}
 	providerIdent  string
-	informers      *InformerCollection
+	informers      *informerCollection
 	announcements  chan announcements.Announcement
 	osmNamespace   string
 	kubeController k8s.Controller
@@ -69,7 +68,4 @@ type MeshSpec interface {
 
 	// ListTrafficTargets lists SMI TrafficTarget resources
 	ListTrafficTargets() []*access.TrafficTarget
-
-	// GetBackpressurePolicy fetches the Backpressure policy for the MeshService
-	GetBackpressurePolicy(service.MeshService) *backpressure.Backpressure
 }

@@ -343,15 +343,15 @@ var _ = Describe("Test Envoy tools", func() {
 
 	Context("Test GetEnvoyServiceNodeID()", func() {
 		It("", func() {
-			actual := GetEnvoyServiceNodeID("-nodeID-")
-			expected := "$(POD_UID)/$(POD_NAMESPACE)/$(POD_IP)/$(SERVICE_ACCOUNT)/-nodeID-"
+			actual := GetEnvoyServiceNodeID("-nodeID-", "-workload-kind-", "-workload-name-")
+			expected := "$(POD_UID)/$(POD_NAMESPACE)/$(POD_IP)/$(SERVICE_ACCOUNT)/-nodeID-/$(POD_NAME)/-workload-kind-/-workload-name-"
 			Expect(actual).To(Equal(expected))
 		})
 	})
 
 	Context("Test ParseEnvoyServiceNodeID()", func() {
 		It("", func() {
-			serviceNodeID := GetEnvoyServiceNodeID("-nodeID-")
+			serviceNodeID := GetEnvoyServiceNodeID("-nodeID-", "-workload-kind-", "-workload-name-")
 			meta, err := ParseEnvoyServiceNodeID(serviceNodeID)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(meta.UID).To(Equal("$(POD_UID)"))
@@ -359,6 +359,23 @@ var _ = Describe("Test Envoy tools", func() {
 			Expect(meta.IP).To(Equal("$(POD_IP)"))
 			Expect(meta.ServiceAccount).To(Equal("$(SERVICE_ACCOUNT)"))
 			Expect(meta.EnvoyNodeID).To(Equal("-nodeID-"))
+			Expect(meta.Name).To(Equal("$(POD_NAME)"))
+			Expect(meta.WorkloadKind).To(Equal("-workload-kind-"))
+			Expect(meta.WorkloadName).To(Equal("-workload-name-"))
+		})
+
+		It("handles when not all fields are defined", func() {
+			serviceNodeID := "$(POD_UID)/$(POD_NAMESPACE)/$(POD_IP)/$(SERVICE_ACCOUNT)/-nodeID-"
+			meta, err := ParseEnvoyServiceNodeID(serviceNodeID)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(meta.UID).To(Equal("$(POD_UID)"))
+			Expect(meta.Namespace).To(Equal("$(POD_NAMESPACE)"))
+			Expect(meta.IP).To(Equal("$(POD_IP)"))
+			Expect(meta.ServiceAccount).To(Equal("$(SERVICE_ACCOUNT)"))
+			Expect(meta.EnvoyNodeID).To(Equal("-nodeID-"))
+			Expect(meta.Name).To(Equal(""))
+			Expect(meta.WorkloadKind).To(Equal(""))
+			Expect(meta.WorkloadName).To(Equal(""))
 		})
 	})
 })

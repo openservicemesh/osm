@@ -1,9 +1,11 @@
 package route
 
 import (
+	"fmt"
 	"testing"
 
 	set "github.com/deckarep/golang-set"
+	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	tassert "github.com/stretchr/testify/assert"
 
 	"github.com/openservicemesh/osm/pkg/service"
@@ -101,14 +103,14 @@ func TestBuildVirtualHostStub(t *testing.T) {
 			namePrefix:   inboundVirtualHost,
 			host:         "host",
 			domains:      []string{"domain1", "domain2"},
-			expectedName: "inbound_virtualHost|host",
+			expectedName: "inbound_virtual-host|host",
 		},
 		{
 			name:         "outbound virtual host",
 			namePrefix:   outboundVirtualHost,
 			host:         "host",
 			domains:      []string{"domain1", "domain2"},
-			expectedName: "outbound_virtualHost|host",
+			expectedName: "outbound_virtual-host|host",
 		},
 	}
 
@@ -127,26 +129,67 @@ func TestBuildInboundRoutes(t *testing.T) {
 		ClusterName: "testCluster",
 		Weight:      100,
 	}
-	input := []*trafficpolicy.Rule{
+
+	testCases := []struct {
+		name       string
+		inputRules []*trafficpolicy.Rule
+		expectFunc func(actual []*xds_route.Route)
+	}{
 		{
-			Route: trafficpolicy.RouteWeightedClusters{
-				HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
-					PathRegex: "/hello",
-					Methods:   []string{"GET"},
-					Headers:   map[string]string{"hello": "world"},
+			name: "valid route rule",
+			inputRules: []*trafficpolicy.Rule{
+				{
+					Route: trafficpolicy.RouteWeightedClusters{
+						HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
+							PathRegex: "/hello",
+							Methods:   []string{"GET"},
+							Headers:   map[string]string{"hello": "world"},
+						},
+						WeightedClusters: set.NewSet(testWeightedCluster),
+					},
+					AllowedServiceAccounts: set.NewSetFromSlice(
+						[]interface{}{service.K8sServiceAccount{Name: "foo", Namespace: "bar"}},
+					),
 				},
-				WeightedClusters: set.NewSet(testWeightedCluster),
+			},
+			expectFunc: func(actual []*xds_route.Route) {
+				assert.Equal(1, len(actual))
+				assert.Equal("/hello", actual[0].GetMatch().GetSafeRegex().Regex)
+				assert.Equal("GET", actual[0].GetMatch().GetHeaders()[0].GetSafeRegexMatch().Regex)
+				assert.Equal(1, len(actual[0].GetRoute().GetWeightedClusters().Clusters))
+				assert.Equal(uint32(100), actual[0].GetRoute().GetWeightedClusters().TotalWeight.GetValue())
+				assert.Equal("testCluster-local", actual[0].GetRoute().GetWeightedClusters().Clusters[0].Name)
+				assert.Equal(uint32(100), actual[0].GetRoute().GetWeightedClusters().Clusters[0].Weight.GetValue())
+				assert.NotNil(actual[0].TypedPerFilterConfig)
+			},
+		},
+		{
+			name: "invalid route rule without Rule.AllowedServiceAccounts",
+			inputRules: []*trafficpolicy.Rule{
+				{
+					Route: trafficpolicy.RouteWeightedClusters{
+						HTTPRouteMatch: trafficpolicy.HTTPRouteMatch{
+							PathRegex: "/hello",
+							Methods:   []string{"GET"},
+							Headers:   map[string]string{"hello": "world"},
+						},
+						WeightedClusters: set.NewSet(testWeightedCluster),
+					},
+					AllowedServiceAccounts: nil,
+				},
+			},
+			expectFunc: func(actual []*xds_route.Route) {
+				assert.Equal(0, len(actual))
 			},
 		},
 	}
-	actual := buildInboundRoutes(input)
-	assert.Equal(1, len(actual))
-	assert.Equal("/hello", actual[0].GetMatch().GetSafeRegex().Regex)
-	assert.Equal("GET", actual[0].GetMatch().GetHeaders()[0].GetSafeRegexMatch().Regex)
-	assert.Equal(1, len(actual[0].GetRoute().GetWeightedClusters().Clusters))
-	assert.Equal(uint32(100), actual[0].GetRoute().GetWeightedClusters().TotalWeight.GetValue())
-	assert.Equal("testCluster-local", actual[0].GetRoute().GetWeightedClusters().Clusters[0].Name)
-	assert.Equal(uint32(100), actual[0].GetRoute().GetWeightedClusters().Clusters[0].Weight.GetValue())
+
+	for i, tc := range testCases {
+		t.Run(fmt.Sprintf("Testing test case %d: %s", i, tc.name), func(t *testing.T) {
+			actual := buildInboundRoutes(tc.inputRules)
+			tc.expectFunc(actual)
+		})
+	}
 }
 
 func TestBuildOutboundRoutes(t *testing.T) {

@@ -27,9 +27,11 @@ overridden from the default for the "osm install" command, the --mesh-name and
 --osm-namespace flags need to be specified.
 
 By default, if flags tied to Helm chart values are not specified for "osm mesh
-upgrade", then their current value will be carried over to the new release. Two
-exceptions to this rule are --container-registry and --osm-image-tag, which
-will be overridden from the old release by default.
+upgrade", then the value from the current release will be carried over to the
+new release. Two exceptions to this rule are --container-registry and
+--osm-image-tag, which will be overridden from the old release by default. Note
+that edits to resources NOT made by Helm or the OSM CLI may not persist after
+"osm mesh upgrade" is run.
 
 If any CustomResourceDefinitions (CRDs) are different between the installed
 chart and the upgraded chart, the CRDs (and any corresponding custom resources)

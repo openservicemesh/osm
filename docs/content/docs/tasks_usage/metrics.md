@@ -138,6 +138,39 @@ osm metrics disable --namespace test
 osm metrics disable --namespace "test1, test2"
 ```
 
+## Custom Metrics
+To implement the [SMI metrics spec][7], OSM adds a custom WebAssembly extension to each Envoy proxy which generates the following statistics for HTTP traffic:
+
+`osm_request_total`: A counter incremented for each request made by the proxy. This can be queried to determine success and failure rates of services in the mesh.
+
+`osm_request_duration_ms`: A histogram representing the duration of requests made by the proxy in milliseconds. This can be queried to determine the latency between services in the mesh.
+
+Both metrics have the following labels:
+
+`source_kind`: The Kubernetes resource kind of the workload making the request, e.g. `Deployment`, `DaemonSet`, etc.
+
+`destination_kind`: The Kubernetes resource kind of the workload handling the request, e.g. `Deployment`, `DaemonSet`, etc.
+
+`source_name`: The Kubernetes name of the workload making the request.
+
+`destination_name`: The Kubernetes name of the workload handling the request.
+
+`source_pod`: The Kubernetes name of the pod making the request.
+
+`destination_pod`: The Kubernetes name of the pod handling the request.
+
+`source_namespace`: The Kubernetes namespace of the workload making the request.
+
+`destination_namespace`: The Kubernetes namespace of the workload handling the request.
+
+In addition, the `osm_request_total` metric has a `response_code` label representing the HTTP status code of each request, e.g. `200`, `404`, etc.
+
+### Known Gaps
+- HTTP requests that invoke a local response from Envoy have "unknown" `destination_*` labels on metrics.
+    - In the demo, this includes requests from the bookthief to the bookstore.
+- Metrics are only recorded for traffic where both endpoints are part of the mesh. Ingress and egress traffic do not have statistics recorded.
+- Metrics are recorded in Prometheus with all instances of '-' and '.' in tags converted to '\_'. This is because proxy-wasm adds tags to metrics through the name of the metric and Prometheus does not allow '-' or '.' in metric names, so Envoy converts them all to '\_' for the Prometheus format. This means a pod named 'abc-123' is labeled in Prometheus as 'abc\_123' and metrics for pods 'abc-123' and 'abc.123' would be tracked as a single pod 'abc\_123' and only distinguishable by the 'instance' label containing the pod's IP address.
+
 ## Querying metrics from Prometheus
 
 ### Before you begin
@@ -212,4 +245,5 @@ OSM Service to Service Metrics dashboard will look like:
 [4]: http://localhost:3000
 [5]: http://localhost:7070
 [6]: http://localhost:3000/d/OSMs2sMetrics/osm-service-to-service-metrics?orgId=1
+[7]: https://github.com/servicemeshinterface/smi-spec/blob/master/apis/traffic-metrics/v1alpha1/traffic-metrics.md
 

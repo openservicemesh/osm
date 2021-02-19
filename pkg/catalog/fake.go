@@ -65,6 +65,18 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface) *MeshCatalog {
 
 		return services
 	}).AnyTimes()
+	mockKubeController.EXPECT().ListServiceAccounts().DoAndReturn(func() []*corev1.ServiceAccount {
+		// play pretend this call queries a controller cache
+		var serviceAccounts []*corev1.ServiceAccount
+
+		// This assumes that catalog tests use monitored namespaces at all times
+		svcAccountList, _ := kubeClient.CoreV1().ServiceAccounts("").List(context.Background(), metav1.ListOptions{})
+		for idx := range svcAccountList.Items {
+			serviceAccounts = append(serviceAccounts, &svcAccountList.Items[idx])
+		}
+
+		return serviceAccounts
+	}).AnyTimes()
 	mockKubeController.EXPECT().GetService(gomock.Any()).DoAndReturn(func(msh service.MeshService) *v1.Service {
 		// play pretend this call queries a controller cache
 		vv, err := kubeClient.CoreV1().Services(msh.Namespace).Get(context.Background(), msh.Name, metav1.GetOptions{})
@@ -92,7 +104,7 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface) *MeshCatalog {
 	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookbuyerService.Namespace).Return(true).AnyTimes()
 	mockKubeController.EXPECT().IsMonitoredNamespace(tests.BookwarehouseService.Namespace).Return(true).AnyTimes()
 	mockKubeController.EXPECT().ListServiceAccountsForService(tests.BookstoreV1Service).Return([]service.K8sServiceAccount{tests.BookstoreServiceAccount}, nil).AnyTimes()
-	mockKubeController.EXPECT().ListServiceAccountsForService(tests.BookstoreV2Service).Return([]service.K8sServiceAccount{tests.BookstoreServiceAccount}, nil).AnyTimes()
+	mockKubeController.EXPECT().ListServiceAccountsForService(tests.BookstoreV2Service).Return([]service.K8sServiceAccount{tests.BookstoreV2ServiceAccount}, nil).AnyTimes()
 	mockKubeController.EXPECT().ListServiceAccountsForService(tests.BookbuyerService).Return([]service.K8sServiceAccount{tests.BookbuyerServiceAccount}, nil).AnyTimes()
 
 	return NewMeshCatalog(mockKubeController, kubeClient, meshSpec, certManager,

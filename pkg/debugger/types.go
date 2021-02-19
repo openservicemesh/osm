@@ -1,3 +1,4 @@
+// Package debugger implements functionality to provide information to debug the control plane via the debug HTTP server.
 package debugger
 
 import (
