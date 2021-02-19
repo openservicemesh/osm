@@ -24,7 +24,7 @@ func NewKubernetesController(kubeClient kubernetes.Interface, meshName string, s
 	client := Client{
 		kubeClient:  kubeClient,
 		meshName:    meshName,
-		informers:   InformerCollection{},
+		informers:   informerCollection{},
 		cacheSynced: make(chan interface{}),
 	}
 
@@ -74,7 +74,7 @@ func (c *Client) initNamespaceMonitor() {
 		Update: announcements.NamespaceUpdated,
 		Delete: announcements.NamespaceDeleted,
 	}
-	c.informers[Namespaces].AddEventHandler(GetKubernetesEventHandlers((string)(Namespaces), ProviderName, nil, nsEventTypes))
+	c.informers[Namespaces].AddEventHandler(GetKubernetesEventHandlers((string)(Namespaces), providerName, nil, nsEventTypes))
 }
 
 // Function to filter K8s meta Objects by OSM's isMonitoredNamespace
@@ -93,7 +93,7 @@ func (c *Client) initServicesMonitor() {
 		Update: announcements.ServiceUpdated,
 		Delete: announcements.ServiceDeleted,
 	}
-	c.informers[Services].AddEventHandler(GetKubernetesEventHandlers((string)(Services), ProviderName, c.shouldObserve, svcEventTypes))
+	c.informers[Services].AddEventHandler(GetKubernetesEventHandlers((string)(Services), providerName, c.shouldObserve, svcEventTypes))
 }
 
 // Initializes Service Account monitoring
@@ -106,7 +106,7 @@ func (c *Client) initServiceAccountsMonitor() {
 		Update: announcements.ServiceAccountUpdated,
 		Delete: announcements.ServiceAccountDeleted,
 	}
-	c.informers[ServiceAccounts].AddEventHandler(GetKubernetesEventHandlers((string)(ServiceAccounts), ProviderName, c.shouldObserve, svcEventTypes))
+	c.informers[ServiceAccounts].AddEventHandler(GetKubernetesEventHandlers((string)(ServiceAccounts), providerName, c.shouldObserve, svcEventTypes))
 }
 
 func (c *Client) initPodMonitor() {
@@ -118,7 +118,7 @@ func (c *Client) initPodMonitor() {
 		Update: announcements.PodUpdated,
 		Delete: announcements.PodDeleted,
 	}
-	c.informers[Pods].AddEventHandler(GetKubernetesEventHandlers((string)(Pods), ProviderName, c.shouldObserve, podEventTypes))
+	c.informers[Pods].AddEventHandler(GetKubernetesEventHandlers((string)(Pods), providerName, c.shouldObserve, podEventTypes))
 }
 
 func (c *Client) initEndpointMonitor() {
@@ -130,7 +130,7 @@ func (c *Client) initEndpointMonitor() {
 		Update: announcements.EndpointUpdated,
 		Delete: announcements.EndpointDeleted,
 	}
-	c.informers[Endpoints].AddEventHandler(GetKubernetesEventHandlers((string)(Endpoints), ProviderName, c.shouldObserve, eptEventTypes))
+	c.informers[Endpoints].AddEventHandler(GetKubernetesEventHandlers((string)(Endpoints), providerName, c.shouldObserve, eptEventTypes))
 }
 
 func (c *Client) run(stop <-chan struct{}) error {
