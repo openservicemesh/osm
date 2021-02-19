@@ -61,6 +61,7 @@ iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9097" -j ACCEPT # endpointd
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9122" -j ACCEPT # metricsd
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9126" -j ACCEPT # nlp rest
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9128" -j ACCEPT # historyd
+iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9067" -j ACCEPT # rcad
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9200" -j ACCEPT # elastic
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "9300" -j ACCEPT # elastic
 iptables -t nat -A PROXY_REDIRECT -p tcp --dport "10000" -j ACCEPT # radiusconfd
@@ -128,6 +129,7 @@ iptables -t nat -A PROXY_INBOUND -p tcp --dport "9097" -j RETURN  # endpointd
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "9122" -j RETURN  # metricsd
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "9126" -j RETURN  # nlp rest
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "9128" -j RETURN  # historyd
+iptables -t nat -A PROXY_INBOUND -p tcp --dport "9067" -j RETURN  # rcad
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "9200" -j RETURN  # elastic
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "9300" -j RETURN  # elastic
 iptables -t nat -A PROXY_INBOUND -p tcp --dport "10000" -j RETURN # radiusconfd
