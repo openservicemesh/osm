@@ -106,7 +106,7 @@ if [ "$CERT_MANAGER" = "vault" ]; then
       --enable-prometheus-scraping="$ENABLE_PROMETHEUS_SCRAPING" \
       --envoy-log-level "$ENVOY_LOG_LEVEL" \
       --timeout=90s \
-      --enable-routes-v2-experimental="$ROUTES_V2"
+      --enable-routes-v2-experimental="$ROUTES_V2" \
       $optionalInstallArgs
 else
   # shellcheck disable=SC2086
@@ -127,7 +127,7 @@ else
       --enable-prometheus-scraping="$ENABLE_PROMETHEUS_SCRAPING" \
       --envoy-log-level "$ENVOY_LOG_LEVEL" \
       --timeout=90s \
-      --enable-routes-v2-experimental="$ROUTES_V2"
+      --enable-routes-v2-experimental="$ROUTES_V2" \
       $optionalInstallArgs
 fi
 
