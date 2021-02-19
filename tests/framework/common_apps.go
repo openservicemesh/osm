@@ -253,7 +253,6 @@ func (td *OsmTestData) SimplePodApp(def SimplePodAppDef) (corev1.ServiceAccount,
 
 // SimpleApexService creates returns k8s service definition for an apex service required by traffic split.
 func (td *OsmTestData) SimpleApexService(def SimpleServiceDef) corev1.Service {
-
 	serviceDefinition := corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: def.Name,
@@ -267,7 +266,6 @@ func (td *OsmTestData) SimpleApexService(def SimpleServiceDef) corev1.Service {
 		serviceDefinition.Spec.Ports = []corev1.ServicePort{}
 
 		for _, p := range def.Ports {
-
 			svcPort := corev1.ServicePort{
 				Port:       int32(p),
 				TargetPort: intstr.FromInt(p),
