@@ -49,6 +49,7 @@ demo/bin/
 ## Ignore test coverage files
 coverage.json
 coverage.txt
+coverage.txt.with_generated_code
 coverage.xml
 coverage/
 report.xml
