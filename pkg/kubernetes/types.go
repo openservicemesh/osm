@@ -39,8 +39,8 @@ const (
 	// DefaultKubeEventResyncInterval is the default resync interval for k8s events
 	DefaultKubeEventResyncInterval = 5 * time.Minute
 
-	// ProviderName is used for provider logging
-	ProviderName = "Kubernetes"
+	// providerName is the name of the Kubernetes event provider
+	providerName = "Kubernetes"
 )
 
 // InformerKey stores the different Informers we keep for K8s resources
@@ -59,14 +59,14 @@ const (
 	ServiceAccounts InformerKey = "ServiceAccounts"
 )
 
-// InformerCollection is the type holding the collection of informers we keep
-type InformerCollection map[InformerKey]cache.SharedIndexInformer
+// informerCollection is the type holding the collection of informers we keep
+type informerCollection map[InformerKey]cache.SharedIndexInformer
 
 // Client is a struct for all components necessary to connect to and maintain state of a Kubernetes cluster.
 type Client struct {
 	meshName    string
 	kubeClient  kubernetes.Interface
-	informers   InformerCollection
+	informers   informerCollection
 	cacheSynced chan interface{}
 }
 
