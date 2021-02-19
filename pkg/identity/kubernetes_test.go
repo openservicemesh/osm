@@ -35,4 +35,6 @@ func TestGetKubernetesServiceIdentity(t *testing.T) {
 			assert.Equal(si, tc.expectedServiceIdentity)
 		})
 	}
+
+	assert.Equal(ServiceIdentity("foo").String(), "foo")
 }
