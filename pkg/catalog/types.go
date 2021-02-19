@@ -1,3 +1,7 @@
+// Package catalog implements the MeshCataloger interface, which forms the central component in OSM that transforms
+// outputs from all other components (SMI policies, Kubernetes services, endpoints etc.) into configuration that is
+// consumed by the the proxy control plane component to program sidecar proxies.
+// Reference: https://github.com/openservicemesh/osm/blob/main/DESIGN.md#5-mesh-catalog
 package catalog
 
 import (

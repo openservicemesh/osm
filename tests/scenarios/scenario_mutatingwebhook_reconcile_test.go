@@ -19,7 +19,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/injector"
-	reconciler "github.com/openservicemesh/osm/pkg/reconciler/mutatingwebhook"
+	"github.com/openservicemesh/osm/pkg/reconciler"
 	. "github.com/openservicemesh/osm/tests/framework"
 )
 

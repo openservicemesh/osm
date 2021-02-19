@@ -1,3 +1,5 @@
+// Package envoy implements utility routines related to Envoy proxy, and models an instance of a proxy
+// to be able to generate XDS configurations for it.
 package envoy
 
 import (

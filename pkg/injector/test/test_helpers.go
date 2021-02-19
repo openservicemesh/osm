@@ -1,3 +1,4 @@
+// Package test implements utility routes to test the functionality provided by the injector package.
 package test
 
 import (

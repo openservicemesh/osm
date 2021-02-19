@@ -1,3 +1,4 @@
+// Package tests implements utility routines used for unit testing.
 package tests
 
 import (

@@ -1,3 +1,7 @@
+// Package endpoint defines the interface for an endpoints provider. Endpoints providers communicate with the compute platforms
+// and are primarily responsible for providing information regarding the endpoints for services, such as their IP
+// addresses, port numbers and protocol information.
+// Reference: https://github.com/openservicemesh/osm/blob/main/DESIGN.md#3-endpoints-providers
 package endpoint
 
 import (

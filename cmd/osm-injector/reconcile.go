@@ -6,7 +6,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/openservicemesh/osm/pkg/certificate"
-	reconciler "github.com/openservicemesh/osm/pkg/reconciler/mutatingwebhook"
+	"github.com/openservicemesh/osm/pkg/reconciler"
 )
 
 // createReconciler sets up k8s controller manager to reconcile osm-injector's mutatingwehbookconfiguration

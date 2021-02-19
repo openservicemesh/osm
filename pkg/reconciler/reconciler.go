@@ -1,3 +1,5 @@
+// Package reconciler implements routines to reconcile Kubernetes resources, currently limited to OSM's
+// mutating webhook configuration.
 package reconciler
 
 import (

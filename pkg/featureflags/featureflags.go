@@ -1,3 +1,4 @@
+// Package featureflags implements routines to check if a given feature is enabled.
 package featureflags
 
 import (

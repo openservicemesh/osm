@@ -1,3 +1,5 @@
+// Package kubernetes implements the Kubernetes Controller interface to monitor and retrieve information regarding
+// Kubernetes resources such as Namespaces, Services, Pods, Endpoints, and ServiceAccounts.
 package kubernetes
 
 import (

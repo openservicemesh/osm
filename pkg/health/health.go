@@ -1,3 +1,6 @@
+// Package health implements functionality for readiness and liveness health probes. The probes are served
+// by an HTTP server that exposes HTTP paths to probe on, with this package providing the necessary HTTP
+// handlers to respond to probe requests.
 package health
 
 import (

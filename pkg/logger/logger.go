@@ -1,3 +1,4 @@
+// Package logger implements utility routines to initialize the logging facility used by OSM components.
 package logger
 
 import (
