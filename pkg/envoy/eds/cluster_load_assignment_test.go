@@ -1,4 +1,4 @@
-package cla
+package eds
 
 import (
 	"net"
@@ -29,13 +29,13 @@ var _ = Describe("Testing Cluster Load Assignment", func() {
 				},
 			}
 
-			cla := NewClusterLoadAssignment(namespacedServices[0], allServiceEndpoints[namespacedServices[0]])
+			cla := newClusterLoadAssignment(namespacedServices[0], allServiceEndpoints[namespacedServices[0]])
 			Expect(cla).NotTo(Equal(nil))
 			Expect(cla.ClusterName).To(Equal("osm/bookstore-1"))
 			Expect(len(cla.Endpoints)).To(Equal(1))
 			Expect(len(cla.Endpoints[0].LbEndpoints)).To(Equal(1))
 			Expect(cla.Endpoints[0].LbEndpoints[0].GetLoadBalancingWeight().Value).To(Equal(uint32(100)))
-			cla2 := NewClusterLoadAssignment(namespacedServices[1], allServiceEndpoints[namespacedServices[1]])
+			cla2 := newClusterLoadAssignment(namespacedServices[1], allServiceEndpoints[namespacedServices[1]])
 			Expect(cla2).NotTo(Equal(nil))
 			Expect(cla2.ClusterName).To(Equal("osm/bookstore-2"))
 			Expect(len(cla2.Endpoints)).To(Equal(1))

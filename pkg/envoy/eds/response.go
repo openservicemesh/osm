@@ -2,7 +2,6 @@ package eds
 
 import (
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
-
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/any"
 
@@ -11,7 +10,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/envoy/cla"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -31,7 +29,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 
 	var protos []*any.Any
 	for svc, endpoints := range allowedEndpoints {
-		loadAssignment := cla.NewClusterLoadAssignment(svc, endpoints)
+		loadAssignment := newClusterLoadAssignment(svc, endpoints)
 		proto, err := ptypes.MarshalAny(loadAssignment)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error marshalling EDS payload for proxy with SerialNumber=%s on Pod with UID=%s: %+v", proxy.GetCertificateSerialNumber(), proxy.GetPodUID(), loadAssignment)
