@@ -9,6 +9,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/featureflags"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -36,7 +37,12 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		TypeUrl: string(envoy.TypeLDS),
 	}
 
-	lb := newListenerBuilder(meshCatalog, svcAccount, cfg)
+	var statsHeaders map[string]string
+	if featureflags.IsWASMStatsEnabled() {
+		statsHeaders = proxy.StatsHeaders()
+	}
+
+	lb := newListenerBuilder(meshCatalog, svcAccount, cfg, statsHeaders)
 
 	// --- OUTBOUND -------------------
 	outboundListener, err := lb.newOutboundListener()
@@ -107,10 +113,11 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 	return resp, nil
 }
 
-func newListenerBuilder(meshCatalog catalog.MeshCataloger, svcAccount service.K8sServiceAccount, cfg configurator.Configurator) *listenerBuilder {
+func newListenerBuilder(meshCatalog catalog.MeshCataloger, svcAccount service.K8sServiceAccount, cfg configurator.Configurator, statsHeaders map[string]string) *listenerBuilder {
 	return &listenerBuilder{
-		meshCatalog: meshCatalog,
-		svcAccount:  svcAccount,
-		cfg:         cfg,
+		meshCatalog:  meshCatalog,
+		svcAccount:   svcAccount,
+		cfg:          cfg,
+		statsHeaders: statsHeaders,
 	}
 }

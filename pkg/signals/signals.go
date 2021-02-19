@@ -1,3 +1,4 @@
+// Package signals implements functionality related to being notified on signals from the Operating System.
 package signals
 
 import (

@@ -13,7 +13,7 @@ rules:
     resources: ["jobs"]
     verbs: ["list", "get", "watch"]
   - apiGroups: [""]
-    resources: ["endpoints", "namespaces", "pods", "services", "secrets", "configmaps"]
+    resources: ["endpoints", "namespaces", "pods", "services", "secrets", "configmaps", "serviceaccounts"]
     verbs: ["list", "get", "watch"]
 
   # Port forwarding is needed for the OSM pod to be able to connect
@@ -40,12 +40,6 @@ rules:
     verbs: ["list", "get", "watch"]
   - apiGroups: ["specs.smi-spec.io"]
     resources: ["httproutegroups", "tcproutes"]
-    verbs: ["list", "get", "watch"]
-
-  # Backpressure is an experimental extension of SMI.
-  # This will be removed once it becomes part of SMI.
-  - apiGroups: ["policy.openservicemesh.io"]
-    resources: ["backpressures"]
     verbs: ["list", "get", "watch"]
 
   # Used for interacting with cert-manager CertificateRequest resources.

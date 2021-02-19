@@ -47,9 +47,10 @@ If there are other commits on the `main` branch to be included in the release (s
 
 Create a new commit on the new branch to update the hardcoded version information in the following locations:
 
-* The container image tag in [charts/osm/values.yaml](https://github.com/openservicemesh/osm/tree/main/charts/osm/values.yaml) to point to the new release
-* The chart and app version in [charts/osm/Chart.yaml](https://github.com/openservicemesh/osm/tree/main/charts/osm/Chart.yaml) to point to the new release
-* The default osm-controller image tag in [osm cli](https://github.com/openservicemesh/osm/blob/main/cmd/cli/install.go) to point to the new release
+* The container image tag in [charts/osm/values.yaml](https://github.com/openservicemesh/osm/tree/main/charts/osm/values.yaml)
+* The chart and app version in [charts/osm/Chart.yaml](https://github.com/openservicemesh/osm/tree/main/charts/osm/Chart.yaml)
+* The default osm-controller image tag in [osm cli](https://github.com/openservicemesh/osm/blob/main/cmd/cli/install.go)
+* The image tags used in the [demo manifests](https://github.com/openservicemesh/osm/blob/main/docs/example/manifests/apps)
 * The Helm chart [README.md](https://github.com/openservicemesh/osm/blob/main/charts/osm/README.md)
   - Necessary changes should be made automatically by running `make chart-readme`
 

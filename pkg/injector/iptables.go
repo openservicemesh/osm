@@ -34,7 +34,7 @@ var iptablesOutboundStaticRules = []string{
 
 	// TODO(#1266): Redirect app back calls to itself using PROXY_UID
 
-	// Don't redirect Envoy traffic back to itself for non-loopback traffic
+	// Don't redirect Envoy traffic back to itself, return it to the next chain for processing
 	fmt.Sprintf("iptables -t nat -A PROXY_OUTPUT -m owner --uid-owner %d -j RETURN", constants.EnvoyUID),
 
 	// Skip localhost traffic, doesn't need to be routed via the proxy

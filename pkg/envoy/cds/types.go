@@ -1,3 +1,4 @@
+// Package cds implements Envoy's Cluster Discovery Service (CDS).
 package cds
 
 import (

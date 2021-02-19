@@ -1,3 +1,5 @@
+// Package kubernetes implements the Kubernetes Controller interface to monitor and retrieve information regarding
+// Kubernetes resources such as Namespaces, Services, Pods, Endpoints, and ServiceAccounts.
 package kubernetes
 
 import (
@@ -37,8 +39,8 @@ const (
 	// DefaultKubeEventResyncInterval is the default resync interval for k8s events
 	DefaultKubeEventResyncInterval = 5 * time.Minute
 
-	// ProviderName is used for provider logging
-	ProviderName = "Kubernetes"
+	// providerName is the name of the Kubernetes event provider
+	providerName = "Kubernetes"
 )
 
 // InformerKey stores the different Informers we keep for K8s resources
@@ -53,16 +55,18 @@ const (
 	Pods InformerKey = "Pods"
 	// Endpoints lookup identifier
 	Endpoints InformerKey = "Endpoints"
+	// ServiceAccounts lookup identifier
+	ServiceAccounts InformerKey = "ServiceAccounts"
 )
 
-// InformerCollection is the type holding the collection of informers we keep
-type InformerCollection map[InformerKey]cache.SharedIndexInformer
+// informerCollection is the type holding the collection of informers we keep
+type informerCollection map[InformerKey]cache.SharedIndexInformer
 
 // Client is a struct for all components necessary to connect to and maintain state of a Kubernetes cluster.
 type Client struct {
 	meshName    string
 	kubeClient  kubernetes.Interface
-	informers   InformerCollection
+	informers   informerCollection
 	cacheSynced chan interface{}
 }
 
@@ -70,6 +74,9 @@ type Client struct {
 type Controller interface {
 	// ListServices returns a list of all (monitored-namespace filtered) services in the mesh
 	ListServices() []*corev1.Service
+
+	// ListServiceAccounts returns a list of all (monitored-namespace filtered) service accounts in the mesh
+	ListServiceAccounts() []*corev1.ServiceAccount
 
 	// Returns a corev1 Service representation if the MeshService exists in cache, otherwise nil
 	GetService(svc service.MeshService) *corev1.Service

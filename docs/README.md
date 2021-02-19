@@ -1,9 +1,8 @@
 # Open Service Mesh Docs
 
-> :book: OSM Docs are found within this [section](https://github.com/openservicemesh/osm/tree/main/docs/content)
-> :ship: Also the config to generate them as docs.openservicemesh.io
- 
-> :link: Looking for the main OSM website? Visit [osm-www](https://github.com/openservicemesh/osm-www).
+> :book: This section contains the [OSM Docs](https://github.com/openservicemesh/osm/tree/main/docs/content)  
+> :ship: Also the website config to generate [docs.openservicemesh.io](docs.openservicemesh.io)  
+> :link: Looking for the main OSM website? Visit [osm-www](https://github.com/openservicemesh/osm-www)  
 
 
 ## Editing Content
@@ -27,6 +26,63 @@ type: docs
 * inclusion of `type: docs` is important for the theme to properly index the site contents
 * the `linkTitle` attribute allows you to simplify the name as it appears in the left-side nav bar - ideally it should be short and clear - whereas the title can handle longform names for pages/documents.
 
+## Links
+
+### External Links
+
+Links to anything outside of the `docs/content/` directory should be considered an external link - when the website is built, any relative paths to other files and sections in the OSM repo that were navigable within Github will likely break when clicked from the compiled pages at docs.openservicemesh.io.
+
+To ensure urls work in both settings, please use an absolute path when referencing resources outside of the website content structure.
+
+Example:
+
+```
+Take a look at [the following test](../pkg/configurator/client_test.go)
+```
+
+Should use the a full, absolute path:
+
+```
+Take a look at [the following test](https://github.com/openservicemesh/osm/blob/release-v0.2/pkg/configurator/client_test.go)
+```
+
+Note that the full path can also specify the release (as branchname), as the structure of documentation can change between release versions.
+
+### Internal Links
+
+Relative links between markdown pages within the site should be simpler, except [it's hard](https://github.com/openservicemesh/osm/issues/2453#issuecomment-776236289) to create links that work on both Github.com and docs.openservicemesh.io. Github paths require file extensions (`/filename.md`), whereas Hugo needs just the slug (`/filename`). 
+
+To ensure the relative link works in both destinations, the best approach is to write the url with the `.md` extension (for Github) and then to add an `aliases` redirect for the path with the extension. 
+
+Example - linking foo.md (1) to bar.md (2):
+
+```
+// 1
+---
+title: "Foo.md"
+description: "Foo"
+type: docs
+aliases: ["foo.md"]
+---
+
+Here's a link to [Bar](./bar.md).
+```
+
+```
+// 2
+---
+title: "Bar.md"
+description: "Bar"
+type: docs
+aliases: ["bar.md"]
+---
+
+This is Bar. Go back to [Foo](./foo.md).
+```
+
+Visit the Hugo docs for more information on [Alias](https://gohugo.io/content-management/urls/#aliases) setup.
+
+
 ## Versioning the Docs Site
 
 When a new OSM release is cut, the docs site should be updated to reflect the version change. The underlying Docsy theme has versioning support built-in.
@@ -40,6 +96,11 @@ When a new OSM release is cut, the docs site should be updated to reflect the ve
 <img width="301" alt="Screen Shot 2020-10-27 at 11 11 17 AM" src="https://user-images.githubusercontent.com/686194/97343954-5999e500-1845-11eb-96f4-d9d59352a830.png">
 
 2. Once a release version branch is pushed to `upstream`, Netlify will build and deploy the documentation found within that branch. Within a couple of minutes of the branch push, the version of the site should be accessible at `https://<BRANCHNAME>--osm-docs.netlify.app/`
+
+```
+example:
+release-v0-7--osm-docs.netlify.app
+```
 
 Test the url for the branch once deployed to ensure it is working.
 
@@ -78,12 +139,15 @@ See [the Doscy versioning docs](https://www.docsy.dev/docs/adding-content/versio
 
 ## Install dependencies:
 
-* Hugo [installation guide](https://gohugo.io/getting-started/installing/)
-* packages are installed by running `yarn`
+* Hugo [installation guide](https://gohugo.io/getting-started/installing/)  
+* NPM packages are installed by running `yarn`. [Install Yarn](https://yarnpkg.com/getting-started/install) if you need to.  
 
 ## Run the site:
 
 ```
+// install npm packages
+yarn
+
 // rebuild the site (to compile latest css/js)
 hugo
 

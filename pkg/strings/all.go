@@ -1,3 +1,4 @@
+// Package strings implements utility routines related to the string type.
 package strings
 
 // All is slice of strings

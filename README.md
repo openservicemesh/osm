@@ -44,11 +44,11 @@ OSM runs an Envoy based control plane on Kubernetes, can be configured with SMI 
 ### Features
 
 1. Easily and transparently configure [traffic shifting][3] for deployments
-1. Secure service to service communication by [enabling mTLS](docs/patterns/certificates.md)
+1. Secure service to service communication by [enabling mTLS](docs/content/docs/patterns/certificates.md)
 1. Define and execute fine grained [access control][4] policies for services
-1. [Observability](docs/patterns/observability/README.md) and insights into application metrics for debugging and monitoring services
-1. Integrate with [external certificate management](docs/patterns/certificates.md) services/solutions with a pluggable interface
-1. Onboard applications onto the mesh by enabling [automatic sidecar injection](docs/patterns/sidecar_injection.md) of Envoy proxy
+1. [Observability](docs/content/docs/patterns/observability/_index.md) and insights into application metrics for debugging and monitoring services
+1. Integrate with [external certificate management](docs/content/docs/patterns/certificates.md) services/solutions with a pluggable interface
+1. Onboard applications onto the mesh by enabling [automatic sidecar injection](docs/content/docs/patterns/sidecar_injection.md) of Envoy proxy
 
 ### Project status
 
@@ -93,7 +93,7 @@ $ osm install
 ```
 ![OSM Install Demo](img/osm-install-demo-v0.2.0.gif "OSM Install Demo")
 
-See the [installation guide](docs/installation_guide.md) for more detailed options.
+See the [installation guide](docs/content/docs/installation_guide.md) for more detailed options.
 
 ## Demos
 We have provided two demos for you to experience OSM.
@@ -123,7 +123,7 @@ Connect with the Open Service Mesh community:
 
 ## Development Guide
 
-If you would like to contribute to OSM, check out the [development guide](docs/development_guide.md).
+If you would like to contribute to OSM, check out the [development guide](docs/content/docs/development_guide.md).
 
 ## Code of Conduct
 
@@ -131,7 +131,7 @@ This project has adopted the [CNCF Code of Conduct](https://github.com/cncf/foun
 
 ## License
 
-This software is covered under the MIT license. You can read the license [here](LICENSE).
+This software is covered under the Apache 2.0 license. You can read the license [here](LICENSE).
 
 
 [1]: https://en.wikipedia.org/wiki/Service_mesh

@@ -34,7 +34,8 @@ func (ds DebugConfig) getProxies() http.Handler {
 			ds.getProxy(certificate.CommonName(specificProxy[0]), w)
 		} else {
 			printProxies(w, listConnected(), "Connected")
-			printProxies(w, ds.meshCatalogDebugger.ListExpectedProxies(), "Expected")
+			// TODO(#2481): Print expected proxies once #2481 is addressed
+			//printProxies(w, ds.meshCatalogDebugger.ListExpectedProxies(), "Expected")
 			printProxies(w, ds.meshCatalogDebugger.ListDisconnectedProxies(), "Disconnected")
 		}
 	})

@@ -2,6 +2,7 @@ package ads
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
@@ -32,17 +33,21 @@ func NewADSServer(meshCatalog catalog.MeshCataloger, enableDebug bool, osmNamesp
 			envoy.TypeLDS: lds.NewResponse,
 			envoy.TypeSDS: sds.NewResponse,
 		},
-		enableDebug:  enableDebug,
-		osmNamespace: osmNamespace,
-		cfg:          cfg,
-		certManager:  certManager,
-	}
-
-	if enableDebug {
-		server.xdsLog = make(map[certificate.CommonName]map[envoy.TypeURI][]time.Time)
+		osmNamespace:   osmNamespace,
+		cfg:            cfg,
+		certManager:    certManager,
+		xdsMapLogMutex: sync.Mutex{},
+		xdsLog:         make(map[certificate.CommonName]map[envoy.TypeURI][]time.Time),
 	}
 
 	return &server
+}
+
+// withXdsLogMutex helper to run code that touches xdsLog map, to protect by mutex
+func (s *Server) withXdsLogMutex(f func()) {
+	s.xdsMapLogMutex.Lock()
+	defer s.xdsMapLogMutex.Unlock()
+	f()
 }
 
 // Start starts the ADS server

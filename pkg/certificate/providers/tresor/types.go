@@ -1,3 +1,4 @@
+// Package tresor implements the certificate.Manager interface for Tresor, a custom certificate provider in OSM.
 package tresor
 
 import (

@@ -15,7 +15,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 
-	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
@@ -50,7 +49,6 @@ var _ = Describe("Test all patch operations", func() {
 				kubeClient:          client,
 				kubeController:      mockNsController,
 				certManager:         tresor.NewFakeCertManager(mockConfigurator),
-				meshCatalog:         catalog.NewFakeMeshCatalog(client),
 				configurator:        mockConfigurator,
 				nonInjectNamespaces: mapset.NewSet(),
 			}
@@ -74,7 +72,7 @@ var _ = Describe("Test all patch operations", func() {
 				// Add Init Container
 				`{"op":addOperation,` +
 				`"path":"/spec/initContainers",` +
-				`"value":[{"name":"osm-init","env":[{"name":"OSM_PROXY_UID","value":"1337"},` +
+				`"value":[{"name":"osm-init","env":[{"name":"OSM_PROXY_UID","value":"1500"},` +
 				`{"name":"OSM_ENVOY_INBOUND_PORT","value":"15003"},{"name":"OSM_ENVOY_OUTBOUND_PORT","value":"15001"}],` +
 				`"resources":{},"securityContext":{"capabilities":{addOperation:["NET_ADMIN"]}}}]},` +
 
@@ -85,7 +83,7 @@ var _ = Describe("Test all patch operations", func() {
 				`"ports":[{"name":"proxy-admin","containerPort":15000},{"name":"proxy-inbound","containerPort":15003},{"name":"proxy-metrics","containerPort":15010}],` +
 				`"resources":{},"volumeMounts":[{"name":"envoy-bootstrap-config-volume","readOnly":true,"mountPath":"/etc/envoy"}],` +
 				`"imagePullPolicy":"Always",` +
-				`"securityContext":{"runAsUser":1337}}]},{"op":addOperation,"path":"/metadata/annotations",` +
+				`"securityContext":{"runAsUser":1500}}]},{"op":addOperation,"path":"/metadata/annotations",` +
 				`"value":{"prometheus.io/scrape":"true"}},` +
 
 				// Add Prometheus Port Annotation

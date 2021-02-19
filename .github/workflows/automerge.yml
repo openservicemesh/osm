@@ -1,0 +1,41 @@
+name: automerge
+on:
+  pull_request:
+    types:
+      - labeled
+      - unlabeled
+      - synchronize
+      - reopened
+jobs:
+  automerge:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      if: ${{ github.event.label.name == 'automerge' }}
+      uses: actions/checkout@v1
+    - name: Check status
+      if: ${{ github.event.label.name == 'automerge' }}
+      run: bash scripts/status-checker.sh ${GITHUB_REPOSITORY} ${GITHUB_RUN_ID}
+    - name: Generate token
+      if: ${{ github.event.label.name == 'automerge' }}
+      env:
+        ID: ${{secrets.APP_ID}}
+        PK: ${{secrets.APP_PRIVATE_KEY}}
+      run: |
+        issueTime=$(date +%s)
+        expireTime=$(date -d "$expireTime + 600 seconds" +%s)
+        header=$(echo '{ "alg": "RS256", "typ": "JWT" }' | jq -r '(. | @base64)')
+        payload=$(echo '{"iss": '"$ID"',"iat": '$issueTime' ,"exp": '$expireTime'}'| jq -r '(. | @base64)'| sed s/\+/-/ | sed -E s/=+$//)
+        echo "$PK" > key
+        signature=$(echo -n "$header.$payload" | openssl dgst -sha256 -binary -sign key | openssl enc -base64 | tr -d '\n=' | tr -- '+/' '-_')
+        tokenURL=$(curl -i -s -X GET -H "Authorization: Bearer $header.$payload.$signature" -H "Accept: application/vnd.github.v3+json" https://api.github.com/app/installations | grep 'access_tokens_url' | awk '{print $2}' | sed -e 's/^"//' -e 's/",$//')
+        token=$(curl -i -s -X POST -H "Authorization: Bearer $header.$payload.$signature" -H "Accept: application/vnd.github.v3+json" "$tokenURL" | grep 'token'| awk '{print $2}' | sed -e 's/^"//' -e 's/",$//')
+        echo "GITHUB_TOKEN=$token" >> "$GITHUB_ENV"
+    - name: automerge
+      if: ${{ github.event.label.name == 'automerge' }}
+      uses: "pascalgn/automerge-action@v0.13.0"
+      env:
+        MERGE_METHOD: "merge"
+        MERGE_LABELS: "automerge,!wip,!do-not-merge/hold"
+        MERGE_RETRIES: "0"
+        UPDATE_METHOD: "rebase"

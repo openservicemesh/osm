@@ -32,7 +32,7 @@ $ make docker-push
 
 Install OSM control plane using the `osm` cli with the experimental routes v2 flag enabled
 ```console
-$ bin/osm install --enable-routes-v2-experimental=true --container-registry "$CTR_REGISTRY" --osm-image-tag "CTR_TAG" --osm-chart-path charts/osm
+$ bin/osm install --enable-routes-v2-experimental=true --container-registry "$CTR_REGISTRY" --osm-image-tag "$CTR_TAG" --osm-chart-path charts/osm
 ```
 
 ## Install Demo manifests

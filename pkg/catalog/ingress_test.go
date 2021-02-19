@@ -70,8 +70,14 @@ func newFakeMeshCatalog() *MeshCatalog {
 
 	certManager := tresor.NewFakeCertManager(cfg)
 
-	// Create a pod
-	pod := tests.NewPodFixture(tests.Namespace, "pod-name", tests.BookstoreServiceAccountName, tests.PodLabels)
+	// Create a Bookstore-v1 pod
+	pod := tests.NewPodFixture(tests.Namespace, tests.BookstoreV1Service.Name, tests.BookstoreServiceAccountName, tests.PodLabels)
+	if _, err := kubeClient.CoreV1().Pods(tests.Namespace).Create(context.TODO(), &pod, metav1.CreateOptions{}); err != nil {
+		GinkgoT().Fatalf("Error creating new fake Mesh Catalog: %s", err.Error())
+	}
+
+	// Create a Bookstore-v2 pod
+	pod = tests.NewPodFixture(tests.Namespace, tests.BookstoreV2Service.Name, tests.BookstoreV2ServiceAccountName, tests.PodLabels)
 	if _, err := kubeClient.CoreV1().Pods(tests.Namespace).Create(context.TODO(), &pod, metav1.CreateOptions{}); err != nil {
 		GinkgoT().Fatalf("Error creating new fake Mesh Catalog: %s", err.Error())
 	}
@@ -339,5 +345,35 @@ func TestGetIngressPoliciesForService(t *testing.T) {
 			// to match on any of the ingress paths corresponding to the host.
 			assert.True(pathContains(fakeIngressPaths[inboundIngressPolicies[i].Hostnames[0]], rule.Route.HTTPRouteMatch.PathRegex))
 		}
+	}
+}
+
+func TestBuildIngressPolicyName(t *testing.T) {
+	assert := tassert.New(t)
+	testCases := []struct {
+		name         string
+		namespace    string
+		host         string
+		expectedName string
+	}{
+		{
+			name:         "bookbuyer",
+			namespace:    "default",
+			host:         "*",
+			expectedName: "bookbuyer.default|*",
+		},
+		{
+			name:         "bookbuyer",
+			namespace:    "bookbuyer-ns",
+			host:         "foobar.com",
+			expectedName: "bookbuyer.bookbuyer-ns|foobar.com",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actual := buildIngressPolicyName(tc.name, tc.namespace, tc.host)
+			assert.Equal(tc.expectedName, actual)
+		})
 	}
 }

@@ -1,3 +1,4 @@
+// Package main implements OSM CLI commands and utility routines required by the CLI.
 package main
 
 import (

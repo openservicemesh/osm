@@ -1,3 +1,5 @@
+// Package version provides version information for the compiled binary, and an HTTP handler to serve the version information
+// via an HTTP request.
 package version
 
 import (

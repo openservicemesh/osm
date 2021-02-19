@@ -1,3 +1,7 @@
+// Package endpoint defines the interface for an endpoints provider. Endpoints providers communicate with the compute platforms
+// and are primarily responsible for providing information regarding the endpoints for services, such as their IP
+// addresses, port numbers and protocol information.
+// Reference: https://github.com/openservicemesh/osm/blob/main/DESIGN.md#3-endpoints-providers
 package endpoint
 
 import (
@@ -11,6 +15,9 @@ import (
 type Provider interface {
 	// Retrieve the IP addresses comprising the given service.
 	ListEndpointsForService(service.MeshService) []Endpoint
+
+	// ListEndpointsForIdentity retrieves the list of IP addresses for the given service account
+	ListEndpointsForIdentity(service.K8sServiceAccount) []Endpoint
 
 	// Retrieve the namespaced services for a given service account
 	GetServicesForServiceAccount(service.K8sServiceAccount) ([]service.MeshService, error)

@@ -1,3 +1,7 @@
+// Package catalog implements the MeshCataloger interface, which forms the central component in OSM that transforms
+// outputs from all other components (SMI policies, Kubernetes services, endpoints etc.) into configuration that is
+// consumed by the the proxy control plane component to program sidecar proxies.
+// Reference: https://github.com/openservicemesh/osm/blob/main/DESIGN.md#5-mesh-catalog
 package catalog
 
 import (
@@ -65,6 +69,9 @@ type MeshCataloger interface {
 	// ListTrafficPoliciesForServiceAccount returns all inbound and outbound traffic policies related to the given service account
 	ListTrafficPoliciesForServiceAccount(service.K8sServiceAccount) ([]*trafficpolicy.InboundTrafficPolicy, []*trafficpolicy.OutboundTrafficPolicy, error)
 
+	// ListPoliciesForPermissiveMode returns all inbound and outbound traffic policies related to the given services
+	ListPoliciesForPermissiveMode(services []service.MeshService) ([]*trafficpolicy.InboundTrafficPolicy, []*trafficpolicy.OutboundTrafficPolicy, error)
+
 	// ListAllowedInboundServices lists the inbound services allowed to connect to the given service.
 	ListAllowedInboundServices(service.MeshService) ([]service.MeshService, error)
 
@@ -85,6 +92,9 @@ type MeshCataloger interface {
 
 	// ListEndpointsForService returns the list of individual instance endpoint backing a service
 	ListEndpointsForService(service.MeshService) ([]endpoint.Endpoint, error)
+
+	// ListAllowedEndpointsForService returns the list of endpoints backing a service and its allowed service accounts
+	ListAllowedEndpointsForService(service.K8sServiceAccount, service.MeshService) ([]endpoint.Endpoint, error)
 
 	// GetResolvableServiceEndpoints returns the resolvable set of endpoint over which a service is accessible using its FQDN.
 	// These are the endpoint destinations we'd expect client applications sends the traffic towards to, when attempting to
@@ -136,6 +146,10 @@ type MeshCataloger interface {
 
 	// ListInboundTrafficTargetsWithRoutes returns a list traffic target objects composed of its routes for the given destination service account
 	ListInboundTrafficTargetsWithRoutes(service.K8sServiceAccount) ([]trafficpolicy.TrafficTargetWithRoutes, error)
+
+	// GetApexServicesForBackend returns a list of services that serve as the apex service in a traffic split where the
+	//	given service is a backend
+	GetApexServicesForBackend(service.MeshService) []service.MeshService
 }
 type expectedProxy struct {
 	// The time the certificate, identified by CN, for the expected proxy was issued on

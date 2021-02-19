@@ -296,13 +296,16 @@ func GetADSConfigSource() *xds_core.ConfigSource {
 }
 
 // GetEnvoyServiceNodeID creates the string for Envoy's "--service-node" CLI argument for the Kubernetes sidecar container Command/Args
-func GetEnvoyServiceNodeID(nodeID string) string {
+func GetEnvoyServiceNodeID(nodeID, workloadKind, workloadName string) string {
 	items := []string{
 		"$(POD_UID)",
 		"$(POD_NAMESPACE)",
 		"$(POD_IP)",
 		"$(SERVICE_ACCOUNT)",
 		nodeID,
+		"$(POD_NAME)",
+		workloadKind,
+		workloadName,
 	}
 
 	return strings.Join(items, constants.EnvoyServiceNodeSeparator)
@@ -312,17 +315,25 @@ func GetEnvoyServiceNodeID(nodeID string) string {
 func ParseEnvoyServiceNodeID(serviceNodeID string) (*PodMetadata, error) {
 	chunks := strings.Split(serviceNodeID, constants.EnvoyServiceNodeSeparator)
 
-	if len(chunks) != 5 {
+	if len(chunks) < 5 {
 		return nil, errors.New("invalid envoy service node id format")
 	}
 
-	return &PodMetadata{
+	meta := &PodMetadata{
 		UID:            chunks[0],
 		Namespace:      chunks[1],
 		IP:             chunks[2],
 		ServiceAccount: chunks[3],
 		EnvoyNodeID:    chunks[4],
-	}, nil
+	}
+
+	if len(chunks) >= 8 {
+		meta.Name = chunks[5]
+		meta.WorkloadKind = chunks[6]
+		meta.WorkloadName = chunks[7]
+	}
+
+	return meta, nil
 }
 
 // GetLocalClusterNameForService returns the name of the local cluster for the given service.

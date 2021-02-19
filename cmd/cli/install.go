@@ -54,34 +54,33 @@ well as for adding a Kubernetes Namespace to the list of Namespaces a control
 plane should watch for sidecar injection of Envoy proxies.
 `
 const (
-	defaultCertificateManager             = "tresor"
-	defaultCertManagerIssuerGroup         = "cert-manager.io"
-	defaultCertManagerIssuerKind          = "Issuer"
-	defaultCertManagerIssuerName          = "osm-ca"
-	defaultChartPath                      = ""
-	defaultContainerRegistry              = "openservicemesh"
-	defaultContainerRegistrySecret        = ""
-	defaultMeshName                       = "osm"
-	defaultOsmImagePullPolicy             = "IfNotPresent"
-	defaultOsmImageTag                    = "v0.6.1"
-	defaultPrometheusRetentionTime        = constants.PrometheusDefaultRetentionTime
-	defaultVaultHost                      = ""
-	defaultVaultProtocol                  = "http"
-	defaultVaultToken                     = ""
-	defaultVaultRole                      = "openservicemesh"
-	defaultEnvoyLogLevel                  = "error"
-	defaultServiceCertValidityDuration    = "24h"
-	defaultEnableDebugServer              = false
-	defaultEnableEgress                   = false
-	defaultEnablePermissiveTrafficPolicy  = false
-	defaultEnableBackpressureExperimental = false
-	defaultEnableRoutesV2Experimental     = false
-	defaultDeployPrometheus               = false
-	defaultEnablePrometheusScraping       = true
-	defaultDeployGrafana                  = false
-	defaultEnableFluentbit                = false
-	defaultDeployJaeger                   = false
-	defaultEnforceSingleMesh              = false
+	defaultCertificateManager            = "tresor"
+	defaultCertManagerIssuerGroup        = "cert-manager.io"
+	defaultCertManagerIssuerKind         = "Issuer"
+	defaultCertManagerIssuerName         = "osm-ca"
+	defaultChartPath                     = ""
+	defaultContainerRegistry             = "openservicemesh"
+	defaultContainerRegistrySecret       = ""
+	defaultMeshName                      = "osm"
+	defaultOsmImagePullPolicy            = "IfNotPresent"
+	defaultOsmImageTag                   = "v0.7.0"
+	defaultPrometheusRetentionTime       = constants.PrometheusDefaultRetentionTime
+	defaultVaultHost                     = ""
+	defaultVaultProtocol                 = "http"
+	defaultVaultToken                    = ""
+	defaultVaultRole                     = "openservicemesh"
+	defaultEnvoyLogLevel                 = "error"
+	defaultServiceCertValidityDuration   = "24h"
+	defaultEnableDebugServer             = false
+	defaultEnableEgress                  = false
+	defaultEnablePermissiveTrafficPolicy = false
+	defaultEnableRoutesV2Experimental    = false
+	defaultDeployPrometheus              = false
+	defaultEnablePrometheusScraping      = true
+	defaultDeployGrafana                 = false
+	defaultEnableFluentbit               = false
+	defaultDeployJaeger                  = false
+	defaultEnforceSingleMesh             = false
 )
 
 // chartTGZSource is a base64-encoded, gzipped tarball of the default Helm chart.
@@ -114,10 +113,6 @@ type installCmd struct {
 	clientSet                     kubernetes.Interface
 	chartRequested                *chart.Chart
 	setOptions                    []string
-
-	// This is an experimental flag, which will eventually
-	// become part of SMI Spec.
-	enableBackpressureExperimental bool
 
 	// This is an experimental flag, which results in using
 	// 	the experimental routes v2 feature
@@ -185,7 +180,6 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.BoolVar(&inst.enableDebugServer, "enable-debug-server", defaultEnableDebugServer, "Enable the debug HTTP server")
 	f.BoolVar(&inst.enablePermissiveTrafficPolicy, "enable-permissive-traffic-policy", defaultEnablePermissiveTrafficPolicy, "Enable permissive traffic policy mode")
 	f.BoolVar(&inst.enableEgress, "enable-egress", defaultEnableEgress, "Enable egress in the mesh")
-	f.BoolVar(&inst.enableBackpressureExperimental, "enable-backpressure-experimental", defaultEnableBackpressureExperimental, "Enable experimental backpressure feature")
 	f.BoolVar(&inst.enableRoutesV2Experimental, "enable-routes-v2-experimental", defaultEnableRoutesV2Experimental, "Enable experimental routes v2 feature")
 	f.BoolVar(&inst.deployPrometheus, "deploy-prometheus", defaultDeployPrometheus, "Install and deploy Prometheus")
 	f.BoolVar(&inst.enablePrometheusScraping, "enable-prometheus-scraping", defaultEnablePrometheusScraping, "Enable Prometheus metrics scraping on sidecar proxies")
@@ -196,7 +190,7 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.StringVar(&inst.envoyLogLevel, "envoy-log-level", defaultEnvoyLogLevel, "Envoy log level is used to specify the level of logs collected from envoy and needs to be one of these (trace, debug, info, warning, warn, error, critical, off)")
 	f.BoolVar(&inst.enforceSingleMesh, "enforce-single-mesh", defaultEnforceSingleMesh, "Enforce only deploying one mesh in the cluster")
 	f.DurationVar(&inst.timeout, "timeout", 5*time.Minute, "Time to wait for installation and resources in a ready state, zero means no timeout")
-	f.StringArrayVar(&inst.setOptions, "set", nil, "Set arbitrary chart values values not settable by another flag (can specify multiple or separate values with commas: key1=val1,key2=val2)")
+	f.StringArrayVar(&inst.setOptions, "set", nil, "Set arbitrary chart values not settable by another flag (can specify multiple or separate values with commas: key1=val1,key2=val2)")
 
 	return cmd
 }
@@ -266,7 +260,6 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 		fmt.Sprintf("OpenServiceMesh.prometheus.retention.time=%s", i.prometheusRetentionTime),
 		fmt.Sprintf("OpenServiceMesh.enableDebugServer=%t", i.enableDebugServer),
 		fmt.Sprintf("OpenServiceMesh.enablePermissiveTrafficPolicy=%t", i.enablePermissiveTrafficPolicy),
-		fmt.Sprintf("OpenServiceMesh.enableBackpressureExperimental=%t", i.enableBackpressureExperimental),
 		fmt.Sprintf("OpenServiceMesh.enableRoutesV2Experimental=%t", i.enableRoutesV2Experimental),
 		fmt.Sprintf("OpenServiceMesh.deployPrometheus=%t", i.deployPrometheus),
 		fmt.Sprintf("OpenServiceMesh.enablePrometheusScraping=%t", i.enablePrometheusScraping),

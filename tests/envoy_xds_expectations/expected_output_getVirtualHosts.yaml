@@ -1,0 +1,9 @@
+- domains:
+  - '*'
+  name: local_service
+  routes:
+  - match:
+      prefix: /some/path
+    route:
+      cluster: -cluster-name-
+      prefix_rewrite: /original/probe/path

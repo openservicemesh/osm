@@ -1,3 +1,4 @@
+// Package metricsstore implements a Prometheus metrics store for OSM's control plane metrics.
 package metricsstore
 
 import (

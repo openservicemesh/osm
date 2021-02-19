@@ -1,3 +1,4 @@
+// Package tests implements utility routines used for unit testing.
 package tests
 
 import (
@@ -13,7 +14,6 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	backpressure "github.com/openservicemesh/osm/experimental/pkg/apis/policy/v1alpha1"
 	tresorPem "github.com/openservicemesh/osm/pkg/certificate/pem"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -51,9 +51,14 @@ const (
 	BookstoreServiceAccountName = "bookstore"
 	// BookbuyerServiceAccountName is the name of the bookbuyer service account
 	BookbuyerServiceAccountName = "bookbuyer"
+	// BookstoreV2ServiceAccountName is the name of the bookstore-v2 service account
+	BookstoreV2ServiceAccountName = "bookstore-v2"
 
 	// TrafficTargetName is the name of the traffic target SMI object.
 	TrafficTargetName = "bookbuyer-access-bookstore"
+
+	// BookstoreV2TrafficTargetName is the name of the traffic target SMI object.
+	BookstoreV2TrafficTargetName = "bookbuyer-access-bookstore-v2"
 
 	// BuyBooksMatchName is the name of the match object.
 	BuyBooksMatchName = "buy-books"
@@ -171,6 +176,18 @@ var (
 		"bookstore-apex.default.svc.cluster.local:8888",
 	}
 
+	// BookstoreApexNamespacedHostnames are the namespaced hostnames for the bookstore-apex service
+	BookstoreApexNamespacedHostnames = []string{
+		"bookstore-apex.default",
+		"bookstore-apex.default.svc",
+		"bookstore-apex.default.svc.cluster",
+		"bookstore-apex.default.svc.cluster.local",
+		"bookstore-apex.default:8888",
+		"bookstore-apex.default.svc:8888",
+		"bookstore-apex.default.svc.cluster:8888",
+		"bookstore-apex.default.svc.cluster.local:8888",
+	}
+
 	// BookstoreBuyHTTPRoute is an HTTP route to buy books
 	BookstoreBuyHTTPRoute = trafficpolicy.HTTPRouteMatch{
 		PathRegex: BookstoreBuyPath,
@@ -220,7 +237,7 @@ var (
 
 	// BookstoreV2TrafficPolicy is a traffic policy SMI object.
 	BookstoreV2TrafficPolicy = trafficpolicy.TrafficTarget{
-		Name:        fmt.Sprintf("%s:default/bookbuyer->default/bookstore-v2", TrafficTargetName),
+		Name:        fmt.Sprintf("%s:default/bookbuyer->default/bookstore-v2", BookstoreV2TrafficTargetName),
 		Destination: BookstoreV2Service,
 		Source:      BookbuyerService,
 		HTTPRouteMatches: []trafficpolicy.HTTPRouteMatch{
@@ -296,12 +313,41 @@ var (
 		},
 		Spec: access.TrafficTargetSpec{
 			Destination: access.IdentityBindingSubject{
-				Kind:      "Name",
+				Kind:      "ServiceAccount",
 				Name:      BookstoreServiceAccountName,
 				Namespace: "default",
 			},
 			Sources: []access.IdentityBindingSubject{{
-				Kind:      "Name",
+				Kind:      "ServiceAccount",
+				Name:      BookbuyerServiceAccountName,
+				Namespace: "default",
+			}},
+			Rules: []access.TrafficTargetRule{{
+				Kind:    "HTTPRouteGroup",
+				Name:    RouteGroupName,
+				Matches: []string{BuyBooksMatchName, SellBooksMatchName},
+			}},
+		},
+	}
+
+	// BookstoreV2TrafficTarget is a traffic target SMI object for bookstore-v2.
+	BookstoreV2TrafficTarget = access.TrafficTarget{
+		TypeMeta: v1.TypeMeta{
+			APIVersion: "access.smi-spec.io/v1alpha3",
+			Kind:       "TrafficTarget",
+		},
+		ObjectMeta: v1.ObjectMeta{
+			Name:      BookstoreV2TrafficTargetName,
+			Namespace: "default",
+		},
+		Spec: access.TrafficTargetSpec{
+			Destination: access.IdentityBindingSubject{
+				Kind:      "ServiceAccount",
+				Name:      BookstoreV2ServiceAccountName,
+				Namespace: "default",
+			},
+			Sources: []access.IdentityBindingSubject{{
+				Kind:      "ServiceAccount",
 				Name:      BookbuyerServiceAccountName,
 				Namespace: "default",
 			}},
@@ -325,6 +371,12 @@ var (
 	BookstoreServiceAccount = service.K8sServiceAccount{
 		Namespace: Namespace,
 		Name:      BookstoreServiceAccountName,
+	}
+
+	// BookstoreV2ServiceAccount is a namespaced service account.
+	BookstoreV2ServiceAccount = service.K8sServiceAccount{
+		Namespace: Namespace,
+		Name:      BookstoreV2ServiceAccountName,
 	}
 
 	// BookbuyerServiceAccount is a namespaced bookbuyer account.
@@ -405,14 +457,6 @@ var (
 		Spec: spec.TCPRouteSpec{},
 	}
 
-	// Backpressure is an experimental Backpressure policy.
-	// This will be replaced by an SMI Spec when it is ready.
-	Backpressure = backpressure.Backpressure{
-		Spec: backpressure.BackpressureSpec{
-			MaxConnections: 123,
-		},
-	}
-
 	// BookstoreV1DefaultWeightedCluster is a weighted cluster for bookstore-v1
 	BookstoreV1DefaultWeightedCluster = service.WeightedCluster{
 		ClusterName: "default/bookstore-v1",
@@ -428,6 +472,12 @@ var (
 	// BookstoreApexDefaultWeightedCluster is a weighted cluster for bookstore-apex
 	BookstoreApexDefaultWeightedCluster = service.WeightedCluster{
 		ClusterName: "default/bookstore-apex",
+		Weight:      100,
+	}
+
+	// BookbuyerDefaultWeightedCluster is a weighted cluster for bookbuyer
+	BookbuyerDefaultWeightedCluster = service.WeightedCluster{
+		ClusterName: "default/bookbuyer",
 		Weight:      100,
 	}
 
@@ -470,6 +520,16 @@ func NewServiceFixture(serviceName, namespace string, selectors map[string]strin
 				Port:     ServicePort,
 			}},
 			Selector: selectors,
+		},
+	}
+}
+
+// NewServiceAccountFixture creates a new Kubernetes service account
+func NewServiceAccountFixture(svcAccountName, namespace string) *corev1.ServiceAccount {
+	return &corev1.ServiceAccount{
+		ObjectMeta: v1.ObjectMeta{
+			Name:      svcAccountName,
+			Namespace: namespace,
 		},
 	}
 }

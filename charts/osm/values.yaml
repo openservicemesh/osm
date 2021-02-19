@@ -11,7 +11,7 @@ OpenServiceMesh:
     # -- `osm-controller` pod PullPolicy
     pullPolicy: IfNotPresent
     # -- `osm-controller` image tag
-    tag: v0.6.1
+    tag: v0.7.0
   # -- `osm-controller` image pull secret
   imagePullSecrets: []
   # -- Envoy sidecar image
@@ -61,8 +61,6 @@ OpenServiceMesh:
   enableDebugServer: false
   # -- Enable permissive traffic policy mode
   enablePermissiveTrafficPolicy: false
-  # -- Enable experimental backpressure feature
-  enableBackpressureExperimental: false
    # -- Enable experimental routes feature
   enableRoutesV2Experimental: false
   # -- Enable egress in the mesh
@@ -73,30 +71,30 @@ OpenServiceMesh:
   enablePrometheusScraping: true
   # -- Deploy Grafana
   deployGrafana: false
-  # -- Enable Fluentbit sidecar deployment
+  # -- Enable Fluent Bit sidecar deployment
   enableFluentbit: false
   fluentBit:
-    # -- luentBit Sidecar container name
+    # -- Fluent Bit sidecar container name
     name: fluentbit-logger
-    # -- Registry for FluentBit sidecar container
+    # -- Registry for Fluent Bit sidecar container
     registry: fluent
-    # -- FluentBit sidecar image tag
+    # -- Fluent Bit sidecar image tag
     tag: 1.6.4
-    # -- PullPolicy for FluentBit sidecar container
+    # -- PullPolicy for Fluent Bit sidecar container
     pullPolicy: IfNotPresent
-    # -- Log level for FluentBit
+    # -- Log level for Fluent Bit
     logLevel: error
-    # -- FluentBit Output Plugin, can be `stdout` or `azure`
+    # -- Fluent Bit output plugin
     outputPlugin: stdout
-    # -- WorkspaceId for FluentBit output plugin to Azure LogAnalytics
+    # -- WorkspaceId for Fluent Bit output plugin to Log Analytics
     workspaceId: ""
-    # -- PrimaryKey for FluentBit output plugin to Azure LogAnalytics
+    # -- Primary Key for Fluent Bit output plugin to Log Analytics
     primaryKey: ""
-    # -- Enable proxy support for FluentBit
+    # -- Enable proxy support toggle for Fluent Bit
     enableProxySupport: false
-    # -- HTTP Proxy url for FluentBit
+    # -- Optional HTTP proxy endpoint for Fluent Bit
     httpProxy: ""
-    # -- HTTPS Proxy url for FluentBit
+    # -- Optional HTTPS proxy endpoint for Fluent Bit
     httpsProxy: ""
   # -- Name for the new control plane instance
   meshName: osm
@@ -105,7 +103,7 @@ OpenServiceMesh:
   # -- Envoy log level is used to specify the level of logs collected from envoy
   envoyLogLevel: error
   # -- Controller log verbosity
-  controllerLogLevel: trace
+  controllerLogLevel: info
   # -- Enforce only deploying one mesh in the cluster
   enforceSingleMesh: false
   # -- Validating- and MutatingWebhookConfiguration name
@@ -137,3 +135,14 @@ OpenServiceMesh:
   # -- Optional parameter to specify a global list of IP ranges to exclude from outbound traffic interception by the sidecar proxy.
   # If specified, must be a list of IP ranges of the form a.b.c.d/x.
   outboundIPRangeExclusionList: []
+
+  # -- Sidecar injector configuration
+  injector:
+    replicaCount: 1
+    resource:
+      limits:
+        cpu: "0.5"
+        memory: "32M"
+      requests:
+        cpu: "0.3"
+        memory: "32M"

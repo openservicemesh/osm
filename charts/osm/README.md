@@ -64,40 +64,40 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.certmanager.issuerGroup | string | `"cert-manager"` | cert-manager issuer group |
 | OpenServiceMesh.certmanager.issuerKind | string | `"Issuer"` | cert-manager issuer kind |
 | OpenServiceMesh.certmanager.issuerName | string | `"osm-ca"` | cert-manager issuer namecert-manager issuer name |
-| OpenServiceMesh.controllerLogLevel | string | `"trace"` | Controller log verbosity |
+| OpenServiceMesh.controllerLogLevel | string | `"info"` | Controller log verbosity |
 | OpenServiceMesh.deployGrafana | bool | `false` | Deploy Grafana |
 | OpenServiceMesh.deployJaeger | bool | `false` | Deploy Jaeger in the OSM namespace |
 | OpenServiceMesh.deployPrometheus | bool | `false` | Deploy Prometheus |
-| OpenServiceMesh.enableBackpressureExperimental | bool | `false` | Enable experimental backpressure feature |
 | OpenServiceMesh.enableDebugServer | bool | `false` | Enable the debug HTTP server |
 | OpenServiceMesh.enableEgress | bool | `false` | Enable egress in the mesh |
-| OpenServiceMesh.enableFluentbit | bool | `false` | Enable Fluentbit sidecar deployment |
+| OpenServiceMesh.enableFluentbit | bool | `false` | Enable Fluent Bit sidecar deployment |
 | OpenServiceMesh.enablePermissiveTrafficPolicy | bool | `false` | Enable permissive traffic policy mode |
 | OpenServiceMesh.enablePrometheusScraping | bool | `true` | Enable Prometheus metrics scraping on sidecar proxies |
 | OpenServiceMesh.enableRoutesV2Experimental | bool | `false` | Enable experimental routes feature |
 | OpenServiceMesh.enforceSingleMesh | bool | `false` | Enforce only deploying one mesh in the cluster |
 | OpenServiceMesh.envoyLogLevel | string | `"error"` | Envoy log level is used to specify the level of logs collected from envoy |
-| OpenServiceMesh.fluentBit.enableProxySupport | bool | `false` | Enable proxy support for FluentBit |
-| OpenServiceMesh.fluentBit.httpProxy | string | `""` | HTTP Proxy url for FluentBit |
-| OpenServiceMesh.fluentBit.httpsProxy | string | `""` | HTTPS Proxy url for FluentBit |
-| OpenServiceMesh.fluentBit.logLevel | string | `"error"` | Log level for FluentBit |
-| OpenServiceMesh.fluentBit.name | string | `"fluentbit-logger"` | luentBit Sidecar container name |
-| OpenServiceMesh.fluentBit.outputPlugin | string | `"stdout"` | FluentBit Output Plugin, can be `stdout` or `azure` |
-| OpenServiceMesh.fluentBit.primaryKey | string | `""` | PrimaryKey for FluentBit output plugin to Azure LogAnalytics |
-| OpenServiceMesh.fluentBit.pullPolicy | string | `"IfNotPresent"` | PullPolicy for FluentBit sidecar container |
-| OpenServiceMesh.fluentBit.registry | string | `"fluent"` | Registry for FluentBit sidecar container |
-| OpenServiceMesh.fluentBit.tag | string | `"1.6.4"` | FluentBit sidecar image tag |
-| OpenServiceMesh.fluentBit.workspaceId | string | `""` | WorkspaceId for FluentBit output plugin to Azure LogAnalytics |
+| OpenServiceMesh.fluentBit.enableProxySupport | bool | `false` | Enable proxy support toggle for Fluent Bit |
+| OpenServiceMesh.fluentBit.httpProxy | string | `""` | Optional HTTP proxy endpoint for Fluent Bit |
+| OpenServiceMesh.fluentBit.httpsProxy | string | `""` | Optional HTTPS proxy endpoint for Fluent Bit |
+| OpenServiceMesh.fluentBit.logLevel | string | `"error"` | Log level for Fluent Bit |
+| OpenServiceMesh.fluentBit.name | string | `"fluentbit-logger"` | Fluent Bit sidecar container name |
+| OpenServiceMesh.fluentBit.outputPlugin | string | `"stdout"` | Fluent Bit output plugin |
+| OpenServiceMesh.fluentBit.primaryKey | string | `""` | Primary Key for Fluent Bit output plugin to Log Analytics |
+| OpenServiceMesh.fluentBit.pullPolicy | string | `"IfNotPresent"` | PullPolicy for Fluent Bit sidecar container |
+| OpenServiceMesh.fluentBit.registry | string | `"fluent"` | Registry for Fluent Bit sidecar container |
+| OpenServiceMesh.fluentBit.tag | string | `"1.6.4"` | Fluent Bit sidecar image tag |
+| OpenServiceMesh.fluentBit.workspaceId | string | `""` | WorkspaceId for Fluent Bit output plugin to Log Analytics |
 | OpenServiceMesh.grafana.enableRemoteRendering | bool | `false` | Enable Remote Rendering in Grafana |
 | OpenServiceMesh.grafana.port | int | `3000` | Grafana port |
 | OpenServiceMesh.image.pullPolicy | string | `"IfNotPresent"` | `osm-controller` pod PullPolicy |
 | OpenServiceMesh.image.registry | string | `"openservicemesh"` | `osm-controller` image registry |
-| OpenServiceMesh.image.tag | string | `"v0.6.1"` | `osm-controller` image tag |
+| OpenServiceMesh.image.tag | string | `"v0.7.0"` | `osm-controller` image tag |
 | OpenServiceMesh.imagePullSecrets | list | `[]` | `osm-controller` image pull secret |
+| OpenServiceMesh.injector | object | `{"replicaCount":1,"resource":{"limits":{"cpu":"0.5","memory":"32M"},"requests":{"cpu":"0.3","memory":"32M"}}}` | Sidecar injector configuration |
 | OpenServiceMesh.meshName | string | `"osm"` | Name for the new control plane instance |
 | OpenServiceMesh.osmNamespace | string | `""` | Optional parameter. If not specified, the release namespace is used to deploy the osm components. |
 | OpenServiceMesh.osmcontroller.resource.limits.cpu | string | `"1.5"` |  |
-| OpenServiceMesh.osmcontroller.resource.limits.memory | string | `"256M"` |  |
+| OpenServiceMesh.osmcontroller.resource.limits.memory | string | `"512M"` |  |
 | OpenServiceMesh.osmcontroller.resource.requests.cpu | string | `"0.5"` |  |
 | OpenServiceMesh.osmcontroller.resource.requests.memory | string | `"32M"` |  |
 | OpenServiceMesh.outboundIPRangeExclusionList | list | `[]` | Optional parameter to specify a global list of IP ranges to exclude from outbound traffic interception by the sidecar proxy. If specified, must be a list of IP ranges of the form a.b.c.d/x. |

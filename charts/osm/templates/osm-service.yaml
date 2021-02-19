@@ -10,9 +10,6 @@ spec:
     - name: osm-port
       port: 15128
       targetPort: 15128
-    - name: sidecar-injector
-      port: 9090
-      targetPort: 9090
     - name: debug-port
       port: 9092
       targetPort: 9092

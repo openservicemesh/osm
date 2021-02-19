@@ -11,7 +11,7 @@ Open Service Mesh (OSM) collects logs that are sent to stdout by default. When e
 ## Fluent Bit
 [Fluent Bit](https://fluentbit.io/) is an open source log processor and forwarder which allows you to collect data/logs and send them to multiple destinations. It can be used with OSM to forward OSM controller logs to a variety of outputs/log consumers by using its output plugins.
 
-OSM provides log forwarding by optionally deploying a Fluent Bit sidecar to the OSM controller using the `--enable-fluentbit` flag during installation. The user can then define where OSM logs should be forwarded using any of the available [Fluent Bit output plugins](https://docs.fluentbit.io/manual/v/1.4/pipeline/outputs).
+OSM provides log forwarding by optionally deploying a Fluent Bit sidecar to the OSM controller using the `--enable-fluentbit` flag during installation. The user can then define where OSM logs should be forwarded using any of the available [Fluent Bit output plugins](https://docs.fluentbit.io/manual/pipeline/outputs).
 
 ### Configuring Log Forwarding with Fluent Bit
 By default, the Fluent Bit sidecar is configured to simply send logs to the Fluent Bit container's stdout. If you have installed OSM with Fluent Bit enabled, you may access these logs using `kubectl logs -n osm-system <osm-controller-name> -c fluentbit-logger`. This command will also help you find how your logs are formatted in case you need to change your parsers and filters. Once you have tried this out however, we recommend configuring log forwarding to your preferred output for more informative results.
@@ -65,6 +65,6 @@ You may require outbound proxy support if your egress traffic is configured to g
     
 1. Change `enableProxySupport` to `true`
 
-2. Update the httpProxy and httpsProxy values to `"http://<host>:<port>"`
+2. Update the httpProxy and httpsProxy values to `"http://<host>:<port>"`. If your proxy server requires basic authentication, you may include its username and password as: `http://<username>:<password>@<host>:<port>`
 
-Ensure that the Fluent Bit image tag is `1.6.4` or greater as it is required for this feature. 
+> NOTE: Ensure that the [Fluent Bit image tag](https://github.com/openservicemesh/osm/blob/main/charts/osm/values.yaml) is `1.6.4` or greater as it is required for this feature. 

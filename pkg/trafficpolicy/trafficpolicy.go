@@ -118,23 +118,21 @@ func MergeInboundPolicies(allowPartialHostnamesMatch bool, original []*InboundTr
 }
 
 // MergeOutboundPolicies merges two slices of *OutboundTrafficPolicies so that there is only one traffic policy for a given set of a hostnames
-func MergeOutboundPolicies(original []*OutboundTrafficPolicy, latest ...*OutboundTrafficPolicy) ([]*OutboundTrafficPolicy, []error) {
-	routesErrors := []error{}
+func MergeOutboundPolicies(original []*OutboundTrafficPolicy, latest ...*OutboundTrafficPolicy) []*OutboundTrafficPolicy {
 	for _, l := range latest {
 		foundHostnames := false
 		for _, or := range original {
 			if reflect.DeepEqual(or.Hostnames, l.Hostnames) {
 				foundHostnames = true
-				mergedRoutes, errs := mergeRoutesWeightedClusters(or.Routes, l.Routes)
+				mergedRoutes := mergeRoutesWeightedClusters(or.Routes, l.Routes)
 				or.Routes = mergedRoutes
-				routesErrors = append(routesErrors, errs...)
 			}
 		}
 		if !foundHostnames {
 			original = append(original, l)
 		}
 	}
-	return original, routesErrors
+	return original
 }
 
 // mergeRules merges the give slices of rules such that there is one Rule for a Route with all allowed service accounts listed in the
@@ -157,16 +155,16 @@ func mergeRules(originalRules, latestRules []*Rule) []*Rule {
 }
 
 // mergeRoutesWeightedClusters merges two slices of RouteWeightedClusters and returns a slice where there is one RouteWeightedCluster
-//	for any HTTPRouteMatch
-func mergeRoutesWeightedClusters(originalRoutes, latestRoutes []*RouteWeightedClusters) ([]*RouteWeightedClusters, []error) {
-	mergeErrors := []error{}
+//	for any HTTPRouteMatch. Where there is an overlap in HTTPRouteMatch between the originalRoutes and latestRoutes, the WeightedClusters
+//  specified in the latestRoutes will be kept since there can only be one set of WeightedClusters per HTTPRouteMatch.
+func mergeRoutesWeightedClusters(originalRoutes, latestRoutes []*RouteWeightedClusters) []*RouteWeightedClusters {
 	for _, latest := range latestRoutes {
 		foundRoute := false
 		for _, original := range originalRoutes {
 			if reflect.DeepEqual(original.HTTPRouteMatch, latest.HTTPRouteMatch) {
 				foundRoute = true
 				if !reflect.DeepEqual(original.WeightedClusters, latest.WeightedClusters) {
-					mergeErrors = append(mergeErrors, errors.Errorf("Error merging RoutesWeightedClusters %v with %v", original, latest))
+					original.WeightedClusters = latest.WeightedClusters
 				}
 				continue
 			}
@@ -175,7 +173,7 @@ func mergeRoutesWeightedClusters(originalRoutes, latestRoutes []*RouteWeightedCl
 			originalRoutes = append(originalRoutes, latest)
 		}
 	}
-	return originalRoutes, mergeErrors
+	return originalRoutes
 }
 
 // subset returns true if the second array is completely contained in the first array

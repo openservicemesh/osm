@@ -8,7 +8,7 @@ webhooks:
 - name: osm-inject.k8s.io
   clientConfig:
     service:
-      name: osm-controller
+      name: osm-injector
       namespace: {{ include "osm.namespace" . }}
       path: /mutate-pod-creation
       port: 9090

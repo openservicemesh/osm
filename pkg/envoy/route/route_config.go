@@ -53,15 +53,25 @@ func buildVirtualHostStub(namePrefix string, host string, domains []string) *xds
 }
 
 // buildInboundRoutes takes a route information from the given inbound traffic policy and returns a list of xds routes
-//	TODO: Currently, the information about which identity can access a particular route is not used but is passed in
 func buildInboundRoutes(rules []*trafficpolicy.Rule) []*xds_route.Route {
 	var routes []*xds_route.Route
 	for _, rule := range rules {
 		// For a given route path, sanitize the methods in case there
 		// is wildcard or if there are duplicates
 		allowedMethods := sanitizeHTTPMethods(rule.Route.HTTPRouteMatch.Methods)
+
+		// Create an RBAC policy derived from 'trafficpolicy.Rule'
+		// Each route is associated with an RBAC policy
+		rbacPolicyForRoute, err := buildInboundRBACFilterForRule(rule)
+		if err != nil {
+			log.Error().Err(err).Msgf("Error building RBAC policy for rule [%v], skipping route addition", rule)
+			continue
+		}
+
+		// Each HTTP method corresponds to a separate route
 		for _, method := range allowedMethods {
 			route := buildRoute(rule.Route.HTTPRouteMatch.PathRegex, method, rule.Route.HTTPRouteMatch.Headers, rule.Route.WeightedClusters, 100, InboundRoute)
+			route.TypedPerFilterConfig = rbacPolicyForRoute
 			routes = append(routes, route)
 		}
 	}
