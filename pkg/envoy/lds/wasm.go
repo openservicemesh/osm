@@ -2,13 +2,17 @@ package lds
 
 import (
 	"encoding/base64"
+	"fmt"
 	"io/ioutil"
 	"strings"
 
 	envoy_config_core_v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
+	xds_lua "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/lua/v3"
 	xds_wasm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/http/wasm/v3"
 	xds_hcm "github.com/envoyproxy/go-control-plane/envoy/extensions/filters/network/http_connection_manager/v3"
 	xds_wasm_ext "github.com/envoyproxy/go-control-plane/envoy/extensions/wasm/v3"
+	"github.com/envoyproxy/go-control-plane/pkg/wellknown"
+	"github.com/pkg/errors"
 
 	"github.com/golang/protobuf/ptypes"
 )
@@ -19,6 +23,34 @@ func init() {
 	b64 := base64.NewDecoder(base64.StdEncoding, strings.NewReader(statsWASMBytes))
 	b, _ := ioutil.ReadAll(b64)
 	statsWASMBytes = string(b)
+}
+
+func getAddHeadersFilter(headers map[string]string) (*xds_hcm.HttpFilter, error) {
+	if len(headers) == 0 {
+		return nil, nil
+	}
+	addCallsReq := &strings.Builder{}
+	addCallsReq.WriteString("--\nfunction envoy_on_request(request_handle)\n")
+	for k, v := range headers {
+		addCallsReq.WriteString(fmt.Sprintf("  request_handle:headers():add(%q, %q)\n", k, v))
+	}
+	addCallsReq.WriteString("end")
+
+	lua := &xds_lua.Lua{
+		InlineCode: addCallsReq.String(),
+	}
+
+	luaAny, err := ptypes.MarshalAny(lua)
+	if err != nil {
+		return nil, errors.Wrap(err, "error marshaling Lua filter")
+	}
+
+	return &xds_hcm.HttpFilter{
+		Name: wellknown.Lua,
+		ConfigType: &xds_hcm.HttpFilter_TypedConfig{
+			TypedConfig: luaAny,
+		},
+	}, nil
 }
 
 func getStatsWASMFilter() (*xds_hcm.HttpFilter, error) {

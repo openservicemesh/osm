@@ -84,7 +84,7 @@ func (lb *listenerBuilder) getInboundHTTPFilters(proxyService service.MeshServic
 	}
 
 	// Apply the HTTP Connection Manager Filter
-	inboundConnManager := getHTTPConnectionManager(route.InboundRouteConfigName, lb.cfg)
+	inboundConnManager := getHTTPConnectionManager(route.InboundRouteConfigName, lb.cfg, lb.statsHeaders)
 	marshalledInboundConnManager, err := ptypes.MarshalAny(inboundConnManager)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshalling inbound HttpConnectionManager for proxy  service %s", proxyService)
@@ -234,7 +234,7 @@ func (lb *listenerBuilder) getOutboundHTTPFilter() (*xds_listener.Filter, error)
 	var err error
 
 	marshalledFilter, err = ptypes.MarshalAny(
-		getHTTPConnectionManager(route.OutboundRouteConfigName, lb.cfg))
+		getHTTPConnectionManager(route.OutboundRouteConfigName, lb.cfg, lb.statsHeaders))
 	if err != nil {
 		log.Error().Err(err).Msgf("Error marshalling HTTP connection manager object")
 		return nil, err

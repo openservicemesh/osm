@@ -17,7 +17,7 @@ const (
 	statPrefix = "http"
 )
 
-func getHTTPConnectionManager(routeName string, cfg configurator.Configurator) *xds_hcm.HttpConnectionManager {
+func getHTTPConnectionManager(routeName string, cfg configurator.Configurator, headers map[string]string) *xds_hcm.HttpConnectionManager {
 	connManager := &xds_hcm.HttpConnectionManager{
 		StatPrefix: statPrefix,
 		CodecType:  xds_hcm.HttpConnectionManager_AUTO,
@@ -62,8 +62,17 @@ func getHTTPConnectionManager(routeName string, cfg configurator.Configurator) *
 			return connManager
 		}
 
+		headerFilter, err := getAddHeadersFilter(headers)
+		if err != nil {
+			log.Error().Err(err).Msg("Could not get Lua filter definition")
+			return connManager
+		}
+
 		// wellknown.Router filter must be last
 		var filters []*xds_hcm.HttpFilter
+		if headerFilter != nil {
+			filters = append(filters, headerFilter)
+		}
 		if statsFilter != nil {
 			filters = append(filters, statsFilter)
 		}
