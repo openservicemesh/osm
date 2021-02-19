@@ -10,7 +10,6 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/featureflags"
 )
 
 // NewResponse creates a new Cluster Discovery Response.
@@ -57,16 +56,6 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		}
 	}
 	clusters = append(clusters, localCluster)
-
-	if featureflags.IsRoutesV2Enabled() {
-		// if this service is associated with a trafficsplit service, add a local cluster for the apex service
-		// Needs to be updated with #2134 - handling multiple services per pod
-		for _, splitService := range meshCatalog.GetApexServicesForBackend(proxyServiceName) {
-			lcn := envoy.GetLocalClusterNameForService(splitService)
-			lc := getSyntheticCluster(lcn)
-			clusters = append(clusters, lc)
-		}
-	}
 
 	// Add an outbound passthrough cluster for egress
 	if cfg.IsEgressEnabled() {
