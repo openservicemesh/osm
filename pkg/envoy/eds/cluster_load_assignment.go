@@ -1,4 +1,4 @@
-package cla
+package eds
 
 import (
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -15,8 +15,8 @@ const (
 	zone = "zone"
 )
 
-// NewClusterLoadAssignment constructs the Envoy struct necessary for TrafficSplit implementation.
-func NewClusterLoadAssignment(serviceName service.MeshService, serviceEndpoints []endpoint.Endpoint) *xds_endpoint.ClusterLoadAssignment {
+// newClusterLoadAssignment returns the cluster load assignments for the given service and its endpoints
+func newClusterLoadAssignment(serviceName service.MeshService, serviceEndpoints []endpoint.Endpoint) *xds_endpoint.ClusterLoadAssignment {
 	cla := &xds_endpoint.ClusterLoadAssignment{
 		ClusterName: serviceName.String(),
 		Endpoints: []*xds_endpoint.LocalityLbEndpoints{
