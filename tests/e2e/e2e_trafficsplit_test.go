@@ -154,8 +154,8 @@ var _ = OSMDescribe("Test HTTP from N Clients deployments to 1 Server deployment
 					}
 				}
 
-				// Create traffic split service. Use simple Pod to create a simple service definition
-				_, _, trafficSplitService := Td.SimplePodApp(SimplePodAppDef{
+				// Create traffic split service. Use simple apex service to create a simple service definition
+				trafficSplitService := Td.SimpleApexService(SimpleServiceDef{
 					Name:      trafficSplitName,
 					Namespace: serverNamespace,
 					Ports:     []int{80},

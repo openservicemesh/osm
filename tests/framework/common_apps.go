@@ -144,6 +144,14 @@ type SimplePodAppDef struct {
 	AppProtocol string
 }
 
+// SimpleServiceDef defines some parametrization to create a k8s service from template
+type SimpleServiceDef struct {
+	Namespace   string
+	Name        string
+	Ports       []int
+	AppProtocol string
+}
+
 // SimplePodApp creates returns a set of k8s typed definitions for a pod-based k8s definition.
 // Includes Pod, Service and ServiceAccount types
 func (td *OsmTestData) SimplePodApp(def SimplePodAppDef) (corev1.ServiceAccount, corev1.Pod, corev1.Service) {
@@ -241,6 +249,48 @@ func (td *OsmTestData) SimplePodApp(def SimplePodAppDef) (corev1.ServiceAccount,
 	}
 
 	return serviceAccountDefinition, podDefinition, serviceDefinition
+}
+
+// SimpleApexService creates returns k8s service definition for an apex service required by traffic split.
+func (td *OsmTestData) SimpleApexService(def SimpleServiceDef) corev1.Service {
+
+	serviceDefinition := corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: def.Name,
+			Labels: map[string]string{
+				"app": def.Name,
+			},
+		},
+	}
+
+	if def.Ports != nil && len(def.Ports) > 0 {
+		serviceDefinition.Spec.Ports = []corev1.ServicePort{}
+
+		for _, p := range def.Ports {
+
+			svcPort := corev1.ServicePort{
+				Port:       int32(p),
+				TargetPort: intstr.FromInt(p),
+			}
+
+			if def.AppProtocol != "" {
+				if ver, err := td.getKubernetesServerVersionNumber(); err != nil {
+					svcPort.Name = fmt.Sprintf("%s-%d", def.AppProtocol, p) // use named port with AppProtocol
+				} else {
+					// use appProtocol field in servicePort if k8s server version >= 1.19
+					if ver[0] >= 1 && ver[1] >= 19 {
+						svcPort.AppProtocol = &def.AppProtocol // set the appProtocol field
+					} else {
+						svcPort.Name = fmt.Sprintf("%s-%d", def.AppProtocol, p) // use named port with AppProtocol
+					}
+				}
+			}
+
+			serviceDefinition.Spec.Ports = append(serviceDefinition.Spec.Ports, svcPort)
+		}
+	}
+
+	return serviceDefinition
 }
 
 // getKubernetesServerVersionNumber returns the version number in chunks, ex. v1.19.3 => [1, 19, 3]

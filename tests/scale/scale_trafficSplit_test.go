@@ -177,8 +177,8 @@ var _ = Describe("Scales a setup with client-servers and traffic splits til fail
 					}
 				}
 
-				// Create traffic split service. We are just interested in the service def
-				_, _, trafficSplitService := Td.SimplePodApp(SimplePodAppDef{
+				// Create traffic split service. Use simple apex service to create a simple service definition
+				trafficSplitService := Td.SimpleApexService(SimpleServiceDef{
 					Name:      TrafficSplitPrefix,
 					Namespace: serverNamespace,
 					Ports:     []int{80},
