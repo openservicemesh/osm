@@ -456,6 +456,99 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 			Expect(svcAccounts).Should(ConsistOf(expectedSvcAccounts))
 		})
 
+		It("should not return any ServiceAccounts associated with a service without selectors", func() {
+			testNamespaceName := "test-ns"
+			testSvcAccountName1 := "test-service-account-1"
+			testSvcAccountName2 := "test-service-account-2"
+
+			serviceChannel := events.GetPubSubInstance().Subscribe(announcements.ServiceAdded,
+				announcements.ServiceDeleted,
+				announcements.ServiceUpdated)
+			defer events.GetPubSubInstance().Unsub(serviceChannel)
+			podsChannel := events.GetPubSubInstance().Subscribe(announcements.PodAdded,
+				announcements.PodDeleted,
+				announcements.PodUpdated)
+			defer events.GetPubSubInstance().Unsub(podsChannel)
+
+			// Create a namespace
+			testNamespace := &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:   testNamespaceName,
+					Labels: map[string]string{constants.OSMKubeResourceMonitorAnnotation: testMeshName},
+				},
+			}
+			_, err = kubeClient.CoreV1().Namespaces().Create(context.TODO(), testNamespace, metav1.CreateOptions{})
+			Expect(err).To(BeNil())
+			// Wait on namespace to be ready so that resources in this namespace are marked as monitored as soon as possible
+			Eventually(func() bool {
+				return kubeController.IsMonitoredNamespace(testNamespace.Name)
+			}, nsInformerSyncTimeout).Should(BeTrue())
+
+			// Create pods with labels that match the service
+			pod1 := &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "pod1",
+					Namespace: testNamespaceName,
+					Labels: map[string]string{
+						"some-label": "test",
+						"version":    "v1",
+					},
+				},
+				Spec: corev1.PodSpec{
+					ServiceAccountName: testSvcAccountName1,
+				},
+			}
+			_, err = kubeClient.CoreV1().Pods(testNamespaceName).Create(context.TODO(), pod1, metav1.CreateOptions{})
+			Expect(err).To(BeNil())
+			<-podsChannel
+
+			pod2 := &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "pod2",
+					Namespace: testNamespaceName,
+					Labels: map[string]string{
+						"some-label": "test",
+						"version":    "v2",
+					},
+				},
+				Spec: corev1.PodSpec{
+					ServiceAccountName: testSvcAccountName2,
+				},
+			}
+			_, err = kubeClient.CoreV1().Pods(testNamespaceName).Create(context.TODO(), pod2, metav1.CreateOptions{})
+			Expect(err).To(BeNil())
+			<-podsChannel
+
+			// Create a service with selector that matches the pods above
+			svc := &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-1",
+					Namespace: testNamespaceName,
+				},
+				Spec: corev1.ServiceSpec{
+					Ports: []corev1.ServicePort{{
+						Name:     "servicePort",
+						Protocol: corev1.ProtocolTCP,
+						Port:     tests.ServicePort,
+					}},
+				},
+			}
+
+			_, err := kubeClient.CoreV1().Services(testNamespaceName).Create(context.TODO(), svc, metav1.CreateOptions{})
+			Expect(err).ToNot(HaveOccurred())
+			<-serviceChannel
+
+			meshSvc := service.MeshService{Name: svc.Name, Namespace: svc.Namespace}
+
+			svcAccounts, err := kubeController.ListServiceAccountsForService(meshSvc)
+
+			Expect(err).ToNot(HaveOccurred())
+
+			expectedSvcAccounts := []service.K8sServiceAccount{}
+			Expect(svcAccounts).Should(HaveLen(0))
+			Expect(svcAccounts).Should(ConsistOf(expectedSvcAccounts))
+		})
+
 	})
 
 })

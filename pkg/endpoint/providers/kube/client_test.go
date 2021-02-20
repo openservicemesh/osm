@@ -278,7 +278,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 		stop <- struct{}{}
 	})
 
-	It("should return not return a service when a pod matching the selector doesn't exist", func() {
+	It("should return a synthetic service when a pod matching the selector doesn't exist", func() {
 		svc := &corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-1",
@@ -390,7 +390,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 		<-podsAndServiceChannel
 	})
 
-	It("should return an error when the Service selector doesn't match the pod", func() {
+	It("should return a synthetic service when the Service selector doesn't match the pod", func() {
 		podsChannel := events.GetPubSubInstance().Subscribe(announcements.PodAdded,
 			announcements.PodDeleted,
 			announcements.PodUpdated)
@@ -412,6 +412,76 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 					"app":                         "test",
 					"key-specified-in-deployment": "no", // Since this label is missing in the deployment, the selector match should fail
 				},
+			},
+		}
+
+		_, err := fakeClientSet.CoreV1().Services(testNamespace).Create(context.TODO(), svc, metav1.CreateOptions{})
+		Expect(err).ToNot(HaveOccurred())
+
+		// Create a Pod with labels that match the service selector
+		pod := &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: map[string]string{
+					"app": "test",
+				},
+			},
+			Spec: corev1.PodSpec{
+				ServiceAccountName: "test-service-account",
+				Containers: []corev1.Container{
+					{
+						Name:  "BookbuyerContainerA",
+						Image: "random",
+						Ports: []corev1.ContainerPort{
+							{
+								Name:          "http",
+								Protocol:      corev1.ProtocolTCP,
+								ContainerPort: 80,
+							},
+						},
+					},
+				},
+			},
+		}
+
+		_, err = fakeClientSet.CoreV1().Pods(testNamespace).Create(context.Background(), pod, metav1.CreateOptions{})
+		Expect(err).ToNot(HaveOccurred())
+		<-podsChannel
+
+		givenSvcAccount := service.K8sServiceAccount{
+			Namespace: testNamespace,
+			Name:      "test-service-account", // Should match the service account in the Deployment spec above
+		}
+
+		// Expect a MeshService that corresponds to a Service that matches the Deployment spec labels
+		svcs, err := provider.GetServicesForServiceAccount(givenSvcAccount)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(len(svcs)).To(Equal(1))
+		expectedServiceName := fmt.Sprintf("test-service-account.testNamespace.osm.synthetic-%s", service.SyntheticServiceSuffix)
+		Expect(svcs[0].Name).To(Equal(expectedServiceName))
+
+		err = fakeClientSet.CoreV1().Pods(testNamespace).Delete(context.Background(), pod.Name, metav1.DeleteOptions{})
+		Expect(err).ToNot(HaveOccurred())
+		<-podsChannel
+	})
+
+	It("should return a synthetic service when the service doesn't have a selector", func() {
+		podsChannel := events.GetPubSubInstance().Subscribe(announcements.PodAdded,
+			announcements.PodDeleted,
+			announcements.PodUpdated)
+		defer events.GetPubSubInstance().Unsub(podsChannel)
+
+		// Create a Service
+		svc := &corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-1",
+				Namespace: testNamespace,
+			},
+			Spec: corev1.ServiceSpec{
+				Ports: []corev1.ServicePort{{
+					Name:     "servicePort",
+					Protocol: corev1.ProtocolTCP,
+					Port:     tests.ServicePort,
+				}},
 			},
 		}
 
