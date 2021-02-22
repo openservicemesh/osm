@@ -33,7 +33,8 @@
                 "deployJaeger",
                 "tracing",
                 "webhookConfigNamePrefix",
-                "osmcontroller"
+                "osmcontroller",
+                "enablePrivilegedInitContainer"
             ],
             "properties": {
                 "replicaCount": {
@@ -470,6 +471,15 @@
                     "description": "Indicates the namespace in which the OSM control plane components will be installed",
                     "examples": [
                         "osm-system"
+                    ]
+                },
+                "enablePrivilegedInitContainer": {
+                    "$id": "#/properties/OpenServiceMesh/properties/enablePrivilegedInitContainer",
+                    "type": "boolean",
+                    "title": "The enablePrivilegedInitContainer schema",
+                    "description": "Indicates whether the init container for pods in the mesh should be privileged",
+                    "examples": [
+                        false
                     ]
                 }
             },

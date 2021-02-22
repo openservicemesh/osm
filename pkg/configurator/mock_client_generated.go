@@ -5,10 +5,9 @@
 package configurator
 
 import (
+	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
 	time "time"
-
-	gomock "github.com/golang/mock/gomock"
 )
 
 // MockConfigurator is a mock of Configurator interface
@@ -187,6 +186,20 @@ func (m *MockConfigurator) IsPermissiveTrafficPolicyMode() bool {
 func (mr *MockConfiguratorMockRecorder) IsPermissiveTrafficPolicyMode() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsPermissiveTrafficPolicyMode", reflect.TypeOf((*MockConfigurator)(nil).IsPermissiveTrafficPolicyMode))
+}
+
+// IsPrivilegedInitContainer mocks base method
+func (m *MockConfigurator) IsPrivilegedInitContainer() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsPrivilegedInitContainer")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsPrivilegedInitContainer indicates an expected call of IsPrivilegedInitContainer
+func (mr *MockConfiguratorMockRecorder) IsPrivilegedInitContainer() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsPrivilegedInitContainer", reflect.TypeOf((*MockConfigurator)(nil).IsPrivilegedInitContainer))
 }
 
 // IsPrometheusScrapingEnabled mocks base method
