@@ -18,11 +18,11 @@ jobs:
     - name: Generate token
       if: ${{ github.event.label.name == 'automerge' }}
       env:
-        ID: ${{secrets.APP_ID}}
-        PK: ${{secrets.APP_PRIVATE_KEY}}
+        ID: ${{ secrets.APP_ID }}
+        PK: ${{ secrets.APP_PRIVATE_KEY }}
       shell: bash
       run: |
-        [[ -z $ID ]] && echo "ID not set"
+        [[ -z $ID ]] && echo "ID not set" || echo "ID set"
         issueTime=$(date +%s)
         echo $issueTime
         expireTime=$(date -d "$expireTime + 600 seconds" +%s)
