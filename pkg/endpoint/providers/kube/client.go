@@ -190,6 +190,10 @@ func (c *Client) getServicesByLabels(podLabels map[string]string, namespace stri
 		}
 
 		svcRawSelector := svc.Spec.Selector
+		// service has no selectors, we do not need to match against the pod label
+		if len(svcRawSelector) == 0 {
+			continue
+		}
 		selector := labels.Set(svcRawSelector).AsSelector()
 		if selector.Matches(labels.Set(podLabels)) {
 			finalList = append(finalList, *svc)
