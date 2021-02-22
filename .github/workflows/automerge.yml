@@ -22,6 +22,7 @@ jobs:
         PK: ${{secrets.APP_PRIVATE_KEY}}
       shell: bash
       run: |
+        [[ -z $ID ]] && echo "ID not set"
         issueTime=$(date +%s)
         echo $issueTime
         expireTime=$(date -d "$expireTime + 600 seconds" +%s)
