@@ -93,13 +93,13 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.image.registry | string | `"openservicemesh"` | `osm-controller` image registry |
 | OpenServiceMesh.image.tag | string | `"v0.7.0"` | `osm-controller` image tag |
 | OpenServiceMesh.imagePullSecrets | list | `[]` | `osm-controller` image pull secret |
-| OpenServiceMesh.injector | object | `{"replicaCount":1,"resource":{"limits":{"cpu":"0.5","memory":"32M"},"requests":{"cpu":"0.3","memory":"32M"}}}` | Sidecar injector configuration |
+| OpenServiceMesh.injector | object | `{"replicaCount":1,"resource":{"limits":{"cpu":"0.5","memory":"64M"},"requests":{"cpu":"0.3","memory":"64M"}}}` | Sidecar injector configuration |
 | OpenServiceMesh.meshName | string | `"osm"` | Name for the new control plane instance |
 | OpenServiceMesh.osmNamespace | string | `""` | Optional parameter. If not specified, the release namespace is used to deploy the osm components. |
 | OpenServiceMesh.osmcontroller.resource.limits.cpu | string | `"1.5"` |  |
 | OpenServiceMesh.osmcontroller.resource.limits.memory | string | `"512M"` |  |
 | OpenServiceMesh.osmcontroller.resource.requests.cpu | string | `"0.5"` |  |
-| OpenServiceMesh.osmcontroller.resource.requests.memory | string | `"32M"` |  |
+| OpenServiceMesh.osmcontroller.resource.requests.memory | string | `"128M"` |  |
 | OpenServiceMesh.outboundIPRangeExclusionList | list | `[]` | Optional parameter to specify a global list of IP ranges to exclude from outbound traffic interception by the sidecar proxy. If specified, must be a list of IP ranges of the form a.b.c.d/x. |
 | OpenServiceMesh.prometheus.port | int | `7070` | Prometheus port |
 | OpenServiceMesh.prometheus.retention.time | string | `"15d"` | Prometheus retention time |
