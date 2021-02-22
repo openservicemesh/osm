@@ -12,9 +12,9 @@ jobs:
     - name: Checkout
       if: ${{ github.event.label.name == 'automerge' }}
       uses: actions/checkout@v1
-    - name: Check status
-      if: ${{ github.event.label.name == 'automerge' }}
-      run: bash scripts/status-checker.sh ${GITHUB_REPOSITORY} ${GITHUB_RUN_ID}
+    # - name: Check status
+    #   if: ${{ github.event.label.name == 'automerge' }}
+    #   run: bash scripts/status-checker.sh ${GITHUB_REPOSITORY} ${GITHUB_RUN_ID}
     - name: Generate token
       if: ${{ github.event.label.name == 'automerge' }}
       env:
