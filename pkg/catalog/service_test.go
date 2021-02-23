@@ -21,100 +21,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
-func TestGetBackendServiceForApexService(t *testing.T) {
-	assert := tassert.New(t)
-
-	mockCtrl := gomock.NewController(t)
-	defer mockCtrl.Finish()
-
-	testSplit2 := split.TrafficSplit{
-		ObjectMeta: v1.ObjectMeta{
-			Namespace: "default",
-		},
-		Spec: split.TrafficSplitSpec{
-			Service: "apex-split-1",
-			Backends: []split.TrafficSplitBackend{
-				{
-					Service: tests.BookstoreV1ServiceName,
-					Weight:  tests.Weight10,
-				},
-				{
-					Service: tests.BookstoreV2ServiceName,
-					Weight:  tests.Weight90,
-				},
-			},
-		},
-	}
-
-	testSplit3 := split.TrafficSplit{
-		ObjectMeta: v1.ObjectMeta{
-			Namespace: "default",
-		},
-		Spec: split.TrafficSplitSpec{
-			Service: "apex-split-1",
-			Backends: []split.TrafficSplitBackend{
-				{
-					Service: tests.BookstoreV1ServiceName,
-					Weight:  80,
-				},
-				{
-					Service: tests.BookstoreV2ServiceName,
-					Weight:  20,
-				},
-			},
-		},
-	}
-
-	testCases := []struct {
-		name          string
-		apexService   service.MeshService
-		trafficsplits []*split.TrafficSplit
-		expected      []service.MeshService
-	}{
-		{
-			name:          "single traffic split match",
-			trafficsplits: []*split.TrafficSplit{&tests.TrafficSplit},
-			apexService:   tests.BookstoreApexService,
-			expected:      []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service},
-		},
-		{
-			name:          "no traffic split match",
-			trafficsplits: []*split.TrafficSplit{&testSplit2},
-			apexService:   tests.BookstoreApexService,
-			expected:      []service.MeshService{},
-		},
-		{
-			name:          "multiple traffic split matches, returns only first split result",
-			trafficsplits: []*split.TrafficSplit{&testSplit3, &testSplit2},
-			apexService:   service.MeshService{Name: "apex-split-1", Namespace: "default"},
-			expected:      []service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service},
-		},
-		{
-			name:          "no traffic splits present, so no backeds returned",
-			trafficsplits: []*split.TrafficSplit{},
-			apexService:   tests.BookstoreApexService,
-			expected:      []service.MeshService{},
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			mockKubeController := k8s.NewMockController(mockCtrl)
-			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
-			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
-			mc := MeshCatalog{
-				kubeController:     mockKubeController,
-				meshSpec:           mockMeshSpec,
-				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
-			}
-			mockMeshSpec.EXPECT().ListTrafficSplits().Return(tc.trafficsplits).AnyTimes()
-			actual := mc.getBackendServiceForApexService(tc.apexService)
-			assert.ElementsMatch(tc.expected, actual)
-		})
-	}
-}
-
-func TestIsApexService(t *testing.T) {
+func TestGetApexServicesForBackendService(t *testing.T) {
 	assert := tassert.New(t)
 
 	mockCtrl := gomock.NewController(t)
@@ -161,38 +68,27 @@ func TestIsApexService(t *testing.T) {
 	testCases := []struct {
 		name          string
 		trafficsplits []*split.TrafficSplit
-		apexService   service.MeshService
-		expected      bool
+		expected      []service.MeshService
 	}{
 		{
-			name:          "bookstore-apex is an apex service",
+			name:          "single traffic split match",
 			trafficsplits: []*split.TrafficSplit{&tests.TrafficSplit},
-			apexService:   tests.BookstoreApexService,
-			expected:      true,
+			expected:      []service.MeshService{tests.BookstoreApexService},
 		},
 		{
-			name:          "bookstore-apex is not  an apex service",
-			trafficsplits: []*split.TrafficSplit{&testSplit2},
-			apexService:   tests.BookstoreApexService,
-			expected:      false,
+			name:          "no traffic split match",
+			trafficsplits: []*split.TrafficSplit{&testSplit3},
+			expected:      []service.MeshService{},
 		},
 		{
-			name:          "bookstore-apex is not an apex service across multiple traffic splits",
-			trafficsplits: []*split.TrafficSplit{&testSplit2, &testSplit3},
-			apexService:   tests.BookstoreApexService,
-			expected:      false,
+			name:          "multiple traffic split matches",
+			trafficsplits: []*split.TrafficSplit{&tests.TrafficSplit, &testSplit2},
+			expected:      []service.MeshService{tests.BookstoreApexService, {Name: "apex-split-1", Namespace: "default"}},
 		},
 		{
-			name:          "apex-split-1 is an apex service across multiple traffic splits",
-			trafficsplits: []*split.TrafficSplit{&testSplit2, &testSplit3},
-			apexService:   service.MeshService{Name: "apex-split-1", Namespace: "default"},
-			expected:      true,
-		},
-		{
-			name:          "no traffic splits present, must return false",
+			name:          "no traffic splits present, so no backeds returned",
 			trafficsplits: []*split.TrafficSplit{},
-			apexService:   tests.BookstoreApexService,
-			expected:      false,
+			expected:      []service.MeshService{},
 		},
 	}
 
@@ -207,7 +103,112 @@ func TestIsApexService(t *testing.T) {
 				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
 			}
 			mockMeshSpec.EXPECT().ListTrafficSplits().Return(tc.trafficsplits).AnyTimes()
-			actual := mc.isApexService(tc.apexService)
+			actual := mc.getApexServicesForBackendService(tests.BookstoreV1Service)
+			assert.ElementsMatch(tc.expected, actual)
+		})
+	}
+}
+
+func TestIsTrafficSplitBackendService(t *testing.T) {
+	assert := tassert.New(t)
+
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	testSplit2 := split.TrafficSplit{
+		ObjectMeta: v1.ObjectMeta{
+			Namespace: "default",
+		},
+		Spec: split.TrafficSplitSpec{
+			Service: "apex-split-1",
+			Backends: []split.TrafficSplitBackend{
+				{
+					Service: tests.BookstoreV1ServiceName,
+					Weight:  tests.Weight10,
+				},
+				{
+					Service: tests.BookstoreV2ServiceName,
+					Weight:  tests.Weight90,
+				},
+			},
+		},
+	}
+
+	testSplit3 := split.TrafficSplit{
+		ObjectMeta: v1.ObjectMeta{
+			Namespace: "bar",
+		},
+		Spec: split.TrafficSplitSpec{
+			Service: "apex-split-1",
+			Backends: []split.TrafficSplitBackend{
+				{
+					Service: tests.BookstoreV1ServiceName,
+					Weight:  tests.Weight10,
+				},
+				{
+					Service: tests.BookstoreV2ServiceName,
+					Weight:  tests.Weight90,
+				},
+			},
+		},
+	}
+
+	testCases := []struct {
+		name           string
+		trafficsplits  []*split.TrafficSplit
+		backendService service.MeshService
+		expected       bool
+	}{
+		{
+			name:           "bookstore-v1 is an backend service",
+			trafficsplits:  []*split.TrafficSplit{&tests.TrafficSplit},
+			backendService: tests.BookstoreV1Service,
+			expected:       true,
+		},
+		{
+			name:           "bookstore-apex is not a backend service",
+			trafficsplits:  []*split.TrafficSplit{&testSplit2},
+			backendService: tests.BookstoreApexService,
+			expected:       false,
+		},
+		{
+			name:           "bookstore-v1 is not a backend service",
+			trafficsplits:  []*split.TrafficSplit{&testSplit2},
+			backendService: tests.BookstoreApexService,
+			expected:       false,
+		},
+		{
+			name:           "bookstore-apex is not a backend service across multiple traffic splits",
+			trafficsplits:  []*split.TrafficSplit{&testSplit2, &testSplit3},
+			backendService: tests.BookstoreApexService,
+			expected:       false,
+		},
+		{
+			name:           "bookstore-v1 is an backend service across multiple traffic splits",
+			trafficsplits:  []*split.TrafficSplit{&testSplit2, &tests.TrafficSplit, &testSplit3},
+			backendService: tests.BookstoreV1Service,
+			expected:       true,
+		},
+		{
+			name:           "no traffic splits present, must return false",
+			trafficsplits:  []*split.TrafficSplit{},
+			backendService: tests.BookstoreV1Service,
+			expected:       false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockKubeController := k8s.NewMockController(mockCtrl)
+			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
+			mc := MeshCatalog{
+				kubeController:     mockKubeController,
+				meshSpec:           mockMeshSpec,
+				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
+			}
+			mockMeshSpec.EXPECT().ListTrafficSplits().Return(tc.trafficsplits).AnyTimes()
+			actual := mc.isTrafficSplitBackendService(tc.backendService)
 			assert.Equal(tc.expected, actual)
 		})
 	}

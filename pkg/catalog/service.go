@@ -4,47 +4,51 @@ import (
 	"reflect"
 	"strings"
 
+	mapset "github.com/deckarep/golang-set"
 	"github.com/pkg/errors"
 
 	"github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
-// isApexService returns true if the given service is an apex service in any traffic split
-func (mc *MeshCatalog) isApexService(svc service.MeshService) bool {
+// isTrafficSplitBackendService returns true if the given service is a backend service in any traffic split
+func (mc *MeshCatalog) isTrafficSplitBackendService(svc service.MeshService) bool {
 	for _, split := range mc.meshSpec.ListTrafficSplits() {
-		apexSvc := service.MeshService{
-			Name:      split.Spec.Service,
-			Namespace: split.ObjectMeta.Namespace,
-		}
-		if reflect.DeepEqual(svc, apexSvc) {
-			return true
+		for _, backend := range split.Spec.Backends {
+			backendService := service.MeshService{
+				Name:      backend.Service,
+				Namespace: split.ObjectMeta.Namespace,
+			}
+			if svc.Equals(backendService) {
+				return true
+			}
 		}
 	}
 	return false
 }
 
-// getBackendServiceForApexService returns a list of backend services that serve the given apex service in a traffic split
-func (mc *MeshCatalog) getBackendServiceForApexService(apexSvc service.MeshService) []service.MeshService {
-	var backendServices []service.MeshService
+// getApexServicesForBackendService returns a list of services that serve as the apex service in a traffic split where the
+// given service is a backend
+func (mc *MeshCatalog) getApexServicesForBackendService(targetService service.MeshService) []service.MeshService {
+	apexList := []service.MeshService{}
+	apexSet := mapset.NewSet()
 	for _, split := range mc.meshSpec.ListTrafficSplits() {
-		svc := service.MeshService{
-			Name:      split.Spec.Service,
-			Namespace: split.ObjectMeta.Namespace,
-		}
-		if reflect.DeepEqual(svc, apexSvc) {
-			for _, backend := range split.Spec.Backends {
-				backendService := service.MeshService{
-					Name:      backend.Service,
-					Namespace: split.ObjectMeta.Namespace,
-				}
-				backendServices = append(backendServices, backendService)
+		for _, backend := range split.Spec.Backends {
+			if backend.Service == targetService.Name && split.Namespace == targetService.Namespace {
+				apexSet.Add(service.MeshService{
+					Name:      split.Spec.Service,
+					Namespace: split.Namespace,
+				})
+				break
 			}
-			// only first traffic split that matches for the given apex service is taken into consideration
-			return backendServices
 		}
 	}
-	return backendServices
+
+	for v := range apexSet.Iter() {
+		apexList = append(apexList, v.(service.MeshService))
+	}
+
+	return apexList
 }
 
 // GetServicesForServiceAccount returns a list of services corresponding to a service account
