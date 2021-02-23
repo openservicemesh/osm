@@ -15,9 +15,9 @@ This document describes how to expose HTTP and HTTPS routes outside the cluster 
 - An ingress controller must be running in the cluster.
 
 ## Exposing an HTTP or HTTPS service using Ingress
-A service can expose HTTP or HTTPS routes outside the cluster using Kubernetes Ingress along with an ingress controller. Once an ingress resource is configured to expose HTTP routes outside the cluster to a service within the cluster, OSM will configure the sidecar proxy on pods to allow ingress traffic to the service based on the ingress routing rules defined by the Kubernetes Ingress resource. Keep in mind, this behavior opens up HTTP-based access to any service, not just ingress.
+A service can expose HTTP or HTTPS routes outside the cluster using Kubernetes Ingress along with an ingress controller. Once an ingress resource is configured to expose HTTP routes outside the cluster to a service within the cluster, OSM will configure the sidecar proxy on pods to allow ingress traffic to the service based on the ingress routing rules defined by the Kubernetes Ingress resource. Keep in mind, this behavior opens up HTTP-based access to any client that is not a part of the service mesh, not just ingress.
 
-For HTTPS ingress, OSM supports one way TLS authentication to backend services.
+HTTPS ingress support is experimental. OSM supports one way TLS authentication to backend services.
 
 By default, OSM configures HTTP as the backend protocol for services when an ingress resource is applied with a backend service that belongs to the mesh. A mesh-wide configuration setting in OSM's `osm-config` ConfigMap enables configuring ingress with the backend protocol to be HTTPS. HTTPS ingress can be enabled by updating the `osm-config` ConfigMap in `osm-controller`'s namespace (`osm-system` by default).
 
@@ -37,7 +37,7 @@ Other ingress controllers might also work as long as they use Kubernetes Ingress
 ## Ingress configurations
 The following section describes sample ingress configurations used to expose services managed by OSM outside the cluster. The configuration might differ based on the ingress controller being used.
 
-The example configurations describe how to expose HTTP and HTTPS routes for the `bookstore-v1` service running on port `80` in the `bookstore-ns` namespace, outside the cluster. The ingress configuration will expose the HTTP path `/books-bought` on the `bookstore-v1` service.
+The example configurations describe how to expose HTTP and HTTPS routes for the `bookstore-v1` service running on port `80` in the `bookstore` namespace, outside the cluster. The ingress configuration will expose the HTTP path `/books-bought` on the `bookstore-v1` service.
 
 Since OSM uses its own root certificate, the ingress controller must be provisioned with OSM's root certificate to be able to authenticate the certificate presented by backend servers when using HTTPS ingress. OSM stores the CA root certificate in a Kubernetes secret named `osm-ca-bundle` with the key `ca.crt` in the namespace OSM is deployed (`osm-system` by default).
 
@@ -57,16 +57,16 @@ The host defined by `spec.rules.host` field is optional.
 
 HTTP ingress sample configuration:
 ```yaml
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
 metadata:
   name: bookstore-v1
-  namespace: bookstore-ns
+  namespace: bookstore
   annotations:
     kubernetes.io/ingress.class: nginx
 spec:
   rules:
-  - host: bookstore-v1.bookstore-ns.svc.cluster.local
+  - host: bookstore-v1.bookstore.svc.cluster.local
     http:
       paths:
       - path: /books-bought
@@ -77,22 +77,22 @@ spec:
 
 HTTPS ingress sample configuration:
 ```yaml
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
 metadata:
   name: bookstore-v1
-  namespace: bookstore-ns
+  namespace: bookstore
   annotations:
     kubernetes.io/ingress.class: nginx
     nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
     nginx.ingress.kubernetes.io/configuration-snippet: |
-      proxy_ssl_name "bookstore-v1.bookstore-ns.svc.cluster.local";
+      proxy_ssl_name "bookstore-v1.bookstore.svc.cluster.local";
     nginx.ingress.kubernetes.io/proxy-ssl-secret: "osm-system/osm-ca-bundle"
     nginx.ingress.kubernetes.io/proxy-ssl-server-name: "on" # optional
     nginx.ingress.kubernetes.io/proxy-ssl-verify: "on"
 spec:
   rules:
-  - host: bookstore-v1.bookstore-ns.svc.cluster.local
+  - host: bookstore-v1.bookstore.svc.cluster.local
     http:
       paths:
       - path: /books-bought
@@ -126,11 +126,11 @@ The host defined by `spec.rules.host` field is optional and skipped in the examp
 
 HTTP ingress sample configuration:
 ```yaml
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
 metadata:
   name: bookstore-v1
-  namespace: bookstore-ns
+  namespace: bookstore
   annotations:
     kubernetes.io/ingress.class: azure/application-gateway
 spec:
@@ -145,16 +145,16 @@ spec:
 
 HTTPS ingress sample configuration:
 ```yaml
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
 metadata:
   name: bookstore-v1
-  namespace: bookstore-ns
+  namespace: bookstore
   annotations:
     kubernetes.io/ingress.class: azure/application-gateway
     appgw.ingress.kubernetes.io/backend-protocol: "https"
     appgw.ingress.kubernetes.io/appgw-trusted-root-certificate: "osm-ca-bundle"
-    appgw.ingress.kubernetes.io/backend-hostname: "bookstore-v1.bookstore-ns.svc.cluster.local"
+    appgw.ingress.kubernetes.io/backend-hostname: "bookstore-v1.bookstore.svc.cluster.local"
 spec:
   rules:
   - http:
@@ -187,16 +187,16 @@ glooctl create secret tls --name osm-ca-bundle --rootca osm-c-bundlea.pem
 Next we could use an Ingress file like this:
 
 ```yaml
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
 metadata:
   name: bookstore-v1
-  namespace: bookstore-ns
+  namespace: bookstore
   annotations:
     kubernetes.io/ingress.class: gloo
 spec:
   rules:
-  - host: bookstore-v1.bookstore-ns.svc.cluster.local
+  - host: bookstore-v1.bookstore.svc.cluster.local
     http:
       paths:
       - path: /books-bought
@@ -215,7 +215,7 @@ metadata:
   namespace: gloo-system
 spec:
   sslConfig:
-    sni: "bookstore-v1.bookstore-ns.svc.cluster.local"
+    sni: "bookstore-v1.bookstore.svc.cluster.local"
     secretRef:
       name: osm-ca-bundle
       namespace: gloo-system
