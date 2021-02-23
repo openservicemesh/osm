@@ -4,11 +4,11 @@ import (
 	"bytes"
 	"context"
 
-	"github.com/onsi/gomega/gstruct"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gstruct"
 	v1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/fake"
@@ -75,6 +75,19 @@ var _ = Describe("Running the mesh list command", func() {
 			}))
 		})
 
+		It("Should return map with pods and joined namespaces", func() {
+			fakeClientSet := fake.NewSimpleClientset(&corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "osm-controller-pod",
+					Namespace: "osm-system",
+					Labels: map[string]string{
+						"app": constants.OSMControllerName,
+					},
+				},
+			},
+			)
+			Expect(getNamespacePods(fakeClientSet, "osm", "osm-system")).To(Equal(map[string][]string{"Pods": {"osm-controller-pod"}}))
+		})
 	})
 
 	Context("when no control planes exist", func() {
