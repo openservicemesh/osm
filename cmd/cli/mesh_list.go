@@ -114,4 +114,3 @@ func getMeshNames(clientSet kubernetes.Interface) mapset.Set {
 
 	return meshList
 }
-
