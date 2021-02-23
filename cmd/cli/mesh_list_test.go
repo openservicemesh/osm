@@ -134,4 +134,3 @@ func createDeployment(deploymentName, meshName string, isMesh bool) *v1.Deployme
 	}
 	return dep
 }
-
