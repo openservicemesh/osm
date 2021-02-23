@@ -21,12 +21,17 @@ var _ = OSMDescribe("Test HTTP traffic from 1 pod client -> 1 pod server",
 		Bucket: 1,
 	},
 	func() {
-		Context("SimpleClientServer with a Kubernetes Service for the Source: HTTP", func() {
-			testTraffic(true)
+		Context("Test traffic flowing from client to server with a Kubernetes Service for the Source: HTTP", func() {
+			withSourceKubernetesService := true
+			testTraffic(withSourceKubernetesService)
 		})
 
-		Context("SimpleClientServer without a Kubernetes Service for the Source: HTTP", func() {
-			testTraffic(false)
+		Context("Test traffic flowing from client to server without a Kubernetes Service for the Source: HTTP", func() {
+			// Prior iterations of OSM required that a source pod belong to a Kubernetes service
+			// for the Envoy proxy to be configured for outbound traffic to some remote server.
+			// This test ensures we test this scenario: client Pod is not associated w/ a service.
+			withSourceKubernetesService := false
+			testTraffic(withSourceKubernetesService)
 		})
 	})
 
