@@ -59,7 +59,7 @@ var expectedBookbuyerOutbound []*trafficpolicy.OutboundTrafficPolicy = []*traffi
 	},
 }
 
-func TestListTrafficPoliciesForServiceAccount(t *testing.T) {
+func TestListOutboundTrafficPolicies(t *testing.T) {
 	assert := tassert.New(t)
 
 	testCases := []struct {
@@ -69,9 +69,7 @@ func TestListTrafficPoliciesForServiceAccount(t *testing.T) {
 		trafficsplits    []*split.TrafficSplit
 		traffictargets   []*access.TrafficTarget
 		trafficspecs     []*specs.HTTPRouteGroup
-		expectedInbound  []*trafficpolicy.InboundTrafficPolicy
 		expectedOutbound []*trafficpolicy.OutboundTrafficPolicy
-		expectedErr      bool
 	}{
 		{
 			name:             "only traffic targets",
@@ -80,9 +78,7 @@ func TestListTrafficPoliciesForServiceAccount(t *testing.T) {
 			trafficsplits:    []*split.TrafficSplit{},
 			traffictargets:   []*access.TrafficTarget{&tests.TrafficTarget},
 			trafficspecs:     []*specs.HTTPRouteGroup{&tests.HTTPRouteGroup},
-			expectedInbound:  []*trafficpolicy.InboundTrafficPolicy{},
 			expectedOutbound: expectedBookbuyerOutbound,
-			expectedErr:      false,
 		},
 		{
 			name:           "traffic targets and traffic splits",
@@ -93,10 +89,9 @@ func TestListTrafficPoliciesForServiceAccount(t *testing.T) {
 					Namespace: tests.Namespace,
 				},
 			},
-			trafficsplits:   []*split.TrafficSplit{&tests.TrafficSplit},
-			traffictargets:  []*access.TrafficTarget{&tests.TrafficTarget},
-			trafficspecs:    []*specs.HTTPRouteGroup{&tests.HTTPRouteGroup},
-			expectedInbound: []*trafficpolicy.InboundTrafficPolicy{},
+			trafficsplits:  []*split.TrafficSplit{&tests.TrafficSplit},
+			traffictargets: []*access.TrafficTarget{&tests.TrafficTarget},
+			trafficspecs:   []*specs.HTTPRouteGroup{&tests.HTTPRouteGroup},
 			expectedOutbound: []*trafficpolicy.OutboundTrafficPolicy{
 				{
 					Name:      "bookstore-v1",
@@ -132,7 +127,6 @@ func TestListTrafficPoliciesForServiceAccount(t *testing.T) {
 					},
 				},
 			},
-			expectedErr: false,
 		},
 		{
 			name:           "only traffic splits, no traffic targets",
@@ -143,10 +137,9 @@ func TestListTrafficPoliciesForServiceAccount(t *testing.T) {
 					Namespace: tests.Namespace,
 				},
 			},
-			trafficsplits:   []*split.TrafficSplit{&tests.TrafficSplit},
-			traffictargets:  []*access.TrafficTarget{},
-			trafficspecs:    []*specs.HTTPRouteGroup{},
-			expectedInbound: []*trafficpolicy.InboundTrafficPolicy{},
+			trafficsplits:  []*split.TrafficSplit{&tests.TrafficSplit},
+			traffictargets: []*access.TrafficTarget{},
+			trafficspecs:   []*specs.HTTPRouteGroup{},
 			expectedOutbound: []*trafficpolicy.OutboundTrafficPolicy{
 				{
 					Name:      "bookstore-apex",
@@ -162,7 +155,6 @@ func TestListTrafficPoliciesForServiceAccount(t *testing.T) {
 					},
 				},
 			},
-			expectedErr: false,
 		},
 		{
 			name:             "no traffic targets and no traffic splits",
@@ -171,9 +163,7 @@ func TestListTrafficPoliciesForServiceAccount(t *testing.T) {
 			trafficsplits:    []*split.TrafficSplit{},
 			traffictargets:   []*access.TrafficTarget{},
 			trafficspecs:     []*specs.HTTPRouteGroup{},
-			expectedInbound:  []*trafficpolicy.InboundTrafficPolicy{},
 			expectedOutbound: []*trafficpolicy.OutboundTrafficPolicy{},
-			expectedErr:      false,
 		},
 	}
 
@@ -205,13 +195,69 @@ func TestListTrafficPoliciesForServiceAccount(t *testing.T) {
 				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
 			}
 
-			inbound, outbound, errs := mc.ListTrafficPoliciesForServiceAccount(tc.serviceAccount)
-			if tc.expectedErr {
-				assert.NotNil(errs)
-			} else {
-				assert.Nil(errs)
+			outbound := mc.ListOutboundTrafficPolicies(tc.serviceAccount)
+			assert.ElementsMatch(tc.expectedOutbound, outbound)
+		})
+	}
+}
+
+func TestListOutboundPoliciesForTrafficTargets(t *testing.T) {
+	assert := tassert.New(t)
+
+	testCases := []struct {
+		name             string
+		serviceAccount   service.K8sServiceAccount
+		apexMeshServices []service.MeshService
+		traffictargets   []*access.TrafficTarget
+		trafficspecs     []*specs.HTTPRouteGroup
+		expectedOutbound []*trafficpolicy.OutboundTrafficPolicy
+	}{
+		{
+			name:             "only traffic targets",
+			serviceAccount:   tests.BookbuyerServiceAccount,
+			apexMeshServices: []service.MeshService{},
+			traffictargets:   []*access.TrafficTarget{&tests.TrafficTarget},
+			trafficspecs:     []*specs.HTTPRouteGroup{&tests.HTTPRouteGroup},
+			expectedOutbound: expectedBookbuyerOutbound,
+		},
+		{
+			name:             "no traffic targets and no traffic splits",
+			serviceAccount:   tests.BookbuyerServiceAccount,
+			apexMeshServices: []service.MeshService{},
+			traffictargets:   []*access.TrafficTarget{},
+			trafficspecs:     []*specs.HTTPRouteGroup{},
+			expectedOutbound: []*trafficpolicy.OutboundTrafficPolicy{},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			mockKubeController := k8s.NewMockController(mockCtrl)
+			mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+			mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
+
+			for _, ms := range tc.apexMeshServices {
+				apexK8sService := tests.NewServiceFixture(ms.Name, ms.Namespace, map[string]string{})
+				mockKubeController.EXPECT().GetService(ms).Return(apexK8sService).AnyTimes()
 			}
-			assert.ElementsMatch(tc.expectedInbound, inbound)
+			mockMeshSpec.EXPECT().ListTrafficTargets().Return(tc.traffictargets).AnyTimes()
+			mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return(tc.trafficspecs).AnyTimes()
+			mockEndpointProvider.EXPECT().GetServicesForServiceAccount(tests.BookstoreServiceAccount).Return([]service.MeshService{tests.BookstoreV1Service, tests.BookstoreV2Service, tests.BookstoreApexService}, nil).AnyTimes()
+			mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
+			mockKubeController.EXPECT().GetService(tests.BookstoreV1Service).Return(tests.NewServiceFixture(tests.BookstoreV1Service.Name, tests.BookstoreV1Service.Namespace, map[string]string{})).AnyTimes()
+			mockKubeController.EXPECT().GetService(tests.BookstoreV2Service).Return(tests.NewServiceFixture(tests.BookstoreV2Service.Name, tests.BookstoreV2Service.Namespace, map[string]string{})).AnyTimes()
+			mockKubeController.EXPECT().GetService(tests.BookstoreApexService).Return(tests.NewServiceFixture(tests.BookstoreApexService.Name, tests.BookstoreApexService.Namespace, map[string]string{})).AnyTimes()
+
+			mc := MeshCatalog{
+				kubeController:     mockKubeController,
+				meshSpec:           mockMeshSpec,
+				endpointsProviders: []endpoint.Provider{mockEndpointProvider},
+			}
+
+			outbound := mc.listOutboundPoliciesForTrafficTargets(tc.serviceAccount)
 			assert.ElementsMatch(tc.expectedOutbound, outbound)
 		})
 	}
@@ -1155,7 +1201,7 @@ func TestBuildInboundPolicies(t *testing.T) {
 		name                    string
 		sourceSA                service.K8sServiceAccount
 		destSA                  service.K8sServiceAccount
-		destMeshServices        []service.MeshService
+		inboundService          service.MeshService
 		trafficSpec             specs.HTTPRouteGroup
 		trafficSplit            split.TrafficSplit
 		expectedInboundPolicies []*trafficpolicy.InboundTrafficPolicy
@@ -1170,10 +1216,10 @@ func TestBuildInboundPolicies(t *testing.T) {
 				Name:      "bookstore",
 				Namespace: "bookstore-ns",
 			},
-			destMeshServices: []service.MeshService{{
+			inboundService: service.MeshService{
 				Name:      "bookstore",
 				Namespace: "bookstore-ns",
-			}},
+			},
 			trafficSpec: spec.HTTPRouteGroup{
 				TypeMeta: v1.TypeMeta{
 					APIVersion: "specs.smi-spec.io/v1alpha4",
@@ -1262,7 +1308,142 @@ func TestBuildInboundPolicies(t *testing.T) {
 				Name:      "bookstore",
 				Namespace: "default",
 			},
-			destMeshServices: []service.MeshService{{
+			inboundService: service.MeshService{
+				Name:      "bookstore",
+				Namespace: "default",
+			},
+			trafficSpec: spec.HTTPRouteGroup{
+				TypeMeta: v1.TypeMeta{
+					APIVersion: "specs.smi-spec.io/v1alpha4",
+					Kind:       "HTTPRouteGroup",
+				},
+				ObjectMeta: v1.ObjectMeta{
+					Namespace: "default",
+					Name:      tests.RouteGroupName,
+				},
+
+				Spec: spec.HTTPRouteGroupSpec{
+					Matches: []spec.HTTPMatch{
+						{
+							Name:      tests.BuyBooksMatchName,
+							PathRegex: tests.BookstoreBuyPath,
+							Methods:   []string{"GET"},
+							Headers: map[string]string{
+								"user-agent": tests.HTTPUserAgent,
+							},
+						},
+						{
+							Name:      tests.SellBooksMatchName,
+							PathRegex: tests.BookstoreSellPath,
+							Methods:   []string{"GET"},
+							Headers: map[string]string{
+								"user-agent": tests.HTTPUserAgent,
+							},
+						},
+					},
+				},
+			},
+			trafficSplit: split.TrafficSplit{},
+			expectedInboundPolicies: []*trafficpolicy.InboundTrafficPolicy{
+				{
+					Name: "bookstore.default",
+					Hostnames: []string{
+						"bookstore",
+						"bookstore.default",
+						"bookstore.default.svc",
+						"bookstore.default.svc.cluster",
+						"bookstore.default.svc.cluster.local",
+						"bookstore:8888",
+						"bookstore.default:8888",
+						"bookstore.default.svc:8888",
+						"bookstore.default.svc.cluster:8888",
+						"bookstore.default.svc.cluster.local:8888",
+					},
+					Rules: []*trafficpolicy.Rule{
+						{
+							Route: trafficpolicy.RouteWeightedClusters{
+								HTTPRouteMatch: tests.BookstoreBuyHTTPRoute,
+								WeightedClusters: mapset.NewSet(service.WeightedCluster{
+									ClusterName: "default/bookstore",
+									Weight:      100,
+								}),
+							},
+							AllowedServiceAccounts: mapset.NewSet(service.K8sServiceAccount{
+								Name:      "bookbuyer",
+								Namespace: "default",
+							}),
+						},
+						{
+							Route: trafficpolicy.RouteWeightedClusters{
+								HTTPRouteMatch: tests.BookstoreSellHTTPRoute,
+								WeightedClusters: mapset.NewSet(service.WeightedCluster{
+									ClusterName: "default/bookstore",
+									Weight:      100,
+								}),
+							},
+							AllowedServiceAccounts: mapset.NewSet(service.K8sServiceAccount{
+								Name:      "bookbuyer",
+								Namespace: "default",
+							}),
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			destK8sService := tests.NewServiceFixture(tc.inboundService.Name, tc.inboundService.Namespace, map[string]string{})
+			mockKubeController.EXPECT().GetService(tc.inboundService).Return(destK8sService).AnyTimes()
+
+			mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return([]*specs.HTTPRouteGroup{&tc.trafficSpec}).AnyTimes()
+			mockMeshSpec.EXPECT().ListTrafficSplits().Return([]*split.TrafficSplit{&tc.trafficSplit}).AnyTimes()
+			mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
+			mockEndpointProvider.EXPECT().GetServicesForServiceAccount(tc.destSA).Return([]service.MeshService{tc.inboundService}, nil).AnyTimes()
+
+			trafficTarget := tests.NewSMITrafficTarget(tc.sourceSA.Name, tc.sourceSA.Namespace, tc.destSA.Name, tc.destSA.Namespace)
+
+			actual := mc.buildInboundPolicies(&trafficTarget, tc.inboundService)
+			assert.ElementsMatch(tc.expectedInboundPolicies, actual)
+		})
+	}
+}
+
+func TestListInboundPoliciesFromTrafficTargets(t *testing.T) {
+	assert := tassert.New(t)
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	mockKubeController := k8s.NewMockController(mockCtrl)
+	mockMeshSpec := smi.NewMockMeshSpec(mockCtrl)
+	mockEndpointProvider := endpoint.NewMockProvider(mockCtrl)
+
+	mc := MeshCatalog{
+		kubeController:     mockKubeController,
+		meshSpec:           mockMeshSpec,
+		endpointsProviders: []endpoint.Provider{mockEndpointProvider},
+	}
+
+	testCases := []struct {
+		name                    string
+		sourceSA                service.K8sServiceAccount
+		destSA                  service.K8sServiceAccount
+		inboundServices         []service.MeshService
+		trafficSpec             specs.HTTPRouteGroup
+		trafficSplit            split.TrafficSplit
+		expectedInboundPolicies []*trafficpolicy.InboundTrafficPolicy
+	}{
+		{
+			name: "inbound policies in same namespaces, without traffic split",
+			sourceSA: service.K8sServiceAccount{
+				Name:      "bookbuyer",
+				Namespace: "default",
+			},
+			destSA: service.K8sServiceAccount{
+				Name:      "bookstore",
+				Namespace: "default",
+			},
+			inboundServices: []service.MeshService{{
 				Name:      "bookstore",
 				Namespace: "default",
 			}},
@@ -1354,7 +1535,7 @@ func TestBuildInboundPolicies(t *testing.T) {
 				Name:      "bookstore",
 				Namespace: "default",
 			},
-			destMeshServices: []service.MeshService{{
+			inboundServices: []service.MeshService{{
 				Name:      "bookstore",
 				Namespace: "default",
 			}, {
@@ -1502,7 +1683,7 @@ func TestBuildInboundPolicies(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			for _, destMeshSvc := range tc.destMeshServices {
+			for _, destMeshSvc := range tc.inboundServices {
 				destK8sService := tests.NewServiceFixture(destMeshSvc.Name, destMeshSvc.Namespace, map[string]string{})
 				mockKubeController.EXPECT().GetService(destMeshSvc).Return(destK8sService).AnyTimes()
 			}
@@ -1510,11 +1691,12 @@ func TestBuildInboundPolicies(t *testing.T) {
 			mockMeshSpec.EXPECT().ListHTTPTrafficSpecs().Return([]*specs.HTTPRouteGroup{&tc.trafficSpec}).AnyTimes()
 			mockMeshSpec.EXPECT().ListTrafficSplits().Return([]*split.TrafficSplit{&tc.trafficSplit}).AnyTimes()
 			mockEndpointProvider.EXPECT().GetID().Return("fake").AnyTimes()
-			mockEndpointProvider.EXPECT().GetServicesForServiceAccount(tc.destSA).Return(tc.destMeshServices, nil)
+			mockEndpointProvider.EXPECT().GetServicesForServiceAccount(tc.destSA).Return(tc.inboundServices, nil).AnyTimes()
 
 			trafficTarget := tests.NewSMITrafficTarget(tc.sourceSA.Name, tc.sourceSA.Namespace, tc.destSA.Name, tc.destSA.Namespace)
+			mockMeshSpec.EXPECT().ListTrafficTargets().Return([]*access.TrafficTarget{&trafficTarget}).AnyTimes()
 
-			actual := mc.buildInboundPolicies(&trafficTarget)
+			actual := mc.listInboundPoliciesFromTrafficTargets(tc.destSA, tc.inboundServices)
 			assert.ElementsMatch(tc.expectedInboundPolicies, actual)
 		})
 	}
@@ -1797,90 +1979,6 @@ func TestDifference(t *testing.T) {
 	}
 }
 
-func TestListPoliciesFromTrafficTargets(t *testing.T) {
-	assert := tassert.New(t)
-
-	expectedBookstoreInbound := []*trafficpolicy.InboundTrafficPolicy{
-		{
-			Name:      "bookstore-v1.default",
-			Hostnames: tests.BookstoreV1Hostnames,
-			Rules: []*trafficpolicy.Rule{
-				{
-					Route: trafficpolicy.RouteWeightedClusters{
-						HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
-						WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
-					},
-					AllowedServiceAccounts: mapset.NewSet(tests.BookbuyerServiceAccount),
-				},
-				{
-					Route: trafficpolicy.RouteWeightedClusters{
-						HTTPRouteMatch:   tests.BookstoreSellHTTPRoute,
-						WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
-					},
-					AllowedServiceAccounts: mapset.NewSet(tests.BookbuyerServiceAccount),
-				},
-			},
-		},
-		{
-			Name:      "bookstore-apex.default",
-			Hostnames: tests.BookstoreApexHostnames,
-			Rules: []*trafficpolicy.Rule{
-				{
-					Route: trafficpolicy.RouteWeightedClusters{
-						HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
-						WeightedClusters: mapset.NewSet(tests.BookstoreApexDefaultWeightedCluster),
-					},
-					AllowedServiceAccounts: mapset.NewSet(tests.BookbuyerServiceAccount),
-				},
-				{
-					Route: trafficpolicy.RouteWeightedClusters{
-						HTTPRouteMatch:   tests.BookstoreSellHTTPRoute,
-						WeightedClusters: mapset.NewSet(tests.BookstoreApexDefaultWeightedCluster),
-					},
-					AllowedServiceAccounts: mapset.NewSet(tests.BookbuyerServiceAccount),
-				},
-			},
-		},
-	}
-
-	testCases := []struct {
-		name             string
-		serviceAccount   service.K8sServiceAccount
-		expectedInbound  []*trafficpolicy.InboundTrafficPolicy
-		expectedOutbound []*trafficpolicy.OutboundTrafficPolicy
-		expectedErr      bool
-	}{
-		{
-			name:             "outbound policies",
-			serviceAccount:   tests.BookbuyerServiceAccount,
-			expectedInbound:  []*trafficpolicy.InboundTrafficPolicy{},
-			expectedOutbound: expectedBookbuyerOutbound,
-			expectedErr:      false,
-		},
-		{
-			name:             "inbound policies",
-			serviceAccount:   tests.BookstoreServiceAccount,
-			expectedInbound:  expectedBookstoreInbound,
-			expectedOutbound: []*trafficpolicy.OutboundTrafficPolicy{},
-			expectedErr:      false,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			mc := newFakeMeshCatalogForRoutes(t, testParams{})
-			inbound, outbound, errs := mc.listPoliciesFromTrafficTargets(tc.serviceAccount)
-			assert.ElementsMatch(tc.expectedInbound, inbound)
-			assert.ElementsMatch(tc.expectedOutbound, outbound)
-			if tc.expectedErr {
-				assert.NotNil(errs)
-			} else {
-				assert.Nil(errs)
-			}
-		})
-	}
-}
-
 func TestListPoliciesForPermissiveMode(t *testing.T) {
 	assert := tassert.New(t)
 	mockCtrl := gomock.NewController(t)
@@ -1984,8 +2082,7 @@ func TestListPoliciesForPermissiveMode(t *testing.T) {
 	mockKubeController.EXPECT().ListServices().Return(services).AnyTimes()
 	mockKubeController.EXPECT().ListServiceAccounts().Return(serviceAccounts).AnyTimes()
 
-	inbound, outbound, err := mc.ListPoliciesForPermissiveMode([]service.MeshService{tests.BookbuyerService})
-	assert.Nil(err)
+	inbound, outbound := mc.ListPoliciesForPermissiveMode([]service.MeshService{tests.BookbuyerService})
 	assert.ElementsMatch(expectedBookbuyerInbound, inbound)
 	assert.ElementsMatch(expectedBookbuyerNamespacedOutbound, outbound)
 }

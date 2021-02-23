@@ -66,11 +66,14 @@ type MeshCataloger interface {
 	// ListTrafficPolicies returns all the traffic policies for a given service that Envoy proxy should be aware of.
 	ListTrafficPolicies(service.MeshService) ([]trafficpolicy.TrafficTarget, error)
 
-	// ListTrafficPoliciesForServiceAccount returns all inbound and outbound traffic policies related to the given service account
-	ListTrafficPoliciesForServiceAccount(service.K8sServiceAccount) ([]*trafficpolicy.InboundTrafficPolicy, []*trafficpolicy.OutboundTrafficPolicy, error)
+	// ListTrafficPoliciesForServiceAccount returns all inbound traffic policies related to the given service account and inbound services
+	ListInboundTrafficPolicies(service.K8sServiceAccount, []service.MeshService) []*trafficpolicy.InboundTrafficPolicy
+
+	// ListTrafficPoliciesForServiceAccount returns all outbound traffic policies related to the given service account
+	ListOutboundTrafficPolicies(service.K8sServiceAccount) []*trafficpolicy.OutboundTrafficPolicy
 
 	// ListPoliciesForPermissiveMode returns all inbound and outbound traffic policies related to the given services
-	ListPoliciesForPermissiveMode(services []service.MeshService) ([]*trafficpolicy.InboundTrafficPolicy, []*trafficpolicy.OutboundTrafficPolicy, error)
+	ListPoliciesForPermissiveMode(services []service.MeshService) ([]*trafficpolicy.InboundTrafficPolicy, []*trafficpolicy.OutboundTrafficPolicy)
 
 	// ListAllowedInboundServices lists the inbound services allowed to connect to the given service.
 	ListAllowedInboundServices(service.MeshService) ([]service.MeshService, error)
