@@ -13,6 +13,15 @@ import (
 )
 
 var _ = Describe("Test Envoy tools", func() {
+	Context("Test GetLocalClusterNameForServiceCluster", func() {
+		It("", func() {
+			clusterName := "-cluster-name-"
+			actual := GetLocalClusterNameForServiceCluster(clusterName)
+			expected := "-cluster-name--local"
+			Expect(actual).To(Equal(expected))
+		})
+	})
+
 	Context("Test GetAddress()", func() {
 		It("should return address", func() {
 			addr := "blah"
