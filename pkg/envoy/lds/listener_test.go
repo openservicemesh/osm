@@ -150,6 +150,8 @@ var _ = Describe("Test getHTTPConnectionManager", func() {
 			Expect(connManager.GetHttpFilters()[2].GetName()).To(Equal(wellknown.HTTPRoleBasedAccessControl))
 			Expect(connManager.GetHttpFilters()[3].GetName()).To(Equal(wellknown.Router))
 
+			Expect(connManager.GetLocalReplyConfig().GetMappers()[0].HeadersToAdd[0].Header.Value).To(Equal("unknown"))
+
 			// reset global state
 			statsWASMBytes = oldStatsWASMBytes
 			featureflags.Features.WASMStats = oldWASMflag
