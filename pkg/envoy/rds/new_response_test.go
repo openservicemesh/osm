@@ -34,6 +34,8 @@ func TestNewResponse(t *testing.T) {
 	certSerialNumber := certificate.SerialNumber("123456")
 	testProxy := envoy.NewProxy(certCommonName, certSerialNumber, nil)
 
+	testOutbound := []*trafficpolicy.OutboundTrafficPolicy{}
+
 	testInbound := []*trafficpolicy.InboundTrafficPolicy{
 		{
 			Name:      "bookstore-v1.default",
@@ -92,7 +94,8 @@ func TestNewResponse(t *testing.T) {
 		},
 	}
 
-	mockCatalog.EXPECT().ListTrafficPoliciesForServiceAccount(gomock.Any()).Return(testInbound, nil, nil).AnyTimes()
+	mockCatalog.EXPECT().ListInboundTrafficPolicies(gomock.Any(), gomock.Any()).Return(testInbound).AnyTimes()
+	mockCatalog.EXPECT().ListOutboundTrafficPolicies(gomock.Any()).Return(testOutbound).AnyTimes()
 	mockCatalog.EXPECT().GetIngressPoliciesForService(gomock.Any(), gomock.Any()).Return(testIngressInbound, nil).AnyTimes()
 	mockCatalog.EXPECT().GetServicesFromEnvoyCertificate(gomock.Any()).Return([]service.MeshService{tests.BookstoreV1Service}, nil).AnyTimes()
 
@@ -215,7 +218,7 @@ func TestNewResponseWithPermissiveMode(t *testing.T) {
 	}
 
 	mockCatalog.EXPECT().GetServicesFromEnvoyCertificate(gomock.Any()).Return([]service.MeshService{tests.BookstoreV1Service}, nil).AnyTimes()
-	mockCatalog.EXPECT().ListPoliciesForPermissiveMode(gomock.Any()).Return(testPermissiveInbound, testOutbound, nil).AnyTimes()
+	mockCatalog.EXPECT().ListPoliciesForPermissiveMode(gomock.Any()).Return(testPermissiveInbound, testOutbound).AnyTimes()
 	mockCatalog.EXPECT().GetIngressPoliciesForService(gomock.Any(), gomock.Any()).Return(testIngressInbound, nil).AnyTimes()
 
 	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(true).AnyTimes()

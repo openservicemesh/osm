@@ -31,15 +31,11 @@ func newResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 
 	if cfg.IsPermissiveTrafficPolicyMode() {
 		// Build traffic policies from service discovery for permissive mode
-		inboundTrafficPolicies, outboundTrafficPolicies, err = catalog.ListPoliciesForPermissiveMode(services)
+		inboundTrafficPolicies, outboundTrafficPolicies = catalog.ListPoliciesForPermissiveMode(services)
 	} else {
 		// Build traffic policies from SMI Traffic Target and Traffic Split
-		inboundTrafficPolicies, outboundTrafficPolicies, err = catalog.ListTrafficPoliciesForServiceAccount(proxyIdentity)
-	}
-
-	if err != nil {
-		log.Error().Err(err).Msgf("Error listing policies for Envoy with serial number=%q", proxy.GetCertificateSerialNumber())
-		return nil, err
+		inboundTrafficPolicies = catalog.ListInboundTrafficPolicies(proxyIdentity, services)
+		outboundTrafficPolicies = catalog.ListOutboundTrafficPolicies(proxyIdentity)
 	}
 
 	// Get Ingress inbound policies for the proxy

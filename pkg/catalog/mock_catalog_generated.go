@@ -323,13 +323,12 @@ func (mr *MockMeshCatalogerMockRecorder) ListMonitoredNamespaces() *gomock.Call 
 }
 
 // ListPoliciesForPermissiveMode mocks base method
-func (m *MockMeshCataloger) ListPoliciesForPermissiveMode(arg0 []service.MeshService) ([]*trafficpolicy.InboundTrafficPolicy, []*trafficpolicy.OutboundTrafficPolicy, error) {
+func (m *MockMeshCataloger) ListPoliciesForPermissiveMode(arg0 []service.MeshService) ([]*trafficpolicy.InboundTrafficPolicy, []*trafficpolicy.OutboundTrafficPolicy) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListPoliciesForPermissiveMode", arg0)
 	ret0, _ := ret[0].([]*trafficpolicy.InboundTrafficPolicy)
 	ret1, _ := ret[1].([]*trafficpolicy.OutboundTrafficPolicy)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
+	return ret0, ret1
 }
 
 // ListPoliciesForPermissiveMode indicates an expected call of ListPoliciesForPermissiveMode
@@ -386,20 +385,32 @@ func (mr *MockMeshCatalogerMockRecorder) ListTrafficPolicies(arg0 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTrafficPolicies", reflect.TypeOf((*MockMeshCataloger)(nil).ListTrafficPolicies), arg0)
 }
 
-// ListTrafficPoliciesForServiceAccount mocks base method
-func (m *MockMeshCataloger) ListTrafficPoliciesForServiceAccount(arg0 service.K8sServiceAccount) ([]*trafficpolicy.InboundTrafficPolicy, []*trafficpolicy.OutboundTrafficPolicy, error) {
+// ListOutboundTrafficPolicies mocks base method
+func (m *MockMeshCataloger) ListOutboundTrafficPolicies(arg0 service.K8sServiceAccount) []*trafficpolicy.OutboundTrafficPolicy {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListTrafficPoliciesForServiceAccount", arg0)
-	ret0, _ := ret[0].([]*trafficpolicy.InboundTrafficPolicy)
-	ret1, _ := ret[1].([]*trafficpolicy.OutboundTrafficPolicy)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
+	ret := m.ctrl.Call(m, "ListOutboundTrafficPolicies", arg0)
+	ret0, _ := ret[0].([]*trafficpolicy.OutboundTrafficPolicy)
+	return ret0
 }
 
-// ListTrafficPoliciesForServiceAccount indicates an expected call of ListTrafficPoliciesForServiceAccount
-func (mr *MockMeshCatalogerMockRecorder) ListTrafficPoliciesForServiceAccount(arg0 interface{}) *gomock.Call {
+// ListOutboundTrafficPolicies indicates an expected call of ListOutboundTrafficPolicies
+func (mr *MockMeshCatalogerMockRecorder) ListOutboundTrafficPolicies(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTrafficPoliciesForServiceAccount", reflect.TypeOf((*MockMeshCataloger)(nil).ListTrafficPoliciesForServiceAccount), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListOutboundTrafficPolicies", reflect.TypeOf((*MockMeshCataloger)(nil).ListOutboundTrafficPolicies), arg0)
+}
+
+// ListInboundTrafficPolicies mocks base method
+func (m *MockMeshCataloger) ListInboundTrafficPolicies(arg0 service.K8sServiceAccount, arg1 []service.MeshService) []*trafficpolicy.InboundTrafficPolicy {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListInboundTrafficPolicies", arg0, arg1)
+	ret0, _ := ret[0].([]*trafficpolicy.InboundTrafficPolicy)
+	return ret0
+}
+
+// ListInboundTrafficPolicies indicates an expected call of ListInboundTrafficPolicies
+func (mr *MockMeshCatalogerMockRecorder) ListInboundTrafficPolicies(arg0 interface{}, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListInboundTrafficPolicies", reflect.TypeOf((*MockMeshCataloger)(nil).ListInboundTrafficPolicies), arg0, arg1)
 }
 
 // RegisterProxy mocks base method

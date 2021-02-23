@@ -63,17 +63,21 @@ func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespa
 	return outboundPoliciesFromSplits
 }
 
-// ListTrafficPoliciesForServiceAccount returns all inbound and outbound traffic policies related to the given service account
-func (mc *MeshCatalog) ListTrafficPoliciesForServiceAccount(sa service.K8sServiceAccount) ([]*trafficpolicy.InboundTrafficPolicy, []*trafficpolicy.OutboundTrafficPolicy, error) {
-	inbound, outbound, err := mc.listPoliciesFromTrafficTargets(sa)
-	if err != nil {
-		return nil, nil, err
-	}
+// ListOutboundTrafficPolicies returns all outbound traffic policies related to the given service account
+func (mc *MeshCatalog) ListOutboundTrafficPolicies(sa service.K8sServiceAccount) []*trafficpolicy.OutboundTrafficPolicy {
+	outbound := mc.listOutboundPoliciesForTrafficTargets(sa)
 
 	outboundPoliciesFromSplits := mc.listOutboundTrafficPoliciesForTrafficSplits(sa.Namespace)
 	outbound = trafficpolicy.MergeOutboundPolicies(outbound, outboundPoliciesFromSplits...)
 
-	return inbound, outbound, nil
+	return outbound
+}
+
+// ListInboundTrafficPolicies returns all inbound traffic policies related to the given service account and inbound services
+func (mc *MeshCatalog) ListInboundTrafficPolicies(sa service.K8sServiceAccount, inboundSvcs []service.MeshService) []*trafficpolicy.InboundTrafficPolicy {
+	inbound := mc.listInboundPoliciesFromTrafficTargets(sa, inboundSvcs)
+
+	return inbound
 }
 
 // ListTrafficPolicies returns all the traffic policies for a given service that Envoy proxy should be aware of.
@@ -531,7 +535,7 @@ func (mc *MeshCatalog) getDestinationServicesFromTrafficTarget(t *access.Traffic
 	return destServices, nil
 }
 
-func (mc *MeshCatalog) buildInboundPolicies(t *access.TrafficTarget) []*trafficpolicy.InboundTrafficPolicy {
+func (mc *MeshCatalog) buildInboundPolicies(t *access.TrafficTarget, svc service.MeshService) []*trafficpolicy.InboundTrafficPolicy {
 	inboundPolicies := []*trafficpolicy.InboundTrafficPolicy{}
 
 	// fetch services running workloads with destination service account
@@ -548,35 +552,34 @@ func (mc *MeshCatalog) buildInboundPolicies(t *access.TrafficTarget) []*trafficp
 		return inboundPolicies
 	}
 
-	for _, destService := range destServices {
-		hostnames, err := mc.getServiceHostnames(destService, true)
-		if err != nil {
-			continue
-		}
+	hostnames, err := mc.getServiceHostnames(svc, true)
+	if err != nil {
+		log.Error().Err(err).Msgf("Error getting service hostnames for service %s", svc)
+		return inboundPolicies
+	}
 
-		servicePolicy := trafficpolicy.NewInboundTrafficPolicy(buildPolicyName(destService, false), hostnames)
+	servicePolicy := trafficpolicy.NewInboundTrafficPolicy(buildPolicyName(svc, false), hostnames)
 
-		// while building inbound policies, check if the service is an apex service in traffic split
-		if mc.isApexService(destService) {
-			var localDestServices []service.MeshService
-			// build the inbound policy for an apex service to have its weighted clusters point to the backend services
-			backendServices := mc.getBackendServiceForApexService(destService)
-			// among all the backend services, select only those that overlap with the destination services
-			for _, backendSvc := range backendServices {
-				for _, destSvc := range destServices {
-					if reflect.DeepEqual(backendSvc, destSvc) {
-						localDestServices = append(localDestServices, destSvc)
-					}
+	// while building inbound policies, check if the service is an apex service in traffic split
+	if mc.isApexService(svc) {
+		var localDestServices []service.MeshService
+		// build the inbound policy for an apex service to have its weighted clusters point to the backend services
+		backendServices := mc.getBackendServiceForApexService(svc)
+		// among all the backend services, select only those that overlap with the destination services
+		for _, backendSvc := range backendServices {
+			for _, destSvc := range destServices {
+				if reflect.DeepEqual(backendSvc, destSvc) {
+					localDestServices = append(localDestServices, destSvc)
 				}
 			}
-			servicePolicy = buildInboundPolicyRules(servicePolicy, routeMatches, trafficTargetIdentitiesToSvcAccounts(t.Spec.Sources), localDestServices)
-		} else {
-			servicePolicy = buildInboundPolicyRules(servicePolicy, routeMatches, trafficTargetIdentitiesToSvcAccounts(t.Spec.Sources), []service.MeshService{destService})
 		}
+		servicePolicy = buildInboundPolicyRules(servicePolicy, routeMatches, trafficTargetIdentitiesToSvcAccounts(t.Spec.Sources), localDestServices)
+	} else {
+		servicePolicy = buildInboundPolicyRules(servicePolicy, routeMatches, trafficTargetIdentitiesToSvcAccounts(t.Spec.Sources), []service.MeshService{svc})
+	}
 
-		if len(servicePolicy.Rules) > 0 {
-			inboundPolicies = append(inboundPolicies, servicePolicy)
-		}
+	if len(servicePolicy.Rules) > 0 {
+		inboundPolicies = append(inboundPolicies, servicePolicy)
 	}
 
 	return inboundPolicies
@@ -679,10 +682,31 @@ func (mc *MeshCatalog) buildOutboundPolicies(source service.K8sServiceAccount, t
 	return outPolicies
 }
 
-// listPoliciesFromTrafficTargets loops through all SMI Traffic Target resources and returns inbound and outbound traffic policies
-// based on when the given service account matches a destination or source in the Traffic Target resource
-func (mc *MeshCatalog) listPoliciesFromTrafficTargets(sa service.K8sServiceAccount) ([]*trafficpolicy.InboundTrafficPolicy, []*trafficpolicy.OutboundTrafficPolicy, error) {
+// listInboundPoliciesFromTrafficTargets builds inbound traffic policies for all inbound services
+// when the given service account matches a destination in the Traffic Target resource
+func (mc *MeshCatalog) listInboundPoliciesFromTrafficTargets(upstreamIdentity service.K8sServiceAccount, upstreamServices []service.MeshService) []*trafficpolicy.InboundTrafficPolicy {
 	inboundPolicies := []*trafficpolicy.InboundTrafficPolicy{}
+
+	for _, t := range mc.meshSpec.ListTrafficTargets() { // loop through all traffic targets
+		if !isValidTrafficTarget(t) {
+			continue
+		}
+
+		if t.Spec.Destination.Name != upstreamIdentity.Name { // not an inbound policy for service
+			continue
+		}
+
+		for _, svc := range upstreamServices {
+			inboundPolicies = trafficpolicy.MergeInboundPolicies(false, inboundPolicies, mc.buildInboundPolicies(t, svc)...)
+		}
+	}
+
+	return inboundPolicies
+}
+
+// listOutboundPoliciesForTrafficTargets loops through all SMI Traffic Target resources and returns outbound traffic policies
+// when the given service account matches a source in the Traffic Target resource
+func (mc *MeshCatalog) listOutboundPoliciesForTrafficTargets(downstreamIdentity service.K8sServiceAccount) []*trafficpolicy.OutboundTrafficPolicy {
 	outboundPolicies := []*trafficpolicy.OutboundTrafficPolicy{}
 
 	for _, t := range mc.meshSpec.ListTrafficTargets() { // loop through all traffic targets
@@ -690,23 +714,19 @@ func (mc *MeshCatalog) listPoliciesFromTrafficTargets(sa service.K8sServiceAccou
 			continue
 		}
 
-		if t.Spec.Destination.Name == sa.Name { // found inbound
-			inboundPolicies = trafficpolicy.MergeInboundPolicies(false, inboundPolicies, mc.buildInboundPolicies(t)...)
-		}
-
 		for _, source := range t.Spec.Sources {
-			if source.Name == sa.Name && source.Namespace == sa.Namespace { // found outbound
-				mergedPolicies := trafficpolicy.MergeOutboundPolicies(outboundPolicies, mc.buildOutboundPolicies(sa, t)...)
+			if source.Name == downstreamIdentity.Name && source.Namespace == downstreamIdentity.Namespace { // found outbound
+				mergedPolicies := trafficpolicy.MergeOutboundPolicies(outboundPolicies, mc.buildOutboundPolicies(downstreamIdentity, t)...)
 				outboundPolicies = mergedPolicies
 				break
 			}
 		}
 	}
-	return inboundPolicies, outboundPolicies, nil
+	return outboundPolicies
 }
 
 // ListPoliciesForPermissiveMode builds inbound and outbound traffic policies from service discovery
-func (mc *MeshCatalog) ListPoliciesForPermissiveMode(services []service.MeshService) ([]*trafficpolicy.InboundTrafficPolicy, []*trafficpolicy.OutboundTrafficPolicy, error) {
+func (mc *MeshCatalog) ListPoliciesForPermissiveMode(services []service.MeshService) ([]*trafficpolicy.InboundTrafficPolicy, []*trafficpolicy.OutboundTrafficPolicy) {
 	inboundPolicies := []*trafficpolicy.InboundTrafficPolicy{}
 	outboundPolicies := []*trafficpolicy.OutboundTrafficPolicy{}
 
@@ -716,7 +736,7 @@ func (mc *MeshCatalog) ListPoliciesForPermissiveMode(services []service.MeshServ
 
 	mergedPolicies := trafficpolicy.MergeOutboundPolicies(outboundPolicies, mc.buildOutboundPermissiveModePolicies(services)...)
 	outboundPolicies = mergedPolicies
-	return inboundPolicies, outboundPolicies, nil
+	return inboundPolicies, outboundPolicies
 }
 
 // buildPolicyName creates a name for a policy associated with the given service
