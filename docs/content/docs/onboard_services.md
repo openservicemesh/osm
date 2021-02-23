@@ -50,7 +50,7 @@ The following guide describes how to onboard a Kubernetes microservice to an OSM
 
 1. Verify the new behavior
 
-    The OSM control plane installs Prometheus and Grafana instances by default that can be used to help make sure the application is working properly. More details can be found in the [Observability](../patterns/observability) document.
+    The OSM control plane supports Prometheus, Grafana and Jaeger instances that can be used to help make sure the application is working properly. **These are disabled by default**. More details can be found in the [Observability](./patterns/observability/_index.md) documents.
 
 
 #### Note: Removing Namespaces
