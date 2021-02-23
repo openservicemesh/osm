@@ -28,18 +28,18 @@ kubectl patch ConfigMap osm-config -n osm-system -p '{"data":{"use_https_ingress
 
 ## Ingress controller compatibility
 Ingress in OSM is compatible with the following ingress controllers.
-- [Nginx Ingress Controller][2]
+- [Kubernetes Nginx Ingress Controller][2]
 - [Azure Application Gateway Ingress Controller][3]
 - [Gloo API Gateway][5]
 
-Other ingress controllers might also work as long as they use Kubernetes Ingress resource and allow provisioning a custom root certificate for HTTPS backend server certificate validation.
+Other ingress controllers might also work as long as they use Kubernetes Ingress resource, and allow provisioning a custom root certificate for HTTPS backend server certificate validation while using HTTPS ingress.
 
 ## Ingress configurations
 The following section describes sample ingress configurations used to expose services managed by OSM outside the cluster. The configuration might differ based on the ingress controller being used.
 
-The example configurations describe how to expose HTTP and HTTPS routes for the `bookstore-v1` service running on port `80` in the `bookstore` namespace, outside the cluster. The ingress configuration will expose the HTTP path `/books-bought` on the `bookstore-v1` service.
+The example configurations describe how to expose HTTP and HTTPS routes for the `bookstore-v1` service running on a pod with the service acccount `bookstore-v1` on port `80` in the `bookstore` namespace, outside the cluster. The ingress configuration will expose the HTTP path `/books-bought` on the `bookstore-v1` service.
 
-Since OSM uses its own root certificate, the ingress controller must be provisioned with OSM's root certificate to be able to authenticate the certificate presented by backend servers when using HTTPS ingress. OSM stores the CA root certificate in a Kubernetes secret named `osm-ca-bundle` with the key `ca.crt` in the namespace OSM is deployed (`osm-system` by default).
+Since OSM uses its own root certificate, the ingress controller must be provisioned with OSM's root certificate to be able to authenticate the certificate presented by backend servers when using HTTPS ingress. With `Tresor` as the certificate provider, OSM stores the CA root certificate in a Kubernetes secret named `osm-ca-bundle` with the key `ca.crt` in the namespace OSM is deployed (`osm-system` by default). When using other certificate providers such as `cert-manager.io` or `Hashicorp Vault`, the `osm-ca-bundle` secret must be created by the user with the base64 encoded root certificate stored as the value to the `ca.crt` attribute in the secret's data.
 
 ### Using Nginx Ingress Controller
 An ingress configuration yaml with [Nginx Ingress Controller][2] for the `bookstore-v1` service described above would look as follows.
@@ -48,65 +48,103 @@ An ingress configuration yaml with [Nginx Ingress Controller][2] for the `bookst
 
 For HTTPS ingress, additional annotations are required.
 - Specify the backend protocol as HTTPS using the annotation `nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"`.
-- Specify the hostname of the service using the annotation `nginx.ingress.kubernetes.io/configuration-snippet`.
+- Specify the SAN to use to verify the HTTPS backend using the annotation `nginx.ingress.kubernetes.io/configuration-snippet`.
 - Specify the secret corresponding to the root certificate using the annotation `nginx.ingress.kubernetes.io/proxy-ssl-secret`.
 - Specify the passing of TLS Server Name Indication (SNI) to proxied HTTPS backends using the annotation `nginx.ingress.kubernetes.io/proxy-ssl-server-name`. This is optional.
 - Enable SSL verification of backend service using the annotation `nginx.ingress.kubernetes.io/proxy-ssl-verify`.
 
-The host defined by `spec.rules.host` field is optional.
+#### Examples
 
-HTTP ingress sample configuration:
-```yaml
-apiVersion: networking.k8s.io/v1beta1
-kind: Ingress
-metadata:
-  name: bookstore-v1
-  namespace: bookstore
-  annotations:
-    kubernetes.io/ingress.class: nginx
-spec:
-  rules:
-  - host: bookstore-v1.bookstore.svc.cluster.local
-    http:
-      paths:
-      - path: /books-bought
-        backend:
-          serviceName: bookstore-v1
-          servicePort: 80
-```
+1. HTTP ingress resource with wildcard host:
+    ```yaml
+    apiVersion: networking.k8s.io/v1beta1
+    kind: Ingress
+    metadata:
+      name: bookstore-v1
+      namespace: bookstore
+      annotations:
+        kubernetes.io/ingress.class: nginx
+    spec:
+      rules:
+      - http:
+          paths:
+          - path: /books-bought
+            backend:
+              serviceName: bookstore-v1
+              servicePort: 80
+    ```
 
-HTTPS ingress sample configuration:
-```yaml
-apiVersion: networking.k8s.io/v1beta1
-kind: Ingress
-metadata:
-  name: bookstore-v1
-  namespace: bookstore
-  annotations:
-    kubernetes.io/ingress.class: nginx
-    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
-    nginx.ingress.kubernetes.io/configuration-snippet: |
-      proxy_ssl_name "bookstore-v1.bookstore.svc.cluster.local";
-    nginx.ingress.kubernetes.io/proxy-ssl-secret: "osm-system/osm-ca-bundle"
-    nginx.ingress.kubernetes.io/proxy-ssl-server-name: "on" # optional
-    nginx.ingress.kubernetes.io/proxy-ssl-verify: "on"
-spec:
-  rules:
-  - host: bookstore-v1.bookstore.svc.cluster.local
-    http:
-      paths:
-      - path: /books-bought
-        backend:
-          serviceName: bookstore-v1
-          servicePort: 80
-```
+    Accessing the service:
+    ```bash
+    curl http://<external-ingress-ip>/books-bought
+    ```
 
-### Using Azure Application Gateway Ingress Controller
+1. HTTP ingress resource with host specified:
+    ```yaml
+    apiVersion: networking.k8s.io/v1beta1
+    kind: Ingress
+    metadata:
+      name: bookstore-v1
+      namespace: bookstore
+      annotations:
+        kubernetes.io/ingress.class: nginx
+    spec:
+      rules:
+      - host: bookstore-v1.bookstore.svc.cluster.local # FQDN of service
+        http:
+          paths:
+          - path: /books-bought
+            backend:
+              serviceName: bookstore-v1
+              servicePort: 80
+    ```
+
+    Accessing the service:
+    ```bash
+    curl http://<external-ingress-ip>/books-bought -H "Host: bookstore-v1.bookstore.svc.cluster.local"
+    ```
+
+1. HTTPS ingress with host specified:
+
+    Here, the requests to the backend are proxied over HTTPS. As a result, the root CA certificate used to verify the certificate presented by the backend must be configured, along with other SSL parameters.
+    ```yaml
+    apiVersion: networking.k8s.io/v1beta1
+    kind: Ingress
+    metadata:
+      name: bookstore-v1
+      namespace: bookstore
+      annotations:
+        kubernetes.io/ingress.class: nginx
+        nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+        # proxy_ssl_name for a service is of the form <service-account>.<namespace>.cluster.local
+        nginx.ingress.kubernetes.io/configuration-snippet: |
+          proxy_ssl_name "bookstore-v1.bookstore.cluster.local";
+        # k8s secret with CA certificate stored with key ca.crt
+        nginx.ingress.kubernetes.io/proxy-ssl-secret: "osm-system/osm-ca-bundle"
+        nginx.ingress.kubernetes.io/proxy-ssl-server-name: "on" # optional
+        nginx.ingress.kubernetes.io/proxy-ssl-verify: "on"
+    spec:
+      rules:
+      - host: bookstore.com
+        http:
+          paths:
+          - path: /books-bought
+            backend:
+              serviceName: bookstore-v1
+              servicePort: 80
+    ```
+    Accessing the service:
+    ```bash
+    curl http://<external-ingress-ip>/books-bought -H "Host: bookstore.com"
+    ```
+
+### Using Azure Application Gateway Ingress Controller (experimental)
+
 An ingress configuration yaml with [Azure Application Gateway Ingress Controller][3] for the `bookstore-v1` service described above would look as follows.
 
 - Specify the ingress controller as Azure Application Gateway using the annotation `kubernetes.io/ingress.class: azure/application-gateway`.
 
-For HTTPS ingress, additional annotations are required.
+HTTPS ingress requires additional annotations to be specified.
 - Specify the backend protocol as HTTPS using the annotation `appgw.ingress.kubernetes.io/backend-protocol: "https"`.
 - Specify the root certificate name added to Azure Application Gateway corresponding to OSM's root certificate using the annotation `appgw.ingress.kubernetes.io/appgw-trusted-root-certificate`. Refer to the document on [adding trusted root certificates to Azure Application Gateway][4].
     ```bash
@@ -122,49 +160,60 @@ For HTTPS ingress, additional annotations are required.
     ```
 - Specify the hostname for the backend service using the annotation `appgw.ingress.kubernetes.io/backend-hostname`.
 
-The host defined by `spec.rules.host` field is optional and skipped in the example below.
+#### Examples
 
-HTTP ingress sample configuration:
-```yaml
-apiVersion: networking.k8s.io/v1beta1
-kind: Ingress
-metadata:
-  name: bookstore-v1
-  namespace: bookstore
-  annotations:
-    kubernetes.io/ingress.class: azure/application-gateway
-spec:
-  rules:
-  - http:
-      paths:
-      - path: /books-bought
-        backend:
-          serviceName: bookstore-v1
-          servicePort: 80
-```
+1. HTTP ingress with wildcard host:
+    ```yaml
+    apiVersion: networking.k8s.io/v1beta1
+    kind: Ingress
+    metadata:
+      name: bookstore-v1
+      namespace: bookstore
+      annotations:
+        kubernetes.io/ingress.class: azure/application-gateway
+    spec:
+      rules:
+      - http:
+          paths:
+          - path: /books-bought
+            backend:
+              serviceName: bookstore-v1
+              servicePort: 80
+    ```
 
-HTTPS ingress sample configuration:
-```yaml
-apiVersion: networking.k8s.io/v1beta1
-kind: Ingress
-metadata:
-  name: bookstore-v1
-  namespace: bookstore
-  annotations:
-    kubernetes.io/ingress.class: azure/application-gateway
-    appgw.ingress.kubernetes.io/backend-protocol: "https"
-    appgw.ingress.kubernetes.io/appgw-trusted-root-certificate: "osm-ca-bundle"
-    appgw.ingress.kubernetes.io/backend-hostname: "bookstore-v1.bookstore.svc.cluster.local"
-spec:
-  rules:
-  - http:
-      paths:
-      - path: /books-bought
-        backend:
-          serviceName: bookstore-v1
-          servicePort: 8080 # Note: port 80 cannot be used for HTTPS ingress with Azure Application Gateway ingress
-```
-### Using Gloo API Gateway
+    Accessing the service:
+    ```bash
+    curl http://<external-ingress-ip>/books-bought
+    ```
+
+1. HTTPS ingress sample configuration:
+    ```yaml
+    apiVersion: networking.k8s.io/v1beta1
+    kind: Ingress
+    metadata:
+      name: bookstore-v1
+      namespace: bookstore
+      annotations:
+        kubernetes.io/ingress.class: azure/application-gateway
+        appgw.ingress.kubernetes.io/backend-protocol: "https"
+        appgw.ingress.kubernetes.io/appgw-trusted-root-certificate: "osm-ca-bundle"
+        appgw.ingress.kubernetes.io/backend-hostname: "bookstore-v1.bookstore.svc.cluster.local"
+    spec:
+      rules:
+      - http:
+          paths:
+          - path: /books-bought
+            backend:
+              serviceName: bookstore-v1
+              servicePort: 8080 # Note: port 80 cannot be used for HTTPS ingress with Azure Application Gateway ingress
+    ```
+
+    Accessing the service:
+    ```bash
+    curl http://<external-ingress-ip>/books-bought
+    ```
+
+### Using Gloo API Gateway (experimental)
 
 [Gloo API Gateway][5] is an Envoy-powered API gateway that can run in `Ingress` mode or full-blow `Gateway` mode. In this document, we show the `Ingress` approach, but you can refer to the [Gloo documentation][5] for more in depth functionality enabled by Gloo.
 
