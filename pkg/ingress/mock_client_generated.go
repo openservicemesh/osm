@@ -8,9 +8,8 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	"github.com/openservicemesh/osm/pkg/announcements"
 	service "github.com/openservicemesh/osm/pkg/service"
-	v1beta1 "k8s.io/api/extensions/v1beta1"
+	v1beta1 "k8s.io/api/networking/v1beta1"
 )
 
 // MockMonitor is a mock of Monitor interface
@@ -34,20 +33,6 @@ func NewMockMonitor(ctrl *gomock.Controller) *MockMonitor {
 // EXPECT returns an object that allows the caller to indicate expected use
 func (m *MockMonitor) EXPECT() *MockMonitorMockRecorder {
 	return m.recorder
-}
-
-// GetAnnouncementsChannel mocks base method
-func (m *MockMonitor) GetAnnouncementsChannel() <-chan announcements.Announcement {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAnnouncementsChannel")
-	ret0, _ := ret[0].(<-chan announcements.Announcement)
-	return ret0
-}
-
-// GetAnnouncementsChannel indicates an expected call of GetAnnouncementsChannel
-func (mr *MockMonitorMockRecorder) GetAnnouncementsChannel() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAnnouncementsChannel", reflect.TypeOf((*MockMonitor)(nil).GetAnnouncementsChannel))
 }
 
 // GetIngressResources mocks base method

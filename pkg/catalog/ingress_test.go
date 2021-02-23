@@ -11,12 +11,11 @@ import (
 	"github.com/golang/mock/gomock"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
-	extensionsV1beta "k8s.io/api/extensions/v1beta1"
+	networkingV1beta1 "k8s.io/api/networking/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
@@ -107,9 +106,6 @@ func newFakeMeshCatalog() *MeshCatalog {
 		GinkgoT().Fatalf("Error creating new Bookstore Apex service", err.Error())
 	}
 
-	announcementsChan := make(chan announcements.Announcement)
-
-	mockIngressMonitor.EXPECT().GetAnnouncementsChannel().Return(announcementsChan).AnyTimes()
 	mockIngressMonitor.EXPECT().GetIngressResources(gomock.Any()).Return(getFakeIngresses(), nil).AnyTimes()
 
 	// Monitored namespaces is made a set to make sure we don't repeat namespaces on mock
@@ -154,8 +150,8 @@ func newFakeMeshCatalog() *MeshCatalog {
 		mockIngressMonitor, stop, cfg, endpointProviders...)
 }
 
-func getFakeIngresses() []*extensionsV1beta.Ingress {
-	return []*extensionsV1beta.Ingress{
+func getFakeIngresses() []*networkingV1beta1.Ingress {
+	return []*networkingV1beta1.Ingress{
 		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "ingress-1",
@@ -164,23 +160,23 @@ func getFakeIngresses() []*extensionsV1beta.Ingress {
 					constants.OSMKubeResourceMonitorAnnotation: "enabled",
 				},
 			},
-			Spec: extensionsV1beta.IngressSpec{
-				Backend: &extensionsV1beta.IngressBackend{
+			Spec: networkingV1beta1.IngressSpec{
+				Backend: &networkingV1beta1.IngressBackend{
 					ServiceName: fakeIngressService,
 					ServicePort: intstr.IntOrString{
 						Type:   intstr.Int,
 						IntVal: fakeIngressPort,
 					},
 				},
-				Rules: []extensionsV1beta.IngressRule{
+				Rules: []networkingV1beta1.IngressRule{
 					{
 						Host: "fake1.com",
-						IngressRuleValue: extensionsV1beta.IngressRuleValue{
-							HTTP: &extensionsV1beta.HTTPIngressRuleValue{
-								Paths: []extensionsV1beta.HTTPIngressPath{
+						IngressRuleValue: networkingV1beta1.IngressRuleValue{
+							HTTP: &networkingV1beta1.HTTPIngressRuleValue{
+								Paths: []networkingV1beta1.HTTPIngressPath{
 									{
 										Path: "/fake1-path1",
-										Backend: extensionsV1beta.IngressBackend{
+										Backend: networkingV1beta1.IngressBackend{
 											ServiceName: fakeIngressService,
 											ServicePort: intstr.IntOrString{
 												Type:   intstr.Int,
@@ -190,7 +186,7 @@ func getFakeIngresses() []*extensionsV1beta.Ingress {
 									},
 									{
 										Path: "/fake1-path2",
-										Backend: extensionsV1beta.IngressBackend{
+										Backend: networkingV1beta1.IngressBackend{
 											ServiceName: fakeIngressService,
 											ServicePort: intstr.IntOrString{
 												Type:   intstr.Int,
@@ -214,23 +210,23 @@ func getFakeIngresses() []*extensionsV1beta.Ingress {
 					constants.OSMKubeResourceMonitorAnnotation: "enabled",
 				},
 			},
-			Spec: extensionsV1beta.IngressSpec{
-				Backend: &extensionsV1beta.IngressBackend{
+			Spec: networkingV1beta1.IngressSpec{
+				Backend: &networkingV1beta1.IngressBackend{
 					ServiceName: fakeIngressService,
 					ServicePort: intstr.IntOrString{
 						Type:   intstr.Int,
 						IntVal: fakeIngressPort,
 					},
 				},
-				Rules: []extensionsV1beta.IngressRule{
+				Rules: []networkingV1beta1.IngressRule{
 					{
 						Host: "fake2.com",
-						IngressRuleValue: extensionsV1beta.IngressRuleValue{
-							HTTP: &extensionsV1beta.HTTPIngressRuleValue{
-								Paths: []extensionsV1beta.HTTPIngressPath{
+						IngressRuleValue: networkingV1beta1.IngressRuleValue{
+							HTTP: &networkingV1beta1.HTTPIngressRuleValue{
+								Paths: []networkingV1beta1.HTTPIngressPath{
 									{
 										Path: "/fake2-path1",
-										Backend: extensionsV1beta.IngressBackend{
+										Backend: networkingV1beta1.IngressBackend{
 											ServiceName: fakeIngressService,
 											ServicePort: intstr.IntOrString{
 												Type:   intstr.Int,
@@ -244,12 +240,12 @@ func getFakeIngresses() []*extensionsV1beta.Ingress {
 					},
 					{
 						Host: "fake1.com",
-						IngressRuleValue: extensionsV1beta.IngressRuleValue{
-							HTTP: &extensionsV1beta.HTTPIngressRuleValue{
-								Paths: []extensionsV1beta.HTTPIngressPath{
+						IngressRuleValue: networkingV1beta1.IngressRuleValue{
+							HTTP: &networkingV1beta1.HTTPIngressRuleValue{
+								Paths: []networkingV1beta1.HTTPIngressPath{
 									{
 										Path: "/fake1-path3",
-										Backend: extensionsV1beta.IngressBackend{
+										Backend: networkingV1beta1.IngressBackend{
 											ServiceName: fakeIngressService,
 											ServicePort: intstr.IntOrString{
 												Type:   intstr.Int,

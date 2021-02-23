@@ -6,7 +6,7 @@ rules:
   - apiGroups: ["apps"]
     resources: ["daemonsets", "deployments", "replicasets", "statefulsets"]
     verbs: ["list", "get", "watch"]
-  - apiGroups: ["extensions"]
+  - apiGroups: ["networking.k8s.io"]
     resources: ["ingresses"]
     verbs: ["list", "get", "watch"]
   - apiGroups: ["batch"]

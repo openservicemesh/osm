@@ -2,7 +2,7 @@
 package ingress
 
 import (
-	extensionsV1beta "k8s.io/api/extensions/v1beta1"
+	networkingV1beta1 "k8s.io/api/networking/v1beta1"
 	"k8s.io/client-go/tools/cache"
 
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
@@ -25,5 +25,5 @@ type Client struct {
 // Monitor is the client interface for K8s Ingress resource
 type Monitor interface {
 	// GetIngressResources returns the ingress resources whose backends correspond to the service
-	GetIngressResources(service.MeshService) ([]*extensionsV1beta.Ingress, error)
+	GetIngressResources(service.MeshService) ([]*networkingV1beta1.Ingress, error)
 }

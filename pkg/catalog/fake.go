@@ -10,7 +10,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
@@ -47,10 +46,7 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface) *MeshCatalog {
 
 	certManager := tresor.NewFakeCertManager(cfg)
 
-	announcementsCh := make(chan announcements.Announcement)
-
 	mockIngressMonitor.EXPECT().GetIngressResources(gomock.Any()).Return(nil, nil).AnyTimes()
-	mockIngressMonitor.EXPECT().GetAnnouncementsChannel().Return(announcementsCh).AnyTimes()
 
 	// #1683 tracks potential improvements to the following dynamic mocks
 	mockKubeController.EXPECT().ListServices().DoAndReturn(func() []*corev1.Service {
