@@ -14,6 +14,7 @@ import (
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/featureflags"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
@@ -242,7 +243,7 @@ var _ = Describe("Route Configuration", func() {
 
 			//Validating the outbound clusters and routes
 			outboundRouteConfig := NewRouteConfigurationStub(OutboundRouteConfigName)
-			UpdateRouteConfiguration(sourceDomainAggregatedData, outboundRouteConfig, OutboundRoute)
+			UpdateRouteConfiguration(sourceDomainAggregatedData, outboundRouteConfig, OutboundRoute, nil)
 			Expect(outboundRouteConfig).NotTo(Equal(nil))
 			Expect(outboundRouteConfig.Name).To(Equal(OutboundRouteConfigName))
 			Expect(len(outboundRouteConfig.VirtualHosts)).To(Equal(len(sourceDomainAggregatedData)))
@@ -283,7 +284,7 @@ var _ = Describe("Route Configuration", func() {
 
 			//Validating the inbound clusters and routes
 			destRouteConfig := NewRouteConfigurationStub(InboundRouteConfigName)
-			UpdateRouteConfiguration(destDomainAggregatedData, destRouteConfig, InboundRoute)
+			UpdateRouteConfiguration(destDomainAggregatedData, destRouteConfig, InboundRoute, nil)
 			Expect(destRouteConfig).NotTo(Equal(nil))
 			Expect(destRouteConfig.Name).To(Equal(InboundRouteConfigName))
 			Expect(len(destRouteConfig.VirtualHosts)).To(Equal(len(destDomainAggregatedData)))
@@ -295,6 +296,21 @@ var _ = Describe("Route Configuration", func() {
 			Expect(destRouteConfig.VirtualHosts[0].Routes[0].Match.GetHeaders()[1].GetSafeRegexMatch().Regex).To(Equal(routePolicy.Headers[userAgentHeader]))
 			Expect(len(destRouteConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters().GetClusters())).To(Equal(weightedClusters.Cardinality()))
 			Expect(destRouteConfig.VirtualHosts[0].Routes[0].GetRoute().GetWeightedClusters().TotalWeight).To(Equal(&wrappers.UInt32Value{Value: uint32(totalClusterWeight)}))
+			Expect(destRouteConfig.ResponseHeadersToAdd).To(HaveLen(0))
+		})
+
+		It("Adds response headers for inbound routes when WASM is enabled", func() {
+			oldWASMflag := featureflags.IsWASMStatsEnabled()
+			featureflags.Features.WASMStats = true
+
+			//Validating the inbound clusters and routes
+			destRouteConfig := NewRouteConfigurationStub(InboundRouteConfigName)
+			proxy := &envoy.Proxy{}
+			UpdateRouteConfiguration(nil, destRouteConfig, InboundRoute, proxy)
+
+			Expect(destRouteConfig.ResponseHeadersToAdd).To(HaveLen(len(proxy.StatsHeaders())))
+
+			featureflags.Features.WASMStats = oldWASMflag
 		})
 	})
 })

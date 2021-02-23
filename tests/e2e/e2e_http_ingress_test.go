@@ -10,7 +10,7 @@ import (
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	helmcli "helm.sh/helm/v3/pkg/cli"
-	"k8s.io/api/extensions/v1beta1"
+	"k8s.io/api/networking/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
@@ -117,7 +117,7 @@ var _ = OSMDescribe("HTTP ingress",
 					},
 				},
 			}
-			_, err = Td.Client.ExtensionsV1beta1().Ingresses(destNs).Create(context.Background(), ing, metav1.CreateOptions{})
+			_, err = Td.Client.NetworkingV1beta1().Ingresses(destNs).Create(context.Background(), ing, metav1.CreateOptions{})
 			Expect(err).NotTo(HaveOccurred())
 
 			// All ready. Expect client to reach server

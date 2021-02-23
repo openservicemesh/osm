@@ -279,6 +279,10 @@ func (c Client) ListServiceAccountsForService(svc service.MeshService) ([]servic
 	for _, pod := range pods {
 		svcRawSelector := k8sSvc.Spec.Selector
 		selector := labels.Set(svcRawSelector).AsSelector()
+		// service has no selectors, we do not need to match against the pod label
+		if len(svcRawSelector) == 0 {
+			continue
+		}
 		if selector.Matches(labels.Set(pod.Labels)) {
 			podSvcAccount := service.K8sServiceAccount{
 				Name:      pod.Spec.ServiceAccountName,

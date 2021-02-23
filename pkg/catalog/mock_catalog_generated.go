@@ -53,20 +53,6 @@ func (mr *MockMeshCatalogerMockRecorder) ExpectProxy(arg0 interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExpectProxy", reflect.TypeOf((*MockMeshCataloger)(nil).ExpectProxy), arg0)
 }
 
-// GetApexServicesForBackend mocks base method
-func (m *MockMeshCataloger) GetApexServicesForBackend(arg0 service.MeshService) []service.MeshService {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetApexServicesForBackend", arg0)
-	ret0, _ := ret[0].([]service.MeshService)
-	return ret0
-}
-
-// GetApexServicesForBackend indicates an expected call of GetApexServicesForBackend
-func (mr *MockMeshCatalogerMockRecorder) GetApexServicesForBackend(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetApexServicesForBackend", reflect.TypeOf((*MockMeshCataloger)(nil).GetApexServicesForBackend), arg0)
-}
-
 // GetIngressPoliciesForService mocks base method
 func (m *MockMeshCataloger) GetIngressPoliciesForService(arg0 service.MeshService, arg1 service.K8sServiceAccount) ([]*trafficpolicy.InboundTrafficPolicy, error) {
 	m.ctrl.T.Helper()

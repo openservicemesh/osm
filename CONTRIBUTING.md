@@ -102,11 +102,6 @@ Pull requests will be merged based on the following criteria:
 - All status checks have succeeded.
 - If the person who opened the pull request is a core maintainer, then only that person is expected to merge once it has the necessary LGTMs/reviews. Another maintainer can merge the pull request at their discretion if they feel the pull request must be merged urgently.
 
-#### Automerging
-Pull requests can be automatically merged by assigning the `automerge` label, see [here](https://github.com/openservicemesh/osm/blob/main/docs/developer/automerge.md) for additional details.
-- The `automerge` label may only be assigned if the author has verified that their pull request follows the merge requirements [above](#Merging-pull-requests).
-- Similar to the merge requirements, if the author is a core maintainer, then only they can assign the `automerge` label. If the author is an external contributor, then any core maintainer can assign the `automerge` label.
-
 ### Commit Style Guideline
 We follow a rough convention for commit messages borrowed from [Deis](https://github.com/deis/deis/blob/master/CONTRIBUTING.md#commit-style-guideline). This is an example of a commit:
 ```

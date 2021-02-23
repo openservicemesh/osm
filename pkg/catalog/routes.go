@@ -22,7 +22,7 @@ var wildCardRouteMatch trafficpolicy.HTTPRouteMatch = trafficpolicy.HTTPRouteMat
 	Methods:   []string{constants.WildcardHTTPMethod},
 }
 
-func (mc *MeshCatalog) listTrafficPoliciesForTrafficSplits(sourceNamespace string) []*trafficpolicy.OutboundTrafficPolicy {
+func (mc *MeshCatalog) listOutboundTrafficPoliciesForTrafficSplits(sourceNamespace string) []*trafficpolicy.OutboundTrafficPolicy {
 	outboundPoliciesFromSplits := []*trafficpolicy.OutboundTrafficPolicy{}
 
 	apexServices := mapset.NewSet()
@@ -70,7 +70,7 @@ func (mc *MeshCatalog) ListTrafficPoliciesForServiceAccount(sa service.K8sServic
 		return nil, nil, err
 	}
 
-	outboundPoliciesFromSplits := mc.listTrafficPoliciesForTrafficSplits(sa.Namespace)
+	outboundPoliciesFromSplits := mc.listOutboundTrafficPoliciesForTrafficSplits(sa.Namespace)
 	outbound = trafficpolicy.MergeOutboundPolicies(outbound, outboundPoliciesFromSplits...)
 
 	return inbound, outbound, nil
@@ -556,12 +556,22 @@ func (mc *MeshCatalog) buildInboundPolicies(t *access.TrafficTarget) []*trafficp
 
 		servicePolicy := trafficpolicy.NewInboundTrafficPolicy(buildPolicyName(destService, false), hostnames)
 
-		weightedCluster := getDefaultWeightedClusterForService(destService)
-
-		for _, sourceServiceAccount := range trafficTargetIdentitiesToSvcAccounts(t.Spec.Sources) {
-			for _, routeMatch := range routeMatches {
-				servicePolicy.AddRule(*trafficpolicy.NewRouteWeightedCluster(routeMatch, weightedCluster), sourceServiceAccount)
+		// while building inbound policies, check if the service is an apex service in traffic split
+		if mc.isApexService(destService) {
+			var localDestServices []service.MeshService
+			// build the inbound policy for an apex service to have its weighted clusters point to the backend services
+			backendServices := mc.getBackendServiceForApexService(destService)
+			// among all the backend services, select only those that overlap with the destination services
+			for _, backendSvc := range backendServices {
+				for _, destSvc := range destServices {
+					if reflect.DeepEqual(backendSvc, destSvc) {
+						localDestServices = append(localDestServices, destSvc)
+					}
+				}
 			}
+			servicePolicy = buildInboundPolicyRules(servicePolicy, routeMatches, trafficTargetIdentitiesToSvcAccounts(t.Spec.Sources), localDestServices)
+		} else {
+			servicePolicy = buildInboundPolicyRules(servicePolicy, routeMatches, trafficTargetIdentitiesToSvcAccounts(t.Spec.Sources), []service.MeshService{destService})
 		}
 
 		if len(servicePolicy.Rules) > 0 {
@@ -570,6 +580,18 @@ func (mc *MeshCatalog) buildInboundPolicies(t *access.TrafficTarget) []*trafficp
 	}
 
 	return inboundPolicies
+}
+
+func buildInboundPolicyRules(servicePolicy *trafficpolicy.InboundTrafficPolicy, routeMatches []trafficpolicy.HTTPRouteMatch, sourceSvcAccounts []service.K8sServiceAccount, services []service.MeshService) *trafficpolicy.InboundTrafficPolicy {
+	for _, svc := range services {
+		weightedCluster := getDefaultWeightedClusterForService(svc)
+		for _, sourceServiceAccount := range sourceSvcAccounts {
+			for _, routeMatch := range routeMatches {
+				servicePolicy.AddRule(*trafficpolicy.NewRouteWeightedCluster(routeMatch, weightedCluster), sourceServiceAccount)
+			}
+		}
+	}
+	return servicePolicy
 }
 
 func (mc *MeshCatalog) buildInboundPermissiveModePolicies(svc service.MeshService) []*trafficpolicy.InboundTrafficPolicy {

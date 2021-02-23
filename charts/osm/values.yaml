@@ -23,7 +23,7 @@ OpenServiceMesh:
         memory: "512M"
       requests:
         cpu: "0.5"
-        memory: "32M"
+        memory: "128M"
   prometheus:
     # -- Prometheus port
     port: 7070
@@ -142,7 +142,7 @@ OpenServiceMesh:
     resource:
       limits:
         cpu: "0.5"
-        memory: "32M"
+        memory: "64M"
       requests:
         cpu: "0.3"
-        memory: "32M"
+        memory: "64M"

@@ -6,12 +6,14 @@ import (
 	"strings"
 
 	set "github.com/deckarep/golang-set"
+	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
 	xds_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"github.com/golang/protobuf/ptypes/wrappers"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/featureflags"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
@@ -48,7 +50,7 @@ const (
 )
 
 //UpdateRouteConfiguration constructs the Envoy construct necessary for TrafficTarget implementation
-func UpdateRouteConfiguration(domainRoutesMap map[string]map[string]trafficpolicy.RouteWeightedClusters, routeConfig *xds_route.RouteConfiguration, direction Direction) {
+func UpdateRouteConfiguration(domainRoutesMap map[string]map[string]trafficpolicy.RouteWeightedClusters, routeConfig *xds_route.RouteConfiguration, direction Direction, proxy *envoy.Proxy) {
 	var virtualHostPrefix string
 
 	switch direction {
@@ -68,6 +70,17 @@ func UpdateRouteConfiguration(domainRoutesMap map[string]map[string]trafficpolic
 		virtualHost := createVirtualHostStub(virtualHostPrefix, host, domains)
 		virtualHost.Routes = createRoutes(routePolicyWeightedClustersMap, direction)
 		routeConfig.VirtualHosts = append(routeConfig.VirtualHosts, virtualHost)
+	}
+
+	if featureflags.IsWASMStatsEnabled() && direction == InboundRoute {
+		for k, v := range proxy.StatsHeaders() {
+			routeConfig.ResponseHeadersToAdd = append(routeConfig.ResponseHeadersToAdd, &core.HeaderValueOption{
+				Header: &core.HeaderValue{
+					Key:   k,
+					Value: v,
+				},
+			})
+		}
 	}
 }
 

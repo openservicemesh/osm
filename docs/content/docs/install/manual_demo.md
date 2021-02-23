@@ -28,7 +28,11 @@ Use the [installation guide](/docs/content/docs/installation_guide.md) to instal
 
 For the purpose of this demo, it is recommended to install OSM with [permissive traffic policy mode](#permissive-traffic-policy-mode) enabled. By default, OSM will install with permissive traffic policy mode disabled and [SMI Traffic Policy Mode](#smi-traffic-policy-mode) enabled.
 
+<<<<<<< HEAD:docs/content/docs/install/manual_demo.md
 _Note: By default, `osm` CLI does not enable Prometheus, Grafana, and Jaegar as a part of control plane installation._
+=======
+*Note: By default, `osm` CLI does not enable Prometheus, Grafana, and Jaeger as a part of control plane installation.*
+>>>>>>> upstream/main:docs/example/README.md
 
 1.  Install OSM in permissive traffic policy mode:
 
@@ -42,11 +46,15 @@ _Note: By default, `osm` CLI does not enable Prometheus, Grafana, and Jaegar as 
     osm install
     ```
 
+<<<<<<< HEAD:docs/content/docs/install/manual_demo.md
 1.  To enable Prometheus and Grafana, use their respective flags
+=======
+1. To enable Prometheus, Grafana and Jaeger, use their respective flags
+>>>>>>> upstream/main:docs/example/README.md
     ```bash
-    osm install --deploy-prometheus true --deploy-grafana true
+    osm install --deploy-prometheus --deploy-grafana --deploy-jaeger
     ```
-    See the [metrics documentation](/docs/content/docs/patterns/observability/metrics.md#automatic-bring-up) for more details.
+    See the [observability documentation](/docs/content/docs/patterns/observability/_index.md) for more details.
 
 ## Deploying the Bookstore Demo Applications
 

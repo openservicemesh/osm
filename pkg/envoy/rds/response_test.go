@@ -14,7 +14,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/configurator"
@@ -190,8 +189,6 @@ var _ = Describe("RDS Response", func() {
 
 	certManager := tresor.NewFakeCertManager(cfg)
 
-	announcementsCh := make(chan announcements.Announcement)
-
 	// Create Bookstore-v1 Service
 	selector := map[string]string{tests.SelectorKey: tests.SelectorValue}
 	svc := tests.NewServiceFixture(tests.BookstoreV1Service.Name, tests.BookstoreV1Service.Namespace, selector)
@@ -218,7 +215,6 @@ var _ = Describe("RDS Response", func() {
 	}
 
 	mockIngressMonitor.EXPECT().GetIngressResources(gomock.Any()).Return(nil, nil).AnyTimes()
-	mockIngressMonitor.EXPECT().GetAnnouncementsChannel().Return(announcementsCh).AnyTimes()
 
 	// Monitored namespaces is made a set to make sure we don't repeat namespaces on mock
 	listExpectedNs := tests.GetUnique([]string{

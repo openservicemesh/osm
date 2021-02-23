@@ -3,7 +3,7 @@ package ingress
 import (
 	"reflect"
 
-	extensionsV1beta "k8s.io/api/extensions/v1beta1"
+	networkingV1beta1 "k8s.io/api/networking/v1beta1"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
@@ -17,7 +17,7 @@ import (
 // NewIngressClient implements ingress.Monitor and creates the Kubernetes client to monitor Ingress resources.
 func NewIngressClient(kubeClient kubernetes.Interface, kubeController k8s.Controller, stop chan struct{}, cfg configurator.Configurator) (Monitor, error) {
 	informerFactory := informers.NewSharedInformerFactory(kubeClient, k8s.DefaultKubeEventResyncInterval)
-	informer := informerFactory.Extensions().V1beta1().Ingresses().Informer()
+	informer := informerFactory.Networking().V1beta1().Ingresses().Informer()
 
 	client := Client{
 		informer:       informer,
@@ -68,10 +68,10 @@ func (c *Client) run(stop <-chan struct{}) error {
 }
 
 // GetIngressResources returns the ingress resources whose backends correspond to the service
-func (c Client) GetIngressResources(meshService service.MeshService) ([]*extensionsV1beta.Ingress, error) {
-	var ingressResources []*extensionsV1beta.Ingress
+func (c Client) GetIngressResources(meshService service.MeshService) ([]*networkingV1beta1.Ingress, error) {
+	var ingressResources []*networkingV1beta1.Ingress
 	for _, ingressInterface := range c.cache.List() {
-		ingress, ok := ingressInterface.(*extensionsV1beta.Ingress)
+		ingress, ok := ingressInterface.(*networkingV1beta1.Ingress)
 		if !ok {
 			log.Error().Msg("Failed type assertion for Ingress in ingress cache")
 			continue
