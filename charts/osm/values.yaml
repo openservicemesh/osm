@@ -4,7 +4,7 @@
 
 OpenServiceMesh:
   # -- `osm-controller` replicas
-  replicaCount: 1
+  replicaCount: 2
   image:
     # -- `osm-controller` image registry
     registry: openservicemesh
