@@ -127,7 +127,12 @@ func main() {
 	defer cancel()
 
 	// Start the default metrics store
-	metricsstore.DefaultMetricsStore.Start()
+	metricsstore.DefaultMetricsStore.Start(
+		metricsstore.DefaultMetricsStore.InjectorRqTime,
+		metricsstore.DefaultMetricsStore.InjectorSidecarCount,
+		metricsstore.DefaultMetricsStore.CertIssuedCount,
+		metricsstore.DefaultMetricsStore.CertIssuedTime,
+	)
 
 	// Initialize Configurator to watch osm-config ConfigMap
 	cfg := configurator.NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)

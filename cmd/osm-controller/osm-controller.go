@@ -153,7 +153,7 @@ func main() {
 	defer cancel()
 
 	// Start the default metrics store
-	metricsstore.DefaultMetricsStore.Start()
+	startMetricsStore()
 
 	// This component will be watching the OSM ConfigMap and will make it
 	// to the rest of the components.
@@ -247,6 +247,19 @@ func main() {
 
 	<-stop
 	log.Info().Msgf("Stopping osm-controller %s; %s; %s", version.Version, version.GitCommit, version.BuildDate)
+}
+
+// Start the metric store, register the metrics OSM will expose
+func startMetricsStore() {
+	metricsstore.DefaultMetricsStore.Start(
+		metricsstore.DefaultMetricsStore.K8sAPIEventCounter,
+		metricsstore.DefaultMetricsStore.K8sMonitoredNamespaceCount,
+		metricsstore.DefaultMetricsStore.K8sMeshPodCount,
+		metricsstore.DefaultMetricsStore.ProxyConnectCount,
+		metricsstore.DefaultMetricsStore.ProxyConfigUpdateTime,
+		metricsstore.DefaultMetricsStore.CertIssuedCount,
+		metricsstore.DefaultMetricsStore.CertIssuedTime,
+	)
 }
 
 // getHTTPHealthProbes returns the HTTP health probes served by OSM controller

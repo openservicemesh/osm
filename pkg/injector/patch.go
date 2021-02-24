@@ -31,8 +31,8 @@ func (wh *mutatingWebhook) createPatch(pod *corev1.Pod, req *v1beta1.AdmissionRe
 	}
 	elapsed := time.Since(startTime)
 
-	metricsstore.DefaultMetricsStore.CertXdsIssuedCount.Inc()
-	metricsstore.DefaultMetricsStore.CertXdsIssuedTime.
+	metricsstore.DefaultMetricsStore.CertIssuedCount.Inc()
+	metricsstore.DefaultMetricsStore.CertIssuedTime.
 		WithLabelValues().Observe(elapsed.Seconds())
 	originalHealthProbes := rewriteHealthProbes(pod)
 

@@ -49,11 +49,11 @@ type MetricsStore struct {
 	/*
 	 * Certificate metrics
 	 */
-	// CertXdsIssuedCount is the metric counter for the number of xds certificates issued
-	CertXdsIssuedCount prometheus.Counter
+	// CertIssuedCount is the metric counter for the number of certificates issued
+	CertIssuedCount prometheus.Counter
 
-	// CertXdsIssuedCounter the histogram to track the time to issue xds certificates
-	CertXdsIssuedTime *prometheus.HistogramVec
+	// CertXdsIssuedCounter the histogram to track the time to issue a certificates
+	CertIssuedTime *prometheus.HistogramVec
 
 	/*
 	 * MetricsStore internals should be defined below --------------
@@ -140,18 +140,18 @@ func init() {
 	/*
 	 * Certificate metrics
 	 */
-	defaultMetricsStore.CertXdsIssuedCount = prometheus.NewCounter(prometheus.CounterOpts{
+	defaultMetricsStore.CertIssuedCount = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: metricsRootNamespace,
 		Subsystem: "cert",
-		Name:      "xds_issued_count",
+		Name:      "issued_count",
 		Help:      "represents the total number of XDS certificates issued to proxies",
 	})
 
-	defaultMetricsStore.CertXdsIssuedTime = prometheus.NewHistogramVec(
+	defaultMetricsStore.CertIssuedTime = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Namespace: metricsRootNamespace,
 			Subsystem: "cert",
-			Name:      "xds_issued_time",
+			Name:      "issued_time",
 			Buckets:   []float64{.1, .25, .5, 1, 2.5, 5, 10, 20, 40, 90},
 			Help:      "Histogram to track time spent to issue xds certificate",
 		},
@@ -160,29 +160,15 @@ func init() {
 }
 
 // Start store
-func (ms *MetricsStore) Start() {
-	ms.registry.MustRegister(ms.K8sAPIEventCounter)
-	ms.registry.MustRegister(ms.K8sMonitoredNamespaceCount)
-	ms.registry.MustRegister(ms.K8sMeshPodCount)
-	ms.registry.MustRegister(ms.ProxyConnectCount)
-	ms.registry.MustRegister(ms.ProxyConfigUpdateTime)
-	ms.registry.MustRegister(ms.InjectorSidecarCount)
-	ms.registry.MustRegister(ms.InjectorRqTime)
-	ms.registry.MustRegister(ms.CertXdsIssuedCount)
-	ms.registry.MustRegister(ms.CertXdsIssuedTime)
+func (ms *MetricsStore) Start(cs ...prometheus.Collector) {
+	ms.registry.MustRegister(cs...)
 }
 
 // Stop store
-func (ms *MetricsStore) Stop() {
-	ms.registry.Unregister(ms.K8sAPIEventCounter)
-	ms.registry.Unregister(ms.K8sMonitoredNamespaceCount)
-	ms.registry.Unregister(ms.K8sMeshPodCount)
-	ms.registry.Unregister(ms.ProxyConnectCount)
-	ms.registry.Unregister(ms.ProxyConfigUpdateTime)
-	ms.registry.Unregister(ms.InjectorSidecarCount)
-	ms.registry.Unregister(ms.InjectorRqTime)
-	ms.registry.Unregister(ms.CertXdsIssuedCount)
-	ms.registry.Unregister(ms.CertXdsIssuedTime)
+func (ms *MetricsStore) Stop(cs ...prometheus.Collector) {
+	for _, c := range cs {
+		ms.registry.Unregister(c)
+	}
 }
 
 // Handler return the registry

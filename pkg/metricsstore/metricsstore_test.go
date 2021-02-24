@@ -18,11 +18,17 @@ func TestMain(m *testing.M) {
 }
 
 func setup() {
-	DefaultMetricsStore.Start()
+	DefaultMetricsStore.Start(
+		DefaultMetricsStore.K8sAPIEventCounter,
+		DefaultMetricsStore.ProxyConnectCount,
+	)
 }
 
 func teardown() {
-	DefaultMetricsStore.Stop()
+	DefaultMetricsStore.Stop(
+		DefaultMetricsStore.K8sAPIEventCounter,
+		DefaultMetricsStore.ProxyConnectCount,
+	)
 }
 
 func TestK8sAPIEventCounter(t *testing.T) {
