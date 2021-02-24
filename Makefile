@@ -27,9 +27,9 @@ E2E_FLAGS_DEFAULT := -test.v -ginkgo.v -ginkgo.progress -ctrRegistry $(CTR_REGIS
 # Installed Go version
 # This is the version of Go going to be used to compile this project.
 # It will be compared with the minimum requirements for OSM.
-GO_VERSION_MAJOR = $(shell go version | grep -Po 'go\K(\d+)')
-GO_VERSION_MINOR = $(shell go version | grep -Po 'go\d+\.\K(\d+)')
-GO_VERSION_PATCH = $(shell go version | grep -Po 'go\d+\.\d+\.\K(\d+)')
+GO_VERSION_MAJOR = $(shell go version | sed -E 's/.*go([[:digit:]]+)\..*/\1/')
+GO_VERSION_MINOR = $(shell go version | sed -E 's/.*go[[:digit:]]+\.([[:digit:]]+)\..*/\1/')
+GO_VERSION_PATCH = $(shell go version | sed -E 's/.*go[[:digit:]]+\.[[:digit:]]+\.([[:digit:]]+)[[:space:]].*/\1/')
 
 # Required Go version
 # These variables set the minimum required version of Go for this project.
