@@ -55,8 +55,12 @@ func (mc *MeshCatalog) GetIngressRoutesPerHost(service service.MeshService) (map
 }
 
 // GetIngressPoliciesForService returns a list of inbound traffic policies for a service as defined in observed ingress k8s resources.
-func (mc *MeshCatalog) GetIngressPoliciesForService(svc service.MeshService, sa service.K8sServiceAccount) ([]*trafficpolicy.InboundTrafficPolicy, error) {
+func (mc *MeshCatalog) GetIngressPoliciesForService(svc service.MeshService) ([]*trafficpolicy.InboundTrafficPolicy, error) {
 	inboundIngressPolicies := []*trafficpolicy.InboundTrafficPolicy{}
+	// Ingress does not depend on k8s service accounts, program a wildcard (empty struct) to indicate
+	// to RDS that an inbound traffic policy for ingress should not enforce service account based RBAC policies.
+	wildcardServiceAccount := service.K8sServiceAccount{}
+
 	ingresses, err := mc.ingressMonitor.GetIngressResources(svc)
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to get ingress resources for service %s", svc)
@@ -72,7 +76,7 @@ func (mc *MeshCatalog) GetIngressPoliciesForService(svc service.MeshService, sa 
 	for _, ingress := range ingresses {
 		if ingress.Spec.Backend != nil && ingress.Spec.Backend.ServiceName == svc.Name {
 			wildcardIngressPolicy := trafficpolicy.NewInboundTrafficPolicy(buildIngressPolicyName(ingress.ObjectMeta.Name, ingress.ObjectMeta.Namespace, constants.WildcardHTTPMethod), []string{constants.WildcardHTTPMethod})
-			wildcardIngressPolicy.AddRule(*trafficpolicy.NewRouteWeightedCluster(wildCardRouteMatch, ingressWeightedCluster), sa)
+			wildcardIngressPolicy.AddRule(*trafficpolicy.NewRouteWeightedCluster(wildCardRouteMatch, ingressWeightedCluster), wildcardServiceAccount)
 			inboundIngressPolicies = trafficpolicy.MergeInboundPolicies(false, inboundIngressPolicies, wildcardIngressPolicy)
 		}
 
@@ -91,7 +95,7 @@ func (mc *MeshCatalog) GetIngressPoliciesForService(svc service.MeshService, sa 
 				if routePolicy.PathRegex != "" {
 					routePolicy.PathRegex = ingressPath.Path
 				}
-				ingressPolicy.AddRule(*trafficpolicy.NewRouteWeightedCluster(routePolicy, ingressWeightedCluster), sa)
+				ingressPolicy.AddRule(*trafficpolicy.NewRouteWeightedCluster(routePolicy, ingressWeightedCluster), wildcardServiceAccount)
 			}
 
 			inboundIngressPolicies = trafficpolicy.MergeInboundPolicies(false, inboundIngressPolicies, ingressPolicy)

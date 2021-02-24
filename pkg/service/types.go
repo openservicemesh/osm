@@ -32,8 +32,14 @@ type K8sServiceAccount struct {
 	Name      string
 }
 
+// String returns the string representation of the service account object
 func (sa K8sServiceAccount) String() string {
 	return strings.Join([]string{sa.Namespace, namespaceNameSeparator, sa.Name}, "")
+}
+
+// IsEmpty returns true if the given service account object is empty
+func (sa K8sServiceAccount) IsEmpty() bool {
+	return (K8sServiceAccount{}) == sa
 }
 
 // GetSyntheticService creates a MeshService for the given K8s Service Account,
