@@ -65,4 +65,7 @@ type Configurator interface {
 
 	// GetOutboundIPRangeExclusionList returns the list of IP ranges of the form x.x.x.x/y to exclude from outbound sidecar interception
 	GetOutboundIPRangeExclusionList() []string
+
+	// IsPrivilegedInitContainer determines whether init containers should be privileged
+	IsPrivilegedInitContainer() bool
 }

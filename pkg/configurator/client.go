@@ -53,6 +53,9 @@ const (
 
 	// outboundIPRangeExclusionListKey is the key name used to specify the ip ranges to exclude from outbound sidecar interception
 	outboundIPRangeExclusionListKey = "outbound_ip_range_exclusion_list"
+
+	// enablePrivilegedInitContainer is the key name used to specify whether init containers should be privileged in the ConfigMap
+	enablePrivilegedInitContainer = "enable_privileged_init_container"
 )
 
 // NewConfigurator implements configurator.Configurator and creates the Kubernetes client to manage namespaces.
@@ -219,6 +222,8 @@ type osmConfig struct {
 
 	// OutboundIPRangeExclusionList is the list of outbound IP ranges to exclude from sidecar interception
 	OutboundIPRangeExclusionList string `yaml:"outbound_ip_range_exclusion_list"`
+
+	EnablePrivilegedInitContainer bool `yaml:"enable_privileged_init_container"`
 }
 
 func (c *Client) run(stop <-chan struct{}) {
@@ -271,6 +276,7 @@ func parseOSMConfigMap(configMap *v1.ConfigMap) *osmConfig {
 	osmConfigMap.EnvoyLogLevel, _ = GetStringValueForKey(configMap, envoyLogLevel)
 	osmConfigMap.ServiceCertValidityDuration, _ = GetStringValueForKey(configMap, serviceCertValidityDurationKey)
 	osmConfigMap.OutboundIPRangeExclusionList, _ = GetStringValueForKey(configMap, outboundIPRangeExclusionListKey)
+	osmConfigMap.EnablePrivilegedInitContainer, _ = GetBoolValueForKey(configMap, enablePrivilegedInitContainer)
 
 	if osmConfigMap.TracingEnable {
 		osmConfigMap.TracingAddress, _ = GetStringValueForKey(configMap, tracingAddressKey)

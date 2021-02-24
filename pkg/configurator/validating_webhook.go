@@ -30,13 +30,13 @@ var (
 	deserializer = codecs.UniversalDeserializer()
 
 	// boolFields are the fields in osm-config that take in a boolean
-	boolFields = []string{"egress", "enable_debug_server", "permissive_traffic_policy_mode", "prometheus_scraping", "tracing_enable", "use_https_ingress"}
+	boolFields = []string{"egress", "enable_debug_server", "permissive_traffic_policy_mode", "prometheus_scraping", "tracing_enable", "use_https_ingress", "enable_privileged_init_container"}
 
 	// ValidEnvoyLogLevels is a list of envoy log levels
 	ValidEnvoyLogLevels = []string{"trace", "debug", "info", "warning", "warn", "error", "critical", "off"}
 
 	// defaultFields are the default fields in osm-config
-	defaultFields = []string{"egress", "enable_debug_server", "permissive_traffic_policy_mode", "prometheus_scraping", "use_https_ingress", "envoy_log_level", "service_cert_validity_duration", "tracing_enable"}
+	defaultFields = []string{"egress", "enable_debug_server", "permissive_traffic_policy_mode", "prometheus_scraping", "use_https_ingress", "envoy_log_level", "service_cert_validity_duration", "tracing_enable", "enable_privileged_init_container"}
 )
 
 const (

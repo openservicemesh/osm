@@ -130,3 +130,8 @@ func (c *Client) GetOutboundIPRangeExclusionList() []string {
 
 	return exclusionList
 }
+
+// IsPrivilegedInitContainer returns whether init containers should be privileged
+func (c *Client) IsPrivilegedInitContainer() bool {
+	return c.getConfigMap().EnablePrivilegedInitContainer
+}

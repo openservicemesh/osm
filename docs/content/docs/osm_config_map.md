@@ -24,3 +24,4 @@ OSM deploys a configMap `osm-config` as a part of its control plane (in the same
 | tracing_port| OpenServiceMesh.tracing.port | int | any non-zero integer value | `"9411"` | Port on which tracing is enabled. |
 | use_https_ingress | OpenServiceMesh.useHTTPSIngress | bool | true, false | `"false"`| Enables HTTPS ingress on the mesh. |
 | outbound_ip_range_exclusion_list | OpenServiceMesh.outboundIPRangeExclusionList | string | comma separated list of IP ranges of the form a.b.c.d/x | `-`| Global list of IP address ranges to exclude from outbound traffic interception by the sidecar proxy. |
+| enable_privileged_init_container| OpenServiceMesh.enablePrivilegedInitContainer | bool | true, false | `"false"` | Enables privileged init containers for pods in mesh. When false, init containers only have NET_ADMIN |

@@ -72,6 +72,7 @@ The following table lists the configurable parameters of the osm chart and their
 | OpenServiceMesh.enableEgress | bool | `false` | Enable egress in the mesh |
 | OpenServiceMesh.enableFluentbit | bool | `false` | Enable Fluent Bit sidecar deployment |
 | OpenServiceMesh.enablePermissiveTrafficPolicy | bool | `false` | Enable permissive traffic policy mode |
+| OpenServiceMesh.enablePrivilegedInitContainer | bool | `false` | Run init container in privileged mode |
 | OpenServiceMesh.enablePrometheusScraping | bool | `true` | Enable Prometheus metrics scraping on sidecar proxies |
 | OpenServiceMesh.enforceSingleMesh | bool | `false` | Enforce only deploying one mesh in the cluster |
 | OpenServiceMesh.envoyLogLevel | string | `"error"` | Envoy log level is used to specify the level of logs collected from envoy |

@@ -144,3 +144,6 @@ OpenServiceMesh:
       requests:
         cpu: "0.3"
         memory: "64M"
+  
+  # -- Run init container in privileged mode
+  enablePrivilegedInitContainer: false
