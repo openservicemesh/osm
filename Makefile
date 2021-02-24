@@ -109,8 +109,13 @@ chart-readme:
 chart-checks: chart-readme
 	@git diff --exit-code charts/osm/README.md || { echo "----- Please commit the changes made by 'make chart-readme' -----"; exit 1; }
 
+.PHONY: check-mocks
+check-mocks:
+	@go run ./mockspec/generate.go
+	@git diff --exit-code || { echo "----- Please commit the changes made by 'go run ./mockspec/generate.go' -----"; exit 1; }
+
 .PHONY: go-checks
-go-checks: go-lint go-fmt go-mod-tidy
+go-checks: go-lint go-fmt go-mod-tidy check-mocks
 
 .PHONY: go-vet
 go-vet:
