@@ -4,17 +4,20 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"k8s.io/client-go/kubernetes"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
 	xds_route "github.com/envoyproxy/go-control-plane/envoy/config/route/v3"
+	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/golang/protobuf/ptypes/wrappers"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/envoy/rds"
@@ -31,8 +34,10 @@ var _ = Describe(``+
 		Context("Test rds.NewResponse()", func() {
 
 			// ---[  Setup the test context  ]---------
+			mockCtrl := gomock.NewController(ginkgo.GinkgoT())
 			kubeClient := testclient.NewSimpleClientset()
 			meshCatalog := catalog.NewFakeMeshCatalog(kubeClient)
+			mockConfigurator := configurator.NewMockConfigurator(mockCtrl)
 			proxy, err := getProxy(kubeClient)
 			It("sets up test context - SMI policies, Services, Pods etc.", func() {
 				Expect(err).ToNot(HaveOccurred())
@@ -41,12 +46,13 @@ var _ = Describe(``+
 			})
 
 			// ---[  Get the config from rds.NewResponse()  ]-------
+			mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
 
-			actual, err := rds.NewResponse(meshCatalog, proxy, nil, nil, nil)
+			actual, err := rds.NewResponse(meshCatalog, proxy, nil, mockConfigurator, nil)
 			It("did not return an error", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(actual).ToNot(BeNil())
-				Expect(len(actual.Resources)).To(Equal(2))
+				Expect(len(actual.Resources)).To(Equal(1))
 			})
 
 			// ---[  Prepare the config for testing  ]-------
@@ -104,9 +110,9 @@ var _ = Describe(``+
 
 				expectedWeightedCluster := &xds_route.WeightedCluster{
 					Clusters: []*xds_route.WeightedCluster_ClusterWeight{
-						weightedCluster("bookstore-v1", 90),
+						weightedCluster("bookstore-v1", 100),
 					},
-					TotalWeight: toInt(90),
+					TotalWeight: toInt(100),
 				}
 
 				checkExpectations(expectedDomains, expectedWeightedCluster, v1)
@@ -129,9 +135,9 @@ var _ = Describe(``+
 
 				expectedWeightedCluster := &xds_route.WeightedCluster{
 					Clusters: []*xds_route.WeightedCluster_ClusterWeight{
-						weightedCluster("bookstore-v2", 10),
+						weightedCluster("bookstore-v2", 100),
 					},
-					TotalWeight: toInt(10),
+					TotalWeight: toInt(100),
 				}
 
 				checkExpectations(expectedDomains, expectedWeightedCluster, v2)

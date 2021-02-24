@@ -74,7 +74,6 @@ const (
 	defaultEnableDebugServer             = false
 	defaultEnableEgress                  = false
 	defaultEnablePermissiveTrafficPolicy = false
-	defaultEnableRoutesV2Experimental    = false
 	defaultDeployPrometheus              = false
 	defaultEnablePrometheusScraping      = true
 	defaultDeployGrafana                 = false
@@ -113,10 +112,6 @@ type installCmd struct {
 	clientSet                     kubernetes.Interface
 	chartRequested                *chart.Chart
 	setOptions                    []string
-
-	// This is an experimental flag, which results in using
-	// 	the experimental routes v2 feature
-	enableRoutesV2Experimental bool
 
 	// Toggle to enable/disable Prometheus installation
 	deployPrometheus bool
@@ -180,7 +175,6 @@ func newInstallCmd(config *helm.Configuration, out io.Writer) *cobra.Command {
 	f.BoolVar(&inst.enableDebugServer, "enable-debug-server", defaultEnableDebugServer, "Enable the debug HTTP server")
 	f.BoolVar(&inst.enablePermissiveTrafficPolicy, "enable-permissive-traffic-policy", defaultEnablePermissiveTrafficPolicy, "Enable permissive traffic policy mode")
 	f.BoolVar(&inst.enableEgress, "enable-egress", defaultEnableEgress, "Enable egress in the mesh")
-	f.BoolVar(&inst.enableRoutesV2Experimental, "enable-routes-v2-experimental", defaultEnableRoutesV2Experimental, "Enable experimental routes v2 feature")
 	f.BoolVar(&inst.deployPrometheus, "deploy-prometheus", defaultDeployPrometheus, "Install and deploy Prometheus")
 	f.BoolVar(&inst.enablePrometheusScraping, "enable-prometheus-scraping", defaultEnablePrometheusScraping, "Enable Prometheus metrics scraping on sidecar proxies")
 	f.BoolVar(&inst.deployGrafana, "deploy-grafana", defaultDeployGrafana, "Install and deploy Grafana")
@@ -260,7 +254,6 @@ func (i *installCmd) resolveValues() (map[string]interface{}, error) {
 		fmt.Sprintf("OpenServiceMesh.prometheus.retention.time=%s", i.prometheusRetentionTime),
 		fmt.Sprintf("OpenServiceMesh.enableDebugServer=%t", i.enableDebugServer),
 		fmt.Sprintf("OpenServiceMesh.enablePermissiveTrafficPolicy=%t", i.enablePermissiveTrafficPolicy),
-		fmt.Sprintf("OpenServiceMesh.enableRoutesV2Experimental=%t", i.enableRoutesV2Experimental),
 		fmt.Sprintf("OpenServiceMesh.deployPrometheus=%t", i.deployPrometheus),
 		fmt.Sprintf("OpenServiceMesh.enablePrometheusScraping=%t", i.enablePrometheusScraping),
 		fmt.Sprintf("OpenServiceMesh.deployGrafana=%t", i.deployGrafana),

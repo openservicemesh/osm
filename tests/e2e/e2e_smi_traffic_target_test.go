@@ -16,14 +16,13 @@ import (
 	. "github.com/openservicemesh/osm/tests/framework"
 )
 
-// TODO(#2397): remove as a part of routes refactor cleanup. Routes v2 will become the default and this test will no longer be needed
-var _ = OSMDescribe("RoutesV2 test HTTP traffic with SMI TrafficTarget",
+var _ = OSMDescribe("Test HTTP traffic with SMI TrafficTarget",
 	OSMDescribeInfo{
-		Tier:   2,
+		Tier:   1,
 		Bucket: 2,
 	},
 	func() {
-		Context("RoutesV2 SMI TrafficTarget", func() {
+		Context("SMI TrafficTarget", func() {
 			const sourceOne = "client-one"
 			const sourceTwo = "client-two"
 			const destName = "server"
@@ -31,9 +30,7 @@ var _ = OSMDescribe("RoutesV2 test HTTP traffic with SMI TrafficTarget",
 
 			It("Tests HTTP traffic for client pod -> server pod", func() {
 				// Install OSM
-				installOpts := Td.GetOSMInstallOpts()
-				installOpts.EnableRoutesV2Experimental = true
-				Expect(Td.InstallOSM(installOpts)).To(Succeed())
+				Expect(Td.InstallOSM(Td.GetOSMInstallOpts())).To(Succeed())
 
 				// Create Test NS
 				for _, n := range ns {

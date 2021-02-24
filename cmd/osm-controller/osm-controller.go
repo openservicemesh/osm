@@ -100,9 +100,6 @@ func init() {
 	flags.StringVar(&certManagerOptions.IssuerKind, "cert-manager-issuer-kind", "Issuer", "cert-manager issuer kind")
 	flags.StringVar(&certManagerOptions.IssuerGroup, "cert-manager-issuer-group", "cert-manager.io", "cert-manager issuer group")
 
-	// feature flags
-	flags.BoolVar(&optionalFeatures.RoutesV2, "enable-routes-v2-experimental", false, "Enable experimental routes v2 feature")
-
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = v1beta1.AddToScheme(scheme)
 }
