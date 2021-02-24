@@ -101,7 +101,7 @@ func TestNewResponse(t *testing.T) {
 
 	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(false).AnyTimes()
 
-	actual, err := newResponse(mockCatalog, testProxy, nil, mockConfigurator, nil)
+	actual, err := NewResponse(mockCatalog, testProxy, nil, mockConfigurator, nil)
 	assert.Nil(err)
 
 	routeConfig := &xds_route.RouteConfiguration{}
@@ -223,7 +223,7 @@ func TestNewResponseWithPermissiveMode(t *testing.T) {
 
 	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(true).AnyTimes()
 
-	actual, err := newResponse(mockCatalog, testProxy, nil, mockConfigurator, nil)
+	actual, err := NewResponse(mockCatalog, testProxy, nil, mockConfigurator, nil)
 	assert.Nil(err)
 
 	routeConfig := &xds_route.RouteConfiguration{}

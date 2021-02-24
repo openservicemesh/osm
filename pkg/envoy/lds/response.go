@@ -70,11 +70,10 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 
 	// --- INGRESS -------------------
 	// Apply an ingress filter chain if there are any ingress routes
-	// TODO : Replace with GetIngressPoliciesForService as a part of routes refactor cleanup (#2397)
-	if ingressRoutesPerHost, err := meshCatalog.GetIngressRoutesPerHost(proxyServiceName); err != nil {
-		log.Error().Err(err).Msgf("Error getting ingress for service %s", proxyServiceName)
+	if ingressInboundPolicies, err := meshCatalog.GetIngressPoliciesForService(proxyServiceName); err != nil {
+		log.Error().Err(err).Msgf("Error getting ingress inbound traffic policies for service %s", proxyServiceName)
 	} else {
-		thereAreIngressRoutes := len(ingressRoutesPerHost) > 0
+		thereAreIngressRoutes := len(ingressInboundPolicies) > 0
 
 		if thereAreIngressRoutes {
 			log.Info().Msgf("Found k8s Ingress for MeshService %s, applying necessary filters", proxyServiceName)

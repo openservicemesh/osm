@@ -349,9 +349,6 @@ type InstallOSMOpts struct {
 	EnvoyLogLevel        string
 	EnableDebugServer    bool
 
-	// TODO : remove as a part of routes refactor (#2397)
-	EnableRoutesV2Experimental bool
-
 	SetOverrides []string
 }
 
@@ -500,8 +497,6 @@ func (td *OsmTestData) InstallOSM(instOpts InstallOSMOpts) error {
 		"--enable-permissive-traffic-policy="+strconv.FormatBool(instOpts.EnablePermissiveMode),
 		"--enable-debug-server="+strconv.FormatBool(instOpts.EnableDebugServer),
 		"--envoy-log-level="+instOpts.EnvoyLogLevel,
-		// TODO : remove as a part of routes refactor (#2397)
-		"--enable-routes-v2-experimental="+strconv.FormatBool(instOpts.EnableRoutesV2Experimental),
 	)
 
 	switch instOpts.CertManager {
