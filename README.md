@@ -44,11 +44,11 @@ OSM runs an Envoy based control plane on Kubernetes, can be configured with SMI 
 ### Features
 
 1. Easily and transparently configure [traffic shifting][3] for deployments
-1. Secure service to service communication by [enabling mTLS](docs/content/docs/patterns/certificates.md)
+1. Secure service to service communication by [enabling mTLS](docs/content/docs/tasks_usage/certificates.md)
 1. Define and execute fine grained [access control][4] policies for services
 1. [Observability](docs/content/docs/patterns/observability/_index.md) and insights into application metrics for debugging and monitoring services
-1. Integrate with [external certificate management](docs/content/docs/patterns/certificates.md) services/solutions with a pluggable interface
-1. Onboard applications onto the mesh by enabling [automatic sidecar injection](docs/content/docs/patterns/sidecar_injection.md) of Envoy proxy
+1. Integrate with [external certificate management](docs/content/docs/tasks_usage/certificates.md) services/solutions with a pluggable interface
+1. Onboard applications onto the mesh by enabling [automatic sidecar injection](docs/content/docs/tasks_usage/sidecar_injection.md) of Envoy proxy
 
 ### Project status
 
@@ -93,24 +93,24 @@ $ osm install
 ```
 ![OSM Install Demo](img/osm-install-demo-v0.2.0.gif "OSM Install Demo")
 
-See the [installation guide](docs/content/docs/installation_guide.md) for more detailed options.
+See the [installation guide](docs/content/docs/install/_index.md) for more detailed options.
 
 ## Demos
 We have provided two demos for you to experience OSM.
 
 - The [automated demo](demo/README.md) is a set of scripts anyone can run and shows how OSM can manage, secure and provide observability for microservice environments.
-- The [manual demo](docs/example/README.md) is a step-by-step walkthrough set of instruction of the automated demo.
+- The [manual demo](docs/content/docs/install/manual_demo.md) is a step-by-step walkthrough set of instruction of the automated demo.
 
 ## Using OSM
 
-After installing OSM, [onboard a microservice application](docs/onboard_services.md) to the service mesh.
+After installing OSM, [onboard a microservice application](docs/content/docs/tasks_usage/onboard_services.md) to the service mesh.
 
 ### OSM Usage Patterns
 
-1. [Ingress](docs/patterns/ingress.md) and [Egress](docs/patterns/egress.md)
-1. [Observability](docs/patterns/observability/README.md)
-1. [Certificates](docs/patterns/certificates.md)
-1. [Sidecar Injection](docs/patterns/sidecar_injection.md)
+1. [Ingress](docs/content/docs/tasks_usage/ingress.md) and [Egress](docs/content/docs/tasks_usage/egress.md)
+1. [Observability](docs/content/docs/patterns/observability/_index.md)
+1. [Certificates](docs/content/docs/tasks_usage/certificates.md)
+1. [Sidecar Injection](docs/content/docs/tasks_usage/sidecar_injection.md)
 
 ## Community
 
@@ -123,7 +123,7 @@ Connect with the Open Service Mesh community:
 
 ## Development Guide
 
-If you would like to contribute to OSM, check out the [development guide](docs/content/docs/development_guide.md).
+If you would like to contribute to OSM, check out the [development guide](docs/content/docs/dev_guide/_index.md).
 
 ## Code of Conduct
 
