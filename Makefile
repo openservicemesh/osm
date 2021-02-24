@@ -90,7 +90,7 @@ build-osm-controller: check-go-version clean-osm-controller wasm/stats.wasm
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o ./bin/osm-controller/osm-controller -ldflags "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -X github.com/openservicemesh/osm/pkg/envoy/lds.statsWASMBytes=$$(base64 < wasm/stats.wasm | tr -d \\n) -s -w" ./cmd/osm-controller
 
 .PHONY: build-osm-injector
-build-osm-injector: clean-osm-injector
+build-osm-injector: check-go-version clean-osm-injector
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o ./bin/osm-injector/osm-injector -ldflags "-X $(BUILD_DATE_VAR)=$(BUILD_DATE) -X $(BUILD_VERSION_VAR)=$(VERSION) -X $(BUILD_GITCOMMIT_VAR)=$(GIT_SHA) -s -w" ./cmd/osm-injector
 
 .PHONY: build-osm
