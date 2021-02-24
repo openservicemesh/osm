@@ -27,7 +27,7 @@ func TestBuildInboundRBACFilterForRule(t *testing.T) {
 		expectError        bool
 	}{
 		{
-			name: "valid trafficpolicy rule",
+			name: "valid trafficpolicy rule with restricted downstream identities",
 			rule: &trafficpolicy.Rule{
 				Route: trafficpolicy.RouteWeightedClusters{
 					HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
@@ -57,6 +57,31 @@ func TestBuildInboundRBACFilterForRule(t *testing.T) {
 								},
 							},
 						},
+					},
+				},
+				Permissions: []*xds_rbac.Permission{
+					{
+						Rule: &xds_rbac.Permission_Any{Any: true},
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "valid trafficpolicy rule which allows all downstream identities",
+			rule: &trafficpolicy.Rule{
+				Route: trafficpolicy.RouteWeightedClusters{
+					HTTPRouteMatch:   tests.BookstoreBuyHTTPRoute,
+					WeightedClusters: set.NewSet(tests.BookstoreV1DefaultWeightedCluster),
+				},
+				AllowedServiceAccounts: set.NewSetFromSlice([]interface{}{
+					service.K8sServiceAccount{}, // setting an empty service account will result in all downstreams being allowed
+				}),
+			},
+			expectedRBACPolicy: &xds_rbac.Policy{
+				Principals: []*xds_rbac.Principal{
+					{
+						Identifier: &xds_rbac.Principal_Any{Any: true},
 					},
 				},
 				Permissions: []*xds_rbac.Permission{

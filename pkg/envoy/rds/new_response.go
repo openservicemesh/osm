@@ -40,7 +40,7 @@ func newResponse(catalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_disco
 
 	// Get Ingress inbound policies for the proxy
 	for _, svc := range services {
-		ingressInboundPolicies, err := catalog.GetIngressPoliciesForService(svc, proxyIdentity)
+		ingressInboundPolicies, err := catalog.GetIngressPoliciesForService(svc)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error looking up ingress policies for service=%s", svc.String())
 			return nil, err

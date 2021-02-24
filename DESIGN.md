@@ -349,7 +349,7 @@ type MeshCataloger interface {
   GetIngressRoutesPerHost(service.MeshService) (map[string][]trafficpolicy.HTTPRouteMatch, error)
 
   // GetIngressPoliciesForService returns the inbound traffic policies associated with an ingress service
-  GetIngressPoliciesForService(service.MeshService, service.K8sServiceAccount) ([]*trafficpolicy.InboundTrafficPolicy, error)
+  GetIngressPoliciesForService(service.MeshService) ([]*trafficpolicy.InboundTrafficPolicy, error)
 }
 ```
 

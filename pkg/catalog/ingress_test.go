@@ -314,12 +314,8 @@ func TestGetIngressPoliciesForService(t *testing.T) {
 		Namespace: fakeIngressNamespace,
 		Name:      fakeIngressService,
 	}
-	fakeServiceAccount := service.K8sServiceAccount{
-		Namespace: fakeIngressNamespace,
-		Name:      fakeIngressService,
-	}
 
-	inboundIngressPolicies, err := mc.GetIngressPoliciesForService(fakeService, fakeServiceAccount)
+	inboundIngressPolicies, err := mc.GetIngressPoliciesForService(fakeService)
 	assert.Empty(err)
 
 	// The number of ingress inbound policies is the number of unique hosts across the ingress resources :
@@ -340,6 +336,12 @@ func TestGetIngressPoliciesForService(t *testing.T) {
 			// on the implementation of 'GetIngressPoliciesForServices()', we relax the check here
 			// to match on any of the ingress paths corresponding to the host.
 			assert.True(pathContains(fakeIngressPaths[inboundIngressPolicies[i].Hostnames[0]], rule.Route.HTTPRouteMatch.PathRegex))
+
+			// Allowed service accounts should be wildcarded with an empty service account for ingress rules
+			assert.NotNil(rule.AllowedServiceAccounts)
+			assert.Equal(1, rule.AllowedServiceAccounts.Cardinality()) // single wildcard service account
+			allowedSvcAccounts := rule.AllowedServiceAccounts.Pop().(service.K8sServiceAccount)
+			assert.True((allowedSvcAccounts.IsEmpty()))
 		}
 	}
 }
