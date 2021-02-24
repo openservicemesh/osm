@@ -157,7 +157,7 @@ func TestNewResponseWithPermissiveMode(t *testing.T) {
 		},
 	}
 
-	testOutbound := []*trafficpolicy.OutboundTrafficPolicy{
+	testPermissiveOutbound := []*trafficpolicy.OutboundTrafficPolicy{
 		{
 			Name: "bookbuyer.default",
 			Hostnames: []string{
@@ -218,7 +218,8 @@ func TestNewResponseWithPermissiveMode(t *testing.T) {
 	}
 
 	mockCatalog.EXPECT().GetServicesFromEnvoyCertificate(gomock.Any()).Return([]service.MeshService{tests.BookstoreV1Service}, nil).AnyTimes()
-	mockCatalog.EXPECT().ListPoliciesForPermissiveMode(gomock.Any()).Return(testPermissiveInbound, testOutbound).AnyTimes()
+	mockCatalog.EXPECT().ListInboundTrafficPolicies(gomock.Any(), gomock.Any()).Return(testPermissiveInbound).AnyTimes()
+	mockCatalog.EXPECT().ListOutboundTrafficPolicies(gomock.Any()).Return(testPermissiveOutbound).AnyTimes()
 	mockCatalog.EXPECT().GetIngressPoliciesForService(gomock.Any()).Return(testIngressInbound, nil).AnyTimes()
 
 	mockConfigurator.EXPECT().IsPermissiveTrafficPolicyMode().Return(true).AnyTimes()

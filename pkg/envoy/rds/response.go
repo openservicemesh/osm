@@ -29,14 +29,10 @@ func NewResponse(cataloger catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_dis
 		return nil, err
 	}
 
-	if cfg.IsPermissiveTrafficPolicyMode() {
-		// Build traffic policies from service discovery for permissive mode
-		inboundTrafficPolicies, outboundTrafficPolicies = cataloger.ListPoliciesForPermissiveMode(services)
-	} else {
-		// Build traffic policies from SMI Traffic Target and Traffic Split
-		inboundTrafficPolicies = cataloger.ListInboundTrafficPolicies(proxyIdentity, services)
-		outboundTrafficPolicies = cataloger.ListOutboundTrafficPolicies(proxyIdentity)
-	}
+	// Build traffic policies from  either SMI Traffic Target and Traffic Split or service discovery
+	// depending on whether permissive mode is enabled or not
+	inboundTrafficPolicies = cataloger.ListInboundTrafficPolicies(proxyIdentity, services)
+	outboundTrafficPolicies = cataloger.ListOutboundTrafficPolicies(proxyIdentity)
 
 	// Get Ingress inbound policies for the proxy
 	for _, svc := range services {

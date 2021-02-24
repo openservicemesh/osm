@@ -22,20 +22,37 @@ var wildCardRouteMatch trafficpolicy.HTTPRouteMatch = trafficpolicy.HTTPRouteMat
 	Methods:   []string{constants.WildcardHTTPMethod},
 }
 
-// ListOutboundTrafficPolicies returns all outbound traffic policies related to the given service account
+// ListOutboundTrafficPolicies returns all outbound traffic policies
+// 1. from service discovery for permissive mode
+// 2. for the given service account from SMI Traffic Target and Traffic Split
 func (mc *MeshCatalog) ListOutboundTrafficPolicies(downstreamIdentity service.K8sServiceAccount) []*trafficpolicy.OutboundTrafficPolicy {
-	outbound := mc.listOutboundPoliciesForTrafficTargets(downstreamIdentity)
+	if mc.configurator.IsPermissiveTrafficPolicyMode() {
+		outboundPolicies := []*trafficpolicy.OutboundTrafficPolicy{}
+		mergedPolicies := trafficpolicy.MergeOutboundPolicies(outboundPolicies, mc.buildOutboundPermissiveModePolicies()...)
+		outboundPolicies = mergedPolicies
+		return outboundPolicies
+	}
 
+	outbound := mc.listOutboundPoliciesForTrafficTargets(downstreamIdentity)
 	outboundPoliciesFromSplits := mc.listOutboundTrafficPoliciesForTrafficSplits(downstreamIdentity.Namespace)
 	outbound = trafficpolicy.MergeOutboundPolicies(outbound, outboundPoliciesFromSplits...)
 
 	return outbound
 }
 
-// ListInboundTrafficPolicies returns all inbound traffic policies related to the given service account and upstream services
+// ListInboundTrafficPolicies returns all inbound traffic policies
+// 1. from service discovery for permissive mode
+// 2. for the given service account and upstream services from SMI Traffic Target and Traffic Split
 func (mc *MeshCatalog) ListInboundTrafficPolicies(upstreamIdentity service.K8sServiceAccount, upstreamServices []service.MeshService) []*trafficpolicy.InboundTrafficPolicy {
-	inbound := mc.listInboundPoliciesFromTrafficTargets(upstreamIdentity, upstreamServices)
+	if mc.configurator.IsPermissiveTrafficPolicyMode() {
+		inboundPolicies := []*trafficpolicy.InboundTrafficPolicy{}
+		for _, svc := range upstreamServices {
+			inboundPolicies = trafficpolicy.MergeInboundPolicies(false, inboundPolicies, mc.buildInboundPermissiveModePolicies(svc)...)
+		}
+		return inboundPolicies
+	}
 
+	inbound := mc.listInboundPoliciesFromTrafficTargets(upstreamIdentity, upstreamServices)
 	inboundPoliciesFRomSplits := mc.listInboundPoliciesForTrafficSplits(upstreamIdentity, upstreamServices)
 	inbound = trafficpolicy.MergeInboundPolicies(false, inbound, inboundPoliciesFRomSplits...)
 	return inbound
@@ -645,7 +662,7 @@ func (mc *MeshCatalog) buildInboundPermissiveModePolicies(svc service.MeshServic
 	return inboundPolicies
 }
 
-func (mc *MeshCatalog) buildOutboundPermissiveModePolicies(srcServices []service.MeshService) []*trafficpolicy.OutboundTrafficPolicy {
+func (mc *MeshCatalog) buildOutboundPermissiveModePolicies() []*trafficpolicy.OutboundTrafficPolicy {
 	outPolicies := []*trafficpolicy.OutboundTrafficPolicy{}
 
 	k8sServices := mc.kubeController.ListServices()
@@ -653,9 +670,6 @@ func (mc *MeshCatalog) buildOutboundPermissiveModePolicies(srcServices []service
 	for _, k8sService := range k8sServices {
 		destServices = append(destServices, utils.K8sSvcToMeshSvc(k8sService))
 	}
-
-	// For permissive mode build an outbound policy to every service in the mesh except to itself
-	destServices = difference(destServices, srcServices)
 
 	for _, destService := range destServices {
 		hostnames, err := mc.getServiceHostnames(destService, false)
@@ -748,20 +762,6 @@ func (mc *MeshCatalog) listOutboundPoliciesForTrafficTargets(downstreamIdentity 
 	return outboundPolicies
 }
 
-// ListPoliciesForPermissiveMode builds inbound and outbound traffic policies from service discovery
-func (mc *MeshCatalog) ListPoliciesForPermissiveMode(services []service.MeshService) ([]*trafficpolicy.InboundTrafficPolicy, []*trafficpolicy.OutboundTrafficPolicy) {
-	inboundPolicies := []*trafficpolicy.InboundTrafficPolicy{}
-	outboundPolicies := []*trafficpolicy.OutboundTrafficPolicy{}
-
-	for _, svc := range services {
-		inboundPolicies = trafficpolicy.MergeInboundPolicies(false, inboundPolicies, mc.buildInboundPermissiveModePolicies(svc)...)
-	}
-
-	mergedPolicies := trafficpolicy.MergeOutboundPolicies(outboundPolicies, mc.buildOutboundPermissiveModePolicies(services)...)
-	outboundPolicies = mergedPolicies
-	return inboundPolicies, outboundPolicies
-}
-
 // buildPolicyName creates a name for a policy associated with the given service
 func buildPolicyName(svc service.MeshService, sameNamespace bool) string {
 	name := svc.Name
@@ -769,24 +769,4 @@ func buildPolicyName(svc service.MeshService, sameNamespace bool) string {
 		return name + "." + svc.Namespace
 	}
 	return name
-}
-
-// difference returns the elements from largerSlice that are not found in smallerSlice
-func difference(largerSlice, smallerSlice []service.MeshService) []service.MeshService {
-	mb := make(map[service.MeshService]bool, len(largerSlice))
-	for _, x := range largerSlice {
-		mb[x] = false
-	}
-	var diff []service.MeshService
-	for _, x := range smallerSlice {
-		if _, found := mb[x]; found {
-			mb[x] = true
-		}
-	}
-	for key, val := range mb {
-		if !val {
-			diff = append(diff, key)
-		}
-	}
-	return diff
 }
