@@ -7,7 +7,7 @@ weight: 1
 
 ## OSM Components & Interactions
 
-![OSM Components & Interactions](./docs/content/images/osm-components-and-interactions.png)
+![OSM Components & Interactions](/docs/images/osm-components-and-interactions.png)
 
 ### Containers
 
