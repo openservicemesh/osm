@@ -4,17 +4,74 @@ import (
 	"fmt"
 	"testing"
 
+	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	xds_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	tassert "github.com/stretchr/testify/assert"
+	testclient "k8s.io/client-go/kubernetes/fake"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/certificate/providers/tresor"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
 	"github.com/openservicemesh/osm/pkg/service"
 )
+
+// TestNewResponse sets up a fake kube client, then a pod and makes an SDS request,
+// and finally verifies the response from sds.NewResponse().
+func TestNewResponse(t *testing.T) {
+	assert := tassert.New(t)
+
+	// Setup a fake Kube client. We use this to create a full simulation of creating a pod with
+	// the required xDS Certificate, properly formatted CommonName etc.
+	fakeKubeClient := testclient.NewSimpleClientset()
+
+	// We deliberately set the namespace and service accounts to random values
+	// to ensure no hard-coded values sneak in.
+	namespace := uuid.New().String()
+	serviceAccount := uuid.New().String()
+
+	// This is the thing we are going to be requesting (pretending that the Envoy is requesting it)
+	request := &xds_discovery.DiscoveryRequest{
+		TypeUrl: string(envoy.TypeSDS),
+		ResourceNames: []string{
+			envoy.SDSCert{Name: serviceAccount, CertType: envoy.ServiceCertType}.String(),
+			envoy.SDSCert{Name: serviceAccount, CertType: envoy.RootCertTypeForMTLSInbound}.String(),
+			envoy.SDSCert{Name: serviceAccount, CertType: envoy.RootCertTypeForHTTPS}.String(),
+		},
+	}
+
+	stop := make(chan struct{})
+	defer close(stop)
+
+	// The Common Name of the xDS Certificate (issued to the Envoy on the Pod by the Injector) will
+	// have be prefixed with the ID of the pod. It is the first chunk of a dot-separated string.
+	podID := uuid.New().String()
+
+	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s", podID, serviceAccount, namespace))
+	certSerialNumber := certificate.SerialNumber("123456")
+	goodProxy := envoy.NewProxy(certCommonName, certSerialNumber, nil)
+
+	badProxy := envoy.NewProxy("-certificate-common-name-is-invalid-", "-cert-serial-number-is-invalid-", nil)
+
+	cfg := configurator.NewConfigurator(fakeKubeClient, stop, namespace, "-the-config-map-name-")
+	certManager := tresor.NewFakeCertManager(cfg)
+	meshCatalog := catalog.NewFakeMeshCatalog(fakeKubeClient)
+
+	// ----- Test with a rogue proxy (does not belong to the mesh)
+	actualSDSResponse, err := NewResponse(meshCatalog, badProxy, request, cfg, certManager)
+	assert.Equal(err, catalog.ErrInvalidCertificateCN, "Expected a different error!")
+	assert.Nil(actualSDSResponse)
+
+	// ----- Test with an properly configured proxy
+	actualSDSResponse, err = NewResponse(meshCatalog, goodProxy, request, cfg, certManager)
+	assert.Equal(err, nil, fmt.Sprintf("Error evaluating sds.NewResponse(): %s", err))
+	assert.NotNil(actualSDSResponse)
+	assert.Equal(len(actualSDSResponse.Resources), 3)
+	assert.Equal(actualSDSResponse.TypeUrl, "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret")
+}
 
 func TestGetRootCert(t *testing.T) {
 	assert := tassert.New(t)
@@ -132,13 +189,9 @@ func TestGetRootCert(t *testing.T) {
 				tc.prepare(&d)
 			}
 
-			certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s", uuid.New().String(), "sa-1", "ns-1"))
-			certSerialNumber := certificate.SerialNumber("123456")
 			s := &sdsImpl{
-				proxyServices: []service.MeshService{tc.proxyService},
-				svcAccount:    tc.proxySvcAccount,
-				proxy:         envoy.NewProxy(certCommonName, certSerialNumber, nil),
-				certManager:   mockCertManager,
+				svcAccount:  tc.proxySvcAccount,
+				certManager: mockCertManager,
 
 				// these points to the dynamic mocks which gets updated for each test
 				meshCatalog: d.mockCatalog,
@@ -182,6 +235,7 @@ func TestGetServiceCert(t *testing.T) {
 			sdsSecret, err := getServiceCertSecret(mockCertificater, tc.certName)
 
 			assert.Equal(err != nil, tc.expectError)
+			assert.NotNil(sdsSecret)
 			assert.Equal(sdsSecret.GetTlsCertificate().GetCertificateChain().GetInlineBytes(), tc.certChain)
 			assert.Equal(sdsSecret.GetTlsCertificate().GetPrivateKey().GetInlineBytes(), tc.privKey)
 		})
@@ -350,18 +404,19 @@ func TestGetSDSSecrets(t *testing.T) {
 			certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s", uuid.New().String(), "sa-1", "ns-1"))
 			certSerialNumber := certificate.SerialNumber("123456")
 			s := &sdsImpl{
-				proxyServices: []service.MeshService{tc.proxyService},
-				svcAccount:    tc.proxySvcAccount,
-				proxy:         envoy.NewProxy(certCommonName, certSerialNumber, nil),
-				certManager:   mockCertManager,
+				svcAccount: tc.proxySvcAccount,
+
+				certManager: mockCertManager,
 
 				// these points to the dynamic mocks which gets updated for each test
 				meshCatalog: d.mockCatalog,
 				cfg:         d.mockConfigurator,
 			}
 
+			proxy := envoy.NewProxy(certCommonName, certSerialNumber, nil)
+
 			// test the function
-			sdsSecrets := s.getSDSSecrets(d.mockCertificater, tc.requestedCerts)
+			sdsSecrets := s.getSDSSecrets(d.mockCertificater, tc.requestedCerts, proxy)
 			assert.Len(sdsSecrets, tc.expectedSecretCount)
 
 			if tc.expectedSecretCount <= 0 {

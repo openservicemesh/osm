@@ -5,9 +5,7 @@ import (
 	xds_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	xds_matcher "github.com/envoyproxy/go-control-plane/envoy/type/matcher/v3"
-
 	"github.com/golang/protobuf/ptypes"
-	"github.com/golang/protobuf/ptypes/any"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
@@ -21,81 +19,58 @@ import (
 func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, certManager certificate.Manager) (*xds_discovery.DiscoveryResponse, error) {
 	log.Debug().Msgf("Composing SDS Discovery Response for Envoy with certificate SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 
-	svcList, err := meshCatalog.GetServicesFromEnvoyCertificate(proxy.GetCertificateCommonName())
-	if err != nil {
-		log.Error().Err(err).Msgf("Error getting services associated with Envoy with certificate SerialNumber=%s on Pod with UID=%s",
-			proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
-		return nil, err
-	}
-
 	// OSM currently relies on kubernetes ServiceAccount for service identity
 	svcAccount, err := catalog.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error retrieving ServiceAccount for Envoy with certificate SerialNumber=%s on Pod with UID=%s",
-			proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
+		log.Error().Err(err).Msgf("Error retrieving ServiceAccount for Envoy with certificate SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 		return nil, err
 	}
 
-	sdsImpl := newSDSImpl(proxy, meshCatalog, certManager, cfg, svcList, svcAccount)
-	return sdsImpl.createDiscoveryResponse(request)
-}
-
-func newSDSImpl(proxy *envoy.Proxy, meshCatalog catalog.MeshCataloger, certManager certificate.Manager, cfg configurator.Configurator, proxyServices []service.MeshService, svcAccount service.K8sServiceAccount) *sdsImpl {
-	impl := &sdsImpl{
-		proxy:         proxy,
-		meshCatalog:   meshCatalog,
-		certManager:   certManager,
-		cfg:           cfg,
-		svcAccount:    svcAccount,
-		proxyServices: proxyServices,
+	s := &sdsImpl{
+		meshCatalog: meshCatalog,
+		certManager: certManager,
+		cfg:         cfg,
+		svcAccount:  svcAccount,
 	}
 
-	return impl
-}
-
-func (s *sdsImpl) createDiscoveryResponse(request *xds_discovery.DiscoveryRequest) (*xds_discovery.DiscoveryResponse, error) {
-	// Resources corresponding to SDS secrets returned as a part of the DiscoveryResponse
-	var resources []*any.Any
+	discoveryResponse := &xds_discovery.DiscoveryResponse{
+		TypeUrl: string(envoy.TypeSDS),
+	}
 
 	// The DiscoveryRequest contains the requested certs
 	requestedCerts := request.ResourceNames
 
-	log.Trace().Msgf("Creating SDS response for request for ResourceNames (certificates) %+v from Envoy with certificate SerialNumber=%s on Pod with UID=%s", requestedCerts, s.proxy.GetCertificateSerialNumber(), s.proxy.GetPodUID())
+	log.Trace().Msgf("Creating SDS response for request for ResourceNames (certificates) %+v from Envoy with certificate SerialNumber=%s on Pod with UID=%s", requestedCerts, proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 
 	// 1. Issue a service certificate for this proxy
 	// OSM currently relies on kubernetes ServiceAccount for service identity
-	si := identity.GetKubernetesServiceIdentity(s.svcAccount, identity.ClusterLocalTrustDomain)
-	cert, err := s.certManager.IssueCertificate(certificate.CommonName(si), s.cfg.GetServiceCertValidityPeriod())
+	si := identity.GetKubernetesServiceIdentity(svcAccount, identity.ClusterLocalTrustDomain)
+	cert, err := certManager.IssueCertificate(certificate.CommonName(si), cfg.GetServiceCertValidityPeriod())
 	if err != nil {
-		log.Error().Err(err).Msgf("Error issuing a certificate for proxy with certificate SerialNumber=%s", s.proxy.GetCertificateSerialNumber())
+		log.Error().Err(err).Msgf("Error issuing a certificate for proxy with certificate SerialNumber=%s", proxy.GetCertificateSerialNumber())
 		return nil, err
 	}
 
 	// 2. Create SDS secret resources based on the requested certs in the DiscoveryRequest
 	// request.ResourceNames is expected to be a list of either "service-cert:namespace/service" or "root-cert:namespace/service"
-	for _, envoyProto := range s.getSDSSecrets(cert, requestedCerts) {
+	for _, envoyProto := range s.getSDSSecrets(cert, requestedCerts, proxy) {
 		marshalledSecret, err := ptypes.MarshalAny(envoyProto)
 		if err != nil {
-			log.Error().Err(err).Msgf("Error marshaling Envoy secret %s for proxy with certificate SerialNumber=%s on Pod with UID=%s", envoyProto.Name, s.proxy.GetCertificateSerialNumber(), s.proxy.GetPodUID())
+			log.Error().Err(err).Msgf("Error marshaling Envoy secret %s for proxy with certificate SerialNumber=%s on Pod with UID=%s", envoyProto.Name, proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 		}
 
-		resources = append(resources, marshalledSecret)
+		discoveryResponse.Resources = append(discoveryResponse.Resources, marshalledSecret)
 	}
 
-	return &xds_discovery.DiscoveryResponse{
-		TypeUrl:   string(envoy.TypeSDS),
-		Resources: resources,
-	}, nil
+	return discoveryResponse, nil
 }
 
-func (s *sdsImpl) getSDSSecrets(cert certificate.Certificater, requestedCerts []string) []*xds_auth.Secret {
+func (s *sdsImpl) getSDSSecrets(cert certificate.Certificater, requestedCerts []string, proxy *envoy.Proxy) (certs []*xds_auth.Secret) {
 	// requestedCerts is expected to be a list of either of the following:
 	// - "service-cert:namespace/service"
 	// - "root-cert-for-mtls-outbound:namespace/service"
 	// - "root-cert-for-mtls-inbound:namespace/service"
 	// - "root-cert-for-https:namespace/service"
-
-	var envoySecrets []*xds_auth.Secret
 
 	// The Envoy makes a request for a list of resources (aka certificates), which we will send as a response to the SDS request.
 	for _, requestedCertificate := range requestedCerts {
@@ -105,7 +80,7 @@ func (s *sdsImpl) getSDSSecrets(cert certificate.Certificater, requestedCerts []
 			continue
 		}
 
-		log.Debug().Msgf("Envoy with certificate SerialNumber=%s on Pod with UID=%s requested %s", s.proxy.GetCertificateSerialNumber(), s.proxy.GetPodUID(), requestedCertificate)
+		log.Debug().Msgf("Envoy with certificate SerialNumber=%s on Pod with UID=%s requested %s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID(), requestedCertificate)
 
 		switch sdsCert.CertType {
 		// A service certificate is requested
@@ -113,24 +88,24 @@ func (s *sdsImpl) getSDSSecrets(cert certificate.Certificater, requestedCerts []
 			envoySecret, err := getServiceCertSecret(cert, requestedCertificate)
 			if err != nil {
 				log.Error().Err(err).Msgf("Error creating cert %s for Envoy with xDS Certificate SerialNumber=%s on Pod with UID=%s",
-					requestedCertificate, s.proxy.GetCertificateSerialNumber(), s.proxy.GetPodUID())
+					requestedCertificate, proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 				continue
 			}
-			envoySecrets = append(envoySecrets, envoySecret)
+			certs = append(certs, envoySecret)
 
 		// A root certificate used to validate a service certificate is requested
 		case envoy.RootCertTypeForMTLSInbound, envoy.RootCertTypeForMTLSOutbound, envoy.RootCertTypeForHTTPS:
 			envoySecret, err := s.getRootCert(cert, *sdsCert)
 			if err != nil {
 				log.Error().Err(err).Msgf("Error creating cert %s for Envoy with xDS Certificate SerialNumber=%s on Pod with UID=%s",
-					requestedCertificate, s.proxy.GetCertificateSerialNumber(), s.proxy.GetPodUID())
+					requestedCertificate, proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 				continue
 			}
-			envoySecrets = append(envoySecrets, envoySecret)
+			certs = append(certs, envoySecret)
 		}
 	}
 
-	return envoySecrets
+	return certs
 }
 
 // getServiceCertSecret creates the struct with certificates for the service, which the
