@@ -13,7 +13,6 @@ import (
 	"github.com/golang/protobuf/ptypes"
 	structpb "github.com/golang/protobuf/ptypes/struct"
 	"github.com/golang/protobuf/ptypes/wrappers"
-	"github.com/jinzhu/copier"
 
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -28,8 +27,8 @@ type SDSDirection bool
 // SDSCert is only used to interface the naming and related functions to Marshal/Unmarshal a resource name,
 // this avoids having sprintf/parsing logic all over the place
 type SDSCert struct {
-	// MeshService is a service within the mesh
-	MeshService service.MeshService
+	// Name is the name of the SDS secret for the certificate
+	Name string
 
 	// CertType is the certificate type
 	CertType SDSCertType
@@ -80,7 +79,6 @@ var ALPNInMesh = []string{"osm"}
 // UnmarshalSDSCert parses and returns Certificate type and a service given a
 // correctly formatted string, otherwise returns error
 func UnmarshalSDSCert(str string) (*SDSCert, error) {
-	var svc *service.MeshService
 	var ret SDSCert
 
 	// Check separators, ignore empty string fields
@@ -102,15 +100,7 @@ func UnmarshalSDSCert(str string) (*SDSCert, error) {
 		return nil, errInvalidCertFormat
 	}
 
-	// Check valid namespaced service name
-	svc, err := service.UnmarshalMeshService(slices[1])
-	if err != nil {
-		return nil, err
-	}
-	err = copier.Copy(&ret.MeshService, &svc)
-	if err != nil {
-		return nil, err
-	}
+	ret.Name = slices[1]
 
 	return &ret, nil
 }
@@ -121,7 +111,7 @@ func (sdsc SDSCert) String() string {
 	return fmt.Sprintf("%s%s%s",
 		sdsc.CertType.String(),
 		Separator,
-		sdsc.MeshService.String())
+		sdsc.Name)
 }
 
 // GetAddress creates an Envoy Address struct.
@@ -230,8 +220,8 @@ func getCommonTLSContext(tlsSDSCert, peerValidationSDSCert SDSCert) *xds_auth.Co
 // GetDownstreamTLSContext creates a downstream Envoy TLS Context
 func GetDownstreamTLSContext(upstreamSvc service.MeshService, mTLS bool) *xds_auth.DownstreamTlsContext {
 	upstreamSDSCert := SDSCert{
-		MeshService: upstreamSvc,
-		CertType:    ServiceCertType,
+		Name:     upstreamSvc.String(),
+		CertType: ServiceCertType,
 	}
 
 	var downstreamPeerValidationCertType SDSCertType
@@ -244,12 +234,12 @@ func GetDownstreamTLSContext(upstreamSvc service.MeshService, mTLS bool) *xds_au
 	}
 	// The downstream peer validation SDS cert points to a cert with the name 'upstreamSvc' only
 	// because we use a single DownstreamTlsContext for all inbound traffic to the given 'upstreamSvc'.
-	// This single DownstreamTlsContext is used to validate all allowed inbound SANs with the
+	// This single DownstreamTlsContext is used to validate all allowed inbound SANs. The
 	// 'RootCertTypeForMTLSInbound' cert type used for in-mesh downstreams, while 'RootCertTypeForHTTPS'
 	// cert type is used for non-mesh downstreams such as ingress.
 	downstreamPeerValidationSDSCert := SDSCert{
-		MeshService: upstreamSvc,
-		CertType:    downstreamPeerValidationCertType,
+		Name:     upstreamSvc.String(),
+		CertType: downstreamPeerValidationCertType,
 	}
 
 	tlsConfig := &xds_auth.DownstreamTlsContext{
@@ -260,15 +250,15 @@ func GetDownstreamTLSContext(upstreamSvc service.MeshService, mTLS bool) *xds_au
 	return tlsConfig
 }
 
-// GetUpstreamTLSContext creates an upstream Envoy TLS Context for the given downstream and upstream service pair
-func GetUpstreamTLSContext(downstreamSvc, upstreamSvc service.MeshService) *xds_auth.UpstreamTlsContext {
+// GetUpstreamTLSContext creates an upstream Envoy TLS Context for the given downstream identity and upstream service pair
+func GetUpstreamTLSContext(downstreamIdentity service.K8sServiceAccount, upstreamSvc service.MeshService) *xds_auth.UpstreamTlsContext {
 	downstreamSDSCert := SDSCert{
-		MeshService: downstreamSvc,
-		CertType:    ServiceCertType,
+		Name:     downstreamIdentity.String(),
+		CertType: ServiceCertType,
 	}
 	upstreamPeerValidationSDSCert := SDSCert{
-		MeshService: upstreamSvc,
-		CertType:    RootCertTypeForMTLSOutbound,
+		Name:     upstreamSvc.String(),
+		CertType: RootCertTypeForMTLSOutbound,
 	}
 	commonTLSContext := getCommonTLSContext(downstreamSDSCert, upstreamPeerValidationSDSCert)
 

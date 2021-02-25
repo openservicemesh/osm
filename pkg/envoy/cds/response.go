@@ -19,8 +19,6 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		log.Error().Err(err).Msgf("Error looking up MeshService for Envoy with SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 		return nil, err
 	}
-	// Github Issue #1575
-	proxyServiceName := svcList[0]
 
 	var clusters []*xds_cluster.Cluster
 
@@ -33,29 +31,27 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 
 	// Build remote clusters based on allowed outbound services
 	for _, dstService := range meshCatalog.ListAllowedOutboundServicesForIdentity(proxyIdentity) {
-		cluster, err := getUpstreamServiceCluster(dstService, proxyServiceName, cfg)
+		cluster, err := getUpstreamServiceCluster(proxyIdentity, dstService, cfg)
 		if err != nil {
-			log.Error().Err(err).Msgf("Failed to construct service cluster for service %s for proxy %s", dstService.Name, proxyServiceName)
+			log.Error().Err(err).Msgf("Failed to construct service cluster for service %s for proxy with XDS Certificate SerialNumber=%s on Pod with UID=%s",
+				dstService.Name, proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 			return nil, err
 		}
 
 		clusters = append(clusters, cluster)
 	}
 
-	// Create a local cluster for the service.
-	// The local cluster will be used for incoming traffic.
-	localClusterName := envoy.GetLocalClusterNameForService(proxyServiceName)
-	var localCluster *xds_cluster.Cluster
-	if proxyServiceName.IsSyntheticService() {
-		localCluster = getSyntheticCluster(localClusterName)
-	} else {
-		localCluster, err = getLocalServiceCluster(meshCatalog, proxyServiceName, localClusterName)
+	// Create a local cluster for each service behind the proxy.
+	// The local cluster will be used to handle incoming traffic.
+	for _, proxyService := range svcList {
+		localClusterName := envoy.GetLocalClusterNameForService(proxyService)
+		localCluster, err := getLocalServiceCluster(meshCatalog, proxyService, localClusterName)
 		if err != nil {
-			log.Error().Err(err).Msgf("Failed to get local cluster config for proxy %s", proxyServiceName)
+			log.Error().Err(err).Msgf("Failed to get local cluster config for proxy %s", proxyService)
 			return nil, err
 		}
+		clusters = append(clusters, localCluster)
 	}
-	clusters = append(clusters, localCluster)
 
 	// Add an outbound passthrough cluster for egress
 	if cfg.IsEgressEnabled() {

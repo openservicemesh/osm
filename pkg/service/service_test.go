@@ -76,26 +76,6 @@ func TestUnmarshalMeshService(t *testing.T) {
 	}
 }
 
-func TestGetSyntheticService(t *testing.T) {
-	assert := tassert.New(t)
-
-	namespace := "-namespace-"
-	serviceAccount := "-service-account-"
-
-	sa := K8sServiceAccount{
-		Namespace: namespace,
-		Name:      serviceAccount,
-	}
-	expected := MeshService{
-		Namespace: namespace,
-		Name:      fmt.Sprintf("-service-account-.-namespace-.osm.synthetic-%s", SyntheticServiceSuffix),
-	}
-
-	actual := sa.GetSyntheticService()
-
-	assert.Equal(expected, actual)
-}
-
 func TestServerName(t *testing.T) {
 	assert := tassert.New(t)
 
@@ -105,38 +85,4 @@ func TestServerName(t *testing.T) {
 	}
 	actual := namespacedService.ServerName()
 	assert.Equal("service-name-here.namespace-here.svc.cluster.local", actual)
-}
-
-func TestIsSyntheticService(t *testing.T) {
-	assert := tassert.New(t)
-
-	testCases := []struct {
-		name        string
-		meshService MeshService
-		expected    bool
-	}{
-		{
-			name: "is not synthetic",
-			meshService: MeshService{
-				Namespace: "namespace-here",
-				Name:      "service-name-here",
-			},
-			expected: false,
-		},
-		{
-			name: "is synthetic",
-			meshService: MeshService{
-				Namespace: "namespace",
-				Name:      fmt.Sprintf("-service-account-.-namespace-.osm.synthetic-%s", SyntheticServiceSuffix),
-			},
-			expected: true,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			actual := tc.meshService.IsSyntheticService()
-			assert.Equal(tc.expected, actual)
-		})
-	}
 }

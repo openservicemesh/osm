@@ -2,7 +2,6 @@ package kube
 
 import (
 	"context"
-	"fmt"
 	"net"
 	"testing"
 	"time"
@@ -278,7 +277,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 		stop <- struct{}{}
 	})
 
-	It("should return a synthetic service when a pod matching the selector doesn't exist", func() {
+	It("should return an error when a pod matching the selector doesn't exist", func() {
 		svc := &corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-1",
@@ -300,10 +299,8 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		services, err := provider.GetServicesForServiceAccount(tests.BookbuyerServiceAccount)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(len(services)).To(Equal(1))
-		expectedServiceName := fmt.Sprintf("bookbuyer.default.osm.synthetic-%s", service.SyntheticServiceSuffix)
-		Expect(services[0].Name).To(Equal(expectedServiceName))
+		Expect(err).To(HaveOccurred())
+		Expect(services).To(BeNil())
 
 		err = fakeClientSet.CoreV1().Services(testNamespace).Delete(context.TODO(), svc.Name, metav1.DeleteOptions{})
 		Expect(err).ToNot(HaveOccurred())
@@ -390,7 +387,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 		<-podsAndServiceChannel
 	})
 
-	It("should return a synthetic service when the Service selector doesn't match the pod", func() {
+	It("should return an error when the Service selector doesn't match the pod", func() {
 		podsChannel := events.GetPubSubInstance().Subscribe(announcements.PodAdded,
 			announcements.PodDeleted,
 			announcements.PodUpdated)
@@ -454,17 +451,15 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 
 		// Expect a MeshService that corresponds to a Service that matches the Deployment spec labels
 		svcs, err := provider.GetServicesForServiceAccount(givenSvcAccount)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(len(svcs)).To(Equal(1))
-		expectedServiceName := fmt.Sprintf("test-service-account.testNamespace.osm.synthetic-%s", service.SyntheticServiceSuffix)
-		Expect(svcs[0].Name).To(Equal(expectedServiceName))
+		Expect(err).To(HaveOccurred())
+		Expect(svcs).To(BeNil())
 
 		err = fakeClientSet.CoreV1().Pods(testNamespace).Delete(context.Background(), pod.Name, metav1.DeleteOptions{})
 		Expect(err).ToNot(HaveOccurred())
 		<-podsChannel
 	})
 
-	It("should return a synthetic service when the service doesn't have a selector", func() {
+	It("should return an error when the service doesn't have a selector", func() {
 		podsChannel := events.GetPubSubInstance().Subscribe(announcements.PodAdded,
 			announcements.PodDeleted,
 			announcements.PodUpdated)
@@ -524,10 +519,8 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 
 		// Expect a MeshService that corresponds to a Service that matches the Deployment spec labels
 		svcs, err := provider.GetServicesForServiceAccount(givenSvcAccount)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(len(svcs)).To(Equal(1))
-		expectedServiceName := fmt.Sprintf("test-service-account.testNamespace.osm.synthetic-%s", service.SyntheticServiceSuffix)
-		Expect(svcs[0].Name).To(Equal(expectedServiceName))
+		Expect(err).To(HaveOccurred())
+		Expect(svcs).To(BeNil())
 
 		err = fakeClientSet.CoreV1().Pods(testNamespace).Delete(context.Background(), pod.Name, metav1.DeleteOptions{})
 		Expect(err).ToNot(HaveOccurred())

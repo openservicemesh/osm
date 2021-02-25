@@ -22,7 +22,7 @@ require (
 	github.com/hashicorp/go-version v1.1.0
 	github.com/hashicorp/vault/api v1.0.4
 	github.com/jetstack/cert-manager v0.16.1
-	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a
+	github.com/jinzhu/copier v0.2.4
 	github.com/jstemmer/go-junit-report v0.0.0-20190106144839-af01ea7f8024
 	github.com/matm/gocov-html v0.0.0-20200509184451-71874e2e203b
 	github.com/mitchellh/gox v1.0.1

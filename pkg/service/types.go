@@ -2,10 +2,7 @@
 package service
 
 import (
-	"fmt"
 	"strings"
-
-	"github.com/google/uuid"
 )
 
 const (
@@ -13,9 +10,6 @@ const (
 	// or viceversa
 	namespaceNameSeparator = "/"
 )
-
-// SyntheticServiceSuffix is a random string appended to the name of the synthetic service created for each K8s service account
-var SyntheticServiceSuffix = uuid.New().String()
 
 // MeshService is the struct defining a service (Kubernetes or otherwise) within a service mesh.
 type MeshService struct {
@@ -40,15 +34,6 @@ func (sa K8sServiceAccount) String() string {
 // IsEmpty returns true if the given service account object is empty
 func (sa K8sServiceAccount) IsEmpty() bool {
 	return (K8sServiceAccount{}) == sa
-}
-
-// GetSyntheticService creates a MeshService for the given K8s Service Account,
-// which has a unique name and is in lieu of an existing Kubernetes service.
-func (sa K8sServiceAccount) GetSyntheticService() MeshService {
-	return MeshService{
-		Namespace: sa.Namespace,
-		Name:      fmt.Sprintf("%s.%s.osm.synthetic-%s", sa.Name, sa.Namespace, SyntheticServiceSuffix),
-	}
 }
 
 // ClusterName is a type for a service name

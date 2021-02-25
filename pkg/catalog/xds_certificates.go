@@ -29,7 +29,7 @@ func (mc *MeshCatalog) GetServicesFromEnvoyCertificate(cn certificate.CommonName
 	}
 
 	if len(services) == 0 {
-		return makeSyntheticServiceForPod(pod, cn), nil
+		return nil, nil
 	}
 
 	// Remove services that have been split into other services.
@@ -60,17 +60,6 @@ func listServiceNames(meshServices []service.MeshService) (serviceNames []string
 		serviceNames = append(serviceNames, fmt.Sprintf("%s/%s", meshService.Namespace, meshService.Name))
 	}
 	return serviceNames
-}
-
-func makeSyntheticServiceForPod(pod *v1.Pod, proxyCommonName certificate.CommonName) []service.MeshService {
-	svcAccount := service.K8sServiceAccount{
-		Namespace: pod.Namespace,
-		Name:      pod.Spec.ServiceAccountName,
-	}
-	syntheticService := svcAccount.GetSyntheticService()
-	log.Debug().Msgf("Creating synthetic service %s since no actual services found for Envoy with xDS CN %s",
-		syntheticService, proxyCommonName)
-	return []service.MeshService{syntheticService}
 }
 
 // filterTrafficSplitServices takes a list of services and removes from it the ones
