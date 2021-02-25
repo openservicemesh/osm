@@ -16,6 +16,7 @@
   "gnetId": null,
   "graphTooltip": 0,
   "id": 8,
+  "iteration": 1614292699560,
   "links": [],
   "panels": [
     {
@@ -59,8 +60,8 @@
       "id": 6,
       "options": {
         "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
+        "graphMode": "area",
+        "justifyMode": "center",
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
@@ -72,11 +73,11 @@
       "pluginVersion": "7.0.1",
       "targets": [
         {
-          "expr": "osm_k8s_monitored_namespace_count",
+          "expr": "osm_k8s_monitored_namespace_count{source_pod_name=~\"$osm_controller_instance\"}",
           "format": "time_series",
-          "instant": false,
+          "instant": true,
           "interval": "",
-          "legendFormat": "",
+          "legendFormat": "{{source_pod_name}}",
           "refId": "A"
         }
       ],
@@ -112,8 +113,8 @@
       "id": 2,
       "options": {
         "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
+        "graphMode": "area",
+        "justifyMode": "center",
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
@@ -125,9 +126,10 @@
       "pluginVersion": "7.0.1",
       "targets": [
         {
-          "expr": "sum(osm_k8s_api_event_count{type=\"service-added\"} OR on() vector(0)) - sum(osm_k8s_api_event_count{type=\"service-deleted\"} OR on() vector(0))",
+          "expr": "sum(osm_k8s_api_event_count{type=\"service-added\", source_pod_name=~\"$osm_controller_instance\"}) by (source_pod_name) OR on() vector(0) - sum(osm_k8s_api_event_count{type=\"service-deleted\", source_pod_name=~\"$osm_controller_instance\"}) by (source_pod_name) OR on() vector(0)",
+          "instant": true,
           "interval": "",
-          "legendFormat": "",
+          "legendFormat": "{{source_pod_name}}",
           "refId": "A"
         }
       ],
@@ -164,8 +166,8 @@
       "id": 8,
       "options": {
         "colorMode": "value",
-        "graphMode": "none",
-        "justifyMode": "auto",
+        "graphMode": "area",
+        "justifyMode": "center",
         "orientation": "auto",
         "reduceOptions": {
           "calcs": [
@@ -177,11 +179,11 @@
       "pluginVersion": "7.0.1",
       "targets": [
         {
-          "expr": "sum(osm_k8s_api_event_count{type=\"pod-added\"} OR on() vector(0)) - sum(osm_k8s_api_event_count{type=\"pod-deleted\"} OR on() vector(0))",
+          "expr": "sum(osm_k8s_api_event_count{type=\"pod-added\", source_pod_name=~\"$osm_controller_instance\"}) by (source_pod_name) OR on() vector(0) - sum(osm_k8s_api_event_count{type=\"pod-deleted\", source_pod_name=~\"$osm_controller_instance\"}) by (source_pod_name) OR on() vector(0)",
           "format": "time_series",
-          "instant": false,
+          "instant": true,
           "interval": "",
-          "legendFormat": "",
+          "legendFormat": "{{source_pod_name}}",
           "refId": "A"
         }
       ],
@@ -237,7 +239,7 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "osm_proxy_connect_count",
+          "expr": "osm_proxy_connect_count{source_pod_name=~\"$osm_controller_instance\"}",
           "interval": "",
           "legendFormat": "Connected proxies",
           "refId": "B"
@@ -350,7 +352,7 @@
         {
           "expr": "irate(container_cpu_usage_seconds_total{namespace=\"osm-system\", container!~\"POD\", container!~\"\"}[1m])",
           "interval": "",
-          "legendFormat": "{{container}}",
+          "legendFormat": "{{pod}}",
           "refId": "A"
         }
       ],
@@ -468,7 +470,7 @@
         {
           "expr": "container_memory_rss{namespace=\"osm-system\", container!=\"\", container!=\"POD\"}",
           "interval": "",
-          "legendFormat": "{{container}}",
+          "legendFormat": "{{pod}}",
           "refId": "A"
         }
       ],
@@ -587,7 +589,7 @@
       "reverseYBuckets": false,
       "targets": [
         {
-          "expr": "idelta(osm_injector_injector_rq_time_bucket[1m])",
+          "expr": "idelta(osm_injector_injector_rq_time_bucket{source_pod_name=~\"$osm_injector_instance\"}[1m])",
           "format": "heatmap",
           "interval": "",
           "legendFormat": "{{le}}",
@@ -674,7 +676,7 @@
       "reverseYBuckets": false,
       "targets": [
         {
-          "expr": "sum(idelta(osm_cert_xds_issued_time_bucket[1m])) by (le)",
+          "expr": "sum(idelta(osm_cert_issued_time_bucket{source_pod_name=~\"$osm_injector_instance\"}[1m])) by (le)",
           "format": "heatmap",
           "interval": "",
           "legendFormat": "{{le}}",
@@ -761,7 +763,7 @@
       "reverseYBuckets": false,
       "targets": [
         {
-          "expr": "sum(idelta(osm_proxy_config_update_time_bucket{resource_type=\"ADS\"}[1m])) by (le)",
+          "expr": "sum(idelta(osm_proxy_config_update_time_bucket{resource_type=\"$xds_path\", source_pod_name=~\"$osm_controller_instance\"}[1m])) by (le)",
           "format": "heatmap",
           "hide": false,
           "interval": "",
@@ -772,7 +774,7 @@
       ],
       "timeFrom": null,
       "timeShift": null,
-      "title": "ADS update timings (sec)",
+      "title": "xDS Path histogram",
       "tooltip": {
         "show": true,
         "showHistogram": false
@@ -855,17 +857,17 @@
       "renderer": "flot",
       "seriesOverrides": [],
       "spaceLength": 10,
-      "stack": false,
+      "stack": true,
       "steppedLine": false,
       "targets": [
         {
-          "expr": "idelta(osm_injector_injector_rq_time_count{success=\"true\"}[1m])\n",
+          "expr": "idelta(osm_injector_injector_rq_time_count{success=\"true\", source_pod_name=~\"$osm_injector_instance\"}[1m])\n",
           "interval": "",
           "legendFormat": "Success",
           "refId": "A"
         },
         {
-          "expr": "idelta(osm_injector_injector_rq_time_count{success=\"false\"}[1m])",
+          "expr": "idelta(osm_injector_injector_rq_time_count{success=\"false\", source_pod_name=~\"$osm_injector_instance\"}[1m])",
           "interval": "",
           "legendFormat": "Failure",
           "refId": "B"
@@ -920,7 +922,21 @@
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
-          "custom": {}
+          "custom": {},
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
         },
         "overrides": []
       },
@@ -951,24 +967,25 @@
         "dataLinks": []
       },
       "percentage": false,
+      "pluginVersion": "7.0.1",
       "pointradius": 2,
       "points": false,
       "renderer": "flot",
       "seriesOverrides": [],
       "spaceLength": 10,
-      "stack": false,
+      "stack": true,
       "steppedLine": false,
       "targets": [
         {
-          "expr": "idelta(osm_proxy_config_update_time_count{success=\"true\", resource_type=\"ADS\"}[1m])\n",
+          "expr": "idelta(osm_proxy_config_update_time_count{success=\"true\", resource_type=~\"$xds_path\", source_pod_name=~\"$osm_controller_instance\"}[1m])\n",
           "interval": "",
-          "legendFormat": "{{resource_type}}-Success",
+          "legendFormat": "{{resource_type}}-{{source_pod_name}}-Success",
           "refId": "A"
         },
         {
-          "expr": "idelta(osm_proxy_config_update_time_count{success=\"false\"}[1m])",
+          "expr": "idelta(osm_proxy_config_update_time_count{success=\"false\", resource_type=~\"$xds_path\", source_pod_name=~\"$osm_controller_instance\"}[1m])",
           "interval": "",
-          "legendFormat": "{{resource_type}}-Failure",
+          "legendFormat": "{{resource_type}}-{{source_pod_name}}-Failure",
           "refId": "B"
         }
       ],
@@ -976,7 +993,7 @@
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "ADS Updates",
+      "title": "xDS Updates",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -1014,12 +1031,95 @@
       }
     }
   ],
-  "refresh": false,
+  "refresh": "10s",
   "schemaVersion": 25,
   "style": "dark",
   "tags": [],
   "templating": {
-    "list": []
+    "list": [
+      {
+        "allValue": null,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": [
+            "$__all"
+          ]
+        },
+        "datasource": "Prometheus",
+        "definition": "label_values(osm_proxy_connect_count, source_pod_name)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "OSM Controller instance",
+        "multi": true,
+        "name": "osm_controller_instance",
+        "options": [],
+        "query": "label_values(osm_proxy_connect_count, source_pod_name)",
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": null,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": [
+            "$__all"
+          ]
+        },
+        "datasource": "Prometheus",
+        "definition": "label_values(osm_injector_injector_sidecar_count, source_pod_name)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "OSM Injector instance",
+        "multi": true,
+        "name": "osm_injector_instance",
+        "options": [],
+        "query": "label_values(osm_injector_injector_sidecar_count, source_pod_name)",
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      },
+      {
+        "allValue": null,
+        "current": {
+          "selected": false,
+          "text": "ADS",
+          "value": "ADS"
+        },
+        "datasource": "Prometheus",
+        "definition": "label_values(osm_proxy_config_update_time_bucket, resource_type)",
+        "hide": 0,
+        "includeAll": false,
+        "label": "xDS Path",
+        "multi": false,
+        "name": "xds_path",
+        "options": [],
+        "query": "label_values(osm_proxy_config_update_time_bucket, resource_type)",
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 0,
+        "tagValuesQuery": "",
+        "tags": [],
+        "tagsQuery": "",
+        "type": "query",
+        "useTags": false
+      }
+    ]
   },
   "time": {
     "from": "now-15m",
@@ -1041,5 +1141,5 @@
   "timezone": "",
   "title": "Mesh and Envoy Details",
   "uid": "PLyKJcHGz",
-  "version": 2
+  "version": 3
 }
