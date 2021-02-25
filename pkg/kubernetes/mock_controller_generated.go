@@ -5,10 +5,11 @@
 package kubernetes
 
 import (
+	reflect "reflect"
+
 	gomock "github.com/golang/mock/gomock"
 	service "github.com/openservicemesh/osm/pkg/service"
 	v1 "k8s.io/api/core/v1"
-	reflect "reflect"
 )
 
 // MockController is a mock of Controller interface
@@ -120,6 +121,20 @@ func (mr *MockControllerMockRecorder) ListPods() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPods", reflect.TypeOf((*MockController)(nil).ListPods))
 }
 
+// ListServiceAccounts mocks base method
+func (m *MockController) ListServiceAccounts() []*v1.ServiceAccount {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListServiceAccounts")
+	ret0, _ := ret[0].([]*v1.ServiceAccount)
+	return ret0
+}
+
+// ListServiceAccounts indicates an expected call of ListServiceAccounts
+func (mr *MockControllerMockRecorder) ListServiceAccounts() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServiceAccounts", reflect.TypeOf((*MockController)(nil).ListServiceAccounts))
+}
+
 // ListServiceAccountsForService mocks base method
 func (m *MockController) ListServiceAccountsForService(arg0 service.MeshService) ([]service.K8sServiceAccount, error) {
 	m.ctrl.T.Helper()
@@ -147,18 +162,4 @@ func (m *MockController) ListServices() []*v1.Service {
 func (mr *MockControllerMockRecorder) ListServices() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServices", reflect.TypeOf((*MockController)(nil).ListServices))
-}
-
-// ListServiceAccounts mocks base method
-func (m *MockController) ListServiceAccounts() []*v1.ServiceAccount {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListServiceAccounts")
-	ret0, _ := ret[0].([]*v1.ServiceAccount)
-	return ret0
-}
-
-// ListServiceAccounts indicates an expected call of ListServiceAccounts
-func (mr *MockControllerMockRecorder) ListServiceAccounts() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServiceAccounts", reflect.TypeOf((*MockController)(nil).ListServiceAccounts))
 }

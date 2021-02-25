@@ -55,6 +55,15 @@ jobs:
       - name: go mod tidy
         run: make go-mod-tidy
 
+  mocks:
+    name: Mocks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      - name: gomock checks
+        run: make check-mocks
+
   charts:
     name: Chart checks
     runs-on: ubuntu-latest

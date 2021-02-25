@@ -1,0 +1,30 @@
+# This file specifies the rules used to generate mock files for interfaces defined in
+# packages for the purpose of unit testing. The rules are to be specified of the form:
+# package name; mock output file path; package import path; interfaces to mock
+
+# pkg/smi
+smi; pkg/smi/mock_meshspec_generated.go; github.com/openservicemesh/osm/pkg/smi; MeshSpec
+
+# pkg/kubernetes
+kubernetes; pkg/kubernetes/mock_controller_generated.go; github.com/openservicemesh/osm/pkg/kubernetes; Controller
+
+# pkg/debugger
+debugger; pkg/debugger/mock_debugger_generated.go; github.com/openservicemesh/osm/pkg/debugger; CertificateManagerDebugger,MeshCatalogDebugger,XDSDebugger
+
+# pkg/health
+health; pkg/health/mock_probes_generated.go; github.com/openservicemesh/osm/pkg/health; Probes
+
+# pkg/ingress
+ingress; pkg/ingress/mock_client_generated.go; github.com/openservicemesh/osm/pkg/ingress; Monitor
+
+# pkg/endpoint
+endpoint; pkg/endpoint/mock_provider_generated.go; github.com/openservicemesh/osm/pkg/endpoint; Provider
+
+# pkg/configurator
+configurator; pkg/configurator/mock_client_generated.go; github.com/openservicemesh/osm/pkg/configurator; Configurator
+
+# pkg/catalog
+catalog; pkg/catalog/mock_catalog_generated.go; github.com/openservicemesh/osm/pkg/catalog; MeshCataloger
+
+# pkg/certificate
+certificate; pkg/certificate/mock_certificate_generated.go; github.com/openservicemesh/osm/pkg/certificate; Certificater,Manager
