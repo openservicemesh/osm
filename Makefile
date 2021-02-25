@@ -27,9 +27,12 @@ E2E_FLAGS_DEFAULT := -test.v -ginkgo.v -ginkgo.progress -ctrRegistry $(CTR_REGIS
 # Installed Go version
 # This is the version of Go going to be used to compile this project.
 # It will be compared with the minimum requirements for OSM.
-GO_VERSION_MAJOR = $(shell go version | sed -E 's/.*go([[:digit:]]+)\..*/\1/')
-GO_VERSION_MINOR = $(shell go version | sed -E 's/.*go[[:digit:]]+\.([[:digit:]]+)\..*/\1/')
-GO_VERSION_PATCH = $(shell go version | sed -E 's/.*go[[:digit:]]+\.[[:digit:]]+\.([[:digit:]]+)[[:space:]].*/\1/')
+GO_VERSION_MAJOR = $(shell go version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -f1)
+GO_VERSION_MINOR = $(shell go version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -f2)
+GO_VERSION_PATCH = $(shell go version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -f3)
+ifeq ($(GO_VERSION_PATCH),)
+GO_VERSION_PATCH := 0
+endif
 
 # Required Go version
 # These variables set the minimum required version of Go for this project.
@@ -54,6 +57,8 @@ check-go-version: # Ensure the Go version used is what OSM requires
 	elif [ $(GO_VERSION_MAJOR) -lt $(MIN_REQUIRED_GO_VERSION_MAJOR) ]; then \
 		echo '$(GO_VERSION_MESSAGE)';\
 		exit 1; \
+	elif [ $(GO_VERSION_MINOR) -gt $(MIN_REQUIRED_GO_VERSION_MINOR) ] ; then \
+		exit 0; \
 	elif [ $(GO_VERSION_MINOR) -lt $(MIN_REQUIRED_GO_VERSION_MINOR) ] ; then \
 		echo '$(GO_VERSION_MESSAGE)';\
 		exit 1; \
