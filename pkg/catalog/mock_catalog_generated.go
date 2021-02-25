@@ -349,21 +349,6 @@ func (mr *MockMeshCatalogerMockRecorder) ListOutboundTrafficPolicies(arg0 interf
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListOutboundTrafficPolicies", reflect.TypeOf((*MockMeshCataloger)(nil).ListOutboundTrafficPolicies), arg0)
 }
 
-// ListPoliciesForPermissiveMode mocks base method
-func (m *MockMeshCataloger) ListPoliciesForPermissiveMode(arg0 []service.MeshService) ([]*trafficpolicy.InboundTrafficPolicy, []*trafficpolicy.OutboundTrafficPolicy) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListPoliciesForPermissiveMode", arg0)
-	ret0, _ := ret[0].([]*trafficpolicy.InboundTrafficPolicy)
-	ret1, _ := ret[1].([]*trafficpolicy.OutboundTrafficPolicy)
-	return ret0, ret1
-}
-
-// ListPoliciesForPermissiveMode indicates an expected call of ListPoliciesForPermissiveMode
-func (mr *MockMeshCatalogerMockRecorder) ListPoliciesForPermissiveMode(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPoliciesForPermissiveMode", reflect.TypeOf((*MockMeshCataloger)(nil).ListPoliciesForPermissiveMode), arg0)
-}
-
 // ListSMIPolicies mocks base method
 func (m *MockMeshCataloger) ListSMIPolicies() ([]*v1alpha2.TrafficSplit, []service.WeightedService, []service.K8sServiceAccount, []*v1alpha4.HTTPRouteGroup, []*v1alpha3.TrafficTarget) {
 	m.ctrl.T.Helper()
