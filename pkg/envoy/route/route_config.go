@@ -17,6 +17,37 @@ import (
 	"github.com/openservicemesh/osm/pkg/trafficpolicy"
 )
 
+// Direction is a type to signify the direction associated with a route
+type Direction int
+
+const (
+	// OutboundRoute is the direction for an outbound route
+	OutboundRoute Direction = iota
+
+	// InboundRoute is the direction for an inbound route
+	InboundRoute
+)
+
+const (
+	//InboundRouteConfigName is the name of the route config that the envoy will identify
+	InboundRouteConfigName = "RDS_Inbound"
+
+	//OutboundRouteConfigName is the name of the route config that the envoy will identify
+	OutboundRouteConfigName = "RDS_Outbound"
+
+	// inboundVirtualHost is the name of the virtual host on the inbound route configuration
+	inboundVirtualHost = "inbound_virtual-host"
+
+	// outboundVirtualHost is the name of the virtual host on the outbound route configuration
+	outboundVirtualHost = "outbound_virtual-host"
+
+	// MethodHeaderKey is the key of the header for HTTP methods
+	MethodHeaderKey = ":method"
+
+	// httpHostHeader is the name of the HTTP host header
+	httpHostHeader = "host"
+)
+
 // BuildRouteConfiguration constructs the Envoy constructs ([]*xds_route.RouteConfiguration) for implementing inbound and outbound routes
 func BuildRouteConfiguration(inbound []*trafficpolicy.InboundTrafficPolicy, outbound []*trafficpolicy.OutboundTrafficPolicy, proxy *envoy.Proxy) []*xds_route.RouteConfiguration {
 	routeConfiguration := []*xds_route.RouteConfiguration{}
