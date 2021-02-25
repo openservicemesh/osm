@@ -28,11 +28,7 @@ Use the [installation guide](/docs/content/docs/installation_guide.md) to instal
 
 For the purpose of this demo, it is recommended to install OSM with [permissive traffic policy mode](#permissive-traffic-policy-mode) enabled. By default, OSM will install with permissive traffic policy mode disabled and [SMI Traffic Policy Mode](#smi-traffic-policy-mode) enabled.
 
-<<<<<<< HEAD:docs/example/README.md
-*Note: By default, `osm` CLI does not enable Prometheus, Grafana, and Jaeger as a part of control plane installation.*
-=======
 _Note: By default, `osm` CLI does not enable Prometheus, Grafana, and Jaegar as a part of control plane installation._
->>>>>>> Began structure of site navigation:docs/content/docs/install/manual_demo.md
 
 1.  Install OSM in permissive traffic policy mode:
 
@@ -46,11 +42,7 @@ _Note: By default, `osm` CLI does not enable Prometheus, Grafana, and Jaegar as 
     osm install
     ```
 
-<<<<<<< HEAD:docs/example/README.md
-1. To enable Prometheus, Grafana and Jaeger, use their respective flags
-=======
-1.  To enable Prometheus and Grafana, use their respective flags
->>>>>>> Began structure of site navigation:docs/content/docs/install/manual_demo.md
+1.  To enable Prometheus, Grafana, and Jaeger, use their respective flags
     ```bash
     osm install --deploy-prometheus --deploy-grafana --deploy-jaeger
     ```
