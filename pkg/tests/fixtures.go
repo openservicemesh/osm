@@ -486,6 +486,12 @@ var (
 		SelectorKey:                      SelectorValue,
 		constants.EnvoyUniqueIDLabelName: ProxyUUID,
 	}
+
+	// WildCardRouteMatch is HTTPRouteMatch with wildcard path and method
+	WildCardRouteMatch trafficpolicy.HTTPRouteMatch = trafficpolicy.HTTPRouteMatch{
+		PathRegex: constants.RegexMatchAll,
+		Methods:   []string{constants.WildcardHTTPMethod},
+	}
 )
 
 // NewPodFixture creates a new Pod struct for testing.
