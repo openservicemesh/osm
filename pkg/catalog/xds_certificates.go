@@ -114,7 +114,7 @@ func GetPodFromCertificate(cn certificate.CommonName, kubecontroller k8s.Control
 	if len(pods) == 0 {
 		log.Error().Msgf("Did not find Pod with label %s = %s in namespace %s",
 			constants.EnvoyUniqueIDLabelName, cnMeta.ProxyUUID, cnMeta.Namespace)
-		return nil, errDidNotFindPodForCertificate
+		return nil, ErrDidNotFindPodForCertificate
 	}
 
 	// --- CONVENTION ---
@@ -124,7 +124,7 @@ func GetPodFromCertificate(cn certificate.CommonName, kubecontroller k8s.Control
 	if len(pods) > 1 {
 		log.Error().Msgf("Found more than one pod with label %s = %s in namespace %s. There can be only one!",
 			constants.EnvoyUniqueIDLabelName, cnMeta.ProxyUUID, cnMeta.Namespace)
-		return nil, errMoreThanOnePodForCertificate
+		return nil, ErrMoreThanOnePodForCertificate
 	}
 
 	pod := pods[0]
@@ -134,7 +134,7 @@ func GetPodFromCertificate(cn certificate.CommonName, kubecontroller k8s.Control
 	if pod.Namespace != cnMeta.Namespace {
 		log.Warn().Msgf("Pod with UID=%s belongs to Namespace %s. The pod's xDS certificate was issued for Namespace %s",
 			pod.ObjectMeta.UID, pod.Namespace, cnMeta.Namespace)
-		return nil, errNamespaceDoesNotMatchCertificate
+		return nil, ErrNamespaceDoesNotMatchCertificate
 	}
 
 	// Ensure the Name encoded in the certificate matches that of the Pod
@@ -142,7 +142,7 @@ func GetPodFromCertificate(cn certificate.CommonName, kubecontroller k8s.Control
 		// Since we search for the pod in the namespace we obtain from the certificate -- these namespaces will always match.
 		log.Warn().Msgf("Pod with UID=%s belongs to ServiceAccount=%s. The pod's xDS certificate was issued for ServiceAccount=%s",
 			pod.ObjectMeta.UID, pod.Spec.ServiceAccountName, cnMeta.ServiceAccount)
-		return nil, errServiceAccountDoesNotMatchCertificate
+		return nil, ErrServiceAccountDoesNotMatchCertificate
 	}
 
 	return &pod, nil
@@ -174,7 +174,7 @@ func listServicesForPod(pod *v1.Pod, kubeController k8s.Controller) ([]v1.Servic
 func getCertificateCommonNameMeta(cn certificate.CommonName) (*certificateCommonNameMeta, error) {
 	chunks := strings.Split(cn.String(), constants.DomainDelimiter)
 	if len(chunks) < 3 {
-		return nil, errInvalidCertificateCN
+		return nil, ErrInvalidCertificateCN
 	}
 	proxyUUID, err := uuid.Parse(chunks[0])
 	if err != nil {
