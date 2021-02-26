@@ -291,7 +291,7 @@ would require:
 
 In the previous section, we proposed implementation of the `StreamAggregatedResources` method. This provides
 connected Envoy proxies with a list of clusters, mapping of service name to list of routable IP addresses, list of permitted routes, listeners and secrets for CDS, EDS, RDS, LDS and SDS respectively.
-The `ListEndpointsForService`, `ListTrafficPolicies` methods will be provided by the OSM component, which we refer to
+The `ListEndpointsForService` method will be provided by the OSM component, which we refer to
  as the **Mesh Catalog** in this document.
 
 The Mesh Catalog will have access to the `MeshSpec`, `CertificateManager`, and the list of `EndpointsProvider`s.
@@ -301,12 +301,6 @@ The Mesh Catalog will have access to the `MeshSpec`, `CertificateManager`, and t
 type MeshCataloger interface {
 	// GetSMISpec returns the SMI spec
 	GetSMISpec() smi.MeshSpec
-
-	// ListTrafficPolicies returns all the traffic policies for a given service that Envoy proxy should be aware of.
-	ListTrafficPolicies(service.MeshService) ([]trafficpolicy.TrafficTarget, error)
-
-	// ListAllowedInboundServices lists the inbound services allowed to connect to the given service.
-	ListAllowedInboundServices(service.MeshService) ([]service.MeshService, error)
 
 	// ListAllowedInboundServiceAccounts lists the downstream service accounts that can connect to the given service account
 	ListAllowedInboundServiceAccounts(service.K8sServiceAccount) ([]service.K8sServiceAccount, error)

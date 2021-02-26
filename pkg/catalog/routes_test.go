@@ -698,38 +698,6 @@ func TestRoutesFromRules(t *testing.T) {
 	}
 }
 
-func TestListTrafficPolicies(t *testing.T) {
-	assert := tassert.New(t)
-
-	type listTrafficPoliciesTest struct {
-		input  service.MeshService
-		output []trafficpolicy.TrafficTarget
-	}
-
-	listTrafficPoliciesTests := []listTrafficPoliciesTest{
-		{
-			input:  tests.BookstoreV1Service,
-			output: []trafficpolicy.TrafficTarget{tests.BookstoreV1TrafficPolicy},
-		},
-		{
-			input:  tests.BookstoreV2Service,
-			output: []trafficpolicy.TrafficTarget{tests.BookstoreV2TrafficPolicy},
-		},
-		{
-			input:  tests.BookbuyerService,
-			output: []trafficpolicy.TrafficTarget{tests.BookstoreV1TrafficPolicy, tests.BookstoreV2TrafficPolicy, tests.BookstoreApexTrafficPolicy},
-		},
-	}
-
-	mc := newFakeMeshCatalog()
-
-	for _, test := range listTrafficPoliciesTests {
-		trafficTargets, err := mc.ListTrafficPolicies(test.input)
-		assert.Nil(err)
-		assert.ElementsMatch(trafficTargets, test.output)
-	}
-}
-
 func TestGetTrafficPoliciesForService(t *testing.T) {
 	assert := tassert.New(t)
 
@@ -818,17 +786,6 @@ func TestGetTrafficSpecName(t *testing.T) {
 	actual := mc.getTrafficSpecName("HTTPRouteGroup", tests.Namespace, tests.RouteGroupName)
 	expected := trafficpolicy.TrafficSpecName(fmt.Sprintf("HTTPRouteGroup/%s/%s", tests.Namespace, tests.RouteGroupName))
 	assert.Equal(actual, expected)
-}
-
-func TestListAllowedInboundServices(t *testing.T) {
-	assert := tassert.New(t)
-
-	mc := newFakeMeshCatalog()
-
-	actualList, err := mc.ListAllowedInboundServices(tests.BookstoreV1Service)
-	assert.Nil(err)
-	expectedList := []service.MeshService{tests.BookbuyerService}
-	assert.ElementsMatch(actualList, expectedList)
 }
 
 func TestBuildAllowPolicyForSourceToDest(t *testing.T) {

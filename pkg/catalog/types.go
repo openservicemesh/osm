@@ -63,17 +63,11 @@ type MeshCataloger interface {
 	// GetSMISpec returns the SMI spec
 	GetSMISpec() smi.MeshSpec
 
-	// ListTrafficPolicies returns all the traffic policies for a given service that Envoy proxy should be aware of.
-	ListTrafficPolicies(service.MeshService) ([]trafficpolicy.TrafficTarget, error)
-
-	// ListInboundTrafficPolicies returns all inbound traffic policies related to the given service account and upstream services
+	// ListInboundTrafficPolicies returns all inbound traffic policies related to the given service account and inbound services
 	ListInboundTrafficPolicies(service.K8sServiceAccount, []service.MeshService) []*trafficpolicy.InboundTrafficPolicy
 
 	// ListOutboundTrafficPolicies returns all outbound traffic policies related to the given service account
 	ListOutboundTrafficPolicies(service.K8sServiceAccount) []*trafficpolicy.OutboundTrafficPolicy
-
-	// ListAllowedInboundServices lists the inbound services allowed to connect to the given service.
-	ListAllowedInboundServices(service.MeshService) ([]service.MeshService, error)
 
 	// ListAllowedOutboundServicesForIdentity list the services the given service account is allowed to initiate outbound connections to
 	ListAllowedOutboundServicesForIdentity(service.K8sServiceAccount) []service.MeshService

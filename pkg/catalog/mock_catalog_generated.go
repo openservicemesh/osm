@@ -233,21 +233,6 @@ func (mr *MockMeshCatalogerMockRecorder) ListAllowedInboundServiceAccounts(arg0 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAllowedInboundServiceAccounts", reflect.TypeOf((*MockMeshCataloger)(nil).ListAllowedInboundServiceAccounts), arg0)
 }
 
-// ListAllowedInboundServices mocks base method
-func (m *MockMeshCataloger) ListAllowedInboundServices(arg0 service.MeshService) ([]service.MeshService, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListAllowedInboundServices", arg0)
-	ret0, _ := ret[0].([]service.MeshService)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListAllowedInboundServices indicates an expected call of ListAllowedInboundServices
-func (mr *MockMeshCatalogerMockRecorder) ListAllowedInboundServices(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAllowedInboundServices", reflect.TypeOf((*MockMeshCataloger)(nil).ListAllowedInboundServices), arg0)
-}
-
 // ListAllowedOutboundServiceAccounts mocks base method
 func (m *MockMeshCataloger) ListAllowedOutboundServiceAccounts(arg0 service.K8sServiceAccount) ([]service.K8sServiceAccount, error) {
 	m.ctrl.T.Helper()
@@ -380,21 +365,6 @@ func (m *MockMeshCataloger) ListServiceAccountsForService(arg0 service.MeshServi
 func (mr *MockMeshCatalogerMockRecorder) ListServiceAccountsForService(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListServiceAccountsForService", reflect.TypeOf((*MockMeshCataloger)(nil).ListServiceAccountsForService), arg0)
-}
-
-// ListTrafficPolicies mocks base method
-func (m *MockMeshCataloger) ListTrafficPolicies(arg0 service.MeshService) ([]trafficpolicy.TrafficTarget, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListTrafficPolicies", arg0)
-	ret0, _ := ret[0].([]trafficpolicy.TrafficTarget)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListTrafficPolicies indicates an expected call of ListTrafficPolicies
-func (mr *MockMeshCatalogerMockRecorder) ListTrafficPolicies(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTrafficPolicies", reflect.TypeOf((*MockMeshCataloger)(nil).ListTrafficPolicies), arg0)
 }
 
 // RegisterProxy mocks base method
