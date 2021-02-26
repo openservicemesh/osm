@@ -30,7 +30,7 @@ func TestGetRootCert(t *testing.T) {
 
 	mockCertManager := certificate.NewMockManager(mockCtrl)
 
-	testCases := []struct {
+	type testCase struct {
 		name            string
 		sdsCert         envoy.SDSCert
 		proxyService    service.MeshService
@@ -40,7 +40,9 @@ func TestGetRootCert(t *testing.T) {
 		// expectations
 		expectedSANs []string
 		expectError  bool
-	}{
+	}
+
+	testCases := []testCase{
 		// Test case 1: tests SDS secret for inbound TLS secret -------------------------------
 		{
 			name: "test inbound MTLS certificate validation",
@@ -162,12 +164,14 @@ func TestGetServiceCert(t *testing.T) {
 
 	mockCertificater := certificate.NewMockCertificater(mockCtrl)
 
-	testCases := []struct {
+	type testCase struct {
 		certName    string
 		certChain   []byte
 		privKey     []byte
 		expectError bool
-	}{
+	}
+
+	testCases := []testCase{
 		{"foo", []byte("cert-chain"), []byte("priv-key"), false},
 		{"bar", []byte("cert-chain-2"), []byte("priv-key-2"), false},
 	}
@@ -202,7 +206,7 @@ func TestGetSDSSecrets(t *testing.T) {
 		mockCertificater *certificate.MockCertificater
 	}
 
-	testCases := []struct {
+	type testCase struct {
 		name            string
 		proxyService    service.MeshService
 		proxySvcAccount service.K8sServiceAccount
@@ -220,7 +224,9 @@ func TestGetSDSSecrets(t *testing.T) {
 		// expectations
 		expectedSANs        []string // only set for service-cert
 		expectedSecretCount int
-	}{
+	}
+
+	testCases := []testCase{
 		// Test case 1: root-cert-for-mtls-inbound requested -------------------------------
 		{
 			name:            "test root-cert-for-mtls-inbound cert type request",
@@ -393,10 +399,12 @@ func TestGetSDSSecrets(t *testing.T) {
 func TestGetSubjectAltNamesFromSvcAccount(t *testing.T) {
 	assert := tassert.New(t)
 
-	testCases := []struct {
+	type testCase struct {
 		svcAccounts         []service.K8sServiceAccount
 		expectedSANMatchers []*xds_matcher.StringMatcher
-	}{
+	}
+
+	testCases := []testCase{
 		{
 			svcAccounts: []service.K8sServiceAccount{
 				{Name: "sa-1", Namespace: "ns-1"},
@@ -428,10 +436,12 @@ func TestGetSubjectAltNamesFromSvcAccount(t *testing.T) {
 func TestSubjectAltNamesToStr(t *testing.T) {
 	assert := tassert.New(t)
 
-	testCases := []struct {
+	type testCase struct {
 		sanMatchers []*xds_matcher.StringMatcher
 		strSANs     []string
-	}{
+	}
+
+	testCases := []testCase{
 		{
 			sanMatchers: []*xds_matcher.StringMatcher{
 				{
