@@ -62,7 +62,7 @@ Example - linking foo.md (1) to bar.md (2):
 title: "Foo.md"
 description: "Foo"
 type: docs
-aliases: ["foo.md"]
+aliases: ["foo"]
 ---
 
 Here's a link to [Bar](./bar.md).
@@ -74,7 +74,7 @@ Here's a link to [Bar](./bar.md).
 title: "Bar.md"
 description: "Bar"
 type: docs
-aliases: ["bar.md"]
+aliases: ["bar"]
 ---
 
 This is Bar. Go back to [Foo](./foo.md).
