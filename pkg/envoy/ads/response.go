@@ -138,7 +138,7 @@ func (s *Server) newAggregatedDiscoveryResponse(proxy *envoy.Proxy, request *xds
 	response, err := handler(s.catalog, proxy, request, cfg, s.certManager)
 	if err != nil {
 		log.Error().Msgf("Responder for TypeUrl %s is not implemented", request.TypeUrl)
-		return nil, errCreatingResponse
+		return nil, err
 	}
 
 	response.Nonce = proxy.SetNewNonce(typeURL)

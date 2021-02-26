@@ -5,14 +5,17 @@ import (
 	"fmt"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
+
+	v3 "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
+	"github.com/golang/mock/gomock"
 	"github.com/golang/protobuf/ptypes"
 	"github.com/google/uuid"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -66,7 +69,7 @@ var _ = Describe("Test ADS response functions", func() {
 	// able to be looked up
 	svc = tests.NewServiceFixture(tests.BookstoreApexService.Name, tests.BookstoreApexService.Namespace, nil)
 	if _, err := kubeClient.CoreV1().Services(tests.BookstoreApexService.Namespace).Create(context.TODO(), svc, metav1.CreateOptions{}); err != nil {
-		GinkgoT().Fatalf("Error creating new Bookstire Apex service: %s", err.Error())
+		GinkgoT().Fatalf("Error creating new Bookstore Apex service: %s", err.Error())
 	}
 
 	certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s", proxyUUID, proxySvcAccount.Name, proxySvcAccount.Namespace))
@@ -166,6 +169,100 @@ var _ = Describe("Test ADS response functions", func() {
 				Name:     proxySvcAccount.String(),
 				CertType: envoy.RootCertTypeForHTTPS,
 			}.String()))
+		})
+	})
+
+	Context("Test newAggregatedDiscoveryResponse()", func() {
+		It("returns Aggregated Discovery Service response", func() {
+			certManager := tresor.NewFakeCertManager(mockConfigurator)
+			s := NewADSServer(mc, true, tests.Namespace, mockConfigurator, certManager)
+
+			serviceAccount := uuid.New().String()
+
+			// The Common Name of the xDS Certificate (issued to the Envoy on the Pod by the Injector) will
+			// have be prefixed with the ID of the pod. It is the first chunk of a dot-separated string.
+			podID := uuid.New().String()
+
+			certCommonName := certificate.CommonName(fmt.Sprintf("%s.%s.%s", podID, serviceAccount, namespace))
+			certSerialNumber := certificate.SerialNumber("123456")
+			proxy := envoy.NewProxy(certCommonName, certSerialNumber, nil)
+			req := &xds_discovery.DiscoveryRequest{
+				TypeUrl: "-invalid-type-url-",
+				Node: &v3.Node{
+					Id: "-node-id-goes-here-",
+				},
+			}
+
+			// --- Test with unknown TypeUrl
+			actualResponse, err := s.newAggregatedDiscoveryResponse(proxy, req, mockConfigurator)
+			Expect(err).To(Equal(errUnknownTypeURL))
+			Expect(actualResponse).To(BeNil())
+
+			// -----------------------------------------------------------------
+
+			// --- Test with known TypeURLs
+			typeURIs := []envoy.TypeURI{
+				envoy.TypeEDS,
+				envoy.TypeCDS,
+				envoy.TypeRDS,
+				envoy.TypeLDS,
+				envoy.TypeSDS,
+			}
+
+			expected := map[envoy.TypeURI]error{
+				envoy.TypeEDS: nil,
+				envoy.TypeCDS: catalog.ErrDidNotFindPodForCertificate,
+				envoy.TypeRDS: catalog.ErrDidNotFindPodForCertificate,
+				envoy.TypeLDS: catalog.ErrDidNotFindPodForCertificate,
+				envoy.TypeSDS: catalog.ErrDidNotFindPodForCertificate,
+			}
+
+			for _, typeURI := range typeURIs {
+				req := &xds_discovery.DiscoveryRequest{
+					TypeUrl: typeURI.String(),
+					Node:    &v3.Node{Id: "-node-id-goes-here-"},
+				}
+				actualResponse, err := s.newAggregatedDiscoveryResponse(proxy, req, mockConfigurator)
+				expectation := expected[typeURI]
+				if expectation == nil {
+					Expect(err).To(BeNil(), fmt.Sprintf("Expected typeURI=%s to result in ADS not returning an error", typeURI))
+					Expect(actualResponse.TypeUrl).To(Equal(envoy.TypeEDS.String()))
+				} else {
+					Expect(err).To(Equal(expectation), fmt.Sprintf("Expected typeURI=%s to result in ADS returning an error=%s", typeURI, expectation))
+					Expect(actualResponse).To(BeNil())
+				}
+			}
+
+			// -----------------------------------------------------------------
+			{
+				// Create a Namespace
+				testNamespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: namespace}}
+				newNamespace, err := kubeClient.CoreV1().Namespaces().Create(context.TODO(), testNamespace, metav1.CreateOptions{})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(newNamespace).ToNot(BeNil())
+			}
+
+			{
+				// Now make a Pod and test again
+				podName := "-the-pod-name-does-not-matter-for-this-test-"
+				podLabels := map[string]string{
+					tests.SelectorKey:                tests.BookbuyerService.Name,
+					constants.EnvoyUniqueIDLabelName: podID,
+				}
+				pod, err := tests.MakePod(kubeClient, namespace, podName, serviceAccount, podLabels)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(pod).ToNot(BeNil())
+			}
+
+			for _, typeURI := range typeURIs {
+				req := &xds_discovery.DiscoveryRequest{
+					TypeUrl: typeURI.String(),
+					Node:    &v3.Node{Id: "-node-id-goes-here-"},
+				}
+				actualResponse, err := s.newAggregatedDiscoveryResponse(proxy, req, mockConfigurator)
+				Expect(err).To(BeNil())
+				Expect(actualResponse.TypeUrl).To(Equal(typeURI.String()))
+			}
 		})
 	})
 })
