@@ -254,7 +254,7 @@ func (c *Client) getConfigMap() *osmConfig {
 	}
 
 	if !exists {
-		log.Error().Msgf("ConfigMap %s does not exist in cache", configMapCacheKey)
+		log.Warn().Msgf("ConfigMap %s does not exist. Default config values will be used.", configMapCacheKey)
 		return &osmConfig{}
 	}
 	configMap := item.(*v1.ConfigMap)
