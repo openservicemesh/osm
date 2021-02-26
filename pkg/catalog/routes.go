@@ -362,7 +362,7 @@ func getTrafficPoliciesForService(mc *MeshCatalog, routePolicies map[trafficpoli
 					routePoliciesMatched, matchFound := routePolicies[specKey]
 					if !matchFound {
 						log.Error().Msgf("TrafficTarget %s/%s could not find a TrafficSpec %s", trafficTargets.Namespace, trafficTargets.Name, specKey)
-						return nil, errNoTrafficSpecFoundForTrafficPolicy
+						return nil, ErrNoTrafficSpecFoundForTrafficPolicy
 					}
 					if len(trafficTargetSpecs.Matches) == 0 {
 						// This TrafficTarget does not match against a specific route match criteria defined in the
@@ -378,7 +378,7 @@ func getTrafficPoliciesForService(mc *MeshCatalog, routePolicies map[trafficpoli
 							routePolicy, matchFound := routePoliciesMatched[trafficpolicy.TrafficSpecMatchName(specMatchesName)]
 							if !matchFound {
 								log.Error().Msgf("TrafficTarget %s/%s could not find a TrafficSpec %s with match name %s", trafficTargets.Namespace, trafficTargets.Name, specKey, specMatchesName)
-								return nil, errNoTrafficSpecFoundForTrafficPolicy
+								return nil, ErrNoTrafficSpecFoundForTrafficPolicy
 							}
 							// Consider this route for the current traffic target object being evaluated
 							httpRoutes = append(httpRoutes, routePolicy)

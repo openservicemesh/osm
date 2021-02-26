@@ -70,7 +70,7 @@ func (mc *MeshCatalog) GetServicesForServiceAccount(sa service.K8sServiceAccount
 	}
 
 	if len(services) == 0 {
-		return nil, errServiceNotFoundForAnyProvider
+		return nil, ErrServiceNotFoundForAnyProvider
 	}
 
 	return services, nil
@@ -118,7 +118,7 @@ func (mc *MeshCatalog) GetPortToProtocolMappingForService(svc service.MeshServic
 
 	k8sSvc := mc.kubeController.GetService(svc)
 	if k8sSvc == nil {
-		return nil, errors.Wrapf(errServiceNotFound, "Error retrieving k8s service %s", svc)
+		return nil, errors.Wrapf(ErrServiceNotFound, "Error retrieving k8s service %s", svc)
 	}
 
 	for _, portSpec := range k8sSvc.Spec.Ports {
