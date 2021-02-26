@@ -16,10 +16,9 @@ var (
 
 // sdsImpl is the type that implements the internal functionality of SDS
 type sdsImpl struct {
-	proxy         *envoy.Proxy
-	proxyServices []service.MeshService
-	svcAccount    service.K8sServiceAccount
-	meshCatalog   catalog.MeshCataloger
-	cfg           configurator.Configurator
-	certManager   certificate.Manager
+	proxy       *envoy.Proxy
+	svcAccount  service.K8sServiceAccount
+	meshCatalog catalog.MeshCataloger
+	cfg         configurator.Configurator
+	certManager certificate.Manager
 }

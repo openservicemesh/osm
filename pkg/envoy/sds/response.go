@@ -21,13 +21,6 @@ import (
 func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, certManager certificate.Manager) (*xds_discovery.DiscoveryResponse, error) {
 	log.Debug().Msgf("Composing SDS Discovery Response for Envoy with certificate SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 
-	svcList, err := meshCatalog.GetServicesFromEnvoyCertificate(proxy.GetCertificateCommonName())
-	if err != nil {
-		log.Error().Err(err).Msgf("Error getting services associated with Envoy with certificate SerialNumber=%s on Pod with UID=%s",
-			proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
-		return nil, err
-	}
-
 	// OSM currently relies on kubernetes ServiceAccount for service identity
 	svcAccount, err := catalog.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
@@ -36,18 +29,17 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request 
 		return nil, err
 	}
 
-	sdsImpl := newSDSImpl(proxy, meshCatalog, certManager, cfg, svcList, svcAccount)
+	sdsImpl := newSDSImpl(proxy, meshCatalog, certManager, cfg, svcAccount)
 	return sdsImpl.createDiscoveryResponse(request)
 }
 
-func newSDSImpl(proxy *envoy.Proxy, meshCatalog catalog.MeshCataloger, certManager certificate.Manager, cfg configurator.Configurator, proxyServices []service.MeshService, svcAccount service.K8sServiceAccount) *sdsImpl {
+func newSDSImpl(proxy *envoy.Proxy, meshCatalog catalog.MeshCataloger, certManager certificate.Manager, cfg configurator.Configurator, svcAccount service.K8sServiceAccount) *sdsImpl {
 	impl := &sdsImpl{
-		proxy:         proxy,
-		meshCatalog:   meshCatalog,
-		certManager:   certManager,
-		cfg:           cfg,
-		svcAccount:    svcAccount,
-		proxyServices: proxyServices,
+		proxy:       proxy,
+		meshCatalog: meshCatalog,
+		certManager: certManager,
+		cfg:         cfg,
+		svcAccount:  svcAccount,
 	}
 
 	return impl
