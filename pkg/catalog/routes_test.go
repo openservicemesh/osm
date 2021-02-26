@@ -33,7 +33,7 @@ var expectedBookbuyerOutbound []*trafficpolicy.OutboundTrafficPolicy = []*traffi
 		Hostnames: tests.BookstoreV1Hostnames,
 		Routes: []*trafficpolicy.RouteWeightedClusters{
 			{
-				HTTPRouteMatch:   wildCardRouteMatch,
+				HTTPRouteMatch:   tests.WildCardRouteMatch,
 				WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 			},
 		},
@@ -43,7 +43,7 @@ var expectedBookbuyerOutbound []*trafficpolicy.OutboundTrafficPolicy = []*traffi
 		Hostnames: tests.BookstoreV2Hostnames,
 		Routes: []*trafficpolicy.RouteWeightedClusters{
 			{
-				HTTPRouteMatch:   wildCardRouteMatch,
+				HTTPRouteMatch:   tests.WildCardRouteMatch,
 				WeightedClusters: mapset.NewSet(tests.BookstoreV2DefaultWeightedCluster),
 			},
 		},
@@ -53,7 +53,7 @@ var expectedBookbuyerOutbound []*trafficpolicy.OutboundTrafficPolicy = []*traffi
 		Hostnames: tests.BookstoreApexHostnames,
 		Routes: []*trafficpolicy.RouteWeightedClusters{
 			{
-				HTTPRouteMatch:   wildCardRouteMatch,
+				HTTPRouteMatch:   tests.WildCardRouteMatch,
 				WeightedClusters: mapset.NewSet(tests.BookstoreApexDefaultWeightedCluster),
 			},
 		},
@@ -107,7 +107,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 					Hostnames: tests.BookstoreV1Hostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
-							HTTPRouteMatch:   wildCardRouteMatch,
+							HTTPRouteMatch:   tests.WildCardRouteMatch,
 							WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 						},
 					},
@@ -117,7 +117,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 					Hostnames: tests.BookstoreV2Hostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
-							HTTPRouteMatch:   wildCardRouteMatch,
+							HTTPRouteMatch:   tests.WildCardRouteMatch,
 							WeightedClusters: mapset.NewSet(tests.BookstoreV2DefaultWeightedCluster),
 						},
 					},
@@ -127,7 +127,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 					Hostnames: tests.BookstoreApexHostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
-							HTTPRouteMatch: wildCardRouteMatch,
+							HTTPRouteMatch: tests.WildCardRouteMatch,
 							WeightedClusters: mapset.NewSetFromSlice([]interface{}{
 								service.WeightedCluster{ClusterName: "default/bookstore-v1", Weight: 90},
 								service.WeightedCluster{ClusterName: "default/bookstore-v2", Weight: 10},
@@ -158,7 +158,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 					Hostnames: tests.BookstoreApexHostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
-							HTTPRouteMatch: wildCardRouteMatch,
+							HTTPRouteMatch: tests.WildCardRouteMatch,
 							WeightedClusters: mapset.NewSetFromSlice([]interface{}{
 								service.WeightedCluster{ClusterName: "default/bookstore-v1", Weight: 90},
 								service.WeightedCluster{ClusterName: "default/bookstore-v2", Weight: 10},
@@ -205,7 +205,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 					},
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
-							HTTPRouteMatch:   wildCardRouteMatch,
+							HTTPRouteMatch:   tests.WildCardRouteMatch,
 							WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 						},
 					},
@@ -224,7 +224,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 					},
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
-							HTTPRouteMatch:   wildCardRouteMatch,
+							HTTPRouteMatch:   tests.WildCardRouteMatch,
 							WeightedClusters: mapset.NewSet(tests.BookstoreV2DefaultWeightedCluster),
 						},
 					},
@@ -243,7 +243,7 @@ func TestListOutboundTrafficPolicies(t *testing.T) {
 					},
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
-							HTTPRouteMatch:   wildCardRouteMatch,
+							HTTPRouteMatch:   tests.WildCardRouteMatch,
 							WeightedClusters: mapset.NewSet(tests.BookbuyerDefaultWeightedCluster),
 						},
 					},
@@ -475,7 +475,7 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 					Hostnames: tests.BookstoreApexNamespacedHostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
-							HTTPRouteMatch: wildCardRouteMatch,
+							HTTPRouteMatch: tests.WildCardRouteMatch,
 							WeightedClusters: mapset.NewSetFromSlice([]interface{}{
 								service.WeightedCluster{ClusterName: "default/bookstore-v1", Weight: 90},
 								service.WeightedCluster{ClusterName: "default/bookstore-v2", Weight: 10},
@@ -501,7 +501,7 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 					Hostnames: tests.BookstoreApexHostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
-							HTTPRouteMatch: wildCardRouteMatch,
+							HTTPRouteMatch: tests.WildCardRouteMatch,
 							WeightedClusters: mapset.NewSetFromSlice([]interface{}{
 								service.WeightedCluster{ClusterName: "default/bookstore-v1", Weight: 90},
 								service.WeightedCluster{ClusterName: "default/bookstore-v2", Weight: 10},
@@ -531,7 +531,7 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 					Hostnames: tests.BookstoreApexNamespacedHostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
-							HTTPRouteMatch: wildCardRouteMatch,
+							HTTPRouteMatch: tests.WildCardRouteMatch,
 							WeightedClusters: mapset.NewSetFromSlice([]interface{}{
 								service.WeightedCluster{ClusterName: "default/bookstore-v1", Weight: 90},
 								service.WeightedCluster{ClusterName: "default/bookstore-v2", Weight: 10},
@@ -544,7 +544,7 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 					Hostnames: testSplit1NamespacedHostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
-							HTTPRouteMatch: wildCardRouteMatch,
+							HTTPRouteMatch: tests.WildCardRouteMatch,
 							WeightedClusters: mapset.NewSetFromSlice([]interface{}{
 								service.WeightedCluster{ClusterName: "bar/bookstore-v1", Weight: 10},
 								service.WeightedCluster{ClusterName: "bar/bookstore-v2", Weight: 90},
@@ -570,7 +570,7 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 					Hostnames: testSplit1NamespacedHostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
-							HTTPRouteMatch: wildCardRouteMatch,
+							HTTPRouteMatch: tests.WildCardRouteMatch,
 							WeightedClusters: mapset.NewSetFromSlice([]interface{}{
 								service.WeightedCluster{ClusterName: "bar/bookstore-v1", Weight: 10},
 								service.WeightedCluster{ClusterName: "bar/bookstore-v2", Weight: 90},
@@ -600,7 +600,7 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 					Hostnames: testSplit1NamespacedHostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
-							HTTPRouteMatch: wildCardRouteMatch,
+							HTTPRouteMatch: tests.WildCardRouteMatch,
 							WeightedClusters: mapset.NewSetFromSlice([]interface{}{
 								service.WeightedCluster{ClusterName: "bar/bookstore-v1", Weight: 10},
 								service.WeightedCluster{ClusterName: "bar/bookstore-v2", Weight: 90},
@@ -613,7 +613,7 @@ func TestListOutboundTrafficPoliciesForTrafficSplits(t *testing.T) {
 					Hostnames: testSplit3NamespacedHostnames,
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
-							HTTPRouteMatch: wildCardRouteMatch,
+							HTTPRouteMatch: tests.WildCardRouteMatch,
 							WeightedClusters: mapset.NewSetFromSlice([]interface{}{
 								service.WeightedCluster{ClusterName: "baz/bookstore-v1", Weight: 10},
 								service.WeightedCluster{ClusterName: "baz/bookstore-v2", Weight: 90},
@@ -1278,7 +1278,7 @@ func TestBuildOutboundPolicies(t *testing.T) {
 			Hostnames: hostnames,
 			Routes: []*trafficpolicy.RouteWeightedClusters{
 				{
-					HTTPRouteMatch:   wildCardRouteMatch,
+					HTTPRouteMatch:   tests.WildCardRouteMatch,
 					WeightedClusters: mapset.NewSet(bookstoreWeightedCluster),
 				},
 			},
@@ -2014,7 +2014,7 @@ func TestListInboundTrafficPolicies(t *testing.T) {
 					Rules: []*trafficpolicy.Rule{
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
-								HTTPRouteMatch:   wildCardRouteMatch,
+								HTTPRouteMatch:   tests.WildCardRouteMatch,
 								WeightedClusters: mapset.NewSet(tests.BookbuyerDefaultWeightedCluster),
 							},
 							AllowedServiceAccounts: mapset.NewSet(tests.BookbuyerServiceAccount, tests.BookstoreServiceAccount),
@@ -2249,7 +2249,7 @@ func TestBuildInboundPermissiveModePolicies(t *testing.T) {
 					Rules: []*trafficpolicy.Rule{
 						{
 							Route: trafficpolicy.RouteWeightedClusters{
-								HTTPRouteMatch: wildCardRouteMatch,
+								HTTPRouteMatch: tests.WildCardRouteMatch,
 								WeightedClusters: mapset.NewSet(service.WeightedCluster{
 									ClusterName: "bookstore-ns/bookstore",
 									Weight:      100,
@@ -2331,7 +2331,7 @@ func TestBuildOutboundPermissiveModePolicies(t *testing.T) {
 					},
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
-							HTTPRouteMatch:   wildCardRouteMatch,
+							HTTPRouteMatch:   tests.WildCardRouteMatch,
 							WeightedClusters: mapset.NewSet(tests.BookstoreApexDefaultWeightedCluster),
 						},
 					},
@@ -2350,7 +2350,7 @@ func TestBuildOutboundPermissiveModePolicies(t *testing.T) {
 					},
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
-							HTTPRouteMatch:   wildCardRouteMatch,
+							HTTPRouteMatch:   tests.WildCardRouteMatch,
 							WeightedClusters: mapset.NewSet(tests.BookstoreV1DefaultWeightedCluster),
 						},
 					},
@@ -2369,7 +2369,7 @@ func TestBuildOutboundPermissiveModePolicies(t *testing.T) {
 					},
 					Routes: []*trafficpolicy.RouteWeightedClusters{
 						{
-							HTTPRouteMatch:   wildCardRouteMatch,
+							HTTPRouteMatch:   tests.WildCardRouteMatch,
 							WeightedClusters: mapset.NewSet(tests.BookbuyerDefaultWeightedCluster),
 						},
 					},
