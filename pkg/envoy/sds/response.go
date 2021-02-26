@@ -77,6 +77,7 @@ func (s *sdsImpl) createDiscoveryResponse(request *xds_discovery.DiscoveryReques
 		marshalledSecret, err := ptypes.MarshalAny(envoyProto)
 		if err != nil {
 			log.Error().Err(err).Msgf("Error marshaling Envoy secret %s for proxy with certificate SerialNumber=%s on Pod with UID=%s", envoyProto.Name, s.proxy.GetCertificateSerialNumber(), s.proxy.GetPodUID())
+			continue
 		}
 
 		resources = append(resources, marshalledSecret)
