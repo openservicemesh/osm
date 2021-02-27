@@ -22,22 +22,37 @@ import (
 // ServerType is the type identifier for the ADS server
 const ServerType = "ADS"
 
+const enableMemoization = true
+
 // NewADSServer creates a new Aggregated Discovery Service server
 func NewADSServer(meshCatalog catalog.MeshCataloger, enableDebug bool, osmNamespace string, cfg configurator.Configurator, certManager certificate.Manager) *Server {
 	server := Server{
-		catalog: meshCatalog,
-		xdsHandlers: map[envoy.TypeURI]func(catalog.MeshCataloger, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator, certificate.Manager) (*xds_discovery.DiscoveryResponse, error){
-			envoy.TypeEDS: eds.NewResponse,
-			envoy.TypeCDS: cds.NewResponse,
-			envoy.TypeRDS: rds.NewResponse,
-			envoy.TypeLDS: lds.NewResponse,
-			envoy.TypeSDS: sds.NewResponse,
-		},
+		catalog:        meshCatalog,
 		osmNamespace:   osmNamespace,
 		cfg:            cfg,
 		certManager:    certManager,
 		xdsMapLogMutex: sync.Mutex{},
 		xdsLog:         make(map[certificate.CommonName]map[envoy.TypeURI][]time.Time),
+	}
+
+	if enableMemoization {
+		log.Info().Msg("ADS Caching enabled")
+		server.xdsHandlers = map[envoy.TypeURI]func(catalog.MeshCataloger, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator, certificate.Manager) (*xds_discovery.DiscoveryResponse, error){
+			envoy.TypeEDS: eds.NewResponseMemoized,
+			envoy.TypeCDS: cds.NewResponseMemoized,
+			envoy.TypeRDS: rds.NewResponseMemoized,
+			envoy.TypeLDS: lds.NewResponseMemoized,
+			envoy.TypeSDS: sds.NewResponseMemoized,
+		}
+	} else {
+		log.Info().Msg("ADS Caching disabled")
+		server.xdsHandlers = map[envoy.TypeURI]func(catalog.MeshCataloger, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator, certificate.Manager) (*xds_discovery.DiscoveryResponse, error){
+			envoy.TypeEDS: eds.NewResponse,
+			envoy.TypeCDS: cds.NewResponse,
+			envoy.TypeRDS: rds.NewResponse,
+			envoy.TypeLDS: lds.NewResponse,
+			envoy.TypeSDS: sds.NewResponse,
+		}
 	}
 
 	return &server

@@ -103,7 +103,8 @@ if [ "$CERT_MANAGER" = "vault" ]; then
       --enable-fluentbit="$ENABLE_FLUENTBIT" \
       --deploy-prometheus="$DEPLOY_PROMETHEUS" \
       --enable-prometheus-scraping="$ENABLE_PROMETHEUS_SCRAPING" \
-      --envoy-log-level "$ENVOY_LOG_LEVEL" \
+      --envoy-log-level="$ENVOY_LOG_LEVEL" \
+      --controller-log-level="trace" \
       --timeout=90s \
       $optionalInstallArgs
 else
@@ -123,7 +124,8 @@ else
       --enable-fluentbit="$ENABLE_FLUENTBIT" \
       --deploy-prometheus="$DEPLOY_PROMETHEUS" \
       --enable-prometheus-scraping="$ENABLE_PROMETHEUS_SCRAPING" \
-      --envoy-log-level "$ENVOY_LOG_LEVEL" \
+      --envoy-log-level="$ENVOY_LOG_LEVEL" \
+      --controller-log-level="trace" \
       --timeout=90s \
       $optionalInstallArgs
 fi

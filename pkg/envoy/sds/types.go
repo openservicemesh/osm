@@ -9,9 +9,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
-var (
-	log = logger.New("envoy/sds")
-)
+var log = logger.New("envoy/sds")
 
 // sdsImpl is the type that implements the internal functionality of SDS
 type sdsImpl struct {

@@ -50,6 +50,16 @@ type PodMetadata struct {
 	WorkloadName   string
 }
 
+// GetGroupID returns the proxy's Group ID, which is used for memoization of xDS responses.
+func (p *Proxy) GetGroupID() (string, error) {
+	svcAccount, err := certificate.GetServiceAccountFromProxyCertificate(p.xDSCertificateCommonName)
+	if err != nil {
+		log.Err(err).Msgf("Error getting Group ID for Proxy on Pod with UID=%s", p.GetPodUID())
+		return "", err
+	}
+	return svcAccount.String(), nil
+}
+
 // HasPodMetadata answers the question - has the Pod metadata been recorded for the given Envoy proxy
 func (p *Proxy) HasPodMetadata() bool {
 	return p.PodMetadata != nil

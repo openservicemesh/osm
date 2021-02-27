@@ -10,12 +10,27 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/envoy/memoize"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
+// NewResponseMemoized creates a new Endpoint Discovery Response, but looks for it in a cache first.
+func NewResponseMemoized(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, _ configurator.Configurator, _ certificate.Manager) (*xds_discovery.DiscoveryResponse, error) {
+	cacheKey, err := proxy.GetGroupID()
+	if err != nil {
+		log.Err(err).Msg("Error creating Memoization cache key; Using non-cached results")
+		return NewResponse(meshCatalog, proxy, nil, nil, nil)
+	}
+	return memoize.Memoize(
+		"EDS", cacheKey,
+		NewResponse,
+		meshCatalog, proxy, nil, nil, nil,
+	)
+}
+
 // NewResponse creates a new Endpoint Discovery Response.
 func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, _ configurator.Configurator, _ certificate.Manager) (*xds_discovery.DiscoveryResponse, error) {
-	proxyIdentity, err := catalog.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
+	proxyIdentity, err := certificate.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up proxy identity for proxy with SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 		return nil, err

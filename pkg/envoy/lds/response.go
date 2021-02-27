@@ -9,9 +9,24 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/envoy/memoize"
 	"github.com/openservicemesh/osm/pkg/featureflags"
 	"github.com/openservicemesh/osm/pkg/service"
 )
+
+// NewResponseMemoized creates a new Listener Discovery Response, but looks for it in a cache first.
+func NewResponseMemoized(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, _ certificate.Manager) (*xds_discovery.DiscoveryResponse, error) {
+	cacheKey, err := proxy.GetGroupID()
+	if err != nil {
+		log.Err(err).Msg("Error creating Memoization cache key; Using non-cached results")
+		return NewResponse(meshCatalog, proxy, nil, cfg, nil)
+	}
+	return memoize.Memoize(
+		"LDS", cacheKey,
+		NewResponse,
+		meshCatalog, proxy, nil, cfg, nil,
+	)
+}
 
 // NewResponse creates a new Listener Discovery Response.
 // The response build 3 Listeners:
@@ -25,7 +40,7 @@ func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, _ *xds_d
 		return nil, err
 	}
 
-	svcAccount, err := catalog.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
+	svcAccount, err := certificate.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error retrieving ServiceAccount for Envoy with certificate with SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 		return nil, err

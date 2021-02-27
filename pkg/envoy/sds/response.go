@@ -1,6 +1,9 @@
 package sds
 
 import (
+	"fmt"
+	"strings"
+
 	xds_core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
 	xds_auth "github.com/envoyproxy/go-control-plane/envoy/extensions/transport_sockets/tls/v3"
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
@@ -11,16 +14,35 @@ import (
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
+	"github.com/openservicemesh/osm/pkg/envoy/memoize"
 	"github.com/openservicemesh/osm/pkg/identity"
 	"github.com/openservicemesh/osm/pkg/service"
 )
+
+// NewResponseMemoized creates a new Secrets Discovery Response, but first checks if this exists in a cache.
+func NewResponseMemoized(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, certManager certificate.Manager) (*xds_discovery.DiscoveryResponse, error) {
+	proxyGroupID, err := proxy.GetGroupID()
+	if err != nil {
+		log.Err(err).Msg("Error creating Memoization cache key; Using non-cached results")
+		return NewResponse(meshCatalog, proxy, request, cfg, certManager)
+	}
+
+	// The cache key is the Proxy Group ID + the list of certificates requested.
+	// This could also be ONLY the list of certificates requested.
+	cacheKey := fmt.Sprintf("%s:%s", proxyGroupID, strings.Join(request.ResourceNames, ","))
+	return memoize.Memoize(
+		"SDS", cacheKey,
+		NewResponse,
+		meshCatalog, proxy, request, cfg, certManager,
+	)
+}
 
 // NewResponse creates a new Secrets Discovery Response.
 func NewResponse(meshCatalog catalog.MeshCataloger, proxy *envoy.Proxy, request *xds_discovery.DiscoveryRequest, cfg configurator.Configurator, certManager certificate.Manager) (*xds_discovery.DiscoveryResponse, error) {
 	log.Debug().Msgf("Composing SDS Discovery Response for Envoy with certificate SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 
 	// OSM currently relies on kubernetes ServiceAccount for service identity
-	svcAccount, err := catalog.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
+	svcAccount, err := certificate.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error retrieving ServiceAccount for Envoy with certificate SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 		return nil, err

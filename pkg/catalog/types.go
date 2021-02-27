@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
@@ -156,13 +155,6 @@ type connectedProxy struct {
 
 type disconnectedProxy struct {
 	lastSeen time.Time
-}
-
-// certificateCommonNameMeta is the type that stores the metadata present in the CommonName field in a proxy's certificate
-type certificateCommonNameMeta struct {
-	ProxyUUID      uuid.UUID
-	ServiceAccount string
-	Namespace      string
 }
 
 type trafficDirection string

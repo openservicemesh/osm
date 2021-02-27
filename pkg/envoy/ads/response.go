@@ -7,6 +7,7 @@ import (
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 
 	"github.com/openservicemesh/osm/pkg/catalog"
+	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/envoy"
 )
@@ -77,7 +78,7 @@ func (s *Server) sendAllResponses(proxy *envoy.Proxy, server *xds_discovery.Aggr
 // This request will result in the rest of the system creating an SDS response with the certificates
 // required by this proxy. The proxy itself did not ask for these. We know it needs them - so we send them.
 func makeRequestForAllSecrets(proxy *envoy.Proxy, meshCatalog catalog.MeshCataloger) *xds_discovery.DiscoveryRequest {
-	proxyIdentity, err := catalog.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
+	proxyIdentity, err := certificate.GetServiceAccountFromProxyCertificate(proxy.GetCertificateCommonName())
 	if err != nil {
 		log.Error().Err(err).Msgf("Error looking up proxy identity for proxy with SerialNumber=%s on Pod with UID=%s",
 			proxy.GetCertificateSerialNumber(), proxy.GetPodUID())

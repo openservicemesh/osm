@@ -6,7 +6,6 @@ import (
 	"sort"
 	"time"
 
-	"github.com/openservicemesh/osm/pkg/catalog"
 	"github.com/openservicemesh/osm/pkg/certificate"
 )
 
@@ -61,7 +60,7 @@ func printProxies(w http.ResponseWriter, proxies map[certificate.CommonName]time
 }
 
 func (ds DebugConfig) getConfigDump(cn certificate.CommonName, w http.ResponseWriter) {
-	pod, err := catalog.GetPodFromCertificate(cn, ds.kubeController)
+	pod, err := certificate.GetPodFromCertificate(cn, ds.kubeController)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error getting Pod from certificate with CN=%s", cn)
 	}
@@ -71,7 +70,7 @@ func (ds DebugConfig) getConfigDump(cn certificate.CommonName, w http.ResponseWr
 }
 
 func (ds DebugConfig) getProxy(cn certificate.CommonName, w http.ResponseWriter) {
-	pod, err := catalog.GetPodFromCertificate(cn, ds.kubeController)
+	pod, err := certificate.GetPodFromCertificate(cn, ds.kubeController)
 	if err != nil {
 		log.Error().Err(err).Msgf("Error getting Pod from certificate with CN=%s", cn)
 	}
