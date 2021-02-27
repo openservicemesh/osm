@@ -2,6 +2,7 @@
 title: "Tracing"
 description: "Tracing"
 type: docs
+aliases: ["tracing.md"]
 ---
 
 # Tracing

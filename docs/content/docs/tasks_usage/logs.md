@@ -2,6 +2,7 @@
 title: "Logs"
 description: "Logs"
 type: docs
+aliases: ["logs.md"]
 ---
 
 # Logs
