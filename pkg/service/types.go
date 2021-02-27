@@ -1,9 +1,7 @@
 // Package service models an instance of a service managed by OSM controller and utility routines associated with it.
 package service
 
-import (
-	"strings"
-)
+import "fmt"
 
 const (
 	// namespaceNameSeparator used upon marshalling/unmarshalling MeshService to a string
@@ -28,7 +26,7 @@ type K8sServiceAccount struct {
 
 // String returns the string representation of the service account object
 func (sa K8sServiceAccount) String() string {
-	return strings.Join([]string{sa.Namespace, namespaceNameSeparator, sa.Name}, "")
+	return fmt.Sprintf("%s%s%s", sa.Namespace, namespaceNameSeparator, sa.Name)
 }
 
 // IsEmpty returns true if the given service account object is empty
