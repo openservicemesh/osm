@@ -49,8 +49,10 @@ const (
 
 	// BookstoreServiceAccountName is the name of the bookstore service account
 	BookstoreServiceAccountName = "bookstore"
+
 	// BookbuyerServiceAccountName is the name of the bookbuyer service account
 	BookbuyerServiceAccountName = "bookbuyer"
+
 	// BookstoreV2ServiceAccountName is the name of the bookstore-v2 service account
 	BookstoreV2ServiceAccountName = "bookstore-v2"
 

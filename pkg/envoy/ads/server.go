@@ -25,14 +25,8 @@ const ServerType = "ADS"
 // NewADSServer creates a new Aggregated Discovery Service server
 func NewADSServer(meshCatalog catalog.MeshCataloger, enableDebug bool, osmNamespace string, cfg configurator.Configurator, certManager certificate.Manager) *Server {
 	server := Server{
-		catalog: meshCatalog,
-		xdsHandlers: map[envoy.TypeURI]func(catalog.MeshCataloger, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator, certificate.Manager) (*xds_discovery.DiscoveryResponse, error){
-			envoy.TypeEDS: eds.NewResponse,
-			envoy.TypeCDS: cds.NewResponse,
-			envoy.TypeRDS: rds.NewResponse,
-			envoy.TypeLDS: lds.NewResponse,
-			envoy.TypeSDS: sds.NewResponse,
-		},
+		catalog:        meshCatalog,
+		xdsHandlers:    getHandlers(),
 		osmNamespace:   osmNamespace,
 		cfg:            cfg,
 		certManager:    certManager,
@@ -41,6 +35,16 @@ func NewADSServer(meshCatalog catalog.MeshCataloger, enableDebug bool, osmNamesp
 	}
 
 	return &server
+}
+
+func getHandlers() map[envoy.TypeURI]func(catalog.MeshCataloger, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator, certificate.Manager) (*xds_discovery.DiscoveryResponse, error) {
+	return map[envoy.TypeURI]func(catalog.MeshCataloger, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator, certificate.Manager) (*xds_discovery.DiscoveryResponse, error){
+		envoy.TypeEDS: eds.NewResponse,
+		envoy.TypeCDS: cds.NewResponse,
+		envoy.TypeRDS: rds.NewResponse,
+		envoy.TypeLDS: lds.NewResponse,
+		envoy.TypeSDS: sds.NewResponse,
+	}
 }
 
 // withXdsLogMutex helper to run code that touches xdsLog map, to protect by mutex

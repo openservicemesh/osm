@@ -31,13 +31,6 @@ type Server struct {
 	certManager    certificate.Manager
 	ready          bool
 
-	ctx          context.Context
-	catalog      catalog.MeshCataloger
-	meshSpec     smi.MeshSpec
-	xdsHandlers  map[envoy.TypeURI]func(context.Context, catalog.MeshCataloger, smi.MeshSpec, *envoy.Proxy, *xds_discovery.DiscoveryRequest, configurator.Configurator) (*xds_discovery.DiscoveryResponse, error)
-	xdsLog       map[certificate.CommonName]map[envoy.TypeURI][]time.Time
-	enableDebug  bool
-	osmNamespace string
-	cfg          configurator.Configurator
-	quit         chan struct{}
+	ctx      context.Context
+	meshSpec smi.MeshSpec
 }

@@ -42,12 +42,12 @@ func (s *XDSServer) Send(r *xds_discovery.DiscoveryResponse) error {
 
 // Recv implements AggregatedDiscoveryService_StreamAggregatedResourcesServer
 func (s *XDSServer) Recv() (*xds_discovery.DiscoveryRequest, error) {
-	log.Info().Msg("Recv() from Envoy invoked. Waiting on requestsCh.")
+	log.Info().Msg(">>> Recv() from Envoy invoked. Waiting on requestsCh.")
 	var r *xds_discovery.DiscoveryRequest
 	if s.requestsCh != nil {
 		r = <-s.requestsCh
 	}
-	log.Info().Msgf("Recv() got a DiscoveryRequest from requestsCh")
+	log.Info().Msgf(">>> Recv() got a DiscoveryRequest from requestsCh: %+v", r)
 	return r, nil
 }
 
