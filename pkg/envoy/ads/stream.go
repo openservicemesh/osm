@@ -162,10 +162,6 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 		case <-broadcastUpdate:
 			log.Debug().Msgf("Broadcast update received for Envoy with xDS Certificate SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
 			s.sendAllResponses(proxy, &server, s.cfg)
-
-		case <-proxy.GetAnnouncementsChannel():
-			log.Debug().Msgf("Individual update for Envoy with xDS Certificate SerialNumber=%s on Pod with UID=%s", proxy.GetCertificateSerialNumber(), proxy.GetPodUID())
-			s.sendAllResponses(proxy, &server, s.cfg)
 		}
 	}
 }
