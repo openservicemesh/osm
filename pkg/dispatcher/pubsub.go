@@ -1,10 +1,6 @@
-package events
+package dispatcher
 
-import (
-	"github.com/cskr/pubsub"
-
-	"github.com/openservicemesh/osm/pkg/announcements"
-)
+import "github.com/cskr/pubsub"
 
 const (
 	// Default number of events a subscriber channel will buffer
@@ -22,7 +18,7 @@ type osmPubsub struct {
 }
 
 // Subscribe is the Subscribe implementation for PubSub
-func (c *osmPubsub) Subscribe(aTypes ...announcements.AnnouncementType) chan interface{} {
+func (c *osmPubsub) Subscribe(aTypes ...AnnouncementType) chan interface{} {
 	subTypes := []string{}
 	for _, v := range aTypes {
 		subTypes = append(subTypes, string(v))

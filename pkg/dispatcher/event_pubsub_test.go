@@ -1,4 +1,4 @@
-package events
+package dispatcher
 
 import (
 	"reflect"
@@ -7,8 +7,6 @@ import (
 
 	"github.com/golang/mock/gomock"
 	tassert "github.com/stretchr/testify/assert"
-
-	"github.com/openservicemesh/osm/pkg/announcements"
 )
 
 func TestPubSubEvents(t *testing.T) {
@@ -17,23 +15,23 @@ func TestPubSubEvents(t *testing.T) {
 	defer mockCtrl.Finish()
 
 	testCases := []struct {
-		register      announcements.AnnouncementType
+		register      AnnouncementType
 		publish       PubSubMessage
 		expectMessage bool
 	}{
 		{
-			register: announcements.EndpointAdded,
+			register: EndpointAdded,
 			publish: PubSubMessage{
-				AnnouncementType: announcements.ConfigMapAdded,
+				AnnouncementType: ConfigMapAdded,
 				NewObj:           struct{}{},
 				OldObj:           nil,
 			},
 			expectMessage: false,
 		},
 		{
-			register: announcements.EndpointAdded,
+			register: EndpointAdded,
 			publish: PubSubMessage{
-				AnnouncementType: announcements.EndpointAdded,
+				AnnouncementType: EndpointAdded,
 				NewObj:           nil,
 				OldObj:           "randomString",
 			},
@@ -66,11 +64,11 @@ func TestPubSubClose(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
 
-	subChannel := GetPubSubInstance().Subscribe(announcements.EndpointUpdated)
+	subChannel := GetPubSubInstance().Subscribe(EndpointUpdated)
 
 	// publish something
 	GetPubSubInstance().Publish(PubSubMessage{
-		AnnouncementType: announcements.EndpointUpdated,
+		AnnouncementType: EndpointUpdated,
 	})
 
 	// make sure channel is drained and closed

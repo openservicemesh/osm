@@ -29,6 +29,7 @@ import (
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
 	"github.com/openservicemesh/osm/pkg/debugger"
+	"github.com/openservicemesh/osm/pkg/dispatcher"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	"github.com/openservicemesh/osm/pkg/endpoint/providers/kube"
 	"github.com/openservicemesh/osm/pkg/envoy/ads"
@@ -124,7 +125,7 @@ func main() {
 	}
 
 	featureflags.Initialize(optionalFeatures)
-	events.GetPubSubInstance() // Just to generate the interface, single routine context
+	dispatcher.GetPubSubInstance() // Just to generate the interface, single routine context
 
 	// Initialize kube config and client
 	kubeConfig, err := clientcmd.BuildConfigFromFlags("", kubeConfigFile)

@@ -12,8 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
-	"github.com/openservicemesh/osm/pkg/kubernetes/events"
+	"github.com/openservicemesh/osm/pkg/dispatcher"
 )
 
 const (
@@ -30,11 +29,11 @@ var _ = Describe("Test OSM ConfigMap parsing", func() {
 	cfg := newConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
 	Expect(cfg).ToNot(BeNil())
 
-	confChannel := events.GetPubSubInstance().Subscribe(
-		announcements.ConfigMapAdded,
-		announcements.ConfigMapDeleted,
-		announcements.ConfigMapUpdated)
-	defer events.GetPubSubInstance().Unsub(confChannel)
+	confChannel := dispatcher.GetPubSubInstance().Subscribe(
+		dispatcher.ConfigMapAdded,
+		dispatcher.ConfigMapDeleted,
+		dispatcher.ConfigMapUpdated)
+	defer dispatcher.GetPubSubInstance().Unsub(confChannel)
 
 	configMap := v1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{

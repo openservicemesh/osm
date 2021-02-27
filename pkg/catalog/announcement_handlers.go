@@ -3,15 +3,14 @@ package catalog
 import (
 	v1 "k8s.io/api/core/v1"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
-	"github.com/openservicemesh/osm/pkg/kubernetes/events"
+	"github.com/openservicemesh/osm/pkg/dispatcher"
 )
 
 // releaseCertificateHandler releases certificates based on podDelete events
 // returns a stop channel which can be used to stop the inner handler
 func (mc *MeshCatalog) releaseCertificateHandler() chan struct{} {
-	podDeleteSubscription := events.GetPubSubInstance().Subscribe(announcements.PodDeleted)
+	podDeleteSubscription := dispatcher.GetPubSubInstance().Subscribe(dispatcher.PodDeleted)
 	stop := make(chan struct{})
 
 	go func() {
@@ -20,7 +19,7 @@ func (mc *MeshCatalog) releaseCertificateHandler() chan struct{} {
 			case <-stop:
 				return
 			case podDeletedMsg := <-podDeleteSubscription:
-				psubMessage, castOk := podDeletedMsg.(events.PubSubMessage)
+				psubMessage, castOk := podDeletedMsg.(dispatcher.PubSubMessage)
 				if !castOk {
 					log.Error().Msgf("Error casting PubSubMessage: %v", psubMessage)
 					continue
@@ -41,8 +40,8 @@ func (mc *MeshCatalog) releaseCertificateHandler() chan struct{} {
 
 					// Request a broadcast update, just for security.
 					// Dispatcher code also handles PodDelete, so probably the two will get coalesced.
-					events.GetPubSubInstance().Publish(events.PubSubMessage{
-						AnnouncementType: announcements.ScheduleProxyBroadcast,
+					dispatcher.GetPubSubInstance().Publish(dispatcher.PubSubMessage{
+						AnnouncementType: dispatcher.ScheduleProxyBroadcast,
 						NewObj:           nil,
 						OldObj:           nil,
 					})

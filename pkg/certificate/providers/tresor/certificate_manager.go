@@ -9,9 +9,9 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/rotor"
+	"github.com/openservicemesh/osm/pkg/dispatcher"
 )
 
 func (cm *CertManager) issue(cn certificate.CommonName, validityPeriod time.Duration) (certificate.Certificater, error) {
@@ -152,7 +152,7 @@ func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate
 	}
 
 	cm.cache.Store(cn, cert)
-	cm.announcements <- announcements.Announcement{}
+	cm.announcements <- dispatcher.Announcement{}
 
 	log.Debug().Msgf("Rotated certificate with new SerialNumber=%s took %+v", cert.GetSerialNumber(), time.Since(start))
 
@@ -175,6 +175,6 @@ func (cm *CertManager) GetRootCertificate() (certificate.Certificater, error) {
 }
 
 // GetAnnouncementsChannel implements certificate.Manager and returns the channel on which the certificate manager announces changes made to certificates.
-func (cm *CertManager) GetAnnouncementsChannel() <-chan announcements.Announcement {
+func (cm *CertManager) GetAnnouncementsChannel() <-chan dispatcher.Announcement {
 	return cm.announcements
 }

@@ -13,8 +13,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/dispatcher"
 	"github.com/openservicemesh/osm/pkg/service"
 )
 
@@ -70,9 +70,9 @@ func (c *Client) initNamespaceMonitor() {
 
 	// Add event handler to informer
 	nsEventTypes := EventTypes{
-		Add:    announcements.NamespaceAdded,
-		Update: announcements.NamespaceUpdated,
-		Delete: announcements.NamespaceDeleted,
+		Add:    dispatcher.NamespaceAdded,
+		Update: dispatcher.NamespaceUpdated,
+		Delete: dispatcher.NamespaceDeleted,
 	}
 	c.informers[Namespaces].AddEventHandler(GetKubernetesEventHandlers((string)(Namespaces), providerName, nil, nsEventTypes))
 }
@@ -89,9 +89,9 @@ func (c *Client) initServicesMonitor() {
 	c.informers[Services] = informerFactory.Core().V1().Services().Informer()
 
 	svcEventTypes := EventTypes{
-		Add:    announcements.ServiceAdded,
-		Update: announcements.ServiceUpdated,
-		Delete: announcements.ServiceDeleted,
+		Add:    dispatcher.ServiceAdded,
+		Update: dispatcher.ServiceUpdated,
+		Delete: dispatcher.ServiceDeleted,
 	}
 	c.informers[Services].AddEventHandler(GetKubernetesEventHandlers((string)(Services), providerName, c.shouldObserve, svcEventTypes))
 }
@@ -102,9 +102,9 @@ func (c *Client) initServiceAccountsMonitor() {
 	c.informers[ServiceAccounts] = informerFactory.Core().V1().ServiceAccounts().Informer()
 
 	svcEventTypes := EventTypes{
-		Add:    announcements.ServiceAccountAdded,
-		Update: announcements.ServiceAccountUpdated,
-		Delete: announcements.ServiceAccountDeleted,
+		Add:    dispatcher.ServiceAccountAdded,
+		Update: dispatcher.ServiceAccountUpdated,
+		Delete: dispatcher.ServiceAccountDeleted,
 	}
 	c.informers[ServiceAccounts].AddEventHandler(GetKubernetesEventHandlers((string)(ServiceAccounts), providerName, c.shouldObserve, svcEventTypes))
 }
@@ -114,9 +114,9 @@ func (c *Client) initPodMonitor() {
 	c.informers[Pods] = informerFactory.Core().V1().Pods().Informer()
 
 	podEventTypes := EventTypes{
-		Add:    announcements.PodAdded,
-		Update: announcements.PodUpdated,
-		Delete: announcements.PodDeleted,
+		Add:    dispatcher.PodAdded,
+		Update: dispatcher.PodUpdated,
+		Delete: dispatcher.PodDeleted,
 	}
 	c.informers[Pods].AddEventHandler(GetKubernetesEventHandlers((string)(Pods), providerName, c.shouldObserve, podEventTypes))
 }
@@ -126,9 +126,9 @@ func (c *Client) initEndpointMonitor() {
 	c.informers[Endpoints] = informerFactory.Core().V1().Endpoints().Informer()
 
 	eptEventTypes := EventTypes{
-		Add:    announcements.EndpointAdded,
-		Update: announcements.EndpointUpdated,
-		Delete: announcements.EndpointDeleted,
+		Add:    dispatcher.EndpointAdded,
+		Update: dispatcher.EndpointUpdated,
+		Delete: dispatcher.EndpointDeleted,
 	}
 	c.informers[Endpoints].AddEventHandler(GetKubernetesEventHandlers((string)(Endpoints), providerName, c.shouldObserve, eptEventTypes))
 }

@@ -11,10 +11,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
-	a "github.com/openservicemesh/osm/pkg/announcements"
+	"github.com/openservicemesh/osm/pkg/dispatcher"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
-	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 )
 
 const (
@@ -82,9 +80,9 @@ func newConfigurator(kubeClient kubernetes.Interface, stop <-chan struct{}, osmN
 	informerName := "ConfigMap"
 	providerName := "OSMConfigMap"
 	eventTypes := k8s.EventTypes{
-		Add:    a.ConfigMapAdded,
-		Update: a.ConfigMapUpdated,
-		Delete: a.ConfigMapDeleted,
+		Add:    dispatcher.ConfigMapAdded,
+		Update: dispatcher.ConfigMapUpdated,
+		Delete: dispatcher.ConfigMapDeleted,
 	}
 	informer.AddEventHandler(k8s.GetKubernetesEventHandlers(informerName, providerName, nil, eventTypes))
 
@@ -100,10 +98,10 @@ func newConfigurator(kubeClient kubernetes.Interface, stop <-chan struct{}, osmN
 // on config seen on the configmap
 func (c *Client) configMapListener() {
 	// Subscribe to configuration updates
-	cfgSubChannel := events.GetPubSubInstance().Subscribe(
-		announcements.ConfigMapAdded,
-		announcements.ConfigMapDeleted,
-		announcements.ConfigMapUpdated,
+	cfgSubChannel := dispatcher.GetPubSubInstance().Subscribe(
+		dispatcher.ConfigMapAdded,
+		dispatcher.ConfigMapDeleted,
+		dispatcher.ConfigMapUpdated,
 	)
 
 	// run the listener
@@ -111,33 +109,33 @@ func (c *Client) configMapListener() {
 		for {
 			msg := <-cfgSubChannel
 
-			psubMsg, ok := msg.(events.PubSubMessage)
+			psubMsg, ok := msg.(dispatcher.PubSubMessage)
 			if !ok {
 				log.Error().Msgf("Could not cast pubsub message")
 				continue
 			}
 
 			switch psubMsg.AnnouncementType {
-			case announcements.ConfigMapAdded:
+			case dispatcher.ConfigMapAdded:
 				log.Debug().Msgf("[%s] OSM ConfigMap added event triggered a global proxy broadcast",
 					psubMsg.AnnouncementType)
-				events.GetPubSubInstance().Publish(events.PubSubMessage{
-					AnnouncementType: announcements.ScheduleProxyBroadcast,
+				dispatcher.GetPubSubInstance().Publish(dispatcher.PubSubMessage{
+					AnnouncementType: dispatcher.ScheduleProxyBroadcast,
 					OldObj:           nil,
 					NewObj:           nil,
 				})
 
-			case announcements.ConfigMapDeleted:
+			case dispatcher.ConfigMapDeleted:
 				// Ignore deletion. We expect config to be present
 				log.Debug().Msgf("[%s] OSM ConfigMap deleted event triggered a global proxy broadcast",
 					psubMsg.AnnouncementType)
-				events.GetPubSubInstance().Publish(events.PubSubMessage{
-					AnnouncementType: announcements.ScheduleProxyBroadcast,
+				dispatcher.GetPubSubInstance().Publish(dispatcher.PubSubMessage{
+					AnnouncementType: dispatcher.ScheduleProxyBroadcast,
 					OldObj:           nil,
 					NewObj:           nil,
 				})
 
-			case announcements.ConfigMapUpdated:
+			case dispatcher.ConfigMapUpdated:
 				// Get config map
 				prevConfigMapObj, okPrevCast := psubMsg.OldObj.(*v1.ConfigMap)
 				newConfigMapObj, okNewCast := psubMsg.NewObj.(*v1.ConfigMap)
@@ -165,8 +163,8 @@ func (c *Client) configMapListener() {
 				if triggerGlobalBroadcast {
 					log.Debug().Msgf("[%s] OSM ConfigMap update triggered global proxy broadcast",
 						psubMsg.AnnouncementType)
-					events.GetPubSubInstance().Publish(events.PubSubMessage{
-						AnnouncementType: announcements.ScheduleProxyBroadcast,
+					dispatcher.GetPubSubInstance().Publish(dispatcher.PubSubMessage{
+						AnnouncementType: dispatcher.ScheduleProxyBroadcast,
 						OldObj:           nil,
 						NewObj:           nil,
 					})

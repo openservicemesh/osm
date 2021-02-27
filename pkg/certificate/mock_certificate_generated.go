@@ -9,7 +9,7 @@ import (
 	time "time"
 
 	gomock "github.com/golang/mock/gomock"
-	announcements "github.com/openservicemesh/osm/pkg/announcements"
+	dispatcher "github.com/openservicemesh/osm/pkg/dispatcher"
 )
 
 // MockCertificater is a mock of Certificater interface
@@ -143,10 +143,10 @@ func (m *MockManager) EXPECT() *MockManagerMockRecorder {
 }
 
 // GetAnnouncementsChannel mocks base method
-func (m *MockManager) GetAnnouncementsChannel() <-chan announcements.Announcement {
+func (m *MockManager) GetAnnouncementsChannel() <-chan dispatcher.Announcement {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAnnouncementsChannel")
-	ret0, _ := ret[0].(<-chan announcements.Announcement)
+	ret0, _ := ret[0].(<-chan dispatcher.Announcement)
 	return ret0
 }
 

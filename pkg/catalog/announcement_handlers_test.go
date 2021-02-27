@@ -3,20 +3,18 @@ package catalog
 import (
 	"time"
 
-	"github.com/google/uuid"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
+	"github.com/google/uuid"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
+	"github.com/openservicemesh/osm/pkg/dispatcher"
 	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 )
 
 var _ = Describe("Test Announcement Handlers", func() {
@@ -59,11 +57,11 @@ var _ = Describe("Test Announcement Handlers", func() {
 
 			// Register to Update proxies event. We should see a schedule broadcast update
 			// requested by the handler when the certificate is released.
-			rcvBroadcastChannel := events.GetPubSubInstance().Subscribe(announcements.ScheduleProxyBroadcast)
+			rcvBroadcastChannel := dispatcher.GetPubSubInstance().Subscribe(dispatcher.ScheduleProxyBroadcast)
 
 			// Publish a podDeleted event
-			events.GetPubSubInstance().Publish(events.PubSubMessage{
-				AnnouncementType: announcements.PodDeleted,
+			dispatcher.GetPubSubInstance().Publish(dispatcher.PubSubMessage{
+				AnnouncementType: dispatcher.PodDeleted,
 				NewObj:           nil,
 				OldObj: &v1.Pod{
 					ObjectMeta: metav1.ObjectMeta{
@@ -99,8 +97,8 @@ var _ = Describe("Test Announcement Handlers", func() {
 			Expect(connectedProxies[0]).To(Equal(*proxy))
 
 			// Publish some event unrelated to podDeleted
-			events.GetPubSubInstance().Publish(events.PubSubMessage{
-				AnnouncementType: announcements.IngressAdded,
+			dispatcher.GetPubSubInstance().Publish(dispatcher.PubSubMessage{
+				AnnouncementType: dispatcher.IngressAdded,
 				NewObj:           nil,
 				OldObj: &v1.Pod{
 					ObjectMeta: metav1.ObjectMeta{

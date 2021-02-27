@@ -9,7 +9,7 @@ import (
 
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
+	"github.com/openservicemesh/osm/pkg/dispatcher"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/logger"
 	"github.com/openservicemesh/osm/pkg/service"
@@ -41,7 +41,7 @@ type Client struct {
 	cacheSynced    chan interface{}
 	providerIdent  string
 	informers      *informerCollection
-	announcements  chan announcements.Announcement
+	announcements  chan dispatcher.Announcement
 	osmNamespace   string
 	kubeController k8s.Controller
 }
