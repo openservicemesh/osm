@@ -1,19 +1,18 @@
 package debugger
 
 import (
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/dispatcher"
 	"github.com/openservicemesh/osm/pkg/httpserver"
-	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 )
 
 // StartDebugServerConfigListener registers a go routine to listen to configuration and configure debug server as needed
 func (d *DebugConfig) StartDebugServerConfigListener() {
 	// Subscribe to configuration updates
-	ch := events.GetPubSubInstance().Subscribe(
-		announcements.ConfigMapAdded,
-		announcements.ConfigMapDeleted,
-		announcements.ConfigMapUpdated)
+	ch := dispatcher.GetPubSubInstance().Subscribe(
+		dispatcher.ConfigMapAdded,
+		dispatcher.ConfigMapDeleted,
+		dispatcher.ConfigMapUpdated)
 
 	// This is the Debug server
 	httpDebugServer := httpserver.NewHTTPServer(constants.DebugPort)

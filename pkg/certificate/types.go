@@ -5,7 +5,7 @@ package certificate
 import (
 	"time"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
+	"github.com/openservicemesh/osm/pkg/dispatcher"
 )
 
 const (
@@ -78,5 +78,5 @@ type Manager interface {
 	ReleaseCertificate(CommonName)
 
 	// GetAnnouncementsChannel returns a channel, which is used to announce when changes have been made to the issued certificates.
-	GetAnnouncementsChannel() <-chan announcements.Announcement
+	GetAnnouncementsChannel() <-chan dispatcher.Announcement
 }

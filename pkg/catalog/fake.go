@@ -35,7 +35,7 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface) *MeshCatalog {
 
 	meshSpec := smi.NewFakeMeshSpecClient()
 
-	stop := make(<-chan struct{})
+	stop := make(chan struct{})
 	endpointProviders := []endpoint.Provider{
 		kube.NewFakeProvider(),
 	}
@@ -88,7 +88,7 @@ func NewFakeMeshCatalog(kubeClient kubernetes.Interface) *MeshCatalog {
 			return nil
 		}
 
-		var podRet []*v1.Pod = []*v1.Pod{}
+		var podRet []*v1.Pod
 		for idx := range vv.Items {
 			podRet = append(podRet, &vv.Items[idx])
 		}

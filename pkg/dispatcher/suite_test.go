@@ -1,4 +1,4 @@
-package events
+package dispatcher
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestEvents(t *testing.T) {
+func TestCatalog(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Kubernetes events test suite")
+	RunSpecs(t, "Dispatcher Test Suite")
 }

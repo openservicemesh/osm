@@ -7,9 +7,8 @@ import (
 	xds_discovery "github.com/envoyproxy/go-control-plane/envoy/service/discovery/v3"
 	"github.com/pkg/errors"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
+	"github.com/openservicemesh/osm/pkg/dispatcher"
 	"github.com/openservicemesh/osm/pkg/envoy"
-	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 	"github.com/openservicemesh/osm/pkg/utils"
 )
@@ -49,7 +48,7 @@ func (s *Server) StreamAggregatedResources(server xds_discovery.AggregatedDiscov
 	go receive(requests, &server, proxy, quit, s.catalog)
 
 	// Register to Envoy global broadcast updates
-	broadcastUpdate := events.GetPubSubInstance().Subscribe(announcements.ProxyBroadcast)
+	broadcastUpdate := dispatcher.GetPubSubInstance().Subscribe(dispatcher.ProxyBroadcast)
 
 	// Issues a send all response on a connecting envoy
 	// If this were to fail, it most likely just means we still have configuration being applied on flight,

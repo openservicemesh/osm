@@ -6,9 +6,8 @@ import (
 
 	"k8s.io/client-go/tools/cache"
 
-	a "github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/kubernetes/events"
+	"github.com/openservicemesh/osm/pkg/dispatcher"
 	"github.com/openservicemesh/osm/pkg/metricsstore"
 )
 
@@ -20,9 +19,9 @@ type observeFilter func(obj interface{}) bool
 
 // EventTypes is a struct helping pass the correct types to GetKubernetesEventHandlers
 type EventTypes struct {
-	Add    a.AnnouncementType
-	Update a.AnnouncementType
-	Delete a.AnnouncementType
+	Add    dispatcher.AnnouncementType
+	Update dispatcher.AnnouncementType
+	Delete dispatcher.AnnouncementType
 }
 
 // GetKubernetesEventHandlers creates Kubernetes events handlers.
@@ -37,7 +36,7 @@ func GetKubernetesEventHandlers(informerName, providerName string, shouldObserve
 				logNotObservedNamespace(obj, eventTypes.Add, informerName, providerName)
 				return
 			}
-			events.GetPubSubInstance().Publish(events.PubSubMessage{
+			dispatcher.GetPubSubInstance().Publish(dispatcher.PubSubMessage{
 				AnnouncementType: eventTypes.Add,
 				NewObj:           obj,
 				OldObj:           nil,
@@ -52,7 +51,7 @@ func GetKubernetesEventHandlers(informerName, providerName string, shouldObserve
 				logNotObservedNamespace(newObj, eventTypes.Update, informerName, providerName)
 				return
 			}
-			events.GetPubSubInstance().Publish(events.PubSubMessage{
+			dispatcher.GetPubSubInstance().Publish(dispatcher.PubSubMessage{
 				AnnouncementType: eventTypes.Update,
 				NewObj:           oldObj,
 				OldObj:           newObj,
@@ -66,7 +65,7 @@ func GetKubernetesEventHandlers(informerName, providerName string, shouldObserve
 				logNotObservedNamespace(obj, eventTypes.Delete, informerName, providerName)
 				return
 			}
-			events.GetPubSubInstance().Publish(events.PubSubMessage{
+			dispatcher.GetPubSubInstance().Publish(dispatcher.PubSubMessage{
 				AnnouncementType: eventTypes.Delete,
 				NewObj:           nil,
 				OldObj:           obj,
@@ -82,7 +81,7 @@ func getNamespace(obj interface{}) string {
 	return reflect.ValueOf(obj).Elem().FieldByName("ObjectMeta").FieldByName("Namespace").String()
 }
 
-func logNotObservedNamespace(obj interface{}, eventType a.AnnouncementType, informerName, providerName string) {
+func logNotObservedNamespace(obj interface{}, eventType dispatcher.AnnouncementType, informerName, providerName string) {
 	if emitLogs {
 		log.Debug().Msgf("Namespace %q is not observed by OSM; ignoring %s event; informer=%s; provider=%s", getNamespace(obj), eventType, informerName, providerName)
 	}

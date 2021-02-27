@@ -11,8 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
-	"github.com/openservicemesh/osm/pkg/kubernetes/events"
+	"github.com/openservicemesh/osm/pkg/dispatcher"
 )
 
 var _ = Describe("Test Envoy configuration creation", func() {
@@ -47,14 +46,14 @@ var _ = Describe("Test Envoy configuration creation", func() {
 		var confChannel chan interface{}
 
 		BeforeEach(func() {
-			confChannel = events.GetPubSubInstance().Subscribe(
-				announcements.ConfigMapAdded,
-				announcements.ConfigMapDeleted,
-				announcements.ConfigMapUpdated)
+			confChannel = dispatcher.GetPubSubInstance().Subscribe(
+				dispatcher.ConfigMapAdded,
+				dispatcher.ConfigMapDeleted,
+				dispatcher.ConfigMapUpdated)
 		})
 
 		AfterEach(func() {
-			events.GetPubSubInstance().Unsub(confChannel)
+			dispatcher.GetPubSubInstance().Unsub(confChannel)
 		})
 
 		It("test GetConfigMap", func() {
@@ -95,14 +94,14 @@ var _ = Describe("Test Envoy configuration creation", func() {
 		var confChannel chan interface{}
 
 		BeforeEach(func() {
-			confChannel = events.GetPubSubInstance().Subscribe(
-				announcements.ConfigMapAdded,
-				announcements.ConfigMapDeleted,
-				announcements.ConfigMapUpdated)
+			confChannel = dispatcher.GetPubSubInstance().Subscribe(
+				dispatcher.ConfigMapAdded,
+				dispatcher.ConfigMapDeleted,
+				dispatcher.ConfigMapUpdated)
 		})
 
 		AfterEach(func() {
-			events.GetPubSubInstance().Unsub(confChannel)
+			dispatcher.GetPubSubInstance().Unsub(confChannel)
 		})
 
 		It("correctly identifies that permissive_traffic_policy_mode is enabled", func() {
@@ -158,14 +157,14 @@ var _ = Describe("Test Envoy configuration creation", func() {
 		var confChannel chan interface{}
 
 		BeforeEach(func() {
-			confChannel = events.GetPubSubInstance().Subscribe(
-				announcements.ConfigMapAdded,
-				announcements.ConfigMapDeleted,
-				announcements.ConfigMapUpdated)
+			confChannel = dispatcher.GetPubSubInstance().Subscribe(
+				dispatcher.ConfigMapAdded,
+				dispatcher.ConfigMapDeleted,
+				dispatcher.ConfigMapUpdated)
 		})
 
 		AfterEach(func() {
-			events.GetPubSubInstance().Unsub(confChannel)
+			dispatcher.GetPubSubInstance().Unsub(confChannel)
 		})
 
 		It("correctly identifies that egress is enabled", func() {
@@ -220,14 +219,14 @@ var _ = Describe("Test Envoy configuration creation", func() {
 		var confChannel chan interface{}
 
 		BeforeEach(func() {
-			confChannel = events.GetPubSubInstance().Subscribe(
-				announcements.ConfigMapAdded,
-				announcements.ConfigMapDeleted,
-				announcements.ConfigMapUpdated)
+			confChannel = dispatcher.GetPubSubInstance().Subscribe(
+				dispatcher.ConfigMapAdded,
+				dispatcher.ConfigMapDeleted,
+				dispatcher.ConfigMapUpdated)
 		})
 
 		AfterEach(func() {
-			events.GetPubSubInstance().Unsub(confChannel)
+			dispatcher.GetPubSubInstance().Unsub(confChannel)
 		})
 
 		It("correctly identifies that the debug server is enabled", func() {
@@ -259,14 +258,14 @@ var _ = Describe("Test Envoy configuration creation", func() {
 		cfg := NewConfigurator(kubeClient, stop, osmNamespace, osmConfigMapName)
 		var confChannel chan interface{}
 		BeforeEach(func() {
-			confChannel = events.GetPubSubInstance().Subscribe(
-				announcements.ConfigMapAdded,
-				announcements.ConfigMapDeleted,
-				announcements.ConfigMapUpdated)
+			confChannel = dispatcher.GetPubSubInstance().Subscribe(
+				dispatcher.ConfigMapAdded,
+				dispatcher.ConfigMapDeleted,
+				dispatcher.ConfigMapUpdated)
 		})
 
 		AfterEach(func() {
-			events.GetPubSubInstance().Unsub(confChannel)
+			dispatcher.GetPubSubInstance().Unsub(confChannel)
 		})
 
 		It("correctly identifies that the config is enabled", func() {
@@ -321,14 +320,14 @@ var _ = Describe("Test Envoy configuration creation", func() {
 		var confChannel chan interface{}
 
 		BeforeEach(func() {
-			confChannel = events.GetPubSubInstance().Subscribe(
-				announcements.ConfigMapAdded,
-				announcements.ConfigMapDeleted,
-				announcements.ConfigMapUpdated)
+			confChannel = dispatcher.GetPubSubInstance().Subscribe(
+				dispatcher.ConfigMapAdded,
+				dispatcher.ConfigMapDeleted,
+				dispatcher.ConfigMapUpdated)
 		})
 
 		AfterEach(func() {
-			events.GetPubSubInstance().Unsub(confChannel)
+			dispatcher.GetPubSubInstance().Unsub(confChannel)
 		})
 
 		It("correctly identifies that the config is enabled", func() {
@@ -385,14 +384,14 @@ var _ = Describe("Test Envoy configuration creation", func() {
 		var confChannel chan interface{}
 
 		BeforeEach(func() {
-			confChannel = events.GetPubSubInstance().Subscribe(
-				announcements.ConfigMapAdded,
-				announcements.ConfigMapDeleted,
-				announcements.ConfigMapUpdated)
+			confChannel = dispatcher.GetPubSubInstance().Subscribe(
+				dispatcher.ConfigMapAdded,
+				dispatcher.ConfigMapDeleted,
+				dispatcher.ConfigMapUpdated)
 		})
 
 		AfterEach(func() {
-			events.GetPubSubInstance().Unsub(confChannel)
+			dispatcher.GetPubSubInstance().Unsub(confChannel)
 		})
 
 		It("correctly identifies that the Envoy log level is error", func() {
@@ -468,14 +467,14 @@ var _ = Describe("Test Envoy configuration creation", func() {
 		var confChannel chan interface{}
 
 		BeforeEach(func() {
-			confChannel = events.GetPubSubInstance().Subscribe(
-				announcements.ConfigMapAdded,
-				announcements.ConfigMapDeleted,
-				announcements.ConfigMapUpdated)
+			confChannel = dispatcher.GetPubSubInstance().Subscribe(
+				dispatcher.ConfigMapAdded,
+				dispatcher.ConfigMapDeleted,
+				dispatcher.ConfigMapUpdated)
 		})
 
 		AfterEach(func() {
-			events.GetPubSubInstance().Unsub(confChannel)
+			dispatcher.GetPubSubInstance().Unsub(confChannel)
 		})
 
 		It("correctly retrieves the default service cert validity duration when an invalid value is specified", func() {
@@ -520,14 +519,14 @@ var _ = Describe("Test Envoy configuration creation", func() {
 		var confChannel chan interface{}
 
 		BeforeEach(func() {
-			confChannel = events.GetPubSubInstance().Subscribe(
-				announcements.ConfigMapAdded,
-				announcements.ConfigMapDeleted,
-				announcements.ConfigMapUpdated)
+			confChannel = dispatcher.GetPubSubInstance().Subscribe(
+				dispatcher.ConfigMapAdded,
+				dispatcher.ConfigMapDeleted,
+				dispatcher.ConfigMapUpdated)
 		})
 
 		AfterEach(func() {
-			events.GetPubSubInstance().Unsub(confChannel)
+			dispatcher.GetPubSubInstance().Unsub(confChannel)
 		})
 
 		It("correctly returns an empty list when no exclusion list is specified", func() {

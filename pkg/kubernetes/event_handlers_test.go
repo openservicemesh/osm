@@ -10,8 +10,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
-	"github.com/openservicemesh/osm/pkg/kubernetes/events"
+	"github.com/openservicemesh/osm/pkg/dispatcher"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
 
@@ -29,14 +28,14 @@ var _ = Describe("Testing event handlers", func() {
 		}
 
 		It("Should add the event to the announcement channel", func() {
-			podAddChannel := events.GetPubSubInstance().Subscribe(announcements.PodAdded)
-			defer events.GetPubSubInstance().Unsub(podAddChannel)
+			podAddChannel := dispatcher.GetPubSubInstance().Subscribe(dispatcher.PodAdded)
+			defer dispatcher.GetPubSubInstance().Unsub(podAddChannel)
 
 			pod := tests.NewPodFixture(testNamespace, "pod-name", tests.BookstoreServiceAccountName, tests.PodLabels)
 			eventTypes := EventTypes{
-				Add:    announcements.PodAdded,
-				Update: announcements.PodUpdated,
-				Delete: announcements.PodDeleted,
+				Add:    dispatcher.PodAdded,
+				Update: dispatcher.PodUpdated,
+				Delete: dispatcher.PodDeleted,
 			}
 			handlers := GetKubernetesEventHandlers(testInformer, testProvider, shouldObserve, eventTypes)
 			handlers.AddFunc(&pod)
@@ -44,9 +43,9 @@ var _ = Describe("Testing event handlers", func() {
 			Expect(len(podAddChannel)).To(Equal(0))
 
 			// Pubsub msg
-			pubsubMsg, castOk := an.(events.PubSubMessage)
+			pubsubMsg, castOk := an.(dispatcher.PubSubMessage)
 			Expect(castOk).To(BeTrue())
-			Expect(pubsubMsg.AnnouncementType).To(Equal(announcements.PodAdded))
+			Expect(pubsubMsg.AnnouncementType).To(Equal(dispatcher.PodAdded))
 			Expect(pubsubMsg.OldObj).To(BeNil())
 
 			// Cast New obj, expect v1.Pod
@@ -57,8 +56,8 @@ var _ = Describe("Testing event handlers", func() {
 		})
 
 		It("Should not add the event to the announcement channel", func() {
-			podAddChannel := events.GetPubSubInstance().Subscribe(announcements.PodAdded)
-			defer events.GetPubSubInstance().Unsub(podAddChannel)
+			podAddChannel := dispatcher.GetPubSubInstance().Subscribe(dispatcher.PodAdded)
+			defer dispatcher.GetPubSubInstance().Unsub(podAddChannel)
 
 			var pod corev1.Pod
 			pod.Namespace = "not-a-monitored-namespace"

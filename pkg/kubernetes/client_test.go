@@ -5,17 +5,17 @@ import (
 	"fmt"
 	"time"
 
-	mapset "github.com/deckarep/golang-set"
-	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	mapset "github.com/deckarep/golang-set"
+	"github.com/google/uuid"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/constants"
-	"github.com/openservicemesh/osm/pkg/kubernetes/events"
+	"github.com/openservicemesh/osm/pkg/dispatcher"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
@@ -139,10 +139,10 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 
 		It("should create and delete services, and be detected if NS is monitored", func() {
 			meshSvc := tests.BookbuyerService
-			serviceChannel := events.GetPubSubInstance().Subscribe(announcements.ServiceAdded,
-				announcements.ServiceDeleted,
-				announcements.ServiceUpdated)
-			defer events.GetPubSubInstance().Unsub(serviceChannel)
+			serviceChannel := dispatcher.GetPubSubInstance().Subscribe(dispatcher.ServiceAdded,
+				dispatcher.ServiceDeleted,
+				dispatcher.ServiceUpdated)
+			defer dispatcher.GetPubSubInstance().Unsub(serviceChannel)
 
 			// Create monitored namespace for this service
 			testNamespace := &corev1.Namespace{
@@ -188,10 +188,10 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 
 		It("should return a list of Services", func() {
 			// Define services to test with
-			serviceChannel := events.GetPubSubInstance().Subscribe(announcements.ServiceAdded,
-				announcements.ServiceDeleted,
-				announcements.ServiceUpdated)
-			defer events.GetPubSubInstance().Unsub(serviceChannel)
+			serviceChannel := dispatcher.GetPubSubInstance().Subscribe(dispatcher.ServiceAdded,
+				dispatcher.ServiceDeleted,
+				dispatcher.ServiceUpdated)
+			defer dispatcher.GetPubSubInstance().Unsub(serviceChannel)
 			testSvcs := []service.MeshService{
 				{Name: uuid.New().String(), Namespace: "ns-1"},
 				{Name: uuid.New().String(), Namespace: "ns-2"},
@@ -255,10 +255,10 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 
 		It("should create and delete service accounts, and be detected if NS is monitored", func() {
 			k8sSvcAccount := tests.BookbuyerServiceAccount
-			serviceChannel := events.GetPubSubInstance().Subscribe(announcements.ServiceAccountAdded,
-				announcements.ServiceAccountDeleted,
-				announcements.ServiceAccountUpdated)
-			defer events.GetPubSubInstance().Unsub(serviceChannel)
+			serviceChannel := dispatcher.GetPubSubInstance().Subscribe(dispatcher.ServiceAccountAdded,
+				dispatcher.ServiceAccountDeleted,
+				dispatcher.ServiceAccountUpdated)
+			defer dispatcher.GetPubSubInstance().Unsub(serviceChannel)
 
 			// Create monitored namespace for this service
 			testNamespace := &corev1.Namespace{
@@ -291,10 +291,10 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 
 		It("should return a list of service accounts", func() {
 			// Define services to test with
-			serviceChannel := events.GetPubSubInstance().Subscribe(announcements.ServiceAccountAdded,
-				announcements.ServiceAccountDeleted,
-				announcements.ServiceAccountUpdated)
-			defer events.GetPubSubInstance().Unsub(serviceChannel)
+			serviceChannel := dispatcher.GetPubSubInstance().Subscribe(dispatcher.ServiceAccountAdded,
+				dispatcher.ServiceAccountDeleted,
+				dispatcher.ServiceAccountUpdated)
+			defer dispatcher.GetPubSubInstance().Unsub(serviceChannel)
 			testSvcAccounts := []service.K8sServiceAccount{
 				{Name: uuid.New().String(), Namespace: "ns-1"},
 				{Name: uuid.New().String(), Namespace: "ns-2"},
@@ -362,14 +362,14 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 			testSvcAccountName1 := "test-service-account-1"
 			testSvcAccountName2 := "test-service-account-2"
 
-			serviceChannel := events.GetPubSubInstance().Subscribe(announcements.ServiceAdded,
-				announcements.ServiceDeleted,
-				announcements.ServiceUpdated)
-			defer events.GetPubSubInstance().Unsub(serviceChannel)
-			podsChannel := events.GetPubSubInstance().Subscribe(announcements.PodAdded,
-				announcements.PodDeleted,
-				announcements.PodUpdated)
-			defer events.GetPubSubInstance().Unsub(podsChannel)
+			serviceChannel := dispatcher.GetPubSubInstance().Subscribe(dispatcher.ServiceAdded,
+				dispatcher.ServiceDeleted,
+				dispatcher.ServiceUpdated)
+			defer dispatcher.GetPubSubInstance().Unsub(serviceChannel)
+			podsChannel := dispatcher.GetPubSubInstance().Subscribe(dispatcher.PodAdded,
+				dispatcher.PodDeleted,
+				dispatcher.PodUpdated)
+			defer dispatcher.GetPubSubInstance().Unsub(podsChannel)
 
 			// Create a namespace
 			testNamespace := &corev1.Namespace{
@@ -461,14 +461,14 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 			testSvcAccountName1 := "test-service-account-1"
 			testSvcAccountName2 := "test-service-account-2"
 
-			serviceChannel := events.GetPubSubInstance().Subscribe(announcements.ServiceAdded,
-				announcements.ServiceDeleted,
-				announcements.ServiceUpdated)
-			defer events.GetPubSubInstance().Unsub(serviceChannel)
-			podsChannel := events.GetPubSubInstance().Subscribe(announcements.PodAdded,
-				announcements.PodDeleted,
-				announcements.PodUpdated)
-			defer events.GetPubSubInstance().Unsub(podsChannel)
+			serviceChannel := dispatcher.GetPubSubInstance().Subscribe(dispatcher.ServiceAdded,
+				dispatcher.ServiceDeleted,
+				dispatcher.ServiceUpdated)
+			defer dispatcher.GetPubSubInstance().Unsub(serviceChannel)
+			podsChannel := dispatcher.GetPubSubInstance().Subscribe(dispatcher.PodAdded,
+				dispatcher.PodDeleted,
+				dispatcher.PodUpdated)
+			defer dispatcher.GetPubSubInstance().Unsub(podsChannel)
 
 			// Create a namespace
 			testNamespace := &corev1.Namespace{

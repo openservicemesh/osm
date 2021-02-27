@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"github.com/golang/mock/gomock"
+	"github.com/google/uuid"
 	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
@@ -18,12 +18,11 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 	testclient "k8s.io/client-go/kubernetes/fake"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/configurator"
 	"github.com/openservicemesh/osm/pkg/constants"
+	"github.com/openservicemesh/osm/pkg/dispatcher"
 	"github.com/openservicemesh/osm/pkg/endpoint"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
-	"github.com/openservicemesh/osm/pkg/kubernetes/events"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 	"github.com/openservicemesh/osm/pkg/utils"
@@ -307,14 +306,14 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 	})
 
 	It("should return a service that matches the ServiceAccount associated with the Pod", func() {
-		podsAndServiceChannel := events.GetPubSubInstance().Subscribe(announcements.PodAdded,
-			announcements.PodDeleted,
-			announcements.PodUpdated,
-			announcements.ServiceAdded,
-			announcements.ServiceDeleted,
-			announcements.ServiceUpdated,
+		podsAndServiceChannel := dispatcher.GetPubSubInstance().Subscribe(dispatcher.PodAdded,
+			dispatcher.PodDeleted,
+			dispatcher.PodUpdated,
+			dispatcher.ServiceAdded,
+			dispatcher.ServiceDeleted,
+			dispatcher.ServiceUpdated,
 		)
-		defer events.GetPubSubInstance().Unsub(podsAndServiceChannel)
+		defer dispatcher.GetPubSubInstance().Unsub(podsAndServiceChannel)
 
 		// Create a Service
 		svc := &corev1.Service{
@@ -388,10 +387,10 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 	})
 
 	It("should return an error when the Service selector doesn't match the pod", func() {
-		podsChannel := events.GetPubSubInstance().Subscribe(announcements.PodAdded,
-			announcements.PodDeleted,
-			announcements.PodUpdated)
-		defer events.GetPubSubInstance().Unsub(podsChannel)
+		podsChannel := dispatcher.GetPubSubInstance().Subscribe(dispatcher.PodAdded,
+			dispatcher.PodDeleted,
+			dispatcher.PodUpdated)
+		defer dispatcher.GetPubSubInstance().Unsub(podsChannel)
 
 		// Create a Service
 		svc := &corev1.Service{
@@ -460,10 +459,10 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 	})
 
 	It("should return an error when the service doesn't have a selector", func() {
-		podsChannel := events.GetPubSubInstance().Subscribe(announcements.PodAdded,
-			announcements.PodDeleted,
-			announcements.PodUpdated)
-		defer events.GetPubSubInstance().Unsub(podsChannel)
+		podsChannel := dispatcher.GetPubSubInstance().Subscribe(dispatcher.PodAdded,
+			dispatcher.PodDeleted,
+			dispatcher.PodUpdated)
+		defer dispatcher.GetPubSubInstance().Unsub(podsChannel)
 
 		// Create a Service
 		svc := &corev1.Service{
@@ -531,14 +530,14 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 		// This test is meant to ensure the
 		// service selector logic works as expected when multiple services
 		// have the same selector match.
-		podsAndServiceChannel := events.GetPubSubInstance().Subscribe(announcements.PodAdded,
-			announcements.PodDeleted,
-			announcements.PodUpdated,
-			announcements.ServiceAdded,
-			announcements.ServiceDeleted,
-			announcements.ServiceUpdated,
+		podsAndServiceChannel := dispatcher.GetPubSubInstance().Subscribe(dispatcher.PodAdded,
+			dispatcher.PodDeleted,
+			dispatcher.PodUpdated,
+			dispatcher.ServiceAdded,
+			dispatcher.ServiceDeleted,
+			dispatcher.ServiceUpdated,
 		)
-		defer events.GetPubSubInstance().Unsub(podsAndServiceChannel)
+		defer dispatcher.GetPubSubInstance().Unsub(podsAndServiceChannel)
 
 		// Create a Service
 		svc := &corev1.Service{

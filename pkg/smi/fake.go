@@ -5,7 +5,7 @@ import (
 	spec "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	split "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
+	"github.com/openservicemesh/osm/pkg/dispatcher"
 	"github.com/openservicemesh/osm/pkg/service"
 	"github.com/openservicemesh/osm/pkg/tests"
 )
@@ -71,6 +71,6 @@ func (f fakeMeshSpec) ListTrafficTargets() []*access.TrafficTarget {
 }
 
 // GetAnnouncementsChannel returns the channel on which SMI makes announcements for the fake Mesh Spec.
-func (f fakeMeshSpec) GetAnnouncementsChannel() <-chan announcements.Announcement {
-	return make(chan announcements.Announcement)
+func (f fakeMeshSpec) GetAnnouncementsChannel() <-chan dispatcher.Announcement {
+	return make(chan dispatcher.Announcement)
 }

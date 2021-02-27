@@ -15,10 +15,10 @@ import (
 	cminformers "github.com/jetstack/cert-manager/pkg/client/informers/externalversions"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/certificate"
 	"github.com/openservicemesh/osm/pkg/certificate/rotor"
 	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/dispatcher"
 )
 
 // IssueCertificate implements certificate.Manager and returns a newly issued certificate.
@@ -89,7 +89,7 @@ func (cm *CertManager) RotateCertificate(cn certificate.CommonName) (certificate
 	oldCert := cm.cache[cn]
 	cm.cache[cn] = newCert
 	cm.cacheLock.Unlock()
-	cm.announcements <- announcements.Announcement{}
+	cm.announcements <- dispatcher.Announcement{}
 
 	log.Debug().Msgf("Rotated certificate (old SerialNumber=%s) with new SerialNumber=%s; took %+v", oldCert.GetSerialNumber(), newCert.GetSerialNumber(), time.Since(start))
 
@@ -114,7 +114,7 @@ func (cm *CertManager) ListCertificates() ([]certificate.Certificater, error) {
 
 // GetAnnouncementsChannel returns a channel, which is used to announce when
 // changes have been made to the issued certificates.
-func (cm *CertManager) GetAnnouncementsChannel() <-chan announcements.Announcement {
+func (cm *CertManager) GetAnnouncementsChannel() <-chan dispatcher.Announcement {
 	return cm.announcements
 }
 
@@ -244,7 +244,7 @@ func NewCertManager(
 	cm := &CertManager{
 		ca:            ca,
 		cache:         make(map[certificate.CommonName]certificate.Certificater),
-		announcements: make(chan announcements.Announcement),
+		announcements: make(chan dispatcher.Announcement),
 		namespace:     namespace,
 		client:        client.CertmanagerV1beta1().CertificateRequests(namespace),
 		issuerRef:     issuerRef,

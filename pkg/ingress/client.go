@@ -8,8 +8,8 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
 
-	"github.com/openservicemesh/osm/pkg/announcements"
 	"github.com/openservicemesh/osm/pkg/configurator"
+	"github.com/openservicemesh/osm/pkg/dispatcher"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 )
@@ -32,9 +32,9 @@ func NewIngressClient(kubeClient kubernetes.Interface, kubeController k8s.Contro
 	}
 
 	ingrEventTypes := k8s.EventTypes{
-		Add:    announcements.IngressAdded,
-		Update: announcements.IngressUpdated,
-		Delete: announcements.IngressDeleted,
+		Add:    dispatcher.IngressAdded,
+		Update: dispatcher.IngressUpdated,
+		Delete: dispatcher.IngressDeleted,
 	}
 	informer.AddEventHandler(k8s.GetKubernetesEventHandlers("Ingress", "Kubernetes", shouldObserve, ingrEventTypes))
 

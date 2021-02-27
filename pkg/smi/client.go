@@ -4,7 +4,6 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/pkg/errors"
 	smiAccess "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
 	smiSpecs "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/specs/v1alpha4"
 	smiSplit "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/split/v1alpha2"
@@ -14,11 +13,13 @@ import (
 	smiTrafficSpecInformers "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/specs/informers/externalversions"
 	smiTrafficSplitClient "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/clientset/versioned"
 	smiTrafficSplitInformers "github.com/servicemeshinterface/smi-sdk-go/pkg/gen/client/split/informers/externalversions"
+
+	"github.com/pkg/errors"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 
-	a "github.com/openservicemesh/osm/pkg/announcements"
+	"github.com/openservicemesh/osm/pkg/dispatcher"
 	k8s "github.com/openservicemesh/osm/pkg/kubernetes"
 	"github.com/openservicemesh/osm/pkg/service"
 )
@@ -86,7 +87,7 @@ func (c *Client) run(stop <-chan struct{}) error {
 }
 
 // GetAnnouncementsChannel returns the announcement channel for the SMI client.
-func (c *Client) GetAnnouncementsChannel() <-chan a.Announcement {
+func (c *Client) GetAnnouncementsChannel() <-chan dispatcher.Announcement {
 	return c.announcements
 }
 
@@ -115,7 +116,7 @@ func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient smiTraf
 		informers:      &informerCollection,
 		caches:         &cacheCollection,
 		cacheSynced:    make(chan interface{}),
-		announcements:  make(chan a.Announcement),
+		announcements:  make(chan dispatcher.Announcement),
 		osmNamespace:   osmNamespace,
 		kubeController: kubeController,
 	}
@@ -126,30 +127,30 @@ func newSMIClient(kubeClient kubernetes.Interface, smiTrafficSplitClient smiTraf
 	}
 
 	splitEventTypes := k8s.EventTypes{
-		Add:    a.TrafficSplitAdded,
-		Update: a.TrafficSplitUpdated,
-		Delete: a.TrafficSplitDeleted,
+		Add:    dispatcher.TrafficSplitAdded,
+		Update: dispatcher.TrafficSplitUpdated,
+		Delete: dispatcher.TrafficSplitDeleted,
 	}
 	informerCollection.TrafficSplit.AddEventHandler(k8s.GetKubernetesEventHandlers("TrafficSplit", "SMI", shouldObserve, splitEventTypes))
 
 	routeGroupEventTypes := k8s.EventTypes{
-		Add:    a.RouteGroupAdded,
-		Update: a.RouteGroupUpdated,
-		Delete: a.RouteGroupDeleted,
+		Add:    dispatcher.RouteGroupAdded,
+		Update: dispatcher.RouteGroupUpdated,
+		Delete: dispatcher.RouteGroupDeleted,
 	}
 	informerCollection.HTTPRouteGroup.AddEventHandler(k8s.GetKubernetesEventHandlers("HTTPRouteGroup", "SMI", shouldObserve, routeGroupEventTypes))
 
 	tcpRouteEventTypes := k8s.EventTypes{
-		Add:    a.TCPRouteAdded,
-		Update: a.TCPRouteUpdated,
-		Delete: a.TCPRouteDeleted,
+		Add:    dispatcher.TCPRouteAdded,
+		Update: dispatcher.TCPRouteUpdated,
+		Delete: dispatcher.TCPRouteDeleted,
 	}
 	informerCollection.TCPRoute.AddEventHandler(k8s.GetKubernetesEventHandlers("TCPRoute", "SMI", shouldObserve, tcpRouteEventTypes))
 
 	trafficTargetEventTypes := k8s.EventTypes{
-		Add:    a.TrafficTargetAdded,
-		Update: a.TrafficTargetUpdated,
-		Delete: a.TrafficTargetDeleted,
+		Add:    dispatcher.TrafficTargetAdded,
+		Update: dispatcher.TrafficTargetUpdated,
+		Delete: dispatcher.TrafficTargetDeleted,
 	}
 	informerCollection.TrafficTarget.AddEventHandler(k8s.GetKubernetesEventHandlers("TrafficTarget", "SMI", shouldObserve, trafficTargetEventTypes))
 
