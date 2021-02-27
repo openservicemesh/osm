@@ -36,6 +36,10 @@ type Proxy struct {
 	PodMetadata *PodMetadata
 }
 
+func (p Proxy) String() string {
+	return fmt.Sprintf("Proxy on Pod with UID=%s", p.GetPodUID())
+}
+
 // PodMetadata is a struct holding information on the Pod on which a given Envoy proxy is installed
 // This struct is initialized *eventually*, when the metadata arrives via xDS.
 type PodMetadata struct {
@@ -159,11 +163,6 @@ func (p Proxy) GetCertificateSerialNumber() certificate.SerialNumber {
 // GetConnectedAt returns the timestamp of when the given proxy connected to the control plane.
 func (p Proxy) GetConnectedAt() time.Time {
 	return p.connectedAt
-}
-
-// GetIP returns the IP address of the Envoy proxy connected to xDS.
-func (p Proxy) GetIP() net.Addr {
-	return p.Addr
 }
 
 // GetAnnouncementsChannel returns the announcement channel for the given Envoy proxy.
