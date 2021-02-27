@@ -52,7 +52,7 @@ Note that the full path can also specify the release (as branchname), as the str
 
 Relative links between markdown pages within the site should be simpler, except [it's hard](https://github.com/openservicemesh/osm/issues/2453#issuecomment-776236289) to create links that work on both Github.com and docs.openservicemesh.io. Github paths require file extensions (`/filename.md`), whereas Hugo needs just the slug (`/filename`). 
 
-To ensure the relative link works in both destinations, the best approach is to write the url with the `.md` extension (for Github) and then to add an `aliases` redirect for the path with the extension. 
+To ensure the relative link works in both destinations, the best approach is to write the url with the `.md` extension (for Github) and then to add an `aliases` redirect for the path with the extension. (The path without the extension will work on the website by default.)
 
 Example - linking foo.md (1) to bar.md (2):
 
@@ -62,7 +62,7 @@ Example - linking foo.md (1) to bar.md (2):
 title: "Foo.md"
 description: "Foo"
 type: docs
-aliases: ["foo"]
+aliases: ["foo.md"]
 ---
 
 Here's a link to [Bar](./bar.md).
@@ -74,7 +74,7 @@ Here's a link to [Bar](./bar.md).
 title: "Bar.md"
 description: "Bar"
 type: docs
-aliases: ["bar"]
+aliases: ["bar.md"]
 ---
 
 This is Bar. Go back to [Foo](./foo.md).
