@@ -142,7 +142,7 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 			serviceChannel := dispatcher.GetPubSubInstance().Subscribe(dispatcher.ServiceAdded,
 				dispatcher.ServiceDeleted,
 				dispatcher.ServiceUpdated)
-			defer dispatcher.GetPubSubInstance().Unsub(serviceChannel)
+			defer dispatcher.GetPubSubInstance().Unsubscribe(serviceChannel)
 
 			// Create monitored namespace for this service
 			testNamespace := &corev1.Namespace{
@@ -191,7 +191,7 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 			serviceChannel := dispatcher.GetPubSubInstance().Subscribe(dispatcher.ServiceAdded,
 				dispatcher.ServiceDeleted,
 				dispatcher.ServiceUpdated)
-			defer dispatcher.GetPubSubInstance().Unsub(serviceChannel)
+			defer dispatcher.GetPubSubInstance().Unsubscribe(serviceChannel)
 			testSvcs := []service.MeshService{
 				{Name: uuid.New().String(), Namespace: "ns-1"},
 				{Name: uuid.New().String(), Namespace: "ns-2"},
@@ -258,7 +258,7 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 			serviceChannel := dispatcher.GetPubSubInstance().Subscribe(dispatcher.ServiceAccountAdded,
 				dispatcher.ServiceAccountDeleted,
 				dispatcher.ServiceAccountUpdated)
-			defer dispatcher.GetPubSubInstance().Unsub(serviceChannel)
+			defer dispatcher.GetPubSubInstance().Unsubscribe(serviceChannel)
 
 			// Create monitored namespace for this service
 			testNamespace := &corev1.Namespace{
@@ -294,7 +294,7 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 			serviceChannel := dispatcher.GetPubSubInstance().Subscribe(dispatcher.ServiceAccountAdded,
 				dispatcher.ServiceAccountDeleted,
 				dispatcher.ServiceAccountUpdated)
-			defer dispatcher.GetPubSubInstance().Unsub(serviceChannel)
+			defer dispatcher.GetPubSubInstance().Unsubscribe(serviceChannel)
 			testSvcAccounts := []service.K8sServiceAccount{
 				{Name: uuid.New().String(), Namespace: "ns-1"},
 				{Name: uuid.New().String(), Namespace: "ns-2"},
@@ -365,11 +365,11 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 			serviceChannel := dispatcher.GetPubSubInstance().Subscribe(dispatcher.ServiceAdded,
 				dispatcher.ServiceDeleted,
 				dispatcher.ServiceUpdated)
-			defer dispatcher.GetPubSubInstance().Unsub(serviceChannel)
+			defer dispatcher.GetPubSubInstance().Unsubscribe(serviceChannel)
 			podsChannel := dispatcher.GetPubSubInstance().Subscribe(dispatcher.PodAdded,
 				dispatcher.PodDeleted,
 				dispatcher.PodUpdated)
-			defer dispatcher.GetPubSubInstance().Unsub(podsChannel)
+			defer dispatcher.GetPubSubInstance().Unsubscribe(podsChannel)
 
 			// Create a namespace
 			testNamespace := &corev1.Namespace{
@@ -464,11 +464,11 @@ var _ = Describe("Test Namespace KubeController Methods", func() {
 			serviceChannel := dispatcher.GetPubSubInstance().Subscribe(dispatcher.ServiceAdded,
 				dispatcher.ServiceDeleted,
 				dispatcher.ServiceUpdated)
-			defer dispatcher.GetPubSubInstance().Unsub(serviceChannel)
+			defer dispatcher.GetPubSubInstance().Unsubscribe(serviceChannel)
 			podsChannel := dispatcher.GetPubSubInstance().Subscribe(dispatcher.PodAdded,
 				dispatcher.PodDeleted,
 				dispatcher.PodUpdated)
-			defer dispatcher.GetPubSubInstance().Unsub(podsChannel)
+			defer dispatcher.GetPubSubInstance().Unsubscribe(podsChannel)
 
 			// Create a namespace
 			testNamespace := &corev1.Namespace{

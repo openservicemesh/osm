@@ -313,7 +313,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 			dispatcher.ServiceDeleted,
 			dispatcher.ServiceUpdated,
 		)
-		defer dispatcher.GetPubSubInstance().Unsub(podsAndServiceChannel)
+		defer dispatcher.GetPubSubInstance().Unsubscribe(podsAndServiceChannel)
 
 		// Create a Service
 		svc := &corev1.Service{
@@ -390,7 +390,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 		podsChannel := dispatcher.GetPubSubInstance().Subscribe(dispatcher.PodAdded,
 			dispatcher.PodDeleted,
 			dispatcher.PodUpdated)
-		defer dispatcher.GetPubSubInstance().Unsub(podsChannel)
+		defer dispatcher.GetPubSubInstance().Unsubscribe(podsChannel)
 
 		// Create a Service
 		svc := &corev1.Service{
@@ -462,7 +462,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 		podsChannel := dispatcher.GetPubSubInstance().Subscribe(dispatcher.PodAdded,
 			dispatcher.PodDeleted,
 			dispatcher.PodUpdated)
-		defer dispatcher.GetPubSubInstance().Unsub(podsChannel)
+		defer dispatcher.GetPubSubInstance().Unsubscribe(podsChannel)
 
 		// Create a Service
 		svc := &corev1.Service{
@@ -537,7 +537,7 @@ var _ = Describe("Test Kube Client Provider (/w kubecontroller)", func() {
 			dispatcher.ServiceDeleted,
 			dispatcher.ServiceUpdated,
 		)
-		defer dispatcher.GetPubSubInstance().Unsub(podsAndServiceChannel)
+		defer dispatcher.GetPubSubInstance().Unsubscribe(podsAndServiceChannel)
 
 		// Create a Service
 		svc := &corev1.Service{

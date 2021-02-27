@@ -20,7 +20,7 @@ type PubSub interface {
 	// Unsub unsubscribes and closes the channel on pubsub backend
 	// Note this is a necessary step to ensure a channel can be
 	// garbage collected when it is freed.
-	Unsub(unsubChan chan interface{})
+	Unsubscribe(unsubChan chan interface{})
 }
 
 // AnnouncementType is used to record the type of announcement

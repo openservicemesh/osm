@@ -29,7 +29,7 @@ var _ = Describe("Testing event handlers", func() {
 
 		It("Should add the event to the announcement channel", func() {
 			podAddChannel := dispatcher.GetPubSubInstance().Subscribe(dispatcher.PodAdded)
-			defer dispatcher.GetPubSubInstance().Unsub(podAddChannel)
+			defer dispatcher.GetPubSubInstance().Unsubscribe(podAddChannel)
 
 			pod := tests.NewPodFixture(testNamespace, "pod-name", tests.BookstoreServiceAccountName, tests.PodLabels)
 			eventTypes := EventTypes{
@@ -57,7 +57,7 @@ var _ = Describe("Testing event handlers", func() {
 
 		It("Should not add the event to the announcement channel", func() {
 			podAddChannel := dispatcher.GetPubSubInstance().Subscribe(dispatcher.PodAdded)
-			defer dispatcher.GetPubSubInstance().Unsub(podAddChannel)
+			defer dispatcher.GetPubSubInstance().Unsubscribe(podAddChannel)
 
 			var pod corev1.Pod
 			pod.Namespace = "not-a-monitored-namespace"

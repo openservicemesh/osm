@@ -96,7 +96,7 @@ var _ = Describe("When listing TrafficSplit", func() {
 		tsChannel := dispatcher.GetPubSubInstance().Subscribe(dispatcher.TrafficSplitAdded,
 			dispatcher.TrafficSplitDeleted,
 			dispatcher.TrafficSplitUpdated)
-		defer dispatcher.GetPubSubInstance().Unsub(tsChannel)
+		defer dispatcher.GetPubSubInstance().Unsubscribe(tsChannel)
 
 		split := &smiSplit.TrafficSplit{
 			ObjectMeta: metav1.ObjectMeta{
@@ -147,7 +147,7 @@ var _ = Describe("When listing TrafficSplit services", func() {
 		tsChannel := dispatcher.GetPubSubInstance().Subscribe(dispatcher.TrafficSplitAdded,
 			dispatcher.TrafficSplitDeleted,
 			dispatcher.TrafficSplitUpdated)
-		defer dispatcher.GetPubSubInstance().Unsub(tsChannel)
+		defer dispatcher.GetPubSubInstance().Unsubscribe(tsChannel)
 
 		split := &smiSplit.TrafficSplit{
 			ObjectMeta: metav1.ObjectMeta{
@@ -202,7 +202,7 @@ var _ = Describe("When listing ServiceAccounts", func() {
 		ttChannel := dispatcher.GetPubSubInstance().Subscribe(dispatcher.TrafficTargetAdded,
 			dispatcher.TrafficTargetDeleted,
 			dispatcher.TrafficTargetUpdated)
-		defer dispatcher.GetPubSubInstance().Unsub(ttChannel)
+		defer dispatcher.GetPubSubInstance().Unsubscribe(ttChannel)
 
 		trafficTarget := &smiAccess.TrafficTarget{
 			TypeMeta: metav1.TypeMeta{
@@ -262,7 +262,7 @@ var _ = Describe("When listing TrafficTargets", func() {
 		ttChannel := dispatcher.GetPubSubInstance().Subscribe(dispatcher.TrafficTargetAdded,
 			dispatcher.TrafficTargetDeleted,
 			dispatcher.TrafficTargetUpdated)
-		defer dispatcher.GetPubSubInstance().Unsub(ttChannel)
+		defer dispatcher.GetPubSubInstance().Unsubscribe(ttChannel)
 
 		trafficTarget := &smiAccess.TrafficTarget{
 			TypeMeta: metav1.TypeMeta{
@@ -325,7 +325,7 @@ var _ = Describe("When listing ListHTTPTrafficSpecs", func() {
 		rgChannel := dispatcher.GetPubSubInstance().Subscribe(dispatcher.RouteGroupAdded,
 			dispatcher.RouteGroupDeleted,
 			dispatcher.RouteGroupUpdated)
-		defer dispatcher.GetPubSubInstance().Unsub(rgChannel)
+		defer dispatcher.GetPubSubInstance().Unsubscribe(rgChannel)
 
 		routeSpec := &smiSpecs.HTTPRouteGroup{
 			TypeMeta: metav1.TypeMeta{
@@ -395,7 +395,7 @@ var _ = Describe("When listing TCP routes", func() {
 		trChannel := dispatcher.GetPubSubInstance().Subscribe(dispatcher.TCPRouteAdded,
 			dispatcher.TCPRouteDeleted,
 			dispatcher.TCPRouteUpdated)
-		defer dispatcher.GetPubSubInstance().Unsub(trChannel)
+		defer dispatcher.GetPubSubInstance().Unsubscribe(trChannel)
 		routeSpec := &smiSpecs.TCPRoute{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: "specs.smi-spec.io/v1alpha4",

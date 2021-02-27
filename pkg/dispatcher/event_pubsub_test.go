@@ -72,7 +72,7 @@ func TestPubSubClose(t *testing.T) {
 	})
 
 	// make sure channel is drained and closed
-	GetPubSubInstance().Unsub(subChannel)
+	GetPubSubInstance().Unsubscribe(subChannel)
 
 	// Channel has to have been already emptied and closed
 	_, ok := <-subChannel

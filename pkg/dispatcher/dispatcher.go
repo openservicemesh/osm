@@ -77,6 +77,11 @@ func flatten(groups ...[]AnnouncementType) []AnnouncementType {
 	return all
 }
 
+// GetAllAnnouncementTypes returns all available AnnouncementTypes
+func GetAllAnnouncementTypes() []AnnouncementType {
+	return flatten(allGroups...)
+}
+
 // isDeltaUpdate assesses and returns if a pubsub message contains an actual delta in config
 func isDeltaUpdate(psubMsg PubSubMessage) bool {
 	// TODO(draychev): "updated" needs to be a constant tied to the actual AnnouncementType
@@ -85,12 +90,7 @@ func isDeltaUpdate(psubMsg PubSubMessage) bool {
 }
 
 // Start launches the dispatcher goroutine.
-func Start(stop chan struct{}) {
-	// This will be finely tuned in near future, we can instrument other modules
-	// to take ownership of certain events, and just notify Start through
-	// ScheduleBroadcastUpdate announcement type
-	subChannel := GetPubSubInstance().Subscribe(flatten(allGroups...)...)
-
+func Start(stop chan struct{}, subChannel chan interface{}, pubSub PubSub) {
 	// State and channels for event-coalescing
 	broadcastScheduled := false
 	chanMovingDeadline := make(<-chan time.Time)
@@ -149,7 +149,7 @@ func Start(stop chan struct{}) {
 		// A select-fallthrough doesn't exist, we are copying some code here
 		case <-chanMovingDeadline:
 			log.Debug().Msgf("[Moving deadline trigger] Broadcast envoy update")
-			GetPubSubInstance().Publish(PubSubMessage{
+			pubSub.Publish(PubSubMessage{
 				AnnouncementType: ProxyBroadcast,
 			})
 
@@ -160,7 +160,7 @@ func Start(stop chan struct{}) {
 
 		case <-chanMaxDeadline:
 			log.Debug().Msgf("[Max deadline trigger] Broadcast envoy update")
-			GetPubSubInstance().Publish(PubSubMessage{
+			pubSub.Publish(PubSubMessage{
 				AnnouncementType: ProxyBroadcast,
 			})
 

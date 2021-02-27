@@ -2,15 +2,11 @@ package dispatcher
 
 import "github.com/cskr/pubsub"
 
-const (
-	// Default number of events a subscriber channel will buffer
-	defaultAnnouncementChannelSize = 512
-)
+// Default number of events a subscriber channel will buffer
+const defaultAnnouncementChannelSize = 512
 
-var (
-	// Globally accessible instance, through singleton pattern GetPubSubInstance
-	pubSubInstance *osmPubsub
-)
+// Globally accessible instance, through singleton pattern GetPubSubInstance
+var pubSubInstance *osmPubsub
 
 // Object which implements the PubSub interface
 type osmPubsub struct {
@@ -18,10 +14,10 @@ type osmPubsub struct {
 }
 
 // Subscribe is the Subscribe implementation for PubSub
-func (c *osmPubsub) Subscribe(aTypes ...AnnouncementType) chan interface{} {
-	subTypes := []string{}
-	for _, v := range aTypes {
-		subTypes = append(subTypes, string(v))
+func (c *osmPubsub) Subscribe(announcementTypes ...AnnouncementType) chan interface{} {
+	var subTypes []string
+	for _, announcementType := range announcementTypes {
+		subTypes = append(subTypes, announcementType.String())
 	}
 
 	return c.pSub.Sub(subTypes...)
@@ -34,9 +30,9 @@ func (c *osmPubsub) Publish(message PubSubMessage) {
 
 // Unsub is the Unsub implementation for PubSub.
 // It is synchronized, upon exit the channel is guaranteed to be both
-// unsubbed to all topics and closed.
+// unsubscribed to all topics and closed.
 // This is a necessary step to guarantee garbage collection
-func (c *osmPubsub) Unsub(unsubChan chan interface{}) {
+func (c *osmPubsub) Unsubscribe(unsubChan chan interface{}) {
 	// implementation has several requirements (including different goroutine context)
 	// https://github.com/cskr/pubsub/blob/v1.0.2/pubsub.go#L102
 

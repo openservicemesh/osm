@@ -53,7 +53,7 @@ var _ = Describe("Test Envoy configuration creation", func() {
 		})
 
 		AfterEach(func() {
-			dispatcher.GetPubSubInstance().Unsub(confChannel)
+			dispatcher.GetPubSubInstance().Unsubscribe(confChannel)
 		})
 
 		It("test GetConfigMap", func() {
@@ -101,7 +101,7 @@ var _ = Describe("Test Envoy configuration creation", func() {
 		})
 
 		AfterEach(func() {
-			dispatcher.GetPubSubInstance().Unsub(confChannel)
+			dispatcher.GetPubSubInstance().Unsubscribe(confChannel)
 		})
 
 		It("correctly identifies that permissive_traffic_policy_mode is enabled", func() {
@@ -164,7 +164,7 @@ var _ = Describe("Test Envoy configuration creation", func() {
 		})
 
 		AfterEach(func() {
-			dispatcher.GetPubSubInstance().Unsub(confChannel)
+			dispatcher.GetPubSubInstance().Unsubscribe(confChannel)
 		})
 
 		It("correctly identifies that egress is enabled", func() {
@@ -226,7 +226,7 @@ var _ = Describe("Test Envoy configuration creation", func() {
 		})
 
 		AfterEach(func() {
-			dispatcher.GetPubSubInstance().Unsub(confChannel)
+			dispatcher.GetPubSubInstance().Unsubscribe(confChannel)
 		})
 
 		It("correctly identifies that the debug server is enabled", func() {
@@ -265,7 +265,7 @@ var _ = Describe("Test Envoy configuration creation", func() {
 		})
 
 		AfterEach(func() {
-			dispatcher.GetPubSubInstance().Unsub(confChannel)
+			dispatcher.GetPubSubInstance().Unsubscribe(confChannel)
 		})
 
 		It("correctly identifies that the config is enabled", func() {
@@ -327,7 +327,7 @@ var _ = Describe("Test Envoy configuration creation", func() {
 		})
 
 		AfterEach(func() {
-			dispatcher.GetPubSubInstance().Unsub(confChannel)
+			dispatcher.GetPubSubInstance().Unsubscribe(confChannel)
 		})
 
 		It("correctly identifies that the config is enabled", func() {
@@ -391,7 +391,7 @@ var _ = Describe("Test Envoy configuration creation", func() {
 		})
 
 		AfterEach(func() {
-			dispatcher.GetPubSubInstance().Unsub(confChannel)
+			dispatcher.GetPubSubInstance().Unsubscribe(confChannel)
 		})
 
 		It("correctly identifies that the Envoy log level is error", func() {
@@ -474,7 +474,7 @@ var _ = Describe("Test Envoy configuration creation", func() {
 		})
 
 		AfterEach(func() {
-			dispatcher.GetPubSubInstance().Unsub(confChannel)
+			dispatcher.GetPubSubInstance().Unsubscribe(confChannel)
 		})
 
 		It("correctly retrieves the default service cert validity duration when an invalid value is specified", func() {
@@ -526,7 +526,7 @@ var _ = Describe("Test Envoy configuration creation", func() {
 		})
 
 		AfterEach(func() {
-			dispatcher.GetPubSubInstance().Unsub(confChannel)
+			dispatcher.GetPubSubInstance().Unsubscribe(confChannel)
 		})
 
 		It("correctly returns an empty list when no exclusion list is specified", func() {

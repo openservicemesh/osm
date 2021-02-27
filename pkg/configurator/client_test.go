@@ -33,7 +33,7 @@ var _ = Describe("Test OSM ConfigMap parsing", func() {
 		dispatcher.ConfigMapAdded,
 		dispatcher.ConfigMapDeleted,
 		dispatcher.ConfigMapUpdated)
-	defer dispatcher.GetPubSubInstance().Unsub(confChannel)
+	defer dispatcher.GetPubSubInstance().Unsubscribe(confChannel)
 
 	configMap := v1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{

@@ -7,6 +7,7 @@ import (
 
 var _ = Describe("Test Dispatcher functions", func() {
 	defer GinkgoRecover()
+
 	Context("Test isDeltaUpdate()", func() {
 		It("returns false", func() {
 			message := PubSubMessage{
@@ -25,13 +26,27 @@ var _ = Describe("Test Dispatcher functions", func() {
 			expected := []AnnouncementType{TCPRouteAdded, TCPRouteDeleted, EndpointAdded, EndpointDeleted}
 			actual := flatten(groups...)
 			Expect(actual).To(Equal(expected))
+			Expect(len(GetAllAnnouncementTypes())).To(Equal(31))
 		})
 	})
 
 	Context("Test Start()", func() {
 		It("works", func() {
 			stop := make(chan struct{})
-			go func() { Start(stop) }()
+			ch := make(chan interface{})
+			go func() {
+				defer GinkgoRecover()
+				Start(stop, ch, GetPubSubInstance())
+			}()
+
+			message := PubSubMessage{
+				AnnouncementType: EndpointDeleted,
+				OldObj:           nil,
+				NewObj:           nil,
+			}
+
+			ch <- message
+
 			close(stop)
 		})
 	})

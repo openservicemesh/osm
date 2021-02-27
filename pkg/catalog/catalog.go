@@ -32,7 +32,12 @@ func NewMeshCatalog(kubeController k8s.Controller, kubeClient kubernetes.Interfa
 	// Run release certificate handler, which listens to podDelete events
 	mc.releaseCertificateHandler()
 
-	go dispatcher.Start(stop)
+	// This will be finely tuned in near future, we can instrument other modules
+	// to take ownership of certain events, and just notify Start through
+	// ScheduleBroadcastUpdate announcement type
+	pubSub := dispatcher.GetPubSubInstance()
+	subChannel := pubSub.Subscribe(dispatcher.GetAllAnnouncementTypes()...)
+	go dispatcher.Start(stop, subChannel, pubSub)
 	return &mc
 }
 
