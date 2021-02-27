@@ -2,7 +2,7 @@
 title: "Metrics"
 description: "Metrics"
 type: docs
-aliases: ["metrics"]
+aliases: ["metrics.md"]
 ---
 
 
