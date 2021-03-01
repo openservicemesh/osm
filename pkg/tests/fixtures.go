@@ -4,7 +4,6 @@ package tests
 import (
 	"encoding/pem"
 	"errors"
-	"fmt"
 	"net"
 
 	access "github.com/servicemeshinterface/smi-sdk-go/pkg/apis/access/v1alpha3"
@@ -210,75 +209,6 @@ var (
 	Endpoint = endpoint.Endpoint{
 		IP:   net.ParseIP(ServiceIP),
 		Port: endpoint.Port(ServicePort),
-	}
-
-	// BookstoreV1TrafficPolicy is a traffic policy SMI object.
-	BookstoreV1TrafficPolicy = trafficpolicy.TrafficTarget{
-		Name:        fmt.Sprintf("%s:default/bookbuyer->default/bookstore-v1", TrafficTargetName),
-		Destination: BookstoreV1Service,
-		Source:      BookbuyerService,
-		HTTPRouteMatches: []trafficpolicy.HTTPRouteMatch{
-			{
-				PathRegex: BookstoreBuyPath,
-				Methods:   []string{"GET"},
-				Headers: map[string]string{
-					"user-agent": HTTPUserAgent,
-				},
-			},
-			{
-				PathRegex: BookstoreSellPath,
-				Methods:   []string{"GET"},
-				Headers: map[string]string{
-					"user-agent": HTTPUserAgent,
-				},
-			},
-		},
-	}
-
-	// BookstoreV2TrafficPolicy is a traffic policy SMI object.
-	BookstoreV2TrafficPolicy = trafficpolicy.TrafficTarget{
-		Name:        fmt.Sprintf("%s:default/bookbuyer->default/bookstore-v2", BookstoreV2TrafficTargetName),
-		Destination: BookstoreV2Service,
-		Source:      BookbuyerService,
-		HTTPRouteMatches: []trafficpolicy.HTTPRouteMatch{
-			{
-				PathRegex: BookstoreBuyPath,
-				Methods:   []string{"GET"},
-				Headers: map[string]string{
-					"user-agent": HTTPUserAgent,
-				},
-			},
-			{
-				PathRegex: BookstoreSellPath,
-				Methods:   []string{"GET"},
-				Headers: map[string]string{
-					"user-agent": HTTPUserAgent,
-				},
-			},
-		},
-	}
-
-	// BookstoreApexTrafficPolicy is a traffic policy SMI object.
-	BookstoreApexTrafficPolicy = trafficpolicy.TrafficTarget{
-		Name:        fmt.Sprintf("%s:default/bookbuyer->default/bookstore-apex", TrafficTargetName),
-		Destination: BookstoreApexService,
-		Source:      BookbuyerService,
-		HTTPRouteMatches: []trafficpolicy.HTTPRouteMatch{
-			{
-				PathRegex: BookstoreBuyPath,
-				Methods:   []string{"GET"},
-				Headers: map[string]string{
-					"user-agent": HTTPUserAgent,
-				},
-			},
-			{
-				PathRegex: BookstoreSellPath,
-				Methods:   []string{"GET"},
-				Headers: map[string]string{
-					"user-agent": HTTPUserAgent,
-				},
-			},
-		},
 	}
 
 	// TrafficSplit is a traffic split SMI object.

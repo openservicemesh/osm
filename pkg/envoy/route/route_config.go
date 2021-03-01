@@ -139,7 +139,6 @@ func buildOutboundRoutes(outRoutes []*trafficpolicy.RouteWeightedClusters) []*xd
 	var routes []*xds_route.Route
 	for _, outRoute := range outRoutes {
 		emptyHeaders := map[string]string{}
-		// TODO: When implementing trafficsplit v1alpha4, buildRoute here should take in path, method, headers from trafficpolicy.HTTPRouteMatch
 		routes = append(routes, buildRoute(constants.RegexMatchAll, constants.WildcardHTTPMethod, emptyHeaders, outRoute.WeightedClusters, outRoute.TotalClustersWeight(), OutboundRoute))
 	}
 	return routes
